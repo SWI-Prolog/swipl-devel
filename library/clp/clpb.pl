@@ -238,13 +238,19 @@ sat(Sat0) :-
         foldl(root_and, Roots, Sat0-BDD, And-BDD1),
         maplist(del_bdd, Roots),
         maplist(=(Root), Roots),
-        put_attr(Root, bdd, And-BDD1),
+        root_put_formula_bdd(Root, And, BDD1),
         satisfiable_bdd(BDD1).
 
-del_bdd(Root) :- del_attr(Root, bdd).
+del_bdd(Root) :- del_attr(Root, clpb_bdd).
+
+root_get_formula_bdd(Root, F, BDD) :- get_attr(Root, clpb_bdd, F-BDD).
+
+root_put_formula_bdd(Root, F, BDD) :- put_attr(Root, clpb_bdd, F-BDD).
+
+clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 
 root_and(Root, Sat0-BDD0, Sat-BDD) :-
-        (   get_attr(Root, bdd, F-B) ->
+        (   root_get_formula_bdd(Root, F, B) ->
             Sat = F*Sat0,
             bdd_and(B, BDD0, BDD)
         ;   Sat = Sat0,
@@ -318,12 +324,12 @@ node_id(Node, ID) :-
             ;   Node =:= 1 -> ID = true
             ;   no_truth_value(Node)
             )
-        ;   get_attr(Node, id, ID0),
+        ;   get_attr(Node, clpb_id, ID0),
             ID = node(ID0)
         ).
 
 node_var_low_high(Node, Var, Low, High) :-
-        get_attr(Node, node, node(Var,Low,High)).
+        get_attr(Node, clpb_node, node(Var,Low,High)).
 
 
 make_node(Var, Low, High, Node) -->
@@ -334,14 +340,19 @@ make_node(Var, Low, High, Node) -->
               var_index(Var, VI),
               Triple = node(VI,LID,HID),
               (   get_assoc(Triple, H0, Node) -> H0 = H
-              ;   put_attr(Node, node, node(Var,Low,High)),
+              ;   put_attr(Node, clpb_node, node(Var,Low,High)),
                   nb_getval('$clpb_next_node', ID0),
-                  put_attr(Node, id, ID0),
+                  put_attr(Node, clpb_id, ID0),
                   ID is ID0 + 1,
                   nb_setval('$clpb_next_node', ID),
                   put_assoc(Triple, H0, Node, H)
               )
           ) }.
+
+clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
+
+clpb_id:attr_unify_hook(_,_) :- representation_error(cannot_unify_id).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    sat_bdd/2 converts a SAT formula in canonical form to an ordered
@@ -355,8 +366,8 @@ make_node(Var, Low, High, Node) -->
    where Index is the variable's unique integer index, and Root is the
    root of the BDD that the variable belongs to.
 
-   A root is a logical variable with a single attribute ("bdd") of the
-   form:
+   A root is a logical variable with a single attribute ("clpb_bdd")
+   of the form:
 
         Sat-BDD
 
@@ -368,12 +379,12 @@ make_node(Var, Low, High, Node) -->
       *)  The integers 0 or 1, denoting false and true, respectively, or
       *)  A variable with attributes:
 
-           "node" of the form node(Var, Low, High)
+           "clpb_node" of the form node(Var, Low, High)
                Where Var is the node's branching variable, and Low and
                High are the node's low (Var = 0) and high (Var = 1)
                children.
 
-           "id" denoting the node's unique integer ID.
+           "clpb_id" denoting the node's unique integer ID.
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
@@ -415,7 +426,7 @@ counter_network(Cs, Fs, Node) -->
         counter_network(Fs, Indicators, Vars, Node0),
         { maplist(var_index_root, Vars, _, Roots),
           maplist(=(Root), Roots),
-          put_attr(Root, bdd, card(Cs,Fs)-Node) },
+          root_put_formula_bdd(Root, card(Cs,Fs), Node) },
         eq_and(Vars, Fs, Node0, Node1),
         all_existential(Vars, Node1, Node).
 
@@ -508,29 +519,29 @@ var_less_than(NA, NB) :-
 attr_unify_hook(index_root(I,Root), Other) :-
         (   integer(Other) ->
             (   between(0, 1, Other) ->
-                get_attr(Root, bdd, Sat-BDD0),
+                root_get_formula_bdd(Root, Sat, BDD0),
                 bdd_restriction(BDD0, I, Other, BDD),
-                put_attr(Root, bdd, Sat-BDD),
+                root_put_formula_bdd(Root, Sat, BDD),
                 satisfiable_bdd(BDD)
             ;   no_truth_value(Other)
             )
         ;   parse_sat(Other, OtherSat),
-            get_attr(Root, bdd, Sat0-_),
+            root_get_formula_bdd(Root, Sat0, _),
             Sat = Sat0*OtherSat,
             sat_roots(Sat, Roots),
             maplist(root_rebuild_bdd, Roots),
             foldl(root_and, Roots, 1-1, And-BDD1),
             maplist(del_bdd, Roots),
             maplist(=(NewRoot), Roots),
-            put_attr(NewRoot, bdd, And-BDD1),
+            root_put_formula_bdd(NewRoot, And, BDD1),
             satisfiable_bdd(BDD1)
         ).
 
 root_rebuild_bdd(Root) :-
-        (   get_attr(Root, bdd, F0-_) ->
+        (   root_get_formula_bdd(Root, F0, _) ->
             parse_sat(F0, Sat),
             sat_bdd(Sat, BDD),
-            put_attr(Root, bdd, F0-BDD)
+            root_put_formula_bdd(Root, F0, BDD)
         ;   true
         ).
 
@@ -593,9 +604,9 @@ bdd_restriction_(Node, VI, Value, Res) -->
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         boolean(Var),
-        (   { get_attr(Root, bdd, _-BDD) } ->
+        (   { root_get_formula_bdd(Root, _, BDD) } ->
             bdd_ite(BDD),
-            { del_attr(Root, bdd) }
+            { del_bdd(Root) }
         ;   []
         ).
 
@@ -605,11 +616,14 @@ bdd_ite(B) -->
         bdd_ite_(B),
         { bdd_clear(B) }.
 
+clpb_visited:attr_unify_hook(_, _) :-
+        representation_error(cannot_unify_visited).
+
 bdd_ite_(Node) -->
-        (   { integer(Node) ;  get_attr(Node, visited, true) } -> []
+        (   { integer(Node) ;  get_attr(Node, clpb_visited, true) } -> []
         ;   { node_id(Node, ID) } ->
             { node_var_low_high(Node, Var, Low, High),
-              put_attr(Node, visited, true),
+              put_attr(Node, clpb_visited, true),
               node_id(High, HID),
               node_id(Low, LID) },
             [ID-(Var -> HID ; LID )],
@@ -669,15 +683,17 @@ sat_count(Sat0, N) :-
 
 bdd_count(Node, VNum, Count) :-
         (   integer(Node) -> Count = Node
-        ;   get_attr(Node, count, Count) -> true
+        ;   get_attr(Node, clpb_count, Count) -> true
         ;   node_var_low_high(Node, V, Low, High),
             bdd_count(Low, VNum, LCount),
             bdd_count(High, VNum, HCount),
             bdd_pow(Low, V, VNum, LPow),
             bdd_pow(High, V, VNum, HPow),
             Count is LPow*LCount + HPow*HCount,
-            put_attr(Node, count, Count)
+            put_attr(Node, clpb_count, Count)
         ).
+
+clpb_count:attr_unify_hook(_, _) :- representation_error(cannot_unify_count).
 
 bdd_pow(Node, V, VNum, Pow) :-
         var_index(V, Index),
