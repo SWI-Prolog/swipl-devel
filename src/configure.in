@@ -1196,6 +1196,23 @@ case "$PLARCH" in
 [#include <windows.h>
 ])
       fi
+      AC_CHECK_LIB(imagehlp, ImageLoad,
+		   check_imagehlp_h=yes)
+      if test "$check_imagehlp_h" = yes; then
+	AC_CHECK_HEADERS(imagehlp.h,
+			 LIBS="-limagehlp $LIBS",
+			 [],
+[#include <windows.h>
+])
+      fi
+      AC_CHECK_LIB(dwarf, main, check_dwarf_h=yes)
+      if test "x$check_dwarf_h" = "xyes"; then
+        AC_CHECK_HEADER(dwarf.h,
+		        AC_DEFINE(HAVE_LIBDWARF, 1,
+			          [ Define to 1 if you have libdwarf. ])
+		          LIBS="-ldwarf $LIBS"
+		          COFLAGS+=" -gdwarf-2")
+      fi
       ;;
 esac
 

@@ -97,6 +97,7 @@ export BUILDARCH=$TARGETHOST
 
 GMP_VERSION=5.0.5
 PTHREADS_VERSION=2-9-1-release
+LIBDWARF_VERSION=20120410
 SSL_VERSION=1.0.1g
 JPEG_VERSION=8d
 ZLIB_VERSION=1.2.7
@@ -260,6 +261,33 @@ build_pthread_win32()
 }
 
 ###########################
+# Download and install the DWARF debugging library.
+
+download_libdwarf()
+{ LIBDWARF_FILE=libdwarf-$LIBDWARF_VERSION.tar.gz
+
+  [ -f $LIBDWARF_FILE ] || \
+    wget http://www.prevanders.net/$LIBDWARF_FILE
+  tar xzf $LIBDWARF_FILE
+}
+
+build_libdwarf()
+{ ( cd dwarf-$LIBDWARF_VERSION/libdwarf
+    ./configure --host=$CROSS --enable-shared
+    sed -i -e "s|libdwarf.so|libdwarf.dll|" \
+           -e "s|\$(CFLAGS) -shared|\$(LDFLAGS) -shared|" \
+           -e "/_elf_/d" -e "/[ \t]pro_/d" -e "/dwarf_addr_finder/d" Makefile
+    make PRELIBS="-Wl,--out-implib=libdwarf.dll.a"
+    mkdir -p $install/bin
+    cp libdwarf.dll $install/bin/
+    mkdir -p $install/lib
+    cp libdwarf.a libdwarf.dll.a $install/lib/
+    mkdir -p $install/include
+    cp dwarf.h libdwarf.h $install/include
+  )
+}
+
+###########################
 # Download and install ssl
 
 download_ssl()
@@ -411,6 +439,7 @@ clean_prerequisites()
 download_prerequisites()
 { download_gmp
   download_pthread_win32
+  download_libdwarf
   download_ssl
   download_jpeg
   download_libxpm
@@ -422,6 +451,7 @@ download_prerequisites()
 build_prerequisites()
 { build_gmp
   build_pthread_win32
+  build_libdwarf
   build_ssl
   build_jpeg
   build_libxpm
@@ -472,7 +502,7 @@ build_swipl_core()
 }
 
 dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
-dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll"
+dist_dlls+="*pthread*.dll libdwarf.dll ssleay32.dll zlib*.dll"
 if [ -r "$(echo $install/bin/libgcc*.dll)" ]; then
   dist_dlls+=" $(basename $install/bin/libgcc*.dll)"
 fi
