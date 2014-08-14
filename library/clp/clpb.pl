@@ -610,9 +610,6 @@ bdd_ite(B) -->
         bdd_ite_(B),
         { bdd_clear(B) }.
 
-clpb_visited:attr_unify_hook(_, _) :-
-        representation_error(cannot_unify_visited).
-
 bdd_ite_(Node) -->
         (   { integer(Node) ;  get_attr(Node, clpb_visited, true) } -> []
         ;   { node_id(Node, ID) } ->
@@ -721,13 +718,26 @@ call, we must declare them public.
 	clpb_node:attr_unify_hook/2,
 	clpb_id:attr_unify_hook/2,
 	clpb_count:attr_unify_hook/2,
-	clpb_bdd:attr_unify_hook/2.
+	clpb_bdd:attr_unify_hook/2,
+	clpb_visited:attr_unify_hook/2,
 
- clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
-   clpb_id:attr_unify_hook(_,_) :- representation_error(cannot_unify_id).
-clpb_count:attr_unify_hook(_,_) :- representation_error(cannot_unify_count).
-  clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
+	clpb_node:attribute_goals//1,
+	clpb_id:attribute_goals//1,
+	clpb_count:attribute_goals//1,
+	clpb_bdd:attribute_goals//1,
+	clpb_visited:attribute_goals//1.
 
+   clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
+     clpb_id:attr_unify_hook(_,_) :- representation_error(cannot_unify_id).
+  clpb_count:attr_unify_hook(_,_) :- representation_error(cannot_unify_count).
+    clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
+clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
+
+   clpb_node:attribute_goals(_) --> {fail}.
+     clpb_id:attribute_goals(_) --> {fail}.
+  clpb_count:attribute_goals(_) --> {fail}.
+    clpb_bdd:attribute_goals(_) --> {fail}.
+clpb_visited:attribute_goals(_) --> {fail}.
 
 :- multifile
 	sandbox:safe_global_variable/1.
