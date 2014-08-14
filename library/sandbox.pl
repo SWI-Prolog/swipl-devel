@@ -612,7 +612,10 @@ safe_global_var(Name) :-
 %	Hook. True if Goal is a   meta-predicate that is considered safe
 %	iff all elements in Called are safe.
 
-safe_meta(system:put_attr(_,M,A), [M:attr_unify_hook(A, _)]) :- !,
+safe_meta(system:put_attr(V,M,A),
+	  [ M:attr_unify_hook(A, _),
+	    M:attribute_goals(V,_,_)	% attribute_goals//1
+	  ]) :- !,
 	(   atom(M)
 	->  true
 	;   instantiation_error(M)
