@@ -87,6 +87,8 @@ expand_maplist(Callable0, Lists, Goal) :-
 
 	AuxArity is N+Argc,
 	prolog_load_context(module, Module),
+	functor(NextCall, Pred, AuxArity),
+	\+ predicate_property(Module:NextGoal, transparent),
 	(   current_predicate(Module:AuxName/AuxArity)
 	->  true
 	;   empty_lists(N, BaseLists),
@@ -102,14 +104,7 @@ expand_maplist(Callable0, Lists, Goal) :-
 	    append(Tails, Argv, IttArgs),
 	    NextIterate =.. [AuxName|IttArgs],
 	    NextClause = (NextHead :- NextGoal, NextIterate),
-
-	    (	predicate_property(Module:NextGoal, transparent)
-	    ->	compile_aux_clauses([ (:- module_transparent(Module:AuxName/AuxArity)),
-				      BaseClause,
-				      NextClause
-				    ])
-	    ;   compile_aux_clauses([BaseClause, NextClause])
-	    )
+	    compile_aux_clauses([BaseClause, NextClause])
 	).
 
 
