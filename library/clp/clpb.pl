@@ -130,10 +130,10 @@ X = Y, Y = Z, Z = 1.
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
 sat(X=:=X),
-node(54)- (X->node(53);node(52)),
-node(52)- (Y->node(51);true),
-node(51)- (Z->true;false),
-node(53)- (Y->node(51);false),
+node(11)- (X->node(10);node(9)),
+node(9)- (Y->node(8);true),
+node(8)- (Z->true;false),
+node(10)- (Y->node(8);false),
 sat(Y=:=Y),
 sat(Z=:=Z).
 ==
@@ -288,10 +288,8 @@ var_index_root(V, I, Root) :- get_attr(V, clpb, index_root(I,Root)).
 
 enumerate_variable(V) :-
         (   var_index_root(V, _, _) -> true
-        ;   nb_getval('$clpb_next_var', Index0),
-            put_attr(V, clpb, index_root(Index0,_)),
-            Index is Index0 + 1,
-            nb_setval('$clpb_next_var', Index)
+        ;   clpb_next_id('$clpb_next_var', Index0),
+            put_attr(V, clpb, index_root(Index0,_))
         ).
 
 
@@ -339,10 +337,8 @@ make_node(Var, Low, High, Node) -->
               Triple = node(VI,LID,HID),
               (   get_assoc(Triple, H0, Node) -> H0 = H
               ;   put_attr(Node, clpb_node, node(Var,Low,High)),
-                  nb_getval('$clpb_next_node', ID0),
+                  clpb_next_id('$clpb_next_node', ID0),
                   put_attr(Node, clpb_id, ID0),
-                  ID is ID0 + 1,
-                  nb_setval('$clpb_next_node', ID),
                   put_assoc(Triple, H0, Node, H)
               )
           ) }.
@@ -692,6 +688,17 @@ bdd_pow(Node, V, VNum, Pow) :-
         ),
         Pow is 2^(P - Index - 1).
 
+clpb_next_id(Var, ID) :-
+        clpb_getval(Var, ID),
+        Next is ID + 1,
+        clpb_setval(Var, Next).
+
+clpb_getval('$clpb_next_var', Val)  :- b_getval('$clpb_next_var', Val).
+clpb_getval('$clpb_next_node', Val) :- b_getval('$clpb_next_node', Val).
+
+clpb_setval('$clpb_next_var', Val)  :- b_setval('$clpb_next_var', Val).
+clpb_setval('$clpb_next_node', Val) :- b_setval('$clpb_next_node', Val).
+
 make_clpb_var('$clpb_next_var') :- nb_setval('$clpb_next_var', 0).
 
 make_clpb_var('$clpb_next_node') :- nb_setval('$clpb_next_node', 0).
@@ -733,11 +740,11 @@ call, we must declare them public.
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
 
-   clpb_node:attribute_goals(_) --> {fail}.
-     clpb_id:attribute_goals(_) --> {fail}.
-  clpb_count:attribute_goals(_) --> {fail}.
-    clpb_bdd:attribute_goals(_) --> {fail}.
-clpb_visited:attribute_goals(_) --> {fail}.
+   clpb_node:attribute_goals(_) --> { representation_error(no_residuals) }.
+     clpb_id:attribute_goals(_) --> { representation_error(no_residuals) }.
+  clpb_count:attribute_goals(_) --> { representation_error(no_residuals) }.
+    clpb_bdd:attribute_goals(_) --> { representation_error(no_residuals) }.
+clpb_visited:attribute_goals(_) --> { representation_error(no_residuals) }.
 
 :- multifile
 	sandbox:safe_global_variable/1.
