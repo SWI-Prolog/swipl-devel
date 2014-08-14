@@ -598,7 +598,7 @@ safe_assert(_).
 
 safe_global_var(Name) :-
 	var(Name), !,
-	fail.
+	instantiation_error(Name).
 safe_global_var(Name) :-
 	safe_global_variable(Name).
 

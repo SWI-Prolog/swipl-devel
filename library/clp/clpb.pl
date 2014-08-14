@@ -689,15 +689,9 @@ bdd_pow(Node, V, VNum, Pow) :-
         Pow is 2^(P - Index - 1).
 
 clpb_next_id(Var, ID) :-
-        clpb_getval(Var, ID),
+        b_getval(Var, ID),
         Next is ID + 1,
-        clpb_setval(Var, Next).
-
-clpb_getval('$clpb_next_var', Val)  :- b_getval('$clpb_next_var', Val).
-clpb_getval('$clpb_next_node', Val) :- b_getval('$clpb_next_node', Val).
-
-clpb_setval('$clpb_next_var', Val)  :- b_setval('$clpb_next_var', Val).
-clpb_setval('$clpb_next_node', Val) :- b_setval('$clpb_next_node', Val).
+        b_setval(Var, Next).
 
 make_clpb_var('$clpb_next_var') :- nb_setval('$clpb_next_var', 0).
 
