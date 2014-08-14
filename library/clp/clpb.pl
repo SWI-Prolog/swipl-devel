@@ -247,8 +247,6 @@ root_get_formula_bdd(Root, F, BDD) :- get_attr(Root, clpb_bdd, F-BDD).
 
 root_put_formula_bdd(Root, F, BDD) :- put_attr(Root, clpb_bdd, F-BDD).
 
-clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
-
 root_and(Root, Sat0-BDD0, Sat-BDD) :-
         (   root_get_formula_bdd(Root, F, B) ->
             Sat = F*Sat0,
@@ -348,10 +346,6 @@ make_node(Var, Low, High, Node) -->
                   put_assoc(Triple, H0, Node, H)
               )
           ) }.
-
-clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
-
-clpb_id:attr_unify_hook(_,_) :- representation_error(cannot_unify_id).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -693,7 +687,6 @@ bdd_count(Node, VNum, Count) :-
             put_attr(Node, clpb_count, Count)
         ).
 
-clpb_count:attr_unify_hook(_, _) :- representation_error(cannot_unify_count).
 
 bdd_pow(Node, V, VNum, Pow) :-
         var_index(V, Index),
@@ -711,3 +704,33 @@ make_clpb_var('$clpb_next_node') :- nb_setval('$clpb_next_node', 0).
 user:exception(undefined_global_variable, Name, retry) :-
         make_clpb_var(Name), !.
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sandbox declarations
+
+The variable attributes below are not used  as unification hooks by this
+library. Attributes that are not accessible   from the outside are safe,
+but `clpb_bdd` is exposed  and  the   sandboxing  code  does not perform
+aliasing analysis to discover whether or not the others are exposed.
+
+Therefore, we define the hooks,  so  we   know  what  will be called. In
+addition, because accessing these variables  is basically a cross-module
+call, we must declare them public.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- public
+	clpb_node:attr_unify_hook/2,
+	clpb_id:attr_unify_hook/2,
+	clpb_count:attr_unify_hook/2,
+	clpb_bdd:attr_unify_hook/2.
+
+ clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
+   clpb_id:attr_unify_hook(_,_) :- representation_error(cannot_unify_id).
+clpb_count:attr_unify_hook(_,_) :- representation_error(cannot_unify_count).
+  clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
+
+
+:- multifile
+	sandbox:safe_global_variable/1.
+
+sandbox:safe_global_variable('$clpb_next_var').
+sandbox:safe_global_variable('$clpb_next_node').
