@@ -740,11 +740,11 @@ call, we must declare them public.
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
 
-   clpb_node:attribute_goals(_) --> { representation_error(no_residuals) }.
-     clpb_id:attribute_goals(_) --> { representation_error(no_residuals) }.
-  clpb_count:attribute_goals(_) --> { representation_error(no_residuals) }.
-    clpb_bdd:attribute_goals(_) --> { representation_error(no_residuals) }.
-clpb_visited:attribute_goals(_) --> { representation_error(no_residuals) }.
+   clpb_node:attribute_goals(_) --> [].
+     clpb_id:attribute_goals(_) --> [].
+  clpb_count:attribute_goals(_) --> [].
+    clpb_bdd:attribute_goals(_) --> [].
+clpb_visited:attribute_goals(_) --> [].
 
 :- multifile
 	sandbox:safe_global_variable/1.
