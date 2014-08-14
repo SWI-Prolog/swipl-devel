@@ -529,6 +529,7 @@ safe_primitive(system:'$skip_list'(_,_,_)).
 					% attributes
 safe_primitive(system:get_attr(_,_,_)).
 safe_primitive(system:del_attr(_,_)).
+safe_primitive(system:del_attrs(_)).
 					% globals
 safe_primitive(system:b_getval(_,_)).
 safe_primitive(system:b_setval(Var,_)) :-
