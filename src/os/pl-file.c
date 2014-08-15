@@ -2194,7 +2194,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     }
     releaseStream(s);
 					/* check for input in buffer */
-    if ( s->bufp < s->limitp )
+    if ( Spending(s) > 0 )
     { if ( !PL_unify_list(available, ahead, available) ||
 	   !PL_unify(ahead, head) )
 	return FALSE;
