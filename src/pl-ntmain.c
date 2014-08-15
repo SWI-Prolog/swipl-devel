@@ -853,32 +853,22 @@ capture them in the application and tell   Prolog to print the stack and
 abort.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+exit_immediately(rlc_console c, int sig)
+{ _exit(1);
+}
+
 static void
 fatalSignal(int sig)
-{ char *name;
-
-  switch(sig)
-  { case SIGABRT:	name = "abort"; break;
-    case SIGFPE:	name = "floating point exeception"; break;
-    case SIGILL:	name = "illegal instruction"; break;
-    case SIGSEGV:	name = "general protection fault"; break;
-    default:		name = "(unknown)"; break;
+{ rlc_interrupt_hook(exit_immediately);
+  while(1)
+  { Sleep(0xFFFFFFF);
   }
-
-  PL_warning("Trapped signal %d (%s), aborting ...", sig, name);
-
-  PL_action(PL_ACTION_BACKTRACE, (void *)10);
-  signal(sig, fatalSignal);
-  PL_action(PL_ACTION_ABORT, NULL);
 }
 
 
 static void
 initSignals()
 { signal(SIGABRT, fatalSignal);
-  signal(SIGFPE,  fatalSignal);
-  signal(SIGILL,  fatalSignal);
-  signal(SIGSEGV, fatalSignal);
 }
 
 
