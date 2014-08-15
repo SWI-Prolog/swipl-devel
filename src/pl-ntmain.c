@@ -853,6 +853,7 @@ capture them in the application and tell   Prolog to print the stack and
 abort.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
 exit_immediately(rlc_console c, int sig)
 { _exit(1);
 }
@@ -860,6 +861,10 @@ exit_immediately(rlc_console c, int sig)
 static void
 fatalSignal(int sig)
 { rlc_interrupt_hook(exit_immediately);
+
+  Sdprintf("\nYou may copy/paste information from this console to\n"
+	   "assemble a bug report.  Then press Control+C to exit\n");
+
   while(1)
   { Sleep(0xFFFFFFF);
   }
