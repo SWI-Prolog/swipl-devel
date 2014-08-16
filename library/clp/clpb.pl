@@ -688,10 +688,9 @@ bdd_pow(Node, V, VNum, Pow) :-
         ),
         Pow is 2^(P - Index - 1).
 
-clpb_next_id(Var, ID) :-
-        b_getval(Var, ID),
-        Next is ID + 1,
-        b_setval(Var, Next).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Global variables for unique node and variable IDs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 make_clpb_var('$clpb_next_var') :- nb_setval('$clpb_next_var', 0).
 
@@ -701,6 +700,11 @@ make_clpb_var('$clpb_next_node') :- nb_setval('$clpb_next_node', 0).
 
 user:exception(undefined_global_variable, Name, retry) :-
         make_clpb_var(Name), !.
+
+clpb_next_id(Var, ID) :-
+        b_getval(Var, ID),
+        Next is ID + 1,
+        b_setval(Var, Next).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Sandbox declarations
