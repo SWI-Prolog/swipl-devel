@@ -666,10 +666,9 @@ sat_count(Sat0, N) :-
                maplist(var_with_index, Vs, IVs0),
                keysort(IVs0, IVs1),
                foldl(renumber_variable, IVs1, 1, VNum),
-               (   BDD2 == 1 ->
-                   Count is 2^(VNum - 1)
-               ;   bdd_count(BDD2, VNum, Count)
-               ),
+               bdd_count(BDD2, VNum, Count0),
+               var_u(BDD2, VNum, P),
+               Count is 2^(P - 1)*Count0,
                % reset all attributes
                throw(count(Count))),
               count(N),
@@ -710,10 +709,13 @@ bdd_count(Node, VNum, Count) :-
 
 bdd_pow(Node, V, VNum, Pow) :-
         var_index(V, Index),
-        (   integer(Node) -> P = VNum
-        ;   node_varindex(Node, P)
-        ),
+        var_u(Node, VNum, P),
         Pow is 2^(P - Index - 1).
+
+var_u(Node, VNum, Index) :-
+        (   integer(Node) -> Index = VNum
+        ;   node_varindex(Node, Index)
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Global variables for unique node and variable IDs.
