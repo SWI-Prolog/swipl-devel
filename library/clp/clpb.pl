@@ -86,7 +86,7 @@ integers and integer ranges of the form _From_-_To_.
 
 ### Interface predicates   {#clpb-interface}
 
-The interface predicates of CLP(B) are:
+Important interface predicates of CLP(B) are:
 
     * sat(+Expr)
       True iff the Boolean expression Expr is satisfiable.
