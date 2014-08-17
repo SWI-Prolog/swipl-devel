@@ -663,11 +663,13 @@ sat_count(Sat0, N) :-
                foldl(root_and, Roots, _-BDD, _-BDD1),
                bdd_variables(BDD1, Vs1),
                foldl(eliminate_existential, Vs1, BDD1, BDD2),
-               bdd_variables(BDD2, Vs2),
-               maplist(var_with_index, Vs2, IVs2),
-               keysort(IVs2, IVs3),
-               foldl(renumber_variable, IVs3, 1, VNum),
-               bdd_count(BDD2, VNum, Count),
+               maplist(var_with_index, Vs, IVs0),
+               keysort(IVs0, IVs1),
+               foldl(renumber_variable, IVs1, 1, VNum),
+               (   BDD2 == 1 ->
+                   Count is 2^(VNum - 1)
+               ;   bdd_count(BDD2, VNum, Count)
+               ),
                % reset all attributes
                throw(count(Count))),
               count(N),
