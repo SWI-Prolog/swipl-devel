@@ -1298,6 +1298,27 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
 }
 
 
+/* Spending() returns the number of pending bytes on the given stream.
+*/
+
+size_t
+Spending(IOSTREAM *s)
+{ if ( s->bufp < s->limitp )
+    return s->limitp - s->bufp;
+
+  if ( s->functions->control )
+  { size_t pending;
+
+    if ( (*s->functions->control)(s->handle,
+				  SIO_GETPENDING,
+				  &pending) == 0 )
+      return pending;
+  }
+
+  return 0;
+}
+
+
 		 /*******************************
 		 *               BOM		*
 		 *******************************/

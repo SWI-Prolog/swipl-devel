@@ -2131,14 +2131,8 @@ toldString()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#ifndef HAVE_SELECT
-
-static
-PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
-{ return notImplemented("wait_for_input", 3);
-}
-
-#else
+#ifdef HAVE_SELECT
+#define HAVE_PRED_WAIT_FOR_INPUT 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Windows<->Unix note. This function uses the   Windows socket API for its
@@ -2200,7 +2194,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     }
     releaseStream(s);
 					/* check for input in buffer */
-    if ( s->bufp < s->limitp )
+    if ( Spending(s) > 0 )
     { if ( !PL_unify_list(available, ahead, available) ||
 	   !PL_unify(ahead, head) )
 	return FALSE;
@@ -5100,7 +5094,9 @@ BeginPredDefs(file)
   PRED_DEF("protocolling", 1, protocolling, 0)
   PRED_DEF("prompt1", 1, prompt1, 0)
   PRED_DEF("seek", 4, seek, 0)
+#ifdef HAVE_PRED_WAIT_FOR_INPUT
   PRED_DEF("wait_for_input", 3, wait_for_input, 0)
+#endif
   PRED_DEF("get_single_char", 1, get_single_char, 0)
   PRED_DEF("read_pending_input", 3, read_pending_input, 0)
   PRED_DEF("source_location", 2, source_location, 0)

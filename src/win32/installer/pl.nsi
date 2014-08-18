@@ -285,6 +285,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libjpeg-8.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
+  File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
 !else
   File ${SWIPL}\bin\swipl.dll

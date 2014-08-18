@@ -36,7 +36,8 @@
                  op(500, yfx, #),
                  sat/1,
                  taut/2,
-                 labeling/1
+                 labeling/1,
+                 sat_count/2
                 ]).
 
 :- use_module(library(error)).
@@ -61,20 +62,20 @@ Diagrams (BDDs).
 
 A _Boolean expression_ is one of:
 
-    | *0*                | Falsehood                            |
-    | *1*                | Truth                                |
-    | _variable_         | Unknown truth value                  |
-    | ~ _Expr_           | Logical NOT                          |
-    | _Expr_ + _Expr_    | Logical OR                           |
-    | _Expr_ * _Expr_    | Logical AND                          |
-    | _Expr_ # _Expr_    | Exclusive OR                         |
-    | _Var_ ^ _Expr_     | Existential quantification           |
-    | _Expr_ =:= _Expr_  | Equality                             |
-    | _Expr_ =\= _Expr_  | Disequality                          |
-    | _Expr_ =< _Expr_   | Less or equal                        |
-    | _Expr_ >= _Expr_   | Greater or equal                     |
-    | _Expr_ < _Expr_    | Less than                            |
-    | _Expr_ > _Expr_    | Greater than                         |
+    | *0*                | false                                |
+    | *1*                | true                                 |
+    | _variable_         | unknown truth value                  |
+    | ~ _Expr_           | logical NOT                          |
+    | _Expr_ + _Expr_    | logical OR                           |
+    | _Expr_ * _Expr_    | logical AND                          |
+    | _Expr_ # _Expr_    | exclusive OR                         |
+    | _Var_ ^ _Expr_     | existential quantification           |
+    | _Expr_ =:= _Expr_  | equality                             |
+    | _Expr_ =\= _Expr_  | disequality                          |
+    | _Expr_ =< _Expr_   | less or equal                        |
+    | _Expr_ >= _Expr_   | greater or equal                     |
+    | _Expr_ < _Expr_    | less than                            |
+    | _Expr_ > _Expr_    | greater than                         |
     | card(Is,Exprs)     | _see  below_                         |
 
 where _Expr_ again denotes a Boolean expression.
@@ -85,7 +86,7 @@ integers and integer ranges of the form _From_-_To_.
 
 ### Interface predicates   {#clpb-interface}
 
-The interface predicates of CLP(B) are:
+Important interface predicates of CLP(B) are:
 
     * sat(+Expr)
       True iff the Boolean expression Expr is satisfiable.
@@ -99,6 +100,8 @@ The interface predicates of CLP(B) are:
       Assigns truth values to the variables Vs such that all constraints
       are satisfied.
 
+The unification of a CLP(B) variable _X_ with a term _T_ is equivalent
+to posting the constraint sat(X =:= T).
 
 ### Examples				{#clpb-examples}
 
@@ -288,8 +291,8 @@ var_index_root(V, I, Root) :- get_attr(V, clpb, index_root(I,Root)).
 
 enumerate_variable(V) :-
         (   var_index_root(V, _, _) -> true
-        ;   clpb_next_id('$clpb_next_var', Index0),
-            put_attr(V, clpb, index_root(Index0,_))
+        ;   clpb_next_id('$clpb_next_var', Index),
+            put_attr(V, clpb, index_root(Index,_))
         ).
 
 
@@ -337,8 +340,8 @@ make_node(Var, Low, High, Node) -->
               Triple = node(VI,LID,HID),
               (   get_assoc(Triple, H0, Node) -> H0 = H
               ;   put_attr(Node, clpb_node, node(Var,Low,High)),
-                  clpb_next_id('$clpb_next_node', ID0),
-                  put_attr(Node, clpb_id, ID0),
+                  clpb_next_id('$clpb_next_node', ID),
+                  put_attr(Node, clpb_id, ID),
                   put_assoc(Triple, H0, Node, H)
               )
           ) }.
@@ -378,6 +381,12 @@ make_node(Var, Low, High, Node) -->
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
+
+   We use a DCG to thread through two implicit arguments H0-G0:
+
+      H0: an association table node(VI,LID,HID) -> Node, ensuring
+          a reduced BDD.
+      G0: an association table g(F,IDA,IDB) -> Node, for memoization.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sat_bdd(Sat, BDD) :-
@@ -459,6 +468,22 @@ fill_indicators([I|Is], Index0, Cs) :-
    apply//4. Uses memoization to improve performance.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+% apply(+, NA, NB, Node) -->
+%         { (   NA == 0 -> !, Node = NB
+%           ;   NA == 1 -> !, Node = 1
+%           ;   NB == 0 -> !, Node = NA
+%           ;   NB == 1 -> !, Node = 1
+%           ;   false
+%           ) }.
+% apply(*, NA, NB, Node) -->
+%         { (   NA == 0 -> !, Node = 0
+%           ;   NA == 1 -> !, Node = NB
+%           ;   NB == 0 -> !, Node = 0
+%           ;   NB == 1 -> !, Node = NA
+%           ;   false
+%           ) }.
+
+
 apply(F, NA, NB, Node) -->
         (   { integer(NA), integer(NB) } -> { once(bool_op(F, NA, NB, Node)) }
         ;   { node_id(NA, IDA), node_id(NB, IDB) },
@@ -536,17 +561,12 @@ root_rebuild_bdd(Root) :-
         ).
 
 is_bdd(BDD) :-
-        catch((phrase(bdd_ite(BDD), ITEs0),
-               maplist(ite_ground, ITEs0, Ls0),
-               sort(Ls0, Ls1),
-               (   same_length(Ls0, Ls1) -> throw(is_ok)
-               ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
-               )),
-              is_ok,
-              true).
-
-ite_ground(_-(V -> HID ; LID), t(I,HID,LID)) :- var_index(V, I).
-
+        bdd_ites(BDD, ITEs0),
+        pairs_values(ITEs0, Ls0),
+        sort(Ls0, Ls1),
+        (   same_length(Ls0, Ls1) -> true
+        ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    BDD restriction.
@@ -588,6 +608,26 @@ bdd_restriction_(Node, VI, Value, Res) -->
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Transformation from BDD to if-then-else terms.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bdd_ites(Node, ITEs) :-
+        phrase(bdd_ites_(Node), ITEs),
+        pairs_keys(ITEs, Nodes),
+        maplist(unvisit, Nodes).
+
+bdd_ites_(Node) -->
+        (   { integer(Node) ;  get_attr(Node, clpb_visited, true) } -> []
+        ;   { node_var_low_high(Node, Var, Low, High),
+              put_attr(Node, clpb_visited, true) },
+            [Node-ite(Var, High, Low)],
+            bdd_ites_(Low),
+            bdd_ites_(High)
+        ).
+
+unvisit(Node) :- del_attr(Node, clpb_visited).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Projection to residual goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -595,37 +635,21 @@ attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         boolean(Var),
         (   { root_get_formula_bdd(Root, _, BDD) } ->
-            bdd_ite(BDD),
-            { del_bdd(Root) }
+            { bdd_ites(BDD, ITEs) },
+            ites(ITEs),
+            { pairs_keys(ITEs, Nodes),
+              maplist(del_attrs, Nodes),
+              del_bdd(Root) }
         ;   []
         ).
 
 boolean(V) --> [sat(V =:= V)].
 
-bdd_ite(B) -->
-        bdd_ite_(B),
-        { bdd_clear(B) }.
-
-bdd_ite_(Node) -->
-        (   { integer(Node) ;  get_attr(Node, clpb_visited, true) } -> []
-        ;   { node_id(Node, ID) } ->
-            { node_var_low_high(Node, Var, Low, High),
-              put_attr(Node, clpb_visited, true),
-              node_id(High, HID),
-              node_id(Low, LID) },
-            [ID-(Var -> HID ; LID )],
-            bdd_ite_(Low),
-            bdd_ite_(High)
-        ;   []
-        ).
-
-bdd_clear(Node) :-
-        (   node_var_low_high(Node, _, Low, High) ->
-            bdd_clear(Low),
-            bdd_clear(High),
-            del_attrs(Node)
-        ;   true
-        ).
+ites([]) --> [].
+ites([Node-ite(Var,High,Low)|Is]) -->
+        { maplist(node_id, [Node,High,Low], [ID,HID,LID]) },
+        [ID-(Var -> HID ; LID)],
+        ites(Is).
 
 %% labeling(+Vs) is nondet.
 %
@@ -647,26 +671,52 @@ var_with_index(V, I-V) :-
 indomain(0).
 indomain(1).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   SATCount
 
-   Currently does not take into account other constraints.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+%% sat_count(+Expr, -N) is det.
+%
+% N is the number of different assignments of truth values to the
+% variables in the Boolean expression Expr, such that Expr is true and
+% all posted constraints are satisfiable.
 
 sat_count(Sat0, N) :-
-        nb_getval('$clpb_next_var', NextVar),
-        nb_setval('$clpb_next_var', 1),
         catch((term_variables(Sat0, Vs),
-               maplist(del_attrs, Vs),
+               maplist(essential_variable, Vs),
                parse_sat(Sat0, Sat),
                sat_bdd(Sat, BDD),
-               nb_getval('$clpb_next_var', VNum),
-               bdd_count(BDD, VNum, Count),
+               sat_roots(Sat, Roots),
+               foldl(root_and, Roots, _-BDD, _-BDD1),
+               bdd_variables(BDD1, Vs1),
+               foldl(eliminate_existential, Vs1, BDD1, BDD2),
+               maplist(var_with_index, Vs, IVs0),
+               keysort(IVs0, IVs1),
+               foldl(renumber_variable, IVs1, 1, VNum),
+               bdd_count(BDD2, VNum, Count0),
+               var_u(BDD2, VNum, P),
+               Count is 2^(P - 1)*Count0,
+               % reset all attributes
                throw(count(Count))),
               count(N),
-              true),
-        nb_setval('$clpb_next_var', NextVar).
+              true).
+
+renumber_variable(_-V, I0, I) :-
+        put_attr(V, clpb, index_root(I0,_)),
+        I is I0 + 1.
+
+eliminate_existential(V, BDD0, BDD) :-
+        (   get_attr(V, clpb_visited, true) -> BDD = BDD0
+        ;   empty_assoc(G0),
+            empty_assoc(H0),
+            phrase(existential(V, BDD0, BDD), [H0-G0], _)
+        ).
+
+bdd_variables(BDD, Vs) :-
+        bdd_ites(BDD, ITEs),
+        maplist(ite_variable, ITEs, Vs0),
+        term_variables(Vs0, Vs).
+
+ite_variable(_-ite(V,_,_), V).
+
+essential_variable(V) :- put_attr(V, clpb_visited, true).
 
 bdd_count(Node, VNum, Count) :-
         (   integer(Node) -> Count = Node
@@ -683,15 +733,17 @@ bdd_count(Node, VNum, Count) :-
 
 bdd_pow(Node, V, VNum, Pow) :-
         var_index(V, Index),
-        (   integer(Node) -> P = VNum
-        ;   node_varindex(Node, P)
-        ),
+        var_u(Node, VNum, P),
         Pow is 2^(P - Index - 1).
 
-clpb_next_id(Var, ID) :-
-        b_getval(Var, ID),
-        Next is ID + 1,
-        b_setval(Var, Next).
+var_u(Node, VNum, Index) :-
+        (   integer(Node) -> Index = VNum
+        ;   node_varindex(Node, Index)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Global variables for unique node and variable IDs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 make_clpb_var('$clpb_next_var') :- nb_setval('$clpb_next_var', 0).
 
@@ -701,6 +753,11 @@ make_clpb_var('$clpb_next_node') :- nb_setval('$clpb_next_node', 0).
 
 user:exception(undefined_global_variable, Name, retry) :-
         make_clpb_var(Name), !.
+
+clpb_next_id(Var, ID) :-
+        b_getval(Var, ID),
+        Next is ID + 1,
+        b_setval(Var, Next).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Sandbox declarations
@@ -734,11 +791,11 @@ call, we must declare them public.
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
 
-   clpb_node:attribute_goals(_) --> { representation_error(no_residuals) }.
-     clpb_id:attribute_goals(_) --> { representation_error(no_residuals) }.
-  clpb_count:attribute_goals(_) --> { representation_error(no_residuals) }.
-    clpb_bdd:attribute_goals(_) --> { representation_error(no_residuals) }.
-clpb_visited:attribute_goals(_) --> { representation_error(no_residuals) }.
+   clpb_node:attribute_goals(_) --> [].
+     clpb_id:attribute_goals(_) --> [].
+  clpb_count:attribute_goals(_) --> [].
+    clpb_bdd:attribute_goals(_) --> [].
+clpb_visited:attribute_goals(_) --> [].
 
 :- multifile
 	sandbox:safe_global_variable/1.

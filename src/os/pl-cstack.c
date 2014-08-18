@@ -476,6 +476,7 @@ initBackTrace(void)
 #if !defined(BTRACE_DONE) && defined(__WINDOWS__) && defined(HAVE_DBGHELP_H)
 #include <windows.h>
 #include <dbghelp.h>
+#include <libgen.h>
 #define MAX_SYMBOL_LEN 1024
 #define MAX_DEPTH 10
 #define BTRACE_DONE 1
@@ -555,6 +556,10 @@ next_btrace_id(btrace *bt)
   return current;
 }
 
+#ifdef HAVE_LIBDWARF
+#include "windows/dwarf-debug.c"
+#endif
+
 int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
 { STACKFRAME64 frame;
   CONTEXT context;
@@ -562,7 +567,6 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
   HANDLE hThread = GetCurrentThread();
   HANDLE hProcess = GetCurrentProcess();
   char symbolScratch[sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN];
-  SYMBOL_INFO* symbol = (SYMBOL_INFO*)&symbolScratch;
   IMAGEHLP_MODULE64 moduleInfo;
   DWORD64 offset;
   DWORD imageType;
@@ -646,9 +650,6 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
        continue;
      }
 
-     memset(symbol, 0, sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN);
-     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-     symbol->MaxNameLen = MAX_SYMBOL_LEN;
      trace->frame[depth].offset = frame.AddrPC.Offset;
      hasModule = SymGetModuleInfo64(hProcess, frame.AddrPC.Offset, &moduleInfo);
 
@@ -662,19 +663,36 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
        trace->frame[depth].module[0] = '\0';
        trace->frame[depth].module_reason = GetLastError();
      } else
-     { hasSymbol = SymFromAddr(hProcess, frame.AddrPC.Offset, &offset, symbol);
-       strncpy(trace->frame[depth].module,
-	       moduleInfo.ImageName,
+     { strncpy(trace->frame[depth].module,
+	       basename(moduleInfo.ImageName),
 	       MAX_MODULE_NAME_LENGTH);
        trace->frame[depth].module[MAX_MODULE_NAME_LENGTH-1] = '\0';
        trace->frame[depth].module_reason = 0;
+#ifdef HAVE_LIBDWARF
+       char *dwarf_symbol = symbolScratch;
+       memset(dwarf_symbol, 0, MAX_SYMBOL_LEN);
+       hasSymbol = dwarf_sym_from_addr(&moduleInfo, frame.AddrPC.Offset, &dwarf_symbol);
        if (hasSymbol)
        { strncpy(trace->frame[depth].name,
-		 symbol->Name,
+		 dwarf_symbol,
 		 MAX_FUNCTION_NAME_LENGTH);
          trace->frame[depth].name[MAX_FUNCTION_NAME_LENGTH-1] = '\0';
        } else
-       { trace->frame[depth].name[0] = '\0';
+#endif
+       { SYMBOL_INFO* symbol = (SYMBOL_INFO*)&symbolScratch;
+
+         memset(symbol, 0, sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN);
+         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+         symbol->MaxNameLen = MAX_SYMBOL_LEN;
+         hasSymbol = SymFromAddr(hProcess, frame.AddrPC.Offset, &offset, symbol);
+         if (hasSymbol)
+         { strncpy(trace->frame[depth].name,
+		   symbol->Name,
+		   MAX_FUNCTION_NAME_LENGTH);
+           trace->frame[depth].name[MAX_FUNCTION_NAME_LENGTH-1] = '\0';
+         } else
+         { trace->frame[depth].name[0] = '\0';
+         }
        }
      }
      depth++;
@@ -707,15 +725,43 @@ print_trace(btrace *bt, int me)
 { btrace_stack *s = &bt->dumps[me];
   if ( s->name )
   { int depth;
+    HANDLE hProcess = GetCurrentProcess();
+
+    SymInitialize(hProcess, NULL, TRUE);
 
     Sdprintf("Stack trace labeled \"%s\":\n", s->name);
     for(depth=0; depth<s->depth; depth++)
-    { Sdprintf("  [%d] <%s>:%s+%p\n", depth,
-               (s->frame[depth].module[0] == 0) ? "unknown module"
-						: s->frame[depth].module,
-	       s->frame[depth].name,
-	       (void*)s->frame[depth].offset);
+    { if (s->frame[depth].module[0])
+      {
+#ifdef HAVE_LIBDWARF
+        IMAGEHLP_MODULE64 moduleInfo;
+        char dwarf_srclinebuf[MAX_PATH];
+        char *dwarf_srcline = dwarf_srclinebuf;
+
+        memset(&moduleInfo,0,sizeof(IMAGEHLP_MODULE64));
+        memset(dwarf_srcline, 0, MAX_PATH);
+        moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
+        if ( SymGetModuleInfo64(hProcess, s->frame[depth].offset, &moduleInfo) &&
+             dwarf_addr2line(&moduleInfo, s->frame[depth].offset, &dwarf_srcline) )
+        { Sdprintf("  [%d] <%s>:%s() at %s [%p]\n", depth,
+                   s->frame[depth].module,
+                   s->frame[depth].name,
+                   dwarf_srcline,
+                   (void*)s->frame[depth].offset);
+        } else
+#endif
+        { Sdprintf("  [%d] <%s>:%s() [%p]\n", depth,
+                   s->frame[depth].module,
+                   s->frame[depth].name,
+                   (void*)s->frame[depth].offset);
+        }
+      } else
+      { Sdprintf("  [%d] <unknown module>:%s [%p]\n", depth,
+                 s->frame[depth].name,
+                 (void*)s->frame[depth].offset);
+      }
     }
+    SymCleanup(hProcess);
   } else
   { Sdprintf("No stack trace\n");
   }
