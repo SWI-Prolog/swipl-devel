@@ -62,8 +62,8 @@ Diagrams (BDDs).
 
 A _Boolean expression_ is one of:
 
-    | *0*                | Falsehood                            |
-    | *1*                | Truth                                |
+    | *0*                | false                                |
+    | *1*                | true                                 |
     | _variable_         | Unknown truth value                  |
     | ~ _Expr_           | Logical NOT                          |
     | _Expr_ + _Expr_    | Logical OR                           |
