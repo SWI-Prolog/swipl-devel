@@ -468,20 +468,20 @@ fill_indicators([I|Is], Index0, Cs) :-
    apply//4. Uses memoization to improve performance.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-apply(+, NA, NB, Node) -->
-        { (   NA == 0 -> !, Node = NB
-          ;   NA == 1 -> !, Node = 1
-          ;   NB == 0 -> !, Node = NA
-          ;   NB == 1 -> !, Node = 1
-          ;   false
-          ) }.
-apply(*, NA, NB, Node) -->
-        { (   NA == 0 -> !, Node = 0
-          ;   NA == 1 -> !, Node = NB
-          ;   NB == 0 -> !, Node = 0
-          ;   NB == 1 -> !, Node = NA
-          ;   false
-          ) }.
+% apply(+, NA, NB, Node) -->
+%         { (   NA == 0 -> !, Node = NB
+%           ;   NA == 1 -> !, Node = 1
+%           ;   NB == 0 -> !, Node = NA
+%           ;   NB == 1 -> !, Node = 1
+%           ;   false
+%           ) }.
+% apply(*, NA, NB, Node) -->
+%         { (   NA == 0 -> !, Node = 0
+%           ;   NA == 1 -> !, Node = NB
+%           ;   NB == 0 -> !, Node = 0
+%           ;   NB == 1 -> !, Node = NA
+%           ;   false
+%           ) }.
 
 
 apply(F, NA, NB, Node) -->
