@@ -64,18 +64,18 @@ A _Boolean expression_ is one of:
 
     | *0*                | false                                |
     | *1*                | true                                 |
-    | _variable_         | Unknown truth value                  |
-    | ~ _Expr_           | Logical NOT                          |
-    | _Expr_ + _Expr_    | Logical OR                           |
-    | _Expr_ * _Expr_    | Logical AND                          |
-    | _Expr_ # _Expr_    | Exclusive OR                         |
-    | _Var_ ^ _Expr_     | Existential quantification           |
-    | _Expr_ =:= _Expr_  | Equality                             |
-    | _Expr_ =\= _Expr_  | Disequality                          |
-    | _Expr_ =< _Expr_   | Less or equal                        |
-    | _Expr_ >= _Expr_   | Greater or equal                     |
-    | _Expr_ < _Expr_    | Less than                            |
-    | _Expr_ > _Expr_    | Greater than                         |
+    | _variable_         | unknown truth value                  |
+    | ~ _Expr_           | logical NOT                          |
+    | _Expr_ + _Expr_    | logical OR                           |
+    | _Expr_ * _Expr_    | logical AND                          |
+    | _Expr_ # _Expr_    | exclusive OR                         |
+    | _Var_ ^ _Expr_     | existential quantification           |
+    | _Expr_ =:= _Expr_  | equality                             |
+    | _Expr_ =\= _Expr_  | disequality                          |
+    | _Expr_ =< _Expr_   | less or equal                        |
+    | _Expr_ >= _Expr_   | greater or equal                     |
+    | _Expr_ < _Expr_    | less than                            |
+    | _Expr_ > _Expr_    | greater than                         |
     | card(Is,Exprs)     | _see  below_                         |
 
 where _Expr_ again denotes a Boolean expression.
