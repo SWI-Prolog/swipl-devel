@@ -299,7 +299,8 @@ enumerate_variable(V) :-
 bdd_and(NA, NB, And) :-
         empty_assoc(H0),
         empty_assoc(G0),
-        phrase(apply(*, NA, NB, And), [H0-G0], _).
+        phrase(apply(*, NA, NB, And), [H0-G0], _),
+        is_bdd(And).
 
 
 bool_op(+, 0, 0, 0).
