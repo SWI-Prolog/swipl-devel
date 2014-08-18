@@ -468,24 +468,14 @@ fill_indicators([I|Is], Index0, Cs) :-
    apply//4. Uses memoization to improve performance.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-% apply(+, NA, NB, Node) -->
-%         { (   NA == 0 -> !, Node = NB
-%           ;   NA == 1 -> !, Node = 1
-%           ;   NB == 0 -> !, Node = NA
-%           ;   NB == 1 -> !, Node = 1
-%           ;   false
-%           ) }.
-% apply(*, NA, NB, Node) -->
-%         { (   NA == 0 -> !, Node = 0
-%           ;   NA == 1 -> !, Node = NB
-%           ;   NB == 0 -> !, Node = 0
-%           ;   NB == 1 -> !, Node = NA
-%           ;   false
-%           ) }.
-
 
 apply(F, NA, NB, Node) -->
         (   { integer(NA), integer(NB) } -> { once(bool_op(F, NA, NB, Node)) }
+        ;   { apply_shortcut(F, NA, NB, Node0) } ->
+            (   { integer(Node0) } -> { Node = Node0 }
+            ;   { node_var_low_high(Node0, Var, Low, High) },
+                make_node(Var, Low, High, Node)
+            )
         ;   { node_id(NA, IDA), node_id(NB, IDB) },
             (   state(_-G0), { get_assoc(g(F,IDA,IDB), G0, Node) } -> []
             ;   apply_(F, NA, NB, Node),
@@ -493,6 +483,24 @@ apply(F, NA, NB, Node) -->
                 { put_assoc(g(F,IDA,IDB), G0, Node, G) }
             )
         ).
+
+
+apply_shortcut(+, NA, NB, Node) :-
+        (   NA == 0 -> Node = NB
+        ;   NA == 1 -> Node = 1
+        ;   NB == 0 -> Node = NA
+        ;   NB == 1 -> Node = 1
+        ;   false
+        ).
+
+apply_shortcut(*, NA, NB, Node) :-
+        (   NA == 0 -> Node = 0
+        ;   NA == 1 -> Node = NB
+        ;   NB == 0 -> Node = 0
+        ;   NB == 1 -> Node = NA
+        ;   false
+        ).
+
 
 apply_(F, NA, NB, Node) -->
         { var_less_than(NA, NB),
