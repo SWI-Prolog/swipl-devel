@@ -381,6 +381,12 @@ make_node(Var, Low, High, Node) -->
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
+
+   We use a DCG to thread through two implicit arguments H0-G0:
+
+      H0: an association table node(VI,LID,HID) -> Node, ensuring
+          a reduced BDD.
+      G0: an association table g(F,IDA,IDB) -> Node, for memoization.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sat_bdd(Sat, BDD) :-
