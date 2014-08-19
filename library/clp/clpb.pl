@@ -242,6 +242,7 @@ sat(Sat0) :-
         maplist(del_bdd, Roots),
         maplist(=(Root), Roots),
         root_put_formula_bdd(Root, And, BDD1),
+        rebuild_hashes(BDD1),
         satisfiable_bdd(BDD1).
 
 del_bdd(Root) :- del_attr(Root, clpb_bdd).
@@ -292,15 +293,40 @@ var_index_root(V, I, Root) :- get_attr(V, clpb, index_root(I,Root)).
 enumerate_variable(V) :-
         (   var_index_root(V, _, _) -> true
         ;   clpb_next_id('$clpb_next_var', Index),
-            put_attr(V, clpb, index_root(Index,_))
+            put_attr(V, clpb, index_root(Index,_)),
+            put_empty_hash(V)
         ).
+
+put_empty_hash(V) :-
+        empty_assoc(H0),
+        put_attr(V, clpb_hash, H0).
 
 
 bdd_and(NA, NB, And) :-
-        empty_assoc(H0),
         empty_assoc(G0),
-        phrase(apply(*, NA, NB, And), [H0-G0], _),
-        is_bdd(And).
+        phrase(apply(*, NA, NB, And), [G0], _),
+        is_bdd(And),
+        rebuild_hashes(And).
+
+rebuild_hashes(BDD) :-
+        bdd_ites(BDD, ITEs),
+        ites_variables(ITEs, Vs),
+        maplist(put_empty_hash, Vs),
+        maplist(register_ite, ITEs).
+
+register_ite(Node-ite(Var, High, Low)) :-
+        node_id(Low, LID),
+        node_id(High, HID),
+        register_node(Var, node(LID,HID), Node).
+
+register_node(Var, HEntry, Node) :-
+        get_attr(Var, clpb_hash, H0),
+        put_assoc(HEntry, H0, Node, H),
+        put_attr(Var, clpb_hash, H).
+
+lookup_node(Var, HEntry, Node) :-
+        get_attr(Var, clpb_hash, H0),
+        get_assoc(HEntry, H0, Node).
 
 
 bool_op(+, 0, 0, 0).
@@ -333,17 +359,15 @@ node_var_low_high(Node, Var, Low, High) :-
 
 
 make_node(Var, Low, High, Node) -->
-        state(H0-G0, H-G0),
-        { (   Low == High -> Node = Low, H0 = H
+        { (   Low == High -> Node = Low
           ;   node_id(Low, LID),
               node_id(High, HID),
-              var_index(Var, VI),
-              Triple = node(VI,LID,HID),
-              (   get_assoc(Triple, H0, Node) -> H0 = H
+              HEntry = node(LID,HID),
+              (   lookup_node(Var, HEntry, Node) -> true
               ;   put_attr(Node, clpb_node, node(Var,Low,High)),
                   clpb_next_id('$clpb_next_node', ID),
                   put_attr(Node, clpb_id, ID),
-                  put_assoc(Triple, H0, Node, H)
+                  register_node(Var, HEntry, Node)
               )
           ) }.
 
@@ -359,6 +383,9 @@ make_node(Var, Low, High, Node) -->
 
    where Index is the variable's unique integer index, and Root is the
    root of the BDD that the variable belongs to.
+
+   Each CLP(B) variable also gets an attribute in module clpb_hash: an
+   association table node(LID,HID) -> Node, to keep the BDD reduced.
 
    A root is a logical variable with a single attribute ("clpb_bdd")
    of the form:
@@ -383,17 +410,13 @@ make_node(Var, Low, High, Node) -->
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
 
-   We use a DCG to thread through two implicit arguments H0-G0:
-
-      H0: an association table node(VI,LID,HID) -> Node, ensuring
-          a reduced BDD.
-      G0: an association table g(F,IDA,IDB) -> Node, for memoization.
+   We use a DCG to thread through an implicit arguments G0, an
+   association table g(F,IDA,IDB) -> Node, used for memoization.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sat_bdd(Sat, BDD) :-
-        empty_assoc(H0),
         empty_assoc(G0),
-        phrase(sat_bdd(Sat, BDD), [H0-G0], _).
+        phrase(sat_bdd(Sat, BDD), [G0], _).
 
 sat_bdd(i(I), I) --> !.
 sat_bdd(v(V), Node) --> !, make_node(V, 0, 1, Node).
@@ -469,22 +492,16 @@ fill_indicators([I|Is], Index0, Cs) :-
    apply//4. Uses memoization to improve performance.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
 apply(F, NA, NB, Node) -->
         (   { integer(NA), integer(NB) } -> { once(bool_op(F, NA, NB, Node)) }
-        ;   { apply_shortcut(F, NA, NB, Node0) } ->
-            (   { integer(Node0) } -> { Node = Node0 }
-            ;   { node_var_low_high(Node0, Var, Low, High) },
-                make_node(Var, Low, High, Node)
-            )
+        ;   { apply_shortcut(F, NA, NB, Node) } -> []
         ;   { node_id(NA, IDA), node_id(NB, IDB) },
-            (   state(_-G0), { get_assoc(g(F,IDA,IDB), G0, Node) } -> []
+            (   state(G0), { get_assoc(g(F,IDA,IDB), G0, Node) } -> []
             ;   apply_(F, NA, NB, Node),
-                state(H0-G0, H0-G),
+                state(G0, G),
                 { put_assoc(g(F,IDA,IDB), G0, Node, G) }
             )
         ).
-
 
 apply_shortcut(+, NA, NB, Node) :-
         (   NA == 0 -> Node = NB
@@ -582,10 +599,9 @@ is_bdd(BDD) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_restriction(Node, VI, Value, Res) :-
-        empty_assoc(H0),
         empty_assoc(G0),
-        phrase(bdd_restriction_(Node, VI, Value, Res), [H0-G0], _).
-        % is_bdd(Res).
+        phrase(bdd_restriction_(Node, VI, Value, Res), [G0], _),
+        is_bdd(Res).
 
 bdd_restriction_(Node, VI, Value, Res) -->
         (   { integer(Node) } -> { Res = Node }
@@ -604,11 +620,11 @@ bdd_restriction_(Node, VI, Value, Res) -->
                             bdd_restriction_(High, VI, Value, Res)
                         )
                     ;   { I0 > VI } -> { Res = Node }
-                    ;   state(_-G0), { get_assoc(ID, G0, Res) } -> []
+                    ;   state(G0), { get_assoc(ID, G0, Res) } -> []
                     ;   bdd_restriction_(Low, VI, Value, LRes),
                         bdd_restriction_(High, VI, Value, HRes),
                         make_node(Var, LRes, HRes, Res),
-                        state(H0-G0, H0-G),
+                        state(G0, G),
                         { put_assoc(ID, G0, Res, G) }
                     )
                 )
@@ -628,10 +644,11 @@ bdd_ites(Node, ITEs) :-
 bdd_ites_(Node) -->
         (   { integer(Node) ;  get_attr(Node, clpb_visited, true) } -> []
         ;   { node_var_low_high(Node, Var, Low, High),
-              put_attr(Node, clpb_visited, true) },
+              put_attr(Node, clpb_visited, true) } ->
             [Node-ite(Var, High, Low)],
             bdd_ites_(Low),
             bdd_ites_(High)
+        ;   []
         ).
 
 unvisit(Node) :- del_attr(Node, clpb_visited).
@@ -714,12 +731,14 @@ renumber_variable(_-V, I0, I) :-
 eliminate_existential(V, BDD0, BDD) :-
         (   get_attr(V, clpb_visited, true) -> BDD = BDD0
         ;   empty_assoc(G0),
-            empty_assoc(H0),
-            phrase(existential(V, BDD0, BDD), [H0-G0], _)
+            phrase(existential(V, BDD0, BDD), [G0], _)
         ).
 
 bdd_variables(BDD, Vs) :-
         bdd_ites(BDD, ITEs),
+        ites_variables(ITEs, Vs).
+
+ites_variables(ITEs, Vs) :-
         maplist(ite_variable, ITEs, Vs0),
         term_variables(Vs0, Vs).
 
@@ -787,24 +806,32 @@ call, we must declare them public.
 	clpb_count:attr_unify_hook/2,
 	clpb_bdd:attr_unify_hook/2,
 	clpb_visited:attr_unify_hook/2,
+        clpb_hash:attr_unify_hook/2,
 
 	clpb_node:attribute_goals//1,
 	clpb_id:attribute_goals//1,
 	clpb_count:attribute_goals//1,
 	clpb_bdd:attribute_goals//1,
-	clpb_visited:attribute_goals//1.
+	clpb_visited:attribute_goals//1,
+        clpb_hash:attribute_goals//1.
 
    clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
      clpb_id:attr_unify_hook(_,_) :- representation_error(cannot_unify_id).
   clpb_count:attr_unify_hook(_,_) :- representation_error(cannot_unify_count).
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
+   clpb_hash:attr_unify_hook(_,_).  % OK
 
    clpb_node:attribute_goals(_) --> [].
      clpb_id:attribute_goals(_) --> [].
   clpb_count:attribute_goals(_) --> [].
     clpb_bdd:attribute_goals(_) --> [].
 clpb_visited:attribute_goals(_) --> [].
+   clpb_hash:attribute_goals(_) --> [].
+% clpb_hash:attribute_goals(Var) -->
+%         { get_attr(Var, clpb_hash, Assoc),
+%           assoc_to_list(Assoc, List) }, [Var-List].
+
 
 :- multifile
 	sandbox:safe_global_variable/1.
