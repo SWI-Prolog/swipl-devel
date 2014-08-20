@@ -580,6 +580,7 @@ attr_unify_hook(index_root(I,Root), Other) :-
             maplist(del_bdd, Roots),
             maplist(=(NewRoot), Roots),
             root_put_formula_bdd(NewRoot, And, BDD1),
+            is_bdd(BDD1),
             satisfiable_bdd(BDD1)
         ).
 
