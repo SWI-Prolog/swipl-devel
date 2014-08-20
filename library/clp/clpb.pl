@@ -46,7 +46,7 @@
 
 /** <module> Constraint Logic Programming over Boolean Variables
 
-### Introduction			{#clpb-intro}
+### Introduction                        {#clpb-intro}
 
 Constraint programming is a declarative formalism that lets you
 describe conditions a solution must satisfy. This library provides
@@ -103,7 +103,7 @@ Important interface predicates of CLP(B) are:
 The unification of a CLP(B) variable _X_ with a term _T_ is equivalent
 to posting the constraint sat(X =:= T).
 
-### Examples				{#clpb-examples}
+### Examples                            {#clpb-examples}
 
 Here is an example session with a few queries and their answers:
 
@@ -605,14 +605,6 @@ root_rebuild_bdd(Root) :-
         ;   true
         ).
 
-is_bdd(BDD) :-
-        bdd_ites(BDD, ITEs0),
-        pairs_values(ITEs0, Ls0),
-        sort(Ls0, Ls1),
-        (   same_length(Ls0, Ls1) -> true
-        ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
-        ).
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    BDD restriction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -671,29 +663,13 @@ bdd_ites_(Node) -->
 
 unvisit(Node) :- del_attr(Node, clpb_visited).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Projection to residual goals.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-attribute_goals(Var) -->
-        { var_index_root(Var, _, Root) },
-        boolean(Var),
-        (   { root_get_formula_bdd(Root, _, BDD) } ->
-            { bdd_ites(BDD, ITEs) },
-            ites(ITEs),
-            { pairs_keys(ITEs, Nodes),
-              maplist(del_attrs, Nodes),
-              del_bdd(Root) }
-        ;   []
+is_bdd(BDD) :-
+        bdd_ites(BDD, ITEs0),
+        pairs_values(ITEs0, Ls0),
+        sort(Ls0, Ls1),
+        (   same_length(Ls0, Ls1) -> true
+        ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
         ).
-
-boolean(V) --> [sat(V =:= V)].
-
-ites([]) --> [].
-ites([Node-ite(Var,High,Low)|Is]) -->
-        { maplist(node_id, [Node,High,Low], [ID,HID,LID]) },
-        [ID-(Var -> HID ; LID)],
-        ites(Is).
 
 %% labeling(+Vs) is nondet.
 %
@@ -804,6 +780,30 @@ var_u(Node, VNum, Index) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Projection to residual goals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+attribute_goals(Var) -->
+        { var_index_root(Var, _, Root) },
+        boolean(Var),
+        (   { root_get_formula_bdd(Root, _, BDD) } ->
+            { bdd_ites(BDD, ITEs) },
+            ites(ITEs),
+            { pairs_keys(ITEs, Nodes),
+              maplist(del_attrs, Nodes),
+              del_bdd(Root) }
+        ;   []
+        ).
+
+boolean(V) --> [sat(V =:= V)].
+
+ites([]) --> [].
+ites([Node-ite(Var,High,Low)|Is]) -->
+        { maplist(node_id, [Node,High,Low], [ID,HID,LID]) },
+        [ID-(Var -> HID ; LID)],
+        ites(Is).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Global variables for unique node and variable IDs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -835,18 +835,18 @@ call, we must declare them public.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- public
-	clpb_node:attr_unify_hook/2,
-	clpb_id:attr_unify_hook/2,
-	clpb_count:attr_unify_hook/2,
-	clpb_bdd:attr_unify_hook/2,
-	clpb_visited:attr_unify_hook/2,
+        clpb_node:attr_unify_hook/2,
+        clpb_id:attr_unify_hook/2,
+        clpb_count:attr_unify_hook/2,
+        clpb_bdd:attr_unify_hook/2,
+        clpb_visited:attr_unify_hook/2,
         clpb_hash:attr_unify_hook/2,
 
-	clpb_node:attribute_goals//1,
-	clpb_id:attribute_goals//1,
-	clpb_count:attribute_goals//1,
-	clpb_bdd:attribute_goals//1,
-	clpb_visited:attribute_goals//1,
+        clpb_node:attribute_goals//1,
+        clpb_id:attribute_goals//1,
+        clpb_count:attribute_goals//1,
+        clpb_bdd:attribute_goals//1,
+        clpb_visited:attribute_goals//1,
         clpb_hash:attribute_goals//1.
 
    clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
@@ -871,7 +871,7 @@ clpb_visited:attribute_goals(_) --> [].
 %         node_var_low_high(Node, Var, Low, High).
 
 :- multifile
-	sandbox:safe_global_variable/1.
+        sandbox:safe_global_variable/1.
 
 sandbox:safe_global_variable('$clpb_next_var').
 sandbox:safe_global_variable('$clpb_next_node').
