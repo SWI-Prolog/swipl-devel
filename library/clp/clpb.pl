@@ -149,9 +149,46 @@ truth value when further constraints are added.
 */
 
 
-state(S) --> state(S, S).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Each CLP(B) variable belongs to exactly one BDD. Each CLP(B)
+   variable gets an attribute (in module "clpb") of the form:
 
-state(S0, S), [S] --> [S0].
+        index_root(Index,Root)
+
+   where Index is the variable's unique integer index, and Root is the
+   root of the BDD that the variable belongs to.
+
+   Each CLP(B) variable also gets an attribute in module clpb_hash: an
+   association table node(LID,HID) -> Node, to keep the BDD reduced.
+   The association table of each variable must be rebuilt on occasion
+   to remove nodes that are no longer reachable. We rebuild the
+   association tables of involved variables after each conjunction of
+   BDDs. The important thing is that nodes that are stored longer than
+   necessary have no impact on the solver's correctness.
+
+   A root is a logical variable with a single attribute ("clpb_bdd")
+   of the form:
+
+        Sat-BDD
+
+   where Sat is the SAT formula (in original form) that corresponds to
+   BDD. Sat is necessary to rebuild the BDD after variable aliasing.
+
+   Finally, a BDD is either:
+
+      *)  The integers 0 or 1, denoting false and true, respectively, or
+      *)  A variable with attributes:
+
+           "clpb_node" of the form node(Var, Low, High)
+               Where Var is the node's branching variable, and Low and
+               High are the node's low (Var = 0) and high (Var = 1)
+               children.
+
+           "clpb_id" denoting the node's unique integer ID.
+
+   Variable aliasing is treated as a conjunction of corresponding SAT
+   formulae.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Type checking.
@@ -310,6 +347,23 @@ bdd_and(NA, NB, And) :-
         is_bdd(And),
         rebuild_hashes(And).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Node management. Always use an existing node, if there is one.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_node(Var, Low, High, Node) -->
+        { (   Low == High -> Node = Low
+          ;   node_id(Low, LID),
+              node_id(High, HID),
+              HEntry = node(LID,HID),
+              (   lookup_node(Var, HEntry, Node) -> true
+              ;   put_attr(Node, clpb_node, node(Var,Low,High)),
+                  clpb_next_id('$clpb_next_node', ID),
+                  put_attr(Node, clpb_id, ID),
+                  register_node(Var, HEntry, Node)
+              )
+          ) }.
+
 rebuild_hashes(BDD) :-
         bdd_ites(BDD, ITEs),
         ites_variables(ITEs, Vs),
@@ -330,22 +384,6 @@ lookup_node(Var, HEntry, Node) :-
         get_attr(Var, clpb_hash, H0),
         get_assoc(HEntry, H0, Node).
 
-
-bool_op(+, 0, 0, 0).
-bool_op(+, 0, 1, 1).
-bool_op(+, 1, 0, 1).
-bool_op(+, 1, 1, 1).
-
-bool_op(*, 0, 0, 0).
-bool_op(*, 0, 1, 0).
-bool_op(*, 1, 0, 0).
-bool_op(*, 1, 1, 1).
-
-bool_op(#, 0, 0, 0).
-bool_op(#, 0, 1, 1).
-bool_op(#, 1, 0, 1).
-bool_op(#, 1, 1, 0).
-
 node_id(Node, ID) :-
         (   integer(Node) ->
             (   Node =:= 0 -> ID = false
@@ -360,59 +398,11 @@ node_var_low_high(Node, Var, Low, High) :-
         get_attr(Node, clpb_node, node(Var,Low,High)).
 
 
-make_node(Var, Low, High, Node) -->
-        { (   Low == High -> Node = Low
-          ;   node_id(Low, LID),
-              node_id(High, HID),
-              HEntry = node(LID,HID),
-              (   lookup_node(Var, HEntry, Node) -> true
-              ;   put_attr(Node, clpb_node, node(Var,Low,High)),
-                  clpb_next_id('$clpb_next_node', ID),
-                  put_attr(Node, clpb_id, ID),
-                  register_node(Var, HEntry, Node)
-              )
-          ) }.
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    sat_bdd/2 converts a SAT formula in canonical form to an ordered
-   and reduced Binary Decision Diagram (BDD).
+   and reduced BDD.
 
-   Each CLP(B) variable belongs to exactly one BDD. Each CLP(B)
-   variable gets an attribute (in module "clpb") of the form:
-
-        index_root(Index,Root)
-
-   where Index is the variable's unique integer index, and Root is the
-   root of the BDD that the variable belongs to.
-
-   Each CLP(B) variable also gets an attribute in module clpb_hash: an
-   association table node(LID,HID) -> Node, to keep the BDD reduced.
-
-   A root is a logical variable with a single attribute ("clpb_bdd")
-   of the form:
-
-        Sat-BDD
-
-   where Sat is the SAT formula (in original form) that corresponds to
-   BDD. Sat is necessary to rebuild the BDD after variable aliasing.
-
-   Finally, a BDD is either:
-
-      *)  The integers 0 or 1, denoting false and true, respectively, or
-      *)  A variable with attributes:
-
-           "clpb_node" of the form node(Var, Low, High)
-               Where Var is the node's branching variable, and Low and
-               High are the node's low (Var = 0) and high (Var = 1)
-               children.
-
-           "clpb_id" denoting the node's unique integer ID.
-
-   Variable aliasing is treated as a conjunction of corresponding SAT
-   formulae.
-
-   We use a DCG to thread through an implicit arguments G0, an
+   We use a DCG to thread through an implicit argument G0, an
    association table g(F,IDA,IDB) -> Node, used for memoization.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -557,6 +547,29 @@ var_less_than(NA, NB) :-
             node_varindex(NB, VBI),
             VAI < VBI
         ).
+
+bool_op(+, 0, 0, 0).
+bool_op(+, 0, 1, 1).
+bool_op(+, 1, 0, 1).
+bool_op(+, 1, 1, 1).
+
+bool_op(*, 0, 0, 0).
+bool_op(*, 0, 1, 0).
+bool_op(*, 1, 0, 0).
+bool_op(*, 1, 1, 1).
+
+bool_op(#, 0, 0, 0).
+bool_op(#, 0, 1, 1).
+bool_op(#, 1, 0, 1).
+bool_op(#, 1, 1, 0).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Access implicit state in DCGs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+state(S) --> state(S, S).
+
+state(S0, S), [S] --> [S0].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Unification. X = Expr is equivalent to sat(X =:= Expr).
@@ -835,8 +848,11 @@ clpb_visited:attribute_goals(_) --> [].
    clpb_hash:attribute_goals(_) --> [].
 % clpb_hash:attribute_goals(Var) -->
 %         { get_attr(Var, clpb_hash, Assoc),
-%           assoc_to_list(Assoc, List) }, [Var-List].
+%           assoc_to_list(Assoc, List0),
+%           maplist(node_portray, List0, List) }, [Var-List].
 
+% node_portray(Key-Node, Key-Node-ite(Var,High,Low)) :-
+%         node_var_low_high(Node, Var, Low, High).
 
 :- multifile
 	sandbox:safe_global_variable/1.
