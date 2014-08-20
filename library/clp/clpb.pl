@@ -239,10 +239,13 @@ sat(Sat0) :-
         sat_bdd(Sat, BDD),
         sat_roots(Sat, Roots),
         foldl(root_and, Roots, Sat0-BDD, And-BDD1),
+        (   BDD1 == BDD ->
+            rebuild_hashes(BDD1)
+        ;   true
+        ),
         maplist(del_bdd, Roots),
         maplist(=(Root), Roots),
         root_put_formula_bdd(Root, And, BDD1),
-        rebuild_hashes(BDD1),
         satisfiable_bdd(BDD1).
 
 del_bdd(Root) :- del_attr(Root, clpb_bdd).
@@ -269,12 +272,19 @@ taut(Sat0, Truth) :-
         parse_sat(Sat0, Sat),
         sat_roots(Sat, Roots),
         foldl(root_and, Roots, _-1, _-Ands),
-        (   sat_bdd(Sat, BDD), bdd_and(BDD, Ands, B), B == 0 ->
-            Truth = 0
-        ;   sat_bdd(i(1)#Sat, BDD), bdd_and(BDD, Ands, B), B == 0 ->
-            Truth = 1
+        (   unsatisfiable_conjunction(Sat, Ands) -> Truth = 0
+        ;   unsatisfiable_conjunction(i(1)#Sat, Ands) -> Truth = 1
         ;   false
         ).
+
+unsatisfiable_conjunction(Sat, Ands) :-
+        catch((sat_bdd(Sat, BDD),
+               bdd_and(BDD, Ands, B),
+               B == 0,
+               % reset all attributes
+               throw(unsatisfiable)),
+              unsatisfiable,
+              true).
 
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
