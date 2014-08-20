@@ -133,10 +133,10 @@ X = Y, Y = Z, Z = 1.
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
 sat(X=:=X),
-node(11)- (X->node(10);node(9)),
-node(9)- (Y->node(8);true),
-node(8)- (Z->true;false),
-node(10)- (Y->node(8);false),
+node(8)- (X->node(7);node(6)),
+node(6)- (Y->node(5);true),
+node(5)- (Z->true;false),
+node(7)- (Y->node(5);false),
 sat(Y=:=Y),
 sat(Z=:=Z).
 ==
