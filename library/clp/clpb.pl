@@ -239,10 +239,6 @@ sat(Sat0) :-
         sat_bdd(Sat, BDD),
         sat_roots(Sat, Roots),
         foldl(root_and, Roots, Sat0-BDD, And-BDD1),
-        (   BDD1 == BDD ->
-            rebuild_hashes(BDD1)
-        ;   true
-        ),
         maplist(del_bdd, Roots),
         maplist(=(Root), Roots),
         root_put_formula_bdd(Root, And, BDD1),
@@ -278,13 +274,9 @@ taut(Sat0, Truth) :-
         ).
 
 unsatisfiable_conjunction(Sat, Ands) :-
-        catch((sat_bdd(Sat, BDD),
-               bdd_and(BDD, Ands, B),
-               B == 0,
-               % reset all attributes
-               throw(unsatisfiable)),
-              unsatisfiable,
-              true).
+        sat_bdd(Sat, BDD),
+        bdd_and(BDD, Ands, B),
+        B == 0.
 
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
@@ -461,7 +453,10 @@ counter_network(Cs, Fs, Node) -->
           maplist(=(Root), Roots),
           root_put_formula_bdd(Root, card(Cs,Fs), Node) },
         eq_and(Vars, Fs, Node0, Node1),
-        all_existential(Vars, Node1, Node).
+        all_existential(Vars, Node1, Node),
+        % remove attributes to avoid residual goals for these variables,
+        % which are only used temporarily to build the counter network.
+        { maplist(del_attrs, Vars) }.
 
 all_existential([], Node, Node) --> [].
 all_existential([V|Vs], Node0, Node) -->
