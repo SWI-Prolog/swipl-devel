@@ -650,11 +650,10 @@ bdd_ites(Node, ITEs) :-
 bdd_ites_(Node) -->
         (   { integer(Node) ;  get_attr(Node, clpb_visited, true) } -> []
         ;   { node_var_low_high(Node, Var, Low, High),
-              put_attr(Node, clpb_visited, true) } ->
+              put_attr(Node, clpb_visited, true) },
             [Node-ite(Var, High, Low)],
             bdd_ites_(Low),
             bdd_ites_(High)
-        ;   []
         ).
 
 unvisit(Node) :- del_attr(Node, clpb_visited).
