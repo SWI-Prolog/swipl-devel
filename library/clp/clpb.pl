@@ -661,6 +661,22 @@ indomain(1).
 % N is the number of different assignments of truth values to the
 % variables in the Boolean expression Expr, such that Expr is true and
 % all posted constraints are satisfiable.
+%
+% Example:
+%
+% ==
+% :- use_module(library(clpb)).
+%
+% or(A, B, B+A).
+% ==
+%
+% Yielding:
+%
+% ==
+%?- length(Vs, 120), foldl(or, Vs, 0, Expr), sat_count(Expr, N).
+%Vs = [...], Expr = ... + ...,
+%N = 1329227995784915872903807060280344575.
+% ==
 
 sat_count(Sat0, N) :-
         catch((term_variables(Sat0, Vs),
