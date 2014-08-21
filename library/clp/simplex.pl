@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2005-2009, Markus Triska
+    Copyright (C): 2005-2014, Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -1073,24 +1073,15 @@ augmenting_path(S, V) -->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 naive_init(Supplies, _, Costs, Alphas, Betas) :-
-        length(Supplies, LAs),
-        length(Alphas, LAs),
+        same_length(Supplies, Alphas),
         maplist(=(0), Alphas),
         transpose(Costs, TCs),
         naive_init_betas(TCs, Betas).
 
 naive_init_betas([], []).
 naive_init_betas([Ls|Lss], [B|Bs]) :-
-        list_min(Ls, B),
+        min_list(Ls, B),
         naive_init_betas(Lss, Bs).
-
-list_min([F|Rest], Min) :-
-        list_min(Rest, F, Min).
-
-list_min([], Min, Min).
-list_min([L|Ls], Min0, Min) :-
-        Min1 is min(L,Min0),
-        list_min(Ls, Min1, Min).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
