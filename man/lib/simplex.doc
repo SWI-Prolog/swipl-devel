@@ -23,6 +23,7 @@ The \pllib{simplex} module provides the following predicates:
 
 \begin{description}
 	\predicate{assignment}{2}{+Cost, -Assignment}
+		Solves an assignment problem.
 		\arg{Cost} is a list of lists representing the quadratic
 		cost matrix, where element (i,j) denotes the cost of
 		assigning entity $i$ to entity $j$. An assignment with
@@ -75,7 +76,8 @@ The \pllib{simplex} module provides the following predicates:
 		must correspond to a solved instance.
 
 	\predicate{transportation}{4}{+Supplies, +Demands, +Costs, -Transport}
-		\arg{Supplies} and \arg{Demands} are both lists of positive
+		Solves a transportation problem.
+		\arg{Supplies} and \arg{Demands} are lists of non-negative
 		numbers. Their respective sums must be equal. \arg{Costs} is
 		a list of lists representing the cost matrix, where an entry
 		(i,j) denotes the cost of transporting one unit from $i$
