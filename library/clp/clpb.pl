@@ -163,8 +163,8 @@ truth value when further constraints are added.
    The association table of each variable must be rebuilt on occasion
    to remove nodes that are no longer reachable. We rebuild the
    association tables of involved variables after each conjunction of
-   BDDs. The important thing is that nodes that are stored longer than
-   necessary have no impact on the solver's correctness.
+   BDDs. This only serves to reclaim memory and does not affect the
+   solver's correctness.
 
    A root is a logical variable with a single attribute ("clpb_bdd")
    of the form:
@@ -304,11 +304,15 @@ root_and(Root, Sat0-BDD0, Sat-BDD) :-
 taut(Sat0, Truth) :-
         parse_sat(Sat0, Sat),
         sat_roots(Sat, Roots),
-        foldl(root_and, Roots, _-1, _-Ands),
-        (   unsatisfiable_conjunction(Sat, Ands) -> Truth = 0
-        ;   unsatisfiable_conjunction(i(1)#Sat, Ands) -> Truth = 1
-        ;   false
-        ).
+        catch((foldl(root_and, Roots, _-1, _-Ands),
+               (   unsatisfiable_conjunction(Sat, Ands) -> T = 0
+               ;   unsatisfiable_conjunction(i(1)#Sat, Ands) -> T = 1
+               ;   false
+               ),
+               % reset all attributes
+               throw(truth(T))),
+              truth(Truth),
+              true).
 
 unsatisfiable_conjunction(Sat, Ands) :-
         sat_bdd(Sat, BDD),
