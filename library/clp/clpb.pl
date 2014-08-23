@@ -395,8 +395,7 @@ node_id(Node, ID) :-
             ;   Node =:= 1 -> ID = true
             ;   no_truth_value(Node)
             )
-        ;   get_attr(Node, clpb_id, ID0),
-            ID = node(ID0)
+        ;   get_attr(Node, clpb_id, ID)
         ).
 
 node_var_low_high(Node, Var, Low, High) :-
@@ -825,9 +824,15 @@ boolean(V) --> [sat(V =:= V)].
 nodes([]) --> [].
 nodes([Node|Nodes]) -->
         { node_var_low_high(Node, Var, Low, High),
-          maplist(node_id, [Node,High,Low], [ID,HID,LID]) },
+          maplist(node_projection, [Node,High,Low], [ID,HID,LID]) },
         [ID-(Var -> HID ; LID)],
         nodes(Nodes).
+
+node_projection(Node, Projection) :-
+        node_id(Node, ID),
+        (   integer(ID) -> Projection = node(ID)
+        ;   Projection = ID
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Global variables for unique node and variable IDs.
