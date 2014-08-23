@@ -629,10 +629,8 @@ bdd_restriction_(Node, VI, Value, Res) -->
             ;   (   { var_index(Var, I0),
                       node_id(Node, ID) },
                     (   { I0 =:= VI } ->
-                        (   { Value =:= 0 } ->
-                            bdd_restriction_(Low, VI, Value, Res)
-                        ;   { Value =:= 1 } ->
-                            bdd_restriction_(High, VI, Value, Res)
+                        (   { Value =:= 0 } -> { Res = Low }
+                        ;   { Value =:= 1 } -> { Res = High }
                         )
                     ;   { I0 > VI } -> { Res = Node }
                     ;   state(G0), { get_assoc(ID, G0, Res) } -> []
