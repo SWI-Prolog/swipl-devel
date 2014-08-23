@@ -369,12 +369,13 @@ make_node(Var, Low, High, Node) -->
           ) }.
 
 rebuild_hashes(BDD) :-
-        bdd_ites(BDD, ITEs),
-        ites_variables(ITEs, Vs),
+        bdd_nodes(BDD, Nodes),
+        nodes_variables(Nodes, Vs),
         maplist(put_empty_hash, Vs),
-        maplist(register_ite, ITEs).
+        maplist(re_register_node, Nodes).
 
-register_ite(Node-ite(Var, High, Low)) :-
+re_register_node(Node) :-
+        node_var_low_high(Node, Var, Low, High),
         node_id(Low, LID),
         node_id(High, HID),
         register_node(Var, node(LID,HID), Node).
@@ -646,24 +647,49 @@ bdd_restriction_(Node, VI, Value, Res) -->
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Transformation from BDD to if-then-else terms.
+   Relating a BDD to its elements (nodes and variables).
+
+   Note that BDDs can become quite big (easily more than a million
+   nodes), and memory space is a major bottleneck for many problems. If
+   possible, we therefore do not duplicate the entire BDD in memory (as
+   in bdd_ites/2), but only extract its features as needed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bdd_ites(Node, ITEs) :-
-        phrase(bdd_ites_(Node), ITEs),
-        pairs_keys(ITEs, Nodes),
-        maplist(unvisit, Nodes).
+bdd_nodes(BDD, Ns) :-
+        phrase(bdd_nodes_(BDD), Ns),
+        maplist(unvisit, Ns).
 
-bdd_ites_(Node) -->
-        (   { integer(Node) ;  get_attr(Node, clpb_visited, true) } -> []
-        ;   { node_var_low_high(Node, Var, Low, High),
-              put_attr(Node, clpb_visited, true) },
-            [Node-ite(Var, High, Low)],
-            bdd_ites_(Low),
-            bdd_ites_(High)
+bdd_nodes_(Node) -->
+        (   { integer(Node) ;  is_visited(Node) } -> []
+        ;   { node_var_low_high(Node, _, Low, High),
+              put_visited(Node) },
+            [Node],
+            bdd_nodes_(Low),
+            bdd_nodes_(High)
+        ).
+
+bdd_variables(BDD, Vs) :-
+        bdd_nodes(BDD, Nodes),
+        nodes_variables(Nodes, Vs).
+
+nodes_variables(Nodes, Vs) :-
+        phrase(nodes_variables_(Nodes), Vs),
+        maplist(unvisit, Vs).
+
+nodes_variables_([]) --> [].
+nodes_variables_([Node|Nodes]) -->
+        { node_var_low_high(Node, Var, _, _) },
+        (   { is_visited(Var) } -> nodes_variables_(Nodes)
+        ;   { put_visited(Var) },
+            [Var],
+            nodes_variables_(Nodes)
         ).
 
 unvisit(Node) :- del_attr(Node, clpb_visited).
+
+is_visited(Node) :- get_attr(Node, clpb_visited, true).
+
+put_visited(Node) :- put_attr(Node, clpb_visited, true).
 
 is_bdd(BDD) :-
         bdd_ites(BDD, ITEs0),
@@ -672,6 +698,13 @@ is_bdd(BDD) :-
         (   same_length(Ls0, Ls1) -> true
         ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
         ).
+
+bdd_ites(BDD, ITEs) :-
+        bdd_nodes(BDD, Nodes),
+        maplist(node_ite, Nodes, ITEs).
+
+node_ite(Node, Node-ite(Var,High,Low)) :-
+        node_var_low_high(Node, Var, Low, High).
 
 %% labeling(+Vs) is nondet.
 %
@@ -717,13 +750,16 @@ indomain(1).
 % ==
 
 sat_count(Sat0, N) :-
-        catch((term_variables(Sat0, Vs),
-               maplist(essential_variable, Vs),
-               parse_sat(Sat0, Sat),
+        catch((parse_sat(Sat0, Sat),
                sat_bdd(Sat, BDD),
                sat_roots(Sat, Roots),
                foldl(root_and, Roots, _-BDD, _-BDD1),
+               % we mark variables that occur in Sat0 as visited ...
+               term_variables(Sat0, Vs),
+               maplist(put_visited, Vs),
+               % ... so that they do not appear in Vs1 ...
                bdd_variables(BDD1, Vs1),
+               % ... and then remove remaining variables:
                foldl(eliminate_existential, Vs1, BDD1, BDD2),
                maplist(var_with_index, Vs, IVs0),
                keysort(IVs0, IVs1),
@@ -741,22 +777,10 @@ renumber_variable(_-V, I0, I) :-
         I is I0 + 1.
 
 eliminate_existential(V, BDD0, BDD) :-
-        (   get_attr(V, clpb_visited, true) -> BDD = BDD0
-        ;   empty_assoc(G0),
-            phrase(existential(V, BDD0, BDD), [G0], _)
-        ).
-
-bdd_variables(BDD, Vs) :-
-        bdd_ites(BDD, ITEs),
-        ites_variables(ITEs, Vs).
-
-ites_variables(ITEs, Vs) :-
-        maplist(ite_variable, ITEs, Vs0),
-        term_variables(Vs0, Vs).
+        empty_assoc(G0),
+        phrase(existential(V, BDD0, BDD), [G0], _).
 
 ite_variable(_-ite(V,_,_), V).
-
-essential_variable(V) :- put_attr(V, clpb_visited, true).
 
 bdd_count(Node, VNum, Count) :-
         (   integer(Node) -> Count = Node
@@ -789,21 +813,21 @@ attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         boolean(Var),
         (   { root_get_formula_bdd(Root, _, BDD) } ->
-            { bdd_ites(BDD, ITEs) },
-            ites(ITEs),
-            { pairs_keys(ITEs, Nodes),
-              maplist(del_attrs, Nodes),
+            { bdd_nodes(BDD, Nodes) },
+            nodes(Nodes),
+            { maplist(del_attrs, Nodes),
               del_bdd(Root) }
         ;   []
         ).
 
 boolean(V) --> [sat(V =:= V)].
 
-ites([]) --> [].
-ites([Node-ite(Var,High,Low)|Is]) -->
-        { maplist(node_id, [Node,High,Low], [ID,HID,LID]) },
+nodes([]) --> [].
+nodes([Node|Nodes]) -->
+        { node_var_low_high(Node, Var, Low, High),
+          maplist(node_id, [Node,High,Low], [ID,HID,LID]) },
         [ID-(Var -> HID ; LID)],
-        ites(Is).
+        nodes(Nodes).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Global variables for unique node and variable IDs.
