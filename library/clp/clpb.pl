@@ -834,6 +834,11 @@ aliasing analysis to discover whether or not the others are exposed.
 Therefore, we define the hooks,  so  we   know  what  will be called. In
 addition, because accessing these variables  is basically a cross-module
 call, we must declare them public.
+
+Notice that the necessary declarations for library(sandbox) are getting
+a bit out of hand for modules that use a lot of different attributes,
+like this library. There may be a better way to solve such issues, by
+improving the interface to attributed variables and related predicates.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- public
