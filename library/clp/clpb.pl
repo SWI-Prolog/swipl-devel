@@ -101,7 +101,7 @@ Important interface predicates of CLP(B) are:
       are satisfied.
 
 The unification of a CLP(B) variable _X_ with a term _T_ is equivalent
-to posting the constraint sat(X =:= T).
+to posting the constraint sat(X=:=T).
 
 ### Examples                            {#clpb-examples}
 
@@ -691,11 +691,13 @@ is_visited(Node) :- get_attr(Node, clpb_visited, true).
 put_visited(Node) :- put_attr(Node, clpb_visited, true).
 
 is_bdd(BDD) :-
-        bdd_ites(BDD, ITEs0),
-        pairs_values(ITEs0, Ls0),
-        sort(Ls0, Ls1),
-        (   same_length(Ls0, Ls1) -> true
-        ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
+        (   current_prolog_flag(optimise, true) -> true % skip validation
+        ;   bdd_ites(BDD, ITEs0),
+            pairs_values(ITEs0, Ls0),
+            sort(Ls0, Ls1),
+            (   same_length(Ls0, Ls1) -> true
+            ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
+            )
         ).
 
 bdd_ites(BDD, ITEs) :-
