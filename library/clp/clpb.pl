@@ -101,7 +101,7 @@ Important interface predicates of CLP(B) are:
       are satisfied.
 
 The unification of a CLP(B) variable _X_ with a term _T_ is equivalent
-to posting the constraint sat(X =:= T).
+to posting the constraint sat(X=:=T).
 
 ### Examples                            {#clpb-examples}
 
