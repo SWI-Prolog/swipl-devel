@@ -177,14 +177,12 @@ truth value when further constraints are added.
    Finally, a BDD is either:
 
       *)  The integers 0 or 1, denoting false and true, respectively, or
-      *)  A variable with attributes:
+      *)  A variable with attribute "clpb_node" of the form
 
-           "clpb_node" of the form node(Var, Low, High)
-               Where Var is the node's branching variable, and Low and
-               High are the node's low (Var = 0) and high (Var = 1)
-               children.
-
-           "clpb_id" denoting the node's unique integer ID.
+           node(ID, Var, Low, High)
+               Where ID is the node's unique integer ID, Var is the
+               node's branching variable, and Low and High are the
+               node's low (Var = 0) and high (Var = 1) children.
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
@@ -361,9 +359,8 @@ make_node(Var, Low, High, Node) -->
               node_id(High, HID),
               HEntry = node(LID,HID),
               (   lookup_node(Var, HEntry, Node) -> true
-              ;   put_attr(Node, clpb_node, node(Var,Low,High)),
-                  clpb_next_id('$clpb_next_node', ID),
-                  put_attr(Node, clpb_id, ID),
+              ;   clpb_next_id('$clpb_next_node', ID),
+                  put_attr(Node, clpb_node, node(ID,Var,Low,High)),
                   register_node(Var, HEntry, Node)
               )
           ) }.
@@ -395,11 +392,14 @@ node_id(Node, ID) :-
             ;   Node =:= 1 -> ID = true
             ;   no_truth_value(Node)
             )
-        ;   get_attr(Node, clpb_id, ID)
+        ;   node_id_(Node, ID)
         ).
 
+node_id_(Node, ID) :-
+        get_attr(Node, clpb_node, node(ID,_,_,_)).
+
 node_var_low_high(Node, Var, Low, High) :-
-        get_attr(Node, clpb_node, node(Var,Low,High)).
+        get_attr(Node, clpb_node, node(_,Var,Low,High)).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -872,28 +872,24 @@ improving the interface to attributed variables and related predicates.
 
 :- public
         clpb_node:attr_unify_hook/2,
-        clpb_id:attr_unify_hook/2,
         clpb_count:attr_unify_hook/2,
         clpb_bdd:attr_unify_hook/2,
         clpb_visited:attr_unify_hook/2,
         clpb_hash:attr_unify_hook/2,
 
         clpb_node:attribute_goals//1,
-        clpb_id:attribute_goals//1,
         clpb_count:attribute_goals//1,
         clpb_bdd:attribute_goals//1,
         clpb_visited:attribute_goals//1,
         clpb_hash:attribute_goals//1.
 
    clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
-     clpb_id:attr_unify_hook(_,_) :- representation_error(cannot_unify_id).
   clpb_count:attr_unify_hook(_,_) :- representation_error(cannot_unify_count).
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
    clpb_hash:attr_unify_hook(_,_).  % OK
 
    clpb_node:attribute_goals(_) --> [].
-     clpb_id:attribute_goals(_) --> [].
   clpb_count:attribute_goals(_) --> [].
     clpb_bdd:attribute_goals(_) --> [].
 clpb_visited:attribute_goals(_) --> [].
