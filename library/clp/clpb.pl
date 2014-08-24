@@ -534,7 +534,7 @@ apply_(F, NA, NB, Node) -->
         apply(F, LA, LB, Low),
         apply(F, HA, HB, High),
         make_node(VA, Low, High, Node).
-apply_(F, NA, NB, Node) --> % NB > NA
+apply_(F, NA, NB, Node) --> % NB < NA
         { node_var_low_high(NB, VB, LB, HB) },
         apply(F, NA, LB, Low),
         apply(F, NA, HB, High),
@@ -743,9 +743,9 @@ indomain(1).
 % Yielding:
 %
 % ==
-%?- length(Vs, 120), foldl(or, Vs, 0, Expr), sat_count(Expr, N).
-%Vs = [...], Expr = ... + ...,
-%N = 1329227995784915872903807060280344575.
+% ?- length(Vs, 120), foldl(or, Vs, 0, Expr), sat_count(Expr, N).
+% Vs = [...], Expr = ... + ...,
+% N = 1329227995784915872903807060280344575.
 % ==
 
 sat_count(Sat0, N) :-
