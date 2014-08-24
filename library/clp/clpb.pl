@@ -407,7 +407,7 @@ node_var_low_high(Node, Var, Low, High) :-
    and reduced BDD.
 
    We use a DCG to thread through an implicit argument G0, an
-   association table g(F,IDA,IDB) -> Node, used for memoization.
+   association table F(IDA,IDB) -> Node, used for memoization.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sat_bdd(Sat, BDD) :-
@@ -494,11 +494,11 @@ fill_indicators([I|Is], Index0, Cs) :-
 apply(F, NA, NB, Node) -->
         (   { integer(NA), integer(NB) } -> { once(bool_op(F, NA, NB, Node)) }
         ;   { apply_shortcut(F, NA, NB, Node) } -> []
-        ;   { node_id(NA, IDA), node_id(NB, IDB) },
-            (   state(G0), { get_assoc(g(F,IDA,IDB), G0, Node) } -> []
+        ;   { node_id(NA, IDA), node_id(NB, IDB), Key =.. [F,IDA,IDB] },
+            (   state(G0), { get_assoc(Key, G0, Node) } -> []
             ;   apply_(F, NA, NB, Node),
                 state(G0, G),
-                { put_assoc(g(F,IDA,IDB), G0, Node, G) }
+                { put_assoc(Key, G0, Node, G) }
             )
         ).
 
