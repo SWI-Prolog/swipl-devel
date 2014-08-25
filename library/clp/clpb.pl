@@ -344,8 +344,7 @@ put_empty_hash(V) :-
 
 
 bdd_and(NA, NB, And) :-
-        empty_assoc(G0),
-        phrase(apply(*, NA, NB, And), [G0], _),
+        apply(*, NA, NB, And),
         is_bdd(And),
         rebuild_hashes(And).
 
@@ -353,17 +352,21 @@ bdd_and(NA, NB, And) :-
    Node management. Always use an existing node, if there is one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+make_node(Var, Low, High, Node) :-
+        (   Low == High -> Node = Low
+        ;   node_id(Low, LID),
+            node_id(High, HID),
+            HEntry = node(LID,HID),
+            (   lookup_node(Var, HEntry, Node) -> true
+            ;   clpb_next_id('$clpb_next_node', ID),
+                put_attr(Node, clpb_node, node(ID,Var,Low,High)),
+                register_node(Var, HEntry, Node)
+            )
+        ).
+
 make_node(Var, Low, High, Node) -->
-        { (   Low == High -> Node = Low
-          ;   node_id(Low, LID),
-              node_id(High, HID),
-              HEntry = node(LID,HID),
-              (   lookup_node(Var, HEntry, Node) -> true
-              ;   clpb_next_id('$clpb_next_node', ID),
-                  put_attr(Node, clpb_node, node(ID,Var,Low,High)),
-                  register_node(Var, HEntry, Node)
-              )
-          ) }.
+        % make it conveniently usable within DCGs
+        { make_node(Var, Low, High, Node) }.
 
 rebuild_hashes(BDD) :-
         bdd_nodes(BDD, Nodes),
@@ -405,76 +408,64 @@ node_var_low_high(Node, Var, Low, High) :-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    sat_bdd/2 converts a SAT formula in canonical form to an ordered
    and reduced BDD.
-
-   We use a DCG to thread through an implicit argument G0, an
-   association table F(IDA,IDB) -> Node, used for memoization.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-sat_bdd(Sat, BDD) :-
-        empty_assoc(G0),
-        phrase(sat_bdd(Sat, BDD), [G0], _).
-
-sat_bdd(i(I), I) --> !.
-sat_bdd(v(V), Node) --> !, make_node(V, 0, 1, Node).
-sat_bdd(v(V)^Sat, Node) --> !, sat_bdd(Sat, BDD), existential(V, BDD, Node).
-sat_bdd(card(Is,Fs), Node) --> !, counter_network(Is, Fs, Node).
-sat_bdd(Sat, Node) -->
-        { Sat =.. [F,A,B] },
+sat_bdd(i(I), I)           :- !.
+sat_bdd(v(V), Node)        :- !, make_node(V, 0, 1, Node).
+sat_bdd(v(V)^Sat, Node)    :- !, sat_bdd(Sat, BDD), existential(V, BDD, Node).
+sat_bdd(card(Is,Fs), Node) :- !, counter_network(Is, Fs, Node).
+sat_bdd(Sat, Node)         :- !,
+        Sat =.. [F,A,B],
         sat_bdd(A, NA),
         sat_bdd(B, NB),
         apply(F, NA, NB, Node).
 
-existential(V, BDD, Node) -->
-        { var_index(V, Index),
-          bdd_restriction(BDD, Index, 0, NA),
-          bdd_restriction(BDD, Index, 1, NB) },
+existential(V, BDD, Node) :-
+        var_index(V, Index),
+        bdd_restriction(BDD, Index, 0, NA),
+        bdd_restriction(BDD, Index, 1, NB),
         apply(+, NA, NB, Node).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Counter network for card(Is,Fs).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-counter_network(Cs, Fs, Node) -->
-        { same_length([_|Fs], Indicators),
-          fill_indicators(Indicators, 0, Cs),
-          same_length(Fs, Vars0),
-          % enumerate variables in reverse order so that they appear
-          % in the correct order in the resulting BDD
-          maplist(enumerate_variable, Vars0),
-          reverse(Vars0, Vars) },
+counter_network(Cs, Fs, Node) :-
+        same_length([_|Fs], Indicators),
+        fill_indicators(Indicators, 0, Cs),
+        same_length(Fs, Vars0),
+        % enumerate variables in reverse order so that they appear
+        % in the correct order in the resulting BDD
+        maplist(enumerate_variable, Vars0),
+        reverse(Vars0, Vars),
         counter_network(Fs, Indicators, Vars, Node0),
-        { maplist(var_index_root, Vars, _, Roots),
-          maplist(=(Root), Roots),
-          root_put_formula_bdd(Root, card(Cs,Fs), Node) },
+        maplist(var_index_root, Vars, _, Roots),
+        maplist(=(Root), Roots),
+        root_put_formula_bdd(Root, card(Cs,Fs), Node),
         eq_and(Vars, Fs, Node0, Node1),
-        all_existential(Vars, Node1, Node),
+        foldl(existential, Vars, Node1, Node),
         % remove attributes to avoid residual goals for these variables,
         % which are only used temporarily to build the counter network.
-        { maplist(del_attrs, Vars) }.
+        maplist(del_attrs, Vars).
 
-all_existential([], Node, Node) --> [].
-all_existential([V|Vs], Node0, Node) -->
-        existential(V, Node0, Node1),
-        all_existential(Vs, Node1, Node).
-
-eq_and([], [], Node, Node) --> [].
-eq_and([X|Xs], [Y|Ys], Node0, Node) -->
-        { sat_rewrite(v(X) =:= Y, Sat) },
+eq_and([], [], Node, Node).
+eq_and([X|Xs], [Y|Ys], Node0, Node) :-
+        sat_rewrite(v(X) =:= Y, Sat),
         sat_bdd(Sat, B),
         apply(*, B, Node0, Node1),
         eq_and(Xs, Ys, Node1, Node).
 
-counter_network([], [Node], [], Node) --> [].
-counter_network([_|Fs], Is0, [Var|Vars], Node) -->
+counter_network([], [Node], [], Node).
+counter_network([_|Fs], Is0, [Var|Vars], Node) :-
         indicators_pairing(Is0, Var, Is1),
         counter_network(Fs, Is1, Vars, Node).
 
-indicators_pairing([], _, []) --> [].
-indicators_pairing([I|Is], Var, Nodes) -->
+indicators_pairing([], _, []).
+indicators_pairing([I|Is], Var, Nodes) :-
         indicators_pairing_(Is, I, Var, Nodes).
 
-indicators_pairing_([], _, _, []) --> [].
-indicators_pairing_([I|Is], Prev, Var, [Node|Nodes]) -->
+indicators_pairing_([], _, _, []).
+indicators_pairing_([I|Is], Prev, Var, [Node|Nodes]) :-
         make_node(Var, Prev, I, Node),
         indicators_pairing_(Is, I, Var, Nodes).
 
@@ -488,8 +479,15 @@ fill_indicators([I|Is], Index0, Cs) :-
         fill_indicators(Is, Index1, Cs).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   apply//4. Uses memoization to improve performance.
+   Compute F(NA, NB).
+
+   We use a DCG to thread through an implicit argument G0, an
+   association table F(IDA,IDB) -> Node, used for memoization.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+apply(F, NA, NB, Node) :-
+        empty_assoc(G0),
+        phrase(apply(F, NA, NB, Node), [G0], _).
 
 apply(F, NA, NB, Node) -->
         (   { integer(NA), integer(NB) } -> { once(bool_op(F, NA, NB, Node)) }
@@ -761,7 +759,7 @@ sat_count(Sat0, N) :-
                % ... so that they do not appear in Vs1 ...
                bdd_variables(BDD1, Vs1),
                % ... and then remove remaining variables:
-               foldl(eliminate_existential, Vs1, BDD1, BDD2),
+               foldl(existential, Vs1, BDD1, BDD2),
                maplist(var_with_index, Vs, IVs0),
                keysort(IVs0, IVs1),
                foldl(renumber_variable, IVs1, 1, VNum),
@@ -776,10 +774,6 @@ sat_count(Sat0, N) :-
 renumber_variable(_-V, I0, I) :-
         put_attr(V, clpb, index_root(I0,_)),
         I is I0 + 1.
-
-eliminate_existential(V, BDD0, BDD) :-
-        empty_assoc(G0),
-        phrase(existential(V, BDD0, BDD), [G0], _).
 
 ite_variable(_-ite(V,_,_), V).
 
