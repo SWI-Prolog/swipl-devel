@@ -177,12 +177,13 @@ truth value when further constraints are added.
    Finally, a BDD is either:
 
       *)  The integers 0 or 1, denoting false and true, respectively, or
-      *)  A variable with attribute "clpb_node" of the form
+      *)  A node of the form
 
-           node(ID, Var, Low, High)
+           node(ID, Var, Low, High, Aux)
                Where ID is the node's unique integer ID, Var is the
                node's branching variable, and Low and High are the
                node's low (Var = 0) and high (Var = 1) children.
+               Aux is a variable that can be used to attach attributes.
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
@@ -359,7 +360,7 @@ make_node(Var, Low, High, Node) :-
             HEntry = node(LID,HID),
             (   lookup_node(Var, HEntry, Node) -> true
             ;   clpb_next_id('$clpb_next_node', ID),
-                put_attr(Node, clpb_node, node(ID,Var,Low,High)),
+                Node = node(ID,Var,Low,High,_Aux),
                 register_node(Var, HEntry, Node)
             )
         ).
@@ -389,20 +390,15 @@ lookup_node(Var, HEntry, Node) :-
         get_attr(Var, clpb_hash, H0),
         get_assoc(HEntry, H0, Node).
 
-node_id(Node, ID) :-
-        (   integer(Node) ->
-            (   Node =:= 0 -> ID = false
-            ;   Node =:= 1 -> ID = true
-            ;   no_truth_value(Node)
-            )
-        ;   node_id_(Node, ID)
-        ).
 
-node_id_(Node, ID) :-
-        get_attr(Node, clpb_node, node(ID,_,_,_)).
+node_id(0, false).
+node_id(1, true).
+node_id(node(ID,_,_,_,_), ID).
+
+node_aux(Node, Aux) :- arg(5, Node, Aux).
 
 node_var_low_high(Node, Var, Low, High) :-
-        get_attr(Node, clpb_node, node(_,Var,Low,High)).
+        Node = node(_,Var,Low,High,_).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -654,12 +650,12 @@ bdd_restriction_(Node, VI, Value, Res) -->
 
 bdd_nodes(BDD, Ns) :-
         phrase(bdd_nodes_(BDD), Ns),
-        maplist(unvisit, Ns).
+        maplist(with_aux(unvisit), Ns).
 
 bdd_nodes_(Node) -->
-        (   { integer(Node) ;  is_visited(Node) } -> []
+        (   { integer(Node) ;  with_aux(is_visited, Node) } -> []
         ;   { node_var_low_high(Node, _, Low, High),
-              put_visited(Node) },
+              with_aux(put_visited, Node) },
             [Node],
             bdd_nodes_(Low),
             bdd_nodes_(High)
@@ -682,11 +678,15 @@ nodes_variables_([Node|Nodes]) -->
             nodes_variables_(Nodes)
         ).
 
-unvisit(Node) :- del_attr(Node, clpb_visited).
+unvisit(V) :- del_attr(V, clpb_visited).
 
-is_visited(Node) :- get_attr(Node, clpb_visited, true).
+is_visited(V) :- get_attr(V, clpb_visited, true).
 
-put_visited(Node) :- put_attr(Node, clpb_visited, true).
+put_visited(V) :- put_attr(V, clpb_visited, true).
+
+with_aux(Pred, Node) :-
+        node_aux(Node, Aux),
+        call(Pred, Aux).
 
 is_bdd(BDD) :-
         (   current_prolog_flag(optimise, true) -> true % skip validation
@@ -779,14 +779,16 @@ ite_variable(_-ite(V,_,_), V).
 
 bdd_count(Node, VNum, Count) :-
         (   integer(Node) -> Count = Node
-        ;   get_attr(Node, clpb_count, Count) -> true
-        ;   node_var_low_high(Node, V, Low, High),
-            bdd_count(Low, VNum, LCount),
-            bdd_count(High, VNum, HCount),
-            bdd_pow(Low, V, VNum, LPow),
-            bdd_pow(High, V, VNum, HPow),
-            Count is LPow*LCount + HPow*HCount,
-            put_attr(Node, clpb_count, Count)
+        ;   node_aux(Node, Aux),
+            (   get_attr(Aux, clpb_count, Count) -> true
+            ;   node_var_low_high(Node, V, Low, High),
+                bdd_count(Low, VNum, LCount),
+                bdd_count(High, VNum, HCount),
+                bdd_pow(Low, V, VNum, LPow),
+                bdd_pow(High, V, VNum, HPow),
+                Count is LPow*LCount + HPow*HCount,
+                put_attr(Aux, clpb_count, Count)
+            )
         ).
 
 
@@ -861,31 +863,27 @@ addition, because accessing these variables  is basically a cross-module
 call, we must declare them public.
 
 Notice that the necessary declarations for library(sandbox) are getting
-a bit out of hand for modules that use a lot of different attributes,
+a bit out of hand for modules that use several different attributes,
 like this library. There may be a better way to solve such issues, by
 improving the interface to attributed variables and related predicates.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- public
-        clpb_node:attr_unify_hook/2,
         clpb_count:attr_unify_hook/2,
         clpb_bdd:attr_unify_hook/2,
         clpb_visited:attr_unify_hook/2,
         clpb_hash:attr_unify_hook/2,
 
-        clpb_node:attribute_goals//1,
         clpb_count:attribute_goals//1,
         clpb_bdd:attribute_goals//1,
         clpb_visited:attribute_goals//1,
         clpb_hash:attribute_goals//1.
 
-   clpb_node:attr_unify_hook(_,_) :- representation_error(cannot_unify_node).
   clpb_count:attr_unify_hook(_,_) :- representation_error(cannot_unify_count).
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
    clpb_hash:attr_unify_hook(_,_).  % OK
 
-   clpb_node:attribute_goals(_) --> [].
   clpb_count:attribute_goals(_) --> [].
     clpb_bdd:attribute_goals(_) --> [].
 clpb_visited:attribute_goals(_) --> [].
