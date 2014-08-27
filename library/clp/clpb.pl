@@ -182,8 +182,9 @@ truth value when further constraints are added.
            node(ID, Var, Low, High, Aux)
                Where ID is the node's unique integer ID, Var is the
                node's branching variable, and Low and High are the
-               node's low (Var = 0) and high (Var = 1) children.
-               Aux is a variable that can be used to attach attributes.
+               node's low (Var = 0) and high (Var = 1) children. Aux
+               is a free variable, one for each node, that can be used
+               to attach attributes and store intermediate results.
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
@@ -766,7 +767,7 @@ sat_count(Sat0, N) :-
                bdd_count(BDD2, VNum, Count0),
                var_u(BDD2, VNum, P),
                Count is 2^(P - 1)*Count0,
-               % reset all attributes
+               % reset all attributes and Aux variables
                throw(count(Count))),
               count(N),
               true).
@@ -779,15 +780,14 @@ ite_variable(_-ite(V,_,_), V).
 
 bdd_count(Node, VNum, Count) :-
         (   integer(Node) -> Count = Node
-        ;   node_aux(Node, Aux),
-            (   get_attr(Aux, clpb_count, Count) -> true
+        ;   node_aux(Node, Count),
+            (   integer(Count) -> true
             ;   node_var_low_high(Node, V, Low, High),
                 bdd_count(Low, VNum, LCount),
                 bdd_count(High, VNum, HCount),
                 bdd_pow(Low, V, VNum, LPow),
                 bdd_pow(High, V, VNum, HPow),
-                Count is LPow*LCount + HPow*HCount,
-                put_attr(Aux, clpb_count, Count)
+                Count is LPow*LCount + HPow*HCount
             )
         ).
 
@@ -869,22 +869,18 @@ improving the interface to attributed variables and related predicates.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- public
-        clpb_count:attr_unify_hook/2,
         clpb_bdd:attr_unify_hook/2,
         clpb_visited:attr_unify_hook/2,
         clpb_hash:attr_unify_hook/2,
 
-        clpb_count:attribute_goals//1,
         clpb_bdd:attribute_goals//1,
         clpb_visited:attribute_goals//1,
         clpb_hash:attribute_goals//1.
 
-  clpb_count:attr_unify_hook(_,_) :- representation_error(cannot_unify_count).
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
    clpb_hash:attr_unify_hook(_,_).  % OK
 
-  clpb_count:attribute_goals(_) --> [].
     clpb_bdd:attribute_goals(_) --> [].
 clpb_visited:attribute_goals(_) --> [].
    clpb_hash:attribute_goals(_) --> [].
