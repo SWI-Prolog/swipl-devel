@@ -161,10 +161,13 @@ truth value when further constraints are added.
    Each CLP(B) variable also gets an attribute in module clpb_hash: an
    association table node(LID,HID) -> Node, to keep the BDD reduced.
    The association table of each variable must be rebuilt on occasion
-   to remove nodes that are no longer reachable. We rebuild the
-   association tables of involved variables after each conjunction of
-   BDDs. This only serves to reclaim memory and does not affect the
-   solver's correctness.
+   to remove nodes that are no longer reachable. We rebuild, after
+   each conjunction of BDDs, the association tables of involved
+   variables whose clpb_tainted attribute is true. This only serves to
+   reclaim memory and does not affect the solver's correctness. A
+   variable's clpb_tainted attribute is set to true when a new node is
+   created with that variable as a branching variable. These variables
+   seem good candidates to have their tables rebuilt.
 
    A root is a logical variable with a single attribute ("clpb_bdd")
    of the form:
@@ -371,8 +374,26 @@ make_node(Var, Low, High, Node) -->
         { make_node(Var, Low, High, Node) }.
 
 rebuild_hashes(BDD) :-
-        bdd_nodes(put_empty_hash, BDD, Nodes),
-        maplist(re_register_node, Nodes).
+        bdd_nodes(clear_tainted_hash, BDD, Nodes0),
+        include(tainted_node, Nodes0, Nodes),
+        maplist(re_register_node, Nodes),
+        nodes_variables(Nodes, Vs),
+        maplist(untaint, Vs).
+
+
+clear_tainted_hash(Var) :-
+        (   tainted_var(Var) -> put_empty_hash(Var)
+        ;   true
+        ).
+
+tainted_var(Var) :- get_attr(Var, clpb_tainted, true).
+
+tainted_node(Node) :-
+        node_var_low_high(Node, Var, _, _),
+        tainted_var(Var).
+
+untaint(V) :- del_attr(V, clpb_tainted).
+
 
 re_register_node(Node) :-
         node_var_low_high(Node, Var, Low, High),
@@ -381,6 +402,7 @@ re_register_node(Node) :-
         register_node(Var, node(LID,HID), Node).
 
 register_node(Var, HEntry, Node) :-
+        put_attr(Var, clpb_tainted, true),
         get_attr(Var, clpb_hash, H0),
         put_assoc(HEntry, H0, Node, H),
         put_attr(Var, clpb_hash, H).
@@ -877,18 +899,22 @@ improving the interface to attributed variables and related predicates.
         clpb_bdd:attr_unify_hook/2,
         clpb_visited:attr_unify_hook/2,
         clpb_hash:attr_unify_hook/2,
+        clpb_tainted:attr_unify_hook/2,
 
         clpb_bdd:attribute_goals//1,
         clpb_visited:attribute_goals//1,
-        clpb_hash:attribute_goals//1.
+        clpb_hash:attribute_goals//1,
+        clpb_tainted:attribute_goals//1.
 
     clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
 clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
    clpb_hash:attr_unify_hook(_,_).  % OK
+clpb_tainted:attr_unify_hook(_,_).  % OK
 
     clpb_bdd:attribute_goals(_) --> [].
 clpb_visited:attribute_goals(_) --> [].
    clpb_hash:attribute_goals(_) --> [].
+clpb_tainted:attribute_goals(_) --> [].
 % clpb_hash:attribute_goals(Var) -->
 %         { get_attr(Var, clpb_hash, Assoc),
 %           assoc_to_list(Assoc, List0),
