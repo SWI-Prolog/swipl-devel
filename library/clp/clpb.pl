@@ -371,9 +371,7 @@ make_node(Var, Low, High, Node) -->
         { make_node(Var, Low, High, Node) }.
 
 rebuild_hashes(BDD) :-
-        bdd_nodes(BDD, Nodes),
-        nodes_variables(Nodes, Vs),
-        maplist(put_empty_hash, Vs),
+        bdd_nodes(put_empty_hash, BDD, Nodes),
         maplist(re_register_node, Nodes).
 
 re_register_node(Node) :-
@@ -649,17 +647,24 @@ bdd_restriction_(Node, VI, Value, Res) -->
    in bdd_ites/2), but only extract its features as needed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bdd_nodes(BDD, Ns) :-
-        phrase(bdd_nodes_(BDD), Ns),
+bdd_nodes(BDD, Ns) :- bdd_nodes(do_nothing, BDD, Ns).
+
+do_nothing(_).
+
+% VPred is a unary predicate that is called for each branching variable
+
+bdd_nodes(VPred, BDD, Ns) :-
+        phrase(bdd_nodes_(VPred, BDD), Ns),
         maplist(with_aux(unvisit), Ns).
 
-bdd_nodes_(Node) -->
+bdd_nodes_(VPred, Node) -->
         (   { integer(Node) ;  with_aux(is_visited, Node) } -> []
-        ;   { node_var_low_high(Node, _, Low, High),
+        ;   { node_var_low_high(Node, Var, Low, High),
+              call(VPred, Var),
               with_aux(put_visited, Node) },
             [Node],
-            bdd_nodes_(Low),
-            bdd_nodes_(High)
+            bdd_nodes_(VPred, Low),
+            bdd_nodes_(VPred, High)
         ).
 
 bdd_variables(BDD, Vs) :-
