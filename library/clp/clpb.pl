@@ -374,11 +374,9 @@ make_node(Var, Low, High, Node) -->
         { make_node(Var, Low, High, Node) }.
 
 rebuild_hashes(BDD) :-
-        bdd_nodes(clear_tainted_hash, BDD, Nodes0),
-        include(tainted_node, Nodes0, Nodes),
-        maplist(re_register_node, Nodes),
-        nodes_variables(Nodes, Vs),
-        maplist(untaint, Vs).
+        bdd_nodes(clear_tainted_hash, BDD, Nodes),
+        maplist(rebuild_tainted, Nodes),
+        maplist(untaint_variable, Nodes).
 
 
 clear_tainted_hash(Var) :-
@@ -388,18 +386,19 @@ clear_tainted_hash(Var) :-
 
 tainted_var(Var) :- get_attr(Var, clpb_tainted, true).
 
-tainted_node(Node) :-
+
+untaint_variable(Node) :-
         node_var_low_high(Node, Var, _, _),
-        tainted_var(Var).
+        del_attr(Var, clpb_tainted).
 
-untaint(V) :- del_attr(V, clpb_tainted).
-
-
-re_register_node(Node) :-
+rebuild_tainted(Node) :-
         node_var_low_high(Node, Var, Low, High),
-        node_id(Low, LID),
-        node_id(High, HID),
-        register_node(Var, node(LID,HID), Node).
+        (   tainted_var(Var) ->
+            node_id(Low, LID),
+            node_id(High, HID),
+            register_node(Var, node(LID,HID), Node)
+        ;   true
+        ).
 
 register_node(Var, HEntry, Node) :-
         put_attr(Var, clpb_tainted, true),
