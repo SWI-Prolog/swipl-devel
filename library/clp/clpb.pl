@@ -373,11 +373,11 @@ make_node(Var, Low, High, Node) -->
         % make it conveniently usable within DCGs
         { make_node(Var, Low, High, Node) }.
 
+
 rebuild_hashes(BDD) :-
         bdd_nodes(clear_tainted_hash, BDD, Nodes),
         maplist(rebuild_tainted, Nodes),
         maplist(untaint_variable, Nodes).
-
 
 clear_tainted_hash(Var) :-
         (   tainted_var(Var) -> put_empty_hash(Var)
@@ -385,7 +385,6 @@ clear_tainted_hash(Var) :-
         ).
 
 tainted_var(Var) :- get_attr(Var, clpb_tainted, true).
-
 
 untaint_variable(Node) :-
         node_var_low_high(Node, Var, _, _),
@@ -836,10 +835,9 @@ attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         boolean(Var),
         (   { root_get_formula_bdd(Root, _, BDD) } ->
-            { bdd_nodes(BDD, Nodes) },
-            nodes(Nodes),
-            { maplist(del_attrs, Nodes),
-              del_bdd(Root) }
+            { del_bdd(Root),
+              bdd_nodes(BDD, Nodes) },
+            nodes(Nodes)
         ;   []
         ).
 
