@@ -2174,6 +2174,10 @@ load_files(Module:Files, Options) :-
 	'$start_non_module'(Id, State, Options),
 	'$compile_term'(Term, Layout, Id).
 
+'$compile_term'((?-Directive), _Layout, Id) :- !,
+	'$execute_directive'(Directive, Id).
+'$compile_term'((:-Directive), _Layout, Id) :- !,
+	'$execute_directive'(Directive, Id).
 '$compile_term'(Clause, Layout, Id) :- !,
 	catch('$store_clause'(Clause, Layout, Id), E,
 	      '$print_message'(error, E)).
@@ -2706,20 +2710,13 @@ load_files(Module:Files, Options) :-
 	fail.
 '$store_clause'(Term, _Layout, File) :-
 	'$clause_source'(Term, Clause, -, SrcLoc),
-	'$record_clause_or_directive'(Clause, File, SrcLoc),
-	fail.
-'$store_clause'(_, _, _).
-
-'$record_clause_or_directive'(?-Directive, File, _) :- !,
-	'$execute_directive'(Directive, Id).
-'$record_clause_or_directive'(:-Directive, File, _) :- !,
-	'$execute_directive'(Directive, Id).
-'$record_clause_or_directive'(Clause, File, SrcLoc) :-
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
 	;   '$record_clause'(Clause, File, SrcLoc, Ref),
 	    '$qlf_assert_clause'(Ref, development)
-	).
+	),
+	fail.
+'$store_clause'(_, _, _).
 
 '$clause_source'('$source_location'(File, Line):Clauses, Clause, _, FileLine) :- !,
     '$clause_source'(Clauses, Clause, File:Line, FileLine).
