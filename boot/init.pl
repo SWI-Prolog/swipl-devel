@@ -2709,22 +2709,15 @@ load_files(Module:Files, Options) :-
 	print_message(error, cannot_redefine_comma),
 	fail.
 '$store_clause'(Term, _Layout, File) :-
-	'$clause_source'(Term, Clause, -, SrcLoc),
+	'$clause_source'(Term, Clause, SrcLoc),
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
 	;   '$record_clause'(Clause, File, SrcLoc, Ref),
 	    '$qlf_assert_clause'(Ref, development)
-	),
-	fail.
-'$store_clause'(_, _, _).
+	).
 
-'$clause_source'('$source_location'(File, Line):Clauses, Clause, _, FileLine) :- !,
-    '$clause_source'(Clauses, Clause, File:Line, FileLine).
-'$clause_source'(Clauses, Clause, FileLine0, FileLine) :-
-    is_list(Clauses), !,
-    member(Clause0, Clauses),
-    '$clause_source'(Clause0, Clause, FileLine0, FileLine).
-'$clause_source'(Clause, Clause, FileLine, FileLine).
+'$clause_source'('$source_location'(File,Line):Clause, Clause, File:Line) :- !.
+'$clause_source'(Clause, Clause, -).
 
 :- public
 	'$store_clause'/2.
