@@ -2174,21 +2174,8 @@ load_files(Module:Files, Options) :-
 	'$start_non_module'(Id, State, Options),
 	'$compile_term'(Term, Layout, Id).
 
-'$compile_term'(Term, Layout, Id) :-
-	'$compile_term'(Term, Layout, Id, -).
-
-'$compile_term'((?-Directive), _Layout, Id, _) :- !,
-	'$execute_directive'(Directive, Id).
-'$compile_term'((:-Directive), _Layout, Id, _) :- !,
-	'$execute_directive'(Directive, Id).
-'$compile_term'('$source_location'(File, Line):Term, Layout, Id, _) :- !,
-	'$compile_term'(Term, Layout, Id, File:Line).
-'$compile_term'(Terms, Layout, Id, SrcLoc) :-
-	is_list(Terms), !,
-	forall('$member'(Term, Terms),
-	       '$compile_term'(Term, Layout, Id, SrcLoc)).
-'$compile_term'(Clause, Layout, Id, SrcLoc) :-
-	catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
+'$compile_term'(Clause, Layout, Id) :- !,
+	catch('$store_clause'(Clause, Layout, Id), E,
 	      '$print_message'(error, E)).
 
 '$start_non_module'(Id, _State, Options) :-
@@ -2466,8 +2453,8 @@ load_files(Module:Files, Options) :-
 	->  '$set_predicate_attribute'(Context:NewHead, transparent, 1)
 	;   true
 	),
-	(   source_location(File, Line)
-	->  catch('$store_clause'((NewHead :- Source:Head), _Layout, File, File:Line), E,
+	(   source_location(File, _Line)
+	->  catch('$store_clause'((NewHead :- Source:Head), _Layout, File), E,
 		  '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
@@ -2564,7 +2551,7 @@ load_files(Module:Files, Options) :-
 	->  true
 	;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File)
 	),
-	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File, -).
+	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File).
 
 %%	'$execute_directive'(:Goal, +File) is det.
 %
@@ -2710,25 +2697,43 @@ load_files(Module:Files, Options) :-
 		*        COMPILE A CLAUSE       *
 		*********************************/
 
-%%	'$store_clause'(+Clause, ?Layout, +SourceId, +SrcLoc) is det.
+%%	'$store_clause'(+Clause, ?Layout, +SourceId) is det.
 %
 %	Store a clause into the database.
 
-'$store_clause'((_, _), _, _, _) :- !,
+'$store_clause'((_, _), _, _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
-'$store_clause'(Clause, _Layout, File, SrcLoc) :-
+'$store_clause'(Term, _Layout, File) :-
+	'$clause_source'(Term, Clause, -, SrcLoc),
+	'$record_clause_or_directive'(Clause, File, SrcLoc),
+	fail.
+'$store_clause'(_, _, _).
+
+'$record_clause_or_directive'(?-Directive, File, _) :- !,
+	'$execute_directive'(Directive, Id).
+'$record_clause_or_directive'(:-Directive, File, _) :- !,
+	'$execute_directive'(Directive, Id).
+'$record_clause_or_directive'(Clause, File, SrcLoc) :-
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
 	;   '$record_clause'(Clause, File, SrcLoc, Ref),
 	    '$qlf_assert_clause'(Ref, development)
 	).
 
-:- public
-	'$store_clause'/3.
+'$clause_source'('$source_location'(File, Line):Clauses, Clause, _, FileLine) :- !,
+    '$clause_source'(Clauses, Clause, File:Line, FileLine).
+'$clause_source'(Clauses, Clause, FileLine0, FileLine) :-
+    is_list(Clauses), !,
+    member(Clause0, Clauses),
+    '$clause_source'(Clause0, Clause, FileLine0, FileLine).
+'$clause_source'(Clause, Clause, FileLine, FileLine).
 
-'$store_clause'(Clause, File, Line) :-
-	'$store_clause'(Clause, _Layout, File, File:Line).
+:- public
+	'$store_clause'/2.
+
+'$store_clause'(Clause, Id) :-
+	'$store_clause'(Clause, _, Id).
 
 %%	compile_aux_clauses(+Clauses) is det.
 %
