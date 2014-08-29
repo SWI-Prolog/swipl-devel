@@ -488,6 +488,7 @@ safe_primitive(length(_,_)).
 safe_primitive(throw(_)).
 					% misc
 safe_primitive(current_prolog_flag(_,_)).
+safe_primitive(current_op(_,_,_)).
 safe_primitive(system:sleep(_)).
 safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
