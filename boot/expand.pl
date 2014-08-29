@@ -183,11 +183,21 @@ expand_terms(C, List0, Pos0, List, Pos) :-
 	    expand_term_list(C, List0, Elems0, List, Elems)
 	;   '$type_error'(list, List0)
 	).
-expand_terms(C, '$source_location'(File, Line):Clause0, Pos0,
-		'$source_location'(File, Line):Clause, Pos) :- !,
-	expand_terms(C, Clause0, Pos0, Clause, Pos).
+expand_terms(C, '$source_location'(File, Line):Clause0, Pos0, Clause, Pos) :- !,
+	expand_terms(C, Clause0, Pos0, Clause1, Pos),
+	add_source_location(Clause1, '$source_location'(File, Line), Clause).
 expand_terms(C, Term0, Pos0, Term, Pos) :-
 	call(C, Term0, Pos0, Term, Pos).
+
+add_source_location(Clauses0, SrcLoc, Clauses) :-
+	(   is_list(Clauses0)
+	->  add_source_location_list(Clauses0, SrcLoc, Clauses)
+	;   Clauses = SrcLoc:Clauses0
+	).
+
+add_source_location_list([], _, []).
+add_source_location_list([Clause|Clauses0], SrcLoc, [SrcLoc:Clause|Clauses]) :-
+	add_source_location_list(Clauses0, SrcLoc, Clauses).
 
 %%	expand_term_list(:Expander, +TermList, +Pos, -NewTermList, -PosList)
 
