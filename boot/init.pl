@@ -2174,12 +2174,20 @@ load_files(Module:Files, Options) :-
 	'$start_non_module'(Id, State, Options),
 	'$compile_term'(Term, Layout, Id).
 
-'$compile_term'((?-Directive), _Layout, Id) :- !,
+'$compile_term'(Term, Layout, Id) :-
+	'$compile_term'(Term, Layout, Id, -).
+
+'$compile_term'(Var, _Layout, _Id, _Src) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
+'$compile_term'((?-Directive), _Layout, Id, _) :- !,
 	'$execute_directive'(Directive, Id).
-'$compile_term'((:-Directive), _Layout, Id) :- !,
+'$compile_term'((:-Directive), _Layout, Id, _) :- !,
 	'$execute_directive'(Directive, Id).
-'$compile_term'(Clause, Layout, Id) :- !,
-	catch('$store_clause'(Clause, Layout, Id), E,
+'$compile_term'('$source_location'(File, Line):Term, Layout, Id, _) :- !,
+	'$compile_term'(Term, Layout, Id, File:Line).
+'$compile_term'(Clause, Layout, Id, SrcLoc) :-
+	catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
 	      '$print_message'(error, E)).
 
 '$start_non_module'(Id, _State, Options) :-
@@ -2457,8 +2465,8 @@ load_files(Module:Files, Options) :-
 	->  '$set_predicate_attribute'(Context:NewHead, transparent, 1)
 	;   true
 	),
-	(   source_location(File, _Line)
-	->  catch('$store_clause'((NewHead :- Source:Head), _Layout, File), E,
+	(   source_location(File, Line)
+	->  catch('$store_clause'((NewHead :- Source:Head), _Layout, File, File:Line), E,
 		  '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
@@ -2555,7 +2563,7 @@ load_files(Module:Files, Options) :-
 	->  true
 	;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File)
 	),
-	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File).
+	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File, -).
 
 %%	'$execute_directive'(:Goal, +File) is det.
 %
@@ -2705,11 +2713,10 @@ load_files(Module:Files, Options) :-
 %
 %	Store a clause into the database.
 
-'$store_clause'((_, _), _, _) :- !,
+'$store_clause'((_, _), _, _, _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
-'$store_clause'(Term, _Layout, File) :-
-	'$clause_source'(Term, Clause, SrcLoc),
+'$store_clause'(Clause, _Layout, File, SrcLoc) :-
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
 	;   '$record_clause'(Clause, File, SrcLoc, Ref),
@@ -2719,11 +2726,17 @@ load_files(Module:Files, Options) :-
 '$clause_source'('$source_location'(File,Line):Clause, Clause, File:Line) :- !.
 '$clause_source'(Clause, Clause, -).
 
+%%	'$store_clause'(+Term, +Id) is det.
+%
+%	This interface is used by PlDoc (and who knows).  Kept for to avoid
+%	compatibility issues.
+
 :- public
 	'$store_clause'/2.
 
-'$store_clause'(Clause, Id) :-
-	'$store_clause'(Clause, _, Id).
+'$store_clause'(Term, Id) :-
+	'$clause_source'(Term, Clause, SrcLoc),
+	'$store_clause'(Clause, _, Id, SrcLoc).
 
 %%	compile_aux_clauses(+Clauses) is det.
 %
