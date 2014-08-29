@@ -272,14 +272,39 @@ sat_roots(Sat, Roots) :-
 % Fails if Expr cannot be satisfied.
 
 sat(Sat0) :-
-        parse_sat(Sat0, Sat),
-        sat_bdd(Sat, BDD),
-        sat_roots(Sat, Roots),
-        foldl(root_and, Roots, Sat0-BDD, And-BDD1),
-        maplist(del_bdd, Roots),
-        maplist(=(Root), Roots),
-        root_put_formula_bdd(Root, And, BDD1),
-        satisfiable_bdd(BDD1).
+        (   phrase(sat_ands(Sat0), Ands), Ands = [_,_|_] ->
+            maplist(sat, Ands)
+        ;   parse_sat(Sat0, Sat),
+            sat_bdd(Sat, BDD),
+            sat_roots(Sat, Roots),
+            foldl(root_and, Roots, Sat0-BDD, And-BDD1),
+            maplist(del_bdd, Roots),
+            maplist(=(Root), Roots),
+            root_put_formula_bdd(Root, And, BDD1),
+            satisfiable_bdd(BDD1)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Posting many small sat/1 constraints is better than posting a huge
+   conjunction (or negated disjunction), because the node tables are
+   rebuilt and unneeded nodes are removed after BDDs are merged. This
+   is not possible in sat_bdd/2 due to its doubly recursive structure.
+   A better version of sat_bdd/2 would make this obsolete and also
+   improve taut/2 and sat_count/2 in such cases.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+sat_ands(X) -->
+        (   { var(X) } -> [X]
+        ;   { X = (A*B) } -> sat_ands(A), sat_ands(B)
+        ;   { X = ~Y } -> not_ors(Y)
+        ;   [X]
+        ).
+
+not_ors(X) -->
+        (   { var(X) } -> [~X]
+        ;   { X = (A+B) } -> not_ors(A), not_ors(B)
+        ;   [~X]
+        ).
 
 del_bdd(Root) :- del_attr(Root, clpb_bdd).
 
