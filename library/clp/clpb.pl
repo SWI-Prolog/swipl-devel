@@ -478,18 +478,14 @@ eq_and([X|Xs], [Y|Ys], Node0, Node) :-
         eq_and(Xs, Ys, Node1, Node).
 
 counter_network([], [Node], [], Node).
-counter_network([_|Fs], Is0, [Var|Vars], Node) :-
-        indicators_pairing(Is0, Var, Is1),
-        counter_network(Fs, Is1, Vars, Node).
+counter_network([_|Fs], [I|Is0], [Var|Vars], Node) :-
+        indicators_pairing(Is0, I, Var, Is),
+        counter_network(Fs, Is, Vars, Node).
 
-indicators_pairing([], _, []).
-indicators_pairing([I|Is], Var, Nodes) :-
-        indicators_pairing_(Is, I, Var, Nodes).
-
-indicators_pairing_([], _, _, []).
-indicators_pairing_([I|Is], Prev, Var, [Node|Nodes]) :-
+indicators_pairing([], _, _, []).
+indicators_pairing([I|Is], Prev, Var, [Node|Nodes]) :-
         make_node(Var, Prev, I, Node),
-        indicators_pairing_(Is, I, Var, Nodes).
+        indicators_pairing(Is, I, Var, Nodes).
 
 fill_indicators([], _, _).
 fill_indicators([I|Is], Index0, Cs) :-
