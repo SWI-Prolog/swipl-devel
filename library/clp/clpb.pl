@@ -277,7 +277,7 @@ sat(Sat0) :-
         ;   parse_sat(Sat0, Sat),
             sat_bdd(Sat, BDD),
             sat_roots(Sat, Roots),
-            foldl(root_and, Roots, Sat0-BDD, And-BDD1),
+            roots_and(Roots, Sat0-BDD, And-BDD1),
             maplist(del_bdd, Roots),
             maplist(=(Root), Roots),
             root_put_formula_bdd(Root, And, BDD1),
@@ -313,6 +313,10 @@ root_get_formula_bdd(Root, F, BDD) :- get_attr(Root, clpb_bdd, F-BDD).
 
 root_put_formula_bdd(Root, F, BDD) :- put_attr(Root, clpb_bdd, F-BDD).
 
+roots_and(Roots, Sat0-BDD0, Sat-BDD) :-
+        foldl(root_and, Roots, Sat0-BDD0, Sat-BDD),
+        rebuild_hashes(BDD).
+
 root_and(Root, Sat0-BDD0, Sat-BDD) :-
         (   root_get_formula_bdd(Root, F, B) ->
             Sat = F*Sat0,
@@ -330,7 +334,7 @@ root_and(Root, Sat0-BDD0, Sat-BDD) :-
 taut(Sat0, Truth) :-
         parse_sat(Sat0, Sat),
         sat_roots(Sat, Roots),
-        catch((foldl(root_and, Roots, _-1, _-Ands),
+        catch((roots_and(Roots, _-1, _-Ands),
                (   unsatisfiable_conjunction(Sat, Ands) -> T = 0
                ;   unsatisfiable_conjunction(i(1)#Sat, Ands) -> T = 1
                ;   false
@@ -373,8 +377,7 @@ put_empty_hash(V) :-
 
 bdd_and(NA, NB, And) :-
         apply(*, NA, NB, And),
-        is_bdd(And),
-        rebuild_hashes(And).
+        is_bdd(And).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Node management. Always use an existing node, if there is one.
@@ -609,7 +612,7 @@ attr_unify_hook(index_root(I,Root), Other) :-
             Sat = Sat0*OtherSat,
             sat_roots(Sat, Roots),
             maplist(root_rebuild_bdd, Roots),
-            foldl(root_and, Roots, 1-1, And-BDD1),
+            roots_and(Roots, 1-1, And-BDD1),
             maplist(del_bdd, Roots),
             maplist(=(NewRoot), Roots),
             root_put_formula_bdd(NewRoot, And, BDD1),
@@ -781,7 +784,7 @@ sat_count(Sat0, N) :-
         catch((parse_sat(Sat0, Sat),
                sat_bdd(Sat, BDD),
                sat_roots(Sat, Roots),
-               foldl(root_and, Roots, _-BDD, _-BDD1),
+               roots_and(Roots, _-BDD, _-BDD1),
                % we mark variables that occur in Sat0 as visited ...
                term_variables(Sat0, Vs),
                maplist(put_visited, Vs),
