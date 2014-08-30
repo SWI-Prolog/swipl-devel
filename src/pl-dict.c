@@ -261,9 +261,12 @@ dict_ordered(Word data, int count, int ex ARG_LD)
 { int ordered = TRUE;
   Word n1, n2;
 
-  deRef2(data, n1);
-  if ( !is_key(*n1) )
-    return (count == 0);		/* ordered if empty dict */
+  if ( count > 0 )
+  { deRef2(data, n1);
+    if ( !is_key(*n1) )
+      return -1;
+  }
+
   for(; count > 1; count--, data += 2, n1=n2)
   { deRef2(data+2, n2);
     if ( !is_key(*n2) )
