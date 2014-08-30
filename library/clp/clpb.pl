@@ -286,11 +286,12 @@ sat(Sat0) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Posting many small sat/1 constraints is better than posting a huge
-   conjunction (or negated disjunction), because the node tables are
-   rebuilt and unneeded nodes are removed after BDDs are merged. This
-   is not possible in sat_bdd/2 due to its doubly recursive structure.
-   A better version of sat_bdd/2 would make this obsolete and also
-   improve taut/2 and sat_count/2 in such cases.
+   conjunction (or negated disjunction), because unneeded nodes are
+   removed from node tables after BDDs are merged. This is not
+   possible in sat_bdd/2 because the nodes may occur in other BDDs. A
+   better version of sat_bdd/2 or a proper implementation of a unique
+   table including garbage collection would make this obsolete and
+   also improve taut/2 and sat_count/2 in such cases.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sat_ands(X) -->
