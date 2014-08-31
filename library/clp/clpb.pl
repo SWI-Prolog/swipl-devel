@@ -331,17 +331,17 @@ root_and(Root, Sat0-BDD0, Sat-BDD) :-
 % satisfied, and with T = 1 if Expr is always true with respect to the
 % current constraints. Fails otherwise.
 
-taut(Sat0, Truth) :-
+taut(Sat0, T) :-
         parse_sat(Sat0, Sat),
         sat_roots(Sat, Roots),
         catch((roots_and(Roots, _-1, _-Ands),
-               (   unsatisfiable_conjunction(Sat, Ands) -> T = 0
-               ;   unsatisfiable_conjunction(i(1)#Sat, Ands) -> T = 1
+               (   T = 0, unsatisfiable_conjunction(Sat, Ands) -> true
+               ;   T = 1, unsatisfiable_conjunction(i(1)#Sat, Ands) -> true
                ;   false
                ),
                % reset all attributes
                throw(truth(T))),
-              truth(Truth),
+              truth(T),
               true).
 
 unsatisfiable_conjunction(Sat, Ands) :-
