@@ -5568,26 +5568,29 @@ independent of operator changes to the \const{user} module.
 1200 & fx & \op{:-}, \op{?-} \\
 1150 & fx & \op{dynamic}, \op{discontiguous}, \op{initialization},
 	    \op{meta_predicate},
-	    \op{module_transparent}, \op{multifile}, \op{thread_local},
-	    \op{volatile} \\
+	    \op{module_transparent}, \op{multifile}, \op{public},
+	    \op{thread_local}, \op{thread_initialization}, \op{volatile} \\
 1100 & xfy & \op{;}, \op{|} \\
 1050 & xfy & \op{->}, \op{*->} \\
 1000 & xfy & \op{,} \\
 990 & xfx & \op{:=} \\
 900 & fy & \op{\+} \\
-700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{=:=}, \op{=<}, \op{==},
+700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{\=@=},
+	    \op{=:=}, \op{=<}, \op{==},
             \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>},
-            \op{@>=}, \op{\=}, \op{\==}, \op{is}
+            \op{@>=}, \op{\=}, \op{\==}, \op{as}, \op{is},
 	    \op{>:<}, \op{:<}
 	    \\
 600 & xfy & \op{:} \\
 500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
 500 & fx & \op{?} \\
-400 & yfx & \op{*}, \op{/}, \op{//}, \op{rdiv},
+400 & yfx & \op{*}, \op{/}, \op{//}, \op{div}, \op{rdiv},
             \op{<<}, \op{>>}, \op{mod}, \op{rem} \\
 200 & xfx & \op{**} \\
 200 & xfy & \op{^} \\
-200 & fy & \op{+}, \op{-}, \op{\} \\
+200 & fy  & \op{+}, \op{-}, \op{\} \\
+100 & yfx & \op{.} \\
+1   & fx  & \op{$} \\
 \hline
 \end{tabular}
 \end{center}
