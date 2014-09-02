@@ -814,7 +814,7 @@ compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
 %%	intersection_eq(+Small, +Big, -Shared) is det.
 %
 %	Shared are the variables in Small that   also appear in Big. The
-%	variables in Shared are in the same order as Shared.
+%	variables in Shared are in the same order as Small.
 
 intersection_eq([], _, []).
 intersection_eq([H|T0], L, List) :-
