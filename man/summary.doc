@@ -679,6 +679,7 @@ suggest predicates from a keyword.
 \predicatesummary{valid_string_goal}{1}{\hook{check} Goal handles strings}
 \predicatesummary{var}{1}{Type check for unbound variable}
 \predicatesummary{var_number}{2}{Check that var is numbered by numbervars}
+\predicatesummary{var_property}{2}{Variable properties during macro expansion}
 \predicatesummary{variant_sha1}{2}{Term-hash for term-variants}
 \predicatesummary{version}{0}{Print system banner message}
 \predicatesummary{version}{1}{Add messages to the system banner}

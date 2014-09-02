@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -32,7 +32,8 @@
 	  [ expand_term/2,		% +Term0, -Term
 	    expand_goal/2,		% +Goal0, -Goal
 	    expand_term/4,		% +Term0, ?Pos0, -Term, -Pos
-	    expand_goal/4		% +Goal0, ?Pos0, -Goal, -Pos
+	    expand_goal/4,	        % +Goal0, ?Pos0, -Goal, -Pos
+            var_property/2		% +Var, ?Property
 	  ]).
 
 /** <module> Prolog source-code transformation
@@ -136,14 +137,19 @@ expand_term_2(Term, Pos, Term, Pos).
 
 %%	expand_bodies(+Term, +Pos0, -Out, -Pos) is det.
 %
-%	Find the body terms in Term and give them to expand_goal/2 for
-%	further processing.
+%	Find the body terms in Term and   give them to expand_goal/2 for
+%	further processing. Note that  we   maintain  status information
+%	about variables. Currently we only  detect whether variables are
+%	_fresh_ or not. See var_info/3.
 
 expand_bodies(Terms, Pos0, Out, Pos) :-
 	'$def_modules'([goal_expansion/4,goal_expansion/2], MList),
-	expand_terms(expand_body(MList), Terms, Pos0, Out, Pos).
+	expand_terms(expand_body(MList), Terms, Pos0, Out, Pos),
+	remove_attributes(Out, '$var_info').
 
 expand_body(MList, (Head0 :- Body), Pos0, (Head :- ExpandedBody), Pos) :- !,
+        term_variables(Head0, HVars),
+        mark_vars_non_fresh(HVars),
 	f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
 	expand_goal(Body, BPos0, ExpandedBody0, BPos, MList, (Head0 :- Body)),
 	(   compound(Head0),
@@ -157,6 +163,7 @@ expand_body(MList, (Head0 :- Body), Pos0, (Head :- ExpandedBody), Pos) :- !,
 expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :- !,
 	f1_pos(Pos0, BPos0, Pos, BPos),
 	expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (:- Body)).
+
 expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
 	compound(Head0),
 	'$set_source_module'(M, M),
@@ -249,6 +256,158 @@ list_pos(Pos, [Pos], Elems, Elems).
 
 
 		 /*******************************
+		 *      VAR_INFO/3 SUPPORT	*
+		 *******************************/
+
+%%	var_intersection(+List1, +List2, -Shared) is det.
+%
+%	Shared is the ordered intersection of List1 and List2.
+
+var_intersection(List1, List2, Intersection) :-
+	sort(List1, Set1),
+	sort(List2, Set2),
+	ord_intersection(Set1, Set2, Intersection).
+
+%%	ord_intersection(+OSet1, +OSet2, -Int)
+%
+%	Ordered list intersection.  Copied from the library.
+
+ord_intersection([], _Int, []).
+ord_intersection([H1|T1], L2, Int) :-
+	isect2(L2, H1, T1, Int).
+
+isect2([], _H1, _T1, []).
+isect2([H2|T2], H1, T1, Int) :-
+	compare(Order, H1, H2),
+	isect3(Order, H1, T1, H2, T2, Int).
+
+isect3(<, _H1, T1,  H2, T2, Int) :-
+	isect2(T1, H2, T2, Int).
+isect3(=, H1, T1, _H2, T2, [H1|Int]) :-
+	ord_intersection(T1, T2, Int).
+isect3(>, H1, T1,  _H2, T2, Int) :-
+	isect2(T2, H1, T1, Int).
+
+
+%%	merge_variable_info(+Saved)
+%
+%	Merge info from two branches. The  info   in  Saved is the saved
+%	info from the  first  branch,  while   the  info  in  the actual
+%	variables is the  info  in  the   second  branch.  Only  if both
+%	branches claim the variable to  be   fresh,  we  can consider it
+%	fresh.
+
+merge_variable_info([]).
+merge_variable_info([Var=State|States]) :-
+        (   get_attr(Var, '$var_info', CurrentState)
+	->  true
+	;   CurrentState = (-)
+	),
+        merge_states(Var, State, CurrentState),
+        merge_variable_info(States).
+
+merge_states(_Var, State, State) :- !.
+merge_states(_Var, -, _) :- !.
+merge_states(Var, State, -) :- !,
+	put_attr(Var, '$var_info', State).
+merge_states(Var, Left, Right) :-
+	(   get_dict(fresh, Left, false)
+	->  put_dict(fresh, Right, false)
+	;   get_dict(fresh, Right, false)
+	->  put_dict(fresh, Left, false)
+	), !,
+	(   Left >:< Right
+	->  put_dict(Left, Right, State),
+	    put_attr(Var, '$var_info', State)
+	;   print_message(warning,
+			  inconsistent_variable_properties(Left, Right)),
+	    put_dict(Left, Right, State),
+	    put_attr(Var, '$var_info', State)
+	).
+
+
+save_variable_info([], []).
+save_variable_info([Var|Vars], [Var=State|States]):-
+        (   get_attr(Var, '$var_info', State)
+	->  true
+        ;   State = (-)
+        ),
+        save_variable_info(Vars, States).
+
+restore_variable_info([]).
+restore_variable_info([Var=State|States]) :-
+	(   State == (-)
+	->  del_attr(Var, '$var_info')
+	;   put_attr(Var, '$var_info', State)
+	),
+        restore_variable_info(States).
+
+%%	var_property(+Var, ?Property)
+%
+%	True when Var has a property  Key with Value. Defined properties
+%	are:
+%
+%	  - fresh(Fresh)
+%	  Variable is first introduced in this goal and thus guaranteed
+%	  to be unbound.  This property is always present.
+%	  - name(-Name)
+%	  True when Name is the name of the variable.
+
+var_property(Var, Property) :-
+	prop_var(Property, Var).
+
+prop_var(fresh(Fresh), Var) :-
+	 (   get_attr(Var, '$var_info', Info),
+	     get_dict(fresh, Info, Fresh0)
+	 ->  Fresh = Fresh0
+	 ;   Fresh = true
+	 ).
+prop_var(name(Name), Var) :-
+	(   b_getval('$variable_names', Bindings),
+	    '$member'(Name0=Var0, Bindings),
+	    Var0 == Var
+	->  Name = Name0
+	).
+
+
+mark_vars_non_fresh([]) :- !.
+mark_vars_non_fresh([Var|Vars]) :-
+        (   get_attr(Var, '$var_info', Info)
+	->  (   get_dict(fresh, Info, false)
+	    ->	true
+	    ;	put_dict(fresh, Info, false, Info1),
+		put_attr(Var, '$var_info', Info1)
+	    )
+        ;   put_attr(Var, '$var_info', '$var_info'{fresh:false})
+        ),
+        mark_vars_non_fresh(Vars).
+
+
+%%	remove_attributes(+Term, +Attribute) is det.
+%
+%	Remove all variable attributes Attribute from Term. This is used
+%	to make term_expansion end with a  clean term. This is currently
+%	_required_ for saving directives  in   QLF  files.  The compiler
+%	ignores attributes, but I think  it   is  cleaner to remove them
+%	anyway.
+
+remove_attributes(Term, Attr) :-
+	term_variables(Term, Vars),
+	remove_var_attr(Vars, Attr).
+
+remove_var_attr([], _):- !.
+remove_var_attr([Var|Vars], Attr):-
+        del_attr(Var, Attr),
+        remove_var_attr(Vars, Attr).
+
+%%	'$var_info':attr_unify_hook(_,_) is det.
+%
+%	Dummy unification hook for attributed variables.  Just succeeds.
+
+'$var_info':attr_unify_hook(_, _).
+
+
+		 /*******************************
 		 *   GOAL_EXPANSION/2 SUPPORT	*
 		 *******************************/
 
@@ -264,7 +423,7 @@ expand_goal(A, B) :-
 expand_goal(A, P0, B, P) :-
 	'$def_modules'([goal_expansion/4, goal_expansion/2], MList),
 	(   expand_goal(A, P0, B, P, MList, _)
-	->  A \== B
+	->  remove_attributes(B, '$var_info'), A \== B
 	), !.
 expand_goal(A, P, A, P).
 
@@ -303,8 +462,15 @@ expand_goal((A,B), P0, Conj, P, M, MList, Term) :- !,
 	simplify((EA,EB), P1, Conj, P).
 expand_goal((A;B), P0, Or, P, M, MList, Term) :- !,
 	f2_pos(P0, PA0, PB0, P1, PA, PB),
+        term_variables(A, AVars),
+        term_variables(B, BVars),
+        var_intersection(AVars, BVars, SharedVars),
+        save_variable_info(SharedVars, SavedState),
         expand_goal(A, PA0, EA, PA, M, MList, Term),
+        save_variable_info(SharedVars, SavedState2),
+        restore_variable_info(SavedState),
         expand_goal(B, PB0, EB, PB, M, MList, Term),
+        merge_variable_info(SavedState2),
 	simplify((EA;EB), P1, Or, P).
 expand_goal((A->B), P0, Goal, P, M, MList, Term) :- !,
 	f2_pos(P0, PA0, PB0, P1, PA, PB),
@@ -318,7 +484,10 @@ expand_goal((A*->B), P0, Goal, P, M, MList, Term) :- !,
 	simplify((EA*->EB), P1, Goal, P).
 expand_goal((\+A), P0, Goal, P, M, MList, Term) :- !,
 	f1_pos(P0, PA0, P1, PA),
+	term_variables(A, AVars),
+	save_variable_info(AVars, SavedState),
         expand_goal(A, PA0, EA, PA, M, MList, Term),
+	restore_variable_info(SavedState),
 	simplify(\+(EA), P1, Goal, P).
 expand_goal(call(A), P0, call(EA), P, M, MList, Term) :- !,
 	f1_pos(P0, PA0, P, PA),
@@ -335,6 +504,8 @@ expand_goal(G0, P0, G, P, M, MList, Term) :-
 	is_meta_call(G0, M, Head), !,
 	expand_meta(Head, G0, P0, G, P, M, MList, Term).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
+        term_variables(G0, Vars),
+        mark_vars_non_fresh(Vars),
 	expand_functions(G0, P0, G, P, M, MList, Term).
 
 %%	is_meta_call(+G0, +M, +Head) is semidet.

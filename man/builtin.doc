@@ -884,6 +884,24 @@ and therefore discontiguous warnings.
 This predicate performs the translation of a term \exam{Head-->Body}
 into a normal Prolog clause.  Normally this functionality should be
 accessed using expand_term/2.
+
+    \predicate{var_property}{2}{+Var, ?Property}
+True when \arg{Property} is a property of \arg{Var}. These properties
+are available during goal- and term-expansion. Defines properties are
+below. Future versions are likely to provide more properties, such as
+whether the variable is a singleton or whether the variable is
+referenced in the remainder of the term.  See also goal_expansion/2.
+
+    \begin{description}
+    \termitem{fresh}{Bool}
+Bool has the value \arg{true} is the variable is guaranteed to be
+unbound at entry of the goal.  This implies that the variable first
+appears in this goal or a previous appearance was in a negation
+(\predref{\+}{1}) or the different of a disjunction.
+
+    \termitem{name}{Name}
+True when variable appears with the given name in the source.
+    \end{description}
 \end{description}
 
 
