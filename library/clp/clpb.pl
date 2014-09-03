@@ -162,9 +162,9 @@ truth value when further constraints are added.
    association table node(LID,HID) -> Node, to keep the BDD reduced.
    The association table of each variable must be rebuilt on occasion
    to remove nodes that are no longer reachable. We rebuild the
-   association tables of involved variables after each conjunction of
-   BDDs. This only serves to reclaim memory and does not affect the
-   solver's correctness.
+   association tables of involved variables after BDDs are merged to
+   build a new root. This only serves to reclaim memory and does not
+   affect the solver's correctness.
 
    A root is a logical variable with a single attribute ("clpb_bdd")
    of the form:
