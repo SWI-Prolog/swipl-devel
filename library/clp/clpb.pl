@@ -596,6 +596,11 @@ state(S0, S), [S] --> [S0].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Unification. X = Expr is equivalent to sat(X =:= Expr).
+
+   We need a more general mechanism for unification of attributed variables.
+   For example, "?- sat(A + B), sat(A =:= A + 1)." should be equivalent to
+   "?- sat(A + B), A = A + 1.". Unification filters should be able to
+   reason about terms before they are unified with anything.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 attr_unify_hook(index_root(I,Root), Other) :-
