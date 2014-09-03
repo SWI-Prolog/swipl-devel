@@ -385,9 +385,7 @@ bdd_and(NA, NB, And) :-
 
 make_node(Var, Low, High, Node) :-
         (   Low == High -> Node = Low
-        ;   node_id(Low, LID),
-            node_id(High, HID),
-            HEntry = node(LID,HID),
+        ;   low_high_hentry(Low, High, HEntry),
             (   lookup_node(Var, HEntry, Node) -> true
             ;   clpb_next_id('$clpb_next_node', ID),
                 Node = node(ID,Var,Low,High,_Aux),
@@ -400,15 +398,19 @@ make_node(Var, Low, High, Node) -->
         { make_node(Var, Low, High, Node) }.
 
 
+low_high_hentry(Low, High, node(LID,HID)) :-
+        node_id(Low, LID),
+        node_id(High, HID).
+
+
 rebuild_hashes(BDD) :-
         bdd_nodes(put_empty_hash, BDD, Nodes),
         maplist(re_register_node, Nodes).
 
 re_register_node(Node) :-
         node_var_low_high(Node, Var, Low, High),
-        node_id(Low, LID),
-        node_id(High, HID),
-        register_node(Var, node(LID,HID), Node).
+        low_high_hentry(Low, High, HEntry),
+        register_node(Var, HEntry, Node).
 
 register_node(Var, HEntry, Node) :-
         get_attr(Var, clpb_hash, H0),
