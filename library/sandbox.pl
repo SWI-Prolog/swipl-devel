@@ -37,6 +37,7 @@
 :- use_module(library(error)).
 :- use_module(library(apply_macros), [expand_phrase/2]).
 :- use_module(library(prolog_format)).
+:- use_module(library(apply)).
 
 :- multifile
 	safe_primitive/1,		% Goal
@@ -759,6 +760,12 @@ safe_directive(dynamic(_)).
 safe_directive(thread_local(_)).
 safe_directive(discontiguous(_)).
 safe_directive(public(_)).
+safe_directive(op(_,_,Name)) :-
+	(   atom(Name)
+	->  true
+	;   is_list(Name),
+	    maplist(atom, Name)
+	).
 
 safe_pattr(Var, _) :-
 	var(Var), !,
