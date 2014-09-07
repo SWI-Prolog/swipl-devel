@@ -472,8 +472,7 @@ counter_network(Cs, Fs, Node) :-
         maplist(var_index_root, Vars, _, Roots),
         maplist(=(Root), Roots),
         root_put_formula_bdd(Root, card(Cs,Fs), Node),
-        eq_and(Vars, Fs, Node0, Node1),
-        foldl(existential, Vars, Node1, Node),
+        eq_and(Vars, Fs, Node0, Node),
         % remove attributes to avoid residual goals for these variables,
         % which are only used temporarily to build the counter network.
         maplist(del_attrs, Vars).
@@ -483,7 +482,8 @@ eq_and([X|Xs], [Y|Ys], Node0, Node) :-
         sat_rewrite(v(X) =:= Y, Sat),
         sat_bdd(Sat, B),
         apply(*, B, Node0, Node1),
-        eq_and(Xs, Ys, Node1, Node).
+        existential(X, Node1, Node2),
+        eq_and(Xs, Ys, Node2, Node).
 
 counter_network([], [Node], [], Node).
 counter_network([_|Fs], [I|Is0], [Var|Vars], Node) :-
