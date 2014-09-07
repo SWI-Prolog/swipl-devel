@@ -163,8 +163,11 @@ truth value when further constraints are added.
    The association table of each variable must be rebuilt on occasion
    to remove nodes that are no longer reachable. We rebuild the
    association tables of involved variables after BDDs are merged to
-   build a new root. This only serves to reclaim memory and does not
-   affect the solver's correctness.
+   build a new root. This only serves to reclaim memory: Keeping a
+   node in a local table even when it no longer occurs in any BDD does
+   not affect the solver's correctness. However, apply_shortcut/4
+   relies on the invariant that every node that occurs in the relevant
+   BDDs is also registered in the table of its branching variable.
 
    A root is a logical variable with a single attribute ("clpb_bdd")
    of the form:
@@ -804,9 +807,9 @@ sat_count(Sat0, N) :-
                foldl(renumber_variable, IVs1, 1, VNum),
                bdd_count(BDD2, VNum, Count0),
                var_u(BDD2, VNum, P),
-               Count is 2^(P - 1)*Count0,
+               N is 2^(P - 1)*Count0,
                % reset all attributes and Aux variables
-               throw(count(Count))),
+               throw(count(N))),
               count(N),
               true).
 
