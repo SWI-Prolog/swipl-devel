@@ -165,7 +165,9 @@ safe(G, M, _, Safe, Safe) :-
 	->  true
 	;   M2 = M
 	),
-	safe_primitive(M2:G), !.
+	(   safe_primitive(M2:G)
+	;   predicate_property(M2:G, number_of_rules(0))
+	), !.
 safe(G, M, Parents, Safe0, Safe) :-
 	predicate_property(G, iso),
 	safe_meta_call(G, Called), !,
