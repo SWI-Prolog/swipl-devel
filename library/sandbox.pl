@@ -718,6 +718,8 @@ safe_output(current_error).
 %
 %	Find ~@ calls from Format and Args.
 
+:- public format_calls/3.			% used in pengines_io
+
 format_calls(Format, Args, Calls) :-
 	format_types(Format, Types),
 	format_callables(Types, Args, Calls).
