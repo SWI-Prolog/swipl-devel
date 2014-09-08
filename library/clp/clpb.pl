@@ -468,10 +468,7 @@ counter_network(Cs, Fs, Node) :-
         % in the correct order in the resulting BDD
         maplist(enumerate_variable, Vars0),
         reverse(Vars0, Vars),
-        counter_network(Fs, Indicators, Vars, Node0),
-        maplist(var_index_root, Vars, _, Roots),
-        maplist(=(Root), Roots),
-        root_put_formula_bdd(Root, card(Cs,Fs), Node),
+        counter_network_(Vars, Indicators, Node0),
         eq_and(Vars, Fs, Node0, Node),
         % remove attributes to avoid residual goals for these variables,
         % which are only used temporarily to build the counter network.
@@ -481,14 +478,14 @@ eq_and([], [], Node, Node).
 eq_and([X|Xs], [Y|Ys], Node0, Node) :-
         sat_rewrite(v(X) =:= Y, Sat),
         sat_bdd(Sat, B),
-        apply(*, B, Node0, Node1),
+        bdd_and(B, Node0, Node1),
         existential(X, Node1, Node2),
         eq_and(Xs, Ys, Node2, Node).
 
-counter_network([], [Node], [], Node).
-counter_network([_|Fs], [I|Is0], [Var|Vars], Node) :-
+counter_network_([], [Node], Node).
+counter_network_([Var|Vars], [I|Is0], Node) :-
         indicators_pairing(Is0, I, Var, Is),
-        counter_network(Fs, Is, Vars, Node).
+        counter_network_(Vars, Is, Node).
 
 indicators_pairing([], _, _, []).
 indicators_pairing([I|Is], Prev, Var, [Node|Nodes]) :-
