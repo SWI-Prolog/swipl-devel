@@ -751,10 +751,13 @@ node_ite(Node, Node-ite(Var,High,Low)) :-
 
 labeling(Vs0) :-
         must_be(list, Vs0),
+        variables_in_index_order(Vs0, Vs),
+        maplist(indomain, Vs).
+
+variables_in_index_order(Vs0, Vs) :-
         maplist(var_with_index, Vs0, IVs0),
         keysort(IVs0, IVs),
-        pairs_values(IVs, Vs),
-        maplist(indomain, Vs).
+        pairs_values(IVs, Vs).
 
 var_with_index(V, I-V) :-
         (   var_index_root(V, I, _) -> true
@@ -799,9 +802,8 @@ sat_count(Sat0, N) :-
                bdd_variables(BDD1, Vs1),
                % ... and then remove remaining variables:
                foldl(existential, Vs1, BDD1, BDD2),
-               maplist(var_with_index, Vs, IVs0),
-               keysort(IVs0, IVs1),
-               foldl(renumber_variable, IVs1, 1, VNum),
+               variables_in_index_order(Vs, IVs),
+               foldl(renumber_variable, IVs, 1, VNum),
                bdd_count(BDD2, VNum, Count0),
                var_u(BDD2, VNum, P),
                N is 2^(P - 1)*Count0,
@@ -810,7 +812,7 @@ sat_count(Sat0, N) :-
               count(N),
               true).
 
-renumber_variable(_-V, I0, I) :-
+renumber_variable(V, I0, I) :-
         put_attr(V, clpb, index_root(I0,_)),
         I is I0 + 1.
 
