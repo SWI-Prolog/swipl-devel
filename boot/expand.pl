@@ -494,11 +494,11 @@ expand_goal(call(A), P0, call(EA), P, M, MList, Term) :- !,
         expand_goal(A, PA0, EA, PA, M, MList, Term).
 expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
 	atom(M), !,
-	f2_pos(P0, PA0, PB, P, PA, PB),
+	f2_pos(P0, PA, PB0, P, PA, PB),
 	'$def_modules'(M:[goal_expansion/4,goal_expansion/2], MList),
 	setup_call_cleanup(
 	    '$set_source_module'(Old, M),
-	    '$expand':expand_goal(G, PA0, EG, PA, M, MList, Term),
+	    '$expand':expand_goal(G, PB0, EG, PB, M, MList, Term),
 	    '$set_source_module'(_, Old)).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
 	is_meta_call(G0, M, Head), !,
