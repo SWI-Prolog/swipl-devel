@@ -463,24 +463,26 @@ existential(V, BDD, Node) :-
 counter_network(Cs, Fs, Node) :-
         same_length([_|Fs], Indicators),
         fill_indicators(Indicators, 0, Cs),
-        same_length(Fs, Vars0),
-        % enumerate variables in reverse order so that they appear
-        % in the correct order in the resulting BDD
-        maplist(enumerate_variable, Vars0),
-        reverse(Vars0, Vars),
+        phrase(formulas_variables(Fs, Vars0), ExBDDs),
+        % The counter network is built bottom-up, so variables with
+        % highest index must be processed first.
+        variables_in_index_order(Vars0, Vars1),
+        reverse(Vars1, Vars),
         counter_network_(Vars, Indicators, Node0),
-        eq_and(Vars, Fs, Node0, Node),
-        % remove attributes to avoid residual goals for these variables,
-        % which are only used temporarily to build the counter network.
-        maplist(del_attrs, Vars).
+        foldl(existential_and, ExBDDs, Node0, Node).
 
-eq_and([], [], Node, Node).
-eq_and([X|Xs], [Y|Ys], Node0, Node) :-
-        sat_rewrite(v(X) =:= Y, Sat),
-        sat_bdd(Sat, B),
-        bdd_and(B, Node0, Node1),
-        existential(X, Node1, Node2),
-        eq_and(Xs, Ys, Node2, Node).
+% Introduce fresh variables for expressions that are not variables.
+% These variables are later existentially quantified to remove them.
+
+formulas_variables([], []) --> [].
+formulas_variables([F|Fs], [V|Vs]) -->
+        (   { F = v(V) } -> []
+        ;   { enumerate_variable(V),
+              sat_rewrite(v(V) =:= F, Sat),
+              sat_bdd(Sat, BDD) },
+            [V-BDD]
+        ),
+        formulas_variables(Fs, Vs).
 
 counter_network_([], [Node], Node).
 counter_network_([Var|Vars], [I|Is0], Node) :-
@@ -500,6 +502,13 @@ fill_indicators([I|Is], Index0, Cs) :-
         ),
         Index1 is Index0 + 1,
         fill_indicators(Is, Index1, Cs).
+
+existential_and(Ex-BDD, Node0, Node) :-
+        bdd_and(BDD, Node0, Node1),
+        existential(Ex, Node1, Node),
+        % remove attributes to avoid residual goals for variables that
+        % are only used as substitutes for formulas
+        del_attrs(Ex).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Compute F(NA, NB).
