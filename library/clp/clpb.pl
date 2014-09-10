@@ -209,6 +209,8 @@ is_sat(A=<B)  :- is_sat(A), is_sat(B).
 is_sat(A>=B)  :- is_sat(A), is_sat(B).
 is_sat(A<B)   :- is_sat(A), is_sat(B).
 is_sat(A>B)   :- is_sat(A), is_sat(B).
+is_sat(+(Ls)) :- must_be(list, Ls).
+is_sat(*(Ls)) :- must_be(list, Ls).
 is_sat(X^F)   :- var(X), is_sat(F).
 is_sat(card(Is,Fs)) :-
         must_be(list(ground), Is),
@@ -218,6 +220,8 @@ is_sat(card(Is,Fs)) :-
 % wrap variables with v(...) and integers with i(...)
 sat_nondefaulty(V, v(V)) :- var(V), !.
 sat_nondefaulty(I, i(I)) :- integer(I), !.
+sat_nondefaulty(+(Ls), F) :- !, foldl(or, Ls, 0, F0), sat_nondefaulty(F0, F).
+sat_nondefaulty(*(Ls), F) :- !, foldl(and, Ls, 1, F0), sat_nondefaulty(F0, F).
 sat_nondefaulty(~A0, ~A) :- !, sat_nondefaulty(A0, A).
 sat_nondefaulty(card(Is,Fs0), card(Is,Fs)) :- !,
         maplist(sat_nondefaulty, Fs0, Fs).
@@ -249,6 +253,9 @@ sat_rewrite(P >= Q, R)  :- sat_rewrite(Q =< P, R).
 sat_rewrite(P < Q, R)   :- sat_rewrite(~P * Q, R).
 sat_rewrite(P > Q, R)   :- sat_rewrite(Q < P, R).
 
+or(A, B, B + A).
+
+and(A, B, B * A).
 
 must_be_sat(Sat) :-
         (   is_sat(Sat) -> true
