@@ -482,6 +482,7 @@ safe_primitive(system:atom_string(_,_)).
 safe_primitive(system:number_string(_,_)).
 safe_primitive(system:string_chars(_, _)).
 safe_primitive(system:string_codes(_, _)).
+safe_primitive(system:string_code(_,_,_)).
 safe_primitive(system:sub_string(_,_,_,_,_)).
 safe_primitive(system:split_string(_,_,_,_)).
 safe_primitive(system:atomics_to_string(_,_,_)).
