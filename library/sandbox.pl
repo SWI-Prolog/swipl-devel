@@ -469,10 +469,14 @@ safe_primitive(sub_atom(_,_,_,_,_)).
 safe_primitive(atom_concat(_,_,_)).
 safe_primitive(atom_length(_,_)).
 safe_primitive(system:atomic_list_concat(_,_,_)).
+safe_primitive(system:downcase_atom(_,_)).
+safe_primitive(system:upcase_atom(_,_)).
+safe_primitive(system:char_type(_,_)).
 					% numbers
 safe_primitive(number_codes(_,_)).
 safe_primitive(number_chars(_,_)).
 safe_primitive(system:atom_number(_,_)).
+safe_primitive(system:code_type(_,_)).
 					% strings
 safe_primitive(system:atom_string(_,_)).
 safe_primitive(system:number_string(_,_)).
