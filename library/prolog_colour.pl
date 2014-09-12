@@ -518,7 +518,7 @@ colour_method_head(SGHead, TB, Pos) :-
 	colour_item(method(SG), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
-%	functor_position(+Term, -FunctorPos, -ArgPosList)
+%%	functor_position(+Term, -FunctorPos, -ArgPosList)
 %
 %	Get the position of a functor   and  its argument. Unfortunately
 %	this goes wrong for lists, who have two `functor-positions'.
@@ -526,6 +526,7 @@ colour_method_head(SGHead, TB, Pos) :-
 functor_position(term_position(_,_,FF,FT,ArgPos), FF-FT, ArgPos) :- !.
 functor_position(list_position(F,_T,Elms,none), F-FT, Elms) :- !,
 	FT is F + 1.
+functor_position(dict_position(_,_,FF,FT,KVPos), FF-FT, KVPos) :- !.
 functor_position(Pos, Pos, []).
 
 
@@ -1150,8 +1151,8 @@ qq_position(quasi_quotation_position(_,_,_,_,_)).
 
 colourise_dict_kv(_, _, []) :- !.
 colourise_dict_kv(Dict, TB, [key_value_position(_F,_T,SF,ST,K,KP,VP)|KV]) :-
-	colour_item(dict_sep, TB, SF-ST),
 	colour_item(dict_key, TB, KP),
+	colour_item(dict_sep, TB, SF-ST),
 	get_dict(K, Dict, V),
 	colourise_term_arg(V, TB, VP),
 	colourise_dict_kv(Dict, TB, KV).
@@ -1991,8 +1992,11 @@ specified_item(FuncSpec-ElmSpec, List, TB,
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
 
-%	specified_items(+Spec, +T, +TB, +PosList)
+%%	specified_items(+Spec, +Term, +TB, +PosList)
 
+specified_items(Specs, Term, TB, PosList) :-
+	is_dict(Term), !,
+	specified_dict_kv(PosList, Term, TB, Specs).
 specified_items(Specs, Term, TB, PosList) :-
 	is_list(Specs), !,
 	specified_arglist(Specs, 1, Term, TB, PosList).
@@ -2033,6 +2037,27 @@ specified_list(Spec, [H|T], TB, [HP|TP], TailPos) :-
 specified_list(_, _, _, [], none) :- !.
 specified_list(Spec, Tail, TB, [], TailPos) :-
 	specified_item(Spec, Tail, TB, TailPos).
+
+%%	specified_dict_kv(+PosList, +Term, +TB, +Specs)
+%
+%	@arg Specs is a list of dict_kv(+Key, +KeySpec, +ArgSpec)
+
+specified_dict_kv([], _, _, _).
+specified_dict_kv([key_value_position(_F,_T,SF,ST,K,KP,VP)|Pos],
+		  Dict, TB, Specs) :-
+	specified_dict_kv1(K, Specs, KeySpec, ValueSpec),
+	colour_item(KeySpec, TB, KP),
+	colour_item(dict_sep, TB, SF-ST),
+	get_dict(K, Dict, V),
+	specified_item(ValueSpec, V, TB, VP),
+	specified_dict_kv(Pos, Dict, TB, Specs).
+
+specified_dict_kv1(Key, Specs, KeySpec, ValueSpec) :-
+	Specs = [_|_],
+	memberchk(dict_kv(Key, KeySpec, ValueSpec), Specs), !.
+specified_dict_kv1(Key, dict_kv(Key2, KeySpec, ValueSpec), KeySpec, ValueSpec) :-
+	\+ Key \= Key2, !.		% do not bind Key2
+specified_dict_kv1(_, _, dict_key, classify).
 
 
 		 /*******************************
