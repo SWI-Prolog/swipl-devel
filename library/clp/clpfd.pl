@@ -2326,6 +2326,7 @@ is_true(true).
 :- if(current_predicate(var_property/2)).
 is_true(var(X)) :- var(X), var_property(X, fresh(true)).
 is_false(integer(X)) :- var(X), var_property(X, fresh(true)).
+is_false((A,B)) :- is_false(A) ; is_false(B).
 :- endif.
 is_false(var(X)) :- nonvar(X).
 
