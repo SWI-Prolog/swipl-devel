@@ -2278,7 +2278,7 @@ user:goal_expansion(X0 #= Y0, Equal) :-
         phrase(expr_conds(Y0, Y), CsY),
         list_goal(CsX, CondX),
         list_goal(CsY, CondY),
-        simplify_clpfd_expansion(
+        expansion_simpler(
                 (   CondX ->
                     (   var(Y) -> Y is X
                     ;   CondY -> X =:= Y
@@ -2296,7 +2296,7 @@ user:goal_expansion(X0 #>= Y0, Geq) :-
         phrase(expr_conds(Y0, Y), CsY),
         list_goal(CsX, CondX),
         list_goal(CsY, CondY),
-        simplify_clpfd_expansion(
+        expansion_simpler(
               (   CondX ->
                   (   CondY -> X >= Y
                   ;   T is X, clpfd:clpfd_geq(T, Y0)
@@ -2308,19 +2308,19 @@ user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 
-simplify_clpfd_expansion((True->Then0;_), Then) :-
+expansion_simpler((True->Then0;_), Then) :-
         is_true(True), !,
-        simplify_clpfd_expansion(Then0, Then).
-simplify_clpfd_expansion((False->_;Else0), Else) :-
+        expansion_simpler(Then0, Then).
+expansion_simpler((False->_;Else0), Else) :-
         is_false(False), !,
-        simplify_clpfd_expansion(Else0, Else).
-simplify_clpfd_expansion((Cond->Then0;Else0), (Cond->Then;Else)) :- !,
-        simplify_clpfd_expansion(Then0, Then),
-        simplify_clpfd_expansion(Else0, Else).
-simplify_clpfd_expansion((Var is Expr,Goal), Goal) :-
+        expansion_simpler(Else0, Else).
+expansion_simpler((If->Then0;Else0), (If->Then;Else)) :- !,
+        expansion_simpler(Then0, Then),
+        expansion_simpler(Else0, Else).
+expansion_simpler((Var is Expr,Goal), Goal) :-
         ground(Expr), !,
         Var is Expr.
-simplify_clpfd_expansion(Goal, Goal).
+expansion_simpler(Goal, Goal).
 
 is_true(true).
 :- if(current_predicate(var_property/2)).
