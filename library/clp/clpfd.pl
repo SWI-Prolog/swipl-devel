@@ -2282,39 +2282,69 @@ is_var_goal(Var, Goal) :-
 
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(clpfd:expr_conds(X0, X), CsX),
-        phrase(clpfd:expr_conds(Y0, Y), CsY),
-        clpfd:list_goal(CsX, CondX),
-        clpfd:list_goal(CsY, CondY),
-        is_var_goal(X, VarX),
-        is_var_goal(Y, VarY),
-        Equal = (   CondX ->
-                    (   VarY -> Y is X
-                    ;   CondY ->  X =:= Y
+        phrase(expr_conds(X0, X), CsX),
+        phrase(expr_conds(Y0, Y), CsY),
+        list_goal(CsX, CondX),
+        list_goal(CsY, CondY),
+	simply_clpfd_expansion(
+                (   CondX ->
+                    (   var(Y) -> Y is X
+                    ;   CondY -> X =:= Y
                     ;   T is X, clpfd:clpfd_equal(T, Y0)
                     )
                 ;   CondY ->
-                    (   VarX -> X is Y
+                    (   var(X) -> X is Y
                     ;   T is Y, clpfd:clpfd_equal(X0, T)
                     )
                 ;   clpfd:clpfd_equal(X0, Y0)
-                ).
+                ), Equal).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(clpfd:expr_conds(X0, X), CsX),
-        phrase(clpfd:expr_conds(Y0, Y), CsY),
-        clpfd:list_goal(CsX, CondX),
-        clpfd:list_goal(CsY, CondY),
-        Geq = (   CondX ->
+        phrase(expr_conds(X0, X), CsX),
+        phrase(expr_conds(Y0, Y), CsY),
+        list_goal(CsX, CondX),
+        list_goal(CsY, CondY),
+	simply_clpfd_expansion(
+              (   CondX ->
                   (   CondY -> X >= Y
                   ;   T is X, clpfd:clpfd_geq(T, Y0)
                   )
               ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
-              ).
+              ), Geq).
 user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
+
+simply_clpfd_expansion(Var, Var) :-
+	var(Var), !.
+simply_clpfd_expansion((True->Then0;_), Then) :-
+	is_true(True), !,
+	simply_clpfd_expansion(Then0, Then).
+simply_clpfd_expansion((False->_;Else0), Else) :-
+	is_false(False), !,
+	simply_clpfd_expansion(Else0, Else).
+simply_clpfd_expansion((Cond->Then0;Else0), (Cond->Then;Else)) :- !,
+	simply_clpfd_expansion(Then0, Then),
+	simply_clpfd_expansion(Else0, Else).
+simply_clpfd_expansion((Var is Expr,Goal), Goal) :-
+	ground(Expr), !,
+	Var is Expr.
+simply_clpfd_expansion(Goal, Goal).
+
+is_true(Var) :- var(Var), !, fail.
+is_true(true).
+:- if(current_predicate(var_property/2)).
+is_true(var(X)) :- var(X), var_property(X, fresh(true)).
+:- endif.
+
+is_false(Var) :- var(Var), !, fail.
+is_false(false).
+is_false(var(X)) :- nonvar(X).
+:- if(current_predicate(var_property/2)).
+is_false(integer(X)) :- var(X), var_property(X, fresh(true)).
+:- endif.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
