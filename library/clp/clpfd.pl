@@ -2325,12 +2325,9 @@ simplify_clpfd_expansion(Goal, Goal).
 is_true(true).
 :- if(current_predicate(var_property/2)).
 is_true(var(X)) :- var(X), var_property(X, fresh(true)).
-:- endif.
-
-is_false(var(X)) :- nonvar(X).
-:- if(current_predicate(var_property/2)).
 is_false(integer(X)) :- var(X), var_property(X, fresh(true)).
 :- endif.
+is_false(var(X)) :- nonvar(X).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
