@@ -2272,14 +2272,6 @@ expr_conds(A0^B0, A^B)           -->
 :- dynamic
         user:goal_expansion/2.
 
-is_var_goal(Var, Goal) :-
-        (   var(Var) ->
-            (   var_property(Var, fresh(true)) -> Goal = true
-            ;   Goal = var(Var)
-            )
-        ;   Goal = false
-        ).
-
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
         phrase(expr_conds(X0, X), CsX),
@@ -2316,7 +2308,6 @@ user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 
-simplify_clpfd_expansion(Var, Var) :- var(Var), !.
 simplify_clpfd_expansion((True->Then0;_), Then) :-
         is_true(True), !,
         simplify_clpfd_expansion(Then0, Then).
@@ -2331,14 +2322,11 @@ simplify_clpfd_expansion((Var is Expr,Goal), Goal) :-
         Var is Expr.
 simplify_clpfd_expansion(Goal, Goal).
 
-is_true(Var) :- var(Var), !, fail.
 is_true(true).
 :- if(current_predicate(var_property/2)).
 is_true(var(X)) :- var(X), var_property(X, fresh(true)).
 :- endif.
 
-is_false(Var) :- var(Var), !, fail.
-is_false(false).
 is_false(var(X)) :- nonvar(X).
 :- if(current_predicate(var_property/2)).
 is_false(integer(X)) :- var(X), var_property(X, fresh(true)).
