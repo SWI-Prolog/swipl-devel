@@ -2272,19 +2272,29 @@ expr_conds(A0^B0, A^B)           -->
 :- dynamic
         user:goal_expansion/2.
 
+is_var_goal(Var, Goal) :-
+        (   var(Var) ->
+            (   var_property(Var, fresh(true)) -> Goal = true
+            ;   Goal = var(Var)
+            )
+        ;   Goal = false
+        ).
+
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
         phrase(clpfd:expr_conds(X0, X), CsX),
         phrase(clpfd:expr_conds(Y0, Y), CsY),
         clpfd:list_goal(CsX, CondX),
         clpfd:list_goal(CsY, CondY),
+        is_var_goal(X, VarX),
+        is_var_goal(Y, VarY),
         Equal = (   CondX ->
-                    (   var(Y) -> Y is X
+                    (   VarY -> Y is X
                     ;   CondY ->  X =:= Y
                     ;   T is X, clpfd:clpfd_equal(T, Y0)
                     )
                 ;   CondY ->
-                    (   var(X) -> X is Y
+                    (   VarX -> X is Y
                     ;   T is Y, clpfd:clpfd_equal(X0, T)
                     )
                 ;   clpfd:clpfd_equal(X0, Y0)
