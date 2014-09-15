@@ -2286,8 +2286,8 @@ user:goal_expansion(X0 #= Y0, Equal) :-
         phrase(clpfd:expr_conds(Y0, Y), CsY),
         clpfd:list_goal(CsX, CondX),
         clpfd:list_goal(CsY, CondY),
-        is_var_goal(X, VarX),
-        is_var_goal(Y, VarY),
+        clpfd:is_var_goal(X, VarX),
+        clpfd:is_var_goal(Y, VarY),
         Equal = (   CondX ->
                     (   VarY -> Y is X
                     ;   CondY ->  X =:= Y
