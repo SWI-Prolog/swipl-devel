@@ -2634,8 +2634,12 @@ load_files(Module:Files, Options) :-
 	;   print_message(error, Error),
 	    fail
 	).
-'$valid_directive'(_).
-
+'$valid_directive'(Goal) :-
+	print_message(error,
+		      error(permission_error(execute,
+					     sandboxed_directive,
+					     Goal), _)),
+	fail.
 
 '$exception_in_directive'(Term) :-
 	print_message(error, Term),
