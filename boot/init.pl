@@ -1893,13 +1893,18 @@ load_files(Module:Files, Options) :-
 
 '$enter_sandboxed'(Old, New, SandBoxed) :-
 	(   Old == false, New == true
-	->  SandBoxed = true
+	->  SandBoxed = true,
+	    '$ensure_loaded_library_sandbox'
 	;   Old == true, New == false
 	->  throw(error(permission_error(leave, sandbox, -), _))
 	;   SandBoxed = Old
 	).
-
 '$enter_sandboxed'(false, true, true).
+
+'$ensure_loaded_library_sandbox' :-
+	source_file_property(library(sandbox), module(sandbox)), !.
+'$ensure_loaded_library_sandbox' :-
+	load_files(library(sandbox), [if(not_loaded), silent(true)]).
 
 
 %%	'$update_autoload_level'(+Options, -OldLevel)
