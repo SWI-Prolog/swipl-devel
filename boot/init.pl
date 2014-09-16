@@ -2046,13 +2046,13 @@ load_files(Module:Files, Options) :-
 '$assert_load_context_module'(_, _, Options) :-
 	memberchk(register(false), Options), !.
 '$assert_load_context_module'(File, Module, Options) :-
-	source_location(FromFile, _Line), !,
+	source_location(FromFile, Line), !,
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
 	'$load_ctx_options'(Options1, Options2),
-	'$compile_aux_clauses'(
-	     system:'$load_context_module'(File, Module, Options2),
-	     FromFile).
+	'$store_admin_clause'(
+	    system:'$load_context_module'(File, Module, Options2),
+	    _Layout, FromFile, File:Line).
 '$assert_load_context_module'(File, Module, Options) :-
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
@@ -2471,8 +2471,9 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 	(   source_location(File, Line)
-	->  catch('$store_clause'((NewHead :- Source:Head), _Layout, File, File:Line), E,
-		  '$print_message'(error, E))
+	->  catch('$store_admin_clause'((NewHead :- Source:Head),
+					_Layout, File, File:Line),
+		  E, '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
 	'$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
@@ -2568,7 +2569,7 @@ load_files(Module:Files, Options) :-
 	->  true
 	;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File)
 	),
-	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File, -).
+	'$store_admin_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File, -).
 
 %%	'$execute_directive'(:Goal, +File) is det.
 %
@@ -2621,6 +2622,7 @@ load_files(Module:Files, Options) :-
 %	of the directive by throwing an exception.
 
 :- multifile prolog:sandbox_allowed_directive/1.
+:- multifile prolog:sandbox_allowed_clause/1.
 :- meta_predicate '$valid_directive'(:).
 
 '$valid_directive'(_) :-
@@ -2714,19 +2716,63 @@ load_files(Module:Files, Options) :-
 		*        COMPILE A CLAUSE       *
 		*********************************/
 
-%%	'$store_clause'(+Clause, ?Layout, +SourceId) is det.
+%%	'$store_admin_clause'(+Clause, ?Layout, +Owner, +SrcLoc) is det.
 %
-%	Store a clause into the database.
+%	Store a clause into the   database  for administrative purposes.
+%	This bypasses sanity checking.
 
-'$store_clause'((_, _), _, _, _) :- !,
-	print_message(error, cannot_redefine_comma),
-	fail.
-'$store_clause'(Clause, _Layout, File, SrcLoc) :-
+'$store_admin_clause'(Clause, _Layout, File, SrcLoc) :-
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
 	;   '$record_clause'(Clause, File, SrcLoc, Ref),
 	    '$qlf_assert_clause'(Ref, development)
 	).
+
+%%	'$store_clause'(+Clause, ?Layout, +Owner, +SrcLoc) is det.
+%
+%	Store a clause into the database.
+%
+%	@arg	Owner is the file-id that owns the clause
+%	@arg	SrcLoc is the file:line term where the clause
+%		originates from.
+
+'$store_clause'((_, _), _, _, _) :- !,
+	print_message(error, cannot_redefine_comma),
+	fail.
+'$store_clause'(Clause, _Layout, File, SrcLoc) :-
+	'$valid_clause'(Clause), !,
+	(   '$compilation_mode'(database)
+	->  '$record_clause'(Clause, File, SrcLoc)
+	;   '$record_clause'(Clause, File, SrcLoc, Ref),
+	    '$qlf_assert_clause'(Ref, development)
+	).
+
+'$valid_clause'(_) :-
+	current_prolog_flag(sandboxed_load, false), !.
+'$valid_clause'(Clause) :-
+	\+ '$cross_module_clause'(Clause), !.
+'$valid_clause'(Clause) :-
+	catch(prolog:sandbox_allowed_clause(Clause), Error, true), !,
+	(   var(Error)
+	->  true
+	;   print_message(error, Error),
+	    fail
+	).
+'$valid_clause'(Clause) :-
+	print_message(error,
+		      error(permission_error(assert,
+					     sandboxed_clause,
+					     Clause), _)).
+
+'$cross_module_clause'(Clause) :-
+	'$head_module'(Clause, Module),
+	\+ '$set_source_module'(Module, Module).
+
+'$head_module'(Var, _) :-
+	var(Var), !, fail.
+'$head_module'((Head :- _), Module) :-
+	'$head_module'(Head, Module).
+'$head_module'(Module:_, Module).
 
 '$clause_source'('$source_location'(File,Line):Clause, Clause, File:Line) :- !.
 '$clause_source'(Clause, Clause, -).
@@ -2898,6 +2944,9 @@ saved state.
 
 '$existence_error'(Type, Object) :-
 	throw(error(existence_error(Type, Object), _)).
+
+'$permission_error'(Action, Type, Term) :-
+	throw(error(permission_error(Action, Type, Term), _)).
 
 '$instantiation_error'(_Var) :-
 	throw(error(instantiation_error, _)).
