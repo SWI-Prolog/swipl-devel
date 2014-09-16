@@ -759,25 +759,27 @@ prolog:sandbox_allowed_directive(Directive) :-
 	debug(sandbox(directive), 'Directive: ~p', [Directive]),
 	fail.
 prolog:sandbox_allowed_directive(M:PredAttr) :-
-	safe_directive(PredAttr), !,
-	(   prolog_load_context(module, M)
-	->  PredAttr =.. [Attr, Preds],
-	    safe_pattr(Preds, Attr)
+	\+ prolog_load_context(module, M), !,
+	debug(sandbox(directive), 'Cross-module directive', []),
+	permission_error(directive, sandboxed, (:- M:PredAttr)).
+prolog:sandbox_allowed_directive(M:PredAttr) :-
+	safe_pattr(PredAttr), !,
+	PredAttr =.. [Attr, Preds],
+	(   safe_pattr(Preds, Attr)
+	->  true
 	;   permission_error(directive, sandboxed, (:- M:PredAttr))
 	).
+prolog:sandbox_allowed_directive(_:Directive) :-
+	safe_directive(Directive), !.
 prolog:sandbox_allowed_directive(G) :-
 	safe_goal(G).
 
-safe_directive(dynamic(_)).
-safe_directive(thread_local(_)).
-safe_directive(discontiguous(_)).
-safe_directive(public(_)).
-safe_directive(op(_,_,Name)) :-
-	(   atom(Name)
-	->  true
-	;   is_list(Name),
-	    maplist(atom, Name)
-	).
+safe_pattr(dynamic(_)).
+safe_pattr(thread_local(_)).
+safe_pattr(volatile(_)).
+safe_pattr(discontiguous(_)).
+safe_pattr(public(_)).
+safe_pattr(meta_predicate(_)).
 
 safe_pattr(Var, _) :-
 	var(Var), !,
@@ -794,6 +796,42 @@ safe_pattr(M:G, Attr) :- !,
 	).
 safe_pattr(_, _).
 
+safe_directive(op(_,_,Name)) :- !,
+	(   atom(Name)
+	->  true
+	;   is_list(Name),
+	    maplist(atom, Name)
+	).
+safe_directive(set_prolog_flag(Flag, Value)) :- !,
+	atom(Flag), ground(Value),
+	safe_directive_flag(Flag, Value).
+safe_directive(use_module(library(X))) :-
+	safe_path(X).
+safe_directive(use_module(library(X), _Imports)) :-
+	safe_path(X).
+safe_directive(ensure_loaded(library(X))) :-
+	safe_path(X).
+
+safe_path(X) :-
+	(   atom(X)
+	;   string(X)
+	), !,
+	X \== '..',
+	\+ sub_atom(X, 0, _, _, '../'),
+	\+ sub_atom(X, _, _, 0, '/..'),
+	\+ sub_atom(X, _, _, _, '/../').
+safe_path(A/B) :- !,
+	safe_path(A),
+	safe_path(B).
+
+%%	safe_directive_flag(+Flag, +Value) is det.
+%
+%	True if it is safe to set the flag Flag in a directive to Value.
+%
+%	@tbd	If we can avoid that files are loaded after changing
+%		this flag, we can allow for more flags.
+
+safe_directive_flag(generate_debug_info, _).
 
 %%	prolog:sandbox_allowed_expansion(:G) is det.
 %
