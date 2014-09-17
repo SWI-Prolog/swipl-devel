@@ -303,6 +303,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR\library
 ; SYSTEM STUFF
   File ${SWIPL}\library\listing.pl
+  File ${SWIPL}\library\pprint.pl
   File ${SWIPL}\library\qsave.pl
   File ${SWIPL}\library\statistics.pl
   File ${SWIPL}\library\writef.pl
