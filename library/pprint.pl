@@ -33,7 +33,7 @@
 	  ]).
 :- use_module(library(option)).
 
-/** <module> pretty print Prolog terms
+/** <module> Pretty Print Prolog terms
 
 This module is a first  start  of   what  should  become a full-featured
 pretty printer for Prolog  terms  with   many  options  and  parameters.
