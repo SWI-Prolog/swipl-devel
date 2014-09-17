@@ -527,6 +527,7 @@ functor_position(term_position(_,_,FF,FT,ArgPos), FF-FT, ArgPos) :- !.
 functor_position(list_position(F,_T,Elms,none), F-FT, Elms) :- !,
 	FT is F + 1.
 functor_position(dict_position(_,_,FF,FT,KVPos), FF-FT, KVPos) :- !.
+functor_position(brace_term_position(F,T,Arg), F-T, [Arg]) :- !.
 functor_position(Pos, Pos, []).
 
 
