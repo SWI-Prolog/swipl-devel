@@ -1167,9 +1167,11 @@ compiling :-
 	repeat,
 	  read_clause(In, Raw,
 		      [ variable_names(Bindings),
+			term_position(Pos),
 			subterm_positions(RawLayout)
 		      | ReadOptions
 		      ]),
+	  b_setval('$term_position', Pos),
 	  b_setval('$variable_names', Bindings),
 	  (   Raw == end_of_file
 	  ->  !,

@@ -534,8 +534,13 @@ prolog_load_context(directory, D) :-
 	file_directory_name(F, D).
 prolog_load_context(dialect, D) :-
 	current_prolog_flag(emulated_dialect, D).
-prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
-	source_location(_, L).
+prolog_load_context(term_position, TermPos) :-
+	source_location(_, L),
+	(   nb_current('$term_position', Pos),
+	    stream_position_data(line_count, Pos, L)
+	->  TermPos = Pos
+	;   TermPos = '$stream_position'(0,L,0,0,0)
+	).
 prolog_load_context(script, Bool) :-
 	(   '$toplevel':loaded_init_file(script, Path),
 	    source_location(Path, _)

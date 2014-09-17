@@ -682,9 +682,9 @@ following keys are defined:
 \const{stream}        & Stream identifier (see current_input/1) \\
 \const{directory}     & Directory in which \const{source} lives \\
 \const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
-\const{term_position} & Position of last term read.  Term of the form
-			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
-			See also stream_position_data/3. \\
+\const{term_position} & Start position of last term read.  See also
+			stream_property/2 (\const{position} property and
+			stream_position_data/3. \\
 \const{variable_names}& A list of `\arg{Name} = \arg{Var}' of the last
 			term read.  See read_term/2 for details. \\
 \const{script}	      & Boolean that indicates whether the file is
