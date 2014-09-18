@@ -1337,15 +1337,6 @@ compiling :-
 	).
 
 
-%	'$substitute_atom'(+From, +To, +In, -Out)
-
-'$substitute_atom'(From, To, In, Out) :-
-	sub_atom(In, B, _, A, From),
-	sub_atom(In, 0, B, _, Before),
-	sub_atom(In, _, A, 0, After),
-	atomic_list_concat([Before, To, After], Out).
-
-
 		 /*******************************
 		 *	    DERIVED FILES	*
 		 *******************************/
