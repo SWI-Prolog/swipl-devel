@@ -684,7 +684,11 @@ following keys are defined:
 \const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
 \const{term_position} & Start position of last term read.  See also
 			stream_property/2 (\const{position} property and
-			stream_position_data/3. \\
+			stream_position_data/3.\footnote{Up to version
+			7.1.22, the position term carried fake data
+			except for the \const{line_count} and had
+			\textbf{five} arguments, where the position
+			property of a stream only has \textbf{four}.} \\
 \const{variable_names}& A list of `\arg{Name} = \arg{Var}' of the last
 			term read.  See read_term/2 for details. \\
 \const{script}	      & Boolean that indicates whether the file is

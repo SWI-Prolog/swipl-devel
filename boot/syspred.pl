@@ -539,7 +539,7 @@ prolog_load_context(term_position, TermPos) :-
 	(   nb_current('$term_position', Pos),
 	    stream_position_data(line_count, Pos, L)
 	->  TermPos = Pos
-	;   TermPos = '$stream_position'(0,L,0,0,0)
+	;   TermPos = '$stream_position'(0,L,0,0)
 	).
 prolog_load_context(script, Bool) :-
 	(   '$toplevel':loaded_init_file(script, Path),
