@@ -556,8 +556,7 @@ prolog_load_context(variable_names, Bindings) :-
 
 unload_file(File) :-
 	(   canonical_source_file(File, Path)
-	->  '$unload_file'(Path),
-	    retractall(system:'$load_context_module'(Path, _))
+	->  '$unload_file'(Path)
 	;   true
 	).
 
