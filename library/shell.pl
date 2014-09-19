@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -114,7 +113,7 @@ dirs :-
 pwd :-
 	absolute_file_name('', D),
 	dir_name(D, Name),
-	format('~w~n', [Name]).
+	print_message(information, format('~w', [Name])).
 
 dir_name('/', '/') :- !.
 dir_name(Path, Name) :-
