@@ -660,7 +660,7 @@ safe_meta_call(Goal, Called) :-
 
 called(Gen, Goal, Called) :-
 	arg(I, Gen, Spec),
-	integer(Spec),
+	calling_meta_spec(Spec),
 	arg(I, Goal, Called0),
 	extend(Spec, Called0, Called).
 
@@ -668,6 +668,18 @@ generic_goal(G, Gen) :-
 	functor(G, Name, Arity),
 	functor(Gen, Name, Arity).
 
+calling_meta_spec(I) :- integer(I), !.
+calling_meta_spec(^).
+calling_meta_spec(//).
+
+
+extend(^, G, Plain) :- !,
+	strip_existential(G, Plain).
+extend(//, DCG, Goal) :- !,
+	(   expand_phrase(DCG, Goal)
+	->  true
+	;   instantiation_error(DCG)	% Ask more instantiation.
+	).				% might not help, but does not harm.
 extend(0, G, G) :- !.
 extend(I, M:G0, M:G) :- !,
 	G0 =.. List,
@@ -679,6 +691,14 @@ extend(I, G0, G) :-
 	length(Extra, I),
 	append(List, Extra, All),
 	G =.. All.
+
+strip_existential(Var, Var) :-
+	var(Var), !.
+strip_existential(_^G0, G) :-
+	strip_existential(G0, G).
+strip_existential(G, G).
+
+%%	safe_meta(?Template).
 
 safe_meta((0,0)).
 safe_meta((0;0)).
