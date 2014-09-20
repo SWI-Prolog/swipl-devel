@@ -678,6 +678,7 @@ generic_goal(G, Gen) :-
 	functor(G, Name, Arity),
 	functor(Gen, Name, Arity).
 
+calling_meta_spec(V) :- var(V), !, fail.
 calling_meta_spec(I) :- integer(I), !.
 calling_meta_spec(^).
 calling_meta_spec(//).
@@ -714,24 +715,24 @@ safe_meta((0,0)).
 safe_meta((0;0)).
 safe_meta((0->0)).
 safe_meta(apply:forall(0,0)).
-safe_meta(catch(0,_,0)).
-safe_meta(findall(_,0,_)).
-safe_meta(findall(_,0,_,_)).
-safe_meta(setof(_,0,_)).		% TBD
-safe_meta(bagof(_,0,_)).
-safe_meta(system:call_cleanup(0,0)).
-safe_meta(^(_,0)).
+safe_meta(catch(0,*,0)).
+safe_meta(findall(*,0,*)).
+safe_meta(findall(*,0,*,*)).
+safe_meta(setof(*,0,*)).		% TBD
+safe_meta(bagof(*,0,*)).
+safe_meta(system:call*cleanup(0,0)).
+safe_meta(^(*,0)).
 safe_meta(\+(0)).
-safe_meta(apply:maplist(1, _)).
-safe_meta(apply:maplist(2, _, _)).
-safe_meta(apply:maplist(3, _, _, _)).
+safe_meta(apply:maplist(1,*)).
+safe_meta(apply:maplist(2,*,*)).
+safe_meta(apply:maplist(3,*,*,*)).
 safe_meta(call(0)).
-safe_meta(call(1, _)).
-safe_meta(call(2, _, _)).
-safe_meta(call(3, _, _, _)).
-safe_meta(call(4, _, _, _, _)).
-safe_meta(call(5, _, _, _, _, _)).
-safe_meta(call(6, _, _, _, _, _, _)).
+safe_meta(call(1,*)).
+safe_meta(call(2,*,*)).
+safe_meta(call(3,*,*,*)).
+safe_meta(call(4,*,*,*,*)).
+safe_meta(call(5,*,*,*,*,*)).
+safe_meta(call(6,*,*,*,*,*,*)).
 
 
 %%	safe_output(+Output)
