@@ -198,7 +198,7 @@ thread_counts --> [].
 
 thread_statistics(Thread, Stats) :-
 	thread_property(Thread, status(Status)),
-	(   catch(thread_stats(Thread, Time, Stacks), _, fail)
+	(   catch(thread_stats(Thread, Stacks, Time), _, fail)
 	->  Stats = thread{id:Thread,
 			   status:Status,
 			   time:Time,
@@ -207,9 +207,14 @@ thread_statistics(Thread, Stats) :-
 			   status:Status}
 	).
 
-thread_stats(Thread, time{cpu:CpuTime, inferences:Inferences}, Stacks) :-
+thread_stats(Thread, Stacks,
+	     time{cpu:CpuTime,
+		  inferences:Inferences,
+		  epoch:Epoch
+		 }) :-
 	thread_statistics(Thread, cputime, CpuTime),
 	thread_statistics(Thread, inferences, Inferences),
+	thread_statistics(Thread, epoch, Epoch),
 	thread_stack_statistics(Thread, Stacks).
 
 
