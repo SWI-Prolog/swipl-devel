@@ -209,8 +209,8 @@ is_sat(A=<B)  :- is_sat(A), is_sat(B).
 is_sat(A>=B)  :- is_sat(A), is_sat(B).
 is_sat(A<B)   :- is_sat(A), is_sat(B).
 is_sat(A>B)   :- is_sat(A), is_sat(B).
-is_sat(+(Ls)) :- must_be(list, Ls).
-is_sat(*(Ls)) :- must_be(list, Ls).
+is_sat(+(Ls)) :- must_be(list, Ls), maplist(is_sat, Ls).
+is_sat(*(Ls)) :- must_be(list, Ls), maplist(is_sat, Ls).
 is_sat(X^F)   :- var(X), is_sat(F).
 is_sat(card(Is,Fs)) :-
         must_be(list(ground), Is),
