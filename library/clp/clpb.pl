@@ -217,27 +217,13 @@ is_sat(card(Is,Fs)) :-
         must_be(list, Fs),
         maplist(is_sat, Fs).
 
-% wrap variables with v(...) and integers with i(...)
-sat_nondefaulty(V, v(V)) :- var(V), !.
-sat_nondefaulty(I, i(I)) :- integer(I), !.
-sat_nondefaulty(+(Ls), F) :- !, foldl(or, Ls, 0, F0), sat_nondefaulty(F0, F).
-sat_nondefaulty(*(Ls), F) :- !, foldl(and, Ls, 1, F0), sat_nondefaulty(F0, F).
-sat_nondefaulty(~A0, ~A) :- !, sat_nondefaulty(A0, A).
-sat_nondefaulty(card(Is,Fs0), card(Is,Fs)) :- !,
-        maplist(sat_nondefaulty, Fs0, Fs).
-sat_nondefaulty(S0, S) :-
-        S0 =.. [F,X0,Y0],
-        sat_nondefaulty(X0, X),
-        sat_nondefaulty(Y0, Y),
-        S =.. [F,X,Y].
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Rewriting to canonical expressions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 % elementary
-sat_rewrite(v(V), v(V)).
-sat_rewrite(i(I), i(I)).
+sat_rewrite(V, V)       :- var(V), !.
+sat_rewrite(I, I)       :- integer(I).
 sat_rewrite(P0*Q0, P*Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0+Q0, P+Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0#Q0, P#Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
@@ -245,13 +231,15 @@ sat_rewrite(X^F0, X^F)  :- sat_rewrite(F0, F).
 sat_rewrite(card(Is,Fs0), card(Is,Fs)) :-
         maplist(sat_rewrite, Fs0, Fs).
 % synonyms
-sat_rewrite(~P, R)      :- sat_rewrite(i(1) # P, R).
+sat_rewrite(~P, R)      :- sat_rewrite(1 # P, R).
 sat_rewrite(P =:= Q, R) :- sat_rewrite(~P # Q, R).
 sat_rewrite(P =\= Q, R) :- sat_rewrite(P # Q, R).
 sat_rewrite(P =< Q, R)  :- sat_rewrite(~P + Q, R).
 sat_rewrite(P >= Q, R)  :- sat_rewrite(Q =< P, R).
 sat_rewrite(P < Q, R)   :- sat_rewrite(~P * Q, R).
 sat_rewrite(P > Q, R)   :- sat_rewrite(Q < P, R).
+sat_rewrite(+(Ls), R)   :- foldl(or, Ls, 0, F), sat_rewrite(F, R).
+sat_rewrite(*(Ls), R)   :- foldl(and, Ls, 1, F), sat_rewrite(F, R).
 
 or(A, B, B + A).
 
@@ -266,8 +254,7 @@ no_truth_value(Term) :- domain_error(clpb_expr, Term).
 
 parse_sat(Sat0, Sat) :-
         must_be_sat(Sat0),
-        sat_nondefaulty(Sat0, Sat1),
-        sat_rewrite(Sat1, Sat),
+        sat_rewrite(Sat0, Sat),
         term_variables(Sat, Vs),
         maplist(enumerate_variable, Vs).
 
@@ -346,7 +333,7 @@ taut(Sat0, T) :-
         sat_roots(Sat, Roots),
         catch((roots_and(Roots, _-1, _-Ands),
                (   T = 0, unsatisfiable_conjunction(Sat, Ands) -> true
-               ;   T = 1, unsatisfiable_conjunction(i(1)#Sat, Ands) -> true
+               ;   T = 1, unsatisfiable_conjunction(1#Sat, Ands) -> true
                ;   false
                ),
                % reset all attributes
@@ -447,9 +434,9 @@ node_var_low_high(Node, Var, Low, High) :-
    and reduced BDD.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-sat_bdd(i(I), I)           :- !.
-sat_bdd(v(V), Node)        :- !, make_node(V, 0, 1, Node).
-sat_bdd(v(V)^Sat, Node)    :- !, sat_bdd(Sat, BDD), existential(V, BDD, Node).
+sat_bdd(V, Node)           :- var(V), !, make_node(V, 0, 1, Node).
+sat_bdd(I, I)              :- integer(I), !.
+sat_bdd(V^Sat, Node)       :- !, sat_bdd(Sat, BDD), existential(V, BDD, Node).
 sat_bdd(card(Is,Fs), Node) :- !, counter_network(Is, Fs, Node).
 sat_bdd(Sat, Node)         :- !,
         Sat =.. [F,A,B],
@@ -483,9 +470,9 @@ counter_network(Cs, Fs, Node) :-
 
 formulas_variables([], []) --> [].
 formulas_variables([F|Fs], [V|Vs]) -->
-        (   { F = v(V) } -> []
+        (   { var(F) } -> { V = F }
         ;   { enumerate_variable(V),
-              sat_rewrite(v(V) =:= F, Sat),
+              sat_rewrite(V =:= F, Sat),
               sat_bdd(Sat, BDD) },
             [V-BDD]
         ),
