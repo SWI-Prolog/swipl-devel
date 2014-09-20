@@ -71,8 +71,8 @@ A _Boolean expression_ is one of:
     | _Expr_ # _Expr_    | exclusive OR                         |
     | _Var_ ^ _Expr_     | existential quantification           |
     | _Expr_ =:= _Expr_  | equality                             |
-    | _Expr_ =\= _Expr_  | disequality                          |
-    | _Expr_ =< _Expr_   | less or equal                        |
+    | _Expr_ =\= _Expr_  | disequality (same as #)              |
+    | _Expr_ =< _Expr_   | less or equal (implication)          |
     | _Expr_ >= _Expr_   | greater or equal                     |
     | _Expr_ < _Expr_    | less than                            |
     | _Expr_ > _Expr_    | greater than                         |
