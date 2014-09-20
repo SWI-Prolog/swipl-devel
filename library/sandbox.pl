@@ -501,6 +501,16 @@ safe_primitive(system:sleep(_)).
 safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
 safe_primitive(system:statistics(_,_)).
+safe_primitive(system:thread_statistics(Id,_,_)) :-
+	(   var(Id)
+	->  instantiation_error(Id)
+	;   thread_self(Id)
+	).
+safe_primitive(system:thread_property(Id,_)) :-
+	(   var(Id)
+	->  instantiation_error(Id)
+	;   thread_self(Id)
+	).
 safe_primitive(system:format_time(_,_,_)).
 safe_primitive(system:strip_module(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
