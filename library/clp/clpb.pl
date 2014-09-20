@@ -731,13 +731,14 @@ with_aux(Pred, Node) :-
         call(Pred, Aux).
 
 is_bdd(BDD) :-
-        (   current_prolog_flag(optimise, true) -> true % skip validation
-        ;   bdd_ites(BDD, ITEs0),
+        (   current_prolog_flag(clpb_validation, true) ->
+            bdd_ites(BDD, ITEs0),
             pairs_values(ITEs0, Ls0),
             sort(Ls0, Ls1),
             (   same_length(Ls0, Ls1) -> true
             ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
             )
+        ;   true
         ).
 
 bdd_ites(BDD, ITEs) :-
