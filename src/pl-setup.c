@@ -59,6 +59,7 @@ setupProlog(void)
   LD->critical = 0;
   LD->signal.pending[0] = 0;
   LD->signal.pending[1] = 0;
+  LD->statistics.start_time = WallTime();
 
   startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));

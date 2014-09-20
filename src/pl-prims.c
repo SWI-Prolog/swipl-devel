@@ -4809,8 +4809,8 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
   } else if ( key == ATOM_walltime )
   { double wt = WallTime();
     if ( !LD->statistics.last_walltime )
-      LD->statistics.last_walltime = GD->statistics.start_time;
-    v[0] = (int64_t)((wt - GD->statistics.start_time) * 1000.0);
+      LD->statistics.last_walltime = LD->statistics.start_time;
+    v[0] = (int64_t)((wt - LD->statistics.start_time) * 1000.0);
     v[1] = (int64_t)((wt - LD->statistics.last_walltime) * 1000.0);
     LD->statistics.last_walltime = wt;
     vn = 2;
@@ -4927,7 +4927,13 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = GD->statistics.modules;
   else if (key == ATOM_codes)				/* codes */
     v->value.i = GD->statistics.codes;
-  else if (key == ATOM_gctime)
+  else if (key == ATOM_epoch)
+  { v->type = V_FLOAT;
+    v->value.f = LD->statistics.start_time;
+  } else if (key == ATOM_process_epoch)
+  { v->type = V_FLOAT;
+    v->value.f = PL_local_data.statistics.start_time;
+  } else if (key == ATOM_gctime)
   { v->type = V_FLOAT;
     v->value.f = gc_status.time;
   } else if (key == ATOM_collections)

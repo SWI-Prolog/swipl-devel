@@ -1488,6 +1488,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->_debugstatus		  = ldold->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->_debugstatus.suspendTrace= 0;
+  ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
   ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
