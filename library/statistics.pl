@@ -97,6 +97,7 @@ collect_stats -->
 
 core_statistics -->
 	{ statistics(process_cputime, Cputime),
+	  statistics(process_epoch, Epoch),
 	  statistics(inferences, Inferences),
 	  statistics(atoms, Atoms),
 	  statistics(functors, Functors),
@@ -106,7 +107,7 @@ core_statistics -->
 	  thread_self(Me),
 	  thread_stack_statistics(Me, Stacks)
 	},
-	[ core{ time:time{cpu:Cputime, inferences:Inferences},
+	[ core{ time:time{cpu:Cputime, inferences:Inferences, epoch:Epoch},
 		data:counts{atoms:Atoms, functors:Functors,
 			    predicates:Predicates, modules:Modules,
 			    vm_codes:Codes},
@@ -520,8 +521,10 @@ msg_statistics([]) --> [].
 msg_statistics([H|T]) -->
 	{ is_dict(H, Tag) },
 	msg_statistics(Tag, H),
-	[nl],
-	msg_statistics(T).
+	(   { T == [] }
+	->  []
+	;   [nl], msg_statistics(T)
+	).
 
 msg_statistics(core, S) -->
 	time_stats(S.time), [nl],
@@ -542,7 +545,9 @@ msg_statistics(thread, S) -->
 	].
 
 time_stats(T) -->
-	[ '~3f seconds cpu time for ~D inferences'-
+	{ format_time(string(Epoch), '%+', T.epoch) },
+	[ 'Started at ~s'-[Epoch], nl,
+	  '~3f seconds cpu time for ~D inferences'-
 	  [ T.cpu, T.inferences ]
 	].
 data_stats(C) -->
@@ -559,3 +564,8 @@ stack_stats(Stack, S) -->
 	[ '~|~w stack:~t~D~28+ ~t~D~13+ ~t~D~13+ Bytes'-
 	  [Stack, S.limit, S.allocated, S.usage]
 	].
+
+:- multifile sandbox:safe_primitive/1.
+
+sandbox:safe_primitive(prolog_statistics:statistics(_)).
+sandbox:safe_primitive(prolog_statistics:statistics).
