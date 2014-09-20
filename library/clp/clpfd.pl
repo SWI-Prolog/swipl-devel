@@ -6115,12 +6115,10 @@ transpose(Ms, Ts) :-
 
 transpose_([], _, []).
 transpose_([_|Es], Lists0, [Fs|Fss]) :-
-        lists_firsts_rests(Lists0, Fs, Lists),
+        maplist(list_first_rest, Lists0, Fs, Lists),
         transpose_(Es, Lists, Fss).
 
-lists_firsts_rests([], [], []).
-lists_firsts_rests([[F|Rs]|Lists], [F|Fs], [Rs|Rss]) :-
-        lists_firsts_rests(Lists, Fs, Rss).
+list_first_rest([L|Ls], L, Ls).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
