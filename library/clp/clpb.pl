@@ -820,8 +820,6 @@ renumber_variable(V, I0, I) :-
         put_attr(V, clpb, index_root(I0,_)),
         I is I0 + 1.
 
-ite_variable(_-ite(V,_,_), V).
-
 bdd_count(Node, VNum, Count) :-
         (   integer(Node) -> Count = Node
         ;   node_aux(Node, Count),
