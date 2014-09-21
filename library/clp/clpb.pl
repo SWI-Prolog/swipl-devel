@@ -743,9 +743,18 @@ is_bdd(BDD) :-
             sort(Ls0, Ls1),
             (   same_length(Ls0, Ls1) -> true
             ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
+            ),
+            (   member(ITE, ITEs0), \+ registered_node(ITE) ->
+                domain_error(registered_node, ITE)
+            ;   true
             )
         ;   true
         ).
+
+registered_node(Node-ite(Var,High,Low)) :-
+        low_high_hentry(Low, High, HEntry),
+        lookup_node(Var, HEntry, Node0),
+        Node == Node0.
 
 bdd_ites(BDD, ITEs) :-
         bdd_nodes(BDD, Nodes),
