@@ -62,8 +62,8 @@ Diagrams (BDDs).
 
 A _Boolean expression_ is one of:
 
-    | *0*                | false                                |
-    | *1*                | true                                 |
+    | `0`                | false                                |
+    | `1`                | true                                 |
     | _variable_         | unknown truth value                  |
     | ~ _Expr_           | logical NOT                          |
     | _Expr_ + _Expr_    | logical OR                           |
@@ -76,13 +76,19 @@ A _Boolean expression_ is one of:
     | _Expr_ >= _Expr_   | greater or equal                     |
     | _Expr_ < _Expr_    | less than                            |
     | _Expr_ > _Expr_    | greater than                         |
-    | card(Is,Exprs)     | _see  below_                         |
+    | card(Is,Exprs)     | _see below_                          |
+    | `+(Exprs)`         | _see below_                          |
+    | `*(Exprs)`         | _see below_                          |
 
 where _Expr_ again denotes a Boolean expression.
 
 The Boolean expression card(Is,Exprs) is true iff the number of true
-expressions in the list _Exprs_ is a member of the list _Is_ of
-integers and integer ranges of the form _From_-_To_.
+expressions in the list `Exprs` is a member of the list `Is` of
+integers and integer ranges of the form `From-To`.
+
+`+(Exprs)` and `*(Exprs)` denote, respectively, the disjunction and
+conjunction of all elements in the list `Exprs` of Boolean
+expressions.
 
 ### Interface predicates   {#clpb-interface}
 
@@ -781,16 +787,8 @@ indomain(1).
 % Example:
 %
 % ==
-% :- use_module(library(clpb)).
-%
-% or(A, B, B+A).
-% ==
-%
-% Yielding:
-%
-% ==
-% ?- length(Vs, 120), foldl(or, Vs, 0, Expr), sat_count(Expr, N).
-% Vs = [...], Expr = ... + ...,
+% ?- length(Vs, 120), sat_count(+(Vs), N).
+% Vs = [...],
 % N = 1329227995784915872903807060280344575.
 % ==
 
