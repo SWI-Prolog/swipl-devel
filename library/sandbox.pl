@@ -705,7 +705,9 @@ extend(I, G0, G) :-
 
 strip_existential(Var, Var) :-
 	var(Var), !.
-strip_existential(_^G0, G) :-
+strip_existential(M:G0, M:G) :- !,
+	strip_existential(G0, G).
+strip_existential(_^G0, G) :- !,
 	strip_existential(G0, G).
 strip_existential(G, G).
 
@@ -718,9 +720,11 @@ safe_meta(apply:forall(0,0)).
 safe_meta(catch(0,*,0)).
 safe_meta(findall(*,0,*)).
 safe_meta(findall(*,0,*,*)).
-safe_meta(setof(*,0,*)).		% TBD
-safe_meta(bagof(*,0,*)).
-safe_meta(system:call*cleanup(0,0)).
+safe_meta(setof(*,^,*)).		% TBD
+safe_meta(bagof(*,^,*)).
+safe_meta(system:call_cleanup(0,0)).
+safe_meta(system:setup_call_cleanup(0,0,0)).
+safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
 safe_meta(^(*,0)).
 safe_meta(\+(0)).
 safe_meta(apply:maplist(1,*)).
