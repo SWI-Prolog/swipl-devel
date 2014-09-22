@@ -129,6 +129,7 @@
         clpfd_equal/2,
         clpfd_geq/2.
 
+:- use_module(library(apply)).
 :- use_module(library(apply_macros)).
 :- use_module(library(assoc)).
 :- use_module(library(error)).
