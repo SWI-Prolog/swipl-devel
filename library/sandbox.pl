@@ -41,6 +41,7 @@
 
 :- multifile
 	safe_primitive/1,		% Goal
+	safe_meta_predicate/1,		% Name/Arity
 	safe_meta/2,			% Goal, Calls
 	safe_global_variable/1.		% Name
 
@@ -659,6 +660,13 @@ safe_meta_call(Goal, _Called) :-
 	fail.
 safe_meta_call(Goal, Called) :-
 	safe_meta(Goal, Called), !.	% call hook
+safe_meta_call(Goal, Called) :-
+	Goal = M:Plain,
+	compound(Plain),
+	compound_name_arity(Plain, Name, Arity),
+	safe_meta_predicate(M:Name/Arity),
+	predicate_property(Goal, meta_predicate(Spec)), !,
+	findall(C, called(Spec, Plain, C), Called).
 safe_meta_call(M:Goal, Called) :- !,
 	generic_goal(Goal, Gen),
 	safe_meta(M:Gen),
@@ -716,7 +724,6 @@ strip_existential(G, G).
 safe_meta((0,0)).
 safe_meta((0;0)).
 safe_meta((0->0)).
-safe_meta(apply:forall(0,0)).
 safe_meta(catch(0,*,0)).
 safe_meta(findall(*,0,*)).
 safe_meta(findall(*,0,*,*)).
@@ -727,9 +734,6 @@ safe_meta(system:setup_call_cleanup(0,0,0)).
 safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
 safe_meta(^(*,0)).
 safe_meta(\+(0)).
-safe_meta(apply:maplist(1,*)).
-safe_meta(apply:maplist(2,*,*)).
-safe_meta(apply:maplist(3,*,*,*)).
 safe_meta(call(0)).
 safe_meta(call(1,*)).
 safe_meta(call(2,*,*)).
