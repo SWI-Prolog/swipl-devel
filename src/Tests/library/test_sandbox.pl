@@ -45,14 +45,21 @@ test_sandbox :-
 
 :- begin_tests(sandbox).
 :- use_module(library(sandbox)).
+:- use_module(library(aggregate)).
 
 test(cleanup) :-
 	safe_goal(setup_call_cleanup(true,true,true)).
 test(time) :-
 	safe_goal(time(true)).
 test(setof) :-
-	safe_goal(safe_goal(setof(X, Y^between(1, Y, X), _Xs))).
+	safe_goal(setof(X, Y^between(1, Y, X), _Xs)).
 test(phrase) :-
 	safe_goal(phrase("hello", `hello`, [])).
+test(apply) :-
+	safe_goal(forall(true,true)).
+test(aggregate) :-
+	safe_goal(aggregate(count, between(1,10,_), _Count)).
+test(aggregate) :-
+	safe_goal(aggregate(sum(I), X^between(1,X,I), _Count)).
 
 :- end_tests(sandbox).

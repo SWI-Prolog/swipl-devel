@@ -327,3 +327,19 @@ scanl_([], [], [], [], _, _, []).
 scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
 	call(Goal, H1, H2, H3, H4, V, VH),
 	scanl_(T1, T2, T3, T4, Goal, VH, VT).
+
+
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+:- multifile
+	sandbox:safe_meta_predicate/1.
+
+safe_api(Name/Arity, sandbox:safe_meta_predicate(apply:Name/Arity)).
+
+term_expansion(safe_api, Clauses) :-
+	module_property(apply, exports(API)),
+	maplist(safe_api, API, Clauses).
+
+safe_api.
