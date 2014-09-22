@@ -74,10 +74,6 @@ David Reitter and Steve Moyle
 @author Jan Wielemaker
 */
 
-:- meta_predicate
-	yap_initialization(0).
-
-
 		 /*******************************
 		 *	     EXPANSION		*
 		 *******************************/
