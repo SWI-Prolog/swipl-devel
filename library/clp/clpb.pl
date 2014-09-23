@@ -736,15 +736,21 @@ with_aux(Pred, Node) :-
         node_aux(Node, Aux),
         call(Pred, Aux).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Internal consistency checks.
+
+   To enable these checks, set the flag clpb_validation to true.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 is_bdd(BDD) :-
         (   current_prolog_flag(clpb_validation, true) ->
-            bdd_ites(BDD, ITEs0),
-            pairs_values(ITEs0, Ls0),
+            bdd_ites(BDD, ITEs),
+            pairs_values(ITEs, Ls0),
             sort(Ls0, Ls1),
             (   same_length(Ls0, Ls1) -> true
-            ;   domain_error(reduced_ites, (ITEs0,Ls0,Ls1))
+            ;   domain_error(reduced_ites, (ITEs,Ls0,Ls1))
             ),
-            (   member(ITE, ITEs0), \+ registered_node(ITE) ->
+            (   member(ITE, ITEs), \+ registered_node(ITE) ->
                 domain_error(registered_node, ITE)
             ;   true
             )
