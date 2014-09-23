@@ -2321,6 +2321,8 @@ expansion_simpler((If->Then0;Else0), (If->Then;Else)) :- !,
 expansion_simpler((Var is Expr,Goal), Goal) :-
         ground(Expr), !,
         Var is Expr.
+expansion_simpler((Var is Expr,Goal), (Var = Expr,Goal)) :- var(Expr), !.
+expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
 expansion_simpler(Goal, Goal).
 
 is_true(true).
