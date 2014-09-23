@@ -482,6 +482,15 @@ default_module(Me, Super) :-
 '$undefined_procedure'(_, _, _, error).
 
 '$autoload'(Module, Name, Arity) :-
+	source_location(File, _Line), !,
+	setup_call_cleanup(
+	    '$start_aux'(File, Context),
+	    '$autoload2'(Module, Name, Arity),
+	    '$end_aux'(File, Context)).
+'$autoload'(Module, Name, Arity) :-
+	'$autoload2'(Module, Name, Arity).
+
+'$autoload2'(Module, Name, Arity) :-
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
 	'$update_autoload_level'([autoload(true)], Old),
