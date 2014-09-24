@@ -771,15 +771,16 @@ format_calls(Format, _Args, _Calls) :-
 	instantiation_error(Format).
 format_calls(Format, Args, Calls) :-
 	format_types(Format, Types),
-	format_callables(Types, Args, Calls).
+	(   format_callables(Types, Args, Calls)
+	->  true
+	;   throw(error(format_error(Format, Types, Args), _))
+	).
 
 format_callables([], [], []).
 format_callables([callable|TT], [G|TA], [G|TG]) :- !,
 	format_callables(TT, TA, TG).
 format_callables([_|TT], [_|TA], TG) :- !,
 	format_callables(TT, TA, TG).
-format_callables(Types, Args, _) :-		% TBD: Proper error
-	throw(error(format_error(Types, Args), _)).
 
 
 		 /*******************************
@@ -900,8 +901,9 @@ prolog:sandbox_allowed_expansion(_,_).
 		 *******************************/
 
 :- multifile
-	prolog:message//1.
-	prolog:message_context//1.
+	prolog:message//1,
+	prolog:message_context//1,
+	prolog:error_message//1.
 
 prolog:message_context(sandbox(_G, Parents)) -->
 	[ nl, 'Reachable from:'-[] ],
@@ -918,3 +920,18 @@ callers([G|Parents], Level) -->
 prolog:message(bad_safe_declaration(Goal, File, Line)) -->
 	[ '~w:~d: Invalid safe_primitive/1 declaration: ~p'-
 	  [File, Line, Goal] ].
+
+prolog:error_message(format_error(Format, Types, Args)) -->
+	format_error(Format, Types, Args).
+
+format_error(Format, Types, Args) -->
+	{ length(Types, TypeLen),
+	  length(Args, ArgsLen),
+	  (   TypeLen > ArgsLen
+	  ->  Problem = 'not enough'
+	  ;   Problem = 'too many'
+	  )
+	},
+	[ 'format(~q): ~w arguments (found ~w, need ~w)'-
+	  [Format, Problem, ArgsLen, TypeLen]
+	].
