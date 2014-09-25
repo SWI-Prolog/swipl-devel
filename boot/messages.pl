@@ -225,12 +225,11 @@ syntax_error(end_of_clause_expected) -->
 	[ 'End of clause expected' ].
 syntax_error(end_of_file) -->
 	[ 'Unexpected end of file' ].
-syntax_error(end_of_file_in_atom) -->
-	[ 'End of file in quoted atom' ].
 syntax_error(end_of_file_in_block_comment) -->
 	[ 'End of file in /* ... */ comment' ].
-syntax_error(end_of_file_in_string) -->
-	[ 'End of file in quoted string' ].
+syntax_error(end_of_file_in_quoted(Quote)) -->
+	[ 'End of file in quoted ' ],
+	quoted_type(Quote).
 syntax_error(illegal_number) -->
 	[ 'Illegal number' ].
 syntax_error(long_atom) -->
@@ -257,6 +256,10 @@ syntax_error(void_not_allowed) -->
 	[ 'Empty argument list "()"' ].
 syntax_error(Message) -->
 	[ '~w'-[Message] ].
+
+quoted_type('\'') --> [atom].
+quoted_type('\"') --> { current_prolog_flag(double_quotes, Type) }, [Type-[]].
+quoted_type('\`') --> { current_prolog_flag(back_quotes, Type) }, [Type-[]].
 
 domain(range(Low,High)) --> !,
 	['[~q..~q]'-[Low,High] ].

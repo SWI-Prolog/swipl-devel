@@ -464,9 +464,8 @@ Syntax Error exceptions:
 	end_of_clause
 	end_of_clause_expected
 	end_of_file
-	end_of_file_in_atom
+	end_of_file_in_quoted(Type)
 	end_of_file_in_block_comment
-	end_of_file_in_string
 	illegal_number
 	long_atom
 	long_string
@@ -484,7 +483,10 @@ Error term:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-#define syntaxError(what, rd) do { errorWarning(what, 0, rd); fail; } while(0)
+#define syntaxError(what, rd) \
+	do { errorWarning(what, 0, rd); fail; } while(0)
+#define syntaxError1(what, arg, rd) \
+	do { errorWarningA1(what, arg, 0, rd); fail; } while(0)
 
 const char *
 str_number_error(strnumstat rc)
@@ -875,15 +877,37 @@ getchr__(ReadData _PL_rd)
 			 } \
 		       }
 
-#define rawSyntaxError(what) { addToBuffer(EOS, _PL_rd); \
-			       rdbase = rb.base, last_token_start = rb.here-1; \
-			       syntaxError(what, _PL_rd); \
-			     }
+#define rawSyntaxError(what) rawSyntaxError1(what, NULL)
+#define rawSyntaxError1(what, arg) \
+	{ addToBuffer(EOS, _PL_rd); \
+	  rdbase = rb.base, last_token_start = rb.here-1; \
+	  syntaxError1(what, arg, _PL_rd); \
+	}
+
+static void
+setErrorLocation(IOPOS *pos, ReadData _PL_rd)
+{ if ( pos )
+  { GET_LD
+
+    LD->read_source.position = *pos;
+  }
+  rb.here = rb.base+1;			/* see rawSyntaxError() */
+}
 
 static int
 raw_read_quoted(int q, ReadData _PL_rd)
-{ int newlines = 0;
+{ IOPOS pbuf;
+  IOPOS *pos;
+  int newlines = 0;
   int c;
+
+  if ( rb.stream->position )
+  { pbuf = *rb.stream->position;
+    pbuf.charno--;
+    pbuf.linepos--;
+    pos = &pbuf;
+  } else
+    pos = NULL;
 
   addToBuffer(q, _PL_rd);
   while((c=getchrq()) != EOF && c != q)
@@ -958,11 +982,14 @@ raw_read_quoted(int q, ReadData _PL_rd)
 
 out:
   if (c == EOF)
-  {
+  { char what[2];
   eofinstr:
     if ( Sferror(rb.stream) )
       return FALSE;
-    rawSyntaxError("end_of_file_in_string");
+    setErrorLocation(pos, _PL_rd);
+    what[0] = q;
+    what[1] = EOS;
+    rawSyntaxError1("end_of_file_in_quoted", what);
   }
   addToBuffer(c, _PL_rd);
 
@@ -1025,17 +1052,6 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 
   PL_reset_term_refs(head);
   return TRUE;
-}
-
-
-static void
-setErrorLocation(IOPOS *pos, ReadData _PL_rd)
-{ if ( pos )
-  { GET_LD
-
-    LD->read_source.position = *pos;
-  }
-  rb.here = rb.base+1;			/* see rawSyntaxError() */
 }
 
 
