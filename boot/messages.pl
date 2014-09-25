@@ -525,6 +525,8 @@ prolog_message(discontiguous((-)/2)) -->
 	prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc)) -->
 	[ 'Clauses of ~p are not together in the source-file'-[Proc] ].
+prolog_message(decl_no_effect(Goal)) -->
+	[ 'Deprecated declaration has no effect: ~p'-[Goal] ].
 prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),
