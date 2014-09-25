@@ -2029,7 +2029,6 @@ Tracer communication declarations.
 
 /* keep in sync with style_name/1 in boot/prims.pl */
 
-#define LONGATOM_CHECK	    0x0001	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x0002	/* read/1: check singleton vars */
 #define MULTITON_CHECK	    0x0004	/* read/1: check multiton vars */
 #define DISCONTIGUOUS_STYLE 0x0008	/* warn on discontiguous predicates */
@@ -2038,7 +2037,6 @@ Tracer communication declarations.
 #define SEMSINGLETON_CHECK  0x0040	/* Semantic singleton checking */
 #define NOEFFECT_CHECK	    0x0080	/* Check for meaningless statements */
 #define VARBRANCH_CHECK	    0x0100	/* warn on unbalanced variables */
-#define MAXNEWLINES	    5		/* maximum # of newlines in atom */
 
 typedef struct debuginfo
 { size_t	skiplevel;		/* current skip level */

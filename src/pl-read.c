@@ -898,7 +898,6 @@ static int
 raw_read_quoted(int q, ReadData _PL_rd)
 { IOPOS pbuf;
   IOPOS *pos;
-  int newlines = 0;
   int c;
 
   if ( rb.stream->position )
@@ -972,10 +971,6 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  }
 	  continue;			/* \symbolic-control-char */
       }
-    } else if (c == '\n' &&
-	       newlines++ > MAXNEWLINES &&
-	       (_PL_rd->styleCheck & LONGATOM_CHECK))
-    { rawSyntaxError("long_string");
     }
     addToBuffer(c, _PL_rd);
   }
@@ -2123,7 +2118,7 @@ again:
 	  for( ; *in; in=e )
 	  { e = utf8_get_uchar(in, &c);
 	    if ( c == '\n' || !PlBlankW(c) )
-	    { if ( skipped && (_PL_rd->styleCheck & LONGATOM_CHECK) )
+	    { if ( skipped )
 	      { term_t ex;
 		unsigned char *old_start = last_token_start;
 
