@@ -135,7 +135,8 @@ visible(Ports) :-
 	map_bits(port_name, Ports, Old, New),
 	'$visible'(_, New).
 
-style_name(atom,	    0x0001).
+style_name(atom,	    0x0001) :-
+	print_message(warning, decl_no_effect(style_check(atom))).
 style_name(singleton,	    0x0042).		% semantic and syntactic
 style_name(discontiguous,   0x0008).
 style_name(dynamic,	    0x0010).
