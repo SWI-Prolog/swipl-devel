@@ -132,7 +132,6 @@ package_directive(Package, Directive) :-
 
 ciao_term_expansion((:- module(Name, Public, Packages)),
 		      [ (:- module(Name, Public)),
-			(:- style_check(-atom)),
 			(:- style_check(-singleton)),
 			(:- expects_dialect(ciao)),
 			(:- use_module(engine(basic_props))),
@@ -145,7 +144,7 @@ ciao_term_expansion((:- module(Name, Public, Packages)),
 map_ciaoname_rec(Ciao, Path, Path/Ciao) :- atom(Ciao), !.
 map_ciaoname_rec(Ciao0, Path, SWI) :-
 	Ciao0 =.. [F, Ciao],
-	map_ciaoname_rec(Ciao, Path/F, SWI). 
+	map_ciaoname_rec(Ciao, Path/F, SWI).
 
 map_ciaoname_(Path, Path) :- atom(Path), !.
 map_ciaoname_(Ciao0, SWI) :-
