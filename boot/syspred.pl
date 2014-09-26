@@ -538,6 +538,7 @@ prolog_load_context(dialect, D) :-
 prolog_load_context(term_position, TermPos) :-
 	source_location(_, L),
 	(   nb_current('$term_position', Pos),
+	    compound(Pos),		% actually set
 	    stream_position_data(line_count, Pos, L)
 	->  TermPos = Pos
 	;   TermPos = '$stream_position'(0,L,0,0)
