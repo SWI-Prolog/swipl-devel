@@ -37,6 +37,7 @@
 		       alias(atom),
 		       encoding(encoding),
 		       bom(boolean),
+		       create(list(atom)),
 		       eof_action(oneof([eof_code,error,reset])),
 		       buffer(oneof([full,line,false])),
 		       close_on_abort(boolean),
