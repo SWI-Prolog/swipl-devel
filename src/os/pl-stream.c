@@ -2897,10 +2897,30 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #define O_BINARY 0
 #endif
 
+static int
+get_mode(const char *s, int *mp)
+{ int n, m = 0;
+
+  for(n=0; n < 3; n++)
+  { if ( *s >= '0' && *s <= '7' )
+      m = (m<<3) + *s - '0';
+    else
+      return FALSE;
+  }
+
+  *mp = m;
+  return TRUE;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Open a file. In addition to the normal  arguments, "lr" means get a read
-(shared-) lock on the file and  "lw"   means  get  an write (exclusive-)
-lock.  How much do we need to test here?
+Open a file. In addition to the normal arguments, the following can come
+after the [rw] argument:
+
+  - "b" -- use binary mode
+  - "l[rw]" -- use a read or write lock
+  - "L[rw]" -- use a read or write lock and raise an exception if we
+	       must wait
+  - mOOO -- when creating the file, use 0OOO as mode.
 
 Note that the low-level open  is  always   binary  as  O_TEXT open files
 result in lost and corrupted data in   some  encodings (UTF-16 is one of
@@ -2919,6 +2939,7 @@ Sopen_file(const char *path, const char *how)
   IOSTREAM *s;
   IOENC enc = ENC_UNKNOWN;
   int wait = TRUE;
+  int mode = 0666;
 
   for( ; *how; how++)
   { switch(*how)
@@ -2942,6 +2963,14 @@ Sopen_file(const char *path, const char *how)
 	  return NULL;
 	}
         break;
+      case 'm':
+	if ( get_mode(how+1, &mode) )
+	{ how += 3;
+	  break;
+	} else
+	{ errno = EINVAL;
+	  return NULL;
+	}
       default:
 	errno = EINVAL;
         return NULL;
@@ -2954,15 +2983,15 @@ Sopen_file(const char *path, const char *how)
 
   switch(op)
   { case 'w':
-      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|oflags, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|oflags, mode);
       flags |= SIO_OUTPUT;
       break;
     case 'a':
-      fd = open(path, O_WRONLY|O_CREAT|O_APPEND|oflags, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|O_APPEND|oflags, mode);
       flags |= SIO_OUTPUT|SIO_APPEND;
       break;
     case 'u':
-      fd = open(path, O_WRONLY|O_CREAT|oflags, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|oflags, mode);
       flags |= SIO_OUTPUT|SIO_UPDATE;
       break;
     case 'r':

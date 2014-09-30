@@ -3372,12 +3372,6 @@ executed directly. See also process_create/3 from \pllib{process}.
 The following \arg{Options} are recognised by open/4:
 
 \begin{description}
-    \termitem{type}{Type}
-Using type \const{text} (default), Prolog will write a text file in
-an operating system compatible way. Using type \const{binary} the
-bytes will be read or written without any translation.  See also
-the option \const{encoding}.
-
     \termitem{alias}{Atom}
 Gives the stream a name.   Below is an example.   Be careful with this
 option as stream names are global.  See also set_stream/2.
@@ -3390,25 +3384,11 @@ option as stream names are global.  See also set_stream/2.
 	...
 \end{code}
 
-    \termitem{encoding}{Encoding}
-Define the encoding used for reading and writing text to this stream.
-The default encoding for type \const{text} is derived from the Prolog
-flag \prologflag{encoding}. For \const{binary} streams the default encoding
-is \const{octet}. For details on encoding issues, see \secref{encoding}.
-
     \termitem{bom}{Bool}
 Check for a BOM (\jargon{Byte Order Marker}) or write
 one.  If omitted, the default is \const{true} for mode \const{read} and
 \const{false} for mode \const{write}.  See also stream_property/2 and
 especially \secref{bom} for a discussion of this feature.
-
-    \termitem{eof_action}{Action}
-Defines what happens if the end of the input stream is reached. Action
-\const{eof_code} makes get0/1 and friends return -1, and read/1 and friends
-return the atom \const{end_of_file}. Repetitive reading keeps yielding the
-same result. Action \const{error} is like \const{eof_code}, but repetitive
-reading will raise an error. With action \const{reset}, Prolog will
-examine the file again and return more data if the file has grown.
 
     \termitem{buffer}{Buffering}
 Defines output buffering. The atom \const{full} (default) defines full
@@ -3423,6 +3403,47 @@ abort/0). If \const{false}, the stream is not closed. If it is an output
 stream, however, it will be flushed.  Useful for logfiles and if the
 stream is associated to a process (using the \functor{pipe}{1}
 construct).
+
+    \termitem{create}{+List}
+Specifies how a new file is created when opening in \const{write},
+\const{append} or \const{update} mode. Currently, \arg{List} is a list
+of atoms that describe the permissions of the created
+file.\footnote{Added after feedback from Joachim Shimpf and Per
+Mildner.} Defined values are below. Not recognised values are silently
+ignored, allowing for adding platform specific extensions to this set.
+
+    \begin{description}
+	\termitem{read}
+    Allow read access to the file.
+	\termitem{write}
+    Allow write access to the file.
+	\termitem{execute}
+    Allow execution access to the file.
+	\termitem{default}
+    Allow read and write access to the file.
+	\termitem{all}
+    Allow any access provided by the OS.
+    \end{description}
+
+Note that if \arg{List} is empty, the created file has no associated
+access permissions. The create options map to the POSIX \arg{mode}
+option of open(), where \const{read} map to 0444, \const{write} to 0222
+and \const{execute} to 0111. On POSIX systems, the final permission is
+defined as (mode \& \chr{~}umask).
+
+    \termitem{encoding}{Encoding}
+Define the encoding used for reading and writing text to this stream.
+The default encoding for type \const{text} is derived from the Prolog
+flag \prologflag{encoding}. For \const{binary} streams the default encoding
+is \const{octet}. For details on encoding issues, see \secref{encoding}.
+
+    \termitem{eof_action}{Action}
+Defines what happens if the end of the input stream is reached. Action
+\const{eof_code} makes get0/1 and friends return -1, and read/1 and friends
+return the atom \const{end_of_file}. Repetitive reading keeps yielding the
+same result. Action \const{error} is like \const{eof_code}, but repetitive
+reading will raise an error. With action \const{reset}, Prolog will
+examine the file again and return more data if the file has grown.
 
     \termitem{locale}{+Locale}
 Set the locale that is used by notably format/2 for output on this
@@ -3444,6 +3465,12 @@ especially related to NFS (network file system), please study the
 fcntl() manual page before trusting your locks!
 
 The \const{lock} option is a SWI-Prolog extension.
+
+    \termitem{type}{Type}
+Using type \const{text} (default), Prolog will write a text file in
+an operating system compatible way. Using type \const{binary} the
+bytes will be read or written without any translation.  See also
+the option \const{encoding}.
 
     \termitem{wait}{Bool}
 This option can be combined with the \const{lock} option. If

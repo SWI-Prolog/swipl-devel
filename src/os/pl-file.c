@@ -3183,6 +3183,7 @@ static const opt_spec open4_options[] =
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
+  { ATOM_create,	 OPT_TERM },
 #ifdef O_LOCALE
   { ATOM_locale,	 OPT_LOCALE },
 #endif
@@ -3209,7 +3210,8 @@ openStream(term_t file, term_t mode, term_t options)
 #endif
   int    close_on_abort = TRUE;
   int	 bom		= -1;
-  char   how[10];
+  term_t create		= 0;
+  char   how[16];
   char  *h		= how;
   char *path;
   IOSTREAM *s;
@@ -3219,7 +3221,7 @@ openStream(term_t file, term_t mode, term_t options)
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
 		       &close_on_abort, &buffer, &lock, &wait,
-		       &encoding, &bom
+		       &encoding, &bom, &create
 #ifdef O_LOCALE
 		       , &locale
 #endif
@@ -3244,6 +3246,40 @@ openStream(term_t file, term_t mode, term_t options)
   } else
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, mode);
     return NULL;
+  }
+  if ( create )
+  { term_t tail = PL_copy_term_ref(create);
+    term_t head = PL_new_term_ref();
+    int mode = 0;
+    int n = 0;
+
+    while(PL_get_list(tail, head, tail))
+    { atom_t a;
+
+      if ( !PL_get_atom_ex(head, &a) )
+	return FALSE;
+      if ( a == ATOM_read )
+	mode |= 0444;
+      else if ( a == ATOM_write )
+	mode |= 0666;
+      else if ( a == ATOM_execute )
+	mode |= 0111;
+      else if ( a == ATOM_default )
+	mode |= 0666;
+      else if ( a == ATOM_all )
+	mode |= 0777;
+
+      if ( ++n == 10 && PL_skip_list(tail, 0, NULL) != PL_LIST )
+      { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, create);
+	return NULL;
+      }
+    }
+    if ( !PL_get_nil_ex(tail) )
+      return FALSE;
+    *h++ = 'm';
+    *h++ = ((mode >> 6) & 07) + '0';
+    *h++ = ((mode >> 3) & 07) + '0';
+    *h++ = ((mode >> 0) & 07) + '0';
   }
 
 					/* ENCODING */
