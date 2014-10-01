@@ -31,7 +31,8 @@
 
 :- module(prolog_colour,
 	  [ prolog_colourise_stream/3,	% +Stream, +SourceID, :ColourItem
-	    prolog_colourise_term/4,	% +Stream, +SourceID, :ColourItem, +Options
+	    prolog_colourise_term/4,	% +Stream, +SourceID, :ColourItem, +Opts
+	    prolog_colourise_query/3,	% +String, +SourceID, :ColourItem
 	    syntax_colour/2,		% +Class, -Attributes
 	    syntax_message//1		% +Class
 	  ]).
@@ -50,6 +51,7 @@
 
 :- meta_predicate
 	prolog_colourise_stream(+, +, 3),
+	prolog_colourise_query(+, +, 3),
 	prolog_colourise_term(+, +, 3, +).
 
 :- predicate_options(prolog_colourise_term/4, 4,
@@ -119,7 +121,7 @@ colourise_stream(Fd, TB) :-
 			      comments(Comments)
 			    ]),
 		  E,
-		  read_error(E, TB, Fd, Start)),
+		  read_error(E, TB, Start, Fd)),
 	    fix_operators(Term, TB),
 	    colour_state_singletons(TB, Singletons),
 	    (	colourise_term(Term, TB, TermPos, Comments)
@@ -173,14 +175,17 @@ module_context(File, _, Module) :-
 	source_file_property(File, load_context(Module, _, _)).
 
 
-%%	read_error(+Error, +TB, +Stream, +Start) is failure.
+%%	read_error(+Error, +TB, +Start, +Stream) is failure.
 %
 %	If this is a syntax error, create a syntax-error fragment.
 
-read_error(Error, TB, Stream, Start) :-
+read_error(Error, TB, Start, EndSpec) :-
 	(   syntax_error(Error, Id, CharNo)
 	->  message_to_string(error(syntax_error(Id), _), Msg),
-	    character_count(Stream, End),
+	    (	integer(EndSpec)
+	    ->	End = EndSpec
+	    ;	character_count(EndSpec, End)
+	    ),
 	    show_syntax_error(TB, CharNo:Msg, Start-End),
 	    fail
 	;   throw(Error)
@@ -262,6 +267,40 @@ process_use_module(File, Src) :-
 	;   true
 	).
 
+
+%%	prolog_colourise_query(+Query:string, +SourceId, :ColourItem)
+%
+%	Colourise a query, to be executed in Context.
+%
+%	@arg	SourceId Execute Query in the context of
+%		the cross-referenced environment SourceID.
+
+prolog_colourise_query(QueryString, SourceID, ColourItem) :-
+	make_colour_state([ source_id(SourceID),
+			    closure(ColourItem)
+			  ],
+			  TB),
+	setup_call_cleanup(
+	    save_settings(TB, State),
+	    colourise_query(QueryString, TB),
+	    restore_settings(State)).
+
+colourise_query(QueryString, TB) :-
+	colour_state_module(TB, SM),
+	string_length(QueryString, End),
+	catch(term_string(Query, QueryString,
+			  [ subterm_positions(TermPos),
+			    singletons(Singletons),
+			    module(SM),
+			    comments(Comments)
+			  ]),
+	      E,
+	      read_error(E, TB, 0, End)),
+	colour_state_singletons(TB, Singletons),
+	colourise_comments(Comments, TB),
+	colourise_body(Query, TB, TermPos).
+
+
 %%	prolog_colourise_term(+Stream, +SourceID, :ColourItem, +Options)
 %
 %	Colourise    the    next     term      on     Stream.     Unlike
@@ -339,11 +378,14 @@ colourise_term(Term, TB, TermPos, Comments) :-
 	(   Term == end_of_file
 	->  true
 	;   colourise_term(Term, TB, TermPos),
-	    arg(2, TermPos, EndTerm),
-	    Start is EndTerm + 1,
-	    End is Start+1,
-	    colour_item(fullstop, TB, Start-End)
+	    colourise_fullstop(TB, TermPos)
 	).
+
+colourise_fullstop(TB, TermPos) :-
+	arg(2, TermPos, EndTerm),
+	Start is EndTerm + 1,
+	End is Start+1,
+	colour_item(fullstop, TB, Start-End).
 
 colourise_comments(-, _).
 colourise_comments([], _).
