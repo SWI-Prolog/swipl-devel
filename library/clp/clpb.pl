@@ -300,15 +300,23 @@ sat(Sat0) :-
 sat_ands(X) -->
         (   { var(X) } -> [X]
         ;   { X = (A*B) } -> sat_ands(A), sat_ands(B)
+        ;   { X = *(Ls) } -> sat_ands_(Ls)
         ;   { X = ~Y } -> not_ors(Y)
         ;   [X]
         ).
 
+sat_ands_([]) --> [].
+sat_ands_([L|Ls]) --> [L], sat_ands_(Ls).
+
 not_ors(X) -->
         (   { var(X) } -> [~X]
         ;   { X = (A+B) } -> not_ors(A), not_ors(B)
+        ;   { X = +(Ls) } -> not_ors_(Ls)
         ;   [~X]
         ).
+
+not_ors_([]) --> [].
+not_ors_([L|Ls]) --> [~L], not_ors_(Ls).
 
 del_bdd(Root) :- del_attr(Root, clpb_bdd).
 
