@@ -1494,8 +1494,8 @@ goal_classification(_TB, _Goal, _, undefined).
 
 goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
-goal_classification(Goal, autoload) :-	% SWI-Prolog
-	predicate_property(Goal, autoload(_)).
+goal_classification(Goal, autoload(From)) :-	% SWI-Prolog
+	predicate_property(Goal, autoload(From)).
 goal_classification(Goal, global) :-	% SWI-Prolog
 	current_predicate(_, user:Goal), !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
@@ -1682,7 +1682,7 @@ head_colours(M:_, meta-[module(M),extern(M)]).
 
 def_style(goal(built_in,_),	   [colour(blue)]).
 def_style(goal(imported(_),_),	   [colour(blue)]).
-def_style(goal(autoload,_),	   [colour(navy_blue)]).
+def_style(goal(autoload(_),_),	   [colour(navy_blue)]).
 def_style(goal(global,_),	   [colour(navy_blue)]).
 def_style(goal(undefined,_),	   [colour(red)]).
 def_style(goal(thread_local(_),_), [colour(magenta), underline(true)]).
