@@ -6472,20 +6472,35 @@ findall(Templ, Goal, Bag) :-
     \predicate[nondet]{findnsols}{4}{+N, @Template, :Goal, -List}
     \nodescription
     \predicate[nondet]{findnsols}{5}{+N, @Template, :Goal, -List, ?Tail}
-As findall/3 and findall/4, but generates at most \arg{N} solutions.
-Unifies \arg{List} immediately with [] (\arg{Tail}) if \arg{N} is 0 or
-less. If \arg{N} solutions are returned, this predicate succeeds with a
-choice point. Backtracking returns the next chunk of (at most) \arg{N}
-solutions. This behaviour is used to implement the \jargon{chunk}
-option in \pllib{pengines}.  Based on Ciao, but the Ciao version is
-deterministic. Portability can be achieved by wrapping the goal in
-once/1.  For example:
+As findall/3 and findall/4, but generates at most \arg{N} solutions. If
+\arg{N} solutions are returned, this predicate succeeds with a choice
+point if \arg{Goal} has a choice point. Backtracking returns the next
+chunk of (at most) \arg{N} solutions. In addition to passing a plain
+integer for \arg{N}, a term of the form \term{count}{N} is accepted.
+Using \term{count}{N}, the size of the next chunk can be controlled
+using nb_setarg/3. The non-deterministic behaviour used to implement the
+\jargon{chunk} option in \pllib{pengines}. Based on Ciao, but the Ciao
+version is deterministic. Portability can be achieved by wrapping the
+goal in once/1. Below are three examples. The first illustrates standard
+chunking of answers.  The second illustrates that the chunk size can be
+adjusted dynamically and the last illustrates that no choice point is
+left if \arg{Goal} leaves no choice-point after the last solution.
 
 \begin{code}
 ?- findnsols(5, I, between(1, 12, I), L).
 L = [1, 2, 3, 4, 5] ;
 L = [6, 7, 8, 9, 10] ;
 L = [11, 12].
+
+?- State = count(2),
+   findnsols(State, I, between(1, 12, I), L),
+   nb_setarg(1, State, 5).
+State = count(5), L = [1, 2] ;
+State = count(5), L = [3, 4, 5, 6, 7] ;
+State = count(5), L = [8, 9, 10, 11, 12].
+
+?- findnsols(4, I, between(1, 4, I), L).
+L = [1, 2, 3, 4].
 \end{code}
 
     \predicate[ISO]{bagof}{3}{+Template, :Goal, -Bag}
