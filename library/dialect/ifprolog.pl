@@ -713,19 +713,21 @@ format_string([H|T]) -->
 
 map_format(Format, [], default, default, Mapped) :- !,
 	map_format(Format, Mapped).
-map_format(Format, Flags, Width, _Prec, Mapped) :-
+map_format(Format, Flags, Width, Precision, Mapped) :-
 	integer(Width), !,			% left/right aligned in Width
 	map_format(Format, Field),
+	format_precision(Precision, Field, PrecField),
 	fill_code(Flags, [Fill]),
 	(   memberchk(-, Flags)			% left aligned
-	->  format(codes(Mapped), '~~|~s~~`~ct~~~d+', [Field, Fill, Width])
-	;   format(codes(Mapped), '~~|~~`~ct~s~~~d+', [Fill, Field, Width])
+	->  format(codes(Mapped), '~~|~s~~`~ct~~~d+', [PrecField, Fill, Width])
+	;   format(codes(Mapped), '~~|~~`~ct~s~~~d+', [Fill, PrecField, Width])
 	).
 map_format(Format, Flags, _, _, Mapped) :-
 	memberchk(#, Flags),
 	can_format(Format, Mapped), !.
-map_format(Format, _, _, _, Mapped) :-
-	map_format(Format, Mapped).
+map_format(Format, _, _, Precision, Mapped) :-
+	map_format(Format, Field),
+	format_precision(Precision, Field, Mapped).
 
 can_format("o", "0~8r").
 can_format("x", "0x~16r").
@@ -746,6 +748,21 @@ map_format("X", "~16R").
 map_format("O", "~8R").
 map_format("c", "~c").
 map_format("%", "%").
+
+have_precision("d").
+have_precision("D").
+have_precision("e").
+have_precision("E").
+have_precision("f").
+have_precision("g").
+have_precision("G").
+
+format_precision(N, [0'~|C], [0'~|Field]) :-
+    integer(N),
+    have_precision(C),
+    !,
+    format(codes(Field), '~d~s', [N, C]).
+format_precision(_, Field, Field).
 
 fill_code(Flags, "0") :- memberchk(0, Flags), !.
 fill_code(_,     " ").
