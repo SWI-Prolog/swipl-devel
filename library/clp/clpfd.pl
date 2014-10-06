@@ -5878,12 +5878,13 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
 %  denote the automaton's transitions. Each node is represented by an
 %  arbitrary term. Transitions that are not mentioned go to an
-%  implicit failure node. Exprs is a list of arithmetic expressions,
+%  implicit failure node. `Exprs` is a list of arithmetic expressions,
 %  of the same length as Counters. In each expression, variables
 %  occurring in Counters correspond to old counter values, and
 %  variables occurring in Template correspond to the current element
 %  of Sequence. When a transition containing expressions is taken,
-%  counters are updated as stated. By default, counters remain
+%  each counter is updated as stated by the result of the
+%  corresponding arithmetic expression. By default, counters remain
 %  unchanged. Counters is a list of variables that must not occur
 %  anywhere outside of the constraint goal. Initials is a list of the
 %  same length as Counters. Counter arithmetic on the transitions
