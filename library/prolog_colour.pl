@@ -1165,7 +1165,7 @@ colourise_term_arg(Integer, TB, Pos) :-
 	integer(Integer), !,
 	colour_item(int, TB, Pos).
 colourise_term_arg(Float, TB, Pos) :-
-	integer(Float), !,
+	float(Float), !,
 	colour_item(float, TB, Pos).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
