@@ -754,6 +754,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	;   Class = ClassSpec
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
+	colour_dict_braces(TB, Pos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
 colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,QF,QT,[PM,PG])) :- !,
 	colour_item(module(Module), TB, PM),
@@ -776,6 +777,13 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
 	colourise_goal_args(Goal, TB, Pos).
+
+% make sure to emit a fragment for the braces of tag{k:v, ...}.
+
+colour_dict_braces(TB, dict_position(_F,T,_TF,TT,_KVPos)) :- !,
+	BStart is TT+1,
+	colour_item(dict_content, TB, BStart-T).
+colour_dict_braces(_, _).
 
 %%	colourise_goal_args(+Goal, +TB, +Pos)
 %
