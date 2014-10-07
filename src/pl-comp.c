@@ -3051,7 +3051,9 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
   { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
       compiler_warning(ci, "eq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_FAIL);
+    { skippedVar(a1, ci PASS_LD);
+      skippedVar(a2, ci PASS_LD);
+      Output_0(ci, I_FAIL);
       return TRUE;
     }
 
@@ -3069,8 +3071,10 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
     { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
 	compiler_warning(ci, "eq_vv", a1, a2);
       if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      {	code op = (i1 == i2) ? I_TRUE : I_FAIL;
+      {	code op = (i1 == i2) ? I_TRUE : I_FAIL;;
 
+	skippedVar(a1, ci PASS_LD);
+	skippedVar(a2, ci PASS_LD);
 	Output_0(ci, op);
 
 	return TRUE;
@@ -3129,7 +3133,9 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
   { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
       compiler_warning(ci, "neq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_TRUE);
+    { skippedVar(a1, ci PASS_LD);
+      skippedVar(a2, ci PASS_LD);
+      Output_0(ci, I_TRUE);
       return TRUE;
     }
 
@@ -3147,7 +3153,9 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
     { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
 	compiler_warning(ci, "neq_vv", a1, a2);
       if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      {	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
+      {	skippedVar(a1, ci PASS_LD);
+	skippedVar(a2, ci PASS_LD);
+	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
 	return TRUE;
       }
     } else
