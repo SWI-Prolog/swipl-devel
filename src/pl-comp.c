@@ -2916,14 +2916,37 @@ t(X) :-
 	;   Y = x
 	),
 	writeln(Y).
+
+In addition, if arg is a term,  we   must  recurse down into the term to
+deal with variables that are only used there. This is needed for e.g.
+
+foo(bar) :-
+	foo(_),
+	L = [X|X].
+
+Although X is allocated on the stack, no  code will be generated for it,
+causing clearUninitialisedVarsFrame() to ignore this variable. Of course
+it would be better to shrink the frame,   but  I doubt that is worth the
+trouble.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 skippedVar(Word arg, compileInfo *ci ARG_LD)
-{ int i = isIndexedVarTerm(*arg PASS_LD);
+{ int i;
+
+right_recursion:
+  deRef(arg);
+  i = isIndexedVarTerm(*arg PASS_LD);
 
   if ( i >= 0 && isFirstVarSet(ci->used_var, i) )
     Output_1(ci, C_VAR, VAROFFSET(i));
+  if ( isTerm(*arg) && !ci->islocal )
+  { int ar = arityFunctor(functorTerm(*arg));
+
+    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
+      skippedVar(arg, ci PASS_LD);
+    goto right_recursion;
+  }
 
   return TRUE;
 }
