@@ -195,6 +195,8 @@ syntax_error(error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo)),
 	     Id, CharNo).
 syntax_error(error(syntax_error(Id), file(_S, _Line, _LinePos, CharNo)),
 	     Id, CharNo).
+syntax_error(error(syntax_error(Id), string(_Text, CharNo)),
+	     Id, CharNo).
 
 %%	colour_item(+Class, +TB, +Pos) is det.
 
@@ -288,18 +290,19 @@ prolog_colourise_query(QueryString, SourceID, ColourItem) :-
 colourise_query(QueryString, TB) :-
 	colour_state_module(TB, SM),
 	string_length(QueryString, End),
-	catch(term_string(Query, QueryString,
-			  [ subterm_positions(TermPos),
-			    singletons(Singletons),
-			    module(SM),
-			    comments(Comments)
-			  ]),
-	      E,
-	      read_error(E, TB, 0, End)),
-	colour_state_singletons(TB, Singletons),
-	colourise_comments(Comments, TB),
-	colourise_body(Query, TB, TermPos).
-
+	(   catch(term_string(Query, QueryString,
+			      [ subterm_positions(TermPos),
+				singletons(Singletons),
+				module(SM),
+				comments(Comments)
+			      ]),
+		  E,
+		  read_error(E, TB, 0, End))
+	->  colour_state_singletons(TB, Singletons),
+	    colourise_comments(Comments, TB),
+	    colourise_body(Query, TB, TermPos)
+	;   true			% only a syntax error
+	).
 
 %%	prolog_colourise_term(+Stream, +SourceID, :ColourItem, +Options)
 %
