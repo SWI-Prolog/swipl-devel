@@ -25,12 +25,12 @@ suggest predicates from a keyword.
 \oppredsummary{:<}{2}{xfx}{700}{Select keys from a dict}
 \oppredsummary{;}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{|}{2}}
 \oppredsummary{<}{2}{xfx}{700}{Arithmetic smaller}
-\oppredsummary{=}{2}{xfx}{700}{Unification}
+\oppredsummary{=}{2}{xfx}{700}{True when arguments are unified}
 \oppredsummary{=..}{2}{xfx}{700}{``Univ.'' Term to list conversion}
-\oppredsummary{=:=}{2}{xfx}{700}{Arithmetic equal}
+\oppredsummary{=:=}{2}{xfx}{700}{Arithmetic equality}
 \oppredsummary{=<}{2}{xfx}{700}{Arithmetic smaller or equal}
-\oppredsummary{==}{2}{xfx}{700}{Identical}
-\oppredsummary{=@=}{2}{xfx}{700}{Structural identical}
+\oppredsummary{==}{2}{xfx}{700}{Test for strict equality}
+\oppredsummary{=@=}{2}{xfx}{700}{Test for structural equality (variant)}
 \oppredsummary{=\=}{2}{xfx}{700}{Arithmetic not equal}
 \oppredsummary{>}{2}{xfx}{700}{Arithmetic larger}
 \oppredsummary{>=}{2}{xfx}{700}{Arithmetic larger or equal}
@@ -41,8 +41,8 @@ suggest predicates from a keyword.
 \oppredsummary{@>}{2}{xfx}{700}{Standard order larger}
 \oppredsummary{@>=}{2}{xfx}{700}{Standard order larger or equal}
 \oppredsummary{\+}{1}{fy}{900}{Negation by failure. Same as not/1}
-\oppredsummary{\=}{2}{xfx}{700}{Not unifiable}
-\oppredsummary{\==}{2}{xfx}{700}{Not identical}
+\oppredsummary{\=}{2}{xfx}{700}{True if arguments cannot be unified}
+\oppredsummary{\==}{2}{xfx}{700}{True if arguments are not strictly equal}
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
 \oppredsummary{|}{2}{xfy}{1105}{Disjunction in DCGs. Same as \predref{;}{2}}
@@ -80,7 +80,7 @@ suggest predicates from a keyword.
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
 \predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
-\predicatesummary{atom_concat}{3}{Append two atoms}
+\predicatesummary{atom_concat}{3}{Contatenate two atoms}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
 \predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
@@ -88,8 +88,8 @@ suggest predicates from a keyword.
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
 \predicatesummary{atomic}{1}{Type check for primitive}
 \predicatesummary{atomic_concat}{3}{Concatenate two atomic values to an atom}
-\predicatesummary{atomic_list_concat}{2}{Append a list of atoms}
-\predicatesummary{atomic_list_concat}{3}{Append a list of atoms with separator}
+\predicatesummary{atomic_list_concat}{2}{Append a list of atomics}
+\predicatesummary{atomic_list_concat}{3}{Append a list of atomics with separator}
 \predicatesummary{atomics_to_string}{2}{Concatenate list of inputs to a string}
 \predicatesummary{atomics_to_string}{3}{Concatenate list of inputs to a string}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
