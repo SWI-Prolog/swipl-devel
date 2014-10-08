@@ -158,6 +158,9 @@ restore_settings(state(Style, Esc, OSM)) :-
 %	module context of the file into which the file was included.
 
 source_module(TB, Module) :-
+	colour_state_source_id(TB, SourceId),
+	xref_option(SourceId, module(Module)), !.
+source_module(TB, Module) :-
 	(   colour_state_source_id(TB, File),
 	    atom(File)
 	;   colour_state_stream(TB, Fd),
