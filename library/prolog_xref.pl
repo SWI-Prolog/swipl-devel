@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -76,6 +76,7 @@
 
 :- predicate_options(xref_source/2, 2,
 		     [ silent(boolean),
+		       module(atom),
 		       register_called(oneof([all,non_iso,non_built_in])),
 		       comments(oneof([store,collect,ignore]))
 		     ]).
@@ -240,6 +241,8 @@ verbose(Src) :-
 %
 %	  * silent(+Boolean)
 %	  If =true= (default =false=), emit warning messages.
+%	  * module(+Module)
+%	  Define the initial context module to work in.
 %	  * register_called(+Which)
 %	  Determines which calls are registerd.  Which is one of
 %	  =all=, =non_iso= or =non_built_in=.
@@ -289,7 +292,7 @@ xref_setup(Src, In, Options, state(In, Dialect, Xref, [SRef|HRefs])) :-
 	assert_default_options(Src),
 	current_prolog_flag(emulated_dialect, Dialect),
 	prolog_open_source(Src, In),
-	set_initial_mode(In),
+	set_initial_mode(In, Options),
 	asserta(xref_input(Src, In), SRef),
 	set_xref(Xref),
 	(   verbose(Src)
@@ -310,6 +313,9 @@ assert_option(Src, register_called(Which)) :- !,
 assert_option(Src, comments(CommentHandling)) :- !,
 	must_be(oneof([store,collect,ignore]), CommentHandling),
 	assert(xoption(Src, comments(CommentHandling))).
+assert_option(Src, module(Module)) :- !,
+	must_be(atom, Module),
+	assert(xoption(Src, module(Module))).
 
 assert_default_options(Src) :-
 	(   xref_option_default(Opt),
@@ -340,14 +346,17 @@ set_xref(Xref) :-
 	current_prolog_flag(xref, Xref),
 	set_prolog_flag(xref, true).
 
-%%	set_initial_mode(+Stream) is det.
+%%	set_initial_mode(+Stream, +Options) is det.
 %
 %	Set  the  initial  mode  for  processing    this   file  in  the
 %	cross-referencer. If the file is loaded, we use information from
 %	the previous load context, setting   the  appropriate module and
 %	dialect.
 
-set_initial_mode(Stream) :-
+set_initial_mode(_Stream, Options) :-
+	option(module(Module), Options), !,
+	'$set_source_module'(_, Module).
+set_initial_mode(Stream, _) :-
 	stream_property(Stream, file_name(Path)),
 	source_file_property(Path, load_context(M, _, Opts)), !,
 	'$set_source_module'(_, M),
@@ -355,9 +364,8 @@ set_initial_mode(Stream) :-
 	->  expects_dialect(Dialect)
 	;   true
 	).
-set_initial_mode(_) :-
+set_initial_mode(_, _) :-
 	'$set_source_module'(_, user).
-
 
 %%	xref_input_stream(-Stream) is det.
 %
