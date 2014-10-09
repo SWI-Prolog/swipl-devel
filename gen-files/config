@@ -55,5 +55,6 @@ packages/archive/configure
 packages/tipc/config.h.in
 packages/tipc/configure
 packages/pengines/configure
+packages/cql/configure
 src/config.h.in
 src/configure

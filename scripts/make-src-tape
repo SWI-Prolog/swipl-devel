@@ -16,6 +16,7 @@ COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
 COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
 COREMODULES+=" packages/nlp packages/cpp packages/PDT packages/utf8proc"
 COREMODULES+=" packages/archive packages/swipl-win packages/pengines"
+COREMODULES+=" packages/cql"
 
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"

@@ -650,6 +650,16 @@ Section "ODBC Interface"
   File ${SWIPL}\doc\packages\odbc.html
 SectionEnd
 
+Section "CQL database Interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File /r ${SWIPL}\library\cql
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\cql.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r ${SWIPL}\doc\packages\examples\cql
+SectionEnd
+
 Section "Google protocol buffers"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin

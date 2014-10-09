@@ -10,7 +10,7 @@
 # libXPM and libjpeg to compile.  This   variable  is normally overruled
 # from the configure script.  MUST be on one line
 
-PKG=	clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib R protobufs windows PDT utf8proc archive pengines
+PKG=	clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib R protobufs windows PDT utf8proc archive pengines cql
 
 # Define additional config options shared by all packages here.
 
