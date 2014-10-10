@@ -572,6 +572,8 @@ safe_primitive('$messages':print_message(_,_)).
 % use_module/1.  We only allow for .pl files that are loaded from
 % relative paths that do not contain /../
 
+safe_primitive(system:use_module(Spec, _Import)) :-
+	safe_primitive(system:use_module(Spec)).
 safe_primitive(system:use_module(Spec)) :-
 	ground(Spec),
 	(   atom(Spec)
