@@ -1040,7 +1040,7 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
   } else
   { if ( !PL_unify_term(head,
 			PL_FUNCTOR, FUNCTOR_minus2,
-			  ATOM_minus,
+			  PL_ATOM, ATOM_minus,
 			  PL_UTF8_STRING, baseBuffer(b, char)) )
       return FALSE;
   }
