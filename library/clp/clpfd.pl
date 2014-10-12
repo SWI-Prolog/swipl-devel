@@ -6115,12 +6115,10 @@ transpose(Ls, Ts) :-
         lists_transpose(Ls, Ts).
 
 lists_transpose([], []).
-lists_transpose([L|Ls], Ts) :- transpose_(L, [L|Ls], Ts).
+lists_transpose([L|Ls], Ts) :- foldl(transpose_, L, Ts, [L|Ls], _).
 
-transpose_([], _, []).
-transpose_([_|Es], Lists0, [Fs|Fss]) :-
-        maplist(list_first_rest, Lists0, Fs, Lists),
-        transpose_(Es, Lists, Fss).
+transpose_(_, Fs, Lists0, Lists) :-
+        maplist(list_first_rest, Lists0, Fs, Lists).
 
 list_first_rest([L|Ls], L, Ls).
 
