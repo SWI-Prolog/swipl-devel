@@ -655,6 +655,7 @@ safe_meta(system:format(Output, Format, Args), Calls) :-
 	format_calls(Format, Args, Calls).
 safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
 	format_calls(Format, Args, Calls).
+safe_meta('$attvar':freeze(_Var,Goal), [Goal]).
 
 %%	safe_meta_call(+Goal, -Called:list(callable)) is semidet.
 %
