@@ -241,10 +241,6 @@ case "$PLARCH" in
         SOLIB=bin
         TXTEXT=.TXT
         ;;
-    *-cygwin)
-        PLBASE=$libdir/$PLLIBDIR
-        SOLIB=bin
-	;;
     *)
         PLBASE=$libdir/$PLLIBDIR
         INSTALL_PLARCH=$PLARCH
@@ -722,11 +718,7 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL$EXEEXT",
 		   [Name of the SWI-Prolog executable (normally swipl[.exe])])
 case "$PLARCH" in
-  *cygwin*)
-	PLSO=cygpl.$SO_EXT
-	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libswipl.dll.a $(DEF)'
-	;;
-  *-win32|*-win64)
+  *-win32|*-win64|*-cygwin*)
 	PLSO=libswipl.$SO_EXT
 	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a -Wl,--output-def,$(RUNTIMEDIR)/libswipl.def'
 	;;
