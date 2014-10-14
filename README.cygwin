@@ -69,7 +69,7 @@ but it is still good to know the ins and outs.
 	"make install", you'll get a DLL, called libswipl.dll, installed
 	into
 
-		$(prefix)/lib/pl-<version>/lib/${arch}-cygwin
+		$(prefix)/lib/pl-<version>/bin/${arch}-cygwin
 		
 	as well as a link library libswipl.dll.a in
 
