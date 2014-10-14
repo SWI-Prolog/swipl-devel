@@ -859,7 +859,7 @@ PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
 
 PL_EXPORT(int)	PL_chars_to_term(const char *chars,
 				term_t term);
-PL_EXPORT(int) PL_wchars_to_term(const pl_wchar_t *chars,
+PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 				 term_t term);
 
 
