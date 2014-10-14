@@ -103,7 +103,6 @@ EXEEXT_FOR_BUILD = @EXEEXT_FOR_BUILD@
 PB=../boot
 INCLUDEDIR=../include
 EXPORTS=$(INCLUDEDIR)/SWI-Exports
-DEF=$(PL).def
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STARTUPPATH=$(PL).prc
@@ -298,25 +297,9 @@ $(INCLUDEDIR):
 # the AIX version.
 
 exports:	$(EXPORTS)
-def:		$(DEF)
 
 $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL)$(EXEEXT) > $@
-		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
-		    $(SED) -e 's/.*[	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
-			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
-		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
-		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
-		    grep -v PL_w32_wrap_ansi_console | \
-		    grep -v PL_wait_for_console_input | \
-		    grep -v Swinsock | \
-		    sort -u >> $@
-
-# Create pl.def, required for exporting symbols from pl.exe for the Cygwin
-# platform
-
-$(DEF):		$(srcdir)/SWI-Prolog.h
-		echo EXPORTS > $@
 		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
 		    $(SED) -e 's/.*[	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
@@ -512,7 +495,9 @@ ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.def $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  if [ "$(MSLIBEXE)" != ":" ]; then \
+		    $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.def $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  fi ; \
 		  if [ -f $(RUNTIMEDIR)/libswipl.lib ]; then \
 		    $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.lib $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		  fi ; \
@@ -727,7 +712,7 @@ distclean:	clean profclean
 		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
 		rm -f $(PL)$(EXEEXT)
 		rm -f  swipl-ld$(EXEEXT)
-		rm -f  swipl.1 libswiplimp.a $(DEF)
+		rm -f  swipl.1 libswiplimp.a
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
 

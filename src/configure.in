@@ -441,9 +441,6 @@ EOF
 fi
 
 case "$PLARCH" in
-    *cygwin*)
-	EXTRAHDR=def
-        ;;
     *aix*)
 	EXTRAHDR=exports
 	;;
