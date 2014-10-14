@@ -858,6 +858,7 @@ safe_directive(use_module(library(X), _Imports)) :-
 	safe_path(X).
 safe_directive(ensure_loaded(library(X))) :-
 	safe_path(X).
+safe_directive(style_check(_)).
 
 safe_path(X) :-
 	(   atom(X)
