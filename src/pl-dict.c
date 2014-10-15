@@ -79,7 +79,8 @@ Copied from https://github.com/noporpoise/sort_r
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if defined(__MINGW32__) || defined(__OpenBSD__) || defined(AMIGA) || \
-defined(__gnu_hurd__) || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 8)
+defined(__gnu_hurd__) || defined(__CYGWIN__) \
+|| (__GLIBC__ == 2 && __GLIBC_MINOR__ < 8)
   #define QSORT_WITH_NESTED_FUNCTIONS 1
 #endif
 
