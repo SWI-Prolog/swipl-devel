@@ -732,11 +732,14 @@ strip_existential(G, G).
 safe_meta((0,0)).
 safe_meta((0;0)).
 safe_meta((0->0)).
+safe_meta((0*->0)).
 safe_meta(catch(0,*,0)).
 safe_meta(findall(*,0,*)).
 safe_meta(findall(*,0,*,*)).
 safe_meta(setof(*,^,*)).		% TBD
 safe_meta(bagof(*,^,*)).
+safe_meta(system:findnsols(*,*,0,*)).
+safe_meta(system:findnsols(*,*,0,*,*)).
 safe_meta(system:call_cleanup(0,0)).
 safe_meta(system:setup_call_cleanup(0,0,0)).
 safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
