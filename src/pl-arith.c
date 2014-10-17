@@ -195,8 +195,8 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
     case FRG_REDO:
       { state = CTX_PTR;
 
-	ar_add_ui(&state->low, 1);
-	if ( !PL_unify_number(n, &state->low) )
+	if ( !ar_add_ui(&state->low, 1) ||
+	     !PL_unify_number(n, &state->low) )
 	{ rc = FALSE;
 	  goto cleanup;
 	}
@@ -236,8 +236,9 @@ PRED_IMPL("succ", 2, succ, 0)
     if ( ar_sign_i(&i1) < 0 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		      ATOM_not_less_than_zero, A1);
-    pl_ar_add(&i1, &one, &i2);
-    rc = PL_unify_number(A2, &i2);
+    rc = ( pl_ar_add(&i1, &one, &i2) &&
+	   PL_unify_number(A2, &i2)
+	 );
   } else if ( !canBind(*p1) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, A1);
 
@@ -247,8 +248,9 @@ PRED_IMPL("succ", 2, succ, 0)
   { get_integer(*p2, &i2);
     switch( ar_sign_i(&i2) )
     { case 1:
-	ar_minus(&i2, &one, &i1);
-        rc = PL_unify_number(A1, &i1);
+	rc = ( ar_minus(&i2, &one, &i1) &&
+	       PL_unify_number(A1, &i1)
+	     );
 	break;
       case 0:
 	fail;
