@@ -2802,8 +2802,7 @@ markAtomsMessageQueue() scans it. This fixes the reopened Bug#142.
 
 static int
 get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
-{ term_t tmp = PL_new_term_ref();
-  int isvar = PL_is_variable(msg) ? 1 : 0;
+{ int isvar = PL_is_variable(msg) ? 1 : 0;
   word key = (isvar ? 0L : getIndexOfTerm(msg));
   fid_t fid = PL_open_foreign_frame();
   uint64_t seen = 0;
@@ -2824,6 +2823,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { int rc;
+      term_t tmp;
 
       if ( msgp->sequence_id < seen )
       { QSTAT(skipped);
@@ -2839,8 +2839,11 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       }
 
       QSTAT(unified);
+      tmp = PL_new_term_ref();
       if ( !PL_recorded(msgp->message, tmp) )
+      { PL_discard_foreign_frame(fid);
         return raiseStackOverflow(GLOBAL_OVERFLOW);
+      }
       rc = PL_unify(msg, tmp);
       DEBUG(MSG_QUEUE, { pl_writeln(tmp);
 			 pl_writeln(msg);
@@ -2869,9 +2872,11 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	  cv_signal(&queue->drain_var);
 	}
 
+	PL_close_foreign_frame(fid);
 	return TRUE;
       } else if ( exception_term )
-      { return FALSE;
+      { PL_close_foreign_frame(fid);
+	return FALSE;
       }
 
       PL_rewind_foreign_frame(fid);
@@ -2892,6 +2897,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	if ( is_signalled(LD) )		/* thread-signal */
 	{ queue->waiting--;
 	  queue->waiting_var -= isvar;
+	  PL_discard_foreign_frame(fid);
 	  return MSG_WAIT_INTR;
 	}
 	break;
@@ -2899,6 +2905,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       case ETIMEDOUT:
       { queue->waiting--;
 	queue->waiting_var -= isvar;
+	PL_discard_foreign_frame(fid);
 	return MSG_WAIT_TIMEOUT;
       }
       case 0:
