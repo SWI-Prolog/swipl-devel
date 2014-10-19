@@ -2198,7 +2198,7 @@ pl_retractall(term_t head)
   fid_t fid;
 
   if ( !get_procedure(head, &proc, thehead, GP_CREATE) )
-    succeed;
+    fail;
 
   def = getProcDefinition(proc);
   if ( true(def, P_FOREIGN) )

@@ -102,6 +102,8 @@ test(one, [setup(init_db),cleanup(clear_db),All=[db(2,1),db(2,2)]]) :-
 test(shared, [setup(init_db),cleanup(clear_db),All=[db(1,2),db(2,1)]]) :-
 	retractall(db(X,X)),
 	findall(db(X,Y), db(X,Y), All).
+test(type, error(type_error(callable, _))) :-
+	retractall(3).
 
 :- end_tests(retractall).
 
