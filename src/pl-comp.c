@@ -2382,7 +2382,7 @@ callatmv(code call)
 #endif
 
 
-static Procedure
+Procedure
 lookupBodyProcedure(functor_t functor, Module tm)
 { Procedure proc;
 

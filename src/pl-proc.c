@@ -556,7 +556,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 
   switch( how & GP_HOW_MASK )
   { case GP_CREATE:
-      *proc = lookupProcedure(fdef, m);
+      *proc = lookupBodyProcedure(fdef, m);
       break;
     case GP_FINDHERE:
       if ( (p = isCurrentProcedure(fdef, m)) )
