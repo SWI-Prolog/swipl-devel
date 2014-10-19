@@ -729,8 +729,8 @@ COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);
 COMMON(int)	promoteToFloatNumber(Number n);
-COMMON(void)	make_same_type_numbers(Number n1, Number n2);
-COMMON(void)    promoteNumber(Number n1, numtype type);
+COMMON(int)	make_same_type_numbers(Number n1, Number n2) WUNUSED;
+COMMON(int)     promoteNumber(Number n1, numtype type) WUNUSED;
 COMMON(int)	cmpNumbers(Number n1, Number n2);
 COMMON(void)	cpNumber(Number to, Number from);
 

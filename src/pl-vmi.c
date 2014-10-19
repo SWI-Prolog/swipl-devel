@@ -3402,7 +3402,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     { number left;
 
       get_integer(*k, &left);
-      rc = (cmpNumbers(&left, n) == 0);
+      rc = (cmpNumbers(&left, n) == CMP_EQUAL);
       clearNumber(&left);
     } else if ( isFloat(*k) && floatNumber(n) )
     { rc = (valFloat(*k) == n->value.f);
