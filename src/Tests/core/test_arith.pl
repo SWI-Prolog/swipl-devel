@@ -264,6 +264,12 @@ test(spaced_octal) :- test_minint_promotion(-0o10 0000 0000 0000 0000 0001).
 test(hexadecimal) :- test_minint_promotion(-0x8000000000000001).
 test(spaced_hexadecimal) :- test_minint_promotion(-0x8000_0000_0000_0001).
 
+:- if(\+current_prolog_flag(bounded,true)).
+test(mpz_to_int64, A == -9223372036854775808) :-
+	A is -9223372036854775808-1+1.
+:- endif.
+
+
 :- end_tests(minint_promotion).
 
 :- begin_tests(maxint).

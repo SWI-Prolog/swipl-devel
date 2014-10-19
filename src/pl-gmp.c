@@ -618,7 +618,7 @@ int
 mpz_to_int64(mpz_t mpz, int64_t *i)
 { if ( mpz_cmp(mpz, MPZ_MIN_PLINT) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_PLINT) <= 0 )
-  { int64_t v;
+  { uint64_t v;
 
     mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
     DEBUG(2,
@@ -628,9 +628,10 @@ mpz_to_int64(mpz_t mpz, int64_t *i)
 	  });
 
     if ( mpz_sgn(mpz) < 0 )
-      v = -v;
+      *i = -(int64_t)(v - 1) - 1;
+    else
+      *i = (int64_t)v;
 
-    *i = v;
     return TRUE;
   }
 
