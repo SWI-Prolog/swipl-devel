@@ -824,7 +824,7 @@ visible_predicate(Pred) :-
 	current_module(M),
 	(   callable(Head)
 	->  (   '$get_predicate_attribute'(Pred, defined, 1)
-	    ->	\+ hidden_system_predicate(Pred)
+	    ->	true
 	    ;	\+ current_prolog_flag(M:unknown, fail),
 		functor(Head, Name, Arity),
 		'$find_library'(M, Name, Arity, _LoadModule, _Library)
