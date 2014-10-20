@@ -735,8 +735,8 @@ safe_meta((0->0)).
 safe_meta((0*->0)).
 safe_meta(catch(0,*,0)).
 safe_meta(findall(*,0,*)).
-safe_meta(findall(*,0,*,*)).
-safe_meta(setof(*,^,*)).		% TBD
+safe_meta('$bags':findall(*,0,*,*)).
+safe_meta(setof(*,^,*)).
 safe_meta(bagof(*,^,*)).
 safe_meta(system:findnsols(*,*,0,*)).
 safe_meta(system:findnsols(*,*,0,*,*)).
