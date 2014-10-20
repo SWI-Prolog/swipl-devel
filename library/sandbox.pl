@@ -738,8 +738,8 @@ safe_meta(findall(*,0,*)).
 safe_meta('$bags':findall(*,0,*,*)).
 safe_meta(setof(*,^,*)).
 safe_meta(bagof(*,^,*)).
-safe_meta(system:findnsols(*,*,0,*)).
-safe_meta(system:findnsols(*,*,0,*,*)).
+safe_meta('$bags':findnsols(*,*,0,*)).
+safe_meta('$bags':findnsols(*,*,0,*,*)).
 safe_meta(system:call_cleanup(0,0)).
 safe_meta(system:setup_call_cleanup(0,0,0)).
 safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
