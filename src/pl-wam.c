@@ -644,9 +644,7 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
     fr = (LocalFrame)valTermRef(fref);
   }
 
-#ifdef O_DEBUGGER
   callEventHook(PLEV_FRAMEFINISHED, fr);
-#endif
 }
 
 

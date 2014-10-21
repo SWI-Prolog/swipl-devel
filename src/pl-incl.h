@@ -1691,6 +1691,13 @@ typedef enum pl_event_type
   PL_EV_THREADFINISHED			/* A thread has finished */
 } pl_event_type;
 
+#ifdef O_DEBUGGER
+#define callEventHook(...) \
+        ( PROCEDURE_event_hook1->definition->impl.any ? \
+		PL_call_event_hook(__VA_ARGS__) : TRUE )
+#else
+#define callEventHook(...) TRUE
+#endif
 
 
 		 /*******************************

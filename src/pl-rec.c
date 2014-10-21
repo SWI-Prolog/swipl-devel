@@ -1764,9 +1764,7 @@ PRED_IMPL("erase", 1, erase, 0)
   } else
   { RecordRef record = ptr;
 
-#if O_DEBUGGER
     callEventHook(PLEV_ERASED_RECORD, record);
-#endif
 
     LOCK();
     l = record->list;

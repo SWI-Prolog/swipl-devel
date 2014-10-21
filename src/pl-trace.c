@@ -2415,7 +2415,7 @@ sendDelayedEvents(void)
 
 
 int
-callEventHook(pl_event_type ev, ...)
+PL_call_event_hook(pl_event_type ev, ...)
 { if ( PROCEDURE_event_hook1->definition->impl.any )
   { GET_LD
     wakeup_state wstate;

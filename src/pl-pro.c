@@ -113,10 +113,7 @@ query_loop(atom_t goal, int loop)
       debugmode(DBG_OFF, NULL);
       setPrologFlagMask(PLFLAG_LASTCALL);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      {
-#ifdef O_DEBUGGER
-        callEventHook(PLEV_ABORT);
-#endif
+      { callEventHook(PLEV_ABORT);
         printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
       }
     }

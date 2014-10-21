@@ -507,9 +507,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     acknowledge = info->thread_data->exit_requested;
     UNLOCK();
 
-#if O_DEBUGGER
     callEventHook(PL_EV_THREADFINISHED, info);
-#endif
     run_thread_exit_hooks(ld);
   } else
   { acknowledge = FALSE;
