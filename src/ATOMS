@@ -230,6 +230,7 @@ A error			"error"
 A eval			"eval"
 A evaluable		"evaluable"
 A evaluation_error	"evaluation_error"
+A event_hook		"event_hook"
 A exception		"exception"
 A exclusive		"exclusive"
 A execute		"execute"
@@ -841,6 +842,7 @@ F erfc			1
 F error			2
 F eval			1
 F evaluation_error	1
+F event_hook		1
 F exception		1
 F exception		3
 F existence_error	2

@@ -2416,10 +2416,7 @@ sendDelayedEvents(void)
 
 int
 callEventHook(pl_event_type ev, ...)
-{ if ( !PROCEDURE_event_hook1 )
-    PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
-
-  if ( PROCEDURE_event_hook1->definition->impl.any )
+{ if ( PROCEDURE_event_hook1->definition->impl.any )
   { GET_LD
     wakeup_state wstate;
     int rc;
