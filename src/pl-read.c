@@ -1968,9 +1968,9 @@ scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
 #endif
       } else
       { if (negative)
-          t = t * 10 - c + '0';
+          t = t * 10 - (c - '0');
         else
-          t = t * 10 + c - '0';
+          t = t * 10 + (c - '0');
       }
     }
   } while ( skip_digit_separator(&s, 10, grouped) );
