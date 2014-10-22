@@ -73,6 +73,8 @@
 #
 #   - Remove pthreads-w32 and all traces from $install/bin, $install/lib
 #     and $install/include
+#   - Copy the new libgcc_s_sjlj-1.dll and libwinpthread-1.dll from the
+#     GCC installation to $install/bin
 #   - Run clean_prerequisites (function in this script)
 #   - Run build_prerequisites (function in this script)
 
