@@ -1082,7 +1082,9 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
     if ( (sfindex == 0 || sfindex == cl->owner_no) &&
 	 (!fromfile || cl->line_no > 0) &&
 	 false(cl, CL_ERASED) )
-    { set(cl, CL_ERASED);
+    { size_t size = sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
+      ATOMIC_SUB(&def->module->code_size, size);
+      set(cl, CL_ERASED);
       deleteActiveClauseFromIndexes(def, cl);
 
       if ( deleted++ == 0 )
@@ -1151,6 +1153,7 @@ the definition is always referenced.
 bool
 retractClauseDefinition(Definition def, Clause clause)
 { int rc;
+  size_t size;
 
   LOCKDYNDEF(def);
   assert(true(def, P_DYNAMIC));
@@ -1161,6 +1164,8 @@ retractClauseDefinition(Definition def, Clause clause)
 
   DEBUG(CHK_SECURE, checkDefinition(def));
   set(clause, CL_ERASED);
+  size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
+  ATOMIC_SUB(&def->module->code_size, size);
 
   if ( def->references ||
        def->impl.clauses.number_of_clauses > 16 )

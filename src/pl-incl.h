@@ -1499,6 +1499,8 @@ struct module
   Table		operators;	/* local operator declarations */
   ListCell	supers;		/* Import predicates from here */
   ListCell	lingering;	/* Lingering definitions */
+  size_t	code_size;	/* #Bytes used for its procedures */
+  size_t	code_limit;	/* Limit for code_size */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard procedures */
 #endif

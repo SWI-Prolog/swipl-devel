@@ -1667,8 +1667,16 @@ Finish up the clause.
 
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
+    Module m = proc->definition->module;
+    size_t clsize = size + SIZEOF_CREF_CLAUSE;
+
+    if ( m->code_limit && clsize + m->code_size > m->code_limit )
+    { rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_program_space);
+      goto exit_fail;
+    }
 
     cl = PL_malloc_atomic(size);
+    ATOMIC_ADD(&m->code_size, clsize);
     memcpy(cl, &clause, sizeofClause(0));
     memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
 
