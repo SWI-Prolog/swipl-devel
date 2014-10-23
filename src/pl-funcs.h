@@ -431,7 +431,7 @@ COMMON(int)		getAccessLevelMask(atom_t a, access_level_t *val);
 COMMON(atom_t)		accessLevel(void);
 
 /* pl-proc.c */
-COMMON(Procedure)	lookupProcedure(functor_t f, Module m);
+COMMON(Procedure)	lookupProcedure(functor_t f, Module m) WUNUSED;
 COMMON(void)		unallocProcedure(Procedure proc);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
 COMMON(int)		importDefinitionModule(Module m,

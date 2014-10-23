@@ -2437,7 +2437,7 @@ VMI(I_FAIL, VIF_BREAK, 0, ())
   if ( debugstatus.debugging )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
-    DEF = lookupProcedure(FUNCTOR_fail0, MODULE_system)->definition;
+    DEF = lookupDefinition(FUNCTOR_fail0, MODULE_system);
 
     goto normal_call;
   }
@@ -2456,7 +2456,7 @@ VMI(I_TRUE, VIF_BREAK, 0, ())
   if ( debugstatus.debugging )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
-    DEF = lookupProcedure(FUNCTOR_true0, MODULE_system)->definition;
+    DEF = lookupDefinition(FUNCTOR_true0, MODULE_system);
 
     goto normal_call;
   }
@@ -2481,7 +2481,7 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
 
     NFR = lTop;
     setNextFrameFlags(NFR, FR);
-    DEF  = lookupProcedure(fpred, MODULE_system)->definition;
+    DEF  = lookupDefinition(fpred, MODULE_system);
     ARGP = argFrameP(NFR, 0);
     *ARGP++ = linkVal(p);
 

@@ -19,6 +19,7 @@ test(too_low, error(permission_error(limit, program_space, user))) :-
 	set_module(user:program_space(1000)).
 test(retract, Size == Size0) :-
 	set_module(program_space_limit:program_space(0)),
+	dynamic(program_space_limit:test/0),
 	module_property(program_space_limit, program_size(Size0)),
 	assertz(program_space_limit:test),
 	retract(program_space_limit:test),
@@ -49,7 +50,8 @@ test(repeat, [ cleanup(abolish(program_space_limit:test/1))
 			assertz(program_space_limit:test(X))),
 		 retractall(program_space_limit:test(_)),
 		 module_property(program_space_limit, program_size(Size)),
-		 assertion(Size0 == Size)
+		 assertion(Size0 == Size),
+		 Size0 == Size		% no warning if optimized away
 	       )).
 
 :- end_tests(program_space).

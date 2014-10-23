@@ -2725,7 +2725,9 @@ dynamic/1 as a \jargon{directive}.}
 Assert a fact or clause in the database. \arg{Term} is asserted as the
 first fact or clause of the corresponding predicate. Equivalent to
 assert/1, but \arg{Term} is asserted as first clause or fact of the
-predicate.
+predicate.  If the program space for the target module is limited
+(see set_module/1), asserta/1 can raise a
+\term{resource_error}{program_space}.
 
     \predicate[ISO]{assertz}{1}{+Term}
 Equivalent to asserta/1, but \arg{Term} is asserted as the last clause

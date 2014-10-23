@@ -3725,11 +3725,13 @@ PRED_IMPL("redefine_system_predicate",  1, redefine_system_predicate,
   if ( !PL_get_functor(head, &fd) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, pred);
 
-  proc = lookupProcedure(fd, m);
-  abolishProcedure(proc, m);
-  set(proc->definition, P_REDEFINED);	/* flag as redefined */
-
-  succeed;
+  if ( (proc = lookupProcedure(fd, m)) )
+  { abolishProcedure(proc, m);
+    set(proc->definition, P_REDEFINED);	/* flag as redefined */
+    return TRUE;
+  } else
+  { return FALSE;
+  }
 }
 
 

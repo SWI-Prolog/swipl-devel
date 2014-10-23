@@ -41,6 +41,12 @@ static atom_t	autoLoader(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
 static void	detachMutexAndUnlock(Definition def);
 
+/* Enforcing this limit demands we propagate NULL from lookupProcedure()
+   through the whole system.  This is not done
+*/
+#define O_PROGLIMIT_INCL_PRED 0
+#define SIZEOF_PROC (sizeof(struct procedure) + sizeof(struct definition))
+
 Procedure
 lookupProcedure(functor_t f, Module m)
 { Procedure proc;
@@ -53,6 +59,12 @@ lookupProcedure(functor_t f, Module m)
 			     PL_atom_chars(m->name),
 			     procedureName(s->value)));
     proc = s->value;
+#if O_PROGLIMIT_INCL_PRED
+  } else if ( m->code_limit &&
+	      m->code_size + SIZEOF_PROC > m->code_limit )
+  { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_program_space);
+    proc = NULL;
+#endif
   } else
   { proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
     def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
@@ -66,6 +78,7 @@ lookupProcedure(functor_t f, Module m)
     def->shared  = 1;
     addHTable(m->procedures, (void *)f, proc);
     GD->statistics.predicates++;
+    ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
 
     resetProcedure(proc, TRUE);
     DEBUG(MSG_PROC, Sdprintf("Created %s\n", procedureName(proc)));
@@ -132,6 +145,7 @@ unallocDefinition(Definition def)
   unallocClauseIndexes(def);
   freeCodesDefinition(def, FALSE);
 
+  ATOMIC_SUB(&def->module->code_size, sizeof(*def));
   freeHeap(def, sizeof(*def));
 }
 
@@ -140,6 +154,7 @@ void
 unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
 
+  ATOMIC_SUB(&def->module->code_size, sizeof(*proc));
   freeHeap(proc, sizeof(*proc));
   if ( unshareDefinition(def) == 0 )
   { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
@@ -1861,8 +1876,9 @@ autoImport(functor_t f, Module m)
 
 found:
   if ( proc == NULL )			/* Create header if not there */
-    proc = lookupProcedure(f, m);
-
+  { if ( !(proc = lookupProcedure(f, m)) )
+      return NULL;
+  }
 					/* Now, take the lock also used */
 					/* by lookupProcedure().  Note */
 					/* that another thread may have */
@@ -1971,7 +1987,7 @@ trapUndefined(Definition def ARG_LD)
     } else
     { atom_t answer = autoLoader(def);
 
-      def = lookupProcedure(functor->functor, module)->definition;
+      def = lookupDefinition(functor->functor, module);
 
       if ( answer == ATOM_fail )
       { return def;
