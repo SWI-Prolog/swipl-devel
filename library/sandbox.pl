@@ -917,6 +917,7 @@ prolog:sandbox_allowed_expansion(_,_).
 	prolog:message_context//1,
 	prolog:error_message//1.
 
+prolog:message_context(sandbox(_G, [])) --> !.
 prolog:message_context(sandbox(_G, Parents)) -->
 	[ nl, 'Reachable from:'-[] ],
 	callers(Parents, 10).
