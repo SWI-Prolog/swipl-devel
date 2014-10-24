@@ -267,14 +267,25 @@ updateAlerted(PL_local_data_t *ld)
 }
 
 
+/* raiseSignal() sets a signal in a target thread.  This implies manipulating
+   the mask and setting ld->alerted. Note that we cannot call
+   updateAlerted() because the O_ATTVAR might go wrong if the target
+   thread performs a stack-shift.
+*/
+
 int
 raiseSignal(PL_local_data_t *ld, int sig)
 { if ( sig > 0 && sig <= MAXSIGNAL && ld )
   { int off = (sig-1) / 32;
     int mask = (1 << ((sig-1)%32));
+    int alerted;
 
     __sync_or_and_fetch(&ld->signal.pending[off], mask);
-    updateAlerted(ld);
+
+    do
+    { alerted = ld->alerted;
+    } while ( !COMPARE_AND_SWAP(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
+
     return TRUE;
   }
 
