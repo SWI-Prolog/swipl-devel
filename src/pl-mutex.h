@@ -110,7 +110,7 @@ extern int recursiveMutexInit(recursiveMutex *m);
 typedef struct {
   pthread_mutex_t lock;
 	pthread_t owner;
-	unsigned int count;
+     unsigned int count;
 } recursiveMutex;
 
 #define NEED_RECURSIVE_MUTEX_INIT 1
