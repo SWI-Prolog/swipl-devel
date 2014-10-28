@@ -139,6 +139,7 @@ typedef struct counting_mutex
   unsigned int collisions;		/* # contentions */
 #endif
   struct counting_mutex *next;		/* next of allocated chain */
+  struct counting_mutex *prev;		/* prvious in allocated chain */
 } counting_mutex;
 
 extern counting_mutex  *allocSimpleMutex(const char *name);

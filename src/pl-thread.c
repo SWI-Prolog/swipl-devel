@@ -3958,10 +3958,14 @@ allocSimpleMutex(const char *name)
   m->collisions = 0;
 #endif
   m->name = name ? store_string(name) : (char*)NULL;
+  m->prev = NULL;
 
   PL_LOCK(L_MUTEX);
   m->next = GD->thread.mutexes;
   GD->thread.mutexes = m;
+  if ( m->next )
+    m->next->prev = m;
+
   PL_UNLOCK(L_MUTEX);
 
   return m;
@@ -3970,20 +3974,16 @@ allocSimpleMutex(const char *name)
 
 void
 freeSimpleMutex(counting_mutex *m)
-{ counting_mutex *cm;
-
-  simpleMutexDelete(&m->mutex);
-  PL_LOCK(L_MUTEX);
-  if ( m == GD->thread.mutexes )
-  { GD->thread.mutexes = m->next;
-  } else
-  { for(cm=GD->thread.mutexes; cm; cm=cm->next)
-    { if ( cm->next == m )
-	cm->next = m->next;
-    }
-  }
+{ PL_LOCK(L_MUTEX);
+  if ( m->next )
+    m->next->prev = m->prev;
+  if ( m->prev )
+    m->prev->next = m->next;
+  else
+    GD->thread.mutexes = NULL;
   PL_UNLOCK(L_MUTEX);
 
+  simpleMutexDelete(&m->mutex);
   remove_string((char *)m->name);
   freeHeap(m, sizeof(*m));
 }
