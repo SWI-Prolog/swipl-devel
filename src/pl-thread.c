@@ -338,24 +338,21 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 #endif
   PL_LOCK(L_MUTEX);
   for(cm = GD->thread.mutexes; cm; cm = cm->next)
-  { if ( cm->count == 0 )
+  { int lc;
+
+    if ( cm->count == 0 )
       continue;
 
     Sdprintf("%-32Us %8d", cm->name, cm->count); /* %Us: UTF-8 string */
 #ifdef O_CONTENTION_STATISTICS
     Sdprintf(" %8d", cm->collisions);
 #endif
-    if ( cm == &_PL_mutexes[L_MUTEX] )
-    { if ( cm->count - cm->unlocked != 1 )
-	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked - 1);
-      else
-	Sdprintf("\n");
-    } else
-    { if ( cm->unlocked != cm->count )
-	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked);
-      else
-	Sdprintf("\n");
-    }
+    lc = (cm == &_PL_mutexes[L_MUTEX] ? 1 : 0);
+
+    if ( cm->lock_count > lc )
+      Sdprintf(" LOCKS: %d\n", cm->count - lc);
+    else
+      Sdprintf("\n");
   }
   PL_UNLOCK(L_MUTEX);
 
@@ -624,10 +621,10 @@ reinit_threads_after_fork(void)
 
   for(m = GD->thread.mutexes; m; m = m->next)
   { simpleMutexInit(&m->mutex);			/* Dubious */
-    m->count = 0L;
-    m->unlocked = 0L;
+    m->count = 0;
+    m->lock_count = 0;
 #ifdef O_CONTENTION_STATISTICS
-    m->collisions = 0L;
+    m->collisions = 0;
 #endif
   }
 
@@ -3955,15 +3952,13 @@ allocSimpleMutex(const char *name)
 { counting_mutex *m = allocHeapOrHalt(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
-  m->count = 0L;
-  m->unlocked = 0L;
+  m->count = 0;
+  m->lock_count = 0;
 #ifdef O_CONTENTION_STATISTICS
-  m->collisions = 0L;
+  m->collisions = 0;
 #endif
-  if ( name )
-    m->name = store_string(name);
-  else
-    m->name = NULL;
+  m->name = name ? store_string(name) : (char*)NULL;
+
   PL_LOCK(L_MUTEX);
   m->next = GD->thread.mutexes;
   GD->thread.mutexes = m;

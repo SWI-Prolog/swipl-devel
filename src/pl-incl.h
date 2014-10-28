@@ -67,6 +67,7 @@
 #endif
 
 #define PL_KERNEL		1
+#include <inttypes.h>
 #include "pl-builtin.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
