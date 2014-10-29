@@ -258,16 +258,8 @@ copy_args(_, _, _, _).
 		 *	  POSITION LOGIC	*
 		 *******************************/
 
-extend_pos(Var, Var) :-
-	var(Var), !.
-extend_pos(term_position(F,T,FF,FT,Args0),
-	   term_position(F,T,FF,FT,Args)) :- !,
-	'$append'(Args0, [T-T,T-T], Args).
-extend_pos(F-T,
-	   term_position(F,T,F,T,[T-T,T-T])) :- !.
-extend_pos(Pos, Pos) :-
-	print_message(warning, term_position(Pos)).
-
+extend_pos(Pos0, Pos) :-
+	'$expand':extend_pos(Pos0, 2, Pos).
 f2_pos(Pos0, A0, B0, Pos, A, B) :- '$expand':f2_pos(Pos0, A0, B0, Pos, A, B).
 f1_pos(Pos0, A0, Pos, A) :- '$expand':f1_pos(Pos0, A0, Pos, A).
 

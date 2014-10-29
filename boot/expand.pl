@@ -551,9 +551,39 @@ arg_pos(List, _, _) :- var(List), !.	% no position info
 arg_pos([H|T], H, T) :- !.		% argument list
 arg_pos([], _, []).			% new has more
 
+mapex([], _).
+mapex([E|L], E) :- mapex(L, E).
+
+extend_pos(Var, _, Var) :-
+	var(Var), !.
+extend_pos(term_position(F,T,FF,FT,Args0),
+	   N,
+	   term_position(F,T,FF,FT,Args)) :- !,
+	(   is_list(Args0)
+	->  length(Ex, N),
+	    mapex(Ex, T-T),
+	    '$append'(Args0, Ex, Args)
+	;   Args = Args0
+	).
+extend_pos(F-T,
+	   N,
+	   term_position(F,T,F,T,Ex)) :- !,
+	length(Ex, N),
+	mapex(Ex, T-T).
+extend_pos(Pos, N, Pos) :-
+	'$print_message'(warning, extend_pos(Pos, N)).
+
 expand_meta_arg(0, A0, PA0, true, A, PA, M, MList, Term) :- !,
 	expand_goal(A0, PA0, A1, PA, M, MList, Term),
 	compile_meta_call(A1, A, M, Term).
+expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term) :-
+	integer(N), callable(A0), !,
+	length(Ex, N),
+	extend_arg_pos(A0, P0, M, Ex, A1, PA1),
+	expand_goal(A1, PA1, A2, PA2, M, MList, Term),
+	compile_meta_call(A2, A3, M, Term),
+	term_variables(A0, VL),
+	remove_arg_pos(A3, PA2, M, VL, Ex, A, P).
 expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term) :- !,
 	expand_setof_goal(A0, PA0, A, PA, M, MList, Term).
 expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term) :-
@@ -565,11 +595,86 @@ expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term) :-
 	;   true
 	).
 
+variant_sha1_nat(Term, Hash) :-
+	copy_term_nat(Term, TNat),
+	variant_sha1(TNat, Hash).
+
+wrap_meta_arguments(A0, M, VL, Ex, A) :-
+	variant_sha1_nat(A0+Ex, Hash),
+	atom_concat('__aux_wrapper_', Hash, AuxName),
+	'$append'(VL, Ex, AV),
+	H =.. [AuxName|AV],
+	(   \+ clause(M:H, _)
+	->  compile_aux_clauses(M:(H :- A0))
+	;   true
+	),
+	A =.. [AuxName|VL].
+
+%%      extend_arg_pos(+A0, +P0, +M, +Ex, -A, -P) is det.
+%
+%	Adds extra arguments Ex to A0, and  extra subterm positions to P
+%	for such arguments.
+
+extend_arg_pos(A, P, _, _, A, P) :-
+	var(A), !.
+extend_arg_pos(M:A0, P0, _, Ex, M:A, P) :- !,
+	f2_pos(P0, PM, PA0, P, PM, PA),
+	extend_arg_pos(A0, PA0, M, Ex, A, PA).
+extend_arg_pos(A0, P0, _, Ex, A, P) :-
+	callable(A0), !,
+	extend_term(A0, Ex, A),
+	length(Ex, N),
+	extend_pos(P0, N, P).
+extend_arg_pos(A, P, _, _, A, P).
+
+extend_term(Atom, Extra, Term) :-
+	atom(Atom), !,
+	Term =.. [Atom|Extra].
+extend_term(Term0, Extra, Term) :-
+	compound_name_arguments(Term0, Name, Args0),
+	'$append'(Args0, Extra, Args),
+	compound_name_arguments(Term, Name, Args).
+
+%%      remove_arg_pos(+A0, +P0, +M, +Ex, +VL, -A, -P) is det.
+%
+%	Removes the Ex arguments  from  A0   and  the  respective  extra
+%	positions from P0. Note that  if  they   are  not  at the end, a
+%	wrapper with the elements of VL as arguments is generated to put
+%	them in order.
+%
+%       @see wrap_meta_arguments/5
+
+remove_arg_pos(A, P, _, _, _, A, P) :-
+	var(A), !.
+remove_arg_pos(M:A0, P0, _, VL, Ex, M:A, P) :- !,
+	f2_pos(P, PM, PA0, P0, PM, PA),
+	remove_arg_pos(A0, PA, M, VL, Ex, A, PA0).
+remove_arg_pos(A0, P0, M, VL, Ex0, A, P) :-
+	callable(A0), !,
+	length(Ex0, N),
+	(   A0 =.. [F|Args],
+	    length(Ex, N),
+	    '$append'(Args0, Ex, Args),
+	    Ex==Ex0
+	->  extend_pos(P, N, P0),
+	    A =.. [F|Args0]
+	;   wrap_meta_arguments(A0, M, VL, Ex0, A),
+	    wrap_meta_pos(P0, P)
+	).
+remove_arg_pos(A, P, _, _, _, A, P).
+
+wrap_meta_pos(P0, P) :-
+	(   nonvar(P0)
+	->  P = term_position(F,T,_,_,_),
+	    atomic_pos(P0, F-T)
+	;   true
+	).
+
 has_meta_arg(Head) :-
 	arg(_, Head, Arg),
 	direct_call_meta_arg(Arg), !.
 
-direct_call_meta_arg(0).
+direct_call_meta_arg(I) :- integer(I).
 direct_call_meta_arg(^).
 
 meta_arg(:).
