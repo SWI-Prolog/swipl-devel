@@ -1614,9 +1614,6 @@ sum(Vs, Op, Value) :-
         maplist(=(1), Ones),
         scalar_product(Ones, Vs, Op, Value).
 
-vars_plusterm([], _, T, T).
-vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C* ?(V)), T).
-
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
 % Cs is a list of integers, Vs is a list of variables and integers.
@@ -1626,17 +1623,25 @@ vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C* ?(V)), T).
 scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
         must_be(list, Vs),
-        must_be(callable, Op),
         maplist(fd_variable, Vs),
-        must_be(acyclic, Value),
-        (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
-        ;   domain_error(scalar_product_relation, Op)
-        ),
-        vars_plusterm(Cs, Vs, 0, Left),
-        (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
-            scalar_product_(Op, Cs1, Vs1, Const)
-        ;   sum(Cs, Vs, 0, Op, Value)
+        (   Op = (#=), var(Value), ground(Vs) ->
+            foldl(coeff_int_linsum, Cs, Vs, 0, Value)
+        ;   must_be(callable, Op),
+            (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
+            ;   domain_error(scalar_product_relation, Op)
+            ),
+            must_be(acyclic, Value),
+            foldl(coeff_var_plusterm, Cs, Vs, 0, Left),
+            (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
+                scalar_product_(Op, Cs1, Vs1, Const)
+            ;   sum(Cs, Vs, 0, Op, Value)
+            )
         ).
+
+
+coeff_var_plusterm(C, V, T0, T0+(C* ?(V))).
+
+coeff_int_linsum(C, I, S0, S) :- S is S0 + C*I.
 
 sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
 sum([C|Cs], [X|Xs], Acc, Op, Value) :-
