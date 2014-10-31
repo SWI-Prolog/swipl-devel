@@ -476,8 +476,8 @@ xref_called(Source, Called, By, Cond) :-
 %	  * imported(From)
 
 xref_defined(Source, Called, How) :-
-	canonical_source(Source, Src),
-	xref_defined2(How, Src, Called).
+	xref_defined2(How, Src, Called),
+	canonical_source(Source, Src).
 
 xref_defined2(dynamic(Line), Src, Called) :-
 	dynamic(Called, Src, Line).
@@ -524,8 +524,8 @@ xref_exported(Source, Called) :-
 %	True if Module is defined in Source.
 
 xref_module(Source, Module) :-
-	prolog_canonical_source(Source, Src),
-	xmodule(Module, Src).
+	xmodule(Module, Src),
+	prolog_canonical_source(Source, Src).
 
 %%	xref_uses_file(?Source, ?Spec, ?Path) is nondet.
 %
