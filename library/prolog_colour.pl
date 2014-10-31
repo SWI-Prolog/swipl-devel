@@ -303,7 +303,10 @@ colourise_query(QueryString, TB) :-
 		  read_error(E, TB, 0, End))
 	->  colour_state_singletons(TB, Singletons),
 	    colourise_comments(Comments, TB),
-	    colourise_body(Query, TB, TermPos)
+	    (	Query == end_of_file
+	    ->	true
+	    ;   colourise_body(Query, TB, TermPos)
+	    )
 	;   true			% only a syntax error
 	).
 
