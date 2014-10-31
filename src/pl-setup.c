@@ -586,6 +586,34 @@ hupHandler(int sig)
 #endif
 
 
+/* terminate_handler() is called on termination signals like SIGTERM.
+   It runs hooks registered using PL_exit_hook() and then kills itself.
+   The hooks are called with the exit status `3`.
+*/
+
+static void
+terminate_handler(int sig)
+{ signal(sig, SIG_DFL);
+
+  run_on_halt(&GD->os.exit_hooks, 3);
+
+  kill(getpid(), sig);
+}
+
+static void
+initTerminationSignals(void)
+{
+#ifdef SIGTERM
+  PL_signal(SIGTERM, terminate_handler);
+#endif
+#ifdef SIGABRT
+  PL_signal(SIGABRT, terminate_handler);
+#endif
+#ifdef SIGQUIT
+  PL_signal(SIGQUIT, terminate_handler);
+#endif
+}
+
 static void
 sig_exception_handler(int sig)
 { GET_LD
@@ -666,7 +694,7 @@ initSignals(void)
 #ifdef SIGPIPE
   set_sighandler(SIGPIPE, SIG_IGN);
 #endif
-
+  initTerminationSignals();
   for( ; sn->name; sn++)
   {
 #ifdef HAVE_BOEHM_GC
