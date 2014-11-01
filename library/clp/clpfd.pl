@@ -1624,8 +1624,8 @@ scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
         must_be(list, Vs),
         maplist(fd_variable, Vs),
-        (   Op = (#=), var(Value), ground(Vs) ->
-            foldl(coeff_int_linsum, Cs, Vs, 0, Value)
+        (   Op = (#=), single_value(Value, Right), ground(Vs) ->
+            foldl(coeff_int_linsum, Cs, Vs, 0, Right)
         ;   must_be(callable, Op),
             (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
             ;   domain_error(scalar_product_relation, Op)
@@ -1638,6 +1638,13 @@ scalar_product(Cs, Vs, Op, Value) :-
             )
         ).
 
+single_value(V, V)    :- var(V), !, non_monotonic(V).
+single_value(V, V)    :- integer(V).
+single_value(?(V), V) :- 
+        (   var(V) -> true
+        ;   integer(V) -> true
+        ;   false
+        ).
 
 coeff_var_plusterm(C, V, T0, T0+(C* ?(V))).
 
