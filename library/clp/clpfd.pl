@@ -1098,7 +1098,9 @@ intervals_to_domain(Is, D) :-
 %         * Domain1 \/ Domain2
 %           The union of Domain1 and Domain2.
 
-V in D :-
+Var in Dom :- clpfd_in(Var, Dom).
+
+clpfd_in(V, D) :-
         fd_variable(V),
         drep_to_domain(D, Dom),
         domain(V, Dom).
@@ -2285,6 +2287,16 @@ expr_conds(A0^B0, A^B)           -->
 :- dynamic
         user:goal_expansion/2.
 
+user:goal_expansion(Var in Dom, In) :-
+        \+ current_prolog_flag(clpfd_goal_expansion, false),
+        (   ground(Dom), Dom = L..U, integer(L), integer(U) ->
+            expansion_simpler(
+                (   integer(Var) ->
+                    between(L, U, Var)
+                ;   clpfd:clpfd_in(Var, Dom)
+                ), In)
+        ;   In = clpfd:clpfd_in(Var, Dom)
+        ).
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
         phrase(expr_conds(X0, X), CsX),
@@ -2338,6 +2350,7 @@ expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
 expansion_simpler(Goal, Goal).
 
 is_true(true).
+is_true(integer(I))  :- integer(I).
 :- if(current_predicate(var_property/2)).
 is_true(var(X))      :- var(X), var_property(X, fresh(true)).
 is_false(integer(X)) :- var(X), var_property(X, fresh(true)).
