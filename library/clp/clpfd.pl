@@ -1642,11 +1642,7 @@ scalar_product(Cs, Vs, Op, Value) :-
 
 single_value(V, V)    :- var(V), !, non_monotonic(V).
 single_value(V, V)    :- integer(V).
-single_value(?(V), V) :- 
-        (   var(V) -> true
-        ;   integer(V) -> true
-        ;   false
-        ).
+single_value(?(V), V) :- fd_variable(V).
 
 coeff_var_plusterm(C, V, T0, T0+(C* ?(V))).
 
