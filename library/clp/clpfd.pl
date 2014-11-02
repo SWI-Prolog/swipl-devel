@@ -2343,6 +2343,10 @@ expansion_simpler((Var is Expr,Goal), Goal) :-
         Var is Expr.
 expansion_simpler((Var is Expr,Goal), (Var = Expr,Goal)) :- var(Expr), !.
 expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
+expansion_simpler(between(L,U,V), Goal) :- maplist(integer, [L,U,V]), !,
+        (   between(L,U,V) -> Goal = true
+        ;   Goal = false
+        ).
 expansion_simpler(Goal, Goal).
 
 is_true(true).
