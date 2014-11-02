@@ -6594,3 +6594,4 @@ safe_api.
 % Support clpfd goal expansion.
 sandbox:safe_primitive(clpfd:clpfd_equal(_,_)).
 sandbox:safe_primitive(clpfd:clpfd_geq(_,_)).
+sandbox:safe_primitive(clpfd:clpfd_in(_,_)).
