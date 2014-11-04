@@ -579,18 +579,29 @@ extended_pos(F-T,
 extended_pos(Pos, N, Pos) :-
 	'$print_message'(warning, extended_pos(Pos, N)).
 
+%%	expand_meta_arg(+MetaSpec, +Arg0, +ArgPos0, -Eval,
+%%			-Arg, -ArgPos, +ModuleList, +Term) is det.
+%
+%	Goal expansion for a meta-argument.
+%
+%	@arg	Eval is always `true`.  Future versions should allow for
+%		functions on such positions.  This requires proper
+%		position management for function expansion.
+
 expand_meta_arg(0, A0, PA0, true, A, PA, M, MList, Term) :- !,
 	expand_goal(A0, PA0, A1, PA, M, MList, Term),
 	compile_meta_call(A1, A, M, Term).
 expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term) :-
-	integer(N), callable(A0), !,
+	integer(N), callable(A0),
+	replace_functions(A0, true, _, M), !,
 	length(Ex, N),
 	extend_arg_pos(A0, P0, M, Ex, A1, PA1),
 	expand_goal(A1, PA1, A2, PA2, M, MList, Term),
 	compile_meta_call(A2, A3, M, Term),
 	term_variables(A0, VL),
 	remove_arg_pos(A3, PA2, M, VL, Ex, A, P).
-expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term) :- !,
+expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term) :-
+	replace_functions(A0, true, _, M), !,
 	expand_setof_goal(A0, PA0, A, PA, M, MList, Term).
 expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term) :-
 	replace_functions(A0, Eval, A, M), % TBD: pass positions

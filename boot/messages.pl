@@ -328,6 +328,8 @@ swi_message(context_error(edit, no_default_file)) -->
 	    ]
 	),
 	[ nl, 'Use "?- edit(Topic)." or "?- emacs."' ].
+swi_message(context_error(function, meta_arg(S))) -->
+	[ 'Functions are not (yet) supported for meta-arguments of type ~q'-[S] ].
 swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
