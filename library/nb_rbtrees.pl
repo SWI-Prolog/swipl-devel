@@ -234,6 +234,7 @@ nb_rb_get_node(t(_Nil, Tree), Key, Node) :-
 	find_node(Key, Tree, Node).
 
 find_node(Key, Tree, Node) :-
+	Tree \== '',
 	arg(2, Tree, K),
 	compare(Diff, Key, K),
 	find_node(Diff, Key, Tree, Node).
