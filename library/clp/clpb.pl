@@ -494,13 +494,10 @@ formulas_variables([F|Fs], [V|Vs]) -->
 
 counter_network_([], [Node], Node).
 counter_network_([Var|Vars], [I|Is0], Node) :-
-        indicators_pairing(Is0, I, Var, Is),
+        foldl(indicators_pairing(Var), Is0, Is, I, _),
         counter_network_(Vars, Is, Node).
 
-indicators_pairing([], _, _, []).
-indicators_pairing([I|Is], Prev, Var, [Node|Nodes]) :-
-        make_node(Var, Prev, I, Node),
-        indicators_pairing(Is, I, Var, Nodes).
+indicators_pairing(Var, I, Node, Prev, I) :- make_node(Var, Prev, I, Node).
 
 fill_indicators([], _, _).
 fill_indicators([I|Is], Index0, Cs) :-
