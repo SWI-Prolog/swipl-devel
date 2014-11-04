@@ -554,24 +554,30 @@ arg_pos([], _, []).			% new has more
 mapex([], _).
 mapex([E|L], E) :- mapex(L, E).
 
-extend_pos(Var, _, Var) :-
+%%      extended_pos(+Pos0, +N, -Pos) is det.
+%%      extended_pos(-Pos0, +N, +Pos) is det.
+%
+%       Pos is the result of adding N extra positions to Pos0.
+
+extended_pos(Var, _, Var) :-
 	var(Var), !.
-extend_pos(term_position(F,T,FF,FT,Args0),
-	   N,
-	   term_position(F,T,FF,FT,Args)) :- !,
-	(   is_list(Args0)
-	->  length(Ex, N),
-	    mapex(Ex, T-T),
-	    '$append'(Args0, Ex, Args)
-	;   Args = Args0
-	).
-extend_pos(F-T,
-	   N,
-	   term_position(F,T,F,T,Ex)) :- !,
+extended_pos(term_position(F,T,FF,FT,Args),
+	     _,
+	     term_position(F,T,FF,FT,Args)) :-
+	var(Args), !.
+extended_pos(term_position(F,T,FF,FT,Args0),
+	     N,
+	     term_position(F,T,FF,FT,Args)) :-
+	length(Ex, N),
+	mapex(Ex, T-T),
+	'$append'(Args0, Ex, Args), !.
+extended_pos(F-T,
+	     N,
+	     term_position(F,T,F,T,Ex)) :- !,
 	length(Ex, N),
 	mapex(Ex, T-T).
-extend_pos(Pos, N, Pos) :-
-	'$print_message'(warning, extend_pos(Pos, N)).
+extended_pos(Pos, N, Pos) :-
+	'$print_message'(warning, extended_pos(Pos, N)).
 
 expand_meta_arg(0, A0, PA0, true, A, PA, M, MList, Term) :- !,
 	expand_goal(A0, PA0, A1, PA, M, MList, Term),
@@ -624,7 +630,7 @@ extend_arg_pos(A0, P0, _, Ex, A, P) :-
 	callable(A0), !,
 	extend_term(A0, Ex, A),
 	length(Ex, N),
-	extend_pos(P0, N, P).
+	extended_pos(P0, N, P).
 extend_arg_pos(A, P, _, _, A, P).
 
 extend_term(Atom, Extra, Term) :-
@@ -656,7 +662,7 @@ remove_arg_pos(A0, P0, M, VL, Ex0, A, P) :-
 	    length(Ex, N),
 	    '$append'(Args0, Ex, Args),
 	    Ex==Ex0
-	->  extend_pos(P, N, P0),
+	->  extended_pos(P, N, P0),
 	    A =.. [F|Args0]
 	;   wrap_meta_arguments(A0, M, VL, Ex0, A),
 	    wrap_meta_pos(P0, P)
