@@ -3354,14 +3354,12 @@ lex_chain(Lss) :-
         (   Lss == [] -> true
         ;   Lss = [First|Rest],
             make_propagator(presidual(lex_chain(Lss)), Prop),
-            lex_chain_(Rest, First, Prop)
+            foldl(lex_chain_(Prop), Rest, First, _)
         ).
 
-lex_chain_([], _, _).
-lex_chain_([Ls|Lss], Prev, Prop) :-
+lex_chain_(Prop, Ls, Prev, Ls) :-
         maplist(prop_init(Prop), Ls),
-        lex_le(Prev, Ls),
-        lex_chain_(Lss, Ls, Prop).
+        lex_le(Prev, Ls).
 
 lex_le([], []).
 lex_le([V1|V1s], [V2|V2s]) :-
