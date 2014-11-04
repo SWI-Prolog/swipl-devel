@@ -2382,13 +2382,6 @@ interrupts (signals). The Prolog mapping is defined in
 If a signal is not used by Prolog and the handler does not call Prolog
 in any way, the native signal interface routines may be used.
 
-Some versions of SWI-Prolog, notably running on popular Unix platforms,
-handle \const{SIG_SEGV} for guarding the Prolog stacks. If the
-application wishes to handle this signal too, it should use PL_signal()
-to install its handler after initialising Prolog. SWI-Prolog will pass
-\const{SIG_SEGV} to the user code if it detected the signal is not
-related to a Prolog stack overflow.
-
 Any handler that wishes to call one of the Prolog interface functions
 should call PL_signal() for its installation.
 
