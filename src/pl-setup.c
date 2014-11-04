@@ -597,7 +597,11 @@ terminate_handler(int sig)
 
   run_on_halt(&GD->os.exit_hooks, 3);
 
+#if defined(HAVE_KILL) && defined(HAVE_GETPID)
   kill(getpid(), sig);
+#else
+  exit(3);
+#endif
 }
 
 static void

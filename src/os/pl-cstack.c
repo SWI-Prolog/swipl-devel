@@ -448,7 +448,11 @@ crashHandler(int sig)
   run_on_halt(&GD->os.exit_hooks, 4);
   signal(sig, SIG_DFL);
 
+#if defined(HAVE_KILL) && defined(HAVE_GETPID)
   kill(getpid(), sig);
+#else
+  abort();
+#endif
 }
 
 void
