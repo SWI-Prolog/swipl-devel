@@ -617,14 +617,11 @@ variant_sha1_nat(Term, Hash) :-
 	variant_sha1(TNat, Hash).
 
 wrap_meta_arguments(A0, M, VL, Ex, A) :-
-	variant_sha1_nat(A0+Ex, Hash),
-	atom_concat('__aux_wrapper_', Hash, AuxName),
 	'$append'(VL, Ex, AV),
+	variant_sha1_nat(A0+AV, Hash),
+	atom_concat('__aux_wrapper_', Hash, AuxName),
 	H =.. [AuxName|AV],
-	(   \+ clause(M:H, _)
-	->  compile_aux_clauses(M:(H :- A0))
-	;   true
-	),
+	compile_auxiliary_clause(M, (H :- A0)),
 	A =.. [AuxName|VL].
 
 %%      extend_arg_pos(+A0, +P0, +M, +Ex, -A, -P) is det.
@@ -1069,6 +1066,9 @@ compile_meta_call(M:CallIn, CallOut, _, Term) :- !,
 	).
 compile_meta_call(CallIn, CallOut, Module, Term) :-
 	compile_meta(CallIn, CallOut, Module, Term, Clause),
+	compile_auxiliary_clause(Module, Clause).
+
+compile_auxiliary_clause(Module, Clause) :-
 	Clause = (Head:-Body),
 	functor(Head, Name, Arity),
 	'$set_source_module'(SM, SM),
