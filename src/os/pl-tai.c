@@ -762,8 +762,11 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUT2DIGITS(fd, ftm->tm.tm_hour);
 	    break;
 	  case 'I':			/* 01..12 hours */
-	    OUT2DIGITS(fd, (ftm->tm.tm_hour)%12);
+	  { int hour = (ftm->tm.tm_hour)%12;
+	    if ( hour == 0 ) hour = 12;
+	    OUT2DIGITS(fd, hour);
 	    break;
+	  }
 	  case 'j':			/* yday (001..366) */
 	    cal_ftm(ftm, HAS_WYDAY);
 	    OUT3DIGITS(fd, ftm->tm.tm_yday+1);
@@ -772,8 +775,11 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUT2DIGITS_SPC(fd, ftm->tm.tm_hour);
 	    break;
 	  case 'l':			/* 1..12 hours (leading space) */
-	    OUT2DIGITS_SPC(fd, (ftm->tm.tm_hour)%12);
+	  { int hour = (ftm->tm.tm_hour)%12;
+	    if ( hour == 0 ) hour = 12;
+	    OUT2DIGITS_SPC(fd, hour);
 	    break;
+	  }
 	  case 'm':			/* 01..12 month  */
 	    OUT2DIGITS(fd, ftm->tm.tm_mon+1);
 	    break;
