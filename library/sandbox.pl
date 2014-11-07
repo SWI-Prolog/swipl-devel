@@ -554,6 +554,8 @@ safe_primitive(system:memberchk(_,_)).
 safe_primitive(system:'$skip_list'(_,_,_)).
 					% attributes
 safe_primitive(system:get_attr(_,_,_)).
+safe_primitive(system:get_attrs(_,_)).
+safe_primitive(system:term_attvars(_,_)).
 safe_primitive(system:del_attr(_,_)).
 safe_primitive(system:del_attrs(_)).
 					% globals
