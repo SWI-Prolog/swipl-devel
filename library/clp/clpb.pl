@@ -807,9 +807,10 @@ indomain(1).
 % Example:
 %
 % ==
-% ?- length(Vs, 120), sat_count(+(Vs), N).
+% ?- length(Vs, 120), sat_count(+Vs, CO), sat_count(*(Vs), CA).
 % Vs = [...],
-% N = 1329227995784915872903807060280344575.
+% CO = 1329227995784915872903807060280344575,
+% CA = 1.
 % ==
 
 sat_count(Sat0, N) :-
