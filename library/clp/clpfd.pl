@@ -6205,10 +6205,10 @@ chain(Zs, Relation) :-
         (   chain_relation(Relation) -> true
         ;   domain_error(chain_relation, Relation)
         ),
-        (   Zs = [] -> true
-        ;   Zs = [X|Xs],
-            foldl(chain(Relation), Xs, X, _)
-        ).
+        chain_(Zs, Relation).
+
+chain_([], _).
+chain_([X|Xs], Relation) :- foldl(chain(Relation), Xs, X, _).
 
 chain_relation(#=).
 chain_relation(#<).
