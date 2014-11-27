@@ -3794,6 +3794,11 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 skipArgs() skips arguments. When used inside  a clause-head and the skip
 is into the middle  of  a  H_VOID_N,   it  returns  the  location of the
 H_VOID_N.
+
+(*) resortDictsInClause() uses this to skip  values   in  the dict. As a
+dict is essentially a compound, if the last  value is H_VOID, it will be
+optimised away, resulting in <key-code>,   H_POP  instead of <key-code>,
+H_VOID, H_POP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
@@ -3824,9 +3829,9 @@ skipArgs(Code PC, int skip)
       case B_POP:
 	if ( --nested == 0 && --skip == 0 )
 	  return nextPC;
-        if (nested >= 0)
+        if ( nested >= 0 )
           continue;
-        return PC;
+        return PC;			/* See (*) */
       case H_ATOM:
       case H_SMALLINT:
       case H_NIL:
