@@ -3824,8 +3824,9 @@ skipArgs(Code PC, int skip)
       case B_POP:
 	if ( --nested == 0 && --skip == 0 )
 	  return nextPC;
-        assert(nested>=0);
-        continue;
+        if (nested >= 0)
+          continue;
+        return PC;
       case H_ATOM:
       case H_SMALLINT:
       case H_NIL:
