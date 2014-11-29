@@ -373,7 +373,7 @@ mkvmi$(EXEEXT_FOR_BUILD):	mkvmi.c
 
 
 ifdef RLPREFIX
-pl-rl.o:	pl-rl.c
+os/pl-rl.o:	os/pl-rl.c
 		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
 endif
 
