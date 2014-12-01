@@ -514,11 +514,9 @@ expand_goal(G0, P0, G, P, M, MList, Term) :-
 
 is_meta_call(G0, M, Head) :-
 	compound(G0),
-	(   default_module(M, M2),
-	    '$c_current_predicate'(_, M2:G0),
-	    '$get_predicate_attribute'(M2:G0, meta_predicate, Head)
-	->  true		% is a meta-pred without clauses defined?
-	),
+	default_module(M, M2),
+	'$c_current_predicate'(_, M2:G0), !,
+	'$get_predicate_attribute'(M2:G0, meta_predicate, Head),
 	has_meta_arg(Head).
 
 
