@@ -951,14 +951,16 @@ backtracking.  The order in which the associations are returned is
 undefined.  This predicate is normally accessed using the functional
 notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
 
-    \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, -NewValue}
-Acts according to the following below.  \arg{Dict} is either a dict or
-a list the can be converted into a dict.
+    \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, +NewValue}
+Create a new dict after updating the value for \arg{Key}. Fails if
+\arg{Value} does not unify with the current value associated with
+\arg{Key}. Acts according to the following below. \arg{Dict} is either a
+dict or a list the can be converted into a dict.
 
 \begin{code}
-get_dict(Key, Dict, Old, NewDict, New) :-
-	get_dict(Key, Dict, Old),
-	put_dict(Key, Dict, New, NewDict).
+get_dict(Key, Dict, Value, NewDict, NewDict) :-
+	get_dict(Key, Dict, Value),
+	put_dict(Key, Dict, NewDict, NewDict).
 \end{code}
 
     \predicate{dict_create}{3}{-Dict, +Tag, +Data}
