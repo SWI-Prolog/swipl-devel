@@ -829,17 +829,22 @@ visible_predicate(Pred) :-
 		functor(Head, Name, Arity),
 		'$find_library'(M, Name, Arity, _LoadModule, _Library)
 	    )
-	;   (   default_module(M, DefM),
-	        '$c_current_predicate'(_, DefM:Head),
-		\+ '$get_predicate_attribute'(DefM:Head, imported, _),
-		\+ hidden_system_predicate(Pred)
-	    ;	'$in_library'(Name, Arity, _),
-		functor(Head, Name, Arity),
-		\+ '$get_predicate_attribute'(Pred, defined, 1)
-	    )
+	;   setof(PI, visible_in_module(M, PI), PIs),
+	    '$member'(Name/Arity, PIs),
+	    functor(Head, Name, Arity)
 	).
 
-hidden_system_predicate(_:Head) :-
+visible_in_module(M, Name/Arity) :-
+	default_module(M, DefM),
+	DefHead = DefM:Head,
+	'$c_current_predicate'(_, DefHead),
+	'$get_predicate_attribute'(DefHead, defined, 1),
+	\+ hidden_system_predicate(Head),
+	functor(Head, Name, Arity).
+visible_in_module(_, Name/Arity) :-
+	'$in_library'(Name, Arity, _).
+
+hidden_system_predicate(Head) :-
 	functor(Head, Name, _),
 	atom(Name),			% Avoid [].
 	sub_atom(Name, 0, _, _, $),
