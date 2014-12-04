@@ -23,7 +23,7 @@ suggest predicates from a keyword.
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
 \predicatesummary{.}{2}{Consult. Also functional notation}
 \oppredsummary{:<}{2}{xfx}{700}{Select keys from a dict}
-\oppredsummary{;}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{|}{2}}
+\oppredsummary{;}{2}{xfy}{1100}{Disjunction of two goals}
 \oppredsummary{<}{2}{xfx}{700}{Arithmetic smaller}
 \oppredsummary{=}{2}{xfx}{700}{True when arguments are unified}
 \oppredsummary{=..}{2}{xfx}{700}{``Univ.'' Term to list conversion}
@@ -801,7 +801,7 @@ suggest predicates from a keyword.
 
 \begin{summarylist}{lrD{f}{f}{-1}l}
 \opsummary{1}{fx}{$}{Bind top-level variable}
-\opsummary{200}{xfy}{^}{Predicate}
+\opsummary{200}{xfy}{^}{Existential qualification}
 \opsummary{200}{xfy}{^}{Arithmetic function}
 \opsummary{300}{xfx}{mod}{Arithmetic function}
 \opsummary{400}{yfx}{*}{Arithmetic function}
@@ -843,15 +843,15 @@ suggest predicates from a keyword.
 \opsummary{1050}{xfy}{->}{Predicate}
 \opsummary{1050}{xfy}{*->}{Predicate}
 \opsummary{1100}{xfy}{;}{Predicate}
-\opsummary{1105}{xfy}{|}{Predicate}
-\opsummary{1150}{fx}{discontiguous}{Predicate}
-\opsummary{1150}{fx}{dynamic}{Predicate}
-\opsummary{1150}{fx}{module_transparent}{Predicate}
+\opsummary{1105}{xfy}{|}{DCG disjunction}
+\opsummary{1150}{fx}{discontiguous}{Directive}
+\opsummary{1150}{fx}{dynamic}{Directive}
+\opsummary{1150}{fx}{module_transparent}{Directive}
 \opsummary{1150}{fx}{meta_predicate}{Head}
-\opsummary{1150}{fx}{multifile}{Predicate}
-\opsummary{1150}{fx}{thread_local}{Predicate}
-\opsummary{1150}{fx}{volatile}{Predicate}
-\opsummary{1150}{fx}{initialization}{Predicate}
+\opsummary{1150}{fx}{multifile}{Directive}
+\opsummary{1150}{fx}{thread_local}{Directive}
+\opsummary{1150}{fx}{volatile}{Directive}
+\opsummary{1150}{fx}{initialization}{Directive}
 \opsummary{1200}{fx}{:-}{Introduces a directive}
 \opsummary{1200}{fx}{?-}{Introduces a directive}
 \opsummary{1200}{xfx}{-->}{DCGrammar: rewrite}
