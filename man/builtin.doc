@@ -227,6 +227,9 @@ reexport/2	& \const{not_loaded} & \const{true}  & specified \\
 \end{table}
 
 \begin{description}
+    \predicate{load_files}{1}{:Files}
+Equivalent to \term{load_files}{Files, []}.  Same as consult/1,
+See load_files/2 for supported options.
     \predicate{load_files}{2}{:Files, +Options}
 The predicate load_files/2 is the parent of all the other loading
 predicates except for include/1. It currently supports a subset
@@ -234,8 +237,7 @@ of the options of Quintus load_files/2. \arg{Files} is either
 a single source file or a list of source files. The specification for a
 source file is handed to absolute_file_name/2. See this predicate for
 the supported expansions. \arg{Options} is a list of options using the
-format
-\arg{OptionName}(\arg{OptionValue}).
+format \arg{OptionName}(\arg{OptionValue}).
 
 The following options are currently supported:
 
