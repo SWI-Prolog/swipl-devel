@@ -1464,25 +1464,16 @@ consult(List) :-
 %
 %	Common entry for all the consult derivates.  File is the raw user
 %	specified file specification, possibly tagged with the module.
-%
-%	`Options' is a list of additional options.  Defined values are
-%
-%	    verbose		Print statistics on user channel
-%	    is_module		File MUST be a module file
-%	    import = List	List of predicates to import
 
 load_files(Files) :-
 	load_files(Files, []).
 load_files(Module:Files, Options) :-
-	(   is_list(Options)
-	->  true
-	;   throw(error(type_error(list, Options), _))
-	),
+	'$must_be'(list, Options),
         '$load_files'(Files, Module, Options).
 
 '$load_files'(X, _, _) :-
 	var(X), !,
-	throw(error(instantiation_error, context(load_files/2,_))).
+	'$instantiation_error'(X).
 '$load_files'([], _, _) :- !.
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
 	'$option'(stream(_), Options), !,
@@ -1492,10 +1483,8 @@ load_files(Module:Files, Options) :-
 	).
 '$load_files'(List, Module, Options) :-
 	List = [_|_], !,
-	(   is_list(List)
-	->  '$load_file_list'(List, Module, Options)
-	;   throw(error(type_error(list, List), context(load_files/2,_)))
-	).
+	'$must_be'(list, List),
+	'$load_file_list'(List, Module, Options).
 '$load_files'(File, Module, Options) :-
 	'$load_one_file'(File, Module, Options).
 
