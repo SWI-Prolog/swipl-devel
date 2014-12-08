@@ -71,7 +71,7 @@ _PL__utf8_get_char(const char *in, int *chr)
     return (char *)in+6;
   }
 
-  *chr = *in;
+  *chr = (*in)&0xff;			/* Error */
 
   return (char *)in+1;
 }
