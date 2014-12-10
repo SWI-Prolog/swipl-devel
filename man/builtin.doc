@@ -2318,7 +2318,7 @@ goal} which can be modified using \cmdlineoption{-g}.
     \predicate{version}{1}{+Message}
 Register additional messages to be printed by version/0. Each registered
 message is handed to the message translation DCG and can thus be defined
-using the hook prolog:message//1.  Of not defined, it is simply printed.
+using the hook prolog:message//1.  If not defined, it is simply printed.
 \end{description}
 
 
