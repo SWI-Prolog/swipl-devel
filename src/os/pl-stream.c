@@ -1339,8 +1339,8 @@ typedef struct
 
 static const bomdef bomdefs[] =
 { { ENC_UTF8,       3, "\357\273\277" }, /* 0xef, 0xbb, 0xbb */
-  { ENC_UNICODE_BE, 2, "\376\377" },	 /* 0xfe, oxff */
-  { ENC_UNICODE_LE, 2, "\377\376" },	 /* 0xff, oxfe */
+  { ENC_UNICODE_BE, 2, "\376\377" },	 /* 0xfe, 0xff */
+  { ENC_UNICODE_LE, 2, "\377\376" },	 /* 0xff, 0xfe */
   { ENC_UNKNOWN,    0, NULL }
 };
 
