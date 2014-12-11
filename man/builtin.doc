@@ -3758,7 +3758,10 @@ Set the \const{close_on_exec} property.  See stream_property/2.
 
     \termitem{encoding}{Atom}
 Defines the mapping between bytes and character codes used for the
-stream.  See \secref{encoding} for supported encodings.
+stream.  See \secref{encoding} for supported encodings.  The value
+\const{bom} causes the stream to check whether the current character
+is a Unicode BOM marker.  If a BOM marker is found, the encoding is
+set accordingly and the call succeeds.  Otherwise the call fails.
 
     \termitem{eof_action}{Action}
 Set end-of-file handling to one of \const{eof_code}, \const{reset} or

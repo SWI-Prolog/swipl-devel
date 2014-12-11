@@ -1885,7 +1885,18 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     if ( !PL_get_atom_ex(a, &val) )
       return FALSE;
-    if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
+    if ( val == ATOM_bom )
+    { IOSTREAM *s2;
+
+      if ( (s2 = getStream(s)) )
+      { if ( ScheckBOM(s2) == 0 )
+	{ releaseStream(s2);
+	  return (s2->flags&SIO_BOM) ? TRUE:FALSE;
+	}
+	return streamStatus(s2);
+      }
+      return streamStatus(s);
+    } else if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
     { bad_encoding(NULL, val);
       return FALSE;
     }
