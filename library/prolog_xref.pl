@@ -1552,7 +1552,7 @@ read_directives(In, Options, State) -->
 read_directives(_, _, _) --> [].
 
 terms(Var, State, State) --> { var(Var) }, !.
-terms([H|T], State0, State) -->
+terms([H|T], State0, State) --> !,
       terms(H, State0, State1),
       terms(T, State1, State).
 terms((:-if(Cond)), State0, [True|State0]) -->  !,
