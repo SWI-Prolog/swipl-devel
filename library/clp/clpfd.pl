@@ -205,8 +205,8 @@ The most important arithmetic constraints are:
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
-You can also use CLP(FD) constraints as a more declarative alternative
-for ordinary integer arithmetic with is/2, >/2 etc. For example:
+Arithmetic constraints are a declarative alternative for lower-level
+integer arithmetic with is/2, >/2 etc. For example:
 
 ==
 :- use_module(library(clpfd)).
@@ -237,6 +237,12 @@ To make the predicate terminate if any argument is instantiated, add
 the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
+
+This library uses goal_expansion/2 to rewrite arithmetic constraints
+at compilation time. The expansion's aim is to improve the performance
+of arithmetic constraints when they are used in modes that can also be
+handled by lower-level arithmetic predicates. To disable the
+expansion, set the flag `clpfd_goal_expansion` to `false`.
 
 ### Reification				{#clpfd-reification}
 
@@ -356,13 +362,6 @@ general though, it is necessary to label all variables to obtain
 ground solutions.
 
 ### Advanced topics			{#clpfd-advanced-topics}
-
-This library uses goal_expansion/2 to rewrite constraints at
-compilation time. The expansion's aim is to transparently bring the
-performance of CLP(FD) constraints close to that of conventional
-arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
-used in modes that can also be handled by built-in arithmetic. To
-disable the expansion, set the flag `clpfd_goal_expansion` to `false`.
 
 If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
 monotonic: Adding new constraints cannot yield new solutions. When
