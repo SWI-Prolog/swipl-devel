@@ -203,6 +203,41 @@ The most important arithmetic constraints are:
     | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
     | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
 
+### Declarative integer arithmetic		{#clpfd-integer-arith}
+
+You can also use CLP(FD) constraints as a more declarative alternative
+for ordinary integer arithmetic with is/2, >/2 etc. For example:
+
+==
+:- use_module(library(clpfd)).
+
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0, N1 #= N - 1, F #= N * F1,
+        n_factorial(N1, F1).
+==
+
+This predicate can be used in all directions. For example:
+
+==
+?- n_factorial(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+false.
+
+?- n_factorial(N, 1).
+N = 0 ;
+N = 1 ;
+false.
+
+?- n_factorial(N, 3).
+false.
+==
+
+To make the predicate terminate if any argument is instantiated, add
+the (implied) constraint F #\= 0 before the recursive call. Otherwise,
+the query n_factorial(N, 0) is the only non-terminating case of this
+kind.
+
 ### Reification				{#clpfd-reification}
 
 The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
@@ -319,41 +354,6 @@ puzzle's unique solution, since the constraint solver is strong enough
 to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
-
-### Declarative integer arithmetic		{#clpfd-integer-arith}
-
-You can also use CLP(FD) constraints as a more declarative alternative
-for ordinary integer arithmetic with is/2, >/2 etc. For example:
-
-==
-:- use_module(library(clpfd)).
-
-n_factorial(0, 1).
-n_factorial(N, F) :-
-        N #> 0, N1 #= N - 1, F #= N * F1,
-        n_factorial(N1, F1).
-==
-
-This predicate can be used in all directions. For example:
-
-==
-?- n_factorial(47, F).
-F = 258623241511168180642964355153611979969197632389120000000000 ;
-false.
-
-?- n_factorial(N, 1).
-N = 0 ;
-N = 1 ;
-false.
-
-?- n_factorial(N, 3).
-false.
-==
-
-To make the predicate terminate if any argument is instantiated, add
-the (implied) constraint F #\= 0 before the recursive call. Otherwise,
-the query n_factorial(N, 0) is the only non-terminating case of this
-kind.
 
 ### Advanced topics			{#clpfd-advanced-topics}
 
