@@ -990,8 +990,8 @@ retry:
 	  }
 	}
 	b[0] = c;
-
-	if ( (rc=mbrtowc(&wc, b, 1, s->mbstate)) == 1 )
+	rc=mbrtowc(&wc, b, 1, s->mbstate);
+	if ( rc == 1 || rc == 0)
 	{ c = wc;
 	  goto out;
 	} else if ( rc == (size_t)-1 )
