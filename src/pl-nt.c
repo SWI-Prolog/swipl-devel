@@ -219,8 +219,7 @@ Pause(double t)
 	  DispatchMessage(&msg);
 	}
 
-	/* abort from debugger does not come from a signal */
-	if ( PL_handle_signals() < 0 || exception_term )
+	if ( PL_handle_signals() < 0 )
 	{ CloseHandle(h);
 	  return FALSE;
 	}

@@ -919,6 +919,8 @@ PL_handle_signals(void)
 
   if ( !LD || LD->critical || !is_signalled(LD) )
     return 0;
+  if ( exception_term )
+    return -1;
 
   return handleSignals(PASS_LD1);
 }
@@ -945,15 +947,12 @@ handleSignals(ARG1_LD)
 	  dispatch_signal(sig, TRUE);
 
 	  if ( exception_term )
-	    goto out;
+	    return -1;
 	}
       }
     }
   }
 
-out:
-  if ( exception_term )
-    return -1;
   if ( done )
     updateAlerted(PASS_LD1);
 
