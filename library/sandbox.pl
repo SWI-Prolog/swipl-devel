@@ -174,7 +174,7 @@ safe(G, M, Parents, Safe0, Safe) :-
 	safe_meta_call(G, Called), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
-	expand_phrase(G, Goal), !,
+	expand_phrase(G, Goal), Goal \== G, !,
 	safe(Goal, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	(   predicate_property(M:G, imported_from(M2))
