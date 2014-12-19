@@ -25,6 +25,7 @@
 ./packages/PDT/pdt.pdf
 ./packages/utf8proc/utf8proc.pdf
 ./packages/archive/archive.pdf
+./packages/cql/cql.pdf
 ./packages/R/R.html
 ./packages/db/db4pl.html
 ./packages/cpp/pl2cpp.html
@@ -53,3 +54,4 @@
 ./packages/pengines/penarch.png
 ./packages/pengines/pltpsynch.png
 ./packages/pengines/pltpruncolour.png
+./packages/cql/cql.html

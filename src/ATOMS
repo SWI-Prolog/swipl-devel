@@ -24,6 +24,7 @@ A agc_gained		"agc_gained"
 A agc_margin		"agc_margin"
 A agc_time		"agc_time"
 A alias			"alias"
+A all			"all"
 A allow_variable_name_as_functor "allow_variable_name_as_functor"
 A alnum			"alnum"
 A alpha			"alpha"
@@ -217,6 +218,7 @@ A environment		"environment"
 A eof			"eof"
 A eof_action		"eof_action"
 A eof_code		"eof_code"
+A epoch			"epoch"
 A epsilon		"epsilon"
 A equal			"equal"
 A equals		"="
@@ -228,6 +230,7 @@ A error			"error"
 A eval			"eval"
 A evaluable		"evaluable"
 A evaluation_error	"evaluation_error"
+A event_hook		"event_hook"
 A exception		"exception"
 A exclusive		"exclusive"
 A execute		"execute"
@@ -492,12 +495,15 @@ A private_procedure	"private_procedure"
 A procedure		"procedure"
 A process_comment	"process_comment"
 A process_cputime	"process_cputime"
+A process_epoch		"process_epoch"
 A profile		"profile"
 A profile_mode		"profile_mode"
 A profile_no_cpu_time	"profile_no_cpu_time"
 A profile_node		"profile_node"
 A program		"program"
 A program_counter	"program_counter"
+A program_size		"program_size"
+A program_space		"program_space"
 A prolog		"prolog"
 A prolog_atom_start	"prolog_atom_start"
 A prolog_flag		"prolog_flag"
@@ -838,6 +844,7 @@ F erfc			1
 F error			2
 F eval			1
 F evaluation_error	1
+F event_hook		1
 F exception		1
 F exception		3
 F existence_error	2
@@ -918,6 +925,8 @@ F print			1
 F print_message		2
 F priority		1
 F procedure		2
+F program_size		1
+F program_space		1
 F prove			1
 F prove			2
 F punct			2

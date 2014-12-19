@@ -195,8 +195,8 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
     case FRG_REDO:
       { state = CTX_PTR;
 
-	ar_add_ui(&state->low, 1);
-	if ( !PL_unify_number(n, &state->low) )
+	if ( !ar_add_ui(&state->low, 1) ||
+	     !PL_unify_number(n, &state->low) )
 	{ rc = FALSE;
 	  goto cleanup;
 	}
@@ -236,8 +236,9 @@ PRED_IMPL("succ", 2, succ, 0)
     if ( ar_sign_i(&i1) < 0 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		      ATOM_not_less_than_zero, A1);
-    pl_ar_add(&i1, &one, &i2);
-    rc = PL_unify_number(A2, &i2);
+    rc = ( pl_ar_add(&i1, &one, &i2) &&
+	   PL_unify_number(A2, &i2)
+	 );
   } else if ( !canBind(*p1) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, A1);
 
@@ -247,8 +248,9 @@ PRED_IMPL("succ", 2, succ, 0)
   { get_integer(*p2, &i2);
     switch( ar_sign_i(&i2) )
     { case 1:
-	ar_minus(&i2, &one, &i1);
-        rc = PL_unify_number(A1, &i1);
+	rc = ( ar_minus(&i2, &one, &i1) &&
+	       PL_unify_number(A1, &i1)
+	     );
 	break;
       case 0:
 	fail;
@@ -329,62 +331,17 @@ PRED_IMPL("plus", 3, plus, 0)
 		*           COMPARISON          *
 		*********************************/
 
-#ifdef O_GMP
-
-#define COMPARE_FUNC(name, op, n1, n2) \
-int \
-name(Number n1, Number n2) \
-{ switch(n1->type) \
-  { case V_INTEGER: \
-      return n1->value.i op n2->value.i; \
-    case V_MPZ: \
-      return mpz_cmp(n1->value.mpz, n2->value.mpz) op 0; \
-    case V_MPQ: \
-      return mpq_cmp(n1->value.mpq, n2->value.mpq) op 0; \
-    case V_FLOAT: \
-      return n1->value.f op n2->value.f; \
-    default: \
-      assert(0); \
-      fail; \
-  } \
-}
-
-#else /*O_GMP*/
-
-#define COMPARE_FUNC(name, op, n1, n2) \
-int \
-name(Number n1, Number n2) \
-{ switch(n1->type) \
-  { case V_INTEGER: \
-      return n1->value.i op n2->value.i; \
-    case V_FLOAT: \
-      return n1->value.f op n2->value.f; \
-    default: \
-      assert(0); \
-      fail; \
-  } \
-}
-
-#endif /*O_GMP*/
-
-static COMPARE_FUNC(ar_compare_lt, <,  n1, n2)
-static COMPARE_FUNC(ar_compare_gt, >,  n1, n2)
-static COMPARE_FUNC(ar_compare_le, <=, n1, n2)
-static COMPARE_FUNC(ar_compare_ge, >=, n1, n2)
-static COMPARE_FUNC(ar_compare_ne, !=, n1, n2)
-       COMPARE_FUNC(ar_compare_eq, ==, n1, n2)
-
 int
 ar_compare(Number n1, Number n2, int what)
-{ same_type_numbers(n1, n2);
+{ int diff = cmpNumbers(n1, n2);
 
   switch(what)
-  { case LT: return ar_compare_lt(n1, n2);
-    case GT: return ar_compare_gt(n1, n2);
-    case LE: return ar_compare_le(n1, n2);
-    case GE: return ar_compare_ge(n1, n2);
-    case NE: return ar_compare_ne(n1, n2);
-    case EQ: return ar_compare_eq(n1, n2);
+  { case LT: return diff == CMP_LESS;
+    case GT: return diff == CMP_GREATER;
+    case LE: return diff != CMP_GREATER;
+    case GE: return diff != CMP_LESS;
+    case NE: return diff != CMP_EQUAL;
+    case EQ: return diff == CMP_EQUAL;
     default:
       assert(0);
       fail;
@@ -1128,7 +1085,8 @@ ar_add_ui(Number n, intptr_t add)
 
 int
 pl_ar_add(Number n1, Number n2, Number r)
-{ same_type_numbers(n1, n2);
+{ if ( !same_type_numbers(n1, n2) )
+    return FALSE;
 
   switch(n1->type)
   { case V_INTEGER:
@@ -1179,7 +1137,8 @@ pl_ar_add(Number n1, Number n2, Number r)
 
 static int
 ar_minus(Number n1, Number n2, Number r)
-{ same_type_numbers(n1, n2);
+{ if ( !same_type_numbers(n1, n2) )
+    return FALSE;
 
   switch(n1->type)
   { case V_INTEGER:
@@ -1261,7 +1220,8 @@ ar_mod(Number n1, Number n2, Number r)
   if ( !toIntegerNumber(n2, 0) )
     return PL_error("mod", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
-  same_type_numbers(n1, n2);
+  if ( !same_type_numbers(n1, n2) )
+    return FALSE;
 
   switch(n1->type)
   { case V_INTEGER:
@@ -1446,7 +1406,9 @@ ar_gcd(Number n1, Number n2, Number r)
   if ( !toIntegerNumber(n2, 0) )
     return PL_error("gcd", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
-  same_type_numbers(n1, n2);
+  if ( !same_type_numbers(n1, n2) )
+    return FALSE;
+
   switch(n1->type)
   { case V_INTEGER:
     { int64_t a = n1->value.i;
@@ -1517,7 +1479,8 @@ ar_gcd(Number n1, Number n2, Number r)
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); \
     if ( !toIntegerNumber(n2, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2); \
-    same_type_numbers(n1, n2); \
+    if ( !same_type_numbers(n1, n2) ) \
+      return FALSE; \
     switch(n1->type) \
     { case V_INTEGER: \
 	r->value.i = n1->value.i op n2->value.i; \
@@ -1543,7 +1506,8 @@ ar_gcd(Number n1, Number n2, Number r)
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); \
     if ( !toIntegerNumber(n2, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2); \
-    same_type_numbers(n1, n2); \
+    if ( !same_type_numbers(n1, n2) ) \
+      return FALSE; \
     switch(n1->type) \
     { case V_INTEGER: \
 	r->value.i = n1->value.i op n2->value.i; \
@@ -2045,7 +2009,8 @@ ar_rem(Number n1, Number n2, Number r)
   if ( !toIntegerNumber(n2, 0) )
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
-  same_type_numbers(n1, n2);
+  if ( !same_type_numbers(n1, n2) )
+    return FALSE;
   switch(n1->type)
   { case V_INTEGER:
       if ( n2->value.i == 0 )
@@ -2208,7 +2173,8 @@ ar_divide(Number n1, Number n2, Number r)
 { GET_LD
 
   if ( !truePrologFlag(PLFLAG_ISO) )
-  { same_type_numbers(n1, n2);
+  { if ( !same_type_numbers(n1, n2) )
+      return FALSE;
 
     switch(n1->type)
     { case V_INTEGER:
@@ -2334,7 +2300,8 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
 int
 ar_mul(Number n1, Number n2, Number r)
-{ same_type_numbers(n1, n2);
+{ if ( !same_type_numbers(n1, n2) )
+    return FALSE;
 
   switch(n1->type)
   { case V_INTEGER:
@@ -2373,70 +2340,28 @@ ar_mul(Number n1, Number n2, Number r)
 
 
 static int
-ar_minmax(Number n1, Number n2, Number r, int ismax)
-{ int which;
-  number cp1, cp2;
-  Number c1 = n1;
-  Number c2 = n2;
+ar_max(Number n1, Number n2, Number r)
+{ int diff = cmpNumbers(n1, n2);
 
-  if ( c1->type != c2->type )
-  { if ( c1->type > c2->type )
-    { cpNumber(&cp2, c2);
-      promoteNumber(&cp2, c1->type);
-      c2 = &cp2;
-    } else
-    { cpNumber(&cp1, c1);
-      promoteNumber(&cp1, c2->type);
-      c1 = &cp1;
-    }
-  }
-
-  switch(c1->type)
-  { case V_INTEGER:
-      which = c1->value.i >= c2->value.i;
-      break;
-#ifdef O_GMP
-    case V_MPZ:
-      which = (mpz_cmp(c1->value.mpz, c2->value.mpz) > 0);
-      break;
-    case V_MPQ:
-      which = (mpq_cmp(c1->value.mpq, c2->value.mpq) > 0);
-      break;
-#endif
-    case V_FLOAT:
-      which = c1->value.f >= c2->value.f;
-      break;
-    default:
-      assert(0);
-      fail;
-  }
-
-  if ( c1 == &cp1 )
-    clearNumber(c1);
-  else if ( c2 == &cp2 )
-    clearNumber(c2);
-
-  if ( !ismax )
-    which = !which;
-
-  if ( which )
+  if ( diff >= 0 )
     cpNumber(r, n1);
   else
     cpNumber(r, n2);
 
-  succeed;
-}
-
-
-static int
-ar_max(Number n1, Number n2, Number r)
-{ return ar_minmax(n1, n2, r, TRUE);
+  return TRUE;
 }
 
 
 static int
 ar_min(Number n1, Number n2, Number r)
-{ return ar_minmax(n1, n2, r, FALSE);
+{ int diff = cmpNumbers(n1, n2);
+
+  if ( diff <= 0 )
+    cpNumber(r, n1);
+  else
+    cpNumber(r, n2);
+
+  return TRUE;
 }
 
 

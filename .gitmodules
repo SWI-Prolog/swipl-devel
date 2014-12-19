@@ -100,3 +100,6 @@
 [submodule "packages/pengines"]
 	path = packages/pengines
 	url = ../packages-pengines.git
+[submodule "packages/cql"]
+	path = packages/cql
+	url = ../packages-cql.git

@@ -310,24 +310,31 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 }
 
 
+/* Add a module to the source file.  Note that we must add additional
+   modules at the end because '$already_loaded'/4 assumes that the first
+   module is the primary module of the file.
+*/
+
 int
 addModuleSourceFile(SourceFile sf, Module m)
-{ ListCell cell;
+{ ListCell *cp, c2;
   int rc = TRUE;
 
   LOCKSRCFILE(sf);
-  for(cell=sf->modules; cell; cell = cell->next)
-  { if ( cell->value == m )
-    goto out;
+  for(cp=&sf->modules; *cp; cp = &(*cp)->next)
+  { ListCell cell = *cp;
+
+    if ( cell->value == m )
+      goto out;
   }
 
-  if ( !(cell = allocHeap(sizeof(struct list_cell))) )
+  if ( !(c2 = allocHeap(sizeof(struct list_cell))) )
   { rc = FALSE;			/* no memory */
     goto out;
   }
-  cell->value = m;
-  cell->next = sf->modules;
-  sf->modules = cell;
+  c2->value = m;
+  c2->next = NULL;
+  *cp = c2;
 
 out:
   UNLOCKSRCFILE(sf);

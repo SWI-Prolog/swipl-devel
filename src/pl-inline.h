@@ -211,6 +211,25 @@ true_bit(bit_vector *v, int which)
 		 *	     MISC STUFF		*
 		 *******************************/
 
+static int	  same_type_numbers(Number n1, Number n2) WUNUSED;
+static Definition lookupDefinition(functor_t f, Module m) WUNUSED;
+
+static inline int
+same_type_numbers(Number n1, Number n2)
+{ if ( n1->type == n2->type )
+    return TRUE;
+  return make_same_type_numbers(n1, n2);
+}
+
+
+static inline Definition
+lookupDefinition(functor_t f, Module m)
+{ Procedure proc = lookupProcedure(f, m);
+
+  return proc ? proc->definition : NULL;
+}
+
+
 static inline code
 fetchop(Code PC)
 { code op = decode(*PC);

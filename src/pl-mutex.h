@@ -110,7 +110,7 @@ extern int recursiveMutexInit(recursiveMutex *m);
 typedef struct {
   pthread_mutex_t lock;
 	pthread_t owner;
-	unsigned int count;
+     unsigned int count;
 } recursiveMutex;
 
 #define NEED_RECURSIVE_MUTEX_INIT 1
@@ -132,13 +132,14 @@ extern int recursiveMutexUnlock(recursiveMutex *m);
 
 typedef struct counting_mutex
 { simpleMutex mutex;			/* mutex itself */
-  const char *name;			/* name of the mutex */
-  long count;				/* # times locked */
-  long unlocked;			/* # times unlocked */
+  const char  *name;			/* name of the mutex */
+  uint64_t     count;			/* # times locked */
+  unsigned int lock_count;		/* # times unlocked */
 #ifdef O_CONTENTION_STATISTICS
-  long collisions;			/* # contentions */
+  unsigned int collisions;		/* # contentions */
 #endif
   struct counting_mutex *next;		/* next of allocated chain */
+  struct counting_mutex *prev;		/* prvious in allocated chain */
 } counting_mutex;
 
 extern counting_mutex  *allocSimpleMutex(const char *name);

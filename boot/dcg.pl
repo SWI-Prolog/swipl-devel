@@ -215,7 +215,7 @@ dcg_extend(M:OldT, Pos0, A1, A2, M:NewT, Pos) :- !,
 	dcg_extend(OldT, P0, A1, A2, NewT, P).
 dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	dcg_extend_cache(OldT, A1, A2, NewT), !,
-	extend_pos(P0, P).
+	extended_pos(P0, P).
 dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	(   callable(OldT)
 	->  true
@@ -243,7 +243,7 @@ dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	OldT = CopT,
 	A1C = A1,
 	A2C = A2,
-	extend_pos(P0, P).
+	extended_pos(P0, P).
 
 copy_args(I, Arity, Old, New) :-
 	I =< Arity, !,
@@ -258,16 +258,8 @@ copy_args(_, _, _, _).
 		 *	  POSITION LOGIC	*
 		 *******************************/
 
-extend_pos(Var, Var) :-
-	var(Var), !.
-extend_pos(term_position(F,T,FF,FT,Args0),
-	   term_position(F,T,FF,FT,Args)) :- !,
-	'$append'(Args0, [T-T,T-T], Args).
-extend_pos(F-T,
-	   term_position(F,T,F,T,[T-T,T-T])) :- !.
-extend_pos(Pos, Pos) :-
-	print_message(warning, term_position(Pos)).
-
+extended_pos(Pos0, Pos) :-
+	'$expand':extended_pos(Pos0, 2, Pos).
 f2_pos(Pos0, A0, B0, Pos, A, B) :- '$expand':f2_pos(Pos0, A0, B0, Pos, A, B).
 f1_pos(Pos0, A0, Pos, A) :- '$expand':f1_pos(Pos0, A0, Pos, A).
 

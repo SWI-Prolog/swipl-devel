@@ -64,11 +64,15 @@ arithmetic_function(Term) :-
 	throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
 
 arith_decl_clauses(NameArity,
-		   [(:- public(Name/ImplArity)),
+		   [(:- public(PI)),
 		    arithmetic:evaluable(Term, Q)
 		   ]) :-
 	prolog_load_context(module, M),
 	strip_module(M:NameArity, Q, Spec),
+	(   Q == M
+	->  PI = Name/ImplArity
+	;   PI = Q:Name/ImplArity
+	),
 	(   Spec = Name/Arity
 	->  functor(Term, Name, Arity),
 	    ImplArity is Arity+1

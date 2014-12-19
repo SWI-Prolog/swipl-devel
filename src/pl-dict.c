@@ -79,7 +79,8 @@ Copied from https://github.com/noporpoise/sort_r
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if defined(__MINGW32__) || defined(__OpenBSD__) || defined(AMIGA) || \
-defined(__gnu_hurd__) || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 8)
+defined(__gnu_hurd__) || defined(__CYGWIN__) \
+|| (__GLIBC__ == 2 && __GLIBC_MINOR__ < 8)
   #define QSORT_WITH_NESTED_FUNCTIONS 1
 #endif
 
@@ -261,9 +262,12 @@ dict_ordered(Word data, int count, int ex ARG_LD)
 { int ordered = TRUE;
   Word n1, n2;
 
-  deRef2(data, n1);
-  if ( !is_key(*n1) )
-    return (count == 0);		/* ordered if empty dict */
+  if ( count > 0 )
+  { deRef2(data, n1);
+    if ( !is_key(*n1) )
+      return -1;
+  }
+
   for(; count > 1; count--, data += 2, n1=n2)
   { deRef2(data+2, n2);
     if ( !is_key(*n2) )

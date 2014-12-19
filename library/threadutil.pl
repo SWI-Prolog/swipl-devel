@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1999-2013, University of Amsterdam
+    Copyright (C): 1999-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -44,42 +44,48 @@
 	    tnodebug/1,			% +ThreadId
 	    tprofile/1			% +ThreadId
 	  ]).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
 	tspy/1,
 	tspy/2.
 
+/** <module> Interactive thread utilities
+
+This  library  provides  utilities  that   are  primarily  intended  for
+interactive usage in a  threaded  Prolog   environment.  It  allows  for
+inspecting threads, manage I/O of background   threads (depending on the
+environment) and manipulating the debug status of threads.
+*/
+
 %%	threads
 %
-%	List currently active threads.  If a thread has exited, get
-%	rid of them.
+%	List currently known threads with their status.
 
 threads :-
-	format('~`-t~60|~n', []),
-	format('~t~w~20|  ~w~32|~n', ['Thread', 'Status']),
-	format('~`-t~60|~n', []),
-	thread_property(Id, status(Status)),
-	format('~t~w~20|  ~p~32|~n', [Id, Status]),
-	fail.
-threads :-
-	format('~`-t~60|~n', []).
+	threads(Threads),
+	print_message(information, threads(Threads)).
+
+threads(Threads) :-
+	findall(Thread, thread_statistics(_,Thread), Threads).
 
 %%	join_threads
 %
 %	Join all terminated threads.
 
 join_threads :-
-	(   thread_property(Id, status(Status)),
-	    rip_thread(Status, Id),
-	    fail ; true
+	findall(Ripped, rip_thread(Ripped), AllRipped),
+	(   AllRipped == []
+	->  true
+	;   print_message(informational, joined_threads(AllRipped))
 	).
 
-rip_thread(running, _) :- !.
-rip_thread(_Status, Id) :-
-	thread_self(Id), !.
-rip_thread(Status, Id) :-
-	print_message(informational, join_thread(Id, Status)),
+rip_thread(thread{id:id, status:Status}) :-
+	thread_property(Id, status(Status)),
+	Status \== running,
+	\+ thread_self(Id),
 	thread_join(Id, _).
 
 %%	interactor
@@ -277,7 +283,56 @@ prolog:message(thread_welcome) -->
 	[ 'SWI-Prolog console for thread ~w'-[Self],
 	  nl, nl
 	].
-prolog:message(join_thread(Id, Status)) -->
-	[ 'Joining thread ~w, ended with status ~p'-[Id, Status]
+prolog:message(joined_threads(Threads)) -->
+	[ 'Joined the following threads'-[], nl ],
+	thread_list(Threads).
+prolog:message(threads(Threads)) -->
+	thread_list(Threads).
+
+thread_list(Threads) -->
+	{ maplist(th_id_len, Threads, Lens),
+	  max_list(Lens, MaxWidth),
+	  LeftColWidth is max(6, MaxWidth),
+	  Threads = [H|_]
+	},
+	thread_list_header(H, LeftColWidth),
+	thread_list(Threads, LeftColWidth).
+
+th_id_len(Thread, IdLen) :-
+	write_length(Thread.id, IdLen, [quoted(true)]).
+
+thread_list([], _) --> [].
+thread_list([H|T], CW) -->
+	thread_info(H, CW),
+	(   {T == []}
+	->  []
+	;   [nl],
+	    thread_list(T, CW)
+	).
+
+thread_list_header(Thread, CW) -->
+	{ _{id:_, status:_, time:_, stacks:_} :< Thread, !,
+	  HrWidth is CW+18+13
+	},
+	[ '~|~tThread~*+ Status~tTime~18+~tStack use~13+'-[CW], nl ],
+	[ '~|~`-t~*+'-[HrWidth], nl ].
+thread_list_header(Thread, CW) -->
+	{ _{id:_, status:_} :< Thread, !,
+	  HrWidth is CW+7
+	},
+	[ '~|~tThread~*+ Status'-[CW], nl ],
+	[ '~|~`-t~*+'-[HrWidth], nl ].
+
+thread_info(Thread, CW) -->
+	{ _{id:Id, status:Status, time:Time, stacks:Stacks} :< Thread }, !,
+	[ '~|~t~q~*+ ~w~t~3f~18+~t~D~13+'-
+	  [ Id, CW, Status, Time.cpu, Stacks.total.usage
+	  ]
+	].
+thread_info(Thread, CW) -->
+	{ _{id:Id, status:Status} :< Thread }, !,
+	[ '~|~t~q~*+ ~w'-
+	  [ Id, CW, Status
+	  ]
 	].
 

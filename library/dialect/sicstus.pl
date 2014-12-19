@@ -125,11 +125,9 @@ qualified(_:_).
 
 %%	setup_dialect
 %
-%	Further dialect initialization. SICSTus  has   no  limits on the
-%	length of atoms in source-code in `normal mode'.
+%	Further dialect initialization.
 
-setup_dialect :-
-	style_check(-atom).
+setup_dialect.
 
 
 		 /*******************************

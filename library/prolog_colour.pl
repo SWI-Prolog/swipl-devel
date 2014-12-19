@@ -31,7 +31,8 @@
 
 :- module(prolog_colour,
 	  [ prolog_colourise_stream/3,	% +Stream, +SourceID, :ColourItem
-	    prolog_colourise_term/4,	% +Stream, +SourceID, :ColourItem, +Options
+	    prolog_colourise_term/4,	% +Stream, +SourceID, :ColourItem, +Opts
+	    prolog_colourise_query/3,	% +String, +SourceID, :ColourItem
 	    syntax_colour/2,		% +Class, -Attributes
 	    syntax_message//1		% +Class
 	  ]).
@@ -50,6 +51,7 @@
 
 :- meta_predicate
 	prolog_colourise_stream(+, +, 3),
+	prolog_colourise_query(+, +, 3),
 	prolog_colourise_term(+, +, 3, +).
 
 :- predicate_options(prolog_colourise_term/4, 4,
@@ -119,7 +121,7 @@ colourise_stream(Fd, TB) :-
 			      comments(Comments)
 			    ]),
 		  E,
-		  read_error(E, TB, Fd, Start)),
+		  read_error(E, TB, Start, Fd)),
 	    fix_operators(Term, TB),
 	    colour_state_singletons(TB, Singletons),
 	    (	colourise_term(Term, TB, TermPos, Comments)
@@ -156,6 +158,9 @@ restore_settings(state(Style, Esc, OSM)) :-
 %	module context of the file into which the file was included.
 
 source_module(TB, Module) :-
+	colour_state_source_id(TB, SourceId),
+	xref_option(SourceId, module(Module)), !.
+source_module(TB, Module) :-
 	(   colour_state_source_id(TB, File),
 	    atom(File)
 	;   colour_state_stream(TB, Fd),
@@ -173,14 +178,17 @@ module_context(File, _, Module) :-
 	source_file_property(File, load_context(Module, _, _)).
 
 
-%%	read_error(+Error, +TB, +Stream, +Start) is failure.
+%%	read_error(+Error, +TB, +Start, +Stream) is failure.
 %
 %	If this is a syntax error, create a syntax-error fragment.
 
-read_error(Error, TB, Stream, Start) :-
+read_error(Error, TB, Start, EndSpec) :-
 	(   syntax_error(Error, Id, CharNo)
 	->  message_to_string(error(syntax_error(Id), _), Msg),
-	    character_count(Stream, End),
+	    (	integer(EndSpec)
+	    ->	End = EndSpec
+	    ;	character_count(EndSpec, End)
+	    ),
 	    show_syntax_error(TB, CharNo:Msg, Start-End),
 	    fail
 	;   throw(Error)
@@ -189,6 +197,8 @@ read_error(Error, TB, Stream, Start) :-
 syntax_error(error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo)),
 	     Id, CharNo).
 syntax_error(error(syntax_error(Id), file(_S, _Line, _LinePos, CharNo)),
+	     Id, CharNo).
+syntax_error(error(syntax_error(Id), string(_Text, CharNo)),
 	     Id, CharNo).
 
 %%	colour_item(+Class, +TB, +Pos) is det.
@@ -260,6 +270,44 @@ process_use_module(File, Src) :-
 	    ;	true
 	    )
 	;   true
+	).
+
+
+%%	prolog_colourise_query(+Query:string, +SourceId, :ColourItem)
+%
+%	Colourise a query, to be executed in Context.
+%
+%	@arg	SourceId Execute Query in the context of
+%		the cross-referenced environment SourceID.
+
+prolog_colourise_query(QueryString, SourceID, ColourItem) :-
+	make_colour_state([ source_id(SourceID),
+			    closure(ColourItem)
+			  ],
+			  TB),
+	setup_call_cleanup(
+	    save_settings(TB, State),
+	    colourise_query(QueryString, TB),
+	    restore_settings(State)).
+
+colourise_query(QueryString, TB) :-
+	colour_state_module(TB, SM),
+	string_length(QueryString, End),
+	(   catch(term_string(Query, QueryString,
+			      [ subterm_positions(TermPos),
+				singletons(Singletons),
+				module(SM),
+				comments(Comments)
+			      ]),
+		  E,
+		  read_error(E, TB, 0, End))
+	->  colour_state_singletons(TB, Singletons),
+	    colourise_comments(Comments, TB),
+	    (	Query == end_of_file
+	    ->	true
+	    ;   colourise_body(Query, TB, TermPos)
+	    )
+	;   true			% only a syntax error
 	).
 
 %%	prolog_colourise_term(+Stream, +SourceID, :ColourItem, +Options)
@@ -339,11 +387,14 @@ colourise_term(Term, TB, TermPos, Comments) :-
 	(   Term == end_of_file
 	->  true
 	;   colourise_term(Term, TB, TermPos),
-	    arg(2, TermPos, EndTerm),
-	    Start is EndTerm + 1,
-	    End is Start+1,
-	    colour_item(fullstop, TB, Start-End)
+	    colourise_fullstop(TB, TermPos)
 	).
+
+colourise_fullstop(TB, TermPos) :-
+	arg(2, TermPos, EndTerm),
+	Start is EndTerm + 1,
+	End is Start+1,
+	colour_item(fullstop, TB, Start-End).
 
 colourise_comments(-, _).
 colourise_comments([], _).
@@ -518,7 +569,7 @@ colour_method_head(SGHead, TB, Pos) :-
 	colour_item(method(SG), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
-%	functor_position(+Term, -FunctorPos, -ArgPosList)
+%%	functor_position(+Term, -FunctorPos, -ArgPosList)
 %
 %	Get the position of a functor   and  its argument. Unfortunately
 %	this goes wrong for lists, who have two `functor-positions'.
@@ -526,6 +577,8 @@ colour_method_head(SGHead, TB, Pos) :-
 functor_position(term_position(_,_,FF,FT,ArgPos), FF-FT, ArgPos) :- !.
 functor_position(list_position(F,_T,Elms,none), F-FT, Elms) :- !,
 	FT is F + 1.
+functor_position(dict_position(_,_,FF,FT,KVPos), FF-FT, KVPos) :- !.
+functor_position(brace_term_position(F,T,Arg), F-T, [Arg]) :- !.
 functor_position(Pos, Pos, []).
 
 
@@ -710,6 +763,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	;   Class = ClassSpec
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
+	colour_dict_braces(TB, Pos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
 colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,QF,QT,[PM,PG])) :- !,
 	colour_item(module(Module), TB, PM),
@@ -732,6 +786,16 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
 	colourise_goal_args(Goal, TB, Pos).
+
+% make sure to emit a fragment for the braces of tag{k:v, ...} or
+% {...} that is mapped to something else.
+
+colour_dict_braces(TB, dict_position(_F,T,_TF,TT,_KVPos)) :- !,
+	BStart is TT+1,
+	colour_item(dict_content, TB, BStart-T).
+colour_dict_braces(TB, brace_term_position(F,T,_Arg)) :- !,
+	colour_item(brace_term, TB, F-T).
+colour_dict_braces(_, _).
 
 %%	colourise_goal_args(+Goal, +TB, +Pos)
 %
@@ -1121,7 +1185,7 @@ colourise_term_arg(Integer, TB, Pos) :-
 	integer(Integer), !,
 	colour_item(int, TB, Pos).
 colourise_term_arg(Float, TB, Pos) :-
-	integer(Float), !,
+	float(Float), !,
 	colour_item(float, TB, Pos).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
@@ -1150,8 +1214,8 @@ qq_position(quasi_quotation_position(_,_,_,_,_)).
 
 colourise_dict_kv(_, _, []) :- !.
 colourise_dict_kv(Dict, TB, [key_value_position(_F,_T,SF,ST,K,KP,VP)|KV]) :-
-	colour_item(dict_sep, TB, SF-ST),
 	colour_item(dict_key, TB, KP),
+	colour_item(dict_sep, TB, SF-ST),
 	get_dict(K, Dict, V),
 	colourise_term_arg(V, TB, VP),
 	colourise_dict_kv(Dict, TB, KV).
@@ -1450,8 +1514,8 @@ goal_classification(_TB, _Goal, _, undefined).
 
 goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
-goal_classification(Goal, autoload) :-	% SWI-Prolog
-	predicate_property(Goal, autoload(_)).
+goal_classification(Goal, autoload(From)) :-	% SWI-Prolog
+	predicate_property(Goal, autoload(From)).
 goal_classification(Goal, global) :-	% SWI-Prolog
 	current_predicate(_, user:Goal), !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
@@ -1638,7 +1702,7 @@ head_colours(M:_, meta-[module(M),extern(M)]).
 
 def_style(goal(built_in,_),	   [colour(blue)]).
 def_style(goal(imported(_),_),	   [colour(blue)]).
-def_style(goal(autoload,_),	   [colour(navy_blue)]).
+def_style(goal(autoload(_),_),	   [colour(navy_blue)]).
 def_style(goal(global,_),	   [colour(navy_blue)]).
 def_style(goal(undefined,_),	   [colour(red)]).
 def_style(goal(thread_local(_),_), [colour(magenta), underline(true)]).
@@ -1991,8 +2055,11 @@ specified_item(FuncSpec-ElmSpec, List, TB,
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
 
-%	specified_items(+Spec, +T, +TB, +PosList)
+%%	specified_items(+Spec, +Term, +TB, +PosList)
 
+specified_items(Specs, Term, TB, PosList) :-
+	is_dict(Term), !,
+	specified_dict_kv(PosList, Term, TB, Specs).
 specified_items(Specs, Term, TB, PosList) :-
 	is_list(Specs), !,
 	specified_arglist(Specs, 1, Term, TB, PosList).
@@ -2033,6 +2100,27 @@ specified_list(Spec, [H|T], TB, [HP|TP], TailPos) :-
 specified_list(_, _, _, [], none) :- !.
 specified_list(Spec, Tail, TB, [], TailPos) :-
 	specified_item(Spec, Tail, TB, TailPos).
+
+%%	specified_dict_kv(+PosList, +Term, +TB, +Specs)
+%
+%	@arg Specs is a list of dict_kv(+Key, +KeySpec, +ArgSpec)
+
+specified_dict_kv([], _, _, _).
+specified_dict_kv([key_value_position(_F,_T,SF,ST,K,KP,VP)|Pos],
+		  Dict, TB, Specs) :-
+	specified_dict_kv1(K, Specs, KeySpec, ValueSpec),
+	colour_item(KeySpec, TB, KP),
+	colour_item(dict_sep, TB, SF-ST),
+	get_dict(K, Dict, V),
+	specified_item(ValueSpec, V, TB, VP),
+	specified_dict_kv(Pos, Dict, TB, Specs).
+
+specified_dict_kv1(Key, Specs, KeySpec, ValueSpec) :-
+	Specs = [_|_],
+	memberchk(dict_kv(Key, KeySpec, ValueSpec), Specs), !.
+specified_dict_kv1(Key, dict_kv(Key2, KeySpec, ValueSpec), KeySpec, ValueSpec) :-
+	\+ Key \= Key2, !.		% do not bind Key2
+specified_dict_kv1(_, _, dict_key, classify).
 
 
 		 /*******************************

@@ -2437,7 +2437,7 @@ VMI(I_FAIL, VIF_BREAK, 0, ())
   if ( debugstatus.debugging )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
-    DEF = lookupProcedure(FUNCTOR_fail0, MODULE_system)->definition;
+    DEF = lookupDefinition(FUNCTOR_fail0, MODULE_system);
 
     goto normal_call;
   }
@@ -2456,7 +2456,7 @@ VMI(I_TRUE, VIF_BREAK, 0, ())
   if ( debugstatus.debugging )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
-    DEF = lookupProcedure(FUNCTOR_true0, MODULE_system)->definition;
+    DEF = lookupDefinition(FUNCTOR_true0, MODULE_system);
 
     goto normal_call;
   }
@@ -2481,7 +2481,7 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
 
     NFR = lTop;
     setNextFrameFlags(NFR, FR);
-    DEF  = lookupProcedure(fpred, MODULE_system)->definition;
+    DEF  = lookupDefinition(fpred, MODULE_system);
     ARGP = argFrameP(NFR, 0);
     *ARGP++ = linkVal(p);
 
@@ -3402,7 +3402,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     { number left;
 
       get_integer(*k, &left);
-      rc = (cmpNumbers(&left, n) == 0);
+      rc = (cmpNumbers(&left, n) == CMP_EQUAL);
       clearNumber(&left);
     } else if ( isFloat(*k) && floatNumber(n) )
     { rc = (valFloat(*k) == n->value.f);
@@ -3929,7 +3929,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
     THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR PASS_LD);
-  set(FR, FR_WATCHED);
+  set(FR, FR_WATCHED|FR_CLEANUP);
 				/* = B_VAR1 */
   *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
 

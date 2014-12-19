@@ -227,6 +227,9 @@ reexport/2	& \const{not_loaded} & \const{true}  & specified \\
 \end{table}
 
 \begin{description}
+    \predicate{load_files}{1}{:Files}
+Equivalent to \term{load_files}{Files, []}.  Same as consult/1,
+See load_files/2 for supported options.
     \predicate{load_files}{2}{:Files, +Options}
 The predicate load_files/2 is the parent of all the other loading
 predicates except for include/1. It currently supports a subset
@@ -234,8 +237,7 @@ of the options of Quintus load_files/2. \arg{Files} is either
 a single source file or a list of source files. The specification for a
 source file is handed to absolute_file_name/2. See this predicate for
 the supported expansions. \arg{Options} is a list of options using the
-format
-\arg{OptionName}(\arg{OptionValue}).
+format \arg{OptionName}(\arg{OptionValue}).
 
 The following options are currently supported:
 
@@ -682,9 +684,13 @@ following keys are defined:
 \const{stream}        & Stream identifier (see current_input/1) \\
 \const{directory}     & Directory in which \const{source} lives \\
 \const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
-\const{term_position} & Position of last term read.  Term of the form
-			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
-			See also stream_position_data/3. \\
+\const{term_position} & Start position of last term read.  See also
+			stream_property/2 (\const{position} property and
+			stream_position_data/3.\footnote{Up to version
+			7.1.22, the position term carried fake data
+			except for the \const{line_count} and had
+			\textbf{five} arguments, where the position
+			property of a stream only has \textbf{four}.} \\
 \const{variable_names}& A list of `\arg{Name} = \arg{Var}' of the last
 			term read.  See read_term/2 for details. \\
 \const{script}	      & Boolean that indicates whether the file is
@@ -884,6 +890,25 @@ and therefore discontiguous warnings.
 This predicate performs the translation of a term \exam{Head-->Body}
 into a normal Prolog clause.  Normally this functionality should be
 accessed using expand_term/2.
+
+    \predicate{var_property}{2}{+Var, ?Property}
+True when \arg{Property} is a property of \arg{Var}. These properties
+are available during goal- and term-expansion. Defined properties are
+below. Future versions are likely to provide more properties, such as
+whether the variable is a singleton or whether the variable is
+referenced in the remainder of the term.  See also goal_expansion/2.
+
+    \begin{description}
+    \termitem{fresh}{Bool}
+Bool has the value \arg{true} if the variable is guaranteed to be
+unbound at entry of the goal, otherwise its value is \arg{false}.
+This implies that the variable first appears in this goal or a
+previous appearance was in a negation (\predref{\+}{1}) or a
+different branch of a disjunction.
+
+    \termitem{name}{Name}
+True when variable appears with the given name in the source.
+    \end{description}
 \end{description}
 
 
@@ -2293,7 +2318,7 @@ goal} which can be modified using \cmdlineoption{-g}.
     \predicate{version}{1}{+Message}
 Register additional messages to be printed by version/0. Each registered
 message is handed to the message translation DCG and can thus be defined
-using the hook prolog:message//1.  Of not defined, it is simply printed.
+using the hook prolog:message//1.  If not defined, it is simply printed.
 \end{description}
 
 
@@ -2702,7 +2727,9 @@ dynamic/1 as a \jargon{directive}.}
 Assert a fact or clause in the database. \arg{Term} is asserted as the
 first fact or clause of the corresponding predicate. Equivalent to
 assert/1, but \arg{Term} is asserted as first clause or fact of the
-predicate.
+predicate.  If the program space for the target module is limited
+(see set_module/1), asserta/1 can raise a
+\term{resource_error}{program_space}.
 
     \predicate[ISO]{assertz}{1}{+Term}
 Equivalent to asserta/1, but \arg{Term} is asserted as the last clause
@@ -3349,12 +3376,6 @@ executed directly. See also process_create/3 from \pllib{process}.
 The following \arg{Options} are recognised by open/4:
 
 \begin{description}
-    \termitem{type}{Type}
-Using type \const{text} (default), Prolog will write a text file in
-an operating system compatible way. Using type \const{binary} the
-bytes will be read or written without any translation.  See also
-the option \const{encoding}.
-
     \termitem{alias}{Atom}
 Gives the stream a name.   Below is an example.   Be careful with this
 option as stream names are global.  See also set_stream/2.
@@ -3367,25 +3388,11 @@ option as stream names are global.  See also set_stream/2.
 	...
 \end{code}
 
-    \termitem{encoding}{Encoding}
-Define the encoding used for reading and writing text to this stream.
-The default encoding for type \const{text} is derived from the Prolog
-flag \prologflag{encoding}. For \const{binary} streams the default encoding
-is \const{octet}. For details on encoding issues, see \secref{encoding}.
-
     \termitem{bom}{Bool}
 Check for a BOM (\jargon{Byte Order Marker}) or write
 one.  If omitted, the default is \const{true} for mode \const{read} and
 \const{false} for mode \const{write}.  See also stream_property/2 and
 especially \secref{bom} for a discussion of this feature.
-
-    \termitem{eof_action}{Action}
-Defines what happens if the end of the input stream is reached. Action
-\const{eof_code} makes get0/1 and friends return -1, and read/1 and friends
-return the atom \const{end_of_file}. Repetitive reading keeps yielding the
-same result. Action \const{error} is like \const{eof_code}, but repetitive
-reading will raise an error. With action \const{reset}, Prolog will
-examine the file again and return more data if the file has grown.
 
     \termitem{buffer}{Buffering}
 Defines output buffering. The atom \const{full} (default) defines full
@@ -3400,6 +3407,47 @@ abort/0). If \const{false}, the stream is not closed. If it is an output
 stream, however, it will be flushed.  Useful for logfiles and if the
 stream is associated to a process (using the \functor{pipe}{1}
 construct).
+
+    \termitem{create}{+List}
+Specifies how a new file is created when opening in \const{write},
+\const{append} or \const{update} mode. Currently, \arg{List} is a list
+of atoms that describe the permissions of the created
+file.\footnote{Added after feedback from Joachim Shimpf and Per
+Mildner.} Defined values are below. Not recognised values are silently
+ignored, allowing for adding platform specific extensions to this set.
+
+    \begin{description}
+	\termitem{read}
+    Allow read access to the file.
+	\termitem{write}
+    Allow write access to the file.
+	\termitem{execute}
+    Allow execution access to the file.
+	\termitem{default}
+    Allow read and write access to the file.
+	\termitem{all}
+    Allow any access provided by the OS.
+    \end{description}
+
+Note that if \arg{List} is empty, the created file has no associated
+access permissions. The create options map to the POSIX \arg{mode}
+option of open(), where \const{read} map to 0444, \const{write} to 0222
+and \const{execute} to 0111. On POSIX systems, the final permission is
+defined as (mode \& \chr{~}umask).
+
+    \termitem{encoding}{Encoding}
+Define the encoding used for reading and writing text to this stream.
+The default encoding for type \const{text} is derived from the Prolog
+flag \prologflag{encoding}. For \const{binary} streams the default encoding
+is \const{octet}. For details on encoding issues, see \secref{encoding}.
+
+    \termitem{eof_action}{Action}
+Defines what happens if the end of the input stream is reached. Action
+\const{eof_code} makes get0/1 and friends return -1, and read/1 and friends
+return the atom \const{end_of_file}. Repetitive reading keeps yielding the
+same result. Action \const{error} is like \const{eof_code}, but repetitive
+reading will raise an error. With action \const{reset}, Prolog will
+examine the file again and return more data if the file has grown.
 
     \termitem{locale}{+Locale}
 Set the locale that is used by notably format/2 for output on this
@@ -3421,6 +3469,12 @@ especially related to NFS (network file system), please study the
 fcntl() manual page before trusting your locks!
 
 The \const{lock} option is a SWI-Prolog extension.
+
+    \termitem{type}{Type}
+Using type \const{text} (default), Prolog will write a text file in
+an operating system compatible way. Using type \const{binary} the
+bytes will be read or written without any translation.  See also
+the option \const{encoding}.
 
     \termitem{wait}{Bool}
 This option can be combined with the \const{lock} option. If
@@ -3704,7 +3758,10 @@ Set the \const{close_on_exec} property.  See stream_property/2.
 
     \termitem{encoding}{Atom}
 Defines the mapping between bytes and character codes used for the
-stream.  See \secref{encoding} for supported encodings.
+stream.  See \secref{encoding} for supported encodings.  The value
+\const{bom} causes the stream to check whether the current character
+is a Unicode BOM marker.  If a BOM marker is found, the encoding is
+set accordingly and the call succeeds.  Otherwise the call fails.
 
     \termitem{eof_action}{Action}
 Set end-of-file handling to one of \const{eof_code}, \const{reset} or
@@ -5568,27 +5625,29 @@ independent of operator changes to the \const{user} module.
 1200 & fx & \op{:-}, \op{?-} \\
 1150 & fx & \op{dynamic}, \op{discontiguous}, \op{initialization},
 	    \op{meta_predicate},
-	    \op{module_transparent}, \op{multifile}, \op{thread_local},
-	    \op{volatile} \\
+	    \op{module_transparent}, \op{multifile}, \op{public},
+	    \op{thread_local}, \op{thread_initialization}, \op{volatile} \\
 1100 & xfy & \op{;}, \op{|} \\
 1050 & xfy & \op{->}, \op{*->} \\
 1000 & xfy & \op{,} \\
 990 & xfx & \op{:=} \\
 900 & fy & \op{\+} \\
-900 & fx & \op{~} \\
-700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{=:=}, \op{=<}, \op{==},
+700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{\=@=},
+	    \op{=:=}, \op{=<}, \op{==},
             \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>},
-            \op{@>=}, \op{\=}, \op{\==}, \op{is}
+            \op{@>=}, \op{\=}, \op{\==}, \op{as}, \op{is},
 	    \op{>:<}, \op{:<}
 	    \\
 600 & xfy & \op{:} \\
 500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
 500 & fx & \op{?} \\
-400 & yfx & \op{*}, \op{/}, \op{//}, \op{rdiv},
+400 & yfx & \op{*}, \op{/}, \op{//}, \op{div}, \op{rdiv},
             \op{<<}, \op{>>}, \op{mod}, \op{rem} \\
 200 & xfx & \op{**} \\
 200 & xfy & \op{^} \\
-200 & fy & \op{+}, \op{-}, \op{\} \\
+200 & fy  & \op{+}, \op{-}, \op{\} \\
+100 & yfx & \op{.} \\
+1   & fx  & \op{$} \\
 \hline
 \end{tabular}
 \end{center}
@@ -6420,20 +6479,35 @@ findall(Templ, Goal, Bag) :-
     \predicate[nondet]{findnsols}{4}{+N, @Template, :Goal, -List}
     \nodescription
     \predicate[nondet]{findnsols}{5}{+N, @Template, :Goal, -List, ?Tail}
-As findall/3 and findall/4, but generates at most \arg{N} solutions.
-Unifies \arg{List} immediately with [] (\arg{Tail}) if \arg{N} is 0 or
-less. If \arg{N} solutions are returned, this predicate succeeds with a
-choice point. Backtracking returns the next chunk of (at most) \arg{N}
-solutions. This behaviour is used to implement the \jargon{chunk}
-option in \pllib{pengines}.  Based on Ciao, but the Ciao version is
-deterministic. Portability can be achieved by wrapping the goal in
-once/1.  For example:
+As findall/3 and findall/4, but generates at most \arg{N} solutions. If
+\arg{N} solutions are returned, this predicate succeeds with a choice
+point if \arg{Goal} has a choice point. Backtracking returns the next
+chunk of (at most) \arg{N} solutions. In addition to passing a plain
+integer for \arg{N}, a term of the form \term{count}{N} is accepted.
+Using \term{count}{N}, the size of the next chunk can be controlled
+using nb_setarg/3. The non-deterministic behaviour used to implement the
+\jargon{chunk} option in \pllib{pengines}. Based on Ciao, but the Ciao
+version is deterministic. Portability can be achieved by wrapping the
+goal in once/1. Below are three examples. The first illustrates standard
+chunking of answers.  The second illustrates that the chunk size can be
+adjusted dynamically and the last illustrates that no choice point is
+left if \arg{Goal} leaves no choice-point after the last solution.
 
 \begin{code}
 ?- findnsols(5, I, between(1, 12, I), L).
 L = [1, 2, 3, 4, 5] ;
 L = [6, 7, 8, 9, 10] ;
 L = [11, 12].
+
+?- State = count(2),
+   findnsols(State, I, between(1, 12, I), L),
+   nb_setarg(1, State, 5).
+State = count(5), L = [1, 2] ;
+State = count(5), L = [3, 4, 5, 6, 7] ;
+State = count(5), L = [8, 9, 10, 11, 12].
+
+?- findnsols(4, I, between(1, 4, I), L).
+L = [1, 2, 3, 4].
 \end{code}
 
     \predicate[ISO]{bagof}{3}{+Template, :Goal, -Bag}
@@ -8181,8 +8255,10 @@ described in \tabref{qpstatistics}.
 agc		& Number of atom garbage collections performed \\
 agc_gained	& Number of atoms removed \\
 agc_time	& Time spent in atom garbage collections \\
-process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
+epoch		& Time stamp when thread was started \\
+process_epoch	& Time stamp when Prolog was started \\
 cputime         & (User) {\sc cpu} time since thread was started in seconds \\
+process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started \\
 heapused        & Bytes of heap in use by Prolog (0 if not maintained) \\

@@ -120,7 +120,6 @@ struct PL_global_data
     int		modules;		/* No. of modules in the system */
     size_t	clauses;		/* No. clauses */
     size_t	codes;			/* No. of VM codes generated */
-    double	start_time;		/* When Prolog was started */
     double	user_cputime;		/* User CPU time (whole process) */
     double	system_cputime;		/* Kernel CPU time (whole process) */
 #ifdef O_PLMT
@@ -427,6 +426,7 @@ struct PL_local_data
     uintptr_t	last_cputime;		/* milliseconds last CPU time */
     uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
     uintptr_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
+    double	start_time;		/* When Thread was started */
     double	last_walltime;		/* Last Wall time (m-secs since start) */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */

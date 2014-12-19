@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -564,10 +563,11 @@ list_is_free_of([], _).
 %	Declare the aggregate meta-calls safe. This cannot be proven due
 %	to the manipulations of the argument Goal.
 
-:- multifile sandbox:safe_meta/2.
+:- multifile sandbox:safe_meta_predicate/1.
 
-sandbox:safe_meta(aggregate:aggregate(_,G,_), [G]).
-sandbox:safe_meta(aggregate:aggregate(_,_,G,_), [G]).
-sandbox:safe_meta(aggregate:aggregate_all(_,G,_), [G]).
-sandbox:safe_meta(aggregate:aggregate_all(_,_,G,_), [G]).
+sandbox:safe_meta_predicate(aggregate:foreach/2).
+sandbox:safe_meta_predicate(aggregate:aggregate/3).
+sandbox:safe_meta_predicate(aggregate:aggregate/4).
+sandbox:safe_meta_predicate(aggregate:aggregate_all/3).
+sandbox:safe_meta_predicate(aggregate:aggregate_all/4).
 

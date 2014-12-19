@@ -364,7 +364,9 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
   { word w = *p;
 
     switch(tag(w))
-    { case TAG_VAR:
+    { const char *type;
+
+      case TAG_VAR:
       { if ( isVar(w) )
 	{ word i = state->var_count++;
 
@@ -393,19 +395,25 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
       { if ( !isIndirect(w) )
 	{ int64_t val = valInteger(w);
 
-	  HASH("I", 1);
+	  HASH("i", 1);
 	  HASH(&val, sizeof(val));
 	  continue;
 	}
+	type = "I";
+	goto hash_indirect;
       }
-      /*FALLTHROUGH*/
       case TAG_STRING:
+	type = "S";
+        goto hash_indirect;
       case TAG_FLOAT:
+	type = "F";
+      hash_indirect:
       { Word d = addressIndirect(w);
-	size_t n = wsizeofInd(w);
+	size_t n = wsizeofInd(*d)*sizeof(word);
 
-	HASH("X", 1);
-	HASH(d, (unsigned long)(n*sizeof(word)));
+        assert(tag(w) != TAG_FLOAT || n == sizeof(double));
+	HASH(type, 1);
+	HASH(d+1, (unsigned long)n);
 	continue;
       }
       case TAG_COMPOUND:

@@ -409,23 +409,24 @@ pack_install(Archive) :-		% Install from .tgz/.zip/... file
 	must_be(atom, Archive),
 	expand_file_name(Archive, [File]),
 	exists_file(File), !,
-	pack_version_file(Pack, _Version, File),
+	pack_version_file(Pack, Version, File),
 	uri_file_name(FileURL, File),
-	pack_install(Pack, [url(FileURL)]).
+	pack_install(Pack, [url(FileURL), version(Version)]).
 pack_install(URL) :-
 	git_url(URL, Pack), !,
 	pack_install(Pack, [git(true), url(URL)]).
 pack_install(URL) :-			% Install from URL
-	pack_version_file(Pack, _Version, URL),
+	pack_version_file(Pack, Version, URL),
 	download_url(URL), !,
 	available_download_versions(URL, [_-LatestURL|_]),
-	pack_install(Pack, [url(LatestURL)]).
+	pack_install(Pack, [url(LatestURL), version(Version)]).
 pack_install(Dir) :-			% Install from directory
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Name)), !,
 	uri_file_name(DirURL, Dir),
 	pack_install(Name, [url(DirURL)]).
 pack_install(Pack) :-			% Install from a pack name
+	\+ uri_is_global(Pack),		% ignore URLs
 	query_pack_server(locate(Pack), Reply),
 	(   Reply = true(Results)
 	->  (   pack_select_candidate(Pack, Results, InstallOptions)
@@ -732,7 +733,7 @@ pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	pack_download_dir(PackTopDir, DownLoadDir),
-	file_base_name(URL, DownloadBase),
+	download_file(URL, Pack, DownloadBase, Options),
 	directory_file_path(DownLoadDir, DownloadBase, DownloadFile),
 	setup_call_cleanup(
 	    http_open(URL, In,
@@ -749,6 +750,14 @@ pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	show_info(Pack, Info, Options),
 	confirm(install_downloaded(DownloadFile), yes, Options),
 	pack_install_from_local(DownloadFile, PackTopDir, Pack, Options).
+
+download_file(URL, Pack, File, Options) :-
+	option(version(Version), Options), !,
+	atom_version(VersionA, Version),
+	file_name_extension(_, Ext, URL),
+	format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
+download_file(URL, _, File, _) :-
+	file_base_name(URL, File).
 
 :- public ssl_verify/5.
 
@@ -1285,8 +1294,11 @@ safe_pack_char(0'_).
 %	basename  must  be  of   the    form   <pack>-<n>{.<m>}*.  E.g.,
 %	=|mypack-1.5|=.
 
+pack_version_file(Pack, Version, GitHubRelease) :-
+	atomic(GitHubRelease),
+	github_release_url(GitHubRelease, Pack, Version), !.
 pack_version_file(Pack, Version, Path) :-
-	atom(Path),
+	atomic(Path),
 	file_base_name(Path, File),
 	file_name_extension(Base, Ext, File),
 	Ext \== '',
@@ -1297,6 +1309,39 @@ pack_version_file(Pack, Version, Path) :-
 	;   print_message(error, pack(invalid_name(File))),
 	    fail
 	).
+
+%%	github_release_url(+URL, -Pack, -Version) is semidet.
+%
+%	True when URL is the URL of a GitHub release.  Such releases are
+%	accessible as
+%
+%	  ==
+%	  https:/github.com/<owner>/<pack>/archive/[vV]?<version>.zip'
+%	  ==
+
+github_release_url(URL, Pack, Version) :-
+	uri_components(URL, Components),
+	uri_data(authority, Components, 'github.com'),
+	uri_data(scheme, Components, Scheme),
+	download_scheme(Scheme),
+	uri_data(path, Components, Path),
+	atomic_list_concat(['',_Project,Pack,archive,File], /, Path),
+	file_name_extension(Tag, Ext, File),
+	github_archive_extension(Ext),
+	tag_version(Tag, Version).
+
+github_archive_extension(tgz).
+github_archive_extension(zip).
+
+tag_version(Tag, Version) :-
+	version_tag_prefix(Prefix),
+	atom_concat(Prefix, AtomVersion, Tag),
+	atom_version(AtomVersion, Version).
+
+version_tag_prefix(v).
+version_tag_prefix('V').
+version_tag_prefix('').
+
 
 :- public
 	atom_version/2.
@@ -1532,8 +1577,7 @@ available_download_versions(URL, Versions) :-
 	keysort(VersionedURLs, SortedVersions),
 	reverse(SortedVersions, Versions).
 available_download_versions(URL, [Version-URL]) :-
-	file_base_name(URL, File),
-	(   pack_version_file(_Pack, Version0, File)
+	(   pack_version_file(_Pack, Version0, URL)
 	->  Version = Version0
 	;   Version = unknown
 	).
@@ -1983,6 +2027,10 @@ message(cannot_create_dir(Alias)) -->
 	candidate_dirs(PackDirs).
 message(no_match(Name)) -->
 	[ 'No registered pack matches "~w"'-[Name] ].
+message(conflict(version, [PackV, FileV])) -->
+	['Version mismatch: pack.pl: '-[]], msg_version(PackV),
+	[', file claims version '-[]], msg_version(FileV).
+
 
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).

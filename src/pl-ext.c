@@ -306,23 +306,27 @@ registerBuiltins(const PL_extension *f)
 { Module m = MODULE_system;
 
   for(; f->predicate_name; f++)
-  { Definition def;
+  { Procedure proc;
     atom_t name	= PL_new_atom(f->predicate_name);
     functor_t fdef = lookupFunctorDef(name, f->arity);
 
     PL_unregister_atom(name);
-    def = lookupProcedure(fdef, m)->definition;
-    set(def, P_FOREIGN|HIDE_CHILDS|P_LOCKED);
+    if ( (proc = lookupProcedure(fdef, m)) )
+    { Definition def = lookupProcedure(fdef, m)->definition;
+      set(def, P_FOREIGN|HIDE_CHILDS|P_LOCKED);
 
-    if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
-    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
-    if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, P_NONDET);
-    if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
-    if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
-    if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
+      if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
+      if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
+      if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, P_NONDET);
+      if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
+      if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
+      if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
 
-    def->impl.function = f->function;
-    createForeignSupervisor(def, f->function);
+      def->impl.function = f->function;
+      createForeignSupervisor(def, f->function);
+    } else
+    { assert(0);
+    }
   }
 }
 
@@ -437,7 +441,9 @@ initBuildIns(void)
   REG_PLIST(dict);
 
 #define LOOKUPPROC(name) \
-	GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m);
+	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
+	  DEBUG(CHK_SECURE, assert(GD->procedures.name)); \
+	}
 
   LOOKUPPROC(dgarbage_collect1);
   LOOKUPPROC(catch3);
@@ -452,6 +458,9 @@ initBuildIns(void)
   LOOKUPPROC(setup_call_catcher_cleanup4);
   LOOKUPPROC(dthread_init0);
   LOOKUPPROC(dc_call_prolog0);
+#if O_DEBUGGER
+  LOOKUPPROC(event_hook1);
+#endif
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
 #endif

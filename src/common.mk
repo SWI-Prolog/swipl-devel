@@ -38,7 +38,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl \
 	edit.pl shell.pl check.pl heaps.pl win_menu.pl console_input.pl \
 	tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl \
-	oset.pl ordsets.pl occurs.pl lists.pl \
+	oset.pl ordsets.pl occurs.pl lists.pl pprint.pl \
 	www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl \
 	threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl \
 	checklast.pl checkselect.pl operators.pl date.pl \
@@ -54,7 +54,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl \
 	sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
 
-CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl clpb.pl
 DCG=	basics.pl
 
 # Dialect library files

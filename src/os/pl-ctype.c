@@ -403,16 +403,24 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
     if ( (rval = (*gen->class->test)((wint_t)gen->current)) )
     { if ( gen->do_enum & ENUM_CHAR )
       { if ( !PL_unify_char(chr, gen->current, how) )
+	{ if ( LD->exception.term )
+	    goto error;
 	  goto next;
+	}
       }
       if ( gen->class->arity > 0 )
       { if ( rval < 0 ||
 	     !unify_char_type(class, gen->class, rval, how) )
+	{ if ( LD->exception.term )
+	    goto error;
 	  goto next;
-
+	}
       } else if ( gen->do_enum & ENUM_CLASS )
       { if ( !unify_char_type(class, gen->class, rval, how) )
+	{ if ( LD->exception.term )
+	    goto error;
 	  goto next;
+	}
       }
 
       if ( advanceGen(gen) )		/* ok, found one */

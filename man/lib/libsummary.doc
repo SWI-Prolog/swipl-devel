@@ -158,6 +158,9 @@ This library is only available on Windows systems.
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}
 \end{summarylist}
 
+\libsummary{clp/clpb}
+\input{summaries.d/clpb.tex}
+
 \libsummary{clp/clpfd}
 \input{summaries.d/clpfd.tex}
 

@@ -59,6 +59,7 @@ setupProlog(void)
   LD->critical = 0;
   LD->signal.pending[0] = 0;
   LD->signal.pending[1] = 0;
+  LD->statistics.start_time = WallTime();
 
   startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));
@@ -585,6 +586,38 @@ hupHandler(int sig)
 #endif
 
 
+/* terminate_handler() is called on termination signals like SIGTERM.
+   It runs hooks registered using PL_exit_hook() and then kills itself.
+   The hooks are called with the exit status `3`.
+*/
+
+static void
+terminate_handler(int sig)
+{ signal(sig, SIG_DFL);
+
+  run_on_halt(&GD->os.exit_hooks, 3);
+
+#if defined(HAVE_KILL) && defined(HAVE_GETPID)
+  kill(getpid(), sig);
+#else
+  exit(3);
+#endif
+}
+
+static void
+initTerminationSignals(void)
+{
+#ifdef SIGTERM
+  PL_signal(SIGTERM, terminate_handler);
+#endif
+#ifdef SIGABRT
+  PL_signal(SIGABRT, terminate_handler);
+#endif
+#ifdef SIGQUIT
+  PL_signal(SIGQUIT, terminate_handler);
+#endif
+}
+
 static void
 sig_exception_handler(int sig)
 { GET_LD
@@ -665,7 +698,7 @@ initSignals(void)
 #ifdef SIGPIPE
   set_sighandler(SIGPIPE, SIG_IGN);
 #endif
-
+  initTerminationSignals();
   for( ; sn->name; sn++)
   {
 #ifdef HAVE_BOEHM_GC
@@ -886,6 +919,8 @@ PL_handle_signals(void)
 
   if ( !LD || LD->critical || !is_signalled(LD) )
     return 0;
+  if ( exception_term )
+    return -1;
 
   return handleSignals(PASS_LD1);
 }
@@ -912,15 +947,12 @@ handleSignals(ARG1_LD)
 	  dispatch_signal(sig, TRUE);
 
 	  if ( exception_term )
-	    goto out;
+	    return -1;
 	}
       }
     }
   }
 
-out:
-  if ( exception_term )
-    return -1;
   if ( done )
     updateAlerted(PASS_LD1);
 

@@ -244,8 +244,6 @@ update_directive(op(P,T,N), SM) :- !,
 	push_op(P,T,M:PN).
 update_directive(style_check(Style), _) :-
 	style_check(Style), !.
-update_directive(expects_dialect(sicstus), _) :-
-	style_check(-atom), !.
 update_directive(use_module(Spec), SM) :-
 	catch(module_decl(Spec, Path, Public), _, fail), !,
 	maplist(import_syntax(Path, SM), Public).

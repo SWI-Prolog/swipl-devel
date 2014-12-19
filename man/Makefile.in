@@ -46,7 +46,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
-		lib/csv.tex lib/optparse.tex \
+		lib/csv.tex lib/optparse.tex lib/clpb.tex \
 		lib/predicateoptions.tex lib/predopts.tex lib/random.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
@@ -174,6 +174,8 @@ lib/shlib.tex:	../library/shlib.pl
 		$(LIBTOTEX) --subsection 'library(shlib)'
 lib/apply.tex:	../library/apply.pl
 		$(LIBTOTEX) 'library(apply)'
+lib/clpb.tex:	../library/clp/clpb.pl
+		$(LIBTOTEX) 'library(clpb)'
 lib/clpfd.tex:	../library/clp/clpfd.pl
 		$(LIBTOTEX) 'library(clpfd)'
 lib/url.tex:	../library/url.pl

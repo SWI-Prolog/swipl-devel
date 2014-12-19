@@ -1667,8 +1667,16 @@ Finish up the clause.
 
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
+    Module m = proc->definition->module;
+    size_t clsize = size + SIZEOF_CREF_CLAUSE;
+
+    if ( m->code_limit && clsize + m->code_size > m->code_limit )
+    { rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_program_space);
+      goto exit_fail;
+    }
 
     cl = PL_malloc_atomic(size);
+    ATOMIC_ADD(&m->code_size, clsize);
     memcpy(cl, &clause, sizeofClause(0));
     memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
 
@@ -2382,7 +2390,7 @@ callatmv(code call)
 #endif
 
 
-static Procedure
+Procedure
 lookupBodyProcedure(functor_t functor, Module tm)
 { Procedure proc;
 
@@ -2916,14 +2924,37 @@ t(X) :-
 	;   Y = x
 	),
 	writeln(Y).
+
+In addition, if arg is a term,  we   must  recurse down into the term to
+deal with variables that are only used there. This is needed for e.g.
+
+foo(bar) :-
+	foo(_),
+	L = [X|X].
+
+Although X is allocated on the stack, no  code will be generated for it,
+causing clearUninitialisedVarsFrame() to ignore this variable. Of course
+it would be better to shrink the frame,   but  I doubt that is worth the
+trouble.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 skippedVar(Word arg, compileInfo *ci ARG_LD)
-{ int i = isIndexedVarTerm(*arg PASS_LD);
+{ int i;
+
+right_recursion:
+  deRef(arg);
+  i = isIndexedVarTerm(*arg PASS_LD);
 
   if ( i >= 0 && isFirstVarSet(ci->used_var, i) )
     Output_1(ci, C_VAR, VAROFFSET(i));
+  if ( isTerm(*arg) && !ci->islocal )
+  { int ar = arityFunctor(functorTerm(*arg));
+
+    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
+      skippedVar(arg, ci PASS_LD);
+    goto right_recursion;
+  }
 
   return TRUE;
 }
@@ -3028,7 +3059,9 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
   { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
       compiler_warning(ci, "eq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_FAIL);
+    { skippedVar(a1, ci PASS_LD);
+      skippedVar(a2, ci PASS_LD);
+      Output_0(ci, I_FAIL);
       return TRUE;
     }
 
@@ -3046,8 +3079,10 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
     { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
 	compiler_warning(ci, "eq_vv", a1, a2);
       if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      {	code op = (i1 == i2) ? I_TRUE : I_FAIL;
+      {	code op = (i1 == i2) ? I_TRUE : I_FAIL;;
 
+	skippedVar(a1, ci PASS_LD);
+	skippedVar(a2, ci PASS_LD);
 	Output_0(ci, op);
 
 	return TRUE;
@@ -3106,7 +3141,9 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
   { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
       compiler_warning(ci, "neq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_TRUE);
+    { skippedVar(a1, ci PASS_LD);
+      skippedVar(a2, ci PASS_LD);
+      Output_0(ci, I_TRUE);
       return TRUE;
     }
 
@@ -3124,7 +3161,9 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
     { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
 	compiler_warning(ci, "neq_vv", a1, a2);
       if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      {	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
+      {	skippedVar(a1, ci PASS_LD);
+	skippedVar(a2, ci PASS_LD);
+	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
 	return TRUE;
       }
     } else
@@ -3686,11 +3725,13 @@ PRED_IMPL("redefine_system_predicate",  1, redefine_system_predicate,
   if ( !PL_get_functor(head, &fd) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, pred);
 
-  proc = lookupProcedure(fd, m);
-  abolishProcedure(proc, m);
-  set(proc->definition, P_REDEFINED);	/* flag as redefined */
-
-  succeed;
+  if ( (proc = lookupProcedure(fd, m)) )
+  { abolishProcedure(proc, m);
+    set(proc->definition, P_REDEFINED);	/* flag as redefined */
+    return TRUE;
+  } else
+  { return FALSE;
+  }
 }
 
 
@@ -3753,6 +3794,11 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 skipArgs() skips arguments. When used inside  a clause-head and the skip
 is into the middle  of  a  H_VOID_N,   it  returns  the  location of the
 H_VOID_N.
+
+(*) resortDictsInClause() uses this to skip  values   in  the dict. As a
+dict is essentially a compound, if the last  value is H_VOID, it will be
+optimised away, resulting in <key-code>,   H_POP  instead of <key-code>,
+H_VOID, H_POP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
@@ -3783,8 +3829,9 @@ skipArgs(Code PC, int skip)
       case B_POP:
 	if ( --nested == 0 && --skip == 0 )
 	  return nextPC;
-        assert(nested>=0);
-        continue;
+        if ( nested >= 0 )
+          continue;
+        return PC;			/* See (*) */
       case H_ATOM:
       case H_SMALLINT:
       case H_NIL:
@@ -4962,17 +5009,17 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			  }
     { code cut;
       functor_t f;
-      case C_IFTHEN:				/* A -> B */
-			    cut = C_CUT;
+      case C_IFTHEN:					/* A -> B */
+			    cut = C_CUT;		/* C_CUT takes 1 arg */
 			    f = FUNCTOR_ifthen2;
 			    goto c_ifthen;
       case C_SOFTIFTHEN:				/* A *->B */
-			    cut = C_SCUT;
+			    cut = C_SCUT;		/* C_SCUT takes 0 args */
 			    f = FUNCTOR_softcut2;
 			  c_ifthen:
 			    PC++;
-			    TRY_DECOMPILE(di, cut, NULL);   /* A */
-			    PC += 2;
+			    TRY_DECOMPILE(di, cut, NULL);     /* A */
+                            PC += ( cut == C_CUT ? 2 : 1 );   /* skip C_(S)CUT */
 			    TRY_DECOMPILE(di, C_END, NULL);   /* B */
 			    PC++;
 			    BUILD_TERM(f);

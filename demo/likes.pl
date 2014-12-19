@@ -6,11 +6,17 @@
 %%
 %% Considering the following will give some practice
 %% in thinking about backtracking.
-%% ?- likes(sam,dahl).
-%% ?- likes(sam,chop_suey).
-%% ?- likes(sam,pizza).
-%% ?- likes(sam,chips).
-%% ?- likes(sam,curry).
+%%
+%% You can also run this demo online at
+%% http://swish.swi-prolog.org/?code=https://github.com/SWI-Prolog/swipl-devel/raw/master/demo/likes.pl&q=likes(sam,Food).
+
+/** <examples>
+?- likes(sam,dahl).
+?- likes(sam,chop_suey).
+?- likes(sam,pizza).
+?- likes(sam,chips).
+?- likes(sam,curry).
+*/
 
 likes(sam,Food) :-
         indian(Food),

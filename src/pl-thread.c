@@ -338,24 +338,21 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 #endif
   PL_LOCK(L_MUTEX);
   for(cm = GD->thread.mutexes; cm; cm = cm->next)
-  { if ( cm->count == 0 )
+  { int lc;
+
+    if ( cm->count == 0 )
       continue;
 
     Sdprintf("%-32Us %8d", cm->name, cm->count); /* %Us: UTF-8 string */
 #ifdef O_CONTENTION_STATISTICS
     Sdprintf(" %8d", cm->collisions);
 #endif
-    if ( cm == &_PL_mutexes[L_MUTEX] )
-    { if ( cm->count - cm->unlocked != 1 )
-	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked - 1);
-      else
-	Sdprintf("\n");
-    } else
-    { if ( cm->unlocked != cm->count )
-	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked);
-      else
-	Sdprintf("\n");
-    }
+    lc = (cm == &_PL_mutexes[L_MUTEX] ? 1 : 0);
+
+    if ( cm->lock_count > lc )
+      Sdprintf(" LOCKS: %d\n", cm->count - lc);
+    else
+      Sdprintf("\n");
   }
   PL_UNLOCK(L_MUTEX);
 
@@ -507,9 +504,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     acknowledge = info->thread_data->exit_requested;
     UNLOCK();
 
-#if O_DEBUGGER
     callEventHook(PL_EV_THREADFINISHED, info);
-#endif
     run_thread_exit_hooks(ld);
   } else
   { acknowledge = FALSE;
@@ -626,10 +621,10 @@ reinit_threads_after_fork(void)
 
   for(m = GD->thread.mutexes; m; m = m->next)
   { simpleMutexInit(&m->mutex);			/* Dubious */
-    m->count = 0L;
-    m->unlocked = 0L;
+    m->count = 0;
+    m->lock_count = 0;
 #ifdef O_CONTENTION_STATISTICS
-    m->collisions = 0L;
+    m->collisions = 0;
 #endif
   }
 
@@ -1488,6 +1483,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->_debugstatus		  = ldold->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->_debugstatus.suspendTrace= 0;
+  ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
   ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
@@ -2801,8 +2797,7 @@ markAtomsMessageQueue() scans it. This fixes the reopened Bug#142.
 
 static int
 get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
-{ term_t tmp = PL_new_term_ref();
-  int isvar = PL_is_variable(msg) ? 1 : 0;
+{ int isvar = PL_is_variable(msg) ? 1 : 0;
   word key = (isvar ? 0L : getIndexOfTerm(msg));
   fid_t fid = PL_open_foreign_frame();
   uint64_t seen = 0;
@@ -2823,6 +2818,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { int rc;
+      term_t tmp;
 
       if ( msgp->sequence_id < seen )
       { QSTAT(skipped);
@@ -2838,8 +2834,11 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       }
 
       QSTAT(unified);
+      tmp = PL_new_term_ref();
       if ( !PL_recorded(msgp->message, tmp) )
+      { PL_discard_foreign_frame(fid);
         return raiseStackOverflow(GLOBAL_OVERFLOW);
+      }
       rc = PL_unify(msg, tmp);
       DEBUG(MSG_QUEUE, { pl_writeln(tmp);
 			 pl_writeln(msg);
@@ -2868,9 +2867,11 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	  cv_signal(&queue->drain_var);
 	}
 
+	PL_close_foreign_frame(fid);
 	return TRUE;
       } else if ( exception_term )
-      { return FALSE;
+      { PL_close_foreign_frame(fid);
+	return FALSE;
       }
 
       PL_rewind_foreign_frame(fid);
@@ -2891,6 +2892,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	if ( is_signalled(LD) )		/* thread-signal */
 	{ queue->waiting--;
 	  queue->waiting_var -= isvar;
+	  PL_discard_foreign_frame(fid);
 	  return MSG_WAIT_INTR;
 	}
 	break;
@@ -2898,6 +2900,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       case ETIMEDOUT:
       { queue->waiting--;
 	queue->waiting_var -= isvar;
+	PL_discard_foreign_frame(fid);
 	return MSG_WAIT_TIMEOUT;
       }
       case 0:
@@ -3949,18 +3952,20 @@ allocSimpleMutex(const char *name)
 { counting_mutex *m = allocHeapOrHalt(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
-  m->count = 0L;
-  m->unlocked = 0L;
+  m->count = 0;
+  m->lock_count = 0;
 #ifdef O_CONTENTION_STATISTICS
-  m->collisions = 0L;
+  m->collisions = 0;
 #endif
-  if ( name )
-    m->name = store_string(name);
-  else
-    m->name = NULL;
+  m->name = name ? store_string(name) : (char*)NULL;
+  m->prev = NULL;
+
   PL_LOCK(L_MUTEX);
   m->next = GD->thread.mutexes;
   GD->thread.mutexes = m;
+  if ( m->next )
+    m->next->prev = m;
+
   PL_UNLOCK(L_MUTEX);
 
   return m;
@@ -3969,20 +3974,16 @@ allocSimpleMutex(const char *name)
 
 void
 freeSimpleMutex(counting_mutex *m)
-{ counting_mutex *cm;
-
-  simpleMutexDelete(&m->mutex);
-  PL_LOCK(L_MUTEX);
-  if ( m == GD->thread.mutexes )
-  { GD->thread.mutexes = m->next;
-  } else
-  { for(cm=GD->thread.mutexes; cm; cm=cm->next)
-    { if ( cm->next == m )
-	cm->next = m->next;
-    }
-  }
+{ PL_LOCK(L_MUTEX);
+  if ( m->next )
+    m->next->prev = m->prev;
+  if ( m->prev )
+    m->prev->next = m->next;
+  else
+    GD->thread.mutexes = NULL;
   PL_UNLOCK(L_MUTEX);
 
+  simpleMutexDelete(&m->mutex);
   remove_string((char *)m->name);
   freeHeap(m, sizeof(*m));
 }

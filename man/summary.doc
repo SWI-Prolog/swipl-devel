@@ -23,14 +23,14 @@ suggest predicates from a keyword.
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
 \predicatesummary{.}{2}{Consult. Also functional notation}
 \oppredsummary{:<}{2}{xfx}{700}{Select keys from a dict}
-\oppredsummary{;}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{|}{2}}
+\oppredsummary{;}{2}{xfy}{1100}{Disjunction of two goals}
 \oppredsummary{<}{2}{xfx}{700}{Arithmetic smaller}
-\oppredsummary{=}{2}{xfx}{700}{Unification}
+\oppredsummary{=}{2}{xfx}{700}{True when arguments are unified}
 \oppredsummary{=..}{2}{xfx}{700}{``Univ.'' Term to list conversion}
-\oppredsummary{=:=}{2}{xfx}{700}{Arithmetic equal}
+\oppredsummary{=:=}{2}{xfx}{700}{Arithmetic equality}
 \oppredsummary{=<}{2}{xfx}{700}{Arithmetic smaller or equal}
-\oppredsummary{==}{2}{xfx}{700}{Identical}
-\oppredsummary{=@=}{2}{xfx}{700}{Structural identical}
+\oppredsummary{==}{2}{xfx}{700}{Test for strict equality}
+\oppredsummary{=@=}{2}{xfx}{700}{Test for structural equality (variant)}
 \oppredsummary{=\=}{2}{xfx}{700}{Arithmetic not equal}
 \oppredsummary{>}{2}{xfx}{700}{Arithmetic larger}
 \oppredsummary{>=}{2}{xfx}{700}{Arithmetic larger or equal}
@@ -41,8 +41,8 @@ suggest predicates from a keyword.
 \oppredsummary{@>}{2}{xfx}{700}{Standard order larger}
 \oppredsummary{@>=}{2}{xfx}{700}{Standard order larger or equal}
 \oppredsummary{\+}{1}{fy}{900}{Negation by failure. Same as not/1}
-\oppredsummary{\=}{2}{xfx}{700}{Not unifiable}
-\oppredsummary{\==}{2}{xfx}{700}{Not identical}
+\oppredsummary{\=}{2}{xfx}{700}{True if arguments cannot be unified}
+\oppredsummary{\==}{2}{xfx}{700}{True if arguments are not strictly equal}
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
 \oppredsummary{|}{2}{xfy}{1105}{Disjunction in DCGs. Same as \predref{;}{2}}
@@ -80,7 +80,7 @@ suggest predicates from a keyword.
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
 \predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
-\predicatesummary{atom_concat}{3}{Append two atoms}
+\predicatesummary{atom_concat}{3}{Contatenate two atoms}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
 \predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
@@ -88,8 +88,8 @@ suggest predicates from a keyword.
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
 \predicatesummary{atomic}{1}{Type check for primitive}
 \predicatesummary{atomic_concat}{3}{Concatenate two atomic values to an atom}
-\predicatesummary{atomic_list_concat}{2}{Append a list of atoms}
-\predicatesummary{atomic_list_concat}{3}{Append a list of atoms with separator}
+\predicatesummary{atomic_list_concat}{2}{Append a list of atomics}
+\predicatesummary{atomic_list_concat}{3}{Append a list of atomics with separator}
 \predicatesummary{atomics_to_string}{2}{Concatenate list of inputs to a string}
 \predicatesummary{atomics_to_string}{3}{Concatenate list of inputs to a string}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
@@ -342,6 +342,7 @@ suggest predicates from a keyword.
 \predicatesummary{list_strings}{0}{Help porting to version 7}
 \predicatesummary{listing}{0}{List program in current module}
 \predicatesummary{listing}{1}{List predicate}
+\predicatesummary{load_files}{1}{Load source files}
 \predicatesummary{load_files}{2}{Load source files with options}
 \predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
@@ -679,6 +680,7 @@ suggest predicates from a keyword.
 \predicatesummary{valid_string_goal}{1}{\hook{check} Goal handles strings}
 \predicatesummary{var}{1}{Type check for unbound variable}
 \predicatesummary{var_number}{2}{Check that var is numbered by numbervars}
+\predicatesummary{var_property}{2}{Variable properties during macro expansion}
 \predicatesummary{variant_sha1}{2}{Term-hash for term-variants}
 \predicatesummary{version}{0}{Print system banner message}
 \predicatesummary{version}{1}{Add messages to the system banner}
@@ -800,7 +802,7 @@ suggest predicates from a keyword.
 
 \begin{summarylist}{lrD{f}{f}{-1}l}
 \opsummary{1}{fx}{$}{Bind top-level variable}
-\opsummary{200}{xfy}{^}{Predicate}
+\opsummary{200}{xfy}{^}{Existential qualification}
 \opsummary{200}{xfy}{^}{Arithmetic function}
 \opsummary{300}{xfx}{mod}{Arithmetic function}
 \opsummary{400}{yfx}{*}{Arithmetic function}
@@ -842,15 +844,15 @@ suggest predicates from a keyword.
 \opsummary{1050}{xfy}{->}{Predicate}
 \opsummary{1050}{xfy}{*->}{Predicate}
 \opsummary{1100}{xfy}{;}{Predicate}
-\opsummary{1105}{xfy}{|}{Predicate}
-\opsummary{1150}{fx}{discontiguous}{Predicate}
-\opsummary{1150}{fx}{dynamic}{Predicate}
-\opsummary{1150}{fx}{module_transparent}{Predicate}
+\opsummary{1105}{xfy}{|}{DCG disjunction}
+\opsummary{1150}{fx}{discontiguous}{Directive}
+\opsummary{1150}{fx}{dynamic}{Directive}
+\opsummary{1150}{fx}{module_transparent}{Directive}
 \opsummary{1150}{fx}{meta_predicate}{Head}
-\opsummary{1150}{fx}{multifile}{Predicate}
-\opsummary{1150}{fx}{thread_local}{Predicate}
-\opsummary{1150}{fx}{volatile}{Predicate}
-\opsummary{1150}{fx}{initialization}{Predicate}
+\opsummary{1150}{fx}{multifile}{Directive}
+\opsummary{1150}{fx}{thread_local}{Directive}
+\opsummary{1150}{fx}{volatile}{Directive}
+\opsummary{1150}{fx}{initialization}{Directive}
 \opsummary{1200}{fx}{:-}{Introduces a directive}
 \opsummary{1200}{fx}{?-}{Introduces a directive}
 \opsummary{1200}{xfx}{-->}{DCGrammar: rewrite}

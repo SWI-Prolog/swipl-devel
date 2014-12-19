@@ -183,29 +183,28 @@ compile-time
 
 #define IF_MT(id, g) if ( id == L_THREAD || GD->thread.enabled ) g
 
-#ifdef O_CONTENTION_STATISTICS
-#define countingMutexLock(cm) \
-	do \
-	{ if ( !simpleMutexTryLock(&(cm)->mutex) ) \
-	  { (cm)->collisions++; \
-	    simpleMutexLock(&(cm)->mutex); \
-	  } \
-	  (cm)->count++; \
-	} while(0)
+static inline void
+countingMutexLock(counting_mutex *cm)
+{
+#if O_CONTENTION_STATISTICS
+  if ( !simpleMutexTryLock(&cm->mutex) )
+  { cm->collisions++;
+    simpleMutexLock(&cm->mutex);
+  }
 #else
-#define countingMutexLock(cm) \
-	do \
-	{ simpleMutexLock(&(cm)->mutex); \
-	  (cm)->count++; \
-	} while(0)
+  simpleMutexLock(&cm->mutex);
 #endif
-#define countingMutexUnlock(cm) \
-	do \
-	{ (cm)->unlocked++; \
-	  assert((cm)->unlocked <= (cm)->count); \
-	  simpleMutexUnlock(&(cm)->mutex); \
-	} while(0)
 
+  cm->count++;
+  cm->lock_count++;
+}
+
+static inline void
+countingMutexUnlock(counting_mutex *cm)
+{ assert(cm->lock_count > 0);
+  cm->lock_count--;
+  simpleMutexUnlock(&cm->mutex);
+}
 
 #ifdef O_DEBUG_MT
 #define PL_LOCK(id) \

@@ -285,6 +285,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libjpeg-8.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
+  File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
 !else
   File ${SWIPL}\bin\swipl.dll
@@ -302,6 +303,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR\library
 ; SYSTEM STUFF
   File ${SWIPL}\library\listing.pl
+  File ${SWIPL}\library\pprint.pl
   File ${SWIPL}\library\qsave.pl
   File ${SWIPL}\library\statistics.pl
   File ${SWIPL}\library\writef.pl
@@ -510,6 +512,7 @@ Section "CLP"
   File ${SWIPL}\library\clp\clp_distinct.pl
   File ${SWIPL}\library\clp\simplex.pl
   File ${SWIPL}\library\clp\clpfd.pl
+  File ${SWIPL}\library\clp\clpb.pl
 SectionEnd
 
 Section "CLP on real and rational numbers: CLP(Q,R)"
@@ -645,6 +648,16 @@ Section "ODBC Interface"
   File ${SWIPL}\library\odbc.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\odbc.html
+SectionEnd
+
+Section "CQL database Interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File /r ${SWIPL}\library\cql
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\cql.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r ${SWIPL}\doc\packages\examples\cql
 SectionEnd
 
 Section "Google protocol buffers"

@@ -67,6 +67,7 @@ qmodule(lib, library(pcedraw)).
 qmodule(lib, library('emacs/emacs')).
 qmodule(lib, library('dialog/dialog')).
 qmodule(lib, library('trace/trace')).
+qmodule(lib, library('cql/cql')).
 
 qcompile_libs :-
 	forall(qmodule(_Type, Module),

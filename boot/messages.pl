@@ -225,12 +225,11 @@ syntax_error(end_of_clause_expected) -->
 	[ 'End of clause expected' ].
 syntax_error(end_of_file) -->
 	[ 'Unexpected end of file' ].
-syntax_error(end_of_file_in_atom) -->
-	[ 'End of file in quoted atom' ].
 syntax_error(end_of_file_in_block_comment) -->
 	[ 'End of file in /* ... */ comment' ].
-syntax_error(end_of_file_in_string) -->
-	[ 'End of file in quoted string' ].
+syntax_error(end_of_file_in_quoted(Quote)) -->
+	[ 'End of file in quoted ' ],
+	quoted_type(Quote).
 syntax_error(illegal_number) -->
 	[ 'Illegal number' ].
 syntax_error(long_atom) -->
@@ -257,6 +256,10 @@ syntax_error(void_not_allowed) -->
 	[ 'Empty argument list "()"' ].
 syntax_error(Message) -->
 	[ '~w'-[Message] ].
+
+quoted_type('\'') --> [atom].
+quoted_type('\"') --> { current_prolog_flag(double_quotes, Type) }, [Type-[]].
+quoted_type('\`') --> { current_prolog_flag(back_quotes, Type) }, [Type-[]].
 
 domain(range(Low,High)) --> !,
 	['[~q..~q]'-[Low,High] ].
@@ -325,6 +328,8 @@ swi_message(context_error(edit, no_default_file)) -->
 	    ]
 	),
 	[ nl, 'Use "?- edit(Topic)." or "?- emacs."' ].
+swi_message(context_error(function, meta_arg(S))) -->
+	[ 'Functions are not (yet) supported for meta-arguments of type ~q'-[S] ].
 swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
@@ -522,6 +527,8 @@ prolog_message(discontiguous((-)/2)) -->
 	prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc)) -->
 	[ 'Clauses of ~p are not together in the source-file'-[Proc] ].
+prolog_message(decl_no_effect(Goal)) -->
+	[ 'Deprecated declaration has no effect: ~p'-[Goal] ].
 prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),

@@ -101,6 +101,8 @@ set_breakpoint(File, Line, Char, Id) :-
 	      (erase(Ref), throw(E))).
 
 
+range(_,  Pos, _, _) :-
+	var(Pos), !, fail.
 range([], Pos, A, Z) :-
 	arg(1, Pos, A),
 	arg(2, Pos, Z).

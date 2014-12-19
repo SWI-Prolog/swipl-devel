@@ -482,6 +482,15 @@ default_module(Me, Super) :-
 '$undefined_procedure'(_, _, _, error).
 
 '$autoload'(Module, Name, Arity) :-
+	source_location(File, _Line), !,
+	setup_call_cleanup(
+	    '$start_aux'(File, Context),
+	    '$autoload2'(Module, Name, Arity),
+	    '$end_aux'(File, Context)).
+'$autoload'(Module, Name, Arity) :-
+	'$autoload2'(Module, Name, Arity).
+
+'$autoload2'(Module, Name, Arity) :-
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
 	'$update_autoload_level'([autoload(true)], Old),
@@ -1167,9 +1176,11 @@ compiling :-
 	repeat,
 	  read_clause(In, Raw,
 		      [ variable_names(Bindings),
+			term_position(Pos),
 			subterm_positions(RawLayout)
 		      | ReadOptions
 		      ]),
+	  b_setval('$term_position', Pos),
 	  b_setval('$variable_names', Bindings),
 	  (   Raw == end_of_file
 	  ->  !,
@@ -1335,15 +1346,6 @@ compiling :-
 	).
 
 
-%	'$substitute_atom'(+From, +To, +In, -Out)
-
-'$substitute_atom'(From, To, In, Out) :-
-	sub_atom(In, B, _, A, From),
-	sub_atom(In, 0, B, _, Before),
-	sub_atom(In, _, A, 0, After),
-	atomic_list_concat([Before, To, After], Out).
-
-
 		 /*******************************
 		 *	    DERIVED FILES	*
 		 *******************************/
@@ -1462,25 +1464,16 @@ consult(List) :-
 %
 %	Common entry for all the consult derivates.  File is the raw user
 %	specified file specification, possibly tagged with the module.
-%
-%	`Options' is a list of additional options.  Defined values are
-%
-%	    verbose		Print statistics on user channel
-%	    is_module		File MUST be a module file
-%	    import = List	List of predicates to import
 
 load_files(Files) :-
 	load_files(Files, []).
 load_files(Module:Files, Options) :-
-	(   is_list(Options)
-	->  true
-	;   throw(error(type_error(list, Options), _))
-	),
+	'$must_be'(list, Options),
         '$load_files'(Files, Module, Options).
 
 '$load_files'(X, _, _) :-
 	var(X), !,
-	throw(error(instantiation_error, context(load_files/2,_))).
+	'$instantiation_error'(X).
 '$load_files'([], _, _) :- !.
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
 	'$option'(stream(_), Options), !,
@@ -1490,10 +1483,8 @@ load_files(Module:Files, Options) :-
 	).
 '$load_files'(List, Module, Options) :-
 	List = [_|_], !,
-	(   is_list(List)
-	->  '$load_file_list'(List, Module, Options)
-	;   throw(error(type_error(list, List), context(load_files/2,_)))
-	).
+	'$must_be'(list, List),
+	'$load_file_list'(List, Module, Options).
 '$load_files'(File, Module, Options) :-
 	'$load_one_file'(File, Module, Options).
 
@@ -1893,13 +1884,18 @@ load_files(Module:Files, Options) :-
 
 '$enter_sandboxed'(Old, New, SandBoxed) :-
 	(   Old == false, New == true
-	->  SandBoxed = true
+	->  SandBoxed = true,
+	    '$ensure_loaded_library_sandbox'
 	;   Old == true, New == false
 	->  throw(error(permission_error(leave, sandbox, -), _))
 	;   SandBoxed = Old
 	).
-
 '$enter_sandboxed'(false, true, true).
+
+'$ensure_loaded_library_sandbox' :-
+	source_file_property(library(sandbox), module(sandbox)), !.
+'$ensure_loaded_library_sandbox' :-
+	load_files(library(sandbox), [if(not_loaded), silent(true)]).
 
 
 %%	'$update_autoload_level'(+Options, -OldLevel)
@@ -2041,13 +2037,13 @@ load_files(Module:Files, Options) :-
 '$assert_load_context_module'(_, _, Options) :-
 	memberchk(register(false), Options), !.
 '$assert_load_context_module'(File, Module, Options) :-
-	source_location(FromFile, _Line), !,
+	source_location(FromFile, Line), !,
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
 	'$load_ctx_options'(Options1, Options2),
-	'$compile_aux_clauses'(
-	     system:'$load_context_module'(File, Module, Options2),
-	     FromFile).
+	'$store_admin_clause'(
+	    system:'$load_context_module'(File, Module, Options2),
+	    _Layout, FromFile, File:Line).
 '$assert_load_context_module'(File, Module, Options) :-
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
@@ -2174,12 +2170,20 @@ load_files(Module:Files, Options) :-
 	'$start_non_module'(Id, State, Options),
 	'$compile_term'(Term, Layout, Id).
 
-'$compile_term'((?-Directive), _Layout, Id) :- !,
+'$compile_term'(Term, Layout, Id) :-
+	'$compile_term'(Term, Layout, Id, -).
+
+'$compile_term'(Var, _Layout, _Id, _Src) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
+'$compile_term'((?-Directive), _Layout, Id, _) :- !,
 	'$execute_directive'(Directive, Id).
-'$compile_term'((:-Directive), _Layout, Id) :- !,
+'$compile_term'((:-Directive), _Layout, Id, _) :- !,
 	'$execute_directive'(Directive, Id).
-'$compile_term'(Clause, Layout, Id) :- !,
-	catch('$store_clause'(Clause, Layout, Id), E,
+'$compile_term'('$source_location'(File, Line):Term, Layout, Id, _) :- !,
+	'$compile_term'(Term, Layout, Id, File:Line).
+'$compile_term'(Clause, Layout, Id, SrcLoc) :-
+	catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
 	      '$print_message'(error, E)).
 
 '$start_non_module'(Id, _State, Options) :-
@@ -2457,9 +2461,10 @@ load_files(Module:Files, Options) :-
 	->  '$set_predicate_attribute'(Context:NewHead, transparent, 1)
 	;   true
 	),
-	(   source_location(File, _Line)
-	->  catch('$store_clause'((NewHead :- Source:Head), _Layout, File), E,
-		  '$print_message'(error, E))
+	(   source_location(File, Line)
+	->  catch('$store_admin_clause'((NewHead :- Source:Head),
+					_Layout, File, File:Line),
+		  E, '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
 	'$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
@@ -2555,7 +2560,7 @@ load_files(Module:Files, Options) :-
 	->  true
 	;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File)
 	),
-	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File).
+	'$store_admin_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File, -).
 
 %%	'$execute_directive'(:Goal, +File) is det.
 %
@@ -2608,6 +2613,7 @@ load_files(Module:Files, Options) :-
 %	of the directive by throwing an exception.
 
 :- multifile prolog:sandbox_allowed_directive/1.
+:- multifile prolog:sandbox_allowed_clause/1.
 :- meta_predicate '$valid_directive'(:).
 
 '$valid_directive'(_) :-
@@ -2619,8 +2625,12 @@ load_files(Module:Files, Options) :-
 	;   print_message(error, Error),
 	    fail
 	).
-'$valid_directive'(_).
-
+'$valid_directive'(Goal) :-
+	print_message(error,
+		      error(permission_error(execute,
+					     sandboxed_directive,
+					     Goal), _)),
+	fail.
 
 '$exception_in_directive'(Term) :-
 	print_message(error, Term),
@@ -2701,29 +2711,78 @@ load_files(Module:Files, Options) :-
 		*        COMPILE A CLAUSE       *
 		*********************************/
 
-%%	'$store_clause'(+Clause, ?Layout, +SourceId) is det.
+%%	'$store_admin_clause'(+Clause, ?Layout, +Owner, +SrcLoc) is det.
 %
-%	Store a clause into the database.
+%	Store a clause into the   database  for administrative purposes.
+%	This bypasses sanity checking.
 
-'$store_clause'((_, _), _, _) :- !,
-	print_message(error, cannot_redefine_comma),
-	fail.
-'$store_clause'(Term, _Layout, File) :-
-	'$clause_source'(Term, Clause, SrcLoc),
+'$store_admin_clause'(Clause, _Layout, File, SrcLoc) :-
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
 	;   '$record_clause'(Clause, File, SrcLoc, Ref),
 	    '$qlf_assert_clause'(Ref, development)
 	).
 
+%%	'$store_clause'(+Clause, ?Layout, +Owner, +SrcLoc) is det.
+%
+%	Store a clause into the database.
+%
+%	@arg	Owner is the file-id that owns the clause
+%	@arg	SrcLoc is the file:line term where the clause
+%		originates from.
+
+'$store_clause'((_, _), _, _, _) :- !,
+	print_message(error, cannot_redefine_comma),
+	fail.
+'$store_clause'(Clause, _Layout, File, SrcLoc) :-
+	'$valid_clause'(Clause), !,
+	(   '$compilation_mode'(database)
+	->  '$record_clause'(Clause, File, SrcLoc)
+	;   '$record_clause'(Clause, File, SrcLoc, Ref),
+	    '$qlf_assert_clause'(Ref, development)
+	).
+
+'$valid_clause'(_) :-
+	current_prolog_flag(sandboxed_load, false), !.
+'$valid_clause'(Clause) :-
+	\+ '$cross_module_clause'(Clause), !.
+'$valid_clause'(Clause) :-
+	catch(prolog:sandbox_allowed_clause(Clause), Error, true), !,
+	(   var(Error)
+	->  true
+	;   print_message(error, Error),
+	    fail
+	).
+'$valid_clause'(Clause) :-
+	print_message(error,
+		      error(permission_error(assert,
+					     sandboxed_clause,
+					     Clause), _)).
+
+'$cross_module_clause'(Clause) :-
+	'$head_module'(Clause, Module),
+	\+ '$set_source_module'(Module, Module).
+
+'$head_module'(Var, _) :-
+	var(Var), !, fail.
+'$head_module'((Head :- _), Module) :-
+	'$head_module'(Head, Module).
+'$head_module'(Module:_, Module).
+
 '$clause_source'('$source_location'(File,Line):Clause, Clause, File:Line) :- !.
 '$clause_source'(Clause, Clause, -).
+
+%%	'$store_clause'(+Term, +Id) is det.
+%
+%	This interface is used by PlDoc (and who knows).  Kept for to avoid
+%	compatibility issues.
 
 :- public
 	'$store_clause'/2.
 
-'$store_clause'(Clause, Id) :-
-	'$store_clause'(Clause, _, Id).
+'$store_clause'(Term, Id) :-
+	'$clause_source'(Term, Clause, SrcLoc),
+	'$store_clause'(Clause, _, Id, SrcLoc).
 
 %%	compile_aux_clauses(+Clauses) is det.
 %
@@ -2880,6 +2939,9 @@ saved state.
 
 '$existence_error'(Type, Object) :-
 	throw(error(existence_error(Type, Object), _)).
+
+'$permission_error'(Action, Type, Term) :-
+	throw(error(permission_error(Action, Type, Term), _)).
 
 '$instantiation_error'(_Var) :-
 	throw(error(instantiation_error, _)).

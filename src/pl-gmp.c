@@ -441,7 +441,7 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 }
 
 
-void
+int
 promoteToMPZNumber(number *n)
 { switch(n->type)
   { case V_INTEGER:
@@ -467,10 +467,12 @@ promoteToMPZNumber(number *n)
       n->type = V_MPZ;
       break;
   }
+
+  return TRUE;
 }
 
 
-void
+int
 promoteToMPQNumber(number *n)
 { switch(n->type)
   { case V_INTEGER:
@@ -493,6 +495,8 @@ promoteToMPQNumber(number *n)
       break;
     }
   }
+
+  return TRUE;
 }
 
 
@@ -618,7 +622,7 @@ int
 mpz_to_int64(mpz_t mpz, int64_t *i)
 { if ( mpz_cmp(mpz, MPZ_MIN_PLINT) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_PLINT) <= 0 )
-  { int64_t v;
+  { uint64_t v;
 
     mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
     DEBUG(2,
@@ -628,9 +632,10 @@ mpz_to_int64(mpz_t mpz, int64_t *i)
 	  });
 
     if ( mpz_sgn(mpz) < 0 )
-      v = -v;
+      *i = -(int64_t)(v - 1) - 1;
+    else
+      *i = (int64_t)v;
 
-    *i = v;
     return TRUE;
   }
 
@@ -784,6 +789,9 @@ PL_unify_number__LD(term_t t, Number n ARG_LD)
 
   switch(n->type)
   { case V_INTEGER:
+      if ( isTaggedInt(*p) )
+	return valInt(*p) == n->value.i;
+      /*FALLTHOURGH*/
 #ifdef O_GMP
     case V_MPZ:
 #endif
@@ -792,8 +800,7 @@ PL_unify_number__LD(term_t t, Number n ARG_LD)
 	int rc;
 
 	get_integer(*p, &n2);
-	same_type_numbers(n, &n2);
-	rc = ar_compare_eq(n, &n2);
+	rc = (cmpNumbers(n, &n2) == CMP_EQUAL);
 	clearNumber(&n2);
 
 	return rc;
@@ -912,22 +919,22 @@ promoteToFloatNumber(Number n)
 }
 
 
-void
+int
 promoteNumber(Number n, numtype t)
 { switch(t)
   { case V_INTEGER:
-      break;
+      return TRUE;
 #ifdef O_GMP
     case V_MPZ:
-      promoteToMPZNumber(n);
-      break;
+      return promoteToMPZNumber(n);
     case V_MPQ:
-      promoteToMPQNumber(n);
-      break;
+      return promoteToMPQNumber(n);
 #endif
     case V_FLOAT:
-      promoteToFloatNumber(n);
-      break;
+      return promoteToFloatNumber(n);
+    default:
+      assert(0);
+      return FALSE;
   }
 }
 
@@ -939,12 +946,12 @@ same_type_numbers(n1, n2)
     total ordering between the number types.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 make_same_type_numbers(Number n1, Number n2)
 { if ( (int)n1->type > (int)n2->type )
-    promoteNumber(n2, n1->type);
+    return promoteNumber(n2, n1->type);
   else
-    promoteNumber(n1, n2->type);
+    return promoteNumber(n1, n2->type);
 }
 
 
@@ -952,38 +959,98 @@ make_same_type_numbers(Number n1, Number n2)
 		 *	    OPERATIONS		*
 		 *******************************/
 
-					/* TBD: share with pl-prims.c!! */
-#define LESS    -1			/* n1 < n2 */
-#define EQUAL    0
-#define GREATER  1
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cmpNumbers() compares two numbers. First, both   numbers are promoted to
+the lowest (in V_* ordering) common type, after which they are compared.
+Note that if the common type is V_FLOAT, but not both are V_FLOAT we can
+run into troubles because big  integers  may   be  out  of range for the
+double representation. We trust mpz_get_d()   and mpq_get_d() return +/-
+float infinity and this compares  correctly   with  the  other argument,
+which is guaranteed to be a valid float.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+cmpFloatNumbers(Number n1, Number n2)
+{ if ( n1->type == V_FLOAT )
+  { double d2;
+
+    switch(n2->type)
+    { case V_INTEGER:
+	d2 = (double)n2->value.i;
+	break;
+      case V_MPZ:
+	d2 = mpz_get_d(n2->value.mpz);
+	break;
+      case V_MPQ:
+	d2 = mpq_get_d(n2->value.mpq);
+	break;
+      default:
+	assert(0);
+	d2 = 0.0;
+    }
+
+    return n1->value.f  < d2 ? CMP_LESS :
+	   n1->value.f == d2 ? CMP_EQUAL : CMP_GREATER;
+  } else
+  { double d1;
+
+    assert(n2->type == V_FLOAT);
+
+    switch(n1->type)
+    { case V_INTEGER:
+	d1 = (double)n1->value.i;
+	break;
+      case V_MPZ:
+	d1 = mpz_get_d(n1->value.mpz);
+	break;
+      case V_MPQ:
+	d1 = mpq_get_d(n1->value.mpq);
+	break;
+      default:
+	assert(0);
+	d1 = 0.0;
+    }
+
+    return n2->value.f  < d1 ? CMP_GREATER :
+	   n2->value.f == d1 ? CMP_EQUAL : CMP_LESS;
+  }
+}
+
 
 int
 cmpNumbers(Number n1, Number n2)
-{ same_type_numbers(n1, n2);
+{ if ( n1->type != n2->type )
+  { int rc;
+
+    if ( n1->type == V_FLOAT || n2->type == V_FLOAT )
+      return cmpFloatNumbers(n1, n2);
+    rc = make_same_type_numbers(n1, n2);
+    assert(rc != CMP_ERROR);
+  }
 
   switch(n1->type)
   { case V_INTEGER:
-      return n1->value.i  < n2->value.i ? LESS :
-	     n1->value.i == n2->value.i ? EQUAL : GREATER;
+      return n1->value.i  < n2->value.i ? CMP_LESS :
+	     n1->value.i == n2->value.i ? CMP_EQUAL : CMP_GREATER;
 #ifdef O_GMP
     case V_MPZ:
     { int rc = mpz_cmp(n1->value.mpz, n2->value.mpz);
 
-      return rc < 0 ? LESS : rc == 0 ? EQUAL : GREATER;
+      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
     }
     case V_MPQ:
     { int rc = mpq_cmp(n1->value.mpq, n2->value.mpq);
 
-      return rc < 0 ? LESS : rc == 0 ? EQUAL : GREATER;
+      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
     }
 #endif
     case V_FLOAT:
-      return n1->value.f  < n2->value.f ? LESS :
-	     n1->value.f == n2->value.f ? EQUAL : GREATER;
+      return n1->value.f  < n2->value.f ? CMP_LESS :
+	     n1->value.f == n2->value.f ? CMP_EQUAL : CMP_GREATER;
   }
 
   assert(0);
-  return EQUAL;
+  return CMP_EQUAL;
 }
 
 

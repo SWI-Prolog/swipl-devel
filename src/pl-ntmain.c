@@ -854,31 +854,26 @@ abort.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+exit_immediately(rlc_console c, int sig)
+{ _exit(1);
+}
+
+static void
 fatalSignal(int sig)
-{ char *name;
+{ rlc_interrupt_hook(exit_immediately);
 
-  switch(sig)
-  { case SIGABRT:	name = "abort"; break;
-    case SIGFPE:	name = "floating point exeception"; break;
-    case SIGILL:	name = "illegal instruction"; break;
-    case SIGSEGV:	name = "general protection fault"; break;
-    default:		name = "(unknown)"; break;
+  Sdprintf("\nYou may copy/paste information from this console to\n"
+	   "assemble a bug report.  Then press Control+C to exit\n");
+
+  while(1)
+  { Sleep(0xFFFFFFF);
   }
-
-  PL_warning("Trapped signal %d (%s), aborting ...", sig, name);
-
-  PL_action(PL_ACTION_BACKTRACE, (void *)10);
-  signal(sig, fatalSignal);
-  PL_action(PL_ACTION_ABORT, NULL);
 }
 
 
 static void
 initSignals()
 { signal(SIGABRT, fatalSignal);
-  signal(SIGFPE,  fatalSignal);
-  signal(SIGILL,  fatalSignal);
-  signal(SIGSEGV, fatalSignal);
 }
 
 

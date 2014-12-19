@@ -23,8 +23,9 @@ The \pllib{simplex} module provides the following predicates:
 
 \begin{description}
 	\predicate{assignment}{2}{+Cost, -Assignment}
+		Solves an assignment problem.
 		\arg{Cost} is a list of lists representing the quadratic
-		cost matrix, where element (i,j) denotes the cost of
+		cost matrix, where element (i,j) denotes the integer cost of
 		assigning entity $i$ to entity $j$. An assignment with
 		minimal cost is computed and unified with \arg{Assignment}
 		as a list of lists, representing an adjacency matrix.
@@ -75,14 +76,15 @@ The \pllib{simplex} module provides the following predicates:
 		must correspond to a solved instance.
 
 	\predicate{transportation}{4}{+Supplies, +Demands, +Costs, -Transport}
-		\arg{Supplies} and \arg{Demands} are both lists of positive
-		numbers. Their respective sums must be equal. \arg{Costs} is
+		Solves a transportation problem.
+		\arg{Supplies} and \arg{Demands} must be lists of non-negative
+		integers. Their respective sums must be equal. \arg{Costs} is
 		a list of lists representing the cost matrix, where an entry
-		(i,j) denotes the cost of transporting one unit from $i$
-		to $j$. A transportation plan having minimum cost is
+		(i,j) denotes the integer cost of transporting one unit from~$i$
+		to~$j$. A transportation plan having minimum cost is
 		computed and unified with \arg{Transport} in the form of a
 		list of lists that represents the transportation matrix, where
-		element (i,j) denotes how many units to ship from $i$ to $j$.
+		element~(i,j) denotes how many units to ship from~$i$ to~$j$.
 
 	\predicate{variable_value}{3}{+State, +Variable, -Value}
 		\arg{Value} is unified with the value obtained for

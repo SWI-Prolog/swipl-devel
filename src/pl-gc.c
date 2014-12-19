@@ -5012,7 +5012,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 	  { DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
 #ifdef COMPARE_AND_SWAP			/* See (**) above */
 	    if ( COMPARE_AND_SWAP(&def->references, 0, 1) )
-	      GD->procedures.active_marked++;
+	      ATOMIC_INC(&GD->procedures.active_marked);
 #else
 	    if ( ++def->references == 1 )
 	      GD->procedures.active_marked++;

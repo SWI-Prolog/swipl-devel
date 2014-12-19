@@ -84,8 +84,8 @@ user:file_search_path(engine, library(dialect/ciao/engine)).
 :- create_prolog_flag(discontiguous_warnings, on,  [type(atom)]).
 
 :- multifile
-	declaration/1,		 % +Head
-	ciao:declaration_hook/2. % +Head,-Exp
+	declaration/2,	    % +Head,+Module
+	declaration_hook/2. % +Head,-Exp
 
 :- dynamic
 	lock_expansion/0,
@@ -132,7 +132,6 @@ package_directive(Package, Directive) :-
 
 ciao_term_expansion((:- module(Name, Public, Packages)),
 		      [ (:- module(Name, Public)),
-			(:- style_check(-atom)),
 			(:- style_check(-singleton)),
 			(:- expects_dialect(ciao)),
 			(:- use_module(engine(basic_props))),
@@ -145,7 +144,7 @@ ciao_term_expansion((:- module(Name, Public, Packages)),
 map_ciaoname_rec(Ciao, Path, Path/Ciao) :- atom(Ciao), !.
 map_ciaoname_rec(Ciao0, Path, SWI) :-
 	Ciao0 =.. [F, Ciao],
-	map_ciaoname_rec(Ciao, Path/F, SWI). 
+	map_ciaoname_rec(Ciao, Path/F, SWI).
 
 map_ciaoname_(Path, Path) :- atom(Path), !.
 map_ciaoname_(Ciao0, SWI) :-
@@ -161,13 +160,18 @@ ciao_term_expansion((:- use_package(CiaoPack)),
 		    (:- include(SWIName))) :-
 	package_file(CiaoPack, CiaoName),
 	map_ciaoname(CiaoName, SWIName).
-ciao_term_expansion((:- new_declaration(Name/Arity)),
-		    ciao:declaration(Head)) :-
-	functor(Head, Name, Arity).
+ciao_term_expansion((:- new_declaration(Name/Arity)), Exp) :-
+	'$set_source_module'(M, M),
+	functor(Head, Name, Arity),
+	(   ciao:declaration(Head, M)
+	->  Exp = []
+	;   Exp = ciao:declaration(Head, M)
+	).
 ciao_term_expansion((:- package(_Package)), []).
 ciao_term_expansion((:- Decl), Exp) :-
-	declaration(Decl),
-	(   ciao:declaration_hook(Decl, Exp)
+	'$set_source_module'(M, M),
+	declaration(Decl, M),
+	(   declaration_hook(Decl, Exp)
 	->  true
 	;   functor(Decl, Name, Arity),
 	    prolog_load_context(module, Module),

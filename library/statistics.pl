@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -33,12 +31,15 @@
 
 :- module(prolog_statistics,
 	  [ statistics/0,
+	    statistics/1,		% -Stats
+	    thread_statistics/2,	% ?Thread, -Stats
 	    time/1,			% :Goal
 	    profile/1,			% :Goal
 	    profile/2,			% :Goal, +Options
 	    show_profile/1		% +Options
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(pairs)).
 :- use_module(library(option)).
 
 :- meta_predicate
@@ -57,90 +58,165 @@ use to obtain selective statistics during execution.
 
 %%	statistics is det.
 %
-%	Print information about  resource  usage   to  the  =user_error=
-%	stream.
+%	Print information about resource usage using print_message/2.
 %
 %	@see	All statistics printed are obtained through statistics/2.
 
 statistics :-
-	statistics(user_error).
+	phrase(collect_stats, Stats),
+	print_message(information, statistics(Stats)).
 
-statistics(Out) :-
-	statistics(trail, Trail),
-	statistics(trailused, TrailUsed),
-	statistics(local, Local),
-	statistics(localused, LocalUsed),
-	statistics(global, Global),
-	statistics(globalused, GlobalUsed),
-	statistics(process_cputime, Cputime),
-	statistics(inferences, Inferences),
-	statistics(atoms, Atoms),
-	statistics(functors, Functors),
-	statistics(predicates, Predicates),
-	statistics(modules, Modules),
-	statistics(codes, Codes),
-	statistics(locallimit, LocalLimit),
-	statistics(globallimit, GlobalLimit),
-	statistics(traillimit, TrailLimit),
+%%	statistics(-Stats:dict) is det.
+%
+%	Stats  is  a  dict   representing    the   same  information  as
+%	statistics/0. This convience function is   primarily intended to
+%	pass  statistical  information  to  e.g.,  a  web  client.  Time
+%	critical code that wishes to   collect statistics typically only
+%	need a small subset  and  should   use  statistics/2  to  obtain
+%	exactly the data they need.
 
-	format(Out, '~3f seconds cpu time for ~D inferences~n',
-				    [Cputime, Inferences]),
-	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
-				    [Atoms, Functors, Predicates, Modules, Codes]),
-	format(Out, '                       Limit    Allocated       In use~n', []),
-	format(Out, 'Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-	       [LocalLimit, Local, LocalUsed]),
-	format(Out, 'Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-	       [GlobalLimit, Global, GlobalUsed]),
-	format(Out, 'Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n~n',
-	       [TrailLimit, Trail, TrailUsed]),
+statistics(Stats) :-
+	phrase(collect_stats, [CoreStats|StatList]),
+	dict_pairs(CoreStats, _, CorePairs),
+	map_list_to_pairs(dict_key, StatList, ExtraPairs),
+	append(CorePairs, ExtraPairs, Pairs),
+	dict_pairs(Stats, statistics, Pairs).
 
-	gc_statistics(Out),
-	agc_statistics(Out),
-	shift_statistics(Out),
-	thread_statistics(Out).
+dict_key(Dict, Key) :-
+	gc{type:atom} :< Dict, !,
+	Key = agc.
+dict_key(Dict, Key) :-
+	is_dict(Dict, Key).
 
-gc_statistics(Out) :-
-	statistics(collections, Collections),
-	Collections > 0, !,
-	statistics(collected, Collected),
-	statistics(gctime, GcTime),
+collect_stats -->
+	core_statistics,
+	gc_statistics,
+	agc_statistics,
+	shift_statistics,
+	thread_counts.
 
-	format(Out, '~D garbage collections gained ~D bytes in ~3f seconds.~n',
-	       [Collections, Collected, GcTime]).
-gc_statistics(_).
+core_statistics -->
+	{ statistics(process_cputime, Cputime),
+	  statistics(process_epoch, Epoch),
+	  statistics(inferences, Inferences),
+	  statistics(atoms, Atoms),
+	  statistics(functors, Functors),
+	  statistics(predicates, Predicates),
+	  statistics(modules, Modules),
+	  statistics(codes, Codes),
+	  thread_self(Me),
+	  thread_stack_statistics(Me, Stacks)
+	},
+	[ core{ time:time{cpu:Cputime, inferences:Inferences, epoch:Epoch},
+		data:counts{atoms:Atoms, functors:Functors,
+			    predicates:Predicates, modules:Modules,
+			    vm_codes:Codes},
+		stacks:Stacks
+	      }
+	].
 
-agc_statistics(Out) :-
-	catch(statistics(agc, Agc), _, fail),
-	Agc > 0, !,
-	statistics(agc_gained, Gained),
-	statistics(agc_time, Time),
-	format(Out, '~D atom garbage collections gained ~D atoms in ~3f seconds.~n',
-	       [Agc, Gained, Time]).
-agc_statistics(_).
+thread_stack_statistics(Thread,
+		  stacks{local:stack{name:local,
+				    limit:LocalLimit,
+				     allocated:Local,
+				     usage:LocalUsed},
+			 global:stack{name:global,
+				      limit:GlobalLimit,
+				      allocated:Global,
+				      usage:GlobalUsed},
+			 trail:stack{name:trail,
+				     limit:TrailLimit,
+				     allocated:Trail,
+				     usage:TrailUsed},
+			 total:stack{name:stacks,
+				     limit:StackLimit,
+				     allocated:StackAllocated,
+				     usage:StackUsed}
+			}) :-
+	thread_statistics(Thread, trail,       Trail),
+	thread_statistics(Thread, trailused,   TrailUsed),
+	thread_statistics(Thread, local,       Local),
+	thread_statistics(Thread, localused,   LocalUsed),
+	thread_statistics(Thread, global,      Global),
+	thread_statistics(Thread, globalused,  GlobalUsed),
+	thread_statistics(Thread, locallimit,  LocalLimit),
+	thread_statistics(Thread, globallimit, GlobalLimit),
+	thread_statistics(Thread, traillimit,  TrailLimit),
+	StackUsed is LocalUsed+GlobalUsed+TrailUsed,
+	StackAllocated is Local+Global+Trail,
+	StackLimit is LocalLimit+GlobalLimit+TrailLimit.
 
-shift_statistics(Out) :-
-	statistics(local_shifts, LS),
-	statistics(global_shifts, GS),
-	statistics(trail_shifts, TS),
-	(   LS > 0
-	;   GS > 0
-	;   TS > 0
-	), !,
-	statistics(shift_time, Time),
-	format(Out, 'Stack shifts: ~D local, ~D global, ~D trail in ~3f seconds.~n',
-	       [LS, GS, TS, Time]).
-shift_statistics(_).
+gc_statistics -->
+	{ statistics(collections, Collections),
+	  Collections > 0, !,
+	  statistics(collected, Collected),
+	  statistics(gctime, GcTime)
+	},
+	[ gc{type:stack, unit:byte,
+	     count:Collections, time:GcTime, gained:Collected } ].
+gc_statistics --> [].
 
-thread_statistics(Out) :-
-	current_prolog_flag(threads, true), !,
-	statistics(threads, Active),
-	statistics(threads_created, Created),
-	statistics(thread_cputime, CpuTime),
-	Finished is Created - Active,
-	format(Out, '~D threads, ~D finished threads used ~3f seconds.~n',
-	       [Active, Finished, CpuTime]).
-thread_statistics(_).
+agc_statistics -->
+	{ catch(statistics(agc, Agc), _, fail),
+	  Agc > 0, !,
+	  statistics(agc_gained, Gained),
+	  statistics(agc_time, Time)
+	},
+	[ gc{type:atom, unit:atom,
+	     count:Agc, time:Time, gained:Gained} ].
+agc_statistics --> [].
+
+shift_statistics -->
+	{ statistics(local_shifts, LS),
+	  statistics(global_shifts, GS),
+	  statistics(trail_shifts, TS),
+	  (   LS > 0
+	  ;   GS > 0
+	  ;   TS > 0
+	  ), !,
+	  statistics(shift_time, Time)
+	},
+	[ shift{local:LS, global:GS, trail:TS, time:Time} ].
+shift_statistics --> [].
+
+thread_counts -->
+	{ current_prolog_flag(threads, true), !,
+	  statistics(threads, Active),
+	  statistics(threads_created, Created),
+	  statistics(thread_cputime, CpuTime),
+	  Finished is Created - Active
+	},
+	[ thread{count:Active, finished:Finished, time:CpuTime} ].
+thread_counts --> [].
+
+%%	thread_statistics(?Thread, -Stats:dict) is nondet.
+%
+%	Obtain statistical information about a single thread.  Fails
+%	silently of the Thread is no longer alive.
+%
+%	@arg	Stats is a dict containing status, time and stack-size
+%		information about Thread.
+
+thread_statistics(Thread, Stats) :-
+	thread_property(Thread, status(Status)),
+	(   catch(thread_stats(Thread, Stacks, Time), _, fail)
+	->  Stats = thread{id:Thread,
+			   status:Status,
+			   time:Time,
+			   stacks:Stacks}
+	;   Stats = thread{id:Thread,
+			   status:Status}
+	).
+
+thread_stats(Thread, Stacks,
+	     time{cpu:CpuTime,
+		  inferences:Inferences,
+		  epoch:Epoch
+		 }) :-
+	thread_statistics(Thread, cputime, CpuTime),
+	thread_statistics(Thread, inferences, Inferences),
+	thread_statistics(Thread, epoch, Epoch),
+	thread_stack_statistics(Thread, Stacks).
 
 
 %%	time(:Goal) is nondet.
@@ -438,3 +514,58 @@ prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
 	->  Perc is round(100*UsedTime/Wall)
 	;   Perc = ?
 	}.
+prolog:message(statistics(List)) -->
+	msg_statistics(List).
+
+msg_statistics([]) --> [].
+msg_statistics([H|T]) -->
+	{ is_dict(H, Tag) },
+	msg_statistics(Tag, H),
+	(   { T == [] }
+	->  []
+	;   [nl], msg_statistics(T)
+	).
+
+msg_statistics(core, S) -->
+	time_stats(S.time), [nl],
+	data_stats(S.data), [nl,nl],
+	stacks_stats(S.stacks).
+msg_statistics(gc, S) -->
+	{ S.type == stack -> Label = '' ; Label = 'atom ' },
+	[ '~D ~wgarbage collections gained ~D ~ws in ~3f seconds.'-
+	  [ S.count, Label, S.gained, S.unit, S.time]
+	].
+msg_statistics(shift, S) -->
+	[ 'Stack shifts: ~D local, ~D global, ~D trail in ~3f seconds'-
+	  [ S.local, S.global, S.trail, S.time ]
+	].
+msg_statistics(thread, S) -->
+	[ '~D threads, ~D finished threads used ~3f seconds'-
+	  [S.count, S.finished, S.time]
+	].
+
+time_stats(T) -->
+	{ format_time(string(Epoch), '%+', T.epoch) },
+	[ 'Started at ~s'-[Epoch], nl,
+	  '~3f seconds cpu time for ~D inferences'-
+	  [ T.cpu, T.inferences ]
+	].
+data_stats(C) -->
+	[ '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes'-
+	  [ C.atoms, C.functors, C.predicates, C.modules, C.vm_codes]
+	].
+stacks_stats(S) -->
+	[ '~|~tLimit~28+~tAllocated~13+~tIn use~13+'-[], nl ],
+	stack_stats('Local ', S.local),  [nl],
+	stack_stats('Global', S.global), [nl],
+	stack_stats('Trail ', S.trail),  [nl].
+
+stack_stats(Stack, S) -->
+	[ '~|~w stack:~t~D~28+ ~t~D~13+ ~t~D~13+ Bytes'-
+	  [Stack, S.limit, S.allocated, S.usage]
+	].
+
+:- multifile sandbox:safe_primitive/1.
+
+sandbox:safe_primitive(prolog_statistics:statistics(_)).
+sandbox:safe_primitive(prolog_statistics:statistics).

@@ -781,6 +781,9 @@ pl_garbage_collect_atoms(void)
   sigset_t set;
   size_t reclaimed;
 
+  if ( GD->cleaning != CLN_NORMAL )	/* Cleaning up */
+    return TRUE;
+
   PL_LOCK(L_GC);
   if ( gc_status.blocked )		/* Tricky things; avoid problems. */
   { PL_UNLOCK(L_GC);

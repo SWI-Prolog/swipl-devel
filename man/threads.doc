@@ -278,8 +278,9 @@ thread.
     \predicate{thread_statistics}{3}{+Id, +Key, -Value}
 Obtains statistical information on thread \arg{Id} as statistics/2
 does in single-threaded applications.  This call supports all keys
-of statistics/2, although only stack sizes and CPU time yield
-different values for each thread.%
+of statistics/2, although only stack sizes, \const{cputime},
+\const{inferences} and \const{epoch} yield different values
+for each thread.%
 	\footnote{There is no portable interface to obtain
 		  thread-specific CPU time and some operating systems
 		  provide no access to this information at all.  On

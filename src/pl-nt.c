@@ -211,7 +211,8 @@ Pause(double t)
 					 INFINITE,
 					 QS_ALLINPUT);
       if ( rc == WAIT_OBJECT_0+1 )
-      { MSG msg;
+      { GET_LD
+        MSG msg;
 
 	while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
 	{ TranslateMessage(&msg);

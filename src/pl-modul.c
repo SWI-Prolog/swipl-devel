@@ -175,6 +175,7 @@ freeLingeringDefinitions(ListCell c)
   { Definition def = c->value;
 
     n = c->next;
+    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
     freeHeap(def, sizeof(*def));
     freeHeap(c, sizeof(*c));
   }
@@ -507,6 +508,20 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 	return TRUE;
       } else
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_class, arg);
+    } else if ( pname == ATOM_program_space )
+    { size_t limit;
+
+      if ( !PL_get_size_ex(arg, &limit) )
+	return FALSE;
+      if ( limit && limit < m->code_size )
+      { term_t ex = PL_new_term_ref();
+
+	PL_put_atom(ex, m->name);
+	return PL_error(NULL, 0, "Used exceeds limit", ERR_PERMISSION,
+			ATOM_limit, ATOM_program_space, ex);
+      }
+      m->code_limit = limit;
+      return TRUE;
     } else
     { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_property, prop);
     }
@@ -1156,6 +1171,12 @@ PRED_IMPL("$module_property", 2, module_property, 0)
   { return unify_export_list(a, m PASS_LD);
   } else if ( PL_is_functor(A2, FUNCTOR_class1) )
   { return PL_unify_atom(a, m->class);
+  } else if ( PL_is_functor(A2, FUNCTOR_program_size1) )
+  { return PL_unify_int64(a, m->code_size);
+  } else if ( PL_is_functor(A2, FUNCTOR_program_space1) )
+  { if ( m->code_limit )
+      return PL_unify_int64(a, m->code_limit);
+    return FALSE;
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    ATOM_module_property, A2);
@@ -1336,7 +1357,8 @@ import(term_t pred, term_t strength ARG_LD)
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_import_type, strength);
   }
 
-  proc = lookupProcedure(fd, source);
+  if ( !(proc = lookupProcedure(fd, source)) )
+    return FALSE;
 
   if ( !isDefinedProcedure(proc) )
     autoImport(proc->definition->functor->functor, proc->definition->module);

@@ -67,6 +67,7 @@
 #endif
 
 #define PL_KERNEL		1
+#include <inttypes.h>
 #include "pl-builtin.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -153,6 +154,7 @@ handy for it someone wants to add a data type to the system.
 #define O_CALL_RESIDUE		1
 #define O_GVAR			1
 #define O_CYCLIC		1
+
 #ifdef HAVE_GMP_H
 #define O_GMP			1
 #endif
@@ -712,10 +714,6 @@ typedef struct
 	} value;
 } number, *Number;
 
-#define same_type_numbers(n1, n2) \
-	if ( (n1)->type != (n2)->type ) \
-	  make_same_type_numbers(n1, n2)
-
 #define TOINT_CONVERT_FLOAT	0x1	/* toIntegerNumber() */
 #define TOINT_TRUNCATE		0x2
 
@@ -894,14 +892,15 @@ with one operation, it turns out to be faster as well.
 Macros for environment frames (local stack frames)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_HIDE_CHILDS		(0x01L)	/* flag of pred after I_DEPART */
-#define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
-#define FR_MARKED		(0x04L)	/* GC */
-#define FR_MARKED_PRED		(0x08L)	/* GC predicates/clauses */
-#define FR_WATCHED		(0x10L)	/* GUI debugger */
-#define FR_CATCHED		(0x20L)	/* Frame caught an exception */
-#define FR_INBOX		(0x40L) /* Inside box (for REDO in built-in) */
-#define FR_CONTEXT		(0x80L)	/* fr->context is set */
+#define FR_HIDE_CHILDS		(0x0001) /* flag of pred after I_DEPART */
+#define FR_SKIPPED		(0x0002) /* We have skipped on this frame */
+#define FR_MARKED		(0x0004) /* GC */
+#define FR_MARKED_PRED		(0x0008) /* GC predicates/clauses */
+#define FR_WATCHED		(0x0010) /* GUI debugger */
+#define FR_CATCHED		(0x0020) /* Frame caught an exception */
+#define FR_INBOX		(0x0040) /* Inside box (for REDO in built-in) */
+#define FR_CONTEXT		(0x0080) /* fr->context is set */
+#define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4: marked for cleanup */
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
@@ -960,7 +959,7 @@ typedef uint64_t lgen_t;
 #define setGenerationFrame(f)	(void)0
 #endif /*O_LOGICAL_UPDATE*/
 
-#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS
+#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS|FR_CLEANUP
 #define setNextFrameFlags(next, fr) \
 	do \
 	{ (next)->level = (fr)->level+1; \
@@ -1502,6 +1501,8 @@ struct module
   Table		operators;	/* local operator declarations */
   ListCell	supers;		/* Import predicates from here */
   ListCell	lingering;	/* Lingering definitions */
+  size_t	code_size;	/* #Bytes used for its procedures */
+  size_t	code_limit;	/* Limit for code_size */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard procedures */
 #endif
@@ -1694,6 +1695,13 @@ typedef enum pl_event_type
   PL_EV_THREADFINISHED			/* A thread has finished */
 } pl_event_type;
 
+#ifdef O_DEBUGGER
+#define callEventHook(...) \
+        ( PROCEDURE_event_hook1->definition->impl.any ? \
+		PL_call_event_hook(__VA_ARGS__) : TRUE )
+#else
+#define callEventHook(...) TRUE
+#endif
 
 
 		 /*******************************
@@ -2029,7 +2037,6 @@ Tracer communication declarations.
 
 /* keep in sync with style_name/1 in boot/prims.pl */
 
-#define LONGATOM_CHECK	    0x0001	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x0002	/* read/1: check singleton vars */
 #define MULTITON_CHECK	    0x0004	/* read/1: check multiton vars */
 #define DISCONTIGUOUS_STYLE 0x0008	/* warn on discontiguous predicates */
@@ -2038,7 +2045,6 @@ Tracer communication declarations.
 #define SEMSINGLETON_CHECK  0x0040	/* Semantic singleton checking */
 #define NOEFFECT_CHECK	    0x0080	/* Check for meaningless statements */
 #define VARBRANCH_CHECK	    0x0100	/* warn on unbalanced variables */
-#define MAXNEWLINES	    5		/* maximum # of newlines in atom */
 
 typedef struct debuginfo
 { size_t	skiplevel;		/* current skip level */

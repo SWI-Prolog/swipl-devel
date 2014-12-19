@@ -624,13 +624,3 @@ hash(PI) :-
 set_base_module(M:Base) :-
 	set_module(M:base(Base)).
 
-
-		 /*******************************
-		 *	      MESSAGES		*
-		 *******************************/
-
-:- multifile
-        prolog:message//1.
-
-prolog:message(decl_no_effect(Goal)) -->
-	[ 'Deprecated declaration has no effect: ~p'-[Goal] ].

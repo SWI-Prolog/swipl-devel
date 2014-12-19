@@ -634,7 +634,7 @@ read_git_formatted(Record, Fields, ShortLog, In) :-
 	read_line_to_codes(In, Line0),
 	read_git_formatted(Line0, In, Record, Fields, ShortLog).
 
-read_git_formatted(end_of_file, _, _, _, []).
+read_git_formatted(end_of_file, _, _, _, []) :- !.
 read_git_formatted(Line, In, Record, Fields, [H|T]) :-
 	record_from_line(Record, Fields, Line, H),
 	read_line_to_codes(In, Line1),

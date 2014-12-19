@@ -204,6 +204,7 @@ scan_options(term_t options, int flags, atom_t optype,
   term_t list;
   term_t av, head, tmp, val;
   int n;
+  int candiscard = TRUE;
 
   if ( truePrologFlag(PLFLAG_ISO) )
     flags |= OPT_ALL;
@@ -248,6 +249,8 @@ scan_options(term_t options, int flags, atom_t optype,
     { if ( s->name == name )
       { if ( !get_optval(values[n], s, val PASS_LD) )
 	  return FALSE;
+	if ( (s->type&OPT_TYPE_MASK) == OPT_TERM )
+	  candiscard = FALSE;
 	break;
       }
     }
@@ -258,6 +261,9 @@ scan_options(term_t options, int flags, atom_t optype,
 
   if ( !PL_get_nil(list) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+
+  if ( candiscard )
+    PL_reset_term_refs(list);
 
   succeed;
 }

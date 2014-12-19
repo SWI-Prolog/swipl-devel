@@ -37,6 +37,7 @@
 		       alias(atom),
 		       encoding(encoding),
 		       bom(boolean),
+		       create(list(atom)),
 		       eof_action(oneof([eof_code,error,reset])),
 		       buffer(oneof([full,line,false])),
 		       close_on_abort(boolean),
@@ -183,5 +184,9 @@
 		       decimal_point(atom),
 		       thousands_sep(atom),
 		       grouping(list(any))
+		     ]).
+:- predicate_options(system:term_string/3, 3,
+		     [ pass_to(system:write_term/3, 3),
+		       pass_to(system:read_term/3, 3)
 		     ]).
 

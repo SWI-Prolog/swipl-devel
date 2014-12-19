@@ -2,37 +2,30 @@
 			==========================
 
 Author:   Jan Wielemaker
-E-mail:   wielemak@science.uva.nl
+E-mail:   jan@swi-prolog.org
 Created:  Jun 17 2001
 Modified: Nov 21 2005
 	  Nov 23, 2005 by Corinna Vinschen
+	  Oct 14, 2014 by Corinna Vinschen
 
-Wat is Cygwin?
+What is Cygwin?
 ==============
 
-Cygwin is a POSIX emulation  environment for Windows (95 and newer, NT 4
-and newer).  It consists of a DLL which  provides POSIX functionality on
-top of Windows  and ported (mostly GNU) toolchain  and applications. For
-further info, see http://cygwin.com.
+Cygwin is a POSIX emulation  environment for Windows (Windows XP SP3 and
+newer).  At the time of writing  this, it supports two architectures, 32
+bit i686, as well as 64 bit x86_64.  It consists of a DLL which provides
+POSIX functionality on top  of Windows and lots of ported toolchains and
+applications,  including  X11 server and  libs.  For further  info,  see
+https://cygwin.com.
 
 
 Why SWI-Prolog on Cygwin?
 =========================
 
-The original and primary development  platform   of  SWI-Prolog  is Unix
-(currently SuSE Linux). SWI-Prolog has been   ported to MS-Windows using
-various emulators of the required basic   POSIX functonality. First this
-was the WATCOM environment. Right now  it   is  MSVC  using the NT Posix
-layer with an  additional  library   (src/win32/uxnt)  to  provide  some
-additional functionality and work around some  bugs and dubious features
-of the NT POSIX layer.
-
 Cygwin provides a fairly complete emulation of the POSIX standard, while
-allowing access to the native Win32  API   at  the same time. The cygwin
-ports therefore uses exclusively  the  POSIX source.  The only exception
-is the  stack-allocation that uses  the VirtualAlloc() API from Win32 on
-older versions of Cygwin, because the mmap() emulation of cygwin was not
-good enough up to Cygwin release 1.5.19.
+allowing access to the native Win32 API at the same time. The SWI-Prolog
+Cygwin ports use exclusively Cygwin POSIX functions.  The GUI  functions
+in the pl2xpce library are using X11 functions.
 
 Cygwin is an excellent platform for  porting native Unix applications to
 Windows without much work. Though the native Win32 version of SWI-Prolog
@@ -47,60 +40,65 @@ process and server management.
 Drawbacks?
 ==========
 
-Cygwin  is just `fairly  complete', it doesn't support every POSIX call,
-mostly due to lack of manpower.  Cygwin is big, so if SWI-Prolog is your
-only  cygwin  application  it isn't  very interesting.   Cygwin is slow,
-notably handling calls for which you really want it such as fork().
-
-So, it is useful if  your  boss   says  your  application  *must* run on
-Windows and the application uses lots   of  advanced Unix primitives. In
-all other cases I would recomment using   a  real Unix machine. They are
-cheaper and as easy to manage as windows machines these days.
+The Cygwin distro is big, even a base installation is a few 10s of Megs.
+If SWI-Prolog is the only application you're interested in, it probably
+isn't worth to install Cygwin.  Rather use the native Windows port.
+Some POSIX functions are slow, notably fork(), due to lack of support
+in the underlying OS.
 
 
 Problems?
 =========
 
 Most today Unix systems are based on   the  ELF executable format, while
-Windows uses XCOFF (eXtended COFF).   This   has  some consequences  for
-making foreign libraries for SWI-Prolog.  With   the  cygwin  port we've
-started to put all these system dependencies   in  plld, but it is still
-good to know the ins and outs.
+Windows uses  PE/COFF (Microsoft extension  of COFF).   This   has  some
+consequences for making foreign libraries for SWI-Prolog. With the Cygwin
+port we've started to  put all  these system  dependencies into swipl-ld,
+but it is still good to know the ins and outs.
 
-	* Linking pl.exe
 	Linking the executable, such that it exports systems and you
 	can import them in your foreign libraries is now fairly easy,
 	since gcc and binutils have full support to create DLLs on
-	Cygwin for some time now.
+	Cygwin for many years now.
 
 	If you just make a default build, you will get just a static
-	library libpl.a in $(prefix)/lib/pl-<version>/lib/i686-cygwin,
+	library libpl.a in $(prefix)/lib/pl-<version>/lib/${arch}-cygwin,
 	and the binaries are all linked statically against this library.
 
 	If you choose to configure with --enable-shared and after calling
-	"make install", you'll get a DLL, called cygpl.dll in 
-	$(prefix)/lib/pl-<version>/bin/i686-cygwin, as well as a link
-	library libpl.dll.a in $(prefix)/lib/pl-<version>/lib/i686-cygwin.
+	"make install", you'll get a DLL, called libswipl.dll, installed
+	into
+
+		$(prefix)/lib/pl-<version>/bin/${arch}-cygwin
+		
+	as well as a link library libswipl.dll.a in
+
+		$(prefix)/lib/pl-<version>/lib/${arch}-cygwin
+
+	"arch" is the architecture SWI-Prolog is compiled for, i686 or
+	x86_64.
+
 	This file is used for linking stand-alone embedded executables
-	and foreign libraries against the cygpl DLL.
+	and foreign libraries against the libswipl DLL.
 
 	* Creating a foreign library
 	This is a bit complicated, but luckily hidden from you.  The
 	basic sequence is
 
-		gcc -shared -o mylib.dll <input files> -lpl ...
+		gcc -shared -o mylib.dll <input files> \
+		-L$(prefix)/lib/pl-<version>/lib/${arch}-cygwin -lswipl ...
 
-	plus a couple of system libraries.
+	plus the required system libraries.
 
 	To make life a bit easier in your Makefiles, we've put this
-	in plld, so you can do on any platform for which plld is
+	in swipl-ld, so you can do on any platform for which swipl-ld is
 	aware of the proper sequence:
 
-		plld -shared -o mylib <input files>
+		swipl-ld -shared -o mylib <input files>
 
 	If you use the -v option as in
 	
-		plld -v -shared ...
+		swipl-ld -v -shared ...
 
 	you can see what system libraries are necessary when linking.
 	Or simply ask pl:
@@ -108,7 +106,7 @@ good to know the ins and outs.
 		pl -dump-runtime-variables | grep PLLIBS
 
 
-Mixing cygwin and native SWI-Prolog?
+Mixing Cygwin and native SWI-Prolog?
 ====================================
 
 It's not possible to use  foreign libraries built using the above Cygwin

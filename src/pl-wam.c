@@ -267,14 +267,25 @@ updateAlerted(PL_local_data_t *ld)
 }
 
 
+/* raiseSignal() sets a signal in a target thread.  This implies manipulating
+   the mask and setting ld->alerted. Note that we cannot call
+   updateAlerted() because the O_ATTVAR might go wrong if the target
+   thread performs a stack-shift.
+*/
+
 int
 raiseSignal(PL_local_data_t *ld, int sig)
 { if ( sig > 0 && sig <= MAXSIGNAL && ld )
   { int off = (sig-1) / 32;
     int mask = (1 << ((sig-1)%32));
+    int alerted;
 
     __sync_or_and_fetch(&ld->signal.pending[off], mask);
-    updateAlerted(ld);
+
+    do
+    { alerted = ld->alerted;
+    } while ( !COMPARE_AND_SWAP(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
+
     return TRUE;
   }
 
@@ -596,19 +607,14 @@ call_cleanup/3.  Both may call-back the Prolog engine.
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int
-isCleanupFrame(LocalFrame fr)
-{ return (fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
-	  false(fr, FR_CATCHED));	/* from handler */
-}
-
-
 static void
 callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
-{ if ( isCleanupFrame(fr) )
+{ if ( false(fr, FR_CATCHED) )		/* from handler */
   { size_t fref = consTermRef(fr);
     fid_t cid;
     term_t catcher;
+
+    assert(fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition);
 
     if ( !(cid=PL_open_foreign_frame()) )
       return;
@@ -643,15 +649,13 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 static void
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
-{ if ( isCleanupFrame(fr) )
+{ if ( true(fr, FR_CLEANUP) )
   { size_t fref = consTermRef(fr);
     callCleanupHandler(fr, reason PASS_LD);
     fr = (LocalFrame)valTermRef(fref);
   }
 
-#ifdef O_DEBUGGER
   callEventHook(PLEV_FRAMEFINISHED, fr);
-#endif
 }
 
 
@@ -3044,7 +3048,7 @@ next_choice:
 	environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
 	FR->clause = NULL;
-	if ( isCleanupFrame(ch->frame) )
+	if ( true(ch->frame, FR_CLEANUP) )
 	{ SAVE_REGISTERS(qid);
 	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
 	  LOAD_REGISTERS(qid);

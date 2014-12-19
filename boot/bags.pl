@@ -85,6 +85,7 @@ findall_loop(Templ, Goal, List, Tail) :-
 	).
 
 %%	findnsols(+Count, @Template, :Goal, -List) is nondet.
+%%	findnsols(+Count, @Template, :Goal, -List, ?Tail) is nondet.
 %
 %	True when List is the next chunk of maximal Count instantiations
 %	of Template that reprensents a solution of Goal.  For example:
@@ -97,28 +98,55 @@ findall_loop(Templ, Goal, List, Tail) :-
 %	  ==
 %
 %	@compat Ciao, but the SWI-Prolog version is non-deterministic.
+%	@error	domain_error(not_less_than_zero, Count) if Count is less
+%		than 0.
+%	@error  type_error(integer, Count) if Count is not an integer.
 
 findnsols(Count, Template, Goal, List) :-
 	findnsols(Count, Template, Goal, List, []).
 
 findnsols(Count, Template, Goal, List, Tail) :-
-	Count > 0, !,
+	integer(Count), !,
+	findnsols2(count(Count), Template, Goal, List, Tail).
+findnsols(Count, Template, Goal, List, Tail) :-
+	Count = count(Integer),
+	integer(Integer), !,
+	findnsols2(Count, Template, Goal, List, Tail).
+findnsols(Count, _, _, _, _) :-
+	'$type_error'(integer, Count).
+
+findnsols2(Count, Template, Goal, List, Tail) :-
+	nsols_count(Count, N), N > 0, !,
 	copy_term(Template+Goal, Templ+G),
 	setup_call_cleanup(
 	    '$new_findall_bag',
 	    findnsols_loop(Count, Templ, G, List, Tail),
 	    '$destroy_findall_bag').
-findnsols(_, _, _, List, List).
+findnsols2(Count, _, _, List, Tail) :-
+	nsols_count(Count, 0), !,
+	Tail = List.
+findnsols2(Count, _, _, _, _) :-
+	nsols_count(Count, N),
+	'$domain_error'(not_less_than_zero, N).
 
 findnsols_loop(Count, Templ, Goal, List, Tail) :-
-	(   Goal,
+	nsols_count(Count, FirstStop),
+	State = state(FirstStop),
+	(   call_cleanup(Goal, Det=true),
 	    '$add_findall_bag'(Templ, Found),
-	    Found mod Count =:= 0,
+	    Det \== true,
+	    arg(1, State, Found),
 	    '$collect_findall_bag'(List, Tail),
-	    '$suspend_findall_bag'
+	    (   '$suspend_findall_bag'
+	    ;	nsols_count(Count, Incr),
+		NextStop is Found+Incr,
+		nb_setarg(1, State, NextStop),
+		fail
+	    )
 	;   '$collect_findall_bag'(List, Tail)
 	).
 
+nsols_count(count(N), N).
 
 %%      bagof(+Var, +Goal, -Bag) is semidet.
 %

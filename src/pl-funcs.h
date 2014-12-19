@@ -130,6 +130,7 @@ COMMON(void)		freeVarDefs(PL_local_data_t *ld);
 COMMON(int)		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
 					 Module *m ARG_LD);
+COMMON(Procedure)	lookupBodyProcedure(functor_t functor, Module tm);
 COMMON(int)		compileClause(Clause *cp, Word head, Word body,
 				      Procedure proc, Module module,
 				      term_t warnings ARG_LD);
@@ -430,7 +431,7 @@ COMMON(int)		getAccessLevelMask(atom_t a, access_level_t *val);
 COMMON(atom_t)		accessLevel(void);
 
 /* pl-proc.c */
-COMMON(Procedure)	lookupProcedure(functor_t f, Module m);
+COMMON(Procedure)	lookupProcedure(functor_t f, Module m) WUNUSED;
 COMMON(void)		unallocProcedure(Procedure proc);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
 COMMON(int)		importDefinitionModule(Module m,
@@ -600,7 +601,7 @@ COMMON(word)		pl_leash(term_t old, term_t new);
 COMMON(word)		pl_visible(term_t old, term_t new);
 COMMON(word)		pl_debuglevel(term_t old, term_t new);
 COMMON(word)		pl_prolog_current_frame(term_t fr);
-COMMON(int)		callEventHook(pl_event_type ev, ...);
+COMMON(int)		PL_call_event_hook(pl_event_type ev, ...);
 COMMON(int)		delayEvents(void);
 COMMON(int)		sendDelayedEvents(void);
 COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
@@ -728,8 +729,8 @@ COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);
 COMMON(int)	promoteToFloatNumber(Number n);
-COMMON(void)	make_same_type_numbers(Number n1, Number n2);
-COMMON(void)    promoteNumber(Number n1, numtype type);
+COMMON(int)	make_same_type_numbers(Number n1, Number n2) WUNUSED;
+COMMON(int)     promoteNumber(Number n1, numtype type) WUNUSED;
 COMMON(int)	cmpNumbers(Number n1, Number n2);
 COMMON(void)	cpNumber(Number to, Number from);
 

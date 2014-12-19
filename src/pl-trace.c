@@ -423,17 +423,7 @@ Give a trace on the skipped goal for a redo.
       debugstatus.skiplevel = levelFrame(fr);
       set(fr, FR_SKIPPED);		/* cleared by "case 'c'" */
 
-      switch( rc )
-      { case ACTION_CONTINUE:
-	  if ( debugstatus.skiplevel < levelFrame(frame) )
-	    return ACTION_CONTINUE;
-	  break;
-	case ACTION_RETRY:
-	case ACTION_IGNORE:
-	case ACTION_FAIL:
-	  Sfprintf(Sdout, "Action not yet implemented here\n");
-	  break;
-      }
+      return rc;
     }
   }
 
@@ -2425,11 +2415,8 @@ sendDelayedEvents(void)
 
 
 int
-callEventHook(pl_event_type ev, ...)
-{ if ( !PROCEDURE_event_hook1 )
-    PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
-
-  if ( PROCEDURE_event_hook1->definition->impl.any )
+PL_call_event_hook(pl_event_type ev, ...)
+{ if ( PROCEDURE_event_hook1->definition->impl.any )
   { GET_LD
     wakeup_state wstate;
     int rc;

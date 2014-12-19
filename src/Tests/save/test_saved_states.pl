@@ -196,6 +196,13 @@ test(argv, Result == [[aap,noot,mies]]) :-
 	      run_state(Exe, [aap, noot, mies], Result)
 	    ),
 	    remove_state(Exe)).
+test(true, Result == [true]) :-
+	state_output(Exe),
+	call_cleanup(
+	    ( create_state('input/data.pl', Exe, ['-g', test]),
+	      run_state(Exe, [], Result)
+	    ),
+	    remove_state(Exe)).
 
 :- end_tests(saved_state).
 

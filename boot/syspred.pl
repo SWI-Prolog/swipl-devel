@@ -135,7 +135,8 @@ visible(Ports) :-
 	map_bits(port_name, Ports, Old, New),
 	'$visible'(_, New).
 
-style_name(atom,	    0x0001).
+style_name(atom,	    0x0001) :-
+	print_message(warning, decl_no_effect(style_check(atom))).
 style_name(singleton,	    0x0042).		% semantic and syntactic
 style_name(discontiguous,   0x0008).
 style_name(dynamic,	    0x0010).
@@ -534,8 +535,14 @@ prolog_load_context(directory, D) :-
 	file_directory_name(F, D).
 prolog_load_context(dialect, D) :-
 	current_prolog_flag(emulated_dialect, D).
-prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
-	source_location(_, L).
+prolog_load_context(term_position, TermPos) :-
+	source_location(_, L),
+	(   nb_current('$term_position', Pos),
+	    compound(Pos),		% actually set
+	    stream_position_data(line_count, Pos, L)
+	->  TermPos = Pos
+	;   TermPos = '$stream_position'(0,L,0,0)
+	).
 prolog_load_context(script, Bool) :-
 	(   '$toplevel':loaded_init_file(script, Path),
 	    source_location(Path, _)
@@ -551,8 +558,7 @@ prolog_load_context(variable_names, Bindings) :-
 
 unload_file(File) :-
 	(   canonical_source_file(File, Path)
-	->  '$unload_file'(Path),
-	    retractall(system:'$load_context_module'(Path, _))
+	->  '$unload_file'(Path)
 	;   true
 	).
 
@@ -818,22 +824,27 @@ visible_predicate(Pred) :-
 	current_module(M),
 	(   callable(Head)
 	->  (   '$get_predicate_attribute'(Pred, defined, 1)
-	    ->	\+ hidden_system_predicate(Pred)
+	    ->	true
 	    ;	\+ current_prolog_flag(M:unknown, fail),
 		functor(Head, Name, Arity),
 		'$find_library'(M, Name, Arity, _LoadModule, _Library)
 	    )
-	;   (   default_module(M, DefM),
-	        '$c_current_predicate'(_, DefM:Head),
-		\+ '$get_predicate_attribute'(DefM:Head, imported, _),
-		\+ hidden_system_predicate(Pred)
-	    ;	'$in_library'(Name, Arity, _),
-		functor(Head, Name, Arity),
-		\+ '$get_predicate_attribute'(Pred, defined, 1)
-	    )
+	;   setof(PI, visible_in_module(M, PI), PIs),
+	    '$member'(Name/Arity, PIs),
+	    functor(Head, Name, Arity)
 	).
 
-hidden_system_predicate(_:Head) :-
+visible_in_module(M, Name/Arity) :-
+	default_module(M, DefM),
+	DefHead = DefM:Head,
+	'$c_current_predicate'(_, DefHead),
+	'$get_predicate_attribute'(DefHead, defined, 1),
+	\+ hidden_system_predicate(Head),
+	functor(Head, Name, Arity).
+visible_in_module(_, Name/Arity) :-
+	'$in_library'(Name, Arity, _).
+
+hidden_system_predicate(Head) :-
 	functor(Head, Name, _),
 	atom(Name),			% Avoid [].
 	sub_atom(Name, 0, _, _, $),
@@ -964,6 +975,8 @@ module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
 module_property(exported_operators(_)).
+module_property(program_size(_)).
+module_property(program_space(_)).
 
 %%	module(+Module) is det.
 %

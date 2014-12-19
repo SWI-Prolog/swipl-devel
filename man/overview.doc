@@ -815,32 +815,33 @@ additional parameters for running a Prolog file on Windows. The Unix
 is \verb$#$, the first line is treated as a comment.\footnote{The
 \texttt{\#}-sign can be the legal start of a normal Prolog clause. In
 the unlikely case this is required, leave the first line blank or add a
-header comment.} To create a Prolog script, make the first line start
-like this:
-
-\begin{quote}
-\verb$#!/path/to/swipl$ <options> \verb$-s$
-\end{quote}
-
-Prolog recognises this starting sequence and causes the interpreter
-to receive the following argument list:
-
-\begin{quote}
-\verb$/path/to/swipl$ <options> \verb$-s$ <script> \verb$--$ <ScriptArguments>
-\end{quote}
-
-Instead of \cmdlineoption{-s}, the user may use \cmdlineoption{-f} to
-stop Prolog from looking for a personal initialisation file.
-
-Here is a simple script doing expression evaluation:
+header comment.} To create a Prolog script, use one of the two
+alternatives below as first line. The first can be used to bind a script
+to a specific Prolog installation, while the latter uses the default
+prolog installed in \verb"$PATH".
 
 \begin{code}
-#!/usr/bin/swipl -q -t main -f
+\verb$#!/path/to/swipl$
+\verb$#!/usr/bin/env swipl$
+\end{code}
+
+The interpretation of arguments to the executable in the
+\jargon{HashBang} line differs between Unix-derived systems. For
+portability, the \verb$#!$ must be followed immediately with an absolute
+path to the executable and should have none or one argument. Neither the
+executable path, nor the argument shall use quotes or spaces. When
+started this way, the Prolog flag \prologflag{argv} contains the command
+line arguments that follow the script invocation. Below is a simple
+script doing expression evaluation:
+
+\begin{code}
+#!/usr/bin/env swipl
+
+:- initialization main.
 
 eval :-
 	current_prolog_flag(argv, Argv),
-	append(_, [--|Args], Argv),
-	concat_atom(Args, ' ', SingleArg),
+	concat_atom(Argv, ' ', SingleArg),
 	term_to_atom(Term, SingleArg),
 	Val is Term,
 	format('~w~n', [Val]).
@@ -855,31 +856,18 @@ main :-
 And here are two example runs:
 
 \begin{code}
-% eval 1+2
+% ./eval 1+2
 3
-% eval foo
-ERROR: Arithmetic: `foo/0' is not a function
+% ./eval foo
+ERROR: is/2: Arithmetic: `foo/0' is not a function
 %
 \end{code}
 
-\paragraph{The Windows version} supports the \verb$#!$ construct too,
-but here it serves a rather different role. The Windows shell already
-allows the user to start Prolog source files directly through the
-Windows file-type association. However, Windows makes it rather
-complicated to provide additional parameters for opening an individual
-Prolog file. If the file starts with \verb$#!$, the first line is
-analysed to obtain additional command line arguments. The example below
-runs the system in `quiet' mode.
-
-\begin{code}
-#!/usr/bin/swipl -q -s
-
-....
-\end{code}
-
-Note the use of \verb$/usr/bin/swipl$, which specifies the interpreter.
-This argument is ignored in the Windows version, but must be present to
-ensure best cross-platform compatibility.
+The Windows version simply ignores the \verb$#!$ line.\footnote{Older
+versions extracted command line arguments from the \jargon{HashBang}
+line.  As of version 5.9 all relevant setup can be achieved using
+\jargon{directives}.  Due to the compatibility issues around
+\jargon{HashBang} line processing, we decided to remove it completely.}
 
 
 \subsubsection{Creating a shell script}		\label{sec:shellscript}
@@ -900,14 +888,15 @@ arguments.
 base=<absolute-path-to-source>
 PL=swipl
 
-exec $PL -q -f '$base/load -t go -- **
+exec $PL -q -f "$base/load" --
 \end{code}
 
 \begin{code}
+:- initialization go.
+
 go :-
 	current_prolog_flag(argv, Arguments),
-	append(_SytemArgs, [--|Args], Arguments), !,
-	go(Args).
+	go(Arguments).
 
 go(Args) :-
 	...

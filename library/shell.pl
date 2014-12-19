@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,54 +29,63 @@
 */
 
 :- module(shell,
-	[ (ls)/0
-	, (ls)/1
-	, (cd)/0
-	, (cd)/1
-	, (pushd)/0
-	, (pushd)/1
-	, dirs/0
-	, pwd/0
-	, popd/0
-	, mv/2
-	, (rm)/1
-	]).
+	  [ ls/0,
+	    ls/1,				% +Pattern
+	    cd/0,
+	    cd/1,				% +Dir
+	    pushd/0,
+	    pushd/1,				% +Dir
+	    dirs/0,
+	    pwd/0,
+	    popd/0,
+	    mv/2,				% +File1, +File2
+	    rm/1				% +File1
+	  ]).
 :- use_module(library(lists), [nth1/3]).
 :- use_module(library(error)).
+:- use_module(library(apply)).
 :- set_prolog_flag(generate_debug_info, false).
 
-% :- op(900, fy, [ls, cd, pushd, rm, grep]).
+/** <module>  Elementary shell commands
 
-/*  Shell Emulation Library
+This library provides some basic  shell   commands  from Prolog, such as
+=pwd=, =ls= for situations where there  is   no  shell  available or the
+shell output cannot be captured.
 
-    This library is meant for systems that do not allow us to get access
-    to the operating system via shell/[0,1,2].  It is developed  on  the
-    ST-MINIX version.  MINIX does not have a vfork() call, and thus only
-    allows  shell/[0,1,2]  if  Prolog  uses less than half the amount of
-    available memory.  This library offers a number  of  predicates  for
-    listing, directory management, deleting, copying and renaming files.
+It is developed on the ST-MINIX version.   MINIX  did not have a vfork()
+call, and thus only allows shell/[0,1,2] if   Prolog uses less than half
+the amount of available memory.
+*/
 
- ** Sun Sep 17 12:04:54 1989  jan@swi.psy.uva.nl */
-
-%	cd
-%%	cd(Dir)
+%%	cd.
+%%	cd(Dir).
+%
 %	Change working directory
 
-(cd) :-
+cd :-
 	cd(~).
 
 cd(Dir) :-
-	name_to_atom(Dir, Name),
+	name_to_file(Dir, Name),
 	working_directory(_, Name).
 
-%	dirs	-- Print Directory Stack
-%	pushd	-- Push Directory Stack
-%	popd	-- Pop Directory Stack
+%%	pushd.
+%%	pushd(+Dir).
+%%	popd.
+%%	dirs.
+%
+%	Manage the _directory stack_:
+%
+%	  - pushd/1 is as cd/1, pushing th old directory on a stack
+%	  - pushd/0 swaps the current directory with the top of the
+%	    stack
+%	  - popd/0 pops to the top of the stack
+%	  - dirs/0 lists the current directory and the stack.
 
 :- dynamic
 	stack/1.
 
-(pushd) :-
+pushd :-
 	pushd(+1).
 
 pushd(N) :-
@@ -85,36 +93,37 @@ pushd(N) :-
 	findall(D, stack(D), Ds),
 	(   nth1(N, Ds, Go),
 	    retract(stack(Go))
-	->  pushd(Go)
+	->  pushd(Go),
+	    print_message(information, shell(directory(Go)))
 	;   warning('Directory stack not that deep', []),
 	    fail
 	).
 pushd(Dir) :-
-	name_to_atom(Dir, Name),
+	name_to_file(Dir, Name),
 	working_directory(Old, Name),
 	asserta(stack(Old)).
 
 popd :-
 	retract(stack(Dir)), !,
-	working_directory(_, Dir).
+	working_directory(_, Dir),
+	print_message(information, shell(directory(Dir))).
 popd :-
 	warning('Directory stack empty', []),
 	fail.
 
 dirs :-
-	(   absolute_file_name('', D)
-	;   stack(D)
-	),
-	dir_name(D, Name),
-	format('~w ', [Name]),
-	fail.
-dirs :-
-	nl.
+	working_directory(WD, WD),
+	findall(D, stack(D), Dirs),
+	maplist(dir_name, [WD|Dirs], Results),
+	print_message(information, shell(file_set(Results))).
+
+%%	pwd
+%
+%	Print current working directory
 
 pwd :-
-	absolute_file_name('', D),
-	dir_name(D, Name),
-	format('~w~n', [Name]).
+	working_directory(WD, WD),
+	print_message(information, format('~w', [WD])).
 
 dir_name('/', '/') :- !.
 dir_name(Path, Name) :-
@@ -122,42 +131,45 @@ dir_name(Path, Name) :-
 	dir_name(P, Name).
 dir_name(Path, Name) :-
 	current_prolog_flag(unix, true),
-	absolute_file_name('~', Home0),
+	expand_file_name('~', [Home0]),
 	(   atom_concat(Home, /, Home0)
 	->  true
 	;   Home = Home0
 	),
 	atom_concat(Home, FromHome, Path), !,
-	format(atom(Name), '~~~w', [FromHome]).
+	atom_concat('~', FromHome, Name).
 dir_name(Path, Path).
 
-%	ls
-%%	ls(Dir|Files)
-%	List a directory, flag directories with a '/'
+%%	ls.
+%%	ls(+Pattern).
+%
+%	Listing similar to Unix =ls -F=, flagging directories with =/=.
 
-(ls) :-
+ls :-
 	ls('.').
 
 ls(Spec) :-
-	name_to_atom(Spec, Atom),
-	expand_file_name(Atom, Matches),
+	name_to_files(Spec, Matches),
 	ls_(Matches).
 
+ls_([]) :- !,
+	warning('No Match', []).
 ls_([Dir]) :-
 	exists_directory(Dir), !,
-	working_directory(Here, Dir),
-	expand_file_name('*', Files),
-	call_cleanup(ls__(Files), working_directory(_, Here)).
+	atom_concat(Dir, '/*', Pattern),
+	expand_file_name(Pattern, Files),
+	maplist(tagged_file_in_dir, Files, Results),
+	print_message(information, shell(file_set(Results))).
 ls_(Files) :-
-	ls__(Files).
+	maplist(tag_file, Files, Results),
+	print_message(information, shell(file_set(Results))).
 
-ls__([]) :- !,
-	warning('No Match', []),
-	fail.
-ls__(Files) :-
-	maplist(tag_file, Files, Tagged),
-	catch(tty_size(_, Width), _, Width=80),
-	list_atoms(Tagged, Width).
+tagged_file_in_dir(File, Result) :-
+	file_base_name(File, Base),
+	(   exists_directory(File)
+	->  atom_concat(Base, /, Result)
+	;   Result = Base
+	).
 
 tag_file(File, Dir) :-
 	exists_directory(File),	!,
@@ -166,41 +178,82 @@ tag_file(File, File).
 
 %%	mv(+From, +To) is det.
 %
-%	Move (Rename) a file
+%	Move (Rename) a file. If To is   a directory, From is moved into
+%	the directory.
 
 mv(From, To) :-
-	name_to_atom(From, A0),
-	name_to_atom(To, A1),
-	rename_file(A0, A1).
+	name_to_files(From, Src),
+	name_to_file(To, Dest),
+	mv_(Src, Dest).
+
+mv_([One], Dest) :-
+	\+ exists_directory(Dest), !,
+	rename_file(One, Dest).
+mv_(Multi, Dest) :-
+	(   exists_directory(Dest)
+	->  maplist(mv_to_dir(Dest), Multi)
+	;   print_message(warning, format('Not a directory: ~w', [Dest])),
+	    fail
+	).
+
+mv_to_dir(Dest, Src) :-
+	file_base_name(Src, Name),
+	atomic_list_concat([Dest, Name], /, Target),
+	rename_file(Src, Target).
 
 %%	rm(+File) is det.
 %
 %	Remove (unlink) a file
 
 rm(File) :-
-	name_to_atom(File, A),
+	name_to_file(File, A),
 	delete_file(A).
 
 
-%%	name_to_atom(Typed, Atom)
+%%	name_to_file(+Name, -File)
 %
-%	Convert a typed name into an atom
+%	Convert Name into a single file.
 
-name_to_atom(Spec, File) :-
-	(   atom(Spec)
+name_to_file(Spec, File) :-
+	name_to_files(Spec, Files),
+	(   Files = [File]
+	->  true
+	;   print_message(warning, format('Ambiguous: ~w', [Spec])),
+	    fail
+	).
+
+name_to_files(Spec, Files) :-
+	name_to_files_(Spec, Files),
+	(   Files == []
+	->  print_message(warning, format('No match: ~w', [Spec])),
+	    fail
+	;   true
+	).
+
+name_to_files_(Spec, Files) :-
+	compound(Spec),
+	compound_name_arity(Spec, _Alias, 1), !,
+	findall(File,
+		(   absolute_file_name(Spec, File,
+				       [ access(exist),
+					 file_type(directory),
+					 file_errors(fail),
+					 solutions(all)
+				       ])
+		;   absolute_file_name(Spec, File,
+				       [ access(exist),
+					 file_errors(fail),
+					 solutions(all)
+				       ])
+		),
+		Files).
+name_to_files_(Spec, Files) :-
+	(   atomic(Spec)
 	->  S1 = Spec
 	;   phrase(segments(Spec), L),
 	    atomic_list_concat(L, /, S1)
 	),
-	expand_file_name(S1, Expanded),
-	(   Expanded = [File]
-	->  true
-	;   Expanded == []
-	->  print_message(warning, format('No match: ~w', [S1])),
-	    fail
-	;   print_message(warning, format('Ambiguous: ~w', [S1])),
-	    fail
-	).
+	expand_file_name(S1, Files).
 
 segments(Var) -->
 	{ var(Var), !,
@@ -213,37 +266,70 @@ segments(A) -->
 	{ must_be(atomic, A) },
 	[ A ].
 
+%%	warning(+Fmt, +Args:list) is det.
 
-%%	list_atoms(+List, +Width)
-%	List a set of atoms multicolumn on a Width wide output device.
+warning(Fmt, Args) :-
+	print_message(warning, format(Fmt, Args)).
 
-list_atoms(List, W) :-
-	length(List, L),
-	Term =.. [l|List],
-	longest(List, Longest),
-	Columns is max(1, W // (Longest + 3)),
-	Rows is integer(L / Columns + 0.49999),	% should be ceil/1
-	ColumnWidth is W // Columns,
-	Max is Columns * Rows - 1,
-	between(0, Max, N),
-	    Index is N // Columns + (N mod Columns) * Rows + 1,
-	    (	(N+1) mod Columns =:= 0
-	    ->	NL = nl
-	    ;	NL = fail
+:- multifile prolog:message//1.
+
+prolog:message(shell(file_set(Files))) -->
+	{ catch(tty_size(_, Width), _, Width = 80)
+	},
+	table(Files, Width).
+prolog:message(shell(directory(Path))) -->
+	{ dir_name(Path, Name) },
+	[ '~w'-[Name] ].
+
+%%	table(+List, +Width)//
+%
+%	Produce a tabular layout to list all   elements of List on lines
+%	with a maximum width of Width. Elements are placed as =ls= does:
+%
+%	   ==
+%	   1  4  7
+%	   2  5  8
+%	   3  6
+%	   ==
+
+table(List, Width) -->
+	{ table_layout(List, Width, Layout),
+	  compound_name_arguments(Array, a, List)
+	},
+	table(0, Array, Layout).
+
+table(I, Array, Layout) -->
+	{ Cols = Layout.cols,
+          Index is I // Cols + (I mod Cols) * Layout.rows + 1,
+	  (   (I+1) mod Cols =:= 0
+	  ->  NL = true
+	  ;   NL = false
+	  )
+	},
+	(   { arg(Index, Array, Atom) }
+	->  (   { NL == false }
+	    ->	[ '~|~w~t~*+'-[Atom, Layout.col_width] ]
+	    ;	[ '~w'-[Atom] ]
+	    )
+	;   []
+	),
+	(   { I2 is I+1,
+	      I2 < Cols*Layout.rows
+	    }
+	->  (   { NL == true }
+	    ->  [ nl ]
+	    ;   []
 	    ),
-	    (	arg(Index, Term, Atom),
-		atom_length(Atom, AL),
-		write(Atom),
-		(   NL == fail
-		->  tab(ColumnWidth - AL)
-		;   true
-		)
-	    ->  true
-	    ;   true
-	    ),
-	    NL,
-	fail.
-list_atoms(_, _).
+	    table(I2, Array, Layout)
+	;   []
+	).
+
+table_layout(Atoms, Width, _{cols:Cols, rows:Rows, col_width:ColWidth}) :-
+	length(Atoms, L),
+	longest(Atoms, Longest),
+	Cols is max(1, Width // (Longest + 3)),
+	Rows is integer(L / Cols + 0.49999),	% should be ceil/1
+	ColWidth is Width // Cols.
 
 longest(List, Longest) :-
 	longest(List, 0, Longest).
@@ -256,7 +342,3 @@ longest([H|T], Sofar, M) :-
 longest([_|T], S, M) :-
 	longest(T, S, M).
 
-%%	warning(+Fmt, +Args:list) is det.
-
-warning(Fmt, Args) :-
-	print_message(warning, format(Fmt, Args)).

@@ -751,6 +751,14 @@ are:
 	\termitem{exported_operators}{-ListOfOperators}
 	True if \arg{Module} exports the given operators.  Each exported
 	operator is represented as a term \term{op}{Pri,Assoc,Name}.
+	\termitem{program_size}{-Bytes}
+	Memory (in bytes) used for string the predicates of this module.
+	This figure includes the predicate header and clauses.  Future
+	versions might give a more precise number, including e.g., the
+	clause index tables.
+	\termitem{program_space}{-Bytes}
+	If present, this number limits the \const{program_size}.  See
+	set_module/1.
     \end{description}
 
     \predicate{set_module}{1}{:Property}
@@ -764,6 +772,13 @@ Typically, \arg{Module} is one of \const{user} or \const{system}.  See
 \secref{importmodule}.
 	\termitem{class}{+Class}
 Set the class of the module.  See module_property/2.
+	\termitem{program_space}{+Bytes}
+Maximum amount of memory used to store the predicates defined inside the
+module. Raises a permission error if the current usage is above the
+requested limit. Setting the limit to 0 (zero) removes the limit. An
+attempt to assert clauses that causes the limit to be exceeded causes a
+\term{resource_error}{program_space} exception. See assertz/1 and
+module_property/2.
     \end{description}
 \end{description}
 

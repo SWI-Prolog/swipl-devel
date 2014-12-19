@@ -1885,7 +1885,18 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     if ( !PL_get_atom_ex(a, &val) )
       return FALSE;
-    if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
+    if ( val == ATOM_bom )
+    { IOSTREAM *s2;
+
+      if ( (s2 = getStream(s)) )
+      { if ( ScheckBOM(s2) == 0 )
+	{ releaseStream(s2);
+	  return (s2->flags&SIO_BOM) ? TRUE:FALSE;
+	}
+	return streamStatus(s2);
+      }
+      return streamStatus(s);
+    } else if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
     { bad_encoding(NULL, val);
       return FALSE;
     }
@@ -2131,14 +2142,8 @@ toldString()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#ifndef HAVE_SELECT
-
-static
-PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
-{ return notImplemented("wait_for_input", 3);
-}
-
-#else
+#ifdef HAVE_SELECT
+#define HAVE_PRED_WAIT_FOR_INPUT 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Windows<->Unix note. This function uses the   Windows socket API for its
@@ -2200,7 +2205,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     }
     releaseStream(s);
 					/* check for input in buffer */
-    if ( s->bufp < s->limitp )
+    if ( Spending(s) > 0 )
     { if ( !PL_unify_list(available, ahead, available) ||
 	   !PL_unify(ahead, head) )
 	return FALSE;
@@ -3189,6 +3194,7 @@ static const opt_spec open4_options[] =
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
+  { ATOM_create,	 OPT_TERM },
 #ifdef O_LOCALE
   { ATOM_locale,	 OPT_LOCALE },
 #endif
@@ -3215,7 +3221,8 @@ openStream(term_t file, term_t mode, term_t options)
 #endif
   int    close_on_abort = TRUE;
   int	 bom		= -1;
-  char   how[10];
+  term_t create		= 0;
+  char   how[16];
   char  *h		= how;
   char *path;
   IOSTREAM *s;
@@ -3225,7 +3232,7 @@ openStream(term_t file, term_t mode, term_t options)
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
 		       &close_on_abort, &buffer, &lock, &wait,
-		       &encoding, &bom
+		       &encoding, &bom, &create
 #ifdef O_LOCALE
 		       , &locale
 #endif
@@ -3250,6 +3257,40 @@ openStream(term_t file, term_t mode, term_t options)
   } else
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, mode);
     return NULL;
+  }
+  if ( create )
+  { term_t tail = PL_copy_term_ref(create);
+    term_t head = PL_new_term_ref();
+    int mode = 0;
+    int n = 0;
+
+    while(PL_get_list(tail, head, tail))
+    { atom_t a;
+
+      if ( !PL_get_atom_ex(head, &a) )
+	return FALSE;
+      if ( a == ATOM_read )
+	mode |= 0444;
+      else if ( a == ATOM_write )
+	mode |= 0666;
+      else if ( a == ATOM_execute )
+	mode |= 0111;
+      else if ( a == ATOM_default )
+	mode |= 0666;
+      else if ( a == ATOM_all )
+	mode |= 0777;
+
+      if ( ++n == 10 && PL_skip_list(tail, 0, NULL) != PL_LIST )
+      { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, create);
+	return NULL;
+      }
+    }
+    if ( !PL_get_nil_ex(tail) )
+      return FALSE;
+    *h++ = 'm';
+    *h++ = ((mode >> 6) & 07) + '0';
+    *h++ = ((mode >> 3) & 07) + '0';
+    *h++ = ((mode >> 0) & 07) + '0';
   }
 
 					/* ENCODING */
@@ -5100,7 +5141,9 @@ BeginPredDefs(file)
   PRED_DEF("protocolling", 1, protocolling, 0)
   PRED_DEF("prompt1", 1, prompt1, 0)
   PRED_DEF("seek", 4, seek, 0)
+#ifdef HAVE_PRED_WAIT_FOR_INPUT
   PRED_DEF("wait_for_input", 3, wait_for_input, 0)
+#endif
   PRED_DEF("get_single_char", 1, get_single_char, 0)
   PRED_DEF("read_pending_input", 3, read_pending_input, 0)
   PRED_DEF("source_location", 2, source_location, 0)

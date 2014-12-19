@@ -129,6 +129,7 @@
         clpfd_equal/2,
         clpfd_geq/2.
 
+:- use_module(library(apply)).
 :- use_module(library(apply_macros)).
 :- use_module(library(assoc)).
 :- use_module(library(error)).
@@ -201,6 +202,47 @@ The most important arithmetic constraints are:
     | Expr1 #\= Expr2  | Expr1 is not equal to Expr2              |
     | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
     | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
+
+### Declarative integer arithmetic		{#clpfd-integer-arith}
+
+Arithmetic constraints are a declarative alternative for lower-level
+integer arithmetic with is/2, >/2 etc. For example:
+
+==
+:- use_module(library(clpfd)).
+
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0, N1 #= N - 1, F #= N * F1,
+        n_factorial(N1, F1).
+==
+
+This predicate can be used in all directions. For example:
+
+==
+?- n_factorial(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+false.
+
+?- n_factorial(N, 1).
+N = 0 ;
+N = 1 ;
+false.
+
+?- n_factorial(N, 3).
+false.
+==
+
+To make the predicate terminate if any argument is instantiated, add
+the (implied) constraint F #\= 0 before the recursive call. Otherwise,
+the query n_factorial(N, 0) is the only non-terminating case of this
+kind.
+
+This library uses goal_expansion/2 to rewrite arithmetic constraints
+at compilation time. The expansion's aim is to improve the performance
+of arithmetic constraints when they are used in modes that can also be
+handled by lower-level arithmetic predicates. To disable the
+expansion, set the flag `clpfd_goal_expansion` to `false`.
 
 ### Reification				{#clpfd-reification}
 
@@ -319,49 +361,7 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
-### Declarative integer arithmetic		{#clpfd-integer-arith}
-
-You can also use CLP(FD) constraints as a more declarative alternative
-for ordinary integer arithmetic with is/2, >/2 etc. For example:
-
-==
-:- use_module(library(clpfd)).
-
-n_factorial(0, 1).
-n_factorial(N, F) :-
-        N #> 0, N1 #= N - 1, F #= N * F1,
-        n_factorial(N1, F1).
-==
-
-This predicate can be used in all directions. For example:
-
-==
-?- n_factorial(47, F).
-F = 258623241511168180642964355153611979969197632389120000000000 ;
-false.
-
-?- n_factorial(N, 1).
-N = 0 ;
-N = 1 ;
-false.
-
-?- n_factorial(N, 3).
-false.
-==
-
-To make the predicate terminate if any argument is instantiated, add
-the (implied) constraint F #\= 0 before the recursive call. Otherwise,
-the query n_factorial(N, 0) is the only non-terminating case of this
-kind.
-
 ### Advanced topics			{#clpfd-advanced-topics}
-
-This library uses goal_expansion/2 to rewrite constraints at
-compilation time. The expansion's aim is to transparently bring the
-performance of CLP(FD) constraints close to that of conventional
-arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
-used in modes that can also be handled by built-in arithmetic. To
-disable the expansion, set the flag `clpfd_goal_expansion` to `false`.
 
 If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
 monotonic: Adding new constraints cannot yield new solutions. When
@@ -1097,7 +1097,9 @@ intervals_to_domain(Is, D) :-
 %         * Domain1 \/ Domain2
 %           The union of Domain1 and Domain2.
 
-V in D :-
+Var in Dom :- clpfd_in(Var, Dom).
+
+clpfd_in(V, D) :-
         fd_variable(V),
         drep_to_domain(D, Dom),
         domain(V, Dom).
@@ -1613,9 +1615,6 @@ sum(Vs, Op, Value) :-
         maplist(=(1), Ones),
         scalar_product(Ones, Vs, Op, Value).
 
-vars_plusterm([], _, T, T).
-vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C* ?(V)), T).
-
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
 % Cs is a list of integers, Vs is a list of variables and integers.
@@ -1625,17 +1624,28 @@ vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C* ?(V)), T).
 scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
         must_be(list, Vs),
-        must_be(callable, Op),
         maplist(fd_variable, Vs),
-        must_be(acyclic, Value),
-        (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
-        ;   domain_error(scalar_product_relation, Op)
-        ),
-        vars_plusterm(Cs, Vs, 0, Left),
-        (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
-            scalar_product_(Op, Cs1, Vs1, Const)
-        ;   sum(Cs, Vs, 0, Op, Value)
+        (   Op = (#=), single_value(Value, Right), ground(Vs) ->
+            foldl(coeff_int_linsum, Cs, Vs, 0, Right)
+        ;   must_be(callable, Op),
+            (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
+            ;   domain_error(scalar_product_relation, Op)
+            ),
+            must_be(acyclic, Value),
+            foldl(coeff_var_plusterm, Cs, Vs, 0, Left),
+            (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
+                scalar_product_(Op, Cs1, Vs1, Const)
+            ;   sum(Cs, Vs, 0, Op, Value)
+            )
         ).
+
+single_value(V, V)    :- var(V), !, non_monotonic(V).
+single_value(V, V)    :- integer(V).
+single_value(?(V), V) :- fd_variable(V).
+
+coeff_var_plusterm(C, V, T0, T0+(C* ?(V))).
+
+coeff_int_linsum(C, I, S0, S) :- S is S0 + C*I.
 
 sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
 sum([C|Cs], [X|Xs], Acc, Op, Value) :-
@@ -2272,15 +2282,26 @@ expr_conds(A0^B0, A^B)           -->
 :- dynamic
         user:goal_expansion/2.
 
+user:goal_expansion(Var in Dom, In) :-
+        \+ current_prolog_flag(clpfd_goal_expansion, false),
+        (   ground(Dom), Dom = L..U, integer(L), integer(U) ->
+            expansion_simpler(
+                (   integer(Var) ->
+                    between(L, U, Var)
+                ;   clpfd:clpfd_in(Var, Dom)
+                ), In)
+        ;   In = clpfd:clpfd_in(Var, Dom)
+        ).
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(clpfd:expr_conds(X0, X), CsX),
-        phrase(clpfd:expr_conds(Y0, Y), CsY),
-        clpfd:list_goal(CsX, CondX),
-        clpfd:list_goal(CsY, CondY),
-        Equal = (   CondX ->
+        phrase(expr_conds(X0, X), CsX),
+        phrase(expr_conds(Y0, Y), CsY),
+        list_goal(CsX, CondX),
+        list_goal(CsY, CondY),
+        expansion_simpler(
+                (   CondX ->
                     (   var(Y) -> Y is X
-                    ;   CondY ->  X =:= Y
+                    ;   CondY -> X =:= Y
                     ;   T is X, clpfd:clpfd_equal(T, Y0)
                     )
                 ;   CondY ->
@@ -2288,23 +2309,54 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                     ;   T is Y, clpfd:clpfd_equal(X0, T)
                     )
                 ;   clpfd:clpfd_equal(X0, Y0)
-                ).
+                ), Equal).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(clpfd:expr_conds(X0, X), CsX),
-        phrase(clpfd:expr_conds(Y0, Y), CsY),
-        clpfd:list_goal(CsX, CondX),
-        clpfd:list_goal(CsY, CondY),
-        Geq = (   CondX ->
+        phrase(expr_conds(X0, X), CsX),
+        phrase(expr_conds(Y0, Y), CsY),
+        list_goal(CsX, CondX),
+        list_goal(CsY, CondY),
+        expansion_simpler(
+              (   CondX ->
                   (   CondY -> X >= Y
                   ;   T is X, clpfd:clpfd_geq(T, Y0)
                   )
               ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
-              ).
+              ), Geq).
 user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
+
+expansion_simpler((True->Then0;_), Then) :-
+        is_true(True), !,
+        expansion_simpler(Then0, Then).
+expansion_simpler((False->_;Else0), Else) :-
+        is_false(False), !,
+        expansion_simpler(Else0, Else).
+expansion_simpler((If->Then0;Else0), (If->Then;Else)) :- !,
+        expansion_simpler(Then0, Then),
+        expansion_simpler(Else0, Else).
+expansion_simpler((Var is Expr,Goal), Goal) :-
+        ground(Expr), !,
+        Var is Expr.
+expansion_simpler((Var is Expr,Goal), (Var = Expr,Goal)) :- var(Expr), !.
+expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
+expansion_simpler(between(L,U,V), Goal) :- maplist(integer, [L,U,V]), !,
+        (   between(L,U,V) -> Goal = true
+        ;   Goal = false
+        ).
+expansion_simpler(Goal, Goal).
+
+is_true(true).
+is_true(integer(I))  :- integer(I).
+:- if(current_predicate(var_property/2)).
+is_true(var(X))      :- var(X), var_property(X, fresh(true)).
+is_false(integer(X)) :- var(X), var_property(X, fresh(true)).
+is_false((A,B))      :- is_false(A) ; is_false(B).
+:- endif.
+is_false(var(X)) :- nonvar(X).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -3301,14 +3353,12 @@ lex_chain(Lss) :-
         (   Lss == [] -> true
         ;   Lss = [First|Rest],
             make_propagator(presidual(lex_chain(Lss)), Prop),
-            lex_chain_(Rest, First, Prop)
+            foldl(lex_chain_(Prop), Rest, First, _)
         ).
 
-lex_chain_([], _, _).
-lex_chain_([Ls|Lss], Prev, Prop) :-
+lex_chain_(Prop, Ls, Prev, Ls) :-
         maplist(prop_init(Prop), Ls),
-        lex_le(Prev, Ls),
-        lex_chain_(Lss, Ls, Prop).
+        lex_le(Prev, Ls).
 
 lex_le([], []).
 lex_le([V1|V1s], [V2|V2s]) :-
@@ -3386,7 +3436,7 @@ relation_tuple(Relation, Tuple) :-
 
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
-        lists_firsts_rests(Relation0, Firsts, Relation1),
+        maplist(list_first_rest, Relation0, Firsts, Relation1),
         (   var(T) ->
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
@@ -5850,12 +5900,13 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
 %  denote the automaton's transitions. Each node is represented by an
 %  arbitrary term. Transitions that are not mentioned go to an
-%  implicit failure node. Exprs is a list of arithmetic expressions,
+%  implicit failure node. `Exprs` is a list of arithmetic expressions,
 %  of the same length as Counters. In each expression, variables
 %  occurring in Counters correspond to old counter values, and
 %  variables occurring in Template correspond to the current element
 %  of Sequence. When a transition containing expressions is taken,
-%  counters are updated as stated. By default, counters remain
+%  each counter is updated as stated by the result of the
+%  corresponding arithmetic expression. By default, counters remain
 %  unchanged. Counters is a list of variables that must not occur
 %  anywhere outside of the constraint goal. Initials is a list of the
 %  same length as Counters. Counter arithmetic on the transitions
@@ -6039,7 +6090,7 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  :- use_module(library(clpfd)).
 %
 %  sudoku(Rows) :-
-%          length(Rows, 9), maplist(length_(9), Rows),
+%          length(Rows, 9), maplist(length_list(9), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
 %          transpose(Rows, Columns),
@@ -6047,7 +6098,7 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %          Rows = [A,B,C,D,E,F,G,H,I],
 %          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
 %
-%  length_(L, Ls) :- length(Ls, L).
+%  length_list(L, Ls) :- length(Ls, L).
 %
 %  blocks([], [], []).
 %  blocks([A,B,C|Bs1], [D,E,F|Bs2], [G,H,I|Bs3]) :-
@@ -6069,33 +6120,29 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %
 %  ==
 %  ?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
-%  [9, 8, 7, 6, 5, 4, 3, 2, 1]
-%  [2, 4, 6, 1, 7, 3, 9, 8, 5]
-%  [3, 5, 1, 9, 2, 8, 7, 4, 6]
-%  [1, 2, 8, 5, 3, 7, 6, 9, 4]
-%  [6, 3, 4, 8, 9, 2, 1, 5, 7]
-%  [7, 9, 5, 4, 6, 1, 8, 3, 2]
-%  [5, 1, 9, 2, 8, 6, 4, 7, 3]
-%  [4, 7, 2, 3, 1, 9, 5, 6, 8]
-%  [8, 6, 3, 7, 4, 5, 2, 1, 9]
+%  [9,8,7,6,5,4,3,2,1]
+%  [2,4,6,1,7,3,9,8,5]
+%  [3,5,1,9,2,8,7,4,6]
+%  [1,2,8,5,3,7,6,9,4]
+%  [6,3,4,8,9,2,1,5,7]
+%  [7,9,5,4,6,1,8,3,2]
+%  [5,1,9,2,8,6,4,7,3]
+%  [4,7,2,3,1,9,5,6,8]
+%  [8,6,3,7,4,5,2,1,9]
 %  Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
 %  ==
 
-transpose(Ms, Ts) :-
-        must_be(list(list), Ms),
-        (   Ms = [] -> Ts = []
-        ;   Ms = [F|_],
-            transpose(F, Ms, Ts)
-        ).
+transpose(Ls, Ts) :-
+        must_be(list(list), Ls),
+        lists_transpose(Ls, Ts).
 
-transpose([], _, []).
-transpose([_|Rs], Ms, [Ts|Tss]) :-
-        lists_firsts_rests(Ms, Ts, Ms1),
-        transpose(Rs, Ms1, Tss).
+lists_transpose([], []).
+lists_transpose([L|Ls], Ts) :- foldl(transpose_, L, Ts, [L|Ls], _).
 
-lists_firsts_rests([], [], []).
-lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
-        lists_firsts_rests(Rest, Fs, Oss).
+transpose_(_, Fs, Lists0, Lists) :-
+        maplist(list_first_rest, Lists0, Fs, Lists).
+
+list_first_rest([L|Ls], L, Ls).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -6157,10 +6204,10 @@ chain(Zs, Relation) :-
         (   chain_relation(Relation) -> true
         ;   domain_error(chain_relation, Relation)
         ),
-        (   Zs = [] -> true
-        ;   Zs = [X|Xs],
-            foldl(chain(Relation), Xs, X, _)
-        ).
+        chain_(Zs, Relation).
+
+chain_([], _).
+chain_([X|Xs], Relation) :- foldl(chain(Relation), Xs, X, _).
 
 chain_relation(#=).
 chain_relation(#<).
@@ -6548,3 +6595,4 @@ safe_api.
 % Support clpfd goal expansion.
 sandbox:safe_primitive(clpfd:clpfd_equal(_,_)).
 sandbox:safe_primitive(clpfd:clpfd_geq(_,_)).
+sandbox:safe_primitive(clpfd:clpfd_in(_,_)).

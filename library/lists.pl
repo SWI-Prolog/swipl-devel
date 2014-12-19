@@ -611,7 +611,7 @@ is_set(Set) :-
 %
 %	@see	sort/2 can be used to create an ordered set.  Many
 %		set operations on ordered sets are order N rather than
-%		order N**2.  The list_to_set/2 predicate is is more
+%		order N**2.  The list_to_set/2 predicate is more
 %		expensive than sort/2 because it involves, in addition
 %		to a sort, three linear scans of the list.
 %	@compat	Up to version 6.3.11, list_to_set/2 had complexity

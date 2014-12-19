@@ -400,7 +400,8 @@ The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
 compatibility and symmetry.  As most scenarios will use a particular
 global variable using either non-backtrackable or backtrackable
 assignment, using nb_getval/2 can be used to document that the
-variable is non-backtrackable.
+variable is non-backtrackable. Raises \term{existence_error}{variable,
+Name} if the variable does not exist.
 
     \predicate{nb_linkval}{2}{+Name, +Value}
 Associates the term \arg{Value} with the atom \arg{Name} without copying
@@ -426,10 +427,13 @@ demo_nb_linkval :-
 
     \predicate{nb_current}{2}{?Name, ?Value}
 Enumerate all defined variables with their value. The order of
-enumeration is undefined.
+enumeration is undefined. Note that nb_current/2 can be used as an
+alternative for nb_getval/2 to request the value of a variable and fail
+silently if the variable does not exists.
 
     \predicate{nb_delete}{1}{+Name}
-Delete the named global variable.
+Delete the named global variable.  Succeeds also if the named variable
+does not exist.
 \end{description}
 
 

@@ -507,14 +507,18 @@ db_sync(Module, gc(When)) :-
 	db_file(Module, File, Modified),
 	atom_concat(File, '.new', NewFile),
 	debug(db, 'Database ~w is dirty; cleaning', [File]),
-	open(NewFile, write, Out, [encoding(utf8)]),
-	(   persistent(Module, Term, _Types),
-	    Module:Term,
-	    write_action(Out, assert(Term)),
-	    fail
-	;   true
-	),
-	close(Out),
+	catch(setup_call_cleanup(
+		  open(NewFile, write, Out, [encoding(utf8)]),
+		  (   persistent(Module, Term, _Types),
+		      call(Module:Term),
+		      write_action(Out, assert(Term)),
+		      fail
+		  ;   true
+		  ),
+		  close(Out)),
+	      Error,
+	      ( catch(delete_file(NewFile),_,fail),
+		throw(Error))),
 	retractall(db_file(Module, File, Modified)),
 	rename_file(NewFile, File),
 	time_file(File, NewModified),
