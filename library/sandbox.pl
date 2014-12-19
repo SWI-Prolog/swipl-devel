@@ -707,7 +707,7 @@ calling_meta_spec(//).
 extend(^, G, Plain) :- !,
 	strip_existential(G, Plain).
 extend(//, DCG, Goal) :- !,
-	(   expand_phrase(DCG, Goal)
+	(   expand_phrase(call_dcg(DCG,_,_), Goal)
 	->  true
 	;   instantiation_error(DCG)	% Ask more instantiation.
 	).				% might not help, but does not harm.
