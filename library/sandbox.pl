@@ -174,7 +174,7 @@ safe(G, M, Parents, Safe0, Safe) :-
 	safe_meta_call(G, Called), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
-	expand_phrase(G, Goal), !,
+	expand_phrase(G, Goal), Goal \== G, !,
 	safe(Goal, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	(   predicate_property(M:G, imported_from(M2))
@@ -707,7 +707,7 @@ calling_meta_spec(//).
 extend(^, G, Plain) :- !,
 	strip_existential(G, Plain).
 extend(//, DCG, Goal) :- !,
-	(   expand_phrase(DCG, Goal)
+	(   expand_phrase(call_dcg(DCG,_,_), Goal)
 	->  true
 	;   instantiation_error(DCG)	% Ask more instantiation.
 	).				% might not help, but does not harm.
