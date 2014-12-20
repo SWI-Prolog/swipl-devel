@@ -59,6 +59,7 @@
 	    atom//1			% generate atom
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(error)).
 
 
 /** <module> Various general DCG utilities
@@ -264,8 +265,8 @@ digit(C) -->
 	}.
 
 integer(I, Head, Tail) :-
-	integer(I), !,
-	format(codes(Head, Tail), '~w', [I]).
+	nonvar(I), !,
+	format(codes(Head, Tail), '~d', [I]).
 integer(I) -->
 	int_codes(Codes),
 	{ number_codes(I, Codes)
