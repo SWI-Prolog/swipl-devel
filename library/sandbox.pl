@@ -363,7 +363,7 @@ verify_safe_declaration(Goal) :-
 	).
 
 verify_predefined_safe_declarations :-
-	forall(clause(safe_primitive(Goal), Ref),
+	forall(clause(safe_primitive(Goal), _Body, Ref),
 	       ( catch(verify_safe_declaration(Goal), E, true),
 		 (   nonvar(E)
 		 ->  clause_property(Ref, file(File)),
