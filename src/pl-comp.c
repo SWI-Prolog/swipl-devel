@@ -3087,10 +3087,10 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
 
 	return TRUE;
       }
-    } else
-    { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-      if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
     }
+
+    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
 
     Output_2(ci, B_EQ_VV, VAROFFSET(i1), VAROFFSET(i2));
 
@@ -3166,10 +3166,10 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
 	return TRUE;
       }
-    } else
-    { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-      if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
     }
+
+    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
 
     Output_2(ci, B_NEQ_VV, VAROFFSET(i1), VAROFFSET(i2));
 
