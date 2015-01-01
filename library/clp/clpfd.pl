@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2014 Markus Triska
+    Copyright (C): 2007-2015 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -190,7 +190,7 @@ A finite domain _arithmetic expression_ is one of:
     | Expr mod Expr      | Modulo induced by floored division   |
     | Expr rem Expr      | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
-    | Expr / Expr        | Truncated integer division           |
+    | Expr // Expr       | Truncated integer division           |
 
 Arithmetic _constraints_ are relations between arithmetic expressions.
 
@@ -2737,6 +2737,7 @@ parse_reified(E, R, D,
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
                m(A/B)        => [skeleton(A,B,D,R,pdiv)],
+               m(A//B)       => [skeleton(A,B,D,R,pdiv)],
                m(A mod B)    => [skeleton(A,B,D,R,pmod)],
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
@@ -3927,7 +3928,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% X / Y = Z
+% X // Y = Z
 
 run_propagator(pdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
@@ -6444,7 +6445,7 @@ attribute_goal_(absdiff_neq(X,Y,C))    --> [abs(?(X) - ?(Y)) #\= C].
 attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(?(X) - ?(Y)) #>= C].
 attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [?(X) #\= ?(Y) + ?(Z)].
 attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
-attribute_goal_(pdiv(X,Y,Z))           --> [?(X) / ?(Y) #= ?(Z)].
+attribute_goal_(pdiv(X,Y,Z))           --> [?(X) // ?(Y) #= ?(Z)].
 attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
 attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
 attribute_goal_(pmod(X,M,K))           --> [?(X) mod ?(M) #= ?(K)].
