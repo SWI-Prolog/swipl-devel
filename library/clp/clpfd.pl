@@ -955,9 +955,10 @@ domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         domain_expand_(Right0, M, Right).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   similar to domain_expand/3, tailored for division: an interval
-   [From,To] is extended to [From*M, ((To+1)*M - 1)], i.e., to all
-   values that integer-divided by M yield a value from interval.
+   similar to domain_expand/3, tailored for truncated division: an
+   interval [From,To] is extended to [From*M, ((To+1)*M - 1)], i.e.,
+   to all values that truncated integer-divided by M yield a value
+   from interval.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_expand_more(D0, M, D) :-
@@ -1949,6 +1950,7 @@ parse_clpfd(E, R,
              m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A//B)           => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
@@ -2737,6 +2739,7 @@ parse_reified(E, R, D,
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
                m(A/B)        => [skeleton(A,B,D,R,pdiv)],
+               m(A rdiv B)   => [skeleton(A,B,D,R,prdiv)],
                m(A//B)       => [skeleton(A,B,D,R,pdiv)],
                m(A mod B)    => [skeleton(A,B,D,R,pmod)],
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
@@ -3928,6 +3931,25 @@ run_propagator(ptimes(X,Y,Z), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% X rdiv Y = Z
+run_propagator(prdiv(X,Y,Z), MState) :-
+        (   nonvar(X) ->
+            (   X =:= 0 -> kill(MState), Z = 0
+            ;   nonvar(Y) -> kill(MState), Y =\= 0, X mod Y =:= 0, Z is X // Y
+            ;   (   nonvar(Z) ->
+                    (   Z =:= 0 -> X =:= 0, kill(MState)
+                    ;   NYL is -abs(X), NYU is abs(X), Y in NYL..NYU
+                    )
+                ;   NYL is -abs(X), NYU is abs(X), Y in NYL..NYU
+                )
+            )
+        ;   nonvar(Y) -> Y =\= 0, kill(MState), X #= Z*Y
+        ;   (   X == Y -> kill(MState), Z = 1
+            ;   true
+            )
+        ).
+
 % X // Y = Z
 
 run_propagator(pdiv(X,Y,Z), MState) :-
@@ -6446,6 +6468,7 @@ attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(?(X) - ?(Y)) #>= C].
 attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [?(X) #\= ?(Y) + ?(Z)].
 attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
 attribute_goal_(pdiv(X,Y,Z))           --> [?(X) // ?(Y) #= ?(Z)].
+attribute_goal_(prdiv(X,Y,Z))          --> [?(X) rdiv ?(Y) #= ?(Z)].
 attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
 attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
 attribute_goal_(pmod(X,M,K))           --> [?(X) mod ?(M) #= ?(K)].
