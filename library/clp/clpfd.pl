@@ -3890,7 +3890,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NR is -R,
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
-                fd_get(Y, _, YL, YU, _),
+                fd_get(Y, YD, YL, YU, _),
                 min_max_factor(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
@@ -3899,33 +3899,40 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   (   Y =\= 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
                     )
+                ),
+                (   Z =:= 0 ->
+                    (   \+ domain_contains(XD, 0) -> kill(MState), Y = 0
+                    ;   \+ domain_contains(YD, 0) -> kill(MState), X = 0
+                    ;   true
+                    )
+                ;  neq_num(X, 0), neq_num(Y, 0)
                 )
-            ),
-            (   Z =\= 0 -> neq_num(X, 0), neq_num(Y, 0)
-            ;   true
             )
         ;   (   X == Y -> kill(MState), X^2 #= Z
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, _, YL, YU, _),
-                fd_get(Z, _, ZL, ZU, _),
-                min_max_factor(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
-                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
-                (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_max_factor(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
-                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
-                ;   NYL = n(Y), NYU = n(Y)
-                ),
-                (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
-                    min_product(NXL, NXU, NYL, NYU, NZL),
-                    max_product(NXL, NXU, NYL, NYU, NZU),
-                    (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
-                    ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
-                        fd_put(Z, ZD3, ZPs2)
+                fd_get(Z, ZD, ZL, ZU, _),
+                (   Y == Z, \+ domain_contains(ZD, 0) -> kill(MState), X = 1
+                ;   X == Z, \+ domain_contains(ZD, 0) -> kill(MState), Y = 1
+                ;   min_max_factor(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
+                    update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
+                    (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
+                        min_max_factor(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
+                        update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
+                    ;   NYL = n(Y), NYU = n(Y)
                     ),
-                    (   domain_contains(ZD3, 0) ->  true
-                    ;   neq_num(X, 0), neq_num(Y, 0)
+                    (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
+                        min_product(NXL, NXU, NYL, NYU, NZL),
+                        max_product(NXL, NXU, NYL, NYU, NZU),
+                        (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
+                        ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
+                            fd_put(Z, ZD3, ZPs2)
+                        ),
+                        (   domain_contains(ZD3, 0) ->  true
+                        ;   neq_num(X, 0), neq_num(Y, 0)
+                        )
+                    ;   true
                     )
-                ;   true
                 )
             )
         ).
@@ -3933,22 +3940,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % X rdiv Y = Z
-run_propagator(prdiv(X,Y,Z), MState) :-
-        (   nonvar(X) ->
-            (   X =:= 0 -> kill(MState), Z = 0
-            ;   nonvar(Y) -> kill(MState), Y =\= 0, X mod Y =:= 0, Z is X // Y
-            ;   (   nonvar(Z) ->
-                    (   Z =:= 0 -> X =:= 0, kill(MState)
-                    ;   NYL is -abs(X), NYU is abs(X), Y in NYL..NYU
-                    )
-                ;   NYL is -abs(X), NYU is abs(X), Y in NYL..NYU
-                )
-            )
-        ;   nonvar(Y) -> Y =\= 0, kill(MState), X #= Z*Y
-        ;   (   X == Y -> kill(MState), Z = 1
-            ;   true
-            )
-        ).
+run_propagator(prdiv(X,Y,Z), MState) :- kill(MState), Z*Y #= X.
 
 % X // Y = Z
 
