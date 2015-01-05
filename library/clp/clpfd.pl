@@ -1949,10 +1949,10 @@ parse_clpfd(E, R,
              m(A mod B)        => [g(B #\= 0), p(pmod(A, B, R))],
              m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
-             m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A div B)        => [g(R #= (A - (A mod B)) // B)],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
-             m(A//B)           => [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A//B)           => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
@@ -2739,9 +2739,9 @@ parse_reified(E, R, D,
                m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        => [skeleton(A,B,D,R,pdiv)],
+               m(A/B)        => [skeleton(A,B,D,R,ptzdiv)],
                m(A rdiv B)   => [skeleton(A,B,D,R,prdiv)],
-               m(A//B)       => [skeleton(A,B,D,R,pdiv)],
+               m(A//B)       => [skeleton(A,B,D,R,ptzdiv)],
                m(A mod B)    => [skeleton(A,B,D,R,pmod)],
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
@@ -3943,9 +3943,9 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 % X rdiv Y = Z
 run_propagator(prdiv(X,Y,Z), MState) :- kill(MState), Z*Y #= X.
 
-% X // Y = Z
+% X // Y = Z (round towards zero)
 
-run_propagator(pdiv(X,Y,Z), MState) :-
+run_propagator(ptzdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
             ;   fd_get(Y, YD, YL, YU, YPs),
@@ -6460,7 +6460,7 @@ attribute_goal_(absdiff_neq(X,Y,C))    --> [abs(?(X) - ?(Y)) #\= C].
 attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(?(X) - ?(Y)) #>= C].
 attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [?(X) #\= ?(Y) + ?(Z)].
 attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
-attribute_goal_(pdiv(X,Y,Z))           --> [?(X) // ?(Y) #= ?(Z)].
+attribute_goal_(ptzdiv(X,Y,Z))         --> [?(X) // ?(Y) #= ?(Z)].
 attribute_goal_(prdiv(X,Y,Z))          --> [?(X) rdiv ?(Y) #= ?(Z)].
 attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
 attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
