@@ -1951,7 +1951,7 @@ parse_clpfd(E, R,
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A//B)           => [g(B #\= 0), p(ptzdiv(A, B, R))],
-             m(A div B)        => [g(R #= (A - (A mod B)) // B)],
+             m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
@@ -2741,6 +2741,7 @@ parse_reified(E, R, D,
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
                m(A/B)        => [skeleton(A,B,D,R,ptzdiv)],
                m(A//B)       => [skeleton(A,B,D,R,ptzdiv)],
+               m(A div B)    => [skeleton(A,B,D,R,pdiv)],
                m(A rdiv B)   => [skeleton(A,B,D,R,prdiv)],
                m(A mod B)    => [skeleton(A,B,D,R,pmod)],
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
@@ -3940,11 +3941,13 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% X div Y = Z
+run_propagator(pdiv(X,Y,Z), MState) :- kill(MState), Z #= (X-(X mod Y)) // Y.
+
 % X rdiv Y = Z
 run_propagator(prdiv(X,Y,Z), MState) :- kill(MState), Z*Y #= X.
 
 % X // Y = Z (round towards zero)
-
 run_propagator(ptzdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
@@ -6461,6 +6464,7 @@ attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(?(X) - ?(Y)) #>= C].
 attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [?(X) #\= ?(Y) + ?(Z)].
 attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
 attribute_goal_(ptzdiv(X,Y,Z))         --> [?(X) // ?(Y) #= ?(Z)].
+attribute_goal_(pdiv(X,Y,Z))           --> [?(X) div ?(Y) #= ?(Z)].
 attribute_goal_(prdiv(X,Y,Z))          --> [?(X) rdiv ?(Y) #= ?(Z)].
 attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
 attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
