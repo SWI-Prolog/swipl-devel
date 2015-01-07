@@ -2999,8 +2999,8 @@ compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
       Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
     else if ( f1 )
       Output_2(ci, B_UNIFY_FV, VAROFFSET(i1), VAROFFSET(i2));
-    else if ( f2 )
-      Output_2(ci, B_UNIFY_FV, VAROFFSET(i2), VAROFFSET(i1));
+    else if ( f2 )			/* same, but args swapped */
+      Output_2(ci, B_UNIFY_VF, VAROFFSET(i2), VAROFFSET(i1));
     else
       Output_2(ci, B_UNIFY_VV, VAROFFSET(i1), VAROFFSET(i2));
 
@@ -4690,6 +4690,11 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case B_UNIFY_VV:
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
+			    goto b_unify_exit;
+      case B_UNIFY_VF:
+			    ARGP[1] = makeVarRef((int)*PC++);
+			    ARGP[0] = makeVarRef((int)*PC++);
+			    ARGP += 2;
 			    goto b_unify_exit;
       case B_UNIFY_FC:
       case B_UNIFY_VC:

@@ -1314,6 +1314,9 @@ tcl(x(G)) :- G.
 tcl(a(X,X)) :- a(X).
 tcl(scut) :- ( a *-> true ; b *-> c ).
 tcl(cut) :-  ( a -> true  ; b -> c ).
+tcl(vf) :- v(X), X = Y, v(Y).		% B_UNIFY_VF argument ordering
+
+v(_).
 
 mtcl:tcl(a) :- a.
 mtcl:tcl(b) :- a, b.
@@ -1343,6 +1346,9 @@ cl(clause-8) :-
 cl(clause-9) :-
 	clause(tcl(cut), Body),
 	Body == ( a -> true ; b -> c ).
+cl(clause-10) :-
+	clause(tcl(vf), Body),
+	Body =@= (v(X), X = Y, v(Y)).
 
 
 		 /*******************************

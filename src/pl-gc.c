@@ -1074,6 +1074,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
           setVar(varFrame(fr, PC[2]));
           break;
        case B_UNIFY_FV:
+       case B_UNIFY_VF:
        case B_UNIFY_FC:
        case A_ADD_FC:
          setVar(varFrame(fr, PC[1]));
@@ -1645,6 +1646,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       case A_ADD_FC:
       case B_UNIFY_FV:
+      case B_UNIFY_VF:
 	clear_frame_var(state, PC[0], PC);
 	mark_frame_var(state, PC[1] PASS_LD);
 	break;

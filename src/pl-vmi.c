@@ -1163,19 +1163,32 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
 }
 
 
+/* B_UNIFY_VF is the same as B_UNIFY_FV, but the arguments
+ * are swapped by the compiler.  The distinction is needed
+ * to allow the decompiler return the correct argument order.
+ * Having swapped V1=V2 is hard to compensate for in the
+ * GUI tracer.
+ */
+
+VMI(B_UNIFY_VF, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
+{ SEPERATE_VMI;
+  VMI_GOTO(B_UNIFY_FV);
+}
+
+
 VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
-  Word v2 = varFrameP(FR, (int)*PC++);
+{ Word f = varFrameP(FR, (int)*PC++);
+  Word v = varFrameP(FR, (int)*PC++);
 
   if ( LD->slow_unify )
-  { setVar(*v1);
+  { setVar(*f);
     ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
-    *ARGP++ = linkVal(v2);
+    *ARGP++ = linkVal(f);
+    *ARGP++ = linkVal(v);
     goto debug_equals2;
   }
 
-  *v1 = linkVal(v2);
+  *f = linkVal(v);
 
   NEXT_INSTRUCTION;
 }
