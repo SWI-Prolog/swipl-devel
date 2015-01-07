@@ -352,7 +352,8 @@ expand_failed(E, Read) :-
 %
 %	Pos0 and Pos still include the term-position of the head.
 
-unify_body(B, B, _, Pos, Pos) :-
+unify_body(B, C, _, Pos, Pos) :-
+	B =@= C, B = C,
 	does_not_dcg_after_binding(B, Pos), !.
 unify_body(R, D, Module,
 	   term_position(F,T,FF,FT,[HP,BP0]),
@@ -368,7 +369,6 @@ unify_body(R, D, Module,
 %		is no reason for this test.
 
 does_not_dcg_after_binding(B, Pos) :-
-	acyclic_term(B),		% X = call(X)
 	\+ sub_term(brace_term_position(_,_,_), Pos),
 	\+ (sub_term((Cut,_=_), B), Cut == !), !.
 
@@ -397,7 +397,8 @@ a --> { x, y, z }.
 ubody(B, DB, _, P, P) :-
 	var(P), !,			% TBD: Create compatible pos term?
 	B = DB.
-ubody(B, B, _, P, P) :-
+ubody(B, C, _, P, P) :-
+	B =@= C, B = C,
 	does_not_dcg_after_binding(B, P), !.
 ubody(X, call(X), _,			% X = call(X)
       Pos,
