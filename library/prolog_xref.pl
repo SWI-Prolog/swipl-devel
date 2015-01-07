@@ -476,6 +476,10 @@ xref_called(Source, Called, By, Cond) :-
 %	  * imported(From)
 
 xref_defined(Source, Called, How) :-
+	nonvar(Source), !,
+	canonical_source(Source, Src),
+	xref_defined2(How, Src, Called).
+xref_defined(Source, Called, How) :-
 	xref_defined2(How, Src, Called),
 	canonical_source(Source, Src).
 
