@@ -583,6 +583,9 @@ prolog_canonical_source(User, user) :-
 prolog_canonical_source(Src, Id) :-		% Call hook
 	prolog:xref_source_identifier(Src, Id), !.
 prolog_canonical_source(Source, Src) :-
+	source_file(Source), !,
+	Src = Source.
+prolog_canonical_source(Source, Src) :-
 	absolute_file_name(Source, Src,
 			   [ file_type(prolog),
 			     access(read),
