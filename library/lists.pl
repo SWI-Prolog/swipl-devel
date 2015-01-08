@@ -448,16 +448,18 @@ perm(List, [First|Perm]) :-
         select(First, List, Rest),
         perm(Rest, Perm).
 
-%%	flatten(+List1, ?List2) is det.
+%%	flatten(+NestedList, -FlatList) is det.
 %
-%	Is true if List2 is a non-nested version of List1.
+%	Is true if FlatList is a  non-nested version of NestedList. Note
+%	that empty lists are removed. In   standard Prolog, this implies
+%	that the atom '[]' is removed  too.   In  SWI7, `[]` is distinct
+%	from '[]'.
 %
-%	@deprecated	Ending up needing flatten/3 often indicates,
-%			like append/3 for appending two lists, a bad
-%			design.  Efficient code that generates lists
-%			from generated small lists must use difference
-%			lists, often possible through grammar rules for
-%			optimal readability.
+%	Ending up needing flatten/3 often   indicates, like append/3 for
+%	appending two lists, a bad design. Efficient code that generates
+%	lists from generated small  lists   must  use  difference lists,
+%	often possible through grammar rules for optimal readability.
+%
 %	@see append/2
 
 flatten(List, FlatList) :-
