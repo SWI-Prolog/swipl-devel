@@ -146,15 +146,14 @@ to_list(Q0,[P-X|Xs]) :-
 
 %%	is_heap(+X) is semidet.
 %
-%	Returns true is X is a heap.
-%
-%	@bug May return false positives.
+%	Returns true if X is a heap.  Validates the consistency	of the
+%	entire heap.
 
 is_heap(V) :-
 	var(V), !, fail.
 is_heap(heap(Q,N)) :-
 	integer(N),
-	\+ var(Q),
+	nonvar(Q),
 	(   Q == nil
 	->  N == 0
 	;   N > 0,
