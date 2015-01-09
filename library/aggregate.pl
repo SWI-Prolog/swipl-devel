@@ -75,11 +75,13 @@ There are four aggregation predicates (aggregate/3, aggregate/4, aggregate_all/3
     Discriminator (see below) generated using findall/3.
 
     $ The Discriminator argument :
-    The versions with 4 arguments provide a Discriminator argument that
-    allows for keeping duplicate bindings of a variable in the result.
-    For example, if we wish to compute the total population of all
-    countries, we do not want to lose results because two countries
-    have the same population.  Therefore we use:
+    The versions with 4 arguments deduplicate redundant solutions of
+    Goal. Solutions for which both the template variables and
+    Discriminator are identical will be treated as one solution. For
+    example, if we wish to compute the total population of all
+    countries, and for some reason =|country(belgium, 11000000)|= may
+    succeed twice, we can use the following to avoid counting the
+    population of Belgium twice:
 
     ==
 	aggregate(sum(P), Name, country(Name, P), Total)
