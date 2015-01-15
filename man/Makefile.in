@@ -32,6 +32,7 @@ BOOK=		SWI-Prolog-book-$(VERSION)
 PDF=		$(DOC).pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
+UPLOAD_DEST=	ec:/home/pl/web/download
 
 WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
@@ -162,7 +163,7 @@ $(DVITOTTY):
 # Upload to website
 
 upload::
-		rsync -av $(PDF) ec:/home/pl/web/download/devel/doc/SWI-Prolog-$(VERSION).pdf
+		rsync -av $(PDF) ${UPLOAD_DEST}/devel/doc/SWI-Prolog-$(VERSION).pdf
 
 ################################################################
 # PlDoc generated manual files
