@@ -74,7 +74,8 @@ into the core Prolog library to support the Prolog package manager.
 		     [ directory(atom),
 		       error(-codes),
 		       output(-codes),
-		       status(-any)
+		       status(-any),
+		       askpass(any)
 		     ]).
 :- predicate_options(git_default_branch/2, 2,
 		     [ pass_to(git_process_output/3, 3)
@@ -94,6 +95,7 @@ into the core Prolog library to support the Prolog package manager.
 		     ]).
 :- predicate_options(git_process_output/3, 3,
 		     [ directory(atom),
+		       askpass(any),
 		       error(-codes)
 		     ]).
 :- predicate_options(git_remote_url/3, 3,
@@ -120,14 +122,18 @@ into the core Prolog library to support the Prolog package manager.
 %	  with level =informational=.
 %	  * error(-Error)
 %	  As output(Out), but messages are printed at level =error=.
+%	  * askpass(+Program)
+%	  Export GIT_ASKPASS=Program
 
 git(Argv, Options) :-
 	option(directory(Dir), Options, .),
+	env_options(Extra, Options),
 	setup_call_cleanup(process_create(path(git), Argv,
                                           [ stdout(pipe(Out)),
                                             stderr(pipe(Error)),
                                             process(PID),
                                             cwd(Dir)
+					  | Extra
                                           ]),
                            (   read_stream_to_codes(Out, OutCodes, []),
 			       read_stream_to_codes(Error, ErrorCodes, []),
@@ -144,6 +150,19 @@ git(Argv, Options) :-
 	->  true
 	;   throw(error(process_error(git(Argv), Status), _))
 	).
+
+env_options([env(['GIT_ASKPASS'=Program])], Options) :-
+	option(askpass(Exe), Options), !,
+	exe_options(ExeOptions),
+	absolute_file_name(Exe, PlProg, ExeOptions),
+	prolog_to_os_filename(PlProg, Program).
+env_options([], _).
+
+exe_options(Options) :-
+	current_prolog_flag(windows, true), !,
+	Options = [ extensions(['',exe,com]), access(read) ].
+exe_options(Options) :-
+	Options = [ access(execute) ].
 
 print_output(OutCodes, Options) :-
 	option(output(Codes), Options), !,
@@ -175,11 +194,13 @@ classify_message(informational) -->
 
 git_process_output(Argv, OnOutput, Options) :-
 	option(directory(Dir), Options, .),
+	env_options(Extra, Options),
 	setup_call_cleanup(process_create(path(git), Argv,
                                           [ stdout(pipe(Out)),
                                             stderr(pipe(Error)),
                                             process(PID),
                                             cwd(Dir)
+					  | Extra
                                           ]),
                            (   call(OnOutput, Out),
 			       read_stream_to_codes(Error, ErrorCodes, []),
