@@ -756,6 +756,12 @@ download_file(URL, Pack, File, Options) :-
 	atom_version(VersionA, Version),
 	file_name_extension(_, Ext, URL),
 	format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
+download_file(URL, Pack, File, _) :-
+	file_base_name(URL,Basename),
+	file_name_extension(Tag,Ext,Basename),
+	tag_version(Tag,Version), !,
+	atom_version(VersionA,Version),
+	format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
 download_file(URL, _, File, _) :-
 	file_base_name(URL, File).
 
