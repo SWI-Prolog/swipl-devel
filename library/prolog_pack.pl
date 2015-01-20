@@ -38,7 +38,9 @@
 	    pack_rebuild/1,		% +Name
 	    pack_rebuild/0,		% All packages
 	    pack_remove/1,		% +Name
-	    pack_property/2		% ?Name, ?Property
+	    pack_property/2,		% ?Name, ?Property
+
+	    pack_url_file/2		% +URL, -File
 	  ]).
 :- use_module(library(apply)).
 :- use_module(library(error)).
@@ -751,6 +753,8 @@ pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	confirm(install_downloaded(DownloadFile), yes, Options),
 	pack_install_from_local(DownloadFile, PackTopDir, Pack, Options).
 
+%%	download_file(+URL, +Pack, -File, +Options) is det.
+
 download_file(URL, Pack, File, Options) :-
 	option(version(Version), Options), !,
 	atom_version(VersionA, Version),
@@ -764,6 +768,19 @@ download_file(URL, Pack, File, _) :-
 	format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
 download_file(URL, _, File, _) :-
 	file_base_name(URL, File).
+
+%%	pack_url_file(+URL, -File) is det.
+%
+%	True if File is a unique id for the referenced pack and version.
+%	Normally, that is simply the  base   name,  but  GitHub archives
+%	destroy this picture. Needed by the pack manager.
+
+pack_url_file(URL, FileID) :-
+	github_release_url(URL, Pack, Version), !,
+	download_file(URL, Pack, FileID, [version(Version)]).
+pack_url_file(URL, FileID) :-
+	file_base_name(URL, FileID).
+
 
 :- public ssl_verify/5.
 
@@ -1334,7 +1351,7 @@ github_release_url(URL, Pack, Version) :-
 	atomic_list_concat(['',_Project,Pack,archive,File], /, Path),
 	file_name_extension(Tag, Ext, File),
 	github_archive_extension(Ext),
-	tag_version(Tag, Version).
+	tag_version(Tag, Version), !.
 
 github_archive_extension(tgz).
 github_archive_extension(zip).
