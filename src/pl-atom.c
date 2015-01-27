@@ -1007,6 +1007,9 @@ rehashAtoms(void)
   size_t index;
   int i, last=FALSE;
 
+  if ( GD->cleaning != CLN_NORMAL )
+    return;				/* no point anymore and foreign ->type */
+					/* pointers may have gone */
   atom_buckets *= 2;
   mask = atom_buckets-1;
   atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
