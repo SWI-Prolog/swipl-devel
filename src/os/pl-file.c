@@ -1159,7 +1159,10 @@ closeFiles(int all)
 	  PL_reset_term_refs(t);
 	}
 
-	closeStream(s2);
+	if ( !closeStream(s2) && exception_term )
+	{ printMessage(ATOM_warning, PL_TERM, exception_term);
+	  PL_clear_exception();
+	}
       }
     }
   }
