@@ -1152,6 +1152,7 @@ initPrologFlags(void)
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+  setPrologFlag("unload_foreign_libraries", FT_BOOL, FALSE, 0);
   setPrologFlag("gc",	  FT_BOOL,	       TRUE,  PLFLAG_GC);
   setPrologFlag("trace_gc",  FT_BOOL,	       FALSE, PLFLAG_TRACE_GC);
 #ifdef O_ATOMGC

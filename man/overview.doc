@@ -1615,6 +1615,12 @@ application modules or for a specific module.  It is strongly advised
 to keep the \const{error} default and use dynamic/1 and/or multifile/1
 to specify possible non-existence of a predicate.
 
+    \prologflagitem{unload_foreign_libraries}{bool}{rw}
+If \const{true} (default \const{false}), unload all loaded foreign
+libraries.  Default is \const{false} because modern OSes reclaim the
+resources anyway and unloading the foreign code may cause registered
+hooks to point to no longer existing data or code.
+
     \prologflagitem{user_flags}{Atom}{rw}
 Define the behaviour of set_prolog_flag/2 if the flag is not known.
 Values are \const{silent}, \const{warning} and \const{error}. The first
