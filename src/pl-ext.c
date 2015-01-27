@@ -458,15 +458,16 @@ initBuildIns(void)
   LOOKUPPROC(setup_call_catcher_cleanup4);
   LOOKUPPROC(dthread_init0);
   LOOKUPPROC(dc_call_prolog0);
-#if O_DEBUGGER
-  LOOKUPPROC(event_hook1);
-#endif
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
 #endif
 #ifdef O_CALL_RESIDUE
   PROCEDURE_call_residue_vars2  =
 	PL_predicate("call_residue_vars", 2, "$attvar");
+#endif
+#if O_DEBUGGER
+  PROCEDURE_event_hook1 =
+	PL_predicate("prolog_event_hook", 1, "user");
 #endif
   PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
