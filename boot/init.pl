@@ -1305,6 +1305,16 @@ compiling :-
 	).
 '$record_included'(_, _, _, true).
 
+%%	'$master_file'(+File, -MasterFile)
+%
+%	Find the primary load file from included files.
+
+'$master_file'(File, MasterFile) :-
+	'$included'(MasterFile0, _Line, File, _Time), !,
+	'$master_file'(MasterFile0, MasterFile).
+'$master_file'(File, File).
+
+
 '$skip_script_line'(In) :-
 	(   peek_char(In, #)
 	->  skip(In, 10)
@@ -2021,7 +2031,7 @@ load_files(Module:Files, Options) :-
 	;   What = 'boot compiled'
 	).
 
-%%	'$load_context_module'(+File, -Module, -Options)
+%%	'$assert_load_context_module'(+File, -Module, -Options)
 %
 %	Record the module a file was loaded from (see make/0). The first
 %	clause deals with loading from  another   file.  On reload, this
@@ -2038,12 +2048,13 @@ load_files(Module:Files, Options) :-
 	memberchk(register(false), Options), !.
 '$assert_load_context_module'(File, Module, Options) :-
 	source_location(FromFile, Line), !,
+	'$master_file'(FromFile, MasterFile),
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
 	'$load_ctx_options'(Options1, Options2),
 	'$store_admin_clause'(
 	    system:'$load_context_module'(File, Module, Options2),
-	    _Layout, FromFile, File:Line).
+	    _Layout, MasterFile, FromFile:Line).
 '$assert_load_context_module'(File, Module, Options) :-
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
