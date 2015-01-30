@@ -528,6 +528,10 @@ xref_exported(Source, Called) :-
 %	True if Module is defined in Source.
 
 xref_module(Source, Module) :-
+	nonvar(Source), !,
+	prolog_canonical_source(Source, Src),
+	xmodule(Module, Src).
+xref_module(Source, Module) :-
 	xmodule(Module, Src),
 	prolog_canonical_source(Source, Src).
 
