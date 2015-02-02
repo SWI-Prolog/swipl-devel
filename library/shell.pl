@@ -174,7 +174,8 @@ tagged_file_in_dir(File, Result) :-
 tag_file(File, Dir) :-
 	exists_directory(File),	!,
 	atom_concat(File, /, Dir).
-tag_file(File, File).
+tag_file(File, File) :-
+        exists_file(File), !.
 
 %%	mv(+From, +To) is det.
 %
