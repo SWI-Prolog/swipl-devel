@@ -253,7 +253,13 @@ name_to_files_(Spec, Files) :-
 	;   phrase(segments(Spec), L),
 	    atomic_list_concat(L, /, S1)
 	),
-	expand_file_name(S1, Files).
+	expand_file_name(S1, Files0),
+	(   Files0 == [S1],
+	    \+ access_file(S1, exist)
+	->  warning('"~w" does not exist', [S1]),
+	    fail
+	;   Files = Files0
+	).
 
 segments(Var) -->
 	{ var(Var), !,
