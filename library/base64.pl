@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +30,7 @@
 
 :- module(base64,
 	  [ base64/2,			% ?PlainText, ?Encoded
+	    base64url/2,		% ?PlainText, ?Encoded
 	    base64//1			% ?PlainText
 	  ]).
 
@@ -74,6 +74,27 @@ base64(Plain, Encoded) :-
 base64(_, _) :-
 	throw(error(instantiation_error, _)).
 
+%%	base64url(+Plain, -Encoded) is det.
+%%	base64url(-Plain, +Encoded) is det.
+%
+%	Translates between plaintext  and  base64url   encoded  atom  or
+%	string. Base64URL encoded values can safely  be used as URLs and
+%	file names. The use "-" instead of   "+", "_" instead of "/" and
+%	do not use padding. This implies   that the encoded value cannot
+%	be embedded inside a longer string.
+
+base64url(Plain, Encoded) :-
+	nonvar(Plain), !,
+	atom_codes(Plain, PlainCodes),
+	phrase(encode_url(PlainCodes), EncCodes),
+	atom_codes(Encoded, EncCodes).
+base64url(Plain, Encoded) :-
+	nonvar(Encoded), !,
+	atom_codes(Encoded, EncCodes),
+	phrase(decode_url(PlainCodes), EncCodes),
+	atom_codes(Plain, PlainCodes).
+base64url(_, _) :-
+	throw(error(instantiation_error, _)).
 
 %%	base64(+PlainText)// is det.
 %%	base64(-PlainText)// is det.
@@ -127,6 +148,41 @@ encode([]) -->
 	[].
 
 
+encode_url([I0, I1, I2|Rest]) --> !,
+	[O0, O1, O2, O3],
+	{ A is (I0<<16)+(I1<<8)+I2,
+	  O00 is (A>>18) /\ 0x3f,
+	  O01 is (A>>12) /\ 0x3f,
+	  O02 is  (A>>6) /\ 0x3f,
+	  O03 is       A /\ 0x3f,
+	  base64url_char(O00, O0),
+	  base64url_char(O01, O1),
+	  base64url_char(O02, O2),
+	  base64url_char(O03, O3)
+	},
+	encode_url(Rest).
+encode_url([I0, I1]) --> !,
+	[O0, O1, O2],
+	{ A is (I0<<16)+(I1<<8),
+	  O00 is (A>>18) /\ 0x3f,
+	  O01 is (A>>12) /\ 0x3f,
+	  O02 is  (A>>6) /\ 0x3f,
+	  base64url_char(O00, O0),
+	  base64url_char(O01, O1),
+	  base64url_char(O02, O2)
+	}.
+encode_url([I0]) --> !,
+	[O0, O1],
+	{ A is (I0<<16),
+	  O00 is (A>>18) /\ 0x3f,
+	  O01 is (A>>12) /\ 0x3f,
+	  base64url_char(O00, O0),
+	  base64url_char(O01, O1)
+	}.
+encode_url([]) -->
+	[].
+
+
 		 /*******************************
 		 *	      DECODE		*
 		 *******************************/
@@ -157,6 +213,45 @@ decode(Text) -->
 	},
 	decode(Rest).
 decode([]) -->
+	[].
+
+%%	decode_url(-Text)//
+%
+%	Decode a Base64URL string that has a   given length, i.e., it is
+%	not a Base64 string embedded in a longer string.
+
+decode_url(Text) -->
+	[C0, C1, C2, C3], !,
+	{ base64url_char(B0, C0),
+	  base64url_char(B1, C1),
+	  base64url_char(B2, C2),
+	  base64url_char(B3, C3),
+	  A is (B0<<18) + (B1<<12) + (B2<<6) + B3,
+	  I0 is (A>>16) /\ 0xff,
+	  I1 is  (A>>8) /\ 0xff,
+	  I2 is      A  /\ 0xff,
+	  Text = [I0,I1,I2|Rest]
+	},
+	decode_url(Rest).
+decode_url(Text) -->
+	[C0, C1, C2], !,
+	{ base64url_char(B0, C0),
+	  base64url_char(B1, C1),
+	  base64url_char(B2, C2),
+	  A is (B0<<18) + (B1<<12) + (B2<<6),
+	  I0 is (A>>16) /\ 0xff,
+	  I1 is  (A>>8) /\ 0xff,
+	  Text = [I0,I1]
+	}.
+decode_url(Text) -->
+	[C0, C1], !,
+	{ base64url_char(B0, C0),
+	  base64url_char(B1, C1),
+	  A is (B0<<18) + (B1<<12),
+	  I0 is (A>>16) /\ 0xff,
+	  Text = [I0]
+	}.
+decode_url([]) -->
 	[].
 
 
@@ -228,3 +323,24 @@ base64_char(60, 0'8).
 base64_char(61, 0'9).
 base64_char(62, 0'+).
 base64_char(63, 0'/).
+
+base64url_char_x(62, 0'-).
+base64url_char_x(63, 0'_).
+
+base64url_char(D, E) :-
+	base64url_char_x(D, E), !.
+base64url_char(D, E) :-
+	base64_char(D, E), !.
+base64url_char(D, E) :-
+	throw(error(syntax_error(base64url_char(D, E)), _)).
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile prolog:error_message//1.
+
+prolog:error_message(syntax_error(base64url_char(_D,E))) -->
+	{ nonvar(E) }, !,
+	[ 'Illegal Base64URL character: "~c"'-[E] ].
