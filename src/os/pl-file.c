@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -360,6 +360,7 @@ initIO(void)
 
   ttymode = TTY_COOKED;
   PushTty(Sinput, &ttytab, TTY_SAVE);
+  ttymodified = FALSE;
   LD->prompt.current = ATOM_prompt;
   PL_register_atom(ATOM_prompt);
 
@@ -1071,6 +1072,7 @@ streamStatus(IOSTREAM *s)
 
 ttybuf	ttytab;				/* saved terminal status on entry */
 int	ttymode;			/* Current tty mode */
+int	ttymodified;			/* is tty modified? */
 
 typedef struct input_context * InputContext;
 typedef struct output_context * OutputContext;
@@ -1095,11 +1097,12 @@ struct output_context
 static IOSTREAM *openStream(term_t file, term_t mode, term_t options);
 
 void
-dieIO()
+dieIO(void)
 { if ( GD->io_initialised )
   { noprotocol();
     closeFiles(TRUE);
-    PopTty(Sinput, &ttytab, TRUE);
+    if ( ttymodified )
+      PopTty(Sinput, &ttytab, TRUE);
   }
 }
 

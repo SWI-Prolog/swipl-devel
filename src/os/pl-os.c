@@ -1746,7 +1746,7 @@ typedef struct tty_state
 #endif
 } tty_state;
 
-#define TTY_STATE(buf) (((tty_state*)(buf->state))->tab)
+#define TTY_STATE(buf) (((tty_state*)((buf)->state))->tab)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			TERMINAL IO MANIPULATION
@@ -1829,6 +1829,45 @@ ResetTty(void)
 #endif
 #endif
 
+static int
+GetTtyState(int fd, struct termios *tio)
+{
+#ifdef HAVE_TCSETATTR
+  if ( tcgetattr(fd, tio) )
+    return FALSE;
+#else
+  if ( ioctl(fd, TIOCGETA, tio) )
+    return FALSE;
+#endif
+
+  return TRUE;
+}
+
+static int
+SetTtyState(int fd, struct termios *tio)
+{
+#ifdef HAVE_TCSETATTR
+  if ( tcsetattr(fd, TCSANOW, tio) != 0 )
+  { static int MTOK_warned;			/* MT-OK */
+
+    if ( !MTOK_warned++ )
+      return warning("Failed to set terminal: %s", OsError());
+  }
+#else
+#ifdef TIOCSETAW
+  ioctl(fd, TIOCSETAW, tio);
+#else
+  ioctl(fd, TCSETAW, tio);
+  ioctl(fd, TCXONC, (void *)1);
+#endif
+#endif
+
+  ttymodified = memcmp(&TTY_STATE(&ttytab), &tio, sizeof(*tio));
+
+  return TRUE;
+}
+
+
 bool
 PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 { GET_LD
@@ -1846,15 +1885,10 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
   buf->state = allocHeapOrHalt(sizeof(tty_state));
 
-#ifdef HAVE_TCSETATTR
-  if ( tcgetattr(fd, &TTY_STATE(buf)) )	/* save the old one */
-    fail;
-#else
-  if ( ioctl(fd, TIOCGETA, &TTY_STATE(buf)) )	/* save the old one */
-    fail;
-#endif
+  if ( !GetTtyState(fd, &TTY_STATE(buf)) )
+    return FALSE;
 
-  tio = TTY_STATE(buf);
+  tio = TTY_STATE(buf);			/* structure copy */
 
   switch( mode )
   { case TTY_RAW:
@@ -1880,46 +1914,27 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 	/*NOTREACHED*/
   }
 
-#ifdef HAVE_TCSETATTR
-  if ( tcsetattr(fd, TCSANOW, &tio) != 0 )
-  { static int MTOK_warned;			/* MT-OK */
-
-    if ( !MTOK_warned++ )
-      warning("Failed to set terminal: %s", OsError());
-  }
-#else
-#ifdef TIOCSETAW
-  ioctl(fd, TIOCSETAW, &tio);
-#else
-  ioctl(fd, TCSETAW, &tio);
-  ioctl(fd, TCXONC, (void *)1);
-#endif
-#endif
-
-  succeed;
+  return SetTtyState(fd, &tio);
 }
 
+/**
+ * @param do_free is one of
+ *   - FALSE: do not free the state
+ *   - TRUE:  free the state
+ */
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 { ttymode = buf->mode;
+  int rc = TRUE;
 
   if ( buf->state )
-  { int fd = Sfileno(s);
+  { GET_LD
+    int fd;
 
-    if ( fd >= 0 )
-    {
-#ifdef HAVE_TCSETATTR
-      tcsetattr(fd, TCSANOW, &TTY_STATE(buf));
-#else
-#ifdef TIOCSETA
-      ioctl(fd, TIOCSETA, &TTY_STATE(buf));
-#else
-      ioctl(fd, TCSETA, &TTY_STATE(buf));
-      ioctl(fd, TCXONC, (void *)1);
-#endif
-#endif
-    }
+    if ( (!LD || truePrologFlag(PLFLAG_TTY_CONTROL)) &&
+	 (fd = Sfileno(s)) >= 0 )
+      rc = SetTtyState(fd, &TTY_STATE(buf));
 
     if ( do_free )
     { freeHeap(buf->state, sizeof(tty_state));
@@ -1927,7 +1942,7 @@ PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
     }
   }
 
-  succeed;
+  return rc;
 }
 
 #else /* O_HAVE_TERMIO */

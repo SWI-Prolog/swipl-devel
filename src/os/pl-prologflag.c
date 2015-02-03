@@ -590,14 +590,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
       if ( !PL_get_bool_ex(value, &val) )
 	return FALSE;
-      if ( f->index > 0 )
-      { unsigned int mask = (unsigned int)1 << (f->index-1);
 
-	if ( val )
-	  setPrologFlagMask(mask);
-	else
-	  clearPrologFlagMask(mask);
-      }
+					/* deal with side-effects */
       if ( k == ATOM_character_escapes )
       { if ( val )
 	  set(m, M_CHARESCAPE);
@@ -617,8 +611,23 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { if ( !(rval = enableThreads(val)) )
 	  break;			/* don't change value */
 #endif
+      } else if ( k == ATOM_tty_control )
+      { if ( val != (f->value.a == ATOM_true) )
+	{ if ( !val && ttymodified )
+	  { Sdprintf("Disabling TTY control\n");
+	    PopTty(Sinput, &ttytab, FALSE);
+	  }
+	}
       }
 					/* set the flag value */
+      if ( f->index > 0 )
+      { unsigned int mask = (unsigned int)1 << (f->index-1);
+
+	if ( val )
+	  setPrologFlagMask(mask);
+	else
+	  clearPrologFlagMask(mask);
+      }
       f->value.a = (val ? ATOM_true : ATOM_false);
 
       break;

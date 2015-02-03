@@ -293,8 +293,7 @@ Unix only.  Switches controlling the terminal for allowing
 single-character commands to the tracer and get_single_char/1. By
 default, manipulating the terminal is enabled unless the system detects
 it is not connected to a terminal or it is running as a GNU-Emacs
-inferior process. This flag is sometimes required for smooth interaction
-with other applications.
+inferior process.  See also \prologflag{tty_control}.
 
     \cmdlineoptionitem{--win_app}{}
 This option is available only in \program{swipl-win.exe} and is used for the
