@@ -31,7 +31,9 @@
 :- module(base64,
 	  [ base64/2,			% ?PlainText, ?Encoded
 	    base64url/2,		% ?PlainText, ?Encoded
-	    base64//1			% ?PlainText
+
+	    base64//1,			% ?PlainText
+	    base64url//1		% ?PlainText
 	  ]).
 
 /** <module> Base64 encoding and decoding
@@ -49,6 +51,9 @@ Yes
 
 H = 'Hello World'
 ==
+
+The Base64URL encoding provides a URL and file name friendly alternative
+to base64. Base64URL encoded strings do not contain white space.
 
 @tbd	Stream I/O
 @tbd	White-space introduction and parsing
@@ -108,6 +113,17 @@ base64(Input) -->
 base64(Output) -->
 	decode(Output).
 
+%%	base64url(+PlainText)// is det.
+%%	base64url(-PlainText)// is det.
+%
+%	Encode/decode list of character codes  using Base64URL. See also
+%	base64url/2.
+
+base64url(Input) -->
+	{ nonvar(Input) }, !,
+	encode_url(Input).
+base64url(Output) -->
+	decode_url(Output).
 
 		 /*******************************
 		 *	      ENCODING		*
