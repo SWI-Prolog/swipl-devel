@@ -729,6 +729,7 @@ initPrologThreads(void)
     info = GD->thread.threads[1] = allocHeapOrHalt(sizeof(*info));
     memset(info, 0, sizeof(*info));
     info->pl_tid = 1;
+    info->debug = TRUE;
     thread_highest_id = 1;
     info->thread_data = &PL_local_data;
     info->status = PL_THREAD_RUNNING;
@@ -1041,6 +1042,7 @@ retry:
       ld->thread.magic = PL_THREAD_MAGIC;
       info->thread_data = ld;
       info->status = PL_THREAD_CREATED;
+      info->debug = TRUE;
 
       if ( i > thread_highest_id )
 	thread_highest_id = i;
@@ -1241,6 +1243,7 @@ static const opt_spec make_thread_options[] =
   { ATOM_global,	OPT_SIZE|OPT_INF },
   { ATOM_trail,	        OPT_SIZE|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
+  { ATOM_debug,		OPT_BOOL },
   { ATOM_detached,	OPT_BOOL },
   { ATOM_stack,		OPT_SIZE },
   { ATOM_c_stack,	OPT_SIZE },
@@ -1412,6 +1415,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->global_size,
 		     &info->trail_size,
 		     &alias,
+		     &info->debug,
 		     &info->detached,
 		     &stack,		/* stack */
 		     &stack,		/* c_stack */
@@ -1491,6 +1495,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { PL_LOCK(L_PLFLAG);
     ldnew->prolog_flag.table	  = copyHTable(ldold->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
+  }
+  if ( !info->debug )
+  { ldnew->_debugstatus.tracing   = FALSE;
+    ldnew->_debugstatus.debugging = DBG_OFF;
+    set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);
   if ( at_exit )
@@ -1830,6 +1839,13 @@ thread_detached_propery(PL_thread_info_t *info, term_t prop ARG_LD)
   return PL_unify_bool_ex(prop, info->detached);
 }
 
+static int
+thread_debug_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ IGNORE_LD
+
+  return PL_unify_bool_ex(prop, info->debug);
+}
+
 
 typedef struct
 { functor_t functor;			/* functor of property */
@@ -1841,6 +1857,7 @@ static const tprop tprop_list [] =
 { { FUNCTOR_alias1,	    thread_alias_propery },
   { FUNCTOR_status1,	    thread_status_propery },
   { FUNCTOR_detached1,	    thread_detached_propery },
+  { FUNCTOR_debug1,	    thread_debug_propery },
   { 0,			    NULL }
 };
 
@@ -4721,6 +4738,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     { ldnew->_debugstatus.tracing   = FALSE;
       ldnew->_debugstatus.debugging = DBG_OFF;
       set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
+      info->debug = FALSE;
     }
   }
 

@@ -80,6 +80,7 @@ typedef struct _PL_thread_info_t
   int		    (*cancel)(int id);	/* cancel function */
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
+  bool		    debug;		/* thread can be debugged */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
   int		    has_tid;		/* TRUE: tid = valid */

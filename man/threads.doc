@@ -70,6 +70,16 @@ thread goal. Unlike calling thread_at_exit/1 as part of the normal
 thread_at_exit/1, the thread may be signalled or run out of resources
 before thread_at_exit/1 is reached.
 
+    \termitem{debug}{+Bool}
+Enable/disable debugging the new thread. If \const{false} (default
+\const{true}), the new thread is created with the property
+\term{debug}{false} and debugging is disabled before the new thread is
+started. The thread debugging predicates such as tspy/1 and tdebug/0 do
+not signal threads with the debug property set to
+\const{false}.\footnote{Currently, the flag is only used as a hint for
+the the various debugging primitives, i.e., the system does not
+really enforce that the target thread stays in \jargon{nodebug} mode.}
+
     \termitem{detached}{Bool}
 If \const{false} (default), the thread can be waited for using
 thread_join/2. thread_join/2 must be called on this thread to reclaim

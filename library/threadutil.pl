@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1999-2014, University of Amsterdam
+    Copyright (C): 1999-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -94,12 +94,11 @@ rip_thread(thread{id:id, status:Status}) :-
 
 interactor :-
 	thread_create(thread_run_interactor, _Id,
-		      [ detached(true)
+		      [ detached(true),
+			debug(false)
 		      ]).
 
 thread_run_interactor :-
-	notrace,
-	set_prolog_flag(debug, false),
 	set_prolog_flag(query_debug_settings, debug(false, false)),
 	attach_console,
 	print_message(banner, thread_welcome),
@@ -207,8 +206,7 @@ tspy(Spec, ThreadID) :-
 %	spy-points or errors.
 
 tdebug :-
-	forall(thread_property(Id, status(running)),
-	       thread_signal(Id, gdebug)).
+	forall(debug_target(Id), thread_signal(Id, gdebug)).
 
 tdebug(ThreadID) :-
 	thread_signal(ThreadID, gdebug).
@@ -219,11 +217,15 @@ tdebug(ThreadID) :-
 %	Disable debug-mode in all threads or the specified Thread.
 
 tnodebug :-
-	forall(thread_property(Id, status(running)),
-	       thread_signal(Id, nodebug)).
+	forall(debug_target(Id), thread_signal(Id, nodebug)).
 
 tnodebug(ThreadID) :-
 	thread_signal(ThreadID, nodebug).
+
+
+debug_target(Thread) :-
+	thread_property(Thread, status(running)),
+	thread_property(Thread, debug(true)).
 
 
 		 /*******************************
