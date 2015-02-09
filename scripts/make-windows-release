@@ -7,7 +7,7 @@
 # major mistakes during the process.
 
 # Where to upload the final binary
-downloaddir=ec:/home/pl/web/download/devel/bin
+downloaddir="/home/pl/web/download/devel/bin ec:/home/swipl/web/download/devel/bin"
 
 check-src()
 { version=$(git describe | sed 's/V[0-9]\.[0-9][0-9]*\.[0-9][0-9]*//')
@@ -50,7 +50,9 @@ check-build()
 }
 
 upload()
-{ rsync -P ../../w${bits}pl${shortversion}.exe $downloaddir
+{ for d in $downloaddir; do
+    rsync -P ../../w${bits}pl${shortversion}.exe $d
+  done
 }
 
 build()
