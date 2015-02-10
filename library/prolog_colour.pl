@@ -106,6 +106,7 @@ prolog_colourise_stream(Fd, SourceId, ColourItem) :-
 	    colourise_stream(Fd, TB),
 	    restore_settings(State)).
 
+
 colourise_stream(Fd, TB) :-
 	(   peek_char(Fd, #)		% skip #! script line
 	->  skip(Fd, 10)
@@ -157,6 +158,9 @@ restore_settings(state(Style, Esc, OSM)) :-
 %	or the load context of  File  if   File  is  not included or the
 %	module context of the file into which the file was included.
 
+source_module(TB, Module) :-
+	colour_state_source_id(TB, null), !,
+	colour_state_module(TB, Module).
 source_module(TB, Module) :-
 	colour_state_source_id(TB, SourceId),
 	xref_option(SourceId, module(Module)), !.
@@ -275,20 +279,30 @@ process_use_module(File, Src) :-
 
 %%	prolog_colourise_query(+Query:string, +SourceId, :ColourItem)
 %
-%	Colourise a query, to be executed in Context.
+%	Colourise a query, to be executed in the context of SourceId.
 %
 %	@arg	SourceId Execute Query in the context of
 %		the cross-referenced environment SourceID.
 
 prolog_colourise_query(QueryString, SourceID, ColourItem) :-
-	make_colour_state([ source_id(SourceID),
-			    closure(ColourItem)
-			  ],
-			  TB),
+	query_colour_state(SourceID, ColourItem, TB),
 	setup_call_cleanup(
 	    save_settings(TB, State),
 	    colourise_query(QueryString, TB),
 	    restore_settings(State)).
+
+query_colour_state(module(Module), ColourItem, TB) :- !,
+	make_colour_state([ source_id(null),
+			    module(Module),
+			    closure(ColourItem)
+			  ],
+			  TB).
+query_colour_state(SourceID, ColourItem, TB) :-
+	make_colour_state([ source_id(SourceID),
+			    closure(ColourItem)
+			  ],
+			  TB).
+
 
 colourise_query(QueryString, TB) :-
 	colour_state_module(TB, SM),
