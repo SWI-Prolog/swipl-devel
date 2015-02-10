@@ -816,7 +816,7 @@ colourization_module(TB, Module) :-
 colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
 	meta_args(Goal, TB, MetaArgs), !,
 	colourise_meta_args(1, Goal, M, MetaArgs, TB, ArgPos).
-colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
+colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :- !,
 	colourise_goal_args(1, Goal, M, TB, ArgPos).
 colourise_goal_args(_, _, _, _).		% no arguments
 
