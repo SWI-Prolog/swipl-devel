@@ -367,6 +367,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\apply_macros.pl
   File ${SWIPL}\library\apply.pl
   File ${SWIPL}\library\aggregate.pl
+  File ${SWIPL}\library\solution_sequences.pl
   File ${SWIPL}\library\pure_input.pl
   File ${SWIPL}\library\pio.pl
   File ${SWIPL}\library\coinduction.pl
