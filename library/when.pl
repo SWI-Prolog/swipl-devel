@@ -239,3 +239,7 @@ disj_or(List, DG) -->
 or_list([H], H) :- !.
 or_list([H|T], (H;OT)) :-
 	or_list(T, OT).
+
+:- multifile sandbox:safe_meta_predicate/1.
+
+sandbox:safe_meta_predicate(when:when/2).
