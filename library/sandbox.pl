@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009-2014, VU University Amsterdam
+    Copyright (C): 2009-2015, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -422,6 +422,8 @@ safe_primitive(compare(_,_,_)).
 safe_primitive(sort(_,_)).
 safe_primitive(keysort(_,_)).
 safe_primitive(system: =@=(_,_)).
+safe_primitive(system:'$btree_find_node'(_,_,_,_)).
+
 					% unification and equivalence
 safe_primitive(=(_,_)).
 safe_primitive(\=(_,_)).
