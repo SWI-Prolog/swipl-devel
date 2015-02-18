@@ -897,7 +897,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	int wide = FALSE;
 
 	assert(text->length%2 == 0);
-	if ( !native_byte_order(text->encoding) )
+	if ( !native_byte_order(text->encoding) ) /* FIXME: cannot be used if private */
 	  flip_shorts((unsigned char*)text->text.t, text->length);
 
 	for(; w<e; w++)
@@ -916,23 +916,29 @@ PL_canonicalise_text(PL_chars_t *text)
 	  }
 	  *t = EOS;
 
-	  text->encoding = ENC_WCHAR;
 	  text->length = len;
+	  text->encoding = ENC_WCHAR;
 	  if ( text->storage == PL_CHARS_MALLOC )
-	    PL_free(text->text.w);
+	    PL_free(text->text.t);
 	  else
 	    text->storage  = PL_CHARS_MALLOC;
 
 	  text->text.w = to;
 	} else
-	{ char *t = text->text.t;
+	{ unsigned char *t, *to = PL_malloc(len+1);
 
-	  while(w<e)
+	  for(t=to; w<e; )
 	    *t++ = (unsigned char)*w++;
 	  *t = EOS;
 
-	  text->length  /= sizeof(short);
+	  text->length = len;
 	  text->encoding = ENC_ISO_LATIN_1;
+	  if ( text->storage == PL_CHARS_MALLOC )
+	    PL_free(text->text.t);
+	  else
+	    text->storage = PL_CHARS_MALLOC;
+
+	  text->text.t = (char*)to;
 	}
 
 	succeed;
