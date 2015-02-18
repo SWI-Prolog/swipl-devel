@@ -963,29 +963,34 @@ PL_canonicalise_text(PL_chars_t *text)
 	  text->length = len;
 
 	  if ( wide )
-	  { pl_wchar_t *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
+	  { pl_wchar_t *t, *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
 
-	    text->text.w = to;
-	    while(s<e)
+	    for(t=to; s<e; )
 	    { s = utf8_get_char(s, &chr);
-	      *to++ = chr;
+	      *t++ = chr;
 	    }
-	    *to = EOS;
+	    *t = EOS;
 
 	    text->encoding = ENC_WCHAR;
-	    text->storage  = PL_CHARS_MALLOC;
+	    if ( text->storage == PL_CHARS_MALLOC )
+	      PL_free(text->text.t);
+	    text->text.w  = to;
+	    text->storage = PL_CHARS_MALLOC;
 	  } else
-	  { char *to = PL_malloc(len+1);
+	  { char *t, *to = PL_malloc(len+1);
 
 	    text->text.t = to;
-	    while(s<e)
+	    for(t=to; s<e;)
 	    { s = utf8_get_char(s, &chr);
-	      *to++ = chr;
+	      *t++ = chr;
 	    }
-	    *to = EOS;
+	    *t = EOS;
 
 	    text->encoding = ENC_ISO_LATIN_1;
-	    text->storage  = PL_CHARS_MALLOC;
+	    if ( text->storage == PL_CHARS_MALLOC )
+	      PL_free(text->text.t);
+	    text->text.t  = to;
+	    text->storage = PL_CHARS_MALLOC;
 	  }
 
 	  text->canonical = TRUE;
