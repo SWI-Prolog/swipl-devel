@@ -838,6 +838,29 @@ rep_error:
 }
 
 
+static void
+flip_shorts(unsigned char *s, size_t len)
+{ unsigned char *e = s+len;
+
+  for(; s<e; s+=2)
+  { unsigned char t = s[0];
+    s[0] = s[1];
+    s[1] = t;
+  }
+}
+
+
+static int
+native_byte_order(IOENC enc)
+{
+#ifdef WORDS_BIGENDIAN
+  return enc == ENC_UNICODE_BE;
+#else
+  return enc == ENC_UNICODE_LE;
+#endif
+}
+
+
 int
 PL_canonicalise_text(PL_chars_t *text)
 { if ( !text->canonical )
@@ -858,6 +881,63 @@ PL_canonicalise_text(PL_chars_t *text)
 
 	return PL_demote_text(text);
       }
+      case ENC_UNICODE_LE:		/* assume text->length is in bytes */
+      case ENC_UNICODE_BE:
+      {
+#if SIZEOF_WCHAR_T == 2
+        assert(text->length%2 == 0);
+	if ( !native_byte_order(text->encoding) )
+	  flip_shorts(text->text.t, text->length);
+	text->encoding = ENC_WCHAR;
+	return TRUE;
+#else /*SIZEOF_WCHAR_T!=2*/
+	size_t len = text->length/sizeof(short);
+	const unsigned short *w = (const unsigned short *)text->text.t;
+	const unsigned short *e = &w[len];
+	int wide = FALSE;
+
+	assert(text->length%2 == 0);
+	if ( !native_byte_order(text->encoding) )
+	  flip_shorts((unsigned char*)text->text.t, text->length);
+
+	for(; w<e; w++)
+	{ if ( *w > 0xff )
+	  { wide = TRUE;
+	    break;
+	  }
+	}
+	w = (const unsigned short*)text->text.t;
+
+	if ( wide )
+	{ pl_wchar_t *t, *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
+
+	  for(t=to; w<e; )
+	  { *t++ = *w++;
+	  }
+	  *t = EOS;
+
+	  text->encoding = ENC_WCHAR;
+	  text->length = len;
+	  if ( text->storage == PL_CHARS_MALLOC )
+	    PL_free(text->text.w);
+	  else
+	    text->storage  = PL_CHARS_MALLOC;
+
+	  text->text.w = to;
+	} else
+	{ char *t = text->text.t;
+
+	  while(w<e)
+	    *t++ = (unsigned char)*w++;
+	  *t = EOS;
+
+	  text->length  /= sizeof(short);
+	  text->encoding = ENC_ISO_LATIN_1;
+	}
+
+	succeed;
+      }
+#endif /*SIZEOF_WCHAR_T==2*/
       case ENC_UTF8:
       { const char *s = text->text.t;
 	const char *e = &s[text->length];
