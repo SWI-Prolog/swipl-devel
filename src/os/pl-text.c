@@ -887,7 +887,10 @@ PL_canonicalise_text(PL_chars_t *text)
 #if SIZEOF_WCHAR_T == 2
         assert(text->length%2 == 0);
 	if ( !native_byte_order(text->encoding) )
+	{ if ( text->storage == PL_CHARS_HEAP )
+	    PL_save_text(text, BUF_MALLOC);
 	  flip_shorts(text->text.t, text->length);
+	}
 	text->encoding = ENC_WCHAR;
 	return TRUE;
 #else /*SIZEOF_WCHAR_T!=2*/
@@ -897,8 +900,11 @@ PL_canonicalise_text(PL_chars_t *text)
 	int wide = FALSE;
 
 	assert(text->length%2 == 0);
-	if ( !native_byte_order(text->encoding) ) /* FIXME: cannot be used if private */
+	if ( !native_byte_order(text->encoding) )
+	{ if ( text->storage == PL_CHARS_HEAP )
+	    PL_save_text(text, BUF_MALLOC);
 	  flip_shorts((unsigned char*)text->text.t, text->length);
+	}
 
 	for(; w<e; w++)
 	{ if ( *w > 0xff )
