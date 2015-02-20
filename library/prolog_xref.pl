@@ -1045,6 +1045,11 @@ xref_meta(if(G),		[G]).
 xref_meta(elif(G),		[G]).
 xref_meta(meta_options(G,_,_),	[G+1]).
 xref_meta(on_signal(_,_,H),	[H+1]) :- H \== default.
+xref_meta(distinct(G),		[G]).	% library(solution_sequences)
+xref_meta(distinct(_, G),	[G]).
+xref_meta(order_by(_, G),	[G]).
+xref_meta(limit(_, G),		[G]).
+xref_meta(offset(_, G),		[G]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
