@@ -195,7 +195,7 @@ This library is only available on Windows systems.
 \end{summarylist}
 
 \libsummary{solution_sequences}
-\input{summaries.d/solutionsequences}
+\input{summaries.d/solutionsequences.tex}
 
 \libsummary{thread_pool}
 \input{summaries.d/threadpool.tex}
