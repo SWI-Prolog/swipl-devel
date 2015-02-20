@@ -482,6 +482,7 @@ safe_primitive(system:atomic_list_concat(_,_,_)).
 safe_primitive(system:downcase_atom(_,_)).
 safe_primitive(system:upcase_atom(_,_)).
 safe_primitive(system:char_type(_,_)).
+safe_primitive(system:normalize_space(_,_)).
 					% numbers
 safe_primitive(number_codes(_,_)).
 safe_primitive(number_chars(_,_)).
