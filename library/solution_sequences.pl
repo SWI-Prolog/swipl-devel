@@ -48,14 +48,45 @@ a goal. The modifications and  the  predicate   names  are  based on the
 classical database operations DISTINCT,  LIMIT,   OFFSET,  ORDER  BY and
 GROUP BY.
 
-Note that these predicates are designed to  be composed. For example, to
-process only the first 10 distinct answers of a `Generator`, use:
+These   predicates   were   introduced   in     the   context   of   the
+[SWISH](http://swish.swi-prolog.org) Prolog browser-based   shell, which
+can represent the solutions to a predicate  as a table. Notably wrapping
+a goal in distinct/1 avoids duplicates  in   the  result table and using
+order_by/2 produces a nicely ordered table.
 
-  ==
-  ...,
-  limit(10, distinct(Generator)),
-  ...
-  ==
+However, the predicates from this  library  can   also  be  used to stay
+longer within the clean paradigm  where non-deterministic predicates are
+composed  from  simpler  non-deterministic  predicates    by   means  of
+conjunction and disjunction. While evaluating   a  conjunction, we might
+want to eliminate duplicates of the first part of the conjunction. Below
+we give both the classical  solution   for  solving variations of (a(X),
+b(X)) and the ones using this library side-by-side.
+
+  $ Avoid duplicates of earlier steps :
+
+    ==
+      setof(X, a(X), Xs),		distinct(a(X)),
+      member(X, Xs),			b(X)
+      b(X).
+    ==
+
+    Note that the distinct/1 based solution returns the first result
+    of distinct(a(X)) immediately after a/1 produces a result, while
+    the setof/3 based solution will first compute all results of a/1.
+
+  $ Only try b(X) only for the top-10 a(X) :
+
+    ==
+      setof(X, a(X), Xs),		limit(10, order_by([desc(X)], a(X))),
+      reverse(Xs, Desc),		b(X)
+      first_max_n(10, Desc, Limit),
+      member(X, Limit),
+      b(X)
+    ==
+
+    Here we see power of composing primitives from this library and
+    staying within the paradigm of pure non-deterministic relational
+    predicates.
 
 @see all solution predicates findall/3, bagof/3 and setof/3.
 @see library(aggregate)
