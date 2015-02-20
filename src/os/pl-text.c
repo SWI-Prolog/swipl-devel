@@ -889,7 +889,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	if ( !native_byte_order(text->encoding) )
 	{ if ( text->storage == PL_CHARS_HEAP )
 	    PL_save_text(text, BUF_MALLOC);
-	  flip_shorts(text->text.t, text->length);
+	  flip_shorts((unsigned char*)text->text.t, text->length);
 	}
 	text->encoding = ENC_WCHAR;
 	return TRUE;
@@ -948,8 +948,8 @@ PL_canonicalise_text(PL_chars_t *text)
 	}
 
 	succeed;
-      }
 #endif /*SIZEOF_WCHAR_T==2*/
+      }
       case ENC_UTF8:
       { const char *s = text->text.t;
 	const char *e = &s[text->length];
