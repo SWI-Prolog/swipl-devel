@@ -111,7 +111,7 @@ simple, quasi quotation parser for HTML.
 @author Jan Wielemaker.  Introduction of Quasi Quotation was suggested
 	by Michael Hendricks.
 @see    [Why it's nice to be quoted: quasiquoting for
-	haskell](http://www.eecs.harvard.edu/~mainland/ghc-quasiquoting/mainland07quasiquoting.pdf)
+	haskell](http://www.cs.tufts.edu/comp/150FP/archive/geoff-mainland/quasiquoting.pdf)
 */
 
 
