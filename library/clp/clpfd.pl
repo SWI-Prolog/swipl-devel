@@ -1116,10 +1116,15 @@ fd_variable(V) :-
 %  The variables in the list Vars are elements of Domain.
 
 Vs ins D :-
-        must_be(list, Vs),
+        fd_must_be_list(Vs),
         maplist(fd_variable, Vs),
         drep_to_domain(D, Dom),
         domains(Vs, Dom).
+
+fd_must_be_list(Ls) :-
+        (   fd_var(Ls) -> type_error(list, Ls)
+        ;   must_be(list, Ls)
+        ).
 
 %% indomain(?Var)
 %
@@ -1230,7 +1235,7 @@ label(Vs) :- labeling([], Vs).
 
 labeling(Options, Vars) :-
         must_be(list, Options),
-        must_be(list, Vars),
+        fd_must_be_list(Vars),
         maplist(finite_domain, Vars),
         label(Options, Options, default(leftmost), default(up), default(step), [], upto_ground, Vars).
 
@@ -1561,7 +1566,7 @@ tighten(max, E, V) :- E #> V.
 % Vars are pairwise distinct.
 
 all_different(Ls) :-
-        must_be(list, Ls),
+        fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
         put_attr(Orig, clpfd_original, all_different(Ls)),
         all_different(Ls, [], Orig),
@@ -1591,7 +1596,7 @@ all_different([X|Right], Left, Orig) :-
 %  ==
 
 all_distinct(Ls) :-
-        must_be(list, Ls),
+        fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
         make_propagator(pdistinct(Ls), Prop),
         distinct_attach(Ls, Prop, []),
