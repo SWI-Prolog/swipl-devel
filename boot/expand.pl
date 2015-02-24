@@ -605,10 +605,21 @@ expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term) :-
 	replace_functions(A0, Eval, A, M), % TBD: pass positions
 	(   Eval == true
 	->  true
+	;   same_functor(A0, A)
+	->  true
 	;   meta_arg(S)
 	->  throw(error(context_error(function, meta_arg(S)), _))
 	;   true
 	).
+
+same_functor(T1, T2) :-
+	compound(T1), !,
+	compound(T2),
+	compound_name_arity(T1, N, A),
+	compound_name_arity(T2, N, A).
+same_functor(T1, T2) :-
+	atom(T1),
+	T1 == T2.
 
 variant_sha1_nat(Term, Hash) :-
 	copy_term_nat(Term, TNat),

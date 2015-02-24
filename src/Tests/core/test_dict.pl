@@ -136,6 +136,8 @@ x_dict1(X, X.x).
 x_dict2(X, X.put(y, X.x)).
 x_dict3(X, X.put(y, Y)) :-
 	Y is X.x^2.
+x_dict4(D, In, Out) :-
+	maplist(plus(D.x), In, Out).
 
 test(field, X == 3) :-
 	X = _{a:3}.a.
@@ -158,6 +160,8 @@ test(put, Y == 1) :-
 test(put2, Y == 4) :-
 	x_dict3(_{x:2}, X),
 	Y = X.y.
+test(metaarg, Out == [2]) :-
+	x_dict4(_{x:1}, [1], Out).
 
 :- end_tests(expand_functions).
 
