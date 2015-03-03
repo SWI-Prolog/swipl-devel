@@ -440,6 +440,7 @@ emit_codes([H|T]) --> [H], emit_codes(T).
 %        ==
 
 csv_write_stream(Stream, Data, Options) :-
+	must_be(list, Data),
 	make_csv_options(Options, Record, _),
 	phrase(emit_csv(Data, Record), String),
         format(Stream, '~s', [String]).
