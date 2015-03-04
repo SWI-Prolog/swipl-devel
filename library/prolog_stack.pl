@@ -286,6 +286,8 @@ default_backtrace_options(Options) :-
 %	    * subgoal_positions(+Boolean)
 %	    If =true=, print subgoal line numbers.  The default depends
 %	    on the Prolog flag =backtrace_show_lines=.
+%
+%	@arg Backtrace is a list of frame(Depth,Location,Goal) terms.
 
 print_prolog_backtrace(Stream, Backtrace) :-
 	print_prolog_backtrace(Stream, Backtrace, []).
@@ -515,13 +517,16 @@ guard_frame(frame(_,clause(ClauseRef, _, _))) :-
 		 *******************************/
 
 :- multifile
-	prolog:message/3.
+	prolog:message//1.
 
 prolog:message(error(Error, context(Stack, Message))) -->
 	{ is_stack(Stack, Frames) }, !,
 	'$messages':translate_message(error(Error, context(_, Message))),
 	[ nl, 'In:', nl ],
-	message(Frames).
+	(   {is_list(Frames)}
+	->  message(Frames)
+	;   ['~w'-[Frames]]
+	).
 
 is_stack(Stack, Frames) :-
 	nonvar(Stack),
