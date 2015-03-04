@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -4749,7 +4749,8 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
 { PRED_LD
   PL_chars_t txt;
 
-  if ( PL_get_text(A1, &txt, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+  if ( PL_get_text(A1, &txt,
+		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_RING) )
   { int rc;
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;
