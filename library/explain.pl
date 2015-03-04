@@ -264,7 +264,10 @@ explain_predicate(Pred, Explanation) :-
 
 referenced(Term, Explanation) :-
 	current_predicate(_, Module:Head),
-	\+ predicate_property(Module:Head, built_in),
+	(   predicate_property(Module:Head, built_in)
+	->  current_prolog_flag(access_level, system)
+	;   true
+	),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	Module:Head \= help_index:predicate(_,_,_,_,_),
 	nth_clause(Module:Head, N, Ref),
@@ -273,7 +276,10 @@ referenced(Term, Explanation) :-
 			 'Referenced', Explanation).
 referenced(_:Head, Explanation) :-
 	current_predicate(_, Module:Head),
-	\+ predicate_property(Module:Head, built_in),
+	(   predicate_property(Module:Head, built_in)
+	->  current_prolog_flag(access_level, system)
+	;   true
+	),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	nth_clause(Module:Head, N, Ref),
 	'$xr_member'(Ref, Head),
