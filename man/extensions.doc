@@ -359,6 +359,11 @@ read_string(Input, "\n", "\r\t ", End, String)
 % Read upto , or ), unifying End with 0', or 0')
 read_string(Input, ",)", "\t ", End, String)
 \end{code}
+
+    \predicate{open_string}{2}{+String, -Stream}
+True when \arg{Stream} is an input stream that accesses the content of
+\arg{String}.  \arg{String} can be any text representation, i.e.,
+string, atom, list of codes or list of characters.
 \end{description}
 
 

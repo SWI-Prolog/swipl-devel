@@ -428,6 +428,7 @@ suggest predicates from a keyword.
 \predicatesummary{open_resource}{3}{Open a program resource as a stream}
 \predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
+\predicatesummary{open_string}{2}{Open a string as a stream}
 \predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to assoc}
 \predicatesummary{parse_time}{2}{Parse text to a time-stamp}
 \predicatesummary{parse_time}{3}{Parse text to a time-stamp}

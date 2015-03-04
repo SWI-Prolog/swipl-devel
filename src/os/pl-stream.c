@@ -3273,6 +3273,7 @@ typedef struct
   char	       *buffer;			/* allocated buffer */
   char	      **bufferp;		/* Write-back location */
   int		malloced;		/* malloc() maintained */
+  int		free_on_close;		/* free allocated buffer on close */
 } memfile;
 
 
@@ -3386,7 +3387,9 @@ Sclose_memfile(void *handle)
 { memfile *mf = handle;
 
   if ( mf )
-  { free(mf);
+  { if ( mf->free_on_close && mf->buffer )
+      PL_free(mf->buffer);
+    free(mf);
     return 0;
   }
 
@@ -3426,6 +3429,9 @@ Sopenmem(char **buffer, size_t *sizep, const char* mode)
 	Sfree(s);
     }
 
+    Mode is "r" or "w".  The mode "rF" calls PL_free(*buffer) at when
+    closed.
+
 Note: Its is NOT allows to access   streams  created with this call from
 multiple threads. This is ok for all   usage inside Prolog itself (often
 through tellString()/toldString(). This call is   intented  to use write
@@ -3443,9 +3449,10 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
     return NULL;
   }
 
-  mf->malloced = FALSE;
-  mf->bufferp  = bufp;
-  mf->buffer   = *bufp;
+  mf->malloced      = FALSE;
+  mf->free_on_close = FALSE;
+  mf->bufferp       = bufp;
+  mf->buffer        = *bufp;
 
   switch(*mode)
   { case 'r':
@@ -3456,6 +3463,8 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
 	size = *sizep;
       mf->size = size;
       mf->allocated = size+1;
+      if ( mode[1] == 'F' )
+	mf->free_on_close = TRUE;
       break;
     case 'w':
       flags |= SIO_OUTPUT;

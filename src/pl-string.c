@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -459,6 +459,33 @@ out:
   return rc;
 }
 
+/** open_string(+String, -Stream)
+ *
+ * Open a string as a stream.
+*/
+
+static
+PRED_IMPL("open_string", 2, open_string, 0)
+{ char *str;
+  size_t len;
+  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_MALLOC|REP_UTF8;
+
+  if ( PL_get_nchars(A1, &len, &str, flags) )
+  { IOSTREAM *s = Sopenmem(&str, &len, "rF");
+
+    if ( s )
+    { s->encoding = ENC_UTF8;
+
+      if ( PL_unify_stream(A2, s) )
+	return TRUE;
+      Sclose(s);
+    } else
+      PL_free(str);
+  }
+
+  return FALSE;
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -474,4 +501,5 @@ BeginPredDefs(strings)
   PRED_DEF("get_string_code", 3, get_string_code, 0)
   PRED_DEF("read_string",     5, read_string,     0)
   PRED_DEF("read_string",     3, read_string,     0)
+  PRED_DEF("open_string",     2, open_string,     0)
 EndPredDefs
