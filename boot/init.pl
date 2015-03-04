@@ -1104,13 +1104,15 @@ compiling :-
 	;   true
 	).
 
-'$source_term'(stream(Id, In), Read, RLayout, Term, TLayout, Stream, Parents, Options) :- !,
+'$source_term'(stream(Id, In, Opts),
+	       Read, RLayout, Term, TLayout, Stream, Parents, Options) :- !,
 	setup_call_cleanup(
-	    '$open_source'(stream(Id, In), In, State, Parents, Options),
+	    '$open_source'(stream(Id, In, Opts), In, State, Parents, Options),
 	    '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream,
 			    [Id|Parents], Options),
 	    '$close_source'(State, true)).
-'$source_term'(File, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
+'$source_term'(File,
+	       Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
 	absolute_file_name(File, Path,
 			   [ file_type(prolog),
 			     access(read)
@@ -1118,7 +1120,8 @@ compiling :-
 	'$record_included'(Parents, File, Path, Message),
 	setup_call_cleanup(
 	    '$open_source'(Path, In, State, Parents, Options),
-	    '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, [Path|Parents], Options),
+	    '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream,
+			    [Path|Parents], Options),
 	    '$close_source'(State, Message)).
 
 :- thread_local
@@ -1126,8 +1129,8 @@ compiling :-
 :- volatile
 	'$load_input'/2.
 
-'$open_source'(stream(Id, In), In,
-	       restore(In, StreamState, Ref), Parents, Options) :- !,
+'$open_source'(stream(Id, In, Opts), In,
+	       restore(In, StreamState, Ref, Opts), Parents, Options) :- !,
 	'$context_type'(Parents, ContextType),
 	'$push_input_context'(ContextType),
 	'$set_encoding'(In, Options),
@@ -1149,10 +1152,10 @@ compiling :-
 	    close(In),
 	    '$pop_input_context'),
 	'$close_message'(Message).
-'$close_source'(restore(In, StreamState, Ref), Message) :-
+'$close_source'(restore(In, StreamState, Ref, Opts), Message) :-
 	erase(Ref),
 	call_cleanup(
-	    '$restore_load_stream'(In, StreamState),
+	    '$restore_load_stream'(In, StreamState, Opts),
 	    '$pop_input_context'),
 	'$close_message'(Message).
 
@@ -1345,7 +1348,10 @@ compiling :-
 	    )
 	).
 
-'$restore_load_stream'(In, state(HasName, HasPos)) :-
+'$restore_load_stream'(In, _State, Options) :-
+	memberchk(close(true), Options), !,
+	close(In).
+'$restore_load_stream'(In, state(HasName, HasPos), _Options) :-
 	(   HasName == false
 	->  set_stream(In, file_name(''))
 	;   true
@@ -1785,7 +1791,7 @@ load_files(Module:Files, Options) :-
 	    (   '$option'(format(qlf), Options, source)
 	    ->  set_stream(FromStream, file_name(Absolute)),
 		'$qload_stream'(FromStream, Module, Action, LM, Options)
-	    ;   '$consult_file'(stream(Absolute, FromStream),
+	    ;   '$consult_file'(stream(Absolute, FromStream, []),
 				Module, Action, LM, Options)
 	    )
 	->  true
@@ -2007,7 +2013,7 @@ load_files(Module:Files, Options) :-
 	expects_dialect(Dialect).		% Autoloaded from library
 '$set_dialect'(_).
 
-'$load_id'(stream(Id, _), Id, Modified, Options) :- !,
+'$load_id'(stream(Id, _, _), Id, Modified, Options) :- !,
 	'$modified_id'(Id, Modified, Options).
 '$load_id'(Id, Id, Modified, Options) :-
 	'$modified_id'(Id, Modified, Options).
