@@ -1681,10 +1681,9 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 	break;
       }
     }
-
   }
 
-  return FALSE;
+  return (qf && true(qf, PL_Q_CATCH_EXCEPTION));
 }
 
 
