@@ -43,8 +43,6 @@
 	    with_output_to_codes/3,	% :Goal, -Codes, ?Tail
 	    with_output_to_codes/4	% :Goal, -Stream, -Codes, ?Tail
 	  ]).
-:- use_module(library(error)).
-/* :- use_module(library(memfile)). */	% see open_codes_stream/2
 
 :- meta_predicate
 	with_output_to_codes(0, -),
@@ -136,32 +134,16 @@ read_from_codes(List, Term) :-
 %	@compat sicstus
 
 read_term_from_codes(Codes, Term, Options) :-
-	setup_call_cleanup(open_codes_stream(Codes, Stream, '\n.\n'),
-			   read_term(Stream, Term0, Options),
-			   close(Stream)),
-	Term = Term0.
+	read_term_from_atom(Codes, Term, Options).
 
 %%	open_codes_stream(+Codes, -Stream) is det.
 %
 %	Open Codes as an input stream.
 %
-%	@bug	Depends on autoloading library(memfile).  As many
-%		applications do not need this predicate we do not
-%		want to make the entire library dependent on
-%		autoloading.
+%	@see open_string/2.
 
 open_codes_stream(Codes, Stream) :-
-	open_codes_stream(Codes, Stream, '').
-
-open_codes_stream(Codes, Stream, Postfix) :-
-	new_memory_file(MF),
-	setup_call_cleanup(
-	    open_memory_file(MF, write, Out),
-	    format(Out, '~s~w', [Codes, Postfix]),
-	    close(Out)),
-	open_memory_file(MF, read, Stream,
-			 [ free_on_close(true)
-			 ]).
+	open_string(Codes, Stream).
 
 %%	with_output_to_codes(:Goal, Codes) is det.
 %
