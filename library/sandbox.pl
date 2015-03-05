@@ -43,7 +43,8 @@
 	safe_primitive/1,		% Goal
 	safe_meta_predicate/1,		% Name/Arity
 	safe_meta/2,			% Goal, Calls
-	safe_global_variable/1.		% Name
+	safe_global_variable/1,		% Name
+	safe_directive/1.		% Module:Goal
 
 % :- debug(sandbox).
 
@@ -817,6 +818,8 @@ format_callables([_|TT], [_|TA], TG) :- !,
 prolog:sandbox_allowed_directive(Directive) :-
 	debug(sandbox(directive), 'Directive: ~p', [Directive]),
 	fail.
+prolog:sandbox_allowed_directive(Directive) :-
+	safe_directive(Directive), !.
 prolog:sandbox_allowed_directive(M:PredAttr) :-
 	\+ prolog_load_context(module, M), !,
 	debug(sandbox(directive), 'Cross-module directive', []),
@@ -829,12 +832,28 @@ prolog:sandbox_allowed_directive(M:PredAttr) :-
 	;   permission_error(directive, sandboxed, (:- M:PredAttr))
 	).
 prolog:sandbox_allowed_directive(_:Directive) :-
-	safe_directive(Directive), !.
+	safe_source_directive(Directive), !.
 prolog:sandbox_allowed_directive(_:Directive) :-
 	directive_loads_file(Directive, File), !,
 	safe_path(File).
 prolog:sandbox_allowed_directive(G) :-
 	safe_goal(G).
+
+%%	safe_directive(:Directive) is semidet.
+%
+%	Hook to declare additional directives as safe. The argument is a
+%	term `Module:Directive` (without =|:-|= wrapper).  In almost all
+%	cases, the implementation must verify that   the `Module` is the
+%	current load context as illustrated  below.   This  check is not
+%	performed by the system to  allow   for  cases  where particular
+%	cross-module directives are allowed.
+%
+%	  ==
+%	  sandbox:safe_directive(M:Directive) :-
+%	      prolog_load_context(module, M),
+%	      ...
+%	  ==
+
 
 safe_pattr(dynamic(_)).
 safe_pattr(thread_local(_)).
@@ -858,16 +877,16 @@ safe_pattr(M:G, Attr) :- !,
 	).
 safe_pattr(_, _).
 
-safe_directive(op(_,_,Name)) :- !,
+safe_source_directive(op(_,_,Name)) :- !,
 	(   atom(Name)
 	->  true
 	;   is_list(Name),
 	    maplist(atom, Name)
 	).
-safe_directive(set_prolog_flag(Flag, Value)) :- !,
+safe_source_directive(set_prolog_flag(Flag, Value)) :- !,
 	atom(Flag), ground(Value),
 	safe_directive_flag(Flag, Value).
-safe_directive(style_check(_)).
+safe_source_directive(style_check(_)).
 
 directive_loads_file(use_module(library(X)), X).
 directive_loads_file(use_module(library(X), _Imports), X).
