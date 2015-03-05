@@ -830,6 +830,9 @@ prolog:sandbox_allowed_directive(M:PredAttr) :-
 	).
 prolog:sandbox_allowed_directive(_:Directive) :-
 	safe_directive(Directive), !.
+prolog:sandbox_allowed_directive(_:Directive) :-
+	directive_loads_file(Directive, File), !,
+	safe_path(File).
 prolog:sandbox_allowed_directive(G) :-
 	safe_goal(G).
 
@@ -864,25 +867,29 @@ safe_directive(op(_,_,Name)) :- !,
 safe_directive(set_prolog_flag(Flag, Value)) :- !,
 	atom(Flag), ground(Value),
 	safe_directive_flag(Flag, Value).
-safe_directive(use_module(library(X))) :-
-	safe_path(X).
-safe_directive(use_module(library(X), _Imports)) :-
-	safe_path(X).
-safe_directive(ensure_loaded(library(X))) :-
-	safe_path(X).
 safe_directive(style_check(_)).
 
+directive_loads_file(use_module(library(X)), X).
+directive_loads_file(use_module(library(X), _Imports), X).
+directive_loads_file(ensure_loaded(library(X)), X).
+directive_loads_file(include(X), X).
+
+safe_path(X) :-
+	var(X), !,
+	instantiation_error(X).
 safe_path(X) :-
 	(   atom(X)
 	;   string(X)
 	), !,
-	X \== '..',
+	\+ sub_atom(X, 0, _, 0, '..'),
+	\+ sub_atom(X, 0, _, _, '/'),
 	\+ sub_atom(X, 0, _, _, '../'),
 	\+ sub_atom(X, _, _, 0, '/..'),
 	\+ sub_atom(X, _, _, _, '/../').
 safe_path(A/B) :- !,
 	safe_path(A),
 	safe_path(B).
+
 
 %%	safe_directive_flag(+Flag, +Value) is det.
 %

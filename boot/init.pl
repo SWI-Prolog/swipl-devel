@@ -1104,6 +1104,9 @@ compiling :-
 	;   true
 	).
 
+'$source_term'(Input, _,_,_,_,_,_,_) :-
+	\+ ground(Input), !,
+	'$instantiation_error'(Input).
 '$source_term'(stream(Id, In, Opts),
 	       Read, RLayout, Term, TLayout, Stream, Parents, Options) :- !,
 	setup_call_cleanup(
@@ -1219,7 +1222,9 @@ compiling :-
 	    Layout1 = ExpandedLayout
 	),
 	(   nonvar(Term1), Term1 = (:-Directive), nonvar(Directive)
-	->  (   Directive = include(File)
+	->  (   Directive = include(File),
+	        '$set_source_module'(Module, Module),
+		'$valid_directive'(Module:include(File))
 	    ->	stream_property(In, encoding(Enc)),
 		'$add_encoding'(Enc, Options, Options1),
 		'$source_term'(File, Read, RLayout, Term, TLayout,
