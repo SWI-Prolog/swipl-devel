@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -2774,7 +2774,8 @@ load_files(Module:Files, Options) :-
 	print_message(error,
 		      error(permission_error(assert,
 					     sandboxed_clause,
-					     Clause), _)).
+					     Clause), _)),
+	fail.
 
 '$cross_module_clause'(Clause) :-
 	'$head_module'(Clause, Module),
