@@ -1724,7 +1724,10 @@ open_include_file(Path, In, Ref) :-
 	xref_input(_, Parent),
 	stream_property(Parent, encoding(Enc)),
 	include_encoding(Enc, Options),
-	open(Path, read, In, Options),
+	(   prolog:xref_open_source(Path, In)
+	->  true
+	;   open(Path, read, In, Options)
+	),
 	(   peek_char(In, #)		% Deal with #! script
 	->  skip(In, 10)
 	;   true
