@@ -2619,6 +2619,8 @@ Create a flag with an atom as value. The argument must be of type
 Create a flag with an integer as value. The argument must be of type
 \ctype{intptr_t *}.
 \end{description}
+\end{description}
+
 
 
 \subsection{Errors and warnings}
