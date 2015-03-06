@@ -2590,6 +2590,37 @@ notation.
 \end{description}
 
 
+\subsubsection{Dealing with Prolog flags from C}
+\label{sec:cprologflags}
+
+Foreign code can set or create Prolog flags using PL_set_prolog_flag().
+See set_prolog_flag/2 and create_prolog_flag/3.\footnote{The current C
+API does not provide for a dedicated mechanism for fetching the value of
+Prolog flags. Relatively slow access is provided by calling
+PL_call_predicate() using current_prolog_flag/2.}
+
+\begin{description}
+    \cfunction{int}{PL_set_prolog_flag}{const char *name, int type, ...}
+Set/create a Prolog flag from C.  \arg{name} is the name of the affected
+flag. \arg{type} is one of the values below, which also
+dictates the type of the final argument. The function returns
+\const{TRUE} on success and \const{FALSE} on failure.  This function
+can be called \emph{before} PL_initialise(), making the flag available
+to the Prolog startup code.
+
+\begin{description}
+    \definition{\const{PL_BOOL}}
+Create a boolean (\const{true} or \const{false}) flag. The argument must
+be an \ctype{int}.
+    \definition{\const{PL_ATOM}}
+Create a flag with an atom as value. The argument must be of type
+\ctype{const char *}.
+    \definition{\const{PL_INTEGER}}
+Create a flag with an integer as value. The argument must be of type
+\ctype{intptr_t *}.
+\end{description}
+
+
 \subsection{Errors and warnings}
 \label{sec:foreign-print-warning}
 
