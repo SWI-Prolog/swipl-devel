@@ -768,16 +768,6 @@ Section "NLP package"
   File ${SWIPL}\doc\packages\nlp.html
 SectionEnd
 
-Section "R-project interface"
-  SectionIn 1 3
-  SetOutPath $INSTDIR\library
-  File ${SWIPL}\library\R.pl
-  SetOutPath $INSTDIR\doc\packages
-  File ${SWIPL}\doc\packages\R.html
-  SetOutPath $INSTDIR\doc\packages\examples
-  File /r ${SWIPL}\doc\packages\examples\R
-SectionEnd
-
 Section "ZLIB package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin

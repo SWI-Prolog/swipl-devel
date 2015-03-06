@@ -3,7 +3,6 @@
 ./man/Manual/
 ./man/windows.html
 ./man/macosx/macosx.html
-./packages/R/R.pdf
 ./packages/db/db4pl.pdf
 ./packages/cpp/pl2cpp.pdf
 ./packages/nlp/nlp.pdf
@@ -26,7 +25,6 @@
 ./packages/utf8proc/utf8proc.pdf
 ./packages/archive/archive.pdf
 ./packages/cql/cql.pdf
-./packages/R/R.html
 ./packages/db/db4pl.html
 ./packages/cpp/pl2cpp.html
 ./packages/nlp/nlp.html

@@ -1,4 +1,3 @@
-packages/R/configure
 packages/chr/config.h.in
 packages/chr/configure
 packages/clib/config.h.in
