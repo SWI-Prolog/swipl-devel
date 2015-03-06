@@ -32,7 +32,7 @@ BOOK=		SWI-Prolog-book-$(VERSION)
 PDF=		$(DOC).pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
-UPLOAD_DEST=	ec:/home/pl/web/download
+UPLOAD_DEST=	ec:/home/swipl/web/download
 
 WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
