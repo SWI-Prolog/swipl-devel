@@ -1867,6 +1867,11 @@ pl_write2(term_t stream, term_t term)
 }
 
 foreign_t
+pl_writeln2(term_t stream, term_t term)
+{ return do_write2(stream, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE, FALSE);
+}
+
+foreign_t
 pl_writeq2(term_t stream, term_t term)
 { return do_write2(stream, term, PL_WRT_QUOTED|PL_WRT_NUMBERVARS, FALSE);
 }

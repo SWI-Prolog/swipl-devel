@@ -642,6 +642,7 @@ COMMON(word)		pl_writeln(term_t term);
 COMMON(word)		pl_writeq(term_t term);
 COMMON(word)		pl_print(term_t term);
 COMMON(word)		pl_write2(term_t stream, term_t term);
+COMMON(word)		pl_writeln2(term_t stream, term_t term);
 COMMON(word)		pl_writeq2(term_t stream, term_t term);
 COMMON(word)		pl_print2(term_t stream, term_t term);
 COMMON(int)		writeAttributeMask(atom_t name);

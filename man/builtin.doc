@@ -4571,6 +4571,9 @@ Write \arg{Term} to \arg{Stream}, inserting quotes.
     \predicate{writeln}{1}{+Term}
 Equivalent to \exam{write(Term), nl.}.
 
+    \predicate{writeln}{2}{+Stream, +Term}
+Equivalent to \exam{write(Stream, Term), nl(Stream).}.
+
     \predicate{print}{1}{+Term}
 Print a term for debugging porposes.  The predicate print/1 acts as
 if defined as below.
