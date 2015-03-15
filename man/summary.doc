@@ -710,6 +710,7 @@ suggest predicates from a keyword.
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
 \predicatesummary{writeln}{1}{Write term, followed by a newline}
+\predicatesummary{writeln}{2}{Write term, followed by a newline to a stream}
 \predicatesummary{write_canonical}{1}{Write a term with quotes, ignore operators}
 \predicatesummary{write_canonical}{2}{Write a term with quotes, ignore operators on a stream}
 \predicatesummary{write_length}{3}{Dermine \#characters to output a term}
