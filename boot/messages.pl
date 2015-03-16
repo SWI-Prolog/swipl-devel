@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@ca.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -782,7 +782,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2014 University of Amsterdam, VU Amsterdam', nl,
+	[ 'Copyright (c) 1990-2015 University of Amsterdam, VU Amsterdam', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
