@@ -525,6 +525,9 @@ safe_primitive(system:thread_property(Id,_)) :-
 	;   thread_self(Id)
 	).
 safe_primitive(system:format_time(_,_,_)).
+safe_primitive(system:format_time(_,_,_,_)).
+safe_primitive(system:date_time_stamp(_,_)).
+safe_primitive(system:stamp_date_time(_,_,_)).
 safe_primitive(system:strip_module(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
 
