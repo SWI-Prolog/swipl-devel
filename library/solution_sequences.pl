@@ -153,7 +153,7 @@ offset(Count, Goal) :-
 	State = count(0),
 	call(Goal),
 	arg(1, State, N0),
-	(   Count >= N0
+	(   N0 >= Count
 	->  true
 	;   N is N0+1,
 	    nb_setarg(1, State, N),
