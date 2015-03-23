@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2005-2014, Markus Triska
+    Copyright (C): 2005-2015, Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -141,7 +141,7 @@ clpr_dual(Objective0, S0, DualValues) :-
         clpr_merge_into(Variables1, Objective0, Objective, []),
         clpr_unique_names(Cs2, 0, Names),
         clpr_constraints_coefficients(Cs2, Coefficients),
-        transpose(Coefficients, TCs),
+        lists_transpose(Coefficients, TCs),
         clpr_dual_constraints(TCs, Objective, Names, DualConstraints),
         clpr_nonneg_constraints(Cs2, Names, DualNonNeg, []),
         append(DualConstraints, DualNonNeg, DualConstraints1),
@@ -1075,26 +1075,18 @@ augmenting_path(S, V) -->
 naive_init(Supplies, _, Costs, Alphas, Betas) :-
         same_length(Supplies, Alphas),
         maplist(=(0), Alphas),
-        transpose(Costs, TCs),
-        naive_init_betas(TCs, Betas).
-
-naive_init_betas([], []).
-naive_init_betas([Ls|Lss], [B|Bs]) :-
-        min_list(Ls, B),
-        naive_init_betas(Lss, Bs).
+        lists_transpose(Costs, TCs),
+        maplist(min_list, TCs, Betas).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-transpose(Ms, Ts) :- Ms = [F|_], transpose(F, Ms, Ts).
+lists_transpose([], []).
+lists_transpose([L|Ls], Ts) :- foldl(transpose_, L, Ts, [L|Ls], _).
 
-transpose([], _, []).
-transpose([_|Rs], Ms, [Ts|Tss]) :-
-        lists_firsts_rests(Ms, Ts, Ms1),
-        transpose(Rs, Ms1, Tss).
+transpose_(_, Fs, Lists0, Lists) :-
+        maplist(list_first_rest, Lists0, Fs, Lists).
 
-lists_firsts_rests([], [], []).
-lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
-        lists_firsts_rests(Rest, Fs, Oss).
+list_first_rest([L|Ls], L, Ls).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
