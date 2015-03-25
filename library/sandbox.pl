@@ -485,6 +485,7 @@ safe_primitive(system:downcase_atom(_,_)).
 safe_primitive(system:upcase_atom(_,_)).
 safe_primitive(system:char_type(_,_)).
 safe_primitive(system:normalize_space(_,_)).
+safe_primitive(system:sub_atom_icasechk(_,_,_)).
 					% numbers
 safe_primitive(number_codes(_,_)).
 safe_primitive(number_chars(_,_)).
