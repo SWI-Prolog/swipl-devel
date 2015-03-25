@@ -1468,6 +1468,9 @@ struct recordRef
   Record	record;			/* the record itself */
 };
 
+#define SF_MAGIC 0x14a3c90f
+#define SF_MAGIC_DESTROYING 0x14a3c910
+
 struct sourceFile
 { atom_t	name;			/* name of source file */
   double	mtime;			/* modification time when loaded */
@@ -1477,6 +1480,7 @@ struct sourceFile
 #ifdef O_PLMT
   counting_mutex *mutex;		/* Mutex to guard procedures */
 #endif
+  int		magic;			/* Magic number */
   int		count;			/* number of times loaded */
   unsigned	index : 24;		/* index number (1,2,...) */
   unsigned	system : 1;		/* system sourcefile: do not reload */

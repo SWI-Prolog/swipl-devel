@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014, VU University Amsterdam
+    Copyright (C): 2014-2015, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -134,11 +134,14 @@ freeList(ListCell *lp)
 
 static void
 unallocSourceFile(SourceFile sf)
-{ freeList(&sf->procedures);
-  freeList(&sf->modules);
-  if ( sf->mutex )
-    freeSimpleMutex(sf->mutex);
-  freeHeap(sf, sizeof(*sf));
+{ if ( sf->magic == SF_MAGIC_DESTROYING )
+  { sf->magic = 0;
+    freeList(&sf->procedures);
+    freeList(&sf->modules);
+    if ( sf->mutex )
+      freeSimpleMutex(sf->mutex);
+    freeHeap(sf, sizeof(*sf));
+  }
 }
 
 
@@ -146,6 +149,8 @@ static void
 freeSymbolSourceFile(Symbol s)
 { SourceFile sf = s->value;
 
+  if ( sf->magic == SF_MAGIC )
+    sf->magic = SF_MAGIC_DESTROYING;
   unallocSourceFile(sf);
 }
 
@@ -184,17 +189,19 @@ clearSourceAdmin(SourceFile sf)
 { GET_LD
   int rc = FALSE;
 
-  fid_t fid = PL_open_foreign_frame();
-  term_t name = PL_new_term_ref();
-  static predicate_t pred = NULL;
+  if ( sf->magic == SF_MAGIC )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t name = PL_new_term_ref();
+    static predicate_t pred = NULL;
 
-  if ( !pred )
-    pred = PL_predicate("$clear_source_admin", 1, "system");
+    if ( !pred )
+      pred = PL_predicate("$clear_source_admin", 1, "system");
 
-  PL_put_atom(name, sf->name);
-  rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+    PL_put_atom(name, sf->name);
+    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
 
-  PL_discard_foreign_frame(fid);
+    PL_discard_foreign_frame(fid);
+  }
 
   return rc;
 }
@@ -202,21 +209,24 @@ clearSourceAdmin(SourceFile sf)
 
 int
 destroySourceFile(SourceFile sf)
-{ Symbol s;
-
-  DEBUG(MSG_SRCFILE,
+{ DEBUG(MSG_SRCFILE,
 	Sdprintf("Destroying source file %s\n", PL_atom_chars(sf->name)));
 
   clearSourceAdmin(sf);
 
   LOCK();
-  s = lookupHTable(GD->files.table, (void*)sf->name);
-  assert(s);
-  deleteSymbolHTable(GD->files.table, s);
-  PL_unregister_atom(sf->name);
-  putSourceFileArray(sf->index, NULL);
-  if ( GD->files.no_hole_before > sf->index )
-    GD->files.no_hole_before = sf->index;
+  if ( sf->magic == SF_MAGIC )
+  { Symbol s;
+
+    sf->magic = SF_MAGIC_DESTROYING;
+    s = lookupHTable(GD->files.table, (void*)sf->name);
+    assert(s);
+    deleteSymbolHTable(GD->files.table, s);
+    PL_unregister_atom(sf->name);
+    putSourceFileArray(sf->index, NULL);
+    if ( GD->files.no_hole_before > sf->index )
+      GD->files.no_hole_before = sf->index;
+  }
   UNLOCK();
 
   unallocSourceFile(sf);
@@ -247,6 +257,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
     file->mutex = allocSimpleMutex(PL_atom_chars(name));
 #endif
     PL_register_atom(file->name);
+    file->magic = SF_MAGIC;
     registerSourceFile(file);
 
     addHTable(GD->files.table, (void*)name, file);
