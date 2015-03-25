@@ -470,12 +470,13 @@ pack_select_candidate(Pack, [Version-[URL]|_], Options,
 pack_select_candidate(Pack, [Version-[URL]|_], Options,
 		      [url(URL), inquiry(true)]) :-
 	confirm(install_from(Pack, Version, URL), yes, Options), !.
-pack_select_candidate(Pack, [Version-URLs|_], _,
+pack_select_candidate(Pack, [Version-URLs|_], Options,
 		      [url(URL), inquiry(true)|Rest]) :-
 	maplist(url_menu_item, URLs, Tagged),
 	append(Tagged, [cancel=cancel], Menu),
 	Menu = [Default=_|_],
-	menu(pack(select_install_from(Pack, Version)), Menu, Default, Choice),
+	menu(pack(select_install_from(Pack, Version)),
+	     Menu, Default, Choice, Options),
 	(   Choice == cancel
 	->  fail
 	;   Choice = git(URL)
@@ -532,7 +533,7 @@ pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
 			     access(write),
 			     file_errors(fail)
 			   ]), !.
-pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
+pack_install_dir(PackDir, Options) :-		% TBD: global/user?
 	findall(Candidate = create_dir(Candidate),
 		( absolute_file_name(pack(.), Candidate, [solutions(all)]),
 		  \+ exists_file(Candidate),
@@ -547,7 +548,7 @@ pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
 	list_to_set(Candidates0, Candidates),	% keep order
 	Candidates = [Default=_|_], !,
 	append(Candidates, [cancel=cancel], Menu),
-	menu(pack(create_pack_dir), Menu, Default, PackDir),
+	menu(pack(create_pack_dir), Menu, Default, PackDir, Options),
 	make_directory_path(PackDir).
 pack_install_dir(_, _) :-
 	print_message(error, pack(cannot_create_dir(pack(.)))),
@@ -1253,7 +1254,7 @@ confirm_remove(Pack, Deps, Delete) :-
 	     [ [Pack]      = remove_only(Pack),
 	       [Pack|Deps] = remove_deps(Pack, Deps),
 	       []          = cancel
-	     ], [], Delete),
+	     ], [], Delete, []),
 	Delete \== [].
 
 
@@ -1549,10 +1550,10 @@ eval_inquiry(true(Reply), URL, Eval, _) :-
 	;   !,				% Stop other rules
 	    Eval = cancel
 	).
-eval_inquiry(true(Reply), _, Eval, _) :-
+eval_inquiry(true(Reply), _, Eval, Options) :-
 	include(dependency, Reply, Deps),
 	Deps \== [],
-	select_dependency_resolution(Deps, Eval),
+	select_dependency_resolution(Deps, Eval, Options),
 	(   Eval == cancel
 	->  !
 	;   true
@@ -1572,13 +1573,13 @@ alt_hash(alt_hash(_,_,_)).
 dependency(dependency(_,_,_,_,_)).
 
 
-%%	select_dependency_resolution(+Deps, -Eval)
+%%	select_dependency_resolution(+Deps, -Eval, +Options)
 %
 %	Select a resolution.
 %
 %	@tbd	Exploit backtracking over resolve_dependencies/2.
 
-select_dependency_resolution(Deps, Eval) :-
+select_dependency_resolution(Deps, Eval, Options) :-
 	resolve_dependencies(Deps, Resolution),
 	exclude(local_dep, Resolution, ToBeDone),
 	(   ToBeDone == []
@@ -1592,7 +1593,7 @@ select_dependency_resolution(Deps, Eval) :-
 		 [ install_deps    = install_deps,
 		   install_no_deps = install_no_deps,
 		   cancel          = cancel
-		 ], Default, Choice),
+		 ], Default, Choice, Options),
 	    (   Choice == cancel
 	    ->  !, Eval = cancel
 	    ;   Choice == install_no_deps
@@ -1927,18 +1928,21 @@ string([H|T]) --> [H], string(T).
 
 :- multifile prolog:message//1.
 
-%%	menu(Question, +Options, +Default, -Selection)
+%%	menu(Question, +Alternatives, +Default, -Selection, +Options)
 
-menu(Question, Options, Default, Selection) :-
-	length(Options, N),
+menu(_Question, _Alternatives, Default, Selection, Options) :-
+	option(interactive(false), Options), !,
+	Selection = Default.
+menu(Question, Alternatives, Default, Selection, _) :-
+	length(Alternatives, N),
 	between(1, 5, _),
 	   print_message(query, Question),
-	   print_menu(Options, Default, 1),
+	   print_menu(Alternatives, Default, 1),
 	   print_message(query, pack(menu(select))),
 	   read_selection(N, Choice), !,
 	(   Choice == default
 	->  Selection = Default
-	;   nth1(Choice, Options, Selection=_)
+	;   nth1(Choice, Alternatives, Selection=_)
 	->  true
 	).
 
