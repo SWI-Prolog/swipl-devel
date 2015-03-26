@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009-2012, VU University Amsterdam
+    Copyright (C): 2009-2015, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -412,6 +412,10 @@ emit_field(H, _) -->
 
 needs_quotes(Atom, _) :-
 	sub_atom(Atom, _, _, _, '"'), !.
+needs_quotes(Atom, _) :-
+	sub_atom(Atom, _, _, _, '\n'), !.
+needs_quotes(Atom, _) :-
+	sub_atom(Atom, _, _, _, '\r'), !.
 needs_quotes(Atom, Options) :-
 	csv_options_separator(Options, Sep),
 	char_code(Char, Sep),
