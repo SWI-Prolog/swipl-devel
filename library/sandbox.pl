@@ -175,7 +175,13 @@ safe(G, M, Parents, Safe0, Safe) :-
 	safe_meta_call(G, Called), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
-	expand_phrase(G, Goal), Goal \== G, !,
+	expand_phrase(G, Goal),
+	(   (   Goal == G
+	    ;	dcg_goal(Goal)
+	    )
+	->  instantiation_error(G)
+	;   true
+	),
 	safe(Goal, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	(   predicate_property(M:G, imported_from(M2))
@@ -317,6 +323,10 @@ copy_goal_arg(_, _, _).
 copy_goal_arg(Var) :- var(Var), !, fail.
 copy_goal_arg(_:_).
 
+dcg_goal(X) :-
+	var(X), !, fail.
+dcg_goal(phrase(_,_,_)).
+dcg_goal(dcg_call(_,_,_)).
 
 %%	verify_safe_declaration(+Decl)
 %
