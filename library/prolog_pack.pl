@@ -1962,7 +1962,8 @@ read_selection(Max, Choice) :-
 	;   code_type(Code, digit(Choice)),
 	    between(1, Max, Choice)
 	->  true
-	;   print_message(warning, menu(reply(1,Max)))
+	;   print_message(warning, menu(reply(1,Max))),
+	    fail
 	).
 
 %%	confirm(+Question, +Default, +Options) is semidet.
@@ -2136,6 +2137,8 @@ message(confirm(Question, Default)) -->
 	message(Question),
 	confirm_default(Default),
 	[ flush ].
+message(menu(reply(Min,Max))) -->
+	[ 'Please enter a number between ~w and ~w'-[Min,Max] ].
 
 % Alternate hashes for found for the same file
 
