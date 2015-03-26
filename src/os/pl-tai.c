@@ -334,24 +334,26 @@ get_ftm(term_t t, ftm *ftm)
 	  }
 	}
 
-	if ( ftm->isdst == -2 )
-	{ ftm->isdst = ftm->tm.tm_isdst;
-	  _PL_get_arg(9, t, tmp);
-	  if ( ftm->isdst < 0 )
-	  { if ( !PL_unify_atom(tmp, ATOM_minus) )
-	      return FALSE;
-	  } else
-	  { if ( !PL_unify_bool(tmp, ftm->isdst) )
+	if ( date9 )
+	{ if ( ftm->isdst == -2 )
+	  { ftm->isdst = ftm->tm.tm_isdst;
+	    _PL_get_arg(9, t, tmp);
+	    if ( ftm->isdst < 0 )
+	    { if ( !PL_unify_atom(tmp, ATOM_minus) )
+		return FALSE;
+	    } else
+	    { if ( !PL_unify_bool(tmp, ftm->isdst) )
+		return FALSE;
+	    }
+	  }
+
+	  if ( !ftm->tzname )
+	  { ftm->tzname = tz_name_as_atom(ftm->isdst);
+	    _PL_get_arg(8, t, tmp);
+	    if ( PL_is_variable(tmp) &&
+		 !PL_unify_atom(tmp, ftm->tzname) )
 	      return FALSE;
 	  }
-	}
-
-	if ( !ftm->tzname )
-	{ ftm->tzname = tz_name_as_atom(ftm->isdst);
-	  _PL_get_arg(8, t, tmp);
-	  if ( PL_is_variable(tmp) &&
-	       !PL_unify_atom(tmp, ftm->tzname) )
-	    return FALSE;
 	}
       }
 
