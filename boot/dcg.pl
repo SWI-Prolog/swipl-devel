@@ -327,6 +327,7 @@ expected_layout(Expected, Found) :-
 :- noprofile((phrase/2,
 	      phrase/3,
 	      call_dcg/3)).
+:- '$iso'((phrase/2, phrase/3)).
 
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
