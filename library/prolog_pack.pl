@@ -1532,7 +1532,7 @@ inquiry_result(Reply, File, Options) :-
 	findall(Eval, eval_inquiry(Reply, File, Eval, Options), Evaluation),
 	\+ member(cancel, Evaluation),
 	forall(member(install_dependencies(Resolution), Evaluation),
-	       maplist(install_dependency, Resolution)).
+	       maplist(install_dependency(Options), Resolution)).
 
 eval_inquiry(true(Reply), URL, Eval, _) :-
 	include(alt_hash, Reply, Alts),
@@ -1605,21 +1605,22 @@ select_dependency_resolution(Deps, Eval, Options) :-
 local_dep(_-resolved(_)).
 
 
-%%	install_dependency(+TokenResolution)
+%%	install_dependency(+Options, +TokenResolution)
 %
 %	Install dependencies for the given resolution.
 %
 %	@tbd: Query URI to use
 
-install_dependency(_Token-resolve(Pack, _Version, [URL|_], SubResolve)) :- !,
-	pack_install(Pack,
-		     [ url(URL),
-		       interactive(false),
-		       inquiry(false),
-		       info(list)
-		     ]),
-	maplist(install_dependency, SubResolve).
-install_dependency(_-_).
+install_dependency(Options,
+		   _Token-resolve(Pack, _Version, [URL|_], SubResolve)) :- !,
+	merge_options([ url(URL),
+			interactive(false),
+			inquiry(false),
+			info(list)
+		      ], Options, InstallOptions),
+	pack_install(Pack, InstallOptions),
+	maplist(install_dependency(Options), SubResolve).
+install_dependency(_, _-_).
 
 
 		 /*******************************
