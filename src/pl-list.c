@@ -188,9 +188,6 @@ typedef struct
 } ITEM;
 
 					/* TBD: handle CMP_ERROR */
-#ifndef COMPARE
-#define COMPARE(x,y) compareStandard((x)->term, (y)->term, FALSE PASS_LD)
-#endif
 #ifndef COMPARE_KEY
 #define COMPARE_KEY(x,y) compareStandard((x)->key, (y)->key, FALSE PASS_LD)
 #endif
@@ -210,12 +207,10 @@ struct List_Record {
 
 #define NIL (list)0
 
-#define compare(c, x, y) \
-    int c = compare_keys ? COMPARE_KEY(&(x)->item, &(y)->item) \
-                         : COMPARE(    &(x)->item, &(y)->item)
+#define compare(c, x, y) int c = COMPARE_KEY(&(x)->item, &(y)->item)
 
 static list
-nat_sort(list data, int remove_dups, int compare_keys)
+nat_sort(list data, int remove_dups)
 { GET_LD
   list stack[64];			/* enough for biggest machine */
   list *sp = stack;
@@ -321,14 +316,44 @@ nat_sort(list data, int remove_dups, int compare_keys)
 }
 
 
+static Word
+extract_key(Word p1, int argc, const int *argv, int pair ARG_LD)
+{ if ( pair )
+  { if ( hasFunctor(*p1, FUNCTOR_minus2) )
+    { p1 = argTermP(*p1, 0);
+      deRef(p1);
+    } else
+    { return NULL;
+    }
+  } else
+  { for(; --argc >= 0; argv++)
+    { if ( isTerm(*p1) )
+      { int arity = arityTerm(*p1);
+
+	if ( *argv <= arity )
+	{ p1 = argTermP(*p1, *argv);
+	  deRef(p1);
+	  continue;
+	}
+      }
+      return NULL;
+    }
+  }
+
+  return p1;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a list on the global stack, just   at  the place the final result
 will be.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-prolog_list_to_sort_list(term_t t, int remove_dups, int key,
-			 list *lp, Word *end)
+prolog_list_to_sort_list(term_t t,		/* input list */
+			 int remove_dups,	/* allow to be cyclic */
+			 int argc, const int *argv, int pair, /* find key */
+			 list *lp, Word *end)	/* result list */
 { GET_LD
   Word l, tail;
   list p;
@@ -359,19 +384,21 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key,
   while(len-- > 0)
   { p->item.term = HeadList(l);
     deRef(p->item.term);
-    if ( key )
-    { word w = *p->item.term;
+    p->item.key = extract_key(p->item.term, argc, argv, pair PASS_LD);
 
-      if ( hasFunctor(w, FUNCTOR_minus2) )
-      { p->item.key = argTermP(w, 0);
-	deRef(p->item.key);
-      } else
-      { PL_error("keysort", 2, NULL, ERR_TYPE,
-		 ATOM_pair, pushWordAsTermRef(p->item.term));
-	popTermRef();
-	return FALSE;
-      }
+    if ( unlikely(!p->item.key) )
+    { term_t err_t = pushWordAsTermRef(p->item.term);
+
+      if ( pair )
+	PL_error("keysort", 2, NULL, ERR_TYPE, ATOM_pair, err_t);
+      else
+	PL_error("sort", 4, NULL, ERR_DOMAIN, ATOM_arity, err_t);
+
+      popTermRef();
+
+      return FALSE;
     }
+
     l = TailList(l);
     deRef(l);
     if ( len > 0 )
@@ -415,7 +442,10 @@ put_sort_list(term_t l, list sl)
 
 
 static int
-pl_nat_sort(term_t in, term_t out, int remove_dups, int compare_keys ARG_LD)
+pl_nat_sort(term_t in, term_t out,
+	    int remove_dups,
+	    int argc, const int *argv, int pair
+	    ARG_LD)
 { if ( PL_get_nil(in) )
     return PL_unify_atom(out, ATOM_nil);
   else
@@ -423,8 +453,10 @@ pl_nat_sort(term_t in, term_t out, int remove_dups, int compare_keys ARG_LD)
     term_t tmp = PL_new_term_ref();
     Word top = NULL;
 
-    if ( prolog_list_to_sort_list(in, remove_dups, compare_keys, &l, &top) )
-    { l = nat_sort(l, remove_dups, compare_keys);
+    if ( prolog_list_to_sort_list(in, remove_dups,
+				  argc, argv, pair,
+				  &l, &top) )
+    { l = nat_sort(l, remove_dups);
       put_sort_list(tmp, l);
       gTop = top;
 
@@ -440,7 +472,7 @@ static
 PRED_IMPL("sort", 2, sort, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nat_sort(A1, A2, TRUE, FALSE PASS_LD);
+  return pl_nat_sort(A1, A2, TRUE, 0, NULL, FALSE PASS_LD);
 }
 
 
@@ -448,7 +480,7 @@ static
 PRED_IMPL("msort", 2, msort, 0)
 { PRED_LD
 
-  return pl_nat_sort(A1, A2, FALSE, FALSE PASS_LD);
+  return pl_nat_sort(A1, A2, FALSE, 0, NULL, FALSE PASS_LD);
 }
 
 
@@ -456,7 +488,7 @@ static
 PRED_IMPL("keysort", 2, keysort, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nat_sort(A1, A2, FALSE, TRUE PASS_LD);
+  return pl_nat_sort(A1, A2, FALSE, 0, NULL, TRUE PASS_LD);
 }
 
 
