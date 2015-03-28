@@ -171,6 +171,10 @@ about twice as fast as sort(1). Part of  that is better I/O, but part is
 just plain not using qsort().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef enum
+{ SORT_ASC = 0,
+  SORT_DESC = 1
+} sort_order;
 
 /*  Things in capital letters should be replaced for different applications  */
 
@@ -207,10 +211,13 @@ struct List_Record {
 
 #define NIL (list)0
 
-#define compare(c, x, y) int c = COMPARE_KEY(&(x)->item, &(y)->item)
+#define compare(c, x, y) \
+	int c = COMPARE_KEY(&(x)->item, &(y)->item); \
+	if ( order == SORT_DESC ) c = -c
+
 
 static list
-nat_sort(list data, int remove_dups)
+nat_sort(list data, int remove_dups, sort_order order)
 { GET_LD
   list stack[64];			/* enough for biggest machine */
   list *sp = stack;
@@ -443,7 +450,7 @@ put_sort_list(term_t l, list sl)
 
 static int
 pl_nat_sort(term_t in, term_t out,
-	    int remove_dups,
+	    int remove_dups, sort_order order,
 	    int argc, const int *argv, int pair
 	    ARG_LD)
 { if ( PL_get_nil(in) )
@@ -456,7 +463,7 @@ pl_nat_sort(term_t in, term_t out,
     if ( prolog_list_to_sort_list(in, remove_dups,
 				  argc, argv, pair,
 				  &l, &top) )
-    { l = nat_sort(l, remove_dups);
+    { l = nat_sort(l, remove_dups, order);
       put_sort_list(tmp, l);
       gTop = top;
 
@@ -472,7 +479,9 @@ static
 PRED_IMPL("sort", 2, sort, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nat_sort(A1, A2, TRUE, 0, NULL, FALSE PASS_LD);
+  return pl_nat_sort(A1, A2,
+		     TRUE, SORT_ASC,
+		     0, NULL, FALSE PASS_LD);
 }
 
 
@@ -480,7 +489,9 @@ static
 PRED_IMPL("msort", 2, msort, 0)
 { PRED_LD
 
-  return pl_nat_sort(A1, A2, FALSE, 0, NULL, FALSE PASS_LD);
+  return pl_nat_sort(A1, A2,
+		     FALSE, SORT_ASC,
+		     0, NULL, FALSE PASS_LD);
 }
 
 
@@ -488,7 +499,9 @@ static
 PRED_IMPL("keysort", 2, keysort, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nat_sort(A1, A2, FALSE, 0, NULL, TRUE PASS_LD);
+  return pl_nat_sort(A1, A2,
+		     FALSE, SORT_ASC,
+		     0, NULL, TRUE PASS_LD);
 }
 
 
