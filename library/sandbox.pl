@@ -35,7 +35,6 @@
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 :- use_module(library(error)).
-:- use_module(library(apply_macros), [expand_phrase/2]).
 :- use_module(library(prolog_format)).
 :- use_module(library(apply)).
 
@@ -174,15 +173,6 @@ safe(G, M, Parents, Safe0, Safe) :-
 	predicate_property(G, iso),
 	safe_meta_call(G, Called), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
-safe(G, M, Parents, Safe0, Safe) :-
-	expand_phrase(G, Goal),
-	(   (   Goal == G
-	    ;	dcg_goal(Goal)
-	    )
-	->  instantiation_error(G)
-	;   true
-	),
-	safe(Goal, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	(   predicate_property(M:G, imported_from(M2))
 	->  true
@@ -681,6 +671,36 @@ safe_meta(system:format(Output, Format, Args), Calls) :-
 safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
 	format_calls(Format, Args, Calls).
 safe_meta('$attvar':freeze(_Var,Goal), [Goal]).
+safe_meta(phrase(NT,Xs0,Xs), [Goal]) :-	% phrase/2,3 and call_dcg/2,3
+	expand_nt(NT,Xs0,Xs,Goal).
+safe_meta(phrase(NT,Xs0), [Goal]) :-
+	expand_nt(NT,Xs0,[],Goal).
+safe_meta('$dcg':call_dcg(NT,Xs0,Xs), [Goal]) :-
+	expand_nt(NT,Xs0,Xs,Goal).
+safe_meta('$dcg':call_dcg(NT,Xs0), [Goal]) :-
+	expand_nt(NT,Xs0,[],Goal).
+
+%%	expand_nt(+NT, ?Xs0, ?Xs, -NewGoal)
+%
+%	Similar to expand_phrase/2, but we do   throw  errors instead of
+%	failing if NT is not sufficiently instantiated.
+
+expand_nt(NT, _Xs0, _Xs, _NewGoal) :-
+	strip_module(NT, _, Plain),
+	var(Plain), !,
+	instantiation_error(Plain).
+expand_nt(NT, Xs0, Xs, NewGoal) :-
+	dcg_translate_rule((pseudo_nt --> NT),
+			   (pseudo_nt(Xs0c,Xsc) :- NewGoal0)),
+	(   var(Xsc), Xsc \== Xs0c
+	->  Xs = Xsc, NewGoal1 = NewGoal0
+	;   NewGoal1 = (NewGoal0, Xsc = Xs)
+	),
+	(   var(Xs0c)
+	->  Xs0 = Xs0c,
+	    NewGoal = NewGoal1
+	;   NewGoal = ( Xs0 = Xs0c, NewGoal1 )
+	).
 
 %%	safe_meta_call(+Goal, -Called:list(callable)) is semidet.
 %

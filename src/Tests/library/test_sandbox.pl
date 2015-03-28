@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014, University of Amsterdam
+    Copyright (C): 2014-2015, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -47,6 +47,9 @@ test_sandbox :-
 :- use_module(library(sandbox)).
 :- use_module(library(aggregate)).
 
+my_call(G) :-
+	phrase({G},_).
+
 test(cleanup) :-
 	safe_goal(setup_call_cleanup(true,true,true)).
 test(time) :-
@@ -61,5 +64,7 @@ test(aggregate) :-
 	safe_goal(aggregate(count, between(1,10,_), _Count)).
 test(aggregate) :-
 	safe_goal(aggregate(sum(I), X^between(1,X,I), _Count)).
+test(dcg, error(permission_error(call, sandboxed, open(_,_,_)))) :-
+	safe_goal(my_call(open(_,_,_))).
 
 :- end_tests(sandbox).
