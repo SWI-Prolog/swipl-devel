@@ -193,14 +193,15 @@ safe(G, M, Parents, Safe0, Safe) :-
 	    )
 	), !.
 safe(G, M, Parents, _, _) :-
-	debug(sandbox(fail), 'safe/1 failed for ~p (parents:~p)', [M:G, Parents]),
+	debug(sandbox(fail),
+	      'safe/1 failed for ~p (parents:~p)', [M:G, Parents]),
 	fail.
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
 	predicate_property(M:G, interpreted), !,
 	def_module(M:G, MD:QG),
-	findall(Body, clause(MD:QG, Body), Bodies),
-	safe_list(Bodies, MD, Parents, Safe0, Safe).
+	findall(Ref-Body, clause(MD:QG, Body, Ref), Bodies),
+	safe_bodies(Bodies, MD, Parents, Safe0, Safe).
 safe_clauses(G, M, [_|Parents], _, _) :-
 	predicate_property(M:G, visible), !,
 	throw(error(permission_error(call, sandboxed, G),
@@ -209,22 +210,45 @@ safe_clauses(_, _, [G|Parents], _, _) :-
 	throw(error(existence_error(procedure, G),
 		    sandbox(G, Parents))).
 
-safe_list([], _, _, Safe, Safe).
-safe_list([H|T], M, Parents, Safe0, Safe) :-
-	(   H = M2:H2,
-	    M == M2
-	->  copy_term(H2, H3)
-	;   copy_term(H, H3)
-	),
-	safe(H3, M, Parents, Safe0, Safe1),
-	safe_list(T, M, Parents, Safe1, Safe).
+%%	safe_bodies(+Bodies, +Module, +Parents, +Safe0, -Safe)
+%
+%	Verify the safety of bodies. If  a   clause  was compiled with a
+%	qualified module, we  consider  execution  of   the  body  in  a
+%	different module _not_ a cross-module call.
 
+safe_bodies([], _, _, Safe, Safe).
+safe_bodies([Ref-H|T], M, Parents, Safe0, Safe) :-
+	(   H = M2:H2, nonvar(M2),
+	    clause_property(Ref, module(M2))
+	->  copy_term(H2, H3),
+	    CM = M2
+	;   copy_term(H, H3),
+	    CM = M
+	),
+	safe(H3, CM, Parents, Safe0, Safe1),
+	safe_bodies(T, M, Parents, Safe1, Safe).
 
 def_module(M:G, MD:QG) :-
 	predicate_property(M:G, imported_from(MD)), !,
 	meta_qualify(MD:G, M, QG).
 def_module(M:G, M:QG) :-
 	meta_qualify(M:G, M, QG).
+
+%%	safe_list(+Called, +Module, +Parents, +Safe0, -Safe)
+%
+%	Processed objects called through meta  predicates. If the called
+%	object  is  in  our  current  context    we  remove  the  module
+%	qualification to avoid the cross-module check.
+
+safe_list([], _, _, Safe, Safe).
+safe_list([H|T], M, Parents, Safe0, Safe) :-
+	(   H = M2:H2,
+	    M == M2				% in our context
+	->  copy_term(H2, H3)
+	;   copy_term(H, H3)			% cross-module call
+	),
+	safe(H3, M, Parents, Safe0, Safe1),
+	safe_list(T, M, Parents, Safe1, Safe).
 
 %%	meta_qualify(:G, +M, -QG) is det.
 %
