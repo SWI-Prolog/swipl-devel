@@ -532,7 +532,7 @@ safe_primitive(system:stamp_date_time(_,_,_)).
 safe_primitive(system:strip_module(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
 
-safe_primitive(clause(_,_)).
+safe_primitive(clause(H,_)) :- safe_clause(H).
 safe_primitive(asserta(X)) :- safe_assert(X).
 safe_primitive(assertz(X)) :- safe_assert(X).
 safe_primitive(retract(X)) :- safe_assert(X).
@@ -631,6 +631,17 @@ safe_assert(X) :- var(X), !, fail.
 safe_assert(_Head:-_Body) :- !, fail.
 safe_assert(_:_) :- !, fail.
 safe_assert(_).
+
+%%	safe_clause(+Head) is semidet.
+%
+%	Consider a call to clause safe if  it   does  not try to cross a
+%	module boundary. Cross-module usage  of   clause/2  can  extract
+%	private information from other modules.
+
+safe_clause(H) :- var(H), !.
+safe_clause(_:_) :- !, fail.
+safe_clause(_).
+
 
 %%	safe_global_var(+Name) is semidet.
 %
