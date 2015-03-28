@@ -1983,19 +1983,20 @@ typedef struct set_stream_info
 #define SS_READ		0x01
 #define SS_WRITE	0x02
 #define SS_BOTH		(SS_READ|SS_WRITE)
-#define SS_NOPAIR	(0x4|SS_BOTH)
+#define SS_NOPAIR	(0x4)
+#define SS_EITHER	(SS_BOTH|SS_NOPAIR)
 
 #define SS_INFO(name, flags) { name, flags }
 
 static const set_stream_info ss_info[] =
-{ SS_INFO(ATOM_alias,		      SS_NOPAIR),
+{ SS_INFO(ATOM_alias,		      SS_EITHER),
   SS_INFO(ATOM_buffer,		      SS_BOTH),
   SS_INFO(ATOM_buffer_size,	      SS_BOTH),
   SS_INFO(ATOM_eof_action,	      SS_READ),
   SS_INFO(ATOM_type,		      SS_BOTH),
   SS_INFO(ATOM_close_on_abort,	      SS_BOTH),
   SS_INFO(ATOM_record_position,	      SS_BOTH),
-  SS_INFO(ATOM_line_position,	      SS_NOPAIR),
+  SS_INFO(ATOM_line_position,	      SS_EITHER),
   SS_INFO(ATOM_file_name,	      SS_BOTH),
   SS_INFO(ATOM_timeout,		      SS_BOTH),
   SS_INFO(ATOM_tty,		      SS_BOTH),
@@ -2040,7 +2041,7 @@ found:
   ref = PL_blob_data(sblob, NULL, &type);
   if ( type == &stream_blob )		/* got a stream handle */
   { if ( ref->read && ref->write &&	/* stream pair */
-	 info->flags & SS_NOPAIR )
+	 (info->flags & SS_NOPAIR) )
       return PL_error("set_stream", 2, NULL, ERR_PERMISSION,
 		      aname, ATOM_stream_pair, stream);
 
