@@ -851,6 +851,8 @@ with one operation, it turns out to be faster as well.
 #define COMMIT_CLAUSE		(0x0010) /* This clause will commit */
 #define DBREF_CLAUSE		(0x0020) /* Clause has db-reference */
 #define DBREF_ERASED_CLAUSE	(0x0040) /* Deleted while referenced */
+#define CL_BODY_CONTEXT		(0x0080) /* Module context of body is different */
+					 /* from predicate */
 
 /* Flags on module.  Most of these flags are copied to the read context
    in pl-read.c.

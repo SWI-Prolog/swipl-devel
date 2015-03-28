@@ -1632,7 +1632,9 @@ that have an I_CONTEXT because we need to reset the context.
 	set(def, P_MFCONTEXT);
 
       if ( true(def, P_MFCONTEXT) )
+      { set(&clause, CL_BODY_CONTEXT);
 	Output_1(&ci, I_CONTEXT, (code)ci.module);
+      }
     }
 
     bi = PC(&ci);
@@ -4055,6 +4057,37 @@ arg1Key(Code PC, word *key)
     }
   }
 
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return the context module  in  which  the   body  of  a  clause  will be
+executed. This can  be  different  from   the  predicate's  module  when
+compiling a clause into a different module, as in
+
+    target:head :- body.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Module
+clauseBodyContext(const Clause cl)
+{ if ( true(cl, CL_BODY_CONTEXT) )
+  { Code PC = cl->codes;
+
+    for(;; PC = stepPC(PC))
+    { code op = fetchop(PC);
+
+      switch(op)
+      { case I_CONTEXT:
+	  return (Module)PC[1];
+        case I_EXIT:
+        case I_EXITFACT:
+	  assert(0);
+	  break;
+      }
+    }
+  }
+
+  return cl->procedure->definition->module;
 }
 
 

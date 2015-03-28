@@ -3263,6 +3263,13 @@ it is referenced.
 belongs. This is needed to obtain information on erased clauses because
 the usual way to obtain this information using clause/3 fails for erased
 clauses.
+    \termitem{module}{Module}
+\arg{Module} is the context module used to execute the body of the
+clause.  For normal clauses, this is the same as the module in which
+the predicate is defined.  However, if a clause is compiled with a
+module qualified \jargon{head}, the clause belongs to the predicate
+with the qualified head, while the body is executed in the context
+of the module in which the clause was defined.
 \end{description}
 \end{description}
 

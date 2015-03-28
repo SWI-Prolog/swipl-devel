@@ -2761,6 +2761,8 @@ PRED_IMPL("$get_clause_attribute", 3, get_clause_attribute, 0)
 			  clause->procedure->definition, 0,
 			  GP_QUALIFY|GP_NAMEARITY) )
       return TRUE;
+  } else if ( a == ATOM_module )
+  { return PL_unify_atom(value, clauseBodyContext(clause)->name);
   }
 
   fail;

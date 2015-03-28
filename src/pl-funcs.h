@@ -153,6 +153,7 @@ COMMON(code)		replacedBreak(Code PC);
 COMMON(void)		clearBreakPointsClause(Clause clause);
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 COMMON(void)		vm_list(Code code);
+COMMON(Module)		clauseBodyContext(const Clause cl);
 
 /* pl-dump.c */
 COMMON(word)		saveProgram(term_t new);

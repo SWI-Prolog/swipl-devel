@@ -870,6 +870,8 @@ hidden_system_predicate(Head) :-
 %	    * predicate(:PI)
 %	    Predicate indicator of the predicate this clause belongs
 %	    to.  Can be used to find the predicate of erased clauses.
+%	    * module(-M)
+%	    Module context in which the clause was compiled.
 
 clause_property(Clause, Property) :-
 	'$clause_property'(Property, Clause).
@@ -888,6 +890,8 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, erased, true).
 '$clause_property'(predicate(PI), Clause) :-
 	'$get_clause_attribute'(Clause, predicate_indicator, PI).
+'$clause_property'(module(M), Clause) :-
+	'$get_clause_attribute'(Clause, module, M).
 
 
 		 /*******************************
