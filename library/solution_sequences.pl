@@ -183,34 +183,23 @@ order_by(Spec, Goal) :-
 	maplist(order_witness, Spec, Witnesses0),
 	join_orders(Witnesses0, Witnesses),
 	non_witness_template(Goal, Witnesses, Others),
-	maplist(x_vars, Witnesses, [W0|WT]),
-	findall(W0 - @(WT,Others), Goal, Results),
-	keysort(Results, SortedResults),
-	order(Witnesses, Others, SortedResults).
+	reverse(Witnesses, RevWitnesses),
+	maplist(x_vars, RevWitnesses, WitnessVars),
+	Template =.. [v,Others|WitnessVars],
+	findall(Template, Goal, Results),
+	order(RevWitnesses, 2, Results, OrderedResults),
+	member(Template, OrderedResults).
 
-order([asc(Vars)], Others, Results) :- !,
-	member(Vars - @(_,Others), Results).
-order([desc(Vars)], Others, Results) :- !,
-	reverse(Results, Results1),
-	group(Vars, Group0, Results1),
-	reverse(Group0, Group),
-	member(@(_,Others), Group).
-order([asc(Vars)|T], Others, Results) :- !,
-	group(Vars, Group, Results),
-	head_keys(Group, Pairs),
-	keysort(Pairs, SortedPairs),
-	order(T, Others, SortedPairs).
-order([desc(Vars)|T], Others, Results) :- !,
-	reverse(Results, Results1),
-	group(Vars, Group0, Results1),
-	reverse(Group0, Group),
-	head_keys(Group, Pairs),
-	keysort(Pairs, SortedPairs),
-	order(T, Others, SortedPairs).
+order([], _, Results, Results).
+order([H|T], N, Results0, Results) :-
+	order1(H, N, Results0, Results1),
+	N2 is N + 1,
+	order(T, N2, Results1, Results).
 
-head_keys([], []).
-head_keys([@([H|T],Others)|L0], [H - @(T,Others)|L]) :-
-	head_keys(L0, L).
+order1(asc(_), N, Results0, Results) :-
+	sort(N, @=<, Results0, Results).
+order1(desc(_), N, Results0, Results) :-
+	sort(N, @>=, Results0, Results).
 
 non_empty_list([]) :- !,
 	domain_error(non_empty_list, []).
@@ -289,21 +278,3 @@ group_by(By, Template, Goal, Bag) :-
 	ordered_term_variables(By+Template, UVars),
 	ord_subtract(GVars, UVars, ExVars),
 	bagof(Template, ExVars^Goal, Bag).
-
-%%	group(-Key, -Values, +Pairs) is nondet.
-%
-%	@arg Pairs is a key sorted list of pairs.
-
-group(K, VL, Pairs) :-
-	take_group(K0, Pairs, VL0, RestPairs),
-	(   K = K0, VL = VL0
-	;   group(K, VL, RestPairs)
-	).
-
-take_group(K, [K-V|Pairs], [V|VL], RestPairs) :-
-	take_group2(K, Pairs, VL, RestPairs).
-
-take_group2(K, [K1-V1|Pairs], [V1|VT], Rest) :-
-	K == K1, !,
-	take_group2(K, Pairs, VT, Rest).
-take_group2(_, Pairs, [], Pairs).
