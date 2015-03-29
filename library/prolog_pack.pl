@@ -467,8 +467,12 @@ pack_select_candidate(Pack, [Version-[URL]|_], Options,
 		      [url(URL), git(true), inquiry(true)]) :-
 	git_url(URL, Pack), !,
 	confirm(install_from(Pack, Version, git(URL)), yes, Options).
-pack_select_candidate(Pack, [Version-[URL]|_], Options,
+pack_select_candidate(Pack, [Version-[URL]|More], Options,
 		      [url(URL), inquiry(true)]) :-
+	(   More == []
+	->  !
+	;   true
+	),
 	confirm(install_from(Pack, Version, URL), yes, Options), !.
 pack_select_candidate(Pack, [Version-URLs|_], Options,
 		      [url(URL), inquiry(true)|Rest]) :-
