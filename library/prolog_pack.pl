@@ -1507,15 +1507,22 @@ query_pack_server(Query, Result, Options) :-
 	print_message(Informational, pack(contacting_server(Server))),
 	setup_call_cleanup(
 	    http_open(Server, In,
-		      [ post(codes(text/'x-prolog', Data))
+		      [ post(codes(text/'x-prolog', Data)),
+			header(content_type, ContentType)
 		      ]),
-	    ( set_stream(In, encoding(utf8)),
-	      read(In, Result0)
-	    ),
+	    read_reply(ContentType, In, Result),
 	    close(In)),
-	Result = Result0,
 	message_severity(Result, Level, Informational),
 	print_message(Level, pack(server_reply(Result))).
+
+read_reply(ContentType, In, Result) :-
+	sub_atom(ContentType, 0, _, _, 'text/x-prolog'), !,
+	set_stream(In, encoding(utf8)),
+	read(In, Result).
+read_reply(ContentType, In, _Result) :-
+	read_string(In, 500, String),
+	print_message(error, pack(no_prolog_response(ContentType, String))),
+	fail.
 
 info_level(Level, Options) :-
 	option(silent(true), Options), !,
@@ -2117,7 +2124,10 @@ message(no_match(Name)) -->
 message(conflict(version, [PackV, FileV])) -->
 	['Version mismatch: pack.pl: '-[]], msg_version(PackV),
 	[', file claims version '-[]], msg_version(FileV).
-
+message(no_prolog_response(ContentType, String)) -->
+	[ 'Expected Prolog response.  Got content of type ~p'-[ContentType], nl,
+	  '~s'-[String]
+	].
 
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).
