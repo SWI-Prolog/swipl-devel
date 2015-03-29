@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -36,7 +35,8 @@ or character codes.  Please define a test-set for each predicate.
 test_sort :-
 	run_tests([ sort,
 		    msort,
-		    keysort
+		    keysort,
+		    sort4
 		  ]).
 
 :- begin_tests(sort).
@@ -94,3 +94,42 @@ test(element, [error(type_error(pair,1))]) :- % 8.18.5.3 d
 %test(output, [error(type_error(list,[_|a]))]) :- % 8.18.5.3 e missing
 %	keysort([a-b],[_|a]).
 :- end_tests(keysort).
+
+:- begin_tests(sort4).
+
+test(zero, List == [1,2,3]) :-
+	sort(0, @<, [1,2,2,3], List).
+test(zero, List == [1,2,2,3]) :-
+	sort(0, @=<, [1,2,2,3], List).
+test(zero, List == [3,2,1]) :-
+	sort(0, @>, [1,2,2,3], List).
+test(zero, List == [3,2,2,1]) :-
+	sort(0, @>=, [1,2,2,3], List).
+test(one, List == [a(1),a(2),a(3)]) :-
+	sort(1, @<, [a(1),a(2),a(2),a(3)], List).
+test(one, List == [c(1),a(2),a(3)]) :-
+	sort(1, @<, [c(1),a(2),a(2),a(3)], List).
+test(one, List == [c(1),b(2),a(2),a(3)]) :-
+	sort(1, @=<, [c(1),b(2),a(2),a(3)], List).
+test(list, List == [c(1),b(2),a(2),a(3)]) :-
+	sort([1], @=<, [c(1),b(2),a(2),a(3)], List).
+test(list, List == [c(t(1),x),b(t(2),x),a(t(2),x),a(t(3),x)]) :-
+	sort([1,1], @=<, [c(t(1),x),b(t(2),x),a(t(2),x),a(t(3),x)], List).
+test(list, List == [c(t(1),x),b(t(2),x),a(t(3),x)]) :-
+	sort([1,1], @<, [c(t(1),x),b(t(2),x),a(t(2),x),a(t(3),x)], List).
+
+% errors
+test(key, error(type_error(sort_key,_))) :-
+	sort(a(1), @<, [1,2,2,3], _).
+test(key, error(instantiation_error)) :-
+	sort(_, @<, [1,2,2,3], _).
+test(order, error(type_error(atom,_))) :-
+	sort(0, 1, [1,2,2,3], _).
+test(order, error(instantiation_error)) :-
+	sort(0, _, [1,2,2,3], _).
+test(list, error(type_error(compound,1))) :-
+	sort(1, @<, [1], _).
+test(list, error(existence_error(argument,2,a(1)))) :-
+	sort(2, @<, [a(1)], _).
+
+:- end_tests(sort4).
