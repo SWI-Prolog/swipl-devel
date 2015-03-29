@@ -573,6 +573,7 @@ safe_primitive('$dicts':'.'(_,K,_)) :- atom(K).
 safe_primitive(system:false).
 safe_primitive(system:cyclic_term(_)).
 safe_primitive(system:msort(_,_)).
+safe_primitive(system:sort(_,_,_,_)).
 safe_primitive(system:between(_,_,_)).
 safe_primitive(system:succ(_,_)).
 safe_primitive(system:plus(_,_,_)).
