@@ -22,6 +22,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-dict.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -338,27 +339,44 @@ extract_key(Word p1, int argc, const word *argv, int pair ARG_LD)
   } else
   { for(; --argc >= 0; argv++)
     { term_t err_t, ant;
+      const char *expected = "compound";
+      atom_t existence = ATOM_argument;
 
       if ( isTerm(*p1) )
-      { int arity = arityTerm(*p1);
-	int an = valInt(argv[0]);
+      { if ( termIsDict(*p1) )
+	{ Word vp;
 
-	if ( an <= arity )
-	{ p1 = argTermP(*p1, an-1);
-	  deRef(p1);
-	  continue;
+	  if ( (vp = dict_lookup_ptr(*p1, argv[0] PASS_LD)) )
+	  { p1 = vp;
+	    goto next;
+	  }
+	  existence = ATOM_key;
+	  goto err_exists;
+	} else if ( isInteger(argv[0]) )
+	{ int arity = arityTerm(*p1);
+	  int an = valInt(argv[0]);
+
+	  if ( an <= arity )
+	  { p1 = argTermP(*p1, an-1);
+	  next:
+	    deRef(p1);
+	    continue;
+	  }
+
+	err_exists:
+	  err_t = pushWordAsTermRef(p1);
+	  ant = PL_new_term_ref();
+	  *valTermRef(ant) = argv[0];
+	  PL_error(NULL, 0, NULL, ERR_EXISTENCE3, existence, ant, err_t);
+	  popTermRef();
+	  return NULL;
+	} else					/* no dict, atom key */
+	{ expected = "dict";
 	}
-
-	err_t = pushWordAsTermRef(p1);
-	ant = PL_new_term_ref();
-	*valTermRef(ant) = argv[0];
-	PL_error(NULL, 0, NULL, ERR_EXISTENCE3, ATOM_argument, ant, err_t);
-	popTermRef();
-	return NULL;
       }
 
       err_t = pushWordAsTermRef(p1);
-      PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, err_t);
+      PL_type_error(expected, err_t);
       popTermRef();
       return NULL;
     }
@@ -535,6 +553,11 @@ get_key_arg_ex(term_t t, word *k, int zero_ok ARG_LD)
       if ( zero_ok )
 	return TRUE;
     }
+  }
+
+  if ( isAtom(*p) )
+  { *k = *p;
+    return TRUE;
   }
 
   if ( isInteger(*p) )

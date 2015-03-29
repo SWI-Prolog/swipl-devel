@@ -35,8 +35,18 @@ COMMON(int)	PL_for_dict(term_t dict,
 			   int flags);
 
 COMMON(functor_t) dict_functor(int pairs);
-COMMON(int)	  dict_order_term_refs(term_t *av, int *indexes, int count ARG_LD);
+COMMON(int)	  dict_order_term_refs(term_t *av, int *indexes, int cnt ARG_LD);
+COMMON(Word)	  dict_lookup_ptr(word dict, word name ARG_LD);
 COMMON(int)	  resortDictsInClause(Clause clause);
 COMMON(void)	  resortDictsInTerm(term_t t);
+
+#define termIsDict(w) termIsDict__LD(w PASS_LD)
+static inline int
+termIsDict__LD(word w ARG_LD)
+{ Functor f = valueTerm(w);
+  FunctorDef fd = valueFunctor(f->definition);
+
+  return ( fd->name == ATOM_dict && fd->arity%2 == 1 );
+}
 
 #endif /*PL_DICT_H_INCLUDED*/

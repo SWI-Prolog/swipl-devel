@@ -118,6 +118,10 @@ test(list, List == [c(t(1),x),b(t(2),x),a(t(2),x),a(t(3),x)]) :-
 test(list, List == [c(t(1),x),b(t(2),x),a(t(3),x)]) :-
 	sort([1,1], @<, [c(t(1),x),b(t(2),x),a(t(2),x),a(t(3),x)], List).
 
+% dicts
+test(dict, List == [a{a:1}, a{a:2}]) :-
+	sort(a, @<, [a{a:1}, a{a:2}], List).
+
 % errors
 test(key, error(type_error(sort_key,_))) :-
 	sort(a(1), @<, [1,2,2,3], _).
@@ -131,5 +135,9 @@ test(list, error(type_error(compound,1))) :-
 	sort(1, @<, [1], _).
 test(list, error(existence_error(argument,2,a(1)))) :-
 	sort(2, @<, [a(1)], _).
+test(dict, error(existence_error(key,a,a{b:2}))) :-
+	sort(a, @<, [a{a:1}, a{b:2}], _).
+test(dict, error(type_error(dict,a(1)))) :-
+	sort(a, @<, [a(1), a(2)], _).
 
 :- end_tests(sort4).
