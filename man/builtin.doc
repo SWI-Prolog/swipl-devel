@@ -6433,6 +6433,69 @@ in C, using \jargon{natural merge sort}.%
 The sort/2 predicate can sort a cyclic list, returning a non-cyclic
 version with the same elements.
 
+    \predicate{sort}{4}{+Key, +Order, +List, -Sorted}
+True when \arg{Sorted} can be unified with a list holding the element of
+\arg{List}. \arg{Key} determines which part of each element in
+\arg{List} is used for comparing two term and \arg{Order} describes the
+relation between each set of consecutive elements in
+\arg{Sorted}.\footnote{The definition of this predicate was established
+after discussion with Joachim Schimpf from the ECLiPSe team. ECLiPSe
+currently only accepts \const{<}, \const{=<}, \const{>} and \const{>=}
+for the \arg{Order} argument but this is likely to change. SWI-Prolog
+extends this predicate to deal with dicts.}
+
+If \arg{Key} is the integer zero (0), the entire term is used to compare
+two elements. Using \arg{Key}=0 can be used to sort arbitrary Prolog
+terms. Other values for \arg{Key} can only be used with compound terms
+or dicts (see \secref{dicts}). An integer key extracts the \arg{Key}-th
+argument from a compound term. An integer or atom key extracts the value
+from a dict that is associated with the given key.  A type_error is
+raised if the list element is of the wrong type and an existence_error
+is raised if the compound has not enough argument or the dict does not
+contain the requested key.
+
+Deeper nested elements of structures can be selected by using a list
+of keys for the \arg{Key} argument.
+
+The \arg{Order} argument is described in the table below\footnote{For
+compatibility with ECLiPSe, the values \const{<}, \const{=<}, \const{>}
+and \const{>=} are allowed as synonyms.}
+
+\begin{center}
+\begin{tabular}{lll}
+Order & Ordering & Duplicate handling \\
+\hline
+\const{@<}  & ascending  & remove \\
+\const{@=<} & ascending  & keep \\
+\const{@>}  & descending & remove \\
+\const{@>=} & descending & keep \\
+\end{tabular}
+\end{center}
+
+The sort is \jargon{stable}, which implies that, if duplicates are kept,
+the order of duplicates is not changed. If duplicates are removed, only
+the first element of a sequence of duplicates appears in \arg{Sorted}.
+
+This predicate supersedes most of the other sorting primitives, for
+example:
+
+\begin{code}
+sort(List, Sorted)     :- sort(0,  @<, List,  Sorted).
+msort(List, Sorted)    :- sort(0, @=<, List,  Sorted).
+keysort(Pairs, Sorted) :- sort(1, @=<, Pairs, Sorted).
+\end{code}
+
+The following example sorts a list of rows, for example resulting from
+csv_read_file/2) ascending on the 3th column and descending on the 4th
+column:
+
+\begin{code}
+    sort(4, @>=, Rows0, Rows1),
+    sort(3, @=<, Rows1, Sorted).
+\end{code}
+
+See also sort/2 (ISO), msort/2, keysort/2, predsort/3 and order_by/2.
+
     \predicate{msort}{2}{+List, -Sorted}
 Equivalent to sort/2, but does not remove duplicates. Raises a
 \except{type_error} if \arg{List} is a cyclic list or not a list.
