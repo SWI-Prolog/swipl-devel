@@ -1967,7 +1967,7 @@ read_selection(Max, Choice) :-
 	;   code_type(Code, digit(Choice)),
 	    between(1, Max, Choice)
 	->  true
-	;   print_message(warning, menu(reply(1,Max))),
+	;   print_message(warning, pack(menu(reply(1,Max)))),
 	    fail
 	).
 
@@ -2143,7 +2143,10 @@ message(confirm(Question, Default)) -->
 	confirm_default(Default),
 	[ flush ].
 message(menu(reply(Min,Max))) -->
-	[ 'Please enter a number between ~w and ~w'-[Min,Max] ].
+	(  { Max =:= Min+1 }
+	-> [ 'Please enter ~w or ~w'-[Min,Max] ]
+	;  [ 'Please enter a number between ~w and ~w'-[Min,Max] ]
+	).
 
 % Alternate hashes for found for the same file
 
