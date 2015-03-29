@@ -36,11 +36,10 @@
 :- use_module(library(solution_sequences)).
 
 test_solution_sequences :-
-	run_tests([ ord_intersection,
-		    is_ordset
+	run_tests([ test_solution_sequences
 		  ]).
 
-:- begin_tests(order_by).
+:- begin_tests(test_solution_sequences).
 
 data(1, a, a1).
 data(1, a, ax).
@@ -48,6 +47,17 @@ data(1, b, a2).
 data(2, a, n1).
 data(2, b, n2).
 data(2, b, n0).
+
+test(distinct, all(A-B-C == [1-a-a1,2-a-n1])) :-
+	distinct(A, data(A,B,C)).
+
+test(limit, all(X == [1,2,3])) :-
+	limit(3, between(1, 10, X)).
+
+test(offset, all(X == [2,3,4,5])) :-
+	offset(1, between(1, 5, X)).
+
+% Order by
 
 test(a, all(A-B-C ==
 	    [1-a-a1, 1-a-ax, 1-b-a2, 2-a-n1, 2-b-n2, 2-b-n0])) :-
@@ -59,4 +69,7 @@ test(ad, all(A-B-C ==
 	    [1-b-a2, 1-a-a1, 1-a-ax, 2-b-n2, 2-b-n0, 2-a-n1])) :-
 	order_by([asc(A),desc(B)], data(A,B,C)).
 
-:- end_tests(order_by).
+test(group_by, all(A-Bag == [1-[a,a,b],2-[a,b,b]])) :-
+	group_by(A, B, data(A,B,_), Bag).
+
+:- end_tests(test_solution_sequences).
