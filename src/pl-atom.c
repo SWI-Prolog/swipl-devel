@@ -1070,7 +1070,7 @@ resetListAtoms(void)
 
   if ( strcmp(a->name, ".") != 0 )
   { Atom *ap2 = &atomTable[a->hash_value & (atom_buckets-1)];
-    unsigned int v0, v;
+    unsigned int v;
     static char *s = ".";
 
     Sdprintf("Resetting list constructor to ./2\n");
@@ -1088,8 +1088,8 @@ resetListAtoms(void)
   modify:
     a->name   = s;
     a->length = strlen(s);
-    v0 = MurmurHashAligned2(s, a->length, MURMUR_SEED);
-    v  = v0 & (atom_buckets-1);
+    a->hash_value = MurmurHashAligned2(s, a->length, MURMUR_SEED);
+    v = a->hash_value & (atom_buckets-1);
 
     a->next      = atomTable[v];
     atomTable[v] = a;
