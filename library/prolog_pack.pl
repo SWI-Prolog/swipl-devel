@@ -573,10 +573,10 @@ pack_install_dir(_, _) :-
 
 pack_install(Name, _, Options) :-
 	current_pack(Name),
-	option(update(true), Options, false),
+	option(upgrade(false), Options, false),
 	print_message(error, pack(already_installed(Name))),
 	pack_info(Name),
-	print_message(information, pack(remove_with(Name))),
+	print_message(information, pack(remove_with(Name))), !,
 	fail.
 pack_install(Name, PackDir, Options) :-
 	option(url(URL), Options),
