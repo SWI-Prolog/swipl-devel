@@ -2124,6 +2124,9 @@ message(no_match(Name)) -->
 message(conflict(version, [PackV, FileV])) -->
 	['Version mismatch: pack.pl: '-[]], msg_version(PackV),
 	[', file claims version '-[]], msg_version(FileV).
+message(conflict(name, [PackInfo, FileInfo])) -->
+	['Pack ~w mismatch: pack.pl: ~p'-[PackInfo]],
+	[', file claims ~w: ~p'-[FileInfo]].
 message(no_prolog_response(ContentType, String)) -->
 	[ 'Expected Prolog response.  Got content of type ~p'-[ContentType], nl,
 	  '~s'-[String]
