@@ -532,6 +532,7 @@ safe_primitive(system:term_string(_,_)).
 safe_primitive(length(_,_)).
 					% exceptions
 safe_primitive(throw(_)).
+safe_primitive(system:abort).
 					% misc
 safe_primitive(current_prolog_flag(_,_)).
 safe_primitive(current_op(_,_,_)).
