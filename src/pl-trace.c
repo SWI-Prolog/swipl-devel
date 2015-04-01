@@ -421,7 +421,7 @@ Give a trace on the skipped goal for a redo.
       rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
       RESTORE_PTRS();
       debugstatus.skiplevel = levelFrame(fr);
-      set(fr, FR_SKIPPED);		/* cleared by "case 'c'" */
+      set(fr, FR_SKIPPED);		/* cleared by "creep" */
 
       return rc;
     }
