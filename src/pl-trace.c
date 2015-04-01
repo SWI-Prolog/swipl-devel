@@ -696,9 +696,13 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		} else
 		  Warn("Can't retry at this port\n");
 		return ACTION_CONTINUE;
-    case 's':	FeedBack("skip\n");
-		set(frame, FR_SKIPPED);
-		debugstatus.skiplevel = levelFrame(frame);
+    case 's':	if (port & (CALL_PORT|REDO_PORT))
+		{ FeedBack("skip\n");
+		  set(frame, FR_SKIPPED);
+		  debugstatus.skiplevel = levelFrame(frame);
+		} else
+		{ FeedBack("creep\n");
+		}
 		return ACTION_CONTINUE;
     case 'u':	FeedBack("up\n");
 		debugstatus.skiplevel = levelFrame(frame) - 1;
