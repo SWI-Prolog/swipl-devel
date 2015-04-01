@@ -1210,6 +1210,8 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     if ( PL_next_solution(qid) )
     { atom_t a;
 
+      RESTORE_PTRS();
+
       debugstatus.skiplevel = SKIP_VERY_DEEP;
       debugstatus.tracing   = TRUE;
 
@@ -1225,14 +1227,12 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	{ rval = ACTION_FAIL;
 	} else if ( a == ATOM_skip )
 	{ if ( (port & (CALL_PORT|REDO_PORT)) )
-	  { LocalFrame fr;
-
-	    if ( PL_get_frame(argv+1, &fr) )
-	    { debugstatus.skiplevel = levelFrame(fr);
-	      set(fr, FR_SKIPPED);
-	    } else
-	      assert(0);
+	  { debugstatus.skiplevel = levelFrame(frame);
+	    set(frame, FR_SKIPPED);
 	  }
+	  rval = ACTION_CONTINUE;
+	} else if ( a == ATOM_up )
+	{ debugstatus.skiplevel = levelFrame(frame) - 1;
 	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_retry )
 	{ rval = ACTION_RETRY;
