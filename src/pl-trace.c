@@ -1210,16 +1210,21 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     if ( PL_next_solution(qid) )
     { atom_t a;
 
+      debugstatus.skiplevel = SKIP_VERY_DEEP;
+      debugstatus.tracing   = TRUE;
+
       if ( PL_get_atom(rarg, &a) )
       { if ( a == ATOM_continue )
-	{ rval = ACTION_CONTINUE;
+	{ if ( !(port & EXIT_PORT) )
+	    clear(frame, FR_SKIPPED);
+	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_nodebug )
 	{ rval = ACTION_CONTINUE;
 	  nodebug = TRUE;
 	} else if ( a == ATOM_fail )
 	{ rval = ACTION_FAIL;
 	} else if ( a == ATOM_skip )
-	{ if ( !(port & CUT_PORT) )
+	{ if ( (port & (CALL_PORT|REDO_PORT)) )
 	  { LocalFrame fr;
 
 	    if ( PL_get_frame(argv+1, &fr) )
