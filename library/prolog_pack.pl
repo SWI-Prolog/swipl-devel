@@ -435,16 +435,16 @@ pack_default_options(Archive, Pack, _, Options) :-	% Install from .tgz/.zip/... 
 pack_default_options(URL, Pack, _, Options) :-
 	git_url(URL, Pack), !,
 	Options = [git(true), url(URL)].
-pack_default_options(URL, Pack, _, Options) :-	% Install from URL
-	pack_version_file(Pack, Version, URL),
-	download_url(URL), !,
-	available_download_versions(URL, [_-LatestURL|_]),
-	Options = [url(LatestURL), version(Version)].
 pack_default_options(Dir, Pack, _, Options) :-	% Install from directory
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Pack)), !,
 	uri_file_name(DirURL, Dir),
 	Options = [url(DirURL)].
+pack_default_options(URL, Pack, _, Options) :-	% Install from URL
+	pack_version_file(Pack, Version, URL),
+	download_url(URL), !,
+	available_download_versions(URL, [_-LatestURL|_]),
+	Options = [url(LatestURL), version(Version)].
 pack_default_options(Pack, Pack, OptsIn, Options) :-	% Install from a pack name
 	\+ uri_is_global(Pack),			% ignore URLs
 	query_pack_server(locate(Pack), Reply, OptsIn),
@@ -2124,6 +2124,9 @@ message(no_match(Name)) -->
 message(conflict(version, [PackV, FileV])) -->
 	['Version mismatch: pack.pl: '-[]], msg_version(PackV),
 	[', file claims version '-[]], msg_version(FileV).
+message(conflict(name, [PackInfo, FileInfo])) -->
+	['Pack ~w mismatch: pack.pl: ~p'-[PackInfo]],
+	[', file claims ~w: ~p'-[FileInfo]].
 message(no_prolog_response(ContentType, String)) -->
 	[ 'Expected Prolog response.  Got content of type ~p'-[ContentType], nl,
 	  '~s'-[String]

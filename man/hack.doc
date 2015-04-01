@@ -229,6 +229,8 @@ Retry the given frame.  This must be a parent of the current
 frame.
     \termitem{skip}{}
 Skip over the current goal (i.e., \jargon{skip} in the command line debugger).
+    \termitem{up}{}
+Skip to the parent goal (i.e., \jargon{up} in the command line debugger).
 \end{description}
 
 Together with the predicates described in \secref{debugger}

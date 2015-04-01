@@ -421,7 +421,7 @@ Give a trace on the skipped goal for a redo.
       rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
       RESTORE_PTRS();
       debugstatus.skiplevel = levelFrame(fr);
-      set(fr, FR_SKIPPED);		/* cleared by "case 'c'" */
+      set(fr, FR_SKIPPED);		/* cleared by "creep" */
 
       return rc;
     }
@@ -696,9 +696,13 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		} else
 		  Warn("Can't retry at this port\n");
 		return ACTION_CONTINUE;
-    case 's':	FeedBack("skip\n");
-		set(frame, FR_SKIPPED);
-		debugstatus.skiplevel = levelFrame(frame);
+    case 's':	if (port & (CALL_PORT|REDO_PORT))
+		{ FeedBack("skip\n");
+		  set(frame, FR_SKIPPED);
+		  debugstatus.skiplevel = levelFrame(frame);
+		} else
+		{ FeedBack("creep\n");
+		}
 		return ACTION_CONTINUE;
     case 'u':	FeedBack("up\n");
 		debugstatus.skiplevel = levelFrame(frame) - 1;
@@ -1206,24 +1210,29 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     if ( PL_next_solution(qid) )
     { atom_t a;
 
+      RESTORE_PTRS();
+
+      debugstatus.skiplevel = SKIP_VERY_DEEP;
+      debugstatus.tracing   = TRUE;
+
       if ( PL_get_atom(rarg, &a) )
       { if ( a == ATOM_continue )
-	{ rval = ACTION_CONTINUE;
+	{ if ( !(port & EXIT_PORT) )
+	    clear(frame, FR_SKIPPED);
+	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_nodebug )
 	{ rval = ACTION_CONTINUE;
 	  nodebug = TRUE;
 	} else if ( a == ATOM_fail )
 	{ rval = ACTION_FAIL;
 	} else if ( a == ATOM_skip )
-	{ if ( !(port & CUT_PORT) )
-	  { LocalFrame fr;
-
-	    if ( PL_get_frame(argv+1, &fr) )
-	    { debugstatus.skiplevel = levelFrame(fr);
-	      set(fr, FR_SKIPPED);
-	    } else
-	      assert(0);
+	{ if ( (port & (CALL_PORT|REDO_PORT)) )
+	  { debugstatus.skiplevel = levelFrame(frame);
+	    set(frame, FR_SKIPPED);
 	  }
+	  rval = ACTION_CONTINUE;
+	} else if ( a == ATOM_up )
+	{ debugstatus.skiplevel = levelFrame(frame) - 1;
 	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_retry )
 	{ rval = ACTION_RETRY;
