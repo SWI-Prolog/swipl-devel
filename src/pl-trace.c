@@ -1212,9 +1212,6 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
       RESTORE_PTRS();
 
-      debugstatus.skiplevel = SKIP_VERY_DEEP;
-      debugstatus.tracing   = TRUE;
-
       if ( PL_get_atom(rarg, &a) )
       { if ( a == ATOM_continue )
 	{ if ( !(port & EXIT_PORT) )
