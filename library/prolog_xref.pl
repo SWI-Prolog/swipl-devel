@@ -1714,13 +1714,13 @@ process_include(File, Src) :-
 	).
 process_include(_, _).
 
-%%	open_include_file(+Path, -In)
+%%	open_include_file(+Path, -In, -Refs)
 %
 %	Opens an :- include(File) referenced file.   Note that we cannot
 %	use prolog_open_source/2 because we   should  _not_ safe/restore
 %	the lexical context.
 
-open_include_file(Path, In, Ref) :-
+open_include_file(Path, In, [Ref]) :-
 	once(xref_input(_, Parent)),
 	stream_property(Parent, encoding(Enc)),
 	'$push_input_context'(xref_include),
