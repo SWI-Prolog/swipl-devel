@@ -531,18 +531,28 @@ prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 
 prolog_open_source(Src, Fd) :-
 	'$push_input_context'(source),
-	(   prolog:xref_open_source(Src, Fd)
-	->  true
-	;   open(Src, read, Fd)
-	),
-	(   peek_char(Fd, #)		% Deal with #! script
-	->  skip(Fd, 10)
-	;   true
-	),
+	catch((   prolog:xref_open_source(Src, Fd)
+	      ->  true
+	      ;   open(Src, read, Fd)
+	      ), E,
+	      (	  '$pop_input_context',
+		  throw(E)
+	      )),
+	skip_hashbang(Fd),
 	push_operators([]),
 	'$set_source_module'(SM, SM),
 	'$save_lex_state'(LexState, []),
 	asserta(open_source(Fd, state(LexState, SM))).
+
+skip_hashbang(Fd) :-
+	catch((   peek_char(Fd, #)		% Deal with #! script
+	      ->  skip(Fd, 10)
+	      ;   true
+	      ), E,
+	      (	  close(Fd, [force(true)]),
+		  '$pop_input_context',
+		  throw(E)
+	      )).
 
 
 %%	prolog_close_source(+In:stream) is det.
@@ -553,6 +563,13 @@ prolog_open_source(Src, Fd) :-
 %	modules to clean-up.
 
 prolog_close_source(In) :-
+	call_cleanup(
+	    restore_source_context(In),
+	    ( close(In, [force(true)]),
+	      '$pop_input_context'
+	    )).
+
+restore_source_context(In) :-
 	(   at_end_of_stream(In)
 	->  true
 	;   ignore(catch(expand(end_of_file, _, In, _), _, true))
@@ -563,9 +580,7 @@ prolog_close_source(In) :-
 	->  '$restore_lex_state'(LexState),
 	    '$set_source_module'(_, SM)
 	;   assertion(fail)
-	),
-	close(In),
-	'$pop_input_context'.
+	).
 
 
 %%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is semidet.
