@@ -1702,7 +1702,7 @@ process_include([H|T], Src) :- !,
 	process_include(T, Src).
 process_include(File, Src) :-
 	callable(File), !,
-	(   xref_input(ParentSrc, _),
+	(   once(xref_input(ParentSrc, _)),
 	    xref_source_file(File, Path, ParentSrc)
 	->  assert(uses_file(File, Src, Path)),
 	    findall(O, xoption(Src, O), Options),
@@ -1721,17 +1721,20 @@ process_include(_, _).
 %	the lexical context.
 
 open_include_file(Path, In, Ref) :-
-	xref_input(_, Parent),
+	once(xref_input(_, Parent)),
 	stream_property(Parent, encoding(Enc)),
-	include_encoding(Enc, Options),
-	(   prolog:xref_open_source(Path, In)
-	->  true
-	;   open(Path, read, In, Options)
-	),
-	(   peek_char(In, #)		% Deal with #! script
-	->  skip(In, 10)
-	;   true
-	),
+	'$push_input_context'(xref_include),
+	catch((   prolog:xref_open_source(Path, In)
+	      ->  set_stream(In, encoding(Enc))
+	      ;   include_encoding(Enc, Options),
+		  open(Path, read, In, Options)
+	      ), E,
+	      ( '$pop_input_context', throw(E))),
+	catch((   peek_char(In, #)		% Deal with #! script
+	      ->  skip(In, 10)
+	      ;   true
+	      ), E,
+	      ( close_include(In, []), throw(E))),
 	asserta(xref_input(Path, In), Ref).
 
 include_encoding(wchar_t, []) :- !.
@@ -1740,7 +1743,8 @@ include_encoding(Enc, [encoding(Enc)]).
 
 close_include(In, Refs) :-
 	maplist(erase, Refs),
-	close(In).
+	close(In, [force(true)]),
+	'$pop_input_context'.
 
 %%	process_foreign(+Spec, +Src)
 %
