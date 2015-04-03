@@ -128,18 +128,20 @@ into the core Prolog library to support the Prolog package manager.
 git(Argv, Options) :-
 	option(directory(Dir), Options, .),
 	env_options(Extra, Options),
-	setup_call_cleanup(process_create(path(git), Argv,
-                                          [ stdout(pipe(Out)),
-                                            stderr(pipe(Error)),
-                                            process(PID),
-                                            cwd(Dir)
-					  | Extra
-                                          ]),
-                           (   read_stream_to_codes(Out, OutCodes, []),
-			       read_stream_to_codes(Error, ErrorCodes, []),
-                               process_wait(PID, Status)
-                           ),
-			   close_streams([Out,Error])),
+	setup_call_cleanup(
+	    process_create(path(git), Argv,
+			   [ stdout(pipe(Out)),
+			     stderr(pipe(Error)),
+			     process(PID),
+			     cwd(Dir)
+			   | Extra
+			   ]),
+	    call_cleanup(
+		( read_stream_to_codes(Out, OutCodes, []),
+		  read_stream_to_codes(Error, ErrorCodes, [])
+		),
+		process_wait(PID, Status)),
+	    close_streams([Out,Error])),
 	print_error(ErrorCodes, Options),
 	print_output(OutCodes, Options),
 	(   option(status(Status0), Options)
@@ -213,18 +215,20 @@ close_streams([H|T]) -->
 git_process_output(Argv, OnOutput, Options) :-
 	option(directory(Dir), Options, .),
 	env_options(Extra, Options),
-	setup_call_cleanup(process_create(path(git), Argv,
-                                          [ stdout(pipe(Out)),
-                                            stderr(pipe(Error)),
-                                            process(PID),
-                                            cwd(Dir)
-					  | Extra
-                                          ]),
-                           (   call(OnOutput, Out),
-			       read_stream_to_codes(Error, ErrorCodes, []),
-                               process_wait(PID, Status)
-                           ),
-			   close_streams([Out,Error])),
+	setup_call_cleanup(
+	    process_create(path(git), Argv,
+			   [ stdout(pipe(Out)),
+			     stderr(pipe(Error)),
+			     process(PID),
+			     cwd(Dir)
+			   | Extra
+			   ]),
+	    call_cleanup(
+		( call(OnOutput, Out),
+		  read_stream_to_codes(Error, ErrorCodes, [])
+		),
+		process_wait(PID, Status)),
+	    close_streams([Out,Error])),
 	print_error(ErrorCodes, Options),
 	(   Status = exit(0)
 	->  true
@@ -294,20 +298,21 @@ git_describe(Version, Options) :-
 	;   Extra = []
 	),
 	option(directory(Dir), Options, .),
-	setup_call_cleanup(process_create(path(git),
-					  [ 'describe',
-					    '--match', Pattern
-					  | Extra
-					  ],
-					  [ stdout(pipe(Out)),
-					    stderr(null),
-					    process(PID),
-					    cwd(Dir)
-					  ]),
-			   (   read_stream_to_codes(Out, V0, []),
-			       process_wait(PID, Status)
-			   ),
-			   close(Out)),
+	setup_call_cleanup(
+	    process_create(path(git),
+			   [ 'describe',
+			     '--match', Pattern
+			   | Extra
+			   ],
+			   [ stdout(pipe(Out)),
+			     stderr(null),
+			     process(PID),
+			     cwd(Dir)
+			   ]),
+	    call_cleanup(
+		read_stream_to_codes(Out, V0, []),
+		process_wait(PID, Status)),
+	    close(Out)),
 	Status = exit(0), !,
 	atom_codes(V1, V0),
 	normalize_space(atom(Plain), V1),
@@ -318,19 +323,20 @@ git_describe(Version, Options) :-
 git_describe(Version, Options) :-
 	option(directory(Dir), Options, .),
 	option(commit(Commit), Options, 'HEAD'),
-	setup_call_cleanup(process_create(path(git),
-					  [ 'rev-parse', '--short',
-					    Commit
-					  ],
-					  [ stdout(pipe(Out)),
-					    stderr(null),
-					    process(PID),
-					    cwd(Dir)
-					  ]),
-			   (   read_stream_to_codes(Out, V0, []),
-			       process_wait(PID, Status)
-			   ),
-			   close(Out)),
+	setup_call_cleanup(
+	    process_create(path(git),
+			   [ 'rev-parse', '--short',
+			     Commit
+			   ],
+			   [ stdout(pipe(Out)),
+			     stderr(null),
+			     process(PID),
+			     cwd(Dir)
+			   ]),
+	    call_cleanup(
+		read_stream_to_codes(Out, V0, []),
+		process_wait(PID, Status)),
+	    close(Out)),
 	Status = exit(0),
 	atom_codes(V1, V0),
 	normalize_space(atom(Plain), V1),
