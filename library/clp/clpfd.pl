@@ -112,6 +112,7 @@
                   circuit/1,
                   cumulative/1,
                   cumulative/2,
+                  disjoint2/1,
                   element/3,
                   automaton/3,
                   automaton/8,
@@ -5880,6 +5881,35 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
             nth0(Index, Bs, B),
             ?(Contribution) #= B*C
         ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% disjoint2(+Rectangles)
+%
+%  Is true if Rectangles are not overlapping. Rectangles is a list of
+%  terms of the form F(X_i, W_i, Y_i, H_i), where F is any functor,
+%  and the arguments are finite domain variables or integers that
+%  denote, respectively, the X coordinate, width, Y coordinate and
+%  height of each rectangle.
+
+disjoint2(Rs0) :-
+        must_be(list, Rs0),
+        maplist(=.., Rs0, Rs),
+        non_overlapping(Rs, []).
+
+non_overlapping([], _).
+non_overlapping([R|Rs], Left) :-
+        maplist(non_overlapping_(R), Left),
+        maplist(non_overlapping_(R), Rs),
+        non_overlapping(Rs, [R|Left]).
+
+non_overlapping_(A, B) :-
+        a_not_in_b(A, B),
+        a_not_in_b(B, A).
+
+a_not_in_b([_,XA,WA,YA,HA], [_,XB,WB,YB,HB]) :-
+        XA #=< XB #/\ XB #< XA + WA #==> YA + HA #=< YB #\/ YB + HB #=< YA,
+        YA #=< YB #/\ YB #< YA + HA #==> XA + WA #=< XB #\/ XB + WB #=< XA.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
