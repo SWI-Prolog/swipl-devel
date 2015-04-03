@@ -5832,8 +5832,9 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 
 cumulative(Tasks, Options) :-
         must_be(list(list), [Tasks,Options]),
-        (   memberchk(limit(L), Options) -> must_be(integer, L)
-        ;   L = 1
+        (   Options = [] -> L = 1
+        ;   Options = [limit(L)] -> must_be(integer, L)
+        ;   domain_error(cumulative_options_empty_or_limit, Options)
         ),
         (   Tasks = [] -> true
         ;   maplist(task_bs, Tasks, Bss),
