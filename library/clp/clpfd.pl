@@ -5895,13 +5895,12 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 disjoint2(Rs0) :-
         must_be(list, Rs0),
         maplist(=.., Rs0, Rs),
-        non_overlapping(Rs, []).
+        non_overlapping(Rs).
 
-non_overlapping([], _).
-non_overlapping([R|Rs], Left) :-
-        maplist(non_overlapping_(R), Left),
+non_overlapping([]).
+non_overlapping([R|Rs]) :-
         maplist(non_overlapping_(R), Rs),
-        non_overlapping(Rs, [R|Left]).
+        non_overlapping(Rs).
 
 non_overlapping_(A, B) :-
         a_not_in_b(A, B),
