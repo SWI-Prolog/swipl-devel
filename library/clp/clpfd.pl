@@ -5854,18 +5854,15 @@ cumulative(Tasks, Options) :-
 
 min_end_time(Tasks, Limit) :-
         maplist(task_duration_consumption, Tasks, Ds, Cs),
-        (   ground(Ds-Cs) ->
-            maplist(area, Ds, Cs, As),
-            sumlist(As, Area),
-            MinTime is (Area + Limit - 1) // Limit,
-            tasks_all_done(Tasks, Done),
-            Done #>= MinTime
-        ;   true % this reasoning could also be applied for variable durations
-        ).
+        maplist(area, Ds, Cs, As),
+        sum(As, #=, Area),
+        MinTime #= (Area + Limit - 1) // Limit,
+        tasks_all_done(Tasks, DoneTime),
+        DoneTime #>= MinTime.
 
 task_duration_consumption(task(_,D,_,C,_), D, C).
 
-area(X, Y, Area) :- Area is X*Y.
+area(X, Y, Area) :- Area #= X*Y.
 
 tasks_all_done(Tasks, End) :-
         maplist(task_end, Tasks, [End0|Es]),
