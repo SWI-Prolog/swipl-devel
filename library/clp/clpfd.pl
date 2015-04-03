@@ -5838,6 +5838,7 @@ cumulative(Tasks, Options) :-
         ),
         (   Tasks = [] -> true
         ;   maplist(task_bs, Tasks, Bss),
+            min_end_time(Tasks, L),
             maplist(arg(1), Tasks, Starts),
             maplist(fd_inf, Starts, MinStarts),
             maplist(arg(3), Tasks, Ends),
@@ -5846,6 +5847,39 @@ cumulative(Tasks, Options) :-
             max_list(MaxEnds, End),
             resource_limit(Start, End, Tasks, Bss, L)
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Naive lower bound for global end time, assuming no gaps.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+min_end_time(Tasks, Limit) :-
+        maplist(task_duration_consumption, Tasks, Ds, Cs),
+        (   ground(Ds-Cs) ->
+            maplist(area, Ds, Cs, As),
+            sumlist(As, Area),
+            MinTime is (Area + Limit - 1) // Limit,
+            min_all_done(Tasks, Done),
+            Done #>= MinTime
+        ;   true % this reasoning could also be applied for variable durations
+        ).
+
+task_duration_consumption(task(_,D,_,C,_), D, C).
+
+area(X, Y, Area) :- Area is X*Y.
+
+min_all_done([T|Tasks], End) :-
+        task_end(T, End0),
+        foldl(min_end, Tasks, End0, End).
+
+min_end(Task, End0, End) :-
+        task_end(Task, End1),
+        End #= max(End0, End1).
+
+task_end(task(_,_,End,_,_), End).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   All time slots must respect the resource limit.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 resource_limit(T, T, _, _, _) :- !.
 resource_limit(T0, T, Tasks, Bss, L) :-
