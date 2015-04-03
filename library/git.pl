@@ -139,9 +139,7 @@ git(Argv, Options) :-
 			       read_stream_to_codes(Error, ErrorCodes, []),
                                process_wait(PID, Status)
                            ),
-			   (   close(Out),
-			       close(Error)
-			   )),
+			   close_streams([Out,Error])),
 	print_error(ErrorCodes, Options),
 	print_output(OutCodes, Options),
 	(   option(status(Status0), Options)
@@ -186,6 +184,26 @@ classify_message(warning) -->
 classify_message(informational) -->
 	[].
 
+%%	close_streams(+Streams:list) is det.
+%
+%	Close a list of streams, throwing the first error if some stream
+%	failed to close.
+
+close_streams(List) :-
+	phrase(close_streams(List), Errors),
+	(   Errors = [Error|_]
+	->  throw(Error)
+	;   true
+	).
+
+close_streams([H|T]) -->
+	{ catch(close(H), E, true) },
+	(   { var(E) }
+	->  []
+	;   [E]
+	),
+	close_streams(T).
+
 
 %%	git_process_output(+Argv, :OnOutput, +Options) is det.
 %
@@ -206,9 +224,7 @@ git_process_output(Argv, OnOutput, Options) :-
 			       read_stream_to_codes(Error, ErrorCodes, []),
                                process_wait(PID, Status)
                            ),
-			   (   close(Out),
-			       close(Error)
-			   )),
+			   close_streams([Out,Error])),
 	print_error(ErrorCodes, Options),
 	(   Status = exit(0)
 	->  true
