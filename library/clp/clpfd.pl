@@ -5858,7 +5858,7 @@ min_end_time(Tasks, Limit) :-
             maplist(area, Ds, Cs, As),
             sumlist(As, Area),
             MinTime is (Area + Limit - 1) // Limit,
-            min_all_done(Tasks, Done),
+            tasks_all_done(Tasks, Done),
             Done #>= MinTime
         ;   true % this reasoning could also be applied for variable durations
         ).
@@ -5867,13 +5867,11 @@ task_duration_consumption(task(_,D,_,C,_), D, C).
 
 area(X, Y, Area) :- Area is X*Y.
 
-min_all_done([T|Tasks], End) :-
-        task_end(T, End0),
-        foldl(min_end, Tasks, End0, End).
+tasks_all_done(Tasks, End) :-
+        maplist(task_end, Tasks, [End0|Es]),
+        foldl(max_, Es, End0, End).
 
-min_end(Task, End0, End) :-
-        task_end(Task, End1),
-        End #= max(End0, End1).
+max_(E, M0, M) :- M #= max(E, M0).
 
 task_end(task(_,_,End,_,_), End).
 
