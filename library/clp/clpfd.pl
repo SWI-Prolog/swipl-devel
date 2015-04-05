@@ -5855,22 +5855,22 @@ cumulative(Tasks, Options) :-
 min_end_time(Tasks, Limit) :-
         maplist(task_duration_consumption, Tasks, Ds, Cs),
         maplist(area, Ds, Cs, As),
-        sum(As, #=, Area),
-        MinTime #= (Area + Limit - 1) // Limit,
+        sum(As, #=, ?(Area)),
+        ?(MinTime) #= (Area + Limit - 1) // Limit,
         tasks_all_done(Tasks, DoneTime),
         DoneTime #>= MinTime.
 
 task_duration_consumption(task(_,D,_,C,_), D, C).
 
-area(X, Y, Area) :- Area #= X*Y.
+area(X, Y, Area) :- ?(Area) #= ?(X) * ?(Y).
 
 tasks_all_done(Tasks, End) :-
         maplist(task_end, Tasks, [End0|Es]),
         foldl(max_, Es, End0, End).
 
-max_(E, M0, M) :- M #= max(E, M0).
+max_(E, M0, M) :- ?(M) #= max(E, M0).
 
-task_end(task(_,_,End,_,_), End).
+task_end(task(_,_,End,_,_), ?(End)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    All time slots must respect the resource limit.
