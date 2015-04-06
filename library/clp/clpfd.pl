@@ -1624,9 +1624,9 @@ sum(Vs, Op, Value) :-
 
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
+% True iff the scalar product of Cs and Vs is in relation Rel to Expr.
 % Cs is a list of integers, Vs is a list of variables and integers.
-% True if the scalar product of Cs and Vs is in relation Rel to Expr,
-% where Rel is #=, #\=, #<, #>, #=< or #>=.
+% Rel is #=, #\=, #<, #>, #=< or #>=.
 
 scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
@@ -5715,9 +5715,9 @@ all_neq([X|Xs], C) :-
 
 %%    circuit(+Vs)
 %
-%     True  if  the  list  Vs  of  finite  domain  variables  induces  a
-%     Hamiltonian circuit. The k-th element of  Vs denotes the successor
-%     of node k. Node indexing starts with 1. Examples:
+%     True iff the list Vs of finite domain variables induces a
+%     Hamiltonian circuit. The k-th element of Vs denotes the
+%     successor of node k. Node indexing starts with 1. Examples:
 %
 %     ==
 %     ?- length(Vs, _), circuit(Vs), label(Vs).
@@ -5916,7 +5916,7 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 
 %% disjoint2(+Rectangles)
 %
-%  Is true if Rectangles are not overlapping. Rectangles is a list of
+%  True iff Rectangles are not overlapping. Rectangles is a list of
 %  terms of the form F(X_i, W_i, Y_i, H_i), where F is any functor,
 %  and the arguments are finite domain variables or integers that
 %  denote, respectively, the X coordinate, width, Y coordinate and
@@ -5975,7 +5975,7 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  Describes a list of finite domain variables with a finite
-%  automaton. True if the finite automaton induced by Nodes and Arcs
+%  automaton. True iff the finite automaton induced by Nodes and Arcs
 %  (extended with Counters) accepts Signature. Sequence is a list of
 %  terms, all of the same shape. Additional constraints must link
 %  Sequence to Signature, if necessary. Nodes is a list of
@@ -6337,9 +6337,8 @@ fd_sup(X, Sup) :-
 
 %% fd_size(+Var, -Size)
 %
-%  Determine the size of a variable's domain. Size is the number of
-%  elements of the current domain of Var, or the atom *sup* if the
-%  domain is unbounded.
+%  Size is the number of elements of the current domain of Var, or the
+%  atom *sup* if the domain is unbounded.
 
 fd_size(X, S) :-
         (   fd_get(X, XD, _) ->
