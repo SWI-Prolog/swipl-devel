@@ -411,7 +411,7 @@ search_info(download(_)).
 
 pack_install(Spec) :-
 	pack_default_options(Spec, Pack, [], Options),
-	pack_install(Pack, Options).
+	pack_install(Pack, [pack(Pack)|Options]).
 
 pack_default_options(_Spec, Pack, OptsIn, Options) :-
 	option(url(URL), OptsIn), !,
@@ -422,6 +422,8 @@ pack_default_options(_Spec, Pack, OptsIn, Options) :-
 	;   Options = OptsIn
 	),
 	(   nonvar(Pack)
+	->  true
+	;   option(pack(Pack), Options)
 	->  true
 	;   pack_version_file(Pack, _Version, URL)
 	).
@@ -438,8 +440,9 @@ pack_default_options(URL, Pack, _, Options) :-
 pack_default_options(Dir, Pack, _, Options) :-	% Install from directory
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Pack)), !,
+	pack_info_term(Dir, version(Version)),
 	uri_file_name(DirURL, Dir),
-	Options = [url(DirURL)].
+	Options = [url(DirURL), version(Version)].
 pack_default_options(URL, Pack, _, Options) :-	% Install from URL
 	pack_version_file(Pack, Version, URL),
 	download_url(URL), !,
