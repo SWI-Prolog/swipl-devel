@@ -329,16 +329,16 @@ Sample query and its result (actual variables replaced for readability):
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [9, _A2, _A3, _A4],
-Bs = [1, 0, _B3, _A2],
-Cs = [1, 0, _A3, _A2, _C5],
-_A2 in 4..7,
-all_different([9, _A2, _A3, _A4, 1, 0, _B3, _C5]),
-91*_A2+_A4+10*_B3#=90*_A3+_C5,
-_A3 in 5..8,
-_A4 in 2..8,
-_B3 in 2..8,
-_C5 in 2..8.
+As = [9, A2, A3, A4],
+Bs = [1, 0, B3, A2],
+Cs = [1, 0, A3, A2, C5],
+A2 in 4..7,
+all_different([9, A2, A3, A4, 1, 0, B3, C5]),
+91*A2+A4+10*B3#=90*A3+C5,
+A3 in 5..8,
+A4 in 2..8,
+B3 in 2..8,
+C5 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
