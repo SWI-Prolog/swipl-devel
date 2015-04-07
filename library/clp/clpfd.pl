@@ -6630,11 +6630,11 @@ pair_product(A-B, Prod) :- Prod is A*B.
 compare_coeff0(Coeff-_, Compare) :- compare(Compare, Coeff, 0).
 
 scalar_plusterm([], 0).
-scalar_plusterm([CV|CVs], Prod) :-
-        coeff_var_term(CV, T),
-        foldl(plusterm_, CVs, T, Prod).
+scalar_plusterm([CV|CVs], T) :-
+        coeff_var_term(CV, T0),
+        foldl(plusterm_, CVs, T0, T).
 
-plusterm_(CV, P0, P0+T) :- coeff_var_term(CV, T).
+plusterm_(CV, T0, T0+T) :- coeff_var_term(CV, T).
 
 coeff_var_term(C-V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
 
