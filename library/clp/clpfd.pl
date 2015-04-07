@@ -334,7 +334,7 @@ Bs = [1, 0, _B3, _A2],
 Cs = [1, 0, _A3, _A2, _C5],
 _A2 in 4..7,
 all_different([9, _A2, _A3, _A4, 1, 0, _B3, _C5]),
-1000*9+91*_A2+ -90*_A3+_A4+ -9000*1+ -900*0+10*_B3+ -1*_C5#=0,
+91*_A2+_A4+10*_B3#=90*_A3+_C5,
 _A3 in 5..8,
 _A4 in 2..8,
 _B3 in 2..8,
@@ -6537,15 +6537,15 @@ attribute_goal_(pmod(X,M,K))           --> [?(X) mod ?(M) #= ?(K)].
 attribute_goal_(prem(X,Y,Z))           --> [?(X) rem ?(Y) #= ?(Z)].
 attribute_goal_(pmax(X,Y,Z))           --> [?(Z) #= max(?(X),?(Y))].
 attribute_goal_(pmin(X,Y,Z))           --> [?(Z) #= min(?(X),?(Y))].
-attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->
-        [Left #\= C],
-        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
-        [Left #= C],
-        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
-        [Left #=< C],
-        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
+attribute_goal_(scalar_product_neq(Cs,Vs,C)) -->
+        [Left #\= Right],
+        { scalar_product_left_right([-1|Cs], [C|Vs], Left, Right) }.
+attribute_goal_(scalar_product_eq(Cs,Vs,C)) -->
+        [Left #= Right],
+        { scalar_product_left_right([-1|Cs], [C|Vs], Left, Right) }.
+attribute_goal_(scalar_product_leq(Cs,Vs,C)) -->
+        [Left #=< Right],
+        { scalar_product_left_right([-1|Cs], [C|Vs], Left, Right) }.
 attribute_goal_(pdifferent(_,_,_,O))    --> original_goal(O).
 attribute_goal_(weak_distinct(_,_,_,O)) --> original_goal(O).
 attribute_goal_(pdistinct(Vs))          --> [all_distinct(Vs)].
@@ -6593,19 +6593,49 @@ conjunction(A, B, G, D) -->
         ;   [(?(A) #/\ ?(B) #/\ G) #<==> ?(D)]
         ).
 
-coeff_var_term(C, V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
-
-fold_product([], [], P, P).
-fold_product([C|Cs], [V|Vs], P0, P) :-
-        coeff_var_term(C, V, T),
-        fold_product(Cs, Vs, P0 + T, P).
-
 original_goal(V) -->
         (   { get_attr(V, clpfd_original, Goal) } ->
             { del_attr(V, clpfd_original) },
             [Goal]
         ;   []
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Projection of scalar product.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+scalar_product_left_right(Cs, Vs, Left, Right) :-
+        pairs_keys_values(Pairs0, Cs, Vs),
+        partition(ground, Pairs0, Grounds, Pairs),
+        maplist(pair_product, Grounds, Prods),
+        sumlist(Prods, Const0),
+        partition(compare_coeff0, Pairs, Negatives, _, Positives),
+        maplist(negate_coeff, Negatives, Rights),
+        fold_product(Rights, Right0),
+        fold_product(Positives, Left0),
+        (   Const0 =:= 0 -> Right = Right0, Left = Left0
+        ;   Right0 == 0 -> Right is -Const0, Left = Left0
+        ;   Left0 == 0 -> Right = Right0, Left = Const0
+        ;   Right = Right0, Left = Left0 + Const0
+        ).
+
+negate_coeff(A0-B, A-B) :- A is -A0.
+
+pair_product(A-B, Prod) :- Prod is A*B.
+
+compare_coeff0(Coeff-_, Compare) :- compare(Compare, Coeff, 0).
+
+coeff_var_term(C, V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
+
+fold_product([], 0).
+fold_product([C-V|CVs], Prod) :-
+        coeff_var_term(C, V, T),
+        fold_product_(CVs, T, Prod).
+
+fold_product_([], P, P).
+fold_product_([C-V|CVs], P0, P) :-
+        coeff_var_term(C, V, T),
+        fold_product_(CVs, P0 + T, P).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Generated predicates
