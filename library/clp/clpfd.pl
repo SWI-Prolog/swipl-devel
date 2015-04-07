@@ -6612,8 +6612,8 @@ scalar_product_left_right(Cs, Vs, Left, Right) :-
         NConst is -Const,
         partition(compare_coeff0, Pairs, Negatives, _, Positives),
         maplist(negate_coeff, Negatives, Rights),
-        fold_product(Rights, Right0),
-        fold_product(Positives, Left0),
+        scalar_plusterm(Rights, Right0),
+        scalar_plusterm(Positives, Left0),
         (   Const =:= 0 -> Right = Right0, Left = Left0
         ;   Right0 == 0 -> Right = NConst, Left = Left0
         ;   Left0 == 0 -> Right = Right0, Left = Const
@@ -6629,17 +6629,14 @@ pair_product(A-B, Prod) :- Prod is A*B.
 
 compare_coeff0(Coeff-_, Compare) :- compare(Compare, Coeff, 0).
 
-coeff_var_term(C, V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
+scalar_plusterm([], 0).
+scalar_plusterm([CV|CVs], Prod) :-
+        coeff_var_term(CV, T),
+        foldl(plusterm_, CVs, T, Prod).
 
-fold_product([], 0).
-fold_product([C-V|CVs], Prod) :-
-        coeff_var_term(C, V, T),
-        fold_product_(CVs, T, Prod).
+plusterm_(CV, P0, P0+T) :- coeff_var_term(CV, T).
 
-fold_product_([], P, P).
-fold_product_([C-V|CVs], P0, P) :-
-        coeff_var_term(C, V, T),
-        fold_product_(CVs, P0 + T, P).
+coeff_var_term(C-V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Generated predicates
