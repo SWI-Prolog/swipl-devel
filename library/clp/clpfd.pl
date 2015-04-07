@@ -5838,13 +5838,13 @@ cumulative(Tasks, Options) :-
         ),
         (   Tasks = [] -> true
         ;   maplist(task_bs, Tasks, Bss),
-            min_end_time(Tasks, L),
             maplist(arg(1), Tasks, Starts),
             maplist(fd_inf, Starts, MinStarts),
             maplist(arg(3), Tasks, Ends),
             maplist(fd_sup, Ends, MaxEnds),
             min_list(MinStarts, Start),
             max_list(MaxEnds, End),
+            min_end_time(Tasks, L, Start),
             resource_limit(Start, End, Tasks, Bss, L)
         ).
 
@@ -5852,13 +5852,13 @@ cumulative(Tasks, Options) :-
    Naive lower bound for global end time, assuming no gaps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-min_end_time(Tasks, Limit) :-
+min_end_time(Tasks, Limit, Start) :-
         maplist(task_duration_consumption, Tasks, Ds, Cs),
         maplist(area, Ds, Cs, As),
         sum(As, #=, ?(Area)),
         ?(MinTime) #= (Area + Limit - 1) // Limit,
         tasks_all_done(Tasks, DoneTime),
-        DoneTime #>= MinTime.
+        DoneTime #>= Start + MinTime.
 
 task_duration_consumption(task(_,D,_,C,_), D, C).
 
