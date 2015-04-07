@@ -6239,14 +6239,14 @@ list_first_rest([L|Ls], L, Ls).
 % ==
 % :- use_module(library(clpfd)).
 %
-%  n_factorial(N, F) :-
-%          zcompare(C, N, 0),
-%          n_factorial_(C, N, F).
+% n_factorial(N, F) :-
+%         zcompare(C, N, 0),
+%         n_factorial_(C, N, F).
 %
-%  n_factorial_(=, _, 1).
-%  n_factorial_(>, N, F) :-
-%       F #= F0*N, N1 #= N - 1,
-%       n_factorial(N1, F0).
+% n_factorial_(=, _, 1).
+% n_factorial_(>, N, F) :-
+%         F #= F0*N, N1 #= N - 1,
+%         n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
