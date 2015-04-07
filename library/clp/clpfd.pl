@@ -5936,9 +5936,9 @@ non_overlapping_(A, B) :-
         a_not_in_b(A, B),
         a_not_in_b(B, A).
 
-a_not_in_b([_,XA,WA,YA,HA], [_,XB,WB,YB,HB]) :-
-        XA #=< XB #/\ XB #< XA + WA #==> YA + HA #=< YB #\/ YB + HB #=< YA,
-        YA #=< YB #/\ YB #< YA + HA #==> XA + WA #=< XB #\/ XB + WB #=< XA.
+a_not_in_b([_,AX,AW,AY,AH], [_,BX,BW,BY,BH]) :-
+        AX #=< BX #/\ BX #< AX + AW #==> AY + AH #=< BY #\/ BY + BH #=< AY,
+        AY #=< BY #/\ BY #< AY + AH #==> AX + AW #=< BX #\/ BX + BW #=< AX.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
