@@ -1144,6 +1144,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 { GET_LD
   int rval = -1;			/* Default C-action */
   predicate_t proc;
+  term_t ex;
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
 		       &GD->procedures.prolog_trace_interception4);
@@ -1205,7 +1206,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     RESTORE_PTRS();
     PL_put_frame(argv+1, frame);
     PL_put_choice(argv+2, bfr);
-    if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv)) )
+    if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, proc, argv)) )
       goto out;
     if ( PL_next_solution(qid) )
     { atom_t a;
@@ -1248,6 +1249,16 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  rval = ACTION_RETRY;
 	} else
 	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
+      }
+    } else if ( (ex=PL_exception(qid)) )
+    { atom_t a;
+
+      if ( PL_get_atom(ex, &a) && a == ATOM_aborted )
+      { rval = ACTION_ABORT;
+      } else
+      { printMessage(ATOM_error, ex);
+	nodebug = TRUE;
+	rval = ACTION_CONTINUE;
       }
     }
 
