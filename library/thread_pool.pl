@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008-2014, University of Amsterdam
+    Copyright (C): 2008-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -195,7 +195,7 @@ thread_create_in_pool(Pool, Goal, Id, QOptions) :-
 	(   var(Error)
 	->  true
 	;   Error = error(existence_error(thread_pool, Pool), _),
-	    create_pool(Pool)
+	    create_pool_lazily(Pool)
 	->  thread_create_in_pool_(Pool, Goal, Id, Options)
 	;   throw(Error)
 	).
@@ -209,6 +209,22 @@ thread_create_in_pool_(Pool, Goal, Id, Options) :-
 	wait_reply(Id).
 
 is_meta(at_exit).
+
+
+%%	create_pool_lazily(+Pool) is semidet.
+%
+%	Call the hook create_pool/1 to create the pool lazily.
+
+create_pool_lazily(Pool) :-
+	with_mutex(Pool,
+		   ( mutex_destroy(Pool),
+		     create_pool_sync(Pool)
+		   )).
+
+create_pool_sync(Pool) :-
+	current_thread_pool(Pool), !.
+create_pool_sync(Pool) :-
+	create_pool(Pool).
 
 
 		 /*******************************
@@ -460,8 +476,6 @@ wait_reply(Value) :-
 		 *******************************/
 :- multifile
 	prolog:message/3.
-
-%	Print messages
 
 prolog:message(thread_pool(Message)) -->
 	message(Message).
