@@ -6614,12 +6614,12 @@ scalar_product_left_right(Cs, Vs, Left, Right) :-
         maplist(negate_coeff, Negatives, Rights),
         scalar_plusterm(Rights, Right0),
         scalar_plusterm(Positives, Left0),
-        (   Const =:= 0 -> Right = Right0, Left = Left0
-        ;   Right0 == 0 -> Right = NConst, Left = Left0
-        ;   Left0 == 0 -> Right = Right0, Left = Const
+        (   Const =:= 0 -> Left = Left0, Right = Right0
+        ;   Right0 == 0 -> Left = Left0, Right = NConst
+        ;   Left0 == 0 ->  Left = Const, Right = Right0
         ;   (   Const < 0 ->
-                Right = Right0 + NConst, Left = Left0
-            ;   Right = Right0, Left = Left0 + Const
+                Left = Left0,       Right = Right0+NConst
+            ;   Left = Left0+Const, Right = Right0
             )
         ).
 
