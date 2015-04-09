@@ -2018,7 +2018,7 @@ get_arg_integer_ex(term_t t, intptr_t *n ARG_LD)
     return FALSE;
   }
 
-  if ( isVar(*p) )
+  if ( canBind(*p) )
     return -1;
 
   PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
