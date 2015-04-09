@@ -91,10 +91,13 @@ user:file_search_path(engine, library(dialect/ciao/engine)).
 	lock_expansion/0,
 	old_flag/3.
 
-compilation_module(CM) :-	% Kludge: compilations module must be
+compilation_module(CM) :-	% Kludge: compilation module must be
 				% imported in a separated module and
 				% its methods invoked from there --EMM
 	'$set_source_module'(M, M),
+	compilation_module(M, CM).
+
+compilation_module(M, CM) :-
 	atom_concat(M, '$ciao', CM).
 				% TODO: missing support for directives
 				% add_clause_translation/1 and
@@ -107,20 +110,38 @@ call_lock(Goal) :-
 system:goal_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	compilation_module(CM),
-	ciao_trans(CM, goal, In, Out). % Ciao Goal Translations
+	ciao_trans(CM, goal, In, Out1), % Ciao Goal Translations
+	(   In == end_of_file		% end_of_file Ciao hook
+	->  Out = true
+	;   Out = Out1
+	).
 system:goal_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	ciao_goal_expansion(In, Out). % SWI Compatibility issues
+
 system:term_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	compilation_module(CM),
-	call_lock((ciao_trans(CM, sentence, In, Out0), % Sentence Translations
+	call_lock((ciao_trans(CM, sentence, In, Out1), % Sentence Translations
 		   '$expand':expand_terms(call_term_expansion([system-[term_expansion/2]]),
-							      Out0, _, Out, _) % Remaining
-		  )).
+					  Out1, _, Out2, _) % Remaining
+		  )),
+	call_eof_goal_hook(In, Out2, Out).
 system:term_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	ciao_term_expansion(In, Out).
+
+call_eof_goal_hook(In, Out2, Out) :-
+	'$set_source_module'(M, M),	
+	(   In == end_of_file,
+	    module_property(M, file(File)),
+	    prolog_load_context(file, File) % This is the main file
+	->  (   is_list(Out2)
+	    ->  append(Out2, [(:- end_of_file)], Out)
+	    ;   Out = [Out2, (:- end_of_file)]
+	    )		     % (:- end_of_file) is a hook for the goal expansion
+	;   Out = Out2
+	).
 
 package_file(F, P) :-
 	( atom(F) -> P = library(F)
@@ -288,10 +309,22 @@ ciao_term_expansion((:- load_compilation_module(CiaoName)),
 	compilation_module(CM),
 	map_ciaoname(CiaoName, SWIName).
 ciao_term_expansion((:- add_sentence_trans(F/A, P)),
-		    ciao:ciao_trans_db(CM, sentence, P, F, A)) :-
-	compilation_module(CM),
-	( current_predicate(CM:F/A) -> true
-	; throw(error(existence_error(add_sentence_trans, F/A), _))
+		    [ciao:ciao_trans_db(CM, sentence, P, F, A)|Clauses]) :-
+	'$set_source_module'(M, M),
+	compilation_module(M, CM),
+	(   current_predicate(CM:F/A) ->
+	    functor(H, F, A),
+	    arg(1, H, 0),
+	    arg(2, H, CL),
+	    ignore(arg(3, H, M)),
+	    ignore(CM:H),
+	    (   var(CL)
+	    ->  Clauses = []
+	    ;   is_list(CL)
+	    ->  Clauses = CL
+	    ;   Clauses = [CL]
+	    )
+	;   throw(error(existence_error(add_sentence_trans, F/A), _))
 	).
 ciao_term_expansion((:- add_goal_trans(F/A, P)),
 		    ciao:ciao_trans_db(CM, goal, P, F, A)) :-
