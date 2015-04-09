@@ -2109,7 +2109,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
   { if ( false(fr->predicate, P_FOREIGN) &&
-	 fr->clause &&
+	 fr->clause && fr->clause->value.clause &&
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
     { if ( !PL_unify_clref(result, fr->clause->value.clause) )
 	return FALSE;
