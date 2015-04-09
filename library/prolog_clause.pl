@@ -50,7 +50,8 @@
 :- multifile
 	unify_goal/5,			% +Read, +Decomp, +M, +Pos, -Pos
 	unify_clause_hook/5,
-	make_varnames_hook/5.
+	make_varnames_hook/5,
+	open_source/2.			% +Input, -Stream
 
 :- predicate_options(prolog_clause:clause_info/5, 5,
 		     [ variable_names(-list)
@@ -178,7 +179,7 @@ read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
 	    '$pop_input_context').
 
 read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
-	catch(open(File, read, In), _, fail),
+	catch(try_open_source(File, In), _, fail),
 	set_stream(In, newline(detect)),
 	call_cleanup(
 	    read_source_term_at_location(
@@ -189,6 +190,22 @@ read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 		  variable_names(VarNames)
 		]),
 	    close(In)).
+
+%%	open_source(+File, -Stream) is semidet.
+%
+%	Hook into clause_info/5 that opens the stream holding the source
+%	for a specific clause. Thus, the query must succeed. The default
+%	implementation calls open/3 on the `File` property.
+%
+%	  ==
+%	  clause_property(ClauseRef, file(File)),
+%	  prolog_clause:open_source(File, Stream)
+%	  ==
+
+try_open_source(File, In) :-
+	open_source(File, In), !.
+try_open_source(File, In) :-
+	open(File, read, In).
 
 
 %%	make_varnames(+ReadClause, +DecompiledClause,
