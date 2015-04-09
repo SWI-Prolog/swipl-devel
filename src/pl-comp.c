@@ -6556,6 +6556,21 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	PC = nextpc;
 	add_node(tail, 2 PASS_LD);
         continue;
+      case B_UNIFY_FIRSTVAR:
+      case B_UNIFY_VAR:
+	do
+	{ PC     = nextpc;
+	  op     = fetchop(PC);
+	  nextpc = stepPC(PC);
+	} while(op != B_UNIFY_EXIT);
+	if ( loc == nextpc )
+	{ add_1_if_not_at_end(nextpc, end, tail PASS_LD);
+
+	  return PL_unify_nil(tail);
+	}
+	add_node(tail, 2 PASS_LD);
+	PC = nextpc;
+        continue;
       default:
         if ( loc == nextpc )
 	{ add_1_if_not_at_end(nextpc, end, tail PASS_LD);
