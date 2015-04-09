@@ -48,11 +48,11 @@
 
 ### Introduction                        {#clpb-intro}
 
-Constraint programming is a declarative formalism that lets you
-describe conditions a solution must satisfy. This library provides
-CLP(B), Constraint Logic Programming over Boolean Variables. It can be
-used to model and solve combinatorial problems such as circuit
-verification, graph colouring and allocation tasks.
+Constraint programming is a declarative formalism that lets you state
+relations between terms. This library provides CLP(B), Constraint
+Logic Programming over Boolean Variables. It can be used to model and
+solve combinatorial problems such as circuit verification, graph
+colouring and allocation tasks.
 
 The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
