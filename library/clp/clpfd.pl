@@ -147,18 +147,37 @@
 
 ### Introduction			{#clpfd-intro}
 
-Constraint programming is a declarative formalism that lets you
-describe conditions a solution must satisfy. This library provides
-CLP(FD), Constraint Logic Programming over Finite Domains. It can be
-used to model and solve various combinatorial problems such as
-planning, scheduling and allocation tasks.
+Constraint programming is a declarative formalism that lets you state
+relations between terms. This library provides CLP(FD), Constraint
+Logic Programming over Finite Domains.
 
-Most predicates of this library are finite domain _constraints_, which
-are relations over integers. They generalise arithmetic evaluation of
-integer expressions in that propagation can proceed in all directions.
-This library also provides _enumeration_ _predicates_, which let you
-systematically search for solutions on variables whose domains have
-become finite.
+There are two major applications of this library:
+
+    1. CLP(FD) constraints provide _declarative integer arithmetic_:
+       They implement pure _relations_ between integer expressions and
+       can be used in all directions, even if parts of expressions are
+       variables.
+
+    2. Especially in connection with enumeration predicates (like
+       labeling/2) and more complex constraints (like all_distinct/1,
+       global_cardinality/2 and many others), CLP(FD) is frequently
+       used to model and solve various combinatorial problems such as
+       planning, scheduling and allocation tasks. Enumeration
+       predicates let you systematically search for solutions when the
+       search space is finite.
+
+When teaching Prolog, we _strongly_ recommend that you introduce
+CLP(FD) constraints _before_ explaining lower-level arithmetic
+built-ins. This is because constraints are easier to understand for
+beginners and also more general. In fact, this library is intended to
+help you _eliminate_, as far as possible, the use of lower-level and
+less general arithmetic primitives from your programs.
+
+This library uses goal_expansion/2 to automatically rewrite arithmetic
+constraints at compilation time. The expansion's aim is to bring the
+performance of arithmetic constraints close to that of lower-level
+arithmetic predicates whenever possible. To disable the expansion, set
+the flag `clpfd_goal_expansion` to `false`.
 
 You can cite this library in your publications as:
 
@@ -206,7 +225,7 @@ The most important arithmetic constraints are:
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
-Arithmetic constraints are a declarative alternative for lower-level
+Arithmetic constraints are a declarative alternative for low-level
 integer arithmetic with is/2, >/2 etc. For example:
 
 ==
@@ -238,12 +257,6 @@ To make the predicate terminate if any argument is instantiated, add
 the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
-
-This library uses goal_expansion/2 to rewrite arithmetic constraints
-at compilation time. The expansion's aim is to improve the performance
-of arithmetic constraints when they are used in modes that can also be
-handled by lower-level arithmetic predicates. To disable the
-expansion, set the flag `clpfd_goal_expansion` to `false`.
 
 ### Reification				{#clpfd-reification}
 
