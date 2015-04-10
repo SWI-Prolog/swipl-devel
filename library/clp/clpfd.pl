@@ -170,13 +170,15 @@ built-ins and their extra-logical idiosyncrasies. This is because
 constraints are easy to understand and use due to their purely
 relational nature, whereas the modedness and directionality of
 low-level arithmetic primitives are limitations that are better
-explained in more advanced stages. If you are used to procedural and
-non-declarative considerations, then using constraints may initially
-feel almost like cheating to you due their power and convenience. It
-_isn't_. Constraints are an integral part of many Prolog systems and
-are intended to help you eliminate and avoid, as far as possible, the
-use of lower-level and less general primitives by providing
-declarative alternatives that are meant to be used instead.
+explained in more advanced stages.
+
+If you are used to the complicated extra-logical considerations that
+built-in arithmetic primitives necessitate, then using constraints
+may, due to their power and comfort, at first feel to you almost like
+cheating. It _isn't_. Constraints are an integral part of many Prolog
+systems and are intended to help you eliminate and avoid, as far as
+possible, the use of lower-level and less general primitives by
+providing declarative alternatives that are meant to be used instead.
 
 This library uses goal_expansion/2 to automatically rewrite arithmetic
 constraints at compilation time. The expansion's aim is to bring the
@@ -230,8 +232,16 @@ The most important arithmetic constraints are:
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
-Arithmetic constraints are a declarative alternative for low-level
-integer arithmetic with is/2, >/2 etc. For example:
+CLP(FD) constraints are a declarative alternative for low-level
+integer arithmetic. The CLP(FD) constraints #=/2, #>/2 etc. are meant
+to be used instead of the corresponding primitives is/2, =:=/2, >/2
+etc.
+
+For supported expressions, CLP(FD) constraints are drop-in
+replacements of these low-level arithmetic predicates, often yielding
+more general programs.
+
+Here is an example:
 
 ==
 :- use_module(library(clpfd)).
