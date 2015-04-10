@@ -1256,7 +1256,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
       if ( PL_get_atom(ex, &a) && a == ATOM_aborted )
       { rval = ACTION_ABORT;
       } else
-      { printMessage(ATOM_error, ex);
+      { printMessage(ATOM_error, PL_TERM, ex);
 	nodebug = TRUE;
 	rval = ACTION_CONTINUE;
       }
