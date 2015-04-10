@@ -6759,8 +6759,10 @@ clearBreakPointsClause(Clause clause)
 	next = s->next;
 
 	if ( bp->clause == clause )
-	{ clearBreak(clause, bp->offset);
-	  callEventHook(PLEV_NOBREAK, clause, bp->offset);
+	{ int offset = bp->offset;
+
+	  clearBreak(clause, bp->offset);
+	  callEventHook(PLEV_NOBREAK, clause, offset);
 	}
       }
     }
