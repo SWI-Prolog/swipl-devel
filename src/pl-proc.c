@@ -151,13 +151,14 @@ unallocDefinition(Definition def)
 void
 unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
+  Module m = def->module;
 
   if ( unshareDefinition(def) == 0 )
   { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     unallocDefinition(def);
   }
   freeHeap(proc, sizeof(*proc));
-  ATOMIC_SUB(&def->module->code_size, sizeof(*proc));
+  ATOMIC_SUB(&m->code_size, sizeof(*proc));
 }
 
 
