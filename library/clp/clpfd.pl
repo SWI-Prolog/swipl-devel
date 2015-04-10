@@ -166,26 +166,24 @@ There are two major applications of this library:
 
 When teaching Prolog, we _strongly_ recommend that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
-built-ins and their extra-logical idiosyncrasies. This is because
+predicates and their extra-logical idiosyncrasies. This is because
 constraints are easy to explain, understand and use due to their
 purely relational nature. In contrast, the modedness and
 directionality of low-level arithmetic primitives are non-declarative
 limitations that are better delegated to more advanced lectures.
 
 If you are used to the complicated extra-logical considerations that
-built-in arithmetic primitives necessitate, then using constraints
-may, due to their power and comfort, at first feel to you excessive
-and almost like cheating. It _isn't_. Constraints are an integral part
-of many Prolog systems and are available to help you eliminate and
-avoid, as far as possible, the use of lower-level and less general
-primitives by providing declarative alternatives that are meant to be
-used instead.
+low-level arithmetic primitives necessitate, then using CLP(FD)
+constraints may, due to their power and convenience, at first feel to
+you excessive and almost like cheating. It _isn't_. Constraints are an
+integral part of many Prolog systems and are available to help you
+eliminate and avoid, as far as possible, the use of lower-level and
+less general primitives by providing declarative alternatives that are
+meant to be used instead.
 
-This library uses goal_expansion/2 to automatically rewrite arithmetic
-constraints at compilation time. The expansion's aim is to bring the
-performance of arithmetic constraints close to that of lower-level
-arithmetic predicates whenever possible. To disable the expansion, set
-the flag `clpfd_goal_expansion` to `false`.
+For good performance, arithmetic constraints are implicitly rewritten
+at compilation time so that lower-level fallback predicates are
+automatically used whenever possible.
 
 You can cite this library in your publications as:
 
@@ -273,6 +271,12 @@ To make the predicate terminate if any argument is instantiated, add
 the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
+
+This library uses goal_expansion/2 to automatically rewrite arithmetic
+constraints at compilation time. The expansion's aim is to bring the
+performance of arithmetic constraints close to that of lower-level
+arithmetic predicates whenever possible. To disable the expansion, set
+the flag `clpfd_goal_expansion` to `false`.
 
 ### Reification				{#clpfd-reification}
 
