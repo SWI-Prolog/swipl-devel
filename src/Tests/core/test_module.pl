@@ -53,7 +53,6 @@ t(X) :-
 
 :- begin_tests(module).
 
-
 test(cross, X == test_module) :-
 	cross(X).
 
@@ -74,5 +73,18 @@ test(clause, H == term) :-
 
 test(qcontrol, all(X==[1])) :-
 	t(X).
+
+test(mqual, [sto(rational_trees),
+	     error(type_error(acyclic_term, T))]) :-
+	T = a:T,
+	strip_module(T, _M, _P).
+
+:- meta_predicate mqual(:).
+mqual(_).
+
+test(mqual, [sto(rational_trees),
+	     error(type_error(acyclic_term, T))]) :-
+	T = a:T,
+	mqual(T).
 
 :- end_tests(module).

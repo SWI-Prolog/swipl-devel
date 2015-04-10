@@ -1406,7 +1406,9 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
     }
     *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
   } else
-  { for(;;)
+  { int depth = 100;
+
+    for(;;)
     { Word p2 = argTermP(*p, 1);
       Word ap;
 
@@ -1417,9 +1419,15 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
 	if (! isAtom(*a1))
 	  break;
 	p = ap;
+	if ( --depth == 0 && !is_acyclic(p PASS_LD) )
+	{ term_t t = pushWordAsTermRef(p);
+	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, t);
+	  popTermRef();
+	  return FALSE;
+	}
+      } else
+      { break;
       }
-      else
-	break;
     }
 
     *k = *p;

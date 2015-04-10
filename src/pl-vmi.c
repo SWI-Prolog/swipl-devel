@@ -2842,7 +2842,8 @@ VMI(S_MQUAL, 0, 1, (CA1_VAR))
   rc = m_qualify_argument(FR, arg PASS_LD);
   LOAD_REGISTERS(qid);
   if ( rc != TRUE )
-  { raiseStackOverflow(rc);
+  { if ( rc != FALSE )
+      raiseStackOverflow(rc);
     THROW_EXCEPTION;
   }
 
@@ -2858,7 +2859,8 @@ VMI(S_LMQUAL, 0, 1, (CA1_VAR))
   rc = m_qualify_argument(FR, arg PASS_LD);
   LOAD_REGISTERS(qid);
   if ( rc != TRUE )
-  { raiseStackOverflow(rc);
+  { if ( rc != FALSE )
+      raiseStackOverflow(rc);
     THROW_EXCEPTION;
   }
   setContextModule(FR, FR->predicate->module);
