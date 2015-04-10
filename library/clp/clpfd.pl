@@ -230,10 +230,9 @@ The most important arithmetic constraints are:
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
-CLP(FD) constraints are a declarative alternative for low-level
-integer arithmetic. The CLP(FD) constraints #=/2, #>/2 etc. are meant
-to be used instead of the corresponding primitives is/2, =:=/2, >/2
-etc.
+CLP(FD) constraints let you declaratively express integer arithmetic.
+The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used instead
+of the corresponding primitives is/2, =:=/2, >/2 etc.
 
 For supported expressions, CLP(FD) constraints are drop-in
 replacements of these low-level arithmetic predicates, often yielding
