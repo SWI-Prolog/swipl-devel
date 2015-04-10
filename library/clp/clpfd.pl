@@ -158,20 +158,25 @@ There are two major applications of this library:
        can be used in all directions, even if parts of expressions are
        variables.
 
-    2. Especially in connection with enumeration predicates (like
-       labeling/2) and more complex constraints (like all_distinct/1,
-       global_cardinality/2 and many others), CLP(FD) is frequently
-       used to model and solve various combinatorial problems such as
-       planning, scheduling and allocation tasks. Enumeration
-       predicates let you systematically search for solutions when the
-       search space is finite.
+    2. In connection with enumeration predicates (like labeling/2) and
+    more complex constraints (like all_distinct/1,
+    global_cardinality/2 and many others), CLP(FD) is often used to
+    model and solve combinatorial problems such as planning,
+    scheduling and allocation tasks.
 
 When teaching Prolog, we _strongly_ recommend that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
-built-ins. This is because constraints are easier to understand for
-beginners and also more general. In fact, this library is intended to
-help you _eliminate_, as far as possible, the use of lower-level and
-less general arithmetic primitives from your programs.
+built-ins and their extra-logical idiosyncrasies. This is because
+constraints are easy to understand and use due to their purely
+relational nature, whereas the modedness and directionality of
+low-level arithmetic primitives are limitations that are better
+explained in more advanced stages. If you are used to procedural and
+non-declarative considerations, then using constraints may initially
+feel almost like cheating to you due their power and convenience. It
+_isn't_. Constraints are an integral part of many Prolog systems and
+are intended to help you eliminate and avoid, as far as possible, the
+use of lower-level and less general primitives by providing
+declarative alternatives that are meant to be used instead.
 
 This library uses goal_expansion/2 to automatically rewrite arithmetic
 constraints at compilation time. The expansion's aim is to bring the
