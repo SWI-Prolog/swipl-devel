@@ -78,22 +78,22 @@ other hooks the opportunity to react.
 %	mode.
 
 set_breakpoint(File, Line, Char, Id) :-
-	debug(break, 'break_at(~q, ~d, ~d).~n', [File, Line, Char]),
+	debug(break, 'break_at(~q, ~d, ~d).', [File, Line, Char]),
 	'$clause_from_source'(File, Line, ClauseRef),
 	clause_info(ClauseRef, InfoFile, TermPos, _NameOffset),
 	(   InfoFile == File
 	->  '$break_pc'(ClauseRef, PC, NextPC),
-	    debug(break, 'Clause ~p, NextPC = ~w~n', [ClauseRef, NextPC]),
+	    debug(break, 'Clause ~p, NextPC = ~w', [ClauseRef, NextPC]),
 	    '$clause_term_position'(ClauseRef, NextPC, List),
-	    debug(break, 'Location = ~w~n', [List]),
+	    debug(break, 'Location = ~w', [List]),
 	    range(List, TermPos, A, Z),
-	    debug(break, 'Term from ~w-~w~n', [A, Z]),
+	    debug(break, 'Term from ~w-~w', [A, Z]),
 	    Z >= Char, !
-	;   format('Failed to unify clause ~p, using first break~n',
+	;   format('Failed to unify clause ~p, using first break',
 		   [ClauseRef]),
 	    '$break_pc'(ClauseRef, PC, _), !
 	),
-	debug(break, 'Break at clause ~w, PC=~w~n', [ClauseRef, PC]),
+	debug(break, 'Break at clause ~w, PC=~w', [ClauseRef, PC]),
 	with_mutex('$break', next_break_id(Id)),
 	Location = file_position(File, Line, Char),
 	asserta(known_breakpoint(ClauseRef, PC, Location, Id), Ref),
@@ -208,7 +208,7 @@ break(true, ClauseRef, PC) :-
 	known_breakpoint(ClauseRef, PC, _Location, Id), !,
 	print_message(informational, breakpoint(set, Id)).
 break(true, ClauseRef, PC) :- !,
-	debug(break, 'Trap in Clause ~p, PC ~d~n', [ClauseRef, PC]),
+	debug(break, 'Trap in Clause ~p, PC ~d', [ClauseRef, PC]),
 	with_mutex('$break', next_break_id(Id)),
 	(   break_location(ClauseRef, PC, File, A-Z)
 	->  Len is Z+1-A,
@@ -221,10 +221,10 @@ break(true, ClauseRef, PC) :- !,
 	asserta(known_breakpoint(ClauseRef, PC, Location, Id)),
 	print_message(informational, breakpoint(set, Id)).
 break(false, ClauseRef, PC) :-
+	debug(break, 'Remove breakpoint from ~p, PC ~d', [ClauseRef, PC]),
 	clause(known_breakpoint(ClauseRef, PC, _Location, Id), true, Ref),
 	call_cleanup(print_message(informational, breakpoint(delete, Id)),
 		     erase(Ref)).
-
 
 %%	break_location(+ClauseRef, +PC, -File, -AZ) is det.
 %
@@ -238,9 +238,9 @@ break_location(ClauseRef, PC, File, A-Z) :-
 	clause_info(ClauseRef, File, TermPos, _NameOffset),
 	'$fetch_vm'(ClauseRef, PC, NPC, _VMI),
 	'$clause_term_position'(ClauseRef, NPC, List),
-	debug(break, 'ClausePos = ~w~n', [List]),
+	debug(break, 'ClausePos = ~w', [List]),
 	range(List, TermPos, A, Z),
-	debug(break, 'Range: ~d .. ~d~n', [A, Z]).
+	debug(break, 'Range: ~d .. ~d', [A, Z]).
 
 
 		 /*******************************
