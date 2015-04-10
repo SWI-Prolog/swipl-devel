@@ -159,10 +159,10 @@ There are two major applications of this library:
        variables.
 
     2. In connection with enumeration predicates (like labeling/2) and
-    more complex constraints (like all_distinct/1,
-    global_cardinality/2 and many others), CLP(FD) is often used to
-    model and solve combinatorial problems such as planning,
-    scheduling and allocation tasks.
+       more complex constraints (like all_distinct/1,
+       global_cardinality/2 and many others), CLP(FD) is often used to
+       model and solve combinatorial problems such as planning,
+       scheduling and allocation tasks.
 
 When teaching Prolog, we _strongly_ recommend that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
