@@ -2082,7 +2082,8 @@ thread_at_exit(term_t goal, PL_local_data_t *ld)
   Module m = NULL;
   at_exit_goal *eg = allocHeapOrHalt(sizeof(*eg));
 
-  PL_strip_module(goal, &m, goal);
+  if ( !PL_strip_module(goal, &m, goal) )
+    return FALSE;
   eg->next = NULL;
   eg->type = EXIT_PROLOG;
   eg->goal.prolog.module = m;
@@ -2242,7 +2243,8 @@ pl_thread_signal(term_t thread, term_t goal)
   PL_thread_info_t *info;
   PL_local_data_t *ld;
 
-  PL_strip_module(goal, &m, goal);
+  if ( !PL_strip_module(goal, &m, goal) )
+    return FALSE;
 
   LOCK();
   if ( !get_thread(thread, &info, TRUE) )

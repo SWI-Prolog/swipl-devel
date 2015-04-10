@@ -337,7 +337,8 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
   term_t type = A2;
   term_t name = A3;
 
-  PL_strip_module(name, &m, name);
+  if ( !PL_strip_module(name, &m, name) )
+    return FALSE;
   if ( m == MODULE_system )
   { term_t t = PL_new_term_ref();
     term_t a = PL_new_term_ref();
@@ -562,7 +563,9 @@ PRED_IMPL("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|
   Module m = MODULE_parse;
 
   if ( CTX_CNTRL != FRG_CUTTED )
-    PL_strip_module(A3, &m, A3);
+  { if ( !PL_strip_module(A3, &m, A3) )
+      return FALSE;
+  }
 
   return current_op(m, TRUE, A1, A2, A3, PL__ctx PASS_LD);
 }
@@ -581,7 +584,9 @@ PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
   Module m = MODULE_user;
 
   if ( CTX_CNTRL != FRG_CUTTED )
-    PL_strip_module(A3, &m, A3);
+  { if ( !PL_strip_module(A3, &m, A3) )
+      return FALSE;
+  }
 
   return current_op(m, FALSE, A1, A2, A3, PL__ctx PASS_LD);
 }

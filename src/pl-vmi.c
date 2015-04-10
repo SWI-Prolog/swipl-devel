@@ -4456,7 +4456,8 @@ VMI(I_USERCALL0, VIF_BREAK, 0, ())
   module = NULL;
   NFR = lTop;
   a = argFrameP(NFR, 0);		/* get the goal */
-  a = stripModule(a, &module PASS_LD);
+  if ( !(a = stripModule(a, &module PASS_LD)) )
+    THROW_EXCEPTION;
 
   DEBUG(MSG_CALL,
 	{ term_t g = pushWordAsTermRef(a);
@@ -4575,7 +4576,8 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   deRef(a);			/* variable */
 
   module = NULL;
-  a = stripModule(a, &module PASS_LD);
+  if ( !(a = stripModule(a, &module PASS_LD)) )
+    THROW_EXCEPTION;
 
   if ( isTextAtom(goal = *a) )
   { arity   = 0;

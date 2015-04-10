@@ -471,7 +471,8 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
   atom_t pname;
   int arity;
 
-  PL_strip_module(A1, &m, prop);
+  if ( !PL_strip_module(A1, &m, prop) )
+    return FALSE;
   if ( PL_get_name_arity(prop, &pname, &arity) && arity == 1 )
   { term_t arg = PL_new_term_ref();
 
@@ -567,7 +568,8 @@ remaining term.
 
 Word
 stripModule(Word term, Module *module ARG_LD)
-{ deRef(term);
+{ int depth = 100;
+  deRef(term);
 
   while( hasFunctor(*term, FUNCTOR_colon2) )
   { Word mp;
@@ -578,6 +580,12 @@ stripModule(Word term, Module *module ARG_LD)
     *module = lookupModule(*mp);
     term = argTermP(*term, 1);
     deRef(term);
+    if ( --depth == 0 && !is_acyclic(term PASS_LD) )
+    { term_t t = pushWordAsTermRef(term);
+      PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, t);
+      popTermRef();
+      return NULL;
+    }
   }
 
   if ( ! *module )
@@ -826,10 +834,11 @@ static
 PRED_IMPL("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
 { GET_LD
   Module m = (Module) NULL;
-  term_t plain = PL_new_term_ref();
+  term_t plain;
 
-  PL_strip_module(A1, &m, plain);
-  if ( PL_unify_atom(A2, m->name) &&
+  if ( (plain = PL_new_term_ref()) &&
+       PL_strip_module(A1, &m, plain) &&
+       PL_unify_atom(A2, m->name) &&
        PL_unify(A3, plain) )
     succeed;
 
@@ -1193,7 +1202,8 @@ export_pi(term_t pi, Module module ARG_LD)
 { functor_t fd;
   Procedure proc;
 
-  PL_strip_module(pi, &module, pi);
+  if ( !PL_strip_module(pi, &module, pi) )
+    return FALSE;
 
   if ( PL_is_functor(pi, FUNCTOR_comma2) )
   { term_t a1 = PL_new_term_ref();

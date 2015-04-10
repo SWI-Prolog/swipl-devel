@@ -1769,7 +1769,8 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
   atom_t name;
   int arity;
 
-  PL_strip_module(type, &m, plain);
+  if ( !PL_strip_module(type, &m, plain) )
+    return FALSE;
 
   if ( PL_get_name_arity(plain, &name, &arity) )
   { if ( _PL_rd->quasi_quotations )

@@ -460,7 +460,8 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 
   if ( !(how&GP_NOT_QUALIFIED) )
   { head = PL_new_term_ref();
-    PL_strip_module(descr, m, head);
+    if ( !PL_strip_module(descr, m, head) )
+      return FALSE;
   } else
   { head = descr;
   }
@@ -560,7 +561,8 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   { GET_LD
     term_t head = PL_new_term_ref();
 
-    PL_strip_module(descr, &m, head);
+    if ( !PL_strip_module(descr, &m, head) )
+      return FALSE;
 
     if ( h )
       PL_put_term(h, head);
@@ -2324,9 +2326,9 @@ pl_abolish(term_t name, term_t arity)	/* Name, Arity */
 { GET_LD
   Module m = NULL;
 
-  PL_strip_module(name, &m, name);
-
-  return do_abolish(m, name, arity);
+  return ( PL_strip_module(name, &m, name) &&
+	   do_abolish(m, name, arity)
+	 );
 }
 
 
@@ -2337,7 +2339,8 @@ pl_abolish1(term_t spec)		/* Name/Arity */
   term_t arity = PL_new_term_ref();
   Module m = NULL;
 
-  PL_strip_module(spec, &m, spec);
+  if ( !PL_strip_module(spec, &m, spec) )
+    return FALSE;
 
   if ( !PL_is_functor(spec, FUNCTOR_divide2) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_predicate_indicator, spec);

@@ -296,7 +296,8 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   if ( !reset )
     reset = g;
 
-  PL_strip_module(goal, &module, g);
+  if ( !PL_strip_module(goal, &module, g) )
+    return FALSE;
   if ( !PL_get_functor(g, &fd) )
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
     if ( ex )

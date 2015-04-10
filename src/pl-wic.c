@@ -3022,7 +3022,8 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
     term_t term = PL_new_term_ref();
     term_t qterm = PL_new_term_ref();
 
-    PL_strip_module(A1, &m, term);
+    if ( !PL_strip_module(A1, &m, term) )
+      return FALSE;
     if ( !(PL_is_callable(term)) )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, A1);
 

@@ -440,7 +440,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
   Module m = MODULE_parse;
   int rval = TRUE;
 
-  PL_strip_module(key, &m, key);
+  if ( !PL_strip_module(key, &m, key) )
+    return FALSE;
   if ( !PL_get_atom(key, &k) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, key);
 
@@ -999,7 +1000,8 @@ pl_prolog_flag5(term_t key, term_t value,
     { atom_t k;
 
       module = MODULE_parse;
-      PL_strip_module(key, &module, key);
+      if ( !PL_strip_module(key, &module, key) )
+	return FALSE;
 
       if ( PL_get_atom(key, &k) )
       { Symbol s;

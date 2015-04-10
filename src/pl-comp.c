@@ -3723,7 +3723,8 @@ PRED_IMPL("redefine_system_predicate",  1, redefine_system_predicate,
   term_t head = PL_new_term_ref();
   term_t pred = A1;
 
-  PL_strip_module(pred, &m, head);
+  if ( !PL_strip_module(pred, &m, head) )
+    return FALSE;
   if ( !PL_get_functor(head, &fd) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, pred);
 
@@ -5283,10 +5284,10 @@ unify_head(term_t h, term_t d ARG_LD)
 	 !(d1 = PL_new_term_ref()) )
       return FALSE;
 
-    PL_strip_module(h, &m, h1);
-    PL_strip_module(d, &m, d1);
-
-    return unify_atom_compound(h1, d1 PASS_LD);
+    return ( PL_strip_module(h, &m, h1) &&
+	     PL_strip_module(d, &m, d1) &&
+	     unify_atom_compound(h1, d1 PASS_LD)
+	   );
   } else
     return TRUE;
 }
@@ -5383,7 +5384,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   }
 
   if ( def->functor->arity > 0 )
-  { PL_strip_module(head, &module, head);
+  { if ( !PL_strip_module(head, &module, head) )
+      return FALSE;
     argv = valTermRef(head);
     deRef(argv);
     argv = argTermP(*argv, 0);
@@ -6203,9 +6205,9 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   Module module = NULL;
   size_t size;
 
-  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
-    fail;
-  PL_strip_module(A2, &module, A2);
+  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) ||
+       !PL_strip_module(A2, &module, A2) )
+    return FALSE;
 
   ci.islocal      = FALSE;
   ci.subclausearg = 0;

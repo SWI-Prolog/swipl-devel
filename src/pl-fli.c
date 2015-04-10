@@ -3454,7 +3454,8 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { p = stripModule(p, m PASS_LD);
+  { if ( !(p = stripModule(p, m PASS_LD)) )
+      return FALSE;
     setHandle(plain, linkVal(p));
   } else
   { if ( *m == NULL )
@@ -3464,7 +3465,7 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
       setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
   }
 
-  succeed;
+  return TRUE;
 }
 
 #undef PL_strip_module
@@ -3486,7 +3487,8 @@ PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { p = stripModule(p, m PASS_LD);
+  { if ( !(p = stripModule(p, m PASS_LD)) )
+      return FALSE;
     if ( hasFunctor(*p, FUNCTOR_colon2) )
     { Word a1 = argTermP(*p, 0);
       deRef(a1);
