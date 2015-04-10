@@ -6746,16 +6746,24 @@ clearBreak(Clause clause, int offset)
 void
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { delayEvents();
-    PL_LOCK(L_BREAK);
-    for_unlocked_table(breakTable, s,
-		       { BreakPoint bp = (BreakPoint)s->value;
+  { int k;
 
-			 if ( bp->clause == clause )
-			 { clearBreak(clause, bp->offset);
-			   callEventHook(PLEV_NOBREAK, clause, bp->offset);
-			 }
-		       });
+    delayEvents();
+    PL_LOCK(L_BREAK);
+    for(k=0; k<breakTable->buckets; k++)
+    { Symbol next, s;
+
+      for(s=breakTable->entries[k]; s; s=next)
+      { BreakPoint bp = (BreakPoint)s->value;
+
+	next = s->next;
+
+	if ( bp->clause == clause )
+	{ clearBreak(clause, bp->offset);
+	  callEventHook(PLEV_NOBREAK, clause, bp->offset);
+	}
+      }
+    }
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
     sendDelayedEvents();
