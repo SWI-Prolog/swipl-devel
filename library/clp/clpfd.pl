@@ -167,18 +167,19 @@ There are two major applications of this library:
 When teaching Prolog, we _strongly_ recommend that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
 built-ins and their extra-logical idiosyncrasies. This is because
-constraints are easy to understand and use due to their purely
-relational nature, whereas the modedness and directionality of
-low-level arithmetic primitives are limitations that are better
-explained in more advanced stages.
+constraints are easy to explain, understand and use due to their
+purely relational nature. In contrast, the modedness and
+directionality of low-level arithmetic primitives are non-declarative
+limitations that are better delegated to more advanced lectures.
 
 If you are used to the complicated extra-logical considerations that
 built-in arithmetic primitives necessitate, then using constraints
-may, due to their power and comfort, at first feel to you almost like
-cheating. It _isn't_. Constraints are an integral part of many Prolog
-systems and are intended to help you eliminate and avoid, as far as
-possible, the use of lower-level and less general primitives by
-providing declarative alternatives that are meant to be used instead.
+may, due to their power and comfort, at first feel to you excessive
+and almost like cheating. It _isn't_. Constraints are an integral part
+of many Prolog systems and are available to help you eliminate and
+avoid, as far as possible, the use of lower-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
 
 This library uses goal_expansion/2 to automatically rewrite arithmetic
 constraints at compilation time. The expansion's aim is to bring the
