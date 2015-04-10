@@ -295,6 +295,32 @@ reifiable constraints or Boolean variables, then:
 
 The constraints of this table are reifiable as well.
 
+### Domains                             {#clpfd-domains}
+
+Each CLP(FD) variable has an associated set of admissible integers
+which we call the variable's _domain_. Initially, the domain of each
+CLP(FD) variable is the set of all integers. The constraints in/2 and
+ins/2 are the primary means to specify tighter domains of variables.
+
+Here are example queries and the system's declaratively equivalent
+answers:
+
+==
+?- X in 100..sup.
+X in 100..sup.
+
+?- X in 1..5 \/ 3..12.
+X in 1..12.
+
+?- [X,Y,Z] ins 0..3.
+X in 0..3,
+Y in 0..3,
+Z in 0..3.
+==
+
+Domains are taken into account when further constraints are stated and
+during enumeration predicates like labeling/2.
+
 ### Examples				{#clpfd-examples}
 
 Here is an example session with a few queries and their answers:
