@@ -83,7 +83,7 @@ set_breakpoint(File, Line, Char, Id) :-
 	clause_info(ClauseRef, InfoFile, TermPos, _NameOffset),
 	(   InfoFile == File
 	->  '$break_pc'(ClauseRef, PC, NextPC),
-	    debug(break, 'Clause ~p, NextPC = ~w', [ClauseRef, NextPC]),
+	    debug(break, 'Clause ~p, PC=~p NextPC=~p', [ClauseRef, PC, NextPC]),
 	    '$clause_term_position'(ClauseRef, NextPC, List),
 	    debug(break, 'Location = ~w', [List]),
 	    range(List, TermPos, A, Z),
