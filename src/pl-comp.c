@@ -6558,8 +6558,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	PC = nextpc;
 	add_node(tail, 2 PASS_LD);
         continue;
-      case B_UNIFY_FIRSTVAR:
-      case B_UNIFY_VAR:
+      case B_UNIFY_FIRSTVAR:		/* child frame ptr after B_UNIFY_EXIT */
+      case B_UNIFY_VAR:			/* see also '$break_pc'/3 */
 	do
 	{ PC     = nextpc;
 	  op     = fetchop(PC);
@@ -6623,15 +6623,24 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
 
   while( PC < end )
   { code op = fetchop(PC);
-    Code next = stepPC(PC);
+    Code nextpc = stepPC(PC);
 
     if ( (codeTable[op].flags & VIF_BREAK) )
-    { if ( PL_unify_integer(A2, PC-clause->codes) &&
-	   PL_unify_integer(A3, next-clause->codes) )
-	ForeignRedoInt(next-clause->codes);
+    { switch(op)
+      { case B_UNIFY_FIRSTVAR:
+	case B_UNIFY_VAR:
+	  do
+	  { PC     = nextpc;
+	    op     = fetchop(PC);
+	    nextpc = stepPC(PC);
+	  } while(op != B_UNIFY_EXIT);
+      }
+      if ( PL_unify_integer(A2, PC-clause->codes) &&
+	   PL_unify_integer(A3, nextpc - clause->codes) )
+	ForeignRedoInt(nextpc - clause->codes);
     }
 
-    PC = next;
+    PC = nextpc;
   }
 
   fail;
