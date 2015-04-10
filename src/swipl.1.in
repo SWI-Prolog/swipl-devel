@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH @PL@ 1 "Feb 8, 2006" "SWI-Prolog 5"
+.TH @PL@ 1 "Apr 10, 2015" "SWI-Prolog 7"
 .SH NAME
 @PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
@@ -234,7 +234,7 @@ in which they appear on the argument list.
 .B \-\-quiet \-q
 Operate silently.  This option suppresses all
 .I informational
-messages, such as for compiling files.
+messages.
 .TP
 .BI \-g " goal"
 .I Goal
@@ -257,7 +257,7 @@ to determine the output file for compilation.
 Define a path alias for
 .BR file_search_path/2 .
 .I pathlist
-is a "`":"'" separated list of values for the alias. See
+is a ":" separated list of values for the alias. See
 .B file_search_path/2
 in the SWI-Prolog Reference Manual.
 .TP
@@ -307,6 +307,13 @@ another application on Unix systems.
 .TP
 .B \-\-
 Stops scanning for more arguments.
+.SH ENVIRONMENT VARIABLES
+.TP
+.I SWI_HOME_DIR
+Location for finding the startup file @BOOTFILE@ and the libraries.
+Normally discovered from the executable or configured default location.
+Providing the value through the environment may be needed if SWI-Prolog
+is embedded into another executable.
 .SH ON-LINE HELP
 SWI-Prolog has on-line help. This provides a fast lookup and browsing
 facility to the SWI-Prolog Reference manual. The on-line manual can
@@ -357,8 +364,6 @@ has probably been moved.  Use
 .P
 to find the local installation directory of SWI-Prolog.
 .TP
-.I .plrc
-.TP
 .I ~/.plrc
 Personal initialisation files consulted by SWI-Prolog on startup.
 If both exist
@@ -377,17 +382,17 @@ SWI-Prolog user libraries.
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/boot/
 SWI-Prolog kernel parts written in Prolog.  The startup file
-@prefix@/lib/@PL@-@PLVERSION@/boot32.prc may be recreated using
+@prefix@/lib/@PL@-@PLVERSION@/@BOOTFILE@ may be recreated using
 the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
 .RS
 .TP
-bin/@PLARCH@/@PL@ \-O \-o boot32.prc \-b boot/init.pl
+bin/@PLARCH@/@PL@ \-O \-o @BOOTFILE@ \-b boot/init.pl
 .RE
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/doc/packages
 HTML and/or PDF documentation on the installed add-ons.
 .TP
-.I @prefix@/lib/@PL@-@PLVERSION@/boot32.prc
+.I @prefix@/lib/@PL@-@PLVERSION@/@BOOTFILE@
 Default startup file.  This is a `intermediate code' file containing
 precompiled code from the boot directory.  The
 .BI \-x bootfile
@@ -430,7 +435,7 @@ The license terms are in the file
 or on the GNU website at
 .I http://www.gnu.org.
 .SH COPYRIGHT
-Copyright (c) 1986\-2011 University of Amsterdam, VU University Amsterdam
+Copyright (c) 1986\-2015 University of Amsterdam, VU University Amsterdam
 .SH AUTHOR
 Jan Wielemaker
 
