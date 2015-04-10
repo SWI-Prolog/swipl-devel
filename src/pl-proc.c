@@ -97,11 +97,9 @@ unallocClauseList(ClauseRef cref)
   { Clause cl = cref->value.clause;
     next = cref->next;
 
-    if ( true(cl, DBREF_CLAUSE) )	/* will be freed from dbref */
-      set(cl, DBREF_ERASED_CLAUSE);
-    else
-      unallocClause(cl);
-
+    set(cl, CL_ERASED);
+    cl->generation.erased = cl->generation.erased - 1;
+    freeClause(cl);
     freeClauseRef(cref);
   }
 }
@@ -1244,7 +1242,7 @@ freeClause(Clause c)
   forAtomsInClause(c, PL_unregister_atom);
 #endif
 
-  if ( true(c, DBREF_CLAUSE) )
+  if ( true(c, DBREF_CLAUSE) )		/* will be freed from symbol */
     set(c, DBREF_ERASED_CLAUSE);
   else
     unallocClause(c);
