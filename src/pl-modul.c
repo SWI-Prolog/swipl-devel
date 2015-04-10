@@ -221,7 +221,7 @@ markSourceFilesProcedure(Procedure proc, struct bit_vector *v)
 static void
 unlinkSourceFilesModule(Module m)
 { size_t i, high = highSourceFileIndex();
-  struct bit_vector *v = new_bitvector(high);
+  struct bit_vector *v = new_bitvector(high+1);
 
   for_unlocked_table(m->procedures, s,
 		     markSourceFilesProcedure(s->value, v));
