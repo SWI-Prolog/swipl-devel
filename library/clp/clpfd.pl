@@ -366,10 +366,15 @@ constraint solver has deduced additional domain restrictions.
 
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
-enumeration predicates to search for solutions. As an example of a
-constraint satisfaction problem, consider the cryptoarithmetic puzzle
-SEND + MORE = MONEY, where different letters denote distinct integers
-between 0 and 9. It can be modeled in CLP(FD) as follows:
+enumeration predicates to search for solutions. It is good practice to
+keep the modeling part separate from the actual search. This lets you
+observe termination and determinism properties of the modeling part in
+isolation from the search.
+
+As an example of a constraint satisfaction problem, consider the
+cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
+denote distinct integers between 0 and 9. It can be modeled in CLP(FD)
+as follows:
 
 ==
 :- use_module(library(clpfd)).
@@ -401,11 +406,8 @@ C5 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
-variables. It is good practice to keep the modeling part separate from
-the actual search. This lets you observe termination and determinism
-properties of the modeling part in isolation from the search. Labeling
-can then be used to search for solutions in a separate predicate or
-goal:
+variables. Labeling can then be used to search for solutions in a
+separate predicate or goal:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
