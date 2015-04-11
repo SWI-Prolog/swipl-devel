@@ -137,6 +137,10 @@ int
 PL_unify_clref(term_t t, Clause clause)
 { struct clref ref;
 
+  { GET_LD
+    assert(!onStackArea(local, clause));
+  }
+
   ref.clause = clause;
   return PL_unify_blob(t, &ref, sizeof(ref), &clause_blob);
 }
@@ -145,6 +149,10 @@ PL_unify_clref(term_t t, Clause clause)
 int
 PL_put_clref(term_t t, Clause clause)
 { struct clref ref;
+
+  { GET_LD
+    assert(!onStackArea(local, clause));
+  }
 
   ref.clause = clause;
   PL_put_blob(t, &ref, sizeof(ref), &clause_blob);
