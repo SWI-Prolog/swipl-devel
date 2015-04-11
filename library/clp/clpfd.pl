@@ -155,7 +155,7 @@ There are two major use cases of this library:
 
     1. CLP(FD) constraints provide _declarative integer arithmetic_:
        They implement pure _relations_ between integer expressions and
-       can be used in all directions, even if parts of expressions are
+       can be used in all directions, also if parts of expressions are
        variables.
 
     2. In connection with enumeration predicates and more complex
