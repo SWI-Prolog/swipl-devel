@@ -169,7 +169,7 @@ predicates and their extra-logical idiosyncrasies. This is because
 constraints are easy to explain, understand and use due to their
 purely relational nature. In contrast, the modedness and
 directionality of low-level arithmetic primitives are non-declarative
-limitations that are better delegated to more advanced lectures.
+limitations that are better deferred to more advanced lectures.
 
 If you are used to the complicated extra-logical considerations that
 low-level arithmetic primitives necessitate, then using CLP(FD)
@@ -233,6 +233,26 @@ The most important arithmetic constraints are:
 CLP(FD) constraints let you declaratively express integer arithmetic.
 The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used instead
 of the corresponding primitives is/2, =:=/2, >/2 etc.
+
+An important advantage of arithmetic constraints is their purely
+relational nature. They are therefore easy to explain and use, and
+well suited also for beginners. Consider for example the query:
+
+==
+?- X #> 3, X #= 5 + 2.
+X = 7.
+==
+
+In contrast, when using low-level integer arithmetic, we get:
+
+==
+?- X > 3, X is 5 + 1.
+ERROR: >/2: Arguments are not sufficiently instantiated
+==
+
+The use of low-level integer arithmetic is considerably harder to
+understand due to the necessary operational considerations and should
+therefore be deferred to more advanced lectures.
 
 For supported expressions, CLP(FD) constraints are drop-in
 replacements of these low-level arithmetic predicates, often yielding
