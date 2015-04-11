@@ -336,8 +336,8 @@ Y in 0..3,
 Z in 0..3.
 ==
 
-Domains are taken into account when further constraints are stated and
-during enumeration predicates like labeling/2.
+Domains are taken into account when further constraints are stated,
+and during enumeration predicates like labeling/2.
 
 ### Examples				{#clpfd-examples}
 
