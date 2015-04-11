@@ -613,7 +613,7 @@ state(S0, S), [S] --> [S0].
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Unification. X = Expr is equivalent to sat(X =:= Expr).
 
-   attr_unify_hook/2 is not general enough to express what we want.
+   attr_unify_hook/2 is not general enough to express what we need.
    For example, "?- sat(A + B), A = A + 1." should be equivalent to
    "?- sat(A + B), sat(A =:= A + 1).", but attr_unify_hook/2 is only
    called *after* the unification A = A + 1 has already taken place
