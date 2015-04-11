@@ -380,14 +380,15 @@ In each case, and as for all pure programs, the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
 
-### Search				{#clpfd-search}
+### Enumeration predicates and search    {#clpfd-search}
 
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
 enumeration predicates to search for solutions. It is good practice to
 keep the modeling part separate from the actual search. This lets you
 observe termination and determinism properties of the modeling part in
-isolation from the search.
+isolation from the search, and more easily try different search
+strategies.
 
 As an example of a constraint satisfaction problem, consider the
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
@@ -407,7 +408,10 @@ puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
         M #\= 0, S #\= 0.
 ==
 
-Sample query and its result (actual variables replaced for readability):
+Notice that we are _not_ using labeling/2 in this predicate, so that
+we can first execute and observe the modeling part in isolation.
+Sample query and its result (actual variables replaced for
+readability):
 
 ==
 ?- puzzle(As+Bs=Cs).
