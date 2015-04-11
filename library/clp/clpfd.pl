@@ -151,7 +151,7 @@ Constraint programming is a declarative formalism that lets you state
 relations between terms. This library provides CLP(FD), Constraint
 Logic Programming over Finite Domains.
 
-There are two major applications of this library:
+There are two major use cases of this library:
 
     1. CLP(FD) constraints provide _declarative integer arithmetic_:
        They implement pure _relations_ between integer expressions and
