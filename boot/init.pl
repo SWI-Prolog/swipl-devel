@@ -2738,7 +2738,16 @@ load_files(Module:Files, Options) :-
 %	Store a clause into the   database  for administrative purposes.
 %	This bypasses sanity checking.
 
-'$store_admin_clause'(Clause, _Layout, File, SrcLoc) :-
+'$store_admin_clause'(Clause, Layout, File, SrcLoc) :-
+	source_location(File, _Line), !,
+	setup_call_cleanup(
+	    '$start_aux'(File, Context),
+	    '$store_admin_clause2'(Clause, Layout, File, SrcLoc),
+	    '$end_aux'(File, Context)).
+'$store_admin_clause'(Clause, Layout, File, SrcLoc) :-
+	'$store_admin_clause2'(Clause, Layout, File, SrcLoc).
+
+'$store_admin_clause2'(Clause, _Layout, File, SrcLoc) :-
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
 	;   '$record_clause'(Clause, File, SrcLoc, Ref),
