@@ -523,10 +523,14 @@ prolog_message(undefined_export(Module, PI)) -->
 	[ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
 prolog_message(no_exported_op(Module, Op)) -->
 	[ 'Operator ~q:~q is not exported (still defined)'-[Module, Op] ].
-prolog_message(discontiguous((-)/2)) -->
+prolog_message(discontiguous((-)/2,_)) -->
 	prolog_message(minus_in_identifier).
-prolog_message(discontiguous(Proc)) -->
-	[ 'Clauses of ~p are not together in the source-file'-[Proc] ].
+prolog_message(discontiguous(Proc,Current)) -->
+	[ 'Clauses of ~p are not together in the source-file'-[Proc], nl ],
+	current_definition(Proc, '  Earlier definition at '),
+	[ '  Current predicate: ~p'-[Current], nl,
+	  '  Use :- discontiguous ~p. to suppress this message'-[Proc]
+	].
 prolog_message(decl_no_effect(Goal)) -->
 	[ 'Deprecated declaration has no effect: ~p'-[Goal] ].
 prolog_message(load_file(start(Level, File))) -->
@@ -619,6 +623,21 @@ hidden_module(user) :- !.
 hidden_module(system) :- !.
 hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
+
+current_definition(Proc, Prefix) -->
+	{ pi_head(Proc, Head),
+	  predicate_property(Head, file(File)),
+	  predicate_property(Head, line_count(Line))
+	},
+	[ '~w'-[Prefix], '~w:~d'-[File,Line], nl ].
+current_definition(_, _) --> [].
+
+pi_head(Module:Name/Arity, Module:Head) :- !,
+	atom(Module), atom(Name), integer(Arity),
+	functor(Head, Name, Arity).
+pi_head(Name/Arity, user:Head) :-
+	atom(Name), integer(Arity),
+	functor(Head, Name, Arity).
 
 prolog_message(file_search(cache(Spec, _Cond), Path)) -->
 	[ 'File search: ~p --> ~p (cache)'-[Spec, Path] ].

@@ -2804,9 +2804,11 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     if ( first->value.clause->owner_no == sf->index )
     { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, P_DISCONTIGUOUS) )
-	printMessage(ATOM_warning,
-		     PL_FUNCTOR_CHARS, "discontiguous", 1,
-		       _PL_PREDICATE_INDICATOR, proc);
+      { printMessage(ATOM_warning,
+		     PL_FUNCTOR_CHARS, "discontiguous", 2,
+		       _PL_PREDICATE_INDICATOR, proc,
+		       _PL_PREDICATE_INDICATOR, sf->current_procedure);
+      }
     } else if ( !hasProcedureSourceFile(sf, proc) )
     { if ( true(def, P_THREAD_LOCAL) )
 	return PL_error(NULL, 0, NULL, ERR_MODIFY_THREAD_LOCAL_PROC, proc);
