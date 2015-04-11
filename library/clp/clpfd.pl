@@ -180,9 +180,9 @@ eliminate and avoid, as far as possible, the use of lower-level and
 less general primitives by providing declarative alternatives that are
 meant to be used instead.
 
-For good performance, arithmetic constraints are implicitly rewritten
-at compilation time so that lower-level fallback predicates are
-automatically used whenever possible.
+For satisfactory performance, arithmetic constraints are implicitly
+rewritten at compilation time so that lower-level fallback predicates
+are automatically used whenever possible.
 
 You can cite this library in your publications as:
 
