@@ -6691,7 +6691,7 @@ scalar_product_left_right(Cs, Vs, Left, Right) :-
         pairs_keys_values(Pairs0, Cs, Vs),
         partition(ground, Pairs0, Grounds, Pairs),
         maplist(pair_product, Grounds, Prods),
-        sumlist(Prods, Const),
+        sum_list(Prods, Const),
         NConst is -Const,
         partition(compare_coeff0, Pairs, Negatives, _, Positives),
         maplist(negate_coeff, Negatives, Rights),
