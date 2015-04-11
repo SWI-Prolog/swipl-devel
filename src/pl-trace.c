@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -2110,7 +2110,8 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   } else if (key == ATOM_clause)
   { if ( false(fr->predicate, P_FOREIGN) &&
 	 fr->clause && fr->clause->value.clause &&
-	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
+	 fr->predicate != PROCEDURE_dc_call_prolog->definition &&
+	 fr->predicate != PROCEDURE_dcall1->definition )
     { if ( !PL_unify_clref(result, fr->clause->value.clause) )
 	return FALSE;
     } else
