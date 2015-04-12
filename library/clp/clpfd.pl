@@ -171,7 +171,7 @@ purely relational nature. In contrast, the modedness and
 directionality of low-level arithmetic primitives are non-declarative
 limitations that are better deferred to more advanced lectures.
 
-If you are used to the complicated extra-logical considerations that
+If you are used to the complicated operational considerations that
 low-level arithmetic primitives necessitate, then using CLP(FD)
 constraints may, due to their power and convenience, at first feel to
 you excessive and almost like cheating. It _isn't_. Constraints are an
