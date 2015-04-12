@@ -236,7 +236,9 @@ of the corresponding primitives is/2, =:=/2, >/2 etc.
 
 An important advantage of arithmetic constraints is their purely
 relational nature. They are therefore easy to explain and use, and
-well suited also for beginners. Consider for example the query:
+well suited for beginners and experienced Prolog programmers alike.
+
+Consider for example the query:
 
 ==
 ?- X #> 3, X #= 5 + 2.
@@ -250,9 +252,9 @@ In contrast, when using low-level integer arithmetic, we get:
 ERROR: >/2: Arguments are not sufficiently instantiated
 ==
 
-The use of low-level integer arithmetic is considerably harder to
-understand due to the necessary operational considerations and should
-therefore be deferred to more advanced lectures.
+Due to the necessary operational considerations, the use of these
+low-level arithmetic predicates is considerably harder to understand
+and should therefore be deferred to more advanced lectures.
 
 For supported expressions, CLP(FD) constraints are drop-in
 replacements of these low-level arithmetic predicates, often yielding
