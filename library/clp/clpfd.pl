@@ -364,12 +364,6 @@ X in -12\/12.
 X = 3,
 Y = 6.
 
-?- Vs = [X,Y,Z], Vs ins 1..3, all_different(Vs), X = 1, Y #\= 2.
-Vs = [1, 3, 2],
-X = 1,
-Y = 3,
-Z = 2.
-
 ?- X #= Y #<==> B, X in 0..3, Y in 4..5.
 B = 0,
 X in 0..3,
