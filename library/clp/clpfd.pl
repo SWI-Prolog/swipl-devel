@@ -382,13 +382,27 @@ constraint solver has deduced additional domain restrictions.
 
 ### Enumeration predicates and search    {#clpfd-search}
 
-A common usage of this library is to first post the desired
-constraints among the variables of a model, and then to use
-enumeration predicates to search for solutions. It is good practice to
-keep the modeling part separate from the actual search. This lets you
-observe termination and determinism properties of the modeling part in
-isolation from the search, and more easily try different search
-strategies.
+In addition to being declarative replacements for low-level arithmetic
+predicates, CLP(FD) constraints are also often used to solve
+combinatorial problems such as planning, scheduling and allocation
+tasks. To let you conveniently model and solve such problems, this
+library provides several constraints beyond typical integer
+arithmetic, such as all_distinct/1, global_cardinality/2 and
+cumulative/1.
+
+Using CLP(FD) constraints to solve combinatorial tasks typically
+consists of two phases:
+
+    1. First, all relevant constraints are stated.
+    2. Second, if the domain of each involved variable is _finite_,
+       then _enumeration predicates_ can be used to search for
+       concrete solutions.
+
+It is good practice to keep the modeling part, via a dedicated
+predicate, separate from the actual search for solutions. This lets
+you observe termination and determinism properties of the modeling
+part in isolation from the search, and more easily try different
+search strategies.
 
 As an example of a constraint satisfaction problem, consider the
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
@@ -427,9 +441,14 @@ B3 in 2..8,
 C5 in 2..8.
 ==
 
-Here, the constraint solver has deduced more stringent bounds for all
-variables. Labeling can then be used to search for solutions in a
-separate predicate or goal:
+From this answer, we see that the modeling part _terminates_ and is in
+fact _deterministic_. Moreover, we see from the residual goals that
+the constraint solver has deduced more stringent bounds for all
+variables. Such observations are only possible if modeling and search
+parts are cleanly separated.
+
+Labeling can then be used to search for solutions in a separate
+predicate or goal:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
