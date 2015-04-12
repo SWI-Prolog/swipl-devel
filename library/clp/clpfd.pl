@@ -172,7 +172,7 @@ directionality of low-level arithmetic primitives are non-declarative
 limitations that are better deferred to more advanced lectures.
 
 If you are used to the complicated operational considerations that
-low-level arithmetic primitives necessitate, then using CLP(FD)
+low-level arithmetic primitives necessitate, then moving to CLP(FD)
 constraints may, due to their power and convenience, at first feel to
 you excessive and almost like cheating. It _isn't_. Constraints are an
 integral part of many Prolog systems and are available to help you
