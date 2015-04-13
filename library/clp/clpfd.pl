@@ -248,7 +248,7 @@ X = 7.
 In contrast, when using low-level integer arithmetic, we get:
 
 ==
-?- X > 3, X is 5 + 1.
+?- X > 3, X is 5 + 2.
 ERROR: >/2: Arguments are not sufficiently instantiated
 ==
 
