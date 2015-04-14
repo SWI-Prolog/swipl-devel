@@ -3658,23 +3658,71 @@ PL_foreign_control(control_t h)
 }
 
 
+static int
+copy_exception(term_t ex, term_t bin ARG_LD)
+{ fid_t fid;
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { if ( duplicate_term(ex, bin PASS_LD) )
+    { ok:
+      PL_close_foreign_frame(fid);
+      return TRUE;
+    } else
+    { PL_rewind_foreign_frame(fid);
+      PL_clear_exception();
+      LD->exception.processing = TRUE;
+
+      if ( PL_is_functor(ex, FUNCTOR_error2) )
+      { term_t arg, av;
+
+	if ( (arg = PL_new_term_ref()) &&
+	     (av  = PL_new_term_refs(2)) &&
+	     PL_get_arg(1, ex, arg) &&
+	     duplicate_term(arg, av+0 PASS_LD) &&
+	     PL_cons_functor_v(bin, FUNCTOR_error2, av) )
+	{ Sdprintf("WARNING: Removed error context due to stack overflow\n");
+	  goto ok;
+	}
+      } else if ( gTop+5 < gMax )
+      { Word p = gTop;
+
+	Sdprintf("WARNING: cannot raise exception; raising global overflow\n");
+	p[0] = FUNCTOR_error2;			/* see (*) above */
+	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[2] = ATOM_global;
+	p[3] = FUNCTOR_resource_error1;
+	p[4] = ATOM_stack;
+	gTop += 5;
+
+	*valTermRef(bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	goto ok;
+      }
+    }
+    PL_close_foreign_frame(fid);
+  }
+
+  Sdprintf("WARNING: mapped exception to abort due to stack overflow\n");
+  PL_put_atom(bin, ATOM_aborted);
+  return TRUE;
+}
+
+
 int
 PL_raise_exception(term_t exception)
 { GET_LD
 
-  if ( PL_is_variable(exception) )
+  if ( PL_is_variable(exception) )	/* internal error */
     fatalError("Cannot throw variable exception");
 
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { setVar(*valTermRef(exception_bin));
-    if ( !duplicate_term(exception, exception_bin PASS_LD) )
-      fatalError("Failed to copy exception term");
+    copy_exception(exception, exception_bin PASS_LD);
     freezeGlobal(PASS_LD1);
   }
   exception_term = exception_bin;
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3707,6 +3755,7 @@ PL_clear_exception(void)
 
   clear_exception__LD(PASS_LD1);
   LD->exception.processing = FALSE;
+  LD->outofstack = NULL;
 }
 
 

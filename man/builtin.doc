@@ -2039,18 +2039,28 @@ Raise an exception. The system looks for the innermost catch/3
 ancestor for which \arg{Exception} unifies with the \arg{Catcher}
 argument of the catch/3 call.  See catch/3 for details.
 
-ISO demands that throw/1 make a copy of \arg{Exception}, walk up the stack
-to a catch/3 call, backtrack and try to unify the copy of
-\arg{Exception} with \arg{Catcher}. SWI-Prolog delays making a copy of
-\arg{Exception} and backtracking until it actually finds a matching
-catch/3 goal. The advantage is that we can start the debugger at the
-first possible location while preserving the entire exception context if
-there is no matching catch/3 goal. This approach can lead to different
-behaviour if \arg{Goal} and \arg{Catcher} of catch/3 call shared
-variables.  We assume this to be highly unlikely and could not think
-of a scenario where this is useful.%
+ISO demands that throw/1 make a copy of \arg{Exception}, walk up the
+stack to a catch/3 call, backtrack and try to unify the copy of
+\arg{Exception} with \arg{Catcher}. SWI-Prolog delays backtracking until
+it actually finds a matching catch/3 goal. The advantage is that we can
+start the debugger at the first possible location while preserving the
+entire exception context if there is no matching catch/3 goal. This
+approach can lead to different behaviour if \arg{Goal} and \arg{Catcher}
+of catch/3 call shared variables. We assume this to be highly unlikely
+and could not think of a scenario where this is useful.%
 	\footnote{I'd like to acknowledge Bart Demoen for his
 	          clarifications on these matters.}
+
+In addition to explicit calls to throw/1, many built-in predicates throw
+exceptions directly from C. If the \arg{Exception} term cannot be copied
+due to lack of stack space, the following actions are tried in order:
+
+\begin{enumerate}
+    \item If the exception is of the form \term{error}{Formal, ImplementationDefined},
+try to raise the exception without the \arg{ImplementationDefined} part.
+    \item Try to raise \term{error}{\term{resource_error}{stack}, global}.
+    \item Abort (see abort/0).
+\end{enumerate}
 
 If an exception is raised in a call-back from C (see \chapref{foreign})
 and not caught in the same call-back, PL_next_solution() fails and
