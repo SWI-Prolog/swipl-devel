@@ -2319,8 +2319,8 @@ executeThreadSignals(int sig)
     }
 
     if ( !rval && ex )
-    { PL_close_foreign_frame(fid);
-      PL_raise_exception(ex);
+    { PL_raise_exception(ex);
+      PL_close_foreign_frame(fid);
 
       DEBUG(MSG_THREAD,
 	    { print_trace(8);
