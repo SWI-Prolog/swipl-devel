@@ -165,7 +165,7 @@ There are two major use cases of this library:
 
 When teaching Prolog, we _strongly_ recommend that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
-predicates and their extra-logical idiosyncrasies. This is because
+predicates and their procedural idiosyncrasies. This is because
 constraints are easy to explain, understand and use due to their
 purely relational nature. In contrast, the modedness and
 directionality of low-level arithmetic primitives are non-declarative
