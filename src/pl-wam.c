@@ -1447,7 +1447,7 @@ Can perform GC/shift and may leave overflow exceptions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-foreignWakeup(term_t *ex ARG_LD)
+foreignWakeup(term_t ex ARG_LD)
 { if ( unlikely(LD->alerted & ALERT_WAKEUP) )
   { LD->alerted &= ~ALERT_WAKEUP;
 
@@ -1465,9 +1465,11 @@ foreignWakeup(term_t *ex ARG_LD)
 	  setVar(*valTermRef(LD->attvar.tail));
 	  rval = PL_next_solution(qid);
 	  if ( rval == FALSE )
-	    *ex = PL_exception(qid);
-	  else
-	    *ex = 0;
+	  { term_t t = PL_exception(qid);
+
+	    if ( t )
+	      PL_put_term(ex, t);
+	  }
 	  PL_cut_query(qid);
 	}
 
@@ -1476,7 +1478,7 @@ foreignWakeup(term_t *ex ARG_LD)
 	return rval;
       }
 
-      *ex = exception_term;
+      PL_put_term(ex, exception_term);
       return FALSE;
     }
   }

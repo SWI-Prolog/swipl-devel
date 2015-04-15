@@ -94,6 +94,7 @@ PRED_IMPL("$length", 2, dlength, 0)
 static
 PRED_IMPL("memberchk", 2, memberchk, 0)
 { GET_LD
+  term_t ex = PL_new_term_ref();
   term_t h = PL_new_term_ref();
   term_t l = PL_copy_term_ref(A2);
   fid_t fid;
@@ -109,13 +110,11 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
     }
 
     if ( PL_unify(A1, h) )
-    { term_t ex = 0;
-
-      if ( foreignWakeup(&ex PASS_LD) )
+    { if ( foreignWakeup(ex PASS_LD) )
       { PL_close_foreign_frame(fid);
 	succeed;
       } else
-      { if ( ex )
+      { if ( !isVar(*valTermRef(ex)) )
 	  return PL_raise_exception(ex);
 	PL_rewind_foreign_frame(fid);
       }

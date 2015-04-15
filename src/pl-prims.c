@@ -440,14 +440,17 @@ can_unify(Word t1, Word t2, term_t *ex)
   fid_t fid;
 
   if ( (fid = PL_open_foreign_frame()) )
-  { if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+  { term_t ex = PL_new_term_ref();
+
+    if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	 foreignWakeup(ex PASS_LD) )
     { PL_discard_foreign_frame(fid);
       return TRUE;
     }
 
-    if ( !*ex && exception_term )	/* overflow exceptions from unify() */
-      *ex = exception_term;
+    if ( exception_term && isVar(*valTermRef(ex)) )
+      PL_put_term(ex, exception_term);
+
     PL_discard_foreign_frame(fid);
   }
 
@@ -2908,7 +2911,9 @@ subsumes(term_t general, term_t specific ARG_LD)
   rc = PL_unify(general, specific);
   LD->prolog_flag.occurs_check = omode;
 
-  if ( rc && foreignWakeup(&ex PASS_LD) )
+  if ( rc &&
+       (ex = PL_new_term_ref()) &&
+       foreignWakeup(ex PASS_LD) )
   { int rc = TRUE;
 
     startCritical;
@@ -2928,7 +2933,7 @@ subsumes(term_t general, term_t specific ARG_LD)
     return rc;
   }
 
-  if ( ex )
+  if ( ex && !PL_is_variable(ex) )
     return PL_raise_exception(ex);
 
   fail;

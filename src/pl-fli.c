@@ -3711,6 +3711,8 @@ int
 PL_raise_exception(term_t exception)
 { GET_LD
 
+  assert(valTermRef(exception) < (Word)lTop);
+
   if ( PL_is_variable(exception) )	/* internal error */
     fatalError("Cannot throw variable exception");
 
