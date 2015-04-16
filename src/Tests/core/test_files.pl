@@ -113,5 +113,14 @@ test(max_path_len, error(representation_error(max_path_length))) :-
 	maplist(=('a'), L),
 	atom_chars(F, L),
 	absolute_file_name(F, _, [access(read)]).
+test(at_end_of_stream) :-
+	tmp_file_stream(text, File, Out),
+	format(Out, 'a', []),
+	close(Out),
+	setup_call_cleanup(
+	    open(File, read, In),
+	    \+ at_end_of_stream(In),
+	    close(In)),
+	delete_file(File).
 
 :- end_tests(files).
