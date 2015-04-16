@@ -1398,12 +1398,12 @@ the value set of Dict0.
 static
 PRED_IMPL("put_dict", 3, put_dict, 0)
 { PRED_LD
-  term_t dt = PL_new_term_refs(2);
+  term_t dt;
   fid_t fid = PL_open_foreign_frame();
 
-
 retry:
-  if ( get_create_dict_ex(A2, dt+0 PASS_LD) &&
+  if ( (dt = PL_new_term_refs(2)) &&
+       get_create_dict_ex(A2, dt+0 PASS_LD) &&
        get_create_dict_ex(A1, dt+1 PASS_LD) )
   { Functor f2 = valueTerm(*valTermRef(dt+1));
     int arity = arityFunctor(f2->definition);
@@ -1419,10 +1419,9 @@ retry:
       return PL_unify(A3, t);
     } else
     { assert(rc == GLOBAL_OVERFLOW);
+      PL_rewind_foreign_frame(fid);
       if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-      { PL_rewind_foreign_frame(fid);
 	goto retry;
-      }
     }
   }
 
