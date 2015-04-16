@@ -4779,7 +4779,7 @@ static void
 reenable_spare_stack(void *ptr, int prev)
 { Stack s = ptr;
 
-  if ( prev || roomStackP(s) >= 2*s->def_spare )
+  if ( prev || roomStackP(s) >= s->min_free + s->def_spare )
     trim_stack(s);
 }
 
