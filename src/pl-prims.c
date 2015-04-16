@@ -2341,7 +2341,10 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     }
 
     if ( PL_get_nil(tail) )		/* A =.. [H] */
+    { if ( !PL_is_atomic(head) )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, head);
       return PL_unify(t, head);
+    }
     if ( !PL_get_atom_ex(head, &name) )
       fail;
 

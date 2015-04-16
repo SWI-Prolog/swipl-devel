@@ -157,6 +157,8 @@ test(functor, error(domain_error(_,_))) :-
 	functor(a(), _, _).
 test(=.., error(domain_error(_,_))) :-
 	a() =.. _.
+test(=.., error(type_error(atomic,f(a)))) :-
+	_Var =.. [f(a)].
 test(compound_name_arity, A == 0) :-
 	compound_name_arity(a(), _N, A).
 test(compound_name_arity, T == a()) :-
