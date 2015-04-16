@@ -376,11 +376,11 @@ static
 PRED_IMPL("\\=", 2, not_unify, 0)
 { PRED_LD
   Word p0 = valTermRef(A1);
-  term_t ex = 0;
+  term_t ex = PL_new_term_ref();
 
-  if ( can_unify(p0, p0+1, &ex) )
+  if ( can_unify(p0, p0+1, ex) )
     return FALSE;
-  if ( ex )
+  if ( !PL_is_variable(ex) )
     return PL_raise_exception(ex);
   return TRUE;
 }
@@ -427,20 +427,25 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-can_unify(t1, t2, &ex, flags) succeeds if   two  terms *can* be unified,
-without actually doing so.  This  is   basically  a  stripped version of
-unify() above. See this function for  comments.   Note  that  we have to
-execute delayed goals and these may raise an exception. If this happens,
-ex is a reference to the exception term.
+can_unify(t1, t2, ex) succeeds if two   terms  *can* be unified, without
+actually doing so. This  is  basically   a  stripped  version of unify()
+above. See this function for comments.  Note   that  we  have to execute
+delayed goals and these may raise an   exception. If this happens, ex is
+set to the exception term.
+
+If ex = 0, a possible exception is ignored and cleared.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-can_unify(Word t1, Word t2, term_t *ex)
+can_unify(Word t1, Word t2, term_t ex)
 { GET_LD
   fid_t fid;
 
   if ( (fid = PL_open_foreign_frame()) )
-  { term_t ex = PL_new_term_ref();
+  { int handle_exception = !ex;
+
+    if ( !ex )
+      ex = PL_new_term_ref();
 
     if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	 foreignWakeup(ex PASS_LD) )
@@ -450,6 +455,8 @@ can_unify(Word t1, Word t2, term_t *ex)
 
     if ( exception_term && isVar(*valTermRef(ex)) )
       PL_put_term(ex, exception_term);
+    if ( !handle_exception && !isVar(*valTermRef(ex)) )
+      PL_clear_exception();
 
     PL_discard_foreign_frame(fid);
   }

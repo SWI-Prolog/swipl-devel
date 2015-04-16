@@ -1671,7 +1671,6 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 
   while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
   { LocalFrame fr = qf->saved_environment;
-    term_t ex;
 
     while( fr )
     { if ( fr->predicate == catch3 )
@@ -1679,7 +1678,7 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 
 	if ( can_unify(argFrameP(fr, 1), /* may shift */
 		       valTermRef(ball),
-		       &ex) )
+		       0) )
 	  return TRUE;
 	fr = (LocalFrame)valTermRef(fref);
       }

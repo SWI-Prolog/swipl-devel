@@ -280,7 +280,6 @@ canUnifyTermWithGoal(LocalFrame fr)
 	  term_t frref = consTermRef(fr);
 	  int i, arity = fr->predicate->functor->arity;
 	  int rval = TRUE;
-	  term_t ex;
 
 	  if ( copyRecordToGlobal(t, find->goal.term.term,
 				  ALLOW_GC|ALLOW_SHIFT PASS_LD) < 0 )
@@ -294,7 +293,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	    fr = (LocalFrame)valTermRef(frref);
 	    b = argFrameP(fr, i);
 
-	    if ( !can_unify(a++, b++, &ex) )
+	    if ( !can_unify(a++, b++, 0) )
 	    { rval = FALSE;
 	      break;
 	    }
