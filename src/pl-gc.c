@@ -4753,8 +4753,10 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 
 static int
-include_spare_stack(Stack s, size_t *request)
-{ if ( *request && *request != GROW_TRIM )
+include_spare_stack(void *ptr, size_t *request)
+{ Stack s = ptr;
+
+  if ( *request && *request != GROW_TRIM )
     *request += s->def_spare - s->spare;
 
   if ( s->spare )
@@ -4792,9 +4794,9 @@ growStacks(size_t l, size_t g, size_t t)
   save_backtrace("SHIFT");
 #endif
 
-  sl = include_spare_stack((Stack)&LD->stacks.local,  &l);
-  sg = include_spare_stack((Stack)&LD->stacks.global, &g);
-  st = include_spare_stack((Stack)&LD->stacks.trail,  &t);
+  sl = include_spare_stack(&LD->stacks.local,  &l);
+  sg = include_spare_stack(&LD->stacks.global, &g);
+  st = include_spare_stack(&LD->stacks.trail,  &t);
 
   gBase--; gMax++; tMax++;
   rc = grow_stacks(l, g, t PASS_LD);
