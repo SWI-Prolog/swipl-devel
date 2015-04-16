@@ -27,7 +27,7 @@
 /** <module> Test Prolog core term manipulation primitives
 
 This module is a Unit test for  Prolog built-ins that process terms,
-suchj as numbervars, univ, etc.
+such as numbervars, univ, etc.
 
 @author	Jan Wielemaker
 */
