@@ -1499,19 +1499,6 @@ stack-space if applicable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-clear_exception__LD(ARG_LD1)
-{ GET_LD
-
-  if ( exception_term )
-  { exception_term = 0;
-    setVar(*valTermRef(LD->exception.bin));
-    setVar(*valTermRef(LD->exception.printed));
-    setVar(*valTermRef(LD->exception.pending));
-  }
-}
-
-
-static void
 resumeAfterException(int clear, Stack outofstack)
 { GET_LD
 
@@ -1528,7 +1515,7 @@ resumeAfterException(int clear, Stack outofstack)
   if ( !considerGarbageCollect((Stack)NULL) )
   { trimStacks((outofstack != NULL) PASS_LD);
   } else if ( outofstack != NULL )
-  { trimStacks(FALSE PASS_LD);
+  { trimStacks(FALSE PASS_LD);		/* just re-enable the spare stacks */
     LD->trim_stack_requested = TRUE;	/* next time with resize */
   }
 

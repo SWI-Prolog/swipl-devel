@@ -3755,8 +3755,7 @@ void
 PL_clear_exception(void)
 { GET_LD
 
-  clear_exception__LD(PASS_LD1);
-  LD->exception.processing = FALSE;
+  resumeAfterException(TRUE, LD->outofstack);
   LD->outofstack = NULL;
 }
 
