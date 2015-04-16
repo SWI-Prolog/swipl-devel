@@ -1526,9 +1526,11 @@ resumeAfterException(int clear, Stack outofstack)
     outofstack->gced_size = 0;
 
   if ( !considerGarbageCollect((Stack)NULL) )
-    trimStacks((outofstack != NULL) PASS_LD);
-  else if ( outofstack != NULL )
-    LD->trim_stack_requested = TRUE;
+  { trimStacks((outofstack != NULL) PASS_LD);
+  } else if ( outofstack != NULL )
+  { trimStacks(FALSE PASS_LD);
+    LD->trim_stack_requested = TRUE;	/* next time with resize */
+  }
 
   LD->exception.processing = FALSE;
 }
