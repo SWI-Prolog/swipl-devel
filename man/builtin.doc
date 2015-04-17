@@ -6172,6 +6172,10 @@ $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
 $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
+
+Note that the ISO Prolog standard demands \term{atan2}{0.0,0.0} to raise
+an evaluation error, whereas the C99 and POSIX standards demand this to
+evaluate to 0.0.  SWI-Prolog follows C99 and POSIX.
     \function{atan}{2}{+YExpr, +XExpr}
 Same as \funcref{atan2}{2} (backward compatibility).
 
