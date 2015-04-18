@@ -30,8 +30,6 @@ COREMODULES+=" packages/pengines packages/cql"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
-serverpath="/download"
-serverurl="$server$serverpath"
 yes=ask
 man=auto
 tar=tar
@@ -42,11 +40,12 @@ unset CDPATH
 usage()
 {
 cat << _EOM_
-Usage: $0 [--yes] [--all] [--man]
+Usage: $0 [--yes] [--all] [--man] [--server=URL]
+
+  - Use "--server=http://us.swi-prolog.org" if www.swi-prolog.org is down
 _EOM_
   exit 1
 }
-
 
 while [ ! -z "$1" ]; do
   case "$1" in
@@ -62,12 +61,18 @@ while [ ! -z "$1" ]; do
 	man=download
 	shift
 	;;
+    --server=*)
+	server=$(echo $1 | sed 's/--server=//')
+	shift
+	;;
     *)
 	usage
 	;;
   esac
 done
 
+serverpath="/download"
+serverurl="$server$serverpath"
 
 findexe()
 { oldifs="$IFS"
