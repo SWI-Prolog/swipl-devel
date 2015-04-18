@@ -1,5 +1,5 @@
 ################################################################
-# Makefile for SWI-Prolog 6.x
+# Makefile for SWI-Prolog 7.x
 #
 # Author:	Jan Wielemaker
 #		J.Wielemake@cs.vu.nl
@@ -25,7 +25,8 @@
 #
 #       * make OPTIMISE=prof [PROFILE_SRC=<file>] [PROFILE_GOAL=<goal>]
 #
-# Copyright (C) University of Amsterdam, all rights reserved
+# Copyright (C) University of Amsterdam
+#		VU University Amsterdam
 #
 # Copyright policy:
 #
