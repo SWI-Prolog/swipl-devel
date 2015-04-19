@@ -50,7 +50,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/csv.tex lib/optparse.tex lib/clpb.tex \
 		lib/predicateoptions.tex lib/predopts.tex lib/random.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
-		lib/solutionsequences.tex
+		lib/solutionsequences.tex lib/iostream.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -218,6 +218,8 @@ lib/quasiquotations.tex: ../library/quasi_quotations.pl
 		$(LIBTOTEX) 'library(quasi_quotations)'
 lib/solutionsequences.tex: ../library/solution_sequences.pl
 		$(LIBTOTEX) 'library(solution_sequences)'
+lib/iostream.tex: ../library/iostream.pl
+		$(LIBTOTEX) 'library(iostream)'
 
 
 ################################################################

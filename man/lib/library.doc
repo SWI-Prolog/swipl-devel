@@ -38,6 +38,7 @@ documented at all.
 \input{csv}
 \input{debug}
 \input{gensym}
+\input{iostream}
 \input{lists}
 \input{nbset}
 \input{wwwbrowser}

@@ -52,7 +52,7 @@ is created through PlDoc.  To add a library
 
     - Edit Makefile.in:
 	- $LIBFILES
-	- Add a run to the section "PlDoc generated manual files"
+	- Add a rule to the section "PlDoc generated manual files"
 	- Add an \input to lib/library.doc and lib/summary.doc.
 
 Note that the LaTeX filename should   not contain underscores (see e.g.,
