@@ -834,6 +834,8 @@ sat_count(Sat0, N) :-
                foldl(renumber_variable, IVs, 1, VNum),
                bdd_count(BDD2, VNum, Count0),
                var_u(BDD2, VNum, P),
+               % Do not unify N directly, because we are not prepared
+               % for propagation here in case N is a CLP(B) variable.
                N0 is 2^(P - 1)*Count0,
                % reset all attributes and Aux variables
                throw(count(N0))),
