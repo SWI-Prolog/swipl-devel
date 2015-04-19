@@ -812,10 +812,10 @@ indomain(1).
 % Example:
 %
 % ==
-% ?- length(Vs, 120), sat_count(+Vs, CO), sat_count(*(Vs), CA).
+% ?- length(Vs, 120), sat_count(+Vs, CountOr), sat_count(*(Vs), CountAnd).
 % Vs = [...],
-% CO = 1329227995784915872903807060280344575,
-% CA = 1.
+% CountOr = 1329227995784915872903807060280344575,
+% CountAnd = 1.
 % ==
 
 sat_count(Sat0, N) :-
