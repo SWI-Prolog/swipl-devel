@@ -1630,7 +1630,8 @@ install_dependency(Options,
 	merge_options([ url(URL),
 			interactive(false),
 			inquiry(false),
-			info(list)
+			info(list),
+			pack(Pack)
 		      ], Options, InstallOptions),
 	pack_install(Pack, InstallOptions),
 	maplist(install_dependency(Options), SubResolve).
