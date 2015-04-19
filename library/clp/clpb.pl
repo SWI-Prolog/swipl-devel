@@ -412,13 +412,13 @@ variable_definite_value(BDD, Var, Value) :-
 
 var_always_0(VI, Node) :-
         node_var_low_high(Node, OVar, Low, High),
-        no_contradicting_node(VI, OVar, High, Low). % note reverse order!
+        single_truth_value(VI, OVar, High, Low). % note reverse order!
 
 var_always_1(VI, Node) :-
         node_var_low_high(Node, OVar, Low, High),
-        no_contradicting_node(VI, OVar, Low, High).
+        single_truth_value(VI, OVar, Low, High).
 
-no_contradicting_node(VI, OVar, Child1, Child2) :-
+single_truth_value(VI, OVar, Child1, Child2) :-
         var_index(OVar, OVI),
         (   VI =:= OVI -> Child1 == 0
         ;   OVI > VI -> true
