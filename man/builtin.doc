@@ -3434,15 +3434,15 @@ Mildner.} Defined values are below. Not recognised values are silently
 ignored, allowing for adding platform specific extensions to this set.
 
     \begin{description}
-	\termitem{read}
+	\termitem{read}{}
     Allow read access to the file.
-	\termitem{write}
+	\termitem{write}{}
     Allow write access to the file.
-	\termitem{execute}
+	\termitem{execute}{}
     Allow execution access to the file.
-	\termitem{default}
+	\termitem{default}{}
     Allow read and write access to the file.
-	\termitem{all}
+	\termitem{all}{}
     Allow any access provided by the OS.
     \end{description}
 
