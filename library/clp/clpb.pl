@@ -839,8 +839,8 @@ sat_count(Sat0, N) :-
                N0 is 2^(P - 1)*Count0,
                % reset all attributes and Aux variables
                throw(count(N0))),
-              count(N),
-              true).
+              count(N0),
+              N = N0).
 
 renumber_variable(V, I0, I) :-
         put_attr(V, clpb, index_root(I0,_)),
