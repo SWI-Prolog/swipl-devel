@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014 Markus Triska
+    Copyright (C): 2014, 2015 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -264,6 +264,21 @@ parse_sat(Sat0, Sat) :-
         term_variables(Sat, Vs),
         maplist(enumerate_variable, Vs).
 
+enumerate_variable(V) :-
+        (   var_index_root(V, _, _) -> true
+        ;   clpb_next_id('$clpb_next_var', Index),
+            put_attr(V, clpb, index_root(Index,_)),
+            put_empty_hash(V)
+        ).
+
+var_index(V, I) :- var_index_root(V, I, _).
+
+var_index_root(V, I, Root) :- get_attr(V, clpb, index_root(I,Root)).
+
+put_empty_hash(V) :-
+        empty_assoc(H0),
+        put_attr(V, clpb_hash, H0).
+
 sat_roots(Sat, Roots) :-
         term_variables(Sat, Vs),
         maplist(var_index_root, Vs, _, Roots0),
@@ -284,7 +299,8 @@ sat(Sat0) :-
             maplist(del_bdd, Roots),
             maplist(=(Root), Roots),
             root_put_formula_bdd(Root, And, BDD1),
-            satisfiable_bdd(BDD1)
+            term_variables(Sat0, Vs),
+            satisfiable_bdd(BDD1, Vs)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -336,6 +352,10 @@ root_and(Root, Sat0-BDD0, Sat-BDD) :-
             BDD = BDD0
         ).
 
+bdd_and(NA, NB, And) :-
+        apply(*, NA, NB, And),
+        is_bdd(And).
+
 %% taut(+Expr, -T) is semidet
 %
 % Succeeds with T = 0 if the Boolean expression Expr cannot be
@@ -360,35 +380,60 @@ unsatisfiable_conjunction(Sat, Ands) :-
         bdd_and(BDD, Ands, B),
         B == 0.
 
-satisfiable_bdd(BDD) :-
+satisfiable_bdd(BDD) :- satisfiable_bdd(BDD, []).
+
+satisfiable_bdd(BDD, Vs) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
-        ;   node_var_low_high(BDD, Var, Low, High),
-            (   Low == 0 -> Var = 1
-            ;   High == 0 -> Var = 0
-            ;   true
+        ;   node_var_low_high(BDD, Var, _, _),
+            % always consider at least the topmost branching variable
+            Vars = [Var|Vs],
+            maplist(variable_definite_value(BDD), Vars, Values),
+            (   maplist(var, Values) -> true % nothing to propagate
+            ;   Vars = Values % propagate all assignments at once
             )
         ).
 
-var_index(V, I) :- var_index_root(V, I, _).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   We walk the BDD and check for the given variable if only a single
+   value can make the formula true. This means: The variable is not
+   skipped in any branch leading to 1 (its being skipped means that it
+   may be assigned either 0 or 1 and can thus not be fixed yet), and
+   all nodes where it occurs as a branching variable have either lower
+   or upper child fixed to 0 consistently.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-var_index_root(V, I, Root) :- get_attr(V, clpb, index_root(I,Root)).
-
-enumerate_variable(V) :-
-        (   var_index_root(V, _, _) -> true
-        ;   clpb_next_id('$clpb_next_var', Index),
-            put_attr(V, clpb, index_root(Index,_)),
-            put_empty_hash(V)
+variable_definite_value(BDD, Var, Value) :-
+        var_index(Var, VI),
+        (   bdd_nodes(var_always_0(VI), BDD, _) -> Value = 0
+        ;   bdd_nodes(var_always_1(VI), BDD, _) -> Value = 1
+        ;   Value = _ % either value is possible
         ).
 
-put_empty_hash(V) :-
-        empty_assoc(H0),
-        put_attr(V, clpb_hash, H0).
+var_always_0(VI, Node) :-
+        node_var_low_high(Node, OVar, Low, High),
+        no_contradicting_node(VI, OVar, High, Low). % note reverse order!
 
+var_always_1(VI, Node) :-
+        node_var_low_high(Node, OVar, Low, High),
+        no_contradicting_node(VI, OVar, Low, High).
 
-bdd_and(NA, NB, And) :-
-        apply(*, NA, NB, And),
-        is_bdd(And).
+no_contradicting_node(VI, OVar, Child1, Child2) :-
+        var_index(OVar, OVI),
+        (   VI =:= OVI -> Child1 == 0
+        ;   OVI > VI -> true
+        ;   % OVI < VI ->
+            \+ index_skipped(VI, Child1),
+            \+ index_skipped(VI, Child2)
+        ).
+
+index_skipped(VI, ChildNode) :-
+        (   ChildNode == 0 -> false
+        ;   ChildNode == 1 -> true
+        ;   node_var_low_high(ChildNode, ChildVar, _, _),
+            var_index(ChildVar, ChildIndex),
+            VI < ChildIndex
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Node management. Always use an existing node, if there is one.
@@ -415,8 +460,13 @@ low_high_hentry(Low, High, node(LID,HID)) :-
 
 
 rebuild_hashes(BDD) :-
-        bdd_nodes(put_empty_hash, BDD, Nodes),
+        bdd_nodes(nodevar_put_empty_hash, BDD, Nodes),
         maplist(re_register_node, Nodes).
+
+nodevar_put_empty_hash(Node) :-
+        node_var_low_high(Node, Var, _, _),
+        empty_assoc(H0),
+        put_attr(Var, clpb_hash, H0).
 
 re_register_node(Node) :-
         node_var_low_high(Node, Var, Low, High),
@@ -693,17 +743,18 @@ bdd_restriction_(Node, VI, Value, Res) -->
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Relating a BDD to its elements (nodes and variables).
 
-   Note that BDDs can become quite big (easily more than a million
-   nodes), and memory space is a major bottleneck for many problems. If
-   possible, we therefore do not duplicate the entire BDD in memory (as
-   in bdd_ites/2), but only extract its features as needed.
+   Note that BDDs can become quite big (easily millions of nodes), and
+   memory space is a major bottleneck for many problems. If possible,
+   we therefore do not duplicate the entire BDD in memory (as in
+   bdd_ites/2), but only extract its features as needed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_nodes(BDD, Ns) :- bdd_nodes(do_nothing, BDD, Ns).
 
 do_nothing(_).
 
-% VPred is a unary predicate that is called for each branching variable
+% VPred is a unary predicate that is called for each node that has a
+% branching variable (= each inner node).
 
 bdd_nodes(VPred, BDD, Ns) :-
         phrase(bdd_nodes_(VPred, BDD), Ns),
@@ -711,9 +762,9 @@ bdd_nodes(VPred, BDD, Ns) :-
 
 bdd_nodes_(VPred, Node) -->
         (   { integer(Node) ;  with_aux(is_visited, Node) } -> []
-        ;   { node_var_low_high(Node, Var, Low, High),
-              call(VPred, Var),
-              with_aux(put_visited, Node) },
+        ;   { call(VPred, Node),
+              with_aux(put_visited, Node),
+              node_var_low_high(Node, _, Low, High) },
             [Node],
             bdd_nodes_(VPred, Low),
             bdd_nodes_(VPred, High)
