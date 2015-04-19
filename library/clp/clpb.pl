@@ -431,8 +431,10 @@ index_skipped(VI, ChildNode) :-
         (   ChildNode == 0 -> false
         ;   ChildNode == 1 -> true
         ;   node_var_low_high(ChildNode, ChildVar, _, _),
-            var_index(ChildVar, ChildIndex),
-            VI < ChildIndex
+            (   var_index(ChildVar, ChildIndex) ->
+                VI < ChildIndex
+            ;   true /* instantiated; assume skipped VI in this branch  */
+            )
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
