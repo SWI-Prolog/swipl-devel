@@ -663,3 +663,11 @@ convert_setting_text(Type, Atom, Term) :-
 	must_be(Type, Term).
 
 
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+:- multifile
+	sandbox:safe_meta_predicate/1.
+
+sandbox:safe_meta_predicate(settings:setting/2).
