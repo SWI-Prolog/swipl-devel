@@ -183,7 +183,7 @@ open_any_builtin(file(Spec), Mode, Stream, close(Stream), Options0, Options) :-
 	),
 	partition(open_option, Options0, OpenOptions, Options),
 	open(Path, Mode, Stream, OpenOptions).
-open_any_builtin(string(S), input, Stream, close(Stream), Options, Options) :-
+open_any_builtin(string(S), read, Stream, close(Stream), Options, Options) :-
 	open_string(S, Stream).
 
 open_option(encoding(_)).
