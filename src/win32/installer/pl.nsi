@@ -370,6 +370,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\solution_sequences.pl
   File ${SWIPL}\library\pure_input.pl
   File ${SWIPL}\library\pio.pl
+  File ${SWIPL}\library\iostream.pl
   File ${SWIPL}\library\coinduction.pl
   File ${SWIPL}\library\quasi_quotations.pl
   File ${SWIPL}\library\sandbox.pl
