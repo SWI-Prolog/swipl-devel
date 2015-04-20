@@ -176,6 +176,33 @@ static sem_t sem_mark;			/* used for atom-gc */
 #endif
 #endif /*!__WINDOWS__*/
 
+#ifdef __WINDOWS__
+/* Deal with different versions of the windows thread library
+*/
+
+static HANDLE
+get_windows_thread(PL_thread_info_t *info)
+{
+#ifdef HAVE_PTHREAD_GETW32THREADHANDLE_NP
+  HANDLE wt = NULL;
+  __try
+  { wt = pthread_getw32threadhandle_np(info->tid);
+  } __except(EXCEPTION_EXECUTE_HANDLER)
+  return wt;
+#else
+  return OpenThread(THREAD_ALL_ACCESS, FALSE, info->w32id);
+#endif
+}
+
+static void
+close_windows_thread(HANDLE wt)
+{
+#ifndef HAVE_PTHREAD_GETW32THREADHANDLE_NP
+  CloseHandle(wt);
+#endif
+}
+#endif /*__WINDOWS__*/
+
 
 		 /*******************************
 		 *	    GLOBAL DATA		*
@@ -4956,10 +4983,6 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 #define nano * 0.000000001
 #define ntick 100.0
 
-#ifndef HAVE_PTHREAD_GETW32THREADHANDLE_NP
-#define pthread_getw32threadhandle_np(t) pthread_gethandle(t)
-#endif
-
 double
 ThreadCPUTime(PL_local_data_t *ld, int which)
 { PL_thread_info_t *info = ld->thread.info;
@@ -4970,11 +4993,8 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
   if ( !info->has_tid )
     return 0.0;
 
-  __try					/* sometimes appears to fail ... */
-  { win_thread = pthread_getw32threadhandle_np(info->tid);
-  } __except(EXCEPTION_EXECUTE_HANDLER)
-  { return 0.0;
-  }
+  if ( !(win_thread = get_windows_thread(info)) )
+    return 0.0;
 
   if ( GetThreadTimes(win_thread,
 		      &created, &exited, &kerneltime, &usertime) )
@@ -4987,10 +5007,12 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
-    return t;
-  }
+  } else
+    t = 0.0;
 
-  return 0.0;
+  close_windows_thread(win_thread);
+
+  return t;
 }
 
 #else /*__WINDOWS__*/
@@ -5436,7 +5458,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 
     if ( info && info->thread_data && i != me &&
 	 info->status == PL_THREAD_RUNNING )
-    { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
+    { HANDLE win_thread = get_windows_thread(info);
       PL_local_data_t *ld = info->thread_data;
       int old_p;
 
@@ -5470,6 +5492,8 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 	  set_priority_threads(me_win_thread, win_thread, old_p);
 	pin_threads(process, me_win_thread, win_thread, FALSE);
       }
+
+      close_windows_thread(win_thread);
     }
   }
 }
@@ -5489,9 +5513,10 @@ resumeThreads(void)
 
     if ( info && info->thread_data && i != me &&
 	 info->status == PL_THREAD_SUSPENDED )
-    { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
+    { HANDLE win_thread = get_windows_thread(info);
 
       ResumeThread(win_thread);
+      close_windows_thread(win_thread);
       info->status = PL_THREAD_RUNNING;
     }
   }
