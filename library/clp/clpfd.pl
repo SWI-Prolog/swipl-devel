@@ -5895,16 +5895,16 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 
 %% cumulative(+Tasks, +Options)
 %
-%  Tasks is a list of tasks, each of the form task(S_i, D_i, E_i, C_i,
-%  T_i). S_i denotes the start time, D_i the positive duration, E_i
-%  the end time, C_i the non-negative resource consumption, and T_i
-%  the task identifier. Each of these arguments must be a finite
-%  domain variable with bounded domain, or an integer. The constraint
-%  holds if at any time during the start and end of each task, the
-%  total resource consumption of all tasks running at that time does
-%  not exceed the global resource limit (which is 1 by default).
-%  Options is a list of options. Currently, the only supported option
-%  is:
+%  Schedule with a limited resource. Tasks is a list of tasks, each of
+%  the form task(S_i, D_i, E_i, C_i, T_i). S_i denotes the start time,
+%  D_i the positive duration, E_i the end time, C_i the non-negative
+%  resource consumption, and T_i the task identifier. Each of these
+%  arguments must be a finite domain variable with bounded domain, or
+%  an integer. The constraint holds iff at each time slot during the
+%  start and end of each task, the total resource consumption of all
+%  tasks running at that time does not exceed the global resource
+%  limit (which is 1 by default). Options is a list of options.
+%  Currently, the only supported option is:
 %
 %    * limit(L)
 %      The integer L is the global resource limit.
