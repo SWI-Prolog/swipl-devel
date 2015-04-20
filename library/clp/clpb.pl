@@ -723,20 +723,19 @@ bdd_restriction_(Node, VI, Value, Res) -->
                 ;   { Var =:= 1 } -> bdd_restriction_(High, VI, Value, Res)
                 ;   { no_truth_value(Var) }
                 )
-            ;   (   { var_index(Var, I0),
-                      node_id(Node, ID) },
-                    (   { I0 =:= VI } ->
-                        (   { Value =:= 0 } -> { Res = Low }
-                        ;   { Value =:= 1 } -> { Res = High }
-                        )
-                    ;   { I0 > VI } -> { Res = Node }
-                    ;   state(G0), { get_assoc(ID, G0, Res) } -> []
-                    ;   bdd_restriction_(Low, VI, Value, LRes),
-                        bdd_restriction_(High, VI, Value, HRes),
-                        make_node(Var, LRes, HRes, Res),
-                        state(G0, G),
-                        { put_assoc(ID, G0, Res, G) }
+            ;   { var_index(Var, I0),
+                  node_id(Node, ID) },
+                (   { I0 =:= VI } ->
+                    (   { Value =:= 0 } -> { Res = Low }
+                    ;   { Value =:= 1 } -> { Res = High }
                     )
+                ;   { I0 > VI } -> { Res = Node }
+                ;   state(G0), { get_assoc(ID, G0, Res) } -> []
+                ;   bdd_restriction_(Low, VI, Value, LRes),
+                    bdd_restriction_(High, VI, Value, HRes),
+                    make_node(Var, LRes, HRes, Res),
+                    state(G0, G),
+                    { put_assoc(ID, G0, Res, G) }
                 )
             )
         ;   { domain_error(node, Node) }
