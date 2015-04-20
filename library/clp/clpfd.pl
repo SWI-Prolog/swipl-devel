@@ -3486,11 +3486,12 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 %% tuples_in(+Tuples, +Relation).
 %
-% Relation must be a list of lists of integers. The elements of the
-% list Tuples are constrained to be elements of Relation. Arbitrary
-% finite relations, such as compatibility tables, can be modeled in
-% this way. For example, if 1 is compatible with 2 and 5, and 4 is
-% compatible with 0 and 3:
+% True iff all Tuples are elements of Relation. Each element of the
+% list Tuples is a list of integers or finite domain variables.
+% Relation is a list of lists of integers. Arbitrary finite relations,
+% such as compatibility tables, can be modeled in this way. For
+% example, if 1 is compatible with 2 and 5, and 4 is compatible with 0
+% and 3:
 %
 % ==
 % ?- tuples_in([[X,Y]], [[1,2],[1,5],[4,0],[4,3]]), X = 4.
