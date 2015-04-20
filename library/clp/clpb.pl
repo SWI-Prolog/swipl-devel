@@ -782,11 +782,11 @@ nodes_variables(Nodes, Vs) :-
 nodes_variables_([]) --> [].
 nodes_variables_([Node|Nodes]) -->
         { node_var_low_high(Node, Var, _, _) },
-        (   { is_visited(Var) } -> nodes_variables_(Nodes)
+        (   { is_visited(Var) } -> []
         ;   { put_visited(Var) },
-            [Var],
-            nodes_variables_(Nodes)
-        ).
+            [Var]
+        ),
+        nodes_variables_(Nodes).
 
 unvisit(V) :- del_attr(V, clpb_visited).
 
