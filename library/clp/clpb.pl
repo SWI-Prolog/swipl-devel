@@ -286,8 +286,7 @@ sat_roots(Sat, Roots) :-
 
 %% sat(+Expr) is semidet.
 %
-% States the constraint that Expr be a satisfiable Boolean expression.
-% Fails if Expr cannot be satisfied.
+% True iff Expr is a satisfiable Boolean expression.
 
 sat(Sat0) :-
         (   phrase(sat_ands(Sat0), Ands), Ands = [_,_|_] ->
@@ -663,15 +662,26 @@ state(S0, S), [S] --> [S0].
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Unification. X = Expr is equivalent to sat(X =:= Expr).
 
-   attr_unify_hook/2 is not general enough to express what we need.
-   For example, "?- sat(A + B), A = A + 1." should be equivalent to
-   "?- sat(A + B), sat(A =:= A + 1).", but attr_unify_hook/2 is only
-   called *after* the unification A = A + 1 has already taken place
-   and turned A into a ground term, making it impossible to reason
-   about the variable A in the unification hook. Therefore, we need a
-   more general mechanism for unification of attributed variables.
-   In particular, unification filters should be able to reason about
-   terms before they are unified with anything.
+   Current limitation:
+   ===================
+
+   The current interface of attributed variables is not general enough
+   to express what we need. For example,
+
+       ?- sat(A + B), A = A + 1.
+
+   should be equivalent to
+
+       ?- sat(A + B), sat(A =:= A + 1).
+
+   However, attr_unify_hook/2 is only called *after* the unification
+   of A with A + 1 has already taken place and turned A into a cyclic
+   ground term, raised an error or failed (depending on the flag
+   occurs_check), making it impossible to reason about the variable A
+   in the unification hook. Therefore, a more general interface for
+   attributed variables should replace the current one. In particular,
+   unification filters should be able to reason about terms before
+   they are unified with anything.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 attr_unify_hook(index_root(I,Root), Other) :-
