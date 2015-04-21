@@ -440,11 +440,11 @@ index_skipped(VI, ChildNode) :-
 
 make_node(Var, Low, High, Node) :-
         (   Low == High -> Node = Low
-        ;   low_high_hentry(Low, High, HEntry),
-            (   lookup_node(Var, HEntry, Node) -> true
+        ;   low_high_key(Low, High, Key),
+            (   lookup_node(Var, Key, Node) -> true
             ;   clpb_next_id('$clpb_next_node', ID),
                 Node = node(ID,Var,Low,High,_Aux),
-                register_node(Var, HEntry, Node)
+                register_node(Var, Key, Node)
             )
         ).
 
@@ -453,7 +453,10 @@ make_node(Var, Low, High, Node) -->
         { make_node(Var, Low, High, Node) }.
 
 
-low_high_hentry(Low, High, node(LID,HID)) :-
+% The key of a node for hashing is determined by the IDs of its
+% children.
+
+low_high_key(Low, High, node(LID,HID)) :-
         node_id(Low, LID),
         node_id(High, HID).
 
@@ -469,17 +472,17 @@ nodevar_put_empty_hash(Node) :-
 
 re_register_node(Node) :-
         node_var_low_high(Node, Var, Low, High),
-        low_high_hentry(Low, High, HEntry),
-        register_node(Var, HEntry, Node).
+        low_high_key(Low, High, Key),
+        register_node(Var, Key, Node).
 
-register_node(Var, HEntry, Node) :-
+register_node(Var, Key, Node) :-
         get_attr(Var, clpb_hash, H0),
-        put_assoc(HEntry, H0, Node, H),
+        put_assoc(Key, H0, Node, H),
         put_attr(Var, clpb_hash, H).
 
-lookup_node(Var, HEntry, Node) :-
+lookup_node(Var, Key, Node) :-
         get_attr(Var, clpb_hash, H0),
-        get_assoc(HEntry, H0, Node).
+        get_assoc(Key, H0, Node).
 
 
 node_id(0, false).
@@ -828,8 +831,8 @@ is_bdd(BDD) :-
         ).
 
 registered_node(Node-ite(Var,High,Low)) :-
-        low_high_hentry(Low, High, HEntry),
-        lookup_node(Var, HEntry, Node0),
+        low_high_key(Low, High, Key),
+        lookup_node(Var, Key, Node0),
         Node == Node0.
 
 bdd_ites(BDD, ITEs) :-
