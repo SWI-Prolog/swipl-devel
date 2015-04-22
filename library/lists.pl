@@ -444,9 +444,32 @@ permutation(Xs, Ys) :-
 	perm(Xs, Ys).
 
 perm([], []).
-perm(List, [First|Perm]) :-
-        select(First, List, Rest),
-        perm(Rest, Perm).
+perm([Y|Ys], Xs) :-
+        permute(Xs, Z),
+	shift(Z, [Y|Ys]).
+
+permute([], []).
+permute([X|Xs], [X|Rest]) :-
+        (
+	   Xs = []
+	->
+	   Rest = Xs
+	;
+	   permute(Xs, P),
+	   shift(P, Rest)
+	).
+
+shift(Xs, S) :-
+        (  S = Xs
+	;  shift_(Xs, S)
+	).
+
+shift_([], []).
+shift_([X,Y|Rest], [Y|Tail]) :-
+        (  Tail = [X|Rest]
+	;  shift_([X|Rest], Tail)
+	).
+
 
 %%	flatten(+NestedList, -FlatList) is det.
 %
