@@ -613,7 +613,7 @@ index(Head) :-
 %	handled dynamically.
 
 hash(PI) :-
-	print_message(warning, decl_no_effect(index(PI))).
+	print_message(warning, decl_no_effect(hash(PI))).
 
 %%	set_base_module(:Base) is det.
 %
