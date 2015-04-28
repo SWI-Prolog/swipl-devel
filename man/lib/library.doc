@@ -46,6 +46,7 @@ documented at all.
 \input{optparse}
 \input{ordsets}
 \input{pairs}
+\input{persistency}
 \input{pio}
 \input{predicateoptions}
 \input{prologpack}

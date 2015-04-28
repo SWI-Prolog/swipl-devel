@@ -55,6 +55,9 @@
 \libsummary{debug}
 \input{summaries.d/debug.tex}
 
+\libsummary{iostream}
+\libsummary{summaries.d/iostream/tex}
+
 \libsummary{option}
 \input{summaries.d/option.tex}
 
@@ -63,6 +66,9 @@
 
 \libsummary{ordsets}
 \input{summaries.d/ordsets.tex}
+
+\libsummary{persistency}
+\input{summaries.d/persistency.tex}
 
 \libsummary{predicate_options}
 \input{summaries.d/predopts.tex}
