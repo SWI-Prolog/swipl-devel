@@ -66,7 +66,7 @@ refer to the thread and remains valid until the thread is joined
     \termitem{at_exit}{:AtExit}
 Register \arg{AtExit} as using thread_at_exit/1 before entering the
 thread goal. Unlike calling thread_at_exit/1 as part of the normal
-\arg{Goal}, this \emph{ensures} the \arg{Goal} is called. Using
+\arg{Goal}, this \emph{ensures} the \arg{AtExit} is called. Using
 thread_at_exit/1, the thread may be signalled or run out of resources
 before thread_at_exit/1 is reached.
 
