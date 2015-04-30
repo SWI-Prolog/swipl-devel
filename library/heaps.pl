@@ -3,7 +3,7 @@
     Author:        Lars Buitinck
     E-mail:        larsmans@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010-2014, Lars Buitinck
+    Copyright (C): 2010-2015, Lars Buitinck
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -60,17 +60,12 @@
  * be ordered by @=</2. Be careful when using variables as keys, since binding
  * them in between heap operations may change the ordering.
  *
- * The current version implements pairing heaps. All operations can be
- * performed in at most O(lg n) amortized time, except for delete_from_heap/4,
- * heap_to_list/2, is_heap/1 and list_to_heap/2.
- *
- * (The actual time complexity of pairing heaps is complicated and not yet
- * determined conclusively; see, e.g. S. Pettie (2005), Towards a final
- * analysis of pairing heaps, Proc. FOCS'05.)
+ * The current version implements pairing heaps. These support insertion and
+ * merging both in constant time, deletion of the minimum in logarithmic
+ * amortized time (though delete-min, i.e., get_from_heap/3, takes linear time
+ * in the worst case).
  *
  * @author Lars Buitinck
- *
- * @bug The "decrease key" operation is not implemented.
  */
 
 /*
@@ -107,20 +102,23 @@ delete_from_heap(Q0,Px,X,Q) :-
 
 %%	empty_heap(?Heap) is semidet.
 %
-%       True if Heap is an empty heap.
+%       True if Heap is an empty heap. Complexity: constant.
 
 empty_heap(heap(nil,0)).
 
 %%	singleton_heap(?Heap, ?Priority, ?Key) is semidet.
 %
 %	True if Heap is a heap with the single element Priority-Key.
+%
+%   Complexity: constant.
 
 singleton_heap(heap(t(X,P,[]), 1), P, X).
 
 %%	get_from_heap(?Heap0, ?Priority, ?Key, -Heap) is semidet.
 %
 %	Retrieves the minimum-priority  pair   Priority-Key  from Heap0.
-%	Heap is Heap0 with that pair removed.
+%	Heap is Heap0 with that pair removed.   Complexity:  logarithmic
+%   (amortized), linear in the worst case.
 
 get_from_heap(heap(t(X,P,Sub),M), P, X, heap(Q,N)) :-
 	pairing(Sub,Q),
@@ -128,14 +126,14 @@ get_from_heap(heap(t(X,P,Sub),M), P, X, heap(Q,N)) :-
 
 %%	heap_size(+Heap, -Size:int) is det.
 %
-%	Determines the number of elements in Heap.
+%	Determines the number of elements in Heap. Complexity: constant.
 
 heap_size(heap(_,N),N).
 
 %%	heap_to_list(+Heap, -List:list) is det.
 %
 %	Constructs a list List  of   Priority-Element  terms, ordered by
-%	(ascending) priority.
+%	(ascending) priority. Complexity: $O(n \log n)$.
 
 heap_to_list(Q,L) :-
 	to_list(Q,L).
@@ -147,7 +145,7 @@ to_list(Q0,[P-X|Xs]) :-
 %%	is_heap(+X) is semidet.
 %
 %	Returns true if X is a heap.  Validates the consistency	of the
-%	entire heap.
+%	entire heap. Complexity: linear.
 
 is_heap(V) :-
 	var(V), !, fail.
@@ -183,7 +181,7 @@ are_pairing_heaps([Q|Qs], MinP) :-
 %%	list_to_heap(+List:list, -Heap) is det.
 %
 %	If List is a list of  Priority-Element  terms, constructs a heap
-%	out of List.
+%	out of List. Complexity: linear.
 
 list_to_heap(Xs,Q) :-
 	empty_heap(Empty),
@@ -197,13 +195,19 @@ list_to_heap([P-X|Xs],Q0,Q) :-
 %%	min_of_heap(+Heap, ?Priority, ?Key) is semidet.
 %
 %	Unifies Key with  the  minimum-priority   element  of  Heap  and
-%	Priority with its priority value.
+%	Priority with its priority value. Complexity: constant.
 
 min_of_heap(heap(t(X,P,_),_), P, X).
 
 %%	min_of_heap(+Heap, ?Priority1, ?Key1, ?Priority2, ?Key2) is semidet.
 %
-%	Gets the two minimum-priority elements from Heap.
+%	Gets the two minimum-priority elements from Heap. Complexity: logarithmic
+%   (amortized).
+%
+%   Do not use this predicate; it exists for compatibility with earlier
+%   implementations of this library and the SICStus counterpart. It performs
+%   a linear amount of work in the worst case that a following get_from_heap
+%   has to re-do.
 
 min_of_heap(Q,Px,X,Py,Y) :-
 	get_from_heap(Q,Px,X,Q0),
@@ -211,7 +215,7 @@ min_of_heap(Q,Px,X,Py,Y) :-
 
 %%	merge_heaps(+Heap0, +Heap1, -Heap) is det.
 %
-%	Merge the two heaps Heap0 and Heap1 in Heap.
+%	Merge the two heaps Heap0 and Heap1 in Heap. Complexity: constant.
 
 merge_heaps(heap(L,K),heap(R,M),heap(Q,N)) :-
 	meld(L,R,Q),
