@@ -96,6 +96,7 @@ typedef struct _PL_thread_info_t
   record_t	    return_value;	/* Value (term) returned */
   atom_t	    name;		/* Name of the thread */
   ldata_status_t    ldata_status;	/* status of forThreadLocalData() */
+  int		    in_exit_hooks;	/* TRUE: running exit hooks */
 } PL_thread_info_t;
 
 #define QTYPE_THREAD	0

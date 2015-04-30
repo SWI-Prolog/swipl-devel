@@ -531,8 +531,10 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     acknowledge = info->thread_data->exit_requested;
     UNLOCK();
 
+    info->in_exit_hooks = TRUE;
     callEventHook(PL_EV_THREADFINISHED, info);
     run_thread_exit_hooks(ld);
+    info->in_exit_hooks = FALSE;
   } else
   { acknowledge = FALSE;
     info->detached = TRUE;		/* cleanup */
@@ -5457,7 +5459,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   { PL_thread_info_t *info = GD->thread.threads[i];
 
     if ( info && info->thread_data && i != me &&
-	 info->status == PL_THREAD_RUNNING )
+	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
     { HANDLE win_thread = get_windows_thread(info);
       PL_local_data_t *ld = info->thread_data;
       int old_p;
@@ -5695,7 +5697,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   { PL_thread_info_t *info = *th;
 
     if ( info->thread_data && info->pl_tid != me &&
-	 info->status == PL_THREAD_RUNNING )
+	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
     { int rc;
 
       DEBUG(MSG_THREAD, Sdprintf("Signalling %d\n", info->pl_tid));
@@ -5749,7 +5751,7 @@ forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
   { PL_thread_info_t *info = *th;
 
     if ( info->thread_data && info->pl_tid != me &&
-	 info->status == PL_THREAD_RUNNING )
+	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
     { PL_local_data_t *ld = info->thread_data;
         (*func)(ld);
 
