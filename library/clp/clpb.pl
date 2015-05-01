@@ -385,9 +385,10 @@ satisfiable_bdd(BDD, Vs) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
         ;   node_var_low_high(BDD, Var, _, _),
+            var_index(Var, Lowest),
             % always consider at least the topmost branching variable
             Vars = [Var|Vs],
-            maplist(variable_definite_value(BDD), Vars, Values),
+            maplist(variable_definite_value(BDD,Lowest), Vars, Values),
             (   maplist(var, Values) -> true % nothing to propagate
             ;   Vars = Values % propagate all assignments at once
             )
@@ -402,11 +403,14 @@ satisfiable_bdd(BDD, Vs) :-
    or upper child fixed to 0 consistently.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variable_definite_value(BDD, Var, Value) :-
+variable_definite_value(BDD, Lowest, Var, Value) :-
         var_index(Var, VI),
-        (   bdd_nodes(var_always_0(VI), BDD, _) -> Value = 0
-        ;   bdd_nodes(var_always_1(VI), BDD, _) -> Value = 1
-        ;   Value = _ % either value is possible
+        (   VI < Lowest ->
+            Value = _             % either value is possible
+        ;   (   bdd_nodes(var_always_0(VI), BDD, _) -> Value = 0
+            ;   bdd_nodes(var_always_1(VI), BDD, _) -> Value = 1
+            ;   Value = _         % either value is possible
+            )
         ).
 
 var_always_0(VI, Node) :-
@@ -418,6 +422,8 @@ var_always_1(VI, Node) :-
         single_truth_value(VI, OVar, Low, High).
 
 single_truth_value(VI, OVar, Child1, Child2) :-
+        % If any variable is instantiated, the following fails, as intended.
+        % This only means that we do not perform any propagation for now.
         var_index(OVar, OVI),
         (   VI =:= OVI -> Child1 == 0
         ;   OVI > VI -> true
