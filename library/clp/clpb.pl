@@ -51,8 +51,8 @@
 Constraint programming is a declarative formalism that lets you state
 relations between terms. This library provides CLP(B), Constraint
 Logic Programming over Boolean Variables. It can be used to model and
-solve combinatorial problems such as circuit verification, graph
-colouring and allocation tasks.
+solve combinatorial problems such as verification, allocation and
+covering tasks.
 
 The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
@@ -139,17 +139,13 @@ X = Y, Y = Z, Z = 1.
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
 sat(X=:=X),
-node(8)- (X->node(7);node(6)),
-node(6)- (Y->node(5);true),
-node(5)- (Z->true;false),
-node(7)- (Y->node(5);false),
+sat(X*Y#X#Y*Z#Y#1),
 sat(Y=:=Y),
 sat(Z=:=Z).
 ==
 
 The pending residual goals constrain remaining variables to Boolean
-expressions, and encode a decision diagram that determines the query's
-truth value when further constraints are added.
+expressions and are declaratively equivalent to the original query.
 
 @author Markus Triska
 */
@@ -767,9 +763,9 @@ bdd_restriction_(Node, VI, Value, Res) -->
    bdd_ites/2), but only extract its features as needed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bdd_nodes(BDD, Ns) :- bdd_nodes(do_nothing, BDD, Ns).
+bdd_nodes(BDD, Ns) :- bdd_nodes(ignore_node, BDD, Ns).
 
-do_nothing(_).
+ignore_node(_).
 
 % VPred is a unary predicate that is called for each node that has a
 % branching variable (= each inner node).
@@ -945,28 +941,69 @@ var_u(Node, VNum, Index) :-
 
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
-        boolean(Var),
+        [sat(Var =:= Var)],
         (   { root_get_formula_bdd(Root, _, BDD) } ->
             { del_bdd(Root),
-              bdd_nodes(BDD, Nodes) },
-            nodes(Nodes)
+              bdd_anf(BDD, ANF) },
+            (   { ANF == 1 } -> []
+            ;   [sat(ANF)]
+            )
         ;   []
         ).
 
-boolean(V) --> [sat(V =:= V)].
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Relate a BDD to its algebraic normal form.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-nodes([]) --> [].
-nodes([Node|Nodes]) -->
-        { node_var_low_high(Node, Var, Low, High),
-          maplist(node_projection, [Node,High,Low], [ID,HID,LID]) },
-        [ID-(Var -> HID ; LID)],
-        nodes(Nodes).
+bdd_anf(Node, Sat) :-
+        phrase(xors(Node), Xors0),
+        maplist(sort, Xors0, Xors1),
+        msort(Xors1, Xors2),
+        skip_doubles(Xors2, Xors3),
+        maplist(exclude(eq_1), Xors3, Xors4),
+        maplist(list_to_conjunction, Xors4, [Conj|Conjs]),
+        foldl(xor, Conjs, Conj, Sat).
 
-node_projection(Node, Projection) :-
-        node_id(Node, ID),
-        (   integer(ID) -> Projection = node(ID)
-        ;   Projection = ID
+list_to_conjunction([], 1).
+list_to_conjunction([L|Ls], Conj) :- foldl(and, Ls, L, Conj).
+
+xor(A, B, B # A).
+
+skip_doubles(List0, List) :-
+        skip_one_pass(List0, List1),
+        (   List0 == List1 -> List = List0
+        ;   skip_doubles(List1, List)
         ).
+
+skip_one_pass([], []).
+skip_one_pass([L|Ls], Rest) :-
+        (   Ls = [First|Rest0], First == L ->
+            skip_one_pass(Rest0, Rest)
+        ;   Rest = [L|Rs],
+            skip_one_pass(Ls, Rs)
+        ).
+
+eq_1(V) :- V == 1.
+
+empty([]).
+
+xors(Node) -->
+        (   { Node == 0 } -> []
+        ;   { Node == 1 } -> [[1]]
+        ;   { node_var_low_high(Node, Var, Low, High),
+              phrase(xors(Low), Ls0),
+              phrase(xors(High), Hs0),
+              maplist(with_var(Var), Ls0, Ls),
+              maplist(with_var(Var), Hs0, Hs) },
+            list(Ls0),
+            list(Ls),
+            list(Hs)
+        ).
+
+list([]) --> [].
+list([L|Ls]) --> [L], list(Ls).
+
+with_var(Var, Ls, [Var|Ls]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Global variables for unique node and variable IDs.
