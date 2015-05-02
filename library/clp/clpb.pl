@@ -139,7 +139,7 @@ X = Y, Y = Z, Z = 1.
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
 sat(X=:=X),
-sat(X*Y#X#Y*Z#Y#1),
+sat(1#X#X*Y#Y#Y*Z),
 sat(Y=:=Y),
 sat(Z=:=Z).
 ==
