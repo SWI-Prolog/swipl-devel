@@ -294,8 +294,7 @@ sat(Sat0) :-
             maplist(del_bdd, Roots),
             maplist(=(Root), Roots),
             root_put_formula_bdd(Root, And, BDD1),
-            term_variables(Sat0, Vs),
-            satisfiable_bdd(BDD1, Vs)
+            satisfiable_bdd(BDD1)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -375,18 +374,15 @@ unsatisfiable_conjunction(Sat, Ands) :-
         bdd_and(BDD, Ands, B),
         B == 0.
 
-satisfiable_bdd(BDD) :- satisfiable_bdd(BDD, []).
-
-satisfiable_bdd(BDD, Vs) :-
+satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
-        ;   node_var_low_high(BDD, Var, _, _),
+        ;   bdd_variables(BDD, Vs),
+            node_var_low_high(BDD, Var, _, _),
             var_index(Var, Lowest),
-            % always consider at least the topmost branching variable
-            Vars = [Var|Vs],
-            maplist(variable_definite_value(BDD,Lowest), Vars, Values),
+            maplist(variable_definite_value(BDD,Lowest), Vs, Values),
             (   maplist(var, Values) -> true % nothing to propagate
-            ;   Vars = Values % propagate all assignments at once
+            ;   Vs = Values % propagate all assignments at once
             )
         ).
 
@@ -795,7 +791,8 @@ nodes_variables(Nodes, Vs) :-
 nodes_variables_([]) --> [].
 nodes_variables_([Node|Nodes]) -->
         { node_var_low_high(Node, Var, _, _) },
-        (   { is_visited(Var) } -> []
+        (   { integer(Var) } -> []
+        ;   { is_visited(Var) } -> []
         ;   { put_visited(Var) },
             [Var]
         ),
