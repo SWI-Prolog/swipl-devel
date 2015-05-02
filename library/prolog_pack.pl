@@ -1626,8 +1626,10 @@ local_dep(_-resolved(_)).
 %	@tbd: Query URI to use
 
 install_dependency(Options,
-		   _Token-resolve(Pack, _Version, [URL|_], SubResolve)) :- !,
+		   _Token-resolve(Pack, VersionAtom, [URL|_], SubResolve)) :- !,
+	atom_version(VersionAtom, Version),
 	merge_options([ url(URL),
+			version(Version),
 			interactive(false),
 			inquiry(false),
 			info(list),
