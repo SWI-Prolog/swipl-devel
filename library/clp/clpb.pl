@@ -952,16 +952,12 @@ attribute_goals(Var) -->
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Relate a BDD to its algebraic normal form.
+   Relate a BDD to its algebraic normal form (ANF).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_anf(Node, Sat) :-
-        phrase(xors(Node), Xors0),
-        maplist(sort, Xors0, Xors1),
-        msort(Xors1, Xors2),
-        skip_doubles(Xors2, Xors3),
-        maplist(exclude(eq_1), Xors3, Xors4),
-        maplist(list_to_conjunction, Xors4, [Conj|Conjs]),
+        node_xors(Node, Xors),
+        maplist(list_to_conjunction, Xors, [Conj|Conjs]),
         foldl(xor, Conjs, Conj, Sat).
 
 list_to_conjunction([], 1).
@@ -969,30 +965,27 @@ list_to_conjunction([L|Ls], Conj) :- foldl(and, Ls, L, Conj).
 
 xor(A, B, B # A).
 
-skip_doubles(List0, List) :-
-        skip_one_pass(List0, List1),
-        (   List0 == List1 -> List = List0
-        ;   skip_doubles(List1, List)
-        ).
-
-skip_one_pass([], []).
-skip_one_pass([L|Ls], Rest) :-
-        (   Ls = [First|Rest0], First == L ->
-            skip_one_pass(Rest0, Rest)
-        ;   Rest = [L|Rs],
-            skip_one_pass(Ls, Rs)
-        ).
-
 eq_1(V) :- V == 1.
 
-empty([]).
+node_xors(Node, Xors) :-
+        phrase(xors(Node), Xors0),
+        % we remove elements that occur an even number of times (A#A --> 0)
+        maplist(sort, Xors0, Xors1),
+        pairs_keys_values(Pairs0, Xors1, _),
+        keysort(Pairs0, Pairs),
+        group_pairs_by_key(Pairs, Groups),
+        exclude(even_occurrences, Groups, Odds),
+        pairs_keys(Odds, Xors2),
+        maplist(exclude(eq_1), Xors2, Xors).
+
+even_occurrences(_-Ls) :- length(Ls, L), L mod 2 =:= 0.
 
 xors(Node) -->
         (   { Node == 0 } -> []
         ;   { Node == 1 } -> [[1]]
         ;   { node_var_low_high(Node, Var, Low, High),
-              phrase(xors(Low), Ls0),
-              phrase(xors(High), Hs0),
+              node_xors(Low, Ls0),
+              node_xors(High, Hs0),
               maplist(with_var(Var), Ls0, Ls),
               maplist(with_var(Var), Hs0, Hs) },
             list(Ls0),
