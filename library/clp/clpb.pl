@@ -683,6 +683,11 @@ state(S0, S), [S] --> [S0].
    attributed variables should replace the current one. In particular,
    unification filters should be able to reason about terms before
    they are unified with anything.
+
+   Independently, we also need a mechanism to project and limit
+   residual constraints to variables that actually occur in the query.
+   Other variables should be existentially quantified. This is very
+   easy for CLP(B) since sat(Var^Formula) is already implemented.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 attr_unify_hook(index_root(I,Root), Other) :-
