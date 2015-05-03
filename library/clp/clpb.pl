@@ -721,6 +721,45 @@ root_rebuild_bdd(Root) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Support for project_attributes/2. Toplevel integration pending.
+
+   This should be called by the toplevel as
+
+      project_attributes(+QueryVars, +AttrVars)
+
+   in order to project all remaining constraints onto QueryVars.
+
+   All CLP(B) variables that do not occur in QueryVars need to be
+   existentially quantified, so that they do not occur in residuals
+   goals. This is very easy to do in the case of CLP(B).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+project_attributes(QueryVars0, AttrVars0) :-
+        % existential quantification for CLP(B) variables not in QueryVars
+        include(clpb_variable, QueryVars0, QueryVars),
+        maplist(var_index_root, QueryVars, _, Roots0),
+        sort(Roots0, Roots),
+        maplist(remove_hidden_variables(QueryVars), Roots),
+        % remove clpb attribute from variables not in QueryVars
+        maplist(put_visited, QueryVars),
+        include(clpb_variable, AttrVars0, AttrVars1),
+        exclude(is_visited, AttrVars1, AttrVars),
+        maplist(unvisit, QueryVars),
+        maplist(del_clpb, AttrVars).
+
+del_clpb(Var) :- del_attr(Var, clpb).
+
+clpb_variable(Var) :- var_index(Var, _).
+
+remove_hidden_variables(QueryVars, Root) :-
+        root_get_formula_bdd(Root, Formula, BDD0),
+        maplist(put_visited, QueryVars),
+        bdd_variables(BDD0, HiddenVars),
+        maplist(unvisit, QueryVars),
+        foldl(existential, HiddenVars, BDD0, BDD),
+        root_put_formula_bdd(Root, Formula, BDD).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    BDD restriction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
