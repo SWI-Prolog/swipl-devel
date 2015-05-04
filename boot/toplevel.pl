@@ -478,6 +478,7 @@ init_debug_flags :-
 	create_prolog_flag(print_write_options,
 			   [ portray(true), quoted(true), numbervars(true) ],
 			   []),
+	create_prolog_flag(toplevel_residue_vars, false, []),
 	'$set_debugger_write_options'(print).
 
 %%	setup_colors is det.
@@ -772,14 +773,14 @@ subst_chars([H|T]) -->
 
 '$execute_goal2'(Goal, Bindings) :-
 	restore_debug,
-	Goal,
+	residue_vars(Goal, Vars),
 	deterministic(Det),
 	(   save_debug
 	;   restore_debug, fail
 	),
 	flush_output(user_output),
 	call_expand_answer(Bindings, NewBindings),
-	(    \+ \+ write_bindings(NewBindings, Det)
+	(    \+ \+ write_bindings(NewBindings, Vars, Det)
 	->   !, fail
 	).
 '$execute_goal2'(_, _) :-
@@ -787,16 +788,26 @@ subst_chars([H|T]) -->
 	print_message(query, query(no)),
 	fail.
 
-%%	write_bindings(+Bindings, +Deterministic)
+residue_vars(Goal, Vars) :-
+	current_prolog_flag(toplevel_residue_vars, true), !,
+	call_residue_vars(Goal, Vars).
+residue_vars(Goal, []) :-
+	call(Goal).
+
+%%	write_bindings(+Bindings, +ResidueVars, +Deterministic)
 %
 %	Write   bindings   resulting   from   a     query.    The   flag
 %	prompt_alternatives_on determines whether the   user is prompted
 %	for alternatives. =groundness= gives   the  classical behaviour,
 %	=determinism= is considered more adequate and informative.
+%
+%	@arg ResidueVars are the residual constraints and provided if
+%	     the prolog flag `toplevel_residue_vars` is set to
+%	     `project`.
 
-write_bindings(Bindings, Det) :-
+write_bindings(Bindings, ResidueVars, Det) :-
 	'$module'(TypeIn, TypeIn),
-	translate_bindings(Bindings, Bindings1, TypeIn:Residuals),
+	translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
 	write_bindings2(Bindings1, Residuals, Det).
 
 write_bindings2([], Residuals, _) :-
@@ -817,7 +828,8 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	    print_message(query, query(done))
 	).
 
-%%	prolog:translate_bindings(+Bindings0, -Bindings, -Residuals) is det.
+%%	prolog:translate_bindings(+Bindings0, -Bindings, +ResidueVars,
+%%				  -Residuals) is det.
 %
 %	Translate the raw variable bindings  resulting from successfully
 %	completing a query into a a binding   list  and list of residual
@@ -836,26 +848,66 @@ write_bindings2(Bindings, Residuals, _Det) :-
 %		constraints on variables in Bindings0.
 
 :- public
-	prolog:translate_bindings/3.
+	prolog:translate_bindings/3,
+	prolog:translate_bindings/4.
 :- meta_predicate
-	prolog:translate_bindings(+, -, :).
+	prolog:translate_bindings(+, -, :),
+	prolog:translate_bindings(+, -, +, :).
 
+prolog:translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
+	translate_bindings(Bindings0, Bindings, ResidueVars, Residuals).
 prolog:translate_bindings(Bindings0, Bindings, Residuals) :-
-	translate_bindings(Bindings0, Bindings, Residuals).
+	prolog:translate_bindings(Bindings0, Bindings, [], Residuals).
 
-translate_bindings(Bindings0, Bindings, TypeIn:Residuals) :-
+translate_bindings(Bindings0, Bindings, ResidueVars, TypeIn:Residuals) :-
 	\+ term_attvars(Bindings0, []), !,
+	project_constraints(Bindings0, ResidueVars),
 	copy_term(Bindings0, Bindings1, Residuals0),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
 	join_same_bindings(Bindings1, Bindings2),
 	factorize_bindings(Bindings2, Bindings3),
 	bind_vars(Bindings3, Bindings4),
 	filter_bindings(Bindings4, Bindings).
-translate_bindings(Bindings0, Bindings, _:[]) :-
+translate_bindings(Bindings0, Bindings, _, _:[]) :-
 	join_same_bindings(Bindings0, Bindings1),
 	factorize_bindings(Bindings1, Bindings2),
 	bind_vars(Bindings2, Bindings3),
 	filter_bindings(Bindings3, Bindings).
+
+%%	project_constraints(+Bindings, +ResidueVars) is det.
+%
+%	Call   <module>:project_attributes/2   if   the    Prolog   flag
+%	`toplevel_residue_vars` is set to `project`.
+
+project_constraints(Bindings, ResidueVars) :- !,
+	term_attvars(Bindings, AttVars),
+	phrase(attribute_modules(AttVars), Modules0),
+	sort(Modules0, Modules),
+	term_variables(Bindings, QueryVars),
+	project_attributes(Modules, QueryVars, ResidueVars).
+project_constraints(_, _).
+
+project_attributes([], _, _).
+project_attributes([M|T], QueryVars, ResidueVars) :-
+	(   current_predicate(M:project_attributes/2),
+	    catch(M:project_attributes(QueryVars, ResidueVars), E,
+		  print_message(error, E))
+	->  true
+	;   true
+	),
+	project_attributes(T, QueryVars, ResidueVars).
+
+attribute_modules([]) --> [].
+attribute_modules([H|T]) -->
+	{ get_attrs(H, Attrs) },
+	attrs_modules(Attrs),
+	attribute_modules(T).
+
+attrs_modules([]) --> [].
+attrs_modules(att(Module, _, More)) -->
+	[Module],
+	attrs_modules(More).
+
 
 %%	join_same_bindings(Bindings0, Bindings)
 %
