@@ -138,10 +138,7 @@ X = Y, Y = Z, Z = 1.
 
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
-sat(X=:=X),
-sat(1#X#X*Y#Y#Y*Z),
-sat(Y=:=Y),
-sat(Z=:=Z).
+sat(1#X#X*Y#Y#Y*Z).
 ==
 
 The pending residual goals constrain remaining variables to Boolean
