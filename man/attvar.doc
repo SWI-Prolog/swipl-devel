@@ -204,7 +204,7 @@ newly introduced variables back to the query variables.
 attached. There may be variables that occur in both lists.
 project_attributes/1 should rewrite the constraints so that all
 attributes are expressed as residual goals that refer only to
-QueryVars.
+\arg{QueryVars}.
 \end{description}
 
 \subsection{Operations on terms with attributed variables}
