@@ -1058,38 +1058,21 @@ clpb_next_id(Var, ID) :-
         b_setval(Var, Next).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Sandbox declarations
+The variable attributes below are not used as constraints by this
+library. Project remaining attributes to empty lists of residuals.
 
-The variable attributes below are not used  as unification hooks by this
-library. Attributes that are not accessible   from the outside are safe,
-but `clpb_bdd` is exposed  and  the   sandboxing  code  does not perform
-aliasing analysis to discover whether or not the others are exposed.
-
-Therefore, we define the hooks,  so  we   know  what  will be called. In
-addition, because accessing these variables  is basically a cross-module
-call, we must declare them public.
-
-Notice that the necessary declarations for library(sandbox) are getting
-a bit out of hand for modules that use several different attributes,
-like this library. There may be a better way to solve such issues, by
-improving the interface to attributed variables and related predicates.
+Because accessing these hooks is basically a cross-module call, we
+must declare them public.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- public
-        clpb_bdd:attr_unify_hook/2,
-        clpb_visited:attr_unify_hook/2,
         clpb_hash:attr_unify_hook/2,
-
         clpb_bdd:attribute_goals//1,
-        clpb_visited:attribute_goals//1,
         clpb_hash:attribute_goals//1.
 
-    clpb_bdd:attr_unify_hook(_,_) :- representation_error(cannot_unify_bdd).
-clpb_visited:attr_unify_hook(_,_) :- representation_error(cannot_unify_visited).
-   clpb_hash:attr_unify_hook(_,_).  % OK
+clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
 
     clpb_bdd:attribute_goals(_) --> [].
-clpb_visited:attribute_goals(_) --> [].
    clpb_hash:attribute_goals(_) --> [].
 % clpb_hash:attribute_goals(Var) -->
 %         { get_attr(Var, clpb_hash, Assoc),
