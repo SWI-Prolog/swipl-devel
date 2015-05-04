@@ -683,11 +683,6 @@ state(S0, S), [S] --> [S0].
    attributed variables should replace the current one. In particular,
    unification filters should be able to reason about terms before
    they are unified with anything.
-
-   Independently, we also need a mechanism to project and limit
-   residual constraints to variables that actually occur in the query.
-   Other variables should be existentially quantified. This is very
-   easy for CLP(B) since sat(Var^Formula) is already implemented.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 attr_unify_hook(index_root(I,Root), Other) :-
@@ -721,16 +716,16 @@ root_rebuild_bdd(Root) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Support for project_attributes/2. Toplevel integration pending.
+   Support for project_attributes/2.
 
-   This should be called by the toplevel as
+   This is called by the toplevel as
 
       project_attributes(+QueryVars, +AttrVars)
 
    in order to project all remaining constraints onto QueryVars.
 
    All CLP(B) variables that do not occur in QueryVars need to be
-   existentially quantified, so that they do not occur in residuals
+   existentially quantified, so that they do not occur in residual
    goals. This is very easy to do in the case of CLP(B).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
