@@ -481,6 +481,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_stack_property}{2}{Query properties of the stacks}
 \predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
 \predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}
+\predicatesummary{project_attributes}{2}{Project constraints to query variables}
 \predicatesummary{prompt1}{1}{Change prompt for 1 line}
 \predicatesummary{prompt}{2}{Change the prompt used by read/1}
 \predicatesummary{protocol}{1}{Make a log of the user interaction}
