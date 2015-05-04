@@ -202,9 +202,9 @@ newly introduced variables back to the query variables.
 \arg{QueryVars} is the list of variables occurring in the query and
 \arg{ResidualVars} is a list of variables that have attributes
 attached. There may be variables that occur in both lists.
-project_attributes/2 should rewrite the constraints so that all
-attributes are expressed as residual goals that refer only to
-\arg{QueryVars}.
+If possible, project_attributes/2 should change the attributes so that
+all constraints are expressed as residual goals that refer only to
+\arg{QueryVars}, while other variables are existentially quantified.
 \end{description}
 
 \subsection{Operations on terms with attributed variables}
