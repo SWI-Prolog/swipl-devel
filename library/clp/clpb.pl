@@ -978,15 +978,18 @@ var_u(Node, VNum, Index) :-
 
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
-        [sat(Var =:= Var)],
         (   { root_get_formula_bdd(Root, _, BDD) } ->
             { del_bdd(Root),
-              bdd_anf(BDD, ANF) },
-            (   { ANF == 1 } -> []
+              bdd_anf(BDD, ANF),
+              bdd_variables(BDD, Vs),
+              maplist(del_clpb, Vs) },
+            (   { ANF == 1 } -> boolean(Var)
             ;   [sat(ANF)]
             )
-        ;   []
+        ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
+
+boolean(Var) --> [sat(Var =:= Var)].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Relate a BDD to its algebraic normal form (ANF).
