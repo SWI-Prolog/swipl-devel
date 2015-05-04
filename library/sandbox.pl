@@ -691,12 +691,12 @@ safe_global_var(Name) :-
 %	Hook. True if Goal is a   meta-predicate that is considered safe
 %	iff all elements in Called are safe.
 
-safe_meta(system:put_attr(V,M,A),
-	  [ M:attr_unify_hook(A, _),
-	    M:attribute_goals(V,_,_)	% attribute_goals//1
-	  ]) :- !,
+safe_meta(system:put_attr(V,M,A), Called) :- !,
 	(   atom(M)
-	->  true
+	->  attr_hook_predicates([ attr_unify_hook(A, _),
+				   attribute_goals(V,_,_),
+				   project_attributes(_,_)
+				 ], M, Called)
 	;   instantiation_error(M)
 	).
 safe_meta(system:with_output_to(Output, G), [G]) :-
@@ -717,6 +717,23 @@ safe_meta('$dcg':call_dcg(NT,Xs0,Xs), [Goal]) :-
 	expand_nt(NT,Xs0,Xs,Goal).
 safe_meta('$dcg':call_dcg(NT,Xs0), [Goal]) :-
 	expand_nt(NT,Xs0,[],Goal).
+
+%%	attr_hook_predicates(+Hooks0, +Module, -Hooks) is det.
+%
+%	Filter the defined hook implementations.   This  is safe because
+%	(1) calling an undefined predicate is   not  a safety issue, (2)
+%	the  user  an  only  assert  in  the  current  module  and  only
+%	predicates that have a safe body. This avoids the need to define
+%	attribute hooks solely for the purpose of making them safe.
+
+attr_hook_predicates([], _, []).
+attr_hook_predicates([H|T], M, Called) :-
+	(   predicate_property(M:H, interpreted)
+	->  Called = [M:H|Rest]
+	;   Called = Rest
+	),
+	attr_hook_predicates(T, M, Rest).
+
 
 %%	expand_nt(+NT, ?Xs0, ?Xs, -NewGoal)
 %
