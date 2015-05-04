@@ -752,6 +752,7 @@ remove_hidden_variables(QueryVars, Root) :-
         bdd_variables(BDD0, HiddenVars),
         maplist(unvisit, QueryVars),
         foldl(existential, HiddenVars, BDD0, BDD),
+        maplist(del_clpb, HiddenVars),
         root_put_formula_bdd(Root, Formula, BDD).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
