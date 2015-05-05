@@ -13,19 +13,14 @@ Downloading
 First, download the SWI-Prolog source using git.  This takes a while the
 first time, but subsequent updates will be fast:
 
-    % git clone git://www.swi-prolog.org/home/pl/git/pl-devel.git
-
-If you have the poor luck that  you   are  behind a firewall that blocks
-GIT's default port (9418), you can use this alternative.
-
-    % git clone http://www.swi-prolog.org/home/pl/git/pl-devel.git
+    % git clone https://github.com/SWI-Prolog/swipl-devel.git
 
 After cloning the main repository, you have to fetch generated files and
 Prolog packages that are distributed as separate git submodules. This is
 done with the script `prepare`. The `prepare` script requires `curl` and
 GNU `autoconf`.
 
-    % cd pl-devel
+    % cd swipl-devel
     % ./prepare
 
 If this step completed successfully, you are  at the same point as after
@@ -36,9 +31,9 @@ Next, continue as described in INSTALL
 Submitting a patch
 ------------------
 
-GIT is very good at structured   handling of distributed development. If
-you want to submit a patch, use   git-format-patch to create the content
-of an e-mail message. Depending on  the   nature,  send the patch to the
+GIT shines for structured handling of   distributed  development. If you
+want to submit a patch, use git-format-patch to create the content of an
+e-mail  message.  Depending  on  the  nature,  send  the  patch  to  the
 SWI-Prolog mailinglist or bugs@swi-prolog.org.
 
 
