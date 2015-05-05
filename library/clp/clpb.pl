@@ -138,7 +138,8 @@ X = Y, Y = Z, Z = 1.
 
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
-sat(1#X#X*Y#Y#Y*Z).
+sat(1#X#X*Y),
+sat(1#Y#Y*Z).
 ==
 
 The pending residual goals constrain remaining variables to Boolean
@@ -174,7 +175,8 @@ expressions and are declaratively equivalent to the original query.
         Sat-BDD
 
    where Sat is the SAT formula (in original form) that corresponds to
-   BDD. Sat is necessary to rebuild the BDD after variable aliasing.
+   BDD. Sat is necessary to rebuild the BDD after variable aliasing,
+   and to project all remaining constraints to a list of sat/1 goals.
 
    Finally, a BDD is either:
 
@@ -726,22 +728,19 @@ root_rebuild_bdd(Root) :-
    goals. This is very easy to do in the case of CLP(B).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-project_attributes(QueryVars0, AttrVars0) :-
-        % existential quantification for CLP(B) variables not in QueryVars
+project_attributes(QueryVars0, _) :-
         include(clpb_variable, QueryVars0, QueryVars),
         maplist(var_index_root, QueryVars, _, Roots0),
         sort(Roots0, Roots),
-        maplist(remove_hidden_variables(QueryVars), Roots),
-        % remove clpb attribute from variables not in QueryVars
-        maplist(put_visited, QueryVars),
-        include(clpb_variable, AttrVars0, AttrVars1),
-        exclude(is_visited, AttrVars1, AttrVars),
-        maplist(unvisit, QueryVars),
-        maplist(del_clpb, AttrVars).
-
-del_clpb(Var) :- del_attr(Var, clpb).
+        maplist(remove_hidden_variables(QueryVars), Roots).
 
 clpb_variable(Var) :- var_index(Var, _).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   All CLP(B) variables occurring in BDDs but not in query variables
+   become existentially quantified. This must also be reflected in the
+   formula.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 remove_hidden_variables(QueryVars, Root) :-
         root_get_formula_bdd(Root, Formula, BDD0),
@@ -749,8 +748,13 @@ remove_hidden_variables(QueryVars, Root) :-
         bdd_variables(BDD0, HiddenVars),
         maplist(unvisit, QueryVars),
         foldl(existential, HiddenVars, BDD0, BDD),
-        maplist(del_clpb, HiddenVars),
-        root_put_formula_bdd(Root, Formula, BDD).
+        (   HiddenVars == [] -> ExHidden = Formula
+        ;   HiddenVars = [E|Es],
+            foldl(quantify_existantially, Es, E^Formula, ExHidden)
+        ),
+        root_put_formula_bdd(Root, ExHidden, BDD).
+
+quantify_existantially(E, E0, E^E0).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    BDD restriction.
@@ -975,27 +979,42 @@ var_u(Node, VNum, Index) :-
 
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
-        (   { root_get_formula_bdd(Root, _, BDD) } ->
+        (   { root_get_formula_bdd(Root, Formula, BDD) } ->
             { del_bdd(Root),
-              bdd_anf(BDD, ANF),
+              phrase(sat_ands(Formula), Ands),
+              maplist(formula_anf, Ands, ANFs0),
+              sort(ANFs0, ANFs1),
+              exclude(eq_1, ANFs1, ANFs),
+              % formula variables not occurring in the BDD should be booleans
               bdd_variables(BDD, Vs),
-              maplist(del_clpb, Vs) },
-            (   { ANF == 1 } -> boolean(Var)
-            ;   [sat(ANF)]
-            )
+              maplist(del_clpb, Vs),
+              term_variables(Formula, RestVs0),
+              include(clpb_variable, RestVs0, RestVs) },
+            sats(ANFs),
+            booleans(RestVs)
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
+
+del_clpb(Var) :- del_attr(Var, clpb).
+
+sats([]) --> [].
+sats([A|As]) --> [sat(A)], sats(As).
+
+booleans([]) --> [].
+booleans([B|Bs]) --> boolean(B), booleans(Bs).
 
 boolean(Var) --> [sat(Var =:= Var)].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Relate a BDD to its algebraic normal form (ANF).
+   Relate a formula to its algebraic normal form (ANF).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bdd_anf(Node, Sat) :-
+formula_anf(Formula0, ANF) :-
+        sat_rewrite(Formula0, Formula),
+        sat_bdd(Formula, Node),
         node_xors(Node, Xors),
         maplist(list_to_conjunction, Xors, [Conj|Conjs]),
-        foldl(xor, Conjs, Conj, Sat).
+        foldl(xor, Conjs, Conj, ANF).
 
 list_to_conjunction([], 1).
 list_to_conjunction([L|Ls], Conj) :- foldl(and, Ls, L, Conj).
@@ -1054,11 +1073,11 @@ clpb_next_id(Var, ID) :-
         b_setval(Var, Next).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The variable attributes below are not used as constraints by this
-library. Project remaining attributes to empty lists of residuals.
+   The variable attributes below are not used as constraints by this
+   library. Project remaining attributes to empty lists of residuals.
 
-Because accessing these hooks is basically a cross-module call, we
-must declare them public.
+   Because accessing these hooks is basically a cross-module call, we
+   must declare them public.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- public
