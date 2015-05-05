@@ -748,11 +748,8 @@ remove_hidden_variables(QueryVars, Root) :-
         bdd_variables(BDD0, HiddenVars),
         maplist(unvisit, QueryVars),
         foldl(existential, HiddenVars, BDD0, BDD),
-        (   HiddenVars == [] -> ExHidden = Formula
-        ;   HiddenVars = [E|Es],
-            foldl(quantify_existantially, Es, E^Formula, ExHidden)
-        ),
-        root_put_formula_bdd(Root, ExHidden, BDD).
+        foldl(quantify_existantially, HiddenVars, Formula, ExFormula),
+        root_put_formula_bdd(Root, ExFormula, BDD).
 
 quantify_existantially(E, E0, E^E0).
 
