@@ -884,7 +884,7 @@ query_result(eof) -->
 query_result(toplevel_open_line) -->
 	[].
 
-prompt(Answer, [], []) --> !,
+prompt(Answer, [], []-[]) --> !,
 	prompt(Answer, empty).
 prompt(Answer, _, _) --> !,
 	prompt(Answer, non_empty).
@@ -946,21 +946,28 @@ substitutions([N=V|T], Options) -->
 	substitutions(T, Options).
 
 
-residuals([], _) -->
+residuals(Normal-Hidden, Options) -->
+	residuals1(Normal, Options),
+	bind_res_sep(Normal, Hidden),
+	(   {Hidden == []}
+	->  []
+	;   [ansi(fg(green), '% with detached residual goals', []), nl]
+	),
+	residuals1(Hidden, Options).
+
+residuals1([], _) -->
 	[].
-residuals([G|Gs], Options) -->
+residuals1([G|Gs], Options) -->
 	(   { Gs \== [] }
 	->  [ '~W,'-[G, Options], nl ],
-	    residuals(Gs, Options)
+	    residuals1(Gs, Options)
 	;   [ '~W'-[G, Options] ]
 	).
 
-bind_res_sep(_, []) --> !,
-	[].
-bind_res_sep([], _) --> !,
-	[].
-bind_res_sep(_, _) -->
-	[','-[], nl].
+bind_res_sep(_, []) --> !.
+bind_res_sep(_, []-[]) --> !.
+bind_res_sep([], _) --> !.
+bind_res_sep(_, _) --> [','-[], nl].
 
 extra_line -->
 	{ current_prolog_flag(toplevel_extra_white_line, true) }, !,

@@ -832,7 +832,7 @@ write_bindings2(Bindings, Residuals, _Det) :-
 %%				  -Residuals) is det.
 %
 %	Translate the raw variable bindings  resulting from successfully
-%	completing a query into a a binding   list  and list of residual
+%	completing a query into a  binding   list  and  list of residual
 %	goals suitable for human consumption.
 %
 %	@arg    Bindings is a list of binding(Vars,Value,Substitutions),
@@ -844,35 +844,69 @@ write_bindings2(Bindings, Residuals, _Det) :-
 %		answer, Substitutions contains a list of substitutions
 %		that restore the original term.
 %
-%	@arg	Residuals is a list of residual goals, typically
-%		constraints on variables in Bindings0.
+%	@arg	Residuals is a pair of two lists representing residual
+%		goals. The first element of the pair are residuals
+%		related to the query variables and the second are
+%		related that are disconnected from the query.
 
 :- public
-	prolog:translate_bindings/3,
 	prolog:translate_bindings/4.
 :- meta_predicate
-	prolog:translate_bindings(+, -, :),
 	prolog:translate_bindings(+, -, +, :).
 
 prolog:translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
 	translate_bindings(Bindings0, Bindings, ResidueVars, Residuals).
-prolog:translate_bindings(Bindings0, Bindings, Residuals) :-
-	prolog:translate_bindings(Bindings0, Bindings, [], Residuals).
 
-translate_bindings(Bindings0, Bindings, [], _:[]) :-
+translate_bindings(Bindings0, Bindings, [], _:[]-[]) :-
 	term_attvars(Bindings0, []), !,
 	join_same_bindings(Bindings0, Bindings1),
 	factorize_bindings(Bindings1, Bindings2),
 	bind_vars(Bindings2, Bindings3),
 	filter_bindings(Bindings3, Bindings).
-translate_bindings(Bindings0, Bindings, ResidueVars, TypeIn:Residuals) :-
+translate_bindings(Bindings0, Bindings, ResidueVars,
+		   TypeIn:Residuals-HiddenResiduals) :-
 	project_constraints(Bindings0, ResidueVars),
+	hidden_residuals(ResidueVars, Bindings0, HiddenResiduals0),
+	omit_qualifiers(HiddenResiduals0, TypeIn, HiddenResiduals),
 	copy_term(Bindings0, Bindings1, Residuals0),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
 	join_same_bindings(Bindings1, Bindings2),
 	factorize_bindings(Bindings2, Bindings3),
 	bind_vars(Bindings3, Bindings4),
 	filter_bindings(Bindings4, Bindings).
+
+hidden_residuals(ResidueVars, Bindings, Goal) :-
+	term_attvars(ResidueVars, Remaining),
+	term_attvars(Bindings, QueryVars),
+	subtract_vars(Remaining, QueryVars, HiddenVars),
+	copy_term(HiddenVars, _, Goal).
+
+subtract_vars(All, Subtract, Remaining) :-
+	sort(All, AllSorted),
+	sort(Subtract, SubtractSorted),
+	ord_subtract(AllSorted, SubtractSorted, Remaining).
+
+ord_subtract([], _Not, []).
+ord_subtract([H1|T1], L2, Diff) :-
+    diff21(L2, H1, T1, Diff).
+
+diff21([], H1, T1, [H1|T1]).
+diff21([H2|T2], H1, T1, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff12([], _H2, _T2, []).
+diff12([H1|T1], H2, T2, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
+    diff12(T1, H2, T2, Diff).
+diff3(=, _H1, T1, _H2, T2, Diff) :-
+    ord_subtract(T1, T2, Diff).
+diff3(>,  H1, T1, _H2, T2, Diff) :-
+    diff21(T2, H1, T1, Diff).
+
 
 %%	project_constraints(+Bindings, +ResidueVars) is det.
 %
