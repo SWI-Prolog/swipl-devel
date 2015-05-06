@@ -859,8 +859,13 @@ prolog:translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
 prolog:translate_bindings(Bindings0, Bindings, Residuals) :-
 	prolog:translate_bindings(Bindings0, Bindings, [], Residuals).
 
+translate_bindings(Bindings0, Bindings, [], _:[]) :-
+	term_attvars(Bindings0, []), !,
+	join_same_bindings(Bindings0, Bindings1),
+	factorize_bindings(Bindings1, Bindings2),
+	bind_vars(Bindings2, Bindings3),
+	filter_bindings(Bindings3, Bindings).
 translate_bindings(Bindings0, Bindings, ResidueVars, TypeIn:Residuals) :-
-	\+ term_attvars(Bindings0, []), !,
 	project_constraints(Bindings0, ResidueVars),
 	copy_term(Bindings0, Bindings1, Residuals0),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
@@ -868,11 +873,6 @@ translate_bindings(Bindings0, Bindings, ResidueVars, TypeIn:Residuals) :-
 	factorize_bindings(Bindings2, Bindings3),
 	bind_vars(Bindings3, Bindings4),
 	filter_bindings(Bindings4, Bindings).
-translate_bindings(Bindings0, Bindings, _, _:[]) :-
-	join_same_bindings(Bindings0, Bindings1),
-	factorize_bindings(Bindings1, Bindings2),
-	bind_vars(Bindings2, Bindings3),
-	filter_bindings(Bindings3, Bindings).
 
 %%	project_constraints(+Bindings, +ResidueVars) is det.
 %
