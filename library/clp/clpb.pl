@@ -723,13 +723,14 @@ root_rebuild_bdd(Root) :-
 
    in order to project all remaining constraints onto QueryVars.
 
-   All CLP(B) variables that do not occur in QueryVars need to be
-   existentially quantified, so that they do not occur in residual
-   goals. This is very easy to do in the case of CLP(B).
+   All CLP(B) variables that do not occur in QueryVars or AttrVars
+   need to be existentially quantified, so that they do not occur in
+   residual goals. This is very easy to do in the case of CLP(B).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-project_attributes(QueryVars0, _) :-
-        include(clpb_variable, QueryVars0, QueryVars),
+project_attributes(QueryVars0, AttrVars) :-
+        append(QueryVars0, AttrVars, QueryVars1),
+        include(clpb_variable, QueryVars1, QueryVars),
         maplist(var_index_root, QueryVars, _, Roots0),
         sort(Roots0, Roots),
         maplist(remove_hidden_variables(QueryVars), Roots).
@@ -739,7 +740,8 @@ clpb_variable(Var) :- var_index(Var, _).
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    All CLP(B) variables occurring in BDDs but not in query variables
    become existentially quantified. This must also be reflected in the
-   formula.
+   formula. In addition, an attribute is attached to these variables
+   to suppress superfluous sat(V=:=V) goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 remove_hidden_variables(QueryVars, Root) :-
@@ -751,7 +753,7 @@ remove_hidden_variables(QueryVars, Root) :-
         foldl(quantify_existantially, HiddenVars, Formula, ExFormula),
         root_put_formula_bdd(Root, ExFormula, BDD).
 
-quantify_existantially(E, E0, E^E0).
+quantify_existantially(E, E0, E^E0) :- put_attr(E, clpb_omit_boolean, true).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    BDD restriction.
@@ -1000,7 +1002,10 @@ sats([A|As]) --> [sat(A)], sats(As).
 booleans([]) --> [].
 booleans([B|Bs]) --> boolean(B), booleans(Bs).
 
-boolean(Var) --> [sat(Var =:= Var)].
+boolean(Var) -->
+        (   { get_attr(Var, clpb_omit_boolean, true) } -> []
+        ;   [sat(Var =:= Var)]
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Relate a formula to its algebraic normal form (ANF).
@@ -1080,12 +1085,15 @@ clpb_next_id(Var, ID) :-
 :- public
         clpb_hash:attr_unify_hook/2,
         clpb_bdd:attribute_goals//1,
-        clpb_hash:attribute_goals//1.
+        clpb_hash:attribute_goals//1,
+        clpb_omit_boolean:attribute_goals//1.
 
 clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
 
-    clpb_bdd:attribute_goals(_) --> [].
-   clpb_hash:attribute_goals(_) --> [].
+clpb_bdd:attribute_goals(_)          --> [].
+clpb_hash:attribute_goals(_)         --> [].
+clpb_omit_boolean:attribute_goals(_) --> [].
+
 % clpb_hash:attribute_goals(Var) -->
 %         { get_attr(Var, clpb_hash, Assoc),
 %           assoc_to_list(Assoc, List0),
