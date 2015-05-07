@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, VU University, Amsterdam
+    Copyright (C): 2009-2015, VU University, Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -474,6 +474,8 @@ set_dirty(Module, Count) :-
 %		percentage of the total number of terms.
 %		* close
 %		Database stream was closed
+%		* detach
+%		Remove all registered persistency for the calling module
 %		* nop
 %		No-operation performed
 %
@@ -531,6 +533,15 @@ db_sync(Module, close) :-
 	time_file(File, Modified),
 	retractall(db_file(Module, File, _)),
 	assert(db_file(Module, File, Modified)).
+db_sync(Module, Action) :-
+	Action == detach, !,
+	(   retract(db_stream(Module, Stream))
+	->  close(Stream)
+	;   true
+	),
+	retractall(db_file(Module, _, _)),
+	retractall(db_dirty(Module, _)),
+	retractall(db_option(Module, _)).
 db_sync(_, nop) :- !.
 db_sync(_, _).
 
