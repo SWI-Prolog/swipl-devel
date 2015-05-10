@@ -381,7 +381,7 @@ needSpace(int c, IOSTREAM *s)
 
   if ( (s->lastc&C_PREFIX_SIGN) && (isDigit(c) || isSymbolW(c)) )
     return TRUE;
-  if ( (s->lastc&C_PREFIX_OP) && c == '(' )
+  if ( (s->lastc&C_PREFIX_OP) && ( c == '(' || c == '{' ) )
     return TRUE;				/* avoid op(...) */
 
   s->lastc &= ~C_MASK;
@@ -1340,7 +1340,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
       if ( (arg=PL_new_term_ref()) &&
 	   PL_get_arg(1, t, arg) &&
-	   Putc('{', out) &&
+	   PutToken("{", out) &&
 	   writeTerm(arg, 1200, options) &&
 	   Putc('}', out) )
 	return TRUE;
