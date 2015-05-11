@@ -1318,7 +1318,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		break;
       case '.': addToBuffer(c, _PL_rd);
 		set_start_line;
-		dotseen++;
+		dotseen = TRUE;
 		c = getchr();
 		if ( isSymbolW(c) )
 		{ while( c != EOF && isSymbolW(c) &&
