@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -65,6 +65,19 @@ test(double_close,
 	open_null_stream(S),
 	close(S),
 	close(S).
+test(current_io_non_existing,
+     [ error(existence_error(stream, unlikely))
+     ]) :-
+	current_input(unlikely).
+test(current_io_closed,
+     [ error(existence_error(stream, S))
+     ]) :-
+	open_null_stream(S),
+	close(S),
+	current_output(S).
+test(input_is_not_output, fail) :-
+	current_input(X),
+	current_output(X).
 
 :- end_tests(io).
 

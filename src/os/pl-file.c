@@ -4641,17 +4641,30 @@ PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
 }
 
 
+static int
+current_io(term_t t, IOSTREAM *cur ARG_LD)
+{ if ( PL_is_variable(t) )
+  { return PL_unify_stream(t, cur);
+  } else
+  { IOSTREAM *s;
+
+    if ( term_stream_handle(t, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) )
+      return s == cur;
+    return FALSE;
+  }
+}
+
 static
 PRED_IMPL("current_input", 1, current_input, PL_FA_ISO)
 { PRED_LD
-  return PL_unify_stream(A1, Scurin);
+  return current_io(A1, Scurin PASS_LD);
 }
 
 
 static
 PRED_IMPL("current_output", 1, current_output, PL_FA_ISO)
 { PRED_LD
-  return PL_unify_stream(A1, Scurout);
+  return current_io(A1, Scurout PASS_LD);
 }
 
 
