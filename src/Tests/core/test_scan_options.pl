@@ -1,5 +1,5 @@
-:- module(test_option,
-	  [ test_option/0
+:- module(test_scan_options,
+	  [ test_scan_options/0
 	  ]).
 :- use_module(library(plunit)).
 :- use_module(library(terms)).
@@ -11,12 +11,12 @@ This test suite deals with  built-in   option  processing. Note that, in
 default mode, SWI-Prolog option processing ignores unknown options.
 */
 
-test_option :-
-	run_tests([ option,
+test_scan_options :-
+	run_tests([ scan_options,
 		    dict_option
 		  ]).
 
-:- begin_tests(option, []).
+:- begin_tests(scan_options, []).
 
 test(process, End == 1) :-
 	numbervars(x(_,X,X), 0, End, [singletons(true)]).
@@ -39,7 +39,7 @@ test(instantiation, error(instantiation_error)) :-
 test(instantiation, error(type_error(list,1))) :-
 	numbervars(x(_,X,X), 0, _, [singletons(true)|1]).
 
-:- end_tests(option).
+:- end_tests(scan_options).
 
 :- begin_tests(dict_option, []).
 
