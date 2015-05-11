@@ -1054,7 +1054,6 @@ static unsigned char *
 raw_read2(ReadData _PL_rd ARG_LD)
 { int c;
   bool something_read = FALSE;
-  bool dotseen = FALSE;
   IOPOS pbuf;					/* comment start */
   IOPOS *pos;
 
@@ -1081,17 +1080,12 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  return NULL;
 		}
 		if ( something_read )
-		{ if ( dotseen )		/* term.<EOF> */
-		  { if ( rb.here - rb.base == 1 )
-		      rawSyntaxError("end_of_clause");
-		  complete_fullstop:
+		{ if ( isStringStream(rb.stream) )
+		  { ensure_space(' ');
+		    addToBuffer('.', _PL_rd);
 		    ensure_space(' ');
 		    addToBuffer(EOS, _PL_rd);
 		    return rb.base;
-		  } else if ( isStringStream(rb.stream) )
-		  { ensure_space(' ');
-		    addToBuffer('.', _PL_rd);
-		    goto complete_fullstop;
 		  }
 		  rawSyntaxError("end_of_file");
 		}
@@ -1188,7 +1182,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      c = getchr();
 		    }
 		  }
-		  dotseen = FALSE;
 		  goto handle_c;
 		}
       case '%': if ( something_read )
@@ -1294,7 +1287,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  { addToBuffer(c, _PL_rd);
 			    c = Sgetcode(rb.stream);
 			    addToBuffer(c, _PL_rd);
-			    dotseen = FALSE;
 			    break;
 			  }
 			  goto sqatom;
@@ -1309,16 +1301,21 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		set_start_line;
 		if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
-		dotseen = FALSE;
 		break;
       case '"':	set_start_line;
                 if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
-		dotseen = FALSE;
 		break;
       case '.': addToBuffer(c, _PL_rd);
 		set_start_line;
-		dotseen = TRUE;
+		c = Speekcode(rb.stream);
+		if ( isBlankW(c) || c == '%' || c == -1 )
+		{ if ( rb.here - rb.base == 1 )
+		    rawSyntaxError("end_of_clause");
+		  addToBuffer(' ', _PL_rd);
+		  addToBuffer(EOS, _PL_rd);
+		  return rb.base;
+		}
 		c = getchr();
 		if ( isSymbolW(c) )
 		{ while( c != EOF && isSymbolW(c) &&
@@ -1326,14 +1323,12 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
 		  }
-		  dotseen = FALSE;
 		}
 		goto handle_c;
       case '`': if ( true(_PL_rd, BQ_MASK) )
 		{ set_start_line;
 		  if ( !raw_read_quoted(c, _PL_rd) )
 		    fail;
-		  dotseen = FALSE;
 		  break;
 		}
 	        /*FALLTHROUGH*/
@@ -1341,13 +1336,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		{ switch(_PL_char_types[c])
 		  { case SP:
 		    blank:
-		      if ( dotseen )
-		      { if ( rb.here - rb.base == 1 )
-			  rawSyntaxError("end_of_clause");
-			ensure_space(c);
-			addToBuffer(EOS, _PL_rd);
-			return rb.base;
-		      }
 		      do
 		      { if ( something_read ) /* positions, \0 --> ' ' */
 			  addToBuffer(c ? c : ' ', _PL_rd);
@@ -1365,13 +1353,11 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  break;
 		      } while( c != EOF && (unsigned)c <= 0xff && isSymbol(c) );
 					/* TBD: wide symbols? */
-		      dotseen = FALSE;
 		      goto handle_c;
 		    case LC:
 		    case UC:
 		      set_start_line;
 		      c = raw_read_identifier(c, _PL_rd);
-		      dotseen = FALSE;
 		      goto handle_c;
 		    default:
 #ifdef O_QUASIQUOTATIONS		/* detect || from {|Syntax||Quotation|} */
@@ -1381,25 +1367,21 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
 		      { if ( !raw_read_quasi_quotation(c, _PL_rd) )
 			  return FALSE;
-			dotseen = FALSE;
 			break;
 		      }
 #endif
 		      addToBuffer(c, _PL_rd);
-		      dotseen = FALSE;
 		      set_start_line;
 		  }
 		} else			/* > 255 */
 		{ if ( PlIdStartW(c) )
 		  { set_start_line;
 		    c = raw_read_identifier(c, _PL_rd);
-		    dotseen = FALSE;
 		    goto handle_c;
 		  } else if ( PlBlankW(c) )
 		  { goto blank;
 		  } else
 		  { addToBuffer(c, _PL_rd);
-		    dotseen = FALSE;
 		    set_start_line;
 		  }
 		}
