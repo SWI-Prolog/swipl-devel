@@ -226,6 +226,7 @@ scan_options(term_t options, int flags, atom_t optype,
   while ( PL_get_list(list, head, list) )
   { atom_t name;
     int arity;
+    int implicit_true = FALSE;
 
     if ( PL_get_name_arity(head, &name, &arity) )
     { if ( name == ATOM_equals && arity == 2 )
@@ -237,7 +238,10 @@ scan_options(term_t options, int flags, atom_t optype,
       } else if ( arity == 1 )
       { _PL_get_arg(1, head, val);
       } else if ( arity == 0 )
-	PL_put_atom(val, ATOM_true);
+      { implicit_true = TRUE;
+      } else
+      { goto itemerror;
+      }
     } else if ( PL_is_variable(head) )
     { return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     } else
@@ -247,7 +251,14 @@ scan_options(term_t options, int flags, atom_t optype,
 
     for( n=0, s = specs; s->name; n++, s++ )
     { if ( s->name == name )
-      { if ( !get_optval(values[n], s, val PASS_LD) )
+      { if ( implicit_true )
+	{ if ( (s->type&OPT_TYPE_MASK) == OPT_BOOL )
+	  { *(values[n].b) = TRUE;
+	    break;
+	  }
+	  goto itemerror;
+	}
+	if ( !get_optval(values[n], s, val PASS_LD) )
 	  return FALSE;
 	if ( (s->type&OPT_TYPE_MASK) == OPT_TERM )
 	  candiscard = FALSE;
@@ -255,7 +266,7 @@ scan_options(term_t options, int flags, atom_t optype,
       }
     }
 
-    if ( !s->name && (flags & OPT_ALL) )
+    if ( !s->name && (implicit_true || (flags & OPT_ALL)) )
       goto itemerror;
   }
 
