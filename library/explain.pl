@@ -89,7 +89,7 @@ explain(S, Explanation) :-
 	string(S), !,
 	utter(Explanation, '"~w" is a string', S).
 explain([], Explanation) :- !,
-	utter(Explanation, '"[]" is an atom denoting an empty list', []).
+	utter(Explanation, '"[]" is a special constant denoting an empty list', []).
 explain(A, Explanation) :-
 	atom(A),
 	utter(Explanation, '"~w" is an atom', [A]).
