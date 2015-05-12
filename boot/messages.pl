@@ -128,23 +128,8 @@ iso_message(uninstantiation_error(Var)) -->
 	[ 'Uninstantiated argument expected, found ~p'-[Var] ].
 iso_message(representation_error(What)) -->
 	[ 'Cannot represent due to `~w'''-[What] ].
-iso_message(permission_error(Action, built_in_procedure, Pred)) -->
-	{ user_predicate_indicator(Pred, PI)
-	},
-	[ 'No permission to ~w built-in predicate `~p'''-[Action, PI] ],
-	(   {Action \== export}
-	->  [ nl,
-	      'Use :- redefine_system_predicate(+Head) if redefinition is intended'
-	    ]
-	;   []
-	).
-iso_message(permission_error(import_into(Dest), procedure, Pred)) -->
-	[ 'No permission to import ~p into ~w'-[Pred, Dest] ].
-iso_message(permission_error(Action, static_procedure, Proc)) -->
-	[ 'No permission to ~w static procedure `~p'''-[Action, Proc] ],
-	defined_definition('Defined', Proc).
 iso_message(permission_error(Action, Type, Object)) -->
-	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
+	permission_error(Action, Type, Object).
 iso_message(evaluation_error(Which)) -->
 	[ 'Arithmetic: evaluation error: `~p'''-[Which] ].
 iso_message(existence_error(procedure, Proc)) -->
@@ -163,6 +148,42 @@ iso_message(syntax_error(Id)) -->
 	syntax_error(Id).
 iso_message(occurs_check(Var, In)) -->
 	[ 'Cannot unify ~p with ~p: would create an infinite tree'-[Var, In] ].
+
+%%	permission_error(Action, Type, Object)//
+%
+%	Translate  permission  errors.  Most  follow    te  pattern  "No
+%	permission to Action Type Object", but some are a bit different.
+
+permission_error(Action, built_in_procedure, Pred) -->
+	{ user_predicate_indicator(Pred, PI)
+	},
+	[ 'No permission to ~w built-in predicate `~p'''-[Action, PI] ],
+	(   {Action \== export}
+	->  [ nl,
+	      'Use :- redefine_system_predicate(+Head) if redefinition is intended'
+	    ]
+	;   []
+	).
+permission_error(import_into(Dest), procedure, Pred) -->
+	[ 'No permission to import ~p into ~w'-[Pred, Dest] ].
+permission_error(Action, static_procedure, Proc) -->
+	[ 'No permission to ~w static procedure `~p'''-[Action, Proc] ],
+	defined_definition('Defined', Proc).
+permission_error(input, stream, Stream) -->
+	[ 'No permission to read from output stream `~p'''-[Stream] ].
+permission_error(output, stream, Stream) -->
+	[ 'No permission to write to input stream `~p'''-[Stream] ].
+permission_error(input, text_stream, Stream) -->
+	[ 'No permission to read bytes from TEXT stream `~p'''-[Stream] ].
+permission_error(output, text_stream, Stream) -->
+	[ 'No permission to write bytes to TEXT stream `~p'''-[Stream] ].
+permission_error(input, binary_stream, Stream) -->
+	[ 'No permission to read characters from binary stream `~p'''-[Stream] ].
+permission_error(output, binary_stream, Stream) -->
+	[ 'No permission to write characters to binary stream `~p'''-[Stream] ].
+permission_error(Action, Type, Object) -->
+	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
+
 
 undefined_proc_msg(_:(^)/2) --> !,
 	undefined_proc_msg((^)/2).
