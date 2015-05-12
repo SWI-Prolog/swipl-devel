@@ -45,6 +45,7 @@ translated into an call  to  a   generated  auxilary  predicate  that is
 compiled using compile_aux_clauses/1. Currently this module supports:
 
 	* maplist/2..
+        * foldl/4..
 	* forall/2
 	* once/1
 	* ignore/1
@@ -107,6 +108,45 @@ expand_maplist(Callable0, Lists, Goal) :-
 	    compile_aux_clauses([BaseClause, NextClause])
 	).
 
+expand_foldl(Callable0, Lists, Goal, V0, V) :-
+        (   Callable0 = _:_
+        ->  strip_module(Callable0, M, Callable),
+            NextGoal = M:NextCall
+        ;   Callable = Callable0,
+            NextGoal = NextCall
+        ),
+        Callable =.. [Pred|Args],
+        length(Args, Argc),
+        length(Argv, Argc),
+        length(Lists, N),
+        length(Vars, N),
+        FoldArity is N + 3,
+        format(atom(AuxName), '__aux_foldl/~d_~w+~d', [FoldArity, Pred, Argc]),
+        append([Lists, Args, [V0, V]], AuxArgs),
+        Goal =.. [AuxName|AuxArgs],
+
+        AuxArity is N + 2 + Argc,
+        prolog_load_context(module, Module),
+        functor(NextCall, Pred, AuxArity),
+        \+ predicate_property(Module:NextGoal, transparent),
+        (   current_predicate(Module:AuxName/AuxArity)
+        ->  true
+        ;   empty_lists(N, BaseLists),
+            length(Anon, Argc),
+            append([BaseLists, Anon, [V, V]], BaseArgs),
+            BaseClause =.. [AuxName|BaseArgs],
+
+            heads_and_tails(N, NextArgs, Vars, Tails),
+            append([NextArgs, Argv, [VP, V]], AllNextArgs),
+            NextHead =.. [AuxName|AllNextArgs],
+            append([Argv, Vars, [VP, V1]], PredArgs),
+            NextCall =.. [Pred|PredArgs],
+            append([Tails, Argv, [V1, V]], IttArgs),
+            NextIterate =.. [AuxName|IttArgs],
+            NextClause = (NextHead :- NextGoal, NextIterate),
+            compile_aux_clauses([BaseClause, NextClause])
+        ).
+
 
 empty_lists(0, []) :- !.
 empty_lists(N, [[]|T]) :-
@@ -129,6 +169,14 @@ expand_apply(Maplist, Goal) :-
 	Maplist =.. [maplist, Callable|Lists],
 	qcall_instantiated(Callable), !,
 	expand_maplist(Callable, Lists, Goal).
+
+expand_apply(Foldl, Goal) :-
+        functor(Foldl, foldl, N),
+        N >= 4,
+        Foldl =.. [foldl, Callable|ListsVs],
+        append(Lists, [V0, V], ListsVs),
+        qcall_instantiated(Callable), !,
+        expand_foldl(Callable, Lists, Goal, V0, V).
 
 %%	expand_apply(+GoalIn:callable, -GoalOut, +PosIn, -PosOut) is semidet.
 %
@@ -308,15 +356,31 @@ prolog_clause:unify_goal(Maplist, Expanded, _Module, Pos0, Pos) :-
 	Pos0 = term_position(F,T,FF,FT,[_MapPos|ArgsPos]),
 	Pos  = term_position(F,T,FF,FT,ArgsPos).
 
+prolog_clause:unify_goal(Foldl, Expanded, _Module, Pos0, Pos) :-
+	is_foldl(Foldl),
+	foldl_expansion(Expanded),
+	Pos0 = term_position(F,T,FF,FT,[_FoldPos|ArgsPos]),
+	Pos  = term_position(F,T,FF,FT,ArgsPos).
+
 is_maplist(Goal) :-
 	compound(Goal),
 	functor(Goal, maplist, A),
 	A >= 2.
 
+is_foldl(Goal) :-
+        compound(Goal),
+        functor(Goal, foldl, A),
+        A >= 4.
+
 maplist_expansion(Expanded) :-
 	compound(Expanded),
 	functor(Expanded, Name, _),
 	sub_atom(Name, 0, _, _, '__aux_maplist/').
+
+foldl_expansion(Expanded) :-
+        compound(Expanded),
+        functor(Expanded, Name, _),
+        sub_atom(Name, 0, _, _, '__aux_foldl/').
 
 
 		 /*******************************
