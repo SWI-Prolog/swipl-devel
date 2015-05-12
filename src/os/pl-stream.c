@@ -3241,12 +3241,23 @@ Sopen_pipe(const char *command, const char *type)
   mode[1] = '\0';
 
   if ( (fd = popen(command, mode)) )
-  { int flags;
+  { int flags = SIO_RECORDPOS|SIO_FBUF|SIO_TEXT;
 
-    if ( *type == 'r' )
-      flags = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
-    else
-      flags = SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF;
+    for(; *type; type++)
+    { switch(*type)
+      { case 'r':
+	  flags |= SIO_INPUT;
+	  break;
+        case 'w':
+	  flags |= SIO_OUTPUT;
+	  break;
+	case 'b':
+	  flags &= ~SIO_TEXT;
+	  break;
+	default:
+	  assert(0);
+      }
+    }
 
     return Snew((void *)fd, flags, &Spipefunctions);
   }
@@ -3444,7 +3455,7 @@ and other output predicates to create strings.
 IOSTREAM *
 Sopenmem(char **bufp, size_t *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
-  int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX;
+  int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX|SIO_TEXT;
   size_t size;
 
   if ( !mf )
@@ -3457,33 +3468,39 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
   mf->bufferp       = bufp;
   mf->buffer        = *bufp;
 
-  switch(*mode)
-  { case 'r':
-      flags |= SIO_INPUT;
-      if ( sizep == NULL || *sizep == (size_t)-1 )
-	size = (mf->buffer ? strlen(mf->buffer) : 0);
-      else
-	size = *sizep;
-      mf->size = size;
-      mf->allocated = size+1;
-      if ( mode[1] == 'F' )
+  for(; *mode; mode++)
+  { switch(*mode)
+    { case 'r':
+	flags |= SIO_INPUT;
+	if ( sizep == NULL || *sizep == (size_t)-1 )
+	  size = (mf->buffer ? strlen(mf->buffer) : 0);
+	else
+	  size = *sizep;
+	mf->size = size;
+	mf->allocated = size+1;
+	break;
+      case 'w':
+	flags |= SIO_OUTPUT;
+	mf->size = 0;
+	mf->allocated = (sizep ? *sizep : 0);
+	if ( mf->buffer == NULL || mode[1] == 'a' )
+	  mf->malloced = TRUE;
+	if ( mf->buffer )
+	  mf->buffer[0] = '\0';
+	if ( sizep )
+	  *sizep = mf->size;
+	break;
+      case 'b':
+	flags &= ~SIO_TEXT;
+        break;
+      case 'F':
 	mf->free_on_close = TRUE;
-      break;
-    case 'w':
-      flags |= SIO_OUTPUT;
-      mf->size = 0;
-      mf->allocated = (sizep ? *sizep : 0);
-      if ( mf->buffer == NULL || mode[1] == 'a' )
-	mf->malloced = TRUE;
-      if ( mf->buffer )
-	mf->buffer[0] = '\0';
-      if ( sizep )
-	*sizep = mf->size;
-      break;
-    default:
-      free(mf);
-      errno = EINVAL;
-      return NULL;
+        break;
+      default:
+	free(mf);
+	errno = EINVAL;
+	return NULL;
+    }
   }
 
   mf->sizep	= sizep;
