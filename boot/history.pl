@@ -52,13 +52,7 @@
 read_history(History, Help, DontStore, Prompt, Term, Bindings) :-
 	repeat,
 	    prompt_history(Prompt),
-	    catch('$raw_read'(user_input, Raw), E,
-		  (   E = error(syntax_error(_), _)
-		  ->  print_message(error, E),
-		      fail
-		  ;   throw(E)
-		  )),
-	    '$toplevel':save_debug_after_read,
+	    '$toplevel':read_query_line(user_input, Raw),
 	    read_history_(History, Help, DontStore, Raw, Term, Bindings), !.
 
 read_history_(History, _, _, History, _, _) :-

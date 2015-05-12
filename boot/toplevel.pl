@@ -604,13 +604,9 @@ read_query(Prompt, Goal, Bindings) :-
 	remove_history_prompt(Prompt, Prompt1),
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
-	Catch = error(syntax_error(_), _),
-	catch('$raw_read'(user_input, Line), Catch,
-	      ( print_message(error, Catch),
-		fail
-	      )),
-	save_debug_after_read,
-	(   current_predicate(_, user:rl_add_history(_))
+	read_query_line(user_input, Line),
+	(   Line \== end_of_file,
+	    current_predicate(_, user:rl_add_history(_))
 	->  format(atom(CompleteLine), '~W~W',
 		   [ Line, [partial(true)],
 		     '.', [partial(true)]
@@ -628,6 +624,47 @@ read_query(Prompt, Goal, Bindings) :-
 	      )), !,
 	'$save_history'(Line).
 
+%%	read_query_line(+Input, -Line) is det.
+
+read_query_line(Input, Line) :-
+	catch(read_term_as_atom(Input, Line), Error, true),
+	save_debug_after_read,
+	(   var(Error)
+	->  true
+	;   Error = error(syntax_error(_),_)
+	->  print_message(error, Error),
+	    fail
+	;   print_message(error, Error),
+	    throw(Error)
+	).
+
+%%	read_term_as_atom(+Input, -Line)
+%
+%	Read the next term as an  atom  and   skip  to  the newline or a
+%	non-space character.
+
+read_term_as_atom(In, Line) :-
+	'$raw_read'(In, Line),
+	(   Line == end_of_file
+	->  true
+	;   skip_to_nl(In)
+	).
+
+%%	skip_to_nl(+Input) is det.
+%
+%	Read input after the term. Skips   white  space and %... comment
+%	until the end of the line or a non-blank character.
+
+skip_to_nl(In) :-
+	repeat,
+	peek_char(In, C),
+	(   C == '%'
+	->  !, skip(In, '\n')
+	;   char_type(C, space)
+	->  get_char(In, _),
+	    C == '\n'
+	;   !
+	).
 
 remove_history_prompt('', '') :- !.
 remove_history_prompt(Prompt0, Prompt) :-
