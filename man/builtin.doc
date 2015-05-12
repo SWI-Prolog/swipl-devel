@@ -3161,6 +3161,12 @@ is \emph{not} reported.
 The predicate (with arity~4) is declared to provide quasi quotation
 syntax with quasi_quotation_syntax/1.
 
+    \termitem{static}{}
+The definition can \emph{not} be modified using assertz/1 and friends.
+This property is the opposite from \const{dynamic}, i.e., for each
+defined predicate, either \const{static} or \const{dynamic} is true but
+never both.
+
     \termitem{thread_local}{}
 If true (only possible on the multithreaded version) each thread has
 its own clauses for the predicate. This property is set using

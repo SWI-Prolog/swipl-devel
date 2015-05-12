@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -770,6 +770,8 @@ define_or_generate(Pred) :-
 	'$get_predicate_attribute'(Pred, foreign, 1).
 '$predicate_property'((dynamic), Pred) :-
 	'$get_predicate_attribute'(Pred, (dynamic), 1).
+'$predicate_property'((static), Pred) :-
+	'$get_predicate_attribute'(Pred, (dynamic), 0).
 '$predicate_property'((volatile), Pred) :-
 	'$get_predicate_attribute'(Pred, (volatile), 1).
 '$predicate_property'((thread_local), Pred) :-
