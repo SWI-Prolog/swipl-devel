@@ -37,6 +37,8 @@ tar=tar
 # avoid surprises and printing paths.
 unset CDPATH
 
+maxyes=100
+
 usage()
 {
 cat << _EOM_
@@ -88,10 +90,17 @@ findexe()
 }
 
 
-confirm ()
+confirm()
 { if [ "$yes" = yes ]; then
+    maxyes=$(($maxyes-1))
+    if [ "$maxyes" = 0 ]; then
+      echo "ERROR: confirmed too many times; aborting"
+      exit 1
+    fi
     return 0
   fi
+
+  maxtry=10
 
   while true; do
     printf "$1"
@@ -101,7 +110,11 @@ confirm ()
                 ;;
           n*)   return 1
                 ;;
-          *)
+          *)    maxtry=$(($maxtry-1))
+	        if [ "$maxtry" = 0 ]; then
+		  echo "ERROR: tried too many times; aborting"
+                  exit 1
+		fi
                 echo "Please answer yes or no"
                 ;;
     esac
