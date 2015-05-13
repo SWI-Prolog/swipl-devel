@@ -606,7 +606,7 @@ iunicode:	idirs
 icustom:		idirs
 		$(INSTALL_DATA) ../customize/README $(DESTDIR)$(PLCUSTOM)/README$(TXTEXT)
 ifeq ($(MINGW),true)
-		$(INSTALL_DATA) ../customize/dotplrc $(DESTDIR)$(PLCUSTOM)/pl.ini
+		$(INSTALL_DATA) ../customize/dotplrc $(DESTDIR)$(PLCUSTOM)/swipl.ini
 		$(INSTALL_DATA) ../customize/dotxpcerc $(DESTDIR)$(PLCUSTOM)/xpce.ini
 else
 		$(INSTALL_DATA) ../customize/dotplrc $(DESTDIR)$(PLCUSTOM)

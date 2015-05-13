@@ -323,7 +323,8 @@ system quickly accesses the system resources.
 \end{description}
 
 
-\subsection{The \program{swipl-rc} program}			\label{sec:plrc}
+\subsection{The \program{swipl-rc} program}
+\label{sec:swiplrc}
 
 The utility program \program{swipl-rc} can be used to examine and manipulate
 the contents of a SWI-Prolog resource file.  The options are inspired by

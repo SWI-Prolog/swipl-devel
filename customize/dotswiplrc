@@ -10,8 +10,8 @@ preferences.
 
 Installation:
 
-	Unix/MacOS:	~/.plrc
-	Windows:	<appdata>/pl.ini (see win_folder(appdata, AppData))
+	Unix/MacOS:	~/.swiplrc
+	Windows:	<appdata>/swipl.ini (see win_folder(appdata, AppData))
 
 More hints on useful things you  can  put   into  this  file  are in the
 SWI-Prolog reference manual. Notably look   at debugger settings, editor

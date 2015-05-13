@@ -70,7 +70,7 @@ typedef struct
 		********************************/
 
 #ifndef DEFSTARTUP
-#define DEFSTARTUP ".plrc"
+#define DEFSTARTUP ".swiplrc"
 #endif
 #ifndef SYSTEMHOME
 #define SYSTEMHOME "/usr/lib/swipl"

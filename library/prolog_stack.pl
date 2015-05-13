@@ -67,8 +67,8 @@ following functionality:
     * The shorthand backtrace/1 fetches and prints a backtrace.
 
 This library may be enabled by default to improve interactive debugging,
-for example by adding the lines below to your ~/plrc (pl.ini in Windows)
-to decorate uncaught exceptions:
+for example by adding the lines below   to  your ~/swiplrc (swipl.ini in
+Windows) to decorate uncaught exceptions:
 
   ==
   :- load_files(library(prolog_stack), [silent(true)]).

@@ -85,7 +85,7 @@ PLLIB=libswipl.a
 MKLIBS=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
-DEFSTARTUP=.plrc
+DEFSTARTUP=.swiplrc
 MT=yes
 
 dnl ****************************************************************

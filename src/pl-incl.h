@@ -30,11 +30,12 @@
 #ifdef __WINDOWS__
 #ifdef WIN64
 #include "config/win64.h"
+#define PLHOME       "c:/Program Files/swipl"
 #else
 #include "config/win32.h"
+#define PLHOME       "c:/Program Files (x86)/swipl"
 #endif
-#define PLHOME       "c:/Program Files/pl"
-#define DEFSTARTUP   "pl.ini"
+#define DEFSTARTUP   "swipl.ini"
 #else
 #include <config.h>
 #endif

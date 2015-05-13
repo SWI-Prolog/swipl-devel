@@ -9,8 +9,9 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Loaded from .plrc (pl.ini on MS-Windows) for additional initialisation on
-XPCE.  It should be installed next to .plrc/pl.ini
+Loaded  from  .swiplrc  (swipl.ini   on    MS-Windows)   for  additional
+initialisation   on   XPCE.   It   should     be   installed   next   to
+.swiplrc/swipl.ini
 
 	Unix:			~/.xpcerc
 	Windows-NT/2000:	%USERPROFILE%/xpce.ini
