@@ -165,7 +165,7 @@ $(DVITOTTY):
 # Upload to website
 
 upload::
-		rsync -av $(PDF) ${UPLOAD_DEST}/devel/doc/SWI-Prolog-$(VERSION).pdf
+		rsync -av $(PDF) ${UPLOAD_DEST}/stable/doc/SWI-Prolog-$(VERSION).pdf
 
 ################################################################
 # PlDoc generated manual files
