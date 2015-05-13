@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -56,12 +56,12 @@ outfile(File) :-
 	outarch(Arch),
 	get_time(X),
 	format_time(string(Date), '%F', X),
-	format(atom(File), '~wpl-~w.exe',
+	format(atom(File), 'swipl-~w-~w.exe',
 		[Arch, Date]).
 outfile(File) :-
 	outarch(Arch),
 	version(Major, Minor, Patch, _Rev),
-	format(atom(File), '~wpl~w~w~w.exe',
+	format(atom(File), 'swipl-~w-~w~w~w.exe',
 	       [Arch, Major, Minor, Patch]).
 
 outarch(w64) :-
@@ -324,7 +324,7 @@ already_covered(Dir) :-
 	).
 
 check_files :-
-	parse_script('pl.nsi'),
+	parse_script('swipl.nsi'),
 	flag(errors, Old, 0),
 	def('SWIPL', SWIPL),
 	check_covered(SWIPL),

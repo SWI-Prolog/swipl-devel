@@ -667,7 +667,7 @@ SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
 .PHONY: installer
 installer:
 		$(INSTALL_DATA) $(srcdir)/win32/installer/options.ini "$(PLBASE)/.."
-		$(INSTALL_DATA) $(srcdir)/win32/installer/pl.nsi "$(PLBASE)/.."
+		$(INSTALL_DATA) $(srcdir)/win32/installer/swipl.nsi "$(PLBASE)/.."
 		$(INSTALL_DATA) $(srcdir)/win32/installer/mkinstaller.pl "$(PLBASE)/.."
 		$(WINE) "$(NSISEXE)" $(NSISDEFS) "$(SWIPLNSI)"
 
