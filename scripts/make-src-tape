@@ -24,7 +24,7 @@ else
   SUBMODULES="$COREMODULES"
 fi
 
-name=pl
+name=swipl
 namesep=-
 version=`cat VERSION`
 compress=gzip
