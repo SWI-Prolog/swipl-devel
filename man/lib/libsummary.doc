@@ -44,13 +44,7 @@
 \input{summaries.d/charsio.tex}
 
 \libsummary{check}
-
-\begin{summarylist}{ll}
-\predicatesummary{check}{0}{Program completeness and consistency}
-\predicatesummary{list_undefined}{0}{List undefined predicates}
-\predicatesummary{list_autoload}{0}{List predicates that require autoload}
-\predicatesummary{list_redefined}{0}{List locally redefined predicates}
-\end{summarylist}
+\input{summaries.d/check.tex}
 
 \libsummary{csv}
 \input{summaries.d/csv.tex}
@@ -61,6 +55,9 @@
 \libsummary{debug}
 \input{summaries.d/debug.tex}
 
+\libsummary{iostream}
+\libsummary{summaries.d/iostream/tex}
+
 \libsummary{option}
 \input{summaries.d/option.tex}
 
@@ -69,6 +66,9 @@
 
 \libsummary{ordsets}
 \input{summaries.d/ordsets.tex}
+
+\libsummary{persistency}
+\input{summaries.d/persistency.tex}
 
 \libsummary{predicate_options}
 \input{summaries.d/predopts.tex}
@@ -164,6 +164,9 @@ This library is only available on Windows systems.
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}
 \end{summarylist}
 
+\libsummary{clp/clpb}
+\input{summaries.d/clpb.tex}
+
 \libsummary{clp/clpfd}
 \input{summaries.d/clpfd.tex}
 
@@ -196,6 +199,9 @@ This library is only available on Windows systems.
 \predicatesummary{transportation}{4}{Solve transportation problem}
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}
+
+\libsummary{solution_sequences}
+\input{summaries.d/solutionsequences.tex}
 
 \libsummary{thread_pool}
 \input{summaries.d/threadpool.tex}

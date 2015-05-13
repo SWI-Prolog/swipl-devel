@@ -74,7 +74,8 @@ into the core Prolog library to support the Prolog package manager.
 		     [ directory(atom),
 		       error(-codes),
 		       output(-codes),
-		       status(-any)
+		       status(-any),
+		       askpass(any)
 		     ]).
 :- predicate_options(git_default_branch/2, 2,
 		     [ pass_to(git_process_output/3, 3)
@@ -94,6 +95,7 @@ into the core Prolog library to support the Prolog package manager.
 		     ]).
 :- predicate_options(git_process_output/3, 3,
 		     [ directory(atom),
+		       askpass(any),
 		       error(-codes)
 		     ]).
 :- predicate_options(git_remote_url/3, 3,
@@ -120,22 +122,26 @@ into the core Prolog library to support the Prolog package manager.
 %	  with level =informational=.
 %	  * error(-Error)
 %	  As output(Out), but messages are printed at level =error=.
+%	  * askpass(+Program)
+%	  Export GIT_ASKPASS=Program
 
 git(Argv, Options) :-
 	option(directory(Dir), Options, .),
-	setup_call_cleanup(process_create(path(git), Argv,
-                                          [ stdout(pipe(Out)),
-                                            stderr(pipe(Error)),
-                                            process(PID),
-                                            cwd(Dir)
-                                          ]),
-                           (   read_stream_to_codes(Out, OutCodes, []),
-			       read_stream_to_codes(Error, ErrorCodes, []),
-                               process_wait(PID, Status)
-                           ),
-			   (   close(Out),
-			       close(Error)
-			   )),
+	env_options(Extra, Options),
+	setup_call_cleanup(
+	    process_create(path(git), Argv,
+			   [ stdout(pipe(Out)),
+			     stderr(pipe(Error)),
+			     process(PID),
+			     cwd(Dir)
+			   | Extra
+			   ]),
+	    call_cleanup(
+		( read_stream_to_codes(Out, OutCodes, []),
+		  read_stream_to_codes(Error, ErrorCodes, [])
+		),
+		process_wait(PID, Status)),
+	    close_streams([Out,Error])),
 	print_error(ErrorCodes, Options),
 	print_output(OutCodes, Options),
 	(   option(status(Status0), Options)
@@ -144,6 +150,19 @@ git(Argv, Options) :-
 	->  true
 	;   throw(error(process_error(git(Argv), Status), _))
 	).
+
+env_options([env(['GIT_ASKPASS'=Program])], Options) :-
+	option(askpass(Exe), Options), !,
+	exe_options(ExeOptions),
+	absolute_file_name(Exe, PlProg, ExeOptions),
+	prolog_to_os_filename(PlProg, Program).
+env_options([], _).
+
+exe_options(Options) :-
+	current_prolog_flag(windows, true), !,
+	Options = [ extensions(['',exe,com]), access(read) ].
+exe_options(Options) :-
+	Options = [ access(execute) ].
 
 print_output(OutCodes, Options) :-
 	option(output(Codes), Options), !,
@@ -167,6 +186,26 @@ classify_message(warning) -->
 classify_message(informational) -->
 	[].
 
+%%	close_streams(+Streams:list) is det.
+%
+%	Close a list of streams, throwing the first error if some stream
+%	failed to close.
+
+close_streams(List) :-
+	phrase(close_streams(List), Errors),
+	(   Errors = [Error|_]
+	->  throw(Error)
+	;   true
+	).
+
+close_streams([H|T]) -->
+	{ catch(close(H), E, true) },
+	(   { var(E) }
+	->  []
+	;   [E]
+	),
+	close_streams(T).
+
 
 %%	git_process_output(+Argv, :OnOutput, +Options) is det.
 %
@@ -175,19 +214,21 @@ classify_message(informational) -->
 
 git_process_output(Argv, OnOutput, Options) :-
 	option(directory(Dir), Options, .),
-	setup_call_cleanup(process_create(path(git), Argv,
-                                          [ stdout(pipe(Out)),
-                                            stderr(pipe(Error)),
-                                            process(PID),
-                                            cwd(Dir)
-                                          ]),
-                           (   call(OnOutput, Out),
-			       read_stream_to_codes(Error, ErrorCodes, []),
-                               process_wait(PID, Status)
-                           ),
-			   (   close(Out),
-			       close(Error)
-			   )),
+	env_options(Extra, Options),
+	setup_call_cleanup(
+	    process_create(path(git), Argv,
+			   [ stdout(pipe(Out)),
+			     stderr(pipe(Error)),
+			     process(PID),
+			     cwd(Dir)
+			   | Extra
+			   ]),
+	    call_cleanup(
+		( call(OnOutput, Out),
+		  read_stream_to_codes(Error, ErrorCodes, [])
+		),
+		process_wait(PID, Status)),
+	    close_streams([Out,Error])),
 	print_error(ErrorCodes, Options),
 	(   Status = exit(0)
 	->  true
@@ -229,7 +270,7 @@ is_git_directory(Directory) :-
 	      directory(Directory)
 	    ]),
 	Status == exit(0),
-	Codes == ".\n".
+	string_codes(".\n", Codes).
 
 %%	git_describe(-Version, +Options) is semidet.
 %
@@ -257,20 +298,21 @@ git_describe(Version, Options) :-
 	;   Extra = []
 	),
 	option(directory(Dir), Options, .),
-	setup_call_cleanup(process_create(path(git),
-					  [ 'describe',
-					    '--match', Pattern
-					  | Extra
-					  ],
-					  [ stdout(pipe(Out)),
-					    stderr(null),
-					    process(PID),
-					    cwd(Dir)
-					  ]),
-			   (   read_stream_to_codes(Out, V0, []),
-			       process_wait(PID, Status)
-			   ),
-			   close(Out)),
+	setup_call_cleanup(
+	    process_create(path(git),
+			   [ 'describe',
+			     '--match', Pattern
+			   | Extra
+			   ],
+			   [ stdout(pipe(Out)),
+			     stderr(null),
+			     process(PID),
+			     cwd(Dir)
+			   ]),
+	    call_cleanup(
+		read_stream_to_codes(Out, V0, []),
+		process_wait(PID, Status)),
+	    close(Out)),
 	Status = exit(0), !,
 	atom_codes(V1, V0),
 	normalize_space(atom(Plain), V1),
@@ -281,19 +323,20 @@ git_describe(Version, Options) :-
 git_describe(Version, Options) :-
 	option(directory(Dir), Options, .),
 	option(commit(Commit), Options, 'HEAD'),
-	setup_call_cleanup(process_create(path(git),
-					  [ 'rev-parse', '--short',
-					    Commit
-					  ],
-					  [ stdout(pipe(Out)),
-					    stderr(null),
-					    process(PID),
-					    cwd(Dir)
-					  ]),
-			   (   read_stream_to_codes(Out, V0, []),
-			       process_wait(PID, Status)
-			   ),
-			   close(Out)),
+	setup_call_cleanup(
+	    process_create(path(git),
+			   [ 'rev-parse', '--short',
+			     Commit
+			   ],
+			   [ stdout(pipe(Out)),
+			     stderr(null),
+			     process(PID),
+			     cwd(Dir)
+			   ]),
+	    call_cleanup(
+		read_stream_to_codes(Out, V0, []),
+		process_wait(PID, Status)),
+	    close(Out)),
 	Status = exit(0),
 	atom_codes(V1, V0),
 	normalize_space(atom(Plain), V1),
@@ -409,7 +452,8 @@ read_url(Tag, URL, In) :-
 	    ).
 
 url_codes(Tag, Rest) -->
-	whites, string(Tag), whites, string(Rest).
+	{ string_codes(Tag, TagCodes) },
+	whites, string(TagCodes), whites, string(Rest).
 
 
 %%	git_ls_remote(+GitURL, -Refs, +Options) is det.
@@ -633,7 +677,7 @@ read_git_formatted(Record, Fields, ShortLog, In) :-
 	read_line_to_codes(In, Line0),
 	read_git_formatted(Line0, In, Record, Fields, ShortLog).
 
-read_git_formatted(end_of_file, _, _, _, []).
+read_git_formatted(end_of_file, _, _, _, []) :- !.
 read_git_formatted(Line, In, Record, Fields, [H|T]) :-
 	record_from_line(Record, Fields, Line, H),
 	read_line_to_codes(In, Line1),

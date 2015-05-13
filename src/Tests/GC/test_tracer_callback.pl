@@ -21,7 +21,8 @@ test_goal(p_ifthen).
 test_goal(p_error).
 
 test_tracer(G) :-
-	'$visible'(Old, Old),
+	trim_stacks,			% there must be enough spac to force
+	'$visible'(Old, Old),		% a stack shift
 	visible(+all),
 	visible(+cut_call),
 	assert((user:prolog_trace_interception(P, F, Ch, A) :-

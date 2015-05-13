@@ -11,16 +11,16 @@ OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-file.o os/pl-files.o \
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \
-	pl-funct.o pl-gc.o pl-privitf.o pl-list.o \
+	pl-funct.o pl-gc.o pl-privitf.o pl-list.o pl-string.o \
 	pl-load.o pl-modul.o pl-op.o pl-prims.o pl-pro.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-setup.o \
 	pl-sys.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
-	pl-term.o pl-thread.o pl-xterm.o \
+	pl-term.o pl-thread.o pl-xterm.o pl-srcfile.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
 	pl-init.o pl-gmp.o pl-segstack.o pl-hash.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
 	pl-dbref.o pl-termhash.o pl-variant.o \
-	pl-copyterm.o pl-debug.o
+	pl-copyterm.o pl-debug.o pl-ressymbol.o pl-dict.o
 
 # Prolog library
 
@@ -29,15 +29,16 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/history.pl ../boot/attvar.pl ../boot/packs.pl \
 	../boot/dwim.pl ../boot/rc.pl ../boot/predopts.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
-	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
+	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl \
+	../boot/dicts.pl
 
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qsave.pl shlib.pl statistics.pl system.pl error.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl vm.pl \
-	quintus.pl edinburgh.pl ctypes.pl files.pl \
+	quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl \
 	edit.pl shell.pl check.pl heaps.pl win_menu.pl console_input.pl \
 	tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl \
-	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
+	oset.pl ordsets.pl occurs.pl lists.pl pprint.pl \
 	www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl \
 	threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl \
 	checklast.pl checkselect.pl operators.pl date.pl \
@@ -51,9 +52,10 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	random.pl prolog_breakpoints.pl prolog_autoload.pl \
 	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl \
 	prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl \
-	sandbox.pl
+	sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl \
+	solution_sequences.pl iostream.pl
 
-CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl clpb.pl
 DCG=	basics.pl
 
 # Dialect library files
@@ -72,6 +74,7 @@ CIAO_REGTYPES=regtypes_tr.pl
 CIAO_ENGINE=attributes.pl basic_props.pl exceptions_db.pl exceptions.pl \
 	internals.pl hiord_rt.pl basiccontrol.pl io_aux.pl
 HPROLOG=format.pl
+ECLIPSE=test_util_iso.pl
 ISO=	iso_predicates.pl
 SWI=	syspred_options.pl
 IFPROLOG=

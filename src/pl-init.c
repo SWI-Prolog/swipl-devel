@@ -42,10 +42,6 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #define LOCK()   PL_LOCK(L_INIT)
 #define UNLOCK() PL_UNLOCK(L_INIT)
 
-#ifdef FORCED_MALLOC_BASE
-#include "morecore.c"
-#endif
-
 #if defined(_DEBUG) && defined(__WINDOWS__) && !defined(__MINGW32__)
 #include <crtdbg.h>
 #endif
@@ -514,6 +510,16 @@ initDefaultOptions()
 }
 
 
+int
+setTraditional(void)
+{ GD->options.traditional = TRUE;
+  if ( GD->atoms.table )
+    resetListAtoms();
+
+  return TRUE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Does the commandline option parsing.  Actually   we  should  use the GNU
 getopt package and deal nicely with intptr_t   arguments  as well as shorts,
@@ -570,6 +576,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
       } else if ( (optval=is_longopt(s, "win_app")) )
       { GD->options.win_app = TRUE;
 #endif
+      } else if ( (optval=is_longopt(s, "traditional")) )
+      { setTraditional();
       }
 
       continue;				/* don't handle --long=value */
@@ -772,7 +780,6 @@ PL_initialise(int argc, char **argv)
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
   { GET_LD
-  setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
@@ -825,6 +832,8 @@ PL_initialise(int argc, char **argv)
 
   GD->cmdline.appl_argc = argc;
   GD->cmdline.appl_argv = argv;
+
+  setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 
   if ( !setupProlog() )
     return FALSE;
@@ -879,8 +888,7 @@ PL_initialise(int argc, char **argv)
     }
   }
 
-  debugstatus.styleCheck = (LONGATOM_CHECK|
-			    SINGLETON_CHECK|SEMSINGLETON_CHECK|
+  debugstatus.styleCheck = (SINGLETON_CHECK|SEMSINGLETON_CHECK|
 			    DISCONTIGUOUS_STYLE|
 			    NOEFFECT_CHECK);
   setAccessLevel(ACCESS_LEVEL_USER);
@@ -932,6 +940,7 @@ usage()
     "    --nosignals      Do not modify any signal handling\n",
     "    --nodebug        Omit generation of debug info\n",
     "    --quiet          Quiet operation (also -q)\n",
+    "    --traditional    Disable extensions of version 7\n",
     "    --home=DIR       Use DIR as SWI-Prolog home\n",
     "    --pldoc[=port]   Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
@@ -1171,6 +1180,9 @@ cleanupProlog(int rval, int reclaim_memory)
 
   if ( GD->initialised )
   { DEBUG(5, Sdprintf("Running at_halt hooks\n"));
+
+    if ( LD->outofstack )
+      emptyStacks();
 
     PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
     if ( !query_loop(PL_new_atom("$run_at_halt"), FALSE) &&

@@ -4,7 +4,7 @@
 \newcommand{\g}[1]{{\em #1}}
 
 \begin{description}
-    \glossitem{anonymous [variable]}\index{anonymous variable}\index{variable,anonymous}
+    \glossitem{anonymous [variable]}\index{anonymous variable}\index{variable,anonymous}%
 The variable \verb$_$ is called the \g{anonymous} variable.  Multiple
 occurrences of \verb$_$ in a single \g{term} are not \g{shared}.
 
@@ -45,6 +45,14 @@ redefine_system_predicate/1.
     \glossitem{body}\index{body}%
 Part of a \g{clause} behind the \g{neck} operator (\const{:-}).
 
+    \glossitem{choice point}\index{choice point}%
+A \g{choice point} represents a choice in the search for a \g{solution}.
+Choice points are created if multiple clauses match a \g{query} or using
+disjunction (\predref{;}{2}). On \g{backtracking}, the execution state
+of the most recent \g{choice point} is restored and search continues
+with the next alternative (i.e., next clause or second branch of
+\predref{;}{2}).
+
     \glossitem{clause}\index{clause}%
 `Sentence' of a Prolog program. A \g{clause} consists of a \g{head} and
 \g{body} separated by the \g{neck} operator (\const{:-}) or it is a
@@ -75,6 +83,13 @@ module of a \g{goal} is the module in which the \g{predicate} is
 defined, unless this \g{predicate} is \g{module transparent}, in
 which case the \g{context module} is inherited from the parent
 \g{goal}.  See also module_transparent/1 and \g{meta-predicate}.
+
+    \glossitem{det}\index{det}%
+Short for \g{deterministic}.
+
+    \glossitem{deterministic}\index{deterministic}%
+A \g{predicate} is \g{deterministic} if it succeeds exactly one time
+without leaving a \g{choice point}.
 
     \glossitem{dynamic [predicate]}\index{dynamic predicate}\index{predicate,dynamic}%
 A \g{dynamic} predicate is a predicate to which \g{clauses} may be
@@ -175,6 +190,13 @@ source files.  See multifile/1.
     \glossitem{neck}\index{neck}%
 Operator (\const{:-}) separating \g{head} from \g{body} in a \g{clause}.
 
+    \glossitem{nondet}\index{nondet}%
+Short for \g{non deterministic}.
+
+    \glossitem{non deterministic}\index{non deterministic}%
+A \g{non deterministic} predicate is a predicate that mail fail or
+succeed any number of times.
+
     \glossitem{operator}\index{operator}%
 Symbol (\g{atom}) that may be placed before its \g{operand} (prefix),
 after its \g{operand} (postfix) or between its two \g{operands} (infix).
@@ -224,6 +246,14 @@ See \g{goal}.
     \glossitem{retract}\index{retract}%
 Remove a \g{clause} from a \g{predicate}.  See also \g{dynamic},
 \g{update view} and \g{assert}.
+
+    \glossitem{semidet}\index{semidet}%
+Shorthand for \glossitem{semi deterministic}.
+
+    \glossitem{semi deterministic}\index{semi deterministic}%
+A \g{predicate} that is \g{semi deterministic} either fails or
+succeeds exactly once without a \g{choice point}.  See also
+\g{deterministic}.
 
     \glossitem{shared}\index{shared}%
 Two \g{variables} are called \g{shared} after they are \g{unified}. This

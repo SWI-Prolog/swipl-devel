@@ -366,10 +366,10 @@ On Unix, this is not very useful, and can only lead to conflicts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 unload_all_foreign_libraries :-
-	current_prolog_flag(unix, true), !.
-unload_all_foreign_libraries :-
+	current_prolog_flag(unload_foreign_libraries, true), !,
 	forall(current_library(File, _, _, _, _),
 	       unload_foreign(File)).
+unload_all_foreign_libraries.
 
 %%	unload_foreign(+File)
 %

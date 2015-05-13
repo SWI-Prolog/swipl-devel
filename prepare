@@ -23,14 +23,13 @@ COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
 COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
-COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
+COREMODULES+=" packages/zlib packages/tipc packages/table"
 COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
 COREMODULES+=" packages/utf8proc packages/archive packages/swipl-win"
+COREMODULES+=" packages/pengines packages/cql"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
-serverpath="/download"
-serverurl="$server$serverpath"
 yes=ask
 man=auto
 tar=tar
@@ -38,14 +37,17 @@ tar=tar
 # avoid surprises and printing paths.
 unset CDPATH
 
+maxyes=100
+
 usage()
 {
 cat << _EOM_
-Usage: $0 [--yes] [--all] [--man]
+Usage: $0 [--yes] [--all] [--man] [--server=URL]
+
+  - Use "--server=http://us.swi-prolog.org" if www.swi-prolog.org is down
 _EOM_
   exit 1
 }
-
 
 while [ ! -z "$1" ]; do
   case "$1" in
@@ -61,12 +63,18 @@ while [ ! -z "$1" ]; do
 	man=download
 	shift
 	;;
+    --server=*)
+	server=$(echo $1 | sed 's/--server=//')
+	shift
+	;;
     *)
 	usage
 	;;
   esac
 done
 
+serverpath="/download"
+serverurl="$server$serverpath"
 
 findexe()
 { oldifs="$IFS"
@@ -82,10 +90,17 @@ findexe()
 }
 
 
-confirm ()
+confirm()
 { if [ "$yes" = yes ]; then
+    maxyes=$(($maxyes-1))
+    if [ "$maxyes" = 0 ]; then
+      echo "ERROR: confirmed too many times; aborting"
+      exit 1
+    fi
     return 0
   fi
+
+  maxtry=10
 
   while true; do
     printf "$1"
@@ -95,7 +110,11 @@ confirm ()
                 ;;
           n*)   return 1
                 ;;
-          *)
+          *)    maxtry=$(($maxtry-1))
+	        if [ "$maxtry" = 0 ]; then
+		  echo "ERROR: tried too many times; aborting"
+                  exit 1
+		fi
                 echo "Please answer yes or no"
                 ;;
     esac
@@ -153,6 +172,7 @@ download_docs()
 
   if ! findexe curl; then
     echo "ERROR: downloading documentation requires the curl program"
+    echo "ERROR: Please install curl and re-run this script"
     exit 1
   fi
 

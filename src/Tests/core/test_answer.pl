@@ -17,9 +17,9 @@
 
 :- use_module(library(plunit)).
 :- use_module(library(unix)).
-:- use_module(library(readutil)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
+:- use_module(library(dif)).
 
 /** <module> Test unit for toplevel replies
 
@@ -33,39 +33,68 @@ test_answer :-
 	run_tests([ answer
 		  ]).
 
-%%	toplevel_answer(+GoalAtom, -AnswerAtom) is det.
+%%	toplevel_answer(+GoalAtom, -Answer:string) is det.
 %
 %	Run GoalAtom in a seperate thread and   catch the output that is
 %	produces by Prolog.
 
-toplevel_answer(GoalAtom, Atom) :-
+toplevel_answer(GoalAtom, Answer) :-
 	pipe(Read, Write),
 	pipe(Read2, Write2),
 	thread_create(send_bindings(Read2, Write), Id, []),
 	format(Write2, '(~w), !.~n', [GoalAtom]),
 	close(Write2),
-	read_stream_to_codes(Read, Codes),
-	atom_codes(Atom, Codes),
+	read_string(Read, _, Answer),
 	close(Read),
 	thread_join(Id, Reply),
 	assertion(Reply == true).
 
 send_bindings(In, Out) :-
 	set_prolog_IO(In, Out, Out),
+	set_prolog_flag(toplevel_residue_vars, true),
 	prolog,
 	close(In),
 	close(Out).
 
-%	test_answer(+Query, -OkReplies) is semidet.
+%%	test_answer(+Query, -OkReplies) is semidet.
 %
 %	True if Query produces one of the outputs in OkReplies.
 
 test_answer(QueryAtom, Replies) :-
 	toplevel_answer(QueryAtom, Output),
-	atom_to_term(Output, Written, OutBindings),
+	debug(test_answer, 'Got: ~q', [Output]),
+	term_string(Written, Output,
+		    [ variable_names(OutBindings),
+		      comments(OutComments)
+		    ]),
 	member(ReplyAtom, Replies),
-	atom_to_term(ReplyAtom, Reply, ReplyBindings),
-	Written+OutBindings =@= Reply+ReplyBindings.
+	term_string(Reply, ReplyAtom,
+		    [ variable_names(ReplyBindings0),
+		      comments(ReplyComments)
+		    ]),
+	maplist(anon_binding, OutBindings, ReplyBindings0, ReplyBindings),
+	(   debug(test_answer, 'Comments: ~p vs ~p',
+		  [OutComments, ReplyComments]),
+	    maplist(compare_comment, OutComments, ReplyComments)
+	->  true
+	;   debug(test_answer, '~p', [ OutComments \= ReplyComments ]),
+	    fail
+	),
+	(   Written+OutBindings =@= Reply+ReplyBindings
+	->  true
+	;   debug(test_answer, '~q',
+		  [ Written+OutBindings \=@= Reply+ReplyBindings ]),
+	    fail
+	).
+
+anon_binding(Name=_, GName=Var, Name=Var) :-
+	sub_atom(GName, 0, _, _, '_G'), !.
+anon_binding(_, Binding, Binding).
+
+compare_comment(_-C, _-C).
+
+hidden :-
+	dif(_X, a).
 
 :- begin_tests(answer, [sto(rational_trees)]).
 
@@ -87,6 +116,26 @@ test(double_cycle, true) :-
 	test_answer('X = s(X,Y), Y = s(X,X)',
 		    [ 'X = Y, Y = s(_S1, _S1), % where
 		          _S1 = s(_S1, s(_S1, _S1))'
+		    ]).
+test(freeze, true) :-
+	test_answer('freeze(X, writeln(X))', ['freeze(X, writeln(X))']).
+test(hidden, true) :-
+	test_answer('test_answer:hidden',
+		    [ '% with detached residual goals
+		      dif(_G1,a)'
+		    ]).
+test(hidden, true) :-
+	test_answer('test_answer:hidden, A = a',
+		    [ 'A = a,
+		      % with detached residual goals
+		      dif(_G1,a)'
+		    ]).
+test(hidden, true) :-
+	test_answer('test_answer:hidden, A = a, dif(B, b)',
+		    [ 'A = a,
+		      dif(B, b),
+		      % with detached residual goals
+		      dif(_G1,a)'
 		    ]).
 
 :- end_tests(answer).

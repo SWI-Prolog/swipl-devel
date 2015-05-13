@@ -33,3 +33,5 @@ Updating an installtion
 	% make distclean
 	% ./build
 
+See README.git and INSTALL for details.
+

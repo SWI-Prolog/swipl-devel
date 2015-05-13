@@ -174,10 +174,10 @@ debug_topic(Topic) :-
 %	List currently known debug topics and their setting.
 
 list_debug_topics :-
-	format(user_error, '~*t~45|~n', "-"),
+	format(user_error, '~`-t~45|~n', []),
 	format(user_error, '~w~t ~w~35| ~w~n',
 	       ['Debug Topic', 'Activated', 'To']),
-	format(user_error, '~*t~45|~n', "-"),
+	format(user_error, '~`-t~45|~n', []),
 	(   debugging(Topic, Value, To),
 	    format(user_error, '~w~t ~w~35| ~w~n', [Topic, Value, To]),
 	    fail
@@ -390,3 +390,12 @@ show_time_context -->
 %	call otherwise. If this hook  fails,   the  default behaviour is
 %	activated.  If  the  hooks  throws  an   exception  it  will  be
 %	propagated into the caller of assertion/1.
+
+
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+:- multifile sandbox:safe_meta/2.
+
+sandbox:safe_meta(prolog_debug:assertion(X), [X]).

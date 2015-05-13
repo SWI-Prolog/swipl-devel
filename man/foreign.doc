@@ -615,7 +615,8 @@ Obtain the type of a term, which should be a term returned by
 one of the other interface predicates or passed as an argument. The
 function returns the type of the Prolog term. The type identifiers are
 listed below.  Note that the extraction functions {\tt PL_get_*()} also
-validate the type and thus the two sections below are equivalent.
+validate the type and thus the two sections below are
+equivalent.
 
 \begin{code}
         if ( PL_is_atom(t) )
@@ -633,16 +634,24 @@ or
         }
 \end{code}
 
+\textbf{Version~7} added \const{PL_NIL}, \const{PL_BLOB},
+\const{PL_LIST_PAIR} and \const{PL_DICT}.  Older versions
+classify \const{PL_NIL} and \const{PL_BLOB} as \const{PL_ATOM},
+\const{PL_LIST_PAIR} as \const{PL_TERM}	and do not have
+dicts.
+
 \begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
-\const{PL_VARIABLE} & An unbound variable. The value of term as such
-		      is a unique identifier for the variable. \\
-\const{PL_ATOM}     & A Prolog atom. \\
-\const{PL_STRING}   & A Prolog string. \\
-\const{PL_INTEGER}  & A Prolog integer. \\
-\const{PL_FLOAT}    & A Prolog floating point number. \\
-\const{PL_TERM}     & A compound term. Note that a list is a
-		      compound term \functor{.}{2}. \\
+\const{PL_VARIABLE}  & A variable or attributed variable \\
+\const{PL_ATOM}      & A Prolog atom \\
+\const{PL_NIL}       & The constant \verb$[]$ \\
+\const{PL_BLOB}	     & A blob (see \secref{blobaccess}) \\
+\const{PL_STRING}    & A string (see \secref{strings}) \\
+\const{PL_INTEGER}   & A integer \\
+\const{PL_FLOAT}     & A floating point number \\
+\const{PL_TERM}      & A compound term \\
+\const{PL_LIST_PAIR} & A list cell (\verb$[H|T]$) \\
+\const{PL_DICT}	     & A dict (see \secref{dicts})) \\
 \hline
 \end{tabular}
 \end{description}
@@ -655,39 +664,53 @@ and more readable then using an if-then-else using the functions below.
 All these functions return either \const{TRUE} or \const{FALSE}.
 
 \begin{description}
-\cfunction{int}{PL_is_variable}{term_t}
+    \cfunction{int}{PL_is_variable}{term_t}
 Returns non-zero if \arg{term} is a variable.
-\cfunction{int}{PL_is_ground}{term_t}
+
+    \cfunction{int}{PL_is_ground}{term_t}
 Returns non-zero if \arg{term} is a ground term.  See also ground/1.
 This function is cycle-safe.
-\cfunction{int}{PL_is_atom}{term_t}
+
+    \cfunction{int}{PL_is_atom}{term_t}
 Returns non-zero if \arg{term} is an atom.
-\cfunction{int}{PL_is_string}{term_t}
+
+    \cfunction{int}{PL_is_string}{term_t}
 Returns non-zero if \arg{term} is a string.
-\cfunction{int}{PL_is_integer}{term_t}
+
+    \cfunction{int}{PL_is_integer}{term_t}
 Returns non-zero if \arg{term} is an integer.
-\cfunction{int}{PL_is_float}{term_t}
+
+    \cfunction{int}{PL_is_float}{term_t}
 Returns non-zero if \arg{term} is a float.
-\cfunction{int}{PL_is_callable}{term_t}
+
+    \cfunction{int}{PL_is_callable}{term_t}
 Returns non-zero if \arg{term} is a callable term.  See callable/1
 for details.
-\cfunction{int}{PL_is_compound}{term_t}
+
+    \cfunction{int}{PL_is_compound}{term_t}
 Returns non-zero if \arg{term} is a compound term.
-\cfunction{int}{PL_is_functor}{term_t, functor_t}
+
+    \cfunction{int}{PL_is_functor}{term_t, functor_t}
 Returns non-zero if \arg{term} is compound and its functor is \arg{functor}.
 This test is equivalent to PL_get_functor(), followed by testing the
 functor, but easier to write and faster.
-\cfunction{int}{PL_is_list}{term_t}
-Returns non-zero if \arg{term} is a compound term with functor \functor{.}{2} or
-the atom \const{[]}.  See also PL_is_pair() and PL_skip_list().
-\cfunction{int}{PL_is_pair}{term_t}
-Returns non-zero if \arg{term} is a compound term with functor \functor{.}{2}.  See
-also PL_is_list() and PL_skip_list().
-\cfunction{int}{PL_is_atomic}{term_t}
+
+    \cfunction{int}{PL_is_list}{term_t}
+Returns non-zero if \arg{term} is a compound term using the list
+constructor or the list terminator. See also PL_is_pair() and
+PL_skip_list().
+
+    \cfunction{int}{PL_is_pair}{term_t}
+Returns non-zero if \arg{term} is a compound term using the list
+constructor.  See also PL_is_list() and PL_skip_list().
+
+    \cfunction{int}{PL_is_atomic}{term_t}
 Returns non-zero if \arg{term} is atomic (not variable or compound).
-\cfunction{int}{PL_is_number}{term_t}
+
+    \cfunction{int}{PL_is_number}{term_t}
 Returns non-zero if \arg{term} is an integer or float.
-\cfunction{int}{PL_is_acyclic}{term_t}
+
+    \cfunction{int}{PL_is_acyclic}{term_t}
 Returns non-zero if \arg{term} is acyclic (i.e.\ a finite tree).
 \end{description}
 
@@ -849,10 +872,17 @@ If \arg{t} is a float or integer, its value is assigned over \arg{f}.
 If \arg{t} is compound or an atom, the Prolog representation of the
 name-arity pair will be assigned over \arg{f}. See also
 PL_get_name_arity() and PL_is_functor().
+
 \cfunction{int}{PL_get_name_arity}{term_t +t, atom_t *name, int *arity}
 If \arg{t} is compound or an atom, the functor name will be assigned
 over \arg{name} and the arity over \arg{arity}. See also
 PL_get_functor() and PL_is_functor().
+
+\cfunction{int}{PL_get_compound_name_arity}{term_t +t, atom_t *name, int *arity}
+If \arg{t} is compound term, the functor name will be assigned over
+\arg{name} and the arity over \arg{arity}.  This is the same as
+PL_get_name_arity(), but this function fails if \arg{t} is an atom.
+
 \cfunction{int}{PL_get_module}{term_t +t, module_t *module}
 If \arg{t} is an atom, the system will look up or create the
 corresponding module and assign an opaque pointer to it over {\em
@@ -994,21 +1024,26 @@ pl_write_atoms(term_t l)
 }
 \end{code}
 
+Note that as of version~7, lists have a new representation unless the
+option \cmdlineoption{--traditional} is used.  see \secref{ext-lists}.
 
 \begin{description}
-\cfunction{int}{PL_get_list}{term_t +l, term_t -h, term_t -t}
-If \arg{l} is a list and not \const{[]} assign a term reference to the
-head to \arg{h} and to the tail to \arg{t}.
-\cfunction{int}{PL_get_head}{term_t +l, term_t -h}
-If \arg{l} is a list and not \const{[]} assign a term reference to the
-head to \arg{h}.
-\cfunction{int}{PL_get_tail}{term_t +l, term_t -t}
-If \arg{l} is a list and not \const{[]} assign a term reference to the
-tail to \arg{t}.
-\cfunction{int}{PL_get_nil}{term_t +l}
-Succeeds if \arg{l} represents the atom \const{[]}.
+    \cfunction{int}{PL_get_list}{term_t +l, term_t -h, term_t -t}
+If \arg{l} is a list and not the empty list, assign a term reference to
+the head to \arg{h} and to the tail to \arg{t}.
 
-\cfunction{int}{PL_skip_list}{term_t +list, term_t -tail, size_t *len}
+    \cfunction{int}{PL_get_head}{term_t +l, term_t -h}
+If \arg{l} is a list and not the empty list, assign a term reference to
+the head to \arg{h}.
+
+    \cfunction{int}{PL_get_tail}{term_t +l, term_t -t}
+If \arg{l} is a list and not the empty list, assign a term reference to
+the tail to \arg{t}.
+
+    \cfunction{int}{PL_get_nil}{term_t +l}
+Succeeds if \arg{l} represents the list termination constant.
+
+    \cfunction{int}{PL_skip_list}{term_t +list, term_t -tail, size_t *len}
 This is a multi-purpose function to deal with lists.  It allows for
 finding the length of a list, checking whether something is a list,
 etc. The reference \arg{tail} is set to point to the end of the list,
@@ -1017,8 +1052,8 @@ return value indicates the status of the list:
 
     \begin{description}
 	\constitem{PL_LIST}
-    The list is a `proper' list: one that ends in \const{[]} and
-    \arg{tail} is filled with \const{[]}
+    The list is a `proper' list: one that ends in the list terminator
+    constant and \arg{tail} is filled with the terminator constant.
 
 	\constitem{PL_PARTIAL_LIST}
     The list is a `partial' list: one that ends in a variable and
@@ -1141,18 +1176,29 @@ Put a Prolog integer in the term reference.  Provided \arg{ptr} is in the
 `malloc()-area', PL_get_pointer() will get the pointer back.
 \cfunction{int}{PL_put_float}{term_t -t, double f}
 Put a floating-point value in the term reference.
-\cfunction{int}{PL_put_functor}{term_t -t, functor_t functor}
+
+    \cfunction{int}{PL_put_functor}{term_t -t, functor_t functor}
 Create a new compound term from \arg{functor} and bind \arg{t} to
 this term. All arguments of the term will be variables. To create
 a term with instantiated arguments, either instantiate the arguments
 using the {\tt PL_unify_*()} functions or use PL_cons_functor().
-\cfunction{int}{PL_put_list}{term_t -l}
-Same as \exam{PL_put_functor(l, PL_new_functor(PL_new_atom("."), 2))}.
-\cfunction{int}{PL_put_nil}{term_t -l}
-Same as \exam{PL_put_atom_chars("[]")}.  Always returns \const{TRUE}.
-\cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
+
+    \cfunction{int}{PL_put_list}{term_t -l}
+As PL_put_functor(), using the list-cell functor. Note that on classical
+Prolog systems or in SWI-Prolog using the option
+\cmdlineoption{--traditional}, this is \funcref{.}{2}, while on
+SWI-Prolog version~7 this is \funcref{[|]}{2}.
+
+    \cfunction{int}{PL_put_nil}{term_t -l}
+Put the list terminator constant in \arg{l}. Always returns
+\const{TRUE}. Note that in classical Prolog systems or in SWI-Prolog
+using the option \cmdlineoption{--traditional}, this is the same as
+\exam{PL_put_atom_chars("[]")}. See \secref{ext-lists}.
+
+    \cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
 Make \arg{t1} point to the same term as \arg{t2}.
-\cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
+
+    \cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
 Create a term whose arguments are filled from a variable argument list
 holding the same number of \ctype{term_t} objects as the arity of the functor.
 To create the term \exam{animal(gnu, 50)}, use:
@@ -1341,11 +1387,22 @@ Unify \arg{t} with a Prolog float from \arg{f}.
     \cfunction{int}{PL_unify_pointer}{term_t ?t, void *ptr}
 Unify \arg{t} with a Prolog integer describing the pointer. See also
 PL_put_pointer() and PL_get_pointer().
+
     \cfunction{int}{PL_unify_functor}{term_t ?t, functor_t f}
 If \arg{t} is a compound term with the given functor, just succeed.
 If it is unbound, create a term and bind the variable, else fail.
 Note that this function does not create a term if the argument is
-already instantiated.
+already instantiated.  If \arg{f} is a functor with arity 0, \arg{t}
+is unified with an atom.  See also PL_unify_compound().
+
+    \cfunction{int}{PL_unify_compound}{term_t ?t, functor_t f}
+If \arg{t} is a compound term with the given functor, just succeed.
+If it is unbound, create a term and bind the variable, else fail.
+Note that this function does not create a term if the argument is
+already instantiated.  If \arg{f} is a functor with arity 0, \arg{t}
+is unified with compound without arguments. See also
+PL_unify_functor().
+
     \cfunction{int}{PL_unify_list}{term_t ?l, term_t -h, term_t -t}
 Unify \arg{l} with a list-cell ({\tt ./2}). If successful, write a
 reference to the head of the list into \arg{h} and a reference
@@ -1661,12 +1718,14 @@ See also PL_raise_exception().
 \begin{description}
     \cfunction{int}{PL_instantiation_error}{term_t culprit}
 Raise \const{instantiation_error}.  \arg{Culprit} is ignored, but
-should be bound to the term that is not a variable.  See
+should be bound to the term that is insufficiently instantiated.  See
 instantiation_error/1.
 
     \cfunction{int}{PL_uninstantiation_error}{term_t culprit}
-Raise \exam{uninstantiation_error(culprit)}.  This should be called if
-an argument that must be unbound at entry is bound to \arg{culprit}.
+Raise \exam{uninstantiation_error(culprit)}. This should be called if an
+argument that must be unbound at entry is bound to \arg{culprit}. This
+error is typically raised for a pure output arguments such as a newly
+created stream handle (e.g., the third argument of open/3).
 
     \cfunction{int}{PL_representation_error}{const char *resource}
 Raise \exam{representation_error(resource)}. See representation_error/1.
@@ -1686,6 +1745,9 @@ Raise \exam{permission_error(operation, type, culprit)}. See
 permission_error/3.
     \cfunction{int}{PL_resource_error}{const char *resource}
 Raise \exam{resource_error(resource)}. See resource_error/1.
+    \cfunction{int}{PL_syntax_error}{const char *message, IOSTREAM *in}
+Raise \exam{syntax_error(message)}.  If \arg{arg} is not \const{NULL},
+add information about the current position of the input stream.
 \end{description}
 
 
@@ -2320,13 +2382,6 @@ interrupts (signals). The Prolog mapping is defined in
 If a signal is not used by Prolog and the handler does not call Prolog
 in any way, the native signal interface routines may be used.
 
-Some versions of SWI-Prolog, notably running on popular Unix platforms,
-handle \const{SIG_SEGV} for guarding the Prolog stacks. If the
-application wishes to handle this signal too, it should use PL_signal()
-to install its handler after initialising Prolog. SWI-Prolog will pass
-\const{SIG_SEGV} to the user code if it detected the signal is not
-related to a Prolog stack overflow.
-
 Any handler that wishes to call one of the Prolog interface functions
 should call PL_signal() for its installation.
 
@@ -2535,6 +2590,39 @@ notation.
 \end{description}
 
 
+\subsubsection{Dealing with Prolog flags from C}
+\label{sec:cprologflags}
+
+Foreign code can set or create Prolog flags using PL_set_prolog_flag().
+See set_prolog_flag/2 and create_prolog_flag/3.\footnote{The current C
+API does not provide for a dedicated mechanism for fetching the value of
+Prolog flags. Relatively slow access is provided by calling
+PL_call_predicate() using current_prolog_flag/2.}
+
+\begin{description}
+    \cfunction{int}{PL_set_prolog_flag}{const char *name, int type, ...}
+Set/create a Prolog flag from C.  \arg{name} is the name of the affected
+flag. \arg{type} is one of the values below, which also
+dictates the type of the final argument. The function returns
+\const{TRUE} on success and \const{FALSE} on failure.  This function
+can be called \emph{before} PL_initialise(), making the flag available
+to the Prolog startup code.
+
+\begin{description}
+    \definition{\const{PL_BOOL}}
+Create a boolean (\const{true} or \const{false}) flag. The argument must
+be an \ctype{int}.
+    \definition{\const{PL_ATOM}}
+Create a flag with an atom as value. The argument must be of type
+\ctype{const char *}.
+    \definition{\const{PL_INTEGER}}
+Create a flag with an integer as value. The argument must be of type
+\ctype{intptr_t *}.
+\end{description}
+\end{description}
+
+
+
 \subsection{Errors and warnings}
 \label{sec:foreign-print-warning}
 
@@ -2590,6 +2678,10 @@ application if the argument is not 0, and a console application if the
 argument is 0. If a fatal error occurs, the system uses a windows
 messagebox to report this on a GUI application, and otherwise simply
 prints the error and exits.
+
+    \termitem{PL_ACTION_TRADITIONAL}{}
+Same effect as using \cmdlineoption{--traditional}.  Must be called
+\emph{before} PL_initialise().
 
     \termitem{PL_ACTION_WRITE}{}
 Write the argument, a \ctype{char *} to the current output stream.

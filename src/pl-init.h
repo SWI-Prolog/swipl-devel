@@ -58,6 +58,7 @@ typedef struct
   char *	compileOut;		/* file to store compiler output */
   char *	saveclass;		/* Type of saved state */
   bool		silent;			/* -q: quiet operation */
+  bool		traditional;		/* --traditional: no version 7 exts */
 #ifdef __WINDOWS__
   bool		win_app;		/* --win_app: be Windows application */
 #endif

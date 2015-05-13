@@ -1310,6 +1310,10 @@ getTargetModule(target_module *tm, Word t, CompileInfo ci ARG_LD)
   } else if ( isTextAtom(*t) )
   { tm->module = lookupModule(*t);
     tm->type = TM_MODULE;
+    if ( !ci->islocal && tm->module->class == ATOM_temporary )
+      return PL_error(NULL, 0, "temporary module", ERR_PERMISSION,
+		      ATOM_reference, ATOM_module, pushWordAsTermRef(t));
+
   } else
   { resetVars(PASS_LD1);
     PL_error(NULL, 0, NULL,
@@ -1628,7 +1632,9 @@ that have an I_CONTEXT because we need to reset the context.
 	set(def, P_MFCONTEXT);
 
       if ( true(def, P_MFCONTEXT) )
+      { set(&clause, CL_BODY_CONTEXT);
 	Output_1(&ci, I_CONTEXT, (code)ci.module);
+      }
     }
 
     bi = PC(&ci);
@@ -1663,8 +1669,16 @@ Finish up the clause.
 
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
+    Module m = proc->definition->module;
+    size_t clsize = size + SIZEOF_CREF_CLAUSE;
+
+    if ( m->code_limit && clsize + m->code_size > m->code_limit )
+    { rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_program_space);
+      goto exit_fail;
+    }
 
     cl = PL_malloc_atomic(size);
+    ATOMIC_ADD(&m->code_size, clsize);
     memcpy(cl, &clause, sizeofClause(0));
     memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
 
@@ -2300,15 +2314,16 @@ isvar:
     }
 
     if ( isright )
-    { goto right_recursion;
+    { if ( ar == 0 )
+	goto right_recursion;
     } else
-    { code c;
-      int rc;
+    { int rc;
 
-      if ( (rc=compileArgument(arg, where, ci PASS_LD)) < 0 )
-	return rc;
-      c = (where & A_HEAD) ? H_POP : B_POP;
-      Output_0(ci, c);
+      if ( ar == 0 )			/* ar == -1 on a() */
+      { if ( (rc=compileArgument(arg, where, ci PASS_LD)) < 0 )
+	  return rc;
+      }
+      Output_0(ci, (where & A_HEAD) ? H_POP : B_POP);
     }
 
     return TRUE;
@@ -2377,7 +2392,7 @@ callatmv(code call)
 #endif
 
 
-static Procedure
+Procedure
 lookupBodyProcedure(functor_t functor, Module tm)
 { Procedure proc;
 
@@ -2465,6 +2480,9 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   if ( isTerm(*arg) )
   { functor = functorTerm(*arg);
     fdef = valueFunctor(functor);
+
+    if ( !isTextAtom(fdef->name) )
+      return NOT_CALLABLE;
 
     if ( true(fdef, ARITH_F) && !ci->islocal )
     { if ( functor == FUNCTOR_is2 &&
@@ -2908,14 +2926,37 @@ t(X) :-
 	;   Y = x
 	),
 	writeln(Y).
+
+In addition, if arg is a term,  we   must  recurse down into the term to
+deal with variables that are only used there. This is needed for e.g.
+
+foo(bar) :-
+	foo(_),
+	L = [X|X].
+
+Although X is allocated on the stack, no  code will be generated for it,
+causing clearUninitialisedVarsFrame() to ignore this variable. Of course
+it would be better to shrink the frame,   but  I doubt that is worth the
+trouble.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 skippedVar(Word arg, compileInfo *ci ARG_LD)
-{ int i = isIndexedVarTerm(*arg PASS_LD);
+{ int i;
+
+right_recursion:
+  deRef(arg);
+  i = isIndexedVarTerm(*arg PASS_LD);
 
   if ( i >= 0 && isFirstVarSet(ci->used_var, i) )
     Output_1(ci, C_VAR, VAROFFSET(i));
+  if ( isTerm(*arg) && !ci->islocal )
+  { int ar = arityFunctor(functorTerm(*arg));
+
+    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
+      skippedVar(arg, ci PASS_LD);
+    goto right_recursion;
+  }
 
   return TRUE;
 }
@@ -2960,8 +3001,8 @@ compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
       Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
     else if ( f1 )
       Output_2(ci, B_UNIFY_FV, VAROFFSET(i1), VAROFFSET(i2));
-    else if ( f2 )
-      Output_2(ci, B_UNIFY_FV, VAROFFSET(i2), VAROFFSET(i1));
+    else if ( f2 )			/* same, but args swapped */
+      Output_2(ci, B_UNIFY_VF, VAROFFSET(i2), VAROFFSET(i1));
     else
       Output_2(ci, B_UNIFY_VV, VAROFFSET(i1), VAROFFSET(i2));
 
@@ -3020,7 +3061,9 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
   { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
       compiler_warning(ci, "eq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_FAIL);
+    { skippedVar(a1, ci PASS_LD);
+      skippedVar(a2, ci PASS_LD);
+      Output_0(ci, I_FAIL);
       return TRUE;
     }
 
@@ -3038,16 +3081,18 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
     { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
 	compiler_warning(ci, "eq_vv", a1, a2);
       if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      {	code op = (i1 == i2) ? I_TRUE : I_FAIL;
+      {	code op = (i1 == i2) ? I_TRUE : I_FAIL;;
 
+	skippedVar(a1, ci PASS_LD);
+	skippedVar(a2, ci PASS_LD);
 	Output_0(ci, op);
 
 	return TRUE;
       }
-    } else
-    { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-      if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
     }
+
+    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
 
     Output_2(ci, B_EQ_VV, VAROFFSET(i1), VAROFFSET(i2));
 
@@ -3098,7 +3143,9 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
   { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
       compiler_warning(ci, "neq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_TRUE);
+    { skippedVar(a1, ci PASS_LD);
+      skippedVar(a2, ci PASS_LD);
+      Output_0(ci, I_TRUE);
       return TRUE;
     }
 
@@ -3116,13 +3163,15 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
     { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
 	compiler_warning(ci, "neq_vv", a1, a2);
       if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      {	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
+      {	skippedVar(a1, ci PASS_LD);
+	skippedVar(a2, ci PASS_LD);
+	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
 	return TRUE;
       }
-    } else
-    { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-      if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
     }
+
+    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
 
     Output_2(ci, B_NEQ_VV, VAROFFSET(i1), VAROFFSET(i2));
 
@@ -3674,15 +3723,18 @@ PRED_IMPL("redefine_system_predicate",  1, redefine_system_predicate,
   term_t head = PL_new_term_ref();
   term_t pred = A1;
 
-  PL_strip_module(pred, &m, head);
+  if ( !PL_strip_module(pred, &m, head) )
+    return FALSE;
   if ( !PL_get_functor(head, &fd) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, pred);
 
-  proc = lookupProcedure(fd, m);
-  abolishProcedure(proc, m);
-  set(proc->definition, P_REDEFINED);	/* flag as redefined */
-
-  succeed;
+  if ( (proc = lookupProcedure(fd, m)) )
+  { abolishProcedure(proc, m);
+    set(proc->definition, P_REDEFINED);	/* flag as redefined */
+    return TRUE;
+  } else
+  { return FALSE;
+  }
 }
 
 
@@ -3742,9 +3794,14 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-skipArgs() skips skip arguments inside the   code  for a clause-head. If
-the skip is into the middle of a   H_VOID_N,  it returns the location of
-the H_VOID_N.
+skipArgs() skips arguments. When used inside  a clause-head and the skip
+is into the middle  of  a  H_VOID_N,   it  returns  the  location of the
+H_VOID_N.
+
+(*) resortDictsInClause() uses this to skip  values   in  the dict. As a
+dict is essentially a compound, if the last  value is H_VOID, it will be
+optimised away, resulting in <key-code>,   H_POP  instead of <key-code>,
+H_VOID, H_POP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
@@ -3762,16 +3819,22 @@ skipArgs(Code PC, int skip)
     switch(c)
     { case H_FUNCTOR:
       case H_LIST:
+      case B_FUNCTOR:
+      case B_LIST:
 	nested++;
         continue;
       case H_RFUNCTOR:
       case H_RLIST:
+      case B_RFUNCTOR:
+      case B_RLIST:
 	continue;
       case H_POP:
+      case B_POP:
 	if ( --nested == 0 && --skip == 0 )
 	  return nextPC;
-        assert(nested>=0);
-        continue;
+        if ( nested >= 0 )
+          continue;
+        return PC;			/* See (*) */
       case H_ATOM:
       case H_SMALLINT:
       case H_NIL:
@@ -3784,6 +3847,22 @@ skipArgs(Code PC, int skip)
       case H_VAR:
       case H_VOID:
       case H_LIST_FF:
+      case B_ATOM:
+      case B_SMALLINT:
+      case B_NIL:
+      case B_INT64:
+      case B_INTEGER:
+      case B_FLOAT:
+      case B_STRING:
+      case B_MPZ:
+      case B_ARGVAR:
+      case B_ARGFIRSTVAR:
+      case B_FIRSTVAR:
+      case B_VAR0:
+      case B_VAR1:
+      case B_VAR2:
+      case B_VAR:
+      case B_VOID:
 	if ( nested )
 	  continue;
         if ( --skip == 0 )
@@ -3983,6 +4062,37 @@ arg1Key(Code PC, word *key)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return the context module  in  which  the   body  of  a  clause  will be
+executed. This can  be  different  from   the  predicate's  module  when
+compiling a clause into a different module, as in
+
+    target:head :- body.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Module
+clauseBodyContext(const Clause cl)
+{ if ( true(cl, CL_BODY_CONTEXT) )
+  { Code PC = cl->codes;
+
+    for(;; PC = stepPC(PC))
+    { code op = fetchop(PC);
+
+      switch(op)
+      { case I_CONTEXT:
+	  return (Module)PC[1];
+        case I_EXIT:
+        case I_EXITFACT:
+	  assert(0);
+	  break;
+      }
+    }
+  }
+
+  return cl->procedure->definition->module;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The decompiler is rather straightforwards.  First it  will  construct  a
 term  with  variables  for  the  head  and an array of variables for all
 variables in  the  clause.   Next  the  head  arguments  are  filled  by
@@ -4062,10 +4172,10 @@ get_arg_ref(term_t term, term_t argp ARG_LD)
   int ar = arityTerm(w);
   Word ap = valTermRef(argp);
 
-  assert(ar > 0);
-
-  ap[0] = makeRefG(p);			/* points to first argument */
-  ap[1] = makeRefG(p+ar-1);		/* points to last argument */
+  if ( ar > 0 )
+  { ap[0] = makeRefG(p);		/* points to first argument */
+    ap[1] = makeRefG(p+ar-1);		/* points to last argument */
+  }
 }
 
 
@@ -4163,11 +4273,14 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
   arity = def->functor->arity;
-  TRY( PL_unify_functor(head, def->functor->functor) );
   if ( arity > 0 )
-  { if ( !(argp = PL_new_term_refs(2)) )
+  { if ( !PL_unify_functor(head, def->functor->functor) ||
+	 !(argp = PL_new_term_refs(2)) )
       return FALSE;
     get_arg_ref(head, argp PASS_LD);
+  } else
+  { if ( !PL_unify_atom(head, def->functor->name) )
+      return FALSE;
   }
 
 #define NEXTARG { next_arg_ref(argp PASS_LD); if ( !pushed ) argn++; }
@@ -4273,7 +4386,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  fdef = (functor_t) XR(*PC++);
       common_functor:
 	  if ( !(t2 = PL_new_term_refs(2)) ||
-	       !PL_unify_functor(argp, fdef) )
+	       !PL_unify_compound(argp, fdef) )
 	    return FALSE;
           get_arg_ref(argp, t2 PASS_LD);
           next_arg_ref(argp PASS_LD);
@@ -4290,7 +4403,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
 	  fdef = (functor_t) XR(*PC++);
       common_rfunctor:
-	  TRY(PL_unify_functor(argp, fdef));
+	  TRY(PL_unify_compound(argp, fdef));
           get_arg_ref(argp, argp PASS_LD);
 	  continue;
       case H_RLIST:
@@ -4612,6 +4725,11 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    goto b_unify_exit;
+      case B_UNIFY_VF:
+			    ARGP[1] = makeVarRef((int)*PC++);
+			    ARGP[0] = makeVarRef((int)*PC++);
+			    ARGP += 2;
+			    goto b_unify_exit;
       case B_UNIFY_FC:
       case B_UNIFY_VC:
 			    *ARGP++ = makeVarRef((int)*PC++);
@@ -4930,17 +5048,17 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			  }
     { code cut;
       functor_t f;
-      case C_IFTHEN:				/* A -> B */
-			    cut = C_CUT;
+      case C_IFTHEN:					/* A -> B */
+			    cut = C_CUT;		/* C_CUT takes 1 arg */
 			    f = FUNCTOR_ifthen2;
 			    goto c_ifthen;
       case C_SOFTIFTHEN:				/* A *->B */
-			    cut = C_SCUT;
+			    cut = C_SCUT;		/* C_SCUT takes 0 args */
 			    f = FUNCTOR_softcut2;
 			  c_ifthen:
 			    PC++;
-			    TRY_DECOMPILE(di, cut, NULL);   /* A */
-			    PC += 2;
+			    TRY_DECOMPILE(di, cut, NULL);     /* A */
+                            PC += ( cut == C_CUT ? 2 : 1 );   /* skip C_(S)CUT */
 			    TRY_DECOMPILE(di, C_END, NULL);   /* B */
 			    PC++;
 			    BUILD_TERM(f);
@@ -5130,8 +5248,35 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
 
 
 static int
+unify_atom_compound(term_t t1, term_t t2 ARG_LD)
+{ if ( !PL_unify(t1, t2) )
+  { Word p1 = valTermRef(t1);
+    Word p2 = valTermRef(t2);
+
+    deRef(p1);
+    deRef(p2);
+    if ( isAtom(*p1) && isTerm(*p2) )
+    { FunctorDef fd = valueFunctor(functorTerm(*p2));
+
+      if ( fd->name == *p1 && fd->arity == 0 )
+	return TRUE;
+    } else if ( isAtom(*p2) && isTerm(*p1) )
+    { FunctorDef fd = valueFunctor(functorTerm(*p1));
+
+      if ( fd->name == *p2 && fd->arity == 0 )
+	return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static int
 unify_head(term_t h, term_t d ARG_LD)
-{ if ( !PL_unify(h, d) )
+{ if ( !unify_atom_compound(h, d PASS_LD) )
   { term_t h1, d1;
     Module m = NULL;
 
@@ -5139,10 +5284,10 @@ unify_head(term_t h, term_t d ARG_LD)
 	 !(d1 = PL_new_term_ref()) )
       return FALSE;
 
-    PL_strip_module(h, &m, h1);
-    PL_strip_module(d, &m, d1);
-
-    return PL_unify(h1, d1);
+    return ( PL_strip_module(h, &m, h1) &&
+	     PL_strip_module(d, &m, d1) &&
+	     unify_atom_compound(h1, d1 PASS_LD)
+	   );
   } else
     return TRUE;
 }
@@ -5239,7 +5384,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   }
 
   if ( def->functor->arity > 0 )
-  { PL_strip_module(head, &module, head);
+  { if ( !PL_strip_module(head, &module, head) )
+      return FALSE;
     argv = valTermRef(head);
     deRef(argv);
     argv = argTermP(*argv, 0);
@@ -6059,9 +6205,9 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   Module module = NULL;
   size_t size;
 
-  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
-    fail;
-  PL_strip_module(A2, &module, A2);
+  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) ||
+       !PL_strip_module(A2, &module, A2) )
+    return FALSE;
 
   ci.islocal      = FALSE;
   ci.subclausearg = 0;
@@ -6412,6 +6558,21 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	PC = nextpc;
 	add_node(tail, 2 PASS_LD);
         continue;
+      case B_UNIFY_FIRSTVAR:		/* child frame ptr after B_UNIFY_EXIT */
+      case B_UNIFY_VAR:			/* see also '$break_pc'/3 */
+	do
+	{ PC     = nextpc;
+	  op     = fetchop(PC);
+	  nextpc = stepPC(PC);
+	} while(op != B_UNIFY_EXIT);
+	if ( loc == nextpc )
+	{ add_1_if_not_at_end(nextpc, end, tail PASS_LD);
+
+	  return PL_unify_nil(tail);
+	}
+	add_node(tail, 2 PASS_LD);
+	PC = nextpc;
+        continue;
       default:
         if ( loc == nextpc )
 	{ add_1_if_not_at_end(nextpc, end, tail PASS_LD);
@@ -6462,15 +6623,24 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
 
   while( PC < end )
   { code op = fetchop(PC);
-    Code next = stepPC(PC);
+    Code nextpc = stepPC(PC);
 
     if ( (codeTable[op].flags & VIF_BREAK) )
-    { if ( PL_unify_integer(A2, PC-clause->codes) &&
-	   PL_unify_integer(A3, next-clause->codes) )
-	ForeignRedoInt(next-clause->codes);
+    { switch(op)
+      { case B_UNIFY_FIRSTVAR:
+	case B_UNIFY_VAR:
+	  do
+	  { PC     = nextpc;
+	    op     = fetchop(PC);
+	    nextpc = stepPC(PC);
+	  } while(op != B_UNIFY_EXIT);
+      }
+      if ( PL_unify_integer(A2, PC-clause->codes) &&
+	   PL_unify_integer(A3, nextpc - clause->codes) )
+	ForeignRedoInt(nextpc - clause->codes);
     }
 
-    PC = next;
+    PC = nextpc;
   }
 
   fail;
@@ -6489,15 +6659,47 @@ typedef struct
 } break_point, *BreakPoint;
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Breaking on the compiled unification instruction is realised by breaking
+both  the  start  (B_UNIFY_VAR   or    B_UNIFY_FIRSTVAR)   and  the  end
+(B_UNIFY_EXIT). Note that the end instruction is always present and that
+inlined unification cannot be nested.
+
+Concurrency issues are avoided because both  setBreak and clearBreak are
+called with L_BREAK locked.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+matching_unify_break(Clause clause, int offset, code op)
+{ switch(op)
+  { case B_UNIFY_VAR:
+    case B_UNIFY_FIRSTVAR:
+    { Code PC;
+
+      for(PC=clause->codes + offset;
+	  PC<clause->codes + clause->code_size;
+	  PC = stepPC(PC) )
+      { if ( fetchop(PC) == B_UNIFY_EXIT )
+	  return PC-clause->codes;
+      }
+      assert(0);
+    }
+    default:
+      return 0;				/* a matching unify can never be at 0 */
+  }
+}
+
+
 static bool
 setBreak(Clause clause, int offset)	/* offset is already verified */
 { Code PC = clause->codes + offset;
   code op = *PC;
+  code dop = decode(op);
 
   if ( !breakTable )
     breakTable = newHTable(16);
 
-  if ( (codeTable[decode(op)].flags & VIF_BREAK) )
+  if ( (codeTable[dop].flags & VIF_BREAK) || dop == B_UNIFY_EXIT )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
 
     bp->clause = clause;
@@ -6507,6 +6709,9 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     addHTable(breakTable, PC, bp);
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
+
+    if ( (offset=matching_unify_break(clause, offset, dop)) )
+      return setBreak(clause, offset);
 
     return TRUE;
   } else
@@ -6525,7 +6730,6 @@ clearBreak(Clause clause, int offset)
   PC = clause->codes + offset;
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
   { term_t brk;
-
     if ( (brk=PL_new_term_ref()) &&
 	 PL_unify_term(brk,
 		       PL_FUNCTOR, FUNCTOR_break2,
@@ -6541,6 +6745,9 @@ clearBreak(Clause clause, int offset)
   freeHeap(bp, sizeof(*bp));
   deleteSymbolHTable(breakTable, s);
 
+  if ( (offset=matching_unify_break(clause, offset, decode(*PC))) )
+    return clearBreak(clause, offset);
+
   return TRUE;
 }
 
@@ -6548,16 +6755,26 @@ clearBreak(Clause clause, int offset)
 void
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { delayEvents();
-    PL_LOCK(L_BREAK);
-    for_unlocked_table(breakTable, s,
-		       { BreakPoint bp = (BreakPoint)s->value;
+  { int k;
 
-			 if ( bp->clause == clause )
-			 { clearBreak(clause, bp->offset);
-			   callEventHook(PLEV_NOBREAK, clause, bp->offset);
-			 }
-		       });
+    delayEvents();
+    PL_LOCK(L_BREAK);
+    for(k=0; k<breakTable->buckets; k++)
+    { Symbol next, s;
+
+      for(s=breakTable->entries[k]; s; s=next)
+      { BreakPoint bp = (BreakPoint)s->value;
+
+	next = s->next;
+
+	if ( bp->clause == clause )
+	{ int offset = bp->offset;
+
+	  clearBreak(clause, bp->offset);
+	  callEventHook(PLEV_NOBREAK, clause, offset);
+	}
+      }
+    }
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
     sendDelayedEvents();

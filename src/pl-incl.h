@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam,
+    Copyright (C): 1985-2014, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -67,12 +67,8 @@
 #endif
 
 #define PL_KERNEL		1
+#include <inttypes.h>
 #include "pl-builtin.h"
-
-#ifdef HAVE_DMALLOC_H
-#include <dmalloc.h>			/* Use www.dmalloc.com debugger */
-#endif
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
@@ -140,13 +136,15 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_IS		1
 #define O_CALL_AT_MODULE	1
 #define O_STRING		1
-#define O_QUASIQUOTATIONS		1
+#define O_RESERVED_SYMBOLS	1
+#define O_QUASIQUOTATIONS	1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
 #define O_DESTRUCTIVE_ASSIGNMENT 1
 #define O_TERMHASH		1
 #define O_LIMIT_DEPTH		1
+#define O_INFERENCE_LIMIT	1
 #define O_SAFE_SIGNALS		1
 #define O_LOGICAL_UPDATE	1
 #define O_LOCALE		1
@@ -156,6 +154,7 @@ handy for it someone wants to add a data type to the system.
 #define O_CALL_RESIDUE		1
 #define O_GVAR			1
 #define O_CYCLIC		1
+
 #ifdef HAVE_GMP_H
 #define O_GMP			1
 #endif
@@ -377,6 +376,16 @@ A common basis for C keywords.
 #if defined(__STRICT_ANSI__) || defined(NO_ASM_NOP)
 #define ASM_NOP { static int nop; nop++; }
 #endif
+
+#ifdef DMALLOC
+#include <dmalloc.h>			/* Use www.dmalloc.com debugger */
+
+#define PL_ALLOC_DONE 1
+#define DMALLOC_FUNC_CHECK 1
+#define allocHeap(n)		malloc(n)
+#define allocHeapOrHalt(n)	xmalloc(n)
+#define freeHeap(ptr, n)	do { (void)(n); xfree(ptr); } while(0)
+#endif /*DMALLOC*/
 
 #define forwards static		/* forwards function declarations */
 
@@ -705,10 +714,6 @@ typedef struct
 	} value;
 } number, *Number;
 
-#define same_type_numbers(n1, n2) \
-	if ( (n1)->type != (n2)->type ) \
-	  make_same_type_numbers(n1, n2)
-
 #define TOINT_CONVERT_FLOAT	0x1	/* toIntegerNumber() */
 #define TOINT_TRUNCATE		0x2
 
@@ -748,8 +753,9 @@ typedef enum
 #define GP_NOT_QUALIFIED 0x2000		/* Demand unqualified name/arity */
 
 					/* get_functor() */
-#define GF_EXISTING	1
-#define GF_PROCEDURE	2		/* check for max arity */
+#define GF_EXISTING	0x1
+#define GF_PROCEDURE	0x2		/* check for max arity */
+#define GF_NAMEARITY	0x4		/* only accept name/arity */
 
 
 		 /*******************************
@@ -759,13 +765,14 @@ typedef enum
 /* See updateAlerted()
 */
 
-#define	ALERT_SIGNAL	 0x01
-#define	ALERT_GCREQ	 0x02
-#define	ALERT_PROFILE	 0x04
-#define	ALERT_EXITREQ	 0x08
-#define	ALERT_DEPTHLIMIT 0x10
-#define	ALERT_WAKEUP	 0x20
-#define ALERT_DEBUG	 0x40
+#define	ALERT_SIGNAL	     0x01
+#define	ALERT_GCREQ	     0x02
+#define	ALERT_PROFILE	     0x04
+#define	ALERT_EXITREQ	     0x08
+#define	ALERT_DEPTHLIMIT     0x10
+#define	ALERT_INFERENCELIMIT 0x20
+#define	ALERT_WAKEUP	     0x40
+#define	ALERT_DEBUG	     0x80
 
 
 		 /*******************************
@@ -844,6 +851,8 @@ with one operation, it turns out to be faster as well.
 #define COMMIT_CLAUSE		(0x0010) /* This clause will commit */
 #define DBREF_CLAUSE		(0x0020) /* Clause has db-reference */
 #define DBREF_ERASED_CLAUSE	(0x0040) /* Deleted while referenced */
+#define CL_BODY_CONTEXT		(0x0080) /* Module context of body is different */
+					 /* from predicate */
 
 /* Flags on module.  Most of these flags are copied to the read context
    in pl-read.c.
@@ -855,9 +864,13 @@ with one operation, it turns out to be faster as well.
 #define DBLQ_ATOM		(0x0008) /* "ab" --> 'ab' */
 #define DBLQ_STRING		(0x0010) /* "ab" --> "ab" */
 #define DBLQ_MASK		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
-#define UNKNOWN_FAIL		(0x0020) /* module */
-#define UNKNOWN_WARNING		(0x0040) /* module */
-#define UNKNOWN_ERROR		(0x0080) /* module */
+#define BQ_STRING		(0x0020) /* `ab` --> "ab" */
+#define BQ_CODES		(0x0040) /* `ab` --> [97,98] */
+#define BQ_CHARS		(0x0080) /* `ab` --> [a,b] */
+#define BQ_MASK			(BQ_STRING|BQ_CODES|BQ_CHARS)
+#define UNKNOWN_FAIL		(0x0100) /* module */
+#define UNKNOWN_WARNING		(0x0200) /* module */
+#define UNKNOWN_ERROR		(0x0400) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 
 /* Flags on functors */
@@ -881,14 +894,15 @@ with one operation, it turns out to be faster as well.
 Macros for environment frames (local stack frames)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_HIDE_CHILDS		(0x01L)	/* flag of pred after I_DEPART */
-#define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
-#define FR_MARKED		(0x04L)	/* GC */
-#define FR_MARKED_PRED		(0x08L)	/* GC predicates/clauses */
-#define FR_WATCHED		(0x10L)	/* GUI debugger */
-#define FR_CATCHED		(0x20L)	/* Frame caught an exception */
-#define FR_INBOX		(0x40L) /* Inside box (for REDO in built-in) */
-#define FR_CONTEXT		(0x80L)	/* fr->context is set */
+#define FR_HIDE_CHILDS		(0x0001) /* flag of pred after I_DEPART */
+#define FR_SKIPPED		(0x0002) /* We have skipped on this frame */
+#define FR_MARKED		(0x0004) /* GC */
+#define FR_MARKED_PRED		(0x0008) /* GC predicates/clauses */
+#define FR_WATCHED		(0x0010) /* GUI debugger */
+#define FR_CATCHED		(0x0020) /* Frame caught an exception */
+#define FR_INBOX		(0x0040) /* Inside box (for REDO in built-in) */
+#define FR_CONTEXT		(0x0080) /* fr->context is set */
+#define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4: marked for cleanup */
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
@@ -947,7 +961,7 @@ typedef uint64_t lgen_t;
 #define setGenerationFrame(f)	(void)0
 #endif /*O_LOGICAL_UPDATE*/
 
-#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS
+#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS|FR_CLEANUP
 #define setNextFrameFlags(next, fr) \
 	do \
 	{ (next)->level = (fr)->level+1; \
@@ -1280,11 +1294,13 @@ struct definition_chain
   DefinitionChain	next;		/* next in chain */
 };
 
-#define	PROC_WEAK	(0x0001)	/* implicit import */
+#define	PROC_WEAK	 (0x0001)	/* implicit import */
+#define	PROC_MULTISOURCE (0x0002)	/* Assigned to multiple sources */
 
 struct procedure
-{ Definition	definition;		/* definition of procedure */
-  unsigned int	flags;			/* PROC_WEAK */
+{ Definition	 definition;		/* definition of procedure */
+  unsigned short flags;			/* PROC_WEAK */
+  unsigned short source_no;		/* Source I'm assigned to */
 };
 
 struct localFrame
@@ -1454,17 +1470,27 @@ struct recordRef
   Record	record;			/* the record itself */
 };
 
+#define SF_MAGIC 0x14a3c90f
+#define SF_MAGIC_DESTROYING 0x14a3c910
+
 struct sourceFile
 { atom_t	name;			/* name of source file */
   double	mtime;			/* modification time when loaded */
   ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   ListCell	modules;		/* Modules associated to this file */
+#ifdef O_PLMT
+  counting_mutex *mutex;		/* Mutex to guard procedures */
+#endif
+  int		magic;			/* Magic number */
   int		count;			/* number of times loaded */
   unsigned	index : 24;		/* index number (1,2,...) */
   unsigned	system : 1;		/* system sourcefile: do not reload */
 };
 
+typedef struct srcfile_array
+{ SourceFile *blocks[8*sizeof(void*)];
+} srcfile_array;
 
 struct list_cell
 { void *	value;		/* object in the cell */
@@ -1480,6 +1506,9 @@ struct module
   Table		public;		/* public predicates associated */
   Table		operators;	/* local operator declarations */
   ListCell	supers;		/* Import predicates from here */
+  ListCell	lingering;	/* Lingering definitions */
+  size_t	code_size;	/* #Bytes used for its procedures */
+  size_t	code_limit;	/* Limit for code_size */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard procedures */
 #endif
@@ -1672,6 +1701,13 @@ typedef enum pl_event_type
   PL_EV_THREADFINISHED			/* A thread has finished */
 } pl_event_type;
 
+#ifdef O_DEBUGGER
+#define callEventHook(...) \
+        ( PROCEDURE_event_hook1->definition->impl.any ? \
+		PL_call_event_hook(__VA_ARGS__) : TRUE )
+#else
+#define callEventHook(...) TRUE
+#endif
 
 
 		 /*******************************
@@ -1782,9 +1818,10 @@ typedef struct
 #define	MEMORY_OVERFLOW   (-5)		/* out of malloc()-heap */
 
 #define ALLOW_NOTHING	0x0
-#define ALLOW_GC	0x1
-#define ALLOW_SHIFT	0x2
-#define ALLOW_CHECKED	0x4
+#define ALLOW_GC	0x1		/* allow GC on stack overflow */
+#define ALLOW_SHIFT	0x2		/* allow shift on stack overflow */
+#define ALLOW_CHECKED	0x4		/* we already verified space */
+#define ALLOW_RETCODE	0x8		/* do not allow anything; return status */
 
 typedef enum
 { STACK_OVERFLOW_RAISE,
@@ -1855,7 +1892,8 @@ typedef struct
 
 typedef struct wakeup_state
 { fid_t		fid;			/* foreign frame reference */
-  int		flags;
+  Stack		outofstack;		/* Stack we are out of */
+  int		flags;			/* WAKEUP_STATE_* */
 } wakeup_state;
 
 
@@ -2005,7 +2043,6 @@ Tracer communication declarations.
 
 /* keep in sync with style_name/1 in boot/prims.pl */
 
-#define LONGATOM_CHECK	    0x0001	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x0002	/* read/1: check singleton vars */
 #define MULTITON_CHECK	    0x0004	/* read/1: check multiton vars */
 #define DISCONTIGUOUS_STYLE 0x0008	/* warn on discontiguous predicates */
@@ -2014,7 +2051,6 @@ Tracer communication declarations.
 #define SEMSINGLETON_CHECK  0x0040	/* Semantic singleton checking */
 #define NOEFFECT_CHECK	    0x0080	/* Check for meaningless statements */
 #define VARBRANCH_CHECK	    0x0100	/* warn on unbalanced variables */
-#define MAXNEWLINES	    5		/* maximum # of newlines in atom */
 
 typedef struct debuginfo
 { size_t	skiplevel;		/* current skip level */
@@ -2054,12 +2090,13 @@ typedef struct debuginfo
 #define PLFLAG_AUTOLOAD		    0x004000 /* do autoloading */
 #define PLFLAG_CHARCONVERSION	    0x008000 /* do character-conversion */
 #define PLFLAG_LASTCALL		    0x010000 /* Last call optimization enabled? */
-#define PLFLAG_BACKQUOTED_STRING    0x020000 /* `a string` */
+//				    0x020000 /* not used */
 #define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
 #define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
 #define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
 #define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x200000 /* Warn overriding weak symbols */
 #define PLFLAG_QUASI_QUOTES	    0x400000 /* Support quasi quotes */
+#define PLFLAG_DOT_IN_ATOM	    0x800000 /* Allow atoms a.b.c */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */
@@ -2084,6 +2121,10 @@ typedef enum
 
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~(uintptr_t)0x0) /* Highest value */
+#endif
+
+#ifdef O_INFERENCE_LIMIT
+#define INFERENCE_NO_LIMIT (~((int64_t)1<<63)) /* Highest value */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2154,6 +2195,7 @@ decrease).
 #include "os/pl-option.h"		/* Option processing */
 #include "os/pl-files.h"		/* File management */
 #include "os/pl-string.h"		/* Basic string functions */
+#include "pl-ressymbol.h"		/* Meta atom handling */
 
 #ifdef ATOMIC_INC
 #define ATOMIC_REFERENCES 1		/* Use atomic +/- for atom references */
@@ -2163,14 +2205,6 @@ decrease).
 #undef leave
 #undef except
 #undef try
-#endif
-
-#ifdef DMALLOC
-#define DMALLOC_FUNC_CHECK 1
-#include <dmalloc.h>
-#define allocHeap(n)		malloc(n)
-#define allocHeapOrHalt(n)	xmalloc(n)
-#define freeHeap(ptr, n)	xfree(ptr)
 #endif
 
 #endif /*_PL_INCLUDE_H*/

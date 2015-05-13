@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -85,7 +84,7 @@ edit :-
 	current_prolog_flag(associated_file, File), !,
 	edit(file(File)).
 edit :-
-	'$option'(script_file, OsFiles),
+	'$cmd_option_val'(script_file, OsFiles),
 	OsFiles = [OsFile], !,
 	prolog_to_os_filename(File, OsFile),
 	edit(file(File)).
@@ -141,13 +140,19 @@ locate(FileBase, source_file(Path), [file(Path)]) :-
 	atom(FileBase),
 	source_file(Path),
 	file_base_name(Path, File),
-	file_name_extension(FileBase, _, File).
+	(   File == FileBase
+	->  true
+	;   file_name_extension(FileBase, _, File)
+	).
 locate(FileBase, include_file(Path), [file(Path)]) :-
 	atom(FileBase),
 	setof(Path, include_file(Path), Paths),
 	member(Path, Paths),
 	file_base_name(Path, File),
-	file_name_extension(FileBase, _, File).
+	(   File == FileBase
+	->  true
+	;   file_name_extension(FileBase, _, File)
+	).
 locate(Name, FullSpec, Location) :-
 	atom(Name),
 	locate(Name/_, FullSpec, Location).
@@ -291,9 +296,9 @@ external_edit_command(Location, Command) :-
 	edit_command(Base, Cmd),
 	prolog_to_os_filename(File, OsFile),
 	atom_codes(Cmd, S0),
-	substitute("%e", Editor, S0, S1),
-	substitute("%f", OsFile, S1, S2),
-	substitute("%d", Line,   S2, S), !,
+	substitute('%e', Editor, S0, S1),
+	substitute('%f', OsFile, S1, S2),
+	substitute('%d', Line,   S2, S), !,
 	atom_codes(Command, S).
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
@@ -303,9 +308,9 @@ external_edit_command(Location, Command) :-
 	edit_command(Base, Cmd),
 	prolog_to_os_filename(File, OsFile),
 	atom_codes(Cmd, S0),
-	substitute("%e", Editor, S0, S1),
-	substitute("%f", OsFile, S1, S),
-	\+ substitute("%d", 1, S, _), !,
+	substitute('%e', Editor, S0, S1),
+	substitute('%f', OsFile, S1, S),
+	\+ substitute('%d', 1, S, _), !,
 	atom_codes(Command, S).
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
@@ -363,7 +368,8 @@ edit_command(edit,        '%e %f').
 edit_command(emacsclient, Command) :- edit_command(emacs, Command).
 edit_command(vim,         Command) :- edit_command(vi,    Command).
 
-substitute(From, ToAtom, Old, New) :-
+substitute(FromAtom, ToAtom, Old, New) :-
+	atom_codes(FromAtom, From),
 	(   atom(ToAtom)
 	->  atom_codes(ToAtom, To)
 	;   number_codes(ToAtom, To)

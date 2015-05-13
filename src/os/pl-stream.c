@@ -113,6 +113,7 @@ static ssize_t	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
 static int	S__seterror(IOSTREAM *s);
+       void	unallocStream(IOSTREAM *s);
 
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
@@ -304,6 +305,7 @@ Slock(IOSTREAM *s)
   }
 #endif
 
+  s->references++;
   if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
       return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
@@ -327,6 +329,7 @@ StryLock(IOSTREAM *s)
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
       return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
   }
+  s->references++;
 
   return 0;
 }
@@ -352,7 +355,11 @@ Sunlock(IOSTREAM *s)
   { assert(0);
   }
 
+  s->references--;
   SUNLOCK(s);
+  if ( s->references == 0 && s->erased )
+    unallocStream(s);
+
   return rval;
 }
 
@@ -983,8 +990,8 @@ retry:
 	  }
 	}
 	b[0] = c;
-
-	if ( (rc=mbrtowc(&wc, b, 1, s->mbstate)) == 1 )
+	rc=mbrtowc(&wc, b, 1, s->mbstate);
+	if ( rc == 1 || rc == 0)
 	{ c = wc;
 	  goto out;
 	} else if ( rc == (size_t)-1 )
@@ -1291,6 +1298,27 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
 }
 
 
+/* Spending() returns the number of pending bytes on the given stream.
+*/
+
+size_t
+Spending(IOSTREAM *s)
+{ if ( s->bufp < s->limitp )
+    return s->limitp - s->bufp;
+
+  if ( s->functions->control )
+  { size_t pending;
+
+    if ( (*s->functions->control)(s->handle,
+				  SIO_GETPENDING,
+				  &pending) == 0 )
+      return pending;
+  }
+
+  return 0;
+}
+
+
 		 /*******************************
 		 *               BOM		*
 		 *******************************/
@@ -1311,8 +1339,8 @@ typedef struct
 
 static const bomdef bomdefs[] =
 { { ENC_UTF8,       3, "\357\273\277" }, /* 0xef, 0xbb, 0xbb */
-  { ENC_UNICODE_BE, 2, "\376\377" },	 /* 0xfe, oxff */
-  { ENC_UNICODE_LE, 2, "\377\376" },	 /* 0xff, oxfe */
+  { ENC_UNICODE_BE, 2, "\376\377" },	 /* 0xfe, 0xff */
+  { ENC_UNICODE_LE, 2, "\377\376" },	 /* 0xff, 0xfe */
   { ENC_UNKNOWN,    0, NULL }
 };
 
@@ -1342,7 +1370,10 @@ ScheckBOM(IOSTREAM *s)
       return 0;
 
     if ( S__fillbuf(s) == -1 )
+    { if ( s->limitp - s->bufp > 0 )
+	s->flags &= ~SIO_FEOF;
       return 0;				/* empty stream */
+    }
     s->bufp--;
   }
 }
@@ -1754,7 +1785,7 @@ Sclose(IOSTREAM *s)
 { int rval = 0;
 
   if ( s->magic != SIO_MAGIC )		/* already closed!? */
-  { s->io_errno = errno = EINVAL;
+  { s->io_errno = errno = EINVAL;	/* also deals with erased streams */
     return -1;
   }
 
@@ -2620,6 +2651,8 @@ Link two streams in a pipeline,  where   filter  filters data for stream
 If parent is an input stream we have
 
 	--> parent --> filter --> application
+
+This filter is referenced, so it won't be freed, even if it is closed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -2629,16 +2662,21 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
     return -1;
   }
 
-  if ( filter )
+  if ( filter )				/* set filter */
   { if ( filter->magic != SIO_MAGIC )
     { errno = EINVAL;
       return -1;
     }
-  }
-
-  parent->upstream = filter;
-  if ( filter )
+    filter->references++;
+    parent->upstream = filter;
     filter->downstream = parent;
+  } else				/* clear filter */
+  { if ( parent->upstream )
+    { if ( --parent->upstream->references == 0 && parent->upstream->erased )
+	unallocStream(parent->upstream);
+      parent->upstream = NULL;
+    }
+  }
 
   return 0;
 }
@@ -2862,10 +2900,30 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #define O_BINARY 0
 #endif
 
+static int
+get_mode(const char *s, int *mp)
+{ int n, m = 0;
+
+  for(n=0; n < 3; n++)
+  { if ( *s >= '0' && *s <= '7' )
+      m = (m<<3) + *s - '0';
+    else
+      return FALSE;
+  }
+
+  *mp = m;
+  return TRUE;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Open a file. In addition to the normal  arguments, "lr" means get a read
-(shared-) lock on the file and  "lw"   means  get  an write (exclusive-)
-lock.  How much do we need to test here?
+Open a file. In addition to the normal arguments, the following can come
+after the [rw] argument:
+
+  - "b" -- use binary mode
+  - "l[rw]" -- use a read or write lock
+  - "L[rw]" -- use a read or write lock and raise an exception if we
+	       must wait
+  - mOOO -- when creating the file, use 0OOO as mode.
 
 Note that the low-level open  is  always   binary  as  O_TEXT open files
 result in lost and corrupted data in   some  encodings (UTF-16 is one of
@@ -2884,6 +2942,7 @@ Sopen_file(const char *path, const char *how)
   IOSTREAM *s;
   IOENC enc = ENC_UNKNOWN;
   int wait = TRUE;
+  int mode = 0666;
 
   for( ; *how; how++)
   { switch(*how)
@@ -2907,6 +2966,14 @@ Sopen_file(const char *path, const char *how)
 	  return NULL;
 	}
         break;
+      case 'm':
+	if ( get_mode(how+1, &mode) )
+	{ how += 3;
+	  break;
+	} else
+	{ errno = EINVAL;
+	  return NULL;
+	}
       default:
 	errno = EINVAL;
         return NULL;
@@ -2919,15 +2986,15 @@ Sopen_file(const char *path, const char *how)
 
   switch(op)
   { case 'w':
-      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|oflags, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|oflags, mode);
       flags |= SIO_OUTPUT;
       break;
     case 'a':
-      fd = open(path, O_WRONLY|O_CREAT|O_APPEND|oflags, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|O_APPEND|oflags, mode);
       flags |= SIO_OUTPUT|SIO_APPEND;
       break;
     case 'u':
-      fd = open(path, O_WRONLY|O_CREAT|oflags, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|oflags, mode);
       flags |= SIO_OUTPUT|SIO_UPDATE;
       break;
     case 'r':
@@ -3174,12 +3241,23 @@ Sopen_pipe(const char *command, const char *type)
   mode[1] = '\0';
 
   if ( (fd = popen(command, mode)) )
-  { int flags;
+  { int flags = SIO_RECORDPOS|SIO_FBUF|SIO_TEXT;
 
-    if ( *type == 'r' )
-      flags = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
-    else
-      flags = SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF;
+    for(; *type; type++)
+    { switch(*type)
+      { case 'r':
+	  flags |= SIO_INPUT;
+	  break;
+        case 'w':
+	  flags |= SIO_OUTPUT;
+	  break;
+	case 'b':
+	  flags &= ~SIO_TEXT;
+	  break;
+	default:
+	  assert(0);
+      }
+    }
 
     return Snew((void *)fd, flags, &Spipefunctions);
   }
@@ -3209,6 +3287,7 @@ typedef struct
   char	       *buffer;			/* allocated buffer */
   char	      **bufferp;		/* Write-back location */
   int		malloced;		/* malloc() maintained */
+  int		free_on_close;		/* free allocated buffer on close */
 } memfile;
 
 
@@ -3322,7 +3401,9 @@ Sclose_memfile(void *handle)
 { memfile *mf = handle;
 
   if ( mf )
-  { free(mf);
+  { if ( mf->free_on_close && mf->buffer )
+      PL_free(mf->buffer);
+    free(mf);
     return 0;
   }
 
@@ -3362,6 +3443,9 @@ Sopenmem(char **buffer, size_t *sizep, const char* mode)
 	Sfree(s);
     }
 
+    Mode is "r" or "w".  The mode "rF" calls PL_free(*buffer) at when
+    closed.
+
 Note: Its is NOT allows to access   streams  created with this call from
 multiple threads. This is ok for all   usage inside Prolog itself (often
 through tellString()/toldString(). This call is   intented  to use write
@@ -3371,7 +3455,7 @@ and other output predicates to create strings.
 IOSTREAM *
 Sopenmem(char **bufp, size_t *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
-  int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX;
+  int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX|SIO_TEXT;
   size_t size;
 
   if ( !mf )
@@ -3379,35 +3463,44 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
     return NULL;
   }
 
-  mf->malloced = FALSE;
-  mf->bufferp  = bufp;
-  mf->buffer   = *bufp;
+  mf->malloced      = FALSE;
+  mf->free_on_close = FALSE;
+  mf->bufferp       = bufp;
+  mf->buffer        = *bufp;
 
-  switch(*mode)
-  { case 'r':
-      flags |= SIO_INPUT;
-      if ( sizep == NULL || *sizep == (size_t)-1 )
-	size = (mf->buffer ? strlen(mf->buffer) : 0);
-      else
-	size = *sizep;
-      mf->size = size;
-      mf->allocated = size+1;
-      break;
-    case 'w':
-      flags |= SIO_OUTPUT;
-      mf->size = 0;
-      mf->allocated = (sizep ? *sizep : 0);
-      if ( mf->buffer == NULL || mode[1] == 'a' )
-	mf->malloced = TRUE;
-      if ( mf->buffer )
-	mf->buffer[0] = '\0';
-      if ( sizep )
-	*sizep = mf->size;
-      break;
-    default:
-      free(mf);
-      errno = EINVAL;
-      return NULL;
+  for(; *mode; mode++)
+  { switch(*mode)
+    { case 'r':
+	flags |= SIO_INPUT;
+	if ( sizep == NULL || *sizep == (size_t)-1 )
+	  size = (mf->buffer ? strlen(mf->buffer) : 0);
+	else
+	  size = *sizep;
+	mf->size = size;
+	mf->allocated = size+1;
+	break;
+      case 'w':
+	flags |= SIO_OUTPUT;
+	mf->size = 0;
+	mf->allocated = (sizep ? *sizep : 0);
+	if ( mf->buffer == NULL || mode[1] == 'a' )
+	  mf->malloced = TRUE;
+	if ( mf->buffer )
+	  mf->buffer[0] = '\0';
+	if ( sizep )
+	  *sizep = mf->size;
+	break;
+      case 'b':
+	flags &= ~SIO_TEXT;
+        break;
+      case 'F':
+	mf->free_on_close = TRUE;
+        break;
+      default:
+	free(mf);
+	errno = EINVAL;
+	return NULL;
+    }
   }
 
   mf->sizep	= sizep;

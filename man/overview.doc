@@ -247,7 +247,7 @@ cc -I$PLBASE/include -L$PLBASE/lib/$PLARCH ...
 \end{code}
 
 The option can be followed by \const{=sh} to dump in POSIX shell format
-(default) or \const{cmd} to dump in MS-Windows \program{cmd.exe}
+(default) or \const{=cmd} to dump in MS-Windows \program{cmd.exe}
 compatible format.
 
     \cmdlineoptionitem{--help}{}
@@ -293,8 +293,7 @@ Unix only.  Switches controlling the terminal for allowing
 single-character commands to the tracer and get_single_char/1. By
 default, manipulating the terminal is enabled unless the system detects
 it is not connected to a terminal or it is running as a GNU-Emacs
-inferior process. This flag is sometimes required for smooth interaction
-with other applications.
+inferior process.  See also \prologflag{tty_control}.
 
     \cmdlineoptionitem{--win_app}{}
 This option is available only in \program{swipl-win.exe} and is used for the
@@ -346,6 +345,15 @@ is either a term of the form \mbox{alias(value)} or pathname. The
 computed aliases are added to file_search_path/2 using asserta/1, so
 they precede predefined values for the alias. See file_search_path/2 for
 details on using this file location mechanism.
+
+    \cmdlineoptionitem{--traditional}{}
+This flag disables the most important extensions of SWI-Prolog version~7
+(see \secref{extensions}) that introduce incompatibilities. In
+particular, lists will be represented in the traditional way, double
+quoted text is represented by a list of character codes and the
+functional notation on maps is not supported. Maps as a syntactic entity
+and the predicates that act on them remain supported if this flag is
+present.
 
     \cmdlineoptionitem{--}{}
 \index{command line, arguments}%
@@ -456,9 +464,9 @@ There are several alternatives though:
 
 \begin{shortlist}
     \item \url{http://turing.ubishops.ca/home/bruda/emacs-prolog/}
-    \item \url{http://stud4.tuwien.ac.at/~e0225855/ediprolog/ediprolog.html}
-    \item \url{http://stud4.tuwien.ac.at/~e0225855/pceprolog/pceprolog.html}
-    \item \url{http://stud4.tuwien.ac.at/~e0225855/etrace/etrace.html}
+    \item \url{http://www.logic.at/prolog/ediprolog/ediprolog.html}
+    \item \url{http://www.logic.at/prolog/pceprolog/pceprolog.html}
+    \item \url{http://www.logic.at/prolog/etrace/etrace.html}
 \end{shortlist}
 
 
@@ -622,7 +630,7 @@ The interactive top-level goal trace/0 means ``trace the next query''.
 The tracer shows the port, displaying the port name, the current depth
 of the recursion and the goal. The goal is printed using the Prolog
 predicate write_term/2.  The style is defined by the Prolog flag
-\prologflag{debugger_print_options} and can be modified using this flag
+\prologflag{debugger_write_options} and can be modified using this flag
 or using the \const{w}, \const{p} and \const{d} commands of the tracer.
 
 \begin{figure}
@@ -706,7 +714,7 @@ Enter a Prolog break environment (see break/0).}
 Continue execution, stop at next port. (Also \textsc{return}, \textsc{space}).}
     \traceoption{d}{Display}{
 Set the \term{max_depth}{Depth} option of
-\prologflag{debugger_print_options}, limiting the depth to which terms are
+\prologflag{debugger_write_options}, limiting the depth to which terms are
 printed.  See also the \const{w} and \const{p} options.}
     \traceoption{e}{Exit}{
 Terminate Prolog (see halt/0).}
@@ -724,7 +732,7 @@ Continue execution, stop at next spy point.}
     \traceoption{n}{No debug}{
 Continue execution in `no debug' mode.}
     \traceoption{p}{Print}{
-Set the Prolog flag \prologflag{debugger_print_options} to
+Set the Prolog flag \prologflag{debugger_write_options} to
 \texttt{[quoted(true), portray(true), max_depth(10), priority(699)]}. This is the
 default.}
     \traceoption{r}{Retry}{
@@ -738,7 +746,7 @@ Continue execution, stop at the next port of {\bf the parent} goal (thus
 skipping this goal and all calls to children of this goal). This option
 is useful to stop tracing a failure driven loop.}
     \traceoption{w}{Write}{
-Set the Prolog flag \prologflag{debugger_print_options} to
+Set the Prolog flag \prologflag{debugger_write_options} to
 \texttt{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
 \end{description}
 
@@ -806,32 +814,33 @@ additional parameters for running a Prolog file on Windows. The Unix
 is \verb$#$, the first line is treated as a comment.\footnote{The
 \texttt{\#}-sign can be the legal start of a normal Prolog clause. In
 the unlikely case this is required, leave the first line blank or add a
-header comment.} To create a Prolog script, make the first line start
-like this:
-
-\begin{quote}
-\verb$#!/path/to/swipl$ <options> \verb$-s$
-\end{quote}
-
-Prolog recognises this starting sequence and causes the interpreter
-to receive the following argument list:
-
-\begin{quote}
-\verb$/path/to/swipl$ <options> \verb$-s$ <script> \verb$--$ <ScriptArguments>
-\end{quote}
-
-Instead of \cmdlineoption{-s}, the user may use \cmdlineoption{-f} to
-stop Prolog from looking for a personal initialisation file.
-
-Here is a simple script doing expression evaluation:
+header comment.} To create a Prolog script, use one of the two
+alternatives below as first line. The first can be used to bind a script
+to a specific Prolog installation, while the latter uses the default
+prolog installed in \verb"$PATH".
 
 \begin{code}
-#!/usr/bin/swipl -q -t main -f
+\verb$#!/path/to/swipl$
+\verb$#!/usr/bin/env swipl$
+\end{code}
+
+The interpretation of arguments to the executable in the
+\jargon{HashBang} line differs between Unix-derived systems. For
+portability, the \verb$#!$ must be followed immediately with an absolute
+path to the executable and should have none or one argument. Neither the
+executable path, nor the argument shall use quotes or spaces. When
+started this way, the Prolog flag \prologflag{argv} contains the command
+line arguments that follow the script invocation. Below is a simple
+script doing expression evaluation:
+
+\begin{code}
+#!/usr/bin/env swipl
+
+:- initialization main.
 
 eval :-
 	current_prolog_flag(argv, Argv),
-	append(_, [--|Args], Argv),
-	concat_atom(Args, ' ', SingleArg),
+	concat_atom(Argv, ' ', SingleArg),
 	term_to_atom(Term, SingleArg),
 	Val is Term,
 	format('~w~n', [Val]).
@@ -846,31 +855,18 @@ main :-
 And here are two example runs:
 
 \begin{code}
-% eval 1+2
+% ./eval 1+2
 3
-% eval foo
-ERROR: Arithmetic: `foo/0' is not a function
+% ./eval foo
+ERROR: is/2: Arithmetic: `foo/0' is not a function
 %
 \end{code}
 
-\paragraph{The Windows version} supports the \verb$#!$ construct too,
-but here it serves a rather different role. The Windows shell already
-allows the user to start Prolog source files directly through the
-Windows file-type association. However, Windows makes it rather
-complicated to provide additional parameters for opening an individual
-Prolog file. If the file starts with \verb$#!$, the first line is
-analysed to obtain additional command line arguments. The example below
-runs the system in `quiet' mode.
-
-\begin{code}
-#!/usr/bin/swipl -q -s
-
-....
-\end{code}
-
-Note the use of \verb$/usr/bin/swipl$, which specifies the interpreter.
-This argument is ignored in the Windows version, but must be present to
-ensure best cross-platform compatibility.
+The Windows version simply ignores the \verb$#!$ line.\footnote{Older
+versions extracted command line arguments from the \jargon{HashBang}
+line.  As of version 5.9 all relevant setup can be achieved using
+\jargon{directives}.  Due to the compatibility issues around
+\jargon{HashBang} line processing, we decided to remove it completely.}
 
 
 \subsubsection{Creating a shell script}		\label{sec:shellscript}
@@ -891,14 +887,15 @@ arguments.
 base=<absolute-path-to-source>
 PL=swipl
 
-exec $PL -q -f '$base/load -t go -- **
+exec $PL -q -f "$base/load" --
 \end{code}
 
 \begin{code}
+:- initialization go.
+
 go :-
 	current_prolog_flag(argv, Arguments),
-	append(_SytemArgs, [--|Args], Arguments), !,
-	go(Args).
+	go(Arguments).
 
 go(Args) :-
 	...
@@ -1037,6 +1034,16 @@ the C compiler used to compile this version of SWI-Prolog defines
 \verb$__APPLE__$.  Note that the \prologflag{unix} is also defined
 for MacOSX.
 
+    \prologflagitem{allow_dot_in_atom}{bool}{rw}
+If \const{true} (default \const{false}), dots may be embedded into atoms
+that are not quoted and start with a letter. The embedded dot
+\emph{must} be followed by an identifier continuation character (i.e.,
+letter, digit or underscore). The dot is allowed in identifiers in many
+languages, which can make this a useful flag for defining DSLs.  Note
+that this conflicts with cascading functional notation.  For example,
+\exam{Post.meta.author} is read as \exam{.(Post, 'meta.author'} if this
+flag is set to \const{true}.
+
     \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
 If true (default is false), \exam{Functor(arg)} is read as if it were
 written \exam{'Functor'(arg)}. Some applications use the Prolog read/1
@@ -1071,10 +1078,13 @@ e.g., edit/0 to edit the initial file.
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
 
-    \prologflagitem{backquoted_string}{bool}{rw}
-If \const{true} (default \const{false}), read translates text between
-backquotes into a string object (see \secref{strings}).  This flag is
-mainly for compatibility with LPA Prolog.
+    \prologflagitem{back_quotes}{codes,chars,string,symbol_char}{rw}
+Defines the term-representation for back-quoted material.  The default
+is \const{codes}. If \cmdlineoption{--traditional} is given, the default
+is \const{symbol_char}, which allows using \verb$`$ in operators
+composed of symbols.\footnote{Older versions had a boolean flag
+\const{backquoted_strings}, which toggled between \const{string} and
+\const{symbol_char}}.  See also \secref{strings}.
 
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
@@ -1198,7 +1208,7 @@ just continue execution.  The goal that raised the error will normally
 fail.  See also fileerrors/2 and the Prolog flag {\tt report_error}.  May
 be changed.  Default is {\tt true}, except for the runtime version.
 
-    \prologflagitem{debugger_print_options}{term}{rw}
+    \prologflagitem{debugger_write_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing goals
 by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
 debugger.  Default is \texttt{[quoted(true), portray(true),
@@ -1218,13 +1228,15 @@ is_dialect(swi) :-
 \end{code}
 
     \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
-This flag determines how double quoted strings are read by Prolog and
-is ---like \prologflag{character_escapes}--- maintained for each module. If
-\const{codes} (default), a list of character codes is returned, if
-\const{chars} a list of one-character atoms, if \const{atom} double
-quotes are the same as single quotes and finally, \const{string} reads
-the text into a Prolog string (see \secref{strings}). See also
-atom_chars/2 and atom_codes/2.
+This flag determines how double quoted strings are read by Prolog and is
+---like \prologflag{character_escapes} and \prologflag{back_quotes}---
+maintained for each module. The default is \const{string}, which
+produces a string as described in \secref{strings}. If
+\cmdlineoption{--traditional} is given, the default is \const{codes},
+which produces a list of character codes, integers that represent a
+Unicode code-point. The value \const{chars} produces a list of
+one-character atoms and the value \const{atom} makes double quotes the
+same as single quotes, creating a atom.  See also \secref{extensions}.
 
     \prologflagitem{editor}{atom}{rw}
 Determines the editor used by edit/1. See \secref{listing} for
@@ -1418,6 +1430,9 @@ If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
+    \prologflagitem{print_write_options}{term}{rw}
+Specifies the options for write_term/2 used by print/1 and print/2.
+
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
 \index{prompt, alternatives}%
 Determines prompting for alternatives in the Prolog top level. Default is
@@ -1524,7 +1539,7 @@ S = s(S),
 R = s(s(R)).
 \end{code}
 
-    \prologflagitem{toplevel_print_options}{term}{rw}
+    \prologflagitem{answer_write_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing results
 of queries. Default is \texttt{[quoted(true), portray(true),
 max_depth(10), attributes(portray)]}.
@@ -1567,6 +1582,11 @@ output.
       used 13,448+5,808; free 72,568+47,440
 \end{code}
 
+    \prologflagitem{traditional}{bool}{r}
+Available in SWI-Prolog version~7.  If \const{true}, `traditional' mode
+has been selected using \cmdlineoption{--traditional}.  See also
+\secref{extensions}.
+
     \prologflagitem{tty_control}{bool}{rw}
 Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user actions for the trace.  May
@@ -1594,6 +1614,12 @@ application modules or for a specific module.  It is strongly advised
 to keep the \const{error} default and use dynamic/1 and/or multifile/1
 to specify possible non-existence of a predicate.
 
+    \prologflagitem{unload_foreign_libraries}{bool}{rw}
+If \const{true} (default \const{false}), unload all loaded foreign
+libraries.  Default is \const{false} because modern OSes reclaim the
+resources anyway and unloading the foreign code may cause registered
+hooks to point to no longer existing data or code.
+
     \prologflagitem{user_flags}{Atom}{rw}
 Define the behaviour of set_prolog_flag/2 if the flag is not known.
 Values are \const{silent}, \const{warning} and \const{error}. The first
@@ -1617,9 +1643,12 @@ used for debugging purposes.
 
     \prologflagitem{verbose_load}{atom}{rw}
 Determines messages printed for loading (compiling) Prolog files.
-Current values are \const{full}, \const{normal} (default) and
-\const{silent}. The value of this flag is normally controlled by the
-option \term{silent}{Bool} provided by load_files/2.
+Current values are \const{full} (print a message at the start and end of
+each file loaded), \const{normal} (print a message at the end of each
+file loaded), \const{brief} (print a message at end of loading the
+toplevel file), and \const{silent} (no messages are printed, default).
+The value of this flag is normally controlled by the option
+\term{silent}{Bool} provided by load_files/2.
 
     \prologflagitem{verbose_file_search}{bool}{rw}
 If \const{true} (default \const{false}), print messages indicating the
@@ -1902,32 +1931,51 @@ garbage collection.  These features are controlled using Prolog flags
 (see current_prolog_flag/2).
 
 
-\section{Syntax Notes}				\label{sec:syntax}
+\section{The SWI-Prolog syntax}				\label{sec:syntax}
 
-SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is
-closely compatible with Edinburgh Prolog syntax. A description of this
-syntax can be found in the Prolog books referenced in the introduction.
-Below are some non-standard or non-common constructs that are accepted
-by SWI-Prolog:
+SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is based
+on the Edinburgh Prolog syntax. A formal description can be found in the
+ISO standard document. For an informal introduction we refer to Prolog
+text books (see \secref{intro}) and \url[online
+tutorials]{http://www.swi-prolog.org/Links.html}. In addition to the
+differences from the ISO standard documented here, SWI-Prolog offers
+several extensions, some of which also extend the syntax. See
+\secref{extensions} for more information.
 
-\begin{itemlist}
-    \item [\exam{/* \ldots /* \ldots */ \ldots */}]
-The \exam{/* \ldots */} comment statement can be nested. This is useful
-if some code with \exam{/* \ldots */} comment statements in it should be
-commented out.
-\end{itemlist}
 
 \subsection{ISO Syntax Support}			\label{sec:isosyntax}
 
-SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
+This section lists various extensions w.r.t.\ the ISO Prolog syntax.
 
 \subsubsection{Processor Character Set}		\label{sec:processorcharset}
 
 \index{ISO Latin 1}\index{character set}%
 The processor character set specifies the class of each character used
 for parsing Prolog source text.  Character classification is fixed to
-use UCS/Unicode as provided by the C library \ctype{wchar_t} based
-primitives.  See also \secref{widechars}.
+\url[Unicode]{http://www.unicode.org/}.  See also \secref{widechars}.
+
+\subsection{Nested comments}			\label{sec:nestedcomments}
+
+SWI-Prolog allows for nesting \exam{/* \ldots */} comments. Where the
+ISO standard accepts \exam{/* \ldots /* \ldots */} as a comment,
+SWI-Prolog will search for a terminating \exam{*/}. This is useful if
+some code with \exam{/* \ldots */} comment statements in it should be
+commented out. This modification also avoids unintended commenting in
+the example below, where the closing \exam{*/} of the first comment has
+been forgotten.\footnote{Recent copies of GCC give a style warning if
+\exam{/*} is encountered in a comment, which suggests that this
+problem has been recognised more widely.}
+
+\begin{code}
+/* comment
+
+code
+
+/* second comment */
+
+code
+
+\end{code}
 
 \subsubsection{Character Escape Syntax}		\label{sec:charescapes}
 
@@ -2223,7 +2271,8 @@ duplicate_term/2,
 findall/3,
 ground/1,
 term_hash/2,
-numbervars/[3,4],
+numbervars/3,
+numbervars/4,
 recorda/3,
 recordz/3,
 setof/3,
@@ -2550,12 +2599,6 @@ Option & Default & Area name & Description \\
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
                        determines they are no longer needed. \\
-\cmdlineoption{-A} & 1M & \bf argument stack & The argument stack is used to
-                       store one of the Virtual Machine's
-                       registers. The amount of space needed on this
-                       stack is determined entirely by the depth in
-                       which terms are nested in the clauses that
-                       constitute the program. Overflow is unlikely. \\
 \hline
 \end{tabular}
 \end{center}

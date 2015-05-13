@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -26,7 +25,8 @@
 #define PL_TEXT_H_INCLUDED
 
 typedef enum
-{ PL_CHARS_MALLOC,			/* malloced data */
+{ PL_CHARS_VIRGIN = 0,			/* not initialised */
+  PL_CHARS_MALLOC,			/* malloced data */
   PL_CHARS_RING,			/* stored in the buffer ring */
   PL_CHARS_HEAP,			/* stored in program area (atoms) */
   PL_CHARS_STACK,			/* stored on the global stack */
@@ -36,7 +36,7 @@ typedef enum
 
 typedef struct
 { union
-  { char *t;				/* tranditional 8-bit char* */
+  { char *t;				/* traditional 8-bit char* */
     pl_wchar_t *w;			/* wide character string */
   } text;
   size_t length;
@@ -74,7 +74,7 @@ COMMON(int)		PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD);
 COMMON(atom_t)		textToAtom(PL_chars_t *text);
 
 COMMON(IOSTREAM *)	Sopen_text(PL_chars_t *text, const char *mode);
-COMMON(void)		PL_text_recode(PL_chars_t *text, IOENC encoding);
+COMMON(int)		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
 					/* pl-fli.c */
 COMMON(int)		get_atom_ptr_text(Atom atom, PL_chars_t *text);
@@ -87,5 +87,23 @@ text_get_char(const PL_chars_t *t, size_t i)
   return t->encoding == ENC_ISO_LATIN_1 ? t->text.t[i]&0xff
 					: t->text.w[i];
 }
+
+
+static inline size_t
+text_chr(const PL_chars_t *t, int chr)
+{ assert(t->canonical);
+  if ( t->encoding == ENC_ISO_LATIN_1 )
+  { char *e = strchr(t->text.t, chr);
+    if ( e )
+      return e-t->text.t;
+  } else
+  { wchar_t *e = wcschr(t->text.w, chr);
+    if ( e )
+      return(e-t->text.w);
+  }
+
+  return (size_t)-1;
+}
+
 
 #endif /*PL_TEXT_H_INCLUDED*/

@@ -59,6 +59,7 @@
 	    atom//1			% generate atom
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(error)).
 
 
 /** <module> Various general DCG utilities
@@ -76,19 +77,20 @@ library.
 	generally useful DCG primitives.
 */
 
-%%	string_without(+End, -Codes)// is det.
+%%	string_without(+EndCodes, -Codes)// is det.
 %
-%	Take as many tokens from the input until the next character code
-%	appears in the list End. The terminating  code itself is left on
-%	the input. Typical use is to read  upto a defined delimiter such
-%	as a newline or other reserved character.  For example:
+%	Take as many codes from the input  until the next character code
+%	appears in the list EndCodes.  The   terminating  code itself is
+%	left on the input.  Typical  use  is   to  read  upto  a defined
+%	delimiter such as a newline  or   other  reserved character. For
+%	example:
 %
 %	    ==
 %	        ...,
 %	        string_without("\n", RestOfLine)
 %	    ==
 %
-%	@arg End is a list of character codes.
+%	@arg EndCodes is a list of character codes.
 %	@see string//1.
 
 string_without(End, Codes) -->
@@ -212,19 +214,29 @@ white -->
 		 *	 CHARACTER STUFF	*
 		 *******************************/
 
-%%	alpha_to_lower(+C)// is det.
-%%	alpha_to_lower(-C)// is semidet.
+%%	alpha_to_lower(?C)// is semidet.
 %
 %	Read a letter (class  =alpha=)  and   return  it  as a lowercase
-%	letter. In output mode this simply emits the character.
+%	letter. If C is instantiated and the  DCG list is already bound,
+%	C must be =lower= and matches both a lower and uppercase letter.
+%	If the output list is unbound, its first element is bound to C.
+%	For example:
+%
+%	  ==
+%	  ?- alpha_to_lower(0'a, `AB`, R).
+%	  R = [66].
+%	  ?- alpha_to_lower(C, `AB`, R).
+%	  C = 97, R = [66].
+%	  ?- alpha_to_lower(0'a, L, R).
+%	  L = [97|R].
+%	  ==
 
 alpha_to_lower(L) -->
-	{ integer(L) }, !,
-	[L].
-alpha_to_lower(L) -->
 	[C],
-	{ code_type(C, alpha),
-	  code_type(C, to_upper(L))
+	{   nonvar(C)
+	->  code_type(C, alpha),
+	    code_type(C, to_upper(L))
+	;   L = C
 	}.
 
 
@@ -253,8 +265,8 @@ digit(C) -->
 	}.
 
 integer(I, Head, Tail) :-
-	integer(I), !,
-	format(codes(Head, Tail), '~w', [I]).
+	nonvar(I), !,
+	format(codes(Head, Tail), '~d', [I]).
 integer(I) -->
 	int_codes(Codes),
 	{ number_codes(I, Codes)
@@ -296,12 +308,12 @@ number(N) -->
 	    digit(DF0),
 	    digits(DF)
 	->  {F = [0'., DF0|DF]}
-	;   {F = ""}
+	;   {F = []}
 	),
 	(   exp
 	->  int_codes(DI),
 	    {E=[0'e|DI]}
-	;   {E = ""}
+	;   {E = []}
 	),
 	{ append([I, F, E], Codes),
 	  number_codes(N, Codes)

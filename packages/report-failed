@@ -1,0 +1,13 @@
+#!/bin/sh
+
+failed=`echo .failed.*`
+if [ "$failed" = '.failed.*' ]; then
+  echo "No errors during package build"
+else
+  echo "ERROR: The following errors were encountered while building the packages"
+  for f in $failed; do
+     step=`echo $f | sed 's/.failed.//'`
+     echo "ERROR: Failed in step $step: `cat $f`"
+  done
+  exit 1
+fi

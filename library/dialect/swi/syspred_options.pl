@@ -37,6 +37,7 @@
 		       alias(atom),
 		       encoding(encoding),
 		       bom(boolean),
+		       create(list(atom)),
 		       eof_action(oneof([eof_code,error,reset])),
 		       buffer(oneof([full,line,false])),
 		       close_on_abort(boolean),
@@ -50,6 +51,8 @@
 		       blobs(oneof([portray])),
 		       character_escapes(boolean),
 		       cycles(boolean),
+		       fullstop(boolean),
+		       nl(boolean),
 		       ignore_ops(boolean),
 		       max_depth(nonneg),
 		       module(atom),
@@ -116,10 +119,12 @@
 		       if(oneof([true,changed,not_loaded])),
 		       imports(any),
 		       modified(float),
+		       module(atom),
 		       must_be_module(boolean),
 		       qcompile(oneof([never,auto,large,part])),
 		       redefine_module(oneof([false,true,ask])),
 		       reexport(boolean),
+		       sandboxed(boolean),
 		       silent(boolean),
 		       stream(any)
 		     ]).
@@ -152,6 +157,7 @@
 :- predicate_options(system:thread_create/3, 3,
 		     [ alias(atom),
 		       at_exit(callable),
+		       debug(boolean),
 		       inherit_from(any),
 		       detached(boolean),
 		       global(nonneg),
@@ -166,6 +172,10 @@
 :- predicate_options(system:mutex_create/2, 2,
 		     [ alias(atom)
 		     ]).
+:- predicate_options(system:thread_send_message/3, 3,
+		     [ timeout(number),
+		       deadline(number)
+		     ]).
 :- predicate_options(system:thread_get_message/3, 3,
 		     [ timeout(number),
 		       deadline(number)
@@ -175,5 +185,9 @@
 		       decimal_point(atom),
 		       thousands_sep(atom),
 		       grouping(list(any))
+		     ]).
+:- predicate_options(system:term_string/3, 3,
+		     [ pass_to(system:write_term/3, 3),
+		       pass_to(system:read_term/3, 3)
 		     ]).
 

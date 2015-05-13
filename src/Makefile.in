@@ -1,5 +1,5 @@
 ################################################################
-# Makefile for SWI-Prolog 6.x
+# Makefile for SWI-Prolog 7.x
 #
 # Author:	Jan Wielemaker
 #		J.Wielemake@cs.vu.nl
@@ -25,7 +25,8 @@
 #
 #       * make OPTIMISE=prof [PROFILE_SRC=<file>] [PROFILE_GOAL=<goal>]
 #
-# Copyright (C) University of Amsterdam, all rights reserved
+# Copyright (C) University of Amsterdam
+#		VU University Amsterdam
 #
 # Copyright policy:
 #
@@ -103,7 +104,6 @@ EXEEXT_FOR_BUILD = @EXEEXT_FOR_BUILD@
 PB=../boot
 INCLUDEDIR=../include
 EXPORTS=$(INCLUDEDIR)/SWI-Exports
-DEF=$(PL).def
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STARTUPPATH=$(PL).prc
@@ -111,6 +111,7 @@ RUNTIMEDIR=../lib/$(PLARCH)
 PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
 XLIBS=@XLIBS@
+DBGLIBS=@DBGLIBS@
 USEPLLIB=@USEPLLIB@
 ifeq (@EXEFORMAT@,ELF)
 LIBPLSO=
@@ -150,7 +151,7 @@ ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 PLINIT=	$(PB)/init.pl
 ifeq ($(MINGW),true)
 PLSRC+= ../boot/menu.pl
-PLOSLIBS=wise.pl dde.pl progman.pl
+PLOSLIBS=dde.pl progman.pl
 endif
 
 INCSRC=	pl-index.c pl-alloc.c pl-fli.c
@@ -207,7 +208,7 @@ banner:
 # to run our local copy of SWI-Prolog.
 
 $(PL)$(EXEEXT):	$(DEPLIBS) $(PLOBJ) $(OSLIB)
-		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB)
+		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB) $(DBGLIBS)
 		$(CHRPATH) -c $@ || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
@@ -269,7 +270,7 @@ pl-ntmain.o:	pl-ntmain.c
 $(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o $(DEPLIBS) $(OSLIB)
 	$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) \
 		-o $@ swipl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
-		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
+		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB) $(DBGLIBS)
 
 else
 OSLIB=
@@ -297,25 +298,9 @@ $(INCLUDEDIR):
 # the AIX version.
 
 exports:	$(EXPORTS)
-def:		$(DEF)
 
 $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL)$(EXEEXT) > $@
-		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
-		    $(SED) -e 's/.*[	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
-			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
-		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
-		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
-		    grep -v PL_w32_wrap_ansi_console | \
-		    grep -v PL_wait_for_console_input | \
-		    grep -v Swinsock | \
-		    sort -u >> $@
-
-# Create pl.def, required for exporting symbols from pl.exe for the Cygwin
-# platform
-
-$(DEF):		$(srcdir)/SWI-Prolog.h
-		echo EXPORTS > $@
 		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
 		    $(SED) -e 's/.*[	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
@@ -389,7 +374,7 @@ mkvmi$(EXEEXT_FOR_BUILD):	mkvmi.c
 
 
 ifdef RLPREFIX
-pl-rl.o:	pl-rl.c
+os/pl-rl.o:	os/pl-rl.c
 		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
 endif
 
@@ -403,7 +388,7 @@ defatom:	defatom.c
 
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih $(OSLIB)
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
-		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
+		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB) $(DBGLIBS)
 
 .PHONY: tags
 tags:
@@ -414,6 +399,10 @@ cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 .PHONY: check
 check:
 		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
+
+.PHONY: check-installation
+check-installation:
+		$(bindir)/$(PL)$(EXEEXT) -g check_installation,halt -t 'halt(1)'
 
 .PHONY: ln-install install dv-install
 
@@ -470,7 +459,7 @@ install-plwin:	idirs iruntime
 install-mkboot:	idirs
 		$(INSTALL_DATA) $(srcdir)/win32/misc/mkboot.bat $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
-install-icon:
+install-icon:	idirs
 		$(INSTALL_DATA) $(srcdir)/swipl.ico "$(DESTDIR)$(PLBASE)"
 
 install-demo:	idirs
@@ -486,6 +475,7 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/ciao/regtypes \
 		library/dialect/sicstus \
+		library/dialect/eclipse \
 		library/dialect/swi \
 		library/dialect/ifprolog \
 		library/dialect/hprolog
@@ -504,9 +494,11 @@ ifeq ($(SOEXT),dylib)
 else
 ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
-		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.def $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  if [ "$(MSLIBEXE)" != ":" ]; then \
+		    $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.def $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  fi ; \
 		  if [ -f $(RUNTIMEDIR)/libswipl.lib ]; then \
 		    $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.lib $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		  fi ; \
@@ -522,7 +514,7 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso iunicode \
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso ieclipse iunicode \
 	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
 
 idirs:
@@ -553,7 +545,7 @@ idcg:		idirs
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
-idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog
+idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog ieclipse
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -568,6 +560,11 @@ iyap:		idirs
 			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
 		done
 		$(INSTALL_DATA) $(srcdir)/compat/YapInterface.h $(DESTDIR)$(PLBASE)/include/Yap/YapInterface.h
+
+ieclipse:	idirs
+		for f in $(ECLIPSE); do \
+			$(INSTALL_DATA) ../library/dialect/eclipse/$$f $(DESTDIR)$(PLBASE)/library/dialect/eclipse; \
+		done
 
 iifprolog:	idirs
 		for f in $(IFPROLOG); do \
@@ -716,7 +713,7 @@ distclean:	clean profclean
 		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
 		rm -f $(PL)$(EXEEXT)
 		rm -f  swipl-ld$(EXEEXT)
-		rm -f  swipl.1 libswiplimp.a $(DEF)
+		rm -f  swipl.1 libswiplimp.a
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
 

@@ -1258,6 +1258,10 @@ markAtomsRecord(Record record)
 #ifdef O_ATOMGC
   copy_info ci;
 
+#ifdef REC_MAGIC
+  assert(record->magic == REC_MAGIC);
+#endif
+
   ci.base = ci.data = dataRecord(record);
   scanAtomsRecord(&ci, markAtom);
   assert(ci.data == addPointer(record, record->size));
@@ -1760,9 +1764,7 @@ PRED_IMPL("erase", 1, erase, 0)
   } else
   { RecordRef record = ptr;
 
-#if O_DEBUGGER
     callEventHook(PLEV_ERASED_RECORD, record);
-#endif
 
     LOCK();
     l = record->list;

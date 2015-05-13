@@ -37,12 +37,15 @@ finding source files, etc.
 
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
-static int	removeClausesProcedure(Procedure proc, int sfindex, int file);
 static atom_t	autoLoader(Definition def);
-static void	registerDirtyDefinition(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
 static void	detachMutexAndUnlock(Definition def);
-static ClauseRef cleanDefinition(Definition def, ClauseRef garbage);
+
+/* Enforcing this limit demands we propagate NULL from lookupProcedure()
+   through the whole system.  This is not done
+*/
+#define O_PROGLIMIT_INCL_PRED 0
+#define SIZEOF_PROC (sizeof(struct procedure) + sizeof(struct definition))
 
 Procedure
 lookupProcedure(functor_t f, Module m)
@@ -52,13 +55,22 @@ lookupProcedure(functor_t f, Module m)
 
   LOCKMODULE(m);
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
-  { DEBUG(3, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
+  { DEBUG(MSG_PROC, Sdprintf("lookupProcedure(%s) --> %s\n",
+			     PL_atom_chars(m->name),
+			     procedureName(s->value)));
     proc = s->value;
+#if O_PROGLIMIT_INCL_PRED
+  } else if ( m->code_limit &&
+	      m->code_size + SIZEOF_PROC > m->code_limit )
+  { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_program_space);
+    proc = NULL;
+#endif
   } else
   { proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
     def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
     proc->definition = def;
-    proc->flags = 0;
+    proc->flags      = 0;
+    proc->source_no  = 0;
 
     memset(def, 0, sizeof(*def));
     def->functor = valueFunctor(f);
@@ -66,9 +78,10 @@ lookupProcedure(functor_t f, Module m)
     def->shared  = 1;
     addHTable(m->procedures, (void *)f, proc);
     GD->statistics.predicates++;
+    ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
 
     resetProcedure(proc, TRUE);
-    DEBUG(3, Sdprintf("Created %s\n", procedureName(proc)));
+    DEBUG(MSG_PROC, Sdprintf("Created %s\n", procedureName(proc)));
   }
   UNLOCKMODULE(m);
 
@@ -84,13 +97,36 @@ unallocClauseList(ClauseRef cref)
   { Clause cl = cref->value.clause;
     next = cref->next;
 
-    if ( true(cl, DBREF_CLAUSE) )	/* will be freed from dbref */
-      set(cl, DBREF_ERASED_CLAUSE);
-    else
-      unallocClause(cl);
-
+    set(cl, CL_ERASED);
+    cl->generation.erased = cl->generation.erased - 1;
+    freeClause(cl);
     freeClauseRef(cref);
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+lingerDefinition() deals with (undefined) definitions  that are replaced
+due to importing. These definitions can be   in  use with other threads.
+This needs be be improved, possibly using a technique similar to the RDF
+database. For now, we merely collect them in  a single place, so we know
+what is going on. In addition, we can collect lingering definitions when
+destroying a module, resulting in leak-free temporary modules.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+lingerDefinition(Definition def)
+{ ListCell c = allocHeapOrHalt(sizeof(*c));
+  Module m = def->module;
+  ListCell o;
+
+  c->value     = def;
+  do
+  { o            = m->lingering;
+    c->next      = o;
+  } while( !COMPARE_AND_SWAP(&m->lingering, o, c) );
+
+  /*GC_LINGER(def);*/
 }
 
 
@@ -107,6 +143,7 @@ unallocDefinition(Definition def)
   unallocClauseIndexes(def);
   freeCodesDefinition(def, FALSE);
 
+  ATOMIC_SUB(&def->module->code_size, sizeof(*def));
   freeHeap(def, sizeof(*def));
 }
 
@@ -114,11 +151,14 @@ unallocDefinition(Definition def)
 void
 unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
+  Module m = def->module;
 
-  freeHeap(proc, sizeof(*proc));
-  unshareDefinition(def);
-  if ( def->shared == 0 )
+  if ( unshareDefinition(def) == 0 )
+  { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     unallocDefinition(def);
+  }
+  freeHeap(proc, sizeof(*proc));
+  ATOMIC_SUB(&m->code_size, sizeof(*proc));
 }
 
 
@@ -144,8 +184,8 @@ importDefinitionModule(Module m, Definition def, int flags)
 
 	shareDefinition(def);
 	proc->definition = def;
-	unshareDefinition(odef);
-	GC_LINGER(odef);
+	if ( unshareDefinition(odef) == 0 )
+	  lingerDefinition(odef);
       } else
       { if ( !(flags&PROC_WEAK) )
 	  rc = warning("Failed to import %s into %s",
@@ -155,7 +195,8 @@ importDefinitionModule(Module m, Definition def, int flags)
   } else
   { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
     proc->definition = def;
-    proc->flags = flags;
+    proc->flags      = flags;
+    proc->source_no  = 0;
     addHTable(m->procedures, (void *)functor, proc);
     shareDefinition(def);
   }
@@ -418,7 +459,8 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 
   if ( !(how&GP_NOT_QUALIFIED) )
   { head = PL_new_term_ref();
-    PL_strip_module(descr, m, head);
+    if ( !PL_strip_module(descr, m, head) )
+      return FALSE;
   } else
   { head = descr;
   }
@@ -443,7 +485,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
       PL_put_term(h, head);
 
     succeed;
-  } else if ( PL_get_functor(head, fdef) )
+  } else if ( !(how&GF_NAMEARITY) && PL_get_functor(head, fdef) )
   { if ( h )
       PL_put_term(h, head);
 
@@ -460,7 +502,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 
 int
 get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
-{ int arity;
+{ FunctorDef fd;
 
   if ( !PL_get_functor(head, fdef) )
   { if ( how&GP_TYPE_QUIET )
@@ -469,21 +511,32 @@ get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
   }
 
-  if ( (arity=arityFunctor(*fdef)) > MAXARITY )
+  fd = valueFunctor(*fdef);
+
+  if ( fd->arity > MAXARITY )
   { if ( how&GP_TYPE_QUIET )
     { fail;
     } else
     { char buf[100];
 
-      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, arity);
+      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, fd->arity);
 
       return PL_error(NULL, 0, buf,
 		      ERR_REPRESENTATION, ATOM_max_arity);
     }
   }
 
-  succeed;
+  if ( !isTextAtom(fd->name) )
+  { if ( how&GP_TYPE_QUIET )
+    { fail;
+    } else
+    { return PL_error(NULL, 0, NULL,
+		      ERR_TYPE, ATOM_callable, head);
+    }
   }
+
+  succeed;
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -507,7 +560,8 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   { GET_LD
     term_t head = PL_new_term_ref();
 
-    PL_strip_module(descr, &m, head);
+    if ( !PL_strip_module(descr, &m, head) )
+      return FALSE;
 
     if ( h )
       PL_put_term(h, head);
@@ -518,7 +572,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 
   switch( how & GP_HOW_MASK )
   { case GP_CREATE:
-      *proc = lookupProcedure(fdef, m);
+      *proc = lookupBodyProcedure(fdef, m);
       break;
     case GP_FINDHERE:
       if ( (p = isCurrentProcedure(fdef, m)) )
@@ -964,7 +1018,7 @@ abolishProcedure(Procedure proc, Module module)
 { GET_LD
   Definition def = proc->definition;
 
-  DEBUG(2, Sdprintf("abolishProcedure(%s)\n", predicateName(def)));
+  DEBUG(MSG_PROC, Sdprintf("abolishProcedure(%s)\n", predicateName(def)));
 
   startCritical;
   LOCKDEF(def);
@@ -1020,12 +1074,12 @@ abolishProcedure(Procedure proc, Module module)
 Remove (mark for  deletion)  all  clauses   that  come  from  the  given
 source-file or any sourcefile. Note   that thread-local predicates don't
 have clauses from files, so we don't   need to bother. Returns number of
-clauses that is deleted.
+clauses that has been deleted.
 
 MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+int
 removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 { Definition def = proc->definition;
   ClauseRef c;
@@ -1044,7 +1098,9 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
     if ( (sfindex == 0 || sfindex == cl->owner_no) &&
 	 (!fromfile || cl->line_no > 0) &&
 	 false(cl, CL_ERASED) )
-    { set(cl, CL_ERASED);
+    { size_t size = sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
+      ATOMIC_SUB(&def->module->code_size, size);
+      set(cl, CL_ERASED);
       deleteActiveClauseFromIndexes(def, cl);
 
       if ( deleted++ == 0 )
@@ -1113,6 +1169,7 @@ the definition is always referenced.
 bool
 retractClauseDefinition(Definition def, Clause clause)
 { int rc;
+  size_t size;
 
   LOCKDYNDEF(def);
   assert(true(def, P_DYNAMIC));
@@ -1123,6 +1180,8 @@ retractClauseDefinition(Definition def, Clause clause)
 
   DEBUG(CHK_SECURE, checkDefinition(def));
   set(clause, CL_ERASED);
+  size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
+  ATOMIC_SUB(&def->module->code_size, size);
 
   if ( def->references ||
        def->impl.clauses.number_of_clauses > 16 )
@@ -1184,7 +1243,7 @@ freeClause(Clause c)
   forAtomsInClause(c, PL_unregister_atom);
 #endif
 
-  if ( true(c, DBREF_CLAUSE) )
+  if ( true(c, DBREF_CLAUSE) )		/* will be freed from symbol */
     set(c, DBREF_ERASED_CLAUSE);
   else
     unallocClause(c);
@@ -1201,11 +1260,11 @@ cleanDefinition()
     call-back and we have the L_PREDICATE mutex when running this code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static ClauseRef
+ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
 { DEBUG(CHK_SECURE, checkDefinition(def));
 
-  DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
+  DEBUG(MSG_PROC, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
 
   if ( true(def, NEEDSCLAUSEGC) )
   { ClauseRef cref, next, prev = NULL;
@@ -1231,7 +1290,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
 	    def->impl.clauses.last_clause = prev;
 	}
 
-	DEBUG(2, removed++);
+	DEBUG(MSG_PROC, removed++);
 	def->impl.clauses.erased_clauses--;
 
 					  /* re-link into garbage chain */
@@ -1239,11 +1298,11 @@ cleanDefinition(Definition def, ClauseRef garbage)
 	garbage = cref;
       } else
       { prev = cref;
-	DEBUG(2, left++);
+	DEBUG(MSG_PROC, left++);
       }
     }
 
-    DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
+    DEBUG(MSG_PROC, Sdprintf("removed %d, left %d\n", removed, left));
     assert(def->impl.clauses.erased_clauses == 0);
 
     clear(def, NEEDSCLAUSEGC);
@@ -1462,6 +1521,9 @@ meta_declaration(term_t spec)
     clear(def, P_TRANSPARENT);
   set(def, P_META);
 
+  if ( false(def, FILE_ASSIGNED) && ReadingSource )
+    addProcedureSourceFile(lookupSourceFile(source_file_name, TRUE), proc);
+
   return TRUE;
 }
 
@@ -1596,6 +1658,12 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 }
 
 
+void
+clear_meta_declaration(Definition def)
+{ def->meta_info = 0;
+  clear(def, P_META|P_TRANSPARENT);
+}
+
 #ifdef O_CLAUSEGC
 		 /*******************************
 		 *	     CLAUSE-GC		*
@@ -1605,7 +1673,7 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 MT: locked by caller
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+void
 registerDirtyDefinition(Definition def)
 { if ( false(def, P_DIRTYREG) )
   { DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
@@ -1627,7 +1695,7 @@ pl_garbage_collect_clauses(void)
     sigset_t set;
     ClauseRef garbage = NULL;
 
-    DEBUG(1, Sdprintf("pl_garbage_collect_clauses()\n"));
+    DEBUG(MSG_PROC, Sdprintf("pl_garbage_collect_clauses()\n"));
 
     LOCK();
     PL_LOCK(L_GC);
@@ -1650,7 +1718,7 @@ pl_garbage_collect_clauses(void)
 		       PL_THREAD_SUSPEND_AFTER_WORK);
 #endif
 
-    DEBUG(1, Sdprintf("Marking complete; cleaning predicates\n"));
+    DEBUG(MSG_PROC, Sdprintf("Marking complete; cleaning predicates\n"));
 
     last = NULL;
     for(cell = GD->procedures.dirty; cell; cell = next)
@@ -1665,7 +1733,7 @@ pl_garbage_collect_clauses(void)
 	  last = cell;
 	  continue;
 	} else
-	{ DEBUG(1, Sdprintf("cleanDefinition(%s)\n", predicateName(def)));
+	{ DEBUG(MSG_PROC, Sdprintf("cleanDefinition(%s)\n", predicateName(def)));
 	  garbage = cleanDefinition(def, garbage);
 	}
       }
@@ -1809,8 +1877,9 @@ autoImport(functor_t f, Module m)
 
 found:
   if ( proc == NULL )			/* Create header if not there */
-    proc = lookupProcedure(f, m);
-
+  { if ( !(proc = lookupProcedure(f, m)) )
+      return NULL;
+  }
 					/* Now, take the lock also used */
 					/* by lookupProcedure().  Note */
 					/* that another thread may have */
@@ -1819,7 +1888,6 @@ found:
   if ( (odef=proc->definition) != def )	/* Nope, we must link the def */
   { proc->definition = def;
     shareDefinition(def);
-    unshareDefinition(odef);
 
     if ( unshareDefinition(odef) == 0 )
     {
@@ -1830,7 +1898,10 @@ found:
       { assert(false(proc->definition, P_DIRTYREG));
 	freeHeap(odef, sizeof(struct definition));
       } else
-      { GC_LINGER(odef);
+      { DEBUG(MSG_PROC, Sdprintf("autoImport(%s,%s): Linger %s (%p)\n",
+				 functorName(f), PL_atom_chars(m->name),
+				 predicateName(odef), odef));
+	lingerDefinition(odef);
       }
       PL_UNLOCK(L_THREAD);
 #else
@@ -1917,7 +1988,7 @@ trapUndefined(Definition def ARG_LD)
     } else
     { atom_t answer = autoLoader(def);
 
-      def = lookupProcedure(functor->functor, module)->definition;
+      def = lookupDefinition(functor->functor, module);
 
       if ( answer == ATOM_fail )
       { return def;
@@ -2149,7 +2220,7 @@ pl_retractall(term_t head)
   fid_t fid;
 
   if ( !get_procedure(head, &proc, thehead, GP_CREATE) )
-    succeed;
+    fail;
 
   def = getProcDefinition(proc);
   if ( true(def, P_FOREIGN) )
@@ -2254,9 +2325,9 @@ pl_abolish(term_t name, term_t arity)	/* Name, Arity */
 { GET_LD
   Module m = NULL;
 
-  PL_strip_module(name, &m, name);
-
-  return do_abolish(m, name, arity);
+  return ( PL_strip_module(name, &m, name) &&
+	   do_abolish(m, name, arity)
+	 );
 }
 
 
@@ -2267,7 +2338,8 @@ pl_abolish1(term_t spec)		/* Name/Arity */
   term_t arity = PL_new_term_ref();
   Module m = NULL;
 
-  PL_strip_module(spec, &m, spec);
+  if ( !PL_strip_module(spec, &m, spec) )
+    return FALSE;
 
   if ( !PL_is_functor(spec, FUNCTOR_divide2) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_predicate_indicator, spec);
@@ -2669,6 +2741,10 @@ PRED_IMPL("$get_clause_attribute", 3, get_clause_attribute, 0)
 
     if ( sf )
       return PL_unify_atom(value, sf->name);
+  } else if ( a == ATOM_size )
+  { size_t size = sizeofClause(clause->code_size);
+
+    return PL_unify_int64(value, size);
   } else if ( a == ATOM_fact )
   { return PL_unify_atom(value,
 			 true(clause, UNIT_CLAUSE) ? ATOM_true
@@ -2687,220 +2763,11 @@ PRED_IMPL("$get_clause_attribute", 3, get_clause_attribute, 0)
 			  clause->procedure->definition, 0,
 			  GP_QUALIFY|GP_NAMEARITY) )
       return TRUE;
+  } else if ( a == ATOM_module )
+  { return PL_unify_atom(value, clauseBodyContext(clause)->name);
   }
 
   fail;
-}
-
-
-		/********************************
-		*         SOURCE FILE           *
-		*********************************/
-
-#define source_index (GD->files._source_index)
-#define sourceTable  (GD->files._source_table)
-
-static void
-registerSourceFile(SourceFile f)
-{ if ( !GD->files.source_files.base )
-    initBuffer(&GD->files.source_files);
-
-  f->index = (int)entriesBuffer(&GD->files.source_files, SourceFile) + 1;
-
-  addBuffer(&GD->files.source_files, f, SourceFile);
-}
-
-
-static void
-freeList(ListCell *lp)
-{ ListCell c;
-
-  if ( (c=*lp) )
-  { ListCell n;
-
-    *lp = NULL;
-    for( ; c; c=n )
-    { n = c->next;
-
-      freeHeap(c, sizeof(*c));
-    }
-  }
-}
-
-
-static void
-freeSymbolSourceFile(Symbol s)
-{ SourceFile sf = s->value;
-
-  freeList(&sf->procedures);
-  freeList(&sf->modules);
-  freeHeap(sf, sizeof(*sf));
-}
-
-
-void
-cleanupSourceFiles(void)
-{ Table t;
-
-  if ( (t=sourceTable) )
-  { sourceTable = NULL;
-
-    destroyHTable(t);
-  }
-
-  if ( GD->files.source_files.base )
-  { discardBuffer(&GD->files.source_files);
-    GD->files.source_files.base = 0;
-  }
-}
-
-
-SourceFile
-lookupSourceFile(atom_t name, int create)
-{ SourceFile file;
-  Symbol s;
-
-  LOCK();
-  if ( !sourceTable )
-  { sourceTable = newHTable(32);
-    sourceTable->free_symbol = freeSymbolSourceFile;
-  }
-
-  if ( (s=lookupHTable(sourceTable, (void*)name)) )
-  { file = s->value;
-  } else if ( create )
-  { file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
-    memset(file, 0, sizeof(struct sourceFile));
-    file->name = name;
-    file->index = ++source_index;
-    file->system = GD->bootsession;
-
-    PL_register_atom(file->name);
-    registerSourceFile(file);
-
-    addHTable(sourceTable, (void*)name, file);
-  } else
-  { file = NULL;
-  }
-  UNLOCK();
-
-  return file;
-}
-
-
-SourceFile
-indexToSourceFile(int index)
-{ int n = (int)entriesBuffer(&GD->files.source_files, SourceFile);
-
-  index--;
-  if ( index >= 0 && index < n )
-    return fetchBuffer(&GD->files.source_files, index, SourceFile);
-
-  return NULL;
-}
-
-
-static int
-hasProcedureSourceFile(SourceFile sf, Procedure proc)
-{ ListCell cell;
-
-  if ( true(proc->definition, FILE_ASSIGNED) )
-  { for(cell=sf->procedures; cell; cell = cell->next)
-    { if ( cell->value == proc )
-	succeed;
-    }
-  }
-
-  fail;
-}
-
-
-
-void
-addProcedureSourceFile(SourceFile sf, Procedure proc)
-{ ListCell cell;
-
-  LOCK();
-  if ( hasProcedureSourceFile(sf, proc) )
-  { UNLOCK();
-    return;
-  }
-
-  cell = allocHeapOrHalt(sizeof(struct list_cell));
-  cell->value = proc;
-  cell->next = sf->procedures;
-  sf->procedures = cell;
-  set(proc->definition, FILE_ASSIGNED);
-
-  UNLOCK();
-}
-
-
-int
-addModuleSourceFile(SourceFile sf, Module m)
-{ ListCell cell;
-  int rc = TRUE;
-
-  LOCK();
-  for(cell=sf->modules; cell; cell = cell->next)
-  { if ( cell->value == m )
-    goto out;
-  }
-
-  if ( !(cell = allocHeap(sizeof(struct list_cell))) )
-  { rc = FALSE;			/* no memory */
-    goto out;
-  }
-  cell->value = m;
-  cell->next = sf->modules;
-  sf->modules = cell;
-
-out:
-  UNLOCK();
-  return rc;
-}
-
-
-static int
-delModuleSourceFile(SourceFile sf, Module m)
-{ ListCell *cp, c;
-
-  LOCK();
-  for(cp=&sf->modules; (c=*cp); cp=&c->next)
-  { if ( c->value == m )
-    { *cp = c->next;
-      freeHeap(c, sizeof(*c));
-
-      UNLOCK();
-      return TRUE;
-    }
-  }
-
-  UNLOCK();
-  return FALSE;
-}
-
-
-static void
-delAllModulesSourceFile__unlocked(SourceFile sf)
-{ ListCell c = sf->modules, n;
-
-  sf->modules = NULL;
-
-  for(; c; c = n)
-  { Module m = c->value;
-
-    n = c->next;
-    if ( m->file == sf )
-    { PL_LOCK(L_MODULE);
-      m->file = NULL;
-      m->line_no = 0;
-      clearHTable(m->public);
-      PL_UNLOCK(L_MODULE);
-    }
-
-    freeHeap(c, sizeof(*c));
-  }
 }
 
 
@@ -2937,9 +2804,11 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     if ( first->value.clause->owner_no == sf->index )
     { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, P_DISCONTIGUOUS) )
-	printMessage(ATOM_warning,
-		     PL_FUNCTOR_CHARS, "discontiguous", 1,
-		       _PL_PREDICATE_INDICATOR, proc);
+      { printMessage(ATOM_warning,
+		     PL_FUNCTOR_CHARS, "discontiguous", 2,
+		       _PL_PREDICATE_INDICATOR, proc,
+		       _PL_PREDICATE_INDICATOR, sf->current_procedure);
+      }
     } else if ( !hasProcedureSourceFile(sf, proc) )
     { if ( true(def, P_THREAD_LOCAL) )
 	return PL_error(NULL, 0, NULL, ERR_MODIFY_THREAD_LOCAL_PROC, proc);
@@ -2963,349 +2832,6 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
   return TRUE;
 }
 
-
-word
-pl_make_system_source_files(void)
-{ int i, n = (int)entriesBuffer(&GD->files.source_files, SourceFile);
-
-
-  for(i=0; i<n; i++)
-  { SourceFile f = fetchBuffer(&GD->files.source_files, i, SourceFile);
-
-    f->system = TRUE;
-  }
-
-  succeed;
-}
-
-
-word
-pl_source_file(term_t descr, term_t file, control_t h)
-{ GET_LD
-  Procedure proc;
-  ClauseRef cref;
-  SourceFile sf;
-  atom_t name;
-  ListCell cell;
-
-
-  if ( ForeignControl(h) == FRG_FIRST_CALL )
-  { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_TYPE_QUIET) )
-    { if ( !proc->definition ||
-	   true(proc->definition, P_FOREIGN|P_THREAD_LOCAL) ||
-	   !(cref = proc->definition->impl.clauses.first_clause) ||
-	   !(sf = indexToSourceFile(cref->value.clause->owner_no)) ||
-	   sf->count == 0 )
-	fail;
-
-      return PL_unify_atom(file, sf->name);
-    }
-
-    if ( PL_is_variable(file) )
-      return get_procedure(descr, &proc, 0, GP_FIND); /* throw exception */
-  }
-
-  if ( ForeignControl(h) == FRG_CUTTED )
-    succeed;
-
-  if ( !PL_get_atom_ex(file, &name) ||
-       !(sf = lookupSourceFile(name, FALSE)) ||
-       sf->count == 0 )
-    fail;
-
-  switch( ForeignControl(h) )
-  { case FRG_FIRST_CALL:
-      cell = sf->procedures;
-      break;
-    case FRG_REDO:
-      cell = ForeignContextPtr(h);
-      break;
-    default:
-      cell = NULL;
-      assert(0);
-  }
-
-  for( ; cell; cell = cell->next )
-  { Procedure proc = cell->value;
-    Definition def = proc->definition;
-    fid_t cid = PL_open_foreign_frame();
-
-    if ( unify_definition(MODULE_user, descr, def, 0, 0) )
-    { PL_close_foreign_frame(cid);
-
-      if ( cell->next )
-	ForeignRedoPtr(cell->next);
-      else
-	succeed;
-    }
-
-    PL_discard_foreign_frame(cid);
-  }
-
-  fail;
-}
-
-static
-PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
-{ PRED_LD
-  int index;
-  int mx = (int)entriesBuffer(&GD->files.source_files, SourceFile);
-  term_t file = A1;
-  term_t time = A2;
-  term_t type = A3;			/* user or system */
-  fid_t fid;
-
-  switch( CTX_CNTRL )
-  { case FRG_FIRST_CALL:
-      index = 0;
-      break;
-    case FRG_REDO:
-      index = (int)CTX_INT;
-      break;
-    case FRG_CUTTED:
-    default:
-      succeed;
-  }
-
-  fid = PL_open_foreign_frame();
-  for(; index < mx; index++)
-  { SourceFile f = fetchBuffer(&GD->files.source_files, index, SourceFile);
-
-    if ( f->count == 0 )
-      continue;
-
-    if ( PL_unify_atom(file, f->name) &&
-	 PL_unify_float(time, f->mtime) &&
-	 PL_unify_atom(type, f->system ? ATOM_system : ATOM_user) )
-    { PL_close_foreign_frame(fid);
-      ForeignRedoInt(index+1);
-    }
-
-    PL_rewind_foreign_frame(fid);
-  }
-
-  PL_close_foreign_frame(fid);
-  fail;
-}
-
-
-static bool
-clearInitialization(SourceFile sf)
-{ GET_LD
-  int rc = FALSE;
-
-  fid_t fid = PL_open_foreign_frame();
-  term_t name = PL_new_term_ref();
-  static predicate_t pred = NULL;
-
-  if ( !pred )
-    pred = PL_predicate("$clear_initialization", 1, "system");
-
-  PL_put_atom(name, sf->name);
-  rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
-
-  PL_discard_foreign_frame(fid);
-
-  return rc;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unloadFile(SourceFile sf)
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-unloadFile(SourceFile sf)
-{ GET_LD
-  ListCell cell, next;
-  sigset_t set;
-  ClauseRef garbage = NULL;
-
-  clearInitialization(sf);
-  delayEvents();
-
-  LOCK();
-  PL_LOCK(L_THREAD);
-  PL_LOCK(L_STOPTHEWORLD);
-  blockSignals(&set);
-
-  GD->procedures.active_marked = 0;
-  GD->procedures.reloading = sf;
-  markPredicatesInEnvironments(LD);
-#ifdef O_PLMT
-  forThreadLocalData(markPredicatesInEnvironments,
-		     PL_THREAD_SUSPEND_AFTER_WORK);
-#endif
-  GD->procedures.reloading = NULL;
-
-				      /* remove the clauses */
-  for(cell = sf->procedures; cell; cell = cell->next)
-  { int deleted;
-
-    Procedure proc = cell->value;
-    Definition def = proc->definition;
-
-    DEBUG(MSG_UNLOAD, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
-			       predicateName(def), def->references));
-
-    if ( false(def, P_FOREIGN) )
-    { deleted = removeClausesProcedure(proc,
-				       true(def, P_MULTIFILE) ? sf->index : 0,
-				       TRUE);
-    }
-
-    DEBUG(MSG_UNLOAD,
-	  if ( false(def, P_MULTIFILE) && def->impl.clauses.number_of_clauses )
-	    Sdprintf("%s: %d clauses after unload\n",
-		     predicateName(def), def->impl.clauses.number_of_clauses));
-
-    if ( deleted )
-    { if ( false(def, P_MULTIFILE|P_DYNAMIC) )
-	clearTriedIndexes(def);
-
-      if ( def->references == 0 )
-      { freeCodesDefinition(def, FALSE);
-	garbage = cleanDefinition(def, garbage);
-      } else if ( false(def, P_DYNAMIC) )
-      { registerDirtyDefinition(def);
-	freeCodesDefinition(def, TRUE);
-      }
-    }
-
-    if ( false(def, P_MULTIFILE) )
-      clear(def, FILE_ASSIGNED);
-  }
-
-				      /* unmark the marked predicates */
-  for(cell = sf->procedures; cell; cell = cell->next)
-  { Procedure proc = cell->value;
-    Definition def = proc->definition;
-
-    if ( false(def, P_DYNAMIC) && def->references )
-    { assert(def->references == 1);
-      def->references = 0;
-      GD->procedures.active_marked--;
-    }
-  }
-
-				      /* cleanup the procedure list */
-  for(cell = sf->procedures; cell; cell = next)
-  { next = cell->next;
-    freeHeap(cell, sizeof(struct list_cell));
-  }
-  sf->procedures = NULL;
-  assert(GD->procedures.active_marked == 0);
-
-#ifdef O_PLMT
-  resumeThreads();
-#endif
-  delAllModulesSourceFile__unlocked(sf);
-
-  unblockSignals(&set);
-  PL_UNLOCK(L_STOPTHEWORLD);
-  PL_UNLOCK(L_THREAD);
-  UNLOCK();
-
-  sendDelayedEvents();
-  if ( garbage )
-    freeClauseList(garbage);
-
-  return TRUE;
-}
-
-
-/** '$unload_file'(+Name) is det.
-
-Remove all traces of a loaded file.
-*/
-
-static
-PRED_IMPL("$unload_file", 1, unload_file, 0)
-{ PRED_LD
-  SourceFile sf;
-  atom_t name;
-
-  if ( !PL_get_atom_ex(A1, &name) )
-    return FALSE;
-
-  if ( (sf = lookupSourceFile(name, FALSE)) )
-  { ListCell mc, mcn;
-
-    if ( sf->system )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		      ATOM_unload, ATOM_file, A1);
-
-    if ( !unloadFile(sf) )
-      return FALSE;
-
-    for(mc=sf->modules; mc; mc=mcn)
-    { Module m = mc->value;
-
-      mcn = mc->next;
-      LOCKMODULE(m);
-      m->file = NULL;
-      m->line_no = 0;
-      delModuleSourceFile(sf, m);
-      clearHTable(m->public);
-      setSuperModule(m, MODULE_user);
-      UNLOCKMODULE(m);
-    }
-
-    sf->count = 0;
-  }
-
-  return TRUE;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startConsult(SourceFile sf)
-
-This function is called when starting the consult a file. Its task is to
-remove all clauses that come from this   file  if this is a *reconsult*.
-There are two options.
-
-    * Immediately remove the clauses from any non-referenced predicate.
-    This saves space, but if there are multiple threads it may cause
-    other threads to trap an undefined predicate.
-
-    * Delay until garbage_collect_clauses/0
-    This way other threads can happily keep running.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-startConsult(SourceFile f)
-{ if ( f->count++ > 0 )			/* This is a re-consult */
-    unloadFile(f);
-
-  f->current_procedure = NULL;
-}
-
-
-/** '$start_consult'(+Id, +Modified) is det.
-*/
-
-static
-PRED_IMPL("$start_consult", 2, start_consult, 0)
-{ PRED_LD
-  atom_t name;
-  double time;
-
-  term_t file = A1;
-  term_t modified = A2;
-
-  if ( PL_get_atom_ex(file, &name) &&
-       PL_get_float_ex(modified, &time) )
-  { SourceFile f = lookupSourceFile(name, TRUE);
-
-    f->mtime = time;
-    startConsult(f);
-
-    return TRUE;
-  }
-
-  return FALSE;
-}
 
 
 /** copy_predicate(From:predicate_indicator, To:predicate_indicator) is det.
@@ -3416,55 +2942,6 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
   leaveDefinition(def);
 
   return TRUE;
-}
-
-
-		 /*******************************
-		 *       DEBUGGER SUPPORT	*
-		 *******************************/
-
-static
-PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
-{ PRED_LD
-  atom_t name;
-  SourceFile f;
-  int ln;
-  ListCell cell;
-  Clause c = NULL;
-
-  term_t file = A1;
-  term_t line = A2;
-  term_t clause = A3;
-
-  if ( !PL_get_atom_ex(file, &name) ||
-       !(f = lookupSourceFile(name, FALSE)) ||
-       !PL_get_integer_ex(line, &ln) )
-    fail;
-
-  for(cell = f->procedures; cell; cell = cell->next)
-  { Procedure proc = cell->value;
-    Definition def = proc->definition;
-
-    if ( def && false(def, P_FOREIGN) )
-    { ClauseRef cref = def->impl.clauses.first_clause;
-
-      for( ; cref; cref = cref->next )
-      { Clause cl = cref->value.clause;
-
-	if ( cl->source_no == f->index )
-	{ if ( ln >= (int)cl->line_no )
-	  { if ( !c || c->line_no < cl->line_no )
-	      c = cl;
-	  }
-	}
-      }
-    }
-  }
-
-  if ( c )
-    return PL_unify_clref(clause, c);
-
-  fail;
 }
 
 
@@ -3675,12 +3152,8 @@ pl_list_generations(term_t desc)
 
 BeginPredDefs(proc)
   PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
-  PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("$get_clause_attribute", 3, get_clause_attribute, 0)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
-  PRED_DEF("$unload_file", 1, unload_file, 0)
-  PRED_DEF("$start_consult", 2, start_consult, 0)
   PRED_DEF("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
 EndPredDefs

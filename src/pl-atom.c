@@ -173,8 +173,6 @@ PL_register_blob_type(PL_blob_t *type)
   if ( !type->registered )
   { if ( !GD->atoms.types )
     { GD->atoms.types = type;
-      type->atom_name = ATOM_text;	/* avoid deadlock */
-      type->registered = TRUE;
     } else
     { PL_blob_t *t = GD->atoms.types;
 
@@ -183,10 +181,17 @@ PL_register_blob_type(PL_blob_t *type)
 
       t->next = type;
       type->rank = t->rank+1;
-      type->registered = TRUE;
-      type->atom_name = PL_new_atom(type->name);
     }
+    type->registered = TRUE;
+    if ( !type->atom_name )
+      type->atom_name = PL_new_atom(type->name);
 
+    if ( true(type, PL_BLOB_TEXT) )
+    { if ( true(type, PL_BLOB_WCHAR) )
+	type->padding = sizeof(pl_wchar_t);
+      else
+	type->padding = sizeof(char);
+    }
   }
 
   PL_UNLOCK(L_MISC);
@@ -345,16 +350,6 @@ registerAtom(Atom a)
 }
 
 
-static size_t
-paddingBlob(PL_blob_t *type)
-{ if ( true(type, PL_BLOB_TEXT) )
-  { return true(type, PL_BLOB_WCHAR) ? sizeof(pl_wchar_t) : sizeof(char);
-  } else
-  { return 0;
-  }
-}
-
-
 		 /*******************************
 		 *	  GENERAL LOOKUP	*
 		 *******************************/
@@ -439,8 +434,8 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   a->length = length;
   a->type = type;
   if ( false(type, PL_BLOB_NOCOPY) )
-  { if ( true(type, PL_BLOB_TEXT) )
-    { size_t pad = paddingBlob(type);
+  { if ( type->padding )
+    { size_t pad = type->padding;
 
       a->name = PL_malloc_atomic(length+pad);
       memcpy(a->name, s, length);
@@ -704,7 +699,7 @@ destroyAtom(Atom *ap, uintptr_t mask)
 
   *ap = NULL;			/* delete from index array */
   if ( false(a->type, PL_BLOB_NOCOPY) )
-  { size_t slen = a->length+paddingBlob(a->type);
+  { size_t slen = a->length + a->type->padding;
     GD->statistics.atom_string_space -= slen;
     GD->statistics.atom_string_space_freed += slen;
     PL_free(a->name);
@@ -785,6 +780,9 @@ pl_garbage_collect_atoms(void)
   double t;
   sigset_t set;
   size_t reclaimed;
+
+  if ( GD->cleaning != CLN_NORMAL )	/* Cleaning up */
+    return TRUE;
 
   PL_LOCK(L_GC);
   if ( gc_status.blocked )		/* Tricky things; avoid problems. */
@@ -1009,6 +1007,9 @@ rehashAtoms(void)
   size_t index;
   int i, last=FALSE;
 
+  if ( GD->cleaning != CLN_NORMAL )
+    return;				/* no point anymore and foreign ->type */
+					/* pointers may have gone */
   atom_buckets *= 2;
   mask = atom_buckets-1;
   atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
@@ -1057,21 +1058,73 @@ pl_atom_hashstat(term_t idx, term_t n)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+resetListAtoms() resets the atom '[|]' to point  to '.' and switches the
+type for '[]' back to  the  normal   text_atom  type.  This is needed to
+switch to traditional mode if the atom table has been initialised.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+resetListAtoms(void)
+{ Atom a = atomValue(ATOM_dot);
+
+  if ( strcmp(a->name, ".") != 0 )
+  { Atom *ap2 = &atomTable[a->hash_value & (atom_buckets-1)];
+    unsigned int v;
+    static char *s = ".";
+
+    Sdprintf("Resetting list constructor to ./2\n");
+
+    for( ; ; ap2 = &(*ap2)->next )
+    { assert(*ap2);		/* MT: TBD: failed a few times!? */
+
+      if ( *ap2 == a )
+      { *ap2 = a->next;
+	goto modify;
+      }
+    }
+    assert(0);
+
+  modify:
+    a->name   = s;
+    a->length = strlen(s);
+    a->hash_value = MurmurHashAligned2(s, a->length, MURMUR_SEED);
+    v = a->hash_value & (atom_buckets-1);
+
+    a->next      = atomTable[v];
+    atomTable[v] = a;
+  }
+
+  a = atomValue(ATOM_nil);
+  a->type = &text_atom;
+
+  return TRUE;
+}
+
+
 static void
 registerBuiltinAtoms(void)
 { int size = sizeof(atoms)/sizeof(char *) - 1;
   Atom a;
-  const ccharp *s;
+  const ccharp *sp;
 
   GD->atoms.builtin_array = PL_malloc(size * sizeof(struct atom));
   GD->statistics.atoms = size;
 
-  for(s = atoms, a = GD->atoms.builtin_array; *s; s++, a++)
-  { size_t len = strlen(*s);
-    unsigned int v0 = MurmurHashAligned2(*s, len, MURMUR_SEED);
-    unsigned int v = v0 & (atom_buckets-1);
+  for(sp = atoms, a = GD->atoms.builtin_array; *sp; sp++, a++)
+  { const char *s = *sp;
+    size_t len = strlen(s);
+    unsigned int v0, v;
 
-    a->name       = (char *)*s;
+    if ( *s == '.' && len == 1 && !GD->options.traditional )
+    { s = "[|]";
+      len = strlen(s);
+    }
+
+    v0 = MurmurHashAligned2(s, len, MURMUR_SEED);
+    v  = v0 & (atom_buckets-1);
+
+    a->name       = (char *)s;
     a->length     = len;
     a->type       = &text_atom;
 #ifdef O_ATOMGC
@@ -1116,9 +1169,15 @@ initAtoms(void)
     GD->atoms.margin = 10000;
     lockAtoms();
 #endif
+    text_atom.atom_name = ATOM_text;
     PL_register_blob_type(&text_atom);
 
     DEBUG(MSG_HASH_STAT, PL_on_halt(exitAtoms, NULL));
+#ifdef O_RESERVED_SYMBOLS
+    initReservedSymbols();
+#endif
+
+
   }
   UNLOCK();
 }
@@ -1669,25 +1728,6 @@ PL_atom_generator_w(const pl_wchar_t *prefix,
   }
 
   return NULL;
-}
-
-		 /*******************************
-		 *	   SPECIAL ATOMS	*
-		 *******************************/
-
-/* This code provides forward compatibility between 6.0 and 7.0
-   for shared objects that acts as plugin.
-*/
-
-static const atom_t special_atoms[] =
-{ ATOM_nil,				/* 0: [] */
-  ATOM_dot				/* 1: .(_|_) or '$cons'(_,_) */
-};
-
-
-const atom_t *
-_PL_atoms(void)
-{ return special_atoms;
 }
 
 

@@ -57,14 +57,19 @@
 \pagestyle{fancyplain}
 #endif
 
-\newcommand{\vmajor}{6}
-\newcommand{\vminor}{6}
-\newcommand{\vpatch}{6}
-\newcommand{\vmonth}{May}
-\newcommand{\vyear}{2014}
+\newcommand{\vmajor}{7}
+\newcommand{\vminor}{1}
+\newcommand{\vpatch}{37}
+\newcommand{\vmonth}{April}
+\newcommand{\vyear}{2015}
 
+#ifdef BOOK
+\newcommand{\versionshort}{\vmajor}
+\newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}
+#else
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
+#endif
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
@@ -225,6 +230,7 @@ California, 94041, USA.
 \include{overview}
 \include{ide}
 \include{builtin}
+\include{extensions}
 \include{module}
 \include{attvar}
 \include{chr}

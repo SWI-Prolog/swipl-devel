@@ -264,6 +264,34 @@ setDoubleQuotes(atom_t a, unsigned int *flagp)
 }
 
 
+int
+setBackQuotes(atom_t a, unsigned int *flagp)
+{ GET_LD
+  unsigned int flags;
+
+  if ( a == ATOM_string )
+    flags = BQ_STRING;
+  else if ( a == ATOM_symbol_char )
+    flags = 0;
+  else if ( a == ATOM_codes )
+    flags = BQ_CODES;
+  else if ( a == ATOM_chars )
+    flags = BQ_CHARS;
+  else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_back_quotes, value);
+  }
+
+  *flagp &= ~BQ_MASK;
+  *flagp |= flags;
+
+  succeed;
+}
+
+
 static int
 setUnknown(term_t value, atom_t a, Module m)
 { unsigned int flags = m->flags & ~(UNKNOWN_MASK);
@@ -350,7 +378,8 @@ setOccursCheck(atom_t a)
 { GET_LD
 
   if ( getOccursCheckMask(a, &LD->prolog_flag.occurs_check) )
-  { succeed;
+  { updateAlerted(LD);
+    succeed;
   } else
   { term_t value = PL_new_term_ref();
 
@@ -411,7 +440,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
   Module m = MODULE_parse;
   int rval = TRUE;
 
-  PL_strip_module(key, &m, key);
+  if ( !PL_strip_module(key, &m, key) )
+    return FALSE;
   if ( !PL_get_atom(key, &k) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, key);
 
@@ -561,14 +591,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
       if ( !PL_get_bool_ex(value, &val) )
 	return FALSE;
-      if ( f->index > 0 )
-      { unsigned int mask = (unsigned int)1 << (f->index-1);
 
-	if ( val )
-	  setPrologFlagMask(mask);
-	else
-	  clearPrologFlagMask(mask);
-      }
+					/* deal with side-effects */
       if ( k == ATOM_character_escapes )
       { if ( val )
 	  set(m, M_CHARESCAPE);
@@ -588,8 +612,23 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { if ( !(rval = enableThreads(val)) )
 	  break;			/* don't change value */
 #endif
+      } else if ( k == ATOM_tty_control )
+      { if ( val != (f->value.a == ATOM_true) )
+	{ if ( !val && ttymodified )
+	  { Sdprintf("Disabling TTY control\n");
+	    PopTty(Sinput, &ttytab, FALSE);
+	  }
+	}
       }
 					/* set the flag value */
+      if ( f->index > 0 )
+      { unsigned int mask = (unsigned int)1 << (f->index-1);
+
+	if ( val )
+	  setPrologFlagMask(mask);
+	else
+	  clearPrologFlagMask(mask);
+      }
       f->value.a = (val ? ATOM_true : ATOM_false);
 
       break;
@@ -602,6 +641,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
       if ( k == ATOM_double_quotes )
       { rval = setDoubleQuotes(a, &m->flags);
+      } else if ( k == ATOM_back_quotes )
+      { rval = setBackQuotes(a, &m->flags);
       } else if ( k == ATOM_unknown )
       { rval = setUnknown(value, a, m);
       } else if ( k == ATOM_write_attributes )
@@ -817,6 +858,19 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
       v = ATOM_codes;
 
     return PL_unify_atom(val, v);
+  } else if ( key == ATOM_back_quotes )
+  { atom_t v;
+
+    if ( true(m, BQ_STRING) )
+      v = ATOM_string;
+    else if ( true(m, BQ_CODES) )
+      v = ATOM_codes;
+    else if ( true(m, BQ_CHARS) )
+      v = ATOM_chars;
+    else
+      v = ATOM_symbol_char;
+
+    return PL_unify_atom(val, v);
   } else if ( key == ATOM_unknown )
   { atom_t v;
 
@@ -946,7 +1000,8 @@ pl_prolog_flag5(term_t key, term_t value,
     { atom_t k;
 
       module = MODULE_parse;
-      PL_strip_module(key, &module, key);
+      if ( !PL_strip_module(key, &module, key) )
+	return FALSE;
 
       if ( PL_get_atom(key, &k) )
       { Symbol s;
@@ -1108,6 +1163,7 @@ initPrologFlags(void)
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+  setPrologFlag("unload_foreign_libraries", FT_BOOL, FALSE, 0);
   setPrologFlag("gc",	  FT_BOOL,	       TRUE,  PLFLAG_GC);
   setPrologFlag("trace_gc",  FT_BOOL,	       FALSE, PLFLAG_TRACE_GC);
 #ifdef O_ATOMGC
@@ -1169,7 +1225,6 @@ initPrologFlags(void)
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
-  setPrologFlag("backquoted_string", FT_BOOL, FALSE, PLFLAG_BACKQUOTED_STRING);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, TRUE, PLFLAG_QUASI_QUOTES);
 #endif
@@ -1177,16 +1232,22 @@ initPrologFlags(void)
   setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");
   setPrologFlag("access_level", FT_ATOM, "user");
-  setPrologFlag("double_quotes", FT_ATOM, "codes");
+  setPrologFlag("double_quotes", FT_ATOM,
+		GD->options.traditional ? "codes" : "string");
+  setPrologFlag("back_quotes", FT_ATOM,
+		GD->options.traditional ? "symbol_char" : "codes");
+  setPrologFlag("traditional", FT_BOOL|FF_READONLY, GD->options.traditional, 0);
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");
-  setPrologFlag("verbose_load", FT_ATOM, "normal");
+  setPrologFlag("verbose_load", FT_ATOM, "silent");
   setPrologFlag("verbose_autoload", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose_file_search", FT_BOOL, FALSE, 0);
   setPrologFlag("sandboxed_load", FT_BOOL, FALSE, 0);
   setPrologFlag("allow_variable_name_as_functor", FT_BOOL, FALSE,
-	     ALLOW_VARNAME_FUNCTOR);
+		ALLOW_VARNAME_FUNCTOR);
+  setPrologFlag("allow_dot_in_atom", FT_BOOL, FALSE,
+		PLFLAG_DOT_IN_ATOM);
   setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
   setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");

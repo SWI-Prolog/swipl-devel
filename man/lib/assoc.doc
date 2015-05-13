@@ -28,7 +28,7 @@ expected time (and worst-case time) operation.
 		the associations in \arg{Assoc} in ascending order
 		of the keys they are associated to.
 
-	\predicate{empty_assoc}{1}{-Assoc}
+	\predicate{empty_assoc}{1}{?Assoc}
 		\arg{Assoc} is unified with an empty association list.
 
 	\predicate{gen_assoc}{3}{?Key, +Assoc, ?Value}

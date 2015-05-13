@@ -111,7 +111,7 @@ simple, quasi quotation parser for HTML.
 @author Jan Wielemaker.  Introduction of Quasi Quotation was suggested
 	by Michael Hendricks.
 @see    [Why it's nice to be quoted: quasiquoting for
-	haskell](http://www.eecs.harvard.edu/~mainland/ghc-quasiquoting/mainland07quasiquoting.pdf)
+	haskell](http://www.cs.tufts.edu/comp/150FP/archive/geoff-mainland/quasiquoting.pdf)
 */
 
 
@@ -137,7 +137,7 @@ simple, quasi quotation parser for HTML.
 %	     Failure or exceptions from Goal are interpreted as
 %	     syntax errors.
 %	@see phrase_from_quasi_quotation/2 can be used to process a
-%	     quatation using a grammar.
+%	     quotation using a grammar.
 
 with_quasi_quotation_input(Content, Stream, Goal) :-
 	functor(Content, '$quasi_quotation', 3), !,

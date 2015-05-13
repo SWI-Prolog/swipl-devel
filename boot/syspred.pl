@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -43,6 +43,7 @@
 	    dwim_match/2,
 	    source_file_property/2,
 	    source_file/1,
+	    source_file/2,
 	    unload_file/1,
 	    prolog_load_context/2,
 	    stream_position_data/3,
@@ -68,8 +69,10 @@
 	    prolog_stack_property/2,
 	    absolute_file_name/2,
 	    require/1,
-	    call_with_depth_limit/3,
+	    call_with_depth_limit/3,	% :Goal, +Limit, -Result
+	    call_with_inference_limit/3,% :Goal, +Limit, -Result
 	    numbervars/3,		% +Term, +Start, -End
+	    term_string/3,		% ?Term, ?String, +Options
 	    nb_setval/2			% +Var, +Value
 	  ]).
 
@@ -132,7 +135,8 @@ visible(Ports) :-
 	map_bits(port_name, Ports, Old, New),
 	'$visible'(_, New).
 
-style_name(atom,	    0x0001).
+style_name(atom,	    0x0001) :-
+	print_message(warning, decl_no_effect(style_check(atom))).
 style_name(singleton,	    0x0042).		% semantic and syntactic
 style_name(discontiguous,   0x0008).
 style_name(dynamic,	    0x0010).
@@ -410,6 +414,42 @@ source_file(File) :-
 	),
 	Time > 0.0.
 
+%%	source_file(+Head, -File) is semidet.
+%%	source_file(?Head, ?File) is nondet.
+%
+%	True when Head is a predicate owned by File.
+
+:- meta_predicate source_file(:, ?).
+
+source_file(M:Head, File) :-
+	nonvar(M), nonvar(Head), !,
+	(   predicate_property(M:Head, multifile)
+	->  multi_source_files(M:Head, Files),
+	    '$member'(File, Files)
+	;   '$source_file'(M:Head, File)
+	).
+source_file(M:Head, File) :-
+	(   nonvar(File)
+	->  true
+	;   source_file(File)
+	),
+	'$source_file_predicates'(File, Predicates),
+	'$member'(M:Head, Predicates).
+
+:- thread_local found_src_file/1.
+
+multi_source_files(Head, Files) :-
+	call_cleanup(
+	    findall(File, multi_source_file(Head, File), Files),
+	    retractall(found_src_file(_))).
+
+multi_source_file(Head, File) :-
+	nth_clause(Head, _, Clause),
+	clause_property(Clause, source(File)),
+	\+ found_src_file(File),
+	asserta(found_src_file(File)).
+
+
 %%	source_file_property(?File, ?Property) is nondet.
 %
 %	True if Property is a property of the loaded source-file File.
@@ -495,8 +535,14 @@ prolog_load_context(directory, D) :-
 	file_directory_name(F, D).
 prolog_load_context(dialect, D) :-
 	current_prolog_flag(emulated_dialect, D).
-prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
-	source_location(_, L).
+prolog_load_context(term_position, TermPos) :-
+	source_location(_, L),
+	(   nb_current('$term_position', Pos),
+	    compound(Pos),		% actually set
+	    stream_position_data(line_count, Pos, L)
+	->  TermPos = Pos
+	;   TermPos = '$stream_position'(0,L,0,0)
+	).
 prolog_load_context(script, Bool) :-
 	(   '$toplevel':loaded_init_file(script, Path),
 	    source_location(Path, _)
@@ -512,8 +558,7 @@ prolog_load_context(variable_names, Bindings) :-
 
 unload_file(File) :-
 	(   canonical_source_file(File, Path)
-	->  '$unload_file'(Path),
-	    retractall(system:'$load_context_module'(Path, _))
+	->  '$unload_file'(Path)
 	;   true
 	).
 
@@ -564,6 +609,31 @@ call_with_depth_limit(G, Limit, Result) :-
 	;   '$depth_limit_false'(OLimit, OReached, Result)
 	).
 
+%%	call_with_inference_limit(:Goal, +InferenceLimit, -Result)
+%
+%	Equivalent to call(Goal), but poses  a   limit  on the number of
+%	inferences. If this limit is  reached,   Result  is unified with
+%	=inference_limit_exceeded=, otherwise Result  is   unified  with
+%	=|!|=  if  Goal  succeeded  without  a  choicepoint  and  =true=
+%	otherwise.
+%
+%	Note that we perform calls in   system  to avoid auto-importing,
+%	which makes raiseInferenceLimitException()  fail   to  recognise
+%	that the exception happens in the overhead.
+
+:- meta_predicate
+	call_with_inference_limit(0, +, -).
+
+call_with_inference_limit(G, Limit, Result) :-
+	'$inference_limit'(Limit, OLimit),
+	(   catch(G, Except,
+		  system:'$inference_limit_except'(OLimit, Except, Result0)),
+	    system:'$inference_limit_true'(Limit, OLimit, Result0),
+	    ( Result0 == ! -> ! ; true ),
+	    Result = Result0
+	;   system:'$inference_limit_false'(OLimit)
+	).
+
 
 		/********************************
 		*           DATA BASE           *
@@ -600,7 +670,10 @@ current_predicate(Name, Module:Head) :-
 current_predicate(Name, Module:Head) :-
 	current_prolog_flag(autoload, true),
 	\+ current_prolog_flag(Module:unknown, fail),
-	functor(Head, Name, Arity),
+	(   compound(Head)
+	->  compound_name_arity(Head, Name, Arity)
+	;   Name = Head, Arity = 0
+	),
 	'$find_library'(Module, Name, Arity, _LoadModule, _Library), !.
 
 generate_current_predicate(Name, Module, Head) :-
@@ -640,14 +713,14 @@ property_predicate(undefined, Pred) :- !,
 	'$c_current_predicate'(_, Pred),
 	\+ '$defined_predicate'(Pred),		% Speed up a bit
 	\+ current_predicate(_, Pred),
-	functor(Head, Name, Arity),
+	goal_name_arity(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
 property_predicate(visible, Pred) :- !,
 	visible_predicate(Pred).
 property_predicate(autoload(File), _:Head) :- !,
 	current_prolog_flag(autoload, true),
 	(   callable(Head)
-	->  functor(Head, Name, Arity),
+	->  goal_name_arity(Head, Name, Arity),
 	    (	'$find_library'(_, Name, Arity, _, File)
 	    ->	true
 	    )
@@ -657,6 +730,12 @@ property_predicate(autoload(File), _:Head) :- !,
 property_predicate(Property, Pred) :-
 	define_or_generate(Pred),
 	'$predicate_property'(Property, Pred).
+
+goal_name_arity(Head, Name, Arity) :-
+	compound(Head), !,
+	compound_name_arity(Head, Name, Arity).
+goal_name_arity(Head, Head, 0).
+
 
 %%	define_or_generate(+Head) is semidet.
 %%	define_or_generate(-Head) is nondet.
@@ -691,6 +770,8 @@ define_or_generate(Pred) :-
 	'$get_predicate_attribute'(Pred, foreign, 1).
 '$predicate_property'((dynamic), Pred) :-
 	'$get_predicate_attribute'(Pred, (dynamic), 1).
+'$predicate_property'((static), Pred) :-
+	'$get_predicate_attribute'(Pred, (dynamic), 0).
 '$predicate_property'((volatile), Pred) :-
 	'$get_predicate_attribute'(Pred, (volatile), 1).
 '$predicate_property'((thread_local), Pred) :-
@@ -745,23 +826,29 @@ visible_predicate(Pred) :-
 	current_module(M),
 	(   callable(Head)
 	->  (   '$get_predicate_attribute'(Pred, defined, 1)
-	    ->	\+ hidden_system_predicate(Pred)
+	    ->	true
 	    ;	\+ current_prolog_flag(M:unknown, fail),
 		functor(Head, Name, Arity),
 		'$find_library'(M, Name, Arity, _LoadModule, _Library)
 	    )
-	;   (   default_module(M, DefM),
-	        '$c_current_predicate'(_, DefM:Head),
-		\+ '$get_predicate_attribute'(DefM:Head, imported, _),
-		\+ hidden_system_predicate(Pred)
-	    ;	'$in_library'(Name, Arity, _),
-		functor(Head, Name, Arity),
-		\+ '$get_predicate_attribute'(Pred, defined, 1)
-	    )
+	;   setof(PI, visible_in_module(M, PI), PIs),
+	    '$member'(Name/Arity, PIs),
+	    functor(Head, Name, Arity)
 	).
 
-hidden_system_predicate(_:Head) :-
+visible_in_module(M, Name/Arity) :-
+	default_module(M, DefM),
+	DefHead = DefM:Head,
+	'$c_current_predicate'(_, DefHead),
+	'$get_predicate_attribute'(DefHead, defined, 1),
+	\+ hidden_system_predicate(Head),
+	functor(Head, Name, Arity).
+visible_in_module(_, Name/Arity) :-
+	'$in_library'(Name, Arity, _).
+
+hidden_system_predicate(Head) :-
 	functor(Head, Name, _),
+	atom(Name),			% Avoid [].
 	sub_atom(Name, 0, _, _, $),
 	\+ current_prolog_flag(access_level, system).
 
@@ -785,6 +872,8 @@ hidden_system_predicate(_:Head) :-
 %	    * predicate(:PI)
 %	    Predicate indicator of the predicate this clause belongs
 %	    to.  Can be used to find the predicate of erased clauses.
+%	    * module(-M)
+%	    Module context in which the clause was compiled.
 
 clause_property(Clause, Property) :-
 	'$clause_property'(Property, Clause).
@@ -795,12 +884,16 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, file, File).
 '$clause_property'(source(File), Clause) :-
 	'$get_clause_attribute'(Clause, owner, File).
+'$clause_property'(size(Bytes), Clause) :-
+	'$get_clause_attribute'(Clause, size, Bytes).
 '$clause_property'(fact, Clause) :-
 	'$get_clause_attribute'(Clause, fact, true).
 '$clause_property'(erased, Clause) :-
 	'$get_clause_attribute'(Clause, erased, true).
 '$clause_property'(predicate(PI), Clause) :-
 	'$get_clause_attribute'(Clause, predicate_indicator, PI).
+'$clause_property'(module(M), Clause) :-
+	'$get_clause_attribute'(Clause, module, M).
 
 
 		 /*******************************
@@ -888,6 +981,8 @@ module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
 module_property(exported_operators(_)).
+module_property(program_size(_)).
+module_property(program_space(_)).
 
 %%	module(+Module) is det.
 %
@@ -1088,6 +1183,25 @@ stack_property(min_free).
 
 numbervars(Term, From, To) :-
 	numbervars(Term, From, To, []).
+
+
+		 /*******************************
+		 *	      STRING		*
+		 *******************************/
+
+%%	term_string(?Term, ?String, +Options)
+%
+%	Parse/write a term from/to a string using Options.
+
+term_string(Term, String, Options) :-
+	nonvar(String), !,
+	read_term_from_atom(String, Term, Options).
+term_string(Term, String, Options) :-
+	(   '$option'(quoted(_), Options)
+	->  Options1 = Options
+	;   '$merge_options'(_{quoted:true}, Options, Options1)
+	),
+	format(string(String), '~W', [Term, Options1]).
 
 
 		 /*******************************

@@ -1296,7 +1296,14 @@ the following algorithm, courtesy of Jan Burse:
 static char *
 formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 { if ( arg == DEFAULT )
-    arg = 6;
+  { arg = 6;
+  } else if ( arg < 0 )
+  { GET_LD
+    term_t a = PL_new_term_ref();
+    PL_put_integer(a, arg);
+    PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, a);
+    return NULL;
+  }
 
   switch(f->type)
   {

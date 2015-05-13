@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -28,14 +27,16 @@
 /** <module> Test Prolog core term manipulation primitives
 
 This module is a Unit test for  Prolog built-ins that process terms,
-suchj as numbervars, univ, etc.
+such as numbervars, univ, etc.
 
 @author	Jan Wielemaker
 */
 
 test_term :-
 	run_tests([ numbervars,
-		    variant
+		    variant,
+		    compound,
+		    zero_arity_compound
 		  ]).
 
 :- begin_tests(numbervars).
@@ -148,3 +149,50 @@ test(cycle_with_prefix, [sto(rational_trees), fail]) :-
 v(_).
 
 :- end_tests(variant).
+
+
+:- begin_tests(compound).
+
+test(functor, error(domain_error(_,_))) :-
+	functor(a(), _, _).
+test(=.., error(domain_error(_,_))) :-
+	a() =.. _.
+test(=.., error(type_error(atomic,f(a)))) :-
+	_Var =.. [f(a)].
+test(compound_name_arity, A == 0) :-
+	compound_name_arity(a(), _N, A).
+test(compound_name_arity, T == a()) :-
+	compound_name_arity(T, a, 0).
+test(compound_name_arity, T =@= a(_)) :-
+	compound_name_arity(T, a, 1).
+test(compound_name_arity, error(type_error(compound,a))) :-
+	compound_name_arity(a, _, _).
+test(compound_name_arguments, T == a()) :-
+	compound_name_arguments(T, a, []).
+test(compound_name_arguments, Args == []) :-
+	compound_name_arguments(a(), _N, Args).
+
+:- end_tests(compound).
+
+:- begin_tests(zero_arity_compound).
+
+t1(A) :- t(A,a()).
+t2(A) :- t(a(),A).
+t3(a()).
+t4(a(1, a())).
+t5(a(a(),1)).
+
+t(X,X).
+
+test(clause, B == t(A,a())) :-
+	clause(t1(A), B).
+test(clause, B == t(a(),A)) :-
+	clause(t2(A), B).
+test(clause, A == a()) :-
+	clause(t3(A), true).
+test(clause, A == a(1,a())) :-
+	clause(t4(A), true).
+test(clause, A == a(a(),1)) :-
+	clause(t5(A), true).
+
+:- end_tests(zero_arity_compound).

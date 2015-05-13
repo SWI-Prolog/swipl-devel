@@ -64,15 +64,17 @@ COMMON(void) GC_linger(void *ptr);
 		 *******************************/
 
 COMMON(void)		initAlloc(void);
+#ifndef DMALLOC
+COMMON(void *)		allocHeap(size_t n);
+COMMON(void *)		allocHeapOrHalt(size_t n);
 COMMON(void)		freeHeap(void *mem, size_t n);
+#endif /*DMALLOC*/
 COMMON(int)		enableSpareStack(Stack s);
 COMMON(int)		outOfStack(void *stack, stack_overflow_action how);
 COMMON(int)		raiseStackOverflow(int which);
 COMMON(void)		outOfCore(void) NORETURN;
 COMMON(Word)		allocGlobal__LD(size_t words ARG_LD);
 COMMON(Word)		allocGlobalNoShift__LD(size_t words ARG_LD);
-COMMON(void *)		allocHeap(size_t n);
-COMMON(void *)		allocHeapOrHalt(size_t n);
 COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
 COMMON(void)		initMemAlloc(void);
 COMMON(word)		globalString(size_t len, const char *s);

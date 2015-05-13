@@ -55,7 +55,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 60606
+#define PLVERSION 70137
 #endif
 
 		 /*******************************
@@ -152,7 +152,7 @@ typedef uintptr_t	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
-typedef void *		pl_function_t;	/* can only pass function as void * */
+typedef void		(*pl_function_t)(); /* pass function as void (*)() */
 #else
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
@@ -191,6 +191,10 @@ typedef union
 #define PL_STRING	 (5)		/* const char * */
 #define PL_TERM		 (6)
 
+#define PL_NIL		 (7)		/* The constant [] */
+#define PL_BLOB		 (8)		/* non-atom blob */
+#define PL_LIST_PAIR	 (9)		/* [_|_] term */
+
 					/* PL_unify_term() */
 #define PL_FUNCTOR	 (10)		/* functor_t, arg ... */
 #define PL_LIST		 (11)		/* length, arg ... */
@@ -227,6 +231,8 @@ typedef union
 #define PL_PARTIAL_LIST	 (41)		/* a partial list */
 #define PL_CYCLIC_TERM	 (42)		/* a cyclic list/term */
 #define PL_NOT_A_LIST	 (43)		/* Object is not a list */
+					/* dicts */
+#define PL_DICT		 (44)
 
 /* Or'ed flags for PL_set_prolog_flag() */
 /* MUST fit in a short int! */
@@ -314,16 +320,16 @@ void			PL_license(const char *license, const char *module);
 PL_EXPORT(module_t)	PL_context(void);
 PL_EXPORT(atom_t)	PL_module_name(module_t module);
 PL_EXPORT(module_t)	PL_new_module(atom_t name);
-PL_EXPORT(int)		PL_strip_module(term_t in, module_t *m, term_t out);
+PL_EXPORT(int)		PL_strip_module(term_t in, module_t *m, term_t out) WUNUSED;
 
-		/********************************
-		*            CONSTANTS          *
-		*********************************/
+		 /*******************************
+		 *	     CONSTANTS		*
+		 *******************************/
 
-PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved symbols */
+PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #ifndef PL_KERNEL
-#define ATOM_nil        (_PL_atoms()[0]) /* empty list */
-#define ATOM_dot        (_PL_atoms()[1]) /* list constructor name */
+#define ATOM_nil	(_PL_atoms()[0]) /* `[]` */
+#define ATOM_dot	(_PL_atoms()[1]) /* `.` */
 #endif /*PL_KERNEL*/
 
 
@@ -423,6 +429,7 @@ PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr) WUNUSED;
 PL_EXPORT(int)		PL_get_float(term_t t, double *f) WUNUSED;
 PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f) WUNUSED;
 PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name, int *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name, int *arity) WUNUSED;
 PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
 PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
@@ -493,6 +500,7 @@ PL_EXPORT(int)		PL_unify_integer(term_t t, intptr_t n) WUNUSED;
 PL_EXPORT(int)		PL_unify_float(term_t t, double f) WUNUSED;
 PL_EXPORT(int)		PL_unify_pointer(term_t t, void *ptr) WUNUSED;
 PL_EXPORT(int)		PL_unify_functor(term_t t, functor_t f) WUNUSED;
+PL_EXPORT(int)		PL_unify_compound(term_t t, functor_t f) WUNUSED;
 PL_EXPORT(int)		PL_unify_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_unify_nil(term_t l) WUNUSED;
 PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a) WUNUSED;
@@ -568,7 +576,11 @@ PL_EXPORT(int)		PL_existence_error(const char *type, term_t culprit);
 PL_EXPORT(int)		PL_permission_error(const char *operation,
 					    const char *type, term_t culprit);
 PL_EXPORT(int)		PL_resource_error(const char *resource);
-
+#ifdef SIO_MAGIC
+PL_EXPORT(int)		PL_syntax_error(const char *msg, IOSTREAM *in);
+#else
+PL_EXPORT(int)		PL_syntax_error(const char *msg, void *in);
+#endif
 
 		 /*******************************
 		 *	       BLOBS		*
@@ -602,8 +614,9 @@ typedef struct PL_blob_t
   int			(*save)(atom_t a, void*);
   atom_t		(*load)(void *s);
 #endif
+  size_t		padding;	/* Required 0-padding */
 					/* private */
-  void *		reserved[10];	/* for future extension */
+  void *		reserved[9];	/* for future extension */
   int			registered;	/* Already registered? */
   int			rank;		/* Rank for ordering atoms */
   struct PL_blob_t *    next;		/* next in registered type-chain */
@@ -788,6 +801,7 @@ UNICODE file functions.
 #define PL_open_stream  PL_unify_stream	/* compatibility */
 PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
+PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
 PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 					 const char *name,
@@ -821,9 +835,13 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 	 PL_WRT_ATTVAR_PORTRAY)
 #define PL_WRT_BLOB_PORTRAY	0x400	/* Use portray to emit non-text blobs */
 #define PL_WRT_NO_CYCLES	0x800	/* Never emit @(Template,Subst) */
-#define PL_WRT_LIST	       0x1000	/* Write [...], even with ignoreops */
 #define PL_WRT_NEWLINE	       0x2000	/* Add a newline */
 #define PL_WRT_VARNAMES	       0x4000	/* Internal: variable_names(List)  */
+#define PL_WRT_BACKQUOTE_IS_SYMBOL 0x8000 /* ` is a symbol char */
+#define PL_WRT_DOTLISTS	       0x10000	/* Write lists as .(A,B) */
+#define PL_WRT_BRACETERMS      0x20000	/* Write {A} as {}(A) */
+#define PL_WRT_NODICT	       0x40000	/* Do not write dicts in pretty syntax */
+#define PL_WRT_NODOTINATOM     0x80000	/* never write a.b unquoted */
 
 PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,
@@ -841,7 +859,7 @@ PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
 
 PL_EXPORT(int)	PL_chars_to_term(const char *chars,
 				term_t term);
-PL_EXPORT(int) PL_wchars_to_term(const pl_wchar_t *chars,
+PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 				 term_t term);
 
 
@@ -953,6 +971,7 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 #define PL_ACTION_GUIAPP	10	/* Win32: set when this is a gui */
 #define PL_ACTION_ATTACH_CONSOLE 11	/* MT: Attach a console */
 #define PL_GMP_SET_ALLOC_FUNCTIONS 12	/* GMP: do not change allocation functions */
+#define PL_ACTION_TRADITIONAL	13	/* Set --traditional */
 
 #define PL_BT_SAFE		0x1	/* Do not try to print goals */
 #define PL_BT_USER		0x2	/* Only show user-goals */

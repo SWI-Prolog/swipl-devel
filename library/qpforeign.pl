@@ -115,7 +115,7 @@ Supported types:
 	make_foreign_wrapper_file(:),
 	make_foreign_wrapper_file(:, +),
 					% SICStus
-	make_foreign_resource_wrapper(:, +),
+	make_foreign_resource_wrapper(:, +, +),
 	load_foreign_resource(:, +).
 
 setting(linker, 'swipl-ld').

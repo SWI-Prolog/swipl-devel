@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -159,7 +158,9 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 { word w = valHandle(l);
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
-  { if ( !get_atom_text(w, text) )
+  { if ( isNil(w) && (flags&CVT_LIST) )
+      goto case_list;
+    if ( !get_atom_text(w, text) )
       goto maybe_write;
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
@@ -210,6 +211,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   { Buffer b;
     CVT_result result;
 
+  case_list:
     if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE, &result)) )
     { text->length = entriesBuffer(b, char);
       addBuffer(b, EOS, char);
@@ -334,6 +336,8 @@ error:
       expected = ATOM_list;		/* List and/or string object */
     else if ( flags & CVT_LIST )
       expected = ATOM_text;
+    else if ( (flags & CVT_ATOM) && w == ATOM_nil )
+      expected = ATOM_atom;		/* [] \== '[]' */
     else if ( flags & CVT_NUMBER )
       expected = ATOM_atomic;
     else
@@ -834,11 +838,37 @@ rep_error:
 }
 
 
+static void
+flip_shorts(unsigned char *s, size_t len)
+{ unsigned char *e = s+len;
+
+  for(; s<e; s+=2)
+  { unsigned char t = s[0];
+    s[0] = s[1];
+    s[1] = t;
+  }
+}
+
+
+static int
+native_byte_order(IOENC enc)
+{
+#ifdef WORDS_BIGENDIAN
+  return enc == ENC_UNICODE_BE;
+#else
+  return enc == ENC_UNICODE_LE;
+#endif
+}
+
+
 int
 PL_canonicalise_text(PL_chars_t *text)
 { if ( !text->canonical )
   { switch(text->encoding )
-    { case ENC_ISO_LATIN_1:
+    { case ENC_OCTET:
+	text->encoding = ENC_ISO_LATIN_1;
+      case ENC_ISO_LATIN_1:
+        text->canonical = TRUE;
 	break;				/* nothing to do */
       case ENC_WCHAR:
       { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
@@ -850,6 +880,75 @@ PL_canonicalise_text(PL_chars_t *text)
 	}
 
 	return PL_demote_text(text);
+      }
+      case ENC_UNICODE_LE:		/* assume text->length is in bytes */
+      case ENC_UNICODE_BE:
+      {
+#if SIZEOF_WCHAR_T == 2
+        assert(text->length%2 == 0);
+	if ( !native_byte_order(text->encoding) )
+	{ if ( text->storage == PL_CHARS_HEAP )
+	    PL_save_text(text, BUF_MALLOC);
+	  flip_shorts((unsigned char*)text->text.t, text->length);
+	}
+	text->encoding = ENC_WCHAR;
+	return TRUE;
+#else /*SIZEOF_WCHAR_T!=2*/
+	size_t len = text->length/sizeof(short);
+	const unsigned short *w = (const unsigned short *)text->text.t;
+	const unsigned short *e = &w[len];
+	int wide = FALSE;
+
+	assert(text->length%2 == 0);
+	if ( !native_byte_order(text->encoding) )
+	{ if ( text->storage == PL_CHARS_HEAP )
+	    PL_save_text(text, BUF_MALLOC);
+	  flip_shorts((unsigned char*)text->text.t, text->length);
+	}
+
+	for(; w<e; w++)
+	{ if ( *w > 0xff )
+	  { wide = TRUE;
+	    break;
+	  }
+	}
+	w = (const unsigned short*)text->text.t;
+
+	if ( wide )
+	{ pl_wchar_t *t, *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
+
+	  for(t=to; w<e; )
+	  { *t++ = *w++;
+	  }
+	  *t = EOS;
+
+	  text->length = len;
+	  text->encoding = ENC_WCHAR;
+	  if ( text->storage == PL_CHARS_MALLOC )
+	    PL_free(text->text.t);
+	  else
+	    text->storage  = PL_CHARS_MALLOC;
+
+	  text->text.w = to;
+	} else
+	{ unsigned char *t, *to = PL_malloc(len+1);
+
+	  for(t=to; w<e; )
+	    *t++ = (unsigned char)*w++;
+	  *t = EOS;
+
+	  text->length = len;
+	  text->encoding = ENC_ISO_LATIN_1;
+	  if ( text->storage == PL_CHARS_MALLOC )
+	    PL_free(text->text.t);
+	  else
+	    text->storage = PL_CHARS_MALLOC;
+
+	  text->text.t = (char*)to;
+	}
+
+	succeed;
+#endif /*SIZEOF_WCHAR_T==2*/
       }
       case ENC_UTF8:
       { const char *s = text->text.t;
@@ -876,29 +975,34 @@ PL_canonicalise_text(PL_chars_t *text)
 	  text->length = len;
 
 	  if ( wide )
-	  { pl_wchar_t *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
+	  { pl_wchar_t *t, *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
 
-	    text->text.w = to;
-	    while(s<e)
+	    for(t=to; s<e; )
 	    { s = utf8_get_char(s, &chr);
-	      *to++ = chr;
+	      *t++ = chr;
 	    }
-	    *to = EOS;
+	    *t = EOS;
 
 	    text->encoding = ENC_WCHAR;
-	    text->storage  = PL_CHARS_MALLOC;
+	    if ( text->storage == PL_CHARS_MALLOC )
+	      PL_free(text->text.t);
+	    text->text.w  = to;
+	    text->storage = PL_CHARS_MALLOC;
 	  } else
-	  { char *to = PL_malloc(len+1);
+	  { char *t, *to = PL_malloc(len+1);
 
 	    text->text.t = to;
-	    while(s<e)
+	    for(t=to; s<e;)
 	    { s = utf8_get_char(s, &chr);
-	      *to++ = chr;
+	      *t++ = chr;
 	    }
-	    *to = EOS;
+	    *t = EOS;
 
 	    text->encoding = ENC_ISO_LATIN_1;
-	    text->storage  = PL_CHARS_MALLOC;
+	    if ( text->storage == PL_CHARS_MALLOC )
+	      PL_free(text->text.t);
+	    text->text.t  = to;
+	    text->storage = PL_CHARS_MALLOC;
 	  }
 
 	  text->canonical = TRUE;
@@ -1007,37 +1111,46 @@ PL_canonicalise_text(PL_chars_t *text)
 
 void
 PL_free_text(PL_chars_t *text)
-{ if ( text->storage == PL_CHARS_MALLOC )
+{ if ( text->storage == PL_CHARS_MALLOC && text->text.t )
     PL_free(text->text.t);
 }
 
 
-void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Recode a text to the given   encoding. Currrenly only supports re-coding
+to UTF-8 for ENC_ASCII, ENC_ISO_LATIN_1, ENC_WCHAR and ENC_ANSI.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
 PL_text_recode(PL_chars_t *text, IOENC encoding)
 { if ( text->encoding != encoding )
   { switch(encoding)
     { case ENC_UTF8:
-      { switch(text->encoding)
+      { Buffer b;
+
+	switch(text->encoding)
 	{ case ENC_ASCII:
 	    text->encoding = ENC_UTF8;
 	    break;
 	  case ENC_ISO_LATIN_1:
-	  { Buffer b = findBuffer(BUF_RING);
-	    const unsigned char *s = (const unsigned char *)text->text.t;
+	  { const unsigned char *s = (const unsigned char *)text->text.t;
 	    const unsigned char *e = &s[text->length];
-	    char tmp[8];
 
 	    for( ; s<e; s++)
 	    { if ( *s&0x80 )
-	      { const char *end = utf8_put_char(tmp, *s);
-		const char *q = tmp;
-
-		for(q=tmp; q<end; q++)
-		  addBuffer(b, *q, char);
-	      } else
-	      { addBuffer(b, *s, char);
+	      { s = (const unsigned char *)text->text.t;
+		goto convert_utf8;
 	      }
 	    }
+					/* ASCII; nothing to do */
+	    text->encoding = ENC_UTF8;
+	    break;
+
+	  convert_utf8:
+	    b = findBuffer(BUF_RING);
+	    for( ; s<e; s++)
+	      utf8tobuffer(*s, b);
+	  swap_to_utf8:
 	    PL_free_text(text);
             text->length   = entriesBuffer(b, char);
 	    addBuffer(b, EOS, char);
@@ -1048,40 +1161,47 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    break;
 	  }
 	  case ENC_WCHAR:
-	  { Buffer b = findBuffer(BUF_RING);
-	    const pl_wchar_t *s = text->text.w;
+	  { const pl_wchar_t *s = text->text.w;
 	    const pl_wchar_t *e = &s[text->length];
-	    char tmp[8];
 
+	    b = findBuffer(BUF_RING);
 	    for( ; s<e; s++)
-	    { if ( *s > 0x7f )
-	      { const char *end = utf8_put_char(tmp, (int)*s);
-		const char *q = tmp;
+	      utf8tobuffer(*s, b);
+	    goto swap_to_utf8;
+	  }
+	  case ENC_ANSI:
+	  { mbstate_t mbs;
+	    size_t rc, n = text->length;
+	    wchar_t wc;
+	    const char *s = (const char *)text->text.t;
 
-		for(q=tmp; q<end; q++)
-		  addBuffer(b, *q&0xff, char);
-	      } else
-	      { addBuffer(b, *s&0xff, char);
-	      }
+	    b = findBuffer(BUF_RING);
+	    memset(&mbs, 0, sizeof(mbs));
+	    while( n > 0 )
+	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
+		return FALSE;		/* encoding error */
+
+	      utf8tobuffer(wc, b);
+	      n -= rc;
+	      s += rc;
 	    }
-	    PL_free_text(text);
-            text->length   = entriesBuffer(b, char);
-	    addBuffer(b, EOS, char);
-	    text->text.t   = baseBuffer(b, char);
-	    text->encoding = ENC_UTF8;
-	    text->storage  = PL_CHARS_RING;
+	    if ( n == 0 )
+	      goto swap_to_utf8;
 
-	    break;
+	    return FALSE;
 	  }
 	  default:
 	    assert(0);
+	    return FALSE;
 	}
-	break;
+	return TRUE;
 	default:
 	  assert(0);
+	  return FALSE;
       }
     }
-  }
+  } else
+    return TRUE;
 }
 
 
@@ -1109,7 +1229,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
       ifeq = CMP_GREATER;
   }
 
-  if ( l == 0 )				/* too long offsets */
+  if ( l == 0 )					/* too long offsets */
     return ifeq;
 
   if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_ISO_LATIN_1 )

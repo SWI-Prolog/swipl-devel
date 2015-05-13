@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -199,15 +199,22 @@ hidden_module(user).
 copy_term_limit(0, In, '...') :-
 	compound(In), !.
 copy_term_limit(N, In, Out) :-
+	is_dict(In), !,
+	dict_pairs(In, Tag, PairsIn),
+	N2 is N - 1,
+	MaxArity = 16,
+	copy_pairs(PairsIn, N2, MaxArity, PairsOut),
+	dict_pairs(Out, Tag, PairsOut).
+copy_term_limit(N, In, Out) :-
 	compound(In), !,
-	functor(In, Functor, Arity),
+	compound_name_arity(In, Functor, Arity),
 	N2 is N - 1,
 	MaxArity = 16,
 	(   Arity =< MaxArity
-	->  functor(Out, Functor, Arity),
+	->  compound_name_arity(Out, Functor, Arity),
 	    copy_term_args(0, Arity, N2, In, Out)
 	;   OutArity is MaxArity+2,
-	    functor(Out, Functor, OutArity),
+	    compound_name_arity(Out, Functor, OutArity),
 	    copy_term_args(0, MaxArity, N2, In, Out),
 	    SkipArg is MaxArity+1,
 	    Skipped is Arity - MaxArity - 1,
@@ -229,6 +236,13 @@ copy_term_args(I, Arity, Depth, In, Out) :-
 	copy_term_args(I2, Arity, Depth, In, Out).
 copy_term_args(_, _, _, _, _).
 
+copy_pairs([], _, _, []) :- !.
+copy_pairs(Pairs, _, 0, ['<skipped>'-Skipped]) :- !,
+	length(Pairs, Skipped).
+copy_pairs([K-V0|T0], N, MaxArity, [K-V|T]) :-
+	copy_term_limit(N, V0, V),
+	MaxArity1 is MaxArity - 1,
+	copy_pairs(T0, N, MaxArity1, T).
 
 
 %%	prolog_stack_frame_property(+Frame, ?Property) is nondet.
@@ -257,35 +271,38 @@ frame_predicate(call(PI), PI).
 frame_predicate(clause(Clause, _PC), PI) :-
 	clause_property(Clause, PI).
 
+default_backtrace_options(Options) :-
+	(   current_prolog_flag(backtrace_show_lines, true)
+	->  Options = []
+	;   Options = [subgoal_positions(false)]
+	).
 
-%%	print_prolog_backtrace(+Stream, +Backtrace)
-%
-%	Print a stacktrace in human readable form to Stream.
-
-print_prolog_backtrace(Stream, Backtrace) :-
-	print_prolog_backtrace(Stream, Backtrace, []).
-
-
-%%	print_prolog_backtrace(+Stream, +Backtrace, +Options)
+%%	print_prolog_backtrace(+Stream, +Backtrace) is det.
+%%	print_prolog_backtrace(+Stream, +Backtrace, +Options) is det.
 %
 %	Print a stacktrace in human readable form to Stream.
 %	Options is an option list that accepts:
 %
 %	    * subgoal_positions(+Boolean)
-%	    If =true= (default), print subgoal line numbers
+%	    If =true=, print subgoal line numbers.  The default depends
+%	    on the Prolog flag =backtrace_show_lines=.
+%
+%	@arg Backtrace is a list of frame(Depth,Location,Goal) terms.
+
+print_prolog_backtrace(Stream, Backtrace) :-
+	print_prolog_backtrace(Stream, Backtrace, []).
 
 print_prolog_backtrace(Stream, Backtrace, Options) :-
-	phrase(message(Backtrace, Options), Lines),
+	default_backtrace_options(DefOptions),
+	merge_options(Options, DefOptions, FinalOptions),
+	phrase(message(Backtrace, FinalOptions), Lines),
 	print_message_lines(Stream, '', Lines).
 
 :- public				% Called from some handlers
 	message//1.
 
 message(Backtrace) -->
-	{   current_prolog_flag(backtrace_show_lines, true)
-	->  Options = []
-	;   Options = [subgoal_positions(false)]
-	},
+	{default_backtrace_options(Options)},
 	message(Backtrace, Options).
 
 message([], _) -->
@@ -500,13 +517,16 @@ guard_frame(frame(_,clause(ClauseRef, _, _))) :-
 		 *******************************/
 
 :- multifile
-	prolog:message/3.
+	prolog:message//1.
 
 prolog:message(error(Error, context(Stack, Message))) -->
 	{ is_stack(Stack, Frames) }, !,
 	'$messages':translate_message(error(Error, context(_, Message))),
 	[ nl, 'In:', nl ],
-	message(Frames).
+	(   {is_list(Frames)}
+	->  message(Frames)
+	;   ['~w'-[Frames]]
+	).
 
 is_stack(Stack, Frames) :-
 	nonvar(Stack),

@@ -60,6 +60,8 @@
 	\mbox{\reffont #1/#2}}
 \newcommand{\dcgref}[2]{%		% functor//arity
 	\mbox{\reffont #1//#2}}
+\newcommand{\nodcgref}[2]{%		% functor//arity (non-existing)
+	\mbox{\reffont #1//#2}}
 \newcommand{\qpredref}[3]{%		% module:functor/arity
 	\mbox{\reffont #1:#2/#3}}
 \newcommand{\qdcgref}[3]{%		% module:functor//arity
@@ -126,6 +128,7 @@
 %	\directive{Name}{Arity}{Args}
 %	\predicate[Attibutes]{Name}{Arity}{Args}
 %	\function[Attibutes]{Name}{Arity}{Args}
+%	\dictfunction[Attibutes]{Name}{Arity}{Args}
 %	\infixop{Name}{Left}{Right}
 %	\prefixop{Name}{Right}
 %	\infixfunction{Name}{Left}{Right}
@@ -199,6 +202,7 @@
 	\defentry{#2 {\it #3}\predatt{#1}}%
 	\index{#2/1}\ignorespaces}
 \let\function\predicate
+\let\dictfunction\predicate
 \let\infixfunction\infixop
 \let\prefixfunction\prefixop
 \makeatother
@@ -221,6 +225,11 @@
 	    \definition{#1 {\it #2}}\ignorespaces}
 \newcommand{\postfixtermitem}[2]{%
 	    \definition{{\it #2} #1}\ignorespaces}
+
+%	\dictitem{tag}{Args}
+
+\newcommand{\dictitem}[2]{%
+	    \definition{#1\{{\it #2}\}}\ignorespaces}
 
 %	\term{functor}{Args}
 %	\infixterm{functor}{Left}{Right}
@@ -374,6 +383,9 @@
 \urldef{\Sane}\satom{=\=}		% =\=
 \urldef{\Sgt}\satom{>}			% >
 \urldef{\Sge}\satom{>=}			% >=
+\urldef{\Seqbowtie}\satom{>=<}		% >=<
+\urldef{\Smappunify}\satom{>:<}		% >:<
+\urldef{\Smapselect}\satom{:<}		% :<
 \urldef{\Stlt}\satom{@<}		% @<
 \urldef{\Stle}\satom{@=<}		% @=<
 \urldef{\Stgt}\satom{@>}		% @>
@@ -410,6 +422,7 @@
 \urldef{\Spercent}\satom{%}		% %
 \urldef{\Shash}\satom{#}		% #
 \urldef{\Scurl}\satom{{}}		% {}
+\urldef{\Scons}\satom{[|]}		% [|]
 \urldef{\SxXX}\satom{xXX..\}		% xXX..\
 
 \newcommand{\bug}[1]{\footnote{BUG: #1}}

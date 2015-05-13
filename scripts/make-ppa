@@ -80,7 +80,7 @@ fi
 
 # Avoid typos ...
 case $TARGET_DISTRO in
-  precise|saucy|trusty)
+  precise|trusty|utopic)
     ;;
   *) echo "Unsupported target distro ($TARGET_DISTRO)"
      exit 1
@@ -153,6 +153,6 @@ if [ $push = true ]; then
   echo " - Pushing source package to PPA"
 
   ( cd build-ppa-tmp &&
-    dput ppa:swi-prolog/stable swi-prolog_${VERSION}_source.changes
+    dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
   )
 fi

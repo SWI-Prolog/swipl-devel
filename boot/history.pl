@@ -52,13 +52,7 @@
 read_history(History, Help, DontStore, Prompt, Term, Bindings) :-
 	repeat,
 	    prompt_history(Prompt),
-	    catch('$raw_read'(user_input, Raw), E,
-		  (   E = error(syntax_error(_), _)
-		  ->  print_message(error, E),
-		      fail
-		  ;   throw(E)
-		  )),
-	    '$toplevel':save_debug_after_read,
+	    '$toplevel':read_query_line(user_input, Raw),
 	    read_history_(History, Help, DontStore, Raw, Term, Bindings), !.
 
 read_history_(History, _, _, History, _, _) :-
@@ -128,7 +122,8 @@ prompt_history(Prompt) :-
 	),
 	atom_codes(Prompt, SP),
 	atom_codes(This, ST),
-	(   substitute("~!", ST, SP, String)
+	(   atom_codes('~!', Repl),
+	    substitute(Repl, ST, SP, String)
 	->  prompt1(String)
 	;   prompt1(Prompt)
 	),

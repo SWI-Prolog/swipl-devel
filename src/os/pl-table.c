@@ -302,6 +302,45 @@ deleteSymbolHTable(Table ht, Symbol s)
 }
 
 
+int
+deleteHTable(Table ht, void *key)
+{ int v;
+  Symbol *h;
+  TableEnum e;
+  int found = FALSE;
+
+  LOCK_TABLE(ht);
+  v = (int)pointerHashValue(key, ht->buckets);
+  h = &ht->entries[v];
+
+  for( ; *h; h = &(*h)->next )
+  { if ( (*h)->name == key )
+    { Symbol s = *h;
+
+      for( e=ht->enumerators; e; e = e->next )
+      { if ( e->current == s )
+	  rawAdvanceTableEnum(e);
+      }
+
+      *h = (*h)->next;
+
+      s->next = NULL;				/* force crash */
+      s->name = NULL;
+      s->value = NULL;
+      freeHeap(s, sizeof(struct symbol));
+      ht->size--;
+      found = TRUE;
+
+      break;
+    }
+  }
+
+  UNLOCK_TABLE(ht);
+
+  return found;
+}
+
+
 void
 clearHTable(Table ht)
 { int n;

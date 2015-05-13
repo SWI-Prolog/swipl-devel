@@ -123,23 +123,31 @@ users of the library are:
 
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	maplist(read_clause_option, Options), !,
-	read_clause(In, Term, Options),
-	expand(Term, In, Expanded),
+	select_option(subterm_positions(TermPos), Options,
+		      RestOptions, TermPos),
+	read_clause(In, Term,
+		    [ subterm_positions(TermPos)
+		    | RestOptions
+		    ]),
+	expand(Term, TermPos, In, Expanded),
 	'$set_source_module'(M, M),
 	update_state(Term, Expanded, M).
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	'$set_source_module'(M, M),
-	select_option(syntax_errors(SE), Options, RestOptions, dec10),
+	select_option(syntax_errors(SE), Options, RestOptions0, dec10),
+	select_option(subterm_positions(TermPos), RestOptions0,
+		      RestOptions, TermPos),
 	(   style_check(?(singleton))
 	->  FinalOptions = [ singletons(warning) | RestOptions ]
 	;   FinalOptions = RestOptions
 	),
 	read_term(In, Term,
 		  [ module(M),
-		    syntax_errors(SE)
+		    syntax_errors(SE),
+		    subterm_positions(TermPos)
 		  | FinalOptions
 		  ]),
-	expand(Term, In, Expanded),
+	expand(Term, TermPos, In, Expanded),
 	update_state(Term, Expanded, M).
 
 read_clause_option(syntax_errors(_)).
@@ -150,18 +158,21 @@ read_clause_option(comments(_)).
 :- public
 	expand/3.			% Used by Prolog colour
 
-expand(Var, _, Var) :-
+expand(Term, In, Exp) :-
+    expand(Term, _, In, Exp).
+
+expand(Var, _, _, Var) :-
 	var(Var), !.
-expand(Term, _, Term) :-
+expand(Term, _, _, Term) :-
 	no_expand(Term), !.
-expand(Term, _, _) :-
+expand(Term, _, _, _) :-
 	requires_library(Term, Lib),
 	ensure_loaded(user:Lib),
 	fail.
-expand(Term, In, Term) :-
+expand(Term, _, In, Term) :-
 	chr_expandable(Term, In), !.
-expand(Term, _, Expanded) :-
-	expand_term(Term, Expanded).
+expand(Term, Pos, _, Expanded) :-
+	expand_term(Term, Pos, Expanded, _).
 
 no_expand((:- if(_))).
 no_expand((:- elif(_))).
@@ -233,8 +244,6 @@ update_directive(op(P,T,N), SM) :- !,
 	push_op(P,T,M:PN).
 update_directive(style_check(Style), _) :-
 	style_check(Style), !.
-update_directive(expects_dialect(sicstus), _) :-
-	style_check(-atom), !.
 update_directive(use_module(Spec), SM) :-
 	catch(module_decl(Spec, Path, Public), _, fail), !,
 	maplist(import_syntax(Path, SM), Public).
@@ -522,18 +531,28 @@ prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 
 prolog_open_source(Src, Fd) :-
 	'$push_input_context'(source),
-	(   prolog:xref_open_source(Src, Fd)
-	->  true
-	;   open(Src, read, Fd)
-	),
-	(   peek_char(Fd, #)		% Deal with #! script
-	->  skip(Fd, 10)
-	;   true
-	),
+	catch((   prolog:xref_open_source(Src, Fd)
+	      ->  true
+	      ;   open(Src, read, Fd)
+	      ), E,
+	      (	  '$pop_input_context',
+		  throw(E)
+	      )),
+	skip_hashbang(Fd),
 	push_operators([]),
 	'$set_source_module'(SM, SM),
 	'$save_lex_state'(LexState, []),
 	asserta(open_source(Fd, state(LexState, SM))).
+
+skip_hashbang(Fd) :-
+	catch((   peek_char(Fd, #)		% Deal with #! script
+	      ->  skip(Fd, 10)
+	      ;   true
+	      ), E,
+	      (	  close(Fd, [force(true)]),
+		  '$pop_input_context',
+		  throw(E)
+	      )).
 
 
 %%	prolog_close_source(+In:stream) is det.
@@ -544,9 +563,16 @@ prolog_open_source(Src, Fd) :-
 %	modules to clean-up.
 
 prolog_close_source(In) :-
+	call_cleanup(
+	    restore_source_context(In),
+	    ( close(In, [force(true)]),
+	      '$pop_input_context'
+	    )).
+
+restore_source_context(In) :-
 	(   at_end_of_stream(In)
 	->  true
-	;   ignore(catch(expand(end_of_file, In, _), _, true))
+	;   ignore(catch(expand(end_of_file, _, In, _), _, true))
 	),
 	pop_operators,
 	retractall(mode(In, _)),
@@ -554,9 +580,7 @@ prolog_close_source(In) :-
 	->  '$restore_lex_state'(LexState),
 	    '$set_source_module'(_, SM)
 	;   assertion(fail)
-	),
-	close(In),
-	'$pop_input_context'.
+	).
 
 
 %%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is semidet.
@@ -573,6 +597,9 @@ prolog_canonical_source(User, user) :-
 	User == user, !.
 prolog_canonical_source(Src, Id) :-		% Call hook
 	prolog:xref_source_identifier(Src, Id), !.
+prolog_canonical_source(Source, Src) :-
+	source_file(Source), !,
+	Src = Source.
 prolog_canonical_source(Source, Src) :-
 	absolute_file_name(Source, Src,
 			   [ file_type(prolog),

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -31,8 +31,9 @@
 :- module('$dcg',
 	  [ dcg_translate_rule/2,	% +Rule, -Clause
 	    dcg_translate_rule/4,	% +Rule, ?Pos0, -Clause, -Pos
-	    phrase/2,
-	    phrase/3
+	    phrase/2,			% :Rule, ?Input
+	    phrase/3,			% :Rule, ?Input, ?Rest
+	    call_dcg/3			% :Rule, ?State0, ?State
 	  ]).
 
 		/********************************
@@ -214,7 +215,7 @@ dcg_extend(M:OldT, Pos0, A1, A2, M:NewT, Pos) :- !,
 	dcg_extend(OldT, P0, A1, A2, NewT, P).
 dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	dcg_extend_cache(OldT, A1, A2, NewT), !,
-	extend_pos(P0, P).
+	extended_pos(P0, P).
 dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	(   callable(OldT)
 	->  true
@@ -224,8 +225,13 @@ dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	->  throw(error(permission_error(define,dcg_nonterminal,OldT),_))
 	;   true
 	),
-	functor(OldT, Name, Arity),
-	functor(CopT, Name, Arity),
+	(   compound(OldT)
+	->  compound_name_arity(OldT, Name, Arity),
+	    compound_name_arity(CopT, Name, Arity)
+	;   CopT = OldT,
+	    Name = OldT,
+	    Arity = 0
+	),
 	NewArity is Arity+2,
 	functor(NewT, Name, NewArity),
 	copy_args(1, Arity, CopT, NewT),
@@ -237,7 +243,7 @@ dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	OldT = CopT,
 	A1C = A1,
 	A2C = A2,
-	extend_pos(P0, P).
+	extended_pos(P0, P).
 
 copy_args(I, Arity, Old, New) :-
 	I =< Arity, !,
@@ -252,16 +258,8 @@ copy_args(_, _, _, _).
 		 *	  POSITION LOGIC	*
 		 *******************************/
 
-extend_pos(Var, Var) :-
-	var(Var), !.
-extend_pos(term_position(F,T,FF,FT,Args0),
-	   term_position(F,T,FF,FT,Args)) :- !,
-	'$append'(Args0, [T-T,T-T], Args).
-extend_pos(F-T,
-	   term_position(F,T,F,T,[T-T,T-T])) :- !.
-extend_pos(Pos, Pos) :-
-	print_message(warning, term_position(Pos)).
-
+extended_pos(Pos0, Pos) :-
+	'$expand':extended_pos(Pos0, 2, Pos).
 f2_pos(Pos0, A0, B0, Pos, A, B) :- '$expand':f2_pos(Pos0, A0, B0, Pos, A, B).
 f1_pos(Pos0, A0, Pos, A) :- '$expand':f1_pos(Pos0, A0, Pos, A).
 
@@ -324,13 +322,21 @@ expected_layout(Expected, Found) :-
 
 :- meta_predicate
 	phrase(//, ?),
-	phrase(//, ?, ?).
+	phrase(//, ?, ?),
+	call_dcg(//, ?, ?).
 :- noprofile((phrase/2,
-	      phrase/3)).
+	      phrase/3,
+	      call_dcg/3)).
+:- '$iso'((phrase/2, phrase/3)).
 
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
+	phrase_input(Input),
+	phrase_input(Rest),
+	call_dcg(RuleSet, Input, Rest).
+
+call_dcg(RuleSet, Input, Rest) :-
 	(   strip_module(RuleSet, M, Plain),
 	    nonvar(Plain),
 	    dcg_special(Plain)
@@ -339,6 +345,12 @@ phrase(RuleSet, Input, Rest) :-
 	    call(M:Body)
 	;   call(RuleSet, Input, Rest)
 	).
+
+phrase_input(Var) :- var(Var), !.
+phrase_input([_|_]) :- !.
+phrase_input([]) :- !.
+phrase_input(Data) :-
+	throw(error(type_error(list, Data), _)).
 
 dcg_special(S) :-
 	string(S).

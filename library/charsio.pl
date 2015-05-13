@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, University of Amsterdam
+    Copyright (C): 2009-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -45,7 +46,6 @@
 	    with_output_to_chars/4	% :Goal, -Stream, -Codes, ?Tail
 	  ]).
 :- use_module(library(error)).
-/* :- use_module(library(memfile)). */	% see open_chars_stream/2
 
 :- meta_predicate
 	with_output_to_chars(0, -),
@@ -137,7 +137,7 @@ number_to_chars(Number, Codes, Tail) :-
 %	@compat	The SWI-Prolog version does not require Codes to end
 %		in a full-stop.
 
-read_from_chars("", end_of_file) :- !.
+read_from_chars([], end_of_file) :- !.
 read_from_chars(List, Term) :-
 	atom_to_term(List, Term, _).
 
@@ -148,37 +148,16 @@ read_from_chars(List, Term) :-
 %	@compat sicstus
 
 read_term_from_chars(Codes, Term, Options) :-
-	setup_call_cleanup(
-	    ( open_chars_stream(Codes, Stream, '\n.\n'),
-	      '$push_input_context'(read_from_chars)
-	    ),
-	    read_term(Stream, Term0, Options),
-	    ( '$pop_input_context',
-	      close(Stream)
-	    )),
-	Term = Term0.
+	read_term_from_atom(Codes, Term, Options).
 
 %%	open_chars_stream(+Codes, -Stream) is det.
 %
 %	Open Codes as an input stream.
 %
-%	@bug	Depends on autoloading library(memfile).  As many
-%		applications do not need this predicate we do not
-%		want to make the entire library dependent on
-%		autoloading.
+%	@see open_string/2.
 
 open_chars_stream(Codes, Stream) :-
-	open_chars_stream(Codes, Stream, '').
-
-open_chars_stream(Codes, Stream, Postfix) :-
-	new_memory_file(MF),
-	setup_call_cleanup(
-	    open_memory_file(MF, write, Out),
-	    format(Out, '~s~w', [Codes, Postfix]),
-	    close(Out)),
-	open_memory_file(MF, read, Stream,
-			 [ free_on_close(true)
-			 ]).
+	open_string(Codes, Stream).
 
 %%	with_output_to_chars(:Goal, -Codes) is det.
 %

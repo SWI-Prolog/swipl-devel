@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@ca.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -42,6 +42,9 @@
 	prolog:message_line_element/2.	% Extend printing
 :- discontiguous
 	prolog_message/3.
+
+:- public
+	translate_message//1.
 
 %%	translate_message(+Term)// is det.
 %
@@ -108,37 +111,25 @@ term_message(Term) -->
 	[ 'Unknown error term: ~p'-[Term] ].
 
 iso_message(type_error(evaluable, Actual)) -->
+	{ callable(Actual) },
 	[ 'Arithmetic: `~p'' is not a function'-[Actual] ].
 iso_message(type_error(free_of_attvar, Actual)) -->
 	[ 'Type error: `~W'' contains attributed variables'-
 	  [Actual,[portray(true), attributes(portray)]] ].
 iso_message(type_error(Expected, Actual)) -->
-	[ 'Type error: `~w'' expected, found `~p'''-[Expected, Actual] ].
+	[ 'Type error: `~w'' expected, found `~p'''-[Expected, Actual] ],
+	type_error_comment(Expected, Actual).
 iso_message(domain_error(Domain, Actual)) -->
-	[ 'Domain error: `~w'' expected, found `~p'''-[Domain, Actual] ].
+	[ 'Domain error: '-[] ], domain(Domain),
+	[ ' expected, found `~p'''-[Actual] ].
 iso_message(instantiation_error) -->
 	[ 'Arguments are not sufficiently instantiated' ].
 iso_message(uninstantiation_error(Var)) -->
 	[ 'Uninstantiated argument expected, found ~p'-[Var] ].
 iso_message(representation_error(What)) -->
 	[ 'Cannot represent due to `~w'''-[What] ].
-iso_message(permission_error(Action, built_in_procedure, Pred)) -->
-	{ user_predicate_indicator(Pred, PI)
-	},
-	[ 'No permission to ~w built-in predicate `~p'''-[Action, PI] ],
-	(   {Action \== export}
-	->  [ nl,
-	      'Use :- redefine_system_predicate(+Head) if redefinition is intended'
-	    ]
-	;   []
-	).
-iso_message(permission_error(import_into(Dest), procedure, Pred)) -->
-	[ 'No permission to import ~p into ~w'-[Pred, Dest] ].
-iso_message(permission_error(Action, static_procedure, Proc)) -->
-	[ 'No permission to ~w static procedure `~p'''-[Action, Proc] ],
-	defined_definition('Defined', Proc).
 iso_message(permission_error(Action, Type, Object)) -->
-	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
+	permission_error(Action, Type, Object).
 iso_message(evaluation_error(Which)) -->
 	[ 'Arithmetic: evaluation error: `~p'''-[Which] ].
 iso_message(existence_error(procedure, Proc)) -->
@@ -146,6 +137,8 @@ iso_message(existence_error(procedure, Proc)) -->
 	undefined_proc_msg(Proc).
 iso_message(existence_error(Type, Object)) -->
 	[ '~w `~p'' does not exist'-[Type, Object] ].
+iso_message(existence_error(Type, Object, In)) --> % not ISO
+	[ '~w `~p'' does not exist in ~p'-[Type, Object, In] ].
 iso_message(busy(Type, Object)) -->
 	[ '~w `~p'' is busy'-[Type, Object] ].
 iso_message(syntax_error(swi_backslash_newline)) -->
@@ -155,6 +148,42 @@ iso_message(syntax_error(Id)) -->
 	syntax_error(Id).
 iso_message(occurs_check(Var, In)) -->
 	[ 'Cannot unify ~p with ~p: would create an infinite tree'-[Var, In] ].
+
+%%	permission_error(Action, Type, Object)//
+%
+%	Translate  permission  errors.  Most  follow    te  pattern  "No
+%	permission to Action Type Object", but some are a bit different.
+
+permission_error(Action, built_in_procedure, Pred) -->
+	{ user_predicate_indicator(Pred, PI)
+	},
+	[ 'No permission to ~w built-in predicate `~p'''-[Action, PI] ],
+	(   {Action \== export}
+	->  [ nl,
+	      'Use :- redefine_system_predicate(+Head) if redefinition is intended'
+	    ]
+	;   []
+	).
+permission_error(import_into(Dest), procedure, Pred) -->
+	[ 'No permission to import ~p into ~w'-[Pred, Dest] ].
+permission_error(Action, static_procedure, Proc) -->
+	[ 'No permission to ~w static procedure `~p'''-[Action, Proc] ],
+	defined_definition('Defined', Proc).
+permission_error(input, stream, Stream) -->
+	[ 'No permission to read from output stream `~p'''-[Stream] ].
+permission_error(output, stream, Stream) -->
+	[ 'No permission to write to input stream `~p'''-[Stream] ].
+permission_error(input, text_stream, Stream) -->
+	[ 'No permission to read bytes from TEXT stream `~p'''-[Stream] ].
+permission_error(output, text_stream, Stream) -->
+	[ 'No permission to write bytes to TEXT stream `~p'''-[Stream] ].
+permission_error(input, binary_stream, Stream) -->
+	[ 'No permission to read characters from binary stream `~p'''-[Stream] ].
+permission_error(output, binary_stream, Stream) -->
+	[ 'No permission to write characters to binary stream `~p'''-[Stream] ].
+permission_error(Action, Type, Object) -->
+	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
+
 
 undefined_proc_msg(_:(^)/2) --> !,
 	undefined_proc_msg((^)/2).
@@ -180,6 +209,36 @@ undefined_proc_msg(Proc) -->
 faq(Page) -->
 	[nl, '  See FAQ at http://www.swi-prolog.org/FAQ/', Page, '.txt' ].
 
+type_error_comment(_Expected, Actual) -->
+	{ type_of(Actual, Type),
+	  (   sub_atom(Type, 0, 1, _, First),
+	      memberchk(First, [a,e,i,o,u])
+	  ->  Article = an
+	  ;   Article = a
+	  )
+	},
+	[ ' (~w ~w)'-[Article, Type] ].
+
+type_of(Term, Type) :-
+	(   attvar(Term)      -> Type = attvar
+	;   var(Term)         -> Type = var
+	;   atom(Term)        -> Type = atom
+	;   integer(Term)     -> Type = integer
+	;   string(Term)      -> Type = string
+	;   Term == []	      -> Type = empty_list
+	;   blob(Term, BlobT) -> blob_type(BlobT, Type)
+	;   rational(Term)    -> Type = rational
+	;   float(Term)       -> Type = float
+	;   is_stream(Term)   -> Type = stream
+	;   is_dict(Term)     -> Type = dict
+	;   is_list(Term)     -> Type = list
+	;   cyclic_term(Term) -> Type = cyclic
+	;   compound(Term)    -> Type = compound
+	;		         Type = unknown
+	).
+
+blob_type(BlobT, Type) :-
+	atom_concat(BlobT, '_reference', Type).
 
 syntax_error(end_of_clause) -->
 	[ 'Unexpected end of clause' ].
@@ -187,12 +246,11 @@ syntax_error(end_of_clause_expected) -->
 	[ 'End of clause expected' ].
 syntax_error(end_of_file) -->
 	[ 'Unexpected end of file' ].
-syntax_error(end_of_file_in_atom) -->
-	[ 'End of file in quoted atom' ].
 syntax_error(end_of_file_in_block_comment) -->
 	[ 'End of file in /* ... */ comment' ].
-syntax_error(end_of_file_in_string) -->
-	[ 'End of file in quoted string' ].
+syntax_error(end_of_file_in_quoted(Quote)) -->
+	[ 'End of file in quoted ' ],
+	quoted_type(Quote).
 syntax_error(illegal_number) -->
 	[ 'Illegal number' ].
 syntax_error(long_atom) -->
@@ -219,6 +277,15 @@ syntax_error(void_not_allowed) -->
 	[ 'Empty argument list "()"' ].
 syntax_error(Message) -->
 	[ '~w'-[Message] ].
+
+quoted_type('\'') --> [atom].
+quoted_type('\"') --> { current_prolog_flag(double_quotes, Type) }, [Type-[]].
+quoted_type('\`') --> { current_prolog_flag(back_quotes, Type) }, [Type-[]].
+
+domain(range(Low,High)) --> !,
+	['[~q..~q]'-[Low,High] ].
+domain(Domain) -->
+	['`~w\''-[Domain] ].
 
 dwim_predicates(Module:Name/_Arity, Dwims) :- !,
 	findall(Dwim, dwim_predicate(Module:Name, Dwim), Dwims).
@@ -282,6 +349,8 @@ swi_message(context_error(edit, no_default_file)) -->
 	    ]
 	),
 	[ nl, 'Use "?- edit(Topic)." or "?- emacs."' ].
+swi_message(context_error(function, meta_arg(S))) -->
+	[ 'Functions are not (yet) supported for meta-arguments of type ~q'-[S] ].
 swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
@@ -475,10 +544,16 @@ prolog_message(undefined_export(Module, PI)) -->
 	[ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
 prolog_message(no_exported_op(Module, Op)) -->
 	[ 'Operator ~q:~q is not exported (still defined)'-[Module, Op] ].
-prolog_message(discontiguous((-)/2)) -->
+prolog_message(discontiguous((-)/2,_)) -->
 	prolog_message(minus_in_identifier).
-prolog_message(discontiguous(Proc)) -->
-	[ 'Clauses of ~p are not together in the source-file'-[Proc] ].
+prolog_message(discontiguous(Proc,Current)) -->
+	[ 'Clauses of ~p are not together in the source-file'-[Proc], nl ],
+	current_definition(Proc, '  Earlier definition at '),
+	[ '  Current predicate: ~p'-[Current], nl,
+	  '  Use :- discontiguous ~p. to suppress this message'-[Proc]
+	].
+prolog_message(decl_no_effect(Goal)) -->
+	[ 'Deprecated declaration has no effect: ~p'-[Goal] ].
 prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),
@@ -569,6 +644,21 @@ hidden_module(user) :- !.
 hidden_module(system) :- !.
 hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
+
+current_definition(Proc, Prefix) -->
+	{ pi_head(Proc, Head),
+	  predicate_property(Head, file(File)),
+	  predicate_property(Head, line_count(Line))
+	},
+	[ '~w'-[Prefix], '~w:~d'-[File,Line], nl ].
+current_definition(_, _) --> [].
+
+pi_head(Module:Name/Arity, Module:Head) :- !,
+	atom(Module), atom(Name), integer(Arity),
+	functor(Head, Name, Arity).
+pi_head(Name/Arity, user:Head) :-
+	atom(Name), integer(Arity),
+	functor(Head, Name, Arity).
 
 prolog_message(file_search(cache(Spec, _Cond), Path)) -->
 	[ 'File search: ~p --> ~p (cache)'-[Spec, Path] ].
@@ -732,7 +822,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2013 University of Amsterdam, VU Amsterdam', nl,
+	[ 'Copyright (c) 1990-2015 University of Amsterdam, VU Amsterdam', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
@@ -815,7 +905,7 @@ query_result(eof) -->
 query_result(toplevel_open_line) -->
 	[].
 
-prompt(Answer, [], []) --> !,
+prompt(Answer, [], []-[]) --> !,
 	prompt(Answer, empty).
 prompt(Answer, _, _) --> !,
 	prompt(Answer, non_empty).
@@ -832,7 +922,7 @@ prompt(more, _) --> !,
 	[ ' '-[], flush ].
 
 result(Bindings, Residuals) -->
-	{ current_prolog_flag(toplevel_print_options, Options0),
+	{ current_prolog_flag(answer_write_options, Options0),
 	  Options = [partial(true)|Options0]
 	},
 	bindings(Bindings, [priority(699)|Options]),
@@ -877,21 +967,28 @@ substitutions([N=V|T], Options) -->
 	substitutions(T, Options).
 
 
-residuals([], _) -->
+residuals(Normal-Hidden, Options) -->
+	residuals1(Normal, Options),
+	bind_res_sep(Normal, Hidden),
+	(   {Hidden == []}
+	->  []
+	;   [ansi(fg(green), '% with detached residual goals', []), nl]
+	),
+	residuals1(Hidden, Options).
+
+residuals1([], _) -->
 	[].
-residuals([G|Gs], Options) -->
+residuals1([G|Gs], Options) -->
 	(   { Gs \== [] }
 	->  [ '~W,'-[G, Options], nl ],
-	    residuals(Gs, Options)
+	    residuals1(Gs, Options)
 	;   [ '~W'-[G, Options] ]
 	).
 
-bind_res_sep(_, []) --> !,
-	[].
-bind_res_sep([], _) --> !,
-	[].
-bind_res_sep(_, _) -->
-	[','-[], nl].
+bind_res_sep(_, []) --> !.
+bind_res_sep(_, []-[]) --> !.
+bind_res_sep([], _) --> !.
+bind_res_sep(_, _) --> [','-[], nl].
 
 extra_line -->
 	{ current_prolog_flag(toplevel_extra_white_line, true) }, !,
@@ -1034,7 +1131,7 @@ prolog_message(frame(Frame, Port, _PC)) -->
 frame_goal(Frame) -->
 	{ prolog_frame_attribute(Frame, goal, Goal0),
 	  clean_goal(Goal0, Goal),
-	  current_prolog_flag(debugger_print_options, Options)
+	  current_prolog_flag(debugger_write_options, Options)
 	},
 	[ '~W'-[Goal, Options] ].
 

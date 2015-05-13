@@ -166,17 +166,21 @@ selectchk(Elem, List, Rest) :-
 
 %%	select(?X, ?XList, ?Y, ?YList) is nondet.
 %
-%	Select two elements from two lists at  the same place. True when
-%	select(X, XList) and select(Y, YList) are   true, X and Y appear
-%	in  the  same  locations   of    their   respective   lists  and
-%	same_length(XList, YList) is  true.  A   typical  use  for  this
-%	predicate is to _replace_ an element:
+%	Select from two lists at the  same   positon.  True  if XList is
+%	unifiable with YList apart a single element at the same position
+%	that is unified with X in XList and   with Y in YList. A typical
+%	use for this predicate is to _replace_   an element, as shown in
+%	the example below. All possible   substitutions are performed on
+%	backtracking.
 %
-%	==
-%	?- select(b, [a,b,c], 2, X).
-%	X = [a, 2, c] ;
-%	X = [a, b, c].
-%	==
+%	  ==
+%	  ?- select(b, [a,b,c,b], 2, X).
+%	  X = [a, 2, c, b] ;
+%	  X = [a, b, c, 2] ;
+%	  false.
+%	  ==
+%
+%	@see selectchk/4 provides a semidet version.
 
 select(X, XList, Y, YList) :-
 	select_(XList, X, Y, YList).
@@ -444,16 +448,18 @@ perm(List, [First|Perm]) :-
         select(First, List, Rest),
         perm(Rest, Perm).
 
-%%	flatten(+List1, ?List2) is det.
+%%	flatten(+NestedList, -FlatList) is det.
 %
-%	Is true if List2 is a non-nested version of List1.
+%	Is true if FlatList is a  non-nested version of NestedList. Note
+%	that empty lists are removed. In   standard Prolog, this implies
+%	that the atom '[]' is removed  too.   In  SWI7, `[]` is distinct
+%	from '[]'.
 %
-%	@deprecated	Ending up needing flatten/3 often indicates,
-%			like append/3 for appending two lists, a bad
-%			design.  Efficient code that generates lists
-%			from generated small lists must use difference
-%			lists, often possible through grammar rules for
-%			optimal readability.
+%	Ending up needing flatten/3 often   indicates, like append/3 for
+%	appending two lists, a bad design. Efficient code that generates
+%	lists from generated small  lists   must  use  difference lists,
+%	often possible through grammar rules for optimal readability.
+%
 %	@see append/2
 
 flatten(List, FlatList) :-
@@ -607,7 +613,7 @@ is_set(Set) :-
 %
 %	@see	sort/2 can be used to create an ordered set.  Many
 %		set operations on ordered sets are order N rather than
-%		order N**2.  The list_to_set/2 predicate is is more
+%		order N**2.  The list_to_set/2 predicate is more
 %		expensive than sort/2 because it involves, in addition
 %		to a sort, three linear scans of the list.
 %	@compat	Up to version 6.3.11, list_to_set/2 had complexity

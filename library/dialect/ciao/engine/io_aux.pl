@@ -28,7 +28,8 @@
 */
 
 :- module(io_aux, [
-		   display_string/1 % +String
+		   display_string/1, % +String
+		   display_term/1    % +Term
 		  ],
 	  [assertions, nativeprops, nortchecks]).
 
@@ -40,3 +41,9 @@
 :- pred display_string(String) : string.
 
 display_string(String) :- format('~s', [String]).
+
+:- doc(display_term(Term), "Output @var{Term} in a way that a
+   @pred{read/1} will be able to read it back, even if operators
+   change.").
+
+display_term(T) :- displayq(T), display(' .\n').

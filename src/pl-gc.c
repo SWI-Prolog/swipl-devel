@@ -251,8 +251,8 @@ static int		check_marked(const char *s);
 
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
 
-static char *
-print_adr(Word adr, char *buf)
+char *
+print_addr(Word adr, char *buf)
 { GET_LD
   char *name;
   Word base;
@@ -280,7 +280,7 @@ print_adr(Word adr, char *buf)
 }
 
 
-static char *
+char *
 print_val(word val, char *buf)
 { GET_LD
   static const char *tag_name[] = { "var", "attvar", "float", "int", "atom",
@@ -361,7 +361,7 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
     { char buf1[256];
       char buf2[256];
       sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
-	       file, line, print_adr(addr, buf1), print_val(*addr, buf2));
+	       file, line, print_addr(addr, buf1), print_val(*addr, buf2));
       return;
     }
 
@@ -385,14 +385,14 @@ do_relocated_cell(Word addr ARG_LD)
       { char buf1[64];
 
         sysError("Address %s was not supposed to be updated",
-	         print_adr(addr, buf1));
+	         print_addr(addr, buf1));
         return;
       }
 
       if ( s->value == RELOC_UPDATED )
       { char buf1[64];
 
-        sysError("%s: updated twice", print_adr(addr, buf1));
+        sysError("%s: updated twice", print_addr(addr, buf1));
         return;
       }
 
@@ -417,7 +417,7 @@ printNotRelocated()
     { Word p = s->name;
       char buf1[64];
 
-      Sdprintf("\t%s\n", print_adr(p, buf1));
+      Sdprintf("\t%s\n", print_addr(p, buf1));
     }
   }
 
@@ -676,13 +676,15 @@ forward:				/* Go into the tree */
       needsRelocation(current);
       if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
-      args = arityFunctor(((Functor)next)->definition) - 1;
+      args = arityFunctor(((Functor)next)->definition);
       DEBUG(MSG_GC_MARK_VAR_WALK,
 	    Sdprintf("Marking TERM %s/%d at %p\n",
 		     stringAtom(nameFunctor(((Functor)next)->definition)),
-		     args+1, next));
+		     args, next));
       domark(next);
-      for( next += 2; args > 0; args--, next++ )
+      if ( args == 0 )
+	BACKWARD;
+      for( next += 2; args > 1; args--, next++ )
       { DEBUG(CHK_SECURE, assert(!is_first(next)));
 	mark_first(next);
       }
@@ -1072,6 +1074,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
           setVar(varFrame(fr, PC[2]));
           break;
        case B_UNIFY_FV:
+       case B_UNIFY_VF:
        case B_UNIFY_FC:
        case A_ADD_FC:
          setVar(varFrame(fr, PC[1]));
@@ -1234,7 +1237,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	{ DEBUG(MSG_GC_ASSIGNMENTS_MARK,
 		char b1[64]; char b2[64]; char b3[64];
 		Sdprintf("Marking assignment at %s (%s --> %s)\n",
-			 print_adr(tard, b1),
+			 print_addr(tard, b1),
 			 print_val(*gp, b2),
 			 print_val(*tard, b3)));
 
@@ -1250,7 +1253,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64]; char b3[64];
 	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
-		       print_adr(tard, b1),
+		       print_addr(tard, b1),
 		       print_val(*tard, b2),
 		       print_val(*gp, b3)));
 
@@ -1278,7 +1281,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64];
 	      Sdprintf("Early reset at %s (%s)\n",
-		       print_adr(tard, b1), print_val(*tard, b2)));
+		       print_addr(tard, b1), print_val(*tard, b2)));
 	setVar(*tard);
 	te->address = 0;
 	trailcells_deleted++;
@@ -1643,6 +1646,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       case A_ADD_FC:
       case B_UNIFY_FV:
+      case B_UNIFY_VF:
 	clear_frame_var(state, PC[0], PC);
 	mark_frame_var(state, PC[1] PASS_LD);
 	break;
@@ -2626,7 +2630,7 @@ sweep_stacks(vm_state *state)
 	  char buf1[64];
 	  char buf2[64];
 
-	  Sdprintf("\t%s (*= %s)\n", print_adr(p, buf1), print_val(*p, buf2));
+	  Sdprintf("\t%s (*= %s)\n", print_addr(p, buf1), print_val(*p, buf2));
 	}
       }
 
@@ -3201,12 +3205,7 @@ considerGarbageCollect(Stack s)
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
 	size_t limit = sizeStackP(s);	/* amount we want to grow to */
-	size_t space = limit - used;
-
-	if ( LD->outofstack == s )
-	{ DEBUG(MSG_GC_SCHEDULE, Sdprintf("GC: request on low space\n"));
-	  return PL_raise(SIG_GC);
-	}
+	size_t space = limit > used ? limit - used : 0;
 
 	if ( LD->gc.inferences == LD->statistics.inferences &&
 	     !LD->exception.processing )
@@ -3298,7 +3297,7 @@ scan_global(int flags)
       char vbuf[256];
 
       Sdprintf("!Illegal cell in global stack (up) at %s (*= %s)\n",
-	       print_adr(current, pbuf), print_val(*current, vbuf));
+	       print_addr(current, pbuf), print_val(*current, vbuf));
       trap_gdb();
 
       if ( ++errors > 10 )
@@ -3323,7 +3322,7 @@ scan_global(int flags)
 	{ char b1[64], b2[64];
 
 	  Sdprintf("ERROR: ref at %s not on global (*=%s)\n",
-		   print_adr(current, b1), print_val(*current, b2));
+		   print_addr(current, b1), print_val(*current, b2));
 	  trap_gdb();
 	}
       }
@@ -3490,8 +3489,8 @@ check_trail()
 	{ char b1[64], b2[64], b3[64];
 
 	  Sdprintf("Trail entry at %s not on global stack: %s (*=%s)\n",
-		   print_adr((Word)te, b1),
-		   print_adr(te->address, b2),
+		   print_addr((Word)te, b1),
+		   print_addr(te->address, b2),
 		   print_val(*te->address, b3));
 	}
       }
@@ -3686,12 +3685,31 @@ gcEnsureSpace(vm_state *state ARG_LD)
 garbageCollect()  returns  one  of  TRUE    (ok),   FALSE  (blocked)  or
 LOCAL_OVERFLOW if the local stack  cannot accomodate the term-references
 for saving ARGP and global variables.
+
+(*) We call trimStacks()  to  reactivate   the  `spare  stacks'  and, if
+LD->trim_stack_requested is TRUE, to shrink the  stacks (this happens at
+the end of  handling  a  stack  overflow   exception).  This  is  a  bit
+complicated:
+
+  - We must call trimStacks() after unblockGC(), otherwise the stacks
+    cannot be shifted.
+  - We must include ARGP in lTop when in `body' mode.  To do this, we
+    save the value computed by get_vmi_state(). We cannot use
+    get_vmi_state()/restore_vmi_state() because these do not anticipate
+    a stack shift.
+  - We must do unblockSignals() afterwards to avoid signal handling to
+    mess with the computed stack values.
+
+Thanks to Keri Harris for figuring out why   we must include ARGP in our
+lTop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 garbageCollect(void)
 { GET_LD
   vm_state state;
+  LocalFrame safeLTop;				/* include ARGP in body mode */
+  term_t preShiftLTop;				/* safe over trimStacks() (shift) */
   intptr_t tgar, ggar;
   double t = ThreadCPUTime(LD, CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
@@ -3714,6 +3732,7 @@ garbageCollect(void)
 #endif
 
   get_vmi_state(LD->query, &state);
+  safeLTop = lTop;
   if ( (rc=gcEnsureSpace(&state PASS_LD)) < 0 )
   { return rc;
   } else if ( rc == FALSE )		/* shifted; reload */
@@ -3829,27 +3848,31 @@ garbageCollect(void)
 		     PL_INTPTR, roomStack(global),
 		     PL_INTPTR, roomStack(trail));
 
-  trimStacks(LD->trim_stack_requested PASS_LD);
-
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active )
     profExit(prof_node PASS_LD);
 #endif
 
   restore_vmi_state(&state);
+  assert(!LD->query ||
+	 !LD->query->registers.fr ||
+	 state.frame == LD->query->registers.fr);
   if ( no_mark_bar )
     LD->mark_bar = NO_MARK_BAR;
   gc_status.active = FALSE;
   unblockGC(0 PASS_LD);
+  LD->gc.inferences = LD->statistics.inferences;
+
+  preShiftLTop = consTermRef(lTop);		/* see (*) above */
+  lTop = safeLTop;
+  trimStacks(LD->trim_stack_requested PASS_LD);
+  lTop = (LocalFrame)valTermRef(preShiftLTop);
+
 #ifndef UNBLOCKED_GC
   unblockSignals(&LD->gc.saved_sigmask);
 #endif
-  LD->gc.inferences = LD->statistics.inferences;
   leaveGC(PASS_LD1);
 
-  assert(!LD->query ||
-	 !LD->query->registers.fr ||
-	 state.frame == LD->query->registers.fr);
   shiftTightStacks();
 
   return TRUE;
@@ -3959,7 +3982,11 @@ makeMoreStackSpace(int overflow, int flags)
 int ensureGlobalSpace(size_t cell, int flags)
 
 Makes sure we have the requested amount of space on the global stack. If
-the space is not available, first try GC; than try shifting the stacks.
+the space is not available
+
+  1. If allowed, try GC
+  2. If GC or SHIFT is allowed, try shifting the stacks
+  3. Use the spare stack and raise a GC request.
 
 Returns TRUE, FALSE or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3972,7 +3999,7 @@ ensureGlobalSpace(size_t cells, int flags)
   if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
     return TRUE;
 
-  if ( LD->exception.processing || LD->gc.status.active == TRUE )
+  if ( LD->gc.active )
   { enableSpareStack((Stack)&LD->stacks.global);
     enableSpareStack((Stack)&LD->stacks.trail);
 
@@ -3980,18 +4007,18 @@ ensureGlobalSpace(size_t cells, int flags)
       return TRUE;
   }
 
-  if ( !flags )
-    goto nospace;
-
-  if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
-  { garbageCollect();
-
-    if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
-      return TRUE;
-  }
-
+  if ( flags )
   { size_t gmin;
     size_t tmin;
+
+    if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
+    { garbageCollect();
+
+      if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+	return TRUE;
+    }
+
+    /* Consider a stack-shift.  ALLOW_GC implies ALLOW_SHIFT */
 
     if ( gTop+cells > gMax || tight((Stack)&LD->stacks.global PASS_LD) )
       gmin = cells*sizeof(word);
@@ -4008,7 +4035,14 @@ ensureGlobalSpace(size_t cells, int flags)
       return TRUE;
   }
 
-nospace:
+/*
+  enableSpareStack((Stack)&LD->stacks.global);
+  enableSpareStack((Stack)&LD->stacks.trail);
+
+  if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+    return TRUE; //PL_raise(SIG_GC);
+*/
+
   if ( gTop+cells > gMax )
     return GLOBAL_OVERFLOW;
   else
@@ -4718,14 +4752,20 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 }
 
 
-static void
-include_spare_stack(Stack s, size_t *request)
-{ if ( *request && *request != GROW_TRIM )
+static int
+include_spare_stack(void *ptr, size_t *request)
+{ Stack s = ptr;
+
+  if ( *request && *request != GROW_TRIM )
     *request += s->def_spare - s->spare;
 
   if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
+
+    return TRUE;
+  } else
+  { return FALSE;
   }
 }
 
@@ -4735,26 +4775,36 @@ Returns one of TRUE:  Stacks  are   resized;  FALSE:  stack-shifting  is
 blocked or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+reenable_spare_stack(void *ptr, int prev)
+{ Stack s = ptr;
+
+  if ( prev || roomStackP(s) >= s->min_free + s->def_spare )
+    trim_stack(s);
+}
+
+
 int
 growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
+  int sl, sg, st;
 
 #ifdef O_MAINTENANCE
   save_backtrace("SHIFT");
 #endif
 
+  sl = include_spare_stack(&LD->stacks.local,  &l);
+  sg = include_spare_stack(&LD->stacks.global, &g);
+  st = include_spare_stack(&LD->stacks.trail,  &t);
+
   gBase--; gMax++; tMax++;
-  include_spare_stack((Stack)&LD->stacks.local,  &l);
-  include_spare_stack((Stack)&LD->stacks.global, &g);
-  include_spare_stack((Stack)&LD->stacks.trail,  &t);
-
   rc = grow_stacks(l, g, t PASS_LD);
-
-  trim_stack((Stack)&LD->stacks.trail);
-  trim_stack((Stack)&LD->stacks.global);
-  trim_stack((Stack)&LD->stacks.local);
   gBase++; gMax--; tMax--;
+
+  reenable_spare_stack(&LD->stacks.trail,  st);
+  reenable_spare_stack(&LD->stacks.global, sg);
+  reenable_spare_stack(&LD->stacks.local,  sl);
 
   return rc;
 }
@@ -4966,7 +5016,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 	  { DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
 #ifdef COMPARE_AND_SWAP			/* See (**) above */
 	    if ( COMPARE_AND_SWAP(&def->references, 0, 1) )
-	      GD->procedures.active_marked++;
+	      ATOMIC_INC(&GD->procedures.active_marked);
 #else
 	    if ( ++def->references == 1 )
 	      GD->procedures.active_marked++;

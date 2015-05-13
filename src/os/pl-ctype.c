@@ -403,16 +403,24 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
     if ( (rval = (*gen->class->test)((wint_t)gen->current)) )
     { if ( gen->do_enum & ENUM_CHAR )
       { if ( !PL_unify_char(chr, gen->current, how) )
+	{ if ( LD->exception.term )
+	    goto error;
 	  goto next;
+	}
       }
       if ( gen->class->arity > 0 )
       { if ( rval < 0 ||
 	     !unify_char_type(class, gen->class, rval, how) )
+	{ if ( LD->exception.term )
+	    goto error;
 	  goto next;
-
+	}
       } else if ( gen->do_enum & ENUM_CLASS )
       { if ( !unify_char_type(class, gen->class, rval, how) )
+	{ if ( LD->exception.term )
+	    goto error;
 	  goto next;
+	}
       }
 
       if ( advanceGen(gen) )		/* ok, found one */
@@ -510,9 +518,8 @@ get_chr_from_text(const PL_chars_t *t, size_t index)
 
 
 static foreign_t
-modify_case_atom(term_t in, term_t out, int down)
-{ GET_LD
-  PL_chars_t tin, tout;
+modify_case_atom(term_t in, term_t out, int down, int text_type ARG_LD)
+{ PL_chars_t tin, tout;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
     return FALSE;
@@ -590,25 +597,43 @@ modify_case_atom(term_t in, term_t out, int down)
       }
     }
 
-    PL_unify_text(out, 0, &tout, PL_ATOM);
+    PL_unify_text(out, 0, &tout, text_type);
     PL_free_text(&tout);
 
     succeed;
   } else
-  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, out);
+  { return PL_error(NULL, 0, NULL, ERR_TYPE,
+		    text_type == PL_STRING ? ATOM_string : ATOM_atom,
+		    out);
   }
 }
 
 
 static
 PRED_IMPL("downcase_atom", 2, downcase_atom, 0)
-{ return modify_case_atom(A1, A2, TRUE);
+{ PRED_LD
+  return modify_case_atom(A1, A2, TRUE, PL_ATOM PASS_LD);
 }
 
 
 static
 PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
-{ return modify_case_atom(A1, A2, FALSE);
+{ PRED_LD
+  return modify_case_atom(A1, A2, FALSE, PL_ATOM PASS_LD);
+}
+
+
+static
+PRED_IMPL("string_lower", 2, string_lower, 0)
+{ PRED_LD
+  return modify_case_atom(A1, A2, TRUE, PL_STRING PASS_LD);
+}
+
+
+static
+PRED_IMPL("string_upper", 2, string_upper, 0)
+{ PRED_LD
+  return modify_case_atom(A1, A2, FALSE, PL_STRING PASS_LD);
 }
 
 
@@ -779,11 +804,13 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
 		 *******************************/
 
 BeginPredDefs(ctype)
-  PRED_DEF("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("setlocale", 3, setlocale, 0)
-  PRED_DEF("downcase_atom", 2, downcase_atom, 0)
-  PRED_DEF("upcase_atom", 2, upcase_atom, 0)
+  PRED_DEF("char_type",	      2, char_type,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("code_type",	      2, code_type,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("setlocale",	      3, setlocale,	  0)
+  PRED_DEF("downcase_atom",   2, downcase_atom,	  0)
+  PRED_DEF("upcase_atom",     2, upcase_atom,	  0)
+  PRED_DEF("string_lower",    2, string_lower,	  0)
+  PRED_DEF("string_upper",    2, string_upper,	  0)
   PRED_DEF("normalize_space", 2, normalize_space, 0)
 EndPredDefs
 
@@ -806,7 +833,7 @@ const char _PL_char_types[] = {
 /*  P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _   80-95 */
    UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, PU, SY, PU, SY, UC,
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
-   SY, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
+   BQ, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, PU, PU, PU, SY, CT,
 			  /* 128-159 (C1 controls) */

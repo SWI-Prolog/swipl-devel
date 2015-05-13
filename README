@@ -1,6 +1,6 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Jan 27, 2011 (Version 5.11.14)
+** Latest update: Aug 25, 2014 (Version 7.1.21)
 
 AUTHOR
 ======
@@ -43,7 +43,7 @@ to simplify searching:
 If you cannot reach the internet you   can  install the website locally.
 The website source is in the git plweb.git:
 
-	% git clone git://www.swi-prolog.org/home/pl/git/plweb.git
+	% git clone https://github.com/SWI-Prolog/plweb
 
 The web-server software is SWI-Prolog itself  (this requires many of the
 default packages installed). After downloading do:

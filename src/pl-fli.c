@@ -280,8 +280,7 @@ PL_reset_term_refs(term_t r)
 
   lTop = (LocalFrame) valTermRef(r);
   fr->size = (int)((Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame)));
-  DEBUG(CHK_SECURE, if ( fr->size < 0 || fr->size > 100 )
-		      Sdprintf("Suspect foreign frame size: %d\n", fr->size));
+  DEBUG(0, assert(fr->size >= 0));
 }
 
 
@@ -1025,8 +1024,8 @@ static const int type_map[8] = { PL_VARIABLE,
 				 PL_VARIABLE,  /* attributed variable */
 			         PL_FLOAT,
 				 PL_INTEGER,
-				 PL_ATOM,
 				 PL_STRING,
+				 PL_ATOM,
 				 PL_TERM,	/* TAG_COMPOUND */
 				 -1		/* TAG_REFERENCE */
 			       };
@@ -1244,6 +1243,32 @@ int
 PL_get_chars(term_t t, char **s, unsigned flags)
 { return PL_get_nchars(t, NULL, s, flags);
 }
+
+
+int
+PL_get_text_as_atom(term_t t, atom_t *a, int flags)
+{ GET_LD
+  word w = valHandle(t);
+  PL_chars_t text;
+
+  if ( isAtom(w) )
+  { *a = (atom_t) w;
+    return TRUE;
+  }
+
+  if ( PL_get_text(t, &text, flags) )
+  { atom_t ta = textToAtom(&text);
+
+    PL_free_text(&text);
+    if ( ta )
+    { *a = ta;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 
 
 char *
@@ -1533,6 +1558,25 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 
 int
+PL_get_compound_name_arity(term_t t, atom_t *name, int *arity)
+{ GET_LD
+  word w = valHandle(t);
+
+  if ( isTerm(w) )
+  { FunctorDef fd = valueFunctor(functorTerm(w));
+
+    if ( name )
+      *name =  fd->name;
+    if ( arity )
+      *arity = fd->arity;
+    succeed;
+  }
+
+  fail;
+}
+
+
+int
 PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
 { word w = valHandle(t);
 
@@ -1540,7 +1584,7 @@ PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
   { *f = functorTerm(w);
     succeed;
   }
-  if ( isTextAtom(w) )
+  if ( isTextAtom(w) || isReservedSymbol(w) )
   { *f = lookupFunctorDef(w, 0);
     succeed;
   }
@@ -1902,7 +1946,15 @@ PL_is_callable(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return (isTerm(w) || isTextAtom(w)) ? TRUE : FALSE;
+  if ( isTerm(w) )
+  { Functor f = valueTerm(w);
+    FunctorDef fd = valueFunctor(f->definition);
+
+    if ( isTextAtom(fd->name) )
+      return TRUE;
+  }
+
+  return isTextAtom(w) != 0;
 }
 
 
@@ -2391,6 +2443,44 @@ PL_unify_atom(term_t t, atom_t a)
   return unifyAtomic(t, a PASS_LD);
 }
 #define PL_unify_atom(t, a) PL_unify_atom__LD(t, a PASS_LD)
+
+
+int
+PL_unify_compound(term_t t, functor_t f)
+{ GET_LD
+  Word p = valHandleP(t);
+  int arity = arityFunctor(f);
+
+  deRef(p);
+  if ( canBind(*p) )
+  { size_t needed = (1+arity);
+    Word a;
+    word to;
+
+    if ( !hasGlobalSpace(needed) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+      p = valHandleP(t);		/* reload: may have shifted */
+      deRef(p);
+    }
+
+    a = gTop;
+    to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+
+    gTop += 1+arity;
+    *a = f;
+    while( --arity >= 0 )
+      setVar(*++a);
+
+    bindConst(p, to);
+
+    succeed;
+  } else
+  { return hasFunctor(*p, f);
+  }
+}
 
 
 int
@@ -3072,8 +3162,9 @@ cont:
     case _PL_PREDICATE_INDICATOR:
     { predicate_t proc = va_arg(args, predicate_t);
 
-      return unify_definition(MODULE_user, t, proc->definition,
+      rval = unify_definition(MODULE_user, t, proc->definition,
 			      0, GP_HIDESYSTEM|GP_NAMEARITY);
+      break;
     }
     default:
       PL_warning("Format error in PL_unify_term()");
@@ -3302,9 +3393,31 @@ int
 PL_term_type(term_t t)
 { GET_LD
   word w = valHandle(t);
+  int t0 = type_map[tag(w)];
 
-  return type_map[tag(w)];
+  switch(t0)
+  { case PL_ATOM:
+    { if ( isTextAtom(w) )
+	return t0;
+      if ( w == ATOM_nil )
+	return PL_NIL;
+      return PL_BLOB;
+    }
+    case PL_TERM:
+    { functor_t f = valueTerm(w)->definition;
+      FunctorDef fd = valueFunctor(f);
+
+      if ( f == FUNCTOR_dot2 )
+	return PL_LIST_PAIR;
+      if ( fd->name == ATOM_dict )
+	return PL_DICT;
+    }
+    /*FALLTHROUGH*/
+    default:
+      return t0;
+  }
 }
+
 
 		 /*******************************
 		 *	      UNIFY		*
@@ -3342,7 +3455,8 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { p = stripModule(p, m PASS_LD);
+  { if ( !(p = stripModule(p, m PASS_LD)) )
+      return FALSE;
     setHandle(plain, linkVal(p));
   } else
   { if ( *m == NULL )
@@ -3352,7 +3466,7 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
       setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
   }
 
-  succeed;
+  return TRUE;
 }
 
 #undef PL_strip_module
@@ -3374,7 +3488,8 @@ PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { p = stripModule(p, m PASS_LD);
+  { if ( !(p = stripModule(p, m PASS_LD)) )
+      return FALSE;
     if ( hasFunctor(*p, FUNCTOR_colon2) )
     { Word a1 = argTermP(*p, 0);
       deRef(a1);
@@ -3393,7 +3508,7 @@ PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 }
 
 module_t
-PL_context()
+PL_context(void)
 { GET_LD
   return environment_frame ? contextModule(environment_frame)
 			   : MODULE_user;
@@ -3543,23 +3658,73 @@ PL_foreign_control(control_t h)
 }
 
 
+static int
+copy_exception(term_t ex, term_t bin ARG_LD)
+{ fid_t fid;
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { if ( duplicate_term(ex, bin PASS_LD) )
+    { ok:
+      PL_close_foreign_frame(fid);
+      return TRUE;
+    } else
+    { PL_rewind_foreign_frame(fid);
+      PL_clear_exception();
+      LD->exception.processing = TRUE;
+
+      if ( PL_is_functor(ex, FUNCTOR_error2) )
+      { term_t arg, av;
+
+	if ( (arg = PL_new_term_ref()) &&
+	     (av  = PL_new_term_refs(2)) &&
+	     PL_get_arg(1, ex, arg) &&
+	     duplicate_term(arg, av+0 PASS_LD) &&
+	     PL_cons_functor_v(bin, FUNCTOR_error2, av) )
+	{ Sdprintf("WARNING: Removed error context due to stack overflow\n");
+	  goto ok;
+	}
+      } else if ( gTop+5 < gMax )
+      { Word p = gTop;
+
+	Sdprintf("WARNING: cannot raise exception; raising global overflow\n");
+	p[0] = FUNCTOR_error2;			/* see (*) above */
+	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[2] = ATOM_global;
+	p[3] = FUNCTOR_resource_error1;
+	p[4] = ATOM_stack;
+	gTop += 5;
+
+	*valTermRef(bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	goto ok;
+      }
+    }
+    PL_close_foreign_frame(fid);
+  }
+
+  Sdprintf("WARNING: mapped exception to abort due to stack overflow\n");
+  PL_put_atom(bin, ATOM_aborted);
+  return TRUE;
+}
+
+
 int
 PL_raise_exception(term_t exception)
 { GET_LD
 
-  if ( PL_is_variable(exception) )
+  assert(valTermRef(exception) < (Word)lTop);
+
+  if ( PL_is_variable(exception) )	/* internal error */
     fatalError("Cannot throw variable exception");
 
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { setVar(*valTermRef(exception_bin));
-    if ( !duplicate_term(exception, exception_bin PASS_LD) )
-      fatalError("Failed to copy exception term");
+    copy_exception(exception, exception_bin PASS_LD);
     freezeGlobal(PASS_LD1);
   }
   exception_term = exception_bin;
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3590,14 +3755,8 @@ void
 PL_clear_exception(void)
 { GET_LD
 
-  if ( exception_term )
-  { exception_term = 0;
-    setVar(*valTermRef(LD->exception.bin));
-    setVar(*valTermRef(LD->exception.printed));
-    setVar(*valTermRef(LD->exception.pending));
-  }
-
-  LD->exception.processing = FALSE;
+  resumeAfterException(TRUE, LD->outofstack);
+  LD->outofstack = NULL;
 }
 
 
@@ -4300,6 +4459,9 @@ PL_action(int action, ...)
       GD->os.gui_app = guiapp;
       break;
     }
+    case PL_ACTION_TRADITIONAL:
+      setTraditional();
+      break;
     case PL_ACTION_WRITE:
     { GET_LD
       char *s = va_arg(args, char *);

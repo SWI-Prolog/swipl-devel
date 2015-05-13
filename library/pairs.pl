@@ -123,7 +123,8 @@ group_pairs_by_key([M-N|T0], [M-[N|TN]|T]) :-
 	same_key(M, T0, TN, T1),
 	group_pairs_by_key(T1, T).
 
-same_key(M, [M-N|T0], [N|TN], T) :- !,
+same_key(M0, [M-N|T0], [N|TN], T) :-
+	M0 == M, !,
 	same_key(M, T0, TN, T).
 same_key(_, L, [], L).
 

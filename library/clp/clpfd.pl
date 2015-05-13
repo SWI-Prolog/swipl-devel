@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2013 Markus Triska
+    Copyright (C): 2007-2015 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -93,6 +93,7 @@
                   (#==>)/2,
                   (#<==)/2,
                   (#\/)/2,
+                  (#\)/2,
                   (#/\)/2,
                   (in)/2,
                   (ins)/2,
@@ -111,6 +112,7 @@
                   circuit/1,
                   cumulative/1,
                   cumulative/2,
+                  disjoint2/1,
                   element/3,
                   automaton/3,
                   automaton/8,
@@ -128,6 +130,7 @@
         clpfd_equal/2,
         clpfd_geq/2.
 
+:- use_module(library(apply)).
 :- use_module(library(apply_macros)).
 :- use_module(library(assoc)).
 :- use_module(library(error)).
@@ -142,20 +145,44 @@
 
 /** <module> Constraint Logic Programming over Finite Domains
 
----+++ Introduction
+### Introduction			{#clpfd-intro}
 
-Constraint programming is a declarative formalism that lets you
-describe conditions a solution must satisfy. This library provides
-CLP(FD), Constraint Logic Programming over Finite Domains. It can be
-used to model and solve various combinatorial problems such as
-planning, scheduling and allocation tasks.
+Constraint programming is a declarative formalism that lets you state
+relations between terms. This library provides CLP(FD), Constraint
+Logic Programming over Finite Domains.
 
-Most predicates of this library are finite domain _constraints_, which
-are relations over integers. They generalise arithmetic evaluation of
-integer expressions in that propagation can proceed in all directions.
-This library also provides _enumeration_ _predicates_, which let you
-systematically search for solutions on variables whose domains have
-become finite.
+There are two major use cases of this library:
+
+    1. CLP(FD) constraints provide _declarative integer arithmetic_:
+       They implement pure _relations_ between integer expressions and
+       can be used in all directions, also if parts of expressions are
+       variables.
+
+    2. In connection with enumeration predicates and more complex
+       constraints, CLP(FD) is often used to model and solve
+       combinatorial problems such as planning, scheduling and
+       allocation tasks.
+
+When teaching Prolog, we _strongly_ recommend that you introduce
+CLP(FD) constraints _before_ explaining lower-level arithmetic
+predicates and their procedural idiosyncrasies. This is because
+constraints are easy to explain, understand and use due to their
+purely relational nature. In contrast, the modedness and
+directionality of low-level arithmetic primitives are non-declarative
+limitations that are better deferred to more advanced lectures.
+
+If you are used to the complicated operational considerations that
+low-level arithmetic primitives necessitate, then moving to CLP(FD)
+constraints may, due to their power and convenience, at first feel to
+you excessive and almost like cheating. It _isn't_. Constraints are an
+integral part of many Prolog systems and are available to help you
+eliminate and avoid, as far as possible, the use of lower-level and
+less general primitives by providing declarative alternatives that are
+meant to be used instead.
+
+For satisfactory performance, arithmetic constraints are implicitly
+rewritten at compilation time so that lower-level fallback predicates
+are automatically used whenever possible.
 
 You can cite this library in your publications as:
 
@@ -171,7 +198,7 @@ You can cite this library in your publications as:
 }
 ==
 
----+++ Arithmetic constraints
+### Arithmetic constraints		{#cplfd-arith-constraints}
 
 A finite domain _arithmetic expression_ is one of:
 
@@ -188,137 +215,52 @@ A finite domain _arithmetic expression_ is one of:
     | Expr mod Expr      | Modulo induced by floored division   |
     | Expr rem Expr      | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
-    | Expr / Expr        | Truncated integer division           |
+    | Expr // Expr       | Truncated integer division           |
+
+Arithmetic _constraints_ are relations between arithmetic expressions.
 
 The most important arithmetic constraints are:
 
-    | Expr1 #>= Expr2  | Expr1 is larger than or equal to Expr2  |
-    | Expr1 #=< Expr2  | Expr1 is smaller than or equal to Expr2 |
-    | Expr1 #=  Expr2  | Expr1 equals Expr2 |
-    | Expr1 #\= Expr2  | Expr1 is not equal to Expr2 |
-    | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
-    | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
+    | Expr1 #>= Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 #=< Expr2  | Expr1 is less than or equal to Expr2     |
+    | Expr1 #=  Expr2  | Expr1 equals Expr2                       |
+    | Expr1 #\= Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
+    | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
 
----+++ Reification
+### Declarative integer arithmetic		{#clpfd-integer-arith}
 
-The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
-_reified_, which means reflecting their truth values into Boolean
-values represented by the integers 0 and 1. Let P and Q denote
-reifiable constraints or Boolean variables, then:
+CLP(FD) constraints let you declaratively express integer arithmetic.
+The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used instead
+of the corresponding primitives is/2, =:=/2, >/2 etc.
 
-    | #\ Q      | True iff Q is false             |
-    | P #\/ Q   | True iff either P or Q          |
-    | P #/\ Q   | True iff both P and Q           |
-    | P #<==> Q | True iff P and Q are equivalent |
-    | P #==> Q  | True iff P implies Q            |
-    | P #<== Q  | True iff Q implies P            |
+An important advantage of arithmetic constraints is their purely
+relational nature. They are therefore easy to explain and use, and
+well suited for beginners and experienced Prolog programmers alike.
 
-The constraints of this table are reifiable as well.
-
----+++ Examples
-
-Here is an example session with a few queries and their answers:
+Consider for example the query:
 
 ==
-?- use_module(library(clpfd)).
-% library(clpfd) compiled into clpfd 0.06 sec, 633,732 bytes
-true.
-
-?- X #> 3.
-X in 4..sup.
-
-?- X #\= 20.
-X in inf..19\/21..sup.
-
-?- 2*X #= 10.
-X = 5.
-
-?- X*X #= 144.
-X in -12\/12.
-
-?- 4*X + 2*Y #= 24, X + Y #= 9, [X,Y] ins 0..sup.
-X = 3,
-Y = 6.
-
-?- Vs = [X,Y,Z], Vs ins 1..3, all_different(Vs), X = 1, Y #\= 2.
-Vs = [1, 3, 2],
-X = 1,
-Y = 3,
-Z = 2.
-
-?- X #= Y #<==> B, X in 0..3, Y in 4..5.
-B = 0,
-X in 0..3,
-Y in 4..5.
+?- X #> 3, X #= 5 + 2.
+X = 7.
 ==
 
-In each case, and as for all pure programs, the answer is
-declaratively equivalent to the original query, and in many cases the
-constraint solver has deduced additional domain restrictions.
-
----+++ Search
-
-A common usage of this library is to first post the desired
-constraints among the variables of a model, and then to use
-enumeration predicates to search for solutions. As an example of a
-constraint satisfaction problem, consider the cryptoarithmetic puzzle
-SEND + MORE = MONEY, where different letters denote distinct integers
-between 0 and 9. It can be modeled in CLP(FD) as follows:
+In contrast, when using low-level integer arithmetic, we get:
 
 ==
-:- use_module(library(clpfd)).
-
-puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
-        Vars = [S,E,N,D,M,O,R,Y],
-        Vars ins 0..9,
-        all_different(Vars),
-                  S*1000 + E*100 + N*10 + D +
-                  M*1000 + O*100 + R*10 + E #=
-        M*10000 + O*1000 + N*100 + E*10 + Y,
-        M #\= 0, S #\= 0.
+?- X > 3, X is 5 + 2.
+ERROR: >/2: Arguments are not sufficiently instantiated
 ==
 
-Sample query and its result (actual variables replaced for readability):
+Due to the necessary operational considerations, the use of these
+low-level arithmetic predicates is considerably harder to understand
+and should therefore be deferred to more advanced lectures.
 
-==
-?- puzzle(As+Bs=Cs).
-As = [9, _A2, _A3, _A4],
-Bs = [1, 0, _B3, _A2],
-Cs = [1, 0, _A3, _A2, _C5],
-_A2 in 4..7,
-all_different([9, _A2, _A3, _A4, 1, 0, _B3, _C5]),
-1000*9+91*_A2+ -90*_A3+_A4+ -9000*1+ -900*0+10*_B3+ -1*_C5#=0,
-_A3 in 5..8,
-_A4 in 2..8,
-_B3 in 2..8,
-_C5 in 2..8.
-==
+For supported expressions, CLP(FD) constraints are drop-in
+replacements of these low-level arithmetic predicates, often yielding
+more general programs.
 
-Here, the constraint solver has deduced more stringent bounds for all
-variables. It is good practice to keep the modeling part separate from
-the actual search. This lets you observe termination and determinism
-properties of the modeling part in isolation from the search. Labeling
-can then be used to search for solutions in a separate predicate or
-goal:
-
-==
-?- puzzle(As+Bs=Cs), label(As).
-As = [9, 5, 6, 7],
-Bs = [1, 0, 8, 5],
-Cs = [1, 0, 6, 5, 2] ;
-false.
-==
-
-In this case, it suffices to label a subset of variables to find the
-puzzle's unique solution, since the constraint solver is strong enough
-to reduce the domains of remaining variables to singleton sets. In
-general though, it is necessary to label all variables to obtain
-ground solutions.
-
----+++ Declarative integer arithmetic
-
-You can also use CLP(FD) constraints as a more declarative alternative
-for ordinary integer arithmetic with is/2, >/2 etc. For example:
+Here is an example:
 
 ==
 :- use_module(library(clpfd)).
@@ -350,14 +292,175 @@ the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
 
----+++ Advanced topics
+This library uses goal_expansion/2 to automatically rewrite arithmetic
+constraints at compilation time. The expansion's aim is to bring the
+performance of arithmetic constraints close to that of lower-level
+arithmetic predicates whenever possible. To disable the expansion, set
+the flag `clpfd_goal_expansion` to `false`.
 
-This library uses goal_expansion/2 to rewrite constraints at
-compilation time. The expansion's aim is to transparently bring the
-performance of CLP(FD) constraints close to that of conventional
-arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
-used in modes that can also be handled by built-in arithmetic. To
-disable the expansion, set the flag `clpfd_goal_expansion` to `false`.
+### Reification				{#clpfd-reification}
+
+The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
+_reified_, which means reflecting their truth values into Boolean
+values represented by the integers 0 and 1. Let P and Q denote
+reifiable constraints or Boolean variables, then:
+
+    | #\ Q      | True iff Q is false                  |
+    | P #\/ Q   | True iff either P or Q               |
+    | P #/\ Q   | True iff both P and Q                |
+    | P #\ Q    | True iff either P or Q, but not both |
+    | P #<==> Q | True iff P and Q are equivalent      |
+    | P #==> Q  | True iff P implies Q                 |
+    | P #<== Q  | True iff Q implies P                 |
+
+The constraints of this table are reifiable as well.
+
+### Domains                             {#clpfd-domains}
+
+Each CLP(FD) variable has an associated set of admissible integers
+which we call the variable's _domain_. Initially, the domain of each
+CLP(FD) variable is the set of all integers. The constraints in/2 and
+ins/2 are the primary means to specify tighter domains of variables.
+
+Here are example queries and the system's declaratively equivalent
+answers:
+
+==
+?- X in 100..sup.
+X in 100..sup.
+
+?- X in 1..5 \/ 3..12.
+X in 1..12.
+
+?- [X,Y,Z] ins 0..3.
+X in 0..3,
+Y in 0..3,
+Z in 0..3.
+==
+
+Domains are taken into account when further constraints are stated,
+and by enumeration predicates like labeling/2.
+
+### Examples				{#clpfd-examples}
+
+Here is an example session with a few queries and their answers:
+
+==
+?- use_module(library(clpfd)).
+% library(clpfd) compiled into clpfd 0.06 sec, 633,732 bytes
+true.
+
+?- X #> 3.
+X in 4..sup.
+
+?- X #\= 20.
+X in inf..19\/21..sup.
+
+?- 2*X #= 10.
+X = 5.
+
+?- X*X #= 144.
+X in -12\/12.
+
+?- 4*X + 2*Y #= 24, X + Y #= 9, [X,Y] ins 0..sup.
+X = 3,
+Y = 6.
+
+?- X #= Y #<==> B, X in 0..3, Y in 4..5.
+B = 0,
+X in 0..3,
+Y in 4..5.
+==
+
+In each case, and as for all pure programs, the answer is
+declaratively equivalent to the original query, and in many cases the
+constraint solver has deduced additional domain restrictions.
+
+### Enumeration predicates and search    {#clpfd-search}
+
+In addition to being declarative replacements for low-level arithmetic
+predicates, CLP(FD) constraints are also often used to solve
+combinatorial problems such as planning, scheduling and allocation
+tasks. To let you conveniently model and solve such problems, this
+library provides several constraints beyond typical integer
+arithmetic, such as all_distinct/1, global_cardinality/2 and
+cumulative/1.
+
+Using CLP(FD) constraints to solve combinatorial tasks typically
+consists of two phases:
+
+    1. First, all relevant constraints are stated.
+    2. Second, if the domain of each involved variable is _finite_,
+       then _enumeration predicates_ can be used to search for
+       concrete solutions.
+
+It is good practice to keep the modeling part, via a dedicated
+predicate, separate from the actual search for solutions. This lets
+you observe termination and determinism properties of the modeling
+part in isolation from the search, and more easily try different
+search strategies.
+
+As an example of a constraint satisfaction problem, consider the
+cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
+denote distinct integers between 0 and 9. It can be modeled in CLP(FD)
+as follows:
+
+==
+:- use_module(library(clpfd)).
+
+puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
+        Vars = [S,E,N,D,M,O,R,Y],
+        Vars ins 0..9,
+        all_different(Vars),
+                  S*1000 + E*100 + N*10 + D +
+                  M*1000 + O*100 + R*10 + E #=
+        M*10000 + O*1000 + N*100 + E*10 + Y,
+        M #\= 0, S #\= 0.
+==
+
+Notice that we are _not_ using labeling/2 in this predicate, so that
+we can first execute and observe the modeling part in isolation.
+Sample query and its result (actual variables replaced for
+readability):
+
+==
+?- puzzle(As+Bs=Cs).
+As = [9, A2, A3, A4],
+Bs = [1, 0, B3, A2],
+Cs = [1, 0, A3, A2, C5],
+A2 in 4..7,
+all_different([9, A2, A3, A4, 1, 0, B3, C5]),
+91*A2+A4+10*B3#=90*A3+C5,
+A3 in 5..8,
+A4 in 2..8,
+B3 in 2..8,
+C5 in 2..8.
+==
+
+From this answer, we see that the modeling part _terminates_ and is in
+fact _deterministic_. Moreover, we see from the residual goals that
+the constraint solver has deduced more stringent bounds for all
+variables. Such observations are only possible if modeling and search
+parts are cleanly separated.
+
+Labeling can then be used to search for solutions in a separate
+predicate or goal:
+
+==
+?- puzzle(As+Bs=Cs), label(As).
+As = [9, 5, 6, 7],
+Bs = [1, 0, 8, 5],
+Cs = [1, 0, 6, 5, 2] ;
+false.
+==
+
+In this case, it suffices to label a subset of variables to find the
+puzzle's unique solution, since the constraint solver is strong enough
+to reduce the domains of remaining variables to singleton sets. In
+general though, it is necessary to label all variables to obtain
+ground solutions.
+
+### Advanced topics			{#clpfd-advanced-topics}
 
 If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
 monotonic: Adding new constraints cannot yield new solutions. When
@@ -951,9 +1054,10 @@ domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         domain_expand_(Right0, M, Right).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   similar to domain_expand/3, tailored for division: an interval
-   [From,To] is extended to [From*M, ((To+1)*M - 1)], i.e., to all
-   values that integer-divided by M yield a value from interval.
+   similar to domain_expand/3, tailored for truncated division: an
+   interval [From,To] is extended to [From*M, ((To+1)*M - 1)], i.e.,
+   to all values that truncated integer-divided by M yield a value
+   from interval.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_expand_more(D0, M, D) :-
@@ -1093,7 +1197,9 @@ intervals_to_domain(Is, D) :-
 %         * Domain1 \/ Domain2
 %           The union of Domain1 and Domain2.
 
-V in D :-
+Var in Dom :- clpfd_in(Var, Dom).
+
+clpfd_in(V, D) :-
         fd_variable(V),
         drep_to_domain(D, Dom),
         domain(V, Dom).
@@ -1109,10 +1215,15 @@ fd_variable(V) :-
 %  The variables in the list Vars are elements of Domain.
 
 Vs ins D :-
-        must_be(list, Vs),
+        fd_must_be_list(Vs),
         maplist(fd_variable, Vs),
         drep_to_domain(D, Dom),
         domains(Vs, Dom).
+
+fd_must_be_list(Ls) :-
+        (   fd_var(Ls) -> type_error(list, Ls)
+        ;   must_be(list, Ls)
+        ).
 
 %% indomain(?Var)
 %
@@ -1223,7 +1334,7 @@ label(Vs) :- labeling([], Vs).
 
 labeling(Options, Vars) :-
         must_be(list, Options),
-        must_be(list, Vars),
+        fd_must_be_list(Vars),
         maplist(finite_domain, Vars),
         label(Options, Options, default(leftmost), default(up), default(step), [], upto_ground, Vars).
 
@@ -1554,7 +1665,7 @@ tighten(max, E, V) :- E #> V.
 % Vars are pairwise distinct.
 
 all_different(Ls) :-
-        must_be(list, Ls),
+        fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
         put_attr(Orig, clpfd_original, all_different(Ls)),
         all_different(Ls, [], Orig),
@@ -1584,7 +1695,7 @@ all_different([X|Right], Left, Orig) :-
 %  ==
 
 all_distinct(Ls) :-
-        must_be(list, Ls),
+        fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
         make_propagator(pdistinct(Ls), Prop),
         distinct_attach(Ls, Prop, []),
@@ -1609,29 +1720,37 @@ sum(Vs, Op, Value) :-
         maplist(=(1), Ones),
         scalar_product(Ones, Vs, Op, Value).
 
-vars_plusterm([], _, T, T).
-vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C* ?(V)), T).
-
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
+% True iff the scalar product of Cs and Vs is in relation Rel to Expr.
 % Cs is a list of integers, Vs is a list of variables and integers.
-% True if the scalar product of Cs and Vs is in relation Rel to Expr,
-% where Rel is #=, #\=, #<, #>, #=< or #>=.
+% Rel is #=, #\=, #<, #>, #=< or #>=.
 
 scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
         must_be(list, Vs),
-        must_be(callable, Op),
         maplist(fd_variable, Vs),
-        must_be(acyclic, Value),
-        (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
-        ;   domain_error(scalar_product_relation, Op)
-        ),
-        vars_plusterm(Cs, Vs, 0, Left),
-        (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
-            scalar_product_(Op, Cs1, Vs1, Const)
-        ;   sum(Cs, Vs, 0, Op, Value)
+        (   Op = (#=), single_value(Value, Right), ground(Vs) ->
+            foldl(coeff_int_linsum, Cs, Vs, 0, Right)
+        ;   must_be(callable, Op),
+            (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
+            ;   domain_error(scalar_product_relation, Op)
+            ),
+            must_be(acyclic, Value),
+            foldl(coeff_var_plusterm, Cs, Vs, 0, Left),
+            (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
+                scalar_product_(Op, Cs1, Vs1, Const)
+            ;   sum(Cs, Vs, 0, Op, Value)
+            )
         ).
+
+single_value(V, V)    :- var(V), !, non_monotonic(V).
+single_value(V, V)    :- integer(V).
+single_value(?(V), V) :- fd_variable(V).
+
+coeff_var_plusterm(C, V, T0, T0+(C* ?(V))).
+
+coeff_int_linsum(C, I, S0, S) :- S is S0 + C*I.
 
 sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
 sum([C|Cs], [X|Xs], Acc, Op, Value) :-
@@ -1934,7 +2053,10 @@ parse_clpfd(E, R,
              m(A mod B)        => [g(B #\= 0), p(pmod(A, B, R))],
              m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
-             m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
+             m(A//B)           => [g(B #\= 0), p(ptzdiv(A, B, R))],
+             m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
+             m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
@@ -1993,7 +2115,7 @@ parse_goal(p(Prop)) -->
 parse_init([], _)     --> [].
 parse_init([V|Vs], P) --> [init_propagator(V, P)], parse_init(Vs, P).
 
-%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%?- set_prolog_flag(answer_write_options, [portray(true)]),
 %   clpfd:parse_clpfd_clauses(Clauses), maplist(portray_clause, Clauses).
 
 
@@ -2237,7 +2359,7 @@ clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Conditions under which an equality can be compiled to built-in
-   arithmetic. Their order is significant.
+   arithmetic. Their order is significant. (/)/2 becomes (//)/2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 expr_conds(E, E)                 --> [integer(E)],
@@ -2249,9 +2371,10 @@ expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
 expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0*B0, A*B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0-B0, A-B)           --> expr_conds(A0, A), expr_conds(B0, B).
-expr_conds(A0/B0, A//B)          --> % "/" becomes "//"
+expr_conds(A0//B0, A//B)         -->
         expr_conds(A0, A), expr_conds(B0, B),
         [B =\= 0].
+expr_conds(A0/B0, AB)            --> expr_conds(A0//B0, AB).
 expr_conds(min(A0,B0), min(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(max(A0,B0), max(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0 mod B0, A mod B)   -->
@@ -2266,15 +2389,26 @@ expr_conds(A0^B0, A^B)           -->
 :- dynamic
         user:goal_expansion/2.
 
+user:goal_expansion(Var in Dom, In) :-
+        \+ current_prolog_flag(clpfd_goal_expansion, false),
+        (   ground(Dom), Dom = L..U, integer(L), integer(U) ->
+            expansion_simpler(
+                (   integer(Var) ->
+                    between(L, U, Var)
+                ;   clpfd:clpfd_in(Var, Dom)
+                ), In)
+        ;   In = clpfd:clpfd_in(Var, Dom)
+        ).
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(clpfd:expr_conds(X0, X), CsX),
-        phrase(clpfd:expr_conds(Y0, Y), CsY),
-        clpfd:list_goal(CsX, CondX),
-        clpfd:list_goal(CsY, CondY),
-        Equal = (   CondX ->
+        phrase(expr_conds(X0, X), CsX),
+        phrase(expr_conds(Y0, Y), CsY),
+        list_goal(CsX, CondX),
+        list_goal(CsY, CondY),
+        expansion_simpler(
+                (   CondX ->
                     (   var(Y) -> Y is X
-                    ;   CondY ->  X =:= Y
+                    ;   CondY -> X =:= Y
                     ;   T is X, clpfd:clpfd_equal(T, Y0)
                     )
                 ;   CondY ->
@@ -2282,23 +2416,54 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                     ;   T is Y, clpfd:clpfd_equal(X0, T)
                     )
                 ;   clpfd:clpfd_equal(X0, Y0)
-                ).
+                ), Equal).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(clpfd:expr_conds(X0, X), CsX),
-        phrase(clpfd:expr_conds(Y0, Y), CsY),
-        clpfd:list_goal(CsX, CondX),
-        clpfd:list_goal(CsY, CondY),
-        Geq = (   CondX ->
+        phrase(expr_conds(X0, X), CsX),
+        phrase(expr_conds(Y0, Y), CsY),
+        list_goal(CsX, CondX),
+        list_goal(CsY, CondY),
+        expansion_simpler(
+              (   CondX ->
                   (   CondY -> X >= Y
                   ;   T is X, clpfd:clpfd_geq(T, Y0)
                   )
               ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
-              ).
+              ), Geq).
 user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
+
+expansion_simpler((True->Then0;_), Then) :-
+        is_true(True), !,
+        expansion_simpler(Then0, Then).
+expansion_simpler((False->_;Else0), Else) :-
+        is_false(False), !,
+        expansion_simpler(Else0, Else).
+expansion_simpler((If->Then0;Else0), (If->Then;Else)) :- !,
+        expansion_simpler(Then0, Then),
+        expansion_simpler(Else0, Else).
+expansion_simpler((Var is Expr,Goal), Goal) :-
+        ground(Expr), !,
+        Var is Expr.
+expansion_simpler((Var is Expr,Goal), (Var = Expr,Goal)) :- var(Expr), !.
+expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
+expansion_simpler(between(L,U,V), Goal) :- maplist(integer, [L,U,V]), !,
+        (   between(L,U,V) -> Goal = true
+        ;   Goal = false
+        ).
+expansion_simpler(Goal, Goal).
+
+is_true(true).
+is_true(integer(I))  :- integer(I).
+:- if(current_predicate(var_property/2)).
+is_true(var(X))      :- var(X), var_property(X, fresh(true)).
+is_false(integer(X)) :- var(X), var_property(X, fresh(true)).
+is_false((A,B))      :- is_false(A) ; is_false(B).
+:- endif.
+is_false(var(X)) :- nonvar(X).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2552,8 +2717,10 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 L #==> R   :-
-        phrase((reify(L, BL),reify(R, BR)), Ps),
-        propagator_init_trigger([BL,BR], pimpl(BL,BR,Ps)).
+        reify(L, LB, LPs),
+        reify(R, RB, RPs),
+        append(LPs, RPs, Ps),
+        propagator_init_trigger([LB,RB], pimpl(LB,RB,Ps)).
 
 %% ?P #<== ?Q
 %
@@ -2632,6 +2799,12 @@ disjunctive_eqs_vals(A #\/ B) -->
         disjunctive_eqs_vals(A),
         disjunctive_eqs_vals(B).
 
+%% ?P #\ ?Q
+%
+% Either P holds or Q holds, but not both.
+
+L #\ R :- (L #\/ R) #/\ #\ (L #/\ R).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
    X/Y, Y can as well be 0, for example. Note that it is OK to
@@ -2670,7 +2843,10 @@ parse_reified(E, R, D,
                m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        => [skeleton(A,B,D,R,pdiv)],
+               m(A/B)        => [skeleton(A,B,D,R,ptzdiv)],
+               m(A//B)       => [skeleton(A,B,D,R,ptzdiv)],
+               m(A div B)    => [skeleton(A,B,D,R,pdiv)],
+               m(A rdiv B)   => [skeleton(A,B,D,R,prdiv)],
                m(A mod B)    => [skeleton(A,B,D,R,pmod)],
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
@@ -2752,7 +2928,7 @@ reified_goal(l(L), _)     --> [[L]].
 parse_init_dcg([], _)     --> [].
 parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 
-%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%?- set_prolog_flag(answer_write_options, [portray(true)]),
 %   clpfd:parse_reified_clauses(Cs), maplist(portray_clause, Cs).
 
 reify(E, B) :- reify(E, B, _).
@@ -2769,7 +2945,7 @@ reifiable(V in _) :- fd_variable(V).
 reifiable(Expr)   :-
         Expr =.. [Op,Left,Right],
         (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
-        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/]),
+        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/,#\]),
             reifiable(Left),
             reifiable(Right)
         ).
@@ -2810,6 +2986,7 @@ reify_(L #< R, B)  --> reify_(R #>= (L+1), B).
 reify_(L #==> R, B)  --> reify_((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> reify_(R #==> L, B).
 reify_(L #<==> R, B) --> reify_((L #==> R) #/\ (R #==> L), B).
+reify_(L #\ R, B) --> reify_((L #\/ R) #/\ #\ (L #/\ R), B).
 reify_(L #/\ R, B)   -->
         (   { conjunctive_neqs_var_drep(L #/\ R, V, D) } -> reify_(V in D, B)
         ;   boolean(L, R, B, reified_and)
@@ -2910,6 +3087,11 @@ skeleton(Vs, Vs-Prop) :-
 is_drep(N)      :- integer(N).
 is_drep(N..M)   :- drep_bound(N), drep_bound(M), N \== sup, M \== inf.
 is_drep(D1\/D2) :- is_drep(D1), is_drep(D2).
+is_drep({AI})   :- is_and_integers(AI).
+is_drep(\D)     :- is_drep(D).
+
+is_and_integers(I)     :- integer(I).
+is_and_integers((A,B)) :- is_and_integers(A), is_and_integers(B).
 
 drep_bound(I)   :- integer(I).
 drep_bound(sup).
@@ -2923,6 +3105,16 @@ drep_to_intervals(N..M)     -->
         ).
 drep_to_intervals(D1 \/ D2) -->
         drep_to_intervals(D1), drep_to_intervals(D2).
+drep_to_intervals(\D0) -->
+        { drep_to_domain(D0, D1),
+          domain_complement(D1, D),
+          domain_to_drep(D, Drep) },
+        drep_to_intervals(Drep).
+drep_to_intervals({AI}) -->
+        and_integers_(AI).
+
+and_integers_(I)     --> { integer(I) }, [n(I)-n(I)].
+and_integers_((A,B)) --> and_integers_(A), and_integers_(B).
 
 drep_to_domain(DR, D) :-
         must_be(ground, DR),
@@ -3271,14 +3463,12 @@ lex_chain(Lss) :-
         (   Lss == [] -> true
         ;   Lss = [First|Rest],
             make_propagator(presidual(lex_chain(Lss)), Prop),
-            lex_chain_(Rest, First, Prop)
+            foldl(lex_chain_(Prop), Rest, First, _)
         ).
 
-lex_chain_([], _, _).
-lex_chain_([Ls|Lss], Prev, Prop) :-
+lex_chain_(Prop, Ls, Prev, Ls) :-
         maplist(prop_init(Prop), Ls),
-        lex_le(Prev, Ls),
-        lex_chain_(Lss, Ls, Prop).
+        lex_le(Prev, Ls).
 
 lex_le([], []).
 lex_le([V1|V1s], [V2|V2s]) :-
@@ -3296,11 +3486,12 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 %% tuples_in(+Tuples, +Relation).
 %
-% Relation must be a list of lists of integers. The elements of the
-% list Tuples are constrained to be elements of Relation. Arbitrary
-% finite relations, such as compatibility tables, can be modeled in
-% this way. For example, if 1 is compatible with 2 and 5, and 4 is
-% compatible with 0 and 3:
+% True iff all Tuples are elements of Relation. Each element of the
+% list Tuples is a list of integers or finite domain variables.
+% Relation is a list of lists of integers. Arbitrary finite relations,
+% such as compatibility tables, can be modeled in this way. For
+% example, if 1 is compatible with 2 and 5, and 4 is compatible with 0
+% and 3:
 %
 % ==
 % ?- tuples_in([[X,Y]], [[1,2],[1,5],[4,0],[4,3]]), X = 4.
@@ -3356,7 +3547,7 @@ relation_tuple(Relation, Tuple) :-
 
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
-        lists_firsts_rests(Relation0, Firsts, Relation1),
+        maplist(list_first_rest, Relation0, Firsts, Relation1),
         (   var(T) ->
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
@@ -3806,7 +3997,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NR is -R,
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
-                fd_get(Y, _, YL, YU, _),
+                fd_get(Y, YD, YL, YU, _),
                 min_max_factor(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
@@ -3815,41 +4006,54 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 ;   (   Y =\= 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
                     )
+                ),
+                (   Z =:= 0 ->
+                    (   \+ domain_contains(XD, 0) -> kill(MState), Y = 0
+                    ;   \+ domain_contains(YD, 0) -> kill(MState), X = 0
+                    ;   true
+                    )
+                ;  neq_num(X, 0), neq_num(Y, 0)
                 )
-            ),
-            (   Z =\= 0 -> neq_num(X, 0), neq_num(Y, 0)
-            ;   true
             )
         ;   (   X == Y -> kill(MState), X^2 #= Z
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, _, YL, YU, _),
-                fd_get(Z, _, ZL, ZU, _),
-                min_max_factor(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
-                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
-                (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_max_factor(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
-                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
-                ;   NYL = n(Y), NYU = n(Y)
-                ),
-                (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
-                    min_product(NXL, NXU, NYL, NYU, NZL),
-                    max_product(NXL, NXU, NYL, NYU, NZU),
-                    (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
-                    ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
-                        fd_put(Z, ZD3, ZPs2)
+                fd_get(Z, ZD, ZL, ZU, _),
+                (   Y == Z, \+ domain_contains(ZD, 0) -> kill(MState), X = 1
+                ;   X == Z, \+ domain_contains(ZD, 0) -> kill(MState), Y = 1
+                ;   min_max_factor(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
+                    update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
+                    (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
+                        min_max_factor(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
+                        update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
+                    ;   NYL = n(Y), NYU = n(Y)
                     ),
-                    (   domain_contains(ZD3, 0) ->  true
-                    ;   neq_num(X, 0), neq_num(Y, 0)
+                    (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
+                        min_product(NXL, NXU, NYL, NYU, NZL),
+                        max_product(NXL, NXU, NYL, NYU, NZU),
+                        (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
+                        ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
+                            fd_put(Z, ZD3, ZPs2)
+                        ),
+                        (   domain_contains(ZD3, 0) ->  true
+                        ;   neq_num(X, 0), neq_num(Y, 0)
+                        )
+                    ;   true
                     )
-                ;   true
                 )
             )
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% X / Y = Z
 
-run_propagator(pdiv(X,Y,Z), MState) :-
+% X div Y = Z
+run_propagator(pdiv(X,Y,Z), MState) :- kill(MState), Z #= (X-(X mod Y)) // Y.
+
+% X rdiv Y = Z
+run_propagator(prdiv(X,Y,Z), MState) :- kill(MState), Z*Y #= X.
+
+% X // Y = Z (round towards zero)
+run_propagator(ptzdiv(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
             ;   fd_get(Y, YD, YL, YU, YPs),
@@ -5610,9 +5814,9 @@ all_neq([X|Xs], C) :-
 
 %%    circuit(+Vs)
 %
-%     True  if  the  list  Vs  of  finite  domain  variables  induces  a
-%     Hamiltonian circuit. The k-th element of  Vs denotes the successor
-%     of node k. Node indexing starts with 1. Examples:
+%     True iff the list Vs of finite domain variables induces a
+%     Hamiltonian circuit. The k-th element of Vs denotes the
+%     successor of node k. Node indexing starts with 1. Examples:
 %
 %     ==
 %     ?- length(Vs, _), circuit(Vs), label(Vs).
@@ -5692,16 +5896,16 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 
 %% cumulative(+Tasks, +Options)
 %
-%  Tasks is a list of tasks, each of the form task(S_i, D_i, E_i, C_i,
-%  T_i). S_i denotes the start time, D_i the positive duration, E_i
-%  the end time, C_i the non-negative resource consumption, and T_i
-%  the task identifier. Each of these arguments must be a finite
-%  domain variable with bounded domain, or an integer. The constraint
-%  holds if at any time during the start and end of each task, the
-%  total resource consumption of all tasks running at that time does
-%  not exceed the global resource limit (which is 1 by default).
-%  Options is a list of options. Currently, the only supported option
-%  is:
+%  Schedule with a limited resource. Tasks is a list of tasks, each of
+%  the form task(S_i, D_i, E_i, C_i, T_i). S_i denotes the start time,
+%  D_i the positive duration, E_i the end time, C_i the non-negative
+%  resource consumption, and T_i the task identifier. Each of these
+%  arguments must be a finite domain variable with bounded domain, or
+%  an integer. The constraint holds iff at each time slot during the
+%  start and end of each task, the total resource consumption of all
+%  tasks running at that time does not exceed the global resource
+%  limit (which is 1 by default). Options is a list of options.
+%  Currently, the only supported option is:
 %
 %    * limit(L)
 %      The integer L is the global resource limit.
@@ -5727,8 +5931,9 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 
 cumulative(Tasks, Options) :-
         must_be(list(list), [Tasks,Options]),
-        (   memberchk(limit(L), Options) -> must_be(integer, L)
-        ;   L = 1
+        (   Options = [] -> L = 1
+        ;   Options = [limit(L)] -> must_be(integer, L)
+        ;   domain_error(cumulative_options_empty_or_limit, Options)
         ),
         (   Tasks = [] -> true
         ;   maplist(task_bs, Tasks, Bss),
@@ -5738,8 +5943,37 @@ cumulative(Tasks, Options) :-
             maplist(fd_sup, Ends, MaxEnds),
             min_list(MinStarts, Start),
             max_list(MaxEnds, End),
+            min_end_time(Tasks, L, Start),
             resource_limit(Start, End, Tasks, Bss, L)
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Naive lower bound for global end time, assuming no gaps.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+min_end_time(Tasks, Limit, Start) :-
+        maplist(task_duration_consumption, Tasks, Ds, Cs),
+        maplist(area, Ds, Cs, As),
+        sum(As, #=, ?(Area)),
+        ?(MinTime) #= (Area + Limit - 1) // Limit,
+        tasks_all_done(Tasks, DoneTime),
+        DoneTime #>= Start + MinTime.
+
+task_duration_consumption(task(_,D,_,C,_), D, C).
+
+area(X, Y, Area) :- ?(Area) #= ?(X) * ?(Y).
+
+tasks_all_done(Tasks, End) :-
+        maplist(task_end, Tasks, [End0|Es]),
+        foldl(max_, Es, End0, End).
+
+max_(E, M0, M) :- ?(M) #= max(E, M0).
+
+task_end(task(_,_,End,_,_), ?(End)).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   All time slots must respect the resource limit.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 resource_limit(T, T, _, _, _) :- !.
 resource_limit(T0, T, Tasks, Bss, L) :-
@@ -5779,6 +6013,36 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% disjoint2(+Rectangles)
+%
+%  True iff Rectangles are not overlapping. Rectangles is a list of
+%  terms of the form F(X_i, W_i, Y_i, H_i), where F is any functor,
+%  and the arguments are finite domain variables or integers that
+%  denote, respectively, the X coordinate, width, Y coordinate and
+%  height of each rectangle.
+
+disjoint2(Rs0) :-
+        must_be(list, Rs0),
+        maplist(=.., Rs0, Rs),
+        non_overlapping(Rs).
+
+non_overlapping([]).
+non_overlapping([R|Rs]) :-
+        maplist(non_overlapping_(R), Rs),
+        non_overlapping(Rs).
+
+non_overlapping_(A, B) :-
+        a_not_in_b(A, B),
+        a_not_in_b(B, A).
+
+a_not_in_b([_,AX,AW,AY,AH], [_,BX,BW,BY,BH]) :-
+        ?(AX) #=< ?(BX) #/\ ?(BX) #< ?(AX) + ?(AW) #==>
+                   ?(AY) + ?(AH) #=< ?(BY) #\/ ?(BY) + ?(BH) #=< ?(AY),
+        ?(AY) #=< ?(BY) #/\ ?(BY) #< ?(AY) + ?(AH) #==>
+                   ?(AX) + ?(AW) #=< ?(BX) #\/ ?(BX) + ?(BW) #=< ?(AX).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% automaton(+Signature, +Nodes, +Arcs)
 %
 %  Describes a list of finite domain variables with a finite
@@ -5812,7 +6076,7 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  Describes a list of finite domain variables with a finite
-%  automaton. True if the finite automaton induced by Nodes and Arcs
+%  automaton. True iff the finite automaton induced by Nodes and Arcs
 %  (extended with Counters) accepts Signature. Sequence is a list of
 %  terms, all of the same shape. Additional constraints must link
 %  Sequence to Signature, if necessary. Nodes is a list of
@@ -5820,12 +6084,13 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
 %  denote the automaton's transitions. Each node is represented by an
 %  arbitrary term. Transitions that are not mentioned go to an
-%  implicit failure node. Exprs is a list of arithmetic expressions,
+%  implicit failure node. `Exprs` is a list of arithmetic expressions,
 %  of the same length as Counters. In each expression, variables
 %  occurring in Counters correspond to old counter values, and
 %  variables occurring in Template correspond to the current element
 %  of Sequence. When a transition containing expressions is taken,
-%  counters are updated as stated. By default, counters remain
+%  each counter is updated as stated by the result of the
+%  corresponding arithmetic expression. By default, counters remain
 %  unchanged. Counters is a list of variables that must not occur
 %  anywhere outside of the constraint goal. Initials is a list of the
 %  same length as Counters. Counter arithmetic on the transitions
@@ -5896,21 +6161,22 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
             )
         ;   must_be(list, Seqs)
         ),
-        memberchk(source(Source), Ns),
         maplist(monotonic, Cs, CsM),
         maplist(arc_normalized(CsM), As0, As),
-        include(sink, Ns, Sinks0),
-        maplist(arg(1), Sinks0, Sinks),
+        include_args1(sink, Ns, Sinks),
+        include_args1(source, Ns, Sources),
         maplist(initial_expr, Cs, Exprs0),
         phrase((arcs_relation(As, Relation),
                 nodes_nums(Sinks, SinkNums0),
-                node_num(Source, Start)),
+                nodes_nums(Sources, SourceNums0)),
                [s([]-0, Exprs0)], [s(_,Exprs1)]),
         maplist(expr0_expr, Exprs1, Exprs),
         phrase(transitions(Seqs, Template, Sigs, Start, End, Exprs, Cs, Is, Fs), Tuples),
+        list_to_drep(SourceNums0, SourceDrep),
+        Start in SourceDrep,
         list_to_drep(SinkNums0, SinkDrep),
-        tuples_in(Tuples, Relation),
-        End in SinkDrep.
+        End in SinkDrep,
+        tuples_in(Tuples, Relation).
 
 expr0_expr(Es0-_, Es) :-
         pairs_keys(Es0, Es1),
@@ -5975,6 +6241,12 @@ node_num(Node, Num) -->
           )
         }.
 
+include_args1(Goal, Ls0, As) :-
+        include(Goal, Ls0, Ls),
+        maplist(arg(1), Ls, As).
+
+source(source(_)).
+
 sink(sink(_)).
 
 monotonic(Var, ?(Var)).
@@ -6002,7 +6274,7 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  :- use_module(library(clpfd)).
 %
 %  sudoku(Rows) :-
-%          length(Rows, 9), maplist(length_(9), Rows),
+%          length(Rows, 9), maplist(length_list(9), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
 %          transpose(Rows, Columns),
@@ -6010,7 +6282,7 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %          Rows = [A,B,C,D,E,F,G,H,I],
 %          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
 %
-%  length_(L, Ls) :- length(Ls, L).
+%  length_list(L, Ls) :- length(Ls, L).
 %
 %  blocks([], [], []).
 %  blocks([A,B,C|Bs1], [D,E,F|Bs2], [G,H,I|Bs3]) :-
@@ -6032,33 +6304,29 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %
 %  ==
 %  ?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
-%  [9, 8, 7, 6, 5, 4, 3, 2, 1]
-%  [2, 4, 6, 1, 7, 3, 9, 8, 5]
-%  [3, 5, 1, 9, 2, 8, 7, 4, 6]
-%  [1, 2, 8, 5, 3, 7, 6, 9, 4]
-%  [6, 3, 4, 8, 9, 2, 1, 5, 7]
-%  [7, 9, 5, 4, 6, 1, 8, 3, 2]
-%  [5, 1, 9, 2, 8, 6, 4, 7, 3]
-%  [4, 7, 2, 3, 1, 9, 5, 6, 8]
-%  [8, 6, 3, 7, 4, 5, 2, 1, 9]
+%  [9,8,7,6,5,4,3,2,1]
+%  [2,4,6,1,7,3,9,8,5]
+%  [3,5,1,9,2,8,7,4,6]
+%  [1,2,8,5,3,7,6,9,4]
+%  [6,3,4,8,9,2,1,5,7]
+%  [7,9,5,4,6,1,8,3,2]
+%  [5,1,9,2,8,6,4,7,3]
+%  [4,7,2,3,1,9,5,6,8]
+%  [8,6,3,7,4,5,2,1,9]
 %  Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
 %  ==
 
-transpose(Ms, Ts) :-
-        must_be(list(list), Ms),
-        (   Ms = [] -> Ts = []
-        ;   Ms = [F|_],
-            transpose(F, Ms, Ts)
-        ).
+transpose(Ls, Ts) :-
+        must_be(list(list), Ls),
+        lists_transpose(Ls, Ts).
 
-transpose([], _, []).
-transpose([_|Rs], Ms, [Ts|Tss]) :-
-        lists_firsts_rests(Ms, Ts, Ms1),
-        transpose(Rs, Ms1, Tss).
+lists_transpose([], []).
+lists_transpose([L|Ls], Ts) :- foldl(transpose_, L, Ts, [L|Ls], _).
 
-lists_firsts_rests([], [], []).
-lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
-        lists_firsts_rests(Rest, Fs, Oss).
+transpose_(_, Fs, Lists0, Lists) :-
+        maplist(list_first_rest, Lists0, Fs, Lists).
+
+list_first_rest([L|Ls], L, Ls).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -6070,14 +6338,14 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 % ==
 % :- use_module(library(clpfd)).
 %
-%  n_factorial(N, F) :-
-%          zcompare(C, N, 0),
-%          n_factorial_(C, N, F).
+% n_factorial(N, F) :-
+%         zcompare(C, N, 0),
+%         n_factorial_(C, N, F).
 %
-%  n_factorial_(=, _, 1).
-%  n_factorial_(>, N, F) :-
-%       F #= F0*N, N1 #= N - 1,
-%       n_factorial(N1, F0).
+% n_factorial_(=, _, 1).
+% n_factorial_(>, N, F) :-
+%         F #= F0*N, N1 #= N - 1,
+%         n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
@@ -6120,10 +6388,10 @@ chain(Zs, Relation) :-
         (   chain_relation(Relation) -> true
         ;   domain_error(chain_relation, Relation)
         ),
-        (   Zs = [] -> true
-        ;   Zs = [X|Xs],
-            foldl(chain(Relation), Xs, X, _)
-        ).
+        chain_(Zs, Relation).
+
+chain_([], _).
+chain_([X|Xs], Relation) :- foldl(chain(Relation), Xs, X, _).
 
 chain_relation(#=).
 chain_relation(#<).
@@ -6170,9 +6438,8 @@ fd_sup(X, Sup) :-
 
 %% fd_size(+Var, -Size)
 %
-%  Determine the size of a variable's domain. Size is the number of
-%  elements of the current domain of Var, or the atom *sup* if the
-%  domain is unbounded.
+%  Size is the number of elements of the current domain of Var, or the
+%  atom *sup* if the domain is unbounded.
 
 fd_size(X, S) :-
         (   fd_get(X, XD, _) ->
@@ -6185,10 +6452,32 @@ fd_size(X, S) :-
 %% fd_dom(+Var, -Dom)
 %
 %  Dom is the current domain (see in/2) of Var. This predicate is
-%  useful if you want to reason about domains. It is not needed if you
-%  only want to display remaining domains; instead, separate your
+%  useful if you want to reason about domains. It is _not_ needed if
+%  you only want to display remaining domains; instead, separate your
 %  model from the search part and let the toplevel display this
 %  information via residual goals.
+%
+%  For example, to implement a custom labeling strategy, you may need
+%  to inspect the current domain of a finite domain variable. With the
+%  following code, you can convert a _finite_ domain to a list of
+%  integers:
+%
+%  ==
+%  dom_integers(D, Is) :- phrase(dom_integers_(D), Is).
+%
+%  dom_integers_(I)      --> { integer(I) }, [I].
+%  dom_integers_(L..U)   --> { numlist(L, U, Is) }, Is.
+%  dom_integers_(D1\/D2) --> dom_integers_(D1), dom_integers_(D2).
+%  ==
+%
+%  Example:
+%
+%  ==
+%  ?- X in 1..5, X #\= 4, fd_dom(X, D), dom_integers(D, Is).
+%  D = 1..3\/5,
+%  Is = [1,2,3,5],
+%  X in 1..3\/5.
+%  ==
 
 fd_dom(X, Drep) :-
         (   fd_get(X, XD, _) ->
@@ -6338,22 +6627,24 @@ attribute_goal_(absdiff_neq(X,Y,C))    --> [abs(?(X) - ?(Y)) #\= C].
 attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(?(X) - ?(Y)) #>= C].
 attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [?(X) #\= ?(Y) + ?(Z)].
 attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
-attribute_goal_(pdiv(X,Y,Z))           --> [?(X) / ?(Y) #= ?(Z)].
+attribute_goal_(ptzdiv(X,Y,Z))         --> [?(X) // ?(Y) #= ?(Z)].
+attribute_goal_(pdiv(X,Y,Z))           --> [?(X) div ?(Y) #= ?(Z)].
+attribute_goal_(prdiv(X,Y,Z))          --> [?(X) rdiv ?(Y) #= ?(Z)].
 attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
 attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
 attribute_goal_(pmod(X,M,K))           --> [?(X) mod ?(M) #= ?(K)].
 attribute_goal_(prem(X,Y,Z))           --> [?(X) rem ?(Y) #= ?(Z)].
 attribute_goal_(pmax(X,Y,Z))           --> [?(Z) #= max(?(X),?(Y))].
 attribute_goal_(pmin(X,Y,Z))           --> [?(Z) #= min(?(X),?(Y))].
-attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->
-        [Left #\= C],
-        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
-        [Left #= C],
-        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
-        [Left #=< C],
-        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
+attribute_goal_(scalar_product_neq(Cs,Vs,C)) -->
+        [Left #\= Right],
+        { scalar_product_left_right([-1|Cs], [C|Vs], Left, Right) }.
+attribute_goal_(scalar_product_eq(Cs,Vs,C)) -->
+        [Left #= Right],
+        { scalar_product_left_right([-1|Cs], [C|Vs], Left, Right) }.
+attribute_goal_(scalar_product_leq(Cs,Vs,C)) -->
+        [Left #=< Right],
+        { scalar_product_left_right([-1|Cs], [C|Vs], Left, Right) }.
 attribute_goal_(pdifferent(_,_,_,O))    --> original_goal(O).
 attribute_goal_(weak_distinct(_,_,_,O)) --> original_goal(O).
 attribute_goal_(pdistinct(Vs))          --> [all_distinct(Vs)].
@@ -6401,13 +6692,6 @@ conjunction(A, B, G, D) -->
         ;   [(?(A) #/\ ?(B) #/\ G) #<==> ?(D)]
         ).
 
-coeff_var_term(C, V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
-
-fold_product([], [], P, P).
-fold_product([C|Cs], [V|Vs], P0, P) :-
-        coeff_var_term(C, V, T),
-        fold_product(Cs, Vs, P0 + T, P).
-
 original_goal(V) -->
         (   { get_attr(V, clpfd_original, Goal) } ->
             { del_attr(V, clpfd_original) },
@@ -6416,8 +6700,48 @@ original_goal(V) -->
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Projection of scalar product.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+scalar_product_left_right(Cs, Vs, Left, Right) :-
+        pairs_keys_values(Pairs0, Cs, Vs),
+        partition(ground, Pairs0, Grounds, Pairs),
+        maplist(pair_product, Grounds, Prods),
+        sum_list(Prods, Const),
+        NConst is -Const,
+        partition(compare_coeff0, Pairs, Negatives, _, Positives),
+        maplist(negate_coeff, Negatives, Rights),
+        scalar_plusterm(Rights, Right0),
+        scalar_plusterm(Positives, Left0),
+        (   Const =:= 0 -> Left = Left0, Right = Right0
+        ;   Right0 == 0 -> Left = Left0, Right = NConst
+        ;   Left0 == 0 ->  Left = Const, Right = Right0
+        ;   (   Const < 0 ->
+                Left = Left0,       Right = Right0+NConst
+            ;   Left = Left0+Const, Right = Right0
+            )
+        ).
+
+negate_coeff(A0-B, A-B) :- A is -A0.
+
+pair_product(A-B, Prod) :- Prod is A*B.
+
+compare_coeff0(Coeff-_, Compare) :- compare(Compare, Coeff, 0).
+
+scalar_plusterm([], 0).
+scalar_plusterm([CV|CVs], T) :-
+        coeff_var_term(CV, T0),
+        foldl(plusterm_, CVs, T0, T).
+
+plusterm_(CV, T0, T0+T) :- coeff_var_term(CV, T).
+
+coeff_var_term(C-V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Generated predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- discontiguous term_expansion/2.
 
 term_expansion(make_parse_clpfd, Clauses)   :- make_parse_clpfd(Clauses).
 term_expansion(make_parse_reified, Clauses) :- make_parse_reified(Clauses).
@@ -6460,3 +6784,31 @@ warn_if_bounded_arithmetic :-
 
 prolog:message(clpfd(bounded)) -->
         ['Using CLP(FD) with bounded arithmetic may yield wrong results.'-[]].
+
+
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The clpfd library cannot  be   analysed  completely by library(sandbox).
+However, the API does not provide any  meta predicates. It provides some
+unification hooks, but put_attr/3 does not  allow injecting in arbitrary
+attributes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile
+	sandbox:safe_primitive/1.
+
+safe_api(Name/Arity, sandbox:safe_primitive(clpfd:Head)) :-
+	functor(Head, Name, Arity).
+
+term_expansion(safe_api, Clauses) :-
+	module_property(clpfd, exports(API)),
+	maplist(safe_api, API, Clauses).
+
+safe_api.
+% Support clpfd goal expansion.
+sandbox:safe_primitive(clpfd:clpfd_equal(_,_)).
+sandbox:safe_primitive(clpfd:clpfd_geq(_,_)).
+sandbox:safe_primitive(clpfd:clpfd_in(_,_)).

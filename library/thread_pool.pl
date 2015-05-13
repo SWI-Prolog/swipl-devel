@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -77,12 +78,14 @@ otherwise during startup of the application.
 */
 
 :- meta_predicate
-	thread_create_in_pool(+, 0, -, +).
+	thread_create_in_pool(+, 0, -, :).
 :- predicate_options(thread_create_in_pool/4, 4,
                      [ wait(boolean),
                        pass_to(system:thread_create/3, 3)
                      ]).
 
+:- multifile
+	create_pool/1.
 
 %%	thread_pool_create(+Pool, +Size, +Options) is det.
 %
@@ -104,9 +107,6 @@ otherwise during startup of the application.
 %	state of a thread. Threads can   be  created both =detached= and
 %	normal and must be joined using   thread_join/2  if they are not
 %	detached.
-%
-%	@bug	The thread creation option =at_exit= is reserved for
-%		internal use by this library.
 
 thread_pool_create(Name, Size, Options) :-
 	must_be(list, Options),
@@ -188,13 +188,43 @@ thread_pool_property(Name, Property) :-
 %	@error	existence_error(thread_pool, Pool) if Pool does not
 %		exist.
 
-thread_create_in_pool(Pool, Goal, Id, Options) :-
+thread_create_in_pool(Pool, Goal, Id, QOptions) :-
+	meta_options(is_meta, QOptions, Options),
+	catch(thread_create_in_pool_(Pool, Goal, Id, Options),
+	      Error, true),
+	(   var(Error)
+	->  true
+	;   Error = error(existence_error(thread_pool, Pool), _),
+	    create_pool_lazily(Pool)
+	->  thread_create_in_pool_(Pool, Goal, Id, Options)
+	;   throw(Error)
+	).
+
+thread_create_in_pool_(Pool, Goal, Id, Options) :-
 	select_option(wait(Wait), Options, ThreadOptions, true),
 	pool_manager(Manager),
 	thread_self(Me),
 	thread_send_message(Manager,
 			    create(Pool, Goal, Me, Wait, ThreadOptions)),
 	wait_reply(Id).
+
+is_meta(at_exit).
+
+
+%%	create_pool_lazily(+Pool) is semidet.
+%
+%	Call the hook create_pool/1 to create the pool lazily.
+
+create_pool_lazily(Pool) :-
+	with_mutex(Pool,
+		   ( mutex_destroy(Pool),
+		     create_pool_sync(Pool)
+		   )).
+
+create_pool_sync(Pool) :-
+	current_thread_pool(Pool), !.
+create_pool_sync(Pool) :-
+	create_pool(Pool).
 
 
 		 /*******************************
@@ -334,23 +364,18 @@ update_pool(create(Name, Goal, For, _, MyOptions),
 	    tpool(Options, Free0, Size, WP, WPT, Members0),
 	    tpool(Options, Free, Size, WP, WPT, Members)) :-
 	succ(Free, Free0), !,
-	thread_self(Me),
 	merge_options(MyOptions, Options, ThreadOptions),
-	(   option(at_exit(_), ThreadOptions)
-	->  reply_error(For, permission_error(specify, option, at_axit)),
+	select_option(at_exit(AtExit), ThreadOptions, ThreadOptions1, true),
+	catch(thread_create(Goal, Id,
+			    [ at_exit(worker_exitted(Name, Id, AtExit))
+			    | ThreadOptions1
+			    ]),
+	      E, true),
+	(   var(E)
+	->  Members = [Id|Members0],
+	    reply(For, Id)
+	;   reply_error(For, E),
 	    Members = Members0
-	;   Exit = thread_send_message(Me, exitted(Name, Id)),
-	    catch(thread_create(Goal, Id,
-				[ at_exit(Exit)
-				| ThreadOptions
-				]),
-		  E, true),
-	    (	var(E)
-	    ->	Members = [Id|Members0],
-		reply(For, Id)
-	    ;	reply_error(For, E),
-		Members = Members0
-	    )
 	).
 update_pool(Create,
 	    tpool(Options, 0, Size, WP, WPT0, Members),
@@ -383,6 +408,19 @@ can_delay(true, BackLog, WP, WPT) :-
 	diff_list_length(WP, WPT, Size),
 	BackLog > Size.
 
+%%	worker_exitted(+PoolName, +WorkerId, :AtExit)
+%
+%	It is possible that  '__thread_pool_manager'   no  longer exists
+%	while closing down the process because   the  manager was killed
+%	before the worker.
+%
+%	@tbd Find a way to discover that we are terminating Prolog.
+
+worker_exitted(Name, Id, AtExit) :-
+	catch(thread_send_message('__thread_pool_manager', exitted(Name, Id)),
+	      _, true),
+	call(AtExit).
+
 
 		 /*******************************
 		 *	       UTIL		*
@@ -414,12 +452,30 @@ wait_reply(Value) :-
 
 
 		 /*******************************
+		 *	       HOOKS		*
+		 *******************************/
+
+%%	create_pool(+PoolName) is semidet.
+%
+%	Hook to create a thread  pool  lazily.   The  hook  is called if
+%	thread_create_in_pool/4 discovers that the thread  pool does not
+%	exist. If the  hook   succeeds,  thread_create_in_pool/4 retries
+%	creating the thread. For  example,  we   can  use  the following
+%	declaration to create threads in the pool =media=, which holds a
+%	maximum of 20 threads.
+%
+%	  ==
+%	  :- multifile thread_pool:create_pool/1.
+%
+%	  thread_pool:create_pool(media) :-
+%	      thread_pool_create(media, 20, []).
+%	  ==
+
+		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/
 :- multifile
 	prolog:message/3.
-
-%	Print messages
 
 prolog:message(thread_pool(Message)) -->
 	message(Message).

@@ -1,4 +1,3 @@
-packages/R/configure
 packages/chr/config.h.in
 packages/chr/configure
 packages/clib/config.h.in
@@ -54,5 +53,7 @@ packages/archive/config.h.in
 packages/archive/configure
 packages/tipc/config.h.in
 packages/tipc/configure
+packages/pengines/configure
+packages/cql/configure
 src/config.h.in
 src/configure

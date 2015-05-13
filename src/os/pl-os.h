@@ -118,6 +118,7 @@ typedef struct
 
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */
+extern int	ttymodified;		/* Did we modify the tty */
 
 #define IsaTty(fd)	isatty(fd)
 

@@ -73,8 +73,8 @@ expand_vars(Bindings, $(Var), Value) :-
 	;   throw(error(existence_error(variable, Name), _))
 	).
 expand_vars(Bindings, Term, Expanded) :-
-	functor(Term, Name, Arity), !,
-	functor(Expanded, Name, Arity),
+	compound_name_arity(Term, Name, Arity), !,
+	compound_name_arity(Expanded, Name, Arity),
 	End is Arity + 1,
 	expand_args(1, End, Bindings, Term, Expanded).
 

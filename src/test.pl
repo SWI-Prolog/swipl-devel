@@ -127,15 +127,15 @@ syntax(quote-7) :-
 	atom_to_term('\'\\\n\'', T, _),
 	T == ''.
 syntax(base-1) :-
-	1'+'1 == 1+1.
+	1+1 == 1+1.
 syntax(base-2) :-
 	16'af == 175.
 syntax(base-3) :-
-	10'af' == af(10).
+	10 af == af(10).
 syntax(base-4) :-
-	_0 = 1, B is _0'+'1, B == 2.
+	_0 = 1, B is _0+1, B == 2.
 syntax(base-5) :-
-	A is 1.0e+0'+'1, A == 2.0.
+	A is 1.0e+0+1, A == 2.0.
 syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
 	E = error(syntax_error(end_of_file), _).
@@ -182,6 +182,8 @@ write_test(q-7) :-
 	term_to_atom(p((0|a)), X), X == 'p((0|a))'.
 write_test(q-8) :-
 	term_to_atom(p((a|b)), X), X == 'p((a|b))'.
+write_test(q-9) :-
+	term_to_atom(., X), X == '\'.\''.
 write_test(op-1) :-
 	term_to_atom(-((a,b)), X), X == '- (a,b)'.
 write_test(op-2) :-
@@ -1070,8 +1072,8 @@ sets(setof-2) :-
 	keysort(R0, R),
 	(   R =@= [3.14-[1, 2],
 		   42-[1, 2],
-		   atom-[1, 2],
 		   S-[1, 2],
+		   atom-[1, 2],
 		   compound(1)-[1, 2],
 		   [a, list]-[1, 2],
 		   compound(_A0, _B0)-[1, 2], % order is not defined
@@ -1079,12 +1081,32 @@ sets(setof-2) :-
 	->  true
 	;   R =@= [3.14-[1, 2],
 		   42-[1, 2],
-		   atom-[1, 2],
 		   S-[1, 2],
+		   atom-[1, 2],
 		   compound(1)-[1, 2],
 		   [a, list]-[1, 2],
 		   compound(A, A)-[1, 2],
 		   compound(_A1, _B1)-[1, 2]]
+	->  true
+	;   R =@= [3.14-[1, 2],
+		   42-[1, 2],
+		   S-[1, 2],
+		   atom-[1, 2],
+		   compound(1)-[1, 2],
+		   compound(A, A)-[1, 2],
+		   compound(_A1, _B1)-[1, 2],
+		   [a, list]-[1, 2]]		% using `.`
+	->  true
+	;   R =@= [3.14-[1, 2],
+		   42-[1, 2],
+		   S-[1, 2],
+		   atom-[1, 2],
+		   compound(1)-[1, 2],
+		   compound(_A1, _B1)-[1, 2],
+		   compound(A, A)-[1, 2],
+		   [a, list]-[1, 2]]
+	->  true
+	;   format(user_error, 'ERROR: Got ~q~n', [R])
 	).
 sets(vars-1) :-
 	'$free_variable_set'(X^(m:Y^hello(X,Y)), G, V),
@@ -1199,14 +1221,18 @@ atom_handling(complete-1) :-
 		 *	      STRINGS		*
 		 *******************************/
 
-:- set_prolog_flag(backquoted_string, true).
+:- dynamic obq/1.
+:- current_prolog_flag(back_quotes, Old),
+   assertz(obq(Old)).
+:- set_prolog_flag(back_quotes, string).
 
 string_handling(sub-1) :-
 	\+ sub_string(`HTTP/1.1 404 Not Found`, _, _, _, `OK`).
 string_handling(cmp-1) :-
 	`hello` == `hello`.
 
-:- set_prolog_flag(backquoted_string, false).
+:- retract(obq(Old)),
+   set_prolog_flag(back_quotes, Old).
 
 string_handling(atom-1) :-
 	atom_string(X, an_atom),
@@ -1286,6 +1312,11 @@ tcl(c) :- write(hello).
 tcl(a(X)) :- b(X).
 tcl(x(G)) :- G.
 tcl(a(X,X)) :- a(X).
+tcl(scut) :- ( a *-> true ; b *-> c ).
+tcl(cut) :-  ( a -> true  ; b -> c ).
+tcl(vf) :- v(X), X = Y, v(Y).		% B_UNIFY_VF argument ordering
+
+v(_).
 
 mtcl:tcl(a) :- a.
 mtcl:tcl(b) :- a, b.
@@ -1309,6 +1340,15 @@ cl(clause-6) :-
 	B == a(a).
 cl(clause-7) :-
 	clause(mtcl:tcl(H), user:a), H == a.
+cl(clause-8) :-
+	clause(tcl(scut), Body),
+	Body == ( a *-> true ; b *-> c ).
+cl(clause-9) :-
+	clause(tcl(cut), Body),
+	Body == ( a -> true ; b -> c ).
+cl(clause-10) :-
+	clause(tcl(vf), Body),
+	Body =@= (v(X), X = Y, v(Y)).
 
 
 		 /*******************************
@@ -2654,7 +2694,7 @@ unicode_file_locale :-
 	;   E \= error(representation_error(encoding), _)
 	).
 
-%	wide_character_types
+%%	wide_character_types
 %
 %	True if the  character  classification   routines  work  on wide
 %	characters. Hard to say when this is  the case. On some machines
@@ -2664,7 +2704,7 @@ unicode_file_locale :-
 wide_character_types :-
 	current_prolog_flag(encoding, utf8), !.
 
-%	testdir(Dir)
+%%	testdir(Dir)
 %
 %	Enumerate directories holding tests.
 
@@ -2672,10 +2712,12 @@ testdir('Tests/core').
 testdir('Tests/attvar').
 testdir('Tests/library').
 testdir('Tests/charset').
+testdir('Tests/eclipse').
 testdir('Tests/clp').
 testdir('Tests/GC').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
+testdir('Tests/save').
 
 :- dynamic
 	failed/1,

@@ -613,7 +613,7 @@ index(Head) :-
 %	handled dynamically.
 
 hash(PI) :-
-	print_message(warning, decl_no_effect(index(PI))).
+	print_message(warning, decl_no_effect(hash(PI))).
 
 %%	set_base_module(:Base) is det.
 %
@@ -624,13 +624,3 @@ hash(PI) :-
 set_base_module(M:Base) :-
 	set_module(M:base(Base)).
 
-
-		 /*******************************
-		 *	      MESSAGES		*
-		 *******************************/
-
-:- multifile
-        prolog:message//1.
-
-prolog:message(decl_no_effect(Goal)) -->
-	[ 'Deprecated declaration has no effect: ~p'-[Goal] ].

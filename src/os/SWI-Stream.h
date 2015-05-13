@@ -292,6 +292,7 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #ifdef __WINDOWS__
 #define SIO_GETWINSOCK  (6)		/* get underlying SOCKET object */
 #endif
+#define SIO_GETPENDING	(7)		/* get #pending bytes */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
@@ -397,6 +398,7 @@ PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
 PL_EXPORT(ssize_t)	Sread_pending(IOSTREAM *s,
 				      char *buf, size_t limit, int flags);
+PL_EXPORT(size_t)	Spending(IOSTREAM *s);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);
 PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...);

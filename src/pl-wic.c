@@ -24,6 +24,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-dbref.h"
+#include "pl-dict.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -31,7 +32,11 @@
 #include <unistd.h>
 #endif
 
+#ifdef O_DEBUG
+#define Qgetc(s) Sgetc(s)
+#else
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog can compile Prolog source files into intermediate code files,
@@ -117,6 +122,8 @@ Below is an informal description of the format of a `.qlf' file:
 			    <#n subclause> <codes>
 		      | 'X'				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
+			XR_NIL				% []
+			XR_CONS				% functor of [_|_]
 			XR_ATOM    <len><chars>		% atom
 			XR_BLOB	   <blob><private>	% typed atom (blob)
 			XR_INT     <num>		% number
@@ -155,23 +162,25 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 64			/* load all versions later >= X */
-#define VERSION 64			/* save version number */
+#define LOADVERSION 65			/* load all versions later >= X */
+#define VERSION     65			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
-#define XR_REF     0			/* reference to previous */
-#define XR_ATOM	   1			/* atom */
-#define XR_FUNCTOR 2			/* functor */
-#define XR_PRED	   3			/* procedure */
-#define XR_INT     4			/* int */
-#define XR_FLOAT   5			/* float */
-#define XR_STRING  6			/* string */
-#define XR_FILE	   7			/* source file */
-#define XR_MODULE  8			/* a module */
-#define XR_BLOB	   9			/* a typed atom (blob) */
-#define XR_BLOB_TYPE 10			/* name of atom-type declaration */
-#define XR_STRING_UTF8 11		/* Wide character string */
-#define XR_NULL	  12			/* NULL pointer */
+#define XR_REF		0		/* reference to previous */
+#define XR_NIL		1		/* [] */
+#define XR_CONS		2		/* functor of [_|_] */
+#define XR_ATOM		3		/* atom */
+#define XR_FUNCTOR	4		/* functor */
+#define XR_PRED		5		/* procedure */
+#define XR_INT		6		/* int */
+#define XR_FLOAT	7		/* float */
+#define XR_STRING	8		/* string */
+#define XR_FILE		9		/* source file */
+#define XR_MODULE      10		/* a module */
+#define XR_BLOB	       11		/* a typed atom (blob) */
+#define XR_BLOB_TYPE   12		/* name of atom-type declaration */
+#define XR_STRING_UTF8 13		/* Wide character string */
+#define XR_NULL	       14		/* NULL pointer */
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
@@ -482,7 +491,7 @@ getInt64(IOSTREAM *fd)
 
   DEBUG(MSG_QLF_INTEGER, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
 
-  first = Snpgetc(fd);
+  first = Qgetc(fd);
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
@@ -497,7 +506,7 @@ getInt64(IOSTREAM *fd)
   if ( bytes <= 2 )
   { for( b = 0; b < bytes; b++ )
     { first <<= 8;
-      first |= Snpgetc(fd) & 0xff;
+      first |= Qgetc(fd) & 0xff;
     }
 
     shift = (sizeof(first)-1-bytes)*8 + 2;
@@ -509,7 +518,7 @@ getInt64(IOSTREAM *fd)
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
-      first |= Snpgetc(fd) & 0xff;
+      first |= Qgetc(fd) & 0xff;
     }
     shift = (sizeof(first)-bytes)*8;
   }
@@ -553,7 +562,7 @@ getFloat(IOSTREAM *fd)
   unsigned int i;
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
-  { int c = Snpgetc(fd);
+  { int c = Qgetc(fd);
 
     if ( c == -1 )
       fatalError("Unexpected end-of-file in QLT file");
@@ -601,10 +610,15 @@ loadXRc(wic_state *state, int c ARG_LD)
   switch( c )
   { case XR_REF:
     { intptr_t xr  = getLong(fd);
+      DEBUG(MSG_QLF_XR, Sdprintf("Reuse XR(%d)\n", (long)xr));
       word val = lookupXrId(state, xr);
 
       return val;
     }
+    case XR_NIL:
+      return ATOM_nil;
+    case XR_CONS:
+      return ATOM_dot;
     case XR_ATOM:
     { id = ++state->XR->id;
       xr = getAtom(fd, NULL);
@@ -820,7 +834,7 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
   Word vars;
   int rc;
 
-  DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %d ...", Stell(fd)));
+  DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %ld ...", (long)Stell(fd)));
 
   if ( (nvars = getInt(fd)) )
   { term_t *v;
@@ -834,10 +848,12 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
 
   PL_put_variable(term);
   rc = do_load_qlf_term(state, vars, term PASS_LD);
+  if ( rc )
+    resortDictsInTerm(term);
   DEBUG(MSG_QLF_TERM,
 	Sdprintf("Loaded ");
 	PL_write_term(Serror, term, 1200, 0);
-	Sdprintf(" to %d\n", Stell(fd)));
+	Sdprintf(" to %ld\n", (long)Stell(fd)));
   return rc;
 }
 
@@ -986,8 +1002,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	      } else
 	      { Sdprintf("Directive: ");
 	      }
-	      pl_write(goal);
-	      Sdprintf("\n"));
+	      PL_write_term(Serror, goal, 1200, PL_WRT_NEWLINE));
 	if ( !skip )
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
 	  { printMessage(ATOM_warning,
@@ -1079,6 +1094,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
       case 'C':
       { Code bp, ep;
 	int ncodes = getInt(fd);
+	int has_dicts = 0;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
@@ -1139,6 +1155,14 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		break;
 	      }
 	      case CA1_FUNC:
+	      { word w = loadXR(state);
+		FunctorDef fd = valueFunctor(w);
+		if ( fd->name == ATOM_dict )
+		  has_dicts++;
+
+		*bp++ = w;
+		break;
+	      }
 	      case CA1_DATA:
 	      { word w = loadXR(state);
 		if ( isAtom(w) )
@@ -1225,9 +1249,16 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	if ( skip )
-	  freeClause(clause);
-	else
+	{ freeClause(clause);
+	} else
+	{ if ( has_dicts )
+	  { if ( !resortDictsInClause(clause) )
+	    { outOfCore();
+	      exit(1);
+	    }
+	  }
 	  assertProcedure(proc, clause, CL_END PASS_LD);
+	}
       }
     }
   }
@@ -1599,7 +1630,7 @@ static void
 putAtom(wic_state *state, atom_t w)
 { IOSTREAM *fd = state->wicFd;
   Atom a = atomValue(w);
-  static PL_blob_t *text_blob;		/* MT: ok */
+  static PL_blob_t *text_blob;
 
   if ( !text_blob )
     text_blob = PL_find_blob_type("text");
@@ -1811,6 +1842,16 @@ saveXR__LD(wic_state *state, word xr ARG_LD)
     return;
 #endif /* O_STRING */
   }
+
+  if ( xr == ATOM_nil )
+  { Sputc(XR_NIL, fd);
+    return;
+  }
+  if ( xr == ATOM_dot )
+  { Sputc(XR_CONS, fd);
+    return;
+  }
+
 
   if ( savedXRConstant(state, xr) )
     return;
@@ -2981,7 +3022,8 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
     term_t term = PL_new_term_ref();
     term_t qterm = PL_new_term_ref();
 
-    PL_strip_module(A1, &m, term);
+    if ( !PL_strip_module(A1, &m, term) )
+      return FALSE;
     if ( !(PL_is_callable(term)) )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, A1);
 

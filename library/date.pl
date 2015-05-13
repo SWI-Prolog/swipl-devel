@@ -93,16 +93,15 @@ date(iso_8601, Yr, Mon, D, H, Min, S, 0) --> % BC
 date(iso_8601, Y, Mon, D, H, Min, S, 0) -->
 	year(Y),
 	iso_8601_rest(Y, Mon, D, H, Min, S).
-date(rfc_1123, Y, Mon, D, H, Min, S, 0) --> % RFC 1123: "Fri, 08 Dec 2006 15:29:44 GMT"
+date(rfc_1123, Y, Mon, D, Hr, Min, Sec, 0) --> % RFC 1123: "Fri, 08 Dec 2006 15:29:44 GMT"
 	day_name(_), ", ", ws,
 	day_of_the_month(D), ws,
 	month_name(Mon), ws,
 	year(Y), ws,
-	hour(H), ":", minute(Min), ":", second(S), ws,
-	(   "GMT"
-	->  []
-	;   []
-	).
+	hour(H), ":", minute(M), ":", second(S), ws,
+	timezone(DH, DM, DS),
+	{ Hr is H + DH, Min is M + DM, Sec is S + DS }.
+
 
 %%	iso_8601_rest(+Year:int, -Mon, -Day, -H, -M, -S)
 %

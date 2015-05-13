@@ -33,11 +33,11 @@
 #define O_MY_GMP_ALLOC 1
 #define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
 
-COMMON(void) 	initGMP(void);
-COMMON(void) 	cleanupGMP(void);
+COMMON(void)	initGMP(void);
+COMMON(void)	cleanupGMP(void);
 COMMON(void)	get_integer(word w, number *n);
-COMMON(void)	promoteToMPZNumber(number *n);
-COMMON(void)	promoteToMPQNumber(number *n);
+COMMON(int)	promoteToMPZNumber(number *n);
+COMMON(int)	promoteToMPQNumber(number *n);
 COMMON(void)	ensureWritableNumber(Number n);
 COMMON(void)	clearGMPNumber(Number n);
 COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);

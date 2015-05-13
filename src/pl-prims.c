@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -376,11 +376,11 @@ static
 PRED_IMPL("\\=", 2, not_unify, 0)
 { PRED_LD
   Word p0 = valTermRef(A1);
-  term_t ex = 0;
+  term_t ex = PL_new_term_ref();
 
-  if ( can_unify(p0, p0+1, &ex) )
+  if ( can_unify(p0, p0+1, ex) )
     return FALSE;
-  if ( ex )
+  if ( !PL_is_variable(ex) )
     return PL_raise_exception(ex);
   return TRUE;
 }
@@ -388,53 +388,76 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Public unification procedure for `raw' data.   See also PL_unify().
+
+Return:
+
+  - TRUE: success
+  - If (flags&ALLOW_RETCODE), one of
+      - FALSE: unification failure
+      - *_OVERFLOW: stack or memory overflow
+    Else
+      - FALSE: unification failure or raised exception
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
+int
 unify_ptrs(Word t1, Word t2, int flags ARG_LD)
 { for(;;)
   { int rc;
 
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc >= 0 )
-    { return rc;
-    } else if ( rc == MEMORY_OVERFLOW )
-    { return PL_error(NULL, 0, NULL, ERR_NOMEM);
-    } else				/* Stack overflow */
-    { int rc2;
+      return rc;
 
-      PushPtr(t1); PushPtr(t2);
-      rc2 = makeMoreStackSpace(rc, flags);
-      PopPtr(t2); PopPtr(t1);
-      if ( !rc2 )
-	return FALSE;
-    }
+    if ( !(flags&ALLOW_RETCODE) )
+    { if ( rc == MEMORY_OVERFLOW )
+      { return PL_no_memory();
+      } else				/* Stack overflow */
+      { int rc2;
+
+	PushPtr(t1); PushPtr(t2);
+        rc2 = makeMoreStackSpace(rc, flags);
+        PopPtr(t2); PopPtr(t1);
+	if ( !rc2 )
+	  return FALSE;
+      }
+    } else
+      return rc;			/* return error code */
   }
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-can_unify(t1, t2, &ex, flags) succeeds if   two  terms *can* be unified,
-without actually doing so.  This  is   basically  a  stripped version of
-unify() above. See this function for  comments.   Note  that  we have to
-execute delayed goals and these may raise an exception. If this happens,
-ex is a reference to the exception term.
+can_unify(t1, t2, ex) succeeds if two   terms  *can* be unified, without
+actually doing so. This  is  basically   a  stripped  version of unify()
+above. See this function for comments.  Note   that  we  have to execute
+delayed goals and these may raise an   exception. If this happens, ex is
+set to the exception term.
+
+If ex = 0, a possible exception is ignored and cleared.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-can_unify(Word t1, Word t2, term_t *ex)
+can_unify(Word t1, Word t2, term_t ex)
 { GET_LD
   fid_t fid;
 
   if ( (fid = PL_open_foreign_frame()) )
-  { if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+  { int handle_exception = !ex;
+
+    if ( !ex )
+      ex = PL_new_term_ref();
+
+    if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	 foreignWakeup(ex PASS_LD) )
     { PL_discard_foreign_frame(fid);
       return TRUE;
     }
 
-    if ( !*ex && exception_term )	/* overflow exceptions from unify() */
-      *ex = exception_term;
+    if ( exception_term && isVar(*valTermRef(ex)) )
+      PL_put_term(ex, exception_term);
+    if ( !handle_exception && !isVar(*valTermRef(ex)) )
+      PL_clear_exception();
+
     PL_discard_foreign_frame(fid);
   }
 
@@ -894,7 +917,7 @@ static void
 mark_last_args(acyclic_state *state ARG_LD)
 { size_t count;
 
-  DEBUG(3, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
+  DEBUG(MSG_ACYCLIC, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
 
   if ( (count=state->last_count) > 0 )
   { Word p = state->start;
@@ -904,10 +927,11 @@ mark_last_args(acyclic_state *state ARG_LD)
     { Functor f = valueTerm(*p);
 
       f->definition |= MARK_MASK;
-      DEBUG(4, Sdprintf("\tmark %s/%d at %p as acyclic\n",
-			stringAtom(nameFunctor(f->definition)),
-			arityFunctor(f->definition),
-			f));
+      DEBUG(MSG_ACYCLIC,
+	    Sdprintf("\tmark %s/%d at %p as acyclic\n",
+		     stringAtom(nameFunctor(f->definition)),
+		     arityFunctor(f->definition),
+		     f));
 
       if ( --count == 0 )
 	return;
@@ -937,11 +961,12 @@ ph1_is_acyclic(Word p ARG_LD)
     { Functor f = valueTerm(*p);
       int arity;
 
-      DEBUG(3, Sdprintf("Term %s/%d at %p (%s)\n",
-			stringAtom(nameFunctor(f->definition)),
-			arityFunctor(f->definition), f,
-			(f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
-							         : "new"));
+      DEBUG(MSG_ACYCLIC,
+	    Sdprintf("Term %s/%d at %p (%s)\n",
+		     stringAtom(nameFunctor(f->definition)),
+		     arityFunctor(f->definition), f,
+		     (f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
+							      : "new"));
 
       if ( f->definition & (FIRST_MASK|MARK_MASK) )
       { if ( f->definition & MARK_MASK )	/* MARK_MASK:  already acyclic */
@@ -964,21 +989,23 @@ ph1_is_acyclic(Word p ARG_LD)
 	state.last_count++;
       }
     } else
-    { DEBUG(3, { if ( isAtom(*p) )
-		   Sdprintf("Atom %s\n", stringAtom(*p));
-		 else if ( isVar(*p) )
-		   Sdprintf("Var at %p\n", p);
-	       });
+    { DEBUG(MSG_ACYCLIC,
+	    { if ( isAtom(*p) )
+		Sdprintf("Atom %s\n", stringAtom(*p));
+	      else if ( isVar(*p) )
+		Sdprintf("Var at %p\n", p);
+	    });
     next:
       if ( state.start )
       { mark_last_args(&state PASS_LD);
 	p = --state.argp;
 	if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
 	{ popSegStack(&stack, &state, acyclic_state);
-	  DEBUG(3, Sdprintf("Last arg of %s/%d at %p\n",
-			    stringAtom(nameFunctor(*p)),
-			    arityFunctor(*p),
-			    p));
+	  DEBUG(MSG_ACYCLIC,
+		Sdprintf("Last arg of %s/%d at %p\n",
+			 stringAtom(nameFunctor(*p)),
+			 arityFunctor(*p),
+			 p));
 	  p += arityFunctor(*p);
 	  deRef(p);
 	  state.last_count++;
@@ -1488,7 +1515,7 @@ There are atoms of different  type.   We  only define comparison between
 atoms of the same type, except for mixed ISO Latin-1 and UCS atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+int
 compareAtoms(atom_t w1, atom_t w2)
 { Atom a1 = atomValue(w1);
   Atom a2 = atomValue(w2);
@@ -1540,7 +1567,7 @@ compareStandard(Word p1, Word p2, int eq)
 
     Rules:
 
-    Var @< AttVar @< Number @< Atom @< String < Term
+    Var @< AttVar @< Number @< String @< Atom < Term
 
     OldVar < NewVar	(not relyable)
     Atom:	alphabetically
@@ -1894,7 +1921,7 @@ PRED_IMPL("same_term", 2, same_term, 0)
 
 PRED_IMPL("functor", 3, functor, 0)
 { PRED_LD
-  int arity;
+  size_t arity;
   atom_t name;
   Word p = valTermRef(A1);
 
@@ -1902,6 +1929,10 @@ PRED_IMPL("functor", 3, functor, 0)
 
   if ( isTerm(*p) )
   { FunctorDef fd = valueFunctor(functorTerm(*p));
+
+    if ( fd->arity == 0 )
+      return PL_domain_error("compound_non_zero_arity", A1);
+
     if ( !PL_unify_atom(A2, fd->name) ||
 	 !PL_unify_integer(A3, fd->arity) )
       fail;
@@ -1918,13 +1949,10 @@ PRED_IMPL("functor", 3, functor, 0)
   if ( !PL_is_atomic(A2) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, A2);
 
-  if ( !PL_get_integer_ex(A3, &arity) )
+  if ( !PL_get_size_ex(A3, &arity) )
     fail;
   if ( arity == 0 )
     return PL_unify(A1, A2);
-  if ( arity < 0 )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, A3);
   if ( PL_get_atom_ex(A2, &name) )
     return PL_unify_functor(A1, PL_new_functor(name, arity));
 
@@ -1932,11 +1960,87 @@ PRED_IMPL("functor", 3, functor, 0)
 }
 
 
+/* compound_name_arity(+Compound, -Name, -Arity) */
+/* compound_name_arity(-Compound, +Name, +Arity) */
+
+PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
+{ PRED_LD
+  size_t arity;
+  atom_t name;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+
+  if ( isTerm(*p) )
+  { FunctorDef fd = valueFunctor(functorTerm(*p));
+    if ( !PL_unify_atom(A2, fd->name) ||
+	 !PL_unify_integer(A3, fd->arity) )
+      fail;
+
+    succeed;
+  }
+  if ( !canBind(*p) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, A1);
+
+  if ( !PL_get_atom_ex(A2, &name) ||
+       !PL_get_size_ex(A3, &arity) )
+    fail;
+
+  return PL_unify_compound(A1, PL_new_functor(name, arity));
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int get_arg_integer_ex(term_t t, intptr_t *n)
+
+Get argument position from t.  Returns:
+
+   TRUE  if t is a small non-negative integer
+   -1    if t is unbound
+   FALSE
+     - with exception if t is not an integer or negative
+     - without exception if t is 0 or a large positive integer
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+get_arg_integer_ex(term_t t, intptr_t *n ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isTaggedInt(*p) )
+  { intptr_t v = valInt(*p);
+
+    if ( v > 0 )
+    { *n = v;
+      return TRUE;
+    }
+    if ( v == 0 )
+      return FALSE;
+  }
+
+  if ( isInteger(*p) )
+  { number n;
+
+    get_integer(*p, &n);
+    if ( ar_sign_i(&n) < 0 )
+      PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, t);
+
+    return FALSE;
+  }
+
+  if ( canBind(*p) )
+    return -1;
+
+  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+  return FALSE;
+}
+
+
 static
 PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  int arity;
-  int argn;
+  unsigned arity;
+  unsigned argn;
 
   term_t n    = A1;
   term_t term = A2;
@@ -1944,7 +2048,8 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { int idx;
+    { intptr_t idx;
+      int rc;
       Word p = valTermRef(term);
 
       deRef(p);
@@ -1953,23 +2058,20 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
 
-      if ( PL_get_integer(n, &idx) )
-      { if ( idx > 0 && idx <= arity )
+      if ( (rc=get_arg_integer_ex(n, &idx PASS_LD)) == TRUE )
+      { if ( idx <= (intptr_t)arity )
 	{ Word ap = argTermP(*p, idx-1);
 
 	  return unify_ptrs(valTermRef(arg), ap, ALLOW_GC|ALLOW_SHIFT PASS_LD);
 	}
-	if ( idx < 0 )
-	  return PL_error("arg", 3, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, n);
 	fail;
       }
-      if ( PL_is_variable(n) )
+      if ( rc == -1 )			/* variable */
       { argn = 1;
 
 	goto genarg;
       }
-      return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_integer, n);
+      return FALSE;			/* bigint, negative or type error */
     }
     case FRG_REDO:
     { term_t a;
@@ -1979,7 +2081,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 
       deRef(p);
       arity = arityTerm(*p);
-      argn = (int)CTX_INT + 1;
+      argn = (unsigned)CTX_INT + 1;
 
     genarg:
       rc = FALSE;
@@ -2014,6 +2116,30 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 
 #define SETARG_BACKTRACKABLE    0x1
 #define SETARG_LINK		0x2
+
+
+/* unify_vp() assumes *vp is a variable and binds it to val.
+   The assignment is *not* trailed. As no allocation takes
+   place, there are no error conditions.
+*/
+
+void
+unify_vp(Word vp, Word val ARG_LD)
+{ deRef(val);
+
+  if ( isVar(*val) )
+  { if ( val < vp )
+    { *vp = makeRef(val);
+    } else if ( vp < val )
+    { setVar(*vp);
+      *val = makeRef(vp);
+    } else
+      setVar(*vp);
+  } else if ( isAttVar(*val) )
+  { *vp = makeRef(val);
+  } else
+    *vp = *val;
+}
 
 
 static word
@@ -2081,22 +2207,9 @@ setarg(term_t n, term_t term, term_t value, int flags)
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
   v = valTermRef(value);
-  deRef(v);
+  unify_vp(a, v PASS_LD);
 
-  if ( isVar(*v) )
-  { if ( v < a )
-    { *a = makeRef(v);
-    } else if ( a < v )
-    { setVar(*a);
-      *v = makeRef(a);
-    } else
-      setVar(*a);
-  } else if ( isAttVar(*v) )
-  { *a = makeRef(v);
-  } else
-    *a = *v;
-
-  succeed;
+  return TRUE;
 }
 
 
@@ -2211,12 +2324,13 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 { GET_LD
   term_t t = A1;
   term_t list = A2;
-  int arity;
-  atom_t name;
+  Word p;
   int n;
 
   if ( PL_is_variable(t) )
-  { term_t tail = PL_copy_term_ref(list);
+  { atom_t name;
+    int arity;
+    term_t tail = PL_copy_term_ref(list);
     term_t head = PL_new_term_ref();
 
     if ( !PL_get_list(tail, head, tail) )
@@ -2227,7 +2341,10 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     }
 
     if ( PL_get_nil(tail) )		/* A =.. [H] */
+    { if ( !PL_is_atomic(head) )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, head);
       return PL_unify(t, head);
+    }
     if ( !PL_get_atom_ex(head, &name) )
       fail;
 
@@ -2249,20 +2366,27 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     succeed;
   }
 
-					/* 1st arg is term or atom */
-  if ( PL_get_name_arity(t, &name, &arity) )
-  { term_t head = PL_new_term_ref();
-    term_t l = PL_new_term_ref();
+  p = valTermRef(t);
+  deRef(p);
 
-    if ( !PL_unify_list_ex(list, head, l) )
-      fail;
-    if ( !PL_unify_atom(head, name) )
-      fail;
+  if ( isTerm(*p) )
+  { FunctorDef fd = valueFunctor(functorTerm(*p));
+    term_t head, l;
 
-    for(n = 1; n <= arity; n++)
+    if ( fd->arity == 0 )
+      return PL_domain_error("compound_non_zero_arity", A1);
+
+    head = PL_new_term_ref();
+    l    = PL_new_term_ref();
+
+    if ( !PL_unify_list_ex(list, head, l) ||
+	 !PL_unify_atom(head, fd->name) )
+      return FALSE;
+
+    for(n = 1; n <= fd->arity; n++)
     { if ( !PL_unify_list_ex(l, head, l) ||
 	   !PL_unify_arg(n, t, head) )
-	fail;
+	return FALSE;
     }
 
     return PL_unify_nil_ex(l);
@@ -2279,6 +2403,65 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
   }
 
   fail;
+}
+
+
+/** compound_name_arguments(-Term, +Name, +Arguments)
+    compound_name_arguments(+Term, -Name, -Arguments)
+*/
+
+static
+PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
+{ GET_LD
+  term_t t = A1;
+  term_t list = A3;
+  int arity;
+  atom_t name;
+  int n;
+
+  if ( PL_is_variable(t) )
+  { term_t tail = PL_copy_term_ref(list);
+    term_t head = PL_new_term_ref();
+
+    if ( !PL_get_atom_ex(A2, &name) )
+      return FALSE;
+
+    if ( (arity = (int)lengthList(tail, FALSE)) < 0 ) /* TBD: check MAXINT */
+    { if ( arity == -1 )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+      else
+	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    }
+
+    if ( !PL_unify_compound(t, PL_new_functor(name, arity)) )
+      fail;
+
+    for(n=1; PL_get_list(tail, head, tail); n++)
+    { if ( !PL_unify_arg(n, t, head) )
+	fail;
+    }
+
+    succeed;
+  }
+
+					/* 1st arg is term */
+  if ( PL_get_compound_name_arity(t, &name, &arity) )
+  { term_t head = PL_new_term_ref();
+    term_t l = PL_copy_term_ref(list);
+
+    if ( !PL_unify_atom(A2, name) )
+      fail;
+
+    for(n = 1; n <= arity; n++)
+    { if ( !PL_unify_list_ex(l, head, l) ||
+	   !PL_unify_arg(n, t, head) )
+	fail;
+    }
+
+    return PL_unify_nil_ex(l);
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, A1);
 }
 
 
@@ -2738,7 +2921,9 @@ subsumes(term_t general, term_t specific ARG_LD)
   rc = PL_unify(general, specific);
   LD->prolog_flag.occurs_check = omode;
 
-  if ( rc && foreignWakeup(&ex PASS_LD) )
+  if ( rc &&
+       (ex = PL_new_term_ref()) &&
+       foreignWakeup(ex PASS_LD) )
   { int rc = TRUE;
 
     startCritical;
@@ -2758,7 +2943,7 @@ subsumes(term_t general, term_t specific ARG_LD)
     return rc;
   }
 
-  if ( ex )
+  if ( ex && !PL_is_variable(ex) )
     return PL_raise_exception(ex);
 
   fail;
@@ -3160,11 +3345,14 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 }
 
 
-#define X_AUTO   0x00
-#define X_ATOM   0x01
-#define X_NUMBER 0x02
-#define X_MASK   0x0f
-#define X_CHARS  0x10
+#define	X_AUTO		   0x00
+#define	X_ATOM		   0x01
+#define	X_NUMBER	   0x02
+#define	X_MASK		   0x0f
+#define	X_CHARS		   0x10
+#define	X_STRING	   0x20
+#define	X_NO_SYNTAX_ERROR  0x40
+#define X_NO_LEADING_WHITE 0x80
 
 static int
 x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
@@ -3175,12 +3363,15 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
   arg1 = PL_get_text(atom, &atext,
 		     (how & X_NUMBER) ? CVT_NUMBER : CVT_ATOMIC);
 
-  if ( arg1 )
+  if ( arg1 )					/* +,? */
   { int ok;
+    int out_type;
     fid_t fid = PL_open_foreign_frame();
 
-    ok = PL_unify_text(string, 0, &atext,
-		       (how & X_CHARS) ? PL_CHAR_LIST : PL_CODE_LIST);
+    out_type = (how&X_CHARS ? PL_CHAR_LIST :
+		how&X_STRING ? PL_STRING : PL_CODE_LIST);
+
+    ok = PL_unify_text(string, 0, &atext, out_type);
 
     if ( ok || !(how & X_NUMBER) )
     { PL_close_foreign_frame(fid);
@@ -3202,45 +3393,45 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
   if ( PL_get_text(string, &stext, flags2) != TRUE )
     return FALSE;
 
-  how &= X_MASK;
-
-  switch(how)
+  switch(how&X_MASK)
   { case X_ATOM:
     case_atom:
       return PL_unify_text(atom, 0, &stext, PL_ATOM);
     case X_NUMBER:
     case X_AUTO:
-    { strnumstat rc = NUM_ERROR;
+    { strnumstat rc;
 
       if ( stext.encoding == ENC_ISO_LATIN_1 )
       { unsigned char *q, *s = (unsigned char *)stext.text.t;
 	number n;
 	AR_CTX;
 
-	if ( how == X_NUMBER )
-	{ if ( s )				/* ISO: number_codes(X, "  42") */
-	  { while(*s && isBlank(*s))
-	      s++;
-	  }
+	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
+	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
+	    s++;
 	}
 
 	AR_BEGIN();
-	if ( s && (rc=str_number(s, &q, &n, FALSE)) == NUM_OK )
+	if ( (rc=str_number(s, &q, &n, FALSE)) == NUM_OK )
 	{ if ( *q == EOS )
-	  { int rc = PL_unify_number(atom, &n);
+	  { int rc2 = PL_unify_number(atom, &n);
 	    clearNumber(&n);
 	    AR_END();
-	    return rc;
-	  }
+	    return rc2;
+	  } else
+	    rc = NUM_ERROR;
 	  clearNumber(&n);
 	}
 	AR_END();
-      }
+      } else
+	rc = NUM_ERROR;
 
-      if ( how == X_AUTO )
+      if ( (how&X_MASK) == X_AUTO )
 	goto case_atom;
-      else
+      else if ( !(how & X_NO_SYNTAX_ERROR) )
 	return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
+      else
+	return FALSE;
     }
     default:
       assert(0);
@@ -3280,7 +3471,16 @@ PRED_IMPL("number_chars", 2, number_chars, PL_FA_ISO)
 static
 PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
 { PRED_LD
-  return x_chars("number_chars", A1, A2, X_NUMBER PASS_LD);
+  return x_chars("number_codes", A1, A2, X_NUMBER PASS_LD);
+}
+
+
+static
+PRED_IMPL("number_string", 2, number_string, 0)
+{ PRED_LD
+  return x_chars("number_string", A1, A2,
+		 X_NUMBER|X_STRING|X_NO_SYNTAX_ERROR|X_NO_LEADING_WHITE
+		 PASS_LD);
 }
 
 
@@ -3606,8 +3806,16 @@ append_text_to_buffer(Buffer b, PL_chars_t *txt, IOENC *enc)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+atomic_list_concat()     implements     atomic_list_concat/2,3       and
+atomics_to_string/2,3.
+
+(*) Note that the atom-version for  historical reasons supports the mode
+(-,+,+)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static foreign_t
-atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
+atomic_list_concat(term_t list, term_t sep, term_t atom, int ret_type ARG_LD)
 { term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   IOENC enc = ENC_ISO_LATIN_1;
@@ -3623,7 +3831,7 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
   { PL_chars_t txt;
 
     if ( !PL_get_text(head, &txt, CVT_ATOMIC) )
-    { if ( PL_is_variable(head) && sep )
+    { if ( PL_is_variable(head) && sep && ret_type == PL_ATOM ) /* see (*) */
 	goto split;
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
     }
@@ -3633,7 +3841,10 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
 
     append_text_to_buffer((Buffer)&b, &txt, &enc);
     PL_free_text(&txt);
-    ntxt++;
+    if ( ++ntxt == 100 )
+    { if ( lengthList(l, TRUE) < 0 )
+	return FALSE;
+    }
   }
 
   if ( PL_get_nil(l) )
@@ -3652,7 +3863,7 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
       sum.length = entriesBuffer(&b, pl_wchar_t);
     }
 
-    rc = PL_unify_text(atom, 0, &sum, PL_ATOM);
+    rc = PL_unify_text(atom, 0, &sum, ret_type);
     discardBuffer(&b);
 
     return rc;
@@ -3673,14 +3884,28 @@ split:
 static
 PRED_IMPL("atomic_list_concat", 3, atomic_list_concat, 0)
 { PRED_LD
-  return atomic_list_concat(A1, A2, A3 PASS_LD);
+  return atomic_list_concat(A1, A2, A3, PL_ATOM PASS_LD);
 }
 
 
 static
 PRED_IMPL("atomic_list_concat", 2, atomic_list_concat, 0)
-{  PRED_LD
-  return atomic_list_concat(A1, 0, A2 PASS_LD);
+{ PRED_LD
+  return atomic_list_concat(A1, 0, A2, PL_ATOM PASS_LD);
+}
+
+
+static
+PRED_IMPL("atomics_to_string", 3, atomics_to_string, 0)
+{ PRED_LD
+  return atomic_list_concat(A1, A2, A3, PL_STRING PASS_LD);
+}
+
+
+static
+PRED_IMPL("atomics_to_string", 2, atomics_to_string, 0)
+{ PRED_LD
+  return atomic_list_concat(A1, 0, A2, PL_STRING PASS_LD);
 }
 
 
@@ -4111,126 +4336,6 @@ PRED_IMPL("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
 }
 
 
-static
-PRED_IMPL("atom_string", 2, atom_string, 0)
-{ PRED_LD
-  term_t a = A1;
-  term_t str = A2;
-  PL_chars_t t;
-  int rc;
-
-  if ( PL_get_text(str, &t, CVT_ALL) )
-    rc = PL_unify_text(a, 0, &t, PL_ATOM);
-  else if ( PL_get_text(a, &t, CVT_ALL) )
-    rc = PL_unify_text(str, 0, &t, PL_STRING);
-  else
-    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-
-  PL_free_text(&t);
-
-  return rc;
-}
-
-
-static
-PRED_IMPL("string_codes", 2, string_codes, 0)
-{ PRED_LD
-  term_t str = A1;
-  term_t list = A2;
-  PL_chars_t t;
-  int rc;
-
-  if ( PL_get_text(str, &t, CVT_ALL) )
-    rc = PL_unify_text(list, 0, &t, PL_CODE_LIST);
-  else if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) ) /* -, [] */
-    rc = PL_unify_text(str, 0, &t, PL_STRING);
-  else if ( PL_get_text(list, &t, CVT_ALL) )
-    rc = PL_unify_text(str, 0, &t, PL_STRING);
-  else return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-
-  PL_free_text(&t);
-
-  return rc;
-}
-
-
-/** string_code(?Index, +String, ?Code)
-
-True when the Index'ed character of String has code Code.
-*/
-
-static
-PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
-{ PRED_LD
-  PL_chars_t t;
-  size_t idx;
-  int tchar;
-
-  switch( CTX_CNTRL )
-  { case FRG_FIRST_CALL:
-    { size_t i;
-
-      if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) )
-	return FALSE;
-      if ( !PL_is_variable(A1) )
-      { if ( !PL_get_size_ex(A1, &i) )
-	  return FALSE;
-	if ( i >= t.length )
-	  return FALSE;
-	return PL_unify_integer(A3, text_get_char(&t, i));
-      } else
-      { if ( !PL_is_variable(A3) )
-	{ if ( !PL_get_char_ex(A3, &tchar, FALSE) )
-	    return FALSE;
-	} else
-	  tchar = -1;
-
-	idx = 0;
-	goto gen;
-      }
-    }
-    case FRG_REDO:
-    { idx = (size_t)CTX_INT;
-
-      PL_get_text(A2, &t, CVT_ALL);
-      if ( PL_is_variable(A3) )
-	tchar = -1;
-      else
-	PL_get_char(A3, &tchar, FALSE);
-
-    gen:
-      if ( tchar == -1 )
-      { if ( PL_unify_integer(A1, idx) &&
-	     PL_unify_integer(A3, text_get_char(&t, idx)) )
-	{ if ( idx+1 < t.length )
-	    ForeignRedoInt(idx+1);
-	  else
-	    return TRUE;
-	}
-	return FALSE;
-      }
-
-      for(; idx < t.length; idx++)
-      { if ( text_get_char(&t, idx) == tchar )
-	{ if ( PL_unify_integer(A1, idx) )
-	  { for(idx++; idx < t.length; idx++)
-	    { if ( text_get_char(&t, idx) == tchar )
-		ForeignRedoInt(idx);
-	    }
-	    return TRUE;
-	  }
-	  return FALSE;
-	}
-      }
-
-      return FALSE;
-    }
-    default:
-      return TRUE;
-  }
-}
-
-
 foreign_t
 pl_sub_string(term_t atom,
 	      term_t before, term_t len, term_t after,
@@ -4279,6 +4384,35 @@ pl_halt(term_t code)
   PL_halt(status);
   fail;					/* exception? */
 }
+
+#if defined(O_LIMIT_DEPTH) || defined(O_INFERENCE_LIMIT)
+static foreign_t
+unify_det(term_t t ARG_LD)
+{ Choice ch;
+
+  for(ch=LD->choicepoints; ch; ch = ch->parent)
+  { if ( ch->frame == environment_frame )
+      continue;			/* choice from I_FOPENNDET */
+    switch(ch->type)
+    { case CHP_CATCH:
+      case CHP_DEBUG:
+	continue;
+      default:
+	break;
+    }
+    break;
+  }
+
+  if ( ch && ch->frame == environment_frame->parent )
+  { return PL_unify_atom(t, ATOM_cut);
+  } else
+  { if ( PL_unify_atom(t, ATOM_true) )
+      ForeignRedoInt(1);
+    return FALSE;
+  }
+}
+
+#endif
 
 #ifdef O_LIMIT_DEPTH
 
@@ -4358,7 +4492,6 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 	   PL_get_long_ex(oreached, &or) )
       { intptr_t clevel = levelFrame(environment_frame) - 1;
 	intptr_t used = depth_reached - clevel - 1;
-	Choice ch;
 
 	depth_limit   = ol;
 	depth_reached = or;
@@ -4369,26 +4502,7 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 	if ( !PL_unify_integer(res, used) )
 	  fail;
 
-	for(ch=LD->choicepoints; ch; ch = ch->parent)
-	{ if ( ch->frame == environment_frame )
-	    continue;			/* choice from I_FOPENNDET */
-	  switch(ch->type)
-	  { case CHP_CATCH:
-	    case CHP_DEBUG:
-	      continue;
-	    default:
-	      break;
-	  }
-	  break;
-	}
-
-	if ( ch && ch->frame == environment_frame->parent )
-	{ DEBUG(1, Sdprintf("CUT\n"));
-	  return PL_unify_atom(cut, ATOM_cut);
-	} else
-	{ if ( PL_unify_atom(cut, ATOM_true) )
-	    ForeignRedoInt(1);
-	}
+	return unify_det(cut PASS_LD);
       }
 
       break;
@@ -4453,6 +4567,186 @@ PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
 
 #endif /*O_LIMIT_DEPTH*/
 
+#ifdef O_INFERENCE_LIMIT
+
+#define INFERENCE_LIMIT_OVERHEAD 2
+
+static
+PRED_IMPL("$inference_limit", 2, pl_inference_limit, 0)
+{ PRED_LD
+  int64_t limit;
+
+  if ( PL_get_int64_ex(A1, &limit) &&
+       PL_unify_int64(A2, LD->inference_limit.limit) )
+  { int64_t nlimit = LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
+
+    if ( limit < 0 )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      ATOM_not_less_than_zero, A1);
+
+    DEBUG(MSG_INFERENCE_LIMIT,
+	  Sdprintf("Install %lld --> %lld\n",
+		   LD->inference_limit.limit, nlimit));
+
+    if ( nlimit < LD->inference_limit.limit )
+      LD->inference_limit.limit = nlimit;
+
+    updateAlerted(LD);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+/** '$inference_limit_true'(+Limit, +OldLimit, ?Result)
+
+On first call:
+
+  1. If Result is nonvar, there was the inference limit is exceeded.
+     The limit is already reset by '$inference_limit_except'/3, so we
+     just indicate that our result is deterministic.
+  2. Else, restore the limit and indicate determinism in Det.
+
+On redo, use Limit to set a new  limit and fail to continue retrying the
+guarded goal.
+*/
+
+static
+PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
+	  PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { int64_t olimit;
+
+      if ( !PL_is_variable(A3) )
+	return TRUE;
+
+      if ( PL_get_int64_ex(A2, &olimit) )
+      { DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("true (det) --> %lld\n", olimit));
+	LD->inference_limit.limit = olimit;
+	updateAlerted(LD);
+
+	return unify_det(A3 PASS_LD);
+      }
+
+      return FALSE;
+    }
+    case FRG_REDO:
+    { int64_t limit;
+
+      if ( PL_get_int64_ex(A1, &limit) )
+      { LD->inference_limit.limit =
+		LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
+	DEBUG(MSG_INFERENCE_LIMIT,
+	      Sdprintf("true (ndet) --> %lld\n", LD->inference_limit.limit));
+
+	updateAlerted(LD);
+      }
+
+      return FALSE;
+    }
+    case FRG_CUTTED:
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("$inference_limit_false", 1, inference_limit_false, 0)
+{ PRED_LD
+  int64_t olimit;
+
+  if ( PL_get_int64_ex(A1, &olimit) )
+  { LD->inference_limit.limit = olimit;
+    DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("false --> %lld\n", olimit));
+    updateAlerted(LD);
+  }
+
+  return FALSE;
+}
+
+
+/** '$inference_limit_except'(+OldLimit, +Exception, -Result)
+
+Restore the limit. If  exception   is  =inference_limit_exceeded=, unify
+Result with this, otherwise re-throw the exception.
+*/
+
+static
+PRED_IMPL("$inference_limit_except", 3, inference_limit_except, 0)
+{ PRED_LD
+  int64_t olimit;
+
+  if ( PL_get_int64_ex(A1, &olimit) )
+  { atom_t a;
+
+    DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("except --> %lld\n", olimit));
+
+    LD->inference_limit.limit = olimit;
+    updateAlerted(LD);
+
+    if ( PL_get_atom(A2, &a) && a == ATOM_inference_limit_exceeded )
+    { return PL_unify_atom(A3, a);
+    } else
+    { return PL_raise_exception(A2);
+    }
+  }
+
+  return FALSE;
+}
+
+void
+raiseInferenceLimitException(void)
+{ GET_LD
+  fid_t fid;
+  static predicate_t not_exceed[6];
+  static int done = FALSE;
+  Definition def = environment_frame->predicate;
+  int64_t olimit;
+  int i;
+
+  if ( LD->exception.processing )
+    return;
+					/* Do not throw here */
+  olimit = LD->inference_limit.limit;
+  LD->inference_limit.limit = INFERENCE_NO_LIMIT;
+
+  DEBUG(MSG_INFERENCE_LIMIT,
+	Sdprintf("Got inference limit in %s\n", predicateName(def)));
+
+  if ( !done )
+  { not_exceed[0] = PL_predicate("$inference_limit_true",     3, "system");
+    not_exceed[1] = PL_predicate("$inference_limit_false",    1, "system");
+    not_exceed[2] = PL_predicate("$inference_limit_except",   3, "system");
+    not_exceed[3] = PL_predicate("$inference_limit",          2, "system");
+    not_exceed[4] = PL_predicate("call_with_inference_limit", 3, "system");
+    not_exceed[5] = GD->procedures.catch3;
+  }
+
+  for(i=0; i<6; i++)
+  { if ( not_exceed[i]->definition == def )
+    { LD->inference_limit.limit = olimit;
+      DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("--> Ignored\n"));
+      return;
+    }
+  }
+
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t t;
+
+    LD->exception.processing = TRUE;
+    t = PL_new_term_ref();
+    PL_put_atom(t, ATOM_inference_limit_exceeded);
+    PL_raise_exception(t);
+    PL_close_foreign_frame(fid);
+  }
+}
+#endif /*O_INFERENCE_LIMIT*/
 
 		/********************************
 		*          STATISTICS           *
@@ -4530,8 +4824,8 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
   } else if ( key == ATOM_walltime )
   { double wt = WallTime();
     if ( !LD->statistics.last_walltime )
-      LD->statistics.last_walltime = GD->statistics.start_time;
-    v[0] = (int64_t)((wt - GD->statistics.start_time) * 1000.0);
+      LD->statistics.last_walltime = LD->statistics.start_time;
+    v[0] = (int64_t)((wt - LD->statistics.start_time) * 1000.0);
     v[1] = (int64_t)((wt - LD->statistics.last_walltime) * 1000.0);
     LD->statistics.last_walltime = wt;
     vn = 2;
@@ -4648,7 +4942,13 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = GD->statistics.modules;
   else if (key == ATOM_codes)				/* codes */
     v->value.i = GD->statistics.codes;
-  else if (key == ATOM_gctime)
+  else if (key == ATOM_epoch)
+  { v->type = V_FLOAT;
+    v->value.f = LD->statistics.start_time;
+  } else if (key == ATOM_process_epoch)
+  { v->type = V_FLOAT;
+    v->value.f = PL_local_data.statistics.start_time;
+  } else if (key == ATOM_gctime)
   { v->type = V_FLOAT;
     v->value.f = gc_status.time;
   } else if (key == ATOM_collections)
@@ -4821,10 +5121,11 @@ PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$option/3, provides access to the option  structure from Prolog. This is
-halfway a generic structure package ... Anyway, it is better then direct
-coded access, as the  indirect  approach   allows  us  to  enumerate the
-options and generalise the option processing from the saved-states.
+$cmd_option_val/3, provides access to the  option structure from Prolog.
+This is halfway a generic structure  package   ...  Anyway, it is better
+then direct coded  access,  as  the   indirect  approach  allows  us  to
+enumerate the options and generalise  the   option  processing  from the
+saved-states.
 
 See also pl-init.c, which exploits set_pl_option()  to parse the options
 resource  member.  Please  note  this   code    doesn't   use  atoms  as
@@ -4868,7 +5169,7 @@ static const optdef optdefs[] =
 
 
 static
-PRED_IMPL("$option", 2, option, 0)
+PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 { PRED_LD
   char *k;
 
@@ -5030,6 +5331,8 @@ BeginPredDefs(prims)
   PRED_DEF("same_term", 2, same_term, 0)
   PRED_DEF("functor", 3, functor, PL_FA_ISO)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
+  PRED_DEF("compound_name_arity", 3, compound_name_arity, 0)
+  PRED_DEF("compound_name_arguments", 3, compound_name_arguments, 0)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)
@@ -5046,6 +5349,13 @@ BeginPredDefs(prims)
   PRED_DEF("$depth_limit", 3, pl_depth_limit, 0)
   PRED_DEF("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 #endif
+#ifdef O_INFERENCE_LIMIT
+  PRED_DEF("$inference_limit", 2, pl_inference_limit, 0)
+  PRED_DEF("$inference_limit_true", 3, pl_inference_limit_true,
+           PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$inference_limit_false", 1, inference_limit_false, 0)
+  PRED_DEF("$inference_limit_except", 3, inference_limit_except, 0)
+#endif
   PRED_DEF("atom_length", 2, atom_length, PL_FA_ISO)
   PRED_DEF("name", 2, name, 0)
   PRED_DEF("atom_chars", 2, atom_chars, PL_FA_ISO)
@@ -5054,19 +5364,19 @@ BeginPredDefs(prims)
   PRED_DEF("atomic_concat", 3, atomic_concat, 0)
   PRED_DEF("number_chars", 2, number_chars, PL_FA_ISO)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
+  PRED_DEF("number_string", 2, number_string, 0)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
-  PRED_DEF("atom_string", 2, atom_string, 0)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)
   PRED_DEF("atomic_list_concat", 2, atomic_list_concat, 0)
   PRED_DEF("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
   PRED_DEF("string_length", 2, string_length, 0)
-  PRED_DEF("string_codes", 2, string_codes, 0)
-  PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("atomics_to_string", 3, atomics_to_string, 0)
+  PRED_DEF("atomics_to_string", 2, atomics_to_string, 0)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
-  PRED_DEF("$option", 2, option, 0)
+  PRED_DEF("$cmd_option_val", 2, cmd_option_val, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
   PRED_DEF("setarg", 3, setarg, 0)

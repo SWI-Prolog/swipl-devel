@@ -120,7 +120,6 @@ struct PL_global_data
     int		modules;		/* No. of modules in the system */
     size_t	clauses;		/* No. clauses */
     size_t	codes;			/* No. of VM codes generated */
-    double	start_time;		/* When Prolog was started */
     double	user_cputime;		/* User CPU time (whole process) */
     double	system_cputime;		/* Kernel CPU time (whole process) */
 #ifdef O_PLMT
@@ -288,9 +287,10 @@ struct PL_global_data
   } procedures;
 
   struct
-  { buffer	source_files;		/* index --> file */
-    int		_source_index;		/* current index */
-    Table	_source_table;		/* file --> index */
+  { size_t	highest;		/* highest source file index */
+    size_t	no_hole_before;		/* All filled before here */
+    srcfile_array array;		/* index --> file */
+    Table	table;			/* name  --> file */
   } files;
 
 #ifdef HAVE_TGETENT
@@ -345,6 +345,7 @@ struct PL_local_data
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
   int		alerted;		/* Special mode. See updateAlerted() */
+  int		slow_unify;		/* do not use inline unification */
   int		critical;		/* heap is being modified */
   int		break_level;		/* current break level */
   Stack		outofstack;		/* thread is out of stack */
@@ -425,6 +426,7 @@ struct PL_local_data
     uintptr_t	last_cputime;		/* milliseconds last CPU time */
     uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
     uintptr_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
+    double	start_time;		/* When Thread was started */
     double	last_walltime;		/* Last Wall time (m-secs since start) */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */
@@ -558,6 +560,12 @@ struct PL_local_data
   { uintptr_t limit;
     uintptr_t reached;
   } depth_info;
+#endif
+
+#ifdef O_INFERENCE_LIMIT
+  struct
+  { int64_t limit;			/* Raise at this count */
+  } inference_limit;
 #endif
 
   pl_shift_status_t shift_status;	/* Stack shifter status */

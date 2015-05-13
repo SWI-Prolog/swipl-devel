@@ -285,6 +285,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libjpeg-8.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
+  File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
 !else
   File ${SWIPL}\bin\swipl.dll
@@ -302,6 +303,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR\library
 ; SYSTEM STUFF
   File ${SWIPL}\library\listing.pl
+  File ${SWIPL}\library\pprint.pl
   File ${SWIPL}\library\qsave.pl
   File ${SWIPL}\library\statistics.pl
   File ${SWIPL}\library\writef.pl
@@ -324,6 +326,9 @@ Section "Base system (required)"
   File ${SWIPL}\library\prolog_codewalk.pl
   File ${SWIPL}\library\prolog_metainference.pl
   File ${SWIPL}\library\prolog_colour.pl
+  File ${SWIPL}\library\prolog_format.pl
+  File ${SWIPL}\library\prolog_install.pl
+  File ${SWIPL}\library\check_installation.pl
   File ${SWIPL}\library\predicate_options.pl
   File ${SWIPL}\library\git.pl
   File ${SWIPL}\library\prolog_pack.pl
@@ -362,11 +367,14 @@ Section "Base system (required)"
   File ${SWIPL}\library\apply_macros.pl
   File ${SWIPL}\library\apply.pl
   File ${SWIPL}\library\aggregate.pl
+  File ${SWIPL}\library\solution_sequences.pl
   File ${SWIPL}\library\pure_input.pl
   File ${SWIPL}\library\pio.pl
+  File ${SWIPL}\library\iostream.pl
   File ${SWIPL}\library\coinduction.pl
   File ${SWIPL}\library\quasi_quotations.pl
   File ${SWIPL}\library\sandbox.pl
+  File ${SWIPL}\library\modules.pl
   File ${SWIPL}\library\win_menu.pl
   File ${SWIPL}\library\console_input.pl
 
@@ -374,7 +382,6 @@ Section "Base system (required)"
   File ${SWIPL}\library\dde.pl
   File ${SWIPL}\library\progman.pl
   File ${SWIPL}\library\registry.pl
-  File ${SWIPL}\library\wise.pl
 
 ; DEVELOPMENT
   File ${SWIPL}\library\edit.pl
@@ -397,7 +404,6 @@ Section "Base system (required)"
   File ${SWIPL}\library\base64.pl
 
 ; MISC
-  File ${SWIPL}\library\am_match.pl
   File ${SWIPL}\library\readln.pl
   File ${SWIPL}\library\readutil.pl
   File ${SWIPL}\library\streampool.pl
@@ -508,6 +514,7 @@ Section "CLP"
   File ${SWIPL}\library\clp\clp_distinct.pl
   File ${SWIPL}\library\clp\simplex.pl
   File ${SWIPL}\library\clp\clpfd.pl
+  File ${SWIPL}\library\clp\clpb.pl
 SectionEnd
 
 Section "CLP on real and rational numbers: CLP(Q,R)"
@@ -645,6 +652,16 @@ Section "ODBC Interface"
   File ${SWIPL}\doc\packages\odbc.html
 SectionEnd
 
+Section "CQL database Interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File /r ${SWIPL}\library\cql
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\cql.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r ${SWIPL}\doc\packages\examples\cql
+SectionEnd
+
 Section "Google protocol buffers"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
@@ -699,6 +716,7 @@ Section "HTTP Client/Server package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\http_stream.dll
+  File ${SWIPL}\bin\websocket.dll
   File ${SWIPL}\bin\json.dll
   SetOutPath $INSTDIR\library
   File /r ${SWIPL}\library\http
@@ -707,6 +725,21 @@ Section "HTTP Client/Server package"
   File ${SWIPL}\doc\packages\httpserver.gif
   SetOutPath $INSTDIR\doc\packages\examples
   File /r ${SWIPL}\doc\packages\examples\http
+SectionEnd
+
+Section "Pengines"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File ${SWIPL}\library\pengines.pl
+  File ${SWIPL}\library\pengines_io.pl
+  File ${SWIPL}\library\term_to_json.pl
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\pengines.html
+  File ${SWIPL}\doc\packages\penarch.png
+  File ${SWIPL}\doc\packages\pltpsynch.png
+  File ${SWIPL}\doc\packages\pltpruncolour.png
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r ${SWIPL}\doc\packages\examples\pengines
 SectionEnd
 
 Section "Table package"
@@ -734,16 +767,6 @@ Section "NLP package"
   File ${SWIPL}\library\isub.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\nlp.html
-SectionEnd
-
-Section "R-project interface"
-  SectionIn 1 3
-  SetOutPath $INSTDIR\library
-  File ${SWIPL}\library\R.pl
-  SetOutPath $INSTDIR\doc\packages
-  File ${SWIPL}\doc\packages\R.html
-  SetOutPath $INSTDIR\doc\packages\examples
-  File /r ${SWIPL}\doc\packages\examples\R
 SectionEnd
 
 Section "ZLIB package"
@@ -934,7 +957,7 @@ SectionEnd
 
 Section "Precompiled libraries"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g wise_install_xpce,halt'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g qcompile_libraries,halt'
 SectionEnd
 
 ################################################################

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -50,7 +50,12 @@
 :- multifile
 	unify_goal/5,			% +Read, +Decomp, +M, +Pos, -Pos
 	unify_clause_hook/5,
-	make_varnames_hook/5.
+	make_varnames_hook/5,
+	open_source/2.			% +Input, -Stream
+
+:- predicate_options(prolog_clause:clause_info/5, 5,
+		     [ variable_names(-list)
+		     ]).
 
 /** <module> Get detailed source-information about a clause
 
@@ -174,7 +179,7 @@ read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
 	    '$pop_input_context').
 
 read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
-	catch(open(File, read, In), _, fail),
+	catch(try_open_source(File, In), _, fail),
 	set_stream(In, newline(detect)),
 	call_cleanup(
 	    read_source_term_at_location(
@@ -185,6 +190,22 @@ read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 		  variable_names(VarNames)
 		]),
 	    close(In)).
+
+%%	open_source(+File, -Stream) is semidet.
+%
+%	Hook into clause_info/5 that opens the stream holding the source
+%	for a specific clause. Thus, the query must succeed. The default
+%	implementation calls open/3 on the `File` property.
+%
+%	  ==
+%	  clause_property(ClauseRef, file(File)),
+%	  prolog_clause:open_source(File, Stream)
+%	  ==
+
+try_open_source(File, In) :-
+	open_source(File, In), !.
+try_open_source(File, In) :-
+	open(File, read, In).
 
 
 %%	make_varnames(+ReadClause, +DecompiledClause,
@@ -279,21 +300,21 @@ unify_clause((Head :- Read),
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 	Read = (_ --> List, _),
 	is_list(List),
-	ci_expand(Read, Compiled2, Module),
+	ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
 	Compiled2 = (DH :- _),
 	functor(DH, _, Arity),
 	DArg is Arity - 1,
 	arg(DArg, DH, List),
 	nonvar(List),
-	TermPos0 = term_position(F,T,FF,FT,[ HP,
+	TermPos1 = term_position(F,T,FF,FT,[ HP,
 					     term_position(_,_,_,_,[_,BP])
 					   ]), !,
-	TermPos1 = term_position(F,T,FF,FT,[ HP, BP ]),
-	match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
+	TermPos2 = term_position(F,T,FF,FT,[ HP, BP ]),
+	match_module(Compiled2, Compiled1, Module, TermPos2, TermPos).
 					% general term-expansion
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
-	ci_expand(Read, Compiled2, Module),
-	match_module(Compiled2, Compiled1, Module, TermPos0, TermPos).
+	ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
+	match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
 					% I don't know ...
 unify_clause(_, _, _, _, _) :-
 	debug(clause_info, 'Could not unify clause', []),
@@ -303,12 +324,12 @@ unify_clause_head(H1, H2) :-
 	strip_module(H1, _, H),
 	strip_module(H2, _, H).
 
-ci_expand(Read, Compiled, Module) :-
+ci_expand(Read, Compiled, Module, TermPos0, TermPos) :-
 	catch(setup_call_cleanup(
 		  ( set_xref_flag(OldXRef),
 		    '$set_source_module'(Old, Module)
 		  ),
-		  expand_term(Read, Compiled),
+		  expand_term(Read, TermPos0, Compiled, TermPos),
 		  ( '$set_source_module'(_, Old),
 		    set_prolog_flag(xref, OldXRef)
 		  )),
@@ -324,6 +345,10 @@ set_xref_flag(false) :-
 match_module((H1 :- B1), (H2 :- B2), Module, Pos0, Pos) :- !,
 	unify_clause_head(H1, H2),
 	unify_body(B1, B2, Module, Pos0, Pos).
+match_module((H1 :- B1), H2, _Module, Pos0, Pos) :-
+	B1 == true,
+	unify_clause_head(H1, H2),
+	Pos = Pos0, !.
 match_module(H1, H2, _, Pos, Pos) :-	% deal with facts
 	unify_clause_head(H1, H2).
 
@@ -344,7 +369,8 @@ expand_failed(E, Read) :-
 %
 %	Pos0 and Pos still include the term-position of the head.
 
-unify_body(B, B, _, Pos, Pos) :-
+unify_body(B, C, _, Pos, Pos) :-
+	B =@= C, B = C,
 	does_not_dcg_after_binding(B, Pos), !.
 unify_body(R, D, Module,
 	   term_position(F,T,FF,FT,[HP,BP0]),
@@ -360,7 +386,6 @@ unify_body(R, D, Module,
 %		is no reason for this test.
 
 does_not_dcg_after_binding(B, Pos) :-
-	acyclic_term(B),		% X = call(X)
 	\+ sub_term(brace_term_position(_,_,_), Pos),
 	\+ (sub_term((Cut,_=_), B), Cut == !), !.
 
@@ -386,7 +411,11 @@ a --> { x, y, z }.
 %	@param Module		Load module
 %	@param TermPosRead	Sub-term positions of source
 
-ubody(B, B, _, P, P) :-
+ubody(B, DB, _, P, P) :-
+	var(P), !,			% TBD: Create compatible pos term?
+	B = DB.
+ubody(B, C, _, P, P) :-
+	B =@= C, B = C,
 	does_not_dcg_after_binding(B, P), !.
 ubody(X, call(X), _,			% X = call(X)
       Pos,

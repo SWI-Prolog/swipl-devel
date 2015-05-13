@@ -70,10 +70,23 @@ string_overflow2([H|T]) :-		% Causes PL_throw() overflow
 	format(string(H), '~txx~1000000|', []),
 	string_overflow2(T).
 
+:- dynamic
+        tmp/0.
+
+big_clause(N) :-
+        link_clause(N, Body),
+        retractall(tmp),
+        Clause = (tmp :- Body),
+        assert(Clause).
+
+link_clause(1, X=X) :- !.
+link_clause(N, (X=X, G)) :-
+        N2 is N - 1,
+        link_clause(N2, G).
+
 
 test(local, throws(error(resource_error(stack), local))) :-
 	local_overflow.
-					% VERY slow with -DO_SECURE
 test(global, throws(error(resource_error(stack), global))) :-
 	global_overflow(0).
 test(string, throws(error(resource_error(stack), global))) :-
@@ -94,5 +107,9 @@ test(tight_stacks, throws(error(resource_error(stack), global))) :-
 	length(List, Len),
 	numbervars(List, 0, _),
 	fail.
-
+test(cleanup_handler, [setup((thread_create(big_clause(500000), Id, []),
+                              thread_join(Id, true))),
+                       throws(error(resource_error(stack), local)),
+                       cleanup(retractall(tmp))]) :-
+	setup_call_cleanup(true, tmp, true).
 :- end_tests(resource_error).

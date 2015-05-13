@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009-2012, VU University Amsterdam
+    Copyright (C): 2009-2015, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -41,6 +41,7 @@
 :- use_module(library(error)).
 :- use_module(library(pure_input)).
 :- use_module(library(debug)).
+:- use_module(library(option)).
 
 /** <module> Process CSV (Comma-Separated Values) data
 
@@ -295,20 +296,26 @@ end_of_record --> "\r\n".
 end_of_record --> eof.			% unterminated last record
 
 
-%%     csv_read_file_row(+File, -Row, +Options) is nondet.
+%%	csv_read_file_row(+File, -Row, +Options) is nondet.
 %
-%      True when Row is a row in File.  First unifies Row with the first
-%      row in File. Backtracking  yields  the   second,  ...  row.  This
-%      interface  is  an  alternative  to  csv_read_file/3  that  avoids
-%      loading all rows in memory.  Note   that  this interface does not
-%      guarantee that all rows in File have the same arity.
+%	True when Row is a row in File.  First unifies Row with the first
+%	row in File. Backtracking  yields  the   second,  ...  row.  This
+%	interface  is  an  alternative  to  csv_read_file/3  that  avoids
+%	loading all rows in memory.  Note   that  this interface does not
+%	guarantee that all rows in File have the same arity.
 %
-%      In addition to the  options   of  csv_read_file/3, this predicate
-%      processes the option:
+%	In addition to the  options   of  csv_read_file/3, this predicate
+%	processes the option:
 %
-%        * line(-Line)
-%        Line is unified with the 1-based line-number from which Row is
-%	 read.
+%         * line(-Line)
+%         Line is unified with the 1-based line-number from which Row is
+%	  read.  Note that Line is not the physical line, but rather the
+%	  _logical_ record number.
+%
+%	@tbd	Input is read line by line.  If a record separator is
+%		embedded in a quoted field, parsing the record fails and
+%		another line is added to the input.  This does not nicely
+%		deal with other reasons why parsing the row may fail.
 
 csv_read_file_row(File, Row, Options) :-
         default_separator(File, Options, Options1),
@@ -319,16 +326,29 @@ csv_read_file_row(File, Row, Options) :-
 	    csv_read_stream_row(Stream, Row, Line, RecordOptions),
 	    close(Stream)).
 
-
+csv_read_stream_row(Stream, _Row, _Line, _Options) :-
+	at_end_of_stream(Stream), !,
+	fail.
 csv_read_stream_row(Stream, Row, Line, Options) :-
         between(1, infinite, Line),
-        read_line_to_codes(Stream, Codes, []),
-        (   Codes == []
-	->  !,
-            fail
-        ;   phrase(row(Row, Options), Codes),
-            debug(csv, 'Row: ~p', [Row])
-        ).
+	read_row(Stream, Row, Options),
+	(   at_end_of_stream(Stream)		% make reading the last row
+	->  !					% deterministic.
+	;   true
+	).
+
+read_row(Stream, Row, Options) :-
+	read_lines_to_codes(Stream, Codes),
+	phrase(row(Row0, Options), Codes), !,
+	Row = Row0.
+
+read_lines_to_codes(Stream, Codes) :-
+	read_line_to_codes(Stream, Codes, Tail),
+	(   Tail == []
+	->  true
+        ;   Tail = []
+	;   read_lines_to_codes(Stream, Tail)
+	).
 
 
 		/*******************************
@@ -376,9 +396,12 @@ emit_fields([H|T], Options) -->
 	).
 
 emit_field(H, Options) -->
-	{ atom(H), !,
-	  atom_codes(H, Codes)
-	},
+	{ (   atom(H)
+	  ->  atom_codes(H, Codes)
+	  ;   string(H)
+	  ->  string_codes(H, Codes)
+	  )
+	}, !,
 	(   { needs_quotes(H, Options) }
 	    ->  "\"", emit_string(Codes), "\""
 	    ;   emit_codes(Codes)
@@ -389,6 +412,10 @@ emit_field(H, _) -->
 
 needs_quotes(Atom, _) :-
 	sub_atom(Atom, _, _, _, '"'), !.
+needs_quotes(Atom, _) :-
+	sub_atom(Atom, _, _, _, '\n'), !.
+needs_quotes(Atom, _) :-
+	sub_atom(Atom, _, _, _, '\r'), !.
 needs_quotes(Atom, Options) :-
 	csv_options_separator(Options, Sep),
 	char_code(Char, Sep),
@@ -420,6 +447,7 @@ emit_codes([H|T]) --> [H], emit_codes(T).
 %        ==
 
 csv_write_stream(Stream, Data, Options) :-
+	must_be(list, Data),
 	make_csv_options(Options, Record, _),
 	phrase(emit_csv(Data, Record), String),
         format(Stream, '~s', [String]).

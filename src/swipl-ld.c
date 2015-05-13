@@ -199,7 +199,7 @@
 #define strdup plld_strdup
 #undef strndup
 #define strndup plld_strndup
-#ifdef HAVE_DMALLOC_H
+#ifdef DMALLOC
 #undef xmalloc
 #undef xrealloc
 #undef xfree
@@ -557,9 +557,9 @@ replaceExtension(const char *base, const char *ext, char *buf)
   *q = '\0';
 
   if ( e )
-    e++;
-  else
-  { e = q + strlen(q);
+  { e++;
+  } else
+  { e = q;				/* q points at '\0' */
     *e++ = '.';
   }
 

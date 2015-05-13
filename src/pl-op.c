@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -145,6 +143,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
     }
   }
 
+
   LOCK();
   if ( !m->operators )
     m->operators = newOperatorTable(8);
@@ -221,7 +220,7 @@ currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
     { *type     = op->type[kind];
       *priority = op->priority[kind];
 
-      DEBUG(5,
+      DEBUG(MSG_OPERATOR,
 	    Sdprintf("currentOperator(%s) --> %s %d\n",
 		     PL_atom_chars(name),
 		     PL_atom_chars(operatorTypeToAtom(*type)),
@@ -338,7 +337,8 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
   term_t type = A2;
   term_t name = A3;
 
-  PL_strip_module(name, &m, name);
+  if ( !PL_strip_module(name, &m, name) )
+    return FALSE;
   if ( m == MODULE_system )
   { term_t t = PL_new_term_ref();
     term_t a = PL_new_term_ref();
@@ -563,7 +563,9 @@ PRED_IMPL("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|
   Module m = MODULE_parse;
 
   if ( CTX_CNTRL != FRG_CUTTED )
-    PL_strip_module(A3, &m, A3);
+  { if ( !PL_strip_module(A3, &m, A3) )
+      return FALSE;
+  }
 
   return current_op(m, TRUE, A1, A2, A3, PL__ctx PASS_LD);
 }
@@ -582,7 +584,9 @@ PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
   Module m = MODULE_user;
 
   if ( CTX_CNTRL != FRG_CUTTED )
-    PL_strip_module(A3, &m, A3);
+  { if ( !PL_strip_module(A3, &m, A3) )
+      return FALSE;
+  }
 
   return current_op(m, FALSE, A1, A2, A3, PL__ctx PASS_LD);
 }
@@ -623,6 +627,8 @@ static const opdef operators[] = {
   OP(ATOM_larger_equal,		 OP_XFX, 700),	/* >= */
   OP(ATOM_strict_equal,		 OP_XFX, 700),	/* == */
   OP(ATOM_ar_not_equal,		 OP_XFX, 700),	/* =\= */
+  OP(ATOM_dict_punify,		 OP_XFX, 700),	/* >:< */
+  OP(ATOM_dict_select,		 OP_XFX, 700),	/* :< */
   OP(ATOM_larger,		 OP_XFX, 700),	/* > */
   OP(ATOM_rshift,		 OP_YFX, 400),	/* >> */
   OP(ATOM_query,		 OP_FX,	 1200),	/* ?- */
@@ -667,6 +673,11 @@ initOperators(void)
 
   for( op = operators; op->name; op++ )
     defOperator(MODULE_system, op->name, op->type, op->priority, TRUE);
+
+  if ( !GD->options.traditional )
+  { defOperator(MODULE_system, PL_new_atom("."), OP_YFX, 100, TRUE);
+    defOperator(MODULE_system, ATOM_colon_eq,    OP_XFX, 800, TRUE);
+  }
 }
 
 

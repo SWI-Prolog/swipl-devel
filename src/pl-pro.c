@@ -113,10 +113,7 @@ query_loop(atom_t goal, int loop)
       debugmode(DBG_OFF, NULL);
       setPrologFlagMask(PLFLAG_LASTCALL);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      {
-#ifdef O_DEBUGGER
-        callEventHook(PLEV_ABORT);
-#endif
+      { callEventHook(PLEV_ABORT);
         printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
       }
     }
@@ -299,7 +296,8 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   if ( !reset )
     reset = g;
 
-  PL_strip_module(goal, &module, g);
+  if ( !PL_strip_module(goal, &module, g) )
+    return FALSE;
   if ( !PL_get_functor(g, &fd) )
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
     if ( ex )
@@ -309,7 +307,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     fail;
   }
 
-  proc = lookupProcedure(fd, module);
+  proc = resolveProcedure(fd, module);
 
   { int arity = arityFunctor(fd);
     term_t args;
@@ -666,6 +664,8 @@ last_arg:
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);
+    else if ( arity == 0 )
+      return key;
     else
       DEBUG(CHK_HIGH_ARITY,
             { if ( arity > 256 && !is_ht_capacity(arity) )

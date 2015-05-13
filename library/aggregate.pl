@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -76,11 +75,13 @@ There are four aggregation predicates (aggregate/3, aggregate/4, aggregate_all/3
     Discriminator (see below) generated using findall/3.
 
     $ The Discriminator argument :
-    The versions with 4 arguments provide a Discriminator argument that
-    allows for keeping duplicate bindings of a variable in the result.
-    For example, if we wish to compute the total population of all
-    countries, we do not want to lose results because two countries
-    have the same population.  Therefore we use:
+    The versions with 4 arguments deduplicate redundant solutions of
+    Goal. Solutions for which both the template variables and
+    Discriminator are identical will be treated as one solution. For
+    example, if we wish to compute the total population of all
+    countries, and for some reason =|country(belgium, 11000000)|= may
+    succeed twice, we can use the following to avoid counting the
+    population of Belgium twice:
 
     ==
 	aggregate(sum(P), Name, country(Name, P), Total)
@@ -557,4 +558,18 @@ list_is_free_of([], _).
 
 %term_variables(Term, Vars0, Vars) :-
 %	term_variables(Term+Vars0, Vars).
+
+
+%%	sandbox:safe_meta(+Goal, -Called) is semidet.
+%
+%	Declare the aggregate meta-calls safe. This cannot be proven due
+%	to the manipulations of the argument Goal.
+
+:- multifile sandbox:safe_meta_predicate/1.
+
+sandbox:safe_meta_predicate(aggregate:foreach/2).
+sandbox:safe_meta_predicate(aggregate:aggregate/3).
+sandbox:safe_meta_predicate(aggregate:aggregate/4).
+sandbox:safe_meta_predicate(aggregate:aggregate_all/3).
+sandbox:safe_meta_predicate(aggregate:aggregate_all/4).
 

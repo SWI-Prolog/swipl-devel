@@ -112,10 +112,10 @@ int rl_readline_state = 0;
 #ifndef HAVE_RL_SET_PROMPT
 #define rl_set_prompt(x) (void)0
 #endif
-#ifndef RL_CLEAR_PENDING_INPUT
+#ifndef HAVE_RL_CLEAR_PENDING_INPUT
 #define rl_clear_pending_input() (void)0
 #endif
-#ifndef RL_CLEANUP_AFTER_SIGNAL
+#ifndef HAVE_RL_CLEANUP_AFTER_SIGNAL
 #define rl_cleanup_after_signal() (void)0
 #endif
 

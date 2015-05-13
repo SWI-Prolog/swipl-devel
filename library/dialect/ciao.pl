@@ -84,17 +84,20 @@ user:file_search_path(engine, library(dialect/ciao/engine)).
 :- create_prolog_flag(discontiguous_warnings, on,  [type(atom)]).
 
 :- multifile
-	declaration/1,		 % +Head
-	ciao:declaration_hook/2. % +Head,-Exp
+	declaration/2,	    % +Head,+Module
+	declaration_hook/2. % +Head,-Exp
 
 :- dynamic
 	lock_expansion/0,
 	old_flag/3.
 
-compilation_module(CM) :-	% Kludge: compilations module must be
+compilation_module(CM) :-	% Kludge: compilation module must be
 				% imported in a separated module and
 				% its methods invoked from there --EMM
 	'$set_source_module'(M, M),
+	compilation_module(M, CM).
+
+compilation_module(M, CM) :-
 	atom_concat(M, '$ciao', CM).
 				% TODO: missing support for directives
 				% add_clause_translation/1 and
@@ -107,20 +110,38 @@ call_lock(Goal) :-
 system:goal_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	compilation_module(CM),
-	ciao_trans(CM, goal, In, Out). % Ciao Goal Translations
+	ciao_trans(CM, goal, In, Out1), % Ciao Goal Translations
+	(   In == end_of_file		% end_of_file Ciao hook
+	->  Out = true
+	;   Out = Out1
+	).
 system:goal_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	ciao_goal_expansion(In, Out). % SWI Compatibility issues
+
 system:term_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	compilation_module(CM),
-	call_lock((ciao_trans(CM, sentence, In, Out0), % Sentence Translations
+	call_lock((ciao_trans(CM, sentence, In, Out1), % Sentence Translations
 		   '$expand':expand_terms(call_term_expansion([system-[term_expansion/2]]),
-							      Out0, _, Out, _) % Remaining
-		  )).
+					  Out1, _, Out2, _) % Remaining
+		  )),
+	call_eof_goal_hook(In, Out2, Out).
 system:term_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	ciao_term_expansion(In, Out).
+
+call_eof_goal_hook(In, Out2, Out) :-
+	'$set_source_module'(M, M),	
+	(   In == end_of_file,
+	    module_property(M, file(File)),
+	    prolog_load_context(file, File) % This is the main file
+	->  (   is_list(Out2)
+	    ->  append(Out2, [(:- end_of_file)], Out)
+	    ;   Out = [Out2, (:- end_of_file)]
+	    )		     % (:- end_of_file) is a hook for the goal expansion
+	;   Out = Out2
+	).
 
 package_file(F, P) :-
 	( atom(F) -> P = library(F)
@@ -132,7 +153,6 @@ package_directive(Package, Directive) :-
 
 ciao_term_expansion((:- module(Name, Public, Packages)),
 		      [ (:- module(Name, Public)),
-			(:- style_check(-atom)),
 			(:- style_check(-singleton)),
 			(:- expects_dialect(ciao)),
 			(:- use_module(engine(basic_props))),
@@ -145,7 +165,7 @@ ciao_term_expansion((:- module(Name, Public, Packages)),
 map_ciaoname_rec(Ciao, Path, Path/Ciao) :- atom(Ciao), !.
 map_ciaoname_rec(Ciao0, Path, SWI) :-
 	Ciao0 =.. [F, Ciao],
-	map_ciaoname_rec(Ciao, Path/F, SWI). 
+	map_ciaoname_rec(Ciao, Path/F, SWI).
 
 map_ciaoname_(Path, Path) :- atom(Path), !.
 map_ciaoname_(Ciao0, SWI) :-
@@ -161,13 +181,18 @@ ciao_term_expansion((:- use_package(CiaoPack)),
 		    (:- include(SWIName))) :-
 	package_file(CiaoPack, CiaoName),
 	map_ciaoname(CiaoName, SWIName).
-ciao_term_expansion((:- new_declaration(Name/Arity)),
-		    ciao:declaration(Head)) :-
-	functor(Head, Name, Arity).
+ciao_term_expansion((:- new_declaration(Name/Arity)), Exp) :-
+	'$set_source_module'(M, M),
+	functor(Head, Name, Arity),
+	(   ciao:declaration(Head, M)
+	->  Exp = []
+	;   Exp = ciao:declaration(Head, M)
+	).
 ciao_term_expansion((:- package(_Package)), []).
 ciao_term_expansion((:- Decl), Exp) :-
-	declaration(Decl),
-	(   ciao:declaration_hook(Decl, Exp)
+	'$set_source_module'(M, M),
+	declaration(Decl, M),
+	(   declaration_hook(Decl, Exp)
 	->  true
 	;   functor(Decl, Name, Arity),
 	    prolog_load_context(module, Module),
@@ -230,7 +255,7 @@ meta_expansion_arg(Spec, TSpec, Arg, _, _) -->
 	{map_metaspec(Spec, TSpec)}, !,
 	[Arg].
 meta_expansion_arg(addmodule(Spec), TSpec, Arg, M, 1) --> !,
-	meta_expansion_arg(Spec, TSpec, Arg, M),
+	meta_expansion_arg(Spec, TSpec, Arg, M, _),
 	[M].
 meta_expansion_arg(addterm(Spec), TSpec, Arg0, M, R) --> !,
 	meta_expansion_arg(Spec, TSpec, Arg0, M, R),
@@ -284,10 +309,22 @@ ciao_term_expansion((:- load_compilation_module(CiaoName)),
 	compilation_module(CM),
 	map_ciaoname(CiaoName, SWIName).
 ciao_term_expansion((:- add_sentence_trans(F/A, P)),
-		    ciao:ciao_trans_db(CM, sentence, P, F, A)) :-
-	compilation_module(CM),
-	( current_predicate(CM:F/A) -> true
-	; throw(error(existence_error(add_sentence_trans, F/A), _))
+		    [ciao:ciao_trans_db(CM, sentence, P, F, A)|Clauses]) :-
+	'$set_source_module'(M, M),
+	compilation_module(M, CM),
+	(   current_predicate(CM:F/A) ->
+	    functor(H, F, A),
+	    arg(1, H, 0),
+	    arg(2, H, CL),
+	    ignore(arg(3, H, M)),
+	    ignore(CM:H),
+	    (   var(CL)
+	    ->  Clauses = []
+	    ;   is_list(CL)
+	    ->  Clauses = CL
+	    ;   Clauses = [CL]
+	    )
+	;   throw(error(existence_error(add_sentence_trans, F/A), _))
 	).
 ciao_term_expansion((:- add_goal_trans(F/A, P)),
 		    ciao:ciao_trans_db(CM, goal, P, F, A)) :-

@@ -64,11 +64,15 @@ arithmetic_function(Term) :-
 	throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
 
 arith_decl_clauses(NameArity,
-		   [(:- public(Name/ImplArity)),
+		   [(:- public(PI)),
 		    arithmetic:evaluable(Term, Q)
 		   ]) :-
 	prolog_load_context(module, M),
 	strip_module(M:NameArity, Q, Spec),
+	(   Q == M
+	->  PI = Name/ImplArity
+	;   PI = Q:Name/ImplArity
+	),
 	(   Spec = Name/Arity
 	->  functor(Term, Name, Arity),
 	    ImplArity is Arity+1
@@ -180,7 +184,7 @@ do_expand_function(Function, Result, (ArgCode, Pred)) :-
 	append(ArgResults, [Result], PredArgs),
 	Pred =.. [Name|PredArgs].
 do_expand_function(Function, _, _) :-
-	existence_error(evaluable, Function).
+	type_error(evaluable, Function).
 
 
 expand_function_arguments([], [], true).
@@ -208,12 +212,11 @@ evaluable(F) :-
 evaluable(F) :-
 	number(F), !.
 evaluable([_Code]) :- !.
+evaluable(Func) :-				% Funtional notation.
+	functor(Func, ., 2), !.
 evaluable(F) :-
 	string(F), !,
-	(   string_length(F, 1)
-	->  true
-	;   domain_error(character, F)
-	).
+	string_length(F, 1).
 evaluable(F) :-
 	current_arithmetic_function(F),
 	(   compound(F)

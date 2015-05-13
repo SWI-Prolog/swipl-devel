@@ -114,8 +114,8 @@ push_operators(New) :-
 
 push_op(P, T, A) :-
 	undo_operator(op(P,T,A), Undo),
-	asserta(operator_stack(incremental-Undo)),
-	op(P, T, A).
+	op(P, T, A),
+	asserta(operator_stack(incremental-Undo)).
 
 %%	pop_operators is det.
 %

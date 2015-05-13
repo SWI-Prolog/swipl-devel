@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -34,6 +34,7 @@
 	    existence_error/2,		% +Type, +Term
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
+	    uninstantiation_error/1,	% +Term
 	    representation_error/1,	% +Reason
 	    syntax_error/1,		% +Culprit
 
@@ -127,6 +128,17 @@ permission_error(Action, Type, Term) :-
 instantiation_error(_Term) :-
 	throw(error(instantiation_error, _)).
 
+%%	uninstantiation_error(+Term)
+%
+%	An argument is over-instantiated. This error  is used for output
+%	arguments whose value cannot be known  upfront. For example, the
+%	goal open(File, read, input) cannot   succeed because the system
+%	will allocate a new unique stream   handle that will never unify
+%	with `input`.
+
+uninstantiation_error(Term) :-
+	throw(error(uninstantiation_error(Term), _)).
+
 %%	representation_error(+Reason).
 %
 %	A  representation  error  indicates   a    limitation   of   the
@@ -162,7 +174,7 @@ syntax_error(Culprit) :-
 %	=chars=, =codes=, =text=, =compound=, =constant=, =float=,
 %	=integer=, =nonneg=, =positive_integer=, =negative_integer=,
 %	=nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
-%	=symbol=, =var=, =rational=, =encoding= and =string=.
+%	=symbol=, =var=, =rational=, =encoding=, =dict= and =string=.
 %
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
@@ -308,6 +320,7 @@ has_type(rational, X)	  :- rational(X).
 has_type(string, X)	  :- string(X).
 has_type(stream, X)	  :- is_stream(X).
 has_type(encoding, X)	  :- current_encoding(X).
+has_type(dict, X)	  :- is_dict(X).
 has_type(list(Type), X)	  :- is_list(X), element_types(X, Type).
 
 chars(Chs) :-

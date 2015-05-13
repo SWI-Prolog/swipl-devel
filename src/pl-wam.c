@@ -246,6 +246,10 @@ updateAlerted(PL_local_data_t *ld)
 #ifdef O_LIMIT_DEPTH
   if ( ld->depth_info.limit != DEPTH_NO_LIMIT ) mask |= ALERT_DEPTHLIMIT;
 #endif
+#ifdef O_INFERENCE_LIMIT
+  if ( ld->inference_limit.limit != INFERENCE_NO_LIMIT )
+						mask |= ALERT_INFERENCELIMIT;
+#endif
 #ifdef O_ATTVAR
 					/* is valTermRef(ld->attvar.head) */
   if ( ld->stacks.local.base &&
@@ -257,17 +261,31 @@ updateAlerted(PL_local_data_t *ld)
 #endif
 
   ld->alerted = mask;
+
+  if ( (mask&ALERT_DEBUG) || ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+    ld->slow_unify = TRUE;		/* see VMI B_UNIFY_VAR */
 }
 
+
+/* raiseSignal() sets a signal in a target thread.  This implies manipulating
+   the mask and setting ld->alerted. Note that we cannot call
+   updateAlerted() because the O_ATTVAR might go wrong if the target
+   thread performs a stack-shift.
+*/
 
 int
 raiseSignal(PL_local_data_t *ld, int sig)
 { if ( sig > 0 && sig <= MAXSIGNAL && ld )
   { int off = (sig-1) / 32;
     int mask = (1 << ((sig-1)%32));
+    int alerted;
 
     __sync_or_and_fetch(&ld->signal.pending[off], mask);
-    updateAlerted(ld);
+
+    do
+    { alerted = ld->alerted;
+    } while ( !COMPARE_AND_SWAP(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
+
     return TRUE;
   }
 
@@ -589,19 +607,14 @@ call_cleanup/3.  Both may call-back the Prolog engine.
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int
-isCleanupFrame(LocalFrame fr)
-{ return (fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
-	  false(fr, FR_CATCHED));	/* from handler */
-}
-
-
 static void
 callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
-{ if ( isCleanupFrame(fr) )
+{ if ( false(fr, FR_CATCHED) )		/* from handler */
   { size_t fref = consTermRef(fr);
     fid_t cid;
     term_t catcher;
+
+    assert(fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition);
 
     if ( !(cid=PL_open_foreign_frame()) )
       return;
@@ -636,15 +649,13 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 static void
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
-{ if ( isCleanupFrame(fr) )
+{ if ( true(fr, FR_CLEANUP) )
   { size_t fref = consTermRef(fr);
     callCleanupHandler(fr, reason PASS_LD);
     fr = (LocalFrame)valTermRef(fref);
   }
 
-#ifdef O_DEBUGGER
   callEventHook(PLEV_FRAMEFINISHED, fr);
-#endif
 }
 
 
@@ -875,6 +886,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
     case B_EQ_VV:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto fa_2;
     case B_NEQ_VV:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto fa_2;
     case B_UNIFY_FF: clean = 0x3; ftor = FUNCTOR_equals2;	    goto fa_2;
+    case B_UNIFY_VF:
     case B_UNIFY_FV: clean = 0x1; ftor = FUNCTOR_equals2;           goto fa_2;
     case B_UNIFY_VV: clean = 0x0; ftor = FUNCTOR_equals2;           goto fa_2;
     fa_2:
@@ -1041,7 +1053,10 @@ callBreakHook(LocalFrame frame, Choice bfr,
   size_t pc_offset;
 
   *pop = 0;
-
+  if (op == B_UNIFY_VAR || op == B_UNIFY_FIRSTVAR)
+  { LD->slow_unify = TRUE;
+    goto default_action;
+  }
   proc = _PL_predicate("break_hook", 6, "prolog",
 		       &GD->procedures.prolog_break_hook6);
   if ( !getProcDefinition(proc)->impl.any )
@@ -1075,7 +1090,10 @@ callBreakHook(LocalFrame frame, Choice bfr,
       PL_put_intptr(argv+1, PC - clause->codes);
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
-      if ( put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop PASS_LD) )
+      if ( ( op == B_UNIFY_EXIT &&
+             put_call_goal(argv+4, GD->procedures.equals2 PASS_LD) &&
+             PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
+           put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop PASS_LD) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
@@ -1252,6 +1270,7 @@ localDefinition(Definition def ARG_LD)
 	outOfCore();
 
       memset(newblock, 0, bs*sizeof(Definition));
+      MemoryBarrier();
       v->blocks[idx] = newblock-bs;
     }
     UNLOCKDYNDEF(def);
@@ -1387,7 +1406,9 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
     }
     *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
   } else
-  { for(;;)
+  { int depth = 100;
+
+    for(;;)
     { Word p2 = argTermP(*p, 1);
       Word ap;
 
@@ -1398,9 +1419,15 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
 	if (! isAtom(*a1))
 	  break;
 	p = ap;
+	if ( --depth == 0 && !is_acyclic(p PASS_LD) )
+	{ term_t t = pushWordAsTermRef(p);
+	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, t);
+	  popTermRef();
+	  return FALSE;
+	}
+      } else
+      { break;
       }
-      else
-	break;
     }
 
     *k = *p;
@@ -1420,7 +1447,7 @@ Can perform GC/shift and may leave overflow exceptions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-foreignWakeup(term_t *ex ARG_LD)
+foreignWakeup(term_t ex ARG_LD)
 { if ( unlikely(LD->alerted & ALERT_WAKEUP) )
   { LD->alerted &= ~ALERT_WAKEUP;
 
@@ -1438,9 +1465,11 @@ foreignWakeup(term_t *ex ARG_LD)
 	  setVar(*valTermRef(LD->attvar.tail));
 	  rval = PL_next_solution(qid);
 	  if ( rval == FALSE )
-	    *ex = PL_exception(qid);
-	  else
-	    *ex = 0;
+	  { term_t t = PL_exception(qid);
+
+	    if ( t )
+	      PL_put_term(ex, t);
+	  }
 	  PL_cut_query(qid);
 	}
 
@@ -1449,12 +1478,64 @@ foreignWakeup(term_t *ex ARG_LD)
 	return rval;
       }
 
-      *ex = exception_term;
+      PL_put_term(ex, exception_term);
       return FALSE;
     }
   }
 
   return TRUE;
+}
+
+
+		 /*******************************
+		 *	     EXCEPTIONS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called at the end of handling an exception. We cannot do GC, however, we
+can request it, after it will be executed   at the start of the recovery
+handler. If no GC is needed, we call trimStacks() to re-enable the spare
+stack-space if applicable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+resumeAfterException(int clear, Stack outofstack)
+{ GET_LD
+
+  if ( clear )
+  { exception_term = 0;
+    setVar(*valTermRef(LD->exception.bin));
+    setVar(*valTermRef(LD->exception.printed));
+    setVar(*valTermRef(LD->exception.pending));
+  }
+
+  if ( outofstack && outofstack->gc )
+    outofstack->gced_size = 0;
+
+  if ( !considerGarbageCollect((Stack)NULL) )
+  { trimStacks((outofstack != NULL) PASS_LD);
+  } else if ( outofstack != NULL )
+  { trimStacks(FALSE PASS_LD);		/* just re-enable the spare stacks */
+    LD->trim_stack_requested = TRUE;	/* next time with resize */
+  }
+
+  LD->exception.processing = FALSE;
+}
+
+
+static void
+exceptionUnwindGC(Stack outofstack)
+{ if ( outofstack && outofstack->gc )
+  { GET_LD
+
+    outofstack->gced_size = 0;
+    LD->trim_stack_requested = TRUE;
+    if ( considerGarbageCollect(outofstack) )
+    { garbageCollect();
+      if ( roomStackP(outofstack) < outofstack->def_spare )
+	enableSpareStack(outofstack);
+    }
+  }
 }
 
 
@@ -1579,7 +1660,6 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 
   while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
   { LocalFrame fr = qf->saved_environment;
-    term_t ex;
 
     while( fr )
     { if ( fr->predicate == catch3 )
@@ -1587,7 +1667,7 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 
 	if ( can_unify(argFrameP(fr, 1), /* may shift */
 		       valTermRef(ball),
-		       &ex) )
+		       0) )
 	  return TRUE;
 	fr = (LocalFrame)valTermRef(fref);
       }
@@ -1599,10 +1679,9 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 	break;
       }
     }
-
   }
 
-  return FALSE;
+  return (qf && true(qf, PL_Q_CATCH_EXCEPTION));
 }
 
 
@@ -2439,6 +2518,7 @@ PL_next_solution(qid_t qid)
   Code	     PC = NULL;			/* program counter */
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
+  int slow_unify = FALSE;		/* B_UNIFY_FIRSTVAR */
   exception_frame throw_env;		/* PL_thow() environment */
 #ifdef O_DEBUG
   int	     throwed_from_line=0;	/* Debugging: line we came from */
@@ -2827,35 +2907,48 @@ next_choice:
       DEBUG(3, Sdprintf("    REDO #%ld: Jump in %s\n",
 			loffset(FR),
 			predicateName(DEF)));
+      LD->statistics.inferences++;
+      if ( unlikely(LD->alerted) )
+      {
 #ifdef O_DEBUGGER
-      if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
+	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
+	{ LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
 
-	if ( fr )
-	{ int action;
+	  if ( fr )
+	  { int action;
 
-	  SAVE_REGISTERS(qid);
-	  action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
-	  LOAD_REGISTERS(qid);
-	  ch = BFR;			/* can be shifted */
+	    SAVE_REGISTERS(qid);
+	    action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
+	    LOAD_REGISTERS(qid);
+	    ch = BFR;			/* can be shifted */
 
-	  switch( action )
-	  { case ACTION_FAIL:
-	      FRAME_FAILED;
-	    case ACTION_IGNORE:
-	      VMI_GOTO(I_EXIT);
-	    case ACTION_RETRY:
-	      goto retry_continue;
-	    case ACTION_ABORT:
-	      THROW_EXCEPTION;
+	    switch( action )
+	    { case ACTION_FAIL:
+		FRAME_FAILED;
+	      case ACTION_IGNORE:
+		VMI_GOTO(I_EXIT);
+	      case ACTION_RETRY:
+		goto retry_continue;
+	      case ACTION_ABORT:
+		THROW_EXCEPTION;
+	    }
 	  }
 	}
-      }
 #endif
+#ifdef O_INFERENCE_LIMIT
+        if ( LD->statistics.inferences >= LD->inference_limit.limit )
+	{ SAVE_REGISTERS(qid);
+	  raiseInferenceLimitException();
+	  LOAD_REGISTERS(qid);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+#endif
+        Profile(profRedo(ch->prof_node PASS_LD));
+      }
       PC   = ch->value.PC;
       DiscardMark(ch->mark);
       BFR  = ch->parent;
-      Profile(profRedo(ch->prof_node PASS_LD));
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
@@ -2873,36 +2966,48 @@ next_choice:
 	goto next_choice;	/* Can happen of look-ahead was too short */
       chp = ch->value.clause;
 
+      if ( unlikely(LD->alerted) )
+      {
 #ifdef O_DEBUGGER
-      if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
+	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
+	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
 
-	if ( fr )
-	{ int action;
+	  if ( fr )
+	  { int action;
 
-	  SAVE_REGISTERS(qid);
-	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
-	  LOAD_REGISTERS(qid);
-	  ch = BFR;			/* can be shifted */
+	    SAVE_REGISTERS(qid);
+	    action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
+	    LOAD_REGISTERS(qid);
+	    ch = BFR;			/* can be shifted */
 
-	  switch( action )
-	  { case ACTION_FAIL:
-	      FRAME_FAILED;
-	    case ACTION_IGNORE:
-	      VMI_GOTO(I_EXIT);
-	    case ACTION_RETRY:
-	      goto retry_continue;
-	    case ACTION_ABORT:
-	      THROW_EXCEPTION;
+	    switch( action )
+	    { case ACTION_FAIL:
+		FRAME_FAILED;
+	      case ACTION_IGNORE:
+		VMI_GOTO(I_EXIT);
+	      case ACTION_RETRY:
+		goto retry_continue;
+	      case ACTION_ABORT:
+		THROW_EXCEPTION;
+	    }
 	  }
 	}
-      }
 #endif
+#ifdef O_INFERENCE_LIMIT
+        if ( LD->statistics.inferences >= LD->inference_limit.limit )
+	{ SAVE_REGISTERS(qid);
+	  raiseInferenceLimitException();
+	  LOAD_REGISTERS(qid);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+#endif
+        Profile(profRedo(ch->prof_node PASS_LD));
+      }
 
       umode  = uread;
       clause = CL->value.clause;
       PC     = clause->codes;
-      Profile(profRedo(ch->prof_node PASS_LD));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
@@ -2941,7 +3046,7 @@ next_choice:
 	environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
 	FR->clause = NULL;
-	if ( isCleanupFrame(ch->frame) )
+	if ( true(ch->frame, FR_CLEANUP) )
 	{ SAVE_REGISTERS(qid);
 	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
 	  LOAD_REGISTERS(qid);

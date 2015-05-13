@@ -27,8 +27,8 @@ SUDO=
 # depends a lot on your hardware. Using   4 jobs on a dual-core machines
 # seems enough to keep both cores busy.
 
-MAKE=make
-# MAKE='make --jobs=4'
+# MAKE=make
+MAKE='make --jobs=4'
 
 # [EDIT] Compiler and options.
 #
@@ -201,6 +201,7 @@ esac
 done
 
 if [ "$setvars" = "false" ]; then
+  rm -f packages/.failed.*
 
   if [ "$config" = "true" ]; then
     ./configure --prefix=$PREFIX --with-world $EXTRACFG $@ 2>&1 | tee configure.out
@@ -217,9 +218,16 @@ if [ "$setvars" = "false" ]; then
     if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
   fi
 
+  if [ -z "$DESTDIR" ]; then
+    make check-installation
+  fi
+
   # Parse build log for warnings that may indicate serious runtime issues
   if [ "$make" = "true" ]; then
     [ -f make.out ] && scripts/check_build_log.sh make.out
   fi
+
+  # See whether any package failed to build
+  ./packages/report-failed || exit 1
 fi # setvars
 

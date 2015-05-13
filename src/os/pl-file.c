@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -359,6 +359,7 @@ initIO(void)
 
   ttymode = TTY_COOKED;
   PushTty(Sinput, &ttytab, TTY_SAVE);
+  ttymodified = FALSE;
   LD->prompt.current = ATOM_prompt;
   PL_register_atom(ATOM_prompt);
 
@@ -665,6 +666,18 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
 }
 
 
+int
+PL_get_stream(term_t t, IOSTREAM **s, int flags)
+{ GET_LD
+  int myflags = SH_ERRORS|SH_ALIAS;
+
+  if ( flags & SIO_INPUT  ) myflags |= SH_INPUT;
+  if ( flags & SIO_OUTPUT ) myflags |= SH_OUTPUT;
+
+  return term_stream_handle(t, s, myflags PASS_LD);
+}
+
+
 static int
 unify_stream_ref(term_t t, IOSTREAM *s)
 { GET_LD
@@ -894,16 +907,31 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
   { stream_ref *ref;
     atom_t a;
     PL_blob_t *type;
+    int rc = TRUE;
 
     if ( !PL_get_atom(A1, &a) ||
 	 !(ref=PL_blob_data(a, NULL, &type)) ||
-	 type != &stream_blob ||
-	 !ref->read ||
-	 !ref->write )
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
+	 type != &stream_blob )
+    { IOSTREAM *s;
 
-    return ( PL_unify_stream_or_alias(A2, ref->read) &&
-	     PL_unify_stream_or_alias(A3, ref->write) );
+      if ( get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) )
+      { if ( (s->flags & SIO_INPUT) )
+	  rc = PL_unify_stream_or_alias(A2, s);
+	else
+	  rc = PL_unify_stream_or_alias(A3, s);
+
+	return rc;
+      }
+
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
+    }
+
+    if ( ref->read && !ref->read->erased )
+      rc = rc && PL_unify_stream_or_alias(A2, ref->read);
+    if ( ref->write && !ref->write->erased )
+      rc = rc && PL_unify_stream_or_alias(A3, ref->write);
+
+    return rc;
   }
 
   if ( getInputStream(A2, S_DONTCARE, &in) &&
@@ -1043,6 +1071,7 @@ streamStatus(IOSTREAM *s)
 
 ttybuf	ttytab;				/* saved terminal status on entry */
 int	ttymode;			/* Current tty mode */
+int	ttymodified;			/* is tty modified? */
 
 typedef struct input_context * InputContext;
 typedef struct output_context * OutputContext;
@@ -1067,11 +1096,12 @@ struct output_context
 static IOSTREAM *openStream(term_t file, term_t mode, term_t options);
 
 void
-dieIO()
+dieIO(void)
 { if ( GD->io_initialised )
   { noprotocol();
     closeFiles(TRUE);
-    PopTty(Sinput, &ttytab, TRUE);
+    if ( ttymodified )
+      PopTty(Sinput, &ttytab, TRUE);
   }
 }
 
@@ -1131,7 +1161,10 @@ closeFiles(int all)
 	  PL_reset_term_refs(t);
 	}
 
-	closeStream(s2);
+	if ( !closeStream(s2) && exception_term )
+	{ printMessage(ATOM_warning, PL_TERM, exception_term);
+	  PL_clear_exception();
+	}
       }
     }
   }
@@ -1816,9 +1849,9 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     return TRUE;
   } else if ( aname == ATOM_file_name ) /* file_name(Atom) */
-  {	atom_t fn;
+  { atom_t fn;
 
-    if ( !PL_get_atom_ex(a, &fn) )
+    if ( !PL_get_text_as_atom(a, &fn, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
       return FALSE;
 
     setFileNameStream(s, fn);
@@ -1857,7 +1890,18 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     if ( !PL_get_atom_ex(a, &val) )
       return FALSE;
-    if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
+    if ( val == ATOM_bom )
+    { IOSTREAM *s2;
+
+      if ( (s2 = getStream(s)) )
+      { if ( ScheckBOM(s2) == 0 )
+	{ releaseStream(s2);
+	  return (s2->flags&SIO_BOM) ? TRUE:FALSE;
+	}
+	return streamStatus(s2);
+      }
+      return streamStatus(s);
+    } else if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
     { bad_encoding(NULL, val);
       return FALSE;
     }
@@ -1938,19 +1982,20 @@ typedef struct set_stream_info
 #define SS_READ		0x01
 #define SS_WRITE	0x02
 #define SS_BOTH		(SS_READ|SS_WRITE)
-#define SS_NOPAIR	(0x4|SS_BOTH)
+#define SS_NOPAIR	(0x4)
+#define SS_EITHER	(SS_BOTH|SS_NOPAIR)
 
 #define SS_INFO(name, flags) { name, flags }
 
 static const set_stream_info ss_info[] =
-{ SS_INFO(ATOM_alias,		      SS_NOPAIR),
+{ SS_INFO(ATOM_alias,		      SS_EITHER),
   SS_INFO(ATOM_buffer,		      SS_BOTH),
   SS_INFO(ATOM_buffer_size,	      SS_BOTH),
   SS_INFO(ATOM_eof_action,	      SS_READ),
   SS_INFO(ATOM_type,		      SS_BOTH),
   SS_INFO(ATOM_close_on_abort,	      SS_BOTH),
   SS_INFO(ATOM_record_position,	      SS_BOTH),
-  SS_INFO(ATOM_line_position,	      SS_NOPAIR),
+  SS_INFO(ATOM_line_position,	      SS_EITHER),
   SS_INFO(ATOM_file_name,	      SS_BOTH),
   SS_INFO(ATOM_timeout,		      SS_BOTH),
   SS_INFO(ATOM_tty,		      SS_BOTH),
@@ -1995,7 +2040,7 @@ found:
   ref = PL_blob_data(sblob, NULL, &type);
   if ( type == &stream_blob )		/* got a stream handle */
   { if ( ref->read && ref->write &&	/* stream pair */
-	 info->flags & SS_NOPAIR )
+	 (info->flags & SS_NOPAIR) )
       return PL_error("set_stream", 2, NULL, ERR_PERMISSION,
 		      aname, ATOM_stream_pair, stream);
 
@@ -2103,14 +2148,8 @@ toldString()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#ifndef HAVE_SELECT
-
-static
-PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
-{ return notImplemented("wait_for_input", 3);
-}
-
-#else
+#ifdef HAVE_SELECT
+#define HAVE_PRED_WAIT_FOR_INPUT 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Windows<->Unix note. This function uses the   Windows socket API for its
@@ -2172,7 +2211,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     }
     releaseStream(s);
 					/* check for input in buffer */
-    if ( s->bufp < s->limitp )
+    if ( Spending(s) > 0 )
     { if ( !PL_unify_list(available, ahead, available) ||
 	   !PL_unify(ahead, head) )
 	return FALSE;
@@ -2566,6 +2605,67 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       *s->position = pos0;
     releaseStream(s);
     return FALSE;
+  }
+
+  return FALSE;
+}
+
+
+/** peek_string(+Stream, +Len, -String) is det.
+
+Peek input from Stream for  Len  characters   or  the  entire content of
+Stream.
+*/
+
+PRED_IMPL("peek_string", 3, peek_string, 0)
+{ PRED_LD
+  IOSTREAM *s;
+  size_t len;
+
+  if ( !PL_get_size_ex(A2, &len) )
+    return FALSE;
+
+  if ( getInputStream(A1, S_DONTCARE, &s) )
+  { if ( s->bufsize < len )
+      Ssetbuffer(s, NULL, len);
+    for(;;)
+    { if ( s->limitp > s->bufp )
+      { PL_chars_t text;
+
+	text.text.t    = s->bufp;
+	text.length    = s->limitp - s->bufp;
+	text.storage   = PL_CHARS_HEAP;
+	text.canonical = FALSE;
+	text.encoding  = s->encoding;
+
+	PL_canonicalise_text(&text);
+	if ( text.length >= len )
+	{ int rc = PL_unify_text_range(A3, &text, 0, len, PL_STRING);
+	  PL_free_text(&text);
+	  releaseStream(s);
+	  return rc;
+	}
+
+	PL_free_text(&text);
+      }
+      if ( S__fillbuf(s) < 0 )
+      { PL_chars_t text;
+
+	if ( Sferror(s) )
+	  return streamStatus(s);
+	s->flags &= ~SIO_FEOF;
+
+	text.text.t    = s->bufp;
+	text.length    = s->limitp - s->bufp;
+	text.storage   = PL_CHARS_HEAP;
+	text.canonical = FALSE;
+	text.encoding  = s->encoding;
+
+	PL_canonicalise_text(&text);
+	return PL_unify_text(A3, 0, &text, PL_STRING);
+      }
+      s->bufp--;
+    }
   }
 
   return FALSE;
@@ -3100,6 +3200,7 @@ static const opt_spec open4_options[] =
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
+  { ATOM_create,	 OPT_TERM },
 #ifdef O_LOCALE
   { ATOM_locale,	 OPT_LOCALE },
 #endif
@@ -3126,7 +3227,8 @@ openStream(term_t file, term_t mode, term_t options)
 #endif
   int    close_on_abort = TRUE;
   int	 bom		= -1;
-  char   how[10];
+  term_t create		= 0;
+  char   how[16];
   char  *h		= how;
   char *path;
   IOSTREAM *s;
@@ -3136,7 +3238,7 @@ openStream(term_t file, term_t mode, term_t options)
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
 		       &close_on_abort, &buffer, &lock, &wait,
-		       &encoding, &bom
+		       &encoding, &bom, &create
 #ifdef O_LOCALE
 		       , &locale
 #endif
@@ -3161,6 +3263,40 @@ openStream(term_t file, term_t mode, term_t options)
   } else
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, mode);
     return NULL;
+  }
+  if ( create )
+  { term_t tail = PL_copy_term_ref(create);
+    term_t head = PL_new_term_ref();
+    int mode = 0;
+    int n = 0;
+
+    while(PL_get_list(tail, head, tail))
+    { atom_t a;
+
+      if ( !PL_get_atom_ex(head, &a) )
+	return FALSE;
+      if ( a == ATOM_read )
+	mode |= 0444;
+      else if ( a == ATOM_write )
+	mode |= 0666;
+      else if ( a == ATOM_execute )
+	mode |= 0111;
+      else if ( a == ATOM_default )
+	mode |= 0666;
+      else if ( a == ATOM_all )
+	mode |= 0777;
+
+      if ( ++n == 10 && PL_skip_list(tail, 0, NULL) != PL_LIST )
+      { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, create);
+	return NULL;
+      }
+    }
+    if ( !PL_get_nil_ex(tail) )
+      return FALSE;
+    *h++ = 'm';
+    *h++ = ((mode >> 6) & 07) + '0';
+    *h++ = ((mode >> 3) & 07) + '0';
+    *h++ = ((mode >> 0) & 07) + '0';
   }
 
 					/* ENCODING */
@@ -3187,8 +3323,16 @@ openStream(term_t file, term_t mode, term_t options)
   } else if ( type == ATOM_binary )
   { enc = ENC_OCTET;
     bom = FALSE;
-  } else
+  } else if ( type == ATOM_text )
   { enc = LD->encoding;
+  } else
+  { term_t ex;
+
+    if ( (ex = PL_new_term_ref()) &&
+	 PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_type1, PL_ATOM, type) )
+      PL_domain_error("stream_option", ex);
+
+    return NULL;
   }
 
   if ( bom == -1 )
@@ -3627,10 +3771,23 @@ pl_close(term_t stream, int force ARG_LD)
   if ( type == &stream_blob )
   { int rc = TRUE;
 
-    if ( ref->read )
-      rc = do_close(getStream(ref->read), force);
-    if ( ref->write )
-      rc = rc && do_close(getStream(ref->write), force);
+    if ( ref->read && ref->write )
+    { if ( ref->read && !ref->read->erased )
+	rc = do_close(getStream(ref->read), force);
+      if ( ref->write && !ref->write->erased )
+	rc = do_close(getStream(ref->write), force) && rc;
+    } else
+    { if ( ref->read )
+	rc = do_close(getStream(ref->read), force);
+      else if ( ref->write )
+	rc = do_close(getStream(ref->write), force);
+    }
+
+    if ( rc == FALSE && !PL_exception(0) )
+      rc = PL_error(NULL, 0, "already closed",
+		    ERR_EXISTENCE, ATOM_stream, stream);
+
+
 
     return rc;
   }
@@ -4483,17 +4640,30 @@ PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
 }
 
 
+static int
+current_io(term_t t, IOSTREAM *cur ARG_LD)
+{ if ( PL_is_variable(t) )
+  { return PL_unify_stream(t, cur);
+  } else
+  { IOSTREAM *s;
+
+    if ( term_stream_handle(t, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) )
+      return s == cur;
+    return FALSE;
+  }
+}
+
 static
 PRED_IMPL("current_input", 1, current_input, PL_FA_ISO)
 { PRED_LD
-  return PL_unify_stream(A1, Scurin);
+  return current_io(A1, Scurin PASS_LD);
 }
 
 
 static
 PRED_IMPL("current_output", 1, current_output, PL_FA_ISO)
 { PRED_LD
-  return PL_unify_stream(A1, Scurout);
+  return current_io(A1, Scurout PASS_LD);
 }
 
 
@@ -4937,6 +5107,7 @@ BeginPredDefs(file)
   PRED_DEF("peek_char", 1, peek_char1, PL_FA_ISO)
   PRED_DEF("peek_byte", 2, peek_byte2, PL_FA_ISO)
   PRED_DEF("peek_byte", 1, peek_byte1, PL_FA_ISO)
+  PRED_DEF("peek_string", 3, peek_string, 0)
   PRED_DEF("put_byte", 2, put_byte2, PL_FA_ISO)
   PRED_DEF("put_byte", 1, put_byte1, PL_FA_ISO)
   PRED_DEF("put_code", 2, put_code2, PL_FA_ISO)
@@ -4989,7 +5160,9 @@ BeginPredDefs(file)
   PRED_DEF("protocolling", 1, protocolling, 0)
   PRED_DEF("prompt1", 1, prompt1, 0)
   PRED_DEF("seek", 4, seek, 0)
+#ifdef HAVE_PRED_WAIT_FOR_INPUT
   PRED_DEF("wait_for_input", 3, wait_for_input, 0)
+#endif
   PRED_DEF("get_single_char", 1, get_single_char, 0)
   PRED_DEF("read_pending_input", 3, read_pending_input, 0)
   PRED_DEF("source_location", 2, source_location, 0)

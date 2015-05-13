@@ -2,7 +2,7 @@
 
     Part of SWI-Prolog
 
-    Author:        Alex Dörfler
+    Author:        Alex DÃ¶rfler
     E-mail:        axeld@pinc-software.de
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2002, University of Amsterdam
@@ -23,7 +23,7 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module is  written  by   Alex  Dörfler,  axeld@pinc-software.de and
+This module is  written  by   Alex  DÃ¶rfler,  axeld@pinc-software.de and
 integrated into SWI-Prolog by Jan Wielemaker.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

@@ -662,7 +662,13 @@ check_body(Goal, M, term_position(_,_,_,_,ArgPosList), Action) :-
 	    check_options(DefM:Name/Arity, OptArg, Options, ArgPos, Action)
 	).
 check_body(Goal, M, _, Action) :-
-	prolog:called_by(Goal, Called), !,
+	(   (   predicate_property(M:Goal, imported_from(IM))
+	    ->  true
+	    ;   IM = M
+	    ),
+	    prolog:called_by(Goal, IM, M, Called)
+	;   prolog:called_by(Goal, Called)
+	), !,
 	check_called_by(Called, M, Action).
 check_body(Meta, M, term_position(_,_,_,_,ArgPosList), Action) :-
 	'$get_predicate_attribute'(M:Meta, meta_predicate, Head), !,

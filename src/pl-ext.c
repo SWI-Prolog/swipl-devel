@@ -121,8 +121,6 @@ static const PL_extension foreigns[] = {
   FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META),
   FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META),
   FRG("$require",		1, pl_require,		     META),
-  FRG("source_file",		2, pl_source_file,      NDET|META),
-  FRG("$make_system_source_files",0,pl_make_system_source_files,0),
   FRG("$default_predicate",	2, pl_default_predicate,     META),
 
   FRG("repeat",			0, pl_repeat,		 NDET|ISO),
@@ -179,6 +177,7 @@ static const PL_extension foreigns[] = {
 
   FRG("read",			2, pl_read2,		      ISO),
   FRG("write",			2, pl_write2,		      ISO),
+  FRG("writeln",		2, pl_writeln2,		        0),
   FRG("writeq",			2, pl_writeq2,		      ISO),
   FRG("print",			2, pl_print2,			0),
   FRG("write_canonical",	2, pl_write_canonical2,	      ISO),
@@ -194,11 +193,6 @@ static const PL_extension foreigns[] = {
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
-  FRG("mutex_destroy",		1, pl_mutex_destroy,	      ISO),
-  FRG("mutex_lock",		1, pl_mutex_lock,	      ISO),
-  FRG("mutex_trylock",		1, pl_mutex_trylock,	      ISO),
-  FRG("mutex_unlock",		1, pl_mutex_unlock,	      ISO),
-  FRG("mutex_unlock_all",	0, pl_mutex_unlock_all,		0),
   FRG("open_xterm",		4, pl_open_xterm,		0),
 #endif
 
@@ -313,23 +307,27 @@ registerBuiltins(const PL_extension *f)
 { Module m = MODULE_system;
 
   for(; f->predicate_name; f++)
-  { Definition def;
+  { Procedure proc;
     atom_t name	= PL_new_atom(f->predicate_name);
     functor_t fdef = lookupFunctorDef(name, f->arity);
 
     PL_unregister_atom(name);
-    def = lookupProcedure(fdef, m)->definition;
-    set(def, P_FOREIGN|HIDE_CHILDS|P_LOCKED);
+    if ( (proc = lookupProcedure(fdef, m)) )
+    { Definition def = lookupProcedure(fdef, m)->definition;
+      set(def, P_FOREIGN|HIDE_CHILDS|P_LOCKED);
 
-    if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
-    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
-    if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, P_NONDET);
-    if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
-    if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
-    if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
+      if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
+      if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
+      if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, P_NONDET);
+      if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
+      if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
+      if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
 
-    def->impl.function = f->function;
-    createForeignSupervisor(def, f->function);
+      def->impl.function = f->function;
+      createForeignSupervisor(def, f->function);
+    } else
+    { assert(0);
+    }
   }
 }
 
@@ -349,6 +347,7 @@ DECL_PLIST(index);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(strings);
 DECL_PLIST(variant);
 DECL_PLIST(copyterm);
 DECL_PLIST(prologflag);
@@ -370,6 +369,7 @@ DECL_PLIST(tai);
 DECL_PLIST(setup);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
+DECL_PLIST(srcfile);
 DECL_PLIST(write);
 DECL_PLIST(dlopen);
 DECL_PLIST(system);
@@ -380,6 +380,7 @@ DECL_PLIST(dde);
 DECL_PLIST(term);
 DECL_PLIST(debug);
 DECL_PLIST(locale);
+DECL_PLIST(dict);
 
 void
 initBuildIns(void)
@@ -397,6 +398,7 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(strings);
   REG_PLIST(variant);
   REG_PLIST(copyterm);
   REG_PLIST(prologflag);
@@ -415,6 +417,7 @@ initBuildIns(void)
   REG_PLIST(setup);
   REG_PLIST(gc);
   REG_PLIST(proc);
+  REG_PLIST(srcfile);
   REG_PLIST(write);
   REG_PLIST(dlopen);
   REG_PLIST(system);
@@ -436,9 +439,12 @@ initBuildIns(void)
   REG_PLIST(locale);
 #endif
   REG_PLIST(debug);
+  REG_PLIST(dict);
 
 #define LOOKUPPROC(name) \
-	GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m);
+	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
+	  DEBUG(CHK_SECURE, assert(GD->procedures.name)); \
+	}
 
   LOOKUPPROC(dgarbage_collect1);
   LOOKUPPROC(catch3);
@@ -459,6 +465,10 @@ initBuildIns(void)
 #ifdef O_CALL_RESIDUE
   PROCEDURE_call_residue_vars2  =
 	PL_predicate("call_residue_vars", 2, "$attvar");
+#endif
+#if O_DEBUGGER
+  PROCEDURE_event_hook1 =
+	PL_predicate("prolog_event_hook", 1, "user");
 #endif
   PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");

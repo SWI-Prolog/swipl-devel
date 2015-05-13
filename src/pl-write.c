@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -22,6 +22,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-dict.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
@@ -180,37 +181,59 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
 */
 
 static int
-atomType(atom_t a, IOSTREAM *fd)
+truePrologFlagNoLD(unsigned int flag)
+{ GET_LD
+
+  return truePrologFlag(flag);
+}
+
+
+static inline int
+wr_is_symbol(int c, write_options *options)
+{ return ( isSymbol(c) ||
+	   (c == '`' &&
+	    options &&
+	    (options->flags & PL_WRT_BACKQUOTE_IS_SYMBOL)) );
+}
+
+static int
+atomType(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
   char *s = atom->name;
   size_t len = atom->length;
+  IOSTREAM *fd = options ? options->out : NULL;
 
   if ( len == 0 )
     return AT_QUOTE;
 
   if ( isLower(*s) )
-  { for(++s; --len > 0 && isAlpha(*s) && Scanrepresent(*s, fd)==0; s++)
-      ;
+  { do
+    { for( ++s;
+	   --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);
+	   s++)
+	;
+    } while ( len >= 2 &&
+	      *s == '.' && isAlpha(s[1]) &&
+	      truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
+	      (!options || false(options, PL_WRT_NODOTINATOM))
+	    );
+
     return len == 0 ? AT_LOWER : AT_QUOTE;
   }
 
-  if ( a == ATOM_dot )
-    return AT_FULLSTOP;
-
-  if ( isSymbol(*s) )
+  if ( wr_is_symbol(*s, options) )
   { size_t left = len;
 
+    if ( len == 1 && s[0] == '.' )
+      return AT_FULLSTOP;
     if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 
-    for(; left > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++, left--)
-    { if ( *s == '`' )
-      { GET_LD
-
-	if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
-	  return AT_QUOTE;
-      }
-    }
+    for( ;
+	 left > 0 && wr_is_symbol(*s, options) &&
+	 (!fd || Scanrepresent(*s, fd)==0);
+	 s++, left--)
+      ;
     if ( left > 0 )
       return AT_QUOTE;
 
@@ -227,6 +250,52 @@ atomType(atom_t a, IOSTREAM *fd)
     return AT_SPECIAL;
 
   return AT_QUOTE;
+}
+
+
+static int
+unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
+{ Atom ap = atomValue(atom);
+  pl_wchar_t *s = (pl_wchar_t*)ap->name;
+  size_t len = ap->length/sizeof(pl_wchar_t);
+
+  if ( len == 0 )
+    return FALSE;
+
+  if ( !f_is_prolog_atom_start(*s) )
+    return FALSE;
+
+  do
+  { for( ++s;
+	 ( --len > 0 &&
+	   f_is_prolog_identifier_continue(*s) &&
+	   (!fd || Scanrepresent(*s, fd)==0)
+	 );
+	 s++)
+      ;
+  } while ( len >= 2 &&
+	    *s == '.' && f_is_prolog_identifier_continue(s[1]) &&
+	    truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
+	    !(flags&PL_WRT_NODOTINATOM)
+	  );
+
+  return len == 0;
+}
+
+
+int
+unquoted_atom(atom_t a)
+{ Atom ap = atomValue(a);
+
+  if ( true(ap->type, PL_BLOB_TEXT) )
+  { if ( !ap->type->write )		/* ordinary atoms */
+    { return atomType(a, NULL) != AT_QUOTE;
+    } else if ( isUCSAtom(ap) )		/* wide atoms */
+    { return unquoted_atomW(a, NULL, 0);
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -312,7 +381,7 @@ needSpace(int c, IOSTREAM *s)
 
   if ( (s->lastc&C_PREFIX_SIGN) && (isDigit(c) || isSymbolW(c)) )
     return TRUE;
-  if ( (s->lastc&C_PREFIX_OP) && c == '(' )
+  if ( (s->lastc&C_PREFIX_OP) && ( c == '(' || c == '{' ) )
     return TRUE;				/* avoid op(...) */
 
   s->lastc &= ~C_MASK;
@@ -574,7 +643,7 @@ writeAtom(atom_t a, write_options *options)
     return writeBlob(a, options);
 
   if ( true(options, PL_WRT_QUOTED) )
-  { switch( atomType(a, options->out) )
+  { switch( atomType(a, options) )
     { case AT_LOWER:
       case AT_SYMBOL:
       case AT_SOLO:
@@ -617,7 +686,7 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   size_t len = a->length/sizeof(pl_wchar_t);
   pl_wchar_t *e = &s[len];
 
-  if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(s, len, fd) )
+  if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(atom, fd, flags) )
   { pl_wchar_t quote = L'\'';
 
     TRY(PutOpenToken(quote, fd) &&
@@ -639,6 +708,43 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 
   return TRUE;
 }
+
+#ifdef O_RESERVED_SYMBOLS
+int
+writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
+{ Atom a = atomValue(atom);
+  const char *s = a->name;
+  size_t len = a->length;
+  const char *e = &s[len];
+
+  if ( atom == ATOM_nil )
+    return PutToken("[]", fd);
+
+  if ( (flags&PL_WRT_QUOTED) )
+  { char quote = '\'';
+
+    if ( PutOpenToken('C', fd) &&
+	 Putc('C', fd) &&
+	 Putc(quote, fd) )
+    { while(s < e)
+      { if ( !putQuoted(*s++, quote, flags, fd) )
+	  return FALSE;
+      }
+
+      return Putc(quote, fd);
+    }
+  }
+
+  if ( s < e && !PutOpenToken(s[0], fd) )
+    return FALSE;
+  for( ; s<e; s++)
+  { if ( !Putc(*s, fd) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+#endif
 
 
 #if O_STRING
@@ -1092,25 +1198,68 @@ writeList(term_t list, write_options *options)
   term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
 
-  TRY(Putc('[', options->out));
-  for(;;)
-  { PL_get_list(l, head, l);
-    TRY(writeArgTerm(head, 999, options, TRUE));
+  if ( false(options, PL_WRT_DOTLISTS) )
+  { TRY(Putc('[', options->out));
+    for(;;)
+    { PL_get_list(l, head, l);
+      TRY(writeArgTerm(head, 999, options, TRUE));
 
-    if ( PL_get_nil(l) )
-      break;
-    if ( ++options->depth >= options->max_depth && options->max_depth )
-      return PutString("|...]", options->out);
-    if ( !PL_is_functor(l, FUNCTOR_dot2) )
-    { TRY(Putc('|', options->out));
-      TRY(writeArgTerm(l, 999, options, TRUE));
-      break;
+      if ( PL_get_nil(l) )
+	break;
+      if ( ++options->depth >= options->max_depth && options->max_depth )
+	return PutString("|...]", options->out);
+      if ( !PL_is_functor(l, FUNCTOR_dot2) )
+      { TRY(Putc('|', options->out));
+	TRY(writeArgTerm(l, 999, options, TRUE));
+	break;
+      }
+
+      TRY(PutComma(options));
     }
 
-    TRY(PutComma(options));
-  }
+    return Putc(']', options->out);
+  } else
+  { int depth = 0;
 
-  return Putc(']', options->out);
+    for(;;)
+    { PL_get_list(l, head, l);
+      if ( !PutToken(".", options->out) ||
+	   !Putc('(', options->out) ||
+	   !writeArgTerm(head, 999, options, TRUE) ||
+	   !PutComma(options) )
+	return FALSE;
+
+      depth++;
+
+      if ( PL_get_nil(l) )
+      { if ( !PutToken("[]", options->out) )
+	  return FALSE;
+	break;
+      }
+
+      if ( ++options->depth >= options->max_depth && options->max_depth )
+      { if ( !PutToken("...", options->out) )
+	  return FALSE;
+	while(depth-->0)
+	{ if ( !Putc(')', options->out) )
+	    return FALSE;
+	}
+	return TRUE;
+      }
+
+      if ( !PL_is_functor(l, FUNCTOR_dot2) )
+      { if ( !writeArgTerm(l, 999, options, TRUE) )
+	  return FALSE;
+	break;
+      }
+    }
+
+    while(depth-->0)
+    { if ( !Putc(')', options->out) )
+	return FALSE;
+    }
+    return TRUE;
+  }
 }
 
 
@@ -1124,6 +1273,20 @@ isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
   }
 
   return FALSE;
+}
+
+
+static int
+writeDictPair(term_t name, term_t value, int last, void *closure)
+{ write_options *options = closure;
+
+  if ( writeTerm(name, 1200, options) &&
+       PutToken(":", options->out) &&
+       writeTerm(value, 999, options) &&
+       (last || PutComma(options)) )
+    return 0;				/* continue */
+
+  return -1;
 }
 
 
@@ -1170,22 +1333,47 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
       }
     }
 
+					/* handle {a,b,c} */
+    if ( false(options, PL_WRT_BRACETERMS) &&
+	 functor == ATOM_curl && arity == 1 )
+    { term_t arg;
+
+      if ( (arg=PL_new_term_ref()) &&
+	   PL_get_arg(1, t, arg) &&
+	   PutToken("{", out) &&
+	   writeTerm(arg, 1200, options) &&
+	   Putc('}', out) )
+	return TRUE;
+
+      return FALSE;
+    }
+
+					/* handle lists */
+    if ( functor == ATOM_dot && arity == 2 )
+      return writeList(t, options);
+
+					/* handle dicts */
+    if ( false(options, PL_WRT_NODICT) &&
+	 functor == ATOM_dict && PL_is_dict(t) )
+    { term_t class;
+
+      if ( (class=PL_new_term_ref()) &&
+	   PL_get_arg(1, t, class) )
+      { if ( writeTerm(class, 1200, options) &&
+	     Putc('{', out) &&
+	     PL_for_dict(t, writeDictPair, options, DICT_SORTED) == 0 &&
+	     Putc('}', out) )
+	  return TRUE;
+      }
+
+      return FALSE;
+    }
+					/* operators */
     if ( false(options, PL_WRT_IGNOREOPS) )
     { term_t arg;
 
       if ( !(arg=PL_new_term_ref()) )
 	return FALSE;
-
-      if ( arity == 1 && functor == ATOM_curl )	/* {a,b,c} */
-      { _PL_get_arg(1, t, arg);
-	TRY(Putc('{', out));
-	TRY(writeTerm(arg, 1200, options) &&
-	    Putc('}', out));
-
-	succeed;
-      }
-      if ( arity == 2 && functor == ATOM_dot ) /* list */
-	return writeList(t, options);
 
       if ( arity == 1 ||
 	  (arity == 2 && isBlockOp(t, arg, functor PASS_LD)) )
@@ -1282,9 +1470,6 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	}
       }
     }
-
-    if ( (options->flags&PL_WRT_LIST) && arity == 2 && functor == ATOM_dot )
-      return writeList(t, options);
 
 					/* functor(<args> ...) */
     { term_t a = PL_new_term_ref();
@@ -1457,13 +1642,16 @@ writeBlobMask(atom_t a)
 static const opt_spec write_term_options[] =
 { { ATOM_quoted,	    OPT_BOOL },
   { ATOM_ignore_ops,	    OPT_BOOL },
+  { ATOM_dotlists,	    OPT_BOOL },
+  { ATOM_brace_terms,	    OPT_BOOL },
   { ATOM_numbervars,        OPT_BOOL },
   { ATOM_portray,           OPT_BOOL },
+  { ATOM_portrayed,         OPT_BOOL },
   { ATOM_portray_goal,      OPT_TERM },
   { ATOM_character_escapes, OPT_BOOL },
   { ATOM_max_depth,	    OPT_INT  },
   { ATOM_module,	    OPT_ATOM },
-  { ATOM_backquoted_string, OPT_BOOL },
+  { ATOM_back_quotes,	    OPT_ATOM },
   { ATOM_attributes,	    OPT_ATOM },
   { ATOM_priority,	    OPT_INT },
   { ATOM_partial,	    OPT_BOOL },
@@ -1471,18 +1659,22 @@ static const opt_spec write_term_options[] =
   { ATOM_blobs,		    OPT_ATOM },
   { ATOM_cycles,	    OPT_BOOL },
   { ATOM_variable_names,    OPT_TERM },
+  { ATOM_nl,		    OPT_BOOL },
+  { ATOM_fullstop,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
-word
+foreign_t
 pl_write_term3(term_t stream, term_t term, term_t opts)
 { GET_LD
   bool quoted     = FALSE;
   bool ignore_ops = FALSE;
+  bool dotlists   = FALSE;
+  bool braceterms = FALSE;
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
   term_t gportray = 0;
-  bool bqstring   = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
+  atom_t bq       = 0;
   bool charescape = -1;			/* not set */
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
@@ -1490,6 +1682,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int  priority   = 1200;
   bool partial    = FALSE;
   bool cycles     = TRUE;
+  bool nl         = FALSE;
+  bool fullstop   = FALSE;
   term_t varnames = 0;
   int local_varnames;
   IOSTREAM *s = NULL;
@@ -1500,10 +1694,11 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   options.spacing = ATOM_standard;
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
-		     &quoted, &ignore_ops, &numbervars, &portray, &gportray,
+		     &quoted, &ignore_ops, &dotlists, &braceterms,
+		     &numbervars, &portray, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
-		     &bqstring, &attr, &priority, &partial, &options.spacing,
-		     &blobs, &cycles, &varnames) )
+		     &bq, &attr, &priority, &partial, &options.spacing,
+		     &blobs, &cycles, &varnames, &nl, &fullstop) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1558,10 +1753,21 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   if ( quoted )     options.flags |= PL_WRT_QUOTED;
   if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
+  if ( dotlists )   options.flags |= PL_WRT_DOTLISTS;
+  if ( braceterms ) options.flags |= PL_WRT_BRACETERMS;
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
-  if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
   if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
+  if ( bq )
+  { unsigned int flags = 0;
+
+    if ( !setBackQuotes(bq, &flags) )
+      return FALSE;
+    if ( (flags&BQ_STRING) )
+      options.flags |= PL_WRT_BACKQUOTED_STRING;
+    else if ( flags == 0 )
+      options.flags |= PL_WRT_BACKQUOTE_IS_SYMBOL;
+  }
 
   local_varnames = (varnames && false(&options, PL_WRT_NUMBERVARS));
 
@@ -1586,6 +1792,11 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   { rc = writeTopTerm(term, priority, &options);
   }
 
+  if ( rc && fullstop )
+    rc = PutToken(".", s) && Putc(nl ? '\n' : ' ', s);
+  else if ( nl )
+    rc = Putc('\n', s);
+
 out:
   END_NUMBERVARS(local_varnames);
 
@@ -1593,7 +1804,7 @@ out:
 }
 
 
-word
+foreign_t
 pl_write_term(term_t term, term_t options)
 { return pl_write_term3(0, term, options);
 }
@@ -1602,6 +1813,7 @@ pl_write_term(term_t term, term_t options)
 int
 PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
 { write_options options;
+  int rc;
 
   memset(&options, 0, sizeof(options));
   options.flags	    = flags;
@@ -1609,12 +1821,16 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.module    = MODULE_user;
 
   PutOpenToken(EOF, s);			/* reset this */
-  return writeTopTerm(term, precedence, &options);
+  rc = writeTopTerm(term, precedence, &options);
+  if ( rc && (flags&PL_WRT_NEWLINE) )
+    rc = Putc('\n', s);
+
+  return rc;
 }
 
 
 static word
-do_write2(term_t stream, term_t term, int flags)
+do_write2(term_t stream, term_t term, int flags, int canonical)
 { GET_LD
   IOSTREAM *s;
 
@@ -1624,11 +1840,13 @@ do_write2(term_t stream, term_t term, int flags)
 
     memset(&options, 0, sizeof(options));
     options.flags     = flags;
+    if ( !canonical )
+      options.flags |= LD->prolog_flag.write_attributes;
     options.out	      = s;
     options.module    = MODULE_user;
-    if ( options.module && true(options.module, M_CHARESCAPE) )
+    if ( true(options.module, M_CHARESCAPE) )
       options.flags |= PL_WRT_CHARESCAPES;
-    if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
+    if ( true(options.module, BQ_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
 
     PutOpenToken(EOF, s);		/* reset this */
@@ -1643,20 +1861,37 @@ do_write2(term_t stream, term_t term, int flags)
 }
 
 
-word
+foreign_t
 pl_write2(term_t stream, term_t term)
-{ return do_write2(stream, term, PL_WRT_NUMBERVARS);
+{ return do_write2(stream, term, PL_WRT_NUMBERVARS, FALSE);
 }
 
-word
+foreign_t
+pl_writeln2(term_t stream, term_t term)
+{ return do_write2(stream, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE, FALSE);
+}
+
+foreign_t
 pl_writeq2(term_t stream, term_t term)
-{ return do_write2(stream, term, PL_WRT_QUOTED|PL_WRT_NUMBERVARS);
+{ return do_write2(stream, term, PL_WRT_QUOTED|PL_WRT_NUMBERVARS, FALSE);
 }
 
-word
+foreign_t
 pl_print2(term_t stream, term_t term)
-{ return do_write2(stream, term,
-		   PL_WRT_PORTRAY|PL_WRT_NUMBERVARS);
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
+  term_t opts = PL_new_term_ref();
+  foreign_t rc;
+
+  if ( PL_current_prolog_flag(ATOM_print_write_options, PL_TERM, &opts) )
+    rc = pl_write_term3(stream, term, opts);
+  else
+    rc = do_write2(stream, term,
+		   PL_WRT_PORTRAY|PL_WRT_NUMBERVARS|PL_WRT_QUOTED, FALSE);
+
+  PL_discard_foreign_frame(fid);
+
+  return rc;
 }
 
 word
@@ -1674,7 +1909,8 @@ pl_write_canonical2(term_t stream, term_t term)
 
   rc = ( numberVars(term, &options, 0 PASS_LD) >= 0 &&
 	 do_write2(stream, term,
-		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS)
+		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
+		   PL_WRT_NODOTINATOM, TRUE)
        );
 
   END_NUMBERVARS(TRUE);
@@ -1682,29 +1918,29 @@ pl_write_canonical2(term_t stream, term_t term)
   return rc;
 }
 
-word
+foreign_t
 pl_write(term_t term)
 { return pl_write2(0, term);
 }
 
-word
+foreign_t
 pl_writeq(term_t term)
 { return pl_writeq2(0, term);
 }
 
-word
+foreign_t
 pl_print(term_t term)
 { return pl_print2(0, term);
 }
 
-word
+foreign_t
 pl_write_canonical(term_t term)
 { return pl_write_canonical2(0, term);
 }
 
-word
+foreign_t
 pl_writeln(term_t term)
-{ return do_write2(0, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE);
+{ return do_write2(0, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE, FALSE);
 }
 
 

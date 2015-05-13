@@ -32,6 +32,9 @@ check::
 	   cd packages && $(MAKE) $@; \
 	fi
 
+check-installation::
+	@cd $(BUILDARCH) && $(MAKE) $@
+
 doc::
 	@cd man && $(MAKE) all
 	@if [ -f packages/Makefile ]; then \

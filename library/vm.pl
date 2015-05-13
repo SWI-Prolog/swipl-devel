@@ -19,7 +19,7 @@ instructions.
 %	=current_output=. Spec is also allowed to be a clause-reference.
 
 vm_list(_:Ref) :-
-	integer(Ref), !,
+	blob(Ref, clause), !,
 	(   nth_clause(_Head, N, Ref),
 	    format('~40c~nclause ~d (~w):~n~40c~n', [0'-, N, Ref, 0'-]),
 	    vm_list_clause(Ref),

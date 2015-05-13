@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -280,7 +280,6 @@ canUnifyTermWithGoal(LocalFrame fr)
 	  term_t frref = consTermRef(fr);
 	  int i, arity = fr->predicate->functor->arity;
 	  int rval = TRUE;
-	  term_t ex;
 
 	  if ( copyRecordToGlobal(t, find->goal.term.term,
 				  ALLOW_GC|ALLOW_SHIFT PASS_LD) < 0 )
@@ -294,7 +293,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	    fr = (LocalFrame)valTermRef(frref);
 	    b = argFrameP(fr, i);
 
-	    if ( !can_unify(a++, b++, &ex) )
+	    if ( !can_unify(a++, b++, 0) )
 	    { rval = FALSE;
 	      break;
 	    }
@@ -421,19 +420,9 @@ Give a trace on the skipped goal for a redo.
       rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
       RESTORE_PTRS();
       debugstatus.skiplevel = levelFrame(fr);
-      set(fr, FR_SKIPPED);		/* cleared by "case 'c'" */
+      set(fr, FR_SKIPPED);		/* cleared by "creep" */
 
-      switch( rc )
-      { case ACTION_CONTINUE:
-	  if ( debugstatus.skiplevel < levelFrame(frame) )
-	    return ACTION_CONTINUE;
-	  break;
-	case ACTION_RETRY:
-	case ACTION_IGNORE:
-	case ACTION_FAIL:
-	  Sfprintf(Sdout, "Action not yet implemented here\n");
-	  break;
-      }
+      return rc;
     }
   }
 
@@ -619,7 +608,7 @@ setPrintOptions(word t)
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t av = PL_new_term_ref();
-    predicate_t pred = PL_predicate("$set_debugger_print_options", 1,
+    predicate_t pred = PL_predicate("$set_debugger_write_options", 1,
 				    "system");
 
     _PL_put_atomic(av, t);
@@ -706,9 +695,13 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		} else
 		  Warn("Can't retry at this port\n");
 		return ACTION_CONTINUE;
-    case 's':	FeedBack("skip\n");
-		set(frame, FR_SKIPPED);
-		debugstatus.skiplevel = levelFrame(frame);
+    case 's':	if (port & (CALL_PORT|REDO_PORT))
+		{ FeedBack("skip\n");
+		  set(frame, FR_SKIPPED);
+		  debugstatus.skiplevel = levelFrame(frame);
+		} else
+		{ FeedBack("creep\n");
+		}
 		return ACTION_CONTINUE;
     case 'u':	FeedBack("up\n");
 		debugstatus.skiplevel = levelFrame(frame) - 1;
@@ -941,7 +934,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 
     put_frame_goal(goal, frame);
     debugstatus.debugging = DBG_OFF;
-    PL_put_atom(tmp, ATOM_debugger_print_options);
+    PL_put_atom(tmp, ATOM_debugger_write_options);
     ctx.context = 0;
     ctx.control = FRG_FIRST_CALL;
     ctx.engine  = LD;
@@ -1150,6 +1143,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 { GET_LD
   int rval = -1;			/* Default C-action */
   predicate_t proc;
+  term_t ex;
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
 		       &GD->procedures.prolog_trace_interception4);
@@ -1211,29 +1205,31 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     RESTORE_PTRS();
     PL_put_frame(argv+1, frame);
     PL_put_choice(argv+2, bfr);
-    if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv)) )
+    if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, proc, argv)) )
       goto out;
     if ( PL_next_solution(qid) )
     { atom_t a;
 
+      RESTORE_PTRS();
+
       if ( PL_get_atom(rarg, &a) )
       { if ( a == ATOM_continue )
-	{ rval = ACTION_CONTINUE;
+	{ if ( !(port & EXIT_PORT) )
+	    clear(frame, FR_SKIPPED);
+	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_nodebug )
 	{ rval = ACTION_CONTINUE;
 	  nodebug = TRUE;
 	} else if ( a == ATOM_fail )
 	{ rval = ACTION_FAIL;
 	} else if ( a == ATOM_skip )
-	{ if ( !(port & CUT_PORT) )
-	  { LocalFrame fr;
-
-	    if ( PL_get_frame(argv+1, &fr) )
-	    { debugstatus.skiplevel = levelFrame(fr);
-	      set(fr, FR_SKIPPED);
-	    } else
-	      assert(0);
+	{ if ( (port & (CALL_PORT|REDO_PORT)) )
+	  { debugstatus.skiplevel = levelFrame(frame);
+	    set(frame, FR_SKIPPED);
 	  }
+	  rval = ACTION_CONTINUE;
+	} else if ( a == ATOM_up )
+	{ debugstatus.skiplevel = levelFrame(frame) - 1;
 	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_retry )
 	{ rval = ACTION_RETRY;
@@ -1252,6 +1248,16 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  rval = ACTION_RETRY;
 	} else
 	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
+      }
+    } else if ( (ex=PL_exception(qid)) )
+    { atom_t a;
+
+      if ( PL_get_atom(ex, &a) && a == ATOM_aborted )
+      { rval = ACTION_ABORT;
+      } else
+      { printMessage(ATOM_error, PL_TERM, ex);
+	nodebug = TRUE;
+	rval = ACTION_CONTINUE;
       }
     }
 
@@ -1761,19 +1767,13 @@ trace_if_space(void)
 #define minFreeStack(name, size) \
 	(spaceStack(name) > size*(int)sizeof(void*))
 
-  if ( LD->outofstack )
-  { if ( minFreeStack(local,  50000) &&
-	 minFreeStack(global, 50000) &&
-	 minFreeStack(trail,  20000) )
-      trace = TRUE;
-    else
-      trace = FALSE;
-  } else
+  if ( minFreeStack(local,  50000) &&
+       minFreeStack(global, 50000) &&
+       minFreeStack(trail,  20000) )
   { trace = TRUE;
-  }
-
-  if ( trace )
     tracemode(trace, NULL);
+  } else
+    trace = FALSE;
 
   return trace;
 }
@@ -1785,7 +1785,7 @@ higher to accomodate debugging. This causes less  GC calls and thus less
 cases where debugging is harmed due to <garbage_collected> atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 enlargeMinFreeStacks(size_t l, size_t g, size_t t ARG_LD)
 { if ( LD->stacks.local.min_free < l )
     LD->stacks.local.min_free = l;
@@ -1794,7 +1794,7 @@ enlargeMinFreeStacks(size_t l, size_t g, size_t t ARG_LD)
   if ( LD->stacks.trail.min_free < l )
     LD->stacks.trail.min_free = t;
 
-  shiftTightStacks();			/* no GC: we want to keep variables! */
+  return shiftTightStacks();		/* no GC: we want to keep variables! */
 }
 
 
@@ -1816,7 +1816,13 @@ debugmode(debug_type doit, debug_type *old)
 
   if ( debugstatus.debugging != doit )
   { if ( doit )
-    { debugstatus.skiplevel = SKIP_VERY_DEEP;
+    { if ( !enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
+				 8*1024*SIZEOF_VOIDP,
+				 8*1024*SIZEOF_VOIDP
+				 PASS_LD) )
+	return FALSE;
+
+      debugstatus.skiplevel = SKIP_VERY_DEEP;
       clearPrologFlagMask(PLFLAG_LASTCALL);
       if ( doit == DBG_ALL )
       { QueryFrame qf;
@@ -1826,10 +1832,6 @@ debugmode(debug_type doit, debug_type *old)
 
 	doit = DBG_ON;
       }
-      enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
-			   8*1024*SIZEOF_VOIDP,
-			   8*1024*SIZEOF_VOIDP
-			   PASS_LD);
     } else
     { setPrologFlagMask(PLFLAG_LASTCALL);
     }
@@ -1840,7 +1842,7 @@ debugmode(debug_type doit, debug_type *old)
 		   PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
 
-  succeed;
+  return TRUE;
 }
 
 #else /*O_DEBUGGER*/
@@ -2106,8 +2108,9 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
   { if ( false(fr->predicate, P_FOREIGN) &&
-	 fr->clause &&
-	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
+	 fr->clause && fr->clause->value.clause &&
+	 fr->predicate != PROCEDURE_dc_call_prolog->definition &&
+	 fr->predicate != PROCEDURE_dcall1->definition )
     { if ( !PL_unify_clref(result, fr->clause->value.clause) )
 	return FALSE;
     } else
@@ -2429,11 +2432,8 @@ sendDelayedEvents(void)
 
 
 int
-callEventHook(pl_event_type ev, ...)
-{ if ( !PROCEDURE_event_hook1 )
-    PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
-
-  if ( PROCEDURE_event_hook1->definition->impl.any )
+PL_call_event_hook(pl_event_type ev, ...)
+{ if ( PROCEDURE_event_hook1->definition->impl.any )
   { GET_LD
     wakeup_state wstate;
     int rc;

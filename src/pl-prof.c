@@ -320,7 +320,8 @@ get_prof_status(term_t t, prof_status *s)
 	*s = PROF_WALL;
         return TRUE;
       default:
-	return PL_domain_error("profile_status", t);
+	PL_domain_error("profile_status", t);
+        return FALSE;
     }
   }
 

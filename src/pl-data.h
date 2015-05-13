@@ -120,8 +120,8 @@ be kept consistent.
 #define TAG_ATTVAR	0x00000001L	/* tag for attributed variable */
 #define TAG_FLOAT	0x00000002L	/* Floating point number */
 #define TAG_INTEGER	0x00000003L	/* Tagged or indirect integer */
-#define TAG_ATOM	0x00000004L	/* an atom */
-#define TAG_STRING	0x00000005L	/* String */
+#define TAG_STRING	0x00000004L	/* String */
+#define TAG_ATOM	0x00000005L	/* an atom */
 #define TAG_COMPOUND	0x00000006L	/* Compound term */
 #define TAG_REFERENCE	0x00000007L	/* Reference pointer */
 

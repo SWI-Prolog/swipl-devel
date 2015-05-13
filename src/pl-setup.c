@@ -59,6 +59,7 @@ setupProlog(void)
   LD->critical = 0;
   LD->signal.pending[0] = 0;
   LD->signal.pending[1] = 0;
+  LD->statistics.start_time = WallTime();
 
   startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));
@@ -131,7 +132,10 @@ void
 initPrologLocalData(ARG1_LD)
 {
 #ifdef O_LIMIT_DEPTH
-  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
+  depth_limit   = DEPTH_NO_LIMIT;
+#endif
+#ifdef O_INFERENCE_LIMIT
+  LD->inference_limit.limit = INFERENCE_NO_LIMIT;
 #endif
 
   LD->break_level = -1;
@@ -582,6 +586,38 @@ hupHandler(int sig)
 #endif
 
 
+/* terminate_handler() is called on termination signals like SIGTERM.
+   It runs hooks registered using PL_exit_hook() and then kills itself.
+   The hooks are called with the exit status `3`.
+*/
+
+static void
+terminate_handler(int sig)
+{ signal(sig, SIG_DFL);
+
+  run_on_halt(&GD->os.exit_hooks, 3);
+
+#if defined(HAVE_KILL) && defined(HAVE_GETPID)
+  kill(getpid(), sig);
+#else
+  exit(3);
+#endif
+}
+
+static void
+initTerminationSignals(void)
+{
+#ifdef SIGTERM
+  PL_signal(SIGTERM, terminate_handler);
+#endif
+#ifdef SIGABRT
+  PL_signal(SIGABRT, terminate_handler);
+#endif
+#ifdef SIGQUIT
+  PL_signal(SIGQUIT, terminate_handler);
+#endif
+}
+
 static void
 sig_exception_handler(int sig)
 { GET_LD
@@ -662,7 +698,7 @@ initSignals(void)
 #ifdef SIGPIPE
   set_sighandler(SIGPIPE, SIG_IGN);
 #endif
-
+  initTerminationSignals();
   for( ; sn->name; sn++)
   {
 #ifdef HAVE_BOEHM_GC
@@ -878,11 +914,13 @@ PL_signal(int sigandflags, handler_t func)
 */
 
 int
-PL_handle_signals()
+PL_handle_signals(void)
 { GET_LD
 
   if ( !LD || LD->critical || !is_signalled(LD) )
     return 0;
+  if ( exception_term )
+    return -1;
 
   return handleSignals(PASS_LD1);
 }
@@ -909,15 +947,12 @@ handleSignals(ARG1_LD)
 	  dispatch_signal(sig, TRUE);
 
 	  if ( exception_term )
-	    goto out;
+	    return -1;
 	}
       }
     }
   }
 
-out:
-  if ( exception_term )
-    return -1;
   if ( done )
     updateAlerted(PASS_LD1);
 
@@ -1335,7 +1370,7 @@ trim_stack(Stack s)
   { ssize_t reduce = s->def_spare - s->spare;
     ssize_t room = roomStackP(s);
 
-    if ( room < reduce )
+    if ( room > 0 && room < reduce )
     { DEBUG(MSG_SPARE_STACK,
 	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
       reduce = room;
@@ -1446,25 +1481,6 @@ PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
   trimStacks(TRUE PASS_LD);
 
   succeed;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Called at the end of handling an exception. We cannot do GC, however, we
-can request it, after it will be executed   at the start of the recovery
-handler. If no GC is needed, we call trimStacks() to re-enable the spare
-stack-space if applicable.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-resumeAfterException(void)
-{ GET_LD
-
-  if ( !considerGarbageCollect((Stack)NULL) )
-    trimStacks(FALSE, PASS_LD1);
-
-  LD->exception.processing = FALSE;
-  LD->outofstack = NULL;
 }
 
 

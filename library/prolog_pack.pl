@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2013, VU University Amsterdam
+    Copyright (C): 2013-2015, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -38,7 +38,9 @@
 	    pack_rebuild/1,		% +Name
 	    pack_rebuild/0,		% All packages
 	    pack_remove/1,		% +Name
-	    pack_property/2		% ?Name, ?Property
+	    pack_property/2,		% ?Name, ?Property
+
+	    pack_url_file/2		% +URL, -File
 	  ]).
 :- use_module(library(apply)).
 :- use_module(library(error)).
@@ -129,6 +131,7 @@ pack_info(Name) :-
 	pack_info(info, Name).
 
 pack_info(Level, Name) :-
+	must_be(atom, Name),
 	findall(Info, pack_info(Name, Level, Info), Infos0),
 	(   Infos0 == []
 	->  print_message(warning, pack(no_pack_installed(Name))),
@@ -142,6 +145,8 @@ pack_info(Level, Name) :-
 	show_info(Name, Infos, [info(Level)]).
 
 
+show_info(_Name, _Properties, Options) :-
+	option(silent(true), Options), !.
 show_info(Name, Properties, Options) :-
 	option(info(list), Options), !,
 	memberchk(title(Title), Properties),
@@ -316,7 +321,7 @@ pack_list(Query) :-
 	pack_search(Query).
 
 pack_search(Query) :-
-	query_pack_server(search(Query), Result),
+	query_pack_server(search(Query), Result, []),
 	(   Result == false
 	->  (   local_search(Query, Packs),
 	        Packs \== []
@@ -404,50 +409,81 @@ search_info(download(_)).
 %	After resolving the type of package,   pack_install/2 is used to
 %	do the actual installation.
 
-pack_install(Archive) :-		% Install from .tgz/.zip/... file
+pack_install(Spec) :-
+	pack_default_options(Spec, Pack, [], Options),
+	pack_install(Pack, [pack(Pack)|Options]).
+
+pack_default_options(_Spec, Pack, OptsIn, Options) :-
+	option(url(URL), OptsIn), !,
+	(   option(git(_), OptsIn)
+	->  Options = OptsIn
+	;   git_url(URL, Pack)
+	->  Options = [git(true)|OptsIn]
+	;   Options = OptsIn
+	),
+	(   nonvar(Pack)
+	->  true
+	;   option(pack(Pack), Options)
+	->  true
+	;   pack_version_file(Pack, _Version, URL)
+	).
+pack_default_options(Archive, Pack, _, Options) :-	% Install from .tgz/.zip/... file
 	must_be(atom, Archive),
 	expand_file_name(Archive, [File]),
 	exists_file(File), !,
-	pack_version_file(Pack, _Version, File),
+	pack_version_file(Pack, Version, File),
 	uri_file_name(FileURL, File),
-	pack_install(Pack, [url(FileURL)]).
-pack_install(URL) :-
+	Options = [url(FileURL), version(Version)].
+pack_default_options(URL, Pack, _, Options) :-
 	git_url(URL, Pack), !,
-	pack_install(Pack, [git(true), url(URL)]).
-pack_install(URL) :-			% Install from URL
-	pack_version_file(Pack, _Version, URL),
+	Options = [git(true), url(URL)].
+pack_default_options(Dir, Pack, _, Options) :-	% Install from directory
+	exists_directory(Dir),
+	pack_info_term(Dir, name(Pack)), !,
+	pack_info_term(Dir, version(Version)),
+	uri_file_name(DirURL, Dir),
+	Options = [url(DirURL), version(Version)].
+pack_default_options(URL, Pack, _, Options) :-	% Install from URL
+	pack_version_file(Pack, Version, URL),
 	download_url(URL), !,
 	available_download_versions(URL, [_-LatestURL|_]),
-	pack_install(Pack, [url(LatestURL)]).
-pack_install(Dir) :-			% Install from directory
-	exists_directory(Dir),
-	pack_info_term(Dir, name(Name)), !,
-	uri_file_name(DirURL, Dir),
-	pack_install(Name, [url(DirURL)]).
-pack_install(Pack) :-			% Install from a pack name
-	query_pack_server(locate(Pack), Reply),
+	Options = [url(LatestURL), version(Version)].
+pack_default_options(Pack, Pack, OptsIn, Options) :-	% Install from a pack name
+	\+ uri_is_global(Pack),			% ignore URLs
+	query_pack_server(locate(Pack), Reply, OptsIn),
 	(   Reply = true(Results)
-	->  (   pack_select_candidate(Pack, Results, InstallOptions)
-	    ->	pack_install(Pack, InstallOptions)
-	    ;	fail
-	    )
+	->  pack_select_candidate(Pack, Results, OptsIn, Options)
 	;   print_message(warning, pack(no_match(Pack))),
 	    fail
 	).
 
-pack_select_candidate(Pack, [Version-[URL]|_],
+pack_select_candidate(Pack, Available, Options, OptsOut) :-
+	option(url(URL), Options),
+	memberchk(_Version-URLs, Available),
+	memberchk(URL, URLs), !,
+	(   git_url(URL, Pack)
+	->  Extra = [git(true)]
+	;   Extra = []
+	),
+	OptsOut = [url(URL), inquiry(true) | Extra].
+pack_select_candidate(Pack, [Version-[URL]|_], Options,
 		      [url(URL), git(true), inquiry(true)]) :-
 	git_url(URL, Pack), !,
-	confirm(install_from(Pack, Version, git(URL)), yes, []).
-pack_select_candidate(Pack, [Version-[URL]|_],
+	confirm(install_from(Pack, Version, git(URL)), yes, Options).
+pack_select_candidate(Pack, [Version-[URL]|More], Options,
 		      [url(URL), inquiry(true)]) :-
-	confirm(install_from(Pack, Version, URL), yes, []).
-pack_select_candidate(Pack, [Version-URLs|_],
+	(   More == []
+	->  !
+	;   true
+	),
+	confirm(install_from(Pack, Version, URL), yes, Options), !.
+pack_select_candidate(Pack, [Version-URLs|_], Options,
 		      [url(URL), inquiry(true)|Rest]) :-
 	maplist(url_menu_item, URLs, Tagged),
 	append(Tagged, [cancel=cancel], Menu),
 	Menu = [Default=_|_],
-	menu(pack(select_install_from(Pack, Version)), Menu, Default, Choice),
+	menu(pack(select_install_from(Pack, Version)),
+	     Menu, Default, Choice, Options),
 	(   Choice == cancel
 	->  fail
 	;   Choice = git(URL)
@@ -463,18 +499,38 @@ url_menu_item(URL, URL=install_from(URL)).
 
 %%	pack_install(+Name, +Options) is det.
 %
-%	Install package Name.  Options:
+%	Install package Name.  Processes  the   options  below.  Default
+%	options as would be used by  pack_install/1 are used to complete
+%	the provided Options.
 %
 %	  * url(+URL)
 %	  Source for downloading the package
 %	  * package_directory(+Dir)
 %	  Directory into which to install the package
 %	  * interactive(+Boolean)
+%	  Use default answer without asking the user if there
+%	  is a default action.
+%	  * silent(+Boolean)
+%	  If `true` (default false), suppress informational progress
+%	  messages.
+%	  * upgrade(+Boolean)
+%	  If `true` (default `false`), upgrade package if it is already
+%	  installed.
+%	  * git(+Boolean)
+%	  If `true` (default `false` unless `URL` ends with =.git=),
+%	  assume the URL is a GIT repository.
+%
+%	Non-interactive installation can be established using the option
+%	interactive(false). It is adviced to   install from a particular
+%	_trusted_ URL instead of the  plain   pack  name  for unattented
+%	operation.
 
-pack_install(Name, Options) :-
+pack_install(Spec, Options) :-
+	pack_default_options(Spec, Pack, Options, DefOptions),
+	merge_options(Options, DefOptions, PackOptions),
 	update_dependency_db,
-	pack_install_dir(PackDir, Options),
-	pack_install(Name, PackDir, Options).
+	pack_install_dir(PackDir, PackOptions),
+	pack_install(Pack, PackDir, PackOptions).
 
 pack_install_dir(PackDir, Options) :-
 	option(package_directory(PackDir), Options), !.
@@ -484,7 +540,7 @@ pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
 			     access(write),
 			     file_errors(fail)
 			   ]), !.
-pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
+pack_install_dir(PackDir, Options) :-		% TBD: global/user?
 	findall(Candidate = create_dir(Candidate),
 		( absolute_file_name(pack(.), Candidate, [solutions(all)]),
 		  \+ exists_file(Candidate),
@@ -499,7 +555,7 @@ pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
 	list_to_set(Candidates0, Candidates),	% keep order
 	Candidates = [Default=_|_], !,
 	append(Candidates, [cancel=cancel], Menu),
-	menu(pack(create_pack_dir), Menu, Default, PackDir),
+	menu(pack(create_pack_dir), Menu, Default, PackDir, Options),
 	make_directory_path(PackDir).
 pack_install_dir(_, _) :-
 	print_message(error, pack(cannot_create_dir(pack(.)))),
@@ -513,13 +569,17 @@ pack_install_dir(_, _) :-
 %	  - url(URL)
 %	  Install from the given URL, URL is either a file://, a git URL
 %	  or a download URL.
+%	  - upgrade(Boolean)
+%	  If Pack is already installed and Boolean is `true`, update the
+%	  package to the latest version.  If Boolean is `false` print
+%	  an error and fail.
 
 pack_install(Name, _, Options) :-
 	current_pack(Name),
-	option(update(true), Options, false),
+	option(upgrade(false), Options, false),
 	print_message(error, pack(already_installed(Name))),
 	pack_info(Name),
-	print_message(information, pack(remove_with(Name))),
+	print_message(information, pack(remove_with(Name))), !,
 	fail.
 pack_install(Name, PackDir, Options) :-
 	option(url(URL), Options),
@@ -687,7 +747,7 @@ prepare_pack_dir(Dir, Options) :-
 	->  true
 	;   option(upgrade(true), Options)
 	->  delete_directory_contents(Dir)
-	;   confirm(remove_existing_pack(Dir), yes, []),
+	;   confirm(remove_existing_pack(Dir), yes, Options),
 	    delete_directory_contents(Dir)
 	).
 prepare_pack_dir(Dir, _) :-
@@ -729,7 +789,7 @@ pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	pack_download_dir(PackTopDir, DownLoadDir),
-	file_base_name(URL, DownloadBase),
+	download_file(URL, Pack, DownloadBase, Options),
 	directory_file_path(DownLoadDir, DownloadBase, DownloadFile),
 	setup_call_cleanup(
 	    http_open(URL, In,
@@ -746,6 +806,35 @@ pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	show_info(Pack, Info, Options),
 	confirm(install_downloaded(DownloadFile), yes, Options),
 	pack_install_from_local(DownloadFile, PackTopDir, Pack, Options).
+
+%%	download_file(+URL, +Pack, -File, +Options) is det.
+
+download_file(URL, Pack, File, Options) :-
+	option(version(Version), Options), !,
+	atom_version(VersionA, Version),
+	file_name_extension(_, Ext, URL),
+	format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
+download_file(URL, Pack, File, _) :-
+	file_base_name(URL,Basename),
+	file_name_extension(Tag,Ext,Basename),
+	tag_version(Tag,Version), !,
+	atom_version(VersionA,Version),
+	format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
+download_file(URL, _, File, _) :-
+	file_base_name(URL, File).
+
+%%	pack_url_file(+URL, -File) is det.
+%
+%	True if File is a unique id for the referenced pack and version.
+%	Normally, that is simply the  base   name,  but  GitHub archives
+%	destroy this picture. Needed by the pack manager.
+
+pack_url_file(URL, FileID) :-
+	github_release_url(URL, Pack, Version), !,
+	download_file(URL, Pack, FileID, [version(Version)]).
+pack_url_file(URL, FileID) :-
+	file_base_name(URL, FileID).
+
 
 :- public ssl_verify/5.
 
@@ -1172,7 +1261,7 @@ confirm_remove(Pack, Deps, Delete) :-
 	     [ [Pack]      = remove_only(Pack),
 	       [Pack|Deps] = remove_deps(Pack, Deps),
 	       []          = cancel
-	     ], [], Delete),
+	     ], [], Delete, []),
 	Delete \== [].
 
 
@@ -1282,8 +1371,11 @@ safe_pack_char(0'_).
 %	basename  must  be  of   the    form   <pack>-<n>{.<m>}*.  E.g.,
 %	=|mypack-1.5|=.
 
+pack_version_file(Pack, Version, GitHubRelease) :-
+	atomic(GitHubRelease),
+	github_release_url(GitHubRelease, Pack, Version), !.
 pack_version_file(Pack, Version, Path) :-
-	atom(Path),
+	atomic(Path),
 	file_base_name(Path, File),
 	file_name_extension(Base, Ext, File),
 	Ext \== '',
@@ -1294,6 +1386,39 @@ pack_version_file(Pack, Version, Path) :-
 	;   print_message(error, pack(invalid_name(File))),
 	    fail
 	).
+
+%%	github_release_url(+URL, -Pack, -Version) is semidet.
+%
+%	True when URL is the URL of a GitHub release.  Such releases are
+%	accessible as
+%
+%	  ==
+%	  https:/github.com/<owner>/<pack>/archive/[vV]?<version>.zip'
+%	  ==
+
+github_release_url(URL, Pack, Version) :-
+	uri_components(URL, Components),
+	uri_data(authority, Components, 'github.com'),
+	uri_data(scheme, Components, Scheme),
+	download_scheme(Scheme),
+	uri_data(path, Components, Path),
+	atomic_list_concat(['',_Project,Pack,archive,File], /, Path),
+	file_name_extension(Tag, Ext, File),
+	github_archive_extension(Ext),
+	tag_version(Tag, Version), !.
+
+github_archive_extension(tgz).
+github_archive_extension(zip).
+
+tag_version(Tag, Version) :-
+	version_tag_prefix(Prefix),
+	atom_concat(Prefix, AtomVersion, Tag),
+	atom_version(AtomVersion, Version).
+
+version_tag_prefix(v).
+version_tag_prefix('V').
+version_tag_prefix('').
+
 
 :- public
 	atom_version/2.
@@ -1366,51 +1491,64 @@ pack_inquiry(URL, DownloadFile, Info, Options) :-
 	->  true
 	;   file_sha1(DownloadFile, SHA1)
 	),
-	query_pack_server(install(URL, SHA1, Info), Reply),
-	inquiry_result(Reply, URL).
+	query_pack_server(install(URL, SHA1, Info), Reply, Options),
+	inquiry_result(Reply, URL, Options).
 pack_inquiry(_, _, _, _).
 
 
-%%	query_pack_server(+Query, -Result)
+%%	query_pack_server(+Query, -Result, +Options)
 %
 %	Send a Prolog query  to  the   package  server  and  process its
 %	results.
 
-query_pack_server(Query, Result) :-
+query_pack_server(Query, Result, Options) :-
 	setting(server, ServerBase),
 	ServerBase \== '',
 	atom_concat(ServerBase, query, Server),
 	format(codes(Data), '~q.~n', Query),
-	print_message(informational, pack(contacting_server(Server))),
+	info_level(Informational, Options),
+	print_message(Informational, pack(contacting_server(Server))),
 	setup_call_cleanup(
 	    http_open(Server, In,
-		      [ post(codes(text/'x-prolog', Data))
+		      [ post(codes(text/'x-prolog', Data)),
+			header(content_type, ContentType)
 		      ]),
-	    ( set_stream(In, encoding(utf8)),
-	      read(In, Result0)
-	    ),
+	    read_reply(ContentType, In, Result),
 	    close(In)),
-	Result = Result0,
-	message_severity(Result, Level),
+	message_severity(Result, Level, Informational),
 	print_message(Level, pack(server_reply(Result))).
 
-message_severity(true(_), informational).
-message_severity(false, warning).
-message_severity(exception(_), error).
+read_reply(ContentType, In, Result) :-
+	sub_atom(ContentType, 0, _, _, 'text/x-prolog'), !,
+	set_stream(In, encoding(utf8)),
+	read(In, Result).
+read_reply(ContentType, In, _Result) :-
+	read_string(In, 500, String),
+	print_message(error, pack(no_prolog_response(ContentType, String))),
+	fail.
+
+info_level(Level, Options) :-
+	option(silent(true), Options), !,
+	Level = silent.
+info_level(informational, _).
+
+message_severity(true(_), Informational, Informational).
+message_severity(false, warning, _).
+message_severity(exception(_), error, _).
 
 
-%%	inquiry_result(+Reply, +File) is semidet.
+%%	inquiry_result(+Reply, +File, +Options) is semidet.
 %
 %	Analyse the results  of  the  inquiry   and  decide  whether  to
 %	continue or not.
 
-inquiry_result(Reply, File) :-
-	findall(Eval, eval_inquiry(Reply, File, Eval), Evaluation),
+inquiry_result(Reply, File, Options) :-
+	findall(Eval, eval_inquiry(Reply, File, Eval, Options), Evaluation),
 	\+ member(cancel, Evaluation),
 	forall(member(install_dependencies(Resolution), Evaluation),
-	       maplist(install_dependency, Resolution)).
+	       maplist(install_dependency(Options), Resolution)).
 
-eval_inquiry(true(Reply), URL, Eval) :-
+eval_inquiry(true(Reply), URL, Eval, _) :-
 	include(alt_hash, Reply, Alts),
 	Alts \== [],
 	print_message(warning, pack(alt_hashes(URL, Alts))),
@@ -1426,34 +1564,36 @@ eval_inquiry(true(Reply), URL, Eval) :-
 	;   !,				% Stop other rules
 	    Eval = cancel
 	).
-eval_inquiry(true(Reply), _, Eval) :-
+eval_inquiry(true(Reply), _, Eval, Options) :-
 	include(dependency, Reply, Deps),
 	Deps \== [],
-	select_dependency_resolution(Deps, Eval),
+	select_dependency_resolution(Deps, Eval, Options),
 	(   Eval == cancel
 	->  !
 	;   true
 	).
-eval_inquiry(true(Reply), URL, true) :-
+eval_inquiry(true(Reply), URL, true, Options) :-
 	file_base_name(URL, File),
-	print_message(informational, pack(inquiry_ok(Reply, File))).
+	info_level(Informational, Options),
+	print_message(Informational, pack(inquiry_ok(Reply, File))).
 eval_inquiry(exception(pack(modified_hash(_SHA1-URL, _SHA2-[URL]))),
-	     URL, Eval) :-
-	(   confirm(continue_with_modified_hash(URL), no, [])
+	     URL, Eval, Options) :-
+	(   confirm(continue_with_modified_hash(URL), no, Options)
 	->  Eval = true
 	;   Eval = cancel
 	).
+
 alt_hash(alt_hash(_,_,_)).
 dependency(dependency(_,_,_,_,_)).
 
 
-%%	select_dependency_resolution(+Deps, -Eval)
+%%	select_dependency_resolution(+Deps, -Eval, +Options)
 %
 %	Select a resolution.
 %
 %	@tbd	Exploit backtracking over resolve_dependencies/2.
 
-select_dependency_resolution(Deps, Eval) :-
+select_dependency_resolution(Deps, Eval, Options) :-
 	resolve_dependencies(Deps, Resolution),
 	exclude(local_dep, Resolution, ToBeDone),
 	(   ToBeDone == []
@@ -1467,7 +1607,7 @@ select_dependency_resolution(Deps, Eval) :-
 		 [ install_deps    = install_deps,
 		   install_no_deps = install_no_deps,
 		   cancel          = cancel
-		 ], Default, Choice),
+		 ], Default, Choice, Options),
 	    (   Choice == cancel
 	    ->  !, Eval = cancel
 	    ;   Choice == install_no_deps
@@ -1479,21 +1619,25 @@ select_dependency_resolution(Deps, Eval) :-
 local_dep(_-resolved(_)).
 
 
-%%	install_dependency(+TokenResolution)
+%%	install_dependency(+Options, +TokenResolution)
 %
 %	Install dependencies for the given resolution.
 %
 %	@tbd: Query URI to use
 
-install_dependency(_Token-resolve(Pack, _Version, [URL|_], SubResolve)) :- !,
-	pack_install(Pack,
-		     [ url(URL),
-		       interactive(false),
-		       inquiry(false),
-		       info(list)
-		     ]),
-	maplist(install_dependency, SubResolve).
-install_dependency(_-_).
+install_dependency(Options,
+		   _Token-resolve(Pack, VersionAtom, [URL|_], SubResolve)) :- !,
+	atom_version(VersionAtom, Version),
+	merge_options([ url(URL),
+			version(Version),
+			interactive(false),
+			inquiry(false),
+			info(list),
+			pack(Pack)
+		      ], Options, InstallOptions),
+	pack_install(Pack, InstallOptions),
+	maplist(install_dependency(Options), SubResolve).
+install_dependency(_, _-_).
 
 
 		 /*******************************
@@ -1514,7 +1658,9 @@ available_download_versions(URL, Versions) :-
 	print_message(informational, pack(query_versions(DirURL))),
 	setup_call_cleanup(
 	    http_open(DirURL, In, []),
-	    load_html_file(stream(In), DOM),
+	    load_html(stream(In), DOM,
+		      [ syntax_errors(quiet)
+		      ]),
 	    close(In)),
 	findall(MatchingURL,
 		absolute_matching_href(DOM, URL, MatchingURL),
@@ -1527,8 +1673,7 @@ available_download_versions(URL, Versions) :-
 	keysort(VersionedURLs, SortedVersions),
 	reverse(SortedVersions, Versions).
 available_download_versions(URL, [Version-URL]) :-
-	file_base_name(URL, File),
-	(   pack_version_file(_Pack, Version0, File)
+	(   pack_version_file(_Pack, Version0, URL)
 	->  Version = Version0
 	;   Version = unknown
 	).
@@ -1801,18 +1946,21 @@ string([H|T]) --> [H], string(T).
 
 :- multifile prolog:message//1.
 
-%%	menu(Question, +Options, +Default, -Selection)
+%%	menu(Question, +Alternatives, +Default, -Selection, +Options)
 
-menu(Question, Options, Default, Selection) :-
-	length(Options, N),
+menu(_Question, _Alternatives, Default, Selection, Options) :-
+	option(interactive(false), Options), !,
+	Selection = Default.
+menu(Question, Alternatives, Default, Selection, _) :-
+	length(Alternatives, N),
 	between(1, 5, _),
 	   print_message(query, Question),
-	   print_menu(Options, Default, 1),
+	   print_menu(Alternatives, Default, 1),
 	   print_message(query, pack(menu(select))),
 	   read_selection(N, Choice), !,
 	(   Choice == default
 	->  Selection = Default
-	;   nth1(Choice, Options, Selection=_)
+	;   nth1(Choice, Alternatives, Selection=_)
 	->  true
 	).
 
@@ -1832,7 +1980,8 @@ read_selection(Max, Choice) :-
 	;   code_type(Code, digit(Choice)),
 	    between(1, Max, Choice)
 	->  true
-	;   print_message(warning, menu(reply(1,Max)))
+	;   print_message(warning, pack(menu(reply(1,Max)))),
+	    fail
 	).
 
 %%	confirm(+Question, +Default, +Options) is semidet.
@@ -1978,6 +2127,16 @@ message(cannot_create_dir(Alias)) -->
 	candidate_dirs(PackDirs).
 message(no_match(Name)) -->
 	[ 'No registered pack matches "~w"'-[Name] ].
+message(conflict(version, [PackV, FileV])) -->
+	['Version mismatch: pack.pl: '-[]], msg_version(PackV),
+	[', file claims version '-[]], msg_version(FileV).
+message(conflict(name, [PackInfo, FileInfo])) -->
+	['Pack ~w mismatch: pack.pl: ~p'-[PackInfo]],
+	[', file claims ~w: ~p'-[FileInfo]].
+message(no_prolog_response(ContentType, String)) -->
+	[ 'Expected Prolog response.  Got content of type ~p'-[ContentType], nl,
+	  '~s'-[String]
+	].
 
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).
@@ -2002,6 +2161,11 @@ message(confirm(Question, Default)) -->
 	message(Question),
 	confirm_default(Default),
 	[ flush ].
+message(menu(reply(Min,Max))) -->
+	(  { Max =:= Min+1 }
+	-> [ 'Please enter ~w or ~w'-[Min,Max] ]
+	;  [ 'Please enter a number between ~w and ~w'-[Min,Max] ]
+	).
 
 % Alternate hashes for found for the same file
 

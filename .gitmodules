@@ -52,9 +52,6 @@
 [submodule "packages/ssl"]
 	path = packages/ssl
 	url = ../packages-ssl.git
-[submodule "packages/R"]
-	path = packages/R
-	url = ../packages-R.git
 [submodule "packages/zlib"]
 	path = packages/zlib
 	url = ../packages-zlib.git
@@ -97,3 +94,9 @@
 [submodule "packages/swipl-win"]
 	path = packages/swipl-win
 	url = ../packages-swipl-win.git
+[submodule "packages/pengines"]
+	path = packages/pengines
+	url = ../packages-pengines.git
+[submodule "packages/cql"]
+	path = packages/cql
+	url = ../packages-cql.git

@@ -1,0 +1,1418 @@
+\chapter{SWI-Prolog extensions}
+\label{sec:extensions}
+
+This chapter describes extensions to the Prolog language introduced with
+SWI-Prolog version~7. The changes bring more modern syntactical
+conventions to Prolog such as key-value maps, called \jargon{dicts} as
+primary citizens and a restricted form of \jargon{functional notation}.
+They also extend Prolog basic types with strings, providing a natural
+notation to textual material as opposed to identifiers (atoms) and
+lists.
+
+These extensions make the syntax more intuitive to new users, simplify
+the integration of domain specific languages (DSLs) and facilitate a
+more natural Prolog representation for popular exchange languages such
+as XML and JSON.
+
+While many programs run unmodified in SWI-Prolog version~7, especially
+those that pass double quoted strings to general purpose list processing
+predicates require modifications. We provide a tool (list_strings/0)
+that we used to port a huge code base in half a day.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Lists are special}
+\label{sec:ext-lists}
+
+As of version~7, SWI-Prolog lists can be distinguished unambiguously at
+runtime from \funcref{.}{2} terms and the atom \const{'[]'}. The
+constant \verb$[]$ is special constant that is not an atom.  It has
+the following properties:
+
+\begin{code}
+?- atom([]).
+false.
+?- atomic([]).
+true.
+?- [] == '[]'.
+false.
+?- [] == [].
+true.
+\end{code}
+
+The `cons' operator for creating list cells has changed from the pretty
+atom \verb$'.'$ to the ugly atom \verb$'[|]'$, so we can use the
+\verb$'.'$ for other purposes.  See \secref{ext-dict-functions}.
+
+This modification has minimal impact on typical Prolog code. It does
+affect foreign code (see \secref{foreign}) that uses the normal atom and
+compound term interface for manipulation lists. In most cases this can
+be avoided by using the dedicated list functions. For convenience, the
+macros \const{ATOM_nil} and \const{ATOM_dot} are provided by
+\file{SWI-Prolog.h}.
+
+Another place that is affected is write_canonical/1. Impact is minimized
+by using the list syntax for lists.  The predicates read_term/2 and
+write_term/2 support the option \term{dot_lists}{true}, which causes
+read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
+write \verb$[a]$ as \verb$.(a,[])$.
+
+
+\subsection{Motivating '{[|]}' and [] for lists}
+\label{sec:ext-list-motivation}
+
+Representing lists the conventional way using \funcref{.}{2} as
+cons-cell and '[]' as list terminator both (independently) poses
+conflicts, while these conflicts are easily avoided.
+
+\begin{itemize}
+    \item Using \funcref{.}{2} prevents using this commonly used symbol
+as an operator because \verb$a.B$ cannot be distinguished from \verb$[a|B]$.
+Freeing \funcref{.}{2} provides us with a unique term that we can use
+for functional notation on dicts as described in
+\secref{ext-dict-functions}.
+
+    \item Using \verb$'[]'$ as list terminator prevents dynamic distinction
+between atoms and lists. As a result, we cannot use type polymorphism
+that involve both atoms and lists. For example, we cannot use
+\jargon{multi lists} (arbitrary deeply nested lists) of atoms. Multi
+lists of atoms are a in some situations a good representation of a flat
+list that is assembled from sub sequences. The alternative, using
+difference lists or DCGs is often less natural and sometimes demands for
+`opening' proper lists (i.e., copying the list while replacing the
+terminating empty list with a variable) that have to be added to the
+sequence.  The ambiguity of atom and list is particularly painful when
+mapping external data representations that do not suffer from this
+ambiguity.
+
+At the same time, avoiding \verb$'[]'$ as a list terminator makes
+the various text representations unambiguous, which allows us to write
+predicates that require a textual argument to accept both atoms,
+strings, and lists of character codes or one-character atoms.
+Traditionally, the empty list can be interpreted both as the string "[]"
+and "".
+\end{itemize}
+
+% ================================================================
+\section{The string type and its double quoted syntax}
+\label{sec:strings}
+
+As of SWI-Prolog version~7, text encloses in double quotes (e.g.,
+\verb$"Hello world"$) is read as objects of the type \jargon{string}. A
+string is a compact representation of a character sequence that lives on
+the global (term) stack. Strings represent sequences of Unicode
+characters including the character code 0 (zero). The length strings is
+limited by the available space on the global (term) stack (see
+set_prolog_stack/2). Strings are distinct from lists, which makes it
+possible to detect them at runtime and print them using the string
+syntax, as illustrated below:
+
+\begin{code}
+?- write("Hello world!").
+Hello world!
+
+?- writeq("Hello world!").
+"Hello world!"
+\end{code}
+
+\jargon{Back quoted} text (as in \verb$`text`$) is mapped to a list of
+character codes in version~7. The settings for the flags that control
+how double and back quoted text is read is summarised in
+\tabref{quote-mapping}. Programs that aim for compatibility should
+realise that the ISO standard defines back quoted text, but does not
+define the \prologflag{back_quotes} Prolog flag and does not define the
+term that is produced by back quoted text.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{lcc}
+\hline
+\bf Mode & \prologflag{double_quotes} & \prologflag{back_quotes} \\
+\hline
+Version~7 default & string & codes \\
+\cmdlineoption{--traditional} & codes & symbol_char \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{Mapping of double and back quoted text in the two
+	     modes.}
+    \label{tab:quote-mapping}
+\end{table}
+
+
+\Secref{ext-dquotes-motivation} motivates the introduction of strings
+and mapping double quoted text to this type.
+
+\subsection{Predicates that operate on strings}
+\label{sec:string-predicates}
+
+Strings may be manipulated by a set of predicates that is similar to the
+manipulation of atoms. In addition to the list below, string/1 performs
+the type check for this type and is described in \secref{typetest}.
+
+SWI-Prolog's string primitives are being synchronized with
+\url[ECLiPSe]{http://eclipseclp.org/wiki/Prolog/Strings}. We expect the
+set of predicates documented in this section to be stable, although it
+might be expanded. In general, SWI-Prolog's text manipulation predicates
+accept any form of text as input argument and produce the type indicated
+by the predicate name as output. This policy simplifies migration and
+writing programs that can run unmodified or with minor modifications on
+systems that do not support strings. Code should avoid relying on this
+feature as much as possible for clarity as well as to facilitate a more
+strict mode and/or type checking in future releases.
+
+\begin{description}
+    \predicate{atom_string}{2}{?Atom, ?String}
+Bi-directional conversion between an atom and a string. At
+least one of the two arguments must be instantiated. \arg{Atom} can also
+be an integer or floating point number.
+
+    \predicate{number_string}{2}{?Number, ?String}
+Bi-directional conversion between a number and a string. At least one of
+the two arguments must be instantiated. Besides the type used to
+represent the text, this predicate differs in several ways from its
+ISO cousin:\footnote{Note that SWI-Prolog's syntax for numbers is not
+ISO compatible either.}
+
+    \begin{itemize}
+	\item If \arg{String} does not represent a number, the
+	      predicate \emph{fails} rather than throwing a syntax
+	      error exception.
+	\item Leading white space and Prolog comments are \emph{not}
+	      allowed.
+	\item Numbers may start with '+' or '-'.
+	\item It is \emph{not} allowed to have white space between
+	      a leading '+' or '-' and the number.
+	\item Floating point numbers in exponential notation do not
+	      require a dot before exponent, i.e., \verb$"1e10"$ is
+	      a valid number.
+    \end{itemize}
+
+    \predicate{term_string}{2}{?Term, ?String}
+Bi-directional conversion between a term and a string. If \arg{String}
+is instantiated, it is parsed and the result is unified with \arg{Term}.
+Otherwise \arg{Term} is `written' using the option \term{quoted}{true}
+and the result is converted to \arg{String}.
+
+    \predicate{term_string}{3}{?Term, ?String, +Options}
+As term_string/2, passing \arg{Options} to either read_term/2
+or write_term/2.  For example:
+
+\begin{code}
+?- term_string(Term, 'a(A)', [variable_names(VNames)]).
+Term = a(_G1466),
+VNames = ['A'=_G1466].
+\end{code}
+
+    \predicate{string_chars}{2}{?String, ?Chars}
+Bi-directional conversion between a string and a list of characters
+(one-character atoms). At least one of the two arguments must be
+instantiated.
+
+    \predicate{string_codes}{2}{?String, ?Codes}
+Bi-directional conversion between a string and a list of character
+codes. At least one of the two arguments must be instantiated.
+
+    \predicate[det]{text_to_string}{2}{+Text, -String}
+Converts \arg{Text} to a string.  \arg{Text} is an atom, string
+or list of characters (codes or chars).	 When running in
+\cmdlineoption{--traditional} mode, \verb$'[]'$ is ambiguous and
+interpreted as an empty string.
+
+    \predicate{string_length}{2}{+String, -Length}
+Unify \arg{Length} with the number of characters in \arg{String}. This
+predicate is functionally equivalent to atom_length/2 and also accepts
+atoms, integers and floats as its first argument.
+
+    \predicate{string_code}{3}{?Index, +String, ?Code}
+True when \arg{Code} represents the character at the 1-based \arg{Index}
+position in \arg{String}. If \arg{Index} is unbound the string is
+scanned from index 1. Raises a domain error if \arg{Index} is negative.
+Fails silently if \arg{Index} is zero or greater than the length of
+\arg{String}. The mode \term{string_code}{-,+,+} is deterministic if the
+searched-for \arg{Code} appears only once in \arg{String}.  See also
+sub_string/5.
+
+    \predicate{get_string_code}{3}{+Index, +String, -Code}
+Semi-deterministic version of string_code/3. In addition, this version
+provides strict range checking, throwing a domain error if \arg{Index}
+is less than 1 or greater than the length of \arg{String}. ECLiPSe
+provides this to support \verb$String[Index]$ notation.
+
+    \predicate{string_concat}{3}{?String1, ?String2, ?String3}
+Similar to atom_concat/3, but the unbound argument will be unified with
+a string object rather than an atom. Also, if both \arg{String1} and
+\arg{String2} are unbound and \arg{String3} is bound to text, it breaks
+\arg{String3}, unifying the start with \arg{String1} and the end with
+\arg{String2} as append does with lists. Note that this is not
+particularly fast on long strings, as for each redo the system has to
+create two entirely new strings, while the list equivalent only creates
+a single new list-cell and moves some pointers around.
+
+    \predicate[det]{split_string}{4}{+String, +SepChars, +PadChars, -SubStrings}
+Break \arg{String} into \arg{SubStrings}. The \arg{SepChars} argument
+provides the characters that act as separators and thus the length of
+\arg{SubStrings} is one more than the number of separators found if
+\arg{SepChars} and \arg{PadChars} do not have common characters. If
+\arg{SepChars} and \arg{PadChars} are equal, sequences of adjacent
+separators act as a single separator. Leading and trailing characters
+for each substring that appear in \arg{PadChars} are removed from the
+substring. The input arguments can be either atoms, strings or char/code
+lists. Compatible with ECLiPSe. Below are some examples:
+
+\begin{code}
+% a simple split
+?- split_string("a.b.c.d", ".", "", L).
+L = ["a", "b", "c", "d"].
+% Consider sequences of separators as a single one
+?- split_string("/home//jan///nice/path", "/", "/", L).
+L = ["home", "jan", "nice", "path"].
+% split and remove white space
+?- split_string("SWI-Prolog, 7.0", ",", " ", L).
+L = ["SWI-Prolog", "7.0"].
+% only remove leading and trailing white space
+?- split_string("  SWI-Prolog  ", "", "\s\t\n", L).
+L = ["SWI-Prolog"].
+\end{code}
+
+In the typical use cases, \arg{SepChars} either does not overlap
+\arg{PadChars} or is equivalent to handle multiple adjacent separators
+as a single (often white space). The behaviour with partially
+overlapping sets of padding and separators should be considered
+undefined.  See also read_string/5.
+
+    \predicate{sub_string}{5}{+String, ?Before, ?Length, ?After, ?SubString}
+\arg{SubString} is a substring of \arg{String}. There are \arg{Before}
+characters in \arg{String} before \arg{SubString}, \arg{SubString}
+contains \arg{Length} character and is followed by \arg{After}
+characters in \arg{String}. If not enough information is provided to
+compute the start of the match, \arg{String} is scanned left-to-right.
+This predicate is functionally equivalent to sub_atom/5, but operates on
+strings. The following example splits a string of the form
+<name>=<value> into the name part (an atom) and the value (a string).
+
+\begin{code}
+name_value(String, Name, Value) :-
+	sub_string(String, Before, _, After, "="), !,
+	sub_string(String, 0, Before, _, NameString),
+	atom_string(Name, NameString),
+	sub_string(String, _, After, 0, Value).
+\end{code}
+
+    \predicate{atomics_to_string}{2}{+List, -String}
+\arg{List} is a list of strings, atoms, integers or floating point
+numbers. Succeeds if \arg{String} can be unified with the concatenated
+elements of \arg{List}. Equivalent to \term{atomics_to_string}{List,
+'', String}.
+
+    \predicate{atomics_to_string}{3}{+List, +Separator, -String}
+Creates a string just like atomics_to_string/2, but inserts
+\arg{Separator} between each pair of inputs. For example:
+
+\begin{code}
+?- atomics_to_string([gnu, "gnat", 1], ', ', A).
+
+A = "gnu, gnat, 1"
+\end{code}
+
+    \predicate{string_upper}{2}{+String, -UpperCase}
+Convert \arg{String} to upper case and unify the result with
+\arg{UpperCase}.
+
+    \predicate{string_lower}{2}{+String, LowerCase}
+Convert \arg{String} to lower case and unify the result with
+\arg{UpperCase}.
+
+    \predicate{read_string}{3}{+Stream, ?Length, -String}
+Read at most \arg{Length} characters from \arg{Stream} and
+return them in the string \arg{String}.  If \arg{Length} is
+unbound, \arg{Stream} is read to the end and \arg{Length} is
+unified with the number of characters read.
+
+    \predicate{read_string}{5}{+Stream, +SepChars, +PadChars, -Sep, -String}
+Read a string from \arg{Stream}, providing functionality similar to
+split_string/4.  The predicate performs the following steps:
+
+    \begin{enumerate}
+    \item Skip all characters that match \arg{PadChars}
+    \item Read up to a character that matches \arg{SepChars} or end of file
+    \item Discard trailing characters that match \arg{PadChars} from
+          the collected input
+    \item Unify \arg{String} with a string created from the input and
+          \arg{Sep} with the separator character read.  If input was
+	  terminated by the end of the input, \arg{Sep} is unified
+	  with -1.
+    \end{enumerate}
+
+The predicate read_string/5 called repeatedly on an input until
+\arg{Sep} is -1 (end of file) is equivalent to reading the entire file
+into a string and calling split_string/4, provided that \arg{SepChars}
+and \arg{PadChars} are not \emph{partially
+overlapping}.\footnote{Behaviour that is fully compatible would requite
+unlimited look-ahead.}  Below are some examples:
+
+\begin{code}
+% Read a line
+read_string(Input, "\n", "\r", End, String)
+% Read a line, stripping leading and trailing white space
+read_string(Input, "\n", "\r\t ", End, String)
+% Read upto , or ), unifying End with 0', or 0')
+read_string(Input, ",)", "\t ", End, String)
+\end{code}
+
+    \predicate{open_string}{2}{+String, -Stream}
+True when \arg{Stream} is an input stream that accesses the content of
+\arg{String}.  \arg{String} can be any text representation, i.e.,
+string, atom, list of codes or list of characters.
+\end{description}
+
+
+\subsection{Representing text: strings, atoms and code lists}
+\label{sec:text-representation}
+
+With the introduction of strings as a Prolog data type, there are three
+main ways to represent text: using strings, atoms or code lists. This
+section explains what to choose for what purpose. Both strings and atoms
+are \jargon{atomic} objects: you can only look inside them using
+dedicated predicates. Lists of character codes are compound
+datastructures.
+
+\begin{description}
+    \item [Lists of character codes]
+is what you need if you want to \emph{parse} text using Prolog grammar
+rules (DCGs, see phrase/3). Most of the text reading predicates (e.g.,
+read_line_to_codes/2) return a list of character codes because most
+applications need to parse these lines before the data can be processed.
+
+    \item [Atoms]
+are \emph{identifiers}. They are typically used in cases where identity
+comparison is the main operation and that are typically not composed
+nor taken apart. Examples are RDF resources (URIs that identify
+something), system identifiers (e.g., \verb$'Boeing 747'$), but also
+individual words in a natural language processing system. They are also
+used where other languages would use \jargon{enumerated types}, such as
+the names of days in the week. Unlike enumerated types, Prolog atoms do
+not form not a fixed set and the same atom can represent different
+things in different contexts.
+
+    \item [Strings]
+typically represents text that is processed as a unit most of the time,
+but which is not an identifier for something.  Format specifications for
+format/3 is a good example. Another example is a descriptive text
+provided in an application.  Strings may be composed and decomposed
+using e.g., string_concat/3 and sub_string/5 or converted for parsing
+using string_codes/2 or created from codes generated by a generative
+grammar rule, also using string_codes/2.
+\end{description}
+
+
+\subsection{Adapting code for double quoted strings}
+\label{sec:ext-dquotes-port}
+
+The predicates in this section can help adapting your program to the
+new convention for handling double quoted strings. We have adapted a
+huge code base with which we were not familiar in about half a day.
+
+\begin{description}
+    \predicate{list_strings}{0}{}
+This predicate may be used to assess compatibility issues due to
+the representation of double quoted text as string objects. See
+\secref{strings} and \secref{ext-dquotes-motivation}.  To
+use it, load your program into Prolog and run list_strings/0.  The
+predicate lists source locations of string objects encountered in
+the program that are not considered safe.  Such string need to be
+examined manually, after which one of the actions below may be
+appropriate:
+
+\begin{itemize}
+    \item Rewrite the code.  For example, change  \verb$[X] = "a"$
+          into \verb$X = 0'a$.
+    \item If a particular module relies heavily on representing
+          strings as lists of character code, consider adding the
+	  following directive to the module.  Note that this flag
+	  only applies to the module in which it appears.
+
+	  \begin{code}
+	  :- set_prolog_flag(double_quotes, codes).
+	  \end{code}
+    \item Use a back quoted string (e.g., \verb$`text`$).  Note
+	  that this will not make your code run regardless of
+	  the \cmdlineoption{--traditional} command line option
+	  and code exploiting this mapping is also not portable
+	  to ISO compliant systems.
+    \item If the strings appear in facts and usage is safe, add a
+          clause to the multifile predicate check:string_predicate/1
+	  to silence list_strings/0 on all clauses of that predicate.
+    \item If the strings appear as an argument to a predicate that
+          can handle string objects, add a clause to the multifile
+	  predicate check:valid_string_goal/1 to silence list_strings/0.
+\end{itemize}
+
+    \predicate{check:string_predicate}{1}{:PredicateIndicator}
+Declare that \arg{PredicateIndicator} has clauses that contain strings,
+but that this is safe. For example, if there is a predicate
+\nopredref{help_info}{2}, where the second argument contains a double
+quoted string that is handled properly by the predicates of the
+applications' help system, add the following declaration to stop
+list_strings/0 from complaining:
+
+\begin{code}
+:- multifile check:string_predicate/1.
+
+string_predicate(user:help_info/2).
+\end{code}
+
+    \predicate{check:valid_string_goal}{1}{:Goal}
+Declare that calls to \arg{Goal} are safe.  The module qualification
+is the actual module in which \arg{Goal} is defined.  For example, a
+call to format/3 is resolved by the predicate system:format/3. and
+the code below specifies that the second argument may be a string
+(system predicates that accept strings are defined in the library).
+
+\begin{code}
+:- multifile check:valid_string_goal/1.
+
+check:valid_string_goal(system:format(_,S,_)) :- string(S).
+\end{code}
+\end{description}
+
+
+\subsection{Why has the representation of double quoted text changed?}
+\label{sec:ext-dquotes-motivation}
+
+Prolog defines two forms of quoted text. Traditionally, single quoted
+text is mapped to atoms while double quoted text is mapped to a list of
+\jargon{character codes} (integers) or characters represented as
+1-character atoms. Representing text using atoms is often considered
+inadequate for several reasons:
+
+\begin{itemize}
+    \item It hides the conceptual difference between text and
+          program symbols.  Where content of text often matters because
+	  it is used in I/O, program symbols are merely identifiers
+	  that match with the same symbol elsewhere. Program symbols
+	  can often be consistently replaced, for example to obfuscate
+	  or compact a program.
+
+    \item Atoms are globally unique identifiers.  They are stored
+          in a shared table.  Volatile strings represented as atoms
+	  come at a significant price due to the required cooperation
+	  between threads for creating atoms. Reclaiming
+	  temporary atoms using \jargon{Atom garbage collection} is a
+	  costly process that requires significant synchronisation.
+
+    \item Many Prolog systems (not SWI-Prolog) put severe restrictions
+          on the length of atoms or the maximum number of atoms.
+\end{itemize}
+
+Representing text as a list of character codes or 1-character atoms
+also comes at a price:
+
+\begin{itemize}
+    \item It is not possible to distinguish (at runtime) a list of
+          integers or atoms from a string.  Sometimes this information
+	  can be derived from (implicit) typing.  In other cases the
+	  list must be embedded in a compound term to distinguish
+	  the two types.  For example, \verb$s("hello world")$ could
+	  be used to indicate that we are dealing with a string.
+
+	  Lacking runtime information, debuggers and the toplevel can
+	  only use heuristics to decide whether to print a list of
+	  integers as such or as a string (see portray_text/1).
+
+	  While experienced Prolog programmers have learned to cope
+	  with this, we still consider this an unfortunate situation.
+
+    \item Lists are expensive structures, taking 2 cells per character
+          (3 for SWI-Prolog in its current form).  This stresses memory
+	  consumption on the stacks while pushing them on the stack and
+	  dealing with them during garbage collection is unnecessarilly
+	  expensive.
+\end{itemize}
+
+We observe that in many programs, most strings are only handled as a
+single unit during their lifetime. Examining real code tells us that
+double quoted strings typically appear in one of the following roles:
+
+\begin{description}
+    \item [ A DCG literal ]  Although represented as a list of codes
+is the correct representation for handling in DCGs, the DCG translator
+can recognise the literal and convert it to the proper representation.
+Such code need not be modified.
+
+    \item [ A format string ]  This is a typical example of text that
+is conceptually not a program identifier.  Format is designed to deal
+with alternative representations of the format string.  Such code
+need not be modified.
+
+    \item [ Getting a character code ] The construct \verb$[X] = "a"$
+is a commonly used template for getting the character code of the
+letter 'a'.  ISO Prolog defines the syntax \verb$0'a$ for this purpose.
+Code using this must be modified.  The modified code will run on any
+ISO compliant processor.
+
+    \item [ As argument to list predicates to operate on strings ]
+Here, we see code such as \verb$append("name:", Rest, Codes)$.  Such
+code needs to be modified.  In this particular example, the
+following is a good portable alternative: \verb$phrase("name:", Codes, Rest)$
+
+    \item [ Checks for a character to be in a set ]
+Such tests are often performed with code such as this:
+\verb.memberchk(C, "~!@#$").. This is a rather inefficient check in a
+traditional Prolog system because it pushes a list of character codes
+cell-by-cell the Prolog stack and then traverses this list
+cell-by-cell to see whether one of the cells unifies with \arg{C}. If
+the test is successful, the string will eventually be subject to garbage
+collection.  The best code for this is to write a predicate as below,
+which pushes noting on the stack and performs an indexed lookup to see
+whether the character code is in `my_class'.
+
+\begin{code}
+my_class(0'~).
+my_class(0'!).
+...
+\end{code}
+
+An alternative to reach the same effect is to use term expansion to
+create the clauses:
+
+\begin{code}
+term_expansion(my_class(_), Clauses) :-
+	findall(my_class(C),
+		string_code(_, "~!@#$", C),
+		Clauses).
+
+my_class(_).
+\end{code}
+
+Finally, the predicate string_code/3 can be exploited directly as a
+replacement for the memberchk/2 on a list of codes. Although the string
+is still pushed onto the stack, it is more compact and only a single
+entity.
+\end{description}
+
+We offer the predicate list_strings/0 to help porting your program.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Syntax changes}
+\label{sec:ext-syntax}
+
+\subsection{Operators and quoted atoms}
+\label{sec:ext-syntax-op}
+
+As of SWI-Prolog version~7, quoted atoms loose their operator property.
+This means that expressions such as \verb$A = 'dynamic'/1$ are valid
+syntax, regardless of the operator definitions. From questions on the
+mailinglist this is what people expect.\footnote{We believe that most
+users expect an operator declaration to define a new token, which would
+explain why the operator name is often quoted in the declaration, but
+not while the operator is used. We are afraid that allowing for this
+easily creates ambiguous syntax. Also, many development environments are
+based on tokenization. Having dynamic tokenization due to operator
+declarations would make it hard to support Prolog in such editors.} To
+accomodate for real quoted operators, a quoted atom that \emph{needs}
+quotes can still act as an operator.\footnote{Suggested by Joachim
+Schimpf.} A good use-case for this is a unit
+library\footnote{\url{https://groups.google.com/d/msg/comp.lang.prolog/ozqdzI-gi_g/2G16GYLIS0IJ}},
+which allows for expressions such as below.
+
+\begin{code}
+?- Y isu 600kcal - 1h*200'W'.
+Y = 1790400.0'J'.
+\end{code}
+
+
+\subsection{Compound terms with zero arguments}
+\label{sec:ext-compound-zero}
+
+As of SWI-Prolog version~7, the system supports compound terms that have
+no arguments. This implies that e.g., \exam{name()} is valid syntax.
+This extension aims at functions on dicts (see \secref{dicts}) as well as
+the implementation of domain specific languages (DSLs). To minimise the
+consequences, the classic predicates functor/3 and \predref{=..}{2} have
+not been modified. The predicates compound_name_arity/3 and
+compound_name_arguments/3 have been added. These predicates operate only
+on compound terms and behave consistently for compounds with zero
+arguments. Code that \jargon{generalises} a term using the sequence
+below should generally be changed to use compound_name_arity/3.
+
+\begin{code}
+    ...,
+    functor(Specific, Name, Arity),
+    functor(General, Name, Arity),
+    ...,
+\end{code}
+
+Replacement of \predref{=..}{2} by compound_name_arguments/3 is
+typically needed to deal with code that follow the skeleton below.
+
+\begin{code}
+    ...,
+    Term0 =.. [Name|Args0],
+    maplist(convert, Args0, Args),
+    Term =.. [Name|Args],
+    ...,
+\end{code}
+
+For predicates, goals and arithmetic functions (evaluable terms), <name>
+and <name>() are \emph{equivalent}. Below are some examples that
+illustrate this behaviour.
+
+\begin{code}
+go() :- format('Hello world~n').
+
+?- go().
+Hello world
+
+?- go.
+Hello world
+
+?- Pi is pi().
+Pi = 3.141592653589793.
+
+?- Pi is pi.
+Pi = 3.141592653589793.
+\end{code}
+
+Note that the \emph{cannonical} representation of predicate heads and
+functions without arguments is an atom. Thus, \term{clause}{go(), Body}
+returns the clauses for go/0, but \term{clause}{-Head, -Body, +Ref}
+unifies \arg{Head} with an atom if the clause specified by \arg{Ref} is
+part of a predicate with zero arguments.
+
+
+\subsection{Block operators}
+\label{sec:ext-blockop}
+
+Introducing curly bracket and array subscripting.\footnote{Introducing
+block operators was proposed by Jose Morales. It was discussed in the
+Prolog standardization mailing list, but there were too many conflicts
+with existing extensions (ECLiPSe and B-Prolog) and doubt about their
+need to reach an agreement. Increasing need to get to some solution
+resulted in what is documented in this section. These extensions are
+also implemented in recent versions of YAP.} The symbols \verb$[]$ and
+\verb${}$ may be declared as an operator, which has the following
+effect:
+
+\begin{description}
+    \termitem{[~]}{}
+This operator is typically declared as a low-priority \const{yf} postfix
+operator, which allows for \verb$array[index]$ notation. This
+syntax produces a term \verb$[]([index],array)$.
+
+    \termitem{\{~\}}{}
+This operator is typically declared as a low-priority \const{xf} postfix
+operator, which allows for \verb$head(arg) { body }$ notation.  This
+syntax produces a term \verb${}({body},head(arg))$.
+\end{description}
+
+Below is an example that illustrates the representation of a typical
+`curly bracket language' in Prolog.
+
+\begin{code}
+?- op(100, xf, {}).
+?- op(100, yf, []).
+?- op(1100, yf, ;).
+
+?- displayq(func(arg)
+	    { a[10] = 5;
+	      update();
+	    }).
+{}({;(=([]([10],a),5),;(update()))},func(arg))
+\end{code}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dicts: structures with named arguments}
+\label{sec:dicts}
+
+SWI-Prolog version~7 introduces dicts as an abstract object with a
+concrete modern syntax and functional notation for accessing members and
+as well as access functions defined by the user. The syntax for a dict is
+illustrated below. \arg{Tag} is either a variable or an atom. As with
+compound terms, there is \textbf{no} space between the tag and the
+opening brace. The keys are either atoms or small integers (up to
+\prologflag{max_tagged_integer}). The values are arbitrary Prolog terms
+which are parsed using the same rules as used for arguments in compound
+terms.
+
+\begin{quote}
+Tag\{Key1:Value1, Key2:Value2, ...\}
+\end{quote}
+
+A dict can \emph{not} hold duplicate keys. The dict is transformed into
+an opaque internal representation that does \emph{not} respect the order
+in which the key-value pairs appear in the input text. If a dict is
+written, the keys are written according to the standard order of terms
+(see \secref{standardorder}). Here are some examples, where the second
+example illustrates that the order is not maintained and the third
+illustrates an anonymous dict.
+
+\begin{code}
+?- A = point{x:1, y:2}.
+A = point{x:1, y:2}.
+
+?- A = point{y:2, x:1}.
+A = point{x:1, y:2}.
+
+?- A = _{first_name:"Mel", last_name:"Smith"}.
+A = _G1476{first_name:"Mel", last_name:"Smith"}.
+\end{code}
+
+Dicts can be unified following the standard symmetric Prolog unification
+rules. As dicts use an internal canonical form, the order in which the
+named keys are represented is not relevant. This behaviour is
+illustrated by the following example.
+
+\begin{code}
+?- point{x:1, y:2} = Tag{y:2, x:X}.
+Tag = point,
+X = 1.
+\end{code}
+
+\textbf{Note} In the current implementation, two dicts unify only if
+they have the same set of keys and the tags and values associated with
+the keys unify. In future versions, the notion of unification between
+dicts could be modified such that two dicts unify if their tags and the
+values associated with \emph{common} keys unify, turning both dicts into
+a new dict that has the union of the keys of the two original dicts.
+
+
+\subsection{Functions on dicts}
+\label{sec:ext-dict-functions}
+
+The infix operator dot (\term{op}{100, yfx, .} is used to extract values
+and evaluate functions on dicts. Functions are recognised if they appear
+in the argument of a \jargon{goal} in the source text, possibly nested
+in a term. The keys act as field selector, which is illustrated in this
+example.
+
+\begin{code}
+?- X = point{x:1,y:2}.x.
+X = 1.
+
+?- Pt = point{x:1,y:2}, write(Pt.y).
+2
+Pt = point{x:1,y:2}.
+
+?- X = point{x:1,y:2}.C.
+X = 1,
+C = x ;
+X = 2,
+C = y.
+\end{code}
+
+The compiler translates a goal that contains \funcref{.}{2} terms in its
+arguments into a conjunction of calls to \predref{.}{3} defined in the
+\const{system} module. Terms funcref{.}{2} that appears in the head are
+replaced with a variable and calls to \predref{.}{3} are inserted at the
+start of the body. Below are two examples, where the first extracts the
+\const{x} key from a dict and the second extends a dict containing an
+address with the postal code, given a \nopredref{find_postal_code}{4}
+predicate.
+
+\begin{code}
+dict_x(X, X.x).
+
+add_postal_code(Dict, Dict.put(postal_code, Code)) :-
+	find_postal_code(Dict.city,
+			 Dict.street,
+			 Dict.house_number,
+			 Code).
+\end{code}
+
+Note that expansion of \funcref{.}{2} terms implies that such terms
+cannot be created by writing them explicitly in your source code. Such
+terms can still be created with functor/3, \predref{=..}{2},
+compound_name_arity/3 and
+compound_name_arguments/3.\footnote{Traditional code is unlikely to use
+\funcref{.}{2} terms because they were practically reserved for usage in
+lists. We do not provide a quoting mechanism as found in functional
+languages because it would only be needed to quote \funcref{.}{2} terms,
+such terms are rare and term manipulation provides an escape route.}
+
+\begin{description}
+    \predicate{.}{3}{+Dict, +Function, -Result}
+This predicate is called to evaluate \funcref{.}{2} terms found in the
+arguments of a goal. This predicate evaluates the field extraction
+described above, which is mapped to get_dict_ex/3. If \arg{Function} is a
+compound term, it checks for the predefined functions on dicts described
+in \secref{ext-dicts-predefined} or executes a user defined function as
+described in \secref{ext-dict-user-functions}.
+\end{description}
+
+
+\subsubsection{User defined functions on dicts}
+\label{sec:ext-dict-user-functions}
+
+The tag of a dict associates the dict to a module.  If the dot
+notation uses a compound term, this calls the goal below.
+
+\begin{quote}
+<module>:<name>(Arg1, ..., +Dict, -Value)
+\end{quote}
+
+Functions are normal Prolog predicates. The dict infrastructure provides
+a more convenient syntax for representing the head of such predicates
+without worrying about the argument calling conventions. The code below
+defines a function \term{multiply}{Times} on a point that creates a new
+point by multiplying both coordinates. and \term{len}{}\footnote{as
+\term{length}{} would result in a predicate length/2, this name cannot
+be used. This might change in future versions.} to compute the length
+from the origin. The . and \verb$:=$ operators are used to abstract the
+location of the predicate arguments. It is allowed to define multiple a
+function with multiple clauses, providing overloading and
+non-determinism.
+
+\begin{code}
+:- module(point, []).
+
+M.multiply(F) := point{x:X, y:Y} :-
+	X is M.x*F,
+	Y is M.y*F.
+
+M.len() := Len :-
+	Len is sqrt(M.x**2 + M.y**2).
+\end{code}
+
+After these definitions, we can evaluate the following functions:
+
+\begin{code}
+?- X = point{x:1, y:2}.multiply(2).
+X = point{x:2, y:4}.
+
+?- X = point{x:1, y:2}.multiply(2).len().
+X = 4.47213595499958.
+\end{code}
+
+\subsubsection{Predefined functions on dicts}
+\label{sec:ext-dicts-predefined}
+
+Dicts currently define the following reserved functions:
+
+\begin{description}
+    \dictfunction{get}{1}{?Key}
+Same as \arg{Dict}.\arg{Key}, but maps to get_dict/3 instead of
+get_dict_ex/3.  This implies that the function evaluation fails
+silently if \arg{Key} does not appear in \arg{Dict}.  See also
+\predref{:<}{2}, which can be used to test for existence and
+unify multiple key values from a dict.  For example:
+
+\begin{code}
+?- write(t{a:x}.get(a)).
+x
+?- write(t{a:x}.get(b)).
+false.
+\end{code}
+
+    \dictfunction{put}{1}{+New}
+Evaluates to a new dict where the key-values in \arg{New} replace
+or extend the key-values in the original dict.  See put_dict/3.
+
+    \dictfunction{put}{2}{+KeyPath, +Value}
+Evaluates to a new dict where the \arg{KeyPath}-\arg{Value} replaces or
+extends the key-values in the original dict. \arg{KeyPath} is either a
+key or a term \arg{KeyPath}/\arg{Key},\footnote{Note that we do not use
+the '.' functor here, because the \funcref{.}{2} would \emph{evaluate}.}
+replacing the value associated with \arg{Key} in a sub-dict of the dict
+on which the function operates. See put_dict/4. Below are some examples:
+
+\begin{code}
+?- A = _{}.put(a, 1).
+A = _G7359{a:1}.
+
+?- A = _{a:1}.put(a, 2).
+A = _G7377{a:2}.
+
+?- A = _{a:1}.put(b/c, 2).
+A = _G1395{a:1, b:_G1584{c:2}}.
+
+?- A = _{a:_{b:1}}.put(a/b, 2).
+A = _G1429{a:_G1425{b:2}}.
+
+?- A = _{a:1}.put(a/b, 2).
+A = _G1395{a:_G1578{b:2}}.
+\end{code}
+\end{description}
+
+
+\subsection{Predicates for managing dicts}
+\label{sec:ext-dict-predicates}
+
+This section documents the predicates that are defined on dicts.  We use
+the naming and argument conventions of the traditional \pllib{assoc}.
+
+\begin{description}
+    \predicate{is_dict}{1}{@Term}
+True if \arg{Term} is a dict.  This is the same as \exam{is_dict(Term,_)}.
+
+    \predicate{is_dict}{2}{@Term, -Tag}
+True if \arg{Term} is a dict of \arg{Tag}.
+
+    \predicate{get_dict}{3}{?Key, +Dict, -Value}
+Unify the value associated with \arg{Key} in dict with \arg{Value}.  If
+\arg{Key} is unbound, all associations in \arg{Dict} are returned on
+backtracking.  The order in which the associations are returned is
+undefined.  This predicate is normally accessed using the functional
+notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
+
+    \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, +NewValue}
+Create a new dict after updating the value for \arg{Key}. Fails if
+\arg{Value} does not unify with the current value associated with
+\arg{Key}. Acts according to the following below. \arg{Dict} is either a
+dict or a list the can be converted into a dict.
+
+\begin{code}
+get_dict(Key, Dict, Value, NewDict, NewDict) :-
+	get_dict(Key, Dict, Value),
+	put_dict(Key, Dict, NewDict, NewDict).
+\end{code}
+
+    \predicate{dict_create}{3}{-Dict, +Tag, +Data}
+Create a dict in \arg{Tag} from \arg{Data}. \arg{Data} is a list of
+attribute-value pairs using the syntax \exam{Key:Value},
+\exam{Key=Value}, \exam{Key-Value} or \exam{Key(Value)}. An exception is
+raised if \arg{Data} is not a proper list, one of the elements is not of
+the shape above, a key is neither an atom nor a small integer or there
+is a duplicate key.
+
+    \predicate{dict_pairs}{3}{?Dict, ?Tag, ?Pairs}
+Bi-directional mapping between a dict and an ordered list of pairs
+(see \secref{pairs}).
+
+    \predicate{put_dict}{3}{+New, +DictIn, -DictOut}
+\arg{DictOut} is a new dict created by replacing or adding key-value pairs
+from \arg{New} to \arg{Dict}. \arg{New} is either a dict or a valid input
+for dict_create/3. This predicate is normally accessed using the
+functional notation. Below are some examples:
+
+\begin{code}
+?- A = point{x:1, y:2}.put(_{x:3}).
+A = point{x:3, y:2}.
+
+?- A = point{x:1, y:2}.put([x=3]).
+A = point{x:3, y:2}.
+
+?- A = point{x:1, y:2}.put([x=3,z=0]).
+A = point{x:3, y:2, z:0}.
+\end{code}
+
+    \predicate{put_dict}{4}{+Key, +DictIn, +Value, -DictOut}
+\arg{DictOut} is a new dict created by replacing or adding
+\arg{Key}-\arg{Value} to \arg{DictIn}. This predicate is normally
+accessed using the functional notation. Below is an example:
+
+\begin{code}
+?- A = point{x:1, y:2}.put(x, 3).
+A = point{x:3, y:2}.
+\end{code}
+
+    \predicate{del_dict}{4}{+Key, +DictIn, ?Value, -DictOut}
+True when \arg{Key}-\arg{Value} is in \arg{DictIn} and \arg{DictOut}
+contains all associations of \arg{DictIn} except for \arg{Key}.
+
+    \infixop[semidet]{:<}{+Select}{+From}
+True when \arg{Select} is a `sub dict' of \arg{From}: the tages
+must unify and all keys in \arg{Select} must appear with unifying
+values in \arg{From}.  \arg{From} may contain keys that are not in
+\arg{Select}.  This operation is frequently used to \emph{match}
+a dict and at the same time extract relevant values from it.
+For example:
+
+\begin{code}
+plot(Dict, On) :-
+	_{x:X, y:Y, z:Z} :< Dict, !,
+	plot_xyz(X, Y, Z, On).
+plot(Dict, On) :-
+	_{x:X, y:Y} :< Dict, !,
+	plot_xy(X, Y, On).
+\end{code}
+
+The goal \verb$Select :< From$ is equivalent to
+\term{select_dict}{Select, From, _}.
+
+    \predicate[semidet]{select_dict}{3}{+Select, +From, -Rest}
+True when the tags of \arg{Select} and \arg{From} have been unified,
+all keys in \arg{Select} appear in \arg{From} and the corresponding
+values have been unified. The key-value pairs of \arg{From} that do not
+appear in \arg{Select} are used to form an anonymous dict, which us
+unified with \arg{Rest}.  For example:
+
+\begin{code}
+?- select_dict(P{x:0, y:Y}, point{x:0, y:1, z:2}, R).
+P = point,
+Y = 1,
+R = _G1705{z:2}.
+\end{code}
+
+See also select_dict/2 to ignore \arg{Rest} and \predref{>:<}{2} for
+a symmetric partial unification of two dicts.
+
+    \infixop{>:<}{+Dict1}{+Dict2}
+This operator specifies a \jargon{partial unification} between
+\arg{Dict1} and \arg{Dict2}. It is true when the tags and the values
+associated with all \emph{common} keys have been unified.  The values
+associated to keys that do not appear in the other dict are ignored.
+Partial unification is symmetric.  For example, given a list of dicts,
+find dicts that represent a point with X equal to zero:
+
+\begin{code}
+    member(Dict, List),
+    Dict >:< point{x:0, y:Y}.
+\end{code}
+
+See also \predref{:<}{2} and select_dict/3.
+\end{description}
+
+
+\subsubsection{Destructive assignment in dicts}
+\label{sec:ext-dict-assignment}
+
+This section describes the destructive update operations defined on
+dicts. These actions can only \emph{update} keys and not add or remove
+keys. If the requested key does not exist the predicate raises
+\term{existence_error}{key, Key, Dict}. Note the additional argument.
+
+Destructive assignment is a non-logical operation and should be used
+with care because identical Prolog terms may be copied or shared add
+will of the system. Some of this behaviour can be avoided by adding an
+additional unbound value to the dict. This prevents unwanted sharing and
+ensures that copy_term/2 actually copies the dict. This pitfall is
+demonstrated in the example below:
+
+\begin{code}
+?- A = a{a:1}, copy_term(A,B), b_set_dict(a, A, 2).
+A = B, B = a{a:2}.
+
+?- A = a{a:1,dummy:_}, copy_term(A,B), b_set_dict(a, A, 2).
+A = a{a:2, dummy:_G3195},
+B = a{a:1, dummy:_G3391}.
+\end{code}
+
+
+\begin{description}
+    \predicate[det]{b_set_dict}{3}{+Key, !Dict, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Dict} to
+\arg{Value}. The update is trailed and undone on backtracking. This
+predicate raises an existence error if \arg{Key} does not appear in
+\arg{Dict}. The update semantics are equivalent to setarg/3 and
+b_setval/2.
+
+    \predicate[det]{nb_set_dict}{3}{+Key, !Dict, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Dict} to
+a copy of \arg{Value}. The update is \emph{not} undone on backtracking.
+This predicate raises an existence error if \arg{Key} does not appear in
+\arg{Dict}. The update semantics are equivalent to nb_setarg/3 and
+nb_setval/2.
+
+    \predicate[det]{nb_link_dict}{3}{+Key, !Dict, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Dict} to
+\arg{Value}. The update is \emph{not} undone on backtracking. This
+predicate raises an existence error if \arg{Key} does not appear in
+\arg{Dict}.  The update semantics are equivalent to b_linkarg/3 and
+nb_linkval/2. Use with extreme care and consult the documentation of
+nb_linkval/2 before use.
+\end{description}
+
+
+\subsection{When to use dicts?}
+\label{sec:ext-dicts-usage}
+
+Dicts are a new type in the Prolog world. They compete with several other
+types and libraries. In the list below we have a closer look at these
+relations. We will see that dicts are first of all a good replacement for
+compound terms with a high or not clearly fixed arity, library
+\pllib{record} and option processing.
+
+\begin{description}
+    \item [Compound terms]
+Compound terms with positional arguments form the traditional way to
+package data in Prolog.  This representation is well understood, fast
+and compound terms are stored efficiently.  Compound terms are still
+the representation of choice, provided that the number of arguments is
+low and fixed or compactness or performance are of utmost importance.
+
+A good example of a compound term is the representation of RDF triples
+using the term \term{rdf}{Subject, Predicate, Object} because RDF
+triples are defined to have precisely these three arguments and they are
+always referred to in this order. An application processing information
+about persons should probably use dicts because the information that is
+related to a person is not so fixed. Typically we see first and last
+name. But there may also be title, middle name, gender, date of birth,
+etc. The number of arguments becomes unmanagable when using a compound
+term, while adding or removing an argument leads to many changes in the
+program.
+
+    \item [Library \pllib{record}]
+Using library \pllib{record} relieves the maintenance issues associated
+with using compound terms significantly.  The library generates access
+and modification predicates for each field in a compound term from a
+declaration.  The library provides sound access to compound terms with
+many arguments.  One of its problems is the verbose syntax needed to
+access or modify fields which results from long names for the generated
+predicates and the restriction that each field needs to be extracted
+with a separate goal.  Consider the example below, where the first uses
+library \pllib{record} and the second uses dicts.
+
+\begin{code}
+    ...,
+    person_first_name(P, FirstName),
+    person_last_name(P, LastName),
+    format('Dear ~w ~w,~n~n', [FirstName, LastName]).
+
+    ...,
+    format('Dear ~w ~w,~n~n', [Dict.first_name, Dict.last_name]).
+\end{code}
+
+Records have a fixed number of arguments and (non-)existence of an
+argument must be represented using a value that is outside the normal
+domain.  This lead to unnatural code.  For example, suppose our person
+also has a title.  If we know the first name we use this and else we
+use the title.  The code samples below illustrate this.
+
+\begin{code}
+salutation(P) :-
+    person_first_name(P, FirstName), nonvar(FirstName), !,
+    person_last_name(P, LastName),
+    format('Dear ~w ~w,~n~n', [FirstName, LastName]).
+salutation(P) :-
+    person_title(P, Title), nonvar(Title), !,
+    person_last_name(P, LastName),
+    format('Dear ~w ~w,~n~n', [Title, LastName]).
+
+salutation(P) :-
+    _{first_name:FirstName, last_name:LastName} :< P, !,
+    format('Dear ~w ~w,~n~n', [FirstName, LastName]).
+salutation(P) :-
+    _{title:Title, last_name:LastName} :< P, !,
+    format('Dear ~w ~w,~n~n', [Title, LastName]).
+\end{code}
+
+    \item [Library \pllib{assoc}]
+This library implements a balanced binary tree.  Dicts can replace
+the use of this library if the association is fairly static (i.e.,
+there are few update operations), all keys are atoms or (small)
+integers and the code does not rely on ordered operations.
+
+    \item [Library \pllib{option}]
+Option lists are introduced by ISO Prolog, for example for read_term/3,
+open/4, etc.  The \pllib{option} library provides operations to extract
+options, merge options lists, etc.  Dicts are well suited to replace
+option lists because they are cheaper, can be processed faster and
+have a more natural syntax.
+
+    \item [Library \pllib{pairs}]
+This library is commonly used to process large name-value associations.
+In many cases this concerns short-lived datastructures that result from
+findall/3, maplist/3 and similar list processing predicates. Dicts may
+play a role if frequent random key lookups are needed on the resulting
+association. For example, the skeleton `create a pairs list', `use
+list_to_assoc/2 to create an assoc', followed by frequent usage of
+get_assoc/2 to extract key values can be replaced using dict_pairs/2 and
+the dict access functions.  Using dicts in this scenario is more efficient
+and provides a more pleasant access syntax.
+\end{description}
+
+
+\subsection{A motivation for dicts as primary citizens}
+\label{sec:ext-dicts-motivation}
+
+Dicts, or key-value associations, are a common data structure. A good old
+example are \jargon{property lists} as found in Lisp, while a good
+recent example is formed by JavaScript \jargon{objects}. Traditional
+Prolog does not offer native property lists. As a result, people are
+using a wide range of data structures for key-value associations:
+
+\begin{itemize}
+    \item Using compound terms and positional arguments, e.g.,
+          \exam{point(1,2)}.
+    \item Using compound terms with library \pllib{record}, which
+	  generates access predicates for a term using positional
+	  arguments from a description.
+    \item Using lists of terms \exam{Name=Value}, \exam{Name-Value},
+          \exam{Name:Value} or \exam{Name(Value)}.
+    \item Using library \pllib{assoc} which represents the
+          associations as a balanced binary tree.
+\end{itemize}
+
+This situation is unfortunate. Each of these have their advantages and
+disadvantages. E.g., compound terms are compact and fast, but inflexible
+and using positional arguments quickly breaks down. Library
+\pllib{record} fixes this, but the syntax is considered hard to use.
+Lists are flexible, but expensive and the alternative key-value
+representations that are used complicate the matter even more. Library
+\pllib{assoc} allows for efficient manipulation of changing
+associations, but the syntactical representation of an assoc is complex,
+which makes them unsuitable for e.g., \jargon{options lists} as seen in
+predicates such as open/4.
+
+
+\subsection{Implementation notes about dicts}
+\label{sec:ext-dicts-implementation}
+
+Although dicts are designed as an abstract data type and we deliberately
+reserve the possibility to change the representation and even use
+multiple representations, this section describes the current
+implementation.
+
+Dicts are currently represented as a compound term using the functor
+\verb$`dict`$. The first argument is the tag. The remaining arguments
+create an array of sorted key-value pairs. This representation is
+compact and guarantees good locality. Lookup is order $\log(N)$, while
+adding valuesm deleting values and merging with other dicts has order
+$N$. The main disadvantage is that changing values in large dicts is
+costly, both in terms of memory and time.
+
+Future versions may share keys in a separate structure or use a binary
+trees to allow for cheaper updates. One of the issues is that the
+representation must either be kept cannonical or unification must be
+extended to compensate for alternate representations.
+
+
+% ================================================================
+\section{Integration of strings and dicts in the libraries}
+\label{sec:ext-integration}
+
+While lacking proper string support and dicts when designed, many
+predicates and libraries use interfaces that must be classified as
+suboptimal. Changing these interfaces is likely to break much more code
+than the changes described in this chapter. This section discusses some
+of these issues. Roughly, there are two cases. There where key-value
+associations or text is required as \emph{input}, we can facilitate the
+new features by overloading the accepted types. Interfaces that produce
+text or key-value associations as their \emph{output} however must make
+a choice. We plan to resolve that using either options that specify the
+desired output or provide an alternative library.
+
+
+\subsection{Dicts and option processing}
+\label{sec:ext-dict-options}
+
+System predicates and predicates based on library \pllib{options}
+process dicts as an alternative to traditional option lists.
+
+
+\subsection{Dicts in core data structures}
+\label{sec:ext-dict-in-core-data}
+
+Some predicates now produce structured data using compound terms and
+access predicates. We consider migrating these to dicts. Below is a
+tentative list of candidates. Portable code should use the provided
+access predicates and not rely on the term representation.
+
+\begin{itemize}
+    \item Stream position terms
+    \item Date and time records
+\end{itemize}
+
+
+\subsection{Dicts, strings and XML}
+\label{sec:ext-xml}
+
+The XML representation could benefit significantly from the new
+features. In due time we plan to provide an set of alternative
+predicates and options to existing predicates that can be used to
+exploit the new types. We propose the following changes to the data
+representation:
+
+\begin{itemize}
+    \item The attribute list of the \term{element}{Name, Attributes, Content}
+will become a dict.
+    \item Attribute values will remain atoms
+    \item CDATA in element content will be represented as strings
+\end{itemize}
+
+\subsection{Dicts, strings and JSON}
+\label{sec:ext-json}
+
+The JSON representation could benefit significantly from the new
+features. In due time we plan to provide an set of alternative
+predicates and options to existing predicates that can be used to
+exploit the new types. We propose the following changes to the data
+representation:
+
+\begin{itemize}
+    \item Instead of using \term{json}{KeyValueList}, the new
+interface will translate JSON objects to a dict.  The type of
+this dict will be \const{json}.
+
+    \item String values in JSON will be mapped to strings.
+
+    \item The values \const{true}, \const{false} and \const{null}
+will be represented as atoms.
+\end{itemize}
+
+
+\subsection{Dicts, strings and HTTP}
+\label{sec:ext-http}
+
+The HTTP library and related data structures would profit from
+exploiting dicts.  Below is a list of data structures that might
+be affected by future changes.	 Code can be made more robust
+by using the \pllib{option} library functions for extracting
+values from these structures.
+
+\begin{itemize}
+    \item The HTTP request structure
+    \item The HTTP parameter interface
+    \item URI components
+    \item Attributes to HTML elements
+\end{itemize}
+
+
+%================================================================
+\section{Remaining issues}
+\label{sec:ext-issues}
+
+The changes and extensions described in this chapter resolve a many
+limitations of the Prolog language we have encountered. Still, there are
+remaining issues for which we seek solutions in the future.
+
+\paragraph{Text representation}
+
+Although strings resolve this issue for many applications, we are still
+faced with the representation of text as lists of characters which we
+need for parsing using DCGs. The ISO standard provides two
+representations, a list of \jargon{character codes} (`codes' for short)
+and a list of \jargon{one-character atoms} (`chars' for short). There
+are two sets of predicates, named *_code(s) and *_char(s) that provide
+the same functionality (e.g., atom_codes/2 and atom_chars/2) using their
+own representation of characters. Codes can be used in arithmetic
+expressions, while chars are more readable. Neither can unambiguously be
+interpreted as a representation for text because codes can be
+interpreted as a list of integers and chars as a list of atoms.
+
+We have not found a convincing way out. One of the options could be the
+introduction of a `char' type. This type can be allowed in arithmetic
+and with the 0'<char> syntax we have a concrete syntax for it.
+
+
+\paragraph{Arrays}
+
+Although lists are generally a much cleaner alternative for Prolog, real
+arrays with direct access to elements can be useful for particular
+tasks. The problem of integrating arrays is twofold. First of all, there
+is no good one-size-fits-all data representation for arrays. Many tasks
+that involve arrays require \jargon{mutable} arrays, while Prolog data
+is immutable by design. Second, standard Prolog has no good syntax
+support for arrays. SWI-Prolog version~7 has `block operators' (see
+\secref{ext-blockop}) which can resolve the syntactic issues. Block
+operators have been adopted by YAP.
+
+
+\paragraph{Lambda expressions}
+
+Although many alternatives\footnote{See e.g.,
+\url{http://www.complang.tuwien.ac.at/ulrich/Prolog-inedit/ISO-Hiord}}
+have been proposed, we still feel uneasy with them.
+
+
+\paragraph{Loops}
+
+Many people have explored routes to avoid the need for recursion in
+Prolog for simple iterations over data. ECLiPSe have proposed
+\jargon{logical loops} \cite{logicalloops:2002}, while B-Prolog
+introduced \jargon{declarative loops} and \jargon{list
+comprehension}\footnote{\url{http://www.probp.com/download/loops.pdf}}.
+The above mentioned lambda expressions, combined with maplist/2 can
+achieve similar results.

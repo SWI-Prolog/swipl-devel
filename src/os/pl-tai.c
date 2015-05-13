@@ -334,24 +334,26 @@ get_ftm(term_t t, ftm *ftm)
 	  }
 	}
 
-	if ( ftm->isdst == -2 )
-	{ ftm->isdst = ftm->tm.tm_isdst;
-	  _PL_get_arg(9, t, tmp);
-	  if ( ftm->isdst < 0 )
-	  { if ( !PL_unify_atom(tmp, ATOM_minus) )
-	      return FALSE;
-	  } else
-	  { if ( !PL_unify_bool(tmp, ftm->isdst) )
+	if ( date9 )
+	{ if ( ftm->isdst == -2 )
+	  { ftm->isdst = ftm->tm.tm_isdst;
+	    _PL_get_arg(9, t, tmp);
+	    if ( ftm->isdst < 0 )
+	    { if ( !PL_unify_atom(tmp, ATOM_minus) )
+		return FALSE;
+	    } else
+	    { if ( !PL_unify_bool(tmp, ftm->isdst) )
+		return FALSE;
+	    }
+	  }
+
+	  if ( !ftm->tzname )
+	  { ftm->tzname = tz_name_as_atom(ftm->isdst);
+	    _PL_get_arg(8, t, tmp);
+	    if ( PL_is_variable(tmp) &&
+		 !PL_unify_atom(tmp, ftm->tzname) )
 	      return FALSE;
 	  }
-	}
-
-	if ( !ftm->tzname )
-	{ ftm->tzname = tz_name_as_atom(ftm->isdst);
-	  _PL_get_arg(8, t, tmp);
-	  if ( PL_is_variable(tmp) &&
-	       !PL_unify_atom(tmp, ftm->tzname) )
-	    return FALSE;
 	}
       }
 
@@ -762,8 +764,11 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUT2DIGITS(fd, ftm->tm.tm_hour);
 	    break;
 	  case 'I':			/* 01..12 hours */
-	    OUT2DIGITS(fd, (ftm->tm.tm_hour)%12);
+	  { int hour = (ftm->tm.tm_hour)%12;
+	    if ( hour == 0 ) hour = 12;
+	    OUT2DIGITS(fd, hour);
 	    break;
+	  }
 	  case 'j':			/* yday (001..366) */
 	    cal_ftm(ftm, HAS_WYDAY);
 	    OUT3DIGITS(fd, ftm->tm.tm_yday+1);
@@ -772,8 +777,11 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUT2DIGITS_SPC(fd, ftm->tm.tm_hour);
 	    break;
 	  case 'l':			/* 1..12 hours (leading space) */
-	    OUT2DIGITS_SPC(fd, (ftm->tm.tm_hour)%12);
+	  { int hour = (ftm->tm.tm_hour)%12;
+	    if ( hour == 0 ) hour = 12;
+	    OUT2DIGITS_SPC(fd, hour);
 	    break;
+	  }
 	  case 'm':			/* 01..12 month  */
 	    OUT2DIGITS(fd, ftm->tm.tm_mon+1);
 	    break;

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -28,6 +28,7 @@
 #include "os/pl-utf8.h"
 #include "os/pl-dtoa.h"
 #include "pl-umap.c"			/* Unicode map */
+#include "pl-dict.h"
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
@@ -66,7 +67,7 @@ f_is_prolog_var_start(wint_t c)
 
 int
 f_is_prolog_atom_start(wint_t c)
-{ return PlIdStartW(c) != 0;
+{ return PlIdStartW(c) && !((PlUpperW(c) || c == '_'));
 }
 
 int
@@ -87,24 +88,11 @@ unicode_separator(pl_wchar_t c)
 /* unquoted_atomW() returns TRUE if text can be written to s as unquoted atom
 */
 
-int
-unquoted_atomW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
-{ const pl_wchar_t *e = &s[len];
+static int
+truePrologFlagNoLD(unsigned int flag)
+{ GET_LD
 
-  if ( len == 0 )
-    return FALSE;
-
-  if ( !PlIdStartW(*s) || PlUpperW(*s) )
-    return FALSE;
-
-  for(s++; s<e; )
-  { int c = *s++;
-
-    if ( !(PlIdContW(c) && (!fd || Scanrepresent(c, fd) == 0)) )
-      return FALSE;
-  }
-
-  return TRUE;
+  return truePrologFlag(flag);
 }
 
 
@@ -319,15 +307,19 @@ typedef struct
 
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
-#define T_NAME		1	/* ordinary name */
-#define T_VARIABLE	2	/* variable name */
-#define T_VOID		3	/* void variable */
-#define T_NUMBER	4	/* integer or float */
-#define T_STRING	5	/* "string" */
-#define T_PUNCTUATION	6	/* punctuation character */
-#define T_FULLSTOP	7	/* Prolog end of clause */
-#define T_QQ_OPEN	8	/* "{|" of {|Syntax||Quotation|} stuff */
-#define T_QQ_BAR	9	/* "||" of {|Syntax||Quotation|} stuff */
+#define T_DICT		1	/* name of a dict class (atom, followed by '{') */
+#define T_QNAME		2	/* quoted name */
+#define T_NAME		3	/* ordinary name */
+#define T_VCLASS_DICT	4	/* variable name followed by '{' */
+#define T_VARIABLE	5	/* variable name */
+#define T_VOID_DICT	6	/* void variable followed by '{' */
+#define T_VOID		7	/* void variable */
+#define T_NUMBER	8	/* integer or float */
+#define T_STRING	9	/* "string" */
+#define T_PUNCTUATION  10	/* punctuation character */
+#define T_FULLSTOP     11	/* Prolog end of clause */
+#define T_QQ_OPEN      12	/* "{|" of {|Syntax||Quotation|} stuff */
+#define T_QQ_BAR       13	/* "||" of {|Syntax||Quotation|} stuff */
 
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
@@ -358,7 +350,6 @@ typedef struct
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags (M_*) */
   int		styleCheck;		/* style-checking mask */
-  bool		backquoted_string;	/* Read `hello` as string */
   int	       *char_conversion_table;	/* active conversion table */
 
   atom_t	on_error;		/* Handling of syntax errors */
@@ -376,6 +367,7 @@ typedef struct
   term_t	qq_tail;		/* Tail of the quoted stuff */
 #endif
   bool		cycles;			/* Re-establish cycles */
+  bool		dot_lists;		/* read .(a,b) as a list */
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
@@ -421,7 +413,6 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
   _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
-  _PL_rd->backquoted_string = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
   if ( truePrologFlag(PLFLAG_CHARCONVERSION) )
     _PL_rd->char_conversion_table = char_conversion_table;
   else
@@ -473,9 +464,8 @@ Syntax Error exceptions:
 	end_of_clause
 	end_of_clause_expected
 	end_of_file
-	end_of_file_in_atom
+	end_of_file_in_quoted(Type)
 	end_of_file_in_block_comment
-	end_of_file_in_string
 	illegal_number
 	long_atom
 	long_string
@@ -493,7 +483,10 @@ Error term:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-#define syntaxError(what, rd) do { errorWarning(what, 0, rd); fail; } while(0)
+#define syntaxError(what, rd) \
+	do { errorWarning(what, 0, rd); fail; } while(0)
+#define syntaxError1(what, arg, rd) \
+	do { errorWarningA1(what, arg, 0, rd); fail; } while(0)
 
 const char *
 str_number_error(strnumstat rc)
@@ -746,7 +739,7 @@ static unsigned char *
 backSkipUTF8(unsigned const char *start, unsigned const char *end, int *chr)
 { const unsigned char *s;
 
-  for(s=end-1 ; s>start && *s&0x80; s--)
+  for(s=end-1 ; s>start && ISUTF8_CB(*s); s--)
     ;
   utf8_get_char((char*)s, chr);
 
@@ -884,15 +877,36 @@ getchr__(ReadData _PL_rd)
 			 } \
 		       }
 
-#define rawSyntaxError(what) { addToBuffer(EOS, _PL_rd); \
-			       rdbase = rb.base, last_token_start = rb.here-1; \
-			       syntaxError(what, _PL_rd); \
-			     }
+#define rawSyntaxError(what) rawSyntaxError1(what, NULL)
+#define rawSyntaxError1(what, arg) \
+	{ addToBuffer(EOS, _PL_rd); \
+	  rdbase = rb.base, last_token_start = rb.here-1; \
+	  syntaxError1(what, arg, _PL_rd); \
+	}
+
+static void
+setErrorLocation(IOPOS *pos, ReadData _PL_rd)
+{ if ( pos )
+  { GET_LD
+
+    LD->read_source.position = *pos;
+  }
+  rb.here = rb.base+1;			/* see rawSyntaxError() */
+}
 
 static int
 raw_read_quoted(int q, ReadData _PL_rd)
-{ int newlines = 0;
+{ IOPOS pbuf;
+  IOPOS *pos;
   int c;
+
+  if ( rb.stream->position )
+  { pbuf = *rb.stream->position;
+    pbuf.charno--;
+    pbuf.linepos--;
+    pos = &pbuf;
+  } else
+    pos = NULL;
 
   addToBuffer(q, _PL_rd);
   while((c=getchrq()) != EOF && c != q)
@@ -957,21 +971,20 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  }
 	  continue;			/* \symbolic-control-char */
       }
-    } else if (c == '\n' &&
-	       newlines++ > MAXNEWLINES &&
-	       (_PL_rd->styleCheck & LONGATOM_CHECK))
-    { rawSyntaxError("long_string");
     }
     addToBuffer(c, _PL_rd);
   }
 
 out:
   if (c == EOF)
-  {
+  { char what[2];
   eofinstr:
     if ( Sferror(rb.stream) )
       return FALSE;
-    rawSyntaxError("end_of_file_in_string");
+    setErrorLocation(pos, _PL_rd);
+    what[0] = q;
+    what[1] = EOS;
+    rawSyntaxError1("end_of_file_in_quoted", what);
   }
   addToBuffer(c, _PL_rd);
 
@@ -997,6 +1010,17 @@ raw_read_quasi_quotation(int c, ReadData _PL_rd)
 
 
 static int
+raw_read_identifier(int c, ReadData _PL_rd)
+{ do
+  { addToBuffer(c, _PL_rd);
+    c = getchr();
+  } while( c != EOF && PlIdContW(c) );
+
+  return c;
+}
+
+
+static int
 add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 { term_t head = PL_new_term_ref();
 
@@ -1016,7 +1040,7 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
   } else
   { if ( !PL_unify_term(head,
 			PL_FUNCTOR, FUNCTOR_minus2,
-			  ATOM_minus,
+			  PL_ATOM, ATOM_minus,
 			  PL_UTF8_STRING, baseBuffer(b, char)) )
       return FALSE;
   }
@@ -1026,22 +1050,10 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 }
 
 
-static void
-setErrorLocation(IOPOS *pos, ReadData _PL_rd)
-{ if ( pos )
-  { GET_LD
-
-    LD->read_source.position = *pos;
-  }
-  rb.here = rb.base+1;			/* see rawSyntaxError() */
-}
-
-
 static unsigned char *
 raw_read2(ReadData _PL_rd ARG_LD)
 { int c;
   bool something_read = FALSE;
-  bool dotseen = FALSE;
   IOPOS pbuf;					/* comment start */
   IOPOS *pos;
 
@@ -1068,17 +1080,12 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  return NULL;
 		}
 		if ( something_read )
-		{ if ( dotseen )		/* term.<EOF> */
-		  { if ( rb.here - rb.base == 1 )
-		      rawSyntaxError("end_of_clause");
-		  complete_fullstop:
+		{ if ( isStringStream(rb.stream) )
+		  { ensure_space(' ');
+		    addToBuffer('.', _PL_rd);
 		    ensure_space(' ');
 		    addToBuffer(EOS, _PL_rd);
 		    return rb.base;
-		  } else if ( isStringStream(rb.stream) )
-		  { ensure_space(' ');
-		    addToBuffer('.', _PL_rd);
-		    goto complete_fullstop;
 		  }
 		  rawSyntaxError("end_of_file");
 		}
@@ -1170,12 +1177,11 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  addToBuffer('/', _PL_rd);
 		  if ( isSymbolW(c) )
 		  { while( c != EOF && isSymbolW(c) &&
-			   !(c == '`' && _PL_rd->backquoted_string) )
+			   !(c == '`' && true(_PL_rd, BQ_MASK)) )
 		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
 		    }
 		  }
-		  dotseen = FALSE;
 		  goto handle_c;
 		}
       case '%': if ( something_read )
@@ -1281,7 +1287,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  { addToBuffer(c, _PL_rd);
 			    c = Sgetcode(rb.stream);
 			    addToBuffer(c, _PL_rd);
-			    dotseen = FALSE;
 			    break;
 			  }
 			  goto sqatom;
@@ -1296,31 +1301,34 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		set_start_line;
 		if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
-		dotseen = FALSE;
 		break;
       case '"':	set_start_line;
                 if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
-		dotseen = FALSE;
 		break;
       case '.': addToBuffer(c, _PL_rd);
 		set_start_line;
-		dotseen++;
+		c = Speekcode(rb.stream);
+		if ( isBlankW(c) || c == '%' || c == -1 )
+		{ if ( rb.here - rb.base == 1 )
+		    rawSyntaxError("end_of_clause");
+		  addToBuffer(' ', _PL_rd);
+		  addToBuffer(EOS, _PL_rd);
+		  return rb.base;
+		}
 		c = getchr();
 		if ( isSymbolW(c) )
 		{ while( c != EOF && isSymbolW(c) &&
-			 !(c == '`' && _PL_rd->backquoted_string) )
+			 !(c == '`' && true(_PL_rd, BQ_MASK)) )
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
 		  }
-		  dotseen = FALSE;
 		}
 		goto handle_c;
-      case '`': if ( _PL_rd->backquoted_string )
+      case '`': if ( true(_PL_rd, BQ_MASK) )
 		{ set_start_line;
 		  if ( !raw_read_quoted(c, _PL_rd) )
 		    fail;
-		  dotseen = FALSE;
 		  break;
 		}
 	        /*FALLTHROUGH*/
@@ -1328,13 +1336,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		{ switch(_PL_char_types[c])
 		  { case SP:
 		    blank:
-		      if ( dotseen )
-		      { if ( rb.here - rb.base == 1 )
-			  rawSyntaxError("end_of_clause");
-			ensure_space(c);
-			addToBuffer(EOS, _PL_rd);
-			return rb.base;
-		      }
 		      do
 		      { if ( something_read ) /* positions, \0 --> ' ' */
 			  addToBuffer(c ? c : ' ', _PL_rd);
@@ -1348,20 +1349,15 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      do
 		      { addToBuffer(c, _PL_rd);
 			c = getchr();
-			if ( c == '`' && _PL_rd->backquoted_string )
+			if ( c == '`' && true(_PL_rd, BQ_MASK) )
 			  break;
 		      } while( c != EOF && (unsigned)c <= 0xff && isSymbol(c) );
 					/* TBD: wide symbols? */
-		      dotseen = FALSE;
 		      goto handle_c;
 		    case LC:
 		    case UC:
 		      set_start_line;
-		      do
-		      { addToBuffer(c, _PL_rd);
-			c = getchr();
-		      } while( c != EOF && PlIdContW(c) );
-		      dotseen = FALSE;
+		      c = raw_read_identifier(c, _PL_rd);
 		      goto handle_c;
 		    default:
 #ifdef O_QUASIQUOTATIONS		/* detect || from {|Syntax||Quotation|} */
@@ -1371,28 +1367,21 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
 		      { if ( !raw_read_quasi_quotation(c, _PL_rd) )
 			  return FALSE;
-			dotseen = FALSE;
 			break;
 		      }
 #endif
 		      addToBuffer(c, _PL_rd);
-		      dotseen = FALSE;
 		      set_start_line;
 		  }
 		} else			/* > 255 */
 		{ if ( PlIdStartW(c) )
 		  { set_start_line;
-		    do
-		    { addToBuffer(c, _PL_rd);
-		      c = getchr();
-		    } while( c != EOF && PlIdContW(c) );
-		    dotseen = FALSE;
+		    c = raw_read_identifier(c, _PL_rd);
 		    goto handle_c;
 		  } else if ( PlBlankW(c) )
 		  { goto blank;
 		  } else
 		  { addToBuffer(c, _PL_rd);
-		    dotseen = FALSE;
 		    set_start_line;
 		  }
 		}
@@ -1762,7 +1751,8 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
   atom_t name;
   int arity;
 
-  PL_strip_module(type, &m, plain);
+  if ( !PL_strip_module(type, &m, plain) )
+    return FALSE;
 
   if ( PL_get_name_arity(plain, &name, &arity) )
   { if ( _PL_rd->quasi_quotations )
@@ -1798,18 +1788,6 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
 		*           TOKENISER           *
 		*********************************/
 
-static inline int
-void_allowed(ReadData _PL_rd)
-{ int type, priority;
-
-  if ( !_PL_rd->strictness &&
-       currentOperator(_PL_rd->module, ATOM_void, OP_POSTFIX, &type, &priority) )
-    return TRUE;
-
-  return FALSE;
-}
-
-
 static inline ucharp
 skipSpaces(cucharp in)
 { int chr;
@@ -1827,7 +1805,7 @@ skipSpaces(cucharp in)
 
 
 static inline unsigned char *
-SkipIdCont(unsigned char *in)
+SkipVarIdCont(unsigned char *in)
 { int chr;
   unsigned char *s;
 
@@ -1842,6 +1820,28 @@ SkipIdCont(unsigned char *in)
 }
 
 
+static inline unsigned char *
+SkipAtomIdCont(unsigned char *in)
+{ int chr;
+  unsigned char *s;
+
+  for( ; *in; in=s)
+  { s = (unsigned char*)utf8_get_char((char*)in, &chr);
+
+    if ( !PlIdContW(chr) )
+    { if ( chr == '.' && truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) )
+      { s = (unsigned char*)utf8_get_char((char*)s, &chr);
+	if ( PlIdContW(chr) )
+	  continue;
+      }
+      return in;
+    }
+  }
+
+  return in;
+}
+
+
 static unsigned char *
 SkipSymbol(unsigned char *in, ReadData _PL_rd)
 { int chr;
@@ -1850,9 +1850,9 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
   for( ; *in; in=s)
   { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
+    if ( chr == '`' && false(_PL_rd, BQ_MASK) )
+      continue;				/* ` is a symbol char */
     if ( !PlSymbolW(chr) )
-      return in;
-    if ( chr == '`' && _PL_rd->backquoted_string )
       return in;
   }
 
@@ -1951,9 +1951,9 @@ scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
 #endif
       } else
       { if (negative)
-          t = t * 10 - c + '0';
+          t = t * 10 - (c - '0');
         else
-          t = t * 10 + c - '0';
+          t = t * 10 + (c - '0');
       }
     }
   } while ( skip_digit_separator(&s, 10, grouped) );
@@ -2101,7 +2101,7 @@ again:
 	  for( ; *in; in=e )
 	  { e = utf8_get_uchar(in, &c);
 	    if ( c == '\n' || !PlBlankW(c) )
-	    { if ( skipped && (_PL_rd->styleCheck & LONGATOM_CHECK) )
+	    { if ( skipped )
 	      { term_t ex;
 		unsigned char *old_start = last_token_start;
 
@@ -2535,7 +2535,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     lower:
 		{ PL_chars_t txt;
 
-		  rdhere = SkipIdCont(rdhere);
+		  rdhere = SkipAtomIdCont(rdhere);
 		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "atom");
@@ -2552,6 +2552,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		  if ( *rdhere == '(' )
 		  { cur_token.type = T_FUNCTOR;
+		  } else if ( *rdhere == '{' )
+		  { cur_token.type = T_DICT;
 		  } else
 		  { cur_token.type = T_NAME;
 		  }
@@ -2564,7 +2566,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case UC:
     upper:
-		{ rdhere = SkipIdCont(rdhere);
+		{ rdhere = SkipVarIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
 		  if ( *rdhere == '(' && truePrologFlag(ALLOW_VARNAME_FUNCTOR) )
@@ -2573,14 +2575,20 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		       rdhere == start + 1 &&
 		       !_PL_rd->variables ) /* report them */
 		  { DEBUG(9, Sdprintf("VOID\n"));
-		    cur_token.type = T_VOID;
+		    if ( *rdhere == '{' )
+		      cur_token.type = T_VOID_DICT;
+		    else
+		      cur_token.type = T_VOID;
 		  } else
 		  { cur_token.value.variable = lookupVariable((char *)start,
 							      rdhere-start,
 							      _PL_rd);
 		    DEBUG(9, Sdprintf("VAR: %s\n",
 				      cur_token.value.variable->name));
-		    cur_token.type = T_VARIABLE;
+		    if ( *rdhere == '{' )
+		      cur_token.type = T_VCLASS_DICT;
+		    else
+		      cur_token.type = T_VARIABLE;
 		  }
 
 		  break;
@@ -2609,7 +2617,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
     case_symbol:
-    case SY:	if ( c == '`' && _PL_rd->backquoted_string )
+    case SY:	if ( c == '`' && true(_PL_rd, BQ_MASK) )
 		  goto case_bq;
 
 	        rdhere = SkipSymbol(rdhere, _PL_rd);
@@ -2642,7 +2650,6 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		      }
 		    /*FALLTHROUGH*/
 #endif
-		    case '(':
 		    case '[':
 		      rdhere = skipSpaces(rdhere);
 		      if (rdhere[0] == matchingBracket(c))
@@ -2650,12 +2657,6 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 			switch(c)
 			{ case '{': cur_token.value.atom = ATOM_curl; break;
 			  case '[': cur_token.value.atom = ATOM_nil;  break;
-			  case '(':
-			    if ( void_allowed(_PL_rd) )
-			      cur_token.value.atom = ATOM_void;
-			    else
-			      syntaxError("void_not_allowed", _PL_rd);
-			    break;
 			}
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
 			DEBUG(9, Sdprintf("NAME: %s\n",
@@ -2692,7 +2693,12 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  cur_token.value.atom = textToAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
-		  cur_token.type = (rdhere[0] == '(' ? T_FUNCTOR : T_NAME);
+		  if ( rdhere[0] == '(' )
+		    cur_token.type = T_FUNCTOR;
+		  else if ( rdhere[0] == '{' )
+		    cur_token.type = T_DICT;
+		  else
+		    cur_token.type = T_QNAME;
 		  discardBuffer(&b);
 		  break;
 		}
@@ -2731,11 +2737,17 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  discardBuffer(&b);
 		  break;
 		}
-#ifdef O_STRING
     case BQ:
-    case_bq:    { tmp_buffer b;
+    case_bq:    if ( true(_PL_rd, BQ_MASK) )
+		{ tmp_buffer b;
 		  term_t t = PL_new_term_ref();
 		  PL_chars_t txt;
+		  int type;
+
+		  type = ( true(_PL_rd, BQ_STRING) ? PL_STRING :
+			   true(_PL_rd, BQ_CODES)  ? PL_CODE_LIST :
+			   PL_CHAR_LIST
+			 );
 
 		  initBuffer(&b);
 		  if ( !get_string(rdhere-1, rdend, &rdhere, (Buffer)&b, _PL_rd) )
@@ -2745,7 +2757,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
-		  if ( !PL_unify_text(t, 0, &txt, PL_STRING) )
+		  if ( !PL_unify_text(t, 0, &txt, type) )
 		  { PL_free_text(&txt);
 		    return FALSE;
 		  }
@@ -2754,8 +2766,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  cur_token.type = T_STRING;
 		  discardBuffer(&b);
 		  break;
+		} else
+		{ goto case_symbol;
 		}
-#endif
     case CT:
 		syntaxError("illegal_character", _PL_rd);
     default:
@@ -2893,7 +2906,6 @@ ensureSpaceForTermRefs(size_t n ARG_LD)
 static int
 build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 { functor_t functor = lookupFunctorDef(atom, arity);
-  term_t *av, *argv = term_av(-arity, _PL_rd);
   word w;
   Word argp;
   int rc;
@@ -2904,19 +2916,97 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
   if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
     return rc;
 
-  DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
+  DEBUG(8, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   argp = gTop;
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += 1+arity;
   *argp++ = functor;
 
-  for(av=argv; arity-- > 0; av++, argp++)
-    readValHandle(*av, argp, _PL_rd PASS_LD);
+  if ( arity > 0 )
+  { term_t *av, *argv = term_av(-arity, _PL_rd);
+
+    for(av=argv; arity-- > 0; av++, argp++)
+      readValHandle(*av, argp, _PL_rd PASS_LD);
+
+    setHandle(argv[0], w);
+    truncate_term_stack(&argv[1], _PL_rd);
+    DEBUG(8, Sdprintf("result: ");
+	     PL_write_term(Serror, argv[0], 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE));
+  } else
+  { term_t t = alloc_term(_PL_rd PASS_LD);
+
+    setHandle(t, w);
+    DEBUG(8, Sdprintf("result: ");
+	     PL_write_term(Serror, t, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE));
+  }
+
+  return TRUE;
+}
+
+
+/* build_dict(int pairs, ...) builds a dict from the data on the stack.
+   and pushes the result back to the term-stack. The stack first
+   contains:
+
+	class, key1, value1, key2, value2, ...
+*/
+
+static int
+build_dict(int pairs, ReadData _PL_rd ARG_LD)
+{ int arity = pairs*2+1;
+  term_t *argv = term_av(-arity, _PL_rd);
+  word w;
+  Word argp;
+  int i, rc;
+  int index_buf[64];
+  int *indexes = index_buf;
+
+  if ( pairs > 64 )
+  { if ( !(indexes = malloc(sizeof(int)*pairs)) )
+      return PL_no_memory();
+  }
+  for(i=0; i<pairs; i++)
+    indexes[i] = i;
+
+  if ( (i=dict_order_term_refs(argv+1, indexes, pairs PASS_LD)) )
+  { term_t ex = PL_new_term_ref();
+
+    rc = ( PL_unify_term(ex,
+			 PL_FUNCTOR, FUNCTOR_duplicate_key1,
+			   PL_TERM, argv[indexes[i]*2+1]) &&
+	   errorWarningA1("duplicate_key", NULL, ex, _PL_rd)
+	 );
+
+    if ( indexes != index_buf )
+      free(indexes);
+
+    return rc;
+  }
+
+  if ( !hasGlobalSpace(pairs*2+2) &&
+       (rc=ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+    return rc;
+  if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
+    return rc;
+
+  DEBUG(9, Sdprintf("Building dict with %d pairs ... ", pairs));
+  argp = gTop;
+  w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
+  gTop += pairs*2+2;
+  *argp++ = dict_functor(pairs);
+  readValHandle(argv[0], argp++, _PL_rd PASS_LD); /* the class */
+
+  for(i=0; i<pairs; i++)
+  { readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd PASS_LD);
+    readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd PASS_LD);
+  }
 
   setHandle(argv[0], w);
   truncate_term_stack(&argv[1], _PL_rd);
 
-  DEBUG(9, Sdprintf("result: "); pl_write(argv[0]); Sdprintf("\n") );
+  if ( indexes != index_buf )
+    free(indexes);
+
   return TRUE;
 }
 
@@ -3297,7 +3387,10 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 { switch(token->type)
   { case T_NAME:
       return TRUE;
+    case T_QNAME:
+      return GD->options.traditional || !unquoted_atom(token->value.atom);
     case T_FUNCTOR:
+    case T_DICT:
       return must_be_op;
     case T_PUNCTUATION:
     { switch(token->value.character)
@@ -3564,21 +3657,13 @@ set_range_position(term_t positions, intptr_t start, intptr_t end ARG_LD)
 }
 
 
-static void
-swap_functor_position(term_t positions, intptr_t *sp, intptr_t *ep ARG_LD)
+static intptr_t
+end_range(term_t positions ARG_LD)
 { Word p = valTermRef(positions);
-  intptr_t s, e;
 
   deRef(p);
-  p = argTermP(*p, 0);
-  s = valInt(p[2]);
-  e = valInt(p[3]);
-  p[2] = consInt(*sp);
-  p[3] = consInt(*ep);
-  *sp = s;
-  *ep = e;
+  return valInt(argTerm(*p,1));
 }
-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3764,45 +3849,28 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   unlock = (_PL_rd->locked == functor);
   _PL_rd->locked = 0;
 
-  if ( (token=get_token(FALSE, _PL_rd)) &&
-       token->type == T_NAME &&
-       token->value.atom == ATOM_void )
-  { term_t term;
+  if ( !(token=get_token(FALSE, _PL_rd)) ) /* gets '(' */
+    return FALSE;
+  if ( !(token=get_token(FALSE, _PL_rd)) ) /* first token */
+    return FALSE;
 
-    if ( positions )
-    { intptr_t fs = token->start, fe = token->end;
+  if ( !(token->type == T_PUNCTUATION && token->value.character == ')') )
+  { unget_token();
 
-      set_range_position(positions, -1, token->end PASS_LD);
-      swap_functor_position(positions, &fs, &fe PASS_LD);
-      if ( !PL_unify_term(P_ARG, PL_LIST, 1,
-			  PL_FUNCTOR, FUNCTOR_minus2,
-			    PL_INTPTR, fs,
-			    PL_INTPTR, fe) )
-	return FALSE;
-    }
-
-    term = alloc_term(_PL_rd PASS_LD);
-    PL_put_atom(term, functor);
-    rc = build_term(ATOM_void, 1, _PL_rd PASS_LD);
-    if ( unlock )
-      PL_unregister_atom(functor);
-
-    return rc;
+    do
+    { if ( positions )
+      { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
+	  return FALSE;
+      }
+      if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
+      { if ( unlock )
+	  PL_unregister_atom(functor);
+	return rc;
+      }
+      arity++;
+      token = get_token(FALSE, _PL_rd);	/* `,' or `)' */
+    } while( token->value.character != ')' );
   }
-
-  do
-  { if ( positions )
-    { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
-	return FALSE;
-    }
-    if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
-    { if ( unlock )
-	PL_unregister_atom(functor);
-      return rc;
-    }
-    arity++;
-    token = get_token(FALSE, _PL_rd);	/* `,' or `)' */
-  } while(token->value.character == ',');
 
   if ( positions )
   { set_range_position(positions, -1, token->end PASS_LD);
@@ -3813,6 +3881,14 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 #undef P_HEAD
 #undef P_ARG
 
+  if ( _PL_rd->dot_lists )
+  { static atom_t dot = 0;
+    if ( !dot )
+      dot = PL_new_atom(".");
+    if ( functor == dot )
+      functor = ATOM_dot;		/* the abstract cons name */
+  }
+
   rc = build_term(functor, arity, _PL_rd PASS_LD);
   if ( rc != TRUE )
     return rc;
@@ -3820,6 +3896,142 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     PL_unregister_atom(functor);
 
   succeed;
+}
+
+
+/* read_dict() reads <class>{key:value, ...} into a dict as defined
+   in pl-dict.c
+*/
+
+static inline int
+read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+{ int pairs = 0;
+  term_t pv;
+  int rc;
+  Token tstart;
+
+#define P_HEAD  (pv+0)
+#define P_ARG   (pv+1)
+#define P_VALUE (pv+2)
+
+  if ( positions )
+  { if ( !(pv = PL_new_term_refs(3)) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_dict_position5,
+			PL_INTPTR, token->start, /* whole term */
+			PL_VARIABLE,
+			PL_INTPTR, token->start, /* class position */
+			PL_INTPTR, token->end,   /* key-value pairs */
+			PL_TERM, P_ARG) )
+      return FALSE;
+  } else
+    pv = 0;
+
+					/* Push the class */
+  switch ( token->type )
+  { case T_DICT:
+    { term_t term = alloc_term(_PL_rd PASS_LD);
+      PL_put_atom(term, token->value.atom);
+      Unlock(token->value.atom);
+      break;
+    }
+    case T_VCLASS_DICT:
+    { term_t term = alloc_term(_PL_rd PASS_LD);
+      setHandle(term, token->value.variable->signature);
+      break;
+    }
+    case T_VOID_DICT:
+    { alloc_term(_PL_rd PASS_LD);
+    }
+  }
+
+  tstart = get_token(FALSE, _PL_rd);	/* Skip '{' */
+
+					/* process the key-values */
+  if ( !(tstart->type == T_NAME && tstart->value.atom == ATOM_curl) )
+  { do
+    { Token key, sep;
+      intptr_t kstart, kend;
+      term_t key_term;
+
+      if ( positions )
+      { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
+	  return FALSE;
+      }
+
+      if ( !(key = get_token(FALSE, _PL_rd)) )
+	return FALSE;
+
+      if ( is_name_token(key, TRUE, _PL_rd) )
+      { key_term = alloc_term(_PL_rd PASS_LD);
+	PL_put_atom(key_term, key->value.atom);
+	Unlock(key->value.atom);
+      } else if ( key->type == T_NUMBER )
+      { Number n = &key->value.number;
+
+	if ( n->type == V_INTEGER && valInt(consInt(n->value.i)) == n->value.i )
+	{ key_term = alloc_term(_PL_rd PASS_LD);
+	  PL_put_integer(key_term, n->value.i);
+	} else
+	  syntaxError("key_domain", _PL_rd); /* representation error? */
+      } else
+	syntaxError("key_expected", _PL_rd);
+
+      kstart = token->start;
+      kend   = token->end;
+      if ( !(sep = get_token(FALSE, _PL_rd)) )
+	return FALSE;
+
+      if ( !is_name_token(sep, TRUE, _PL_rd) ||
+	   key->value.atom != ATOM_colon )
+	syntaxError("colon_expected", _PL_rd);
+
+      if ( positions )
+      { PL_put_variable(P_VALUE);
+
+	/* key_value_position(start, end, sep-start, sep-end, key, key-pos, value-pos) */
+
+	if ( !PL_unify_term(P_HEAD,
+			    PL_FUNCTOR, FUNCTOR_key_value_position7,
+			    PL_INTPTR, kstart,		/* whole term */
+			    PL_VARIABLE,
+			    PL_INTPTR, sep->start, /* : start */
+			    PL_INTPTR, sep->end,   /* : end */
+			    PL_TERM,   key_term,
+			    PL_FUNCTOR, FUNCTOR_minus2,
+			      PL_INTPTR, kstart,
+			      PL_INTPTR, kend,
+			    PL_TERM, P_VALUE) )
+	  return FALSE;
+      }
+
+      if ( (rc=complex_term(",}", 999,
+			    positions ? P_VALUE : 0,
+			    _PL_rd PASS_LD)) != TRUE )
+	return rc;
+
+      if ( positions )
+      { intptr_t vend = end_range(P_VALUE PASS_LD);
+
+	set_range_position(P_HEAD, -1, vend PASS_LD);
+      }
+
+      pairs++;
+      token = get_token(FALSE, _PL_rd);	/* `,' or `}' */
+    } while(token->value.character == ',');
+  }
+
+  if ( positions )
+  { set_range_position(positions, -1, token->end PASS_LD);
+    if ( !PL_unify_nil(P_ARG) )
+      return FALSE;
+  }
+
+#undef P_HEAD
+#undef P_ARG
+#undef P_VALUE
+
+  return build_dict(pairs, _PL_rd PASS_LD);
 }
 
 
@@ -3844,6 +4056,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       return unify_atomic_position(positions, token);
     }
     case T_NAME:
+    case T_QNAME:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
@@ -3863,6 +4076,10 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     }
     case T_FUNCTOR:
       return read_compound(token, positions, _PL_rd PASS_LD);
+    case T_DICT:
+    case T_VCLASS_DICT:
+    case T_VOID_DICT:
+      return read_dict(token, positions, _PL_rd PASS_LD);
     case T_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
@@ -4364,12 +4581,13 @@ static const opt_spec read_term_options[] =
   { ATOM_double_quotes,	    OPT_ATOM },
   { ATOM_module,	    OPT_ATOM },
   { ATOM_syntax_errors,     OPT_ATOM },
-  { ATOM_backquoted_string, OPT_BOOL },
+  { ATOM_back_quotes,       OPT_ATOM },
   { ATOM_comments,	    OPT_TERM },
 #ifdef O_QUASIQUOTATIONS
   { ATOM_quasi_quotations,  OPT_TERM },
 #endif
   { ATOM_cycles,	    OPT_BOOL },
+  { ATOM_dotlists,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -4383,6 +4601,7 @@ read_term_from_stream(IOSTREAM *s, term_t term, term_t options ARG_LD)
   read_data rd;
   bool charescapes = -1;
   atom_t dq = NULL_ATOM;
+  atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
   fid_t fid = PL_open_foreign_frame();
 
@@ -4399,12 +4618,13 @@ retry:
 		     &dq,
 		     &mname,
 		     &rd.on_error,
-		     &rd.backquoted_string,
+		     &bq,
 		     &tcomments,
 #ifdef O_QUASIQUOTATIONS
 		     &rd.quasi_quotations,
 #endif
-		     &rd.cycles) )
+		     &rd.cycles,
+		     &rd.dot_lists) )
     return FALSE;
 
   if ( mname )
@@ -4420,6 +4640,10 @@ retry:
   }
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
+      return FALSE;
+  }
+  if ( bq )
+  { if ( !setBackQuotes(bq, &rd.flags) )
       return FALSE;
   }
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
@@ -4508,7 +4732,8 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
 { PRED_LD
   PL_chars_t txt;
 
-  if ( PL_get_text(A1, &txt, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+  if ( PL_get_text(A1, &txt,
+		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_RING) )
   { int rc;
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;
@@ -4529,9 +4754,8 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
 
 
 static int
-atom_to_term(term_t atom, term_t term, term_t bindings)
-{ GET_LD
-  PL_chars_t txt;
+atom_to_term(term_t atom, term_t term, term_t bindings, int text_type ARG_LD)
+{ PL_chars_t txt;
 
   if ( !bindings && PL_is_variable(atom) ) /* term_to_atom(+, -) */
   { char buf[1024];
@@ -4552,7 +4776,7 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
       txt.storage = PL_CHARS_HEAP;
       txt.encoding = ENC_UTF8;
       txt.canonical = FALSE;
-      rval = PL_unify_text(atom, 0, &txt, PL_ATOM);
+      rval = PL_unify_text(atom, 0, &txt, text_type);
     }
 
     Sclose(stream);
@@ -4592,13 +4816,22 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
 
 static
 PRED_IMPL("atom_to_term", 3, atom_to_term, 0)
-{ return atom_to_term(A1, A2, A3);
+{ GET_LD
+  return atom_to_term(A1, A2, A3, PL_ATOM PASS_LD);
 }
 
 
 static
 PRED_IMPL("term_to_atom", 2, term_to_atom, 0)
-{ return atom_to_term(A2, A1, 0);
+{ GET_LD
+  return atom_to_term(A2, A1, 0, PL_ATOM PASS_LD);
+}
+
+
+static
+PRED_IMPL("term_string", 2, term_string, 0)
+{ GET_LD
+  return atom_to_term(A2, A1, 0, PL_STRING PASS_LD);
 }
 
 
@@ -4744,6 +4977,7 @@ BeginPredDefs(read)
   PRED_DEF("read_term_from_atom", 3, read_term_from_atom, 0)
   PRED_DEF("atom_to_term",	  3, atom_to_term,	  0)
   PRED_DEF("term_to_atom",	  2, term_to_atom,	  0)
+  PRED_DEF("term_string",	  2, term_string,	  0)
   PRED_DEF("$code_class",	  2, code_class,	  0)
 #ifdef O_QUASIQUOTATIONS
   PRED_DEF("$qq_open",            2, qq_open,             0)

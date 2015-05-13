@@ -243,9 +243,6 @@ attvar_residuals(att(Module,Value,As), V) -->
 	    ;	{ current_predicate(Module:attribute_goals//1) }
 	    ->	{ phrase(Module:attribute_goals(V), Goals) },
 		list(Goals)
-	    ;	{ current_predicate(Module:attribute_goal/2) }
-	    ->	{ Module:attribute_goal(V, Goal) },
-		dot_list(Goal)
 	    ;	[put_attr(V, Module, Value)]
 	    )
 	),
@@ -253,9 +250,6 @@ attvar_residuals(att(Module,Value,As), V) -->
 
 list([])     --> [].
 list([L|Ls]) --> [L], list(Ls).
-
-dot_list((A,B)) --> !, dot_list(A), dot_list(B).
-dot_list(A)	--> [A].
 
 delete_attributes(Term) :-
 	term_attvars(Term, Vs),

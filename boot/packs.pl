@@ -41,6 +41,9 @@
 :- dynamic
 	pack_dir/3,				% Pack, Type, Dir
 	pack/2.					% Pack, BaseDir
+:- volatile
+	pack_dir/3,
+	pack/2.
 
 
 user:file_search_path(pack, app_data(pack)).

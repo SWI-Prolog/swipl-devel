@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -116,10 +116,10 @@ version(Message) :-
 	exists_file(InitFile), !,
 	ensure_loaded(user:InitFile).
 '$load_init_file'(Base) :-
-	absolute_file_name(user_profile(Base),
+	absolute_file_name(user_profile(Base), InitFile,
 			   [ access(read),
 			     file_errors(fail)
-			   ], InitFile),
+			   ]),
 	asserta(loaded_init_file(Base, InitFile)),
 	load_files(user:InitFile,
 		   [ scope_settings(false)
@@ -129,7 +129,7 @@ version(Message) :-
 '$load_system_init_file' :-
 	loaded_init_file(system, _), !.
 '$load_system_init_file' :-
-	'$option'(system_init_file, Base),
+	'$cmd_option_val'(system_init_file, Base),
 	Base \== none,
 	current_prolog_flag(home, Home),
 	file_name_extension(Base, rc, Name),
@@ -149,7 +149,7 @@ version(Message) :-
 '$load_script_file' :-
 	loaded_init_file(script, _), !.
 '$load_script_file' :-
-	'$option'(script_file, OsFiles),
+	'$cmd_option_val'(script_file, OsFiles),
 	load_script_files(OsFiles).
 
 load_script_files([]).
@@ -247,7 +247,7 @@ thread_initialization(Goal) :-
 %	Process -p PathSpec options.
 
 '$set_file_search_paths' :-
-	'$option'(search_paths, Paths),
+	'$cmd_option_val'(search_paths, Paths),
 	(   '$member'(Path, Paths),
 	    atom_chars(Path, Chars),
 	    (	phrase('$search_path'(Name, Aliases), Chars)
@@ -391,7 +391,7 @@ set_window_title(_).
 %	system.
 
 start_pldoc :-
-	'$option'(pldoc_server, Server),
+	'$cmd_option_val'(pldoc_server, Server),
 	(   Server == ''
 	->  call((doc_server(_), doc_browser))
 	;   catch(atom_number(Server, Port), _, fail)
@@ -460,22 +460,26 @@ initialise_prolog :-
 	'$load_system_init_file',
 	start_pldoc,
 	attach_packs,
-	'$option'(init_file, OsFile),
+	'$cmd_option_val'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
 	'$load_script_file',
 	load_associated_files(Files),
-	'$option'(goal, GoalAtom),
+	'$cmd_option_val'(goal, GoalAtom),
 	term_to_atom(Goal, GoalAtom),
 	ignore(user:Goal).
 
 init_debug_flags :-
 	once(print_predicate(_, [print], PrintOptions)),
-	create_prolog_flag(toplevel_print_options, PrintOptions, []),
+	create_prolog_flag(answer_write_options, PrintOptions, []),
 	create_prolog_flag(prompt_alternatives_on, determinism, []),
 	create_prolog_flag(toplevel_extra_white_line, true, []),
 	create_prolog_flag(toplevel_print_factorized, false, []),
-	'$set_debugger_print_options'(print).
+	create_prolog_flag(print_write_options,
+			   [ portray(true), quoted(true), numbervars(true) ],
+			   []),
+	create_prolog_flag(toplevel_residue_vars, false, []),
+	'$set_debugger_write_options'(print).
 
 %%	setup_colors is det.
 %
@@ -523,7 +527,7 @@ setup_history :-
 %	@see prolog/0 is the default interactive toplevel
 
 '$runtoplevel' :-
-	'$option'(toplevel, TopLevelAtom),
+	'$cmd_option_val'(toplevel, TopLevelAtom),
 	catch(term_to_atom(TopLevel0, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
@@ -600,13 +604,9 @@ read_query(Prompt, Goal, Bindings) :-
 	remove_history_prompt(Prompt, Prompt1),
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
-	Catch = error(syntax_error(_), _),
-	catch('$raw_read'(user_input, Line), Catch,
-	      ( print_message(error, Catch),
-		fail
-	      )),
-	save_debug_after_read,
-	(   current_predicate(_, user:rl_add_history(_))
+	read_query_line(user_input, Line),
+	(   Line \== end_of_file,
+	    current_predicate(_, user:rl_add_history(_))
 	->  format(atom(CompleteLine), '~W~W',
 		   [ Line, [partial(true)],
 		     '.', [partial(true)]
@@ -624,6 +624,47 @@ read_query(Prompt, Goal, Bindings) :-
 	      )), !,
 	'$save_history'(Line).
 
+%%	read_query_line(+Input, -Line) is det.
+
+read_query_line(Input, Line) :-
+	catch(read_term_as_atom(Input, Line), Error, true),
+	save_debug_after_read,
+	(   var(Error)
+	->  true
+	;   Error = error(syntax_error(_),_)
+	->  print_message(error, Error),
+	    fail
+	;   print_message(error, Error),
+	    throw(Error)
+	).
+
+%%	read_term_as_atom(+Input, -Line)
+%
+%	Read the next term as an  atom  and   skip  to  the newline or a
+%	non-space character.
+
+read_term_as_atom(In, Line) :-
+	'$raw_read'(In, Line),
+	(   Line == end_of_file
+	->  true
+	;   skip_to_nl(In)
+	).
+
+%%	skip_to_nl(+Input) is det.
+%
+%	Read input after the term. Skips   white  space and %... comment
+%	until the end of the line or a non-blank character.
+
+skip_to_nl(In) :-
+	repeat,
+	peek_char(In, C),
+	(   C == '%'
+	->  !, skip(In, '\n')
+	;   char_type(C, space)
+	->  get_char(In, _),
+	    C == '\n'
+	;   !
+	).
 
 remove_history_prompt('', '') :- !.
 remove_history_prompt(Prompt0, Prompt) :-
@@ -706,26 +747,27 @@ restore_debug :-
 	current_prolog_flag(toplevel_prompt, PAtom),
 	atom_codes(PAtom, P0),
 	(    Module \== user
-	->   '$substitute'("~m", [Module, ": "], P0, P1)
-	;    '$substitute'("~m", [], P0, P1)
+	->   '$substitute'('~m', [Module, ': '], P0, P1)
+	;    '$substitute'('~m', [], P0, P1)
 	),
 	(    BrekLev > 0
-	->   '$substitute'("~l", ["[", BrekLev, "] "], P1, P2)
-	;    '$substitute'("~l", [], P1, P2)
+	->   '$substitute'('~l', ['[', BrekLev, '] '], P1, P2)
+	;    '$substitute'('~l', [], P1, P2)
 	),
 	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
 	(    Tracing == true
-	->   '$substitute'("~d", ["[trace] "], P2, P3)
+	->   '$substitute'('~d', ['[trace] '], P2, P3)
 	;    Debugging == true
-	->   '$substitute'("~d", ["[debug] "], P2, P3)
-	;    '$substitute'("~d", [], P2, P3)
+	->   '$substitute'('~d', ['[debug] '], P2, P3)
+	;    '$substitute'('~d', [], P2, P3)
 	),
 	atom_chars(Prompt, P3).
 
 '$substitute'(From, T, Old, New) :-
+	atom_codes(From, FromCodes),
 	phrase(subst_chars(T), T0),
 	'$append'(Pre, S0, Old),
-	'$append'(From, Post, S0) ->
+	'$append'(FromCodes, Post, S0) ->
 	'$append'(Pre, T0, S1),
 	'$append'(S1, Post, New), !.
 '$substitute'(_, _, Old, Old).
@@ -768,14 +810,14 @@ subst_chars([H|T]) -->
 
 '$execute_goal2'(Goal, Bindings) :-
 	restore_debug,
-	Goal,
+	residue_vars(Goal, Vars),
 	deterministic(Det),
 	(   save_debug
 	;   restore_debug, fail
 	),
 	flush_output(user_output),
 	call_expand_answer(Bindings, NewBindings),
-	(    \+ \+ write_bindings(NewBindings, Det)
+	(    \+ \+ write_bindings(NewBindings, Vars, Det)
 	->   !, fail
 	).
 '$execute_goal2'(_, _) :-
@@ -783,29 +825,27 @@ subst_chars([H|T]) -->
 	print_message(query, query(no)),
 	fail.
 
-%%	write_bindings(+Bindings, +Deterministic)
+residue_vars(Goal, Vars) :-
+	current_prolog_flag(toplevel_residue_vars, true), !,
+	call_residue_vars(Goal, Vars).
+residue_vars(Goal, []) :-
+	call(Goal).
+
+%%	write_bindings(+Bindings, +ResidueVars, +Deterministic)
 %
 %	Write   bindings   resulting   from   a     query.    The   flag
 %	prompt_alternatives_on determines whether the   user is prompted
 %	for alternatives. =groundness= gives   the  classical behaviour,
 %	=determinism= is considered more adequate and informative.
+%
+%	@arg ResidueVars are the residual constraints and provided if
+%	     the prolog flag `toplevel_residue_vars` is set to
+%	     `project`.
 
-write_bindings(Bindings, Det) :-
-	\+ term_attvars(Bindings, []), !,
-	copy_term(Bindings, Bindings1, Residuals0),
+write_bindings(Bindings, ResidueVars, Det) :-
 	'$module'(TypeIn, TypeIn),
-	omit_qualifiers(Residuals0, TypeIn, Residuals),
-	join_same_bindings(Bindings1, Bindings2),
-	factorize_bindings(Bindings2, Bindings3),
-	bind_vars(Bindings3, Bindings4),
-	filter_bindings(Bindings4, Bindings5),
-	write_bindings2(Bindings5, Residuals, Det).
-write_bindings(Bindings, Det) :-
-	join_same_bindings(Bindings, Bindings1),
-	factorize_bindings(Bindings1, Bindings2),
-	bind_vars(Bindings2, Bindings3),
-	filter_bindings(Bindings3, Bindings4),
-	write_bindings2(Bindings4, [], Det).
+	translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
+	write_bindings2(Bindings1, Residuals, Det).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
@@ -824,6 +864,120 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	;   !,
 	    print_message(query, query(done))
 	).
+
+%%	prolog:translate_bindings(+Bindings0, -Bindings, +ResidueVars,
+%%				  -Residuals) is det.
+%
+%	Translate the raw variable bindings  resulting from successfully
+%	completing a query into a  binding   list  and  list of residual
+%	goals suitable for human consumption.
+%
+%	@arg    Bindings is a list of binding(Vars,Value,Substitutions),
+%		where Vars is a list of variable names. E.g.
+%		binding(['A','B'],42,[])` means that both the variable
+%		A and B have the value 42. Values may contain terms
+%		'$VAR'(Name) to indicate sharing with a given variable.
+%		Value is always an acyclic term. If cycles appear in the
+%		answer, Substitutions contains a list of substitutions
+%		that restore the original term.
+%
+%	@arg	Residuals is a pair of two lists representing residual
+%		goals. The first element of the pair are residuals
+%		related to the query variables and the second are
+%		related that are disconnected from the query.
+
+:- public
+	prolog:translate_bindings/4.
+:- meta_predicate
+	prolog:translate_bindings(+, -, +, :).
+
+prolog:translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
+	translate_bindings(Bindings0, Bindings, ResidueVars, Residuals).
+
+translate_bindings(Bindings0, Bindings, [], _:[]-[]) :-
+	term_attvars(Bindings0, []), !,
+	join_same_bindings(Bindings0, Bindings1),
+	factorize_bindings(Bindings1, Bindings2),
+	bind_vars(Bindings2, Bindings3),
+	filter_bindings(Bindings3, Bindings).
+translate_bindings(Bindings0, Bindings, ResidueVars,
+		   TypeIn:Residuals-HiddenResiduals) :-
+	project_constraints(Bindings0, ResidueVars),
+	hidden_residuals(ResidueVars, Bindings0, HiddenResiduals0),
+	omit_qualifiers(HiddenResiduals0, TypeIn, HiddenResiduals),
+	copy_term(Bindings0, Bindings1, Residuals0),
+	omit_qualifiers(Residuals0, TypeIn, Residuals),
+	join_same_bindings(Bindings1, Bindings2),
+	factorize_bindings(Bindings2, Bindings3),
+	bind_vars(Bindings3, Bindings4),
+	filter_bindings(Bindings4, Bindings).
+
+hidden_residuals(ResidueVars, Bindings, Goal) :-
+	term_attvars(ResidueVars, Remaining),
+	term_attvars(Bindings, QueryVars),
+	subtract_vars(Remaining, QueryVars, HiddenVars),
+	copy_term(HiddenVars, _, Goal).
+
+subtract_vars(All, Subtract, Remaining) :-
+	sort(All, AllSorted),
+	sort(Subtract, SubtractSorted),
+	ord_subtract(AllSorted, SubtractSorted, Remaining).
+
+ord_subtract([], _Not, []).
+ord_subtract([H1|T1], L2, Diff) :-
+    diff21(L2, H1, T1, Diff).
+
+diff21([], H1, T1, [H1|T1]).
+diff21([H2|T2], H1, T1, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff12([], _H2, _T2, []).
+diff12([H1|T1], H2, T2, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
+    diff12(T1, H2, T2, Diff).
+diff3(=, _H1, T1, _H2, T2, Diff) :-
+    ord_subtract(T1, T2, Diff).
+diff3(>,  H1, T1, _H2, T2, Diff) :-
+    diff21(T2, H1, T1, Diff).
+
+
+%%	project_constraints(+Bindings, +ResidueVars) is det.
+%
+%	Call   <module>:project_attributes/2   if   the    Prolog   flag
+%	`toplevel_residue_vars` is set to `project`.
+
+project_constraints(Bindings, ResidueVars) :- !,
+	term_attvars(Bindings, AttVars),
+	phrase(attribute_modules(AttVars), Modules0),
+	sort(Modules0, Modules),
+	term_variables(Bindings, QueryVars),
+	project_attributes(Modules, QueryVars, ResidueVars).
+project_constraints(_, _).
+
+project_attributes([], _, _).
+project_attributes([M|T], QueryVars, ResidueVars) :-
+	(   current_predicate(M:project_attributes/2),
+	    catch(M:project_attributes(QueryVars, ResidueVars), E,
+		  print_message(error, E))
+	->  true
+	;   true
+	),
+	project_attributes(T, QueryVars, ResidueVars).
+
+attribute_modules([]) --> [].
+attribute_modules([H|T]) -->
+	{ get_attrs(H, Attrs) },
+	attrs_modules(Attrs),
+	attribute_modules(T).
+
+attrs_modules([]) --> [].
+attrs_modules(att(Module, _, More)) -->
+	[Module],
+	attrs_modules(More).
 
 
 %%	join_same_bindings(Bindings0, Bindings)
@@ -1037,25 +1191,25 @@ get_respons(Action) :-
 	    ).
 
 answer_respons(Char, again) :-
-	memberchk(Char, "?h"), !,
+	'$in_reply'(Char, '?h'), !,
 	print_message(help, query(help)).
 answer_respons(Char, redo) :-
-	memberchk(Char, ";nrNR \t"), !,
+	'$in_reply'(Char, ';nrNR \t'), !,
 	print_message(query, if_tty([ansi(bold, ';', [])])).
 answer_respons(Char, redo) :-
-	memberchk(Char, "tT"), !,
+	'$in_reply'(Char, 'tT'), !,
 	trace,
 	save_debug,
 	print_message(query, if_tty([ansi(bold, '; [trace]', [])])).
 answer_respons(Char, continue) :-
-	memberchk(Char, "ca\n\ryY."), !,
+	'$in_reply'(Char, 'ca\n\ryY.'), !,
 	print_message(query, if_tty([ansi(bold, '.', [])])).
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-
 	print_predicate(Char, Pred, Options), !,
 	print_message(query, if_tty(['~w'-[Pred]])),
-	set_prolog_flag(toplevel_print_options, Options).
+	set_prolog_flag(answer_write_options, Options).
 answer_respons(-1, show_again) :- !,
 	print_message(query, halt('EOF')),
 	halt(0).

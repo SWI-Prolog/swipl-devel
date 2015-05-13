@@ -37,7 +37,8 @@ typedef enum
   ERR_INSTANTIATION,		/* void */
   ERR_NOMEM,			/* void */
   ERR_NOT_IMPLEMENTED,		/* const char *what */
-  ERR_PERMISSION,		/* atom_t type, atom_t op, term_t obj*/
+  ERR_PERMISSION,		/* atom_t type, atom_t op, term_t obj */
+  ERR_RANGE,			/* term_t low, term_t high, term_t val */
   ERR_REPRESENTATION,		/* atom_t what */
   ERR_RESOURCE,			/* atom_t resource */
   ERR_SHELL_FAILED,		/* term_t command */
@@ -49,6 +50,7 @@ typedef enum
   ERR_UNINSTANTIATION,		/* int argn, term_t term */
 
 				/* Only used on SWI-Prolog itself */
+  ERR_EXISTENCE3,		/* atom_t type, term_t obj, term_t in */
   ERR_AR_OVERFLOW,		/* void */
   ERR_AR_TYPE,			/* atom_t expected, Number value */
   ERR_AR_DOMAIN,		/* atom_t domain, Number value */
@@ -72,7 +74,8 @@ typedef enum
   ERR_SHARED_OBJECT_OP,		/* op, error */
   ERR_SIGNALLED,		/* int sig, char *name */
   ERR_SYNTAX,			/* what */
-  ERR_UNDEFINED_PROC		/* Definition def */
+  ERR_UNDEFINED_PROC,		/* Definition def */
+  ERR_DUPLICATE_KEY		/* term_t */
 } PL_error_code;
 
 #define MSG_ERRNO		((char *)(-1))

@@ -99,3 +99,7 @@ set_signals :-
 interrupt(_Sig) :-
 	halt(1).
 
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(main, [main(_)]).

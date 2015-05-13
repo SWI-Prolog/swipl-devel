@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,6 +23,7 @@
 
 :- module(test_io, [test_io/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test Prolog core I/O
 
@@ -34,18 +34,17 @@ of these these are in pre-unit test format in the main test.pl
 */
 
 test_io :-
-	run_tests([ io
+	run_tests([ io,
+		    stream_pair
 		  ]).
 
-:- begin_tests(io).
+:- begin_tests(io, [sto(rational_trees)]).
 
-test(eof_dom, [ sto(rational_trees),
-		condition(access_file('/dev/null', exist)),
+test(eof_dom, [ condition(access_file('/dev/null', exist)),
 		error(domain_error(eof_action, abc))
 	      ]) :-
 	open('/dev/null', read, _In, [eof_action(abc)]).
-test(eof2, [ sto(rational_trees),
-	     condition(access_file('/dev/null', exist)),
+test(eof2, [ condition(access_file('/dev/null', exist)),
 	     error(permission_error(input, past_end_of_stream, _))
 	   ]) :-
 	setup_call_cleanup(
@@ -55,12 +54,49 @@ test(eof2, [ sto(rational_trees),
 	    ),
 	    close(In)).
 test(set_after_close,
-     [ sto(rational_trees),
-       condition(access_file('/dev/null', exist)),
-       error(existence_error(stream, _))
+     [ error(existence_error(stream, _))
      ]) :-
-	open('/dev/null', read, S),
+	open_null_stream(S),
 	close(S),
 	set_stream(S, timeout(0)).
+test(double_close,
+     [ error(existence_error(stream, _))
+     ]) :-
+	open_null_stream(S),
+	close(S),
+	close(S).
+test(current_io_non_existing,
+     [ error(existence_error(stream, unlikely))
+     ]) :-
+	current_input(unlikely).
+test(current_io_closed,
+     [ error(existence_error(stream, S))
+     ]) :-
+	open_null_stream(S),
+	close(S),
+	current_output(S).
+test(input_is_not_output, fail) :-
+	current_input(X),
+	current_output(X).
 
 :- end_tests(io).
+
+:- begin_tests(stream_pair, [sto(rational_trees)]).
+
+test(single, In == user_input) :-
+	stream_pair(user_input, In, Out),
+	assertion(var(Out)).
+test(single, Out == user_output) :-
+	stream_pair(user_output, In, Out),
+	assertion(var(In)).
+test(close, true) :-
+	open_null_stream(S),
+	stream_pair(Pair, user_input, S),
+	close(Pair),
+	assertion(catch(write(Pair, hello),
+			error(existence_error(_,_),_),
+			true)),
+	stream_pair(Pair, _In, Out),
+	assertion(var(Out)).
+
+:- end_tests(stream_pair).

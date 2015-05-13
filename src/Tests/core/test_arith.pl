@@ -45,6 +45,7 @@ test_arith :-
                     minint_promotion,
                     maxint,
                     maxint_promotion,
+		    float_overflow,
 		    arith_misc
 		  ]).
 
@@ -264,6 +265,12 @@ test(spaced_octal) :- test_minint_promotion(-0o10 0000 0000 0000 0000 0001).
 test(hexadecimal) :- test_minint_promotion(-0x8000000000000001).
 test(spaced_hexadecimal) :- test_minint_promotion(-0x8000_0000_0000_0001).
 
+:- if(\+current_prolog_flag(bounded,true)).
+test(mpz_to_int64, A == -9223372036854775808) :-
+	A is -9223372036854775808-1+1.
+:- endif.
+
+
 :- end_tests(minint_promotion).
 
 :- begin_tests(maxint).
@@ -310,6 +317,34 @@ test(hexadecimal) :- test_maxint_promotion(0x8000000000000000).
 test(spaced_hexadecimal) :- test_maxint_promotion(0x8000_0000_0000_0000).
 
 :- end_tests(maxint_promotion).
+
+:- begin_tests(float_overflow).
+
+:- if(current_prolog_flag(bounded,false)).
+
+test(max) :-
+	A is max(1.0, 1<<10000),
+	A is 1<<10000.
+
+test(add, error(evaluation_error(float_overflow))) :-
+	A is 1<<10000 + 10.0,
+	writeln(A).
+test(minus, error(evaluation_error(float_overflow))) :-
+	A is 1<<10000 - 10.0,
+	writeln(A).
+test(mul, error(evaluation_error(float_overflow))) :-
+	A is 1<<10000 * 10.0,
+	writeln(A).
+test(div, error(evaluation_error(float_overflow))) :-
+	A is 1<<10000 / 10.0,
+	writeln(A).
+test(div, error(evaluation_error(float_overflow))) :-
+	A is 1<<10000000 / ((1<<10000)+19),
+	writeln(A).
+
+:- endif.
+
+:- end_tests(float_overflow).
 
 :- begin_tests(arith_misc).
 

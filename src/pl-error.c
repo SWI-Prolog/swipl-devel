@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -232,6 +231,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, arg);
       break;
     }
+    case ERR_RANGE:			/*  domain_error(range(low,high), arg) */
+    { term_t low  = va_arg(args, term_t);
+      term_t high = va_arg(args, term_t);
+      term_t arg  = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_domain_error2,
+			   PL_FUNCTOR, FUNCTOR_range2,
+			     PL_TERM, low,
+			     PL_TERM, high,
+			   PL_TERM, arg);
+      break;
+    }
     case ERR_REPRESENTATION:
     { atom_t what = va_arg(args, atom_t);
 
@@ -409,6 +421,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			 PL_FUNCTOR, FUNCTOR_existence_error2,
 			   PL_ATOM, type,
 			   PL_TERM, obj);
+
+      break;
+    }
+    case ERR_EXISTENCE3:
+    { atom_t type = va_arg(args, atom_t);
+      term_t obj  = va_arg(args, term_t);
+      term_t in   = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_existence_error3,
+			   PL_ATOM, type,
+			   PL_TERM, obj,
+			   PL_TERM, in);
 
       break;
     }
@@ -596,6 +621,14 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, arg);
       break;
     }
+    case ERR_DUPLICATE_KEY:
+    { term_t key = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_duplicate_key1,
+			   PL_TERM, key);
+      break;
+    }
     default:
       assert(0);
   }
@@ -667,9 +700,9 @@ PL_uninstantiation_error(term_t actual)
 }
 
 int
-PL_representation_error(const char *resource)
-{ atom_t r = PL_new_atom(resource);
-  int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
+PL_representation_error(const char *representation)
+{ atom_t r = PL_new_atom(representation);
+  int rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION, r);
   PL_unregister_atom(r);
 
   return rc;
@@ -731,6 +764,47 @@ PL_no_memory(void)
 { return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 }
 
+
+int
+PL_syntax_error(const char *msg, IOSTREAM *in)
+{ GET_LD
+  term_t ex, loc;
+
+  if ( (ex = PL_new_term_ref()) &&
+       (loc = PL_new_term_ref()) &&
+       PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_syntax_error1,
+		         PL_CHARS, msg,
+		       PL_TERM, loc) )
+  { if ( in )
+    { IOPOS *pos;
+      term_t s;
+
+      if ( (s=PL_new_term_ref()) &&
+	   PL_unify_stream_or_alias(s, in) )
+      { if ( (pos=in->position) )
+	{ if ( PL_unify_term(loc, PL_FUNCTOR, FUNCTOR_stream4,
+				    PL_TERM,  s,
+				    PL_INT,   pos->lineno,
+				    PL_INT,   pos->linepos,
+				    PL_INT64, pos->charno) )
+	    goto ok;
+	} else
+	{ if ( PL_unify_term(loc, PL_FUNCTOR, FUNCTOR_stream1,
+				    PL_TERM,  s) )
+	    goto ok;
+	}
+      }
+
+      return FALSE;
+    }
+
+  ok:
+    return PL_raise_exception(ex);
+  }
+
+  return FALSE;
+}
 
 		 /*******************************
 		 *	PRINTING MESSAGES	*

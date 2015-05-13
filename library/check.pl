@@ -34,33 +34,50 @@
 	  list_undefined/1,		% +Options
 	  list_autoload/0,		% list predicates that need autoloading
 	  list_redefined/0,		% list redefinitions
+	  list_void_declarations/0,	% list declarations with no clauses
 	  list_trivial_fails/0,		% list goals that trivially fail
-	  list_trivial_fails/1		% +Options
+	  list_trivial_fails/1,		% +Options
+	  list_strings/0,		% list string objects in clauses
+	  list_strings/1		% +Options
 	]).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
 :- use_module(library(option)).
 :- use_module(library(apply)).
 :- use_module(library(prolog_codewalk)).
+:- use_module(library(occurs)).
 
 :- set_prolog_flag(generate_debug_info, false).
 
-:- multifile trivial_fail_goal/1.
+:- multifile
+       trivial_fail_goal/1,
+       string_predicate/1,
+       valid_string_goal/1,
+       checker/2.
+
+:- dynamic checker/2.
+
 
 /** <module> Consistency checking
 
-This library provides some quick and dirty consistency checking of the
-loaded Prolog program.
+This library provides some consistency  checks   for  the  loaded Prolog
+program. The predicate make/0 runs   list_undefined/0  to find undefined
+predicates in `user' modules.
 
-@see	prolog_xref.pl
+@see	gxref/0 provides a graphical cross referencer
+@see	PceEmacs performs real time consistency checks while you edit
+@see	library(prolog_xref) implements `offline' cross-referencing
+@see	library(prolog_codewalk) implements `online' analysis
 */
 
-:- predicate_options(list_undefined/1, 1, [scan(oneof([local,global]))]).
+:- predicate_options(list_undefined/1, 1,
+		     [ module_class(list(oneof([user,library])))
+		     ]).
 
 %%	check is det.
 %
-%	Run all consistency checks defined in this library.  Currently
-%	defined checks are:
+%	Run all consistency checks defined by checker/2. Checks enabled by
+%	default are:
 %
 %	  * list_undefined/0 reports undefined predicates
 %	  * list_trivial_fails/0 reports calls for which there is no
@@ -72,25 +89,18 @@ loaded Prolog program.
 %	    runtime using the autoloader.
 
 check :-
-	print_message(informational,
-		      check(pass(1, 'Undefined predicates'))),
-	list_undefined,
-	print_message(informational,
-		      check(pass(2, 'Trivial failures'))),
-	list_trivial_fails,
-	print_message(informational,
-		      check(pass(3, 'Redefined system and global predicates'))),
-	list_redefined,
-	print_message(informational,
-		      check(pass(4, 'Predicates that need autoloading'))),
-	list_autoload.
+	checker(Checker, Message),
+	print_message(informational,check(pass(Message))),
+	catch(Checker,E,print_message(error,E)),
+	fail.
+check.
 
 %%	list_undefined is det.
 %%	list_undefined(+Options) is det.
 %
-%	List predicates names refered to  in  a  clause  body,  but  not
-%	defined.  This forms a "Quick and Dirty" alternative for a cross
-%	referencing tool.  Options:
+%	Report undefined predicates.  This   predicate  finds  undefined
+%	predciates by decompiling and analyzing the body of all clauses.
+%	Options:
 %
 %	    * module_class(+Classes)
 %	    Process modules of the given Classes.  The default for
@@ -140,15 +150,16 @@ report_undefined(PI-FromList) :-
 	print_message(warning, check(undefined(PI, FromList))).
 
 
-%%	list_autoload
+%%	list_autoload is det.
 %
-%	Show predicates that are not defined, but will be loaded on
-%	demand through the autoloader.
+%	Report predicates that may be  auto-loaded. These are predicates
+%	that  are  not  defined,  but  will   be  loaded  on  demand  if
+%	referenced.
 %
-%	The behaviour of this predicate depends  on the system-mode (see
-%	system_mode/1): in normal  operation  it   only  lists  autoload
-%	requirements from user-module. In system-mode it also lists such
-%	requirements for the system modules.
+%	@tbd	This predicate uses an older mechanism for finding
+%		undefined predicates.  Should be synchronized with
+%		list undefined.
+%	@see	autoload/0
 
 list_autoload :-
 	setup_call_cleanup(
@@ -200,7 +211,9 @@ referenced(Term, Module, Ref) :-
 
 %%	list_redefined
 %
-%	Show redefined system predicates
+%	Lists predicates that are defined in the global module =user= as
+%	well as in a normal module; that   is,  predicates for which the
+%	local definition overrules the global default definition.
 
 list_redefined :-
 	setup_call_cleanup(
@@ -235,6 +248,28 @@ redefined_ok('$pred_option'(_,_,_,_)).
 
 global_module(user).
 global_module(system).
+
+%%	list_void_declarations is det.
+%
+%	List predicates that have declared attributes, but no clauses.
+
+list_void_declarations :-
+	P = _:_,
+	(   predicate_property(P, undefined),
+	    (   '$get_predicate_attribute'(P, meta_predicate, Pattern),
+	        print_message(warning,
+			      check(void_declaration(P, meta_predicate(Pattern))))
+	    ;	void_attribute(Attr),
+		'$get_predicate_attribute'(P, Attr, 1),
+		print_message(warning,
+			      check(void_declaration(P, Attr)))
+	    ),
+	    fail
+	;   true
+	).
+
+void_attribute(public).
+void_attribute(volatile).
 
 %%	list_trivial_fails is det.
 %%	list_trivial_fails(+Options) is det.
@@ -345,6 +380,230 @@ module_qualified(:).
 module_qualified(^).
 
 
+%%	list_strings is det.
+%%	list_strings(+Options) is det.
+%
+%	List strings that appear in clauses.   This predicate is used to
+%	find  portability  issues  for   changing    the   Prolog   flag
+%	=double_quotes= from =codes= to =string=, creating packed string
+%	objects.  Warnings  may  be  suppressed    using  the  following
+%	multifile hooks:
+%
+%	  - string_predicate/1 to stop checking certain predicates
+%	  - valid_string_goal/1 to tell the checker that a goal is
+%	    safe.
+%
+%	@see Prolog flag =double_quotes=.
+
+list_strings :-
+	list_strings([module_class([user])]).
+
+list_strings(Options) :-
+	(   prolog_program_clause(ClauseRef, Options),
+	    clause(Head, Body, ClauseRef),
+	    \+ ( predicate_indicator(Head, PI),
+		 string_predicate(PI)
+	       ),
+	    make_clause(Head, Body, Clause),
+	    findall(T,
+		    (   sub_term(T, Head),
+			string(T)
+		    ;   Head = M:_,
+			goal_in_body(Goal, M, Body),
+			(   valid_string_goal(Goal)
+			->  fail
+			;   sub_term(T, Goal),
+			    string(T)
+			)
+		    ), Ts0),
+	    sort(Ts0, Ts),
+	    member(T, Ts),
+	    message_context(ClauseRef, T, Clause, Context),
+	    print_message(warning,
+			  check(string_in_clause(T, Context))),
+	    fail
+	;   true
+	).
+
+make_clause(Head, true, Head) :- !.
+make_clause(Head, Body, (Head:-Body)).
+
+%%	goal_in_body(-G, +M, +Body) is nondet.
+%
+%	True when G is a goal called from Body.
+
+goal_in_body(M:G, M, G) :-
+	var(G), !.
+goal_in_body(G, _, M:G0) :-
+	atom(M), !,
+	goal_in_body(G, M, G0).
+goal_in_body(G, M, Control) :-
+	nonvar(Control),
+	control(Control, Subs), !,
+	member(Sub, Subs),
+	goal_in_body(G, M, Sub).
+goal_in_body(G, M, G0) :-
+	callable(G0),
+	(   atom(M)
+	->  TM = M
+	;   TM = system
+	),
+	predicate_property(TM:G0, meta_predicate(Spec)), !,
+	(   strip_goals(G0, Spec, G1),
+	    simple_goal_in_body(G, M, G1)
+	;   arg(I, Spec, Meta),
+	    arg(I, G0, G1),
+	    extend(Meta, G1, G2),
+	    goal_in_body(G, M, G2)
+	).
+goal_in_body(G, M, G0) :-
+	simple_goal_in_body(G, M, G0).
+
+simple_goal_in_body(G, M, G0) :-
+	(   atom(M),
+	    callable(G0),
+	    predicate_property(M:G0, imported_from(M2))
+	->  G = M2:G0
+	;   G = M:G0
+	).
+
+control((A,B), [A,B]).
+control((A;B), [A,B]).
+control((A->B), [A,B]).
+control((A*->B), [A,B]).
+control((\+A), [A]).
+
+strip_goals(G0, Spec, G) :-
+	functor(G0, Name, Arity),
+	functor(G,  Name, Arity),
+	strip_goal_args(1, G0, Spec, G).
+
+strip_goal_args(I, G0, Spec, G) :-
+	arg(I, G0, A0), !,
+	arg(I, Spec, M),
+	(   extend(M, A0, _)
+	->  arg(I, G, '<meta-goal>')
+	;   arg(I, G, A0)
+	),
+	I2 is I + 1,
+	strip_goal_args(I2, G0, Spec, G).
+strip_goal_args(_, _, _, _).
+
+extend(I, G0, G) :-
+	callable(G0),
+	integer(I), I>0, !,
+	length(L, I),
+	extend_list(G0, L, G).
+extend(0, G, G).
+extend(^, G, G).
+
+extend_list(M:G0, L, M:G) :- !,
+	callable(G0),
+	extend_list(G0, L, G).
+extend_list(G0, L, G) :-
+	G0 =.. List,
+	append(List, L, All),
+	G =.. All.
+
+
+message_context(ClauseRef, String, Clause, file_term_position(File, StringPos)) :-
+	clause_info(ClauseRef, File, TermPos, _Vars),
+	prolog_codewalk:subterm_pos(String, Clause, ==, TermPos, StringPos), !.
+message_context(ClauseRef, _String, _Clause, file(File, Line, -1, _)) :-
+	clause_property(ClauseRef, file(File)),
+	clause_property(ClauseRef, line_count(Line)), !.
+message_context(ClauseRef, _String, _Clause, clause(ClauseRef)).
+
+
+:- meta_predicate
+	predicate_indicator(:, -).
+
+predicate_indicator(Module:Head, Module:Name/Arity) :-
+	functor(Head, Name, Arity).
+predicate_indicator(Module:Head, Module:Name//DCGArity) :-
+	functor(Head, Name, Arity),
+	DCGArity is Arity-2.
+
+%%	string_predicate(:PredicateIndicator)
+%
+%	Multifile hook to disable list_strings/0 on the given predicate.
+%	This is typically used for facts that store strings.
+
+string_predicate(_:'$pldoc'/4).
+string_predicate(pce_principal:send_implementation/3).
+string_predicate(pce_principal:pce_lazy_get_method/3).
+string_predicate(pce_principal:pce_lazy_send_method/3).
+string_predicate(pce_principal:pce_class/6).
+string_predicate(prolog_xref:pred_comment/4).
+string_predicate(prolog_xref:module_comment/3).
+string_predicate(pldoc_process:structured_comment//2).
+string_predicate(pldoc_process:structured_command_start/3).
+string_predicate(pldoc_process:separator_line//0).
+string_predicate(pldoc_register:mydoc/3).
+string_predicate(http_header:separators/1).
+
+%%	valid_string_goal(+Goal) is semidet.
+%
+%	Multifile hook that qualifies Goal  as valid for list_strings/0.
+%	For example, format("Hello world~n") is considered proper use of
+%	string constants.
+
+% system predicates
+valid_string_goal(system:format(S)) :- string(S).
+valid_string_goal(system:format(S,_)) :- string(S).
+valid_string_goal(system:format(_,S,_)) :- string(S).
+valid_string_goal(system:string_codes(S,_)) :- string(S).
+valid_string_goal(system:string_code(_,S,_)) :- string(S).
+valid_string_goal(system:throw(msg(S,_))) :- string(S).
+valid_string_goal('$dcg':phrase(S,_,_)) :- string(S).
+valid_string_goal('$dcg':phrase(S,_)) :- string(S).
+valid_string_goal(system: is(_,_)).	% arithmetic allows for "x"
+valid_string_goal(system: =:=(_,_)).
+valid_string_goal(system: >(_,_)).
+valid_string_goal(system: <(_,_)).
+valid_string_goal(system: >=(_,_)).
+valid_string_goal(system: =<(_,_)).
+% library stuff
+valid_string_goal(dcg_basics:string_without(S,_,_,_)) :- string(S).
+valid_string_goal(git:read_url(S,_,_)) :- string(S).
+valid_string_goal(tipc:tipc_subscribe(_,_,_,_,S)) :- string(S).
+valid_string_goal(charsio:format_to_chars(Format,_,_)) :- string(Format).
+valid_string_goal(charsio:format_to_chars(Format,_,_,_)) :- string(Format).
+valid_string_goal(codesio:format_to_codes(Format,_,_)) :- string(Format).
+valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
+
+
+		 /*******************************
+		 *	  EXTENSION HOOKS	*
+		 *******************************/
+
+%%	checker(:Goal, +Message:text)
+%
+%	Register code validation routines. Each   clause  defines a Goal
+%	which performs a consistency check  executed by check/0. Message
+%	is a short description of the   check. For example, assuming the
+%	`my_checks` module defines a predicate list_format_mistakes/0:
+%
+%          ==
+%	   :- multifile check:checker/2.
+%	   check:checker(my_checks:list_format_mistakes,
+%	                 "errors with format/2 arguments").
+%	   ==
+%
+%	The predicate is dynamic, so you can disable checks with retract/1.
+%	For example, to stop reporting redefined predicates:
+%
+%	   ==
+%	   retract(check:checker(list_redefined,_)).
+%	   ==
+
+checker(list_undefined,		'undefined predicates').
+checker(list_trivial_fails,	'trivial failures').
+checker(list_redefined,		'redefined system and global predicates').
+checker(list_void_declarations,	'predicates with declarations but without clauses').
+checker(list_autoload,		'predicates that need autoloading').
+
+
 		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/
@@ -352,8 +611,8 @@ module_qualified(^).
 :- multifile
 	prolog:message/3.
 
-prolog:message(check(pass(N, Comment))) -->
-	[ 'PASS ~w: ~w ...'-[N, Comment] ].
+prolog:message(check(pass(Comment))) -->
+	[ 'Checking ~w ...'-[Comment] ].
 prolog:message(check(find_references(Preds))) -->
 	{ length(Preds, N)
 	},
@@ -399,6 +658,13 @@ prolog:message(check(trivial_failure(Goal, Refs))) -->
 	goal(Goal),
 	[ ', which is called from'-[], nl ],
 	referenced_by(SortedRefs).
+prolog:message(check(string_in_clause(String, Context))) -->
+	prolog:message_location(Context),
+	[ 'String ~q'-[String] ].
+prolog:message(check(void_declaration(P, Decl))) -->
+	predicate(P),
+	[ ' is declared as ~p, but has no clauses'-[Decl] ].
+
 
 redefined(user, system) -->
 	[ '~t~30| System predicate redefined globally' ].

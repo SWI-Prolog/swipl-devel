@@ -98,14 +98,16 @@ Examples:
 :- license(swipl).
 
 readln(Read) :-			% the default is read up to EOL
-	rl_readln(Line, LastCh, [10], "_0123456789", uppercase),
+	string_codes("_0123456789", Arg2),
+	rl_readln(Line, LastCh, [10], Arg2, uppercase),
 	(   LastCh == -1
 	->  append(Line,[end_of_file], Read)
 	;   Read = Line
 	).
 
 readln(Read, LastCh):-
-	rl_readln(Read, LastCh, [10], "_0123456789", uppercase).
+	string_codes("_0123456789", Arg2),
+	rl_readln(Read, LastCh, [10], Arg2, uppercase).
 
 readln(P, EOF, StopChars, WordChars, Case) :-
 	(   var(StopChars)
@@ -113,7 +115,7 @@ readln(P, EOF, StopChars, WordChars, Case) :-
 	;   Arg1 = StopChars
 	),
 	(   var(WordChars)
-	->  Arg2 = "01234567890_"
+	->  string_codes("01234567890_", Arg2)
 	;   Arg2 = WordChars
 	),
 	(   var(Case)
@@ -128,18 +130,18 @@ rl_readln(P, EOF, StopChars, WordChars, Case) :-
 	rl_words(P, LL,[], options(WordChars, Case)), !.
 
 rl_initread(S, EOF, StopChars) :-
-	get0(K),
+	get_code(K),
 	rl_readrest(K, S, EOF, StopChars).
 
 rl_readrest(-1, [], end_of_file, _) :- !.
 rl_readrest(0'\\, [K1|R], EOF, StopChars) :-
-	get0(K1),			% skip it, take next char
-	get0(K2),
+	get_code(K1),			% skip it, take next char
+	get_code(K2),
 	rl_readrest(K2, R, EOF, StopChars).
 rl_readrest(K, [K], K, StopChars) :-	% the stop char(s)
 	member(K, StopChars), !.
 rl_readrest(K, [K|R], EOF, StopChars) :-	% the normal case
-	get0(K1),
+	get_code(K1),
 	rl_readrest(K1, R, EOF, StopChars).
 
 rl_words([W|Ws], S1, S4, Options) :-

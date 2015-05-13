@@ -269,8 +269,6 @@ ws -->
 ws -->
 	[].
 
-eos([], []).
-
 peek_blank -->
 	peek(C),
 	{ code_type(C, space)
