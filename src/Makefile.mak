@@ -319,7 +319,7 @@ install-readme::
 		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 
 install-custom::
-		$(INSTALL_DATA) ..\customize\dotplrc "$(PLCUSTOM)\swipl.ini"
+		$(INSTALL_DATA) ..\customize\dotswiplrc "$(PLCUSTOM)\swipl.ini"
 		$(INSTALL_DATA) ..\customize\dotxpcerc "$(PLCUSTOM)\xpce.ini"
 		$(INSTALL_DATA) ..\customize\README "$(PLCUSTOM)\README.TXT"
 
