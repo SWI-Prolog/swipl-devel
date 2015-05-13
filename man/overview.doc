@@ -102,8 +102,8 @@ cooperation with Ulrich Neumerkel.}
 After the system initialisation, the system consults (see
 consult/1) the user's startup file. The basename of this file follows
 conventions of the operating system. On MS-Windows, it is the file
-\file{pl.ini} and on Unix systems \file{.plrc}. The file is searched
-using the file_search_path/2 clauses for
+\file{swipl.ini} and on Unix systems \file{.swiplrc}. The file is
+searched using the file_search_path/2 clauses for
 \const{user_profile}.\footnote{Older versions first searched in the
 current working directory. This feature has been removed for security
 reasons. Users can implement loading a setup file from the working
@@ -132,7 +132,7 @@ otherwise the file is searched for using the same conventions as for
 the default startup file. Finally, if \arg{file} is
 \const{none}, no file is loaded.
 
-The installation provides a file \file{customize/dotplrc} with
+The installation provides a file \file{customize/dotswiplrc} with
 (commented) commands that are often used to customize the behaviour of
 Prolog, such as interfacing to the editor, color selection or history
 parameters. Many of the development tools provide menu entries for
@@ -314,11 +314,11 @@ does not stop Prolog from loading the personal initialisation file.
 
     \cmdlineoptionitem{-f}{file}
 Use \arg{file} as initialisation file instead of the default
-\file{.plrc} (Unix) or \file{pl.ini} (Windows). `\argoption{-f}{none}'
-stops SWI-Prolog from searching for a startup file.  This option
-can be used as an alternative to \argoption{-s}{file} that stops
-Prolog from loading the personal initialisation file. See also
-\secref{initfile}.
+\file{.swiplrc} (Unix) or \file{swipl.ini} (Windows).
+`\argoption{-f}{none}' stops SWI-Prolog from searching for a startup
+file. This option can be used as an alternative to \argoption{-s}{file}
+that stops Prolog from loading the personal initialisation file. See
+also \secref{initfile}.
 
     \cmdlineoptionitem{-F}{script}
 Select a startup script from the SWI-Prolog home directory. The

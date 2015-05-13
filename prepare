@@ -168,7 +168,7 @@ fi
 ################################################################
 
 download_docs()
-{ doc=pl-doc-$version.tar.gz
+{ doc=swipl-doc-$version.tar.gz
 
   if ! findexe curl; then
     echo "ERROR: downloading documentation requires the curl program"
@@ -190,6 +190,7 @@ download_docs()
     fi
   else
     echo "Failed to download documentation from $serverurl/generated/$doc"
+    rm -f $doc
   fi
   eval_doc
 }

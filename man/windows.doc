@@ -114,7 +114,7 @@ non-proportional fonts.
 
     \definition{Settings/User init file ...}
 Edits the user personalisation file.  If no such file exists, it first
-installs a default file as \file{pl.ini} that contains commonly used
+installs a default file as \file{swipl.ini} that contains commonly used
 settings in comments.
 
     \definition{Settings/Stack sizes ...}
@@ -373,7 +373,7 @@ probably be synchronised in the future.
 \hline
 \verb$bin\swipl-ld.exe$	& Linker front-end to make single-file mixed
 			  Prolog/C/C++ executables. \\
-\verb$bin\plrc.exe$	& Manipulate Prolog resource files. \\
+\verb$bin\swipl-rc.exe$	& Manipulate Prolog resource files. \\
 \hline
 \multicolumn{2}{|c|}{Important directories} \\
 \hline

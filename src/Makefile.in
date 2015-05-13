@@ -606,10 +606,10 @@ iunicode:	idirs
 icustom:		idirs
 		$(INSTALL_DATA) ../customize/README $(DESTDIR)$(PLCUSTOM)/README$(TXTEXT)
 ifeq ($(MINGW),true)
-		$(INSTALL_DATA) ../customize/dotplrc $(DESTDIR)$(PLCUSTOM)/pl.ini
+		$(INSTALL_DATA) ../customize/dotswiplrc $(DESTDIR)$(PLCUSTOM)/swipl.ini
 		$(INSTALL_DATA) ../customize/dotxpcerc $(DESTDIR)$(PLCUSTOM)/xpce.ini
 else
-		$(INSTALL_DATA) ../customize/dotplrc $(DESTDIR)$(PLCUSTOM)
+		$(INSTALL_DATA) ../customize/dotswiplrc $(DESTDIR)$(PLCUSTOM)
 		$(INSTALL_DATA) ../customize/dotxpcerc $(DESTDIR)$(PLCUSTOM)
 		$(INSTALL_SCRIPT) ../customize/edit $(DESTDIR)$(PLCUSTOM)
 endif
@@ -667,7 +667,7 @@ SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
 .PHONY: installer
 installer:
 		$(INSTALL_DATA) $(srcdir)/win32/installer/options.ini "$(PLBASE)/.."
-		$(INSTALL_DATA) $(srcdir)/win32/installer/pl.nsi "$(PLBASE)/.."
+		$(INSTALL_DATA) $(srcdir)/win32/installer/swipl.nsi "$(PLBASE)/.."
 		$(INSTALL_DATA) $(srcdir)/win32/installer/mkinstaller.pl "$(PLBASE)/.."
 		$(WINE) "$(NSISEXE)" $(NSISDEFS) "$(SWIPLNSI)"
 

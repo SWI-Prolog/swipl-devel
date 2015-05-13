@@ -51,7 +51,7 @@ check-build()
 
 upload()
 { for d in $downloaddir; do
-    rsync -P ../../w${bits}pl${shortversion}.exe $d
+    rsync -P ../../swipl-w${bits}-${shortversion}.exe $d
   done
 }
 

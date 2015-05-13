@@ -579,6 +579,9 @@ Section "JPL -- Java <-> Prolog"
   File /r ${SWIPL}\doc\packages\jpl
   SetOutPath $INSTDIR\doc\packages\examples
   File /r ${SWIPL}\doc\packages\examples\jpl
+
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\jpl.html
 SectionEnd
 
 Section "XPCE graphics library"

@@ -36,14 +36,14 @@ books, online tutorials and other Prolog related material.
 \section{Introduction -- MacPorts}
 
 SWI-Prolog is by origin an Unix application, and not a native Macintosh
-application.  It has been brought to the Mac using the 
-\url[MacPorts]{http://www.macports.org/} project, using 
-\url[XQuartz]{http://xquartz.macosforge.org/} (Macintosh X11) 
+application.  It has been brought to the Mac using the
+\url[MacPorts]{http://www.macports.org/} project, using
+\url[XQuartz]{http://xquartz.macosforge.org/} (Macintosh X11)
 for its graphical capabilities.
 
 \section{Installation}
 
-XQuartz should be installed prior to SWI-Prolog installation. The 
+XQuartz should be installed prior to SWI-Prolog installation. The
 installer can be downloaded from the XQuartz web site.
 
 \subsection{Using MacPorts}
@@ -58,8 +58,8 @@ using the command below. In addition to the port named
 % sudo port install swi-prolog
 \end{code}
 
-The swi-prolog port depends on \const{readline}, \const{ncurses}, 
-\const{ncursesw}, \const{gmp} \const{libmcrypt}, \const{zlib}, 
+The swi-prolog port depends on \const{readline}, \const{ncurses},
+\const{ncursesw}, \const{gmp} \const{libmcrypt}, \const{zlib},
 \const{expat}, and \const{jpeg}.
 
 \subsection{From the installer}
@@ -163,9 +163,9 @@ in a separate window and use the below described make/0 command to
 reload modified files. In addition to this option Prolog can be used to
 locate predicates, modules and loaded files by specifying the editor of
 choice for use with the edit/1 command described below. This is achieved
-by editing the personalisation file \file{~/.plrc}. A commented template
-is in the directory \file{dotfiles} of the SWI-Prolog installation
-directory.
+by editing the personalisation file \file{~/.swiplrc}. A commented
+template is in the directory \file{dotfiles} of the SWI-Prolog
+installation directory.
 
 Finally, you may wish to use the built-in editor called \emph{PceEmacs}.
 This editor provides colourisation support based on real-time parsing
@@ -280,9 +280,9 @@ process can take several minutes. Ones created, XPCE applications start
 quickly.
 
     \item [Font display issues]
-If fonts do not display correctly (e.g. manpce pages not showing 
+If fonts do not display correctly (e.g. manpce pages not showing
 bold styles or editor text in `screen' font looking mis-spaced and
-misaligned) you may try to rebuild the X11 font cache by using the 
+misaligned) you may try to rebuild the X11 font cache by using the
 command \program{sudo /usr/x11r6/bin/ fc-cache}.
 \end{itemlist}
 
@@ -338,7 +338,7 @@ There are several ways to support SWI-Prolog:
           in publications.
     \item Ask for commercial development or support at
           \url{http://www.cognitivetools.com/}
-    \item Support development financially at 
+    \item Support development financially at
           \url{http://www.swi-prolog.org/donate.html}.
 \end{itemize}
 
