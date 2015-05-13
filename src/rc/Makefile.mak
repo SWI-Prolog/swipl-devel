@@ -29,5 +29,5 @@ clean::
 		if exist *~ del *~
 
 distclean:	clean
-		-del plrc.exe rc.lib *.pdb 2>nul
+		-del swipl-rc.exe rc.lib *.pdb 2>nul
 
