@@ -128,7 +128,7 @@ void sort_r(void *base, size_t nel, size_t width,
     qsort_r(base, nel, width, compar, arg);
 
   #elif (defined __APPLE__ || defined __MACH__ || defined __DARWIN__ || \
-         defined __FREEBSD__ || defined __BSD__ || \
+         defined __FreeBSD__ || defined __BSD__ || \
          defined OpenBSD3_1 || defined OpenBSD3_9)
 
     struct sort_r_data tmp;
