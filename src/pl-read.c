@@ -3444,7 +3444,7 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
       }
     case T_FULLSTOP:
       need_unlock(0, _PL_rd);
-      return ATOM_dot;
+      return codeToAtom('.');			/* ATOM_dot can be [|] */
     default:
       return token->value.atom;
   }
