@@ -121,20 +121,20 @@ test(freeze, true) :-
 	test_answer('freeze(X, writeln(X))', ['freeze(X, writeln(X))']).
 test(hidden, true) :-
 	test_answer('test_answer:hidden',
-		    [ '% with detached residual goals
+		    [ '% with pending residual goals
 		      dif(_G1,a)'
 		    ]).
 test(hidden, true) :-
 	test_answer('test_answer:hidden, A = a',
 		    [ 'A = a,
-		      % with detached residual goals
+		      % with pending residual goals
 		      dif(_G1,a)'
 		    ]).
 test(hidden, true) :-
 	test_answer('test_answer:hidden, A = a, dif(B, b)',
 		    [ 'A = a,
 		      dif(B, b),
-		      % with detached residual goals
+		      % with pending residual goals
 		      dif(_G1,a)'
 		    ]).
 
