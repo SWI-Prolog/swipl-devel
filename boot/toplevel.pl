@@ -659,12 +659,12 @@ skip_to_nl(In) :-
 	repeat,
 	peek_char(In, C),
 	(   C == '%'
-	->  !, skip(In, '\n')
+	->  skip(In, '\n')
 	;   char_type(C, space)
 	->  get_char(In, _),
 	    C == '\n'
-	;   !
-	).
+	;   true
+	), !.
 
 remove_history_prompt('', '') :- !.
 remove_history_prompt(Prompt0, Prompt) :-
