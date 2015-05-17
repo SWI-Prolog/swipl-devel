@@ -972,7 +972,7 @@ residuals(Normal-Hidden, Options) -->
 	bind_res_sep(Normal, Hidden),
 	(   {Hidden == []}
 	->  []
-	;   [ansi(fg(green), '% with detached residual goals', []), nl]
+	;   [ansi(fg(green), '% with pending residual goals', []), nl]
 	),
 	residuals1(Hidden, Options).
 
