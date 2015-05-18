@@ -78,6 +78,13 @@ test(current_io_closed,
 test(input_is_not_output, fail) :-
 	current_input(X),
 	current_output(X).
+test(reuse_alias, error(permission_error(open, source_sink, alias(a)))) :-
+	setup_call_cleanup(
+	    ( open_null_stream(S),
+	      set_stream(S, alias(a))
+	    ),
+	    open(nonexisting, read, _In, [alias(a)]),
+	    close(S)).
 
 :- end_tests(io).
 

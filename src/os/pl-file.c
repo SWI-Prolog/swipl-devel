@@ -3358,6 +3358,21 @@ openStream(term_t file, term_t mode, term_t options)
 
   *h = EOS;
 
+  if ( alias != NULL_ATOM &&
+       streamAliases &&
+       lookupHTable(streamAliases, (void *)alias) != NULL )
+  { term_t aliast;
+
+    if ( (aliast = PL_new_term_ref()) &&
+	 PL_unify_term(aliast,
+		       PL_FUNCTOR, FUNCTOR_alias1,
+		         PL_ATOM, alias) )
+      PL_error(NULL, 0, NULL, ERR_PERMISSION,
+	       ATOM_open, ATOM_source_sink, aliast);
+
+    return NULL;
+  }
+
 					/* FILE */
 #ifdef HAVE_POPEN
   if ( PL_is_functor(file, FUNCTOR_pipe1) )
