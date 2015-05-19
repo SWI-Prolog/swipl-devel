@@ -3937,7 +3937,7 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 
   if ( s->position )
   { return PL_unify_term(prop,
-			 PL_FUNCTOR, FUNCTOR_stream_position4,
+			 PL_FUNCTOR, FUNCTOR_dstream_position4,
 			   PL_INT64, s->position->charno,
 			   PL_INT, s->position->lineno,
 			   PL_INT, s->position->linepos,
@@ -4542,7 +4542,7 @@ PRED_IMPL("set_stream_position", 2, set_stream_position, PL_FA_ISO)
   if ( !(getRepositionableStream(stream, &s)) )
     return FALSE;
 
-  if ( !PL_is_functor(pos, FUNCTOR_stream_position4) ||
+  if ( !PL_is_functor(pos, FUNCTOR_dstream_position4) ||
        !PL_get_arg(1, pos, a) ||
        !PL_get_int64(a, &charno) ||
        !PL_get_arg(2, pos, a) ||
