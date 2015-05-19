@@ -1729,8 +1729,10 @@ parse_quasi_quotations(ReadData _PL_rd ARG_LD)
 	rc = callProlog(MODULE_system, av+0, PL_Q_CATCH_EXCEPTION, &ex);
 	if ( rc )
 	  return TRUE;
-	_PL_rd->exception = ex;
-	_PL_rd->has_exception = TRUE;
+	if ( ex )
+	{ PL_put_term(_PL_rd->exception, ex);
+	  _PL_rd->has_exception = TRUE;
+	}
       }
       return FALSE;
     } else
