@@ -156,7 +156,11 @@ aggregate(Template, Discriminator, Goal0, Result) :-
 %%	aggregate_all(+Template, :Goal, -Result) is semidet.
 %
 %	Aggregate  bindings  in  Goal   according    to   Template.  The
-%	aggregate_all/3 version performs findall/3 on Goal.
+%	aggregate_all/3 version performs findall/3 on   Goal.  Note that
+%	this predicate fails if Template contains one or more of min(X),
+%	max(X),  min(X,Witness)  or  max(X,Witness)  and   Goal  has  no
+%	solutions, i.e., the minumum and  maximum   of  an  empty set is
+%	undefined.
 
 aggregate_all(count, Goal, Count) :- !,
 	State = state(0, _),
@@ -176,7 +180,8 @@ aggregate_all(Template, Goal0, Result) :-
 %
 %	Aggregate  bindings  in  Goal   according    to   Template.  The
 %	aggregate_all/4 version performs findall/3 followed by sort/2 on
-%	Goal.
+%	Goal. See aggregate_all/3 to understand   why this predicate can
+%	fail.
 
 aggregate_all(Template, Discriminator, Goal0, Result) :-
 	template_to_pattern(all, Template, Pattern, Goal0, Goal, Aggregate),
