@@ -481,7 +481,9 @@ user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
 			   error(E, context(prolog_stack(Stack),Msg)),
 			   Fr, Guard) :-
 	(   Guard == none
-	->  stack_guard(none)
+	->  debug(backtrace, 'Got uncaught exception ~p (Ctx0=~p)',
+		  [E, Ctx0]),
+	    stack_guard(none)
 	;   prolog_frame_attribute(Guard, predicate_indicator, PI),
 	    debug(backtrace, 'Got exception ~p (Ctx0=~p, Catcher=~p)',
 		  [E, Ctx0, PI]),
