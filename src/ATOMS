@@ -8,7 +8,6 @@
 # This file is processed using defatom, compiled from defatom.c to
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
-
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -162,8 +161,8 @@ A deadline			"deadline"
 A debug			"debug"
 A debug_on_error	"debug_on_error"
 A debug_topic		"debug_topic"
-A debugger_write_options "debugger_write_options"
 A debugger_show_context "debugger_show_context"
+A debugger_write_options "debugger_write_options"
 A debugging		"debugging"
 A dec10			"dec10"
 A decimal_point		"decimal_point"
@@ -178,6 +177,10 @@ A development		"development"
 A dexit			"$exit"
 A dforeign_registered    "$foreign_registered"
 A dgarbage_collect	"$garbage_collect"
+A dict			"dict"
+A dict_position		"dict_position"
+A dict_punify		">:<"
+A dict_select		":<"
 A digit			"digit"
 A directory		"directory"
 A discontiguous		"discontiguous"
@@ -199,6 +202,7 @@ A dquasi_quotation	"$quasi_quotation"
 A dquery_loop		"$query_loop"
 A drecover_and_rethrow	"$recover_and_rethrow"
 A dstream		"$stream"
+A dstream_position	"$stream_position"
 A dthread_init		"$thread_init"
 A dthrow		"$throw"
 A dtime			"$time"
@@ -381,10 +385,6 @@ A lower			"lower"
 A lsb			"lsb"
 A lshift		"<<"
 A main			"main"
-A dict			"dict"
-A dict_position		"dict_position"
-A dict_punify		">:<"
-A dict_select		":<"
 A mark			"mark"
 A matches		"matches"
 A max			"max"
@@ -621,7 +621,7 @@ A stream		"stream"
 A stream_option		"stream_option"
 A stream_or_alias	"stream_or_alias"
 A stream_pair		"stream_pair"
-A stream_position	"$stream_position"
+A stream_position	"stream_position"
 A stream_property	"stream_property"
 A stream_type_check	"stream_type_check"
 A strict_equal		"=="
@@ -970,7 +970,7 @@ F star			2
 F status		1
 F stream		1
 F stream		4
-F stream_position	4
+F dstream_position	4
 F strict_equal		2
 F string		1
 F string		2

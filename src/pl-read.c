@@ -1030,7 +1030,7 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
   if ( pos )
   { if ( !PL_unify_term(head,
 			PL_FUNCTOR, FUNCTOR_minus2,
-			  PL_FUNCTOR, FUNCTOR_stream_position4,
+			  PL_FUNCTOR, FUNCTOR_dstream_position4,
 			    PL_INT64, pos->charno,
 			    PL_INT, pos->lineno,
 			    PL_INT, pos->linepos,
@@ -1729,8 +1729,10 @@ parse_quasi_quotations(ReadData _PL_rd ARG_LD)
 	rc = callProlog(MODULE_system, av+0, PL_Q_CATCH_EXCEPTION, &ex);
 	if ( rc )
 	  return TRUE;
-	_PL_rd->exception = ex;
-	_PL_rd->has_exception = TRUE;
+	if ( ex )
+	{ PL_put_term(_PL_rd->exception, ex);
+	  _PL_rd->has_exception = TRUE;
+	}
       }
       return FALSE;
     } else
@@ -4421,7 +4423,7 @@ static int
 unify_read_term_position(term_t tpos ARG_LD)
 { if ( tpos && source_line_no > 0 )
   { return PL_unify_term(tpos,
-			 PL_FUNCTOR, FUNCTOR_stream_position4,
+			 PL_FUNCTOR, FUNCTOR_dstream_position4,
 			   PL_INT64, source_char_no,
 			   PL_INT, source_line_no,
 			   PL_INT, source_line_pos,
