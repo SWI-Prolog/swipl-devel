@@ -662,7 +662,7 @@ ifneq (,$(findstring 64,$(PLARCH)))
 NSISDEFS+=/DWIN64
 endif
 NSISEXE=C:/Program Files (x86)/NSIS/makensis.exe
-SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
+SWIPLNSI=$(shell winepath -w "$(PLBASE)/../swipl.nsi")
 
 .PHONY: installer
 installer:
