@@ -271,7 +271,7 @@ here because closing will loose the exception.
 int
 callProlog(Module module, term_t goal, int flags, term_t *ex)
 { GET_LD
-  term_t reset, g, ex2;
+  term_t reset=0, g, ex2 = 0;
   functor_t fd;
   Procedure proc;
 
@@ -280,11 +280,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   if ( ex )
   { if ( !(ex2=PL_new_term_ref()) )
       goto error;
-    reset = ex2;
     *ex = 0;
-  } else
-  { reset = 0;
-    ex2 = 0;				/* keep compiler happy */
   }
 
   if ( !(g=PL_new_term_ref()) )
@@ -293,8 +289,6 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
       *ex = exception_term;
     return FALSE;
   }
-  if ( !reset )
-    reset = g;
 
   if ( !PL_strip_module(goal, &module, g) )
     return FALSE;
@@ -336,9 +330,12 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
       { *ex = 0;
       }
     }
-    PL_cut_query(qid);
 
+    PL_cut_query(qid);
+    if ( !reset )
+      reset = (ex2 ? ex2 : g);
     PL_reset_term_refs(reset);
+
     return rval;
   }
 }
