@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -489,9 +489,13 @@ current_op(Module m, int inherit,
 	return FALSE;
 
       if ( PL_is_variable(prec) )
-	p = 0;
-      else if ( !PL_get_integer_ex(prec, &p) )
-	return FALSE;
+      { p = 0;
+      } else if ( PL_get_integer_ex(prec, &p) )
+      { if ( !(p > 0 && p <= 1200) )
+	  return PL_domain_error("operator_priority", prec);
+      } else
+      { return FALSE;
+      }
 
       if ( PL_is_variable(type) )
 	t = 0;

@@ -181,6 +181,8 @@ permission_error(input, binary_stream, Stream) -->
 	[ 'No permission to read characters from binary stream `~p'''-[Stream] ].
 permission_error(output, binary_stream, Stream) -->
 	[ 'No permission to write characters to binary stream `~p'''-[Stream] ].
+permission_error(open, source_sink, alias(Alias)) -->
+	[ 'No permission to reuse alias "~p": already taken'-[Alias] ].
 permission_error(Action, Type, Object) -->
 	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 
@@ -972,7 +974,7 @@ residuals(Normal-Hidden, Options) -->
 	bind_res_sep(Normal, Hidden),
 	(   {Hidden == []}
 	->  []
-	;   [ansi(fg(green), '% with detached residual goals', []), nl]
+	;   [ansi(fg(green), '% with pending residual goals', []), nl]
 	),
 	residuals1(Hidden, Options).
 
