@@ -7,9 +7,9 @@
 
 # [EDIT] Prefix location of the installation. It is _not_ adviced to use
 # a    versioned    prefix.    The    system      will     install    in
-# $PREFIX/lib/pl-<version> and create symlinks from  $PREFIX/bin for the
-# main  programs.  Users  can  always  use  older  versions  by  running
-# $PREFIX/lib/pl-<version>/bin/<arch>/pl
+# $PREFIX/lib/swipl-<version> and create symlinks   from $PREFIX/bin for
+# the main programs. Users can  always   use  older  versions by running
+# $PREFIX/lib/swipl-<version>/bin/<arch>/pl
 #
 # If you change PREFIX such that the system  is installed in a place for
 # which you have no write access, set  SUDO   to  the command to run the
@@ -24,8 +24,10 @@ SUDO=
 # systems this is installed as 'gmake'. On most GNU-based systems (e.g.,
 # linux), the default make is GNU-make.  You can use 'make --jobs=<max>'
 # to build the system faster using  all   your  cores. The optimal value
-# depends a lot on your hardware. Using   4 jobs on a dual-core machines
-# seems enough to keep both cores busy.
+# depends a lot on your hardware.   Unfortunately,  not all dependencies
+# are covered by the Makefiles. If your build   fails on what might be a
+# missing dependency, try  re-running  without   --jobs  and  report the
+# issue.
 
 # MAKE=make
 MAKE='make --jobs=4'
@@ -49,13 +51,21 @@ MAKE='make --jobs=4'
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
 
-# On MacOS you need this to  get   some  libraries  from Macports. Since
-# recently, there are three C compilers:   gcc-llvm  and clang come with
-# XCode. Native gcc can  be  installed   in  various  ways  (e.g., using
-# Macports). Current SWI-Prolog sources compile and  work with all these
-# alternatives. If you want the last bit   of performance and don't mind
-# some extra work, get a recent  native   GCC,  set  CC below and enable
-# --enable-useprofile (see below).
+# On MacOS you need this to get  some libraries from Macports. There are
+# three commonly used C compilers on the   Mac:  gcc (based on llvm) and
+# clang that come with XCode and (native) gcc from Macports. The current
+# SWI-Prolog sources compile and work with all these alternatives. There
+# are a few gotchas:
+#
+#   - The ssl package uses the Apple security API that can only be
+#     compiled using the XCode compilers.  Compiled with native
+#     gcc SSL has no access to the OS root certificates and can only
+#     be used without certificate validation or with certificates
+#     explicitly provided by the user.
+#   - If you want the last bit of performance and don't mind some extra
+#     work, get a recent native GCC, set CC below and enable
+#     --enable-useprofile (see below).  You could compile SSL using
+#     the XCode compiler.
 #
 # Recent versions of Quartz  (X11)  seem   to  install  the headers into
 # /opt/X11/include. We put this  after   /opt/local/include,  to use the
