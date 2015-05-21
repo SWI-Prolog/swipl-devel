@@ -327,6 +327,9 @@ parameter style above (perhaps with asserting appl_config/2).
 @tbd: validation? e.g, numbers; file path existence; one-out-of-a-set-of-atoms
 */
 
+:- multifile
+	error:has_type/2.
+
 :- predicate_options(opt_parse/5, 5,
 		     [ allow_empty_flag_spec(boolean),
 		       duplicated_flags(oneof([keepfirst,keeplast,keepall])),
@@ -690,8 +693,9 @@ invalidate_opts_spec(OptsSpec, ParseOptions) :-
                 context(validate_opts_spec/1, Msg)))
 
     %invalid if unknown type
-    ;    (memberchk(type(Type), OptSpec),
-          \+ member(Type, [boolean,integer,float,atom,term]))
+    ;   (   memberchk(type(Type), OptSpec),
+            \+ clause(error:has_type(Type,_), _)
+	)
     ->  format(atom(Msg), 'unknown type ''~w'' in option ''~w''', [Type, Name]),
         throw(error(type_error(flag_value, Type),
               context(validate_opts_spec/1, Msg)))
