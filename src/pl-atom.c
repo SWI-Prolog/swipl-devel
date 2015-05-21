@@ -1073,7 +1073,7 @@ resetListAtoms(void)
     unsigned int v;
     static char *s = ".";
 
-    Sdprintf("Resetting list constructor to ./2\n");
+    DEBUG(0, Sdprintf("Resetting list constructor to ./2\n"));
 
     for( ; ; ap2 = &(*ap2)->next )
     { assert(*ap2);		/* MT: TBD: failed a few times!? */
