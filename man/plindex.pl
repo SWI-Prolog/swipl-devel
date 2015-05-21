@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1995-2011, University of Amsterdam
+    Copyright (C): 1995-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -440,8 +440,9 @@ predarg(_) -->
 predarg(1) -->
 	"[]".
 
-mode -->
-	"?:", !.
+mode --> "?:", !.
+mode --> "--", !.
+mode --> "++", !.
 mode -->
 	char(C),
 	{ string_code(_, "+-?:@!", C) }, !.
