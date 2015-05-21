@@ -84,8 +84,13 @@ defined, unless this \g{predicate} is \g{module transparent}, in
 which case the \g{context module} is inherited from the parent
 \g{goal}.  See also module_transparent/1 and \g{meta-predicate}.
 
-    \glossitem{det}\index{det}%
+    \glossitem{det [determinism]}\index{det}%
 Short for \g{deterministic}.
+
+    \glossitem{determinism}\index{determinism}%
+How many solutions a \g{goal} can provide.  Values are `nondet' (zero
+to infinite), `multi' (one to infinite), `det' (exactly one) and
+`semidet' (zero or one).
 
     \glossitem{deterministic}\index{deterministic}%
 A \g{predicate} is \g{deterministic} if it succeeds exactly one time
@@ -169,9 +174,18 @@ to prove a \g{goal} by directly reading the \g{clauses} rather than
 executing instructions from an (abstract) instruction set that is not
 or only indirectly related to Prolog.
 
+    \glossitem{instantiation [of an argument]}\index{instantiation}%
+To what extend a term is bound to a value.  Typical levels are
+`unbound' (a \g{variable}), `ground' (term without variables) or
+`partially bound' (term with embedded variables).
+
     \glossitem{meta-predicate}\index{meta-predicate}%
 A \g{predicate} that reasons about other \g{predicates}, either by
 calling them, (re)defining them or querying \g{properties}.
+
+    \glossitem{mode [declaration]}\index{mode}%
+Declaration of an argument \g{instantiation} pattern for a
+\g{predicate}, often accompanied with a \g{determinism}.
 
     \glossitem{module}\index{module}%
 Collection of predicates.  Each module defines a name-space for
@@ -182,6 +196,10 @@ their definition available to other modules.
     \glossitem{module transparent [predicate]}\index{module transparent}\index{transparent}%
 A \g{predicate} that does not change the \g{context module}.  Sometimes
 also called a \g{meta-predicate}.
+
+    \glossitem{multi [determinism]}\index{multi}%
+A \g{predicate} is said to have \g{determinism} multi if it generates at
+\emph{least} one answer.
 
     \glossitem{multifile [predicate]}
 Predicate for which the definition is distributed over multiple
@@ -334,15 +352,3 @@ A = c .
 See also \g{unify}.
 
 \end{description}
-
-
-
-
-
-
-
-
-
-
-
-
