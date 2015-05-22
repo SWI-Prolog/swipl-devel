@@ -327,15 +327,16 @@ parameter style above (perhaps with asserting appl_config/2).
 @tbd: validation? e.g, numbers; file path existence; one-out-of-a-set-of-atoms
 */
 
-:- multifile
-	error:has_type/2.
-
 :- predicate_options(opt_parse/5, 5,
 		     [ allow_empty_flag_spec(boolean),
 		       duplicated_flags(oneof([keepfirst,keeplast,keepall])),
 		       output_functor(atom),
 		       suppress_empty_meta(boolean)
 		     ]).
+
+:- multifile
+	error:has_type/2,
+	parse_type/3.
 
 %%   opt_arguments(+OptsSpec, -Opts, -PositionalArgs) is det
 %
@@ -880,11 +881,15 @@ parse_loc(term, Cs, Result) :-
     atom_codes(A, Cs),
     term_to_atom(Result, A),
     !.
+parse_loc(Type, Cs, Result) :-
+    parse_type(Type, Cs, Result), !.
 parse_loc(Type, _Cs, _) :- %could not parse Cs as Type
     throw(error(type_error(flag_value, Type), _)), !. %}}}
 %}}}
 
-
+%%  parse_type(+Type, +Codes:list(code), -Result) is semidet.
+%
+%   Hook to parse option text Codes to an object of type Type.
 
 partition_args_([], [], []).
 partition_args_([opt(K,V)|Rest], [opt(K,V)|RestOpts], RestPos) :-
