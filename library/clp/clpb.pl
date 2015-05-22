@@ -881,7 +881,7 @@ bdd_ites(BDD, ITEs) :-
 node_ite(Node, Node-ite(Var,High,Low)) :-
         node_var_low_high(Node, Var, Low, High).
 
-%% labeling(+Vs) is nondet.
+%% labeling(+Vs) is multi.
 %
 % Assigns truth values to the Boolean variables Vs such that all
 % stated constraints are satisfied.
