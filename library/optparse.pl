@@ -336,6 +336,8 @@ parameter style above (perhaps with asserting appl_config/2).
 		       suppress_empty_meta(boolean)
 		     ]).
 
+:- multifile(optparse:parse_type/3).
+
 %%   opt_arguments(+OptsSpec, -Opts, -PositionalArgs) is det
 %
 %    Extract  commandline  options   according    to   a  specification.
@@ -878,6 +880,8 @@ parse_loc(term, Cs, Result) :-
     atom_codes(A, Cs),
     term_to_atom(Result, A),
     !.
+parse_loc(Type, Cs, Result) :-
+    optparse:parse_type(Type, Cs, Result), !.
 parse_loc(Type, _Cs, _) :- %could not parse Cs as Type
     throw(error(type_error(flag_value, Type), _)), !. %}}}
 %}}}
