@@ -159,9 +159,9 @@ while [ $cont != "no" ]; do
 	    $appbase/correctindex $doc.idx
 	fi
 	if [ -r $appbase/makeindex.ist ]; then
-	    makeindex -s $appbase/makeindex.ist $doc
+	    makeindex -s $appbase/makeindex.ist $doc.idx
 	else
-	    makeindex $doc
+	    makeindex $doc.idx
 	fi
     fi
     if test -r $doc.aux && grep -qw bibdata $doc.aux; then
