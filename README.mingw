@@ -342,7 +342,7 @@ download_libxpm()
 { if [ -d libXpm ]; then
      (cd libXpm && git pull)
   else
-     git clone git://www.swi-prolog.org/home/pl/git/misc/libXpm.git
+     git clone https://github.com/SWI-Prolog/libXpm.git
   fi
 }
 
