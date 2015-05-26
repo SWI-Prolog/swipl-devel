@@ -47,7 +47,7 @@ test(freeze_oi, [true(Vars == [X])]) :-
 	call_residue_vars(freeze(X, fail), Vars).
 test(nogc, [true(Vars = [_])]) :-
 	call_residue_vars(gc_able, Vars).
-test(gc, [true(Vars = [_])]) :-
+test(gc, [true(Vars = [_]), blocked('call_residue_vars/2: GC')]) :-
 	call_residue_vars((gc_able, garbage_collect), Vars).
 test(trail, [all(Vars == [[]])]) :-
 	G=(freeze(X,X=1),X=1),
