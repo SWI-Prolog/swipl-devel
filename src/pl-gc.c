@@ -991,13 +991,18 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
 
 #ifdef O_CALL_RESIDUE
 static void
-mark_attvars()
+mark_attvars(void)
 { GET_LD
   Word gp;
 
   for( gp = gBase; gp < gTop; gp += (offset_cell(gp)+1) )
   { if ( isAttVar(*gp) && !is_marked(gp) )
-    { DEBUG(MSG_GC_MARK_ATTVAR, Sdprintf("mark_attvars(): marking %p\n", gp));
+    { DEBUG(MSG_GC_MARK_ATTVAR,
+	    { char buf1[256];
+	      char buf2[256];
+	      Sdprintf("mark_attvars(): marking %s (%s)\n",
+		       print_addr(gp, buf1), print_val(*gp, buf2));
+	    });
       mark_variable(gp PASS_LD);
     }
   }
