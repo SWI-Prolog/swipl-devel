@@ -7793,13 +7793,17 @@ imply the user has read and/or write permission for the file.
 Extracts the directory part of \arg{File}. The returned \arg{Directory}
 name does not end in \const{/}. There are two special cases. The
 directory name of \const{/} is \const{/} itself, and the directory name
-is \const{.} if \arg{File} does not contain any \const{/} characters.
+is \const{.} if \arg{File} does not contain any \const{/} characters. If
+the \arg{File} argument ends with a \const{/}, e.g., \exam{'/hello/'},
+it is not a valid file name. In this case the final \const{/} is removed
+from \arg{File}, e.g., \exam{'/hello'}.
+
 See also directory_file_path/3 from \pllib{filesex}. The system ensures
 that for every valid \arg{Path} using the Prolog (POSIX) directory
-separators, following is true on systems with a sound implementation
-of same_file/2.\footnote{On some systems, \arg{Path} and
-\arg{Path2} refer to the same entry in the file system, but same_file/2
-may fail.}  See also prolog_to_os_filename/2.
+separators, following is true on systems with a sound implementation of
+same_file/2.\footnote{On some systems, \arg{Path} and \arg{Path2} refer
+to the same entry in the file system, but same_file/2 may fail.} See
+also prolog_to_os_filename/2.
 
 \begin{code}
 	...,
@@ -7811,8 +7815,10 @@ may fail.}  See also prolog_to_os_filename/2.
 
     \predicate{file_base_name}{2}{+File, -BaseName}
 Extracts the filename part from a path specification. If \arg{File} does
-not contain any directory separators, \arg{File} is returned in \arg{BaseName}.
-See also file_directory_name/2.
+not contain any directory separators, \arg{File} is returned in
+\arg{BaseName}. See also file_directory_name/2. If the \arg{File}
+arguments ends with a \const{/}, e.g., \exam{'/hello/'}, \arg{BaseName}
+is unified with the empty atom (\const{''}).
 
     \predicate{same_file}{2}{+File1, +File2}
 True if both filenames refer to the same physical file. That is, if

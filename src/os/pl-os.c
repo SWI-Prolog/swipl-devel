@@ -1575,7 +1575,7 @@ DirName(const char *f, char *dir)
 { const char *base, *p;
 
   for(base = p = f; *p; p++)
-  { if (*p == '/' && p[1] != EOS )
+  { if ( *p == '/' )
       base = p;
   }
   if ( base == f )
