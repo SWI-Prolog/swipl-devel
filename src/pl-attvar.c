@@ -1180,11 +1180,13 @@ PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
   Choice ch;
   Word gp, gend, list, tailp;
 
-retry:
   if ( !PL_get_intptr_ex(A1, &off) )
-    fail;
-
+    return FALSE;
+retry:
   ch = (Choice)((Word)lBase+off);
+  if ( !existingChoice(ch PASS_LD) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, A1);
+
   list = tailp = allocGlobalNoShift(1);
   if ( !list )
     goto grow;

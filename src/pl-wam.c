@@ -1988,7 +1988,7 @@ chp_chars(Choice ch)
 #endif
 
 
-static int
+int
 existingChoice(Choice ch ARG_LD)
 { if ( onStack(local, ch) && onStack(local, ch->frame) &&
        (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG )

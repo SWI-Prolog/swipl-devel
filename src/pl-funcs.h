@@ -58,6 +58,7 @@ COMMON(void)		updateAlerted(PL_local_data_t *ld);
 COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
 COMMON(Module)		contextModule(LocalFrame fr);
 COMMON(void)		setContextModule(LocalFrame fr, Module context);
+COMMON(int)		existingChoice(Choice ch ARG_LD);
 
 /* pl-stream.c */
 
