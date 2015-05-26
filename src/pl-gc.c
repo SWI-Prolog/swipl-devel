@@ -99,6 +99,24 @@ are added. Garbage collection gets about 3-4 times as slow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+call_residue_vars(:Goal,  -Vars)  should  avoid  that  the  attvars  are
+reclaimed by GC. Unfortunately, mark_attvars() is broken because:
+
+  - Seems there is something wrong calling mark_variable() directly on
+    the pointer.  This can be fixed, worst case by using a temporary
+    term reference.
+  - We also need to sweep.  There is no good place to do that.
+
+A solution would be to reference the  attvars from term references, just
+like global variables. The problem is that we do not know how many there
+are and computing that upfront is rather expensive.
+
+For now, we disable trying to rescue attvars from GC.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#undef O_CALL_RESIDUE
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Marking, testing marks and extracting values from GC masked words.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
