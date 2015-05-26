@@ -182,15 +182,12 @@ portray_attr(Name, Value, Var) :-
 %	fail. If the solver is too  weak   however  it  will succeed and
 %	residual attributed variables holding the conflicting constraint
 %	form a witness of this problem.
-%
-%	@bug	In the current implementation attributed variables may
-%		be garbage collected and will not appear in Vars.
 
 :- meta_predicate
 	call_residue_vars(0, -).
 
 call_residue_vars(Goal, Vars) :-
-	'$get_choice_point'(Chp),
+	prolog_current_choice(Chp),
 	call_det(Goal, Det),
         '$attvars_after_choicepoint'(Chp, Vars),
 	(   Det == true

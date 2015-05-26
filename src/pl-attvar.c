@@ -1076,30 +1076,6 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 		 *	   CALL RESIDUE		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$new_choice_point(-Chp) is det.
-
-Unify Chp with a reference to a new choicepoint.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static
-PRED_IMPL("$get_choice_point", 1, get_choice_point, 0)
-{ PRED_LD
-  Choice ch;
-
-  for(ch=LD->choicepoints; ch; ch=ch->parent)
-  { if ( ch->type == CHP_CLAUSE )
-    { intptr_t off = (Word)ch - (Word)lBase;
-
-      if ( PL_unify_integer(A1, off) )
-	succeed;
-    }
-  }
-
-  fail;
-}
-
-
 static inline size_t
 offset_cell(Word p)
 { word m = *p;				/* was get_value(p) */
@@ -1282,7 +1258,6 @@ BeginPredDefs(attvar)
   PRED_DEF("$eval_when_condition", 2, eval_when_condition, 0)
   PRED_DEF("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 #ifdef O_CALL_RESIDUE
-  PRED_DEF("$get_choice_point", 1, get_choice_point, 0)
   PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 #endif
 EndPredDefs
