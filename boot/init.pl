@@ -857,8 +857,10 @@ user:prolog_file_type(Ext,	executable) :-
 	    '$extend_file'(Expanded, Exts, LibFile),
 	    (   '$file_conditions'(Cond, LibFile),
 		'$absolute_file_name'(LibFile, FullFile),
-		\+ '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
-		assert('$search_path_file_cache'(Spec, Hash, Cache, FullFile))
+		(   '$search_path_file_cache'(Spec, Hash, Cache, FullFile)
+		->  true
+		;   asserta('$search_path_file_cache'(Spec, Hash, Cache, FullFile))
+		)
 	    ->  '$search_message'(file_search(found(Spec, Cond), FullFile))
 	    ;   '$search_message'(file_search(tried(Spec, Cond), LibFile)),
 		fail
