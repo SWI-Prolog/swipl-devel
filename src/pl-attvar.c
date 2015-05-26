@@ -1192,7 +1192,6 @@ retry:
     goto grow;
   setVar(*list);
 
-  startCritical;
   scan_trail(TRUE);
 
   for(gp=gBase, gend = gTop; gp<gend; gp += offset_cell(gp)+1)
@@ -1210,16 +1209,12 @@ retry:
       } else
       { gTop = gend;
 	scan_trail(FALSE);
-	if ( !endCritical )
-	  return FALSE;
 	goto grow;
       }
     }
   }
 
   scan_trail(FALSE);
-  if ( !endCritical )
-    return FALSE;
 
   if ( list == tailp )
   { gTop = gend;
