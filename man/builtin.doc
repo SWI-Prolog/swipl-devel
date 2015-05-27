@@ -5788,6 +5788,28 @@ divmod(Dividend, Divisor, Quotient, Remainder) :-
 Note that this predicate is only available if SWI-Prolog is compiled
 with unbounded integer support.  This is the case for all packaged
 versions.
+
+    \predicate{nth_integer_root_and_remainder}{4}{+N, +I, -Root, -Remainder}
+True when $\pow{Root}{N} + Remainder = I$. \arg{N} and \arg{I} must be
+integers.\footnote{This predicate was suggested by Markus Triska.  The
+final name and argument order is by Richard O'Keefe.  The decision to
+include the remainder is by Jan Wielemaker.  Including the remainder
+makes this predicate about twice as slow if \arg{Root} is not exact.}
+\arg{N} must be one or more. If \arg{I} is negative and
+\arg{N} is \jargon{odd}, \arg{Root} and \arg{Remainder} are negative,
+i.e., the following holds for $\arg{I} < 0$:
+
+\begin{code}
+%   I < 0,
+%   N mod 2 =\= 0,
+    nth_integer_root_and_remainder(
+	N, I, Root, Remainder),
+    IPos is -I,
+    nth_integer_root_and_remainder(
+	N, IPos, RootPos, RemainderPos),
+    Root =:= -RootPos,
+    Remainder =:= -RemainderPos.
+\end{code}
 \end{description}
 
 

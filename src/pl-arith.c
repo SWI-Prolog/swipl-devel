@@ -387,6 +387,50 @@ PRED_IMPL("divmod", 4, divmod, 0)
   return rc;
 }
 
+/**
+ * nth_integer_root_and_remainder(+N, +I, -Root, -Remainder)
+ */
+
+static
+PRED_IMPL("nth_integer_root_and_remainder", 4,
+	  nth_integer_root_and_remainder, 0)
+{ PRED_LD
+  number N = {V_INTEGER};
+  long I;
+  int rc = FALSE;
+
+  if ( PL_get_long_ex(A1, &I) &&
+       get_mpz(A2, &N PASS_LD) )
+  { if ( I >= 1 )
+    { number root = {V_MPZ};
+      number rem = {V_MPZ};
+
+      if ( mpz_sgn(N.value.mpz) < 0 &&
+	   I % 2 == 0 )
+      { rc = PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+	goto out;
+      }
+
+      mpz_init(root.value.mpz);
+      mpz_init(rem.value.mpz);
+      mpz_rootrem(root.value.mpz, rem.value.mpz,
+		  N.value.mpz, (unsigned long)I);
+      rc = ( PL_unify_number(A3, &root) &&
+	     PL_unify_number(A4, &rem)
+	   );
+      clearNumber(&root);
+      clearNumber(&rem);
+    } else
+    { rc = PL_domain_error("not_less_than_one", A1);
+    }
+  }
+
+out:
+  clearNumber(&N);
+
+  return rc;
+}
+
 #endif /*O_GMP*/
 
 		/********************************
@@ -3690,6 +3734,8 @@ BeginPredDefs(arith)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
 #ifdef O_GMP
   PRED_DEF("divmod", 4, divmod, 0)
+  PRED_DEF("nth_integer_root_and_remainder", 4,
+	   nth_integer_root_and_remainder, 0)
 #endif
   PRED_DEF("set_random", 1, set_random, 0)
 #ifdef O_RANDOM_STATE
