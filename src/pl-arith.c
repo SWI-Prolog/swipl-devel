@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -326,6 +326,68 @@ PRED_IMPL("plus", 3, plus, 0)
   return rc;
 }
 
+		 /*******************************
+		 *	 BIGNUM FUNCTIONS	*
+		 *******************************/
+
+#ifdef O_GMP
+
+static int
+get_mpz(term_t t, Number n ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isInteger(*p) )
+  { get_integer(*p, n);
+    promoteToMPZNumber(n);
+
+    return TRUE;
+  }
+
+  return PL_type_error("integer", t);
+}
+
+
+/**
+ * divmod(+Dividend, +Divisor, -Quotient, -Remainder)
+ *
+ * Defined as
+ *
+ *   - Quotient  is div(Dividend, Divisor)
+ *   - Remainder is mod(Dividend, Divisor)
+ */
+
+static
+PRED_IMPL("divmod", 4, divmod, 0)
+{ PRED_LD
+  number N = {V_INTEGER}, D = {V_INTEGER};
+  int rc = FALSE;
+
+  if ( get_mpz(A1, &N PASS_LD) &&
+       get_mpz(A2, &D PASS_LD) )
+  { if ( mpz_sgn(D.value.mpz) != 0 )
+    { number Q = {V_MPZ}, R = {V_MPZ};
+
+      mpz_init(R.value.mpz);
+      mpz_init(Q.value.mpz);
+      mpz_fdiv_qr(Q.value.mpz, R.value.mpz, N.value.mpz, D.value.mpz);
+      rc = ( PL_unify_number(A3, &Q) &&
+	     PL_unify_number(A4, &R)
+	   );
+      clearNumber(&R);
+      clearNumber(&Q);
+    } else
+    { rc = PL_error("divmod", 2, NULL, ERR_DIV_BY_ZERO);
+    }
+  }
+
+  clearNumber(&N);
+  clearNumber(&D);
+
+  return rc;
+}
+
+#endif /*O_GMP*/
 
 		/********************************
 		*           COMPARISON          *
@@ -3626,6 +3688,9 @@ BeginPredDefs(arith)
   PRED_DEF("succ", 2, succ, 0)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
+#ifdef O_GMP
+  PRED_DEF("divmod", 4, divmod, 0)
+#endif
   PRED_DEF("set_random", 1, set_random, 0)
 #ifdef O_RANDOM_STATE
   PRED_DEF("random_property", 1, random_property, 0)

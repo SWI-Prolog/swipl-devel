@@ -203,6 +203,7 @@ suggest predicates from a keyword.
 \predicatesummary{dif}{2}{Constrain two terms to be different}
 \predicatesummary{directory_files}{2}{Get entries of a directory/folder}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
+\predicatesummary{divmod}{4}{Compute quotient and remainder of two integers}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
 \predicatesummary{duplicate_term}{2}{Create a copy of a term}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}

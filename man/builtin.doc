@@ -5770,6 +5770,24 @@ and \term{succ}{X, -1} raises a domain error.%
     \predicate{plus}{3}{?Int1, ?Int2, ?Int3}
 True if $\arg{Int3} = \arg{Int1} + \arg{Int2}$. At least two of the
 three arguments must be instantiated to integers.
+
+    \predicate{divmod}{4}{+Dividend, +Divisor, -Quotient, -Remainder}
+This predicate is a shorthand for computing both the \arg{Quotient} and
+\arg{Remainder} of two integers in a single operation. This allows for
+exploiting the fact that the low level implementation for computing the
+quotient also produces the remainder. Timing confirms that this
+predicate is almost twice as fast as performing the steps independently.
+Semantically, divmod/4 is defined as below.
+
+\begin{code}
+divmod(Dividend, Divisor, Quotient, Remainder) :-
+	Quotient  is Dividend div Divisor,
+	Remainder is Dividend mod Divisor.
+\end{code}
+
+Note that this predicate is only available if SWI-Prolog is compiled
+with unbounded integer support.  This is the case for all packaged
+versions.
 \end{description}
 
 
