@@ -622,14 +622,14 @@ dispatchFile(const char *name)
 
     for( ; d->extension; d++ )
     { if ( strfeq(d->extension, ext) )
-      { if ( d->list == &plfiles )
+      { if ( d->list == &plfiles || d->list == &qlfiles )
 	  nostate = FALSE;
 	appendArgList(d->list, name);
 	return TRUE;
       }
     }
     if ( soext && strfeq(soext, ext) )
-    { if ( d->list == &plfiles )
+    { if ( d->list == &plfiles || d->list == &qlfiles )
 	nostate = FALSE;
       appendArgList(&libs, name);
       return TRUE;
@@ -1437,6 +1437,12 @@ createSavedState()
   { if ( n > 0 )
       *e++ = ',';
     quoted_name(plfiles.list[n], e);
+    e += strlen(e);
+  }
+  for(n=0; n<qlfiles.size; n++)
+  { if ( n > 0 )
+      *e++ = ',';
+    quoted_name(qlfiles.list[n], e);
     e += strlen(e);
   }
   strcpy(e, "]),qsave_program(");
