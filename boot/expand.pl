@@ -780,16 +780,31 @@ allowed_expansion(_).
 
 %%	expand_functions(+G0, +P0, -G, -P, +M, +MList, +Term) is det.
 %
+%	Expand functional notation and arithmetic functions.
+%
+%	@arg MList is the list of modules defining goal_expansion/2 in
+%	the expansion context.
+
+expand_functions(G0, P0, G, P, M, MList, Term) :-
+	expand_functional_notation(G0, P0, G1, P1, M, MList, Term),
+	(   expand_arithmetic(G1, P1, G, P, Term)
+	->  true
+	;   G = G1,
+	    P = P1
+	).
+
+%%	expand_functional_notation(+G0, +P0, -G, -P, +M, +MList, +Term) is det.
+%
 %	@tbd: position logic
 %	@tbd: make functions module-local
 
-expand_functions(G0, P0, G, P, M, _MList, _Term) :-
+expand_functional_notation(G0, P0, G, P, M, _MList, _Term) :-
 	contains_functions(G0),
 	replace_functions(G0, P0, Eval, EvalPos, G1, G1Pos, M),
 	Eval \== true, !,
 	wrap_var(G1, G1Pos, G2, G2Pos),
 	conj(Eval, EvalPos, G2, G2Pos, G, P).
-expand_functions(G, P, G, P, _, _, _).
+expand_functional_notation(G, P, G, P, _, _, _).
 
 wrap_var(G, P, G, P) :-
 	nonvar(G), !.
@@ -881,6 +896,21 @@ conj(X, PX, Y, PY, (X,Y), P) :-
 %	term.
 
 function(.(_,_), _) :- \+ functor([_|_], ., _).
+
+
+		 /*******************************
+		 *	    ARITHMETIC		*
+		 *******************************/
+
+%%	expand_arithmetic(+G0, +P0, -G, -P, +Term) is semidet.
+%
+%	Expand arithmetic expressions  in  is/2,   (>)/2,  etc.  This is
+%	currently a dummy.  The  idea  is   to  call  rules  similar  to
+%	goal_expansion/2,4  that  allow  for   rewriting  an  arithmetic
+%	expression. The system rules will perform evaluation of constant
+%	expressions.
+
+expand_arithmetic(_G0, _P0, _G, _P, _Term) :- fail.
 
 
 		 /*******************************
