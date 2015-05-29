@@ -774,6 +774,7 @@ suggest predicates from a keyword.
 \functionsummary{float_integer_part}{1}{Integer part of a float}
 \functionsummary{floor}{1}{Largest integer below argument}
 \functionsummary{gcd}{2}{Greatest common divisor}
+\functionsummary{getbit}{2}{Get bit at index from large integer}
 \functionsummary{integer}{1}{Round to nearest integer}
 \functionsummary{lgamma}{1}{Log of gamma function}
 \functionsummary{log}{1}{Natural logarithm}

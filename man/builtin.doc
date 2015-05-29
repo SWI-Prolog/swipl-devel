@@ -6360,9 +6360,11 @@ introduced by ECLiPSe and is under consideration for YAP.}
 \paragraph{Bitvector functions}
 
 The functions below are not covered by the standard. The
-\funcref{msb}{1} function is compatible with hProlog. The others are
-private extensions that improve handling of ---unbounded--- integers as
-bit-vectors.
+\funcref{msb}{1} function also appears in hProlog and SICStus Prolog.
+The \funcref{getbit}{2} function also appears in ECLiPSe, which also
+provides \term{setbit}{Vector,Index} and \term{clrbit}{Vector,Index}.
+The others are SWI-Prolog extensions that improve handling of
+---unbounded--- integers as bit-vectors.
 
 \begin{description}
     \function{msb}{1}{+IntExpr}
@@ -6380,6 +6382,19 @@ value of \arg{IntExpr}, which must evaluate to a positive integer. Errors for
     \function{popcount}{1}{+IntExpr}
 Return the number of 1s in the binary representation of the
 non-negative integer \arg{IntExpr}.
+
+    \function{getbit}{2}{+IntExprV, +IntExprI}
+Evaluates to the bit value (0 or 1) of the \arg{IntExprI}-th bit of
+\arg{IntExprV}. Both arguments must evaluate to non-negative integers.
+The result is equivalent to \verb$(IntExprV >> IntExprI)/\1$, but more
+efficient because materialization of the shifted value is avoided.
+Future versions will optimise \verb$(IntExprV >> IntExprI)/\1$ to a call
+to \funcref{getbit}{2}, providing both portability and
+performance.\footnote{This issue was fiercely debated at the ISO
+standard mailinglist. The name \textit{getbit} was selected for
+compatibility with ECLiPSe, the only system providing this support.
+Richard O'Keefe disliked the name and argued that efficient handling of
+the above implementation is the best choice for this functionality.}
 \end{description}
 
 
