@@ -420,7 +420,6 @@ COMMON(void)		cleanupPrologFlags(void);
 
 /* pl-pro.c */
 COMMON(word)		pl_break(void);
-COMMON(word)		pl_notrace1(term_t goal);
 COMMON(int)		currentBreakLevel(void);
 COMMON(int)		callProlog(Module module, term_t goal, int flags, term_t *ex);
 COMMON(int)		abortProlog(void);
