@@ -2628,6 +2628,74 @@ ar_popcount(Number n1, Number r)
   }
 }
 
+/* bit(I,K) is the K-th bit of I
+*/
+
+#define MP_BITCNT_T_MIN 0
+#define MP_BITCNT_T_MAX (~(mp_bitcnt_t)0)
+
+static int
+ar_getbit(Number I, Number K, Number r)
+{ mp_bitcnt_t bit;
+
+  if ( !toIntegerNumber(I, 0) )
+    return PL_error("bit", 2, NULL, ERR_AR_TYPE, ATOM_integer, I);
+  if ( !toIntegerNumber(K, 0) )
+    return PL_error("bit", 2, NULL, ERR_AR_TYPE, ATOM_integer, K);
+
+  switch(K->type)
+  { case V_INTEGER:
+      if ( K->value.i < 0 )
+	return notLessThanZero("bit", 2, K);
+      if ( sizeof(mp_bitcnt_t) < 8 &&
+	   K->value.i > MP_BITCNT_T_MAX )
+      { too_large:
+	r->value.i = 0;
+	r->type    = V_INTEGER;
+	return TRUE;
+      }
+      bit = K->value.i;
+      break;
+#ifdef O_GMP
+    case V_MPZ:
+      if ( mpz_sgn(K->value.mpz) < 0 )
+	return notLessThanZero("bit", 2, K);
+      if ( mpz_cmp_ui(K->value.mpz, MP_BITCNT_T_MAX) > 0 )
+	goto too_large;
+      bit = mpz_get_ui(K->value.mpz);
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  if ( bit < 0 )
+    return notLessThanZero("bit", 2, K);
+
+  switch(I->type)
+  { case V_INTEGER:
+      if (  I->value.i < 0 )
+	return notLessThanZero("bit", 2, I);
+
+      if ( bit >= 8*sizeof(I->value.i) )
+	goto too_large;
+      r->value.i = (I->value.i & ((int64_t)1<<bit)) != 0;
+      r->type    = V_INTEGER;
+      return TRUE;
+#ifdef O_GMP
+    case V_MPZ:
+      if ( mpz_sgn(I->value.mpz) < 0 )
+	return notLessThanZero("bit", 2, I);
+
+      r->value.i = mpz_tstbit(I->value.mpz, bit);
+      r->type = V_INTEGER;
+      return TRUE;
+#endif
+    default:
+      assert(0);
+      fail;
+  }
+}
 
 
 static int
@@ -3515,6 +3583,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_msb1,		ar_msb, 0),
   ADD(FUNCTOR_lsb1,		ar_lsb, 0),
   ADD(FUNCTOR_popcount1,	ar_popcount, 0),
+  ADD(FUNCTOR_getbit2,		ar_getbit, 0),
   ADD(FUNCTOR_powm3,		ar_powm, 0),
 
   ADD(FUNCTOR_eval1,		ar_eval, 0)
