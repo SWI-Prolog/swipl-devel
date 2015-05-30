@@ -742,12 +742,14 @@ assert_comment(mode(Head, Det), Src) :-
 
 pi_to_head(PI, Src, Head) :-
 	pi_to_head(PI, Head0),
-	strip_module(Head0, M, Plain),
-	(   xmodule(M, Src)
-	->  Head = Plain
-	;   Head = M:Plain
+	(   Head0 = _:_
+	->  strip_module(Head0, M, Plain),
+	    (   xmodule(M, Src)
+	    ->  Head = Plain
+	    ;   Head = M:Plain
+	    )
+	;   Head = Head0
 	).
-
 :- endif.
 
 %%	xref_comment(?Source, ?Title, ?Comment) is nondet.
