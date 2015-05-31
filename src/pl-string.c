@@ -178,8 +178,10 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
       { if ( !PL_is_variable(A3) )
 	{ if ( !PL_get_char_ex(A3, &tchar, FALSE) )
 	    return FALSE;
+	} else if ( t.length > 0 )
+	{ tchar = -1;
 	} else
-	  tchar = -1;
+	  return FALSE;
 
 	idx = 0;
 	goto gen;
