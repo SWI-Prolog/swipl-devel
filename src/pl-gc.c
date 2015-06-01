@@ -114,8 +114,6 @@ are and computing that upfront is rather expensive.
 For now, we disable trying to rescue attvars from GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#undef O_CALL_RESIDUE
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Marking, testing marks and extracting values from GC masked words.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1030,23 +1028,53 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
 
 
 #ifdef O_CALL_RESIDUE
-static void
-mark_attvars(void)
-{ GET_LD
-  Word gp;
+static size_t
+count_need_protection_attvars(ARG1_LD)
+{ Word p, next;
+  size_t attvars = 0;
 
-  for( gp = gBase; gp < gTop; gp += (offset_cell(gp)+1) )
-  { if ( isAttVar(*gp) && !is_marked(gp) )
-    { DEBUG(MSG_GC_MARK_ATTVAR,
-	    { char buf1[256];
-	      char buf2[256];
-	      Sdprintf("mark_attvars(): marking %s (%s)\n",
-		       print_addr(gp, buf1), print_val(*gp, buf2));
-	    });
-      mark_variable(gp PASS_LD);
-    }
+  for(p=LD->attvar.attvars; p; p = next)
+  { Word avp = p+1;
+
+    next = isRef(*p) ? unRef(*p) : NULL;
+    if ( isAttVar(*avp) )
+      attvars++;
   }
+
+  return attvars;
 }
+
+static fid_t
+link_attvars(ARG1_LD)
+{ if ( LD->attvar.call_residue_vars_count &&
+       LD->attvar.attvars )
+  { fid_t fid = PL_open_foreign_frame();
+    Word p, next;
+
+    for(p=LD->attvar.attvars; p; p = next)
+    { Word avp = p+1;
+
+      next = isRef(*p) ? unRef(*p) : NULL;
+      if ( isAttVar(*avp) )
+      { term_t t = PL_new_term_ref_noshift();
+
+	assert(t);
+	*valTermRef(t) = makeRefG(avp);
+      }
+    }
+
+    return fid;
+  } else
+    return 0;
+}
+
+static void
+restore_attvars(fid_t attvars ARG_LD)
+{ if ( attvars )
+    PL_close_foreign_frame(attvars);
+}
+
+
 #endif /*O_CALL_RESIDUE*/
 
 
@@ -3756,6 +3784,8 @@ gcEnsureSpace(vm_state *state ARG_LD)
     lneeded += sizeof(Word);
   if ( state->save_argp )
     lneeded += sizeof(struct fliFrame) + (aTop+1-aBase)*sizeof(word);
+  if ( LD->attvar.call_residue_vars_count && LD->attvar.attvars )
+    lneeded += sizeof(struct fliFrame) + count_need_protection_attvars(PASS_LD1);
 
   if ( (char*)lTop + lneeded > (char*)lMax )
   { if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )
@@ -3808,7 +3838,7 @@ garbageCollect(void)
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
   int no_mark_bar;
   int rc;
-  fid_t gvars, astack;
+  fid_t gvars, astack, attvars;
   Word *saved_bar_at;
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
@@ -3888,6 +3918,7 @@ garbageCollect(void)
   setVar(*gTop);	/* always one space; see initPrologStacks() */
   tTop->address = 0;	/* gMax-- and tMax-- */
 
+  attvars = link_attvars(PASS_LD1);
   astack = argument_stack_to_term_refs(&state);
   gvars = gvars_to_term_refs(&saved_bar_at);
   save_grefs(PASS_LD1);
@@ -3909,6 +3940,7 @@ garbageCollect(void)
 
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
+  restore_attvars(attvars, PASS_LD1);
 
   assert(LD->mark_bar <= gTop);
 
