@@ -34,6 +34,28 @@ This module defines basic attributed variable   support  as described in
 "Dynamic  attributes,  their  hProlog  implementation,    and   a  first
 evaluation" by Bart  Demoen,  Report   CW350,  October  2002, Katholieke
 Universiteit Leuven.
+
+An attributed is represented as a cell   pointing  with an TAG_ATTVAR to
+the linked list of attributes:
+
+
+  ----------
+  | refptr | <--- newer attvars <--- LD->attvar.attvars
+  ----------
+  | attvar | --\
+  ----------   | TAG_ATTVAR|STG_GLOBAL pointer
+  | att/3  | <-/
+  ----------
+  | name   |
+  ----------
+  | value  |
+  ----------
+  | <tail> |
+  ----------
+
+Binding the attvar places the new  value   in  <attvar>  using a trailed
+assignment. The attribute list remains   accessible  through the trailed
+assignment until this is GC'ed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_DEBUG
