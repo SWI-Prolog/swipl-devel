@@ -1105,90 +1105,116 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 		 *	   CALL RESIDUE		*
 		 *******************************/
 
-static inline size_t
-offset_cell(Word p)
-{ word m = *p;				/* was get_value(p) */
-  size_t offset;
-
-  if ( storage(m) == STG_LOCAL )
-    offset = wsizeofInd(m) + 1;
-  else
-    offset = 0;
-
-  return offset;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 has_attributes_after(Word av, Choice  ch)  is   true  if  the attributed
-variable av has attributes created after   the choicepoint ch. Note that
-the current implementation only deals with  attributes created after the
-ch or an attribute value  set  to   a  compound  term  created after the
-choicepoint ch.  Notably atomic value-changes are *not* tracked.
+variable av has attributes created or modified after the choicepoint ch.
 
-1 ?- put_attr(X, a, 1), call_residue_vars(put_attr(X, a, 2), V).
-
-V = []
+We compute this by marking  all   trailed  assignments  and scanning the
+attribute list for terms that are newer than the choicepoint or having a
+value that is changed due to a trailed assignment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline word
+get_value(Word p)
+{ return (*p) & ~MARK_MASK;
+}
+
+static Word
+deRefM(Word p, Word pv ARG_LD)
+{ for(;;)
+  { word w = get_value(p);
+
+    if ( isRef(w) )
+    { p = unRef(w);
+    } else
+    { *pv = w;
+      return p;
+    }
+  }
+}
+
 
 static int
 has_attributes_after(Word av, Choice ch ARG_LD)
 { Word l;
+  word w;
 
-  DEBUG(1, Sdprintf("has_attributes_after(%s, %p)\n",
-		    vName(av), ch->mark.globaltop));
+  DEBUG(MSG_CALL_RESIDUE_VARS,
+	{ char buf[64];
+	  Sdprintf("has_attributes_after(%s, %s)\n",
+		   vName(av), print_addr(ch->mark.globaltop, buf));
+	});
 
-  deRef(av);
-  assert(isAttVar(*av));
-  l = valPAttVar(*av);
+  av = deRefM(av, &w PASS_LD);
+  assert(isAttVar(w));
+  l = valPAttVar(w);
 
   for(;;)
-  { deRef(l);
+  { l = deRefM(l, &w PASS_LD);
 
-    if ( isNil(*l) )
+    if ( isNil(w) )
     { fail;
-    } else if ( isTerm(*l) )
-    { Functor f = valueTerm(*l);
+    } else if ( isTerm(w) )
+    { Functor f = valueTerm(w);
 
-      DEBUG(1, Sdprintf("\tterm at %p\n", f));
+      DEBUG(MSG_CALL_RESIDUE_VARS,
+	    { char buf[64];
+	      Sdprintf("  att/3 at %s\n", print_addr((Word)f, buf));
+	    });
 
       if ( (Word)f >= ch->mark.globaltop )
-	succeed;
+	return TRUE;			/* created after choice */
 
       if ( f->definition == FUNCTOR_att3 )
-      { if ( isTerm(f->arguments[1]) &&
-	     (Word)valueTerm(f->arguments[1]) >= ch->mark.globaltop )
-	  succeed;
+      { Word pv = &f->arguments[1];	/* pointer to value */
 
-	l = &f->arguments[2];
+	DEBUG(MSG_CALL_RESIDUE_VARS,
+	{ char buf1[64]; char buf2[64];
+	  Sdprintf("    value at %s: %s\n",
+		   print_addr(pv, buf1), print_val(*pv, buf2));
+	});
+
+	if ( is_marked(pv) )
+	  return TRUE;			/* modified after choice point */
+	(void)deRefM(pv, &w PASS_LD);
+	if ( isTerm(w) &&
+	     (Word)valueTerm(w) >= ch->mark.globaltop )
+	  return TRUE;			/* argument term after choice point */
+
+	l = pv+1;
       } else
       { DEBUG(0, Sdprintf("Illegal attvar\n"));
-	fail;
+	return FALSE;
       }
     } else
     { DEBUG(0, Sdprintf("Illegal attvar\n"));
-      fail;
+      return FALSE;
     }
   }
 }
 
 
 static void
-scan_trail(int set)
-{ GET_LD
-  TrailEntry te;
+scan_trail(Choice ch, int set ARG_LD)
+{ TrailEntry te, base;
 
-  for(te=tTop-1; te>=tBase; te--)
+  base = ch->mark.trailtop;
+
+  for(te=tTop-1; te>=base; te--)
   { if ( isTrailVal(te->address) )
     { Word p = trailValP(te->address);
 
       te--;
-      if ( isAttVar(*p) )
-      {	DEBUG(1, Sdprintf("Trailed attvar assignment at %p\n", p));
-	if ( set )
-	  *p |= MARK_MASK;
-	else
-	  *p &= ~MARK_MASK;
+      if ( set )
+      { DEBUG(MSG_CALL_RESIDUE_VARS,
+	      { char buf1[64]; char buf2[64];
+		word old = trailVal(te[1].address);
+		Sdprintf("Mark %s (%s)\n",
+			 print_addr(p, buf1), print_val(old, buf2));
+	      });
+	*te->address |= MARK_MASK;
+      } else
+      { *te->address &= ~MARK_MASK;
       }
     }
   }
@@ -1226,7 +1252,7 @@ retry:
     goto grow;
   setVar(*list);
 
-  scan_trail(TRUE);
+  scan_trail(ch, TRUE PASS_LD);
 
   gend = gTop;
   for(p=LD->attvar.attvars; p; p=next)
@@ -1234,7 +1260,6 @@ retry:
     next = isRef(*p) ? unRef(*p) : NULL;
 
     if ( isAttVar(*pav) &&
-	 !is_marked(pav) &&
 	 has_attributes_after(pav, ch PASS_LD) )
     { Word p = allocGlobalNoShift(3);
 
@@ -1246,13 +1271,13 @@ retry:
 	tailp = &p[2];
       } else
       { gTop = gend;
-	scan_trail(FALSE);
+	scan_trail(ch, FALSE PASS_LD);
 	goto grow;
       }
     }
   }
 
-  scan_trail(FALSE);
+  scan_trail(ch, FALSE PASS_LD);
 
   if ( list == tailp )
   { gTop = gend;
