@@ -49,6 +49,11 @@ test(nogc, Vars = [_]) :-
 	call_residue_vars(gc_able, Vars).
 test(gc, Vars = [_]) :-
 	call_residue_vars((gc_able, garbage_collect), Vars).
+test(gc2, Vars = [_]) :-
+	call_residue_vars(gc_able2_gc, Vars).
+test(modify, Vars == [X]) :-
+	put_attr(X, a, 1),
+	call_residue_vars(put_attr(X, a, 2), Vars).
 test(trail, [all(Vars == [[]])]) :-
 	G=(freeze(X,X=1),X=1),
 	call_residue_vars(G,Vars),
@@ -62,5 +67,9 @@ gc_able :-
 gc_able2 :-
 	x(X),
 	freeze(X, fail).
+
+gc_able2_gc :-
+        freeze(X, writeln(X)),
+        garbage_collect.
 
 :- end_tests(call_residue_vars).
