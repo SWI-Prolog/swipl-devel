@@ -3432,12 +3432,27 @@ ar_cputime(Number r)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) valueExpression() cannot use GC, but can return a number whose value
+is a GPM number pointing at  the  global   stack.  If  this is the case,
+PL_unify_number() may not invoke GC, so we  must check that we have room
+for the required attribute wakeup and trailing before we start.
+
+is/2 is the  only  victim  of  this   issue,  as  the  other  arithmetic
+predicates (>/2, etc.) only use their arguments as inputs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static
 PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
 { PRED_LD
   AR_CTX
   number arg;
   int rc;
+
+  if ( !hasGlobalSpace(0) )		/* see (*) */
+  { if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   AR_BEGIN();
 
