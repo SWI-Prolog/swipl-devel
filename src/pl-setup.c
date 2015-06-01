@@ -1207,8 +1207,9 @@ emptyStacks(void)
     LD->exception.pending = PL_new_term_ref();
     LD->trim.dummy        = PL_new_term_ref();
 #ifdef O_ATTVAR
-    LD->attvar.head	= PL_new_term_ref();
+    LD->attvar.head	  = PL_new_term_ref();
     LD->attvar.tail       = PL_new_term_ref();
+    LD->attvar.gc_attvars = PL_new_term_ref();
     DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
 #endif
 #ifdef O_GVAR

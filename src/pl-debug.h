@@ -111,6 +111,8 @@
 #define	MSG_SHIFT_FRAME		 125
 #define	MSG_STACK_OVERFLOW	 126
 
+#define MSG_ATTVAR_LINK		 150
+
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001
 #define CHK_HIGHER_ADDRESS      1002

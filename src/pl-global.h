@@ -402,6 +402,8 @@ struct PL_local_data
   struct
   { term_t	head;			/* Head of wakeup list */
     term_t	tail;			/* Tail of this list */
+    term_t	gc_attvars;		/* place for attvars during GC */
+    Word	attvars;		/* linked list of all attvars */
   } attvar;
 #endif
 

@@ -1208,6 +1208,19 @@ TrailAssignment__LD(Word p ARG_LD)
 }
 
 
+static void
+reclaim_attvars(ARG1_LD)
+{ while ( LD->attvar.attvars > gTop )
+  { word w = *LD->attvar.attvars;
+
+    if ( isVar(w) )
+      LD->attvar.attvars = NULL;
+    else
+      LD->attvar.attvars = unRef(w);
+  }
+}
+
+
 static inline void
 __do_undo(mark *m ARG_LD)
 { TrailEntry tt = tTop;
@@ -1232,6 +1245,11 @@ __do_undo(mark *m ARG_LD)
   } else
   { gTop = m->globaltop;
   }
+
+#ifdef O_ATTVAR
+  if ( LD->attvar.attvars )
+    reclaim_attvars(PASS_LD1);
+#endif
 }
 
 

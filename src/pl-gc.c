@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemake@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -818,6 +818,28 @@ mark_term_refs()
   DEBUG(MSG_GC_MARK_TERMREF,
 	Sdprintf("Marked %ld global and %ld local term references\n",
 		 gmarked, lmarked));
+}
+
+
+static void
+save_grefs(ARG1_LD)
+{
+#ifdef O_ATTVAR
+  if ( LD->attvar.attvars )
+  { *valTermRef(LD->attvar.gc_attvars) = makeRefG(LD->attvar.attvars);
+  }
+#endif
+}
+
+static void
+restore_grefs(ARG1_LD)
+{
+#ifdef O_ATTVAR
+  if ( LD->attvar.attvars )
+  { LD->attvar.attvars = unRef(*valTermRef(LD->attvar.gc_attvars));
+    setVar(*valTermRef(LD->attvar.gc_attvars));
+  }
+#endif
 }
 
 
@@ -3731,8 +3753,8 @@ int
 garbageCollect(void)
 { GET_LD
   vm_state state;
-  LocalFrame safeLTop;				/* include ARGP in body mode */
-  term_t preShiftLTop;				/* safe over trimStacks() (shift) */
+  LocalFrame safeLTop;			/* include ARGP in body mode */
+  term_t preShiftLTop;			/* safe over trimStacks() (shift) */
   intptr_t tgar, ggar;
   double t = ThreadCPUTime(LD, CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
@@ -3820,6 +3842,7 @@ garbageCollect(void)
 
   astack = argument_stack_to_term_refs(&state);
   gvars = gvars_to_term_refs(&saved_bar_at);
+  save_grefs(PASS_LD1);
   DEBUG(CHK_SECURE, check_foreign());
   tag_trail();
   mark_phase(&state);
@@ -3834,6 +3857,7 @@ garbageCollect(void)
 
   collect_phase(&state, saved_bar_at);
   untag_trail();
+  restore_grefs(PASS_LD1);
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
 
@@ -4352,6 +4376,9 @@ update_gvars(intptr_t gs)
 
   if ( LD->frozen_bar )
   { update_pointer(&LD->frozen_bar, gs);
+  }
+  if ( LD->attvar.attvars )
+  { update_pointer(&LD->attvar.attvars, gs);
   }
 }
 

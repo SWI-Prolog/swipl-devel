@@ -196,63 +196,71 @@ assignAttVar(Word av, Word value ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SHIFT-SAFE: Requires 2+0
+Link known attributes variables into a reference list.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Word
+link_attvar(ARG1_LD)
+{ Word gp = gTop;
+
+  if ( LD->attvar.attvars )
+  { *gp = makeRefG(LD->attvar.attvars);
+    DEBUG(MSG_ATTVAR_LINK,
+	  Sdprintf("Linking %p -> %p\n", gp, LD->attvar.attvars));
+  } else
+  { DEBUG(MSG_ATTVAR_LINK,
+	  Sdprintf("Attvar chain head at %p\n", gp));
+    setVar(*gp);
+  }
+
+  LD->attvar.attvars = gp++;
+  gTop = gp;
+
+  return gp;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SHIFT-SAFE: Requires 3+0
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 make_new_attvar(Word p ARG_LD)
 { Word gp;
 
-  assert(gTop+2 <= gMax && tTop+1 <= tMax);
+  assert(gTop+3 <= gMax && tTop+1 <= tMax);
 
-  if ( p >= (Word)lBase )
-  { gp = gTop;
-    gp[1] = ATOM_nil;
-    gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRefG(gp);
-    gTop += 2;
-    LTrail(p);
-  } else
-  { gp = gTop;
-    gp[0] = ATOM_nil;
-    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
-    gTop += 1;
-    GTrail(p);
-  }
+  gp = link_attvar(PASS_LD1);
+  gp[1] = ATOM_nil;
+  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+  gTop += 2;
+  Trail(p, makeRefG(gp));
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SHIFT-SAFE: Requires 6 global + 1 trail
+SHIFT-SAFE: Requires 7 global + 1 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 put_new_attvar(Word p, atom_t name, Word value ARG_LD)
 { Word gp, at;
 
-  assert(gTop+6 <= gMax && tTop+1 <= tMax);
+  assert(gTop+7 <= gMax && tTop+1 <= tMax);
 
-  gp = gTop;
-  if ( p >= (Word)lBase )
-  { gTop += 6;
-    at = &gp[1];
-    setVar(*at);
-    gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRefG(&gp[0]);
-    LTrail(p);
-  } else
-  { gTop += 5;
-    at = &gp[0];
-    setVar(*at);
-    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
-    GTrail(p);
-  }
+  gp = link_attvar(PASS_LD1);
+  gTop += 6;
+  at = &gp[1];
+  setVar(*at);
+  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
 
   at[1] = FUNCTOR_att3;
   at[2] = name;
   at[3] = linkVal(value);
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
+
+  Trail(p, makeRefG(&gp[0]));
 }
 
 
@@ -650,7 +658,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);			/* SHIFT: 2+0 */
+  { make_new_attvar(av PASS_LD);			/* SHIFT: 3+0 */
     deRef(av);
   } else if ( !isAttVar(*av) )
   { return PL_error("put_attrs", 2, NULL, ERR_UNINSTANTIATION, 1, A1);
