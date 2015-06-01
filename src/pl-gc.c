@@ -1141,20 +1141,6 @@ slotsInFrame(LocalFrame fr, Code PC)
 }
 
 
-static inline void
-check_call_residue(LocalFrame fr ARG_LD)
-{
-#ifdef O_CALL_RESIDUE
-  if ( fr->predicate == PROCEDURE_call_residue_vars2->definition )
-  { if ( !LD->gc.marked_attvars )
-    { mark_attvars();
-      LD->gc.marked_attvars = TRUE;
-    }
-  }
-#endif
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If multiple TrailAssignment() calls happen on  the same address within a
 choicepoint we only need to keep the  first. Therefore we scan the trail
@@ -1889,7 +1875,6 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
         if ( false(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
 	  COUNT(marked_envs);
-	  check_call_residue(fr PASS_LD);
 	  mark_environments(state, fr->parent, fr->programPointer PASS_LD);
 	}
 	break;
@@ -1948,7 +1933,6 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       state.flags = GCM_CLEAR;
 
       COUNT(marked_envs);
-      check_call_residue(fr PASS_LD);
     } else
     { state.flags = 0;
     }

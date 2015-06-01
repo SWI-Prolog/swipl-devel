@@ -272,9 +272,6 @@ struct PL_global_data
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
 #endif
-#ifdef O_CALL_RESIDUE
-    Procedure	call_residue_vars2;	/* $attvar:call_residue_vars/2 */
-#endif
     Procedure   comment_hook3;		/* prolog:comment_hook/3 */
 
     SourceFile  reloading;		/* source file we are re-loading */
