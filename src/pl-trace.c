@@ -2433,7 +2433,8 @@ sendDelayedEvents(void)
 
 int
 PL_call_event_hook(pl_event_type ev, ...)
-{ if ( PROCEDURE_event_hook1->definition->impl.any )
+{ if ( PROCEDURE_event_hook1->definition->impl.any &&
+       GD->cleaning != CLN_DATA )
   { GET_LD
     wakeup_state wstate;
     int rc;
