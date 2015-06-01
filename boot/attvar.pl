@@ -188,18 +188,21 @@ portray_attr(Name, Value, Var) :-
 
 call_residue_vars(Goal, Vars) :-
 	prolog_current_choice(Chp),
-	call_det(Goal, Det),
-        '$attvars_after_choicepoint'(Chp, Vars),
+	setup_call_cleanup(
+	    '$call_residue_vars_start',
+	    run_crv(Goal, Chp, Vars, Det),
+	    '$call_residue_vars_end'),
 	(   Det == true
 	->  !
 	;   true
 	).
-call_residue_vars(_,_) :-
+call_residue_vars(_, _) :-
 	fail.
 
-call_det(Goal, Det) :-
-	Goal,
-	deterministic(Det).
+run_crv(Goal, Chp, Vars, Det) :-
+	call(Goal),
+	deterministic(Det),
+        '$attvars_after_choicepoint'(Chp, Vars).
 
 %%	copy_term(+Term, -Copy, -Gs) is det.
 %

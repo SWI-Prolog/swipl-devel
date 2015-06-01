@@ -1265,6 +1265,24 @@ grow:
   goto retry;
 }
 
+static
+PRED_IMPL("$call_residue_vars_start", 0, call_residue_vars_start, 0)
+{ PRED_LD
+
+  LD->attvar.call_residue_vars_count++;
+  return TRUE;
+}
+
+static
+PRED_IMPL("$call_residue_vars_end", 0, call_residue_vars_end, 0)
+{ PRED_LD
+
+  assert(LD->attvar.call_residue_vars_count>0);
+  LD->attvar.call_residue_vars_count--;
+
+  return TRUE;
+}
+
 #endif /*O_CALL_RESIDUE*/
 
 
@@ -1285,6 +1303,8 @@ BeginPredDefs(attvar)
   PRED_DEF("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 #ifdef O_CALL_RESIDUE
   PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
+  PRED_DEF("$call_residue_vars_start", 0, call_residue_vars_start, 0)
+  PRED_DEF("$call_residue_vars_end", 0, call_residue_vars_end, 0)
 #endif
 EndPredDefs
 
