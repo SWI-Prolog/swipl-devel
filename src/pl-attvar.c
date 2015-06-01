@@ -1208,14 +1208,18 @@ PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 { PRED_LD
   intptr_t off;
   Choice ch;
-  Word gp, gend, list, tailp;
+  Word p, next, gend, list, tailp;
 
   if ( !PL_get_intptr_ex(A1, &off) )
     return FALSE;
+
 retry:
   ch = (Choice)((Word)lBase+off);
   if ( !existingChoice(ch PASS_LD) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, A1);
+
+  if ( !LD->attvar.attvars )
+    return PL_unify_nil(A2);
 
   list = tailp = allocGlobalNoShift(1);
   if ( !list )
@@ -1224,15 +1228,19 @@ retry:
 
   scan_trail(TRUE);
 
-  for(gp=gBase, gend = gTop; gp<gend; gp += offset_cell(gp)+1)
-  { if ( isAttVar(*gp) &&
-	 !is_marked(gp) &&
-	 has_attributes_after(gp, ch PASS_LD) )
+  gend = gTop;
+  for(p=LD->attvar.attvars; p; p=next)
+  { Word pav = p+1;
+    next = isRef(*p) ? unRef(*p) : NULL;
+
+    if ( isAttVar(*pav) &&
+	 !is_marked(pav) &&
+	 has_attributes_after(pav, ch PASS_LD) )
     { Word p = allocGlobalNoShift(3);
 
       if ( p )
       { p[0] = FUNCTOR_dot2;
-	p[1] = makeRefG(gp);
+	p[1] = makeRefG(pav);
 	setVar(p[2]);
 	*tailp = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	tailp = &p[2];
