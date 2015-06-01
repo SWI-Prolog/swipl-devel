@@ -2259,9 +2259,8 @@ pointer reversal in the relocation chains uniform.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-tag_trail()
-{ GET_LD
-  TrailEntry te;
+tag_trail(ARG1_LD)
+{ TrailEntry te;
 
   for( te = tTop; --te >= tBase; )
   { Word p = te->address;
@@ -2288,19 +2287,84 @@ tag_trail()
 
 
 static void
-untag_trail()
-{ GET_LD
-  TrailEntry te;
+untag_trail(ARG1_LD)
+{ TrailEntry te;
 
   for(te = tBase; te < tTop; te++)
   { if ( te->address )
     { word mask = ttag(te->address);
 
       te->address = (Word)((word)valPtr((word)te->address)|mask);
+#ifdef O_ATTVAR
+      if ( isTrailVal(te->address) )
+      { word w = trailVal(te->address);
+
+	if ( isAttVar(w) )
+	{ Word avp = te[-1].address;
+
+	  if ( !isAttVar(*avp) )
+	    *(avp) |= MARK_MASK;
+	}
+      }
+#endif
     }
   }
 }
 
+#ifdef O_ATTVAR
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Remove dead cells from the attvar  administration.   This  is a chain of
+variable references located just below each attvar. An attvar is dead if
+the value is no longer a TAG_ATTVAR   reference  and there is no trailed
+assignment for it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+is_dead_attvar(Word p ARG_LD)
+{ word w = *p;
+
+  if ( isAttVar(w) )
+    return FALSE;
+  if ( (w & MARK_MASK) )
+  { *p = (w & ~MARK_MASK);
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static void
+clean_attvar_chain(ARG1_LD)
+{ Word p, last = NULL, next;
+#ifdef O_DEBUG
+  size_t cleaned = 0;
+#endif
+
+  for(p = LD->attvar.attvars; p; p = next)
+  { Word avp  = p+1;
+
+    next = isRef(*p) ? unRef(*p) : NULL;
+
+    if ( is_dead_attvar(avp PASS_LD) )
+    { if ( last )
+	*last = *p;
+      else
+	LD->attvar.attvars = next;
+#ifdef O_DEBUG
+      cleaned++;
+#endif
+    } else
+      last = p;
+  }
+
+  DEBUG(MSG_ATTVAR_LINK,
+	if ( cleaned )
+	  Sdprintf("Cleaned %ld attvars\n", cleaned));
+}
+
+#endif /*ATTVAR*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make a hole. This is used by functions   doing a scan on the global data
@@ -3844,7 +3908,7 @@ garbageCollect(void)
   gvars = gvars_to_term_refs(&saved_bar_at);
   save_grefs(PASS_LD1);
   DEBUG(CHK_SECURE, check_foreign());
-  tag_trail();
+  tag_trail(PASS_LD1);
   mark_phase(&state);
   tgar = trailcells_deleted * sizeof(struct trail_entry);
   ggar = (gTop - gBase - total_marked) * sizeof(word);
@@ -3854,10 +3918,11 @@ garbageCollect(void)
 
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting trail\n"));
   compact_trail();
-
   collect_phase(&state, saved_bar_at);
-  untag_trail();
   restore_grefs(PASS_LD1);
+  untag_trail(PASS_LD1);
+  clean_attvar_chain(PASS_LD1);
+
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
 
