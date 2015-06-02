@@ -5936,40 +5936,44 @@ cumulative(Tasks, Options) :-
         ;   domain_error(cumulative_options_empty_or_limit, Options)
         ),
         (   Tasks = [] -> true
-        ;   maplist(task_bs, Tasks, Bss),
+        ;   fully_elastic_relaxation(Tasks, L),
+            maplist(task_bs, Tasks, Bss),
             maplist(arg(1), Tasks, Starts),
             maplist(fd_inf, Starts, MinStarts),
             maplist(arg(3), Tasks, Ends),
             maplist(fd_sup, Ends, MaxEnds),
             min_list(MinStarts, Start),
             max_list(MaxEnds, End),
-            min_end_time(Tasks, L, Start),
             resource_limit(Start, End, Tasks, Bss, L)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Naive lower bound for global end time, assuming no gaps.
+   Trivial lower and upper bounds, assuming no gaps and not necessarily
+   retaining the rectangular shape of each task.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-min_end_time(Tasks, Limit, Start) :-
+fully_elastic_relaxation(Tasks, Limit) :-
         maplist(task_duration_consumption, Tasks, Ds, Cs),
         maplist(area, Ds, Cs, As),
         sum(As, #=, ?(Area)),
         ?(MinTime) #= (Area + Limit - 1) // Limit,
-        tasks_all_done(Tasks, DoneTime),
-        DoneTime #>= Start + MinTime.
+        tasks_minstart_maxend(Tasks, MinStart, MaxEnd),
+        MaxEnd #>= MinStart + MinTime.
 
 task_duration_consumption(task(_,D,_,C,_), D, C).
 
 area(X, Y, Area) :- ?(Area) #= ?(X) * ?(Y).
 
-tasks_all_done(Tasks, End) :-
-        maplist(task_end, Tasks, [End0|Es]),
-        foldl(max_, Es, End0, End).
+tasks_minstart_maxend(Tasks, Start, End) :-
+        maplist(task_start_end, Tasks, [Start0|Starts], [End0|Ends]),
+        foldl(min_, Starts, Start0, Start),
+        foldl(max_, Ends, End0, End).
 
 max_(E, M0, M) :- ?(M) #= max(E, M0).
 
-task_end(task(_,_,End,_,_), ?(End)).
+min_(E, M0, M) :- ?(M) #= min(E, M0).
+
+task_start_end(task(Start,_,End,_,_), ?(Start), ?(End)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    All time slots must respect the resource limit.
