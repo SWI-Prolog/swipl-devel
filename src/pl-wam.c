@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -1208,9 +1208,10 @@ TrailAssignment__LD(Word p ARG_LD)
 }
 
 
+#ifdef O_ATTVAR
 static void
-reclaim_attvars(ARG1_LD)
-{ while ( LD->attvar.attvars > gTop )
+reclaim_attvars(Word after ARG_LD)
+{ while ( LD->attvar.attvars >= after )
   { word w = *LD->attvar.attvars;
 
     if ( isVar(w) )
@@ -1219,6 +1220,7 @@ reclaim_attvars(ARG1_LD)
       LD->attvar.attvars = unRef(w);
   }
 }
+#endif
 
 
 static inline void
@@ -1241,15 +1243,12 @@ __do_undo(mark *m ARG_LD)
   tTop = mt;
   if ( LD->frozen_bar > m->globaltop )
   { DEBUG(CHK_SECURE, assert(gTop >= LD->frozen_bar));
+    reclaim_attvars(LD->frozen_bar PASS_LD);
     gTop = LD->frozen_bar;
   } else
-  { gTop = m->globaltop;
+  { reclaim_attvars(m->globaltop PASS_LD);
+    gTop = m->globaltop;
   }
-
-#ifdef O_ATTVAR
-  if ( LD->attvar.attvars )
-    reclaim_attvars(PASS_LD1);
-#endif
 }
 
 
