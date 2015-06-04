@@ -79,7 +79,7 @@ MAKE='make --jobs=4'
 if [ "`uname`" = Darwin ]; then
   export LIBRARY_PATH=/usr/lib:/opt/local/lib
   export CPATH=/usr/include:/opt/local/include:/opt/X11/include
-  export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
+  export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig:/opt/X11/lib/pkgconfig
   if [ -f "$JAVA_HOME/bin/java" ]; then
     export JAVAPREFIX="$JAVA_HOME/bin"
   elif [ -f /Library/Java/Home/bin/java ]; then

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -326,6 +326,112 @@ PRED_IMPL("plus", 3, plus, 0)
   return rc;
 }
 
+		 /*******************************
+		 *	 BIGNUM FUNCTIONS	*
+		 *******************************/
+
+#ifdef O_GMP
+
+static int
+get_mpz(term_t t, Number n ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isInteger(*p) )
+  { get_integer(*p, n);
+    promoteToMPZNumber(n);
+
+    return TRUE;
+  }
+
+  return PL_type_error("integer", t);
+}
+
+
+/**
+ * divmod(+Dividend, +Divisor, -Quotient, -Remainder)
+ *
+ * Defined as
+ *
+ *   - Quotient  is div(Dividend, Divisor)
+ *   - Remainder is mod(Dividend, Divisor)
+ */
+
+static
+PRED_IMPL("divmod", 4, divmod, 0)
+{ PRED_LD
+  number N = {V_INTEGER}, D = {V_INTEGER};
+  int rc = FALSE;
+
+  if ( get_mpz(A1, &N PASS_LD) &&
+       get_mpz(A2, &D PASS_LD) )
+  { if ( mpz_sgn(D.value.mpz) != 0 )
+    { number Q = {V_MPZ}, R = {V_MPZ};
+
+      mpz_init(R.value.mpz);
+      mpz_init(Q.value.mpz);
+      mpz_fdiv_qr(Q.value.mpz, R.value.mpz, N.value.mpz, D.value.mpz);
+      rc = ( PL_unify_number(A3, &Q) &&
+	     PL_unify_number(A4, &R)
+	   );
+      clearNumber(&R);
+      clearNumber(&Q);
+    } else
+    { rc = PL_error("divmod", 2, NULL, ERR_DIV_BY_ZERO);
+    }
+  }
+
+  clearNumber(&N);
+  clearNumber(&D);
+
+  return rc;
+}
+
+/**
+ * nth_integer_root_and_remainder(+N, +I, -Root, -Remainder)
+ */
+
+static
+PRED_IMPL("nth_integer_root_and_remainder", 4,
+	  nth_integer_root_and_remainder, 0)
+{ PRED_LD
+  number N = {V_INTEGER};
+  long I;
+  int rc = FALSE;
+
+  if ( PL_get_long_ex(A1, &I) &&
+       get_mpz(A2, &N PASS_LD) )
+  { if ( I >= 1 )
+    { number root = {V_MPZ};
+      number rem = {V_MPZ};
+
+      if ( mpz_sgn(N.value.mpz) < 0 &&
+	   I % 2 == 0 )
+      { rc = PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+	goto out;
+      }
+
+      mpz_init(root.value.mpz);
+      mpz_init(rem.value.mpz);
+      mpz_rootrem(root.value.mpz, rem.value.mpz,
+		  N.value.mpz, (unsigned long)I);
+      rc = ( PL_unify_number(A3, &root) &&
+	     PL_unify_number(A4, &rem)
+	   );
+      clearNumber(&root);
+      clearNumber(&rem);
+    } else
+    { rc = PL_domain_error("not_less_than_one", A1);
+    }
+  }
+
+out:
+  clearNumber(&N);
+
+  return rc;
+}
+
+#endif /*O_GMP*/
 
 		/********************************
 		*           COMPARISON          *
@@ -2522,6 +2628,74 @@ ar_popcount(Number n1, Number r)
   }
 }
 
+/* bit(I,K) is the K-th bit of I
+*/
+
+#define MP_BITCNT_T_MIN 0
+#define MP_BITCNT_T_MAX (~(mp_bitcnt_t)0)
+
+static int
+ar_getbit(Number I, Number K, Number r)
+{ mp_bitcnt_t bit;
+
+  if ( !toIntegerNumber(I, 0) )
+    return PL_error("bit", 2, NULL, ERR_AR_TYPE, ATOM_integer, I);
+  if ( !toIntegerNumber(K, 0) )
+    return PL_error("bit", 2, NULL, ERR_AR_TYPE, ATOM_integer, K);
+
+  switch(K->type)
+  { case V_INTEGER:
+      if ( K->value.i < 0 )
+	return notLessThanZero("bit", 2, K);
+      if ( sizeof(mp_bitcnt_t) < 8 &&
+	   K->value.i > MP_BITCNT_T_MAX )
+      { too_large:
+	r->value.i = 0;
+	r->type    = V_INTEGER;
+	return TRUE;
+      }
+      bit = K->value.i;
+      break;
+#ifdef O_GMP
+    case V_MPZ:
+      if ( mpz_sgn(K->value.mpz) < 0 )
+	return notLessThanZero("bit", 2, K);
+      if ( mpz_cmp_ui(K->value.mpz, MP_BITCNT_T_MAX) > 0 )
+	goto too_large;
+      bit = mpz_get_ui(K->value.mpz);
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  if ( bit < 0 )
+    return notLessThanZero("bit", 2, K);
+
+  switch(I->type)
+  { case V_INTEGER:
+      if (  I->value.i < 0 )
+	return notLessThanZero("bit", 2, I);
+
+      if ( bit >= 8*sizeof(I->value.i) )
+	goto too_large;
+      r->value.i = (I->value.i & ((int64_t)1<<bit)) != 0;
+      r->type    = V_INTEGER;
+      return TRUE;
+#ifdef O_GMP
+    case V_MPZ:
+      if ( mpz_sgn(I->value.mpz) < 0 )
+	return notLessThanZero("bit", 2, I);
+
+      r->value.i = mpz_tstbit(I->value.mpz, bit);
+      r->type = V_INTEGER;
+      return TRUE;
+#endif
+    default:
+      assert(0);
+      fail;
+  }
+}
 
 
 static int
@@ -3258,12 +3432,27 @@ ar_cputime(Number r)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) valueExpression() cannot use GC, but can return a number whose value
+is a GPM number pointing at  the  global   stack.  If  this is the case,
+PL_unify_number() may not invoke GC, so we  must check that we have room
+for the required attribute wakeup and trailing before we start.
+
+is/2 is the  only  victim  of  this   issue,  as  the  other  arithmetic
+predicates (>/2, etc.) only use their arguments as inputs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static
 PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
 { PRED_LD
   AR_CTX
   number arg;
   int rc;
+
+  if ( !hasGlobalSpace(0) )		/* see (*) */
+  { if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   AR_BEGIN();
 
@@ -3409,6 +3598,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_msb1,		ar_msb, 0),
   ADD(FUNCTOR_lsb1,		ar_lsb, 0),
   ADD(FUNCTOR_popcount1,	ar_popcount, 0),
+  ADD(FUNCTOR_getbit2,		ar_getbit, 0),
   ADD(FUNCTOR_powm3,		ar_powm, 0),
 
   ADD(FUNCTOR_eval1,		ar_eval, 0)
@@ -3626,6 +3816,11 @@ BeginPredDefs(arith)
   PRED_DEF("succ", 2, succ, 0)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
+#ifdef O_GMP
+  PRED_DEF("divmod", 4, divmod, 0)
+  PRED_DEF("nth_integer_root_and_remainder", 4,
+	   nth_integer_root_and_remainder, 0)
+#endif
   PRED_DEF("set_random", 1, set_random, 0)
 #ifdef O_RANDOM_STATE
   PRED_DEF("random_property", 1, random_property, 0)

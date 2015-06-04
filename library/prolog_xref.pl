@@ -742,12 +742,14 @@ assert_comment(mode(Head, Det), Src) :-
 
 pi_to_head(PI, Src, Head) :-
 	pi_to_head(PI, Head0),
-	strip_module(Head0, M, Plain),
-	(   xmodule(M, Src)
-	->  Head = Plain
-	;   Head = M:Plain
+	(   Head0 = _:_
+	->  strip_module(Head0, M, Plain),
+	    (   xmodule(M, Src)
+	    ->  Head = Plain
+	    ;   Head = M:Plain
+	    )
+	;   Head = Head0
 	).
-
 :- endif.
 
 %%	xref_comment(?Source, ?Title, ?Comment) is nondet.
@@ -1025,6 +1027,7 @@ xref_meta(call_cleanup(A, B),	[A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
 xref_meta(setup_call_cleanup(A, B, C),[A, B, C]).
 xref_meta(setup_call_catcher_cleanup(A, B, _, C),[A, B, C]).
+xref_meta(call_residue_vars(A,_), [A]).
 xref_meta(with_mutex(_,A),	[A]).
 xref_meta(assume(G),		[G]).	% library(debug)
 xref_meta(assertion(G),		[G]).	% library(debug)

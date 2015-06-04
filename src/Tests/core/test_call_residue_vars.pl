@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 2008-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -45,14 +44,28 @@ test(freeze_oi, [true(Vars == [X])]) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(freeze(X, fail), Vars).
-test(nogc, [true(Vars = [_])]) :-
+test(nogc, Vars = [_]) :-
 	call_residue_vars(gc_able, Vars).
-test(gc, [true(Vars = [_])]) :-
+test(gc, Vars = [_]) :-
 	call_residue_vars((gc_able, garbage_collect), Vars).
+test(gc2, Vars = [_]) :-
+	call_residue_vars(gc_able2_gc, Vars).
+test(modify, Vars == [X]) :-
+	put_attr(X, a, 1),
+	call_residue_vars(put_attr(X, a, 2), Vars).
 test(trail, [all(Vars == [[]])]) :-
 	G=(freeze(X,X=1),X=1),
 	call_residue_vars(G,Vars),
 	(true;Vars=[2]).
+test(frozen_stacks, Vars == []) :-
+	x(X),
+	call_residue_vars(
+	    (	put_attr(X, a, 1),
+		nb_setval(x, a(b)),
+		fail
+	    ;   true
+	    ),
+	    Vars).
 
 x(_).					% avoid singleton warnings
 
@@ -62,5 +75,9 @@ gc_able :-
 gc_able2 :-
 	x(X),
 	freeze(X, fail).
+
+gc_able2_gc :-
+        freeze(X, writeln(X)),
+        garbage_collect.
 
 :- end_tests(call_residue_vars).

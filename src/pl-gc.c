@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemake@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -96,6 +96,22 @@ performance degradation, but for the moment is worth this I think.
 If the CHK_SECURE prolog_debug flag  is set  some  additional  expensive
 consistency checks that need considerable amounts of memory and cpu time
 are added. Garbage collection gets about 3-4 times as slow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+call_residue_vars(:Goal,  -Vars)  should  avoid  that  the  attvars  are
+reclaimed by GC. Unfortunately, mark_attvars() is broken because:
+
+  - Seems there is something wrong calling mark_variable() directly on
+    the pointer.  This can be fixed, worst case by using a temporary
+    term reference.
+  - We also need to sweep.  There is no good place to do that.
+
+A solution would be to reference the  attvars from term references, just
+like global variables. The problem is that we do not know how many there
+are and computing that upfront is rather expensive.
+
+For now, we disable trying to rescue attvars from GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -803,6 +819,28 @@ mark_term_refs()
 }
 
 
+static void
+save_grefs(ARG1_LD)
+{
+#ifdef O_ATTVAR
+  if ( LD->attvar.attvars )
+  { *valTermRef(LD->attvar.gc_attvars) = makeRefG(LD->attvar.attvars);
+  }
+#endif
+}
+
+static void
+restore_grefs(ARG1_LD)
+{
+#ifdef O_ATTVAR
+  if ( LD->attvar.attvars )
+  { LD->attvar.attvars = unRef(*valTermRef(LD->attvar.gc_attvars));
+    setVar(*valTermRef(LD->attvar.gc_attvars));
+  }
+#endif
+}
+
+
 #ifdef O_GVAR
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -990,18 +1028,53 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
 
 
 #ifdef O_CALL_RESIDUE
-static void
-mark_attvars()
-{ GET_LD
-  Word gp;
+static size_t
+count_need_protection_attvars(ARG1_LD)
+{ Word p, next;
+  size_t attvars = 0;
 
-  for( gp = gBase; gp < gTop; gp += (offset_cell(gp)+1) )
-  { if ( isAttVar(*gp) && !is_marked(gp) )
-    { DEBUG(MSG_GC_MARK_ATTVAR, Sdprintf("mark_attvars(): marking %p\n", gp));
-      mark_variable(gp PASS_LD);
-    }
+  for(p=LD->attvar.attvars; p; p = next)
+  { Word avp = p+1;
+
+    next = isRef(*p) ? unRef(*p) : NULL;
+    if ( isAttVar(*avp) )
+      attvars++;
   }
+
+  return attvars;
 }
+
+static fid_t
+link_attvars(ARG1_LD)
+{ if ( LD->attvar.call_residue_vars_count &&
+       LD->attvar.attvars )
+  { fid_t fid = PL_open_foreign_frame();
+    Word p, next;
+
+    for(p=LD->attvar.attvars; p; p = next)
+    { Word avp = p+1;
+
+      next = isRef(*p) ? unRef(*p) : NULL;
+      if ( isAttVar(*avp) )
+      { term_t t = PL_new_term_ref_noshift();
+
+	assert(t);
+	*valTermRef(t) = makeRefG(avp);
+      }
+    }
+
+    return fid;
+  } else
+    return 0;
+}
+
+static void
+restore_attvars(fid_t attvars ARG_LD)
+{ if ( attvars )
+    PL_close_foreign_frame(attvars);
+}
+
+
 #endif /*O_CALL_RESIDUE*/
 
 
@@ -1093,20 +1166,6 @@ slotsInFrame(LocalFrame fr, Code PC)
     return def->functor->arity;
 
   return fr->clause->value.clause->prolog_vars;
-}
-
-
-static inline void
-check_call_residue(LocalFrame fr ARG_LD)
-{
-#ifdef O_CALL_RESIDUE
-  if ( fr->predicate == PROCEDURE_call_residue_vars2->definition )
-  { if ( !LD->gc.marked_attvars )
-    { mark_attvars();
-      LD->gc.marked_attvars = TRUE;
-    }
-  }
-#endif
 }
 
 
@@ -1844,7 +1903,6 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
         if ( false(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
 	  COUNT(marked_envs);
-	  check_call_residue(fr PASS_LD);
 	  mark_environments(state, fr->parent, fr->programPointer PASS_LD);
 	}
 	break;
@@ -1903,7 +1961,6 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       state.flags = GCM_CLEAR;
 
       COUNT(marked_envs);
-      check_call_residue(fr PASS_LD);
     } else
     { state.flags = 0;
     }
@@ -2214,9 +2271,8 @@ pointer reversal in the relocation chains uniform.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-tag_trail()
-{ GET_LD
-  TrailEntry te;
+tag_trail(ARG1_LD)
+{ TrailEntry te;
 
   for( te = tTop; --te >= tBase; )
   { Word p = te->address;
@@ -2243,19 +2299,84 @@ tag_trail()
 
 
 static void
-untag_trail()
-{ GET_LD
-  TrailEntry te;
+untag_trail(ARG1_LD)
+{ TrailEntry te;
 
   for(te = tBase; te < tTop; te++)
   { if ( te->address )
     { word mask = ttag(te->address);
 
       te->address = (Word)((word)valPtr((word)te->address)|mask);
+#ifdef O_ATTVAR
+      if ( isTrailVal(te->address) )
+      { word w = trailVal(te->address);
+
+	if ( isAttVar(w) )
+	{ Word avp = te[-1].address;
+
+	  if ( !isAttVar(*avp) )
+	    *(avp) |= MARK_MASK;
+	}
+      }
+#endif
     }
   }
 }
 
+#ifdef O_ATTVAR
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Remove dead cells from the attvar  administration.   This  is a chain of
+variable references located just below each attvar. An attvar is dead if
+the value is no longer a TAG_ATTVAR   reference  and there is no trailed
+assignment for it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+is_dead_attvar(Word p ARG_LD)
+{ word w = *p;
+
+  if ( isAttVar(w) )
+    return FALSE;
+  if ( (w & MARK_MASK) )
+  { *p = (w & ~MARK_MASK);
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static void
+clean_attvar_chain(ARG1_LD)
+{ Word p, last = NULL, next;
+#ifdef O_DEBUG
+  size_t cleaned = 0;
+#endif
+
+  for(p = LD->attvar.attvars; p; p = next)
+  { Word avp  = p+1;
+
+    next = isRef(*p) ? unRef(*p) : NULL;
+
+    if ( is_dead_attvar(avp PASS_LD) )
+    { if ( last )
+	*last = *p;
+      else
+	LD->attvar.attvars = next;
+#ifdef O_DEBUG
+      cleaned++;
+#endif
+    } else
+      last = p;
+  }
+
+  DEBUG(MSG_ATTVAR_LINK,
+	if ( cleaned )
+	  Sdprintf("Cleaned %ld attvars\n", cleaned));
+}
+
+#endif /*ATTVAR*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make a hole. This is used by functions   doing a scan on the global data
@@ -3663,6 +3784,8 @@ gcEnsureSpace(vm_state *state ARG_LD)
     lneeded += sizeof(Word);
   if ( state->save_argp )
     lneeded += sizeof(struct fliFrame) + (aTop+1-aBase)*sizeof(word);
+  if ( LD->attvar.call_residue_vars_count && LD->attvar.attvars )
+    lneeded += sizeof(struct fliFrame) + count_need_protection_attvars(PASS_LD1);
 
   if ( (char*)lTop + lneeded > (char*)lMax )
   { if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )
@@ -3708,14 +3831,14 @@ int
 garbageCollect(void)
 { GET_LD
   vm_state state;
-  LocalFrame safeLTop;				/* include ARGP in body mode */
-  term_t preShiftLTop;				/* safe over trimStacks() (shift) */
+  LocalFrame safeLTop;			/* include ARGP in body mode */
+  term_t preShiftLTop;			/* safe over trimStacks() (shift) */
   intptr_t tgar, ggar;
   double t = ThreadCPUTime(LD, CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
   int no_mark_bar;
   int rc;
-  fid_t gvars, astack;
+  fid_t gvars, astack, attvars;
   Word *saved_bar_at;
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
@@ -3795,10 +3918,12 @@ garbageCollect(void)
   setVar(*gTop);	/* always one space; see initPrologStacks() */
   tTop->address = 0;	/* gMax-- and tMax-- */
 
+  attvars = link_attvars(PASS_LD1);
   astack = argument_stack_to_term_refs(&state);
   gvars = gvars_to_term_refs(&saved_bar_at);
+  save_grefs(PASS_LD1);
   DEBUG(CHK_SECURE, check_foreign());
-  tag_trail();
+  tag_trail(PASS_LD1);
   mark_phase(&state);
   tgar = trailcells_deleted * sizeof(struct trail_entry);
   ggar = (gTop - gBase - total_marked) * sizeof(word);
@@ -3808,11 +3933,14 @@ garbageCollect(void)
 
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting trail\n"));
   compact_trail();
-
   collect_phase(&state, saved_bar_at);
-  untag_trail();
+  restore_grefs(PASS_LD1);
+  untag_trail(PASS_LD1);
+  clean_attvar_chain(PASS_LD1);
+
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
+  restore_attvars(attvars, PASS_LD1);
 
   assert(LD->mark_bar <= gTop);
 
@@ -4329,6 +4457,9 @@ update_gvars(intptr_t gs)
 
   if ( LD->frozen_bar )
   { update_pointer(&LD->frozen_bar, gs);
+  }
+  if ( LD->attvar.attvars )
+  { update_pointer(&LD->attvar.attvars, gs);
   }
 }
 

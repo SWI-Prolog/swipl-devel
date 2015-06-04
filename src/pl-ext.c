@@ -51,8 +51,10 @@ Link all foreign language predicates.  The arguments to FRG are:
 
 Flags almost always is TRACE_ME.  Additional common flags:
 
-	P_TRANSPARENT		Predicate is module transparent
+	P_TRANSPARENT	Predicate is module transparent
 	P_NONDET	Predicate can be resatisfied
+
+Deprecated: the modern interface uses PRED_IMPL()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define NOTRACE PL_FA_NOTRACE
@@ -80,7 +82,6 @@ static const PL_extension foreigns[] = {
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
-  FRG("notrace",		1, pl_notrace1,		     META),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
   FRG("write_term",		2, pl_write_term,	 META|ISO),
@@ -461,10 +462,6 @@ initBuildIns(void)
   LOOKUPPROC(dc_call_prolog0);
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
-#endif
-#ifdef O_CALL_RESIDUE
-  PROCEDURE_call_residue_vars2  =
-	PL_predicate("call_residue_vars", 2, "$attvar");
 #endif
 #if O_DEBUGGER
   PROCEDURE_event_hook1 =

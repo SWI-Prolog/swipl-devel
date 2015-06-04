@@ -334,6 +334,10 @@ parameter style above (perhaps with asserting appl_config/2).
 		       suppress_empty_meta(boolean)
 		     ]).
 
+:- multifile
+	error:has_type/2,
+	parse_type/3.
+
 %%   opt_arguments(+OptsSpec, -Opts, -PositionalArgs) is det
 %
 %    Extract  commandline  options   according    to   a  specification.
@@ -690,8 +694,9 @@ invalidate_opts_spec(OptsSpec, ParseOptions) :-
                 context(validate_opts_spec/1, Msg)))
 
     %invalid if unknown type
-    ;    (memberchk(type(Type), OptSpec),
-          \+ member(Type, [boolean,integer,float,atom,term]))
+    ;   (   memberchk(type(Type), OptSpec),
+            \+ clause(error:has_type(Type,_), _)
+	)
     ->  format(atom(Msg), 'unknown type ''~w'' in option ''~w''', [Type, Name]),
         throw(error(type_error(flag_value, Type),
               context(validate_opts_spec/1, Msg)))
@@ -876,11 +881,15 @@ parse_loc(term, Cs, Result) :-
     atom_codes(A, Cs),
     term_to_atom(Result, A),
     !.
+parse_loc(Type, Cs, Result) :-
+    parse_type(Type, Cs, Result), !.
 parse_loc(Type, _Cs, _) :- %could not parse Cs as Type
     throw(error(type_error(flag_value, Type), _)), !. %}}}
 %}}}
 
-
+%%  parse_type(+Type, +Codes:list(code), -Result) is semidet.
+%
+%   Hook to parse option text Codes to an object of type Type.
 
 partition_args_([], [], []).
 partition_args_([opt(K,V)|Rest], [opt(K,V)|RestOpts], RestPos) :-

@@ -221,7 +221,9 @@ mpz_wsize(mpz_t mpz, size_t *s)
 
 static int
 globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
-{ if ( mpz->_mp_alloc )
+{ DEBUG(CHK_SECURE, assert(!onStackArea(global, at) && !onStackArea(local, at)));
+
+  if ( mpz->_mp_alloc )
   { Word p;
     size_t size;
     size_t wsz = mpz_wsize(mpz, &size);

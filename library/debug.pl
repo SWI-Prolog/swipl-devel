@@ -298,6 +298,9 @@ assertion(G) :-
 
 assertion_failed(Reason, G) :-
 	prolog:assertion_failed(Reason, G), !.
+assertion_failed(Reason, _) :-
+	assertion_rethrow(Reason), !,
+	throw(Reason).
 assertion_failed(Reason, G) :-
 	print_message(error, assertion_failed(Reason, G)),
 	backtrace(10),
@@ -307,6 +310,9 @@ assertion_failed(Reason, G) :-
 	).
 
 assertion_failed.
+
+assertion_rethrow(time_limit_exceeded).
+assertion_rethrow('$aborted').
 
 %%	assume(:Goal) is det.
 %

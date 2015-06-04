@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -272,9 +272,6 @@ struct PL_global_data
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
 #endif
-#ifdef O_CALL_RESIDUE
-    Procedure	call_residue_vars2;	/* $attvar:call_residue_vars/2 */
-#endif
     Procedure   comment_hook3;		/* prolog:comment_hook/3 */
 
     SourceFile  reloading;		/* source file we are re-loading */
@@ -402,6 +399,9 @@ struct PL_local_data
   struct
   { term_t	head;			/* Head of wakeup list */
     term_t	tail;			/* Tail of this list */
+    term_t	gc_attvars;		/* place for attvars during GC */
+    Word	attvars;		/* linked list of all attvars */
+    int		call_residue_vars_count; /* # call_residue_vars/2 active */
   } attvar;
 #endif
 

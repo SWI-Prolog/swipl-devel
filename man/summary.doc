@@ -203,6 +203,7 @@ suggest predicates from a keyword.
 \predicatesummary{dif}{2}{Constrain two terms to be different}
 \predicatesummary{directory_files}{2}{Get entries of a directory/folder}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
+\predicatesummary{divmod}{4}{Compute quotient and remainder of two integers}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
 \predicatesummary{duplicate_term}{2}{Create a copy of a term}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
@@ -412,6 +413,7 @@ suggest predicates from a keyword.
 \predicatesummary{notrace}{0}{Stop tracing}
 \predicatesummary{notrace}{1}{Do not debug argument goal}
 \predicatesummary{nth_clause}{3}{N-th clause of a predicate}
+\predicatesummary{nth_integer_root_and_remainder}{4}{Integer root and remainder}
 \predicatesummary{number}{1}{Type check for integer or float}
 \predicatesummary{number_chars}{2}{Convert between number and one-char atoms}
 \predicatesummary{number_codes}{2}{Convert between number and character codes}
@@ -772,6 +774,7 @@ suggest predicates from a keyword.
 \functionsummary{float_integer_part}{1}{Integer part of a float}
 \functionsummary{floor}{1}{Largest integer below argument}
 \functionsummary{gcd}{2}{Greatest common divisor}
+\functionsummary{getbit}{2}{Get bit at index from large integer}
 \functionsummary{integer}{1}{Round to nearest integer}
 \functionsummary{lgamma}{1}{Log of gamma function}
 \functionsummary{log}{1}{Natural logarithm}

@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 2004-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -35,6 +34,28 @@ This module defines basic attributed variable   support  as described in
 "Dynamic  attributes,  their  hProlog  implementation,    and   a  first
 evaluation" by Bart  Demoen,  Report   CW350,  October  2002, Katholieke
 Universiteit Leuven.
+
+An attributed is represented as a cell   pointing  with an TAG_ATTVAR to
+the linked list of attributes:
+
+
+  ----------
+  | refptr | <--- newer attvars <--- LD->attvar.attvars
+  ----------
+  | attvar | --\
+  ----------   | TAG_ATTVAR|STG_GLOBAL pointer
+  | att/3  | <-/
+  ----------
+  | name   |
+  ----------
+  | value  |
+  ----------
+  | <tail> |
+  ----------
+
+Binding the attvar places the new  value   in  <attvar>  using a trailed
+assignment. The attribute list remains   accessible  through the trailed
+assignment until this is GC'ed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_DEBUG
@@ -175,63 +196,90 @@ assignAttVar(Word av, Word value ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SHIFT-SAFE: Requires 2+0
+Link known attributes variables into a reference list.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Word
+link_attvar(ARG1_LD)
+{ Word gp = gTop;
+
+  if ( LD->attvar.attvars )
+  { *gp = makeRefG(LD->attvar.attvars);
+    DEBUG(MSG_ATTVAR_LINK,
+	  Sdprintf("Linking %p -> %p\n", gp, LD->attvar.attvars));
+  } else
+  { DEBUG(MSG_ATTVAR_LINK,
+	  Sdprintf("Attvar chain head at %p\n", gp));
+    setVar(*gp);
+  }
+
+  LD->attvar.attvars = gp++;
+  gTop = gp;
+
+  return gp;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The creation of an attributed variable is trailed if call_residue_vars/2
+is active. This is needed to avoid   that an attributed variable that is
+destroyed on backtracking (and thus should not be reported) survives due
+to a frozen stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+trail_new_attvar(Word p ARG_LD)
+{ if ( LD->attvar.call_residue_vars_count )
+  { tTop->address = p;
+    tTop++;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SHIFT-SAFE: Requires 3 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 make_new_attvar(Word p ARG_LD)
 { Word gp;
 
-  assert(gTop+2 <= gMax && tTop+1 <= tMax);
+  assert(gTop+3 <= gMax && tTop+1 <= tMax);
 
-  if ( p >= (Word)lBase )
-  { gp = gTop;
-    gp[1] = ATOM_nil;
-    gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRefG(gp);
-    gTop += 2;
-    LTrail(p);
-  } else
-  { gp = gTop;
-    gp[0] = ATOM_nil;
-    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
-    gTop += 1;
-    GTrail(p);
-  }
+  gp = link_attvar(PASS_LD1);
+  gp[1] = ATOM_nil;
+  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+  gTop += 2;
+
+  trail_new_attvar(gp PASS_LD);
+  Trail(p, makeRefG(gp));
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SHIFT-SAFE: Requires 6 global + 1 trail
+SHIFT-SAFE: Requires 7 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 put_new_attvar(Word p, atom_t name, Word value ARG_LD)
 { Word gp, at;
 
-  assert(gTop+6 <= gMax && tTop+1 <= tMax);
+  assert(gTop+7 <= gMax && tTop+1 <= tMax);
 
-  gp = gTop;
-  if ( p >= (Word)lBase )
-  { gTop += 6;
-    at = &gp[1];
-    setVar(*at);
-    gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRefG(&gp[0]);
-    LTrail(p);
-  } else
-  { gTop += 5;
-    at = &gp[0];
-    setVar(*at);
-    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
-    GTrail(p);
-  }
+  gp = link_attvar(PASS_LD1);
+  gTop += 6;
+  at = &gp[1];
+  setVar(*at);
+  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
 
   at[1] = FUNCTOR_att3;
   at[2] = name;
   at[3] = linkVal(value);
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
+
+  trail_new_attvar(gp PASS_LD);
+  Trail(p, makeRefG(&gp[0]));
 }
 
 
@@ -629,7 +677,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);			/* SHIFT: 2+0 */
+  { make_new_attvar(av PASS_LD);			/* SHIFT: 3+0 */
     deRef(av);
   } else if ( !isAttVar(*av) )
   { return PL_error("put_attrs", 2, NULL, ERR_UNINSTANTIATION, 1, A1);
@@ -738,7 +786,7 @@ PRED_IMPL("$freeze", 2, freeze, 0)
     deRef(goal);
 
     if ( isVar(*v) )
-    { put_new_attvar(v, ATOM_freeze, goal PASS_LD);	/* SHIFT: 6+1 */
+    { put_new_attvar(v, ATOM_freeze, goal PASS_LD);	/* SHIFT: 6+2 */
     } else
     { Word vp;
 
@@ -1077,113 +1125,113 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$new_choice_point(-Chp) is det.
+has_attributes_after(Word av, Choice  ch)  is   true  if  the attributed
+variable av has attributes created or modified after the choicepoint ch.
 
-Unify Chp with a reference to a new choicepoint.
+We compute this by marking  all   trailed  assignments  and scanning the
+attribute list for terms that are newer than the choicepoint or having a
+value that is changed due to a trailed assignment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-PRED_IMPL("$get_choice_point", 1, get_choice_point, 0)
-{ PRED_LD
-  Choice ch;
+static inline word
+get_value(Word p)
+{ return (*p) & ~MARK_MASK;
+}
 
-  for(ch=LD->choicepoints; ch; ch=ch->parent)
-  { if ( ch->type == CHP_CLAUSE )
-    { intptr_t off = (Word)ch - (Word)lBase;
+static Word
+deRefM(Word p, Word pv ARG_LD)
+{ for(;;)
+  { word w = get_value(p);
 
-      if ( PL_unify_integer(A1, off) )
-	succeed;
+    if ( isRef(w) )
+    { p = unRef(w);
+    } else
+    { *pv = w;
+      return p;
     }
   }
-
-  fail;
 }
 
-
-static inline size_t
-offset_cell(Word p)
-{ word m = *p;				/* was get_value(p) */
-  size_t offset;
-
-  if ( storage(m) == STG_LOCAL )
-    offset = wsizeofInd(m) + 1;
-  else
-    offset = 0;
-
-  return offset;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-has_attributes_after(Word av, Choice  ch)  is   true  if  the attributed
-variable av has attributes created after   the choicepoint ch. Note that
-the current implementation only deals with  attributes created after the
-ch or an attribute value  set  to   a  compound  term  created after the
-choicepoint ch.  Notably atomic value-changes are *not* tracked.
-
-1 ?- put_attr(X, a, 1), call_residue_vars(put_attr(X, a, 2), V).
-
-V = []
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 has_attributes_after(Word av, Choice ch ARG_LD)
 { Word l;
+  word w;
 
-  DEBUG(1, Sdprintf("has_attributes_after(%s, %p)\n",
-		    vName(av), ch->mark.globaltop));
+  DEBUG(MSG_CALL_RESIDUE_VARS,
+	{ char buf[64];
+	  Sdprintf("has_attributes_after(%s, %s)\n",
+		   vName(av), print_addr(ch->mark.globaltop, buf));
+	});
 
-  deRef(av);
-  assert(isAttVar(*av));
-  l = valPAttVar(*av);
+  av = deRefM(av, &w PASS_LD);
+  assert(isAttVar(w));
+  l = valPAttVar(w);
 
   for(;;)
-  { deRef(l);
+  { l = deRefM(l, &w PASS_LD);
 
-    if ( isNil(*l) )
+    if ( isNil(w) )
     { fail;
-    } else if ( isTerm(*l) )
-    { Functor f = valueTerm(*l);
+    } else if ( isTerm(w) )
+    { Functor f = valueTerm(w);
 
-      DEBUG(1, Sdprintf("\tterm at %p\n", f));
+      DEBUG(MSG_CALL_RESIDUE_VARS,
+	    { char buf[64];
+	      Sdprintf("  att/3 at %s\n", print_addr((Word)f, buf));
+	    });
 
       if ( (Word)f >= ch->mark.globaltop )
-	succeed;
+	return TRUE;			/* created after choice */
 
       if ( f->definition == FUNCTOR_att3 )
-      { if ( isTerm(f->arguments[1]) &&
-	     (Word)valueTerm(f->arguments[1]) >= ch->mark.globaltop )
-	  succeed;
+      { Word pv = &f->arguments[1];	/* pointer to value */
 
-	l = &f->arguments[2];
+	DEBUG(MSG_CALL_RESIDUE_VARS,
+	{ char buf1[64]; char buf2[64];
+	  Sdprintf("    value at %s: %s\n",
+		   print_addr(pv, buf1), print_val(*pv, buf2));
+	});
+
+	if ( is_marked(pv) )
+	  return TRUE;			/* modified after choice point */
+	(void)deRefM(pv, &w PASS_LD);
+	if ( isTerm(w) &&
+	     (Word)valueTerm(w) >= ch->mark.globaltop )
+	  return TRUE;			/* argument term after choice point */
+
+	l = pv+1;
       } else
       { DEBUG(0, Sdprintf("Illegal attvar\n"));
-	fail;
+	return FALSE;
       }
     } else
     { DEBUG(0, Sdprintf("Illegal attvar\n"));
-      fail;
+      return FALSE;
     }
   }
 }
 
 
 static void
-scan_trail(int set)
-{ GET_LD
-  TrailEntry te;
+scan_trail(Choice ch, int set ARG_LD)
+{ TrailEntry te, base;
 
-  for(te=tTop-1; te>=tBase; te--)
+  base = ch->mark.trailtop;
+
+  for(te=tTop-1; te>=base; te--)
   { if ( isTrailVal(te->address) )
-    { Word p = trailValP(te->address);
-
-      te--;
-      if ( isAttVar(*p) )
-      {	DEBUG(1, Sdprintf("Trailed attvar assignment at %p\n", p));
-	if ( set )
-	  *p |= MARK_MASK;
-	else
-	  *p &= ~MARK_MASK;
+    { te--;
+      if ( set )
+      { DEBUG(MSG_CALL_RESIDUE_VARS,
+	      { char buf1[64]; char buf2[64];
+		word old = trailVal(te[1].address);
+		Sdprintf("Mark %s (%s)\n",
+			 print_addr(p, buf1), print_val(old, buf2));
+	      });
+	*te->address |= MARK_MASK;
+      } else
+      { *te->address &= ~MARK_MASK;
       }
     }
   }
@@ -1203,46 +1251,50 @@ PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 { PRED_LD
   intptr_t off;
   Choice ch;
-  Word gp, gend, list, tailp;
+  Word p, next, gend, list, tailp;
+
+  if ( !PL_get_intptr_ex(A1, &off) )
+    return FALSE;
 
 retry:
-  if ( !PL_get_intptr_ex(A1, &off) )
-    fail;
-
   ch = (Choice)((Word)lBase+off);
+  if ( !existingChoice(ch PASS_LD) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, A1);
+
+  if ( !LD->attvar.attvars )
+    return PL_unify_nil(A2);
+
   list = tailp = allocGlobalNoShift(1);
   if ( !list )
     goto grow;
   setVar(*list);
 
-  startCritical;
-  scan_trail(TRUE);
+  scan_trail(ch, TRUE PASS_LD);
 
-  for(gp=gBase, gend = gTop; gp<gend; gp += offset_cell(gp)+1)
-  { if ( isAttVar(*gp) &&
-	 !is_marked(gp) &&
-	 has_attributes_after(gp, ch PASS_LD) )
+  gend = gTop;
+  for(p=LD->attvar.attvars; p; p=next)
+  { Word pav = p+1;
+    next = isRef(*p) ? unRef(*p) : NULL;
+
+    if ( isAttVar(*pav) &&
+	 has_attributes_after(pav, ch PASS_LD) )
     { Word p = allocGlobalNoShift(3);
 
       if ( p )
       { p[0] = FUNCTOR_dot2;
-	p[1] = makeRefG(gp);
+	p[1] = makeRefG(pav);
 	setVar(p[2]);
 	*tailp = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	tailp = &p[2];
       } else
       { gTop = gend;
-	scan_trail(FALSE);
-	if ( !endCritical )
-	  return FALSE;
+	scan_trail(ch, FALSE PASS_LD);
 	goto grow;
       }
     }
   }
 
-  scan_trail(FALSE);
-  if ( !endCritical )
-    return FALSE;
+  scan_trail(ch, FALSE PASS_LD);
 
   if ( list == tailp )
   { gTop = gend;
@@ -1261,6 +1313,24 @@ grow:
   if ( !makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_SHIFT|ALLOW_GC) )
     return FALSE;
   goto retry;
+}
+
+static
+PRED_IMPL("$call_residue_vars_start", 0, call_residue_vars_start, 0)
+{ PRED_LD
+
+  LD->attvar.call_residue_vars_count++;
+  return TRUE;
+}
+
+static
+PRED_IMPL("$call_residue_vars_end", 0, call_residue_vars_end, 0)
+{ PRED_LD
+
+  assert(LD->attvar.call_residue_vars_count>0);
+  LD->attvar.call_residue_vars_count--;
+
+  return TRUE;
 }
 
 #endif /*O_CALL_RESIDUE*/
@@ -1282,8 +1352,9 @@ BeginPredDefs(attvar)
   PRED_DEF("$eval_when_condition", 2, eval_when_condition, 0)
   PRED_DEF("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 #ifdef O_CALL_RESIDUE
-  PRED_DEF("$get_choice_point", 1, get_choice_point, 0)
   PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
+  PRED_DEF("$call_residue_vars_start", 0, call_residue_vars_start, 0)
+  PRED_DEF("$call_residue_vars_end", 0, call_residue_vars_end, 0)
 #endif
 EndPredDefs
 

@@ -324,19 +324,13 @@ Such programs should fail, but sometimes succeed because the constraint
 solver is too weak to detect the contradiction. Ideally, delayed goals
 and constraints are all executed at the end of the computation. The meta
 predicate call_residue_vars/2 finds variables that are given attribute
-variables or whose attributes are modified%
-	\footnote{Tracking modifications is currently not complete and
-		  this feature may be dropped completely in future
-		  versions.}
-by \arg{Goal}, regardless of whether or not these variables are reachable
-from the arguments of \arg{Goal}.
-
-The predicate has considerable implications. During the execution of
-\arg{Goal}, the garbage collector does not reclaim attributed variables.
-This causes some degradation of GC performance. In a well-behaved
-program there are no such variables, so the space impact is generally
-minimal. The actual collection of \arg{Vars} is implemented using a scan
-of the trail and global stacks.
+variables or whose attributes are modified by \arg{Goal}, regardless of
+whether or not these variables are reachable from the arguments of
+\arg{Goal}.\footnote{The implementation of call_residue_vars/2 is
+completely redone in version 7.3.2 (7.2.1) after discussion with Bart
+Demoen. The current implementation no longer performs full scans of the
+stacks. The overhead is proportional to the number of attributed
+variables on the stack, dead or alive.}.
 \end{description}
 
 

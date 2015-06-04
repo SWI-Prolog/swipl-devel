@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -215,18 +214,22 @@ currentBreakLevel(void)
 }
 
 
-word
-pl_notrace1(term_t goal)
-{ GET_LD
-  bool rval;
+static
+PRED_IMPL("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
+{ PRED_LD
+  int rval;
+  term_t ex;
 
   uintptr_t  skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
 
-  rval = callProlog(NULL, goal, PL_Q_NODEBUG, NULL);
+  rval = callProlog(NULL, A1, PL_Q_CATCH_EXCEPTION|PL_Q_NODEBUG, &ex);
 
   debugstatus.skiplevel    = skipSave;
   debugstatus.tracing      = traceSave;
+
+  if ( !rval && ex )
+    return PL_raise_exception(ex);
 
   return rval;
 }
@@ -761,6 +764,7 @@ accessLevel(void)
 
 BeginPredDefs(pro)
   PRED_DEF("abort", 0, abort, 0)
+  PRED_DEF("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
   PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
   PRED_DEF("$trap_gdb", 0, trap_gdb, 0)
 EndPredDefs

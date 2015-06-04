@@ -58,6 +58,7 @@ COMMON(void)		updateAlerted(PL_local_data_t *ld);
 COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
 COMMON(Module)		contextModule(LocalFrame fr);
 COMMON(void)		setContextModule(LocalFrame fr, Module context);
+COMMON(int)		existingChoice(Choice ch ARG_LD);
 
 /* pl-stream.c */
 
@@ -419,7 +420,6 @@ COMMON(void)		cleanupPrologFlags(void);
 
 /* pl-pro.c */
 COMMON(word)		pl_break(void);
-COMMON(word)		pl_notrace1(term_t goal);
 COMMON(int)		currentBreakLevel(void);
 COMMON(int)		callProlog(Module module, term_t goal, int flags, term_t *ex);
 COMMON(int)		abortProlog(void);
