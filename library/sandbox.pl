@@ -842,7 +842,7 @@ safe_meta('$bags':findnsols(*,*,0,*,*)).
 safe_meta(system:call_cleanup(0,0)).
 safe_meta(system:setup_call_cleanup(0,0,0)).
 safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
-safe_meta(system:call_residue_vars(0,*)).
+safe_meta('$attvar':call_residue_vars(0,*)).
 safe_meta(system:call_with_inference_limit(0,*,*)).
 safe_meta(system:call_with_depth_limit(0,*,*)).
 safe_meta(^(*,0)).
