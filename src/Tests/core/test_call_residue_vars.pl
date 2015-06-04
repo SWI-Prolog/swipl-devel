@@ -57,6 +57,15 @@ test(trail, [all(Vars == [[]])]) :-
 	G=(freeze(X,X=1),X=1),
 	call_residue_vars(G,Vars),
 	(true;Vars=[2]).
+test(frozen_stacks, Vars == []) :-
+	x(X),
+	call_residue_vars(
+	    (	put_attr(X, a, 1),
+		nb_setval(x, a(b)),
+		fail
+	    ;   true
+	    ),
+	    Vars).
 
 x(_).					% avoid singleton warnings
 

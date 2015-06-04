@@ -221,7 +221,23 @@ link_attvar(ARG1_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SHIFT-SAFE: Requires 3+0
+The creation of an attributed variable is trailed if call_residue_vars/2
+is active. This is needed to avoid   that an attributed variable that is
+destroyed on backtracking (and thus should not be reported) survives due
+to a frozen stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+trail_new_attvar(Word p ARG_LD)
+{ if ( LD->attvar.call_residue_vars_count )
+  { tTop->address = p;
+    tTop++;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SHIFT-SAFE: Requires 3 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -234,12 +250,14 @@ make_new_attvar(Word p ARG_LD)
   gp[1] = ATOM_nil;
   gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
   gTop += 2;
+
+  trail_new_attvar(gp PASS_LD);
   Trail(p, makeRefG(gp));
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SHIFT-SAFE: Requires 7 global + 1 trail
+SHIFT-SAFE: Requires 7 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -260,6 +278,7 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
 
+  trail_new_attvar(gp PASS_LD);
   Trail(p, makeRefG(&gp[0]));
 }
 
@@ -767,7 +786,7 @@ PRED_IMPL("$freeze", 2, freeze, 0)
     deRef(goal);
 
     if ( isVar(*v) )
-    { put_new_attvar(v, ATOM_freeze, goal PASS_LD);	/* SHIFT: 6+1 */
+    { put_new_attvar(v, ATOM_freeze, goal PASS_LD);	/* SHIFT: 6+2 */
     } else
     { Word vp;
 
@@ -1202,9 +1221,7 @@ scan_trail(Choice ch, int set ARG_LD)
 
   for(te=tTop-1; te>=base; te--)
   { if ( isTrailVal(te->address) )
-    { Word p = trailValP(te->address);
-
-      te--;
+    { te--;
       if ( set )
       { DEBUG(MSG_CALL_RESIDUE_VARS,
 	      { char buf1[64]; char buf2[64];
