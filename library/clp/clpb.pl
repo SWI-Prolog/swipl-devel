@@ -973,6 +973,48 @@ var_u(Node, VNum, Index) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Pick a solution in such a way that each solution is equally likely.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+random_solution(Seed, Vars) :-
+        must_be(list, Vars),
+        set_random(seed(Seed)),
+        (   ground(Vars) -> true
+        ;   catch((sat(+[1|Vars]), % capture all variables with a single BDD
+                   once((member(Var, Vars),var(Var))),
+                   var_index_root(Var, _, Root),
+                   root_get_formula_bdd(Root, _, BDD),
+                   bdd_variables(BDD, Vs),
+                   variables_in_index_order(Vs, IVs),
+                   foldl(renumber_variable, IVs, 1, VNum),
+                   phrase(random_bindings(VNum, BDD), Bs),
+                   maplist(del_attrs, Vs),
+                   % reset all attribute modifications
+                   throw(randsol(Vars, Bs))),
+                  randsol(Vars, Bs),
+                  true),
+            maplist(call, Bs),
+            % set remaining variables to 0 or 1 with equal probability
+            include(var, Vars, Remaining),
+            maplist(maybe_one, Remaining)
+        ).
+
+maybe_one(Var) :-
+        (   maybe -> Var = 0
+        ;   Var = 1
+        ).
+
+random_bindings(_, Node) --> { Node == 1 }, !.
+random_bindings(VNum, Node) -->
+        { node_var_low_high(Node, Var, Low, High),
+          bdd_count(Node, VNum, Total),
+          bdd_count(Low, VNum, LCount) },
+        (   { maybe(LCount, Total) } ->
+            [Var=0], random_bindings(VNum, Low)
+        ;   [Var=1], random_bindings(VNum, High)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Projection to residual goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
