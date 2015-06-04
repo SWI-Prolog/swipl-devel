@@ -40,7 +40,7 @@ test(freeze_out, Vars == []) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(true, Vars).
-test(freeze_oi, [true(Vars == [X])]) :-
+test(freeze_oi, Vars == [X]) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(freeze(X, fail), Vars).
