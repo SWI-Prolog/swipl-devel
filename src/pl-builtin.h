@@ -222,6 +222,7 @@ typedef struct foreign_context
 { uintptr_t		context;	/* context value */
   frg_code		control;	/* FRG_* action */
   struct PL_local_data *engine;		/* invoking engine */
+  struct definition    *predicate;	/* called Prolog predicate */
 } *control_t;
 
 #define FRG_REDO_MASK	0x03

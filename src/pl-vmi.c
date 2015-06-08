@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -3545,9 +3545,10 @@ VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
   struct foreign_context context;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
-  context.context = 0L;
-  context.engine  = LD;
-  context.control = FRG_FIRST_CALL;
+  context.context   = 0L;
+  context.engine    = LD;
+  context.control   = FRG_FIRST_CALL;
+  context.predicate = DEF;
 
   PROF_FOREIGN;
   rc = (*f)(h0, DEF->functor->arity, &context);
@@ -3723,9 +3724,10 @@ VMI(I_FOPENNDET, 0, 0, ())
 { Choice ch;
   FliFrame ffr;
 
-  context.context = 0L;
-  context.engine  = LD;
-  context.control = FRG_FIRST_CALL;
+  context.context   = 0L;
+  context.engine    = LD;
+  context.control   = FRG_FIRST_CALL;
+  context.predicate = DEF;
 
 foreign_redo:
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);

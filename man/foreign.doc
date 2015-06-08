@@ -464,6 +464,15 @@ call type is \const{PL_REDO} or \const{PL_PRUNED}).
 
     \cmacro{void *}{PL_foreign_context_address}{control_t}
 Extracts an address as passed in by PL_retry_address().
+
+    \cmacro{predicate_t}{PL_foreign_context_predicate}{control_t}
+
+Fetch the Prolog predicate that is executing this function. Note that if
+the predicate is imported, the returned predicate refers to the final
+definition rather than the imported predicate, i.e., the module reported
+by PL_predicate_info() is the module in which the predicate is defined
+rather than the module where it was called. See also
+PL_predicate_info().
 \end{description}
 
 Note: If a non-deterministic foreign function returns using PL_succeed()

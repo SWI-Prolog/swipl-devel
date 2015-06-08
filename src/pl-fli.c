@@ -3657,6 +3657,12 @@ PL_foreign_control(control_t h)
 { return ForeignControl(h);
 }
 
+predicate_t				/* = Procedure */
+PL_foreign_context_predicate(control_t h)
+{ Definition def = h->predicate;
+
+  return isCurrentProcedure(def->functor->functor, def->module);
+}
 
 static int
 copy_exception(term_t ex, term_t bin ARG_LD)
