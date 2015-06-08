@@ -60,6 +60,8 @@ dif(10) :-
 dif(11) :-
 	dif(A,B), memberchk(A, [B, C]),
 	A == C.
+dif(12) :-		% https://github.com/SWI-Prolog/issues/issues/15
+	dif(X-Y,1-2), X=Y, Y = 1.
 
 :- dynamic
 	failed/1.
