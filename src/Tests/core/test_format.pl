@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -45,5 +44,7 @@ test(fail, throws(error(42))) :-
 test(no_stream, error(existence_error(stream, S))) :-
 	S = stream_dhfuweiu,
 	format(S, fmt, []).
+test(atom, A == 'a\n') :-
+	format(atom(A), 'a\n', []).
 
 :- end_tests(format).
