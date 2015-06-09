@@ -1,11 +1,10 @@
-/*  $Id$
+/*  Part of SWI-Prolog
 
-    Part of SWI-Prolog
-
-    Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 2008-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -62,6 +61,8 @@ dif(11) :-
 	A == C.
 dif(12) :-		% https://github.com/SWI-Prolog/issues/issues/15
 	dif(X-Y,1-2), X=Y, Y = 1.
+dif(13) :-		% https://github.com/SWI-Prolog/issues/issues/15
+	dif(X-Y,1-2), X=Y, Y = 2.
 
 :- dynamic
 	failed/1.
