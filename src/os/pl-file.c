@@ -1367,6 +1367,7 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
     ctx->size = sizeof(ctx->buffer);
     ctx->stream = Sopenmem(&ctx->data, &ctx->size, "w");
     ctx->stream->encoding = ENC_WCHAR;
+    ctx->stream->newline  = SIO_NL_POSIX;
   }
 
   ctx->magic = REDIR_MAGIC;

@@ -1444,7 +1444,7 @@ vwarning(const char *fm, va_list args)
 
     if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack &&		/* cannot call Prolog */
-	 !fm[0] == '$')			/* explicit: don't call Prolog */
+	 fm[0] != '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
       char *s = message;
       fid_t cid;

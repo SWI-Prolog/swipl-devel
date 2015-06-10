@@ -3,8 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (C): 2015, University of Amsterdam
+		         VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -21,30 +21,55 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-:- module(test_format, [test_format/0]).
+:- module(test_code_type, [test_code_type/0]).
 :- use_module(library(plunit)).
+:- use_module(library(apply)).
 
-/** <module> Test Prolog text formatting primitives
+/** <module> Test Prolog text code_typeting primitives
 
-This module is a Unit test for  Prolog format/2, etc.
+This module is a Unit test for  Prolog code_type/2, etc.
 
 @author	Jan Wielemaker
 */
 
-test_format :-
-	run_tests([ format
+test_code_type :-
+	run_tests([ code_type
 		  ]).
 
-:- begin_tests(format).
+:- begin_tests(code_type).
 
-test(fail, fail) :-
-	format('~@', [fail]).
-test(fail, throws(error(42))) :-
-	format('~@', [throw(error(42))]).
-test(no_stream, error(existence_error(stream, S))) :-
-	S = stream_dhfuweiu,
-	format(S, fmt, []).
-test(atom, A == 'a\n') :-
-	format(atom(A), 'a\n', []).
+test(code_type, true) :-
+	assert_ct,
+	gen.
 
-:- end_tests(format).
+:- end_tests(code_type).
+
+:- thread_local ct/2.
+
+assert_ct :-
+	retractall(ct(_,_)),
+	forall(( between(0, 255, C),
+		 code_type(C, T)
+	       ),
+	       assertz(ct(C,T))).
+
+gen_t(T) :-
+	ct(_C,T0),
+	(   atom(T0)
+	->  T = T0
+	;   functor(T0,F,A),
+	    functor(T,F,A)
+	).
+
+gen :-
+	setof(T, gen_t(T), TL),
+	maplist(gen, TL).
+
+gen(T) :-
+	(setof(C, code_type(C,T), CL) -> true ; CL = []),
+	(setof(C, ct(C,T), CL2) -> true ; CL2 = []),
+	(   CL == CL2
+	->  true
+	;   format('ERROR: code_type ~p: ~p \\== ~p~n', [T, CL, CL2]),
+	    fail
+	).

@@ -1039,10 +1039,16 @@ attribute_goals(Var) -->
 del_clpb(Var) :- del_attr(Var, clpb).
 
 sats([]) --> [].
-sats([A|As]) --> [sat(A)], sats(As).
+sats([A|As]) -->
+        { copy_term_nat(A, Copy) },
+        (   { Copy =@= X#Y, A = X#Y } -> [sat(X=\=Y)]
+        ;   { Copy =@= 1#X#Y, A = 1#X#Y } -> [X=Y]
+        ;   [sat(A)]
+        ),
+        sats(As).
 
 booleans([]) --> [].
-booleans([B|Bs]) --> boolean(B), booleans(Bs).
+booleans([B|Bs]) --> boolean(B), { del_clpb(B) }, booleans(Bs).
 
 boolean(Var) -->
         (   { get_attr(Var, clpb_omit_boolean, true) } -> []

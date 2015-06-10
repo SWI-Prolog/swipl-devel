@@ -40,7 +40,7 @@ test(freeze_out, Vars == []) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(true, Vars).
-test(freeze_oi, [true(Vars == [X])]) :-
+test(freeze_oi, Vars == [X]) :-
 	x(X),
 	freeze(X, true),
 	call_residue_vars(freeze(X, fail), Vars).
@@ -60,7 +60,7 @@ test(trail, [all(Vars == [[]])]) :-
 test(frozen_stacks, Vars == []) :-
 	x(X),
 	call_residue_vars(
-	    (	put_attr(X, a, 1),
+	    (	freeze(X, true),
 		nb_setval(x, a(b)),
 		fail
 	    ;   true
