@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Tom Schrijvers, K.U.Leuven
     E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2003-2004, K.U.Leuven
+    Copyright (C): 2003-2015, K.U.Leuven
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,8 +32,8 @@
 % This module implements the dif/2 constraint. It constraints two terms
 % to be not identical.
 %
-%	Author: 	Tom Schrijvers, K.U.Leuven
-% 	E-mail: 	Tom.Schrijvers@cs.kuleuven.ac.be
+%	Author:		Tom Schrijvers, K.U.Leuven
+%	E-mail:		Tom.Schrijvers@cs.kuleuven.ac.be
 %	Copyright:	2003-2004, K.U.Leuven
 %
 % Update 7/3/2004:
@@ -59,7 +57,7 @@ dif(X,Y) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % types of attributes?
-% 	vardif: X is a variable
+%	vardif: X is a variable
 %%	node(Parent,Children,Variables,Counter)
 
 dif_c_c(X,Y,OrNode) :-
@@ -165,11 +163,13 @@ reverse_lookups([N-X|NXs],Value,Nodes,Rest) :-
 	reverse_lookups(NXs,Value,RNodes,RRest).
 
 verify_compounds([],_).
-verify_compounds([Node-Y|Rest],X) :-
+verify_compounds([OrNode-Y|Rest],X) :-
 	( var(Y) ->
 		true
+	; OrNode == (-) ->
+		true
 	;
-		dif_c_c(X,Y,Node)
+		dif_c_c(X,Y,OrNode)
 	),
 	verify_compounds(Rest,X).
 
@@ -211,8 +211,8 @@ del_or_dif([X=Y|Xs]) :-
 	del_or_dif(Xs).
 
 cleanup_dead_nodes(X) :-
- 	( attvar(X) ->
- 		get_attr(X,dif,Attr),
+	( attvar(X) ->
+		get_attr(X,dif,Attr),
 		Attr = vardif(V1,V2),
 		filter_dead_ors(V1,NV1),
 		filter_dead_ors(V2,NV2),
