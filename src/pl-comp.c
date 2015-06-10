@@ -6697,7 +6697,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
   code dop = decode(op);
 
   if ( !breakTable )
-    breakTable = newHTable(16);
+    breakTable = newHTable(16|TABLE_UNLOCKED);
 
   if ( (codeTable[dop].flags & VIF_BREAK) || dop == B_UNIFY_EXIT )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
@@ -6788,10 +6788,18 @@ replacedBreak(Code PC)
   BreakPoint bp;
   code c;
 
-  if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
-    return (code) sysError("No saved instruction for break");
-  bp = (BreakPoint)s->value;
-  c = bp->saved_instruction;
+  PL_LOCK(L_BREAK);
+  c = decode(*PC);
+  if ( c == D_BREAK )
+  { if ( (s=lookupHTable(breakTable, PC)) )
+    { bp = (BreakPoint)s->value;
+      c = bp->saved_instruction;
+    } else
+    { PL_UNLOCK(L_BREAK);
+      sysError("No saved instruction for break at %p", PC);
+    }
+  }
+  PL_UNLOCK(L_BREAK);
 
   return c;
 }
