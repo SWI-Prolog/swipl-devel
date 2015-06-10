@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -3883,7 +3883,7 @@ skipArgs(Code PC, int skip)
 	continue;
 #ifdef O_DEBUGGER
       case D_BREAK:
-        c = decode(replacedBreak(PC-1));
+        c = decode(replacedBreak(PC));
 	goto again;
 #endif
       default:
