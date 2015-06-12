@@ -1227,7 +1227,7 @@ scan_trail(Choice ch, int set ARG_LD)
 	      { char buf1[64]; char buf2[64];
 		word old = trailVal(te[1].address);
 		Sdprintf("Mark %s (%s)\n",
-			 print_addr(p, buf1), print_val(old, buf2));
+			 print_addr(te->address, buf1), print_val(old, buf2));
 	      });
 	*te->address |= MARK_MASK;
       } else
