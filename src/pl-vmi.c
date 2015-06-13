@@ -1786,12 +1786,13 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     }
 
     if ( true(FR, FR_WATCHED) )
-    { LocalFrame lSave = lTop;
+    { LD->query->next_environment = lTop;
       lTop = (LocalFrame)ARGP;		/* just pushed arguments, so top */
       SAVE_REGISTERS(qid);
       frameFinished(FR, FINISH_EXIT PASS_LD);
       LOAD_REGISTERS(qid);
-      lTop = lSave;
+      lTop = LD->query->next_environment;
+      LD->query->next_environment = NULL;
     }
 
     FR->clause = NULL;			/* for save atom-gc */
