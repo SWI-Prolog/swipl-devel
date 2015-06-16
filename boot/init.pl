@@ -596,7 +596,14 @@ user:file_search_path(path, Dir) :-
 	->  atomic_list_concat(Dirs, (;), Path)
 	;   atomic_list_concat(Dirs, :, Path)
 	),
-	'$member'(Dir, Dirs).
+	'$member'(Dir, Dirs),
+	'$no-null-bytes'(Dir).
+
+'$no-null-bytes'(Dir) :-
+	sub_atom(Dir, _, _, _, '\u0000'), !,
+	print_message(warning, null_byte_in_path(Dir)),
+	fail.
+'$no-null-bytes'(_).
 
 %%	expand_file_search_path(+Spec, -Expanded) is nondet.
 %

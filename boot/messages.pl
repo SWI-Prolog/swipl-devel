@@ -1225,6 +1225,13 @@ prolog_message(pack(duplicate(Entry, OldDir, Dir))) -->
 prolog_message(pack(no_arch(Entry, Arch))) -->
 	[ 'Package ~w: no binary for architecture ~w'-[Entry, Arch] ].
 
+		 /*******************************
+		 *	       MISC		*
+		 *******************************/
+
+prolog_message(null_byte_in_path(Component)) -->
+	[ '0-byte in PATH component: ~p (skipped directory)'-[Component] ].
+
 
 		 /*******************************
 		 *	PRINTING MESSAGES	*
@@ -1455,6 +1462,7 @@ append_args(Args0, Args1, Args) :-
 %	True for messages that must be printed only once.
 
 print_once(compatibility(_), _).
+print_once(null_byte_in_path(_), _).
 
 %%	must_print(+Level, +Message)
 %
