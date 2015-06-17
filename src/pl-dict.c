@@ -979,12 +979,8 @@ fix_firstvars(Code start, Code end)
 }
 
 int
-resortDictsInClause(Clause clause)
-{ Code PC, end;
-
-  PC  = clause->codes;
-  end = &PC[clause->code_size];
-
+resortDictsInCodes(Code PC, Code end)
+{
   for( ; PC < end; PC = stepPC(PC) )
   { code op = fetchop(PC);
 
@@ -1016,7 +1012,8 @@ resortDictsInClause(Clause clause)
 	  fields_start = PC;
 
 	  for(f = 0; f < fields; f++)
-	  { code op = fetchop(PC);
+	  { Code PCv;
+	    code op = fetchop(PC);
 
 	    kv_pos[f].start = PC-fields_start;
 
@@ -1032,7 +1029,12 @@ resortDictsInClause(Clause clause)
 		return TRUE;		/* not a dict */
 	    }
 	    PC = stepPC(PC);		/* skip key */
+	    PCv = PC;
 	    PC = skipArgs(PC, 1);	/* skip value */
+
+	    if ( !resortDictsInCodes(PCv, PC) )
+	    { return FALSE;
+	    }
 
 	    kv_pos[f].len = PC-fields_start-kv_pos[f].start;
 
@@ -1075,6 +1077,16 @@ resortDictsInClause(Clause clause)
   }
 
   return TRUE;
+}
+
+int
+resortDictsInClause(Clause clause)
+{ Code PC, end;
+
+  PC  = clause->codes;
+  end = &PC[clause->code_size];
+
+  return resortDictsInCodes(PC, end);
 }
 
 
