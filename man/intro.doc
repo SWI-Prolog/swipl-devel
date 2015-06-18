@@ -52,7 +52,10 @@ The infrastructure for constraint programming is based on hProlog
 YAP\footnote{\url{http://www.dcc.fc.up.pt/\~{}vsc/Yap/}} system.
 Together with YAP we developed a portability framework (see
 \secref{dialect}). This framework has been filled for SICStus Prolog,
-YAP and IF/Prolog.
+YAP, IF/Prolog and Ciao. SWI-Prolog version~7 introduces various
+extensions to the Prolog language (see \secref{extensions}). The
+\jargon{string} data type and its supporting set of built-in predicates
+is compatibility with ECLiPSe.
 
 \section{Status and releases}			\label{sec:status}
 

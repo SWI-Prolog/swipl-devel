@@ -968,12 +968,17 @@ fi
 
 dnl Hacks for MacOS handling of libreadline.  We want to prefer the MacOS X
 dnl libraries, but we need to get libreadline from Macports, as the BSD
-dnl version is severely limited.
+dnl version is severely limited.  Note that Macports installs in
+dnl /opt/local and Brew in /usr/local, so we try both.
 
 case "$PLARCH" in
   *darwin*)
 	if test -z "$RLPREFIX"; then
-	  RLPREFIX=/opt/local
+	  if test -f /opt/local/lib/libreadline.$SO_EXT; then
+	    RLPREFIX=/opt/local
+	  else
+	    RLPREFIX=/usr/local
+	  fi
         fi
 	;;
 esac

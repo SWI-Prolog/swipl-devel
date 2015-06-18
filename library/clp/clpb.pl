@@ -1042,7 +1042,7 @@ sats([]) --> [].
 sats([A|As]) -->
         { copy_term_nat(A, Copy) },
         (   { Copy =@= X#Y, A = X#Y } -> [sat(X=\=Y)]
-        ;   { Copy =@= 1#X#Y, A = 1#X#Y } -> [X=Y]
+        ;   { Copy =@= 1#X#Y, A = 1#X#Y } -> [sat(X=:=Y)]
         ;   [sat(A)]
         ),
         sats(As).

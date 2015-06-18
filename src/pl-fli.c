@@ -3761,8 +3761,10 @@ void
 PL_clear_exception(void)
 { GET_LD
 
-  resumeAfterException(TRUE, LD->outofstack);
-  LD->outofstack = NULL;
+  if ( exception_term )
+  { resumeAfterException(TRUE, LD->outofstack);
+    LD->outofstack = NULL;
+  }
 }
 
 
