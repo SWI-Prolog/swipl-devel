@@ -370,7 +370,9 @@ verify_safe_declaration(Var) :-
 verify_safe_declaration(Module:Goal) :-
 	must_be(atom, Module),
 	must_be(callable, Goal),
-	(   (   predicate_property(Module:Goal, visible)
+	(   ok_meta(Module:Goal)
+	->  true
+	;   (   predicate_property(Module:Goal, visible)
 	    ->	true
 	    ;	predicate_property(Module:Goal, foreign)
 	    ),
@@ -386,6 +388,10 @@ verify_safe_declaration(Goal) :-
 	->  true
 	;   permission_error(declare, safe_goal, Goal)
 	).
+
+ok_meta(system:assert(_)).
+ok_meta(system:use_module(_,_)).
+ok_meta(system:use_module(_)).
 
 verify_predefined_safe_declarations :-
 	forall(clause(safe_primitive(Goal), _Body, Ref),
