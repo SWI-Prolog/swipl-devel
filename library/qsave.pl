@@ -414,6 +414,7 @@ attrib_name(show_childs,	    hide_childs,	    0).
 attrib_name(built_in,		    system,		    1).
 attrib_name(nodebug,		    hide_childs,	    1).
 attrib_name(quasi_quotation_syntax, quasi_quotation_syntax, 1).
+attrib_name(iso,		    iso,		    1).
 
 
 save_attribute(P, Attribute) :-
