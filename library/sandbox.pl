@@ -574,6 +574,13 @@ safe_primitive(retractall(X)) :- safe_assert(X).
 % target key before we can conclude that functions on dicts
 % are safe.
 safe_primitive('$dicts':'.'(_,K,_)) :- atom(K).
+safe_primitive('$dicts':'.'(_,K,_)) :-
+	nonvar(K),
+	dict_built_in(K).
+
+dict_built_in(get(_)).
+dict_built_in(put(_)).
+dict_built_in(put(_,_)).
 
 % The non-ISO system predicates.  These can be redefined, so we must
 % be careful to ensure the system ones are used.
