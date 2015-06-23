@@ -117,12 +117,14 @@ duplicated this stuff.
 		 *	  GCC ATTRIBUTES	*
 		 *******************************/
 
-#ifndef WUNUSED
-#if __GNUC__ >= 4
-#define WUNUSED __attribute__((warn_unused_result))
-#else
-#define WUNUSED
+#ifndef WNOUNUSED
+#  if __GNUC__ >= 4
+#    define WUNUSED __attribute__((warn_unused_result))
+#  endif
 #endif
+
+#ifndef WUNUSED
+#  define WUNUSED
 #endif
 
 
