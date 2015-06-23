@@ -207,6 +207,14 @@ is also printed if stdio is not available.
 #define SECURE(g) ((void)0)
 #endif
 
+/* If PL_func fail, exit */
+#define PL_TRY(M) do { if(0==((int)(M)))\
+                       {\
+                         DEBUG(1, Sdprintf("[PL_TRY fail file:%s line:%d]\n", __FILE__, __LINE__));\
+                         exit(EXIT_FAILURE);\
+                       }\
+                     } while(0)
+
 
 		 /*******************************
 		 *   NON-DET PREDICATE CONTEXT	*
