@@ -2631,6 +2631,10 @@ ar_popcount(Number n1, Number r)
 /* bit(I,K) is the K-th bit of I
 */
 
+#ifndef HAVE_MP_BITCNT_T
+typedef unsigned long mp_bitcnt_t;
+#endif
+
 #define MP_BITCNT_T_MIN 0
 #define MP_BITCNT_T_MAX (~(mp_bitcnt_t)0)
 

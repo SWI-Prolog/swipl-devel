@@ -1442,6 +1442,8 @@ if test "$configgmp" = "yes"; then
       AC_DEFINE(HAVE_GMP_RANDINIT_MT, 1,
 		[ Define you you have gmp_randinit_mt (gmp > 4.2.0) ]),
       AC_MSG_RESULT(no))
+
+  AC_CHECK_TYPES([mp_bitcnt_t], [], [], [[#include <gmp.h>]])
 fi
 
 dnl Setup DMALLOC
