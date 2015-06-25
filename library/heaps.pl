@@ -166,7 +166,7 @@ is_pairing_heap(V, _) :-
 	fail.
 is_pairing_heap(nil, _).
 is_pairing_heap(t(_,P,Sub), MinP) :-
-	P @=< MinP,
+	MinP @=< P,
 	are_pairing_heaps(Sub, P).
 
 % True iff 1st arg is a list of pairing heaps, each with min key @=< 2nd arg.
