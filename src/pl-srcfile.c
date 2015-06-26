@@ -759,6 +759,25 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
 }
 
 
+static
+PRED_IMPL("$end_consult", 1, end_consult, 0)
+{ PRED_LD
+  atom_t name;
+
+  if ( PL_get_atom_ex(A1, &name) )
+  { SourceFile f;
+
+    if ( (f=lookupSourceFile(name, FALSE)) )
+      f->current_procedure = NULL;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+
 /** '$clause_from_source'(+File, +Line, -Clause) is semidet.
 
 True when Clause is the clause that contains Line in File.
@@ -822,5 +841,6 @@ BeginPredDefs(srcfile)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("$unload_file", 1, unload_file, 0)
   PRED_DEF("$start_consult", 2, start_consult, 0)
+  PRED_DEF("$end_consult", 1, end_consult, 0)
   PRED_DEF("$make_system_source_files", 0, make_system_source_files, 0)
 EndPredDefs

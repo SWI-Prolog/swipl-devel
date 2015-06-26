@@ -1142,13 +1142,13 @@ compiling :-
 	'$load_input'/2.
 
 '$open_source'(stream(Id, In, Opts), In,
-	       restore(In, StreamState, Ref, Opts), Parents, Options) :- !,
+	       restore(In, StreamState, Id, Ref, Opts), Parents, Options) :- !,
 	'$context_type'(Parents, ContextType),
 	'$push_input_context'(ContextType),
 	'$set_encoding'(In, Options),
 	'$prepare_load_stream'(In, Id, StreamState),
 	asserta('$load_input'(stream(Id), In), Ref).
-'$open_source'(Path, In, close(In, Ref), Parents, Options) :-
+'$open_source'(Path, In, close(In, Path, Ref), Parents, Options) :-
 	'$context_type'(Parents, ContextType),
 	'$push_input_context'(ContextType),
 	open(Path, read, In),
@@ -1158,14 +1158,16 @@ compiling :-
 '$context_type'([], load_file) :- !.
 '$context_type'(_, include).
 
-'$close_source'(close(In, Ref), Message) :-
+'$close_source'(close(In, Id, Ref), Message) :-
 	erase(Ref),
+	'$end_consult'(Id),
 	call_cleanup(
 	    close(In),
 	    '$pop_input_context'),
 	'$close_message'(Message).
-'$close_source'(restore(In, StreamState, Ref, Opts), Message) :-
+'$close_source'(restore(In, StreamState, Id, Ref, Opts), Message) :-
 	erase(Ref),
+	'$end_consult'(Id),
 	call_cleanup(
 	    '$restore_load_stream'(In, StreamState, Opts),
 	    '$pop_input_context'),
