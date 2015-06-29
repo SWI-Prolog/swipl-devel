@@ -32,6 +32,7 @@ AC_SUBST(BOOTFILE)
 AC_SUBST(PLLIB)			dnl libswipl.a
 AC_SUBST(PLSO)			dnl libswipl.so
 AC_SUBST(SONAMEOPT)		dnl ld options for linking shared objects
+AC_SUBST(SONAME)		dnl libswipl SONAME
 AC_SUBST(USEPLLIB)		dnl -lswipl
 AC_SUBST(LNLIBS)		dnl libs to link with Prolog
 AC_SUBST(XLIBS)                 dnl libs to link with plterm
@@ -714,14 +715,16 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL$EXEEXT",
 		   [Name of the SWI-Prolog executable (normally swipl[.exe])])
+SONAMEV=`$as_echo "$PLVERSION" | sed 's/\(@<:@0-9@:>@\+\.@<:@0-9@:>@\+\)\.@<:@0-9@:>@\+/\1/'`
+SONAME='$(SHARED).'$SONAMEV
 case "$PLARCH" in
   *-win32|*-win64|*-cygwin*)
 	PLSO=libswipl.$SO_EXT
-	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a -Wl,--output-def,$(RUNTIMEDIR)/libswipl.def'
+	SONAMEOPT='-Wl,-soname=$(SONAME) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a -Wl,--output-def,$(RUNTIMEDIR)/libswipl.def'
 	;;
   *)
 	PLSO=libswipl.$SO_EXT
-	SONAMEOPT='-Wl,-soname=$(SHAREDV)'
+	SONAMEOPT='-Wl,-soname=$(SONAME)'
 	;;
 esac
 
