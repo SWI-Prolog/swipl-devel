@@ -1118,18 +1118,20 @@ compiling :-
 	'$instantiation_error'(Input).
 '$source_term'(stream(Id, In, Opts),
 	       Read, RLayout, Term, TLayout, Stream, Parents, Options) :- !,
+	'$record_included'(Parents, Id, Id, 0.0, Message),
 	setup_call_cleanup(
 	    '$open_source'(stream(Id, In, Opts), In, State, Parents, Options),
 	    '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream,
 			    [Id|Parents], Options),
-	    '$close_source'(State, true)).
+	    '$close_source'(State, Message)).
 '$source_term'(File,
 	       Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
 	absolute_file_name(File, Path,
 			   [ file_type(prolog),
 			     access(read)
 			   ]),
-	'$record_included'(Parents, File, Path, Message),
+	time_file(Path, Time),
+	'$record_included'(Parents, File, Path, Time, Message),
 	setup_call_cleanup(
 	    '$open_source'(Path, In, State, Parents, Options),
 	    '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream,
@@ -1291,7 +1293,7 @@ compiling :-
 :- dynamic
 	'$included'/4.
 
-%%	'$record_included'(+Parents, +File, +Path) is det.
+%%	'$record_included'(+Parents, +File, +Path, +Time, -Message) is det.
 %
 %	Record that we included File into the   head of Parents. This is
 %	troublesome when creating a QLF  file   because  this may happen
@@ -1303,26 +1305,25 @@ compiling :-
 %	statement for this, that may appear  both inside and outside QLF
 %	`parts'.
 
-'$record_included'([Parent|Parents], File, Path,
+'$record_included'([Parent|Parents], File, Path, Time,
 		   message(DoneMsgLevel,
 			   include_file(done(Level, file(File, Path))))) :-
-	source_location(_, Line), !,
+	source_location(SrcFile, Line), !,
 	'$compilation_level'(Level),
 	'$load_msg_level'(include_file, Level, StartMsgLevel, DoneMsgLevel),
 	'$print_message'(StartMsgLevel,
 			 include_file(start(Level,
 					    file(File, Path)))),
-	time_file(Path, Time),
 	'$last'([Parent|Parents], Owner),
 	(   (   '$compilation_mode'(database)
 	    ;	'$qlf_current_source'(Owner)
 	    )
-	->  '$compile_aux_clauses'(
+	->  '$store_admin_clause'(
 	        system:'$included'(Parent, Line, Path, Time),
-		Owner)
+		_, Owner, SrcFile:Line)
 	;   '$qlf_include'(Owner, Parent, Line, Path, Time)
 	).
-'$record_included'(_, _, _, true).
+'$record_included'(_, _, _, _, true).
 
 %%	'$master_file'(+File, -MasterFile)
 %
