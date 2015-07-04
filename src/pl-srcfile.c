@@ -778,31 +778,46 @@ PRED_IMPL("$end_consult", 1, end_consult, 0)
 
 
 
-/** '$clause_from_source'(+File, +Line, -Clause) is semidet.
+/** '$clause_from_source'(+Owner, +File, +Line, -Clause) is semidet.
 
-True when Clause is the clause that contains Line in File.
+True when Clause is the clause that contains  Line in File. Owner is the
+source file owning Clause. For normal  files,   Owner  and  File are the
+same. This predicate can find a clause in an included file by specifying
+the main file as Owner and the included file as File.
 */
 
 static
-PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
+PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 { PRED_LD
-  atom_t name;
-  SourceFile sf;
+  atom_t owner_name;
+  atom_t file_name;
+  SourceFile of, sf;		/* owner file, source file */
+  unsigned short source_no;
   int ln;
   ListCell cell;
   Clause c = NULL;
 
-  term_t file = A1;
-  term_t line = A2;
-  term_t clause = A3;
+  term_t owner = A1;
+  term_t file = A2;
+  term_t line = A3;
+  term_t clause = A4;
 
-  if ( !PL_get_atom_ex(file, &name) ||
-       !(sf = lookupSourceFile(name, FALSE)) ||
+  if ( !PL_get_atom_ex(owner, &owner_name) ||
+       !PL_get_atom_ex(file, &file_name) ||
+       !(of = lookupSourceFile(owner_name, FALSE)) ||
        !PL_get_integer_ex(line, &ln) )
-    fail;
+    return FALSE;
 
-  LOCKSRCFILE(sf);
-  for(cell = sf->procedures; cell; cell = cell->next)
+  if ( file_name == owner_name ) {
+    source_no = of->index;
+  } else {
+    if ( !(sf=lookupSourceFile(file_name, FALSE)) )
+      return FALSE;
+    source_no = sf->index;
+  }
+
+  LOCKSRCFILE(of);
+  for(cell = of->procedures; cell; cell = cell->next)
   { Procedure proc = cell->value;
     Definition def = proc->definition;
 
@@ -812,7 +827,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
       for( ; cref; cref = cref->next )
       { Clause cl = cref->value.clause;
 
-	if ( cl->source_no == sf->index )
+	if ( cl->source_no == source_no )
 	{ if ( ln >= (int)cl->line_no )
 	  { if ( !c || c->line_no < cl->line_no )
 	      c = cl;
@@ -821,7 +836,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
       }
     }
   }
-  UNLOCKSRCFILE(sf);
+  UNLOCKSRCFILE(of);
 
   if ( c )
     return PL_unify_clref(clause, c);
@@ -838,7 +853,7 @@ BeginPredDefs(srcfile)
   PRED_DEF("$source_file", 2, source_file, 0)
   PRED_DEF("$source_file_predicates", 2, source_file_predicates, 0)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
+  PRED_DEF("$clause_from_source", 4, clause_from_source, 0)
   PRED_DEF("$unload_file", 1, unload_file, 0)
   PRED_DEF("$start_consult", 2, start_consult, 0)
   PRED_DEF("$end_consult", 1, end_consult, 0)
