@@ -3865,8 +3865,8 @@ resolveModule(const char *module)
     return PL_new_module(PL_new_atom(module));
   else
   { GET_LD
-    return (LD && environment_frame ? contextModule(environment_frame)
-	                            : MODULE_user);
+    return (HAS_LD && environment_frame ? contextModule(environment_frame)
+                                        : MODULE_user);
   }
 }
 
@@ -4041,7 +4041,7 @@ PL_raise(int sig)
 
 int
 PL_pending__LD(int sig ARG_LD)
-{ if ( sig > 0 && sig <= MAXSIGNAL && LD )
+{ if ( sig > 0 && sig <= MAXSIGNAL && HAS_LD )
   { int off  = (sig-1)/32;
     int mask = 1 << ((sig-1)%32);
 
@@ -4054,7 +4054,7 @@ PL_pending__LD(int sig ARG_LD)
 
 int
 PL_clearsig__LD(int sig ARG_LD)
-{ if ( sig > 0 && sig <= MAXSIGNAL && LD )
+{ if ( sig > 0 && sig <= MAXSIGNAL && HAS_LD )
   { int off  = (sig-1)/32;
     int mask = 1 << ((sig-1)%32);
 
@@ -4550,7 +4550,7 @@ PL_query(int query)
     case PL_QUERY_ENCODING:
     { GET_LD
 
-      if ( LD )
+      if ( HAS_LD )
 	return LD->encoding;
       return PL_local_data.encoding;	/* Default: of main thread? */
     }

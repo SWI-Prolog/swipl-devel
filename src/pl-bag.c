@@ -129,7 +129,9 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
   { if ( !LD->bags.default_bag )
     {
 #ifdef O_ATOMGC
+#ifdef O_PLMT
       simpleMutexInit(&LD->bags.mutex);
+#endif
 #endif
       LD->bags.default_bag = PL_malloc(sizeof(*bag));
     }

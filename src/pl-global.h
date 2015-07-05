@@ -528,7 +528,9 @@ struct PL_local_data
   { struct findall_bag *bags;		/* Known bags */
     struct findall_bag *default_bag;	/* Bag we keep around */
 #ifdef O_ATOMGC
+#ifdef O_PLMT
     simpleMutex mutex;			/* Atom GC scanning synchronization */
+#endif
 #endif
   } bags;
 

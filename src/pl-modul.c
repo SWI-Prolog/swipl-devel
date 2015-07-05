@@ -188,7 +188,9 @@ unallocModule(Module m)
   if ( m->public )     destroyHTable(m->public);
   if ( m->operators )  destroyHTable(m->operators);
   if ( m->supers )     unallocList(m->supers);
+#ifdef O_PLMT
   if ( m->mutex )      freeSimpleMutex(m->mutex);
+#endif
   if ( m->lingering )  freeLingeringDefinitions(m->lingering);
 
   freeHeap(m, sizeof(*m));

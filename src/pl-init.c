@@ -1168,12 +1168,14 @@ cleanupProlog(int rval, int reclaim_memory)
     return FALSE;
   }
 
+#ifdef O_PLMT
   if ( !LD )
   { PL_thread_attach_engine(NULL);
     LD = GLOBAL_LD;
     if ( !LD )
       goto emergency;
   }
+#endif
 
   GD->cleaning = CLN_PROLOG;
   debugmode(FALSE, NULL);		/* avoid recursive tracing */
@@ -1212,9 +1214,9 @@ cleanupProlog(int rval, int reclaim_memory)
 #endif
 #ifdef O_PLMT
   exitPrologThreads();
-#endif
 
 emergency:
+#endif
   Scurout = Soutput;			/* reset output stream to user */
 
   qlfCleanup();				/* remove errornous .qlf files */
@@ -1248,7 +1250,9 @@ emergency:
 
   if ( reclaim_memory )
   { freeStacks(PASS_LD1);
+#ifdef O_PLMT
     cleanupLocalDefinitions(LD);
+#endif
     freePrologLocalData(LD);
     cleanupSourceFiles();
     cleanupModules();

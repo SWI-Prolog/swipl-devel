@@ -138,8 +138,10 @@ unallocSourceFile(SourceFile sf)
   { sf->magic = 0;
     freeList(&sf->procedures);
     freeList(&sf->modules);
+#ifdef O_PLMT
     if ( sf->mutex )
       freeSimpleMutex(sf->mutex);
+#endif
     freeHeap(sf, sizeof(*sf));
   }
 }

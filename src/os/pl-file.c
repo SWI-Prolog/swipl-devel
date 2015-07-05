@@ -1178,7 +1178,7 @@ protocol(const char *str, size_t n)
 { GET_LD
   IOSTREAM *s;
 
-  if ( LD && Sprotocol && (s = getStream(Sprotocol)) )
+  if ( HAS_LD && Sprotocol && (s = getStream(Sprotocol)) )
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     Sflush(s);

@@ -87,7 +87,15 @@ MKLIBS=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
 DEFSTARTUP=.swiplrc
-MT=yes
+
+AC_ARG_ENABLE(mt, [  --disable-mt                Disable multi-threading],
+             [case "$enableval" in
+                  yes) MT=yes
+                       ;;
+                  *)  ;;
+              esac],
+              MT=yes)
+
 
 dnl ****************************************************************
 dnl Some systems don't appear to have true.  Hope all like this ...

@@ -68,7 +68,9 @@ static void	collectSiblingsTime(void);
 
 int
 activateProfiler(prof_status active ARG_LD)
-{ int i;
+{
+#ifdef O_PLMT
+  int i;
   PL_local_data_t *profiling;
 
   PL_LOCK(L_THREAD);
@@ -107,6 +109,7 @@ activateProfiler(prof_status active ARG_LD)
   updateAlerted(LD);
 
   LD->profile.sum_ok = FALSE;
+#endif
 
   return TRUE;
 }
@@ -286,7 +289,7 @@ stopProfiler(void)
     ld->profile.time += tend - ld->profile.time_at_start;
 
     stopItimer();
-    activateProfiler(PROF_INACTIVE, ld);
+    activateProfiler(PROF_INACTIVE PASS_LDARG(ld));
 #ifndef __WINDOWS__
     set_sighandler(timer_signal, SIG_IGN);
     timer_signal = 0;
@@ -851,7 +854,7 @@ static void
 profile(intptr_t count, PL_local_data_t *__PL_ld)
 { call_node *node;
 
-  if ( !LD )
+  if ( !HAS_LD )
     return;
 
   LD->profile.samples++;

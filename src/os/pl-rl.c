@@ -333,7 +333,7 @@ pl_readline(const char *prompt)
   char *line;
 
   prepare_signals();
-  if ( LD )
+  if ( HAS_LD )
   { EXCEPTION_GUARDED({ line = readline(prompt);
 		      },
 		      { DEBUG(3, Sdprintf("Exception in readline()\n"));

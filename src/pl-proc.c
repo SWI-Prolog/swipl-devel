@@ -39,7 +39,9 @@ static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
 static atom_t	autoLoader(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
+#ifdef O_PLMT
 static void	detachMutexAndUnlock(Definition def);
+#endif
 
 /* Enforcing this limit demands we propagate NULL from lookupProcedure()
    through the whole system.  This is not done
@@ -134,11 +136,13 @@ static void
 unallocDefinition(Definition def)
 { if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
     unallocClauseList(def->impl.clauses.first_clause);
+#ifdef O_PLMT
   else if ( true(def, P_THREAD_LOCAL) )
     free_ldef_vector(def->impl.local);
 
   if ( def->mutex )
     freeSimpleMutex(def->mutex);
+#endif
 
   unallocClauseIndexes(def);
   freeCodesDefinition(def, FALSE);
@@ -1327,7 +1331,7 @@ freeClauseList(ClauseRef cref)
   int hooked;
   int savely_hooked;
 
-  if ( LD && LD->query &&
+  if ( HAS_LD && LD->query &&
        PROCEDURE_event_hook1 &&
        hasClausesDefinition(PROCEDURE_event_hook1->definition) )
   { hooked = TRUE;

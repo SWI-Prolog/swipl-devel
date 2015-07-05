@@ -312,7 +312,7 @@ valFloat__LD(word w ARG_LD)
 
 static inline int
 is_signalled(ARG1_LD)
-{ return LD && unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
+{ return HAS_LD && unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
 }
 
 static inline void

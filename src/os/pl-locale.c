@@ -22,6 +22,7 @@
 
 #include "pl-incl.h"
 #include "pl-locale.h"
+#include <errno.h>
 
 #if defined(__sun) || __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
 #undef HAVE_WCSDUP			/* No prototype, so better use our own */
@@ -882,7 +883,7 @@ initStreamLocale(IOSTREAM *s)
 { GET_LD
   PL_locale *l;
 
-  if ( LD )					/* a Prolog thread */
+  if ( HAS_LD )					/* a Prolog thread */
     l = LD->locale.current;
   else
     l = GD->locale.default_locale;

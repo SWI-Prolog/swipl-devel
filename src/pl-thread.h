@@ -390,6 +390,9 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 #define UNLOCKDYNDEF(def)
 #define LOCKMODULE(module)
 #define UNLOCKMODULE(module)
+#define LOCKSRCFILE(sf)
+#define UNLOCKSRCFILE(sf)
+COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
 #endif /*O_PLMT*/
 
