@@ -1516,10 +1516,8 @@ freePrologLocalData(PL_local_data_t *ld)
 
   if ( ld->bags.default_bag )
   { PL_free(ld->bags.default_bag);
-#ifdef O_ATOMGC
-#ifdef O_PLMT
+#if defined(O_ATOMGC) && defined(O_PLMT)
     simpleMutexDelete(&ld->bags.mutex);
-#endif
 #endif
   }
 
