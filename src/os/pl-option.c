@@ -149,7 +149,9 @@ typedef struct dictopt_ctx
 static int
 dict_option(term_t key, term_t value, int last, void *closure)
 { dictopt_ctx *ctx = closure;
+#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
   PL_local_data_t *__PL_ld = ctx->ld;
+#endif
   atom_t name;
   int n;
   const opt_spec *s;
