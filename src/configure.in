@@ -1681,6 +1681,9 @@ else
     AC_MSG_RESULT(no)
 fi
 
+dnl Do not enable profiling unless MT is also enabled
+if test "$MT" = "yes"; then
+
 AC_TYPE_SIGNAL
 AC_MSG_CHECKING("for BSD signal handlers")
 AC_TRY_RUN(
@@ -1782,6 +1785,8 @@ main()
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no),
     true)
+
+fi	dnl End of conditional disabling profiling unless MT is enabled
 
 AC_MSG_CHECKING("for union wait")
 AC_TRY_COMPILE(

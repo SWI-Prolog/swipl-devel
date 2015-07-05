@@ -69,7 +69,6 @@ static void	collectSiblingsTime(void);
 int
 activateProfiler(prof_status active ARG_LD)
 {
-#ifdef O_PLMT
   int i;
   PL_local_data_t *profiling;
 
@@ -109,7 +108,6 @@ activateProfiler(prof_status active ARG_LD)
   updateAlerted(LD);
 
   LD->profile.sum_ok = FALSE;
-#endif
 
   return TRUE;
 }
