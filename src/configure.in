@@ -1237,6 +1237,7 @@ if test "x$ac_cv_func_unsetenv" = "xyes"; then
 		 AC_MSG_RESULT(yes))
 fi
 
+if test "$MT" = "yes"; then
 if test "$MINGW" = false; then
 
 dnl The tests below are Unix only.  There is no point doing this for MinGW.
@@ -1265,7 +1266,7 @@ AC_TRY_COMPILE(
 if test "x$ac_syscall_gettid" = "xyes"; then
    AC_DEFINE(HAVE_GETTID_SYSCALL, 1,
              [Define to 1 if you have syscall support for gettid()])
-else    dnl ! test "x$ac_syscall_gettid" = "xyes"
+else dnl ! test "x$ac_syscall_gettid" = "xyes"
 
 AC_MSG_CHECKING("linux gettid _syscall0 macro")
 AC_TRY_COMPILE(
@@ -1365,8 +1366,9 @@ if { test -f /proc/$$/task/$$/stat && \
 else
    AC_MSG_RESULT(no)
 fi
-fi      dnl test "x$ac_linux_cpuclocks" = "xyes"
-fi      dnl test "$MINGW" = false
+fi dnl test "x$ac_linux_cpuclocks" = "xyes"
+fi dnl test "$MINGW" = false
+fi dnl if test "$MT" = "yes"
 
 AC_MSG_CHECKING(for sysconf support for _SC_NPROCESSORS_CONF)
 AC_TRY_COMPILE(
