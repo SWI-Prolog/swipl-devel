@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -34,6 +33,7 @@ test_gc :-
 	run_tests([ gc_leak,
 		    gc_reset,
 		    gc_crash,
+		    gc_crash2,
 		    gc_mark,
 		    agc
 		  ]).
@@ -181,6 +181,29 @@ test(cleanup_shift, [throws(foo)]) :-
 
 :- end_tests(gc_crash).
 
+:- begin_tests(gc_crash2).
+
+test(cleanup) :-		% patch 33c661dca59ba3c007348533bd3e4687585c9e7a
+    catch(( go_1(1),
+            go_1(2)
+          ),
+          _,
+          true).
+
+go_1(N) :-
+        setup_call_cleanup(mysetup,
+                       ( ( true ; true ),
+                         process_n(N)
+                       ),
+                       mycleanup).
+
+mysetup.
+mycleanup.
+
+process_n(1) :- !.
+process_n(2) :- throw(foo).
+
+:- end_tests(gc_crash2).
 
 :- begin_tests(gc_mark).
 
