@@ -4095,6 +4095,7 @@ b_throw:
   assert(exception_term);
   outofstack = LD->outofstack;
   LD->outofstack = NULL;
+  PC = NULL;
 
   if ( lTop < (LocalFrame)argFrameP(FR, FR->predicate->functor->arity) )
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
