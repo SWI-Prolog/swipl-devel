@@ -3901,6 +3901,35 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 }
 
 
+static int
+is_key_token(Token token, ReadData _PL_rd)
+{ switch(token->type)
+  { case T_NAME:
+    case T_QNAME:
+    case T_FUNCTOR:
+    case T_DICT:
+      return TRUE;
+    case T_PUNCTUATION:
+    { switch(token->value.character)
+      { case '[':
+	case '{':
+	case '(':
+	case ')':
+	case '}':
+	case ']':
+	case '|':
+	case ',':
+	  return FALSE;
+	default:
+	  return TRUE;
+      }
+    }
+    default:
+      return FALSE;
+  }
+}
+
+
 /* read_dict() reads <class>{key:value, ...} into a dict as defined
    in pl-dict.c
 */
@@ -3964,7 +3993,7 @@ read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       if ( !(key = get_token(FALSE, _PL_rd)) )
 	return FALSE;
 
-      if ( is_name_token(key, TRUE, _PL_rd) )
+      if ( is_key_token(key, _PL_rd) )
       { key_term = alloc_term(_PL_rd PASS_LD);
 	PL_put_atom(key_term, key->value.atom);
 	Unlock(key->value.atom);
@@ -3984,7 +4013,7 @@ read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       if ( !(sep = get_token(FALSE, _PL_rd)) )
 	return FALSE;
 
-      if ( !is_name_token(sep, TRUE, _PL_rd) ||
+      if ( !is_key_token(sep, _PL_rd) ||
 	   key->value.atom != ATOM_colon )
 	syntaxError("colon_expected", _PL_rd);
 

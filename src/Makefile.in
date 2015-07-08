@@ -123,6 +123,7 @@ SOEXT=@SO_EXT@
 SOLIB=@SOLIB@
 SHARED=@PLSO@
 SHAREDV=$(SHARED).$(PLVERSION)
+SONAME=@SONAME@
 SONAMEOPT=@SONAMEOPT@
 LIBRARYDIR=${PLBASE}/library
 PLCUSTOM=${PLBASE}/customize
@@ -246,6 +247,7 @@ $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
+		( cd ../lib/$(PLARCH) && rm -f $(SONAME) && ln -s $(SHAREDV) $(SONAME) )
 endif
 endif
 
@@ -508,6 +510,7 @@ else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
 		( cd $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
+		( cd $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) && rm -f $(SONAME) && ln -s $(SHAREDV) $(SONAME) ) ; \
 		fi
 endif
 endif

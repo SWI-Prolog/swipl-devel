@@ -3785,7 +3785,9 @@ gcEnsureSpace(vm_state *state ARG_LD)
   if ( state->save_argp )
     lneeded += sizeof(struct fliFrame) + (aTop+1-aBase)*sizeof(word);
   if ( LD->attvar.call_residue_vars_count && LD->attvar.attvars )
-    lneeded += sizeof(struct fliFrame) + count_need_protection_attvars(PASS_LD1);
+  { size_t protect = count_need_protection_attvars(PASS_LD1);
+    lneeded += sizeof(struct fliFrame) + protect*sizeof(word);
+  }
 
   if ( (char*)lTop + lneeded > (char*)lMax )
   { if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )

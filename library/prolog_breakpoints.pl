@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 2011-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -32,6 +30,7 @@
 
 :- module(prolog_breakpoints,
 	  [ set_breakpoint/4,		% +File, +Line, +CharPos, -Id
+	    set_breakpoint/5,		% +Owner, +File, +Line, +CharPos, -Id
 	    delete_breakpoint/1,	% +Id
 	    breakpoint_property/2	% ?Id, ?Property
 	  ]).
@@ -60,13 +59,14 @@ other hooks the opportunity to react.
 	user:prolog_event_hook/1.
 
 %%	set_breakpoint(+File, +Line, +Char, -Id) is det.
+%%	set_breakpoint(+Owner, +File, +Line, +Char, -Id) is det.
 %
 %	Put a breakpoint at the  indicated   source-location.  File is a
 %	current sourcefile (as reported by   source_file/1). Line is the
 %	1-based line in which Char  is.  Char   is  the  position of the
 %	break.
 %
-%	First, '$clause_from_source'/3 uses the SWI-Prolog clause-source
+%	First, '$clause_from_source'/4 uses the SWI-Prolog clause-source
 %	information to find  the  last   clause  starting  before  Line.
 %	'$break_pc' generated (on backtracking),  a   list  of  possible
 %	break-points.
@@ -76,10 +76,17 @@ other hooks the opportunity to react.
 %	different ways this may  be  done.   See  debug/0,  tdebug/0 and
 %	tdebug/1. Therefore, this predicate  does   *not*  enable  debug
 %	mode.
+%
+%	@arg  Owner  denotes  the   file    that   _owns_   the  clause.
+%	set_breakpoint/5 is used to set breakpoints  in an included file
+%	in   the   context    of    the     Owner    main    file.   See
+%	source_file_property/2.
 
 set_breakpoint(File, Line, Char, Id) :-
+	set_breakpoint(File, File, Line, Char, Id).
+set_breakpoint(Owner, File, Line, Char, Id) :-
 	debug(break, 'break_at(~q, ~d, ~d).', [File, Line, Char]),
-	'$clause_from_source'(File, Line, ClauseRef),
+	'$clause_from_source'(Owner, File, Line, ClauseRef),
 	clause_info(ClauseRef, InfoFile, TermPos, _NameOffset),
 	(   InfoFile == File
 	->  '$break_pc'(ClauseRef, PC, NextPC),
