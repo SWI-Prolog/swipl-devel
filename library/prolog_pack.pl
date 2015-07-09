@@ -440,9 +440,11 @@ pack_default_options(URL, Pack, _, Options) :-
 pack_default_options(Dir, Pack, _, Options) :-	% Install from directory
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Pack)), !,
-	pack_info_term(Dir, version(Version)),
-	uri_file_name(DirURL, Dir),
-	Options = [url(DirURL), version(Version)].
+	(   pack_info_term(Dir, version(Version))
+	->  uri_file_name(DirURL, Dir),
+	    Options = [url(DirURL), version(Version)]
+	;   throw(error(existence_error(key, version, Dir),_))
+	).
 pack_default_options(URL, Pack, _, Options) :-	% Install from URL
 	pack_version_file(Pack, Version, URL),
 	download_url(URL), !,
