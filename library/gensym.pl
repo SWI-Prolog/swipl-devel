@@ -98,3 +98,7 @@ do_reset_gensym :-
 reset_gensym(Base) :-
 	atom_concat('$gs_', Base, Key),
 	with_mutex('$gensym', flag(Key, _, 0)).
+
+:- multifile sandbox:safe_primitive/1.
+
+sandbox:safe_primitive(gensym:gensym(_,_)).
