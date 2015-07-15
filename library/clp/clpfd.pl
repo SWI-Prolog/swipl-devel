@@ -232,7 +232,7 @@ The most important arithmetic constraints are:
 
 CLP(FD) constraints let you declaratively express integer arithmetic.
 The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used instead
-of the corresponding primitives is/2, =:=/2, >/2 etc.
+of the corresponding primitives is/2, =:=/2, >/2 etc. over integers.
 
 An important advantage of arithmetic constraints is their purely
 relational nature. They are therefore easy to explain and use, and
