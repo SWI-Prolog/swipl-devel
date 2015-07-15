@@ -5904,11 +5904,11 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 %  an integer. The constraint holds iff at each time slot during the
 %  start and end of each task, the total resource consumption of all
 %  tasks running at that time does not exceed the global resource
-%  limit (which is 1 by default). Options is a list of options.
-%  Currently, the only supported option is:
+%  limit. Options is a list of options. Currently, the only supported
+%  option is:
 %
 %    * limit(L)
-%      The integer L is the global resource limit.
+%      The integer L is the global resource limit. Default is 1.
 %
 %  For example, given the following predicate that relates three tasks
 %  of durations 2 and 3 to a list containing their starting times:
