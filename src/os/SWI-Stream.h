@@ -38,6 +38,11 @@
 #endif
 #endif
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
