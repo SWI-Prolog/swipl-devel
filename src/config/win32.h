@@ -28,4 +28,4 @@
 #define PLARCH		"i386-win32"
 #define SIZEOF_VOIDP	4
 
-#include "windows.h"
+#include "wincfg.h"

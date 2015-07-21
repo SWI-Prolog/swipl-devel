@@ -29,4 +29,4 @@
 #define PLARCH		"x64-win64"
 #define SIZEOF_VOIDP	8
 
-#include "windows.h"
+#include "wincfg.h"
