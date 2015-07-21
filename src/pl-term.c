@@ -341,6 +341,8 @@ PRED_IMPL("tty_size", 2, tty_size, 0)
 
 #ifdef __WINDOWS__
 
+#include <windows.h>
+
 static void *
 getModuleFunction(const char *module, const char *name)
 { HMODULE hconsole;

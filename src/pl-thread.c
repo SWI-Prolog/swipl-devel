@@ -6016,6 +6016,8 @@ PL_thread_destroy_engine()
 }
 
 #ifdef __WINDOWS__
+#include <windows.h>
+
 int
 PL_w32thread_raise(DWORD id, int sig)
 { return PL_raise(sig);
