@@ -30,12 +30,12 @@
 #include "config/win32.h"
 #endif
 
-#include <windows.h>
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
 #include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
+#include <windows.h>
 #include <ctype.h>
 #include "win32/console/console.h"
 #include <signal.h>
@@ -892,9 +892,14 @@ interrupt(rlc_console c, int sig)
 { uintptr_t val;
 
   if ( rlc_get(c, RLC_APPLICATION_THREAD_ID, &val) )
-  { DWORD tid = (DWORD)val;
-
+  {
+#ifdef O_PLMT
+    DWORD tid = (DWORD)val;
     PL_w32thread_raise(tid, sig);
+#else
+    PL_raise(sig);
+#endif
+
     if ( rlc_get(c, RLC_PROLOG_WINDOW, &val) )
     { HWND hwnd = (HWND)val;
 
