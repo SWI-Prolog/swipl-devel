@@ -23,6 +23,10 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef __MINGW32__
+#include <windows.h>
+#endif
+
 #include "pl-incl.h"
 #include "pl-utf8.h"
 #include <stdio.h>

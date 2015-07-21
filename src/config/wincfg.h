@@ -30,10 +30,7 @@
 
 #define NOTTYCONTROL		TRUE	/* default -tty */
 #define O_GMP			1
-
-#if defined(O_PLMT) && !defined(_REENTRANT)
-#define _REENTRANT 1
-#endif
+#define _REENTRANT		1
 
 #define OPEN_MAX 32
 

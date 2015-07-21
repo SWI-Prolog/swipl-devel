@@ -24,6 +24,10 @@
 #define _UNICODE 1
 #define UNICODE 1
 
+#ifdef __MINGW32__
+#include <windows.h>
+#endif
+
 #ifdef WIN64
 #include "config/win64.h"
 #else
