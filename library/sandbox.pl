@@ -458,6 +458,7 @@ safe_primitive(system:'$btree_find_node'(_,_,_,_)).
 					% unification and equivalence
 safe_primitive(=(_,_)).
 safe_primitive(\=(_,_)).
+safe_primitive(system:'?='(_,_)).
 safe_primitive(system:unifiable(_,_,_)).
 safe_primitive(unify_with_occurs_check(_,_)).
 safe_primitive(\==(_,_)).
