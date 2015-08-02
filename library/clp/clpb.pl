@@ -1052,16 +1052,15 @@ attribute_goals(Var) -->
             ;   { phrase(sat_ands(Formula), Ands),
                   maplist(formula_anf, Ands, ANFs0),
                   sort(ANFs0, ANFs1),
-                  exclude(eq_1, ANFs1, ANFs),
-                  % formula variables not occurring in the BDD should be
-                  % booleans
-                  bdd_variables(BDD, Vs),
-                  maplist(del_clpb, Vs),
-                  term_variables(Formula, RestVs0),
-                  include(clpb_variable, RestVs0, RestVs) },
-                sats(ANFs),
-                booleans(RestVs)
-            )
+                  exclude(eq_1, ANFs1, ANFs) },
+                sats(ANFs)
+            ),
+            % formula variables not occurring in the BDD should be booleans
+            { bdd_variables(BDD, Vs),
+              maplist(del_clpb, Vs),
+              term_variables(Formula, RestVs0),
+              include(clpb_variable, RestVs0, RestVs) },
+            booleans(RestVs)
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
 
