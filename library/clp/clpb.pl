@@ -1028,22 +1028,52 @@ random_bindings(VNum, Node) -->
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         (   { root_get_formula_bdd(Root, Formula, BDD) } ->
-            { del_bdd(Root),
-              phrase(sat_ands(Formula), Ands),
-              maplist(formula_anf, Ands, ANFs0),
-              sort(ANFs0, ANFs1),
-              exclude(eq_1, ANFs1, ANFs),
-              % formula variables not occurring in the BDD should be booleans
-              bdd_variables(BDD, Vs),
-              maplist(del_clpb, Vs),
-              term_variables(Formula, RestVs0),
-              include(clpb_variable, RestVs0, RestVs) },
-            sats(ANFs),
-            booleans(RestVs)
+            { del_bdd(Root) },
+            (   { current_prolog_flag(clpb_residuals, bdd) } ->
+                { bdd_nodes(BDD, Nodes) },
+                nodes(Nodes)
+            ;   { phrase(sat_ands(Formula), Ands),
+                  maplist(formula_anf, Ands, ANFs0),
+                  sort(ANFs0, ANFs1),
+                  exclude(eq_1, ANFs1, ANFs),
+                  % formula variables not occurring in the BDD should be
+                  % booleans
+                  bdd_variables(BDD, Vs),
+                  maplist(del_clpb, Vs),
+                  term_variables(Formula, RestVs0),
+                  include(clpb_variable, RestVs0, RestVs) },
+                sats(ANFs),
+                booleans(RestVs)
+            )
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Set the Prolog flag clpb_residuals to bdd to obtain the BDD nodes
+   as residuals. Note that they cannot be used as regular goals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+nodes([]) --> [].
+nodes([Node|Nodes]) -->
+        { node_var_low_high(Node, Var, Low, High),
+          maplist(node_projection, [Node,High,Low], [ID,HID,LID]) },
+        [ID-(Var -> HID ; LID)],
+        nodes(Nodes).
+
+
+node_projection(Node, Projection) :-
+        node_id(Node, ID),
+        (   integer(ID) -> Projection = node(ID)
+        ;   Projection = ID
+        ).
+
+
 del_clpb(Var) :- del_attr(Var, clpb).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   By default, residual goals are sat/1 calls of the remaining formulas,
+   using (mostly) algebraic normal form.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sats([]) --> [].
 sats([A|As]) -->
