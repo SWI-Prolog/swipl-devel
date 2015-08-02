@@ -293,6 +293,7 @@ sat(Sat0) :-
             maplist(del_bdd, Roots),
             maplist(=(Root), Roots),
             root_put_formula_bdd(Root, And, BDD1),
+            is_bdd(BDD1),
             satisfiable_bdd(BDD1)
         ).
 
@@ -872,8 +873,24 @@ is_bdd(BDD) :-
             (   member(ITE, ITEs), \+ registered_node(ITE) ->
                 domain_error(registered_node, ITE)
             ;   true
+            ),
+            (   member(I, ITEs), \+ ordered(I) ->
+                domain_error(unordered_node, I)
+            ;   true
             )
         ;   true
+        ).
+
+ordered(_-ite(Var,High,Low)) :-
+        var_index(Var, VI),
+        greater_varindex_than(High, VI),
+        greater_varindex_than(Low, VI).
+
+greater_varindex_than(Node, VI) :-
+        (   integer(Node) -> true
+        ;   node_var_low_high(Node, Var, _, _),
+            var_index(Var, OI),
+            OI > VI
         ).
 
 registered_node(Node-ite(Var,High,Low)) :-
