@@ -507,7 +507,8 @@ opposite_always_false(Opposite, DI, Node) -->
 
 update_aliasing(Node) :-
         node_var_low_high(Node, Var, Low, High),
-        (   ( Low == 1 ; High == 1 )-> del_attr(Var, clpb_always_branching)
+        (   ( Low == 1 ; High == 1 ) ->
+            del_attr(Var, clpb_always_branching)
         ;   true
         ),
         (   ( Low == 0 ; High == 0 ) -> true
