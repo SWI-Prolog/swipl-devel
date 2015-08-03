@@ -377,60 +377,125 @@ unsatisfiable_conjunction(Sat, Ands) :-
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
-        ;   bdd_variables(BDD, Vs),
-            node_var_low_high(BDD, Var, _, _),
-            var_index(Var, Lowest),
-            maplist(variable_definite_value(BDD,Lowest), Vs, Values),
-            (   maplist(var, Values) -> true % nothing to propagate
-            ;   Vs = Values % propagate all assignments at once
+        ;   bdd_nodes(BDD, Nodes),
+            nodes_variables(Nodes, Vs),
+            (   maplist(node_var_is_var, Nodes) ->
+                domain_consistency(BDD, Nodes, Vs, Goal),
+                unification(Goal)
+            ;   % if any variable is instantiated, we do not perform
+                % any propagation for now
+                true
             )
+        ).
+
+unification(true).
+unification(A=B) :- A = B.
+
+node_var_is_var(Node) :-
+        node_var_low_high(Node, Var, _, _),
+        var(Var).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Instantiate all variables that only admit a single Boolean value.
+
+   This is the case if: The variable is not skipped in any branch
+   leading to 1 (its being skipped means that it may be assigned
+   either 0 or 1 and can thus not be fixed yet), and all nodes where
+   it occurs as a branching variable have either lower or upper child
+   fixed to 0 consistently.
+
+   We first collect all candidate variables with such consistency,
+   because we can do this in a single pass of the BDD. For each of the
+   collected variables, we check whether it is skipped in any branch.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+domain_consistency(BDD, Nodes, Vs, Goal) :-
+        maplist(put_always_, Vs),
+        maplist(clear_inconsistent, Nodes),
+        include(consistently_false, Vs, Ds),
+        maplist(variable_definite_value(BDD), Ds, Values),
+        maplist(del_always_, Vs),
+        (   maplist(var, Values) -> Goal = true
+        ;   Goal = (Ds = Values) % propagate all assignments at once
+        ).
+
+
+put_always_(Var) :-
+        put_attr(Var, clpb_always_low_false, true),
+        put_attr(Var, clpb_always_high_false, true).
+
+del_always_(Var) :-
+        del_attr(Var, clpb_always_low_false),
+        del_attr(Var, clpb_always_high_false).
+
+consistently_false(Var) :-
+        (   get_attr(Var, clpb_always_low_false, true) -> true
+        ;   get_attr(Var, clpb_always_high_false, true) -> true
+        ;   false
+        ).
+
+clear_inconsistent(Node) :-
+        node_var_low_high(Node, Var, Low, High),
+        (   Low \== 0 -> del_attr(Var, clpb_always_low_false)
+        ;   true
+        ),
+        (   High \== 0 -> del_attr(Var, clpb_always_high_false)
+        ;   true
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   We walk the BDD and check for the given variable if only a single
-   value can make the formula true. This means: The variable is not
-   skipped in any branch leading to 1 (its being skipped means that it
-   may be assigned either 0 or 1 and can thus not be fixed yet), and
-   all nodes where it occurs as a branching variable have either lower
-   or upper child fixed to 0 consistently.
+   If, in addition to the aforementioned consistency, the candidate
+   variable is not skipped in any branch leading to 1, its value is
+   uniquely determined, depending on the child that is always 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variable_definite_value(BDD, Lowest, Var, Value) :-
-        var_index(Var, VI),
-        (   VI < Lowest ->
+variable_definite_value(BDD, Var, Value) :-
+        (   bdd_variable_skipped(BDD, Var) ->
             Value = _             % either value is possible
-        ;   (   bdd_nodes(var_always_0(VI), BDD, _) -> Value = 0
-            ;   bdd_nodes(var_always_1(VI), BDD, _) -> Value = 1
-            ;   Value = _         % either value is possible
+        ;   get_attr(Var, clpb_always_high_false, true) -> Value = 0
+        ;   get_attr(Var, clpb_always_low_false, true) -> Value = 1
+        ;   throw(cannot_happen)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   We only need to look into the BDD up to the the required depth.
+   This can save a lot of time in comparison with bdd_nodes/3, which
+   would walk the entire BDD for each of these variables.
+
+   Strategy: Breadth-first traversal of the BDD, throwing an exception
+   and thus clearing the nodes that we visited, if the variable is
+   skipped somewhere.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bdd_variable_skipped(BDD, Var) :-
+        node_var_low_high(BDD, Top, _, _),
+        var_index(Top, Lowest),
+        var_index(Var, VI),
+        (   VI < Lowest -> true
+        ;   catch(index_skipped(BDD, VI, [BDD]), clpb_skipped, true)
+        ).
+
+index_skipped(BDD, VI, Prevs) :-
+        phrase(next_layer(Prevs, BDD, VI), Nexts),
+        Nexts \== [],
+        index_skipped(BDD, VI, Nexts).
+
+next_layer([], _, _) --> [].
+next_layer([Node|Nodes], BDD, VI) -->
+        (   { Node == 0 } -> []
+        ;   { Node == 1 } -> index_skipped
+        ;   { node_visited(Node) } -> []
+        ;   { node_var_low_high(Node, OVar, Low, High),
+              var_index(OVar, OVI),
+              with_aux(put_visited, Node) },
+            (   { OVI =:= VI } -> []
+            ;   { OVI > VI } -> index_skipped
+            ;   [Low,High]
             )
-        ).
+        ),
+        next_layer(Nodes, BDD, VI).
 
-var_always_0(VI, Node) :-
-        node_var_low_high(Node, OVar, Low, High),
-        single_truth_value(VI, OVar, High, Low). % note reverse order!
-
-var_always_1(VI, Node) :-
-        node_var_low_high(Node, OVar, Low, High),
-        single_truth_value(VI, OVar, Low, High).
-
-single_truth_value(VI, OVar, Child1, Child2) :-
-        % If any variable is instantiated, the following fails, as intended.
-        % This only means that we do not perform any propagation for now.
-        var_index(OVar, OVI),
-        (   VI =:= OVI -> Child1 == 0
-        ;   OVI > VI -> true
-        ;   % OVI < VI ->
-            \+ index_skipped(VI, Child1),
-            \+ index_skipped(VI, Child2)
-        ).
-
-index_skipped(VI, ChildNode) :-
-        (   ChildNode == 0 -> false
-        ;   ChildNode == 1 -> true
-        ;   node_var_low_high(ChildNode, ChildVar, _, _),
-            var_index(ChildVar, ChildIndex),
-            VI < ChildIndex
-        ).
+index_skipped --> { throw(clpb_skipped) }.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Node management. Always use an existing node, if there is one.
