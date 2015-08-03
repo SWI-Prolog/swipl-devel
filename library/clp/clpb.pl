@@ -819,7 +819,7 @@ bdd_nodes(VPred, BDD, Ns) :-
         maplist(with_aux(unvisit), Ns).
 
 bdd_nodes_(VPred, Node) -->
-        (   { integer(Node) ;  with_aux(is_visited, Node) } -> []
+        (   { node_visited(Node) } -> []
         ;   { call(VPred, Node),
               with_aux(put_visited, Node),
               node_var_low_high(Node, _, Low, High) },
@@ -827,6 +827,9 @@ bdd_nodes_(VPred, Node) -->
             bdd_nodes_(VPred, Low),
             bdd_nodes_(VPred, High)
         ).
+
+node_visited(Node) :- integer(Node).
+node_visited(Node) :- with_aux(is_visited, Node).
 
 bdd_variables(BDD, Vs) :-
         bdd_nodes(BDD, Nodes),
@@ -882,21 +885,28 @@ is_bdd(BDD) :-
         ).
 
 ordered(_-ite(Var,High,Low)) :-
-        var_index(Var, VI),
-        greater_varindex_than(High, VI),
-        greater_varindex_than(Low, VI).
+        (   var_index(Var, VI) ->
+            greater_varindex_than(High, VI),
+            greater_varindex_than(Low, VI)
+        ;   true
+        ).
 
 greater_varindex_than(Node, VI) :-
         (   integer(Node) -> true
         ;   node_var_low_high(Node, Var, _, _),
-            var_index(Var, OI),
-            OI > VI
+            (   var_index(Var, OI) ->
+                OI > VI
+            ;   true
+            )
         ).
 
 registered_node(Node-ite(Var,High,Low)) :-
-        low_high_key(Low, High, Key),
-        lookup_node(Var, Key, Node0),
-        Node == Node0.
+        (   var(Var) ->
+            low_high_key(Low, High, Key),
+            lookup_node(Var, Key, Node0),
+            Node == Node0
+        ;   true
+        ).
 
 bdd_ites(BDD, ITEs) :-
         bdd_nodes(BDD, Nodes),
