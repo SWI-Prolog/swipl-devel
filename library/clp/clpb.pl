@@ -381,7 +381,8 @@ satisfiable_bdd(BDD) :-
             nodes_variables(Nodes, Vs),
             (   maplist(node_var_is_var, Nodes) ->
                 domain_consistency(BDD, Nodes, Vs, Goal),
-                unification(Goal)
+                aliasing_consistency(BDD, Nodes, Vs, Goals),
+                maplist(unification, [Goal|Goals])
             ;   % if any variable is instantiated, we do not perform
                 % any propagation for now
                 true
@@ -389,11 +390,141 @@ satisfiable_bdd(BDD) :-
         ).
 
 unification(true).
-unification(A=B) :- A = B.
+unification(A=B) :- A = B.      % safe_goal/1 detects safety of this call
 
 node_var_is_var(Node) :-
         node_var_low_high(Node, Var, _, _),
         var(Var).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   By aliasing consistency, we mean that all unifications X=Y, where
+   taut(X=:=Y, 1) holds, are posted.
+
+   To detect this, we distinguish two kinds of variables:
+   further-branching and negative-decisive. X is negative-decisive iff
+   every node where X appears as a branching variable has 0 as one of
+   its children. X is further-branching iff 1 is not a direct child of
+   any node where X appears as a branching variable.
+
+   Any potential aliasing must involve one further-branching, and one
+   negative-decisive variable. The detection of aliasings proceeds
+   with two different control flows: The first one is a frontier that
+   continually moves downwards in the BDD, collecting, for each
+   further-branching variable, the nodes where that variable appears.
+   For each such set of nodes, we detect aliasings with decisive
+   variables, by temporarily looking further down the BDD.
+
+   X=Y must hold if, for each low branch of nodes with X as branching
+   variable, Y has high branch 0, and for each high branch of nodes
+   involving X, Y has low branch 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+aliasing_consistency(BDD, Nodes, Vs0, Goals) :-
+        exclude(bdd_variable_skipped(BDD), Vs0, Vs),
+        maplist(put_aliasing, Vs),
+        maplist(update_aliasing, Nodes),
+        include(always_branching, Vs, Bs0),
+        variables_in_index_order(Bs0, Bs),
+        include(always_decisive, Vs, Ds),
+        maplist(del_aliasing, Vs),
+        catch(aliasings(Bs, Ds, BDD, Vs),
+              clpb_aliasings(Goals,Vs),
+              true).
+
+aliasings(Bs, Ds, BDD, Vs) :-
+        phrase(aliasings_(Bs, Ds, [BDD]), Goals),
+        maplist(del_attrs, Vs),
+        % reset all attributes
+        throw(clpb_aliasings(Goals,Vs)).
+
+aliasings_([], _, _) --> [].
+aliasings_([B|Bs], Ds, Prevs) -->
+        { phrase(nodes_b_branching(Prevs, B), Nexts),
+          maplist(with_aux(unvisit), Nexts),
+          var_index(B, BI) },
+        aliasing_(Ds, B, BI, Nexts),
+        aliasings_(Bs, Ds, Nexts).
+
+nodes_b_branching([], _) --> [].
+nodes_b_branching([Node|Nodes], B) -->
+        node_branching(Node, B),
+        nodes_b_branching(Nodes, B).
+
+node_branching(Node, B) -->
+        (   { node_visited(Node) } -> []
+        ;   { with_aux(put_visited, Node),
+              node_var_low_high(Node, Var, Low, High) },
+            (   { Var == B } -> [Node]
+            ;   node_branching(Low, B),
+                node_branching(High, B)
+            )
+        ).
+
+aliasing_([], _, _, _) --> [].
+aliasing_([D|Ds], B, BI, Nodes) -->
+        { var_index(D, DI) },
+        (   { DI > BI,
+              always_false(high, DI, Nodes),
+              always_false(low, DI, Nodes) } ->
+            [D=B]
+        ;   []
+        ),
+        aliasing_(Ds, B, BI, Nodes).
+
+always_false(Which, DI, Nodes) :-
+        phrase(nodes_always_false(Nodes, Which, DI), Opposites),
+        maplist(with_aux(unvisit), Opposites).
+
+nodes_always_false([], _, _) --> [].
+nodes_always_false([Node|Nodes], Which, DI) -->
+        { which_node_child(Which, Node, Child),
+          opposite(Which, Opposite) },
+        opposite_always_false(Opposite, DI, Child),
+        nodes_always_false(Nodes, Which, DI).
+
+which_node_child(low, Node, Child) :-
+        node_var_low_high(Node, _, Child, _).
+which_node_child(high, Node, Child) :-
+        node_var_low_high(Node, _, _, Child).
+
+opposite(low, high).
+opposite(high, low).
+
+opposite_always_false(Opposite, DI, Node) -->
+        (   { node_visited(Node) } -> []
+        ;   { node_var_low_high(Node, Var, Low, High),
+              with_aux(put_visited, Node),
+              var_index(Var, VI) },
+            [Node],
+            (   { VI =:= DI } ->
+                { which_node_child(Opposite, Node, Child),
+                  Child == 0 }
+            ;   opposite_always_false(Opposite, DI, Low),
+                opposite_always_false(Opposite, DI, High)
+            )
+        ).
+
+
+update_aliasing(Node) :-
+        node_var_low_high(Node, Var, Low, High),
+        (   ( Low == 1 ; High == 1 )-> del_attr(Var, clpb_always_branching)
+        ;   true
+        ),
+        (   ( Low == 0 ; High == 0 ) -> true
+        ;   del_attr(Var, clpb_always_decisive)
+        ).
+
+put_aliasing(V) :-
+        put_attr(V, clpb_always_branching, true),
+        put_attr(V, clpb_always_decisive, true).
+
+del_aliasing(V) :-
+        del_attr(V, clpb_always_branching),
+        del_attr(V, clpb_always_decisive).
+
+always_branching(V) :- get_attr(V, clpb_always_branching, true).
+
+always_decisive(V) :- get_attr(V, clpb_always_decisive, true).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Instantiate all variables that only admit a single Boolean value.
