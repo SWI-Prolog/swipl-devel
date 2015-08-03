@@ -878,7 +878,7 @@ is_bdd(BDD) :-
             ;   true
             ),
             (   member(I, ITEs), \+ ordered(I) ->
-                domain_error(unordered_node, I)
+                domain_error(ordered_node, I)
             ;   true
             )
         ;   true
