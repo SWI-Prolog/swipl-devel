@@ -379,10 +379,10 @@ satisfiable_bdd(BDD) :-
         ;   BDD == 1 -> true
         ;   bdd_nodes(BDD, Nodes),
             (   maplist(node_var_is_var, Nodes, Vs0) ->
-                term_variables(Vs0, Vs1),
-                bdd_variables_unskipped(BDD, Nodes, Vs1, Vs),
-                domain_consistency(Nodes, Vs, Goal),
-                aliasing_consistency(BDD, Nodes, Vs, Goals),
+                term_variables(Vs0, Vs),
+                bdd_variables_unskipped(BDD, Nodes, Vs, VNs),
+                domain_consistency(VNs, Goal),
+                aliasing_consistency(VNs, Goals),
                 maplist(unification, [Goal|Goals])
             ;   % if any variable is instantiated, we do not perform
                 % any propagation for now
@@ -401,67 +401,33 @@ node_var_is_var(Node, Var) :-
    By aliasing consistency, we mean that all unifications X=Y, where
    taut(X=:=Y, 1) holds, are posted.
 
-   To detect this, we distinguish two kinds of variables:
-   further-branching and negative-decisive. X is negative-decisive iff
-   every node where X appears as a branching variable has 0 as one of
-   its children. X is further-branching iff 1 is not a direct child of
-   any node where X appears as a branching variable.
+   To detect this, we distinguish two kinds of variables among those
+   variables that are not skipped in any branch: further-branching and
+   negative-decisive. X is negative-decisive iff every node where X
+   appears as a branching variable has 0 as one of its children. X is
+   further-branching iff 1 is not a direct child of any node where X
+   appears as a branching variable.
 
    Any potential aliasing must involve one further-branching, and one
-   negative-decisive variable. The detection of aliasings proceeds
-   with two different control flows: The first one is a frontier that
-   continually moves downwards in the BDD, collecting, for each
-   further-branching variable, the nodes where that variable appears.
-   For each such set of nodes, we detect aliasings with decisive
-   variables, by temporarily looking further down the BDD.
-
-   X=Y must hold if, for each low branch of nodes with X as branching
-   variable, Y has high branch 0, and for each high branch of nodes
-   involving X, Y has low branch 0.
+   negative-decisive variable. X=Y must hold if, for each low branch
+   of nodes with X as branching variable, Y has high branch 0, and for
+   each high branch of nodes involving X, Y has low branch 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-aliasing_consistency(BDD, Nodes, Vs, Goals) :-
-        maplist(put_aliasing, Vs),
-        maplist(update_aliasing, Nodes),
-        include(always_branching, Vs, Bs0),
-        variables_in_index_order(Bs0, Bs),
-        include(always_decisive, Vs, Ds),
-        maplist(del_aliasing, Vs),
-        catch(aliasings(Bs, Ds, BDD, Vs),
-              clpb_aliasings(Goals,Vs),
-              true).
+aliasing_consistency(VNs, Goals) :-
+        include(always_branching, VNs, Bs),
+        include(always_decisive, VNs, Ds0),
+        pairs_keys(Ds0, Ds),
+        phrase(aliasings(Bs, Ds), Goals).
 
-aliasings(Bs, Ds, BDD, Vs) :-
-        phrase(aliasings_(Bs, Ds, [BDD]), Goals),
-        maplist(del_attrs, Vs),
-        % reset all attributes
-        throw(clpb_aliasings(Goals,Vs)).
+aliasings([], _) --> [].
+aliasings([B-Nodes|Bs], Ds) -->
+        { var_index(B, BI) },
+        aliasings_(Ds, B, BI, Nodes),
+        aliasings(Bs, Ds).
 
-aliasings_([], _, _) --> [].
-aliasings_([B|Bs], Ds, Prevs) -->
-        { phrase(nodes_b_branching(Prevs, B), Nexts),
-          maplist(with_aux(unvisit), Nexts),
-          var_index(B, BI) },
-        aliasing_(Ds, B, BI, Nexts),
-        aliasings_(Bs, Ds, Nexts).
-
-nodes_b_branching([], _) --> [].
-nodes_b_branching([Node|Nodes], B) -->
-        node_branching(Node, B),
-        nodes_b_branching(Nodes, B).
-
-node_branching(Node, B) -->
-        (   { node_visited(Node) } -> []
-        ;   { with_aux(put_visited, Node),
-              node_var_low_high(Node, Var, Low, High) },
-            (   { Var == B } -> [Node]
-            ;   node_branching(Low, B),
-                node_branching(High, B)
-            )
-        ).
-
-aliasing_([], _, _, _) --> [].
-aliasing_([D|Ds], B, BI, Nodes) -->
+aliasings_([], _, _, _) --> [].
+aliasings_([D|Ds], B, BI, Nodes) -->
         { var_index(D, DI) },
         (   { DI > BI,
               always_false(high, DI, Nodes),
@@ -469,7 +435,7 @@ aliasing_([D|Ds], B, BI, Nodes) -->
             [D=B]
         ;   []
         ),
-        aliasing_(Ds, B, BI, Nodes).
+        aliasings_(Ds, B, BI, Nodes).
 
 always_false(Which, DI, Nodes) :-
         phrase(nodes_always_false(Nodes, Which, DI), Opposites),
@@ -504,28 +470,21 @@ opposite_always_false(Opposite, DI, Node) -->
             )
         ).
 
+always_branching(_-Nodes) :- maplist(node_branching, Nodes).
 
-update_aliasing(Node) :-
-        node_var_low_high(Node, Var, Low, High),
-        (   ( Low == 1 ; High == 1 ) ->
-            del_attr(Var, clpb_always_branching)
-        ;   true
-        ),
-        (   ( Low == 0 ; High == 0 ) -> true
-        ;   del_attr(Var, clpb_always_decisive)
+node_branching(Node) :-
+        node_var_low_high(Node, _, Low, High),
+        Low \== 1,
+        High \== 1.
+
+always_decisive(_-Nodes) :- maplist(node_decisive, Nodes).
+
+node_decisive(Node) :-
+        node_var_low_high(Node, _, Low, High),
+        (   Low == 0 -> true
+        ;   High == 0 -> true
+        ;   false
         ).
-
-put_aliasing(V) :-
-        put_attr(V, clpb_always_branching, true),
-        put_attr(V, clpb_always_decisive, true).
-
-del_aliasing(V) :-
-        del_attr(V, clpb_always_branching),
-        del_attr(V, clpb_always_decisive).
-
-always_branching(V) :- get_attr(V, clpb_always_branching, true).
-
-always_decisive(V) :- get_attr(V, clpb_always_decisive, true).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Instantiate all variables that only admit a single Boolean value.
@@ -535,57 +494,26 @@ always_decisive(V) :- get_attr(V, clpb_always_decisive, true).
    either 0 or 1 and can thus not be fixed yet), and all nodes where
    it occurs as a branching variable have either lower or upper child
    fixed to 0 consistently.
-
-   We first collect all candidate variables with such consistency,
-   because we can do this in a single pass of the BDD. For each of the
-   collected variables, we check whether it is skipped in any branch.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_consistency(Nodes, Vs, Goal) :-
-        maplist(put_always_, Vs),
-        maplist(clear_inconsistent, Nodes),
-        include(consistently_false, Vs, Ds),
-        maplist(variable_definite_value, Ds, Values),
-        maplist(del_always_, Vs),
+domain_consistency(VNs, Goal) :-
+        phrase(vnodes_values(VNs), Values),
+        pairs_keys(VNs, Vs),
         (   maplist(var, Values) -> Goal = true
-        ;   Goal = (Ds = Values) % propagate all assignments at once
+        ;   Goal = (Vs = Values) % propagate all assignments at once
         ).
 
-
-put_always_(Var) :-
-        put_attr(Var, clpb_always_low_false, true),
-        put_attr(Var, clpb_always_high_false, true).
-
-del_always_(Var) :-
-        del_attr(Var, clpb_always_low_false),
-        del_attr(Var, clpb_always_high_false).
-
-consistently_false(Var) :-
-        (   get_attr(Var, clpb_always_low_false, true) -> true
-        ;   get_attr(Var, clpb_always_high_false, true) -> true
-        ;   false
-        ).
-
-clear_inconsistent(Node) :-
-        node_var_low_high(Node, Var, Low, High),
-        (   Low \== 0 -> del_attr(Var, clpb_always_low_false)
-        ;   true
+vnodes_values([]) --> [].
+vnodes_values([_-Ns|VNs]) -->
+        (   { maplist(consistently_false_(low), Ns) } -> [1]
+        ;   { maplist(consistently_false_(high), Ns) } -> [0]
+        ;   [_]
         ),
-        (   High \== 0 -> del_attr(Var, clpb_always_high_false)
-        ;   true
-        ).
+        vnodes_values(VNs).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   If, in addition to the aforementioned consistency, the candidate
-   variable is not skipped in any branch leading to 1, its value is
-   uniquely determined, depending on the child that is always 0.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-variable_definite_value(Var, Value) :-
-        (   get_attr(Var, clpb_always_high_false, true) -> Value = 0
-        ;   get_attr(Var, clpb_always_low_false, true) -> Value = 1
-        ;   throw(cannot_happen)
-        ).
+consistently_false_(Which, Node) :-
+        which_node_child(Which, Node, Child),
+        Child == 0.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    All variables that are skipped in some branch leading to 1 can be
@@ -593,11 +521,14 @@ variable_definite_value(Var, Value) :-
    sweep. Strategy: Breadth-first traversal of the BDD, throwing an
    exception (and thus clearing all attributes) if the variable is
    skipped in some branch, and moving the frontier along each time.
+   VNs is a list of Var-Nodes pairs, associating each variable that is
+   not skipped in any branch leading to 1 with the list of nodes where
+   that variable occurs as a branching variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bdd_variables_unskipped(BDD, Nodes, Vars0, Vars) :-
-        variables_in_index_order(Vars0, Vars1),
-        phrase(unskipped_variables(Vars1, [BDD]), Vars),
+bdd_variables_unskipped(BDD, Nodes, Vars0, VNs) :-
+        variables_in_index_order(Vars0, Vars),
+        phrase(unskipped_variables(Vars, [BDD]), VNs),
         maplist(with_aux(unvisit), Nodes).
 
 unskipped_variables([], _) --> [].
@@ -607,7 +538,7 @@ unskipped_variables([V|Vs], Nodes0) -->
                 clpb_skipped,
                 Skipped = true) },
         (   { Skipped == true } -> unskipped_variables(Vs, Nodes0)
-        ;   [V],
+        ;   [V-Nodes],
             { maplist(with_aux(unvisit), Nodes) },
             unskipped_variables(Vs, Nodes)
         ).
