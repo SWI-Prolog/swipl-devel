@@ -378,9 +378,10 @@ satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
         ;   bdd_nodes(BDD, Nodes),
-            nodes_variables(Nodes, Vs),
-            (   maplist(node_var_is_var, Nodes) ->
-                domain_consistency(BDD, Nodes, Vs, Goal),
+            (   maplist(node_var_is_var, Nodes, Vs0) ->
+                term_variables(Vs0, Vs1),
+                bdd_variables_unskipped(BDD, Nodes, Vs1, Vs),
+                domain_consistency(Nodes, Vs, Goal),
                 aliasing_consistency(BDD, Nodes, Vs, Goals),
                 maplist(unification, [Goal|Goals])
             ;   % if any variable is instantiated, we do not perform
@@ -392,7 +393,7 @@ satisfiable_bdd(BDD) :-
 unification(true).
 unification(A=B) :- A = B.      % safe_goal/1 detects safety of this call
 
-node_var_is_var(Node) :-
+node_var_is_var(Node, Var) :-
         node_var_low_high(Node, Var, _, _),
         var(Var).
 
@@ -419,8 +420,7 @@ node_var_is_var(Node) :-
    involving X, Y has low branch 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-aliasing_consistency(BDD, Nodes, Vs0, Goals) :-
-        exclude(bdd_variable_skipped(BDD), Vs0, Vs),
+aliasing_consistency(BDD, Nodes, Vs, Goals) :-
         maplist(put_aliasing, Vs),
         maplist(update_aliasing, Nodes),
         include(always_branching, Vs, Bs0),
@@ -541,11 +541,11 @@ always_decisive(V) :- get_attr(V, clpb_always_decisive, true).
    collected variables, we check whether it is skipped in any branch.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_consistency(BDD, Nodes, Vs, Goal) :-
+domain_consistency(Nodes, Vs, Goal) :-
         maplist(put_always_, Vs),
         maplist(clear_inconsistent, Nodes),
         include(consistently_false, Vs, Ds),
-        maplist(variable_definite_value(BDD), Ds, Values),
+        maplist(variable_definite_value, Ds, Values),
         maplist(del_always_, Vs),
         (   maplist(var, Values) -> Goal = true
         ;   Goal = (Ds = Values) % propagate all assignments at once
@@ -581,51 +581,50 @@ clear_inconsistent(Node) :-
    uniquely determined, depending on the child that is always 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variable_definite_value(BDD, Var, Value) :-
-        (   bdd_variable_skipped(BDD, Var) ->
-            Value = _             % either value is possible
-        ;   get_attr(Var, clpb_always_high_false, true) -> Value = 0
+variable_definite_value(Var, Value) :-
+        (   get_attr(Var, clpb_always_high_false, true) -> Value = 0
         ;   get_attr(Var, clpb_always_low_false, true) -> Value = 1
         ;   throw(cannot_happen)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   We only need to look into the BDD up to the the required depth.
-   This can save a lot of time in comparison with bdd_nodes/3, which
-   would walk the entire BDD for each of these variables.
-
-   Strategy: Breadth-first traversal of the BDD, throwing an exception
-   and thus clearing the nodes that we visited, if the variable is
-   skipped somewhere.
+   All variables that are skipped in some branch leading to 1 can be
+   found in time linear in the size of the BDD, in essentially one
+   sweep. Strategy: Breadth-first traversal of the BDD, throwing an
+   exception (and thus clearing all attributes) if the variable is
+   skipped in some branch, and moving the frontier along each time.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bdd_variable_skipped(BDD, Var) :-
-        node_var_low_high(BDD, Top, _, _),
-        var_index(Top, Lowest),
-        var_index(Var, VI),
-        (   VI < Lowest -> true
-        ;   catch(index_skipped(BDD, VI, [BDD]), clpb_skipped, true)
+bdd_variables_unskipped(BDD, Nodes, Vars0, Vars) :-
+        variables_in_index_order(Vars0, Vars1),
+        phrase(unskipped_variables(Vars1, [BDD]), Vars),
+        maplist(with_aux(unvisit), Nodes).
+
+unskipped_variables([], _) --> [].
+unskipped_variables([V|Vs], Nodes0) -->
+        { var_index(V, Index),
+          catch(phrase(nodes_until_index(Nodes0, Index), Nodes),
+                clpb_skipped,
+                Skipped = true) },
+        (   { Skipped == true } -> unskipped_variables(Vs, Nodes0)
+        ;   [V],
+            { maplist(with_aux(unvisit), Nodes) },
+            unskipped_variables(Vs, Nodes)
         ).
 
-index_skipped(BDD, VI, Prevs) :-
-        phrase(next_layer(Prevs, BDD, VI), Nexts),
-        Nexts \== [],
-        index_skipped(BDD, VI, Nexts).
-
-next_layer([], _, _) --> [].
-next_layer([Node|Nodes], BDD, VI) -->
-        (   { Node == 0 } -> []
-        ;   { Node == 1 } -> index_skipped
-        ;   { node_visited(Node) } -> []
-        ;   { node_var_low_high(Node, OVar, Low, High),
-              var_index(OVar, OVI),
-              with_aux(put_visited, Node) },
-            (   { OVI =:= VI } -> []
-            ;   { OVI > VI } -> index_skipped
-            ;   [Low,High]
-            )
-        ),
-        next_layer(Nodes, BDD, VI).
+nodes_until_index([], _) --> [].
+nodes_until_index([Node|Nodes], VI) -->
+        (   { Node == 1 } -> index_skipped
+        ;   { node_visited(Node) } -> nodes_until_index(Nodes, VI)
+        ;   { with_aux(put_visited, Node),
+              node_var_low_high(Node, OVar, Low, High),
+              var_index(OVar, OVI) },
+            (   { OVI > VI } -> index_skipped
+            ;   { OVI =:= VI } -> [Node]
+            ;   nodes_until_index([Low,High], VI)
+            ),
+            nodes_until_index(Nodes, VI)
+        ).
 
 index_skipped --> { throw(clpb_skipped) }.
 
@@ -1279,8 +1278,9 @@ attribute_goals(Var) -->
 nodes([]) --> [].
 nodes([Node|Nodes]) -->
         { node_var_low_high(Node, Var, Low, High),
-          maplist(node_projection, [Node,High,Low], [ID,HID,LID]) },
-        [ID-(Var -> HID ; LID)],
+          maplist(node_projection, [Node,High,Low], [ID,HID,LID]),
+          var_index(Var, VI) },
+        [ID-(v(Var,VI) -> HID ; LID)],
         nodes(Nodes).
 
 
