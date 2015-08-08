@@ -415,9 +415,9 @@ node_var_is_var(Node, Var) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 aliasing_consistency(VNs, Goals) :-
-        include(always_branching, VNs, Bs),
-        include(always_decisive, VNs, Ds0),
-        pairs_keys(Ds0, Ds),
+        partition(always_branching, VNs, Bs, Ds0),
+        include(always_decisive, Ds0, Ds1),
+        pairs_keys(Ds1, Ds),
         phrase(aliasings(Bs, Ds), Goals).
 
 aliasings([], _) --> [].
