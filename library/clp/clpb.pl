@@ -828,12 +828,20 @@ attr_unify_hook(index_root(I,Root), Other) :-
                 satisfiable_bdd(BDD)
             ;   no_truth_value(Other)
             )
-        ;   parse_sat(Other, OtherSat),
-            root_get_formula_bdd(Root, Sat0, _),
+        ;   root_get_formula_bdd(Root, Sat0, _),
             Sat = Sat0*OtherSat,
-            sat_roots(Sat, Roots),
-            maplist(root_rebuild_bdd, Roots),
-            roots_and(Roots, 1-1, And-BDD1),
+            (   var(Other), var_index_root(Other, _, OtherRoot) ->
+                root_get_formula_bdd(OtherRoot, OtherSat, _),
+                % due to variable aliasing, the BDD may now be unordered,
+                % so we need to rebuild it from the new formula
+                sat_bdd(Sat, BDD1),
+                And = Sat,
+                Roots = [Root,OtherRoot]
+            ;   parse_sat(Other, OtherSat),
+                sat_roots(Sat, Roots),
+                maplist(root_rebuild_bdd, Roots),
+                roots_and(Roots, 1-1, And-BDD1)
+            ),
             maplist(del_bdd, Roots),
             maplist(=(NewRoot), Roots),
             root_put_formula_bdd(NewRoot, And, BDD1),
