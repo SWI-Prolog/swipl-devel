@@ -832,12 +832,13 @@ attr_unify_hook(index_root(I,Root), Other) :-
             % so we need to rebuild the new BDD from the conjunction.
             root_get_formula_bdd(Root, Sat0, _),
             Sat = Sat0*OtherSat,
-            (   var(Other), var_index_root(Other, _, OtherRoot) ->
+            (   var(Other), var_index_root(Other, _, OtherRoot),
+                OtherRoot \== Root ->
                 root_get_formula_bdd(OtherRoot, OtherSat, _),
                 parse_sat(Sat, Sat1),
                 sat_bdd(Sat1, BDD1),
                 And = Sat1,
-                Roots = [Root,OtherRoot]
+                sat_roots(Sat, Roots)
             ;   parse_sat(Other, OtherSat),
                 sat_roots(Sat, Roots),
                 maplist(root_rebuild_bdd, Roots),
