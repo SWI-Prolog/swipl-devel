@@ -372,23 +372,26 @@ tautology(Sat) :-
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
-        ;   bdd_nodes(BDD, Nodes),
-            (   maplist(node_var_is_var, Nodes, Vs0) ->
-                term_variables(Vs0, Vs),
-                bdd_variables_unskipped(BDD, Nodes, Vs, VNs),
-                domain_consistency(VNs, Goal),
-                aliasing_consistency(VNs, Goals),
+        ;   (   bdd_nodes(node_var_is_var, BDD, Nodes) ->
+                bdd_variables_classification(BDD, Nodes, Classes),
+                partition(var_class, Classes, Eqs, Bs, Ds),
+                domain_consistency(Eqs, Goal),
+                aliasing_consistency(Bs, Ds, Goals),
                 maplist(unification, [Goal|Goals])
             ;   % if any variable is instantiated, we do not perform
                 % any propagation for now
                 true
             )
-        ).
+            ).
+
+var_class(_=_, <).
+var_class(further_branching(_,_), =).
+var_class(negative_decisive(_), >).
 
 unification(true).
 unification(A=B) :- A = B.      % safe_goal/1 detects safety of this call
 
-node_var_is_var(Node, Var) :-
+node_var_is_var(Node) :-
         node_var_low_high(Node, Var, _, _),
         var(Var).
 
@@ -409,20 +412,17 @@ node_var_is_var(Node, Var) :-
    each high branch of nodes involving X, Y has low branch 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-aliasing_consistency(VNs, Goals) :-
-        partition(always_branching, VNs, Bs, Ds0),
-        include(always_decisive, Ds0, Ds1),
-        pairs_keys(Ds1, Ds),
+aliasing_consistency(Bs, Ds, Goals) :-
         phrase(aliasings(Bs, Ds), Goals).
 
 aliasings([], _) --> [].
-aliasings([B-Nodes|Bs], Ds) -->
+aliasings([further_branching(B,Nodes)|Bs], Ds) -->
         { var_index(B, BI) },
         aliasings_(Ds, B, BI, Nodes),
         aliasings(Bs, Ds).
 
 aliasings_([], _, _, _) --> [].
-aliasings_([D|Ds], B, BI, Nodes) -->
+aliasings_([negative_decisive(D)|Ds], B, BI, Nodes) -->
         { var_index(D, DI) },
         (   { DI > BI,
               always_false(high, DI, Nodes),
@@ -464,16 +464,12 @@ opposite_always_false(Opposite, DI, Node) :-
             )
         ).
 
-always_branching(_-Nodes) :- maplist(node_branching, Nodes).
-
-node_branching(Node) :-
+further_branching(Node) :-
         node_var_low_high(Node, _, Low, High),
         Low \== 1,
         High \== 1.
 
-always_decisive(_-Nodes) :- maplist(node_decisive, Nodes).
-
-node_decisive(Node) :-
+negative_decisive(Node) :-
         node_var_low_high(Node, _, Low, High),
         (   Low == 0 -> true
         ;   High == 0 -> true
@@ -490,65 +486,66 @@ node_decisive(Node) :-
    fixed to 0 consistently.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_consistency(VNs, Goal) :-
-        phrase(vnodes_values(VNs), Values),
-        pairs_keys(VNs, Vs),
-        (   maplist(var, Values) -> Goal = true
-        ;   Goal = (Vs = Values) % propagate all assignments at once
-        ).
+domain_consistency(Eqs, Goal) :-
+        maplist(eq_a_b, Eqs, Vs, Values),
+        Goal = (Vs = Values). % propagate all assignments at once
 
-vnodes_values([]) --> [].
-vnodes_values([_-Ns|VNs]) -->
-        (   { maplist(consistently_false_(low), Ns) } -> [1]
-        ;   { maplist(consistently_false_(high), Ns) } -> [0]
-        ;   [_]
-        ),
-        vnodes_values(VNs).
+eq_a_b(A=B, A, B).
 
 consistently_false_(Which, Node) :-
         which_node_child(Which, Node, Child),
         Child == 0.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   All variables that are skipped in some branch leading to 1 can be
-   found in time linear in the size of the BDD, in essentially one
-   sweep. Strategy: Breadth-first traversal of the BDD, throwing an
-   exception (and thus clearing all attributes) if the variable is
-   skipped in some branch, and moving the frontier along each time.
-   VNs is a list of Var-Nodes pairs, associating each variable that is
-   not skipped in any branch leading to 1 with the list of nodes where
-   that variable occurs as a branching variable.
+   In essentially one sweep of the BDD, all variables can be classified:
+   Unification with 0 or 1, further branching and/or negative decisive.
+
+   Strategy: Breadth-first traversal of the BDD, throwing an exception
+   (and thus clearing all attributes) if the variable is skipped in
+   some branch, and moving the frontier along each time.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bdd_variables_unskipped(BDD, Nodes, Vars0, VNs) :-
-        variables_in_index_order(Vars0, Vars),
-        phrase(unskipped_variables(Vars, [BDD]), VNs),
+bdd_variables_classification(BDD, Nodes, Classes) :-
+        nodes_variables(Nodes, Vs0),
+        variables_in_index_order(Vs0, Vs),
+        phrase(variables_classification(Vs, [BDD]), Classes),
         maplist(with_aux(unvisit), Nodes).
 
-unskipped_variables([], _) --> [].
-unskipped_variables([V|Vs], Nodes0) -->
+variables_classification([], _) --> [].
+variables_classification([V|Vs], Nodes0) -->
         { var_index(V, Index),
-          catch(phrase(nodes_until_index(Nodes0, Index), Nodes),
+          catch(phrase(nodes_with_variable(Nodes0, Index), Nodes),
                 clpb_skipped,
                 Skipped = true) },
-        (   { Skipped == true } -> unskipped_variables(Vs, Nodes0)
-        ;   [V-Nodes],
+        (   { Skipped == true } -> variables_classification(Vs, Nodes0)
+        ;   (   { maplist(consistently_false_(low), Nodes) } -> [V=1]
+            ;   { maplist(consistently_false_(high), Nodes) } -> [V=0]
+            ;   []
+            ),
+            (   { maplist(further_branching, Nodes) } ->
+                [further_branching(V, Nodes)]
+            ;   []
+            ),
+            (   { maplist(negative_decisive, Nodes) } ->
+                [negative_decisive(V)]
+            ;   []
+            ),
             { maplist(with_aux(unvisit), Nodes) },
-            unskipped_variables(Vs, Nodes)
+            variables_classification(Vs, Nodes)
         ).
 
-nodes_until_index([], _) --> [].
-nodes_until_index([Node|Nodes], VI) -->
+nodes_with_variable([], _) --> [].
+nodes_with_variable([Node|Nodes], VI) -->
         (   { Node == 1 } -> index_skipped
-        ;   { node_visited(Node) } -> nodes_until_index(Nodes, VI)
+        ;   { node_visited(Node) } -> nodes_with_variable(Nodes, VI)
         ;   { with_aux(put_visited, Node),
               node_var_low_high(Node, OVar, Low, High),
               var_index(OVar, OVI) },
             (   { OVI > VI } -> index_skipped
             ;   { OVI =:= VI } -> [Node]
-            ;   nodes_until_index([Low,High], VI)
+            ;   nodes_with_variable([Low,High], VI)
             ),
-            nodes_until_index(Nodes, VI)
+            nodes_with_variable(Nodes, VI)
         ).
 
 index_skipped --> { throw(clpb_skipped) }.
