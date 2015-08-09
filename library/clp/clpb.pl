@@ -358,21 +358,16 @@ bdd_and(NA, NB, And) :-
 
 taut(Sat0, T) :-
         parse_sat(Sat0, Sat),
-        sat_roots(Sat, Roots),
-        catch((roots_and(Roots, _-1, _-Ands),
-               (   T = 0, unsatisfiable_conjunction(Sat, Ands) -> true
-               ;   T = 1, unsatisfiable_conjunction(1#Sat, Ands) -> true
-               ;   false
-               ),
-               % reset all attributes
-               throw(truth(T))),
-              truth(T),
-              true).
+        (   T = 0, \+ sat(Sat) -> true
+        ;   T = 1, tautology(Sat) -> true
+        ;   false
+        ).
 
-unsatisfiable_conjunction(Sat, Ands) :-
-        sat_bdd(Sat, BDD),
-        bdd_and(BDD, Ands, B),
-        B == 0.
+tautology(Sat) :-
+        (   phrase(sat_ands(Sat), Ands), Ands = [_,_|_] ->
+            maplist(tautology, Ands)
+        ;   \+ sat(1#Sat)
+        ).
 
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
