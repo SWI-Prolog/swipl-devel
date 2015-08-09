@@ -372,7 +372,7 @@ tautology(Sat) :-
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
-        ;   (   bdd_nodes(node_var_is_var, BDD, Nodes) ->
+        ;   (   bdd_nodes(var_unbound, BDD, Nodes) ->
                 bdd_variables_classification(BDD, Nodes, Classes),
                 partition(var_class, Classes, Eqs, Bs, Ds),
                 domain_consistency(Eqs, Goal),
@@ -382,7 +382,7 @@ satisfiable_bdd(BDD) :-
                 % any propagation for now
                 true
             )
-            ).
+        ).
 
 var_class(_=_, <).
 var_class(further_branching(_,_), =).
@@ -391,7 +391,7 @@ var_class(negative_decisive(_), >).
 unification(true).
 unification(A=B) :- A = B.      % safe_goal/1 detects safety of this call
 
-node_var_is_var(Node) :-
+var_unbound(Node) :-
         node_var_low_high(Node, Var, _, _),
         var(Var).
 
