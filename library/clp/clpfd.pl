@@ -315,6 +315,9 @@ reifiable constraints or Boolean variables, then:
 
 The constraints of this table are reifiable as well.
 
+When reasoning over Boolean variables, also consider using
+`library(clpb)` and its dedicated CLP(B) constraints.
+
 ### Domains                             {#clpfd-domains}
 
 Each CLP(FD) variable has an associated set of admissible integers
