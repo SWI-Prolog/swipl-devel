@@ -422,17 +422,17 @@ copy_term(Word from, Word to, int flags ARG_LD)
 	  } else
 	  { Word attr;
 
-	    if ( !(attr = allocGlobalNoShift(1)) )
+	    if ( !(attr = alloc_attvar(PASS_LD1)) )
 	    { rc = GLOBAL_OVERFLOW;
 	      goto out;
 	    }
 	    TrailCyclic(p PASS_LD);
 	    TrailCyclic(from PASS_LD);
-	    *from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
-	    *to = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
+	    *from = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
+	    *to = makeRefG(attr);
 
 	    from = p;
-	    to = attr;
+	    to = &attr[1];
 	    goto again;
 	  }
 	} else

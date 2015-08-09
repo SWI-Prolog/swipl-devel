@@ -66,6 +66,27 @@ test(frozen_stacks, Vars == []) :-
 	    ;   true
 	    ),
 	    Vars).
+test(copy_term) :-
+	T = x(X), put_attr(X, a, 1),
+	copy_term(T, T2),
+	garbage_collect,
+	x(T2).
+test(copy_term, Vars == [V]) :-
+	T = x(X), put_attr(X, a, 1),
+	call_residue_vars(copy_term(T, T2), Vars),
+	arg(1, T2, V).
+test(record) :-
+	T = x(X), put_attr(X, a, 1),
+	cp_record(T, T2),
+	garbage_collect,
+	x(T2).
+test(record, Vars == [V]) :-
+	T = x(X), put_attr(X, a, 1),
+	call_residue_vars(cp_record(T, T2), Vars),
+	arg(1, T2, V).
+
+cp_record(T,T2) :-			% copy using recorded DB
+	findall(T2, T2=T, [T2]).
 
 x(_).					% avoid singleton warnings
 

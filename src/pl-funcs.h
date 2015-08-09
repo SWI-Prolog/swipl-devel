@@ -35,6 +35,8 @@ COMMON(void)		assignAttVar(Word av, Word value ARG_LD);
 COMMON(int)		saveWakeup(wakeup_state *state, int forceframe ARG_LD);
 COMMON(void)		restoreWakeup(wakeup_state *state ARG_LD);
 COMMON(int)		PL_get_attr__LD(term_t t, term_t a ARG_LD);
+COMMON(int)		on_attvar_chain(Word avp);
+COMMON(Word)		alloc_attvar(ARG1_LD);
 
 /* pl-gvar.c */
 

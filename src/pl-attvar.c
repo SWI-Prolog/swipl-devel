@@ -169,6 +169,7 @@ assignAttVar(Word av, Word value ARG_LD)
   assert(isAttVar(*av));
   assert(!isRef(*value));
   assert(gTop+7 <= gMax && tTop+6 <= tMax);
+  DEBUG(CHK_SECURE, assert(on_attvar_chain(av)));
 
   DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
 
@@ -201,22 +202,46 @@ Link known attributes variables into a reference list.
 
 static Word
 link_attvar(ARG1_LD)
-{ Word gp = gTop;
+{ Word gp = gTop++;
 
-  if ( LD->attvar.attvars )
-  { *gp = makeRefG(LD->attvar.attvars);
-    DEBUG(MSG_ATTVAR_LINK,
-	  Sdprintf("Linking %p -> %p\n", gp, LD->attvar.attvars));
-  } else
-  { DEBUG(MSG_ATTVAR_LINK,
-	  Sdprintf("Attvar chain head at %p\n", gp));
-    setVar(*gp);
+  register_attvar(gp PASS_LD);
+
+  return gp+1;
+}
+
+
+Word
+alloc_attvar(ARG1_LD)
+{ Word gp = allocGlobalNoShift(3);
+
+  if ( gp )
+  { register_attvar(&gp[0] PASS_LD);
+    gp[1] = consPtr(&gp[2], TAG_ATTVAR|STG_GLOBAL);
+    gp[2] = ATOM_nil;
+    return &gp[1];
   }
 
-  LD->attvar.attvars = gp++;
-  gTop = gp;
+  return NULL;
+}
 
-  return gp;
+
+int
+on_attvar_chain(Word avp)
+{ GET_LD
+  Word p, next;
+
+  for(p = LD->attvar.attvars; p; p = next)
+  { Word avp0 = p+1;
+    next = isRef(*p) ? unRef(*p) : NULL;
+
+    if ( avp0 == avp )
+      return TRUE;
+  }
+
+  DEBUG(0, char buf[256];
+	Sdprintf("%s: not on attvar chain\n", print_addr(avp, buf)));
+
+  return FALSE;
 }
 
 
@@ -279,7 +304,7 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
 
   trail_new_attvar(gp PASS_LD);
-  Trail(p, makeRefG(&gp[0]));
+  Trail(p, makeRefG(gp));
 }
 
 

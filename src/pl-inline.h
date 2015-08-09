@@ -315,4 +315,19 @@ is_signalled(ARG1_LD)
 { return LD && unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
 }
 
+static inline void
+register_attvar(Word gp ARG_LD)
+{ if ( LD->attvar.attvars )
+  { *gp = makeRefG(LD->attvar.attvars);
+    DEBUG(MSG_ATTVAR_LINK,
+	  Sdprintf("Linking %p -> %p\n", gp, LD->attvar.attvars));
+  } else
+  { DEBUG(MSG_ATTVAR_LINK,
+	  Sdprintf("Attvar chain head at %p\n", gp));
+    setVar(*gp);
+  }
+
+  LD->attvar.attvars = gp;
+}
+
 #endif /*PL_INLINE_H_INCLUDED*/
