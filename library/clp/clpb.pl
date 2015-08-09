@@ -433,13 +433,13 @@ aliasings_([D|Ds], B, BI, Nodes) -->
         aliasings_(Ds, B, BI, Nodes).
 
 always_false(Which, DI, Nodes) :-
-        phrase(nodes_always_false(Nodes, Which, DI), Opposites),
-        maplist(with_aux(unvisit), Opposites).
+        % use \+ \+ to reset attributes of visited nodes
+        \+ \+ nodes_always_false(Nodes, Which, DI).
 
-nodes_always_false([], _, _) --> [].
-nodes_always_false([Node|Nodes], Which, DI) -->
-        { which_node_child(Which, Node, Child),
-          opposite(Which, Opposite) },
+nodes_always_false([], _, _).
+nodes_always_false([Node|Nodes], Which, DI) :-
+        which_node_child(Which, Node, Child),
+        opposite(Which, Opposite),
         opposite_always_false(Opposite, DI, Child),
         nodes_always_false(Nodes, Which, DI).
 
@@ -451,15 +451,14 @@ which_node_child(high, Node, Child) :-
 opposite(low, high).
 opposite(high, low).
 
-opposite_always_false(Opposite, DI, Node) -->
-        (   { node_visited(Node) } -> []
-        ;   { node_var_low_high(Node, Var, Low, High),
-              with_aux(put_visited, Node),
-              var_index(Var, VI) },
-            [Node],
-            (   { VI =:= DI } ->
-                { which_node_child(Opposite, Node, Child),
-                  Child == 0 }
+opposite_always_false(Opposite, DI, Node) :-
+        (   node_visited(Node) -> true
+        ;   node_var_low_high(Node, Var, Low, High),
+            with_aux(put_visited, Node),
+            var_index(Var, VI),
+            (   VI =:= DI ->
+                which_node_child(Opposite, Node, Child),
+                Child == 0
             ;   opposite_always_false(Opposite, DI, Low),
                 opposite_always_false(Opposite, DI, High)
             )
