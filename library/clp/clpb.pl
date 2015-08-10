@@ -433,13 +433,13 @@ aliasings_([negative_decisive(D)|Ds], B, BI, Nodes) -->
         aliasings_(Ds, B, BI, Nodes).
 
 always_false(Which, DI, Nodes) :-
-        % use \+ \+ to reset attributes of visited nodes
-        \+ \+ nodes_always_false(Nodes, Which, DI).
+        phrase(nodes_always_false(Nodes, Which, DI), Opposites),
+        maplist(with_aux(unvisit), Opposites).
 
-nodes_always_false([], _, _).
-nodes_always_false([Node|Nodes], Which, DI) :-
-        which_node_child(Which, Node, Child),
-        opposite(Which, Opposite),
+nodes_always_false([], _, _) --> [].
+nodes_always_false([Node|Nodes], Which, DI) -->
+        { which_node_child(Which, Node, Child),
+          opposite(Which, Opposite) },
         opposite_always_false(Opposite, DI, Child),
         nodes_always_false(Nodes, Which, DI).
 
@@ -451,14 +451,15 @@ which_node_child(high, Node, Child) :-
 opposite(low, high).
 opposite(high, low).
 
-opposite_always_false(Opposite, DI, Node) :-
-        (   node_visited(Node) -> true
-        ;   node_var_low_high(Node, Var, Low, High),
-            with_aux(put_visited, Node),
-            var_index(Var, VI),
-            (   VI =:= DI ->
-                which_node_child(Opposite, Node, Child),
-                Child == 0
+opposite_always_false(Opposite, DI, Node) -->
+        (   { node_visited(Node) } -> []
+        ;   { node_var_low_high(Node, Var, Low, High),
+              with_aux(put_visited, Node),
+              var_index(Var, VI) },
+            [Node],
+            (   { VI =:= DI } ->
+                { which_node_child(Opposite, Node, Child),
+                  Child == 0 }
             ;   opposite_always_false(Opposite, DI, Low),
                 opposite_always_false(Opposite, DI, High)
             )
@@ -500,9 +501,9 @@ consistently_false_(Which, Node) :-
    In essentially one sweep of the BDD, all variables can be classified:
    Unification with 0 or 1, further branching and/or negative decisive.
 
-   Strategy: Breadth-first traversal of the BDD, throwing an exception
-   (and thus clearing all attributes) if the variable is skipped in
-   some branch, and moving the frontier along each time.
+   Strategy: Breadth-first traversal of the BDD, failing (and thus
+   clearing all attributes) if the variable is skipped in some branch,
+   and moving the frontier along each time.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_variables_classification(BDD, Nodes, Classes) :-
@@ -513,12 +514,9 @@ bdd_variables_classification(BDD, Nodes, Classes) :-
 
 variables_classification([], _) --> [].
 variables_classification([V|Vs], Nodes0) -->
-        { var_index(V, Index),
-          catch(phrase(nodes_with_variable(Nodes0, Index), Nodes),
-                clpb_skipped,
-                Skipped = true) },
-        (   { Skipped == true } -> variables_classification(Vs, Nodes0)
-        ;   (   { maplist(consistently_false_(low), Nodes) } -> [V=1]
+        { var_index(V, Index) },
+        (   { phrase(nodes_with_variable(Nodes0, Index), Nodes) } ->
+            (   { maplist(consistently_false_(low), Nodes) } -> [V=1]
             ;   { maplist(consistently_false_(high), Nodes) } -> [V=0]
             ;   []
             ),
@@ -532,23 +530,22 @@ variables_classification([V|Vs], Nodes0) -->
             ),
             { maplist(with_aux(unvisit), Nodes) },
             variables_classification(Vs, Nodes)
+        ;   variables_classification(Vs, Nodes0)
         ).
 
 nodes_with_variable([], _) --> [].
 nodes_with_variable([Node|Nodes], VI) -->
-        (   { Node == 1 } -> index_skipped
-        ;   { node_visited(Node) } -> nodes_with_variable(Nodes, VI)
+        { Node \== 1 },
+        (   { node_visited(Node) } -> nodes_with_variable(Nodes, VI)
         ;   { with_aux(put_visited, Node),
               node_var_low_high(Node, OVar, Low, High),
               var_index(OVar, OVI) },
-            (   { OVI > VI } -> index_skipped
-            ;   { OVI =:= VI } -> [Node]
+            { OVI =< VI },
+            (   { OVI =:= VI } -> [Node]
             ;   nodes_with_variable([Low,High], VI)
             ),
             nodes_with_variable(Nodes, VI)
         ).
-
-index_skipped --> { throw(clpb_skipped) }.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Node management. Always use an existing node, if there is one.
