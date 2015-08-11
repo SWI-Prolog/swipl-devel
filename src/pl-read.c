@@ -367,7 +367,7 @@ typedef struct
   term_t	qq_tail;		/* Tail of the quoted stuff */
 #endif
   bool		cycles;			/* Re-establish cycles */
-  bool		dot_lists;		/* read .(a,b) as a list */
+  bool		dotlists;		/* read .(a,b) as a list */
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
@@ -3883,7 +3883,7 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 #undef P_HEAD
 #undef P_ARG
 
-  if ( _PL_rd->dot_lists )
+  if ( _PL_rd->dotlists )
   { static atom_t dot = 0;
     if ( !dot )
       dot = PL_new_atom(".");
@@ -4655,7 +4655,7 @@ retry:
 		     &rd.quasi_quotations,
 #endif
 		     &rd.cycles,
-		     &rd.dot_lists) )
+		     &rd.dotlists) )
     return FALSE;
 
   if ( mname )

@@ -53,7 +53,7 @@ macros \const{ATOM_nil} and \const{ATOM_dot} are provided by
 
 Another place that is affected is write_canonical/1. Impact is minimized
 by using the list syntax for lists.  The predicates read_term/2 and
-write_term/2 support the option \term{dot_lists}{true}, which causes
+write_term/2 support the option \term{dotlists}{true}, which causes
 read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
 write \verb$[a]$ as \verb$.(a,[])$.
 
