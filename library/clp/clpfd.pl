@@ -2787,6 +2787,7 @@ disjunctive_eqs_var_drep(Eqs, Var, Drep) :-
         list_to_drep(Vals, Drep).
 
 disjunctive_eqs_var(V, _) :- var(V), !, false.
+disjunctive_eqs_var(V in I, V) :- var(V), integer(I).
 disjunctive_eqs_var(L #= R, Var) :-
         (   var(L), integer(R) -> Var = L
         ;   integer(L), var(R) -> Var = R
@@ -2798,6 +2799,7 @@ disjunctive_eqs_var(A #\/ B, VA) :-
         VA == VB.
 
 disjunctive_eqs_vals(L #= R)  --> ( { integer(L) } -> [L] ; [R] ).
+disjunctive_eqs_vals(_ in I)  --> [I].
 disjunctive_eqs_vals(A #\/ B) -->
         disjunctive_eqs_vals(A),
         disjunctive_eqs_vals(B).
