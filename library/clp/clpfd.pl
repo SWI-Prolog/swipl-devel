@@ -2056,7 +2056,7 @@ parse_clpfd(E, R,
              m(A mod B)        => [g(B #\= 0), p(pmod(A, B, R))],
              m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
-             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
+%             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A//B)           => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
@@ -2377,7 +2377,7 @@ expr_conds(A0-B0, A-B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0//B0, A//B)         -->
         expr_conds(A0, A), expr_conds(B0, B),
         [B =\= 0].
-expr_conds(A0/B0, AB)            --> expr_conds(A0//B0, AB).
+%expr_conds(A0/B0, AB)            --> expr_conds(A0//B0, AB).
 expr_conds(min(A0,B0), min(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(max(A0,B0), max(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0 mod B0, A mod B)   -->
@@ -2848,7 +2848,7 @@ parse_reified(E, R, D,
                m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        => [skeleton(A,B,D,R,ptzdiv)],
+%               m(A/B)        => [skeleton(A,B,D,R,ptzdiv)],
                m(A//B)       => [skeleton(A,B,D,R,ptzdiv)],
                m(A div B)    => [skeleton(A,B,D,R,pdiv)],
                m(A rdiv B)   => [skeleton(A,B,D,R,prdiv)],
