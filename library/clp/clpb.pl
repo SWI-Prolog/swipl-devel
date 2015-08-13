@@ -637,15 +637,13 @@ counter_network(Cs, Fs, Node) :-
         same_length([_|Fs], Indicators),
         fill_indicators(Indicators, 0, Cs),
         phrase(formulas_variables(Fs, Vars0), ExBDDs),
-        maplist(del_counter, Vars0),
+        maplist(unvisit, Vars0),
         % The counter network is built bottom-up, so variables with
         % highest index must be processed first.
         variables_in_index_order(Vars0, Vars1),
         reverse(Vars1, Vars),
         counter_network_(Vars, Indicators, Node0),
         foldl(existential_and, ExBDDs, Node0, Node).
-
-del_counter(V) :- del_attr(V, clpb_counter).
 
 % Introduce fresh variables for expressions that are not variables.
 % These variables are later existentially quantified to remove them.
@@ -654,9 +652,9 @@ del_counter(V) :- del_attr(V, clpb_counter).
 
 formulas_variables([], []) --> [].
 formulas_variables([F|Fs], [V|Vs]) -->
-        (   { var(F), \+ get_attr(F, clpb_counter, true) } ->
+        (   { var(F), \+ is_visited(F) } ->
             { V = F,
-              put_attr(F, clpb_counter, true) }
+              put_visited(F) }
         ;   { enumerate_variable(V),
               sat_rewrite(V =:= F, Sat),
               sat_bdd(Sat, BDD) },
