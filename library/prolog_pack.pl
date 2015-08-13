@@ -440,9 +440,11 @@ pack_default_options(URL, Pack, _, Options) :-
 pack_default_options(Dir, Pack, _, Options) :-	% Install from directory
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Pack)), !,
-	pack_info_term(Dir, version(Version)),
-	uri_file_name(DirURL, Dir),
-	Options = [url(DirURL), version(Version)].
+	(   pack_info_term(Dir, version(Version))
+	->  uri_file_name(DirURL, Dir),
+	    Options = [url(DirURL), version(Version)]
+	;   throw(error(existence_error(key, version, Dir),_))
+	).
 pack_default_options(URL, Pack, _, Options) :-	% Install from URL
 	pack_version_file(Pack, Version, URL),
 	download_url(URL), !,
@@ -1545,8 +1547,9 @@ message_severity(exception(_), error, _).
 inquiry_result(Reply, File, Options) :-
 	findall(Eval, eval_inquiry(Reply, File, Eval, Options), Evaluation),
 	\+ member(cancel, Evaluation),
+	select_option(git(_), Options, Options1, _),
 	forall(member(install_dependencies(Resolution), Evaluation),
-	       maplist(install_dependency(Options), Resolution)).
+	       maplist(install_dependency(Options1), Resolution)).
 
 eval_inquiry(true(Reply), URL, Eval, _) :-
 	include(alt_hash, Reply, Alts),

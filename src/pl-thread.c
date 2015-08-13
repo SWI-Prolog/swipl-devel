@@ -2227,6 +2227,7 @@ run_thread_exit_hooks(PL_local_data_t *ld)
 
   if ( LD == ld )	/* if FALSE, we are called from another thread (create) */
   { at_exit_goal *eg;
+    fid_t fid = PL_open_foreign_frame();
 
     while( (eg = ld->thread.exit_goals) )
     { ld->thread.exit_goals = NULL;	/* empty these */
@@ -2235,6 +2236,7 @@ run_thread_exit_hooks(PL_local_data_t *ld)
     }
 
     run_exit_hooks(GD->thread.exit_goals, FALSE);
+    PL_close_foreign_frame(fid);
   }
 }
 

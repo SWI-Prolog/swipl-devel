@@ -1235,6 +1235,9 @@ __do_undo(mark *m ARG_LD)
     { DEBUG(2, Sdprintf("Undoing a trailed assignment\n"));
       tt--;
       *tt->address = trailVal(p);
+      DEBUG(CHK_SECURE,
+	    if ( isAttVar(*tt->address) )
+	      assert(on_attvar_chain(tt->address)));
       assert(!(*tt->address & (MARK_MASK|FIRST_MASK)));
     } else
       setVar(*p);

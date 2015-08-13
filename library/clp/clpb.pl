@@ -293,6 +293,7 @@ sat(Sat0) :-
             maplist(del_bdd, Roots),
             maplist(=(Root), Roots),
             root_put_formula_bdd(Root, And, BDD1),
+            is_bdd(BDD1),
             satisfiable_bdd(BDD1)
         ).
 
@@ -357,78 +358,193 @@ bdd_and(NA, NB, And) :-
 
 taut(Sat0, T) :-
         parse_sat(Sat0, Sat),
-        sat_roots(Sat, Roots),
-        catch((roots_and(Roots, _-1, _-Ands),
-               (   T = 0, unsatisfiable_conjunction(Sat, Ands) -> true
-               ;   T = 1, unsatisfiable_conjunction(1#Sat, Ands) -> true
-               ;   false
-               ),
-               % reset all attributes
-               throw(truth(T))),
-              truth(T),
-              true).
+        (   T = 0, \+ sat(Sat) -> true
+        ;   T = 1, tautology(Sat) -> true
+        ;   false
+        ).
 
-unsatisfiable_conjunction(Sat, Ands) :-
-        sat_bdd(Sat, BDD),
-        bdd_and(BDD, Ands, B),
-        B == 0.
+tautology(Sat) :-
+        (   phrase(sat_ands(Sat), Ands), Ands = [_,_|_] ->
+            maplist(tautology, Ands)
+        ;   \+ sat(1#Sat)
+        ).
 
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
-        ;   bdd_variables(BDD, Vs),
-            node_var_low_high(BDD, Var, _, _),
-            var_index(Var, Lowest),
-            maplist(variable_definite_value(BDD,Lowest), Vs, Values),
-            (   maplist(var, Values) -> true % nothing to propagate
-            ;   Vs = Values % propagate all assignments at once
+        ;   (   bdd_nodes(var_unbound, BDD, Nodes) ->
+                bdd_variables_classification(BDD, Nodes, Classes),
+                partition(var_class, Classes, Eqs, Bs, Ds),
+                domain_consistency(Eqs, Goal),
+                aliasing_consistency(Bs, Ds, Goals),
+                maplist(unification, [Goal|Goals])
+            ;   % if any variable is instantiated, we do not perform
+                % any propagation for now
+                true
             )
+        ).
+
+var_class(_=_, <).
+var_class(further_branching(_,_), =).
+var_class(negative_decisive(_), >).
+
+unification(true).
+unification(A=B) :- A = B.      % safe_goal/1 detects safety of this call
+
+var_unbound(Node) :-
+        node_var_low_high(Node, Var, _, _),
+        var(Var).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   By aliasing consistency, we mean that all unifications X=Y, where
+   taut(X=:=Y, 1) holds, are posted.
+
+   To detect this, we distinguish two kinds of variables among those
+   variables that are not skipped in any branch: further-branching and
+   negative-decisive. X is negative-decisive iff every node where X
+   appears as a branching variable has 0 as one of its children. X is
+   further-branching iff 1 is not a direct child of any node where X
+   appears as a branching variable.
+
+   Any potential aliasing must involve one further-branching, and one
+   negative-decisive variable. X=Y must hold if, for each low branch
+   of nodes with X as branching variable, Y has high branch 0, and for
+   each high branch of nodes involving X, Y has low branch 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+aliasing_consistency(Bs, Ds, Goals) :-
+        phrase(aliasings(Bs, Ds), Goals).
+
+aliasings([], _) --> [].
+aliasings([further_branching(B,Nodes)|Bs], Ds) -->
+        { var_index(B, BI) },
+        aliasings_(Ds, B, BI, Nodes),
+        aliasings(Bs, Ds).
+
+aliasings_([], _, _, _) --> [].
+aliasings_([negative_decisive(D)|Ds], B, BI, Nodes) -->
+        { var_index(D, DI) },
+        (   { DI > BI,
+              always_false(high, DI, Nodes),
+              always_false(low, DI, Nodes) } ->
+            [D=B]
+        ;   []
+        ),
+        aliasings_(Ds, B, BI, Nodes).
+
+always_false(Which, DI, Nodes) :-
+        phrase(nodes_always_false(Nodes, Which, DI), Opposites),
+        maplist(with_aux(unvisit), Opposites).
+
+nodes_always_false([], _, _) --> [].
+nodes_always_false([Node|Nodes], Which, DI) -->
+        { which_node_child(Which, Node, Child),
+          opposite(Which, Opposite) },
+        opposite_always_false(Opposite, DI, Child),
+        nodes_always_false(Nodes, Which, DI).
+
+which_node_child(low, Node, Child) :-
+        node_var_low_high(Node, _, Child, _).
+which_node_child(high, Node, Child) :-
+        node_var_low_high(Node, _, _, Child).
+
+opposite(low, high).
+opposite(high, low).
+
+opposite_always_false(Opposite, DI, Node) -->
+        (   { node_visited(Node) } -> []
+        ;   { node_var_low_high(Node, Var, Low, High),
+              with_aux(put_visited, Node),
+              var_index(Var, VI) },
+            [Node],
+            (   { VI =:= DI } ->
+                { which_node_child(Opposite, Node, Child),
+                  Child == 0 }
+            ;   opposite_always_false(Opposite, DI, Low),
+                opposite_always_false(Opposite, DI, High)
+            )
+        ).
+
+further_branching(Node) :-
+        node_var_low_high(Node, _, Low, High),
+        Low \== 1,
+        High \== 1.
+
+negative_decisive(Node) :-
+        node_var_low_high(Node, _, Low, High),
+        (   Low == 0 -> true
+        ;   High == 0 -> true
+        ;   false
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   We walk the BDD and check for the given variable if only a single
-   value can make the formula true. This means: The variable is not
-   skipped in any branch leading to 1 (its being skipped means that it
-   may be assigned either 0 or 1 and can thus not be fixed yet), and
-   all nodes where it occurs as a branching variable have either lower
-   or upper child fixed to 0 consistently.
+   Instantiate all variables that only admit a single Boolean value.
+
+   This is the case if: The variable is not skipped in any branch
+   leading to 1 (its being skipped means that it may be assigned
+   either 0 or 1 and can thus not be fixed yet), and all nodes where
+   it occurs as a branching variable have either lower or upper child
+   fixed to 0 consistently.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variable_definite_value(BDD, Lowest, Var, Value) :-
-        var_index(Var, VI),
-        (   VI < Lowest ->
-            Value = _             % either value is possible
-        ;   (   bdd_nodes(var_always_0(VI), BDD, _) -> Value = 0
-            ;   bdd_nodes(var_always_1(VI), BDD, _) -> Value = 1
-            ;   Value = _         % either value is possible
-            )
+domain_consistency(Eqs, Goal) :-
+        maplist(eq_a_b, Eqs, Vs, Values),
+        Goal = (Vs = Values). % propagate all assignments at once
+
+eq_a_b(A=B, A, B).
+
+consistently_false_(Which, Node) :-
+        which_node_child(Which, Node, Child),
+        Child == 0.
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   In essentially one sweep of the BDD, all variables can be classified:
+   Unification with 0 or 1, further branching and/or negative decisive.
+
+   Strategy: Breadth-first traversal of the BDD, failing (and thus
+   clearing all attributes) if the variable is skipped in some branch,
+   and moving the frontier along each time.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bdd_variables_classification(BDD, Nodes, Classes) :-
+        nodes_variables(Nodes, Vs0),
+        variables_in_index_order(Vs0, Vs),
+        phrase(variables_classification(Vs, [BDD]), Classes),
+        maplist(with_aux(unvisit), Nodes).
+
+variables_classification([], _) --> [].
+variables_classification([V|Vs], Nodes0) -->
+        { var_index(V, Index) },
+        (   { phrase(nodes_with_variable(Nodes0, Index), Nodes) } ->
+            (   { maplist(consistently_false_(low), Nodes) } -> [V=1]
+            ;   { maplist(consistently_false_(high), Nodes) } -> [V=0]
+            ;   []
+            ),
+            (   { maplist(further_branching, Nodes) } ->
+                [further_branching(V, Nodes)]
+            ;   []
+            ),
+            (   { maplist(negative_decisive, Nodes) } ->
+                [negative_decisive(V)]
+            ;   []
+            ),
+            { maplist(with_aux(unvisit), Nodes) },
+            variables_classification(Vs, Nodes)
+        ;   variables_classification(Vs, Nodes0)
         ).
 
-var_always_0(VI, Node) :-
-        node_var_low_high(Node, OVar, Low, High),
-        single_truth_value(VI, OVar, High, Low). % note reverse order!
-
-var_always_1(VI, Node) :-
-        node_var_low_high(Node, OVar, Low, High),
-        single_truth_value(VI, OVar, Low, High).
-
-single_truth_value(VI, OVar, Child1, Child2) :-
-        % If any variable is instantiated, the following fails, as intended.
-        % This only means that we do not perform any propagation for now.
-        var_index(OVar, OVI),
-        (   VI =:= OVI -> Child1 == 0
-        ;   OVI > VI -> true
-        ;   % OVI < VI ->
-            \+ index_skipped(VI, Child1),
-            \+ index_skipped(VI, Child2)
-        ).
-
-index_skipped(VI, ChildNode) :-
-        (   ChildNode == 0 -> false
-        ;   ChildNode == 1 -> true
-        ;   node_var_low_high(ChildNode, ChildVar, _, _),
-            var_index(ChildVar, ChildIndex),
-            VI < ChildIndex
+nodes_with_variable([], _) --> [].
+nodes_with_variable([Node|Nodes], VI) -->
+        { Node \== 1 },
+        (   { node_visited(Node) } -> nodes_with_variable(Nodes, VI)
+        ;   { with_aux(put_visited, Node),
+              node_var_low_high(Node, OVar, Low, High),
+              var_index(OVar, OVI) },
+            { OVI =< VI },
+            (   { OVI =:= VI } -> [Node]
+            ;   nodes_with_variable([Low,High], VI)
+            ),
+            nodes_with_variable(Nodes, VI)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -521,6 +637,7 @@ counter_network(Cs, Fs, Node) :-
         same_length([_|Fs], Indicators),
         fill_indicators(Indicators, 0, Cs),
         phrase(formulas_variables(Fs, Vars0), ExBDDs),
+        maplist(del_counter, Vars0),
         % The counter network is built bottom-up, so variables with
         % highest index must be processed first.
         variables_in_index_order(Vars0, Vars1),
@@ -528,12 +645,18 @@ counter_network(Cs, Fs, Node) :-
         counter_network_(Vars, Indicators, Node0),
         foldl(existential_and, ExBDDs, Node0, Node).
 
+del_counter(V) :- del_attr(V, clpb_counter).
+
 % Introduce fresh variables for expressions that are not variables.
 % These variables are later existentially quantified to remove them.
+% Also, new variables are introduced for variables that are used more
+% than once, as in card([0,1],[X,X,Y]), to keep the BDD ordered.
 
 formulas_variables([], []) --> [].
 formulas_variables([F|Fs], [V|Vs]) -->
-        (   { var(F) } -> { V = F }
+        (   { var(F), \+ get_attr(F, clpb_counter, true) } ->
+            { V = F,
+              put_attr(F, clpb_counter, true) }
         ;   { enumerate_variable(V),
               sat_rewrite(V =:= F, Sat),
               sat_bdd(Sat, BDD) },
@@ -693,12 +816,22 @@ attr_unify_hook(index_root(I,Root), Other) :-
                 satisfiable_bdd(BDD)
             ;   no_truth_value(Other)
             )
-        ;   parse_sat(Other, OtherSat),
+        ;   % due to variable aliasing, any BDDs may now be unordered,
+            % so we need to rebuild the new BDD from the conjunction.
             root_get_formula_bdd(Root, Sat0, _),
             Sat = Sat0*OtherSat,
-            sat_roots(Sat, Roots),
-            maplist(root_rebuild_bdd, Roots),
-            roots_and(Roots, 1-1, And-BDD1),
+            (   var(Other), var_index_root(Other, _, OtherRoot),
+                OtherRoot \== Root ->
+                root_get_formula_bdd(OtherRoot, OtherSat, _),
+                parse_sat(Sat, Sat1),
+                sat_bdd(Sat1, BDD1),
+                And = Sat1,
+                sat_roots(Sat, Roots)
+            ;   parse_sat(Other, OtherSat),
+                sat_roots(Sat, Roots),
+                maplist(root_rebuild_bdd, Roots),
+                roots_and(Roots, 1-1, And-BDD1)
+            ),
             maplist(del_bdd, Roots),
             maplist(=(NewRoot), Roots),
             root_put_formula_bdd(NewRoot, And, BDD1),
@@ -811,7 +944,7 @@ bdd_nodes(VPred, BDD, Ns) :-
         maplist(with_aux(unvisit), Ns).
 
 bdd_nodes_(VPred, Node) -->
-        (   { integer(Node) ;  with_aux(is_visited, Node) } -> []
+        (   { node_visited(Node) } -> []
         ;   { call(VPred, Node),
               with_aux(put_visited, Node),
               node_var_low_high(Node, _, Low, High) },
@@ -819,6 +952,9 @@ bdd_nodes_(VPred, Node) -->
             bdd_nodes_(VPred, Low),
             bdd_nodes_(VPred, High)
         ).
+
+node_visited(Node) :- integer(Node).
+node_visited(Node) :- with_aux(is_visited, Node).
 
 bdd_variables(BDD, Vs) :-
         bdd_nodes(BDD, Nodes),
@@ -865,14 +1001,37 @@ is_bdd(BDD) :-
             (   member(ITE, ITEs), \+ registered_node(ITE) ->
                 domain_error(registered_node, ITE)
             ;   true
+            ),
+            (   member(I, ITEs), \+ ordered(I) ->
+                domain_error(ordered_node, I)
+            ;   true
             )
         ;   true
         ).
 
+ordered(_-ite(Var,High,Low)) :-
+        (   var_index(Var, VI) ->
+            greater_varindex_than(High, VI),
+            greater_varindex_than(Low, VI)
+        ;   true
+        ).
+
+greater_varindex_than(Node, VI) :-
+        (   integer(Node) -> true
+        ;   node_var_low_high(Node, Var, _, _),
+            (   var_index(Var, OI) ->
+                OI > VI
+            ;   true
+            )
+        ).
+
 registered_node(Node-ite(Var,High,Low)) :-
-        low_high_key(Low, High, Key),
-        lookup_node(Var, Key, Node0),
-        Node == Node0.
+        (   var(Var) ->
+            low_high_key(Low, High, Key),
+            lookup_node(Var, Key, Node0),
+            Node == Node0
+        ;   true
+        ).
 
 bdd_ites(BDD, ITEs) :-
         bdd_nodes(BDD, Nodes),
@@ -1021,22 +1180,52 @@ random_bindings(VNum, Node) -->
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         (   { root_get_formula_bdd(Root, Formula, BDD) } ->
-            { del_bdd(Root),
-              phrase(sat_ands(Formula), Ands),
-              maplist(formula_anf, Ands, ANFs0),
-              sort(ANFs0, ANFs1),
-              exclude(eq_1, ANFs1, ANFs),
-              % formula variables not occurring in the BDD should be booleans
-              bdd_variables(BDD, Vs),
+            { del_bdd(Root) },
+            (   { current_prolog_flag(clpb_residuals, bdd) } ->
+                { bdd_nodes(BDD, Nodes) },
+                nodes(Nodes)
+            ;   { phrase(sat_ands(Formula), Ands),
+                  maplist(formula_anf, Ands, ANFs0),
+                  sort(ANFs0, ANFs1),
+                  exclude(eq_1, ANFs1, ANFs) },
+                sats(ANFs)
+            ),
+            % formula variables not occurring in the BDD should be booleans
+            { bdd_variables(BDD, Vs),
               maplist(del_clpb, Vs),
               term_variables(Formula, RestVs0),
               include(clpb_variable, RestVs0, RestVs) },
-            sats(ANFs),
             booleans(RestVs)
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Set the Prolog flag clpb_residuals to bdd to obtain the BDD nodes
+   as residuals. Note that they cannot be used as regular goals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+nodes([]) --> [].
+nodes([Node|Nodes]) -->
+        { node_var_low_high(Node, Var, Low, High),
+          maplist(node_projection, [Node,High,Low], [ID,HID,LID]),
+          var_index(Var, VI) },
+        [ID-(v(Var,VI) -> HID ; LID)],
+        nodes(Nodes).
+
+
+node_projection(Node, Projection) :-
+        node_id(Node, ID),
+        (   integer(ID) -> Projection = node(ID)
+        ;   Projection = ID
+        ).
+
+
 del_clpb(Var) :- del_attr(Var, clpb).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   By default, residual goals are sat/1 calls of the remaining formulas,
+   using (mostly) algebraic normal form.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sats([]) --> [].
 sats([A|As]) -->

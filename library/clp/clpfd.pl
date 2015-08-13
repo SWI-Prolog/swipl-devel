@@ -232,7 +232,7 @@ The most important arithmetic constraints are:
 
 CLP(FD) constraints let you declaratively express integer arithmetic.
 The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used instead
-of the corresponding primitives is/2, =:=/2, >/2 etc.
+of the corresponding primitives is/2, =:=/2, >/2 etc. over integers.
 
 An important advantage of arithmetic constraints is their purely
 relational nature. They are therefore easy to explain and use, and
@@ -314,6 +314,9 @@ reifiable constraints or Boolean variables, then:
     | P #<== Q  | True iff Q implies P                 |
 
 The constraints of this table are reifiable as well.
+
+When reasoning over Boolean variables, also consider using
+`library(clpb)` and its dedicated CLP(B) constraints.
 
 ### Domains                             {#clpfd-domains}
 
@@ -2053,7 +2056,7 @@ parse_clpfd(E, R,
              m(A mod B)        => [g(B #\= 0), p(pmod(A, B, R))],
              m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
-             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
+%             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A//B)           => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
@@ -2374,7 +2377,7 @@ expr_conds(A0-B0, A-B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0//B0, A//B)         -->
         expr_conds(A0, A), expr_conds(B0, B),
         [B =\= 0].
-expr_conds(A0/B0, AB)            --> expr_conds(A0//B0, AB).
+%expr_conds(A0/B0, AB)            --> expr_conds(A0//B0, AB).
 expr_conds(min(A0,B0), min(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(max(A0,B0), max(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0 mod B0, A mod B)   -->
@@ -2784,6 +2787,7 @@ disjunctive_eqs_var_drep(Eqs, Var, Drep) :-
         list_to_drep(Vals, Drep).
 
 disjunctive_eqs_var(V, _) :- var(V), !, false.
+disjunctive_eqs_var(V in I, V) :- var(V), integer(I).
 disjunctive_eqs_var(L #= R, Var) :-
         (   var(L), integer(R) -> Var = L
         ;   integer(L), var(R) -> Var = R
@@ -2795,6 +2799,7 @@ disjunctive_eqs_var(A #\/ B, VA) :-
         VA == VB.
 
 disjunctive_eqs_vals(L #= R)  --> ( { integer(L) } -> [L] ; [R] ).
+disjunctive_eqs_vals(_ in I)  --> [I].
 disjunctive_eqs_vals(A #\/ B) -->
         disjunctive_eqs_vals(A),
         disjunctive_eqs_vals(B).
@@ -2843,7 +2848,7 @@ parse_reified(E, R, D,
                m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        => [skeleton(A,B,D,R,ptzdiv)],
+%               m(A/B)        => [skeleton(A,B,D,R,ptzdiv)],
                m(A//B)       => [skeleton(A,B,D,R,ptzdiv)],
                m(A div B)    => [skeleton(A,B,D,R,pdiv)],
                m(A rdiv B)   => [skeleton(A,B,D,R,prdiv)],
@@ -5904,11 +5909,11 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 %  an integer. The constraint holds iff at each time slot during the
 %  start and end of each task, the total resource consumption of all
 %  tasks running at that time does not exceed the global resource
-%  limit (which is 1 by default). Options is a list of options.
-%  Currently, the only supported option is:
+%  limit. Options is a list of options. Currently, the only supported
+%  option is:
 %
 %    * limit(L)
-%      The integer L is the global resource limit.
+%      The integer L is the global resource limit. Default is 1.
 %
 %  For example, given the following predicate that relates three tasks
 %  of durations 2 and 3 to a list containing their starting times:
@@ -6278,15 +6283,13 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  :- use_module(library(clpfd)).
 %
 %  sudoku(Rows) :-
-%          length(Rows, 9), maplist(length_list(9), Rows),
+%          length(Rows, 9), maplist(same_length(Rows), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
 %          transpose(Rows, Columns),
 %          maplist(all_distinct, Columns),
 %          Rows = [A,B,C,D,E,F,G,H,I],
 %          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
-%
-%  length_list(L, Ls) :- length(Ls, L).
 %
 %  blocks([], [], []).
 %  blocks([A,B,C|Bs1], [D,E,F|Bs2], [G,H,I|Bs3]) :-

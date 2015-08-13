@@ -1198,16 +1198,16 @@ retractClauseDefinition(Definition def, Clause clause)
     clause->generation.erased = ++GD->generation;
     PL_UNLOCK(L_MISC);
 #endif
-    UNLOCKDYNDEF(def);
 
     DEBUG(CHK_SECURE, checkDefinition(def));
+    UNLOCKDYNDEF(def);
 
     succeed;
   }
 
   rc = unlinkClause(def, clause);
-  UNLOCKDYNDEF(def);
   DEBUG(CHK_SECURE, checkDefinition(def));
+  UNLOCKDYNDEF(def);
 
 					/* as we do a call-back, we cannot */
 					/* hold the L_PREDICATE mutex */
@@ -1390,7 +1390,10 @@ gcClausesDefinitionAndUnlock(Definition def)
   if ( cref )
     freeClauseList(cref);
 
-  DEBUG(CHK_SECURE, checkDefinition(def));
+  DEBUG(CHK_SECURE,
+	LOCKDEF(def);
+	checkDefinition(def);
+	UNLOCKDEF(def));
 }
 
 
@@ -3118,7 +3121,9 @@ pl_check_procedure(term_t desc)
   if ( true(def, P_FOREIGN) )
     fail;
 
+  LOCKDEF(def);
   checkDefinition(def);
+  UNLOCKDEF(def);
 
   succeed;
 }

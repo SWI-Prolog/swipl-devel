@@ -1136,7 +1136,7 @@ delClauseFromIndex(Definition def, Clause cl)
     { int n = ci->buckets;
 
       for(; n; n--, ch++)
-	ci->size -= deleteClauseBucket(ch, cl, key, ci->is_list);
+	deleteClauseBucket(ch, cl, key, ci->is_list);
     } else
     { int hi = hashIndex(key, ci->buckets);
 

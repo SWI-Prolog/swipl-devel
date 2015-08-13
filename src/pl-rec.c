@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -440,7 +440,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	addBuffer(&info->vars, mkAttVarP(p), Word);
 	addOpCode(info, PL_TYPE_ATTVAR);
 	addSizeInt(info, n);
-	info->size++;
+	info->size += 3;
 	DEBUG(9, Sdprintf("Added attvar %d\n", n));
 
 	p = ap;
@@ -962,9 +962,12 @@ copy_record(Word p, CopyInfo b ARG_LD)
       case PL_TYPE_ATTVAR:
       { intptr_t n = fetchSizeInt(b);
 
-	*p = consPtr(b->gstore, TAG_ATTVAR|STG_GLOBAL);
-	b->vars[n] = p;
-	p = b->gstore++;
+	register_attvar(b->gstore PASS_LD);
+	b->gstore[1] = consPtr(&b->gstore[2], TAG_ATTVAR|STG_GLOBAL);
+	*p = makeRefG(&b->gstore[1]);
+	b->vars[n] = &b->gstore[1];
+	p = &b->gstore[2];
+	b->gstore += 3;
 	goto right_recursion;
       }
 #endif

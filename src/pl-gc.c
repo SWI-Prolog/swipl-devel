@@ -2314,6 +2314,7 @@ untag_trail(ARG1_LD)
 	if ( isAttVar(w) )
 	{ Word avp = te[-1].address;
 
+	  DEBUG(CHK_SECURE, assert(on_attvar_chain(avp)));
 	  if ( !isAttVar(*avp) )
 	    *(avp) |= MARK_MASK;
 	}
@@ -2336,12 +2337,12 @@ static int
 is_dead_attvar(Word p ARG_LD)
 { word w = *p;
 
-  if ( isAttVar(w) )
-    return FALSE;
   if ( (w & MARK_MASK) )
   { *p = (w & ~MARK_MASK);
     return FALSE;
   }
+  if ( isAttVar(w) )
+    return FALSE;
 
   return TRUE;
 }
@@ -3660,6 +3661,8 @@ checkStacks(void *state_ptr)
   }
 
   assert(scan_global(FALSE));
+  if ( LD->attvar.attvars )
+    checkData(LD->attvar.attvars);
 
   local_frames = 0;
   choice_count = 0;
