@@ -1335,6 +1335,9 @@ typedef enum
   DBG_ALL				/* switch on globally */
 } debug_type;
 
+#define SKIP_VERY_DEEP	  ((size_t)-1)	/* deep skiplevel */
+#define SKIP_REDO_IN_SKIP (SKIP_VERY_DEEP-1)
+
 struct clause_choice
 { ClauseRef	cref;			/* Next clause reference */
   word		key;			/* Search key */

@@ -1516,6 +1516,12 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->_debugstatus		  = ldold->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->_debugstatus.suspendTrace= 0;
+  if ( ldold->_debugstatus.skiplevel != SKIP_VERY_DEEP )
+  { ldnew->_debugstatus.debugging = DBG_OFF;
+    ldnew->_debugstatus.tracing = FALSE;
+    ldnew->_debugstatus.skiplevel = SKIP_VERY_DEEP;
+  }
+
   ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
