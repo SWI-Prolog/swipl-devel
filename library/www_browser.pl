@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -35,10 +33,24 @@
 	    expand_url_path/2		% +Spec, -URL
 	  ]).
 :- use_module(library(lists)).
-:- use_module(library(readutil)).
+:- if(exists_source(library(process))).
+:- use_module(library(process)).
+:- endif.
 
 :- multifile
 	known_browser/2.
+
+/** <module> Open a URL in the users browser
+
+This library deals with the highly platform   specific task of opening a
+web  page.  In  addition,   is   provides    a   mechanism   similar  to
+absolute_file_name/3 that expands compound terms   to concrete URLs. For
+example, the SWI-Prolog home page can be opened using:
+
+  ==
+  ?- www_open_url(swipl(.)).
+  ==
+*/
 
 %%	www_open_url(+Url)
 %
@@ -46,59 +58,83 @@
 %	browser.  This predicate tries the following steps:
 %
 %	  1. If a prolog flag (see set_prolog_flag/2) =browser= is set
-%	  or the environment =BROWSER= and this is the name of a known
-%	  executable, use this.  This uses www_open_url/2.
+%	  and this is the name of a known executable, use this.
 %
 %	  2. On Windows, use win_shell(open, URL)
 %
-%	  3. Find a generic `open' comment.  Candidates are =open=,
-%	  =|gnome-open|=, =kfmclient=.
+%	  3. Find a generic `open' comment.  Candidates are =xdg-open=,
+%	  =open= or =|gnome-open|=.
 %
-%	  4. Try to find a known browser.
+%	  4. If a environment variable =BROWSER= is set
+%	  and this is the name of a known executable, use this.
+%
+%	  5. Try to find a known browser.
 %
 %	  @tbd	Figure out the right tool in step 3 as it is not
 %		uncommon that multiple are installed.
 
 www_open_url(Spec) :-			% user configured
-	(   current_prolog_flag(browser, Browser)
-	;   getenv('BROWSER', Browser)
-	),
+	expand_url_path(Spec, URL),
+	open_url(URL).
+
+open_url(URL) :-
+	current_prolog_flag(browser, Browser),
 	has_command(Browser), !,
-	expand_url_path(Spec, URL),
-	www_open_url(Browser, URL).
+	run_browser(Browser, URL).
 :- if(current_predicate(win_shell/2)).
-www_open_url(Spec) :-			% Windows shell
-	expand_url_path(Spec, URL),
+open_url(URL) :-			% Windows shell
 	win_shell(open, URL).
 :- endif.
-www_open_url(Spec) :-			% Unix `open document'
+open_url(URL) :-			% Unix `open document'
 	open_command(Open),
 	has_command(Open), !,
-	expand_url_path(Spec, URL),
-	format(string(Cmd), '~w "~w"', [Open, URL]),
-	shell(Cmd).
-www_open_url(Spec) :-			% KDE client
-	has_command(kfmclient), !,
-	expand_url_path(Spec, URL),
-	format(string(Cmd), 'kfmclient openURL "~w"', [URL]),
-	shell(Cmd).
-www_open_url(Spec) :-			% something we know
+	run_command(Open, [URL], fg).
+open_url(URL) :-			% user configured
+	getenv('BROWSER', Browser),
+	has_command(Browser), !,
+	run_browser(Browser, URL).
+open_url(URL) :-			% something we know
 	known_browser(Browser, _),
 	has_command(Browser), !,
-	expand_url_path(Spec, URL),
-	www_open_url(Browser, URL).
+	run_browser(Browser, URL).
 
-open_command('gnome-open').
-open_command(open).
-open_command('xdg-open').
+open_command(open) :-			% Apples open command
+	current_prolog_flag(apple, true).
+open_command('xdg-open').		% Free desktop
+open_command('gnome-open').		% Gnome (deprecated in favour of xdg-open
+open_command(open).			% Who knows
 
-%%	www_open_url(+Browser, +URL) is det.
+%%	run_browser(+Browser, +URL) is det.
 %
-%	Open a page using  a  browser.
+%	Open a page using a browser.
 
-www_open_url(Browser, URL) :-
-	format(string(Cmd), '"~w" "~w" &', [Browser, URL]),
+run_browser(Browser, URL) :-
+	run_command(Browser, [URL], bg).
+
+%%	run_command(+Command, +Args, +Background)
+%
+%	Run OS command Command using Args,   silencing  the error output
+%	because many browsers are rather verbose.
+
+:- if(current_predicate(process_create/3)).
+run_command(Command, Args, fg) :- !,
+	process_create(path(Command), Args, [stderr(null)]).
+:- endif.
+:- if(current_prolog_flag(unix, true)).
+run_command(Command, [Arg], fg) :-
+	format(string(Cmd), "\"~w\" \"~w\" &> /dev/null", [Command, Arg]),
 	shell(Cmd).
+run_command(Command, [Arg], bg) :-
+	format(string(Cmd), "\"~w\" \"~w\" &> /dev/null &", [Command, Arg]),
+	shell(Cmd).
+:- else.
+run_command(Command, [Arg], fg) :-
+	format(string(Cmd), "\"~w\" \"~w\"", [Command, Arg]),
+	shell(Cmd).
+run_command(Command, [Arg], bg) :-
+	format(string(Cmd), "\"~w\" \"~w\" &", [Command, Arg]),
+	shell(Cmd).
+:- endif.
 
 %%	known_browser(+FileBaseName, -Compatible)
 %
@@ -160,7 +196,7 @@ user:url_path(swipl_book,     'http://books.google.nl/books/about/\c
 			       id=q6R3Q3B-VC4C&redir_esc=y').
 
 user:url_path(swipl_faq,      swipl('FAQ')).
-user:url_path(swipl_man,      swipl('pldoc/index.html')).
+user:url_path(swipl_man,      swipl('pldoc/doc_for?object=manual')).
 user:url_path(swipl_mail,     swipl('Mailinglist.html')).
 user:url_path(swipl_download, swipl('Download.html')).
 user:url_path(swipl_pack,     swipl('pack/list')).
