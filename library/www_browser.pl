@@ -94,45 +94,11 @@ open_command('xdg-open').
 
 %%	www_open_url(+Browser, +URL) is det.
 %
-%	Open a page using  a  browser.   Preferably  we  use an existing
-%	browser to to the job. Currently   only supports browsers with a
-%	netscape compatible remote interface.
-%
-%	@see http://www.mozilla.org/unix/remote.html
+%	Open a page using  a  browser.
 
-www_open_url(Browser, URL) :-
-	compatible(Browser, netscape),
-	netscape_remote(Browser, 'ping()', []), !,
-	netscape_remote(Browser, 'openURL(~w,new-window)', [URL]).
 www_open_url(Browser, URL) :-
 	format(string(Cmd), '"~w" "~w" &', [Browser, URL]),
 	shell(Cmd).
-
-%%	netscape_remote(+Browser, +Format, +Args) is semidet.
-%
-%	Execute netscape remote command using =|-remote|=. Create the
-%	remote command using format/3 from Format and Args.
-%
-%	@bug	At least firefox gives always 0 exit code on -remote,
-%		so we must check the error message.  Grrrr.
-
-netscape_remote(Browser, Fmt, Args) :-
-	format(string(RCmd), Fmt, Args),
-	format(string(Cmd), '"~w" -remote "~w" 2>&1', [Browser, RCmd]),
-	open(pipe(Cmd), read, In),
-	call_cleanup(read_stream_to_codes(In, Codes),
-		     close(In)),
-	(   phrase(netscape_error, Codes, _)
-	->  !, fail
-	;   true
-	).
-
-netscape_error -->
-	"Error:".
-
-compatible(Browser, With) :-
-	file_base_name(Browser, Base),
-	known_browser(Base, With).
 
 %%	known_browser(+FileBaseName, -Compatible)
 %
