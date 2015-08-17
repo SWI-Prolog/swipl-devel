@@ -771,3 +771,13 @@ put_tabs(_, _).
 inc_indent(Indent0, Inc, Indent) :-
 	Indent is Indent0 + Inc*4.
 
+:- multifile
+	sandbox:safe_primitive/1.
+
+sandbox:safe_primitive(listing(What)) :-
+	not_qualified(What).
+
+not_qualified(Var) :-
+	var(Var), !.
+not_qualified(_:_) :- !, fail.
+not_qualified(_).
