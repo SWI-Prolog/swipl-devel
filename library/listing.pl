@@ -772,9 +772,9 @@ inc_indent(Indent0, Inc, Indent) :-
 	Indent is Indent0 + Inc*4.
 
 :- multifile
-	sandbox:safe_primitive/1.
+	sandbox:safe_meta/2.
 
-sandbox:safe_primitive(listing(What)) :-
+sandbox:safe_meta(listing(What), []) :-
 	not_qualified(What).
 
 not_qualified(Var) :-
