@@ -2392,8 +2392,21 @@ expr_conds(A0^B0, A^B)           -->
 :- dynamic
         user:goal_expansion/2.
 
-user:goal_expansion(Var in Dom, In) :-
+user:goal_expansion(Goal, Expansion) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
+        clpfd_expandable(Goal),
+        prolog_load_context(module, M),
+        predicate_property(M:Goal, imported_from(clpfd)),
+        clpfd_expansion(Goal, Expansion).
+
+clpfd_expandable(_ in _).
+clpfd_expandable(_ #= _).
+clpfd_expandable(_ #>= _).
+clpfd_expandable(_ #=< _).
+clpfd_expandable(_ #> _).
+clpfd_expandable(_ #< _).
+
+clpfd_expansion(Var in Dom, In) :-
         (   ground(Dom), Dom = L..U, integer(L), integer(U) ->
             expansion_simpler(
                 (   integer(Var) ->
@@ -2402,8 +2415,7 @@ user:goal_expansion(Var in Dom, In) :-
                 ), In)
         ;   In = clpfd:clpfd_in(Var, Dom)
         ).
-user:goal_expansion(X0 #= Y0, Equal) :-
-        \+ current_prolog_flag(clpfd_goal_expansion, false),
+clpfd_expansion(X0 #= Y0, Equal) :-
         phrase(expr_conds(X0, X), CsX),
         phrase(expr_conds(Y0, Y), CsY),
         list_goal(CsX, CondX),
@@ -2420,8 +2432,7 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                     )
                 ;   clpfd:clpfd_equal(X0, Y0)
                 ), Equal).
-user:goal_expansion(X0 #>= Y0, Geq) :-
-        \+ current_prolog_flag(clpfd_goal_expansion, false),
+clpfd_expansion(X0 #>= Y0, Geq) :-
         phrase(expr_conds(X0, X), CsX),
         phrase(expr_conds(Y0, Y), CsY),
         list_goal(CsX, CondX),
@@ -2434,9 +2445,9 @@ user:goal_expansion(X0 #>= Y0, Geq) :-
               ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
               ), Geq).
-user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
-user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
-user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
+clpfd_expansion(X #=< Y,  Leq) :- clpfd_expansion(Y #>= X, Leq).
+clpfd_expansion(X #> Y, Gt)    :- clpfd_expansion(X #>= Y+1, Gt).
+clpfd_expansion(X #< Y, Lt)    :- clpfd_expansion(Y #> X, Lt).
 
 expansion_simpler((True->Then0;_), Then) :-
         is_true(True), !,
