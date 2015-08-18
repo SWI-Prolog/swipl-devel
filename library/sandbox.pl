@@ -534,6 +534,8 @@ safe_primitive(system:atomics_to_string(_,_,_)).
 safe_primitive(system:atomics_to_string(_,_)).
 safe_primitive(system:string_concat(_,_,_)).
 safe_primitive(system:string_length(_,_)).
+safe_primitive(system:string_lower(_,_)).
+safe_primitive(system:string_upper(_,_)).
 safe_primitive(system:term_string(_,_)).
 					% Lists
 safe_primitive(length(_,_)).
