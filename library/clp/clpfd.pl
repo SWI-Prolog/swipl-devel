@@ -2388,15 +2388,18 @@ expr_conds(A0^B0, A^B)           -->
         [(B >= 0 ; A =:= -1)].
 
 :- multifile
-        user:goal_expansion/2.
+        system:goal_expansion/2.
 :- dynamic
-        user:goal_expansion/2.
+        system:goal_expansion/2.
 
-user:goal_expansion(Goal, Expansion) :-
+system:goal_expansion(Goal, Expansion) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
         clpfd_expandable(Goal),
         prolog_load_context(module, M),
-        predicate_property(M:Goal, imported_from(clpfd)),
+	(   M == clpfd
+	->  true
+	;   predicate_property(M:Goal, imported_from(clpfd))
+	),
         clpfd_expansion(Goal, Expansion).
 
 clpfd_expandable(_ in _).
