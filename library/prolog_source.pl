@@ -648,8 +648,7 @@ file_alias_path(Alias, Dir) :-
 build_alias_cache :-
 	findall(t(DirLen, AliasLen, Alias, Dir),
 		search_path(Alias, Dir, AliasLen, DirLen), Ts),
-	sort(Ts, List0),
-	reverse(List0, List),
+	sort(0, >, Ts, List),
 	forall(member(t(_, _, Alias, Dir), List),
 	       assert(alias_cache(Alias, Dir))).
 
