@@ -566,6 +566,9 @@ safe_primitive(system:stamp_date_time(_,_,_)).
 safe_primitive(system:strip_module(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
 safe_primitive(system:import_module(_,_)).
+safe_primitive(system:file_base_name(_,_)).
+safe_primitive(system:file_directory_name(_,_)).
+safe_primitive(system:file_name_extension(_,_,_)).
 
 safe_primitive(clause(H,_)) :- safe_clause(H).
 safe_primitive(asserta(X)) :- safe_assert(X).
