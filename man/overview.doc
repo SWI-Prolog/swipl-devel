@@ -2062,10 +2062,13 @@ specifications apply to octal specifications as well.
     \escapeitem{\}
 Escapes the backslash itself.  Thus, \verb$'\\'$ is an atom
 consisting of a single \chr{\}.
-    \escapeitem{quote}
-If the current quote (\chr{"} or \chr{'}) is preceded by a backslash,
-it is copied verbatim. Thus, \verb$'\''$ and \verb$''''$ both describe
-the atom with a single~\verb$'$.
+    \escapeitem{'}
+Single quote. Note that \verb$'\''$ and \verb$''''$ both describe
+the atom with a single~\chr{'}, i.e., \verb$'\'' == ''''$ is true.
+    \escapeitem{"}
+Double quote.
+    \escapeitem{`}
+Back quote.
 \end{description}
 
 Character escaping is only available if
