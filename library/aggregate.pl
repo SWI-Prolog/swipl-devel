@@ -176,6 +176,12 @@ aggregate_all(sum(X), Goal, Sum) :- !,
 	   fail
 	;  arg(1, State, Sum)
 	).
+aggregate_all(max(X), Goal, Max) :- !,
+	aggregate_all_compare(max(_,X), Goal, Max).
+
+aggregate_all(min(X), Goal, Min) :- !,
+	aggregate_all_compare(min(_,X), Goal, Min).
+
 aggregate_all(Template, Goal0, Result) :-
 	template_to_pattern(all, Template, Pattern, Goal0, Goal, Aggregate),
 	findall(Pattern, Goal, List),
@@ -195,6 +201,18 @@ aggregate_all(Template, Discriminator, Goal0, Result) :-
 	pairs_values(Pairs, List),
 	aggregate_list(Aggregate, List, Result).
 
+aggregate_all_compare(Comp, Goal, Max) :-
+	\+ \+ Goal,
+	Comp =.. [_, S, X],
+	State = state(X),
+	(  Goal,
+	   arg(_, State, S),
+	   M is Comp,
+	   nb_setarg(1, State, M),
+	   fail
+	;
+	   arg(1, State, Max)
+	).
 
 template_to_pattern(All, Template, Pattern, Goal0, Goal, Aggregate) :-
 	template_to_pattern(Template, Pattern, Post, Vars, Aggregate),
