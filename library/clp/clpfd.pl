@@ -1689,7 +1689,7 @@ tighten(max, E, V) :- E #> V.
 all_different(Ls) :-
         fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
-        Orig = clpfd_original(_, all_different(Ls)),
+        Orig = original_goal(_, all_different(Ls)),
         all_different(Ls, [], Orig),
         do_queue.
 
@@ -5260,7 +5260,7 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
 weak_arc_all_distinct(Ls) :-
         must_be(list, Ls),
-        Orig = clpfd_original(_, weak_arc_all_distinct(Ls)),
+        Orig = original_goal(_, weak_arc_all_distinct(Ls)),
         all_distinct(Ls, [], Orig),
         do_queue.
 
@@ -5366,7 +5366,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
         pairs_keys_values(SDs, Starts, Durations),
-        Orig = clpfd_original(_, serialized(Starts, Durations)),
+        Orig = original_goal(_, serialized(Starts, Durations)),
         serialize(SDs, Orig).
 
 serialize([], _).
@@ -6729,7 +6729,7 @@ conjunction(A, B, G, D) -->
         ;   [(?(A) #/\ ?(B) #/\ G) #<==> ?(D)]
         ).
 
-original_goal(clpfd_original(State, Goal)) -->
+original_goal(original_goal(State, Goal)) -->
         (   { var(State) } ->
             { State = processed },
             [Goal]
