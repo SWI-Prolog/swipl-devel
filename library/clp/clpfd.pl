@@ -1689,13 +1689,9 @@ tighten(max, E, V) :- E #> V.
 all_different(Ls) :-
         fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
-        all_different_(Ls),
+        Orig = clpfd_original(_, all_different(Ls)),
+        all_different(Ls, [], Orig),
         do_queue.
-
-all_different_([]).
-all_different_([L|Ls]) :-
-        put_attr(Orig, clpfd_original, all_different([L|Ls])),
-        all_different([L|Ls], [], Orig).
 
 all_different([], _, _).
 all_different([X|Right], Left, Orig) :-
@@ -5264,8 +5260,8 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
 weak_arc_all_distinct(Ls) :-
         must_be(list, Ls),
-        put_attr(O, clpfd_original, weak_arc_all_distinct(Ls)),
-        all_distinct(Ls, [], O),
+        Orig = clpfd_original(_, weak_arc_all_distinct(Ls)),
+        all_distinct(Ls, [], Orig),
         do_queue.
 
 all_distinct([], _, _).
@@ -5370,7 +5366,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
         pairs_keys_values(SDs, Starts, Durations),
-        put_attr(Orig, clpfd_original, serialized(Starts, Durations)),
+        Orig = clpfd_original(_, serialized(Starts, Durations)),
         serialize(SDs, Orig).
 
 serialize([], _).
@@ -6633,9 +6629,6 @@ clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
 clpfd_relation:attribute_goals(_) --> [].
 clpfd_relation:attr_unify_hook(_,_) :- false.
 
-clpfd_original:attribute_goals(_) --> [].
-clpfd_original:attr_unify_hook(_,_) :- false.
-
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
@@ -6736,9 +6729,9 @@ conjunction(A, B, G, D) -->
         ;   [(?(A) #/\ ?(B) #/\ G) #<==> ?(D)]
         ).
 
-original_goal(V) -->
-        (   { get_attr(V, clpfd_original, Goal) } ->
-            { del_attr(V, clpfd_original) },
+original_goal(clpfd_original(State, Goal)) -->
+        (   { var(State) } ->
+            { State = processed },
             [Goal]
         ;   []
         ).
