@@ -1670,9 +1670,13 @@ tighten(max, E, V) :- E #> V.
 all_different(Ls) :-
         fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
-        put_attr(Orig, clpfd_original, all_different(Ls)),
-        all_different(Ls, [], Orig),
+        all_different_(Ls),
         do_queue.
+
+all_different_([]).
+all_different_([L|Ls]) :-
+        put_attr(Orig, clpfd_original, all_different([L|Ls])),
+        all_different([L|Ls], [], Orig).
 
 all_different([], _, _).
 all_different([X|Right], Left, Orig) :-
