@@ -398,10 +398,10 @@ consists of two phases:
        concrete solutions.
 
 It is good practice to keep the modeling part, via a dedicated
-predicate, separate from the actual search for solutions. This lets
-you observe termination and determinism properties of the modeling
-part in isolation from the search, and more easily try different
-search strategies.
+predicate called the *kernel relation*, separate from the actual
+search for solutions. This lets you observe termination and
+determinism properties of the kernel relation in isolation from the
+search, and more easily try different search strategies.
 
 As an example of a constraint satisfaction problem, consider the
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
@@ -462,6 +462,25 @@ puzzle's unique solution, since the constraint solver is strong enough
 to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
+
+### Optimisation    {#clpfd-optimisation}
+
+You can use labeling/2 to minimize or maximize the value of a CLP(FD)
+expression, and generate solutions in increasing or decreasing order
+of the value. See the labeling options `min(Expr)` and `max(Expr)`,
+respectively.
+
+Again, to easily try different labeling options in connection with
+optimisation, we recommend to introduce a dedicated predicate for
+posting constraints, and use `labeling/2` in a separate goal. This
+way, you can observe properties of the kernel relation in isolation,
+and try different labeling options without recompiling your code.
+
+If necessary, you can use `once/1` to commit to the first optimal
+solution. However, it is often very valuable to see alternative
+solutions that are _also_ optimal, so that you can choose among
+optimal solutions by other criteria. For the sake of purity and
+completeness, we recommend to avoid `once/1` in CLP(FD) programs.
 
 ### Advanced topics			{#clpfd-advanced-topics}
 
