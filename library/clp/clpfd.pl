@@ -472,7 +472,7 @@ respectively.
 
 Again, to easily try different labeling options in connection with
 optimisation, we recommend to introduce a dedicated predicate for
-posting constraints, and use `labeling/2` in a separate goal. This
+posting constraints, and to use `labeling/2` in a separate goal. This
 way, you can observe properties of the kernel relation in isolation,
 and try different labeling options without recompiling your code.
 
