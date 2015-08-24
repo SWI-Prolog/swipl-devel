@@ -398,9 +398,9 @@ consists of two phases:
        concrete solutions.
 
 It is good practice to keep the modeling part, via a dedicated
-predicate called the *kernel relation*, separate from the actual
+predicate called the *core relation*, separate from the actual
 search for solutions. This lets you observe termination and
-determinism properties of the kernel relation in isolation from the
+determinism properties of the core relation in isolation from the
 search, and more easily try different search strategies.
 
 As an example of a constraint satisfaction problem, consider the
@@ -473,7 +473,7 @@ respectively.
 Again, to easily try different labeling options in connection with
 optimisation, we recommend to introduce a dedicated predicate for
 posting constraints, and to use `labeling/2` in a separate goal. This
-way, you can observe properties of the kernel relation in isolation,
+way, you can observe properties of the core relation in isolation,
 and try different labeling options without recompiling your code.
 
 If necessary, you can use `once/1` to commit to the first optimal
