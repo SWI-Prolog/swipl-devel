@@ -163,7 +163,7 @@ There are two major use cases of this library:
        combinatorial problems such as planning, scheduling and
        allocation tasks.
 
-When teaching Prolog, we _strongly_ recommend that you introduce
+When teaching Prolog, we _strongly recommend_ that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
 predicates and their procedural idiosyncrasies. This is because
 constraints are easy to explain, understand and use due to their
@@ -184,7 +184,7 @@ For satisfactory performance, arithmetic constraints are implicitly
 rewritten at compilation time so that lower-level fallback predicates
 are automatically used whenever possible.
 
-You can cite this library in your publications as:
+We recommend the following reference to cite this library:
 
 ==
 @inproceedings{Triska12,
