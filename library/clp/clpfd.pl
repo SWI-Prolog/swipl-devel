@@ -487,7 +487,8 @@ If necessary, you can use `once/1` to commit to the first optimal
 solution. However, it is often very valuable to see alternative
 solutions that are _also_ optimal, so that you can choose among
 optimal solutions by other criteria. For the sake of purity and
-completeness, we recommend to avoid `once/1` in CLP(FD) programs.
+completeness, we recommend to avoid `once/1` and other constructs
+that lead to impurities in CLP(FD) programs.
 
 ### Advanced topics			{#clpfd-advanced-topics}
 
