@@ -219,8 +219,8 @@ A finite domain _arithmetic expression_ is one of:
     | Expr ^ Expr        | Exponentiation                       |
     | min(Expr,Expr)     | Minimum of two expressions           |
     | max(Expr,Expr)     | Maximum of two expressions           |
-    | Expr mod Expr      | Modulo induced by floored division   |
-    | Expr rem Expr      | Modulo induced by truncated division |
+    | Expr `mod` Expr    | Modulo induced by floored division   |
+    | Expr `rem` Expr    | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
 
@@ -228,12 +228,12 @@ Arithmetic _constraints_ are relations between arithmetic expressions.
 
 The most important arithmetic constraints are:
 
-    | Expr1 #>= Expr2  | Expr1 is greater than or equal to Expr2  |
-    | Expr1 #=< Expr2  | Expr1 is less than or equal to Expr2     |
-    | Expr1 #=  Expr2  | Expr1 equals Expr2                       |
-    | Expr1 #\= Expr2  | Expr1 is not equal to Expr2              |
-    | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
-    | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
+    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
+    | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
+    | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
+    | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
