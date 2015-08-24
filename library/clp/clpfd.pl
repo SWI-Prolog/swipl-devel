@@ -440,7 +440,7 @@ B3 in 2..8,
 C5 in 2..8.
 ==
 
-From this answer, we see that the modeling part _terminates_ and is in
+From this answer, we see that this core relation _terminates_ and is in
 fact _deterministic_. Moreover, we see from the residual goals that
 the constraint solver has deduced more stringent bounds for all
 variables. Such observations are only possible if modeling and search
