@@ -184,7 +184,8 @@ For satisfactory performance, arithmetic constraints are implicitly
 rewritten at compilation time so that lower-level fallback predicates
 are automatically used whenever possible.
 
-We recommend the following reference to cite this library:
+We recommend the following reference to cite this library in
+scientific publications:
 
 ==
 @inproceedings{Triska12,
@@ -196,6 +197,12 @@ We recommend the following reference to cite this library:
   year      = {2012},
   pages     = {307-316}
 }
+==
+
+and the following URL to link to its documentation:
+
+==
+http://www.swi-prolog.org/man/clpfd.html
 ==
 
 ### Arithmetic constraints		{#cplfd-arith-constraints}
