@@ -406,7 +406,9 @@ S__wait(IOSTREAM *s)
 
     if ( rc < 0 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
-      { errno = EPLEXCEPTION;
+      { Sset_exception(s, PL_exception(0));
+	s->flags |= SIO_CLEARERR;
+	errno = EPLEXCEPTION;
 	return -1;
       }
 
@@ -463,8 +465,10 @@ S__flushbuf(IOSTREAM *s)
     } else if ( n < 0 )			/* error */
     { if ( errno == EINTR )
       { if ( PL_handle_signals() < 0 )
+	{ Sset_exception(s, PL_exception(0));
+	  s->flags |= SIO_CLEARERR;
 	  errno = EPLEXCEPTION;
-	else
+	} else
 	  goto retry;
       } else if ( errno != EPLEXCEPTION )
 	S__seterror(s);

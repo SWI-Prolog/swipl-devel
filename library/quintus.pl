@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -182,7 +181,7 @@ sign(X, V) :-	  V is sign(X).
 %	Generalised version of ISO arg/3.  SWI-Prolog's arg/3 is already
 %	genarg/3.
 
-genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
+genarg(N, T, A) :-
 	arg(N, T, A).
 
 
@@ -253,7 +252,16 @@ no_style_check(QOption) :-
 		*         DIRECTIVES            *
 		*********************************/
 
-% :- op(1150, fx, [(mode)]).
+%%	mode(+ModeDecl) is det.
+%
+%	Ignore a DEC10/Quintus `:-   mode(Head)`  declaration. Typically
+%	these declarations are written in   operator  form. The operator
+%	declaration is not part of the   Quintus  emulation library. The
+%	following declaration is compatible with Quintus:
+%
+%	  ==
+%	  :- op(1150, fx, [(mode)]).
+%	  ==
 
 mode(_).
 
@@ -299,6 +307,12 @@ stream_mode(append, write).
 stream_mode(update, write).
 
 %%	stream_position(+Stream, -Old, +New)
+%
+%	True when Old is the current position   in Stream and the stream
+%	has been repositioned to New.
+%
+%	@deprecated New code should use the ISO predicates
+%	stream_property/2 and set_stream_position/2.
 
 stream_position(Stream, Old, New) :-
 	stream_property(Stream, position(Old)),
