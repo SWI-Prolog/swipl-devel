@@ -196,6 +196,58 @@ aggregate_all(min(X), Goal, Min) :- !,
 	;  arg(1, State, Min),
 	   nonvar(Min)
 	).
+aggregate_all(min(X,W), Goal, min(Min,Witness)) :- !,
+	State = state(X,W),
+	(  (  once(call(Goal))
+	   -> true
+	   ;  !, fail
+	   ),
+	   (  nonvar(X)
+	   -> true
+	   ;  instantiation_error(X)
+	   ),
+	   nb_setarg(1, State, X),
+	   nb_setarg(2, State, W),
+	   fail
+	;
+	   dif(M,X),
+	   call(Goal),
+	   arg(1, State, M),
+	   X is min(M,X),
+	   nb_setarg(1, State, X),
+	   nb_setarg(2, State, W),
+	   fail
+	;
+	   arg(1, State, Min),
+	   arg(2, State, Witness),
+	   nonvar(Min)
+	).
+aggregate_all(max(X,W), Goal, min(Max,Witness)) :- !,
+	State = state(X,W),
+	(  (  once(call(Goal))
+	   -> true
+	   ;  !, fail
+	   ),
+	   (  nonvar(X)
+	   -> true
+	   ;  instantiation_error(X)
+	   ),
+	   nb_setarg(1, State, X),
+	   nb_setarg(2, State, W),
+	   fail
+	;
+	   dif(M,X),
+	   call(Goal),
+	   arg(1, State, M),
+	   X is max(M,X),
+	   nb_setarg(1, State, X),
+	   nb_setarg(2, State, W),
+	   fail
+	;
+	   arg(1, State, Max),
+	   arg(2, State, Witness),
+	   nonvar(Max)
+	).
 aggregate_all(Template, Goal0, Result) :-
 	template_to_pattern(all, Template, Pattern, Goal0, Goal, Aggregate),
 	findall(Pattern, Goal, List),
