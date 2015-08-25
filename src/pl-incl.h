@@ -468,8 +468,7 @@ them.  Descriptions:
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define PLMINTAGGEDINT32	(-(intptr_t)((word)1<<(32-LMASK_BITS-1)))
 #define PLMAXTAGGEDINT32	(-PLMINTAGGEDINT32 - 1)
-#define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
-				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
+#define inTaggedNumRange(n)	(valInt(consInt(n)) == (n))
 #define PLMININT		(((int64_t)-1<<(INT64BITSIZE-1)))
 #define PLMAXINT		(-(PLMININT+1))
 #if SIZEOF_WCHAR_T == 2
@@ -1864,6 +1863,8 @@ typedef enum
   AV_SKIP,
   AV_ERROR
 } av_action;
+
+#define NV_ERROR (PLMINTAGGEDINT-1)
 
 typedef struct
 { functor_t functor;			/* Functor to use ($VAR/1) */

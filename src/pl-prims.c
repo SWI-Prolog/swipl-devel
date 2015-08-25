@@ -2520,8 +2520,9 @@ do_number_vars(Word p, nv_options *options, intptr_t n, mark *m ARG_LD)
       if ( options->singletons )
       { a[1] = ATOM_anonvar;
       } else
-      { a[1] = consInt(n);
-	if ( valInt(a[1]) != n )
+      { intptr_t v = n+options->offset;
+	a[1] = consInt(v);
+	if ( valInt(a[1]) != v )
 	{ n = REPRESENTATION_ERROR;
 	  goto out;
 	}
@@ -2587,7 +2588,15 @@ Returns	>= 0: Number for next variable variable
 
 intptr_t
 numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
-{ for(;;)
+{ if ( !inTaggedNumRange(n) )
+  { PL_representation_error("tagged_integer");
+    return NV_ERROR;
+  }
+
+  options->offset = n;
+  n = 0;
+
+  for(;;)
   { mark m;
     intptr_t rc;
 
@@ -2597,24 +2606,29 @@ numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
     unvisit(PASS_LD1);
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
-      return rc;
-    } else if ( rc == CONTAINS_ATTVAR )
-    { DiscardMark(m);
-
-      PL_error(NULL, 0, NULL,
-	       ERR_TYPE, ATOM_free_of_attvar, t);
-      return -1;
-    } else if ( rc == ALREADY_NUMBERED )
-    { DiscardMark(m);
-
-      PL_error(NULL, 0, "already numbered",
-	       ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
-      return -1;
-    } else				/* stack overflow */
-    { Undo(m);
-      DiscardMark(m);
-      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	return -1;
+      return rc + options->offset;
+    } else
+    { switch( rc )
+      { case CONTAINS_ATTVAR:
+	  DiscardMark(m);
+	  PL_error(NULL, 0, NULL,
+		   ERR_TYPE, ATOM_free_of_attvar, t);
+	  return NV_ERROR;
+	case ALREADY_NUMBERED:
+	  DiscardMark(m);
+	  PL_error(NULL, 0, "already numbered",
+		   ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
+	  return NV_ERROR;
+	case REPRESENTATION_ERROR:
+	  DiscardMark(m);
+	  PL_representation_error("tagged_integer");
+	  return NV_ERROR;
+        default:
+	  Undo(m);
+	  DiscardMark(m);
+	  if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	    return NV_ERROR;
+      }
     }
   }
 }
@@ -2674,8 +2688,8 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   opts.functor = PL_new_functor(name, 1);
   n = numberVars(t, &opts, n PASS_LD);
-  if ( n >= 0 )
-    return PL_unify_integer(end, n);
+  if ( n != NV_ERROR )
+    return PL_unify_int64(end, n);
 
   return FALSE;
 }
