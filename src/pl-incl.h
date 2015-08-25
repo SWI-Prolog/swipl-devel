@@ -1867,6 +1867,7 @@ typedef enum
 
 typedef struct
 { functor_t functor;			/* Functor to use ($VAR/1) */
+  intptr_t  offset;			/* offset */
   av_action on_attvar;			/* How to handle attvars */
   int	    singletons;			/* Write singletons as $VAR('_') */
   int	    numbered_check;		/* Check for already numbered */
