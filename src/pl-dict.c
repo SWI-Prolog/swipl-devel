@@ -290,9 +290,15 @@ dict_ordered(Word data, int count, int ex ARG_LD)
 }
 
 
+#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
+#define GET_LDARG(x) PL_local_data_t *__PL_ld = (x)
+#else
+#define GET_LDARG(x)
+#endif
+
 static int
 compare_dict_entry(const void *a, const void *b, void *arg)
-{ PL_local_data_t *__PL_ld = arg;
+{ GET_LDARG(arg);
   Word p = (Word)a;
   Word q = (Word)b;
 
@@ -332,7 +338,7 @@ compare_term_refs(const void *a, const void *b, void *arg)
 { const int *ip1 = a;
   const int *ip2 = b;
   order_term_refs *ctx = arg;
-  PL_local_data_t *__PL_ld = ctx->ld;
+  GET_LDARG(ctx->ld);
   Word p = valTermRef(ctx->av[*ip1*2]);
   Word q = valTermRef(ctx->av[*ip2*2]);
 
@@ -811,7 +817,7 @@ cmp_dict_index(const void *a1, const void *a2, void *arg)
 { int *ip1 = (int*)a1;
   int *ip2 = (int*)a2;
   cmp_dict_index_data *ctx = arg;
-  PL_local_data_t *__PL_ld = ctx->ld;
+  GET_LDARG(ctx->ld);
   Word p = &ctx->data[*ip1*2];
   Word q = &ctx->data[*ip2*2];
   int rc;
@@ -1357,7 +1363,7 @@ typedef struct dict_pairs_ctx
 static int
 put_pair(term_t key, term_t value, int last, void *closure)
 { dict_pairs_ctx *ctx = closure;
-  PL_local_data_t *__PL_ld = ctx->ld;
+  GET_LDARG(ctx->ld);
 
   if ( PL_cons_functor(ctx->tmp, FUNCTOR_minus2, key, value) &&
        PL_unify_list_ex(ctx->tail, ctx->head, ctx->tail) &&
@@ -1366,6 +1372,8 @@ put_pair(term_t key, term_t value, int last, void *closure)
 
   return -1;
 }
+
+#undef GET_LDARG
 
 
 static

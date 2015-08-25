@@ -252,7 +252,7 @@ static btrace *
 get_trace_store(void)
 { GET_LD
 
-  if ( LD )
+  if ( HAS_LD )
   { if ( !LD->btrace_store )
     { btrace *s = malloc(sizeof(*s));
       if ( s )

@@ -4964,16 +4964,21 @@ compound terms with zero arguments. See also compound_name_arity/3.
 Unify the free variables in \arg{Term} with a term \term{\$VAR}{N},
 where \arg{N} is the number of the variable. Counting starts at
 \arg{Start}. \arg{End} is unified with the number that should be given
-to the next variable. The example below illustrates this. Note that the
+to the next variable.\bug{Only \jargon{tagged integers} are supported
+(see the Prolog flag \prologflag{max_tagged_integer}). This suffices to
+count all variables that can appear in the largest term that can be
+represented, but does not support arbitrary large integer values for
+\arg{Start}. On overflow, a \term{representation_error}{tagged_integer}
+exception is raised.} The example below illustrates this. Note that the
 toplevel prints \verb!'$VAR'(0)! as \arg{A} due to the
 \term{numbervars}{true} option used to print answers.
 
 \begin{code}
-?- Term = foo(X,Y,Z),
+?- Term = f(X,Y,X),
    numbervars(Term, 0, End),
    write_canonical(Term), nl.
-foo('$VAR'(0),'$VAR'(1),'$VAR'(0))
-Term = foo(A, B, A),
+f('$VAR'(0),'$VAR'(1),'$VAR'(0))
+Term = f(A, B, A),
 X = A,
 Y = B,
 End = 2.
@@ -4982,7 +4987,7 @@ End = 2.
 See also the \const{numbervars} option to write_term/3 and numbervars/4.
 
     \predicate{numbervars}{4}{+Term, +Start, -End, +Options}
-As numbervars/3, but providing the following options:
+As numbervars/3, providing the following options:
 
     \begin{description}
         \termitem{functor_name}{+Atom}

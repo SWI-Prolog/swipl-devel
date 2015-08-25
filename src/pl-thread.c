@@ -1516,6 +1516,12 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->_debugstatus		  = ldold->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->_debugstatus.suspendTrace= 0;
+  if ( ldold->_debugstatus.skiplevel != SKIP_VERY_DEEP )
+  { ldnew->_debugstatus.debugging = DBG_OFF;
+    ldnew->_debugstatus.tracing = FALSE;
+    ldnew->_debugstatus.skiplevel = SKIP_VERY_DEEP;
+  }
+
   ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
@@ -6010,6 +6016,8 @@ PL_thread_destroy_engine()
 }
 
 #ifdef __WINDOWS__
+#include <windows.h>
+
 int
 PL_w32thread_raise(DWORD id, int sig)
 { return PL_raise(sig);
@@ -6048,6 +6056,15 @@ PL_destroy_engine(PL_engine_t e)
 { fail;
 }
 
+void
+PL_cleanup_fork(void)
+{
+}
+
+double
+ThreadCPUTime(PL_local_data_t *ld, int which) {
+  return CpuTime(which);
+}
 
 void
 initPrologThreads()

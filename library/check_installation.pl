@@ -166,7 +166,7 @@ check_source(Source, Properties) :-
 			 ->  call(Pre)
 			 ;   true
 			 ),
-			 load_files(Source, [silent(true)])
+			 load_files(Source, [silent(true), if(not_loaded)])
 		       ),
 		       Properties.put(action, load))
 	->  test_component(Properties),

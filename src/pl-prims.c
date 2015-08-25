@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -2483,13 +2483,14 @@ both flags:
     - both-marked: done
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define ALREADY_NUMBERED (-10)
-#define CONTAINS_ATTVAR  (-11)
+#define ALREADY_NUMBERED     (-10)
+#define CONTAINS_ATTVAR      (-11)
+#define REPRESENTATION_ERROR (-12)
 
-static int
-do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
+static intptr_t
+do_number_vars(Word p, nv_options *options, intptr_t n, mark *m ARG_LD)
 { term_agenda agenda;
-  int start = n;
+  intptr_t start = n;
 
   initTermAgenda(&agenda, 1, p);
   while((p=nextTermAgenda(&agenda)))
@@ -2519,8 +2520,12 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
       if ( options->singletons )
       { a[1] = ATOM_anonvar;
       } else
-      { a[1] = consInt(n);
-	assert(valInt(a[1]) == n);
+      { intptr_t v = n+options->offset;
+	a[1] = consInt(v);
+	if ( valInt(a[1]) != v )
+	{ n = REPRESENTATION_ERROR;
+	  goto out;
+	}
 	n++;
       }
       gTop += 2;
@@ -2581,11 +2586,19 @@ Returns	>= 0: Number for next variable variable
 	  -1: Error.  Exception is left in the environment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-numberVars(term_t t, nv_options *options, int n ARG_LD)
-{ for(;;)
+intptr_t
+numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
+{ if ( !inTaggedNumRange(n) )
+  { PL_representation_error("tagged_integer");
+    return NV_ERROR;
+  }
+
+  options->offset = n;
+  n = 0;
+
+  for(;;)
   { mark m;
-    int rc;
+    intptr_t rc;
 
     Mark(m);
     initvisited(PASS_LD1);
@@ -2593,24 +2606,29 @@ numberVars(term_t t, nv_options *options, int n ARG_LD)
     unvisit(PASS_LD1);
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
-      return rc;
-    } else if ( rc == CONTAINS_ATTVAR )
-    { DiscardMark(m);
-
-      PL_error(NULL, 0, NULL,
-	       ERR_TYPE, ATOM_free_of_attvar, t);
-      return -1;
-    } else if ( rc == ALREADY_NUMBERED )
-    { DiscardMark(m);
-
-      PL_error(NULL, 0, "already numbered",
-	       ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
-      return -1;
-    } else				/* stack overflow */
-    { Undo(m);
-      DiscardMark(m);
-      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	return -1;
+      return rc + options->offset;
+    } else
+    { switch( rc )
+      { case CONTAINS_ATTVAR:
+	  DiscardMark(m);
+	  PL_error(NULL, 0, NULL,
+		   ERR_TYPE, ATOM_free_of_attvar, t);
+	  return NV_ERROR;
+	case ALREADY_NUMBERED:
+	  DiscardMark(m);
+	  PL_error(NULL, 0, "already numbered",
+		   ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
+	  return NV_ERROR;
+	case REPRESENTATION_ERROR:
+	  DiscardMark(m);
+	  PL_representation_error("tagged_integer");
+	  return NV_ERROR;
+        default:
+	  Undo(m);
+	  DiscardMark(m);
+	  if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	    return NV_ERROR;
+      }
     }
   }
 }
@@ -2632,7 +2650,7 @@ numbervars(+Term, +Functor, +Start, -End)
 static
 PRED_IMPL("numbervars", 4, numbervars, 0)
 { GET_LD
-  int n;
+  intptr_t n;
   atom_t name = ATOM_isovar;		/* '$VAR' */
   atom_t av = ATOM_error;
   term_t t, end, options;
@@ -2643,18 +2661,11 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   t = PL_copy_term_ref(A1);
 
-  if ( !PL_get_integer(A2, &n) )
-  { if ( PL_get_atom(A2, &name) &&
-	 PL_get_integer(A3, &n)	)	/* old calling conventions */
-    { end = A4;
-      options = 0;
-    } else
-    { return PL_get_integer_ex(A2, &n);
-    }
-  } else
+  if ( PL_get_intptr_ex(A2, &n) )
   { end = A3;
     options = A4;
-  }
+  } else
+    return FALSE;
 
   if ( options &&
        !scan_options(options, 0, ATOM_numbervar_option, numbervar_options,
@@ -2677,8 +2688,8 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   opts.functor = PL_new_functor(name, 1);
   n = numberVars(t, &opts, n PASS_LD);
-  if ( n >= 0 )
-    return PL_unify_integer(end, n);
+  if ( n != NV_ERROR )
+    return PL_unify_int64(end, n);
 
   return FALSE;
 }

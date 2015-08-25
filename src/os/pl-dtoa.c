@@ -41,7 +41,7 @@ int32_t, but MS does not yet support stdint.h.
 
 #define Long int			/* 32-bits */
 
-#ifdef _REENTRANT
+#if defined(_REENTRANT) && defined(O_PLMT)
 #define MULTIPLE_THREADS
 
 /* TBD: Use the pl-thread.[ch] locks for better speed on Windows

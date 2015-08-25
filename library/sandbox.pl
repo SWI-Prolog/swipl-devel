@@ -534,6 +534,8 @@ safe_primitive(system:atomics_to_string(_,_,_)).
 safe_primitive(system:atomics_to_string(_,_)).
 safe_primitive(system:string_concat(_,_,_)).
 safe_primitive(system:string_length(_,_)).
+safe_primitive(system:string_lower(_,_)).
+safe_primitive(system:string_upper(_,_)).
 safe_primitive(system:term_string(_,_)).
 					% Lists
 safe_primitive(length(_,_)).
@@ -564,6 +566,9 @@ safe_primitive(system:stamp_date_time(_,_,_)).
 safe_primitive(system:strip_module(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
 safe_primitive(system:import_module(_,_)).
+safe_primitive(system:file_base_name(_,_)).
+safe_primitive(system:file_directory_name(_,_)).
+safe_primitive(system:file_name_extension(_,_,_)).
 
 safe_primitive(clause(H,_)) :- safe_clause(H).
 safe_primitive(asserta(X)) :- safe_assert(X).

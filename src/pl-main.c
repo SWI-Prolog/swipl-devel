@@ -68,7 +68,11 @@ static BOOL
 consoleHandlerRoutine(DWORD id)
 { switch(id)
   { case CTRL_C_EVENT:
+#ifdef O_PLMT
       PL_w32thread_raise(main_thread_id, SIGINT);
+#else
+      PL_raise(SIGINT);
+#endif
       return TRUE;
   }
 

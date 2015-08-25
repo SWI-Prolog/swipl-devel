@@ -623,7 +623,7 @@ sig_exception_handler(int sig)
 { GET_LD
   (void)sig;
 
-  if ( LD && LD->signal.exception )
+  if ( HAS_LD && LD->signal.exception )
   { record_t ex = LD->signal.exception;
 
     LD->signal.exception = 0;
@@ -917,7 +917,7 @@ int
 PL_handle_signals(void)
 { GET_LD
 
-  if ( !LD || LD->critical || !is_signalled(LD) )
+  if ( !HAS_LD || LD->critical || !is_signalled(PASS_LD1) )
     return 0;
   if ( exception_term )
     return -1;
@@ -931,7 +931,7 @@ handleSignals(ARG1_LD)
 { int done = 0;
   int i;
 
-  if ( !LD || LD->critical )
+  if ( !HAS_LD || LD->critical )
     return 0;
 
   for(i=0; i<2; i++)
@@ -954,7 +954,7 @@ handleSignals(ARG1_LD)
   }
 
   if ( done )
-    updateAlerted(PASS_LD1);
+    updateAlerted(LD);
 
   return done;
 }
@@ -1516,7 +1516,7 @@ freePrologLocalData(PL_local_data_t *ld)
 
   if ( ld->bags.default_bag )
   { PL_free(ld->bags.default_bag);
-#ifdef O_ATOMGC
+#if defined(O_ATOMGC) && defined(O_PLMT)
     simpleMutexDelete(&ld->bags.mutex);
 #endif
   }

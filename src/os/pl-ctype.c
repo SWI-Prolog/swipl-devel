@@ -24,6 +24,7 @@
 #include "pl-incl.h"
 #include <ctype.h>
 #include "pl-ctype.h"
+#include <errno.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines:
@@ -864,7 +865,7 @@ IOENC
 initEncoding(void)
 { GET_LD
 
-  if ( LD )
+  if ( HAS_LD )
   { if ( !LD->encoding )
     { char *enc;
 

@@ -501,7 +501,7 @@ a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-saveWakeup(wakeup_state *state, int forceframe, ARG1_LD)
+saveWakeup(wakeup_state *state, int forceframe ARG_LD)
 { Word h;
 
   state->flags = 0;

@@ -31,6 +31,7 @@
 #ifdef __WINDOWS__
 #include <process.h>			/* getpid() */
 #endif
+#include <time.h>
 
 #define LOCK()   PL_LOCK(L_PLFLAG)
 #define UNLOCK() PL_UNLOCK(L_PLFLAG)
@@ -1343,7 +1344,11 @@ cleanupPrologFlags(void)
   { Table t = GD->prolog_flag.table;
 
     GD->prolog_flag.table = NULL;
+#ifdef O_PLMT
     t->free_symbol = freeSymbolPrologFlagTable;
+#else
+    t->free_symbol = NULL;
+#endif
     destroyHTable(t);
   }
 }

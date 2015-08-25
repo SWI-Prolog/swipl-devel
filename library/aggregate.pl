@@ -162,14 +162,39 @@ aggregate(Template, Discriminator, Goal0, Result) :-
 %	solutions, i.e., the minumum and  maximum   of  an  empty set is
 %	undefined.
 
+aggregate_all(Var, _, _) :-
+	var(Var), !,
+	instantiation_error(Var).
 aggregate_all(count, Goal, Count) :- !,
-	State = state(0, _),
-	(   Goal,
-	    arg(1, State, C0),
-	    C1 is C0+1,
-	    nb_setarg(1, State, C1),
-	    fail
-	;   arg(1, State, Count)
+	aggregate_all(sum(1), Goal, Count).
+aggregate_all(sum(X), Goal, Sum) :- !,
+	State = state(0),
+	(  call(Goal),
+	   arg(1, State, S0),
+	   S is S0 + X,
+	   nb_setarg(1, State, S),
+	   fail
+	;  arg(1, State, Sum)
+	).
+aggregate_all(max(X), Goal, Max) :- !,
+	State = state(X),
+	(  call(Goal),
+	   arg(1, State, M0),
+	   M is max(M0,X),
+	   nb_setarg(1, State, M),
+	   fail
+	;  arg(1, State, Max),
+	   nonvar(Max)
+	).
+aggregate_all(min(X), Goal, Min) :- !,
+	State = state(X),
+	(  call(Goal),
+	   arg(1, State, M0),
+	   M is min(M0,X),
+	   nb_setarg(1, State, M),
+	   fail
+	;  arg(1, State, Min),
+	   nonvar(Min)
 	).
 aggregate_all(Template, Goal0, Result) :-
 	template_to_pattern(all, Template, Pattern, Goal0, Goal, Aggregate),
@@ -189,7 +214,6 @@ aggregate_all(Template, Discriminator, Goal0, Result) :-
 	sort(Pairs0, Pairs),
 	pairs_values(Pairs, List),
 	aggregate_list(Aggregate, List, Result).
-
 
 template_to_pattern(All, Template, Pattern, Goal0, Goal, Aggregate) :-
 	template_to_pattern(Template, Pattern, Post, Vars, Aggregate),

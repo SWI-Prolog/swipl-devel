@@ -55,6 +55,7 @@ in this array.
 #endif
 
 #ifdef __WINDOWS__
+#include <windows.h>
 #include <wincrypt.h>
 #endif
 

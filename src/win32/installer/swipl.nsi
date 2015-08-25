@@ -611,6 +611,7 @@ Section "Package CLIB"
   File ${SWIPL}\bin\readutil.dll
   File ${SWIPL}\bin\process.dll
   File ${SWIPL}\bin\streaminfo.dll
+  File ${SWIPL}\bin\prolog_stream.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\cgi.pl
   File ${SWIPL}\library\crypt.pl
@@ -627,6 +628,7 @@ Section "Package CLIB"
   File ${SWIPL}\library\process.pl
   File ${SWIPL}\library\udp_broadcast.pl
   File ${SWIPL}\library\streaminfo.pl
+  File ${SWIPL}\library\prolog_stream.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\clib.html
 SectionEnd

@@ -236,7 +236,7 @@ void
 updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
-  if ( is_signalled(ld) )			mask |= ALERT_SIGNAL;
+  if ( is_signalled(PASS_LDARG1(ld)) )		mask |= ALERT_SIGNAL;
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
@@ -1274,6 +1274,7 @@ do_undo(mark *m)
    our block is not the real memory pointer.
 */
 
+#ifdef O_PLMT
 static Definition
 localDefinition(Definition def ARG_LD)
 { unsigned int tid = LD->thread.info->pl_tid;
@@ -1302,7 +1303,6 @@ localDefinition(Definition def ARG_LD)
   return v->blocks[idx][tid];
 }
 
-
 void
 destroyLocalDefinition(Definition def, unsigned int tid)
 { size_t idx = MSB(tid);
@@ -1313,7 +1313,7 @@ destroyLocalDefinition(Definition def, unsigned int tid)
   v->blocks[idx][tid] = NULL;
   destroyDefinition(local);
 }
-
+#endif
 
 Definition
 getProcDefinition__LD(Definition def ARG_LD)

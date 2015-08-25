@@ -87,7 +87,15 @@ MKLIBS=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
 DEFSTARTUP=.swiplrc
-MT=yes
+
+AC_ARG_ENABLE(mt, [  --disable-mt                Disable multi-threading],
+             [case "$enableval" in
+                  yes) MT=yes
+                       ;;
+                  *)  ;;
+              esac],
+              MT=yes)
+
 
 dnl ****************************************************************
 dnl Some systems don't appear to have true.  Hope all like this ...
@@ -1229,6 +1237,7 @@ if test "x$ac_cv_func_unsetenv" = "xyes"; then
 		 AC_MSG_RESULT(yes))
 fi
 
+if test "$MT" = "yes"; then
 if test "$MINGW" = false; then
 
 dnl The tests below are Unix only.  There is no point doing this for MinGW.
@@ -1257,7 +1266,7 @@ AC_TRY_COMPILE(
 if test "x$ac_syscall_gettid" = "xyes"; then
    AC_DEFINE(HAVE_GETTID_SYSCALL, 1,
              [Define to 1 if you have syscall support for gettid()])
-else
+else dnl ! test "x$ac_syscall_gettid" = "xyes"
 
 AC_MSG_CHECKING("linux gettid _syscall0 macro")
 AC_TRY_COMPILE(
@@ -1271,7 +1280,7 @@ _syscall0(pid_t,gettid)
 	     [Define to 1 if you have the Linux gettid() _syscall0 macro])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
-fi
+fi      dnl ! test "x$ac_syscall_gettid" = "xyes"
 
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_FUNCS(clock_gettime)
@@ -1357,8 +1366,9 @@ if { test -f /proc/$$/task/$$/stat && \
 else
    AC_MSG_RESULT(no)
 fi
-fi
-fi
+fi dnl test "x$ac_linux_cpuclocks" = "xyes"
+fi dnl test "$MINGW" = false
+fi dnl if test "$MT" = "yes"
 
 AC_MSG_CHECKING(for sysconf support for _SC_NPROCESSORS_CONF)
 AC_TRY_COMPILE(
@@ -1674,6 +1684,10 @@ else
 fi
 
 AC_TYPE_SIGNAL
+
+dnl Do not enable profiling unless MT is also enabled
+if test "$MT" = "yes"; then
+
 AC_MSG_CHECKING("for BSD signal handlers")
 AC_TRY_RUN(
 [
@@ -1774,6 +1788,8 @@ main()
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no),
     true)
+
+fi	dnl End of conditional disabling profiling unless MT is enabled
 
 AC_MSG_CHECKING("for union wait")
 AC_TRY_COMPILE(

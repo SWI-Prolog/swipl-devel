@@ -158,20 +158,27 @@ typedef struct PL_global_data PL_global_data_t;
 #define ARG_LD    , ARG1_LD
 #define PASS_LD1  LD
 #define PASS_LD   , LD
+#define PASS_LDARG1(x)  x
+#define PASS_LDARG(x)   , x
 #define LOCAL_LD  __PL_ld
 #define IGNORE_LD (void)__PL_ld;
+#define HAS_LD (LD != 0)
 
 #else
 
 #define GET_LD
+#define PRED_LD
 #define ARG_LD
 #define ARG1_LD void
 #define PASS_LD
 #define PASS_LD1
+#define PASS_LDARG1(x)
+#define PASS_LDARG(x)
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD
 #define IGNORE_LD
+#define HAS_LD (1)
 
 #endif
 

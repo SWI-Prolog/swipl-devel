@@ -35,6 +35,11 @@ handling times must be cleaned, but that not only holds for this module.
 /*#define O_DEBUG 1*/
 /*#define O_DEBUG_MT 1*/
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #define NEEDS_SWINSOCK
 #include "pl-incl.h"
 #include "pl-ctype.h"
@@ -1177,7 +1182,7 @@ protocol(const char *str, size_t n)
 { GET_LD
   IOSTREAM *s;
 
-  if ( LD && Sprotocol && (s = getStream(Sprotocol)) )
+  if ( HAS_LD && Sprotocol && (s = getStream(Sprotocol)) )
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     Sflush(s);

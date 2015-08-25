@@ -1258,8 +1258,8 @@ implementation.
 Dicts are currently represented as a compound term using the functor
 \verb$`dict`$. The first argument is the tag. The remaining arguments
 create an array of sorted key-value pairs. This representation is
-compact and guarantees good locality. Lookup is order $\log(N)$, while
-adding valuesm deleting values and merging with other dicts has order
+compact and guarantees good locality. Lookup is order $\log{N}$, while
+adding values, deleting values and merging with other dicts has order
 $N$. The main disadvantage is that changing values in large dicts is
 costly, both in terms of memory and time.
 

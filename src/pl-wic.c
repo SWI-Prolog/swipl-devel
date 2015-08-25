@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -1988,7 +1988,7 @@ do_save_qlf_term(wic_state *state, Word t ARG_LD)
 static int
 saveQlfTerm(wic_state *state, term_t t ARG_LD)
 { IOSTREAM *fd = state->wicFd;
-  int nvars, rc=TRUE;
+  intptr_t nvars, rc=TRUE;
   fid_t cid;
   nv_options options;
 
@@ -2004,7 +2004,7 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
   options.singletons = FALSE;		/* TBD: TRUE may be better! */
   options.numbered_check = TRUE;	/* otherwise may be wrong */
 
-  if ( (nvars = numberVars(t, &options, 0 PASS_LD)) >= 0 )
+  if ( (nvars = numberVars(t, &options, 0 PASS_LD)) != NV_ERROR )
   { putNum(nvars, fd);
     do_save_qlf_term(state, valTermRef(t) PASS_LD);	/* TBD */
     DEBUG(MSG_QLF_TERM, Sdprintf("to %d\n", Stell(fd)));

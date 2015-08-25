@@ -1292,8 +1292,10 @@ print_system_message(Term, Kind, Lines) :-
 		  ],
 		  AllLines),
 	msg_property(Kind, stream(Stream)),
+	ignore(stream_property(Stream, position(Pos))),
 	print_message_lines(Stream, AllLines),
-	(   msg_property(Kind, wait(Wait)),
+	(   \+ stream_property(Stream, position(Pos)),
+	    msg_property(Kind, wait(Wait)),
 	    Wait > 0
 	->  sleep(Wait)
 	;   true

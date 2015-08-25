@@ -973,7 +973,7 @@ PL_unregister_atom(atom_t a)
     } else
     { GET_LD
 
-      if ( LD )
+      if ( HAS_LD )
 	LD->atoms.unregistering = a;
       if ( (refs=ATOMIC_DEC(&p->references)) == 0 )
 	ATOMIC_INC(&GD->atoms.unregistered);
@@ -1615,12 +1615,12 @@ thread.
 #include <pthread.h>
 static pthread_once_t key_created = PTHREAD_ONCE_INIT;
 static pthread_key_t key;
-#endif
 
 static void
 atom_generator_create_key(void)
 { pthread_key_create(&key, NULL);
 }
+#endif
 
 static int
 atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
@@ -1628,13 +1628,15 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
   size_t index;
   int i, last=FALSE;
 
+#ifdef O_PLMT
   if ( !LD )
     pthread_once(&key_created, atom_generator_create_key);
+#endif
 
   if ( !state )
   { index = 1;
   } else
-  { if ( LD )
+  { if ( HAS_LD )
       index = LD->atoms.generator;
 #ifdef O_PLMT
     else
@@ -1654,7 +1656,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
     for(; index<upto; index++)
     { Atom a = b[index];
 
-      if ( is_signalled(LD) )		/* Notably allow windows version */
+      if ( is_signalled(PASS_LD1) )	/* Notably allow windows version */
 	PL_handle_signals();		/* to break out on ^C */
 
       if ( a && completion_candidate(a) &&
@@ -1662,7 +1664,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 	   hit->length < ALT_SIZ &&
 	   PL_cmp_text(prefix, 0, hit, 0, prefix->length) == 0 &&
 	   is_identifier_text(hit) )
-      { if ( LD )
+      { if ( HAS_LD )
 	  LD->atoms.generator = index+1;
 #ifdef O_PLMT
 	else

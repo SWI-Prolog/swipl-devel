@@ -29,6 +29,7 @@
 #include "os/pl-dtoa.h"
 #include "pl-umap.c"			/* Unicode map */
 #include "pl-dict.h"
+#include <errno.h>
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;

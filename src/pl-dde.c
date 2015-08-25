@@ -29,6 +29,8 @@
 #define INCLUDE_DDEML_H
 #include "pl-incl.h"
 
+#include <windows.h>
+
 #if O_DDE
 #include <string.h>
 

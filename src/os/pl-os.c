@@ -1932,7 +1932,7 @@ PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
   { GET_LD
     int fd;
 
-    if ( (!LD || truePrologFlag(PLFLAG_TTY_CONTROL)) &&
+    if ( (!HAS_LD || truePrologFlag(PLFLAG_TTY_CONTROL)) &&
 	 (fd = Sfileno(s)) >= 0 )
       rc = SetTtyState(fd, &TTY_STATE(buf));
 

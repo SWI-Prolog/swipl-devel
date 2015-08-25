@@ -27,9 +27,6 @@
 #include "pl-inline.h"
 #include "pl-dbref.h"
 
-#define SKIP_VERY_DEEP	  1000000000L	/* deep skiplevel */
-#define SKIP_REDO_IN_SKIP (SKIP_VERY_DEEP-1)
-
 #define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
 #define WFG_BACKTRACE	0x04000
@@ -1319,7 +1316,7 @@ PL_get_context(pl_context_t *c, int thread_id)
 { GET_LD
   (void)thread_id;
 
-  if ( !LD )
+  if ( !HAS_LD )
     return FALSE;
 
   c->ld = LD;

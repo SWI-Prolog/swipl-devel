@@ -28,50 +28,18 @@
 #define VC8 1				/* (aka Microsoft 2005 VC++ */
 #endif
 
-#ifdef __MINGW32__
-#include <config.h>
-#endif
-
-#ifndef __MINGW32__
-typedef unsigned long sigset_t;		/* we don't have this */
-typedef int mode_t;
-#define HAVE_SHLOBJ_H 1
-#endif
-#define HAVE_SIGSET_T 1			/* For the future */
-
-#ifndef __MINGW32__
-#define HAVE_DBGHELP_H 1
-#endif
-
 #define NOTTYCONTROL		TRUE	/* default -tty */
 #define O_GMP			1
-#define O_PLMT			1
 #define _REENTRANT		1
 
 #define OPEN_MAX 32
 
 #define HAVE_UXNT_H 1
-#define HAVE_MALLOC_H 1
-#define HAVE_VIRTUALALLOC 1
+
 #define HAVE_CLOCK 1			/* clock() timing function */
-#define inline __inline
-
-#define snprintf ms_snprintf		/* defined in pl-nt.c */
-
-#ifdef O_GMP
-#define HAVE_GMP_H 1
-#define HAVE_LIB_GMP 1
-#endif
-
-#ifdef __LCC__
-#define NO_MS_EXTENSIONS 1
-#endif
 
 /* Define for emulating dlopen(), etc. using LoadLibrary */
 #define EMULATE_DLOPEN 1
-
-/* Define to extension used for shared objects if not "so" */
-#define SO_EXT "dll"
 
 /* Define for the _xos_... functions */
 #define O_XOS 1
@@ -94,14 +62,60 @@ typedef int mode_t;
 /* Maximum length of a path-name.  Note XOS! */
 #define MAXPATHLEN 512
 
+/* Format for int64_t */
+#ifndef INT64_FORMAT
+#define INT64_FORMAT "%I64d"
+#endif
+
+/* Define if floats are IEEE754 */
+#define IEEE754 1
+
+/* setenv comes from uxnt.c */
+#define HAVE_SETENV 1
+
+
+#ifdef __MINGW32__
+#include "config.h"
+#endif
+
+/* FIXME: this is overriding what is in config.h. */
+/* Define to make use of standard (UNIX98) pthread recursive mutexes */
+#define RECURSIVE_MUTEXES 1
+
+/* FIXME: this is overriding what is in config.h. */
+/* Define if pthread has pthread_mutexattr_settype() */
+#define HAVE_PTHREAD_MUTEXATTR_SETTYPE 1
+
+#ifndef __MINGW32__
+typedef unsigned long sigset_t;		/* we don't have this */
+typedef int mode_t;
+
+/* Define to 1 if you have the <shlobj.h> header file. */
+#define HAVE_SHLOBJ_H 1
+
+/* Define to 1 if you have the <dbghelp.h> header file. */
+#define HAVE_DBGHELP_H 1
+
+/* Define to 1 if you have the <malloc.h> header file. */
+#define HAVE_MALLOC_H 1
+
+#define inline __inline
+
+#define snprintf ms_snprintf		/* defined in pl-nt.c */
+
+#ifdef O_GMP
+#define HAVE_GMP_H 1
+#endif
+
+#ifdef __LCC__
+#define NO_MS_EXTENSIONS 1
+#endif
+
+/* Define to extension used for shared objects if not "so" */
+#define SO_EXT "dll"
+
 /* Define as the return type of signal handlers (int or void).  */
 #define RETSIGTYPE void
-
-/* Define if you have the ANSI C header files.  */
-#define STDC_HEADERS 1
-
-/* Define if uchar is not defined in <sys/types.h> */
-#define NEED_UCHAR 1
 
 /* Define if SIGPROF and setitimer() are available */
 #define O_PROFILE 1
@@ -158,8 +172,8 @@ typedef int mode_t;
 #define HAVE_STRICMP 1
 
 /* Define if you have the mbscasecoll() function. */
-#define mbcasescoll mbsicoll
-#define HAVE_MBCASESCOLL 1
+#define mbscasecoll mbsicoll
+#define HAVE_MBSCASECOLL 1
 
 /* Define if you have the strlwr() function */
 #define HAVE_STRLWR 1
@@ -182,14 +196,14 @@ typedef int mode_t;
 /* Define if you have the strerror function.  */
 #define HAVE_STRERROR 1
 
+/* Define to 1 if you have the `ceil' function. */
 #define HAVE_CEIL  1
+
+/* Define to 1 if you have the `floor' function. */
 #define HAVE_FLOOR 1
 
 /* Define if you have the <dirent.h> header file.  */
 #define HAVE_DIRENT_H 1
-
-/* Define if you have the <malloc.h> header file.  */
-#define HAVE_MALLOC_H 1
 
 /* Define if you have the <memory.h> header file.  */
 #define HAVE_MEMORY_H 1
@@ -206,17 +220,6 @@ typedef int mode_t;
 /* Define if you have the m library (-lm).  */
 #define HAVE_LIBM 1
 
-/* Define to make use of standard (UNIX98) pthread recursive mutexes */
-#define RECURSIVE_MUTEXES 1
-
-/* Define if pthread has pthread_mutexattr_settype() */
-#define HAVE_PTHREAD_MUTEXATTR_SETTYPE 1
-
-/* Format for int64_t */
-#ifndef INT64_FORMAT
-#define INT64_FORMAT "%I64d"
-#endif
-
 /* Define to 1 if you have the <locale.h> header file. */
 #define HAVE_LOCALE_H 1
 
@@ -232,14 +235,10 @@ typedef int mode_t;
 /* Define to 1 if you have `signbit' function */
 /* #undef HAVE_SIGNBIT 1 */
 
-/* Define if floats are IEEE754 */
-#define IEEE754 1
-
 /* Define to 1 if you have <float.h> header */
 #define HAVE_FLOAT_H 1
 
-/* setenv comes from uxnt.c */
-#define HAVE_SETENV 1
-
 /* Define to 1 if you have the 'wcsxfrm' function. */
 #define HAVE_WCSXFRM 1
+
+#endif

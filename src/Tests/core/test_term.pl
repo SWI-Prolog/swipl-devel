@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -23,6 +23,7 @@
 
 :- module(test_term, [test_term/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test Prolog core term manipulation primitives
 
@@ -45,6 +46,9 @@ test(single, End == 1) :-
 	numbervars(_, 0, End).
 test(single_s, End == 0) :-
 	numbervars(_, 0, End, [singletons(true)]).
+test(neg, End == -6) :-
+	numbervars(f(X), -7, End),
+	assertion(X == '$VAR'(-7)).
 test(shared, End == 1) :-
 	X = d(_),
 	Y = t(X,X),

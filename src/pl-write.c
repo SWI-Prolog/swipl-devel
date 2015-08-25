@@ -1907,7 +1907,7 @@ pl_write_canonical2(term_t stream, term_t term)
   options.singletons = PL_is_acyclic(term);
   options.numbered_check = FALSE;
 
-  rc = ( numberVars(term, &options, 0 PASS_LD) >= 0 &&
+  rc = ( numberVars(term, &options, 0 PASS_LD) != NV_ERROR &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
 		   PL_WRT_NODOTINATOM, TRUE)

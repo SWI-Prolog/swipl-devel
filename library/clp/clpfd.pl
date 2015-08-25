@@ -163,7 +163,7 @@ There are two major use cases of this library:
        combinatorial problems such as planning, scheduling and
        allocation tasks.
 
-When teaching Prolog, we _strongly_ recommend that you introduce
+When teaching Prolog, we _strongly recommend_ that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
 predicates and their procedural idiosyncrasies. This is because
 constraints are easy to explain, understand and use due to their
@@ -184,7 +184,8 @@ For satisfactory performance, arithmetic constraints are implicitly
 rewritten at compilation time so that lower-level fallback predicates
 are automatically used whenever possible.
 
-You can cite this library in your publications as:
+We recommend the following reference to cite this library in
+scientific publications:
 
 ==
 @inproceedings{Triska12,
@@ -196,6 +197,12 @@ You can cite this library in your publications as:
   year      = {2012},
   pages     = {307-316}
 }
+==
+
+and the following URL to link to its documentation:
+
+==
+http://www.swi-prolog.org/man/clpfd.html
 ==
 
 ### Arithmetic constraints		{#cplfd-arith-constraints}
@@ -212,8 +219,8 @@ A finite domain _arithmetic expression_ is one of:
     | Expr ^ Expr        | Exponentiation                       |
     | min(Expr,Expr)     | Minimum of two expressions           |
     | max(Expr,Expr)     | Maximum of two expressions           |
-    | Expr mod Expr      | Modulo induced by floored division   |
-    | Expr rem Expr      | Modulo induced by truncated division |
+    | Expr `mod` Expr    | Modulo induced by floored division   |
+    | Expr `rem` Expr    | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
 
@@ -221,12 +228,12 @@ Arithmetic _constraints_ are relations between arithmetic expressions.
 
 The most important arithmetic constraints are:
 
-    | Expr1 #>= Expr2  | Expr1 is greater than or equal to Expr2  |
-    | Expr1 #=< Expr2  | Expr1 is less than or equal to Expr2     |
-    | Expr1 #=  Expr2  | Expr1 equals Expr2                       |
-    | Expr1 #\= Expr2  | Expr1 is not equal to Expr2              |
-    | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
-    | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
+    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
+    | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
+    | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
+    | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
@@ -398,10 +405,10 @@ consists of two phases:
        concrete solutions.
 
 It is good practice to keep the modeling part, via a dedicated
-predicate, separate from the actual search for solutions. This lets
-you observe termination and determinism properties of the modeling
-part in isolation from the search, and more easily try different
-search strategies.
+predicate called the *core relation*, separate from the actual
+search for solutions. This lets you observe termination and
+determinism properties of the core relation in isolation from the
+search, and more easily try different search strategies.
 
 As an example of a constraint satisfaction problem, consider the
 cryptoarithmetic puzzle SEND + MORE = MONEY, where different letters
@@ -440,7 +447,7 @@ B3 in 2..8,
 C5 in 2..8.
 ==
 
-From this answer, we see that the modeling part _terminates_ and is in
+From this answer, we see that this core relation _terminates_ and is in
 fact _deterministic_. Moreover, we see from the residual goals that
 the constraint solver has deduced more stringent bounds for all
 variables. Such observations are only possible if modeling and search
@@ -462,6 +469,26 @@ puzzle's unique solution, since the constraint solver is strong enough
 to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
+
+### Optimisation    {#clpfd-optimisation}
+
+You can use labeling/2 to minimize or maximize the value of a CLP(FD)
+expression, and generate solutions in increasing or decreasing order
+of the value. See the labeling options `min(Expr)` and `max(Expr)`,
+respectively.
+
+Again, to easily try different labeling options in connection with
+optimisation, we recommend to introduce a dedicated predicate for
+posting constraints, and to use `labeling/2` in a separate goal. This
+way, you can observe properties of the core relation in isolation,
+and try different labeling options without recompiling your code.
+
+If necessary, you can use `once/1` to commit to the first optimal
+solution. However, it is often very valuable to see alternative
+solutions that are _also_ optimal, so that you can choose among
+optimal solutions by other criteria. For the sake of purity and
+completeness, we recommend to avoid `once/1` and other constructs
+that lead to impurities in CLP(FD) programs.
 
 ### Advanced topics			{#clpfd-advanced-topics}
 
@@ -1670,7 +1697,7 @@ tighten(max, E, V) :- E #> V.
 all_different(Ls) :-
         fd_must_be_list(Ls),
         maplist(fd_variable, Ls),
-        put_attr(Orig, clpfd_original, all_different(Ls)),
+        Orig = original_goal(_, all_different(Ls)),
         all_different(Ls, [], Orig),
         do_queue.
 
@@ -2388,12 +2415,28 @@ expr_conds(A0^B0, A^B)           -->
         [(B >= 0 ; A =:= -1)].
 
 :- multifile
-        user:goal_expansion/2.
+        system:goal_expansion/2.
 :- dynamic
-        user:goal_expansion/2.
+        system:goal_expansion/2.
 
-user:goal_expansion(Var in Dom, In) :-
+system:goal_expansion(Goal, Expansion) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
+        clpfd_expandable(Goal),
+        prolog_load_context(module, M),
+	(   M == clpfd
+	->  true
+	;   predicate_property(M:Goal, imported_from(clpfd))
+	),
+        clpfd_expansion(Goal, Expansion).
+
+clpfd_expandable(_ in _).
+clpfd_expandable(_ #= _).
+clpfd_expandable(_ #>= _).
+clpfd_expandable(_ #=< _).
+clpfd_expandable(_ #> _).
+clpfd_expandable(_ #< _).
+
+clpfd_expansion(Var in Dom, In) :-
         (   ground(Dom), Dom = L..U, integer(L), integer(U) ->
             expansion_simpler(
                 (   integer(Var) ->
@@ -2402,8 +2445,7 @@ user:goal_expansion(Var in Dom, In) :-
                 ), In)
         ;   In = clpfd:clpfd_in(Var, Dom)
         ).
-user:goal_expansion(X0 #= Y0, Equal) :-
-        \+ current_prolog_flag(clpfd_goal_expansion, false),
+clpfd_expansion(X0 #= Y0, Equal) :-
         phrase(expr_conds(X0, X), CsX),
         phrase(expr_conds(Y0, Y), CsY),
         list_goal(CsX, CondX),
@@ -2420,8 +2462,7 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                     )
                 ;   clpfd:clpfd_equal(X0, Y0)
                 ), Equal).
-user:goal_expansion(X0 #>= Y0, Geq) :-
-        \+ current_prolog_flag(clpfd_goal_expansion, false),
+clpfd_expansion(X0 #>= Y0, Geq) :-
         phrase(expr_conds(X0, X), CsX),
         phrase(expr_conds(Y0, Y), CsY),
         list_goal(CsX, CondX),
@@ -2434,9 +2475,9 @@ user:goal_expansion(X0 #>= Y0, Geq) :-
               ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
               ), Geq).
-user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
-user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
-user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
+clpfd_expansion(X #=< Y,  Leq) :- clpfd_expansion(Y #>= X, Leq).
+clpfd_expansion(X #> Y, Gt)    :- clpfd_expansion(X #>= Y+1, Gt).
+clpfd_expansion(X #< Y, Lt)    :- clpfd_expansion(Y #> X, Lt).
 
 expansion_simpler((True->Then0;_), Then) :-
         is_true(True), !,
@@ -5227,8 +5268,8 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
 weak_arc_all_distinct(Ls) :-
         must_be(list, Ls),
-        put_attr(O, clpfd_original, weak_arc_all_distinct(Ls)),
-        all_distinct(Ls, [], O),
+        Orig = original_goal(_, weak_arc_all_distinct(Ls)),
+        all_distinct(Ls, [], Orig),
         do_queue.
 
 all_distinct([], _, _).
@@ -5333,7 +5374,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
         pairs_keys_values(SDs, Starts, Durations),
-        put_attr(Orig, clpfd_original, serialized(Starts, Durations)),
+        Orig = original_goal(_, serialized(Starts, Durations)),
         serialize(SDs, Orig).
 
 serialize([], _).
@@ -6596,9 +6637,6 @@ clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
 clpfd_relation:attribute_goals(_) --> [].
 clpfd_relation:attr_unify_hook(_,_) :- false.
 
-clpfd_original:attribute_goals(_) --> [].
-clpfd_original:attr_unify_hook(_,_) :- false.
-
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
@@ -6699,9 +6737,9 @@ conjunction(A, B, G, D) -->
         ;   [(?(A) #/\ ?(B) #/\ G) #<==> ?(D)]
         ).
 
-original_goal(V) -->
-        (   { get_attr(V, clpfd_original, Goal) } ->
-            { del_attr(V, clpfd_original) },
+original_goal(original_goal(State, Goal)) -->
+        (   { var(State) } ->
+            { State = processed },
             [Goal]
         ;   []
         ).

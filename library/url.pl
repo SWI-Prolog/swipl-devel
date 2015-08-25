@@ -276,7 +276,7 @@ cfragment(_) -->
 		 *	      PARSING		*
 		 *******************************/
 
-%%	parse_url(+URL, -Attributes) is det.
+%%	parse_url(?URL, ?Attributes) is det.
 %
 %	Construct or analyse a URL. URL is an   atom  holding a URL or a
 %	variable. Attributes is a list of  components. Each component is

@@ -991,7 +991,6 @@ PL_canonicalise_text(PL_chars_t *text)
 	  } else
 	  { char *t, *to = PL_malloc(len+1);
 
-	    text->text.t = to;
 	    for(t=to; s<e;)
 	    { s = utf8_get_char(s, &chr);
 	      *t++ = chr;
