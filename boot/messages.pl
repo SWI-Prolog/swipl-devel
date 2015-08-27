@@ -1231,7 +1231,15 @@ prolog_message(pack(no_arch(Entry, Arch))) -->
 
 prolog_message(null_byte_in_path(Component)) -->
 	[ '0-byte in PATH component: ~p (skipped directory)'-[Component] ].
+prolog_message(invalid_tmp_var(Var, Value, Reason)) -->
+	[ 'Cannot use '-[] ], env(Var),
+	[ ' as temporary file directory: ~p: ~w'-[Value, Reason] ].
 
+env(Name) -->
+	{ current_prolog_flag(windows, true) },
+	[ '%~w%'-[Name] ].
+env(Name) -->
+	[ '$~w'-[Name] ].
 
 		 /*******************************
 		 *	PRINTING MESSAGES	*

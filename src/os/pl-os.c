@@ -586,11 +586,32 @@ TemporaryFile(const char *id, int *fdp)
     if ( !tmpdir )
     { char envbuf[MAXPATHLEN];
       char *td;
+      char *env_names[2] = {"TEMP", "TMP"};
+      int env_length = 2;
+      int i;
+      statstruct tdStat;
 
-      if ( (td = Getenv("TEMP", envbuf, sizeof(envbuf))) ||
-	   (td = Getenv("TMP",  envbuf, sizeof(envbuf))) )
-	tmpdir = strdup(td);
-      else
+      for(i = 0; !tmpdir && i < env_length; i++)
+      { if ( (td=Getenv(env_names[i], envbuf, sizeof(envbuf))) )
+	{ const char *reason = NULL;
+
+	  if ( statfunc(td, &tdStat) )
+	    reason = OsError();
+	  else if (!S_ISDIR(tdStat.st_mode))
+	    reason = "not a directory";
+	  else
+	    tmpdir = strdup(td);
+
+	  if ( reason )
+	    printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
+			   PL_CHARS, env_names[i],
+			   PL_CHARS, td,
+			   PL_CHARS, reason);
+	}
+      }
+
+      if ( !tmpdir )
 	tmpdir = DEFTMPDIR;
     }
     UNLOCK();
