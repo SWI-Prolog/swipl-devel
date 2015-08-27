@@ -6898,7 +6898,7 @@ and \chr{G}) accept an arithmetic expression as argument. This is
 introduced to handle rational numbers transparently (see
 \secref{rational}).  The floating point conversions allow for unlimited
 precision for printing rational numbers in decimal form.  E.g., the
-following will write as many 3's as you want by changing the `70'.
+following will write as many 3's as you want by changing the `50'.
 
 \begin{code}
 ?- format('~50f', [10 rdiv 3]).
