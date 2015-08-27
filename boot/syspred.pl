@@ -551,6 +551,8 @@ prolog_load_context(script, Bool) :-
 	).
 prolog_load_context(variable_names, Bindings) :-
 	nb_current('$variable_names', Bindings).
+prolog_load_context(term, Term) :-
+	nb_current('$term', Term).
 
 %%	unload_file(+File) is det.
 %

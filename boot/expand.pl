@@ -98,9 +98,11 @@ expand_term(Term, Pos0, [], Pos) :-
 	X == [], !,
 	atomic_pos(Pos0, Pos).
 expand_term(Term, Pos0, Expanded, Pos) :-
+	b_setval('$term', Term),
 	'$def_modules'([term_expansion/4,term_expansion/2], MList),
 	call_term_expansion(MList, Term, Pos0, Term2, Pos1),
-	expand_term_2(Term2, Pos1, Expanded, Pos).
+	expand_term_2(Term2, Pos1, Expanded, Pos),
+	b_setval('$term', []).
 
 call_term_expansion([], Term, Pos, Term, Pos).
 call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-

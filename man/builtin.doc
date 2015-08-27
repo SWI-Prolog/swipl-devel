@@ -680,7 +680,8 @@ guarantee that none of the clauses associated to \arg{File} are active.
     \predicate{prolog_load_context}{2}{?Key, ?Value}
 Obtain context information during compilation.  This predicate can be
 used from directives appearing in a source file to get information about
-the file being loaded. See also source_location/2 and if/1. The
+the file being loaded as well as by the term_expansion/2 and
+goal_expansion/2 hooks. See also source_location/2 and if/1. The
 following keys are defined:
 
 \begin{center}
@@ -688,17 +689,20 @@ following keys are defined:
 \hline
 \bf Key               & \bf Description \\
 \hline
+\const{directory}     & Directory in which \const{source} lives \\
+\const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
+\const{file}          & Similar to \const{source}, but returns the file
+			being included when called while an include file
+			is being processed \\
 \const{module}        & Module into which file is loaded \\
+\const{script}	      & Boolean that indicates whether the file is
+			loaded as a script file (see
+			\cmdlineoption{-s}) \\
 \const{source}        & File being loaded.  If the system is processing an
 			included file, the value is the \emph{main} file.
 			Returns the original Prolog file when loading a
 			\fileext{qlf} file. \\
-\const{file}          & Similar to \const{source}, but returns the file
-			being included when called while an include file
-			is being processed \\
 \const{stream}        & Stream identifier (see current_input/1) \\
-\const{directory}     & Directory in which \const{source} lives \\
-\const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
 \const{term_position} & Start position of last term read.  See also
 			stream_property/2 (\const{position} property and
 			stream_position_data/3.\footnote{Up to version
@@ -706,11 +710,9 @@ following keys are defined:
 			except for the \const{line_count} and had
 			\textbf{five} arguments, where the position
 			property of a stream only has \textbf{four}.} \\
+\const{term}	      & Term being expanded by expand_term/2. \\
 \const{variable_names}& A list of `\arg{Name} = \arg{Var}' of the last
 			term read.  See read_term/2 for details. \\
-\const{script}	      & Boolean that indicates whether the file is
-			loaded as a script file (see
-			\cmdlineoption{-s}) \\
 \hline
 \end{tabular}
 \end{center}
@@ -875,16 +877,21 @@ the body of clauses analysed and the goals are handed to expand_goal/2,
 which uses the goal_expansion/2 hook to do user-defined expansion.
 
 The predicate goal_expansion/2 is first called in the module that is
-being compiled, and then on the \const{user} module.  If \arg{Goal} is
-of the form \arg{Module}:\arg{Goal} where \arg{Module} is instantiated,
-goal_expansion/2 is called on \arg{Goal} using rules from module
-\arg{Module} followed by \const{user}.
+being compiled, and then follows the module inheritance path as defined
+by default_module/2, i.e., by default \const{user} and \const{system}.
+If \arg{Goal} is of the form \arg{Module}:\arg{Goal} where \arg{Module}
+is instantiated, goal_expansion/2 is called on \arg{Goal} using rules
+from module \arg{Module} followed by default modules for \arg{Module}.
 
 Only goals appearing in the body of clauses when reading a source file
 are expanded using this mechanism, and only if they appear literally in
 the clause, or as an argument to a defined meta-predicate that is
 annotated using `0' (see meta_predicate/1). Other cases need a real
 predicate definition.
+
+The expansion hook can use prolog_load_context/2 to obtain information
+about the context in which the goal is exanded such as the module,
+variable names or the encapsulating term.
 
     \predicate{expand_goal}{2}{+Goal1, -Goal2}
 This predicate is normally called by the compiler to perform
