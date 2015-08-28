@@ -46,5 +46,7 @@ test(no_stream, error(existence_error(stream, S))) :-
 	format(S, fmt, []).
 test(atom, A == 'a\n') :-
 	format(atom(A), 'a\n', []).
+test(atom, A == '--++') :-
+	format(atom(A), '~`-t~`+t~4+', []).
 
 :- end_tests(format).

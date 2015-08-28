@@ -902,7 +902,7 @@ emit_rubber(format_state *state)
   for(j = 0; s <= e; j++)
   { int chr;
 
-    if ( rn && r->where == j )
+    while ( rn && r->where == j )
     { size_t n;
 
       for(n=0; n<r->size; n++)
