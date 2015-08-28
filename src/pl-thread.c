@@ -2115,10 +2115,12 @@ static int
 thread_at_exit(term_t goal, PL_local_data_t *ld)
 { GET_LD
   Module m = NULL;
-  at_exit_goal *eg = allocHeapOrHalt(sizeof(*eg));
+  at_exit_goal *eg;
 
   if ( !PL_strip_module(goal, &m, goal) )
     return FALSE;
+
+  eg = allocHeapOrHalt(sizeof(*eg));
   eg->next = NULL;
   eg->type = EXIT_PROLOG;
   eg->goal.prolog.module = m;
