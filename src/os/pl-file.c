@@ -2211,7 +2211,8 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 
     if ( !PL_get_stream_handle(head, &s) )
       return FALSE;
-    if ( (fd=Swinsock(s)) < 0 )
+    fd=Swinsock(s);
+    if ( fd == INVALID_SOCKET )
     { releaseStream(s);
       return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
 		      PL_new_atom("file_stream"), head);
