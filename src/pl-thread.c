@@ -4429,7 +4429,10 @@ PRED_IMPL("mutex_unlock", 1, mutex_unlock, 0)
 
   if ( PL_mutex_unlock(m) )
   { if ( m->auto_destroy )
+    { LOCK();
       try_really_destroy_mutex(m);
+      UNLOCK();
+    }
 
     return TRUE;
   } else
@@ -4490,8 +4493,10 @@ PRED_IMPL("mutex_destroy", 1, mutex_destroy, 0)
   if ( !get_mutex(A1, &m, FALSE) )
     return FALSE;
 
+  LOCK();
   if ( !try_really_destroy_mutex(m) )
     m->auto_destroy = TRUE;
+  UNLOCK();
 
   return TRUE;
 }
