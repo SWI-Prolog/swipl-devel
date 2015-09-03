@@ -769,7 +769,7 @@ initPrologThreads(void)
 
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
-    GD->thread.mutexTable = newHTable(16);
+    GD->thread.mutexTable = newHTable(16|TABLE_UNLOCKED);
     GD->thread.mutexTable->free_symbol = unalloc_mutex_symbol;
     initMutexRef();
     link_mutexes();
