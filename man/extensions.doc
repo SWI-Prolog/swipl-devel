@@ -459,7 +459,7 @@ list_strings/0 from complaining:
 \begin{code}
 :- multifile check:string_predicate/1.
 
-string_predicate(user:help_info/2).
+check:string_predicate(user:help_info/2).
 \end{code}
 
     \predicate{check:valid_string_goal}{1}{:Goal}
