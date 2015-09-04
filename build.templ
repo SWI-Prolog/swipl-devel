@@ -76,9 +76,21 @@ MAKE='make --jobs=4'
 # $JAVAPREFIX to the bin directory holding =java=.  We try to find it at
 # the most likely places below.
 
+# If you use HomeBrew as your Mac OS package manager, uncomment the
+# following line to use the default installation locations for shared
+# libraries and header files.
+
+# USE_HOMEBREW=1
+
 if [ "`uname`" = Darwin ]; then
-  export LIBRARY_PATH=/usr/lib:/opt/local/lib
-  export CPATH=/usr/include:/opt/local/include:/opt/X11/include
+  if [ "$USER_HOMEBREW"=1 ]; then 
+      export LIBRARY_PATH=/usr/local/lib:/opt/local/lib
+      export CPATH=/usr/local/include:/opt/local/include:/opt/X11/include
+  else 
+      export LIBRARY_PATH=/usr/lib:/opt/local/lib
+      export CPATH=/usr/include:/opt/local/include:/opt/X11/include
+  fi 
+
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig:/opt/X11/lib/pkgconfig
   if [ -f "$JAVA_HOME/bin/java" ]; then
     export JAVAPREFIX="$JAVA_HOME/bin"
