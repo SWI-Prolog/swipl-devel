@@ -2943,7 +2943,7 @@ subsumes(term_t general, term_t specific ARG_LD)
     { Word p = valTermRef(v0+i);
       deRef(p);
 
-      if ( !isVar(*p) || visitedWord(p PASS_LD) )
+      if ( !canBind(*p) || visitedWord(p PASS_LD) )
       { rc = FALSE;
 	break;
       }
