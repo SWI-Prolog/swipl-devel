@@ -65,9 +65,9 @@ Standard Prolog.
 %			ignore_ops(true).
 
 display(Term) :-
-	write_term(Term, [ignore_ops(true)]).
+	write_term(Term, [quoted(true), ignore_ops(true)]).
 display(Stream, Term) :-
-	write_term(Stream, Term, [ignore_ops(true)]).
+	write_term(Stream, Term, [quoted(true), ignore_ops(true)]).
 
 %%	unknown(-Old, +New) is det.
 %
