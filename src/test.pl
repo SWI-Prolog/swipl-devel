@@ -196,6 +196,9 @@ write_test(c-1) :-
 	term_to_atom(@(T2,S2), X),
 	maplist(call, S2),
 	T2 =@= T.
+write_test(s-1) :-
+	term_to_atom([(a,b)], X),
+	X = '[(a,b)]'.
 
 
 		 /*******************************
