@@ -538,6 +538,7 @@ ciao_goal_expansion(pop_ciao_flag(Flag), G) :- !,
 	expand_pop_prolog_flag(Flag, G).
 
 ciao_goal_expansion(CiaoGoal, SWIGoal) :-
+	CiaoGoal \= _:_,
 	\+ functor(CiaoGoal, '$ciao_meta', _),
 	'$set_source_module'(M, M),
 	predicate_property(M:CiaoGoal, meta_predicate(Spec)),
