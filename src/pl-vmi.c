@@ -4095,7 +4095,6 @@ b_throw:
   assert(exception_term);
   outofstack = LD->outofstack;
   LD->outofstack = NULL;
-  PC = NULL;
 
   if ( lTop < (LocalFrame)argFrameP(FR, FR->predicate->functor->arity) )
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
@@ -4277,8 +4276,12 @@ b_throw:
 #endif /*O_DEBUGGER*/
   { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
-    for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
+    for( ;
+	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
+	 PC = FR->programPointer,
+	 FR = FR->parent )
     { environment_frame = FR;
+      ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
       LD->statistics.inferences++;	/* box exit, needed for GC */
 
       SAVE_REGISTERS(qid);
