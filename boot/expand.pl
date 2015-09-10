@@ -494,6 +494,8 @@ expand_goal((\+A), P0, Goal, P, M, MList, Term) :- !,
 expand_goal(call(A), P0, call(EA), P, M, MList, Term) :- !,
 	f1_pos(P0, PA0, P, PA),
         expand_goal(A, PA0, EA, PA, M, MList, Term).
+expand_goal(M:G, P, M:G, P, _M, _MList, _Term) :-
+	var(M), var(G), !.
 expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
 	atom(M), !,
 	f2_pos(P0, PA, PB0, P, PA, PB),
