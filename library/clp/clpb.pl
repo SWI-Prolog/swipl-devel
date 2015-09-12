@@ -65,6 +65,7 @@ A _Boolean expression_ is one of:
     | `0`                | false                                |
     | `1`                | true                                 |
     | _variable_         | unknown truth value                  |
+    | _atom_             | universally quantified variable      |
     | ~ _Expr_           | logical NOT                          |
     | _Expr_ + _Expr_    | logical OR                           |
     | _Expr_ * _Expr_    | logical AND                          |
@@ -89,6 +90,10 @@ integers and integer ranges of the form `From-To`.
 `+(Exprs)` and `*(Exprs)` denote, respectively, the disjunction and
 conjunction of all elements in the list `Exprs` of Boolean
 expressions.
+
+Atoms denote parametric values that are universally quantified. All
+universal quantifiers appear implicitly in front of the entire
+expression.
 
 ### Interface predicates   {#clpb-interface}
 
@@ -200,6 +205,7 @@ expressions and are declaratively equivalent to the original query.
 
 is_sat(V)     :- var(V), !.
 is_sat(I)     :- integer(I), between(0, 1, I).
+is_sat(A)     :- atom(A).
 is_sat(~A)    :- is_sat(A).
 is_sat(A*B)   :- is_sat(A), is_sat(B).
 is_sat(A+B)   :- is_sat(A), is_sat(B).
@@ -224,7 +230,8 @@ is_sat(card(Is,Fs)) :-
 
 % elementary
 sat_rewrite(V, V)       :- var(V), !.
-sat_rewrite(I, I)       :- integer(I).
+sat_rewrite(I, I)       :- integer(I), !.
+sat_rewrite(A, V)       :- atom(A), !, clpb_atom_var(A, V).
 sat_rewrite(P0*Q0, P*Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0+Q0, P+Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0#Q0, P#Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
@@ -363,10 +370,38 @@ taut(Sat0, T) :-
         ;   false
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   The algebraic equivalence: tautology(F) <=> \+ sat(~F) does NOT
+   hold in CLP(B) because the quantifiers of universally quantified
+   variables always implicitly appear in front of the *entire*
+   expression. Thus we have for example: X+a is not a tautology, but
+   ~(X+a), meaning forall(a, ~(X+a)), is unsatisfiable:
+
+      sat(~(X+a)) = sat(~X * ~a) = sat(~X), sat(~a) = X=0, false
+
+   The actual negation of X+a, namely ~forall(A,X+A), in terms of
+   CLP(B): ~ ~exists(A, ~(X+A)), is of course satisfiable:
+
+      ?- sat(~ ~A^ ~(X+A)).
+      %@ X = 0,
+      %@ sat(A=:=A).
+
+   Instead, of such rewriting, we test whether the BDD of the negated
+   formula is 0. Critically, this avoids constraint propagation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 tautology(Sat) :-
         (   phrase(sat_ands(Sat), Ands), Ands = [_,_|_] ->
             maplist(tautology, Ands)
-        ;   \+ sat(1#Sat)
+        ;   catch((sat_roots(Sat, Roots),
+                   roots_and(Roots, _-1, _-Ands),
+                   sat_bdd(1#Sat, BDD),
+                   bdd_and(BDD, Ands, B),
+                   B == 0,
+                   % reset all attributes
+                   throw(tautology)),
+                  tautology,
+                  true)
         ).
 
 satisfiable_bdd(BDD) :-
@@ -394,6 +429,8 @@ unification(A=B) :- A = B.      % safe_goal/1 detects safety of this call
 var_unbound(Node) :-
         node_var_low_high(Node, Var, _, _),
         var(Var).
+
+universal_var(Var) :- get_attr(Var, clpb_atom, _).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    By aliasing consistency, we mean that all unifications X=Y, where
@@ -504,10 +541,14 @@ consistently_false_(Which, Node) :-
    Strategy: Breadth-first traversal of the BDD, failing (and thus
    clearing all attributes) if the variable is skipped in some branch,
    and moving the frontier along each time.
+
+   If *all* BDD variables are universally quantified, then the formula
+   cannot hold, because at this point we know it is not a tautology.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_variables_classification(BDD, Nodes, Classes) :-
         nodes_variables(Nodes, Vs0),
+        \+ maplist(universal_var, Vs0),
         variables_in_index_order(Vs0, Vs),
         phrase(variables_classification(Vs, [BDD]), Classes),
         maplist(with_aux(unvisit), Nodes).
@@ -615,6 +656,9 @@ node_var_low_high(Node, Var, Low, High) :-
 
 sat_bdd(V, Node)           :- var(V), !, make_node(V, 0, 1, Node).
 sat_bdd(I, I)              :- integer(I), !.
+sat_bdd(Atom, Node)        :- atom(Atom), !,
+        clpb_atom_var(Atom, Var),
+        sat_bdd(Var, Node).
 sat_bdd(V^Sat, Node)       :- !, sat_bdd(Sat, BDD), existential(V, BDD, Node).
 sat_bdd(card(Is,Fs), Node) :- !, counter_network(Is, Fs, Node).
 sat_bdd(Sat, Node)         :- !,
@@ -878,7 +922,8 @@ clpb_variable(Var) :- var_index(Var, _).
 remove_hidden_variables(QueryVars, Root) :-
         root_get_formula_bdd(Root, Formula, BDD0),
         maplist(put_visited, QueryVars),
-        bdd_variables(BDD0, HiddenVars),
+        bdd_variables(BDD0, HiddenVars0),
+        exclude(universal_var, HiddenVars0, HiddenVars),
         maplist(unvisit, QueryVars),
         foldl(existential, HiddenVars, BDD0, BDD),
         foldl(quantify_existantially, HiddenVars, Formula, ExFormula),
@@ -1276,7 +1321,10 @@ even_occurrences(_-Ls) :- length(Ls, L), L mod 2 =:= 0.
 xors(Node) -->
         (   { Node == 0 } -> []
         ;   { Node == 1 } -> [[1]]
-        ;   { node_var_low_high(Node, Var, Low, High),
+        ;   { node_var_low_high(Node, Var0, Low, High),
+              (   get_attr(Var0, clpb_atom, Var) -> true
+              ;   Var = Var0
+              ),
               node_xors(Low, Ls0),
               node_xors(High, Hs0),
               maplist(with_var(Var), Ls0, Ls),
@@ -1292,12 +1340,16 @@ list([L|Ls]) --> [L], list(Ls).
 with_var(Var, Ls, [Var|Ls]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Global variables for unique node and variable IDs.
+   Global variables for unique node and variable IDs and atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 make_clpb_var('$clpb_next_var') :- nb_setval('$clpb_next_var', 0).
 
 make_clpb_var('$clpb_next_node') :- nb_setval('$clpb_next_node', 0).
+
+make_clpb_var('$clpb_atoms') :-
+        empty_assoc(E),
+        nb_setval('$clpb_atoms', E).
 
 :- multifile user:exception/3.
 
@@ -1308,6 +1360,15 @@ clpb_next_id(Var, ID) :-
         b_getval(Var, ID),
         Next is ID + 1,
         b_setval(Var, Next).
+
+clpb_atom_var(Atom, Var) :-
+        b_getval('$clpb_atoms', A0),
+        (   get_assoc(Atom, A0, Var) -> true
+        ;   put_attr(Var, clpb_atom, Atom),
+            put_attr(Var, clpb_omit_boolean, true),
+            put_assoc(Atom, A0, Var, A),
+            b_setval('$clpb_atoms', A)
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    The variable attributes below are not used as constraints by this
@@ -1321,13 +1382,23 @@ clpb_next_id(Var, ID) :-
         clpb_hash:attr_unify_hook/2,
         clpb_bdd:attribute_goals//1,
         clpb_hash:attribute_goals//1,
-        clpb_omit_boolean:attribute_goals//1.
+        clpb_omit_boolean:attribute_goals//1,
+        clpb_atom:attr_unify_hook/2,
+        clpb_atom:attribute_goals//1.
 
 clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   If a universally quantified variable is unified, it indicates that
+   the formula does not hold for the other value, so this is false.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+clpb_atom:attr_unify_hook(_, _) :- false.
 
 clpb_bdd:attribute_goals(_)          --> [].
 clpb_hash:attribute_goals(_)         --> [].
 clpb_omit_boolean:attribute_goals(_) --> [].
+clpb_atom:attribute_goals(_)         --> [].
 
 % clpb_hash:attribute_goals(Var) -->
 %         { get_attr(Var, clpb_hash, Assoc),
@@ -1342,3 +1413,4 @@ clpb_omit_boolean:attribute_goals(_) --> [].
 
 sandbox:safe_global_variable('$clpb_next_var').
 sandbox:safe_global_variable('$clpb_next_node').
+sandbox:safe_global_variable('$clpb_atoms').
