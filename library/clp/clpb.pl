@@ -1271,13 +1271,7 @@ del_clpb(Var) :- del_attr(Var, clpb).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sats([]) --> [].
-sats([A|As]) -->
-        { copy_term_nat(A, Copy) },
-        (   { Copy =@= X#Y, A = X#Y } -> [sat(X=\=Y)]
-        ;   { Copy =@= 1#X#Y, A = 1#X#Y } -> [sat(X=:=Y)]
-        ;   [sat(A)]
-        ),
-        sats(As).
+sats([A|As]) --> [sat(A)], sats(As).
 
 booleans([]) --> [].
 booleans([B|Bs]) --> boolean(B), { del_clpb(B) }, booleans(Bs).
@@ -1295,8 +1289,16 @@ formula_anf(Formula0, ANF) :-
         sat_rewrite(Formula0, Formula),
         sat_bdd(Formula, Node),
         node_xors(Node, Xors),
-        maplist(list_to_conjunction, Xors, [Conj|Conjs]),
-        foldl(xor, Conjs, Conj, ANF).
+        maplist(list_to_conjunction, Xors, Conjs),
+        (   Conjs = [Var,C|Rest], var(Var) ->
+            foldl(xor, Rest, C, RANF),
+            ANF = (Var =\= RANF)
+        ;   Conjs = [One,Var,C|Rest], One == 1, var(Var) ->
+            foldl(xor, Rest, C, RANF),
+            ANF = (Var =:= RANF)
+        ;   Conjs = [C|Cs],
+            foldl(xor, Cs, C, ANF)
+        ).
 
 list_to_conjunction([], 1).
 list_to_conjunction([L|Ls], Conj) :- foldl(and, Ls, L, Conj).
