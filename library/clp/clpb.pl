@@ -1239,7 +1239,7 @@ attribute_goals(Var) -->
                   maplist(formula_anf, Ands, ANFs0),
                   sort(ANFs0, ANFs1),
                   exclude(eq_1, ANFs1, ANFs2),
-                  variables_separation(ANFs2, ANFs) },
+                  phrase(variables_separation(ANFs2), ANFs) },
                 sats(ANFs)
             ),
             (   { get_attr(Var, clpb_atom, Atom) } ->
@@ -1268,30 +1268,24 @@ ands_fusion(Ands0, Ands) :-
 
 with_variables(F, Vs-F) :-
         term_variables(F, Vs0),
-        sort(Vs0, Vs).
+        variables_in_index_order(Vs0, Vs).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   If possible, separate variables into different sat/1 goals by
-   quantifying remaining variables existentially for each goal.
+   If possible, separate variables into different sat/1 goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variables_separation(Fs0, Fs) :-
-        (   Fs0 = [F],
-            term_variables(F, Vs),
-            phrase(existentials(Vs, [], F), Fs1),
-            taut(F =:= *(Fs1), 1) ->
-            maplist(formula_anf, Fs1, Fs)
-        ;   Fs = Fs0
+variables_separation(Fs0) -->
+        (   { Fs0 = [F],
+              term_variables(F, Vs0),
+              select(V1, Vs0, Vs1),
+              member(V2, Vs1),
+              formula_anf(V1^F, F1),
+              formula_anf(V2^F, F2),
+              taut(F =:= F1*F2, 1) } ->
+            variables_separation([F1]),
+            variables_separation([F2])
+        ;   list(Fs0)
         ).
-
-existentials([], _, _) --> [].
-existentials([V|Vs], Rest, F0) --> [F],
-        { append(Vs, Rest, Es),
-          existentials_formula(Es, F0, F) },
-        existentials(Vs, [V|Rest], F0).
-
-existentials_formula([], F, F).
-existentials_formula([E|Es], F0, F) :- existentials_formula(Es, E^F0, F).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Set the Prolog flag clpb_residuals to bdd to obtain the BDD nodes
