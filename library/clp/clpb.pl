@@ -1230,7 +1230,8 @@ attribute_goals(Var) -->
             ;   { phrase(sat_ands(Formula), Ands),
                   maplist(formula_anf, Ands, ANFs0),
                   sort(ANFs0, ANFs1),
-                  exclude(eq_1, ANFs1, ANFs) },
+                  exclude(eq_1, ANFs1, ANFs2),
+                  variables_separation(ANFs2, ANFs) },
                 sats(ANFs)
             ),
             % formula variables not occurring in the BDD should be booleans
@@ -1241,6 +1242,29 @@ attribute_goals(Var) -->
             booleans(RestVs)
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   If possible, separate variables into different sat/1 goals by
+   quantifying remaining variables existentially for each goal.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+variables_separation(Fs0, Fs) :-
+        (   Fs0 = [F],
+            term_variables(F, Vs),
+            phrase(existentials(Vs, [], F), Fs1),
+            taut(F =:= *(Fs1), 1) ->
+            maplist(formula_anf, Fs1, Fs)
+        ;   Fs = Fs0
+        ).
+
+existentials([], _, _) --> [].
+existentials([V|Vs], Rest, F0) --> [F],
+        { append(Vs, Rest, Es),
+          existentials_formula(Es, F0, F) },
+        existentials(Vs, [V|Rest], F0).
+
+existentials_formula([], F, F).
+existentials_formula([E|Es], F0, F) :- existentials_formula(Es, E^F0, F).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Set the Prolog flag clpb_residuals to bdd to obtain the BDD nodes
