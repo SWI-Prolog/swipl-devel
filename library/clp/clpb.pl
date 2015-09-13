@@ -1227,7 +1227,8 @@ attribute_goals(Var) -->
             (   { current_prolog_flag(clpb_residuals, bdd) } ->
                 { bdd_nodes(BDD, Nodes) },
                 nodes(Nodes)
-            ;   { phrase(sat_ands(Formula), Ands),
+            ;   { phrase(sat_ands(Formula), Ands0),
+                  ands_fusion(Ands0, Ands),
                   maplist(formula_anf, Ands, ANFs0),
                   sort(ANFs0, ANFs1),
                   exclude(eq_1, ANFs1, ANFs2),
@@ -1242,6 +1243,21 @@ attribute_goals(Var) -->
             booleans(RestVs)
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Fuse formulas that share the same variables into single conjunctions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+ands_fusion(Ands0, Ands) :-
+        maplist(with_variables, Ands0, Pairs0),
+        keysort(Pairs0, Pairs),
+        group_pairs_by_key(Pairs, Groups),
+        pairs_values(Groups, Andss),
+        maplist(list_to_conjunction, Andss, Ands).
+
+with_variables(F, Vs-F) :-
+        term_variables(F, Vs0),
+        sort(Vs0, Vs).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    If possible, separate variables into different sat/1 goals by
