@@ -93,7 +93,9 @@ expressions.
 
 Atoms denote parametric values that are universally quantified. All
 universal quantifiers appear implicitly in front of the entire
-expression.
+expression. In residual goals, universally quantified variables always
+appear on the right-hand side of equations. Therefore, they can be
+used to express functional dependencies on input variables.
 
 ### Interface predicates   {#clpb-interface}
 
@@ -143,12 +145,17 @@ X = Y, Y = Z, Z = 1.
 
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
-sat(1#X#X*Y),
-sat(1#Y#Y*Z).
+sat(X=:=X*Y),
+sat(Y=:=Y*Z).
+
+?- sat(1#X#a#b).
+sat(X=:=a#b).
 ==
 
 The pending residual goals constrain remaining variables to Boolean
 expressions and are declaratively equivalent to the original query.
+The last example illustrates that when applicable, remaining variables
+are expressed as functions of universally quantified variables.
 
 @author Markus Triska
 */
@@ -1234,6 +1241,10 @@ attribute_goals(Var) -->
                   exclude(eq_1, ANFs1, ANFs2),
                   variables_separation(ANFs2, ANFs) },
                 sats(ANFs)
+            ),
+            (   { get_attr(Var, clpb_atom, Atom) } ->
+                [sat(Var=:=Atom)]
+            ;   []
             ),
             % formula variables not occurring in the BDD should be booleans
             { bdd_variables(BDD, Vs),
