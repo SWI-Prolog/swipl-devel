@@ -1456,7 +1456,11 @@ clpb_atom:attr_unify_hook(Atom, Other) :-
                 OtherAtom == Atom
             ;   put_attr(Other, clpb_atom, Atom)
             )
-        ).
+        ),
+        % associate a new variable with this atom
+        b_getval('$clpb_atoms', A0),
+        put_assoc(Atom, A0, _, A),
+        b_setval('$clpb_atoms', A).
 
 clpb_omit_boolean:attr_unify_hook(_,_).
 
