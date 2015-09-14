@@ -468,21 +468,28 @@ out:
 
 static
 PRED_IMPL("open_string", 2, open_string, 0)
-{ char *str;
-  size_t len;
-  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_MALLOC|REP_UTF8;
+{ PRED_LD
+  PL_chars_t text;
+  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION;
 
-  if ( PL_get_nchars(A1, &len, &str, flags) )
-  { IOSTREAM *s = Sopenmem(&str, &len, "rF");
+  if ( PL_get_text(A1, &text, flags) )
+  { IOSTREAM *s;
+
+    if ( text.encoding != ENC_ISO_LATIN_1 )
+      PL_mb_text(&text, REP_UTF8);
+
+    PL_save_text(&text, BUF_MALLOC);
+    s = Sopenmem(&text.text.t, &text.length, "rF");
 
     if ( s )
-    { s->encoding = ENC_UTF8;
+    { s->encoding = text.encoding;
 
       if ( PL_unify_stream(A2, s) )
 	return TRUE;
       Sclose(s);
-    } else
-      PL_free(str);
+    }
+
+    PL_free_text(&text);
   }
 
   return FALSE;
