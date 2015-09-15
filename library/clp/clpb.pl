@@ -1436,6 +1436,7 @@ clpb_atom_var(Atom, Var) :-
         clpb_hash:attr_unify_hook/2,
         clpb_bdd:attribute_goals//1,
         clpb_hash:attribute_goals//1,
+        clpb_omit_boolean:attr_unify_hook/2,
         clpb_omit_boolean:attribute_goals//1,
         clpb_atom:attr_unify_hook/2,
         clpb_atom:attribute_goals//1.
