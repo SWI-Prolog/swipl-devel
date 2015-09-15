@@ -105,6 +105,7 @@ JPEG_VERSION=8d
 ZLIB_VERSION=1.2.7
 ARCHIVE_VERSION=3.1.2
 UUID_VERSION=1.6.2
+BDB_VERSION=6.1.26
 PLDIR=pl-devel
 
 # installation prefix.  This path should not have spaces in one of the
@@ -318,6 +319,31 @@ build_ssl()
 }
 
 ###########################
+# Download and install BerkeleyDB
+# http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/overview/index.html
+
+download_bdb()
+{ BDB_FILE=db-$BDB_VERSION.tar.gz
+
+  if [ ! -f $BDB_FILE ]; then
+    cat << EOF
+The Berkeley DB downloads are password protected.  Please download
+http://download.oracle.com/otn/berkeley-db/$BDB_FILE"
+EOF
+  fi
+    [ -f $BDB_FILE ] && tar zxf $BDB_FILE
+}
+
+build_bdb()
+{ ( cd db-$BDB_VERSION/build_unix
+    ../dist/configure --enable-mingw --host=$CROSS --prefix=$install \
+       --enable-shared --disable-static
+    make library_build
+    make install_lib install_include
+  )
+}
+
+###########################
 # Download and install jpeg
 
 download_jpeg()
@@ -504,7 +530,7 @@ build_swipl_core()
 }
 
 dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
-dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll"
+dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll libdb-*.dll"
 if [ -r "$(echo $install/bin/libgcc*.dll)" ]; then
   dist_dlls+=" $(basename $install/bin/libgcc*.dll)"
 fi
