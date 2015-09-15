@@ -322,7 +322,7 @@ build_ssl()
 # Download and install BerkeleyDB
 # http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/overview/index.html
 
-download_bdb()
+download_libdb()
 { BDB_FILE=db-$BDB_VERSION.tar.gz
 
   if [ ! -f $BDB_FILE ]; then
@@ -334,12 +334,27 @@ EOF
     [ -f $BDB_FILE ] && tar zxf $BDB_FILE
 }
 
-build_bdb()
-{ ( cd db-$BDB_VERSION/build_unix
+build_libdb()
+{ if [ ! -f /usr/$CROSS/include/WinIoCtl.h ]; then
+    echo << EOF
+WARNING: libdb includes <WinIoCtl.h>, but MinGW ships winioctl.h.  To
+WARNING: fix this, run
+WARNING:
+WARNING:    % cd /usr/$CROSS/include && sudo ln -s winioctl.h WinIoCtl.h
+WARNING:
+EOF
+  return 1
+  fi
+
+  ( cd db-$BDB_VERSION/build_unix
     ../dist/configure --enable-mingw --host=$CROSS --prefix=$install \
        --enable-shared --disable-static
     make library_build
     make install_lib install_include
+    ( cd $install/lib
+      ln -s libdb-*.dll.a libdb.dll.a
+      ln -s libdb-*.la libdb.la
+    )
   )
 }
 
@@ -474,6 +489,7 @@ download_prerequisites()
   download_zlib
   download_libarchive
   download_libuuid
+  download_libdb
 }
 
 build_prerequisites()
@@ -486,6 +502,7 @@ build_prerequisites()
   build_zlib
   build_libarchive
   build_libuuid
+  build_libdb
 }
 
 ###########################
