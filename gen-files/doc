@@ -19,13 +19,12 @@
 ./packages/plunit/plunit.pdf
 ./packages/semweb/semweb.pdf
 ./packages/cppproxy/cppproxy.pdf
-./packages/jasmine/jasmine.pdf
 ./packages/space/space.pdf
 ./packages/PDT/pdt.pdf
 ./packages/utf8proc/utf8proc.pdf
 ./packages/archive/archive.pdf
 ./packages/cql/cql.pdf
-./packages/db/db4pl.html
+./packages/bdb/bdb4pl.html
 ./packages/cpp/pl2cpp.html
 ./packages/nlp/nlp.html
 ./packages/ssl/ssl.html
@@ -42,7 +41,6 @@
 ./packages/plunit/plunit.html
 ./packages/semweb/semweb.html
 ./packages/cppproxy/cppproxy.html
-./packages/jasmine/jasmine.html
 ./packages/space/space.html
 ./packages/protobufs/protobufs.html
 ./packages/PDT/pdt.html
