@@ -95,11 +95,14 @@ license(bsd, lgpl,
 	[ comment('The modified BSD license'),
 	  url('http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5')
 	]).
-license(zlib, gpl,
+license(zlib, lgpl,
 	[ comment('The license of ZLib'),
 	  url('http://www.gzip.org/zlib/zlib_license.html')
 	]).
-
+license(agpl, gpl,
+	[ comment('Affero General Public License'),
+	  url('http://www.gnu.org/licenses/agpl-3.0.en.html')
+	]).
 license(lgpl_compatible, lgpl,
 	[ comment('Other LGPL compatible license')
 	]).
@@ -108,7 +111,7 @@ license(gpl_compatible, gpl,
 	]).
 
 
-%	license(+License, [+ModuleId])
+%%	license(+License, [+ModuleId])
 %
 %	Register the current file under the given license restriction.
 
