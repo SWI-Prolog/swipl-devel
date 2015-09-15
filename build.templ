@@ -80,12 +80,12 @@ MAKE='make --jobs=4'
 # following line to use the default installation locations for shared
 # libraries and header files.
 
-# USE_HOMEBREW=1
+# USE_HOMEBREW=yes
 
 if [ "`uname`" = Darwin ]; then
-  if [ "$USER_HOMEBREW"=1 ]; then
-      export LIBRARY_PATH=/usr/local/lib:/opt/local/lib
-      export CPATH=/usr/local/include:/opt/local/include:/opt/X11/include
+  if [ "x$USE_HOMEBREW"=xyes ]; then
+      export LIBRARY_PATH=/usr/local/lib:/usr/lib
+      export CPATH=/usr/local/include:/usr/include:/opt/X11/include
   else
       export LIBRARY_PATH=/usr/lib:/opt/local/lib:/opt/local/lib/db60
       export CPATH=/usr/include:/opt/local/include:/opt/local/include/db60:/opt/X11/include
