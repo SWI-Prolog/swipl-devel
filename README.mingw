@@ -328,7 +328,9 @@ download_libdb()
   if [ ! -f $BDB_FILE ]; then
     cat << EOF
 The Berkeley DB downloads are password protected.  Please download
-http://download.oracle.com/otn/berkeley-db/$BDB_FILE"
+the following file using your browser
+
+    http://download.oracle.com/otn/berkeley-db/$BDB_FILE
 EOF
   fi
     [ -f $BDB_FILE ] && tar zxf $BDB_FILE
@@ -336,11 +338,11 @@ EOF
 
 build_libdb()
 { if [ ! -f /usr/$CROSS/include/WinIoCtl.h ]; then
-    echo << EOF
+      cat << EOF
 WARNING: libdb includes <WinIoCtl.h>, but MinGW ships winioctl.h.  To
 WARNING: fix this, run
 WARNING:
-WARNING:    % cd /usr/$CROSS/include && sudo ln -s winioctl.h WinIoCtl.h
+WARNING:    % (cd /usr/$CROSS/include && sudo ln -s winioctl.h WinIoCtl.h)
 WARNING:
 EOF
   return 1
@@ -352,8 +354,8 @@ EOF
     make library_build
     make install_lib install_include
     ( cd $install/lib
-      ln -s libdb-*.dll.a libdb.dll.a
-      ln -s libdb-*.la libdb.la
+      [ -f libdb.dll.a ] || ln -s libdb-*.dll.a libdb.dll.a
+      [ -f libdb.la ] ln -s libdb-*.la libdb.la
     )
   )
 }
