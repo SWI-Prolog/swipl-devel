@@ -865,6 +865,13 @@ attr_unify_hook(index_root(I,Root), Other) :-
                 satisfiable_bdd(BDD)
             ;   no_truth_value(Other)
             )
+        ;   atom(Other) ->
+            root_get_formula_bdd(Root, Sat0, _),
+            parse_sat(Sat0, Sat),
+            sat_bdd(Sat, BDD),
+            root_put_formula_bdd(Root, Sat0, BDD),
+            is_bdd(BDD),
+            satisfiable_bdd(BDD)
         ;   % due to variable aliasing, any BDDs may now be unordered,
             % so we need to rebuild the new BDD from the conjunction.
             root_get_formula_bdd(Root, Sat0, _),
@@ -1436,11 +1443,26 @@ clpb_atom_var(Atom, Var) :-
 clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   If a universally quantified variable is unified, it indicates that
-   the formula does not hold for the other value, so this is false.
+   If a universally quantified variable is unified to a Boolean value,
+   it indicates that the formula does not hold for the other value, so
+   it is false. Atoms are allowed, as in: ?- sat(X=:=a), X=a.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-clpb_atom:attr_unify_hook(_, _) :- false.
+clpb_atom:attr_unify_hook(Atom, Other) :-
+        (   atom(Other) ->
+            Atom == Other
+        ;   var(Other),
+            (   get_attr(Other, clpb_atom, OtherAtom) ->
+                OtherAtom == Atom
+            ;   put_attr(Other, clpb_atom, Atom)
+            )
+        ),
+        % associate a new variable with this atom
+        b_getval('$clpb_atoms', A0),
+        put_assoc(Atom, A0, _, A),
+        b_setval('$clpb_atoms', A).
+
+clpb_omit_boolean:attr_unify_hook(_,_).
 
 clpb_bdd:attribute_goals(_)          --> [].
 clpb_hash:attribute_goals(_)         --> [].
