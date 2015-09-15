@@ -478,6 +478,19 @@ Section "Archive library (libarchive)"
   File ${SWIPL}\doc\packages\archive.html
 SectionEnd
 
+Section "Berkeley DB interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File ${SWIPL}\library\bdb.pl
+  SetOutPath $INSTDIR\bin
+  File ${SWIPL}\bin\bdb4pl.dll
+!ifdef MINGW
+  File ${SWIPL}\bin\libdb-6.1.dll
+!endif
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\bdb4pl.html
+SectionEnd
+
 Section "Constraint Handling Rules"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
