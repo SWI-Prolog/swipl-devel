@@ -83,13 +83,13 @@ MAKE='make --jobs=4'
 # USE_HOMEBREW=1
 
 if [ "`uname`" = Darwin ]; then
-  if [ "$USER_HOMEBREW"=1 ]; then 
+  if [ "$USER_HOMEBREW"=1 ]; then
       export LIBRARY_PATH=/usr/local/lib:/opt/local/lib
       export CPATH=/usr/local/include:/opt/local/include:/opt/X11/include
-  else 
-      export LIBRARY_PATH=/usr/lib:/opt/local/lib
-      export CPATH=/usr/include:/opt/local/include:/opt/X11/include
-  fi 
+  else
+      export LIBRARY_PATH=/usr/lib:/opt/local/lib:/opt/local/lib/db60
+      export CPATH=/usr/include:/opt/local/include:/opt/local/include/db60:/opt/X11/include
+  fi
 
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig:/opt/X11/lib/pkgconfig
   if [ -f "$JAVA_HOME/bin/java" ]; then
