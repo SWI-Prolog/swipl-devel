@@ -74,7 +74,7 @@ component(command_line_editing,
 component(library(archive), _{features:archive_features}).
 component(library(cgi), _{}).
 component(library(crypt), _{}).
-component(library(db), _{optional:true}).
+component(library(bdb), _{}).
 component(library(double_metaphone), _{}).
 component(library(filesex), _{}).
 component(library(http/http_stream), _{}).
