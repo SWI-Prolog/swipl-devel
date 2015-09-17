@@ -967,7 +967,7 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	register_attvar(b->gstore PASS_LD);
 	b->gstore[1] = consPtr(&b->gstore[2], TAG_ATTVAR|STG_GLOBAL);
 	*p = makeRefG(&b->gstore[1]);
-	b->vars[n] = &b->gstore[1];
+	b->vars[n] = p;
 	p = &b->gstore[2];
 	b->gstore += 3;
 	goto right_recursion;

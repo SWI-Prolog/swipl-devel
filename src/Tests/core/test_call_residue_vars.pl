@@ -75,6 +75,11 @@ test(copy_term, Vars == [V]) :-
 	T = x(X), put_attr(X, a, 1),
 	call_residue_vars(copy_term(T, T2), Vars),
 	arg(1, T2, V).
+test(copy_term, Vars == [V]) :-
+	put_attr(X, a, 1),
+	T = x(X,X),
+	call_residue_vars(copy_term(T, T2), Vars),
+	arg(1, T2, V).
 test(record) :-
 	T = x(X), put_attr(X, a, 1),
 	cp_record(T, T2),
@@ -82,6 +87,11 @@ test(record) :-
 	x(T2).
 test(record, Vars == [V]) :-
 	T = x(X), put_attr(X, a, 1),
+	call_residue_vars(cp_record(T, T2), Vars),
+	arg(1, T2, V).
+test(record, Vars == [V]) :-
+	put_attr(X, a, 1),
+	T = x(X,X),
 	call_residue_vars(cp_record(T, T2), Vars),
 	arg(1, T2, V).
 
