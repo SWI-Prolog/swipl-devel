@@ -2057,6 +2057,10 @@ Tracer communication declarations.
 #define NOEFFECT_CHECK	    0x0080	/* Check for meaningless statements */
 #define VARBRANCH_CHECK	    0x0100	/* warn on unbalanced variables */
 
+/* checkDataEx() flags */
+
+#define CHK_DATA_NOATTVAR_CHAIN 0x001	/* attvars might not be on chain */
+
 typedef struct debuginfo
 { size_t	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */

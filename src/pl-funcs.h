@@ -430,6 +430,7 @@ COMMON(int)		query_loop(atom_t goal, int loop);
 COMMON(word)		pl_metacut(void);
 COMMON(int)		trap_gdb(void);
 COMMON(word)		checkData(Word p);
+COMMON(word)		checkDataEx(Word p, int flags);
 COMMON(int)		getAccessLevelMask(atom_t a, access_level_t *val);
 COMMON(atom_t)		accessLevel(void);
 

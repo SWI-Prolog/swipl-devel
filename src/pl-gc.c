@@ -3588,7 +3588,7 @@ check_foreign()
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 static word
-check_trail()
+check_trail(void)
 { GET_LD
   TrailEntry te = tTop - 1;
   word key = 0;
@@ -3600,7 +3600,7 @@ check_trail()
     { gp = trailValP(te->address);
 
       assert(onGlobal(gp));
-      key += checkData(gp);
+      key += checkDataEx(gp, CHK_DATA_NOATTVAR_CHAIN);
       assert(te > tBase);
       te--;
       assert(!isTrailVal(te->address));
