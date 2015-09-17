@@ -25,6 +25,7 @@
 #include "pl-incl.h"
 #include "pl-dbref.h"
 #include "pl-termwalk.c"
+#include "pl-dict.h"
 
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 
@@ -208,15 +209,16 @@ typedef struct
 #define PL_TYPE_COMPOUND	(7)	/* compound term */
 #define PL_TYPE_CONS		(8)	/* list-cell */
 #define PL_TYPE_NIL		(9)	/* [] */
+#define PL_TYPE_DICT		(10)	/* The C'dict' atom */
 
-#define PL_TYPE_EXT_ATOM	(10)	/* External (inlined) atom */
-#define PL_TYPE_EXT_WATOM	(11)	/* External (inlined) wide atom */
-#define PL_TYPE_EXT_COMPOUND	(12)	/* External (inlined) functor */
-#define PL_TYPE_EXT_FLOAT	(13)	/* float in standard-byte order */
-#define PL_TYPE_ATTVAR		(14)	/* Attributed variable */
-#define PL_REC_ALLOCVAR		(15)	/* Allocate a variable on global */
-#define PL_REC_CYCLE		(16)	/* cyclic reference */
-#define PL_REC_MPZ		(17)	/* GMP integer */
+#define PL_TYPE_EXT_ATOM	(11)	/* External (inlined) atom */
+#define PL_TYPE_EXT_WATOM	(12)	/* External (inlined) wide atom */
+#define PL_TYPE_EXT_COMPOUND	(13)	/* External (inlined) functor */
+#define PL_TYPE_EXT_FLOAT	(14)	/* float in standard-byte order */
+#define PL_TYPE_ATTVAR		(15)	/* Attributed variable */
+#define PL_REC_ALLOCVAR		(16)	/* Allocate a variable on global */
+#define PL_REC_CYCLE		(17)	/* cyclic reference */
+#define PL_REC_MPZ		(18)	/* GMP integer */
 
 static inline void
 addUnalignedBuf(TmpBuffer b, void *ptr, size_t bytes)
@@ -357,6 +359,8 @@ static void
 addAtom(CompileInfo info, atom_t a)
 { if ( a == ATOM_nil )
   { addOpCode(info, PL_TYPE_NIL);
+  } else if ( a == ATOM_dict )
+  { addOpCode(info, PL_TYPE_DICT);
   } else if ( info->external )
   { Atom ap = atomValue(a);
 
@@ -776,9 +780,9 @@ typedef struct
   Word	       *vars;
   Word		gbase;			/* base of term on global stack */
   Word		gstore;			/* current storage location */
-					/* for se_record() */
   uint		nvars;			/* Variables seen */
   TmpBuffer	avars;			/* Values stored for attvars */
+  uint		dicts;			/* # dicts found */
 } copy_info, *CopyInfo;
 
 
@@ -977,6 +981,10 @@ copy_record(Word p, CopyInfo b ARG_LD)
       { *p = ATOM_nil;
 	continue;
       }
+      case PL_TYPE_DICT:
+      { *p = ATOM_dict;
+	continue;
+      }
       case PL_TYPE_ATOM:
       { *p = fetchWord(b);
 	continue;
@@ -1089,6 +1097,10 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	    break;
 	  case PL_TYPE_NIL:
 	    name = ATOM_nil;
+	    break;
+	  case PL_TYPE_DICT:
+	    b->dicts++;
+	    name = ATOM_dict;
 	    break;
 	  default:
 	    assert(0);
@@ -1206,6 +1218,10 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 #endif
       case PL_TYPE_NIL:
       { (*func)(ATOM_nil);
+	continue;
+      }
+      case PL_TYPE_DICT:
+      { (*func)(ATOM_dict);
 	continue;
       }
       case PL_TYPE_ATOM:
@@ -1362,6 +1378,8 @@ PL_recorded_external(const char *rec, term_t t)
       switch(code)
       { case PL_TYPE_NIL:
 	  return PL_unify_nil(t);
+        case PL_TYPE_DICT:
+	  return PL_unify_atom(t, ATOM_dict);
         case PL_TYPE_EXT_ATOM:
 	  fetchAtom(&b, &a);
 	  break;
@@ -1380,6 +1398,7 @@ PL_recorded_external(const char *rec, term_t t)
   skipSizeInt(&b);			/* code-size */
   gsize = fetchSizeInt(&b);
   b.gbase = b.gstore = allocGlobal(gsize);
+  b.dicts = 0;
   if ( !(m & REC_GROUND) )
   { uint nvars = fetchSizeInt(&b);
 
@@ -1391,6 +1410,8 @@ PL_recorded_external(const char *rec, term_t t)
   }
   assert(b.gstore == gTop);
 
+  if ( b.dicts )
+    resortDictsInTerm(t);
   DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
   return TRUE;
