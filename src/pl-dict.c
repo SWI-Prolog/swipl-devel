@@ -1113,7 +1113,7 @@ right_arg:
 
     if ( fd->name == ATOM_dict && fd->arity%2 == 1 &&
 	 dict_ordered(&t->arguments[1], fd->arity/2, FALSE PASS_LD) == FALSE )
-    { Sdprintf("Re-ordering dict\n");
+    { DEBUG(MSG_DICT, Sdprintf("Re-ordering dict\n"));
       dict_order((Word)t, FALSE PASS_LD);
     }
 
