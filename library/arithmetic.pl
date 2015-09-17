@@ -58,7 +58,7 @@ terms.
 %	@deprecated This function provides  a   partial  work around for
 %	pure Prolog user-defined arithmetic  functions   that  has  been
 %	dropped in SWI-Prolog  5.11.23.  Notably,   it  only  deals with
-%	expression know at runtime.
+%	expression know at compile time.
 
 arithmetic_function(Term) :-
 	throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
