@@ -560,6 +560,8 @@ last_arg:
       printk("attvar: attribute not on global stack: 0x%x --> 0x%x", p, p2);
     if ( p == p2 )
       printk("attvar: self-reference: 0x%x", p);
+    if ( !on_attvar_chain(p) )
+      printk("attvar: not on attvar chain: 0x%x", p);
 
     p = p2;
     goto last_arg;
