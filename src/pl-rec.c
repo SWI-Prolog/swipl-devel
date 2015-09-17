@@ -385,7 +385,7 @@ addFunctor(CompileInfo info, functor_t f)
 
       addOpCode(info, PL_TYPE_EXT_COMPOUND);
       addSizeInt(info, fd->arity);
-      addAtomValue(info, atomValue(fd->name));
+      addAtom(info, fd->name);
     } else
     { addOpCode(info, PL_TYPE_COMPOUND);
       addWord(info, f);
@@ -672,7 +672,7 @@ compileTermToHeap__LD(term_t t,
 #define	REC_GROUND  0x10		/* Record is ground */
 #define	REC_VMASK   0xe0		/* Version mask */
 #define REC_VSHIFT     5		/* shift for version mask */
-#define	REC_VERSION 0x02		/* Version id */
+#define	REC_VERSION 0x03		/* Version id */
 
 #define REC_SZMASK  (REC_32|REC_64)	/* SIZE_MASK */
 
@@ -1076,9 +1076,24 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	continue;
       case PL_TYPE_EXT_COMPOUND:
       { atom_t name;
+	int opcode_atom;
 
 	arity = (int)fetchSizeInt(b);
-	fetchAtom(b, &name);
+	opcode_atom = fetchOpCode(b);
+	switch(opcode_atom)
+	{ case PL_TYPE_EXT_ATOM:
+	    fetchAtom(b, &name);
+	    break;
+	  case PL_TYPE_EXT_WATOM:
+	    fetchAtomW(b, &name);
+	    break;
+	  case PL_TYPE_NIL:
+	    name = ATOM_nil;
+	    break;
+	  default:
+	    assert(0);
+	}
+
 	fdef = lookupFunctorDef(name, arity);
 	goto compound;
       }
