@@ -60,7 +60,7 @@ TODO: get_next_assoc/4, get_prev_assoc/4 for SICStus compatibility
 	    min_assoc/3,		% +Assoc, ?Key, ?Value
 	    ord_list_to_assoc/2,	% +List, ?Assoc
 	    put_assoc/4,		% +Key, +Assoc, +Value, ?NewAssoc
-	    del_assoc/4,                % +Key, +Assoc, +Value, ?NewAssoc
+	    del_assoc/4,                % +Key, +Assoc, ?Value, ?NewAssoc
 	    del_min_assoc/4,            % +Assoc, ?Key, ?Value, ?NewAssoc
 	    del_max_assoc/4             % +Assoc, ?Key, ?Value, ?NewAssoc
 	  ]).
@@ -385,13 +385,14 @@ del_max_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 	del_max_assoc(R, Key, Val, NewR, RightChanged),
 	deladjust(RightChanged, t(K,V,B,L,NewR), right, NewTree, Changed).
 
-%%	del_assoc(+Key, +AssocIn, ?Value, -AssocOut)
+%%	del_assoc(+Key, +AssocIn, ?Value, -AssocOut) is semidet.
 %
 %	True if Key-Value is  in  AssocIn.   AssocOut  is  AssocOut with
 %	Key-Value removed.
 
 del_assoc(Key, A0, Value, A) :-
-	delete(A0, Key, Value, A, _).
+	delete(A0, Key, Value, A, Changed),
+	Changed \== no.
 
 % delete(+Subtree, +SearchedKey, ?SearchedValue, ?SubtreeOut, ?WhatHasChanged)
 delete(t, _, _, t, no).          % deletion from empty tree succeeds with no bindings
