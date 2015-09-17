@@ -133,4 +133,12 @@ test(random_max, true) :-
 	list_to_assoc(L,A),
 	del_max_assoc_to_list(A,_L1).
 
+test(del_empty, true) :-
+	empty_assoc(A),
+	\+ del_min_assoc(A, _, _, _).
+
+test(del_no_member, true) :-
+	list_to_assoc([1-a,2-b,4-c], A),
+	\+ del_min_assoc(3, A, _, _).
+
 :- end_tests(assoc).

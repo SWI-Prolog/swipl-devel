@@ -355,7 +355,7 @@ table(<      , right   , -      , no        , no    ) :- !.
 table(>      , left    , -      , no        , no    ) :- !.
 table(>      , right   , -      , no        , yes   ) :- !.
 
-%%      del_min_assoc(+AssocIn, ?Key, ?Val, -AssocOut)
+%%      del_min_assoc(+AssocIn, ?Key, ?Val, -AssocOut) is semidet.
 %
 %	True if Key-Value  is  in  AssocIn   and  Key  is  the smallest.
 %	AssocOut is AssocIn with Key-Value   removed. Warning: this will
@@ -364,13 +364,12 @@ table(>      , right   , -      , no        , yes   ) :- !.
 del_min_assoc(Tree, Key, Val, NewTree) :-
 	del_min_assoc(Tree, Key, Val, NewTree, _DepthChanged).
 
-del_min_assoc(t, _, _, t,no).
 del_min_assoc(t(Key,Val,_B,t,R), Key, Val, R, yes) :- !.
 del_min_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 	del_min_assoc(L, Key, Val, NewL, LeftChanged),
 	deladjust(LeftChanged, t(K,V,B,NewL,R), left, NewTree, Changed).
 
-%%      del_max_assoc(+AssocIn, ?Key, ?Val, -AssocOut)
+%%      del_max_assoc(+AssocIn, ?Key, ?Val, -AssocOut) is semidet.
 %
 %	True if Key-Value  is  in  AssocIn   and  Key  is  the greatest.
 %	AssocOut is AssocIn with Key-Value   removed. Warning: this will
@@ -379,7 +378,6 @@ del_min_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 del_max_assoc(Tree, Key, Val, NewTree) :-
 	del_max_assoc(Tree, Key, Val, NewTree, _DepthChanged).
 
-del_max_assoc(t, _, _, t,no).
 del_max_assoc(t(Key,Val,_B,L,t), Key, Val, L, yes) :- !.
 del_max_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 	del_max_assoc(R, Key, Val, NewR, RightChanged),
@@ -391,11 +389,9 @@ del_max_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 %	Key-Value removed.
 
 del_assoc(Key, A0, Value, A) :-
-	delete(A0, Key, Value, A, Changed),
-	Changed \== no.
+	delete(A0, Key, Value, A, _).
 
 % delete(+Subtree, +SearchedKey, ?SearchedValue, ?SubtreeOut, ?WhatHasChanged)
-delete(t, _, _, t, no).          % deletion from empty tree succeeds with no bindings
 delete(t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-
 	compare(Rel, K, Key),
 	delete(Rel, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged).
