@@ -82,6 +82,7 @@
 #define MSG_ACYCLIC		 52
 #define MSG_OPERATOR		 53
 #define MSG_MUTEX_GC		 54
+#define MSG_REC_ATTVAR		 55
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101

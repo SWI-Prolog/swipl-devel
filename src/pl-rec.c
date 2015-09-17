@@ -441,7 +441,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	addOpCode(info, PL_TYPE_ATTVAR);
 	addSizeInt(info, n);
 	info->size += 3;
-	DEBUG(9, Sdprintf("Added attvar %d\n", n));
+	DEBUG(MSG_REC_ATTVAR, Sdprintf("Added attvar %d\n", n));
 
 	p = ap;
 	deRef(p);
@@ -962,6 +962,8 @@ copy_record(Word p, CopyInfo b ARG_LD)
       case PL_TYPE_ATTVAR:
       { intptr_t n = fetchSizeInt(b);
 
+	DEBUG(MSG_REC_ATTVAR,
+	      Sdprintf("Restore attvar %ld at %p\n", (long)n, &b->gstore[1]));
 	register_attvar(b->gstore PASS_LD);
 	b->gstore[1] = consPtr(&b->gstore[2], TAG_ATTVAR|STG_GLOBAL);
 	*p = makeRefG(&b->gstore[1]);

@@ -183,7 +183,10 @@ add_findall_bag(term_t term, term_t count ARG_LD)
   Record r;
 
   DEBUG(MSG_NSOLS, { Sdprintf("Adding to %p: ", bag);
-		     pl_writeln(term);
+		     PL_write_term(Serror, term, 1200,
+				   PL_WRT_ATTVAR_DOTS|
+				   PL_WRT_NEWLINE|
+				   PL_WRT_QUOTED);
 		   });
 
   if ( !(r = compileTermToHeap__LD(term, alloc_record, bag, R_NOLOCK PASS_LD)) )
@@ -236,6 +239,7 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
+      DEBUG(MSG_NSOLS, Sdprintf("Retrieving answer\n"));
       copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
       if (GD->atoms.gc_active)
         markAtomsRecord(r);
