@@ -558,9 +558,9 @@ consistently_false_(Which, Node) :-
    clearing all attributes) if the variable is skipped in some branch,
    and moving the frontier along each time.
 
-   If a universally quantified variable appear in the formula, then
-   the formula with all existentially quantified variables projected
-   away must be a tautology.
+   If a universally quantified variable appears in the formula, then
+   the formula is only satisfiable if it is a tautology after all
+   existentially quantified variables are projected away.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_variables_classification(BDD, Nodes, Classes) :-
