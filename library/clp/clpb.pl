@@ -233,6 +233,9 @@ is_sat(card(Is,Fs)) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Rewriting to canonical expressions.
+   Atoms are converted to variables with a special attribute.
+   A global lookup table maintains the correspondence between atoms and
+   their variables throughout different sat/1 goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 % elementary
@@ -470,11 +473,17 @@ aliasings_([negative_decisive(D)|Ds], B, BI, Nodes) -->
         { var_index(D, DI) },
         (   { DI > BI,
               always_false(high, DI, Nodes),
-              always_false(low, DI, Nodes) } ->
-            [D=B]
+              always_false(low, DI, Nodes),
+              var_or_atom(D, DA), var_or_atom(B, BA) } ->
+            [DA=BA]
         ;   []
         ),
         aliasings_(Ds, B, BI, Nodes).
+
+var_or_atom(Var, VA) :-
+        (   get_attr(Var, clpb_atom, VA) -> true
+        ;   VA = Var
+        ).
 
 always_false(Which, DI, Nodes) :-
         phrase(nodes_always_false(Nodes, Which, DI), Opposites),
@@ -549,14 +558,18 @@ consistently_false_(Which, Node) :-
    clearing all attributes) if the variable is skipped in some branch,
    and moving the frontier along each time.
 
-   If *all* BDD variables are universally quantified, then the formula
-   cannot hold, because at this point we know it is not a tautology.
+   If a universally quantified variable appear in the formula, then
+   the formula with all existentially quantified variables projected
+   away must be a tautology.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_variables_classification(BDD, Nodes, Classes) :-
         nodes_variables(Nodes, Vs0),
-        \+ maplist(universal_var, Vs0),
         variables_in_index_order(Vs0, Vs),
+        (   partition(universal_var, Vs, [_|_], Es) ->
+            foldl(existential, Es, BDD, 1)
+        ;   true
+        ),
         phrase(variables_classification(Vs, [BDD]), Classes),
         maplist(with_aux(unvisit), Nodes).
 
@@ -663,9 +676,6 @@ node_var_low_high(Node, Var, Low, High) :-
 
 sat_bdd(V, Node)           :- var(V), !, make_node(V, 0, 1, Node).
 sat_bdd(I, I)              :- integer(I), !.
-sat_bdd(Atom, Node)        :- atom(Atom), !,
-        clpb_atom_var(Atom, Var),
-        sat_bdd(Var, Node).
 sat_bdd(V^Sat, Node)       :- !, sat_bdd(Sat, BDD), existential(V, BDD, Node).
 sat_bdd(card(Is,Fs), Node) :- !, counter_network(Is, Fs, Node).
 sat_bdd(Sat, Node)         :- !,
@@ -881,7 +891,7 @@ attr_unify_hook(index_root(I,Root), Other) :-
                 root_get_formula_bdd(OtherRoot, OtherSat, _),
                 parse_sat(Sat, Sat1),
                 sat_bdd(Sat1, BDD1),
-                And = Sat1,
+                And = Sat,
                 sat_roots(Sat, Roots)
             ;   parse_sat(Other, OtherSat),
                 sat_roots(Sat, Roots),
@@ -1338,7 +1348,7 @@ boolean(Var) -->
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 formula_anf(Formula0, ANF) :-
-        sat_rewrite(Formula0, Formula),
+        parse_sat(Formula0, Formula),
         sat_bdd(Formula, Node),
         node_xors(Node, Xors),
         maplist(list_to_conjunction, Xors, Conjs),
@@ -1376,9 +1386,7 @@ xors(Node) -->
         (   { Node == 0 } -> []
         ;   { Node == 1 } -> [[1]]
         ;   { node_var_low_high(Node, Var0, Low, High),
-              (   get_attr(Var0, clpb_atom, Var) -> true
-              ;   Var = Var0
-              ),
+              var_or_atom(Var0, Var),
               node_xors(Low, Ls0),
               node_xors(High, Hs0),
               maplist(with_var(Var), Ls0, Ls),
@@ -1446,22 +1454,10 @@ clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    If a universally quantified variable is unified to a Boolean value,
    it indicates that the formula does not hold for the other value, so
-   it is false. Atoms are allowed, as in: ?- sat(X=:=a), X=a.
+   it is false.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-clpb_atom:attr_unify_hook(Atom, Other) :-
-        (   atom(Other) ->
-            Atom == Other
-        ;   var(Other),
-            (   get_attr(Other, clpb_atom, OtherAtom) ->
-                OtherAtom == Atom
-            ;   put_attr(Other, clpb_atom, Atom)
-            )
-        ),
-        % associate a new variable with this atom
-        b_getval('$clpb_atoms', A0),
-        put_assoc(Atom, A0, _, A),
-        b_setval('$clpb_atoms', A).
+clpb_atom:attr_unify_hook(_, _) :- false.
 
 clpb_omit_boolean:attr_unify_hook(_,_).
 
