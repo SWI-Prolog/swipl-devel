@@ -1288,12 +1288,14 @@ with_variables(F, Vs-F) :-
         variables_in_index_order(Vs0, Vs).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   If possible, separate variables into different sat/1 goals.
+   If possible/feasible, separate variables into different sat/1 goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 variables_separation(Fs0) -->
         (   { Fs0 = [F],
               term_variables(F, Vs0),
+              length(Vs0, L),
+              L =< 7,           % limit for trying any separation
               select(V1, Vs0, Vs1),
               member(V2, Vs1),
               formula_anf(V1^F, F1),
