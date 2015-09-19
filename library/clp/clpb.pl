@@ -1294,27 +1294,46 @@ with_variables(F, Vs-F) :-
    A formula F can be split in two if for two of its variables A and B,
    taut((A^F)*(B^F) =:= F, 1) holds. In the first conjunct, A does not
    occur, and in the second, B does not occur. We separate variables
-   until we find a fix point. There may be a better way to do this.
+   until that is no longer possible. There may be a better way to do this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variables_separation(Fs0, Fs) :-
-        phrase(variables_separation_(Fs0), Fs1),
-        sort(Fs1, Fs2),
-        (   Fs2 == [] -> Fs = Fs0
-        ;   variables_separation(Fs2, Fs)
+variables_separation(Fs0, Fs) :- separation_fixpoint(Fs0, [], Fs).
+
+separation_fixpoint(Fs0, Ds0, Fs) :-
+        phrase(variables_separation_(Fs0, Ds0, Rest), Fs1),
+        partition(anf_done, Fs1, Ds1, Fs2),
+        maplist(arg(1), Ds1, Ds2),
+        maplist(arg(1), Fs2, Fs3),
+        append(Ds0, Ds2, Ds3),
+        append(Rest, Fs3, Fs4),
+        sort(Fs4, Fs5),
+        sort(Ds3, Ds4),
+        (   Fs5 == [] -> Fs = Ds4
+        ;   separation_fixpoint(Fs5, Ds4, Fs)
         ).
 
-variables_separation_([]) --> [].
-variables_separation_([F0|Fs0]) -->
-        { sat_rewrite(F0, F),
-          sat_bdd(F, BDD),
-          bdd_variables(BDD, Vs0),
-          exclude(universal_var, Vs0, Vs),
-          maplist(existential_(BDD), Vs, Nodes),
-          phrase(pairs(Nodes), Pairs),
-          group_pairs_by_key(Pairs, Groups) },
-        groups_separation(Groups, BDD),
-        variables_separation_(Fs0).
+anf_done(done(_)).
+
+variables_separation_([], _, []) --> [].
+variables_separation_([F0|Fs0], Ds, Rest) -->
+        (   { member(Done, Ds), F0 == Done } ->
+            variables_separation_(Fs0, Ds, Rest)
+        ;   { sat_rewrite(F0, F),
+              sat_bdd(F, BDD),
+              bdd_variables(BDD, Vs0),
+              exclude(universal_var, Vs0, Vs),
+              maplist(existential_(BDD), Vs, Nodes),
+              phrase(pairs(Nodes), Pairs),
+              group_pairs_by_key(Pairs, Groups),
+              phrase(groups_separation(Groups, BDD), ANFs) },
+            (   { ANFs = [_|_] } ->
+                list(ANFs),
+                { Rest = Fs0 }
+            ;   [done(F0)],
+                variables_separation_(Fs0, Ds, Rest)
+            )
+        ).
+
 
 existential_(BDD, V, Node) :- existential(V, BDD, Node).
 
@@ -1337,7 +1356,7 @@ separate_pairs([BDD2|Ps], BDD1, OrigBDD) -->
         separate_pairs(Ps, BDD1, OrigBDD).
 
 nodes_anfs([]) --> [].
-nodes_anfs([N|Ns]) --> { node_anf(N, ANF) }, [ANF], nodes_anfs(Ns).
+nodes_anfs([N|Ns]) --> { node_anf(N, ANF) }, [anf(ANF)], nodes_anfs(Ns).
 
 pairs([]) --> [].
 pairs([V|Vs]) --> pairs_(Vs, V), pairs(Vs).
