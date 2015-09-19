@@ -558,9 +558,11 @@ consistently_false_(Which, Node) :-
    clearing all attributes) if the variable is skipped in some branch,
    and moving the frontier along each time.
 
-   If a universally quantified variable appears in the formula, then
-   the formula is only satisfiable if it is a tautology after all
-   existentially quantified variables are projected away.
+   A formula is only satisfiable if it is a tautology after all (also
+   implicitly) existentially quantified variables are projected away.
+   However, we only need to check this explicitly if at least one
+   universally quantified variable appears. Otherwise, we know that
+   the formula is satisfiable at this point, because its BDD is not 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bdd_variables_classification(BDD, Nodes, Classes) :-
@@ -1256,7 +1258,7 @@ attribute_goals(Var) -->
                   maplist(formula_anf, Ands, ANFs0),
                   sort(ANFs0, ANFs1),
                   exclude(eq_1, ANFs1, ANFs2),
-                  phrase(variables_separation(ANFs2), ANFs) },
+                  variables_separation(ANFs2, ANFs) },
                 sats(ANFs)
             ),
             (   { get_attr(Var, clpb_atom, Atom) } ->
@@ -1289,63 +1291,59 @@ with_variables(F, Vs-F) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    If possible, separate variables into different sat/1 goals.
+   A formula F can be split in two if for two of its variables A and B,
+   taut((A^F)*(B^F) =:= F, 1) holds. In the first conjunct, A does not
+   occur, and in the second, B does not occur. We separate variables
+   until we find a fix point. There may be a better way to do this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variables_separation([]) --> [].
-variables_separation([F0|Fs0]) -->
-        { formula_free_variables(F0, Vs0),
-          variables_in_index_order(Vs0, Vs),
-          phrase(pairs(Vs), Pairs),
-          foldl(separate_pair, Pairs, [F0], Fs) },
-        list(Fs),
-        variables_separation(Fs0).
-
-separate_pair(A-B, Fs0, Fs) :-
-        (   phrase(separate_pairs_(Fs0, A, B), Fs1) ->
-            maplist(any_anf, Fs1, Fs)
-        ;   Fs = Fs0
+variables_separation(Fs0, Fs) :-
+        phrase(variables_separation_(Fs0), Fs1),
+        sort(Fs1, Fs2),
+        (   Fs2 == [] -> Fs = Fs0
+        ;   variables_separation(Fs2, Fs)
         ).
 
-any_anf(anf(F), F).
-any_anf(node(N), F) :- node_anf(N, F).
+variables_separation_([]) --> [].
+variables_separation_([F0|Fs0]) -->
+        { sat_rewrite(F0, F),
+          sat_bdd(F, BDD),
+          bdd_variables(BDD, Vs0),
+          exclude(universal_var, Vs0, Vs),
+          maplist(existential_(BDD), Vs, Nodes),
+          phrase(pairs(Nodes), Pairs),
+          group_pairs_by_key(Pairs, Groups) },
+        groups_separation(Groups, BDD),
+        variables_separation_(Fs0).
 
-separate_pairs_([], _, _) --> [].
-separate_pairs_([F0|Fs], A, B) -->
-        (   { formula_free_variables(F0, Vs),
-              member(VA, Vs), VA == A,
-              member(VB, Vs), VB == B } ->
-            { sat_rewrite(F0, Formula),
-              sat_bdd(Formula, BDD),
-              existential(A, BDD, WA),
-              existential(B, BDD, WB),
-              apply(*, WA, WB, And),
-              And == BDD },
-            [node(WA),node(WB)]
-        ;   [anf(F0)]
+existential_(BDD, V, Node) :- existential(V, BDD, Node).
+
+groups_separation([], _) --> [].
+groups_separation([BDD1-BDDs|Groups], OrigBDD) -->
+        { phrase(separate_pairs(BDDs, BDD1, OrigBDD), Nodes) },
+        (   { Nodes = [_|_] } ->
+            nodes_anfs([BDD1|Nodes])
+        ;   []
         ),
-        separate_pairs_(Fs, A, B).
+        groups_separation(Groups, OrigBDD).
+
+separate_pairs([], _, _) --> [].
+separate_pairs([BDD2|Ps], BDD1, OrigBDD) -->
+        (   { apply(*, BDD1, BDD2, And),
+              And == OrigBDD } ->
+            [BDD2]
+        ;   []
+        ),
+        separate_pairs(Ps, BDD1, OrigBDD).
+
+nodes_anfs([]) --> [].
+nodes_anfs([N|Ns]) --> { node_anf(N, ANF) }, [ANF], nodes_anfs(Ns).
 
 pairs([]) --> [].
 pairs([V|Vs]) --> pairs_(Vs, V), pairs(Vs).
 
 pairs_([], _) --> [].
 pairs_([B|Bs], A) --> [A-B], pairs_(Bs, A).
-
-
-% variables that are not existentially quantified
-formula_free_variables(F, Fs) :-
-        term_variables(F, Vs),
-        phrase(formula_existentials(F), Es),
-        foldl(delete_from_list, Es, Vs, Fs).
-
-formula_existentials(V)   --> { var(V) }, !.
-formula_existentials(E^F) --> [E], !, formula_existentials(F).
-formula_existentials(_)   --> [].
-
-delete_from_list(Var, Vs0, Vs) :-
-        (   select(V, Vs0, Vs), Var == V -> true
-        ;   Vs = Vs0
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Set the Prolog flag clpb_residuals to bdd to obtain the BDD nodes
