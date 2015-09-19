@@ -1288,22 +1288,63 @@ with_variables(F, Vs-F) :-
         variables_in_index_order(Vs0, Vs).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   If possible/feasible, separate variables into different sat/1 goals.
+   If possible, separate variables into different sat/1 goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variables_separation(Fs0) -->
-        (   { Fs0 = [F],
-              term_variables(F, Vs0),
-              length(Vs0, L),
-              L =< 7,           % limit for trying any separation
-              select(V1, Vs0, Vs1),
-              member(V2, Vs1),
-              formula_anf(V1^F, F1),
-              formula_anf(V2^F, F2),
-              taut(F =:= F1*F2, 1) } ->
-            variables_separation([F1]),
-            variables_separation([F2])
-        ;   list(Fs0)
+variables_separation([]) --> [].
+variables_separation([F0|Fs0]) -->
+        { formula_free_variables(F0, Vs0),
+          variables_in_index_order(Vs0, Vs),
+          phrase(pairs(Vs), Pairs),
+          foldl(separate_pair, Pairs, [F0], Fs) },
+        list(Fs),
+        variables_separation(Fs0).
+
+separate_pair(A-B, Fs0, Fs) :-
+        (   phrase(separate_pairs_(Fs0, A, B), Fs1) ->
+            maplist(any_anf, Fs1, Fs)
+        ;   Fs = Fs0
+        ).
+
+any_anf(anf(F), F).
+any_anf(node(N), F) :- node_anf(N, F).
+
+separate_pairs_([], _, _) --> [].
+separate_pairs_([F0|Fs], A, B) -->
+        (   { formula_free_variables(F0, Vs),
+              member(VA, Vs), VA == A,
+              member(VB, Vs), VB == B } ->
+            { sat_rewrite(F0, Formula),
+              sat_bdd(Formula, BDD),
+              existential(A, BDD, WA),
+              existential(B, BDD, WB),
+              apply(*, WA, WB, And),
+              And == BDD },
+            [node(WA),node(WB)]
+        ;   [anf(F0)]
+        ),
+        separate_pairs_(Fs, A, B).
+
+pairs([]) --> [].
+pairs([V|Vs]) --> pairs_(Vs, V), pairs(Vs).
+
+pairs_([], _) --> [].
+pairs_([B|Bs], A) --> [A-B], pairs_(Bs, A).
+
+
+% variables that are not existentially quantified
+formula_free_variables(F, Fs) :-
+        term_variables(F, Vs),
+        phrase(formula_existentials(F), Es),
+        foldl(delete_from_list, Es, Vs, Fs).
+
+formula_existentials(V)   --> { var(V) }, !.
+formula_existentials(E^F) --> [E], !, formula_existentials(F).
+formula_existentials(_)   --> [].
+
+delete_from_list(Var, Vs0, Vs) :-
+        (   select(V, Vs0, Vs), Var == V -> true
+        ;   Vs = Vs0
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1352,6 +1393,9 @@ boolean(Var) -->
 formula_anf(Formula0, ANF) :-
         parse_sat(Formula0, Formula),
         sat_bdd(Formula, Node),
+        node_anf(Node, ANF).
+
+node_anf(Node, ANF) :-
         node_xors(Node, Xors),
         maplist(list_to_conjunction, Xors, Conjs),
         (   Conjs = [Var,C|Rest], var(Var) ->
