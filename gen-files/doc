@@ -3,7 +3,7 @@
 ./man/Manual/
 ./man/windows.html
 ./man/macosx/macosx.html
-./packages/db/db4pl.pdf
+./packages/bdb/bdb4pl.pdf
 ./packages/cpp/pl2cpp.pdf
 ./packages/nlp/nlp.pdf
 ./packages/ssl/ssl.pdf
