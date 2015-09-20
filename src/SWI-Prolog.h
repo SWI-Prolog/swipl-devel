@@ -312,7 +312,7 @@ PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
 		 *	      LICENSE		*
 		 *******************************/
 
-void			PL_license(const char *license, const char *module);
+PL_EXPORT(void)		PL_license(const char *license, const char *module);
 
 		/********************************
 		*            MODULES            *
