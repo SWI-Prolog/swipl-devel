@@ -511,6 +511,8 @@ safe_primitive(atom_codes(_, _)).
 safe_primitive(sub_atom(_,_,_,_,_)).
 safe_primitive(atom_concat(_,_,_)).
 safe_primitive(atom_length(_,_)).
+safe_primitive(system:atomic_concat(_,_,_)).
+safe_primitive(system:atomic_list_concat(_,_)).
 safe_primitive(system:atomic_list_concat(_,_,_)).
 safe_primitive(system:downcase_atom(_,_)).
 safe_primitive(system:upcase_atom(_,_)).
