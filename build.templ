@@ -83,7 +83,7 @@ MAKE='make --jobs=4'
 # USE_HOMEBREW=yes
 
 if [ "`uname`" = Darwin ]; then
-  if [ "x$USE_HOMEBREW"=xyes ]; then
+  if [ "x$USE_HOMEBREW" = xyes ]; then
       export LIBRARY_PATH=/usr/local/lib:/usr/lib
       export CPATH=/usr/local/include:/usr/include:/opt/X11/include
   else
