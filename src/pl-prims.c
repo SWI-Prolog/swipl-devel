@@ -3588,6 +3588,14 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
     return FALSE;
 }
 
+/* MacOS X Mavericks and Yosemite write a char (nul) too many if the
+ * buffer is short.  Thanks to Samer Abdallah for sorting this out.
+ */
+#ifdef __APPLE__
+#define WCSXFRM_BUFFER_OVERRUN 1
+#else
+#define WCSXFRM_BUFFER_OVERRUN 0
+#endif
 
 static
 PRED_IMPL("collation_key", 2, collation_key, 0)
@@ -3596,7 +3604,7 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
   wchar_t *s;
   size_t len;
   wchar_t buf[256];
-  size_t buflen = sizeof(buf)/sizeof(wchar_t);
+  size_t buflen = sizeof(buf)/sizeof(wchar_t) - WCSXFRM_BUFFER_OVERRUN;
   wchar_t *o = buf;
   size_t n;
 

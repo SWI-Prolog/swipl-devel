@@ -4,7 +4,8 @@
 :- use_module(library(plunit)).
 
 test_locale :-
-	run_tests([ locale
+	run_tests([ locale,
+		    collation_key
 		  ]).
 
 setup_test_locale(Old, Test) :-
@@ -312,3 +313,13 @@ test(group, Atom == '1.\u2009234.\u2009567,89') :-
 			   ]).
 
 :- end_tests(locale).
+
+
+:- begin_tests(collation_key).
+
+test('WCSXFRM_BUFFER_OVERRUN', true) :-
+	findall(C, between(32,1000,C), Codes),
+	atom_codes(Atom, Codes),
+	collation_key(Atom, _Key).
+
+:- end_tests(collation_key).
