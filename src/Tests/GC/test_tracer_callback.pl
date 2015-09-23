@@ -19,9 +19,10 @@ test_goal(p_backtrack).
 test_goal(p_cut).
 test_goal(p_ifthen).
 test_goal(p_error).
+test_goal(p_error2).
 
 test_tracer(G) :-
-	trim_stacks,			% there must be enough spac to force
+	trim_stacks,			% there must be enough space to force
 	'$visible'(Old, Old),		% a stack shift
 	visible(+all),
 	visible(+cut_call),
@@ -78,6 +79,15 @@ p_error :-
 error :-
 	a, b, e, c.
 
+p_error2 :-
+	catch(error2([a,b,c,d,e]), _, true).
+
+error2([X]) :-
+	throw(bad(X)).
+error2([_|T]) :-
+	error2(T).
+
+
 
 		 /*******************************
 		 *	      BLOCKS		*
@@ -113,6 +123,7 @@ intercept(Port, Frame, _Choice, continue) :-
 shift :-
 	flag(shift, N, N+1),
 	I is N mod 4,
+	garbage_collect,
 	(   catch(action(I), E, true)
 	->  (   var(E)
 	    ->	true
