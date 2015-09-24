@@ -788,6 +788,8 @@ PL_record_external(term_t t, size_t *len)
 		 *	   HEAP --> STACK	*
 		 *******************************/
 
+#define MAX_FAST_VARS 100
+
 typedef struct
 { const char   *data;
   const char   *base;			/* start of data */
@@ -795,40 +797,27 @@ typedef struct
   Word	       *vars;
   Word		gbase;			/* base of term on global stack */
   Word		gstore;			/* current storage location */
-  int		vars_malloced;		/* ->vars is malloc() */
   uint		nvars;			/* Variables seen */
-  TmpBuffer	avars;			/* Values stored for attvars */
   uint		dicts;			/* # dicts found */
+  TmpBuffer	avars;			/* Values stored for attvars */
+  Word	        vars_buf[MAX_FAST_VARS];
 } copy_info, *CopyInfo;
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Handle temporary variable  pointers.  Upto   MAX_ALLOCA_VARS  these  are
-allocated using alloca() for speed  and avoiding fragmentation. alloca()
-for big chunks has problems on various   platforms,  so we'll use normal
-heap allocation in this case. We could   also  consider using one of the
-other stacks as scratch-area.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define MAX_ALLOCA_VARS 2048		/* most machines should do 8k */
-
 static inline int
 init_copy_vars(copy_info *info, uint n)
-{ info->vars_malloced = FALSE;
-
-  if ( n > 0 )
+{ if ( n > 0 )
   { Word *p;
-    uint i;
 
-    if ( n > MAX_ALLOCA_VARS || !(info->vars = alloca(sizeof(Word)*n)) )
-    { if ( (info->vars = malloc(sizeof(Word)*n)) )
-	info->vars_malloced = TRUE;
-      else
-	return MEMORY_OVERFLOW;
-    }
+    if ( n <= MAX_FAST_VARS )
+      info->vars = info->vars_buf;
+    else if ( (info->vars = malloc(sizeof(Word)*n)) == NULL )
+      return MEMORY_OVERFLOW;
 
-    for(p = info->vars, i=(n)+1; --i > 0;)
-      *p++ = 0;
+    for(p = info->vars; n-- > 0;)
+      *p++ = NULL;
+  } else
+  { info->vars = NULL;
   }
 
   return TRUE;
@@ -836,7 +825,7 @@ init_copy_vars(copy_info *info, uint n)
 
 static inline void
 free_copy_vars(const copy_info *info)
-{ if ( info->vars_malloced )
+{ if ( info->vars != info->vars_buf )
     free(info->vars);
 }
 
