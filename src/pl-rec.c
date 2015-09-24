@@ -220,6 +220,20 @@ typedef struct
 #define PL_REC_CYCLE		(17)	/* cyclic reference */
 #define PL_REC_MPZ		(18)	/* GMP integer */
 
+#define PL_TYPE_EXT_COMPOUND_V2	(19)	/* Read V2 external records */
+
+static const int v2_map[] =
+{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,		/* variable..string */
+  11, 12, PL_TYPE_EXT_COMPOUND_V2, 14, 15, 16, 17, 18
+};
+
+static const int *v_maps[8] =		/* 3 bits, cannot overflow */
+{ NULL,
+  NULL,
+  v2_map
+};
+
+
 static inline void
 addUnalignedBuf(TmpBuffer b, void *ptr, size_t bytes)
 { if ( b->top + bytes > b->max )
@@ -777,9 +791,11 @@ PL_record_external(term_t t, size_t *len)
 typedef struct
 { const char   *data;
   const char   *base;			/* start of data */
+  const int    *version_map;		/* translate op-codes */
   Word	       *vars;
   Word		gbase;			/* base of term on global stack */
   Word		gstore;			/* current storage location */
+  int		vars_malloced;		/* ->vars is malloc() */
   uint		nvars;			/* Variables seen */
   TmpBuffer	avars;			/* Values stored for attvars */
   uint		dicts;			/* # dicts found */
@@ -790,28 +806,38 @@ typedef struct
 Handle temporary variable  pointers.  Upto   MAX_ALLOCA_VARS  these  are
 allocated using alloca() for speed  and avoiding fragmentation. alloca()
 for big chunks has problems on various   platforms,  so we'll use normal
-heep allocation in this case. We could   also  consider using one of the
+heap allocation in this case. We could   also  consider using one of the
 other stacks as scratch-area.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAX_ALLOCA_VARS 2048		/* most machines should do 8k */
-#define INITCOPYVARS(info, n) \
-{ if ( (n) > 0 ) \
-  { Word *p; \
-    uint i; \
-    if ( (n) > MAX_ALLOCA_VARS ) \
-      info.vars = allocHeapOrHalt(sizeof(Word) * (n)); \
-    else \
-    { if ( !(info.vars = alloca(sizeof(Word) * (n))) ) \
-	fatalError("alloca() failed"); \
-    } \
-    for(p = info.vars, i=(n)+1; --i > 0;) \
-      *p++ = 0; \
-  } \
+
+static inline int
+init_copy_vars(copy_info *info, uint n)
+{ info->vars_malloced = FALSE;
+
+  if ( n > 0 )
+  { Word *p;
+    uint i;
+
+    if ( n > MAX_ALLOCA_VARS || !(info->vars = alloca(sizeof(Word)*n)) )
+    { if ( (info->vars = malloc(sizeof(Word)*n)) )
+	info->vars_malloced = TRUE;
+      else
+	return MEMORY_OVERFLOW;
+    }
+
+    for(p = info->vars, i=(n)+1; --i > 0;)
+      *p++ = 0;
+  }
+
+  return TRUE;
 }
-#define FREECOPYVARS(info, n) \
-{ if ( n > MAX_ALLOCA_VARS ) \
-    freeHeap(info.vars, sizeof(Word) * n); \
+
+static inline void
+free_copy_vars(const copy_info *info)
+{ if ( info->vars_malloced )
+    free(info->vars);
 }
 
 
@@ -836,7 +862,7 @@ fetchOpCode(CopyInfo b)
   fetchBuf(b, &tag, uchar);
   DEBUG(9, Sdprintf("fetchOpCode() --> %d, (at %d)\n",
 		    tag, b->data-b->base));
-  return tag;
+  return likely(b->version_map==NULL) ? tag : b->version_map[tag];
 }
 
 
@@ -1109,6 +1135,14 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	fdef = lookupFunctorDef(name, arity);
 	goto compound;
       }
+      case PL_TYPE_EXT_COMPOUND_V2:
+      { atom_t name;
+
+	arity = (int)fetchSizeInt(b);
+	fetchAtom(b, &name);
+	fdef = lookupFunctorDef(name, arity);
+	goto compound;
+      }
     }
       case PL_TYPE_CONS:
       { *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
@@ -1149,11 +1183,13 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
   }
   b.base = b.data = dataRecord(r);
   b.gbase = b.gstore = gTop;
-  gTop += r->gsize;
+  b.version_map = NULL;
 
-  INITCOPYVARS(b, r->nvars);
-  rc = copy_record(valTermRef(copy), &b PASS_LD);
-  FREECOPYVARS(b, r->nvars);
+  if ( (rc=init_copy_vars(&b, r->nvars)) == TRUE )
+  { gTop += r->gsize;
+    rc = copy_record(valTermRef(copy), &b PASS_LD);
+    free_copy_vars(&b);
+  }
   if ( rc != TRUE )
     return rc;
 
@@ -1299,6 +1335,7 @@ markAtomsRecord(Record record)
 #endif
 
   ci.base = ci.data = dataRecord(record);
+  ci.version_map = NULL;
   scanAtomsRecord(&ci, markAtom);
   assert(ci.data == addPointer(record, record->size));
 #endif
@@ -1317,6 +1354,7 @@ freeRecord(Record record)
     DEBUG(3, Sdprintf("freeRecord(%p)\n", record));
 
     ci.base = ci.data = dataRecord(record);
+    ci.version_map = NULL;
     scanAtomsRecord(&ci, PL_unregister_atom);
     assert(ci.data == addPointer(record, record->size));
   }
@@ -1356,24 +1394,39 @@ PL_recorded_external(const char *rec, term_t t)
   copy_info b;
   uint gsize;
   uchar m;
+  int rc;
 
   b.base = b.data = rec;
+  b.version_map = NULL;
   fetchBuf(&b, &m, uchar);
 
   if ( !REC_COMPAT(m) )
-  { Sdprintf("PL_recorded_external: Incompatible version\n");
-    fail;
+  { if ( (m&REC_SZMASK) != REC_SZ )
+    { Sdprintf("PL_recorded_external(): "
+	       "Incompatible word-length (%d)\n",
+	       (m&REC_32) ? 32 : 64);
+      fail;
+    } else
+    { int save_version = (m&REC_VMASK)>>REC_VSHIFT;
+
+      b.version_map = v_maps[save_version];
+      if ( !b.version_map )
+      { Sdprintf("PL_recorded_external(): "
+		 "Incompatible version (%d, current %d)\n",
+		 save_version, REC_VERSION);
+	fail;
+      }
+    }
   }
 
   if ( m & (REC_INT|REC_ATOM) )		/* primitive cases */
   { if ( m & REC_INT )
     { int64_t v = fetchInt64(&b);
 
-      return PL_unify_int64(t, v);
+      rc = PL_unify_int64(t, v);
     } else
     { atom_t a;
       int code = fetchOpCode(&b);
-      int rc;
 
       switch(code)
       { case PL_TYPE_NIL:
@@ -1391,23 +1444,30 @@ PL_recorded_external(const char *rec, term_t t)
       }
       rc = PL_unify_atom(t, a);
       PL_unregister_atom(a);
-      return rc;
     }
+
+    return rc;
   }
 
   skipSizeInt(&b);			/* code-size */
   gsize = fetchSizeInt(&b);
-  b.gbase = b.gstore = allocGlobal(gsize);
+  if ( !(b.gbase = b.gstore = allocGlobal(gsize)) )
+    return FALSE;			/* global stack overflow */
   b.dicts = 0;
   if ( !(m & REC_GROUND) )
   { uint nvars = fetchSizeInt(&b);
 
-    INITCOPYVARS(b, nvars);
-    copy_record(valTermRef(t), &b PASS_LD);
-    FREECOPYVARS(b, nvars);
+    if ( (rc=init_copy_vars(&b, nvars)) == TRUE )
+    { rc = copy_record(valTermRef(t), &b PASS_LD);
+      free_copy_vars(&b);
+    }
   } else
-  { copy_record(valTermRef(t), &b PASS_LD);
+  { rc = copy_record(valTermRef(t), &b PASS_LD);
   }
+
+  if ( rc != TRUE )
+    return raiseStackOverflow(rc);
+
   assert(b.gstore == gTop);
 
   if ( b.dicts )
@@ -1420,17 +1480,7 @@ PL_recorded_external(const char *rec, term_t t)
 
 int
 PL_erase_external(char *rec)
-{ copy_info b;
-  uchar m;
-
-  b.base = b.data = rec;
-  fetchBuf(&b, &m, uchar);
-  if ( !REC_COMPAT(m) )
-  { Sdprintf("PL_erase_external(): incompatible version\n");
-    fail;
-  }
-
-  PL_free(rec);
+{ PL_free(rec);
   return TRUE;
 }
 
