@@ -72,6 +72,8 @@ handling times must be cleaned, but that not only holds for this module.
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
+#define STD_HANDLE_MASK 0x10
+
 /* there are two types of stream property functions. In the usual case,
    they have an argument, but in a few cases they don't */
 typedef int (*property0_t)(IOSTREAM *s ARG_LD);
@@ -374,8 +376,9 @@ initIO(void)
   getStreamContext(Sinput);		/* add for enumeration */
   getStreamContext(Soutput);
   getStreamContext(Serror);
+
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addHTable(streamAliases, (void *)*np, (void *)(intptr_t)i);
+    addHTable(streamAliases, (void *)*np, (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
 
   GD->io_initialised = TRUE;
 }
@@ -605,7 +608,7 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
       LOCK();
     if ( (s0 = lookupHTable(streamAliases, (void *)a)) )
     { IOSTREAM *stream;
-      uintptr_t n = (uintptr_t)s0;
+      uintptr_t n = (uintptr_t)s0 & ~STD_HANDLE_MASK;
 
       if ( n < 6 )			/* standard stream! */
       { stream = LD->IO.streams[n];	/* TBD: No need to lock for std-streams */
