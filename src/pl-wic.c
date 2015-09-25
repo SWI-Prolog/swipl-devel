@@ -1800,9 +1800,15 @@ savedXRConstant(wic_state *state, word w)
 }
 
 
+static int XRNullPointer = 0;
+
 static inline int
 savedXRPointer(wic_state *state, void *p)
 { assert(((word)p & 0x1) == 0);
+
+  if ( !p )
+  { return savedXR(state, &XRNullPointer);
+  }
 
   return savedXR(state, p);
 }
