@@ -21,69 +21,421 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#ifdef O_PLMT
-#define LOCK_TABLE(t)   if ( t->mutex ) simpleMutexLock(t->mutex)
-#define UNLOCK_TABLE(t)	if ( t->mutex ) simpleMutexUnlock(t->mutex)
-#else
-#define LOCK_TABLE(t) (void)0
-#define UNLOCK_TABLE(t) (void)0
-#endif
 
-static inline Symbol rawAdvanceTableEnum(TableEnum e);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This file provides generic hash-tables. Most   of  the implementation is
-rather  straightforward.  Special  are  the  *TableEnum()  functions  to
-create, advance over and destroy enumerator   objects. These objects are
-used to enumerate the symbols of these   tables,  used primarily for the
-pl_current_* predicates.
+This file  provides  lock-free  hash-tables.  All  table  operations are
+thread-safe and do not involve locking.  Table accesses do not block and
+concurrent accesses can overlap, including concurrent writers.
 
-The enumerators cause  two  things:  (1)   as  long  as  enumerators are
-associated, the table will not  be  rehashed   and  (2)  if  symbols are
-deleted  that  are  referenced  by  an  enumerator,  the  enumerator  is
-automatically advanced to the next free  symbol. This, in general, makes
-the enumeration of hash-tables safe.
+Table resizing is automatic and  occurs when a table is either very full
+or if  the number of reprobes  becomes excessive.  While resizing occurs
+readers and writers can access the table unhindered.
 
-TBD: Resizing hash-tables causes major  headaches for concurrent access.
-We can avoid this by using a dynamic array for the list of hash-entries.
-Ongoing work in  the  RDF  store   shows  hash-tables  that  can  handle
-concurrent lock-free access.
+Table enumerators  exist for  iterating over  a table.  Iterating over a
+table  will  not  block  accesses  or  resizes.  Table  enumerators  are
+'weakly consistent'  -  all table entries  that existed at  the time the
+enumerator  was created  will be seen,  and subsequent  modifications to
+entries may be seen.
+
+Internally the table is a closed 2^N table with stride-1 reprobing.
+
+Each table entry  (a key-value pair)  can exist  in any of the following
+states:
+
+state ID   key-value    transitions    description
+--------------------------------------------------
+ 1        <NULL,NULL>   2,5            empty entry
+
+ 2        <K,NULL>      3              partially inserted entry
+
+ 3        <K,V>         4,6            standard inserted entry
+
+ 4        <K,T>         6              deleted entry
+
+ 5        <S,NULL>                     dead entry
+ 6        <K,S>                        dead entry; check next map
+
+Transitioning between states is performed using CAS.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Symbol *
-allocHTableEntries(int buckets)
-{ size_t bytes = buckets * sizeof(Symbol);
-  Symbol *p;
 
-  p = allocHeapOrHalt(bytes);
-  memset(p, 0, bytes);
+#define HTABLE_NORMAL 0x1
+#define HTABLE_RESIZE 0x2
 
-  return p;
+#define HTABLE_TOMBSTONE &htable_tombstone
+#define HTABLE_SENTINEL &htable_sentinel
+
+static int htable_tombstone = 0;
+static int htable_sentinel = 0;
+
+
+
+inline void *htable_name(KVS kvs, int idx)
+{ return kvs->entries[idx].name;
+}
+
+inline void *htable_value(KVS kvs, int idx)
+{ return kvs->entries[idx].value;
+}
+
+inline int htable_cas_name(KVS kvs, int idx, void *exp, void *name)
+{ return COMPARE_AND_SWAP(&kvs->entries[idx].name, exp, name);
+}
+
+inline int htable_cas_value(KVS kvs, int idx, void *exp, void *value)
+{ return COMPARE_AND_SWAP(&kvs->entries[idx].value, exp, value);
+}
+
+inline int htable_cas_new_kvs(KVS kvs, KVS new_kvs)
+{ return COMPARE_AND_SWAP(&kvs->next, NULL, new_kvs);
+}
+
+inline int htable_cas_cleanup(Table ht, int exp, int cleanup)
+{ return COMPARE_AND_SWAP(&ht->cleanup, exp, cleanup);
 }
 
 
+static KVS
+htable_alloc_kvs(int len)
+{ size_t bytes;
+  KVS kvs;
+
+  bytes = sizeof(struct kvs);
+  kvs = allocHeapOrHalt(bytes);
+  memset(kvs, 0, bytes);
+
+  kvs->len = len;
+
+  bytes = len * sizeof(struct symbol);
+  kvs->entries = allocHeapOrHalt(bytes);
+  memset(kvs->entries, 0, bytes);
+
+  return kvs;
+}
+
+
+static void
+htable_free_kvs(KVS kvs)
+{
+  DEBUG(MSG_HASH_TABLE_KVS,
+        Sdprintf("Freeing KV map: kvs: %p\n", kvs));
+
+  if ( kvs->next )
+  { kvs->next->prev = NULL;
+  }
+
+  freeHeap(kvs->entries, kvs->len * sizeof(struct symbol));
+  freeHeap(kvs, sizeof(struct kvs));
+}
+
+
+static void
+htable_free_all_kvs(Table ht)
+{
+  KVS kvs = ht->kvs;
+
+  while ( kvs->prev )
+  { kvs = kvs->prev;
+  }
+
+  while ( kvs )
+  { KVS next = kvs->next;
+    htable_free_kvs(kvs);
+    kvs = next;
+  }
+}
+
+
+void htable_maybe_free_kvs(Table ht)
+{
+  KVS kvs;
+
+  if ( !htable_cas_cleanup(ht, FALSE, TRUE) )
+  { return;
+  }
+
+  kvs = ht->kvs;
+
+  while( kvs->prev )
+  { kvs = kvs->prev;
+  }
+
+  while ( (!kvs->accesses) &&
+          (kvs != ht->kvs) && (kvs != ht->kvs->prev) )
+  { KVS next = kvs->next;
+    htable_free_kvs(kvs);
+    kvs = next;
+  }
+
+  htable_cas_cleanup(ht, TRUE, FALSE);
+}
+
+
+static void
+htable_copy_kvs(Table ht, KVS old_kvs, KVS new_kvs)
+{
+  int idx = 0;
+  void *n;
+  void *v;
+
+  while ( idx < old_kvs->len )
+  {
+    n = htable_name(old_kvs, idx);
+    v = htable_value(old_kvs, idx);
+
+    while ( !(n = htable_name(old_kvs, idx)) )
+    { htable_cas_name(old_kvs, idx, NULL, HTABLE_SENTINEL);
+      n = HTABLE_SENTINEL;
+    }
+
+    if ( n == HTABLE_SENTINEL )
+    { idx++;
+      continue;
+    }
+
+    while ( TRUE )
+    {
+      if ( v != HTABLE_TOMBSTONE )
+      { htable_put(ht, new_kvs, n, v, HTABLE_RESIZE);
+      }
+
+      if ( htable_cas_value(old_kvs, idx, v, HTABLE_SENTINEL) )
+      { break;
+      }
+
+      v = htable_value(old_kvs, idx);
+    }
+
+    idx++;
+  }
+}
+
+
+static KVS
+htable_resize(Table ht, KVS kvs)
+{
+  KVS new_kvs;
+  int new_len = kvs->len;
+
+  if ( ht->size >= (kvs->len >> 2) )
+  { new_len = kvs->len << 1;
+    if ( ht->size >= (kvs->len >> 1) )
+    { new_len = kvs->len << 2;
+    }
+  }
+  else if ( kvs->resizing )
+  { new_len = kvs->len << 1;
+  }
+
+  new_kvs = kvs->next;
+  if ( new_kvs )
+  { return new_kvs;
+  }
+
+  new_kvs = htable_alloc_kvs(new_len);
+  new_kvs->prev = kvs;
+
+  if ( htable_cas_new_kvs(kvs, new_kvs) )
+  {
+    DEBUG(MSG_HASH_TABLE_KVS,
+          Sdprintf("Rehashing table %p to %d entries. kvs: %p -> new_kvs: %p\n", ht, new_len, kvs, new_kvs));
+
+    new_kvs->resizing = TRUE;
+    htable_copy_kvs(ht, kvs, new_kvs);
+    new_kvs->resizing = FALSE;
+
+    ht->kvs = new_kvs;
+
+    htable_maybe_free_kvs(ht);
+  }
+  else
+  { htable_free_kvs(new_kvs);
+    new_kvs = kvs->next;
+    assert(new_kvs);
+  }
+
+  return new_kvs;
+}
+
+
+void*
+htable_get(Table ht, KVS kvs, void *name)
+{
+  int idx = (int)pointerHashValue(name, kvs->len);
+  void *n;
+  void *v;
+  int reprobe_count = 0;
+
+  assert(name != NULL);
+
+  while ( TRUE )
+  {
+    n = htable_name(kvs, idx);
+    v = htable_value(kvs, idx);
+
+    if ( !n )
+      return NULL;
+
+    if ( n == name )
+    {
+      if ( v == HTABLE_TOMBSTONE )
+      { return NULL;
+      } else if ( v == HTABLE_SENTINEL )
+      { return htable_get(ht, kvs->next, name);
+      } else
+      { return v;
+      }
+    }
+
+    if ( (++reprobe_count >= (10 + (kvs->len>>3))) || (n == HTABLE_SENTINEL) )
+    { KVS new_kvs = kvs->next;
+      if ( new_kvs )
+      { return htable_get(ht, new_kvs, name);
+      } else
+      { return NULL;
+      }
+    }
+
+    idx = (idx+1)&(kvs->len-1);
+  }
+
+  return NULL;
+}
+
+
+void*
+htable_put(Table ht, KVS kvs, void *name, void *value, int flags)
+{
+  int idx = (int)pointerHashValue(name, kvs->len);
+  void *n;
+  void *v;
+  int reprobe_count = 0;
+
+  assert(name != NULL);
+  assert(value != NULL);
+
+  while( TRUE )
+  {
+    n = htable_name(kvs, idx);
+    v = htable_value(kvs, idx);
+
+    if ( !n )
+    {
+      if ( value == HTABLE_TOMBSTONE ) return value;
+      if ( htable_cas_name(kvs, idx, NULL, name) )
+      { n = name;
+        break;
+      }
+      n = htable_name(kvs, idx);
+      assert(n);
+    }
+
+    if ( n == name )
+    { break;
+    }
+
+    if ( (++reprobe_count >= (10 + (kvs->len>>3))) || (n == HTABLE_SENTINEL) )
+    { KVS new_kvs = htable_resize(ht, kvs);
+      return htable_put(ht, new_kvs, name, value, flags);
+    }
+
+    idx = (idx+1)&(kvs->len-1);
+  }
+
+  if ( value == v ) return v;
+
+  while( TRUE )
+  {
+    if ( v == HTABLE_SENTINEL )
+    { return htable_put(ht, kvs->next, name, value, flags);
+    }
+
+    if ( htable_cas_value(kvs, idx, v, value) )
+    { break;
+    }
+
+    v = htable_value(kvs, idx);
+  }
+
+  if ( flags & HTABLE_NORMAL )
+  {
+    if ( ((!v) || (v == HTABLE_TOMBSTONE)) && (value != HTABLE_TOMBSTONE) )
+    { ATOMIC_INC(&ht->size);
+    } else if ( !((!v) || (v == HTABLE_TOMBSTONE)) && (value == HTABLE_TOMBSTONE) )
+    { ATOMIC_DEC(&ht->size);
+    }
+  }
+
+  return v;
+}
+
+
+int
+htable_iter(Table ht, KVS kvs, int *index, void **name, void **value)
+{
+  int idx = *index;
+  void *n = NULL;
+  void *v = NULL;
+
+  while ( idx < kvs->len )
+  {
+    n = htable_name(kvs, idx);
+    v = htable_value(kvs, idx++);
+
+    if ( (!n) || (n == HTABLE_SENTINEL) )
+    { continue;
+    }
+
+    if ( v == HTABLE_SENTINEL )
+    { v = htable_get(ht, kvs->next, n);
+    }
+
+    if ( (v) && (v != HTABLE_TOMBSTONE) )
+    { break;
+    }
+  }
+
+  if ( (n == HTABLE_SENTINEL) || (v == HTABLE_TOMBSTONE) )
+  { n = NULL;
+    v = NULL;
+  }
+
+  *index = idx;
+
+  if ( name )
+  { *name = n;
+  }
+  if ( value )
+  { *value = v;
+  }
+
+  return (v != NULL);
+}
+
+
+
+		 /*******************************
+		 *             API              *
+		 *******************************/
+
 Table
-newHTable(int buckets)
+newHTable(int len)
 { Table ht;
 
   ht		  = allocHeapOrHalt(sizeof(struct table));
-  ht->buckets	  = (buckets & ~TABLE_MASK);
   ht->size	  = 0;
-  ht->enumerators = NULL;
   ht->free_symbol = NULL;
   ht->copy_symbol = NULL;
-#ifdef O_PLMT
-  if ( (buckets & TABLE_UNLOCKED) )
-    ht->mutex = NULL;
-  else
-  { ht->mutex     = allocHeapOrHalt(sizeof(simpleMutex));
-    simpleMutexInit(ht->mutex);
-  }
-#endif
 
-  ht->entries = allocHTableEntries(ht->buckets);
+  ht->kvs = htable_alloc_kvs(len);
+
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("newHTable(). ht: %p, len: %d\n", ht, len));
+  DEBUG(MSG_HASH_TABLE_KVS,
+        Sdprintf("New KV map: ht: %p, kvs: %p len: %d\n", ht, ht->kvs, len));
+
   return ht;
 }
 
@@ -91,362 +443,178 @@ newHTable(int buckets)
 void
 destroyHTable(Table ht)
 {
-#ifdef O_PLMT
-  if ( ht->mutex )
-  { simpleMutexDelete(ht->mutex);
-    freeHeap(ht->mutex, sizeof(*ht->mutex));
-    ht->mutex = NULL;
-  }
-#endif
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("destroyHTable(). ht: %p\n", ht));
 
   clearHTable(ht);
-  freeHeap(ht->entries, ht->buckets * sizeof(Symbol));
+  htable_free_all_kvs(ht);
   freeHeap(ht, sizeof(struct table));
 }
 
 
-#if O_DEBUG
-static int lookups;
-static int cmps;
-
-int
-exitTables(int status, void *arg)
-{ (void)status;
-  (void)arg;
-
-  Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
-	   lookups, cmps);
-
-  return 0;
-}
-#endif
-
-
-void
-initTables(void)
-{ static int done = FALSE;
-
-  if ( !done )
-  { done = TRUE;
-
-    DEBUG(MSG_HASH_STAT, PL_on_halt(exitTables, NULL));
-  }
-}
-
-
-Symbol
+void*
 lookupHTable(Table ht, void *name)
-{ Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
+{ KVS kvs;
+  void *v;
 
-  DEBUG(MSG_HASH_STAT, lookups++);
-  for( ; s; s = s->next)
-  { DEBUG(MSG_HASH_STAT, cmps++);
-    if ( s->name == name )
-      return s;
-  }
+  kvs = ht->kvs;
+  ATOMIC_INC(&kvs->accesses);
 
-  return NULL;
-}
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("lookupHTable(). ht: %p, kvs: %p, name: %p\n", ht, kvs, name));
 
-#ifdef O_DEBUG
-void
-checkHTable(Table ht)
-{ int i;
-  int n = 0;
+  v = htable_get(ht, kvs, name);
+  ATOMIC_DEC(&kvs->accesses);
 
-  for(i=0; i<ht->buckets; i++)
-  { Symbol s;
-
-    for(s=ht->entries[i]; s; s=s->next)
-    { assert(lookupHTable(ht, s->name) == s);
-      n++;
-    }
-  }
-
-  assert(n == ht->size);
-}
-#endif
-
-/* MT: Locked by calling addHTable()
-*/
-
-static Symbol
-rehashHTable(Table ht, Symbol map)
-{ Symbol *newentries, *oldentries;
-  int     newbuckets, oldbuckets;
-  int     i;
-#ifdef O_PLMT
-  int     safe_copy = (ht->mutex != NULL);
-#else
-  const int safe_copy = 1;
-#endif
-
-  newbuckets = ht->buckets*2;
-  newentries = allocHTableEntries(newbuckets);
-
-  DEBUG(MSG_HASH_STAT,
-	Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
-
-  for(i=0; i<ht->buckets; i++)
-  { Symbol s, n;
-
-    if ( safe_copy )
-    { for(s=ht->entries[i]; s; s = n)
-      { int v = (int)pointerHashValue(s->name, newbuckets);
-	Symbol s2 = allocHeapOrHalt(sizeof(*s2));
-
-	n = s->next;
-	if ( s == map )
-	  map = s2;
-	*s2 = *s;
-	s2->next = newentries[v];
-	newentries[v] = s2;
-      }
-    } else
-    { for(s=ht->entries[i]; s; s = n)
-      { int v = (int)pointerHashValue(s->name, newbuckets);
-
-	n = s->next;
-	s->next = newentries[v];
-	newentries[v] = s;
-      }
-    }
-  }
-
-  oldentries  = ht->entries;
-  oldbuckets  = ht->buckets;
-  ht->entries = newentries;
-  ht->buckets = newbuckets;
-
-  if ( safe_copy )
-  {					/* Here we should be waiting until */
-					/* active lookup are finished */
-    for(i=0; i<oldbuckets; i++)
-    { Symbol s, n;
-
-      for(s=oldentries[i]; s; s = n)
-      { n = s->next;
-
-	s->next = NULL;			/* that causes old readers to stop */
-	freeHeap(s, sizeof(*s));
-      }
-    }
-  }
-
-  freeHeap(oldentries, oldbuckets * sizeof(Symbol));
-  DEBUG(CHK_SECURE, checkHTable(ht));
-
-  return map;
+  return v;
 }
 
 
-Symbol
+void*
 addHTable(Table ht, void *name, void *value)
-{ Symbol s;
-  int v;
+{ KVS kvs;
+  void *v;
 
-  LOCK_TABLE(ht);
-  v = (int)pointerHashValue(name, ht->buckets);
-  if ( lookupHTable(ht, name) )
-  { UNLOCK_TABLE(ht);
-    return NULL;
-  }
-  s = allocHeapOrHalt(sizeof(struct symbol));
-  s->name  = name;
-  s->value = value;
-  s->next  = ht->entries[v];
-  ht->entries[v] = s;
-  ht->size++;
-  DEBUG(9, Sdprintf("addHTable(0x%x, 0x%x, 0x%x) --> size = %d\n",
-		    ht, name, value, ht->size));
+  kvs = ht->kvs;
+  ATOMIC_INC(&kvs->accesses);
 
-  if ( ht->buckets * 2 < ht->size && !ht->enumerators )
-    s = rehashHTable(ht, s);
-  UNLOCK_TABLE(ht);
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("addHTable(). ht: %p, kvs: %p, name: %p, value: %p\n", ht, kvs, name, value));
 
-  DEBUG(1, checkHTable(ht));
-  return s;
-}
+  v = htable_put(ht, ht->kvs, name, value, HTABLE_NORMAL);
+  ATOMIC_DEC(&kvs->accesses);
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note: s must be in the table!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-deleteSymbolHTable(Table ht, Symbol s)
-{ int v;
-  Symbol *h;
-  TableEnum e;
-
-  LOCK_TABLE(ht);
-  v = (int)pointerHashValue(s->name, ht->buckets);
-  h = &ht->entries[v];
-
-  for( e=ht->enumerators; e; e = e->next )
-  { if ( e->current == s )
-      rawAdvanceTableEnum(e);
-  }
-
-  for( ; *h; h = &(*h)->next )
-  { if ( *h == s )
-    { *h = (*h)->next;
-
-      s->next = NULL;				/* force crash */
-      s->name = NULL;
-      s->value = NULL;
-      freeHeap(s, sizeof(struct symbol));
-      ht->size--;
-
-      break;
-    }
-  }
-
-  UNLOCK_TABLE(ht);
+  return v;
 }
 
 
 int
-deleteHTable(Table ht, void *key)
-{ int v;
-  Symbol *h;
-  TableEnum e;
-  int found = FALSE;
+deleteHTable(Table ht, void *name)
+{ KVS kvs;
+  void *v;
 
-  LOCK_TABLE(ht);
-  v = (int)pointerHashValue(key, ht->buckets);
-  h = &ht->entries[v];
+  kvs = ht->kvs;
+  ATOMIC_INC(&kvs->accesses);
 
-  for( ; *h; h = &(*h)->next )
-  { if ( (*h)->name == key )
-    { Symbol s = *h;
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("deleteHTable(). ht: %p, kvs: %p, name: %p\n", ht, kvs, name));
 
-      for( e=ht->enumerators; e; e = e->next )
-      { if ( e->current == s )
-	  rawAdvanceTableEnum(e);
-      }
+  v = htable_put(ht, ht->kvs, name, HTABLE_TOMBSTONE, HTABLE_NORMAL);
+  ATOMIC_DEC(&kvs->accesses);
 
-      *h = (*h)->next;
-
-      s->next = NULL;				/* force crash */
-      s->name = NULL;
-      s->value = NULL;
-      freeHeap(s, sizeof(struct symbol));
-      ht->size--;
-      found = TRUE;
-
-      break;
-    }
-  }
-
-  UNLOCK_TABLE(ht);
-
-  return found;
+  return (v != NULL);
 }
 
 
 void
 clearHTable(Table ht)
-{ int n;
-  TableEnum e;
+{ KVS kvs;
+  int idx = 0;
+  void *n = NULL;
+  void *v = NULL;
 
-  LOCK_TABLE(ht);
-  for( e=ht->enumerators; e; e = e->next )
-  { e->current = NULL;
-    e->key     = ht->buckets;
+  kvs = ht->kvs;
+  ATOMIC_INC(&kvs->accesses);
+
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("ClearHTable(). ht: %p, kvs: %p\n", ht, kvs));
+
+  if ( !ht->free_symbol )
+  { return;
   }
 
-  for(n=0; n < ht->buckets; n++)
-  { Symbol s, q;
+  while ( idx < kvs->len )
+  {
+    n = htable_name(kvs, idx);
+    v = htable_value(kvs, idx);
 
-    for(s = ht->entries[n]; s; s = q)
-    { q = s->next;
-
-      if ( ht->free_symbol )
-	(*ht->free_symbol)(s);
-
-      freeHeap(s, sizeof(struct symbol));
+    if ( (!n) || (n == HTABLE_SENTINEL) )
+    { idx++;
+      continue;
     }
 
-    ht->entries[n] = NULL;
+    if ( v == HTABLE_SENTINEL )
+    { v = htable_get(ht, kvs->next, n);
+    }
+
+    if ( (v) && (v != HTABLE_TOMBSTONE) )
+    { kvs->entries[idx].value = HTABLE_TOMBSTONE;
+      (*ht->free_symbol)(n, v);
+      ht->size--;
+    }
+
+    idx++;
   }
 
-  ht->size = 0;
-  UNLOCK_TABLE(ht);
+  ATOMIC_DEC(&kvs->accesses);
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Table copyHTable(Table org)
-    Make a copy of a hash-table.  This is used to realise the copy-on-write
-    as defined by SharedTable.  The table is copied to have exactly the
-    same dimensions as the original.  If the copy_symbol function is
-    provided, it is called to allow duplicating the symbols name or value
-    fields.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Table
-copyHTable(Table org)
-{ Table ht;
-  int n;
+copyHTable(Table src_ht)
+{ Table dest_ht;
+  KVS src_kvs, dest_kvs;
+  int idx = 0;
+  void *n = NULL;
+  void *v = NULL;
 
-  ht = allocHeapOrHalt(sizeof(struct table));
-  LOCK_TABLE(org);
-  *ht = *org;				/* copy all attributes */
-#ifdef O_PLMT
-  ht->mutex = NULL;
-#endif
-  ht->entries = allocHTableEntries(ht->buckets);
+  src_kvs = src_ht->kvs;
+  ATOMIC_INC(&src_kvs->accesses);
+  dest_ht = newHTable(src_kvs->len);
+  dest_kvs = dest_ht->kvs;
 
-  for(n=0; n < ht->buckets; n++)
-  { Symbol s, *q;
+  dest_ht->copy_symbol = src_ht->copy_symbol;
+  dest_ht->free_symbol = src_ht->free_symbol;
 
-    q = &ht->entries[n];
-    for(s = org->entries[n]; s; s = s->next)
-    { Symbol s2 = allocHeapOrHalt(sizeof(*s2));
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("copyHTable(). src_ht: %p, src_kvs: %p, dest_ht: %p, dest_kvs: %p\n",
+                 src_ht, src_kvs, dest_ht, dest_kvs));
 
-      *q = s2;
-      q = &s2->next;
-      s2->name = s->name;
-      s2->value = s->value;
+  while ( idx < src_kvs->len )
+  {
+    n = htable_name(src_kvs, idx);
+    v = htable_value(src_kvs, idx++);
 
-      if ( ht->copy_symbol )
-	(*ht->copy_symbol)(s2);
+    if ( (!n) || (n == HTABLE_SENTINEL) )
+    { continue;
     }
-    *q = NULL;
-  }
-#ifdef O_PLMT
-  if ( org->mutex )
-  { ht->mutex = allocHeapOrHalt(sizeof(simpleMutex));
-    simpleMutexInit(ht->mutex);
-  }
-#endif
-  UNLOCK_TABLE(org);
 
-  return ht;
+    if ( v == HTABLE_SENTINEL )
+    { v = htable_get(src_ht, src_kvs->next, n);
+    }
+
+    if ( (v) && (v != HTABLE_TOMBSTONE) )
+    {
+      if ( src_ht->copy_symbol )
+      { (*src_ht->copy_symbol)(n, &v);
+      }
+
+      htable_put(dest_ht, dest_kvs, n, v, HTABLE_NORMAL);
+    }
+  }
+
+  ATOMIC_DEC(&src_kvs->accesses);
+
+  return dest_ht;
 }
 
-
-		 /*******************************
-		 *	    ENUMERATING		*
-		 *******************************/
 
 TableEnum
 newTableEnum(Table ht)
-{ TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
-  Symbol n;
+{
+  TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
+  KVS kvs;
 
-  LOCK_TABLE(ht);
-  e->table	  = ht;
-  e->key	  = 0;
-  e->next	  = ht->enumerators;
-  ht->enumerators = e;
+  kvs = ht->kvs;
+  ATOMIC_INC(&kvs->accesses);
 
-  n = ht->entries[0];
-  while(!n && ++e->key < ht->buckets)
-    n=ht->entries[e->key];
-  e->current = n;
-  UNLOCK_TABLE(ht);
+  DEBUG(MSG_HASH_TABLE_ENUM,
+        Sdprintf("newTableEnum(). e: %p, ht: %p, kvs: %p\n",
+                 e, e->table, e->kvs));
+
+  e->table = ht;
+  e->kvs = kvs;
+  e->idx   = 0;
 
   return e;
 }
@@ -454,59 +622,29 @@ newTableEnum(Table ht)
 
 void
 freeTableEnum(TableEnum e)
-{ TableEnum *ep;
-  Table ht;
-
+{
   if ( !e )
-    return;
-
-  ht = e->table;
-  LOCK_TABLE(ht);
-  for( ep=&ht->enumerators; *ep ; ep = &(*ep)->next )
-  { if ( *ep == e )
-    { *ep = (*ep)->next;
-
-      freeHeap(e, sizeof(*e));
-      break;
-    }
+  { return;
   }
-  UNLOCK_TABLE(ht);
+
+  DEBUG(MSG_HASH_TABLE_ENUM,
+        Sdprintf("freeTableEnum(). e: %p, ht: %p, kvs: %p\n",
+                 e, e->table, e->kvs));
+
+  ATOMIC_DEC(&e->kvs->accesses);
+
+  htable_maybe_free_kvs(e->table);
+
+  freeHeap(e, sizeof(*e));
 }
 
 
-static inline Symbol
-rawAdvanceTableEnum(TableEnum e)
-{ Symbol s, n;
-  Table ht = e->table;
+int
+advanceTableEnum(TableEnum e, void **name, void **value)
+{
+  DEBUG(MSG_HASH_TABLE_ENUM,
+        Sdprintf("advanceTableEnum(). e: %p, ht: %p, kvs: %p, idx: %d\n",
+                 e, e->table, e->kvs, e->idx));
 
-  if ( !(s = e->current) )
-    return s;
-  n = s->next;
-
-  while(!n)
-  { if ( ++e->key >= ht->buckets )
-    { e->current = NULL;
-      return s;
-    }
-
-    n=ht->entries[e->key];
-  }
-  e->current = n;
-
-  return s;
-}
-
-
-Symbol
-advanceTableEnum(TableEnum e)
-{ Symbol s;
-#ifdef O_PLMT
-  Table ht = e->table;
-#endif
-
-  LOCK_TABLE(ht);
-  s = rawAdvanceTableEnum(e);
-  UNLOCK_TABLE(ht);
-
-  return s;
+  return htable_iter(e->table, e->kvs, &e->idx, name, value);
 }
