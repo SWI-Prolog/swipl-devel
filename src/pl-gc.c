@@ -358,6 +358,9 @@ print_val(word val, char *buf)
 #define RELOC_CHAINED ((void*)2)
 #define RELOC_UPDATED ((void*)3)
 
+#define LOCAL_MARKED ((void*)1)
+#define LOCAL_UNMARKED ((void*)2)
+
 static void
 needsRelocation(void *addr)
 { GET_LD
@@ -449,9 +452,11 @@ markLocal(Word addr)
 
   DEBUG(CHK_SECURE,
 	{ void *marked;
+
 	  if ( (marked = lookupHTable(local_table, addr)) )
-	    assert(0);
-	  addHTable(local_table, addr, (void*)TRUE);
+	  { assert(marked == LOCAL_UNMARKED);
+	  }
+	  addHTable(local_table, addr, LOCAL_MARKED);
 	});
 }
 
@@ -466,8 +471,8 @@ processLocal(Word addr)
 	{ void *marked;
 
 	  if ( (marked = lookupHTable(local_table, addr)) )
-	  { assert(marked == (void*)TRUE);
-	    addHTable(local_table, addr, (void*)FALSE);
+	  { assert(marked == LOCAL_MARKED);
+	    addHTable(local_table, addr, LOCAL_UNMARKED);
 	  } else
 	  { assert(0);
 	  }
@@ -2240,7 +2245,7 @@ compact_trail(void)
     else if ( DEBUGGING(CHK_SECURE) )
     { void *chk;
       if ( (chk = lookupHTable(check_table, current)) &&
-	   chk == (void *)TRUE )
+	   chk == RELOC_NEEDS )
         sysError("%p was supposed to be relocated (*= %p)",
 		 current, current->address);
     }
