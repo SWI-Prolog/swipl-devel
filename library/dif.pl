@@ -60,12 +60,14 @@ dif(X,Y) :-
 %	vardif: X is a variable
 %%	node(Parent,Children,Variables,Counter)
 
+dif_unifiable(X, Y, Us) :-
+	(    current_prolog_flag(occurs_check, error) ->
+	     catch(unifiable(X,Y,Us), error(occurs_check(_,_),_), false)
+	;    unifiable(X, Y, Us)
+	).
+
 dif_c_c(X,Y,OrNode) :-
-	(	( current_prolog_flag(occurs_check, error) ->
-			catch(unifiable(X,Y,Unifier), error(occurs_check(_,_),_), fail)
-		  ;
-			unifiable(X,Y,Unifier)
-		) ->
+	(	dif_unifiable(X, Y, Unifier) ->
 		( Unifier == [] ->
 			or_one_fail(OrNode)
 		;
@@ -270,9 +272,13 @@ or_nodes([O-_|Os], X) -->
 	or_nodes(Os, X).
 
 mydif([X], [Y]) --> !, [dif(X, Y)].
-mydif(Xs0, Ys0) --> [dif(X,Y)],
+mydif(Xs0, Ys0) -->
         { reverse(Xs0, Xs), reverse(Ys0, Ys), % follow original order
-          X =.. [f|Xs], Y =.. [f|Ys] }.
+          X =.. [f|Xs], Y =.. [f|Ys] },
+        (   { dif_unifiable(X, Y, _) } ->
+            [dif(X,Y)]
+        ;   []
+        ).
 
 eqs_lefts_rights([], [], []).
 eqs_lefts_rights([A=B|ABs], [A|As], [B|Bs]) :-
