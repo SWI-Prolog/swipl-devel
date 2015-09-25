@@ -716,8 +716,8 @@ PL_cleanup_fork(void)
 
 
 static void
-unalloc_mutex_symbol(Symbol s)
-{ unalloc_mutex(s->value);
+unalloc_mutex_symbol(void *name, void *value)
+{ unalloc_mutex(value);
 }
 
 
@@ -774,7 +774,7 @@ initPrologThreads(void)
 
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
-    GD->thread.mutexTable = newHTable(16|TABLE_UNLOCKED);
+    GD->thread.mutexTable = newHTable(16);
     GD->thread.mutexTable->free_symbol = unalloc_mutex_symbol;
     initMutexRef();
     link_mutexes();
@@ -977,12 +977,10 @@ aliasThread(int tid, atom_t name)
 static void
 unaliasThread(atom_t name)
 { if ( threadTable )
-  { Symbol s;
-
-    LOCK();
-    if ( (s = lookupHTable(threadTable, (void *)name)) )
-    { PL_unregister_atom(name);
-      deleteSymbolHTable(threadTable, s);
+  { LOCK();
+    if ( lookupHTable(threadTable, (void *)name) )
+    { deleteHTable(threadTable, (void *)name);
+      PL_unregister_atom(name);
     }
     UNLOCK();
   }
@@ -1599,10 +1597,10 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     if ( !PL_get_atom(t, &name) )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_thread, t);
     if ( threadTable )
-    { Symbol s;
+    { int tid;
 
-      if ( (s = lookupHTable(threadTable, (void *)name)) )
-	i = (int)(intptr_t)s->value;
+      if ( (tid = (int)(intptr_t)lookupHTable(threadTable, (void *)name)) )
+	i = tid;
     }
   }
 
@@ -3341,8 +3339,8 @@ unify_queue(term_t t, message_queue *q)
 
 
 static void
-free_queue_symbol(Symbol s)
-{ message_queue *q = s->value;
+free_queue_symbol(void *name, void *value)
+{ message_queue *q = value;
 
   destroy_message_queue(q);			/* must this be synced? */
   PL_free(q);
@@ -3352,7 +3350,6 @@ free_queue_symbol(Symbol s)
 static message_queue *
 unlocked_message_queue_create(term_t queue, long max_size)
 { GET_LD
-  Symbol s;
   atom_t name = NULL_ATOM;
   message_queue *q;
   word id;
@@ -3363,8 +3360,8 @@ unlocked_message_queue_create(term_t queue, long max_size)
   }
 
   if ( PL_get_atom(queue, &name) )
-  { if ( (s = lookupHTable(queueTable, (void *)name)) ||
-	 (s = lookupHTable(threadTable, (void *)name)) )
+  { if ( lookupHTable(queueTable, (void *)name) ||
+	 lookupHTable(threadTable, (void *)name) )
     { PL_error("message_queue_create", 1, NULL, ERR_PERMISSION,
 	       ATOM_create, ATOM_message_queue, queue);
       return NULL;
@@ -3433,19 +3430,15 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_message_queue, t);
 
   if ( queueTable )
-  { Symbol s = lookupHTable(queueTable, (void *)id);
-
-    if ( s )
-    { *queue = s->value;
+  { message_queue *q;
+    if ( (q = lookupHTable(queueTable, (void *)id)) )
+    { *queue = q;
       return TRUE;
     }
   }
   if ( threadTable )
-  { Symbol s = lookupHTable(threadTable, (void *)id);
-
-    if ( s )
-    { tid = (int)(intptr_t)s->value;
-      goto thread_queue;
+  { if ( (tid = (int)(intptr_t)lookupHTable(threadTable, (void *)id)) )
+    { goto thread_queue;
     }
   }
 
@@ -3643,10 +3636,10 @@ advance_qstate(qprop_enum *state)
     state->p = qprop_list;
   }
   if ( state->e )
-  { Symbol s;
+  { message_queue *q;
 
-    if ( (s = advanceTableEnum(state->e)) )
-    { state->q = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&q) )
+    { state->q = q;
 
       succeed;
     }
@@ -3727,11 +3720,11 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->q )			/* first time, enumerating queues */
-  { Symbol s;
+  { message_queue *q;
 
     assert(state->e);
-    if ( (s=advanceTableEnum(state->e)) )
-    { state->q = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&q) )
+    { state->q = q;
     } else
     { freeTableEnum(state->e);
       assert(state == &statebuf);
@@ -4223,13 +4216,12 @@ mutexCreate(atom_t name)
 static pl_mutex *
 unlocked_pl_mutex_create(term_t mutex)
 { GET_LD
-  Symbol s;
   atom_t name = NULL_ATOM;
   pl_mutex *m;
   word id;
 
   if ( PL_get_atom(mutex, &name) )
-  { if ( (s = lookupHTable(GD->thread.mutexTable, (void *)name)) )
+  { if ( lookupHTable(GD->thread.mutexTable, (void *)name) )
     { PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
 	       ATOM_create, ATOM_mutex, mutex);
       return NULL;
@@ -4300,7 +4292,6 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
 { GET_LD
   atom_t name;
   word id = 0;
-  Symbol s;
   pl_mutex *m = NULL;
 
   if ( PL_get_atom(t, &name) )
@@ -4320,8 +4311,8 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
 
   LOCK();
   if ( GD->thread.mutexTable &&
-       (s = lookupHTable(GD->thread.mutexTable, (void *)id)) )
-  { m = s->value;
+       (m = lookupHTable(GD->thread.mutexTable, (void *)id)) )
+  { ;
   } else if ( create )
   { m = unlocked_pl_mutex_create(t);
   } else
@@ -4452,14 +4443,12 @@ PRED_IMPL("mutex_unlock", 1, mutex_unlock, 0)
 static
 PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
 { TableEnum e;
-  Symbol s;
+  pl_mutex *m;
   int tid = PL_thread_self();
 
   e = newTableEnum(GD->thread.mutexTable);
-  while( (s = advanceTableEnum(e)) )
-  { pl_mutex *m = s->value;
-
-    if ( m->owner == tid )
+  while( advanceTableEnum(e, NULL, (void**)&m) )
+  { if ( m->owner == tid )
     { m->count = 0;
       m->owner = 0;
       pthread_mutex_unlock(&m->mutex);
@@ -4564,10 +4553,10 @@ advance_mstate(mprop_enum *state)
     state->p = mprop_list;
   }
   if ( state->e )
-  { Symbol s;
+  { pl_mutex *m;
 
-    if ( (s = advanceTableEnum(state->e)) )
-    { state->m = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&m) )
+    { state->m = m;
 
       succeed;
     }
@@ -4643,11 +4632,11 @@ PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->m )			/* first time, enumerating mutexes */
-  { Symbol s;
+  { pl_mutex *m;
 
     assert(state->e);
-    if ( (s=advanceTableEnum(state->e)) )
-    { state->m = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&m) )
+    { state->m = m;
     } else
     { freeTableEnum(state->e);
       assert(state != &statebuf);
@@ -5821,11 +5810,11 @@ markAtomsThreadMessageQueue(PL_local_data_t *ld)
 void
 markAtomsMessageQueues(void)
 { if ( queueTable )
-  { Symbol s;
+  { message_queue *q;
     TableEnum e = newTableEnum(queueTable);
 
-    while((s=advanceTableEnum(e)))
-    { markAtomsMessageQueue(s->value);
+    while( advanceTableEnum(e, NULL, (void**)&q) )
+    { markAtomsMessageQueue(q);
     }
     freeTableEnum(e);
   }

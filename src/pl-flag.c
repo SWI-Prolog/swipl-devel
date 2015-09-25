@@ -49,8 +49,8 @@ static void	freeFlagValue(Flag f);
 #define LD LOCAL_LD
 
 static void
-freeFlagSymbol(Symbol s)
-{ Flag f = s->value;
+freeFlagSymbol(void *name, void *value)
+{ Flag f = value;
 
   freeFlagValue(f);
   freeHeap(f, sizeof(*f));
@@ -77,11 +77,10 @@ cleanupFlags(void)
 
 static Flag
 lookupFlag(word key)
-{ Symbol symb;
-  Flag f;
+{ Flag f;
 
-  if ( (symb = lookupHTable(flagTable, (void *)key)) )
-    return (Flag)symb->value;
+  if ( (f = lookupHTable(flagTable, (void *)key)) )
+    return f;
 
   f = (Flag) allocHeapOrHalt(sizeof(struct flag));
   f->key = key;
@@ -182,7 +181,7 @@ out:
 word
 pl_current_flag(term_t k, control_t h)
 { GET_LD
-  Symbol symb;
+  Flag f;
   TableEnum e;
 
   switch( ForeignControl(h) )
@@ -208,10 +207,8 @@ pl_current_flag(term_t k, control_t h)
       succeed;
   }
 
-  while( (symb = advanceTableEnum(e)) )
-  { Flag f = symb->value;
-
-    if ( !unifyKey(k, f->key) )
+  while( advanceTableEnum(e, NULL, (void**)&f) )
+  { if ( !unifyKey(k, f->key) )
       continue;
 
     ForeignRedoPtr(e);

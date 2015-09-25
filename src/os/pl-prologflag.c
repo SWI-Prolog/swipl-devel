@@ -119,18 +119,17 @@ setPrologFlag(const char *name, int flags, ...)
 { GET_LD
   atom_t an = PL_new_atom(name);
   prolog_flag *f;
-  Symbol s;
   va_list args;
   int type = (flags & FT_MASK);
+  int first_def = FALSE;
 
   initPrologFlagTable();
 
   if ( type == FT_INT64 )
     flags = (flags & ~FT_MASK)|FT_INTEGER;
 
-  if ( (s = lookupHTable(GD->prolog_flag.table, (void *)an)) )
-  { f = s->value;
-    assert((f->flags & FT_MASK) == (flags & FT_MASK));
+  if ( (f = lookupHTable(GD->prolog_flag.table, (void *)an)) )
+  { assert((f->flags & FT_MASK) == (flags & FT_MASK));
     if ( flags & FF_KEEP )
       return;
   } else
@@ -138,6 +137,7 @@ setPrologFlag(const char *name, int flags, ...)
     f->index = -1;
     f->flags = flags;
     addHTable(GD->prolog_flag.table, (void *)an, f);
+    first_def = TRUE;
   }
 
   va_start(args, flags);
@@ -146,10 +146,10 @@ setPrologFlag(const char *name, int flags, ...)
     { int           val = va_arg(args, int);
       unsigned int mask = va_arg(args, unsigned int);
 
-      if ( s && mask && f->index < 0 )		/* type definition */
+      if ( !first_def && mask && f->index < 0 )	/* type definition */
       { f->index = indexOfBoolMask(mask);
 	val = (f->value.a == ATOM_true);
-      } else if ( !s )				/* 1st definition */
+      } else if ( first_def )			/* 1st definition */
       { f->index = indexOfBoolMask(mask);
 	DEBUG(MSG_PROLOG_FLAG,
 	      Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
@@ -219,20 +219,20 @@ freePrologFlag(prolog_flag *f)
 
 #ifdef O_PLMT
 static void
-copySymbolPrologFlagTable(Symbol s)
-{ prolog_flag *f = s->value;
+copySymbolPrologFlagTable(void *name, void **value)
+{ prolog_flag *f = *value;
   prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
 
   *copy = *f;
   if ( (f->flags & FT_MASK) == FT_TERM )
     copy->value.t = PL_duplicate_record(f->value.t);
-  s->value = copy;
+  *value = copy;
 }
 
 
 static void
-freeSymbolPrologFlagTable(Symbol s)
-{ freePrologFlag(s->value);
+freeSymbolPrologFlagTable(void *name, void *value)
+{ freePrologFlag(value);
 }
 #endif
 
@@ -436,7 +436,6 @@ static word
 set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 { GET_LD
   atom_t k;
-  Symbol s;
   prolog_flag *f;
   Module m = MODULE_parse;
   int rval = TRUE;
@@ -449,16 +448,14 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 					/* set existing Prolog flag */
 #ifdef O_PLMT
   if ( LD->prolog_flag.table &&
-       (s = lookupHTable(LD->prolog_flag.table, (void *)k)) )
+       (f = lookupHTable(LD->prolog_flag.table, (void *)k)) )
   { if ( flags & FF_KEEP )
       return TRUE;
-    f = s->value;			/* already local Prolog flag */
   } else
 #endif
-  if ( (s = lookupHTable(GD->prolog_flag.table, (void *)k)) )
+  if ( (f = lookupHTable(GD->prolog_flag.table, (void *)k)) )
   { if ( flags & FF_KEEP )
       return TRUE;
-    f = s->value;
     if ( f->flags & FF_READONLY )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      ATOM_modify, ATOM_flag, key);
@@ -565,7 +562,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
     if ( (flags & FF_READONLY) )
       f->flags |= FF_READONLY;
 
-    if ( !addHTable(GD->prolog_flag.table, (void *)k, f) )
+    addHTable(GD->prolog_flag.table, (void *)k, f);
+    if ( !(lookupHTable(GD->prolog_flag.table, (void *)k) == f) )
     { freePrologFlag(f);
       Sdprintf("OOPS; failed to set Prolog flag!?\n");
     }
@@ -778,20 +776,16 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 static prolog_flag *
 lookupFlag(atom_t key)
 { GET_LD
-  Symbol s;
   prolog_flag *f = NULL;
 
 #ifdef O_PLMT
   if ( LD->prolog_flag.table &&
-       (s = lookupHTable(LD->prolog_flag.table, (void *)key)) )
-  { f = s->value;
+       (f = lookupHTable(LD->prolog_flag.table, (void *)key)) )
+  { return f;
   } else
 #endif
-  { if ( (s = lookupHTable(GD->prolog_flag.table, (void *)key)) )
-      f = s->value;
+  { return lookupHTable(GD->prolog_flag.table, (void *)key);
   }
-
-  return f;
 }
 
 
@@ -992,7 +986,6 @@ pl_prolog_flag5(term_t key, term_t value,
 	    control_t h)
 { GET_LD
   prolog_flag_enum *e;
-  Symbol s;
   fid_t fid;
   Module module;
 
@@ -1005,17 +998,17 @@ pl_prolog_flag5(term_t key, term_t value,
 	return FALSE;
 
       if ( PL_get_atom(key, &k) )
-      { Symbol s;
+      { prolog_flag *f;
 
 #ifdef O_PLMT
 	if ( LD->prolog_flag.table &&
-	     (s = lookupHTable(LD->prolog_flag.table, (void *)k)) )
-	  return unify_prolog_flag_value(module, k, s->value, value);
+	     (f = lookupHTable(LD->prolog_flag.table, (void *)k)) )
+	  return unify_prolog_flag_value(module, k, f, value);
 #endif
-	if ( (s = lookupHTable(GD->prolog_flag.table, (void *)k)) )
-	{ if ( unify_prolog_flag_value(module, k, s->value, value) &&
-	       (!access || unify_prolog_flag_access(s->value, access)) &&
-	       (!type   || unify_prolog_flag_type(s->value, type)) )
+	if ( (f = lookupHTable(GD->prolog_flag.table, (void *)k)) )
+	{ if ( unify_prolog_flag_value(module, k, f, value) &&
+	       (!access || unify_prolog_flag_access(f, access)) &&
+	       (!type   || unify_prolog_flag_type(f, type)) )
 	    succeed;
 	}
 
@@ -1066,20 +1059,20 @@ pl_prolog_flag5(term_t key, term_t value,
   fid = PL_open_foreign_frame();
   LOCK();
   for(;;)
-  { while( (s=advanceTableEnum(e->table_enum)) )
-    { atom_t fn = (atom_t) s->name;
-
-      if ( e->explicit_scope == FALSE &&
+  { atom_t fn;
+    prolog_flag *f;
+    while( advanceTableEnum(e->table_enum, (void**)&fn, (void**)&f) )
+    { if ( e->explicit_scope == FALSE &&
 	   e->scope == ATOM_global &&
 	   LD->prolog_flag.table &&
 	   lookupHTable(LD->prolog_flag.table, (void *)fn) )
 	continue;
 
       if ( PL_unify_atom(key, fn) &&
-	   unify_prolog_flag_value(e->module, fn, s->value, value) &&
+	   unify_prolog_flag_value(e->module, fn, f, value) &&
 	   (!scope  || PL_unify_atom(scope, e->scope)) &&
-	   (!access || unify_prolog_flag_access(s->value, access)) &&
-	   (!type   || unify_prolog_flag_type(s->value, type)) )
+	   (!access || unify_prolog_flag_access(f, access)) &&
+	   (!type   || unify_prolog_flag_type(f, type)) )
       { UNLOCK();
 	ForeignRedoPtr(e);
       }

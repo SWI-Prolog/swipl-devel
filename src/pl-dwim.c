@@ -190,7 +190,6 @@ pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
   functor_t fdef;
   Module module = (Module) NULL;
   Procedure proc;
-  Symbol symb;
   term_t head = PL_new_term_ref();
   TableEnum e;
 
@@ -210,11 +209,10 @@ pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
   else
     e = ForeignContextPtr(h);
 
-  while( (symb = advanceTableEnum(e)) )
+  while( advanceTableEnum(e, NULL, (void**)&proc) )
   { Definition def;
     char *name;
 
-    proc = symb->value;
     def  = proc->definition;
     name = stringAtom(def->functor->name);
 

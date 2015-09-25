@@ -77,19 +77,20 @@ typedef struct _opdef			/* predefined and enumerated */
 		 *******************************/
 
 static void
-copyOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+copyOperatorSymbol(void *name, void **value)
+{ operator *op = *value;
   operator *o2 = allocHeapOrHalt(sizeof(*o2));
 
   *o2 = *op;
+  *value = o2;
 }
 
 
 static void
-freeOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+freeOperatorSymbol(void *name, void *value)
+{ operator *op = value;
 
-  PL_unregister_atom((atom_t) s->name);
+  PL_unregister_atom((atom_t) name);
   freeHeap(op, sizeof(*op));
 }
 
@@ -117,9 +118,9 @@ tables.
 static int
 defOperator(Module m, atom_t name, int type, int priority, int force)
 { GET_LD
-  Symbol s;
   operator *op;
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
+  int must_reg = FALSE;
 
   DEBUG(7, Sdprintf(":- op(%d, %s, %s) in module %s\n",
 		    priority,
@@ -148,8 +149,8 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   if ( !m->operators )
     m->operators = newOperatorTable(8);
 
-  if ( (s = lookupHTable(m->operators, (void *)name)) )
-  { op = s->value;
+  if ( (op = lookupHTable(m->operators, (void *)name)) )
+  { ;
   } else if ( priority < 0 )
   { UNLOCK();				/* already inherited: do not change */
     return TRUE;
@@ -162,11 +163,13 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
     op->type[OP_PREFIX]      = OP_INHERIT;
     op->type[OP_INFIX]       = OP_INHERIT;
     op->type[OP_POSTFIX]     = OP_INHERIT;
+
+    must_reg = TRUE;
   }
 
   op->priority[t] = priority;
   op->type[t]     = (priority >= 0 ? type : OP_INHERIT);
-  if ( !s )
+  if ( must_reg )
   { PL_register_atom(name);
     addHTable(m->operators, (void *)name, op);
   }
@@ -187,14 +190,12 @@ current thread and provided module.
 
 static operator *
 visibleOperator(Module m, atom_t name, int kind)
-{ Symbol s;
-  operator *op;
+{ operator *op;
   ListCell c;
 
   if ( m->operators &&
-	 (s = lookupHTable(m->operators, (void *)name)) )
-  { op = s->value;
-    if ( op->type[kind] != OP_INHERIT )
+       (op = lookupHTable(m->operators, (void *)name)) )
+  { if ( op->type[kind] != OP_INHERIT )
       return op;
   }
   for(c = m->supers; c; c=c->next)
@@ -259,10 +260,10 @@ maxOp(operator *op, int *done, int sofar)
 static int
 scanPriorityOperator(Module m, atom_t name, int *done, int sofar)
 { if ( *done != 0x7 )
-  { Symbol s;
+  { operator *op;
 
-    if ( m->operators && (s=lookupHTable(m->operators, (void *)name)) )
-      sofar = maxOp(s->value, done, sofar);
+    if ( m->operators && (op = lookupHTable(m->operators, (void *)name)) )
+      sofar = maxOp(op, done, sofar);
 
     if ( *done != 0x7 )
     { ListCell c;
@@ -406,13 +407,11 @@ addOpToBuffer(Buffer b, atom_t name, int type, int priority)
 static void
 addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 { TableEnum e = newTableEnum(t);
-  Symbol s;
+  atom_t nm;
+  operator *op;
 
-  while( (s=advanceTableEnum(e)) )
-  { operator *op = s->value;
-    atom_t nm = (atom_t)s->name;
-
-    if ( nm == name || name == NULL_ATOM )
+  while( advanceTableEnum(e, (void**)&nm, (void**)&op) )
+  { if ( nm == name || name == NULL_ATOM )
     { if ( type )
       { int kind = type&OP_MASK;
 

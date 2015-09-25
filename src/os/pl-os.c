@@ -551,9 +551,8 @@ temporaries on /tmp.
 #endif
 
 static int
-free_tmp_symbol(Symbol s)
+free_tmp_name(atom_t tname)
 { int rc;
-  atom_t tname = (atom_t)s->name;
   PL_chars_t txt;
 
   get_atom_text(tname, &txt);
@@ -567,8 +566,8 @@ free_tmp_symbol(Symbol s)
 
 
 static void
-void_free_tmp_symbol(Symbol s)
-{ (void)free_tmp_symbol(s);
+free_tmp_symbol(void *name, void *value)
+{ (void)free_tmp_name((atom_t)name);
 }
 
 
@@ -668,7 +667,7 @@ retry:
   LOCK();
   if ( !GD->os.tmp_files )
   { GD->os.tmp_files = newHTable(4);
-    GD->os.tmp_files->free_symbol = void_free_tmp_symbol;
+    GD->os.tmp_files->free_symbol = free_tmp_symbol;
   }
   UNLOCK();
 
@@ -685,11 +684,9 @@ DeleteTemporaryFile(atom_t name)
   if ( GD->os.tmp_files )
   { LOCK();
     if ( GD->os.tmp_files && GD->os.tmp_files->size > 0 )
-    { Symbol s = lookupHTable(GD->os.tmp_files, (void*)name);
-
-      if ( s )
-      { rc = free_tmp_symbol(s);
-	deleteSymbolHTable(GD->os.tmp_files, s);
+    { if ( lookupHTable(GD->os.tmp_files, (void*)name) )
+      { deleteHTable(GD->os.tmp_files, (void*)name);
+	rc = free_tmp_name(name);
       }
     }
     UNLOCK();

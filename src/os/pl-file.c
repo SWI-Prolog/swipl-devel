@@ -175,12 +175,12 @@ getExistingStreamContext(IOSTREAM *s)
 static void
 aliasStream(IOSTREAM *s, atom_t name)
 { stream_context *ctx;
-  Symbol symb;
+  IOSTREAM *sp;
   alias *a;
 
 					/* ensure name is free (error?) */
-  if ( (symb = lookupHTable(streamAliases, (void *)name)) )
-    unaliasStream(symb->value, name);
+  if ( (sp = lookupHTable(streamAliases, (void *)name)) )
+    unaliasStream(sp, name);
 
   ctx = getStreamContext(s);
   addHTable(streamAliases, (void *)name, s);
@@ -203,13 +203,11 @@ aliasStream(IOSTREAM *s, atom_t name)
 
 static void
 unaliasStream(IOSTREAM *s, atom_t name)
-{ Symbol symb;
-
-  if ( name )
-  { if ( (symb = lookupHTable(streamAliases, (void *)name)) )
+{ if ( name )
+  { if ( lookupHTable(streamAliases, (void *)name) )
     { stream_context *ctx;
 
-      deleteSymbolHTable(streamAliases, symb);
+      deleteHTable(streamAliases, (void *)name);
 
       if ( (ctx=getExistingStreamContext(s)) )
       { alias **a;
@@ -237,12 +235,10 @@ unaliasStream(IOSTREAM *s, atom_t name)
     { alias *a, *n;
 
       for(a = ctx->alias_head; a; a=n)
-      { Symbol s2;
+      { n = a->next;
 
-	n = a->next;
-
-	if ( (s2 = lookupHTable(streamAliases, (void *)a->name)) )
-	{ deleteSymbolHTable(streamAliases, s2);
+	if ( lookupHTable(streamAliases, (void *)a->name) )
+	{ deleteHTable(streamAliases, (void *)a->name);
 	  PL_unregister_atom(a->name);
 	}
 
@@ -258,7 +254,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
 static void
 freeStream(IOSTREAM *s)
 { GET_LD
-  Symbol symb;
+  stream_context *ctx;
   int i;
   IOSTREAM **sp;
 
@@ -266,8 +262,8 @@ freeStream(IOSTREAM *s)
 
   LOCK();
   unaliasStream(s, NULL_ATOM);
-  if ( (symb=lookupHTable(streamContext, s)) )
-  { stream_context *ctx = symb->value;
+  if ( (ctx = lookupHTable(streamContext, s)) )
+  { deleteHTable(streamContext, s);
 
     if ( ctx->filename != NULL_ATOM )
     { PL_unregister_atom(ctx->filename);
@@ -279,7 +275,6 @@ freeStream(IOSTREAM *s)
     }
 
     freeHeap(ctx, sizeof(*ctx));
-    deleteSymbolHTable(streamContext, symb);
   }
 					/* if we are a standard stream */
 					/* reassociate with standard I/O */
@@ -604,18 +599,18 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
 
     return symbol_no_stream(a);
   } else
-  { Symbol symb;
+  { void *s0;
 
     if ( !(flags & SH_UNLOCKED) )
       LOCK();
-    if ( (symb=lookupHTable(streamAliases, (void *)a)) )
+    if ( (s0 = lookupHTable(streamAliases, (void *)a)) )
     { IOSTREAM *stream;
-      uintptr_t n = (uintptr_t)symb->value;
+      uintptr_t n = (uintptr_t)s0;
 
       if ( n < 6 )			/* standard stream! */
       { stream = LD->IO.streams[n];	/* TBD: No need to lock for std-streams */
       } else
-	stream = symb->value;
+	stream = s0;
 
       if ( !(flags & SH_UNLOCKED) )
 	UNLOCK();
@@ -1147,13 +1142,11 @@ void
 closeFiles(int all)
 { GET_LD
   TableEnum e;
-  Symbol symb;
+  IOSTREAM *s;
 
   e = newTableEnum(streamContext);
-  while( (symb=advanceTableEnum(e)) )
-  { IOSTREAM *s = symb->name;
-
-    if ( all || !(s->flags & SIO_NOCLOSE) )
+  while( advanceTableEnum(e, (void**)&s, NULL) )
+  { if ( all || !(s->flags & SIO_NOCLOSE) )
     { IOSTREAM *s2 = tryGetStream(s);
 
       if ( s2 )
@@ -1662,13 +1655,11 @@ noprotocol(void)
 
   if ( Sprotocol && (s = getStream(Sprotocol)) )
   { TableEnum e;
-    Symbol symb;
+    IOSTREAM *p;
 
     e = newTableEnum(streamContext);
-    while( (symb=advanceTableEnum(e)) )
-    { IOSTREAM *p = symb->name;
-
-      if ( p->tee == s )
+    while( advanceTableEnum(e, (void**)&p, NULL) )
+    { if ( p->tee == s )
 	p->tee = NULL;
     }
     freeTableEnum(e);
@@ -3367,7 +3358,7 @@ openStream(term_t file, term_t mode, term_t options)
 
   if ( alias != NULL_ATOM &&
        streamAliases &&
-       lookupHTable(streamAliases, (void *)alias) != NULL )
+       lookupHTable(streamAliases, (void *)alias) )
   { term_t aliast;
 
     if ( (aliast = PL_new_term_ref()) &&
@@ -3509,16 +3500,14 @@ PRED_IMPL("open", 3, open3, PL_FA_ISO)
 static IOSTREAM *
 findStreamFromFile(atom_t name, unsigned int flags)
 { TableEnum e;
-  Symbol symb;
-  IOSTREAM *s = NULL;
+  IOSTREAM *s = NULL, *s0;
+  stream_context *ctx;
 
   e = newTableEnum(streamContext);
-  while( (symb=advanceTableEnum(e)) )
-  { stream_context *ctx = symb->value;
-
-    if ( ctx->filename == name &&
+  while( advanceTableEnum(e, (void**)&s0, (void**)&ctx) )
+  { if ( ctx->filename == name &&
 	 true(ctx, flags) )
-    { s = symb->name;
+    { s = s0;
       break;
     }
   }
@@ -4417,12 +4406,12 @@ PRED_IMPL("stream_property", 2, stream_property,
 
   enum_e:
     if ( pe->e )
-    { Symbol symb;
+    { IOSTREAM *p;
 
-      while ( (symb=advanceTableEnum(pe->e)) )
+      while ( advanceTableEnum(pe->e, (void**)&p, NULL) )
       { PL_rewind_foreign_frame(fid);
-	if ( PL_unify_stream(stream, symb->name) )
-	{ pe->s = symb->name;
+	if ( PL_unify_stream(stream, p) )
+	{ pe->s = p;
 	  if ( !pe->fixed_p )
 	    pe->p = sprop_list;
 	  break;

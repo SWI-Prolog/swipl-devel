@@ -53,14 +53,12 @@ Procedure
 lookupProcedure(functor_t f, Module m)
 { Procedure proc;
   Definition def;
-  Symbol s;
 
   LOCKMODULE(m);
-  if ( (s = lookupHTable(m->procedures, (void *)f)) )
+  if ( (proc = lookupHTable(m->procedures, (void *)f)) )
   { DEBUG(MSG_PROC, Sdprintf("lookupProcedure(%s) --> %s\n",
 			     PL_atom_chars(m->name),
-			     procedureName(s->value)));
-    proc = s->value;
+			     procedureName(proc)));
 #if O_PROGLIMIT_INCL_PRED
   } else if ( m->code_limit &&
 	      m->code_size + SIZEOF_PROC > m->code_limit )
@@ -176,13 +174,10 @@ importDefinitionModule(Module m, Definition def, int flags)
 { functor_t functor = def->functor->functor;
   Procedure proc;
   int rc = TRUE;
-  Symbol s;
 
   LOCKMODULE(m);
-  if ( (s = lookupHTable(m->procedures, (void *)functor)) )
-  { proc = s->value;
-
-    if ( proc->definition != def )
+  if ( (proc = lookupHTable(m->procedures, (void *)functor)) )
+  { if ( proc->definition != def )
     { if ( !isDefinedProcedure(proc) )
       { Definition odef = proc->definition;
 
@@ -259,12 +254,7 @@ resetProcedure(Procedure proc, bool isnew)
 
 Procedure
 isCurrentProcedure(functor_t f, Module m)
-{ Symbol s;
-
-  if ( (s = lookupHTable(m->procedures, (void *)f)) )
-    return (Procedure) s->value;
-
-  return NULL;
+{ return lookupHTable(m->procedures, (void *)f);
 }
 
 
@@ -634,7 +624,6 @@ pl_current_predicate(term_t name, term_t spec, control_t h)
   functor_t f;
   Module m = (Module) NULL;
   Procedure proc;
-  Symbol symb;
   term_t functor = PL_new_term_ref();
 
   if ( ForeignControl(h) == FRG_CUTTED )
@@ -669,10 +658,9 @@ pl_current_predicate(term_t name, term_t spec, control_t h)
   } else
     e = ForeignContextPtr(h);
 
-  while( (symb=advanceTableEnum(e)) )
+  while( advanceTableEnum(e, NULL, (void**)&proc) )
   { FunctorDef fdef;
 
-    proc = symb->value;
     fdef = proc->definition->functor;
 
     if ( (n && n != fdef->name) ||
@@ -738,7 +726,6 @@ pl_current_predicate1(term_t spec, control_t ctx)
 { GET_LD
   cur_enum e0;
   cur_enum *e;
-  Symbol sp, sm;
   int rval = FALSE;
   term_t mt = 0;			/* module-term */
   term_t nt = 0;			/* name-term */
@@ -804,10 +791,11 @@ pl_current_predicate1(term_t spec, control_t ctx)
       { atom_t mname;
 
 	if ( PL_is_variable(mt) )
-	{ e->emod = newTableEnum(GD->tables.modules);
+	{ Module m;
+	  e->emod = newTableEnum(GD->tables.modules);
 
-	  if ( (sm = advanceTableEnum(e->emod)) )
-	    e->module = sm->value;
+	  if ( advanceTableEnum(e->emod, NULL, (void**)&m) )
+	    e->module = m;
 	  else
 	    fail;			/* no modules!? */
 	} else if ( PL_get_atom_ex(mt, &mname) )
@@ -853,18 +841,20 @@ pl_current_predicate1(term_t spec, control_t ctx)
   for(;;)
   { if ( e->functor )			/* _M:foo/2 */
     { if ( visibleProcedure(e->functor, e->module) )
-      { PL_unify_atom(mt, e->module->name);
+      { Module m;
+	PL_unify_atom(mt, e->module->name);
 
-	if ( (sm = advanceTableEnum(e->emod)) )
-	{ e->module = sm->value;
+	if ( advanceTableEnum(e->emod, NULL, (void**)&m) )
+	{ e->module = m;
 	  ForeignRedoPtr(e);
 	} else
 	  succeed;
       }
     } else
-    { while( (sp = advanceTableEnum(e->epred)) )
-      { FunctorDef fd = valueFunctor((functor_t)sp->name);
-	Procedure proc = sp->value;
+    { functor_t f;
+      Procedure proc;
+      while( advanceTableEnum(e->epred, (void**)&f, (void**)&proc) )
+      { FunctorDef fd = valueFunctor(f);
 
 	if ( (!e->name     || e->name == fd->name) &&
 	     (e->arity < 0 || (unsigned int)e->arity == fd->arity) &&
@@ -883,17 +873,17 @@ pl_current_predicate1(term_t spec, control_t ctx)
     }
 
     if ( e->emod )			/* enumerate all modules */
-    { while( (sm = advanceTableEnum(e->emod)) )
-      { Module m = sm->value;
-
+    { Module m;
+      while( advanceTableEnum(e->emod, NULL, (void**)&m) )
+      {
 					/* skip hidden modules */
 	if ( SYSTEM_MODE ||
 	     m->name == ATOM_system ||
 	     m->class != ATOM_system )
 	  break;
       }
-      if ( sm )
-	e->super = e->module = sm->value;
+      if ( m )
+	e->super = e->module = m;
       else
 	break;
     } else if ( !e->functor && e->super && e->super->supers )
@@ -1428,19 +1418,19 @@ static void
 resetReferencesModule(Module m)
 { Definition def;
 
-  for_unlocked_table(m->procedures, s,
-		     { def = ((Procedure) s->value)->definition;
-		       def->references = 0;
-		       if ( true(def, NEEDSCLAUSEGC) )
-			 gcClausesDefinition(def);
-		     })
+  for_table(m->procedures, name, value,
+	    { def = ((Procedure) value)->definition;
+	      def->references = 0;
+	      if ( true(def, NEEDSCLAUSEGC) )
+		gcClausesDefinition(def);
+	    })
 }
 
 void
 resetReferences(void)
 { LOCK();
-  for_unlocked_table(GD->tables.modules, s,
-		     resetReferencesModule((Module) s->value));
+  for_table(GD->tables.modules, name, value,
+	    resetReferencesModule((Module) value));
   UNLOCK();
 }
 

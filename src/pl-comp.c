@@ -6011,7 +6011,6 @@ the different integer sizes (inline, int, int64, mpz).  Other issues:
 static const code_info *
 lookup_vmi(atom_t name)
 { static Table ctable = NULL;
-  Symbol s;
 
   if ( !ctable )
   { PL_LOCK(L_MISC);
@@ -6025,10 +6024,7 @@ lookup_vmi(atom_t name)
     PL_UNLOCK(L_MISC);
   }
 
-  if ( (s=lookupHTable(ctable, (void*)name)) )
-    return (const code_info*)s->value;
-
-  return NULL;
+  return lookupHTable(ctable, (void*)name);
 }
 
 
@@ -6697,7 +6693,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
   code dop = decode(op);
 
   if ( !breakTable )
-    breakTable = newHTable(16|TABLE_UNLOCKED);
+    breakTable = newHTable(16);
 
   if ( (codeTable[dop].flags & VIF_BREAK) || dop == B_UNIFY_EXIT )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
@@ -6723,12 +6719,11 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
 static int
 clearBreak(Clause clause, int offset)
 { GET_LD
-  Code PC;
+  Code PC, PC0;
   BreakPoint bp;
-  Symbol s;
 
-  PC = clause->codes + offset;
-  if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
+  PC = PC0 = clause->codes + offset;
+  if ( !breakTable || !(bp = lookupHTable(breakTable, PC)) )
   { term_t brk;
     if ( (brk=PL_new_term_ref()) &&
 	 PL_unify_term(brk,
@@ -6740,10 +6735,9 @@ clearBreak(Clause clause, int offset)
       return FALSE;			/* resource error */
   }
 
-  bp = (BreakPoint)s->value;
   *PC = bp->saved_instruction;
+  deleteHTable(breakTable, PC0);
   freeHeap(bp, sizeof(*bp));
-  deleteSymbolHTable(breakTable, s);
 
   if ( (offset=matching_unify_break(clause, offset, decode(*PC))) )
     return clearBreak(clause, offset);
@@ -6755,26 +6749,16 @@ clearBreak(Clause clause, int offset)
 void
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { int k;
-
-    delayEvents();
+  { delayEvents();
     PL_LOCK(L_BREAK);
-    for(k=0; k<breakTable->buckets; k++)
-    { Symbol next, s;
-
-      for(s=breakTable->entries[k]; s; s=next)
-      { BreakPoint bp = (BreakPoint)s->value;
-
-	next = s->next;
-
-	if ( bp->clause == clause )
-	{ int offset = bp->offset;
-
-	  clearBreak(clause, bp->offset);
-	  callEventHook(PLEV_NOBREAK, clause, offset);
-	}
-      }
-    }
+    for_table(breakTable, name, value,
+              { BreakPoint bp = (BreakPoint)value;
+		if ( bp->clause == clause )
+		{ int offset = bp->offset;
+		  clearBreak(clause, bp->offset);
+		  callEventHook(PLEV_NOBREAK, clause, offset);
+		}
+	      })
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
     sendDelayedEvents();
@@ -6784,16 +6768,14 @@ clearBreakPointsClause(Clause clause)
 
 code
 replacedBreak(Code PC)
-{ Symbol s;
-  BreakPoint bp;
+{ BreakPoint bp;
   code c;
 
   PL_LOCK(L_BREAK);
   c = decode(*PC);
   if ( c == D_BREAK )
-  { if ( (s=lookupHTable(breakTable, PC)) )
-    { bp = (BreakPoint)s->value;
-      c = bp->saved_instruction;
+  { if ( (bp = lookupHTable(breakTable, PC)) )
+    { c = bp->saved_instruction;
     } else
     { PL_UNLOCK(L_BREAK);
       sysError("No saved instruction for break at %p", PC);
@@ -6842,7 +6824,7 @@ static
 PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 { GET_LD
   TableEnum e = NULL;			/* make gcc happy */
-  Symbol symb;
+  BreakPoint bp;
 
   if ( !breakTable )
     fail;
@@ -6860,23 +6842,20 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
       succeed;
   }
 
-  while( (symb = advanceTableEnum(e)) )
-  { BreakPoint bp = (BreakPoint) symb->value;
+  while( advanceTableEnum(e, NULL, (void**)&bp) )
+  { fid_t cid;
 
-    { fid_t cid;
-
-      if ( !(cid=PL_open_foreign_frame()) )
-      { freeTableEnum(e);
-	return FALSE;
-      }
-
-      if ( PL_unify_clref(A1, bp->clause) &&
-	   PL_unify_integer(A2, bp->offset) )
-      { ForeignRedoPtr(e);
-      }
-
-      PL_discard_foreign_frame(cid);
+    if ( !(cid=PL_open_foreign_frame()) )
+    { freeTableEnum(e);
+      return FALSE;
     }
+
+    if ( PL_unify_clref(A1, bp->clause) &&
+	 PL_unify_integer(A2, bp->offset) )
+    { ForeignRedoPtr(e);
+    }
+
+    PL_discard_foreign_frame(cid);
   }
 
   freeTableEnum(e);

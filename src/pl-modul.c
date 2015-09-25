@@ -44,20 +44,19 @@ static int	addSuperModule_no_lock(Module m, Module s, int where);
 static void	unallocModule(Module m);
 
 static void
-unallocProcedureSymbol(Symbol s)
+unallocProcedureSymbol(void *name, void *value)
 { DEBUG(MSG_CLEANUP,
-	Sdprintf("unallocProcedure(%s)\n", functorName((functor_t)s->name)));
-  unallocProcedure(s->value);
+	Sdprintf("unallocProcedure(%s)\n", functorName((functor_t)name)));
+  unallocProcedure(value);
 }
 
 
 static Module
 _lookupModule(atom_t name)
-{ Symbol s;
-  Module m, super;
+{ Module m, super;
 
-  if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
-    return (Module) s->value;
+  if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
+    return m;
 
   m = allocHeapOrHalt(sizeof(struct module));
   memset(m, 0, sizeof(*m));
@@ -120,18 +119,13 @@ lookupModule(atom_t name)
 
 Module
 isCurrentModule(atom_t name)
-{ Symbol s;
-
-  if ( (s = lookupHTable(GD->tables.modules, (void*)name)) )
-    return (Module) s->value;
-
-  return NULL;
+{ return lookupHTable(GD->tables.modules, (void*)name);
 }
 
 
 static void
-unallocModuleSymbol(Symbol s)
-{ unallocModule(s->value);
+unallocModuleSymbol(void *name, void *value)
+{ unallocModule(value);
 }
 
 
@@ -143,7 +137,6 @@ initModules(void)
 #ifdef O_PLMT
     initPrologThreads();
 #endif
-    initTables();
     initFunctors();
 
     GD->tables.modules = newHTable(MODULEHASHSIZE);
@@ -223,13 +216,13 @@ markSourceFilesProcedure(Procedure proc, struct bit_vector *v)
 static void
 unlinkSourceFilesModule(Module m)
 { size_t i, high = highSourceFileIndex();
-  struct bit_vector *v = new_bitvector(high+1);
+  struct bit_vector *vec = new_bitvector(high+1);
 
-  for_unlocked_table(m->procedures, s,
-		     markSourceFilesProcedure(s->value, v));
+  for_table(m->procedures, name, value,
+	    markSourceFilesProcedure(value, vec));
 
   for(i=1; i<=high; i++)
-  { if ( true_bit(v, i) )
+  { if ( true_bit(vec, i) )
     { SourceFile sf = indexToSourceFile(i);
 
       if ( sf )
@@ -237,17 +230,15 @@ unlinkSourceFilesModule(Module m)
     }
   }
 
-  free_bitvector(v);
+  free_bitvector(vec);
 }
 
 
 static int
 destroyModule(Module m)
-{ Symbol s;
-
-  LOCK();
-  if ( (s=lookupHTable(GD->tables.modules, (void*)m->name)) )
-    deleteSymbolHTable(GD->tables.modules, s);
+{ LOCK();
+  if ( lookupHTable(GD->tables.modules, (void*)m->name) )
+    deleteHTable(GD->tables.modules, (void*)m->name);
   UNLOCK();
 
   unlinkSourceFilesModule(m);
@@ -271,7 +262,7 @@ cleanupModules(void)
 { Table t;
 
   if ( (t=GD->tables.modules) )
-  { for_unlocked_table(t, s, emptyModule(s->value));
+  { for_table(t, name, value, emptyModule(value));
 
     GD->tables.modules = NULL;
     destroyHTable(t);
@@ -741,7 +732,7 @@ static
 PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   TableEnum e;
-  Symbol symb;
+  Module m;
   atom_t name;
   SourceFile sf = NULL;
 
@@ -812,9 +803,8 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 
 					/* mode (-,-) */
 
-  while( (symb = advanceTableEnum(e)) )
-  { Module m = symb->value;
-    atom_t f = ( !m->file ? ATOM_nil : m->file->name);
+  while( advanceTableEnum(e, NULL, (void**)&m) )
+  { atom_t f = ( !m->file ? ATOM_nil : m->file->name);
 
     if ( m->class == ATOM_system && m->name != ATOM_system &&
 	 !SYSTEM_MODE && PL_is_variable(module) )
@@ -1055,8 +1045,8 @@ declareModule(atom_t name, atom_t class, atom_t super,
   module->line_no = line;
   LD->modules.source = module;
 
-  for_table(module->procedures, s,
-	    { Procedure proc = s->value;
+  for_table(module->procedures, name, value,
+	    { Procedure proc = value;
 	      Definition def = proc->definition;
 	      if ( /*def->module == module &&*/
 		   !true(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
@@ -1140,9 +1130,9 @@ unify_export_list(term_t public, Module module ARG_LD)
   int rval = TRUE;
 
   LOCKMODULE(module);
-  for_table(module->public, s,
+  for_table(module->public, name, value,
 	    { if ( !PL_unify_list(list, head, list) ||
-		   !unify_functor(head, (functor_t)s->name, GP_NAMEARITY) )
+		   !unify_functor(head, (functor_t)name, GP_NAMEARITY) )
 	      { rval = FALSE;
 		break;
 	      }
@@ -1258,7 +1248,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
   atom_t mname;
   Module module;
   TableEnum e;
-  Symbol symb;
+  Procedure proc;
   term_t tail = PL_copy_term_ref(A2);
   term_t head = PL_new_term_ref();
 
@@ -1269,9 +1259,8 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
 
   e = newTableEnum(module->public);
 
-  while( (symb = advanceTableEnum(e)) )
-  { Procedure proc = (Procedure) symb->value;
-    Definition def = proc->definition;
+  while( advanceTableEnum(e, NULL, (void**)&proc) )
+  { Definition def = proc->definition;
     FunctorDef fd = def->functor;
 
     if ( !isDefinedProcedure(proc) &&			/* not defined */
@@ -1316,15 +1305,15 @@ static inline void
 fixExportModule(Module m, Definition old, Definition new)
 { LOCKMODULE(m);
 
-  for_unlocked_table(m->procedures, s,
-		     { Procedure proc = s->value;
+  for_table(m->procedures, name, value,
+	    { Procedure proc = value;
 
-		       if ( proc->definition == old )
-		       { DEBUG(1, Sdprintf("Patched def of %s\n",
-					   procedureName(proc)));
-			 proc->definition = new;
-		       }
-		     });
+	      if ( proc->definition == old )
+	      { DEBUG(1, Sdprintf("Patched def of %s\n",
+				  procedureName(proc)));
+		proc->definition = new;
+	      }
+	    });
 
   UNLOCKMODULE(m);
 }
@@ -1333,8 +1322,8 @@ fixExportModule(Module m, Definition old, Definition new)
 static void
 fixExport(Definition old, Definition new)
 { LOCK();
-  for_unlocked_table(GD->tables.modules, s,
-		     fixExportModule(s->value, old, new));
+  for_table(GD->tables.modules, name, value,
+	    fixExportModule(value, old, new));
   UNLOCK();
 }
 

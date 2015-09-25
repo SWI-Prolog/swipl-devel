@@ -94,8 +94,8 @@ cleanupTerm(void)
 
   if ( (t=capabilities) )
   { capabilities = NULL;
-    for_table(t, s,
-	      freeHeap(s->value, sizeof(entry)));
+    for_table(t, name, value,
+	      freeHeap(value, sizeof(entry)));
     destroyHTable(t);
   }
 
@@ -165,12 +165,11 @@ out:
 static Entry
 lookupEntry(atom_t name, atom_t type)
 { GET_LD
-  Symbol s;
   Entry e;
 
   LOCK();
   if ( !capabilities ||
-       !(s = lookupHTable(capabilities, (void*)name)) )
+       !(e = lookupHTable(capabilities, (void*)name)) )
   { if ( !initTerm() )
     { e = NULL;
       goto out;
@@ -206,8 +205,7 @@ lookupEntry(atom_t name, atom_t type)
     }
 
     addHTable(capabilities, (void *)name, e);
-  } else
-    e = (Entry)s->value;
+  }
 
 out:
   UNLOCK();

@@ -44,8 +44,8 @@ static void unallocRecordList(RecordList rl);
 #define LD LOCAL_LD
 
 static void
-free_recordlist_symbol(Symbol s)
-{ RecordList l = s->value;
+free_recordlist_symbol(void *name, void *value)
+{ RecordList l = value;
 
   unallocRecordList(l);
 }
@@ -75,14 +75,12 @@ cleanupRecords(void)
 
 static RecordList
 lookupRecordList(word key)
-{ Symbol s;
+{ RecordList l;
 
-  if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
-  { return s->value;
+  if ( (l = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
+  { return l;
   } else
-  { RecordList l;
-
-    if ( isAtom(key) )			/* can also be functor_t */
+  { if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(key);
     l = allocHeapOrHalt(sizeof(*l));
     l->key = key;
@@ -105,12 +103,10 @@ lookupRecordList(word key)
 
 static RecordList
 isCurrentRecordList(word key, int must_be_non_empty)
-{ Symbol s;
+{ RecordList rl;
 
-  if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
-  { RecordList rl = s->value;
-
-    if ( must_be_non_empty )
+  if ( (rl = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
+  { if ( must_be_non_empty )
     { RecordRef record;
 
       LOCK();

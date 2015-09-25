@@ -89,7 +89,6 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Functors ...\n"));
   initFunctors();
   DEBUG(1, Sdprintf("Modules ...\n"));
-  initTables();
   initModules();
 					/* initModules may be called before */
 					/* LD is present in the MT version */

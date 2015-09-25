@@ -371,9 +371,9 @@ needsRelocation(void *addr)
 static void
 do_check_relocation(Word addr, char *file, int line ARG_LD)
 { if ( DEBUGGING(CHK_SECURE) )
-  { Symbol s;
+  { void *chk;
 
-    if ( !(s=lookupHTable(check_table, addr)) )
+    if ( !(chk = lookupHTable(check_table, addr)) )
     { char buf1[256];
       char buf2[256];
       sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
@@ -381,12 +381,12 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
       return;
     }
 
-    if ( s->value != RELOC_NEEDS )
+    if ( chk != RELOC_NEEDS )
     { sysError("%s:%d: Relocated twice: 0x%lx", file, line, addr);
       return;
     }
 
-    s->value = RELOC_CHAINED;
+    addHTable(check_table, addr, RELOC_CHAINED);
   }
 }
 
@@ -395,9 +395,9 @@ static void
 do_relocated_cell(Word addr ARG_LD)
 { if ( DEBUGGING(CHK_SECURE) )
   { if ( relocated_check )		/* we cannot do this during the */
-    { Symbol s;				/* final up-phase because the addresses */
+    { void *chk;			/* final up-phase because the addresses */
 					/* have already changed */
-      if ( !(s=lookupHTable(check_table, addr)) )
+      if ( !(chk = lookupHTable(check_table, addr)) )
       { char buf1[64];
 
         sysError("Address %s was not supposed to be updated",
@@ -405,14 +405,14 @@ do_relocated_cell(Word addr ARG_LD)
         return;
       }
 
-      if ( s->value == RELOC_UPDATED )
+      if ( chk == RELOC_UPDATED )
       { char buf1[64];
 
         sysError("%s: updated twice", print_addr(addr, buf1));
         return;
       }
 
-      s->value = RELOC_UPDATED;
+      addHTable(check_table, addr, RELOC_UPDATED);
     }
   }
 
@@ -424,16 +424,16 @@ static void
 printNotRelocated()
 { GET_LD
   TableEnum e = newTableEnum(check_table);
-  Symbol s;
+  Word addr;
+  void *chk;
 
   Sdprintf("Not relocated cells:\n");
 
-  while((s=advanceTableEnum(e)))
-  { if ( s->value == RELOC_CHAINED )
-    { Word p = s->name;
-      char buf1[64];
+  while( advanceTableEnum(e, (void**)&addr, (void**)&chk) )
+  { if ( chk == RELOC_CHAINED )
+    { char buf1[64];
 
-      Sdprintf("\t%s\n", print_addr(p, buf1));
+      Sdprintf("\t%s\n", print_addr(addr, buf1));
     }
   }
 
@@ -448,8 +448,8 @@ markLocal(Word addr)
   local_marked++;
 
   DEBUG(CHK_SECURE,
-	{ Symbol s;
-	  if ( (s = lookupHTable(local_table, addr)) )
+	{ void *marked;
+	  if ( (marked = lookupHTable(local_table, addr)) )
 	    assert(0);
 	  addHTable(local_table, addr, (void*)TRUE);
 	});
@@ -463,11 +463,11 @@ processLocal(Word addr)
   local_marked--;
 
   DEBUG(CHK_SECURE,
-	{ Symbol s;
+	{ void *marked;
 
-	  if ( (s = lookupHTable(local_table, addr)) )
-	  { assert(s->value == (void*)TRUE);
-	    s->value = (void*)FALSE;
+	  if ( (marked = lookupHTable(local_table, addr)) )
+	  { assert(marked == (void*)TRUE);
+	    addHTable(local_table, addr, (void*)FALSE);
 	  } else
 	  { assert(0);
 	  }
@@ -869,12 +869,10 @@ gvars_to_term_refs(Word **saved_bar_at)
   if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
   { TableEnum e = newTableEnum(LD->gvar.nb_vars);
     int found = 0;
-    Symbol s;
+    word w;
 
-    while( (s=advanceTableEnum(e)) )
-    { word w = (word)s->value;
-
-      if ( isGlobalRef(w) )
+    while( advanceTableEnum(e, NULL, (void**)&w) )
+    { if ( isGlobalRef(w) )
       { term_t t = PL_new_term_ref_noshift();
 
 	assert(t);
@@ -923,14 +921,14 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
   { FliFrame fr = (FliFrame) valTermRef(fid);
     Word fp = (Word)(fr+1);
     TableEnum e = newTableEnum(LD->gvar.nb_vars);
+    atom_t name;
+    word p;
     int found = 0;
-    Symbol s;
 
-    while( (s=advanceTableEnum(e)) )
-    { Word p = (Word)&s->value;
-
-      if ( isGlobalRef(*p) )
-      { *p = *fp++;
+    while( advanceTableEnum(e, (void**)&name, (void**)&p) )
+    { if ( isGlobalRef(p) )
+      { p = *fp++;
+	addHTable(e->table, (void*)name, (void*)p);
 	found++;
       }
     }
@@ -2240,9 +2238,9 @@ compact_trail(void)
       update_relocation_chain(&current->address, &dest->address PASS_LD);
 #if O_DEBUG
     else if ( DEBUGGING(CHK_SECURE) )
-    { Symbol s;
-      if ( (s=lookupHTable(check_table, current)) != NULL &&
-	   s->value == (void *)TRUE )
+    { void *chk;
+      if ( (chk = lookupHTable(check_table, current)) &&
+	   chk == (void *)TRUE )
         sysError("%p was supposed to be relocated (*= %p)",
 		 current, current->address);
     }
@@ -2742,18 +2740,15 @@ sweep_stacks(vm_state *state)
 #ifdef O_DEBUG
     if ( DEBUGGING(CHK_SECURE) )
     { TableEnum e = newTableEnum(local_table);
-      Symbol s;
+      Word addr;
 
       Sdprintf("FATAL: unprocessed local variables:\n");
 
-      while((s=advanceTableEnum(e)))
-      { if ( s->value )
-	{ Word p = s->name;
-	  char buf1[64];
-	  char buf2[64];
+      while( advanceTableEnum(e, (void**)&addr, NULL) )
+      { char buf1[64];
+	char buf2[64];
 
-	  Sdprintf("\t%s (*= %s)\n", print_addr(p, buf1), print_val(*p, buf2));
-	}
+	Sdprintf("\t%s (*= %s)\n", print_addr(addr, buf1), print_val(*addr, buf2));
       }
 
       freeTableEnum(e);

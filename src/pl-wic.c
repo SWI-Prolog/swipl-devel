@@ -1724,8 +1724,8 @@ putInt32(int v, IOSTREAM *fd)
 
 
 static void
-freeXRSymbol(Symbol s)
-{ word w = (word)s->name;
+freeXRSymbol(void *name, void *value)
+{ word w = (word)name;
 
   if ( w&0x1 )
   { w &= ~0x1;
@@ -1769,12 +1769,10 @@ savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 static int
 savedXR(wic_state *state, void *xr)
 { IOSTREAM *fd = state->wicFd;
-  Symbol s;
   intptr_t id;
 
-  if ( (s = lookupHTable(state->savedXRTable, xr)) )
-  { id = (intptr_t) s->value;
-    Sputc(XR_REF, fd);
+  if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )
+  { Sputc(XR_REF, fd);
     putNum(id, fd);
 
     succeed;
@@ -2714,16 +2712,16 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
   }
 
   DEBUG(MSG_QLF_SECTION, Sdprintf("MODULE %s\n", stringAtom(m->name)));
-  for_unlocked_table(m->public, s,
-		     { functor_t f = (functor_t)s->name;
+  for_table(m->public, name, value,
+	    { functor_t f = (functor_t)name;
 
-		       DEBUG(MSG_QLF_EXPORT,
-			     Sdprintf("Exported %s/%d\n",
-				      stringAtom(nameFunctor(f)),
-				      arityFunctor(f)));
-		       Sputc('E', fd);
-		       saveXRFunctor(state, f PASS_LD);
-		     })
+	      DEBUG(MSG_QLF_EXPORT,
+		    Sdprintf("Exported %s/%d\n",
+			     stringAtom(nameFunctor(f)),
+			     arityFunctor(f)));
+	      Sputc('E', fd);
+	      saveXRFunctor(state, f PASS_LD);
+	    })
 
   Sputc('X', fd);
 

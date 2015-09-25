@@ -54,17 +54,27 @@ destroyGlobalVars()
 
 
 static void
-free_nb_linkval_symbol(Symbol s)
-{ word w = (word)s->value;
+free_nb_linkval_name(atom_t name)
+{ PL_unregister_atom(name);
+}
 
-  if ( isAtom(w) )
-    PL_unregister_atom(w);
-  else if ( storage(w) == STG_GLOBAL )
+
+static void
+free_nb_linkval_value(word value)
+{
+  if ( isAtom(value) )
+    PL_unregister_atom(value);
+  else if ( storage(value) == STG_GLOBAL )
   { GET_LD
     LD->gvar.grefs--;
   }
+}
 
-  PL_unregister_atom((atom_t)s->name);
+
+static void
+free_nb_linkval_symbol(void *name, void* value)
+{ free_nb_linkval_value((word)value);
+  free_nb_linkval_name((atom_t)name);
 }
 
 
@@ -83,13 +93,12 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
 { atom_t name;
   Word p;
   word w, old;
-  Symbol s;
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
 
   if ( !LD->gvar.nb_vars )
-  { LD->gvar.nb_vars = newHTable(32|TABLE_UNLOCKED);
+  { LD->gvar.nb_vars = newHTable(32);
     LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
   }
 
@@ -116,14 +125,14 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     }
   }
 
-  if ( !(s=lookupHTable(LD->gvar.nb_vars, (void*)name)) )
-  { s = addHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
+  if ( !(old = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+  { addHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
     PL_register_atom(name);
     PL_register_atom(ATOM_nil);
+    old = ATOM_nil;
   }
-  assert(s);
+  assert(old);
 
-  old = (word)s->value;
   if ( w == old )
     succeed;
   if ( isAtom(old) )
@@ -140,7 +149,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
       freezeGlobal(PASS_LD1);		/* The value location must be */
       if ( storage(old) != STG_GLOBAL )	/* preserved */
 	LD->gvar.grefs++;
-      s->value = (void*)makeRefG(p);
+      addHTable(LD->gvar.nb_vars, (void*)name, (void*)makeRefG(p));
     }
 
     TrailAssignment(p);
@@ -149,7 +158,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   { if ( storage(old) == STG_GLOBAL )
       LD->gvar.grefs--;
 
-    s->value = (void *)w;
+    addHTable(LD->gvar.nb_vars, (void*)name, (void*)w);
 
     if ( storage(w) == STG_GLOBAL )
     { freezeGlobal(PASS_LD1);
@@ -216,10 +225,9 @@ auto_define_gvar(atom_t name)
 int
 gvar_value__LD(atom_t name, Word p ARG_LD)
 { if ( LD->gvar.nb_vars )
-  { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-
-    if ( s )
-    { *p = (word)s->value;
+  { word w;
+    if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+    { *p = w;
       return TRUE;
     }
   }
@@ -245,11 +253,9 @@ getval(term_t var, term_t value, int raise_error ARG_LD)
 
   for(i=0; i<2; i++)
   { if ( LD->gvar.nb_vars )
-    { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-
-      if ( s )
+    { word w;
+      if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
       { term_t tmp = PL_new_term_ref();
-	word w = (word)s->value;
 
 	*valTermRef(tmp) = w;
 	return PL_unify(value, tmp);
@@ -317,11 +323,11 @@ PRED_IMPL("nb_delete", 1, nb_delete, 0)
     fail;
 
   if ( LD->gvar.nb_vars )
-  { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-
-    if ( s )
-    { free_nb_linkval_symbol(s);
-      deleteSymbolHTable(LD->gvar.nb_vars, s);
+  { word w;
+    if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+    { deleteHTable(LD->gvar.nb_vars, (void*)name);
+      free_nb_linkval_name(name);
+      free_nb_linkval_value(w);
     }
   }
 
@@ -333,7 +339,8 @@ static
 PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   TableEnum e;
-  Symbol s;
+  atom_t name;
+  word val;
   fid_t fid;
 
   switch( CTX_CNTRL )
@@ -364,11 +371,8 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
   { freeTableEnum(e);
     return FALSE;
   }
-  while( (s=advanceTableEnum(e)) )
-  { atom_t name = (atom_t)s->name;
-    word   val = (word)s->value;
-
-    if ( PL_unify_atom(A1, name) &&
+  while( advanceTableEnum(e, (void**)&name, (void**)&val) )
+  { if ( PL_unify_atom(A1, name) &&
 	 unify_ptrs(valTermRef(A2), &val, 0 PASS_LD) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);

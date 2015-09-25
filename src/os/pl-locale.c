@@ -164,17 +164,19 @@ alias_locale(PL_locale *l, atom_t alias)
   if ( !GD->locale.localeTable )
     GD->locale.localeTable = newHTable(16);
 
-  if ( addHTable(GD->locale.localeTable, (void*)alias, l) )
-  { l->alias = alias;
-    PL_register_atom(alias);
-    rc = TRUE;
-  } else
+  if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
   { GET_LD
     term_t obj = PL_new_term_ref();
 
     PL_put_atom(obj, alias);
     rc = PL_error("locale_create", 2, "Alias name already taken",
 		  ERR_PERMISSION, ATOM_create, ATOM_locale, obj);
+  }
+  else
+  { addHTable(GD->locale.localeTable, (void*)alias, l);
+    l->alias = alias;
+    PL_register_atom(alias);
+    rc = TRUE;
   }
   UNLOCK();
 
@@ -298,10 +300,7 @@ getLocale(term_t t, PL_locale **lp)
     } else if ( (ref=PL_blob_data(a, NULL, &bt)) && bt == &locale_blob )
     { l = ref->data;
     } else if ( GD->locale.localeTable )
-    { Symbol s;
-
-      if ( (s=lookupHTable(GD->locale.localeTable, (void*)a)) )
-	l = s->value;
+    { l = lookupHTable(GD->locale.localeTable, (void*)a);
     }
 
     if ( l )
@@ -441,10 +440,10 @@ advance_lstate(lprop_enum *state)
     state->p = lprop_list;
   }
   if ( state->e )
-  { Symbol s;
+  { PL_locale *l;
 
-    if ( (s = advanceTableEnum(state->e)) )
-    { state->l = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&l) )
+    { state->l = l;
 
       return TRUE;
     }
@@ -498,10 +497,10 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 
 	    if ( state->p->functor == FUNCTOR_alias1 &&
 		 get_atom_arg(property, &alias) )
-	    { Symbol s;
+	    { PL_locale *l;
 
-	      if ( (s=lookupHTable(GD->locale.localeTable, (void*)alias)) )
-		return unifyLocale(locale, s->value, FALSE);
+	      if ( (l = lookupHTable(GD->locale.localeTable, (void*)alias)) )
+		return unifyLocale(locale, l, FALSE);
 	      else
 		return FALSE;
 	    }
@@ -546,11 +545,11 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->l )			/* first time, enumerating locales */
-  { Symbol s;
+  { PL_locale *l;
 
     assert(state->e);
-    if ( (s=advanceTableEnum(state->e)) )
-    { state->l = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&l) )
+    { state->l = l;
     } else
     { freeTableEnum(state->e);
       assert(state != &statebuf);
@@ -768,12 +767,11 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
 
   if ( getLocaleEx(A1, &l) )
   { if ( l->alias )
-    { Symbol s;
-      atom_t alias = l->alias;
+    { atom_t alias = l->alias;
 
       LOCK();
-      if ( (s=lookupHTable(GD->locale.localeTable, (void*)alias)) )
-	deleteSymbolHTable(GD->locale.localeTable, s);
+      if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
+	deleteHTable(GD->locale.localeTable, (void*)alias);
       l->alias = 0;
       PL_unregister_atom(alias);
       UNLOCK();

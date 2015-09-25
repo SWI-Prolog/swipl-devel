@@ -210,7 +210,6 @@ word
 pl_format_predicate(term_t chr, term_t descr)
 { int c;
   predicate_t proc = NULL;
-  Symbol s;
   int arity;
 
   if ( !PL_get_char_ex(chr, &c, FALSE) )
@@ -227,10 +226,7 @@ pl_format_predicate(term_t chr, term_t descr)
   if ( !format_predicates )
     format_predicates = newHTable(8);
 
-  if ( (s = lookupHTable(format_predicates, (void *)(intptr_t)c)) )
-    s->value = proc;
-  else
-    addHTable(format_predicates, (void *)(intptr_t)c, proc);
+  addHTable(format_predicates, (void *)(intptr_t)c, proc);
 
   succeed;
 }
@@ -239,7 +235,8 @@ pl_format_predicate(term_t chr, term_t descr)
 word
 pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 { GET_LD
-  Symbol s = NULL;
+  intptr_t name;
+  predicate_t pred;
   TableEnum e;
   fid_t fid;
 
@@ -263,9 +260,9 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
   { freeTableEnum(e);
     return FALSE;
   }
-  while( (s=advanceTableEnum(e)) )
-  { if ( PL_unify_integer(chr, (intptr_t)s->name) &&
-	 PL_unify_predicate(descr, (predicate_t)s->value, 0) )
+  while( advanceTableEnum(e, (void**)&name, (void**)&pred) )
+  { if ( PL_unify_integer(chr, name) &&
+	 PL_unify_predicate(descr, pred, 0) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     }
@@ -375,7 +372,6 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 { GET_LD
   format_state state;			/* complete state */
   int tab_stop = 0;			/* padded tab stop */
-  Symbol s;
   unsigned int here = 0;
   int rc = TRUE;
 
@@ -398,6 +394,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
 	  int mod_colon = FALSE;	/* Used colon modifier */
+	  predicate_t proc;
 					/* Get the numeric argument */
 	  c = get_chr_from_text(fmt, ++here);
 
@@ -439,9 +436,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 					/* Check for user defined format */
 	  if ( format_predicates &&
-	       (s = lookupHTable(format_predicates, (void*)((intptr_t)c))) )
-	  { predicate_t proc = (predicate_t) s->value;
-	    int arity;
+	       (proc = lookupHTable(format_predicates, (void*)((intptr_t)c))) )
+	  { int arity;
 	    term_t av;
 	    char buf[BUFSIZE];
 	    char *str = buf;

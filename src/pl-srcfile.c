@@ -148,8 +148,8 @@ unallocSourceFile(SourceFile sf)
 
 
 static void
-freeSymbolSourceFile(Symbol s)
-{ SourceFile sf = s->value;
+freeSymbolSourceFile(void *name, void *value)
+{ SourceFile sf = value;
 
   if ( sf->magic == SF_MAGIC )
     sf->magic = SF_MAGIC_DESTROYING;
@@ -218,12 +218,12 @@ destroySourceFile(SourceFile sf)
 
   LOCK();
   if ( sf->magic == SF_MAGIC )
-  { Symbol s;
+  { SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
-    s = lookupHTable(GD->files.table, (void*)sf->name);
-    assert(s);
-    deleteSymbolHTable(GD->files.table, s);
+    f = lookupHTable(GD->files.table, (void*)sf->name);
+    assert(f);
+    deleteHTable(GD->files.table, (void*)sf->name);
     PL_unregister_atom(sf->name);
     putSourceFileArray(sf->index, NULL);
     if ( GD->files.no_hole_before > sf->index )
@@ -240,7 +240,6 @@ destroySourceFile(SourceFile sf)
 static SourceFile
 lookupSourceFile_unlocked(atom_t name, int create)
 { SourceFile file;
-  Symbol s;
 
   if ( !GD->files.table )
   { GD->files.table = newHTable(32);
@@ -248,8 +247,8 @@ lookupSourceFile_unlocked(atom_t name, int create)
     GD->files.no_hole_before = 1;
   }
 
-  if ( (s=lookupHTable(GD->files.table, (void*)name)) )
-  { file = s->value;
+  if ( (file=lookupHTable(GD->files.table, (void*)name)) )
+  { ;
   } else if ( create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
