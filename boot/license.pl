@@ -58,7 +58,6 @@ license(lgpl, lgpl,
 	[ comment('GNU Lesser General Public License'),
 	  url('http://www.fsf.org/copyleft/lesser.html')
 	]).
-
 license(swipl, lgpl,
 	[ comment('SWI-Prolog Prolog Source License'),
 	  url('http://www.swi-prolog.org/license.html')
@@ -108,6 +107,10 @@ license(lgpl_compatible, lgpl,
 	]).
 license(gpl_compatible, gpl,
 	[ comment('Other GPL and not LGPL compatible license')
+	]).
+license(asl2, lgpl,
+	[ comment('Apache License 2.0'),
+	  url('http://www.apache.org/licenses/LICENSE-2.0')
 	]).
 
 
