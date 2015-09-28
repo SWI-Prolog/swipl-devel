@@ -263,12 +263,16 @@ htable_resize(Table ht, KVS kvs)
 void*
 htable_get(Table ht, KVS kvs, void *name)
 {
-  int idx = (int)pointerHashValue(name, kvs->len);
   void *n;
   void *v;
-  int reprobe_count = 0;
+  int idx, reprobe_count;
 
   assert(name != NULL);
+
+redo:
+
+  idx = (int)pointerHashValue(name, kvs->len);
+  reprobe_count = 0;
 
   while ( TRUE )
   {
@@ -283,16 +287,17 @@ htable_get(Table ht, KVS kvs, void *name)
       if ( v == HTABLE_TOMBSTONE )
       { return NULL;
       } else if ( v == HTABLE_SENTINEL )
-      { return htable_get(ht, kvs->next, name);
+      { kvs = kvs->next;
+        goto redo;
       } else
       { return v;
       }
     }
 
     if ( (++reprobe_count >= (10 + (kvs->len>>3))) || (n == HTABLE_SENTINEL) )
-    { KVS new_kvs = kvs->next;
-      if ( new_kvs )
-      { return htable_get(ht, new_kvs, name);
+    { kvs = kvs->next;
+      if ( kvs )
+      { goto redo;
       } else
       { return NULL;
       }
@@ -308,13 +313,17 @@ htable_get(Table ht, KVS kvs, void *name)
 void*
 htable_put(Table ht, KVS kvs, void *name, void *value, int flags)
 {
-  int idx = (int)pointerHashValue(name, kvs->len);
   void *n;
   void *v;
-  int reprobe_count = 0;
+  int idx, reprobe_count;
 
   assert(name != NULL);
   assert(value != NULL);
+
+redo:
+
+  idx = (int)pointerHashValue(name, kvs->len);
+  reprobe_count = 0;
 
   while( TRUE )
   {
@@ -337,8 +346,8 @@ htable_put(Table ht, KVS kvs, void *name, void *value, int flags)
     }
 
     if ( (++reprobe_count >= (10 + (kvs->len>>3))) || (n == HTABLE_SENTINEL) )
-    { KVS new_kvs = htable_resize(ht, kvs);
-      return htable_put(ht, new_kvs, name, value, flags);
+    { kvs = htable_resize(ht, kvs);
+      goto redo;
     }
 
     idx = (idx+1)&(kvs->len-1);
@@ -349,7 +358,8 @@ htable_put(Table ht, KVS kvs, void *name, void *value, int flags)
   while( TRUE )
   {
     if ( v == HTABLE_SENTINEL )
-    { return htable_put(ht, kvs->next, name, value, flags);
+    { kvs = kvs->next;
+      goto redo;
     }
 
     if ( htable_cas_value(kvs, idx, v, value) )
