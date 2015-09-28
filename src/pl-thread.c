@@ -584,15 +584,15 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   if ( ld->locale.current )
     releaseLocale(ld->locale.current);
 #endif
-  info->thread_data = NULL;
+  info->thread_data = NULL;		/* avoid a loop */
   info->has_tid = FALSE;		/* needed? */
-  ld->thread.info = NULL;		/* avoid a loop */
   if ( !after_fork )
     UNLOCK();
 
   if ( info->detached || acknowledge )
     free_thread_info(info);
 
+  ld->thread.info = NULL;		/* help force a crash if ld used */
   freeHeap(ld, sizeof(*ld));
 
   if ( acknowledge )			/* == canceled */
@@ -6105,6 +6105,28 @@ pl_with_mutex(term_t mutex, term_t goal)
   }
 
   return rval;
+}
+
+
+		 /*******************************
+		 *    HASH-TABLE KVS IN USE     *
+		 *******************************/
+
+int
+pl_kvs_in_use(KVS kvs)
+{
+#ifdef O_PLMT
+  int i;
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    if ( info && info->kvs == kvs )
+    { return TRUE;
+    }
+  }
+#endif
+
+  return FALSE;
 }
 
 

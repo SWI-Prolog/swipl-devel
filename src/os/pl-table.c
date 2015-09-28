@@ -39,6 +39,10 @@ table  will  not  block  accesses  or  resizes.  Table  enumerators  are
 enumerator  was created  will be seen,  and subsequent  modifications to
 entries may be seen.
 
+Only threads  which have  an attached Prolog engine  can access the hash
+tables.  This is due to  hash table internal book-keeping  requiring use
+of the thread's local state.
+
 Internally the table is a closed 2^N table with stride-1 reprobing.
 
 Each table entry  (a key-value pair)  can exist  in any of the following
@@ -162,7 +166,7 @@ void htable_maybe_free_kvs(Table ht)
   { kvs = kvs->prev;
   }
 
-  while ( (!kvs->accesses) &&
+  while ( (!kvs->accesses) && (!pl_kvs_in_use(kvs)) &&
           (kvs != ht->kvs) && (kvs != ht->kvs->prev) )
   { KVS next = kvs->next;
     htable_free_kvs(kvs);
@@ -294,7 +298,7 @@ redo:
       }
     }
 
-    if ( (++reprobe_count >= (10 + (kvs->len>>3))) || (n == HTABLE_SENTINEL) )
+    if ( (++reprobe_count >= (10 + (kvs->len>>2))) || (n == HTABLE_SENTINEL) )
     { kvs = kvs->next;
       if ( kvs )
       { goto redo;
@@ -345,7 +349,7 @@ redo:
     { break;
     }
 
-    if ( (++reprobe_count >= (10 + (kvs->len>>3))) || (n == HTABLE_SENTINEL) )
+    if ( (++reprobe_count >= (10 + (kvs->len>>2))) || (n == HTABLE_SENTINEL) )
     { kvs = htable_resize(ht, kvs);
       goto redo;
     }
@@ -468,13 +472,13 @@ lookupHTable(Table ht, void *name)
   void *v;
 
   kvs = ht->kvs;
-  ATOMIC_INC(&kvs->accesses);
+  LD->thread.info->kvs = kvs;
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("lookupHTable(). ht: %p, kvs: %p, name: %p\n", ht, kvs, name));
 
   v = htable_get(ht, kvs, name);
-  ATOMIC_DEC(&kvs->accesses);
+  LD->thread.info->kvs = NULL;
 
   return v;
 }
@@ -482,17 +486,18 @@ lookupHTable(Table ht, void *name)
 
 void*
 addHTable(Table ht, void *name, void *value)
-{ KVS kvs;
+{ GET_LD
+  KVS kvs;
   void *v;
 
   kvs = ht->kvs;
-  ATOMIC_INC(&kvs->accesses);
+  LD->thread.info->kvs = kvs;
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("addHTable(). ht: %p, kvs: %p, name: %p, value: %p\n", ht, kvs, name, value));
 
   v = htable_put(ht, ht->kvs, name, value, HTABLE_NORMAL);
-  ATOMIC_DEC(&kvs->accesses);
+  LD->thread.info->kvs = NULL;
 
   return v;
 }
@@ -500,17 +505,18 @@ addHTable(Table ht, void *name, void *value)
 
 int
 deleteHTable(Table ht, void *name)
-{ KVS kvs;
+{ GET_LD
+  KVS kvs;
   void *v;
 
   kvs = ht->kvs;
-  ATOMIC_INC(&kvs->accesses);
+  LD->thread.info->kvs = kvs;
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("deleteHTable(). ht: %p, kvs: %p, name: %p\n", ht, kvs, name));
 
   v = htable_put(ht, ht->kvs, name, HTABLE_TOMBSTONE, HTABLE_NORMAL);
-  ATOMIC_DEC(&kvs->accesses);
+  LD->thread.info->kvs = NULL;
 
   return (v != NULL);
 }
@@ -518,13 +524,14 @@ deleteHTable(Table ht, void *name)
 
 void
 clearHTable(Table ht)
-{ KVS kvs;
+{ GET_LD
+  KVS kvs;
   int idx = 0;
   void *n = NULL;
   void *v = NULL;
 
   kvs = ht->kvs;
-  ATOMIC_INC(&kvs->accesses);
+  LD->thread.info->kvs = kvs;
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("ClearHTable(). ht: %p, kvs: %p\n", ht, kvs));
@@ -556,20 +563,21 @@ clearHTable(Table ht)
     idx++;
   }
 
-  ATOMIC_DEC(&kvs->accesses);
+  LD->thread.info->kvs = NULL;
 }
 
 
 Table
 copyHTable(Table src_ht)
-{ Table dest_ht;
+{ GET_LD
+  Table dest_ht;
   KVS src_kvs, dest_kvs;
   int idx = 0;
   void *n = NULL;
   void *v = NULL;
 
   src_kvs = src_ht->kvs;
-  ATOMIC_INC(&src_kvs->accesses);
+  LD->thread.info->kvs = src_kvs;
   dest_ht = newHTable(src_kvs->len);
   dest_kvs = dest_ht->kvs;
 
@@ -603,7 +611,7 @@ copyHTable(Table src_ht)
     }
   }
 
-  ATOMIC_DEC(&src_kvs->accesses);
+  LD->thread.info->kvs = NULL;
 
   return dest_ht;
 }
