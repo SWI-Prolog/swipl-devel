@@ -76,11 +76,15 @@ This module defines reusable code to colourise Prolog source.
 
 
 :- record
-	colour_state(source_id,
+	colour_state(source_id_list,
 		     module,
 		     stream,
 		     closure,
 		     singletons).
+
+colour_state_source_id(State, SourceID) :-
+	colour_state_source_id_list(State, SourceIDList),
+	member(SourceID, SourceIDList).
 
 %%	prolog_colourise_stream(+Stream, +SourceID, :ColourItem) is det.
 %
@@ -96,7 +100,8 @@ This module defines reusable code to colourise Prolog source.
 %	  * Length of the fragment (in characters).
 
 prolog_colourise_stream(Fd, SourceId, ColourItem) :-
-	make_colour_state([ source_id(SourceId),
+	to_list(SourceId, SourceIdList),
+	make_colour_state([ source_id_list(SourceIdList),
 			    stream(Fd),
 			    closure(ColourItem)
 			  ],
@@ -105,6 +110,10 @@ prolog_colourise_stream(Fd, SourceId, ColourItem) :-
 	    save_settings(TB, State),
 	    colourise_stream(Fd, TB),
 	    restore_settings(State)).
+
+to_list(List, List) :-
+	is_list(List), !.
+to_list(One, [One]).
 
 
 colourise_stream(Fd, TB) :-
@@ -159,7 +168,7 @@ restore_settings(state(Style, Esc, OSM)) :-
 %	module context of the file into which the file was included.
 
 source_module(TB, Module) :-
-	colour_state_source_id(TB, null), !,
+	colour_state_source_id_list(TB, []), !,
 	colour_state_module(TB, Module).
 source_module(TB, Module) :-
 	colour_state_source_id(TB, SourceId),
@@ -292,13 +301,14 @@ prolog_colourise_query(QueryString, SourceID, ColourItem) :-
 	    restore_settings(State)).
 
 query_colour_state(module(Module), ColourItem, TB) :- !,
-	make_colour_state([ source_id(null),
+	make_colour_state([ source_id_list([]),
 			    module(Module),
 			    closure(ColourItem)
 			  ],
 			  TB).
 query_colour_state(SourceID, ColourItem, TB) :-
-	make_colour_state([ source_id(SourceID),
+	to_list(SourceID, SourceIDList),
+	make_colour_state([ source_id_list(SourceIDList),
 			    closure(ColourItem)
 			  ],
 			  TB).
@@ -338,7 +348,8 @@ colourise_query(QueryString, TB) :-
 %	  term error_position(StartClause, EndClause, ErrorPos)
 
 prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
-	make_colour_state([ source_id(SourceId),
+	to_list(SourceId, SourceIdList),
+	make_colour_state([ source_id_list(SourceIdList),
 			    stream(Stream),
 			    closure(ColourItem)
 			  ],
@@ -880,7 +891,7 @@ colourise_meta_arg(_, Arg, TB, Pos) :-
 
 meta_args(Goal, TB, VarGoal) :-
 	colour_state_source_id(TB, SourceId),
-	xref_meta(SourceId, Goal, _),
+	xref_meta(SourceId, Goal, _), !,
 	compound_name_arity(Goal, Name, Arity),
 	compound_name_arity(VarGoal, Name, Arity),
 	xref_meta(SourceId, VarGoal, MetaArgs),
