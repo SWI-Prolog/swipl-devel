@@ -61,8 +61,13 @@ MSB(size_t i)
 #endif /*_MSC_VER*/
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
-#define HAVE_MSB 1
+#if SIZEOF_VOIDP == SIZEOF_LONG
 #define MSB(i) (sizeof(long)*8 - 1 - __builtin_clzl(i)) /* GCC builtin */
+#define HAVE_MSB 1
+#elif SIZEOF_VOIDP == SIZEOF_LONG_LONG
+#define MSB(i) (sizeof(long long)*8 - 1 - __builtin_clzll(i)) /* GCC builtin */
+#define HAVE_MSB 1
+#endif
 #endif
 
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE__SYNC_SYNCHRONIZE)
