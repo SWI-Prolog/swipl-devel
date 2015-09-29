@@ -33,6 +33,11 @@
 #define __finally
 #endif
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include "pl-prof.h"
@@ -6023,8 +6028,6 @@ PL_thread_destroy_engine()
 }
 
 #ifdef __WINDOWS__
-#include <windows.h>
-
 int
 PL_w32thread_raise(DWORD id, int sig)
 { return PL_raise(sig);

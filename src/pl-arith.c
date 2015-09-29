@@ -35,6 +35,12 @@ These  functions are addressed by the WAM instructions using their index
 in this array.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#include <wincrypt.h>
+#endif
+
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include <math.h>
@@ -52,11 +58,6 @@ in this array.
 
 #ifdef fpclassify
 #define HAVE_FPCLASSIFY 1
-#endif
-
-#ifdef __WINDOWS__
-#include <windows.h>
-#include <wincrypt.h>
 #endif
 
 #undef LD

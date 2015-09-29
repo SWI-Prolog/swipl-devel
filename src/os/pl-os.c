@@ -40,6 +40,11 @@ is supposed to give the POSIX standard one.
 
 #define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"

@@ -23,6 +23,11 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #define bool pl_bool			/* avoid conflict with curses */
 #include "pl-incl.h"
 #undef bool
@@ -340,8 +345,6 @@ PRED_IMPL("tty_size", 2, tty_size, 0)
 #else /* ~TGETENT */
 
 #ifdef __WINDOWS__
-
-#include <windows.h>
 
 static void *
 getModuleFunction(const char *module, const char *name)

@@ -23,13 +23,16 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #define O_DEBUG 1
 #ifdef __WINDOWS__
 
 #define INCLUDE_DDEML_H
 #include "pl-incl.h"
-
-#include <windows.h>
 
 #if O_DDE
 #include <string.h>
