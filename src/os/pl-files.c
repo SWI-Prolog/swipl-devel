@@ -24,12 +24,14 @@
 */
 
 #ifdef __MINGW32__
+#include <winsock2.h>
 #include <windows.h>
 #endif
 
 #include "pl-incl.h"
 #include "pl-utf8.h"
 #include <stdio.h>
+#include <errno.h>
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
