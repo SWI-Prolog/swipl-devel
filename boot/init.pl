@@ -516,7 +516,7 @@ default_module(Me, Super) :-
 '$set_debugger_write_options'(write) :- !,
 	create_prolog_flag(debugger_write_options,
 			   [ quoted(true),
-			     attributes(write),
+			     attributes(dots),
 			     spacing(next_argument)
 			   ], []).
 '$set_debugger_write_options'(print) :- !,
