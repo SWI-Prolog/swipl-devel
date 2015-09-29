@@ -190,7 +190,8 @@ current thread and provided module.
 
 static operator *
 visibleOperator(Module m, atom_t name, int kind)
-{ operator *op;
+{ GET_LD
+  operator *op;
   ListCell c;
 
   if ( m->operators &&
@@ -259,7 +260,8 @@ maxOp(operator *op, int *done, int sofar)
 
 static int
 scanPriorityOperator(Module m, atom_t name, int *done, int sofar)
-{ if ( *done != 0x7 )
+{ GET_LD
+  if ( *done != 0x7 )
   { operator *op;
 
     if ( m->operators && (op = lookupHTable(m->operators, (void *)name)) )

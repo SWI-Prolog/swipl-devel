@@ -1768,7 +1768,8 @@ savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 
 static int
 savedXR(wic_state *state, void *xr)
-{ IOSTREAM *fd = state->wicFd;
+{ GET_LD
+  IOSTREAM *fd = state->wicFd;
   intptr_t id;
 
   if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )

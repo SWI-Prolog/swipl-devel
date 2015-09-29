@@ -75,7 +75,8 @@ cleanupRecords(void)
 
 static RecordList
 lookupRecordList(word key)
-{ RecordList l;
+{ GET_LD
+  RecordList l;
 
   if ( (l = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
   { return l;
@@ -103,7 +104,8 @@ lookupRecordList(word key)
 
 static RecordList
 isCurrentRecordList(word key, int must_be_non_empty)
-{ RecordList rl;
+{ GET_LD
+  RecordList rl;
 
   if ( (rl = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
   { if ( must_be_non_empty )

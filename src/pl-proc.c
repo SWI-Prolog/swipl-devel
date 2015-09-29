@@ -51,7 +51,8 @@ static void	detachMutexAndUnlock(Definition def);
 
 Procedure
 lookupProcedure(functor_t f, Module m)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
 
   LOCKMODULE(m);
@@ -171,7 +172,8 @@ states and QLF files. Must be merged with import/1.
 
 int
 importDefinitionModule(Module m, Definition def, int flags)
-{ functor_t functor = def->functor->functor;
+{ GET_LD
+  functor_t functor = def->functor->functor;
   Procedure proc;
   int rc = TRUE;
 
@@ -254,7 +256,8 @@ resetProcedure(Procedure proc, bool isnew)
 
 Procedure
 isCurrentProcedure(functor_t f, Module m)
-{ return lookupHTable(m->procedures, (void *)f);
+{ GET_LD
+  return lookupHTable(m->procedures, (void *)f);
 }
 
 

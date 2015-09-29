@@ -53,7 +53,8 @@ unallocProcedureSymbol(void *name, void *value)
 
 static Module
 _lookupModule(atom_t name)
-{ Module m, super;
+{ GET_LD
+  Module m, super;
 
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
@@ -119,7 +120,8 @@ lookupModule(atom_t name)
 
 Module
 isCurrentModule(atom_t name)
-{ return lookupHTable(GD->tables.modules, (void*)name);
+{ GET_LD
+  return lookupHTable(GD->tables.modules, (void*)name);
 }
 
 
@@ -236,7 +238,8 @@ unlinkSourceFilesModule(Module m)
 
 static int
 destroyModule(Module m)
-{ LOCK();
+{ GET_LD
+  LOCK();
   if ( lookupHTable(GD->tables.modules, (void*)m->name) )
     deleteHTable(GD->tables.modules, (void*)m->name);
   UNLOCK();
@@ -590,7 +593,8 @@ stripModule(Word term, Module *module ARG_LD)
 
 bool
 isPublicModule(Module module, Procedure proc)
-{ if ( lookupHTable(module->public,
+{ GET_LD
+  if ( lookupHTable(module->public,
 		    (void *)proc->definition->functor->functor) )
     succeed;
 

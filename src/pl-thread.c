@@ -950,14 +950,14 @@ exitPrologThreads(void)
 
 bool
 aliasThread(int tid, atom_t name)
-{ LOCK();
+{ GET_LD
+  LOCK();
   if ( !threadTable )
     threadTable = newHTable(16);
 
   if ( (threadTable && lookupHTable(threadTable, (void *)name)) ||
        (queueTable  && lookupHTable(queueTable,  (void *)name)) )
-  { GET_LD
-    term_t obj = PL_new_term_ref();
+  { term_t obj = PL_new_term_ref();
 
     UNLOCK();
     PL_put_atom(obj, name);
@@ -976,7 +976,8 @@ aliasThread(int tid, atom_t name)
 
 static void
 unaliasThread(atom_t name)
-{ if ( threadTable )
+{ GET_LD
+  if ( threadTable )
   { LOCK();
     if ( lookupHTable(threadTable, (void *)name) )
     { deleteHTable(threadTable, (void *)name);

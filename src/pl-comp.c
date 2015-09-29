@@ -6010,7 +6010,8 @@ the different integer sizes (inline, int, int64, mpz).  Other issues:
 
 static const code_info *
 lookup_vmi(atom_t name)
-{ static Table ctable = NULL;
+{ GET_LD
+  static Table ctable = NULL;
 
   if ( !ctable )
   { PL_LOCK(L_MISC);
@@ -6768,7 +6769,8 @@ clearBreakPointsClause(Clause clause)
 
 code
 replacedBreak(Code PC)
-{ BreakPoint bp;
+{ GET_LD
+  BreakPoint bp;
   code c;
 
   PL_LOCK(L_BREAK);

@@ -157,7 +157,8 @@ update_locale(PL_locale *l, int category, const char *locale)
 
 static int
 alias_locale(PL_locale *l, atom_t alias)
-{ int rc;
+{ GET_LD
+  int rc;
 
   LOCK();
 
@@ -763,7 +764,8 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 
 static
 PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
-{ PL_locale *l;
+{ GET_LD
+  PL_locale *l;
 
   if ( getLocaleEx(A1, &l) )
   { if ( l->alias )

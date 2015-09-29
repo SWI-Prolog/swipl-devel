@@ -211,7 +211,9 @@ clearSourceAdmin(SourceFile sf)
 
 int
 destroySourceFile(SourceFile sf)
-{ DEBUG(MSG_SRCFILE,
+{ GET_LD
+
+  DEBUG(MSG_SRCFILE,
 	Sdprintf("Destroying source file %s\n", PL_atom_chars(sf->name)));
 
   clearSourceAdmin(sf);
@@ -239,7 +241,8 @@ destroySourceFile(SourceFile sf)
 
 static SourceFile
 lookupSourceFile_unlocked(atom_t name, int create)
-{ SourceFile file;
+{ GET_LD
+  SourceFile file;
 
   if ( !GD->files.table )
   { GD->files.table = newHTable(32);
@@ -405,7 +408,8 @@ delete the source file.
 
 void
 unlinkSourceFileModule(SourceFile sf, Module m)
-{ ListCell cell, next, prev = NULL;
+{ GET_LD
+  ListCell cell, next, prev = NULL;
 
   LOCKSRCFILE(sf);
 

@@ -176,7 +176,8 @@ getExistingStreamContext(IOSTREAM *s)
 
 static void
 aliasStream(IOSTREAM *s, atom_t name)
-{ stream_context *ctx;
+{ GET_LD
+  stream_context *ctx;
   IOSTREAM *sp;
   alias *a;
 
@@ -205,7 +206,8 @@ aliasStream(IOSTREAM *s, atom_t name)
 
 static void
 unaliasStream(IOSTREAM *s, atom_t name)
-{ if ( name )
+{ GET_LD
+  if ( name )
   { if ( lookupHTable(streamAliases, (void *)name) )
     { stream_context *ctx;
 

@@ -77,7 +77,8 @@ cleanupFlags(void)
 
 static Flag
 lookupFlag(word key)
-{ Flag f;
+{ GET_LD
+  Flag f;
 
   if ( (f = lookupHTable(flagTable, (void *)key)) )
     return f;

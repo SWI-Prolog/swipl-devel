@@ -679,7 +679,8 @@ retry:
 
 int
 DeleteTemporaryFile(atom_t name)
-{ int rc = FALSE;
+{ GET_LD
+  int rc = FALSE;
 
   if ( GD->os.tmp_files )
   { LOCK();
