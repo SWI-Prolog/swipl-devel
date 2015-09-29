@@ -75,6 +75,9 @@ MSB(size_t i)
 #ifndef MemoryBarrier
 #define MemoryBarrier()			__sync_synchronize()
 #endif
+#endif
+
+#ifdef O_PLMT
 #define ATOMIC_ADD(ptr, v)		__sync_add_and_fetch(ptr, v)
 #define ATOMIC_SUB(ptr, v)		__sync_sub_and_fetch(ptr, v)
 #define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
@@ -82,6 +85,14 @@ MSB(size_t i)
 #define ATOMIC_OR(ptr, v)		__sync_fetch_and_or(ptr, v)
 #define ATOMIC_AND(ptr, v)		__sync_fetch_and_and(ptr, v)
 #define COMPARE_AND_SWAP(ptr,o,n)	__sync_bool_compare_and_swap(ptr,o,n)
+#else
+#define ATOMIC_ADD(ptr, v)		(*ptr += v)
+#define ATOMIC_SUB(ptr, v)		(*ptr -= v)
+#define ATOMIC_INC(ptr)			(++(*ptr))
+#define ATOMIC_DEC(ptr)			(--(*ptr))
+#define ATOMIC_OR(ptr, v)		(*ptr |= v)
+#define ATOMIC_AND(ptr, v)		(*ptr &= v)
+#define COMPARE_AND_SWAP(ptr,o,n)	(*ptr == o ? (*ptr = n), 1 : 0)
 #endif
 
 #ifndef HAVE_MSB
