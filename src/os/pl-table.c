@@ -440,6 +440,7 @@ newHTable(int len)
 
   ht		  = allocHeapOrHalt(sizeof(struct table));
   ht->size	  = 0;
+  ht->cleanup     = FALSE;
   ht->free_symbol = NULL;
   ht->copy_symbol = NULL;
 
