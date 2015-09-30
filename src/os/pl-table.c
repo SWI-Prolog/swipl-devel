@@ -152,9 +152,9 @@ htable_free_all_kvs(Table ht)
 }
 
 
-void htable_maybe_free_kvs(Table ht)
-{
-  KVS kvs;
+static void
+htable_maybe_free_kvs(Table ht)
+{ KVS kvs;
 
   if ( !htable_cas_cleanup(ht, FALSE, TRUE) )
   { return;
