@@ -162,6 +162,7 @@ unallocProcedure(Procedure proc)
   }
   freeHeap(proc, sizeof(*proc));
   ATOMIC_SUB(&m->code_size, sizeof(*proc));
+  GD->statistics.predicates--;
 }
 
 
