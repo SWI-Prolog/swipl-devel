@@ -104,19 +104,35 @@ pairs_keys([K-_|T0], [K|T]) :-
 
 %%	group_pairs_by_key(+Pairs, -Joined:list(Key-Values)) is det.
 %
-%	Group values with the same key. Pairs must be a key-sorted list.
-%	For example:
+%	Group  values  with  equivalent  (==/2)  consecutive  keys.  For
+%	example:
 %
-%	==
-%	?- group_pairs_by_key([a-2, a-1, b-4], X).
+%	  ==
+%	  ?- group_pairs_by_key([a-2, a-1, b-4, a-3], X).
 %
-%	X = [a-[2,1], b-[4]]
-%	==
+%	  X = [a-[2,1], b-[4], a-[3]]
+%	  ==
 %
-%	@param	Pairs	Key-Value list, sorted to the standard order
-%			of terms (as keysort/2 does)
+%	Sorting the list of pairs before grouping   can be used to group
+%	_all_ values associated with a  key.   For  example, finding all
+%	values associated with the largest key:
+%
+%         ==
+%         ?- sort(1, @>=, [a-1, b-2, c-3, a-4, a-5, c-6], Ps),
+%            group_pairs_by_key(Ps, [K-Vs|_]).
+%         K = c,
+%         Vs = [3, 6].
+%         ==
+%
+%	In this example, sorting by key   only (first argument of sort/4
+%	is 1) ensures that the order of  the values in the original list
+%	of pairs is maintained.
+%
+%	@param	Pairs	Key-Value list
 %	@param  Joined	List of Key-Group, where Group is the
-%			list of Values associated with Key.
+%			list of Values associated with equivalent
+%                       consecutive Keys in the same order as they
+%                       appear in Pairs.
 
 group_pairs_by_key([], []).
 group_pairs_by_key([M-N|T0], [M-[N|TN]|T]) :-
