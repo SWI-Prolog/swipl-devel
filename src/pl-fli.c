@@ -4352,6 +4352,8 @@ PL_set_prolog_flag(const char *name, int type, ...)
   int rval = TRUE;
   int flags = (type & FF_MASK);
 
+  initPrologThreads();
+
   va_start(args, type);
   switch(type & ~FF_MASK)
   { case PL_BOOL:

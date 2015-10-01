@@ -311,9 +311,14 @@ link_mutexes()
 
 static void
 initMutexes(void)
-{ counting_mutex *m;
+{ static int done = FALSE;
+  counting_mutex *m;
   int n = sizeof(_PL_mutexes)/sizeof(*m);
   int i;
+
+  if ( done )
+    return;
+  done = TRUE;
 
   for(i=0, m=_PL_mutexes; i<n; i++, m++)
     simpleMutexInit(&m->mutex);
@@ -391,6 +396,18 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
   succeed;
 }
 
+
+#ifdef PTW32_STATIC_LIB
+static void
+win_thread_initialize(void)
+{ static int done = FALSE;
+
+  if ( done )
+    return;
+  done = TRUE;
+  ptw32_processInitialize();
+}
+#endif
 
 		 /*******************************
 		 *	  LOCAL PROTOTYPES	*
@@ -726,12 +743,14 @@ initPrologThreads(void)
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
+  initAlloc();
+
 #if defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL)
   initMutexes();		/* see also DllMain() */
 #endif
 
 #ifdef PTW32_STATIC_LIB
-  ptw32_processInitialize();
+  win_thread_initialize();
 #endif
 
   LOCK();

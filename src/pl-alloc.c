@@ -919,7 +919,12 @@ initHBase(void)
 
 void
 initAlloc(void)
-{
+{ static int done = FALSE;
+
+  if ( done )
+    return;
+  done = TRUE;
+
 #if defined(_DEBUG) && defined(__WINDOWS__) && 0
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
 		 _CRTDBG_CHECK_CRT_DF|
