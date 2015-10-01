@@ -1677,6 +1677,15 @@ If \const{true} (default), a warning is printed if an implicitly
 imported predicate is clobbered by a local definition.  See
 use_module/1 for details.
 
+    \prologflagitem{win_file_security_check}{bool}{rw}
+Controls the behaviour or access_file/2 under Windows. If \const{false}
+(default), use the Windows _waccess() function. This correctly validates
+existence, but only validates the read-only bit that may prevent write
+access. Actual access might be denied due to ACLs (Access Control List)
+that apply to the file. If \const{true}, access_file/2 uses the Windows
+security API. Unfortunately this are poorly supported on many file
+systems.
+
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If present and \const{true}, the operating system is an implementation

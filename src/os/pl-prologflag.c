@@ -611,6 +611,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { if ( !(rval = enableThreads(val)) )
 	  break;			/* don't change value */
 #endif
+#if O_XOS
+      } else if ( k == ATOM_win_file_security_check )
+      { _xos_set_win_file_security_check(val);
+#endif
       } else if ( k == ATOM_tty_control )
       { if ( val != (f->value.a == ATOM_true) )
 	{ if ( !val && ttymodified )
@@ -1133,6 +1137,10 @@ initPrologFlags(void)
   setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
 #if __WINDOWS__
   setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
+#if O_XOS
+  setPrologFlag("win_file_security_check", FT_BOOL,
+		_xos_get_win_file_security_check(), 0);
 #endif
   setPrologFlag("version",	FT_INTEGER|FF_READONLY, PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");

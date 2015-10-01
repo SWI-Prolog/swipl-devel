@@ -7858,9 +7858,20 @@ If \arg{Mode} is \const{write} or \const{append}, this predicate also succeeds
 if the file does not exist and the user has write access to the
 directory of the specified location.
 
+The bahaviour is backed up by the POSIX access() API. The Windows
+replacement (_waccess()) returns incorrect results because it does not
+consider ACLs (Access Control Lists). The Prolog flag
+\prologflag{win_file_security_check} may be used to control the level of
+checking performed by Prolog. Please note that checking access never
+provides a guarantee that a subsequent open succeeds without errors due
+to inherent concurrency in file operations. It is generally more robust
+to try and open the file and handle possible exceptions. See open/4 and
+catch/3.
+
     \predicate{exists_file}{1}{+File}
 True if \arg{File} exists and is a regular file. This does not
-imply the user has read and/or write permission for the file.
+imply the user has read and/or write permission for the file.  This
+is the same as \term{access_file}{File, exist}.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
 Extracts the directory part of \arg{File}. The returned \arg{Directory}

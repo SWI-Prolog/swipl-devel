@@ -146,6 +146,8 @@ _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
 _export size_t  _xos_getenv(const char *name, char *buf, size_t buflen);
 _export int	_xos_setenv(const char *name, char *value, int overwrite);
+_export int	_xos_set_win_file_security_check(int new);
+_export int	_xos_get_win_file_security_check(void);
 
 #define _XOS_ISFILE	0x01
 #define _XOS_ISDIR	0x02

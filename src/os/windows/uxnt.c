@@ -618,6 +618,21 @@ _xos_fopen(const char *path, const char *mode)
 		 *      FILE MANIPULATIONS	*
 		 *******************************/
 
+static int win_file_security_check = FALSE;
+
+int
+_xos_set_win_file_security_check(int new)
+{ int old = win_file_security_check;
+
+  win_file_security_check = (new != FALSE);
+  return old;
+}
+
+int
+_xos_get_win_file_security_check(void)
+{ return win_file_security_check;
+}
+
 int
 _xos_access(const char *path, int mode)
 { TCHAR buf[PATH_MAX];
@@ -639,7 +654,7 @@ _xos_access(const char *path, int mode)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  if ( mode == F_OK )
+  if ( mode == F_OK || !win_file_security_check )
     return _waccess(buf, F_OK);
 
   sd = (SECURITY_DESCRIPTOR*)&sd_buf;
