@@ -4882,10 +4882,10 @@ PL_chars_to_term(const char *s, term_t t)
 
     if ( str_number((cucharp)s, &e, &n, FALSE) == NUM_OK &&
 	 e == (unsigned char *)s+len )
-      return PL_unify_number(t, &n);
+      return PL_put_number(t, &n);
   }
 
-  stream = Sopen_string(NULL, (char *)s, -1, "r");
+  stream = Sopen_string(NULL, (char *)s, (size_t)-1, "r");
   oldsrc = LD->read_source;
 
   init_read_data(&rd, stream PASS_LD);
