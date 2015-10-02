@@ -2056,7 +2056,7 @@ link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
   Word k = varFrameP(lTop, voffset);
 
   DEBUG(MSG_COMP_ARGVAR,
-	Sdprintf("Linking b_var(%d) to %s\n", index, vName(vd->address)));
+	Sdprintf("Linking b_var(%d) to %s\n", iv, vName(vd->address)));
 
   if ( k >= (Word) lMax )
     return LOCAL_OVERFLOW;
