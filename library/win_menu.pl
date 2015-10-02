@@ -70,8 +70,9 @@ menu('&Run',
      []).
 
 menu(File,
-     [ '&Consult ...' = action(user:consult(+file(open,
-						  'Load file into Prolog'))),
+     [ '&Consult ...' = action(user:load_files(+file(open,
+						     'Load file into Prolog'),
+					       [silent(false)])),
        '&Edit ...'    = action(user:edit(+file(open,
 					       'Edit existing file'))),
        '&New ...'     = action(edit_new(+file(save,
