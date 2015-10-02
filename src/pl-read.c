@@ -2561,9 +2561,10 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  { cur_token.type = T_NAME;
 		  }
 
-		  DEBUG(9, Sdprintf("%s: %s\n",
-				    cur_token.type == T_FUNCTOR ? "FUNC" : "NAME",
-				    stringAtom(cur_token.value.atom)));
+		  DEBUG(MSG_READ_TOKEN,
+			Sdprintf("%s: %s\n",
+				 cur_token.type == T_FUNCTOR ? "FUNC" : "NAME",
+				 stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
@@ -2577,7 +2578,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  if ( start[0] == '_' &&
 		       rdhere == start + 1 &&
 		       !_PL_rd->variables ) /* report them */
-		  { DEBUG(9, Sdprintf("VOID\n"));
+		  { DEBUG(MSG_READ_TOKEN, Sdprintf("VOID\n"));
 		    if ( *rdhere == '{' )
 		      cur_token.type = T_VOID_DICT;
 		    else
@@ -2586,8 +2587,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  { cur_token.value.variable = lookupVariable((char *)start,
 							      rdhere-start,
 							      _PL_rd);
-		    DEBUG(9, Sdprintf("VAR: %s\n",
-				      cur_token.value.variable->name));
+		    DEBUG(MSG_READ_TOKEN,
+			  Sdprintf("VAR: %s\n",
+				   cur_token.value.variable->name));
 		    if ( *rdhere == '{' )
 		      cur_token.type = T_VCLASS_DICT;
 		    else
@@ -2613,9 +2615,10 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case_solo:
     case SO:	{ cur_token.value.atom = codeToAtom(c);		/* not registered */
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, Sdprintf("%s: %s\n",
-				  *rdhere == '(' ? "FUNC" : "NAME",
-				  stringAtom(cur_token.value.atom)));
+		  DEBUG(MSG_READ_TOKEN,
+			Sdprintf("%s: %s\n",
+				 *rdhere == '(' ? "FUNC" : "NAME",
+				 stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
@@ -2662,8 +2665,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 			  case '[': cur_token.value.atom = ATOM_nil;  break;
 			}
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
-			DEBUG(9, Sdprintf("NAME: %s\n",
-					  stringAtom(cur_token.value.atom)));
+			DEBUG(MSG_READ_TOKEN,
+			      Sdprintf("NAME: %s\n",
+				       stringAtom(cur_token.value.atom)));
 			goto out;
 		      }
 #ifdef O_QUASIQUOTATIONS
@@ -2678,7 +2682,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  }
 		  cur_token.value.character = c;
 		  cur_token.type = T_PUNCTUATION;
-		  DEBUG(9, Sdprintf("PUNCT: %c\n", cur_token.value.character));
+		  DEBUG(MSG_READ_TOKEN,
+			Sdprintf("PUNCT: %c\n", cur_token.value.character));
 
 		  break;
 		}
