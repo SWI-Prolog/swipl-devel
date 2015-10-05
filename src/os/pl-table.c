@@ -201,11 +201,11 @@ htable_copy_kvs(Table ht, KVS old_kvs, KVS new_kvs)
 
     while ( TRUE )
     {
-      if ( v != HTABLE_TOMBSTONE )
+      if ( v && v != HTABLE_TOMBSTONE )
       { htable_put(ht, new_kvs, n, v, HTABLE_RESIZE);
       }
 
-      if ( htable_cas_value(old_kvs, idx, v, HTABLE_SENTINEL) )
+      if ( v && htable_cas_value(old_kvs, idx, v, HTABLE_SENTINEL) )
       { break;
       }
 
