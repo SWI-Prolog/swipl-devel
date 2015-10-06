@@ -597,12 +597,17 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 static
 PRED_IMPL("copy_term", 2, copy_term, 0)
 { PRED_LD
-  term_t copy = PL_new_term_ref();
 
-  if ( copy_term_refs(A1, copy, COPY_SHARE|COPY_ATTRS PASS_LD) )
-    return PL_unify(copy, A2);
+  if ( PL_is_atomic(A1) )
+  { return PL_unify(A1, A2);
+  } else
+  { term_t copy = PL_new_term_ref();
 
-  fail;
+    if ( copy_term_refs(A1, copy, COPY_SHARE|COPY_ATTRS PASS_LD) )
+      return PL_unify(copy, A2);
+
+    fail;
+  }
 }
 
 
