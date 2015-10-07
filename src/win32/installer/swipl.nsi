@@ -347,6 +347,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\ctypes.pl
   File ${SWIPL}\library\gensym.pl
   File ${SWIPL}\library\lists.pl
+  File ${SWIPL}\library\dicts.pl
   File ${SWIPL}\library\sort.pl
   File ${SWIPL}\library\ugraphs.pl
   File ${SWIPL}\library\occurs.pl
