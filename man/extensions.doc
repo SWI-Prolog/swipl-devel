@@ -76,7 +76,7 @@ for functional notation on dicts as described in
 between atoms and lists. As a result, we cannot use type polymorphism
 that involve both atoms and lists. For example, we cannot use
 \jargon{multi lists} (arbitrary deeply nested lists) of atoms. Multi
-lists of atoms are a in some situations a good representation of a flat
+lists of atoms are in some situations a good representation of a flat
 list that is assembled from sub sequences. The alternative, using
 difference lists or DCGs is often less natural and sometimes demands for
 `opening' proper lists (i.e., copying the list while replacing the
