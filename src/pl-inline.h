@@ -127,7 +127,7 @@ static inline Atom
 fetchAtomArray(size_t index)
 { int idx = MSB(index);
 
-  return GD->atoms.array.blocks[idx][index];
+  return &GD->atoms.array.blocks[idx][index];
 }
 
 

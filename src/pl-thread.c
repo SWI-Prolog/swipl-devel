@@ -6167,6 +6167,46 @@ pl_kvs_in_use(KVS kvs)
 
 
 		 /*******************************
+		 *      ATOM-TABLE IN USE       *
+		 *******************************/
+
+int
+pl_atom_table_in_use(AtomTable atom_table)
+{
+#ifdef O_PLMT
+  int i;
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    if ( info && info->atom_table == atom_table )
+    { return TRUE;
+    }
+  }
+#endif
+
+  return FALSE;
+}
+
+
+int
+pl_atom_bucket_in_use(Atom *bucket)
+{
+#ifdef O_PLMT
+  int i;
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    if ( info && info->atom_bucket == bucket )
+    { return TRUE;
+    }
+  }
+#endif
+
+  return FALSE;
+}
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 

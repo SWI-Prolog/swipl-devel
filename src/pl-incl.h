@@ -1079,12 +1079,33 @@ struct atom
 
 
 typedef struct atom_array
-{ Atom *blocks[8*sizeof(void*)];
+{ Atom blocks[8*sizeof(void*)];
 } atom_array;
+
+typedef struct atom_table * AtomTable;
+
+typedef struct atom_table
+{ AtomTable	prev;
+  int		buckets;
+  Atom *	table;
+} atom_table;
 
 
 #ifdef O_ATOMGC
-#define ATOM_MARKED_REFERENCE ((unsigned int)1 << (INTBITSIZE-1))
+
+#define ATOM_STATE_MASK		((unsigned int)0x7 << (INTBITSIZE-3))
+#define ATOM_RESERVED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-1))
+#define ATOM_VALID_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-2))
+#define ATOM_MARKED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-3))
+
+#define ATOM_IS_FREE(ref)	(((ref) & ATOM_STATE_MASK) == 0)
+#define ATOM_IS_RESERVED(ref)	((ref) & ATOM_RESERVED_REFERENCE)
+#define ATOM_IS_VALID(ref)	((ref) & ATOM_VALID_REFERENCE)
+#define ATOM_IS_MARKED(ref)	((ref) & ATOM_MARKED_REFERENCE)
+
+#define ATOM_REF_COUNT_MASK	(~ATOM_STATE_MASK)
+#define ATOM_REF_COUNT(ref)	((ref) & ATOM_REF_COUNT_MASK)
+
 #ifdef O_DEBUG_ATOMGC
 #define PL_register_atom(a) \
 	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)

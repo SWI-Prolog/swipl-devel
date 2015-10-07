@@ -98,6 +98,8 @@ typedef struct _PL_thread_info_t
   ldata_status_t    ldata_status;	/* status of forThreadLocalData() */
   int		    in_exit_hooks;	/* TRUE: running exit hooks */
   KVS		    kvs;		/* current hash-table map accessed */
+  AtomTable	    atom_table;		/* current atom-table accessed */
+  Atom *	    atom_bucket;	/* current atom bucket-list accessed */
 } PL_thread_info_t;
 
 #define QTYPE_THREAD	0
@@ -364,6 +366,8 @@ COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 COMMON(int)	pl_kvs_in_use(KVS kvs);
+COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
+COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 
