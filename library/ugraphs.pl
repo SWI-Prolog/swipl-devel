@@ -55,7 +55,7 @@
 	    top_sort/2,			% +Graph, -Sort
 	    top_sort/3,			% +Graph, -Sort0, -Sort
 	    transitive_closure/2,	% +Graph, -Closure
-	    transpose/2,		% +Graph, -NewGraph
+	    transpose_ugraph/2,		% +Graph, -NewGraph
 	    vertices/2,			% +Graph, -Vertices
 	    vertices_edges_to_ugraph/3,	% +Vertices, +Edges, -Graph
 	    ugraph_union/3		% +Graph1, +Graph2, -Graph
@@ -359,7 +359,7 @@ warshall([X-Neibs|G], V, Y, [X-Neibs|NewG]) :- !,
 	warshall(G, V, Y, NewG).
 warshall([], _, _, []).
 
-%%	transpose(Graph, NewGraph) is det.
+%%	transpose_ugraph(Graph, NewGraph) is det.
 %
 %	Unify NewGraph with a new graph obtained from Graph by replacing
 %	all edges of the form V1-V2 by edges of the form V2-V1. The cost
@@ -371,8 +371,13 @@ warshall([], _, _, []).
 %	                5-[],6-[],7-[],8-[]], NL).
 %	  NL = [1-[],2-[],3-[1],4-[2],5-[1,4],6-[],7-[],8-[]]
 %	  ==
+%
+%	@compat  This  predicate  used  to   be  known  as  transpose/2.
+%	Following  SICStus  4,  we  reserve    transpose/2   for  matrix
+%	transposition    and    renamed    ugraph    transposition    to
+%	transpose_ugraph/2.
 
-transpose(Graph, NewGraph) :-
+transpose_ugraph(Graph, NewGraph) :-
 	edges(Graph, Edges),
 	vertices(Graph, Vertices),
 	flip_edges(Edges, TransposedEdges),
