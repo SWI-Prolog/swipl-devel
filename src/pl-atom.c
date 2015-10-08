@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -36,9 +36,37 @@ atom   as   it   appears   is   of   type   word   and   of   the   form
 n-th pointer from the atom_array  dynamic   array.  See  atomValue() for
 translating the word into the address of the structure.
 
-Next, there is a hash-table, which is a normal `open' hash-table mapping
-char * to the atom structure. This   thing is dynamically rehashed. This
-table is used by lookupAtom() below.
+Next, there is a hash-table. Thanks to the work by Keri Harris, the atom
+table now uses a lock-free algorithm.  This works as follows:
+
+  - Atoms have a ->next pointer, organizing them as an open hash table.
+  - The head pointers for the hash-buckets are in a struct atom_table,
+    of which the most recent is in GD->atoms.table.  This structure
+    contains a pointer to older atom_tables (before resizing).  A
+    resize allocates a new struct atom_table, copies all atoms
+    (updating Atom-next) and makes the new atom-table current.
+    Lookup and creation work reliable during this process because
+    - If the bucket scan accidentally finds the right atom, great.
+    - If not, but the atom table has changed we retry, now using
+      the new table where all atoms are properly linked again.
+    - If the resize is in progress though, we may not find the
+      atom.  In that case we create a new one.  As our hash-table
+      is still too small, we lock and call rehashAtoms().  So,
+      when we get to linking the new atom into the hash-table,
+      we will find the table is old, destroy the atom and redo.
+
+    JW: shouldn't we move the check for a resize to before
+    reserveAtom() and if the table has changed redo immediately?
+
+  - The creation of an atom needs to guarantee that it is added
+    to the latest table and only added once.  We do this by creating
+    a RESERVED atom and fully preparing it.  Now, if we managed to
+    CAS it into the bucket, we know we are the only one that created
+    the atom and we make the atom VALID, so others can find it.  If
+    not, we redo the lookup, possibly finding that someone created it
+    for us.  It is possible that another thread inserted another atom
+    into the same bucket.  In that case we have bad luck and must
+    recreate the atom.  Hash collisions should be fairly rare.
 
 Atom garbage collection
 -----------------------
@@ -48,7 +76,7 @@ There are various categories of atoms:
 	* Built-in atoms
 	These are used directly in the C-source of the system and cannot
 	be removed. These are the atoms upto a certain number. This
-	number is sizeof(atoms)/sizeof(char *).
+	number is GD->atoms.builtin
 
 	* Foreign referenced atoms
 	These are references hold in foreign code by means of
@@ -80,8 +108,19 @@ There are various categories of atoms:
 Reclaiming
 ----------
 
-To reclaim an atom, it is deleted   from  the hash-table, a NULL pointer
-should be set in the dynamic array and the structure is disposed.
+Atoms are reclaimed by collectAtoms(), which is a two pass process.
+
+  - First, the atom-array is scanned and unmarked atoms without
+    references are handed to invalidateAtom(), which
+    - Uses CAS to reset VALID
+    - Removes the atom from the hash bucket
+    - sets type to gced_atom/gced_nocopy_atom
+    - sets length to 0;
+  - In the second pass, we call destroyAtom() for all atoms of
+    type gced_atom/gced_nocopy_atom.
+
+    JW: Why are these two passes needed and what guarantees us that
+    memcmp() in lookupBlob() is not accessing an atom-being destroyed?
 
 The dynamic array gets holes and  we   remember  the  first free hole to
 avoid too much search. Alternatively, we could  turn the holes into some
@@ -95,14 +134,16 @@ Atom GC and multi-threading
 This is a hard problem. Atom-GC cannot   run  while some thread performs
 normal GC because the pointer relocation makes it extremely hard to find
 referenced atoms. Otherwise, ask all  threads   to  mark their reachable
-atoms and run collectAtoms() to reclaim the unreferenced atoms.
+atoms and run collectAtoms() to reclaim the unreferenced atoms. The lock
+L_GC is used to ensure garbage collection does not run concurrently with
+atom garbage collection.
 
-On Unix, we signal all threads. Upon receiving the signal, they mark all
-accessible atoms and continue.  On  Windows,   we  have  no asynchronous
-signals, so we silence the threads one-by-one   and do the marking. This
-is realised by forThreadLocalData().  Note  that   this  means  only one
-thread is collecting  in  Windows.  This   could  be  enhanced  by using
-multiple threads during the collection phase.
+Atom-GC asynchronously walks  the  stacks  of   all  threads  and  marks
+everything  that  looks  `atom-like',   i.e.,    our   collector   is  a
+`conservative' collector. While agc is running the VM will mark atoms as
+it pushes them onto the stacks. See e.g.,   the H_ATOM VMI. An atom that
+is unregistered (PL_unregister_atom()) just before   AGC  starts may not
+get marked this way. This is fixed by setting LD->atoms.unregistering.
 
 Note that threads can mark their atoms and continue execution because:
 
@@ -130,6 +171,15 @@ Note that threads can mark their atoms and continue execution because:
       AGC is running, we are ok, because this is merely the same issue
       as atoms living on the stack.  TBD: redesign the structures such
       that they can safely be walked.
+
+JW: I think we can reduce locking for AGC further.
+  - L_GC is needed, but we could give each thread its own GC lock,
+    as we only need to sync with the thread we are marking.
+  - L_THREAD is needed to guarantee no new threads are started or
+    destroyed. That too can probably be done more subtle.
+  - L_STOPTHEWORLD should not be needed anymore as we do not stop
+  - L_AGC is only used for syncing with current_blob().
+  - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void	rehashAtoms(void);
