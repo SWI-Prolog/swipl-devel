@@ -46,6 +46,7 @@ test_arith :-
                     maxint,
                     maxint_promotion,
 		    float_overflow,
+		    float_zero,
 		    arith_misc
 		  ]).
 
@@ -345,6 +346,38 @@ test(div, error(evaluation_error(float_overflow))) :-
 :- endif.
 
 :- end_tests(float_overflow).
+
+:- begin_tests(float_zero).
+
+min_zero(X) :-
+	X is -1.0/10e300/10e300.
+
+test(eq) :-
+	min_zero(X),
+	X =:= 0.0.
+test(lt, fail) :-
+	min_zero(X),
+	X < 0.0.
+test(gt, fail) :-
+	min_zero(X),
+	X > 0.0.
+test(eq, fail) :-
+	min_zero(X),
+	X == 0.0.
+test(lt) :-
+	min_zero(X),
+	X @< 0.0.
+test(gt, fail) :-
+	min_zero(X),
+	X > 0.0.
+test(cmp, D == (<)) :-
+	min_zero(X),
+	compare(D, X, 0.0).
+test(cmp, D == (>)) :-
+	min_zero(X),
+	compare(D, 0.0, X).
+
+:- end_tests(float_zero).
 
 :- begin_tests(arith_misc).
 

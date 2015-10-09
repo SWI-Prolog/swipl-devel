@@ -25,6 +25,7 @@
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
 #include "pl-inline.h"
+#include <math.h>
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
@@ -1646,12 +1647,21 @@ do_compare(term_agendaLR *agenda, int eq ARG_LD)
 	return rc;
       }
       case TAG_FLOAT:
-      { double f1 = valFloat(w1);
-	double f2 = valFloat(w2);
+      { if ( equalIndirect(w1,w2) )
+	{ continue;
+	} else
+	{ double f1 = valFloat(w1);
+	  double f2 = valFloat(w2);
 
-	if ( f1 == f2 )
-	  continue;
-	return f1 < f2 ? CMP_LESS : CMP_GREATER;
+	  if ( f1 < f2 )
+	  { return CMP_LESS;
+	  } else if ( f1 > f2 )
+	  { return CMP_GREATER;
+	  } else
+	  { assert(signbit(f1) != signbit(f2));
+	    return signbit(f1) ? CMP_LESS : CMP_GREATER;
+	  }
+	}
       }
       case TAG_ATOM:
 	return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
