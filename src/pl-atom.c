@@ -55,9 +55,6 @@ table now uses a lock-free algorithm.  This works as follows:
       when we get to linking the new atom into the hash-table,
       we will find the table is old, destroy the atom and redo.
 
-    JW: shouldn't we move the check for a resize to before
-    reserveAtom() and if the table has changed redo immediately?
-
   - The creation of an atom needs to guarantee that it is added
     to the latest table and only added once.  We do this by creating
     a RESERVED atom and fully preparing it.  Now, if we managed to
@@ -557,6 +554,12 @@ redo:
     }
   }
 
+  if ( atomTable->buckets * 2 < GD->statistics.atoms )
+  { LOCK();
+    rehashAtoms();
+    UNLOCK();
+  }
+
   if ( !( head == table[v] && table == atomTable->table ) )
     goto redo;
 
@@ -583,12 +586,6 @@ redo:
 #ifdef O_TERMHASH
   a->hash_value = v0;
 #endif
-
-  if ( atomTable->buckets * 2 < GD->statistics.atoms )
-  { LOCK();
-    rehashAtoms();
-    UNLOCK();
-  }
 
   if ( true(type, PL_BLOB_UNIQUE) )
   { a->next = table[v];
