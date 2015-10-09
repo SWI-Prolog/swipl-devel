@@ -34,7 +34,9 @@
 	    dicts_to_same_keys/3,	% +DictsIn, :OnEmpty, -DictsOut
 	    dict_fill/4,		% +Value, +Key, +Dict, -Value
 	    dict_no_fill/3,		% +Key, +Dict, -Value
-	    dicts_join/6,		% +Key, +Keys, :OnEmpty, +Ds1, +Ds2, -Ds
+	    dicts_join/3,		% +Key, +DictsIn, -Dicts
+	    dicts_join/4,		% +Key, +Dicts1, +Dicts2, -Dicts
+	    dicts_slice/3,		% +Keys, +DictsIn, -DictsOut
 	    dicts_to_compounds/4	% ?Dicts, +Keys, :OnEmpty, ?Compounds
 	  ]).
 :- use_module(library(apply)).
@@ -44,15 +46,14 @@
 
 :- meta_predicate
 	dicts_to_same_keys(+,3,-),
-	dicts_join(+,+,3,+,+,-),
 	dicts_to_compounds(?,+,3,?).
 
 /** <module> Dict utilities
 
 This library defines utilities that operate   on lists of dicts, notably
 to make lists of dicts  consistent   by  adding missing keys, converting
-between lists of compounds and  lists  of   dicts  and  joining lists of
-dicts.
+between lists of compounds and lists of dicts, joining and slicing lists
+of dicts.
 */
 
 %%	dicts_same_tag(+List, -Tag) is semidet.
@@ -148,74 +149,105 @@ dict_fill(ValueIn, _, _, Value) :-
 dict_no_fill(Key, Dict, Value) :-
 	Value = Dict.Key.
 
-%%	dicts_join(+Key, +Keys, :OnEmpty,
-%%		   +Dicts1, +Dicts2, -Dicts) is semidet.
+%%	dicts_join(+Key, +DictsIn, -Dicts) is semidet.
 %
-%	Join two lists of dicts (Dicts1 and  Dicts2) on Key, copying the
-%	values for Keys. Empty fields are filled with the result of
+%	Join dicts in Dicts that have the   same value for Key, provided
+%	they do not have conflicting values on other keys.  For example:
 %
-%	  ==
-%	  call(:OnEmpty, +Key, +Dict, -Value)
-%	  ==
+%	==
+%	?- dicts_join(x, [r{x:1, y:2}, r{x:1, z:3}, r{x:2,y:4}], L).
+%	L = [r{x:1, y:2, z:3}, r{x:2, y:4}].
+%	==
 %
-%	Dicts from Dicts1 and Dicts2 that  have   no  value  for Key are
-%	removed. The list Dicts is ordered on   the value for Key. Fails
-%	if two dicts have conflicting values for   any of the keys Keys.
-%	For example:
+%	@error  existence_error(key, Key, Dict)	if a dict in Dicts1
+%		or Dicts2 does not contain Key.
+
+dicts_join(Join, Dicts0, Dicts) :-
+	sort(Join, @=<, Dicts0, Dicts1),
+	join(Dicts1, Join, Dicts).
+
+join([], _, []) :- !.
+join([H0|T0], Key, [H|T]) :- !,
+	get_dict(Key, H0, V0),
+	join_same(T0, Key, V0, H0, H, T1),
+	join(T1, Key, T).
+join([One], _, [One]) :- !.
+
+join_same([H|T0], Key, V0, D0, D, T) :-
+	get_dict(Key, H, V),
+	V == V0, !,
+	D0 >:< H,
+	put_dict(H, D0, D1),
+	join_same(T0, Key, V0, D1, D, T).
+join_same(DL, _, _, D, D, DL).
+
+%%	dicts_join(+Key, +Dicts1, +Dicts2, -Dicts) is semidet.
+%
+%	Join two lists of dicts (Dicts1 and   Dicts2)  on Key. Each pair
+%	D1-D2 from Dicts1 and Dicts2 that have   the same (==) value for
+%	Key creates a new dict D with the  union of the keys from D1 and
+%	D2, provided D1 and D2 to not   have conflicting values for some
+%	key.  For example:
 %
 %	  ==
 %	  ?- DL1 = [r{x:1,y:1},r{x:2,y:4}],
 %	     DL2 = [r{x:1,z:2},r{x:3,z:4}],
-%	     dicts_join(x, [x,y,z], dict_fill(null), DL1, DL2, DL).
-%	  DL = [r{x:1, y:1, z:2}, r{x:2, y:4, z:null}, r{x:3, y:null, z:4}].
+%	     dicts_join(x, DL1, DL2, DL).
+%	     DL = [r{x:1, y:1, z:2}, r{x:2, y:4}, r{x:3, z:4}].
 %	  ==
+%
+%	@error  existence_error(key, Key, Dict)	if a dict in Dicts1
+%		or Dicts2 does not contain Key.
 
-dicts_join(Join, Keys, OnEmpty, Dicts1, Dicts2, Dicts) :-
-	include(has_key(Join), Dicts1, Dicts10),
-	include(has_key(Join), Dicts2, Dicts20),
-	sort(Join, @=<, Dicts10, Dicts11),
-	sort(Join, @=<, Dicts20, Dicts21),
-	join(Dicts11, Dicts21, Join, Keys, OnEmpty, Dicts).
+dicts_join(Join, Dicts1, Dicts2, Dicts) :-
+	sort(Join, @=<, Dicts1, Dicts11),
+	sort(Join, @=<, Dicts2, Dicts21),
+	join(Dicts11, Dicts21, Join, Dicts).
 
-has_key(Key, Dict) :-
-	get_dict(Key, Dict, _).
-
-join([], [], _, _, _, []) :- !.
-join([D1|T1], [D2|T2], Join, Keys, OnEmpty, [DNew|MoreDicts]) :- !,
+join([], [], _, []) :- !.
+join([D1|T1], [D2|T2], Join, [DNew|MoreDicts]) :- !,
 	get_dict(Join, D1, K1),
 	get_dict(Join, D2, K2),
 	compare(Diff, K1, K2),
 	(   Diff == (=)
-	->  consistent(Keys, D1, D2, Shared),
-	    select_keys_dict(Keys, OnEmpty, Shared, DNew),
-	    join(T1, T2, Join, Keys, OnEmpty, MoreDicts)
+	->  D1 >:< D2,
+	    put_dict(D1, D2, DNew),
+	    join(T1, T2, Join, MoreDicts)
 	;   Diff == (<)
-	->  select_keys_dict(Keys, OnEmpty, D1, DNew),
-	    join(T1, [D2|T2], Join, Keys, OnEmpty, MoreDicts)
-	;   select_keys_dict(Keys, OnEmpty, D2, DNew),
-	    join([D1|T1], T2, Join, Keys, OnEmpty, MoreDicts)
+	->  DNew = D1,
+	    join(T1, [D2|T2], Join, MoreDicts)
+	;   DNew = D2,
+	    join([D1|T1], T2, Join, MoreDicts)
 	).
-join([], Dicts, _, Keys, OnEmpty, NewDicts) :- !,
-	maplist(select_keys_dict(Keys, OnEmpty), Dicts, NewDicts).
-join(Dicts, [], _, Keys, OnEmpty, NewDicts) :-
-	maplist(select_keys_dict(Keys, OnEmpty), Dicts, NewDicts).
+join([], Dicts, _, Dicts) :- !.
+join(Dicts, [], _, Dicts).
 
-consistent(Keys, Dict1, Dict2, Shared) :-
-	pairs_keys_values(Pairs, Keys, _),
-	dict_pairs(Shared, _, Pairs),
-	Shared >:< Dict1,
-	Shared >:< Dict2.
 
-select_keys_dict(Keys, OnEmpty, Dict0, Dict) :-
-	is_dict(Dict0, Tag),
-	select_key_value_pairs(Keys, OnEmpty, Dict0, Pairs),
-	dict_pairs(Dict, Tag, Pairs).
+%%	dicts_slice(+Keys, +DictsIn, -DictsOut) is det.
+%
+%	DictsOut is a list of Dicts only containing values for Keys.
 
-select_key_value_pairs([], _, _, []).
-select_key_value_pairs([H|T0], OnEmpty, Dict, [H-V|T]) :-
-	key_value(Dict, OnEmpty, H, V),
-	select_key_value_pairs(T0, OnEmpty, Dict, T).
+dicts_slice(Keys, DictsIn, DictsOut) :-
+	sort(Keys, SortedKeys),
+	maplist(dict_slice(SortedKeys), DictsIn, DictsOut).
 
+dict_slice(Keys, DictIn, DictOut) :-
+	dict_pairs(DictIn, Tag, PairsIn),
+	slice_pairs(Keys, PairsIn, PairsOut),
+	dict_pairs(DictOut, Tag, PairsOut).
+
+slice_pairs([], _, []) :- !.
+slice_pairs(_, [], []) :- !.
+slice_pairs([H|T0], [P|PL], Pairs) :-
+	P = K-_,
+	compare(D, H, K),
+	(   D == (=)
+	->  Pairs = [P|More],
+	    slice_pairs(T0, PL, More)
+	;   D == (<)
+	->  slice_pairs(T0, [P|PL], Pairs)
+	;   Pairs = []
+	).
 
 %%	dicts_to_compounds(?Dicts, +Keys, :OnEmpty, ?Compounds) is semidet.
 %
