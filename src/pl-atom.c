@@ -882,16 +882,20 @@ invalidateAtom(Atom a, unsigned int ref)
 }
 
 static int
-destroyAtom(Atom a)
+destroyAtom(Atom a, Atom **buckets)
 { unsigned int v;
-  AtomTable t = atomTable;
+  AtomTable t;
 
-  while ( t )
-  { v = a->hash_value & (t->buckets-1);
-    if ( pl_atom_bucket_in_use(t->table+v) )
-    { return FALSE;
+  while ( buckets && *buckets )
+  { t = atomTable;
+    while ( t )
+    { v = a->hash_value & (t->buckets-1);
+      if ( *buckets == t->table+v )
+      { return FALSE;
+      }
+      t = t->prev;
     }
-    t = t->prev;
+    buckets++;
   }
 
 #if 0
@@ -958,6 +962,8 @@ collectAtoms(void)
     }
   }
 
+  Atom** buckets = pl_atom_buckets_in_use();
+
   last=FALSE;
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -985,7 +991,7 @@ collectAtoms(void)
       }
 
       if ( (a->type == &gced_atom) || (a->type == &gced_nocopy_atom) )
-      { if ( destroyAtom(a) )
+      { if ( destroyAtom(a, buckets) )
 	{ reclaimed++;
 	  if ( !hole_seen )
 	  { hole_seen = TRUE;
@@ -996,6 +1002,8 @@ collectAtoms(void)
     }
   }
 
+  if ( buckets )
+    PL_free(buckets);
   maybe_free_atom_tables();
 
   GD->atoms.unregistered = GD->atoms.non_garbage = unregistered;

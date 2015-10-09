@@ -6206,6 +6206,44 @@ pl_atom_bucket_in_use(Atom *bucket)
 }
 
 
+Atom**
+pl_atom_buckets_in_use()
+{
+#ifdef O_PLMT
+  int i, index=0;
+  size_t sz = 32;
+
+  Atom **buckets = allocHeapOrHalt(sz * sizeof(Atom*));
+  memset(buckets, 0, sz * sizeof(Atom*));
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    if ( info && info->atom_bucket )
+    { if ( index >= sz-1 )
+      { int j = 0;
+        size_t oldsz = sz;
+        sz *= 2;
+        Atom **newbuckets = allocHeapOrHalt(sz * sizeof(Atom*));
+	memset(newbuckets, 0, sz * sizeof(Atom*));
+	for ( ; j < oldsz; j++ )
+	{ newbuckets[j] = buckets[j];
+	}
+	PL_free(buckets);
+        buckets = newbuckets;
+      }
+      buckets[index] = info->atom_bucket;
+      if ( buckets[index] )	/* atom_bucket may have been released */
+        index++;
+    }
+  }
+
+  return buckets;
+#endif
+
+  return NULL;
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
