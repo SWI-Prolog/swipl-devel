@@ -439,10 +439,27 @@ print_backtrace_named(const char *why)
 
 #ifdef BTRACE_DONE
 
+#ifndef HAVE_CTIME_R
+#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
+#endif
+
 static void
 crashHandler(int sig)
-{ Sdprintf("\nSWI-Prolog [thread %d]: received fatal signal %d (%s)\n",
-	   PL_thread_self(), sig, signal_name(sig));
+{ int tid = PL_thread_self();
+  atom_t alias;
+  const pl_wchar_t *name = L"";
+  time_t now = time(NULL);
+  char tbuf[48];
+
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
+  if ( PL_get_thread_alias(tid, &alias) )
+    name = PL_atom_wchars(alias, NULL);
+
+  Sdprintf("\nSWI-Prolog [thread %d (%Ws) at %s]: "
+	   "received fatal signal %d (%s)\n",
+	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
   save_backtrace("crash");
   print_backtrace_named("crash");
   run_on_halt(&GD->os.exit_hooks, 4);

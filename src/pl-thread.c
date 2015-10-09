@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam,
+    Copyright (C): 1985-2015, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -5992,16 +5992,32 @@ thread caused the problem. If the thread is   not the main one, we could
 try to recover!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef HAVE_CTIME_R
+#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
+#endif
+
 void
 __assert_fail(const char *assertion,
 	      const char *file,
 	      unsigned int line,
 	      const char *function)
-{ Sdprintf("[Thread %d] %s:%d: %s: Assertion failed: %s\n",
-	   PL_thread_self(),
+{ int tid = PL_thread_self();
+  atom_t alias;
+  const pl_wchar_t *name = L"";
+  time_t now = time(NULL);
+  char tbuf[48];
+
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
+  if ( PL_get_thread_alias(tid, &alias) )
+    name = PL_atom_wchars(alias, NULL);
+
+  Sdprintf("[Thread %d (%Ws) at %s] %s:%d: %s: Assertion failed: %s\n",
+	   PL_thread_self(), name, tbuf,
 	   file, line, function, assertion);
-  save_backtrace("crash");
-  print_backtrace_named("crash");
+  save_backtrace("assert_fail");
+  print_backtrace_named("assert_fail");
   abort();
 }
 
