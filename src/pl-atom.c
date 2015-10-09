@@ -44,7 +44,7 @@ table now uses a lock-free algorithm.  This works as follows:
     of which the most recent is in GD->atoms.table.  This structure
     contains a pointer to older atom_tables (before resizing).  A
     resize allocates a new struct atom_table, copies all atoms
-    (updating Atom-next) and makes the new atom-table current.
+    (updating Atom->next) and makes the new atom-table current.
     Lookup and creation work reliable during this process because
     - If the bucket scan accidentally finds the right atom, great.
     - If not, but the atom table has changed we retry, now using
@@ -117,10 +117,28 @@ Atoms are reclaimed by collectAtoms(), which is a two pass process.
     - sets type to gced_atom/gced_nocopy_atom
     - sets length to 0;
   - In the second pass, we call destroyAtom() for all atoms of
-    type gced_atom/gced_nocopy_atom.
+    type gced_atom/gced_nocopy_atom.  destroyAtom() only destroys
+    the atom if pl_atom_bucket_in_use() returns FALSE.  This serves
+    two purposes:
+      - Garantee that Atom->name is valid
+      - Avoid a race between looking up the atom and destroying it:
 
-    JW: Why are these two passes needed and what guarantees us that
-    memcmp() in lookupBlob() is not accessing an atom-being destroyed?
+	thread1                      thread2
+	--------------------------------------------
+	lookupBlob(s, length, type)
+	  v = hash(s)
+	  a = atoms[v]
+	  length == a.length
+	  type == a.type
+	  memcmp(s, a.name)
+	  // we have a match!
+				     AGC
+				       invalidate atom
+				       free atom
+				     lookupBlob(s2)
+				       v = hash(s2)
+				       not found so insert at atoms[v]
+	  CAS ref -> ref+1
 
 The dynamic array gets holes and  we   remember  the  first free hole to
 avoid too much search. Alternatively, we could  turn the holes into some
