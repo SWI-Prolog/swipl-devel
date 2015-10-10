@@ -6093,10 +6093,10 @@ a_not_in_b([_,AX,AW,AY,AH], [_,BX,BW,BY,BH]) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% automaton(+Signature, +Nodes, +Arcs)
+%% automaton(+Vs, +Nodes, +Arcs)
 %
 %  Describes a list of finite domain variables with a finite
-%  automaton. Equivalent to automaton(_, _, Signature, Nodes, Arcs,
+%  automaton. Equivalent to automaton(Vs, _, Vs, Nodes, Arcs,
 %  [], [], _), a common use case of automaton/8. In the following
 %  example, a list of binary finite domain variables is constrained to
 %  contain at least two consecutive ones:
@@ -6123,7 +6123,7 @@ a_not_in_b([_,AX,AW,AY,AH], [_,BX,BW,BY,BH]) :-
 automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 
 
-%% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
+%% automaton(+Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  Describes a list of finite domain variables with a finite
 %  automaton. True iff the finite automaton induced by Nodes and Arcs
@@ -6158,7 +6158,7 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %
 %  sequence_inflexions(Vs, N) :-
 %          variables_signature(Vs, Sigs),
-%          automaton(_, _, Sigs,
+%          automaton(Sigs, _, Sigs,
 %                    [source(s),sink(i),sink(j),sink(s)],
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
 %                     arc(i,0,i), arc(i,1,j,[C+1]), arc(i,2,i),
