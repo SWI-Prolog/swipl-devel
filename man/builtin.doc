@@ -7861,7 +7861,7 @@ directory of the specified location.
 The bahaviour is backed up by the POSIX access() API. The Windows
 replacement (_waccess()) returns incorrect results because it does not
 consider ACLs (Access Control Lists). The Prolog flag
-\prologflag{win_file_security_check} may be used to control the level of
+\prologflag{win_file_access_check} may be used to control the level of
 checking performed by Prolog. Please note that checking access never
 provides a guarantee that a subsequent open succeeds without errors due
 to inherent concurrency in file operations. It is generally more robust
