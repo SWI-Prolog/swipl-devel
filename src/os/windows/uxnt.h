@@ -137,6 +137,7 @@ _export ssize_t	_xos_write(int handle, const void *buf, size_t size);
 _export long	_xos_lseek(int handle, long offset, int whence);
 _export long	_xos_tell(int handle);
 _export int	_xos_access(const char *path, int mode);
+_export int	_xos_access_dir(const char *path, int mode);
 _export int	_xos_chmod(const char *path, int mode);
 _export int	_xos_remove(const char *path);
 _export int	_xos_rename(const char *old, const char *newname);

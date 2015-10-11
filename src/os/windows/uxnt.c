@@ -71,6 +71,8 @@
 #define PATH_MAX 260
 #endif
 
+static int exists_file_or_dir(const TCHAR *path, int flags);
+
 
 		 /*******************************
 		 *	       ERRNO		*
@@ -656,11 +658,14 @@ _xos_access(const char *path, int mode)
     return -1;
 
   if ( mode == F_OK || win_file_access_check == XOS_ACCESS_ACCESS )
-    return _waccess(buf, F_OK);
+    return _waccess(buf, mode);
 
   if ( win_file_access_check == XOS_ACCESS_OPENCLOSE )
   { int m = 0;
     int fd;
+
+    if ( exists_file_or_dir(buf, _XOS_DIR) )
+      return _waccess(buf, mode);
 
     if ( mode & X_OK )
       mode |= R_OK;
@@ -757,6 +762,17 @@ simple:
 
 
 int
+_xos_access_dir(const char *path, int mode)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return _waccess(buf, mode);
+}
+
+
+int
 _xos_chmod(const char *path, int mode)
 { TCHAR buf[PATH_MAX];
 
@@ -806,15 +822,11 @@ _xos_stat(const char *path, struct _stati64 *sbuf)
 }
 
 
-int
-_xos_exists(const char *path, int flags)
-{ TCHAR buf[PATH_MAX];
-  DWORD a;
+static int
+exists_file_or_dir(const TCHAR *path, int flags)
+{ DWORD a;
 
-  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
-    return -1;
-
-  if ( (a=GetFileAttributes(buf)) != 0xFFFFFFFF )
+  if ( (a=GetFileAttributes(path)) != 0xFFFFFFFF )
   { if ( flags & _XOS_DIR )
     { if ( a & FILE_ATTRIBUTE_DIRECTORY )
 	return TRUE;
@@ -830,6 +842,17 @@ _xos_exists(const char *path, int flags)
   }
 
   return FALSE;
+}
+
+
+int
+_xos_exists(const char *path, int flags)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return exists_file_or_dir(buf, flags);
 }
 
 

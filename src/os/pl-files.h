@@ -34,6 +34,7 @@ COMMON(void)		initFiles(void);
 COMMON(int)		LastModifiedFile(const char *f, double *t);
 COMMON(int)		RemoveFile(const char *path);
 COMMON(int)		AccessFile(const char *path, int mode);
+COMMON(int)		AccessDirectory(const char *path, int mode);
 COMMON(char *)		DeRefLink(const char *link, char *buf);
 COMMON(int)		ExistsFile(const char *path);
 COMMON(int)		ExistsDirectory(const char *path);

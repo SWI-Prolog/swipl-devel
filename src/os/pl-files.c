@@ -166,11 +166,9 @@ ACCESS_WRITE and ACCESS_EXECUTE.
 #define F_OK 0
 #endif
 
-int
-AccessFile(const char *path, int mode)
-{ char tmp[MAXPATHLEN];
-#ifdef HAVE_ACCESS
-  int m = 0;
+static int
+access_mode(int mode)
+{ int m = 0;
 
   if ( mode == ACCESS_EXIST )
     m = F_OK;
@@ -182,9 +180,27 @@ AccessFile(const char *path, int mode)
 #endif
   }
 
-  return access(OsPath(path, tmp), m) == 0 ? TRUE : FALSE;
+  return m;
+}
+
+int
+AccessFile(const char *path, int mode)
+{ char tmp[MAXPATHLEN];
+#ifdef HAVE_ACCESS
+  return access(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
 #else
 #error "No implementation for AccessFile()"
+#endif
+}
+
+int
+AccessDirectory(const char *path, int mode)
+{
+#if O_XOS
+  char tmp[MAXPATHLEN];
+  return _xos_access_dir(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
+#else
+  return AccessFile(path, mode);
 #endif
 }
 
@@ -668,7 +684,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
     { if ( !ExistsDirectory(dir) )
 	return FALSE;
     }
-    if ( AccessFile(dir[0] ? dir : ".", md) )
+    if ( AccessDirectory(dir[0] ? dir : ".", md) )
       return TRUE;
   }
 
