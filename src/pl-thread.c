@@ -5992,7 +5992,7 @@ thread caused the problem. If the thread is   not the main one, we could
 try to recover!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef HAVE_CTIME_R
+#if !defined(HAVE_CTIME_R) && !defined(ctime_r)
 #define ctime_r(timep, buf) strcpy(buf, ctime(timep))
 #endif
 
