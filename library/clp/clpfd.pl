@@ -6136,16 +6136,16 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  arbitrary term. Transitions that are not mentioned go to an
 %  implicit failure node. `Exprs` is a list of arithmetic expressions,
 %  of the same length as Counters. In each expression, variables
-%  occurring in Counters correspond to previous counter values, and
-%  variables occurring in Template correspond to the current element
-%  of Sequence. When a transition containing arithmetic expressions is
-%  taken, each counter is updated according to the result of the
-%  corresponding expression. When a transition without arithmetic
-%  expressions is taken, all counters remain unchanged. Counters is a
-%  list of variables. Initials is a list of finite domain variables or
-%  integers denoting, in the same order, the initial value of each
-%  counter. These values are related to Finals according to the
-%  arithmetic expressions of the taken transitions.
+%  occurring in Counters symbolically refer to previous counter
+%  values, and variables occurring in Template refer to the current
+%  element of Sequence. When a transition containing arithmetic
+%  expressions is taken, each counter is updated according to the
+%  result of the corresponding expression. When a transition without
+%  arithmetic expressions is taken, all counters remain unchanged.
+%  Counters is a list of variables. Initials is a list of finite
+%  domain variables or integers denoting, in the same order, the
+%  initial value of each counter. These values are related to Finals
+%  according to the arithmetic expressions of the taken transitions.
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
