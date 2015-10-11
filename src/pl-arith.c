@@ -2672,6 +2672,7 @@ ar_getbit(Number I, Number K, Number r)
       break;
 #endif
     default:
+      bit = 0;
       assert(0);
   }
 
