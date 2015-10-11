@@ -45,6 +45,7 @@
 #define mkdir _xos_mkdir
 #endif
 #include <errno.h>
+#include <fcntl.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -618,19 +619,19 @@ _xos_fopen(const char *path, const char *mode)
 		 *      FILE MANIPULATIONS	*
 		 *******************************/
 
-static int win_file_security_check = FALSE;
+static int win_file_access_check = XOS_ACCESS_OPENCLOSE;
 
 int
-_xos_set_win_file_security_check(int new)
-{ int old = win_file_security_check;
+_xos_set_win_file_access_check(int new)
+{ int old = win_file_access_check;
 
-  win_file_security_check = (new != FALSE);
+  win_file_access_check = new;
   return old;
 }
 
 int
-_xos_get_win_file_security_check(void)
-{ return win_file_security_check;
+_xos_get_win_file_access_check(void)
+{ return win_file_access_check;
 }
 
 int
@@ -654,8 +655,29 @@ _xos_access(const char *path, int mode)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  if ( mode == F_OK || !win_file_security_check )
+  if ( mode == F_OK || win_file_access_check == XOS_ACCESS_ACCESS )
     return _waccess(buf, F_OK);
+
+  if ( win_file_access_check == XOS_ACCESS_OPENCLOSE )
+  { int m = 0;
+    int fd;
+
+    if ( mode & X_OK )
+      mode |= R_OK;
+
+    if ( (mode&(R_OK|W_OK)) == (R_OK|W_OK) )
+      m = _O_RDWR;
+    else if ( mode&R_OK )
+      m = _O_RDONLY;
+    else
+      m = _O_WRONLY;
+
+    if ( (fd=_wopen(buf, m)) >= 0 )
+    { _close(fd);
+      return 0;
+    }
+    return -1;
+  }
 
   sd = (SECURITY_DESCRIPTOR*)&sd_buf;
   if ( !GetFileSecurity(buf, sec_info, sd, sizeof(sd_buf), &sd_size) )

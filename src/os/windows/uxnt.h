@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -105,6 +104,10 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define PATH_MAX 1024
 #endif
 
+#define XOS_ACCESS_ACCESS		0
+#define XOS_ACCESS_GETFILESECURITY	1
+#define XOS_ACCESS_OPENCLOSE		2
+
 #undef _xos_stat
 
 _export char *  _xos_home(void);
@@ -146,8 +149,8 @@ _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
 _export size_t  _xos_getenv(const char *name, char *buf, size_t buflen);
 _export int	_xos_setenv(const char *name, char *value, int overwrite);
-_export int	_xos_set_win_file_security_check(int new);
-_export int	_xos_get_win_file_security_check(void);
+_export int	_xos_set_win_file_access_check(int new);
+_export int	_xos_get_win_file_access_check(void);
 
 #define _XOS_ISFILE	0x01
 #define _XOS_ISDIR	0x02

@@ -430,7 +430,49 @@ setStreamTypeCheck(atom_t a)
   return TRUE;
 }
 
+#if O_XOS
+typedef struct access_id
+{ char *name;
+  int   value;
+} access_id;
 
+static const access_id access_id_list[] =
+{ { "access",          XOS_ACCESS_ACCESS },
+  { "getfilesecurity", XOS_ACCESS_GETFILESECURITY },
+  { "openclose",       XOS_ACCESS_OPENCLOSE },
+  { NULL,              -1 }
+};
+
+
+static int
+set_win_file_access_check(term_t a)
+{ char *s;
+  const access_id *p;
+
+  if ( PL_get_chars(a, &s, CVT_ATOM) )
+  { for(p=access_id_list; p->name; p++)
+    { if ( strcmp(s, p->name) == 0 )
+      { _xos_set_win_file_access_check(p->value);
+	return TRUE;
+      }
+    }
+  }
+
+  return PL_domain_error("win_file_access_check", a);
+}
+
+static char*
+get_win_file_access_check(void)
+{ const access_id *p;
+  int id = _xos_get_win_file_access_check();
+
+  for(p=access_id_list; p->name; p++)
+  { if ( p->value == id )
+      return p->name;
+  }
+  return "unknown";
+}
+#endif
 
 static word
 set_prolog_flag_unlocked(term_t key, term_t value, int flags)
@@ -611,10 +653,6 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { if ( !(rval = enableThreads(val)) )
 	  break;			/* don't change value */
 #endif
-#if O_XOS
-      } else if ( k == ATOM_win_file_security_check )
-      { _xos_set_win_file_security_check(val);
-#endif
       } else if ( k == ATOM_tty_control )
       { if ( val != (f->value.a == ATOM_true) )
 	{ if ( !val && ttymodified )
@@ -658,6 +696,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )
       { rval = setStreamTypeCheck(a);
+#if O_XOS
+      } else if ( k == ATOM_win_file_access_check )
+      { rval = set_win_file_access_check(value);
+#endif
       }
       if ( !rval )
 	fail;
@@ -1139,8 +1181,8 @@ initPrologFlags(void)
   setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 #if O_XOS
-  setPrologFlag("win_file_security_check", FT_BOOL,
-		_xos_get_win_file_security_check(), 0);
+  setPrologFlag("win_file_access_check", FT_ATOM,
+		get_win_file_access_check(), 0);
 #endif
   setPrologFlag("version",	FT_INTEGER|FF_READONLY, PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
