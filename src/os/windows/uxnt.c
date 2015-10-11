@@ -820,6 +820,11 @@ opendir(const char *path)
 { TCHAR buf[PATH_MAX];
   DIR *dp = malloc(sizeof(DIR));
 
+  if ( !dp )
+  { errno = ENOMEM;
+    return NULL;
+  }
+
   if ( !_xos_os_filenameW(path, buf, PATH_MAX-4) )
   { free(dp);
     return NULL;
