@@ -1746,7 +1746,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     if ( !put_write_options(opts, &options) ||
 	 !PL_qualify(options.portray_goal, options.portray_goal) )
       return FALSE;
-    portray = TRUE;
+    if ( false(&options, PL_WRT_BLOB_PORTRAY) )
+      portray = TRUE;
   }
   if ( numbervars == -1 )
     numbervars = (portray ? TRUE : FALSE);
