@@ -111,10 +111,10 @@ Atoms are reclaimed by collectAtoms(), which is a two pass process.
     references are handed to invalidateAtom(), which
     - Uses CAS to reset VALID
     - Removes the atom from the hash bucket
-    - sets type to gced_atom/gced_nocopy_atom
+    - adds atom to chain of invalidated atoms
     - sets length to 0;
-  - In the second pass, we call destroyAtom() for all atoms of
-    type gced_atom/gced_nocopy_atom.  destroyAtom() only destroys
+  - In the second pass, we call destroyAtom() for all atoms in
+    the invalidated chain.  destroyAtom() only destroys
     the atom if pl_atom_bucket_in_use() returns FALSE.  This serves
     two purposes:
       - Garantee that Atom->name is valid
@@ -227,20 +227,6 @@ static PL_blob_t unregistered_blob_atom =
 { PL_BLOB_MAGIC,
   PL_BLOB_NOCOPY|PL_BLOB_TEXT,
   "unregistered"
-};
-
-
-static PL_blob_t gced_atom =
-{ PL_BLOB_MAGIC,
-  PL_BLOB_TEXT,
-  "<AGC>"
-};
-
-
-static PL_blob_t gced_nocopy_atom =
-{ PL_BLOB_MAGIC,
-  PL_BLOB_NOCOPY|PL_BLOB_TEXT,
-  "<AGC>"
 };
 
 
@@ -817,6 +803,10 @@ atoms that should *not* be subject to AGC.   If we find one collected we
 know we trapped a bug.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define ATOM_NAME_MUST_FREE 0x1
+
+static Atom invalid_atoms = NULL;
+
 static int
 invalidateAtom(Atom a, unsigned int ref)
 { Atom *ap;
@@ -872,10 +862,11 @@ invalidateAtom(Atom a, unsigned int ref)
   { size_t slen = a->length + a->type->padding;
     ATOMIC_SUB(&GD->statistics.atom_string_space, slen);
     ATOMIC_ADD(&GD->statistics.atom_string_space_freed, slen);
-    a->type = &gced_atom;
+    a->next_invalid = (uintptr_t)invalid_atoms | ATOM_NAME_MUST_FREE;
   } else
-  { a->type = &gced_nocopy_atom;
+  { a->next_invalid = (uintptr_t)invalid_atoms;
   }
+  invalid_atoms = a;
   a->length = 0;
 
   return TRUE;
@@ -885,6 +876,7 @@ static int
 destroyAtom(Atom a, Atom **buckets)
 { unsigned int v;
   AtomTable t;
+  int index;
 
   while ( buckets && *buckets )
   { t = atomTable;
@@ -910,7 +902,7 @@ destroyAtom(Atom a, Atom **buckets)
     Sfprintf(atomLogFd, "Deleted `%s'\n", a->name);
 #endif
 
-  if ( false(a->type, PL_BLOB_NOCOPY) )
+  if ( a->next_invalid & ATOM_NAME_MUST_FREE )
   { PL_free(a->name);
   }
 
@@ -918,17 +910,22 @@ destroyAtom(Atom a, Atom **buckets)
   a->type = NULL;
   a->references = 0;
 
+  index = indexAtom(a->atom);
+  if ( GD->atoms.no_hole_before > index );
+  { GD->atoms.no_hole_before = index;
+  }
+
   return TRUE;
 }
 
 
 static size_t
 collectAtoms(void)
-{ int hole_seen = FALSE;
-  size_t reclaimed = 0;
+{ size_t reclaimed = 0;
   size_t unregistered = 0;
   size_t index;
   int i, last=FALSE;
+  Atom temp, next, prev;
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -964,42 +961,25 @@ collectAtoms(void)
 
   Atom** buckets = pl_atom_buckets_in_use();
 
-  last=FALSE;
-  for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
-  { size_t upto = (size_t)2<<i;
-    Atom b = GD->atoms.array.blocks[i];
-
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
-      last = TRUE;
+  temp = invalid_atoms;
+  while ( temp && temp == invalid_atoms )
+  { next = (Atom)(temp->next_invalid & ~ATOM_NAME_MUST_FREE);
+    if ( destroyAtom(temp, buckets) )
+    { reclaimed++;
+      invalid_atoms = next;
     }
-
-    for(; index<upto; index++)
-    { Atom a = b + index;
-      unsigned int ref = a->references;
-
-      if ( ATOM_IS_FREE(ref) )
-      { if ( !hole_seen )
-	{ hole_seen = TRUE;
-	  GD->atoms.no_hole_before = index;
-	}
-	continue;
-      }
-
-      if ( ATOM_IS_VALID(ref) )
-      { continue;
-      }
-
-      if ( (a->type == &gced_atom) || (a->type == &gced_nocopy_atom) )
-      { if ( destroyAtom(a, buckets) )
-	{ reclaimed++;
-	  if ( !hole_seen )
-	  { hole_seen = TRUE;
-	    GD->atoms.no_hole_before = index;
-	  }
-	}
-      }
+    prev = temp;
+    temp = next;
+  }
+  while ( temp )
+  { next = (Atom)(temp->next_invalid & ~ATOM_NAME_MUST_FREE);
+    if ( destroyAtom(temp, buckets) )
+    { reclaimed++;
+      prev->next_invalid = ((uintptr_t)next | (prev->next_invalid & ATOM_NAME_MUST_FREE));
+    } else
+    { prev = temp;
     }
+    temp = next;
   }
 
   if ( buckets )
