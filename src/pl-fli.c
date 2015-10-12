@@ -140,6 +140,29 @@ popTermRef__LD(ARG1_LD)
 }
 
 
+/* bArgVar(Word ap, Word vp) unifies a pointer into a struct with a
+   pointer to a value.  This is the same as the B_ARGVAR instruction
+   and used to push terms for e.g., A_ADD_FC
+*/
+
+static void
+bArgVar(Word ap, Word vp ARG_LD)
+{ deRef(vp);
+
+  if ( isVar(*vp) )
+  { if ( ap < vp )
+    { setVar(*ap);
+      Trail(vp, makeRefG(ap));
+    } else
+    { *ap = makeRefG(vp);
+    }
+  } else if ( isAttVar(*vp) )
+  { *ap = makeRefG(vp);
+  } else
+  { *ap = *vp;
+  }
+}
+
 		 /*******************************
 		 *	   CREATE/RESET		*
 		 *******************************/

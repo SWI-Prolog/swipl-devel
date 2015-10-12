@@ -18,8 +18,9 @@ test_goal(p_simple).
 test_goal(p_backtrack).
 test_goal(p_cut).
 test_goal(p_ifthen).
-test_goal(p_error).
+test_goal(p_error1).
 test_goal(p_error2).
+test_goal(p_error3).
 
 test_tracer(G) :-
 	trim_stacks,			% there must be enough space to force
@@ -69,23 +70,31 @@ p_ifthen :-
 	;   a
 	).
 
-%%	p_error
+%%	p_error1 is det.
+%%	p_error2 is det.
+%%	p_error3 is det.
 %
-%	Test recovery from an exception.
+%	Test recovery from exceptions.
 
-p_error :-
-	catch(error, _, true).
+p_error1 :-
+	catch(error1, _, true).
 
-error :-
-	a, b, e, c.
+error1 :-
+	a, b, e1, c.
 
 p_error2 :-
-	catch(error2([a,b,c,d,e]), _, true).
+	catch(error2, _, true).
 
-error2([X]) :-
+error2 :-
+	a, b, e2, c.
+
+p_error3 :-
+	catch(error3([a,b,c,d,e]), _, true).
+
+error3([X]) :-
 	throw(bad(X)).
-error2([_|T]) :-
-	error2(T).
+error3([_|T]) :-
+	error3(T).
 
 
 
@@ -100,8 +109,13 @@ c.
 no :-
 	fail.
 
-e :-
+e1 :-
 	X is 1/0,
+	number(X).
+
+e2 :-
+	a(V),
+	X is V+1,
 	number(X).
 
 app([], L, L).

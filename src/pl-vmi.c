@@ -3206,7 +3206,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     expr = gTop;
     gTop += 3;
     expr[0] = FUNCTOR_plus2;
-    expr[1] = linkVal(np);
+    bArgVar(&expr[1], np PASS_LD);
     expr[2] = consInt(add);
 
     ARGP = argFrameP(lTop, 0);
