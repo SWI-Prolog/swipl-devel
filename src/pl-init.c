@@ -1337,10 +1337,16 @@ warning(const char *fm, ...)
 }
 
 
+#if !defined(HAVE_CTIME_R) && !defined(ctime_r)
+#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
+#endif
+
 static bool
 vsysError(const char *fm, va_list args)
 { GET_LD
   static int active = 0;
+  time_t now;
+  char tbuf[48];
 
   switch ( active++ )
   { case 1:
@@ -1349,11 +1355,23 @@ vsysError(const char *fm, va_list args)
       abort();
   }
 
+  now = time(NULL);
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
 #ifdef O_PLMT
-  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d\n\t",
-	   PL_thread_self());
+{ int tid = PL_thread_self();
+  atom_t alias;
+  const pl_wchar_t *name = L"";
+
+  if ( PL_get_thread_alias(tid, &alias) )
+    name = PL_atom_wchars(alias, NULL);
+
+  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d (%Ws) at %s\n\t",
+	   tid, name, tbuf);
+}
 #else
-  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:\n\t");
+  Sfprintf(Serror, "[PROLOG SYSTEM ERROR: at %s\n\t", tbuf);
 #endif
   Svfprintf(Serror, fm, args);
   if ( gc_status.active )
