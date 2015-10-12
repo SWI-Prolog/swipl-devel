@@ -1246,7 +1246,7 @@ colourise_dict_kv(Dict, TB, [key_value_position(_F,_T,SF,ST,K,KP,VP)|KV]) :-
 	colourise_dict_kv(Dict, TB, KV).
 
 
-%	colourise_exports(+List, +TB, +Pos)
+%%	colourise_exports(+List, +TB, +Pos)
 %
 %	Colourise the module export-list (or any other list holding
 %	terms of the form Name/Arity referring to predicates).
@@ -1447,7 +1447,7 @@ colour_op_name(Name, TB, Pos) :-
 	var(Name), !,
 	colour_item(var, TB, Pos).
 colour_op_name(Name, TB, Pos) :-
-	atom(Name), !,
+	(atom(Name) ; Name == []), !,
 	colour_item(identifier, TB, Pos).
 colour_op_name(_, TB, Pos) :-
 	colour_item(error, TB, Pos).
