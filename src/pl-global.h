@@ -222,8 +222,7 @@ struct PL_global_data
   struct
   { size_t	highest;		/* Next index to handout */
     functor_array array;		/* index --> functor */
-    int		buckets;		/* # buckets in atom --> functor */
-    FunctorDef* table;			/* hash-table */
+    FunctorTable table;			/* hash-table */
   } functors;
 
   struct

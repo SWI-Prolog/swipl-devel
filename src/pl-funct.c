@@ -36,44 +36,48 @@ See pl-atom.c for many useful comments on the representation.
 #undef LD
 #define LD LOCAL_LD
 
-#define functor_buckets (GD->functors.buckets)
 #define functorDefTable (GD->functors.table)
 
 static void	  allocFunctorTable(void);
 static void	  rehashFunctors(void);
 
 static void
-putFunctorArray(size_t where, FunctorDef fd)
-{ int idx = MSB(where);
-
-  assert(where >= 0);
+allocateFunctorBlock(int idx)
+{
+  PL_LOCK(L_MISC);
 
   if ( !GD->functors.array.blocks[idx] )
-  { PL_LOCK(L_MISC);
-    if ( !GD->functors.array.blocks[idx] )
-    { size_t bs = (size_t)1<<idx;
-      FunctorDef *newblock;
+  { size_t bs = (size_t)1<<idx;
+    FunctorDef *newblock;
 
-      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(FunctorDef))) )
-	outOfCore();
+    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(FunctorDef))) )
+      outOfCore();
 
-      memset(newblock, 0, bs*sizeof(FunctorDef));
-      GD->functors.array.blocks[idx] = newblock-bs;
-    }
-    PL_UNLOCK(L_MISC);
+    memset(newblock, 0, bs*sizeof(FunctorDef));
+    GD->functors.array.blocks[idx] = newblock-bs;
   }
 
-  GD->functors.array.blocks[idx][where] = fd;
+  PL_UNLOCK(L_MISC);
 }
 
 
 static void
 registerFunctor(FunctorDef fd)
-{ size_t index = GD->functors.highest++;
-  int amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
+{
+  size_t index;
+  int idx, amask;
 
+  index = ATOMIC_INC(&GD->functors.highest) - 1;
+  idx = MSB(index);
+
+  if ( !GD->functors.array.blocks[idx] )
+  { allocateFunctorBlock(idx);
+  }
+
+  amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
   fd->functor = MK_FUNCTOR(index, amask);
-  putFunctorArray(index, fd);
+  GD->functors.array.blocks[idx][index] = fd;
+  fd->flags |= VALID_F;
 
   DEBUG(CHK_SECURE, assert(fd->arity == arityFunctor(fd->functor)));
 }
@@ -81,54 +85,96 @@ registerFunctor(FunctorDef fd)
 
 functor_t
 lookupFunctorDef(atom_t atom, unsigned int arity)
-{ int v;
-  FunctorDef f;
+{ GET_LD
+  int v;
+  FunctorDef *table;
+  int buckets;
+  FunctorDef f, head;
 
-  LOCK();
-  v = (int)pointerHashValue(atom, functor_buckets);
+redo:
+
+  LD->thread.info->functor_table = functorDefTable;
+  table = LD->thread.info->functor_table->table;
+  buckets = LD->thread.info->functor_table->buckets;
+
+  v = (int)pointerHashValue(atom, buckets);
+  head = table[v];
 
   DEBUG(9, Sdprintf("Lookup functor %s/%d = ", stringAtom(atom), arity));
-  for(f = functorDefTable[v]; f; f = f->next)
-  { if (atom == f->name && f->arity == arity)
+  for(f = table[v]; f; f = f->next)
+  { if (FUNCTOR_IS_VALID(f->flags) && atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%p (old)\n", f));
-      UNLOCK();
+      LD->thread.info->functor_table = NULL;
       return f->functor;
     }
   }
+
+  if ( functorDefTable->buckets * 2 < GD->statistics.functors )
+  { LOCK();
+    rehashFunctors();
+    UNLOCK();
+  }
+
+  if ( !( head == table[v] && table == functorDefTable->table ) )
+    goto redo;
+
   f = (FunctorDef) allocHeapOrHalt(sizeof(struct functorDef));
   f->functor = 0L;
   f->name    = atom;
   f->arity   = arity;
   f->flags   = 0;
-  f->next    = functorDefTable[v];
-  functorDefTable[v] = f;
+  f->next    = table[v];
+  if ( !( COMPARE_AND_SWAP(&table[v], head, f) &&
+          table == functorDefTable->table) )
+  { PL_free(f);
+    goto redo;
+  }
   registerFunctor(f);
-  GD->statistics.functors++;
+
+  ATOMIC_INC(&GD->statistics.functors);
   PL_register_atom(atom);
 
   DEBUG(9, Sdprintf("%p (new)\n", f));
 
-  if ( functor_buckets * 2 < GD->statistics.functors )
-    rehashFunctors();
-
-  UNLOCK();
+  LD->thread.info->functor_table = NULL;
 
   return f->functor;
 }
 
 
 static void
+maybe_free_functor_tables(void)
+{
+  FunctorTable t = functorDefTable;
+  while ( t )
+  { FunctorTable t2 = t->prev;
+    if ( t2 && !pl_functor_table_in_use(t2) )
+    { t->prev = t2->prev;
+      freeHeap(t2->table, t2->buckets * sizeof(FunctorDef));
+      freeHeap(t2, sizeof(functor_table));
+    }
+    t = t->prev;
+  }
+}
+
+
+static void
 rehashFunctors(void)
-{ FunctorDef *oldtab = functorDefTable;
-  int oldbucks       = functor_buckets;
+{ FunctorTable newtab;
   size_t index;
   int i, last = FALSE;
 
-  functor_buckets *= 2;
-  allocFunctorTable();
+  if ( functorDefTable->buckets * 2 >= GD->statistics.functors )
+    return;
+
+  newtab = allocHeapOrHalt(sizeof(*newtab));
+  newtab->buckets = functorDefTable->buckets * 2;
+  newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(FunctorDef));
+  memset(newtab->table, 0, newtab->buckets * sizeof(FunctorDef));
+  newtab->prev = functorDefTable;
 
   DEBUG(MSG_HASH_STAT,
-	Sdprintf("Rehashing functor-table to %d entries\n", functor_buckets));
+	Sdprintf("Rehashing functor-table (%d --> %d)\n", functorDefTable->buckets, newtab->buckets));
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -142,34 +188,41 @@ rehashFunctors(void)
     for(; index<upto; index++)
     { FunctorDef f = b[index];
 
-      if ( f )
-      { size_t v = pointerHashValue(f->name, functor_buckets);
+      if ( FUNCTOR_IS_VALID(f->flags) )
+      { size_t v = pointerHashValue(f->name, newtab->buckets);
 
-	f->next = functorDefTable[v];
-	functorDefTable[v] = f;
+	f->next = newtab->table[v];
+	newtab->table[v] = f;
       }
     }
   }
 
-  freeHeap(oldtab, oldbucks * sizeof(FunctorDef));
+  functorDefTable = newtab;
+  maybe_free_functor_tables();
 }
-
 
 
 functor_t
 isCurrentFunctor(atom_t atom, unsigned int arity)
-{ unsigned int v;
+{ GET_LD
+  unsigned int v;
+  int buckets;
+  FunctorDef *table;
   FunctorDef f;
 
-  LOCK();
-  v = (unsigned int)pointerHashValue(atom, functor_buckets);
-  for(f = functorDefTable[v]; f; f = f->next)
-  { if ( atom == f->name && f->arity == arity )
-    { UNLOCK();
+  LD->thread.info->functor_table = functorDefTable;
+  table = LD->thread.info->functor_table->table;
+  buckets = LD->thread.info->functor_table->buckets;
+
+  v = (unsigned int)pointerHashValue(atom, buckets);
+  for(f = table[v]; f; f = f->next)
+  { if ( FUNCTOR_IS_VALID(f->flags) && atom == f->name && f->arity == arity )
+    { LD->thread.info->functor_table = NULL;
       return f->functor;
     }
   }
-  UNLOCK();
+
+  LD->thread.info->functor_table = NULL;
 
   return 0;
 }
@@ -189,10 +242,11 @@ FUNCTOR(NULL_ATOM, 0)
 
 static void
 allocFunctorTable(void)
-{ int size = functor_buckets * sizeof(FunctorDef);
-
-  functorDefTable = allocHeapOrHalt(size);
-  memset(functorDefTable, 0, size);
+{ functorDefTable = allocHeapOrHalt(sizeof(*functorDefTable));
+  functorDefTable->buckets = FUNCTORHASHSIZE;
+  functorDefTable->table = allocHeapOrHalt(FUNCTORHASHSIZE * sizeof(FunctorDef));
+  memset(functorDefTable->table, 0, FUNCTORHASHSIZE * sizeof(FunctorDef));
+  functorDefTable->prev = NULL;
 }
 
 
@@ -205,13 +259,13 @@ registerBuiltinFunctors(void)
   GD->statistics.functors = size;
 
   for(d = functors; d->name; d++, f++)
-  { size_t v = pointerHashValue(d->name, functor_buckets);
+  { size_t v = pointerHashValue(d->name, functorDefTable->buckets);
 
     f->name             = d->name;
     f->arity            = d->arity;
     f->flags		= 0;
-    f->next             = functorDefTable[v];
-    functorDefTable[v]  = f;
+    f->next             = functorDefTable->table[v];
+    functorDefTable->table[v]  = f;
     registerFunctor(f);
   }
 }
@@ -270,7 +324,6 @@ initFunctors(void)
 { LOCK();
   if ( !functorDefTable )
   { initAtoms();
-    functor_buckets = FUNCTORHASHSIZE;
     allocFunctorTable();
     GD->functors.highest = 1;
     registerBuiltinFunctors();
@@ -283,7 +336,9 @@ initFunctors(void)
 
 void
 cleanupFunctors(void)
-{ if ( functorDefTable )
+{ FunctorTable table = functorDefTable;
+
+  if ( table )
   { int i;
     int builtin_count      = sizeof(functors)/sizeof(builtin_functor) - 1;
     FunctorDef builtin     = GD->functors.array.blocks[0][1];
@@ -314,9 +369,13 @@ cleanupFunctors(void)
       PL_free(fp0);
     }
 
-    freeHeap(functorDefTable, functor_buckets*sizeof(FunctorDef));
-    functorDefTable = NULL;
-    functor_buckets = 0;
+    while ( table )
+    { FunctorTable prev = table->prev;
+      freeHeap(table->table, table->buckets * sizeof(FunctorDef));
+      freeHeap(table, sizeof(functor_table));
+      table = prev;
+    }
+    table = NULL;
   }
 }
 

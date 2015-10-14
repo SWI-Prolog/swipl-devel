@@ -877,6 +877,7 @@ with one operation, it turns out to be faster as well.
 
 #define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
 #define ARITH_F			(0x0004) /* functor (arithmetic operator) */
+#define VALID_F			(0x0008) /* functor (fully defined) */
 
 /* Flags on record lists (recorded database keys) */
 
@@ -1131,12 +1132,23 @@ struct functorDef
   unsigned      flags;		/* Flag field holding: */
 		  /* CONTROL_F	   Compiled control-structure */
 		  /* ARITH_F	   Arithmetic function */
+		  /* VALID_F	   Fully defined functor */
 };
 
 
 typedef struct functor_array
 { FunctorDef *blocks[8*sizeof(void*)];
 } functor_array;
+
+typedef struct functor_table * FunctorTable;
+
+typedef struct functor_table
+{ FunctorTable	prev;
+  int		buckets;
+  FunctorDef *	table;
+} functor_table;
+
+#define FUNCTOR_IS_VALID(flags)		((flags) & VALID_F)
 
 
 #ifdef O_LOGICAL_UPDATE

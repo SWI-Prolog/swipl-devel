@@ -6245,6 +6245,29 @@ pl_atom_buckets_in_use()
 
 
 		 /*******************************
+		 *     FUNCTOR-TABLE IN USE     *
+		 *******************************/
+
+int
+pl_functor_table_in_use(FunctorTable functor_table)
+{
+#ifdef O_PLMT
+  int me = PL_thread_self();
+  int i;
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    if ( i != me && info && info->functor_table == functor_table )
+    { return TRUE;
+    }
+  }
+#endif
+
+  return FALSE;
+}
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 

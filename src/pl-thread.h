@@ -100,6 +100,7 @@ typedef struct _PL_thread_info_t
   KVS		    kvs;		/* current hash-table map accessed */
   AtomTable	    atom_table;		/* current atom-table accessed */
   Atom *	    atom_bucket;	/* current atom bucket-list accessed */
+  FunctorTable	    functor_table;	/* current atom-table accessed */
 } PL_thread_info_t;
 
 #define QTYPE_THREAD	0
@@ -369,6 +370,7 @@ COMMON(int)	pl_kvs_in_use(KVS kvs);
 COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
 COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
 COMMON(Atom**)	pl_atom_buckets_in_use();
+COMMON(int)	pl_functor_table_in_use(FunctorTable functor_table);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 
