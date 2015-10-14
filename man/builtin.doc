@@ -8136,14 +8136,23 @@ Compatibility predicate.  New code should use working_directory/2.
 
 \begin{description}
     \predicate{break}{0}{}
-Recursively start a new Prolog top level. This Prolog top level has its
-own stacks, but shares the heap with all break environments and the top level.
-Debugging is switched off on entering a break and restored on
-leaving one. The break environment is terminated by typing the system's
-\mbox{end-of-file} character (control-D). If the
-\argoption{-t}{toplevel} command line option is given, this goal is
-started instead of entering the default interactive top level
+Recursively start a new Prolog top level. This Prolog top level shares
+everything from the environment it was started in. Debugging is switched
+off on entering a break and restored on leaving one. The break
+environment is terminated by typing the system's \mbox{end-of-file}
+character (control-D). If that is somehow not functional, the term
+\exam{end_of_file.} can be entered to return from the break environment.
+If the \argoption{-t}{toplevel} command line option is given, this goal
+is started instead of entering the default interactive top level
 (prolog/0).
+
+Notably the gui based versions (\program{swipl-win} on Windows and
+MacOS) provide the menu \textsf{Run/New thread} that opens a new
+toplevel that runs concurrently with the initial toplevel. The
+concurrent toplevel can be used to examine the program, in particular
+global dynamic predicates. It can not access \jargon{global variables}
+or thread-local dynamic predicates (see thread_local/1) of the main
+thread.
 
     \predicate{abort}{0}{}
 Abort the Prolog execution and restart the top level. If the
