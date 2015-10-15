@@ -102,8 +102,11 @@ redo:
 
   DEBUG(9, Sdprintf("Lookup functor %s/%d = ", stringAtom(atom), arity));
   for(f = table[v]; f; f = f->next)
-  { if (FUNCTOR_IS_VALID(f->flags) && atom == f->name && f->arity == arity)
+  { if (atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%p (old)\n", f));
+      if ( !FUNCTOR_IS_VALID(f->flags) )
+      { goto redo;
+      }
       LD->thread.info->functor_table = NULL;
       return f->functor;
     }
