@@ -104,9 +104,12 @@ b(X)) and the ones using this library side-by-side.
 %%	distinct(?Witness, :Goal).
 %
 %	True if Goal is true and  no   previous  solution  of Goal bound
-%	Witness to the same value. The  variant distinct/1 is equivalent
-%	to distinct(Goal,Goal). Semantically, distinct/1 is  the same as
-%	the code below, but answers are returned  as soon as they become
+%	Witness to the same  value.  As   previous  answers  need  to be
+%	copied, equivalence testing is based on _term variance_ (=@=/2).
+%	The variant distinct/1 is equivalent to distinct(Goal,Goal).
+%
+%	If the answers are ground terms,   the  predicate behaves as the
+%	code below, but answers are  returned   as  soon  as they become
 %	available rather than first computing the complete answer set.
 %
 %	  ==
