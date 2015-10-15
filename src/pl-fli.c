@@ -1607,7 +1607,7 @@ PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
   { *f = functorTerm(w);
     succeed;
   }
-  if ( isTextAtom(w) || isReservedSymbol(w) )
+  if ( isCallableAtom(w) || isReservedSymbol(w) )
   { *f = lookupFunctorDef(w, 0);
     succeed;
   }
@@ -1973,7 +1973,7 @@ PL_is_callable(term_t t)
   { Functor f = valueTerm(w);
     FunctorDef fd = valueFunctor(f->definition);
 
-    if ( isTextAtom(fd->name) )
+    if ( isCallableAtom(fd->name) )
       return TRUE;
   }
 

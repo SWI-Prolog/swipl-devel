@@ -524,7 +524,7 @@ get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
     }
   }
 
-  if ( !isTextAtom(fd->name) )
+  if ( !isCallableAtom(fd->name) )
   { if ( how&GP_TYPE_QUIET )
     { fail;
     } else

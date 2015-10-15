@@ -4512,7 +4512,8 @@ Note that compilation does not give contained   atoms a reference as the
 atom is referenced by the goal-term anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( isTextAtom(goal = *a) )
+  goal = *a;
+  if ( isCallableAtom(goal) )
   { functor = lookupFunctorDef(goal, 0);
     arity   = 0;
     args    = NULL;
@@ -4524,7 +4525,7 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
 
     fd = valueFunctor(functor);
-    if ( !isTextAtom(fd->name) )
+    if ( !isCallableAtom(fd->name) )
       goto call_type_error;
     if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
     { args    = argTermP(goal, 0);
@@ -4611,7 +4612,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   } else if ( isTerm(goal) )
   { FunctorDef fdef = valueFunctor(functorTerm(goal));
 
-    if ( !isTextAtom(fdef->name) )
+    if ( !isCallableAtom(fdef->name) )
       goto call_type_error;
     arity   = fdef->arity;
     functor = lookupFunctorDef(fdef->name, arity + callargs);
