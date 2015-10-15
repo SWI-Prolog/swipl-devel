@@ -201,6 +201,7 @@ COMMON(word)		pl_current_flag(term_t k, control_t h);
 
 /* pl-fli.c */
 COMMON(word)		linkVal__LD(Word p ARG_LD);
+COMMON(void)		bArgVar(Word ap, Word vp ARG_LD);
 COMMON(int)		_PL_put_number__LD(term_t t, Number n ARG_LD);
 COMMON(predicate_t)	_PL_predicate(const char *name, int arity,
 				      const char *module, predicate_t *bin);

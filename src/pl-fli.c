@@ -145,7 +145,7 @@ popTermRef__LD(ARG1_LD)
    and used to push terms for e.g., A_ADD_FC
 */
 
-static void
+void
 bArgVar(Word ap, Word vp ARG_LD)
 { deRef(vp);
 

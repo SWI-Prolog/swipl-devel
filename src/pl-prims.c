@@ -2000,6 +2000,45 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 }
 
 
+/** '$filled_array'(-Compound, +Name, +Arity, +Value) is det.
+ * Created an array (compound) with all arguments set to Value.
+ */
+
+
+PRED_IMPL("$filled_array", 4, filled_array, 0)
+{ PRED_LD
+  size_t arity;
+  atom_t name;
+  functor_t f;
+  Word p, v;
+  term_t compound = PL_new_term_ref();
+  size_t i;
+
+  if ( !PL_get_atom_ex(A2, &name) ||
+       !PL_get_size_ex(A3, &arity) )
+    return FALSE;
+
+  f = PL_new_functor(name, arity);
+  p = allocGlobal(arity+1);
+  v = valTermRef(A4);
+  deRef(v);
+
+  p[0] = f;
+  if ( arity > 0 )
+  { word w;
+    bArgVar(&p[1], v PASS_LD);
+    w = isVar(p[1]) ? makeRefG(&p[1]) : p[1];
+    for(i=2; i<=arity; i++)
+      p[i] = w;
+  }
+
+  *valTermRef(compound) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  return PL_unify(A1, compound);
+}
+
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int get_arg_integer_ex(term_t t, intptr_t *n)
 
@@ -5362,6 +5401,7 @@ BeginPredDefs(prims)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("compound_name_arity", 3, compound_name_arity, 0)
   PRED_DEF("compound_name_arguments", 3, compound_name_arguments, 0)
+  PRED_DEF("$filled_array", 4, filled_array, 0)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)
