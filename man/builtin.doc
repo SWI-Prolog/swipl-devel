@@ -2935,6 +2935,13 @@ This hash was developed for lookup of solutions to a goal stored in a
 table.  By using a cryptographic hash, heuristic algorithms can often
 ignore the possibility of hash collisions and thus avoid storing the
 goal term itself as well as testing using \predref{=@=}{2}.
+
+    \predicate[det]{variant_hash}{2}{+Term, -HashKey}
+Similar to variant_sha1/2, but using a non-cryptographic hash and
+produces an integer result like term_hash/2. This version does deal with
+attributed variables, processing them as normal variables.  This hash is
+primarily intended to speedup finding variant terms in a set of terms.
+\bug{As variant_sha1/2, cyclic terms result in an exception.}
 \end{description}
 
 
