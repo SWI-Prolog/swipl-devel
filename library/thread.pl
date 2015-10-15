@@ -247,7 +247,7 @@ concur_cleanup(Result, Workers, Queues) :- !,
 kill_workers([]).
 kill_workers([Id|T]) :-
 	debug(concurrent, 'Signalling ~w', [Id]),
-	catch(thread_signal(Id, throw(abort)), _, true),
+	catch(thread_signal(Id, abort), _, true),
 	kill_workers(T).
 
 join_all([]).
