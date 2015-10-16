@@ -1,11 +1,9 @@
-/*  $Id$
+/*  Part of SWI-Prolog
 
-    Part of SWI-Prolog
-
-    Author:        Jan Wielemaker
+    Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -204,6 +202,10 @@ rehashFunctors(void)
   maybe_free_functor_tables();
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is lookupFunctorDef(), but failing (returns   0)  if the functor is
+not known.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 functor_t
 isCurrentFunctor(atom_t atom, unsigned int arity)
@@ -212,7 +214,9 @@ isCurrentFunctor(atom_t atom, unsigned int arity)
   int buckets;
   FunctorDef *table;
   FunctorDef f;
+  functor_t rc = 0;
 
+redo:
   LD->thread.info->functor_table = functorDefTable;
   table = LD->thread.info->functor_table->table;
   buckets = LD->thread.info->functor_table->buckets;
@@ -221,13 +225,22 @@ isCurrentFunctor(atom_t atom, unsigned int arity)
   for(f = table[v]; f; f = f->next)
   { if ( FUNCTOR_IS_VALID(f->flags) && atom == f->name && f->arity == arity )
     { LD->thread.info->functor_table = NULL;
-      return f->functor;
+      rc = f->functor;
+      break;
     }
   }
 
   LD->thread.info->functor_table = NULL;
 
-  return 0;
+  if ( !rc && functorDefTable->buckets * 2 < GD->statistics.functors )
+  { LOCK();
+    rehashFunctors();
+    UNLOCK();
+  }
+  if ( table != functorDefTable->table )
+    goto redo;
+
+  return rc;
 }
 
 typedef struct
