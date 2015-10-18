@@ -557,7 +557,7 @@ variant_hash(term_t term, term_t hash, hash_algo algorithm ARG_LD)
     }
   }
 
-  DEBUG(CHK_SECURE, checkData(valTermRef(A1)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(term)));
 
   switch( rc )
   { case E_ATTVAR:
