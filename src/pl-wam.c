@@ -2149,7 +2149,8 @@ static Choice
 newChoice(choice_type type, LocalFrame fr ARG_LD)
 { Choice ch = (Choice)lTop;
 
-  DEBUG(CHK_SECURE, assert(ch+1 <= (Choice)lMax));
+  DEBUG(0, assert(ch+1 <= (Choice)lMax));
+  DEBUG(0, assert(BFR < ch));
   lTop = (LocalFrame)(ch+1);
 
   ch->type = type;
@@ -2729,13 +2730,15 @@ to the call-port and finally, restart the clause.
 
 #if O_DEBUGGER
 retry:					MARK(RETRY);
-{ LocalFrame rframe0, rframe = debugstatus.retryFrame;
+{ LocalFrame rframe0, rframe;
   mark m;
   Choice ch;
 
-  if ( !rframe )
+  if ( debugstatus.retryFrame )
+    rframe = (LocalFrame)valTermRef(debugstatus.retryFrame);
+  else
     rframe = FR;
-  debugstatus.retryFrame = NULL;
+  debugstatus.retryFrame = 0;
   rframe0 = rframe;
 
   m.trailtop = tTop;
@@ -2953,7 +2956,7 @@ next_choice:
 	      case ACTION_IGNORE:
 		VMI_GOTO(I_EXIT);
 	      case ACTION_RETRY:
-		goto retry_continue;
+	        goto retry;
 	      case ACTION_ABORT:
 		THROW_EXCEPTION;
 	    }

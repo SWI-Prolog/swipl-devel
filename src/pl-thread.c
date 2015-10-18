@@ -1537,7 +1537,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->locale.current		  = acquireLocale(ldold->locale.current);
 #endif
   ldnew->_debugstatus		  = ldold->_debugstatus;
-  ldnew->_debugstatus.retryFrame  = NULL;
+  ldnew->_debugstatus.retryFrame  = 0;
   ldnew->_debugstatus.suspendTrace= 0;
   if ( ldold->_debugstatus.skiplevel != SKIP_VERY_DEEP )
   { ldnew->_debugstatus.debugging = DBG_OFF;
@@ -4769,7 +4769,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->locale.current		 = acquireLocale(ldmain->locale.current);
 #endif
   ldnew->_debugstatus		 = ldmain->_debugstatus;
-  ldnew->_debugstatus.retryFrame = NULL;
+  ldnew->_debugstatus.retryFrame = 0;
   ldnew->prolog_flag.mask	 = ldmain->prolog_flag.mask;
   if ( ldmain->prolog_flag.table )
   { TLD_set_LD(info->thread_data);

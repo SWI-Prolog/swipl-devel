@@ -1075,7 +1075,7 @@ struct atom
 #endif
   union
   { struct PL_blob_t * type;	/* blob-extension */
-    uintptr_t 	next_invalid;	/* next invalidated atom */
+    uintptr_t	next_invalid;	/* next invalidated atom */
   };
   size_t	length;		/* length of the atom */
   char *	name;		/* name associated with atom */
@@ -2106,7 +2106,7 @@ typedef struct debuginfo
   bool		showContext;		/* tracer shows context module */
   int		styleCheck;		/* source style checking */
   int		suspendTrace;		/* tracing is suspended now */
-  LocalFrame	retryFrame;		/* Frame to retry */
+  intptr_t	retryFrame;		/* Frame to retry (local stack offset) */
 } pl_debugstatus_t;
 
 #define FT_ATOM		0		/* atom feature */

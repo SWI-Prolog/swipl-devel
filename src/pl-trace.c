@@ -688,6 +688,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		return ACTION_CONTINUE;
     case 'r':	if (port & (REDO_PORT|FAIL_PORT|EXIT_PORT|EXCEPTION_PORT))
 		{ FeedBack("retry\n[retry]\n");
+		  debugstatus.retryFrame = consTermRef(frame);
 		  return ACTION_RETRY;
 		} else
 		  Warn("Can't retry at this port\n");
@@ -1229,7 +1230,8 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	{ debugstatus.skiplevel = levelFrame(frame) - 1;
 	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_retry )
-	{ rval = ACTION_RETRY;
+	{ debugstatus.retryFrame = consTermRef(frame);
+	  rval = ACTION_RETRY;
 	} else if ( a == ATOM_ignore )
 	{ rval = ACTION_IGNORE;
 	} else if ( a == ATOM_abort )
@@ -1241,7 +1243,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	term_t arg = PL_new_term_ref();
 
 	if ( PL_get_arg(1, rarg, arg) && PL_get_frame(arg, &fr) )
-	{ debugstatus.retryFrame = fr;
+	{ debugstatus.retryFrame = consTermRef(fr);
 	  rval = ACTION_RETRY;
 	} else
 	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
@@ -1536,7 +1538,7 @@ resetTracer(void)
   debugstatus.debugging    = DBG_OFF;
   debugstatus.suspendTrace = 0;
   debugstatus.skiplevel    = 0;
-  debugstatus.retryFrame   = NULL;
+  debugstatus.retryFrame   = 0;
 
   setPrologFlagMask(PLFLAG_LASTCALL);
 }
