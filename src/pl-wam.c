@@ -2927,6 +2927,11 @@ next_choice:
       DEBUG(3, Sdprintf("    REDO #%ld: Jump in %s\n",
 			loffset(FR),
 			predicateName(DEF)));
+      PC   = ch->value.PC;
+      DiscardMark(ch->mark);
+      BFR  = ch->parent;
+      lTop = (LocalFrame)ch;
+      ARGP = argFrameP(lTop, 0);
       LD->statistics.inferences++;
       if ( unlikely(LD->alerted) )
       {
@@ -2966,11 +2971,6 @@ next_choice:
 #endif
         Profile(profRedo(ch->prof_node PASS_LD));
       }
-      PC   = ch->value.PC;
-      DiscardMark(ch->mark);
-      BFR  = ch->parent;
-      lTop = (LocalFrame)ch;
-      ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
     { Clause clause;
