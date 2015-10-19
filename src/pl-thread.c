@@ -1093,7 +1093,7 @@ retry:
       ld->thread.info = info;
       ld->thread.magic = PL_THREAD_MAGIC;
       info->thread_data = ld;
-      info->status = PL_THREAD_CREATED;
+      info->status = PL_THREAD_RESERVED;
       info->debug = TRUE;
 
       if ( i > thread_highest_id )
@@ -1128,7 +1128,8 @@ int
 PL_unify_thread_id(term_t t, int i)
 { if ( i < 1 ||
        i > thread_highest_id ||
-       GD->thread.threads[i]->status == PL_THREAD_UNUSED )
+       GD->thread.threads[i]->status == PL_THREAD_UNUSED ||
+       GD->thread.threads[i]->status == PL_THREAD_RESERVED )
     return -1;				/* error */
 
   return unify_thread_id(t, GD->thread.threads[i]);
@@ -1218,7 +1219,8 @@ PL_thread_raise(int tid, int sig)
     return FALSE;
   }
   info = GD->thread.threads[tid];
-  if ( info->status == PL_THREAD_UNUSED )
+  if ( info->status == PL_THREAD_UNUSED ||
+       info->status == PL_THREAD_RESERVED )
     goto error;
 
   if ( !raiseSignal(info->thread_data, sig) ||
@@ -1589,6 +1591,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   if ( rc == 0 )
   { LOCK();
+    info->status = PL_THREAD_CREATED;
     assert(info->goal);
     func = "pthread_create";
     rc = pthread_create(&info->tid, &attr, start_thread, info);
@@ -1626,7 +1629,8 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 
   if ( i < 1 ||
        i > thread_highest_id ||
-       GD->thread.threads[i]->status == PL_THREAD_UNUSED )
+       GD->thread.threads[i]->status == PL_THREAD_UNUSED ||
+       GD->thread.threads[i]->status == PL_THREAD_RESERVED )
   { if ( warn )
       return PL_error(NULL, 0, "no info record",
 		      ERR_EXISTENCE, ATOM_thread, t);
@@ -1969,7 +1973,8 @@ advance_state(tprop_enum *state)
     { state->tid++;
       if ( state->tid > thread_highest_id )
 	fail;
-    } while ( GD->thread.threads[state->tid]->status == PL_THREAD_UNUSED );
+    } while ( GD->thread.threads[state->tid]->status == PL_THREAD_UNUSED ||
+              GD->thread.threads[state->tid]->status == PL_THREAD_RESERVED );
 
     succeed;
   }
@@ -3440,6 +3445,7 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
   { thread_queue:
     if ( tid < 1 || tid > thread_highest_id ||
 	 GD->thread.threads[tid]->status == PL_THREAD_UNUSED ||
+	 GD->thread.threads[tid]->status == PL_THREAD_RESERVED ||
 	 !GD->thread.threads[tid]->thread_data )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
 
@@ -4802,6 +4808,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     }
   }
 
+  info->status = PL_THREAD_CREATED;
   updateAlerted(ldnew);
   PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
 

@@ -53,6 +53,7 @@ typedef enum
   PL_THREAD_FAILED,			/* finished with No */
   PL_THREAD_EXCEPTION,			/* finished with exception */
   PL_THREAD_NOMEM,			/* couldn't start due no-memory */
+  PL_THREAD_RESERVED,			/* allocated but not yet created */
   PL_THREAD_CREATED,			/* just created */
   PL_THREAD_SUSPENDED,			/* suspended */
   PL_THREAD_RESUMING			/* about to resume */
