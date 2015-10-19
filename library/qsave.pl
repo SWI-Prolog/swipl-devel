@@ -175,17 +175,15 @@ min_stack(local,    32).
 min_stack(global,   16).
 min_stack(trail,    16).
 
-convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
+convert_option(Stack, Val, NewVal, "~w") :-	% stack-sizes are in K-bytes
 	min_stack(Stack, Min), !,
 	(   Val == 0
 	->  NewVal = Val
 	;   NewVal is max(Min, Val*1024)
 	).
-convert_option(goal, Callable, Atom) :- !,
-	term_to_atom(Callable, Atom).
-convert_option(toplevel, Callable, Atom) :- !,
-	term_to_atom(Callable, Atom).
-convert_option(_, Value, Value).
+convert_option(goal, Callable, Callable, "~q") :- !.
+convert_option(toplevel, Callable, Callable, "~q") :- !.
+convert_option(_, Value, Value, "~w").
 
 doption(Name) :- min_stack(Name, _).
 doption(goal).
@@ -211,10 +209,12 @@ save_options(RC, SaveClass, Options) :-
 	        save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
 	        OptTerm =.. [OptionName,OptionVal2],
 	        (   option(OptTerm, Options)
-		->  convert_option(OptionName, OptionVal2, OptionVal)
-		;   OptionVal = OptionVal1
+		->  convert_option(OptionName, OptionVal2, OptionVal, FmtVal)
+		;   OptionVal = OptionVal1,
+		    FmtVal = "~w"
 		),
-	        format(Fd, '~w=~w~n', [OptionName, OptionVal]),
+	        string_concat("~w=", FmtVal, Fmt),
+	        format(Fd, Fmt, [OptionName, OptionVal]),
 	    fail
 	;   true
 	),
