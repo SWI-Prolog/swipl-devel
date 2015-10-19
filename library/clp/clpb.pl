@@ -37,7 +37,8 @@
                  sat/1,
                  taut/2,
                  labeling/1,
-                 sat_count/2
+                 sat_count/2,
+                 weighted_maximum/3
                 ]).
 
 :- use_module(library(error)).
@@ -1240,6 +1241,126 @@ random_bindings(VNum, Node) -->
         (   { maybe(LCount, Total) } ->
             [Var=0], random_bindings(VNum, Low)
         ;   [Var=1], random_bindings(VNum, High)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Find solutions with maximum weight.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%% weighted_maximum(+Weights, +Vs, -Maximum) is multi.
+%
+% Maximize a linear objective function over Boolean variables Vs with
+% integer coefficients Weights. This predicate assigns 0 and 1 to the
+% variables in Vs such that all stated constraints are satisfied, and
+% Maximum is the maximum of sum(Weight_i*V_i) over all admissible
+% assignments.  On backtracking, all admissible assignments that
+% attain the optimum are generated.
+%
+% This predicate can also be used to _minimize_ a linear Boolean
+% program, since negative integers can appear in Weights.
+%
+% Example:
+%
+% ==
+% ?- sat(A#B), weighted_maximum([1,2,1], [A,B,C], Maximum).
+% A = 0, B = 1, C = 1, Maximum = 3.
+% ==
+
+weighted_maximum(Ws, Vars, Max) :-
+        must_be(list(integer), Ws),
+        must_be(list(var), Vars),
+        sat(+[1|Vars]),      % capture all variables with a single BDD
+        Vars = [Var|_],
+        var_index_root(Var, _,  Root),
+        root_get_formula_bdd(Root, _, BDD0),
+        bdd_variables(BDD0, Vs),
+        % existentially quantify variables that are not considered
+        maplist(put_visited, Vars),
+        exclude(is_visited, Vs, Unvisited),
+        maplist(unvisit, Vars),
+        foldl(existential, Unvisited, BDD0, BDD),
+        maplist(var_with_index, Vars, IVs),
+        pairs_keys_values(Pairs0, IVs, Ws),
+        keysort(Pairs0, Pairs1),
+        pairs_keys_values(Pairs1, IVs1, WeightsIndexOrder),
+        pairs_values(IVs1, VarsIndexOrder),
+        % Pairs is a list of Var-Weight terms, in index order of Vars
+        pairs_keys_values(Pairs, VarsIndexOrder, WeightsIndexOrder),
+        bdd_maximum(BDD, Pairs, Max),
+        max_labeling(BDD, Pairs).
+
+max_labeling(1, Pairs) :- max_upto(Pairs, _, _).
+max_labeling(node(_,Var,Low,High,Aux), Pairs0) :-
+        max_upto(Pairs0, Var, Pairs),
+        get_attr(Aux, clpb_max, max(_,Dir)),
+        direction_labeling(Dir, Var, Low, High, Pairs).
+
+max_upto([], _, _).
+max_upto([Var0-Weight|VWs0], Var, VWs) :-
+        (   Var == Var0 -> VWs = VWs0
+        ;   Weight =:= 0 ->
+            (   Var0 = 0 ; Var0 = 1 ),
+            max_upto(VWs0, Var, VWs)
+        ;   Weight < 0 -> Var0 = 0, max_upto(VWs0, Var, VWs)
+        ;   Var0 = 1, max_upto(VWs0, Var, VWs)
+        ).
+
+direction_labeling(low, 0, Low, _, Pairs)   :- max_labeling(Low, Pairs).
+direction_labeling(high, 1, _, High, Pairs) :- max_labeling(High, Pairs).
+
+bdd_maximum(1, Pairs, Max) :-
+        pairs_values(Pairs, Weights0),
+        include(<(0), Weights0, Weights),
+        sum_list(Weights, Max).
+bdd_maximum(node(_,Var,Low,High,Aux), Pairs0, Max) :-
+        (   get_attr(Aux, clpb_max, max(Max,_)) -> true
+        ;   (   skip_to_var(Var, Weight, Pairs0, Pairs),
+                (   Low == 0 ->
+                    bdd_maximum_(High, Pairs, MaxHigh, MaxToHigh),
+                    Max is MaxToHigh + MaxHigh + Weight,
+                    Dir = high
+                ;   High == 0 ->
+                    bdd_maximum_(Low, Pairs, MaxLow, MaxToLow),
+                    Max is MaxToLow + MaxLow,
+                    Dir = low
+                ;   bdd_maximum_(Low, Pairs, MaxLow, MaxToLow),
+                    bdd_maximum_(High, Pairs, MaxHigh, MaxToHigh),
+                    Max0 is MaxToLow + MaxLow,
+                    Max1 is MaxToHigh + MaxHigh + Weight,
+                    Max is max(Max0,Max1),
+                    (   Max0 =:= Max1 -> Dir = _Any
+                    ;   Max0 < Max1 -> Dir = high
+                    ;   Dir = low
+                    )
+                ),
+                store_maximum(Aux, Max, Dir)
+            )
+        ).
+
+bdd_maximum_(Node, Pairs, Max, MaxTo) :-
+	bdd_maximum(Node, Pairs, Max),
+	between_weights(Node, Pairs, MaxTo).
+
+store_maximum(Aux, Max, Dir) :- put_attr(Aux, clpb_max, max(Max,Dir)).
+
+between_weights(Node, Pairs0, MaxTo) :-
+        (   Node == 1 -> MaxTo = 0
+        ;   node_var_low_high(Node, Var, _, _),
+            phrase(skip_to_var_(Var, _, Pairs0, _), Weights0),
+            include(<(0), Weights0, Weights),
+            sum_list(Weights, MaxTo)
+        ).
+
+skip_to_var(Var, Weight, Pairs0, Pairs) :-
+        phrase(skip_to_var_(Var, Weight, Pairs0, Pairs), _).
+
+skip_to_var_(Var, Weight, [Var0-Weight0|VWs0], VWs) -->
+        (   { Var == Var0 } ->
+            { Weight = Weight0, VWs0 = VWs }
+        ;   (   { Weight0 =< 0 } -> []
+            ;   [Weight0]
+            ),
+            skip_to_var_(Var, Weight, VWs0, VWs)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
