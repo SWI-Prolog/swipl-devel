@@ -213,7 +213,7 @@ save_options(RC, SaveClass, Options) :-
 		;   OptionVal = OptionVal1,
 		    FmtVal = "~w"
 		),
-	        string_concat("~w=", FmtVal, Fmt),
+	        atomics_to_string(["~w=", FmtVal, "~n"], Fmt),
 	        format(Fd, Fmt, [OptionName, OptionVal]),
 	    fail
 	;   true

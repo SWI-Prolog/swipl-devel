@@ -151,6 +151,8 @@ run_state(Exe, Args, Result) :-
 	    )),
 	assertion(no_error(ErrOutput)).
 
+remove_state(_State) :-
+	debugging(save(keep)), !.
 remove_state(State) :-
 	catch(delete_file(State), _, true).
 
