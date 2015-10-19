@@ -759,7 +759,7 @@ src_files([H|T], Dir, Options) -->
 	{ file_name_extension(_, Ext, H),
 	  user:prolog_file_type(Ext, prolog),
 	  \+ user:prolog_file_type(Ext, qlf),
-	  directory_file_path(Dir, H, File0),
+	  dir_file_path(Dir, H, File0),
 	  absolute_file_name(File0, File,
 			     [ file_errors(fail)
 			     | Options
@@ -770,7 +770,7 @@ src_files([H|T], Dir, Options) -->
 src_files([H|T], Dir, Options) -->
 	{ \+ special(H),
 	  option(recursive(true), Options),
-	  directory_file_path(Dir, H, SubDir),
+	  dir_file_path(Dir, H, SubDir),
 	  exists_directory(SubDir), !,
 	  catch(directory_files(SubDir, Files), _, fail)
 	}, !,
@@ -781,6 +781,16 @@ src_files([_|T], Dir, Options) -->
 
 special(.).
 special(..).
+
+% avoid dependency on library(filesex), which also pulls a foreign
+% dependency.
+dir_file_path(Dir, File, Path) :-
+	(   sub_atom(Dir, _, _, 0, /)
+	->  atom_concat(Dir, File, Path)
+	;   atom_concat(Dir, /, TheDir),
+	    atom_concat(TheDir, File, Path)
+	).
+
 
 
 		 /*******************************
