@@ -1159,12 +1159,14 @@ sat_count(Sat0, N) :-
                maplist(put_visited, Vs),
                % ... so that they do not appear in Vs1 ...
                bdd_variables(BDD1, Vs1),
+               partition(universal_var, Vs1, Univs, Exis),
                % ... and then remove remaining variables:
-               foldl(existential, Vs1, BDD1, BDD2),
+               foldl(universal, Univs, BDD1, BDD2),
+               foldl(existential, Exis, BDD2, BDD3),
                variables_in_index_order(Vs, IVs),
                foldl(renumber_variable, IVs, 1, VNum),
-               bdd_count(BDD2, VNum, Count0),
-               var_u(BDD2, VNum, P),
+               bdd_count(BDD3, VNum, Count0),
+               var_u(BDD3, VNum, P),
                % Do not unify N directly, because we are not prepared
                % for propagation here in case N is a CLP(B) variable.
                N0 is 2^(P - 1)*Count0,
@@ -1172,6 +1174,12 @@ sat_count(Sat0, N) :-
                throw(count(N0))),
               count(N0),
               N = N0).
+
+universal(V, BDD, Node) :-
+        var_index(V, Index),
+        bdd_restriction(BDD, Index, 0, NA),
+        bdd_restriction(BDD, Index, 1, NB),
+        apply(*, NA, NB, Node).
 
 renumber_variable(V, I0, I) :-
         put_attr(V, clpb, index_root(I0,_)),
