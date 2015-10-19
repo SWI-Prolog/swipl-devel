@@ -1488,7 +1488,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     if ( get_thread(inherit_from, &oinfo, TRUE) )
     { ldold = oinfo->thread_data;
     } else
+    { free_thread_info(info);
       return FALSE;
+    }
   }
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
