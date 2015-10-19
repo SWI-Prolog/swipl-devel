@@ -1704,6 +1704,8 @@ load_files(Module:Files, Options) :-
 
 :- dynamic
 	'$loading_file'/3.		% File, Queue, Thread
+:- volatile
+	'$loading_file'/3.
 
 '$mt_load_file'(File, FullFile, Module, Options) :-
 	current_prolog_flag(threads, true), !,
