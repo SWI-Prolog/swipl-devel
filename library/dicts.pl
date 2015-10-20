@@ -246,7 +246,7 @@ slice_pairs([H|T0], [P|PL], Pairs) :-
 	    slice_pairs(T0, PL, More)
 	;   D == (<)
 	->  slice_pairs(T0, [P|PL], Pairs)
-	;   Pairs = []
+	;   slice_pairs([H|T0], PL, Pairs)
 	).
 
 %%	dicts_to_compounds(?Dicts, +Keys, :OnEmpty, ?Compounds) is semidet.
