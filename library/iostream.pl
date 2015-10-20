@@ -72,7 +72,7 @@ open_any/5.
 %
 %	Establish a stream from  Specification   that  should  be closed
 %	using  Close,  which  can  either  be    called   or  passed  to
-%	close_any/5. Options processed:
+%	close_any/1. Options processed:
 %
 %	  - encoding(Enc)
 %	  Set stream to encoding Enc.
