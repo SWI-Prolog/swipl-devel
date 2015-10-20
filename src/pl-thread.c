@@ -1910,6 +1910,16 @@ thread_debug_propery(PL_thread_info_t *info, term_t prop ARG_LD)
   return PL_unify_bool_ex(prop, info->debug);
 }
 
+static int
+thread_tid_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ IGNORE_LD
+  intptr_t tid = system_thread_id(info);
+
+  if ( tid != -1 )
+    return PL_unify_integer(prop, system_thread_id(info));
+  else
+    return FALSE;
+}
 
 typedef struct
 { functor_t functor;			/* functor of property */
@@ -1918,11 +1928,12 @@ typedef struct
 
 
 static const tprop tprop_list [] =
-{ { FUNCTOR_alias1,	    thread_alias_propery },
-  { FUNCTOR_status1,	    thread_status_propery },
-  { FUNCTOR_detached1,	    thread_detached_propery },
-  { FUNCTOR_debug1,	    thread_debug_propery },
-  { 0,			    NULL }
+{ { FUNCTOR_alias1,	       thread_alias_propery },
+  { FUNCTOR_status1,	       thread_status_propery },
+  { FUNCTOR_detached1,	       thread_detached_propery },
+  { FUNCTOR_debug1,	       thread_debug_propery },
+  { FUNCTOR_system_thread_id1, thread_tid_propery },
+  { 0,			       NULL }
 };
 
 

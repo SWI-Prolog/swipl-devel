@@ -279,6 +279,12 @@ exited (using pthread_exit()) \arg{Term} is unbound.
 The \arg{Goal} of the thread has been terminated due to an uncaught
 exception (see throw/1 and catch/3).
 \end{description}
+	\termitem{system_thread_id}{Integer}
+Thread identifier used by the operating system for the calling thread.
+Not available on all OSes. This is the same as the Prolog flag
+\prologflag{system_thread_id} for the calling thread.  Access to the
+system thread identifier can, on some systems, be used to gain
+additional control over or information about Prolog threads.
     \end{description}
 
 See also thread_statistics/3 to obtain resource usage information and
