@@ -1437,7 +1437,12 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
       {					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
-	{ if ( op_pri > prec )
+	{ static atom_t ATOM_fdot = 0;
+
+	  if ( !ATOM_fdot )			/* ATOM_dot can be '[|]' */
+	    ATOM_fdot = PL_new_atom(".");
+
+	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
 	  _PL_get_arg(arity-1, t, arg);
 	  TRY(writeTerm(arg,
@@ -1448,6 +1453,8 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  { TRY(PutComma(options));
 	  } else if ( functor == ATOM_bar )
 	  { TRY(PutBar(options));
+	  } else if ( functor == ATOM_fdot )
+	  { TRY(PutToken(".", out));
 	  } else if ( arity == 2 )
 	  { switch(writeAtom(functor, options))
 	    { case FALSE:
