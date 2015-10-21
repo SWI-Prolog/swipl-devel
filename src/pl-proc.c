@@ -1898,6 +1898,7 @@ found:
 	    GD->statistics.threads_finished) == 1 )
       { assert(false(proc->definition, P_DIRTYREG));
 	freeHeap(odef, sizeof(struct definition));
+	GD->statistics.predicates--;
       } else
       { DEBUG(MSG_PROC, Sdprintf("autoImport(%s,%s): Linger %s (%p)\n",
 				 functorName(f), PL_atom_chars(m->name),
