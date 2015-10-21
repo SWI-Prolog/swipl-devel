@@ -445,7 +445,7 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
 
 	    if ( !push_attvar(p, state) )
 	      return E_RESOURCE;
-	    *p = (i<<LMASK_BITS)|TAG_VAR;
+	    *p = (i<<LMASK_BITS)|TAG_VAR|MARK_MASK;
 	  }
 	  HASH("V", 1);
 	  HASH(p, sizeof(word));
@@ -458,7 +458,7 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
 
 	  if ( !push_var(p, state) )
 	    return E_RESOURCE;
-	  *p = (i<<LMASK_BITS)|TAG_VAR;
+	  *p = (i<<LMASK_BITS)|TAG_VAR|MARK_MASK;
 	}
         HASH("V", 1);
 	HASH(p, sizeof(word));

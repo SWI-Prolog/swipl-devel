@@ -27,9 +27,11 @@
 	  [ test_hash/0
 	  ]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 test_hash :-
-	run_tests([ variant_sha1
+	run_tests([ variant_sha1,
+		    variant_hash
 		  ]).
 
 :- begin_tests(variant_sha1).
@@ -41,6 +43,11 @@ test(vars, Hash1 == Hash2) :-
 	v(A), v(B),
 	variant_sha1(x(A), Hash1),
 	variant_sha1(x(B), Hash2).
+test(variant, true) :-
+	v(A), v(B),
+	variant_sha1(x(A,A), Hash1),
+	variant_sha1(x(A,B), Hash2),
+	assertion(Hash1 \== Hash2).
 test(shared, Hash1 == Hash2) :-
 	A = x(C),
 	variant_sha1(x(A,A), Hash1),
@@ -65,3 +72,25 @@ test(float, fail) :-
 v(_).
 
 :- end_tests(variant_sha1).
+
+:- begin_tests(variant_hash).
+
+test(variant, true) :-
+	v(A), v(B),
+	variant_hash(x(A,A), Hash1),
+	variant_hash(x(A,B), Hash2),
+	assertion(Hash1 \== Hash2).
+test(variant, Hash1 == Hash2) :-
+	v(A),
+	freeze(B, true),
+	variant_hash(x(A,A), Hash1),
+	variant_hash(x(B,B), Hash2).
+test(variant, Hash1 == Hash2) :-
+	v(A),
+	freeze(B, true),
+	variant_hash(x(A,_), Hash1),
+	variant_hash(x(B,_), Hash2).
+
+v(_).
+
+:- end_tests(variant_hash).
