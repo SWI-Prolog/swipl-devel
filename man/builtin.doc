@@ -3282,8 +3282,8 @@ one of the following:
 
 \begin{description}
     \termitem{file}{FileName}
-Unify \arg{FileName} with the name of the file in which the clause
-textually appears. Fails if the clause is created by loading a file
+Unify \arg{FileName} with the name of the file from which the clause
+is loaded.  Fails if the clause was not created by loading a file
 (e.g., clauses added using assertz/1).  See also \const{source}.
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the clause.  Fails if
