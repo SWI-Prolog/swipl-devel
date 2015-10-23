@@ -362,6 +362,7 @@ hash_compile(hash_state *state, const unsigned char *data, size_t len)
     { size_t copy = len;
       if ( len > HASH_BLOCK_SIZE-state->len )
 	copy = HASH_BLOCK_SIZE-state->len;
+      len -= copy;
       memcpy(&state->buf[state->len], data, copy);
       state->len += copy;
       if ( state->len == HASH_BLOCK_SIZE )
