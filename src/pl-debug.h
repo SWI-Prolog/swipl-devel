@@ -66,6 +66,7 @@
 #define MSG_QLF_SECTION		 35
 #define MSG_QLF_BOOT		 36
 #define MSG_QLF_BOOT_READ	 37
+#define MSG_PROC_COUNT		 38
 
 #define MSG_QUEUE		 40
 #define MSG_QUEUE_WAIT		 41

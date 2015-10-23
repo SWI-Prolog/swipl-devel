@@ -82,7 +82,7 @@ lookupProcedure(functor_t f, Module m)
     ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
 
     resetProcedure(proc, TRUE);
-    DEBUG(MSG_PROC, Sdprintf("Created %s\n", procedureName(proc)));
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));
   }
   UNLOCKMODULE(m);
 
@@ -156,6 +156,7 @@ unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
   Module m = def->module;
 
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
   if ( unshareDefinition(def) == 0 )
   { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     unallocDefinition(def);
@@ -1897,6 +1898,7 @@ found:
       if ( (GD->statistics.threads_created -
 	    GD->statistics.threads_finished) == 1 )
       { assert(false(proc->definition, P_DIRTYREG));
+	DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(odef)));
 	freeHeap(odef, sizeof(struct definition));
 	GD->statistics.predicates--;
       } else
