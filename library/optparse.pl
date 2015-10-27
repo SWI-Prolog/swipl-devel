@@ -695,6 +695,7 @@ invalidate_opts_spec(OptsSpec, ParseOptions) :-
 
     %invalid if unknown type
     ;   (   memberchk(type(Type), OptSpec),
+	    Type \== term,
             \+ clause(error:has_type(Type,_), _)
 	)
     ->  format(atom(Msg), 'unknown type ''~w'' in option ''~w''', [Type, Name]),
