@@ -3714,6 +3714,92 @@ L = 'hello world!'.
 
 \section{Notes on Using Foreign Code}	\label{sec:foreignnotes}
 
+\subsection{Foreign debugging functions}
+\label{sec:foreign-debug}
+
+The functions in this section are primarily intended for debugging
+foreign extensions or embedded Prolog. Violating the constraints of the
+foreign interface often leads to crashes in a subsequent garbage
+collection. If this happens, the system needs to be recompiled with the
+cflags \const{-DO_DEBUG}. This is normally achieved by editing
+\file{src/Makefile} and changing the definition of \const{COFLAGS} to
+the value below. The \exam{-gdwarf-2 -g3} provides detailed debugging
+information for \program{gcc}. If you use another C compiler you may
+need other flags.
+
+\begin{code}
+COFLAGS=-DO_DEBUG -gdwarf-2 -g3
+\end{code}
+
+After recompiling the Prolog kernel all functions listed above are
+available to use from the debugger (e.g. \program{gdb}) or can be placed
+at critical location in your code or the system code.
+
+\begin{description}
+    \cfunction{void}{PL_backtrace}{int depth, int flags}
+Dump a Prolog backtrace to the \const{user_error} stream. \arg{Depth} is
+the number of frames to dump. \arg{Flags} is a bitwise or of the
+following constants:
+
+    \begin{description}
+    \termitem{PL_BT_SAFE}{}
+    (0x1) Do not try to print \jargon{goals}.  Instead, just print the
+    predicate name and arity.  This reduces the likelyhood to crash if
+    PL_backtrace() is called in a damaged environment.
+    \termitem{PL_BT_USER}{}
+    (0x2) Only show `user' frames.  Default is to also show frames
+    of hidden built-in predicates.
+    \end{description}
+
+    \cfunction{int}{PL_check_data}{term_t data}
+    Check the consistency of the term \arg{data}.  Returns \const{TRUE}
+    this is actually implemented in the current version and
+    \const{FALSE} otherwise.  The actual implementation only exists
+    if the system is compiled with the cflag \const{-DO_DEBUG} or
+    \const{-DO_MAINTENANCE}.  This is \emph{not} the default.
+
+    \cfunction{int}{PL_check_stacks}{}
+    Check the consistency of the runtime stacks of the calling thread.
+    Returns \const{TRUE} this is actually implemented in the current
+    version and \const{FALSE} otherwise. The actual implementation only exists
+    if the system is compiled with the cflag \const{-DO_DEBUG} or
+    \const{-DO_MAINTENANCE}.  This is \emph{not} the default.
+\end{description}
+
+The Prolog kernel sources use the macro \cfuncref{DEBUG}{Topic, Code}.
+These macros are disabled in the production version and must be enabled
+by recompiling the system as described above. Specific topics can be
+enabled and disabled using the predicates prolog_debug/1 and
+prolog_nodebug/1. In addition, they can be activated from the
+commandline using commandline option \const{-d topics}, where
+\arg{topics} is a comma-separated list of debug topics to enable. For
+example, the code below adds many consistency checks and prints messages
+if the Prolog signal handler dispatches signals.
+
+\begin{code}
+$ swipl -d chk_secure,msg_signal
+\end{code}
+
+\begin{description}
+    \predicate{prolog_debug}{1}{+Topic}
+    \nodescription
+    \predicate{prolog_nodebug}{1}{+Topic}
+Enable/disable a debug topic.  \arg{Topic} is an atom that identifies
+the desired topic. The available topics are defined in
+\file{src/pl-debug.h}.  Please search the sources to find out what
+is actually printed and when.  We highlight one topic here:
+
+    \begin{description}
+    \termitem{chk_secure}
+    Add many expensive consistency checks to the system.  This should
+    typically be used when the system crashes, notably in the garbage
+    collector.  Garbage collection crashes are in most cases caused
+    by invalid data on the Prolog stacks.  This debug topic may help
+    locating how the invalid data was created.
+    \end{description}
+\end{description}
+
+
 \subsection{Memory Allocation}
 \label{sec:foreign-malloc}
 
@@ -3748,6 +3834,13 @@ previous PL_malloc() or PL_realloc() call.
 
 \subsubsection{Boehm-GC support}
 \label{sec:boehm-gc}
+
+\begin{quote}
+This section is obsolete.  Although the Boehm-GC interfaces
+still exist, it turns out that the scalability is not good enough for
+SWI-Prolog. It is unlikely that SWI-Prolog will ever switch to
+Boehm-GC.
+\end{quote}
 
 \index{Boehm GC}%
 To accommodate future use of the Boehm garbage
