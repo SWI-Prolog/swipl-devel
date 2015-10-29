@@ -487,6 +487,7 @@ safe_primitive(subsumes_term(_,_)).
 safe_primitive(system:term_hash(_,_)).
 safe_primitive(system:term_hash(_,_,_,_)).
 safe_primitive(system:variant_sha1(_,_)).
+safe_primitive(system:variant_hash(_,_)).
 safe_primitive(system:'$term_size'(_,_,_)).
 
 					% dicts
