@@ -478,6 +478,7 @@ safe_primitive(functor(_,_,_)).
 safe_primitive(_ =.. _).
 safe_primitive(system:compound_name_arity(_,_,_)).
 safe_primitive(system:compound_name_arguments(_,_,_)).
+safe_primitive(system:'$filled_array'(_,_,_,_)).
 safe_primitive(copy_term(_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(system:copy_term_nat(_,_)).
