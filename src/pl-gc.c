@@ -3640,7 +3640,7 @@ check_new_arguments(vm_state *state)
   return key;
 }
 
-
+#define HAVE_CHECK_STACKS 1
 
 word
 checkStacks(void *state_ptr)
@@ -3729,6 +3729,18 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
 }
 
 #endif /* O_DEBUG */
+
+int
+PL_check_stacks(void)
+{
+#ifdef HAVE_CHECK_STACKS
+  (void)checkStacks(NULL);
+  return TRUE;
+#else
+  return FALSE;
+#endif
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 About synchronisation with atom-gc (AGC). GC can run fully concurrent in
