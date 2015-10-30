@@ -6129,6 +6129,12 @@ initPrologThreads()
 #endif
 }
 
+int
+PL_get_thread_alias(int tid, atom_t *alias)
+{ *alias = ATOM_main;
+  return TRUE;
+}
+
 #endif  /*O_PLMT*/
 
 		 /*******************************
