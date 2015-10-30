@@ -65,6 +65,27 @@ Transitioning between states is performed using CAS.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
+#ifdef O_PLMT
+
+#define acquire_kvs(t, k) \
+  { LD->thread.info->kvs = t->kvs; \
+    k = LD->thread.info->kvs; \
+  }
+
+#define release_kvs() \
+  { LD->thread.info->kvs = NULL; \
+  }
+
+#else
+
+#define acquire_kvs(t, k) \
+  { k = t->kvs; \
+  }
+
+#define release_kvs() (void)0
+
+#endif
+
 #define HTABLE_NORMAL 0x1
 #define HTABLE_RESIZE 0x2
 
@@ -472,14 +493,13 @@ lookupHTable__LD(Table ht, void *name ARG_LD)
 { KVS kvs;
   void *v;
 
-  kvs = ht->kvs;
-  LD->thread.info->kvs = kvs;
+  acquire_kvs(ht, kvs);
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("lookupHTable(). ht: %p, kvs: %p, name: %p\n", ht, kvs, name));
 
   v = htable_get(ht, kvs, name);
-  LD->thread.info->kvs = NULL;
+  release_kvs();
 
   return v;
 }
@@ -491,14 +511,13 @@ addHTable(Table ht, void *name, void *value)
   KVS kvs;
   void *v;
 
-  kvs = ht->kvs;
-  LD->thread.info->kvs = kvs;
+  acquire_kvs(ht, kvs);
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("addHTable(). ht: %p, kvs: %p, name: %p, value: %p\n", ht, kvs, name, value));
 
-  v = htable_put(ht, ht->kvs, name, value, HTABLE_NORMAL);
-  LD->thread.info->kvs = NULL;
+  v = htable_put(ht, kvs, name, value, HTABLE_NORMAL);
+  release_kvs();
 
   return v;
 }
@@ -510,14 +529,13 @@ deleteHTable(Table ht, void *name)
   KVS kvs;
   void *v;
 
-  kvs = ht->kvs;
-  LD->thread.info->kvs = kvs;
+  acquire_kvs(ht, kvs);
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("deleteHTable(). ht: %p, kvs: %p, name: %p\n", ht, kvs, name));
 
-  v = htable_put(ht, ht->kvs, name, HTABLE_TOMBSTONE, HTABLE_NORMAL);
-  LD->thread.info->kvs = NULL;
+  v = htable_put(ht, kvs, name, HTABLE_TOMBSTONE, HTABLE_NORMAL);
+  release_kvs();
 
   return (v != NULL);
 }
@@ -531,8 +549,7 @@ clearHTable(Table ht)
   void *n = NULL;
   void *v = NULL;
 
-  kvs = ht->kvs;
-  LD->thread.info->kvs = kvs;
+  acquire_kvs(ht, kvs);
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("ClearHTable(). ht: %p, kvs: %p\n", ht, kvs));
@@ -564,7 +581,7 @@ clearHTable(Table ht)
     idx++;
   }
 
-  LD->thread.info->kvs = NULL;
+  release_kvs();
 }
 
 
@@ -577,8 +594,7 @@ copyHTable(Table src_ht)
   void *n = NULL;
   void *v = NULL;
 
-  src_kvs = src_ht->kvs;
-  LD->thread.info->kvs = src_kvs;
+  acquire_kvs(src_ht, src_kvs);
   dest_ht = newHTable(src_kvs->len);
   dest_kvs = dest_ht->kvs;
 
@@ -612,7 +628,7 @@ copyHTable(Table src_ht)
     }
   }
 
-  LD->thread.info->kvs = NULL;
+  release_kvs();
 
   return dest_ht;
 }

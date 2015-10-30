@@ -36,6 +36,29 @@ See pl-atom.c for many useful comments on the representation.
 
 #define functorDefTable (GD->functors.table)
 
+#ifdef O_PLMT
+
+#define acquire_functor_table(t, b) \
+  { LD->thread.info->functor_table = functorDefTable; \
+    t = LD->thread.info->functor_table->table; \
+    b = LD->thread.info->functor_table->buckets; \
+  }
+
+#define release_functor_table() \
+  { LD->thread.info->functor_table = NULL; \
+  }
+
+#else
+
+#define acquire_functor_table(t, b) \
+  { t = functorDefTable->table; \
+    b = functorDefTable->buckets; \
+  }
+
+#define release_functor_table() (void)0
+
+#endif
+
 static void	  allocFunctorTable(void);
 static void	  rehashFunctors(void);
 
@@ -91,9 +114,7 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
 
 redo:
 
-  LD->thread.info->functor_table = functorDefTable;
-  table = LD->thread.info->functor_table->table;
-  buckets = LD->thread.info->functor_table->buckets;
+  acquire_functor_table(table, buckets);
 
   v = (int)pointerHashValue(atom, buckets);
   head = table[v];
@@ -105,7 +126,7 @@ redo:
       if ( !FUNCTOR_IS_VALID(f->flags) )
       { goto redo;
       }
-      LD->thread.info->functor_table = NULL;
+      release_functor_table();
       return f->functor;
     }
   }
@@ -137,7 +158,7 @@ redo:
 
   DEBUG(9, Sdprintf("%p (new)\n", f));
 
-  LD->thread.info->functor_table = NULL;
+  release_functor_table();
 
   return f->functor;
 }
@@ -217,20 +238,18 @@ isCurrentFunctor(atom_t atom, unsigned int arity)
   functor_t rc = 0;
 
 redo:
-  LD->thread.info->functor_table = functorDefTable;
-  table = LD->thread.info->functor_table->table;
-  buckets = LD->thread.info->functor_table->buckets;
+  acquire_functor_table(table, buckets);
 
   v = (unsigned int)pointerHashValue(atom, buckets);
   for(f = table[v]; f; f = f->next)
   { if ( FUNCTOR_IS_VALID(f->flags) && atom == f->name && f->arity == arity )
-    { LD->thread.info->functor_table = NULL;
+    { release_functor_table();
       rc = f->functor;
       break;
     }
   }
 
-  LD->thread.info->functor_table = NULL;
+  release_functor_table();
 
   if ( !rc && functorDefTable->buckets * 2 < GD->statistics.functors )
   { LOCK();

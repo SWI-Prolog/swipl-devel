@@ -338,6 +338,42 @@ static const ccharp atoms[] = {
 };
 #undef ATOM
 
+#ifdef O_PLMT
+
+#define acquire_atom_table(t, b) \
+  { LD->thread.info->atom_table = atomTable; \
+    t = LD->thread.info->atom_table->table; \
+    b = LD->thread.info->atom_table->buckets; \
+  }
+
+#define release_atom_table() \
+  { LD->thread.info->atom_table = NULL; \
+    LD->thread.info->atom_bucket = NULL; \
+  }
+
+#define acquire_atom_bucket(b) \
+  { LD->thread.info->atom_bucket = (b); \
+  }
+
+#define release_atom_bucket() \
+  { LD->thread.info->atom_bucket = NULL; \
+  }
+
+#else
+
+#define acquire_atom_table(t, b) \
+  { t = atomTable->table; \
+    b = atomTable->buckets; \
+  }
+
+#define release_atom_table() (void)0
+
+#define acquire_atom_bucket(b) (void)0
+
+#define release_atom_bucket(b) (void)0
+
+#endif
+
 /* Note that we use PL_malloc_uncollectable() here because the pointer in
    our block is not the real memory pointer.  Probably it is better to
    have two pointers; one to the allocated memory and one with the
@@ -461,13 +497,11 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
 redo:
 
-  LD->thread.info->atom_table = atomTable;
-  table = LD->thread.info->atom_table->table;
-  buckets = LD->thread.info->atom_table->buckets;
+  acquire_atom_table(table, buckets);
 
   v  = v0 & (buckets-1);
   head = table[v];
-  LD->thread.info->atom_bucket = table+v;
+  acquire_atom_bucket(table+v);
   DEBUG(MSG_HASH_STAT, lookups++);
 
   if ( true(type, PL_BLOB_UNIQUE) )
@@ -500,8 +534,8 @@ redo:
 	  }
 #endif
 	  *new = FALSE;
-          LD->thread.info->atom_table = NULL;
-          LD->thread.info->atom_bucket = NULL;
+	  release_atom_table();
+	  release_atom_bucket();
 	  return a->atom;
 	}
       }
@@ -532,8 +566,8 @@ redo:
 #endif
 #endif
 	  *new = FALSE;
-	  LD->thread.info->atom_table = NULL;
-          LD->thread.info->atom_bucket = NULL;
+	  release_atom_table();
+	  release_atom_bucket();
 	  return a->atom;
 	}
       }
@@ -602,8 +636,8 @@ redo:
   if ( type->acquire )
     (*type->acquire)(a->atom);
 
-  LD->thread.info->atom_table = NULL;
-  LD->thread.info->atom_bucket = NULL;
+  release_atom_table();
+  release_atom_bucket();
 
   return a->atom;
 }
@@ -1280,18 +1314,16 @@ pl_atom_hashstat(term_t idx, term_t n)
   Atom *table;
   Atom a;
 
-  LD->thread.info->atom_table = atomTable;
-  table = LD->thread.info->atom_table->table;
-  buckets = LD->thread.info->atom_table->buckets;
+  acquire_atom_table(table, buckets);
 
   if ( !PL_get_long(idx, &i) || i < 0 || i >= (long)buckets )
-  { LD->thread.info->atom_table = NULL;
+  { release_atom_table();
     fail;
   }
   for(m = 0, a = table[i]; a; a = a->next)
     m++;
 
-  LD->thread.info->atom_table = NULL;
+  release_atom_table();
 
   return PL_unify_integer(n, m);
 }

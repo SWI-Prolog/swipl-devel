@@ -367,11 +367,6 @@ COMMON(void)	forThreadLocalDataUnsuspended(void (*func)(struct PL_local_data *),
 COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
-COMMON(int)	pl_kvs_in_use(KVS kvs);
-COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
-COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
-COMMON(Atom**)	pl_atom_buckets_in_use();
-COMMON(int)	pl_functor_table_in_use(FunctorTable functor_table);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 
@@ -411,5 +406,11 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 *******************************/
 
 extern void		initPrologThreads(void);
+
+COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
+COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
+COMMON(Atom**)	pl_atom_buckets_in_use();
+COMMON(int)	pl_functor_table_in_use(FunctorTable functor_table);
+COMMON(int)	pl_kvs_in_use(KVS kvs);
 
 #endif /*PL_THREAD_H_DEFINED*/
