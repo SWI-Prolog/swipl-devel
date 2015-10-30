@@ -4929,6 +4929,23 @@ closeWrappedIO(void *handle)
 }
 
 
+static int
+controlWrappedIO(void *handle, int action, void *arg)
+{ wrappedIO *wio = handle;
+  int rval;
+
+  if ( wio->wrapped_functions->control )
+    rval = (*wio->wrapped_functions->control)(wio->wrapped_handle,
+					      action,
+					      arg);
+  else
+    rval = 0;
+
+  return rval;
+
+}
+
+
 static void
 wrapIO(IOSTREAM *s,
        ssize_t (*read)(void *, char *, size_t),
@@ -4943,6 +4960,7 @@ wrapIO(IOSTREAM *s,
   if ( read  ) wio->functions.read  = read;
   if ( write ) wio->functions.write = write;
   wio->functions.close = closeWrappedIO;
+  wio->functions.control = controlWrappedIO;
 
   s->functions = &wio->functions;
   s->handle = wio;
