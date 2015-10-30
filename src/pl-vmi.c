@@ -3389,7 +3389,9 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       }
     }
 
+#ifdef O_GMP
   can_bind:
+#endif
     ARGP++;				/* new_args must become 1 in */
     SAVE_REGISTERS(qid);		/* get_vmi_state() */
     rc = put_number(&c, n, ALLOW_GC PASS_LD);

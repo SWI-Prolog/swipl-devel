@@ -3390,7 +3390,7 @@ ar_random_float(Number r)
     r->value.f = mpf_get_d(rop);
     mpf_clear(rop);
 #else
-  r->value.f = _PL_Random()/(float)UINT64_MAX;
+    r->value.f = _PL_Random()/(float)UINT64_MAX;
 #endif
   } while (r->value.f == 0.0);
 
@@ -3559,9 +3559,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_backslash1,	ar_negation, F_ISO),
 
   ADD(FUNCTOR_random1,		ar_random, 0),
-#ifdef O_GMP
   ADD(FUNCTOR_random_float0,	ar_random_float, 0),
-#endif
 
   ADD(FUNCTOR_integer1,		ar_integer, F_ISO),
   ADD(FUNCTOR_round1,		ar_integer, F_ISO),

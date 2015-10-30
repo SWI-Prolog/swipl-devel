@@ -980,12 +980,14 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d2 = (double)n2->value.i;
 	break;
+#ifdef O_GMP
       case V_MPZ:
 	d2 = mpz_get_d(n2->value.mpz);
 	break;
       case V_MPQ:
 	d2 = mpq_get_d(n2->value.mpq);
 	break;
+#endif
       default:
 	assert(0);
 	d2 = 0.0;
@@ -1002,12 +1004,14 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d1 = (double)n1->value.i;
 	break;
+#ifdef O_GMP
       case V_MPZ:
 	d1 = mpz_get_d(n1->value.mpz);
 	break;
       case V_MPQ:
 	d1 = mpq_get_d(n1->value.mpq);
 	break;
+#endif
       default:
 	assert(0);
 	d1 = 0.0;
