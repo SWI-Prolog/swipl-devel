@@ -1666,6 +1666,27 @@ clpb_atom:attribute_goals(_)         --> [].
 % node_portray(Key-Node, Key-Node-ite(Var,High,Low)) :-
 %         node_var_low_high(Node, Var, Low, High).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Messages
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile prolog:message//1.
+
+prolog:message(clpb(bounded)) -->
+        ['Using CLP(B) with bounded arithmetic may yield wrong results.'-[]].
+
+warn_if_bounded_arithmetic :-
+        (   current_prolog_flag(bounded, true) ->
+            print_message(warning, clpb(bounded))
+        ;   true
+        ).
+
+:- initialization(warn_if_bounded_arithmetic).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Sanbox declarations
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 :- multifile
         sandbox:safe_global_variable/1.
 
