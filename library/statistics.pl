@@ -115,6 +115,11 @@ core_statistics -->
 	      }
 	].
 
+:- if(\+current_predicate(thread_statistics/3)).
+thread_statistics(_Thread, Key, Value) :-
+	statistics(Key, Value).
+:- endif.
+
 thread_stack_statistics(Thread,
 		  stacks{local:stack{name:local,
 				    limit:LocalLimit,
