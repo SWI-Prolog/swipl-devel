@@ -147,20 +147,23 @@
 
 ### Introduction			{#clpfd-intro}
 
-Constraint programming is a declarative formalism that lets you state
-relations between terms. This library provides CLP(FD), Constraint
-Logic Programming over Finite Domains.
+This library provides CLP(FD): Constraint Logic Programming over
+Finite Domains.
+
+CLP(FD) is an instance of the general CLP(.) scheme, extending logic
+programming with reasoning over specialised domains. CLP(FD) lets you
+reason about sets of _integers_.
 
 There are two major use cases of this library:
 
-    1. CLP(FD) constraints provide _declarative integer arithmetic_:
+    1. CLP(FD) constraints provide **declarative integer arithmetic**:
        They implement pure _relations_ between integer expressions and
        can be used in all directions, also if parts of expressions are
        variables.
 
     2. In connection with enumeration predicates and more complex
        constraints, CLP(FD) is often used to model and solve
-       combinatorial problems such as planning, scheduling and
+       **combinatorial problems** such as planning, scheduling and
        allocation tasks.
 
 When teaching Prolog, we _strongly recommend_ that you introduce
