@@ -389,7 +389,7 @@ In each case, and as for all pure programs, the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
 
-### Enumeration predicates and search    {#clpfd-search}
+### Core relations and search    {#clpfd-search}
 
 In addition to being declarative replacements for low-level arithmetic
 predicates, CLP(FD) constraints are also often used to solve
