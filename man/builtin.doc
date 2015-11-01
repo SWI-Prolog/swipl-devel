@@ -4632,7 +4632,7 @@ is locked, which implies no output from other threads can appear between
 the term and newline.
 
     \predicate{print}{1}{+Term}
-Print a term for debugging porposes.  The predicate print/1 acts as
+Print a term for debugging purposes.  The predicate print/1 acts as
 if defined as below.
 
 \begin{code}
