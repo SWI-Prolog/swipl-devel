@@ -223,9 +223,9 @@ retractall_clause(Term, Module) -->
 	[ Clause ].
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- persistent(Spec)), Clauses) :-
+system:term_expansion((:- persistent(Spec)), Clauses) :-
 	prolog_load_context(module, Module),
 	phrase(compile_persistent(Spec, Module), Clauses).
 
