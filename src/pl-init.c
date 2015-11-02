@@ -1419,6 +1419,8 @@ action:
 void
 vfatalError(const char *fm, va_list args)
 { static int active = 0;
+  time_t now;
+  char tbuf[48];
 
   switch ( active++ )
   { case 1:
@@ -1427,16 +1429,20 @@ vfatalError(const char *fm, va_list args)
       abort();
   }
 
+  now = time(NULL);
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
 #ifdef __WINDOWS__
   { char msg[500];
-    Ssprintf(msg, "[FATAL ERROR:\n\t");
+    Ssprintf(msg, "[FATAL ERROR: at %s\n\t", tbuf);
     Svsprintf(&msg[strlen(msg)], fm, args);
     Ssprintf(&msg[strlen(msg)], "]");
 
     PlMessage(msg);
   }
 #else
-  Sfprintf(Serror, "[FATAL ERROR:\n\t");
+  Sfprintf(Serror, "[FATAL ERROR: at %s\n\t", tbuf);
   Svfprintf(Serror, fm, args);
   Sfprintf(Serror, "]\n");
 #endif
