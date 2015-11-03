@@ -1775,9 +1775,16 @@ If -> Then :- If, !, Then.
 \end{code}
 
 Please note that (If \verb$->$ Then) acts as (If \verb$->$ Then ;
-\textbf{fail}), making the construct \emph{fail} if the condition
-fails. This unusual semantics is part of the ISO and all de-facto Prolog
+\textbf{fail}), making the construct \emph{fail} if the condition fails.
+This unusual semantics is part of the ISO and all de-facto Prolog
 standards.
+
+Please note that \verb$(if->then;else)$ is read as
+\verb$((if->then);else)$ and that the combined semantics of this
+syntactic construct as defined above is \emph{different} from the simple
+nesting of the two individual constructs, i.e., the semantics of
+\predref{->}{2} \emph{changes} when embedded in \predref{;}{2}. See also
+once/1.
 
 \infixop{*->}{:Condition}{:Action ; :Else}
 This construct implements the so-called `soft-cut'. The control is
@@ -1841,14 +1848,21 @@ True if \arg{Goal} cannot be proven.  Retained for compatibility
 only. New code should use \predref{\+}{1}.
 
     \predicate[ISO]{once}{1}{:Goal}
-Defined as:
+Make a possibly \jargon{nondet} goal \jargon{semidet}, i.e., succeed at
+most once.  Defined as:
+
 \begin{code}
 once(Goal) :-
-        Goal, !.
+    call(Goal), !.
 \end{code}
+
 once/1 can in many cases be replaced with \predref{->}{2}. The only
 difference is how the cut behaves (see !/0). The following two clauses
-are identical:
+below are identical. Be careful about the interaction with
+\predref{;}{2}. The \pllib{apply_macros} library defines an inline
+expansion of once/1, mapping it to verb$(Goal->true;fail)$. Using the
+full if-then-else constructs prevents its semantics from being changed
+when embedded in a \predref{;}{2} disjunction.
 
 \begin{code}
 1) a :- once((b, c)), d.
