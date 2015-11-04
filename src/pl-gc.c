@@ -3559,8 +3559,12 @@ check_choicepoints(Choice ch)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) argument_stack_to_term_refs() uses TAG_ATTVAR
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
-check_foreign()
+check_foreign(void)
 { GET_LD
   FliFrame ff;
   word key = 0L;
@@ -3576,7 +3580,7 @@ check_foreign()
     }
 
     for(n=0 ; n < ff->size; n++ )
-      key += checkData(&sp[n]);
+      key += checkDataEx(&sp[n], CHK_DATA_NOATTVAR_CHAIN); /* see (*) */
 
     if ( isRealMark(ff->mark) )
       check_mark(&ff->mark);
