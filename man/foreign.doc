@@ -237,7 +237,35 @@ following notation for arguments of type \ctype{term_t}:
 \end{tabular}
 \end{quote}
 
-\noindent
+\textbf{WARNING} Term references that are accessed in `write' (-) mode
+will refer to an invalid term if the term is allocated on the global
+stack and backtracking takes us back to a point before the term was
+written.\footnote{This could have been avoided by \jargon{trailing} term
+references when data is written to them. This seriously hurds
+performance in some scenarios though. If this is desired, use
+PL_put_variable() followed by one of the PL_unify_*() functions.}
+Compounds, large integers, floats and strings are all allocated on the
+global stack. Below is a typical scenario where this may happen. The
+first solution writes a term extracted from the solution into \arg{a}.
+After the system backtracks due to PL_next_solution(), \arg{a} becomes a
+reference to a term that no longer exists.
+
+\begin{code}
+term_t a = PL_new_term_ref();
+...
+query = PL_open_query(...);
+while(PL_next_solution(query))
+{ PL_get_arg(i, ..., a);
+}
+PL_close_query(query);
+\end{code}
+
+There are two solutions to this problem. One is to scope the term
+reference using PL_open_foreign_frame() and PL_close_foreign_frame() and
+makes sure it goes out of scope before backtracking happens. The other
+is to clear the term reference using PL_put_variable() before
+backtracking.
+
 Term references are obtained in any of the following ways:
 
 \begin{itemlist}
