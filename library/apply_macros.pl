@@ -133,7 +133,12 @@ expand_apply(Maplist, Goal) :-
 %%	expand_apply(+GoalIn:callable, -GoalOut, +PosIn, -PosOut) is semidet.
 %
 %	Translation  of  simple  meta  calls    to   inline  code  while
-%	maintaining position information.
+%	maintaining position information. Note that once(Goal) cannot be
+%	translated  to  `(Goal->true)`  because  this   will  break  the
+%	compilation of `(once(X) ; Y)`.  A   correct  translation  is to
+%	`(Goal->true;fail)`.       Abramo       Bagnara        suggested
+%	`((Goal->true),true)`, which is both faster   and avoids warning
+%	if style_check(+var_branches) is used.
 
 expand_apply(forall(Cond, Action), Pos0, Goal, Pos) :-
 	Goal = \+((Cond, \+(Action))),
@@ -149,16 +154,16 @@ expand_apply(forall(Cond, Action), Pos0, Goal, Pos) :-
 	;   true
 	).
 expand_apply(once(Once), Pos0, Goal, Pos) :-
-	Goal = (Once->true;fail),
+	Goal = ((Once->true),true),
 	(   nonvar(Pos0),
 	    Pos0 = term_position(_,_,_,_,[OncePos]),
 	    compound(OncePos)
-	->  Pos = term_position(0,0,0,0,			% ;/2
+	->  Pos = term_position(0,0,0,0,			% ,/2
 				[ term_position(0,0,0,0,	% ->/2
 						[ OncePos,
 						  F-T		% true
 						]),
-				  F-T				% fail
+				  F-T				% true
 				]),
 	    arg(2, OncePos, F),		% highlight true/false on ")"
 	    T is F+1
