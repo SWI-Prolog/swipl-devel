@@ -1039,7 +1039,8 @@ simple((X,Y), P0, Conj, P) :-
 	->  Conj = fail,
 	    f2_pos(P0, P1, _, _, _, _),
 	    atomic_pos(P1, P)
-	;   true(Y)
+	;   true(Y),		% avoid reducing (X->Y),true to avoid
+	    X \= (_->_)		% creating (X->Y;Z)
 	->  Conj = X,
 	    f2_pos(P0, P, _, _, _, _)
 	).
