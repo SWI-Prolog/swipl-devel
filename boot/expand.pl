@@ -463,7 +463,7 @@ expand_goal((A,B), P0, Conj, P, M, MList, Term) :- !,
         expand_goal(B, PB0, EB, PB, M, MList, Term),
 	simplify((EA,EB), P1, Conj, P).
 expand_goal((A;B), P0, Or, P, M, MList, Term) :- !,
-	f2_pos(P0, PA0, PB0, P1, PA, PB),
+	f2_pos(P0, PA0, PB0, P1, PA1, PB),
         term_variables(A, AVars),
         term_variables(B, BVars),
         var_intersection(AVars, BVars, SharedVars),
@@ -473,7 +473,8 @@ expand_goal((A;B), P0, Or, P, M, MList, Term) :- !,
         restore_variable_info(SavedState),
         expand_goal(B, PB0, EB, PB, M, MList, Term),
         merge_variable_info(SavedState2),
-	simplify((EA;EB), P1, Or, P).
+	fixup_or_lhs(A, EA, PA, EA1, PA1),
+	simplify((EA1;EB), P1, Or, P).
 expand_goal((A->B), P0, Goal, P, M, MList, Term) :- !,
 	f2_pos(P0, PA0, PB0, P1, PA, PB),
         expand_goal(A, PA0, EA, PA, M, MList, Term),
@@ -511,6 +512,32 @@ expand_goal(G0, P0, G, P, M, MList, Term) :-
         term_variables(G0, Vars),
         mark_vars_non_fresh(Vars),
 	expand_functions(G0, P0, G, P, M, MList, Term).
+
+%%	fixup_or_lhs(+OldLeft, -ExpandedLeft, +ExpPos, -Fixed, -FixedPos) is det.
+%
+%	The semantics of (A;B) is different if  A is (If->Then). We need
+%	to keep the same semantics if -> is introduced or removed by the
+%	expansion. If -> is introduced, we make sure that the whole
+%	thing remains a disjunction by creating ((EA,true);B)
+
+fixup_or_lhs(Old, New, PNew, Fix, PFixed) :-
+	nonvar(Old),
+	nonvar(New),
+	(   Old = (_ -> _)
+	->  New \= (_ -> _),
+	    Fix = (New -> true)
+	;   New = (_ -> _),
+	    Fix = (New, true)
+	), !,
+	lhs_pos(PNew, PFixed).
+fixup_or_lhs(_Old, New, P, New, P).
+
+lhs_pos(P0, _) :-
+	var(P0), !.
+lhs_pos(P0, term_position(F,T,T,T,[P0,T-T])) :-
+	arg(1, P0, F),
+	arg(2, P0, T).
+
 
 %%	is_meta_call(+G0, +M, +Head) is semidet.
 %
@@ -707,7 +734,6 @@ direct_call_meta_arg(^).
 meta_arg(:).
 meta_arg(//).
 meta_arg(I) :- integer(I).
-
 
 expand_setof_goal(Var, Pos, Var, Pos, _, _, _) :-
 	var(Var), !.
@@ -1031,6 +1057,13 @@ simplify(Control, P0, Simple, P) :-
 	simple(Control, P0, Simple, P), !.
 simplify(Control, P, Control, P).
 
+%%	simple(+Goal, +GoalPos, -Simple, -SimplePos)
+%
+%	Simplify a control structure.  Note  that   we  do  not simplify
+%	(A;fail). Logically, this is the  same  as   `A`  if  `A` is not
+%	`_->_` or `_*->_`, but  the  choice   point  may  be  created on
+%	purpose.
+
 simple((X,Y), P0, Conj, P) :-
 	(   true(X)
 	->  Conj = Y,
@@ -1039,14 +1072,13 @@ simple((X,Y), P0, Conj, P) :-
 	->  Conj = fail,
 	    f2_pos(P0, P1, _, _, _, _),
 	    atomic_pos(P1, P)
-	;   true(Y),		% avoid reducing (X->Y),true to avoid
-	    X \= (_->_)		% creating (X->Y;Z)
+	;   true(Y)
 	->  Conj = X,
 	    f2_pos(P0, P, _, _, _, _)
 	).
-simple((I->T;E), P0, ITE, P) :-
-	(   true(I)
-	->  ITE = T,
+simple((I->T;E), P0, ITE, P) :-		% unification with _->_ is fine
+	(   true(I)			% because nothing happens if I and T
+	->  ITE = T,			% are unbound.
 	    f2_pos(P0, P1, _, _, _, _),
 	    f2_pos(P1, _, P, _, _, _)
 	;   false(I)
@@ -1065,6 +1097,7 @@ true(X) :-
 false(X) :-
 	nonvar(X),
 	eval_false(X).
+
 
 %%	eval_true(+Goal) is semidet.
 %%	eval_false(+Goal) is semidet.
