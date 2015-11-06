@@ -154,16 +154,13 @@ expand_apply(forall(Cond, Action), Pos0, Goal, Pos) :-
 	;   true
 	).
 expand_apply(once(Once), Pos0, Goal, Pos) :-
-	Goal = ((Once->true),true),
+	Goal = (Once->true),
 	(   nonvar(Pos0),
 	    Pos0 = term_position(_,_,_,_,[OncePos]),
 	    compound(OncePos)
-	->  Pos = term_position(0,0,0,0,			% ,/2
-				[ term_position(0,0,0,0,	% ->/2
-						[ OncePos,
-						  F-T		% true
-						]),
-				  F-T				% true
+	->  Pos = term_position(0,0,0,0,	% ->/2
+				[ OncePos,
+				  F-T		% true
 				]),
 	    arg(2, OncePos, F),		% highlight true/false on ")"
 	    T is F+1

@@ -60,6 +60,13 @@ bar.
 
 run(Goal) :- Goal.
 
+goal_expansion(onetime(X), (X->true)).
+
+one(X) :-
+	(   onetime(X=1)
+	;   X = 2
+	).
+
 
 		 /*******************************
 		 *	       TESTS		*
@@ -77,5 +84,7 @@ test(meta_arg, [fail]) :-
 	e_not.
 test(goal_expansion_local_pred) :-
 	test_foo_bar.
+test(expand_once, all(X == [1,2])) :-
+	one(X).
 
 :- end_tests(expand).
