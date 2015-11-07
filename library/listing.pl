@@ -168,12 +168,24 @@ list_predicates(PIs, Context:X) :-
 	member(PI, PIs),
 	pi_to_head(PI, Pred),
 	unify_args(Pred, X),
-	'$define_predicate'(Pred),
-	strip_module(Pred, Module, Head),
-        list_predicate(Module:Head, Context),
+	list_define(Pred, DefPred),
+        list_predicate(DefPred, Context),
 	nl,
         fail.
 list_predicates(_, _).
+
+list_define(Head, LoadModule:Head) :-
+	compound(Head),
+	Head \= (_:_),
+	functor(Head, Name, Arity),
+	'$find_library'(_, Name, Arity, LoadModule, Library), !,
+	use_module(Library, []).
+list_define(M:Pred, DefM:Pred) :-
+	'$define_predicate'(M:Pred),
+	(   predicate_property(M:Pred, imported_from(DefM))
+	->  true
+	;   DefM = M
+	).
 
 pi_to_head(M:PI, M:Head) :- !,
 	pi_to_head(PI, Head).
