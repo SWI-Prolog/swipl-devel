@@ -169,7 +169,9 @@ list_predicates(PIs, Context:X) :-
 	pi_to_head(PI, Pred),
 	unify_args(Pred, X),
 	'$define_predicate'(Pred),
-	strip_module(Pred, Module, Head),
+	strip_module(Pred, _, Head),
+	current_predicate(_,Module:Head),
+	\+ predicate_property(Module:Head,imported_from(_)),
         list_predicate(Module:Head, Context),
 	nl,
         fail.
