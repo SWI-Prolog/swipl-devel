@@ -1860,7 +1860,7 @@ once/1 can in many cases be replaced with \predref{->}{2}. The only
 difference is how the cut behaves (see !/0). The following two clauses
 below are identical. Be careful about the interaction with
 \predref{;}{2}. The \pllib{apply_macros} library defines an inline
-expansion of once/1, mapping it to verb$(Goal->true;fail)$. Using the
+expansion of once/1, mapping it to \verb$(Goal->true;fail)$. Using the
 full if-then-else constructs prevents its semantics from being changed
 when embedded in a \predref{;}{2} disjunction.
 
