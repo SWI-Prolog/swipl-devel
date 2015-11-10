@@ -5295,7 +5295,7 @@ unify_head(term_t h, term_t d ARG_LD)
 
 /** clause(H, B).
     clause(H, B, Ref).
-    clause(H, B, Ref, Bindings).
+    '$clause'(H, B, Ref, Bindings).
 */
 
 
