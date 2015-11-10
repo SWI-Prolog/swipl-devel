@@ -6666,7 +6666,7 @@ Concurrency issues are avoided because both  setBreak and clearBreak are
 called with L_BREAK locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static int				/* must hold L_BREAK */
 matching_unify_break(Clause clause, int offset, code op)
 { switch(op)
   { case B_UNIFY_VAR:
@@ -6675,8 +6675,8 @@ matching_unify_break(Clause clause, int offset, code op)
 
       for(PC=clause->codes + offset;
 	  PC<clause->codes + clause->code_size;
-	  PC = stepPC(PC) )
-      { if ( fetchop(PC) == B_UNIFY_EXIT )
+	  PC = stepPC_unlocked(PC) )
+      { if ( fetchop_unlocked(PC) == B_UNIFY_EXIT )
 	  return PC-clause->codes;
       }
       assert(0);
@@ -6687,7 +6687,7 @@ matching_unify_break(Clause clause, int offset, code op)
 }
 
 
-static bool
+static bool				/* must hold L_BREAK */
 setBreak(Clause clause, int offset)	/* offset is already verified */
 { Code PC = clause->codes + offset;
   code op = *PC;
@@ -6717,7 +6717,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
 }
 
 
-static int
+static int				/* must hold L_BREAK */
 clearBreak(Clause clause, int offset)
 { GET_LD
   Code PC, PC0;
@@ -6768,21 +6768,31 @@ clearBreakPointsClause(Clause clause)
 
 
 code
-replacedBreak(Code PC)
+replacedBreakUnlocked(Code PC)
 { GET_LD
   BreakPoint bp;
   code c;
 
-  PL_LOCK(L_BREAK);
   c = decode(*PC);
   if ( c == D_BREAK )
   { if ( (bp = lookupHTable(breakTable, PC)) )
     { c = bp->saved_instruction;
     } else
-    { PL_UNLOCK(L_BREAK);
-      sysError("No saved instruction for break at %p", PC);
+    { sysError("No saved instruction for break at %p", PC);
+      c = (code)-1;
     }
   }
+
+  return c;
+}
+
+
+code
+replacedBreak(Code PC)
+{ code c;
+
+  PL_LOCK(L_BREAK);
+  c = replacedBreakUnlocked(PC);
   PL_UNLOCK(L_BREAK);
 
   return c;

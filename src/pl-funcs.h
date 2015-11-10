@@ -153,6 +153,7 @@ COMMON(Code)		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
 COMMON(int)		unify_definition(Module ctx, term_t head, Definition def,
 					 term_t thehead, int flags);
 COMMON(code)		replacedBreak(Code PC);
+COMMON(code)		replacedBreakUnlocked(Code PC);
 COMMON(void)		clearBreakPointsClause(Clause clause);
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 COMMON(void)		vm_list(Code code);

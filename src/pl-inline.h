@@ -257,9 +257,31 @@ fetchop(Code PC)
 }
 
 
+static inline code			/* caller must hold the L_BREAK lock */
+fetchop_unlocked(Code PC)
+{ code op = decode(*PC);
+
+  if ( unlikely(op == D_BREAK) )
+    op = decode(replacedBreakUnlocked(PC));
+
+  return op;
+}
+
+
 static inline Code
 stepPC(Code PC)
 { code op = fetchop(PC++);
+
+  if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
+    return stepDynPC(PC, &codeTable[op]);
+  else
+    return PC + codeTable[op].arguments;
+}
+
+
+static inline Code
+stepPC_unlocked(Code PC)
+{ code op = fetchop_unlocked(PC++);
 
   if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
     return stepDynPC(PC, &codeTable[op]);
