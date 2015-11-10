@@ -6588,7 +6588,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-'$break_pc'(+ClauseRef, -StartPC, EndPC) is nondet.
+'$break_pc'(+ClauseRef, -StartPC, -EndPC) is nondet.
 
 Generate (on backtracing), all  possible   break-points  of  the clause.
 Works in combination with pl_clause_term_position()   to  find the place
@@ -6627,12 +6627,11 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
       { case B_UNIFY_FIRSTVAR:
 	case B_UNIFY_VAR:
 	  do
-	  { PC     = nextpc;
-	    op     = fetchop(PC);
-	    nextpc = stepPC(PC);
+	  { op     = fetchop(nextpc);
+	    nextpc = stepPC(nextpc);
 	  } while(op != B_UNIFY_EXIT);
       }
-      if ( PL_unify_integer(A2, PC-clause->codes) &&
+      if ( PL_unify_integer(A2, PC     - clause->codes) &&
 	   PL_unify_integer(A3, nextpc - clause->codes) )
 	ForeignRedoInt(nextpc - clause->codes);
     }
