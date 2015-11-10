@@ -6689,14 +6689,19 @@ matching_unify_break(Clause clause, int offset, code op)
 
 static bool				/* must hold L_BREAK */
 setBreak(Clause clause, int offset)	/* offset is already verified */
-{ Code PC = clause->codes + offset;
-  code op = *PC;
-  code dop = decode(op);
+{ int second_bp = FALSE;
+  Code PC;
+  code op, dop;
+
+set_second:
+  PC = clause->codes + offset;
+  op = *PC;
+  dop = decode(op);
 
   if ( !breakTable )
     breakTable = newHTable(16);
 
-  if ( (codeTable[dop].flags & VIF_BREAK) || dop == B_UNIFY_EXIT )
+  if ( (codeTable[dop].flags & VIF_BREAK) || second_bp )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
 
     bp->clause = clause;
@@ -6708,7 +6713,9 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     set(clause, HAS_BREAKPOINTS);
 
     if ( (offset=matching_unify_break(clause, offset, dop)) )
-      return setBreak(clause, offset);
+    { second_bp=TRUE;
+      goto set_second;
+    }
 
     return TRUE;
   } else
