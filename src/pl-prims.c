@@ -3394,12 +3394,17 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
   PL_chars_t txt;
 
   if ( truePrologFlag(PLFLAG_ISO) )
-    flags = CVT_ATOM|CVT_STRING|CVT_EXCEPTION;	/* strings are not known to ISO */
+    flags = CVT_ATOM|CVT_STRING|CVT_EXCEPTION|BUF_ALLOW_STACK;
   else
-    flags = CVT_ALL|CVT_EXCEPTION;
+    flags = CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK;
 
   if ( PL_get_text(A1, &txt, flags) )
-    return PL_unify_int64_ex(A2, txt.length);
+  { int rc = PL_unify_int64_ex(A2, txt.length);
+
+    PL_free_text(&txt);
+
+    return rc;
+  }
 
   fail;
 }
