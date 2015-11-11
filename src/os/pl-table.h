@@ -63,6 +63,8 @@ COMMON(Table)		newHTable(int size);
 COMMON(void)		destroyHTable(Table ht);
 COMMON(void*)		lookupHTable__LD(Table ht, void *name ARG_LD);
 COMMON(void*)		addHTable(Table ht, void *name, void *value);
+COMMON(void)		addNewHTable(Table ht, void *name, void *value);
+COMMON(void*)		updateHTable(Table ht, void *name, void *value);
 COMMON(int)		deleteHTable(Table ht, void *name);
 COMMON(void)		clearHTable(Table ht);
 COMMON(Table)		copyHTable(Table org);

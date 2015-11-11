@@ -22,6 +22,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-cstack.h"
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -86,8 +87,9 @@ Transitioning between states is performed using CAS.
 
 #endif
 
-#define HTABLE_NORMAL 0x1
-#define HTABLE_RESIZE 0x2
+#define HTABLE_NORMAL   0x1
+#define HTABLE_RESIZE   0x2
+#define HTABLE_PRESERVE 0x4
 
 #define HTABLE_TOMBSTONE &htable_tombstone
 #define HTABLE_SENTINEL &htable_sentinel
@@ -387,6 +389,10 @@ redo:
       goto redo;
     }
 
+    if ( v && (v != HTABLE_TOMBSTONE) && (flags & HTABLE_PRESERVE) )
+    { return v;
+    }
+
     if ( htable_cas_value(kvs, idx, v, value) )
     { break;
     }
@@ -403,7 +409,7 @@ redo:
     }
   }
 
-  return v;
+  return (value == HTABLE_TOMBSTONE ? v : value);
 }
 
 
@@ -515,6 +521,37 @@ addHTable(Table ht, void *name, void *value)
 
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("addHTable(). ht: %p, kvs: %p, name: %p, value: %p\n", ht, kvs, name, value));
+
+  v = htable_put(ht, kvs, name, value, HTABLE_NORMAL|HTABLE_PRESERVE);
+  release_kvs();
+
+  return v;
+}
+
+
+void
+addNewHTable(Table ht, void *name, void *value)
+{ void *new = addHTable(ht, name, value);
+  if ( new != value )
+  { Sdprintf("WARNING: Race condition detected.  Please report at:\n"
+	     "WARNING:   https://github.com/SWI-Prolog/swipl-devel/issues\n");
+    save_backtrace("addNewHTable");
+    print_backtrace_named("addNewHTable");
+    updateHTable(ht, name, value);
+  }
+}
+
+
+void*
+updateHTable(Table ht, void *name, void *value)
+{ GET_LD
+  KVS kvs;
+  void *v;
+
+  acquire_kvs(ht, kvs);
+
+  DEBUG(MSG_HASH_TABLE_API,
+        Sdprintf("updateHTable(). ht: %p, kvs: %p, name: %p, value: %p\n", ht, kvs, name, value));
 
   v = htable_put(ht, kvs, name, value, HTABLE_NORMAL);
   release_kvs();
