@@ -770,6 +770,7 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define BUF_DISCARDABLE	0x0000
 #define BUF_RING	0x0100
 #define BUF_MALLOC	0x0200
+#define BUF_ALLOW_STACK	0x0400		/* allow pointer into (global) stack */
 
 #define CVT_EXCEPTION	0x10000		/* throw exception on error */
 #define CVT_VARNOFAIL	0x20000		/* return 2 if argument is unbound */

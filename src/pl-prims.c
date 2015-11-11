@@ -4384,7 +4384,7 @@ PRED_IMPL("string_length", 2, string_length, 0)
 { PRED_LD
   PL_chars_t t;
 
-  if ( PL_get_text(A1, &t, CVT_ALL|CVT_EXCEPTION) )
+  if ( PL_get_text(A1, &t, CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK) )
   { int rc = PL_unify_int64_ex(A2, t.length);
 
     PL_free_text(&t);
