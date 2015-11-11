@@ -853,17 +853,16 @@ fetchOpCode(CopyInfo b)
 }
 
 
-static uint
+static size_t
 fetchSizeInt(CopyInfo b)
-{ uint r = 0;
-  uint end;
+{ size_t r = 0;
+  size_t d;
 
   do
-  { uint d = *b->data++;
+  { d = *b->data++;
 
-    end = !(d & 0x80);
     r = (r<<7)|(d&0x7f);
-  } while(!end);
+  } while((d & 0x80));
 
   return r;
 }
@@ -1052,8 +1051,8 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	continue;
       }
       case PL_TYPE_STRING:
-      { unsigned len = fetchSizeInt(b);
-	int lw, pad;
+      { size_t lw, len = fetchSizeInt(b);
+	int pad;
 	word hdr;
 
 	lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
