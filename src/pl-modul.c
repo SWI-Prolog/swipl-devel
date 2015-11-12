@@ -1221,9 +1221,9 @@ export_pi(term_t pi, Module module ARG_LD)
   proc = lookupProcedure(fd, module);
 
   LOCKMODULE(module);
-  addNewHTable(module->public,
-	    (void *)proc->definition->functor->functor,
-	    proc);
+  updateHTable(module->public,
+	       (void *)proc->definition->functor->functor,
+	       proc);
   UNLOCKMODULE(module);
 
   succeed;
