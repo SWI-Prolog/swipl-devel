@@ -6728,10 +6728,15 @@ clearBreak(Clause clause, int offset)
 { GET_LD
   Code PC, PC0;
   BreakPoint bp;
+  int second_bp = FALSE;
 
+clear_second:
   PC = PC0 = clause->codes + offset;
   if ( !breakTable || !(bp = lookupHTable(breakTable, PC)) )
   { term_t brk;
+
+    if ( second_bp )
+      return TRUE;
     if ( (brk=PL_new_term_ref()) &&
 	 PL_unify_term(brk,
 		       PL_FUNCTOR, FUNCTOR_break2,
@@ -6747,7 +6752,9 @@ clearBreak(Clause clause, int offset)
   freeHeap(bp, sizeof(*bp));
 
   if ( (offset=matching_unify_break(clause, offset, decode(*PC))) )
-    return clearBreak(clause, offset);
+  { second_bp = TRUE;
+    goto clear_second;
+  }
 
   return TRUE;
 }
