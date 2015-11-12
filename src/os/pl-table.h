@@ -74,6 +74,12 @@ COMMON(int)		advanceTableEnum(TableEnum e, void **name, void **value);
 COMMON(int)		htable_iter(Table ht, KVS kvs, int *idx,
 				    void **name, void **value);
 
+static inline int
+htable_valid_kv(void *kv)
+{ intptr_t kvi = (intptr_t)kv;		/* avoid NULL, HTABLE_TOMBSTONE */
+  return kvi > 0 || kvi	< -2;		/* and HTABLE_SENTINEL */
+}
+
 #define pointerHashValue(p, size) ((((intptr_t)(p) >> LMASK_BITS) ^ \
 				    ((intptr_t)(p) >> (LMASK_BITS+5)) ^ \
 				    ((intptr_t)(p))) & \

@@ -94,12 +94,8 @@ static void *	htable_put(Table ht, KVS kvs, void *name, void *value, int flags);
 #define HTABLE_RESIZE   0x2
 #define HTABLE_PRESERVE 0x4
 
-#define HTABLE_TOMBSTONE &htable_tombstone
-#define HTABLE_SENTINEL &htable_sentinel
-
-static int htable_tombstone = 0;
-static int htable_sentinel = 0;
-
+#define HTABLE_TOMBSTONE ((void*)-1)
+#define HTABLE_SENTINEL  ((void*)-2)
 
 
 inline void *htable_name(KVS kvs, int idx)
