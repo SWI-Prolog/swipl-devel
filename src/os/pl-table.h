@@ -70,10 +70,9 @@ COMMON(Table)		copyHTable(Table org);
 COMMON(TableEnum)	newTableEnum(Table ht);
 COMMON(void)		freeTableEnum(TableEnum e);
 COMMON(int)		advanceTableEnum(TableEnum e, void **name, void **value);
-
-void*			htable_get(Table ht, KVS kvs, void *name);
-void*			htable_put(Table ht, KVS kvs, void *name, void *value, int flags);
-int			htable_iter(Table ht, KVS kvs, int *idx, void **name, void **value);
+					/* used by for_table() macro */
+COMMON(int)		htable_iter(Table ht, KVS kvs, int *idx,
+				    void **name, void **value);
 
 #define pointerHashValue(p, size) ((((intptr_t)(p) >> LMASK_BITS) ^ \
 				    ((intptr_t)(p) >> (LMASK_BITS+5)) ^ \

@@ -87,6 +87,9 @@ Transitioning between states is performed using CAS.
 
 #endif
 
+static void *	htable_put(Table ht, KVS kvs, void *name, void *value, int flags);
+
+
 #define HTABLE_NORMAL   0x1
 #define HTABLE_RESIZE   0x2
 #define HTABLE_PRESERVE 0x4
@@ -287,7 +290,7 @@ htable_resize(Table ht, KVS kvs)
 }
 
 
-void*
+static void*
 htable_get(Table ht, KVS kvs, void *name)
 {
   void *n;
@@ -337,7 +340,7 @@ redo:
 }
 
 
-void*
+static void*
 htable_put(Table ht, KVS kvs, void *name, void *value, int flags)
 {
   void *n;
