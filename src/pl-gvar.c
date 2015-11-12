@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -149,7 +148,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
       freezeGlobal(PASS_LD1);		/* The value location must be */
       if ( storage(old) != STG_GLOBAL )	/* preserved */
 	LD->gvar.grefs++;
-      addHTable(LD->gvar.nb_vars, (void*)name, (void*)makeRefG(p));
+      updateHTable(LD->gvar.nb_vars, (void*)name, (void*)makeRefG(p));
     }
 
     TrailAssignment(p);
@@ -158,7 +157,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   { if ( storage(old) == STG_GLOBAL )
       LD->gvar.grefs--;
 
-    addHTable(LD->gvar.nb_vars, (void*)name, (void*)w);
+    updateHTable(LD->gvar.nb_vars, (void*)name, (void*)w);
 
     if ( storage(w) == STG_GLOBAL )
     { freezeGlobal(PASS_LD1);

@@ -367,7 +367,7 @@ needsRelocation(void *addr)
 
   needs_relocation++;
 
-  DEBUG(CHK_SECURE, addHTable(check_table, addr, RELOC_NEEDS));
+  DEBUG(CHK_SECURE, updateHTable(check_table, addr, RELOC_NEEDS));
 }
 
 
@@ -389,7 +389,7 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
       return;
     }
 
-    addHTable(check_table, addr, RELOC_CHAINED);
+    updateHTable(check_table, addr, RELOC_CHAINED);
   }
 }
 
@@ -415,7 +415,7 @@ do_relocated_cell(Word addr ARG_LD)
         return;
       }
 
-      addHTable(check_table, addr, RELOC_UPDATED);
+      updateHTable(check_table, addr, RELOC_UPDATED);
     }
   }
 
@@ -456,7 +456,7 @@ markLocal(Word addr)
 	  if ( (marked = lookupHTable(local_table, addr)) )
 	  { assert(marked == LOCAL_UNMARKED);
 	  }
-	  addHTable(local_table, addr, LOCAL_MARKED);
+	  updateHTable(local_table, addr, LOCAL_MARKED);
 	});
 }
 
@@ -472,7 +472,7 @@ processLocal(Word addr)
 
 	  if ( (marked = lookupHTable(local_table, addr)) )
 	  { assert(marked == LOCAL_MARKED);
-	    addHTable(local_table, addr, LOCAL_UNMARKED);
+	    updateHTable(local_table, addr, LOCAL_UNMARKED);
 	  } else
 	  { assert(0);
 	  }
@@ -933,7 +933,7 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
     while( advanceTableEnum(e, (void**)&name, (void**)&p) )
     { if ( isGlobalRef(p) )
       { p = *fp++;
-	addHTable(e->table, (void*)name, (void*)p);
+	updateHTable(e->table, (void*)name, (void*)p);
 	found++;
       }
     }
