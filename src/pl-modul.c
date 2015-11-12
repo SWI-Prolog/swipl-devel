@@ -98,7 +98,7 @@ _lookupModule(atom_t name)
       PL_warning("Could not add super-module");
   }
 
-  addHTable(GD->tables.modules, (void *)name, m);
+  addNewHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
   PL_register_atom(name);
 
@@ -1221,7 +1221,7 @@ export_pi(term_t pi, Module module ARG_LD)
   proc = lookupProcedure(fd, module);
 
   LOCKMODULE(module);
-  addHTable(module->public,
+  addNewHTable(module->public,
 	    (void *)proc->definition->functor->functor,
 	    proc);
   UNLOCKMODULE(module);
@@ -1439,7 +1439,7 @@ import(term_t pred, term_t strength ARG_LD)
     shareDefinition(proc->definition);
 
     LOCKMODULE(destination);
-    addHTable(destination->procedures,
+    addNewHTable(destination->procedures,
 	      (void *)proc->definition->functor->functor, nproc);
     UNLOCKMODULE(destination);
   }

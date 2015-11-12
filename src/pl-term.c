@@ -204,7 +204,7 @@ lookupEntry(atom_t name, atom_t type)
       goto out;
     }
 
-    addHTable(capabilities, (void *)name, e);
+    addNewHTable(capabilities, (void *)name, e);
   }
 
 out:

@@ -136,7 +136,7 @@ setPrologFlag(const char *name, int flags, ...)
   { f = allocHeapOrHalt(sizeof(*f));
     f->index = -1;
     f->flags = flags;
-    addHTable(GD->prolog_flag.table, (void *)an, f);
+    addNewHTable(GD->prolog_flag.table, (void *)an, f);
     first_def = TRUE;
   }
 
@@ -517,7 +517,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	LD->prolog_flag.table->free_symbol = freeSymbolPrologFlagTable;
       }
 
-      addHTable(LD->prolog_flag.table, (void *)k, f2);
+      addNewHTable(LD->prolog_flag.table, (void *)k, f2);
       DEBUG(MSG_PROLOG_FLAG,
 	    Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
       f = f2;
@@ -604,7 +604,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
     if ( (flags & FF_READONLY) )
       f->flags |= FF_READONLY;
 
-    addHTable(GD->prolog_flag.table, (void *)k, f);
+    addNewHTable(GD->prolog_flag.table, (void *)k, f);
     if ( !(lookupHTable(GD->prolog_flag.table, (void *)k) == f) )
     { freePrologFlag(f);
       Sdprintf("OOPS; failed to set Prolog flag!?\n");

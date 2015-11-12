@@ -984,7 +984,7 @@ aliasThread(int tid, atom_t name)
 		    ERR_PERMISSION, ATOM_create, ATOM_thread, obj);
   }
 
-  addHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
+  addNewHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
   PL_register_atom(name);
   GD->thread.threads[tid]->name = name;
 
@@ -3426,7 +3426,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
   } else
   { q->id = id;
   }
-  addHTable(queueTable, (void *)q->id, q);
+  addNewHTable(queueTable, (void *)q->id, q);
 
   if ( unify_queue(queue, q) )
   { if ( q->anonymous )
@@ -4240,7 +4240,7 @@ mutexCreate(atom_t name)
     { m->id = name;
     }
 
-    addHTable(GD->thread.mutexTable, (void *)m->id, m);
+    addNewHTable(GD->thread.mutexTable, (void *)m->id, m);
     if ( m->anonymous )
       PL_unregister_atom(m->id);		/* reclaim on GC */
     else if ( GD->atoms.builtin )		/* (*) */

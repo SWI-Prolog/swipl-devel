@@ -6020,7 +6020,7 @@ lookup_vmi(atom_t name)
 
       ctable = newHTable(32);
       for(i=0; i<I_HIGHEST; i++)
-       addHTable(ctable, (void*)PL_new_atom(codeTable[i].name), (void*)&codeTable[i]);
+       addNewHTable(ctable, (void*)PL_new_atom(codeTable[i].name), (void*)&codeTable[i]);
     }
     PL_UNLOCK(L_MISC);
   }
@@ -6707,7 +6707,7 @@ set_second:
     bp->offset = offset;
     bp->saved_instruction = op;
 
-    addHTable(breakTable, PC, bp);
+    addNewHTable(breakTable, PC, bp);
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
 

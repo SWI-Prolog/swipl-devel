@@ -171,7 +171,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   op->type[t]     = (priority >= 0 ? type : OP_INHERIT);
   if ( must_reg )
   { PL_register_atom(name);
-    addHTable(m->operators, (void *)name, op);
+    addNewHTable(m->operators, (void *)name, op);
   }
   UNLOCK();
 

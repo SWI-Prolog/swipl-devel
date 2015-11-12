@@ -77,7 +77,7 @@ lookupProcedure(functor_t f, Module m)
     def->functor = valueFunctor(f);
     def->module  = m;
     def->shared  = 1;
-    addHTable(m->procedures, (void *)f, proc);
+    addNewHTable(m->procedures, (void *)f, proc);
     GD->statistics.predicates++;
     ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
 
@@ -200,7 +200,7 @@ importDefinitionModule(Module m, Definition def, int flags)
     proc->definition = def;
     proc->flags      = flags;
     proc->source_no  = 0;
-    addHTable(m->procedures, (void *)functor, proc);
+    addNewHTable(m->procedures, (void *)functor, proc);
     shareDefinition(def);
   }
 

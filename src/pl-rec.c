@@ -89,7 +89,7 @@ lookupRecordList(word key)
     l->flags = 0;
     l->firstRecord = l->lastRecord = NULL;
     l->next = NULL;
-    addHTable(GD->recorded_db.record_lists, (void *)key, l);
+    addNewHTable(GD->recorded_db.record_lists, (void *)key, l);
     if ( !GD->recorded_db.head )
     { GD->recorded_db.head = GD->recorded_db.tail = l;
     } else

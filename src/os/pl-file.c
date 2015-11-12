@@ -159,7 +159,7 @@ getStreamContext(IOSTREAM *s)
     ctx->alias_head = ctx->alias_tail = NULL;
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;
-    addHTable(streamContext, s, ctx);
+    addNewHTable(streamContext, s, ctx);
     s->context = ctx;
   }
 
@@ -186,7 +186,7 @@ aliasStream(IOSTREAM *s, atom_t name)
     unaliasStream(sp, name);
 
   ctx = getStreamContext(s);
-  addHTable(streamAliases, (void *)name, s);
+  addNewHTable(streamAliases, (void *)name, s);
   PL_register_atom(name);
 
   a = allocHeapOrHalt(sizeof(*a));
@@ -380,7 +380,7 @@ initIO(void)
   getStreamContext(Serror);
 
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addHTable(streamAliases, (void *)*np, (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
+    addNewHTable(streamAliases, (void *)*np, (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
 
   GD->io_initialised = TRUE;
 }

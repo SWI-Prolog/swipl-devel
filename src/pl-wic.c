@@ -1395,7 +1395,7 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 	if ( !skip )
 	{ Procedure proc = lookupProcedure(f, LD->modules.source);
 
-	  addHTable(LD->modules.source->public, (void *)f, proc);
+	  addNewHTable(LD->modules.source->public, (void *)f, proc);
 	} else
 	{ if ( !lookupHTable(m->public, (void *)f) )
 	  { FunctorDef fd = valueFunctor(f);
@@ -1779,7 +1779,7 @@ savedXR(wic_state *state, void *xr)
     succeed;
   } else
   { id = ++state->savedXRTableId;
-    addHTable(state->savedXRTable, xr, (void *)id);
+    addNewHTable(state->savedXRTable, xr, (void *)id);
   }
 
   fail;

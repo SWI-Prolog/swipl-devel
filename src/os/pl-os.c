@@ -671,7 +671,7 @@ retry:
   }
   UNLOCK();
 
-  addHTable(GD->os.tmp_files, (void*)tname, (void*)TRUE);
+  addNewHTable(GD->os.tmp_files, (void*)tname, (void*)TRUE);
 
   return tname;
 }

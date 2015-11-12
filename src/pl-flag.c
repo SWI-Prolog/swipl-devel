@@ -89,7 +89,7 @@ lookupFlag(word key)
     PL_register_atom(key);
   f->type = FLG_INTEGER;
   f->value.i = 0;
-  addHTable(flagTable, (void *)key, f);
+  addNewHTable(flagTable, (void *)key, f);
 
   return f;
 }

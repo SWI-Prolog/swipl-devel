@@ -264,7 +264,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
     file->magic = SF_MAGIC;
     registerSourceFile(file);
 
-    addHTable(GD->files.table, (void*)name, file);
+    addNewHTable(GD->files.table, (void*)name, file);
   } else
   { file = NULL;
   }

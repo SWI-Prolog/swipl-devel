@@ -174,7 +174,7 @@ alias_locale(PL_locale *l, atom_t alias)
 		  ERR_PERMISSION, ATOM_create, ATOM_locale, obj);
   }
   else
-  { addHTable(GD->locale.localeTable, (void*)alias, l);
+  { addNewHTable(GD->locale.localeTable, (void*)alias, l);
     l->alias = alias;
     PL_register_atom(alias);
     rc = TRUE;
