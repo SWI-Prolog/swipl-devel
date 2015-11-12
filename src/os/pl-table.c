@@ -560,7 +560,7 @@ updateHTable(Table ht, void *name, void *value)
 }
 
 
-int
+void*
 deleteHTable(Table ht, void *name)
 { GET_LD
   KVS kvs;
@@ -574,7 +574,7 @@ deleteHTable(Table ht, void *name)
   v = htable_put(ht, kvs, name, HTABLE_TOMBSTONE, HTABLE_NORMAL);
   release_kvs();
 
-  return (v != NULL);
+  return (v == HTABLE_TOMBSTONE ? NULL : v);
 }
 
 

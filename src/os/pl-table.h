@@ -1,11 +1,10 @@
-/*  $Id$
+/*  Part of SWI-Prolog
 
-    Part of SWI-Prolog
-
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Jan Wielemaker and Keri Harris
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -65,7 +64,7 @@ COMMON(void*)		lookupHTable__LD(Table ht, void *name ARG_LD);
 COMMON(void*)		addHTable(Table ht, void *name, void *value);
 COMMON(void)		addNewHTable(Table ht, void *name, void *value);
 COMMON(void*)		updateHTable(Table ht, void *name, void *value);
-COMMON(int)		deleteHTable(Table ht, void *name);
+COMMON(void*)		deleteHTable(Table ht, void *name);
 COMMON(void)		clearHTable(Table ht);
 COMMON(Table)		copyHTable(Table org);
 COMMON(TableEnum)	newTableEnum(Table ht);
