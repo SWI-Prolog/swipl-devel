@@ -35,7 +35,6 @@ finding source files, etc.
 #undef LD
 #define LD LOCAL_LD
 
-static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
 static atom_t	autoLoader(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
@@ -1413,31 +1412,6 @@ destroyDefinition(Definition def)
 }
 
 #endif /*O_PLMT*/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-resetReferences() is called by abort() to clear all predicate references.
-Erased clauses will be removed as well.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-resetReferencesModule(Module m)
-{ Definition def;
-
-  for_table(m->procedures, name, value,
-	    { def = ((Procedure) value)->definition;
-	      def->references = 0;
-	      if ( true(def, NEEDSCLAUSEGC) )
-		gcClausesDefinition(def);
-	    })
-}
-
-void
-resetReferences(void)
-{ LOCK();
-  for_table(GD->tables.modules, name, value,
-	    resetReferencesModule((Module) value));
-  UNLOCK();
-}
 
 
 		 /*******************************

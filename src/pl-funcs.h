@@ -475,7 +475,6 @@ COMMON(int)		removeClausesProcedure(Procedure proc,
 COMMON(ClauseRef)	cleanDefinition(Definition def, ClauseRef garbage);
 COMMON(void)		registerDirtyDefinition(Definition def);
 COMMON(void)		destroyDefinition(Definition def);
-COMMON(void)		resetReferences(void);
 COMMON(Procedure)	resolveProcedure(functor_t f, Module module);
 COMMON(Definition)	trapUndefined(Definition undef ARG_LD);
 COMMON(word)		pl_retractall(term_t head);
