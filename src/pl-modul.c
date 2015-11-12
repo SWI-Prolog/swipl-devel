@@ -1368,6 +1368,7 @@ import(term_t pred, term_t strength ARG_LD)
   if ( !isDefinedProcedure(proc) )
     autoImport(proc->definition->functor->functor, proc->definition->module);
 
+retry:
   if ( (old = isCurrentProcedure(proc->definition->functor->functor,
 				 destination)) )
   { if ( old->definition == proc->definition )
@@ -1432,6 +1433,7 @@ import(term_t pred, term_t strength ARG_LD)
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
+    void *old;
 
     nproc->flags = pflags;
     nproc->source_no = 0;
@@ -1439,12 +1441,17 @@ import(term_t pred, term_t strength ARG_LD)
     shareDefinition(proc->definition);
 
     LOCKMODULE(destination);
-    addNewHTable(destination->procedures,
-	      (void *)proc->definition->functor->functor, nproc);
+    old = addHTable(destination->procedures,
+		    (void *)proc->definition->functor->functor, nproc);
     UNLOCKMODULE(destination);
+    if ( old != nproc )
+    { unshareDefinition(proc->definition);
+      freeHeap(nproc, sizeof(*nproc));
+      goto retry;
+    }
   }
 
-  succeed;
+  return TRUE;
 }
 
 static
