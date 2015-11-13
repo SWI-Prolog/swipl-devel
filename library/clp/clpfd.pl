@@ -6333,13 +6333,13 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %          maplist(all_distinct, Rows),
 %          transpose(Rows, Columns),
 %          maplist(all_distinct, Columns),
-%          Rows = [A,B,C,D,E,F,G,H,I],
-%          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
+%          Rows = [As,Bs,Cs,Ds,Es,Fs,Gs,Hs,Is],
+%          blocks(As, Bs, Cs), blocks(Ds, Es, Fs), blocks(Gs, Hs, Is).
 %
 %  blocks([], [], []).
-%  blocks([A,B,C|Bs1], [D,E,F|Bs2], [G,H,I|Bs3]) :-
-%          all_distinct([A,B,C,D,E,F,G,H,I]),
-%          blocks(Bs1, Bs2, Bs3).
+%  blocks([N1,N2,N3|Ns1], [N4,N5,N6|Ns2], [N7,N8,N9|Ns3]) :-
+%          all_distinct([N1,N2,N3,N4,N5,N6,N7,N8,N9]),
+%          blocks(Ns1, Ns2, Ns3).
 %
 %  problem(1, [[_,_,_,_,_,_,_,_,_],
 %              [_,_,_,_,_,3,_,8,5],
