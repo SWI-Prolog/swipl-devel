@@ -621,7 +621,8 @@ writeAtom(atom_t a, write_options *options)
 
   if ( (options->flags & PL_WRT_BLOB_PORTRAY) &&
        false(atom->type, PL_BLOB_TEXT) &&
-       GD->cleaning <= CLN_PROLOG )
+       GD->cleaning <= CLN_PROLOG &&
+       a != ATOM_nil )
   { GET_LD
     int rc;
     fid_t fid;
