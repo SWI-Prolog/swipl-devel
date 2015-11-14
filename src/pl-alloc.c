@@ -522,7 +522,7 @@ globalWString(size_t len, const pl_wchar_t *s)
     t = (unsigned char *)&g[1];
     *t++ = 'B';
     for(p=s; p<e; )
-      *t++ = *p++ & 0xff;
+      *t++ = (unsigned char)(*p++ & 0xff);
   } else				/* wide string */
   { char *t;
     pl_wchar_t *w;

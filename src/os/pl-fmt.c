@@ -210,7 +210,7 @@ word
 pl_format_predicate(term_t chr, term_t descr)
 { int c;
   predicate_t proc = NULL;
-  int arity;
+  size_t arity;
 
   if ( !PL_get_char_ex(chr, &c, FALSE) )
     fail;
@@ -437,7 +437,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 					/* Check for user defined format */
 	  if ( format_predicates &&
 	       (proc = lookupHTable(format_predicates, (void*)((intptr_t)c))) )
-	  { int arity;
+	  { size_t arity;
 	    term_t av;
 	    char buf[BUFSIZE];
 	    char *str = buf;

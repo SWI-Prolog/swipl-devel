@@ -465,7 +465,7 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
   Module m = MODULE_parse;
   term_t prop = PL_new_term_ref();
   atom_t pname;
-  int arity;
+  size_t arity;
 
   if ( !PL_strip_module(A1, &m, prop) )
     return FALSE;

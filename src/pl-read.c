@@ -1752,7 +1752,7 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
   term_t ex;
   Module m = _PL_rd->module;
   atom_t name;
-  int arity;
+  size_t arity;
 
   if ( !PL_strip_module(type, &m, plain) )
     return FALSE;

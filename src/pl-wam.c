@@ -521,7 +521,7 @@ PL_discard_foreign_frame(fid_t id)
 static void
 discardForeignFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
-  int argc       = def->functor->arity;
+  int argc       = (int)def->functor->arity;
   Func function  = def->impl.function;
   struct foreign_context context;
   fid_t fid;
@@ -1723,7 +1723,7 @@ slotsInFrame(LocalFrame fr, Code PC)
 { Definition def = fr->predicate;
 
   if ( !PC || true(def, P_FOREIGN) || !fr->clause )
-    return def->functor->arity;
+    return (int)def->functor->arity;
 
   return fr->clause->value.clause->prolog_vars;
 }
@@ -1866,7 +1866,7 @@ The new arguments block can contain the following types:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
+copyFrameArguments(LocalFrame from, LocalFrame to, size_t argc ARG_LD)
 { Word ARGD, ARGS, ARGE;
 
   if ( argc == 0 )
@@ -2182,7 +2182,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   QueryFrame qf;
   LocalFrame fr, top;
   Definition def;
-  int arity;
+  size_t arity;
   Word ap;
   size_t lneeded;
   static int top_initialized = FALSE;
@@ -2200,7 +2200,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   }
 
   DEBUG(2, { FunctorDef f = proc->definition->functor;
-	     unsigned int n;
+	     size_t n;
 
 	     Sdprintf("PL_open_query: %s(", stringAtom(f->name));
 	     for(n=0; n < f->arity; n++)
@@ -2289,7 +2289,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
-  { int n;
+  { size_t n;
     Word p = valTermRef(args);
 
     for( n = arity; n-- > 0; p++ )

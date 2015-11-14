@@ -2194,19 +2194,14 @@ unify_vp(Word vp, Word val ARG_LD)
 static word
 setarg(term_t n, term_t term, term_t value, int flags)
 { GET_LD
-  int arity, argn;
+  size_t arity, argn;
   atom_t name;
   Word a, v;
 
-  if ( !PL_get_integer_ex(n, &argn) )
-    fail;
-  if ( argn <= 0 )
-  { if ( argn < 0 )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		      ATOM_not_less_than_zero, n);
-    else
-      fail;
-  }
+  if ( !PL_get_size_ex(n, &argn) )
+    return FALSE;
+  if ( argn == 0 )
+    return FALSE;
   if ( !PL_get_name_arity(term, &name, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, term);
 
@@ -2464,9 +2459,9 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
 { GET_LD
   term_t t = A1;
   term_t list = A3;
-  int arity;
+  size_t arity;
   atom_t name;
-  int n;
+  size_t n;
 
   if ( PL_is_variable(t) )
   { term_t tail = PL_copy_term_ref(list);

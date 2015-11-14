@@ -910,7 +910,7 @@ static int
 destroyAtom(Atom a, Atom **buckets)
 { unsigned int v;
   AtomTable t;
-  int index;
+  size_t index;
 
   while ( buckets && *buckets )
   { t = atomTable;

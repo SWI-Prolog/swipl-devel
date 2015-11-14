@@ -286,7 +286,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     { int hi;
 
       if ( def->impl.clauses.number_of_clauses > 10 &&
-	   def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
+	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index in arg %d of %s (try to find better)\n",
 		       best_index->args[0], predicateName(def)));
@@ -396,7 +396,7 @@ newClauseIndexTable(int arg, hash_hints *hints)
   bytes = sizeof(struct clause_bucket) * hints->buckets;
 
   memset(ci, 0, sizeof(*ci));
-  ci->args[0] = arg;
+  ci->args[0] = (unsigned short)arg;
   ci->buckets = hints->buckets;
   ci->is_list = hints->list;
   ci->speedup = hints->speedup;
@@ -1274,7 +1274,7 @@ typedef struct hash_assessment
   size_t	funct_count;		/* # functor cases */
   float		stdev;			/* Standard deviation */
   float		speedup;		/* Expected speedup */
-  int		list;			/* Put lists in the buckets */
+  unsigned	list;			/* Put lists in the buckets */
   size_t	space;			/* Space indication */
   key_asm      *keys;			/* tmp key-set */
 } hash_assessment;
@@ -1344,7 +1344,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
     a->speedup =            (float)(clause_count*a->size) /
 	      (float)(clause_count - a->var_count + a->var_count*a->size);
-    a->speedup /= 1.0+a->stdev;			/* punish bad distributions */
+    a->speedup /= (float)1.0+a->stdev;			/* punish bad distributions */
 
     a->space = ( a->size * sizeof(struct clause_bucket) +
 		 clause_count * SIZEOF_CREF_CLAUSE +

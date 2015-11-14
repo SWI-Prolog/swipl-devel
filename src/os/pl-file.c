@@ -2018,7 +2018,8 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
   atom_t sblob, aname;
   stream_ref *ref;
   PL_blob_t *type;
-  int rc, arity;
+  int rc;
+  size_t arity;
   const set_stream_info *info;
   term_t aval = PL_new_term_ref();
 

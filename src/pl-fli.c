@@ -424,7 +424,7 @@ PL_functor_name(functor_t f)
 }
 
 
-int
+size_t
 PL_functor_arity(functor_t f)
 { return arityFunctor(f);
 }
@@ -906,7 +906,7 @@ bindConsVal(Word to, Word p ARG_LD)
 int
 PL_cons_functor(term_t h, functor_t fd, ...)
 { GET_LD
-  int arity = arityFunctor(fd);
+  size_t arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
@@ -925,7 +925,7 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     gTop += 1+arity;
     va_start(args, fd);
     *a = fd;
-    while( --arity >= 0 )
+    while( arity-- > 0 )
     { term_t r = va_arg(args, term_t);
 
       bindConsVal(++a, valHandleP(r) PASS_LD);
@@ -941,7 +941,7 @@ PL_cons_functor(term_t h, functor_t fd, ...)
 int
 PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 { GET_LD
-  int arity = arityFunctor(fd);
+  size_t arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
@@ -960,7 +960,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 
     ai = valHandleP(a0);
     *a = fd;
-    while( --arity >= 0 )
+    while( arity-- > 0 )
       bindConsVal(++a, ai++ PASS_LD);
 
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
@@ -1298,13 +1298,13 @@ char *
 PL_quote(int chr, const char *s)
 { Buffer b = findBuffer(BUF_RING);
 
-  addBuffer(b, chr, char);
+  addBuffer(b, (char)chr, char);
   for(; *s; s++)
   { if ( *s == chr )
-      addBuffer(b, chr, char);
+      addBuffer(b, (char)chr, char);
     addBuffer(b, *s, char);
   }
-  addBuffer(b, chr, char);
+  addBuffer(b, (char)chr, char);
   addBuffer(b, EOS, char);
 
   return baseBuffer(b, char);
@@ -1555,7 +1555,7 @@ PL_get_pointer(term_t t, void **ptr)
 
 
 int
-PL_get_name_arity(term_t t, atom_t *name, int *arity)
+PL_get_name_arity(term_t t, atom_t *name, size_t *arity)
 { GET_LD
   word w = valHandle(t);
 
@@ -1581,7 +1581,7 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 
 int
-PL_get_compound_name_arity(term_t t, atom_t *name, int *arity)
+PL_get_compound_name_arity(term_t t, atom_t *name, size_t *arity)
 { GET_LD
   word w = valHandle(t);
 
@@ -1662,13 +1662,13 @@ _PL_get_arg__LD(int index, term_t t, term_t a ARG_LD)
 
 
 int
-PL_get_arg(int index, term_t t, term_t a)
+PL_get_arg(size_t index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);
 
   if ( isTerm(w) && index > 0 )
   { Functor f = (Functor)valPtr(w);
-    int arity = arityFunctor(f->definition);
+    size_t arity = arityFunctor(f->definition);
 
     if ( --index < arity )
     { Word p = &f->arguments[index];
@@ -2584,7 +2584,7 @@ uncachedCodeToAtom(int chrcode)
 { if ( chrcode < 256 )
   { char tmp[1];
 
-    tmp[0] = chrcode;
+    tmp[0] = (char)chrcode;
     return lookupAtom(tmp, 1);
   } else
   { pl_wchar_t tmp[1];
@@ -3135,7 +3135,7 @@ cont:
       break;
     }
   { functor_t ft;
-    int arity;
+    size_t arity;
 
     case PL_FUNCTOR_CHARS:
     { const char *s = va_arg(args, const char *);
@@ -3606,7 +3606,7 @@ _PL_predicate(const char *name, int arity, const char *module,
 
 
 int
-PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
+PL_predicate_info(predicate_t pred, atom_t *name, size_t *arity, module_t *m)
 { Definition def = pred->definition;
 
   if ( name )
@@ -3933,9 +3933,9 @@ register_foreignv(const char *module,
   } else
   { PL_extension ext[2];
     ext->predicate_name = (char *)name;
-    ext->arity = arity;
+    ext->arity = (short)arity;
     ext->function = f;
-    ext->flags = flags;
+    ext->flags = (short)flags;
     ext[1].predicate_name = NULL;
     rememberExtensions(module, ext);
 

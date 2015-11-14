@@ -303,7 +303,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       int c;
       int do_enum = ENUM_NONE;
       atom_t cn;
-      int arity;
+      size_t arity;
 
       if ( PL_is_variable(chr) )
 	do_enum |= ENUM_CHAR;

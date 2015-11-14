@@ -723,7 +723,7 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 
     while(PL_get_list_ex(tail, head, tail))
     { atom_t pname;
-      int parity;
+      size_t parity;
 
       if ( !PL_get_name_arity(head, &pname, &parity) ||
 	   parity != 1 ||

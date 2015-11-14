@@ -6034,7 +6034,7 @@ static int
 vm_compile_instruction(term_t t, CompileInfo ci)
 { GET_LD
   atom_t name;
-  int arity;
+  size_t arity;
 
   if ( PL_get_name_arity(t, &name, &arity) )
   { const code_info *cinfo;

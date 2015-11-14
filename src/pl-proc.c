@@ -1437,7 +1437,7 @@ meta_declaration(term_t spec)
   Procedure proc;
   Definition def;
   atom_t name;
-  int i, arity;
+  size_t i, arity;
   meta_mask mask = 0;
   int transparent = FALSE;
 

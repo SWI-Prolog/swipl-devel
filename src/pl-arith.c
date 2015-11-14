@@ -3235,7 +3235,7 @@ static
 PRED_IMPL("set_random", 1, set_random, 0)
 { PRED_LD
   atom_t name;
-  int arity;
+  size_t arity;
 
   init_random(PASS_LD1);
 
@@ -3303,7 +3303,7 @@ static
 PRED_IMPL("random_property", 1, random_property, 0)
 { PRED_LD
   atom_t name;
-  int arity;
+  size_t arity;
 
   init_random(PASS_LD1);
 

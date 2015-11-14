@@ -227,7 +227,7 @@ scan_options(term_t options, int flags, atom_t optype,
 
   while ( PL_get_list(list, head, list) )
   { atom_t name;
-    int arity;
+    size_t arity;
     int implicit_true = FALSE;
 
     if ( PL_get_name_arity(head, &name, &arity) )

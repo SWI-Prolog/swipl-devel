@@ -62,10 +62,10 @@ MSB(size_t i)
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
 #if SIZEOF_VOIDP == SIZEOF_LONG
-#define MSB(i) (sizeof(long)*8 - 1 - __builtin_clzl(i)) /* GCC builtin */
+#define MSB(i) ((int)sizeof(long)*8-1-__builtin_clzl(i)) /* GCC builtin */
 #define HAVE_MSB 1
 #elif SIZEOF_VOIDP == SIZEOF_LONG_LONG
-#define MSB(i) (sizeof(long long)*8 - 1 - __builtin_clzll(i)) /* GCC builtin */
+#define MSB(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i)) /* GCC builtin */
 #define HAVE_MSB 1
 #endif
 #endif
@@ -199,27 +199,27 @@ setall_bitvector(bit_vector *v)
 }
 
 static inline void
-set_bit(bit_vector *v, int which)
-{ int e = which/BITSPERE;
-  int b = which%BITSPERE;
+set_bit(bit_vector *v, size_t which)
+{ size_t e = which/BITSPERE;
+  size_t b = which%BITSPERE;
 
-  v->chunk[e] |= ((uintptr_t)1<<b);
+  v->chunk[e] |= ((bitv_chunk)1<<b);
 }
 
 static inline void
-clear_bit(bit_vector *v, int which)
-{ int e = which/BITSPERE;
-  int b = which%BITSPERE;
+clear_bit(bit_vector *v, size_t which)
+{ size_t e = which/BITSPERE;
+  size_t b = which%BITSPERE;
 
-  v->chunk[e] &= ~((uintptr_t)1<<b);
+  v->chunk[e] &= ~((bitv_chunk)1<<b);
 }
 
 static inline int
-true_bit(bit_vector *v, int which)
-{ int e = which/BITSPERE;
-  int b = which%BITSPERE;
+true_bit(bit_vector *v, size_t which)
+{ size_t e = which/BITSPERE;
+  size_t b = which%BITSPERE;
 
-  return (v->chunk[e]&((uintptr_t)1<<b)) != 0;
+  return (v->chunk[e]&((bitv_chunk)1<<b)) != 0;
 }
 
 

@@ -139,7 +139,7 @@ html_fd_next_tag(FILE *fd, char *tag, char *props)
 	  }
 	  if ( --plen <= 0 )
 	    return FALSE;		/* or restart? */
-	  *p++ = c;
+	  *p++ = (char)c;
 	}
 
 					/* read the properties */
@@ -155,7 +155,7 @@ html_fd_next_tag(FILE *fd, char *tag, char *props)
 	  }
 	  if ( --plen <= 0 )
 	    return FALSE;		/* or restart? */
-	  *p++ = c;
+	  *p++ = (char)c;
 	}
       }
     }

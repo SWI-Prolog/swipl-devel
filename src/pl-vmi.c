@@ -658,7 +658,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
   f = (functor_t) *PC++;
   deRef2(ARGP, p);
   if ( canBind(*p) )
-  { int arity = arityFunctor(f);
+  { size_t arity = arityFunctor(f);
     Word ap;
     word c;
 
@@ -680,7 +680,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
     *ap++ = f;
     ARGP = ap;
-    while(--arity>=0)			/* must clear if we want to do GC */
+    while(arity-->0)			/* must clear if we want to do GC */
       setVar(*ap++);
     bindConst(p, c);
     umode = uwrite;
@@ -1460,7 +1460,7 @@ VMI(B_FUNCTOR, 0, 1, (CA1_FUNC))
 
 VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f = (functor_t) *PC++;
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
   Word ap;
 
   if ( !hasGlobalSpace(1+arity) )

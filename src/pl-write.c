@@ -1295,7 +1295,7 @@ static bool
 writeTerm2(term_t t, int prec, write_options *options, bool arg)
 { GET_LD
   atom_t functor;
-  int arity, n;
+  size_t arity, n;
   int op_type, op_pri;
   atom_t a;
   IOSTREAM *out = options->out;
@@ -2056,7 +2056,7 @@ PRED_IMPL("write_length", 3, write_length, 0)
   lss.length = PLMAXINT;
   while(PL_get_list(options, head, options))
   { atom_t name;
-    int arity;
+    size_t arity;
 
     if ( PL_get_name_arity(head, &name, &arity) &&
 	 name == ATOM_max_length && arity == 1 )

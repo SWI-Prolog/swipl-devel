@@ -3119,7 +3119,7 @@ static int
 directiveClause(term_t directive, term_t clause, const char *functor)
 { GET_LD
   atom_t name;
-  int arity;
+  size_t arity;
   term_t d0 = PL_new_term_ref();
   functor_t f;
 

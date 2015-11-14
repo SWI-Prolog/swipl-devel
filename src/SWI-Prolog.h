@@ -171,7 +171,7 @@ typedef union
   atom_t a;				/* PL_ATOM */
   struct				/* PL_TERM */
   { atom_t name;
-    int    arity;
+    size_t arity;
   } t;
 } term_value_t;
 
@@ -360,7 +360,7 @@ PL_EXPORT(predicate_t)	PL_pred(functor_t f, module_t m);
 PL_EXPORT(predicate_t)	PL_predicate(const char *name, int arity,
 				     const char* module);
 PL_EXPORT(int)		PL_predicate_info(predicate_t pred,
-					  atom_t *name, int *arity,
+					  atom_t *name, size_t *arity,
 					  module_t *module);
 
 			/* Call-back */
@@ -404,7 +404,7 @@ PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 #endif
 PL_EXPORT(functor_t)	PL_new_functor(atom_t f, size_t a);
 PL_EXPORT(atom_t)	PL_functor_name(functor_t f);
-PL_EXPORT(int)		PL_functor_arity(functor_t f);
+PL_EXPORT(size_t)	PL_functor_arity(functor_t f);
 
 			/* Get C-values from Prolog terms */
 PL_EXPORT(int)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
@@ -429,10 +429,10 @@ PL_EXPORT(int)		PL_get_intptr(term_t t, intptr_t *i) WUNUSED;
 PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr) WUNUSED;
 PL_EXPORT(int)		PL_get_float(term_t t, double *f) WUNUSED;
 PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f) WUNUSED;
-PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name, int *arity) WUNUSED;
-PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name, int *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name, size_t *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name, size_t *arity) WUNUSED;
 PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
-PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(int)		PL_get_arg(size_t index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(int)		PL_get_tail(term_t l, term_t t) WUNUSED;

@@ -2025,7 +2025,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 { GET_LD
   LocalFrame fr;
   atom_t key;
-  int arity;
+  size_t arity;
   term_t result = PL_new_term_ref();
   Module m = NULL;
 
