@@ -19,6 +19,6 @@ void caldate_easter(struct caldate *cd)
   if (n == 57) --n;
   n -= ((((y % 28) * 5) / 4 + t + n + 2) % 7);
 
-  if (n < 32) { cd->month = 3; cd->day = n; }
-  else { cd->month = 4; cd->day = n - 31; }
+  if (n < 32) { cd->month = 3; cd->day = (int)n; }
+  else { cd->month = 4; cd->day = (int)(n - 31); }
 }
