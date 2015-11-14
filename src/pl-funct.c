@@ -105,7 +105,7 @@ registerFunctor(FunctorDef fd)
 
 
 functor_t
-lookupFunctorDef(atom_t atom, unsigned int arity)
+lookupFunctorDef(atom_t atom, size_t arity)
 { GET_LD
   int v;
   FunctorDef *table;
@@ -229,7 +229,7 @@ not known.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 functor_t
-isCurrentFunctor(atom_t atom, unsigned int arity)
+isCurrentFunctor(atom_t atom, size_t arity)
 { GET_LD
   unsigned int v;
   int buckets;

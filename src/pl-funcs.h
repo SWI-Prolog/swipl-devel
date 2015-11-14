@@ -273,8 +273,8 @@ COMMON(word)		pl_format(term_t fmt, term_t args);
 COMMON(word)		pl_format3(term_t s, term_t fmt, term_t args);
 
 /* pl-funct.c */
-COMMON(functor_t)	lookupFunctorDef(atom_t atom, unsigned int arity);
-COMMON(functor_t)	isCurrentFunctor(atom_t atom, unsigned int arity);
+COMMON(functor_t)	lookupFunctorDef(atom_t atom, size_t arity);
+COMMON(functor_t)	isCurrentFunctor(atom_t atom, size_t arity);
 COMMON(void)		initFunctors(void);
 COMMON(void)		cleanupFunctors(void);
 COMMON(int)		checkFunctors(void);

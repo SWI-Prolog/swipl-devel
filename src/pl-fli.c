@@ -410,7 +410,7 @@ PL_new_atom_nchars(size_t len, const char *s)
 
 
 functor_t
-PL_new_functor(atom_t f,  int a)
+PL_new_functor(atom_t f, size_t a)
 { if ( !GD->initialised )
     initFunctors();
 
@@ -2342,7 +2342,7 @@ PL_put_float(term_t t, double f)
 int
 PL_put_functor(term_t t, functor_t f)
 { GET_LD
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
 
   if ( arity == 0 )
   { setHandle(t, nameFunctor(f));
@@ -2472,7 +2472,7 @@ int
 PL_unify_compound(term_t t, functor_t f)
 { GET_LD
   Word p = valHandleP(t);
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
 
   deRef(p);
   if ( canBind(*p) )
@@ -2494,7 +2494,7 @@ PL_unify_compound(term_t t, functor_t f)
 
     gTop += 1+arity;
     *a = f;
-    while( --arity >= 0 )
+    while( arity-- > 0 )
       setVar(*++a);
 
     bindConst(p, to);
@@ -2510,7 +2510,7 @@ int
 PL_unify_functor(term_t t, functor_t f)
 { GET_LD
   Word p = valHandleP(t);
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
 
   deRef(p);
   if ( canBind(*p) )
@@ -2534,7 +2534,7 @@ PL_unify_functor(term_t t, functor_t f)
 
       gTop += 1+arity;
       *a = f;
-      while( --arity >= 0 )
+      while( arity-- > 0 )
 	setVar(*++a);
 
       bindConst(p, to);

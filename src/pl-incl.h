@@ -1128,7 +1128,7 @@ struct functorDef
 { FunctorDef	next;		/* next in chain */
   word		functor;	/* as appearing on the global stack */
   word		name;		/* Name of functor */
-  unsigned	arity;		/* arity of functor */
+  size_t	arity;		/* arity of functor */
   unsigned      flags;		/* Flag field holding: */
 		  /* CONTROL_F	   Compiled control-structure */
 		  /* ARITH_F	   Arithmetic function */

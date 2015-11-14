@@ -402,7 +402,7 @@ PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 #endif
-PL_EXPORT(functor_t)	PL_new_functor(atom_t f, int a);
+PL_EXPORT(functor_t)	PL_new_functor(atom_t f, size_t a);
 PL_EXPORT(atom_t)	PL_functor_name(functor_t f);
 PL_EXPORT(int)		PL_functor_arity(functor_t f);
 
