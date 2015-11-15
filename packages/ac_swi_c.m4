@@ -124,3 +124,5 @@ else dnl MT=yes
 AC_MSG_WARN([Seems that SWI-Prolog is not compiled with threads enabled])
 
 fi dnl MT=yes
+
+AC_DEFINE(PL_ARITY_AS_SIZE, 1, "Represent arity as size_t")
