@@ -264,7 +264,7 @@ typedef struct
 #define sizeofVarTable(isize) (struct_offsetp(var_table, entry) + sizeof(int)*(isize))
 
 #define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
-#define BITSPERINT (sizeof(int)*8)
+#define BITSPERINT (int)(sizeof(int)*8)
 
 typedef struct branch_var
 { VarDef	vdef;			/* Definition record */
@@ -724,10 +724,10 @@ right_recursion:
 
 	return nvars;
       } else if ( false(fd, CONTROL_F) )
-      { int ar = fd->arity;
+      { size_t ar = fd->arity;
 
 	ci->subclausearg++;
-	for(head = f->arguments, argn = ci->arity; --ar >= 0; head++, argn++)
+	for(head = f->arguments, argn = ci->arity; ar-- > 0; head++, argn++)
 	{ nvars = analyseVariables2(head, nvars, argn, ci, depth, FALSE PASS_LD);
 	  if ( nvars < 0 )
 	    break;			/* error */
@@ -745,7 +745,7 @@ right_recursion:
 
     if ( f->definition == FUNCTOR_semicolon2 && control && !ci->islocal )
     { Buffer obv;
-      int start_vars, at_branch_vars, at_end_vars;
+      ssize_t start_vars, at_branch_vars, at_end_vars;
 
       if ( (obv=ci->branch_vars) == NULL )
       { initBuffer(&ci->branch_varbuf);
@@ -847,7 +847,7 @@ right_recursion:
 
     if ( f->definition == FUNCTOR_not_provable1 && control && !ci->islocal)
     { Buffer obv;
-      int start_vars, at_end_vars;
+      ssize_t start_vars, at_end_vars;
 
       if ( (obv=ci->branch_vars) == NULL )
       { initBuffer(&ci->branch_varbuf);
@@ -890,7 +890,7 @@ right_recursion:
 
     /* The default term processing case */
 
-    { int ar = fd->arity;
+    { ssize_t ar = fd->arity;	/* arity can be 0 */
 
       head = f->arguments;
       argn = ( argn < 0 ? 0 : ci->arity );
@@ -985,7 +985,7 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
   ci->clause->prolog_vars = nv;
   ci->clause->variables   = nv;
   ci->cut.nextvar	  = nv;
-  ci->vartablesize = (nv + BITSPERINT-1)/BITSPERINT;
+  ci->vartablesize	  = (int)((nv + BITSPERINT-1)/BITSPERINT);
 
   return TRUE;
 }
@@ -1189,7 +1189,7 @@ last_arg:
   }
 
   if ( isTerm(*t) )
-  { int arity;
+  { ssize_t arity;
 
     arity = arityTerm(*t);
 
@@ -1536,7 +1536,7 @@ compileClause(Clause *cp, Word head, Word body,
   if ( head )
   { ci.islocal      = FALSE;
     ci.subclausearg = 0;
-    ci.arity        = proc->definition->functor->arity;
+    ci.arity        = (int)proc->definition->functor->arity;
     ci.argvars      = 0;
     clause.flags    = 0;
   } else
@@ -2266,7 +2266,7 @@ isvar:
 
     return TRUE;
   } else
-  { int ar;
+  { ssize_t ar;
     functor_t fdef;
     int isright = (where & A_RIGHT);
 
@@ -2571,7 +2571,7 @@ appropriate calling instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( fdef )				/* term: there are arguments */
-  { int ar = fdef->arity;
+  { size_t ar = fdef->arity;
 
     for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
     { int rc;
@@ -2845,7 +2845,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   }
 
   { functor_t fdef;
-    int n, ar;
+    size_t n, ar;
     Word a;
 
     if ( isTextAtom(*arg) )
@@ -2951,9 +2951,9 @@ right_recursion:
   if ( i >= 0 && isFirstVarSet(ci->used_var, i) )
     Output_1(ci, C_VAR, VAROFFSET(i));
   if ( isTerm(*arg) && !ci->islocal )
-  { int ar = arityFunctor(functorTerm(*arg));
+  { size_t ar = arityFunctor(functorTerm(*arg));
 
-    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
+    for(ar--, arg = argTermP(*arg, 0); ar-- > 0; arg++)
       skippedVar(arg, ci PASS_LD);
     goto right_recursion;
   }
@@ -4169,7 +4169,7 @@ static void
 get_arg_ref(term_t term, term_t argp ARG_LD)
 { word w = valHandle(term PASS_LD);
   Word p = argTermP(w, 0);
-  int ar = arityTerm(w);
+  size_t ar = arityTerm(w);
   Word ap = valTermRef(argp);
 
   if ( ar > 0 )
@@ -4272,7 +4272,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
     return PL_unify_atom(head, ATOM_dcall);
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
-  arity = def->functor->arity;
+  arity = (int)def->functor->arity;
   if ( arity > 0 )
   { if ( !PL_unify_functor(head, def->functor->functor) ||
 	 !(argp = PL_new_term_refs(2)) )
@@ -5086,7 +5086,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
 static int
 put_functor(Word p, functor_t f ARG_LD)
-{ int arity = arityFunctor(f);
+{ size_t arity = arityFunctor(f);
   Word a, t;
 
   if ( gTop+1+arity > gMax )
@@ -5096,7 +5096,7 @@ put_functor(Word p, functor_t f ARG_LD)
   gTop += (1+arity);
 
   *a = f;
-  while( --arity >= 0 )
+  while( arity-- > 0 )
     setVar(*++a);
 
   *p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
@@ -5116,7 +5116,7 @@ Returns one of TRUE or *_OVERFLOW
 static int
 build_term(functor_t f, decompileInfo *di ARG_LD)
 { word term;
-  int i, arity = arityFunctor(f);
+  size_t i, arity = arityFunctor(f);
   Word a;
 
   if ( arity == 0 )
@@ -6208,7 +6208,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
   ci.islocal      = FALSE;
   ci.subclausearg = 0;
-  ci.arity        = proc->definition->functor->arity;
+  ci.arity        = (int)proc->definition->functor->arity;
   ci.argvars      = 0;
 
   clause.flags       = 0;

@@ -2366,7 +2366,7 @@ c_cut:
   { lTop = (LocalFrame)(och+1);
   } else
   { int nvar = (true(fr->predicate, P_FOREIGN)
-			? fr->predicate->functor->arity
+			? (int)fr->predicate->functor->arity
 			: fr->clause->value.clause->variables);
     lTop = (LocalFrame) argFrameP(fr, nvar);
   }
@@ -2962,7 +2962,7 @@ VMI(A_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 #ifdef O_GMP
   Number n = allocArithStack(PASS_LD1);
   Word p = (Word)PC;
-  int size;
+  size_t size;
 
   p++;				/* skip indirect header */
   n->type = V_MPZ;
@@ -4531,7 +4531,7 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
     if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
     { args    = argTermP(goal, 0);
-      arity   = fd->arity;
+      arity   = (int)fd->arity;
     } else
     { Clause cl;
       int rc;
@@ -4616,7 +4616,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
 
     if ( !isCallableAtom(fdef->name) )
       goto call_type_error;
-    arity   = fdef->arity;
+    arity   = (int)fdef->arity;
     functor = lookupFunctorDef(fdef->name, arity + callargs);
     args    = argTermP(goal, 0);
   } else

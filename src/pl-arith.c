@@ -781,7 +781,7 @@ valueExpression(term_t expr, number *result ARG_LD)
         break;
       case TAG_COMPOUND:
       { Functor term = valueTerm(*p);
-	int arity = arityFunctor(term->definition);
+	size_t arity = arityFunctor(term->definition);
 
 	if ( term->definition == FUNCTOR_dot2 )
 	{ if ( getCharExpression(p, n PASS_LD) != TRUE )
@@ -850,7 +850,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 			arityFunctor(functor)));
 
       if ( (f = isCurrentArithFunction(functor)) )
-      { int arity = arityFunctor(functor);
+      { size_t arity = arityFunctor(functor);
 
 	switch(arity)
 	{ case 1:

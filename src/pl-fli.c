@@ -2982,8 +2982,8 @@ typedef struct
   union
   { struct
     { term_t term;			/* term for which to do work on */
-      int    arity;			/* arity of the term */
-      int    arg;			/* current argument */
+      size_t arity;			/* arity of the term */
+      size_t arg;			/* current argument */
     } term;
     struct
     { term_t tail;			/* tail of list */
