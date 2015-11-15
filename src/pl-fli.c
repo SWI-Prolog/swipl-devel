@@ -71,6 +71,10 @@ Prolog int) is used by the garbage collector to update the stack frames.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
+#define VALID_INT_ARITY(a) \
+	{ if ( arity < 0 || arity > INT_MAX ) \
+	    fatalError("Arity out of range: %lld", (int64_t)arity); \
+	} while(0);
 
 static int	unify_int64_ex__LD(term_t t, int64_t i, int ex ARG_LD);
 
@@ -410,12 +414,22 @@ PL_new_atom_nchars(size_t len, const char *s)
 
 
 functor_t
-PL_new_functor(atom_t f, size_t a)
+PL_new_functor_sz(atom_t f, size_t arity)
 { if ( !GD->initialised )
     initFunctors();
 
-  return lookupFunctorDef(f, a);
+  return lookupFunctorDef(f, arity);
 }
+
+#undef PL_new_functor
+functor_t
+PL_new_functor(atom_t f, int arity)
+{ if ( arity >= 0 )
+    return PL_new_functor_sz(f, arity);
+  fatalError("Arity out of range: %d", arity);
+  return 0;
+}
+#define PL_new_functor(n,a) PL_new_functor_sz(n,a)
 
 
 atom_t
@@ -425,9 +439,19 @@ PL_functor_name(functor_t f)
 
 
 size_t
-PL_functor_arity(functor_t f)
+PL_functor_arity_sz(functor_t f)
 { return arityFunctor(f);
 }
+
+#undef PL_functor_arity
+int
+PL_functor_arity(functor_t f)
+{ size_t arity = arityFunctor(f);
+
+  VALID_INT_ARITY(arity);
+  return (int)arity;
+}
+#define PL_functor_arity(f) PL_functor_arity_sz(f)
 
 
 		 /*******************************
@@ -1555,7 +1579,7 @@ PL_get_pointer(term_t t, void **ptr)
 
 
 int
-PL_get_name_arity(term_t t, atom_t *name, size_t *arity)
+PL_get_name_arity_sz(term_t t, atom_t *name, size_t *arity)
 { GET_LD
   word w = valHandle(t);
 
@@ -1581,7 +1605,7 @@ PL_get_name_arity(term_t t, atom_t *name, size_t *arity)
 
 
 int
-PL_get_compound_name_arity(term_t t, atom_t *name, size_t *arity)
+PL_get_compound_name_arity_sz(term_t t, atom_t *name, size_t *arity)
 { GET_LD
   word w = valHandle(t);
 
@@ -1597,6 +1621,32 @@ PL_get_compound_name_arity(term_t t, atom_t *name, size_t *arity)
 
   fail;
 }
+
+#undef PL_get_name_arity
+int
+PL_get_name_arity(term_t t, atom_t *name, int *arityp)
+{ size_t arity;
+
+  if ( !PL_get_name_arity_sz(t, name, &arity) )
+    return FALSE;
+  VALID_INT_ARITY(arity);
+  *arityp = (int)arity;
+  return TRUE;
+}
+#define PL_get_name_arity(t,n,a) PL_get_name_arity_sz(t,n,a)
+
+#undef PL_get_compound_name_arity
+int
+PL_get_compound_name_arity(term_t t, atom_t *name, int *arityp)
+{ size_t arity;
+
+  if ( !PL_get_compound_name_arity_sz(t, name, &arity) )
+    return FALSE;
+  VALID_INT_ARITY(arity);
+  *arityp = (int)arity;
+  return TRUE;
+}
+#define PL_get_compound_name_arity(t,n,a) PL_get_compound_name_arity_sz(t,n,a)
 
 
 int
@@ -1640,7 +1690,7 @@ PL_get_module(term_t t, module_t *m)
 
 #undef _PL_get_arg			/* undo global definition */
 void
-_PL_get_arg(int index, term_t t, term_t a)
+_PL_get_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);
   Functor f = (Functor)valPtr(w);
@@ -1648,11 +1698,18 @@ _PL_get_arg(int index, term_t t, term_t a)
 
   setHandle(a, linkVal(p));
 }
+void
+_PL_get_arg(int index, term_t t, term_t a)
+{ if ( index >= 0 )
+    _PL_get_arg_sz(index, t, a);
+  else
+    fatalError("Arity out of range: %d", a);
+}
 #define _PL_get_arg(i, t, a) _PL_get_arg__LD(i, t, a PASS_LD)
 
 
 void
-_PL_get_arg__LD(int index, term_t t, term_t a ARG_LD)
+_PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD)
 { word w = valHandle(t);
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
@@ -1662,7 +1719,7 @@ _PL_get_arg__LD(int index, term_t t, term_t a ARG_LD)
 
 
 int
-PL_get_arg(size_t index, term_t t, term_t a)
+PL_get_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);
 
@@ -1681,6 +1738,15 @@ PL_get_arg(size_t index, term_t t, term_t a)
   fail;
 }
 
+#undef PL_get_arg
+int
+PL_get_arg(int index, term_t t, term_t a)
+{ if ( index >= 0 )
+    return PL_get_arg_sz(index, t, a);
+  fatalError("Index out of range: %d", index);
+  return FALSE;
+}
+#define PL_get_arg(i,t,a) PL_get_arg_sz(i,t,a)
 
 #ifdef O_ATTVAR
 int

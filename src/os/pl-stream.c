@@ -57,6 +57,7 @@ locking is required.
 #include <wchar.h>
 #define NEEDS_SWINSOCK
 #include "SWI-Stream.h"
+#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 #include "pl-utf8.h"
 #include <sys/types.h>

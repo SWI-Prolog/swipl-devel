@@ -44,6 +44,7 @@
 
 #else /* non-Windows version */
 
+#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 
 #define READLINE 1			/* use readline interface */

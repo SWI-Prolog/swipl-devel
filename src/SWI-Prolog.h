@@ -402,9 +402,11 @@ PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 #endif
-PL_EXPORT(functor_t)	PL_new_functor(atom_t f, size_t a);
+PL_EXPORT(functor_t)	PL_new_functor_sz(atom_t f, size_t a);
+PL_EXPORT(functor_t)	PL_new_functor(atom_t f, int a);
 PL_EXPORT(atom_t)	PL_functor_name(functor_t f);
-PL_EXPORT(size_t)	PL_functor_arity(functor_t f);
+PL_EXPORT(int)		PL_functor_arity(functor_t f);
+PL_EXPORT(size_t)	PL_functor_arity_sz(functor_t f);
 
 			/* Get C-values from Prolog terms */
 PL_EXPORT(int)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
@@ -429,10 +431,17 @@ PL_EXPORT(int)		PL_get_intptr(term_t t, intptr_t *i) WUNUSED;
 PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr) WUNUSED;
 PL_EXPORT(int)		PL_get_float(term_t t, double *f) WUNUSED;
 PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f) WUNUSED;
-PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name, size_t *arity) WUNUSED;
-PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name, size_t *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_name_arity_sz(term_t t, atom_t *name,
+					     size_t *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_compound_name_arity_sz(term_t t, atom_t *name,
+						      size_t *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name,
+					  int *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name,
+						   int *arity) WUNUSED;
 PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
-PL_EXPORT(int)		PL_get_arg(size_t index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(int)		PL_get_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(int)		PL_get_tail(term_t l, term_t t) WUNUSED;
@@ -746,6 +755,7 @@ PL_EXPORT(int)		PL_set_prolog_flag(const char *name, int type, ...);
 PL_EXPORT(PL_atomic_t)	_PL_get_atomic(term_t t);
 PL_EXPORT(void)		_PL_put_atomic(term_t t, PL_atomic_t a);
 PL_EXPORT(int)		_PL_unify_atomic(term_t t, PL_atomic_t a);
+PL_EXPORT(void)		_PL_get_arg_sz(size_t index, term_t t, term_t a);
 PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 
 
@@ -1132,6 +1142,20 @@ PL_EXPORT(int)	PL_get_context(struct pl_context_t *c, int thead_id);
 PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
 PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 				    char *buf, size_t len);
+
+#ifdef PL_ARITY_AS_SIZE
+#define PL_new_functor(f,a) PL_new_functor_sz(f,a)
+#define PL_functor_arity(f) PL_functor_arity_sz(f)
+#define PL_get_name_arity(t,n,a) PL_get_name_arity_sz(t,n,a)
+#define PL_get_compound_name_arity(t,n,a) PL_get_compound_name_arity_sz(t,n,a)
+#define PL_get_arg(i,t,a) PL_get_arg_sz(i,t,a)
+#ifndef _PL_INCLUDE_H
+#define _PL_get_arg(i,t,a) _PL_get_arg_sz(i,t,a)
+#endif
+#else
+#warning "Term arity has changed from int to size_t."
+#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+#endif
 
 #ifdef __cplusplus
 }
