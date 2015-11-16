@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -937,26 +937,65 @@ PL_get_intptr_ex(term_t t, intptr_t *i)
 #endif
 }
 
+#if SIZEOF_VOIDP < 8
+#ifndef UINTPTR_MAX
+#define UINTPTR_MAX ~(uintptr_t)0;
+#endif
+
+static int
+fits_size(int64_t val)
+{ if ( (uintptr_t)val <= (uintptr_t)UINTPTR_MAX )
+    return TRUE;
+  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+}
+#else
+#define fits_size(v) TRUE
+#endif
 
 int
 PL_get_size_ex(term_t t, size_t *i)
-{ int64_t val;
+{ number n;
 
-  if ( !PL_get_int64_ex(t, &val) )
-    fail;
-  if ( val < 0 )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, t);
-#if SIZEOF_VOIDP < 8
-#if SIZEOF_LONG == SIZEOF_VOIDP
-  if ( val > (int64_t)ULONG_MAX )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+  if ( PL_get_number(t, &n) )
+  { switch(n.type)
+    { case V_INTEGER:
+	if ( n.value.i >= 0 )
+	{ if ( fits_size(n.value) )
+	  { *i = n.value.i;
+	    return TRUE;
+	  }
+	  return FALSE;
+	} else
+	{ domain_error:
+	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			    ATOM_not_less_than_zero, t);
+	}
+#if SIZEOF_VOIDP == 8 && defined(O_GMP)
+      case V_MPZ:
+      { uint64_t v;
+
+	switch(mpz_to_uint64(n.value.mpz, &v))
+	{ case 0:
+	    *i = v;
+	    return TRUE;
+	  case -1:
+	    goto domain_error;
+	  case 1:
+	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+	  default:
+	    assert(0);
+	    return FALSE;
+	}
+      }
+#else
+      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
 #endif
-#endif
+      default:
+	break;
+    }
+  }
 
-  *i = (size_t)val;
-
-  return TRUE;
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
 

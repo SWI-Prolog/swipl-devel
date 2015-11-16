@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -44,6 +43,7 @@ COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);
 COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
 COMMON(char *)	skipMPZOnCharp(const char *data);
 COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
+COMMON(int)	mpz_to_uint64(mpz_t mpz, uint64_t *i);
 
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)

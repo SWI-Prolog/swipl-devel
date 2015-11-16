@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -34,6 +33,7 @@ static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
 static mpz_t MPZ_MAX_TAGGED;
 static mpz_t MPZ_MIN_PLINT;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_PLINT;
+static mpz_t MPZ_MAX_UINT64;
 #if SIZEOF_LONG	< SIZEOF_VOIDP
 static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_LONG;
@@ -443,6 +443,14 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 }
 
 
+static void
+mpz_init_max_uint(mpz_t mpz, int bits)
+{ mpz_init_set_si(mpz, 1);
+  mpz_mul_2exp(mpz, mpz, bits);
+  mpz_sub_ui(mpz, mpz, 1);
+}
+
+
 int
 promoteToMPZNumber(number *n)
 { switch(n->type)
@@ -583,6 +591,7 @@ initGMP()
     mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
     mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
     mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
+    mpz_init_max_uint(MPZ_MAX_UINT64, 64);
 #if SIZEOF_LONG < SIZEOF_VOIDP
     mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
     mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
@@ -642,6 +651,29 @@ mpz_to_int64(mpz_t mpz, int64_t *i)
   }
 
   return FALSE;
+}
+
+
+/* return: <0:              -1
+	   >MPZ_UINT64_MAX:  1
+	   (ok)		     0
+*/
+
+int
+mpz_to_uint64(mpz_t mpz, uint64_t *i)
+{ if ( mpz_sgn(mpz) < 0 )
+    return -1;
+
+  if ( mpz_cmp(mpz, MPZ_MAX_UINT64) <= 0 )
+  { uint64_t v;
+
+    mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
+    *i = v;
+
+    return 0;
+  }
+
+  return 1;
 }
 
 
