@@ -3595,8 +3595,12 @@ this way, any resource errors (such as write errors while flushing the
 output buffer) are ignored.
 
     \predicate[ISO]{stream_property}{2}{?Stream, ?StreamProperty}
-ISO compatible predicate for querying the status of open I/O streams.
-\arg{StreamProperty} is one of:
+True when \arg{StreamProperty} is a property of \arg{Stream}. If
+enumeration of streams or properties is demanded because either
+\arg{Stream} or \arg{StreamProperty} are unbound, the implementation
+enumerates all candidate streams and properties while locking the stream
+database.  Properties are fetched without locking the stream and may
+be outdated before this predicate returns due to asynchronous activity.
 
 \begin{description}
     \termitem{alias}{Atom}
