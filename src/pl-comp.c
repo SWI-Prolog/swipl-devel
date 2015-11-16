@@ -890,7 +890,8 @@ right_recursion:
 
     /* The default term processing case */
 
-    { ssize_t ar = fd->arity;	/* arity can be 0 */
+    if ( fd->arity > 0 )
+    { size_t ar = fd->arity;
 
       head = f->arguments;
       argn = ( argn < 0 ? 0 : ci->arity );
@@ -2953,9 +2954,11 @@ right_recursion:
   if ( isTerm(*arg) && !ci->islocal )
   { size_t ar = arityFunctor(functorTerm(*arg));
 
-    for(ar--, arg = argTermP(*arg, 0); ar-- > 0; arg++)
-      skippedVar(arg, ci PASS_LD);
-    goto right_recursion;
+    if ( ar > 0 )
+    { for(ar--, arg = argTermP(*arg, 0); ar-- > 0; arg++)
+	skippedVar(arg, ci PASS_LD);
+      goto right_recursion;
+    }
   }
 
   return TRUE;

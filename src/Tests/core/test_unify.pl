@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@uva.nl
+    E-mail:        J.Wielemak@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2015, University of Amsterdam
+			      Vu University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -48,6 +47,9 @@ test(blam, X == [[[]], []]) :-
 	blam(X),
 	length(X, 2), !.
 
+unify_ar0(A) :-
+	A = f().
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p(X,Y):-				% Bug#436
   U=U,
@@ -73,6 +75,8 @@ unify_fv(X) :-
 
 test(unify_fv, true) :-
 	unify_fv(a).
+test(unify_arity_0, X == f()) :-
+	unify_ar0(X).
 
 :- end_tests(unify).
 
