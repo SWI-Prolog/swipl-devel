@@ -4428,6 +4428,24 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
   return rc;
 }
 
+static
+PRED_IMPL("$alias_stream", 2, dalias_stream, 0)
+{ PRED_LD
+  atom_t a;
+  IOSTREAM *s;
+  int rc;
+
+  LOCK();
+  rc = ( PL_get_atom_ex(A1, &a) &&
+	 get_stream_handle(a, &s, SH_UNLOCKED) &&
+	 s->context &&
+	 unify_stream_ref(A2, s)
+       );
+  UNLOCK();
+
+  return rc;
+}
+
 
 static
 PRED_IMPL("is_stream", 1, is_stream, 0)
@@ -5149,6 +5167,7 @@ BeginPredDefs(file)
   PRED_DEF("$stream_property", 2, dstream_property, 0)
   PRED_DEF("$stream_properties", 2, dstream_properties, 0)
   PRED_DEF("$streams_properties", 2, dstreams_properties, 0)
+  PRED_DEF("$alias_stream", 2, dalias_stream, 0)
 
 					/* edinburgh IO */
   PRED_DEF("see", 1, see, 0)

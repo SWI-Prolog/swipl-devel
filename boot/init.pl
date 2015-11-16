@@ -438,8 +438,12 @@ stream_property(Stream, Property) :-
 	'$member'(Property, Properties).
 stream_property(Stream, Property) :-
 	nonvar(Property), !,
-	'$streams_properties'(Property, Pairs),
-	'$member'(Stream-Property, Pairs).
+	(   Property = alias(Alias),
+	    atom(Alias)
+	->  '$alias_stream'(Alias, Stream)
+	;   '$streams_properties'(Property, Pairs),
+	    '$member'(Stream-Property, Pairs)
+	).
 stream_property(Stream, Property) :-
 	'$streams_properties'(Property, Pairs),
 	'$member'(Stream-Properties, Pairs),
