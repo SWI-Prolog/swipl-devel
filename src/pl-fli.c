@@ -2946,15 +2946,14 @@ PL_unify_bool(term_t t, int val)
 }
 
 
-
 int
-PL_unify_arg(int index, term_t t, term_t a)
+PL_unify_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);
 
   if ( isTerm(w) &&
        index > 0 &&
-       index <= (int)arityFunctor(functorTerm(w)) )
+       index <=	arityFunctor(functorTerm(w)) )
   { Word p = argTermP(w, index-1);
     Word p2 = valHandleP(a);
 
@@ -2964,6 +2963,15 @@ PL_unify_arg(int index, term_t t, term_t a)
   fail;
 }
 
+#undef PL_unify_arg
+int
+PL_unify_arg(int index, term_t t, term_t a)
+{ if ( index >= 0 )
+    return PL_unify_arg_sz(index, t, a);
+  fatalError("Index out of range: %d", index);
+  return FALSE;
+}
+#define PL_unify_arg(i,t,a) PL_unify_arg_sz(i,t,a)
 
 int
 PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)

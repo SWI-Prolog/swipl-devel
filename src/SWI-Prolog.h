@@ -513,6 +513,7 @@ PL_EXPORT(int)		PL_unify_functor(term_t t, functor_t f) WUNUSED;
 PL_EXPORT(int)		PL_unify_compound(term_t t, functor_t f) WUNUSED;
 PL_EXPORT(int)		PL_unify_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_unify_nil(term_t l) WUNUSED;
+PL_EXPORT(int)		PL_unify_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_unify_term(term_t t, ...) WUNUSED;
 PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
@@ -1149,6 +1150,7 @@ PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 #define PL_get_name_arity(t,n,a) PL_get_name_arity_sz(t,n,a)
 #define PL_get_compound_name_arity(t,n,a) PL_get_compound_name_arity_sz(t,n,a)
 #define PL_get_arg(i,t,a) PL_get_arg_sz(i,t,a)
+#define PL_unify_arg(i,t,a) PL_unify_arg_sz(i,t,a)
 #ifndef _PL_INCLUDE_H
 #define _PL_get_arg(i,t,a) _PL_get_arg_sz(i,t,a)
 #endif
