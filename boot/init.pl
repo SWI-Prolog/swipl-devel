@@ -423,6 +423,29 @@ initialization(Goal, When) :-
 	retractall('$load_context_module'(File, _, _)).
 
 
+		 /*******************************
+		 *	      STREAM		*
+		 *******************************/
+
+:- '$iso'(stream_property/2).
+stream_property(Stream, Property) :-
+	nonvar(Stream),
+	nonvar(Property), !,
+	'$stream_property'(Stream, Property).
+stream_property(Stream, Property) :-
+	nonvar(Stream), !,
+	'$stream_properties'(Stream, Properties),
+	'$member'(Property, Properties).
+stream_property(Stream, Property) :-
+	nonvar(Property), !,
+	'$streams_properties'(Property, Pairs),
+	'$member'(Stream-Property, Pairs).
+stream_property(Stream, Property) :-
+	'$streams_properties'(Property, Pairs),
+	'$member'(Stream-Properties, Pairs),
+	'$member'(Property, Properties).
+
+
 		/********************************
 		*            MODULES            *
 		*********************************/

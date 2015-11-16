@@ -3150,7 +3150,10 @@ atom_to_encoding(atom_t a)
 
 atom_t
 encoding_to_atom(IOENC enc)
-{ return encoding_names[enc].name;
+{ if ( (int)enc > 0 &&
+       (int)enc < sizeof(encoding_names)/sizeof(encoding_names[0]) )
+    return encoding_names[enc].name;
+  return NULL_ATOM;
 }
 
 
@@ -3851,8 +3854,9 @@ static int
 stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
 
-  for(; s; s=s->downstream)
-  { if ( (name = getStreamContext(s)->filename) )
+  for(; s && s->magic == SIO_MAGIC; s=s->downstream)
+  { if ( s->context &&
+	 (name = getStreamContext(s)->filename) )
     { return PL_unify_atom(prop, name);
     }
   }
@@ -3905,8 +3909,11 @@ Incomplete: should be non-deterministic if the stream has multiple aliases!
 static int
 stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
-  stream_context *ctx = getStreamContext(s);
+  stream_context *ctx;
   int i;
+
+  if ( s->magic != SIO_MAGIC || !(ctx=s->context) )
+    return FALSE;
 
   if ( PL_get_atom(prop, &name) )
   { alias *a;
@@ -3936,14 +3943,16 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 static int
 stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 { IGNORE_LD
+  IOPOS pos;
 
-  if ( s->position )
-  { return PL_unify_term(prop,
+  if ( s->magic == SIO_MAGIC && s->position )
+  { pos = *s->position;
+    return PL_unify_term(prop,
 			 PL_FUNCTOR, FUNCTOR_dstream_position4,
-			   PL_INT64, s->position->charno,
-			   PL_INT, s->position->lineno,
-			   PL_INT, s->position->linepos,
-			   PL_INT64, s->position->byteno);
+			   PL_INT64, pos.charno,
+			   PL_INT, pos.lineno,
+			   PL_INT, pos.linepos,
+			   PL_INT64, pos.byteno);
   }
 
   return FALSE;
@@ -3952,7 +3961,7 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_end_of_stream_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( s->flags & SIO_INPUT )
+{ if ( s->magic == SIO_MAGIC && (s->flags & SIO_INPUT) )
   { atom_t val;
 
     if ( s->flags & SIO_FEOF2 )
@@ -3996,7 +4005,7 @@ static int
 stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t val;
 
-  if ( s->functions->seek )
+  if ( s->magic == SIO_MAGIC && s->functions->seek )
   {
 #ifdef HAVE_FSTAT
     int fd = Sfileno(s);
@@ -4026,7 +4035,7 @@ stream_close_on_abort_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_type_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ return PL_unify_atom(prop, s->flags & SIO_TEXT ? ATOM_text : ATOM_binary);
+{ return PL_unify_atom(prop, (s->flags & SIO_TEXT) ? ATOM_text : ATOM_binary);
 }
 
 
@@ -4079,7 +4088,11 @@ stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ return PL_unify_atom(prop, encoding_to_atom(s->encoding));
+{ atom_t ename = encoding_to_atom(s->encoding);
+
+  if ( ename )
+    return PL_unify_atom(prop, ename);
+  return FALSE;
 }
 
 
@@ -4223,218 +4236,196 @@ static const sprop sprop_list [] =
 };
 
 
-typedef struct
-{ TableEnum e;				/* Enumerator on stream-table */
-  IOSTREAM *s;				/* Stream we are enumerating */
-  const sprop *p;			/* Pointer in properties */
-  int fixed_p;				/* Propety is given */
-} prop_enum;
+/** '$stream_property'(+Stream, +Property) is det.
+    '$stream_properties'(+Stream, -PropertyList) is det.
+    '$streams_properties'(?Property, -Pairs) is det.
+*/
+
+static const sprop *
+get_stream_property_def(term_t t ARG_LD)
+{ functor_t f;
+
+  if ( PL_get_functor(t, &f) )
+  { const sprop *p;
+
+    for(p = sprop_list; p->functor; p++ )
+    { if ( f == p->functor )
+	return p;
+    }
+  }
+
+  return NULL;
+}
 
 
 static
-PRED_IMPL("stream_property", 2, stream_property,
-	  PL_FA_ISO|PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$stream_property", 2, dstream_property, 0)
 { PRED_LD
+  const sprop *p;
   IOSTREAM *s;
-  prop_enum *pe;
-  fid_t fid;
-  term_t a1;
-  atom_t a;
+  int rc;
 
-  term_t stream = A1;
-  term_t property = A2;
+  if ( !(p=get_stream_property_def(A2 PASS_LD)) )
+    return FALSE;
 
-  switch( CTX_CNTRL )
-  { case FRG_FIRST_CALL:
-      a1 = PL_new_term_ref();
-
-      if ( PL_is_variable(stream) )	/* generate */
-      {	const sprop *p = sprop_list;
-	int fixed = FALSE;
-	functor_t f;
-
-	if ( PL_get_functor(property, &f) ) /* test for defined property */
-	{ for( ; p->functor; p++ )
-	  { if ( f == p->functor )
-	    { fixed = TRUE;
-	      break;
-	    }
-	  }
-	  if ( !p->functor )
-	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			    ATOM_stream_property, property);
-	}
-
-	pe = allocForeignState(sizeof(*pe));
-
-	pe->e = newTableEnum(streamContext);
-	pe->s = NULL;
-	pe->p = p;
-	pe->fixed_p = fixed;
-
+  LOCK();
+  if ( (rc=term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD)) )
+  { switch(arityFunctor(p->functor))
+    { case 0:
+	rc = (*(property0_t)p->function)(s PASS_LD);
 	break;
-      }
+      case 1:
+	{ term_t a1 = PL_new_term_ref();
 
-      if ( !PL_get_atom(stream, &a) )
-	return not_a_stream(stream);
-
-      LOCK();				/* given stream */
-      if ( get_stream_handle(a, &s, SH_ERRORS|SH_UNLOCKED) )
-      { functor_t f;
-
-	if ( PL_is_variable(property) )	/* generate properties */
-	{ pe = allocForeignState(sizeof(*pe));
-
-	  pe->e = NULL;
-	  pe->s = s;
-	  pe->p = sprop_list;
-	  pe->fixed_p = FALSE;
-	  UNLOCK();
-
+	  _PL_get_arg(1, A2, a1);
+	  rc = (*p->function)(s, a1 PASS_LD);
 	  break;
 	}
-
-	if ( PL_get_functor(property, &f) )
-	{ const sprop *p = sprop_list;
-
-	  for( ; p->functor; p++ )
-	  { if ( f == p->functor )
-	    { int rval;
-
-	      switch(arityFunctor(f))
-	      { case 0:
-		  rval = (*(property0_t)p->function)(s PASS_LD);
-		  break;
-		case 1:
-		{ term_t a1 = PL_new_term_ref();
-
-		  _PL_get_arg(1, property, a1);
-		  rval = (*p->function)(s, a1 PASS_LD);
-		  break;
-		}
-		default:
-		  assert(0);
-		  rval = FALSE;
-	      }
-	      UNLOCK();
-	      return rval;
-	    }
-	  }
-	} else
-	{ UNLOCK();
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_stream_property, property);
-	}
-      }
-      UNLOCK();
-      return FALSE;				/* bad stream handle */
-    case FRG_REDO:
-    { pe = CTX_PTR;
-      a1 = PL_new_term_ref();
-
-      break;
+      default:
+	assert(0);
+	rc = FALSE;
     }
-    case FRG_CUTTED:
-    { pe = CTX_PTR;
+  }
+  UNLOCK();
+  return rc;
+}
 
-      if ( pe )				/* 0 if exception on FRG_FIRST_CALL */
-      { if ( pe->e )
-	  freeTableEnum(pe->e);
 
-	freeForeignState(pe, sizeof(*pe));
+static int
+unify_stream_property_list(IOSTREAM *s, term_t plist ARG_LD)
+{ term_t tail = PL_copy_term_ref(plist);
+  term_t head = PL_new_term_ref();
+  term_t prop = PL_new_term_ref();
+  const sprop *p;
+  int rc;
+
+  for(p = sprop_list; p->functor; p++)
+  { if ( !(rc=PL_put_functor(prop, p->functor)) )
+      break;
+
+    switch(arityFunctor(p->functor))
+    { case 0:
+	rc = (*(property0_t)p->function)(s PASS_LD);
+	break;
+      case 1:
+      { term_t a1 = PL_new_term_ref();
+	_PL_get_arg(1, prop, a1);
+	rc = (*p->function)(s, a1 PASS_LD);
+	break;
       }
-      return TRUE;
+      default:
+	assert(0);
+	rc = FALSE;
+    }
+    if ( rc )
+    { rc = ( PL_unify_list(tail, head, tail) &&
+	     PL_unify(head, prop) );
+      if ( !rc )
+	break;
+    }
+  }
+
+  rc = (rc && PL_unify_nil(tail));
+  PL_reset_term_refs(tail);
+
+  return rc;
+}
+
+
+static
+PRED_IMPL("$stream_properties", 2, dstream_properties, 0)
+{ PRED_LD
+  int rc;
+  IOSTREAM *s;
+
+  LOCK();
+  rc = ( term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD) &&
+	 unify_stream_property_list(s, A2 PASS_LD)
+       );
+  UNLOCK();
+
+  return rc;
+}
+
+
+static int
+unify_stream_property(IOSTREAM *s, const sprop *p, term_t t ARG_LD)
+{ int rc;
+
+  if ( !(rc=PL_put_functor(t, p->functor)) )
+    return FALSE;
+  switch(arityFunctor(p->functor))
+  { case 0:
+      rc = (*(property0_t)p->function)(s PASS_LD);
+      break;
+    case 1:
+    { term_t a1 = PL_new_term_ref();
+      _PL_get_arg(1, t, a1);
+      rc = (*p->function)(s, a1 PASS_LD);
+      PL_reset_term_refs(a1);
+      break;
     }
     default:
       assert(0);
-      return FALSE;
+      rc = FALSE;
   }
 
+  return rc;
+}
 
-  if ( !(fid = PL_open_foreign_frame()) )
-  { error:
 
-    if ( pe->e )
-      freeTableEnum(pe->e);
+static
+PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
+{ PRED_LD
+  int rc = FALSE;
+  const sprop *p;
+  term_t tail = PL_copy_term_ref(A2);
+  term_t head = PL_new_term_ref();
 
-    freeForeignState(pe, sizeof(*pe));
-    return FALSE;
+  if ( (p=get_stream_property_def(A1 PASS_LD)) )
+  { TableEnum e = newTableEnum(streamContext);
+    IOSTREAM *s;
+    term_t st = PL_new_term_ref();
+    term_t pt = PL_new_term_ref();
+
+    LOCK();
+    while( advanceTableEnum(e, (void**)&s, NULL))
+    { rc = ( unify_stream_property(s, p, pt PASS_LD) &&
+	     PL_unify_list(tail, head, tail) &&
+	     PL_unify_functor(head, FUNCTOR_minus2) &&
+	     PL_get_arg(1, head, st) &&
+	     PL_unify_stream(st, s) &&
+	     PL_unify_arg(2, head, pt)
+	   );
+      if ( !rc && PL_exception(0) )
+	break;
+    }
+    freeTableEnum(e);
+    UNLOCK();
+    rc = rc && PL_unify_nil(tail);
+  } else if ( PL_is_variable(A1) )
+  { TableEnum e = newTableEnum(streamContext);
+    IOSTREAM *s;
+    term_t st = PL_new_term_ref();
+    term_t pl = PL_new_term_ref();
+
+    rc = TRUE;
+    LOCK();
+    while( rc && advanceTableEnum(e, (void**)&s, NULL))
+    { rc = ( PL_unify_list(tail, head, tail) &&
+	     PL_unify_functor(head, FUNCTOR_minus2) &&
+	     PL_get_arg(1, head, st) &&
+	     PL_unify_stream(st, s) &&
+	     PL_get_arg(2, head, pl) &&
+	     unify_stream_property_list(s, pl PASS_LD)
+	   );
+    }
+    freeTableEnum(e);
+    UNLOCK();
+    rc = rc && PL_unify_nil(tail);
   }
 
-  for(;;)
-  { if ( pe->s )				/* given stream */
-    { fid_t fid2;
-
-      if ( PL_is_variable(stream) )
-      { if ( !PL_unify_stream(stream, pe->s) )
-	  goto enum_e;
-      }
-
-      if ( !(fid2 = PL_open_foreign_frame()) )
-	goto error;
-      for( ; pe->p->functor ; pe->p++ )
-      { if ( PL_unify_functor(property, pe->p->functor) )
-	{ int rval;
-
-	  switch(arityFunctor(pe->p->functor))
-	  { case 0:
-	      rval = (*(property0_t)pe->p->function)(pe->s PASS_LD);
-	      break;
-	    case 1:
-	    { _PL_get_arg(1, property, a1);
-
-	      rval = (*pe->p->function)(pe->s, a1 PASS_LD);
-	      break;
-	    }
-	    default:
-	      assert(0);
-	      rval = FALSE;
-	  }
-	  if ( rval )
-	  { if ( pe->fixed_p )
-	      pe->s = NULL;
-	    else
-	      pe->p++;
-	    ForeignRedoPtr(pe);
-	  }
-	}
-
-	if ( exception_term )
-	  goto error;
-
-	if ( pe->fixed_p )
-	  break;
-	PL_rewind_foreign_frame(fid2);
-      }
-      PL_close_foreign_frame(fid2);
-      pe->s = NULL;
-    }
-
-  enum_e:
-    if ( pe->e )
-    { IOSTREAM *p;
-
-      while ( advanceTableEnum(pe->e, (void**)&p, NULL) )
-      { PL_rewind_foreign_frame(fid);
-	if ( PL_unify_stream(stream, p) )
-	{ pe->s = p;
-	  if ( !pe->fixed_p )
-	    pe->p = sprop_list;
-	  break;
-	}
-	if ( exception_term )
-	  goto error;
-      }
-    }
-
-    if ( !pe->s )
-    { if ( pe->e )
-	freeTableEnum(pe->e);
-
-      freeForeignState(pe, sizeof(*pe));
-      return FALSE;
-    }
-  }
+  return rc;
 }
 
 
@@ -5154,9 +5145,10 @@ BeginPredDefs(file)
   PRED_DEF("flush_output", 1, flush_output1, PL_FA_ISO)
   PRED_DEF("at_end_of_stream", 1, at_end_of_stream, PL_FA_ISO)
   PRED_DEF("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
-  PRED_DEF("stream_property", 2, stream_property,
-	   PL_FA_ISO|PL_FA_NONDETERMINISTIC)
   PRED_DEF("set_stream_position", 2, set_stream_position, PL_FA_ISO)
+  PRED_DEF("$stream_property", 2, dstream_property, 0)
+  PRED_DEF("$stream_properties", 2, dstream_properties, 0)
+  PRED_DEF("$streams_properties", 2, dstreams_properties, 0)
 
 					/* edinburgh IO */
   PRED_DEF("see", 1, see, 0)

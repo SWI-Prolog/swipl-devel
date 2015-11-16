@@ -3116,6 +3116,10 @@ int
 Sfileno(IOSTREAM *s)
 { int n;
 
+  if ( s->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
   if ( s->flags & SIO_FILE )
   { intptr_t h = (intptr_t)s->handle;
     n = (int)h;
