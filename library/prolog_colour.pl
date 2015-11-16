@@ -177,6 +177,7 @@ source_module(TB, Module) :-
 	(   colour_state_source_id(TB, File),
 	    atom(File)
 	;   colour_state_stream(TB, Fd),
+	    is_stream(Fd),
 	    stream_property(Fd, file_name(File))
 	),
 	module_context(File, [], Module).
