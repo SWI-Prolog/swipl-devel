@@ -76,6 +76,10 @@ Prolog int) is used by the garbage collector to update the stack frames.
 	    fatalError("Arity out of range: %lld", (int64_t)arity); \
 	} while(0);
 
+#define VALID_TERM_ARITY(arity) \
+	do { if ( (ssize_t)arity < 0 ) \
+	       return raiseStackOverflow(GLOBAL_OVERFLOW); } while(0)
+
 static int	unify_int64_ex__LD(term_t t, int64_t i, int ex ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -938,6 +942,8 @@ PL_cons_functor(term_t h, functor_t fd, ...)
   { va_list args;
     Word a, t;
 
+    VALID_TERM_ARITY(arity);
+
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
 
@@ -971,6 +977,8 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
   { setHandle(h, nameFunctor(fd));
   } else
   { Word t, a, ai;
+
+    VALID_TERM_ARITY(arity);
 
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
@@ -2413,9 +2421,10 @@ PL_put_functor(term_t t, functor_t f)
   if ( arity == 0 )
   { setHandle(t, nameFunctor(f));
   } else
-  { Word a = allocGlobal(1 + arity);
+  { Word a;
 
-    if ( !a )
+    VALID_TERM_ARITY(arity);
+    if ( !(a = allocGlobal(1 + arity)) )
       return FALSE;
     setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
     *a++ = f;
@@ -2546,6 +2555,7 @@ PL_unify_compound(term_t t, functor_t f)
     Word a;
     word to;
 
+    VALID_TERM_ARITY(arity);
     if ( !hasGlobalSpace(needed) )
     { int rc;
 
@@ -2582,6 +2592,7 @@ PL_unify_functor(term_t t, functor_t f)
   if ( canBind(*p) )
   { size_t needed = (1+arity);
 
+    VALID_TERM_ARITY(arity);
     if ( !hasGlobalSpace(needed) )
     { int rc;
 
