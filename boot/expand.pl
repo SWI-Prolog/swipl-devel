@@ -365,7 +365,7 @@ prop_var(fresh(Fresh), Var) :-
 	 ;   Fresh = true
 	 ).
 prop_var(name(Name), Var) :-
-	(   b_getval('$variable_names', Bindings),
+	(   nb_current('$variable_names', Bindings),
 	    '$member'(Name0=Var0, Bindings),
 	    Var0 == Var
 	->  Name = Name0
