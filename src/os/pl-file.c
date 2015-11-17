@@ -4390,11 +4390,12 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 
     LOCK();
     while( advanceTableEnum(e, (void**)&s, NULL))
-    { rc = ( unify_stream_property(s, p, pt PASS_LD) &&
+    { rc = ( s->context != NULL &&
+	     unify_stream_property(s, p, pt PASS_LD) &&
 	     PL_unify_list(tail, head, tail) &&
 	     PL_unify_functor(head, FUNCTOR_minus2) &&
 	     PL_get_arg(1, head, st) &&
-	     PL_unify_stream(st, s) &&
+	     unify_stream_ref(st, s) &&
 	     PL_unify_arg(2, head, pt)
 	   );
       if ( !rc && PL_exception(0) )
@@ -4412,10 +4413,11 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     rc = TRUE;
     LOCK();
     while( rc && advanceTableEnum(e, (void**)&s, NULL))
-    { rc = ( PL_unify_list(tail, head, tail) &&
+    { rc = ( s->context != NULL &&
+	     PL_unify_list(tail, head, tail) &&
 	     PL_unify_functor(head, FUNCTOR_minus2) &&
 	     PL_get_arg(1, head, st) &&
-	     PL_unify_stream(st, s) &&
+	     unify_stream_ref(st, s) &&
 	     PL_get_arg(2, head, pl) &&
 	     unify_stream_property_list(s, pl PASS_LD)
 	   );
