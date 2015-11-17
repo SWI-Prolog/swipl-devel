@@ -103,6 +103,9 @@ problem.
 
 static int		ar_minus(Number n1, Number n2, Number r);
 static int		mul64(int64_t x, int64_t y, int64_t *r);
+static int		notLessThanZero(const char *f, int a, Number n);
+static int		mustBePositive(const char *f, int a, Number n);
+
 
 		/********************************
 		*   LOGICAL INTEGER FUNCTIONS   *
@@ -1808,6 +1811,10 @@ ar_powm(Number base, Number exp, Number mod, Number r)
   promoteToMPZNumber(base);
   promoteToMPZNumber(exp);
   promoteToMPZNumber(mod);
+
+  if ( ar_sign_i(base) < 0 ) return notLessThanZero("powm", 3, base);
+  if ( ar_sign_i(exp)  < 0 ) return notLessThanZero("powm", 3, exp);
+  if ( ar_sign_i(mod) <= 0 ) return  mustBePositive("powm", 3, mod);
 
   r->type = V_MPZ;
   mpz_init(r->value.mpz);

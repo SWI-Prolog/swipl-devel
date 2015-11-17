@@ -6354,6 +6354,12 @@ $\arg{Result} = (\pow{\arg{IntExprBase}}{\arg{IntExprExp}})
 Only available when compiled with unbounded integer support. This
 formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
+\arg{IntExprBase} and \arg{IntExprExp} must be non-negative ($>=0$),
+\arg{IntExprMod} must be positive ($>0$).\footnote{The underlying GMP
+mpz_powm() function allows negative values under some conditions.  As
+the conditions are expensive to pre-compute, error handling from GMP is
+non-trivial and negative values are not needed for Diffie-Hellman
+key-exchange we do not support these.}
 
     \function{lgamma}{1}{+Expr}
 Return the natural logarithm of the absolute value of the Gamma
