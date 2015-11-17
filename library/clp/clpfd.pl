@@ -208,6 +208,10 @@ and the following URL to link to its documentation:
 http://www.swi-prolog.org/man/clpfd.html
 ==
 
+A collection of example programs illustrating several use cases of
+this library is available in a public git repository:
+https://github.com/triska/clpfd
+
 ### Arithmetic constraints		{#cplfd-arith-constraints}
 
 A finite domain _arithmetic expression_ is one of:
