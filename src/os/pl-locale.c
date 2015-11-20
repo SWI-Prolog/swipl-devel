@@ -687,7 +687,7 @@ set_grouping(term_t t, char **valp)
 static
 PRED_IMPL("locale_create", 3, locale_create, 0)
 { PRED_LD
-  PL_locale *def, *new;
+  PL_locale *def, *new = NULL;
   char *lname;
 
   if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|REP_MB) )
@@ -697,9 +697,6 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     if ( (old=setlocale(LC_NUMERIC, lname)) )
     { new = new_locale(NULL);
       setlocale(LC_NUMERIC, old);
-    } else
-    { assert(0);				/* keep compiler happy */
-      return FALSE;
     }
     UNLOCK();
     if ( !old )
