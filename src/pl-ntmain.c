@@ -35,6 +35,7 @@
 #include "config/win32.h"
 #endif
 
+#define PL_ARITY_AS_SIZE 1
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -311,7 +312,7 @@ process_console_options(rlc_console_attr *attr, term_t options)
   while(PL_get_list(tail, opt, tail))
   { atom_t name;
     const char *s;
-    int arity;
+    size_t arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
       return PL_type_error("compound", opt);
@@ -623,7 +624,7 @@ pl_window_pos(term_t options)
   while(PL_get_list(tail, opt, tail))
   { atom_t name;
     const char *s;
-    int arity;
+    size_t arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
       return PL_type_error("compound", opt);
