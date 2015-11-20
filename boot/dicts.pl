@@ -86,14 +86,18 @@ get_dict_path(Key, Dict, _{}, NewDict, New) :-
 
 expand_dict_function((QFHead := V0 :- Body), (QHead :- Body, Eval)) :-
 	fqhead(QFHead, FHead, Head, QHead),
-	FHead =.. [.,R,M], !,
+	compound(FHead),
+	FHead =.. [.,R,M],
+	callable(M), !,
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
 	'$append'(Args0, [R,V], Args),
 	compound_name_arguments(Head, Name, Args).
 expand_dict_function((QFHead := V0), (QHead :- Eval)) :-
 	fqhead(QFHead, FHead, Head, QHead),
-	FHead =.. [.,R,M], !,
+	compound(FHead),
+	FHead =.. [.,R,M],
+	callable(M), !,
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
 	'$append'(Args0, [R,V], Args),
