@@ -489,10 +489,9 @@ setup_colors :-
 	(   stream_property(user_input, tty(true)),
 	    stream_property(user_error, tty(true)),
 	    stream_property(user_output, tty(true)),
-	    \+ current_prolog_flag(color_term, false)
-	->  catch(load_files(user:library(ansi_term),
-			     [silent(true), if(not_loaded)]),
-		  _, true)
+	    \+ current_prolog_flag(color_term, false),
+	    load_setup_file(user:library(ansi_term))
+	->  true
 	;   true
 	).
 
@@ -500,10 +499,16 @@ setup_history :-
 	(   stream_property(user_input, tty(true)),
 	    current_predicate(rl_add_history/1),
 	    \+ current_prolog_flag(save_history, false),
-	    catch(load_files(library(prolog_history), [silent(true)]), _, fail)
+	    load_setup_file(library(prolog_history))
 	->  prolog_history(enable)
 	;   true
 	).
+
+load_setup_file(File) :-
+	catch(load_files(File,
+			 [ silent(true),
+			   if(not_loaded)
+			 ]), _, fail).
 
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
