@@ -119,18 +119,18 @@ test(double_cycle, true) :-
 		    ]).
 test(freeze, true) :-
 	test_answer('freeze(X, writeln(X))', ['freeze(X, writeln(X))']).
-test(hidden, true) :-
+test(hidden1, true) :-
 	test_answer('test_answer:hidden',
 		    [ '% with pending residual goals
 		      dif(_G1,a)'
 		    ]).
-test(hidden, true) :-
+test(hidden2, true) :-
 	test_answer('test_answer:hidden, A = a',
 		    [ 'A = a,
 		      % with pending residual goals
 		      dif(_G1,a)'
 		    ]).
-test(hidden, true) :-
+test(hidden3, true) :-
 	test_answer('test_answer:hidden, A = a, dif(B, b)',
 		    [ 'A = a,
 		      dif(B, b),
