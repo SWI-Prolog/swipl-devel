@@ -51,7 +51,6 @@
 #define MSG_UNLOAD		 21
 #define MSG_INDEX_FIND		 22
 #define MSG_INDEX_UPDATE	 23
-#define MSG_JIT			 24
 #define MSG_TRACE		 25
 
 #define MSG_QLF_INTEGER		 26
@@ -121,6 +120,17 @@
 #define MSG_HASH_TABLE_API	 160
 #define MSG_HASH_TABLE_KVS	 161
 #define MSG_HASH_TABLE_ENUM	 162
+
+#define MSG_CGC			 170
+#define MSG_CGC_CREF		 171
+#define MSG_CGC_CREF_PL		 172
+#define MSG_CGC_CREF_TRACK	 173
+#define MSG_CGC_PRED		 174
+#define MSG_CGC_CONSIDER	 175
+#define MSG_CGC_STACK		 176
+
+#define MSG_JIT			 180
+#define MSG_JIT_DELINDEX	 181
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001

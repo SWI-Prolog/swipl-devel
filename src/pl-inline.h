@@ -368,4 +368,12 @@ register_attvar(Word gp ARG_LD)
   LD->attvar.attvars = gp;
 }
 
+static inline int
+visibleClause__LD(Clause cl, gen_t gen ARG_LD)
+{ if ( likely(visibleClause(cl, gen)) )
+    return TRUE;
+  LD->clauses.erased_skipped++;
+  return FALSE;
+}
+
 #endif /*PL_INLINE_H_INCLUDED*/

@@ -1968,6 +1968,8 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
     { state.flags = 0;
     }
 
+    assert(isFrame(fr));
+
     if ( true(fr->predicate, P_FOREIGN) || PC == NULL || !fr->clause )
     { DEBUG(MSG_GC_MARK_ARGS,
 	    Sdprintf("Marking arguments for [%d] %s\n",
@@ -3495,6 +3497,8 @@ check_environments(LocalFrame fr, Code PC, Word key)
   if ( fr == NULL )
     return NULL;
 
+  assert(isFrame(fr));
+
   for(;;)
   { int slots, n;
     Word sp;
@@ -3856,7 +3860,7 @@ garbageCollect(void)
   term_t preShiftLTop;			/* safe over trimStacks() (shift) */
   intptr_t tgar, ggar;
   double t = ThreadCPUTime(LD, CPU_USER);
-  int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+  int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
   int no_mark_bar;
   int rc;
   fid_t gvars, astack, attvars;
@@ -5104,125 +5108,65 @@ markAtomsOnStacks(PL_local_data_t *ld)
 #endif /*O_ATOMGC*/
 
 #ifdef O_CLAUSEGC
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is much like  check_environments(),  but   as  we  might  be called
-asynchronously, we have to be a bit careful about the first frame (if PC
-== NULL). The interpreter will  set  the   clause  field  to NULL before
-opening the frame, and we only have   to  consider the arguments. If the
-frame has a clause we must consider all variables of this clause.
-
-This  routine  is  used   by    garbage_collect_clauses/0   as  well  as
-start_consult/1. In the latter case, only  predicates in this sourcefile
-are marked.
-
-Predicates marked with P_FOREIGN_CREF are   foreign  predicates that use
-the frame->clause choicepoint info for  storing the clause-reference for
-the next clause. Amoung these are retract/1, clause/2, etc.
-
-(*) we must *not* use  getProcDefinition()  here   because  we  are in a
-signal handler and thus the locking there for thread-local predicates is
-not safe. That is no problem however,  because we are only interested in
-static predicates. Note that clause/2,  etc.   use  the choice point for
-searching clauses and thus chp->cref may become NULL if all clauses have
-been searched.
-
-(**) This avoids duplicate marks. Note that we   have no option if we do
-not have atomic instructions because we  cannot   use  mutexes as we are
-inside a signal handler.
+/* - - - q- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the latest generation at which a predicate is being used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static QueryFrame
-mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
-{ if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { Definition def;
-
-    if ( true(fr, FR_MARKED_PRED) )
-      return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED_PRED);
-    ld->gc._local_frames++;
-
-				/* P_FOREIGN_CREF: clause, etc. choicepoints */
-
-    if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
-    { ClauseChoice chp = (ClauseChoice)fr->clause;
-      ClauseRef cref;
-
-      if ( chp && (cref=chp->cref) )
-	def = cref->value.clause->procedure->definition; /* See (*) above */
-      else
-	def = NULL;
-    } else
-      def = fr->predicate;
-
-    if ( def &&
-	 false(def, P_DYNAMIC) &&
-	 def->references == 0 )		/* already done */
-    { if ( GD->procedures.reloading )
-      { ListCell cell;			/* startConsult() */
-
-	for(cell=GD->procedures.reloading->procedures; cell; cell=cell->next)
-	{ Procedure proc = cell->value;
-
-	  if ( proc->definition == def )
-	  { DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-#ifdef COMPARE_AND_SWAP			/* See (**) above */
-	    if ( COMPARE_AND_SWAP(&def->references, 0, 1) )
-	      ATOMIC_INC(&GD->procedures.active_marked);
+static inline int
+is_pointer_like(void *ptr)
+{
+#if SIZEOF_VOIDP == 4
+  intptr_t mask = 0x3;
+#elif SIZEOF_VOIDP == 8
+  intptr_t mask = 0x7;
 #else
-	    if ( ++def->references == 1 )
-	      GD->procedures.active_marked++;
+#error "Unknown pointer size"
 #endif
-	    break;
-	  }
-	}
-      } else				/* pl_garbage_collect_clauses() */
-      { if ( true(def, NEEDSCLAUSEGC) )
-	{ DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-	  def->references = 1;
-	}
-      }
-    }
-
-    if ( fr->parent )
-      fr = fr->parent;
-    else
-      return queryOfFrame(fr);
-  }
+  return ptr && ((intptr_t)ptr&mask) == 0;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) Note that unlike for markAtomsOnLocalStack(), we do not need to look
+behind the official top of the stack   as frames are never written above
+lTop. If anything is added, it will  be   at  a  newer generation, so we
+don't care.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 markPredicatesInEnvironments(PL_local_data_t *ld)
-{ QueryFrame qf;
-  LocalFrame fr;
-  Choice ch;
+{ GET_LD
+  Word lbase = (Word)ld->stacks.local.base;
+  Word lend  = (Word)ld->stacks.local.top;	/* see (*) */
+  Word current;
 
-  ld->gc._local_frames = 0;
+  for(current = lbase; current < lend; current++ )
+  { LocalFrame fr = (LocalFrame)current;
 
-  for( fr = ld->environment,
-       ch = ld->choicepoints
-     ; fr
-     ; fr = qf->saved_environment,
-       ch = qf->saved_bfr
-     )
-  { qf = mark_predicates_in_environments(ld, fr);
-    assert(qf->magic == QID_MAGIC);
+    if ( isFrame(fr) )
+    { DirtyDefInfo ddi;
+      Definition def = fr->predicate;
 
-    for(; ch; ch = ch->parent)
-    { mark_predicates_in_environments(ld, ch->frame);
+      if ( is_pointer_like(def) &&
+	   (ddi=lookupHTable(GD->procedures.dirty, def)) )
+      { gen_t gen = generationFrame(fr);
+
+	if ( gen < ddi->oldest_generation )
+	  ddi->oldest_generation = gen;
+      }
     }
   }
 
-  unmark_stacks(ld, ld->environment, ld->choicepoints, FR_MARKED_PRED);
-
-  assert(ld->gc._local_frames == 0);
+  ld->clauses.cgc_inferences = ld->statistics.inferences;
+  ld->clauses.erased_skipped = 0;
+  markAccessedPredicates(ld);
 }
 
-
 #endif /*O_CLAUSEGC*/
+
+
+		 /*******************************
+		 *	    PREDICATES		*
+		 *******************************/
 
 BeginPredDefs(gc)
 #if O_DEBUG || defined(O_MAINTENANCE)

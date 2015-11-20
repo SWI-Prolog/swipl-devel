@@ -1556,6 +1556,7 @@ compileClause(Clause *cp, Word head, Word body,
   clause.code_size  = 0;
   clause.source_no  = clause.line_no = 0;
   clause.owner_no   = 0;
+  clause.references = 0;
 
   ci.clause = &clause;
   ci.module = module;
@@ -3479,7 +3480,7 @@ takes care of reconsult, redefinition, etc.
 
     if ( def->module != mhead )
     { if ( !overruleImportedProcedure(proc, mhead) )
-      { freeClause(clause);
+      { freeClauseSilent(clause);
 	return NULL;
       }
       def = getProcDefinition(proc);	/* may be changed */
@@ -3488,7 +3489,7 @@ takes care of reconsult, redefinition, etc.
     if ( proc != of->current_procedure )
     { if ( def->impl.any )	/* i.e. is (might be) defined */
       { if ( !redefineProcedure(proc, of, 0) )
-	{ freeClause(clause);
+	{ freeClauseSilent(clause);
 	  return NULL;
 	}
       }
@@ -3535,7 +3536,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   if ( false(def, P_DYNAMIC) )
   { if ( !setDynamicProcedure(proc, TRUE) )
-    { freeClause(clause);
+    { freeClauseSilent(clause);
       return NULL;
     }
   }
@@ -3543,7 +3544,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   if ( assertProcedure(proc, clause, where PASS_LD) )
     return clause;
 
-  freeClause(clause);
+  freeClauseSilent(clause);
   return NULL;
 }
 
@@ -5366,7 +5367,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 			ATOM_access, ATOM_private_procedure, proc);
 
       chp = NULL;
-      enterDefinition(def);		/* reference the predicate */
+      pushPredicateAccess(def, generationFrame(environment_frame));
       break;
     }
     case FRG_REDO:
@@ -5378,7 +5379,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       chp = CTX_PTR;
       proc = chp->cref->value.clause->procedure;
       def  = getProcDefinition(proc);
-      leaveDefinition(def);
+      popPredicateAccess(def);
       freeForeignState(chp, sizeof(*chp));
       succeed;
     default:
@@ -5413,7 +5414,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_clref(ref, cref->value.clause)) )
       { if ( !chp->cref )
-	{ leaveDefinition(def);
+	{ popPredicateAccess(def);
 	  succeed;
 	}
 	if ( chp == &chp_buf )
@@ -5442,7 +5443,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
   if ( chp != &chp_buf )
     freeForeignState(chp, sizeof(*chp));
-  leaveDefinition(def);
+  popPredicateAccess(def);
   fail;
 }
 
@@ -5470,7 +5471,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 
     if ( cr )
     { def = getProcDefinition(cr->clause->value.clause->procedure);
-      leaveDefinition(def);
+      popPredicateAccess(def);
       freeForeignState(cr, sizeof(*cr));
     }
     succeed;
@@ -5485,17 +5486,21 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 
       proc = clause->procedure;
       def  = getProcDefinition(proc);
+      acquire_def(def);
       for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
       { if ( cref->value.clause == clause )
-	{ if ( !PL_unify_integer(n, i) ||
-	       !unify_definition(contextModule(LD->environment), p, def, 0, 0) )
-	    fail;
+	{ Module m = contextModule(LD->environment);
+	  int rc = ( PL_unify_integer(n, i) &&
+		     unify_definition(m, p, def, 0, 0)
+		   );
 
-	  succeed;
+	  release_def(def);
+	  return rc;
 	}
 	if ( visibleClause(cref->value.clause, generation) )
 	  i++;
       }
+      release_def(def);
     }
 
     fail;
@@ -5509,16 +5514,19 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
 
     def = getProcDefinition(proc);
+    acquire_def(def);
     cref = def->impl.clauses.first_clause;
     while ( cref && !visibleClause(cref->value.clause, generation) )
       cref = cref->next;
+    release_def(def);
 
     if ( !cref )
-      fail;
+      return FALSE;
 
     if ( PL_get_integer(n, &i) )	/* proc and n specified */
     { i--;				/* 0-based */
 
+      acquire_def(def);
       while(i > 0 && cref)
       { do
 	{ cref = cref->next;
@@ -5526,15 +5534,16 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 
 	i--;
       }
+      release_def(def);
       if ( i == 0 && cref )
 	return PL_unify_clref(ref, cref->value.clause);
-      fail;
+      return FALSE;
     }
 
     cr = allocForeignState(sizeof(*cr));
     cr->clause = cref;
     cr->index  = 1;
-    enterDefinition(def);
+    pushPredicateAccess(def, generation);
   } else
   { cr = ForeignContextPtr(h);
     def = getProcDefinition(cr->clause->value.clause->procedure);
@@ -5543,9 +5552,11 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   PL_unify_integer(n, cr->index);
   PL_unify_clref(ref, cr->clause->value.clause);
 
+  acquire_def(def);
   cref = cr->clause->next;
   while ( cref && !visibleClause(cref->value.clause, generation) )
     cref = cref->next;
+  release_def(def);
 
   if ( cref )
   { cr->clause = cref;
@@ -5554,9 +5565,9 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   }
 
   freeForeignState(cr, sizeof(*cr));
-  leaveDefinition(def);
+  popPredicateAccess(def);
 
-  succeed;
+  return TRUE;
 }
 
 

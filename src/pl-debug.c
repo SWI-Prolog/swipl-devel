@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2011, University of Amsterdam
+    Copyright (C): 2011-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -52,7 +51,6 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_UNLOAD),
   DEBUG_TOPIC(MSG_INDEX_FIND),
   DEBUG_TOPIC(MSG_INDEX_UPDATE),
-  DEBUG_TOPIC(MSG_JIT),
   DEBUG_TOPIC(MSG_TRACE),
 
   DEBUG_TOPIC(MSG_QLF_INTEGER),
@@ -122,6 +120,17 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_HASH_TABLE_API),
   DEBUG_TOPIC(MSG_HASH_TABLE_KVS),
   DEBUG_TOPIC(MSG_HASH_TABLE_ENUM),
+
+  DEBUG_TOPIC(MSG_CGC),
+  DEBUG_TOPIC(MSG_CGC_CREF),
+  DEBUG_TOPIC(MSG_CGC_CREF_PL),
+  DEBUG_TOPIC(MSG_CGC_CREF_TRACK),
+  DEBUG_TOPIC(MSG_CGC_PRED),
+  DEBUG_TOPIC(MSG_CGC_CONSIDER),
+  DEBUG_TOPIC(MSG_CGC_STACK),
+
+  DEBUG_TOPIC(MSG_JIT),
+  DEBUG_TOPIC(MSG_JIT_DELINDEX),
 
   DEBUG_TOPIC(CHK_SECURE),
   DEBUG_TOPIC(CHK_HIGH_ARITY),

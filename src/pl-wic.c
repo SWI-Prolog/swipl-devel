@@ -1098,6 +1098,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
+	clause->references = 0;
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
@@ -1249,7 +1250,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	if ( skip )
-	{ freeClause(clause);
+	{ freeClauseSilent(clause);
 	} else
 	{ if ( has_dicts )
 	  { if ( !resortDictsInClause(clause) )

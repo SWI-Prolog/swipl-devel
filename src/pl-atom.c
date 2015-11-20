@@ -192,7 +192,6 @@ JW: I think we can reduce locking for AGC further.
     as we only need to sync with the thread we are marking.
   - L_THREAD is needed to guarantee no new threads are started or
     destroyed. That too can probably be done more subtle.
-  - L_STOPTHEWORLD should not be needed anymore as we do not stop
   - L_AGC is only used for syncing with current_blob().
   - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1037,7 +1036,7 @@ foreign_t
 pl_garbage_collect_atoms(void)
 { GET_LD
   int64_t oldcollected;
-  int verbose;
+  int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
   double t;
   sigset_t set;
   size_t reclaimed;
@@ -1062,7 +1061,7 @@ pl_garbage_collect_atoms(void)
 
   gc_status.blocked++;			/* avoid recursion */
 
-  if ( (verbose = truePrologFlag(PLFLAG_TRACE_GC)) )
+  if ( verbose )
   {
 #ifdef O_DEBUG_ATOMGC
 /*
@@ -1077,7 +1076,6 @@ pl_garbage_collect_atoms(void)
 
   PL_LOCK(L_THREAD);
   PL_LOCK(L_AGC);
-  PL_LOCK(L_STOPTHEWORLD);
   LOCK();
   GD->atoms.gc_active = TRUE;
   blockSignals(&set);
@@ -1098,7 +1096,6 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc++;
   unblockSignals(&set);
   UNLOCK();
-  PL_UNLOCK(L_STOPTHEWORLD);
   PL_UNLOCK(L_AGC);
   PL_UNLOCK(L_THREAD);
   gc_status.blocked--;

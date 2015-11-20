@@ -47,7 +47,7 @@ static void
 unallocProcedureSymbol(void *name, void *value)
 { DEBUG(MSG_CLEANUP,
 	Sdprintf("unallocProcedure(%s)\n", functorName((functor_t)name)));
-  unallocProcedure(value);
+  unallocProcedure(value, TRUE);
 }
 
 
@@ -238,14 +238,9 @@ unlinkSourceFilesModule(Module m)
 
 static int
 destroyModule(Module m)
-{ GET_LD
-  LOCK();
-  if ( lookupHTable(GD->tables.modules, (void*)m->name) )
-    deleteHTable(GD->tables.modules, (void*)m->name);
-  UNLOCK();
-
-  unlinkSourceFilesModule(m);
+{ deleteHTable(GD->tables.modules, (void*)m->name);
   PL_unregister_atom(m->name);
+  unlinkSourceFilesModule(m);
   GD->statistics.modules--;
   unallocModule(m);
 

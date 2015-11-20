@@ -1054,13 +1054,28 @@ garbage_collect_clauses/0.
 
 \begin{description}
     \predicate{garbage_collect_clauses}{0}{}
-Clean up all \jargon{dirty} predicates, where dirty predicates are
-defined to be predicates that have both old and new definitions due
-to reloading a source file while the predicate was active.  Of course,
-predicates that are active using garbage_collect_clauses/0 cannot
-be reclaimed and remain \jargon{dirty}.  Predicates are, like atoms,
-shared resources and therefore all threads are suspended during the
-execution of this predicate.
+Reclaim retracted clauses. During normal operation, retracting a clause
+implies setting the \jargon{erased generation} to the current
+\jargon{generation} of the database and increment the generation.
+Keeping the clause around is both needed to realise the \jargon{logical
+update view} and deal with the fact that other threads may be executing
+the code. Both static and dynamic code is processed this
+way.\footnote{Up to version 7.3.11, dynamic code was handled using
+\jargon{reference counts}.}.
+
+The clause garbage collector (CGC) scans the environment stacks of all
+threads for referenced dirty predicates and at which generation this
+reference accesses the predicate. It then removes the references for
+clauses that have been retracted before the oldest access generation
+from the clause list as well as the secondary clauses indexes of the
+predicate. If the clause list is not being scanned, the clause
+references and ultimately the clause itself is reclaimed.
+
+The clause garbage collector is called under three conditions, (1) after
+\jargon{reloading} a source file, (2) if the memory occupied by
+retracted but not yet reclaimed clauses exceeds 12.5\% of the program
+store, or (3) if skipping dead clauses in the clause lists becomes too
+costly.
 \end{description}
 
 
@@ -8498,6 +8513,9 @@ described in \tabref{qpstatistics}.
 agc		& Number of atom garbage collections performed \\
 agc_gained	& Number of atoms removed \\
 agc_time	& Time spent in atom garbage collections \\
+cgc		& Number of clause garbage collections performed \\
+cgc_gained	& Number of clauses reclaimed \\
+cgc_time	& Time spent in clause garbage collections \\
 epoch		& Time stamp when thread was started \\
 process_epoch	& Time stamp when Prolog was started \\
 cputime         & (User) {\sc cpu} time since thread was started in seconds \\
@@ -8576,6 +8594,8 @@ stack_shifts    & [ global shifts, local shifts, time spent ] \\
 atoms		& [ number, memory use, 0 ] \\
 atom_garbage_collection &
 		  [ number of AGC, bytes gained, time spent ] \\
+clause_garbage_collection &
+		  [ number of CGC, clauses gained, time spent ] \\
 core		& Same as memory \\
 \hline
 \end{tabular}

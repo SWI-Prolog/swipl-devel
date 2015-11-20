@@ -678,7 +678,7 @@ prolog_message(gc(start)) -->
 	[ 'GC: ', flush ].
 prolog_message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
 	[ at_same_line,
-	  'gained ~D+~D in ~2f sec; used ~D+~D; free ~D+~D'-
+	  'gained ~D+~D in ~3f sec; used ~D+~D; free ~D+~D'-
 	  [G, T, Time, UG, UT, RG, RT]
 	].
 prolog_message(shift_stacks(start(_L,_G,_T))) -->
@@ -698,8 +698,17 @@ prolog_message(agc(start)) -->
 	[ 'AGC: ', flush ].
 prolog_message(agc(done(Collected, Remaining, Time))) -->
 	[ at_same_line,
-	  'reclaimed ~D atoms in ~2f sec. (remaining: ~D)'-
+	  'reclaimed ~D atoms in ~3f sec. (remaining: ~D)'-
 	  [Collected, Time, Remaining]
+	].
+prolog_message(cgc(start)) -->
+	thread_context,
+	[ 'CGC: ', flush ].
+prolog_message(cgc(done(CollectedClauses, _CollectedBytes,
+			RemainingBytes, Time))) -->
+	[ at_same_line,
+	  'reclaimed ~D clauses in ~3f sec. (pending: ~D bytes)'-
+	  [CollectedClauses, Time, RemainingBytes]
 	].
 
 

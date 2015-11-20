@@ -173,6 +173,16 @@ keyName(word key)
 }
 
 
+char *
+generationName(gen_t gen)
+{ char tmp[256];
+
+  if ( gen == GEN_MAX )
+    return "GEN_MAX";
+  Ssprintf(tmp, "%lld", (int64_t)gen);
+  return buffer_string(tmp, BUF_RING);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 clauseNo() returns the clause index of the given clause
@@ -180,13 +190,18 @@ clauseNo() returns the clause index of the given clause
 
 int
 clauseNo(Definition def, Clause cl)
-{ int i;
+{ GET_LD
+  int i;
   ClauseRef cref;
 
+  acquire_def(def);
   for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
   { if ( cref->value.clause == cl )
+    { release_def(def);
       return i;
+    }
   }
+  release_def(def);
 
   return -1;
 }

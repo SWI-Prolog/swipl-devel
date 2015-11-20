@@ -4950,6 +4950,16 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
 #else
     vn = 0;				/* no values */
 #endif
+  } else if ( key == ATOM_clause_garbage_collection )
+  {
+#ifdef O_CLAUSEGC
+    v[0] = GD->clauses.cgc_count;
+    v[1] = GD->clauses.cgc_reclaimed;
+    v[2] = (int64_t)(GD->clauses.cgc_time * 1000.0);
+    vn = 3;
+#else
+    vn = 0;				/* no values */
+#endif
   } else
     vn = -1;				/* unknown key */
 
@@ -5037,6 +5047,16 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   else if (key == ATOM_agc_time)
   { v->type = V_FLOAT;
     v->value.f = GD->atoms.gc_time;
+  }
+#endif
+#ifdef O_ATOMGC
+  else if (key == ATOM_cgc)
+    v->value.i = GD->clauses.cgc_count;
+  else if (key == ATOM_cgc_gained)
+    v->value.i = GD->clauses.cgc_reclaimed;
+  else if (key == ATOM_cgc_time)
+  { v->type = V_FLOAT;
+    v->value.f = GD->clauses.cgc_time;
   }
 #endif
   else if (key == ATOM_global_shifts)

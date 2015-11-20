@@ -388,6 +388,8 @@ initBuildIns(void)
 { ExtensionCell ecell;
   Module m = MODULE_system;
 
+  GD->procedures.dirty = newHTable(32);
+
   registerBuiltins(foreigns);
   REG_PLIST(alloc);
   REG_PLIST(atom);

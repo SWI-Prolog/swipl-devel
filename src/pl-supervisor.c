@@ -150,9 +150,11 @@ make us careful.
 
 static int
 getClauses(Definition def, ClauseRef *refp, int max)
-{ ClauseRef cref;
+{ GET_LD
+  ClauseRef cref;
   int found = 0;
 
+  acquire_def(def);
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( visibleClause(cref->value.clause, GD->generation) )
     { if ( found < max )
@@ -160,6 +162,7 @@ getClauses(Definition def, ClauseRef *refp, int max)
       found++;
     }
   }
+  release_def(def);
 
   return found;
 }

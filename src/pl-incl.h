@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam,
+    Copyright (C): 1985-2015, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -680,6 +680,7 @@ typedef struct canonical_dir *	CanonicalDir;	/* pl-os.c */
 typedef struct on_halt *	OnHalt;		/* pl-os.c */
 typedef struct find_data_tag *	FindData;	/* pl-trace.c */
 typedef struct feature *	Feature;	/* pl-prims.c */
+typedef struct dirty_def_info * DirtyDefInfo;
 
 typedef uintptr_t qid_t;		/* external query-id */
 typedef uintptr_t PL_fid_t;		/* external foreign context-id */
@@ -810,7 +811,7 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
-#define P_QUASI_QUOTATION_SYNTAX	(0x00000004) /* <![Type[Quasi Quote]]> */
+#define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* <![Type[Quasi Quote]]> */
 #define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
 #define P_SHRUNKPOW2		(0x00000010) /* See reconsider_index() */
 #define P_FOREIGN		(0x00000020) /* Implemented in C */
@@ -830,7 +831,7 @@ with one operation, it turns out to be faster as well.
 #define P_META			(0x00080000) /* Has meta_predicate declaration */
 #define P_MFCONTEXT		(0x00100000) /* Used for Goal@Module */
 #define P_DIRTYREG		(0x00200000) /* Part of GD->procedures.dirty */
-#define NEEDSCLAUSEGC		(0x00400000) /* Holds erased clauses */
+/* reserved			(0x00400000) */
 #define HIDE_CHILDS		(0x00800000) /* Hide children from tracer */
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
@@ -904,6 +905,10 @@ Macros for environment frames (local stack frames)
 #define FR_INBOX		(0x0040) /* Inside box (for REDO in built-in) */
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4: marked for cleanup */
+#define FR_MAGIC_MASK		(0xfffff000)
+#define FR_MAGIC		(0x549d5000)
+
+#define isFrame(fr)		(((fr)->flags&FR_MAGIC_MASK) == FR_MAGIC)
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
@@ -938,6 +943,9 @@ the alignment of pointers.
 
 #ifdef O_LOGICAL_UPDATE
 typedef uint64_t gen_t;
+
+#define GEN_MAX (~(gen_t)0)
+#define GEN_NEW_DIRTY (gen_t)0
 
 #if ALIGNOF_INT64_T != ALIGNOF_VOIDP
 typedef struct lgen_t
@@ -977,22 +985,8 @@ the predicate as the reference-count drops to   zero. For static code we
 introduce a garbage collector (TBD).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define enterDefinition(def) \
-	if ( unlikely(true(def, P_DYNAMIC)) ) \
-	{ LOCKDYNDEF(def); \
-	  def->references++; \
-	  UNLOCKDYNDEF(def); \
-	}
-#define leaveDefinition(def) \
-	if ( unlikely(true(def, P_DYNAMIC)) ) \
-	{ LOCKDYNDEF(def); \
-	  if ( --def->references == 0 && \
-	       true(def, NEEDSCLAUSEGC) ) \
-	  { gcClausesDefinitionAndUnlock(def); \
-	  } else \
-	  { UNLOCKDYNDEF(def); \
-	  } \
-	}
+#define enterDefinition(def) (void)0
+#define leaveDefinition(def) (void)0
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1159,6 +1153,8 @@ typedef struct functor_table
 #define visibleClause(cl, gen) false(cl, CL_ERASED)
 #endif
 
+#define visibleClauseCNT(cl, gen) visibleClause__LD(cl, gen PASS_LD)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Struct clause must be a  multiple   of  sizeof(word)  for compilation on
 behalf  of  I_USERCALL.  This   is   verified    in   an   assertion  in
@@ -1181,6 +1177,10 @@ struct clause
   unsigned		line_no : 24;	/* Source line-number */
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	owner_no;	/* Index of owning source-file */
+  unsigned int		references;	/* # ClauseRef pointing at me */
+#if SIZEOF_VOIDP == 8
+  unsigned int		reserved[1];
+#endif
   code			code_size;	/* size of ->codes */
   code			codes[1];	/* VM codes of clause */
 };
@@ -1196,7 +1196,10 @@ typedef struct clause_list
 
 typedef struct clause_ref
 { ClauseRef	next;			/* Next in list */
-  word		key;			/* Index key */
+  union
+  { word	key;			/* Index key */
+    ClauseRef	gnext;			/* Next garbage clause reference */
+  } d;
   union
   { Clause	clause;			/* Single clause value */
     clause_list	clauses;		/* Clause list (in hash-tables) */
@@ -1310,13 +1313,9 @@ struct definition
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-#ifdef O_PLMT
-  counting_mutex  *mutex;		/* serialize access to dynamic pred */
-#endif
   ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   meta_mask	meta_info;		/* meta-predicate info */
-  int		references;		/* reference count */
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
 #ifdef O_PROF_PENTIUM
@@ -1329,6 +1328,21 @@ struct definition_chain
 { Definition		definition;	/* chain on definition */
   DefinitionChain	next;		/* next in chain */
 };
+
+struct dirty_def_info
+{ gen_t		oldest_generation;	/* Oldest generation seen */
+};
+
+typedef struct definition_ref
+{ Definition predicate;			/* Referenced definition */
+  gen_t	     generation;		/* at generation */
+} definition_ref;
+
+typedef struct definition_refs
+{ definition_ref *blocks[MAX_BLOCKS];
+  definition_ref preallocated[7];
+  size_t     top;
+} definition_refs;
 
 #define	PROC_WEAK	 (0x0001)	/* implicit import */
 #define	PROC_MULTISOURCE (0x0002)	/* Assigned to multiple sources */
@@ -1377,6 +1391,14 @@ struct clause_choice
 { ClauseRef	cref;			/* Next clause reference */
   word		key;			/* Search key */
 };
+
+#ifdef O_PLMT
+#define acquire_def(def) do { LD->thread.info->predicate = def; } while(0)
+#define release_def(def) do { LD->thread.info->predicate = NULL; } while(0)
+#else
+#define acquire_def(def) (void)0
+#define release_def(def) (void)0
+#endif
 
 struct choice
 { choice_type	type;			/* CHP_* */
@@ -1720,7 +1742,7 @@ typedef struct
 #ifdef O_PLMT
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
-#define SIG_FREECLAUSES	  (SIG_PROLOG_OFFSET+4)
+#define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+4)
 #define SIG_PLABORT	  (SIG_PROLOG_OFFSET+5)
 
 
@@ -2088,7 +2110,7 @@ Tracer communication declarations.
 #define SINGLETON_CHECK	    0x0002	/* read/1: check singleton vars */
 #define MULTITON_CHECK	    0x0004	/* read/1: check multiton vars */
 #define DISCONTIGUOUS_STYLE 0x0008	/* warn on discontiguous predicates */
-#define DYNAMIC_STYLE	    0x0010	/* warn on assert/retract active */
+/* reserved		    0x0010 */
 #define CHARSET_CHECK	    0x0020	/* warn on unquoted characters */
 #define SEMSINGLETON_CHECK  0x0040	/* Semantic singleton checking */
 #define NOEFFECT_CHECK	    0x0080	/* Check for meaningless statements */

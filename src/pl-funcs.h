@@ -173,11 +173,12 @@ COMMON(word)		parseSaveProgramOptions(term_t args,
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseChoice next ARG_LD);
-COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
-				   Definition def);
+COMMON(ClauseRef)	nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr,
+				       Definition def ARG_LD);
 COMMON(void)		addClauseToIndexes(Definition def, Clause cl, int where);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
-COMMON(void)		cleanClauseIndexes(Definition def);
+COMMON(void)		cleanClauseIndexes(Definition def, gen_t active);
+COMMON(void)		unallocOldClauseIndexes(Definition def);
 COMMON(void)		clearTriedIndexes(Definition def);
 COMMON(void)		unallocClauseIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
@@ -438,7 +439,7 @@ COMMON(atom_t)		accessLevel(void);
 
 /* pl-proc.c */
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m) WUNUSED;
-COMMON(void)		unallocProcedure(Procedure proc);
+COMMON(void)		unallocProcedure(Procedure proc, int update_stats);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
 COMMON(int)		importDefinitionModule(Module m,
 					       Definition def, int flags);
@@ -463,17 +464,13 @@ COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 					int where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
 COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
-COMMON(void)		freeClause(Clause c);
+COMMON(void)		freeClauseSilent(Clause c);
 COMMON(void)		unallocClause(Clause c);
-COMMON(void)		freeClauseRef(ClauseRef c);
-COMMON(void)		freeClauseList(ClauseRef cref);
+COMMON(void)		lingerClauseRef(ClauseRef c);
 COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
-COMMON(void)		gcClausesDefinition(Definition def);
-COMMON(void)		gcClausesDefinitionAndUnlock(Definition def);
-COMMON(int)		removeClausesProcedure(Procedure proc,
+COMMON(void)		gcClauseRefs(void);
+COMMON(size_t)		removeClausesProcedure(Procedure proc,
 					       int sfindex, int fromfile);
-COMMON(ClauseRef)	cleanDefinition(Definition def, ClauseRef garbage);
-COMMON(void)		registerDirtyDefinition(Definition def);
 COMMON(void)		destroyDefinition(Definition def);
 COMMON(Procedure)	resolveProcedure(functor_t f, Module module);
 COMMON(Definition)	trapUndefined(Definition undef ARG_LD);
@@ -617,6 +614,7 @@ COMMON(char *)		procedureName(Procedure proc);
 COMMON(char *)		predicateName(Definition def);
 COMMON(char *)		functorName(functor_t f);
 COMMON(char *)		keyName(word key);
+COMMON(char *)		generationName(gen_t gen);
 COMMON(int)		clauseNo(Definition def, Clause clause);
 COMMON(int)		notImplemented(char *name, int arity);
 COMMON(word)		setBoolean(int *flag, term_t o, term_t n);

@@ -139,7 +139,6 @@ style_name(atom,	    0x0001) :-
 	print_message(warning, decl_no_effect(style_check(atom))).
 style_name(singleton,	    0x0042).		% semantic and syntactic
 style_name(discontiguous,   0x0008).
-style_name(dynamic,	    0x0010).
 style_name(charset,	    0x0020).
 style_name(no_effect,	    0x0080).
 style_name(var_branches,    0x0100).
@@ -796,9 +795,6 @@ define_or_generate(Pred) :-
 	'$get_predicate_attribute'(Pred, hide_childs, 1).
 '$predicate_property'(spying, Pred) :-
 	'$get_predicate_attribute'(Pred, spy, 1).
-'$predicate_property'(references(N), Pred) :-
-	'$get_predicate_attribute'(Pred, references, N),
-	N \== 0.			% show negative for debugging!
 '$predicate_property'(number_of_clauses(N), Pred) :-
 	'$get_predicate_attribute'(Pred, number_of_clauses, N).
 '$predicate_property'(number_of_rules(N), Pred) :-

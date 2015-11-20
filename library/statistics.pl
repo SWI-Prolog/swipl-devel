@@ -92,6 +92,7 @@ collect_stats -->
 	core_statistics,
 	gc_statistics,
 	agc_statistics,
+	cgc_statistics,
 	shift_statistics,
 	thread_counts.
 
@@ -170,6 +171,16 @@ agc_statistics -->
 	[ gc{type:atom, unit:atom,
 	     count:Agc, time:Time, gained:Gained} ].
 agc_statistics --> [].
+
+cgc_statistics -->
+	{ catch(statistics(cgc, Cgc), _, fail),
+	  Cgc > 0, !,
+	  statistics(cgc_gained, Gained),
+	  statistics(cgc_time, Time)
+	},
+	[ gc{type:clause, unit:clause,
+	     count:Cgc, time:Time, gained:Gained} ].
+cgc_statistics --> [].
 
 shift_statistics -->
 	{ statistics(local_shifts, LS),
@@ -536,7 +547,7 @@ msg_statistics(core, S) -->
 	data_stats(S.data), [nl,nl],
 	stacks_stats(S.stacks).
 msg_statistics(gc, S) -->
-	{ S.type == stack -> Label = '' ; Label = 'atom ' },
+	{ S.type == stack -> Label = '' ; string_concat(S.type, " ", Label) },
 	[ '~D ~wgarbage collections gained ~D ~ws in ~3f seconds.'-
 	  [ S.count, Label, S.gained, S.unit, S.time]
 	].

@@ -272,14 +272,25 @@ struct PL_global_data
 #endif
     Procedure   comment_hook3;		/* prolog:comment_hook/3 */
 
-    SourceFile  reloading;		/* source file we are re-loading */
-    int		active_marked;		/* #prodedures marked active */
     int		static_dirty;		/* #static dirty procedures */
-
 #ifdef O_CLAUSEGC
-    DefinitionChain dirty;		/* List of dirty static procedures */
+    Table	dirty;			/* Table of dirty procedures */
 #endif
   } procedures;
+
+  struct
+  { ClauseRef	lingering;		/* Unlinked clause refs */
+    size_t	lingering_count;	/* # Unlinked clause refs */
+    int		cgc_active;		/* CGC is running */
+    int64_t	cgc_count;		/* # clause GC calls */
+    int64_t	cgc_reclaimed;		/* # clauses reclaimed */
+    double	cgc_time;		/* Total time spent in CGC */
+    double	cgc_time_last;		/* Time for last CGC */
+    double	cgc_when_last;		/* When did we do the last CGC */
+    size_t	erased;			/* # erased pending clauses */
+    size_t	erased_size;		/* memory used by them */
+    size_t	erased_size_last;	/* memory used by them after last CGC */
+  } clauses;
 
   struct
   { size_t	highest;		/* highest source file index */
@@ -353,7 +364,6 @@ struct PL_local_data
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
-  ClauseRef	freed_clauses;		/* List of pending freeable clauses */
 
   struct
   { int		pending[2];		/* PL_raise() pending signals */
@@ -566,6 +576,8 @@ struct PL_local_data
   } inference_limit;
 #endif
 
+  definition_refs predicate_references;	/* Referenced predicates */
+
   pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
   struct btrace *btrace_store;		/* C-backtraces */
@@ -589,6 +601,11 @@ struct PL_local_data
   { PL_locale *current;			/* Current locale */
   } locale;
 #endif
+
+  struct
+  { size_t	erased_skipped;		/* # erased clauses skipped */
+    int64_t	cgc_inferences;		/* # inferences at last CGC */
+  } clauses;
 
   struct
   { intptr_t _total_marked;		/* # marked global cells */

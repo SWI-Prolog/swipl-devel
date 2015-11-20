@@ -1282,8 +1282,7 @@ localDefinition(Definition def ARG_LD)
   LocalDefinitions v = def->impl.local;
 
   if ( !v->blocks[idx] )
-  { LOCKDYNDEF(def);
-    if ( !v->blocks[idx] )
+  { if ( !v->blocks[idx] )
     { size_t bs = (size_t)1<<idx;
       Definition *newblock;
 
@@ -1291,10 +1290,9 @@ localDefinition(Definition def ARG_LD)
 	outOfCore();
 
       memset(newblock, 0, bs*sizeof(Definition));
-      MemoryBarrier();
-      v->blocks[idx] = newblock-bs;
+      if ( !COMPARE_AND_SWAP(&v->blocks[idx], NULL, newblock-bs) )
+	PL_free(newblock);
     }
-    UNLOCKDYNDEF(def);
   }
 
   if ( !v->blocks[idx][tid] )
@@ -1957,7 +1955,7 @@ choice_type last_choice;
 
 static void
 leaveFrame(LocalFrame fr)
-{ Definition def = fr->predicate;
+{ //Definition def = fr->predicate;
 
   fr->clause = NULL;
   leaveDefinition(def);
@@ -1978,7 +1976,7 @@ discardFrame(LocalFrame fr ARG_LD)
       fr->clause = NULL;
     }
   } else
-  { fr->clause = NULL;		/* leaveDefinition() may destroy clauses */
+  { fr->clause = NULL;	/* leaveDefinition() may destroy clauses (no more) */
     leaveDefinition(def);
   }
 }
@@ -2256,7 +2254,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   if ( environment_frame )
   { setNextFrameFlags(top, environment_frame);
   } else
-  { top->flags	     = 0;
+  { top->flags	     = FR_MAGIC;
     top->level	     = 0;
   }
   fr                 = &qf->frame;
@@ -2335,12 +2333,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   }
 
 					/* publish environment */
-  PL_LOCK(L_STOPTHEWORLD);		/* see restore_after_query() */
   LD->choicepoints  = &qf->choice;
   environment_frame = fr;
   qf->parent = LD->query;
   LD->query = qf;
-  PL_UNLOCK(L_STOPTHEWORLD);
 
   DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
   updateAlerted(LD);
@@ -2366,9 +2362,7 @@ discard_query(qid_t qid ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Restore the environment. If an exception was raised by the query, and no
-new  exception  has  been  thrown,  consider    it  handled.  Note  that
-LD->choicepoints must be restored *before*   environment_frame to ensure
-async safeness for markAtomsInEnvironments().
+new  exception  has  been  thrown,  consider    it  handled.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -2379,11 +2373,9 @@ restore_after_query(QueryFrame qf)
 
   DiscardMark(qf->choice.mark);
 
-  PL_LOCK(L_STOPTHEWORLD);	/* see Tests/thread/test_agc_callback.pl */
   LD->query         = qf->parent;
   LD->choicepoints  = qf->saved_bfr;
   environment_frame = qf->saved_environment;
-  PL_UNLOCK(L_STOPTHEWORLD);
   aTop		    = qf->aSave;
   lTop		    = qf->saved_ltop;
   if ( true(qf, PL_Q_NODEBUG) )

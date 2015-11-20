@@ -657,15 +657,10 @@ gc_handler(int sig)
 
 
 static void
-free_clauses_handler(int sig)
-{ GET_LD
-  ClauseRef cref;
-  (void)sig;
+cgc_handler(int sig)
+{ (void)sig;
 
-  if ( (cref=LD->freed_clauses) )
-  { LD->freed_clauses = NULL;
-    freeClauseList(cref);
-  }
+  pl_garbage_collect_clauses();
 }
 
 
@@ -713,7 +708,7 @@ initSignals(void)
 
   PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
-  PL_signal(SIG_FREECLAUSES|PL_SIGSYNC, free_clauses_handler);
+  PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC, cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
 
 #ifdef SIG_ALERT

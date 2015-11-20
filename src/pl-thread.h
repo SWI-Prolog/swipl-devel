@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -102,6 +102,7 @@ typedef struct _PL_thread_info_t
   AtomTable	    atom_table;		/* current atom-table accessed */
   Atom *	    atom_bucket;	/* current atom bucket-list accessed */
   FunctorTable	    functor_table;	/* current atom-table accessed */
+  Definition	    predicate;		/* current predicate walked */
 } PL_thread_info_t;
 
 #define QTYPE_THREAD	0
@@ -170,10 +171,9 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TERM	       18
 #define L_GC	       19
 #define L_AGC	       20
-#define L_STOPTHEWORLD 21
-#define L_FOREIGN      22
-#define L_OS	       23
-#define L_LOCALE       24
+#define L_FOREIGN      21
+#define L_OS	       22
+#define L_LOCALE       23
 #ifdef __WINDOWS__
 #define L_DDE	       25
 #define L_CSTACK       26
@@ -231,28 +231,8 @@ countingMutexUnlock(counting_mutex *cm)
 #define PL_UNLOCK(id) IF_MT(id, countingMutexUnlock(&_PL_mutexes[id]))
 #endif
 
-#define LOCKDEF(def) \
-	if ( GD->thread.enabled ) \
-	{ if ( def->mutex ) \
-	  { countingMutexLock(def->mutex); \
-	  } else if ( false(def, P_DYNAMIC) ) \
-	  { countingMutexLock(&_PL_mutexes[L_PREDICATE]); \
-	  } \
-	}
-
-#define UNLOCKDEF(def) \
-	if ( GD->thread.enabled ) \
-	{ if ( def->mutex ) \
-	  { countingMutexUnlock(def->mutex); \
-	  } else if ( false(def, P_DYNAMIC) ) \
-	  { countingMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
-	  } \
-	}
-
-#define LOCKDYNDEF(def) \
-	if ( GD->thread.enabled && def->mutex ) countingMutexLock(def->mutex)
-#define UNLOCKDYNDEF(def) \
-	if ( GD->thread.enabled && def->mutex ) countingMutexUnlock(def->mutex)
+#define LOCKDEF(def)   PL_LOCK(L_PREDICATE)
+#define UNLOCKDEF(def) PL_UNLOCK(L_PREDICATE)
 
 #define LOCKMODULE(module)	countingMutexLock((module)->mutex)
 #define UNLOCKMODULE(module)	countingMutexUnlock((module)->mutex)
@@ -391,7 +371,6 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
 #define LOCKDEF(def)
 #define UNLOCKDEF(def)
-#define LOCKDYNDEF(def)
 #define UNLOCKDYNDEF(def)
 #define LOCKMODULE(module)
 #define UNLOCKMODULE(module)
@@ -405,12 +384,15 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 *	       COMMON		*
 		 *******************************/
 
-extern void		initPrologThreads(void);
-
+COMMON(void)	initPrologThreads(void);
 COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
 COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
-COMMON(Atom**)	pl_atom_buckets_in_use();
+COMMON(Atom**)	pl_atom_buckets_in_use(void);
+COMMON(Definition*)	predicates_in_use(void);
 COMMON(int)	pl_functor_table_in_use(FunctorTable functor_table);
 COMMON(int)	pl_kvs_in_use(KVS kvs);
+COMMON(int)	pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD);
+COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
+COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
 
 #endif /*PL_THREAD_H_DEFINED*/

@@ -568,80 +568,33 @@ unloadFile(SourceFile sf)
 
 static int
 unloadFile(SourceFile sf)
-{ GET_LD
-  ListCell cell, next;
-  sigset_t set;
-  ClauseRef garbage = NULL;
+{ ListCell cell, next;
+  size_t deleted = 0;
 
   delayEvents();
-
   LOCKSRCFILE(sf);
-  PL_LOCK(L_PREDICATE);
-  PL_LOCK(L_THREAD);
-  PL_LOCK(L_STOPTHEWORLD);
-  blockSignals(&set);
-
-  GD->procedures.active_marked = 0;
-  GD->procedures.reloading = sf;
-  markPredicatesInEnvironments(LD);
-#ifdef O_PLMT
-  forThreadLocalData(markPredicatesInEnvironments,
-		     PL_THREAD_SUSPEND_AFTER_WORK);
-#endif
-  GD->procedures.reloading = NULL;
-
 				      /* remove the clauses */
   for(cell = sf->procedures; cell; cell = cell->next)
-  { int deleted;
-
-    Procedure proc = cell->value;
+  { Procedure proc = cell->value;
     Definition def = proc->definition;
 
-    DEBUG(MSG_UNLOAD, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
-			       predicateName(def), def->references));
-
     if ( false(def, P_FOREIGN) )
-    { deleted = removeClausesProcedure(proc,
-				       true(def, P_MULTIFILE) ? sf->index : 0,
-				       TRUE);
-    } else
-      deleted = 0;
+    { deleted += removeClausesProcedure(proc,
+					true(def, P_MULTIFILE) ? sf->index : 0,
+					TRUE);
+    }
 
     DEBUG(MSG_UNLOAD,
 	  if ( false(def, P_MULTIFILE) && def->impl.clauses.number_of_clauses )
 	    Sdprintf("%s: %d clauses after unload\n",
 		     predicateName(def), def->impl.clauses.number_of_clauses));
 
-    if ( deleted )
-    { if ( false(def, P_MULTIFILE|P_DYNAMIC) )
-	clearTriedIndexes(def);
-
-      if ( def->references == 0 )
-      { freeCodesDefinition(def, FALSE);
-	garbage = cleanDefinition(def, garbage);
-      } else if ( false(def, P_DYNAMIC) )
-      { registerDirtyDefinition(def);
-	freeCodesDefinition(def, TRUE);
-      }
-    }
-
     if ( false(def, P_MULTIFILE) )
     { clear(def, FILE_ASSIGNED);
       clear_meta_declaration(def);
     }
   }
-
-				      /* unmark the marked predicates */
-  for(cell = sf->procedures; cell; cell = cell->next)
-  { Procedure proc = cell->value;
-    Definition def = proc->definition;
-
-    if ( false(def, P_DYNAMIC) && def->references )
-    { assert(def->references == 1);
-      def->references = 0;
-      GD->procedures.active_marked--;
-    }
-  }
+  DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
 
 				      /* cleanup the procedure list */
   for(cell = sf->procedures; cell; cell = next)
@@ -649,22 +602,12 @@ unloadFile(SourceFile sf)
     freeHeap(cell, sizeof(struct list_cell));
   }
   sf->procedures = NULL;
-  assert(GD->procedures.active_marked == 0);
 
-#ifdef O_PLMT
-  resumeThreads();
-#endif
   delAllModulesSourceFile__unlocked(sf);
-
-  unblockSignals(&set);
-  PL_UNLOCK(L_STOPTHEWORLD);
-  PL_UNLOCK(L_THREAD);
-  PL_UNLOCK(L_PREDICATE);
   UNLOCKSRCFILE(sf);
 
   sendDelayedEvents();
-  if ( garbage )
-    freeClauseList(garbage);
+  pl_garbage_collect_clauses();
 
   return TRUE;
 }
@@ -827,9 +770,10 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
     Definition def = proc->definition;
 
     if ( def && false(def, P_FOREIGN) )
-    { ClauseRef cref = def->impl.clauses.first_clause;
+    { ClauseRef cref;
 
-      for( ; cref; cref = cref->next )
+      acquire_def(def);
+      for(cref = def->impl.clauses.first_clause; cref; cref = cref->next )
       { Clause cl = cref->value.clause;
 
 	if ( cl->source_no == source_no )
@@ -839,6 +783,7 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 	  }
 	}
       }
+      release_def(def);
     }
   }
   UNLOCKSRCFILE(of);

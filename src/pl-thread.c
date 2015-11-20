@@ -169,11 +169,6 @@ my_sem_open(sem_t **ptr, unsigned int val)
   return 0;
 }
 
-#else /*USE_SEM_OPEN*/
-
-static sem_t sem_mark;			/* used for atom-gc */
-#define sem_mark_ptr (&sem_mark)
-
 #endif /*USE_SEM_OPEN*/
 
 #ifndef SA_RESTART
@@ -284,10 +279,9 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_TERM"),
   COUNT_MUTEX_INITIALIZER("L_GC"),
   COUNT_MUTEX_INITIALIZER("L_AGC"),
-  COUNT_MUTEX_INITIALIZER("L_STOPTHEWORLD"),
   COUNT_MUTEX_INITIALIZER("L_FOREIGN"),
   COUNT_MUTEX_INITIALIZER("L_OS"),
-  COUNT_MUTEX_INITIALIZER("L_LOCALE")
+  COUNT_MUTEX_INITIALIZER("L_LOCALE"),
 #ifdef __WINDOWS__
 , COUNT_MUTEX_INITIALIZER("L_DDE")
 , COUNT_MUTEX_INITIALIZER("L_CSTACK")
@@ -296,7 +290,7 @@ counting_mutex _PL_mutexes[] =
 
 
 static void
-link_mutexes()
+link_mutexes(void)
 { counting_mutex *m;
   int n = sizeof(_PL_mutexes)/sizeof(*m);
   int i;
@@ -433,6 +427,8 @@ static void	initMutexRef(void);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
+static void	init_predicate_references(definition_refs *refs);
+static void	free_predicate_references(definition_refs *refs);
 #ifdef O_C_BACKTRACE
 static void	print_trace(int depth);
 #else
@@ -568,12 +564,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 #endif
 
   cleanupLocalDefinitions(ld);
-  if ( ld->freed_clauses )
-  { GET_LD
-
-    if ( LD )
-      freeClauseList(ld->freed_clauses);
-  }
 
   DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
   ld->magic = 0;
@@ -593,6 +583,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     GD->statistics.thread_cputime += time;
   }
   destroy_thread_message_queue(&ld->thread.messages);
+  free_predicate_references(&ld->predicate_references);
   if ( ld->btrace_store )
   { btrace_destroy(ld->btrace_store);
     ld->btrace_store = NULL;
@@ -790,6 +781,7 @@ initPrologThreads(void)
     PL_local_data.thread.magic = PL_THREAD_MAGIC;
     set_system_thread_id(info);
     init_message_queue(&PL_local_data.thread.messages, -1);
+    init_predicate_references(&PL_local_data.predicate_references);
 
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
@@ -1563,7 +1555,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     ldnew->_debugstatus.debugging = DBG_OFF;
     set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
   }
-  init_message_queue(&info->thread_data->thread.messages, -1);
+  init_message_queue(&ldnew->thread.messages, -1);
+  init_predicate_references(&ldnew->predicate_references);
   if ( at_exit )
     thread_at_exit(at_exit, ldnew);
 
@@ -4776,7 +4769,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->detached   = TRUE;		/* C-side should join me */
   info->status     = PL_THREAD_RUNNING;
   info->open_count = 1;
-  init_message_queue(&info->thread_data->thread.messages, -1);
+
+  init_message_queue(&ldnew->thread.messages, -1);
+  init_predicate_references(&ldnew->predicate_references);
 
   ldnew->prompt			 = ldmain->prompt;
   ldnew->modules		 = ldmain->modules;
@@ -5406,388 +5401,8 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 
 
 		 /*******************************
-		 *	      ATOM-GC		*
+		 *     ITERATE OVER THREADS	*
 		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This  is  hairy  and  hard-to-port   code.    The   job   of  the  entry
-threadMarkAtomsOtherThreads() is to mark the   atoms referenced from all
-other threads. This function is  called from pl_garbage_collect_atoms(),
-which already has locked the L_ATOM and L_THREAD mutexes.
-
-We set up a semaphore and  signal   all  the  other threads. Each thread
-receiving a the SIG_FORALL signal   calls  markAtomsOnStacks() and posts
-the semaphore. The latter performs its  job with certain heuristics, but
-must ensure it doesn't  forget  any  atoms   (a  few  too  many  is ok).
-Basically this signal handler can run whenever necessary, as long as the
-thread is not in a GC, which makes it impossible to traverse the stacks.
-
-Special attention is required  for   stack-creation  and destruction. We
-should not be missing threads that  are   about  to be created or signal
-them when they have just died. We   do this by locking the status-change
-with the L_THREAD mutex, which is held by the atom-garbage collector, so
-each starting thread will hold  until   collection  is complete and each
-terminating one will live a bit longer until atom-GC is complete.
-
-After a thread is done marking its atom  is just continues. This is safe
-as it may stop referencing atoms but   this  doesn't matter. It can only
-refer to new atoms by creating them, in which case the thread will block
-or by executing an instruction that refers to the atom. In this case the
-atom is locked by the instruction anyway.
-
-[__WINDOWS__] The windows case  is  entirely   different  as  we have no
-asynchronous signals. Fortunately we  can   suspend  and resume threads.
-This makes the code a lot easier as   you can see below. Problem is that
-only one processor is doing the  job,   where  atom-gc  is a distributed
-activity in the POSIX based code.
-
-(*)    ld->gc.active    can    be     true      when     called     from
-pl_garbage_collect_clauses().  While  the  atom-garbage    collector  is
-cancelled and rescheduled if it is blocked  by a running GC, this cannot
-be used for pl_garbage_collect_clauses()  because   this  call must have
-done its job before returning. As  the   caller  holds L_GC, threads can
-finish GC/shift, but cannot start it.  We   currently  use a simple busy
-waiting loop (Sleep(0) does a shed_yield()). There are two alternatives.
-One is to skip these threads and put them  on a list, after which we can
-process the list until we have seen all  threads and the other is to use
-condition variables. Both seem to be an   overkill  because this code is
-only used or reconsult.
-
-(**) SuspendThread()  returning  success  does not mean  that the thread
-has  been  suspended.  Instead  it  means  that  the  thread  _will  be_
-suspended  when  it  finishes its  quantum. To  ensure  that  stacks are
-marked  only  when  the  thread is  indeed  suspended  we  pin both  the
-stack-marking-thread  and to-be-suspended-thread  to the same  CPU core,
-call  SuspendThread()  then  yield.  When  the  stack-marking-thread  is
-rescheduled we unpin both threads.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef __WINDOWS__
-
-static void
-pin_threads(HANDLE process, HANDLE me, HANDLE target, int pin)
-{ DWORD_PTR process_affinity_mask, system_affinity_mask;
-
-  if ( GetProcessAffinityMask(process,
-			      &process_affinity_mask,
-			      &system_affinity_mask) )
-  { DWORD_PTR pin_to_core;
-
-    if ( pin )
-      pin_to_core = process_affinity_mask & (0 - process_affinity_mask);
-    else
-      pin_to_core = process_affinity_mask;
-
-    SetThreadAffinityMask(me, pin_to_core);
-    SetThreadAffinityMask(target, pin_to_core);
-  }
-}
-
-
-static int
-set_priority_threads(HANDLE me, HANDLE target, int new)
-{ int p;
-
-  if ((p = GetThreadPriority(me)) != THREAD_PRIORITY_ERROR_RETURN)
-  { SetThreadPriority(me, new);
-    SetThreadPriority(target, new);
-  }
-
-  return p;
-}
-
-
-void					/* For comments, see above */
-forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
-{ int i;
-  int me = PL_thread_self();
-  HANDLE me_win_thread = GetCurrentThread();
-  HANDLE process = GetCurrentProcess();
-
-  for(i=1; i<=thread_highest_id; i++)
-  { PL_thread_info_t *info = GD->thread.threads[i];
-
-    if ( info && info->thread_data && i != me &&
-	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
-    { HANDLE win_thread = get_windows_thread(info);
-      PL_local_data_t *ld = info->thread_data;
-      int old_p;
-
-      pin_threads(process, me_win_thread, win_thread, TRUE);
-      old_p = set_priority_threads(me_win_thread, win_thread,
-				   THREAD_PRIORITY_HIGHEST);
-
-    again:
-      while ( ld->gc.active )
-	Sleep(0);			/* (*) */
-
-      if ( SuspendThread(win_thread) != -1L )
-      { Sleep(0);			/* (**) */
-        if ( ld->gc.active )		/* oops, just started */
-	{ ResumeThread(win_thread);
-	  goto again;
-	}
-
-        if ( old_p != THREAD_PRIORITY_ERROR_RETURN)
-	  set_priority_threads(me_win_thread, win_thread, old_p);
-	pin_threads(process, me_win_thread, win_thread, FALSE);
-
-	(*func)(ld);
-
-        if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
-	  info->status = PL_THREAD_SUSPENDED;
-	else
-	  ResumeThread(win_thread);
-      } else
-      { if ( old_p != THREAD_PRIORITY_ERROR_RETURN)
-	  set_priority_threads(me_win_thread, win_thread, old_p);
-	pin_threads(process, me_win_thread, win_thread, FALSE);
-      }
-
-      close_windows_thread(win_thread);
-    }
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Resume all suspended threads.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-resumeThreads(void)
-{ int i;
-  int me = PL_thread_self();
-
-  for(i=1; i<=thread_highest_id; i++)
-  { PL_thread_info_t *info = GD->thread.threads[i];
-
-    if ( info && info->thread_data && i != me &&
-	 info->status == PL_THREAD_SUSPENDED )
-    { HANDLE win_thread = get_windows_thread(info);
-
-      ResumeThread(win_thread);
-      close_windows_thread(win_thread);
-      info->status = PL_THREAD_RUNNING;
-    }
-  }
-}
-
-#else /*__WINDOWS__*/
-
-static void (*ldata_function)(PL_local_data_t *data);
-
-static void
-wait_resume(PL_thread_info_t *t)
-{ sigset_t signal_set;
-
-  sigfillset(&signal_set);
-  sigdelset(&signal_set, SIG_RESUME);
-  do
-  { sigsuspend(&signal_set);
-  } while(t->status != PL_THREAD_RESUMING);
-  t->status = PL_THREAD_RUNNING;
-
-  DEBUG(MSG_THREAD, Sdprintf("Resuming %d\n", t->pl_tid));
-}
-
-
-static void
-resume_handler(int sig)
-{ (void)sig;
-
-  sem_post(sem_mark_ptr);
-}
-
-
-void
-resumeThreads(void)
-{ struct sigaction old;
-  struct sigaction new;
-  int i;
-  PL_thread_info_t **t;
-  int signalled = 0;
-
-  memset(&new, 0, sizeof(new));
-  new.sa_handler = resume_handler;
-  new.sa_flags   = SA_RESTART;
-  sigaction(SIG_RESUME, &new, &old);
-
-  sem_init(sem_mark_ptr, USYNC_THREAD, 0);
-
-  for(t = &GD->thread.threads[1], i=1; i<=thread_highest_id; i++, t++)
-  { PL_thread_info_t *info = *t;
-
-    if ( info->status == PL_THREAD_SUSPENDED )
-    { int rc;
-
-      info->status = PL_THREAD_RESUMING;
-
-      DEBUG(MSG_THREAD, Sdprintf("Sending SIG_RESUME to %d\n", i));
-      if ( (rc=pthread_kill(info->tid, SIG_RESUME)) == 0 )
-	signalled++;
-      else
-	Sdprintf("resumeThreads(): Failed to signal %d: %s\n", i, ThError(rc));
-    }
-  }
-
-  while(signalled)
-  { while(sem_wait(sem_mark_ptr) == -1 && errno == EINTR)
-      ;
-    signalled--;
-  }
-  sem_destroy(&sem_mark);
-
-  sigaction(SIG_RESUME, &old, NULL);
-}
-
-
-#ifdef O_C_BACKTRACE
-#ifdef HAVE_EXECINFO_H
-#include <execinfo.h>
-#include <string.h>
-
-static void
-print_trace(int depth)
-{ void *array[depth];
-  size_t size;
-  char **strings;
-  size_t i;
-  int self = PL_thread_self();
-
-  size = backtrace(array, depth);
-  strings = backtrace_symbols(array, size);
-
-  Sdprintf("[%d] C-stack:\n", self);
-
-  for(i = 0; i < size; i++)
-  { Sdprintf("\t[%d:%d] %s\n", self, i, strings[i]);
-  }
-
-  free(strings);
-}
-#endif /*HAVE_EXECINFO_H*/
-#endif /*O_C_BACKTRACE*/
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-doThreadLocalData()
-
-Does the signal  handling  to  deal   with  asynchronous  inspection  if
-thread-local  data.  It  currently    assumes  pthread_getspecific()  is
-async-signal-safe, which is  not  guaranteed.  It   is  adviced  to  use
-__thread classified data to deal  with   thread  identity for this case.
-Must be studied.  See also
-
-https://listman.redhat.com/archives/phil-list/2003-December/msg00042.html
-
-Note that the use of info->ldata_status   is actually not necessary, but
-it largely simplifies debugging if not all doThreadLocalData() do answer
-for whathever reason.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-doThreadLocalData(int sig)
-{ GET_LD
-  (void)sig;
-  PL_thread_info_t *info;
-
-  info = LD->thread.info;
-
-  info->ldata_status = LDATA_ANSWERING;
-
-  (*ldata_function)(LD);
-
-  if ( LD->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
-  { DEBUG(MSG_THREAD,
-	  Sdprintf("\n\tDone work on %d; suspending ...", info->pl_tid));
-
-    info->status = PL_THREAD_SUSPENDED;
-    sem_post(sem_mark_ptr);
-    wait_resume(info);
-  } else
-  { DEBUG(MSG_THREAD, Sdprintf("\n\tDone work on %d", info->pl_tid));
-    sem_post(sem_mark_ptr);
-  }
-
-  info->ldata_status = LDATA_ANSWERED;
-}
-
-
-void
-forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
-{ struct sigaction old;
-  struct sigaction new;
-  int me = PL_thread_self();
-  int signalled = 0;
-  PL_thread_info_t **th;
-  sigset_t sigmask;
-
-  DEBUG(MSG_THREAD, Sdprintf("Calling forThreadLocalData() from %d\n", me));
-
-  assert(ldata_function == NULL);
-  ldata_function = func;
-
-  if ( sem_init(sem_mark_ptr, USYNC_THREAD, 0) != 0 )
-  { perror("sem_init");
-    exit(1);
-  }
-
-  allSignalMask(&sigmask);
-  memset(&new, 0, sizeof(new));
-  new.sa_handler = doThreadLocalData;
-  new.sa_flags   = SA_RESTART;
-  new.sa_mask    = sigmask;
-  sigaction(SIG_FORALL, &new, &old);
-
-  for( th = &GD->thread.threads[1];
-       th <= &GD->thread.threads[thread_highest_id];
-       th++ )
-  { PL_thread_info_t *info = *th;
-
-    if ( info->thread_data && info->pl_tid != me &&
-	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
-    { int rc;
-
-      DEBUG(MSG_THREAD, Sdprintf("Signalling %d\n", info->pl_tid));
-      info->thread_data->thread.forall_flags = flags;
-      info->ldata_status = LDATA_SIGNALLED;
-      if ( (rc=pthread_kill(info->tid, SIG_FORALL)) == 0 )
-      { signalled++;
-      } else if ( rc != ESRCH )
-	Sdprintf("forThreadLocalData(): Failed to signal: %s\n", ThError(rc));
-    }
-  }
-
-  DEBUG(MSG_THREAD, Sdprintf("Signalled %d threads.  Waiting ... ", signalled));
-
-  while(signalled)
-  { if ( sem_wait(sem_mark_ptr) == 0 )
-    { DEBUG(MSG_THREAD, Sdprintf(" (ok)"));
-      signalled--;
-    } else if ( errno != EINTR )
-    { perror("sem_wait");
-      exit(1);
-    }
-  }
-
-  sem_destroy(&sem_mark);
-  for( th = &GD->thread.threads[1];
-       th <= &GD->thread.threads[thread_highest_id];
-       th++)
-  { PL_thread_info_t *info = *th;
-    info->ldata_status = LDATA_IDLE;
-  }
-
-  DEBUG(MSG_THREAD, Sdprintf(" All done!\n"));
-
-  sigaction(SIG_FORALL, &old, NULL);
-
-  assert(ldata_function == func);
-  ldata_function = NULL;
-}
-
-#endif /*__WINDOWS__*/
 
 void
 forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
@@ -5802,13 +5417,11 @@ forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
     if ( info->thread_data && info->pl_tid != me &&
 	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
     { PL_local_data_t *ld = info->thread_data;
-        (*func)(ld);
-
+      (*func)(ld);
     }
   }
 
   DEBUG(MSG_THREAD, Sdprintf(" All done!\n"));
-
 }
 
 
@@ -5924,7 +5537,6 @@ localiseDefinition(Definition def)
 { Definition local = allocHeapOrHalt(sizeof(*local));
 
   *local = *def;
-  local->mutex = NULL;
   clear(local, P_THREAD_LOCAL);		/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
@@ -6000,6 +5612,95 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 
   return PL_unify_integer(count, number_of_clauses);
 }
+
+
+		 /*******************************
+		 * CLAUSE/3 PREDICATE REFERENCES*
+		 *******************************/
+
+static void
+init_predicate_references(definition_refs *refs)
+{ memset(refs, 0, sizeof(*refs));
+  refs->blocks[0] = refs->preallocated - 1;
+  refs->blocks[1] = refs->preallocated - 1;
+  refs->blocks[2] = refs->preallocated - 1;
+}
+
+static void
+free_predicate_references(definition_refs *refs)
+{ int i;
+
+  for(i=3; i<MAX_BLOCKS; i++)
+  { size_t bs = (size_t)1<<i;
+    definition_ref *d0 = refs->blocks[i];
+
+    if ( d0 )
+      freeHeap(d0+bs, bs*sizeof(definition_ref));
+  }
+}
+
+int
+pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
+{ definition_refs *refs = &LD->predicate_references;
+  definition_ref *dref;
+  size_t top = refs->top+1;
+  size_t idx = MSB(top);
+
+  if ( !refs->blocks[idx] )
+  { size_t bs = (size_t)1<<idx;
+    definition_ref *newblock;
+
+    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(definition_ref))) )
+      outOfCore();
+
+    memset(newblock, 0, bs*sizeof(definition_ref));
+    refs->blocks[idx] = newblock-bs;
+  }
+
+  enterDefinition(def);			/* probably not needed in the end */
+  dref = &refs->blocks[idx][top];
+  dref->predicate  = def;
+  dref->generation = gen;
+
+  refs->top = top;
+
+  return TRUE;
+}
+
+void
+popPredicateAccess__LD(Definition def ARG_LD)
+{ definition_refs *refs = &LD->predicate_references;
+  definition_ref *dref;
+  size_t top = refs->top;
+  size_t idx = MSB(top);
+
+  dref = &refs->blocks[idx][top];
+  assert(dref->predicate == def);
+  dref->predicate  = NULL;
+  dref->generation = 0;
+  leaveDefinition(def);			/* probably not needed in the end */
+
+  refs->top--;
+}
+
+void
+markAccessedPredicates(PL_local_data_t *ld)
+{ GET_LD
+  definition_refs *refs = &ld->predicate_references;
+  size_t i;
+
+  for(i=1; i<=refs->top; i++)
+  { int idx = MSB(i);
+    DirtyDefInfo ddi;
+    definition_ref dref = refs->blocks[idx][i];
+
+    if ( (ddi=lookupHTable(GD->procedures.dirty, dref.predicate)) )
+    { if ( dref.generation < ddi->oldest_generation )
+	ddi->oldest_generation = dref.generation;
+    }
+  }
+}
+
 
 
 		 /*******************************
@@ -6258,6 +5959,44 @@ pl_atom_buckets_in_use()
         buckets = newbuckets;
       }
       buckets[index] = info->atom_bucket;
+      if ( buckets[index] )	/* atom_bucket may have been released */
+        index++;
+    }
+  }
+
+  return buckets;
+#endif
+
+  return NULL;
+}
+
+
+Definition*
+predicates_in_use(void)
+{
+#ifdef O_PLMT
+  int i, index=0;
+  size_t sz = 32;
+
+  Definition *buckets = allocHeapOrHalt(sz * sizeof(Definition));
+  memset(buckets, 0, sz * sizeof(Definition*));
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    if ( info && info->predicate )
+    { if ( index >= sz-1 )
+      { int j = 0;
+        size_t oldsz = sz;
+        sz *= 2;
+        Definition *newbuckets = allocHeapOrHalt(sz * sizeof(Definition));
+	memset(newbuckets, 0, sz * sizeof(Definition));
+	for ( ; j < oldsz; j++ )
+	{ newbuckets[j] = buckets[j];
+	}
+	PL_free(buckets);
+        buckets = newbuckets;
+      }
+      buckets[index] = info->predicate;
       if ( buckets[index] )	/* atom_bucket may have been released */
         index++;
     }
