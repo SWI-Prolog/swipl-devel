@@ -510,6 +510,10 @@ lookupHTable__LD(Table ht, void *name ARG_LD)
 }
 
 
+/* returns value associated with name after adding to the table, i.e.
+   `value` if `name` was not in the table and the existing association
+   for `name` if it was.
+ */
 void*
 addHTable(Table ht, void *name, void *value)
 { GET_LD
