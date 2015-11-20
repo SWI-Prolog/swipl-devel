@@ -1851,11 +1851,6 @@ load_files(Module:Files, Options) :-
 
 	'$import_from_loaded_module'(LM, Module, Options),
 
-	(   Level == 0
-	->  garbage_collect_clauses
-	;   true
-	),
-
 	statistics(clauses, NewClauses),
 	statistics(cputime, Time),
 	ClausesCreated is NewClauses - OldClauses,
