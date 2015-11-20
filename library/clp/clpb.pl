@@ -38,7 +38,8 @@
                  taut/2,
                  labeling/1,
                  sat_count/2,
-                 weighted_maximum/3
+                 weighted_maximum/3,
+                 random_labeling/2
                 ]).
 
 :- use_module(library(error)).
@@ -1214,7 +1215,14 @@ var_u(Node, VNum, Index) :-
    Pick a solution in such a way that each solution is equally likely.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-random_solution(Seed, Vars) :-
+%% random_labeling(+Seed, +Vs) is det.
+%
+% Select a single random solution. An admissible assignment of truth
+% values to the Boolean variables in Vs is chosen in such a way that
+% each admissible assignment is equally likely. Seed is an integer,
+% used as the initial seed for the random number generator.
+
+random_labeling(Seed, Vars) :-
         must_be(list, Vars),
         set_random(seed(Seed)),
         (   ground(Vars) -> true
@@ -1234,10 +1242,10 @@ random_solution(Seed, Vars) :-
             maplist(call, Bs),
             % set remaining variables to 0 or 1 with equal probability
             include(var, Vars, Remaining),
-            maplist(maybe_one, Remaining)
+            maplist(maybe_zero, Remaining)
         ).
 
-maybe_one(Var) :-
+maybe_zero(Var) :-
         (   maybe -> Var = 0
         ;   Var = 1
         ).
