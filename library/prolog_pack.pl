@@ -1512,7 +1512,7 @@ query_pack_server(Query, Result, Options) :-
 	print_message(Informational, pack(contacting_server(Server))),
 	setup_call_cleanup(
 	    http_open(Server, In,
-		      [ post(codes(text/'x-prolog', Data)),
+		      [ post(codes(application/'x-prolog', Data)),
 			header(content_type, ContentType)
 		      ]),
 	    read_reply(ContentType, In, Result),
@@ -1521,7 +1521,7 @@ query_pack_server(Query, Result, Options) :-
 	print_message(Level, pack(server_reply(Result))).
 
 read_reply(ContentType, In, Result) :-
-	sub_atom(ContentType, 0, _, _, 'text/x-prolog'), !,
+	sub_atom(ContentType, 0, _, _, 'application/x-prolog'), !,
 	set_stream(In, encoding(utf8)),
 	read(In, Result).
 read_reply(ContentType, In, _Result) :-
