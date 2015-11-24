@@ -5683,6 +5683,19 @@ popPredicateAccess__LD(Definition def ARG_LD)
   refs->top--;
 }
 
+static inline int
+is_pointer_like(void *ptr)
+{
+#if SIZEOF_VOIDP == 4
+  intptr_t mask = 0x3;
+#elif SIZEOF_VOIDP == 8
+  intptr_t mask = 0x7;
+#else
+#error "Unknown pointer size"
+#endif
+  return ptr && ((intptr_t)ptr&mask) == 0;
+}
+
 void
 markAccessedPredicates(PL_local_data_t *ld)
 { GET_LD
@@ -5694,7 +5707,7 @@ markAccessedPredicates(PL_local_data_t *ld)
     DirtyDefInfo ddi;
     definition_ref dref = refs->blocks[idx][i];
 
-    if ( dref.predicate &&
+    if ( is_pointer_like(dref.predicate) &&
 	 (ddi=lookupHTable(GD->procedures.dirty, dref.predicate)) )
     { if ( dref.generation < ddi->oldest_generation )
 	ddi->oldest_generation = dref.generation;
