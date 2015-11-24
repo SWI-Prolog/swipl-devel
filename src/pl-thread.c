@@ -5694,7 +5694,8 @@ markAccessedPredicates(PL_local_data_t *ld)
     DirtyDefInfo ddi;
     definition_ref dref = refs->blocks[idx][i];
 
-    if ( (ddi=lookupHTable(GD->procedures.dirty, dref.predicate)) )
+    if ( dref.predicate &&
+	 (ddi=lookupHTable(GD->procedures.dirty, dref.predicate)) )
     { if ( dref.generation < ddi->oldest_generation )
 	ddi->oldest_generation = dref.generation;
     }
