@@ -160,6 +160,27 @@ expressions and are declaratively equivalent to the original query.
 The last example illustrates that when applicable, remaining variables
 are expressed as functions of universally quantified variables.
 
+### Obtaining BDDs {#clpb-residual-goals}
+
+By default, CLP(B) residual goals appear in (approximately) algebraic
+normal form (ANF). This projection is often computationally expensive.
+You can set the Prolog flag `clpb_residuals` to the value `bdd` to see
+the BDD representation of all constraints. This is generally faster,
+and also useful for learning more about BDDs. For example:
+
+==
+?- set_prolog_flag(clpb_residuals, bdd).
+true.
+
+?- sat(X#Y).
+node(3)- (v(X, 0)->node(2);node(1)),
+node(1)- (v(Y, 1)->true;false),
+node(2)- (v(Y, 1)->false;true).
+==
+
+Note that this representation cannot be pasted back on the toplevel,
+and its details are subject to change.
+
 @author Markus Triska
 */
 
