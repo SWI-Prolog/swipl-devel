@@ -1785,7 +1785,6 @@ pl_garbage_collect_clauses(void)
 	  });
 
     PL_LOCK(L_THREAD);			/* avoid threads to drop out */
-    PL_LOCK(L_GC);			/* avoid stack shifts */
 					/* sanity-check */
     for_table(GD->procedures.dirty, n, v,
 	      { DirtyDefInfo ddi = v;
@@ -1827,7 +1826,6 @@ pl_garbage_collect_clauses(void)
 		maybeUnregisterDirtyDefinition(def);
 	      });
 
-    PL_UNLOCK(L_GC);
     PL_UNLOCK(L_THREAD);
 
     gcClauseRefs();

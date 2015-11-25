@@ -427,8 +427,8 @@ static void	initMutexRef(void);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
-static void	init_predicate_references(definition_refs *refs);
-static void	free_predicate_references(definition_refs *refs);
+static void	init_predicate_references(PL_local_data_t *ld);
+static void	free_predicate_references(PL_local_data_t *ld);
 #ifdef O_C_BACKTRACE
 static void	print_trace(int depth);
 #else
@@ -583,7 +583,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     GD->statistics.thread_cputime += time;
   }
   destroy_thread_message_queue(&ld->thread.messages);
-  free_predicate_references(&ld->predicate_references);
+  free_predicate_references(ld);
   if ( ld->btrace_store )
   { btrace_destroy(ld->btrace_store);
     ld->btrace_store = NULL;
@@ -781,7 +781,7 @@ initPrologThreads(void)
     PL_local_data.thread.magic = PL_THREAD_MAGIC;
     set_system_thread_id(info);
     init_message_queue(&PL_local_data.thread.messages, -1);
-    init_predicate_references(&PL_local_data.predicate_references);
+    init_predicate_references(&PL_local_data);
 
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
@@ -1556,7 +1556,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
   }
   init_message_queue(&ldnew->thread.messages, -1);
-  init_predicate_references(&ldnew->predicate_references);
+  init_predicate_references(ldnew);
   if ( at_exit )
     thread_at_exit(at_exit, ldnew);
 
@@ -4771,7 +4771,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->open_count = 1;
 
   init_message_queue(&ldnew->thread.messages, -1);
-  init_predicate_references(&ldnew->predicate_references);
+  init_predicate_references(ldnew);
 
   ldnew->prompt			 = ldmain->prompt;
   ldnew->modules		 = ldmain->modules;
@@ -5619,16 +5619,23 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 		 *******************************/
 
 static void
-init_predicate_references(definition_refs *refs)
-{ memset(refs, 0, sizeof(*refs));
+init_predicate_references(PL_local_data_t *ld)
+{ definition_refs *refs = &ld->predicate_references;
+
+  memset(refs, 0, sizeof(*refs));
   refs->blocks[0] = refs->preallocated - 1;
   refs->blocks[1] = refs->preallocated - 1;
   refs->blocks[2] = refs->preallocated - 1;
+
+#ifdef O_PLMT
+  simpleMutexInit(&ld->clauses.local_shift_mutex);
+#endif
 }
 
 static void
-free_predicate_references(definition_refs *refs)
-{ int i;
+free_predicate_references(PL_local_data_t *ld)
+{ definition_refs *refs = &ld->predicate_references;
+  int i;
 
   for(i=3; i<MAX_BLOCKS; i++)
   { size_t bs = (size_t)1<<i;
@@ -5637,6 +5644,10 @@ free_predicate_references(definition_refs *refs)
     if ( d0 )
       freeHeap(d0+bs, bs*sizeof(definition_ref));
   }
+
+#ifdef O_PLMT
+  simpleMutexDelete(&ld->clauses.local_shift_mutex);
+#endif
 }
 
 int
