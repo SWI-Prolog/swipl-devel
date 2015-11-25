@@ -118,7 +118,7 @@ set_user_role(Name, Role) :-
 		 *******************************/
 
 :- dynamic
-	db_file/3,			% Module, File, Modified
+	db_file/5,			% Module, File, Created, Modified, EndPos
 	db_stream/2,			% Module, Stream
 	db_dirty/2,			% Module, Deleted
 	db_option/2.			% Module, Name(Value)
@@ -274,7 +274,7 @@ db_set_options(Module, Options) :-
 	assert(db_option(Module, sync(Sync))).
 
 db_attach_file(Module, File) :-
-	db_file(Module, Old, _), !,		% we already have a db
+	db_file(Module, Old, _, _, _), !,	% we already have a db
 	(   Old == File
 	->  true
 	;   permission_error(attach, db, File)
@@ -282,18 +282,46 @@ db_attach_file(Module, File) :-
 db_attach_file(Module, File) :-
 	db_load(Module, File), !.
 db_attach_file(Module, File) :-
-	assert(db_file(Module, File, 0)).
+	assert(db_file(Module, File, 0, 0, 0)).
 
 db_load(Module, File) :-
-	retractall(db_file(Module, _, _)),
-	catch(open(File, read, In, [encoding(utf8)]), _, fail), !,
+	retractall(db_file(Module, _, _, _, _)),
 	debug(db, 'Loading database ~w', [File]),
-	call_cleanup((read_action(In, T0),
-		      load_db(T0, In, Module)),
-		     close(In)),
+	catch(setup_call_cleanup(
+		  open(File, read, In, [encoding(utf8)]),
+		  load_db_end(In, Module, Created, EndPos),
+		  close(In)),
+	      error(existence_error(source_sink, File), _), fail),
 	debug(db, 'Loaded ~w', [File]),
 	time_file(File, Modified),
-	assert(db_file(Module, File, Modified)).
+	assert(db_file(Module, File, Created, Modified, EndPos)).
+
+db_load_incremental(Module, File) :-
+	db_file(Module, File, Created, _, EndPos0),
+	setup_call_cleanup(
+	    ( open(File, read, In, [encoding(utf8)]),
+	      read_action(In, created(Created0)),
+	      set_stream_position(In, EndPos0)
+	    ),
+	    ( Created0 == Created,
+	      debug(db, 'Incremental load from ~p', [EndPos0]),
+	      load_db_end(In, Module, _Created, EndPos)
+	    ),
+	    close(In)),
+	debug(db, 'Updated ~w', [File]),
+	time_file(File, Modified),
+	retractall(db_file(Module, File, Created, _, _)),
+	assert(db_file(Module, File, Created, Modified, EndPos)).
+
+load_db_end(In, Module, Created, End) :-
+	read_action(In, T0),
+	(   T0 = created(Created)
+	->  read_action(In, T1)
+	;   T1 = T0,
+	    Created = 0
+	),
+	load_db(T1, In, Module),
+	stream_property(In, position(End)).
 
 load_db(end_of_file, _, _) :- !.
 load_db(assert(Term), In, Module) :-
@@ -367,18 +395,27 @@ db_asserta(Module:Term) :-
 persistent(Module, Action) :-
 	(   db_stream(Module, Stream)
 	->  true
-	;   db_file(Module, File, _Modified)
-	->  db_sync(Module, reload),		% Is this correct?
-	    open(File, append, Stream,
-		 [ close_on_abort(false),
-		   encoding(utf8),
-		   lock(write)
-		 ]),
+	;   db_file(Module, File, _Created, _Modified, _EndPos)
+	->  db_sync(Module, update),		% Is this correct?
+	    db_open_file(File, append, Stream),
 	    assert(db_stream(Module, Stream))
 	;   existence_error(db_file, Module)
 	),
 	write_action(Stream, Action),
 	sync(Module, Stream).
+
+db_open_file(File, Mode, Stream) :-
+	open(File, Mode, Stream,
+	     [ close_on_abort(false),
+	       encoding(utf8),
+	       lock(write)
+	     ]),
+	(   size_file(File, 0)
+	->  get_time(Now),
+	    write_action(Stream, created(Now))
+	;   true
+	).
+
 
 %%	sync(+Module, +Stream) is det.
 %
@@ -464,20 +501,26 @@ set_dirty(Module, Count) :-
 %
 %	Synchronise database with the associated file.  What is one of:
 %
-%		* reload
-%		Database is reloaded from file
-%		* gc
-%		Database was re-written, deleting all retractall
-%		statements.  This is the same as gc(50).
-%		* gc(Percentage)
-%		GC DB if the number of deleted terms is the given
-%		percentage of the total number of terms.
-%		* close
-%		Database stream was closed
-%		* detach
-%		Remove all registered persistency for the calling module
-%		* nop
-%		No-operation performed
+%	  * reload
+%	  Database is reloaded from file if the file was modified
+%	  since loaded.
+%	  * update
+%	  As `reload`, but use incremental loading if possible.
+%	  This allows for two processes to examine the same database
+%	  file, where one writes the database and the other periodycally
+%	  calls db_sync(update) to follow the modified data.
+%	  * gc
+%	  Database was re-written, deleting all retractall
+%	  statements.  This is the same as gc(50).
+%	  * gc(Percentage)
+%	  GC DB if the number of deleted terms is the given
+%	  percentage of the total number of terms.
+%	  * close
+%	  Database stream was closed
+%	  * detach
+%	  Remove all registered persistency for the calling module
+%	  * nop
+%	  No-operation performed
 %
 %	With unbound What, db_sync/1 reloads  the   database  if  it was
 %	modified on disk, gc it if it  is   dirty  and close it if it is
@@ -489,13 +532,18 @@ db_sync(Module:What) :-
 
 db_sync(Module, reload) :-
 	\+ db_stream(Module, _),		% not open
-	db_file(Module, File, ModifiedWhenLoaded),
+	db_file(Module, File, _Created, ModifiedWhenLoaded, _EndPos),
 	catch(time_file(File, Modified), _, fail),
 	Modified > ModifiedWhenLoaded, !,	% Externally modified
-	debug(db, 'Database ~w was externally modified; reloading', [File]),
-	db_clean(Module),
-	db_load(Module, File).
-db_sync(Module, gc) :-
+	debug(db, 'Database ~w was externally modified; reloading', [File]), !,
+	(   catch(db_load_incremental(Module, File),
+		  E,
+		  ( print_message(warning, E), fail ))
+	->  true
+	;   db_clean(Module),
+	    db_load(Module, File)
+	).
+db_sync(Module, gc) :- !,
 	db_sync(Module, gc(50)).
 db_sync(Module, gc(When)) :-
 	db_dirty(Module, Dirty),
@@ -504,42 +552,44 @@ db_sync(Module, gc(When)) :-
 	;   db_size(Module, Total),
 	    Perc is (100*Dirty)/Total,
 	    Perc > When
-	),
+	), !,
 	db_sync(Module, close),
-	db_file(Module, File, Modified),
+	db_file(Module, File, _, Modified, _),
 	atom_concat(File, '.new', NewFile),
 	debug(db, 'Database ~w is dirty; cleaning', [File]),
+	get_time(Created),
 	catch(setup_call_cleanup(
-		  open(NewFile, write, Out, [encoding(utf8)]),
+		  db_open_file(NewFile, write, Out),
 		  (   persistent(Module, Term, _Types),
 		      call(Module:Term),
 		      write_action(Out, assert(Term)),
 		      fail
-		  ;   true
+		  ;   stream_property(Out, position(EndPos))
 		  ),
 		  close(Out)),
 	      Error,
 	      ( catch(delete_file(NewFile),_,fail),
 		throw(Error))),
-	retractall(db_file(Module, File, Modified)),
+	retractall(db_file(Module, File, _, Modified, _)),
 	rename_file(NewFile, File),
 	time_file(File, NewModified),
-	assert(db_file(Module, File, NewModified)).
+	assert(db_file(Module, File, Created, NewModified, EndPos)).
 db_sync(Module, close) :-
 	retract(db_stream(Module, Stream)), !,
-	db_file(Module, File, _),
+	db_file(Module, File, Created, _, _),
 	debug(db, 'Database ~w is open; closing', [File]),
+	stream_property(Stream, position(EndPos)),
 	close(Stream),
 	time_file(File, Modified),
-	retractall(db_file(Module, File, _)),
-	assert(db_file(Module, File, Modified)).
+	retractall(db_file(Module, File, _, _, _)),
+	assert(db_file(Module, File, Created, Modified, EndPos)).
 db_sync(Module, Action) :-
 	Action == detach, !,
 	(   retract(db_stream(Module, Stream))
 	->  close(Stream)
 	;   true
 	),
-	retractall(db_file(Module, _, _)),
+	retractall(db_file(Module, _, _, _, _)),
 	retractall(db_dirty(Module, _)),
 	retractall(db_option(Module, _)).
 db_sync(_, nop) :- !.
@@ -552,7 +602,7 @@ db_sync(_, _).
 
 db_sync_all(What) :-
 	must_be(oneof([reload,gc,gc(_),close]), What),
-	forall(db_file(Module, _, _),
+	forall(db_file(Module, _, _, _, _),
 	       db_sync(Module:What)).
 
 
