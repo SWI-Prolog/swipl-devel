@@ -30,8 +30,9 @@ This  module  only  depends  on  the  public  interface  as  defined  by
 SWI-Prolog.h and SWI-Stream.h
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PL_ARITY_AS_SIZE 1
-#ifndef __WINDOWS__
+#ifdef __WINDOWS__
+#define PL_ARITY_AS_SIZE
+#else
 #include "pl-incl.h"
 #endif
 #include <string.h>
