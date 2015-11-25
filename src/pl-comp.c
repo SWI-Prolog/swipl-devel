@@ -3675,16 +3675,12 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
   SourceFile sf;
 
   if ( !PL_get_atom_ex(A1, &filename) )
-    fail;
+    return FALSE;
 
   sf = lookupSourceFile(filename, TRUE);
   if ( sf->current_procedure )
-  { if ( unify_definition(NULL, A2, sf->current_procedure->definition, 0,
-			  GP_QUALIFY|GP_NAMEARITY) )
-    { sf->current_procedure = NULL;
-      succeed;
-    }
-    fail;
+  { return unify_definition(NULL, A2, sf->current_procedure->definition, 0,
+			    GP_QUALIFY|GP_NAMEARITY);
   }
 
   return PL_unify_nil(A2);
