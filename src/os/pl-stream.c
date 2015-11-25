@@ -644,8 +644,6 @@ update_linepos(IOSTREAM *s, int c)
       if ( p->linepos > 0 )
 	p->linepos--;
       break;
-    case EOF:
-      break;
     case '\t':
       p->linepos |= 7;
     default:
@@ -667,9 +665,11 @@ int
 S__fupdatefilepos_getc(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
-  update_linepos(s, c);
-  p->byteno++;
-  p->charno++;
+  if ( c != EOF )
+  { update_linepos(s, c);
+    p->byteno++;
+    p->charno++;
+  }
 
   return c;
 }
@@ -679,7 +679,7 @@ static inline int
 S__updatefilepos(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
-  if ( p )
+  if ( p && c != EOF )
   { update_linepos(s, c);
     p->charno++;
   }
@@ -693,7 +693,7 @@ static inline int
 get_byte(IOSTREAM *s)
 { int c = Snpgetc(s);
 
-  if ( s->position )
+  if ( s->position && c != EOF )
     s->position->byteno++;
 
   return c;
