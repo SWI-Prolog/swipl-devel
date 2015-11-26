@@ -69,16 +69,17 @@ through YAP.
 %	Macro expansion for maplist/2 and higher arity.
 
 expand_maplist(Callable0, Lists, Goal) :-
-	(   Callable0 = _:_
+	length(Lists, N),
+	expand_closure_no_fail(Callable0, N, Callable1),
+	(   Callable1 = _:_
 	->  strip_module(Callable0, M, Callable),
 	    NextGoal = M:NextCall
-	;   Callable = Callable0,
+	;   Callable = Callable1,
 	    NextGoal = NextCall
 	),
 	Callable =.. [Pred|Args],
 	length(Args, Argc),
 	length(Argv, Argc),
-	length(Lists, N),
 	length(Vars, N),
 	MapArity is N + 1,
 	format(atom(AuxName), '__aux_maplist/~d_~w+~d', [MapArity, Pred, Argc]),
@@ -107,6 +108,9 @@ expand_maplist(Callable0, Lists, Goal) :-
 	    compile_aux_clauses([BaseClause, NextClause])
 	).
 
+expand_closure_no_fail(Callable0, N, Callable1) :-
+	'$expand_closure'(Callable0, N, Callable1), !.
+expand_closure_no_fail(Callable, _, Callable).
 
 empty_lists(0, []) :- !.
 empty_lists(N, [[]|T]) :-
