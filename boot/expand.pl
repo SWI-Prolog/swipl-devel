@@ -33,7 +33,9 @@
 	    expand_goal/2,		% +Goal0, -Goal
 	    expand_term/4,		% +Term0, ?Pos0, -Term, -Pos
 	    expand_goal/4,	        % +Goal0, ?Pos0, -Goal, -Pos
-            var_property/2		% +Var, ?Property
+            var_property/2,		% +Var, ?Property
+
+	    '$expand_closure'/3		% +GoalIn, +Extra, -GoalOut
 	  ]).
 
 /** <module> Prolog source-code transformation
@@ -429,6 +431,24 @@ expand_goal(A, P0, B, P) :-
 	), !.
 expand_goal(A, P, A, P).
 
+%%	'$expand_closure'(+BodyIn, +ExtraArgs, -BodyOut) is semidet.
+%%	'$expand_closure'(+BodyIn, +PIn, +ExtraArgs, -BodyOut, -POut) is semidet.
+%
+%	Expand a closure using goal expansion  for some extra arguments.
+%	Note that the extra argument must remain  at the end. If this is
+%	not the case, '$expand_closure'/3,5 fail.
+
+'$expand_closure'(G0, N, G) :-
+	'$expand_closure'(G0, _, N, G, _).
+
+'$expand_closure'(G0, P0, N, G, P) :-
+	length(Ex, N),
+	extend_arg_pos(G0, P0, Ex, G1, P1),
+	expand_goal(G1, P1, G2, P2),
+	term_variables(G0, VL),
+	remove_arg_pos(G2, P2, [], VL, Ex, G, P).
+
+
 expand_goal(G0, P0, G, P, MList, Term) :-
 	'$set_source_module'(M, M),
 	expand_goal(G0, P0, G, P, M, MList, Term).
@@ -712,7 +732,8 @@ remove_arg_pos(A0, P0, M, VL, Ex0, A, P) :-
 	    Ex==Ex0
 	->  extended_pos(P, N, P0),
 	    A =.. [F|Args0]
-	;   wrap_meta_arguments(A0, M, VL, Ex0, A),
+	;   M \== [],
+	    wrap_meta_arguments(A0, M, VL, Ex0, A),
 	    wrap_meta_pos(P0, P)
 	).
 remove_arg_pos(A, P, _, _, _, A, P).
