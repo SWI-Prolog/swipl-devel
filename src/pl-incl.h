@@ -412,8 +412,8 @@ typedef int			bool;
 #define fail			return FALSE
 #define TRY(goal)		do { if (!(goal)) return FALSE; } while(0)
 
-#define CL_START		0	/* asserta */
-#define CL_END			1	/* assertz */
+#define CL_START		((ClauseRef)1)	/* asserta */
+#define CL_END			((ClauseRef)2)	/* assertz */
 
 typedef void *			caddress;
 
@@ -811,7 +811,7 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
-#define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* <![Type[Quasi Quote]]> */
+#define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* {|Type||Quasi Quote|} */
 #define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
 #define P_SHRUNKPOW2		(0x00000010) /* See reconsider_index() */
 #define P_FOREIGN		(0x00000020) /* Implemented in C */
@@ -842,6 +842,10 @@ with one operation, it turns out to be faster as well.
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000) /* Overrules a definition */
 #define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|P_DISCONTIGUOUS)
+/* flags for p_reload data (reconsult) */
+#define P_MODIFIED		P_DIRTYREG
+#define P_NEW			SPY_ME
+#define P_NO_CLAUSES		TRACE_ME
 
 /* Flags on clauses (packed in unsigned flags : 8) */
 
@@ -1531,8 +1535,34 @@ struct recordRef
   Record	record;			/* the record itself */
 };
 
+		 /*******************************
+		 *	SOURCE FILE ADMIN	*
+		 *******************************/
+
 #define SF_MAGIC 0x14a3c90f
 #define SF_MAGIC_DESTROYING 0x14a3c910
+
+typedef struct p_reload
+{ Definition	predicate;		/* definition we are working on */
+  gen_t		generation;		/* generation we update */
+  ClauseRef	current_clause;		/* currently reloading clause */
+  meta_mask	meta_info;		/* new meta declaration (if any) */
+  unsigned	flags;			/* new flags (P_DYNAMIC, etc.) */
+  unsigned	number_of_clauses;	/* Number of clauses we've seen */
+} p_reload;
+
+typedef struct m_reload
+{ Module	module;
+  Table		public;			/* new export list */
+} m_reload;
+
+typedef struct sf_reload
+{ Table		procedures;		/* Procedures being reloaded */
+  gen_t		reload_gen;		/* Magic gen for reloading */
+  size_t	pred_access_count;	/* Top of predicate access stack */
+  Table		modules;		/* Modules seen during reload */
+} sf_reload;
+
 
 struct sourceFile
 { atom_t	name;			/* name of source file */
@@ -1540,6 +1570,7 @@ struct sourceFile
   ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   ListCell	modules;		/* Modules associated to this file */
+  sf_reload     *reload;		/* Reloading context */
 #ifdef O_PLMT
   counting_mutex *mutex;		/* Mutex to guard procedures */
 #endif
@@ -1558,6 +1589,10 @@ struct list_cell
   ListCell	next;		/* next in chain */
 };
 
+
+		 /*******************************
+		 *	      MODULES		*
+		 *******************************/
 
 struct module
 { atom_t	name;		/* name of module */

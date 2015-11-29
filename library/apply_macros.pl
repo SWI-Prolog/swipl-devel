@@ -90,7 +90,7 @@ expand_maplist(Callable0, Lists, Goal) :-
 	prolog_load_context(module, Module),
 	functor(NextCall, Pred, AuxArity),
 	\+ predicate_property(Module:NextGoal, transparent),
-	(   current_predicate(Module:AuxName/AuxArity)
+	(   predicate_property(Module:Goal, defined)
 	->  true
 	;   empty_lists(N, BaseLists),
 	    length(Anon, Argc),

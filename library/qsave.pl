@@ -402,19 +402,19 @@ pred_attrib(Attrib, Head,
 	strip_module(Head, M, Term),
 	functor(Term, Name, Arity).
 
-attrib_name(dynamic,		    dynamic,		    1).
-attrib_name(volatile,		    volatile,		    1).
-attrib_name(thread_local,	    thread_local,	    1).
-attrib_name(multifile,		    multifile,		    1).
-attrib_name(public,		    public,		    1).
-attrib_name(transparent,	    transparent,	    1).
-attrib_name(discontiguous,	    discontiguous,	    1).
-attrib_name(notrace,		    trace,		    0).
-attrib_name(show_childs,	    hide_childs,	    0).
-attrib_name(built_in,		    system,		    1).
-attrib_name(nodebug,		    hide_childs,	    1).
-attrib_name(quasi_quotation_syntax, quasi_quotation_syntax, 1).
-attrib_name(iso,		    iso,		    1).
+attrib_name(dynamic,		    dynamic,		    true).
+attrib_name(volatile,		    volatile,		    true).
+attrib_name(thread_local,	    thread_local,	    true).
+attrib_name(multifile,		    multifile,		    true).
+attrib_name(public,		    public,		    true).
+attrib_name(transparent,	    transparent,	    true).
+attrib_name(discontiguous,	    discontiguous,	    true).
+attrib_name(notrace,		    trace,		    false).
+attrib_name(show_childs,	    hide_childs,	    false).
+attrib_name(built_in,		    system,		    true).
+attrib_name(nodebug,		    hide_childs,	    true).
+attrib_name(quasi_quotation_syntax, quasi_quotation_syntax, true).
+attrib_name(iso,		    iso,		    true).
 
 
 save_attribute(P, Attribute) :-

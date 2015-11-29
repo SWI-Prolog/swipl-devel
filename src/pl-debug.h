@@ -132,6 +132,11 @@
 #define MSG_JIT			 180
 #define MSG_JIT_DELINDEX	 181
 
+#define MSG_RECONSULT		 190
+#define MSG_RECONSULT_PRED	 191
+#define MSG_RECONSULT_CLAUSE	 192
+#define MSG_RECONSULT_MODULE	 193
+
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001
 #define CHK_HIGHER_ADDRESS      1002

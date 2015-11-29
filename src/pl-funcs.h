@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam,
+    Copyright (C): 1985-2015, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -137,7 +137,7 @@ COMMON(Procedure)	lookupBodyProcedure(functor_t functor, Module tm);
 COMMON(int)		compileClause(Clause *cp, Word head, Word body,
 				      Procedure proc, Module module,
 				      term_t warnings ARG_LD);
-COMMON(Clause)		assert_term(term_t term, int where, atom_t owner,
+COMMON(Clause)		assert_term(term_t term, ClauseRef where, atom_t owner,
 				    SourceLoc loc ARG_LD);
 COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
 COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
@@ -175,7 +175,8 @@ COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseChoice next ARG_LD);
 COMMON(ClauseRef)	nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr,
 				       Definition def ARG_LD);
-COMMON(void)		addClauseToIndexes(Definition def, Clause cl, int where);
+COMMON(int)		addClauseToIndexes(Definition def, Clause cl,
+					   ClauseRef where);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndexes(Definition def, gen_t active);
 COMMON(void)		unallocOldClauseIndexes(Definition def);
@@ -328,6 +329,7 @@ COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(int)		getUnknownModule(Module m);
 COMMON(Word)		stripModule(Word term, Module *module ARG_LD);
 COMMON(bool)		isPublicModule(Module module, Procedure proc);
+COMMON(int)		exportProcedure(Module module, Procedure proc);
 COMMON(int)		declareModule(atom_t name, atom_t class, atom_t super,
 				      SourceFile sf, int line,
 				      int rdef);
@@ -460,8 +462,10 @@ COMMON(int)		overruleImportedProcedure(Procedure proc, Module target);
 COMMON(word)		pl_current_predicate(term_t name, term_t functor, control_t h);
 COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(void)		clear_meta_declaration(Definition def);
+COMMON(void)		setMetapredicateMask(Definition def, meta_mask mask);
+COMMON(int)		isTransparentMetamask(Definition def, meta_mask mask);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
-					int where ARG_LD);
+					ClauseRef where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
 COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
 COMMON(void)		freeClauseSilent(Clause c);
@@ -471,6 +475,8 @@ COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
 COMMON(void)		gcClauseRefs(void);
 COMMON(size_t)		removeClausesProcedure(Procedure proc,
 					       int sfindex, int fromfile);
+COMMON(void)		reconsultFinalizePredicate(sf_reload *rl, Definition def,
+						   p_reload *r ARG_LD);
 COMMON(void)		destroyDefinition(Definition def);
 COMMON(Procedure)	resolveProcedure(functor_t f, Module module);
 COMMON(Definition)	trapUndefined(Definition undef ARG_LD);
@@ -491,12 +497,14 @@ COMMON(foreign_t)	pl_check_procedure(term_t desc);
 COMMON(void)		checkDefinition(Definition def);
 COMMON(Procedure)	isStaticSystemProcedure(functor_t fd);
 COMMON(foreign_t)	pl_garbage_collect_clauses(void);
-COMMON(int)		setDynamicProcedure(Procedure proc, bool isdyn);
+COMMON(int)		setDynamicDefinition(Definition def, bool isdyn);
+COMMON(int)		setThreadLocalDefinition(Definition def, bool isdyn);
+COMMON(int)		setAttrDefinition(Definition def, unsigned attr, int val);
 COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 
 /* pl-srcfile.c */
 
-COMMON(void)		startConsult(SourceFile f);
+COMMON(int)		startConsult(SourceFile f);
 COMMON(size_t)		highSourceFileIndex(void);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
 COMMON(SourceFile)	indexToSourceFile(int index);
@@ -504,6 +512,17 @@ COMMON(void)		cleanupSourceFiles(void);
 COMMON(void)		unlinkSourceFileModule(SourceFile sf, Module m);
 COMMON(void)		addProcedureSourceFile(SourceFile sf, Procedure proc);
 COMMON(int)		hasProcedureSourceFile(SourceFile sf, Procedure proc);
+COMMON(int)		reloadIsDefined(SourceFile sf, Procedure proc ARG_LD);
+COMMON(int)		isDefinedProcedureSource(Procedure proc);
+COMMON(ClauseRef)	assertProcedureSource(SourceFile sf, Procedure proc,
+					      Clause clause ARG_LD);
+COMMON(int)		setAttrProcedureSource(SourceFile sf, Procedure proc,
+					       unsigned attr, int val ARG_LD);
+COMMON(int)		setMetapredicateSource(SourceFile sf, Procedure proc,
+					       meta_mask mask ARG_LD);
+COMMON(int)		exportProcedureSource(SourceFile sf, Module module,
+					      Procedure proc);
+COMMON(void)		registerReloadModule(SourceFile sf, Module module);
 
 /* pl-read.c */
 COMMON(void)		resetRead(void);
@@ -614,8 +633,9 @@ COMMON(char *)		procedureName(Procedure proc);
 COMMON(char *)		predicateName(Definition def);
 COMMON(char *)		functorName(functor_t f);
 COMMON(char *)		keyName(word key);
+COMMON(char *)		sourceFileName(SourceFile sf);
 COMMON(char *)		generationName(gen_t gen);
-COMMON(int)		clauseNo(Definition def, Clause clause);
+COMMON(int)		clauseNo(Definition def, Clause clause, gen_t gen);
 COMMON(int)		notImplemented(char *name, int arity);
 COMMON(word)		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word)		setInteger(int *val, term_t old, term_t new);

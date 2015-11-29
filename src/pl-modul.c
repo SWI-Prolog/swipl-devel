@@ -1044,26 +1044,29 @@ declareModule(atom_t name, atom_t class, atom_t super,
   module->line_no = line;
   LD->modules.source = module;
 
-  for_table(module->procedures, name, value,
-	    { Procedure proc = value;
-	      Definition def = proc->definition;
-	      if ( /*def->module == module &&*/
-		   !true(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
-	      { if ( def->module == module &&
-		     hasClausesDefinition(def) )
-		{ if ( !rdef )
-		  { rdef = PL_new_term_ref();
-		    rtail = PL_copy_term_ref(rdef);
-		    tmp = PL_new_term_ref();
-		  }
+  if ( sf->reload )
+  { registerReloadModule(sf, module);
+  } else
+  { for_table(module->procedures, name, value,
+	      { Procedure proc = value;
+		Definition def = proc->definition;
+		if ( !true(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
+		{ if ( def->module == module &&
+		       hasClausesDefinition(def) )
+		  { if ( !rdef )
+		    { rdef = PL_new_term_ref();
+		      rtail = PL_copy_term_ref(rdef);
+		      tmp = PL_new_term_ref();
+		    }
 
-		  PL_unify_list(rtail, tmp, rtail);
-		  unify_definition(MODULE_user, tmp, def, 0, GP_NAMEARITY);
+		    PL_unify_list(rtail, tmp, rtail);
+		    unify_definition(MODULE_user, tmp, def, 0, GP_NAMEARITY);
+		  }
+		  abolishProcedure(proc, module);
 		}
-		abolishProcedure(proc, module);
-	      }
-	    })
-  clearHTable(module->public);
+	      })
+    clearHTable(module->public);
+  }
   if ( super )
     setSuperModule(module, _lookupModule(super));
 
@@ -1188,40 +1191,56 @@ export/1 exports a procedure specified by its name and arity or
 head from the context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-export_pi(term_t pi, Module module ARG_LD)
-{ functor_t fd;
-  Procedure proc;
-
-  if ( !PL_strip_module(pi, &module, pi) )
-    return FALSE;
-
-  if ( PL_is_functor(pi, FUNCTOR_comma2) )
-  { term_t a1 = PL_new_term_ref();
-    term_t a2 = PL_new_term_ref();
-
-    _PL_get_arg(1, pi, a1);
-    _PL_get_arg(2, pi, a2);
-
-    TRY(export_pi(a1, module PASS_LD));
-    return export_pi(a2, module PASS_LD);
-  }
-
-
-  if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE|GF_NAMEARITY) )
-    fail;
-
-  if ( (proc = isStaticSystemProcedure(fd)) && true(proc->definition, P_ISO) )
-    succeed;
-  proc = lookupProcedure(fd, module);
-
-  LOCKMODULE(module);
+int
+exportProcedure(Module module, Procedure proc)
+{ LOCKMODULE(module);
   updateHTable(module->public,
 	       (void *)proc->definition->functor->functor,
 	       proc);
   UNLOCKMODULE(module);
 
-  succeed;
+  return TRUE;
+}
+
+static int
+export_pi1(term_t pi, Module module ARG_LD)
+{ functor_t fd;
+  Procedure proc;
+
+  if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE|GF_NAMEARITY) )
+    return FALSE;
+
+  if ( (proc = isStaticSystemProcedure(fd)) && true(proc->definition, P_ISO) )
+    return TRUE;
+  proc = lookupProcedure(fd, module);
+
+  if ( ReadingSource )
+  { SourceFile sf = lookupSourceFile(source_file_name, TRUE);
+    return exportProcedureSource(sf, module, proc);
+  } else
+  { return exportProcedure(module, proc);
+  }
+}
+
+static int
+export_pi(term_t pi, Module module, int depth ARG_LD)
+{ if ( !PL_strip_module(pi, &module, pi) )
+    return FALSE;
+
+  while ( PL_is_functor(pi, FUNCTOR_comma2) )
+  { term_t a1 = PL_new_term_ref();
+
+    if ( ++depth == 100 && !PL_is_acyclic(pi) )
+      return PL_type_error("acyclic_term", pi);
+
+    _PL_get_arg(1, pi, a1);
+    if ( !export_pi(a1, module, depth PASS_LD) )
+      return FALSE;
+    PL_reset_term_refs(a1);
+    _PL_get_arg(2, pi, pi);
+  }
+
+  return export_pi1(pi, module PASS_LD);
 }
 
 
@@ -1231,7 +1250,7 @@ PRED_IMPL("export", 1, export, PL_FA_TRANSPARENT)
 { PRED_LD
   Module module = NULL;
 
-  return export_pi(A1, module PASS_LD);
+  return export_pi(A1, module, 0 PASS_LD);
 }
 
 

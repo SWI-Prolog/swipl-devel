@@ -64,7 +64,8 @@ typedef enum
   ERR_DIV_BY_ZERO,		/* void */
   ERR_EVALUATION,		/* atom_t what */
   ERR_FAILED,			/* predicate_t proc */
-  ERR_MODIFY_STATIC_PROC,	/* predicate_t proc */
+  ERR_MODIFY_STATIC_PROC,	/* Procedure proc */
+  ERR_MODIFY_STATIC_PREDICATE,	/* Definition def */
   ERR_MODIFY_THREAD_LOCAL_PROC,	/* Procedure proc */
   ERR_NOT_EVALUABLE,		/* functor_t func */
   ERR_NOT_IMPLEMENTED_PROC,	/* name, arity */

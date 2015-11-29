@@ -101,9 +101,9 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 '$set_pattr'(M:T, _, How, Attr) :- !,
 	'$set_pattr'(T, M, How, Attr).
 '$set_pattr'(A, M, pred, Attr) :- !,
-	'$set_predicate_attribute'(M:A, Attr, 1).
+	'$set_predicate_attribute'(M:A, Attr, true).
 '$set_pattr'(A, M, directive, Attr) :- !,
-	catch('$set_predicate_attribute'(M:A, Attr, 1),
+	catch('$set_predicate_attribute'(M:A, Attr, true),
 	      error(E, _),
 	      print_message(error, error(E, context((Attr)/1,_)))).
 
@@ -137,7 +137,7 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 %	Predicates protected this way are never visible in the tracer.
 
 '$hide'(Pred) :-
-	'$set_predicate_attribute'(Pred, trace, 0).
+	'$set_predicate_attribute'(Pred, trace, false).
 
 
 		/********************************
@@ -2025,12 +2025,14 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 	'$compile_type'(What),
-
 	'$save_lex_state'(LexState, Options),
 	'$set_dialect'(Options),
-	'$load_file'(Absolute, Id, LM, Options),
+	call_cleanup('$load_file'(Absolute, Id, LM, Options),
+		     '$end_consult'(LexState, OldModule)).
+
+'$end_consult'(LexState, OldModule) :-
 	'$restore_lex_state'(LexState),
-	'$set_source_module'(_, OldModule).	% Restore old module
+	'$set_source_module'(_, OldModule).
 
 
 :- create_prolog_flag(emulated_dialect, swi, [type(atom)]).
@@ -2516,7 +2518,7 @@ load_files(Module:Files, Options) :-
 	Head =.. [Name|Args],
 	NewHead =.. [NewName|Args],
 	(   '$get_predicate_attribute'(Source:Head, transparent, 1)
-	->  '$set_predicate_attribute'(Context:NewHead, transparent, 1)
+	->  '$set_predicate_attribute'(Context:NewHead, transparent, true)
 	;   true
 	),
 	(   source_location(File, Line)

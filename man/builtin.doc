@@ -908,6 +908,12 @@ the argument clauses into static predicates, associating the predicates
 with the current file but avoids changing the notion of current predicate
 and therefore discontiguous warnings.
 
+Note that in some cases multiple expansions of similar goals can share
+the same compiled auxiliary predicate. In such cases, the implementation
+of goal_expansion/2 can use predicate_property/2 using the property
+\const{defined} to test whether the predicate is already defined in the
+current context.
+
     \predicate{dcg_translate_rule}{2}{+In, -Out}
 This predicate performs the translation of a term \exam{Head-->Body}
 into a normal Prolog clause.  Normally this functionality should be
@@ -1029,7 +1035,7 @@ End of conditional compilation.
 \end{description}
 
 
-\subsection{Loading files, active code and threads}
+\subsection{Reloading files, active code and threads}
 \label{sec:loadrunningcode}
 
 Traditionally, Prolog environments allow for reloading files holding
@@ -1041,16 +1047,116 @@ use of the development environment:
     \item Find unexpected behaviour of a predicate
     \item Enter a \jargon{break} using the \textbf{b} command
     \item Fix the sources and reload them using make/0
-    \item Exit the break, \jargon{retry} using the \textbf{r} command
+    \item Exit the break, \jargon{retry} executing the now
+	  fixed predicate using the \textbf{r} command
 \end{shortlist}
 
-Goals running during the reload keep running on the old definition,
-while new goals use the reloaded definition, which is why the
-\jargon{retry} must be used \emph{after} the reload. This implies that
-clauses of predicates that are active during the reload cannot be
-reclaimed. Normally a small amount of dead clauses should not be an
-issue during development. Such clauses can be reclaimed with
-garbage_collect_clauses/0.
+\jargon{Reloading} a previously loaded file is safe, both in the debug
+scenario above and when the code is being executed by another
+\jargon{thread}. Executing threads switch atomically to the new
+definition of modified predicates, while clauses that belong to the old
+definition are (eventually) reclaimed by
+garbage_collect_clauses/0.\footnote{As of version 7.3.12. Older versions
+wipe all clauses originating from the file before loading the new
+clauses. This causes threads that executes the code to (typically) die
+with an \jargon{undefined predicate} exception.}  Below we describe the
+steps taken for \emph{reloading} a file to help understanding the
+limitations of the process.
+
+\begin{enumerate}
+    \item If a file is being reloaded, a \jargon{reload context} is
+    associated to the file administration.  This context includes a
+    table keeping track of predicates and a table keeping track of
+    the module(s) associated with this source.
+    \item If a new predicate is found, an entry is added to the
+    context predicate table.  Three options are considered:
+    \begin{enumerate}
+        \item The predicate is new.  It is handled the same as
+	if the file was loaded for the first time.
+	\item The predicate is foreign or thread local.  These
+	too are threaded as if the file was loaded for the first
+	time.
+	\item Normal predicates.  Here we initialise a pointer
+	to the \emph{current clause}.
+    \end{enumerate}
+    \item New clauses for `normal predicates' are considered as
+    follows:
+    \begin{enumerate}
+        \item If the clause's byte-code is the same as the predicates
+	current clause, discard the clause and advance the current
+	clause pointer.
+	\item If the clause's byte-code is the same as some clause
+	further into the clause list of the predicate, discard the
+	new clause, mark all intermediate clauses for future deletion,
+	and advance the current clause pointer to the first clause
+	after the matched one.
+	\item If the clause's byte-code matches no clause, insert it
+	for \emph{future activation} before the current clause and
+	keep the current clause.
+    \end{enumerate}
+    \item \jargon{Properties} such as \const{dynamic} or \const{meta_predicate}
+    are in part applied immediately and in part during the fixup process
+    after the file completes loading.  Currently, \const{dynamic} and
+    \const{thread_local} are applied immediately.
+    \item New modules are recorded in the reload context.  Export declarations
+    (the module's public list and export/1 calls) are both applied and
+    recorded.
+    \item When the end-of-file is reached, the following fixup steps are taken
+    \begin{enumerate}
+        \item For each predicate
+	\begin{enumerate}
+	    \item The current clause and subsequent clauses are marked for
+	    future deletion.
+	    \item All clauses marked for future deletion or creation are
+	    (in)activated by changing their `erased' or `created'
+	    \jargon{generation}.  Erased clauses are (eventually)
+	    reclaimed by the \jargon{clause garbage collector}, see
+	    garbage_collect_clauses/0.
+	    \item Pending predicate property changes are applied.
+	\end{enumerate}
+	\item For each module
+	\begin{enumerate}
+	    \item Exported predicates that are not encountered in the
+	    reload context are removed from the export list.
+	\end{enumerate}
+    \end{enumerate}
+\end{enumerate}
+
+The above generally ensures that changes to the \emph{content} of source
+files can typically be activated safely using make/0. Global changes
+such as operator changes, changes of module names, changes to multi-file
+predicates, etc.\ sometimes require a restart. In almost all cases, the
+need for restart is indicated by permission or syntax errors during the
+reload or existence errors while running the program. If the content of
+a source file refers to itself there are some additional limitations,
+which are listed below. In some cases, loading the file \emph{twice}
+establishes the right result. In others one may use unload_file/1 to
+remove the file before reloading. In some cases, the process needs to be
+restarted.
+
+\begin{itemize}
+    \item \jargon{Directives} that execute code in the current file
+    will use the old definition of predicates because the new only
+    become available at the end of the loading process.  If the
+    standard required initialization/1 directive is used there is
+    no problem because the associated goal is executed after the
+    file completes loading.
+    \item Module-local rules for goal_expansion/2 or term_expansion/2
+    execute the old definition.  If such rules are changed, they become
+    active after loading the file \emph{twice}, where the first reload
+    updates the expansion rules and the second uses them.
+    \item Expansion and directives can normally only refer to predicates
+    defined \emph{before} they are used. During reload, it is also
+    possible to refer to predicates defined \emph{after} the location
+    they are used.  This may cause a file to work properly while being
+    reloaded, but failing while being loaded in a fresh image.
+    \item Using goal_expansion/2 that calls compile_aux_predicates/1,
+    assuming that multiple expansions can use the same auxiliary
+    definition must use predicate_property/2 using the property
+    \const{defined} to test whether the definition is already defined
+    in the current context.
+\end{itemize}
+
 
 \begin{description}
     \predicate{garbage_collect_clauses}{0}{}
@@ -1134,38 +1240,6 @@ used module.
 The current implementation does not detect such cases and the involved
 threads will freeze. This problem can be avoided if a mutually dependent
 collection of files is always loaded from the same start file.
-
-
-\subsubsection{Reloading running code}		\label{sec:reload}
-
-This section discusses \emph{not re-}loading of code.  Initial loading
-of code is discussed in \secref{mtload}.
-
-As of version 5.5.30, there is basic thread-safety for reloading
-source files while other threads are executing code defined in these
-source files.  Reloading a file freezes all threads after marking the
-active predicates originating from the file being reloaded.  The
-threads are resumed after the file has been loaded.  In addition,
-after completing loading the outermost file, the system runs
-garbage_collect_clauses/0.
-
-What does that mean? Unfortunately it does \emph{not} mean we can
-`hot-swap' modules.  Consider the case where thread $A$ is executing
-the recursive predicate $P$.  We `fix' $P$ and reload.  The already
-running goals for $P$ continue to run the old definition, but new
-recursive calls will use the new definition!  Many similar cases
-can be constructed with dependent predicates.
-
-It provides some basic security for reloading files in multithreaded
-applications during development.  In the above scenario the system
-does not crash uncontrolled, but behaves like any broken program:
-it may return the wrong bindings, wrong truth value or raise an
-exception.
-
-Future versions may have an `update now' facility.  Such a facility
-can be implemented on top of the \emph{logical update view}.  It would
-allow threads to do a controlled update between processing independent
-jobs.
 
 
 \subsection{Quick load files}		\label{sec:qlf}
@@ -3133,6 +3207,12 @@ True if the predicate is locked as a built-in predicate. This
 implies it cannot be redefined in its definition module and it can
 normally not be seen in the tracer.
 
+    \termitem{defined}{}
+True if the predicate is defined.  This property is aware of sources
+being \emph{reloaded}, in which case it claims the predicate defined
+only if it is defined in another source or it has seen a definition
+in the current source.  See compile_aux_clauses/1.
+
     \termitem{dynamic}{}
 True if assert/1 and retract/1 may be used to modify the predicate.
 This property is set using dynamic/1.
@@ -3216,7 +3296,7 @@ Predicate is declared public using public/1.  Note that without further
 definition, public predicates are considered undefined and this property
 is \emph{not} reported.
 
-    \termitem{quasi_quotation_syntax}
+    \termitem{quasi_quotation_syntax}{}
 The predicate (with arity~4) is declared to provide quasi quotation
 syntax with quasi_quotation_syntax/1.
 

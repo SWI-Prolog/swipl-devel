@@ -3387,8 +3387,9 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(term_t term, int where, atom_t owner, SourceLoc loc ARG_LD)
+assert_term(term_t term, ClauseRef where, atom_t owner, SourceLoc loc ARG_LD)
 { Clause clause;
+  ClauseRef cref;
   Procedure proc;
   Definition def;
   Module source_module = (loc ? LD->modules.source : (Module) NULL);
@@ -3515,8 +3516,10 @@ mode, the predicate is still undefined and is not dynamic or multifile.
       of->current_procedure = proc;
     }
 
-    if ( assertProcedure(proc, clause, where PASS_LD) )
-    { if ( warnings && !PL_get_nil(warnings) )
+    if ( (cref=assertProcedureSource(of, proc, clause PASS_LD)) )
+    { clause = cref->value.clause;
+
+      if ( warnings && !PL_get_nil(warnings) )
       { fid_t fid = PL_open_foreign_frame();
 	term_t cl = PL_new_term_ref();
 
@@ -3535,14 +3538,14 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   /* assert[az]/1 */
 
   if ( false(def, P_DYNAMIC) )
-  { if ( !setDynamicProcedure(proc, TRUE) )
+  { if ( !setDynamicDefinition(def, TRUE) )
     { freeClauseSilent(clause);
       return NULL;
     }
   }
 
-  if ( assertProcedure(proc, clause, where PASS_LD) )
-    return clause;
+  if ( (cref=assertProcedure(proc, clause, where PASS_LD)) )
+    return cref->value.clause;
 
   freeClauseSilent(clause);
   return NULL;
@@ -3779,7 +3782,7 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 			GP_NAMEARITY|GP_FINDHERE|GP_EXISTENCE_ERROR) )
       return FALSE;
 
-    if ( !setDynamicProcedure(proc, FALSE) )
+    if ( !setDynamicDefinition(proc->definition, FALSE) )
       return FALSE;
   }
 
@@ -6209,6 +6212,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   compileInfo ci;
   struct clause clause;
   Clause cl;
+  ClauseRef cref;
   Module module = NULL;
   size_t size;
 
@@ -6245,10 +6249,10 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   discardBuffer(&ci.codes);
 
 					/* TBD: see assert_term() */
-  if ( !assertProcedure(proc, cl, CL_END PASS_LD) )
-    fail;
+  if ( !(cref=assertProcedure(proc, cl, CL_END PASS_LD)) )
+    return FALSE;
 
-  return PL_unify_clref(A3, cl);
+  return PL_unify_clref(A3, cref->value.clause);
 }
 
 

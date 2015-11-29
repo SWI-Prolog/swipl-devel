@@ -182,7 +182,7 @@ phrase_quasi_quotation(_, Stream) :-
 
 quasi_quotation_syntax(M:Syntax) :-
 	must_be(atom, Syntax),
-	'$set_predicate_attribute'(M:Syntax/4, quasi_quotation_syntax, 1).
+	'$set_predicate_attribute'(M:Syntax/4, quasi_quotation_syntax, true).
 
 %%	quasi_quotation_syntax_error(+Error)
 %

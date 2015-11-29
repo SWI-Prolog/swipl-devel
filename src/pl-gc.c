@@ -3120,7 +3120,7 @@ setStartOfVMI(vm_state *state)
 	  { Sdprintf("At PC=%ld(%ld) of "
 		     "%d-th clause of %s (ARGP=%d; adepth=%d)\n",
 		     where, where0,
-		     clauseNo(fr->predicate, clause),
+		     clauseNo(fr->predicate, clause, 0),
 		     predicateName(fr->predicate),
 		     (state->argp - argFrameP(fr, 0)),
 		     state->adepth);

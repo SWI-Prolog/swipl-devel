@@ -657,6 +657,567 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 }
 
 
+		 /*******************************
+		 *	    RECONSULT		*
+		 *******************************/
+
+static void	fix_discontiguous(p_reload *r);
+static void	fix_metapredicate(p_reload *r);
+
+static int
+startReconsultFile(SourceFile sf)
+{ GET_LD
+  sf_reload *r;
+
+  DEBUG(MSG_RECONSULT, Sdprintf("Reconsult %s ...\n", sourceFileName(sf)));
+
+  if ( (r = allocHeap(sizeof(*sf->reload))) )
+  { memset(r, 0, sizeof(*r));
+    r->procedures        = newHTable(16);
+    r->reload_gen        = GEN_MAX-PL_thread_self();
+    r->pred_access_count = popNPredicateAccess(0);
+    sf->reload = r;
+
+    return TRUE;
+  }
+
+  return PL_no_memory();
+}
+
+
+static ClauseRef
+find_clause(ClauseRef cref, gen_t generation)
+{ for(; cref; cref = cref->next)
+  { if ( visibleClause(cref->value.clause, generation) )
+      break;
+  }
+
+  return cref;
+}
+
+
+static void
+advance_clause(p_reload *r ARG_LD)
+{ ClauseRef cref;
+
+  if ( (cref = r->current_clause) )
+  { acquire_def(r->predicate);
+    for(cref = cref->next; cref; cref = cref->next)
+    { if ( visibleClause(cref->value.clause, r->generation) )
+	break;
+    }
+    release_def(r->predicate);
+    r->current_clause = cref;
+  }
+}
+
+
+static void
+copy_clause_source(Clause dest, Clause src)
+{ dest->source_no = src->source_no;
+  dest->owner_no  = src->owner_no;
+  dest->line_no   = src->line_no;
+}
+
+
+static ClauseRef
+keep_clause(p_reload *r, Clause clause ARG_LD)
+{ ClauseRef cref = r->current_clause;
+  Clause keep = cref->value.clause;
+
+  copy_clause_source(keep, clause);
+  freeClauseSilent(clause);
+  advance_clause(r PASS_LD);
+
+  return cref;
+}
+
+
+static int
+equal_clause(Clause cl1, Clause cl2)
+{ if ( cl1->code_size == cl2->code_size )
+  { size_t bytes = (size_t)cl1->code_size * sizeof(code);
+
+    return memcmp(cl1->codes, cl2->codes, bytes) == 0;
+  }
+
+  return FALSE;
+}
+
+
+int
+reloadIsDefined(SourceFile sf, Procedure proc ARG_LD)
+{ p_reload *reload;
+
+  if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
+  { return ( true(reload, PROC_DEFINED) ||
+	     reload->number_of_clauses > 0 );
+  }
+
+  return FALSE;
+}
+
+
+int
+isDefinedProcedureSource(Procedure proc)
+{ GET_LD
+
+  if ( ReadingSource )
+  { SourceFile sf = lookupSourceFile(source_file_name, FALSE);
+
+    if ( sf && sf == indexToSourceFile(proc->source_no) && sf->reload )
+      return reloadIsDefined(sf, proc PASS_LD);
+  }
+
+  return isDefinedProcedure(proc);
+}
+
+
+static p_reload *
+reloadContext(SourceFile sf, Procedure proc ARG_LD)
+{ p_reload *reload;
+
+  if ( !(reload = lookupHTable(sf->reload->procedures, proc)) )
+  { Definition def = proc->definition;
+
+    if ( !(reload = allocHeap(sizeof(*reload))) )
+    { PL_no_memory();
+      return NULL;
+    }
+    memset(reload, 0, sizeof(*reload));
+    reload->predicate = def;
+    if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
+    { set(reload, P_NO_CLAUSES);
+    } else if ( isDefinedProcedure(proc) )
+    { reload->generation = GD->generation;
+      pushPredicateAccess(def, reload->generation);
+      acquire_def(def);
+      reload->current_clause = find_clause(def->impl.clauses.first_clause,
+					   reload->generation);
+      release_def(def);
+    } else
+    { set(reload, P_NEW);
+    }
+    addNewHTable(sf->reload->procedures, proc, reload);
+    DEBUG(MSG_RECONSULT_PRED,
+	  Sdprintf("%s %s ...\n",
+		   true(reload, P_NEW)        ? "New"   :
+		   true(reload, P_NO_CLAUSES) ? "Alien" :
+					        "Reload",
+		   predicateName(def)));
+  }
+
+  return reload;
+}
+
+
+ClauseRef
+assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
+{ if ( sf && sf->reload )
+  { p_reload *reload;
+    Definition def = proc->definition;
+    ClauseRef cref;
+
+    assert(proc == sf->current_procedure);
+
+    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    { freeClauseSilent(clause);
+      return NULL;
+    }
+
+    if ( reload->number_of_clauses++ == 0 )
+      fix_discontiguous(reload);
+
+    if ( true(reload, P_NEW|P_NO_CLAUSES) )
+      return assertProcedure(proc, clause, CL_END PASS_LD);
+
+    if ( (cref = reload->current_clause) )
+    { ClauseRef cref2;
+
+      if ( equal_clause(cref->value.clause, clause) )
+      { DEBUG(MSG_RECONSULT_CLAUSE,
+	      Sdprintf("  Keeping clause %d\n",
+		       clauseNo(def, cref->value.clause, reload->generation)));
+	return keep_clause(reload, clause PASS_LD);
+      }
+
+      set(reload, P_MODIFIED);
+
+      acquire_def(def);
+      for(cref2 = cref->next; cref2; cref2 = cref2->next)
+      { Clause c2 = cref2->value.clause;
+
+	if ( !visibleClause(c2, reload->generation) )
+	  continue;
+	if ( true(def, P_MULTIFILE) && c2->owner_no != sf->index )
+	  continue;
+
+	if ( equal_clause(c2, clause) )
+	{ ClauseRef del;
+
+	  for(del = cref; del != cref2; del = del->next)
+	  { Clause c = del->value.clause;
+
+	    if ( !visibleClause(c, reload->generation) ||
+		 true(c, CL_ERASED) )
+	      continue;
+	    if ( true(def, P_MULTIFILE) && c->owner_no != sf->index )
+	      continue;
+
+	    c->generation.erased = sf->reload->reload_gen;
+	    DEBUG(MSG_RECONSULT_CLAUSE,
+		  Sdprintf("  Deleted clause %d\n",
+			   clauseNo(def, c, reload->generation)));
+	  }
+	  release_def(def);
+
+	  reload->current_clause = cref2;
+	  DEBUG(MSG_RECONSULT_CLAUSE,
+		Sdprintf("  Keeping clause %d\n",
+			 clauseNo(def, cref2->value.clause, reload->generation)));
+	  return keep_clause(reload, clause PASS_LD);
+	}
+      }
+      release_def(def);
+
+      DEBUG(MSG_RECONSULT_CLAUSE,
+	    Sdprintf("  Inserted before clause %d\n",
+		     clauseNo(def, cref->value.clause, reload->generation)));
+      if ( (cref2 = assertProcedure(proc, clause, cref PASS_LD)) )
+	cref2->value.clause->generation.created = sf->reload->reload_gen;
+
+      return cref2;
+    } else
+    { if ( (cref = assertProcedure(proc, clause, CL_END PASS_LD)) )
+	cref->value.clause->generation.created = sf->reload->reload_gen;
+      DEBUG(MSG_RECONSULT_CLAUSE, Sdprintf("  Added at the end\n"));
+
+      set(reload, P_MODIFIED);
+
+      return cref;
+    }
+  }
+
+  return assertProcedure(proc, clause, CL_END PASS_LD);
+}
+
+
+static void
+associateSource(SourceFile sf, Procedure proc)
+{ Definition def = proc->definition;
+
+  if ( false(def, FILE_ASSIGNED) )
+  { GET_LD
+
+    DEBUG(2, Sdprintf("Associating %s to %s (%p)\n",
+		      predicateName(def), PL_atom_chars(source_file_name),
+		      def));
+    addProcedureSourceFile(sf, proc);
+
+    if ( SYSTEM_MODE )
+    { set(def, P_LOCKED|HIDE_CHILDS);
+    } else
+    { if ( truePrologFlag(PLFLAG_DEBUGINFO) )
+	clear(def, HIDE_CHILDS);
+      else
+	set(def, HIDE_CHILDS);
+    }
+  }
+}
+
+
+#define P_ATEND	(P_VOLATILE|P_PUBLIC|P_ISO|P_NOPROFILE|P_NON_TERMINAL)
+
+int
+setAttrProcedureSource(SourceFile sf, Procedure proc,
+		       unsigned attr, int val ARG_LD)
+{ if ( val && (attr&&PROC_DEFINED) )
+    associateSource(sf, proc);
+
+  if ( sf->reload )
+  { p_reload *reload;
+
+    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+      return FALSE;
+
+    if ( val )
+      set(reload, attr);
+    else
+      clear(reload, attr);
+
+    if ( (attr&(P_ATEND|P_TRANSPARENT)) )
+      return TRUE;
+  }
+
+  return setAttrDefinition(proc->definition, attr, val);
+}
+
+
+static void
+fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
+{ if ( false(def, P_MULTIFILE) )
+  { def->flags &= ~P_ATEND;
+    def->flags |= (r->flags&P_ATEND);
+
+    if ( true(def, P_DYNAMIC) && false(r, P_DYNAMIC) )
+      setDynamicDefinition(def, FALSE);
+    if ( true(def, P_THREAD_LOCAL) && false(r, P_THREAD_LOCAL) )
+    { if ( !setThreadLocalDefinition(def, FALSE) )
+      { term_t ex = PL_exception(0);
+
+	printMessage(ATOM_error, ex);
+	PL_clear_exception();
+      }
+    }
+  } else
+  { def->flags |= (r->flags&P_ATEND);
+  }
+
+  fix_metapredicate(r);
+}
+
+
+static void
+fix_discontiguous(p_reload *r)
+{ Definition def = r->predicate;
+
+  if ( true(def, P_DISCONTIGUOUS) && false(r, P_DISCONTIGUOUS) )
+    clear(def, P_DISCONTIGUOUS);
+}
+
+
+int
+setMetapredicateSource(SourceFile sf, Procedure proc,
+		       meta_mask mask ARG_LD)
+{ associateSource(sf, proc);
+
+  if ( sf->reload )
+  { p_reload *reload;
+
+    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+      return FALSE;
+
+    reload->meta_info = mask;
+    if ( isTransparentMetamask(proc->definition, mask) )
+      set(reload, P_TRANSPARENT);
+    else
+      clear(reload, P_TRANSPARENT);
+    set(reload, P_META);
+  } else
+  { setMetapredicateMask(proc->definition, mask);
+  }
+
+  return TRUE;
+}
+
+
+static void
+fix_metapredicate(p_reload *r)
+{ Definition def = r->predicate;
+
+  if ( false(def, P_MULTIFILE) )
+  { int mfmask = (P_META|P_TRANSPARENT);
+
+    if ( (def->flags&mfmask) != (r->flags&mfmask) ||
+	 def->meta_info != r->meta_info )
+    { if ( true(def, P_META) && false(r, P_META) )
+	clear_meta_declaration(def);
+      else if ( true(r, P_META) )
+	setMetapredicateMask(def, r->meta_info);
+      clear(def, P_TRANSPARENT);
+      set(def, r->flags&P_TRANSPARENT);
+
+      freeCodesDefinition(def, FALSE);
+    }
+  } else if ( true(r, P_META) )
+  { setMetapredicateMask(def, r->meta_info);
+    freeCodesDefinition(def, FALSE);
+  } else if ( true(r, P_TRANSPARENT) )
+  { set(def, P_TRANSPARENT);
+  }
+}
+
+
+void
+registerReloadModule(SourceFile sf, Module module)
+{ GET_LD
+  m_reload *r;
+
+  if ( sf->reload )
+  { Table mt;
+
+    if ( !(mt=sf->reload->modules) )
+      mt = sf->reload->modules = newHTable(8);
+
+    if ( !(r=lookupHTable(mt, module)) )
+    { r = allocHeapOrHalt(sizeof(*r));
+      memset(r, 0, sizeof(*r));
+      addNewHTable(mt, module, r);
+    }
+  }
+}
+
+
+int
+exportProcedureSource(SourceFile sf, Module module, Procedure proc)
+{ GET_LD
+  m_reload *r;
+
+  if ( sf->reload && sf->reload->modules &&
+       (r = lookupHTable(sf->reload->modules, module)) )
+  { if ( !r->public )
+      r->public = newHTable(8);
+    updateHTable(r->public,
+		 (void *)proc->definition->functor->functor,
+		 proc);
+  }
+
+  return exportProcedure(module, proc);
+}
+
+
+static void
+fix_module(Module m, m_reload *r)
+{ GET_LD
+
+  LOCKMODULE(m);
+  for_table(m->public, n, v,
+	    { if ( !r->public ||
+		   !lookupHTable(r->public, n) )
+	      { DEBUG(MSG_RECONSULT_MODULE,
+		      Sdprintf("Delete export %s\n",
+			       procedureName(v)));
+		deleteHTable(m->public, n);
+	      }
+	    });
+  UNLOCKMODULE(m);
+}
+
+
+static void
+delete_old_predicates(SourceFile sf)
+{ GET_LD
+  ListCell cell, prev = NULL, next;
+  size_t deleted = 0;
+
+  for(cell = sf->procedures; cell; cell = next)
+  { Procedure proc = cell->value;
+    Definition def = proc->definition;
+
+    next = cell->next;
+
+    if ( false(def, P_FOREIGN) &&
+	 !lookupHTable(sf->reload->procedures, proc) )
+    { deleted += removeClausesProcedure(proc,
+					true(def, P_MULTIFILE) ? sf->index : 0,
+					TRUE);
+
+      if ( false(def, P_MULTIFILE) )
+      { clear(def, FILE_ASSIGNED);
+	clear_meta_declaration(def);
+	freeCodesDefinition(def, TRUE);
+      }
+
+      DEBUG(MSG_RECONSULT_PRED,
+	    Sdprintf("Deleted %d clauses from predicate %s\n",
+		     (long)deleted, predicateName(def)));
+
+      if ( prev )
+	prev->next = cell->next;
+      else
+	sf->procedures = cell->next;
+    } else
+    { prev = cell;
+    }
+  }
+}
+
+
+static void
+delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
+{ ClauseRef cref;
+  sf_reload *rl = sf->reload;
+
+  acquire_def(def);
+  for(cref = r->current_clause; cref; cref = cref->next)
+  { Clause c = cref->value.clause;
+
+    if ( !visibleClause(c, r->generation) ||
+	 true(c, CL_ERASED) )
+      continue;
+    if ( true(r->predicate, P_MULTIFILE) && c->owner_no != sf->index )
+      continue;
+
+    c->generation.erased = rl->reload_gen;
+    DEBUG(MSG_RECONSULT_CLAUSE,
+	  Sdprintf("  Deleted clause %d\n",
+		   clauseNo(def, c, r->generation)));
+  }
+  release_def(def);
+}
+
+
+static int
+endReconsult(SourceFile sf)
+{ GET_LD
+  sf_reload *reload;
+
+  if ( (reload=sf->reload) )
+  { size_t accessed_preds = reload->procedures->size;
+
+    delete_old_predicates(sf);
+
+    for_table(reload->procedures, n, v,
+	      { Procedure proc = n;
+		p_reload *r = v;
+
+		if ( false(r, P_NEW|P_NO_CLAUSES) )
+		{ Definition def = proc->definition;
+
+		  delete_pending_clauses(sf, def, r PASS_LD);
+		  fix_attributes(sf, def, r PASS_LD);
+		  reconsultFinalizePredicate(reload, def, r PASS_LD);
+		} else
+		{ accessed_preds--;
+		  if ( true(r, P_NO_CLAUSES) )
+		  { Definition def = proc->definition;
+		    fix_attributes(sf, def, r PASS_LD);
+		  }
+		}
+		freeHeap(r, sizeof(*r));
+	      });
+
+    popNPredicateAccess(accessed_preds);
+    assert(reload->pred_access_count == popNPredicateAccess(0));
+    destroyHTable(reload->procedures);
+
+    if ( reload->modules )
+    { for_table(reload->modules, n, v,
+		{ Module m = n;
+		  m_reload *r = v;
+
+		  fix_module(m, r);
+		  if ( r->public )
+		    destroyHTable(r->public);
+		  freeHeap(r, sizeof(*r));
+		});
+      destroyHTable(reload->modules);
+    }
+
+    sf->reload = NULL;
+    freeHeap(reload, sizeof(*reload));
+
+    pl_garbage_collect_clauses();
+  }
+
+  return TRUE;
+}
+
+
+		 /*******************************
+		 *	      CONSULT		*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startConsult(SourceFile sf)
 
@@ -672,12 +1233,15 @@ There are two options.
     This way other threads can happily keep running.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 startConsult(SourceFile f)
 { if ( f->count++ > 0 )			/* This is a re-consult */
-    unloadFile(f);
+  { if ( !startReconsultFile(f) )
+      return FALSE;
+  }
 
   f->current_procedure = NULL;
+  return TRUE;
 }
 
 
@@ -713,10 +1277,12 @@ PRED_IMPL("$end_consult", 1, end_consult, 0)
   atom_t name;
 
   if ( PL_get_atom_ex(A1, &name) )
-  { SourceFile f;
+  { SourceFile sf;
 
-    if ( (f=lookupSourceFile(name, FALSE)) )
-      f->current_procedure = NULL;
+    if ( (sf=lookupSourceFile(name, FALSE)) )
+    { sf->current_procedure = NULL;
+      return endReconsult(sf);
+    }
 
     return TRUE;
   }

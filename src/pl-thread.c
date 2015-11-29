@@ -5614,119 +5614,6 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 }
 
 
-		 /*******************************
-		 * CLAUSE/3 PREDICATE REFERENCES*
-		 *******************************/
-
-static void
-init_predicate_references(PL_local_data_t *ld)
-{ definition_refs *refs = &ld->predicate_references;
-
-  memset(refs, 0, sizeof(*refs));
-  refs->blocks[0] = refs->preallocated - 1;
-  refs->blocks[1] = refs->preallocated - 1;
-  refs->blocks[2] = refs->preallocated - 1;
-
-#ifdef O_PLMT
-  simpleMutexInit(&ld->clauses.local_shift_mutex);
-#endif
-}
-
-static void
-free_predicate_references(PL_local_data_t *ld)
-{ definition_refs *refs = &ld->predicate_references;
-  int i;
-
-  for(i=3; i<MAX_BLOCKS; i++)
-  { size_t bs = (size_t)1<<i;
-    definition_ref *d0 = refs->blocks[i];
-
-    if ( d0 )
-      freeHeap(d0+bs, bs*sizeof(definition_ref));
-  }
-
-#ifdef O_PLMT
-  simpleMutexDelete(&ld->clauses.local_shift_mutex);
-#endif
-}
-
-int
-pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
-{ definition_refs *refs = &LD->predicate_references;
-  definition_ref *dref;
-  size_t top = refs->top+1;
-  size_t idx = MSB(top);
-
-  if ( !refs->blocks[idx] )
-  { size_t bs = (size_t)1<<idx;
-    definition_ref *newblock;
-
-    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(definition_ref))) )
-      outOfCore();
-
-    memset(newblock, 0, bs*sizeof(definition_ref));
-    refs->blocks[idx] = newblock-bs;
-  }
-
-  enterDefinition(def);			/* probably not needed in the end */
-  dref = &refs->blocks[idx][top];
-  dref->predicate  = def;
-  dref->generation = gen;
-
-  refs->top = top;
-
-  return TRUE;
-}
-
-void
-popPredicateAccess__LD(Definition def ARG_LD)
-{ definition_refs *refs = &LD->predicate_references;
-  definition_ref *dref;
-  size_t top = refs->top;
-  size_t idx = MSB(top);
-
-  dref = &refs->blocks[idx][top];
-  assert(dref->predicate == def);
-  dref->predicate  = NULL;
-  dref->generation = 0;
-  leaveDefinition(def);			/* probably not needed in the end */
-
-  refs->top--;
-}
-
-static inline int
-is_pointer_like(void *ptr)
-{
-#if SIZEOF_VOIDP == 4
-  intptr_t mask = 0x3;
-#elif SIZEOF_VOIDP == 8
-  intptr_t mask = 0x7;
-#else
-#error "Unknown pointer size"
-#endif
-  return ptr && ((intptr_t)ptr&mask) == 0;
-}
-
-void
-markAccessedPredicates(PL_local_data_t *ld)
-{ GET_LD
-  definition_refs *refs = &ld->predicate_references;
-  size_t i;
-
-  for(i=1; i<=refs->top; i++)
-  { int idx = MSB(i);
-    DirtyDefInfo ddi;
-    definition_ref dref = refs->blocks[idx][i];
-
-    if ( is_pointer_like(dref.predicate) &&
-	 (ddi=lookupHTable(GD->procedures.dirty, dref.predicate)) )
-    { if ( dref.generation < ddi->oldest_generation )
-	ddi->oldest_generation = dref.generation;
-    }
-  }
-}
-
-
 
 		 /*******************************
 		 *	DEBUGGING SUPPORT	*
@@ -6056,6 +5943,138 @@ pl_functor_table_in_use(FunctorTable functor_table)
   return FALSE;
 }
 
+		 /*******************************
+		 * CLAUSE/3 PREDICATE REFERENCES*
+		 *******************************/
+
+static void
+init_predicate_references(PL_local_data_t *ld)
+{ definition_refs *refs = &ld->predicate_references;
+
+  memset(refs, 0, sizeof(*refs));
+  refs->blocks[0] = refs->preallocated - 1;
+  refs->blocks[1] = refs->preallocated - 1;
+  refs->blocks[2] = refs->preallocated - 1;
+
+#ifdef O_PLMT
+  simpleMutexInit(&ld->clauses.local_shift_mutex);
+#endif
+}
+
+static void
+free_predicate_references(PL_local_data_t *ld)
+{ definition_refs *refs = &ld->predicate_references;
+  int i;
+
+  for(i=3; i<MAX_BLOCKS; i++)
+  { size_t bs = (size_t)1<<i;
+    definition_ref *d0 = refs->blocks[i];
+
+    if ( d0 )
+      freeHeap(d0+bs, bs*sizeof(definition_ref));
+  }
+
+#ifdef O_PLMT
+  simpleMutexDelete(&ld->clauses.local_shift_mutex);
+#endif
+}
+
+int
+pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
+{ definition_refs *refs = &LD->predicate_references;
+  definition_ref *dref;
+  size_t top = refs->top+1;
+  size_t idx = MSB(top);
+
+  if ( !refs->blocks[idx] )
+  { size_t bs = (size_t)1<<idx;
+    definition_ref *newblock;
+
+    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(definition_ref))) )
+      outOfCore();
+
+    memset(newblock, 0, bs*sizeof(definition_ref));
+    refs->blocks[idx] = newblock-bs;
+  }
+
+  enterDefinition(def);			/* probably not needed in the end */
+  dref = &refs->blocks[idx][top];
+  dref->predicate  = def;
+  dref->generation = gen;
+
+  refs->top = top;
+
+  return TRUE;
+}
+
+void
+popPredicateAccess__LD(Definition def ARG_LD)
+{ definition_refs *refs = &LD->predicate_references;
+  definition_ref *dref;
+  size_t top = refs->top;
+  size_t idx = MSB(top);
+
+  dref = &refs->blocks[idx][top];
+  assert(dref->predicate == def);
+  dref->predicate  = NULL;
+  dref->generation = 0;
+  leaveDefinition(def);			/* probably not needed in the end */
+
+  refs->top--;
+}
+
+size_t
+popNPredicateAccess__LD(size_t n ARG_LD)
+{ definition_refs *refs = &LD->predicate_references;
+
+  while(n-- > 0)
+  { definition_ref *dref;
+    size_t top = refs->top;
+    size_t idx = MSB(top);
+
+    dref = &refs->blocks[idx][top];
+    leaveDefinition(dref->predicate);
+    dref->predicate  = NULL;
+    dref->generation = 0;
+
+    refs->top--;
+  }
+
+  return refs->top;
+}
+
+
+static inline int
+is_pointer_like(void *ptr)
+{
+#if SIZEOF_VOIDP == 4
+  intptr_t mask = 0x3;
+#elif SIZEOF_VOIDP == 8
+  intptr_t mask = 0x7;
+#else
+#error "Unknown pointer size"
+#endif
+  return ptr && ((intptr_t)ptr&mask) == 0;
+}
+
+void
+markAccessedPredicates(PL_local_data_t *ld)
+{ GET_LD
+  definition_refs *refs = &ld->predicate_references;
+  size_t i;
+
+  for(i=1; i<=refs->top; i++)
+  { int idx = MSB(i);
+    DirtyDefInfo ddi;
+    definition_ref dref = refs->blocks[idx][i];
+
+    if ( is_pointer_like(dref.predicate) &&
+	 (ddi=lookupHTable(GD->procedures.dirty, dref.predicate)) )
+    { if ( dref.generation < ddi->oldest_generation )
+	ddi->oldest_generation = dref.generation;
+    }
+  }
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

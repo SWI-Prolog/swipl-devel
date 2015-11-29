@@ -235,14 +235,14 @@ trace_alias(fail, [trace_fail]).
 	'$trace'(A1, Head).
 '$trace'(+H, Head) :- !,
 	trace_alias(_, [H]),
-	'$set_predicate_attribute'(Head, H, 1).
+	'$set_predicate_attribute'(Head, H, true).
 '$trace'(-H, Head) :-
 	trace_alias(H, A0), !,
 	tag_list(A0, -, A1),
 	'$trace'(A1, Head).
 '$trace'(-H, Head) :- !,
 	trace_alias(_, [H]),
-	'$set_predicate_attribute'(Head, H, 0).
+	'$set_predicate_attribute'(Head, H, false).
 '$trace'(H, Head) :-
 	atom(H),
 	'$trace'(+H, Head).
@@ -807,6 +807,8 @@ define_or_generate(Pred) :-
 	'$get_predicate_attribute'(Pred, iso, 1).
 '$predicate_property'(quasi_quotation_syntax, Pred) :-
 	'$get_predicate_attribute'(Pred, quasi_quotation_syntax, 1).
+'$predicate_property'(defined, Pred) :-
+	'$get_predicate_attribute'(Pred, defined, 1).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).

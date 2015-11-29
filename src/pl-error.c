@@ -252,11 +252,20 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_ATOM, what);
       break;
     }
-    case ERR_MODIFY_STATIC_PROC:
-    { Procedure proc = va_arg(args, Procedure);
-      term_t pred = PL_new_term_ref();
+  { Definition def;				/* shared variables */
+    Procedure proc;
+    term_t pred;
 
-      rc = (unify_definition(MODULE_user, pred, proc->definition, 0,
+    case ERR_MODIFY_STATIC_PROC:
+      proc = va_arg(args, Procedure);
+      def = proc->definition;
+      goto modify_static;
+    case ERR_MODIFY_STATIC_PREDICATE:
+      def = va_arg(args, Definition);
+
+    modify_static:
+      rc = ((pred = PL_new_term_ref()) &&
+	    unify_definition(MODULE_user, pred, def, 0,
 			     GP_NAMEARITY|GP_HIDESYSTEM) &&
 	    PL_unify_term(formal,
 			  PL_FUNCTOR, FUNCTOR_permission_error3,
@@ -264,7 +273,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			    PL_ATOM, ATOM_static_procedure,
 			    PL_TERM, pred));
       break;
-    }
+  }
     case ERR_MODIFY_THREAD_LOCAL_PROC:
     { Procedure proc = va_arg(args, Procedure);
       term_t pred = PL_new_term_ref();

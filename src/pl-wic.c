@@ -1258,7 +1258,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      exit(1);
 	    }
 	  }
-	  assertProcedure(proc, clause, CL_END PASS_LD);
+	  if ( csf )
+	    csf->current_procedure = proc;
+	  assertProcedureSource(csf, proc, clause PASS_LD);
 	}
       }
     }

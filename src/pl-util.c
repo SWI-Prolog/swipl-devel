@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -174,6 +173,15 @@ keyName(word key)
 
 
 char *
+sourceFileName(SourceFile sf)
+{ char tmp[650];
+
+  strcpy(tmp, atom_summary(sf->name, 50));
+  return buffer_string(tmp, BUF_RING);
+}
+
+
+char *
 generationName(gen_t gen)
 { char tmp[256];
 
@@ -185,21 +193,30 @@ generationName(gen_t gen)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-clauseNo() returns the clause index of the given clause
+clauseNo() returns the clause index of the given clause at the given
+generation.  Use the current generation if gen is 0;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-clauseNo(Definition def, Clause cl)
+clauseNo(Definition def, Clause cl, gen_t gen)
 { GET_LD
   int i;
   ClauseRef cref;
 
+  if ( !gen )
+    gen = GD->generation;
+
   acquire_def(def);
-  for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
-  { if ( cref->value.clause == cl )
-    { release_def(def);
-      return i;
+  for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next)
+  { Clause c = cref->value.clause;
+
+    if ( visibleClause(c, gen) )
+    { if ( c == cl )
+      { release_def(def);
+	return i;
+      }
     }
+    i++;
   }
   release_def(def);
 

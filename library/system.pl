@@ -81,11 +81,11 @@ system_module :-
 %	Transform a predicate into a system predicate.
 
 lock_predicate(PredInd) :-
-	'$set_predicate_attribute'(PredInd, system, 1).
+	'$set_predicate_attribute'(PredInd, system, true).
 
 %%	unlock_predicate(+PredInd)
 %
 %	Transform a system predicate into a normal system predicate.
 
 unlock_predicate(PredInd) :-
-	'$set_predicate_attribute'(PredInd, system, 0).
+	'$set_predicate_attribute'(PredInd, system, false).

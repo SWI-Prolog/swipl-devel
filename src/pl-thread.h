@@ -393,6 +393,7 @@ COMMON(int)	pl_functor_table_in_use(FunctorTable functor_table);
 COMMON(int)	pl_kvs_in_use(KVS kvs);
 COMMON(int)	pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD);
 COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
+COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
 COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
 
 #endif /*PL_THREAD_H_DEFINED*/

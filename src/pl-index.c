@@ -501,7 +501,7 @@ newClauseListRef(word key)
 
 
 static void
-addClauseList(ClauseRef cref, Clause clause, int where)
+addClauseList(ClauseRef cref, Clause clause, ClauseRef where)
 { ClauseList cl = &cref->value.clauses;
   ClauseRef cr = newClauseRef(clause, 0); /* TBD: key? */
 
@@ -540,7 +540,8 @@ must be used if none of the indexes matches.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
+addClauseBucket(ClauseBucket ch, Clause cl,
+		word key, ClauseRef where, int is_list)
 { ClauseRef cr;
 
   if ( is_list )
@@ -1122,7 +1123,7 @@ indexed. This is needed for resizing the index.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-addClauseToIndex(ClauseIndex ci, Clause cl, int where)
+addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 { ClauseBucket ch = ci->entries;
   word key = indexKeyFromClause(ci, cl);
 
@@ -1143,24 +1144,32 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 addClauseToIndexes() is called (only) by   assertProcedure(),  which has
 the definition locked.
+
+We currently fail if the clause was not   added at the end or the start.
+This may be the case while  reconsulting.   In  this  case we delete the
+index after completion of the reconsult.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
-addClauseToIndexes(Definition def, Clause cl, int where)
+int
+addClauseToIndexes(Definition def, Clause cl, ClauseRef where)
 { ClauseIndex ci, next;
+  int rc = TRUE;
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
   { next = ci->next;
 
     if ( ci->size >= ci->resize_above )
       replaceIndex(def, ci, NULL);
-    else
+    else if ( where == CL_START || where == CL_END )
       addClauseToIndex(ci, cl, where);
+    else
+      rc = FALSE;
   }
 
   reconsider_index(def);
 
   DEBUG(CHK_SECURE, checkDefinition(def));
+  return rc;
 }
 
 
