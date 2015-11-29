@@ -969,7 +969,7 @@ PL_get_size_ex(term_t t, size_t *i)
   { switch(n.type)
     { case V_INTEGER:
 	if ( n.value.i >= 0 )
-	{ if ( fits_size(n.value) )
+	{ if ( fits_size(n.value.i) )
 	  { *i = n.value.i;
 	    return TRUE;
 	  }
