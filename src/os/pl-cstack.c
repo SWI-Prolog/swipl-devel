@@ -28,6 +28,7 @@
 #define _GNU_SOURCE
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#include <time.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of the library is to save   the  <N> most recent C stack traces

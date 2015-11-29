@@ -822,9 +822,9 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 static prolog_flag *
 lookupFlag(atom_t key)
 { GET_LD
+#ifdef O_PLMT
   prolog_flag *f = NULL;
 
-#ifdef O_PLMT
   if ( LD->prolog_flag.table &&
        (f = lookupHTable(LD->prolog_flag.table, (void *)key)) )
   { return f;
