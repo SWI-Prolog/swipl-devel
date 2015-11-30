@@ -61,21 +61,27 @@ bench_yall :-
 
 bench1 :-
 	numlist(1, 100000, List),
-	write('Using maplist/2 with a closure for testing less(0, X) with X in [1..100000]: '), nl,
+	writeln('Using maplist/2 with a closure for testing less(0, X) \c
+	         with X in [1..100000]: '),
 	time(maplist(less(0), List)),
-	write('Using maplist/2 with a lambda for testing less(0, X) with X in [1..100000]:  '), nl,
+	writeln('Using maplist/2 with a lambda for testing less(0, X) \c
+	         with X in [1..100000]:  '),
 	time(maplist([X]>>less(0,X), List)),
 	nl.
 
-% the second benchmark is based on code posted by Jan Wielemaker in the SWI-Prolog mailing list:
+% the second benchmark is based on code posted by Jan Wielemaker in the
+% SWI-Prolog mailing list:
 
 bench2 :-
 	numlist(1, 100000, List),
-	write('Adding 1 to every integer in the list [1..100000] using a local add1/2 predicate:'), nl,
+	writeln('Adding 1 to every integer in the list [1..100000] \c
+	         using a local add1/2 predicate:'),
 	time(add1(List, _)),
-	write('Adding 1 to every integer in the list [1..100000] using maplist/3 with the plus/3 built-in predicate:'), nl,
+	writeln('Adding 1 to every integer in the list [1..100000] \c
+	       using maplist/3 with the plus/3 built-in predicate:'),
 	time(maplist(plus(1), List, _)),
-	write('Adding 1 to every integer in the list [1..100000] using maplist/3 with a lambda argument with a is/2 goal:'), nl,
+	writeln('Adding 1 to every integer in the list [1..100000] \c
+	       using maplist/3 with a lambda argument with a is/2 goal:'),
 	time(maplist([X,Y]>>(Y is X+1), List, _)),
 	nl.
 
