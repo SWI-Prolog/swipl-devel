@@ -378,6 +378,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\modules.pl
   File ${SWIPL}\library\win_menu.pl
   File ${SWIPL}\library\console_input.pl
+  File ${SWIPL}\library\yall.pl
 
 ; WINDOWS
   File ${SWIPL}\library\dde.pl
