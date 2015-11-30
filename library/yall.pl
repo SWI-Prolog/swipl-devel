@@ -387,6 +387,7 @@ lambda_functor(/).
 system:goal_expansion(Goal, Head) :-
 	lambda_like(Goal),
 	prolog_load_context(source, _),
+	\+ current_prolog_flag(xref, true),
 	expand_lambda(Goal, Head).
 
 %%	is_lambda(@Term) is semidet.
@@ -486,3 +487,14 @@ classify_extra([_|T0], [classify|T]) :-
 prolog_colour:goal_colours(Goal, Spec) :-
 	lambda_like(Goal),
 	yall_colours(Goal, Spec).
+
+
+		 /*******************************
+		 *	    XREF SUPPORT	*
+		 *******************************/
+
+:- multifile prolog:called_by/4.
+
+prolog:called_by(Lambda, yall, _, [Goal]) :-
+	lambda_like(Lambda),
+	catch(lambda_calls(Lambda, Goal), _, fail).
