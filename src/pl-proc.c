@@ -2804,6 +2804,16 @@ setAttrDefinition(Definition def, unsigned attr, int val)
 }
 
 
+static int
+get_bool_or_int_ex(term_t t, int *val ARG_LD)
+{ if ( PL_get_bool(t, val) )
+    return TRUE;
+  if ( PL_get_integer(t, val) && !(*val & ~1) )
+    return TRUE;			/* accept 0 and 1 */
+  return PL_get_bool_ex(t, val);	/* generate an error */
+}
+
+
 word
 pl_set_predicate_attribute(term_t pred, term_t what, term_t value)
 { GET_LD
@@ -2814,7 +2824,7 @@ pl_set_predicate_attribute(term_t pred, term_t what, term_t value)
   uintptr_t att;
 
   if ( !PL_get_atom_ex(what, &key) ||
-       !PL_get_bool_ex(value, &val) ||
+       !get_bool_or_int_ex(value, &val PASS_LD) ||
        !(att = attribute_mask(key)) )
     return FALSE;
 
