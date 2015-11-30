@@ -530,7 +530,7 @@ default_module(Me, Super) :-
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
 	;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1)
-	    ->	Module:import(LoadModule:Head)
+	    ->	Module:import(LoadModule:Name/Arity)
 	    ;	use_module(Module:Library, [Name/Arity])
 	    )
 	),
