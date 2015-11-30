@@ -105,6 +105,7 @@ Its development of this module was sponsored by Kyndi, Inc.
 	  [ (>>)/2, (>>)/3, (>>)/4, (>>)/5, (>>)/6, (>>)/7, (>>)/8, (>>)/9,
 	    (/)/2, (/)/3, (/)/4, (/)/5, (/)/6, (/)/7, (/)/8, (/)/9,
 
+	    lambda_calls/2,			% +LambdaExt, -Goal
 	    lambda_calls/3,			% +Lambda, +Args, -Goal
 	    is_lambda/1				% @Term
 	  ]).
@@ -418,13 +419,21 @@ is_callable(Term) :-
 	callable(Goal).
 
 
-%%	lambda_calls(+LambdaExpression, +ExtraArgs, -Goal)
+%%	lambda_calls(+LambdaExpression, -Goal) is det.
+%%	lambda_calls(+LambdaExpression, +ExtraArgs, -Goal) is det.
 %
 %	Goal  is  the   goal   called   if    call/N   is   applied   to
 %	LambdaExpression, where ExtraArgs are   the additional arguments
 %	to call/N. ExtraArgs can be an  integer   or  a list of concrete
 %	arguments. This predicate is used for cross-referencing and code
 %	highlighting.
+
+lambda_calls(LambdaExtended, Goal) :-
+	compound(LambdaExtended),
+	compound_name_arguments(LambdaExtended, Name, [A1,A2|Extra]),
+	lambda_functor(Name),
+	compound_name_arguments(Lambda, Name, [A1,A2]),
+	lambda_calls(Lambda, Extra, Goal).
 
 lambda_calls(Lambda, Extra, Goal) :-
 	integer(Extra), !,
@@ -457,3 +466,23 @@ extend(Goal0, Extra, Goal) :-
 	compound_name_arguments(Goal0, Name, Args0),
 	append(Args0, Extra, Args),
 	compound_name_arguments(Goal, Name, Args).
+
+
+		 /*******************************
+		 *     SYNTAX HIGHLIGHTING	*
+		 *******************************/
+
+:- multifile prolog_colour:goal_colours/2.
+
+yall_colours(Lambda, built_in-[classify,body(Goal)|ArgSpecs]) :-
+	catch(lambda_calls(Lambda, Goal), _, fail),
+	Lambda =.. [>>,_,_|Args],
+	classify_extra(Args, ArgSpecs).
+
+classify_extra([], []).
+classify_extra([_|T0], [classify|T]) :-
+	classify_extra(T0, T).
+
+prolog_colour:goal_colours(Goal, Spec) :-
+	lambda_like(Goal),
+	yall_colours(Goal, Spec).
