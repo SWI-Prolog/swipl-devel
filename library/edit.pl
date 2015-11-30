@@ -186,6 +186,9 @@ locate(Module:Name, Module:Name/Arity, Location) :-
 	locate(Module:Name/Arity, Location).
 locate(Module:Head, Module:Name/Arity, Location) :-
 	callable(Head),
+	\+ ( Head = (PName/_),
+	     atom(PName)
+	   ),
 	functor(Head, Name, Arity),
 	locate(Module:Name/Arity, Location).
 locate(Spec, module(Spec), Location) :-
