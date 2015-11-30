@@ -959,7 +959,7 @@ fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
   { def->flags &= ~P_ATEND;
     def->flags |= (r->flags&P_ATEND);
 
-    if ( true(def, P_DYNAMIC) && false(r, P_DYNAMIC) )
+    if ( true(def, P_DYNAMIC) && false(r, P_DYNAMIC|P_THREAD_LOCAL) )
       setDynamicDefinition(def, FALSE);
     if ( true(def, P_THREAD_LOCAL) && false(r, P_THREAD_LOCAL) )
     { if ( !setThreadLocalDefinition(def, FALSE) )
