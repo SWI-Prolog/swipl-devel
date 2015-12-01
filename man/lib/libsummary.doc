@@ -208,3 +208,6 @@ This library is only available on Windows systems.
 
 \libsummary{varnumbers}
 \input{summaries.d/varnumbers.tex}
+
+\libsummary{yall}
+\input{summaries.d/yall.tex}

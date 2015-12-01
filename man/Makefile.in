@@ -51,7 +51,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/predicateoptions.tex lib/predopts.tex lib/random.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
 		lib/solutionsequences.tex lib/iostream.tex \
-		lib/persistency.tex
+		lib/persistency.tex lib/yall.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -223,6 +223,8 @@ lib/iostream.tex: ../library/iostream.pl
 		$(LIBTOTEX) 'library(iostream)'
 lib/persistency.tex: ../library/persistency.pl
 		$(LIBTOTEX) 'library(persistency)'
+lib/yall.tex: ../library/yall.pl
+		$(LIBTOTEX) 'library(yall)'
 
 
 ################################################################
