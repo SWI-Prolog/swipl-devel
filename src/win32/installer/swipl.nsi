@@ -617,6 +617,7 @@ Section "Package CLIB"
   File ${SWIPL}\bin\crypt.dll
   File ${SWIPL}\bin\files.dll
   File ${SWIPL}\bin\sha4pl.dll
+  File ${SWIPL}\bin\md54pl.dll
   File ${SWIPL}\bin\uri.dll
   File ${SWIPL}\bin\uuid.dll
   File ${SWIPL}\bin\memfile.dll
@@ -632,6 +633,7 @@ Section "Package CLIB"
   File ${SWIPL}\library\crypt.pl
   File ${SWIPL}\library\filesex.pl
   File ${SWIPL}\library\sha.pl
+  File ${SWIPL}\library\md5.pl
   File ${SWIPL}\library\uri.pl
   File ${SWIPL}\library\uuid.pl
   File ${SWIPL}\library\memfile.pl
