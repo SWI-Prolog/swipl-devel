@@ -140,16 +140,17 @@ system:term_expansion((:- setting(QName, Type, Default, Comment)),
 	to_atom(Comment, CommentAtom),
 	eval_default(Default, Module, Type, Value),
 	check_type(Type, Value),
-	(   current_setting(Name, Module, OType, ODef, _, OldLoc)
-	->  (   OType =@= Type, ODef =@= Default
-	    ->	Expanded = []
-	    ;	format(string(Message),
-		       'Already defined at: ~w', [OldLoc]),
-		throw(error(permission_error(redefine, setting, Module:Name),
-			    context(Message, _)))
-	    )
-	;   source_location(File, Line)
-	->  Expanded = settings:current_setting(Name, Module, Type, Default,
+	source_location(File, Line),
+	(   current_setting(Name, Module, OType, ODef, _, OldLoc),
+	    (	OType \=@= Type
+	    ;	 ODef \=@= Default
+	    ),
+	    OldLoc \= (File:_)
+	->  format(string(Message),
+		   'Already defined at: ~w', [OldLoc]),
+	    throw(error(permission_error(redefine, setting, Module:Name),
+			context(Message, _)))
+	;   Expanded = settings:current_setting(Name, Module, Type, Default,
 						CommentAtom, File:Line)
 	).
 
