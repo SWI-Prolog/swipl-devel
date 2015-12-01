@@ -29,6 +29,36 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+:- module(yall,
+	  [ (>>)/2, (>>)/3, (>>)/4, (>>)/5, (>>)/6, (>>)/7, (>>)/8, (>>)/9,
+	    (/)/2, (/)/3, (/)/4, (/)/5, (/)/6, (/)/7, (/)/8, (/)/9,
+
+	    lambda_calls/2,			% +LambdaExt, -Goal
+	    lambda_calls/3,			% +Lambda, +Args, -Goal
+	    is_lambda/1				% @Term
+	  ]).
+:- use_module(library(error)).
+:- use_module(library(lists)).
+
+:- meta_predicate
+	'>>'(?, 0),
+	'>>'(?, :, ?),
+	'>>'(?, :, ?, ?),
+	'>>'(?, :, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?, ?, ?, ?).
+
+:- meta_predicate
+	'/'(?, 0),
+	'/'(?, 1, ?),
+	'/'(?, 2, ?, ?),
+	'/'(?, 3, ?, ?, ?),
+	'/'(?, 4, ?, ?, ?, ?),
+	'/'(?, 5, ?, ?, ?, ?, ?),
+	'/'(?, 6, ?, ?, ?, ?, ?, ?),
+	'/'(?, 7, ?, ?, ?, ?, ?, ?, ?).
 
 /** <module> Lambda expressions
 
@@ -81,7 +111,7 @@ variables doesn't matter hence the {...} set notation.
 The [...] optional part lists lambda parameters. Here order of variables
 matters hence the list notation.
 
-As (/)/2 and (>>)/2 are standard operators,   no new operators are added
+As `/` and `>>` are standard infix operators, no new operators are added
 by this library. An advantage of this syntax is that we can simply unify
 a lambda expression with Free/Parameters>>Lambda to   access each of its
 components. Spaces in the lambda expression   are not a problem although
@@ -99,39 +129,6 @@ Its development of this module was sponsored by Kyndi, Inc.
 @tbd	Extend optimization support
 @author	Paulo Moura and Jan Wielemaker
 */
-
-
-:- module(yall,
-	  [ (>>)/2, (>>)/3, (>>)/4, (>>)/5, (>>)/6, (>>)/7, (>>)/8, (>>)/9,
-	    (/)/2, (/)/3, (/)/4, (/)/5, (/)/6, (/)/7, (/)/8, (/)/9,
-
-	    lambda_calls/2,			% +LambdaExt, -Goal
-	    lambda_calls/3,			% +Lambda, +Args, -Goal
-	    is_lambda/1				% @Term
-	  ]).
-:- use_module(library(error)).
-:- use_module(library(lists)).
-
-:- meta_predicate
-	'>>'(?, 0),
-	'>>'(?, :, ?),
-	'>>'(?, :, ?, ?),
-	'>>'(?, :, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?, ?, ?, ?).
-
-:- meta_predicate
-	'/'(?, 0),
-	'/'(?, 1, ?),
-	'/'(?, 2, ?, ?),
-	'/'(?, 3, ?, ?, ?),
-	'/'(?, 4, ?, ?, ?, ?),
-	'/'(?, 5, ?, ?, ?, ?, ?),
-	'/'(?, 6, ?, ?, ?, ?, ?, ?),
-	'/'(?, 7, ?, ?, ?, ?, ?, ?, ?).
-
 
 %%	>>(+Parameters, +Lambda).
 %%	>>(+Parameters, +Lambda, ?A1).
