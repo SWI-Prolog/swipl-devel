@@ -205,7 +205,7 @@ scientific publications:
 and the following URL to link to its documentation:
 
 ==
-http://www.swi-prolog.org/man/clpfd.html
+http://eu.swi-prolog.org/man/clpfd.html
 ==
 
 A collection of example programs illustrating several use cases of
