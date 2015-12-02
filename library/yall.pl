@@ -495,3 +495,25 @@ prolog_colour:goal_colours(Goal, Spec) :-
 prolog:called_by(Lambda, yall, _, [Goal]) :-
 	lambda_like(Lambda),
 	catch(lambda_calls(Lambda, Goal), _, fail).
+
+
+		 /*******************************
+		 *	  SANDBOX SUPPORT	*
+		 *******************************/
+
+:- multifile
+	sandbox:safe_meta_predicate/1,
+	sandbox:safe_meta/2.
+
+sandbox:safe_meta_predicate(yall:(/)/2).
+sandbox:safe_meta_predicate(yall:(/)/3).
+sandbox:safe_meta_predicate(yall:(/)/4).
+sandbox:safe_meta_predicate(yall:(/)/5).
+sandbox:safe_meta_predicate(yall:(/)/6).
+sandbox:safe_meta_predicate(yall:(/)/7).
+
+sandbox:safe_meta(yall:Lambda, [Goal]) :-
+	compound(Lambda),
+	compound_name_arity(Lambda, >>, Arity),
+	Arity >= 2,
+	lambda_calls(Lambda, Goal).
