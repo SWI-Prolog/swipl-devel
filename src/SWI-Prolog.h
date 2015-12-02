@@ -1155,8 +1155,9 @@ PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 #define _PL_get_arg(i,t,a) _PL_get_arg_sz(i,t,a)
 #endif
 #else
-#warning "Term arity has changed from int to size_t."
-#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+//Considered too alarming
+//#warning "Term arity has changed from int to size_t."
+//#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
 #endif
 
 #ifdef __cplusplus
