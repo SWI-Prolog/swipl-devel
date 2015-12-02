@@ -1784,7 +1784,7 @@ main()
     exit(0);
   } else
     exit(1);
-}], AC_DEFINE(O_PROFILE, 1, Define if SIGPROF and setitimer() are available)
+}], AC_DEFINE(O_SIGPROF_PROFILE, 1, Define if SIGPROF and setitimer() are available)
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no),
     true)

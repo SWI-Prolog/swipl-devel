@@ -156,6 +156,10 @@ handy for it someone wants to add a data type to the system.
 #define O_GVAR			1
 #define O_CYCLIC		1
 
+#if defined(O_SIGPROF_PROFILE) || defined(__WINDOWS__)
+#define O_PROFILE		1
+#endif
+
 #ifdef HAVE_GMP_H
 #define O_GMP			1
 #endif
