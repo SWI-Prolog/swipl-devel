@@ -137,7 +137,11 @@ destroyDefinition(Definition def)
     unregisterDirtyDefinition(def);
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
-    destroyClauseList(def->impl.clauses.first_clause);
+  { ClauseRef cref = def->impl.clauses.first_clause;
+
+    def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
+    destroyClauseList(cref);
+  }
 #ifdef O_PLMT
   else if ( true(def, P_THREAD_LOCAL) )
     free_ldef_vector(def->impl.local);
