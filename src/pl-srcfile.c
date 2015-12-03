@@ -562,6 +562,27 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
 }
 
 
+/** '$source_file_property'(+SrcFile, +Property, -Value) is semidet.
+*/
+
+static
+PRED_IMPL("$source_file_property", 3, source_file_property, 0)
+{ PRED_LD
+  atom_t filename, property;
+  SourceFile sf;
+
+  if ( !PL_get_atom_ex(A1, &filename) ||
+       !PL_get_atom_ex(A2, &property) ||
+       !(sf=lookupSourceFile(filename, FALSE)) )
+    return FALSE;
+
+  if ( property == ATOM_reload_count )
+    return PL_unify_integer(A3, sf->count);
+
+  return PL_domain_error("source_file_property", A2);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unloadFile(SourceFile sf)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1369,6 +1390,7 @@ BeginPredDefs(srcfile)
   PRED_DEF("$source_file", 2, source_file, 0)
   PRED_DEF("$source_file_predicates", 2, source_file_predicates, 0)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$source_file_property", 3, source_file_property, 0)
   PRED_DEF("$clause_from_source", 4, clause_from_source, 0)
   PRED_DEF("$unload_file", 1, unload_file, 0)
   PRED_DEF("$start_consult", 2, start_consult, 0)

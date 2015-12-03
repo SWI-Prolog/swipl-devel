@@ -695,6 +695,8 @@ following keys are defined:
 			being included when called while an include file
 			is being processed \\
 \const{module}        & Module into which file is loaded \\
+\const{reload}	      & \const{true} if the file is being
+			\textbf{re}loaded.  Not present on first load \\
 \const{script}	      & Boolean that indicates whether the file is
 			loaded as a script file (see
 			\cmdlineoption{-s}) \\

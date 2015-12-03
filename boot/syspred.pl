@@ -552,6 +552,10 @@ prolog_load_context(variable_names, Bindings) :-
 	nb_current('$variable_names', Bindings).
 prolog_load_context(term, Term) :-
 	nb_current('$term', Term).
+prolog_load_context(reload, true) :-
+	prolog_load_context(source, F),
+	'$source_file_property'(F, reload_count, C),
+	C > 0.
 
 %%	unload_file(+File) is det.
 %
