@@ -148,6 +148,11 @@ test(reload_maplist) :-
 	assertion(reload_maplist:square_list([1,2,3], [1,16,81])),
 	reload(reload_maplist, 1),
 	assertion(reload_maplist:square_list([1,2,3], [1,16,81])).
+test(mod_dynamic) :-
+	reload(mod_dynamic, 1),
+	assertion(mod_dynamic:p(x)),
+	reload(mod_dynamic, 2),
+	assertion(forall(mod_dynamic:p(X), mod_dynamic:p(X))).
 
 :- end_tests(reconsult).
 
