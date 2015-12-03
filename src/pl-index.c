@@ -1100,7 +1100,7 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
     if ( true(def, P_DYNAMIC) )
     { if ( def->impl.clauses.number_of_clauses < ci->resize_below )
       { DEBUG(MSG_JIT_DELINDEX,
-	      Sdprintf("Deleted index %d from %s\n",
+	      Sdprintf("Deleted index %d from %s (shrunk too much)\n",
 		       (int)ci->args[0], predicateName(def)));
 	replaceIndex(def, ci, NULL);
       } else
@@ -1108,6 +1108,27 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
       }
     } else
     { replaceIndex(def, ci, NULL);
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See addClauseToIndexes() and reconsultFinalizePredicate()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+deleteIncompleteIndexes(Definition def)
+{ ClauseIndex ci, next;
+
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
+  { next = ci->next;
+
+    if ( ci->incomplete )
+    { DEBUG(MSG_JIT_DELINDEX,
+	    Sdprintf("Deleted index %d from %s (incomplete)\n",
+		     (int)ci->args[0], predicateName(def)));
+      replaceIndex(def, ci, NULL);
     }
   }
 }
@@ -1163,7 +1184,9 @@ addClauseToIndexes(Definition def, Clause cl, ClauseRef where)
     else if ( where == CL_START || where == CL_END )
       addClauseToIndex(ci, cl, where);
     else
+    { ci->incomplete = TRUE;
       rc = FALSE;
+    }
   }
 
   reconsider_index(def);
