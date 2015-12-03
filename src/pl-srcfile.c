@@ -576,8 +576,10 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
        !(sf=lookupSourceFile(filename, FALSE)) )
     return FALSE;
 
-  if ( property == ATOM_reload_count )
+  if ( property == ATOM_load_count )
     return PL_unify_integer(A3, sf->count);
+  if ( property == ATOM_reloading )
+    return PL_unify_bool(A3, sf->reload != NULL);
 
   return PL_domain_error("source_file_property", A2);
 }

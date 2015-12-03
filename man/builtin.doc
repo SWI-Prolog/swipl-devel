@@ -657,6 +657,10 @@ source. \arg{Options} are the options passed to load_files/2. Note that
 all predicates to load files are mapped to load_files/2, using the
 option argument to specify the exact behaviour.
 
+	\termitem{load_count}{-Count}
+\arg{Count} is the number of times the file have been loaded, i.e.,
+1 (one) if the file has been loaded once.
+
 	\termitem{modified}{Stamp}
 File modification time when \arg{File} was loaded.  This is used by
 make/0 to find files whose modification time is different from when
@@ -664,6 +668,9 @@ it was loaded.
 
 	\termitem{module}{Module}
 \arg{File} is a module file that declares the module \arg{Module}.
+
+	\termitem{reloading}{}
+Present if the file is currently being \textbf{re}loaded.
     \end{description}
 
     \predicate{unload_file}{1}{+File}

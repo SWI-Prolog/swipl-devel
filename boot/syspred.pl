@@ -487,6 +487,10 @@ property_source_file(included_in(Master, Line), File) :-
 	system:'$included'(Master, Line, File, _).
 property_source_file(derived_from(DerivedFrom, Stamp), File) :-
 	system:'$derived_source'(File, DerivedFrom, Stamp).
+property_source_file(reloading, File) :-
+	system:'$source_file_property'(File, reloading, true).
+property_source_file(load_count(Count), File) :-
+	system:'$source_file_property'(File, load_count, Count).
 
 
 %%	canonical_source_file(+Spec, -File) is semidet.
@@ -552,10 +556,9 @@ prolog_load_context(variable_names, Bindings) :-
 	nb_current('$variable_names', Bindings).
 prolog_load_context(term, Term) :-
 	nb_current('$term', Term).
-prolog_load_context(reload, true) :-
+prolog_load_context(reloading, true) :-
 	prolog_load_context(source, F),
-	'$source_file_property'(F, reload_count, C),
-	C > 0.
+	'$source_file_property'(F, reloading, true).
 
 %%	unload_file(+File) is det.
 %
