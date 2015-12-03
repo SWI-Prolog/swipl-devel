@@ -98,27 +98,27 @@ static void *	htable_put(Table ht, KVS kvs, void *name, void *value, int flags);
 #define HTABLE_SENTINEL  ((void*)-2)
 
 
-inline void *htable_name(KVS kvs, int idx)
+static inline void *htable_name(KVS kvs, int idx)
 { return kvs->entries[idx].name;
 }
 
-inline void *htable_value(KVS kvs, int idx)
+static inline void *htable_value(KVS kvs, int idx)
 { return kvs->entries[idx].value;
 }
 
-inline int htable_cas_name(KVS kvs, int idx, void *exp, void *name)
+static inline int htable_cas_name(KVS kvs, int idx, void *exp, void *name)
 { return COMPARE_AND_SWAP(&kvs->entries[idx].name, exp, name);
 }
 
-inline int htable_cas_value(KVS kvs, int idx, void *exp, void *value)
+static inline int htable_cas_value(KVS kvs, int idx, void *exp, void *value)
 { return COMPARE_AND_SWAP(&kvs->entries[idx].value, exp, value);
 }
 
-inline int htable_cas_new_kvs(KVS kvs, KVS new_kvs)
+static inline int htable_cas_new_kvs(KVS kvs, KVS new_kvs)
 { return COMPARE_AND_SWAP(&kvs->next, NULL, new_kvs);
 }
 
-inline int htable_cas_cleanup(Table ht, int exp, int cleanup)
+static inline int htable_cas_cleanup(Table ht, int exp, int cleanup)
 { return COMPARE_AND_SWAP(&ht->cleanup, exp, cleanup);
 }
 
