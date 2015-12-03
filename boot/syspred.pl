@@ -488,9 +488,11 @@ property_source_file(included_in(Master, Line), File) :-
 property_source_file(derived_from(DerivedFrom, Stamp), File) :-
 	system:'$derived_source'(File, DerivedFrom, Stamp).
 property_source_file(reloading, File) :-
-	system:'$source_file_property'(File, reloading, true).
+	source_file(File),
+	'$source_file_property'(File, reloading, true).
 property_source_file(load_count(Count), File) :-
-	system:'$source_file_property'(File, load_count, Count).
+	source_file(File),
+	'$source_file_property'(File, load_count, Count).
 
 
 %%	canonical_source_file(+Spec, -File) is semidet.
