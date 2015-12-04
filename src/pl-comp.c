@@ -5226,14 +5226,18 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
 	return FALSE;
 
       _PL_get_arg(1, head, h);
-      if ( !PL_unify_atom(h, def->module->name) )
-      { atom_t a;
-	Module m;
+      if ( def->module )
+      { if ( !PL_unify_atom(h, def->module->name) )
+	{ atom_t a;
+	  Module m;
 
-	if ( !PL_get_atom(h, &a) ||
-	     !(m = isCurrentModule(a)) ||
-	     !isSuperModule(def->module, m) )
-	  fail;
+	  if ( !PL_get_atom(h, &a) ||
+	       !(m = isCurrentModule(a)) ||
+	       !isSuperModule(def->module, m) )
+	    fail;
+	}
+      } else
+      { PL_unify_atom(h, ATOM_garbage_collected);
       }
 
       _PL_get_arg(2, head, h);
