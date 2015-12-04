@@ -217,7 +217,7 @@ typedef struct wic_state
   char *mkWicFile;			/* Wic file under construction */
   IOSTREAM *wicFd;			/* file descriptor of wic file */
 
-  Procedure currentProc;		/* current procedure */
+  Definition currentPred;		/* current procedure */
   SourceFile currentSource;		/* current source file */
 
   Table	savedXRTable;			/* saved XR entries */
@@ -249,7 +249,7 @@ static void	putString(const char *, size_t len, IOSTREAM *);
 static void	putNum(int64_t, IOSTREAM *);
 static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(wic_state *state, Clause cl);
-static void	closeProcedureWic(wic_state *state);
+static void	closePredicateWic(wic_state *state);
 static word	loadXRc(wic_state *state, int c ARG_LD);
 static atom_t   getBlob(wic_state *state ARG_LD);
 static bool	loadStatement(wic_state *state, int c, int skip ARG_LD);
@@ -1120,7 +1120,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	clause->variables   = (unsigned short) getInt(fd);
 	if ( getLong(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
-	clause->procedure = proc;
+	clause->predicate = def;
 	GD->statistics.codes += clause->code_size;
 
 	bp = clause->codes;
@@ -1742,7 +1742,7 @@ freeXRSymbol(void *name, void *value)
 
 void
 initXR(wic_state *state)
-{ state->currentProc		   = NULL;
+{ state->currentPred		   = NULL;
   state->currentSource		   = NULL;
   state->savedXRTable		   = newHTable(256);
   state->savedXRTable->free_symbol = freeXRSymbol;
@@ -2159,10 +2159,10 @@ saveWicClause(wic_state *state, Clause clause)
 		*********************************/
 
 static void
-closeProcedureWic(wic_state *state)
-{ if ( state->currentProc )
+closePredicateWic(wic_state *state)
+{ if ( state->currentPred )
   { Sputc('X', state->wicFd);
-    state->currentProc = NULL;
+    state->currentPred = NULL;
   }
 }
 
@@ -2187,14 +2187,13 @@ predicateFlags(Definition def, atom_t sclass)
 
 
 static void
-openProcedureWic(wic_state *state, Procedure proc, atom_t sclass ARG_LD)
-{ if ( proc != state->currentProc)
+openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
+{ if ( def != state->currentPred)
   { IOSTREAM *fd = state->wicFd;
-    Definition def = proc->definition;
     int mode = predicateFlags(def, sclass);
 
-    closeProcedureWic(state);
-    state->currentProc = proc;
+    closePredicateWic(state);
+    state->currentPred = def;
 
     if ( def->module != LD->modules.source )
     { Sputc('O', fd);
@@ -2243,7 +2242,7 @@ static bool
 writeWicTrailer(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('X', fd);
   destroyXR(state);
   Sputc('T', fd);
@@ -2269,7 +2268,7 @@ addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
   loc.line = source_line_no;
 
   if ( (clause = assert_term(term, CL_END, file, &loc PASS_LD)) )
-  { openProcedureWic(state, clause->procedure, ATOM_development PASS_LD);
+  { openPredicateWic(state, clause->predicate, ATOM_development PASS_LD);
     saveWicClause(state, clause);
 
     succeed;
@@ -2283,7 +2282,7 @@ static bool
 addDirectiveWic(wic_state *state, term_t term ARG_LD)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('D', fd);
   putNum(source_line_no, fd);
 
@@ -2296,7 +2295,7 @@ importWic(wic_state *state, Procedure proc, atom_t strength ARG_LD)
 { int flags = atomToImportStrength(strength);
 
   assert(flags >= 0);
-  closeProcedureWic(state);
+  closePredicateWic(state);
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc PASS_LD);
@@ -2508,7 +2507,7 @@ static bool
 qlfClose(wic_state *state ARG_LD)
 { int rc;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   writeSourceMarks(state);
   rc = Sclose(state->wicFd);
   state->wicFd = NULL;
@@ -2700,7 +2699,7 @@ static bool
 qlfStartModule(wic_state *state, Module m ARG_LD)
 { IOSTREAM *fd = state->wicFd;
   ListCell c;
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('Q', fd);
   Sputc('M', fd);
   saveXR(state, m->name);
@@ -2743,7 +2742,7 @@ static bool
 qlfStartSubModule(wic_state *state, Module m ARG_LD)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('M', fd);
   saveXR(state, m->name);
 
@@ -2755,7 +2754,7 @@ static bool
 qlfStartFile(wic_state *state, SourceFile f)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('Q', fd);
   qlfSaveSource(state, f);
 
@@ -2767,7 +2766,7 @@ static bool
 qlfEndPart(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('X', fd);
 
   succeed;
@@ -3089,7 +3088,7 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
 	 !PL_get_atom_ex(A2, &sclass) )
       fail;
 
-    openProcedureWic(state, clause->procedure, sclass PASS_LD);
+    openPredicateWic(state, clause->predicate, sclass PASS_LD);
     saveWicClause(state, clause);
   }
 

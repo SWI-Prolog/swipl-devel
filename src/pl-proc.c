@@ -945,7 +945,7 @@ reclaimRetracted(Clause cl)
 { DEBUG(MSG_CGC_CREF_TRACK,
 	{ void *v = deleteHTable(retracted_clauses, cl);
 	  if ( v != (void*)1 && GD->cleaning == CLN_NORMAL )
-	  { Definition def = cl->procedure->definition;
+	  { Definition def = cl->predicate;
 	    Sdprintf("reclaim not retracted from %s\n", predicateName(def));
 	  }
 	});
@@ -956,7 +956,7 @@ listNotReclaimed(void)
 { if ( retracted_clauses )
   { for_table(retracted_clauses, n, v,
 	      { Clause cl = n;
-		Definition def = cl->procedure->definition;
+		Definition def = cl->predicate;
 
 		Sdprintf("%p from %s\n", cl, predicateName(def));
 	      });
@@ -994,7 +994,7 @@ newClauseRef(Clause clause, word key)
   DEBUG(MSG_CGC_CREF_PL,
 	Sdprintf("/**/ a(%p, %p, %d, '%s').\n",
 		 cref, clause, clause->references,
-		 predicateName(clause->procedure->definition)));
+		 predicateName(clause->predicate)));
 
   cref->next         = NULL;
   cref->d.key        = key;
@@ -1061,7 +1061,7 @@ gcClauseRefs(void)
     { Definition def;
 
       next = cref->d.gnext;
-      def = cref->value.clause->procedure->definition;
+      def = cref->value.clause->predicate;
       if ( !activePredicate(active_defs, def) )
       { freeClauseRef(cref);
 	freed++;
@@ -1354,7 +1354,7 @@ void
 freeClause(Clause clause)
 {
 #if O_DEBUGGER
-  Definition def = clause->procedure->definition;
+  Definition def = clause->predicate;
 
   if ( PROCEDURE_event_hook1 &&
        def != PROCEDURE_event_hook1->definition )
@@ -2932,7 +2932,7 @@ PRED_IMPL("$get_clause_attribute", 3, get_clause_attribute, 0)
     return PL_unify_atom(value, erased);
   } else if ( a == ATOM_predicate_indicator )
   { if ( unify_definition(MODULE_user, value,
-			  clause->procedure->definition, 0,
+			  clause->predicate, 0,
 			  GP_QUALIFY|GP_NAMEARITY) )
       return TRUE;
   } else if ( a == ATOM_module )
@@ -3096,7 +3096,7 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
       Clause copy = PL_malloc_atomic(size);
 
       memcpy(copy, cl, size);
-      copy->procedure = to;
+      copy->predicate = copy_def;
       if ( def->module != copy_def->module )
 	remoduleClause(copy, def->module, copy_def->module);
 #ifdef O_ATOMGC

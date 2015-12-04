@@ -1817,8 +1817,7 @@ PRED_IMPL("instance", 2, instance, 0)
 
 static
 PRED_IMPL("erase", 1, erase, 0)
-{ PRED_LD
-  void *ptr;
+{ void *ptr;
   RecordRef prev, r;
   RecordList l;
   word rval;
@@ -1831,7 +1830,7 @@ PRED_IMPL("erase", 1, erase, 0)
 
   if ( type == DB_REF_CLAUSE )
   { Clause clause = ptr;
-    Definition def = getProcDefinition(clause->procedure);
+    Definition def = clause->predicate;
 
     if ( !true(def, P_DYNAMIC) )
       return PL_error("erase", 1, NULL, ERR_PERMISSION,

@@ -1172,7 +1172,7 @@ checkCodeTable().
 #define sizeofClause(n) ((char *)&((Clause)NULL)->codes[n] - (char *)NULL)
 
 struct clause
-{ Procedure	procedure;		/* procedure we belong to */
+{ Definition		predicate;	/* Predicate I belong to */
 #ifdef O_LOGICAL_UPDATE
   struct
   { gen_t created;			/* Generation that created me */

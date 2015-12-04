@@ -2188,7 +2188,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   static struct clause_ref cref;
 
   if ( !top_initialized )
-  { clause.procedure = PROCEDURE_dc_call_prolog;
+  { clause.predicate = PROCEDURE_dc_call_prolog->definition;
     clause.generation.erased = ~(gen_t)0;
     clause.code_size = 1;
     clause.codes[0] = encode(I_EXITQUERY);

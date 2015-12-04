@@ -1532,12 +1532,13 @@ compileClause(Clause *cp, Word head, Word body,
 { compileInfo ci;			/* data base for the compiler */
   struct clause clause;
   Clause cl;
+  Definition def = getProcDefinition(proc);
   int rc;
 
   if ( head )
   { ci.islocal      = FALSE;
     ci.subclausearg = 0;
-    ci.arity        = (int)proc->definition->functor->arity;
+    ci.arity        = (int)def->functor->arity;
     ci.argvars      = 0;
     clause.flags    = 0;
   } else
@@ -1552,7 +1553,7 @@ compileClause(Clause *cp, Word head, Word body,
     *g		    = *body;
   }
 
-  clause.procedure  = proc;
+  clause.predicate  = def;
   clause.code_size  = 0;
   clause.source_no  = clause.line_no = 0;
   clause.owner_no   = 0;
@@ -4091,7 +4092,7 @@ clauseBodyContext(const Clause cl)
     }
   }
 
-  return cl->procedure->definition->module;
+  return cl->predicate->module;
 }
 
 
@@ -4252,7 +4253,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
   term_t argp = 0;
   int argn = 0;
   int pushed = 0;
-  Definition def = getProcDefinition(clause->procedure);
+  Definition def = clause->predicate;
 
   if ( di->bindings )
   { term_t tail = PL_copy_term_ref(di->bindings);
@@ -5337,8 +5338,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
 	  if ( decompile(clause, term, bindings) != TRUE )
 	    return FALSE;
-	  proc = clause->procedure;
-	  def = getProcDefinition(proc);
+	  def = clause->predicate;
 	  if ( true(clause, GOAL_CLAUSE) )
 	  { tmp = head;
 	  } else
@@ -5370,14 +5370,12 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       break;
     }
     case FRG_REDO:
-      chp  = CTX_PTR;
-      proc = chp->cref->value.clause->procedure;
-      def  = getProcDefinition(proc);
+      chp = CTX_PTR;
+      def = chp->cref->value.clause->predicate;
       break;
     case FRG_CUTTED:
       chp = CTX_PTR;
-      proc = chp->cref->value.clause->procedure;
-      def  = getProcDefinition(proc);
+      def = chp->cref->value.clause->predicate;
       popPredicateAccess(def);
       freeForeignState(chp, sizeof(*chp));
       succeed;
@@ -5469,7 +5467,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   { cr = ForeignContextPtr(h);
 
     if ( cr )
-    { def = getProcDefinition(cr->clause->value.clause->procedure);
+    { def = cr->clause->value.clause->predicate;
       popPredicateAccess(def);
       freeForeignState(cr, sizeof(*cr));
     }
@@ -5483,8 +5481,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       if ( true(clause, GOAL_CLAUSE) )
 	fail;				/* I do not belong to a predicate */
 
-      proc = clause->procedure;
-      def  = getProcDefinition(proc);
+      def = clause->predicate;
       acquire_def(def);
       for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
       { if ( cref->value.clause == clause )
@@ -5545,7 +5542,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     pushPredicateAccess(def, generation);
   } else
   { cr = ForeignContextPtr(h);
-    def = getProcDefinition(cr->clause->value.clause->procedure);
+    def = cr->clause->value.clause->predicate;
   }
 
   PL_unify_integer(n, cr->index);
@@ -6226,7 +6223,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   ci.argvars      = 0;
 
   clause.flags       = 0;
-  clause.procedure   = proc;
+  clause.predicate   = proc->definition;
   clause.code_size   = 0;
   clause.source_no   = clause.line_no = 0;
   clause.variables   = ci.arity;
