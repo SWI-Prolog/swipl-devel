@@ -1901,7 +1901,6 @@ pl_garbage_collect_clauses(void)
 	    PL_backtrace(5,0);
 	  });
 
-    PL_LOCK(L_THREAD);			/* avoid threads to drop out */
 					/* sanity-check */
     for_table(GD->procedures.dirty, n, v,
 	      { DirtyDefInfo ddi = v;
@@ -1913,10 +1912,12 @@ pl_garbage_collect_clauses(void)
 		ddi->oldest_generation = GEN_MAX; /* see (*) */
 	      });
 
+    PL_LOCK(L_THREAD);			/* avoid threads to drop out */
     markPredicatesInEnvironments(LD);
 #ifdef O_PLMT
     forThreadLocalDataUnsuspended(markPredicatesInEnvironments, 0);
 #endif
+    PL_UNLOCK(L_THREAD);
 
     DEBUG(MSG_CGC, Sdprintf("(marking done)\n"));
 
@@ -1942,8 +1943,6 @@ pl_garbage_collect_clauses(void)
 
 		maybeUnregisterDirtyDefinition(def);
 	      });
-
-    PL_UNLOCK(L_THREAD);
 
     gcClauseRefs();
     GD->clauses.cgc_count++;
