@@ -277,9 +277,11 @@ breakpoint(Id) -->
 	).
 
 breakpoint_name(Id) -->
-	{ breakpoint_property(Id, clause(ClauseRef)),
-	  clause_name(ClauseRef, Name)
-	},
-	['~w in ~w'-[Id, Name]].
+	{ breakpoint_property(Id, clause(ClauseRef)) },
+	(   { clause_property(ClauseRef, erased) }
+	->  ['~w'-[Id]]
+	;   { clause_name(ClauseRef, Name) },
+	    ['~w in ~w'-[Id, Name]]
+	).
 
 
