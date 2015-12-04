@@ -1250,7 +1250,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	if ( skip )
-	{ freeClauseSilent(clause);
+	{ freeClause(clause);
 	} else
 	{ if ( has_dicts )
 	  { if ( !resortDictsInClause(clause) )

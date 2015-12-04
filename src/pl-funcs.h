@@ -468,8 +468,8 @@ COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 					ClauseRef where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
 COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
-COMMON(void)		freeClauseSilent(Clause c);
 COMMON(void)		unallocClause(Clause c);
+COMMON(void)		freeClause(Clause c);
 COMMON(void)		lingerClauseRef(ClauseRef c);
 COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
 COMMON(void)		gcClauseRefs(void);

@@ -3482,7 +3482,7 @@ takes care of reconsult, redefinition, etc.
 
     if ( def->module != mhead )
     { if ( !overruleImportedProcedure(proc, mhead) )
-      { freeClauseSilent(clause);
+      { freeClause(clause);
 	return NULL;
       }
       def = getProcDefinition(proc);	/* may be changed */
@@ -3491,7 +3491,7 @@ takes care of reconsult, redefinition, etc.
     if ( proc != of->current_procedure )
     { if ( def->impl.any )	/* i.e. is (might be) defined */
       { if ( !redefineProcedure(proc, of, 0) )
-	{ freeClauseSilent(clause);
+	{ freeClause(clause);
 	  return NULL;
 	}
       }
@@ -3540,7 +3540,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   if ( false(def, P_DYNAMIC) )
   { if ( !setDynamicDefinition(def, TRUE) )
-    { freeClauseSilent(clause);
+    { freeClause(clause);
       return NULL;
     }
   }
@@ -3548,7 +3548,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   if ( (cref=assertProcedure(proc, clause, where PASS_LD)) )
     return cref->value.clause;
 
-  freeClauseSilent(clause);
+  freeClause(clause);
   return NULL;
 }
 

@@ -38,7 +38,6 @@ finding source files, etc.
 static void	resetProcedure(Procedure proc, bool isnew);
 static atom_t	autoLoader(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
-static void	freeClause(Clause cl);
 static void	freeClauseRef(ClauseRef cref);
 static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def ARG_LD);
@@ -1326,19 +1325,9 @@ unallocClause(Clause c)
 }
 
 
-/* Silently delete a clause.  This is called from pl-comp.c and pl-wic.c
-   to discard clauses that have just been created but are not yet known
-   to the rest of system and thus may be reclaimed immediately.
-*/
-
 void
-freeClauseSilent(Clause c)
+freeClause(Clause c)
 {
-#if O_DEBUGGER
-  if ( true(c, HAS_BREAKPOINTS) )
-    clearBreakPointsClause(c);
-#endif
-
 #ifdef O_ATOMGC
   forAtomsInClause(c, PL_unregister_atom);
 #endif
@@ -1350,20 +1339,18 @@ freeClauseSilent(Clause c)
 }
 
 
-void
-freeClause(Clause clause)
+static void
+announceErasedClause(Clause clause)
 {
 #if O_DEBUGGER
   Definition def = clause->predicate;
 
+  clearBreakPointsClause(clause);
   if ( PROCEDURE_event_hook1 &&
        def != PROCEDURE_event_hook1->definition )
     callEventHook(PLEV_ERASED_CLAUSE, clause);
 #endif
-
-  freeClauseSilent(clause);
 }
-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1399,7 +1386,9 @@ cleanDefinition(Definition def, gen_t marked, gen_t start)
     { Clause cl = cref->value.clause;
 
       if ( true(cl, CL_ERASED) && cl->generation.erased < active )
-      { LOCKDEF(def);
+      { announceErasedClause(cl);
+
+	LOCKDEF(def);
 	if ( !prev )
 	{ def->impl.clauses.first_clause = cref->next;
 	  if ( !cref->next )

@@ -748,7 +748,7 @@ keep_clause(p_reload *r, Clause clause ARG_LD)
   Clause keep = cref->value.clause;
 
   copy_clause_source(keep, clause);
-  freeClauseSilent(clause);
+  freeClause(clause);
   advance_clause(r PASS_LD);
 
   return cref;
@@ -843,7 +843,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
     assert(proc == sf->current_procedure);
 
     if ( !(reload = reloadContext(sf, proc PASS_LD)) )
-    { freeClauseSilent(clause);
+    { freeClause(clause);
       return NULL;
     }
 
