@@ -181,7 +181,6 @@ COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndexes(Definition def, gen_t active);
 COMMON(void)		unallocOldClauseIndexes(Definition def);
 COMMON(void)		clearTriedIndexes(Definition def);
-COMMON(void)		unallocClauseIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
@@ -474,7 +473,7 @@ COMMON(void)		unallocClause(Clause c);
 COMMON(void)		lingerClauseRef(ClauseRef c);
 COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
 COMMON(void)		gcClauseRefs(void);
-COMMON(size_t)		removeClausesProcedure(Procedure proc,
+COMMON(size_t)		removeClausesPredicate(Definition def,
 					       int sfindex, int fromfile);
 COMMON(void)		reconsultFinalizePredicate(sf_reload *rl, Definition def,
 						   p_reload *r ARG_LD);

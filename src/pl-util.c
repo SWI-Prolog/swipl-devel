@@ -100,7 +100,10 @@ predicateName(Definition def)
     return "(nil)";
 
   if ( def->module != MODULE_user && !isUserSystemPredicate(def) )
-  { strcpy(e, atom_summary(def->module->name, 50));
+  { if ( def->module )
+      strcpy(e, atom_summary(def->module->name, 50));
+    else
+      strcpy(e, "(nil)");
     e += strlen(e);
     *e++ = ':';
   }

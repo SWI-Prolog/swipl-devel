@@ -601,10 +601,9 @@ unloadFile(SourceFile sf)
   { Procedure proc = cell->value;
     Definition def = proc->definition;
 
-    if ( false(def, P_FOREIGN) )
-    { deleted += removeClausesProcedure(proc,
-					true(def, P_MULTIFILE) ? sf->index : 0,
-					TRUE);
+    if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
+    { deleted += removeClausesPredicate(
+		     def, true(def, P_MULTIFILE) ? sf->index : 0, TRUE);
     }
 
     DEBUG(MSG_UNLOAD,
@@ -1131,9 +1130,10 @@ delete_old_predicates(SourceFile sf)
 
     if ( false(def, P_FOREIGN) &&
 	 !lookupHTable(sf->reload->procedures, proc) )
-    { deleted += removeClausesProcedure(proc,
-					true(def, P_MULTIFILE) ? sf->index : 0,
-					TRUE);
+    { deleted += removeClausesPredicate(
+		     proc->definition,
+		     true(def, P_MULTIFILE) ? sf->index : 0,
+		     TRUE);
 
       if ( false(def, P_MULTIFILE) )
       { clear(def, FILE_ASSIGNED);

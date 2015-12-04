@@ -121,48 +121,49 @@ lingerDefinition(Definition def)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-destroyDefinition()   and   destroyClauseList()   handle   unconditional
-destruction of a definition for which we know it is not being accessed.
+destroyDefinition() is called to destroy predicates from destroyModule()
+as well as destroying thread-local  instantiations   while  a  thread is
+being terminated. In both  cases  is  the   predicate  known  to  be not
+referenced.
+
+However, we cannot simply discard  everything   as  the predicate may be
+involved in clause-GC. Therefore we need to leave the entire cleaning to
+clause-GC. This is somewhat slower than  the   old  way around. The good
+news is the it works towards more   general garbage collection for code,
+e.g., eventually we may be able  to   destroy  modules even if we cannot
+guarantee they are not in use.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-destroyClauseList(ClauseRef cref)
-{ ClauseRef next;
-
-  for( ; cref; cref = next)
-  { Clause clause = cref->value.clause;
-    next = cref->next;
-
-    set(clause, CL_ERASED);
-    clause->generation.erased = GD->generation-1;
-    freeClause(clause);
-
-    freeHeap(cref, SIZEOF_CREF_CLAUSE);
-  }
-}
-
 
 void
 destroyDefinition(Definition def)
-{ if ( true(def, P_DIRTYREG) )
-    unregisterDirtyDefinition(def);
+{ if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
+  { bit_vector *v;
 
-  unallocClauseIndexes(def);
-  freeCodesDefinition(def, FALSE);
+    if ( (v=def->tried_index) )
+    { def->tried_index = NULL;
+      free_bitvector(v);
+    }
 
-  if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
-  { ClauseRef cref = def->impl.clauses.first_clause;
+    removeClausesPredicate(def, 0, FALSE);
+    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
+    DEBUG(MSG_CGC_PRED,
+	  Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
+    def->module = NULL;
+    set(def, P_ERASED);
+  } else					/* foreign and thread-local */
+  { if ( true(def, P_DIRTYREG) )
+    { DEBUG(0, Sdprintf("Dirty: %s\n", predicateName(def)));
+      unregisterDirtyDefinition(def);
+    }
 
-    def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
-    destroyClauseList(cref);
-  }
 #ifdef O_PLMT
-  else if ( true(def, P_THREAD_LOCAL) )
-    free_ldef_vector(def->impl.local);
+    if ( true(def, P_THREAD_LOCAL) )
+      free_ldef_vector(def->impl.local);
 #endif
 
-  ATOMIC_SUB(&def->module->code_size, sizeof(*def));
-  freeHeap(def, sizeof(*def));
+    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
+    freeHeap(def, sizeof(*def));
+  }
 }
 
 
@@ -1206,7 +1207,7 @@ abolishProcedure(Procedure proc, Module module)
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_modify, ATOM_thread_local_procedure, proc);
   } else				/* normal Prolog procedure */
-  { removeClausesProcedure(proc, 0, FALSE);
+  { removeClausesPredicate(def, 0, FALSE);
     setDynamicDefinition_unlocked(def, FALSE);
     resetProcedure(proc, FALSE);
   }
@@ -1228,9 +1229,8 @@ MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 size_t
-removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
+removeClausesPredicate(Definition def, int sfindex, int fromfile)
 { GET_LD
-  Definition def = proc->definition;
   ClauseRef c;
   size_t deleted = 0;
   size_t memory = 0;
@@ -1441,7 +1441,7 @@ cleanDefinition(Definition def, gen_t marked, gen_t start)
 static int
 mustCleanDefinition(const Definition def)
 { if ( def->impl.clauses.erased_clauses > 0 )
-  { if ( true(def, P_DYNAMIC) )
+  { if ( true(def, P_DYNAMIC) && false(def, P_ERASED) )
     { return ( def->impl.clauses.erased_clauses >
 	       def->impl.clauses.number_of_clauses/8
 	     );
@@ -1870,7 +1870,14 @@ maybeUnregisterDirtyDefinition(Definition def)
 { if ( false(def, P_DYNAMIC) &&
        true(def, P_DIRTYREG) &&
        def->impl.clauses.erased_clauses == 0 )
-    unregisterDirtyDefinition(def);
+  { unregisterDirtyDefinition(def);
+  } else if ( true(def, P_ERASED) )
+  { assert(def->module == NULL);
+    if ( def->impl.clauses.first_clause == NULL )
+    { unregisterDirtyDefinition(def);
+      freeHeap(def, sizeof(*def));
+    }
+  }
 }
 
 

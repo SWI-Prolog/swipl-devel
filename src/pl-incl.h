@@ -835,7 +835,7 @@ with one operation, it turns out to be faster as well.
 #define P_META			(0x00080000) /* Has meta_predicate declaration */
 #define P_MFCONTEXT		(0x00100000) /* Used for Goal@Module */
 #define P_DIRTYREG		(0x00200000) /* Part of GD->procedures.dirty */
-/* reserved			(0x00400000) */
+#define P_ERASED		(0x00400000) /* Predicate has been destroyed */
 #define HIDE_CHILDS		(0x00800000) /* Hide children from tracer */
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */

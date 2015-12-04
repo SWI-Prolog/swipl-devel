@@ -904,21 +904,6 @@ cleanClauseIndexes(Definition def, gen_t active)
 
 
 void
-unallocClauseIndexes(Definition def)
-{ ClauseIndex ci, next;
-
-  for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
-  { next = ci->next;
-    unallocClauseIndexTable(ci);
-  }
-
-  unallocOldClauseIndexes(def);
-  if ( def->tried_index )
-    free_bitvector(def->tried_index);
-}
-
-
-void
 clearTriedIndexes(Definition def)
 { struct bit_vector *v;
 
@@ -1082,7 +1067,7 @@ deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
 deleteActiveClauseFromIndexes() is called on a   retract  from a dynamic
 predicate that is referenced or has too many clauses to justify a costly
 update   of   its   clause   lists.    It     is    also   called   from
-removeClausesProcedure(), which is called when reloading a source file.
+removeClausesPredicate(), which is called when reloading a source file.
 
 For dynamic predicates, the predicate is  locked. L_PREDICATE is held if
 def is static.
