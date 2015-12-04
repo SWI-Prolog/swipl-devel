@@ -1233,6 +1233,7 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   ClauseRef c;
   size_t deleted = 0;
   size_t memory = 0;
+  gen_t update = GD->generation+1;
 
   if ( true(def, P_THREAD_LOCAL) )
     return 0;
@@ -1246,12 +1247,9 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
 	 false(cl, CL_ERASED) )
     { set(cl, CL_ERASED);
 #ifdef O_LOGICAL_UPDATE
-      if ( deleted++ == 0 )
-	ATOMIC_INC(&GD->generation);
-      cl->generation.erased = GD->generation;
-#else
-      deleted++;
+      cl->generation.erased = update;
 #endif
+      deleted++;
       memory += sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
       def->impl.clauses.number_of_clauses--;
       def->impl.clauses.erased_clauses++;
@@ -1262,6 +1260,9 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
     }
   }
   release_def(def);
+
+  if ( GD->generation < update )
+    ATOMIC_INC(&GD->generation);
 
   if ( deleted )
   { ATOMIC_SUB(&def->module->code_size, memory);
