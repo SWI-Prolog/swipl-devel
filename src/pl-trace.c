@@ -2351,6 +2351,9 @@ typedef struct delayed_event
     { Clause clause;
       int    offset;
     } pc;
+    struct
+    { Clause clause;
+    } clause;
   } value;
 } delayed_event;
 
@@ -2370,6 +2373,9 @@ delayEvent(pl_event_type ev, va_list args)
 	dev.value.pc.clause = va_arg(args, Clause);
 	dev.value.pc.offset = va_arg(args, int);
 	break;
+      case PLEV_ERASED_CLAUSE:
+	dev.value.clause.clause = va_arg(args, Clause);
+        break;
       default:
 	assert(0);
     }
@@ -2415,6 +2421,10 @@ sendDelayedEvents(void)
       { case PLEV_BREAK:
 	case PLEV_NOBREAK:
 	  callEventHook(dev->type, dev->value.pc.clause, dev->value.pc.offset);
+	  sent++;
+	  break;
+	case PLEV_ERASED_CLAUSE:
+	  callEventHook(dev->type, dev->value.clause.clause);
 	  sent++;
 	  break;
 	default:
