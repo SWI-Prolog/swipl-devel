@@ -120,13 +120,24 @@ lingerDefinition(Definition def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+destroyDefinition()   and   destroyClauseList()   handle   unconditional
+destruction of a definition for which we know it is not being accessed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 destroyClauseList(ClauseRef cref)
 { ClauseRef next;
 
   for( ; cref; cref = next)
-  { next = cref->next;
-    freeClauseRef(cref);
+  { Clause clause = cref->value.clause;
+    next = cref->next;
+
+    set(clause, CL_ERASED);
+    clause->generation.erased = GD->generation-1;
+    freeClause(clause);
+
+    freeHeap(cref, SIZEOF_CREF_CLAUSE);
   }
 }
 
@@ -135,6 +146,9 @@ void
 destroyDefinition(Definition def)
 { if ( true(def, P_DIRTYREG) )
     unregisterDirtyDefinition(def);
+
+  unallocClauseIndexes(def);
+  freeCodesDefinition(def, FALSE);
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
   { ClauseRef cref = def->impl.clauses.first_clause;
@@ -146,9 +160,6 @@ destroyDefinition(Definition def)
   else if ( true(def, P_THREAD_LOCAL) )
     free_ldef_vector(def->impl.local);
 #endif
-
-  unallocClauseIndexes(def);
-  freeCodesDefinition(def, FALSE);
 
   ATOMIC_SUB(&def->module->code_size, sizeof(*def));
   freeHeap(def, sizeof(*def));
@@ -976,8 +987,6 @@ then ->next because ->next might be used by some other thread traversing
 the clause chain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static size_t cref_count;
-
 ClauseRef
 newClauseRef(Clause clause, word key)
 { ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_CLAUSE);
@@ -991,7 +1000,6 @@ newClauseRef(Clause clause, word key)
   cref->d.key        = key;
   cref->value.clause = clause;
   ATOMIC_INC(&clause->references);
-  ATOMIC_INC(&cref_count);
 
   return cref;
 }
@@ -1015,7 +1023,6 @@ freeClauseRef(ClauseRef cref)
     freeClause(cl);
   }
 
-  ATOMIC_DEC(&cref_count);
   freeHeap(cref, SIZEOF_CREF_CLAUSE);
 }
 

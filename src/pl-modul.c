@@ -179,8 +179,8 @@ freeLingeringDefinitions(ListCell c)
 
 static void
 unallocModule(Module m)
-{ if ( m->procedures ) destroyHTable(m->procedures);
-  if ( m->public )     destroyHTable(m->public);
+{ if ( m->public )     destroyHTable(m->public);
+  if ( m->procedures ) destroyHTable(m->procedures);
   if ( m->operators )  destroyHTable(m->operators);
   if ( m->supers )     unallocList(m->supers);
 #ifdef O_PLMT
