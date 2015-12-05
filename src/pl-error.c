@@ -975,9 +975,8 @@ PL_get_size_ex(term_t t, size_t *i)
 	  }
 	  return FALSE;
 	} else
-	{ domain_error:
-	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			    ATOM_not_less_than_zero, t);
+	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, t);
 	}
 #if SIZEOF_VOIDP == 8 && defined(O_GMP)
       case V_MPZ:
@@ -988,7 +987,8 @@ PL_get_size_ex(term_t t, size_t *i)
 	    *i = v;
 	    return TRUE;
 	  case -1:
-	    goto domain_error;
+	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			    ATOM_not_less_than_zero, t);
 	  case 1:
 	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
 	  default:
