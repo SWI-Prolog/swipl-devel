@@ -533,10 +533,8 @@ build_swipl_core()
 }
 
 dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
-dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll libdb-*.dll"
-if [ -r "$(echo $install/bin/libgcc*.dll)" ]; then
-  dist_dlls+=" $(basename $install/bin/libgcc*.dll)"
-fi
+dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll libdb-*.dll "
+dist_dlls+="`(cd $install/bin && find . -name 'libgcc*.dll')` "
 if [ -r "$install/bin/libdwarf.dll" ]; then
   dist_dlls+=" libdwarf.dll"
 fi

@@ -287,6 +287,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libarchive-13.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
+  File /nonfatal ${SWIPL}\bin\libgcc_s_seh-1.dll
 !else
   File ${SWIPL}\bin\swipl.dll
 !endif
