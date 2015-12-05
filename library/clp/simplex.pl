@@ -47,7 +47,9 @@
                 variable_value/3
         ]).
 
+:- if(exists_source(library(clpr))).
 :- use_module(library(clpr)).
+:- endif.
 :- use_module(library(assoc)).
 :- use_module(library(pio)).
 
@@ -101,30 +103,21 @@ clpr_shadow_price(clpr_solved(_,_,Duals,_), Name, Value) :-
 clpr_make_variables(Cs, Aliases) :-
         clpr_constraints_variables(Cs, Variables0, []),
         sort(Variables0, Variables1),
-        clpr_aliases(Variables1, Aliases).
+        pairs_keys(Aliases, Variables1).
 
 clpr_constraints_variables([]) --> [].
 clpr_constraints_variables([c(_, Left, _, _)|Cs]) -->
         variables(Left),
         clpr_constraints_variables(Cs).
 
-clpr_aliases([], []).
-clpr_aliases([Var|Vars], [Var-_|Rest]) :-
-        clpr_aliases(Vars, Rest).
-
-clpr_set_up([], _).
-clpr_set_up([C|Cs], Aliases) :-
-        C = c(_Name, Left, Op, Right),
+clpr_set_up(Aliases, c(_Name, Left, Op, Right)) :-
         clpr_translate_linsum(Left, Aliases, LinSum),
         CLPRConstraint =.. [Op, LinSum, Right],
-        clpr:{ CLPRConstraint },
-        clpr_set_up(Cs, Aliases).
+        clpr:{ CLPRConstraint }.
 
-clpr_set_up_noneg([], _).
-clpr_set_up_noneg([Var|Vs], Aliases) :-
+clpr_set_up_noneg(Aliases, Var) :-
         memberchk(Var-CLPVar, Aliases),
-        { CLPVar >= 0 },
-        clpr_set_up_noneg(Vs, Aliases).
+        { CLPVar >= 0 }.
 
 clpr_translate_linsum([], _, 0).
 clpr_translate_linsum([Coeff*Var|Ls], Aliases, LinSum) :-
@@ -136,60 +129,45 @@ clpr_dual(Objective0, S0, DualValues) :-
         clpr_state_constraints(S0, Cs0),
         clpr_constraints_variables(Cs0, Variables0, []),
         sort(Variables0, Variables1),
-        clpr_standard_form(Cs0, Cs1),
+        maplist(clpr_standard_form, Cs0, Cs1),
         clpr_include_all_vars(Cs1, Variables1, Cs2),
         clpr_merge_into(Variables1, Objective0, Objective, []),
         clpr_unique_names(Cs2, 0, Names),
-        clpr_constraints_coefficients(Cs2, Coefficients),
+        maplist(clpr_constraint_coefficient, Cs2, Coefficients),
         lists_transpose(Coefficients, TCs),
-        clpr_dual_constraints(TCs, Objective, Names, DualConstraints),
-        clpr_nonneg_constraints(Cs2, Names, DualNonNeg, []),
+        maplist(clpr_dual_constraints(Names), TCs, Objective, DualConstraints),
+        phrase(clpr_nonneg_constraints(Cs2, Names), DualNonNeg),
         append(DualConstraints, DualNonNeg, DualConstraints1),
-        clpr_dual_objective(Cs2, Names, DualObjective),
+        maplist(clpr_dual_objective, Cs2, Names, DualObjective),
         clpr_make_variables(DualConstraints1, Aliases),
-        clpr_set_up(DualConstraints1, Aliases),
+        maplist(clpr_set_up(Aliases), DualConstraints1),
         clpr_translate_linsum(DualObjective, Aliases, LinExpr),
         minimize(LinExpr),
         Aliases = DualValues.
 
 
 
-clpr_dual_objective([], _, []).
-clpr_dual_objective([C|Cs], [Name|Names], [Right*Name|Os]) :-
-        C = c(_, _, _, Right),
-        clpr_dual_objective(Cs, Names, Os).
+clpr_dual_objective(c(_, _, _, Right), Name, Right*Name).
 
-clpr_nonneg_constraints([], _, Nons, Nons).
-clpr_nonneg_constraints([C|Cs], [Name|Names], Nons0, Nons) :-
-        C = c(_, _, Op, _),
-        (   Op == (=<) -> Nons0 = [c(0, [1*Name], (>=), 0)|Rest]
-        ;   Nons0 = Rest
+clpr_nonneg_constraints([], _) --> [].
+clpr_nonneg_constraints([C|Cs], [Name|Names]) -->
+        { C = c(_, _, Op, _) },
+        (   { Op == (=<) } -> [c(0, [1*Name], (>=), 0)]
+        ;   []
         ),
-        clpr_nonneg_constraints(Cs, Names, Rest, Nons).
+        clpr_nonneg_constraints(Cs, Names).
 
 
-clpr_dual_constraints([], [], _, []).
-clpr_dual_constraints([Coeffs|Cs], [O*_|Os], Names, [Constraint|Constraints]) :-
-        clpr_dual_linsum(Coeffs, Names, Linsum),
-        Constraint = c(0, Linsum, (>=), O),
-        clpr_dual_constraints(Cs, Os, Names, Constraints).
+clpr_dual_constraints(Names, Coeffs, O*_, Constraint) :-
+        maplist(clpr_dual_linsum, Coeffs, Names, Linsum),
+        Constraint = c(0, Linsum, (>=), O).
 
+clpr_dual_linsum(Coeff, Name, Coeff*Name).
 
-clpr_dual_linsum([], [], []).
-clpr_dual_linsum([Coeff|Coeffs], [Name|Names], [Coeff*Name|Rest]) :-
-        clpr_dual_linsum(Coeffs, Names, Rest).
+clpr_constraint_coefficient(c(_, Left, _, _), Coeff) :-
+        maplist(coeff_, Left, Coeff).
 
-
-clpr_constraints_coefficients([], []).
-clpr_constraints_coefficients([C|Cs], [Coeff|Coeffs]) :-
-        C = c(_, Left, _, _),
-        all_coeffs(Left, Coeff),
-        clpr_constraints_coefficients(Cs, Coeffs).
-
-all_coeffs([], []).
-all_coeffs([Coeff*_|Cs], [Coeff|Rest]) :-
-        all_coeffs(Cs, Rest).
-
+all_coeffs(Coeff*_, Coeff).
 
 clpr_unique_names([], _, []).
 clpr_unique_names([C0|Cs0], Num, [N|Ns]) :-
@@ -222,10 +200,10 @@ clpr_maximize(Expr0, S0, S) :-
         coeff_one(Expr0, Expr),
         clpr_state_constraints(S0, Cs),
         clpr_make_variables(Cs, Aliases),
-        clpr_set_up(Cs, Aliases),
+        maplist(clpr_set_up(Aliases), Cs),
         clpr_constraints_variables(Cs, Variables0, []),
         sort(Variables0, Variables1),
-        clpr_set_up_noneg(Variables1, Aliases),
+        maplist(clpr_set_up_noneg(Aliases), Variables1),
         clpr_translate_linsum(Expr, Aliases, LinExpr),
         clpr_state_integrals(S0, Is),
         ( Is == [] ->
@@ -236,9 +214,9 @@ clpr_maximize(Expr0, S0, S) :-
         ;
                 clpr_state_options(S0, Options),
                 memberchk(eps=Eps, Options),
-                clpr_fetch_vars(Is, Aliases, Vars),
+                maplist(clpr_fetch_var(Aliases), Is, Vars),
                 bb_inf(Vars, -LinExpr, Sup, Vertex, Eps),
-                clpr_merge_vars(Is, Vertex, Values),
+                pairs_keys_values(Values, Is, Vertex),
                 % what about the dual in MIPs?
                 Sup1 is -Sup,
                 S = clpr_solved(Sup1, Values, [], S0)
@@ -246,20 +224,13 @@ clpr_maximize(Expr0, S0, S) :-
 
 clpr_minimize(Expr0, S0, S) :-
         coeff_one(Expr0, Expr1),
-        clpr_all_negate(Expr1, Expr2),
+        maplist(linsum_negate, Expr1, Expr2),
         clpr_maximize(Expr2, S0, S1),
         S1 = clpr_solved(Sup, Values, Duals, S0),
         Inf is -Sup,
         S = clpr_solved(Inf, Values, Duals, S0).
 
-clpr_merge_vars([], [], []).
-clpr_merge_vars([I|Is], [V|Vs], [I-V|Rest]) :-
-        clpr_merge_vars(Is, Vs, Rest).
-
-clpr_fetch_vars([], _, []).
-clpr_fetch_vars([Var|Vars], Aliases, [X|Xs]) :-
-        memberchk(Var-X, Aliases),
-        clpr_fetch_vars(Vars, Aliases, Xs).
+clpr_fetch_var(Aliases, Var, X) :- memberchk(Var-X, Aliases).
 
 clpr_variable_value(clpr_solved(_, Aliases, _, _), Variable, Value) :-
         memberchk(Variable-Value0, Aliases),
@@ -272,22 +243,14 @@ clpr_variable_value(clpr_solved(_, Aliases, _, _), Variable, Value) :-
 
 clpr_objective(clpr_solved(Obj, _, _, _), Obj).
 
-clpr_standard_form([], []).
-clpr_standard_form([c(Name, Left, Op, Right)|Cs], [S|Ss]) :-
-        clpr_standard_form_(Op, Name, Left, Right, S),
-        clpr_standard_form(Cs, Ss).
+clpr_standard_form(c(Name, Left, Op, Right), S) :-
+        clpr_standard_form_(Op, Name, Left, Right, S).
 
 clpr_standard_form_((=), Name, Left, Right, c(Name, Left, (=), Right)).
 clpr_standard_form_((>=), Name, Left, Right, c(Name, Left1, (=<), Right1)) :-
         Right1 is -Right,
-        clpr_all_negate(Left, Left1).
+        maplist(linsum_negate, Left, Left1).
 clpr_standard_form_((=<), Name, Left, Right, c(Name, Left, (=<), Right)).
-
-clpr_all_negate([], []).
-clpr_all_negate([Coeff0*Var|As], [Coeff1*Var|Ns]) :-
-        Coeff1 is -Coeff0,
-        clpr_all_negate(As, Ns).
-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -325,10 +288,7 @@ variable_value(State, Variable, Value) :-
         ;   F == clpr_solved -> clpr_variable_value(State, Variable, Value)
         ).
 
-all_vars_zero([], _).
-all_vars_zero([_Coeff*Var|Vars], State) :-
-        variable_value(State, Var, 0),
-        all_vars_zero(Vars, State).
+var_zero(State, _Coeff*Var) :- variable_value(State, Var, 0).
 
 list_first(Ls, F, Index) :- once(nth0(Index, Ls, F)).
 
@@ -587,7 +547,7 @@ minimize(Z0, S0, S) :-
         coeff_one(Z0, Z1),
         functor(S0, F, _),
         (   F == state ->
-            linsum_negate(Z1, Z2),
+            maplist(linsum_negate, Z1, Z2),
             maximize_mip(Z2, S0, S1),
             solved_tableau(S1, tableau(Obj, Vars, Inds, Rows)),
             solved_names(S1, Names),
@@ -603,27 +563,27 @@ minimize(Z0, S0, S) :-
 op_pendant(>=, =<).
 op_pendant(=<, >=).
 
-constraints_collapse([], []).
-constraints_collapse([C|Cs], Colls) :-
-        C = c(Name, Left, Op, Right),
-        (   Name == 0, Left = [1*Var], op_pendant(Op, P) ->
-            Pendant = c(0, [1*Var], P, Right),
-            (   select(Pendant, Cs, Rest) ->
-                Colls = [c(0, Left, (=), Right)|CollRest],
-                CsLeft = Rest
-            ;   Colls = [C|CollRest],
-                CsLeft = Cs
+constraints_collapse([]) --> [].
+constraints_collapse([C|Cs]) -->
+        { C = c(Name, Left, Op, Right) },
+        (   { Name == 0, Left = [1*Var], op_pendant(Op, P) } ->
+            { Pendant = c(0, [1*Var], P, Right) },
+            (   { select(Pendant, Cs, Rest) } ->
+                [c(0, Left, (=), Right)],
+                { CsLeft = Rest }
+            ;   [C],
+                { CsLeft = Cs }
             )
-        ;   Colls = [C|CollRest],
-            CsLeft = Cs
+        ;   [C],
+            { CsLeft = Cs }
         ),
-        constraints_collapse(CsLeft, CollRest).
+        constraints_collapse(CsLeft).
 
 % solve a (relaxed) LP in standard form
 
 maximize_(Z, S0, S) :-
         state_constraints(S0, Cs0),
-        constraints_collapse(Cs0, Cs1),
+        phrase(constraints_collapse(Cs0), Cs1),
         phrase(constraints_normalize(Cs1, Cs, As0), [S0], [S1]),
         flatten(As0, As1),
         (   As1 == [] ->
@@ -649,26 +609,23 @@ make_tableau(Z, Cs, Tableau) :-
         all_one(Ones),
         Tableau = tableau(row(z, Obj, 0), Variables, Ones, Rows).
 
-all_one([]).
-all_one([1|Os]) :- all_one(Os).
+all_one(Ones) :- maplist(=(1), Ones).
 
-proper_form([], _, _, Obj, Obj).
-proper_form([_Coeff*A|As], Variables, Rows, Obj0, Obj) :-
+proper_form(Variables, Rows, _Coeff*A, Obj0, Obj) :-
         (   find_row(A, Rows, PivotRow) ->
             list_first(Variables, A, Col),
-            row_eliminate(Obj0, PivotRow, Col, Obj1)
-        ;   Obj1 = Obj0
-        ),
-        proper_form(As, Variables, Rows, Obj1, Obj).
+            row_eliminate(Obj0, PivotRow, Col, Obj)
+        ;   Obj = Obj0
+        ).
 
 
 two_phase_simplex(Z, Cs, As, Names, Is, S) :-
         % phase 1: minimize sum of articifial variables
         make_tableau(As, Cs, Tableau0),
         Tableau0 = tableau(Obj0, Variables, Inds, Rows),
-        proper_form(As, Variables, Rows, Obj0, Obj),
+        foldl(proper_form(Variables, Rows), As, Obj0, Obj),
         simplex(tableau(Obj, Variables, Inds, Rows), Tableau1),
-        all_vars_zero(As, solved(Tableau1, _, _)),
+        maplist(var_zero(solved(Tableau1, _, _)), As),
         % phase 2: remove artificial variables and solve actual LP.
         tableau_rows(Tableau1, Rows2),
         eliminate_artificial(As, As, Variables, Rows2, Rows3),
@@ -676,7 +633,7 @@ two_phase_simplex(Z, Cs, As, Names, Is, S) :-
         nths_to_zero(Nths0, Inds, Inds1),
         linsum_row(Variables, Z, Objective),
         all_times(Objective, -1, Objective1),
-        proper_form(Z, Variables, Rows3, row(z, Objective1, 0), ObjRow),
+        foldl(proper_form(Variables, Rows3), Z, row(z, Objective1, 0), ObjRow),
         simplex(tableau(ObjRow, Variables, Inds1, Rows3), Tableau),
         S = solved(Tableau, Names, Is).
 
@@ -722,11 +679,7 @@ list_nths([_Coeff*A|As], Variables, [Nth|Nths]) :-
         list_nths(As, Variables, Nths).
 
 
-linsum_negate([], []).
-linsum_negate([Coeff0*Var|Ls], [Coeff*Var|Ns]) :-
-        Coeff is Coeff0 * (-1),
-        linsum_negate(Ls, Ns).
-
+linsum_negate(Coeff0*Var, Coeff*Var) :- Coeff is -Coeff0.
 
 linsum_row([], _, []).
 linsum_row([V|Vs], Ls, [C|Cs]) :-
