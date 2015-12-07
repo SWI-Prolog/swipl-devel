@@ -493,6 +493,9 @@ property_source_file(reloading, File) :-
 property_source_file(load_count(Count), File) :-
 	source_file(File),
 	'$source_file_property'(File, load_count, Count).
+property_source_file(number_of_clauses(Count), File) :-
+	source_file(File),
+	'$source_file_property'(File, number_of_clauses, Count).
 
 
 %%	canonical_source_file(+Spec, -File) is semidet.

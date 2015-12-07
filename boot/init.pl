@@ -1814,7 +1814,7 @@ load_files(Module:Files, Options) :-
 	).
 
 '$do_load_file_2'(File, Absolute, Module, Options) :-
-	statistics(clauses, OldClauses),
+	'$source_file_property'(Absolute, number_of_clauses, OldClauses),
 	statistics(cputime, OldTime),
 
 	'$set_sandboxed_load'(Options, OldSandBoxed),
@@ -1851,7 +1851,7 @@ load_files(Module:Files, Options) :-
 
 	'$import_from_loaded_module'(LM, Module, Options),
 
-	statistics(clauses, NewClauses),
+	'$source_file_property'(Absolute, number_of_clauses, NewClauses),
 	statistics(cputime, Time),
 	ClausesCreated is NewClauses - OldClauses,
 	TimeUsed is Time - OldTime,

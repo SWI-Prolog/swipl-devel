@@ -1566,6 +1566,7 @@ typedef struct sf_reload
   gen_t		reload_gen;		/* Magic gen for reloading */
   size_t	pred_access_count;	/* Top of predicate access stack */
   Table		modules;		/* Modules seen during reload */
+  unsigned	number_of_clauses;	/* reload clause count */
 } sf_reload;
 
 
@@ -1581,6 +1582,7 @@ struct sourceFile
 #endif
   int		magic;			/* Magic number */
   int		count;			/* number of times loaded */
+  unsigned	number_of_clauses;	/* number of clauses */
   unsigned	index : 24;		/* index number (1,2,...) */
   unsigned	system : 1;		/* system sourcefile: do not reload */
 };

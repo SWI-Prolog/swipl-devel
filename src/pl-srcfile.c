@@ -572,14 +572,17 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
   SourceFile sf;
 
   if ( !PL_get_atom_ex(A1, &filename) ||
-       !PL_get_atom_ex(A2, &property) ||
-       !(sf=lookupSourceFile(filename, FALSE)) )
+       !PL_get_atom_ex(A2, &property) )
     return FALSE;
 
+  sf = lookupSourceFile(filename, FALSE);
+
   if ( property == ATOM_load_count )
-    return PL_unify_integer(A3, sf->count);
+    return PL_unify_integer(A3, sf ? sf->count : 0);
   if ( property == ATOM_reloading )
-    return PL_unify_bool(A3, sf->reload != NULL);
+    return PL_unify_bool(A3, sf ? sf->reload != NULL : 0);
+  if ( property == ATOM_number_of_clauses )
+    return PL_unify_integer(A3, sf ? sf->number_of_clauses : 0);
 
   return PL_domain_error("source_file_property", A2);
 }
@@ -842,6 +845,8 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
     assert(proc == sf->current_procedure);
 
+    sf->reload->number_of_clauses++;
+
     if ( !(reload = reloadContext(sf, proc PASS_LD)) )
     { freeClause(clause);
       return NULL;
@@ -918,6 +923,8 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
       return cref;
     }
+  } else if ( sf )
+  { sf->number_of_clauses++;
   }
 
   return assertProcedure(proc, clause, CL_END PASS_LD);
@@ -1227,6 +1234,7 @@ endReconsult(SourceFile sf)
       destroyHTable(reload->modules);
     }
 
+    sf->number_of_clauses = sf->reload->number_of_clauses;
     sf->reload = NULL;
     freeHeap(reload, sizeof(*reload));
 

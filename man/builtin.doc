@@ -669,6 +669,11 @@ it was loaded.
 	\termitem{module}{Module}
 \arg{File} is a module file that declares the module \arg{Module}.
 
+	\termitem{number_of_clauses}{Count}
+\arg{Count} is the number of clauses associated with \arg{File}.
+Note that clauses loaded from included files are counted as part
+of the main file.
+
 	\termitem{reloading}{}
 Present if the file is currently being \textbf{re}loaded.
     \end{description}
