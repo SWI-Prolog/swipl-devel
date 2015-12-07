@@ -102,20 +102,17 @@ safe_call(Goal0) :-
 %	@error	permission_error(call, sandboxed, Goal) if Goal is in
 %		the call-tree and not white-listed.
 
-:- thread_local
-	last_error/1.
-
 safe_goal(M:Goal) :-
 	empty_assoc(Safe0),
 	catch(safe(Goal, M, [], Safe0, _), E, true), !,
-	retractall(last_error(_)),
+	nb_delete(sandbox_last_error),
 	(   var(E)
 	->  true
 	;   throw(E)
 	).
 safe_goal(_) :-
-	last_error(E), !,
-	retractall(last_error(_)),
+	nb_current(sandbox_last_error, E), !,
+	nb_delete(sandbox_last_error),
 	throw(E).
 safe_goal(G) :-
 	debug(sandbox(fail), 'safe_goal/1 failed for ~p', [G]),
@@ -129,7 +126,7 @@ safe_goal(G) :-
 safe(V, _, Parents, _, _) :-
 	var(V), !,
 	Error = error(instantiation_error, sandbox(V, Parents)),
-	asserta(last_error(Error)),
+	nb_setval(sandbox_last_error, Error),
 	throw(Error).
 safe(M:G, _, Parents, Safe0, Safe) :- !,
 	must_be(atom, M),
