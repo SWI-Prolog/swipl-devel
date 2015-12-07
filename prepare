@@ -29,7 +29,8 @@ COREMODULES+=" packages/utf8proc packages/archive packages/swipl-win"
 COREMODULES+=" packages/pengines packages/cql packages/bdb"
 
 version="`cat VERSION`"
-server="http://www.swi-prolog.org"
+servers="http://www.swi-prolog.org http://eu.swi-prolog.org"
+serverpath="/download"
 yes=ask
 man=auto
 tar=tar
@@ -72,9 +73,6 @@ while [ ! -z "$1" ]; do
 	;;
   esac
 done
-
-serverpath="/download"
-serverurl="$server$serverpath"
 
 findexe()
 { oldifs="$IFS"
@@ -176,23 +174,27 @@ download_docs()
     exit 1
   fi
 
-  printf "Downloading documentation for SWI-Prolog $version from $server ..."
-  if curl -f $serverurl/generated/$doc > $doc; then
-    ls -l $doc
-    printf "Unpacking $doc ..."
-    rm -f man/Manual/*.html man/Manual/*.gif
-    if $tar zxf $doc; then
-       rm $doc
-       echo "ok"
+  for server in $servers; do
+    serverurl="$server$serverpath"
+    printf "Downloading documentation for SWI-Prolog $version from $server ..."
+    if curl -f $serverurl/generated/$doc > $doc; then
+      ls -l $doc
+      printf "Unpacking $doc ..."
+      rm -f man/Manual/*.html man/Manual/*.gif
+      if $tar zxf $doc; then
+	 rm $doc
+	 echo "ok"
+      else
+	 rm $doc
+	 echo "Unpack failed."
+      fi
+      eval_doc
+      break
     else
-       rm $doc
-       echo "Unpack failed."
+      echo "Failed to download documentation from $serverurl/generated/$doc"
+      rm -f $doc
     fi
-  else
-    echo "Failed to download documentation from $serverurl/generated/$doc"
-    rm -f $doc
-  fi
-  eval_doc
+  done
 }
 
 eval_doc()
