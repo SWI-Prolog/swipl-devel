@@ -116,6 +116,7 @@ lingerDefinition(Definition def)
     c->next      = o;
   } while( !COMPARE_AND_SWAP(&m->lingering, o, c) );
 
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Linger %s\n", predicateName(def)));
   ATOMIC_SUB(&m->code_size, sizeof(*def));
   ATOMIC_DEC(&GD->statistics.predicates);
 
@@ -141,6 +142,7 @@ void
 destroyDefinition(Definition def)
 { ATOMIC_DEC(&GD->statistics.predicates);
   ATOMIC_SUB(&def->module->code_size, sizeof(*def));
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
   { bit_vector *v;
@@ -176,7 +178,6 @@ unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
   Module m = def->module;
 
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
   if ( unshareDefinition(def) == 0 )
   { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     destroyDefinition(def);
