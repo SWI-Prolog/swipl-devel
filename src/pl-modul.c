@@ -1458,7 +1458,8 @@ retry:
 		    (void *)proc->definition->functor->functor, nproc);
     UNLOCKMODULE(destination);
     if ( old != nproc )
-    { unshareDefinition(proc->definition);
+    { int shared = unshareDefinition(proc->definition);
+      assert(shared > 0);
       freeHeap(nproc, sizeof(*nproc));
       goto retry;
     }
