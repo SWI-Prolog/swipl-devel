@@ -441,7 +441,7 @@ COMMON(atom_t)		accessLevel(void);
 
 /* pl-proc.c */
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m) WUNUSED;
-COMMON(void)		unallocProcedure(Procedure proc, int update_stats);
+COMMON(void)		unallocProcedure(Procedure proc);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
 COMMON(int)		importDefinitionModule(Module m,
 					       Definition def, int flags);

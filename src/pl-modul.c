@@ -47,7 +47,7 @@ static void
 unallocProcedureSymbol(void *name, void *value)
 { DEBUG(MSG_CLEANUP,
 	Sdprintf("unallocProcedure(%s)\n", functorName((functor_t)name)));
-  unallocProcedure(value, TRUE);
+  unallocProcedure(value);
 }
 
 
@@ -170,7 +170,6 @@ freeLingeringDefinitions(ListCell c)
   { Definition def = c->value;
 
     n = c->next;
-    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
     freeHeap(def, sizeof(*def));
     freeHeap(c, sizeof(*c));
   }

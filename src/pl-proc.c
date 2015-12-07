@@ -82,13 +82,14 @@ lookupProcedure(functor_t f, Module m)
   def->shared  = 1;
   resetProcedure(proc, TRUE);
 
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));
+  ATOMIC_INC(&GD->statistics.predicates);
+  ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
+
   if ( (oproc=addHTable(m->procedures, (void *)f, proc)) == proc )
-  { DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));
-    ATOMIC_INC(&GD->statistics.predicates);
-    ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
-    return proc;
+  { return proc;
   } else
-  { unallocProcedure(proc, FALSE);
+  { unallocProcedure(proc);
     return oproc;
   }
 }
@@ -115,6 +116,9 @@ lingerDefinition(Definition def)
     c->next      = o;
   } while( !COMPARE_AND_SWAP(&m->lingering, o, c) );
 
+  ATOMIC_SUB(&m->code_size, sizeof(*def));
+  ATOMIC_DEC(&GD->statistics.predicates);
+
   /*GC_LINGER(def);*/
 }
 
@@ -135,7 +139,10 @@ guarantee they are not in use.
 
 void
 destroyDefinition(Definition def)
-{ if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
+{ ATOMIC_DEC(&GD->statistics.predicates);
+  ATOMIC_SUB(&def->module->code_size, sizeof(*def));
+
+  if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
   { bit_vector *v;
 
     if ( (v=def->tried_index) )
@@ -144,7 +151,6 @@ destroyDefinition(Definition def)
     }
 
     removeClausesPredicate(def, 0, FALSE);
-    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
     DEBUG(MSG_CGC_PRED,
 	  Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
     def->module = NULL;
@@ -160,14 +166,13 @@ destroyDefinition(Definition def)
       free_ldef_vector(def->impl.local);
 #endif
 
-    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
     freeHeap(def, sizeof(*def));
   }
 }
 
 
 void
-unallocProcedure(Procedure proc, int update_stats)
+unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
   Module m = def->module;
 
@@ -177,10 +182,7 @@ unallocProcedure(Procedure proc, int update_stats)
     destroyDefinition(def);
   }
   freeHeap(proc, sizeof(*proc));
-  if ( update_stats )
-  { ATOMIC_SUB(&m->code_size, sizeof(*proc));
-    ATOMIC_DEC(&GD->statistics.predicates);
-  }
+  ATOMIC_SUB(&m->code_size, sizeof(*proc));
 }
 
 
@@ -1188,13 +1190,15 @@ abolishProcedure(Procedure proc, Module module)
   startCritical;
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
-  { Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
+  { Definition ndef	     = allocHeapOrHalt(sizeof(*ndef));
 
     memset(ndef, 0, sizeof(*ndef));
     ndef->functor            = def->functor; /* should be merged with */
     ndef->module             = module;	     /* lookupProcedure()!! */
     ndef->codes		     = SUPERVISOR(virgin);
     proc->definition         = ndef;
+    ATOMIC_INC(&GD->statistics.predicates);
+    ATOMIC_ADD(&module->code_size, sizeof(*ndef));
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_FOREIGN) )	/* foreign: make normal */
   { def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
@@ -2112,7 +2116,7 @@ found:
 	    GD->statistics.threads_finished) == 1 )
       { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(odef)));
 	unregisterDirtyDefinition(odef);
-	freeHeap(odef, sizeof(struct definition));
+	freeHeap(odef, sizeof(*odef));
 	GD->statistics.predicates--;
       } else
       { DEBUG(MSG_PROC, Sdprintf("autoImport(%s,%s): Linger %s (%p)\n",
