@@ -234,7 +234,9 @@ clauseNo(Definition def, Clause cl, gen_t gen)
 
 static bool
 isUserSystemPredicate(Definition def)
-{ if ( true(def, P_LOCKED) &&
+{ GET_LD
+
+  if ( true(def, P_LOCKED) &&
        isCurrentProcedure(def->functor->functor, MODULE_user) )
     succeed;
 

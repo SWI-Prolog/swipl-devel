@@ -37,7 +37,7 @@ finding source files, etc.
 
 static void	resetProcedure(Procedure proc, bool isnew);
 static atom_t	autoLoader(Definition def);
-static Procedure visibleProcedure(functor_t f, Module m);
+static Procedure visibleProcedure(functor_t f, Module m ARG_LD);
 static void	freeClauseRef(ClauseRef cref);
 static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def ARG_LD);
@@ -274,9 +274,8 @@ resetProcedure(Procedure proc, bool isnew)
 
 
 Procedure
-isCurrentProcedure(functor_t f, Module m)
-{ GET_LD
-  return lookupHTable(m->procedures, (void *)f);
+isCurrentProcedure__LD(functor_t f, Module m ARG_LD)
+{ return lookupHTable(m->procedures, (void *)f);
 }
 
 
@@ -391,11 +390,11 @@ declare it as a meta-predicate, dynamic, etc.
 
 Procedure
 lookupProcedureToDefine(functor_t def, Module m)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
 
   if ( (proc = isCurrentProcedure(def, m)) )
-  { GET_LD
-    Definition def = getProcDefinition(proc);
+  { Definition def = getProcDefinition(proc);
 
     if ( def->module != m )
     { if ( !overruleImportedProcedure(proc, m) )
@@ -553,7 +552,8 @@ module-inheritance chain to find the existing procedure.
 
 int
 get_procedure(term_t descr, Procedure *proc, term_t h, int how)
-{ Module m = (Module) NULL;
+{ GET_LD
+  Module m = (Module) NULL;
   functor_t fdef;
   Procedure p;
 
@@ -562,8 +562,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 		      GF_PROCEDURE|(how&GP_TYPE_QUIET)) )
       fail;
   } else
-  { GET_LD
-    term_t head = PL_new_term_ref();
+  { term_t head = PL_new_term_ref();
 
     if ( !PL_strip_module(descr, &m, head) )
       return FALSE;
@@ -586,7 +585,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       }
       goto notfound;
     case GP_FIND:
-      if ( (p=visibleProcedure(fdef, m)) )
+      if ( (p=visibleProcedure(fdef, m PASS_LD)) )
       { *proc = p;
         goto out;
       }
@@ -707,7 +706,7 @@ typedef struct
 
 
 static Procedure
-visibleProcedure(functor_t f, Module m)
+visibleProcedure(functor_t f, Module m ARG_LD)
 { ListCell c;
   Procedure p;
 
@@ -719,7 +718,7 @@ visibleProcedure(functor_t f, Module m)
 
     for(c=m->supers; c; c=c->next)
     { if ( c->next )
-      { if ( (p=visibleProcedure(f, c->value)) )
+      { if ( (p=visibleProcedure(f, c->value PASS_LD)) )
 	  return p;
       } else
       { m = c->value;
@@ -826,7 +825,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
 
       if ( e->functor )
       { if ( !e->emod )			/* fully specified */
-	  return visibleProcedure(e->functor, e->module) ? TRUE : FALSE;
+	  return (visibleProcedure(e->functor, e->module PASS_LD) != NULL);
       } else
       { e->epred = newTableEnum(e->module->procedures);
       }
@@ -851,7 +850,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
 
   for(;;)
   { if ( e->functor )			/* _M:foo/2 */
-    { if ( visibleProcedure(e->functor, e->module) )
+    { if ( visibleProcedure(e->functor, e->module PASS_LD) )
       { Module m;
 	PL_unify_atom(mt, e->module->name);
 
@@ -2051,10 +2050,10 @@ the procedure from the library via autoload).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Procedure
-resolveProcedure(functor_t f, Module module)
+resolveProcedure__LD(functor_t f, Module module ARG_LD)
 { Procedure proc;
 
-  if ( (proc = visibleProcedure(f, module)) )
+  if ( (proc = visibleProcedure(f, module PASS_LD)) )
     return proc;
 
   return lookupProcedure(f, module);
@@ -2080,7 +2079,8 @@ proc->definition fetch?
 
 Definition
 autoImport(functor_t f, Module m)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def, odef;
   ListCell c;
 					/* Defined: no problem */

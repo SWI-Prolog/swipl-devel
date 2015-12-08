@@ -2397,7 +2397,8 @@ callatmv(code call)
 
 Procedure
 lookupBodyProcedure(functor_t functor, Module tm)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
 
   if ( (proc = isCurrentProcedure(functor, tm)) &&
        ( isDefinedProcedure(proc) ||

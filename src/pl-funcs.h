@@ -442,7 +442,7 @@ COMMON(atom_t)		accessLevel(void);
 /* pl-proc.c */
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m) WUNUSED;
 COMMON(void)		unallocProcedure(Procedure proc);
-COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
+COMMON(Procedure)	isCurrentProcedure__LD(functor_t f, Module m ARG_LD);
 COMMON(int)		importDefinitionModule(Module m,
 					       Definition def, int flags);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);
@@ -478,7 +478,7 @@ COMMON(size_t)		removeClausesPredicate(Definition def,
 COMMON(void)		reconsultFinalizePredicate(sf_reload *rl, Definition def,
 						   p_reload *r ARG_LD);
 COMMON(void)		destroyDefinition(Definition def);
-COMMON(Procedure)	resolveProcedure(functor_t f, Module module);
+COMMON(Procedure)	resolveProcedure__LD(functor_t f, Module module ARG_LD);
 COMMON(Definition)	trapUndefined(Definition undef ARG_LD);
 COMMON(word)		pl_retractall(term_t head);
 COMMON(word)		pl_abolish(term_t atom, term_t arity);

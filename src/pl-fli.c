@@ -3769,7 +3769,8 @@ PL_foreign_control(control_t h)
 
 predicate_t				/* = Procedure */
 PL_foreign_context_predicate(control_t h)
-{ Definition def = h->predicate;
+{ GET_LD
+  Definition def = h->predicate;
 
   return isCurrentProcedure(def->functor->functor, def->module);
 }
