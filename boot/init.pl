@@ -342,12 +342,12 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 %	    Execute after loading the file in which it appears
 %	    * restore
 %	    Do not execute immediately, but only when restoring the
-%	    state.
+%	    state.  Not allowed in a sandboxed environment.
 
 initialization(Goal, When) :-
 	'$initialization_context'(Source, Ctx),
 	(   When == now
-	->  Goal,
+	->  '$run_init_goal'(Goal, Ctx),
 	    '$compile_init_goal'(-, Goal, Ctx)
 	;   When == after_load
 	->  (   Source \== (-)
@@ -356,7 +356,8 @@ initialization(Goal, When) :-
 					  initialization(Goal, after_load)),
 			    _))
 	    )
-	;   When == restore
+	;   When == restore,
+	    \+ current_prolog_flag(sandboxed_load, true)
 	->  '$compile_init_goal'(-, Goal, Ctx)
 	;   (   var(When)
 	    ->	throw(error(instantiation_error, _))
@@ -369,26 +370,47 @@ initialization(Goal, When) :-
 '$compile_init_goal'(Source, Goal, Ctx) :-
 	atom(Source),
 	Source \== (-), !,
-	'$compile_term'(system:'$init_goal'(Source, Goal, Ctx), _Layout, Source).
+	'$store_admin_clause'(system:'$init_goal'(Source, Goal, Ctx),
+			      _Layout, Source, Ctx).
 '$compile_init_goal'(Source, Goal, Ctx) :-
 	assertz('$init_goal'(Source, Goal, Ctx)).
 
 
-'$run_initialization'(File) :-
+'$run_initialization'(File, Options) :-
 	setup_call_cleanup(
-	    '$push_input_context'(initialization),
+	    '$start_run_initialization'(Options, Restore),
 	    '$run_initialization_2'(File),
-	    '$pop_input_context').
+	    '$end_run_initialization'(Restore)).
+
+'$start_run_initialization'(Options, OldSandBoxed) :-
+	'$push_input_context'(initialization),
+	'$set_sandboxed_load'(Options, OldSandBoxed).
+'$end_run_initialization'(OldSandBoxed) :-
+	set_prolog_flag(sandboxed_load, OldSandBoxed),
+	'$pop_input_context'.
 
 '$run_initialization_2'(File) :-
 	(   '$init_goal'(File, Goal, Ctx),
-	    (   catch(Goal, E, '$initialization_error'(E, Goal, Ctx))
-	    ->  fail
-	    ;   '$initialization_failure'(Goal, Ctx),
-		fail
-	    )
+	    '$run_init_goal'(Goal, Ctx),
+	    fail
 	;   true
 	).
+
+'$run_init_goal'(Goal, Ctx) :-
+	(   catch('$run_init_goal'(Goal), E,
+		  '$initialization_error'(E, Goal, Ctx))
+	->  true
+	;   '$initialization_failure'(Goal, Ctx)
+	).
+
+:- multifile prolog:sandbox_allowed_goal/1.
+
+'$run_init_goal'(Goal) :-
+	current_prolog_flag(sandboxed_load, false), !,
+	call(Goal).
+'$run_init_goal'(Goal) :-
+	prolog:sandbox_allowed_goal(Goal),
+	call(Goal).
 
 '$initialization_context'(Source, Ctx) :-
 	(   source_location(File, Line)
@@ -1768,7 +1790,7 @@ load_files(Module:Files, Options) :-
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
 	'$qdo_load_file'(File, FullFile, Module, Options),
-	'$run_initialization'(FullFile).
+	'$run_initialization'(FullFile, Options).
 
 '$mt_end_load'(queue(_)) :- !.
 '$mt_end_load'(already_loaded) :- !.

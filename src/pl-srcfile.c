@@ -211,9 +211,7 @@ clearSourceAdmin(SourceFile sf)
 
 int
 destroySourceFile(SourceFile sf)
-{ GET_LD
-
-  DEBUG(MSG_SRCFILE,
+{ DEBUG(MSG_SRCFILE,
 	Sdprintf("Destroying source file %s\n", PL_atom_chars(sf->name)));
 
   clearSourceAdmin(sf);
@@ -223,9 +221,8 @@ destroySourceFile(SourceFile sf)
   { SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
-    f = lookupHTable(GD->files.table, (void*)sf->name);
+    f = deleteHTable(GD->files.table, (void*)sf->name);
     assert(f);
-    deleteHTable(GD->files.table, (void*)sf->name);
     PL_unregister_atom(sf->name);
     putSourceFileArray(sf->index, NULL);
     if ( GD->files.no_hole_before > sf->index )
@@ -404,6 +401,9 @@ delAllModulesSourceFile__unlocked(SourceFile sf)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Remove all links from sf to  m  module.   If  sf  becomes empty, we also
 delete the source file.
+
+(*) Although the system:$init_goal/3 clauses belong   to the file, we'll
+consider a file holding only initialization goals empty.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -418,24 +418,34 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 
   for(cell=sf->procedures; cell; cell=next)
   { Procedure proc;
+    Definition def;
 
     next = cell->next;
     proc = cell->value;
+    def  = proc->definition;
 
-    if ( lookupHTable(m->procedures, (void*)proc->definition->functor->functor) )
+    if ( lookupHTable(m->procedures, (void*)def->functor->functor) ||
+	 PROCEDURE_dinit_goal->definition == def )	/* see (*) */
     { if ( prev )
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
       freeHeap(cell, sizeof(*cell));
     } else
+    { DEBUG(MSG_DESTROY_MODULE,
+	    Sdprintf("  Keeping %s\n", procedureName(proc)));
       prev = cell;
+    }
   }
 
   UNLOCKSRCFILE(sf);
 
   if ( !sf->procedures && !sf->modules )
+  { DEBUG(MSG_DESTROY_MODULE,
+	  Sdprintf("Destroying empty source file %s\n",
+		   PL_atom_chars(sf->name)));
     destroySourceFile(sf);
+  }
 }
 
 

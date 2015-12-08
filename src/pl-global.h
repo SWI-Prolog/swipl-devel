@@ -266,6 +266,7 @@ struct PL_global_data
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
     Procedure   dc_call_prolog0;	/* $c_call_prolog/0 */
+    Procedure   dinit_goal3;		/* $init_goal/3 */
 #ifdef O_ATTVAR
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */

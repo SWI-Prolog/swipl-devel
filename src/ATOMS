@@ -336,6 +336,7 @@ A infinite		"infinite"
 A informational		"informational"
 A inherit_from		"inherit_from"
 A init_file		"init_file"
+A dinit_goal		"$init_goal"
 A initialization	"initialization"
 A input			"input"
 A inserted_char		"inserted_char"
@@ -824,6 +825,7 @@ F dexit			2
 F dforeign_registered   2
 F dgarbage_collect	1
 F div			2
+F dinit_goal		3
 F gdiv			2
 F getbit		2
 F divide		2

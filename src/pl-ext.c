@@ -462,6 +462,7 @@ initBuildIns(void)
   LOOKUPPROC(setup_call_catcher_cleanup4);
   LOOKUPPROC(dthread_init0);
   LOOKUPPROC(dc_call_prolog0);
+  LOOKUPPROC(dinit_goal3);
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
 #endif

@@ -1276,14 +1276,15 @@ runInitialization(SourceFile sf)
   if ( sf )
   { GET_LD
     fid_t fid = PL_open_foreign_frame();
-    term_t name = PL_new_term_ref();
+    term_t av = PL_new_term_refs(2);
     static predicate_t pred = NULL;
 
     if ( !pred )
-      pred = PL_predicate("$run_initialization", 1, "system");
+      pred = PL_predicate("$run_initialization", 2, "system");
 
-    PL_put_atom(name, sf->name);
-    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+    PL_put_atom(av+0, sf->name);
+    PL_put_nil( av+1);
+    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, av);
 
     PL_discard_foreign_frame(fid);
   }

@@ -207,7 +207,7 @@ prolog:message(initialize_now(Goal, Use)) -->
 	].
 
 '$run_initialization' :-
-	'$run_initialization'(_),
+	'$run_initialization'(_, []),
 	'$thread_init'.
 
 

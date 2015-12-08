@@ -2099,6 +2099,7 @@ typedef struct
 #define PROCEDURE_dthread_init0		(GD->procedures.dthread_init0)
 #define PROCEDURE_exception_hook4	(GD->procedures.exception_hook4)
 #define PROCEDURE_dc_call_prolog	(GD->procedures.dc_call_prolog0)
+#define PROCEDURE_dinit_goal		(GD->procedures.dinit_goal3)
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
 
