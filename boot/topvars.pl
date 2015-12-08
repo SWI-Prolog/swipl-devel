@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2015, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,7 +36,21 @@
 :- dynamic
 	verbose/0.
 
-:- initialization op(1, fx, user:($)).
+% define the operator globally
+:- op(1, fx, user:($)).
+
+:- public
+	expand_query/4,		% +Query0, -Query, +Bindings0, -Bindings
+	expand_answer/2.	% +Answer0, -Answer
+
+%%	expand_query(+Query0, -Query, +Bindings0, -Bindings) is det.
+%%	expand_answer(+Answer0, -Answer) is det.
+%
+%	These predicates realise reuse of   toplevel variables using the
+%	$Var notation. These hooks are   normally called by toplevel.pl.
+%	If the user defines rules for these   hooks  in the user module,
+%	these implementations may be  called  (or   not)  to  define the
+%	interaction with the user hooks.
 
 expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
 	expand_vars(Bindings, Query, Expanded),
@@ -139,13 +152,4 @@ verbose_expansion(on) :- !,
 	asserta(verbose).
 verbose_expansion(off) :-
 	retractall(verbose).
-
-:- multifile
-	user:expand_query/4,
-	user:expand_answer/2.
-
-user:expand_query(A, B, C, D) :-
-	toplevel_variables:expand_query(A, B, C, D).
-user:expand_answer(A, B) :-
-	toplevel_variables:expand_answer(A, B).
 

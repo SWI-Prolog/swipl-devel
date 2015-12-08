@@ -1240,6 +1240,8 @@ print_predicate(0'p, [print], [ quoted(true),
 
 call_expand_query(Goal, Expanded, Bindings, ExpandedBindings) :-
 	user:expand_query(Goal, Expanded, Bindings, ExpandedBindings), !.
+call_expand_query(Goal, Expanded, Bindings, ExpandedBindings) :-
+	toplevel_variables:expand_query(Goal, Expanded, Bindings, ExpandedBindings), !.
 call_expand_query(Goal, Goal, Bindings, Bindings).
 
 
@@ -1248,4 +1250,6 @@ call_expand_query(Goal, Goal, Bindings, Bindings).
 
 call_expand_answer(Goal, Expanded) :-
 	user:expand_answer(Goal, Expanded), !.
+call_expand_answer(Goal, Expanded) :-
+	toplevel_variables:expand_answer(Goal, Expanded), !.
 call_expand_answer(Goal, Goal).
