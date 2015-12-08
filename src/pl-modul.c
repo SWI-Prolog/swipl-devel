@@ -52,9 +52,8 @@ unallocProcedureSymbol(void *name, void *value)
 
 
 static Module
-_lookupModule(atom_t name)
-{ GET_LD
-  Module m, super;
+_lookupModule(atom_t name ARG_LD)
+{ Module m, super;
 
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
@@ -114,7 +113,7 @@ lookupModule__LD(atom_t name ARG_LD)
     return m;
 
   LOCK();
-  m = _lookupModule(name);
+  m = _lookupModule(name PASS_LD);
   UNLOCK();
 
   return m;
@@ -136,7 +135,8 @@ unallocModuleSymbol(void *name, void *value)
 
 void
 initModules(void)
-{ LOCK();
+{ GET_LD
+  LOCK();
   if ( !GD->tables.modules )
   {
 #ifdef O_PLMT
@@ -146,8 +146,8 @@ initModules(void)
 
     GD->tables.modules = newHTable(MODULEHASHSIZE);
     GD->tables.modules->free_symbol = unallocModuleSymbol;
-    GD->modules.system = _lookupModule(ATOM_system);
-    GD->modules.user   = _lookupModule(ATOM_user);
+    GD->modules.system = _lookupModule(ATOM_system PASS_LD);
+    GD->modules.user   = _lookupModule(ATOM_user PASS_LD);
   }
   UNLOCK();
 }
@@ -473,12 +473,14 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 
     if ( pname == ATOM_base )
     { atom_t mname;
+      Module super;
       int rc;
 
       if ( !PL_get_atom_ex(arg, &mname) )
 	return FALSE;
+      super = lookupModule(mname);
       LOCK();
-      rc = setSuperModule(m, _lookupModule(mname));
+      rc = setSuperModule(m, super);
       UNLOCK();
       return rc;
     } else if ( pname == ATOM_class )
@@ -1018,11 +1020,10 @@ declareModule(atom_t name, atom_t class, atom_t super,
 	      SourceFile sf, int line,
 	      int allow_newfile)
 { GET_LD
-  Module module;
+  Module module = lookupModule(name);
   term_t tmp = 0, rdef = 0, rtail = 0;
 
   LOCK();
-  module = _lookupModule(name);
   if ( class )
     module->class = class;
 
@@ -1070,7 +1071,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
     clearHTable(module->public);
   }
   if ( super )
-    setSuperModule(module, _lookupModule(super));
+    setSuperModule(module, _lookupModule(super PASS_LD));
 
   UNLOCK();
 
