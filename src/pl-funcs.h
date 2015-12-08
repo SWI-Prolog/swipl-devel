@@ -317,7 +317,7 @@ COMMON(word)		pl_load_shared_object(term_t file, term_t entry);
 COMMON(void)		cleanupForeign(void);
 
 /* pl-modul.c */
-COMMON(Module)		lookupModule(atom_t name);
+COMMON(Module)		lookupModule__LD(atom_t name ARG_LD);
 COMMON(Module)		isCurrentModule(atom_t name);
 COMMON(void)		initModules(void);
 COMMON(void)		cleanupModules(void);

@@ -663,7 +663,8 @@ loadXRc(wic_state *state, int c ARG_LD)
       break;
     }
     case XR_MODULE:
-    { atom_t name;
+    { GET_LD
+      atom_t name;
       id = ++state->XR->id;
       name = loadXR(state);
       xr = (word) lookupModule(name);

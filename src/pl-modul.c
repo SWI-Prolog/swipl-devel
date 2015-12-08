@@ -107,8 +107,11 @@ _lookupModule(atom_t name)
 
 
 Module
-lookupModule(atom_t name)
+lookupModule__LD(atom_t name ARG_LD)
 { Module m;
+
+  if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
+    return m;
 
   LOCK();
   m = _lookupModule(name);
