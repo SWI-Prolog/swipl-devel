@@ -1683,7 +1683,8 @@ load_files(Module:Files, Options) :-
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
 	'$assert_load_context_module'(File, Module, Options),
-	'$qdo_load_file'(File, File, Module, Options).
+	'$qdo_load_file'(File, File, Module, Options),
+	'$run_initialization'(File, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
 			   [ file_type(prolog),
