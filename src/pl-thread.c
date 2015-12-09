@@ -5610,8 +5610,10 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
   if ( !get_thread_sync(thread, &info, FALSE) )
     fail;
 
+  LOCK();
   if ( (def = getProcDefinitionForThread(proc->definition, info->pl_tid)) )
     number_of_clauses = def->impl.clauses.number_of_clauses;
+  UNLOCK();
 
   return PL_unify_integer(count, number_of_clauses);
 }
