@@ -45,6 +45,7 @@
 	    get_store/2,
 	    update_store/2,
 	    make_get_store_goal/3,
+	    make_get_store_goal_no_error/3,
 	    make_update_store_goal/3,
 	    make_init_store_goal/3,
 
@@ -56,7 +57,6 @@
 	    time/3
 %	    lookup_ht1/4
 	  ]).
-:- use_module(library(lists)).
 :- use_module(library(assoc)).
 
 :- meta_predicate
@@ -115,6 +115,8 @@ update_store(Name,Value) :- b_setval(Name,Value).
 make_init_store_goal(Name,Value,Goal) :- Goal = nb_setval(Name,Value).
 
 make_get_store_goal(Name,Value,Goal) :- Goal = nb_getval(Name,Value).
+
+make_get_store_goal_no_error(Name,Value,Goal) :- Goal = nb_current(Name,Value).
 
 make_update_store_goal(Name,Value,Goal) :- Goal = b_setval(Name,Value).
 
