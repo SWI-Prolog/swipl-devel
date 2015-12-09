@@ -5540,6 +5540,9 @@ localiseDefinition(Definition def)
   clear(local, P_THREAD_LOCAL);		/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
+  ATOMIC_INC(&GD->statistics.predicates);
+  ATOMIC_ADD(&local->module->code_size, sizeof(*local));
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Localise %s\n", predicateName(def)));
 
   createSupervisor(local);
   registerLocalDefinition(def);
