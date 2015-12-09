@@ -870,6 +870,15 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	    print_message(query, query(done))
 	).
 
+%%	prolog:residual_goals(-Goal:callable) is nondet.
+%
+%	Provide additional _residual goals_.  This   hook  is  currently
+%	being used by CHR, where constraints  in   the  CHR store can be
+%	considered residual goals, but they   are not accessible through
+%	the answer projection.
+
+:- multifile prolog:residual_goal/1.
+
 %%	prolog:translate_bindings(+Bindings0, -Bindings, +ResidueVars,
 %%				  -Residuals) is det.
 %
@@ -899,19 +908,25 @@ write_bindings2(Bindings, Residuals, _Det) :-
 prolog:translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
 	translate_bindings(Bindings0, Bindings, ResidueVars, Residuals).
 
-translate_bindings(Bindings0, Bindings, [], _:[]-[]) :-
+translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
+	findall(Res, prolog:residual_goal(Res), ResidueGoals),
+	translate_bindings(Bindings0, Bindings, ResidueVars, ResidueGoals,
+			   Residuals).
+
+translate_bindings(Bindings0, Bindings, [], [], _:[]-[]) :-
 	term_attvars(Bindings0, []), !,
 	join_same_bindings(Bindings0, Bindings1),
 	factorize_bindings(Bindings1, Bindings2),
 	bind_vars(Bindings2, Bindings3),
 	filter_bindings(Bindings3, Bindings).
-translate_bindings(Bindings0, Bindings, ResidueVars,
+translate_bindings(Bindings0, Bindings, ResidueVars, ResGoals0,
 		   TypeIn:Residuals-HiddenResiduals) :-
 	project_constraints(Bindings0, ResidueVars),
 	hidden_residuals(ResidueVars, Bindings0, HiddenResiduals0),
 	omit_qualifiers(HiddenResiduals0, TypeIn, HiddenResiduals),
 	copy_term(Bindings0, Bindings1, Residuals0),
-	omit_qualifiers(Residuals0, TypeIn, Residuals),
+	append(ResGoals0, Residuals0, Residuals1),
+	omit_qualifiers(Residuals1, TypeIn, Residuals),
 	join_same_bindings(Bindings1, Bindings2),
 	factorize_bindings(Bindings2, Bindings3),
 	bind_vars(Bindings3, Bindings4),
