@@ -1268,6 +1268,13 @@ expand_file_name/2 can be used to expand environment variables and
 wildcard patterns. This Prolog flag is intended for backward
 compatibility with older versions of SWI-Prolog.
 
+    \prologflagitem{file_search_cache_time}{number}{rw}
+Time in seconds for which search results from absolute_file_name/3 are
+cached. Within this time limit, the system will first check that the old
+search result satisfies the conditions. Default is 10 seconds, which
+typically avoids most repetitive searches for (library) files during
+compilation. Setting this value to 0 (zero) disables the cache.
+
     \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
 garbage collection, nor stack shifts will take place, even not on

@@ -898,25 +898,29 @@ user:prolog_file_type(Ext,	executable) :-
 %%			  -FullFile) is nondet.
 
 :- dynamic
-	'$search_path_file_cache'/4.	% Spec, Hash, Cache, Path
+	'$search_path_file_cache'/3,	% SHA1, Time, Path
+	'$search_path_gc_time'/1.	% Time
 :- volatile
-	'$search_path_file_cache'/4.
+	'$search_path_file_cache'/3,
+	'$search_path_gc_time'/1.
+
+:- create_prolog_flag(file_search_cache_time, 10, []).
 
 '$chk_alias_file'(Spec, Exts, Cond, true, CWD, FullFile) :- !,
 	findall(Exp, expand_file_search_path(Spec, Exp), Expansions),
 	Cache = cache(Exts, Cond, CWD, Expansions),
-	term_hash(Cache, Hash),
-	(   '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
+	variant_sha1(Spec+Cache, SHA1),
+	get_time(Now),
+	current_prolog_flag(file_search_cache_time, TimeOut),
+	(   '$search_path_file_cache'(SHA1, CachedTime, FullFile),
+	    CachedTime > Now - TimeOut,
 	    '$file_conditions'(Cond, FullFile)
 	->  '$search_message'(file_search(cache(Spec, Cond), FullFile))
 	;   '$member'(Expanded, Expansions),
 	    '$extend_file'(Expanded, Exts, LibFile),
 	    (   '$file_conditions'(Cond, LibFile),
 		'$absolute_file_name'(LibFile, FullFile),
-		(   '$search_path_file_cache'(Spec, Hash, Cache, FullFile)
-		->  true
-		;   asserta('$search_path_file_cache'(Spec, Hash, Cache, FullFile))
-		)
+		'$cache_file_found'(SHA1, Now, TimeOut, FullFile)
 	    ->  '$search_message'(file_search(found(Spec, Cond), FullFile))
 	    ;   '$search_message'(file_search(tried(Spec, Cond), LibFile)),
 		fail
@@ -927,6 +931,35 @@ user:prolog_file_type(Ext,	executable) :-
 	'$extend_file'(Expanded, Exts, LibFile),
 	'$file_conditions'(Cond, LibFile),
 	'$absolute_file_name'(LibFile, FullFile).
+
+'$cache_file_found'(_, _, TimeOut, _) :-
+	TimeOut =:= 0, !.
+'$cache_file_found'(SHA1, Now, TimeOut, FullFile) :-
+	'$search_path_file_cache'(SHA1, Saved, FullFile), !,
+	(   Now - Saved < TimeOut/2
+	->  true
+	;   retractall('$search_path_file_cache'(SHA1, _, _)),
+	    asserta('$search_path_file_cache'(SHA1, Now, FullFile))
+	).
+'$cache_file_found'(SHA1, Now, TimeOut, FullFile) :-
+	'gc_file_search_cache'(TimeOut),
+	asserta('$search_path_file_cache'(SHA1, Now, FullFile)).
+
+'gc_file_search_cache'(TimeOut) :-
+	get_time(Now),
+	'$search_path_gc_time'(Last),
+	Now-Last < TimeOut/2, !.
+'gc_file_search_cache'(TimeOut) :-
+	get_time(Now),
+	retractall('$search_path_gc_time'(_)),
+	assertz('$search_path_gc_time'(Now)),
+	Before is Now - TimeOut,
+	(   '$search_path_file_cache'(SHA1, Cached, FullFile),
+	    Cached < Before,
+	    retractall('$search_path_file_cache'(SHA1, Cached, FullFile)),
+	    fail
+	;   true
+	).
 
 
 '$search_message'(Term) :-
