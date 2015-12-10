@@ -5573,7 +5573,7 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
 }
 
 
-/** '"$thread_local_clause_count'(:Head, +Thread, -NumberOfClauses) is semidet.
+/** '$thread_local_clause_count'(:Head, +Thread, -NumberOfClauses) is semidet.
 
 True when NumberOfClauses is the number  of clauses for the thread-local
 predicate Head in Thread.  Fails silently if
