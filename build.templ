@@ -94,6 +94,8 @@ if [ "`uname`" = Darwin ]; then
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig:/opt/X11/lib/pkgconfig
   if [ -f "$JAVA_HOME/bin/java" ]; then
     export JAVAPREFIX="$JAVA_HOME/bin"
+  elif [ -f /usr/libexec/java_home ]; then
+    export JAVAPREFIX=$(/usr/libexec/java_home)/bin
   elif [ -f /Library/Java/Home/bin/java ]; then
     export JAVAPREFIX=/Library/Java/Home/bin
   elif [ -d /Library/Java/JavaVirtualMachines/*/Contents/Home/bin ]; then
