@@ -2672,13 +2672,15 @@ queue_message(message_queue *queue, thread_message *msgp, struct timespec *deadl
 	break;
       }
       case ETIMEDOUT:
-	 return MSG_WAIT_TIMEOUT;
+	queue->wait_for_drain--;
+        return MSG_WAIT_TIMEOUT;
       case 0:
-	 break;
+	break;
       default:
-	 assert(0); // should never happen
+	assert(0); // should never happen
       }
       if ( queue->destroyed )
+	queue->wait_for_drain--;
 	return MSG_WAIT_DESTROYED;
     }
 
