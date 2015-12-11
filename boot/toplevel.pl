@@ -910,7 +910,7 @@ collect_residual_goals([H|T]) -->
 
 
 %%	prolog:translate_bindings(+Bindings0, -Bindings, +ResidueVars,
-%%				  -Residuals) is det.
+%%				  +ResidualGoals, -Residuals) is det.
 %
 %	Translate the raw variable bindings  resulting from successfully
 %	completing a query into a  binding   list  and  list of residual
@@ -931,12 +931,12 @@ collect_residual_goals([H|T]) -->
 %		related that are disconnected from the query.
 
 :- public
-	prolog:translate_bindings/4.
+	prolog:translate_bindings/5.
 :- meta_predicate
-	prolog:translate_bindings(+, -, +, :).
+	prolog:translate_bindings(+, -, +, +, :).
 
-prolog:translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
-	translate_bindings(Bindings0, Bindings, ResidueVars, Residuals).
+prolog:translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals) :-
+	translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals).
 
 translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
 	prolog:residual_goals(ResidueGoals, []),
