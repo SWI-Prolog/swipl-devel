@@ -3088,6 +3088,11 @@ saved state.
 	->  true
 	;   '$type_error'(atom, X)
 	).
+'$must_be'(callable, X) :-
+	(   callable(X)
+	->  true
+	;   '$type_error'(callable, X)
+	).
 '$must_be'(oneof(Type, Domain, List), X) :-
 	'$must_be'(Type, X),
 	(   memberchk(X, List)

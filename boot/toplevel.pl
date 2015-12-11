@@ -36,6 +36,7 @@
 	    version/1,			% Add message to the banner
 	    prolog/0,			% user toplevel predicate
 	    '$query_loop'/0,		% toplevel predicate
+	    residual_goals/1,		% +Callable
 	    (initialization)/1,		% initialization goal (directive)
 	    '$thread_init'/0,		% initialise thread
 	    (thread_initialization)/1	% thread initialization goal
@@ -870,14 +871,42 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	    print_message(query, query(done))
 	).
 
-%%	prolog:residual_goals(-Goal:callable) is nondet.
+%%	residual_goals(:NonTerminal)
 %
-%	Provide additional _residual goals_.  This   hook  is  currently
-%	being used by CHR, where constraints  in   the  CHR store can be
-%	considered residual goals, but they   are not accessible through
-%	the answer projection.
+%	Directive that registers NonTerminal as a collector for residual
+%	goals.
 
-:- multifile prolog:residual_goal/1.
+:- multifile
+	residual_goal_collector/1.
+
+:- meta_predicate
+	residual_goals(2).
+
+residual_goals(NonTerminal) :-
+	throw(error(context_error(nodirective, residual_goals(NonTerminal)), _)).
+
+system:term_expansion((:- residual_goals(NonTerminal)),
+		      '$toplevel':residual_goal_collector(M2:Head)) :-
+	prolog_load_context(module, M),
+	strip_module(M:NonTerminal, M2, Head),
+	'$must_be'(callable, Head).
+
+%%	prolog:residual_goals//
+%
+%	DGC that collects residual goals that   are  not associated with
+%	the answer through attributed variables.
+
+:- public prolog:residual_goals//0.
+
+prolog:residual_goals -->
+	{ findall(NT, residual_goal_collector(NT), NTL) },
+	collect_residual_goals(NTL).
+
+collect_residual_goals([]) --> [].
+collect_residual_goals([H|T]) -->
+	call(H),
+	collect_residual_goals(T).
+
 
 %%	prolog:translate_bindings(+Bindings0, -Bindings, +ResidueVars,
 %%				  -Residuals) is det.
@@ -909,7 +938,7 @@ prolog:translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
 	translate_bindings(Bindings0, Bindings, ResidueVars, Residuals).
 
 translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
-	findall(Res, prolog:residual_goal(Res), ResidueGoals),
+	prolog:residual_goals(ResidueGoals, []),
 	translate_bindings(Bindings0, Bindings, ResidueVars, ResidueGoals,
 			   Residuals).
 
