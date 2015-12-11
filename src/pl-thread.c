@@ -2680,8 +2680,9 @@ queue_message(message_queue *queue, thread_message *msgp, struct timespec *deadl
 	assert(0); // should never happen
       }
       if ( queue->destroyed )
-	queue->wait_for_drain--;
+      { queue->wait_for_drain--;
 	return MSG_WAIT_DESTROYED;
+      }
     }
 
     queue->wait_for_drain--;
