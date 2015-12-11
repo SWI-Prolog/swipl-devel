@@ -334,11 +334,6 @@ copy_goal_arg(_, _, _).
 copy_goal_arg(Var) :- var(Var), !, fail.
 copy_goal_arg(_:_).
 
-dcg_goal(X) :-
-	var(X), !, fail.
-dcg_goal(phrase(_,_,_)).
-dcg_goal(dcg_call(_,_,_)).
-
 %%	verify_safe_declaration(+Decl)
 %
 %	See whether a  safe  declaration  makes   sense.  That  is,  the
@@ -749,7 +744,7 @@ safe_meta('$dcg':call_dcg(NT,Xs0), [Goal]) :-
 
 attr_hook_predicates([], _, []).
 attr_hook_predicates([H|T], M, Called) :-
-	(   predicate_property(M:H, interpreted)
+	(   predicate_property(M:H, defined)
 	->  Called = [M:H|Rest]
 	;   Called = Rest
 	),
