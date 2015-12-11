@@ -891,7 +891,7 @@ system:term_expansion((:- residual_goals(NonTerminal)),
 	strip_module(M:NonTerminal, M2, Head),
 	'$must_be'(callable, Head).
 
-%%	prolog:residual_goals//
+%%	prolog:residual_goals// is det.
 %
 %	DGC that collects residual goals that   are  not associated with
 %	the answer through attributed variables.
@@ -904,8 +904,9 @@ prolog:residual_goals -->
 
 collect_residual_goals([]) --> [].
 collect_residual_goals([H|T]) -->
-	call(H),
+	( call(H) -> [] ; [] ),
 	collect_residual_goals(T).
+
 
 
 %%	prolog:translate_bindings(+Bindings0, -Bindings, +ResidueVars,
