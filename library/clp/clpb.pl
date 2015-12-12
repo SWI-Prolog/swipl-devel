@@ -1718,8 +1718,10 @@ warn_if_bounded_arithmetic :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- multifile
-        sandbox:safe_global_variable/1.
+        sandbox:safe_global_variable/1,
+        sandbox:safe_primitive/1.
 
 sandbox:safe_global_variable('$clpb_next_var').
 sandbox:safe_global_variable('$clpb_next_node').
 sandbox:safe_global_variable('$clpb_atoms').
+sandbox:safe_primitive(set_prolog_flag(clpb_residuals, _)).
