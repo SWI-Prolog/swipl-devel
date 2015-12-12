@@ -6865,3 +6865,5 @@ safe_api.
 sandbox:safe_primitive(clpfd:clpfd_equal(_,_)).
 sandbox:safe_primitive(clpfd:clpfd_geq(_,_)).
 sandbox:safe_primitive(clpfd:clpfd_in(_,_)).
+% Enabling monotonic CLP(FD) is safe.
+sandbox:safe_primitive(set_prolog_flag(clpfd_monotonic, _)).
