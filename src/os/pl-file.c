@@ -159,8 +159,10 @@ getStreamContext(IOSTREAM *s)
     ctx->alias_head = ctx->alias_tail = NULL;
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;
-    addNewHTable(streamContext, s, ctx);
-    s->context = ctx;
+    if ( COMPARE_AND_SWAP(&s->context, NULL, ctx) )
+      addNewHTable(streamContext, s, ctx);
+    else
+      freeHeap(ctx, sizeof(*ctx));
   }
 
   return (stream_context*)s->context;
@@ -266,9 +268,9 @@ freeStream(IOSTREAM *s)
 
   LOCK();
   unaliasStream(s, NULL_ATOM);
-  if ( (ctx = lookupHTable(streamContext, s)) )
+  ctx = s->context;
+  if ( ctx && COMPARE_AND_SWAP(&s->context, ctx, NULL) )
   { deleteHTable(streamContext, s);
-
     if ( ctx->filename != NULL_ATOM )
     { PL_unregister_atom(ctx->filename);
 
@@ -730,9 +732,7 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
-{ LOCK();
-  (void)getStreamContext(s);		/* get stream known to Prolog */
-  UNLOCK();
+{ (void)getStreamContext(s);		/* get stream known to Prolog */
 
   return unify_stream_ref(t, s);
 }
