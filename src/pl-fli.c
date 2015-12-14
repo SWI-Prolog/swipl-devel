@@ -3837,7 +3837,8 @@ PL_raise_exception(term_t exception)
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { setVar(*valTermRef(exception_bin));
     copy_exception(exception, exception_bin PASS_LD);
-    freezeGlobal(PASS_LD1);
+    if ( !PL_is_atom(exception_bin) )
+      freezeGlobal(PASS_LD1);
   }
   exception_term = exception_bin;
 
