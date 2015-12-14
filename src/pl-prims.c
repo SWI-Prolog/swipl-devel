@@ -227,8 +227,10 @@ do_unify(Word t1, Word t2 ARG_LD)
     deRef(t1); w1 = *t1;
     deRef(t2); w2 = *t2;
 
-    DEBUG(CHK_SECURE, assert(w1 != ATOM_garbage_collected);
-	   assert(w2 != ATOM_garbage_collected));
+    DEBUG(CHK_SECURE,
+	  { assert(w1 != ATOM_garbage_collected);
+	    assert(w2 != ATOM_garbage_collected);
+	  });
 
     if ( isVar(w1) )
     { if ( unlikely(tTop+1 >= tMax) )
