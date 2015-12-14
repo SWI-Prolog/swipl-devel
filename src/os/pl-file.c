@@ -717,14 +717,16 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
   if ( (i=standardStreamIndexFromStream(s)) >= 0 && i < 3 )
     return PL_unify_atom(t, standardStreams[i]);
 
-  LOCK();
-  ctx = getStreamContext(s);
-  if ( ctx->alias_head )
-    rval = PL_unify_atom(t, ctx->alias_head->name);
-  else
-    rval = unify_stream_ref(t, s);
-  UNLOCK();
-
+  if ( (ctx=getExistingStreamContext(s)) && ctx->alias_head )
+  { LOCK();
+    if ( ctx->alias_head )
+      rval = PL_unify_atom(t, ctx->alias_head->name);
+    else
+      rval = unify_stream_ref(t, s);
+    UNLOCK();
+  } else
+  { rval = unify_stream_ref(t, s);
+  }
 
   return rval;
 }
