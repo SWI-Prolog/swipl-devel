@@ -1637,7 +1637,7 @@ findCatcher(LocalFrame fr, Choice ch, term_t ex ARG_LD)
 
   for(; fr; fr = fr->parent)
   { int rc;
-    term_t tref;
+    term_t tref, catcher;
 
     if ( fr->predicate != catch3 )
       continue;
@@ -1647,11 +1647,14 @@ findCatcher(LocalFrame fr, Choice ch, term_t ex ARG_LD)
       continue;				/* call-port of catch/3 */
 
     tref = consTermRef(fr);
-    rc = PL_unify(consTermRef(argFrameP(fr, 1)), ex);
+    catcher = consTermRef(argFrameP(fr, 1));
+    DEBUG(MSG_THROW, Sdprintf("Unify ball for frame %ld\n", (long)tref));
+    rc = PL_unify(catcher, ex);
     fr = (LocalFrame)valTermRef(tref);
 
     if ( rc )
-    { set(fr, FR_CATCHED);
+    { DEBUG(MSG_THROW, Sdprintf("Unified for frame %ld\n", (long)tref));
+      set(fr, FR_CATCHED);
       return consTermRef(fr);
     }
   }
@@ -1788,7 +1791,7 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
       qid_t qid;
-      term_t av;
+      term_t av, ex = 0;
       int debug, trace, rc;
 
       LD->exception.in_hook++;
@@ -1805,22 +1808,32 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
       } else
 	PL_put_frame(av+3, NULL);	/* puts 'none' */
 
-      qid = PL_open_query(MODULE_user, PL_Q_NODEBUG,
+      qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
 			  PROCEDURE_exception_hook4, av);
       rc = PL_next_solution(qid);
       debug = debugstatus.debugging;
       trace = debugstatus.tracing;
-      PL_cut_query(qid);
       if ( rc )				/* pass user setting trace/debug */
-      { if ( debug ) debugstatus.debugging = TRUE;
+      { PL_cut_query(qid);
+	if ( debug ) debugstatus.debugging = TRUE;
 	if ( trace ) debugstatus.tracing = TRUE;
+	if ( !PL_is_variable(av+1) )
+	  ex = av+1;
+      } else
+      { ex = PL_exception(qid);
+	if ( ex )
+	{ PL_put_term(av+1, ex);
+	  ex = av+1;
+	}
+	PL_cut_query(qid);
       }
 
-      if ( rc )
-	rc = !PL_is_variable(av+1);
-      if ( rc )
-      {	PL_raise_exception(av+1);	/* copy term again */
+      if ( ex && !PL_same_term(ex, exception_term) )
+      {	PL_raise_exception(ex);	/* copy term again */
 	wstate.flags |= WAKEUP_STATE_SKIP_EXCEPTION;
+	rc = TRUE;			/* handled */
+      } else
+      { rc = FALSE;
       }
       restoreWakeup(&wstate PASS_LD);
 
