@@ -156,6 +156,9 @@ getStreamContext(IOSTREAM *s)
 
     DEBUG(1, Sdprintf("Created ctx=%p for stream %p\n", ctx, s));
 
+    if ( s->erased )
+      Sdprintf("WARNING: created stream context for erased stream\n");
+
     ctx->alias_head = ctx->alias_tail = NULL;
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;

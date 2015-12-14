@@ -1773,6 +1773,9 @@ unallocStream(IOSTREAM *s)
   }
 #endif
 
+  if ( s->context )
+    Sdprintf("WARNING: unallocStream(): stream has context??\n");
+
   if ( !(s->flags & SIO_STATIC) )
     PL_free(s);
 }
