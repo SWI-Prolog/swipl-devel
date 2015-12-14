@@ -1664,6 +1664,11 @@ findCatcher(LocalFrame fr, Choice ch, term_t ex ARG_LD)
 See whether some outer  environment  will   catch  this  exception. I.e.
 catch(Goal, ...), where Goal calls C, calls   Prolog  and then raises an
 exception somewhere.
+
+Note that when throwing from a catch/3,   the  catcher is subject to GC.
+Hence, we should not call can_unify() if  it has been garbage collected.
+Doing so generally does no harm as the unification will fail, but is not
+elegant and traps an assert() in do_unify().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef offset
@@ -1681,9 +1686,13 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 
     while( fr )
     { if ( fr->predicate == catch3 )
-      { term_t fref = consTermRef(fr);
+      { term_t fref  = consTermRef(fr);
+	Word catcher = argFrameP(fr, 1);
 
-	if ( can_unify(argFrameP(fr, 1), /* may shift */
+	deRef(catcher);
+
+	if ( *catcher != ATOM_garbage_collected &&
+	     can_unify(catcher,		/* may shift */
 		       valTermRef(ball),
 		       0) )
 	  return TRUE;
