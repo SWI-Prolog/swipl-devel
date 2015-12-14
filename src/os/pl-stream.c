@@ -3704,11 +3704,13 @@ static void
 run_close_hooks(IOSTREAM *s)
 { close_hook *p;
 
+  if ( s->close_hook )
+  { (*s->close_hook)(s->closure);
+    s->close_hook = NULL;
+  }
+
   for(p=close_hooks; p; p = p->next)
     (*p->hook)(s);
-
-  if ( s->close_hook )
-    (*s->close_hook)(s->closure);
 }
 
 int
