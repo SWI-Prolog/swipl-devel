@@ -569,7 +569,9 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
       return FALSE;			/* no space */
 
     if ( !(dest = allocGlobal(1)) )	/* make a variable on the global */
+    { PL_close_foreign_frame(fid);
       return FALSE;			/* stack */
+    }
     setVar(*dest);
     *valTermRef(to) = makeRef(dest);
     src = valTermRef(from);
