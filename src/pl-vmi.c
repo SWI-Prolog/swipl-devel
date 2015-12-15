@@ -4114,8 +4114,11 @@ b_throw:
 	  PL_discard_foreign_frame(fid);
 	});
 
-  fid = outofstack == (Stack)&LD->stacks.local ? (fid_t)0
-					       : PL_open_foreign_frame();
+  if ( has_emergency_space(&LD->stacks.local, sizeof(struct localFrame)) )
+    fid = open_foreign_frame(PASS_LD1);
+  else
+    fid = 0;
+
 again:
   SAVE_REGISTERS(qid);
   catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term PASS_LD);
@@ -4345,7 +4348,7 @@ again:
     if ( (w=uncachableException(exception_term PASS_LD)) )
     { Word p = gTop;
 
-      if ( !hasGlobalSpace(3) )
+      if ( !has_emergency_space(&LD->stacks.global, 3*sizeof(word)) )
 	fatalError("Cannot wrap abort exception\n");
 
       argFrame(lTop, 0) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);

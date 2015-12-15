@@ -3776,6 +3776,23 @@ PL_foreign_context_predicate(control_t h)
 }
 
 static int
+has_emergency_space(void *sv, size_t needed)
+{ Stack s = (Stack) sv;
+  ssize_t lacking = (s->top + needed) - s->max;
+
+  if ( lacking <= 0 )
+    return TRUE;
+  if ( lacking < s->spare )
+  { s->max   += lacking;
+    s->spare -= lacking;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
 copy_exception(term_t ex, term_t bin ARG_LD)
 { fid_t fid;
 
@@ -3800,7 +3817,7 @@ copy_exception(term_t ex, term_t bin ARG_LD)
 	{ Sdprintf("WARNING: Removed error context due to stack overflow\n");
 	  goto ok;
 	}
-      } else if ( gTop+5 < gMax )
+      } else if ( has_emergency_space(&LD->stacks.global, 5*sizeof(word)) )
       { Word p = gTop;
 
 	Sdprintf("WARNING: cannot raise exception; raising global overflow\n");
