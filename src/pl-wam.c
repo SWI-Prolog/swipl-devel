@@ -456,6 +456,7 @@ PL_rewind_foreign_frame(fid_t id)
 { GET_LD
   FliFrame fr = (FliFrame) valTermRef(id);
 
+  fli_context = fr;
   Undo(fr->mark);
   lTop = addPointer(fr, sizeof(struct fliFrame));
   fr->size = 0;
