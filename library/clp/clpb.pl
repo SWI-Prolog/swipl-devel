@@ -160,6 +160,9 @@ expressions and are declaratively equivalent to the original query.
 The last example illustrates that when applicable, remaining variables
 are expressed as functions of universally quantified variables.
 
+More usage examples of this library are available in a public git
+repository: https://github.com/triska/clpb
+
 ### Obtaining BDDs {#clpb-residual-goals}
 
 By default, CLP(B) residual goals appear in (approximately) algebraic
