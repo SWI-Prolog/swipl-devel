@@ -387,16 +387,22 @@ extract_key(Word p1, int argc, const word *argv, int pair ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a list on the global stack, just   at  the place the final result
-will be.
+will be.  Return: 0: error, 1: sort, 2: do not sort (len < 2)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+typedef enum
+{ SORT_ERR,
+  SORT_SORT,
+  SORT_NIL,
+  SORT_NOSORT
+} list_sort;
+
+static list_sort
 prolog_list_to_sort_list(term_t t,		/* input list */
 			 int remove_dups,	/* allow to be cyclic */
 			 int argc, const word *argv, int pair, /* find key */
-			 list *lp, Word *end)	/* result list */
-{ GET_LD
-  Word l, tail;
+			 list *lp, Word *end ARG_LD)	/* result list */
+{ Word l, tail;
   list p;
   intptr_t len;
   int rc;
@@ -405,16 +411,24 @@ prolog_list_to_sort_list(term_t t,		/* input list */
   len = skip_list(l, &tail PASS_LD);
   if ( !(isNil(*tail) ||			/* proper list */
 	 (isList(*tail) && remove_dups)) )	/* sort/2 on cyclic list */
-  {
-    if ( isVar(*tail) )
-      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  { if ( isVar(*tail) )
+      PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     else
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
+      PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
+
+    return SORT_ERR;
   }
+
+  if ( len == 0 )
+    return SORT_NIL;
+  if ( len == 1 && !pair && argc == 0 )
+    return SORT_NOSORT;
 
   if ( !hasGlobalSpace(len*3) )
   { if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != TRUE )
-      return raiseStackOverflow(rc);
+    { raiseStackOverflow(rc);
+      return SORT_ERR;
+    }
     l = valTermRef(t);			/* may be shifted */
     deRef(l);
   }
@@ -428,7 +442,7 @@ prolog_list_to_sort_list(term_t t,		/* input list */
     p->item.key = extract_key(p->item.term, argc, argv, pair PASS_LD);
 
     if ( unlikely(!p->item.key) )
-      return FALSE;
+      return SORT_ERR;
 
     l = TailList(l);
     deRef(l);
@@ -442,7 +456,7 @@ prolog_list_to_sort_list(term_t t,		/* input list */
   p->next = NULL;
   *end = (Word)(p+1);
 
-  succeed;
+  return SORT_SORT;
 }
 
 
@@ -477,24 +491,31 @@ pl_nat_sort(term_t in, term_t out,
 	    int remove_dups, sort_order order,
 	    int argc, const word *argv, int pair
 	    ARG_LD)
-{ if ( PL_get_nil(in) )
-    return PL_unify_atom(out, ATOM_nil);
-  else
-  { list l = 0;
-    term_t tmp = PL_new_term_ref();
-    Word top = NULL;
+{ list l = 0;
+  Word top = NULL;
+  int rc;
 
-    if ( prolog_list_to_sort_list(in, remove_dups,
-				  argc, argv, pair,
-				  &l, &top) )
-    { l = nat_sort(l, remove_dups, order);
+  if ( (rc=ensureLocalSpace(sizeof(word), ALLOW_SHIFT)) != TRUE )
+    return raiseStackOverflow(rc);
+
+  switch( prolog_list_to_sort_list(in, remove_dups,
+				   argc, argv, pair,
+				   &l, &top PASS_LD) )
+  { case SORT_ERR:
+      return FALSE;
+    case SORT_NIL:
+      return PL_unify_nil(out);
+    case SORT_NOSORT:
+      return PL_unify(in, out);
+    case SORT_SORT:
+    default:
+    { term_t tmp = PL_new_term_ref();
+      l = nat_sort(l, remove_dups, order);
       put_sort_list(tmp, l);
       gTop = top;
 
       return PL_unify(out, tmp);
     }
-
-    fail;
   }
 }
 
