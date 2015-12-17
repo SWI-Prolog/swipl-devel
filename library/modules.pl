@@ -79,17 +79,20 @@
 %		from unknown sources safely.
 
 in_temporary_module(Module, Setup, Goal) :-
-	(   var(Module)
-	->  (   repeat,
-	        I is random(1<<63),
-		atom_concat('tmp-', I, Module),
-		set_module(Module:class(temporary))
-	    ->  true
-	    )
-	;   set_module(Module:class(temporary))
-	),
-	call_cleanup(
+	setup_call_cleanup(
+	    prepare_temporary_module(Module),
 	    (   @(Setup, Module)
 	    ->	@(Goal,  Module)
 	    ),
 	    '$destroy_module'(Module)).
+
+prepare_temporary_module(Module) :-
+	var(Module), !,
+	(   repeat,
+	    I is random(1<<63),
+	    atom_concat('tmp-', I, Module),
+	    set_module(Module:class(temporary))
+	->  true
+	).
+prepare_temporary_module(Module) :-
+	set_module(Module:class(temporary)).
