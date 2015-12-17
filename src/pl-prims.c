@@ -5154,78 +5154,6 @@ PRED_IMPL("statistics", 2, statistics, 0)
   return pl_statistics_ld(A1, A2, LD PASS_LD);
 }
 
-#ifdef O_DEBUG
-#define O_MEMSTATS 1
-#endif
-
-#ifdef O_MEMSTATS
-#define O_MEMORY_STATISTICS 1
-
-static int
-addNameInteger(term_t list, const char *name, intptr_t val ARG_LD)
-{ term_t head = PL_new_term_ref();
-
-  if ( !PL_unify_list(list, head, list) )
-    return FALSE;
-  if ( !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
-		      PL_CHARS, name, PL_INTPTR, val) )
-    return FALSE;
-
-  PL_reset_term_refs(head);
-
-  return TRUE;
-}
-
-
-/** memory_statistics(-Stats) is det.
-
-Provide  statistics  on  memory  allocation    if  the  system  provides
-mallinfo(), the values of this structure  are   added  to  the list. See
-"info mallinfo" for a the defined names and their meaning. Unused values
-are not included.
-*/
-
-static
-PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
-{ PRED_LD
-  term_t tail = PL_copy_term_ref(A1);
-
-#ifdef HAVE_MALLINFO
-  { struct mallinfo info = mallinfo();
-
-    addNameInteger(tail, "arena",    info.arena	   PASS_LD);
-    addNameInteger(tail, "ordblks",  info.ordblks  PASS_LD);
-    addNameInteger(tail, "hblks",    info.hblks	   PASS_LD);
-    addNameInteger(tail, "hblkhd",   info.hblkhd   PASS_LD);
-    addNameInteger(tail, "uordblks", info.uordblks PASS_LD);
-    addNameInteger(tail, "fordblks", info.fordblks PASS_LD);
-    addNameInteger(tail, "keepcost", info.keepcost PASS_LD);
-  }
-#endif
-
-  return PL_unify_nil(tail);
-}
-
-#if defined(HAVE_OPEN_MEMSTREAM) && defined(HAVE_MALLOC_INFO)
-#define O_DMALLOC_INFO 1
-
-static
-PRED_IMPL("$malloc_info", 1, malloc_info, 0)
-{ char *data = NULL;
-  size_t len = 0;
-  FILE *fp;
-
-  if ( (fp=open_memstream(&data, &len)) )
-  { return ( malloc_info(0, fp) == 0 &&
-	     fclose(fp) == 0 &&
-	     PL_unify_chars(A1, PL_STRING, len, data) );
-  }
-
-  return PL_error("malloc_info", 1, MSG_ERRNO, ERR_SYSCALL, "open_memstream");
-}
-#endif /*defined(HAVE_OPEN_MEMSTREAM) && defined(HAVE_MALLOC_INFO)*/
-#endif /*O_MEMSTATS*/
-
 
 		/********************************
 		*            OPTIONS            *
@@ -5496,10 +5424,4 @@ BeginPredDefs(prims)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
   PRED_DEF("$skip_list", 3, skip_list, 0)
   PRED_DEF("throw", 1, throw, PL_FA_ISO)
-#ifdef O_MEMORY_STATISTICS
-  PRED_DEF("memory_statistics", 1, memory_statistics, 0)
-#endif
-#ifdef O_DMALLOC_INFO
-  PRED_DEF("$malloc_info", 1, malloc_info, 0)
-#endif
 EndPredDefs
