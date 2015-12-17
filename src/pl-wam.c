@@ -633,7 +633,10 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       fr = (LocalFrame)valTermRef(fref);
       clean = consTermRef(argFrameP(fr, 3));
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
-      { rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+      { startCritical;
+	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+	if ( !endCritical )
+	  rval = FALSE;
 	restoreWakeup(&wstate PASS_LD);
       } else
       { rval = FALSE;
