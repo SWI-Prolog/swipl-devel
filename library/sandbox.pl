@@ -628,6 +628,19 @@ safe_primitive(system:assert(X)) :-
 safe_primitive(system:writeln(_)).
 safe_primitive('$messages':print_message(_,_)).
 
+					% Stack limits (down)
+safe_primitive('$syspreds':set_prolog_stack(Stack, limit(ByteExpr))) :-
+	nonvar(Stack),
+	stack_name(Stack),
+	catch(Bytes is ByteExpr, _, fail),
+	prolog_stack_property(Stack, limit(Current)),
+	Bytes =< Current.
+
+stack_name(global).
+stack_name(local).
+stack_name(trail).
+
+
 % use_module/1.  We only allow for .pl files that are loaded from
 % relative paths that do not contain /../
 
