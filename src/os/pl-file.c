@@ -4408,7 +4408,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     }
     freeTableEnum(e);
     UNLOCK();
-    rc = rc && PL_unify_nil(tail);
+    rc = !PL_exception(0) && PL_unify_nil(tail);
   } else if ( PL_is_variable(A1) )
   { TableEnum e = newTableEnum(streamContext);
     IOSTREAM *s;
@@ -4429,7 +4429,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     }
     freeTableEnum(e);
     UNLOCK();
-    rc = rc && PL_unify_nil(tail);
+    rc = !PL_exception(0) && PL_unify_nil(tail);
   }
 
   return rc;
