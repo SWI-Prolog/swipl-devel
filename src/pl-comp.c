@@ -5322,6 +5322,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   term_t h    = PL_new_term_ref();
   term_t b    = PL_new_term_ref();
   fid_t fid;
+  int rc = FALSE;
 
   term_t head     = A1;
   term_t body     = A2;
@@ -5391,7 +5392,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
   if ( def->functor->arity > 0 )
   { if ( !PL_strip_module(head, &module, head) )
+    { popPredicateAccess(def);
       return FALSE;
+    }
     argv = valTermRef(head);
     deRef(argv);
     argv = argTermP(*argv, 0);
@@ -5406,7 +5409,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
+    goto out;
 
   while(cref)
   { if ( decompile(cref->value.clause, term, bindings) )
@@ -5416,22 +5419,22 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_clref(ref, cref->value.clause)) )
       { if ( !chp->cref )
-	{ popPredicateAccess(def);
-	  succeed;
+	{ rc = TRUE;
+	  goto out;
 	}
 	if ( chp == &chp_buf )
 	{ chp = allocForeignState(sizeof(*chp));
 	  *chp = chp_buf;
 	}
 
+	PL_close_foreign_frame(fid);
 	ForeignRedoPtr(chp);
       } else
       { PL_put_variable(h);		/* otherwise they point into */
 	PL_put_variable(b);		/* term, which is removed */
       }
     } else if ( exception_term )
-    { PL_discard_foreign_frame(fid);
-      return FALSE;
+    { goto out;
     }
 
     PL_rewind_foreign_frame(fid);
@@ -5443,10 +5446,13 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     cref = nextClause(chp, argv, environment_frame, def);
   }
 
+out:
+  if ( fid )
+    PL_close_foreign_frame(fid);
   if ( chp != &chp_buf )
     freeForeignState(chp, sizeof(*chp));
   popPredicateAccess(def);
-  fail;
+  return rc;
 }
 
 
