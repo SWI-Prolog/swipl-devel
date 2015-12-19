@@ -2008,6 +2008,26 @@ discardFrame(LocalFrame fr ARG_LD)
 }
 
 
+/* TRUE if fr is in the continuation of frame or the frame of ch or one
+ * of its parents.
+ */
+static int
+in_continuation(LocalFrame fr, LocalFrame frame, Choice ch)
+{ for(;;)
+  { while(frame > fr)
+      frame = frame->parent;
+    if ( frame == fr )
+      return TRUE;
+
+    if ( (void*)ch > (void*)fr )
+    { frame = ch->frame;
+      ch = ch->parent;
+    } else
+    { return FALSE;
+    }
+  }
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Discard all choice-points created after  the   creation  of the argument
 environment. See also discardFrame().

@@ -2233,7 +2233,6 @@ must get its parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 BEGIN_SHAREDVARS
   Choice och;
-  LocalFrame fr;
   Choice ch;
 
 VMI(C_LSCUT, 0, 1, (CA1_CHP))
@@ -2276,6 +2275,10 @@ VMI(I_CUTCHP, 0, 0, ())
       THROW_EXCEPTION;
     }
 
+    DEBUG(MSG_CUT, Sdprintf("prolog_cut_to/1 for %s on [%d] %s\n",
+			    chp_chars(och),
+			    levelFrame(FR), predicateName(FR->predicate)));
+
     goto c_cut;
   } else
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_choice, consTermRef(a));
@@ -2295,42 +2298,42 @@ VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_CUT implements -> (and most of  *->).   Unfortunately  we have to loop
-twice because calling discardFrame() in the   first  loop can invalidate
-the stacks and make GC calls from frameFinished() invalid.
+This code deals with ->, *-> and prolog_cut_to/1 (I_CUTCHP)
 
-It might be possible to fix this by updating pointers in the first loop,
-but that is complicated and might  well  turn   out  to  be slower as it
-involves more write operations.
+(*) Normally, committing destroys frames created   after  a choice point
+that is related to the running frame. In that case we can simply destroy
+all frames that are  more  recent  that   the  choice  point.  With  the
+ancestral however, it is possible that  we   must  keep  frames. We must
+destroy all frames that are not  reachable   by  the continuation of the
+current frame, nor one of the older choice points.
 
-See also discardChoicesAfter();
+Using in_continuation() seems a bit slower, but the test is rather quick
+and avoids some decisions as well. Timing   on a few syntatic cases show
+no significant performance difference and even   a  small gain using the
+implementation below.
+
+TBD: Merge with dbgDiscardChoicesAfter()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_CUT, 0, 1, (CA1_CHP))
 { och = (Choice) valTermRef(varFrame(FR, *PC));
   PC++;					/* cannot be in macro! */
 c_cut:
-  if ( !och || FR > och->frame )	/* most recent frame to keep */
-    fr = FR;
-  else
-    fr = och->frame;
 
   assert(BFR>=och);
   for(ch=BFR; ch > och; ch = ch->parent)
   { LocalFrame fr2;
-    LocalFrame delto;
 
-    if ( ch->parent && ch->parent->frame > fr )
-      delto = ch->parent->frame;
-    else
-      delto = fr;
-
-    DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
+    DEBUG(MSG_CUT, Sdprintf("Discarding choice %s for %s\n",
+			    chp_chars(ch), predicateName(ch->frame->predicate)));
 
     for(fr2 = ch->frame;
-	fr2 > delto;
+	!in_continuation(fr2, FR, ch->parent);	/* See (*) */
 	fr2 = fr2->parent)
-    { assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
+    { DEBUG(MSG_CUT, Sdprintf("Discarding [%d] %s\n",
+			      levelFrame(fr2), predicateName(fr2->predicate)));
+
+      assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
 
       if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
@@ -2346,8 +2349,6 @@ c_cut:
 	  ch  = addPointer(ch,  offset);
 	  assert(ch == BFR);
 	  och = addPointer(och, offset);
-	  fr  = addPointer(fr,  offset);
-	  delto = addPointer(delto, offset);
 	}
 	if ( exception_term )
 	  THROW_EXCEPTION;
@@ -2362,13 +2363,13 @@ c_cut:
   assert(och == ch);
   BFR = ch;
 
-  if ( (void *)och > (void *)fr )
+  if ( (void *)och > (void *)FR )
   { lTop = (LocalFrame)(och+1);
   } else
-  { int nvar = (true(fr->predicate, P_FOREIGN)
-			? (int)fr->predicate->functor->arity
-			: fr->clause->value.clause->variables);
-    lTop = (LocalFrame) argFrameP(fr, nvar);
+  { int nvar = (true(FR->predicate, P_FOREIGN)
+			? (int)FR->predicate->functor->arity
+			: FR->clause->value.clause->variables);
+    lTop = (LocalFrame) argFrameP(FR, nvar);
   }
 
   ARGP = argFrameP(lTop, 0);

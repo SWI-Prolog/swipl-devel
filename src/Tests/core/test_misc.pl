@@ -41,6 +41,8 @@ test_misc :-
 p(_).
 p(C) :- prolog_cut_to(C).
 
+:- dynamic cl/0.
+
 test(read_only_flag, Access == read) :-
 	'$current_prolog_flag'(arch, _, _Global, Access, _Type).
 test(cut_to, all(X == [1])) :-
@@ -53,5 +55,11 @@ test(cut_to, error(existence_error(choice,_))) :-
 	*-> fail
 	;   fail
 	).
+test(cut_to_cleanup) :-
+	retractall(cl),
+	prolog_current_choice(Chp),
+	call_cleanup(between(1,2,_), assert(cl)),
+	prolog_cut_to(Chp),
+	retract(cl).
 
 :- end_tests(misc).
