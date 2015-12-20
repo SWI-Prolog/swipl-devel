@@ -2355,6 +2355,7 @@ c_cut:
       }
 
       discardFrame(fr2 PASS_LD);
+      killFrame(fr2);				/* kill for markPredicates() */
     }
 
     if ( ch->parent == och )

@@ -1968,7 +1968,7 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
     { state.flags = 0;
     }
 
-    assert(isFrame(fr));
+    assert(wasFrame(fr));
 
     if ( true(fr->predicate, P_FOREIGN) || PC == NULL || !fr->clause )
     { DEBUG(MSG_GC_MARK_ARGS,
@@ -3497,7 +3497,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
   if ( fr == NULL )
     return NULL;
 
-  assert(isFrame(fr));
+  assert(wasFrame(fr));
 
   for(;;)
   { int slots, n;

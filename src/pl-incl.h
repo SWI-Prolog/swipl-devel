@@ -914,9 +914,13 @@ Macros for environment frames (local stack frames)
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4: marked for cleanup */
 #define FR_MAGIC_MASK		(0xfffff000)
+#define FR_MAGIC_MASK2		(0xffff0000)
 #define FR_MAGIC		(0x549d5000)
 
 #define isFrame(fr)		(((fr)->flags&FR_MAGIC_MASK) == FR_MAGIC)
+#define wasFrame(fr)		(((fr)->flags&FR_MAGIC_MASK2) == \
+				 (FR_MAGIC&FR_MAGIC_MASK2))
+#define killFrame(fr)		clear(fr, (FR_MAGIC_MASK&~FR_MAGIC_MASK2))
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
