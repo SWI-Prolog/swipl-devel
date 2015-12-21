@@ -208,9 +208,8 @@ and the following URL to link to its documentation:
 http://eu.swi-prolog.org/man/clpfd.html
 ==
 
-A collection of example programs illustrating several use cases of
-this library is available in a public git repository:
-https://github.com/triska/clpfd
+Usage examples of this library are available in a public git
+repository: https://github.com/triska/clpfd
 
 ### Arithmetic constraints		{#cplfd-arith-constraints}
 

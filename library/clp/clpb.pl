@@ -60,6 +60,8 @@ programming with reasoning over specialised domains.
 The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
 
+Usage examples of this library are available in a public git
+repository: https://github.com/triska/clpb
 
 ### Boolean expressions {#clpb-exprs}
 
@@ -159,9 +161,6 @@ The pending residual goals constrain remaining variables to Boolean
 expressions and are declaratively equivalent to the original query.
 The last example illustrates that when applicable, remaining variables
 are expressed as functions of universally quantified variables.
-
-More usage examples of this library are available in a public git
-repository: https://github.com/triska/clpb
 
 ### Obtaining BDDs {#clpb-residual-goals}
 
