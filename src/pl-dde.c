@@ -334,7 +334,8 @@ dde_init_constants(void)
 { static int done = FALSE;
 
   if ( !done )				/* no worries if this happens twice */
-  { MODULE_dde = lookupModule(PL_new_atom("win_dde"));
+  { GET_LD
+    MODULE_dde = lookupModule(PL_new_atom("win_dde"));
 
     FUNCTOR_dde_connect3  =
 	lookupFunctorDef(PL_new_atom("$dde_connect"), 3);
