@@ -995,22 +995,9 @@ setAttrProcedureSource(SourceFile sf, Procedure proc,
 static void
 fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
 { if ( false(def, P_MULTIFILE) )
-  { def->flags &= ~P_ATEND;
+    def->flags = (def->flags & ~P_ATEND) | (r->flags & P_ATEND);
+  else
     def->flags |= (r->flags&P_ATEND);
-
-    if ( true(def, P_DYNAMIC) && false(r, P_DYNAMIC|P_THREAD_LOCAL) )
-      setDynamicDefinition(def, FALSE);
-    if ( true(def, P_THREAD_LOCAL) && false(r, P_THREAD_LOCAL) )
-    { if ( !setThreadLocalDefinition(def, FALSE) )
-      { term_t ex = PL_exception(0);
-
-	printMessage(ATOM_error, ex);
-	PL_clear_exception();
-      }
-    }
-  } else
-  { def->flags |= (r->flags&P_ATEND);
-  }
 
   fix_metapredicate(r);
 }
