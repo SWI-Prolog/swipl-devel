@@ -634,8 +634,14 @@ writeAtom(atom_t a, write_options *options)
     PL_put_atom(av, a);
     rc = callPortray(av, 1200, options);
     PL_close_foreign_frame(fid);
-    if ( rc == TRUE )
-      return TRUE;
+    switch(rc)
+    { case TRUE:
+	return TRUE;
+      case FALSE:
+	break;
+      default:
+	return FALSE;				/* error */
+    }
   }
 
   if ( atom->type->write )
