@@ -4189,11 +4189,13 @@ again:
 	} else
 	{ trimStacks(FALSE PASS_LD);		/* restore spare stacks */
 	  printMessage(ATOM_error, PL_TERM, exception_term);
+	  PL_put_term(exception_printed, exception_term);
 	}
       } else if ( !(PL_get_atom(exception_term, &a) && a == ATOM_aborted) )
       { printMessage(ATOM_error,
 		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
 		       PL_TERM, exception_term);
+	PL_put_term(exception_printed, exception_term);
       }
       LOAD_REGISTERS(qid);
     }
