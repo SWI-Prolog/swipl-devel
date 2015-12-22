@@ -558,6 +558,7 @@ struct PL_local_data
 					/* do not copy from parent */
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
+    int	portray_nesting;		/* depth of portray nesting */
   } IO;
 
   struct

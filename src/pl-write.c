@@ -62,6 +62,8 @@ static bool	writeArgTerm(term_t t, int prec,
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
+static int	enterPortray(ARG1_LD);
+static void	leavePortray(ARG1_LD);
 
 char *
 varName(term_t t, char *name)
@@ -571,14 +573,17 @@ writeAttVar(term_t av, write_options *options)
     return TRUE;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->cleaning <= CLN_PROLOG )
-  { predicate_t pred;
+  { static predicate_t pred;
     IOSTREAM *old;
     wakeup_state wstate;
     int rc;
 
-    pred = _PL_predicate("portray_attvar", 1, "$attvar",
-			 &GD->procedures.portray_attvar1);
+    if ( !pred )
+      pred = _PL_predicate("portray_attvar", 1, "$attvar",
+			   &GD->procedures.portray_attvar1);
 
+    if ( !enterPortray(PASS_LD1) )
+      return FALSE;
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
       return FALSE;
     old = Scurout;
@@ -588,6 +593,7 @@ writeAttVar(term_t av, write_options *options)
       rc = TRUE;
     Scurout = old;
     restoreWakeup(&wstate PASS_LD);
+    leavePortray(PASS_LD1);
 
     return rc;
   }
@@ -1114,7 +1120,23 @@ put_write_options(term_t opts_in, write_options *options)
 }
 
 
+static int
+enterPortray(ARG1_LD)
+{ if ( LD->IO.portray_nesting >= MAX_PORTRAY_NESTING )
+    return PL_resource_error("portray_nesting");
+  LD->IO.portray_nesting++;
+  return TRUE;
+}
 
+
+static void
+leavePortray(ARG1_LD)
+{ LD->IO.portray_nesting--;
+}
+
+
+/* returns: -1: error, FALSE: failed, TRUE: succeeded
+*/
 
 static int
 callPortray(term_t arg, int prec, write_options *options)
@@ -1137,8 +1159,10 @@ callPortray(term_t arg, int prec, write_options *options)
     int rval;
     term_t av;
 
+    if ( !enterPortray(PASS_LD1) )
+      return -1;
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-      return FALSE;
+      return -1;
     Scurout = options->out;
     if ( options->portray_goal )
     { av = PL_new_term_refs(3);
@@ -1156,6 +1180,7 @@ callPortray(term_t arg, int prec, write_options *options)
       rval = -1;
     Scurout = old;
     restoreWakeup(&wstate PASS_LD);
+    leavePortray(PASS_LD1);
 
     return rval;
   }
@@ -1313,7 +1338,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	return TRUE;
       case FALSE:
 	break;
-      default:
+      default:					/* error */
 	return FALSE;
     }
   }

@@ -456,6 +456,7 @@ them.  Descriptions:
 #define MAXSYMBOLLEN		256	/* max size of foreign symbols */
 #define OP_MAXPRIORITY		1200	/* maximum operator priority */
 #define SMALLSTACK		32 * 1024 /* GC policy */
+#define MAX_PORTRAY_NESTING	100	/* Max recursion in portray */
 
 #define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY) + \
 		      sizeof(struct choice))
