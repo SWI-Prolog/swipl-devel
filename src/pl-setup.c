@@ -434,26 +434,15 @@ dispatch_signal(int sig, int sync)
 
   if ( sh->predicate )
   { term_t sigterm = PL_new_term_ref();
-    term_t except;
     qid_t qid;
 
     PL_put_atom_chars(sigterm, signal_name(sig));
     qid = PL_open_query(NULL,
-			PL_Q_CATCH_EXCEPTION,
+			PL_Q_PASS_EXCEPTION,
 			sh->predicate,
 			sigterm);
-    if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
-    { PL_cut_query(qid);
-      if ( !sync )
-	unblockGC(0 PASS_LD);
-      PL_throw(except);
-      return;				/* make sure! */
-    } else
-    { if ( sync )
-	PL_cut_query(qid);
-      else
-	PL_close_query(qid);
-    }
+    if ( PL_next_solution(qid) ) {};		/* cannot ignore return */
+    PL_cut_query(qid);
   } else if ( true(sh, PLSIG_THROW) )
   { char *predname;
     int  arity;
@@ -467,11 +456,6 @@ dispatch_signal(int sig, int sync)
     }
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
-    if ( !sync )
-      unblockGC(0 PASS_LD);
-
-    PL_throw(exception_term);		/* throw longjmp's */
-    return;				/* make sure! */
   } else if ( sh->handler )
   { (*sh->handler)(sig);
 
@@ -488,7 +472,7 @@ dispatch_signal(int sig, int sync)
 
   LD->signal.current = saved_current_signal;
   LD->signal.is_sync = saved_sync;
-  if ( sync )
+  if ( sync || exception_term )
     PL_close_foreign_frame(fid);
   else
     PL_discard_foreign_frame(fid);
