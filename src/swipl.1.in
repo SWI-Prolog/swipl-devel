@@ -8,10 +8,7 @@
 .br
 .B @PL@
 [options]
-.br
-.B @PL@
-[options]
-.I "prolog-file ... [-- arg ...]"
+.IR prolog-file " ... [--] [" arg " ...]"
 .br
 .B @PL@
 [options]
@@ -22,6 +19,17 @@
 [options]
 .RB [ "\-o \fIoutput" ]
 .BI \-b " initfile ..."
+
+The first version provides information about the system and exits
+immediately. The second version is the primary way to call Prolog on one
+or more Prolog source file(s) and provide arguments to the application that
+can be requested using
+.BR "current_prolog_flag" "(argv, Argv)."
+The third version is used to create a
+.I saved state
+while the last version is used for boot-compilation of the Prolog parts of the
+system.
+
 .SH DESCRIPTION
 SWI-Prolog is a comprehensive and stable implementation of
 the Prolog language with a large set of libraries. Among its
