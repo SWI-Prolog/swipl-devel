@@ -44,9 +44,9 @@
 	    git_default_branch/2,	% -DefaultBranch, +Options
 	    git_tags_on_branch/3,	% +Dir, +Branch, -Tags
 	    git_shortlog/3,		% +Dir, -Shortlog, +Options
-	    git_log_data/3,		% +Field, Record, -Value
+	    git_log_data/3,		% +Field, +Record, -Value
 	    git_show/4,			% +Dir, +Hash, -Commit, +Options
-	    git_commit_data/3		% +Field, Record, -Value
+	    git_commit_data/3		% +Field, +Record, -Value
 	  ]).
 :- use_module(library(process)).
 :- use_module(library(readutil)).
@@ -653,6 +653,7 @@ skip_rest(_,_).
 		author_date_relative:atom,
 		committer_name:atom,
 		committer_date_relative:atom,
+		committer_date_unix,
 		subject:atom,
 		ref_names:list).
 
