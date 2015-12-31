@@ -2659,8 +2659,9 @@ VMI(S_STATIC, 0, 0, ())
   DEBUG(9, Sdprintf("Clauses found.\n"));
 
   PC = cl->value.clause->codes;
+  ENSURE_LOCAL_SPACE(LOCAL_MARGIN+cl->value.clause->variables*sizeof(word),
+		     THROW_EXCEPTION);
   lTop = (LocalFrame)(ARGP + cl->value.clause->variables);
-  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
   CL = cl;
 
   if ( chp.cref )
