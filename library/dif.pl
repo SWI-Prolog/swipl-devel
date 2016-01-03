@@ -123,26 +123,29 @@ add_ornode_var2(X,Y,OrNode) :-
 		put_attr(Y,dif,vardif([],[OrNode-X]))
 	).
 
-attr_unify_hook(vardif(V1,V2),Other) :-
-	( var(Other) ->
-		reverse_lookups(V1,Other,OrNodes1,NV1),
-		or_one_fails(OrNodes1),
-		get_attr(Other,dif,OAttr),
-		OAttr = vardif(OV1,OV2),
-		reverse_lookups(OV1,Other,OrNodes2,NOV1),
-		or_one_fails(OrNodes2),
-		remove_obsolete(V2,Other,NV2),
-		remove_obsolete(OV2,Other,NOV2),
-		append(NV1,NOV1,CV1),
-		append(NV2,NOV2,CV2),
-		( CV1 == [], CV2 == [] ->
-			del_attr(Other,dif)
+verify_attributes(X, Other, Gs) :-
+	( get_attr(X, dif, vardif(V1,V2)) ->
+		( var(Other) ->
+			Gs = [reverse_lookups(V1,Other,OrNodes1,NV1),
+			      or_one_fails(OrNodes1),
+			      get_attr(Other,dif,OAttr),
+			      OAttr = vardif(OV1,OV2),
+			      reverse_lookups(OV1,Other,OrNodes2,NOV1),
+			      or_one_fails(OrNodes2),
+			      remove_obsolete(V2,Other,NV2),
+			      remove_obsolete(OV2,Other,NOV2),
+			      append(NV1,NOV1,CV1),
+			      append(NV2,NOV2,CV2),
+			      (	  CV1 == [], CV2 == [] ->
+				  del_attr(Other,dif)
+			      ;
+				  put_attr(Other,dif,vardif(CV1,CV2))
+			      )]
 		;
-			put_attr(Other,dif,vardif(CV1,CV2))
+			Gs = [verify_compounds(V1,Other),
+			      verify_compounds(V2,Other)]
 		)
-	;
-		verify_compounds(V1,Other),
-		verify_compounds(V2,Other)
+	;	Gs = []
 	).
 
 remove_obsolete([], _, []).
