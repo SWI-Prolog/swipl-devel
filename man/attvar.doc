@@ -53,19 +53,19 @@ Using constraints generally makes your program more
 Prolog unification algorithm \cite{holzbaur:1992} by hooking the binding
 of attributed variables. There is no consensus in the Prolog community
 on the exact definition and interface to attributed variables. The
-SWI-Prolog interface is identical to the one realised by Bart Demoen for
-hProlog \cite{Demoen:CW350}. This interface is simple and available on
+SWI-Prolog interface is very similar to the one implemented in SICStus Prolog,
+and also supports the interface that is realised by Bart Demoen for
+hProlog \cite{Demoen:CW350}. The interface used for hProlog
+is available on
 all Prolog systems that can run the Leuven CHR system (see \chapref{chr}
 and the Leuven \url[CHR
 page]{http://people.cs.kuleuven.be/~tom.schrijvers/CHR/}).
 
 Binding an attributed variable schedules a goal to be executed at the
-first possible opportunity. In the current implementation the hooks are
-executed immediately after a successful unification of the clause-head
-or successful completion of a foreign language (built-in) predicate. Each
-attribute is associated to a module, and the hook (attr_unify_hook/2) is
-executed in this module.  The example below realises a very simple and
-incomplete finite domain reasoner:
+first possible opportunity. Each attribute is associated to a module,
+and the hooks (verify_attributes/3, attr_unify_hook/2) are executed in
+this module. The example below realises a very simple and incomplete
+finite domain reasoner:
 
 \begin{code}
 :- module(domain,
@@ -81,21 +81,25 @@ domain(X, List) :-
 	put_attr(Y, domain, Domain),
 	X = Y.
 
-%	An attributed variable with attribute value Domain has been
-%	assigned the value Y
+%	An attributed variable X is about to be unified with Y
 
-attr_unify_hook(Domain, Y) :-
-	(   get_attr(Y, domain, Dom2)
-	->  ord_intersection(Domain, Dom2, NewDomain),
-	    (   NewDomain == []
-	    ->	fail
-	    ;	NewDomain = [Value]
-	    ->	Y = Value
-	    ;	put_attr(Y, domain, NewDomain)
+verify_attributes(X, Y, Gs) :-
+	(   get_attr(X, domain, Domain) ->
+	    (	get_attr(Y, domain, Dom2)
+	    ->	ord_intersection(Domain, Dom2, NewDomain),
+		NewDomain \== [],
+		(   NewDomain = [Value]
+		->  Gs = [Y=Value]
+		;   Gs = [],
+		    put_attr(Y, domain, NewDomain)
+		)
+	    ;	var(Y)
+	    ->	put_attr(Y, domain, Domain ),
+		Gs = []
+	    ;	ord_memberchk(Y, Domain),
+		Gs = []
 	    )
-	;   var(Y)
-	->  put_attr( Y, domain, Domain )
-	;   ord_memberchk(Y, Domain)
+	;   Gs = []
 	).
 
 %	Translate attributes from this module to residual goals
@@ -110,7 +114,7 @@ Before explaining the code we give some example queries:
 
 \begin{quote}
 \begin{tabular}{ll}
-\tt ?- domain(X, [a,b]), X = c		     & fail \\
+\tt ?- domain(X, [a,b]), X = c.		     & fail \\
 \tt ?- domain(X, [a,b]), domain(X, [a,c]).   & X = a \\
 \tt ?- domain(X, [a,b,c]), domain(X, [a,c]). & domain(X, [a, c]) \\
 \end{tabular}
@@ -171,9 +175,22 @@ operations on attributed variables cause \jargon{hooks} to be called in
 the module whose name matches the attribute name.
 
 \begin{description}
+    \predicate{verify_attributes}{3}{+Var, +Value, -Goals}
+This hook is the recommended way to reason about unifications of
+attributed variables. It is a predicate that users can define in each
+module where the variable may have attributes. When an attributed
+variable~\arg{Var} is being unified with~\arg{Value}, this hook is
+invoked \emph{before} the unification takes place. \arg{Var} may or
+\emph{may not} have attributes attached in all modules where the hook
+is called. This hook can veto the unification. If it succeeds, it must
+bind \arg{Goals} with a list of Prolog goals that are called
+\emph{after} the unification has taken place. The hook itself
+\emph{must not} unify~\arg{Var}.
+
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
-A hook that must be defined in the module to which an attributed variable
-refers. It is called \emph{after} the attributed variable has been
+This hook is available for compatability with hProlog.
+If it is defined in the module to which an attributed variable refers,
+it is called \emph{after} the attributed variable has been
 unified with a non-var term, possibly another attributed variable.
 \arg{AttValue} is the attribute that was associated to the variable
 in this module and \arg{VarValue} is the new value of the variable.
