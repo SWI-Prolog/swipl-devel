@@ -63,3 +63,14 @@ test(freeze_and, true) :-
 	X=a.
 
 :- end_tests(freeze).
+
+:- begin_tests(when).
+
+test(nd_when, true) :-
+	when(nonvar(X),member(X,[a(1),a(2),a(3)])),
+	findall(X,X=a(_),List),
+	List==[a(1),a(2),a(3)].
+
+
+:- end_tests(when).
+

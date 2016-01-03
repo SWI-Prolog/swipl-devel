@@ -45,55 +45,104 @@ in pl-attvar.c
 
 %%	'$wakeup'(+List)
 %
-%	Called from the kernel if assignments have been made to
-%	attributed variables.
-
-'$wakeup'([]).
-'$wakeup'(wakeup(Attribute, Value, Rest)) :-
-	call_all_attr_uhooks(Attribute, Value),
-	'$wakeup'(Rest).
-
-call_all_attr_uhooks([], _).
-call_all_attr_uhooks(att(Module, AttVal, Rest), Value) :-
-	uhook(Module, AttVal, Value),
-	call_all_attr_uhooks(Rest, Value).
-
-
-%%	uhook(+AttributeName, +AttributeValue, +Value)
+%	Called from the kernel if assignments will be made to attributed
+%	variables.
 %
-%	Run the unify hook for attributed named AttributeName after
-%	assigning an attvar with attribute AttributeValue the value
-%	Value.
-%
-%	This predicate deals with reserved attribute names to avoid
-%	the meta-call overhead.
+%       Assignment happens in '$attvar_assign'/2
 
-uhook(freeze, Goal, Y) :- !,
-	(   attvar(Y)
-	->  (   get_attr(Y, freeze, G2)
-	    ->	put_attr(Y, freeze, '$and'(G2, Goal))
-	    ;	put_attr(Y, freeze, Goal)
-	    )
-	;   unfreeze(Goal)
+'$wakeup'(Wakes):-
+        collect_all_va_goal_lists(Wakes, Goals, []),
+        map_goals(Goals).
+
+map_goals([]).
+map_goals([G|Gs]):-
+	call(G),
+	map_goals(Gs).
+
+%%	collect_all_va_goal_lists(+KernelWakeups)//
+%
+%	Run the verify_attributes/3 unify hook for attributes on Attvar
+
+collect_all_va_goal_lists([]) --> [].
+collect_all_va_goal_lists(wakeup(Var, Att3s, Value, Rest)) -->
+        ['$attvar_assign'(Var,Value)],
+	collect_va_goal_list(Att3s, Var, Value),
+        collect_all_va_goal_lists(Rest).
+
+
+%%	collect_va_goal_list(+Att3s, +Var, +Value, -Goals)
+%
+%	Calls Module:verify_attributes/3 for each `Module` for which Var
+%	has an attribute. During this process,   modules  may remove and
+%	change each others attributes.
+
+collect_va_goal_list(att(Module, _AttVal, Rest), Var, Value) -->
+	(   { attvar(Var) }
+	->  { Module:verify_attributes(Var, Value, Goals) },
+	    goals_with_module(Goals, Module)
+	;   []
+	),
+        collect_va_goal_list(Rest, Var, Value).
+collect_va_goal_list([],_,_) --> [].
+
+
+goals_with_module([], _) --> [].
+goals_with_module([G|Gs], M) -->
+	{ strip_module(M:G, M2, GS) },
+	[M2:GS],
+	goals_with_module(Gs, M).
+
+
+		 /*******************************
+		 *	  ATTR UNIFY HOOK	*
+		 *******************************/
+
+%%	attr_unify_wrapper(+Context, +Term, -Hook) is
+%	semidet.
+%
+%	Hook   is   a   verify_attributes/3   hook   if   Term   is   an
+%	attr_unify_hook/2 implementation. The   verify_attributes/3 hook
+%	takes this shape:
+%
+%	  ==
+%	  Mod:verify_attributes(Var,Value,
+%				[attr_unify_hook(Attr,Value)]) :-
+%	      get_attr(Var,Mod,Attr).
+%	  ==
+
+attr_unify_wrapper(Context, Term, VHook) :-
+	clause_head(Context, Term, Module:attr_unify_hook(_,_)),
+	VHook = Module:(verify_attributes(Var,Value,
+					  [attr_unify_hook(Attr,Value)]) :-
+			       get_attr(Var,Module,Attr)).
+
+clause_head(_, M:Term, Head) :-
+	atom(M), !,
+	clause_head(M, Term, Head).
+clause_head(M, (Head :- _), M1:Head1) :- !,
+	strip_module(M:Head, M1, Head1),
+	atom(M1), callable(Head1).
+clause_head(M, Head, M:Head) :-
+	atom(M), callable(Head).
+
+
+has_verify_attribute_wrapper(Mod) :-
+	predicate_property(Mod:verify_attributes(_,_,_), defined),
+        \+ predicate_property(Mod:verify_attributes(_,_,_), imported_from(_)).
+
+system:term_expansion(Term, Into) :-
+        prolog_load_context(module, Mod),
+	attr_unify_wrapper(Mod, Term, To:Hook),
+	\+ has_verify_attribute_wrapper(To),
+	(   To == Mod
+	->  Into = [Hook,Term]
+	;   Into = [To:Hook,Term]
 	).
-uhook(Module, AttVal, Value) :-
-	Module:attr_unify_hook(AttVal, Value).
 
 
-%%	unfreeze(+ConjunctionOrGoal)
-%
-%	Handle  unfreezing  of  conjunctions.  As  meta-calling  control
-%	structures is slower than meta-interpreting them   we do this in
-%	Prolog. Another advantage is that   having unfreeze/1 in between
-%	makes the stacktrace and profiling   easier  to intepret. Please
-%	note that we cannot use a direct conjunction as this would break
-%	freeze(X, (a, !, b)).
-
-unfreeze('$and'(A,B)) :- !,
-	unfreeze(A),
-	unfreeze(B).
-unfreeze(Goal) :-
-	Goal.
+		 /*******************************
+		 *	      FREEZE		*
+		 *******************************/
 
 %%	freeze(@Var, :Goal)
 %
@@ -105,7 +154,7 @@ unfreeze(Goal) :-
 freeze(Var, Goal) :-
 	'$freeze'(Var, Goal), !.	% Succeeds if delayed
 freeze(_, Goal) :-
-	Goal.
+	call(Goal).
 
 %%	frozen(@Var, -Goals)
 %
@@ -122,6 +171,35 @@ make_conjunction('$and'(A0, B0), (A, B)) :- !,
 	make_conjunction(B0, B).
 make_conjunction(G, G).
 
+
+freeze:verify_attributes(Var, Other, Gs) :-
+	(   get_attr(Var, freeze, Goal)
+	->  (	attvar(Other)
+	    ->	(   get_attr(Other, freeze, G2)
+		->  put_attr(Other, freeze, '$and'(G2, Goal))
+		;   put_attr(Other, freeze, Goal)
+		),
+		Gs = []
+	    ;	Gs = ['$attvar':unfreeze(Goal)]
+	    )
+	;   Gs = []
+	).
+
+
+%%	unfreeze(+ConjunctionOrGoal)
+%
+%	Handle  unfreezing  of  conjunctions.  As  meta-calling  control
+%	structures is slower than meta-interpreting them   we do this in
+%	Prolog. Another advantage is that   having unfreeze/1 in between
+%	makes the stacktrace and profiling   easier  to intepret. Please
+%	note that we cannot use a direct conjunction as this would break
+%	freeze(X, (a, !, b)).
+
+unfreeze('$and'(A,B)) :- !,
+	unfreeze(A),
+	unfreeze(B).
+unfreeze(Goal) :-
+	Goal.
 
 		 /*******************************
 		 *	       PORTRAY		*

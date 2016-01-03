@@ -1950,7 +1950,7 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 (attributed) variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BIND_GLOBAL_SPACE (7)
+#define BIND_GLOBAL_SPACE (8)
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
 	(likely(gTop+(n)+BIND_GLOBAL_SPACE <= gMax) && \
@@ -1992,6 +1992,15 @@ typedef struct
 	    LD->var_names.numbervars_frame = _savedf; \
 	  } \
 	}
+
+		 /*******************************
+		 *      ATTVAR ASSIONMENT	*
+		 *******************************/
+
+/* assignAttVar() flags */
+#define ATT_UNIFY       0x0			/* unify: assign and wakeup */
+#define ATT_WAKEBINDS   0x1			/* bindConst() */
+#define ATT_ASSIGNONLY  0x2			/* '$attvar_assign'/2 */
 
 
 		 /*******************************

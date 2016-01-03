@@ -1008,7 +1008,7 @@ F undefinterc		4
 F unify_determined	2
 F uninstantiation_error	1
 F var			1
-F wakeup		3
+F wakeup		4
 F warning		3
 F xor			2
 F xpceref		1
