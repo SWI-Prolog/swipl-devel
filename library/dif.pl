@@ -81,7 +81,7 @@ dif_c_c(X,Y,OrNode) :-
 dif_c_c_l(Unifier,OrNode) :-
 	length(Unifier,N),
 	extend_ornode(OrNode,N,List,Tail),
-	dif_c_c_l_aux(Unifier,OrNode,List,Tail).
+	phrase(dif_c_c_l_aux(Unifier,OrNode),List,Tail).
 
 extend_ornode(OrNode,N,List,Vars) :-
 	( get_attr(OrNode,dif,Attr) ->
@@ -93,11 +93,11 @@ extend_ornode(OrNode,N,List,Vars) :-
 	),
 	put_attr(OrNode,dif,node(O,List)).
 
-dif_c_c_l_aux([],_,List,List).
-dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
-	List = [X=Y|Rest],
-	add_ornode(X,Y,OrNode),
-	dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).
+dif_c_c_l_aux([], _) --> [].
+dif_c_c_l_aux([X=Y|Unifier], OrNode) -->
+	[X=Y],
+	{ add_ornode(X,Y,OrNode) },
+	dif_c_c_l_aux(Unifier, OrNode).
 
 add_ornode(X,Y,OrNode) :-
 	add_ornode_var1(X,Y,OrNode),
