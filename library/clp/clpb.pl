@@ -871,75 +871,52 @@ state(S0, S), [S] --> [S0].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Unification. X = Expr is equivalent to sat(X =:= Expr).
-
-   Current limitation:
-   ===================
-
-   The current interface of attributed variables is not general enough
-   to express what we need. For example,
-
-       ?- sat(A + B), A = A + 1.
-
-   should be equivalent to
-
-       ?- sat(A + B), sat(A =:= A + 1).
-
-   However, attr_unify_hook/2 is only called *after* the unification
-   of A with A + 1 has already taken place and turned A into a cyclic
-   ground term, raised an error or failed (depending on the flag
-   occurs_check), making it impossible to reason about the variable A
-   in the unification hook. Therefore, a more general interface for
-   attributed variables should replace the current one. In particular,
-   unification filters should be able to reason about terms before
-   they are unified with anything.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-attr_unify_hook(index_root(I,Root), Other) :-
-        (   integer(Other) ->
-            (   between(0, 1, Other) ->
-                root_get_formula_bdd(Root, Sat, BDD0),
-                bdd_restriction(BDD0, I, Other, BDD),
-                root_put_formula_bdd(Root, Sat, BDD),
-                satisfiable_bdd(BDD)
-            ;   no_truth_value(Other)
-            )
-        ;   atom(Other) ->
-            root_get_formula_bdd(Root, Sat0, _),
-            parse_sat(Sat0, Sat),
-            sat_bdd(Sat, BDD),
-            root_put_formula_bdd(Root, Sat0, BDD),
-            is_bdd(BDD),
-            satisfiable_bdd(BDD)
-        ;   % due to variable aliasing, any BDDs may now be unordered,
-            % so we need to rebuild the new BDD from the conjunction.
-            root_get_formula_bdd(Root, Sat0, _),
-            Sat = Sat0*OtherSat,
-            (   var(Other), var_index_root(Other, _, OtherRoot),
-                OtherRoot \== Root ->
-                root_get_formula_bdd(OtherRoot, OtherSat, _),
-                parse_sat(Sat, Sat1),
-                sat_bdd(Sat1, BDD1),
-                And = Sat,
-                sat_roots(Sat, Roots)
-            ;   parse_sat(Other, OtherSat),
+verify_attributes(Var, Other, Gs) :-
+        % format("~w = ~w\n", [Var,Other]),
+        (   get_attr(Var, clpb, index_root(I,Root)) ->
+            (   integer(Other) ->
+                (   between(0, 1, Other) ->
+                    root_get_formula_bdd(Root, Sat, BDD0),
+                    bdd_restriction(BDD0, I, Other, BDD),
+                    root_put_formula_bdd(Root, Sat, BDD),
+                    Gs = [satisfiable_bdd(BDD)]
+                ;   no_truth_value(Other)
+                )
+            ;   atom(Other) ->
+                root_get_formula_bdd(Root, Sat0, _),
+                Gs = [root_rebuild_bdd(Root, Sat0)]
+            ;   % due to variable aliasing, any BDDs may become unordered,
+                % so we need to rebuild the new BDD from the conjunction
+                % after the unification is in place
+                root_get_formula_bdd(Root, Sat0, _),
+                Sat = Sat0*OtherSat,
+                parse_sat(Other, OtherSat),
                 sat_roots(Sat, Roots),
-                maplist(root_rebuild_bdd, Roots),
-                roots_and(Roots, 1-1, And-BDD1)
-            ),
-            maplist(del_bdd, Roots),
-            maplist(=(NewRoot), Roots),
-            root_put_formula_bdd(NewRoot, And, BDD1),
-            is_bdd(BDD1),
-            satisfiable_bdd(BDD1)
+                phrase(formulas_(Roots), [F|Fs]),
+                foldl(and, Fs, F, And),
+                maplist(del_bdd, Roots),
+                maplist(=(NewRoot), Roots),
+                Gs = [root_rebuild_bdd(NewRoot, And)]
+            )
+        ;   Gs = []
         ).
 
-root_rebuild_bdd(Root) :-
-        (   root_get_formula_bdd(Root, F0, _) ->
-            parse_sat(F0, Sat),
-            sat_bdd(Sat, BDD),
-            root_put_formula_bdd(Root, F0, BDD)
-        ;   true
-        ).
+formulas_([]) --> [].
+formulas_([Root|Roots]) -->
+        (   { root_get_formula_bdd(Root, F, _) } ->
+            [F]
+        ;   []
+        ),
+        formulas_(Roots).
+
+root_rebuild_bdd(Root, Formula) :-
+        parse_sat(Formula, Sat),
+        sat_bdd(Sat, BDD),
+        is_bdd(BDD),
+        root_put_formula_bdd(Root, Formula, BDD),
+        satisfiable_bdd(BDD).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Support for project_attributes/2.
@@ -1665,15 +1642,15 @@ clpb_atom_var(Atom, Var) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- public
-        clpb_hash:attr_unify_hook/2,
+        clpb_hash:verify_attributes/3,
         clpb_bdd:attribute_goals//1,
         clpb_hash:attribute_goals//1,
-        clpb_omit_boolean:attr_unify_hook/2,
+        clpb_omit_boolean:verify_attributes/3,
         clpb_omit_boolean:attribute_goals//1,
-        clpb_atom:attr_unify_hook/2,
+        clpb_atom:verify_attributes/3,
         clpb_atom:attribute_goals//1.
 
-clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
+clpb_hash:verify_attributes(_,_, []).  % this unification is always admissible
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    If a universally quantified variable is unified to a Boolean value,
@@ -1681,9 +1658,9 @@ clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
    it is false.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-clpb_atom:attr_unify_hook(_, _) :- false.
+clpb_atom:verify_attributes(_, _, [false]).
 
-clpb_omit_boolean:attr_unify_hook(_,_).
+clpb_omit_boolean:verify_attributes(_, _, []).
 
 clpb_bdd:attribute_goals(_)          --> [].
 clpb_hash:attribute_goals(_)         --> [].
