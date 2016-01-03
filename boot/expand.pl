@@ -866,16 +866,22 @@ wrap_var(G, P0, call(G), P) :-
 	;   true
 	).
 
-%%	contains_functions(+Term) is semidet.
+%%	contains_functions(@Term) is semidet.
 %
 %	True when Term contains a function reference.
 
 contains_functions(Term) :-
+	\+ \+ (	'$factorize_term'(Term, Skeleton, Assignments),
+		(   contains_functions2(Skeleton)
+		;   contains_functions2(Assignments)
+		)).
+
+contains_functions2(Term) :-
 	compound(Term),
 	(   function(Term, _)
 	->  true
 	;   arg(_, Term, Arg),
-	    contains_functions(Arg)
+	    contains_functions2(Arg)
 	->  true
 	).
 
