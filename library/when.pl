@@ -161,9 +161,9 @@ trigger_disj([H|T], G) :-
 %
 %	If there is a disjunctive condition, we share a variable between
 %	the disjunctions. If the  goal  is  fired   due  to  one  of the
-%	conditions, the shared variable is boud   to (-). Note that this
+%	conditions, the shared variable is bound  to (-). Note that this
 %	implies that the attributed  variable  is   left  in  place. The
-%	predicate  when_goal//1  skips  such   goals    on   behalfe  of
+%	predicate  when_goal//1  skips  such   goals    on   behalf  of
 %	copy_term/3.
 
 check_disj(Disj,_,Goal) :-
@@ -182,11 +182,14 @@ suspend_list([V=W|Unifier],Goal) :-
 	),
 	suspend_list(Unifier,Goal).
 
-attr_unify_hook(call(Goal), Other) :-
-	(   get_attr(Other, when, call(GOTher))
-	->  del_attr(Other, when),
-	    Goal, GOTher
-	;   Goal
+verify_attributes(Var, Other, Gs) :-
+	(   get_attr(Var, when, call(Goal))
+	->  (	get_attr(Other, when, call(GoalOther))
+	    ->	del_attr(Other, when),
+		Gs = [Goal,GoalOther]
+	    ;	Gs = [Goal]
+	    )
+	;   Gs = []
 	).
 
 
