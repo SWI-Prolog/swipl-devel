@@ -88,6 +88,10 @@ test(del_clause_a, all(X == [b,c])) :-
 	reload(del_clause_a, 1),
 	reload(del_clause_a, 2),
 	del_clause_a:p1(X).
+test(del_clause_z, all(X == [a,b])) :-
+	reload(del_clause_z, 1),
+	reload(del_clause_z, 2),
+	del_clause_z:p1(X).
 test(replace_clause, all(X == [b])) :-
 	reload(replace_clause, 1),
 	reload(replace_clause, 2),

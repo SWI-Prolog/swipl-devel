@@ -1176,6 +1176,7 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
       continue;
 
     c->generation.erased = rl->reload_gen;
+    set(r, P_MODIFIED);
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("  Deleted clause %d\n",
 		   clauseNo(def, c, r->generation)));
