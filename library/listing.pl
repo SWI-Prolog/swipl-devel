@@ -229,17 +229,27 @@ decl(volatile,	   volatile).
 decl(multifile,	   multifile).
 decl(public,	   public).
 
+meta_implies_transparent(Head):-
+	compound(Head),
+	arg(_,Head,Arg),
+	% DM: Do we need '^' as well?
+	(number(Arg); Arg=':'), !.
+
 declaration(Pred, Source, Decl) :-
 	decl(Prop, Declname),
 	predicate_property(Pred, Prop),
 	decl_term(Pred, Source, Funct),
 	Decl =.. [ Declname, Funct ].
-declaration(Pred, Source, Decl) :- !,
+declaration(Pred, Source, Decl) :-
 	predicate_property(Pred, meta_predicate(Head)),
 	strip_module(Pred, Module, _),
 	(   (Module == system; Source == Module)
 	->  Decl = meta_predicate(Head)
 	;   Decl = meta_predicate(Module:Head)
+	),
+	( meta_implies_transparent(Head)
+	-> !
+	; true
 	).
 declaration(Pred, Source, Decl) :-
 	predicate_property(Pred, transparent),
