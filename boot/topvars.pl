@@ -124,7 +124,7 @@ expand_answer(Bindings, Bindings) :-
 assert_bindings([]).
 assert_bindings([Binding|Tail]) :-
 	Binding = (Var = Value),
-	(   nonvar(Value)
+	(   ( nonvar(Value) ; attvar(Value))
 	->  forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
 	    (   (   current_prolog_flag(toplevel_var_size, Count)
 		->  '$term_size'(Value, Count, _)
