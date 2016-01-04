@@ -234,17 +234,38 @@ declaration(Pred, Source, Decl) :-
 	predicate_property(Pred, Prop),
 	decl_term(Pred, Source, Funct),
 	Decl =.. [ Declname, Funct ].
-declaration(Pred, Source, Decl) :- !,
+declaration(Pred, Source, Decl) :-
 	predicate_property(Pred, meta_predicate(Head)),
 	strip_module(Pred, Module, _),
 	(   (Module == system; Source == Module)
 	->  Decl = meta_predicate(Head)
 	;   Decl = meta_predicate(Module:Head)
+	),
+	(   meta_implies_transparent(Head)
+	->  !					% hide transparent
+	;   true
 	).
 declaration(Pred, Source, Decl) :-
 	predicate_property(Pred, transparent),
 	decl_term(Pred, Source, PI),
 	Decl = module_transparent(PI).
+
+%%	meta_implies_transparent(+Head) is semidet.
+%
+%	True if the meta-declaration Head implies  that the predicate is
+%	transparent.
+
+meta_implies_transparent(Head):-
+	compound(Head),
+	arg(_, Head, Arg),
+	implies_transparent(Arg), !.
+
+implies_transparent(Arg) :-
+	integer(Arg), !.
+implies_transparent(:).
+implies_transparent(//).
+implies_transparent(^).
+
 
 list_declarations(Pred, Source) :-
 	findall(Decl, declaration(Pred, Source, Decl), Decls),
