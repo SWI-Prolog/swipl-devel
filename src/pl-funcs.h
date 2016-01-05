@@ -121,6 +121,7 @@ COMMON(Number)		argvArithStack(int n ARG_LD);
 COMMON(void)		popArgvArithStack(int n ARG_LD);
 COMMON(void)		freeArithLocalData(PL_local_data_t *ld);
 COMMON(int)		ar_sign_i(Number n1);
+COMMON(int)		ar_signbit(Number n1);
 COMMON(int)		check_float(double f);
 COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
 
@@ -674,6 +675,7 @@ COMMON(int)		writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags);
 COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
 COMMON(char *)		format_float(double f, char *buf);
 COMMON(int)		unquoted_atom(atom_t a);
+COMMON(double)		make_nan(uint64_t bits);
 
 /* pl-term.c */
 COMMON(void)		cleanupTerm(void);

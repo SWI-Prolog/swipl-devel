@@ -2076,7 +2076,7 @@ ar_sign(Number n1, Number r)
 }
 
 
-static int
+int
 ar_signbit(Number n)
 { switch(n->type)
   { case V_INTEGER:
@@ -3434,6 +3434,36 @@ ar_epsilon(Number r)
 
 
 static int
+ar_inf(Number r)
+{ static number n = {0};
+
+  if ( n.type != V_FLOAT )
+  { n.value.f = strtod("Inf", NULL);
+    n.type = V_FLOAT;
+  }
+
+  *r = n;
+
+  succeed;
+}
+
+
+static int
+ar_nan(Number r)
+{ static number n = {0};
+
+  if ( n.type != V_FLOAT )
+  { n.value.f = strtod("NaN", NULL);
+    n.type = V_FLOAT;
+  }
+
+  *r = n;
+
+  succeed;
+}
+
+
+static int
 ar_cputime(Number r)
 { r->value.f = CpuTime(CPU_USER);
 
@@ -3605,6 +3635,8 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_pi0,		ar_pi, F_ISO),
   ADD(FUNCTOR_e0,		ar_e, 0),
   ADD(FUNCTOR_epsilon0,		ar_epsilon, 0),
+  ADD(FUNCTOR_inf0,		ar_inf, 0),
+  ADD(FUNCTOR_nan0,		ar_nan, 0),
 
   ADD(FUNCTOR_cputime0,		ar_cputime, 0),
   ADD(FUNCTOR_msb1,		ar_msb, 0),

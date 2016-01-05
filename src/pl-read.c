@@ -2342,10 +2342,53 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 #endif /*O_QUASIQUOTATIONS*/
 
 
+static cucharp
+float_tag(cucharp in, cucharp tag)
+{ while(*in == *tag)
+    in++, tag++;
+
+  if ( !*tag )
+  { int c;
+
+    utf8_get_uchar(in, &c);
+    if ( !PlIdContW(c) )
+      return in;
+  }
+
+  return NULL;
+}
+
+
+static cucharp
+special_float(cucharp in, cucharp start, Number value)
+{ cucharp s;
+
+  if ( (s=float_tag(in, (cucharp)"Inf")) )
+  { if ( *start == '-' )
+      value->value.f = strtod("-Inf", NULL);
+    else
+      value->value.f = strtod("Inf", NULL);
+  } else if ( (s=float_tag(in, (cucharp)"NaN")) &&
+	      start[0] == '1' && start[1] == '.' )
+  { char *e;
+    long long int nanbits = strtoll((const char*)&start[2], &e, 10);
+
+    if ( e == (char*)in )
+      value->value.f = make_nan((uint64_t)nanbits);
+    else
+      return NULL;
+  } else
+    return NULL;
+
+  return s;
+}
+
+
+
 strnumstat
 str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
-  cucharp start = in;
+  cucharp s, start = in;
   strnumstat rc;
   int grouped;
 
@@ -2442,6 +2485,11 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
       in++;
     while( isDigit(*in) )
       in++;
+  }
+
+  if ( (s = special_float(in, start, value)) )
+  { *end = (ucharp)s;
+    return NUM_OK;
   }
 
   if ( value->type == V_FLOAT )

@@ -776,6 +776,7 @@ suggest predicates from a keyword.
 \functionsummary{floor}{1}{Largest integer below argument}
 \functionsummary{gcd}{2}{Greatest common divisor}
 \functionsummary{getbit}{2}{Get bit at index from large integer}
+\functionsummary{inf}{0}{Positive infinity}
 \functionsummary{integer}{1}{Round to nearest integer}
 \functionsummary{lgamma}{1}{Log of gamma function}
 \functionsummary{log}{1}{Natural logarithm}
@@ -785,6 +786,7 @@ suggest predicates from a keyword.
 \functionsummary{min}{2}{Minimum of two numbers}
 \functionsummary{msb}{1}{Most significant bit}
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
+\functionsummary{nan}{0}{Not a Number (NaN)}
 \functionsummary{powm}{3}{Integer exponent and modulo}
 \functionsummary{random}{1}{Generate random number}
 \functionsummary{random_float}{0}{Generate random number}

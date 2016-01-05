@@ -831,12 +831,140 @@ to clean this up a bit. The 5 cases   as  such are real: there is no way
 around these.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef HAVE_IEEE754_H
+#include <ieee754.h>
+#else
+union ieee754_double
+{ double d;
+  struct
+  {
+#ifdef WORDS_BIGENDIAN
+    unsigned int negative:1;
+    unsigned int exponent:11;
+    unsigned int mantissa0:20;
+    unsigned int mantissa1:32;
+#else
+#if __FLOAT_WORD_ORDER == __BIG_ENDIAN
+    unsigned int mantissa0:20;
+    unsigned int exponent:11;
+    unsigned int negative:1;
+    unsigned int mantissa1:32;
+#else
+    unsigned int mantissa1:32;
+    unsigned int mantissa0:20;
+    unsigned int exponent:11;
+    unsigned int negative:1;
+#endif
+#endif
+  } ieee;
+};
+#endif
+
+static char *
+writeNaN(double f, char *buf)
+{ union ieee754_double u;
+  uint64_t mantissa;
+
+  u.d = f;
+  assert(u.ieee.exponent == 0x7ff);	/* 11 bits */
+  mantissa = ((uint64_t)u.ieee.mantissa0<<20) + u.ieee.mantissa1;
+
+  Ssprintf(buf, "1.%lldNaN", (int64_t)mantissa);
+  return buf;
+}
+
+
+double
+make_nan(uint64_t bits)
+{ union ieee754_double u;
+
+  u.ieee.exponent  = 0x7ff;
+  u.ieee.mantissa0 = (bits>>20) & 0xfffff;
+  u.ieee.mantissa1 = bits & 0xffffffff;
+
+  return u.d;
+}
+
+
+static char *
+writeINF(double f, char *buf)
+{ number n;
+
+  n.value.f = f;
+  n.type = V_FLOAT;
+
+  if ( ar_signbit(&n) < 0 )
+    return strcpy(buf, "-1.0Inf");
+  else
+    return strcpy(buf, "1.0Inf");
+}
+
+
+static char *
+format_special_float(double f, char *buf)
+{
+#ifdef HAVE_FPCLASSIFY
+  switch(fpclassify(f))
+  { case FP_NAN:
+      return writeNaN(f, buf);
+    case FP_INFINITE:
+      return writeINF(f, buf);
+  }
+#else
+#ifdef HAVE_FPCLASS
+  switch(fpclass(f))
+  { case FP_SNAN:
+    case FP_QNAN:
+      return writeNaN(f, buf);
+    case FP_NINF:
+    case FP_PINF:
+      return writeINF(n, buf);
+    case FP_NDENORM:		/* pos/neg denormalized non-zero */
+    case FP_PDENORM:
+    case FP_NNORM:			/* pos/neg normalized non-zero */
+    case FP_PNORM:
+    case FP_NZERO:			/* pos/neg zero */
+    case FP_PZERO:
+      break;
+  }
+#else
+#ifdef HAVE__FPCLASS
+  switch(_fpclass(f))
+  { case _FPCLASS_SNAN:
+    case _FPCLASS_QNAN:
+      return writeNaN(f, buf);
+    case _FPCLASS_NINF:
+    case _FPCLASS_PINF:
+      return writeINF(f, buf);
+  }
+#else
+#ifdef HAVE_ISINF
+  if ( isinf(f) )
+  { return writeINF(f, buf);
+  } else
+#endif
+#ifdef HAVE_ISNAN
+  if ( isnan(f) )
+  { return writeNaN(f, buf);
+  }
+#endif
+#endif /*HAVE__FPCLASS*/
+#endif /*HAVE_FPCLASS*/
+#endif /*HAVE_FPCLASSIFY*/
+
+  return NULL;
+}
+
+
 char *
 format_float(double f, char *buf)
-{ char *end, *o=buf;
+{ char *end, *o=buf, *s;
   int decpt, sign;
-  char *s = dtoa(f, 0, 30, &decpt, &sign, &end);
 
+  if ( (s=format_special_float(f, buf)) )
+    return s;
+
+  s = dtoa(f, 0, 30, &decpt, &sign, &end);
   DEBUG(2, Sdprintf("decpt=%d, sign=%d, len = %d, '%s'\n",
 		    decpt, sign, end-s, s));
 
@@ -940,73 +1068,10 @@ WriteNumber(Number n, write_options *options)
     }
 #endif
     case V_FLOAT:
-    { double f = n->value.f;
-      char *s = NULL;
+    { char buf[100];
 
-#ifdef HAVE_FPCLASSIFY
-      switch(fpclassify(f))
-      { case FP_NAN:
-	  s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-	  break;
-	case FP_INFINITE:
-	  s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-	  break;
-      }
-#else
-#ifdef HAVE_FPCLASS
-      switch(fpclass(f))
-      { case FP_SNAN:
-	case FP_QNAN:
-	  s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-	  break;
-	case FP_NINF:
-	case FP_PINF:
-	  s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-	  break;
-	case FP_NDENORM:		/* pos/neg denormalized non-zero */
-	case FP_PDENORM:
-	case FP_NNORM:			/* pos/neg normalized non-zero */
-	case FP_PNORM:
-	case FP_NZERO:			/* pos/neg zero */
-	case FP_PZERO:
-	  break;
-      }
-#else
-#ifdef HAVE__FPCLASS
-      switch(_fpclass(f))
-      { case _FPCLASS_SNAN:
-	case _FPCLASS_QNAN:
-	  s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-	  break;
-	case _FPCLASS_NINF:
-	case _FPCLASS_PINF:
-	  s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-	  break;
-      }
-#else
-#ifdef HAVE_ISINF
-      if ( isinf(f) )
-      { s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-      } else
-#endif
-#ifdef HAVE_ISNAN
-      if ( isnan(f) )
-      { s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-      }
-#endif
-#endif /*HAVE__FPCLASS*/
-#endif /*HAVE_FPCLASS*/
-#endif /*HAVE_FPCLASSIFY*/
-
-      if ( s )
-      { return PutToken(s, options->out);
-      } else
-      { char buf[100];
-
-	format_float(f, buf);
-
-	return PutToken(buf, options->out);
-      }
+      format_float(n->value.f, buf);
+      return PutToken(buf, options->out);
     }
     default:
       assert(0);
