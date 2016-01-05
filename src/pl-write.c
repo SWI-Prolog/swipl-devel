@@ -901,7 +901,7 @@ format_float(double f, char *buf)
 }
 
 
-static bool
+static int
 WriteNumber(Number n, write_options *options)
 { GET_LD
 
@@ -938,13 +938,79 @@ WriteNumber(Number n, write_options *options)
 
       return rc;
     }
-    case V_MPQ:				/* should not get here */
 #endif
     case V_FLOAT:
+    { double f = n->value.f;
+      char *s = NULL;
+
+#ifdef HAVE_FPCLASSIFY
+      switch(fpclassify(f))
+      { case FP_NAN:
+	  s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
+	  break;
+	case FP_INFINITE:
+	  s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
+	  break;
+      }
+#else
+#ifdef HAVE_FPCLASS
+      switch(fpclass(f))
+      { case FP_SNAN:
+	case FP_QNAN:
+	  s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
+	  break;
+	case FP_NINF:
+	case FP_PINF:
+	  s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
+	  break;
+	case FP_NDENORM:		/* pos/neg denormalized non-zero */
+	case FP_PDENORM:
+	case FP_NNORM:			/* pos/neg normalized non-zero */
+	case FP_PNORM:
+	case FP_NZERO:			/* pos/neg zero */
+	case FP_PZERO:
+	  break;
+      }
+#else
+#ifdef HAVE__FPCLASS
+      switch(_fpclass(f))
+      { case _FPCLASS_SNAN:
+	case _FPCLASS_QNAN:
+	  s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
+	  break;
+	case _FPCLASS_NINF:
+	case _FPCLASS_PINF:
+	  s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
+	  break;
+      }
+#else
+#ifdef HAVE_ISINF
+      if ( isinf(f) )
+      { s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
+      } else
+#endif
+#ifdef HAVE_ISNAN
+      if ( isnan(f) )
+      { s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
+      }
+#endif
+#endif /*HAVE__FPCLASS*/
+#endif /*HAVE_FPCLASS*/
+#endif /*HAVE_FPCLASSIFY*/
+
+      if ( s )
+      { return PutToken(s, options->out);
+      } else
+      { char buf[100];
+
+	format_float(f, buf);
+
+	return PutToken(buf, options->out);
+      }
+    }
+    default:
       assert(0);
   }
-
-  fail;
 }
 
 
@@ -952,7 +1018,6 @@ WriteNumber(Number n, write_options *options)
 static bool
 writePrimitive(term_t t, write_options *options)
 { GET_LD
-  double f;
   atom_t a;
   char buf[32];
   IOSTREAM *out = options->out;
@@ -968,81 +1033,11 @@ writePrimitive(term_t t, write_options *options)
   if ( PL_get_atom(t, &a) )
     return writeAtom(a, options);
 
-  if ( PL_is_integer(t) )		/* beware of automatic conversion */
+  if ( PL_is_number(t) )		/* beware of automatic conversion */
   { number n;
 
     PL_get_number(t, &n);
-
     return WriteNumber(&n, options);
-  }
-
-  if ( PL_get_float(t, &f) )
-  { char *s = NULL;
-
-#ifdef HAVE_FPCLASSIFY
-    switch(fpclassify(f))
-    { case FP_NAN:
-	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-        break;
-      case FP_INFINITE:
-	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-        break;
-    }
-#else
-#ifdef HAVE_FPCLASS
-    switch(fpclass(f))
-    { case FP_SNAN:
-      case FP_QNAN:
-	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-        break;
-      case FP_NINF:
-      case FP_PINF:
-	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-        break;
-      case FP_NDENORM:			/* pos/neg denormalized non-zero */
-      case FP_PDENORM:
-      case FP_NNORM:			/* pos/neg normalized non-zero */
-      case FP_PNORM:
-      case FP_NZERO:			/* pos/neg zero */
-      case FP_PZERO:
-	break;
-    }
-#else
-#ifdef HAVE__FPCLASS
-    switch(_fpclass(f))
-    { case _FPCLASS_SNAN:
-      case _FPCLASS_QNAN:
-	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-        break;
-      case _FPCLASS_NINF:
-      case _FPCLASS_PINF:
-	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-        break;
-    }
-#else
-#ifdef HAVE_ISINF
-    if ( isinf(f) )
-    { s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-    } else
-#endif
-#ifdef HAVE_ISNAN
-    if ( isnan(f) )
-    { s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-    }
-#endif
-#endif /*HAVE__FPCLASS*/
-#endif /*HAVE_FPCLASS*/
-#endif /*HAVE_FPCLASSIFY*/
-
-    if ( s )
-    { return PutToken(s, out);
-    } else
-    { char buf[100];
-
-      format_float(f, buf);
-
-      return PutToken(buf, out);
-    }
   }
 
 #if O_STRING
