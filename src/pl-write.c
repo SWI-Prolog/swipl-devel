@@ -864,13 +864,23 @@ union ieee754_double
 };
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Joachim Schimpf: The exponent is  stored  with   a  "bias"  of  1023, so
+3ff=1023 means 0. And 0 means that the   mantissa is to be multiplied by
+2^0 = 1, maybe that's where my confusion came from...
+
+To add to the confusion, the mantissa  is a "hidden bit" representation,
+i.e. its actual value is 1.<the 52 bits   actually  stored>, so with a 0
+exponent the value of the resulting number is always >= 1 and < 2.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
 writeNaN(double f, char *buf)
 { union ieee754_double u;
 
   u.d = f;
-  assert(u.ieee.exponent == 0x7ff);
-  u.ieee.exponent = 0x3ff;		/* biased exponent `1' */
+  assert(u.ieee.exponent == 0x7ff);	/* NaN exponent */
+  u.ieee.exponent = 0x3ff;		/* see above */
   format_float(u.d, buf);
   strcat(buf, "NaN");
   return buf;
@@ -888,7 +898,7 @@ make_nan(double *f)
     return NUM_OK;
   }
 
-  return NUM_CONSTRANGE;
+  return NUM_CONSTRANGE;		/* 1.0NaN is in fact 1.0Inf */
 }
 
 
