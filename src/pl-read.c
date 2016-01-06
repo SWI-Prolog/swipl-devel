@@ -497,6 +497,7 @@ str_number_error(strnumstat rc)
     case NUM_FUNDERFLOW: return "float_underflow";
     case NUM_FOVERFLOW:  return "float_overflow";
     case NUM_IOVERFLOW:  return "integer_overflow";
+    case NUM_CONSTRANGE: return "numeric constant out of range";
   }
 
   return NULL;
@@ -2359,28 +2360,32 @@ float_tag(cucharp in, cucharp tag)
 }
 
 
-static cucharp
-special_float(cucharp in, cucharp start, Number value)
+static strnumstat
+special_float(cucharp *in, cucharp start, Number value)
 { cucharp s;
 
-  if ( (s=float_tag(in, (cucharp)"Inf")) )
+  if ( (s=float_tag(*in, (cucharp)"Inf")) )
   { if ( *start == '-' )
       value->value.f = strtod("-Inf", NULL);
     else
       value->value.f = strtod("Inf", NULL);
-  } else if ( (s=float_tag(in, (cucharp)"NaN")) &&
+  } else if ( (s=float_tag(*in, (cucharp)"NaN")) &&
 	      start[0] == '1' && start[1] == '.' )
   { char *e;
-    long long int nanbits = strtoll((const char*)&start[2], &e, 10);
+    double f = strtod((char*)start, &e);
 
-    if ( e == (char*)in )
-      value->value.f = make_nan((uint64_t)nanbits);
-    else
-      return NULL;
+    if ( e == (char*)(*in) )
+    { strnumstat rc = make_nan(&f);
+      if ( rc != NUM_OK )
+	return rc;
+      value->value.f = f;
+    } else
+      return NUM_CONSTRANGE;
   } else
-    return NULL;
+    return NUM_ERROR;
 
-  return s;
+  *in = s;
+  return NUM_OK;
 }
 
 
@@ -2388,7 +2393,7 @@ special_float(cucharp in, cucharp start, Number value)
 strnumstat
 str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
-  cucharp s, start = in;
+  cucharp start = in;
   strnumstat rc;
   int grouped;
 
@@ -2487,9 +2492,10 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
       in++;
   }
 
-  if ( (s = special_float(in, start, value)) )
-  { *end = (ucharp)s;
-    return NUM_OK;
+  if ( (rc = special_float(&in, start, value)) != NUM_ERROR)
+  { if ( rc == NUM_OK )
+      *end = (ucharp)in;
+    return rc;
   }
 
   if ( value->type == V_FLOAT )

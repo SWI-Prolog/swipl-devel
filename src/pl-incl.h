@@ -735,7 +735,8 @@ typedef enum
   NUM_OK    = TRUE,			/* Ok */
   NUM_FUNDERFLOW = -1,			/* Float underflow */
   NUM_FOVERFLOW = -2,			/* Float overflow */
-  NUM_IOVERFLOW = -3			/* Integer overflow */
+  NUM_IOVERFLOW = -3,			/* Integer overflow */
+  NUM_CONSTRANGE = -4			/* numeric constant out of range */
 } strnumstat;
 
 

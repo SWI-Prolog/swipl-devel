@@ -2142,20 +2142,29 @@ The current syntax has been proposed by Ulrich Neumerkel on the
 SWI-Prolog mailinglist.
 
 
-\subsubsection{NaN and Infinity float syntax}		\label{sec:floatsyntax}
+\subsubsection{NaN and Infinity floats and their syntax}
+\label{sec:floatsyntax}
 
 SWI-Prolog supports reading an printing `special' floating point values
 according to \url[Proposal for Prolog Standard core update wrt floating
 point arithmetic]{http://eclipseclp.org/Specs/core_update_float.html} by
-Joachim Schimpf.  In particular,
+Joachim Schimpf and available in ECLiPSe Prolog. In particular,
 
 \begin{itemize}
     \item Infinity is printed as \verb$1.0Inf$ or \verb$-1.0Inf$.  Any
-    sequence matching \verb$[+-]?\sd+[.]\sd+Inf$ is mapped to plus or
-    minus infinity.
-    \item NaN (Not a Number) is printed as \verb$1.xxxNaN$, where
-    \textit{xxx} is the decimal representation of the mantissa of
-    the NaN.  Such numbers are read, resulting in the same NaN.
+    sequence matching the regular expression \verb$[+-]?\sd+[.]\sd+Inf$
+    is mapped to plus or minus infinity.
+
+    \item \const{NaN} (Not a Number) is printed as \verb$1.xxxNaN$, where
+    \textit{1.xxx} is the float after replacing the exponent by `1'.
+    Such numbers are read, resulting in the same \const{NaN}. The
+    \const{NaN} constant can also be produced using the function
+    \funcref{nan}{0}, e.g.,
+
+\begin{code}
+?- A is nan.
+A = 1.5NaN.
+\end{code}
 \end{itemize}
 
 Note that, compliant with the ISO standard, SWI-Prolog arithmetic (see
@@ -2169,9 +2178,9 @@ ERROR: //2: Arithmetic: evaluation error: `zero_divisor'
 
 There is one exception to this rule. For compatibility the functions
 \funcref{inf}{0} and \funcref{nan}{0} return \verb$1.0Inf$ and the
-default system NaN. The ability to create, read and write such values is
-primarily provided to exchange data with languages that can represent
-the full range of IEEE doubles.
+default system \const{NaN}. The ability to create, read and write such
+values is primarily provided to exchange data with languages that can
+represent the full range of IEEE doubles.
 
 
 \subsubsection{Unicode Prolog source}		\label{sec:unicodesyntax}

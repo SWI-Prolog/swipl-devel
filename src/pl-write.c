@@ -829,6 +829,10 @@ This uses dtoa.c. See pl-dtoa.c for how this is packed into SWI-Prolog.
 TBD: The number of cases are large. We should see whether it is possible
 to clean this up a bit. The 5 cases   as  such are real: there is no way
 around these.
+
+NaN         and         Inf         printing           based          on
+http://eclipseclp.org/Specs/core_update_float.html, with comments   from
+Joachim Schimpf.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_IEEE754_H
@@ -863,26 +867,28 @@ union ieee754_double
 static char *
 writeNaN(double f, char *buf)
 { union ieee754_double u;
-  uint64_t mantissa;
 
   u.d = f;
-  assert(u.ieee.exponent == 0x7ff);	/* 11 bits */
-  mantissa = ((uint64_t)u.ieee.mantissa0<<20) + u.ieee.mantissa1;
-
-  Ssprintf(buf, "1.%lldNaN", (int64_t)mantissa);
+  assert(u.ieee.exponent == 0x7ff);
+  u.ieee.exponent = 0x3ff;		/* biased exponent `1' */
+  format_float(u.d, buf);
+  strcat(buf, "NaN");
   return buf;
 }
 
 
-double
-make_nan(uint64_t bits)
+strnumstat
+make_nan(double *f)
 { union ieee754_double u;
 
-  u.ieee.exponent  = 0x7ff;
-  u.ieee.mantissa0 = (bits>>20) & 0xfffff;
-  u.ieee.mantissa1 = bits & 0xffffffff;
+  u.d = *f;
+  u.ieee.exponent = 0x7ff;		/* NaN exponent */
+  if ( isnan(u.d) )
+  { *f = u.d;
+    return NUM_OK;
+  }
 
-  return u.d;
+  return NUM_CONSTRANGE;
 }
 
 

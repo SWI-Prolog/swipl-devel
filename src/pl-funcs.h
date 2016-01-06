@@ -675,7 +675,7 @@ COMMON(int)		writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags);
 COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
 COMMON(char *)		format_float(double f, char *buf);
 COMMON(int)		unquoted_atom(atom_t a);
-COMMON(double)		make_nan(uint64_t bits);
+COMMON(strnumstat)	make_nan(double *f);
 
 /* pl-term.c */
 COMMON(void)		cleanupTerm(void);
