@@ -2445,15 +2445,25 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     }
 
-    if ( !PL_unify_functor(t, PL_new_functor(name, arity)) )
-      fail;
+    if ( (p = allocGlobal(arity+1)) )
+    { Word l = valTermRef(tail);
 
-    for(n=1; PL_get_list(tail, head, tail); n++)
-    { if ( !PL_unify_arg(n, t, head) )
-	fail;
+      *valTermRef(head) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *p++ = PL_new_functor(name, arity);
+      deRef(l);
+      while(isList(*l))
+      { Word h = HeadList(l);
+
+	deRef(h);
+	*p++ = needsRef(*h) ? makeRef(h) : *h;
+	l = TailList(l);
+	deRef(l);
+      }
+
+      return PL_unify(t, head);
     }
 
-    succeed;
+    return FALSE;
   }
 
   p = valTermRef(t);
