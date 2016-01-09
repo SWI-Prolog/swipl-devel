@@ -355,17 +355,17 @@ set_xref(Xref) :-
 
 set_initial_mode(_Stream, Options) :-
 	option(module(Module), Options), !,
-	'$set_source_module'(_, Module).
+	'$set_source_module'(Module).
 set_initial_mode(Stream, _) :-
 	stream_property(Stream, file_name(Path)),
 	source_file_property(Path, load_context(M, _, Opts)), !,
-	'$set_source_module'(_, M),
+	'$set_source_module'(M),
 	(   option(dialect(Dialect), Opts)
 	->  expects_dialect(Dialect)
 	;   true
 	).
 set_initial_mode(_, _) :-
-	'$set_source_module'(_, user).
+	'$set_source_module'(user).
 
 %%	xref_input_stream(-Stream) is det.
 %
@@ -383,7 +383,7 @@ xref_input_stream(Stream) :-
 xref_push_op(Src, P, T, N0) :- !,
 	(   N0 = _:_
 	->  N = N0
-	;   '$set_source_module'(M, M),
+	;   '$current_source_module'(M),
 	    N = M:N0
 	),
 	push_op(P, T, N),
@@ -841,7 +841,7 @@ process_directive(module(Module, Export, Import), Src) :-
 	assert_module(Src, Module),
 	assert_module_export(Src, Export),
 	assert_module3(Import, Src).
-process_directive('$set_source_module'(_, system), Src) :-
+process_directive('$set_source_module'(system), Src) :-
 	assert_module(Src, system).	% hack for handling boot/init.pl
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 	assert_defined_class(Src, Name, Meta, Super, Doc).
@@ -860,7 +860,7 @@ process_directive(encoding(Enc), _) :-
 process_directive(set_prolog_flag(character_escapes, Esc), _) :-
 	set_prolog_flag(character_escapes, Esc).
 process_directive(pce_expansion:push_compile_operators, _) :-
-	'$set_source_module'(SM, SM),
+	'$current_source_module'(SM),
 	call(pce_expansion:push_compile_operators(SM)). % call to avoid xref
 process_directive(pce_expansion:pop_compile_operators, _) :-
 	call(pce_expansion:pop_compile_operators).
@@ -1998,7 +1998,7 @@ assert_op(Src, op(P,T,_:N)) :-
 assert_module(Src, Module) :-
 	xmodule(Module, Src), !.
 assert_module(Src, Module) :-
-	'$set_source_module'(_, Module),
+	'$set_source_module'(Module),
 	assert(xmodule(Module, Src)).
 
 assert_module_export(_, []) :- !.

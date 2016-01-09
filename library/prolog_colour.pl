@@ -158,7 +158,7 @@ restore_settings(state(Style, Esc, OSM)) :-
 	set_prolog_flag(character_escapes, Esc),
 	'$style_check'(_, Style),
 	pop_operators,
-	'$set_source_module'(_, OSM).
+	'$set_source_module'(OSM).
 
 %%	source_module(+State, -Module) is semidet.
 %

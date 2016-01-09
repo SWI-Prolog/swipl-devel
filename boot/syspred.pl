@@ -526,7 +526,7 @@ canonical_source_file(Spec, File) :-
 %	'$stream_position'. Largely Quintus compatible.
 
 prolog_load_context(module, Module) :-
-	'$set_source_module'(Module, Module).
+	'$current_source_module'(Module).
 prolog_load_context(file, F) :-
 	source_location(F, _).
 prolog_load_context(source, F) :-	% SICStus compatibility

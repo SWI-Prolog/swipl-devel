@@ -859,21 +859,23 @@ pl_module(term_t old, term_t new)
 }
 
 
-word
-pl_set_source_module(term_t old, term_t new)
-{ GET_LD
+static
+PRED_IMPL("$current_source_module", 1, current_source_module, 0)
+{ PRED_LD
 
-  if ( PL_unify_atom(old, LD->modules.source->name) )
-  { atom_t name;
+  return PL_unify_atom(A1, LD->modules.source->name);
+}
 
-    if ( !PL_get_atom(new, &name) )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module, new);
 
-    LD->modules.source = lookupModule(name);
-    succeed;
-  }
+PRED_IMPL("$set_source_module", 1, set_source_module, 0)
+{ PRED_LD
+  atom_t name;
 
-  fail;
+  if ( !PL_get_atom_ex(A1, &name) )
+    return FALSE;
+
+  LD->modules.source = lookupModule(name);
+  return TRUE;
 }
 
 
@@ -1535,4 +1537,6 @@ BeginPredDefs(module)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
   PRED_DEF("$destroy_module", 1, destroy_module, 0)
+  PRED_DEF("$current_source_module", 1, current_source_module, 0)
+  PRED_DEF("$set_source_module", 1, set_source_module, 0)
 EndPredDefs

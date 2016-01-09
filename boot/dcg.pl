@@ -60,7 +60,7 @@ dcg_translate_rule(Rule, Clause) :-
 dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B), Pos) :- !,
 	f2_pos(Pos0, PosH0, PosRP0, Pos, PosH, PosRP),
 	f2_pos(PosH0, PosLP0, PosMNT0, PosH, PosLP, PosMNT),
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	Qualify = q(M,M,_),
 	dcg_extend(LP, PosLP0, S0, SR, H, PosLP),
 	dcg_body(RP, PosRP0, Qualify, S0, S1, B0, PosRP),
@@ -70,7 +70,7 @@ dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B), Pos) :- !,
 dcg_translate_rule((LP-->RP), Pos0, (H:-B), Pos) :-
 	f2_pos(Pos0, PosLP0, PosRP0, Pos, PosLP, PosRP),
 	dcg_extend(LP, PosLP0, S0, S, H, PosLP),
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	Qualify = q(M,M,_),
 	dcg_body(RP, PosRP0, Qualify, S0, S, B0, PosRP),
 	dcg_optimise(B0,B,S0).

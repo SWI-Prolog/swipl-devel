@@ -330,7 +330,7 @@ ci_expand(Read, Compiled, Module, TermPos0, TermPos) :-
 		    '$set_source_module'(Old, Module)
 		  ),
 		  expand_term(Read, TermPos0, Compiled, TermPos),
-		  ( '$set_source_module'(_, Old),
+		  ( '$set_source_module'(Old),
 		    set_prolog_flag(xref, OldXRef)
 		  )),
 	      E,

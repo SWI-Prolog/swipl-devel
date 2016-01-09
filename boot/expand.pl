@@ -157,7 +157,7 @@ expand_body(MList, (Head0 :- Body), Pos0, (Head :- ExpandedBody), Pos) :- !,
 	f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
 	expand_goal(Body, BPos0, ExpandedBody0, BPos, MList, (Head0 :- Body)),
 	(   compound(Head0),
-	    '$set_source_module'(M, M),
+	    '$current_source_module'(M),
 	    replace_functions(Head0, Eval, Head, M),
 	    Eval \== true
 	->  ExpandedBody = (Eval,ExpandedBody0)
@@ -170,7 +170,7 @@ expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :- !,
 
 expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
 	compound(Head0),
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	replace_functions(Head0, Eval, Head, M),
 	Eval \== true, !,
 	Clause = (Head :- Eval).
@@ -450,7 +450,7 @@ expand_goal(A, P, A, P).
 
 
 expand_goal(G0, P0, G, P, MList, Term) :-
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	expand_goal(G0, P0, G, P, M, MList, Term).
 
 %%	expand_goal(+GoalIn, ?PosIn, -GoalOut, -PosOut,
@@ -524,7 +524,7 @@ expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
 	setup_call_cleanup(
 	    '$set_source_module'(Old, M),
 	    '$expand':expand_goal(G, PB0, EG, PB, M, MList, Term),
-	    '$set_source_module'(_, Old)).
+	    '$set_source_module'(Old)).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
 	is_meta_call(G0, M, Head), !,
 	expand_meta(Head, G0, P0, G, P, M, MList, Term).
@@ -1175,7 +1175,7 @@ compile_meta_call(CallIn, CallOut, Module, Term) :-
 compile_auxiliary_clause(Module, Clause) :-
 	Clause = (Head:-Body),
 	functor(Head, Name, Arity),
-	'$set_source_module'(SM, SM),
+	'$current_source_module'(SM),
 	(   current_predicate(SM:Name/Arity)
 	->  true
 	;   SM == Module
@@ -1306,5 +1306,5 @@ same_source(_,    _,    Op) :-
 
 '$eval_if'(G) :-
 	expand_goal(G, G2),
-	'$set_source_module'(Module, Module),
+	'$current_source_module'(Module),
 	Module:G2.

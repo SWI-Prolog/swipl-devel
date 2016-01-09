@@ -806,7 +806,7 @@ subst_chars([H|T]) -->
 	'$dwim_correct_goal'(TypeIn:Goal, Bindings, Corrected), !,
 	setup_call_cleanup('$set_source_module'(M0, TypeIn),
 			   expand_goal(Corrected, Expanded),
-			   '$set_source_module'(_, M0)),
+			   '$set_source_module'(M0)),
 	print_message(silent, toplevel_goal(Expanded, Bindings)),
 	'$execute_goal2'(Expanded, Bindings).
 '$execute'(_, _) :-

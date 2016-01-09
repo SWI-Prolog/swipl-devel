@@ -130,10 +130,10 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
 		    | RestOptions
 		    ]),
 	expand(Term, TermPos, In, Expanded),
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	update_state(Term, Expanded, M).
 prolog_read_source_term(In, Term, Expanded, Options) :-
-	'$set_source_module'(M, M),
+	'$$current_source_module'(M),
 	select_option(syntax_errors(SE), Options, RestOptions0, dec10),
 	select_option(subterm_positions(TermPos), RestOptions0,
 		      RestOptions, TermPos),
@@ -234,7 +234,7 @@ update_state((?- Directive), M) :- !,
 update_state(_, _).
 
 update_directive(module(Module, Public), _) :- !,
-	'$set_source_module'(_, Module),
+	'$set_source_module'(Module),
 	maplist(import_syntax(_,Module), Public).
 update_directive(M:op(P,T,N), SM) :-
 	atom(M), !,
@@ -358,7 +358,7 @@ read_source_term_at_location(Stream, Term, Options) :-
 	retractall(last_syntax_error(_,_)),
 	seek_to_start(Stream, Options),
 	stream_property(Stream, position(Here)),
-	'$set_source_module'(DefModule, DefModule),
+	'$current_source_module'(DefModule),
 	option(module(Module), Options, DefModule),
 	option(operators(Ops), Options, []),
 	alternate_syntax(Syntax, Module, Setup, Restore),
@@ -540,7 +540,7 @@ prolog_open_source(Src, Fd) :-
 	      )),
 	skip_hashbang(Fd),
 	push_operators([]),
-	'$set_source_module'(SM, SM),
+	'$current_source_module'(SM),
 	'$save_lex_state'(LexState, []),
 	asserta(open_source(Fd, state(LexState, SM))).
 
@@ -578,7 +578,7 @@ restore_source_context(In) :-
 	retractall(mode(In, _)),
 	(   retract(open_source(In, state(LexState, SM)))
 	->  '$restore_lex_state'(LexState),
-	    '$set_source_module'(_, SM)
+	    '$set_source_module'(SM)
 	;   assertion(fail)
 	).
 

@@ -94,7 +94,7 @@ user:file_search_path(engine, library(dialect/ciao/engine)).
 compilation_module(CM) :-	% Kludge: compilation module must be
 				% imported in a separated module and
 				% its methods invoked from there --EMM
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	compilation_module(M, CM).
 
 compilation_module(M, CM) :-
@@ -132,7 +132,7 @@ system:term_expansion(In, Out) :-
 	ciao_term_expansion(In, Out).
 
 call_eof_goal_hook(In, Out2, Out) :-
-	'$set_source_module'(M, M),	
+	'$current_source_module'(M),
 	(   In == end_of_file,
 	    module_property(M, file(File)),
 	    prolog_load_context(file, File) % This is the main file
@@ -182,7 +182,7 @@ ciao_term_expansion((:- use_package(CiaoPack)),
 	package_file(CiaoPack, CiaoName),
 	map_ciaoname(CiaoName, SWIName).
 ciao_term_expansion((:- new_declaration(Name/Arity)), Exp) :-
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	functor(Head, Name, Arity),
 	(   ciao:declaration(Head, M)
 	->  Exp = []
@@ -190,7 +190,7 @@ ciao_term_expansion((:- new_declaration(Name/Arity)), Exp) :-
 	).
 ciao_term_expansion((:- package(_Package)), []).
 ciao_term_expansion((:- Decl), Exp) :-
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	declaration(Decl, M),
 	(   declaration_hook(Decl, Exp)
 	->  true
@@ -310,7 +310,7 @@ ciao_term_expansion((:- load_compilation_module(CiaoName)),
 	map_ciaoname(CiaoName, SWIName).
 ciao_term_expansion((:- add_sentence_trans(F/A, P)),
 		    [ciao:ciao_trans_db(CM, sentence, P, F, A)|Clauses]) :-
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	compilation_module(M, CM),
 	(   current_predicate(CM:F/A) ->
 	    functor(H, F, A),
@@ -339,7 +339,7 @@ ciao_term_expansion((H :- B), Clause) :-
 	functor(H, F, A),
 	Clause = (:- export(F/A)).
 ciao_term_expansion((:- impl_defined(L)), Clauses) :-
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	findall(H, ( sequence_contains(L, bad_spec_error(impl_defined), F, A),
 		     \+ current_predicate(M:F/A),
 		     functor(H, F, A)
@@ -416,7 +416,7 @@ get_expansors(CM, Trans, PIs) :-
 ciao_trans(CM, Trans, Term0, Term) :-
 	get_expansors(CM, Trans, PIs),
 	PIs \= [],
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	get_dictionary(Term0, M, Dict),
 	call_expansion(Trans, PIs, CM, M, Dict, Term0, Term).
 
@@ -540,19 +540,19 @@ ciao_goal_expansion(pop_ciao_flag(Flag), G) :- !,
 ciao_goal_expansion(CiaoGoal, SWIGoal) :-
 	CiaoGoal \= _:_,
 	\+ functor(CiaoGoal, '$ciao_meta', _),
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	predicate_property(M:CiaoGoal, meta_predicate(Spec)),
 	swi_meta_args(Spec, CiaoGoal, SWIGoal),
 	CiaoGoal \= SWIGoal.
 
 expand_push_prolog_flag(Flag, NewValue, G) :-
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	G = ( nonvar(Flag),
 	      prolog_flag(Flag, OldValue, NewValue),
 	      asserta(ciao:old_flag(M, Flag, OldValue))).
 
 expand_pop_prolog_flag(Flag, G) :-
-	'$set_source_module'(M, M),
+	'$current_source_module'(M),
 	G = ( nonvar(Flag),
 	      once(retract(ciao:old_flag(M, Flag, OldValue))),
 	      prolog_flag(Flag, _, OldValue)).

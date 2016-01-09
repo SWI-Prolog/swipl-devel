@@ -49,7 +49,7 @@ attempt to call the Prolog defined trace interceptor.
 		*    LOAD INTO MODULE SYSTEM	*
 		********************************/
 
-:- '$set_source_module'(_, system).
+:- '$set_source_module'(system).
 
 		/********************************
 		*          DIRECTIVES           *
@@ -1318,7 +1318,7 @@ compiling :-
 	),
 	(   nonvar(Term1), Term1 = (:-Directive), nonvar(Directive)
 	->  (   Directive = include(File),
-	        '$set_source_module'(Module, Module),
+	        '$current_source_module'(Module),
 		'$valid_directive'(Module:include(File))
 	    ->	stream_property(In, encoding(Enc)),
 		'$add_encoding'(Enc, Options, Options1),
@@ -1856,6 +1856,10 @@ load_files(Module:Files, Options) :-
 	'$set_compilation_mode'(OldMode),
 	'$qlf_close'.
 
+'$set_source_module'(OldModule, Module) :-
+	'$current_source_module'(OldModule),
+	'$set_source_module'(Module).
+
 %%	'$do_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
 %
 %	Perform the actual loading.
@@ -2062,14 +2066,14 @@ load_files(Module:Files, Options) :-
 %	be kept synchronous with '$qload_file'/6.
 
 '$consult_file'(Absolute, Module, What, LM, Options) :-
-	'$set_source_module'(Module, Module), !, % same module
+	'$current_source_module'(Module), !, % same module
 	'$consult_file_2'(Absolute, Module, What, LM, Options).
 '$consult_file'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),
 	'$ifcompiling'('$qlf_start_sub_module'(Module)),
         '$consult_file_2'(Absolute, Module, What, LM, Options),
 	'$ifcompiling'('$qlf_end_part'),
-	'$set_source_module'(_, OldModule).
+	'$set_source_module'(OldModule).
 
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),% Inform C we start loading
@@ -2088,7 +2092,7 @@ load_files(Module:Files, Options) :-
 
 '$end_consult'(LexState, OldModule) :-
 	'$restore_lex_state'(LexState),
-	'$set_source_module'(_, OldModule).
+	'$set_source_module'(OldModule).
 
 
 :- create_prolog_flag(emulated_dialect, swi, [type(atom)]).
@@ -2249,7 +2253,7 @@ load_files(Module:Files, Options) :-
 	arg(1, State, true), !,		% empty file
 	nb_setarg(2, State, Module),
 	arg(5, State, Id),
-	'$set_source_module'(Module, Module),
+	'$current_source_module'(Module),
 	'$ifcompiling'('$qlf_start_file'(Id)),
 	'$ifcompiling'('$qlf_end_part').
 '$end_load_file'(State) :-
@@ -2306,7 +2310,7 @@ load_files(Module:Files, Options) :-
 	'$option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, Id), _)).
 '$start_non_module'(Id, State, _Options) :-
-	'$set_source_module'(Module, Module),
+	'$current_source_module'(Module),
 	'$ifcompiling'('$qlf_start_file'(Id)),
 	'$qset_dialect'(State),
 	nb_setarg(2, State, Module),
@@ -2352,7 +2356,6 @@ load_files(Module:Files, Options) :-
 '$start_module'(Module, Public, State, Options) :-
 	arg(5, State, File),
 	nb_setarg(2, State, Module),
-	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
 	'$option'(redefine_module(Action), Options, false),
 	'$module_class'(File, Class, Super),
@@ -2393,7 +2396,7 @@ load_files(Module:Files, Options) :-
 
 '$module_name'(_, _, Module, Options) :-
 	'$option'(module(Module), Options), !,
-	'$set_source_module'(Context, Context),
+	'$current_source_module'(Context),
 	Context \== Module.			% cause '$first_term'/5 to fail.
 '$module_name'(Var, Id, Module, Options) :-
 	var(Var), !,
@@ -2710,7 +2713,7 @@ load_files(Module:Files, Options) :-
 	'$execute_directive_3'(Goal).
 
 '$execute_directive_3'(Goal) :-
-	'$set_source_module'(Module, Module),
+	'$current_source_module'(Module),
 	'$valid_directive'(Module:Goal), !,
 	(   '$pattr_directive'(Goal, Module)
 	->  true
@@ -2782,7 +2785,7 @@ load_files(Module:Files, Options) :-
 	'$common_goal_type'(Goal, Type), !,
 	(   Type == load
 	->  true
-	;   '$set_source_module'(Module, Module),
+	;   '$current_source_module'(Module),
 	    '$add_directive_wic'(Module:Goal)
 	).
 '$add_directive_wic2'(Goal, _) :-
@@ -2887,7 +2890,7 @@ load_files(Module:Files, Options) :-
 
 '$cross_module_clause'(Clause) :-
 	'$head_module'(Clause, Module),
-	\+ '$set_source_module'(Module, Module).
+	\+ '$current_source_module'(Module).
 
 '$head_module'(Var, _) :-
 	var(Var), !, fail.
@@ -3299,7 +3302,7 @@ system:term_expansion((:- at_halt(Goal)),
 		      system:'$at_halt'(Module:Goal, File:Line)) :-
 	\+ current_prolog_flag(xref, true),
 	source_location(File, Line),
-	'$set_source_module'(Module, Module).
+	'$current_source_module'(Module).
 
 at_halt(Goal) :-
 	asserta('$at_halt'(Goal, (-):0)).
@@ -3348,7 +3351,7 @@ cancel_halt(Reason) :-
 	'$style_check'(_, 0xC7),		% see style_name/2 in syspred.pl
 	'$compilation_mode'(OldC, wic),
 	consult(Files),
-	'$execute_directive'('$set_source_module'(_, OldM), []),
+	'$execute_directive'('$set_source_module'(OldM), []),
 	'$execute_directive'('$restore_lex_state'(LexState), []),
 	'$set_compilation_mode'(OldC).
 
@@ -3382,6 +3385,6 @@ cancel_halt(Reason) :-
        ),
        format('SWI-Prolog boot files loaded~n', []),
        '$compilation_mode'(OldC, wic),
-       '$execute_directive'('$set_source_module'(_, user), []),
+       '$execute_directive'('$set_source_module'(user), []),
        '$set_compilation_mode'(OldC)
       )).
