@@ -1099,7 +1099,7 @@ gvar_name(Module:Name, GName) :-
 %	Name of the toplevel typein module.
 
 current_default_module(Module) :-
-	'$module'(Module, Module).
+	'$current_typein_module'(Module).
 
 %%	set_default_module(+Module) is det.
 %

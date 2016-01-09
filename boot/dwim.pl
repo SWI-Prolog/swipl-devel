@@ -94,7 +94,7 @@ existence_error(PredSpec) :-
 
 dwim_existence_error(fail, _) :- !.
 dwim_existence_error(Unknown, PredSpec) :-
-	'$module'(TypeIn, TypeIn),
+	'$current_typein_module'(TypeIn),
 	unqualify_if_context(TypeIn, PredSpec, Spec),
 	(   no_context(Spec)
 	->  true
@@ -220,7 +220,7 @@ bind_vars([Name=Var|T]) :-
 
 '$find_predicate'(M:S, List) :-
 	name_arity(S, Name, Arity),
-	'$module'(TypeIn, TypeIn),
+	'$current_typein_module'(TypeIn),
 	(   M == TypeIn			% I.e. unspecified default module
 	->  true
 	;   Module = M

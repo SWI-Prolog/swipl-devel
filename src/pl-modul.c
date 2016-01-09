@@ -841,23 +841,24 @@ PRED_IMPL("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
 }
 
 
-word
-pl_module(term_t old, term_t new)
-{ GET_LD
+static
+PRED_IMPL("$current_typein_module", 1, current_typein_module, 0)
+{ PRED_LD
 
-  if ( PL_unify_atom(old, LD->modules.typein->name) )
-  { atom_t name;
-
-    if ( !PL_get_atom(new, &name) )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module, new);
-
-    LD->modules.typein = lookupModule(name);
-    succeed;
-  }
-
-  fail;
+  return PL_unify_atom(A1, LD->modules.typein->name);
 }
 
+static
+PRED_IMPL("$set_typein_module", 1, set_typein_module, 0)
+{ PRED_LD
+  atom_t name;
+
+  if ( !PL_get_atom_ex(A1, &name) )
+    return FALSE;
+
+  LD->modules.typein = lookupModule(name);
+  return TRUE;
+}
 
 static
 PRED_IMPL("$current_source_module", 1, current_source_module, 0)
@@ -1539,4 +1540,6 @@ BeginPredDefs(module)
   PRED_DEF("$destroy_module", 1, destroy_module, 0)
   PRED_DEF("$current_source_module", 1, current_source_module, 0)
   PRED_DEF("$set_source_module", 1, set_source_module, 0)
+  PRED_DEF("$current_typein_module", 1, current_typein_module, 0)
+  PRED_DEF("$set_typein_module", 1, set_typein_module, 0)
 EndPredDefs

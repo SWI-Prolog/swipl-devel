@@ -64,7 +64,7 @@ read_history_(Show, Help, _, Help, _, _) :-
 read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	expand_history(Raw, Expanded, Changed),
 	save_history_line(Expanded),
-	'$module'(TypeIn, TypeIn),
+	'$current_typein_module'(TypeIn),
 	catch(read_term_from_atom(Expanded, Term0,
 				  [ variable_names(Bindings0),
 				    module(TypeIn)

@@ -334,7 +334,6 @@ COMMON(int)		exportProcedure(Module module, Procedure proc);
 COMMON(int)		declareModule(atom_t name, atom_t class, atom_t super,
 				      SourceFile sf, int line,
 				      int rdef);
-COMMON(word)		pl_module(term_t old, term_t new);
 COMMON(word)		pl_context_module(term_t module);
 COMMON(int)		atomToImportStrength(atom_t a);
 COMMON(word)		pl_import(term_t pred);

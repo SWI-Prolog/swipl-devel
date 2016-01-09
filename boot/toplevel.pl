@@ -583,7 +583,7 @@ prolog :-
 	;   BreakLev = -1
 	),
 	repeat,
-	    (   '$module'(TypeIn, TypeIn),
+	    (   '$current_typein_module'(TypeIn),
 		(   stream_property(user_input, tty(true))
 		->  '$system_prompt'(TypeIn, BreakLev, Prompt),
 		    prompt(Old, '|    ')
@@ -620,7 +620,7 @@ read_query(Prompt, Goal, Bindings) :-
 	    call(user:rl_add_history(CompleteLine))
 	;   true
 	),
-	'$module'(TypeIn, TypeIn),
+	'$current_typein_module'(TypeIn),
 	catch(read_term_from_atom(Line, Goal,
 				  [ variable_names(Bindings),
 				    module(TypeIn)
@@ -802,7 +802,7 @@ subst_chars([H|T]) -->
 '$execute'(end_of_file, _) :- !,
 	print_message(query, query(eof)).
 '$execute'(Goal, Bindings) :-
-	'$module'(TypeIn, TypeIn),
+	'$current_typein_module'(TypeIn),
 	'$dwim_correct_goal'(TypeIn:Goal, Bindings, Corrected), !,
 	setup_call_cleanup('$set_source_module'(M0, TypeIn),
 			   expand_goal(Corrected, Expanded),
@@ -849,7 +849,7 @@ residue_vars(Goal, []) :-
 %	     `project`.
 
 write_bindings(Bindings, ResidueVars, Det) :-
-	'$module'(TypeIn, TypeIn),
+	'$current_typein_module'(TypeIn),
 	translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
 	write_bindings2(Bindings1, Residuals, Det).
 

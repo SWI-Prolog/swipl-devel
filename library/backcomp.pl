@@ -36,6 +36,7 @@
 	    '$set_prompt'/1,
 	    '$strip_module'/3,
 	    '$declare_module'/3,
+	    '$module'/2,
 	    at_initialization/1,	% :Goal
 	    displayq/1,
 	    displayq/2,
@@ -409,6 +410,11 @@ sumlist(List, Sum) :-
 '$strip_module'(Term, Module, Plain) :-
 	strip_module(Term, Module, Plain).
 
+%%	'$module'(-OldTypeIn, +NewTypeIn)
+
+'$module'(OldTypeIn, NewTypeIn) :-
+	'$current_typein_module'(OldTypeIn),
+	'$set_typein_module'(NewTypeIn).
 
 %%	'$declare_module'(Module, File, Line)
 %

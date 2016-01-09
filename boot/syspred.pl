@@ -1003,9 +1003,9 @@ module_property(program_space(_)).
 module(Module) :-
 	atom(Module),
 	current_module(Module), !,
-	'$module'(_, Module).
+	'$set_typein_module'(Module).
 module(Module) :-
-	'$module'(_, Module),
+	'$set_typein_module'(_, Module),
 	print_message(warning, no_current_module(Module)).
 
 

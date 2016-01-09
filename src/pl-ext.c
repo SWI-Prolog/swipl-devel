@@ -150,7 +150,6 @@ static const PL_extension foreigns[] = {
 #ifdef O_PROLOG_HOOK
   FRG("set_prolog_hook",	3, pl_set_prolog_hook,	        0),
 #endif
-  FRG("$module",		2, pl_module,			0),
   FRG("context_module",		1, pl_context_module,	     META),
 
 #if O_STRING
