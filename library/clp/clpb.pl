@@ -1137,9 +1137,9 @@ indomain(0).
 indomain(1).
 
 
-%% sat_count(+Expr, -N) is det.
+%% sat_count(+Expr, -Count) is det.
 %
-% N is the number of different assignments of truth values to the
+% Count is the number of different assignments of truth values to the
 % variables in the Boolean expression Expr, such that Expr is true and
 % all posted constraints are satisfiable.
 %
