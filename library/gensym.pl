@@ -54,20 +54,12 @@ symbols.  It should be used with care.
 %		generate various unique or content-based identifiers
 %		safely.
 
-gensym(_Base, Atom) :-
-	nonvar(Atom), !,
-	throw(error(uninstantiation_error(Atom),
-		    context(gensym/2, '2nd argument'))).
 gensym(Base, Atom) :-
 	atom_concat('$gs_', Base, Key),
-	with_mutex('$gensym', increment_key(Key, N)),
-	atom_concat(Base, N, Atom).
-
-increment_key(Key, New) :-
-	flag(Key, Old, Old),
+	flag(Key, Old, Old+1),
 	record_gensym(Key, Old),
-	succ(Old, New),
-	flag(Key, _, New).
+	New is Old+1,
+	atom_concat(Base, New, Atom).
 
 record_gensym(Key, 0) :- !,
 	recordz('$gensym', Key).
@@ -85,7 +77,7 @@ reset_gensym :-
 do_reset_gensym :-
 	(   recorded('$gensym', Key, Ref),
 	    erase(Ref),
-	    flag(Key, _, 0),
+	    set_flag(Key, 0),
 	    fail
 	;   true
 	).
@@ -97,7 +89,7 @@ do_reset_gensym :-
 
 reset_gensym(Base) :-
 	atom_concat('$gs_', Base, Key),
-	with_mutex('$gensym', flag(Key, _, 0)).
+	set_flag(Key, 0).
 
 :- multifile sandbox:safe_primitive/1.
 
