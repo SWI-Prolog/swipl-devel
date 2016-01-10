@@ -888,7 +888,7 @@ user:prolog_file_type(Ext,	executable) :-
 	    ;	file_directory_name(FileOrDir, Dir)
 	    )
 	;   Default == cwd
-	->  working_directory(Dir, Dir)
+	->  '$cwd'(Dir)
 	;   Default == source
 	->  source_location(ContextFile, _Line),
 	    file_directory_name(ContextFile, Dir)

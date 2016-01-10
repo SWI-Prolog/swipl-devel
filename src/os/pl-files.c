@@ -947,34 +947,29 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 
 
 static
-PRED_IMPL("working_directory", 2, working_directory, 0)
-{ PRED_LD
-  char buf[MAXPATHLEN];
+PRED_IMPL("$cwd", 1, cwd, 0)
+{ char buf[MAXPATHLEN];
   const char *wd;
-
-  term_t old = A1;
-  term_t new = A2;
 
   if ( !(wd = PL_cwd(buf, sizeof(buf))) )
     return FALSE;
 
-  if ( PL_unify_chars(old, PL_ATOM|REP_FN, -1, wd) )
-  { if ( PL_compare(old, new) != 0 )
-    { char *n;
+  return PL_unify_chars(A1, PL_ATOM|REP_FN, (size_t)-1, wd);
+}
 
-      if ( PL_get_file_name(new, &n, 0) )
-      { if ( ChDir(n) )
-	  return TRUE;
 
-	if ( truePrologFlag(PLFLAG_FILEERRORS) )
-	  return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
-			  ATOM_chdir, ATOM_directory, new);
-      }
+static
+PRED_IMPL("$chdir", 1, chdir, 0)
+{ PRED_LD
+  char *n;
 
-      return FALSE;
-    }
+  if ( PL_get_file_name(A1, &n, 0) )
+  { if ( ChDir(n) )
+      return TRUE;
 
-    return TRUE;
+    if ( truePrologFlag(PLFLAG_FILEERRORS) )
+      return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
+		      ATOM_chdir, ATOM_directory, A1);
   }
 
   return FALSE;
@@ -1135,7 +1130,8 @@ initFiles(void)
 		 *******************************/
 
 BeginPredDefs(files)
-  PRED_DEF("working_directory", 2, working_directory, 0)
+  PRED_DEF("$cwd", 1, cwd, 0)
+  PRED_DEF("$chdir", 1, chdir, 0)
   PRED_DEF("access_file", 2, access_file, 0)
   PRED_DEF("time_file", 2, time_file, 0)
   PRED_DEF("size_file", 2, size_file, 0)
