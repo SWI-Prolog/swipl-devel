@@ -39,6 +39,7 @@
 	    nospyall/0,
 	    debugging/0,
 	    rational/3,
+	    flag/3,
 	    atom_prefix/2,
 	    dwim_match/2,
 	    source_file_property/2,
@@ -352,6 +353,26 @@ trace_ports(Head, Ports) :-
 		(trace_alias(Port, [AttName]),
 		 '$get_predicate_attribute'(Head, AttName, 1)),
 		Ports).
+
+
+%%	flag(+Name, -Old, +New) is det.
+%
+%	True when Old is the current value associated with the flag Name
+%	and New has become the new value.
+
+flag(Name, Old, New) :-
+	Old == New, !,
+	get_flag(Name, Old).
+flag(Name, Old, New) :-
+	with_mutex('$flag', update_flag(Name, Old, New)).
+
+update_flag(Name, Old, New) :-
+	get_flag(Name, Old),
+	(   atom(New)
+	->  set_flag(Name, New)
+	;   Value is New,
+	    set_flag(Name, Value)
+	).
 
 
 		 /*******************************

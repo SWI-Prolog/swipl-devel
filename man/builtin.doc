@@ -2944,22 +2944,37 @@ no longer exists.
     \predicate{instance}{2}{+Reference, -Term}
 Unify \arg{Term} with the referenced clause or database record.  Unit
 clauses are represented as \arg{Head} :- \const{true}.
+\end{description}
 
+
+\subsection{Flags}				\label{sec:flag}
+
+The predicate flag/3 is the oldest way to store global non-backtrackable
+data in SWI-Prolog. Flags are global and shared by all threads. Their
+value is limited to atoms, small (64-bit) integers and floating point
+numbers.  Flags are thread-safe.  The flags described in this section
+must not be confused with \jargon{Prolog flags} described in
+\secref{flags}.
+
+\begin{description}
+    \predicate{get_flag}{2}{+Key, -Value}
+True when \arg{Value} is the value currently associated with \arg{Key}.
+If \arg{Key} does not exist, a new flag with value `0' (zero) is
+created.
+    \predicate{set_flag}{2}{+Key, Value}
+Set flag \arg{Key} to \arg{Value}. Value must be an atom, small (64-bit)
+integer or float.
     \predicate{flag}{3}{+Key, -Old, +New}
-\arg{Key} is an atom, integer or term. As with the recorded database, if
-\arg{Key} is a term, only the name and arity are used to locate the
-flag. Unify \arg{Old} with the old value associated with \arg{Key}. If
-the key is used for the first time \arg{Old} is unified with the integer
-0. Then store the value of \arg{New}, which should be an integer, float,
-atom or arithmetic expression, under \arg{Key}. flag/3 is a fast
-mechanism for storing simple facts in the database. The flag database is
-shared between threads and updates are atomic, making it suitable for
-generating unique integer counters.%
-	\footnote{The flag/3 predicate is not portable. Non-backtrackable
-		  global variables (nb_setval/2) and non-backtrackable
-		  assignment (nb_setarg/3) are more widely recognised
-		  special-purpose alternatives for non-backtrackable
-		  and/or global states.}
+True when \arg{Old} is the current value of the flag \arg{Key} and the
+flag has been set to \arg{New}. \arg{New} can be an arithmetic
+expression. The update is \jargon{atomic}. This predicate can be used to
+create a \emph{shared} global counter as illustrated in the example
+below.
+
+\begin{code}
+next_id(Id) :-
+    flag(my_id, Id, Id+1).
+\end{code}
 \end{description}
 
 

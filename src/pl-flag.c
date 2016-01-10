@@ -78,18 +78,21 @@ cleanupFlags(void)
 static Flag
 lookupFlag(word key)
 { GET_LD
-  Flag f;
+  Flag f, of;
 
   if ( (f = lookupHTable(flagTable, (void *)key)) )
     return f;
 
   f = (Flag) allocHeapOrHalt(sizeof(struct flag));
   f->key = key;
-  if ( isTextAtom(key) )
+  if ( isAtom(key) )
     PL_register_atom(key);
   f->type = FLG_INTEGER;
   f->value.i = 0;
-  addNewHTable(flagTable, (void *)key, f);
+  if ( (of=addHTable(flagTable, (void *)key, f)) != f )
+  { freeHeap(f, sizeof(*f));
+    f = of;
+  }
 
   return f;
 }
@@ -103,79 +106,95 @@ freeFlagValue(Flag f)
 
 
 static
-PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
+PRED_IMPL("get_flag", 2, get_flag, 0)
+{ PRED_LD
+  Flag f;
+  word key;
+  int rc;
+
+  term_t name  = A1;
+  term_t value = A2;
+
+  if ( !getKeyEx(name, &key PASS_LD) )
+    return FALSE;
+
+  f = lookupFlag(key);
+  LOCK();
+  switch(f->type)
+  { case FLG_ATOM:
+      rc = PL_unify_atom(value, f->value.a);
+      break;
+    case FLG_INTEGER:
+      rc = PL_unify_int64(value, f->value.i);
+      break;
+    case FLG_FLOAT:
+      rc = PL_unify_float(value, f->value.f);
+      break;
+    default:
+      rc = FALSE;
+      assert(0);
+  }
+  UNLOCK();
+
+  return rc;
+}
+
+
+static
+PRED_IMPL("set_flag", 2, set_flag, 0)
 { PRED_LD
   Flag f;
   word key;
   atom_t a;
   number n;
-  word rval;
 
-  term_t name = A1;
-  term_t old = A2;
-  term_t new = A3;
+  term_t name  = A1;
+  term_t value = A2;
 
   if ( !getKeyEx(name, &key PASS_LD) )
-    fail;
-  rval = FALSE;
-
-  LOCK();
+    return FALSE;
   f = lookupFlag(key);
-  switch(f->type)
-  { case FLG_ATOM:
-      if ( !PL_unify_atom(old, f->value.a) )
-	goto out;
-      break;
-    case FLG_INTEGER:
-      if ( !PL_unify_int64(old, f->value.i) )
-	goto out;
-      break;
-    case FLG_FLOAT:
-      if ( !PL_unify_float(old, f->value.f) )
-	goto out;
-      break;
-    default:
-      assert(0);
-  }
 
-  rval = TRUE;
-  if ( PL_get_atom(new, &a) )
-  { freeFlagValue(f);
+  if ( PL_get_atom(value, &a) )
+  { LOCK();
+    freeFlagValue(f);
     f->type = FLG_ATOM;
     f->value.a = a;
     PL_register_atom(a);
-  } else if ( valueExpression(new, &n PASS_LD) )
+    UNLOCK();
+    return TRUE;
+  } else if ( PL_get_number(value, &n) )
   { switch(n.type)
     { case V_INTEGER:
-      { freeFlagValue(f);
+      { LOCK();
+	freeFlagValue(f);
 	f->type = FLG_INTEGER;
 	f->value.i = n.value.i;
-	break;
+	UNLOCK();
+	return TRUE;
       }
 #ifdef O_GMP
       case V_MPZ:
+	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
       case V_MPQ:
 	goto type_error;
 #endif
       case V_FLOAT:
-      { freeFlagValue(f);
+      { LOCK();
+	freeFlagValue(f);
 	f->type = FLG_FLOAT;
         f->value.f = n.value.f;
-	break;
+	UNLOCK();
+	return TRUE;
       }
+      default:
+	goto type_error;
     }
   } else
   {
-#ifdef O_GMP
-    type_error:
-#endif
-    rval = PL_error("flag", 3, NULL, ERR_TYPE, ATOM_flag_value, new);
+  type_error:
+    return PL_error("flag", 3, NULL, ERR_TYPE, ATOM_flag_value, value);
   }
-
-out:
-  UNLOCK();
-
-  return rval;
 }
 
 
@@ -225,5 +244,6 @@ pl_current_flag(term_t k, control_t h)
 		 *******************************/
 
 BeginPredDefs(flag)
-  PRED_DEF("flag", 3, flag, PL_FA_TRANSPARENT)
+  PRED_DEF("get_flag", 2, get_flag, 0)
+  PRED_DEF("set_flag", 2, set_flag, 0)
 EndPredDefs
