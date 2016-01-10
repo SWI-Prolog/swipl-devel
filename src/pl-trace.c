@@ -1891,6 +1891,9 @@ PRED_IMPL("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
   { TRY(PL_unify_integer(old, debugstatus.skiplevel));
   }
 
+  if ( PL_compare(A1, A2) == 0 )
+    return TRUE;
+
   if ( PL_get_atom(new, &a) )
   { if ( a == ATOM_very_deep )
     { debugstatus.skiplevel = SKIP_VERY_DEEP;

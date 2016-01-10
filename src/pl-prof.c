@@ -340,9 +340,10 @@ PRED_IMPL("profiler", 2, profiler, 0)
 		      LD->profile.active == PROF_CPU ? ATOM_cputime :
 		      ATOM_walltime) )
     return FALSE;
+  if ( PL_compare(A1, A2) == 0 )
+    return TRUE;
   if ( !get_prof_status(A2, &val) )
     return FALSE;
-
   if ( val == LD->profile.active )
     succeed;
 
