@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014, 2015 Markus Triska
+    Copyright (C): 2014-2016 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -167,8 +167,9 @@ are expressed as functions of universally quantified variables.
 By default, CLP(B) residual goals appear in (approximately) algebraic
 normal form (ANF). This projection is often computationally expensive.
 You can set the Prolog flag `clpb_residuals` to the value `bdd` to see
-the BDD representation of all constraints. This is generally faster,
-and also useful for learning more about BDDs. For example:
+the BDD representation of all constraints. This results in faster
+projection to residual goals, and is also useful for learning more
+about BDDs. For example:
 
 ==
 ?- set_prolog_flag(clpb_residuals, bdd).
@@ -1177,9 +1178,18 @@ indomain(1).
 % variables in the Boolean expression Expr, such that Expr is true and
 % all posted constraints are satisfiable.
 %
-% Example:
+% A common form of invocation is `sat_count(+[1|Vs], Count)`: This
+% counts the number of admissible assignments to `Vs` without imposing
+% any further constraints.
+%
+% Examples:
 %
 % ==
+% ?- sat(A =< B), Vs = [A,B], sat_count(+[1|Vs], Count).
+% Vs = [A, B],
+% Count = 3,
+% sat(A=:=A*B).
+%
 % ?- length(Vs, 120), sat_count(+Vs, CountOr), sat_count(*(Vs), CountAnd).
 % Vs = [...],
 % CountOr = 1329227995784915872903807060280344575,
