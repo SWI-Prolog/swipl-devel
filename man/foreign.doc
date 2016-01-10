@@ -1409,7 +1409,7 @@ Building a term top down by e.g., calling PL_unify_functor() on the
 toplevel term, fetch the arguments using PL_get_arg() and unifying this
 further works because the PL_unify_* functions will make the term
 reference point to the newly created term in the case the unification is
-done to an attributed variable.  In most casest that is completely
+done to an attributed variable.  In most cases that is completely
 transparent to the user.
 
     \tick{Select unifying terms}
