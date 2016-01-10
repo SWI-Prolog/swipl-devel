@@ -182,7 +182,19 @@ node(2)- (v(Y, 1)->false;true).
 ==
 
 Note that this representation cannot be pasted back on the toplevel,
-and its details are subject to change.
+and its details are subject to change. Use copy_term/3 to obtain
+such answers as Prolog terms.
+
+The variable order of the BDD is determined by the order in which the
+variables first appear in constraints. To obtain different orders,
+you can for example use:
+
+==
+?- sat(+[1,Y,X]), sat(X#Y).
+node(3)- (v(Y, 0)->node(2);node(1)),
+node(1)- (v(X, 1)->true;false),
+node(2)- (v(X, 1)->false;true).
+==
 
 @author Markus Triska
 */
