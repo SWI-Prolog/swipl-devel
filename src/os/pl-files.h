@@ -30,7 +30,6 @@
 #define ACCESS_READ	2
 #define ACCESS_WRITE	4
 
-COMMON(void)		initFiles(void);
 COMMON(int)		LastModifiedFile(const char *f, double *t);
 COMMON(int)		RemoveFile(const char *path);
 COMMON(int)		AccessFile(const char *path, int mode);

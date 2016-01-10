@@ -111,7 +111,6 @@ setupProlog(void)
   initTracer();
   debugstatus.styleCheck = SINGLETON_CHECK;
   DEBUG(1, Sdprintf("IO ...\n"));
-  initFiles();
   initIO();
   initCharConversion();
 #ifdef O_LOCALE
