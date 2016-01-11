@@ -1172,7 +1172,7 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
     if ( !visibleClause(c, r->generation) ||
 	 true(c, CL_ERASED) )
       continue;
-    if ( true(r->predicate, P_MULTIFILE) && c->owner_no != sf->index )
+    if ( true(r->predicate, P_MULTIFILE|P_DYNAMIC) && c->owner_no != sf->index )
       continue;
 
     c->generation.erased = rl->reload_gen;
