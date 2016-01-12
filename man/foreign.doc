@@ -1377,7 +1377,7 @@ we do not know whether the binding will be vetoed later by
 verify_attributes/3. This calls for precautions in several scenarios.
 
 \begin{itemize}
-    \tick{Write-before-read predicates}
+    \item \textit{Write-before-read predicates}\\
 Predicates such a \term{flag}{+Name, -Old, +New} unify the old value
 wit \arg{Old} and read the new value from \arg{New}.  In classical
 Prolog, this can be written as follows (assuming only atom values for
@@ -1404,7 +1404,7 @@ is incorrect as it makes \exam{dif(V,1), flag(f, V, 2)} fail
   return PL_get_atom_ex(new, &flag->value);
 \end{code}
 
-    \tick{Builing a term top-down}
+    \item \textit{Builing a term top-down}\\
 Building a term top down by e.g., calling PL_unify_functor() on the
 toplevel term, fetch the arguments using PL_get_arg() and unifying this
 further works because the PL_unify_* functions will make the term
@@ -1412,7 +1412,7 @@ reference point to the newly created term in the case the unification is
 done to an attributed variable.  In most cases that is completely
 transparent to the user.
 
-    \tick{Select unifying terms}
+    \item \textit{Select unifying terms}\\
 You cannot loop through a set of terms and select those that unify some
 target because it is unknown whether that will be vetoed by the
 verify_attributes/3 hook. Also be aware that if you copy (or write) the
