@@ -470,7 +470,7 @@ save_flags :-
 	(   current_flag(X),
 	    flag(X, V, V),
 	    feedback('~t~8|~w = ~w~n', [X, V]),
-	    '$add_directive_wic'(flag(X, _, V)),
+	    '$add_directive_wic'(set_flag(X, V)),
 	    fail
 	;   true
 	).
