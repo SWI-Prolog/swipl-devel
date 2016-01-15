@@ -133,7 +133,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
 	'$current_source_module'(M),
 	update_state(Term, Expanded, M).
 prolog_read_source_term(In, Term, Expanded, Options) :-
-	'$$current_source_module'(M),
+	'$current_source_module'(M),
 	select_option(syntax_errors(SE), Options, RestOptions0, dec10),
 	select_option(subterm_positions(TermPos), RestOptions0,
 		      RestOptions, TermPos),
