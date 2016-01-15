@@ -1025,7 +1025,7 @@ module(Module) :-
 	current_module(Module), !,
 	'$set_typein_module'(Module).
 module(Module) :-
-	'$set_typein_module'(_, Module),
+	'$set_typein_module'(Module),
 	print_message(warning, no_current_module(Module)).
 
 %%	working_directory(-Old, +New)
