@@ -137,7 +137,7 @@ redo:
     UNLOCK();
   }
 
-  if ( !( head == table[v] && table == functorDefTable->table ) )
+  if ( !( table == functorDefTable->table && head == table[v] ) )
     goto redo;
 
   f = (FunctorDef) allocHeapOrHalt(sizeof(struct functorDef));

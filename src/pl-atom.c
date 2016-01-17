@@ -579,7 +579,7 @@ redo:
     UNLOCK();
   }
 
-  if ( !( head == table[v] && table == atomTable->table ) )
+  if ( !( table == atomTable->table && head == table[v] ) )
     goto redo;
 
   a = reserveAtom();
