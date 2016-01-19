@@ -1382,8 +1382,16 @@ PRED_IMPL("$call_residue_vars_end", 0, call_residue_vars_end, 0)
 static
 PRED_IMPL("$attvar_assign", 2, dattvar_assign, 0)
 { PRED_LD
-  Word value, av = valTermRef(A1);
+  Word value, av;
 
+  if ( !hasGlobalSpace(0) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
+  av = valTermRef(A1);
   deRef(av);
   if ( isAttVar(*av) )
   { deRef2(valTermRef(A2), value);
