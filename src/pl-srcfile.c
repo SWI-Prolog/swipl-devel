@@ -781,6 +781,18 @@ equal_clause(Clause cl1, Clause cl2)
 
 
 int
+reloadHasClauses(SourceFile sf, Procedure proc ARG_LD)
+{ p_reload *reload;
+
+  if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
+  { return reload->number_of_clauses > 0;
+  }
+
+  return FALSE;
+}
+
+
+static int
 reloadIsDefined(SourceFile sf, Procedure proc ARG_LD)
 { p_reload *reload;
 

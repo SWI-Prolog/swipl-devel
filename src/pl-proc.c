@@ -2976,7 +2976,7 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     def = getProcDefinition__LD(def PASS_LD);
     if ( !(first = hasClausesDefinition(def)) )
       return TRUE;				/* (*) see above */
-    if ( !reloadIsDefined(sf, proc PASS_LD) )
+    if ( !reloadHasClauses(sf, proc PASS_LD) )
       return TRUE;				/* (**) see above */
 
     if ( first->value.clause->owner_no == sf->index )
