@@ -1594,6 +1594,16 @@ findStartChoice(LocalFrame fr, Choice ch)
 
   return NULL;
 }
+
+
+static Choice
+findChoiceBeforeFrame(LocalFrame fr, Choice ch)
+{ while ( (void*)ch > (void*)fr )
+    ch = ch->parent;
+
+  return ch;
+}
+
 #endif /*O_DEBUGGER*/
 
 
@@ -2895,7 +2905,7 @@ END_PROF();
 START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
 {
 #ifdef O_DEBUGGER
-  Choice ch0 = BFR;
+  term_t ch0_ref = BFR ? consTermRef(BFR) : 0;
 #endif
   Choice ch;
 
@@ -2908,13 +2918,15 @@ next_choice:
   {
 #ifdef O_DEBUGGER
     if ( debugstatus.debugging && isDebugFrame(FR) )
-    { Choice sch = findStartChoice(FR, ch0);
+    { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
 
       DEBUG(1, Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
       if ( sch )
       { int rc;
+	Choice ch0 = findChoiceBeforeFrame(FR, sch);
 
+	ch0_ref = ch0 ? consTermRef(ch0) : 0;
 	Undo(sch->mark);
 	environment_frame = FR;
 	FR->clause = NULL;
@@ -2934,7 +2946,8 @@ next_choice:
 	      THROW_EXCEPTION;
 	}
       } else
-      { DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
+      { ch0_ref = 0;
+	DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
 			  levelFrame(FR), predicateName(FR->predicate)));
       }
     }
@@ -3123,7 +3136,7 @@ next_choice:
       /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
 #ifdef O_DEBUGGER
-      ch0 = ch;
+      ch0_ref = consTermRef(ch);
 #endif
       BFR = ch->parent;
       DiscardMark(ch->mark);
