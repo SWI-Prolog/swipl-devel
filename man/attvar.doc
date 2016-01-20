@@ -185,7 +185,9 @@ invoked \emph{before} the unification takes place. \arg{Var} may or
 is called. This hook can veto the unification. If it succeeds, it must
 bind \arg{Goals} with a list of Prolog goals that are called
 \emph{after} the unification has taken place. The hook itself
-\emph{must not} unify~\arg{Var}.
+\emph{must not} unify~\arg{Var}. If \arg{Value} is another attributed
+variable, the hook typically combines the two attributes and
+associates the combined attribute with \arg{Value} using put_attr/3.
 
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
 This hook is available for compatability with hProlog.
