@@ -155,15 +155,19 @@ safe(G, _, Parents, _, _) :-
 	length(Parents, Level),
 	debug(sandbox(show), '[~D] SAFE ~q?', [Level, G]),
 	fail.
-safe(G, _, _, Safe, Safe) :-
-	safe_primitive(G),
+safe(G, _, Parents, Safe, Safe) :-
+	catch(safe_primitive(G),
+	      error(instantiation_error, _),
+	      rethrow_instantition_error([G|Parents])),
 	predicate_property(G, iso), !.
-safe(G, M, _, Safe, Safe) :-
+safe(G, M, Parents, Safe, Safe) :-
 	(   predicate_property(M:G, imported_from(M2))
 	->  true
 	;   M2 = M
 	),
-	(   safe_primitive(M2:G)
+	(   catch(safe_primitive(M2:G),
+		  error(instantiation_error, _),
+		  rethrow_instantition_error([M2:G|Parents]))
 	;   predicate_property(M2:G, number_of_rules(0))
 	), !.
 safe(G, M, Parents, Safe0, Safe) :-
@@ -193,14 +197,28 @@ safe(G, M, Parents, Safe0, Safe) :-
 	    (	Gen == M:G
 	    ->	safe_clauses(Gen, M, [Id|Parents], Safe1, Safe)
 	    ;	catch(safe_clauses(Gen, M, [Id|Parents], Safe1, Safe),
-		      error(instantiation_error, _),
-		      fail)
+		      error(instantiation_error, Ctx),
+		      unsafe(Parents, Ctx))
 	    )
 	), !.
 safe(G, M, Parents, _, _) :-
 	debug(sandbox(fail),
 	      'safe/1 failed for ~p (parents:~p)', [M:G, Parents]),
 	fail.
+
+unsafe(Parents, Var) :-
+	var(Var), !,
+	nb_setval(sandbox_last_error,
+		  error(instantiation_error, sandbox(_, Parents))),
+	fail.
+unsafe(_Parents, Ctx) :-
+	Ctx = sandbox(_,_),
+	nb_setval(sandbox_last_error,
+		  error(instantiation_error, Ctx)),
+	fail.
+
+rethrow_instantition_error(Parents) :-
+	throw(error(instantiation_error, sandbox(_, Parents))).
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
 	predicate_property(M:G, interpreted), !,
@@ -597,8 +615,10 @@ safe_primitive(retractall(X)) :- safe_assert(X).
 % are safe.
 safe_primitive('$dicts':'.'(_,K,_)) :- atom(K).
 safe_primitive('$dicts':'.'(_,K,_)) :-
-	nonvar(K),
-	dict_built_in(K).
+	(   nonvar(K)
+	->  dict_built_in(K)
+	;   instantiation_error(K)
+	).
 
 dict_built_in(get(_)).
 dict_built_in(put(_)).
