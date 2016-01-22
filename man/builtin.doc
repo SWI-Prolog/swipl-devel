@@ -459,17 +459,17 @@ obviously useful for sharing declarations such as dynamic/1 or
 multifile/1 by including a file with directives from multiple files that
 use these predicates.
 
-Textual including files that contain clauses is less obvious. Normally,
-in SWI-Prolog, clauses are \emph{owned} by the file in which they are
-defined. This information is used to \emph{replace} the old definition
-after the file has beeen modified and is reloaded by, e.g., make/0. As we
-understand it, include/1 is intended to include the same file multiple
-times. Including a file holding clauses multiple times into the same
-module is rather meaningless as it just duplicates the same clauses.
-Including a file holding clauses in multiple modules does not suffer
-from this problem, but leads to multiple equivalent \emph{copies} of
-predicates. Using use_module/1 can achieve the same result while
-\emph{sharing} the predicates.
+Textually including files that contain \emph{clauses} is less obvious.
+Normally, in SWI-Prolog, clauses are \emph{owned} by the file in which
+they are defined. This information is used to \emph{replace} the old
+definition after the file has beeen modified and is reloaded by, e.g.,
+make/0. As we understand it, include/1 is intended to include the same
+file multiple times. Including a file holding clauses multiple times
+into the same module is rather meaningless as it just duplicates the
+same clauses. Including a file holding clauses in multiple modules
+does not suffer from this problem, but leads to multiple equivalent
+\emph{copies} of predicates. Using use_module/1 can achieve the same
+result while \emph{sharing} the predicates.
 
 If include/1 is used to load files holding clauses, and if these files
 are loaded only once, then these include/1 directives can be replaced by
