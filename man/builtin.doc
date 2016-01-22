@@ -471,14 +471,15 @@ from this problem, but leads to multiple equivalent \emph{copies} of
 predicates. Using use_module/1 can achieve the same result while
 \emph{sharing} the predicates.
 
-Despite these observations, various projects seem to be using include/1
-to load files holding clauses, typically loading them only once. Such
-usage would allow replacement by, e.g., consult/1. Unfortunately, the
-same project might use include/1 to share directives. Another example of
-a limitation of mapping to consult/1 is that if the clauses of a
-predicate are distributed over two included files, discontiguous/1 is
-appropriate, while if they are distributed over two consulted files, one
-must use multifile/1.
+If include/1 is used to load files holding clauses, and if these files
+are loaded only once, then these include/1 directives can be replaced by
+other predicates (such as consult/1). However, there are several cases
+where either include/1 has no alternative, or using any alternative also
+requires other changes. An example of the former is using include/1 to
+share directives. An example of the latter are cases where clauses of
+different predicates are distributed over multiple files: If these files
+are loaded with include/1, the directive discontiguous/1 is appropriate,
+whereas if they are consulted, one must use the directive multifile/1.
 
 To accommodate included files holding clauses, SWI-Prolog distinguishes
 between the source location of a clause (in this case the included
