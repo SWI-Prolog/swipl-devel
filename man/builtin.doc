@@ -451,7 +451,7 @@ Equivalent to \verb$load_files(Files, [if(not_loaded)]).$%
 		  changing the source code.}
 
     \predicate[ISO]{include}{1}{+File}
-Textually include the content of \arg{File} in the file in which the
+Textually include the content of \arg{File} at the position where the
 \jargon{directive} \exam{:- include(File).} appears. The include
 construct is only honoured if it appears as a directive in a
 source file. \jargon{Textual} include (similar to C/C++ \#include) is
