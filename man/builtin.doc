@@ -462,7 +462,7 @@ use these predicates.
 Textually including files that contain \emph{clauses} is less obvious.
 Normally, in SWI-Prolog, clauses are \emph{owned} by the file in which
 they are defined. This information is used to \emph{replace} the old
-definition after the file has beeen modified and is reloaded by, e.g.,
+definition after the file has been modified and is reloaded by, e.g.,
 make/0. As we understand it, include/1 is intended to include the same
 file multiple times. Including a file holding clauses multiple times
 into the same module is rather meaningless as it just duplicates the
