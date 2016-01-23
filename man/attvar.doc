@@ -190,14 +190,13 @@ variable, the hook typically combines the two attributes and
 associates the combined attribute with \arg{Value} using put_attr/3.
 
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
-This hook is available for compatability with hProlog.
+This hook is available for compatibility with hProlog.
 If it is defined in the module to which an attributed variable refers,
 it is called \emph{after} the attributed variable has been
 unified with a non-var term, possibly another attributed variable.
 \arg{AttValue} is the attribute that was associated to the variable
 in this module and \arg{VarValue} is the new value of the variable.
-Normally this predicate fails to veto binding the variable to
-\arg{VarValue}, forcing backtracking to undo the binding.  If
+If this predicate fails, the unification with \arg{VarValue} fails. If
 \arg{VarValue} is another attributed variable the hook often combines
 the two attributes and associates the combined attribute with
 \arg{VarValue} using put_attr/3.
