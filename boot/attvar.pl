@@ -76,14 +76,11 @@ collect_all_va_goal_lists(wakeup(Var, Att3s, Value, Rest)) -->
 %	has an attribute. During this process,   modules  may remove and
 %	change each others attributes.
 
-collect_va_goal_list(att(Module, _AttVal, Rest), Var, Value) -->
-	(   { attvar(Var) }
-	->  { Module:verify_attributes(Var, Value, Goals) },
-	    goals_with_module(Goals, Module)
-	;   []
-	),
+collect_va_goal_list(att(Module, _AttVal, Rest), Var, Value) --> !,
+	{ Module:verify_attributes(Var, Value, Goals) },
+	goals_with_module(Goals, Module),
         collect_va_goal_list(Rest, Var, Value).
-collect_va_goal_list([],_,_) --> [].
+collect_va_goal_list(_,_,_) --> [].
 
 
 goals_with_module([], _) --> [].
