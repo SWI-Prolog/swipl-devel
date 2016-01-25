@@ -128,7 +128,8 @@ heads_and_tails(N, [[H|T]|L1], [H|L2], [T|L3]) :-
 %	Macro expansion for `apply' predicates.
 
 expand_apply(Maplist, Goal) :-
-	functor(Maplist, maplist, N),
+	compound(Maplist),
+	compound_name_arity(Maplist, maplist, N),
 	N >= 2,
 	Maplist =.. [maplist, Callable|Lists],
 	qcall_instantiated(Callable), !,

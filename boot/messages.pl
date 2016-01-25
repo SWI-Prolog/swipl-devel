@@ -635,8 +635,14 @@ load_module(Module) -->
 
 goal_to_predicate_indicator(Goal, PI) :-
 	strip_module(Goal, Module, Head),
-	functor(Head, Name, Arity),
+	callable_name_arity(Head, Name, Arity),
 	user_predicate_indicator(Module:Name/Arity, PI).
+
+callable_name_arity(Goal, Name, Arity) :-
+	compound(Goal), !,
+	compound_name_arity(Goal, Name, Arity).
+callable_name_arity(Goal, Goal, 0) :-
+	atom(Goal).
 
 user_predicate_indicator(Module:PI, PI) :-
 	hidden_module(Module), !.
