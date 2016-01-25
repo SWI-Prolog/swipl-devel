@@ -125,7 +125,7 @@ Function GetVCRT
         IfErrors failure dl_ok
 
         failure:
-        MessageBox MB_OK "An error has occured, Microsoft Visual C++ 2008 SP1 \
+        MessageBox MB_OK "An error has occurred, Microsoft Visual C++ 2008 SP1 \
                           Redistributable$\r$\n\
                           has not been installed"
         goto abort_install
