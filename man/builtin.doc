@@ -6514,7 +6514,7 @@ the first larger floating point number.
 Evaluate to positive infinity.  See \secref{floatsyntax}.  This value
 can be negated using \funcref{-}{1}.
     \function{nan}{0}{}
-Evaluate to \emph{Not a Number}.  See \secref{floatsyntax}.
+Evaluate to \exph{Not a Number}.  See \secref{floatsyntax}.
     \function{cputime}{0}{}
 Evaluate to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.

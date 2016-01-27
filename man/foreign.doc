@@ -1360,65 +1360,7 @@ pl_hostname(term_t name)
 \end{code}
 
 Note that unification functions that perform multiple bindings may leave
-part of the bindings in case of failure. For example, unifying
-\exam{a(X,2)} with \exam{a(1,3)} will bind \arg{X} to 1 before returning
-\const{FALSE}.  See PL_unify() for details.
-
-\paragraph{Attributed variables}
-
-Special attention is needed when unifying to an \jargon{attributed
-variable}. As of version 7.3.15, with the introduction of
-verify_attributes/3, unification to attributed variables is performed
-\emph{after} the verify_attributes/3 hook accepted the binding. From the
-foreign interface perspective, this implies that a unification succeeds
-without binding the attributed variable. This has two consequences: (1)
-if we inspect the variable, it is still an attributed variable and (2)
-we do not know whether the binding will be vetoed later by
-verify_attributes/3. This calls for precautions in several scenarios.
-
-\begin{itemize}
-    \item \textit{Write-before-read predicates}\\
-Predicates such a \term{flag}{+Name, -Old, +New} unify the old value
-wit \arg{Old} and read the new value from \arg{New}.  In classical
-Prolog, this can be written as follows (assuming only atom values for
-simplicity) below, which causes \exam{flag(name, Old, Old)} to retrieve
-the current value.
-
-\begin{code}
-  return ( PL_unify_atom(old, flag->value) &&
-	   PL_get_atom_ex(new, &flag->value)
-	 );
-\end{code}
-
-If \arg{old} is an attributed variable, this does not work. The correct
-solution is to write two Prolog predicates in C, one for fetching the
-current value and one for setting the new value. If you do not care
-about constraints, you can also use the skeleton below, where the value
-is not fetched if the two arguments are aliased. Note that this solution
-is incorrect as it makes \exam{dif(V,1), flag(f, V, 2)} fail
-\emph{after} updating the flag to 2.
-
-\begin{code}
-  if ( !PL_unify_atom(old, flag->value) ) return FALSE;
-  if ( PL_compare(old, new) == 0 ) return TRUE;
-  return PL_get_atom_ex(new, &flag->value);
-\end{code}
-
-    \item \textit{Builing a term top-down}\\
-Building a term top down by e.g., calling PL_unify_functor() on the
-toplevel term, fetch the arguments using PL_get_arg() and unifying this
-further works because the PL_unify_* functions will make the term
-reference point to the newly created term in the case the unification is
-done to an attributed variable.  In most cases that is completely
-transparent to the user.
-
-    \item \textit{Select unifying terms}\\
-You cannot loop through a set of terms and select those that unify some
-target because it is unknown whether that will be vetoed by the
-verify_attributes/3 hook. Also be aware that if you copy (or write) the
-term, you copy the version where the attributed variables have not yet
-been bound.
-\end{itemize}
+part of the bindings in case of failure. See PL_unify() for details.
 
 
 \begin{description}

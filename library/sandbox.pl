@@ -179,16 +179,8 @@ safe(G, M, Parents, Safe0, Safe) :-
 	->  true
 	;   M2 = M
 	),
-	(   safe_meta_node(M2:G, Id, Gen)
-	->  (   get_assoc(Id, Safe0, _)
-	    ->  Safe = Safe0
-	    ;   put_assoc(Id, Safe0, true, Safe1),
-		safe_meta_call(Gen, Called),
-		safe_list(Called, M, [Id|Parents], Safe1, Safe)
-	    )
-	;   safe_meta_call(M2:G, Called), !,
-	    safe_list(Called, M, Parents, Safe0, Safe)
-	).
+	safe_meta_call(M2:G, Called), !,
+	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	goal_id(M:G, Id, Gen),
 	(   get_assoc(Id, Safe0, _)
@@ -256,16 +248,6 @@ def_module(M:G, MD:QG) :-
 	meta_qualify(MD:G, M, QG).
 def_module(M:G, M:QG) :-
 	meta_qualify(M:G, M, QG).
-
-%%	safe_meta_node(:Goal, -Id, -Generic) is semidet.
-%
-%	put_attr/3 must make a node since   the continuation returned by
-%	verify_attributes may contain a new   put_attr/3  using the same
-%	attribute.
-
-safe_meta_node(system:put_attr(_,M,_), Skolem, system:put_attr(_,M,_)) :-
-	Skolem = system:put_attr(_,M,_),
-	numbervars(Skolem, 0, _).
 
 %%	safe_list(+Called, +Module, +Parents, +Safe0, -Safe)
 %
@@ -761,11 +743,10 @@ safe_global_var(Name) :-
 
 safe_meta(system:put_attr(V,M,A), Called) :- !,
 	(   atom(M)
-	->  phrase(attr_hook_predicates([ attr_unify_hook(A, _),
-					  verify_attributes(_,_,_),
-					  attribute_goals(V,_,_),
-					  project_attributes(_,_)
-					], M), Called)
+	->  attr_hook_predicates([ attr_unify_hook(A, _),
+				   attribute_goals(V,_,_),
+				   project_attributes(_,_)
+				 ], M, Called)
 	;   instantiation_error(M)
 	).
 safe_meta(system:with_output_to(Output, G), [G]) :-
@@ -787,7 +768,7 @@ safe_meta('$dcg':call_dcg(NT,Xs0,Xs), [Goal]) :-
 safe_meta('$dcg':call_dcg(NT,Xs0), [Goal]) :-
 	expand_nt(NT,Xs0,[],Goal).
 
-%%	attr_hook_predicates(+Hooks0, +Module)// is det.
+%%	attr_hook_predicates(+Hooks0, +Module, -Hooks) is det.
 %
 %	Filter the defined hook implementations.   This  is safe because
 %	(1) calling an undefined predicate is   not  a safety issue, (2)
@@ -795,63 +776,13 @@ safe_meta('$dcg':call_dcg(NT,Xs0), [Goal]) :-
 %	predicates that have a safe body. This avoids the need to define
 %	attribute hooks solely for the purpose of making them safe.
 
-attr_hook_predicates([], _) --> [].
-attr_hook_predicates([H|T], M) -->
-	{ predicate_property(M:H, defined) }, !,
-	[M:H],
-	hook_continuations(M:H),
-	attr_hook_predicates(T, M).
-attr_hook_predicates([_|T], M) -->
-	attr_hook_predicates(T, M).
-
-hook_continuations(M:verify_attributes(_,_,_)) --> !,
-	{ findall(Cont,
-		  ( clause_binds(M:verify_attributes(_,_,Cont), Cont),
-		    must_be(list(callable), Cont)
-		  ),
-		  Conts),
-	  append(Conts, All)
-	},
-	continuation(All, M).
-hook_continuations(_) --> [].
-
-clause_binds(Head, Var) :-
-	clause(Head, Body),
-	term_variables(Var, Alias0),
-	sort(Alias0, Alias),
-	body_binds(Body, Alias, _).
-
-body_binds(Term, Alias0, Alias) :-
-	\+ aliases(Term, Alias0), !,
-	Alias = Alias0.
-body_binds(Var, _, _) :-
-	var(Var), !,
-	instantiation_error(Var).
-body_binds((A,B), Alias0, Alias) :- !,
-	body_binds(A, Alias0, Alias1),
-	body_binds(B, Alias1, Alias).
-body_binds((A->B;C), Alias0, Alias) :- !,
-	(   body_binds(A, Alias0, Alias1)
-	->  body_binds(B, Alias1, Alias)
-	;   body_binds(C, Alias0, Alias)
-	).
-body_binds((A;B), Alias0, Alias) :- !,
-	(   body_binds(A, Alias0, Alias)
-	;   body_binds(B, Alias0, Alias)
-	).
-body_binds(V = Value, _, Alias) :- !,
-	V = Value,
-	term_variables(V, Alias).
-
-aliases(Term, Alias) :-
-	term_variables(Term, Vars),
-	sort(Vars, Vars1),
-	ord_intersect(Vars1, Alias).
-
-continuation([], _) --> [].
-continuation([H|T], M) -->
-	{ strip_module(M:H, M1,H1) },
-	[M1:H1], continuation(T, M).
+attr_hook_predicates([], _, []).
+attr_hook_predicates([H|T], M, Called) :-
+	(   predicate_property(M:H, defined)
+	->  Called = [M:H|Rest]
+	;   Called = Rest
+	),
+	attr_hook_predicates(T, M, Rest).
 
 
 %%	expand_nt(+NT, ?Xs0, ?Xs, -NewGoal)

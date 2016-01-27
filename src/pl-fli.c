@@ -352,26 +352,6 @@ PL_copy_term_ref(term_t from)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Unify a variable with a value. If   this  is an attributed variable, the
-binding is not performed and we  bind   the  term-reference to the value
-rather than keeping it bound to  the   unbound  attvar.  This allows for
-inspecting and further investigation of the term.
-
-@param p must be the dereferenced pointer for t
-@param v is the value to assign.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define bindConstRef(t,p,v) bindConstRef__LD(t,p,v PASS_LD)
-static inline int
-bindConstRef__LD(term_t t, Word p, word v ARG_LD)
-{ bindConst(p, v);
-  if ( isAttVar(*p) )
-    setHandle(t, v);
-
-  return TRUE;
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unifyAtomic(p, a) unifies a term, represented by  a pointer to it, with
 an atomic value. It is intended for foreign language functions.
 
@@ -393,7 +373,8 @@ unifyAtomic(term_t t, word w ARG_LD)
 	deRef(p);
       }
 
-      return bindConstRef(t, p, w);
+      bindConst(p, w);
+      succeed;
     }
 
     if ( isRef(*p) )
@@ -2592,7 +2573,9 @@ PL_unify_compound(term_t t, functor_t f)
     while( arity-- > 0 )
       setVar(*++a);
 
-    return bindConstRef(t, p, to);
+    bindConst(p, to);
+
+    succeed;
   } else
   { return hasFunctor(*p, f);
   }
@@ -2621,7 +2604,7 @@ PL_unify_functor(term_t t, functor_t f)
 
     if ( arity == 0 )
     { word name = nameFunctor(f);
-      return bindConstRef(t, p, name);
+      bindConst(p, name);
     } else
     { Word a = gTop;
       word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
@@ -2631,8 +2614,10 @@ PL_unify_functor(term_t t, functor_t f)
       while( arity-- > 0 )
 	setVar(*++a);
 
-      return bindConstRef(t, p, to);
+      bindConst(p, to);
     }
+
+    succeed;
   } else
   { if ( arity == 0  )
     { if ( *p == nameFunctor(f) )
@@ -2863,7 +2848,8 @@ unify_int64_ex__LD(term_t t, int64_t i, int ex ARG_LD)
     if ( valInt(w) != i )
       put_int64(&w, i, 0 PASS_LD);
 
-    return bindConstRef(t, p, w);
+    bindConst(p, w);
+    succeed;
   }
 
   if ( w == *p && valInt(w) == i )
@@ -2952,7 +2938,8 @@ PL_unify_float(term_t t, double f)
     }
 
     put_double(&w, f, ALLOW_CHECKED PASS_LD);
-    return bindConstRef(t, p, w);
+    bindConst(p, w);
+    succeed;
   }
 
   if ( isFloat(*p) && valFloat(*p) == f )
@@ -3026,16 +3013,16 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
     setVar(*++a);
     setHandle(t, makeRefG(a));
 
-    return bindConstRef(l, p, c);
+    bindConst(p, c);
   } else if ( isList(*p) )
   { Word a = argTermP(*p, 0);
 
     setHandle(h, linkVal(a++));
     setHandle(t, linkVal(a));
-
-    return TRUE;
   } else
-    return FALSE;
+    fail;
+
+  succeed;
 }
 
 
@@ -3389,7 +3376,8 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
       *a++ = FUNCTOR_xpceref1;
       *a++ = put_xpce_ref_arg(ref PASS_LD);
 
-      return bindConstRef(t, p, c);
+      bindConst(p, c);
+      succeed;
     }
     if ( hasFunctor(*p, FUNCTOR_xpceref1) )
     { Word a = argTermP(*p, 0);

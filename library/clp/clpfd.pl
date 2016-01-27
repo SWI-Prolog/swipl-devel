@@ -3389,6 +3389,11 @@ trigger_props(fd_props(Gs,Bs,Os), X) :-
         ;   true
         ).
 
+trigger_props(fd_props(Gs,Bs,Os)) :-
+        trigger_props_(Gs),
+        trigger_props_(Bs),
+        trigger_props_(Os).
+
 trigger_props_([]).
 trigger_props_([P|Ps]) :- trigger_prop(P), trigger_props_(Ps).
 
@@ -3405,30 +3410,6 @@ trigger_prop(Propagator) :-
             ;   push_queue(Propagator, 1)
             )
         ).
-
-all_propagators(fd_props(Gs,Bs,Os)) -->
-        propagators_(Gs),
-        propagators_(Bs),
-        propagators_(Os).
-
-propagators_([]) --> [].
-propagators_([P|Ps]) --> propagator_(P), propagators_(Ps).
-
-propagator_(Propagator) -->
-        { propagator_state(Propagator, State) },
-        (   { State == dead } -> []
-        ;   { get_attr(State, clpfd_aux, queued) } -> []
-        ;   { b_getval('$clpfd_current_propagator', C), C == State } -> []
-        ;   % passive
-            % format("triggering: ~w\n", [Propagator]),
-            { put_attr(State, clpfd_aux, queued) },
-            (   { arg(1, Propagator, C),
-                  functor(C, F, _), global_constraint(F) } ->
-                { push_queue(Propagator, 2) }
-            ;   [clpfd:activate_propagator(Propagator)]
-            )
-        ).
-
 
 kill(State) :- del_attr(State, clpfd_aux), State = dead.
 
@@ -6600,21 +6581,20 @@ goals_entail(Goals, E) :-
    Unification hook and constraint projection
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-verify_attributes(Var, Other, Gs) :-
-        (   get_attr(Var, clpfd, clpfd_attr(_,_,_,Dom,Ps0)) ->
-            (   nonvar(Other) ->
-                (   integer(Other) -> true
-                ;   type_error(integer, Other)
-                ),
-                domain_contains(Dom, Other),
-                Ps = Ps0
-            ;   fd_get(Other, OD, OPs),
-                domains_intersection(OD, Dom, Dom1),
-                append_propagators(Ps0, OPs, Ps),
-                fd_put(Other, Dom1, Ps)
+attr_unify_hook(clpfd_attr(_,_,_,Dom,Ps), Other) :-
+        (   nonvar(Other) ->
+            (   integer(Other) -> true
+            ;   type_error(integer, Other)
             ),
-            phrase(all_propagators(Ps), Gs, [do_queue])
-        ;   Gs = []
+            domain_contains(Dom, Other),
+            trigger_props(Ps),
+            do_queue
+        ;   fd_get(Other, OD, OPs),
+            domains_intersection(OD, Dom, Dom1),
+            append_propagators(Ps, OPs, Ps1),
+            fd_put(Other, Dom1, Ps1),
+            trigger_props(Ps1),
+            do_queue
         ).
 
 append_propagators(fd_props(Gs0,Bs0,Os0), fd_props(Gs1,Bs1,Os1), fd_props(Gs,Bs,Os)) :-
@@ -6658,14 +6638,19 @@ attribute_goals(X) -->
         attributes_goals(Ps).
 
 clpfd_aux:attribute_goals(_) --> [].
+clpfd_aux:attr_unify_hook(_,_) :- false.
 
 clpfd_gcc_vs:attribute_goals(_) --> [].
+clpfd_gcc_vs:attr_unify_hook(_,_) :- false.
 
 clpfd_gcc_num:attribute_goals(_) --> [].
+clpfd_gcc_num:attr_unify_hook(_,_) :- false.
 
 clpfd_gcc_occurred:attribute_goals(_) --> [].
+clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
 
 clpfd_relation:attribute_goals(_) --> [].
+clpfd_relation:attr_unify_hook(_,_) :- false.
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->

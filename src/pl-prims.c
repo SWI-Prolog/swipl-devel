@@ -274,7 +274,7 @@ do_unify(Word t1, Word t2 ARG_LD)
       { rc = overflowCode(0);
 	goto out_fail;
       }
-      assignAttVar(t1, t2, ATT_UNIFY PASS_LD);
+      assignAttVar(t1, t2 PASS_LD);
       continue;
     }
     if ( isAttVar(w2) )
@@ -282,7 +282,7 @@ do_unify(Word t1, Word t2 ARG_LD)
       { rc = overflowCode(0);
 	goto out_fail;
       }
-      assignAttVar(t2, t1, ATT_UNIFY PASS_LD);
+      assignAttVar(t2, t1 PASS_LD);
       continue;
     }
   #endif
@@ -352,62 +352,18 @@ out_fail:
 
 
 static int
-raw_unify_ptrs_no_unbind(Word t1, Word t2  ARG_LD)
-{ switch( LD->prolog_flag.occurs_check )
+raw_unify_ptrs(Word t1, Word t2 ARG_LD)
+{ switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
       return do_unify(t1, t2 PASS_LD);
     case OCCURS_CHECK_TRUE:
       return unify_with_occurs_check(t1, t2, OCCURS_CHECK_TRUE PASS_LD);
-      break;
     case OCCURS_CHECK_ERROR:
       return unify_with_occurs_check(t1, t2, OCCURS_CHECK_ERROR PASS_LD);
-      break;
     default:
       assert(0);
       fail;
   }
-}
-
-/* This adds wakeups to attvars rather than binding them */
-static int
-raw_unify_ptrs(Word t1, Word t2 ARG_LD)
-{ int rc;
-  Word old_gTop = gTop;
-  TrailEntry mt = tTop;
-
-  rc = raw_unify_ptrs_no_unbind(t1, t2 PASS_LD);
-
-  /* Any attvar wakeup terms pushed to the global stack? */
-  if ( rc == TRUE && old_gTop != gTop )
-  { TrailEntry tt = tTop;
-    TrailEntry ot;
-
-    /* restore the attvars */
-    while (--tt >= mt)
-    { Word p = tt->address;
-
-      if ( isTrailVal(p) )
-      { word v = trailVal(p);
-	tt--;
-	if ( isAttVar(v) )
-	{ *tt->address = v;
-	  tt->address = NULL;
-	  tt[1].address = NULL;
-	}
-      }
-    }
-
-    /* remove the entries from the trail */
-    for(tt=mt, ot=mt, mt=tTop; tt < mt; )
-    { if ( tt->address )
-	*ot++ = *tt++;
-      else
-	tt++;
-    }
-    tTop = ot;
-  }
-
-  return rc;
 }
 
 
@@ -3279,7 +3235,7 @@ unify_all_trail_ptrs(Word t1, Word t2, mark *m ARG_LD)
 
     Mark(*m);
     LD->mark_bar = NO_MARK_BAR;
-    rc = raw_unify_ptrs_no_unbind(t1, t2 PASS_LD);
+    rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc == TRUE )			/* Terms unified */
     { return rc;
     } else if ( rc == FALSE )		/* Terms did not unify */
@@ -3384,7 +3340,7 @@ retry:
 	if ( isTrailVal(p) )
 	{ assert(isAttVar(trailVal(p)));
 
-	  tt--;			/* re-insert the attvar */
+	  tt--;				/* re-insert the attvar */
 	  *tt->address = trailVal(p);
 
 	  tt--;				/* restore tail of wakeup list */

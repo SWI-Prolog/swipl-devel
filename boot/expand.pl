@@ -404,11 +404,11 @@ remove_var_attr([Var|Vars], Attr):-
         del_attr(Var, Attr),
         remove_var_attr(Vars, Attr).
 
-%%	'$var_info':verify_attributes(_,_) is det.
+%%	'$var_info':attr_unify_hook(_,_) is det.
 %
 %	Dummy unification hook for attributed variables.  Just succeeds.
 
-'$var_info':verify_attributes(_, _, []).
+'$var_info':attr_unify_hook(_, _).
 
 
 		 /*******************************

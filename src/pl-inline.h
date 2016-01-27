@@ -317,7 +317,7 @@ bindConst__LD(Word p, word c ARG_LD)
     if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
       (tTop++)->address = p;
   } else
-  { assignAttVar(p, &(c), ATT_WAKEBINDS PASS_LD);
+  { assignAttVar(p, &(c) PASS_LD);
   }
 #else
   *p = (c);

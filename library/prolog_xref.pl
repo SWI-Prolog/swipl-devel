@@ -1098,7 +1098,6 @@ xref_hook(Hook) :-
 
 hook(attr_portray_hook(_,_)).
 hook(attr_unify_hook(_,_)).
-hook(verify_attributes(_,_,_)).
 hook(attribute_goals(_,_,_)).
 hook(goal_expansion(_,_)).
 hook(term_expansion(_,_)).

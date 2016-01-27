@@ -81,7 +81,7 @@ dif_c_c(X,Y,OrNode) :-
 dif_c_c_l(Unifier,OrNode) :-
 	length(Unifier,N),
 	extend_ornode(OrNode,N,List,Tail),
-	phrase(dif_c_c_l_aux(Unifier,OrNode),List,Tail).
+	dif_c_c_l_aux(Unifier,OrNode,List,Tail).
 
 extend_ornode(OrNode,N,List,Vars) :-
 	( get_attr(OrNode,dif,Attr) ->
@@ -93,11 +93,11 @@ extend_ornode(OrNode,N,List,Vars) :-
 	),
 	put_attr(OrNode,dif,node(O,List)).
 
-dif_c_c_l_aux([], _) --> [].
-dif_c_c_l_aux([X=Y|Unifier], OrNode) -->
-	[X=Y],
-	{ add_ornode(X,Y,OrNode) },
-	dif_c_c_l_aux(Unifier, OrNode).
+dif_c_c_l_aux([],_,List,List).
+dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
+	List = [X=Y|Rest],
+	add_ornode(X,Y,OrNode),
+	dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).
 
 add_ornode(X,Y,OrNode) :-
 	add_ornode_var1(X,Y,OrNode),
@@ -123,29 +123,26 @@ add_ornode_var2(X,Y,OrNode) :-
 		put_attr(Y,dif,vardif([],[OrNode-X]))
 	).
 
-verify_attributes(X, Other, Gs) :-
-	( get_attr(X, dif, vardif(V1,V2)) ->
-		( var(Other) ->
-			Gs = [reverse_lookups(V1,Other,OrNodes1,NV1),
-			      or_one_fails(OrNodes1),
-			      get_attr(Other,dif,OAttr),
-			      OAttr = vardif(OV1,OV2),
-			      reverse_lookups(OV1,Other,OrNodes2,NOV1),
-			      or_one_fails(OrNodes2),
-			      remove_obsolete(V2,Other,NV2),
-			      remove_obsolete(OV2,Other,NOV2),
-			      append(NV1,NOV1,CV1),
-			      append(NV2,NOV2,CV2),
-			      (	  CV1 == [], CV2 == [] ->
-				  del_attr(Other,dif)
-			      ;
-				  put_attr(Other,dif,vardif(CV1,CV2))
-			      )]
+attr_unify_hook(vardif(V1,V2),Other) :-
+	( var(Other) ->
+		reverse_lookups(V1,Other,OrNodes1,NV1),
+		or_one_fails(OrNodes1),
+		get_attr(Other,dif,OAttr),
+		OAttr = vardif(OV1,OV2),
+		reverse_lookups(OV1,Other,OrNodes2,NOV1),
+		or_one_fails(OrNodes2),
+		remove_obsolete(V2,Other,NV2),
+		remove_obsolete(OV2,Other,NOV2),
+		append(NV1,NOV1,CV1),
+		append(NV2,NOV2,CV2),
+		( CV1 == [], CV2 == [] ->
+			del_attr(Other,dif)
 		;
-			Gs = [verify_compounds(V1,Other),
-			      verify_compounds(V2,Other)]
+			put_attr(Other,dif,vardif(CV1,CV2))
 		)
-	;	Gs = []
+	;
+		verify_compounds(V1,Other),
+		verify_compounds(V2,Other)
 	).
 
 remove_obsolete([], _, []).
