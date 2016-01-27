@@ -50,7 +50,7 @@ format from the WWW home page at
 .B http://www.swi-prolog.org
 
 .SH LICENSE INFORMATION
-SWI-Prolog is distributed under the LGPL (Lesser Gnu Public License) for
+SWI-Prolog is distributed under the LGPL (Lesser GNU Public License) for
 maximal compatibility with the Free Software movement, while allowing for
 use with proprietary software components.
 See the SWI-Prolog home page at
@@ -450,4 +450,3 @@ or on the GNU website at
 Copyright (c) 1986\-2015 University of Amsterdam, VU University Amsterdam
 .SH AUTHOR
 Jan Wielemaker
-
