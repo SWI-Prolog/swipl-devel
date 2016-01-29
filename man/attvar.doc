@@ -177,11 +177,10 @@ refers. It is called \emph{after} the attributed variable has been
 unified with a non-var term, possibly another attributed variable.
 \arg{AttValue} is the attribute that was associated to the variable
 in this module and \arg{VarValue} is the new value of the variable.
-Normally this predicate fails to veto binding the variable to
-\arg{VarValue}, forcing backtracking to undo the binding.  If
-\arg{VarValue} is another attributed variable the hook often combines
-the two attributes and associates the combined attribute with
-\arg{VarValue} using put_attr/3.
+If this predicate fails, the unification fails. If \arg{VarValue} is
+another attributed variable the hook often combines the two attributes
+and associates the combined attribute with \arg{VarValue} using
+put_attr/3.
 
     \predicate[deprecated]{attr_portray_hook}{2}{+AttValue, +Var}
 Called by write_term/2 and friends for each attribute if the option
