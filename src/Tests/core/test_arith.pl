@@ -47,6 +47,7 @@ test_arith :-
                     maxint_promotion,
 		    float_overflow,
 		    float_zero,
+		    float_special,
 		    arith_misc
 		  ]).
 
@@ -378,6 +379,16 @@ test(cmp, D == (>)) :-
 	compare(D, 0.0, X).
 
 :- end_tests(float_zero).
+
+:- begin_tests(float_special).
+
+test(cmp, fail) :-
+	(   nan > nan
+	;   nan =:= nan
+	;   nan < nan
+	).
+
+:- end_tests(float_special).
 
 :- begin_tests(arith_misc).
 

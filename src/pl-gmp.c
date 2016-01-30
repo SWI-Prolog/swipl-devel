@@ -1084,7 +1084,8 @@ cmpNumbers(Number n1, Number n2)
 #endif
     case V_FLOAT:
       return n1->value.f  < n2->value.f ? CMP_LESS :
-	     n1->value.f == n2->value.f ? CMP_EQUAL : CMP_GREATER;
+	     n1->value.f == n2->value.f ? CMP_EQUAL :
+	     n1->value.f  > n2->value.f ? CMP_GREATER : CMP_NOTEQ;
   }
 
   assert(0);
