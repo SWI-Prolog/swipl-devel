@@ -830,6 +830,9 @@ user:prolog_file_type(Ext,	executable) :-
 %	File is a specification of a Prolog source file. Return the full
 %	path of the file.
 
+'$chk_file'(Spec, _Extensions, _Cond, _Cache, _FullName) :-
+	\+ ground(Spec), !,
+	'$instantiation_error'(Spec).
 '$chk_file'(Spec, Extensions, Cond, Cache, FullName) :-
 	compound(Spec),
 	functor(Spec, _, 1), !,
@@ -860,11 +863,7 @@ user:prolog_file_type(Ext,	executable) :-
 '$segments_to_atom'(Segments, Atom) :-
 	'$segments_to_list'(Segments, List, []), !,
 	atomic_list_concat(List, /, Atom).
-'$segments_to_atom'(Segments, _) :-
-	throw(error(type_error(file_path, Segments), _)).
 
-'$segments_to_list'(Var, _, _) :-
-	var(Var), !, fail.
 '$segments_to_list'(A/B, H, T) :-
 	'$segments_to_list'(A, H, T0),
 	'$segments_to_list'(B, T0, T).
