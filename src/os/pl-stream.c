@@ -380,6 +380,13 @@ typedef int SOCKET;
 #define NFDS(n) (n+1)
 #else
 #define NFDS(n) (0)			/* 1st arg of select is ignored */
+#ifdef HAVE_WSAPOLL
+#define HAVE_POLL 1
+static inline int
+poll(struct pollfd *pfd, int nfds, int timeout)
+{ return WSAPoll(pfd, nfds, timeout);
+}
+#endif
 #endif
 
 
