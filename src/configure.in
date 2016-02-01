@@ -1099,7 +1099,7 @@ AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h ieee754.h SupportDefs.h)
-AC_CHECK_HEADERS(crtdbg.h shlobj.h winsock2.h)
+AC_CHECK_HEADERS(crtdbg.h shlobj.h winsock2.h poll.h)
 AC_CHECK_HEADERS(valgrind/valgrind.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
@@ -1112,7 +1112,7 @@ AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r asctime_r)
 AC_CHECK_FUNCS(ctime_r mmap confstr strcasecmp mbscoll mbscasecoll fpclass)
 AC_CHECK_FUNCS(setenv posix_openpt wcsxfrm sysctlbyname mbsnrtowcs wcsdup)
-AC_CHECK_FUNCS(ftruncate localtime_s localeconv)
+AC_CHECK_FUNCS(ftruncate localtime_s localeconv poll)
 AC_CHECK_DECLS([mbsnrtowcs])
 AC_HEADER_TIME
 AC_HEADER_DIRENT

@@ -82,7 +82,9 @@ locking is required.
 #include <stdarg.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#ifdef HAVE_SYS_SELECT_H
+#if defined(HAVE_POLL_H)
+#include <poll.h>
+#elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
 #endif
 #ifdef HAVE_UNISTD_H
@@ -384,9 +386,18 @@ typedef int SOCKET;
 static int
 S__wait(IOSTREAM *s)
 { SOCKET fd = Swinsock(s);
+  int rc;
+#ifdef HAVE_POLL
+  struct pollfd fds[1];
+#else
   fd_set wait;
   struct timeval time;
-  int rc;
+
+  time.tv_sec  = s->timeout / 1000;
+  time.tv_usec = (s->timeout % 1000) * 1000;
+  FD_ZERO(&wait);
+  FD_SET(fd, &wait);
+#endif
 
   if ( fd == INVALID_SOCKET )
   { errno = EPERM;			/* no permission to select */
@@ -394,16 +405,19 @@ S__wait(IOSTREAM *s)
     return -1;
   }
 
-  time.tv_sec  = s->timeout / 1000;
-  time.tv_usec = (s->timeout % 1000) * 1000;
-  FD_ZERO(&wait);
-  FD_SET(fd, &wait);
-
   for(;;)
-  { if ( (s->flags & SIO_INPUT) )
+  {
+#ifdef HAVE_POLL
+    fds[0].fd = fd;
+    fds[0].events = (s->flags & SIO_INPUT) ? POLLIN : POLLOUT;
+
+    rc = poll(fds, 1, s->timeout);
+#else
+    if ( (s->flags & SIO_INPUT) )
       rc = select(NFDS(fd), &wait, NULL, NULL, &time);
     else
       rc = select(NFDS(fd), NULL, &wait, NULL, &time);
+#endif
 
     if ( rc < 0 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
