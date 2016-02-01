@@ -336,7 +336,8 @@ same_length([_|T1], [_|T2], [_|T3]) :-
 %	search_graph(Grap, Path) :-
 %		 first_solution(Path, [ breadth_first(Graph, Path),
 %				        depth_first(Graph, Path)
-%				      ]).
+%				      ],
+%                              []).
 %	==
 %
 %	Options include thread stack-sizes passed   to thread_create, as
