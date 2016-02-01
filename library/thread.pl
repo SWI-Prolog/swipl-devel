@@ -336,13 +336,14 @@ same_length([_|T1], [_|T2], [_|T3]) :-
 %	search_graph(Grap, Path) :-
 %		 first_solution(Path, [ breadth_first(Graph, Path),
 %				        depth_first(Graph, Path)
-%				      ]).
+%				      ],
+%			        []).
 %	==
 %
 %	Options include thread stack-sizes passed   to thread_create, as
 %	well as the options =on_fail= and   =on_error= that specify what
 %	to do if a  solver  fails  or   triggers  an  error.  By default
-%	exection  of  all  solvers  is  terminated  and  the  result  is
+%	execution of all  solvers  is  terminated   and  the  result  is
 %	returned. Sometimes one may wish to  continue. One such scenario
 %	is if one of the solvers may run  out of resources or one of the
 %	solvers is known to be incomplete.
