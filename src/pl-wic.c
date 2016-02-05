@@ -1504,10 +1504,8 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 
     switch(c)
     { case 'X':
-      { if ( !GD->bootsession && state->load_nesting > 0 )
-	{ /* top-level '$run_initialization'/1 is called from boot/init.pl */
+      { if ( !GD->bootsession  )
 	  runInitialization(state->currentSource);
-	}
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;

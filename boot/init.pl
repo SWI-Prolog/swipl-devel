@@ -376,6 +376,14 @@ initialization(Goal, When) :-
 	assertz('$init_goal'(Source, Goal, Ctx)).
 
 
+%%	'$run_initialization'(?File, +Options)
+%
+%	Run initialization directives for all files  if File is unbound,
+%	or  for  a  specified  file.  Note  that  this  is  called  from
+%	runInitialization() in pl-wic.c for .qlf files. For a .qlf file,
+%	it is also  called  from  '$mt_do_load'/5,   but  never  with  a
+%	matching file name, so this is harmless.
+
 '$run_initialization'(File, Options) :-
 	setup_call_cleanup(
 	    '$start_run_initialization'(Options, Restore),
