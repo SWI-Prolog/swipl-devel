@@ -80,14 +80,14 @@ qcompile_(FileName, Module, Options) :-
 %	Load predicate for .qlf files.  See init.pl
 
 '$qload_file'(File, Module, Action, LoadedModule, Options) :-
-	open(File, read, In, [type(binary)]),
-	'$save_lex_state'(LexState, Options),
-	call_cleanup('$qload_stream'(In, Module,
-				     Action, LoadedModule, Options),
-		     (	 close(In),
-			 '$restore_lex_state'(LexState)
-		     )).
-
+	setup_call_cleanup(
+	    open(File, read, In, [type(binary)]),
+	    setup_call_cleanup(
+		'$save_lex_state'(LexState, Options),
+		'$qload_stream'(In, Module,
+				Action, LoadedModule, Options),
+		'$restore_lex_state'(LexState)),
+	    close(In)).
 
 '$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
 	'$qlf_load'(Module:In, LM),
