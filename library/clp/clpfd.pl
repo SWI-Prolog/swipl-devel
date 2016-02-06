@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2015 Markus Triska
+    Copyright (C): 2007-2016 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -273,18 +273,20 @@ For supported expressions, CLP(FD) constraints are drop-in
 replacements of these low-level arithmetic predicates, often yielding
 more general programs.
 
-Here is an example:
+Here is an example, relating each natural number to its factorial:
 
 ==
 :- use_module(library(clpfd)).
 
 n_factorial(0, 1).
 n_factorial(N, F) :-
-        N #> 0, N1 #= N - 1, F #= N * F1,
+        N #> 0,
+        N1 #= N - 1,
+        F #= N * F1,
         n_factorial(N1, F1).
 ==
 
-This predicate can be used in all directions. For example:
+This relation can be used in all directions. For example:
 
 ==
 ?- n_factorial(47, F).
