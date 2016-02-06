@@ -6398,7 +6398,10 @@ list_first_rest([L|Ls], L, Ls).
 %% zcompare(?Order, ?A, ?B)
 %
 % Analogous to compare/3, with finite domain variables A and B.
-% Example:
+%
+% This predicate allows you to make several predicates over integers
+% deterministic while preserving their generality and completeness.
+% For example:
 %
 % ==
 % :- use_module(library(clpfd)).
@@ -6413,11 +6416,24 @@ list_first_rest([L|Ls], L, Ls).
 %         n_factorial(N1, F0).
 % ==
 %
-% This version is deterministic if the first argument is instantiated:
+% This version is deterministic if the first argument is instantiated,
+% because first argument indexing can distinguish the two different
+% clauses:
 %
 % ==
 % ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
+% ==
+%
+% The predicate can still be used in all directions, including the
+% most general query:
+%
+% ==
+% ?- n_factorial(N, F).
+% N = 0,
+% F = 1 ;
+% N = F, F = 1 ;
+% N = F, F = 2 .
 % ==
 
 zcompare(Order, A, B) :-
