@@ -397,7 +397,9 @@ describes the exception that is actually raised. \arg{Frame} is the
 innermost frame. See prolog_frame_attribute/3 and the library
 \pllib{prolog_stack} for getting information from this.
 \arg{CatcherFrame} is a reference to the frame calling the matching
-catch/3 or \const{none} if the exception is not caught.
+catch/3, \const{none} if the exception is not caught or \const{'C'}
+if the exception is caught in C calling Prolog using the flag
+\const{PL_Q_CATCH_EXCEPTION}.
 
 The hook is run in `nodebug' mode. If it succeeds, \arg{ExceptionOut} is
 considered the current exception. If it fails, \arg{ExceptionIn} is used

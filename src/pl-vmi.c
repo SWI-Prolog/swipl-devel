@@ -4150,7 +4150,7 @@ again:
     exceptionUnwindGC(outofstack);
     LOAD_REGISTERS(qid);
     SAVE_REGISTERS(qid);
-    rc = exception_hook(FR, catchfr_ref PASS_LD);
+    rc = exception_hook(qid, consTermRef(FR), catchfr_ref PASS_LD);
     LOAD_REGISTERS(qid);
 
     if ( rc && fid )
@@ -4172,7 +4172,7 @@ again:
   if ( !catchfr_ref &&
        !PL_same_term(exception_term, exception_printed) &&
        false(QueryFromQid(qid), PL_Q_CATCH_EXCEPTION) )
-  { int rc;
+  { term_t rc;
 
     SAVE_REGISTERS(qid);
     rc = isCaughtInOuterQuery(qid, exception_term PASS_LD);

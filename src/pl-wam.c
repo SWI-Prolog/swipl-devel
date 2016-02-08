@@ -1526,6 +1526,7 @@ resumeAfterException(int clear, Stack outofstack)
 
   if ( clear )
   { exception_term = 0;
+    LD->exception.fr_rewritten = 0;
     setVar(*valTermRef(LD->exception.bin));
     setVar(*valTermRef(LD->exception.printed));
     setVar(*valTermRef(LD->exception.pending));
@@ -1686,6 +1687,12 @@ Note that when throwing from a catch/3,   the  catcher is subject to GC.
 Hence, we should not call can_unify() if  it has been garbage collected.
 Doing so generally does no harm as the unification will fail, but is not
 elegant and traps an assert() in do_unify().
+
+Returns:
+
+  - term-reference to catch/3 frame
+  - (term_t)0 if not caught
+  - (term_t)-1 if caught in C
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef offset
@@ -1693,7 +1700,7 @@ elegant and traps an assert() in do_unify().
 #endif
 
 #ifdef O_DEBUGGER
-static int
+static term_t
 isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 { Definition catch3 = PROCEDURE_catch3->definition;
   QueryFrame qf = QueryFromQid(qid);
@@ -1712,7 +1719,7 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 	     can_unify(catcher,		/* may shift */
 		       valTermRef(ball),
 		       0) )
-	  return TRUE;
+	  return fref;
 	fr = (LocalFrame)valTermRef(fref);
       }
 
@@ -1725,7 +1732,10 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
     }
   }
 
-  return (qf && true(qf, PL_Q_CATCH_EXCEPTION));
+  if ( qf && true(qf, PL_Q_CATCH_EXCEPTION) )
+    return (term_t)-1;
+
+  return 0;
 }
 
 
@@ -1800,7 +1810,7 @@ dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
 #endif /*O_DEBUGGER*/
 
 static int
-exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
+exception_hook(qid_t pqid, term_t fr, term_t catchfr_ref ARG_LD)
 { if ( PROCEDURE_exception_hook4->definition->impl.clauses.first_clause )
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
@@ -1814,13 +1824,26 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
 
       av = PL_new_term_refs(4);
       PL_put_term(av+0, exception_bin);
-      PL_put_frame(av+2, fr);
-      if ( catchfr_ref )
+      PL_put_frame(av+2, (LocalFrame)valTermRef(fr));
+
+      if ( !catchfr_ref )
+	catchfr_ref = isCaughtInOuterQuery(pqid, exception_term PASS_LD);
+      if ( catchfr_ref == (term_t)-1 )
+      { PL_put_atom_chars(av+3, "C");
+      } else if ( catchfr_ref && catchfr_ref == LD->exception.fr_rewritten )
+      { DEBUG(MSG_THROW,
+	    Sdprintf("Already rewritting exception for frame %d\n",
+		     catchfr_ref));
+	rc = FALSE;
+	goto done;
+      } else if ( catchfr_ref )
       { LocalFrame cfr = (LocalFrame)valTermRef(catchfr_ref);
 	cfr = parentFrame(cfr);
 	PL_put_frame(av+3, cfr);
+	LD->exception.fr_rewritten = catchfr_ref;
       } else
-	PL_put_frame(av+3, NULL);	/* puts 'none' */
+      { PL_put_frame(av+3, NULL);	/* puts 'none' */
+      }
 
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
 			  PROCEDURE_exception_hook4, av);
@@ -1849,8 +1872,9 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
       } else
       { rc = FALSE;
       }
-      restoreWakeup(&wstate PASS_LD);
 
+    done:
+      restoreWakeup(&wstate PASS_LD);
       LD->exception.in_hook--;
 
       return rc;
