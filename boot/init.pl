@@ -377,12 +377,17 @@ initialization(Goal, When) :-
 
 
 %%	'$run_initialization'(?File, +Options)
+%%	'$run_initialization'(?File, +Action, +Options)
 %
 %	Run initialization directives for all files  if File is unbound,
-%	or  for  a  specified  file.  Note  that  this  is  called  from
-%	runInitialization() in pl-wic.c for .qlf files. For a .qlf file,
-%	it is also  called  from  '$mt_do_load'/5,   but  never  with  a
-%	matching file name, so this is harmless.
+%	or for a specified file.   Note  that '$run_initialization'/2 is
+%	called from runInitialization() in pl-wic.c  for .qlf files. The
+%	'$run_initialization'/3 is called with Action   set  to `loaded`
+%	when called for a QLF file.
+
+'$run_initialization'(_, loaded, _) :- !.
+'$run_initialization'(File, _Action, Options) :-
+	'$run_initialization'(File, Options).
 
 '$run_initialization'(File, Options) :-
 	setup_call_cleanup(
@@ -1745,8 +1750,8 @@ load_files(Module:Files, Options) :-
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
 	'$assert_load_context_module'(File, Module, Options),
-	'$qdo_load_file'(File, File, Module, Options),
-	'$run_initialization'(File, Options).
+	'$qdo_load_file'(File, File, Module, Action, Options),
+	'$run_initialization'(File, Action, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
 			   [ file_type(prolog),
@@ -1809,8 +1814,8 @@ load_files(Module:Files, Options) :-
 	'$noload'(If, FullFile, Options), !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-	'$qdo_load_file'(File, FullFile, Module, Options).
-
+	'$qdo_load_file'(File, FullFile, Module, Action, Options),
+	'$run_initialization'(FullFile, Action, Options).
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
 	'$loading_file'(FullFile, Queue, LoadThread),
@@ -1829,8 +1834,8 @@ load_files(Module:Files, Options) :-
 '$mt_do_load'(already_loaded, File, FullFile, Module, Options) :- !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
-	'$qdo_load_file'(File, FullFile, Module, Options),
-	'$run_initialization'(FullFile, Options).
+	'$qdo_load_file'(File, FullFile, Module, Action, Options),
+	'$run_initialization'(FullFile, Action, Options).
 
 '$mt_end_load'(queue(_)) :- !.
 '$mt_end_load'(already_loaded) :- !.
@@ -1845,13 +1850,14 @@ load_files(Module:Files, Options) :-
 %
 %	Switch to qcompile mode if requested by the option '$qlf'(+Out)
 
-'$qdo_load_file'(File, FullFile, Module, Options) :-
+'$qdo_load_file'(File, FullFile, Module, Action, Options) :-
 	memberchk('$qlf'(QlfOut), Options), !,
-	setup_call_cleanup('$qstart'(QlfOut, Module, State),
-			   '$do_load_file'(File, FullFile, Module, Options),
-			   '$qend'(State)).
-'$qdo_load_file'(File, FullFile, Module, Options) :-
-	'$do_load_file'(File, FullFile, Module, Options).
+	setup_call_cleanup(
+	    '$qstart'(QlfOut, Module, State),
+	    '$do_load_file'(File, FullFile, Module, Action, Options),
+	    '$qend'(State)).
+'$qdo_load_file'(File, FullFile, Module, Action, Options) :-
+	'$do_load_file'(File, FullFile, Module, Action, Options).
 
 '$qstart'(Qlf, Module, state(OldMode, OldModule)) :-
 	'$qlf_open'(Qlf),
@@ -1867,20 +1873,21 @@ load_files(Module:Files, Options) :-
 	'$current_source_module'(OldModule),
 	'$set_source_module'(Module).
 
-%%	'$do_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
+%%	'$do_load_file'(+Spec, +FullFile, +ContextModule,
+%			-Action, +Options) is det.
 %
 %	Perform the actual loading.
 
-'$do_load_file'(File, FullFile, Module, Options) :-
+'$do_load_file'(File, FullFile, Module, Action, Options) :-
 	'$option'(derived_from(DerivedFrom), Options, -),
 	'$register_derived_source'(FullFile, DerivedFrom),
 	'$qlf_file'(File, FullFile, Absolute, Mode, Options),
 	(   Mode == qcompile
 	->  qcompile(Module:File, Options)
-	;   '$do_load_file_2'(File, Absolute, Module, Options)
+	;   '$do_load_file_2'(File, Absolute, Module, Action, Options)
 	).
 
-'$do_load_file_2'(File, Absolute, Module, Options) :-
+'$do_load_file_2'(File, Absolute, Module, Action, Options) :-
 	'$source_file_property'(Absolute, number_of_clauses, OldClauses),
 	statistics(cputime, OldTime),
 
