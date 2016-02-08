@@ -140,8 +140,15 @@ found_undef(To, _Caller, From) :-
 	goal_pi(To, PI),
 	(   undef(PI, From)
 	->  true
-	;   assertz(undef(PI,From))
+	;   compiled(PI)
+	->  true
+	;   writeln(PI),
+	    assertz(undef(PI,From))
 	).
+
+compiled(system:'$call_cleanup'/0).	% compiled to VM instructions
+compiled(system:'$catch'/0).
+compiled(system:'$cut'/0).
 
 goal_pi(M:Head, M:Name/Arity) :-
 	functor(Head, Name, Arity).
