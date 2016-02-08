@@ -3798,7 +3798,7 @@ pl_close(term_t stream, int force ARG_LD)
     return not_a_stream(stream);
 
   ref = PL_blob_data(a, NULL, &type);
-  if ( type == &stream_blob )
+  if ( type == &stream_blob )		/* close(Stream[pair], ...) */
   { int rc = TRUE;
 
     if ( ref->read && ref->write )
@@ -3822,6 +3822,7 @@ pl_close(term_t stream, int force ARG_LD)
     return rc;
   }
 
+					/* close(Alias, ...) */
   if ( get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS) )
     return do_close(s, force);
 

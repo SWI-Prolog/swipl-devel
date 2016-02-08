@@ -2977,7 +2977,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
     DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
     switch ( dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline) )
     { case EINTR:
-      { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
+      { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
 	if ( !LD )			/* needed for clean exit */
 	{ Sdprintf("Forced exit from get_message()\n");
@@ -2993,7 +2993,9 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	break;
       }
       case ETIMEDOUT:
-      { queue->waiting--;
+      { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: ETIMEDOUT\n", PL_thread_self()));
+
+	queue->waiting--;
 	queue->waiting_var -= isvar;
 	PL_discard_foreign_frame(fid);
 	return MSG_WAIT_TIMEOUT;
