@@ -248,7 +248,7 @@ tprofile(Thread) :-
 	get0(_),
 	thread_signal(Thread,
 		      (	  profiler(_, false),
-			  show_profile(plain, 25)
+			  show_profile([])
 		      )).
 
 
