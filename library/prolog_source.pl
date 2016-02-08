@@ -216,6 +216,10 @@ requires_library((:- pce_begin_class(_,_,_)),	   library(pce)).
 %
 %	Update operators and style-check options from the expanded term.
 
+:- multifile
+	pce_expansion:push_compile_operators/1,
+	pce_expansion:pop_compile_operators/0.
+
 update_state(Raw, _, _) :-
 	Raw == (:- pce_end_class), !,
 	pce_expansion:pop_compile_operators.
@@ -248,8 +252,7 @@ update_directive(use_module(Spec), SM) :-
 	catch(module_decl(Spec, Path, Public), _, fail), !,
 	maplist(import_syntax(Path, SM), Public).
 update_directive(pce_begin_class_definition(_,_,_,_), SM) :-
-	current_predicate(pce_expansion:push_compile_operators/1), !,
-	pce_expansion:push_compile_operators(SM).
+	pce_expansion:push_compile_operators(SM), !.
 update_directive(_, _).
 
 %%	import_syntax(+Path, +Module, +ExportStatement) is det.
