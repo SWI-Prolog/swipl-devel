@@ -308,7 +308,22 @@ DeRefLink(const	char *link, char *buf)
   { strcpy(buf, link);
     return buf;
   } else
+  { GET_LD
+    atom_t dom = PL_new_atom("dereference");
+    atom_t typ = PL_new_atom("symlink");
+    term_t t;
+    int rc;
+
+    rc = ( (t=PL_new_term_ref()) &&
+	   PL_unify_chars(t, PL_ATOM|REP_FN, -1, link) &&
+	   PL_error(NULL, 0, "too many (>20) levels of symbolic links",
+		    ERR_PERMISSION, dom, typ, t) );
+    (void)rc;
+    PL_unregister_atom(dom);
+    PL_unregister_atom(typ);
+
     return NULL;
+  }
 }
 
 
