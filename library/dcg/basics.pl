@@ -175,7 +175,7 @@ nonblank(H) -->
 
 %%	blanks_to_nl// is semidet.
 %
-%	Take a sequence of blank//0 codes if banks are followed by a
+%	Take a sequence of blank//0 codes if blanks are followed by a
 %	newline or end of the input.
 
 blanks_to_nl -->
