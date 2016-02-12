@@ -974,13 +974,13 @@ SectionEnd
 
 Section "Update library index"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "make_library_index(swi(library)),halt"'
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "win_flush_filetypes,halt"'
+  nsExec::ExecToLog '"$INSTDIR\bin\swipl.exe" -f none -g "make_library_index(swi(library)),halt"'
+  nsExec::ExecToLog '"$INSTDIR\bin\swipl.exe" -f none -g "win_flush_filetypes,halt"'
 SectionEnd
 
 Section "Precompiled libraries"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g qcompile_libraries,halt'
+  nsExec::ExecToLog '"$INSTDIR\bin\swipl.exe" -f none -g qcompile_libraries,halt'
 SectionEnd
 
 ################################################################

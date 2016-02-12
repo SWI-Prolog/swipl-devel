@@ -54,6 +54,13 @@ qcompile_xpce :-			% no XPCE around
 			      ], _), !,
 	print_message(informational, qcompile(no(xpce))).
 qcompile_xpce :-
+	(   absolute_file_name(swi('swipl-win.rc'), _,
+			       [ access(read),
+				 file_errors(fail)
+			       ])
+	->  use_module(swi('swipl-win.rc'))
+	;   true
+	),
 	qcompile_libs.
 
 
