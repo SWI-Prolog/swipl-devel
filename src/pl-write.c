@@ -1091,6 +1091,7 @@ WriteNumber(Number n, write_options *options)
     }
     default:
       assert(0);
+      return FALSE;			/* make compiler happy */
   }
 }
 
