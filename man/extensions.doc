@@ -1074,10 +1074,10 @@ keys. If the requested key does not exist the predicate raises
 \term{existence_error}{key, Key, Dict}. Note the additional argument.
 
 Destructive assignment is a non-logical operation and should be used
-with care because identical Prolog terms may be copied or shared add
-will of the system. Some of this behaviour can be avoided by adding an
-additional unbound value to the dict. This prevents unwanted sharing and
-ensures that copy_term/2 actually copies the dict. This pitfall is
+with care because the system may copy or share identical Prolog terms
+at any time. Some of this behaviour can be avoided by adding an
+additional unbound value to the dict. This prevents unwanted sharing
+and ensures that copy_term/2 actually copies the dict. This pitfall is
 demonstrated in the example below:
 
 \begin{code}
