@@ -4895,7 +4895,7 @@ specified, the current `source module' is used.  (SWI-Prolog).
 
     \termitem{quasi_quotations}{-List}
 If present, unify \arg{List} with the quasi quotations (see
-\secref{quasiquotations} instead of evaluating quasi quotations.
+\secref{quasiquotations}) instead of evaluating quasi quotations.
 Each quasi quotation is a term \term{quasi_quotation}{+Syntax,
 +Quotation, +VarDict, -Result}, where \arg{Syntax} is the term in
 \verb${|Syntax||..|}$, \arg{Quotation} is a list of character codes that
