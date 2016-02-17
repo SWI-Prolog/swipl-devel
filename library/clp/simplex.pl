@@ -1307,3 +1307,19 @@ assignment(Costs, Assignment) :-
         all_one(Supply),
         transportation(Supply, Supply, Costs, Assignment).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Messages
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile prolog:message//1.
+
+prolog:message(simplex(bounded)) -->
+        ['Using library(simplex) with bounded arithmetic may yield wrong results.'-[]].
+
+warn_if_bounded_arithmetic :-
+        (   current_prolog_flag(bounded, true) ->
+            print_message(warning, simlpex(bounded))
+        ;   true
+        ).
+
+:- initialization(warn_if_bounded_arithmetic).
