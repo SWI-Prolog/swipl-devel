@@ -157,19 +157,35 @@ Finite Domains.
 
 CLP(FD) is an instance of the general CLP(.) scheme, extending logic
 programming with reasoning over specialised domains. CLP(FD) lets you
-reason about sets of _integers_.
+reason about **integers**.
 
 There are two major use cases of this library:
 
     1. CLP(FD) constraints provide **declarative integer arithmetic**:
        They implement pure _relations_ between integer expressions and
        can be used in all directions, also if parts of expressions are
-       variables.
+       variables. CLP(FD) constraints are meant to be used every time
+       you reason over integers. In modern Prolog systems, low-level
+       arithmetic predicates over integers are subsumed and superseded
+       by CLP(FD) constraints.
 
     2. In connection with enumeration predicates and more complex
        constraints, CLP(FD) is often used to model and solve
        **combinatorial problems** such as planning, scheduling and
        allocation tasks.
+
+In most cases, simple arithmetic constraints like #=/2, #>/2 and #\=/2
+are the only predicates you will ever need from this library. When
+reasoning over integers, simply replace low-level arithmetic
+predicates like is/2 and >/2 by the corresponding CLP(FD) constraints
+like #=/2 and #>/2 to honor and preserve declarative properties of
+your programs. For satisfactory performance, arithmetic constraints
+are implicitly rewritten at compilation time so that lower-level
+fallback predicates are automatically used whenever possible.
+
+Important concepts and principles of this library are illustrated by
+means of usage examples that are available in a public git repository:
+[github.com/triska/clpfd](https://github.com/triska/clpfd)
 
 When teaching Prolog, we _strongly recommend_ that you introduce
 CLP(FD) constraints _before_ explaining lower-level arithmetic
@@ -187,10 +203,6 @@ integral part of many Prolog systems and are available to help you
 eliminate and avoid, as far as possible, the use of lower-level and
 less general primitives by providing declarative alternatives that are
 meant to be used instead.
-
-For satisfactory performance, arithmetic constraints are implicitly
-rewritten at compilation time so that lower-level fallback predicates
-are automatically used whenever possible.
 
 We recommend the following reference to cite this library in
 scientific publications:
@@ -213,12 +225,16 @@ and the following URL to link to its documentation:
 http://eu.swi-prolog.org/man/clpfd.html
 ==
 
-Usage examples of this library are available in a public git
-repository: https://github.com/triska/clpfd
+The implementation of this library is described in:
+[metalevel.at/drt.pdf](http://www.metalevel.at/drt.pdf)
 
 ### Arithmetic constraints		{#clpfd-arith-constraints}
 
-A finite domain _arithmetic expression_ is one of:
+Arithmetic _constraints_ generalize low-level Prolog predicates over
+integers. The main advantage of arithmetic constraints is that they
+are true **relations** and can be used in all directions. Arithmetic
+constraints describe relations over _arithmetic expressions_, which
+are:
 
     | _integer_          | Given value                          |
     | _variable_         | Unknown integer                      |
@@ -235,8 +251,6 @@ A finite domain _arithmetic expression_ is one of:
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
 
-Arithmetic _constraints_ are relations between arithmetic expressions.
-
 The most important arithmetic constraints are:
 
     | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
@@ -245,6 +259,10 @@ The most important arithmetic constraints are:
     | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
     | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
     | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
+
+For most programs, these are the only predicates you will ever need
+from this library. These predicates are intended to be used instead of
+low-level arithmetic predicates over integers.
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
@@ -2382,7 +2400,8 @@ match_goal(p(Prop), _) -->
 
 %% ?X #>= ?Y
 %
-% X is greater than or equal to Y.
+% Same as Y #=< X. When reasoning over integers, replace >=/2 by #>=/2
+% to obtain more general relations.
 
 X #>= Y :- clpfd_geq(X, Y).
 
@@ -2390,13 +2409,16 @@ clpfd_geq(X, Y) :- clpfd_geq_(X, Y), reinforce(X), reinforce(Y).
 
 %% ?X #=< ?Y
 %
-% X is less than or equal to Y.
+% The arithmetic expression X is less than or equal to Y. When
+% reasoning over integers, replace =</2 by #=</2 to obtain more
+% general relations.
 
 X #=< Y :- Y #>= X.
 
 %% ?X #= ?Y
 %
-% X equals Y.
+% The arithmetic expression X equals Y. When reasoning over integers,
+% replace is/2 by #=/2 to obtain more general relations.
 
 X #= Y :- clpfd_equal(X, Y).
 
@@ -2664,7 +2686,9 @@ integer_kroot_leq(L, U, N, K, R) :-
 
 %% ?X #\= ?Y
 %
-% X is not Y.
+% The arithmetic expressions X and Y evaluate to distinct integers.
+% When reasoning over integers, replace =\=/2 by #\=/2 to obtain more
+% general relations.
 
 X #\= Y :- clpfd_neq(X, Y), do_queue.
 
@@ -2685,16 +2709,19 @@ neq_num(X, N) :-
 
 %% ?X #> ?Y
 %
-% X is greater than Y.
+% Same as Y #< X.
 
 X #> Y  :- X #>= Y + 1.
 
 %% #<(?X, ?Y)
 %
-% X is less than Y. In addition to its regular use in problems that
-% require it, this constraint can also be useful to eliminate
-% uninteresting symmetries from a problem. For example, all possible
-% matches between pairs built from four players in total:
+% The arithmetic expression X is less than Y. When reasoning over
+% integers, replace </2 by #</2 to obtain more general relations.
+%
+% In addition to its regular use in tasks that require it, this
+% constraint can also be useful to eliminate uninteresting symmetries
+% from a problem. For example, all possible matches between pairs
+% built from four players in total:
 %
 % ==
 % ?- Vs = [A,B,C,D], Vs ins 1..4,
