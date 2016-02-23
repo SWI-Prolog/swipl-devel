@@ -180,27 +180,27 @@ reasoning over integers, simply replace low-level arithmetic
 predicates like is/2 and >/2 by the corresponding CLP(FD) constraints
 like #=/2 and #>/2 to honor and preserve declarative properties of
 your programs. For satisfactory performance, arithmetic constraints
-are implicitly rewritten at compilation time so that lower-level
+are implicitly rewritten at compilation time so that low-level
 fallback predicates are automatically used whenever possible.
 
 Important concepts and principles of this library are illustrated by
 means of usage examples that are available in a public git repository:
 [github.com/triska/clpfd](https://github.com/triska/clpfd)
 
-When teaching Prolog, we _strongly recommend_ that you introduce
-CLP(FD) constraints _before_ explaining lower-level arithmetic
-predicates and their procedural idiosyncrasies. This is because
-constraints are easy to explain, understand and use due to their
-purely relational nature. In contrast, the modedness and
-directionality of low-level arithmetic primitives are non-declarative
-limitations that are better deferred to more advanced lectures.
+When teaching Prolog, CLP(FD) constraints should be introduced
+_before_ explaining low-level arithmetic predicates and their
+procedural idiosyncrasies. This is because constraints are easy to
+explain, understand and use due to their purely relational nature. In
+contrast, the modedness and directionality of low-level arithmetic
+primitives are impure limitations that are better deferred to more
+advanced lectures.
 
 If you are used to the complicated operational considerations that
 low-level arithmetic primitives necessitate, then moving to CLP(FD)
 constraints may, due to their power and convenience, at first feel to
 you excessive and almost like cheating. It _isn't_. Constraints are an
 integral part of many Prolog systems and are available to help you
-eliminate and avoid, as far as possible, the use of lower-level and
+eliminate and avoid, as far as possible, the use of low-level and
 less general primitives by providing declarative alternatives that are
 meant to be used instead.
 
@@ -332,7 +332,7 @@ kind.
 
 This library uses goal_expansion/2 to automatically rewrite arithmetic
 constraints at compilation time. The expansion's aim is to bring the
-performance of arithmetic constraints close to that of lower-level
+performance of arithmetic constraints close to that of low-level
 arithmetic predicates whenever possible. To disable the expansion, set
 the flag `clpfd_goal_expansion` to `false`.
 
