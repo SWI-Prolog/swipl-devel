@@ -1176,7 +1176,7 @@ compile_auxiliary_clause(Module, Clause) :-
 	Clause = (Head:-Body),
 	functor(Head, Name, Arity),
 	'$current_source_module'(SM),
-	(   current_predicate(SM:Name/Arity)
+	(   predicate_property(SM:Head, defined)
 	->  true
 	;   SM == Module
 	->  compile_aux_clauses([Clause])
