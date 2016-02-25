@@ -185,7 +185,7 @@ fallback predicates are automatically used whenever possible.
 
 Important concepts and principles of this library are illustrated by
 means of usage examples that are available in a public git repository:
-[github.com/triska/clpfd](https://github.com/triska/clpfd)
+[**github.com/triska/clpfd**](https://github.com/triska/clpfd)
 
 When teaching Prolog, CLP(FD) constraints should be introduced
 _before_ explaining low-level arithmetic predicates and their
@@ -221,9 +221,7 @@ scientific publications:
 
 and the following URL to link to its documentation:
 
-==
 http://eu.swi-prolog.org/man/clpfd.html
-==
 
 The implementation of this library is described in:
 [metalevel.at/drt.pdf](http://www.metalevel.at/drt.pdf)
