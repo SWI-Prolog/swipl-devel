@@ -262,6 +262,8 @@ The arithmetic constraints are:
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
 
+where `Expr` again denotes an arithmetic expression.
+
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
 CLP(FD) constraints let you declaratively express integer arithmetic.
