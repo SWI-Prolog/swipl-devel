@@ -230,12 +230,22 @@ The implementation of this library is described in:
 
 ### Arithmetic constraints		{#clpfd-arith-constraints}
 
-Arithmetic _constraints_ subsume and supersede low-level Prolog
+*Arithmetic constraints* subsume and supersede low-level Prolog
 predicates over integers. The main advantage of arithmetic constraints
-is that they are true **relations** and can be used in all directions.
+is that they are true _relations_ and can be used in all directions.
+For most programs, arithmetic constraints are the only predicates you
+will ever need from this library.
 
-Arithmetic constraints describe relations over _arithmetic
-expressions_, which are:
+The arithmetic constraints are:
+
+    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
+    | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
+    | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
+    | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
+
+`Expr1` and `Expr2` denote *arithmetic expressions*, which are:
 
     | _integer_          | Given value                          |
     | _variable_         | Unknown integer                      |
@@ -251,18 +261,6 @@ expressions_, which are:
     | Expr `rem` Expr    | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
-
-The most important arithmetic constraints are:
-
-    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
-    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
-    | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
-    | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
-    | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
-    | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
-
-For most programs, these are the only predicates you will ever need
-from this library.
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
@@ -341,7 +339,7 @@ the flag `clpfd_goal_expansion` to `false`.
 In addition to subsuming and replacing low-level arithmetic
 predicates, CLP(FD) constraints are often used to solve combinatorial
 problems such as planning, scheduling and allocation tasks. Among the
-most frequently used combinatorial constraints are all_distinct/1,
+most frequently used *combinatorial constraints* are all_distinct/1,
 global_cardinality/2 and cumulative/2. This library also provides
 several other constraints like disjoint2/1 and automaton/8, which are
 useful in more specialized applications.
@@ -349,7 +347,7 @@ useful in more specialized applications.
 ### Domains                             {#clpfd-domains}
 
 Each CLP(FD) variable has an associated set of admissible integers,
-which we call the variable's _domain_. Initially, the domain of each
+which we call the variable's *domain*. Initially, the domain of each
 CLP(FD) variable is the set of _all_ integers. CLP(FD) constraints
 like #=/2, #>/2 and #\=/2 can at most reduce, and never extend, the
 domains of their arguments. The constraints in/2 and ins/2 let you
