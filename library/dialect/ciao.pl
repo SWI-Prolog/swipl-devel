@@ -400,13 +400,6 @@ call_expansion(goal, PIs, CM, M, Dict, Term0, Term) :-
 :- use_module(library(prolog_clause), []). % read_term_at_line/6
 :- use_module(library(pairs), [pairs_values/2]).
 
-get_dictionary(Term, M, Dict) :-
-	( source_location(File, Line),
-	  prolog_clause:read_term_at_line(File, Line, M, RawTerm, _TermPos, Dict),
-	  subsumes(RawTerm, Term) -> true
-	; Dict = []
-	).
-
 get_expansors(CM, Trans, PIs) :-
 	findall(P-(F/A), ciao_trans_db(CM, Trans, P, F, A), UKPIs),
 	keysort(UKPIs, KPIs),
@@ -417,7 +410,7 @@ ciao_trans(CM, Trans, Term0, Term) :-
 	get_expansors(CM, Trans, PIs),
 	PIs \= [],
 	'$current_source_module'(M),
-	get_dictionary(Term0, M, Dict),
+	b_getval('$variable_names', Dict),
 	call_expansion(Trans, PIs, CM, M, Dict, Term0, Term).
 
 swi_meta_arg(_,    Arg,   Arg) :-
