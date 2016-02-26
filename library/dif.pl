@@ -271,10 +271,13 @@ or_nodes([O-_|Os], X) -->
         ),
 	or_nodes(Os, X).
 
-mydif([X], [Y]) --> !, [dif(X, Y)].
+mydif([X], [Y]) --> !, dif_if_necessary(X, Y).
 mydif(Xs0, Ys0) -->
         { reverse(Xs0, Xs), reverse(Ys0, Ys), % follow original order
           X =.. [f|Xs], Y =.. [f|Ys] },
+        dif_if_necessary(X, Y).
+
+dif_if_necessary(X, Y) -->
         (   { dif_unifiable(X, Y, _) } ->
             [dif(X,Y)]
         ;   []
