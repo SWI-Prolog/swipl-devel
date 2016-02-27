@@ -66,7 +66,26 @@ The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
 
 Usage examples of this library are available in a public git
-repository: https://github.com/triska/clpb
+repository: [**github.com/triska/clpb**](https://github.com/triska/clpb)
+
+We recommend the following reference for citing this library in
+scientific publications:
+
+==
+@inproceedings{Triska2016,
+  author    = "Markus Triska",
+  title     = "The Boolean Constraint Solver of {SWI-Prolog}: System Description",
+  booktitle = "FLOPS",
+  series    = "LNCS",
+  volume    = 9613,
+  year      = 2016,
+  pages     = "45--61"
+}
+==
+
+and the following URL to link to its documentation:
+
+http://eu.swi-prolog.org/man/clpb.html
 
 ### Boolean expressions {#clpb-exprs}
 
