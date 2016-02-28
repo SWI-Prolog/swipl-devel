@@ -2976,11 +2976,12 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     def = getProcDefinition__LD(def PASS_LD);
     if ( !(first = hasClausesDefinition(def)) )
       return TRUE;				/* (*) see above */
-    if ( !reloadHasClauses(sf, proc PASS_LD) )
-      return TRUE;				/* (**) see above */
 
     if ( first->value.clause->owner_no == sf->index )
-    { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
+    { if ( !reloadHasClauses(sf, proc PASS_LD) )
+	return TRUE;				/* (**) see above */
+
+      if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, P_DISCONTIGUOUS) &&
 	   sf->current_procedure )
       { printMessage(ATOM_warning,
