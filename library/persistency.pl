@@ -32,6 +32,7 @@
 	    current_persistent_predicate/1, % :PI
 
 	    db_attach/2,		% :File, +Options
+	    db_detach/0,
 
 	    db_sync/1,			% :What
 	    db_sync_all/1,		% +What
@@ -111,6 +112,8 @@ set_user_role(Name, Role) :-
 	db_attach(:, +),
 	db_sync(:),
 	current_persistent_predicate(:).
+:- module_transparent
+	db_detach/0.
 
 
 		 /*******************************
@@ -415,6 +418,20 @@ db_open_file(File, Mode, Stream) :-
 	    write_action(Stream, created(Now))
 	;   true
 	).
+
+
+%%	db_detach is det.
+%
+%	Detach persistency from  the  calling   module  and  delete  all
+%	persistent clauses from the Prolog database.  Note that the file
+%	is not affected. After  this  operation   another  file  may  be
+%	attached,  providing  it   satisfies    the   same   persistency
+%	declaration.
+
+db_detach :-
+	context_module(Module),
+	db_sync(Module:detach),
+	db_clean(Module).
 
 
 %%	sync(+Module, +Stream) is det.
