@@ -315,8 +315,8 @@ Later we will add a proper textual report-generator.
 %	  Profile =cpu= or =wall= time.  The default is CPU time.
 %	  * top(N)
 %	  When generating a textual report, show the top N predicates.
-%	  * cummulative(Bool)
-%	  If =true= (default =false=), show cummulative output in
+%	  * cumulative(Bool)
+%	  If =true= (default =false=), show cumulative output in
 %	  a textual report.
 
 profile(Goal) :-
@@ -342,8 +342,8 @@ time_name(Time, _) :-
 %
 %	  * top(N)
 %	  When generating a textual report, show the top N predicates.
-%	  * cummulative(Bool)
-%	  If =true= (default =false=), show cummulative output in
+%	  * cumulative(Bool)
+%	  If =true= (default =false=), show cumulative output in
 %	  a textual report.
 
 show_profile(N) :-
@@ -374,7 +374,7 @@ show_profile_(Options) :-
 	show_plain(HighFirst, N, Stat, SortKey).
 
 sort_on(Options, ticks_self) :-
-	option(cummulative(false), Options, false), !.
+	option(cumulative(false), Options, false), !.
 sort_on(_, ticks).
 
 show_plain([], _, _, _).
