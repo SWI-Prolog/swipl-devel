@@ -5996,6 +5996,9 @@ pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
   size_t top = refs->top+1;
   size_t idx = MSB(top);
 
+  DEBUG(MSG_CGC_PRED_REF,
+	Sdprintf("pushPredicateAccess(%s)\n", predicateName(def)));
+
   if ( !refs->blocks[idx] )
   { size_t bs = (size_t)1<<idx;
     definition_ref *newblock;
@@ -6017,17 +6020,55 @@ pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
   return TRUE;
 }
 
+
+static definition_ref *
+def_ref(const definition_refs *refs, size_t top)
+{ size_t idx = MSB(top);
+
+  return &refs->blocks[idx][top];
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that out-of-order access is possible.   Matt  Lilley created a case
+where the term_expansion/2 rule for end_of_file loads source files using
+forall(clause(chain_modules(M)),     use_module(M)).     This      locks
+chain_modules/1. The created system:'$load_context_module/2'   fact gets
+asserted to the load  context  and  is   popped  when  loading  the file
+completes, while the reference to  chain_modules/1   is  popped when the
+enumeration completes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 popPredicateAccess__LD(Definition def ARG_LD)
 { definition_refs *refs = &LD->predicate_references;
   definition_ref *dref;
-  size_t top = refs->top;
-  size_t idx = MSB(top);
 
-  dref = &refs->blocks[idx][top];
-  assert(dref->predicate == def);
-  dref->predicate  = NULL;
-  dref->generation = 0;
+  DEBUG(MSG_CGC_PRED_REF,
+	Sdprintf("popPredicateAccess(%s)\n", predicateName(def)));
+
+  dref = def_ref(refs, refs->top);
+  if ( dref->predicate == def )
+  { dref->predicate  = NULL;
+    dref->generation = 0;
+  } else
+  { size_t top;
+
+    DEBUG(MSG_CGC_PRED_REF, Sdprintf("  Out or order!\n"));
+    for(top = refs->top; top > 0; top-- )
+    { dref = def_ref(refs, top);
+      if ( dref->predicate == def )
+      { for(; top < refs->top; top++)
+	{ definition_ref *dr2 = def_ref(refs, top+1);
+
+	  *dref = *dr2;
+	  dref = dr2;
+	}
+	goto out;
+      }
+    }
+    assert(0);
+  }
+out:
   leaveDefinition(def);			/* probably not needed in the end */
 
   refs->top--;
@@ -6037,12 +6078,17 @@ size_t
 popNPredicateAccess__LD(size_t n ARG_LD)
 { definition_refs *refs = &LD->predicate_references;
 
+  DEBUG(MSG_CGC_PRED_REF,
+	Sdprintf("popNPredicateAccess(%d)\n", (int)n));
+
   while(n-- > 0)
   { definition_ref *dref;
     size_t top = refs->top;
     size_t idx = MSB(top);
 
     dref = &refs->blocks[idx][top];
+    DEBUG(MSG_CGC_PRED_REF,
+	  Sdprintf("  -- %s\n", predicateName(dref->predicate)));
     leaveDefinition(dref->predicate);
     dref->predicate  = NULL;
     dref->generation = 0;
