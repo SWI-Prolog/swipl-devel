@@ -4332,6 +4332,10 @@ unify_stream_property_list(IOSTREAM *s, term_t plist ARG_LD)
 	     PL_unify(head, prop) );
       if ( !rc )
 	break;
+    } else
+    { if ( PL_exception(0) )
+	break;
+      rc = TRUE;
     }
   }
 
