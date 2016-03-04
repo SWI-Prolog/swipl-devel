@@ -54,11 +54,15 @@ forall(Cond, Action) :-
 %
 %	@deprecated	Almost all usage can be replaced by call/N.
 
+apply(M:Name, Extra) :-
+	atom(Name), !,
+	compound_name_arguments(G, Name, Extra),
+	call(M:G).
 apply(M:Goal, Extra) :-
-	(   callable(Goal)
-	->  Goal =.. List0,
-	    '$append'(List0, Extra, List),
-	    G =.. List,
-	    M:G
-	;   throw(error(type_error(callable, Goal), _))
-	).
+	compound(Goal), !,
+	compound_name_arguments(Goal, Name, Args0),
+	'$append'(Args0, Extra, Args),
+	compound_name_arguments(G, Name, Args),
+	call(M:G).
+apply(_:Goal, _Extra) :-
+	'$type_error'(callable, Goal).
