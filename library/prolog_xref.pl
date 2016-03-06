@@ -1124,6 +1124,7 @@ hook(prolog:help_hook(_)).
 hook(prolog:show_profile_hook(_,_)).
 hook(prolog:general_exception(_,_)).
 hook(prolog:predicate_summary(_,_)).
+hook(prolog:residual_goals(_,_)).
 hook(prolog_edit:load).
 hook(prolog_edit:locate(_,_,_)).
 hook(shlib:unload_all_foreign_libraries).
