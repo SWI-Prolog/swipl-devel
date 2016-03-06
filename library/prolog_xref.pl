@@ -189,7 +189,7 @@ This code is used in two places:
 		 *	     BUILT-INS		*
 		 *******************************/
 
-%%	hide_called(+Callable, +Src) is semidet.
+%%	hide_called(:Callable, +Src) is semidet.
 %
 %	True when the cross-referencer should   not  include Callable as
 %	being   called.   This   is    determined     by    the   option
@@ -202,14 +202,18 @@ hide_called(Callable, _) :-
 	mode_hide_called(non_built_in, Callable).
 
 mode_hide_called(all, _) :- !, fail.
-mode_hide_called(non_iso, Goal) :-
+mode_hide_called(non_iso, _:Goal) :-
 	goal_name_arity(Goal, Name, Arity),
 	current_predicate(system:Name/Arity),
 	predicate_property(system:Goal, iso).
-mode_hide_called(non_built_in, Goal) :-
+mode_hide_called(non_built_in, _:Goal) :-
 	goal_name_arity(Goal, Name, Arity),
 	current_predicate(system:Name/Arity),
 	predicate_property(system:Goal, built_in).
+mode_hide_called(non_built_in, M:Goal) :-
+	goal_name_arity(Goal, Name, Arity),
+	current_predicate(M:Name/Arity),
+	predicate_property(M:Goal, built_in).
 
 %%	built_in_predicate(+Callable)
 %
@@ -1867,7 +1871,7 @@ assert_called(Src, Origin, M:G) :- !,
 	    ->  assert_called(Src, Origin, G)
 	    ;   called(M:G, Src, Origin, Cond) % already registered
 	    ->  true
-	    ;	hide_called(G, Src)		% not interesting (now)
+	    ;	hide_called(M:G, Src)		% not interesting (now)
 	    ->	true
 	    ;   generalise(Origin, OTerm),
 		generalise(G, GTerm)
@@ -1877,8 +1881,11 @@ assert_called(Src, Origin, M:G) :- !,
 	;   true                        % call to variable module
 	).
 assert_called(Src, _, Goal) :-
-	hide_called(Goal, Src),
-	\+ xmodule(system, Src), !.
+	(   xmodule(M, Src)
+	->  M \== system
+	;   M = user
+	),
+	hide_called(M:Goal, Src), !.
 assert_called(Src, Origin, Goal) :-
 	current_condition(Cond),
 	(   called(Goal, Src, Origin, Cond)
