@@ -1713,7 +1713,7 @@ tighten(max, E, V) :- E #> V.
 
 %% all_different(+Vars)
 %
-% Vars are pairwise distinct.
+% Like all_distinct/1, but with weaker propagation.
 
 all_different(Ls) :-
         fd_must_be_list(Ls),
@@ -1732,11 +1732,11 @@ all_different([X|Right], Left, Orig) :-
         ),
         all_different(Right, [X|Left], Orig).
 
-%% all_distinct(+Ls).
+%% all_distinct(+Vars).
 %
-%  Like all_different/1, with stronger propagation. For example,
-%  all_distinct/1 can detect that not all variables can assume distinct
-%  values given the following domains:
+%  True iff Vars are pairwise distinct. For example, all_distinct/1
+%  can detect that not all variables can assume distinct values given
+%  the following domains:
 %
 %  ==
 %  ?- maplist(in, Vs,
