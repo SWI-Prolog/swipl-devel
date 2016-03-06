@@ -369,6 +369,7 @@ term_expansion(safe_primitive(Goal), Term) :-
 	).
 
 system:term_expansion(sandbox:safe_primitive(Goal), Term) :-
+	\+ current_prolog_flag(xref, true),
 	(   verify_safe_declaration(Goal)
 	->  Term = sandbox:safe_primitive(Goal)
 	;   Term = []
