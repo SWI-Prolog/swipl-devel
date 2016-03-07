@@ -41,6 +41,7 @@
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Pure Input from files
 
