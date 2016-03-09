@@ -184,7 +184,7 @@ syntax_error(Culprit) :-
 %	| chars | Proper list of 1-character atoms |
 %	| codes | Proper list of Unicode character codes |
 %	| text | One of =atom=, =string=, =chars= or =codes= |
-%	| between(L,U) | Number between L and U (including L and U) |
+%	| between(L,U) | Integer between L and U (including L and U) |
 %	| nonneg | Integer >= 0 |
 %	| positive_integer | Integer > 0 |
 %	| negative_integer | Integer < 0 |
