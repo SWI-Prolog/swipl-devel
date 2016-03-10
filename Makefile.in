@@ -6,6 +6,7 @@
 
 BUILDARCH=@BUILDARCH@
 CONFIG_OPTIONS=@CONFIG_OPTIONS@
+PACKAGES_CONFIG_OPTIONS=@PACKAGES_CONFIG_OPTIONS@
 
 .PHONY:	lite world packages
 
@@ -66,7 +67,7 @@ world:	packages
 ln-world: world
 
 packages: lite
-	cd packages && ./configure $(CONFIG_OPTIONS)
+	cd packages && ./configure $(CONFIG_OPTIONS) $(PACKAGES_CONFIG_OPTIONS)
 	cd packages && $(MAKE)
 
 install-world::
