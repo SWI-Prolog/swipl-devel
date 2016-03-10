@@ -9,6 +9,7 @@
 
 TARGET=lite
 configoptions=""
+packagesconfigoptions=""
 kerneloptions=""
 
 usage()
@@ -34,9 +35,7 @@ while [ "$1" != "" ]; do
     --with-world)	TARGET=world
 			shift
 			;;
-    --without-*)	pkg=`echo $1 | sed 's/--without-//'`
-			DISABLE_PKGS="$DISABLE_PKGS $pkg"
-			export DISABLE_PKGS
+    --without-*)	packagesconfigoptions="$packagesconfigoptions $1"
 			shift
 			;;
     --link)		TARGET="ln-$TARGET"
@@ -64,6 +63,7 @@ if [ ! -d "$BUILDARCH" ]; then mkdir "$BUILDARCH"; fi
 sed -e "s/@BUILDARCH@/$BUILDARCH/" \
     -e "s/@TARGET@/$TARGET/" \
     -e "s%@CONFIG_OPTIONS@%$configoptions%" \
+    -e "s%@PACKAGES_CONFIG_OPTIONS@%$packagesconfigoptions%" \
 	Makefile.in > Makefile
 
 if [ -d .git ]; then
