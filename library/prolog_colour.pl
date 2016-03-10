@@ -707,9 +707,9 @@ colourise_dcg_goals(List, _, TB, list_position(F,T,Elms,Tail)) :-
 	List = [_|_], !,
 	colour_item(dcg(terminal), TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, classify).
-colourise_dcg_goals(List, _, TB, string_position(F,T)) :-
-	List = [_|_], !,
-	colour_item(dcg(terminal), TB, F-T).
+colourise_dcg_goals(_, _, TB, string_position(F,T)) :-
+	integer(F), !,
+	colour_item(dcg(string), TB, F-T).
 colourise_dcg_goals(Body, Origin, TB, term_position(_,_,FF,FT,ArgPos)) :-
 	dcg_body_compiled(Body), !,	% control structures
 	colour_item(control, TB, FF-FT),
