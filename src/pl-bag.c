@@ -112,6 +112,7 @@ typedef struct findall_bag
 { struct findall_bag *parent;		/* parent bag */
   int		magic;			/* FINDALL_MAGIC */
   int		suspended;		/* Used for findnsols/4  */
+  size_t	suspended_solutions;	/* Already handed out solutions */
   size_t	solutions;		/* count # solutions */
   size_t	gsize;			/* required size on stack */
   mem_pool	records;		/* stored records */
@@ -141,11 +142,12 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
   if ( !bag )
     return PL_no_memory();
 
-  bag->magic     = FINDALL_MAGIC;
-  bag->suspended = FALSE;
-  bag->solutions = 0;
-  bag->gsize     = 0;
-  bag->parent    = LD->bags.bags;
+  bag->magic		   = FINDALL_MAGIC;
+  bag->suspended	   = FALSE;
+  bag->suspended_solutions = 0;
+  bag->solutions	   = 0;
+  bag->gsize		   = 0;
+  bag->parent		   = LD->bags.bags;
   init_mem_pool(&bag->records);
   initSegStack(&bag->answers, sizeof(Record),
 	       sizeof(bag->answer_buf), bag->answer_buf);
@@ -200,7 +202,7 @@ add_findall_bag(term_t term, term_t count ARG_LD)
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
 
   if ( count )
-    return PL_unify_int64(count, bag->solutions);
+    return PL_unify_int64(count, bag->solutions + bag->suspended_solutions);
   else
     return FALSE;
 }
@@ -283,6 +285,9 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
   { case FRG_FIRST_CALL:
       bag = current_bag(PASS_LD1);
       clear_mem_pool(&bag->records);
+      bag->suspended_solutions += bag->solutions;
+      bag->solutions = 0;
+      bag->gsize = 0;
       DEBUG(MSG_NSOLS, Sdprintf("Suspend %p\n", bag));
       bag->suspended = TRUE;
       ForeignRedoPtr(bag);
