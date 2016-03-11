@@ -50,6 +50,24 @@ test(clause, [cleanup(retractall(d(_,_))), Xs == Xsok]) :-
 	forall(between(11,100,X), assertz(d(a,X))),
 	findall(X, claused(a,X), Xs),
 	numlist(11, 100, Xsok).
+test(string, [cleanup(retractall(d(_,_)))]) :-
+	test_index_1(string_concat("a")).
+test(bigint, [condition(current_prolog_flag(bounded, false)),
+	      cleanup(retractall(d(_,_)))]) :-
+	test_index_1(mkbigint(100)).
+test(midint, [cleanup(retractall(d(_,_)))]) :-
+	test_index_1(mkbigint(60)).
+test(float, [cleanup(retractall(d(_,_)))]) :-
+	test_index_1(mkfloat).
+test(string, [cleanup(retractall(d(_,_)))]) :-
+	test_index_2(string_concat("a")).
+test(bigint, [condition(current_prolog_flag(bounded, false)),
+	      cleanup(retractall(d(_,_)))]) :-
+	test_index_2(mkbigint(100)).
+test(midint, [cleanup(retractall(d(_,_)))]) :-
+	test_index_2(mkbigint(60)).
+test(float, [cleanup(retractall(d(_,_)))]) :-
+	test_index_2(mkfloat).
 
 rmd(X,Y) :-
 	retract(d(X, Y)),
@@ -64,5 +82,38 @@ claused(X,Y) :-
 	->  garbage_collect_clauses
 	;   true
 	).
+
+mkbigint(Shift, I, Big) :-
+	Big is 1<<Shift+I.
+mkfloat(I, Float) :-
+	Float is float(I).
+
+:- meta_predicate
+	test_index_1(2),
+	test_index_2(2).
+
+test_index_1(Convert) :-
+	retractall(d(_,_)),
+	forall(between(1, 1000, I),
+	       (   call(Convert, I, D),
+		   assertz(d(D, I))
+	       )),
+	forall(between(1, 1000, I),
+	       (   call(Convert, I, D),
+		   assertion((d(D, I2), I2 == I))
+	       )),
+	assertion(predicate_property(d(_,_), indexed([1-_]))).
+
+test_index_2(Convert) :-
+	retractall(d(_,_)),
+	forall(between(1, 1000, I),
+	       (   call(Convert, I, D),
+		   assertz(d(I, D))
+	       )),
+	forall(between(1, 1000, I),
+	       (   call(Convert, I, D),
+		   assertion((d(I2, D), I2 == I))
+	       )),
+	assertion(predicate_property(d(_,_), indexed([2-_]))).
 
 :- end_tests(jit).
