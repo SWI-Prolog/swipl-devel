@@ -76,46 +76,22 @@ indexOfWord(word w ARG_LD)
   { switch(tag(w))
     { case TAG_VAR:
       case TAG_ATTVAR:
-      case TAG_STRING:
-	return 0L;
-      case TAG_INTEGER:
-	if ( storage(w) != STG_INLINE )
-	{ Word p = valIndirectP(w);
-	  word key;
-
-#if SIZEOF_VOIDP == 4
-          DEBUG(9, Sdprintf("Index for " INT64_FORMAT " = 0x%x\n",
-			    valBignum(w), p[0]^p[1]));
-	  key = p[0]^p[1];
-#else
-	  key = p[0];
-#endif
-	  if ( !key )
-	    key++;
-          return key;
-	}
-        /*FALLTHROUGH*/
+	return 0;
       case TAG_ATOM:
 	break;				/* atom_t */
+      case TAG_INTEGER:
+	if ( storage(w) == STG_INLINE )
+	  break;
+      /*FALLTHROUGH*/
+      case TAG_STRING:
       case TAG_FLOAT:
-      { Word p = valIndirectP(w);
-	word key;
+      { Word p = addressIndirect(w);
+	size_t n = wsizeofInd(*p);
+	word k;
 
-	switch(WORDS_PER_DOUBLE)
-	{ case 2:
-	    key = p[0]^p[1];
-	    break;
-	  case 1:
-	    key = p[0];
-	    break;
-	  default:
-	    assert(0);
-	    return 0L;
-	}
-
-	if ( !key )
-	  key++;
-	return key;
+	k = MurmurHashAligned2(p+1, n*sizeof(*p), MURMUR_SEED);
+	if ( !k ) k = 1;
+	return k;
       }
       case TAG_COMPOUND:
 	w = *valPtr(w);			/* functor_t */

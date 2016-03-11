@@ -3907,6 +3907,13 @@ NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c and arg1Key() below.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline word
+murmur_key(void *ptr, size_t n)
+{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
+  if ( !k ) k = 1;
+  return k;
+}
+
 int
 argKey(Code PC, int skip, word *key)
 { if ( skip > 0 )
@@ -3937,48 +3944,23 @@ argKey(Code PC, int skip, word *key)
         succeed;
 #if SIZEOF_VOIDP == 4
       case H_INT64:			/* only on 32-bit hardware! */
-	{ word k = (word)PC[0] ^ (word)PC[1];
-	  if ( !k )
-	    k++;
-	  *key = k;
-          succeed;
-	}
+	*key = murmur_key(PC, 2*sizeof(*PC));
+	succeed;
 #endif
       case H_INTEGER:
-	{ word k;
-#if SIZEOF_VOIDP == 4
-	  k = (word)*PC;			/* indexOfWord() picks 64-bits */
-	  if ( (intptr_t)k < 0L )
-	    k ^= -1L;
-	  DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
-#else
-	  k = (word)*PC;
-#endif
-	  if ( !k )
-	    k++;
-	  *key = k;
-	  succeed;
-	}
-      case H_FLOAT:			/* tbd */
-      { word k;
-	switch(WORDS_PER_DOUBLE)
-	{ case 2:
-	    k = (word)PC[0] ^ (word)PC[1];
-	    break;
-	  case 1:
-	    k = (word)PC[0];
-	    break;
-	  default:
-	    assert(0);
-	}
-
-	if ( !k )
-	  k++;
-	*key = k;
+	*key = murmur_key(PC, sizeof(*PC));
         succeed;
-      }
+      case H_FLOAT:
+	*key = murmur_key(PC, sizeof(double));
+        succeed;
       case H_STRING:
       case H_MPZ:
+      { word m = *PC++;
+	size_t n = wsizeofInd(m);
+
+	*key = murmur_key(PC, n*sizeof(*PC));
+	succeed;
+      }
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
