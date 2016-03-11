@@ -933,7 +933,7 @@ expand_meta(MetaSpec, Goal, Expanded) :-
 
 colourise_setof(Var^G, TB, term_position(_,_,FF,FT,[VP,GP])) :- !,
 	colourise_term_arg(Var, TB, VP),
-	colour_item(built_in, TB, FF-FT),
+	colour_item(ext_quant, TB, FF-FT),
 	colourise_setof(G, TB, GP).
 colourise_setof(Term, TB, Pos) :-
 	colourise_goal(Term, [], TB, Pos).
@@ -2171,6 +2171,8 @@ syntax_message(dict_return_op) --> !,
 	[ ':= separates function from return value' ].
 syntax_message(dict_function) --> !,
 	[ 'Function on a dict' ].
+syntax_message(ext_quant) --> !,
+	[ 'Existential quantification operator' ].
 
 goal_message(meta, _) -->
 	[ 'Meta call' ].
