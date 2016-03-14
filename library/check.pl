@@ -142,8 +142,7 @@ found_undef(To, _Caller, From) :-
 	->  true
 	;   compiled(PI)
 	->  true
-	;   writeln(PI),
-	    assertz(undef(PI,From))
+	;   assertz(undef(PI,From))
 	).
 
 compiled(system:'$call_cleanup'/0).	% compiled to VM instructions
