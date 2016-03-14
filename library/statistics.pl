@@ -41,6 +41,7 @@
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 
 :- meta_predicate
 	time(0),
@@ -361,17 +362,16 @@ show_profile_(Options) :-
 	prof_statistics(time, Stat, Time),
 	sort_on(Options, SortKey),
 	findall(KeyedNode, prof_node(SortKey, KeyedNode), Nodes),
-	keysort(Nodes, Sorted),
-	reverse(Sorted, HighFirst),
-	format('~61t~69|~n'),
-	format('Total time: ~2f seconds~n', [Time]),
-	format('~61t~69|~n'),
+	sort(1, >=, Nodes, Sorted),
+	format('~`=t~69|~n'),
+	format('Total time: ~3f seconds~n', [Time]),
+	format('~`=t~69|~n'),
 	format('~w~t~w =~45|~t~w~60|~t~w~69|~n',
 	       [ 'Predicate', 'Box Entries', 'Calls+Redos', 'Time'
 	       ]),
-	format('~61t~69|~n'),
+	format('~`=t~69|~n'),
 	option(top(N), Options, 25),
-	show_plain(HighFirst, N, Stat, SortKey).
+	show_plain(Sorted, N, Stat, SortKey).
 
 sort_on(Options, ticks_self) :-
 	option(cumulative(false), Options, false), !.
@@ -585,3 +585,5 @@ stack_stats(Stack, S) -->
 
 sandbox:safe_primitive(prolog_statistics:statistics(_)).
 sandbox:safe_primitive(prolog_statistics:statistics).
+sandbox:safe_meta_predicate(prolog_statistics:profile/1).
+sandbox:safe_meta_predicate(prolog_statistics:profile/2).
