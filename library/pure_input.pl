@@ -175,15 +175,18 @@ lazy_list_location(Here, Location) :-
 	    ;	PosParts = [stream, Stream|Details]
 	    ),
 	    Location =.. PosParts,
-	    stream_position_data(char_count, Pos, EndRecordCharNo),
-	    CharNo is EndRecordCharNo - Skipped,
-	    set_stream_position(Stream, PrevPos),
-	    stream_position_data(char_count, PrevPos, StartRecordCharNo),
-	    Skip is CharNo-StartRecordCharNo,
-	    forall(between(1, Skip, _), get_code(Stream, _)),
-	    stream_property(Stream, position(ErrorPos)),
-	    stream_position_data(line_count, ErrorPos, Line),
-	    stream_position_data(line_position, ErrorPos, LinePos)
+	    (	PrevPos == (-)			% nothing is read.
+	    ->	Line = 1, LinePos = 0, CharNo = 0
+	    ;	stream_position_data(char_count, Pos, EndRecordCharNo),
+		CharNo is EndRecordCharNo - Skipped,
+		set_stream_position(Stream, PrevPos),
+		stream_position_data(char_count, PrevPos, StartRecordCharNo),
+		Skip is CharNo-StartRecordCharNo,
+		forall(between(1, Skip, _), get_code(Stream, _)),
+		stream_property(Stream, position(ErrorPos)),
+		stream_position_data(line_count, ErrorPos, Line),
+		stream_position_data(line_position, ErrorPos, LinePos)
+	    )
 	;   Tail == []
 	->  Location = end_of_file-Skipped
 	;   type_error(lazy_list, Here)
