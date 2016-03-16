@@ -3948,7 +3948,14 @@ argKey(Code PC, int skip, word *key)
 	succeed;
 #endif
       case H_INTEGER:
+#if SIZEOF_VOIDP == 4
+      { int64_t val;
+	val = (int64_t)(intptr_t)*PC;
+	*key = murmur_key(&val, sizeof(val));
+      }
+#else
 	*key = murmur_key(PC, sizeof(*PC));
+#endif
         succeed;
       case H_FLOAT:
 	*key = murmur_key(PC, sizeof(double));
