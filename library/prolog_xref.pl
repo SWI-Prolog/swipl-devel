@@ -79,7 +79,7 @@
 		       module(atom),
 		       register_called(oneof([all,non_iso,non_built_in])),
 		       comments(oneof([store,collect,ignore])),
-		       process_includes(boolean)
+		       process_include(boolean)
 		     ]).
 
 
@@ -257,6 +257,8 @@ verbose(Src) :-
 %	  comments are entered to the xref database and made available
 %	  through xref_mode/2 and xref_comment/4.  If =ignore=,
 %	  comments are simply ignored. Default is to =collect= comments.
+%	  * process_include(+Boolean)
+%	  Process the content of included files (default is `true`).
 %
 %	@param Source	File specification or XPCE buffer
 
@@ -321,6 +323,9 @@ assert_option(Src, comments(CommentHandling)) :- !,
 assert_option(Src, module(Module)) :- !,
 	must_be(atom, Module),
 	assert(xoption(Src, module(Module))).
+assert_option(Src, process_include(Boolean)) :- !,
+	must_be(boolean, Boolean),
+	assert(xoption(Src, process_include(Boolean))).
 
 assert_default_options(Src) :-
 	(   xref_option_default(Opt),
@@ -336,6 +341,7 @@ assert_default_options(Src) :-
 xref_option_default(silent(false)).
 xref_option_default(register_called(non_built_in)).
 xref_option_default(comments(collect)).
+xref_option_default(process_include(true)).
 
 %%	xref_cleanup(+State) is det.
 %
@@ -1717,11 +1723,14 @@ process_include(File, Src) :-
 		)
 	    ->	true
 	    ;	assert(uses_file(File, Src, Path)),
-		findall(O, xoption(Src, O), Options),
-		setup_call_cleanup(
-		    open_include_file(Path, In, Refs),
-		    collect(Src, Path, In, Options),
-		    close_include(In, Refs))
+		(   xoption(Src, process_include(true))
+		->  findall(O, xoption(Src, O), Options),
+		    setup_call_cleanup(
+			open_include_file(Path, In, Refs),
+			collect(Src, Path, In, Options),
+			close_include(In, Refs))
+		;   true
+		)
 	    )
 	;   assert(uses_file(File, Src, '<not_found>'))
 	).
