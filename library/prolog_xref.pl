@@ -1711,12 +1711,17 @@ process_include(File, Src) :-
 	callable(File), !,
 	(   once(xref_input(ParentSrc, _)),
 	    xref_source_file(File, Path, ParentSrc)
-	->  assert(uses_file(File, Src, Path)),
-	    findall(O, xoption(Src, O), Options),
-	    setup_call_cleanup(
-		open_include_file(Path, In, Refs),
-		collect(Src, Path, In, Options),
-		close_include(In, Refs))
+	->  (   (   uses_file(_, Src, Path)
+		;   Path == Src
+		)
+	    ->	true
+	    ;	assert(uses_file(File, Src, Path)),
+		findall(O, xoption(Src, O), Options),
+		setup_call_cleanup(
+		    open_include_file(Path, In, Refs),
+		    collect(Src, Path, In, Options),
+		    close_include(In, Refs))
+	    )
 	;   assert(uses_file(File, Src, '<not_found>'))
 	).
 process_include(_, _).
