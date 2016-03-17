@@ -2978,7 +2978,7 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
       return TRUE;				/* (*) see above */
 
     if ( first->value.clause->owner_no == sf->index )
-    { if ( !reloadHasClauses(sf, proc PASS_LD) )
+    { if ( sf->reload && !reloadHasClauses(sf, proc PASS_LD) )
 	return TRUE;				/* (**) see above */
 
       if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
