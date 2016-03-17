@@ -2192,6 +2192,16 @@ hooking can be databases, (HTTP) URIs, etc.
 xref_source_file(Plain, File, Source) :-
 	xref_source_file(Plain, File, Source, []).
 
+xref_source_file(QSpec, File, Source, Options) :-
+	nonvar(QSpec), QSpec = _:Spec, !,
+	must_be(acyclic, Spec),
+	xref_source_file(Spec, File, Source, Options).
+xref_source_file(Spec, File, Source, Options) :-
+	nonvar(Spec),
+	prolog:xref_source_file(Spec, File,
+				[ relative_to(Source)
+				| Options
+				]), !.
 xref_source_file(Plain, File, Source, Options) :-
 	atom(Plain),
 	\+ is_absolute_file_name(Plain),
@@ -2216,13 +2226,8 @@ xref_source_file(Spec, _, Src, _Options) :-
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.
 
-do_xref_source_file(Spec, _, _) :-
-	var(Spec), !, fail.
-do_xref_source_file(_:Spec, File, Options) :-
-	do_xref_source_file(Spec, File, Options).
 do_xref_source_file(Spec, File, Options) :-
-	prolog:xref_source_file(Spec, File, Options), !.
-do_xref_source_file(Spec, File, Options) :-
+	nonvar(Spec),
 	option(file_type(Type), Options, prolog),
 	absolute_file_name(Spec, File,
 			   [ file_type(Type),
