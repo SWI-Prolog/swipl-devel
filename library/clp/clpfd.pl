@@ -205,8 +205,8 @@ less general primitives by providing declarative alternatives that are
 meant to be used instead.
 
 We recommend the following reference (PDF:
-[metalevel.at/swiclpfd.pdf](http://www.metalevel.at/swiclpfd.pdf)) to
-cite this library in scientific publications:
+[metalevel.at/swiclpfd.pdf](http://www.metalevel.at/swiclpfd.pdf)) for
+citing this library in scientific publications:
 
 ==
 @inproceedings{Triska12,
