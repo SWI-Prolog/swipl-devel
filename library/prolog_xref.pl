@@ -78,7 +78,8 @@
 		     [ silent(boolean),
 		       module(atom),
 		       register_called(oneof([all,non_iso,non_built_in])),
-		       comments(oneof([store,collect,ignore]))
+		       comments(oneof([store,collect,ignore])),
+		       process_includes(boolean)
 		     ]).
 
 
