@@ -1013,7 +1013,8 @@ colourise_option(Opt, OptionDecl, TB, term_position(_,_,FF,FT,ValPosList)) :- !,
 	    Opt =.. [Name|Values],
 	    GenOpt =.. [Name|Types],
 	    colour_option_values(Values, Types, TB, ValPosList)
-	;   colour_item(no_option_name, TB, FF-FT)
+	;   colour_item(no_option_name, TB, FF-FT),
+	    colourise_term_args(ValPosList, 1, Opt, TB)
 	).
 colourise_option(_, _, TB, Pos) :-
 	colour_item(type_error(option), TB, Pos).
