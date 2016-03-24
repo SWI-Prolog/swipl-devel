@@ -523,6 +523,9 @@ predicate_functor_name(H, Name) :-
 :- multifile
 	prolog:message/3.
 
+% NOTE: The code below uses get_dict/3 rather than the functional
+% notation to make this code work with `swipl --traditional`
+
 prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
 	[ '~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
 	  [UsedInf, UsedTime, Wall, Perc, Lips] ],
@@ -543,42 +546,82 @@ msg_statistics([H|T]) -->
 	).
 
 msg_statistics(core, S) -->
-	time_stats(S.time), [nl],
-	data_stats(S.data), [nl,nl],
-	stacks_stats(S.stacks).
+	{ get_dict(time, S, Time),
+	  get_dict(data, S, Data),
+	  get_dict(stacks, S, Stacks)
+	},
+	time_stats(Time), [nl],
+	data_stats(Data), [nl,nl],
+	stacks_stats(Stacks).
 msg_statistics(gc, S) -->
-	{ S.type == stack -> Label = '' ; string_concat(S.type, " ", Label) },
+	{   (   get_dict(type, S, stack)
+	    ->  Label = ''
+	    ;   get_dict(type, S, Type),
+		string_concat(Type, " ", Label)
+	    ),
+	    get_dict(count, S, Count),
+	    get_dict(gained, S, Gained),
+	    get_dict(unit, S, Unit),
+	    get_dict(time, S, Time)
+	},
 	[ '~D ~wgarbage collections gained ~D ~ws in ~3f seconds.'-
-	  [ S.count, Label, S.gained, S.unit, S.time]
+	  [ Count, Label, Gained, Unit, Time]
 	].
 msg_statistics(shift, S) -->
+	{ get_dict(local, S, Local),
+	  get_dict(global, S, Global),
+	  get_dict(trail, S, Trail),
+	  get_dict(time, S, Time)
+	},
 	[ 'Stack shifts: ~D local, ~D global, ~D trail in ~3f seconds'-
-	  [ S.local, S.global, S.trail, S.time ]
+	  [ Local, Global, Trail, Time ]
 	].
 msg_statistics(thread, S) -->
+	{ get_dict(count, S, Count),
+	  get_dict(finished, S, Finished),
+	  get_dict(time, S, Time)
+	},
 	[ '~D threads, ~D finished threads used ~3f seconds'-
-	  [S.count, S.finished, S.time]
+	  [Count, Finished, Time]
 	].
 
 time_stats(T) -->
-	{ format_time(string(Epoch), '%+', T.epoch) },
+	{ get_dict(epoch, T, Epoch),
+	  format_time(string(Epoch), '%+', Epoch),
+	  get_dict(cpu, T, CPU),
+	  get_dict(inferences, T, Inferences)
+	},
 	[ 'Started at ~s'-[Epoch], nl,
 	  '~3f seconds cpu time for ~D inferences'-
-	  [ T.cpu, T.inferences ]
+	  [ CPU, Inferences ]
 	].
 data_stats(C) -->
+	{ get_dict(atoms, C, Atoms),
+	  get_dict(functors, C, Functors),
+	  get_dict(predicates, C, Predicates),
+	  get_dict(modules, C, Modules),
+	  get_dict(vm_codes, C, VMCodes)
+	},
 	[ '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes'-
-	  [ C.atoms, C.functors, C.predicates, C.modules, C.vm_codes]
+	  [ Atoms, Functors, Predicates, Modules, VMCodes]
 	].
 stacks_stats(S) -->
+	{ get_dict(local, S, Local),
+	  get_dict(global, S, Global),
+	  get_dict(trail, S, Trail)
+	},
 	[ '~|~tLimit~28+~tAllocated~13+~tIn use~13+'-[], nl ],
-	stack_stats('Local ', S.local),  [nl],
-	stack_stats('Global', S.global), [nl],
-	stack_stats('Trail ', S.trail),  [nl].
+	stack_stats('Local ', Local),  [nl],
+	stack_stats('Global', Global), [nl],
+	stack_stats('Trail ', Trail),  [nl].
 
 stack_stats(Stack, S) -->
+	{ get_dict(limit, S, Limit),
+	  get_dict(allocated, S, Allocated),
+	  get_dict(usage, S, Usage)
+	},
 	[ '~|~w stack:~t~D~28+ ~t~D~13+ ~t~D~13+ Bytes'-
-	  [Stack, S.limit, S.allocated, S.usage]
+	  [Stack, Limit, Allocated, Usage]
 	].
 
 :- multifile sandbox:safe_primitive/1.
