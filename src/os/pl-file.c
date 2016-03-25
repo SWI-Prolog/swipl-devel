@@ -2395,12 +2395,11 @@ skip_cr(IOSTREAM *s)
 }
 
 
-static
-PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
-{ PRED_LD
-  IOSTREAM *s;
+static foreign_t
+read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
+{ IOSTREAM *s;
 
-  if ( getInputStream(A1, S_DONTCARE, &s) )
+  if ( getInputStream(input, S_DONTCARE, &s) )
   { char buf[MAX_PENDING];
     ssize_t n;
     int64_t off0 = Stell64(s);
@@ -2415,7 +2414,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
       return streamStatus(s);
     if ( n == 0 )			/* end-of-file */
     { S__fcheckpasteeof(s, -1);
-      return PL_unify(A2, A3);
+      return PL_unify(list, tail);
     }
     if ( s->position )
     { pos0 = *s->position;
@@ -2603,7 +2602,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
         return FALSE;
     }
 
-    if ( !unifyDiffList(A2, A3, &ctx) )
+    if ( !unifyDiffList(list, tail, &ctx) )
       goto failure;
 
     releaseStream(s);
@@ -2618,6 +2617,14 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
   }
 
   return FALSE;
+}
+
+
+static
+PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
+{ PRED_LD
+
+  return read_pending_input(A1, A2, A3, FALSE PASS_LD);
 }
 
 
