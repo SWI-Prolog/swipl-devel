@@ -587,11 +587,11 @@ msg_statistics(thread, S) -->
 
 time_stats(T) -->
 	{ get_dict(epoch, T, Epoch),
-	  format_time(string(Epoch), '%+', Epoch),
+	  format_time(string(EpochS), '%+', Epoch),
 	  get_dict(cpu, T, CPU),
 	  get_dict(inferences, T, Inferences)
 	},
-	[ 'Started at ~s'-[Epoch], nl,
+	[ 'Started at ~s'-[EpochS], nl,
 	  '~3f seconds cpu time for ~D inferences'-
 	  [ CPU, Inferences ]
 	].
