@@ -85,7 +85,7 @@ socket_recv_code(StreamPair, String, Length) :-
 	(   at_end_of_stream(StreamPair)
 	->  String = "",
 	    Length = -1
-	;   read_pending_input(StreamPair, String, []),
+	;   read_pending_codes(StreamPair, String, []),
 	    length(String, Length)
 	).
 
