@@ -1174,7 +1174,6 @@ compile_meta_call(CallIn, CallOut, Module, Term) :-
 
 compile_auxiliary_clause(Module, Clause) :-
 	Clause = (Head:-Body),
-	functor(Head, Name, Arity),
 	'$current_source_module'(SM),
 	(   predicate_property(SM:Head, defined)
 	->  true
