@@ -2394,10 +2394,17 @@ skip_cr(IOSTREAM *s)
   return FALSE;
 }
 
-
 static foreign_t
 read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 { IOSTREAM *s;
+
+#define ADD_CODE(c) \
+	do \
+	{ if ( likely(chars==FALSE) ) \
+	    addSmallIntList(&ctx, c); \
+	  else \
+	    addCharList(&ctx, c); \
+	} while(0)
 
   if ( getInputStream(input, S_DONTCARE, &s) )
   { char buf[MAX_PENDING];
@@ -2440,7 +2447,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+n;
@@ -2482,7 +2489,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+us-buf;
@@ -2532,7 +2539,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+us-buf;
@@ -2562,7 +2569,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 
 	done = count*2;
@@ -2587,7 +2594,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 
 	done = count*sizeof(pl_wchar_t);
@@ -2621,10 +2628,18 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 
 
 static
-PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
+PRED_IMPL("read_pending_codes", 3, read_pending_codes, 0)
 { PRED_LD
 
   return read_pending_input(A1, A2, A3, FALSE PASS_LD);
+}
+
+
+static
+PRED_IMPL("read_pending_chars", 3, read_pending_chars, 0)
+{ PRED_LD
+
+  return read_pending_input(A1, A2, A3, TRUE PASS_LD);
 }
 
 
@@ -5234,7 +5249,8 @@ BeginPredDefs(file)
   PRED_DEF("wait_for_input", 3, wait_for_input, 0)
 #endif
   PRED_DEF("get_single_char", 1, get_single_char, 0)
-  PRED_DEF("read_pending_input", 3, read_pending_input, 0)
+  PRED_DEF("read_pending_codes", 3, read_pending_codes, 0)
+  PRED_DEF("read_pending_chars", 3, read_pending_chars, 0)
   PRED_DEF("source_location", 2, source_location, 0)
   PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
   PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)

@@ -25,8 +25,8 @@
 #ifndef PL_PRIVITF_H_INCLUDED
 #define PL_PRIVITF_H_INCLUDED
 
-COMMON(int) 	PL_get_char(term_t c, int *p, int eof);
-COMMON(int) 	PL_unify_char(term_t chr, int c, int mode);
+COMMON(int)	PL_get_char(term_t c, int *p, int eof);
+COMMON(int)	PL_unify_char(term_t chr, int c, int mode);
 COMMON(int)	PL_unify_predicate(term_t head, predicate_t pred, int how);
 
 
@@ -62,14 +62,15 @@ typedef struct list_ctx
 } list_ctx;
 
 static inline void
-addSmallIntList__LD(list_ctx *ctx, int value ARG_LD)
+addAtomicList__LD(list_ctx *ctx, word value ARG_LD)
 { ctx->gstore[0] = consPtr(&ctx->gstore[1], TAG_COMPOUND|STG_GLOBAL);
   ctx->gstore[1] = FUNCTOR_dot2;
-  ctx->gstore[2] = consInt(value);
+  ctx->gstore[2] = value;
   ctx->gstore += 3;
 }
 
-#define addSmallIntList(ctx, i) addSmallIntList__LD(ctx, (i) PASS_LD)
+#define addSmallIntList(ctx, i) addAtomicList__LD(ctx, consInt(i)    PASS_LD)
+#define addCharList(ctx, c)     addAtomicList__LD(ctx, codeToAtom(c) PASS_LD)
 
 COMMON(int)	allocList(size_t maxcells, list_ctx *ctx);
 COMMON(int)	unifyList(term_t term, list_ctx *ctx);

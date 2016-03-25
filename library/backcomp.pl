@@ -50,6 +50,7 @@
 	    read_clause/2,		% +Stream, -Term
 	    read_variables/2,		% -Term, -VariableNames
 	    read_variables/3,		% +Stream, -Term, -VariableNames
+	    read_pending_input/3,	% +Stream, -List, ?Tail
 	    feature/2,
 	    set_feature/2,
 	    substring/4,
@@ -249,6 +250,13 @@ read_variables(Term, Vars) :-
 
 read_variables(Stream, Term, Vars) :-
 	read_term(Stream, Term, [variable_names(Vars)]).
+
+%%	read_pending_input(+Stream, -Codes, ?Tail) is det.
+%
+%	@deprecated Use read_pending_codes/3.
+
+read_pending_input(Stream, Codes, Tail) :-
+	read_pending_codes(Stream, Codes, Tail).
 
 %%	feature(?Key, ?Value) is nondet.
 %%	set_feature(+Key, @Term) is det.
