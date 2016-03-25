@@ -857,6 +857,9 @@ printMessage(atom_t severity, ...)
 			     pred, av);
     } else if ( LD->in_print_message <= OK_RECURSIVE*2 )
     { Sfprintf(Serror, "Message: ");
+      if ( ReadingSource )
+	Sfprintf(Serror, "%s:%d ",
+		 PL_atom_chars(source_file_name), (int)source_line_no);
       rc = PL_write_term(Serror, av+1, 1200, 0);
       Sfprintf(Serror, "\n");
     } else				/* in_print_message == 2 */
