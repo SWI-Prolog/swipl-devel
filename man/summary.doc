@@ -518,8 +518,8 @@ suggest predicates from a keyword.
 \predicatesummary{read_clause}{3}{Read clause from stream}
 \predicatesummary{read_history}{6}{Read using history substitution}
 \predicatesummary{read_link}{3}{Read a symbolic link}
-\predicatesummary{read_pending_codes}{3}{Fetch buffered input from a stream}
-\predicatesummary{read_pending_chars}{3}{Fetch buffered input from a stream}
+\predicatesummary{get_pending_codes}{3}{Fetch buffered input from a stream}
+\predicatesummary{get_pending_chars}{3}{Fetch buffered input from a stream}
 \predicatesummary{read_string}{3}{Read a number of characters into a string}
 \predicatesummary{read_string}{5}{Read string upto a delimiter}
 \predicatesummary{read_term}{2}{Read term with options}

@@ -2628,7 +2628,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 
 
 static
-PRED_IMPL("read_pending_codes", 3, read_pending_codes, 0)
+PRED_IMPL("get_pending_codes", 3, get_pending_codes, 0)
 { PRED_LD
 
   return read_pending_input(A1, A2, A3, FALSE PASS_LD);
@@ -2636,7 +2636,7 @@ PRED_IMPL("read_pending_codes", 3, read_pending_codes, 0)
 
 
 static
-PRED_IMPL("read_pending_chars", 3, read_pending_chars, 0)
+PRED_IMPL("get_pending_chars", 3, get_pending_chars, 0)
 { PRED_LD
 
   return read_pending_input(A1, A2, A3, TRUE PASS_LD);
@@ -5249,8 +5249,8 @@ BeginPredDefs(file)
   PRED_DEF("wait_for_input", 3, wait_for_input, 0)
 #endif
   PRED_DEF("get_single_char", 1, get_single_char, 0)
-  PRED_DEF("read_pending_codes", 3, read_pending_codes, 0)
-  PRED_DEF("read_pending_chars", 3, read_pending_chars, 0)
+  PRED_DEF("get_pending_codes", 3, get_pending_codes, 0)
+  PRED_DEF("get_pending_chars", 3, get_pending_chars, 0)
   PRED_DEF("source_location", 2, source_location, 0)
   PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
   PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)

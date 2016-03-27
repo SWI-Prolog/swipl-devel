@@ -4496,7 +4496,7 @@ between two text files.  See \secref{encoding}.
 Copy all (remaining) data from \arg{StreamIn} to
 \arg{StreamOut}.
 
-    \predicate{read_pending_codes}{3}{+StreamIn, -Codes, ?Tail}
+    \predicate{get_pending_codes}{3}{+StreamIn, -Codes, ?Tail}
 Read input pending in the input buffer of \arg{StreamIn} and return
 it in the difference list \arg{Codes}-\arg{Tail}. That is, the
 available characters codes are used to create the list \arg{Codes}
@@ -4517,15 +4517,15 @@ copy(In, Out) :-
 	repeat,
 	    (	at_end_of_stream(In)
 	    ->	!
-	    ;	read_pending_codes(In, Chars, []),
+	    ;	get_pending_codes(In, Chars, []),
 		format(Out, '~s', [Chars]),
 		flush_output(Out),
 		fail
 	    ).
 \end{code}
 
-    \predicate{read_pending_chars}{3}{+StreamIn, -Chars, ?Tail}
-As read_pending_codes/3, but returns a difference list of one-character
+    \predicate{get_pending_chars}{3}{+StreamIn, -Chars, ?Tail}
+As get_pending_codes/3, but returns a difference list of one-character
 atoms.
 \end{description}
 

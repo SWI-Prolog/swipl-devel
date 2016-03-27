@@ -253,10 +253,10 @@ read_variables(Stream, Term, Vars) :-
 
 %%	read_pending_input(+Stream, -Codes, ?Tail) is det.
 %
-%	@deprecated Use read_pending_codes/3.
+%	@deprecated Use get_pending_codes/3.
 
 read_pending_input(Stream, Codes, Tail) :-
-	read_pending_codes(Stream, Codes, Tail).
+	get_pending_codes(Stream, Codes, Tail).
 
 %%	feature(?Key, ?Value) is nondet.
 %%	set_feature(+Key, @Term) is det.
