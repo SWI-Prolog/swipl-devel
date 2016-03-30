@@ -97,7 +97,7 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
   term_t ex = PL_new_term_ref();
   term_t h = PL_new_term_ref();
   term_t l = PL_copy_term_ref(A2);
-  int done = 0;
+  size_t done = 0;
   fid_t fid;
 
   if ( !(fid=PL_open_foreign_frame()) )
