@@ -107,7 +107,7 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
   { if ( ++done % 10000 == 0 )
     { if ( PL_handle_signals() < 0 )
 	return FALSE;
-      if ( done == 10000 && !PL_is_acyclic(l) )
+      if ( done > usedStack(global)/(sizeof(word)*2) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, A2);
     }
 
