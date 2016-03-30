@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -614,40 +614,35 @@ is_set(Set) :-
 %	@see	sort/2 can be used to create an ordered set.  Many
 %		set operations on ordered sets are order N rather than
 %		order N**2.  The list_to_set/2 predicate is more
-%		expensive than sort/2 because it involves, in addition
-%		to a sort, three linear scans of the list.
+%		expensive than sort/2 because it involves, two sorts
+%		and a linear scan.
 %	@compat	Up to version 6.3.11, list_to_set/2 had complexity
 %		N**2 and equality was tested using =/2.
 %	@error	List is type-checked.
-%	@author	Ulrich Neumerkel
 
 list_to_set(List, Set) :-
 	must_be(list, List),
-	pairs_keys(Indexed, List),	% Create pairs Value-Var
-	keysort(Indexed, ByValue),
-	equalize(ByValue),		% Unify vars of same value
-        pairs_to_keyset(Indexed,Set).	% Select the first one
+	number_list(List, 1, Numbered),
+	sort(1, @=<, Numbered, ONum),
+	remove_dup_keys(ONum, NumSet),
+	sort(2, @=<, NumSet, ONumSet),
+	pairs_keys(ONumSet, Set).
 
-equalize([]).
-equalize([K-I|KIs]) :-
-	equalize_to(KIs, K, I).
+number_list([], _, []).
+number_list([H|T0], N, [H-N|T]) :-
+	N1 is N+1,
+	number_list(T0, N1, T).
 
-equalize_to([], _, _).
-equalize_to([K-I|KIs], Kr, Ir) :-
-	(   K == Kr
-	->  I = Ir,
-	    equalize_to(KIs, Kr, Ir)
-	;   equalize_to(KIs, K, I)
-	).
+remove_dup_keys([], []).
+remove_dup_keys([H|T0], [H|T]) :-
+	H = V-_,
+	remove_same_key(T0, V, T1),
+	remove_dup_keys(T1, T).
 
-pairs_to_keyset([], []).
-pairs_to_keyset([K-I|KIs], Ks0) :-
-	var(I), !,
-	I = v,
-	Ks0 = [K|Ks],
-	pairs_to_keyset(KIs, Ks).
-pairs_to_keyset([_KI|KIs], Ks) :-
-	pairs_to_keyset(KIs, Ks).
+remove_same_key([V1-_|T0], V, T) :-
+	V1 == V, !,
+	remove_same_key(T0, V, T).
+remove_same_key(L, _, L).
 
 
 %%	intersection(+Set1, +Set2, -Set3) is det.
