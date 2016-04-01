@@ -183,6 +183,19 @@ your programs. For satisfactory performance, arithmetic constraints
 are implicitly rewritten at compilation time so that low-level
 fallback predicates are automatically used whenever possible.
 
+Integer arithmetic is pervasive in logic programs. In fact, almost all
+Prolog programs also reason about integers in one way or another.
+Therefore, it is highly advisable that you use this library in all
+your programs. One way to do this is to put the following directive in
+your ~/.swiplrc initialisation file:
+
+==
+:- use_module(library(clpfd)).
+==
+
+All example programs that appear in the CLP(FD) documentation assume
+that you have done this.
+
 Important concepts and principles of this library are illustrated by
 means of usage examples that are available in a public git repository:
 [**github.com/triska/clpfd**](https://github.com/triska/clpfd)
@@ -298,8 +311,6 @@ more general programs.
 Here is an example, relating each natural number to its factorial:
 
 ==
-:- use_module(library(clpfd)).
-
 n_factorial(0, 1).
 n_factorial(N, F) :-
         N #> 0,
@@ -383,8 +394,6 @@ denote distinct integers between 0 and 9. It can be modeled in CLP(FD)
 as follows:
 
 ==
-:- use_module(library(clpfd)).
-
 puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
         Vars = [S,E,N,D,M,O,R,Y],
         Vars ins 0..9,
@@ -482,10 +491,6 @@ When reasoning over Boolean variables, also consider using
 Here is an example session with a few queries and their answers:
 
 ==
-?- use_module(library(clpfd)).
-% library(clpfd) compiled into clpfd 0.06 sec, 633,732 bytes
-true.
-
 ?- X #> 3.
 X in 4..sup.
 
@@ -534,8 +539,6 @@ currently, let us define a new custom constraint `oneground(X,Y,Z)`,
 where Z shall be 1 if at least one of X and Y is instantiated:
 
 ==
-:- use_module(library(clpfd)).
-
 :- multifile clpfd:run_propagator/2.
 
 oneground(X, Y, Z) :-
@@ -2751,8 +2754,6 @@ X #< Y  :- Y #> X.
 % finite domain variables to the number of occurrences of a given value:
 %
 % ==
-% :- use_module(library(clpfd)).
-%
 % vs_n_num(Vs, N, Num) :-
 %         maplist(eq_b(N), Vs, Bs),
 %         sum(Bs, #=, Num).
@@ -3590,8 +3591,6 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % length 3 from A to D via trains that are part of the given schedule.
 %
 % ==
-% :- use_module(library(clpfd)).
-%
 % trains([[1,2,0,1],
 %         [2,3,4,5],
 %         [2,3,0,1],
@@ -6141,8 +6140,6 @@ a_not_in_b([_,AX,AW,AY,AH], [_,BX,BW,BY,BH]) :-
 %  contain at least two consecutive ones:
 %
 %  ==
-%  :- use_module(library(clpfd)).
-%
 %  two_consecutive_ones(Vs) :-
 %          automaton(Vs, [source(a),sink(c)],
 %                    [arc(a,0,a), arc(a,1,b),
@@ -6194,8 +6191,6 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  and strictly descending subsequences:
 %
 %  ==
-%  :- use_module(library(clpfd)).
-%
 %  sequence_inflexions(Vs, N) :-
 %          variables_signature(Vs, Sigs),
 %          automaton(Sigs, _, Sigs,
@@ -6361,8 +6356,6 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  instance Sudoku:
 %
 %  ==
-%  :- use_module(library(clpfd)).
-%
 %  sudoku(Rows) :-
 %          length(Rows, 9), maplist(same_length(Rows), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
@@ -6427,8 +6420,6 @@ list_first_rest([L|Ls], L, Ls).
 % For example:
 %
 % ==
-% :- use_module(library(clpfd)).
-%
 % n_factorial(N, F) :-
 %         zcompare(C, N, 0),
 %         n_factorial_(C, N, F).
