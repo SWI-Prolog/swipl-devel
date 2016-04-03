@@ -200,14 +200,6 @@ Important concepts and principles of this library are illustrated by
 means of usage examples that are available in a public git repository:
 [**github.com/triska/clpfd**](https://github.com/triska/clpfd)
 
-When teaching Prolog, CLP(FD) constraints should be introduced
-_before_ explaining low-level arithmetic predicates and their
-procedural idiosyncrasies. This is because constraints are easy to
-explain, understand and use due to their purely relational nature. In
-contrast, the modedness and directionality of low-level arithmetic
-primitives are impure limitations that are better deferred to more
-advanced lectures.
-
 If you are used to the complicated operational considerations that
 low-level arithmetic primitives necessitate, then moving to CLP(FD)
 constraints may, due to their power and convenience, at first feel to
@@ -216,6 +208,14 @@ integral part of many Prolog systems and are available to help you
 eliminate and avoid, as far as possible, the use of low-level and
 less general primitives by providing declarative alternatives that are
 meant to be used instead.
+
+When teaching Prolog, CLP(FD) constraints should be introduced
+_before_ explaining low-level arithmetic predicates and their
+procedural idiosyncrasies. This is because constraints are easy to
+explain, understand and use due to their purely relational nature. In
+contrast, the modedness and directionality of low-level arithmetic
+primitives are impure limitations that are better deferred to more
+advanced lectures.
 
 We recommend the following reference (PDF:
 [metalevel.at/swiclpfd.pdf](http://www.metalevel.at/swiclpfd.pdf)) for
