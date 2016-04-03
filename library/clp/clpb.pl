@@ -1459,8 +1459,9 @@ attribute_goals(Var) -->
         (   { root_get_formula_bdd(Root, Formula, BDD) } ->
             { del_bdd(Root) },
             (   { current_prolog_flag(clpb_residuals, bdd) } ->
-                { bdd_nodes(BDD, Nodes) },
-                nodes(Nodes)
+                { bdd_nodes(BDD, Nodes),
+                  phrase(nodes(Nodes), Ns) },
+                ['$clpb_bdd'(Ns)]
             ;   { phrase(sat_ands(Formula), Ands0),
                   ands_fusion(Ands0, Ands),
                   maplist(formula_anf, Ands, ANFs0),
@@ -1478,13 +1479,7 @@ attribute_goals(Var) -->
               maplist(del_clpb, Vs),
               term_variables(Formula, RestVs0),
               include(clpb_variable, RestVs0, RestVs) },
-            booleans(RestVs),
-            (   { current_prolog_flag(clpb_residuals, graphviz) } ->
-                { bdd_nodes(BDD, Nodes),
-                  nodes_dot_digraph(Nodes, Dot) },
-                [Dot]
-            ;   []
-            )
+            booleans(RestVs)
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
 
@@ -1587,9 +1582,10 @@ pairs_([B|Bs], A) --> [A-B], pairs_(Bs, A).
 
 nodes([]) --> [].
 nodes([Node|Nodes]) -->
-        { node_var_low_high(Node, Var, Low, High),
+        { node_var_low_high(Node, Var0, Low, High),
+          var_or_atom(Var0, Var),
           maplist(node_projection, [Node,High,Low], [ID,HID,LID]),
-          var_index(Var, VI) },
+          var_index(Var0, VI) },
         [ID-(v(Var,VI) -> HID ; LID)],
         nodes(Nodes).
 
@@ -1599,32 +1595,6 @@ node_projection(Node, Projection) :-
         (   integer(ID) -> Projection = node(ID)
         ;   Projection = ID
         ).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   If clpb_residuals is set to graphviz, a dot/1 term is emitted.
-   This can be displayed in SWISH using the graphviz render.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-nodes_dot_digraph(Nodes, dot(digraph(Stmts))) :-
-        maplist(node_then_else, Nodes, Thens, Elses),
-        phrase((nodes_labels(Nodes),
-                [node(false, [fontname='Palatino-Bold']),
-                 node(true, [fontname='Palatino-Bold'])],
-                [edge([style='filled'])],
-                list(Thens),
-                [edge([style='dotted'])],
-                list(Elses)), Stmts).
-
-nodes_labels([]) --> [].
-nodes_labels([Node|Nodes]) -->
-        { node_id(Node, ID),
-          node_var_low_high(Node, Var, _, _) },
-        [node(ID, [label=Var])],
-        nodes_labels(Nodes).
-
-node_then_else(Node, (ID->Then), (ID->Else)) :-
-        node_var_low_high(Node, _, Low, High),
-        maplist(node_id, [Node,Low,High], [ID,Else,Then]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    By default, residual goals are sat/1 calls of the remaining formulas,
