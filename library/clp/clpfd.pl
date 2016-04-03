@@ -203,10 +203,10 @@ If you are used to the complicated operational considerations that
 low-level arithmetic primitives necessitate, then moving to CLP(FD)
 constraints may, due to their power and convenience, at first feel to
 you excessive and almost like cheating. It _isn't_. Constraints are an
-integral part of many Prolog systems and are available to help you
-eliminate and avoid, as far as possible, the use of low-level and
-less general primitives by providing declarative alternatives that are
-meant to be used instead.
+integral part of all popular Prolog systems, and they are designed
+to help you eliminate and avoid the use of low-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
 
 When teaching Prolog, CLP(FD) constraints should be introduced
 _before_ explaining low-level arithmetic predicates and their
