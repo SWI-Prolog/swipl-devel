@@ -1478,9 +1478,17 @@ attribute_goals(Var) -->
               maplist(del_clpb, Vs),
               term_variables(Formula, RestVs0),
               include(clpb_variable, RestVs0, RestVs) },
-            booleans(RestVs)
+            booleans(RestVs),
+            (   { current_prolog_flag(clpb_residuals, graphviz) } ->
+                { bdd_nodes(BDD, Nodes),
+                  nodes_dot_digraph(Nodes, Dot) },
+                [Dot]
+            ;   []
+            )
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
+
+del_clpb(Var) :- del_attr(Var, clpb).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Fuse formulas that share the same variables into single conjunctions.
@@ -1592,8 +1600,31 @@ node_projection(Node, Projection) :-
         ;   Projection = ID
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   If clpb_residuals is set to graphviz, a dot/1 term is emitted.
+   This can be displayed in SWISH using the graphviz render.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-del_clpb(Var) :- del_attr(Var, clpb).
+nodes_dot_digraph(Nodes, dot(digraph(Stmts))) :-
+        maplist(node_then_else, Nodes, Thens, Elses),
+        phrase((nodes_labels(Nodes),
+                % [node(false, [fontname='Palatino-Bold']),
+                %  node(true, [fontname='Palatino-Bold'])],
+                [edge([style='filled'])],
+                list(Thens),
+                [edge([style='dotted'])],
+                list(Elses)), Stmts).
+
+nodes_labels([]) --> [].
+nodes_labels([Node|Nodes]) -->
+        { node_id(Node, ID),
+          node_var_low_high(Node, Var, _, _) },
+        [node(ID, [label=Var])],
+        nodes_labels(Nodes).
+
+node_then_else(Node, (ID->Then), (ID->Else)) :-
+        node_var_low_high(Node, _, Low, High),
+        maplist(node_id, [Node,Low,High], [ID,Else,Then]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    By default, residual goals are sat/1 calls of the remaining formulas,
