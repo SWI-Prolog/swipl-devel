@@ -183,11 +183,10 @@ your programs. For satisfactory performance, arithmetic constraints
 are implicitly rewritten at compilation time so that low-level
 fallback predicates are automatically used whenever possible.
 
-Integer arithmetic is pervasive in logic programs. In fact, almost all
-Prolog programs also reason about integers in one way or another.
-Therefore, it is highly advisable that you use this library in all
-your programs. One way to do this is to put the following directive in
-your ~/.swiplrc initialisation file:
+Almost all Prolog programs also reason about integers. Therefore, it
+is highly advisable that you make the constraints of this library
+available in all your programs. One way to do this is to put the
+following directive in your ~/.swiplrc initialisation file:
 
 ==
 :- use_module(library(clpfd)).
