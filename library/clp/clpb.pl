@@ -1608,8 +1608,8 @@ node_projection(Node, Projection) :-
 nodes_dot_digraph(Nodes, dot(digraph(Stmts))) :-
         maplist(node_then_else, Nodes, Thens, Elses),
         phrase((nodes_labels(Nodes),
-                % [node(false, [fontname='Palatino-Bold']),
-                %  node(true, [fontname='Palatino-Bold'])],
+                [node(false, [fontname='Palatino-Bold']),
+                 node(true, [fontname='Palatino-Bold'])],
                 [edge([style='filled'])],
                 list(Thens),
                 [edge([style='dotted'])],
