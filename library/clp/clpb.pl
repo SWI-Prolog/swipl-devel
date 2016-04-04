@@ -1461,7 +1461,7 @@ attribute_goals(Var) -->
             (   { current_prolog_flag(clpb_residuals, bdd) } ->
                 { bdd_nodes(BDD, Nodes),
                   phrase(nodes(Nodes), Ns) },
-                ['$clpb_bdd'(Ns)]
+                [clpb:'$clpb_bdd'(Ns)]
             ;   { phrase(sat_ands(Formula), Ands0),
                   ands_fusion(Ands0, Ands),
                   maplist(formula_anf, Ands, ANFs0),
@@ -1471,7 +1471,7 @@ attribute_goals(Var) -->
                 sats(ANFs)
             ),
             (   { get_attr(Var, clpb_atom, Atom) } ->
-                [sat(Var=:=Atom)]
+                [clpb:sat(Var=:=Atom)]
             ;   []
             ),
             % formula variables not occurring in the BDD should be booleans
@@ -1602,14 +1602,14 @@ node_projection(Node, Projection) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sats([]) --> [].
-sats([A|As]) --> [sat(A)], sats(As).
+sats([A|As]) --> [clpb:sat(A)], sats(As).
 
 booleans([]) --> [].
 booleans([B|Bs]) --> boolean(B), { del_clpb(B) }, booleans(Bs).
 
 boolean(Var) -->
         (   { get_attr(Var, clpb_omit_boolean, true) } -> []
-        ;   [sat(Var =:= Var)]
+        ;   [clpb:sat(Var =:= Var)]
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
