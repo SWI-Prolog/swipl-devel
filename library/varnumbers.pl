@@ -31,9 +31,12 @@
 	  [ numbervars/1,			% +Term
 	    varnumbers/2,			% +Term, -Copy
 	    max_var_number/3,			% +Term, +Start, -Max
-	    varnumbers/3			% +Term, +No, -Copy
+	    varnumbers/3,			% +Term, +No, -Copy
+	    varnumbers_names/3			% +Term, -Copy, -VariableNames
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(assoc)).
+:- use_module(library(apply)).
 
 /** <module> Utilities for numbered terms
 
@@ -98,7 +101,6 @@ varnumbers(Term, Min, Copy) :-
 	    varnumbers(Term, MaxStart, Vars, Copy)
 	).
 
-
 varnumbers(Var, _, _, Copy) :-
 	var(Var), !,
 	Copy = Var.
@@ -123,7 +125,6 @@ varnumbers_args(I, Arity, Term, Min, Vars, Copy) :-
 	I2 is I + 1,
 	varnumbers_args(I2, Arity, Term, Min, Vars, Copy).
 varnumbers_args(_, _, _, _, _, _).
-
 
 %%	roundup_next_power_two(+Int, -NextPower) is det.
 %
@@ -156,3 +157,48 @@ max_var_numberl(I, T, Max0, Max) :-
 	I2 is I-1,
 	max_var_number(Arg, Max0, Max1),
 	max_var_numberl(I2, T, Max1, Max).
+
+%%	varnumbers_names(+Term, -Copy, -VariableNames) is det.
+%
+%	If Term is a term with numbered   and  named variables using the
+%	reserved term '$VAR'(X), Copy  is  a   copy  of  Term where each
+%	'$VAR'(X) is consistently  replaced  by   a  fresh  variable and
+%	Bindings is a list `X = Var`,   relating  the `X` terms with the
+%	variable it is mapped to.
+%
+%	@see numbervars/3, varnumbers/3, read_term/3 using the
+%	`variable_names` option.
+
+varnumbers_names(Term, Copy, Bindings) :-
+	must_be(acyclic, Term),
+	empty_assoc(Named),
+	varnumbers_names(Term, Named, BindingAssoc, Copy),
+	assoc_to_list(BindingAssoc, BindingPairs),
+	maplist(pair_equals, BindingPairs, Bindings).
+
+pair_equals(N-V, N=V).
+
+varnumbers_names(Var, Bindings, Bindings, Copy) :-
+	var(Var), !,
+	Copy = Var.
+varnumbers_names(Var, Bindings, Bindings, Copy) :-
+	atomic(Var), !,
+	Copy = Var.
+varnumbers_names('$VAR'(Name), Bindings0, Bindings, Copy) :- !,
+	(   get_assoc(Name, Bindings0, Copy)
+	->  Bindings = Bindings0
+	;   put_assoc(Name, Bindings0, Copy, Bindings)
+	).
+varnumbers_names(Term, Bindings0, Bindings, Copy) :-
+	functor(Term, Name, Arity),
+	functor(Copy, Name, Arity),
+	varnumbers_names_args(1, Arity, Term, Bindings0, Bindings, Copy).
+
+varnumbers_names_args(I, Arity, Term, Bindings0, Bindings, Copy) :-
+	I =< Arity, !,
+	arg(I, Term, AT),
+	arg(I, Copy, CT),
+	varnumbers_names(AT, Bindings0, Bindings1, CT),
+	I2 is I + 1,
+	varnumbers_names_args(I2, Arity, Term, Bindings1, Bindings, Copy).
+varnumbers_names_args(_, _, _, Bindings, Bindings, _).
