@@ -239,6 +239,12 @@ http://eu.swi-prolog.org/man/clpfd.html
 The implementation of this library is described in:
 [metalevel.at/drt.pdf](http://www.metalevel.at/drt.pdf)
 
+The best way to discuss applying, improving and extending CLP(FD)
+constraints is to use the dedicated **clpfd** tag on
+[**stackoverflow.com**](http://stackoverflow.com/questions/tagged/clpfd).
+Several of the world's foremost CLP(FD) experts regularly participate
+in these discussions and will help you for free on this platform.
+
 ### Arithmetic constraints		{#clpfd-arith-constraints}
 
 *Arithmetic constraints* subsume and supersede low-level Prolog
