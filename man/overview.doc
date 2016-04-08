@@ -1767,7 +1767,7 @@ is a list of the options below.  See also \prologflag{user_flags}.
 	value.  Note that \const{term} restricts the term to be ground.
 
 	\termitem{keep}{+Boolean}
-	If \const{true}, to not modify the flag if it already exists.
+	If \const{true}, do not modify the flag if it already exists.
 	Otherwise (default), this predicate behaves as set_prolog_flag/2
 	if the flag already exists.
     \end{description}
