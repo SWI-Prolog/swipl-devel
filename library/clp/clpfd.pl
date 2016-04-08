@@ -584,6 +584,8 @@ X in inf..sup.
 @author Markus Triska
 */
 
+:- create_prolog_flag(clpfd_monotonic, false, []).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A bound is either:
 
