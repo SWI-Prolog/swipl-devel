@@ -2277,37 +2277,53 @@ PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 }
 
 
-/*  Cycle detection uses Brent's algorithm.
-See http://en.wikipedia.org/wiki/Cycle_detection#Brent.27s_algorithm
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Cycle detection for lists using Brent's algorithm.
 
-Author: Ulrich Neumerkel.
-*/
+skip_list() was originally added to SWI-Prolog by Ulrich Neumerkel.  The
+code below is a clean-room re-implementation by Keri Harris.
+
+See http://en.wikipedia.org/wiki/Cycle_detection#Brent.27s_algorithm
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 intptr_t
 skip_list(Word l, Word *tailp ARG_LD)
-{ intptr_t length = 0;
-  Word s; /* slow */
+{ deRef(l);
 
-  deRef(l);
-  s = l;
+  if ( !isList(*l) )
+  { *tailp = l;
+    return 0;
+  } else
+  { Word checkCell, currentCell;
+    intptr_t length = 0;
+    int power, lam;
 
-  if ( isList(*l) )
-  { intptr_t power = 1, lam = 0;
-    do
-    { if ( power == lam )
-      { s = l;
-	power *= 2;
-	lam = 0;
-      }
-      lam++;
+    checkCell = currentCell = l;
+    lam       = 0;
+    power     = 1;
+
+    while ( TRUE )
+    { currentCell = TailList(currentCell);
+      deRef(currentCell);
       length++;
-      l = TailList(l); deRef(l);
-    } while ( *l != *s && isList(*l) );
-  }
-  *tailp = l;
 
-  return length;
+      if ( !isList(*currentCell) || (*checkCell == *currentCell) )
+	break;
+
+      lam++;
+      if ( power == lam )
+      { checkCell = currentCell;
+        power *= 2;
+        lam = 0;
+      }
+    }
+
+    *tailp = currentCell;
+
+    return length;
+  }
 }
+
 
 /** '$skip_list'(-Length, +Xs0, -Xs) is det.
 
