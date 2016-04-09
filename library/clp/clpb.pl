@@ -1307,11 +1307,16 @@ var_u(Node, VNum, Index) :-
 % each admissible assignment is equally likely. Seed is an integer,
 % used as the initial seed for the random number generator.
 
+single_bdd(Vars0) :-
+        maplist(monotonic_variable, Vars0, Vars),
+        % capture all variables with a single BDD
+        sat(+[1|Vars]).
+
 random_labeling(Seed, Vars) :-
         must_be(list, Vars),
         set_random(seed(Seed)),
         (   ground(Vars) -> true
-        ;   catch((sat(+[1|Vars]), % capture all variables with a single BDD
+        ;   catch((single_bdd(Vars),
                    once((member(Var, Vars),var(Var))),
                    var_index_root(Var, _, Root),
                    root_get_formula_bdd(Root, _, BDD),
@@ -1371,7 +1376,7 @@ random_bindings(VNum, Node) -->
 weighted_maximum(Ws, Vars, Max) :-
         must_be(list(integer), Ws),
         must_be(list(var), Vars),
-        sat(+[1|Vars]),      % capture all variables with a single BDD
+        single_bdd(Vars),
         Vars = [Var|_],
         var_index_root(Var, _,  Root),
         root_get_formula_bdd(Root, _, BDD0),
