@@ -51,6 +51,8 @@
 :- use_module(library(assoc)).
 :- use_module(library(apply_macros)).
 
+:- create_prolog_flag(clpb_monotonic, false, []).
+
 /** <module> Constraint Logic Programming over Boolean Variables
 
 ### Introduction                        {#clpb-intro}
@@ -274,7 +276,7 @@ node(2)- (v(X, 1)->false;true).
    Type checking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-is_sat(V)     :- var(V), !.
+is_sat(V)     :- var(V), !, non_monotonic(V).
 is_sat(I)     :- integer(I), between(0, 1, I).
 is_sat(A)     :- atom(A).
 is_sat(~A)    :- is_sat(A).
@@ -294,6 +296,15 @@ is_sat(card(Is,Fs)) :-
         must_be(list(ground), Is),
         must_be(list, Fs),
         maplist(is_sat, Fs).
+
+non_monotonic(X) :-
+        (   var_index(X, _) ->
+            % OK: already constrained to a CLP(B) variable
+            true
+        ;   current_prolog_flag(clpb_monotonic, true) ->
+            instantiation_error(X)
+        ;   true
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Rewriting to canonical expressions.
