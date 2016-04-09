@@ -277,6 +277,8 @@ node(2)- (v(X, 1)->false;true).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 is_sat(V)     :- var(V), !, non_monotonic(V).
+is_sat(v(V))  :- var(V), !.
+is_sat(v(I))  :- integer(I), between(0, 1, I).
 is_sat(I)     :- integer(I), between(0, 1, I).
 is_sat(A)     :- atom(A).
 is_sat(~A)    :- is_sat(A).
@@ -317,6 +319,7 @@ non_monotonic(X) :-
 sat_rewrite(V, V)       :- var(V), !.
 sat_rewrite(I, I)       :- integer(I), !.
 sat_rewrite(A, V)       :- atom(A), !, clpb_atom_var(A, V).
+sat_rewrite(v(V), V).
 sat_rewrite(P0*Q0, P*Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0+Q0, P+Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0#Q0, P#Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
@@ -1634,17 +1637,27 @@ formula_anf(Formula0, ANF) :-
         node_anf(Node, ANF).
 
 node_anf(Node, ANF) :-
-        node_xors(Node, Xors),
+        node_xors(Node, Xors0),
+        maplist(maplist(monotonic_variable), Xors0, Xors),
         maplist(list_to_conjunction, Xors, Conjs),
-        (   Conjs = [Var,C|Rest], var(Var) ->
+        (   Conjs = [Var,C|Rest], clpb_var(Var) ->
             foldl(xor, Rest, C, RANF),
             ANF = (Var =\= RANF)
-        ;   Conjs = [One,Var,C|Rest], One == 1, var(Var) ->
+        ;   Conjs = [One,Var,C|Rest], One == 1, clpb_var(Var) ->
             foldl(xor, Rest, C, RANF),
             ANF = (Var =:= RANF)
         ;   Conjs = [C|Cs],
             foldl(xor, Cs, C, ANF)
         ).
+
+monotonic_variable(Var0, Var) :-
+        (   var(Var0), current_prolog_flag(clpb_monotonic, true) ->
+            Var = v(Var0)
+        ;   Var = Var0
+        ).
+
+clpb_var(Var) :- var(Var), !.
+clpb_var(v(_)).
 
 list_to_conjunction([], 1).
 list_to_conjunction([L|Ls], Conj) :- foldl(and, Ls, L, Conj).
