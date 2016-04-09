@@ -328,6 +328,7 @@ or(A, B, B + A).
 and(A, B, B * A).
 
 must_be_sat(Sat) :-
+        must_be(acyclic, Sat),
         (   is_sat(Sat) -> true
         ;   no_truth_value(Sat)
         ).
