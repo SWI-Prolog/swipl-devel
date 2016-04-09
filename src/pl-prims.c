@@ -886,178 +886,186 @@ PRED_IMPL("$term_size", 3, term_size, 0)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Finding cyclic terms is a bit more   complicated than one may think. The
-native way is to walk the structure  depth-first while setting marks and
-if you find a mark you have a   cycle. However, when you backup from the
-recursion you must remove your marks because otherwise you find marks if
-the same subterm appears multiple times in   the tree (sharing). This is
-undesirable for two reasons:  it   kills  last-argument optimization and
-processes the shared subterms multiple times.
+A DFS search is used to iterate over all 'term chains' in  a term graph.
+A term chain is a list of terms  where term N+1 is  the last argument of
+term N.  Terms are 'TEMP' marked as we find them. When the end of a term
+chain has been reached  all terms in the chain  are 'PERM' marked  as we
+know that all terms  in that chain are acyclic.  If we reach a term that
+was already TEMP marked then we terminate the search as a cycle has been
+detected.  If we reach a term  that has already been PERM marked then we
+backtrack as a shared term that we know to be acyclic has been reached.
 
-Ulrich Neumerkel came with the following two enhancements:
+Two strategies are used  to avoid repeated  pop+push cycles  of the same
+term chain:
 
-  1. Instead of removing the marks while backing up, put a new type of
-  mark that indicates there is no cycle there. Now, whenever we
-  encounter this second mark we know we visited this tree and it is
-  free of cycles.  This exploits sharing.
+1. aggresively cache new term chains for all args of the tail term.
+2. only cache the current term chain  if we know at least one arg of the
+   tail term is itself a term.
 
-  2. Instead of making a recursive call for the last argument so that
-  we can set the second mark after this call returns, jump to the
-  beginning and remember the number of last arguments processed.  Now
-  we can simply mark all the last arguments.
-
-Later, the function is rearranged to avoid the C-stack.
+Author: Keri Harris
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct acyclic_state
-{ Word		start;				/* start-term */
-  Word		argp;				/* argument pointer */
-  size_t	last_count;
-} acyclic_state;
+#define ACYCLIC_TEMP_MASK	FIRST_MASK
+#define ACYCLIC_PERM_MASK	MARK_MASK
+
+#define set_acyclic_temp(p)	do { *(p) |= ACYCLIC_TEMP_MASK; } while(0)
+#define set_acyclic_perm(p)	do { *(p) |= ACYCLIC_PERM_MASK; } while(0)
+
+#define clear_acyclic_temp(p)	do { *(p) &= ~ACYCLIC_TEMP_MASK; } while(0)
+#define clear_acyclic_perm(p)	do { *(p) &= ~ACYCLIC_PERM_MASK; } while(0)
+#define clear_acyclic_both(p) \
+	do { *(p) &= ~(ACYCLIC_TEMP_MASK|ACYCLIC_PERM_MASK); } while(0)
+
+#define is_acyclic_temp(p)	(*(p) & ACYCLIC_TEMP_MASK)
+#define is_acyclic_perm(p)	(*(p) & ACYCLIC_PERM_MASK)
+#define is_acyclic_or_temp(p)	(*(p) & (ACYCLIC_TEMP_MASK|ACYCLIC_PERM_MASK))
+
+typedef struct termChain
+{ Functor	head;
+  Functor	tail;
+  Word          p;
+} termChain;
+
+typedef struct term_chain_agenda
+{ termChain	work;
+  segstack	stack;
+} term_chain_agenda;
 
 
-static void
-mark_last_args(acyclic_state *state ARG_LD)
-{ size_t count;
+static int
+ph_acyclic_mark(Word p ARG_LD)
+{ term_chain_agenda agenda;
+  termChain chains[32];
+  Functor top = valueTerm(*p);
+  Functor head = top;
+  Functor tail = top;
+  Functor iter;
+  Word pdef;
+  int arity;
 
-  DEBUG(MSG_ACYCLIC, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
+  initSegStack(&agenda.stack, sizeof(termChain), sizeof(chains), chains);
 
-  if ( (count=state->last_count) > 0 )
-  { Word p = state->start;
-    int arity;
+  while ( TRUE )
+  { if ( is_acyclic_temp(&tail->definition) )
+    { if ( is_acyclic_perm(&tail->definition) )
+      { goto end_of_chain;
+      } else
+      { clearSegStack(&agenda.stack);
+        return FALSE;
+      }
+    }
 
-    for(;;)
-    { Functor f = valueTerm(*p);
+    set_acyclic_temp(&tail->definition);
 
-      f->definition |= MARK_MASK;
-      DEBUG(MSG_ACYCLIC,
-	    Sdprintf("\tmark %s/%d at %p as acyclic\n",
-		     stringAtom(nameFunctor(f->definition)),
-		     arityFunctor(f->definition),
-		     f));
+    arity = arityFunctor(tail->definition);
 
-      if ( --count == 0 )
-	return;
+    if ( arity > 1 )
+    { int i;
+      int new_workspace = FALSE;
 
-      arity = arityFunctor(f->definition);
-      p = f->arguments + arity-1;		/* next last argument */
-      deRef(p);
+      iter = tail;
+      for( i = arity-2; i >= 0; i-- )
+      { p = iter->arguments + i;
+        deRef(p);
+
+        if ( isTerm(*p) )
+        { if ( !new_workspace )
+          { pushSegStack(&agenda.stack, agenda.work, termChain);
+            agenda.work.head = head;
+            agenda.work.tail = tail;
+            agenda.work.p = iter->arguments + arity-1;
+
+            head = tail = valueTerm(*p);
+            new_workspace = TRUE;
+          } else
+          { pushSegStack(&agenda.stack, agenda.work, termChain);
+            agenda.work.head = agenda.work.tail = valueTerm(*p);
+            agenda.work.p = NULL;
+          }
+        }
+      }
+
+      if ( new_workspace )
+	continue;
+    }
+
+    p = tail->arguments + arity-1;
+    deRef(p);
+
+  process_p:
+    if ( isTerm(*p) )
+    { tail = valueTerm(*p);
+    } else
+    {
+    end_of_chain:
+
+      if ( head == top )
+	return TRUE;
+
+      iter = head;
+      pdef = &iter->definition;
+      while ( iter != tail )
+      { set_acyclic_perm(pdef);
+
+        p = iter->arguments + arityFunctor(*pdef) - 1;
+        deRef(p);
+        iter = valueTerm(*p);
+        pdef = &iter->definition;
+      }
+      set_acyclic_perm(pdef);
+
+      head = agenda.work.head;
+      tail = agenda.work.tail;
+      p = agenda.work.p;
+
+      if ( !popSegStack(&agenda.stack, &agenda.work, termChain) )
+      { assert(0);
+      }
+
+      if ( p )
+      { deRef(p);
+        goto process_p;
+      }
     }
   }
+
+  return TRUE;
 }
 
 
 static int
-ph1_is_acyclic(Word p ARG_LD)
-{ segstack stack;
-  acyclic_state buf[64];
-  acyclic_state state;
-
-  initSegStack(&stack, sizeof(acyclic_state), sizeof(buf), buf);
-
-  state.start      = NULL;
-  state.last_count = 0;
-  state.argp       = NULL;
-
-  for(;;)
-  { if ( isTerm(*p) )
-    { Functor f = valueTerm(*p);
-      int arity;
-
-      DEBUG(MSG_ACYCLIC,
-	    Sdprintf("Term %s/%d at %p (%s)\n",
-		     stringAtom(nameFunctor(f->definition)),
-		     arityFunctor(f->definition), f,
-		     (f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
-							      : "new"));
-
-      if ( f->definition & (FIRST_MASK|MARK_MASK) )
-      { if ( f->definition & MARK_MASK )	/* MARK_MASK:  already acyclic */
-	  goto next;
-	clearSegStack(&stack);
-	return FALSE;				/* FIRST_MASK: got a cycle */
-      }
-      f->definition |= FIRST_MASK;
-
-      arity = arityFunctor(f->definition);
-      if ( arity >= 2 )
-      { pushSegStack(&stack, state, acyclic_state);
-	state.last_count = 0;
-	p = state.argp   = &f->arguments[arity-2];
-	deRef(p);
-	state.start      = p;
-      } else
-      { p = &f->arguments[0];
-	deRef(p);
-	state.last_count++;
-      }
-    } else
-    { DEBUG(MSG_ACYCLIC,
-	    { if ( isAtom(*p) )
-		Sdprintf("Atom %s\n", stringAtom(*p));
-	      else if ( isVar(*p) )
-		Sdprintf("Var at %p\n", p);
-	    });
-    next:
-      if ( state.start )
-      { mark_last_args(&state PASS_LD);
-	p = --state.argp;
-	if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
-	{ popSegStack(&stack, &state, acyclic_state);
-	  DEBUG(MSG_ACYCLIC,
-		Sdprintf("Last arg of %s/%d at %p\n",
-			 stringAtom(nameFunctor(*p)),
-			 arityFunctor(*p),
-			 p));
-	  p += arityFunctor(*p);
-	  deRef(p);
-	  state.last_count++;
-	} else
-	{ deRef(p);
-	  state.start = p;
-	  state.last_count = 0;
-	}
-      } else
-      { clearSegStack(&stack);
-	return TRUE;
-      }
-    }
-  }
-}
-
-
-static void
-ph2_is_acyclic(Word p ARG_LD)
+ph_acyclic_unmark(Word p ARG_LD)
 { term_agenda agenda;
 
   initTermAgenda(&agenda, 1, p);
-  while( (p=nextTermAgenda(&agenda)) )
+  while((p=nextTermAgenda(&agenda)))
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
+      Word p = &f->definition;
 
-      if ( f->definition & FIRST_MASK )
-      { f->definition &= ~(FIRST_MASK|MARK_MASK);
-	pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      if ( is_acyclic_temp(p) )
+      { clear_acyclic_both(p);
+      } else
+      { continue;
       }
+
+      pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
     }
   }
-  clearTermAgenda(&agenda);
+
+  return TRUE;
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Returns TRUE, FALSE or MEMORY_OVERFLOW
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 int
 is_acyclic(Word p ARG_LD)
-{ deRef(p);
+{ int rc1;
 
+  deRef(p);
   if ( isTerm(*p) )
-  { int rc1;
+  { rc1 = ph_acyclic_mark(p PASS_LD);
+    ph_acyclic_unmark(p PASS_LD);
 
-    rc1 = ph1_is_acyclic(p PASS_LD);
-    ph2_is_acyclic(p PASS_LD);
     return rc1;
   }
 
