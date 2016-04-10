@@ -52,6 +52,7 @@
 :- use_module(library(apply_macros)).
 
 :- create_prolog_flag(clpb_monotonic, false, []).
+:- create_prolog_flag(clpb_residuals, default, []).
 
 /** <module> Constraint Logic Programming over Boolean Variables
 
