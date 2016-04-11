@@ -96,7 +96,7 @@ restrictions:
 
 %%	option(?Option, +OptionList, +Default) is semidet.
 %
-%	Get  an  Option  Qfrom  OptionList.  OptionList  can  use  the
+%	Get  an  Option  from  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
 %
 %	@param Option	Term of the form Name(?Value).
