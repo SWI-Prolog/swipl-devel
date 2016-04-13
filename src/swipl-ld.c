@@ -1032,11 +1032,11 @@ getPrologOptions()
     printf("\teval `%s`\n", cmd);
 
   if ( (fd = popen(cmd, "r")) )
-  { char buf[256];
+  { char buf[1024];
 
     while( fgets(buf, sizeof(buf), fd) )
     { char name[100];
-      char value[256];
+      char value[1024];
       char *v;
 
       if ( sscanf(buf, "%[^=]=%[^;\n]", name, value) == 2 )
