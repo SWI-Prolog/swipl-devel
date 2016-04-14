@@ -403,9 +403,12 @@ emit_field(H, Options) -->
 	  )
 	}, !,
 	(   { needs_quotes(H, Options) }
-	    ->  "\"", emit_string(Codes), "\""
-	    ;   emit_codes(Codes)
+	->  "\"", emit_string(Codes), "\""
+	;   emit_codes(Codes)
 	).
+emit_field([], _) --> !,
+	{ atom_codes('[]', Codes) },
+	emit_codes(Codes).
 emit_field(H, _) -->
 	{ number_codes(H,Codes) },
 	emit_codes(Codes).
