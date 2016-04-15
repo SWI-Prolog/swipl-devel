@@ -46,6 +46,9 @@ test(single, End == 1) :-
 	numbervars(_, 0, End).
 test(single_s, End == 0) :-
 	numbervars(_, 0, End, [singletons(true)]).
+test(single_offset, End == 1001) :-
+	numbervars(f(A,_B,A), 1000, End, [singletons(true)]),
+	assertion(arg(1, A, 1000)).
 test(neg, End == -6) :-
 	numbervars(f(X), -7, End),
 	assertion(X == '$VAR'(-7)).

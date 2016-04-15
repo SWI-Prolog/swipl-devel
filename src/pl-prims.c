@@ -2621,8 +2621,13 @@ do_number_vars(Word p, nv_options *options, intptr_t n, mark *m ARG_LD)
 	  { Word p = &f->arguments[0];
 
 	    if ( *p == ATOM_anonvar )
-	    { *p = consInt(n);		/* stack cannot hold enough vars */
-	      n++;			/* to averflow this */
+	    { intptr_t v = n+options->offset;
+	      *p = consInt(v);
+	      if ( valInt(*p) != v )
+	      { n = REPRESENTATION_ERROR;
+		goto out;
+	      }
+	      n++;
 	    }
 	  }
 	} else
