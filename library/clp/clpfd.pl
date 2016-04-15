@@ -6715,7 +6715,7 @@ unwrap_with(Goal, Term0, Term) :-
         maplist(unwrap_with(Goal), Args0, Args),
         Term =.. [F|Args].
 
-bare_integer(V0, V)    :- ( integer(V0) -> V = V0 ; V = ?(V0) ).
+bare_integer(V0, V)    :- ( integer(V0) -> V = V0 ; V = #(V0) ).
 
 attribute_goal_(presidual(Goal))       --> [Goal].
 attribute_goal_(pgeq(A,B))             --> [?(A) #>= ?(B)].
