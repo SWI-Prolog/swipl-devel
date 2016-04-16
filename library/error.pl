@@ -78,7 +78,7 @@ most common ISO error terms.
 %	is a negative integer, it is a _domain_error_.
 %
 %	Typical borderline cases are  predicates   accepting  a compound
-%	term, e.g., point(X,Y). One could argument   that the basic type
+%	term, e.g., point(X,Y). One could argue   that the basic type
 %	is a compound-term and  any  other   compound  term  is a domain
 %	error. Most Prolog programmers consider each  compound as a type
 %	and  would  consider  a  compoint  that   is  not  point(_,_)  a
