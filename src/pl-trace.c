@@ -26,6 +26,7 @@
 #include "os/pl-cstack.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
+#include <stdio.h>
 
 #define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
