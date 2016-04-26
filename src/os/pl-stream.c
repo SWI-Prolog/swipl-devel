@@ -3144,17 +3144,22 @@ Sfileno(IOSTREAM *s)
   { errno = EINVAL;
     return -1;
   }
+
   if ( s->flags & SIO_FILE )
   { intptr_t h = (intptr_t)s->handle;
     n = (int)h;
-  } else if ( s->functions->control &&
-	      (*s->functions->control)(s->handle,
-				       SIO_GETFILENO,
-				       (void *)&n) == 0 )
-  { ;
   } else
-  { errno = EINVAL;
-    n = -1;				/* no file stream */
+  { IOFUNCTIONS *funcs = s->functions;
+
+    if ( s->magic == SIO_MAGIC &&
+	 funcs->control &&
+	 (*funcs->control)(s->handle,
+			   SIO_GETFILENO,
+			   (void *)&n) == 0 )
+      return n;
+
+    errno = EINVAL;
+    return -1;
   }
 
   return n;
