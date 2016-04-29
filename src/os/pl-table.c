@@ -232,6 +232,10 @@ htable_copy_kvs(Table ht, KVS old_kvs, KVS new_kvs)
       }
 
       v = htable_value(old_kvs, idx);
+
+      if ( v == HTABLE_TOMBSTONE )
+      { htable_put(ht, new_kvs, n, v, HTABLE_RESIZE);
+      }
     }
 
     idx++;
