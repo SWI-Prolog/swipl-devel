@@ -240,9 +240,10 @@ attvar_residuals(att(Module,Value,As), V) -->
 	    []
 	;   (	{ Module == freeze }
 	    ->	frozen_residuals(Value, V)
-	    ;	{ current_predicate(Module:attribute_goals//1) }
-	    ->	{ phrase(Module:attribute_goals(V), Goals) },
-		list(Goals)
+	    ;	{ current_predicate(Module:attribute_goals//1),
+		  phrase(Module:attribute_goals(V), Goals)
+		}
+	    ->	list(Goals)
 	    ;	[put_attr(V, Module, Value)]
 	    )
 	),
