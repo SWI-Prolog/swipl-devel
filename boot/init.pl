@@ -324,7 +324,7 @@ reset(Goal, Cont, Ball) :-
 %%	call_continuation(+Continuation:list)
 %
 %	Call a continuation as created by shift/1. The continuation is a
-%	lost  of  '$cont$'(Clause,  PC,   Environment)  structures.  The
+%	list  of  '$cont$'(Clause,  PC,   Environment)  structures.  The
 %	predicate  '$call_one_tail_body'/1  creates  a  frame  from  the
 %	continuation and calls this.
 %
