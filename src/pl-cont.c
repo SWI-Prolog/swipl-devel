@@ -316,14 +316,14 @@ retry:
     lTop = top;
 
     cref->next         = NULL;
-    cref->key          = 0;
+    cref->d.key        = 0;
     cref->value.clause = cl;
 
     fr->programPointer = me->programPointer;
     fr->parent         = me->parent;
     fr->level          = me->level;
     fr->clause         = cref;
-    fr->predicate      = cl->procedure->definition;
+    fr->predicate      = cl->predicate;
     fr->context	       = fr->predicate->module;
     fr->flags          = 0;		/* TBD: anything needed? */
 #ifdef O_PROFILE
