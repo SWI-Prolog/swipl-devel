@@ -441,11 +441,8 @@ initBuildIns(void)
   REG_PLIST(locale);
 #endif
   REG_PLIST(debug);
-<<<<<<< 0a2dc66b47dc0ebef45402e43076ee4b4a5bd2ab
   REG_PLIST(dict);
-=======
   REG_PLIST(cont);
->>>>>>> ADDED: Delimited continuation: reset/3 and shift/1.  Together with
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \

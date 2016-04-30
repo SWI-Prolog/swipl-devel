@@ -988,12 +988,9 @@ typedef uint64_t lgen_t;
 #define setGenerationFrame(f)	(void)0
 #endif /*O_LOGICAL_UPDATE*/
 
-<<<<<<< 2e62dc93cabfb39de38a740e9f5020958e27617c
 #define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS|FR_CLEANUP
-=======
-#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS
 #define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CONTEXT|FR_KEEPLTOP)
->>>>>>> Added FR_KEEPLTOP flag to avoid destroying the stack on deterministic
+
 #define setNextFrameFlags(next, fr) \
 	do \
 	{ (next)->level = (fr)->level+1; \
