@@ -325,7 +325,7 @@ retry:
     fr->clause         = cref;
     fr->predicate      = cl->predicate;
     fr->context	       = fr->predicate->module;
-    fr->flags          = 0;		/* TBD: anything needed? */
+    fr->flags          = FR_MAGIC;		/* TBD: anything else needed? */
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif
