@@ -1510,12 +1510,16 @@ del_clpb(Var) :- del_attr(Var, clpb).
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    To make residual projection work with recorded constraints, the
    global counters must be adjusted so that new variables and nodes
-   also get new IDs.
+   also get new IDs. Also, clpb_next_id/2 is used to actually create
+   these counters, because creating them with b_setval/2 would make
+   them [] on backtracking, which is quite unfortunate in itself.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 prepare_global_variables(BDD) :-
+        clpb_next_id('$clpb_next_var', V0),
+        clpb_next_id('$clpb_next_node', N0),
         bdd_nodes(BDD, Nodes),
-        foldl(max_variable_node, Nodes, 0-0, MaxV0-MaxN0),
+        foldl(max_variable_node, Nodes, V0-N0, MaxV0-MaxN0),
         MaxV is MaxV0 + 1,
         MaxN is MaxN0 + 1,
         b_setval('$clpb_next_var', MaxV),
