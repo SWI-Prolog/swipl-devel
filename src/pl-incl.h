@@ -1826,11 +1826,12 @@ typedef enum pl_event_type
 
 /* Results from comparison operations.  Mostly used by compareStandard() */
 
-#define CMP_ERROR  -2			/* Error (out of memory) */
-#define CMP_LESS   -1			/* < */
-#define CMP_EQUAL   0			/* == */
-#define CMP_GREATER 1			/* > */
-#define CMP_NOTEQ   2			/* \== */
+#define CMP_COMPOUND -3			/* compare_primitive */
+#define CMP_ERROR    -2			/* Error (out of memory) */
+#define CMP_LESS     -1			/* < */
+#define CMP_EQUAL     0			/* == */
+#define CMP_GREATER   1			/* > */
+#define CMP_NOTEQ     2			/* \== */
 
 		/********************************
 		*             STACKS            *

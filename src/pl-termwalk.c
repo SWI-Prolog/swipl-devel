@@ -239,6 +239,14 @@ initTermAgendaLR(term_agendaLR *a, size_t count, Word left, Word right)
 
 
 static void
+initTermAgendaLR0(term_agendaLR *a)
+{ initSegStack(&a->stack, sizeof(aNodeLR),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.size  = 0;
+}
+
+
+static void
 clearTermAgendaLR(term_agendaLR *a)
 { clearSegStack(&a->stack);
 }

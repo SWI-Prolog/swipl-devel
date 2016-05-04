@@ -1591,135 +1591,155 @@ tests (alphabetical order) are skipped and the call returns NOTEQ.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-do_compare(term_agendaLR *agenda, int eq ARG_LD)
-{ Word p1, p2;
+compare_primitives(Word p1, Word p2, int eq ARG_LD)
+{ word t1, t2;
+  word w1, w2;
 
-  while( nextTermAgendaLR(agenda, &p1, &p2) )
-  { word t1, t2;
-    word w1, w2;
+  w1 = *p1;
+  w2 = *p2;
 
-    deRef(p1); w1 = *p1;
-    deRef(p2); w2 = *p2;
-
-    if ( w1 == w2 )
-    { if ( isVar(w1) )
-	goto cmpvars;
-      continue;
+  if ( w1 == w2 )
+  { if ( isVar(w1) )
+    { cmpvars:
+      if ( p1 == p2 )
+	return CMP_EQUAL;
+      return p1 < p2 ? CMP_LESS : CMP_GREATER;
     }
+    return CMP_EQUAL;
+  }
 
-    t1 = tag(w1);
-    t2 = tag(w2);
+  t1 = tag(w1);
+  t2 = tag(w2);
 
-    if ( t1 != t2 )
-    { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
-      { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
-	     (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
-	{ number left, right;
-	  int rc;
-
-	  get_number(w1, &left PASS_LD);
-	  get_number(w2, &right PASS_LD);
-	  rc = cmpNumbers(&left, &right);
-	  clearNumber(&left);
-	  clearNumber(&right);
-
-	  if ( rc == CMP_EQUAL )
-	    return (t1 == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
-	  return rc;
-	}
-      }
-
-      if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
-	return t1 < t2 ? CMP_LESS : CMP_GREATER;
-    }
-
-    switch(t1)
-    { case TAG_VAR:
-      case TAG_ATTVAR:
-      cmpvars:
-	if ( p1 == p2 )
-	  continue;
-	return p1 < p2 ? CMP_LESS : CMP_GREATER;
-      case TAG_INTEGER:
-      { number n1, n2;
+  if ( t1 != t2 )
+  { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
+    { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
+	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
+      { number left, right;
 	int rc;
 
-	get_integer(w1, &n1);
-	get_integer(w2, &n2);
-	if ( eq && (n1.type != n2.type) )
-	  return CMP_NOTEQ;
-	rc = cmpNumbers(&n1, &n2);
-	clearNumber(&n1);
-	clearNumber(&n2);
+	get_number(w1, &left PASS_LD);
+	get_number(w2, &right PASS_LD);
+	rc = cmpNumbers(&left, &right);
+	clearNumber(&left);
+	clearNumber(&right);
 
 	if ( rc == CMP_EQUAL )
-	  continue;
+	  rc = (t1 == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
 	return rc;
       }
-      case TAG_FLOAT:
-      { if ( equalIndirect(w1,w2) )
-	{ continue;
-	} else
-	{ double f1 = valFloat(w1);
-	  double f2 = valFloat(w2);
+    }
 
-	  if ( f1 < f2 )
-	  { return CMP_LESS;
-	  } else if ( f1 > f2 )
-	  { return CMP_GREATER;
-	  } else
-	  { assert(signbit(f1) != signbit(f2));
-	    return signbit(f1) ? CMP_LESS : CMP_GREATER;
-	  }
+    if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
+      return t1 < t2 ? CMP_LESS : CMP_GREATER;
+  }
+
+  switch(t1)
+  { case TAG_VAR:
+    case TAG_ATTVAR:
+      goto cmpvars;
+    case TAG_INTEGER:
+    { number n1, n2;
+      int rc;
+
+      get_integer(w1, &n1);
+      get_integer(w2, &n2);
+      if ( eq && (n1.type != n2.type) )
+	return CMP_NOTEQ;
+      rc = cmpNumbers(&n1, &n2);
+      clearNumber(&n1);
+      clearNumber(&n2);
+
+      return rc;
+    }
+    case TAG_FLOAT:
+    { if ( equalIndirect(w1,w2) )
+      { return CMP_EQUAL;
+      } else
+      { double f1 = valFloat(w1);
+	double f2 = valFloat(w2);
+
+	if ( f1 < f2 )
+	{ return CMP_LESS;
+	} else if ( f1 > f2 )
+	{ return CMP_GREATER;
+	} else
+	{ assert(signbit(f1) != signbit(f2));
+	  return signbit(f1) ? CMP_LESS : CMP_GREATER;
 	}
       }
-      case TAG_ATOM:
-	return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
-      case TAG_STRING:
-      { int rc = compareStrings(w1, w2 PASS_LD);
+    }
+    case TAG_ATOM:
+      return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
+    case TAG_STRING:
+      return compareStrings(w1, w2 PASS_LD);
+    case TAG_COMPOUND:
+      return CMP_COMPOUND;
+    default:
+      assert(0);
+      return CMP_ERROR;
+  }
+}
 
-	if ( rc == CMP_EQUAL )
-	  continue;
-	return rc;
-      }
-      case TAG_COMPOUND:
-      { Functor f1 = (Functor)valPtr(w1);
-	Functor f2 = (Functor)valPtr(w2);
+static int
+compare_functors(word f1, word f2, int eq)
+{ if ( eq )
+  { return CMP_NOTEQ;
+  } else
+  { FunctorDef fd1 = valueFunctor(f1);
+    FunctorDef fd2 = valueFunctor(f2);
+
+    if ( fd1->arity != fd2->arity )
+      return fd1->arity > fd2->arity ? CMP_GREATER : CMP_LESS;
+
+    return compareAtoms(fd1->name, fd2->name);
+  }
+}
+
+static int
+do_compare(term_agendaLR *agenda, Functor f1, Functor f2, int eq ARG_LD)
+{ Word p1, p2;
+
+  goto compound;
+
+  while( nextTermAgendaLR(agenda, &p1, &p2) )
+  { int rc;
+
+    deRef(p1);
+    deRef(p2);
+
+    if ( (rc=compare_primitives(p1, p2, eq PASS_LD)) != CMP_COMPOUND )
+    { if ( rc == CMP_EQUAL )
+	continue;
+      return rc;
+    } else
+    { f1 = (Functor)valPtr(*p1);
+      f2 = (Functor)valPtr(*p2);
 
 #if O_CYCLIC
-	while ( isRef(f1->definition) )
-	  f1 = (Functor)unRef(f1->definition);
-	while ( isRef(f2->definition) )
-	  f2 = (Functor)unRef(f2->definition);
-	if ( f1 == f2 )
-	  continue;
+      while ( isRef(f1->definition) )
+	f1 = (Functor)unRef(f1->definition);
+      while ( isRef(f2->definition) )
+	f2 = (Functor)unRef(f2->definition);
+      if ( f1 == f2 )
+	continue;
 #endif
 
-	if ( f1->definition != f2->definition )
-	{ FunctorDef fd1 = valueFunctor(f1->definition);
-	  FunctorDef fd2 = valueFunctor(f2->definition);
+      if ( f1->definition != f2->definition )
+      { return compare_functors(f1->definition, f2->definition, eq);
+      } else
+      { int arity;
 
-	  if ( eq )
-	    return CMP_NOTEQ;
+      compound:
+	arity = arityFunctor(f1->definition);
 
-	  if ( fd1->arity != fd2->arity )
-	    return fd1->arity > fd2->arity ? CMP_GREATER : CMP_LESS;
-
-	  return compareAtoms(fd1->name, fd2->name);
-	} else
-	{ int arity = arityFunctor(f1->definition);
-
-	  linkTermsCyclic(f1, f2 PASS_LD);
-	  if ( !pushWorkAgendaLR(agenda, arity, f1->arguments, f2->arguments) )
-	  { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
-	    return CMP_ERROR;
-	  }
-	  continue;
+	linkTermsCyclic(f1, f2 PASS_LD);
+	if ( !pushWorkAgendaLR(agenda, arity, f1->arguments, f2->arguments) )
+	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	  return CMP_ERROR;
 	}
+	continue;
       }
-      default:
-	assert(0);
-	return CMP_ERROR;
     }
   }
 
@@ -1729,16 +1749,31 @@ do_compare(term_agendaLR *agenda, int eq ARG_LD)
 
 int
 compareStandard(Word p1, Word p2, int eq ARG_LD)
-{ term_agendaLR agenda;
-  int rc;
+{ int rc;
 
-  initCyclic(PASS_LD1);
-  initTermAgendaLR(&agenda, 1, p1, p2);
-  rc = do_compare(&agenda, eq PASS_LD);
-  clearTermAgendaLR(&agenda);
-  exitCyclic(PASS_LD1);
+  deRef(p1);
+  deRef(p2);
 
-  return rc;
+  if ( (rc=compare_primitives(p1, p2, eq PASS_LD)) != CMP_COMPOUND )
+  { return rc;
+  } else
+  { Functor f1 = (Functor)valPtr(*p1);
+    Functor f2 = (Functor)valPtr(*p2);
+
+    if ( f1->definition != f2->definition )
+    { return compare_functors(f1->definition, f2->definition, eq);
+    } else
+    { term_agendaLR agenda;
+
+      initCyclic(PASS_LD1);
+      initTermAgendaLR0(&agenda);
+      rc = do_compare(&agenda, f1, f2, eq PASS_LD);
+      clearTermAgendaLR(&agenda);
+      exitCyclic(PASS_LD1);
+
+      return rc;
+    }
+  }
 }
 
 
@@ -1747,22 +1782,26 @@ compareStandard(Word p1, Word p2, int eq ARG_LD)
 static
 PRED_IMPL("compare", 3, compare, PL_FA_ISO)
 { PRED_LD
+  Word d  = valTermRef(A1);
   Word p1 = valTermRef(A2);
   Word p2 = p1+1;
   int val;
   atom_t a;
 
-  if ( !PL_is_variable(A1) )
-  { if ( !PL_get_atom_ex(A1, &a) )
-      fail;
-
-    if ( a == ATOM_equals )
-      return compareStandard(p1, p2, TRUE PASS_LD) == CMP_EQUAL ? TRUE : FALSE;
-
-    if ( a != ATOM_smaller && a != ATOM_larger )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
-  } else
+  deRef(d);
+  if ( canBind(*d) )
   { a = 0;
+  } else
+  { if ( isAtom(*d) )
+    { a = *d;
+
+      if ( a == ATOM_equals )
+	return compareStandard(p1, p2, TRUE PASS_LD) == CMP_EQUAL ? TRUE : FALSE;
+
+      if ( a != ATOM_smaller && a != ATOM_larger )
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
+    } else
+      return PL_type_error("atom", A1);
   }
 
   if ( (val = compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
@@ -1773,11 +1812,13 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
       return val < 0;
     else
       return val > 0;
-  }
+  } else
+  { a = val < 0 ? ATOM_smaller :
+        val > 0 ? ATOM_larger :
+	          ATOM_equals;
 
-  return PL_unify_atom(A1, val < 0 ? ATOM_smaller :
-		           val > 0 ? ATOM_larger :
-		                     ATOM_equals);
+    return PL_unify_atom(A1, a);
+  }
 }
 
 
