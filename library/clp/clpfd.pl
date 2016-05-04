@@ -236,8 +236,8 @@ and the following URL to link to its documentation:
 
 http://eu.swi-prolog.org/man/clpfd.html
 
-The implementation of this library is described in:
-[metalevel.at/drt.pdf](http://www.metalevel.at/drt.pdf)
+More information about CLP(FD) constraints and their implementation is
+contained in: [metalevel.at/drt.pdf](http://www.metalevel.at/drt.pdf)
 
 The best way to discuss applying, improving and extending CLP(FD)
 constraints is to use the dedicated **clpfd** tag on
