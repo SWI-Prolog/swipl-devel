@@ -3515,7 +3515,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 
     ok = PL_unify_text(string, 0, &atext, out_type);
 
-    if ( ok || !(how & X_NUMBER) )
+    if ( ok )
     { PL_close_foreign_frame(fid);
       return ok;
     }
