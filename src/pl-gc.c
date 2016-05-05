@@ -1834,12 +1834,16 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
 { GET_LD
   walk_state state;
   size_t bv_bytes = sizeof_bitvector(active->size);
-  union
-  { char       bv_store[bv_bytes];
-    bit_vector bv;
-  } store;
-  bit_vector *clear = &store.bv;
+  char tmp[128];
+  char *buf;
+  bit_vector *clear;
 
+  if ( bv_bytes <= sizeof(tmp) )
+    buf = tmp;
+  else
+    buf = PL_malloc(bv_bytes);
+
+  clear = (bit_vector*)buf;
   init_bitvector(clear, active->size);
 
   state.frame  = fr;
@@ -1852,6 +1856,8 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
   state.c0     = fr->clause->value.clause->codes;
 
   walk_and_mark(&state, PC, I_EXIT PASS_LD);
+  if ( buf != tmp )
+    PL_free(buf);
 }
 
 
