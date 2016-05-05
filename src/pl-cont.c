@@ -86,12 +86,19 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 { GET_LD
   int i, slots    = fr->clause->value.clause->prolog_vars;
   size_t bv_bytes = sizeof_bitvector(slots);
-  union
-  { char       bv_store[bv_bytes];
-    bit_vector bv;
-  } store;
-  bit_vector *active = &store.bv;
+  char tmp[128];
+  char *buf;
+  bit_vector *active;
   term_t argv = PL_new_term_refs(2);
+  int rc = TRUE;
+
+  if ( bv_bytes <= sizeof(tmp) )
+    buf = tmp;
+  else
+    buf = PL_malloc(bv_bytes);
+
+  active = (bit_vector*)buf;
+  init_bitvector(active, slots);
 
   init_bitvector(active, slots);
   mark_active_environment(active, fr, pc);
@@ -111,13 +118,18 @@ put_environment(term_t env, LocalFrame fr, Code pc)
       if ( !PL_put_integer(argv+0, i) ||
 	   !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
 	   !PL_cons_list(env, argv+0, env) )
-	return FALSE;			/* resource error */
+      { rc = FALSE;			/* resource error */
+	break;
+      }
 
       fr = (LocalFrame)valTermRef(fr_ref);
     }
   }
 
-  return TRUE;
+  if ( buf != tmp )
+    PL_free(buf);
+
+  return rc;
 }
 
 
