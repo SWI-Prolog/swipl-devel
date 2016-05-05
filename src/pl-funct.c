@@ -482,7 +482,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
     for(; index<upto; index++)
     { FunctorDef fd = b[index];
 
-      if ( fd && fd->arity >= 0 && (!nm || nm == fd->name) )
+      if ( fd && (!nm || nm == fd->name) )
       { if ( PL_unify_atom(name, fd->name) &&
 	     PL_unify_integer(arity, fd->arity) )
 	{ UNLOCK();
