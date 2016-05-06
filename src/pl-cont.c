@@ -26,7 +26,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Implementation of `delimited continuation'.  Implements
 
-  * reset(:Goal, -Cont, ?Ball)
+  * reset(:Goal, ?Ball, -Cont)
   * shift(+Ball)
   * call_continuation(+Cont)
 
@@ -75,7 +75,7 @@ findReset(LocalFrame fr, term_t ball ARG_LD)
       continue;
 
     tref = consTermRef(fr);
-    rc = PL_unify(consTermRef(argFrameP(fr, 2)), ball);
+    rc = PL_unify(consTermRef(argFrameP(fr, 1)), ball);
     fr = (LocalFrame)valTermRef(tref);
 
     if ( rc )
@@ -254,7 +254,7 @@ PRED_IMPL("shift", 1, shift, 0)
     }
 
     resetfr = (LocalFrame)valTermRef(reset);
-    if ( !PL_unify(consTermRef(argFrameP(resetfr, 1)), cont) )
+    if ( !PL_unify(consTermRef(argFrameP(resetfr, 2)), cont) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to unify continuation\n"));
       if ( PL_exception(0) )
 	return FALSE;

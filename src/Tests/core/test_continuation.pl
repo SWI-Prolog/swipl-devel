@@ -36,7 +36,7 @@ yield(Term) :-
 	shift(yield(Term)).
 
 init_iterator(Goal,Iterator) :-
-	reset(Goal,Cont,YE),
+	reset(Goal,YE,Cont),
 	(   YE = yield(Element)
 	->  Iterator = next(Element,Cont)
 	;   Iterator = done
@@ -62,7 +62,7 @@ ask(X) :-
 	shift(ask(X)).
 
 with_read(Goal) :-
-	reset(Goal,Cont,Term),
+	reset(Goal,Term,Cont),
 	(   Term = ask(X)
 	->  read(X),
 	    with_read(Cont)
@@ -70,7 +70,7 @@ with_read(Goal) :-
 	).
 
 with_list(L, Goal) :-
-	reset(Goal,Cont,Term),
+	reset(Goal,Term,Cont),
 	(   Term = ask(X)
 	->  L = [X|T],
 	    with_list(T,Cont)
@@ -78,10 +78,10 @@ with_list(L, Goal) :-
 	).
 
 play(G1,G2) :-
-	reset(G1, Cont1, Term1),
+	reset(G1, Term1, Cont1),
 	(   Cont1 == 0
 	->  true
-	;   reset(G2,Cont2,Term2),
+	;   reset(G2,Term2,Cont2),
 	    sync(Term1,Term2),
 	    play(Cont1,Cont2)
 	).
@@ -102,7 +102,7 @@ scanSum(Acc) :-
 	scanSum(NAcc).
 
 transduce(IG,TG) :-
-	reset(TG,ContT,TermT),
+	reset(TG,TermT,ContT),
 	transduce_(TermT,ContT,IG).
 
 transduce_(0,_,_).
@@ -110,7 +110,7 @@ transduce_(yield(NValue), ContT, IG) :-
 	yield(NValue),
 	transduce(IG, ContT).
 transduce_(ask(Value), ContT, IG) :-
-	reset(IG, ContI, TermI),
+	reset(IG, TermI, ContI),
 	(   TermI == 0
 	->  true
 	;   TermI = yield(Value),
@@ -128,7 +128,7 @@ doubler :-
 %	Test a shift in the condition of if-then-else, \+, etc.
 
 reset_in_cond(R) :-
-	reset(shift_in_cond(R), Cont, hello(X)),
+	reset(shift_in_cond(R), hello(X), Cont),
 	X = world,
 	call(Cont).
 

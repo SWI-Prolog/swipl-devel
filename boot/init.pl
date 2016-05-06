@@ -311,11 +311,11 @@ catch(_Goal, _Catcher, _Recover) :-
 prolog_cut_to(_Choice) :-
 	'$cut'.				% Maps to I_CUTCHP
 
-%%	reset(:Goal, -Continue, ?Ball)
+%%	reset(:Goal, ?Ball, -Continue)
 %
 %	Delimited continuation support.
 
-reset(Goal, Cont, Ball) :-
+reset(Goal, Ball, Cont) :-
 	'$start_reset',
 	call(Goal),
 	Cont = 0,
