@@ -567,6 +567,7 @@ db_sync(Module, gc(When)) :-
 	(   When == always
 	->  true
 	;   db_size(Module, Total),
+	    Total > 0,
 	    Perc is (100*Dirty)/Total,
 	    Perc > When
 	), !,
