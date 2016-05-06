@@ -2153,6 +2153,43 @@ The same warning as for call_cleanup/2 applies.
 \end{description}
 
 
+\section{Delimited continuations}	     \label{sec:delcont}
+
+The predicates reset/3 and shift/1 implement \jargon{delimited
+continuations} for Prolog. Delimited continuation for Prolog is
+described in \cite{DBLP:journals/tplp/SchrijversDDW13}. The mechanism
+allows for proper \jargon{coroutines}, two or more routines whose
+execution is interleaved, while they exchange data. Note that coroutines
+in this sense differ from coroutines realised using attributed variables
+as described in \chapref{extvar}.
+
+The suspension mechanism provided by delimited continuations is suitable
+for the implementation of \jargon{tabling}
+\cite{DBLP:journals/tplp/DesouterDS15}.
+
+
+\begin{description}
+    \predicate{reset}{3}{:Goal, ?Ball, -Continuation}
+Call \arg{Goal}. If \arg{Goal} calls shift/1 and the argument of shift/1
+can be unified with \arg{Ball},\footnote{The argument order described in
+\cite{DBLP:journals/tplp/SchrijversDDW13} is
+\term{reset}{Goal,Continuation,Ball}. We swapped the argument order for
+compatibility with catch/3} shift/1 causes reset/3 to return, unifying
+\arg{Continuation} with a goal that represents the \jargon{continuation}
+after shift/1. In other words, meta-calling \arg{Continuation} completes
+the execution where shift it. If \arg{Goal} does not call shift/1, both
+\arg{Ball} and \arg{Continuation} are unified with the integer \const{0}
+(zero).
+
+    \predicate{shift}{1}{+Ball}
+Abandon the execution of the current goal, returning control to just
+\emph{after} the matching reset/3 call.  This is similar to throw/1
+except that (1) nothing is `undone' and (2) the 3th argument of
+reset/3 is unified with the \jargon{continuation}, which allows the
+code calling reset/3 to \jargon{resume} the current goal.
+\end{description}
+
+
 \section{ISO compliant Exception handling}   \label{sec:exception}
 
 SWI-Prolog defines the predicates catch/3 and throw/1 for ISO compliant

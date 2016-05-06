@@ -539,6 +539,7 @@ suggest predicates from a keyword.
 \predicatesummary{rename_file}{2}{Change name of file}
 \predicatesummary{repeat}{0}{Succeed, leaving infinite backtrack points}
 \predicatesummary{require}{1}{This file requires these predicates}
+\predicatesummary{reset}{3}{Wrapper for delimited continuations}
 \predicatesummary{reset_gensym}{1}{Reset a gensym key}
 \predicatesummary{reset_gensym}{0}{Reset all gensym keys}
 \predicatesummary{reset_profiler}{0}{Clear statistics obtained by the profiler}
@@ -574,6 +575,7 @@ suggest predicates from a keyword.
 \predicatesummary{shell}{0}{Execute interactive subshell}
 \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{shell}{2}{Execute OS command}
+\predicatesummary{shift}{1}{Shift control to the closest reset/3}
 \predicatesummary{show_profile}{1}{Show results of the profiler}
 \predicatesummary{size_file}{2}{Get size of a file in characters}
 \predicatesummary{size_nb_set}{2}{Determine size of non-backtrackable set}
