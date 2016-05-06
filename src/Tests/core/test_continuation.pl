@@ -123,6 +123,21 @@ doubler :-
 	yield(NValue),
 	doubler.
 
+%%	reset_in_cond(-R)
+%
+%	Test a shift in the condition of if-then-else, \+, etc.
+
+reset_in_cond(R) :-
+	reset(shift_in_cond(R), Cont, hello(X)),
+	X = world,
+	call(Cont).
+
+shift_in_cond(R) :-
+	(   shift(hello(X))		% keep choice point
+	->  format(atom(R), 'Hello ~w', [X])
+	;   true
+	).
+
 :- begin_tests(continuation).
 
 test(sum, Sum == 12) :-
@@ -137,5 +152,7 @@ test(play, L == [1,3,6,10]) :-
 	play(mapL([1,2,3,4],L), scanSum(0)).
 test(transducer, Sum == 6) :-
 	play(sum(Sum),transduce(fromList([1,2]), doubler)).
+test(ifthen, R == 'Hello world') :-
+	reset_in_cond(R).
 
 :- end_tests(continuation).

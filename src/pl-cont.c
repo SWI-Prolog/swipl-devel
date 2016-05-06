@@ -26,14 +26,29 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Implementation of `delimited continuation'.  Implements
 
-  * reset(:Goal, -Cont, ?Templ)
+  * reset(:Goal, -Cont, ?Ball)
   * shift(+Ball)
   * call_continuation(+Cont)
 
-reset/3 is simply implemented as
+reset/3 is implemented as
 
-  reset(Goal, _, _) :-
-	call(Goal).
+  reset(Goal, Cont, Ball) :-
+	'$start_reset',
+	call(Goal),
+	Cont = 0, Ball = 0.
+
+## Future optimizations
+
+  - Continuations probably appear in a relatively small number of
+    places.  We can have a hash table for each program pointer
+    that can act as a continuation.  The value can include the
+    variable activation map.
+  - As put_environment() documents, we should also find the
+    active non-Prolog slots.
+  - It is probably better to represent the continuation frame
+    as a compound term rather than a list.  This is generally
+    more compact and quicker to process.  The abovew table can
+    provide the functor with the correct arity.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
@@ -79,12 +94,22 @@ for fr when started from pc.
 Note that if the environment contains a  variable on the local stack, we
 must trail this. This is not needed   for  variables on the global stack
 because the environment structure we create is newer.
+
+(*) This loop stores all  non-prolog   variables.  These are pointers to
+choice points for if-then-else and related control structures. These are
+stored as offsets  to  the  local  stack   base.  We  put  them  in  the
+environment as integers.
+
+TBD: We can extend mark_active_environment() to also find the non-Prolog
+slots that are  active,  i.e.,  can  be   used  by  one  of  the pruning
+operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 put_environment(term_t env, LocalFrame fr, Code pc)
 { GET_LD
-  int i, slots    = fr->clause->value.clause->prolog_vars;
+  Clause cl       = fr->clause->value.clause;
+  int i, slots    = cl->prolog_vars;
   size_t bv_bytes = sizeof_bitvector(slots);
   char tmp[128];
   char *buf;
@@ -123,6 +148,22 @@ put_environment(term_t env, LocalFrame fr, Code pc)
       }
 
       fr = (LocalFrame)valTermRef(fr_ref);
+    }
+  }
+					/* Store choice points (*) */
+  if ( rc )
+  { for(i=cl->prolog_vars; i<cl->variables; i++)
+    { DEBUG(MSG_CONTINUE,
+	    Sdprintf("%s: add choice-point reference from slot %d\n",
+		     predicateName(fr->predicate), i));
+      PL_put_integer(argv+1, argFrame(fr, i));
+
+      if ( !PL_put_integer(argv+0, i) ||
+	   !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
+	   !PL_cons_list(env, argv+0, env) )
+      { rc = FALSE;			/* resource error */
+	break;
+      }
     }
   }
 
@@ -232,7 +273,7 @@ PRED_IMPL("shift", 1, shift, 0)
     { leaveDefinition(fr->predicate);
     }
 					/* trim lTop.  Note that I_EXIT */
-					/* does not touch this due to FR_KEEPLTOP */
+					/* does not touch this (FR_KEEPLTOP) */
     if ( fr <= (LocalFrame)LD->choicepoints )
     { lTop = (LocalFrame)(LD->choicepoints+1);
     } else
@@ -320,7 +361,17 @@ retry:
       if ( !PL_get_integer_ex(arg, &offset) )
 	return FALSE;
       _PL_get_arg(2, head, arg);
-      argFrame(fr, offset) = linkVal(valTermRef(arg));
+
+      if ( offset < cl->prolog_vars )
+      { argFrame(fr, offset) = linkVal(valTermRef(arg));
+      } else
+      { intptr_t i;
+
+	if ( !PL_get_intptr_ex(arg, &i) )
+	  return FALSE;
+
+	argFrame(fr, offset) = i;
+      }
     }
     if ( !PL_get_nil_ex(env) )
       return FALSE;
