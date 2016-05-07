@@ -217,7 +217,7 @@ primitives are impure limitations that are better deferred to more
 advanced lectures.
 
 We recommend the following reference (PDF:
-[metalevel.at/swiclpfd.pdf](https://www.metalevel.at/swiclpfd.pdf)) for
+[metalevel.at/swiclpfd.pdf](http://www.metalevel.at/swiclpfd.pdf)) for
 citing this library in scientific publications:
 
 ==
@@ -233,7 +233,7 @@ citing this library in scientific publications:
 ==
 
 More information about CLP(FD) constraints and their implementation is
-contained in: [**metalevel.at/drt.pdf**](https://www.metalevel.at/drt.pdf)
+contained in: [**metalevel.at/drt.pdf**](http://www.metalevel.at/drt.pdf)
 
 The best way to discuss applying, improving and extending CLP(FD)
 constraints is to use the dedicated `clpfd` tag on
