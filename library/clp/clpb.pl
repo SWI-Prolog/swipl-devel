@@ -72,7 +72,7 @@ Usage examples of this library are available in a public git
 repository: [**github.com/triska/clpb**](https://github.com/triska/clpb)
 
 We recommend the following reference (PDF:
-[metalevel.at/swiclpb.pdf](http://www.metalevel.at/swiclpb.pdf)) for
+[metalevel.at/swiclpb.pdf](https://www.metalevel.at/swiclpb.pdf)) for
 citing this library in scientific publications:
 
 ==
