@@ -1549,6 +1549,7 @@ struct recordList
 struct recordRef
 { RecordList	list;			/* list I belong to */
   RecordRef	next;			/* next in list */
+  RecordRef	prev;			/* previous in list */
   Record	record;			/* the record itself */
 };
 

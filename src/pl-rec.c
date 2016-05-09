@@ -127,24 +127,35 @@ isCurrentRecordList(word key, int must_be_non_empty)
 }
 
 
+static void
+remove_record(RecordRef r)
+{ RecordList l = r->list;
+
+  if ( r->prev )
+    r->prev->next = r->next;
+  else
+    l->firstRecord = r->next;
+
+  if ( r->next )
+    r->next->prev = r->prev;
+  else
+    l->lastRecord = r->prev;
+
+  freeRecordRef(r);
+}
+
 /* MT: Locked by called
 */
 
 static void
 cleanRecordList(RecordList rl)
-{ RecordRef *p;
-  RecordRef r, prev=NULL;
+{ RecordRef r, next=NULL;
 
-  for(p = &rl->firstRecord; (r=*p); )
-  { if ( true(r->record, R_ERASED) )
-    { *p = r->next;
-      if ( r == rl->lastRecord )
-	rl->lastRecord = prev;
-      freeRecordRef(r);
-    } else
-    { prev = r;
-      p = &r->next;
-    }
+  for(r = rl->firstRecord; r; r = next )
+  { next = r->next;
+
+    if ( true(r->record, R_ERASED) )
+      remove_record(r);
   }
 }
 
@@ -1568,7 +1579,7 @@ record(term_t key, term_t term, term_t ref, int az)
   if ( !getKeyEx(key, &k PASS_LD) )
     fail;
   if ( ref && !PL_is_variable(ref) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
+    return PL_uninstantiation_error(ref);
 
   if ( !(copy = compileTermToHeap(term, 0)) )
     return PL_no_memory();
@@ -1585,13 +1596,16 @@ record(term_t key, term_t term, term_t ref, int az)
   r->list = l;
 
   if ( !l->firstRecord )
-  { r->next = NULL;
+  { r->next = r->prev = NULL;
     l->firstRecord = l->lastRecord = r;
   } else if ( az == RECORDA )
-  { r->next = l->firstRecord;
+  { r->prev = NULL;
+    r->next = l->firstRecord;
+    l->firstRecord->prev = r;
     l->firstRecord = r;
   } else
   { r->next = NULL;
+    r->prev = l->lastRecord;
     l->lastRecord->next = r;
     l->lastRecord = r;
   }
@@ -1818,9 +1832,7 @@ PRED_IMPL("instance", 2, instance, 0)
 static
 PRED_IMPL("erase", 1, erase, 0)
 { void *ptr;
-  RecordRef prev, r;
   RecordList l;
-  word rval;
   db_ref_type type;
 
   term_t ref = A1;
@@ -1838,43 +1850,21 @@ PRED_IMPL("erase", 1, erase, 0)
 
     return retractClauseDefinition(def, clause);
   } else
-  { RecordRef record = ptr;
+  { RecordRef r = ptr;
 
     callEventHook(PLEV_ERASED_RECORD, record);
 
     LOCK();
-    l = record->list;
+    l = r->list;
     if ( l->references )		/* a recorded has choicepoints */
-    { set(record->record, R_ERASED);
+    { set(r->record, R_ERASED);
       set(l, RL_DIRTY);
-    } else if ( record == l->firstRecord )
-    { if ( !record->next )
-	l->lastRecord = NULL;
-      l->firstRecord = record->next;
-      freeRecordRef(record);
     } else
-    { prev = l->firstRecord;
-      r = prev->next;
-      for(; r; prev = r, r = r->next)
-      { if (r == record)
-	{ if ( !r->next )
-	  { assert(r == l->lastRecord);
-	    l->lastRecord = prev;
-	  }
-	  prev->next = r->next;
-	  freeRecordRef(r);
-	  goto ok;
-	}
-      }
-      assert(0);
+    { remove_record(r);
     }
-
-  ok:
     UNLOCK();
-    rval = TRUE;
+    return TRUE;
   }
-
-  return rval;
 }
 
 		 /*******************************
