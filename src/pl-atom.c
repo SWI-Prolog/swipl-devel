@@ -944,9 +944,8 @@ destroyAtom(Atom a, Atom **buckets)
   a->references = 0;
 
   index = indexAtom(a->atom);
-  if ( GD->atoms.no_hole_before > index );
-  { GD->atoms.no_hole_before = index;
-  }
+  if ( GD->atoms.no_hole_before > index )
+    GD->atoms.no_hole_before = index;
 
   return TRUE;
 }
