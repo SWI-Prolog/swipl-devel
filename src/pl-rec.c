@@ -65,7 +65,6 @@ cleanupRecords(void)
   if ( (t=GD->recorded_db.record_lists) )
   { GD->recorded_db.record_lists = NULL;
     destroyHTable(t);
-    GD->recorded_db.head = GD->recorded_db.tail = NULL;
   }
 }
 
@@ -84,18 +83,9 @@ lookupRecordList(word key)
   { if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(key);
     l = allocHeapOrHalt(sizeof(*l));
+    memset(l, 0, sizeof(*l));
     l->key = key;
-    l->references = 0;
-    l->flags = 0;
-    l->firstRecord = l->lastRecord = NULL;
-    l->next = NULL;
     addNewHTable(GD->recorded_db.record_lists, (void *)key, l);
-    if ( !GD->recorded_db.head )
-    { GD->recorded_db.head = GD->recorded_db.tail = l;
-    } else
-    { GD->recorded_db.tail->next = l;
-      GD->recorded_db.tail = l;
-    }
 
     return l;
   }
@@ -1522,13 +1512,14 @@ static
 PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   fid_t fid;
-  RecordList rl = NULL;
+  TableEnum e;
   word k = 0L;
+
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { if ( PL_is_variable(A1) )
-      { rl = GD->recorded_db.head;
+      { e = newTableEnum(GD->recorded_db.record_lists);
 	break;
       } else if ( getKeyEx(A1, &k PASS_LD) &&
 		  isCurrentRecordList(k, TRUE) )
@@ -1537,30 +1528,35 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
       fail;
     }
     case FRG_REDO:
-      rl = CTX_PTR;
+      e = CTX_PTR;
       break;
     case FRG_CUTTED:
+      e = CTX_PTR;
+      freeTableEnum(e);
+      /*FALLTHROUGH*/
     default:				/* fool gcc */
-      succeed;
+      return TRUE;
   }
 
-  if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
+  if ( (fid = PL_open_foreign_frame()) )
+  { void *sk, *sv;
 
-  for( ; rl; rl = rl->next )
-  { if ( rl->firstRecord && unifyKey(A1, rl->key) )
-    { PL_close_foreign_frame(fid);
-      if ( rl->next )
-	ForeignRedoPtr(rl->next);
-      else
-	succeed;
+    while(advanceTableEnum(e, &sk, &sv))
+    { RecordList rl = sv;
+
+      if ( rl->firstRecord && unifyKey(A1, rl->key) )
+      { PL_close_foreign_frame(fid);
+
+	ForeignRedoPtr(e);
+      }
+
+      PL_rewind_foreign_frame(fid);
     }
 
-    PL_rewind_foreign_frame(fid);
+    PL_close_foreign_frame(fid);
   }
 
-  PL_close_foreign_frame(fid);
-  fail;
+  return FALSE;
 }
 
 
@@ -1628,15 +1624,41 @@ PRED_IMPL("recordz", va, recordz, 0)
 }
 
 
+typedef struct
+{ TableEnum e;				/* enumerating over keys */
+  RecordRef r;				/* current record */
+  int	    saved;
+} recorded_state;
+
+static recorded_state *
+save_state(recorded_state *state)
+{ if ( state->saved )
+  { return state;
+  } else
+  { recorded_state *newstate = allocForeignState(sizeof(*state));
+    memcpy(newstate, state, sizeof(*state));
+    newstate->saved = TRUE;
+    return newstate;
+  }
+}
+
+static void
+free_state(recorded_state *state)
+{ if ( state->e )
+    freeTableEnum(state->e);
+  if ( state->saved )
+    freeForeignState(state, sizeof(*state));
+}
+
+
 static
 PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  RecordList rl = NULL;			/* make compiler happy */
-  RecordRef record;
+  recorded_state state_buf;
+  recorded_state *state = &state_buf;
   word k = 0L;
-  word rval;
+  word rc;
   fid_t fid;
-  int varkey = FALSE;			/* make compiler happy */
 
   term_t key  = A1;
   term_t term = A2;
@@ -1645,140 +1667,146 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { if ( ref && !PL_is_variable(ref) )		/* recorded(?,?,+) */
-      { if ( PL_get_recref(ref, &record) )
+      { RecordRef record;
+
+	if ( PL_get_recref(ref, &record) )
 	{ LOCK();
 	  if ( unifyKey(key, record->list->key) )
-	  { int rc;
-	    term_t copy = PL_new_term_ref();
+	  { term_t copy = PL_new_term_ref();
 
 	    if ( (rc=copyRecordToGlobal(copy, record->record,
 					ALLOW_GC PASS_LD)) < 0 )
-	      rval = raiseStackOverflow(rc);
+	      rc = raiseStackOverflow(rc);
 	    else
-	      rval = PL_unify(term, copy);
+	      rc = PL_unify(term, copy);
 	  } else
-	    rval = FALSE;
+	    rc = FALSE;
 	  UNLOCK();
 
-	  return rval;
+	  return rc;
 	}
 	return FALSE;
       }
+
+      memset(state, 0, sizeof(*state));
       if ( PL_is_variable(key) )
-      { if ( !(rl = GD->recorded_db.head) )
-	  fail;
-	varkey = TRUE;
+      { state->e = newTableEnum(GD->recorded_db.record_lists);
       } else if ( getKeyEx(key, &k PASS_LD) )
-      { if ( !(rl = isCurrentRecordList(k, FALSE)) )
-	  fail;
-	varkey = FALSE;
+      { RecordList rl;
+
+	if ( !(rl = isCurrentRecordList(k, TRUE)) )
+	  return FALSE;
+	rl->references++;
+	state->r = rl->firstRecord;
       } else
       { return FALSE;
       }
       LOCK();
-      rl->references++;
-      record = rl->firstRecord;
       break;
     }
     case FRG_REDO:
-    { record = CTX_PTR;
-      rl = record->list;
-      varkey = PL_is_variable(key);
-
-      assert(rl->references > 0);
-
+    { state = CTX_PTR;
       LOCK();
       break;
     }
     case FRG_CUTTED:
-    { record = CTX_PTR;
+    { state = CTX_PTR;
 
-      if ( record )
-      { rl = record->list;
+      if ( state->r )
+      { RecordList rl = state->r->list;
 
 	LOCK();
 	if ( --rl->references == 0 && true(rl, RL_DIRTY) )
 	  cleanRecordList(rl);
 	UNLOCK();
       }
+      free_state(state);
     }
       /* FALLTHROUGH */
     default:
       succeed;
   }
 
-  if ( !(fid = PL_open_foreign_frame()) )
-  { UNLOCK();
-    return FALSE;
-  }
+  if ( (fid = PL_open_foreign_frame()) )
+  { int answered = FALSE;
 
-  while( rl )
-  { for( ; record; record = record->next )
-    { int rc;
-      term_t copy;
+    while( !answered )
+    { for( ; state->r; state->r = state->r->next )
+      { term_t copy;
+	RecordRef record;
 
-      if ( true(record->record, R_ERASED) )
-	continue;
+      next:
+	record = state->r;
+	if ( true(record->record, R_ERASED) )
+	  continue;
 
-      copy = PL_new_term_ref();
-      if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
-      { UNLOCK();
-	return raiseStackOverflow(rc);
-      }
-      if ( PL_unify(term, copy) &&
-	   (!ref || PL_unify_recref(ref, record)) )
-      { PL_close_foreign_frame(fid);
-
-	if ( varkey && !unifyKey(key, rl->key) )	/* stack overflow */
-	{ UNLOCK();
-	  fail;
+	copy = PL_new_term_ref();
+	if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
+	{ raiseStackOverflow(rc);
+	  goto error;
 	}
+
+	if ( PL_unify(term, copy) &&
+	     (!ref || PL_unify_recref(ref, record)) )
+	{ if ( state->e && !unifyKey(key, record->list->key) )
+	    goto error;			/* stack overflow */
+	} else
+	{ if ( PL_exception(0) )
+	    goto error;
+	  PL_rewind_foreign_frame(fid);
+	  continue;
+	}
+
+	answered = TRUE;
 
 	if ( record->next )
-	{ UNLOCK();
-	  ForeignRedoPtr(record->next);
-	} else
-	{ if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	    cleanRecordList(rl);
-
-	  if ( varkey )
-	  { for( rl=rl->next; rl; rl=rl->next )
-	    { if ( rl->firstRecord )
-	      { rl->references++;
-		UNLOCK();
-		ForeignRedoPtr(rl->firstRecord);
-	      }
-	    }
-	  }
-
+	{ state->r = record->next;
 	  UNLOCK();
-	  succeed;
+	  PL_close_foreign_frame(fid);
+	  ForeignRedoPtr(save_state(state));
+	} else
+	{ RecordList rl = record->list;
+
+	  if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+	    cleanRecordList(rl);
 	}
       }
 
-      PL_rewind_foreign_frame(fid);
-    }
+      if ( state->e )
+      { void *sk, *sv;
 
-    if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-      cleanRecordList(rl);
+	while(advanceTableEnum(state->e, &sk, &sv))
+	{ RecordList rl = sv;
 
-    if ( varkey )
-    { if ( rl->next )
-      { rl = rl->next;
-	rl->references++;
-	record = rl->firstRecord;
-
-	continue;
+	  if ( rl->firstRecord )
+	  { rl->references++;
+	    state->r = rl->firstRecord;
+	    if ( answered )
+	      break;
+	    goto next;			/* try next list */
+	  }
+	}
       }
+
+      if ( answered )
+      { UNLOCK();
+	PL_close_foreign_frame(fid);
+	if ( state->e )
+	  ForeignRedoPtr(save_state(state));
+	else
+	  return TRUE;
+      }
+
+      break;
     }
 
-    break;
+  error:
+    PL_close_foreign_frame(fid);
   }
 
-  PL_close_foreign_frame(fid);
-
   UNLOCK();
-  fail;
+  free_state(state);
+  return FALSE;
 }
 
 
