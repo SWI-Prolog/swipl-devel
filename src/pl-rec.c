@@ -1880,7 +1880,7 @@ PRED_IMPL("erase", 1, erase, 0)
   } else
   { RecordRef r = ptr;
 
-    callEventHook(PLEV_ERASED_RECORD, record);
+    callEventHook(PLEV_ERASED_RECORD, r);
 
     LOCK();
     l = r->list;
