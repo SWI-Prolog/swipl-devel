@@ -446,11 +446,11 @@ lineno_(Fd, Char, L) :-
 %	indicator of the predicate that called  catch/3 if the exception
 %	is caught.
 %
-%	The the exception is of the form error(Formal, ImplDef) and this
-%	hook    succeeds,    ImplDef    is    unified    to    a    term
-%	context(prolog_stack(StackData),    Message).    This    context
-%	information is used by the message   printing  system to print a
-%	human readable representation of the   stack  when the exception
+%	The exception is of the form error(Formal, ImplDef) and this
+%	hook succeeds, ImplDef is unified to a term
+%	context(prolog_stack(StackData), Message).  This context
+%	information is used by the message printing system to print a
+%	human readable representation of the stack when the exception
 %	was raised.
 %
 %	For example, using a clause   stack_guard(none)  prints contexts
