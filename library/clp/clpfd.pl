@@ -577,6 +577,14 @@ Z = 1,
 X in inf..sup.
 ==
 
+### CLP(FD) predicate index			{#clpfd-predicate-index}
+
+In the following, each CLP(FD) predicate is described in more detail.
+
+We recommend the following link to refer to this manual:
+
+http://eu.swi-prolog.org/man/clpfd.html
+
 @author Markus Triska
 */
 
