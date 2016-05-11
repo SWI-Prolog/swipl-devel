@@ -1816,7 +1816,6 @@ load_files(Module:Files, Options) :-
 			     access(read)
 			   ],
 			   FullFile),
-	'$assert_load_context_module'(FullFile, Module, Options),
 	'$mt_load_file'(File, FullFile, Module, Options).
 
 
@@ -1832,6 +1831,7 @@ load_files(Module:Files, Options) :-
 %		to the file as a result of the first :- module/2 term.
 
 '$already_loaded'(_File, FullFile, Module, Options) :-
+	'$assert_load_context_module'(FullFile, Module, Options),
 	'$current_module'(LoadModules, FullFile), !,
 	(   atom(LoadModules)
 	->  LoadModule = LoadModules
@@ -1892,6 +1892,7 @@ load_files(Module:Files, Options) :-
 '$mt_do_load'(already_loaded, File, FullFile, Module, Options) :- !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
+	'$assert_load_context_module'(FullFile, Module, Options),
 	'$qdo_load_file'(File, FullFile, Module, Action, Options),
 	'$run_initialization'(FullFile, Action, Options).
 
