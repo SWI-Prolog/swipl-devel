@@ -154,6 +154,7 @@ typedef struct
 } rc_object, *RcObject;
 
 RcArchive	rc_open_archive(const char *file, int flags);
+RcArchive	rc_open_archive_mem(const char *mem, size_t mem_size, int flags);
 int		rc_close_archive(RcArchive rca);
 int		rc_save_archive(RcArchive rca, const char *to);
 

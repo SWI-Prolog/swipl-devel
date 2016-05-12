@@ -484,7 +484,7 @@ do_value:
 
 
 static void
-initDefaultOptions()
+initDefaultOptions(void)
 { GD->options.compileOut    = store_string("a.out");
   GD->options.localSize     = systemDefaults.local    K;
   GD->options.globalSize    = systemDefaults.global   K;
@@ -788,14 +788,17 @@ PL_initialise(int argc, char **argv)
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
-  if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
+  if ( !GD->resourceDB )
+  { if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
 #ifdef __WINDOWS__
-       || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
+         || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
 #endif
-     )
-  { rcpath = ((RcArchive)GD->resourceDB)->path;
-    initDefaultOptions();
+       )
+    { rcpath = ((RcArchive)GD->resourceDB)->path;
+    }
   }
+  if ( GD->resourceDB )
+    initDefaultOptions();
 
   if ( !GD->resourceDB ||
        !streq(GD->options.saveclass, "runtime") )
@@ -914,10 +917,19 @@ PL_initialise(int argc, char **argv)
 }
 
 
+int
+PL_set_resource_db_mem(const char *data, size_t size)
+{ if ( (GD->resourceDB = rc_open_archive_mem(data, size, RC_RDONLY)) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
 typedef const char *cline;
 
 static int
-usage()
+usage(void)
 { static const cline lines[] = {
     "%s: Usage:\n",
     "    1) %s --help     Display this message (also -h)\n",

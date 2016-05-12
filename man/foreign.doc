@@ -3343,6 +3343,47 @@ If the engine is initialised and \arg{argc} is not \const{NULL}, the
 argument count used with PL_initialise() is stored in \arg{argc}.  Same
 for the argument vector \arg{argv}.
 
+    \cfunction{int}{PL_set_resource_db_mem}{const char *data, size_t size}
+This function must be called at most once and \emph{before} calling
+PL_initialise(). The memory area designated by \arg{data} and \arg{size}
+must contain the resource data and be in the format as produced by
+qsave_program/2. The memory area is accessed by PL_initialise() as well
+as calls to open_resource/3.\footnote{This implies that the data must
+remain accessible during the lifetime of the process if open_resource/3
+is used.  Future versions may provide a function to detach the resource
+database and cause open_resource/3 to raise an exception.}
+
+For example, we can include the bootstrap data into an embedded
+executable using the steps below. The advantage of this approach is that
+it is fully supported by any OS and you obtain a single file executable.
+
+\begin{enumerate}
+    \item Create a saved state using qsave_program/2 or
+\begin{code}
+% swipl -o state -c file.pl ...
+\end{code}
+    \item Create a C source file from the state using e.g., the
+    Unix utility \program{xxd}(1):
+\begin{code}
+% xxd -i state > state.h
+\end{code}
+    \item Embed Prolog as in the example below.  Instead of calling
+    the toplevel you probably want to call your application code.
+\begin{code}
+#include <SWI-Prolog.h>
+#include "state.h"
+
+int
+main(int argc, char **argv)
+{ if ( !PL_set_resource_db_mem(state, state_len) ||
+       !PL_initialise(argc, argv) )
+    PL_halt(1);
+
+  return PL_toplevel();
+}
+\end{code}
+\end{enumerate}
+
     \cfunction{void}{PL_install_readline}{}
 Installs the GNU readline line editor.  Embedded applications that do not
 use the Prolog top level should normally delete this line, shrinking the

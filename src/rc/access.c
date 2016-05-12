@@ -64,6 +64,28 @@
 static HtmlTagDef file_tag_def = NULL;
 
 static int attach_archive(RcArchive rca);
+static int attach_archive_mem(RcArchive rca, const char *mem, size_t mem_size);
+
+RcArchive
+rc_open_archive_mem(const char *mem, size_t mem_size, int flags)
+{ RcArchive rca = malloc(sizeof(rc_archive));
+
+  if ( rca )
+  { memset(rca, 0, sizeof(*rca));
+    rca->flags = flags;
+
+    if ( !(flags & RC_TRUNC) )
+    { if ( !attach_archive_mem(rca, mem, mem_size) && !(flags & RC_CREATE) )
+      { rc_close_archive(rca);
+	return NULL;
+      }
+    }
+  } else
+    rc_errno = RCE_ERRNO;
+
+  return rca;
+}
+
 
 RcArchive
 rc_open_archive(const char *file, int flags)
@@ -119,7 +141,8 @@ rc_close_archive(RcArchive rca)
     free(m);
   }
 
-  free((void *)rca->path);
+  if ( rca->path )
+    free((void*)rca->path);
   free(rca);
 
   if ( file_tag_def )			/* normally we won't need this */
@@ -438,6 +461,17 @@ scan_archive(RcArchive rca)
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *)-1)
 #endif
+
+static int
+attach_archive_mem(RcArchive rca, const char *mem, size_t mem_size)
+{ rca->map_size  = mem_size;
+  rca->size      = rca->map_size;
+  rca->offset    = 0;
+  rca->map_start = (char*)mem;
+  rca->data      = rca->map_start;
+
+  return scan_archive(rca);
+}
 
 static int
 attach_archive(RcArchive rca)
