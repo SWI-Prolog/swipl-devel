@@ -760,7 +760,7 @@ PL_is_initialised(int *argc, char ***argv)
 
 
 int
-PL_initialise(int argc, char **argv)
+PL_initialise_int(int argc, char **argv, char *mem_data, long int mem_size)
 { int n;
   bool compile = FALSE;
   const char *rcpath = "<none>";
@@ -784,6 +784,7 @@ PL_initialise(int argc, char **argv)
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
+/*********************************************************************************
   if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
 #ifdef __WINDOWS__
        || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
@@ -792,6 +793,31 @@ PL_initialise(int argc, char **argv)
   { rcpath = ((RcArchive)GD->resourceDB)->path;
     initDefaultOptions();
   }
+*********************************************************************************/
+
+  if (mem_size != 0 && mem_data != NULL) {
+	if (    (GD->resourceDB = rc_open_archive_mem(GD->paths.executable, mem_data, mem_size, RC_RDONLY))
+#ifdef __WINDOWS__
+			|| (GD->resourceDB = rc_open_archive_mem(GD->paths.module, mem_data, mem_size, RC_RDONLY))
+#endif
+	)
+	{ rcpath = ((RcArchive)GD->resourceDB)->path;
+	initDefaultOptions();
+	}
+
+  } else {
+  
+	if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
+#ifdef __WINDOWS__
+			|| (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
+#endif
+	)
+	{ rcpath = ((RcArchive)GD->resourceDB)->path;
+	initDefaultOptions();
+	}
+  }
+
+
 
   if ( !GD->resourceDB ||
        !streq(GD->options.saveclass, "runtime") )
@@ -907,6 +933,20 @@ PL_initialise(int argc, char **argv)
     return status;
   }
   }					/* { GET_LD } */
+}
+
+/* MOD-OL olsky OL-2013 patch for mem init */
+
+int
+PL_initialise(int argc, char **argv)
+{
+   return PL_initialise_int(argc, argv, NULL, 0);
+}
+
+int
+PL_initialise_mem(int argc, char **argv, char *mem_data, long int mem_size)
+{
+   return PL_initialise_int(argc, argv, mem_data, mem_size);
 }
 
 
