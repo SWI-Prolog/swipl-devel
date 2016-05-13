@@ -114,10 +114,11 @@ The  `[...]`  optional  part  lists lambda  parameters.  Here  order  of
 variables matters hence the list notation.
 
 As `/` and `>>` are standard infix operators, no new operators are added
-by this library. An advantage of this syntax is that we can simply unify
-a lambda expression with Free/Parameters>>Lambda to   access each of its
-components. Spaces in the lambda expression   are not a problem although
-the goal may need to be written between ()'s.
+by this  library.  An  advantage of  this syntax is  that we  can simply
+unify a lambda expression with Free/Parameters>>Lambda to access each of
+its  components. Spaces  in  the  lambda expression  are  not a  problem
+although the goal  may need to be written between  ()'s.  Goals that are
+qualified by a module prefix also need to be wrapped inside parentheses.
 
 Combined  with  library(apply_macros),  library(yall)    allows  writing
 one-liners for many list operations that   have  the same performance as
