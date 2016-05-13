@@ -103,13 +103,15 @@ interested.
 
 Lambda expressions use the syntax below
 
-		{...}/[...]>>Goal.
+  ==
+  {...}/[...]>>Goal.
+  ==
 
-The {...} optional part is used for  lambda-free variables. The order of
-variables doesn't matter hence the {...} set notation.
+The `{...}` optional  part is used for lambda-free  variables. The order
+of variables doesn't matter hence the `{...}` set notation.
 
-The [...] optional part lists lambda parameters. Here order of variables
-matters hence the list notation.
+The  `[...]`  optional  part  lists lambda  parameters.  Here  order  of
+variables matters hence the list notation.
 
 As `/` and `>>` are standard infix operators, no new operators are added
 by this library. An advantage of this syntax is that we can simply unify
@@ -123,8 +125,8 @@ hand written code.
 
 The module name, _yall_, stands for Yet Another Lambda Library.
 
-This module implements Logtalk's lambda expressions syntax.
-The development of this module was sponsored by Kyndi, Inc.
+This  module  implements  Logtalk's   lambda  expressions  syntax.   The
+development of this module was sponsored by Kyndi, Inc.
 
 @tbd	Extend optimization support
 @author	Paulo Moura and Jan Wielemaker
