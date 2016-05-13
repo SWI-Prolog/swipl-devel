@@ -36,7 +36,7 @@
 /** <module> Test lambda expressions
 
 This module tests the implementation of Logtalk's lambda expressions syntax.
-Its development was sponsored by Kyndi, Inc.
+The development of this module was sponsored by Kyndi, Inc.
 
 Several tests are adapted from Ulrich Neumerkel's lambda proposal examples.
 Some tests and some becnhmarks were posted in public Prolog discussion

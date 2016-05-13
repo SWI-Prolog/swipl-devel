@@ -124,7 +124,7 @@ hand written code.
 The module name, _yall_, stands for Yet Another Lambda Library.
 
 This module implements Logtalk's lambda expressions syntax.
-Its development of this module was sponsored by Kyndi, Inc.
+The development of this module was sponsored by Kyndi, Inc.
 
 @tbd	Extend optimization support
 @author	Paulo Moura and Jan Wielemaker
