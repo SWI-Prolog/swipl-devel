@@ -186,7 +186,7 @@ fallback predicates are automatically used whenever possible.
 Almost all Prolog programs also reason about integers. Therefore, it
 is highly advisable that you make the constraints of this library
 available in all your programs. One way to do this is to put the
-following directive in your ~/.swiplrc initialisation file:
+following directive in your =|~/.swiplrc|= initialisation file:
 
 ==
 :- use_module(library(clpfd)).
