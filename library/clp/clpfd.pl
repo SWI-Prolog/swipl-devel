@@ -373,6 +373,55 @@ is automatically unified to that element.
 Domains are taken into account when further constraints are stated,
 and by enumeration predicates like labeling/2.
 
+### Residual goals				{#clpfd-residual-goals}
+
+Here is an example session with a few queries and their answers:
+
+==
+?- X #> 3.
+X in 4..sup.
+
+?- X #\= 20.
+X in inf..19\/21..sup.
+
+?- 2*X #= 10.
+X = 5.
+
+?- X*X #= 144.
+X in -12\/12.
+
+?- 4*X + 2*Y #= 24, X + Y #= 9, [X,Y] ins 0..sup.
+X = 3,
+Y = 6.
+
+?- X #= Y #<==> B, X in 0..3, Y in 4..5.
+B = 0,
+X in 0..3,
+Y in 4..5.
+==
+
+The answers emitted by the toplevel are called _residual programs_,
+and the goals that comprise each answer are called **residual goals**.
+In each case, and as for all pure programs, the residual program is
+declaratively equivalent to the original query. From the residual
+goals, it is clear that the constraint solver has deduced additional
+domain restrictions in many cases.
+
+To inspect residual goals, use call_residue_vars/2 and copy_term/3.
+For example:
+
+==
+?- X #= Y + Z, X in 0..5, copy_term([X,Y,Z], [X,Y,Z], Gs).
+Gs = [clpfd: (X in 0..5), clpfd: (Y+Z#=X)],
+X in 0..5,
+Y+Z#=X.
+==
+
+This library also provides _reflection_ predicates (like fd_dom/2,
+fd_size/2 etc.) with which you can inspect a variable's current
+domain. These predicates can be useful if you want to implement your
+own labeling strategies.
+
 ### Core relations and search    {#clpfd-search}
 
 Using CLP(FD) constraints to solve combinatorial tasks typically
@@ -487,37 +536,6 @@ The constraints of this table are reifiable as well.
 When reasoning over Boolean variables, also consider using
 `library(clpb)` and its dedicated CLP(B) constraints.
 
-### Examples				{#clpfd-examples}
-
-Here is an example session with a few queries and their answers:
-
-==
-?- X #> 3.
-X in 4..sup.
-
-?- X #\= 20.
-X in inf..19\/21..sup.
-
-?- 2*X #= 10.
-X = 5.
-
-?- X*X #= 144.
-X in -12\/12.
-
-?- 4*X + 2*Y #= 24, X + Y #= 9, [X,Y] ins 0..sup.
-X = 3,
-Y = 6.
-
-?- X #= Y #<==> B, X in 0..3, Y in 4..5.
-B = 0,
-X in 0..3,
-Y in 4..5.
-==
-
-In each case, and as for all pure programs, the answer is
-declaratively equivalent to the original query, and in many cases the
-constraint solver has deduced additional domain restrictions.
-
 ### Enabling monotonic CLP(FD)		{#clpfd-monotonicity}
 
 In the default execution mode, CLP(FD) constraints still exhibit some
@@ -555,19 +573,15 @@ ERROR: Arguments are not sufficiently instantiated
 The wrapper can be omitted for variables that are already constrained
 to integers.
 
-### Advanced topics			{#clpfd-advanced-topics}
+### Custom constraints			{#clpfd-custom-constraints}
 
-Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
-the constraints in which a variable is involved. This library also
-provides _reflection_ predicates (like fd_dom/2, fd_size/2 etc.) with
-which you can inspect a variable's current domain. These predicates
-can be useful if you want to implement your own labeling strategies.
+You can define custom constraints. The mechanism to do this is not yet
+finalised, and we welcome suggestions and descriptions of use cases
+that are important to you.
 
-You can also define custom constraints. The mechanism to do this is
-not yet finalised, and we welcome suggestions and descriptions of use
-cases that are important to you. As an example of how it can be done
-currently, let us define a new custom constraint `oneground(X,Y,Z)`,
-where Z shall be 1 if at least one of X and Y is instantiated:
+As an example of how it can be done currently, let us define a new
+custom constraint `oneground(X,Y,Z)`, where Z shall be 1 if at least
+one of X and Y is instantiated:
 
 ==
 :- multifile clpfd:run_propagator/2.
