@@ -532,7 +532,8 @@ false.
 X = 1+1.
 ==
 
-From a logical point of view, this behaviour is highly problematic.
+This behaviour is highly problematic from a logical point of view, and
+it may render declarative debugging techniques inapplicable.
 
 Set the Prolog flag `clpfd_monotonic` to `true` to make CLP(FD)
 **monotonic**: This means that _adding_ new constraints _cannot_ yield
