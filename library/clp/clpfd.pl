@@ -407,8 +407,11 @@ declaratively equivalent to the original query. From the residual
 goals, it is clear that the constraint solver has deduced additional
 domain restrictions in many cases.
 
-To inspect residual goals, use call_residue_vars/2 and copy_term/3.
-For example:
+To inspect residual goals, it is best to let the toplevel display them
+for you. Wrap the call of your predicate into call_residue_vars/2 to
+make sure that all constrained variables are displayed. To reason
+about the constraints a variable is involved in, use copy_term/3. For
+example:
 
 ==
 ?- X #= Y + Z, X in 0..5, copy_term([X,Y,Z], [X,Y,Z], Gs).
