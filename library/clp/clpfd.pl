@@ -518,14 +518,43 @@ In each case, and as for all pure programs, the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
 
-### Advanced topics			{#clpfd-advanced-topics}
+### Enabling monotonic CLP(FD)		{#clpfd-monotonicity}
 
-If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
-*monotonic*: Adding new constraints cannot yield new solutions. When
-this flag is `true`, you must wrap variables that occur in arithmetic
-expressions with the functor `(?)/1`. For example, `?(X) #= ?(Y) +
-?(Z)`. The wrapper can be omitted for variables that are already
-constrained to integers.
+In the default execution mode, CLP(FD) constraints still exhibit some
+non-relational properties. For example, _adding_ constraints can yield
+new solutions:
+
+==
+?-          X #= 2, X = 1+1.
+false.
+
+?- X = 1+1, X #= 2, X = 1+1.
+X = 1+1.
+==
+
+From a logical point of view, this behaviour is highly problematic.
+
+Set the Prolog flag `clpfd_monotonic` to `true` to make CLP(FD)
+**monotonic**: This means that _adding_ new constraints _cannot_ yield
+new solutions. When this flag is `true`, you must wrap variables that
+occur in arithmetic expressions with the functor `(?)/1` or `(#)/1`. For
+example:
+
+==
+?- set_prolog_flag(clpfd_monotonic, true).
+true.
+
+?- #(X) #= #(Y) + #(Z).
+#(Y)+ #(Z)#= #(X).
+
+?-          X #= 2, X = 1+1.
+ERROR: Arguments are not sufficiently instantiated
+==
+
+The wrapper can be omitted for variables that are already constrained
+to integers.
+
+### Advanced topics			{#clpfd-advanced-topics}
 
 Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
 the constraints in which a variable is involved. This library also
