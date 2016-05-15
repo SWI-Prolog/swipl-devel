@@ -159,22 +159,21 @@ CLP(FD) is an instance of the general CLP(.) scheme, extending logic
 programming with reasoning over specialised domains. CLP(FD) lets you
 reason about **integers**.
 
-There are two major use cases of this library:
+There are two major use cases of CLP(FD) constraints:
 
-    1. CLP(FD) constraints provide **declarative integer arithmetic**:
-       They implement pure _relations_ between integer expressions and
-       can be used in all directions, also if parts of expressions are
-       variables. CLP(FD) constraints are meant to be used every time
-       you reason over integers. In modern Prolog systems, low-level
-       arithmetic predicates over integers are subsumed and superseded
-       by CLP(FD) constraints.
+    *  [**declarative integer arithmetic**](<#clpfd-integer-arith>)
+    *  solving **combinatorial problems** such as planning, scheduling
+       and allocation tasks.
 
-    2. In connection with enumeration predicates and more complex
-       constraints, CLP(FD) is often used to model and solve
-       **combinatorial problems** such as planning, scheduling and
-       allocation tasks.
+The predicates of this library can be classified as:
 
-In most cases, simple arithmetic constraints like #=/2, #>/2 and #\=/2
+    * _arithmetic_ constraints like #=/2, #>/2 and #\=/2
+    * the _membership_ constraints in/2 and ins/2
+    * _combinatorial_ constraints like all_distinct/1
+    * _reification_ and _reflection_ predicates such as #<==>/2
+    * the _enumeration_ predicates indomain/1, label/1 and labeling/2.
+
+In most cases, [arithmetic constraints](<#clpfd-arith-constraints>)
 are the only predicates you will ever need from this library. When
 reasoning over integers, simply replace low-level arithmetic
 predicates like is/2 and >/2 by the corresponding CLP(FD) constraints
@@ -184,9 +183,9 @@ are implicitly rewritten at compilation time so that low-level
 fallback predicates are automatically used whenever possible.
 
 Almost all Prolog programs also reason about integers. Therefore, it
-is highly advisable that you make the constraints of this library
-available in all your programs. One way to do this is to put the
-following directive in your =|~/.swiplrc|= initialisation file:
+is highly advisable that you make CLP(FD) constraints available in all
+your programs. One way to do this is to put the following directive in
+your =|~/.swiplrc|= initialisation file:
 
 ==
 :- use_module(library(clpfd)).
@@ -217,7 +216,7 @@ primitives are impure limitations that are better deferred to more
 advanced lectures.
 
 We recommend the following reference (PDF:
-[www.metalevel.at/swiclpfd.pdf](https://www.metalevel.at/swiclpfd.pdf)) for
+[metalevel.at/swiclpfd.pdf](https://www.metalevel.at/swiclpfd.pdf)) for
 citing this library in scientific publications:
 
 ==
@@ -233,7 +232,7 @@ citing this library in scientific publications:
 ==
 
 More information about CLP(FD) constraints and their implementation is
-contained in: [**www.metalevel.at/drt.pdf**](https://www.metalevel.at/drt.pdf)
+contained in: [**metalevel.at/drt.pdf**](https://www.metalevel.at/drt.pdf)
 
 The best way to discuss applying, improving and extending CLP(FD)
 constraints is to use the dedicated `clpfd` tag on
@@ -243,18 +242,18 @@ in these discussions and will help you for free on this platform.
 
 ### Arithmetic constraints		{#clpfd-arith-constraints}
 
-*Arithmetic constraints* subsume and supersede low-level Prolog
-predicates over integers. The main advantage of arithmetic constraints
-is that they are true _relations_ and can be used in all directions.
-For most programs, arithmetic constraints are the only predicates you
-will ever need from this library.
+In modern Prolog systems, *arithmetic constraints* subsume and
+supersede low-level predicates over integers. The main advantage of
+arithmetic constraints is that they are true _relations_ and can be
+used in all directions. For most programs, arithmetic constraints are
+the only predicates you will ever need from this library.
 
 The arithmetic constraints are:
 
-    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
-    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
     | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
     | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
     | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
     | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
 
@@ -279,9 +278,15 @@ where `Expr` again denotes an arithmetic expression.
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
-CLP(FD) constraints let you declaratively express integer arithmetic.
-The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used instead
-of the corresponding primitives is/2, =:=/2, >/2 etc. over integers.
+The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used _instead_
+of the primitives is/2, =:=/2, >/2 etc. over integers. Throughout the
+following, it is assumed that you have put the following directive in
+your =|~/.swiplrc|= initialisation file to make CLP(FD) constraints
+available in all your programs:
+
+==
+:- use_module(library(clpfd)).
+==
 
 An important advantage of arithmetic constraints is their purely
 relational nature. They are therefore easy to explain and use, and
@@ -337,9 +342,9 @@ false.
 ==
 
 To make the predicate terminate if any argument is instantiated, add
-the (implied) constraint F #\= 0 before the recursive call. Otherwise,
-the query n_factorial(N, 0) is the only non-terminating case of this
-kind.
+the (implied) constraint `F #\= 0` before the recursive call.
+Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
+case of this kind.
 
 This library uses goal_expansion/2 to automatically rewrite arithmetic
 constraints at compilation time. The expansion's aim is to bring the
