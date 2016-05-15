@@ -624,6 +624,17 @@ Z = 1,
 X in inf..sup.
 ==
 
+### Applications   {#clpfd-applications}
+
+CLP(FD) applications that we find particularly impressive and worth
+studying include:
+
+  * Michael Hendricks uses CLP(FD) constraints for flexible reasoning
+    about _dates_ and _times_ in the
+    [`julian`](http://www.swi-prolog.org/pack/list?p=julian) package.
+  * Julien Cumin uses CLP(FD) constraints for integer arithmetic in
+    [=Brachylog=](https://github.com/JCumin/Brachylog).
+
 ### CLP(FD) predicate index			{#clpfd-predicate-index}
 
 In the following, each CLP(FD) predicate is described in more detail.
