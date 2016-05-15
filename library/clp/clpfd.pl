@@ -648,7 +648,7 @@ We recommend the following link to refer to this manual:
 
 http://eu.swi-prolog.org/man/clpfd.html
 
-@author Markus Triska
+@author [Markus Triska](https://www.metalevel.at)
 */
 
 :- create_prolog_flag(clpfd_monotonic, false, []).
