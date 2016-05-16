@@ -224,6 +224,32 @@ node(1)- (v(X, 1)->true;false),
 node(2)- (v(X, 1)->false;true).
 ==
 
+### Enabling monotonic CLP(B)
+
+In the default execution mode, CLP(B) constraints are _not_ monotonic.
+This means that adding constraints can yield new solutions. For
+example:
+
+==
+?-          sat(X=:=1), X = 1+0.
+false.
+
+?- X = 1+0, sat(X=:=1), X = 1+0.
+X = 1+0.
+==
+
+If you set the flag `clpb_monotonic` to `true`, then CLP(B) is
+*monotonic*. If this mode is enabled, then you must wrap CLP(B)
+variables with the functor `v/1`. For example:
+
+==
+?- set_prolog_flag(clpb_monotonic, true).
+true.
+
+?- sat(v(X)=:=1#1).
+X = 0.
+==
+
 @author [Markus Triska](https://www.metalevel.at)
 */
 
