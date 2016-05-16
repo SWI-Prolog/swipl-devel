@@ -278,11 +278,11 @@ where `Expr` again denotes an arithmetic expression.
 
 ### Declarative integer arithmetic		{#clpfd-integer-arith}
 
-The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used _instead_
-of the primitives is/2, =:=/2, >/2 etc. over integers. Throughout the
-following, it is assumed that you have put the following directive in
-your =|~/.swiplrc|= initialisation file to make CLP(FD) constraints
-available in all your programs:
+The [arithmetic constraints](<#clpfd-arith-constraints>) #=/2, #>/2
+etc. are meant to be used _instead_ of the primitives is/2, =:=/2, >/2
+etc. over integers. Throughout the following, it is assumed that you
+have put the following directive in your =|~/.swiplrc|= initialisation
+file to make CLP(FD) constraints available in all your programs:
 
 ==
 :- use_module(library(clpfd)).
@@ -2470,7 +2470,8 @@ match_goal(p(Prop), _) -->
 %% ?X #>= ?Y
 %
 % Same as Y #=< X. When reasoning over integers, replace >=/2 by #>=/2
-% to obtain more general relations.
+% to obtain more general relations. See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #>= Y :- clpfd_geq(X, Y).
 
@@ -2480,14 +2481,16 @@ clpfd_geq(X, Y) :- clpfd_geq_(X, Y), reinforce(X), reinforce(Y).
 %
 % The arithmetic expression X is less than or equal to Y. When
 % reasoning over integers, replace =</2 by #=</2 to obtain more
-% general relations.
+% general relations. See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #=< Y :- Y #>= X.
 
 %% ?X #= ?Y
 %
 % The arithmetic expression X equals Y. When reasoning over integers,
-% replace is/2 by #=/2 to obtain more general relations.
+% replace is/2 by #=/2 to obtain more general relations. See
+% [declarative integer arithmetic](<#clpfd-integer-arith>).
 
 X #= Y :- clpfd_equal(X, Y).
 
@@ -2757,7 +2760,8 @@ integer_kroot_leq(L, U, N, K, R) :-
 %
 % The arithmetic expressions X and Y evaluate to distinct integers.
 % When reasoning over integers, replace =\=/2 by #\=/2 to obtain more
-% general relations.
+% general relations. See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #\= Y :- clpfd_neq(X, Y), do_queue.
 
@@ -2778,14 +2782,17 @@ neq_num(X, N) :-
 
 %% ?X #> ?Y
 %
-% Same as Y #< X.
+% Same as Y #< X. When reasoning over integers, replace >/2 by #>/2 to
+% obtain more general relations See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #> Y  :- X #>= Y + 1.
 
 %% #<(?X, ?Y)
 %
 % The arithmetic expression X is less than Y. When reasoning over
-% integers, replace </2 by #</2 to obtain more general relations.
+% integers, replace </2 by #</2 to obtain more general relations. See
+% [declarative integer arithmetic](<#clpfd-integer-arith>).
 %
 % In addition to its regular use in tasks that require it, this
 % constraint can also be useful to eliminate uninteresting symmetries
