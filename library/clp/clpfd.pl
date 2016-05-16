@@ -2805,8 +2805,9 @@ X #< Y  :- Y #> X.
 
 %% #\ +Q
 %
-% The reifiable constraint Q does _not_ hold. For example, to obtain
-% the complement of a domain:
+% Q does _not_ hold. See [reification](<#clpfd-reification>).
+%
+% For example, to obtain the complement of a domain:
 %
 % ==
 % ?- #\ X in -3..0\/10..80.
@@ -2817,7 +2818,9 @@ X #< Y  :- Y #> X.
 
 %% ?P #<==> ?Q
 %
-% P and Q are equivalent. For example:
+% P and Q are equivalent. See [reification](<#clpfd-reification>).
+%
+% For example:
 %
 % ==
 % ?- X #= 4 #<==> B, X #\= 4.
@@ -2855,7 +2858,7 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 
 %% ?P #==> ?Q
 %
-% P implies Q.
+% P implies Q. See [reification](<#clpfd-reification>).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Implication is special in that created auxiliary constraints can be
@@ -2878,13 +2881,13 @@ L #==> R   :-
 
 %% ?P #<== ?Q
 %
-% Q implies P.
+% Q implies P. See [reification](<#clpfd-reification>).
 
 L #<== R   :- R #==> L.
 
 %% ?P #/\ ?Q
 %
-% P and Q hold.
+% P and Q hold. See [reification](<#clpfd-reification>).
 
 L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 
@@ -2913,8 +2916,10 @@ conjunctive_neqs_vals(A #/\ B) -->
 
 %% ?P #\/ ?Q
 %
-% P or Q holds. For example, the sum of natural numbers below 1000
-% that are multiples of 3 or 5:
+% P or Q holds. See [reification](<#clpfd-reification>).
+%
+% For example, the sum of natural numbers below 1000 that are
+% multiples of 3 or 5:
 %
 % ==
 % ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999,
@@ -2957,7 +2962,8 @@ disjunctive_eqs_vals(A #\/ B) -->
 
 %% ?P #\ ?Q
 %
-% Either P holds or Q holds, but not both.
+% Either P holds or Q holds, but not both. See
+% [reification](<#clpfd-reification>).
 
 L #\ R :- (L #\/ R) #/\ #\ (L #/\ R).
 
