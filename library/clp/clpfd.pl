@@ -236,9 +236,9 @@ contained in: [**metalevel.at/drt.pdf**](https://www.metalevel.at/drt.pdf)
 
 The best way to discuss applying, improving and extending CLP(FD)
 constraints is to use the dedicated `clpfd` tag on
-[stackoverflow.com](http://stackoverflow.com/questions/tagged/clpfd).
-Several of the world's foremost CLP(FD) experts regularly participate
-in these discussions and will help you for free on this platform.
+[stackoverflow.com](http://stackoverflow.com). Several of the world's
+foremost CLP(FD) experts regularly participate in these discussions
+and will help you for free on this platform.
 
 ### Arithmetic constraints		{#clpfd-arith-constraints}
 
