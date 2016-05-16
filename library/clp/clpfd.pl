@@ -1341,7 +1341,8 @@ fd_variable(V) :-
 
 %% +Vars ins +Domain
 %
-%  The variables in the list Vars are elements of Domain.
+%  The variables in the list Vars are elements of Domain. See in/2 for
+%  the syntax of Domain.
 
 Vs ins D :-
         fd_must_be_list(Vs),
@@ -1372,7 +1373,7 @@ order_dom_next(random_value(_), Dom, Next) :-
 
 %% label(+Vars)
 %
-% Equivalent to labeling([], Vars).
+% Equivalent to labeling([], Vars). See labeling/2.
 
 label(Vs) :- labeling([], Vs).
 
