@@ -5609,8 +5609,10 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 
 %%    global_cardinality(+Vs, +Pairs)
 %
-%     Global      Cardinality      constraint.        Equivalent      to
-%     global_cardinality(Vs, Pairs, []). Example:
+%     Global Cardinality constraint. Equivalent to
+%     global_cardinality(Vs, Pairs, []). See global_cardinality/3.
+%
+%     Example:
 %
 %     ==
 %     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
@@ -6063,7 +6065,7 @@ circuit_successors(V, Tos) :-
 
 %% cumulative(+Tasks)
 %
-%  Equivalent to cumulative(Tasks, [limit(1)]).
+%  Equivalent to cumulative(Tasks, [limit(1)]). See cumulative/2.
 
 cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 
