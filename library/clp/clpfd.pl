@@ -1459,8 +1459,8 @@ label(Vs) :- labeling([], Vs).
 % ==
 %
 % Labeling is always complete, always terminates, and yields no
-% redundant solutions.
-%
+% redundant solutions. See the section about [core relations and
+% search](<#clpfd-search>) for usage advice.
 
 labeling(Options, Vars) :-
         must_be(list, Options),
