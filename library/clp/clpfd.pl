@@ -640,6 +640,28 @@ studying include:
   * Julien Cumin uses CLP(FD) constraints for integer arithmetic in
     [=Brachylog=](https://github.com/JCumin/Brachylog).
 
+### Acknowledgments {#clpfd-acknowledgments}
+
+This library gives you a glimpse of what [**SICStus
+Prolog**](https://sicstus.sics.se/) can do. The API is intentionally
+mostly compatible with that of SICStus Prolog, so that you can easily
+switch to a much more feature-rich and much faster CLP(FD) system when
+you need it. I thank [Mats Carlsson](https://www.sics.se/~matsc/), the
+designer and main implementor of SICStus Prolog, for his elegant
+example. I first encountered his system as part of the excellent
+[**GUPU**](http://www.complang.tuwien.ac.at/ulrich/gupu/) teaching
+environment by [Ulrich
+Neumerkel](http://www.complang.tuwien.ac.at/ulrich/). Ulrich was also
+the first and most determined tester of the present system, filing
+hundreds of comments and suggestions for improvement. [Tom
+Schrijvers](https://people.cs.kuleuven.be/~tom.schrijvers/) has
+contributed several constraint libraries to SWI-Prolog, and I learned
+a lot from his coding style and implementation examples. [Bart
+Demoen](https://people.cs.kuleuven.be/~bart.demoen/) was a driving
+force behind the implementation of attributed variables in SWI-Prolog,
+and this library could not even have started without his prior work
+and contributions. Thank you all!
+
 ### CLP(FD) predicate index			{#clpfd-predicate-index}
 
 In the following, each CLP(FD) predicate is described in more detail.
