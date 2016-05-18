@@ -629,6 +629,78 @@ Z = 1,
 X in inf..sup.
 ==
 
+### Example: Eight queens puzzle {#clpfd-n-queens}
+
+We illustrate the most important concepts of this library by means of
+the so-called _eight queens puzzle_. The task is to place 8 queens on
+an 8x8 chessboard such that none of the queens is under attack. This
+means that no two queens share the same row, column or diagonal.
+
+To express this puzzle via CLP(FD) constraints, we must first pick a
+suitable representation. Since CLP(FD) constraints reason over
+_integers_, we must find a way to map the positions of queens to
+integers. Several such mappings are conceivable, and it is not
+immediately obvious which we should use. For this reason, _modeling_
+combinatorial problems via CLP(FD) constraints often necessitates some
+creativity and has been described as more of an art than a science.
+
+In our concrete case, we observe that there must be exactly one queen
+per column. The following representation therefore suggests itself: We
+are looking for 8 integers, one for each column, where each integer
+denotes the _row_ of the queen that is placed in the respective
+column, and which are subject to certain constraints.
+
+In fact, let us now generalize the task to the so-called _N queens
+puzzle_, which is obtained by replacing 8 by _N_ everywhere it occurs
+in the above description. We implement the above considerations in the
+**core relation** `n_queens/2`, where the first argument is the number
+of queens (which is identical to the number of rows and columns of the
+generalized chessboard), and the second argument is a list of _N_
+integers that represents a solution in the form described above.
+
+==
+n_queens(N, Qs) :-
+        length(Qs, N),
+        Qs ins 1..N,
+        safe_queens(Qs).
+
+safe_queens([]).
+safe_queens([Q|Qs]) :- safe_queens(Qs, Q, 1), safe_queens(Qs).
+
+safe_queens([], _, _).
+safe_queens([Q|Qs], Q0, D0) :-
+        Q0 #\= Q,
+        abs(Q0 - Q) #\= D0,
+        D1 #= D0 + 1,
+        safe_queens(Qs, Q0, D1).
+==
+
+Note that all these predicates can be used in _all directions_: You
+can use them to _find_ solutions, _test_ solutions and _complete_
+partially instantiated solutions.
+
+The original task can be readily solved with the following query:
+
+==
+?- n_queens(8, Qs), label(Qs).
+Qs = [1, 5, 8, 6, 3, 7, 2, 4] .
+==
+
+Using suitable labeling strategies, we can easily find solutions with
+80 queens and more:
+
+==
+?- n_queens(80, Qs), labeling([ff], Qs).
+Qs = [1, 3, 5, 44, 42, 4, 50, 7, 68|...] .
+
+?- time((n_queens(90, Qs), labeling([ff], Qs))).
+% 5,904,401 inferences, 0.722 CPU in 0.737 seconds (98% CPU, 8183406 Lips)
+Qs = [1, 3, 5, 50, 42, 4, 49, 7, 59|...] .
+==
+
+Experimenting with different search strategies is easy because we have
+separated the core relation from the actual search.
+
 ### Applications   {#clpfd-applications}
 
 CLP(FD) applications that we find particularly impressive and worth
