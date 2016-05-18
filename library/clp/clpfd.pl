@@ -161,8 +161,8 @@ reason about **integers**.
 
 There are two major use cases of CLP(FD) constraints:
 
-    *  [**declarative integer arithmetic**](<#clpfd-integer-arith>)
-    *  solving **combinatorial problems** such as planning, scheduling
+    1. [**declarative integer arithmetic**](<#clpfd-integer-arith>)
+    2. solving **combinatorial problems** such as planning, scheduling
        and allocation tasks.
 
 The predicates of this library can be classified as:
