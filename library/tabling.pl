@@ -151,10 +151,12 @@ dep(Answer, dependency(Answer, Continuation, call_info(Wrapper, TargetTable)),
 
 %%	abolish_all_tables
 %
-%	Remove all tables.  Should not be called when tabling is in
-%	progress.
+%	Remove all tables. This is normally used to free up the space or
+%	recompute the result after predicates on   which  the result for
+%	some tabled predicates depend.
 %
-%	@bug	Check whether tabling is in progress
+%	@error  permission_error(abolish, table, all) if tabling is
+%		in progress.
 
 abolish_all_tables :-
 	'$tbl_abolish_all_tables'.
