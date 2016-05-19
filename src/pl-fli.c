@@ -3589,6 +3589,28 @@ PL_unify(term_t t1, term_t t2)
 
 #define PL_unify(t1, t2) PL_unify__LD(t1, t2 PASS_LD)
 
+/*
+ * Unify an output argument.  Only deals with the simple case
+ * where the output argument is unbound and the value is bound.
+ */
+
+int
+PL_unify_output__LD(term_t t1, term_t t2 ARG_LD)
+{ Word p1 = valHandleP(t1);
+  Word p2 = valHandleP(t2);
+
+  deRef(p1);
+  deRef(p2);
+  if ( canBind(*p1) && !canBind(*p2) &&
+       hasGlobalSpace(0) )
+  { bindConst(p1, *p2);
+    return TRUE;
+  } else
+  { return unify_ptrs(p1, p2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+  }
+}
+
+
 
 		 /*******************************
 		 *	       MODULES		*
