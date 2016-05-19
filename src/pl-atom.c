@@ -405,7 +405,7 @@ allocateAtomBlock(int idx)
 }
 
 static Atom
-reserveAtom()
+reserveAtom(void)
 { size_t index;
 #ifdef O_ATOMGC				/* try to find a hole! */
   int i;
@@ -1644,7 +1644,7 @@ PRED_IMPL("$atom_references", 2, atom_references, 0)
   if ( PL_get_atom_ex(A1, &atom) )
   { Atom av = atomValue(atom);
 
-    return PL_unify_integer(A2, av->references);
+    return PL_unify_integer(A2, ATOM_REF_COUNT(av->references));
   }
 
   fail;
