@@ -8832,6 +8832,7 @@ local           & Allocated size of the local stack in bytes \\
 local_shifts	& Number of local stack expansions \\
 locallimit      & Size to which the local stack is allowed to grow \\
 localused       & Number of bytes in use on the local stack \\
+table_space_used& Amount of bytes in use by the thread's answer tables \\
 trail           & Allocated size of the trail stack in bytes \\
 trail_shifts	& Number of trail stack expansions \\
 traillimit      & Size to which the trail stack is allowed to grow \\
