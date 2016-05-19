@@ -1,0 +1,21 @@
+\libdoc{tabling}{Tabled execution (SLG)}
+
+\index{SLG,resolution}
+\jargon{Tabled execution} of a Prolog predicate, also called SLG
+resolution provides two properties:
+
+\begin{enumerate}
+  \item Re-evaluation of a tabled predicate is avoided by _memoizing_ the
+     answers.  This can realise huge performance enhancements.  It also
+     comes with two downsides: the memoized answers are not automatically
+     updated or invalidated if the world (set of predicates on which the
+     answers depend) changes) and the answer tables must be stored (in
+     memory).
+
+  \item \jargon{Left recursion}, a goal calling a \jargon{variant} of itself
+     recursively and thus \textit{looping} under the normal Prolog SLD
+     resolution is avoided by suspending the variant call and resuming
+     it with answers from the table.
+\end{enumerate}
+
+\input{tablinglib.tex}
