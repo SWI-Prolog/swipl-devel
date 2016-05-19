@@ -27,6 +27,7 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include "pl-dbref.h"
+#include "pl-trie.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -81,6 +82,7 @@ setupProlog(void)
 			 GD->options.trailSize) )
     fatalError("Not enough address space to allocate Prolog stacks");
   initPrologLocalData(PASS_LD1);
+  LD->tabling.node_pool.limit = GD->options.tableSpace;
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -97,6 +99,8 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Records ...\n"));
   initDBRef();
   initRecords();
+  DEBUG(1, Sdprintf("Tries ...\n"));
+  initTries();
   DEBUG(1, Sdprintf("Flags ...\n"));
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));

@@ -32,6 +32,7 @@ typedef struct
   int  local;				/* default local stack size (K) */
   int  global;				/* default global stack size (K) */
   int  trail;				/* default trail stack size (K) */
+  int  table;				/* default table space (K) */
   char *goal;				/* default initialisation goal */
   char *toplevel;			/* default top level goal */
   bool notty;				/* use tty? */
@@ -48,6 +49,7 @@ typedef struct
 { size_t	localSize;		/* size of local stack */
   size_t	globalSize;		/* size of global stack */
   size_t	trailSize;		/* size of trail stack */
+  size_t	tableSpace;		/* table space */
   char *	goal;			/* initial goal */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
@@ -100,6 +102,7 @@ portability.
 #define DEF_DEFLOCAL	(32*1024*SIZEOF_VOIDP)
 #define DEF_DEFGLOBAL	(32*1024*SIZEOF_VOIDP)
 #define DEF_DEFTRAIL	(32*1024*SIZEOF_VOIDP)
+#define DEF_DEFTABLE	((1024/8)*1024*SIZEOF_VOIDP)
 
 #ifndef DEFLOCAL
 #define DEFLOCAL    DEF_DEFLOCAL
@@ -110,8 +113,8 @@ portability.
 #ifndef DEFTRAIL
 #define DEFTRAIL    DEF_DEFTRAIL
 #endif
-#ifndef DEFHEAP
-#define DEFHEAP     DEF_DEFHEAP
+#ifndef DEFTABLE
+#define DEFTABLE    DEF_DEFTABLE
 #endif
 
 /* Parameters that control findHome() */

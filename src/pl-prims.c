@@ -5162,6 +5162,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.f = GD->statistics.thread_cputime;
   }
 #endif
+  else if (key == ATOM_table_space_used)
+    v->value.i = LD->tabling.node_pool.size*sizeof(trie_node);
   else
     return -1;				/* unknown key */
 

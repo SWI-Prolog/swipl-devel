@@ -221,6 +221,7 @@ COMMON(term_t)		PL_new_term_ref__LD(ARG1_LD);
 COMMON(term_t)		PL_new_term_ref_noshift__LD(ARG1_LD);
 COMMON(term_t)		PL_new_term_refs__LD(int n ARG_LD);
 COMMON(int)		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
+COMMON(int)		PL_unify_output__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int)		PL_unify_integer__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int)		PL_unify_int64__LD(term_t t1, int64_t ARG_LD);
 COMMON(int)		PL_unify_int64_ex__LD(term_t t1, int64_t ARG_LD);

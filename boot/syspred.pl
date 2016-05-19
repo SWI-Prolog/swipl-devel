@@ -56,6 +56,8 @@
 	    current_module/1,			% ?Module
 	    module_property/2,			% ?Module, ?Property
 	    module/1,				% +Module
+	    current_trie/1,			% ?Trie
+	    trie_property/2,			% ?Trie, ?Property
 	    working_directory/2,		% -OldDir, +NewDir
 	    shell/1,				% +Command
 	    shell/0,
@@ -1039,6 +1041,43 @@ working_directory(Old, New) :-
 	->  true
 	;   '$chdir'(New)
 	).
+
+
+		 /*******************************
+		 *	      TRIES		*
+		 *******************************/
+
+%%	current_trie(?Trie) is nondet.
+%
+%	True if Trie is the handle of an existing trie.
+
+current_trie(Trie) :-
+	current_blob(Trie, trie).
+
+%%	trie_property(?Trie, ?Property)
+%
+%	True when Property is a property of Trie. Defined properties
+%	are:
+%
+%	  - value_count(Count)
+%	  Number of terms in the trie.
+%	  - node_count(Count)
+%	  Number of nodes in the trie.
+%	  - size(Bytes)
+%	  Number of bytes needed to store the trie.
+%	  - hashed(Count)
+%	  Number of hashed nodes.
+
+trie_property(Trie, Property) :-
+	current_trie(Trie),
+	trie_property(Property),
+	'$trie_property'(Trie, Property).
+
+trie_property(node_count(_)).
+trie_property(value_count(_)).
+trie_property(size(_)).
+trie_property(hashed(_)).
+
 
 
 		/********************************

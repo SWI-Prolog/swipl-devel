@@ -409,6 +409,7 @@ initDefaults(void)
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
+  systemDefaults.table       = DEFTABLE;
   systemDefaults.goal	     = "version";
   systemDefaults.toplevel    = "prolog";
   systemDefaults.notty       = NOTTYCONTROL;
@@ -488,6 +489,7 @@ initDefaultOptions()
   GD->options.localSize     = systemDefaults.local    K;
   GD->options.globalSize    = systemDefaults.global   K;
   GD->options.trailSize     = systemDefaults.trail    K;
+  GD->options.tableSpace    = systemDefaults.table    K;
   GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
@@ -618,6 +620,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'L':
 	case 'G':
 	case 'T':
+	case 'M':
 	case 'A':
 	case 'H':
         { uintptr_t size = memarea_limit(&s[1]);
@@ -629,6 +632,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	  { case 'L':	GD->options.localSize    = size; goto next;
 	    case 'G':	GD->options.globalSize   = size; goto next;
 	    case 'T':	GD->options.trailSize    = size; goto next;
+	    case 'M':	GD->options.tableSpace   = size; goto next;
 	    case 'H':
 	    case 'A':
 	      Sdprintf("%% Warning: -%csize is no longer supported\n", *s);

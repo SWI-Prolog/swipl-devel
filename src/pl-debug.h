@@ -142,6 +142,11 @@
 #define MSG_RECONSULT_CLAUSE	 192
 #define MSG_RECONSULT_MODULE	 193
 
+#define MSG_TRIE_PUT_TERM	 200
+#define MSG_TRIE_GC		 201
+
+#define MSG_TABLING_WORK	 300
+
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001
 #define CHK_HIGHER_ADDRESS      1002

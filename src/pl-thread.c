@@ -39,6 +39,7 @@
 #endif
 
 #include "pl-incl.h"
+#include "pl-tabling.h"
 #include "os/pl-cstack.h"
 #include "pl-prof.h"
 #include <stdio.h>
@@ -570,6 +571,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   if ( ld->stacks.global.base )		/* otherwise assume they are not */
     freeStacks(ld);			/* initialised */
   freePrologLocalData(ld);
+  clearThreadTablingData(ld);
 
   /*PL_unregister_atom(ld->prompt.current);*/
 
@@ -1541,6 +1543,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     ldnew->_debugstatus.skiplevel = SKIP_VERY_DEEP;
   }
 
+  ldnew->tabling.node_pool.size   = 0;
   ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
