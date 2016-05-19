@@ -102,8 +102,9 @@ expand_term(Term, Pos0, [], Pos) :-
 expand_term(Term, Pos0, Expanded, Pos) :-
 	b_setval('$term', Term),
 	'$def_modules'([term_expansion/4,term_expansion/2], MList),
-	call_term_expansion(MList, Term, Pos0, Term2, Pos1),
-	expand_term_2(Term2, Pos1, Expanded, Pos),
+	call_term_expansion(MList, Term, Pos0, Term1, Pos1),
+	expand_term_2(Term1, Pos1, Term2, Pos),
+	rename(Term2, Expanded),
 	b_setval('$term', []).
 
 call_term_expansion([], Term, Pos, Term, Pos).
@@ -1225,6 +1226,51 @@ member_eq(E, [H|T]) :-
 	->  true
 	;   member_eq(E, T)
 	).
+
+		 /*******************************
+		 *	      RENAMING		*
+		 *******************************/
+
+:- multifile
+	prolog:rename_predicate/2.
+
+rename(Var, Var) :-
+	var(Var), !.
+rename(end_of_file, end_of_file) :- !.
+rename(Terms0, Terms) :-
+	is_list(Terms0), !,
+	'$current_source_module'(M),
+	rename_preds(Terms0, Terms, M).
+rename(Term0, Term) :-
+	'$current_source_module'(M),
+	rename(Term0, Term, M), !.
+rename(Term, Term).
+
+rename_preds([], [], _).
+rename_preds([H0|T0], [H|T], M) :-
+	(   rename(H0, H, M)
+	->  true
+	;   H = H0
+	),
+	rename_preds(T0, T, M).
+
+rename(Var, Var, _) :-
+	var(Var), !.
+rename(M:Term0, M:Term, _) :- !,
+	rename(Term0, Term, M).
+rename((Head0 :- Body), (Head :- Body), M) :- !,
+	rename_head(Head0, Head, M).
+rename((:-_), _, _) :- !,
+	fail.
+rename(Head0, Head, M) :-
+	rename_head(Head0, Head, M).
+
+rename_head(Var, Var, _) :-
+	var(Var), !.
+rename_head(M:Term0, M:Term, _) :- !,
+	rename_head(Term0, Term, M).
+rename_head(Head0, Head, M) :-
+	prolog:rename_predicate(M:Head0, M:Head).
 
 
 		 /*******************************
