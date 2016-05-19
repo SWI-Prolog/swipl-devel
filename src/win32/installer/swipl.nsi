@@ -333,6 +333,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\predicate_options.pl
   File ${SWIPL}\library\git.pl
   File ${SWIPL}\library\prolog_pack.pl
+  File ${SWIPL}\library\tabling.pl
 
 ; COMPATIBILITY
   File ${SWIPL}\library\backcomp.pl
