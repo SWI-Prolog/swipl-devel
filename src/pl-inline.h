@@ -138,6 +138,15 @@ fetchFunctorArray(size_t index)
   return GD->functors.array.blocks[idx][index];
 }
 
+static inline void
+pushVolatileAtom__LD(atom_t a ARG_LD)
+{ LD->atoms.unregistering = a;
+  if ( GD->atoms.gc_active )
+    markAtom(a);
+}
+
+#define pushVolatileAtom(a) pushVolatileAtom__LD(a PASS_LD)
+
 
 		 /*******************************
 		 *	     BITVECTOR		*

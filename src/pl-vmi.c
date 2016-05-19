@@ -224,8 +224,7 @@ VMI(H_ATOM, 0, 1, (CA1_DATA))
 { IF_WRITE_MODE_GOTO(B_ATOM);
 
   c = (word)*PC++;
-  if (GD->atoms.gc_active)
-    markAtom(c);
+  pushVolatileAtom(c);
   goto h_const;
 }
 
@@ -845,8 +844,7 @@ this is above the stack anyway.
 
 VMI(B_ATOM, 0, 1, (CA1_DATA))
 { word c = (word)*PC++;
-  if (GD->atoms.gc_active)
-    markAtom(c);
+  pushVolatileAtom(c);
   *ARGP++ = c;
   NEXT_INSTRUCTION;
 }
