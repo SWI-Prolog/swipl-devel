@@ -727,3 +727,11 @@ advanceTableEnum(TableEnum e, void **name, void **value)
 
   return htable_iter(e->table, e->kvs, &e->idx, name, value);
 }
+
+
+size_t
+sizeofTable(Table ht)				/* memory usage in bytes */
+{ return ( sizeof(struct table) +
+	   sizeof(struct kvs) +
+	   ht->kvs->len * sizeof(struct symbol) );
+}

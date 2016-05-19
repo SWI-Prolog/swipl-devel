@@ -73,6 +73,7 @@ COMMON(int)		advanceTableEnum(TableEnum e, void **name, void **value);
 					/* used by for_table() macro */
 COMMON(int)		htable_iter(Table ht, KVS kvs, int *idx,
 				    void **name, void **value);
+COMMON(size_t)		sizeofTable(Table ht);
 
 static inline int
 htable_valid_kv(void *kv)
