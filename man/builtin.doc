@@ -2818,31 +2818,75 @@ reverse([H|T]) --> reverse(T), [H].
 
 \section{Database}			\label{sec:db}
 
-SWI-Prolog offers three different database mechanisms. The first one is
-the common assert/retract mechanism for manipulating the clause
-database. As facts and clauses asserted using assert/1 or one of its
-derivatives become part of the program, these predicates compile the term
-given to them. retract/1 and retractall/1 have to unify a term and
-therefore have to decompile the program. For these reasons the
-assert/retract mechanism is expensive. On the other hand, once compiled,
-queries to the database are faster than querying the recorded database
-discussed below.  See also dynamic/1.
+SWI-Prolog offers several ways to store data in globally accessible
+memory, i.e., outside the Prolog \jargon{stacks}. Data stored this way
+notably does not change on \jargon{backtracking}. Typically it is a bad
+idea to use any of the predicates in this section for realising global
+variables that can be assigned to. Typically, first consider
+representing data processed by your program as terms passed around as
+predicate arguments. If you need to reason over multiple solutions to a
+goal, consider findall/3, aggregate/3 and related predicates.
 
-The second way of storing arbitrary terms in the database is using the
-`recorded database'. In this database terms are associated with a
-\arg{key}. A key can be an atom, small integer or term. In the last case
-only the functor and arity determine the key. Each key has a chain of
-terms associated with it. New terms can be added either at the head or
-at the tail of this chain.
+Nevertheless, there are scenarios where storing data outside the Prolog
+stacks is a good option. Below are the main options for storing data:
 
-Following the Edinburgh tradition, SWI-Prolog provides database keys to
-clauses and records in the recorded database.  As of 5.9.10, these keys
-are represented by non-textual atoms (`blobs', see \secref{blob}), which
-makes accessing the database through references safe.
+\begin{description}
+    \item[Using dynamic predicates]
+Dynamic predicates are predicates for which the list of clauses is
+modified at runtime using asserta/1, assertz/1, retract/1 or
+retractall/1. Following the ISO standard, predicates that are modified
+this way need to be declared using the dynamic/1 \jargon{directive}.
+These facilities are defined by the ISO standard and widely supported.
+The mechanism is often considered slow in the literature. Performance
+depends on the Prolog implementation. In SWI-Prolog, querying dynamic
+predicates has the same performance as static ones. The manipulation
+predicates are fast. Using retract/1 or retractall/1 on a predicate
+registers the predicate as `dirty'. Dirty predicates are cleaned by
+garbage_collect_clauses/0, which is normally automatically invoked. Some
+workloads may result in significant performance reduction due to
+skipping retracted clauses and/or clause garbage collection.
 
-The third mechanism is a special-purpose one. It associates an integer
-or atom with a key, which is an atom, integer or term. Each key can only
-have one atom or integer associated with it.
+Dynamic predicates can be wrapped using library \pllib{persistency} to
+maintain a backup of the data on disk. Dynamic predicates come in two
+flavours, \jargon{shared} between threads and \jargon{local} to each
+thread. The latter version is created using the directive
+thread_local/1.
+
+    \item[The recorded database]
+The `recorded database' registers a list of terms with a \jargon{key},
+an atom or compound term. The list is managed using recorda/3, recordz/3
+and erase/1. It is queried using recorded/3. The recorded database is
+not part of the ISO standard but fairly widely supported, notably in
+implementations building on the `Edinburgh tradition'.  There are few
+reasons to use this database in SWI-Prolog due to the good performance
+of dynamic predicates.  Advantages are (1) the handle provides a direct
+reference to a term, (2) cyclic terms can be stored and (3) attributes
+(\secref{attvar}) are preserved.  Disadvantages are (1) the terms in
+a list associated with a key are not indexed, (2) the poorly specified
+\jargon{immediate update semantics} (see \secref{update} applies to the
+recorded database and (3) reduced portability.
+
+    \item[The flag/3 predicate]
+The predicate flag/3 associates one simple value (number or atom) with
+a key (atom, integer or compound).  It is an old SWI-Prolog specific
+predicate that should be considered deprecated, although there is no
+plan to remove it.
+
+    \item[Using global variables]
+The predicates b_setval/2 and nb_setval/2 associate a term living on the
+Prolog stack with a name, either backtrackable or non-backtrackable.
+Backtrackable and non-backtrackable assignment without using a global
+name can be realised with setarg/3 and nb_setarg/3.  Notably the latter
+are used to realise aggregation as e.g., aggregate_all/3 performs.
+
+    \item[Tries]
+As of version 7.3.21, SWI-Prolog provides \jargon{tries} (prefix trees)
+to associate a term \jargon{variant} with a value. Tries have been
+introduced to support \arg{tabling} and are described in \secref{trie}.
+\end{description}
+
+\subsection{Managing (dynamic) predicates}
+\label{sec:dynpreds}
 
 \begin{description}
     \predicate[ISO]{abolish}{1}{:PredicateIndicator}
@@ -2937,7 +2981,12 @@ the predicate.
 
     \predicate{assert}{2}{+Term, -Reference}
 Equivalent to assertz/2. Deprecated: new code should use assertz/2.
+\end{description}
 
+\subsection{The recorded database}
+\label{sec:recdb}
+
+\begin{description}
     \predicate{recorda}{3}{+Key, +Term, -Reference}
 Assert \arg{Term} in the recorded database under key \arg{Key}.
 \arg{Key} is a small integer (range \prologflag{min_tagged_integer}
@@ -3013,6 +3062,93 @@ below.
 next_id(Id) :-
     flag(my_id, Id, Id+1).
 \end{code}
+\end{description}
+
+\subsection{Tries}
+\label{sec:trie}
+
+Tries (also called \jargon{digital tree}, \jargon{radix tree} or
+\jargon{prefix tree} maintain a mapping between a variant of a term (see
+\predref{=:=}{2}) and a value. They have been introduced in SWI-Prolog
+7.3.21 as part of the implementation of \jargon{tabling}. The current
+implementation is rather immature.   In particular, the following
+limitations currently apply:
+
+\begin{shortlist}
+    \item Tries are not thread-safe.
+    \item Tries should not be modified while non-deterministic
+          predicates such as trie_gen/3 are running on the trie.
+    \item Terms cannot have \jargon{attributed variables}.
+    \item Terms cannot be \jargon{cyclic}.  Possibly this will
+	  not change because cyclic terms can only be supported
+          after creating a canonical form of the term.
+\end{shortlist}
+
+\textbf{We give the definition of these predicates for reference and
+debugging tabled predicates.  Future versions are likely to get a more
+stable and safer implementation. The API to tries should not be
+considered stable.}
+
+
+\begin{description}
+    \predicate{trie_new}{1}{-Trie}
+Create a new trie and unify \arg{Trie} with a handle to the trie.  The
+trie handle is a \jargon{blob}. Tries are subject to atom garbage
+collection.
+
+    \predicate{trie_destroy}{1}{+Trie}
+Destroy \arg{Trie}. This removes all nodes from the trie and causes
+further access to \arg{Trie} to raise an existence_error exception. The
+handle itself is reclaimed by atom garbage collection.
+
+    \predicate[nondet]{current_trie}{1}{-Trie}
+True if \arg{Trie} is a currently existing trie.  As this enumerates and
+then filters all known atoms this predicate is slow and should only be
+used for debugging purposes.
+
+    \predicate{trie_insert}{3}{+Trie, +Key, +Value}
+Insert the term \arg{Key} into \arg{Trie} and associate it with
+\arg{Value}.  Currently, \arg{Value} is either an atom or small
+integer.  Future versions will probably allow for arbitrary terms.
+
+    \predicate{trie_lookup}{3}{+Trie, +Key, -Value}
+True if the term \arg{Key} is in \arg{Trie} and associated with
+\arg{Value}.
+
+    \predicate{trie_insert_new}{3}{+Trie, +Term, -Handle}
+Add \arg{Term} to \arg{Trie} and return a handle to the node. Fails if
+\arg{Term} is already part of the \arg{Trie}. The handle can used with
+trie_term/2 to retrieve (a copy of) \arg{Term}. This predicate is
+currently unsafe as \arg{Handle} is an integer used to encode a pointer.
+It was used to implement a pure Prolog version of the \pllib{tabling}
+library.
+
+    \predicate{trie_term}{2}{+Handle, -Term}
+True when \arg{Term} is a copy of the term associated with \arg{Handle}.
+The result is undefined (including crashes) if \arg{Handle} is not a
+handle returned by trie_insert_new/3 or the node has been removed
+afterwards.
+
+    \predicate[nondet]{trie_gen}{3}{+Trie, ?Key, -Value}
+True when \arg{Key} is associated with \arg{Value} in \arg{Trie}.
+Backtracking retrieves all pairs. Currently scans the entire
+trie, even if \arg{Key} is partly known.  Currently unsafe if \arg{Trie}
+is modified while the values are being enumerated.
+
+    \predicate[nondet]{trie_property}{2}{?Trie, ?Property}
+True if \arg{Trie} exists with \arg{Property}.	 Intended for
+debugging and statistical purposes.  Retrieving some of these
+properties visit all nodes of the trie. Defined properties are
+    \begin{description}
+	\termitem{value_count}{-Count}
+    Number of key-value pairs in the trie.
+	\termitem{node_count}{-Count}
+    Number of nodes in the trie.
+	\termitem{size}{-Bytes}
+    Required storage space of the trie.
+	\termitem{hashed}{-Count}
+    Number of nodes that use a hashed index to its children.
+    \end{description}
 \end{description}
 
 

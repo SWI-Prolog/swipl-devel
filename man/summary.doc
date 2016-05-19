@@ -173,6 +173,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
+\predicatesummary{current_trie}{1}{Enumerate known tries}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{day_of_the_week}{2}{Determine ordinal-day from date}
 \predicatesummary{date_time_stamp}{2}{Convert date structure to time-stamp}
@@ -665,6 +666,14 @@ suggest predicates from a keyword.
 \predicatesummary{trace}{1}{Set trace point on predicate}
 \predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
+\predicatesummary{trie_destroy}{1}{Destroy a trie}
+\predicatesummary{trie_gen}{3}{Get all terms from a trie}
+\predicatesummary{trie_insert}{3}{Insert term into a trie}
+\predicatesummary{trie_insert_new}{3}{Insert term into a trie}
+\predicatesummary{trie_lookup}{3}{Lookup a term in a trie}
+\predicatesummary{trie_new}{1}{Create a trie}
+\predicatesummary{trie_property}{2}{Examine a trie's properties}
+\predicatesummary{trie_term}{2}{Get term from a trie by handle}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
 \predicatesummary{true}{0}{Succeed}
 \predicatesummary{tspy}{1}{Set spy point and enable debugging in all threads}
