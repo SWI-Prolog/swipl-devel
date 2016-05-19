@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-copyterm.h"
 #define AC_TERM_WALK_LR 1
 #include "pl-termwalk.c"
 
@@ -596,6 +597,175 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 }
 
 
+int
+duplicate_term(term_t in, term_t copy ARG_LD)
+{ return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
+}
+
+		 /*******************************
+		 *	  FAST HEAP TERMS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The code below copies a  term  to   the  heap  (program space) just like
+PL_record(). The representation is particularly   suited  for copying it
+back to the stack really quickly: the memory can simply be copied to the
+global stack, after which a quick series of relocations is performed.
+
+This  representations  is   particularly    suited   for   re-activating
+continuations as needed for tabling.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define REL_END (~(unsigned int)0)
+
+static int
+needs_relocation(word w)
+{ return ( isTerm(w) || isRef(w) || isIndirect(w) || isAtom(w) );
+}
+
+#if SIZEOF_VOIDP == 8
+#define PTR_SHIFT (LMASK_BITS+1)
+#else
+#define PTR_SHIFT LMASK_BITS
+#endif
+
+static word
+relocate_down(word w, size_t offset)
+{ if ( isAtom(w) )
+  { PL_register_atom(w);
+    return w;
+  } else
+  { return (((w>>PTR_SHIFT)-offset)<<PTR_SHIFT) | tagex(w);
+  }
+}
+
+static word
+relocate_up(word w, size_t offset ARG_LD)
+{ if ( isAtom(w) )
+  { pushVolatileAtom(w);
+    return w;
+  } else
+  { return (((w>>PTR_SHIFT)+offset)<<PTR_SHIFT) | tagex(w);
+  }
+}
+
+
+fastheap_term *
+term_to_fastheap(term_t t ARG_LD)
+{ term_t copy = PL_new_term_ref();
+  Word gcopy, gtop, p, o;
+  size_t relocations=0;
+  fastheap_term *fht;
+  unsigned int *r;
+  size_t last_rel = 0;
+  size_t offset;
+  size_t indirect_cells = 0;
+  Word indirects;
+
+  duplicate_term(t, copy PASS_LD);
+  gcopy = valTermRef(copy);
+  gtop  = gTop;
+  deRef(gcopy);					/* term at gcopy .. gTop */
+
+  for(p=gcopy; p<gtop; p++)
+  { if ( needs_relocation(*p) )
+    { if ( isIndirect(*p) )
+      { Word ip = addressIndirect(*p);
+	indirect_cells += wsizeofInd(*ip)+2;
+      }
+      relocations++;
+    }
+  }
+
+  if ( !(fht = malloc(sizeof(fastheap_term) +
+		      ((char*)gtop-(char *)gcopy) +
+		      indirect_cells * sizeof(word) +
+		      (relocations+1) * sizeof(unsigned int))) )
+  { PL_resource_error("memory");
+    return NULL;
+  }
+
+  fht->data_len    = (gtop-gcopy) + indirect_cells;
+  fht->data        = addPointer(fht, sizeof(fastheap_term));
+  fht->relocations = addPointer(fht->data, fht->data_len*sizeof(word));
+  indirects        = fht->data + (gtop-gcopy);
+
+  offset = gcopy-gBase;
+  for(p=gcopy, o=fht->data, r=fht->relocations; p<gtop; p++)
+  { if ( needs_relocation(*p) )
+    { size_t this_rel = p-gcopy;
+
+      if ( isIndirect(*p) )
+      { Word ip = addressIndirect(*p);
+	size_t sz = wsizeofInd(*ip)+2;
+	size_t go = gBase - (Word)base_addresses[STG_GLOBAL];
+
+	memcpy(indirects, ip, sz*sizeof(word));
+	*o++ = ((go+indirects-fht->data)<<PTR_SHIFT) | tagex(*p);
+	indirects += sz;
+      } else
+      { *o++ = relocate_down(*p, offset);
+      }
+      *r++ = this_rel-last_rel;
+      last_rel = this_rel;
+    } else
+    { *o++ = *p;
+    }
+  }
+  *r++ = REL_END;
+
+  return fht;
+}
+
+
+void
+free_fastheap(fastheap_term *fht)
+{ unsigned int *r;
+  Word p = fht->data;
+
+  for(r = fht->relocations; *r != REL_END; r++)
+  { p += *r;
+    if ( isAtom(*p) )
+      PL_unregister_atom(*p);
+  }
+
+  free(fht);
+}
+
+
+int
+put_fastheap(fastheap_term *fht, term_t t ARG_LD)
+{ Word p, o;
+  size_t offset;
+  unsigned int *r;
+
+  if ( !hasGlobalSpace(fht->data_len) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(fht->data_len, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
+  o = gTop;
+  memcpy(o, fht->data, fht->data_len*sizeof(word));
+
+  offset = o-gBase;
+  for(r = fht->relocations, p=o; *r != REL_END; r++)
+  { p += *r;
+    *p = relocate_up(*p, offset PASS_LD);
+  }
+
+  gTop += fht->data_len;
+  *valTermRef(t) = makeRefG(o);
+
+  return TRUE;
+}
+
+
+		 /*******************************
+		 *	  PROLOG BINDING	*
+		 *******************************/
+
 static
 PRED_IMPL("copy_term", 2, copy_term, 0)
 { PRED_LD
@@ -610,12 +780,6 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
 
     fail;
   }
-}
-
-
-int
-duplicate_term(term_t in, term_t copy ARG_LD)
-{ return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
 }
 
 
