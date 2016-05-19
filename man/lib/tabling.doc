@@ -1,8 +1,9 @@
 \libdoc{tabling}{Tabled execution (SLG)}
 
-\index{SLG,resolution}
-\jargon{Tabled execution} of a Prolog predicate, also called SLG
-resolution provides two properties:
+\index{SLG,resolution}%
+The library \pllib{tabling} provides support for \jargon{Tabled
+execution} of one or more Prolog predicates, also called \jargon{SLG
+resolution} provides two properties:
 
 \begin{enumerate}
   \item Re-evaluation of a tabled predicate is avoided by _memoizing_ the
@@ -18,4 +19,46 @@ resolution provides two properties:
      it with answers from the table.
 \end{enumerate}
 
+Tabling is particularly suited to simplify inference over a highly
+entangled set of predicates that express axioms and rules in a static
+(not changing) world. When using SLD resolution for such problems, it is
+hard to ensure termination and avoid frequent recomputation of
+intermediate results. A solution is to use Datalog style bottom-up
+evaluation, i.e., applying rules on the axioms and derived facts until a
+fixed point is reached. However, bottom-up evaluation typically derives
+many facts that are never used. Tabling provides a \jargon{goal
+oriented} resolution strategy for such problems and is enabled simply
+by adding a table/1 directive to the program.
+
+
 \input{tablinglib.tex}
+
+\subsubsection{About the tabling implementation}
+\label{sec:tabling-about}
+
+The SWI-Prolog implementation uses \jargon{Delimited continuations} (see
+\secref{delcont} to realise suspension of variant calls. The initial
+version was written by Benoit Desouter and described in
+\cite{DBLP:journals/tplp/DesouterDS15}. We moved the main data
+structures required for tabling, the \jargon{answer tables} (see
+\secref{trie}) and the \jargon{worklist} to SWI-Prolog's C~core.
+
+\subsubsection{Status of tabling}
+\label{sec:tabling-status}
+
+The current implementation is merely a first prototype. It needs several
+enhancements before we can consider it a serious competitor to Prolog
+systems with mature tabling such as XSB, YAP and B-Prolog. In
+particular,
+
+\begin{itemize}
+    \item The performance needs to be improved.
+    \item Memory usage needs to be reduced.
+    \item \jargon{mode-directed} tabling should be added.
+    \item Tables must be shared between threads, both to
+          reduce space and avoid recomputation.
+    \item Tables must be invalidated and reclaimed automatically.
+    \item Notably XSB supports incremental tabeling and well-founded
+          semantics under negation.
+\end{itemize}
+
