@@ -3658,7 +3658,7 @@ registerFunction(functor_t f, ArithF func)
 
   while ( index >= GD->arith.functions_allocated )
   { if ( GD->arith.functions_allocated == 0 )
-    { size_t size = 256;
+    { size_t size = 512;
 
       GD->arith.functions = allocHeapOrHalt(size*sizeof(ArithF));
       memset(GD->arith.functions, 0, size*sizeof(ArithF));
