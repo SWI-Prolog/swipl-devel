@@ -257,8 +257,8 @@ system:term_expansion((:- table(Preds)),
 
 :- multifile
 	sandbox:safe_directive/1,
-	sandbox:safe_primitive/1.
-	sandbox:safe_meta_predicate/1.
+	sandbox:safe_primitive/1,
+	sandbox:safe_meta/2.
 
 %%	sandbox:safe_directive(+Directive) is semidet.
 %
@@ -283,9 +283,9 @@ local_preds(Name//Arity) :-
 sandbox:safe_meta_predicate(tabling:start_tabling/2).
 
 sandbox:safe_primitive(tabling:abolish_all_tables).
-sandbox:safe_primitive(tabling:abolish_table_subgoals(V)) :-
+sandbox:safe_meta(tabling:abolish_table_subgoals(V), []) :-
 	\+ qualified(V).
-sandbox:safe_primitive(tabling:current_table(V, _)) :-
+sandbox:safe_meta(tabling:current_table(V, _), []) :-
 	\+ qualified(V).
 
 qualified(V) :-
