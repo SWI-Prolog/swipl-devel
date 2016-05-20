@@ -172,11 +172,22 @@ trie_destroy(trie *trie)
 
 void
 trie_empty(trie *trie)
-{ indirect_table *it = trie->indirects;
+{ trie->magic = TRIE_CMAGIC;
 
-  clear_node(trie, &trie->root);	/* TBD: verify not accessed */
-  if ( it && COMPARE_AND_SWAP(&trie->indirects, it, NULL) )
-    destroy_indirect_table(it);
+  if ( !trie->references )
+  { indirect_table *it = trie->indirects;
+
+    clear_node(trie, &trie->root);	/* TBD: verify not accessed */
+    if ( it && COMPARE_AND_SWAP(&trie->indirects, it, NULL) )
+      destroy_indirect_table(it);
+  }
+}
+
+
+void
+trie_clean(trie *trie)
+{ if ( trie->magic == TRIE_CMAGIC )
+    trie_empty(trie);
 }
 
 
@@ -754,7 +765,9 @@ stat_trie(trie *t, trie_stats *stats)
   stats->hashes = 0;
   stats->values = 0;
 
+  acquire_trie(t);
   stat_node(&t->root, stats);
+  release_trie(t);
 }
 
 
@@ -861,7 +874,6 @@ PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 
   if ( get_trie(A1, &trie) )
   { trie_empty(trie);
-    trie->magic = TRIE_CMAGIC;
 
     return TRUE;
   }
@@ -1046,6 +1058,8 @@ clear_trie_state(trie_gen_state *state)
       freeTableEnum(ch->choice.table);
     PL_free(ch);
   }
+
+  release_trie(state->trie);
 }
 
 
@@ -1210,7 +1224,8 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
 	memset(state, 0, sizeof(*state));
 
 	if ( trie->root.children.any )
-	{ state->trie = trie;
+	{ acquire_trie(trie);
+	  state->trie = trie;
 	  if ( !descent_node(state, add_choice(state, &trie->root)) &&
 	       !next_choice(state) )
 	  { clear_trie_state(state);

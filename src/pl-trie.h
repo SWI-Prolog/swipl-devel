@@ -82,6 +82,7 @@ typedef struct trie_allocation_pool
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
   int			magic;		/* TRIE_MAGIC */
+  int			references;	/* access count */
   unsigned int		node_count;	/* # nodes */
   trie_node	        root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
@@ -93,11 +94,16 @@ typedef struct trie
   } data;
 } trie;
 
+#define acquire_trie(t) ATOMIC_INC(&(t)->references)
+#define release_trie(t) do { if ( ATOMIC_DEC(&(t)->references) == 0 ) \
+			       trie_clean(t); \
+			   } while(0)
 
 COMMON(void)	initTries(void);
 COMMON(trie *)	trie_create(void);
 COMMON(void)	trie_destroy(trie *trie);
 COMMON(void)	trie_empty(trie *trie);
+COMMON(void)	trie_clean(trie *trie);
 COMMON(void)	prune_node(trie *trie, trie_node *n);
 COMMON(trie *)	get_trie_form_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
