@@ -224,7 +224,7 @@ node(1)- (v(X, 1)->true;false),
 node(2)- (v(X, 1)->false;true).
 ==
 
-### Enabling monotonic CLP(B)
+### Enabling monotonic CLP(B) {#clpb-monotonic}
 
 In the default execution mode, CLP(B) constraints are _not_ monotonic.
 This means that adding constraints can yield new solutions. For
