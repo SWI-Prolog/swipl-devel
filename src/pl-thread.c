@@ -1543,7 +1543,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     ldnew->_debugstatus.skiplevel = SKIP_VERY_DEEP;
   }
 
-  ldnew->tabling.node_pool.size   = 0;
+  ldnew->tabling.node_pool.limit  = ldold->tabling.node_pool.limit;
   ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
