@@ -219,7 +219,7 @@ wrappers(Name/Arity) -->
 	  WrappedHead =.. [WrapName|Args],
 	  prolog_load_context(module, Module)
 	},
-	[ tabling:tabled(Head, Module),
+	[ '$tabled'(Head),
 	  (   Head :-
 		 start_tabling(Module:Head, WrappedHead)
 	  )
@@ -231,7 +231,8 @@ wrappers(Name/Arity) -->
 %	generated predicate.
 
 prolog:rename_predicate(M:Head0, M:Head) :-
-	tabled(Head0, M), !,
+	'$c_current_predicate'(_, M:'$tabled'(_)),
+	call(M:'$tabled'(Head0)), !,
 	rename_term(Head0, Head).
 
 rename_term(Compound0, Compound) :-
@@ -244,7 +245,49 @@ rename_term(Name, WrapName) :-
 
 
 system:term_expansion((:- table(Preds)),
-		      [ (:- multifile(tabling:tabled/2))
+		      [ (:- discontiguous('$tabled'/1))
 		      | Clauses
 		      ]) :-
 	phrase(wrappers(Preds), Clauses).
+
+
+		 /*******************************
+		 *	     SANDBOX		*
+		 *******************************/
+
+:- multifile
+	sandbox:safe_directive/1,
+	sandbox:safe_primitive/1.
+	sandbox:safe_meta_predicate/1.
+
+%%	sandbox:safe_directive(+Directive) is semidet.
+%
+%	Allow tabling directives that affect locally defined predicates.
+
+sandbox:safe_directive(Dir) :-
+	ground(Dir),
+	local_tabling_dir(Dir).
+
+local_tabling_dir(table(Preds)) :-
+	local_preds(Preds).
+
+local_preds((A,B)) :- !,
+	local_preds(A),
+	local_preds(B).
+
+local_preds(Name/Arity) :-
+	atom(Name), integer(Arity).
+local_preds(Name//Arity) :-
+	atom(Name), integer(Arity).
+
+sandbox:safe_meta_predicate(tabling:start_tabling/2).
+
+sandbox:safe_primitive(tabling:abolish_all_tables).
+sandbox:safe_primitive(tabling:abolish_table_subgoals(V)) :-
+	\+ qualified(V).
+sandbox:safe_primitive(tabling:current_table(V, _)) :-
+	\+ qualified(V).
+
+qualified(V) :-
+	nonvar(V),
+	V = _:_.
