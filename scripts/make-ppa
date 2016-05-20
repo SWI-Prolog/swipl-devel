@@ -80,7 +80,7 @@ fi
 
 # Avoid typos ...
 case $TARGET_DISTRO in
-  precise|trusty|wily)
+  precise|trusty|wily|xenial)
     ;;
   *) echo "Unsupported target distro ($TARGET_DISTRO)"
      exit 1
