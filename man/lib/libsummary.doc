@@ -22,7 +22,7 @@
 \predicatesummary{map_assoc}{3}{Map assoc values}
 \predicatesummary{max_assoc}{3}{Max key-value of an assoc}
 \predicatesummary{min_assoc}{3}{Min key-value of an assoc}
-\predicatesummary{ord_list_to_assoc}{3}{Translate ordered list into an assoc}
+\predicatesummary{ord_list_to_assoc}{2}{Translate ordered list into an assoc}
 \predicatesummary{put_assoc}{4}{Add association to an assoc}
 \end{summarylist}
 
