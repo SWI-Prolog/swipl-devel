@@ -455,7 +455,7 @@ perm(List, [First|Perm]) :-
 %	that the atom '[]' is removed  too.   In  SWI7, `[]` is distinct
 %	from '[]'.
 %
-%	Ending up needing flatten/3 often   indicates, like append/3 for
+%	Ending up needing flatten/2 often   indicates, like append/3 for
 %	appending two lists, a bad design. Efficient code that generates
 %	lists from generated small  lists   must  use  difference lists,
 %	often possible through grammar rules for optimal readability.

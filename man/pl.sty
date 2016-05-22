@@ -66,7 +66,9 @@
 	\mbox{\reffont #1:#2/#3}}
 \newcommand{\qdcgref}[3]{%		% module:functor//arity
 	\mbox{\reffont #1:#2//#3}}
-\newcommand{\nopredref}[2]{%		% functor/arity (external)
+\newcommand{\nopredref}[2]{%		% functor/arity (examples, etc)
+	\mbox{\reffont #1/#2}}
+\newcommand{\libpredref}[2]{%		% functor/arity (library)
 	\mbox{\reffont #1/#2}}
 \newcommand{\functor}[2]{%		% functor/arity (no predicate)
 	\mbox{\reffont #1/#2}}
@@ -299,6 +301,7 @@
 
 \renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\it #1}\fi}
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
+\newcommand{\noclass}[1]{{\em #1}}
 \newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
 \newcommand{\pllib}[1]{{\texttt{#1}}\index{#1 \string\idxtype{library}}}

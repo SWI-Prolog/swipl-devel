@@ -207,7 +207,7 @@ Prolog flag \prologflag{argv}.
 		[[\const{--}] \arg{arg} ...]}
 This is the normal way to start Prolog. The options are described in
 \secref{running-options}, \secref{stacksizes} and \secref{runoptions}.
-The Prolog flag \prologflag{argc} provides access to \arg{arg} ... If
+The Prolog flag \prologflag{argv} provides access to \arg{arg} ... If
 the \arg{options} are followed by one or more Prolog file names (i.e.,
 names with extension \fileext{pl}, \fileext{prolog} or (on Windows) the
 user preferred extension registered during installation), these files
@@ -1211,10 +1211,10 @@ Disabling these optimisations can cause the system to run out of memory
 on programs that behave correctly if debug mode is off.
 
     \prologflagitem{debug_on_error}{bool}{rw}
-If {\tt true}, start the tracer after an error is detected.  Otherwise
-just continue execution.  The goal that raised the error will normally
-fail.  See also fileerrors/2 and the Prolog flag {\tt report_error}.  May
-be changed.  Default is {\tt true}, except for the runtime version.
+If \const{true}, start the tracer after an error is detected.
+Otherwise just continue execution. The goal that raised the error will
+normally fail. See also the Prolog flag \prologflag{report_error}.
+Default is \const{true}.
 
     \prologflagitem{debugger_write_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing goals
@@ -1528,7 +1528,7 @@ nodes in the answer tries.} When exceeded a
     \prologflagitem{timezone}{integer}{r}
 Offset in seconds west of GMT of the current time zone. Set at
 initialization time from the \const{timezone} variable associated with
-the POSIX tzset() function. See also convert_time/2.
+the POSIX tzset() function. See also format_time/3.
 
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, top-level variables starting with an underscore
@@ -1539,7 +1539,7 @@ This may be used to hide bindings in complex queries from the top level.
 If \const{true} (default \const{false}) show the internal sharing of
 subterms in the answer substitution.  The example below reveals internal
 sharing of leaf nodes in \jargon{red-black trees} as implemented by the
-\pllib{rbtrees} predicate rb_new/1:
+\pllib{rbtrees} predicate \libpredref{rb_new}{1}:
 
 \begin{code}
 ?- set_prolog_flag(toplevel_print_factorized, true).
@@ -1820,9 +1820,9 @@ Same as term_expansion/2 for individual goals (SICStus).
 Hook into load_files/2 to load other data formats for Prolog sources
 from `non-file' resources.  The load_files/2 predicate is the ancestor
 of consult/1, use_module/1, etc.
-    \item [prolog_edit:locate/3]
+    \item [qpredref{prolog_edit}{locate}{3}]
 Hook into edit/1 to locate objects (SWI).
-    \item [prolog_edit:edit_source/1]
+    \item [qpredref{prolog_edit}{edit_source}{1}]
 Hook into edit/1 to call an internal editor (SWI).
     \item [prolog_edit:edit_command/2]
 Hook into edit/1 to define the external editor to use (SWI).
@@ -1831,10 +1831,10 @@ Hook into the tracer to list the code associated to a particular goal
 (SWI).
     \item [prolog_trace_interception/4]
 Hook into the tracer to handle trace events (SWI).
-    \item [prolog:debug_control_hook/1]
+    \item [qpredref{prolog}{debug_control_hook}{1}]
 Hook in spy/1, nospy/1, nospyall/0 and debugging/0 to extend these
 control predicates to higher-level libraries.
-    \item [prolog:help_hook/1]
+    \item [qpredref{prolog}{help_hook}{1}]
 Hook in help/0, help/1 and apropos/1 to extend the help system.
     \item [resource/3]
 Define a new resource (not really a hook, but similar) (SWI).
@@ -2652,8 +2652,8 @@ on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
 names \const{localSize}, \const{globalSize} and \const{trailSize}.  The
 value is a \const{DWORD} expressing the default stack size in Kbytes.
 A GUI for modifying these values is provided using the XPCE package.
-To use this, start the XPCE manual tools using manpce/0, after which
-you find \textit{Preferences} in the \textit{File} menu.
+To use this, start the XPCE manual tools using \libpredref{manpce}{0},
+after which you find \textit{Preferences} in the \textit{File} menu.
 
 Considering portability, applications that need to modify the default
 limits are advised to do so using set_prolog_stack/2.

@@ -65,7 +65,7 @@ Currently, this file has this functionality:
     reside in the dialect compatibility module, but are
     applied if prolog_load_context(dialect, Dialect) is active.
 
-    \item Modify the search path for library directories, putting 
+    \item Modify the search path for library directories, putting
     libraries compatible with the target dialect before the native
     libraries.
 
@@ -94,17 +94,17 @@ are some considerations.
 
 \begin{itemize}
     \item Probably the best reason for this is that it allows to
-    define minimal semantics required by the application 
+    define minimal semantics required by the application
     for the portability predicates.  Such functionality can often
     be mapped efficiently to the target dialect.  Contrary, if
     code was written for dialect $X$, the defined semantics are
     those of dialect $X$. Emulating all extreme cases and full
     error handling compatibility may be tedious and result in a
     much slower implementation that needed.  Take for example
-    call_cleanup/2.  The SICStus definition is fundamentally 
+    call_cleanup/2.  The SICStus definition is fundamentally
     different from the SWI definition, but 99\% of the applications
     just want to make calls like below to guarantee \arg{StreamIn}
-    is closed, even if \predref{process}{1} misbehaves.
+    is closed, even if \nopredref{process}{1} misbehaves.
 
 \begin{code}
 	call_cleanup(process(StreamIn), close(In))
@@ -120,7 +120,7 @@ are some considerations.
     but a prefix derived from the library or application name or names
     that explain the intended semantics more precisely.
 
-    \item Another problem is that most code is initially not written 
+    \item Another problem is that most code is initially not written
     with portability in mind.  Instead, ports are requested by users
     or arise from the desire to switch Prolog dialect.  Typically, we
     want to achieve compatibility with the new Prolog dialect with

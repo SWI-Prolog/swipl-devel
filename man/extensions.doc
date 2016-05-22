@@ -1109,7 +1109,7 @@ nb_setval/2.
 Destructively update the value associated with \arg{Key} in \arg{Dict} to
 \arg{Value}. The update is \emph{not} undone on backtracking. This
 predicate raises an existence error if \arg{Key} does not appear in
-\arg{Dict}.  The update semantics are equivalent to b_linkarg/3 and
+\arg{Dict}.  The update semantics are equivalent to nb_linkarg/3 and
 nb_linkval/2. Use with extreme care and consult the documentation of
 nb_linkval/2 before use.
 \end{description}
@@ -1208,9 +1208,9 @@ findall/3, maplist/3 and similar list processing predicates. Dicts may
 play a role if frequent random key lookups are needed on the resulting
 association. For example, the skeleton `create a pairs list', `use
 list_to_assoc/2 to create an assoc', followed by frequent usage of
-get_assoc/2 to extract key values can be replaced using dict_pairs/2 and
-the dict access functions.  Using dicts in this scenario is more efficient
-and provides a more pleasant access syntax.
+get_assoc/3 to extract key values can be replaced using dict_pairs/3
+and the dict access functions. Using dicts in this scenario is more
+efficient and provides a more pleasant access syntax.
 \end{description}
 
 

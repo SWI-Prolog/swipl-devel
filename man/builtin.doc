@@ -213,7 +213,7 @@ consulted which is already loaded.
 
 Advanced topics are handled in subsequent sections: mutually dependent
 files (\secref{depload}), multithreaded loading (\secref{mtload}) and
-reloading running code (\secref{reload}).
+reloading running code (\secref{loadrunningcode}).
 
 The core of the family of loading predicates is load_files/2.  The predicates
 consult/1, ensure_loaded/1, use_module/1, use_module/2 and reexport/1 pass the
@@ -351,7 +351,7 @@ Use qcompile for all writeable files.  See comment below.
 Use qcompile if the file is `large'. Currently, files larger than
 100~Kbytes are considered large.
         \termitem{part}{}
-If this load_file/2 appears in a directive of a file that is compiled
+If load_files/2 appears in a directive of a file that is compiled
 into Quick Load Format using qcompile/1, the contents of the argument
 files are included in the \fileext{qlf} file instead of the loading
 directive.
@@ -375,8 +375,8 @@ and reexport/2.
 
     \termitem{register}{Bool}
 If \const{false}, do not register the load location and options.  This
-option is used by make/0 and load_hotfixes/1 to avoid polluting the
-load-context database.  See source_file_property/2.
+option is used by make/0 and \libpredref{load_hotfixes}{1} to avoid
+polluting the load-context database. See source_file_property/2.
 
     \termitem{sandboxed}{Bool}
 Load the file in \jargon{sandboxed} mode.  This option controls the
@@ -1165,7 +1165,7 @@ restarted.
     possible to refer to predicates defined \emph{after} the location
     they are used.  This may cause a file to work properly while being
     reloaded, but failing while being loaded in a fresh image.
-    \item Using goal_expansion/2 that calls compile_aux_predicates/1,
+    \item Using goal_expansion/2 that calls compile_aux_clauses/1,
     assuming that multiple expansions can use the same auxiliary
     definition must use predicate_property/2 using the property
     \const{defined} to test whether the definition is already defined
@@ -1225,7 +1225,7 @@ between files must be a proper tree.
 \subsubsection{Compilation with multiple threads} \label{sec:mtload}
 
 This section discusses compiling files for the first time. For
-reloading, see \secref{reload}.
+reloading, see \secref{loadrunningcode}.
 
 In older versions, compilation was thread-safe due to a global
 \jargon{lock} in load_files/2 and the code dealing with
@@ -1339,12 +1339,12 @@ source_file(<Path>)	& Refers to a loaded source file \\
 
 \begin{description}
     \predicate{edit}{1}{+Specification}
-First, exploit prolog_edit:locate/3 to translate \arg{Specification}
-into a list of \jargon{Locations}. If there is more than one `hit', the
-user is asked to select from the locations found. Finally,
-prolog_edit:edit_source/1 is used to invoke the user's preferred editor.
-Typically, edit/1 can be handed the name of a predicate, module,
-basename of a file, XPCE class, XPCE method, etc.
+First, exploit \qpredref{prolog_edit}{locate}{3} to translate
+\arg{Specification} into a list of \jargon{Locations}. If there is more
+than one `hit', the user is asked to select from the locations found.
+Finally, \qpredref{prolog_edit}{edit_source}{1} is used to invoke
+the user's preferred editor. Typically, edit/1 can be handed the name of
+a predicate, module, basename of a file, XPCE class, XPCE method, etc.
 
     \predicate{edit}{0}{}
 Edit the `default' file using edit/1.  The default file is the file
@@ -1398,10 +1398,11 @@ examples.
 
     \predicate{prolog_edit:edit_command}{2}{+Editor, -Command}
 Determines how \arg{Editor} is to be invoked using shell/1. \arg{Editor}
-is the determined editor (see edit_source/1), without the full path
-specification, and without a possible (\fileext{exe}) extension. \arg{Command} is an
-atom describing the command. The following \%-sequences are replaced in
-\arg{Command} before the result is handed to shell/1:
+is the determined editor (see qpredref{prolog_edit}{edit_source}{1}),
+without the full path specification, and without a possible
+(\fileext{exe}) extension. \arg{Command} is an atom describing the
+command. The following \%-sequences are replaced in \arg{Command} before
+the result is handed to shell/1:
 
 \begin{center}
 \begin{tabular}{|l|p{3.5in}|}
@@ -8822,9 +8823,6 @@ globalused      & Number of bytes in use on the global stack \\
 globallimit     & Size to which the global stack is allowed to grow \\
 global_shifts	& Number of global stack expansions \\
 heapused        & Bytes of heap in use by Prolog (0 if not maintained) \\
-heap_gc         & Number of heap garbage collections performed.
-		  Only provided if SWI-Prolog is configured with
-		  Boehm-GC.  See also garbage_collect_heap/0. \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started \\
 modules         & Total number of defined modules \\
