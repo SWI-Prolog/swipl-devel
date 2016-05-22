@@ -150,7 +150,7 @@
 
 /** <module> Constraint Logic Programming over Finite Domains
 
-### Introduction			{#clpfd-intro}
+## Introduction			{#clpfd-intro}
 
 This library provides CLP(FD): Constraint Logic Programming over
 Finite Domains.
@@ -240,7 +240,7 @@ constraints is to use the dedicated `clpfd` tag on
 foremost CLP(FD) experts regularly participate in these discussions
 and will help you for free on this platform.
 
-### Arithmetic constraints		{#clpfd-arith-constraints}
+## Arithmetic constraints		{#clpfd-arith-constraints}
 
 In modern Prolog systems, *arithmetic constraints* subsume and
 supersede low-level predicates over integers. The main advantage of
@@ -276,7 +276,7 @@ The arithmetic constraints are:
 
 where `Expr` again denotes an arithmetic expression.
 
-### Declarative integer arithmetic		{#clpfd-integer-arith}
+## Declarative integer arithmetic		{#clpfd-integer-arith}
 
 The [arithmetic constraints](<#clpfd-arith-constraints>) #=/2, #>/2
 etc. are meant to be used _instead_ of the primitives is/2, =:=/2, >/2
@@ -352,7 +352,7 @@ performance of arithmetic constraints close to that of low-level
 arithmetic predicates whenever possible. To disable the expansion, set
 the flag `clpfd_goal_expansion` to `false`.
 
-### Combinatorial constraints  {#clpfd-combinatorial}
+## Combinatorial constraints  {#clpfd-combinatorial}
 
 In addition to subsuming and replacing low-level arithmetic
 predicates, CLP(FD) constraints are often used to solve combinatorial
@@ -362,7 +362,7 @@ global_cardinality/2 and cumulative/2. This library also provides
 several other constraints like disjoint2/1 and automaton/8, which are
 useful in more specialized applications.
 
-### Domains                             {#clpfd-domains}
+## Domains                             {#clpfd-domains}
 
 Each CLP(FD) variable has an associated set of admissible integers,
 which we call the variable's *domain*. Initially, the domain of each
@@ -378,7 +378,7 @@ is automatically unified to that element.
 Domains are taken into account when further constraints are stated,
 and by enumeration predicates like labeling/2.
 
-### Residual goals				{#clpfd-residual-goals}
+## Residual goals				{#clpfd-residual-goals}
 
 Here is an example session with a few queries and their answers:
 
@@ -430,7 +430,7 @@ fd_size/2 etc.) with which you can inspect a variable's current
 domain. These predicates can be useful if you want to implement your
 own labeling strategies.
 
-### Core relations and search    {#clpfd-search}
+## Core relations and search    {#clpfd-search}
 
 Using CLP(FD) constraints to solve combinatorial tasks typically
 consists of two phases:
@@ -504,7 +504,7 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
-### Optimisation    {#clpfd-optimisation}
+## Optimisation    {#clpfd-optimisation}
 
 You can use labeling/2 to minimize or maximize the value of a CLP(FD)
 expression, and generate solutions in increasing or decreasing order
@@ -524,7 +524,7 @@ optimal solutions by other criteria. For the sake of purity and
 completeness, we recommend to avoid `once/1` and other constructs
 that lead to impurities in CLP(FD) programs.
 
-### Reification				{#clpfd-reification}
+## Reification				{#clpfd-reification}
 
 The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
 _reified_, which means reflecting their truth values into Boolean
@@ -544,7 +544,7 @@ The constraints of this table are reifiable as well.
 When reasoning over Boolean variables, also consider using
 `library(clpb)` and its dedicated CLP(B) constraints.
 
-### Enabling monotonic CLP(FD)		{#clpfd-monotonicity}
+## Enabling monotonic CLP(FD)		{#clpfd-monotonicity}
 
 In the default execution mode, CLP(FD) constraints still exhibit some
 non-relational properties. For example, _adding_ constraints can yield
@@ -581,7 +581,7 @@ ERROR: Arguments are not sufficiently instantiated
 The wrapper can be omitted for variables that are already constrained
 to integers.
 
-### Custom constraints			{#clpfd-custom-constraints}
+## Custom constraints			{#clpfd-custom-constraints}
 
 You can define custom constraints. The mechanism to do this is not yet
 finalised, and we welcome suggestions and descriptions of use cases
@@ -629,7 +629,7 @@ Z = 1,
 X in inf..sup.
 ==
 
-### Example: Eight queens puzzle {#clpfd-n-queens}
+## Example: Eight queens puzzle {#clpfd-n-queens}
 
 We illustrate the most important concepts of this library by means of
 the so-called _eight queens puzzle_. The task is to place 8 queens on
@@ -701,7 +701,7 @@ Qs = [1, 3, 5, 50, 42, 4, 49, 7, 59|...] .
 Experimenting with different search strategies is easy because we have
 separated the core relation from the actual search.
 
-### Applications   {#clpfd-applications}
+## Applications   {#clpfd-applications}
 
 CLP(FD) applications that we find particularly impressive and worth
 studying include:
@@ -712,7 +712,7 @@ studying include:
   * Julien Cumin uses CLP(FD) constraints for integer arithmetic in
     [=Brachylog=](https://github.com/JCumin/Brachylog).
 
-### Acknowledgments {#clpfd-acknowledgments}
+## Acknowledgments {#clpfd-acknowledgments}
 
 This library gives you a glimpse of what [**SICStus
 Prolog**](https://sicstus.sics.se/) can do. The API is intentionally
@@ -734,7 +734,7 @@ force behind the implementation of attributed variables in SWI-Prolog,
 and this library could not even have started without his prior work
 and contributions. Thank you all!
 
-### CLP(FD) predicate index			{#clpfd-predicate-index}
+## CLP(FD) predicate index			{#clpfd-predicate-index}
 
 In the following, each CLP(FD) predicate is described in more detail.
 
