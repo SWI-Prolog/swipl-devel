@@ -1152,6 +1152,11 @@ hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
 hook(user:prolog_event_hook(_)).
 hook(user:prolog_exception_hook(_,_,_,_)).
+hook(sandbox:safe_primitive(_)).
+hook(sandbox:safe_meta_predicate(_)).
+hook(sandbox:safe_meta(_,_)).
+hook(sandbox:safe_global_variable(_)).
+hook(sandbox:safe_directive(_)).
 
 
 %%	arith_callable(+Spec, -Callable)
