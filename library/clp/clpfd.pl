@@ -346,11 +346,34 @@ the (implied) constraint `F #\= 0` before the recursive call.
 Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
 
-This library uses goal_expansion/2 to automatically rewrite arithmetic
-constraints at compilation time. The expansion's aim is to bring the
-performance of arithmetic constraints close to that of low-level
-arithmetic predicates whenever possible. To disable the expansion, set
-the flag `clpfd_goal_expansion` to `false`.
+If you take any Prolog program where is/2, >/2 and other low-level
+predicates are still used over integers and replace all such
+occurrences by CLP(FD) constraints like #=/2 and #>/2, then your
+program will in the _worst_ case run at half its previous speed. The
+difference is typically much smaller because these predicates are only
+very rarely a bottleneck in Prolog applications. This library uses
+goal_expansion/2 to automatically rewrite constraints at compilation
+time so that low-level arithmetic predicates are implicitly used
+whenever possible. For example, the predicate:
+
+==
+natural_number(N) :- N #>= 0.
+==
+
+is _automatically_ rewritten at compilation time to:
+
+==
+natural_number(A) :-
+        (   integer(A)
+        ->  A>=0
+        ;   ...
+        ).
+==
+
+This illustrates why the performance impact of CLP(FD) constraints is
+typically very low when they are used in modes that can be handled by
+low-level arithmetic. To disable the automatic rewriting, set the
+Prolog flag `clpfd_goal_expansion` to `false`.
 
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
