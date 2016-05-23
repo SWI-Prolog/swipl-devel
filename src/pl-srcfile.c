@@ -1474,11 +1474,9 @@ flush_predicate(term_t pred, term_t source ARG_LD)
       return PL_existence_error("source_file", source);
   } else
   { if ( ReadingSource )
-    { sf = lookupSourceFile(source_file_name, TRUE);
-    } else
-    { Sdprintf("No current source\n");
-      return FALSE;
-    }
+      sf = lookupSourceFile(source_file_name, TRUE);
+    else
+      return TRUE;			/* not reading source; nothing to flush */
   }
 
   if ( !get_functor(pred, &fdef, &m, 0, GF_PROCEDURE) )
