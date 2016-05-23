@@ -1498,6 +1498,12 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
     if ( GD->generation < update )	/* see (*) */
       ATOMIC_INC(&GD->generation);
 
+    DEBUG(MSG_RECONSULT_CLAUSE,
+	  Sdprintf("%s: added %ld, deleted %ld clauses "
+		   "at gen=%ld, GD->gen = %ld\n",
+		   predicateName(def), (long)added, (long)deleted,
+		   (long)update, (long)GD->generation));
+
     if ( true(def, P_DYNAMIC) )		/* see (**) */
     { deleteIncompleteIndexes(def);
     } else				/* delete all indexes */

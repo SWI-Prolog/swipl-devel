@@ -1133,33 +1133,42 @@ fix_module(Module m, m_reload *r)
 
 
 static void
+delete_old_predicate(SourceFile sf, Procedure proc)
+{ Definition def = proc->definition;
+  size_t deleted;
+
+  deleted = removeClausesPredicate(
+		def,
+		true(def, P_MULTIFILE) ? sf->index : 0,
+		TRUE);
+
+  if ( false(def, P_MULTIFILE) )
+  { clear(def, FILE_ASSIGNED);
+    clear_meta_declaration(def);
+    freeCodesDefinition(def, TRUE);
+  }
+
+  DEBUG(MSG_RECONSULT_PRED,
+	Sdprintf("Deleted %ld clauses from predicate %s\n",
+		 (long)deleted, predicateName(def)));
+
+  (void)deleted;
+}
+
+
+static void
 delete_old_predicates(SourceFile sf)
 { GET_LD
   ListCell cell, prev = NULL, next;
-  size_t deleted = 0;
 
   for(cell = sf->procedures; cell; cell = next)
   { Procedure proc = cell->value;
-    Definition def = proc->definition;
 
     next = cell->next;
 
-    if ( false(def, P_FOREIGN) &&
+    if ( false(proc->definition, P_FOREIGN) &&
 	 !lookupHTable(sf->reload->procedures, proc) )
-    { deleted += removeClausesPredicate(
-		     proc->definition,
-		     true(def, P_MULTIFILE) ? sf->index : 0,
-		     TRUE);
-
-      if ( false(def, P_MULTIFILE) )
-      { clear(def, FILE_ASSIGNED);
-	clear_meta_declaration(def);
-	freeCodesDefinition(def, TRUE);
-      }
-
-      DEBUG(MSG_RECONSULT_PRED,
-	    Sdprintf("Deleted %d clauses from predicate %s\n",
-		     (long)deleted, predicateName(def)));
+    { delete_old_predicate(sf, proc);
 
       if ( prev )
 	prev->next = cell->next;
@@ -1190,7 +1199,8 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
     c->generation.erased = rl->reload_gen;
     set(r, P_MODIFIED);
     DEBUG(MSG_RECONSULT_CLAUSE,
-	  Sdprintf("  Deleted clause %d\n",
+	  Sdprintf("  %s: deleted clause %d\n",
+		   predicateName(def),
 		   clauseNo(def, c, r->generation)));
   }
   release_def(def);
@@ -1249,6 +1259,46 @@ endReconsult(SourceFile sf)
     freeHeap(reload, sizeof(*reload));
 
     pl_garbage_collect_clauses();
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Flush the definition of proc in the   context  of (reloading) the source
+file sf.  This performs the following steps:
+
+  - If we have not seen the predicate, remove all clauses we may have
+    for it and add as P_NEW.
+  - If we have seen the predicate, perform the generation sync we would
+    normally do at the end of the file and mark the predicate reload
+    context as P_NEW.
+
+`proc` is a predicate indicator. If it  is not qualified, it is resolved
+against M in prolog_load_context(module, M).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+flush_procedure(SourceFile sf, Procedure proc)
+{ GET_LD
+  sf_reload *reload;
+
+  if ( (reload=sf->reload) )
+  { p_reload *r;
+
+    if ( (r=lookupHTable(sf->reload->procedures, proc)) )
+    { if ( false(r, P_NEW|P_NO_CLAUSES) )
+      { Definition def = proc->definition;
+
+	delete_pending_clauses(sf, def, r PASS_LD);
+	fix_attributes(sf, def, r PASS_LD);
+	reconsultFinalizePredicate(reload, def, r PASS_LD);
+      }
+    } else
+    { delete_old_predicate(sf, proc);
+      (void)reloadContext(sf, proc PASS_LD);
+    }
   }
 
   return TRUE;
@@ -1401,19 +1451,76 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   fail;
 }
 
+/** '$flush_predicate'(+Predicate, +File) is det.
+ *
+ * Finalize the definition of Predicate wrt. File. After this,
+ * subsequent changes to the predicate are _immediate_.
+ */
+
+static int
+flush_predicate(term_t pred, term_t source ARG_LD)
+{ atom_t name;
+  SourceFile sf;
+  Procedure proc;
+  Module m = LD->modules.source;
+  functor_t fdef;
+
+  if ( source )
+  { if ( !PL_get_atom_ex(source, &name) )
+      return FALSE;
+
+    if ( !( (sf = lookupSourceFile(name, FALSE)) &&
+	    sf->count > 0 ) )
+      return PL_existence_error("source_file", source);
+  } else
+  { if ( ReadingSource )
+    { sf = lookupSourceFile(source_file_name, TRUE);
+    } else
+    { Sdprintf("No current source\n");
+      return FALSE;
+    }
+  }
+
+  if ( !get_functor(pred, &fdef, &m, 0, GF_PROCEDURE) )
+    return FALSE;
+  if ( (proc=isCurrentProcedure(fdef,m)) )
+    return flush_procedure(sf, proc);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("$flush_predicate", 2, flush_predicate, 0)
+{ PRED_LD
+
+  return flush_predicate(A1, A2 PASS_LD);
+}
+
+static
+PRED_IMPL("$flush_predicate", 1, flush_predicate, 0)
+{ PRED_LD
+
+  return flush_predicate(A1, 0 PASS_LD);
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define  PL_FA_NONDET PL_FA_NONDETERMINISTIC
+
 BeginPredDefs(srcfile)
-  PRED_DEF("$source_file", 2, source_file, 0)
-  PRED_DEF("$source_file_predicates", 2, source_file_predicates, 0)
-  PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$source_file_property", 3, source_file_property, 0)
-  PRED_DEF("$clause_from_source", 4, clause_from_source, 0)
-  PRED_DEF("$unload_file", 1, unload_file, 0)
-  PRED_DEF("$start_consult", 2, start_consult, 0)
-  PRED_DEF("$end_consult", 1, end_consult, 0)
-  PRED_DEF("$make_system_source_files", 0, make_system_source_files, 0)
+  PRED_DEF("$source_file",		2, source_file,		     0)
+  PRED_DEF("$source_file_predicates",	2, source_file_predicates,   0)
+  PRED_DEF("$time_source_file",		3, time_source_file,    PL_FA_NONDET)
+  PRED_DEF("$source_file_property",	3, source_file_property,     0)
+  PRED_DEF("$clause_from_source",	4, clause_from_source,	     0)
+  PRED_DEF("$unload_file",		1, unload_file,		     0)
+  PRED_DEF("$start_consult",		2, start_consult,	     0)
+  PRED_DEF("$end_consult",		1, end_consult,		     0)
+  PRED_DEF("$make_system_source_files",	0, make_system_source_files, 0)
+  PRED_DEF("$flush_predicate",		2, flush_predicate,          0)
+  PRED_DEF("$flush_predicate",		1, flush_predicate,          0)
 EndPredDefs
