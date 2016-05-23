@@ -1004,6 +1004,7 @@ safe_pattr(dynamic(_)).
 safe_pattr(thread_local(_)).
 safe_pattr(volatile(_)).
 safe_pattr(discontiguous(_)).
+safe_pattr(multifile(_)).
 safe_pattr(public(_)).
 safe_pattr(meta_predicate(_)).
 
