@@ -3423,6 +3423,7 @@ This property is set using dynamic/1.
 
     \termitem{exported}{}
 True if the predicate is in the public list of the context module.
+
     \termitem{imported_from}{Module}
 Is true if the predicate is imported into the context module from
 module \arg{Module}.
@@ -3436,6 +3437,14 @@ achieved using nth_clause/3 and clause_property/2.
 
     \termitem{foreign}{}
 True if the predicate is defined in the C language.
+
+    \termitem{implementation_module}{-Module}
+True when \arg{Module} is the module in which \arg{Head} is or will be
+defined. Resolving this property goes through the same search mechanism
+as when the an undefined predicate is encountered, but does not perform
+any loading.  It searches (1) the module inheritence hierarchy (see
+default_module/2) and (2) the autoload index if the \prologflag{unknown}
+flag is not set to \const{fail} in the target module.
 
     \termitem{indexed}{Indexes}
 \arg{Indexes}\footnote{This predicate property should be used for

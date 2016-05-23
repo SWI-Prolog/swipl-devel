@@ -762,6 +762,20 @@ property_predicate(autoload(File), _:Head) :- !,
 	;   '$find_library'(_, Name, Arity, _, File),
 	    functor(Head, Name, Arity)
 	).
+property_predicate(implementation_module(IM), M:Head) :- !,
+	atom(M),
+	(   default_module(M, DM),
+	    '$get_predicate_attribute'(DM:Head, defined, 1)
+	->  (   '$get_predicate_attribute'(DM:Head, imported, ImportM)
+	    ->  IM = ImportM
+	    ;   IM = M
+	    )
+	;   \+ current_prolog_flag(M:unknown, fail),
+	    goal_name_arity(Head, Name, Arity),
+	    '$find_library'(_, Name, Arity, LoadModule, _File)
+	->  IM = LoadModule
+	;   M = IM
+	).
 property_predicate(Property, Pred) :-
 	define_or_generate(Pred),
 	'$predicate_property'(Property, Pred).
