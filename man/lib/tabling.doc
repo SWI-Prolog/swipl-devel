@@ -3,7 +3,7 @@
 \index{SLG,resolution}%
 The library \pllib{tabling} provides support for \jargon{Tabled
 execution} of one or more Prolog predicates, also called \jargon{SLG
-resolution} provides two properties:
+resolution}.  Tabling a predicate provides two properties:
 
 \begin{enumerate}
     \item

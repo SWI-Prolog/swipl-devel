@@ -3070,7 +3070,7 @@ next_id(Id) :-
 
 Tries (also called \jargon{digital tree}, \jargon{radix tree} or
 \jargon{prefix tree} maintain a mapping between a variant of a term (see
-\predref{=:=}{2}) and a value. They have been introduced in SWI-Prolog
+\predref{=@=}{2}) and a value. They have been introduced in SWI-Prolog
 7.3.21 as part of the implementation of \jargon{tabling}. The current
 implementation is rather immature.   In particular, the following
 limitations currently apply:
@@ -3522,13 +3522,14 @@ latter case the property \term{meta_predicate}{Head} is also provided.
 See \chapref{modules} for details.
 
     \termitem{undefined}{}
-True if a procedure definition block for the predicate exists, but
-there are no clauses for it and it is not declared dynamic or multifile.
-This is true if the predicate occurs in the body of a loaded predicate,
-an attempt to call it has been made via one of the meta-call predicates,
+True if a procedure definition block for the predicate exists, but there
+are no clauses for it and it is not declared dynamic or multifile. This
+is true if the predicate occurs in the body of a loaded predicate, an
+attempt to call it has been made via one of the meta-call predicates,
 the predicate has been declared as e.g., a meta-predicate or the
-predicate had a definition in the past. See the library package
-\pllib{check} for example usage.
+predicate had a definition in the past. Originally used to find missing
+predicate definitions. The current implementation of list_undefined/0
+used cross-referencing. Deprecated.
 
     \termitem{visible}{}
 True when predicate can be called without raising a predicate existence
