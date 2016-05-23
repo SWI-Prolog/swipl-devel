@@ -280,30 +280,46 @@ where `Expr` again denotes an arithmetic expression.
 
 The [arithmetic constraints](<#clpfd-arith-constraints>) #=/2, #>/2
 etc. are meant to be used _instead_ of the primitives is/2, =:=/2, >/2
-etc. over integers. Throughout the following, it is assumed that you
-have put the following directive in your =|~/.swiplrc|= initialisation
-file to make CLP(FD) constraints available in all your programs:
+etc. over integers. Almost all Prolog programs also reason about
+integers. Therefore, it is recommended that you put the following
+directive in your =|~/.swiplrc|= initialisation file to make CLP(FD)
+constraints available in all your programs:
 
 ==
 :- use_module(library(clpfd)).
 ==
 
-An important advantage of arithmetic constraints is their purely
-relational nature. They are therefore easy to explain and use, and
-well suited for beginners and experienced Prolog programmers alike.
+Throughout the following, it is assumed that you have done this.
 
-Consider for example the query:
-
-==
-?- X #> 3, X #= 5 + 2.
-X = 7.
-==
-
-In contrast, when using low-level integer arithmetic, we get:
+The most basic use of CLP(FD) constraints is _evaluation_ of
+arithmetic expressions involving integers. For example:
 
 ==
-?- X > 3, X is 5 + 2.
-ERROR: >/2: Arguments are not sufficiently instantiated
+?- X #= 1+2.
+X = 3.
+==
+
+This could in principle also be achieved with the lower-level
+predicate is/2. However, an important advantage of arithmetic
+constraints is their purely relational nature: Constraints can be used
+in _all directions_, also if one or more of their arguments are only
+partially instantiated. For example:
+
+==
+?- 3 #= Y+2.
+Y = 1.
+==
+
+This relational nature makes CLP(FD) constraints easy to explain and
+use, and well suited for beginners and experienced Prolog programmers
+alike. In contrast, when using low-level integer arithmetic, we get:
+
+==
+?- 3 is Y+2.
+ERROR: is/2: Arguments are not sufficiently instantiated
+
+?- 3 =:= Y+2.
+ERROR: =:=/2: Arguments are not sufficiently instantiated
 ==
 
 Due to the necessary operational considerations, the use of these
@@ -357,23 +373,32 @@ time so that low-level arithmetic predicates are implicitly used
 whenever possible. For example, the predicate:
 
 ==
-natural_number(N) :- N #>= 0.
+positive_integer(N) :- N #>= 1.
 ==
 
 is _automatically_ rewritten at compilation time to:
 
 ==
-natural_number(A) :-
+positive_integer(A) :-
         (   integer(A)
-        ->  A>=0
+        ->  A>=1
         ;   ...
         ).
 ==
 
-This illustrates why the performance impact of CLP(FD) constraints is
-typically very low when they are used in modes that can be handled by
-low-level arithmetic. To disable the automatic rewriting, set the
-Prolog flag `clpfd_goal_expansion` to `false`.
+This illustrates why the performance of CLP(FD) constraints is
+typically completely satisfactory when they are used in modes that can
+be handled by low-level arithmetic. To disable the automatic
+rewriting, set the Prolog flag `clpfd_goal_expansion` to `false`.
+
+If you are used to the complicated operational considerations that
+low-level arithmetic primitives necessitate, then moving to CLP(FD)
+constraints may, due to their power and convenience, at first feel to
+you excessive and almost like cheating. It _isn't_. Constraints are an
+integral part of all popular Prolog systems, and they are designed
+to help you eliminate and avoid the use of low-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
 
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
