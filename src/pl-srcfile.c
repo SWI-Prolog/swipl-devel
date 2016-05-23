@@ -1458,26 +1458,16 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
  */
 
 static int
-flush_predicate(term_t pred, term_t source ARG_LD)
-{ atom_t name;
-  SourceFile sf;
+flush_predicate(term_t pred ARG_LD)
+{ SourceFile sf;
   Procedure proc;
   Module m = LD->modules.source;
   functor_t fdef;
 
-  if ( source )
-  { if ( !PL_get_atom_ex(source, &name) )
-      return FALSE;
-
-    if ( !( (sf = lookupSourceFile(name, FALSE)) &&
-	    sf->count > 0 ) )
-      return PL_existence_error("source_file", source);
-  } else
-  { if ( ReadingSource )
-      sf = lookupSourceFile(source_file_name, TRUE);
-    else
-      return TRUE;			/* not reading source; nothing to flush */
-  }
+  if ( ReadingSource )
+    sf = lookupSourceFile(source_file_name, TRUE);
+  else
+    return TRUE;			/* not reading source; nothing to flush */
 
   if ( !get_functor(pred, &fdef, &m, 0, GF_PROCEDURE) )
     return FALSE;
@@ -1489,17 +1479,41 @@ flush_predicate(term_t pred, term_t source ARG_LD)
 
 
 static
-PRED_IMPL("$flush_predicate", 2, flush_predicate, 0)
-{ PRED_LD
-
-  return flush_predicate(A1, A2 PASS_LD);
-}
-
-static
 PRED_IMPL("$flush_predicate", 1, flush_predicate, 0)
 { PRED_LD
 
-  return flush_predicate(A1, 0 PASS_LD);
+  return flush_predicate(A1 PASS_LD);
+}
+
+
+/** '$flushed_predicate'(:Head) is semidet.
+ *
+ * True when the finalized definition of Goal is defined.
+ */
+
+static
+PRED_IMPL("$flushed_predicate", 1, flushed_predicate, 0)
+{ PRED_LD
+  SourceFile sf;
+  term_t head = PL_new_term_ref();
+  Module m = LD->modules.source;
+  functor_t fdef;
+  Procedure proc;
+
+  if ( !PL_strip_module(A1, &m, head) )
+    return FALSE;
+  if ( !PL_get_functor(head, &fdef) )
+    return PL_type_error("callable", A1);
+  if ( !(proc=isCurrentProcedure(fdef, m)) )
+    return FALSE;
+
+  if ( ReadingSource )
+    sf = lookupSourceFile(source_file_name, TRUE);
+  else
+    return isDefinedProcedure(proc);
+
+  flush_procedure(sf, proc);
+  return isDefinedProcedure(proc);
 }
 
 
@@ -1519,6 +1533,6 @@ BeginPredDefs(srcfile)
   PRED_DEF("$start_consult",		2, start_consult,	     0)
   PRED_DEF("$end_consult",		1, end_consult,		     0)
   PRED_DEF("$make_system_source_files",	0, make_system_source_files, 0)
-  PRED_DEF("$flush_predicate",		2, flush_predicate,          0)
   PRED_DEF("$flush_predicate",		1, flush_predicate,          0)
+  PRED_DEF("$flushed_predicate",	1, flushed_predicate,	     0)
 EndPredDefs

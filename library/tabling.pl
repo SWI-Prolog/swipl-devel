@@ -231,9 +231,7 @@ wrappers(Name/Arity) -->
 %	generated predicate.
 
 prolog:rename_predicate(M:Head0, M:Head) :-
-	'$c_current_predicate'(_, M:'$tabled'(_)),
-	'$flush_predicate'(M:'$tabled'/1),
-	'$c_current_predicate'(_, M:'$tabled'(_)),
+	'$flushed_predicate'(M:'$tabled'(_)),
 	call(M:'$tabled'(Head0)), !,
 	rename_term(Head0, Head).
 
