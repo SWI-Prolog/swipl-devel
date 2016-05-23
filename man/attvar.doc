@@ -38,7 +38,7 @@ Using constraints generally makes your program more
     \item Constraints and cuts do not merge well.  A cut after a goal
     that is delayed prunes the search space before the condition
     is true.
-    \item Term-copying operations (assert/1, retract/2, findall/3,
+    \item Term-copying operations (assertz/1, retract/1, findall/3,
     copy_term/2, etc.) generally also copy constraints.  The effect
     varies from ok, silent copying of huge constraint networks
     to violations of the internal consistency of constraint

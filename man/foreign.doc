@@ -1250,8 +1250,8 @@ using the {\tt PL_unify_*()} functions or use PL_cons_functor().
     \cfunction{int}{PL_put_list}{term_t -l}
 As PL_put_functor(), using the list-cell functor. Note that on classical
 Prolog systems or in SWI-Prolog using the option
-\cmdlineoption{--traditional}, this is \funcref{.}{2}, while on
-SWI-Prolog version~7 this is \funcref{[|]}{2}.
+\cmdlineoption{--traditional}, this is \functor{.}{2}, while on
+SWI-Prolog version~7 this is \functor{[|]}{2}.
 
     \cfunction{int}{PL_put_nil}{term_t -l}
 Put the list terminator constant in \arg{l}. Always returns

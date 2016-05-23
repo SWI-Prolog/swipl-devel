@@ -312,7 +312,7 @@ interrupted, and is one of the following:
         \termitem{!}{}
     The instruction will call the cut. Because the semantics of
     metacalling the cut differs from executing the cut in its
-    original context we do not wrap the cut in \funcref{call}{1}.
+    original context we do not wrap the cut in \functor{call}{1}.
 
 	\termitem{:-}{}
     The breakpoint is on the \jargon{neck} instruction, i.e., after
