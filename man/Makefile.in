@@ -51,7 +51,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/predicateoptions.tex lib/predopts.tex lib/random.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
 		lib/solutionsequences.tex lib/iostream.tex \
-		lib/persistency.tex lib/yall.tex \
+		lib/persistency.tex lib/yall.tex lib/error.tex \
 		lib/tabling.tex lib/tablinglib.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
@@ -178,6 +178,8 @@ lib/shlib.tex:	../library/shlib.pl
 		$(LIBTOTEX) --subsection 'library(shlib)'
 lib/apply.tex:	../library/apply.pl
 		$(LIBTOTEX) 'library(apply)'
+lib/error.tex:	../library/error.pl
+		$(LIBTOTEX) 'library(error)'
 lib/clpb.tex:	../library/clp/clpb.pl
 		$(LIBTOTEX) 'library(clpb)'
 lib/clpfd.tex:	../library/clp/clpfd.pl
