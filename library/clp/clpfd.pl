@@ -362,27 +362,22 @@ the (implied) constraint `F #\= 0` before the recursive call.
 Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
 
-If you take any Prolog program where is/2, >/2 and other low-level
-predicates are still used over integers and replace all such
-occurrences by CLP(FD) constraints like #=/2 and #>/2, then your
-program will in the _worst_ case run at half its previous speed. The
-difference is typically much smaller because these predicates are only
-very rarely a bottleneck in Prolog applications. This library uses
-goal_expansion/2 to automatically rewrite constraints at compilation
-time so that low-level arithmetic predicates are implicitly used
-whenever possible. For example, the predicate:
+This library uses goal_expansion/2 to automatically rewrite
+constraints at compilation time so that low-level arithmetic
+predicates are _automatically_ used whenever possible. For example,
+the predicate:
 
 ==
 positive_integer(N) :- N #>= 1.
 ==
 
-is _automatically_ rewritten at compilation time to:
+is executed as if it were written as:
 
 ==
-positive_integer(A) :-
-        (   integer(A)
-        ->  A>=1
-        ;   ...
+positive_integer(N) :-
+        (   integer(N)
+        ->  N >= 1
+        ;   N #>= 1
         ).
 ==
 
