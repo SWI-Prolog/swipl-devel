@@ -598,7 +598,6 @@ struct PL_local_data
   struct
   { intptr_t   magic;			/* PL_THREAD_MAGIC (checking) */
     struct _PL_thread_info_t *info;	/* info structure */
-    unsigned forall_flags;		/* forThreadLocalData() flags */
 					/* Communication */
     message_queue messages;		/* Message queue */
     struct _thread_sig   *sig_head;	/* Head of signal queue */
