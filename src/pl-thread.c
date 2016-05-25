@@ -430,6 +430,7 @@ static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
 static void	init_predicate_references(PL_local_data_t *ld);
 static void	free_predicate_references(PL_local_data_t *ld);
+static int	ldata_in_use(PL_local_data_t *ld);
 #ifdef O_C_BACKTRACE
 static void	print_trace(int depth);
 #else
@@ -523,6 +524,37 @@ initialise_thread(PL_thread_info_t *info)
   return TRUE;
 }
 
+static PL_local_data_t *ld_free_list = NULL;
+
+static void
+clean_ld_free_list(void)
+{ if ( ld_free_list )
+  { PL_local_data_t *ld, **prev = &ld_free_list;
+
+    for(ld = ld_free_list; ld; ld=ld->next_free)
+    { if ( !ldata_in_use(ld) )
+      { *prev = ld->next_free;
+	freeHeap(ld, sizeof(*ld));
+      } else
+      { prev = &ld->next_free;
+      }
+    }
+  }
+}
+
+static void
+maybe_free_local_data(PL_local_data_t *ld)
+{ if ( !ldata_in_use(ld) )
+  { freeHeap(ld, sizeof(*ld));
+  } else
+  { LOCK();
+    clean_ld_free_list();
+    ld->next_free = ld_free_list;
+    ld_free_list = ld;
+    UNLOCK();
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 free_prolog_thread()
@@ -603,7 +635,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     free_thread_info(info);
 
   ld->thread.info = NULL;		/* help force a crash if ld used */
-  freeHeap(ld, sizeof(*ld));
+  maybe_free_local_data(ld);
 
   if ( acknowledge )			/* == canceled */
   { pthread_detach(pthread_self());
@@ -2820,22 +2852,6 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *
     rc = pthread_cond_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
 							 : &queue->drain_var),
 				&queue->mutex, api_timeout);
-
-#ifdef O_DEBUG
-    if ( LD && LD->thread.info )	/* can be absent during shutdown */
-    { switch( LD->thread.info->ldata_status )
-      { case LDATA_IDLE:
-	case LDATA_ANSWERED:
-	case LDATA_SIGNALLED:
-	  break;
-	default:
-	  Sdprintf("%d: ldata_status = %d\n",
-		   PL_thread_self(), LD->thread.info->ldata_status);
-      }
-    } else
-    { return EINTR;
-    }
-#endif
 
     switch( rc )
     { case ETIMEDOUT:
@@ -5797,6 +5813,38 @@ pl_with_mutex(term_t mutex, term_t goal)
 
 
 		 /*******************************
+		 *	     STATISTICS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the summed size of the local stack.   This is a measure for the CGC
+marking cost.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+cgc_thread_stats(cgc_stats *stats ARG_LD)
+{ int i;
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    PL_local_data_t *ld = acquire_ldata(info->thread_data);
+
+    if ( ld && ld->magic == LD_MAGIC )
+    { char *ltop  = (char*)ld->stacks.local.top;
+      char *lbase = (char*)ld->stacks.local.base;
+
+      if ( ltop > lbase )
+      { stats->local_size += ltop-lbase;
+	stats->threads++;
+	stats->erased_skipped += ld->clauses.erased_skipped;
+      }
+    }
+    release_ldata(ld);
+  }
+}
+
+
+		 /*******************************
 		 *    HASH-TABLE KVS IN USE     *
 		 *******************************/
 
@@ -5858,8 +5906,26 @@ pl_atom_bucket_in_use(Atom *bucket)
 }
 
 
+static int
+ldata_in_use(PL_local_data_t *ld)
+{
+#ifdef O_PLMT
+  int i;
+
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+    if ( info && info->access.ldata == ld )
+    { return TRUE;
+    }
+  }
+#endif
+
+  return FALSE;
+}
+
+
 Atom**
-pl_atom_buckets_in_use()
+pl_atom_buckets_in_use(void)
 {
 #ifdef O_PLMT
   int i, index=0;

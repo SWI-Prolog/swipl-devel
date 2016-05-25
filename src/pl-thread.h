@@ -105,6 +105,7 @@ typedef struct _PL_thread_info_t
     Atom *	    atom_bucket;	/* current atom bucket-list accessed */
     FunctorTable    functor_table;	/* current atom-table accessed */
     Definition	    predicate;		/* current predicate walked */
+    struct PL_local_data *ldata;	/* current ldata accessed */
   } access;
 } PL_thread_info_t;
 
@@ -350,6 +351,9 @@ COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
+#define acquire_ldata(ld)	(LD->thread.info->access.ldata = (ld))
+#define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
+
 #else /*O_PLMT, end of threading-stuff */
 
 		 /*******************************
@@ -376,6 +380,10 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 #define UNLOCKMODULE(module)
 #define LOCKSRCFILE(sf)
 #define UNLOCKSRCFILE(sf)
+
+#define acquire_ldata(ld)	(ld)
+#define release_ldata(ld)	(void)0
+
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
 #endif /*O_PLMT*/
@@ -395,5 +403,6 @@ COMMON(int)	pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD);
 COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
 COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
 COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
+COMMON(void)    cgc_thread_stats(cgc_stats *stats ARG_LD);
 
 #endif /*PL_THREAD_H_DEFINED*/

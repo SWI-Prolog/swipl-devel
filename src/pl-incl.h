@@ -1230,6 +1230,14 @@ typedef struct clause_ref
 				 sizeof(Clause))
 #define SIZEOF_CREF_LIST	sizeof(clause_ref)
 
+typedef struct cgc_stats
+{ int		threads;		/* # threads to scan */
+  size_t	local_size;		/* Summed size of local stacks */
+  size_t	dirty_pred_clauses;	/* # clauses in dirty predicates */
+  int64_t	erased_skipped;		/* # skipped clauses that are erased  */
+} cgc_stats;
+
+
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
 #define CA1_PROC	1	/* code arg 1 is procedure */

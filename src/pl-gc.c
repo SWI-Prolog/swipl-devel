@@ -5225,7 +5225,6 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
   simpleMutexUnlock(&ld->clauses.local_shift_mutex);
 #endif
 
-  ld->clauses.cgc_inferences = ld->statistics.inferences;
   ld->clauses.erased_skipped = 0;
   markAccessedPredicates(ld);
 }

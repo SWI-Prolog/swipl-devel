@@ -121,6 +121,9 @@ setupProlog(void)
   initLocale();
 #endif
   GD->io_initialised = TRUE;
+  GD->clauses.cgc_space_factor  = 8;
+  GD->clauses.cgc_stack_factor  = 0.03;
+  GD->clauses.cgc_clause_factor = 1.0;
 
   if ( !endCritical )
     return FALSE;
@@ -1277,10 +1280,22 @@ allocStacks(size_t local, size_t global, size_t trail)
 
 void
 freeStacks(ARG1_LD)
-{ if ( gBase ) { gBase--;
-		 stack_free(gBase); gBase = NULL; lBase = NULL; }
-  if ( tBase ) { stack_free(tBase); tBase = NULL; }
-  if ( aBase ) { stack_free(aBase); aBase = NULL; }
+{ if ( gBase )
+  { gBase--;
+    stack_free(gBase);
+    gTop = NULL; gBase = NULL;
+    lTop = NULL; lBase = NULL;
+  }
+  if ( tBase )
+  { stack_free(tBase);
+    tTop = NULL;
+    tBase = NULL;
+  }
+  if ( aBase )
+  { stack_free(aBase);
+    aTop = NULL;
+    aBase = NULL;
+  }
 }
 
 

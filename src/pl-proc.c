@@ -42,6 +42,7 @@ static void	freeClauseRef(ClauseRef cref);
 static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def ARG_LD);
 static void	unregisterDirtyDefinition(Definition def);
+static size_t	clause_count_in_dirty_predicates(ARG1_LD);
 
 /* Enforcing this limit demands we propagate NULL from lookupProcedure()
    through the whole system.  This is not done
@@ -1434,17 +1435,7 @@ cleanDefinition(Definition def, gen_t marked, gen_t start)
 
 static int
 mustCleanDefinition(const Definition def)
-{ if ( def->impl.clauses.erased_clauses > 0 )
-  { if ( true(def, P_DYNAMIC) && false(def, P_ERASED) )
-    { return ( def->impl.clauses.erased_clauses >
-	       def->impl.clauses.number_of_clauses/8
-	     );
-    }
-
-    return TRUE;
-  }
-
-  return FALSE;
+{ return ( def->impl.clauses.erased_clauses > 0 );
 }
 
 
@@ -1804,34 +1795,63 @@ CGC builds on the following components and invariants:
 
 static int
 considerClauseGC(ARG1_LD)
-{ size_t pending = GD->clauses.erased_size - GD->clauses.erased_size_last;
+{ size_t pending  = GD->clauses.erased_size - GD->clauses.erased_size_last;
+  size_t codesize = GD->statistics.codes*sizeof(code);
+  cgc_stats stats = {0};
 
-  if ( pending > GD->statistics.codes*sizeof(code)/32 )
-  { if ( pending > GD->statistics.codes*sizeof(code)/8 )
-    { DEBUG(MSG_CGC_CONSIDER,
-	    Sdprintf("CGC? too much garbage: %lld bytes in %lld clauses\n",
-		     (int64_t)GD->clauses.erased_size,
-		     (int64_t)GD->clauses.erased));
-      return TRUE;
-    } else
-    { int64_t infs = LD->statistics.inferences - LD->clauses.cgc_inferences;
-      double  time = WallTime() - GD->clauses.cgc_when_last;
+  if ( GD->clauses.cgc_space_factor > 0 &&
+       pending > codesize/GD->clauses.cgc_space_factor &&
+       GD->cleaning == CLN_NORMAL )
+  { DEBUG(MSG_CGC_CONSIDER,
+	  Sdprintf("CGC? too much garbage: %lld bytes in %lld clauses\n",
+		   (int64_t)GD->clauses.erased_size,
+		   (int64_t)GD->clauses.erased));
+    return TRUE;
+  }
 
-      if ( infs > 0 && time > 0.001 )
-      { double perc = GD->clauses.cgc_time_last / time;
+  if ( LD->statistics.inferences > LD->clauses.cgc_inferences )
+  { int rgc;
 
-	if ( (double)((int64_t)LD->clauses.erased_skipped / infs) > perc )
-	{ DEBUG(MSG_CGC_CONSIDER,
-		Sdprintf("CGC? %lld skipped in %lld inferences (%4f%%)\n",
-			 LD->clauses.erased_skipped, infs, perc));
-	  return TRUE;
-	}
-      }
-    }
+    LD->clauses.cgc_inferences = LD->statistics.inferences + 500;
+
+    stats.dirty_pred_clauses = clause_count_in_dirty_predicates(PASS_LD1);
+    cgc_thread_stats(&stats PASS_LD);
+
+    rgc =  ( (double)stats.erased_skipped >
+	     (double)stats.local_size*GD->clauses.cgc_stack_factor +
+	     (double)stats.dirty_pred_clauses*GD->clauses.cgc_clause_factor );
+    rgc = rgc && (GD->cleaning == CLN_NORMAL);
+    DEBUG(MSG_CGC_CONSIDER,
+	  Sdprintf("GCG? [%s] %ld skipped; lsize=%ld; clauses=%ld\n",
+		   rgc ? "Y" : " ",
+		   (long)stats.erased_skipped,
+		   (long)stats.local_size,
+		   (long)stats.dirty_pred_clauses));
+
+    return rgc;
   }
 
   return FALSE;
 }
+
+/** '$cgc_params'(-OldSpace, -OldStack, -OldClause,
+ *		  +NewSpace, +NewStack, +NewClause)
+ *
+ * Query and set the clause GC parameters.
+ */
+
+static
+PRED_IMPL("$cgc_params", 6, cgc_params, 0)
+{ PRED_LD
+
+  return ( PL_unify_integer(A1, GD->clauses.cgc_space_factor) &&
+	   PL_unify_float(A2, GD->clauses.cgc_stack_factor) &&
+	   PL_unify_float(A3, GD->clauses.cgc_clause_factor) &&
+	   PL_get_integer_ex(A4, &GD->clauses.cgc_space_factor) &&
+	   PL_get_float_ex(A5, &GD->clauses.cgc_stack_factor) &&
+	   PL_get_float_ex(A6, &GD->clauses.cgc_clause_factor) );
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) We set the initial oldest_generation to "very old" (0). This ensures
@@ -1881,6 +1901,22 @@ maybeUnregisterDirtyDefinition(Definition def)
 }
 
 
+static size_t
+clause_count_in_dirty_predicates(ARG1_LD)
+{ size_t ccount = 0;
+
+  for_table(GD->procedures.dirty, n, v,
+	    { Definition def = n;
+
+	      if ( false(def, P_FOREIGN) &&
+		   def->impl.clauses.erased_clauses > 0 )
+		ccount += def->impl.clauses.number_of_clauses;
+	    });
+
+  return ccount;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) We set the initial generation to   GEN_MAX  to know which predicates
 have been marked. We can only reclaim   clauses  that were erased before
@@ -1895,7 +1931,7 @@ pl_garbage_collect_clauses(void)
        COMPARE_AND_SWAP(&GD->clauses.cgc_active, FALSE, TRUE) )
   { size_t removed = 0;
     size_t erased_pending = GD->clauses.erased_size;
-    double t0 = ThreadCPUTime(LD, CPU_USER);
+    double gct, t0 = ThreadCPUTime(LD, CPU_USER);
     gen_t start_gen = GD->generation;
     int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
 
@@ -1957,9 +1993,7 @@ pl_garbage_collect_clauses(void)
     gcClauseRefs();
     GD->clauses.cgc_count++;
     GD->clauses.cgc_reclaimed	+= removed;
-    GD->clauses.cgc_time_last    = ThreadCPUTime(LD, CPU_USER) - t0;
-    GD->clauses.cgc_time        += GD->clauses.cgc_time_last;
-    GD->clauses.cgc_when_last    = WallTime();
+    GD->clauses.cgc_time        += (gct=ThreadCPUTime(LD, CPU_USER) - t0);
     GD->clauses.erased_size_last = GD->clauses.erased_size;
 
     DEBUG(MSG_CGC, Sdprintf("CGC: removed %ld clauses "
@@ -1967,7 +2001,7 @@ pl_garbage_collect_clauses(void)
 			    (long)removed,
 			    (long)erased_pending - GD->clauses.erased_size,
 			    (long)GD->clauses.erased_size,
-			    GD->clauses.cgc_time_last));
+			    gct));
 
     if ( verbose )
       printMessage(
@@ -1977,7 +2011,7 @@ pl_garbage_collect_clauses(void)
 	      PL_INT64,  (int64_t)removed,
 	      PL_INT64,  (int64_t)(erased_pending - GD->clauses.erased_size),
 	      PL_INT64,  (int64_t)GD->clauses.erased_size,
-	      PL_DOUBLE, GD->clauses.cgc_time_last);
+	      PL_DOUBLE, gct);
 
 
     GD->clauses.cgc_active = FALSE;
@@ -3333,4 +3367,5 @@ BeginPredDefs(proc)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
+  PRED_DEF("$cgc_params", 6, cgc_params, 0)
 EndPredDefs

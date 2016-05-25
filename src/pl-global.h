@@ -287,11 +287,12 @@ struct PL_global_data
     int64_t	cgc_count;		/* # clause GC calls */
     int64_t	cgc_reclaimed;		/* # clauses reclaimed */
     double	cgc_time;		/* Total time spent in CGC */
-    double	cgc_time_last;		/* Time for last CGC */
-    double	cgc_when_last;		/* When did we do the last CGC */
     size_t	erased;			/* # erased pending clauses */
     size_t	erased_size;		/* memory used by them */
     size_t	erased_size_last;	/* memory used by them after last CGC */
+    int		cgc_space_factor;	/* Max total/margin garbage */
+    double	cgc_stack_factor;	/* Price to scan stack space */
+    double	cgc_clause_factor;	/* Pce to scan clauses */
   } clauses;
 
   struct
@@ -366,6 +367,7 @@ struct PL_local_data
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
+  struct PL_local_data *next_free;	/* see maybe_free_local_data() */
 
   struct
   { int		pending[2];		/* PL_raise() pending signals */
@@ -615,7 +617,7 @@ struct PL_local_data
 
   struct
   { size_t	erased_skipped;		/* # erased clauses skipped */
-    int64_t	cgc_inferences;		/* # inferences at last CGC */
+    int64_t	cgc_inferences;		/* Inferences at last cgc consider */
 #ifdef O_PLMT
     simpleMutex local_shift_mutex;	/* protect local shifts */
 #endif
