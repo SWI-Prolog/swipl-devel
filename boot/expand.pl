@@ -475,6 +475,16 @@ expand_goal(G0, P0, G, P, MList, Term) :-
 
 expand_goal(G, P, G, P, _, _, _) :-
         var(G), !.
+expand_goal(M:G, P, M:G, P, _M, _MList, _Term) :-
+	var(M), var(G), !.
+expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
+	atom(M), !,
+	f2_pos(P0, PA, PB0, P, PA, PB),
+	'$def_modules'(M:[goal_expansion/4,goal_expansion/2], MList),
+	setup_call_cleanup(
+	    '$set_source_module'(Old, M),
+	    '$expand':expand_goal(G, PB0, EG, PB, M, MList, Term),
+	    '$set_source_module'(Old)).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
 	call_goal_expansion(MList, G0, P0, G1, P1), !,
 	expand_goal(G1, P1, G, P, M, MList, Term/G1).		% (*)
@@ -516,16 +526,6 @@ expand_goal((\+A), P0, Goal, P, M, MList, Term) :- !,
 expand_goal(call(A), P0, call(EA), P, M, MList, Term) :- !,
 	f1_pos(P0, PA0, P, PA),
         expand_goal(A, PA0, EA, PA, M, MList, Term).
-expand_goal(M:G, P, M:G, P, _M, _MList, _Term) :-
-	var(M), var(G), !.
-expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
-	atom(M), !,
-	f2_pos(P0, PA, PB0, P, PA, PB),
-	'$def_modules'(M:[goal_expansion/4,goal_expansion/2], MList),
-	setup_call_cleanup(
-	    '$set_source_module'(Old, M),
-	    '$expand':expand_goal(G, PB0, EG, PB, M, MList, Term),
-	    '$set_source_module'(Old)).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
 	is_meta_call(G0, M, Head), !,
 	expand_meta(Head, G0, P0, G, P, M, MList, Term).
