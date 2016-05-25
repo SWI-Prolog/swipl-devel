@@ -294,7 +294,7 @@ hasClausesDefinition(Definition def)
       for(c = def->impl.clauses.first_clause; c; c = c->next)
       { Clause cl = c->value.clause;
 
-	if ( visibleClause(cl, generation) )
+	if ( visibleClauseCNT(cl, generation) )
 	  break;
       }
       release_def(def);
@@ -2488,7 +2488,7 @@ pl_retractall(term_t head)
 
     acquire_def(def);
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-    { if ( visibleClause(cref->value.clause, gen) )
+    { if ( visibleClauseCNT(cref->value.clause, gen) )
       { retractClauseDefinition(def, cref->value.clause);
       }
     }

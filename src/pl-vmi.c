@@ -2753,7 +2753,7 @@ VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
 next_clause:
   ARGP = argFrameP(FR, 0);
   for(; cref; cref = cref->next)
-  { if ( visibleClause(cref->value.clause, generationFrame(FR)) )
+  { if ( visibleClauseCNT(cref->value.clause, generationFrame(FR)) )
     { TRY_CLAUSE(cref, cref->next, PC);
     }
   }
@@ -2770,7 +2770,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
     lTop = (LocalFrame)ARGP + FR->predicate->functor->arity;
 
     for(; cref; cref = cref->next)
-    { if ( visibleClause(cref->value.clause, generationFrame(FR)) )
+    { if ( visibleClauseCNT(cref->value.clause, generationFrame(FR)) )
       {	LocalFrame fr;
 	CL = cref;
 

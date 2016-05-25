@@ -5493,7 +5493,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 	  release_def(def);
 	  return rc;
 	}
-	if ( visibleClause(cref->value.clause, generation) )
+	if ( visibleClauseCNT(cref->value.clause, generation) )
 	  i++;
       }
       release_def(def);
@@ -5512,7 +5512,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     def = getProcDefinition(proc);
     acquire_def(def);
     cref = def->impl.clauses.first_clause;
-    while ( cref && !visibleClause(cref->value.clause, generation) )
+    while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
       cref = cref->next;
     release_def(def);
 
@@ -5526,7 +5526,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       while(i > 0 && cref)
       { do
 	{ cref = cref->next;
-	} while ( cref && !visibleClause(cref->value.clause, generation) );
+	} while ( cref && !visibleClauseCNT(cref->value.clause, generation) );
 
 	i--;
       }
@@ -5550,7 +5550,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 
   acquire_def(def);
   cref = cr->clause->next;
-  while ( cref && !visibleClause(cref->value.clause, generation) )
+  while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
     cref = cref->next;
   release_def(def);
 
