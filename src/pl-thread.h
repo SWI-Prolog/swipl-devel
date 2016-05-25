@@ -97,11 +97,15 @@ typedef struct _PL_thread_info_t
   record_t	    return_value;	/* Value (term) returned */
   atom_t	    name;		/* Name of the thread */
   int		    in_exit_hooks;	/* TRUE: running exit hooks */
-  KVS		    kvs;		/* current hash-table map accessed */
-  AtomTable	    atom_table;		/* current atom-table accessed */
-  Atom *	    atom_bucket;	/* current atom bucket-list accessed */
-  FunctorTable	    functor_table;	/* current atom-table accessed */
-  Definition	    predicate;		/* current predicate walked */
+
+					/* lock-free access to data */
+  struct
+  { KVS		    kvs;		/* current hash-table map accessed */
+    AtomTable	    atom_table;		/* current atom-table accessed */
+    Atom *	    atom_bucket;	/* current atom bucket-list accessed */
+    FunctorTable    functor_table;	/* current atom-table accessed */
+    Definition	    predicate;		/* current predicate walked */
+  } access;
 } PL_thread_info_t;
 
 #define QTYPE_THREAD	0

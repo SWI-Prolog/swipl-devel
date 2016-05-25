@@ -69,12 +69,12 @@ Transitioning between states is performed using CAS.
 #ifdef O_PLMT
 
 #define acquire_kvs(t, k) \
-  { LD->thread.info->kvs = t->kvs; \
-    k = LD->thread.info->kvs; \
+  { LD->thread.info->access.kvs = t->kvs; \
+    k = LD->thread.info->access.kvs; \
   }
 
 #define release_kvs() \
-  { LD->thread.info->kvs = NULL; \
+  { LD->thread.info->access.kvs = NULL; \
   }
 
 #else

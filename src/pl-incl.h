@@ -1414,8 +1414,8 @@ struct clause_choice
 };
 
 #ifdef O_PLMT
-#define acquire_def(def) do { LD->thread.info->predicate = def; } while(0)
-#define release_def(def) do { LD->thread.info->predicate = NULL; } while(0)
+#define acquire_def(def) do { LD->thread.info->access.predicate = def; } while(0)
+#define release_def(def) do { LD->thread.info->access.predicate = NULL; } while(0)
 #else
 #define acquire_def(def) (void)0
 #define release_def(def) (void)0

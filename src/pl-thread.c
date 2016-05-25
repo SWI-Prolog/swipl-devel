@@ -5808,7 +5808,7 @@ pl_kvs_in_use(KVS kvs)
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( info && info->kvs == kvs )
+    if ( info && info->access.kvs == kvs )
     { return TRUE;
     }
   }
@@ -5830,7 +5830,7 @@ pl_atom_table_in_use(AtomTable atom_table)
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( info && info->atom_table == atom_table )
+    if ( info && info->access.atom_table == atom_table )
     { return TRUE;
     }
   }
@@ -5848,7 +5848,7 @@ pl_atom_bucket_in_use(Atom *bucket)
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( info && info->atom_bucket == bucket )
+    if ( info && info->access.atom_bucket == bucket )
     { return TRUE;
     }
   }
@@ -5870,7 +5870,7 @@ pl_atom_buckets_in_use()
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( info && info->atom_bucket )
+    if ( info && info->access.atom_bucket )
     { if ( index >= sz-1 )
       { int j = 0;
         size_t oldsz = sz;
@@ -5883,7 +5883,7 @@ pl_atom_buckets_in_use()
 	PL_free(buckets);
         buckets = newbuckets;
       }
-      buckets[index] = info->atom_bucket;
+      buckets[index] = info->access.atom_bucket;
       if ( buckets[index] )	/* atom_bucket may have been released */
         index++;
     }
@@ -5908,7 +5908,7 @@ predicates_in_use(void)
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( info && info->predicate )
+    if ( info && info->access.predicate )
     { if ( index >= sz-1 )
       { int j = 0;
         size_t oldsz = sz;
@@ -5921,7 +5921,7 @@ predicates_in_use(void)
 	PL_free(buckets);
         buckets = newbuckets;
       }
-      buckets[index] = info->predicate;
+      buckets[index] = info->access.predicate;
       if ( buckets[index] )	/* atom_bucket may have been released */
         index++;
     }
@@ -5947,7 +5947,7 @@ pl_functor_table_in_use(FunctorTable functor_table)
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( i != me && info && info->functor_table == functor_table )
+    if ( i != me && info && info->access.functor_table == functor_table )
     { return TRUE;
     }
   }

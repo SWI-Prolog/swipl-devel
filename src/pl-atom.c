@@ -340,22 +340,22 @@ static const ccharp atoms[] = {
 #ifdef O_PLMT
 
 #define acquire_atom_table(t, b) \
-  { LD->thread.info->atom_table = atomTable; \
-    t = LD->thread.info->atom_table->table; \
-    b = LD->thread.info->atom_table->buckets; \
+  { LD->thread.info->access.atom_table = atomTable; \
+    t = LD->thread.info->access.atom_table->table; \
+    b = LD->thread.info->access.atom_table->buckets; \
   }
 
 #define release_atom_table() \
-  { LD->thread.info->atom_table = NULL; \
-    LD->thread.info->atom_bucket = NULL; \
+  { LD->thread.info->access.atom_table = NULL; \
+    LD->thread.info->access.atom_bucket = NULL; \
   }
 
 #define acquire_atom_bucket(b) \
-  { LD->thread.info->atom_bucket = (b); \
+  { LD->thread.info->access.atom_bucket = (b); \
   }
 
 #define release_atom_bucket() \
-  { LD->thread.info->atom_bucket = NULL; \
+  { LD->thread.info->access.atom_bucket = NULL; \
   }
 
 #else
