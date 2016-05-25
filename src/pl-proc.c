@@ -2733,19 +2733,11 @@ pl_get_predicate_attribute(term_t pred,
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Changing a static  procedure  to  dynamic   is  very  difficult.  If the
-definition has clauses, these may be dead   clauses, so we must call the
-clause garbage collector to find  out.  A   common  case  where this may
-happen is abolish, followed by  dynamic.   Unfortunately  it  makes this
-sequence hazardous and slow in multi-threaded environment.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static int
 setDynamicDefinition_unlocked(Definition def, bool isdyn)
 { GET_LD
 
-  if ( (isdyn && true(def, P_DYNAMIC)) ||
+  if ( ( isdyn &&  true(def, P_DYNAMIC)) ||
        (!isdyn && false(def, P_DYNAMIC)) )
     return TRUE;
 
