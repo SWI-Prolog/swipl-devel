@@ -92,7 +92,9 @@ new_indirect_table(void)
   int i;
 
   memset(tab, 0, sizeof(*tab));
+#ifdef O_PLMT
   simpleMutexInit(&tab->mutex);
+#endif
 
   for(i=0; i<MSB(PREALLOCATED_INDIRECT_BLOCKS); i++)
   { arr->blocks[i] = arr->preallocated;
@@ -127,7 +129,9 @@ destroy_indirect_table(indirect_table *tab)
   indirect_buckets *buckets, *prev;
   indirect_array *arr = &tab->array;
 
+#ifdef O_PLMT
   simpleMutexDelete(&tab->mutex);
+#endif
   clean_block(arr->preallocated, PREALLOCATED_INDIRECT_BLOCKS);
   for(i=MSB(PREALLOCATED_INDIRECT_BLOCKS); i<MAX_INDIRECT_BLOCKS; i++)
   { if ( arr->blocks[i] )

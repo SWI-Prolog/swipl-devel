@@ -343,7 +343,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 				    children.key->child);
 	    addHTable(hnode->table, (void*)key, (void*)new);
 
-	    if ( COMPARE_AND_SWAP(&n->children.hash, children.any, hnode) )
+	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
 	    { PL_free(children.any);		/* TBD: Safely free */
 	      new->parent = n;
 	      return new;

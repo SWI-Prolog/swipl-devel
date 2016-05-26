@@ -82,8 +82,8 @@ add_global_worklist(worklist *wl ARG_LD)
 
 
 static worklist *
-pop_worklist(ARG1_LD)
-{ worklist_set *wls = global_worklist(LD);
+pop_worklist(PL_local_data_t *ld)
+{ worklist_set *wls = global_worklist(ld);
 
   if ( !isEmptyBuffer(&wls->members) )
   { worklist *wl = popBuffer(&wls->members, worklist*);
@@ -182,11 +182,11 @@ release_variant_table_node(trie *variant_table, trie_node *node)
 
 
 static void
-clear_variant_table(ARG1_LD)
-{ if ( LD->tabling.variant_table )
-  { trie_empty(LD->tabling.variant_table);
-    PL_unregister_atom(LD->tabling.variant_table->symbol);
-    LD->tabling.variant_table = NULL;
+clear_variant_table(PL_local_data_t *ld)
+{ if ( ld->tabling.variant_table )
+  { trie_empty(ld->tabling.variant_table);
+    PL_unregister_atom(ld->tabling.variant_table->symbol);
+    ld->tabling.variant_table = NULL;
   }
 }
 

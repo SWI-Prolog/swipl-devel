@@ -5823,7 +5823,9 @@ marking cost.
 
 void
 cgc_thread_stats(cgc_stats *stats ARG_LD)
-{ int i;
+{
+#ifdef O_PLMT
+  int i;
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
@@ -5841,6 +5843,11 @@ cgc_thread_stats(cgc_stats *stats ARG_LD)
     }
     release_ldata(ld);
   }
+#else
+  stats->local_size = usedStack(local);
+  stats->threads = 1;
+  stats->erased_skipped = LD->clauses.erased_skipped;
+#endif
 }
 
 
@@ -5906,11 +5913,10 @@ pl_atom_bucket_in_use(Atom *bucket)
 }
 
 
+#ifdef O_PLMT
 static int
 ldata_in_use(PL_local_data_t *ld)
-{
-#ifdef O_PLMT
-  int i;
+{ int i;
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
@@ -5918,10 +5924,10 @@ ldata_in_use(PL_local_data_t *ld)
     { return TRUE;
     }
   }
-#endif
 
   return FALSE;
 }
+#endif
 
 
 Atom**
@@ -6026,6 +6032,7 @@ pl_functor_table_in_use(FunctorTable functor_table)
 		 * CLAUSE/3 PREDICATE REFERENCES*
 		 *******************************/
 
+#ifdef O_PLMT
 static void
 init_predicate_references(PL_local_data_t *ld)
 { definition_refs *refs = &ld->predicate_references;
@@ -6035,9 +6042,7 @@ init_predicate_references(PL_local_data_t *ld)
   refs->blocks[1] = refs->preallocated - 1;
   refs->blocks[2] = refs->preallocated - 1;
 
-#ifdef O_PLMT
   simpleMutexInit(&ld->clauses.local_shift_mutex);
-#endif
 }
 
 static void
@@ -6053,10 +6058,9 @@ free_predicate_references(PL_local_data_t *ld)
       freeHeap(d0+bs, bs*sizeof(definition_ref));
   }
 
-#ifdef O_PLMT
   simpleMutexDelete(&ld->clauses.local_shift_mutex);
-#endif
 }
+#endif /*O_PLMT*/
 
 int
 pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)

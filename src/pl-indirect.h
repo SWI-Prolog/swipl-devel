@@ -67,7 +67,9 @@ typedef struct
   size_t	    no_hole_before;	/* find free place */
   size_t	    highest;		/* highest returned indirect */
   size_t	    count;		/* number of indirects in table */
+#ifdef O_PLMT
   simpleMutex	    mutex;		/* for resizing */
+#endif
 } indirect_table;
 
 
