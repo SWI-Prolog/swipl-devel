@@ -198,7 +198,7 @@ selectchk(X, XList, Y, YList) :-
 
 %%	nextto(?X, ?Y, ?List)
 %
-%	True if Y follows X in List.
+%	True if Y directly follows X in List.
 
 nextto(X, Y, [X,Y|_]).
 nextto(X, Y, [_|Zs]) :-
