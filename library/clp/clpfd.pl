@@ -169,7 +169,7 @@ The predicates of this library can be classified as:
 
     * _arithmetic_ constraints like #=/2, #>/2 and #\=/2
     * the _membership_ constraints in/2 and ins/2
-    * _combinatorial_ constraints like all_distinct/1
+    * _combinatorial_ constraints like all_distinct/1 and global_cardinality/2
     * _reification_ and _reflection_ predicates such as #<==>/2
     * the _enumeration_ predicates indomain/1, label/1 and labeling/2.
 
@@ -450,8 +450,8 @@ Y in 4..5.
 
 The answers emitted by the toplevel are called _residual programs_,
 and the goals that comprise each answer are called **residual goals**.
-In each case, and as for all pure programs, the residual program is
-declaratively equivalent to the original query. From the residual
+In each case above, and as for all pure programs, the residual program
+is declaratively equivalent to the original query. From the residual
 goals, it is clear that the constraint solver has deduced additional
 domain restrictions in many cases.
 
