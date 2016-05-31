@@ -1987,6 +1987,8 @@ Svprintf(const char *fm, va_list args)
 	    break;				\
 	  }					\
 	  default:				\
+	    c = 0;				\
+	    assert(0);				\
 	    break;				\
 	}
 
