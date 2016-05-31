@@ -4,6 +4,9 @@ AC_INIT(pl-wam.c)
 AC_PREREQ([2.66])
 
 AC_CONFIG_HEADER(config.h)
+
+m4_include([ac/ax_c_float_words_bigendian.m4])
+
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
 AC_SUBST(CMFLAGS)
@@ -423,6 +426,7 @@ esac
 AC_C_INLINE
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
+AX_C_FLOAT_WORDS_BIGENDIAN
 
 dnl This fragment is from the glibc configure script
 dnl with modification to fit different platforms

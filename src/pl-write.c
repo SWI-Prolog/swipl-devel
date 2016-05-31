@@ -848,7 +848,7 @@ union ieee754_double
     unsigned int mantissa0:20;
     unsigned int mantissa1:32;
 #else
-#if __FLOAT_WORD_ORDER == __BIG_ENDIAN
+#ifdef FLOAT_WORDS_BIGENDIAN
     unsigned int mantissa0:20;
     unsigned int exponent:11;
     unsigned int negative:1;
