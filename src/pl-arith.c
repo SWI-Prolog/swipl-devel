@@ -2683,9 +2683,6 @@ ar_getbit(Number I, Number K, Number r)
       assert(0);
   }
 
-  if ( bit < 0 )
-    return notLessThanZero("bit", 2, K);
-
   switch(I->type)
   { case V_INTEGER:
       if (  I->value.i < 0 )
