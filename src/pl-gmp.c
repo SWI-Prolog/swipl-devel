@@ -424,7 +424,7 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 #if SIZEOF_LONG == 8
   mpz_init_set_si(mpz, (long)i);
 #else
-  DEBUG(2, Sdprintf("Converting " INT64_FORMAT " to MPZ\n", i));
+  DEBUG(2, Sdprintf("Converting %" PRId64 " to MPZ\n", i));
 
   if ( i >= LONG_MIN && i <= LONG_MAX )
   { mpz_init_set_si(mpz, (long)i);

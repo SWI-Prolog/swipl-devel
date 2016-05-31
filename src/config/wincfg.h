@@ -65,11 +65,6 @@
 /* Maximum length of a path-name.  Note XOS! */
 #define MAXPATHLEN 512
 
-/* Format for int64_t */
-#ifndef INT64_FORMAT
-#define INT64_FORMAT "%I64d"
-#endif
-
 /* Define if floats are IEEE754 */
 #define IEEE754 1
 

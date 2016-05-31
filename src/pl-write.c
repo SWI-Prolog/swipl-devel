@@ -144,7 +144,7 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
     char buf[32];			/* Max is H354745078340568300 */
 
     if ( n < 0 )
-    { sprintf(buf, "S_" INT64_FORMAT, -n);
+    { sprintf(buf, "S_%" PRId64, -n);
     } else
     { int i = (int)(n % 26);
       int64_t j = n / 26;
@@ -153,7 +153,7 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
       { buf[0] = i+'A';
 	buf[1] = EOS;
       } else
-      { sprintf(buf, "%c" INT64_FORMAT, i+'A', j);
+      { sprintf(buf, "%c%" PRId64, i+'A', j);
       }
     }
 
@@ -1053,7 +1053,7 @@ WriteNumber(Number n, write_options *options)
   { case V_INTEGER:
     { char buf[32];
 
-      sprintf(buf, INT64_FORMAT, n->value.i);
+      sprintf(buf, "%" PRId64, n->value.i);
       return PutToken(buf, options->out);
     }
 #ifdef O_GMP

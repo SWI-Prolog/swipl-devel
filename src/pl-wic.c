@@ -496,7 +496,7 @@ getInt64(IOSTREAM *fd)
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
 
-    DEBUG(MSG_QLF_INTEGER, Sdprintf(INT64_FORMAT "\n", first));
+    DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
     return first;
   }
 
@@ -526,7 +526,7 @@ getInt64(IOSTREAM *fd)
   first <<= shift;
   first >>= shift;
 
-  DEBUG(MSG_QLF_INTEGER, Sdprintf(INT64_FORMAT "\n", first));
+  DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
   return first;
 }
 
