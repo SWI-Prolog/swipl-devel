@@ -300,7 +300,7 @@ addInt64(CompileInfo info, int64_t v)
 
   if ( v != PLMININT )
   { int64_t absn = (v >= 0 ? v : -v);
-    int64_t mask = (int64_t)-1 << (INT64BITSIZE-9);
+    int64_t mask = (~(int64_t)0) << (INT64BITSIZE-9);
 
     for(; i>1; i--, mask >>= 8)
     { if ( absn & mask )
