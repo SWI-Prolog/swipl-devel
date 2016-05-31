@@ -29,17 +29,6 @@
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 
-#define valHandle(r) valHandle__LD(r PASS_LD)
-
-static inline word
-valHandle__LD(term_t r ARG_LD)
-{ Word p = valTermRef(r);
-
-  deRef(p);
-  return *p;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines extensions to pl-fli.c that are used internally, but
 not exported to the SWI-Prolog user. Most   of them are too specific for

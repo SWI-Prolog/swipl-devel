@@ -518,13 +518,6 @@ offset_cell(Word p)
 }
 
 
-static inline Word
-previous_gcell(Word p)
-{ p--;
-  return p - offset_cell(p);
-}
-
-
 static inline word
 makePtr(Word ptr, int tag ARG_LD)
 { int stg;

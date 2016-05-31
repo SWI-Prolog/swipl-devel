@@ -1752,17 +1752,6 @@ uncachableException(term_t t ARG_LD)
 
 
 
-static inline int
-slotsInFrame(LocalFrame fr, Code PC)
-{ Definition def = fr->predicate;
-
-  if ( !PC || true(def, P_FOREIGN) || !fr->clause )
-    return (int)def->functor->arity;
-
-  return fr->clause->value.clause->prolog_vars;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 dbgRedoFrame(LocalFrame fr)
 
