@@ -35,7 +35,8 @@ Tests that are hard to classify
 test_write :-
 	run_tests([ portray,
 		    write_canonical,
-		    write_variable_names
+		    write_variable_names,
+		    write_float
 		  ]).
 
 :- begin_tests(portray).
@@ -112,3 +113,11 @@ test(variable_names, X = 'a(A,B)') :-
 		       [variable_names(['B'=A]), numbervars(true)])).
 
 :- end_tests(write_variable_names).
+
+:- begin_tests(write_float).
+
+test(nan, X == '1.5NaN') :-
+	A is nan,
+	with_output_to(atom(X), write(A)).
+
+:- end_tests(write_float).
