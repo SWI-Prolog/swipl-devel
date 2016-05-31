@@ -1,6 +1,6 @@
 # SWI-Prolog: A comprehensive Prolog implementation
 
-Latest update: Aug 25, 2014May 31, 2016 (Version 7.3.22)
+Latest update: May 31, 2016 (Version 7.3.22)
 
 ## Web home
 
