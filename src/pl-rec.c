@@ -1657,7 +1657,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
   recorded_state state_buf;
   recorded_state *state = &state_buf;
   word k = 0L;
-  word rc;
+  int rc;
   fid_t fid;
 
   term_t key  = A1;
