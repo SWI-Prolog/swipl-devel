@@ -2536,6 +2536,7 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
 { GET_LD
   term_t t = A1;
   term_t list = A3;
+  intptr_t len;
   size_t arity;
   atom_t name;
   size_t n;
@@ -2547,14 +2548,14 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
     if ( !PL_get_atom_ex(A2, &name) )
       return FALSE;
 
-    if ( (arity = (int)lengthList(tail, FALSE)) < 0 ) /* TBD: check MAXINT */
-    { if ( arity == -1 )
+    if ( (len = lengthList(tail, FALSE)) < 0 )
+    { if ( len == -1 )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
       else
 	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     }
 
-    if ( !PL_unify_compound(t, PL_new_functor(name, arity)) )
+    if ( !PL_unify_compound(t, PL_new_functor(name, (size_t)len)) )
       fail;
 
     for(n=1; PL_get_list(tail, head, tail); n++)
