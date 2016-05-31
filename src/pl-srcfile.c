@@ -982,7 +982,7 @@ associateSource(SourceFile sf, Procedure proc)
 int
 setAttrProcedureSource(SourceFile sf, Procedure proc,
 		       unsigned attr, int val ARG_LD)
-{ if ( val && (attr&&PROC_DEFINED) )
+{ if ( val && (attr&PROC_DEFINED) )
     associateSource(sf, proc);
 
   if ( sf->reload )
