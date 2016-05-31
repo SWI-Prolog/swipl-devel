@@ -30,6 +30,12 @@
 		 *	 LOCK-FREE SUPPORT	*
 		 *******************************/
 
+#ifdef _MSC_VER
+#define LL(x) x ## i64
+#else
+#define LL(x) x ## LL
+#endif
+
 #ifdef _MSC_VER				/* Windows MSVC version */
 
 /* MSB(0) = undefined
@@ -53,6 +59,15 @@ MSB(size_t i)
   return index;
 }
 
+#define HAVE_MSB64 1
+static inline int
+MSB64(int64_t i)
+{ unsigned long index;
+  _BitScanReverse64(&index, i);
+  return index;
+}
+
+
 #define HAVE_MEMORY_BARRIER 1
 #ifndef MemoryBarrier
 #define MemoryBarrier() (void)0
@@ -68,6 +83,8 @@ MSB(size_t i)
 #define MSB(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i)) /* GCC builtin */
 #define HAVE_MSB 1
 #endif
+#define HAVE_MSB64 1
+#define MSB64(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i))
 #endif
 
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE__SYNC_SYNCHRONIZE)
@@ -113,6 +130,25 @@ MSB(size_t i)
   return j;
 }
 #endif
+
+
+#ifndef HAVE_MSB64
+#define HAVE_MSB64 1
+static inline int
+MSB64(int64_t i)
+{ int j = 0;
+
+  if (i >= LL(0x100000000)) {i >>= 32; j += 32;}
+  if (i >=     LL(0x10000)) {i >>= 16; j += 16;}
+  if (i >=       LL(0x100)) {i >>=  8; j +=  8;}
+  if (i >=	  LL(0x10)) {i >>=  4; j +=  4;}
+  if (i >=         LL(0x4)) {i >>=  2; j +=  2;}
+  if (i >=         LL(0x2)) j++;
+
+  return j;
+}
+#endif
+
 
 #ifndef HAVE_MEMORY_BARRIER
 #define HAVE_MEMORY_BARRIER 1

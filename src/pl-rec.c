@@ -290,22 +290,26 @@ addSizeInt(CompileInfo info, size_t val)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Add a signed intptr_t value. First byte   is  number of bytes, remaining are
-value-bytes, starting at most-significant.
+Add a signed intptr_t value. First byte   is  number of bytes, remaining
+are value-bytes, starting at most-significant.  When loading, we restore
+the bytes in the least significant  positions   and  perform  a left and
+right shift to restore the sign. This  means that a positive number must
+always have a 0 at the left side in   the  encoding. So, if bit 7 is the
+MSB, we must store 2 bytes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 addInt64(CompileInfo info, int64_t v)
-{ int i = sizeof(v);
+{ int i;
 
-  if ( v != PLMININT )
-  { int64_t absn = (v >= 0 ? v : -v);
-    int64_t mask = (~(int64_t)0) << (INT64BITSIZE-9);
+  if ( v == 0 )
+  { i = 1;
+  } else if ( v == PLMININT )
+  { i = sizeof(v);
+  } else
+  { int64_t a = v > 0 ? v :- v;
 
-    for(; i>1; i--, mask >>= 8)
-    { if ( absn & mask )
-	break;
-    }
+    i = (MSB64(a)+9)/8;
   }
 
   addBuffer(&info->code, i, uchar);

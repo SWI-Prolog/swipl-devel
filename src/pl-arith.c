@@ -70,12 +70,6 @@ in this array.
 #define M_E (2.7182818284590452354)
 #endif
 
-#ifdef _MSC_VER
-#define LL(x) x ## i64
-#else
-#define LL(x) x ## LL
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On some machines, notably  FreeBSD  upto   version  3.x,  floating point
 operations raise signals rather then leaving an error condition and this
@@ -1364,21 +1358,6 @@ ar_mod(Number n1, Number n2, Number r)
 
 
 static int
-msb64(int64_t i)
-{ int j = 0;
-
-  if (i >= LL(0x100000000)) {i >>= 32; j += 32;}
-  if (i >=     LL(0x10000)) {i >>= 16; j += 16;}
-  if (i >=       LL(0x100)) {i >>=  8; j +=  8;}
-  if (i >=	  LL(0x10)) {i >>=  4; j +=  4;}
-  if (i >=         LL(0x4)) {i >>=  2; j +=  2;}
-  if (i >=         LL(0x2)) j++;
-
-  return j;
-}
-
-
-static int
 int_too_big(void)
 { GET_LD
   return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
@@ -1448,11 +1427,11 @@ ar_shift(Number n1, Number n2, Number r, int dir)
         int bits = shift;
 
 	if ( n1->value.i >= 0 )
-	  bits += msb64(n1->value.i);
+	  bits += MSB64(n1->value.i);
 	else if ( n1->value.i == PLMININT )
 	  bits += sizeof(int64_t)*8;
 	else
-	  bits += msb64(-n1->value.i);
+	  bits += MSB64(-n1->value.i);
 
 	if ( bits >= (int)(sizeof(int64_t)*8-1) )
 	{ promoteToMPZNumber(n1);
@@ -1748,7 +1727,7 @@ ar_pow(Number n1, Number n2, Number r)
 
     switch(n1->type)
     { case V_INTEGER:
-	op1_bytes = msb64(n1->value.i)+7/8;
+	op1_bytes = MSB64(n1->value.i)+7/8;
         break;
       case V_MPZ:
 	op1_bytes = mpz_sizeinbase(n1->value.mpz, 256);
@@ -2527,7 +2506,7 @@ ar_msb(Number n1, Number r)
       if (  n1->value.i <= 0 )
 	return mustBePositive("msb", 1, n1);
 
-      r->value.i = msb64(n1->value.i);
+      r->value.i = MSB64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
 #ifdef O_GMP
