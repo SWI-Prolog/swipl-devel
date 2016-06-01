@@ -880,7 +880,7 @@ PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 		 *	    EMBEDDING		*
 		 *******************************/
 
-PL_EXPORT(int)		PL_initialise(int argc, char **argv);
+PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
 PL_EXPORT(int)		PL_initialise(int argc, char **argv);
 PL_EXPORT(int)		PL_initialise_mem(int argc, char **argv, char *mem_data, long int mem_size);
 #ifdef __CYGWIN__
