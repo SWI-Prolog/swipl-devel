@@ -2448,13 +2448,10 @@ The indexes of dynamic predicates are deleted if the number of clauses
 is doubled since its creation or reduced below 1/4th. The JIT approach
 will recreate a suitable index on the next call. Indexes of running
 predicates cannot be deleted. They are added to a `removed index list'
-associated to the predicate. Dynamic predicates maintain a counter for
-the number of goals running the predicate (a predicate can `run'
-multiple times due to recursion, open choice points, and
-multiple threads) and destroy removed indexes if this count drops to
-zero. Outdated indexes of static predicates (e.g., due to reconsult or
-enlarging multifile predicates) are reclaimed by
-garbage_collect_clauses/0.
+associated to the predicate. Outdated indexes of predicates are
+reclaimed by garbage_collect_clauses/0.  The clause garbage collector
+is scheduled automatically, based on time and space based heuristics.
+See garbage_collect_clauses/0 for details.
 \end{itemlist}
 
 \subsection{Future directions}

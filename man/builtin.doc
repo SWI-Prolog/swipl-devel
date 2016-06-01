@@ -1180,7 +1180,7 @@ implies setting the \jargon{erased generation} to the current
 \jargon{generation} of the database and increment the generation.
 Keeping the clause around is both needed to realise the \jargon{logical
 update view} and deal with the fact that other threads may be executing
-the code. Both static and dynamic code is processed this
+the clause. Both static and dynamic code is processed this
 way.\footnote{Up to version 7.3.11, dynamic code was handled using
 \jargon{reference counts}.}.
 
@@ -1196,7 +1196,9 @@ The clause garbage collector is called under three conditions, (1) after
 \jargon{reloading} a source file, (2) if the memory occupied by
 retracted but not yet reclaimed clauses exceeds 12.5\% of the program
 store, or (3) if skipping dead clauses in the clause lists becomes too
-costly.
+costly. The cost of clause garbage collection is proportional with the
+total size of the local stack of all threads (the scanning phase) and
+the number of clauses in all `dirty' predicates (the reclaiming phase).
 \end{description}
 
 
