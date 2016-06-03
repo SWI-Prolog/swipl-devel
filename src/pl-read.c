@@ -235,7 +235,8 @@ typedef struct variable
 { char *	name;		/* Name of the variable */
   size_t	namelen;	/* length of the name */
   term_t	variable;	/* Term-reference to the variable */
-  int		times;		/* Number of occurences */
+  unsigned int	times;		/* Number of occurences */
+  unsigned int	hash_next;	/* Offset for next with same hash */
   word		signature;	/* Pseudo atom */
 } *Variable;
 
@@ -269,6 +270,8 @@ struct read_buffer
 struct var_table
 { tmp_buffer _var_name_buffer;	/* stores the names */
   tmp_buffer _var_buffer;	/* array of struct variables */
+  unsigned int _var_hash_size;	/* #buckets */
+  unsigned int *_var_buckets;	/* hash table */
 };
 
 
@@ -389,6 +392,8 @@ typedef struct
 
 #define var_name_buffer	  (_PL_rd->vt._var_name_buffer)
 #define var_buffer	  (_PL_rd->vt._var_buffer)
+#define var_hash_size	  (_PL_rd->vt._var_hash_size)
+#define var_buckets	  (_PL_rd->vt._var_buckets)
 
 #ifndef offsetof
 #define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
@@ -406,6 +411,7 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   initBuffer(&var_buffer);
   initBuffer(&_PL_rd->op.out_queue);
   initBuffer(&_PL_rd->op.side_queue);
+  var_hash_size = 0;
   init_term_stack(_PL_rd);
   _PL_rd->exception = PL_new_term_ref();
   rb.stream = in;
@@ -433,6 +439,8 @@ free_read_data(ReadData _PL_rd)
   discardBuffer(&var_buffer);
   discardBuffer(&_PL_rd->op.out_queue);
   discardBuffer(&_PL_rd->op.side_queue);
+  if ( var_hash_size )
+    PL_free(var_buckets);
   clear_term_stack(_PL_rd);
 }
 
@@ -1469,6 +1477,53 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
   return baseBuffer(&var_name_buffer, char) + e;
 }
 
+
+static unsigned int
+variableHash(Variable var)
+{ return MurmurHashAligned2(var->name, strlen(var->name), MURMUR_SEED);
+}
+
+
+static void
+linkVariable(Variable var, ReadData _PL_rd)
+{ unsigned int key = variableHash(var) % var_hash_size;
+
+  var->hash_next = var_buckets[key];
+  var_buckets[key] = (var->signature>>LMASK_BITS)+1;
+}
+
+
+static int
+rehashVariables(ReadData _PL_rd)
+{ if ( !var_hash_size )
+  { var_hash_size = 32;
+    var_buckets = PL_malloc(var_hash_size*sizeof(*var_buckets));
+  } else
+  { var_hash_size *= 2;
+    var_buckets = PL_realloc(var_buckets, var_hash_size*sizeof(*var_buckets));
+  }
+
+  if ( var_buckets )
+  { memset(var_buckets, 0, var_hash_size*sizeof(*var_buckets));
+
+    for_vars(v, linkVariable(v, _PL_rd));
+    return 0;
+  } else
+    return MEMORY_OVERFLOW;
+}
+
+static int
+hashVariable(Variable var, ReadData _PL_rd)
+{ unsigned int i = var->signature>>LMASK_BITS;
+
+  if ( i > var_hash_size )
+    return rehashVariables(_PL_rd);
+  else
+  { linkVariable(var, _PL_rd);
+    return 0;
+  }
+}
+
 					/* use hash-key? */
 
 static Variable
@@ -1481,17 +1536,36 @@ varInfo(word w, ReadData _PL_rd)
 
 
 static Variable
+var_from_index(unsigned int i, ReadData _PL_rd)
+{ return &baseBuffer(&var_buffer, struct variable)[i-1];
+}
+
+static Variable
 lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 { struct variable next;
   Variable var;
   size_t nv;
 
   if ( !isAnonVarNameN(name, len) )		/* always add _ */
-  { for_vars(v,
-	     if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
-	     { v->times++;
-	       return v;
-	     })
+  { if ( var_hash_size )
+    { unsigned int key = MurmurHashAligned2(name, len, MURMUR_SEED) % var_hash_size;
+      unsigned int vi;
+
+      for(vi = var_buckets[key]; vi; vi=var->hash_next)
+      { var = var_from_index(vi, _PL_rd);
+
+	if ( len == var->namelen && strncmp(name, var->name, len) == 0 )
+	{ var->times++;
+	  return var;
+	}
+      }
+    } else
+    { for_vars(v,
+	       if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
+	       { v->times++;
+		 return v;
+	       })
+    }
   }
 
   nv = entriesBuffer(&var_buffer, struct variable);
@@ -1501,9 +1575,11 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   next.variable  = 0;
   next.signature = (nv<<LMASK_BITS)|TAG_VAR|STG_RESERVED;
   addBuffer(&var_buffer, next, struct variable);
-  var = topBuffer(&var_buffer, struct variable);
+  var = topBuffer(&var_buffer, struct variable) - 1;
+  if ( nv >= 16 )
+    hashVariable(var, _PL_rd);
 
-  return var-1;
+  return var;
 }
 
 
