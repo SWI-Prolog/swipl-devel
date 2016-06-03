@@ -368,6 +368,7 @@ is 0x200000, which is above the Unicode range.
 
 #define C_PREFIX_SIGN		0x00200000	/* +/- as prefix op */
 #define C_PREFIX_OP		0x00400000	/* any prefix op */
+#define C_INFIX_OP		0x00800000	/* any infix op */
 #define C_MASK			0xffe00000
 
 #define isquote(c) ((c) == '\'' || (c) == '"')
@@ -385,6 +386,8 @@ needSpace(int c, IOSTREAM *s)
     return TRUE;
   if ( (s->lastc&C_PREFIX_OP) && ( c == '(' || c == '{' ) )
     return TRUE;				/* avoid op(...) */
+  if ( (s->lastc&C_INFIX_OP) && c == '(' )
+    return FALSE;
 
   s->lastc &= ~C_MASK;
 
@@ -1558,19 +1561,22 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri,
 			options));
-	  if ( functor == ATOM_comma )
-	  { TRY(PutComma(options));
-	  } else if ( functor == ATOM_bar )
-	  { TRY(PutBar(options));
-	  } else if ( functor == ATOM_fdot )
-	  { TRY(PutToken(".", out));
-	  } else if ( arity == 2 )
-	  { switch(writeAtom(functor, options))
-	    { case FALSE:
-		fail;
-	      case TRUE_WITH_SPACE:
-		TRY(Putc(' ', out));
+	  if ( arity == 2 )
+	  { if ( functor == ATOM_comma )
+	    { TRY(PutComma(options));
+	    } else if ( functor == ATOM_bar )
+	    { TRY(PutBar(options));
+	    } else if ( functor == ATOM_fdot )
+	    { TRY(PutToken(".", out));
+	    } else
+	    { switch(writeAtom(functor, options))
+	      { case FALSE:
+		  fail;
+	        case TRUE_WITH_SPACE:
+		  TRY(Putc(' ', out));
+	      }
 	    }
+	    options->out->lastc |= C_INFIX_OP;
 	  } else			/* block operator */
 	  { _PL_get_arg(1, t, arg);
 	    TRY(writeTerm(arg, 1200, options));
