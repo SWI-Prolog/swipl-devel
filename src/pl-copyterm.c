@@ -662,7 +662,8 @@ term_to_fastheap(term_t t ARG_LD)
   size_t indirect_cells = 0;
   Word indirects;
 
-  duplicate_term(t, copy PASS_LD);
+  if ( !duplicate_term(t, copy PASS_LD) )
+    return NULL;
   gcopy = valTermRef(copy);
   gtop  = gTop;
   deRef(gcopy);					/* term at gcopy .. gTop */

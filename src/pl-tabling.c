@@ -262,11 +262,15 @@ get_answer_from_cluster(cluster *c, size_t index)
 static cluster *
 new_suspension_cluster(term_t first ARG_LD)
 { cluster *c;
+  record_t r;
+
+  if ( !(r=PL_record(first)) )
+    return NULL;
 
   c = PL_malloc(sizeof(*c));
   c->type = CLUSTER_SUSPENSIONS;
   initBuffer(&c->members);
-  addBuffer(&c->members, PL_record(first), record_t);
+  addBuffer(&c->members, r, record_t);
 
   return c;
 }
@@ -284,9 +288,16 @@ free_suspension_cluster(cluster *c)
   PL_free(c);
 }
 
-static void
+static int
 add_to_suspension_cluster(cluster *c, term_t suspension ARG_LD)
-{ addBuffer(&c->members, PL_record(suspension), record_t);
+{ record_t r;
+
+  if ( (r=PL_record(suspension)) )
+  { addBuffer(&c->members, r, record_t);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 static record_t
@@ -451,9 +462,12 @@ static int
 wkl_add_suspension(worklist *wl, term_t suspension ARG_LD)
 { potentially_add_to_global_worklist(wl PASS_LD);
   if ( wl->tail && wl->tail->type == CLUSTER_SUSPENSIONS )
-  { add_to_suspension_cluster(wl->tail, suspension PASS_LD);
+  { if ( !add_to_suspension_cluster(wl->tail, suspension PASS_LD) )
+      return FALSE;
   } else
   { cluster *c = new_suspension_cluster(suspension PASS_LD);
+    if ( !c )
+      return FALSE;
     wkl_append_right(wl, c);
     if ( c->prev && c->prev->type == CLUSTER_ANSWERS )
       wl->riac = c->prev;
@@ -652,9 +666,7 @@ PRED_IMPL("$tbl_wkl_add_suspension", 2, tbl_wkl_add_suspension, 0)
   worklist *wl;
 
   if ( get_worklist(A1, &wl) )
-  { wkl_add_suspension(wl, A2 PASS_LD);
-    return TRUE;
-  }
+    return wkl_add_suspension(wl, A2 PASS_LD);
 
   return FALSE;
 }
