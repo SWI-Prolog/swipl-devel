@@ -1517,7 +1517,8 @@ mark_frame_var(walk_state *state, code v ARG_LD)
 { if ( state->active )
   { int i = (int)v - sizeof(struct localFrame)/sizeof(word);
 
-    DEBUG(MSG_CONTINUE, Sdprintf("Access %d\n", i));
+    DEBUG(MSG_CONTINUE, Sdprintf("Access %d (%scleared)\n",
+				 i, true_bit(state->clear, i) ? "" : "not "));
     if ( !true_bit(state->clear, i) )
       set_bit(state->active, i);
   } else
@@ -1840,7 +1841,7 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
   init_bitvector(clear, active->size);
 
   state.frame  = fr;
-  state.flags  = GCM_ACTIVE;
+  state.flags  = GCM_ACTIVE|GCM_CLEAR;
   state.adepth = 0;
   state.ARGP   = argFrameP(fr, 0);
   state.active = active;
