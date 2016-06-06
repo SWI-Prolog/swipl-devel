@@ -147,7 +147,10 @@ debug_target(Topic, Topic, -).
 update_debug(_, To0, true, -, true, To) :- !,
 	ensure_output(To0, To).
 update_debug(true, To0, true, Out, true, Output) :- !,
-	append(To0, [Out], Output).
+	(   memberchk(Out, To0)
+	->  Output = To0
+	;   append(To0, [Out], Output)
+	).
 update_debug(false, _, true, Out, true, [Out]) :- !.
 update_debug(_, _, false, -, false, []) :- !.
 update_debug(true, [Out], false, Out, false, []) :- !.
