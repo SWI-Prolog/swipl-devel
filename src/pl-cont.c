@@ -108,6 +108,7 @@ operations.
 static int
 put_environment(term_t env, LocalFrame fr, Code pc)
 { GET_LD
+  term_t fr_ref   = consTermRef(fr);
   Clause cl       = fr->clause->value.clause;
   int i, slots    = cl->prolog_vars;
   size_t bv_bytes = sizeof_bitvector(slots);
@@ -122,17 +123,25 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   else
     buf = PL_malloc(bv_bytes);
 
+  DEBUG(MSG_CONTINUE,
+	Sdprintf("put_environment() for %s, clause %d@PC=%ld\n",
+		 predicateName(fr->predicate),
+		 clauseNo(fr->predicate, cl, 0),
+		 (long)(pc-cl->codes)));
+
   active = (bit_vector*)buf;
   init_bitvector(active, slots);
-
-  init_bitvector(active, slots);
+  fr = (LocalFrame)valTermRef(fr_ref);
   mark_active_environment(active, fr, pc);
 
   PL_put_nil(env);
   for(i=0; i<slots; i++)
   { if ( true_bit(active, i) )
-    { term_t fr_ref = consTermRef(fr);
-      Word p = argFrameP(fr, i);
+    { Word p;
+
+      fr = (LocalFrame)valTermRef(fr_ref);
+      p = argFrameP(fr, i);
+      DEBUG(CHK_SECURE, checkData(p));
 
       deRef(p);
       if ( isVar(*p) && p > (Word)lBase )
@@ -146,8 +155,6 @@ put_environment(term_t env, LocalFrame fr, Code pc)
       { rc = FALSE;			/* resource error */
 	break;
       }
-
-      fr = (LocalFrame)valTermRef(fr_ref);
     }
   }
 					/* Store choice points (*) */
@@ -177,25 +184,30 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 static int
 unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 { GET_LD
-  term_t argv      = PL_new_term_refs(3);
   term_t reset_ref = consTermRef(resetfr);
+  term_t fr_ref    = consTermRef(fr);
+  term_t argv      = PL_new_term_refs(3);
   term_t contv;
   LocalFrame fr2;
   int depth = 0;
 
+  resetfr = (LocalFrame)valTermRef(reset_ref);
+  fr      = (LocalFrame)valTermRef(fr_ref);
   for(fr2=fr; fr2 != resetfr; fr2=fr2->parent)
     depth++;
   if ( !(contv = PL_new_term_refs(depth)) )
     return FALSE;
+  resetfr = (LocalFrame)valTermRef(reset_ref);
+  fr      = (LocalFrame)valTermRef(fr_ref);
 
   for( depth=0;
        fr != resetfr;
        pc = fr->programPointer, fr=fr->parent, depth++)
   { Clause     cl = fr->clause->value.clause;
     long pcoffset = pc - cl->codes;
-    term_t fr_ref = consTermRef(fr);
 
     assert(!onStackArea(local, cl));
+    fr_ref = consTermRef(fr);
 
     if ( !PL_put_clref(argv+0, cl) ||
 	 !PL_put_integer(argv+1, pcoffset) ||
@@ -252,6 +264,8 @@ PRED_IMPL("shift", 1, shift, 0)
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to collect continuation\n"));
       return FALSE;			/* resource error */
     }
+
+    DEBUG(CHK_SECURE, PL_check_data(cont));
 
     resetfr = (LocalFrame)valTermRef(reset);
     if ( !PL_unify(consTermRef(argFrameP(resetfr, 2)), cont) )
