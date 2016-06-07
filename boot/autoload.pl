@@ -53,10 +53,11 @@ user:file_search_path(autoload, library(.)).
 
 %%	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library) is semidet.
 %
-%	Locate a predicate in the library.  Name and arity are the name
-%	and arity of the predicate searched for.  `Module' is the
-%	preferred target module.  The return values are the full path names
-%	of the library and module declared in that file.
+%	Locate a predicate in the library. Name   and arity are the name
+%	and arity of  the  predicate  searched   for.  `Module'  is  the
+%	preferred target module. The return  values   are  the full path
+%	name (excluding extension) of the library and module declared in
+%	that file.
 
 '$find_library'(Module, Name, Arity, LoadModule, Library) :-
 	load_library_index(Name, Arity),

@@ -622,7 +622,8 @@ default_module(Me, Super) :-
 	'$compilation_mode'(OldComp, database),
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
-	;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1)
+	;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1),
+		\+ '$loading'(Library)
 	    ->	Module:import(LoadModule:Name/Arity)
 	    ;	use_module(Module:Library, [Name/Arity])
 	    )
@@ -630,6 +631,20 @@ default_module(Me, Super) :-
 	'$set_compilation_mode'(OldComp),
 	'$set_autoload_level'(Old),
 	'$c_current_predicate'(_, Module:Head).
+
+%%	'$loading'(+Library)
+%
+%	True if the library  is  being   loaded.  Just  testing that the
+%	predicate is defined is not  good  enough   as  the  file may be
+%	partly  loaded.  Calling  use_module/2  at   any  time  has  two
+%	drawbacks: it queries the filesystem,   causing  slowdown and it
+%	stops libraries being autoloaded from a   saved  state where the
+%	library is already loaded, but the source may not be accessible.
+
+'$loading'(Library) :-
+	current_prolog_flag(threads, true),
+	'$loading_file'(FullFile, _Queue, _LoadThread),
+	file_name_extension(Library, _, FullFile), !.
 
 %	 handle debugger 'w', 'p' and <N> depth options.
 
