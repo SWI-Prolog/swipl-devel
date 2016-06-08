@@ -372,14 +372,18 @@ retry:
 
       if ( offset < cl->prolog_vars )
       { argFrame(fr, offset) = linkVal(valTermRef(arg));
-      } /*else
+      } else
       { intptr_t i;
+	Choice ch, chp;
 
 	if ( !PL_get_intptr_ex(arg, &i) )
 	  return FALSE;
-
-	argFrame(fr, offset) = i;
-      }*/
+	ch = (Choice)valTermRef(i);
+	for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
+	  ;
+	if ( ch == chp )
+	  argFrame(fr, offset) = i;
+      }
     }
     if ( !PL_get_nil_ex(env) )
       return FALSE;
