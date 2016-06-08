@@ -1403,6 +1403,7 @@ typedef struct walk_state
 #define GCM_CLEAR	0x1		/* Clear uninitialised data */
 #define GCM_ALTCLAUSE	0x2		/* Marking alternative clauses */
 #define GCM_ACTIVE	0x4		/* Mark active environment */
+#define GCM_CHOICE	0x8		/* Mark active choicepoints */
 
 #define NO_ADEPTH 1234567
 
@@ -1565,6 +1566,24 @@ clear_frame_var(walk_state *state, code var, Code PC)
 
 
 static inline void
+clear_choice_mark(walk_state *state, code slot)
+{ if ( (state->flags & GCM_CHOICE) )
+  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
+    set_bit(state->clear, i);
+  }
+}
+
+
+static inline void
+mark_choice_mark(walk_state *state, code slot)
+{ if ( (state->flags & GCM_CHOICE) )
+  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
+    set_bit(state->active, i);
+  }
+}
+
+
+static inline void
 mark_argp(walk_state *state ARG_LD)
 {
 #ifdef MARK_ALT_CLAUSES
@@ -1656,6 +1675,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  break;
       { Code alt = PC+PC[1]+2;
 	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
+	clear_choice_mark(state, PC[0]);
 	PC += 2;			/* skip the two arguments */
 	walk_and_mark(state, PC, C_CUT PASS_LD);
 	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
@@ -1668,6 +1688,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
+	clear_choice_mark(state, PC[0]);
 	DEBUG(MSG_GC_WALK, Sdprintf("C_IFTHENELSE at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the 'MARK' variable and jmp */
 	walk_and_mark(state, PC, C_JMP PASS_LD);
@@ -1679,12 +1700,19 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case C_SOFTIFTHEN:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
-      { PC = walk_and_mark(state, PC+1, C_END PASS_LD);
+      { clear_choice_mark(state, PC[0]);
+	PC = walk_and_mark(state, PC+1, C_END PASS_LD);
 	PC++;				/* skip C_END */
 	op = decode(*PC++);
         goto again;
       }
-
+      case C_CUT:
+      case C_LSCUT:
+      case C_LCUT:
+      case C_SOFTCUT:
+      case C_LCUTIFTHEN:
+	mark_choice_mark(state, PC[0]);
+        break;
 					/* variable access */
 
       case B_UNIFY_VAR:			/* Var = Term */
@@ -1841,7 +1869,7 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
   init_bitvector(clear, active->size);
 
   state.frame  = fr;
-  state.flags  = GCM_ACTIVE|GCM_CLEAR;
+  state.flags  = GCM_ACTIVE|GCM_CLEAR|GCM_CHOICE;
   state.adepth = 0;
   state.ARGP   = argFrameP(fr, 0);
   state.active = active;

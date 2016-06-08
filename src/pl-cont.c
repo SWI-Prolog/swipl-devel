@@ -99,18 +99,14 @@ because the environment structure we create is newer.
 choice points for if-then-else and related control structures. These are
 stored as offsets  to  the  local  stack   base.  We  put  them  in  the
 environment as integers.
-
-TBD: We can extend mark_active_environment() to also find the non-Prolog
-slots that are  active,  i.e.,  can  be   used  by  one  of  the pruning
-operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 put_environment(term_t env, LocalFrame fr, Code pc)
 { GET_LD
   term_t fr_ref   = consTermRef(fr);
-  Clause cl       = fr->clause->value.clause;
-  int i, slots    = cl->prolog_vars;
+  const Clause cl = fr->clause->value.clause;
+  int i, slots    = cl->variables;
   size_t bv_bytes = sizeof_bitvector(slots);
   char tmp[128];
   char *buf;
@@ -135,7 +131,7 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   mark_active_environment(active, fr, pc);
 
   PL_put_nil(env);
-  for(i=0; i<slots; i++)
+  for(i=0; i<cl->prolog_vars; i++)
   { if ( true_bit(active, i) )
     { Word p;
 
@@ -160,16 +156,18 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 					/* Store choice points (*) */
   if ( rc )
   { for(i=cl->prolog_vars; i<cl->variables; i++)
-    { DEBUG(MSG_CONTINUE,
-	    Sdprintf("%s: add choice-point reference from slot %d\n",
-		     predicateName(fr->predicate), i));
-      PL_put_integer(argv+1, argFrame(fr, i));
+    { if ( true_bit(active, i) )
+      { DEBUG(MSG_CONTINUE,
+	      Sdprintf("%s: add choice-point reference from slot %d\n",
+		       predicateName(fr->predicate), i));
+	PL_put_integer(argv+1, argFrame(fr, i));
 
-      if ( !PL_put_integer(argv+0, i) ||
-	   !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
-	   !PL_cons_list(env, argv+0, env) )
-      { rc = FALSE;			/* resource error */
-	break;
+	if ( !PL_put_integer(argv+0, i) ||
+	     !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
+	     !PL_cons_list(env, argv+0, env) )
+	{ rc = FALSE;			/* resource error */
+	  break;
+	}
       }
     }
   }
