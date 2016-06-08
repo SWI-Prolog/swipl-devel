@@ -1063,6 +1063,7 @@ xref_meta(distinct(_, G),	[G]).
 xref_meta(order_by(_, G),	[G]).
 xref_meta(limit(_, G),		[G]).
 xref_meta(offset(_, G),		[G]).
+xref_meta(reset(G,_,_),		[G]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
