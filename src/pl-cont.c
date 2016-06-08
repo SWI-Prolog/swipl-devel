@@ -357,7 +357,7 @@ retry:
     for(ap = argFrameP(fr, 0), i=cl->prolog_vars; i-- > 0; )
       *ap++ = ATOM_garbage_collected;
     for(i=cl->variables-cl->prolog_vars; i-- > 0; )
-      *ap++ = 0;
+      *ap++ = consTermRef(LD->choicepoints);
 
     while( PL_get_list_ex(env, head, env) )
     { int offset;
@@ -372,14 +372,14 @@ retry:
 
       if ( offset < cl->prolog_vars )
       { argFrame(fr, offset) = linkVal(valTermRef(arg));
-      } else
+      } /*else
       { intptr_t i;
 
 	if ( !PL_get_intptr_ex(arg, &i) )
 	  return FALSE;
 
 	argFrame(fr, offset) = i;
-      }
+      }*/
     }
     if ( !PL_get_nil_ex(env) )
       return FALSE;
