@@ -3393,16 +3393,12 @@ this is the preferred route. In other cases, Prolog is embedded in a
 complex application that---like Prolog---wants to control the process
 environment. A good example is Java. Embedding Prolog is generally the
 only way to get these environments together in one process image. Java
-applications, however, are by nature multithreaded and appear to do
+VMs, however, are by nature multithreaded and appear to do
 signal handling (software interrupts).
 
-On Unix systems, SWI-Prolog uses three signals:
+On Unix systems, SWI-Prolog uses two signals:
 
 \begin{description}
-    \item[SIGUSR1] is used to sychronise atom and clause garbage
-    collection.  The handler is installed at the start of garbage collection and
-    reverted to the old setting after completion.
-
     \item[SIGUSR2] has an empty signal handler.   This signal is
     sent to a thread after sending a thread-signal (see
     thread_signal/2).  It causes blocking system calls to return
@@ -3418,9 +3414,10 @@ On Unix systems, SWI-Prolog uses three signals:
 \end{description}
 
 The \cmdlineoption{--nosignals} option can be used to inhibit processing
-of \const{SIGINT}. The other signals are vital for the functioning of
-SWI-Prolog. If they conflict with other applications, signal handling of
-either component must be modified. The SWI-Prolog signals are defined in
+of \const{SIGINT}. The handling of \const{SIGUSR2} is vital for dealing
+with blocking system call in threads. If the way SWI-Prolog uses this
+signal conflicts with other applications, signal handling of either
+component must be modified. The SWI-Prolog signals are defined in
 \file{pl-thread.h} of the source distribution.
 
 

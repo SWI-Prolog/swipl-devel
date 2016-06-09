@@ -12,7 +12,6 @@ set breakpoint pending off
 
 handle SIGPIPE noprint nostop pass
 handle SIGUSR1 noprint nostop pass
-handle SIGUSR2 noprint nostop pass
 set print thread-events off
 
 # Some common ways to start the system with the test-suite loaded
@@ -47,5 +46,5 @@ end
 # suit your installation
 
 define public
-  set environment SWI_HOME_DIR=/home/jan/lib/pl-5.9.5
+  set environment SWI_HOME_DIR=/home/jan/lib/swipl
 end

@@ -32,9 +32,6 @@
 #endif
 
 #ifndef __WINDOWS__
-#define SIG_FORALL SIGUSR1
-#define SIG_RESUME SIG_FORALL		/* these can be shared */
-
 #define SIG_ALERT  SIGUSR2
 #endif
 
