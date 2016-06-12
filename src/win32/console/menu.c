@@ -232,7 +232,7 @@ void
 rlc_menu_action(rlc_console c, menu_data *data)
 { RlcData b = rlc_get_data(c);
 
-  if ( !data || !data->magic == MEN_MAGIC )
+  if ( !data || data->magic != MEN_MAGIC )
     return;
 
   if ( data->menu )			/* rlc_insert_menu_item() */

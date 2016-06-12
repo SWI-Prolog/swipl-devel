@@ -1019,7 +1019,7 @@ rlc_destroy(RlcData b)
 
 
 static int
-IsDownKey(code)
+IsDownKey(int code)
 { short mask = GetKeyState(code);
 
   return mask & 0x8000;
