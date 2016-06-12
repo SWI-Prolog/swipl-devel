@@ -800,6 +800,7 @@ initPrologThreads(void)
 
   PL_local_data.magic = LD_MAGIC;
   { GD->thread.thread_max = 4;		/* see resizeThreadMax() */
+    GD->thread.highest_allocated = 1;
     GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
     memset(GD->thread.threads, 0,
@@ -1094,47 +1095,55 @@ resizeThreadMax(void)
 }
 
 
-/* MT: Caller must lock */
+/* MT: thread-safe */
 
 static PL_thread_info_t *
 alloc_thread(void)				/* called with L_THREAD locked */
 { int i	= 1;
+  PL_thread_info_t *info;
+  PL_local_data_t *ld;
 
-retry:
-  for(; i<GD->thread.thread_max; i++)
-  { PL_thread_info_t *info;
+  do
+  { info = GD->thread.free;
+  } while ( info && !COMPARE_AND_SWAP(&GD->thread.free, info, info->next_free) );
 
-    if ( !(info=GD->thread.threads[i]) )
-    { info = allocHeapOrHalt(sizeof(*info));
-      memset(info, 0, sizeof(*info));
-      GD->thread.threads[i] = info;
+  if ( info )
+  { int i = info->pl_tid;
+    memset(info, 0, sizeof(*info));
+    info->pl_tid = i;
+  } else
+  { int i = ATOMIC_INC(&GD->thread.highest_allocated);
+
+    if ( i == GD->thread.thread_max )
+    { LOCK();
+      resizeThreadMax();
+      UNLOCK();
     }
 
-    if ( info->status == PL_THREAD_UNUSED )
-    { PL_local_data_t *ld = allocHeapOrHalt(sizeof(PL_local_data_t));
-
-      memset(ld, 0, sizeof(PL_local_data_t));
-
-      info->pl_tid = i;
-      ld->thread.info = info;
-      ld->thread.magic = PL_THREAD_MAGIC;
-      info->thread_data = ld;
-      info->status = PL_THREAD_RESERVED;
-      info->debug = TRUE;
-
-      if ( i > thread_highest_id )
-	thread_highest_id = i;
-
-      GD->statistics.threads_created++;
-
-      return info;
-    }
+    assert(GD->thread.threads[i] == NULL);
+    info = allocHeapOrHalt(sizeof(*info));
+    memset(info, 0, sizeof(*info));
+    info->pl_tid = i;
+    GD->thread.threads[i] = info;
   }
 
-  if ( resizeThreadMax() )
-    goto retry;
+  ld = allocHeapOrHalt(sizeof(PL_local_data_t));
+  memset(ld, 0, sizeof(PL_local_data_t));
 
-  return NULL;				/* out of threads */
+  ld->thread.info = info;
+  ld->thread.magic = PL_THREAD_MAGIC;
+  info->thread_data = ld;
+  info->status = PL_THREAD_RESERVED;
+  info->debug = TRUE;
+
+  do
+  { i = thread_highest_id;
+  } while ( info->pl_tid > i &&
+	    !COMPARE_AND_SWAP(&thread_highest_id, i, info->pl_tid) );
+
+  GD->statistics.threads_created++;
+
+  return info;
 }
 
 
@@ -1473,18 +1482,12 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( !PL_is_callable(goal) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
-  LOCK();
   if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
-  { UNLOCK();
     return PL_error(NULL, 0, "threading disabled",
 		      ERR_PERMISSION,
 		      ATOM_create, ATOM_thread, goal);
-  }
 
-  info = alloc_thread();
-
-  UNLOCK();
-  if ( !info )
+  if ( !(info = alloc_thread()) )
     return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_threads);
 
   ldnew = info->thread_data;
@@ -1776,6 +1779,7 @@ pl_thread_self(term_t self)
 static void
 free_thread_info(PL_thread_info_t *info)
 { record_t rec_rv, rec_g;
+  PL_thread_info_t *freelist;
 
   if ( info->thread_data )
     free_prolog_thread(info->thread_data);
@@ -1799,9 +1803,12 @@ free_thread_info(PL_thread_info_t *info)
 
     thread_highest_id = i;
   }
-
-  memset(info, 0, sizeof(*info));	/* sets status to PL_THREAD_UNUSED */
   UNLOCK();
+
+  do
+  { freelist = GD->thread.free;
+    info->next_free = freelist;
+  } while( !COMPARE_AND_SWAP(&GD->thread.free, freelist, info) );
 
   if ( rec_rv ) PL_erase(rec_rv);
   if ( rec_g )  PL_erase(rec_g);
@@ -4760,18 +4767,15 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   if ( LD )
     LD->thread.info->open_count++;
 
-  LOCK();
   if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
-  { UNLOCK();
+  {
 #ifdef EPERM				/* FIXME: Better reporting */
     errno = EPERM;
 #endif
     return -1;
   }
 
-  info = alloc_thread();
-  UNLOCK();
-  if ( !info )
+  if ( !(info = alloc_thread()) )
     return -1;				/* out of threads */
 
   ldmain = GD->thread.threads[1]->thread_data;

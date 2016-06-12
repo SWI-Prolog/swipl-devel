@@ -94,6 +94,7 @@ typedef struct _PL_thread_info_t
   record_t	    return_value;	/* Value (term) returned */
   atom_t	    name;		/* Name of the thread */
   int		    in_exit_hooks;	/* TRUE: running exit hooks */
+  struct _PL_thread_info_t *next_free;	/* Next in free list */
 
 					/* lock-free access to data */
   struct
