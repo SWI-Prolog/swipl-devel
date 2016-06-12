@@ -3215,7 +3215,8 @@ static int process_deadline_options(term_t options, struct timespec *ts, struct 
 
 
 static int
-thread_send_message__LD(term_t queue, term_t msgterm, struct timespec *deadline ARG_LD)
+thread_send_message__LD(term_t queue, term_t msgterm,
+			struct timespec *deadline ARG_LD)
 { message_queue *q;
   thread_message *msg;
   int rc;
@@ -3649,7 +3650,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 		 *    MESSAGE QUEUE PROPERTY	*
 		 *******************************/
 
-static int			/* message_queue_property(Queue, alias(Name)) */
+static int		/* message_queue_property(Queue, alias(Name)) */
 message_queue_alias_property(message_queue *q, term_t prop ARG_LD)
 { if ( !q->anonymous )
     return PL_unify_atom(prop, q->id);
@@ -3658,13 +3659,13 @@ message_queue_alias_property(message_queue *q, term_t prop ARG_LD)
 }
 
 
-static int			/* message_queue_property(Queue, size(Size)) */
+static int		/* message_queue_property(Queue, size(Size)) */
 message_queue_size_property(message_queue *q, term_t prop ARG_LD)
 { return PL_unify_integer(prop, q->size);
 }
 
 
-static int			/* message_queue_property(Queue, max_size(Size)) */
+static int		/* message_queue_property(Queue, max_size(Size)) */
 message_queue_max_size_property(message_queue *q, term_t prop ARG_LD)
 { if ( q->max_size > 0 )
     return PL_unify_integer(prop, q->max_size);
