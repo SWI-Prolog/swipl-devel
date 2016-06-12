@@ -1496,6 +1496,9 @@ struct queryFrame
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
 #endif
+  struct
+  { term_t	term;			/* Handle to exchange data */
+  } yield;
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned int	flags;
   debug_type	debugSave;		/* saved debugstatus.debugging */

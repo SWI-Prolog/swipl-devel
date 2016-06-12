@@ -2351,9 +2351,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
+  qf->yield.term        = 0;
   qf->registers.fr      = NULL;		/* invalid */
   qf->next_environment  = NULL;		/* see D_BREAK */
-
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
   { size_t n;
@@ -2534,6 +2534,15 @@ PL_exception(qid_t qid)
     return 0;
   } else
     return exception_term;
+}
+
+
+term_t
+PL_yielded(qid_t qid)
+{ GET_LD
+  QueryFrame qf = QueryFromQid(qid);
+
+  return qf->yield.term;
 }
 
 
@@ -2729,10 +2738,16 @@ variables used in the B_THROW instruction.
   }
 
   DEF = FR->predicate;
-  if ( QF->solutions )			/* retry */
+  if ( QF->solutions || QF->yield.term ) /* retry or resume */
   { fid_t fid = QF->foreign_frame;
     QF->foreign_frame = 0;
     PL_close_foreign_frame(fid);
+    if ( QF->yield.term )
+    { LOAD_REGISTERS(qid);
+      if ( exception_term )
+	THROW_EXCEPTION;
+      NEXT_INSTRUCTION;
+    }
     BODY_FAILED;
   } else
     goto retry_continue;		/* first call */

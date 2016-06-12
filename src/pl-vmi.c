@@ -2030,6 +2030,44 @@ VMI(I_EXITQUERY, 0, 0, ())
   succeed;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_YIELD: Yield control from this engine. This  VMI fetches the first and
+second argument. The second must be an integer. PL_next_solution() exits
+with code, providing Term through PL_yielded. Calling PL_next_solution()
+again resumes the VM.
+
+'$engine_yield'(Term, Code) :-
+	'$yield'.
+
+'$yield' translates to I_YIELD
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_YIELD, VIF_BREAK, 0, ())
+{ Word p;
+
+  QF = QueryFromQid(qid);
+  lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+  SAVE_REGISTERS(qid);
+
+  QF->foreign_frame = PL_open_foreign_frame();
+  QF->yield.term = PL_new_term_ref();
+  *valTermRef(QF->yield.term) = linkVal(argFrameP(FR, 0));
+
+  assert(LD->exception.throw_environment == &throw_env);
+  LD->exception.throw_environment = throw_env.parent;
+
+  p = argFrameP(FR, 1);
+  deRef(p);
+
+  if ( isTaggedInt(*p) )
+  { return valInt(*p);
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE,
+	     ATOM_integer, pushWordAsTermRef(argFrameP(FR, 1)));
+    popTermRef();
+    THROW_EXCEPTION;
+  }
+}
 
 
 		 /*******************************
