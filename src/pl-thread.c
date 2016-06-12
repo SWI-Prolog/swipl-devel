@@ -1087,6 +1087,7 @@ resizeThreadMax(void)
   newinfo = allocHeapOrHalt(newmax * sizeof(*GD->thread.threads));
   memset(addPointer(newinfo,dsize), 0, dsize);
   memcpy(newinfo, oldinfo, dsize);
+  MemoryBarrier();
   GD->thread.threads = newinfo;
   GD->thread.thread_max = newmax;
   GC_LINGER(oldinfo);
@@ -1099,9 +1100,9 @@ resizeThreadMax(void)
 
 static PL_thread_info_t *
 alloc_thread(void)				/* called with L_THREAD locked */
-{ int i	= 1;
-  PL_thread_info_t *info;
+{ PL_thread_info_t *info;
   PL_local_data_t *ld;
+  int mx;
 
   do
   { info = GD->thread.free;
@@ -1112,19 +1113,19 @@ alloc_thread(void)				/* called with L_THREAD locked */
     memset(info, 0, sizeof(*info));
     info->pl_tid = i;
   } else
-  { int i = ATOMIC_INC(&GD->thread.highest_allocated);
+  { int i;
 
-    if ( i == GD->thread.thread_max )
-    { LOCK();
-      resizeThreadMax();
-      UNLOCK();
-    }
-
-    assert(GD->thread.threads[i] == NULL);
     info = allocHeapOrHalt(sizeof(*info));
     memset(info, 0, sizeof(*info));
-    info->pl_tid = i;
+
+    LOCK();
+    i = info->pl_tid = ++GD->thread.highest_allocated;
+    if ( i == GD->thread.thread_max )
+      resizeThreadMax();
+
+    assert(GD->thread.threads[i] == NULL);
     GD->thread.threads[i] = info;
+    UNLOCK();
   }
 
   ld = allocHeapOrHalt(sizeof(PL_local_data_t));
@@ -1137,11 +1138,11 @@ alloc_thread(void)				/* called with L_THREAD locked */
   info->debug = TRUE;
 
   do
-  { i = thread_highest_id;
-  } while ( info->pl_tid > i &&
-	    !COMPARE_AND_SWAP(&thread_highest_id, i, info->pl_tid) );
+  { mx = thread_highest_id;
+  } while ( info->pl_tid > mx &&
+	    !COMPARE_AND_SWAP(&thread_highest_id, mx, info->pl_tid) );
 
-  GD->statistics.threads_created++;
+  ATOMIC_INC(&GD->statistics.threads_created);
 
   return info;
 }
