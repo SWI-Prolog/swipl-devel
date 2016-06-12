@@ -643,7 +643,7 @@ install-lman:
 		$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(plmandir)/swipl-ld.$(mansec)
 
 install-readme:	idirs
-		$(INSTALL_DATA) ../README $(DESTDIR)$(PLBASE)/README$(TXTEXT)
+		$(INSTALL_DATA) ../README.md $(DESTDIR)$(PLBASE)/README$(TXTEXT)
 		$(INSTALL_DATA) ../VERSION $(DESTDIR)$(PLBASE)
 		$(INSTALL_DATA) ../COPYING $(DESTDIR)$(PLBASE)/COPYING$(TXTEXT)
 		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
