@@ -1087,7 +1087,6 @@ resizeThreadMax(void)
   newinfo = allocHeapOrHalt(newmax * sizeof(*GD->thread.threads));
   memset(addPointer(newinfo,dsize), 0, dsize);
   memcpy(newinfo, oldinfo, dsize);
-  MemoryBarrier();
   GD->thread.threads = newinfo;
   GD->thread.thread_max = newmax;
   GC_LINGER(oldinfo);
