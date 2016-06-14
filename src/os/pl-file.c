@@ -2181,9 +2181,9 @@ typedef int SOCKET;
 typedef struct fdentry
 { SOCKET fd;
   term_t stream;
-  struct fdentry *next;
 } fdentry;
 
+#define FASTMAP_SIZE 32
 
 static
 PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
@@ -2191,48 +2191,66 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   fd_set fds;
   struct timeval t, *to;
   double time;
-  int rc;
 #ifndef __WINDOWS__
   SOCKET max = 0, min = INT_MAX;
 #endif
-  fdentry *map     = NULL;
+  fdentry map_buf[FASTMAP_SIZE];
+  fdentry *map;
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(A1);
   term_t available = PL_copy_term_ref(A2);
   term_t ahead     = PL_new_term_ref();
   int from_buffer  = 0;
   atom_t a;
+  size_t count;
+  size_t i;
+  int rc = FALSE;
 
   term_t timeout = A3;
 
+  switch ( PL_skip_list(A1, 0, &count) )
+  { case PL_LIST:
+      break;
+    case PL_PARTIAL_LIST:
+      return PL_instantiation_error(A1);
+    default:
+      return PL_type_error("list", A1);
+  }
+
+  if ( count <= FASTMAP_SIZE )
+    map = map_buf;
+  else if ( !(map = malloc(count*sizeof(*map))) )
+    return PL_no_memory();
+  memset(map, 0, count*sizeof(*map));
+
   FD_ZERO(&fds);
-  while( PL_get_list(streams, head, streams) )
+  for(i=0; PL_get_list(streams, head, streams); )
   { IOSTREAM *s;
     SOCKET fd;
     fdentry *e;
 
     if ( !PL_get_stream_handle(head, &s) )
-      return FALSE;
-    fd=Swinsock(s);
-    if ( fd == INVALID_SOCKET )
+      goto out;
+
+    if ( (fd = Swinsock(s)) == INVALID_SOCKET )
     { releaseStream(s);
-      return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
-		      PL_new_atom("file_stream"), head);
+      PL_domain_error("file_stream", head);
+      goto out;
     }
-    releaseStream(s);
-					/* check for input in buffer */
+				/* check for input in buffer */
     if ( Spending(s) > 0 )
     { if ( !PL_unify_list(available, ahead, available) ||
 	   !PL_unify(ahead, head) )
-	return FALSE;
+      { releaseStream(s);
+	goto out;
+      }
       from_buffer++;
     }
 
-    e         = alloca(sizeof(*e));
+    releaseStream(s);			/* dubious, but what else? */
+    e	      = &map[i++];
     e->fd     = fd;
     e->stream = PL_copy_term_ref(head);
-    e->next   = map;
-    map       = e;
 
     FD_SET(fd, &fds);
 #ifndef __WINDOWS__
@@ -2242,11 +2260,11 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
       min = fd;
 #endif
   }
-  if ( !PL_get_nil(streams) )
-    return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, A1);
 
   if ( from_buffer > 0 )
-    return PL_unify_nil(available);
+  { rc = PL_unify_nil(available);
+    goto out;
+  }
 
   if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
   { to = NULL;
@@ -2266,9 +2284,8 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
       to = &t;
     }
   } else
-  { if ( !PL_get_float(timeout, &time) )
-      return PL_error("wait_for_input", 3, NULL,
-		      ERR_TYPE, ATOM_float, timeout);
+  { if ( !PL_get_float_ex(timeout, &time) )
+      goto out;
 
     if ( time >= 0.0 )
     { t.tv_sec  = (int)time;
@@ -2282,39 +2299,42 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 
   while( (rc=select(NFDS(max), &fds, NULL, NULL, to)) == -1 &&
 	 errno == EINTR )
-  { fdentry *e;
-
-    if ( PL_handle_signals() < 0 )
-      return FALSE;				/* exception */
+  { if ( PL_handle_signals() < 0 )
+      goto out;				/* exception */
 
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
-    for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
-      FD_SET(e->fd, &fds);
+    for(i=0; i<count; i++)		/* so we rebuild it to be safe */
+      FD_SET(map[i].fd, &fds);
   }
 
   switch(rc)
   { case -1:
-      return PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
-		      ATOM_select, ATOM_stream, A1);
+      PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
+	       ATOM_select, ATOM_stream, A1);
+      goto out;
 
     case 0: /* Timeout */
       break;
 
     default: /* Something happend -> check fds */
-    { fdentry *mp;
-
-      for(mp=map; mp; mp=mp->next)
-      { if ( FD_ISSET(mp->fd, &fds) )
+    { for(i=0; i<count; i++)
+      { if ( FD_ISSET(map[i].fd, &fds) )
 	{ if ( !PL_unify_list(available, ahead, available) ||
-	       !PL_unify(ahead, mp->stream) )
-	    return FALSE;
+	       !PL_unify(ahead, map[i].stream) )
+	    goto out;
 	}
       }
       break;
     }
   }
 
-  return PL_unify_nil(available);
+  rc = PL_unify_nil(available);
+
+out:
+  if ( map != map_buf )
+    free(map);
+
+  return rc;
 }
 
 #endif /* HAVE_SELECT */
