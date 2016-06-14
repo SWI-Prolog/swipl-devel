@@ -2717,7 +2717,7 @@ Pause(double time)
   if ( time < 60.0 )		/* select() is expensive. Does it make sense */
   { timeout.tv_sec = (long)time;
     timeout.tv_usec = (long)(time * 1000000) % 1000000;
-    select(32, NULL, NULL, NULL, &timeout);
+    select(1, NULL, NULL, NULL, &timeout);
 
     return TRUE;
   } else
