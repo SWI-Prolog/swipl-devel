@@ -4435,32 +4435,40 @@ Create a list of one-character atoms as a difference list.
     \predicate{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
 Wait for input on one of the streams in \arg{ListOfStreams} and return a
 list of streams on which input is available in \arg{ReadyList}.
-wait_for_input/3 waits for at most \arg{TimeOut} seconds. \arg{Timeout}
+wait_for_input/3 waits for at most \arg{TimeOut} seconds. \arg{TimeOut}
 may be specified as a floating point number to specify fractions of a
-second. If \arg{Timeout} equals \const{infinite}, wait_for_input/3
-waits indefinitely.%
-	\footnote{For compatibility reasons, a \arg{Timeout} value of 0
-		  (integer) also waits indefinitely.  To call select()
-		  without giving up the CPU, pass the float 0.0.  If
-		  compatibility with versions older than 5.1.3 is
-		  desired, pass the float value 1.0e-7.}
+second. If \arg{TimeOut} equals \const{infinite}, wait_for_input/3
+waits indefinitely.  If \arg{Timeout} is 0 or 0.0 this predicate returns
+without waiting.\footnote{Prior to 7.3.23, the integer value `0' was
+the same as \const{infinite}.}
 
 This predicate can be used to implement timeout while reading and to
-handle input from multiple sources. The following example will wait for
-input from the user and an explicitly opened second terminal. On return,
-\arg{Inputs} may hold \const{user_input} or \arg{P4} or both.
+handle input from multiple sources and is typically used to wait for
+multiple (network) sockets. On Unix systems it may be used on any stream
+that is associated with a system file descriptor. On Windows it can only
+be used on sockets. If \arg{ListOfStreams} contains a stream that is not
+associated with a supported device, a \term{domain_error}{waitable_stream,
+Stream} is raised.
+
+The example below waits for input from the user and an explicitly opened
+secondary terminal stream. On return, \arg{Inputs} may hold
+\const{user_input} or \arg{P4} or both.
 
 \begin{code}
 ?- open('/dev/ttyp4', read, P4),
    wait_for_input([user_input, P4], Inputs, 0).
 \end{code}
 
-\index{select()}%
-This predicate relies on the select() call on most operating systems. On
-Unix this call is implemented for any stream referring to a file handle,
-which implies all OS-based streams: sockets, terminals, pipes, etc.  On
-non-Unix systems select() is generally only implemented for socket-based
-streams.  See also \pllib{socket} from the \const{clib} package.
+\index{select()}\index{poll()}%
+When available, the implementation is based on the poll() system call.
+The poll() puts no additional restriction on the number of open files
+the process may have. It does limit the time to $2^{31}-1$ milliseconds
+(a bit less than 25 days). Specifying a too large timeout raises a
+\term{representation_error}{timeout} exception. If poll() is not
+supported by the OS, select() is used. The select() call can only handle
+file descriptors up to \const{FD_SETSIZE}. If the set contains a
+descriptor that exceeds this limit a
+\term{representation_error}{'FD_SETSIZE'} is raised.
 
 Note that wait_for_input/3 returns streams that have data waiting. This
 does not mean you can, for example, call read/2 on the stream without
