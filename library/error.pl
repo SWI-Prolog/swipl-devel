@@ -199,9 +199,12 @@ syntax_error(Culprit) :-
 %	instantiated and type_error(Type, Term) if Term is not of Type.
 
 must_be(Type, X) :-
-	(   has_type(Type, X)
+	(   nonvar(Type),
+	    has_type(Type, X)
 	->  true
-	;   is_not(Type, X)
+	;   nonvar(Type)
+	->  is_not(Type, X)
+	;   instantiation_error(Type)
 	).
 
 %%	is_not(+Type, @Term)
@@ -235,7 +238,9 @@ is_not(Type, X) :-
 	->  instantiation_error(X)
 	;   ground_type(Type), \+ ground(X)
 	->  instantiation_error(X)
-	;   type_error(Type, X)
+	;   clause(has_type(Type,_), _Body)
+	->  type_error(Type, X)
+	;   existence_error(type, Type)
 	).
 
 ground_type(ground).
@@ -250,7 +255,10 @@ not_a_list(Type, X) :-
 	->  instantiation_error(X)
 	;   Rest == []
 	->  Type = list(Of),
-	    element_is_not(X, Of)
+	    (	nonvar(Of)
+	    ->	element_is_not(X, Of)
+	    ;	instantiation_error(Of)
+	    )
 	;   functor(Type, Name, _),
 	    type_error(Name, X)
 	).
@@ -278,14 +286,15 @@ not_a_rational(X) :-
 %	True if Term satisfies Type.
 
 is_of_type(Type, Term) :-
+	nonvar(Term), !,
 	has_type(Type, Term).
-
+is_of_type(Type, _) :-
+	instantiation_error(Type).
 
 %%	has_type(+Type, @Term) is semidet.
 %
 %	True if Term satisfies Type.
 
-has_type(impossible, _) :-	instantiation_error(_).
 has_type(any, _).
 has_type(atom, X)	  :- atom(X).
 has_type(atomic, X)	  :- atomic(X).
@@ -348,10 +357,16 @@ text(X) :-
 	;   codes(X)
 	), !.
 
-element_types([], _).
-element_types([H|T], Type) :-
+element_types(List, Type) :-
+	nonvar(Type), !,
+	element_types_(List, Type).
+element_types(_List, Type) :-
+	instantiation_error(Type).
+
+element_types_([], _).
+element_types_([H|T], Type) :-
 	has_type(Type, H),
-	element_types(T, Type).
+	element_types_(T, Type).
 
 is_list_or_partial_list(L0) :-
 	'$skip_list'(_, L0,L),
