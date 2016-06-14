@@ -339,14 +339,15 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 		 *******************************/
 
 #ifdef PL_KERNEL
-#define PL_Q_DEBUG		0x01	/* = TRUE for backward compatibility */
+#define PL_Q_DEBUG		0x0001	/* = TRUE for backward compatibility */
 #endif
-#define PL_Q_NORMAL		0x02	/* normal usage */
-#define PL_Q_NODEBUG		0x04	/* use this one */
-#define PL_Q_CATCH_EXCEPTION	0x08	/* handle exceptions in C */
-#define PL_Q_PASS_EXCEPTION	0x10	/* pass to parent environment */
+#define PL_Q_NORMAL		0x0002	/* normal usage */
+#define PL_Q_NODEBUG		0x0004	/* use this one */
+#define PL_Q_CATCH_EXCEPTION	0x0008	/* handle exceptions in C */
+#define PL_Q_PASS_EXCEPTION	0x0010	/* pass to parent environment */
+#define PL_Q_ALLOW_YIELD	0x0020	/* Support I_YIELD */
 #ifdef PL_KERNEL
-#define PL_Q_DETERMINISTIC	0x20	/* call was deterministic */
+#define PL_Q_DETERMINISTIC	0x0100	/* call was deterministic */
 #endif
 
 			/* Foreign context frames */

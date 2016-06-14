@@ -2046,6 +2046,10 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
 { Word p;
 
   QF = QueryFromQid(qid);
+  if ( !(QF->flags&PL_Q_ALLOW_YIELD) )
+  { PL_error(NULL, 0, "not an engine", ERR_PERMISSION_VMI, "I_YIELD");
+    THROW_EXCEPTION;
+  }
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
   SAVE_REGISTERS(qid);
 

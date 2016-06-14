@@ -316,6 +316,15 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_TERM, pi));
       break;
     }
+    case ERR_PERMISSION_VMI:
+    { const char *vmi = va_arg(args, const char *);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_permission_error3,
+			   PL_ATOM, ATOM_execute,
+			   PL_ATOM, ATOM_vmi,
+			   PL_CHARS, vmi);
+      break;
+    }
     case ERR_NOT_IMPLEMENTED_PROC:
     { const char *name = va_arg(args, const char *);
       int arity = va_arg(args, int);

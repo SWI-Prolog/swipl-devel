@@ -2341,7 +2341,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     flags = PL_Q_NORMAL;
   else if ( flags == FALSE )
     flags = PL_Q_NODEBUG;
-  flags &= 0x1f;			/* mask reserved flags */
+  flags &= 0xff;			/* mask reserved flags */
 
   qf->magic		= QID_MAGIC;
   qf->foreign_frame	= 0;

@@ -72,6 +72,7 @@ typedef enum
   ERR_IMPORT_PROC,		/* proc, dest, [already-from] */
   ERR_OCCURS_CHECK,		/* Word, Word */
   ERR_PERMISSION_PROC,		/* op, type, Definition */
+  ERR_PERMISSION_VMI,		/* vmi */
   ERR_SHARED_OBJECT_OP,		/* op, error */
   ERR_SIGNALLED,		/* int sig, char *name */
   ERR_SYNTAX,			/* what */
