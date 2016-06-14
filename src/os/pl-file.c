@@ -2270,7 +2270,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 
     if ( (fd = Swinsock(s)) == INVALID_SOCKET )
     { releaseStream(s);
-      PL_domain_error("file_stream", head);
+      PL_domain_error("waitable_stream", head);
       goto out;
     }
 				/* check for input in buffer */
@@ -2313,11 +2313,11 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
       } else if ( (int64_t)i*1000 <= INT_MAX )
       { to = i*1000;
       } else
-      { PL_domain_error("timeout", timeout);
+      { PL_representation_error("timeout");
 	goto out;
       }
     } else
-    { PL_domain_error("timeout", timeout);
+    { PL_representation_error("timeout");
       goto out;
     }
   } else if ( PL_get_float_ex(timeout, &time) )
@@ -2344,8 +2344,6 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     { t.tv_sec = v;
       t.tv_usec = 0;
       to = &t;
-    } else if ( v == 0 )
-    { to = NULL;
     } else
     { t.tv_sec  = 0;
       t.tv_usec = 0;
