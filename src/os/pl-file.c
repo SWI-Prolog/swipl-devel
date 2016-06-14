@@ -46,7 +46,9 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-utf8.h"
 #include <errno.h>
 
-#ifdef HAVE_SYS_SELECT_H
+#if defined(HAVE_POLL_H) && defined(HAVE_POLL)
+#include <poll.h>
+#elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
 #endif
 #ifdef HAVE_SYS_TIME_H
@@ -2157,7 +2159,7 @@ toldString()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#ifdef HAVE_SELECT
+#if defined(HAVE_SELECT) || defined(HAVE_POLL)
 #define HAVE_PRED_WAIT_FOR_INPUT 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2176,6 +2178,13 @@ typedef int SOCKET;
 #define NFDS(max) (max+1)			/* see also S__wait() */
 #else
 #define NFDS(n) 0
+#ifdef HAVE_WSAPOLL
+#define HAVE_POLL 1
+static inline int
+poll(struct pollfd *pfd, int nfds, int timeout)
+{ return WSAPoll(pfd, nfds, timeout);
+}
+#endif
 #endif
 
 typedef struct fdentry
@@ -2185,17 +2194,35 @@ typedef struct fdentry
 
 #define FASTMAP_SIZE 32
 
+#ifdef HAVE_POLL
+#define ADD_FD(i) do { poll_map[i].fd = map[i].fd; \
+		       poll_map[i].events = POLLIN; \
+		     } while(0)
+#define IS_SETFD(i) (poll_map[i].revents & (POLLIN|POLLERR))
+#define ACTION_WAIT ATOM_poll
+#else
+#define ADD_FD(i) do { FD_SET(map[i].fd, &fds); } while(0)
+#define IS_SETFD(i) FD_ISSET(map[i].fd, &fds)
+#define ACTION_WAIT ATOM_select
+#endif
+
 static
 PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 { PRED_LD
-  fd_set fds;
-  struct timeval t, *to;
   double time;
-#ifndef __WINDOWS__
-  SOCKET max = 0, min = INT_MAX;
+#if !defined(__WINDOWS__) && !defined(HAVE_POLL)
+  SOCKET max = 0;
 #endif
   fdentry map_buf[FASTMAP_SIZE];
   fdentry *map;
+#ifdef HAVE_POLL
+  struct pollfd poll_buf[FASTMAP_SIZE];
+  struct pollfd *poll_map;
+  int to;
+#else
+  fd_set fds;
+  struct timeval t, *to;
+#endif
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(A1);
   term_t available = PL_copy_term_ref(A2);
@@ -2203,7 +2230,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   int from_buffer  = 0;
   atom_t a;
   size_t count;
-  size_t i;
+  int i, nfds;
   int rc = FALSE;
 
   term_t timeout = A3;
@@ -2223,8 +2250,17 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     return PL_no_memory();
   memset(map, 0, count*sizeof(*map));
 
+#ifdef HAVE_POLL
+  if ( count <= FASTMAP_SIZE )
+    poll_map = poll_buf;
+  else if ( !(poll_map = malloc(count*sizeof(*poll_map))) )
+    return PL_no_memory();
+  memset(poll_map, 0, count*sizeof(*poll_map));
+#else
   FD_ZERO(&fds);
-  for(i=0; PL_get_list(streams, head, streams); )
+#endif
+
+  for(nfds=0; PL_get_list(streams, head, streams); )
   { IOSTREAM *s;
     SOCKET fd;
     fdentry *e;
@@ -2248,16 +2284,15 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     }
 
     releaseStream(s);			/* dubious, but what else? */
-    e	      = &map[i++];
+    e	      = &map[nfds];
     e->fd     = fd;
     e->stream = PL_copy_term_ref(head);
+    ADD_FD(nfds);
+    nfds++;
 
-    FD_SET(fd, &fds);
-#ifndef __WINDOWS__
+#if !defined(__WINDOWS__) && !defined(HAVE_POLL)
     if ( fd > max )
       max = fd;
-    if( fd < min )
-      min = fd;
 #endif
   }
 
@@ -2266,6 +2301,39 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     goto out;
   }
 
+#ifdef HAVE_POLL
+  if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
+  { to = -1;
+  } else if ( PL_is_integer(timeout) )
+  { int i;
+
+    if ( PL_get_integer(timeout, &i) )
+    { if ( i <= 0 )
+      { to = 0;
+      } else if ( (int64_t)i*1000 <= INT_MAX )
+      { to = i*1000;
+      } else
+      { PL_domain_error("timeout", timeout);
+	goto out;
+      }
+    } else
+    { PL_domain_error("timeout", timeout);
+      goto out;
+    }
+  } else if ( PL_get_float_ex(timeout, &time) )
+  { if ( time > 0.0 )
+    { if ( time * 1000.0 <= (double)INT_MAX )
+      { to = (int)(time*1000.0);
+      } else
+      { PL_domain_error("timeout", timeout);
+	goto out;
+      }
+    } else
+    { to = 0;
+    }
+  } else
+    goto out;
+#else /*HAVE_POLL*/
   if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
   { to = NULL;
   } else if ( PL_is_integer(timeout) )
@@ -2296,6 +2364,21 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     }
     to = &t;
   }
+#endif /*HAVE_POLL*/
+
+#ifdef HAVE_POLL
+  while ( (rc=poll(poll_map, nfds, to)) == -1 &&
+	   errno == EINTR )
+  { if ( PL_handle_signals() < 0 )
+      goto out;				/* exception */
+  }
+#else
+#ifdef FD_SETSIZE
+  if ( max >= FD_SETSIZE )
+  { PL_representation_error("FD_SETSIZE");
+    goto out;
+  }
+#endif
 
   while( (rc=select(NFDS(max), &fds, NULL, NULL, to)) == -1 &&
 	 errno == EINTR )
@@ -2306,19 +2389,20 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     for(i=0; i<count; i++)		/* so we rebuild it to be safe */
       FD_SET(map[i].fd, &fds);
   }
+#endif
 
   switch(rc)
   { case -1:
       PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
-	       ATOM_select, ATOM_stream, A1);
+	       ACTION_WAIT, ATOM_stream, A1);
       goto out;
 
     case 0: /* Timeout */
       break;
 
     default: /* Something happend -> check fds */
-    { for(i=0; i<count; i++)
-      { if ( FD_ISSET(map[i].fd, &fds) )
+    { for(i=0; i<nfds; i++)
+      { if ( IS_SETFD(i) )
 	{ if ( !PL_unify_list(available, ahead, available) ||
 	       !PL_unify(ahead, map[i].stream) )
 	    goto out;
