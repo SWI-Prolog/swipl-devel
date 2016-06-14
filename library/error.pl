@@ -291,7 +291,7 @@ has_type(atom, X)	  :- atom(X).
 has_type(atomic, X)	  :- atomic(X).
 has_type(between(L,U), X) :- (   integer(L)
 			     ->  integer(X), between(L,U,X)
-			     ;   number(X), X >= L, X =< U
+			     ;   number(X), number(L), number(U), X >= L, X =< U
 			     ).
 has_type(boolean, X)	  :- (X==true;X==false), !.
 has_type(callable, X)	  :- callable(X).
@@ -310,7 +310,7 @@ has_type(positive_integer, X)	  :- integer(X), X > 0.
 has_type(negative_integer, X)	  :- integer(X), X < 0.
 has_type(nonvar, X)	  :- nonvar(X).
 has_type(number, X)	  :- number(X).
-has_type(oneof(L), X)	  :- ground(X), \+ \+ memberchk(X, L).
+has_type(oneof(L), X)	  :- ground(X), is_list(L), \+ \+ memberchk(X, L).
 has_type(proper_list, X)  :- is_list(X).
 has_type(list, X)	  :- is_list(X).
 has_type(list_or_partial_list, X)  :- is_list_or_partial_list(X).
