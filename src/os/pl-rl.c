@@ -57,6 +57,11 @@ SWI-Prolog.h and SWI-Stream.h
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H) && !defined(DMALLOC)
 
+#if defined(HAVE_POLL_H) && defined(HAVE_POLL)
+#include <poll.h>
+#elif defined(HAVE_SYS_SELECT_H)
+#include <sys/select.h>
+#endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -359,8 +364,24 @@ reentrant access is tried.
 #ifdef HAVE_RL_EVENT_HOOK
 static int
 input_on_fd(int fd)
-{ fd_set rfds;
+{
+#ifdef HAVE_POLL
+  struct pollfd fds[1];
+
+  fds[0].fd = fd;
+  fds[0].events = POLLIN;
+
+  return poll(fds, 1, 0) != 0;
+#else
+  fd_set rfds;
   struct timeval tv;
+
+#ifdef FD_SETSIZE
+  if ( fd >= FD_SETSIZE )
+  { Sdprintf("input_on_fd(%d) > FD_SETSIZE\n", fd);
+    return 1;
+  }
+#endif
 
   FD_ZERO(&rfds);
   FD_SET(fd, &rfds);
@@ -368,6 +389,7 @@ input_on_fd(int fd)
   tv.tv_usec = 0;
 
   return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+#endif
 }
 
 static int

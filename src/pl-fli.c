@@ -4442,7 +4442,9 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 
 
 #if defined(HAVE_SELECT) && !defined(__WINDOWS__)
-#ifdef HAVE_SYS_SELECT_H
+#if defined(HAVE_POLL_H) && defined(HAVE_POLL)
+#include <poll.h>
+#elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
 #endif
 
@@ -4455,8 +4457,24 @@ do never want this code in Windows.
 
 static int
 input_on_fd(int fd)
-{ fd_set rfds;
+{
+#ifdef HAVE_POLL
+  struct pollfd fds[1];
+
+  fds[0].fd = fd;
+  fds[0].events = POLLIN;
+
+  return poll(fds, 1, 0) != 0;
+#else
+  fd_set rfds;
   struct timeval tv;
+
+#ifdef FD_SETSIZE
+  if ( fd >= FD_SETSIZE )
+  { Sdprintf("input_on_fd(%d) > FD_SETSIZE\n", fd);
+    return 1;
+  }
+#endif
 
   FD_ZERO(&rfds);
   FD_SET(fd, &rfds);
@@ -4464,6 +4482,7 @@ input_on_fd(int fd)
   tv.tv_usec = 0;
 
   return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+#endif
 }
 
 #else
