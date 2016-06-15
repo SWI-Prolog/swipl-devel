@@ -378,6 +378,18 @@ call_cleanup(Goal, Cleanup) :-
 call_cleanup(Goal, Catcher, Cleanup) :-
 	setup_call_catcher_cleanup(true, Goal, Catcher, Cleanup).
 
+%%	'$engine_yield'(?Term, +Code:integer)
+%
+%	Cause PL_next_solution() to return with   Code, providing access
+%	to  Term  through  PL_yielded().   Can    only   be   called  if
+%	PL_open_query() is called with PL_Q_ALLOW_YIELD.  Code tells the
+%	code that controls PL_next_solution() what to   do and the codes
+%	used must be agreed upon for   a specific application. Code must
+%	be an integer >= 256. Other  return   codes  are reserved by the
+%	system.
+
+'$engine_yield'(_Term, _Code) :-
+	'$yield'.
 
 		 /*******************************
 		 *	 INITIALIZATION		*

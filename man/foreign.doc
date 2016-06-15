@@ -2157,6 +2157,23 @@ make it available for PL_exception().
     \definition{\const{PL_Q_PASS_EXCEPTION}}
 As \const{PL_Q_CATCH_EXCEPTION}, but do not invalidate the exception-term
 while calling PL_close_query().  This option is experimental.
+    \definition{\const{PL_Q_ALLOW_YIELD}}
+Support the \const{I_YIELD} instruction for engine-based coroutining.
+See \nopredref{$engine_yield}{2} in \file{boot/init.pl} for details.
+    \definition{\const{PL_Q_EXT_STATUS}}
+Make PL_next_solution() return extended status.  Instead of only
+\const{TRUE} or \const{FALSE} extended status as illustrated in the
+following table:
+
+\begin{center}
+\begin{tabular}{llp{4in}}
+\bf Extended & \bf Normal & \\
+\hline
+PL_S_EXCEPTION	& FALSE & Exception available through PL_exception() \\
+PL_S_FALSE	& FALSE & Query failed \\
+PL_S_TRUE	& TRUE & Query succeeded with choicepoint \\
+PL_S_LAST	& TRUE & Query succeeded without choicepoint \\
+\end{tabular}
 \end{description}
 
 PL_open_query() can return the query identifier `0' if there is not enough

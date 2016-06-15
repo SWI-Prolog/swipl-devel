@@ -346,9 +346,17 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #define PL_Q_CATCH_EXCEPTION	0x0008	/* handle exceptions in C */
 #define PL_Q_PASS_EXCEPTION	0x0010	/* pass to parent environment */
 #define PL_Q_ALLOW_YIELD	0x0020	/* Support I_YIELD */
+#define PL_Q_EXT_STATUS		0x0040	/* Return extended status */
 #ifdef PL_KERNEL
 #define PL_Q_DETERMINISTIC	0x0100	/* call was deterministic */
 #endif
+
+					/* PL_Q_EXT_STATUS return codes */
+#define PL_S_EXCEPTION	       -1	/* Query raised exception */
+#define PL_S_FALSE		0	/* Query failed */
+#define PL_S_TRUE		1	/* Query succeeded with choicepoint */
+#define PL_S_LAST		2	/* Query succeeded without CP */
+
 
 			/* Foreign context frames */
 PL_EXPORT(fid_t)	PL_open_foreign_frame(void);

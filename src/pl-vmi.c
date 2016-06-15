@@ -2027,7 +2027,8 @@ VMI(I_EXITQUERY, 0, 0, ())
   assert(LD->exception.throw_environment == &throw_env);
   LD->exception.throw_environment = throw_env.parent;
 
-  succeed;
+#define DET_EXIT (PL_Q_DETERMINISTIC|PL_Q_EXT_STATUS)
+  return (QF->flags&DET_EXIT)==DET_EXIT ? PL_S_LAST : TRUE;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4438,9 +4439,8 @@ again:
     assert(LD->exception.throw_environment == &throw_env);
     LD->exception.throw_environment = throw_env.parent;
 
-    fail;
+    return (QF->flags & PL_Q_EXT_STATUS) ? PL_S_EXCEPTION : FALSE;
   }
-
 }
 #endif /*O_CATCHTHROW*/
 
