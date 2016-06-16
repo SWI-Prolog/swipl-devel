@@ -2210,9 +2210,6 @@ static
 PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 { PRED_LD
   double time;
-#if !defined(__WINDOWS__) && !defined(HAVE_POLL)
-  SOCKET max = 0;
-#endif
   fdentry map_buf[FASTMAP_SIZE];
   fdentry *map;
 #ifdef HAVE_POLL
@@ -2220,6 +2217,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   struct pollfd *poll_map;
   int to;
 #else
+  SOCKET max = 0;
   fd_set fds;
   struct timeval t, *to;
 #endif
@@ -2290,7 +2288,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     ADD_FD(nfds);
     nfds++;
 
-#if !defined(__WINDOWS__) && !defined(HAVE_POLL)
+#ifndef HAVE_POLL
     if ( fd > max )
       max = fd;
 #endif
