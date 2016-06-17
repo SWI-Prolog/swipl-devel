@@ -1414,16 +1414,16 @@ PL_recorded_external(const char *rec, term_t t)
   { if ( m & REC_INT )
     { int64_t v = fetchInt64(&b);
 
-      rc = PL_unify_int64(t, v);
+      rc = PL_put_int64(t, v);
     } else
     { atom_t a;
       int code = fetchOpCode(&b);
 
       switch(code)
       { case PL_TYPE_NIL:
-	  return PL_unify_nil(t);
+	  return PL_put_nil(t);
         case PL_TYPE_DICT:
-	  return PL_unify_atom(t, ATOM_dict);
+	  return PL_put_atom(t, ATOM_dict);
         case PL_TYPE_EXT_ATOM:
 	  fetchAtom(&b, &a);
 	  break;
@@ -1433,7 +1433,7 @@ PL_recorded_external(const char *rec, term_t t)
 	default:
 	  assert(0);
       }
-      rc = PL_unify_atom(t, a);
+      rc = PL_put_atom(t, a);
       PL_unregister_atom(a);
     }
 
