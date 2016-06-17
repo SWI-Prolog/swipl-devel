@@ -731,8 +731,10 @@ PL_record_external(term_t t, size_t *len)
 
     if ( isTaggedInt(*p) )
       v = valInt(*p);
-    else
+    else if ( isBignum(*p) )
       v = valBignum(*p);
+    else
+      goto general;
 
     first |= (REC_INT|REC_GROUND);
     addOpCode(&info, first);
@@ -753,6 +755,7 @@ PL_record_external(term_t t, size_t *len)
   }
 
 					/* the real stuff */
+general:
   initBuffer(&info.vars);
   info.size = 0;
   info.nvars = 0;
