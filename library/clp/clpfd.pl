@@ -2326,6 +2326,13 @@ parse_clpfd(E, R,
              m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
+             % bitwise operations
+             m(\A)             => [g(instantiation_error(\A))],
+             m(A<<B)           => [g(instantiation_error(A<<B))],
+             m(A>>B)           => [g(instantiation_error(A>>B))],
+             m(A/\B)           => [g(instantiation_error(A/\B))],
+             m(A\/B)           => [g(instantiation_error(A\/B))],
+             m(A xor B)        => [g(instantiation_error(A xor B))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
 
@@ -2660,6 +2667,13 @@ expr_conds(A0 mod B0, A mod B)   -->
 expr_conds(A0^B0, A^B)           -->
         expr_conds(A0, A), expr_conds(B0, B),
         [(B >= 0 ; A =:= -1)].
+% Bitwise operations, added to make CLP(FD) usable in more cases
+expr_conds(\ A0, \ A) --> expr_conds(A0, A).
+expr_conds(A0<<B0, A<<B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0>>B0, A>>B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0/\B0, A/\B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0\/B0, A\/B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0 xor B0, A xor B) --> expr_conds(A0, A), expr_conds(B0, B).
 
 :- multifile
         system:goal_expansion/2.
@@ -3158,6 +3172,13 @@ parse_reified(E, R, D,
                m(A mod B)    => [skeleton(A,B,D,R,pmod)],
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
+               % bitwise operations
+               m(\A)         => [g(domain_error(reifiable_expression, \ A))],
+               m(A<<B)       => [g(domain_error(reifiable_expression, A<<B))],
+               m(A>>B)       => [g(domain_error(reifiable_expression, A>>B))],
+               m(A/\B)       => [g(domain_error(reifiable_expression, A/\B))],
+               m(A\/B)       => [g(domain_error(reifiable_expression, A\/B))],
+               m(A xor B)    => [g(domain_error(reifiable_expression, A xor B))],
                g(true)       => [g(domain_error(clpfd_expression, E))]]
              ).
 
