@@ -2327,12 +2327,12 @@ parse_clpfd(E, R,
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              % bitwise operations
-             m(\A)             => [g(instantiation_error(\A))],
-             m(A<<B)           => [g(instantiation_error(A<<B))],
-             m(A>>B)           => [g(instantiation_error(A>>B))],
-             m(A/\B)           => [g(instantiation_error(A/\B))],
-             m(A\/B)           => [g(instantiation_error(A\/B))],
-             m(A xor B)        => [g(instantiation_error(A xor B))],
+             m(\A)             => [p(pbitwise(xor, A, -1, R))],
+             m(A<<B)           => [p(pbitwise(<<, A, B, R))],
+             m(A>>B)           => [p(pbitwise(>>, A, B, R))],
+             m(A/\B)           => [p(pbitwise(/\, A, B, R))],
+             m(A\/B)           => [p(pbitwise(\/, A, B, R))],
+             m(A xor B)        => [p(pbitwise(xor, A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
 
@@ -3173,12 +3173,12 @@ parse_reified(E, R, D,
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
                % bitwise operations
-               m(\A)         => [g(domain_error(reifiable_expression, \ A))],
-               m(A<<B)       => [g(domain_error(reifiable_expression, A<<B))],
-               m(A>>B)       => [g(domain_error(reifiable_expression, A>>B))],
-               m(A/\B)       => [g(domain_error(reifiable_expression, A/\B))],
-               m(A\/B)       => [g(domain_error(reifiable_expression, A\/B))],
-               m(A xor B)    => [g(domain_error(reifiable_expression, A xor B))],
+               m(\A)         => [d(D),bitwise(xor,A,-1,R)],
+               m(A<<B)       => [d(D),bitwise(<<,A,B,R)],
+               m(A>>B)       => [d(D),bitwise(>>,A,B,R)],
+               m(A/\B)       => [d(D),bitwise(/\,A,B,R)],
+               m(A\/B)       => [d(D),bitwise(\/,A,B,R)],
+               m(A xor B)    => [d(D),bitwise(xor,A,B,R)],
                g(true)       => [g(domain_error(clpfd_expression, E))]]
              ).
 
@@ -3242,6 +3242,10 @@ reified_goal(p(Vs, Prop), _) -->
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
+reified_goal(bitwise(Op,A,B,R), Ds) -->
+        { phrase(reified_goals([p(pbitwise(Op,A,B,R)),a(A,B,R)], Ds), Goals),
+          list_goal(Goals, Goal) },
+        [Goal].
 reified_goal(skeleton(A,B,D,R,F), Ds) -->
         { Prop =.. [F,X,Y,Z],
           phrase(reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
@@ -4980,6 +4984,14 @@ run_propagator(pskeleton(X,Y,D,Skel,Z,_), MState) :-
         ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
             kill(MState),
             D = 1, skeleton([X,Y,Z], Skel)
+        ;   true
+        ).
+
+run_propagator(pbitwise(Op,A,B,R), MState) :-
+        (   integer(A), integer(B) ->
+            kill(MState),
+            Expr =.. [Op,A,B],
+            R is Expr
         ;   true
         ).
 
@@ -7032,6 +7044,9 @@ attribute_goal_(reified_and(X,_,Y,_,B))    --> [?(X) #/\ ?(Y) #<==> ?(B)].
 attribute_goal_(reified_or(X, _, Y, _, B)) --> [?(X) #\/ ?(Y) #<==> ?(B)].
 attribute_goal_(reified_not(X, Y))         --> [#\ ?(X) #<==> ?(Y)].
 attribute_goal_(pimpl(X, Y, _))            --> [?(X) #==> ?(Y)].
+attribute_goal_(pbitwise(Op, A, B, R)) -->
+        { Expr =.. [Op,?(A),?(B)] },
+        [?(R) #= Expr].
 
 conjunction(A, B, G, D) -->
         (   { A == 1, B == 1 } -> [G #<==> ?(D)]
