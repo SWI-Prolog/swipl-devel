@@ -2681,6 +2681,9 @@ expr_conds(A0>>B0, A>>B) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0/\B0, A/\B) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0\/B0, A\/B) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0 xor B0, A xor B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(lsb(A0), lsb(A)) --> expr_conds(A0, A).
+expr_conds(msb(A0), msb(A)) --> expr_conds(A0, A).
+expr_conds(popcount(A0), popcount(A)) --> expr_conds(A0, A).
 
 :- multifile
         system:goal_expansion/2.
