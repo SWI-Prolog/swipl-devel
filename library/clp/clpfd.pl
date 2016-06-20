@@ -274,9 +274,11 @@ The arithmetic constraints are:
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
 
-where `Expr` again denotes an arithmetic expression. The bitwise
-operations `(\)/1`, `(/\)/2`, `(\/)/2`, `(>>)/2`, `(<<)/2` and
-`(xor)/2` are also supported.
+where `Expr` again denotes an arithmetic expression.
+
+The bitwise operations `(\)/1`, `(/\)/2`, `(\/)/2`, `(>>)/2`,
+`(<<)/2`, `lsb/1`, `msb/1`, `popcount/1` and `(xor)/2` are also
+supported.
 
 ## Declarative integer arithmetic		{#clpfd-integer-arith}
 
@@ -2329,7 +2331,10 @@ parse_clpfd(E, R,
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              % bitwise operations
-             m(\A)             => [p(pfunction(xor, A, -1, R))],
+             m(\A)             => [p(pfunction(\, A, R))],
+             m(msb(A))         => [p(pfunction(msb, A, R))],
+             m(lsb(A))         => [p(pfunction(lsb, A, R))],
+             m(popcount(A))    => [p(pfunction(popcount, A, R))],
              m(A<<B)           => [p(pfunction(<<, A, B, R))],
              m(A>>B)           => [p(pfunction(>>, A, B, R))],
              m(A/\B)           => [p(pfunction(/\, A, B, R))],
@@ -3175,7 +3180,10 @@ parse_reified(E, R, D,
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
                % bitwise operations
-               m(\A)         => [function(D,xor,A,-1,R)],
+               m(\A)         => [function(D,\,A,R)],
+               m(msb(A))     => [function(D,msb,A,R)],
+               m(lsb(A))     => [function(D,lsb,A,R)],
+               m(popcount(A)) => [function(D,popcount,A,R)],
                m(A<<B)       => [function(D,<<,A,B,R)],
                m(A>>B)       => [function(D,>>,A,B,R)],
                m(A/\B)       => [function(D,/\,A,B,R)],
@@ -3246,6 +3254,8 @@ reified_goal(p(Prop), Ds) -->
         reified_goal(p(Vs,Prop), Ds).
 reified_goal(function(D,Op,A,B,R), Ds) -->
         reified_goals([d(D),p(pfunction(Op,A,B,R)),a(A,B,R)], Ds).
+reified_goal(function(D,Op,A,R), Ds) -->
+        reified_goals([d(D),p(pfunction(Op,A,R)),a(A,R)], Ds).
 reified_goal(skeleton(A,B,D,R,F), Ds) -->
         { Prop =.. [F,X,Y,Z] },
         reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
@@ -4993,6 +5003,13 @@ run_propagator(pfunction(Op,A,B,R), MState) :-
         (   integer(A), integer(B) ->
             kill(MState),
             Expr =.. [Op,A,B],
+            R is Expr
+        ;   true
+        ).
+run_propagator(pfunction(Op,A,R), MState) :-
+        (   integer(A) ->
+            kill(MState),
+            Expr =.. [Op,A],
             R is Expr
         ;   true
         ).
@@ -7048,6 +7065,9 @@ attribute_goal_(reified_not(X, Y))         --> [#\ ?(X) #<==> ?(Y)].
 attribute_goal_(pimpl(X, Y, _))            --> [?(X) #==> ?(Y)].
 attribute_goal_(pfunction(Op, A, B, R)) -->
         { Expr =.. [Op,?(A),?(B)] },
+        [?(R) #= Expr].
+attribute_goal_(pfunction(Op, A, R)) -->
+        { Expr =.. [Op,?(A)] },
         [?(R) #= Expr].
 
 conjunction(A, B, G, D) -->
