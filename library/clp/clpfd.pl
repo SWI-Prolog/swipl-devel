@@ -3245,17 +3245,12 @@ reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
 reified_goal(bitwise(Op,A,B,R), Ds) -->
-        { phrase(reified_goals([p(pbitwise(Op,A,B,R)),a(A,B,R)], Ds), Goals),
-          list_goal(Goals, Goal) },
-        [Goal].
+        reified_goals([p(pbitwise(Op,A,B,R)),a(A,B,R)], Ds).
 reified_goal(skeleton(A,B,D,R,F), Ds) -->
-        { Prop =.. [F,X,Y,Z],
-          phrase(reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
-                                p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,F)),
-                                p(reified_and(D1,[],D2,[],D)),a(D2),a(A,B,R)],
-                               Ds), Goals),
-          list_goal(Goals, Goal) },
-        [Goal].
+        { Prop =.. [F,X,Y,Z] },
+        reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
+                       p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,F)),
+                       p(reified_and(D1,[],D2,[],D)),a(D2),a(A,B,R)], Ds).
 reified_goal(a(V), _)     --> [a(V)].
 reified_goal(a(X,V), _)   --> [a(X,V)].
 reified_goal(a(X,Y,V), _) --> [a(X,Y,V)].
