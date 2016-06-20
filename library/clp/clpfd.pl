@@ -274,7 +274,9 @@ The arithmetic constraints are:
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
 
-where `Expr` again denotes an arithmetic expression.
+where `Expr` again denotes an arithmetic expression. The bitwise
+operations `(\)/1`, `(/\)/2`, `(\/)/2`, `(>>)/2`, `(<<)/2` and
+`(xor)/2` are also supported.
 
 ## Declarative integer arithmetic		{#clpfd-integer-arith}
 
