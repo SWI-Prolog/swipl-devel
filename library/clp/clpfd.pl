@@ -5502,13 +5502,14 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
    DCGs are used to implicitly pass around the global index, stack
    and the predicate relating a vertex to its successors.
 
-   See https://www.metalevel.at/prolog/dcg.html for more information
-   about this technique.
+   For more information about this technique, see:
+
+               https://www.metalevel.at/prolog/dcg.html
 
    A Prolog implementation of this algorithm is also available as a
    standalone library from:
 
-   https://www.metalevel.at/scc.pl
+                   https://www.metalevel.at/scc.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 scc(Vs, Succ) :- phrase(scc(Vs), [s(0,[],Succ)], _).
