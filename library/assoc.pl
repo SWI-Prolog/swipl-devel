@@ -93,13 +93,12 @@ empty_assoc(t).
 %	sorted in ascending order.
 
 assoc_to_list(Assoc, List) :-
-	phrase(assoc_to_list_(Assoc), List).
+	assoc_to_list(Assoc, List, []).
 
-assoc_to_list_(t) --> [].
-assoc_to_list_(t(Key,Val,_,L,R)) -->
-	assoc_to_list_(L),
-	[Key-Val],
-	assoc_to_list_(R).
+assoc_to_list(t(Key,Val,_,L,R), List, Rest) :-
+	assoc_to_list(L, List, [Key-Val|More]),
+	assoc_to_list(R, More, Rest).
+assoc_to_list(t, List, List).
 
 
 %%	assoc_to_keys(+Assoc, -Keys:ord_set) is det.
@@ -108,13 +107,12 @@ assoc_to_list_(t(Key,Val,_,L,R)) -->
 %	in ascending order.
 
 assoc_to_keys(Assoc, List) :-
-	phrase(assoc_to_keys_(Assoc), List).
+	assoc_to_keys(Assoc, List, []).
 
-assoc_to_keys_(t) --> [].
-assoc_to_keys_(t(Key,_,_,L,R)) -->
-	assoc_to_keys_(L),
-	[Key],
-	assoc_to_keys_(R).
+assoc_to_keys(t(Key,_,_,L,R), List, Rest) :-
+	assoc_to_keys(L, List, [Key|More]),
+	assoc_to_keys(R, More, Rest).
+assoc_to_keys(t, List, List).
 
 
 %%	assoc_to_values(+Assoc, -Values:list) is det.
@@ -124,13 +122,12 @@ assoc_to_keys_(t(Key,_,_,L,R)) -->
 %	associated.  Values may contain duplicates.
 
 assoc_to_values(Assoc, List) :-
-	phrase(assoc_to_values_(Assoc), List).
+	assoc_to_values(Assoc, List, []).
 
-assoc_to_values_(t) --> [].
-assoc_to_values_(t(_,Value,_,L,R)) -->
-	assoc_to_values_(L),
-	[Value],
-	assoc_to_values_(R).
+assoc_to_values(t(_,Value,_,L,R), List, Rest) :-
+	assoc_to_values(L, List, [Value|More]),
+	assoc_to_values(R, More, Rest).
+assoc_to_values(t, List, List).
 
 %%      is_assoc(+Assoc)
 %
