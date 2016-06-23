@@ -917,7 +917,7 @@ PL_initialise_int(int argc, char **argv, char *mem_data, long int mem_size)
 
 // init prolog from memory
 int
-PL_boot_from_memory(int argc, char **argv, char *mem_data, long int mem_size)
+PL_boot_from_memory(int argc, char **argv, char *mem_data, size_t mem_size)
 {
 
 
