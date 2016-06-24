@@ -167,12 +167,14 @@ exe_options(Options) :-
 print_output(OutCodes, Options) :-
 	option(output(Codes), Options), !,
 	Codes = OutCodes.
+print_output([], _) :- !.
 print_output(OutCodes, _) :-
 	print_message(informational, git(output(OutCodes))).
 
 print_error(OutCodes, Options) :-
 	option(error(Codes), Options), !,
 	Codes = OutCodes.
+print_error([], _) :- !.
 print_error(OutCodes, _) :-
 	phrase(classify_message(Level), OutCodes, _),
 	print_message(Level, git(output(OutCodes))).
