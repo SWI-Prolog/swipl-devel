@@ -754,9 +754,12 @@ read_commit(Fields, Data-Body, Options, In) :-
 	read_line_to_codes(In, Line1),
 	record_from_line(git_commit, Fields, Line1, Data),
 	read_line_to_codes(In, Line2),
-	Line2 == [],
-	option(max_lines(Max), Options, -1),
-	read_n_lines(In, Max, Body).
+	(   Line2 == []
+	->  option(max_lines(Max), Options, -1),
+	    read_n_lines(In, Max, Body)
+	;   Line2 == end_of_file
+	->  Body = []
+	).
 
 read_n_lines(In, Max, Lines) :-
 	read_line_to_codes(In, Line1),
