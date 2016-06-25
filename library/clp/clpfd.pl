@@ -2759,10 +2759,21 @@ expansion_simpler((False->_;Else0), Else) :-
 expansion_simpler((If->Then0;Else0), (If->Then;Else)) :- !,
         expansion_simpler(Then0, Then),
         expansion_simpler(Else0, Else).
-expansion_simpler((Var is Expr,Goal), Goal) :-
-        ground(Expr), !,
-        Var is Expr.
-expansion_simpler((Var is Expr,Goal), (Var = Expr,Goal)) :- var(Expr), !.
+expansion_simpler((A0,B0), (A,B)) :-
+        expansion_simpler(A0, A),
+        expansion_simpler(B0, B).
+expansion_simpler(Var is Expr0, Goal) :-
+        ground(Expr0), !,
+        phrase(expr_conds(Expr0, Expr), Gs),
+        (   maplist(call, Gs) -> Var is Expr, Goal = true
+        ;   Goal = false
+        ).
+expansion_simpler(Var =:= Expr0, Goal) :-
+        ground(Expr0), !,
+        phrase(expr_conds(Expr0, Expr), Gs),
+        (   maplist(call, Gs) -> Goal = (Var =:= Expr)
+        ;   Goal = false
+        ).
 expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
 expansion_simpler(between(L,U,V), Goal) :- maplist(integer, [L,U,V]), !,
         (   between(L,U,V) -> Goal = true
