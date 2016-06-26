@@ -1,7 +1,7 @@
 			Win32 `Readline Console'
 
 Author: Jan Wielemaker
-E-mail: jan@swi.psy.uva.nl
+E-mail: J.Wielemaker@vu.nl
 
 
 Purpose
@@ -69,7 +69,7 @@ Settings are kept in the Windows registry under the key
 	Software\<vendor>\<program>\Console
 
 Where
-		
+
 	<vendor>  is SWI, unless compiled with a different setting for
 		  RLC_VENDOR
         <program> is the basename of the program without extension
