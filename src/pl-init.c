@@ -764,7 +764,7 @@ PL_is_initialised(int *argc, char ***argv)
 
 
 int
-PL_initialise(int argc, char **argv)
+PL_initialise_int(int argc, char **argv, char *mem_data, long int mem_size)
 { int n;
   bool compile = FALSE;
   const char *rcpath = "<none>";
@@ -788,15 +788,18 @@ PL_initialise(int argc, char **argv)
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
-  if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
+  // if resourceDB is present -- skip  rc_open_archive call (case for PL_boot_from_xxx calls)
+  if ( !GD->resourceDB) {
+    if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
 #ifdef __WINDOWS__
-       || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
+         || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
 #endif
-     )
-  { rcpath = ((RcArchive)GD->resourceDB)->path;
-    initDefaultOptions();
+       )
+    { rcpath = ((RcArchive)GD->resourceDB)->path;
+      initDefaultOptions();
+    }
   }
-
+  
   if ( !GD->resourceDB ||
        !streq(GD->options.saveclass, "runtime") )
   { int done;
@@ -912,6 +915,29 @@ PL_initialise(int argc, char **argv)
   }
   }					/* { GET_LD } */
 }
+
+/* MOD-OL olsky OL-2013 patch for mem init */
+
+
+// init prolog from memory
+int
+PL_boot_from_memory(int argc, char **argv, char *mem_data, size_t mem_size)
+{
+
+
+	if (mem_size != 0 && mem_data != NULL) {
+		if (    (GD->resourceDB = rc_open_archive_mem(GD->paths.executable, mem_data, mem_size, RC_RDONLY))
+#ifdef __WINDOWS__
+		        || (GD->resourceDB = rc_open_archive_mem(GD->paths.module, mem_data, mem_size, RC_RDONLY))
+#endif
+		   )
+		{	
+			return PL_initialise(argc, argv);
+		}
+	}
+	return FALSE;
+}
+
 
 
 typedef const char *cline;
