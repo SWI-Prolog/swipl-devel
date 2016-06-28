@@ -52,8 +52,6 @@ typedef enum
   PL_THREAD_NOMEM,			/* couldn't start due no-memory */
   PL_THREAD_RESERVED,			/* allocated but not yet created */
   PL_THREAD_CREATED,			/* just created */
-  PL_THREAD_SUSPENDED,			/* suspended */
-  PL_THREAD_RESUMING			/* about to resume */
 } thread_status;
 
 #ifdef __WINDOWS__

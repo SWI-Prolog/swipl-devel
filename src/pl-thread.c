@@ -2341,8 +2341,6 @@ is_alive(int status)
 { switch(status)
   { case PL_THREAD_CREATED:
     case PL_THREAD_RUNNING:
-    case PL_THREAD_SUSPENDED:
-    case PL_THREAD_RESUMING:
       succeed;
     default:
       fail;
