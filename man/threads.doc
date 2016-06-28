@@ -49,13 +49,30 @@ have dropped from the ISO WG17 agenda.}
 
 \begin{description}
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
-Create a new Prolog thread (and underlying C thread) and start it
-by executing \arg{Goal}.  If the thread is created successfully, the
-thread identifier of the created thread is unified to \arg{Id}.
-\arg{Options} is a list of options.  The currently defined options are
-below.  Stack size options can also take the value \const{inf} or
-\const{infinite}, which is mapped to the maximum stack size supported
-by the platform.
+Create a new Prolog thread (and underlying operating system thread) and
+start it by executing \arg{Goal}. If the thread is created successfully,
+the thread identifier of the created thread is unified to \arg{Id}.
+
+\arg{Id} is the \emph{alias} name if the option \term{alias}{name} is
+given. Otherwise it is a \jargon{blob} of type \const{thread}. The
+anonymous blobs are subject to atom garbage collection. If a thread
+handle is garbage collected and the thread is not \jargon{detached}, it
+is \jargon{joined} if it has already terminated (see thread_join/2) and
+detached otherwise (see thread_detach/1).\footnote{Up to version 7.3.23,
+anonymous thread handles were integers. Using integers did not allow for
+safe checking of the thread's status as the thread may have died and the
+handle may have been reused and did not allow for garbage collection to
+take care of forgotten threads.} The thread identifier blobs are printed
+as \verb$<thread>($\arg{I},\arg{Ptr}\verb$)$, where \arg{I} is the
+internal thread identifier and \arg{Ptr} is the unique address of the
+identifier. The \arg{I} is accepted as input argument for all thread
+APIs that accept a thread identifier for convenient interaction from
+the toplevel.  See also thread_property/2.
+
+\arg{Options} is a list of options. The currently defined options are
+below. Stack size options can also take the value \const{inf} or
+\const{infinite}, which is mapped to the maximum stack size supported by
+the platform.
 
 \begin{description}
     \termitem{alias}{AliasName}
@@ -257,6 +274,10 @@ Defined properties are:
  \arg{Alias} is the alias name of thread \arg{Id}.
 	\termitem{detached}{Boolean}
 Current detached status of the thread.
+	\termitem{id}{Integer}
+Integer identifier for the thread.  Can be used as argument to the
+thread predicates, but applications must be aware that these references
+are reused.
 	\termitem{status}{Status}
 Current status of the thread.  \arg{Status} is one of:
 \begin{description}

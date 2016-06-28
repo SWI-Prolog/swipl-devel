@@ -42,6 +42,9 @@ typedef enum
   LDATA_ANSWERED
 } ldata_status_t;
 
+#define THREAD_STATUS_INVALID(s) ((s) == PL_THREAD_UNUSED || \
+				  (s) == PL_THREAD_RESERVED)
+
 typedef enum
 { PL_THREAD_UNUSED = 0,			/* no thread on this slot */
   PL_THREAD_RUNNING,			/* a normally running one */
@@ -74,12 +77,13 @@ typedef struct _PL_thread_info_t
   size_t	    trail_size;
   size_t	    stack_size;		/* system (C-) stack */
   int		    (*cancel)(int id);	/* cancel function */
-  int		    open_count;		/* for PL_thread_detach_engine() */
-  bool		    detached;		/* detached thread */
-  bool		    debug;		/* thread can be debugged */
+  unsigned short    open_count;		/* for PL_thread_detach_engine() */
+  unsigned	    detached      : 1;	/* detached thread */
+  unsigned	    debug         : 1;	/* thread can be debugged */
+  unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
+  unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
-  int		    has_tid;		/* TRUE: tid = valid */
 #ifdef __linux__
   pid_t		    pid;		/* for identifying */
 #endif
@@ -90,8 +94,8 @@ typedef struct _PL_thread_info_t
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
+  atom_t	    symbol;		/* thread_handle symbol */
   atom_t	    name;		/* Name of the thread */
-  int		    in_exit_hooks;	/* TRUE: running exit hooks */
   struct _PL_thread_info_t *next_free;	/* Next in free list */
 
 					/* lock-free access to data */
@@ -104,6 +108,16 @@ typedef struct _PL_thread_info_t
     struct PL_local_data *ldata;	/* current ldata accessed */
   } access;
 } PL_thread_info_t;
+
+
+typedef struct thread_handle
+{ PL_thread_info_t     *info;		/* represented engine */
+  atom_t		symbol;		/* associated symbol */
+  int			engine_id;	/* numeric engine id */
+  int			flags;		/* symbol flags */
+  struct thread_handle *next_free;	/* Free for GC */
+} thread_handle;
+
 
 #define QTYPE_THREAD	0
 #define QTYPE_QUEUE	1

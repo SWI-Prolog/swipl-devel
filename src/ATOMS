@@ -328,6 +328,7 @@ A help			"help"
 A hidden		"hidden"
 A hide_childs		"hide_childs"
 A history_depth		"history_depth"
+A id			"id"
 A ifthen		"->"
 A ignore		"ignore"
 A ignore_ops		"ignore_ops"
@@ -902,6 +903,7 @@ F goal_expansion	2
 F ground		1
 F grouping		1
 F hat			2
+F id			1
 F ifthen		2
 F import_into		1
 F inf			0

@@ -36,7 +36,8 @@ This module is a Unit test for Prolog built-ins that process threads.
 
 
 test_threads :-
-	run_tests([ thread_errors,
+	run_tests([ thread_create,
+		    thread_errors,
 		    thread_property,
 		    mutex,
 		    mutex_property,
@@ -44,10 +45,26 @@ test_threads :-
 		  ]).
 
 
+:- begin_tests(thread_create).
+
+test(alias, Id == a_thread_name) :-
+	thread_create(true, Id, [alias(a_thread_name)]),
+	thread_join(Id, Status),
+	assertion(Status == true).
+test(anonymous) :-
+	thread_create(true, Id, []),
+	assertion(current_blob(Id, thread)),
+	thread_join(Id, Status),
+	assertion(Status == true).
+
+:- end_tests(thread_create).
+
 :- begin_tests(thread_errors).
 
-test(null, error(existence_error(thread, 0))) :-
+test(null, error(type_error(message_queue, 0))) :-
 	thread_send_message(0, foo).
+test(null, error(existence_error(message_queue, not_a_thread))) :-
+	thread_send_message(not_a_thread, foo).
 
 :- end_tests(thread_errors).
 

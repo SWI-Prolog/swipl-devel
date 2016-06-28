@@ -416,6 +416,7 @@ static void	init_message_queue(message_queue *queue, long max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks(PL_local_data_t *ld);
+static int	create_thread_handle(PL_thread_info_t *info);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static int	unify_queue(term_t t, message_queue *q);
@@ -994,9 +995,11 @@ exitPrologThreads(void)
 		 *	    ALIAS NAME		*
 		 *******************************/
 
-bool
+int
 aliasThread(int tid, atom_t name)
 { GET_LD
+  PL_thread_info_t *info;
+
   LOCK();
   if ( !threadTable )
     threadTable = newHTable(16);
@@ -1013,12 +1016,17 @@ aliasThread(int tid, atom_t name)
 
   addNewHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
   PL_register_atom(name);
-  GD->thread.threads[tid]->name = name;
+
+  info = GD->thread.threads[tid];
+  info->name = name;
+  if ( info->symbol )
+    PL_register_atom(info->symbol);
 
   UNLOCK();
 
-  succeed;
+  return TRUE;
 }
+
 
 static void
 unaliasThread(atom_t name)
@@ -1063,6 +1071,184 @@ PL_get_thread_alias(int tid, atom_t *alias)
 
   return FALSE;
 }
+
+
+		 /*******************************
+		 *	     GC ENGINES		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+gc_thread() is (indirectly) called from atom-GC if the engine is not yet
+fully reclaimed, we have several situations:
+
+  - The engine is still running.  Detach it, such that it will be
+    reclaimed slilently when done.
+  - The engine has completed.  Join it.
+
+collectAtoms() is called with many locks   held: L_ATOM, L_AGC, L_GC and
+L_THREAD.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static thread_handle *gced_threads = NULL;
+static int       thread_gc_running = FALSE;
+
+static void
+discard_thread(thread_handle *h)
+{ int alive = FALSE;
+  PL_thread_info_t *info;
+
+  LOCK();
+  if ( (info=h->info) &&
+       (alive=is_alive(info->status)) &&
+       !info->detached )
+  { if ( info->has_tid )
+    { if ( pthread_detach(info->tid) == 0 )
+	info->detached = TRUE;
+    }
+  }
+  UNLOCK();
+
+  if ( !alive )
+  { double delay = 0.0001;
+
+    if ( !info->detached )
+    { void *r;
+
+      while( pthread_join(info->tid, &r) == EINTR )
+	;
+    }
+
+    while ( info->thread_data )
+    { Pause(delay);
+      if ( delay < 0.01 )
+	delay *= 2;
+    }
+    free_thread_info(info);
+  }
+}
+
+
+static void *
+thread_gc_loop(void *closure)
+{ for(;;)
+  { thread_handle *h;
+
+    do
+    { h = gced_threads;
+    } while ( h && !COMPARE_AND_SWAP(&gced_threads, h, h->next_free) );
+
+    if ( h )
+    { discard_thread(h);
+      PL_free(h);
+    } else
+    { break;
+    }
+  }
+
+  thread_gc_running = FALSE;
+  return NULL;
+}
+
+
+static void
+start_thread_gc_thread(void)
+{ if ( !thread_gc_running )
+  { pthread_attr_t attr;
+    int rc;
+    pthread_t thr;
+
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    thread_gc_running = TRUE;
+    rc = pthread_create(&thr, &attr, thread_gc_loop, NULL);
+    pthread_attr_destroy(&attr);
+    if ( rc != 0 )
+    { Sdprintf("Failed to start thread gc thread\n");
+      thread_gc_running = FALSE;
+    }
+  }
+}
+
+
+static void
+gc_thread(thread_handle *ref)
+{ thread_handle *h;
+
+  do
+  { h = gced_threads;
+    ref->next_free = h;
+  } while( !COMPARE_AND_SWAP(&gced_threads, h, ref) );
+
+  start_thread_gc_thread();
+}
+
+
+		 /*******************************
+		 *	   THREAD SYMBOL	*
+		 *******************************/
+
+static int
+write_thread_handle(IOSTREAM *s, atom_t eref, int flags)
+{ thread_handle **refp = PL_blob_data(eref, NULL, NULL);
+  thread_handle *ref = *refp;
+  (void)flags;
+
+  Sfprintf(s, "<thread>(%d,%p)", ref->engine_id, ref);
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+release_thread_handle() is called from AGC. As  the symbol is destroyed,
+we must clear info->symbol. That is find   as AGC locks L_THREAD and the
+competing interaction in free_thread_info() is also locked with L_THREAD
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+release_thread_handle(atom_t aref)
+{ thread_handle **refp = PL_blob_data(aref, NULL, NULL);
+  thread_handle *ref   = *refp;
+  PL_thread_info_t *info;
+
+  if ( (info=ref->info) )
+  { info->symbol = 0;
+    gc_thread(ref);
+  } else
+    PL_free(ref);
+
+  return TRUE;
+}
+
+
+static int
+save_thread(atom_t aref, IOSTREAM *fd)
+{ thread_handle **refp = PL_blob_data(aref, NULL, NULL);
+  thread_handle *ref   = *refp;
+  (void)fd;
+
+  return PL_warning("Cannot save reference to <thread>(%d,%p)", ref->engine_id, ref);
+}
+
+
+static atom_t
+load_thread(IOSTREAM *fd)
+{ (void)fd;
+
+  return PL_new_atom("<saved-thread-handle>");
+}
+
+
+static PL_blob_t thread_blob =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE,
+  "thread",
+  release_thread_handle,
+  NULL,
+  write_thread_handle,
+  NULL,
+  save_thread,
+  load_thread
+};
 
 
 		 /*******************************
@@ -1151,9 +1337,10 @@ int
 PL_thread_self(void)
 { GET_LD
   PL_local_data_t *ld = LD;
+  PL_thread_info_t *info;
 
-  if ( ld )
-    return ld->thread.info->pl_tid;
+  if ( ld && (info=ld->thread.info) )
+    return info->pl_tid;
 
   return -1;				/* thread has no Prolog thread */
 }
@@ -1478,6 +1665,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   term_t at_exit = 0;
   int rc = 0;
   const char *func;
+  int debug = FALSE;
+  int detached = FALSE;
 
   if ( !PL_is_callable(goal) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -1498,8 +1687,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->global_size,
 		     &info->trail_size,
 		     &alias,
-		     &info->debug,
-		     &info->detached,
+		     &debug,
+		     &detached,
 		     &stack,		/* stack */
 		     &stack,		/* c_stack */
 		     &at_exit,
@@ -1507,6 +1696,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
     fail;
   }
+  info->debug = debug;
+  info->detached = detached;
   if ( at_exit && !PL_is_callable(at_exit) )
   { free_thread_info(info);
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, at_exit);
@@ -1541,7 +1732,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
       fail;
     }
   }
-  if ( !unify_thread_id(id, info) )
+  if ( !create_thread_handle(info) ||
+       !unify_thread_id(id, info) )
   { free_thread_info(info);
 
     if ( !PL_is_variable(id) )
@@ -1642,33 +1834,56 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 }
 
 
+static thread_handle *
+symbol_thread_handle(atom_t a)
+{ void *data;
+  size_t len;
+  PL_blob_t *type;
+
+  if ( (data=PL_blob_data(a, &len, &type)) && type == &thread_blob )
+  { thread_handle **erd = data;
+
+    return *erd;
+  }
+
+  return NULL;
+}
+
+
 static int
 get_thread(term_t t, PL_thread_info_t **info, int warn)
 { GET_LD
   int i = -1;
+  atom_t a;
 
-  if ( !PL_get_integer(t, &i) )
-  { atom_t name;
+  if ( PL_get_atom(t, &a) )
+  { thread_handle *er;
 
-    if ( !PL_get_atom(t, &name) )
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_thread, t);
-    if ( threadTable )
+    if ( (er=symbol_thread_handle(a)) )
+    { if ( er->info && !THREAD_STATUS_INVALID(er->info->status) )
+      { i = er->engine_id;
+      } else
+      { no_thread:
+	if ( warn )
+	  PL_existence_error("thread", t);
+	return FALSE;
+      }
+    } else				/* alias name? */
     { int tid;
 
-      if ( (tid = (int)(intptr_t)lookupHTable(threadTable, (void *)name)) )
+      if ( (tid = (int)(intptr_t)lookupHTable(threadTable, (void *)a)) )
 	i = tid;
+      else
+	goto no_thread;
     }
+  } else if ( !PL_get_integer(t, &i) )
+  { return PL_type_error("thread", t);
   }
 
   if ( i < 1 ||
        i > thread_highest_id ||
-       GD->thread.threads[i]->status == PL_THREAD_UNUSED ||
-       GD->thread.threads[i]->status == PL_THREAD_RESERVED )
-  { if ( warn )
-      return PL_error(NULL, 0, "no info record",
-		      ERR_EXISTENCE, ATOM_thread, t);
-    else
-      return FALSE;
+       THREAD_STATUS_INVALID(GD->thread.threads[i]->status) )
+  { goto no_thread;
   }
 
   *info = GD->thread.threads[i];
@@ -1678,28 +1893,32 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 
 
 static int
-get_thread_sync(term_t t, PL_thread_info_t **info, int warn)
-{ int rc;
+create_thread_handle(PL_thread_info_t *info)
+{ thread_handle *ref = PL_malloc(sizeof(*ref));
+  int new;
 
-  LOCK();
-  rc = get_thread(t, info, warn);
-  UNLOCK();
+  memset(ref, 0, sizeof(*ref));
+  ref->info      = info;
+  ref->engine_id = info->pl_tid;
+  ref->symbol	 = lookupBlob((char*)&ref, sizeof(ref), &thread_blob, &new);
+  assert(new);
+  info->symbol   = ref->symbol;
+  if ( !info->name )
+    PL_unregister_atom(info->symbol);
 
-  return rc;
+  return TRUE;
 }
 
 
 int
 unify_thread_id(term_t id, PL_thread_info_t *info)
 { GET_LD
-  int rc;
+  atom_t name = info->name ? info->name : info->symbol;
 
-  if ( info->name )
-    rc = PL_unify_atom(id, info->name);
-  else
-    rc = PL_unify_integer(id, info->pl_tid);
-
-  return rc;
+  if ( name )
+    return PL_unify_atom(id, name);
+  else					/* during destruction? */
+    return PL_unify_integer(id, info->pl_tid);
 }
 
 
@@ -1781,12 +2000,20 @@ free_thread_info(PL_thread_info_t *info)
 { record_t rec_rv, rec_g;
   PL_thread_info_t *freelist;
 
+  info->status = PL_THREAD_UNUSED;
+
   if ( info->thread_data )
     free_prolog_thread(info->thread_data);
   if ( info->name )
     unaliasThread(info->name);
 
   LOCK();
+  if ( info->symbol )
+  { thread_handle *er;
+
+    if ( (er=symbol_thread_handle(info->symbol)) )
+      er->info = NULL;
+  }
   if ( (rec_rv=info->return_value) )	/* sync with unify_thread_status() */
     info->return_value = NULL;
   if ( (rec_g=info->goal) )
@@ -1826,8 +2053,8 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
   term_t thread = A1;
   term_t retcode = A2;
 
-  if ( !get_thread_sync(thread, &info, TRUE) )
-    fail;
+  if ( !get_thread(thread, &info, TRUE) )
+    return FALSE;
 
   if ( info == LD->thread.info || info->detached )
   { return PL_error("thread_join", 2,
@@ -1915,6 +2142,11 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 		 *******************************/
 
 static int
+thread_id_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ return PL_unify_integer(prop, info->pl_tid);
+}
+
+static int
 thread_alias_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 { atom_t a;
 
@@ -1963,7 +2195,8 @@ typedef struct
 
 
 static const tprop tprop_list [] =
-{ { FUNCTOR_alias1,	       thread_alias_propery },
+{ { FUNCTOR_id1,	       thread_id_propery },
+  { FUNCTOR_alias1,	       thread_alias_propery },
   { FUNCTOR_status1,	       thread_status_propery },
   { FUNCTOR_detached1,	       thread_detached_propery },
   { FUNCTOR_debug1,	       thread_debug_propery },
@@ -2062,7 +2295,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
 	  case -1:
 	    fail;
 	}
-      } else if ( get_thread_sync(thread, &info, TRUE) )
+      } else if ( get_thread(thread, &info, TRUE) )
       { state->tid = info->pl_tid;
 
 	switch( get_prop_def(property, ATOM_thread_property,
@@ -3473,21 +3706,39 @@ static int
 get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
 { atom_t name;
   word id = 0;
-  int tid;
+  int tid = 0;
 
   if ( PL_get_atom(t, &name) )
-  { id = name;
-  } else if ( PL_get_integer(t, &tid) )
-  { thread_queue:
-    if ( tid < 1 || tid > thread_highest_id ||
-	 GD->thread.threads[tid]->status == PL_THREAD_UNUSED ||
-	 GD->thread.threads[tid]->status == PL_THREAD_RESERVED ||
-	 !GD->thread.threads[tid]->thread_data )
-      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
+  { thread_handle *er;
 
-    *queue = &GD->thread.threads[tid]->thread_data->thread.messages;
-    return TRUE;
+    if ( (er=symbol_thread_handle(name)) )
+    { if ( er->info )
+	tid = er->engine_id;
+      else
+	return PL_existence_error("thread", t);
+    } else
+      id = name;
+  } else if ( !PL_get_integer(t, &tid) )
+  { return PL_type_error("message_queue", t);
   }
+
+  if ( tid > 0 )
+  { have_tid:
+    if ( tid >= 1 && tid <= thread_highest_id )
+    { PL_thread_info_t *info = GD->thread.threads[tid];
+
+      if ( info->status == PL_THREAD_UNUSED ||
+	   info->status == PL_THREAD_RESERVED ||
+	   !info->thread_data )
+	return PL_existence_error("thread", t);
+
+      *queue = &info->thread_data->thread.messages;
+      return TRUE;
+    }
+
+    return PL_type_error("thread", t);
+  }
+
   if ( !id )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_message_queue, t);
 
@@ -3500,7 +3751,7 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
   }
   if ( threadTable )
   { if ( (tid = (int)(intptr_t)lookupHTable(threadTable, (void *)id)) )
-    { goto thread_queue;
+    { goto have_tid;
     }
   }
 
@@ -4764,7 +5015,13 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   PL_local_data_t *ldmain;
 
   if ( LD )
+  { if ( LD->thread.info->open_count+1 == 0 )
+    { errno = EINVAL;
+      return -1;
+    }
     LD->thread.info->open_count++;
+    return LD->thread.info->pl_tid;
+  }
 
   if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
   {
@@ -4899,6 +5156,7 @@ static void
 detach_engine(PL_engine_t e)
 { PL_thread_info_t *info = e->thread.info;
 
+  info->has_tid = FALSE;
 #ifdef __linux__
   info->pid = -1;
 #endif
@@ -4906,7 +5164,6 @@ detach_engine(PL_engine_t e)
   info->w32id = 0;
 #endif
   memset(&info->tid, 0, sizeof(info->tid));
-  info->has_tid = FALSE;
 
   TLD_set_LD(NULL);
 }
@@ -5634,7 +5891,7 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
   if ( false(def, P_THREAD_LOCAL) )
     fail;
 
-  if ( !get_thread_sync(thread, &info, FALSE) )
+  if ( !get_thread(thread, &info, FALSE) )
     fail;
 
   LOCK();
