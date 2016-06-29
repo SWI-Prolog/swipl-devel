@@ -2900,9 +2900,15 @@ integer_log_b(N, B, Log0, Log) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Largest R such that R^K =< N.
-
-   TODO: Replace this when the GMP function becomes available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- if(current_predicate(nth_integer_root_and_remainder/4)).
+
+% This currently only works for K >= 1, which is all that is needed for now.
+integer_kth_root_leq(N, K, R) :-
+        nth_integer_root_and_remainder(K, N, R, _).
+
+:- else.
 
 integer_kth_root_leq(N, K, R) :-
         (   even(K) ->
@@ -2927,6 +2933,8 @@ integer_kroot_leq(L, U, N, K, R) :-
             ;   integer_kroot_leq(Mid, U, N, K, R)
             )
         ).
+
+:- endif.
 
 %% ?X #\= ?Y
 %
