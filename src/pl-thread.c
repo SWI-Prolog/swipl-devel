@@ -1632,6 +1632,51 @@ start_thread(void *closure)
 }
 
 
+static void
+copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold)
+{ PL_register_atom(ldold->prompt.current);
+  ldnew->prompt			  = ldold->prompt;
+  if ( ldold->prompt.first )
+  { ldnew->prompt.first		  = ldold->prompt.first;
+    PL_register_atom(ldnew->prompt.first);
+  }
+  ldnew->modules		  = ldold->modules;
+  ldnew->IO			  = ldold->IO;
+  ldnew->IO.input_stack		  = NULL;
+  ldnew->IO.output_stack	  = NULL;
+  ldnew->encoding		  = ldold->encoding;
+#ifdef O_LOCALE
+  ldnew->locale.current		  = acquireLocale(ldold->locale.current);
+#endif
+  ldnew->_debugstatus		  = ldold->_debugstatus;
+  ldnew->_debugstatus.retryFrame  = 0;
+  ldnew->_debugstatus.suspendTrace= 0;
+  if ( ldold->_debugstatus.skiplevel != SKIP_VERY_DEEP )
+  { ldnew->_debugstatus.debugging = DBG_OFF;
+    ldnew->_debugstatus.tracing = FALSE;
+    ldnew->_debugstatus.skiplevel = SKIP_VERY_DEEP;
+  }
+
+  ldnew->tabling.node_pool.limit  = ldold->tabling.node_pool.limit;
+  ldnew->statistics.start_time    = WallTime();
+  ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
+  ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
+  ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
+  if ( ldold->prolog_flag.table )
+  { PL_LOCK(L_PLFLAG);
+    ldnew->prolog_flag.table	  = copyHTable(ldold->prolog_flag.table);
+    PL_UNLOCK(L_PLFLAG);
+  }
+  if ( !ldnew->thread.info->debug )
+  { ldnew->_debugstatus.tracing   = FALSE;
+    ldnew->_debugstatus.debugging = DBG_OFF;
+    set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
+  }
+  init_message_queue(&ldnew->thread.messages, -1);
+  init_predicate_references(ldnew);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The pthread stacksize must be  a  multiple   of  the  page  size on some
 systems. We do the rounding here. If we do not know the page size we use
@@ -1744,49 +1789,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   info->goal = PL_record(goal);
   info->module = PL_context();
-
-					/* copy settings */
-
-  PL_register_atom(ldold->prompt.current);
-  ldnew->prompt			  = ldold->prompt;
-  if ( ldold->prompt.first )
-  { ldnew->prompt.first		  = ldold->prompt.first;
-    PL_register_atom(ldnew->prompt.first);
-  }
-  ldnew->modules		  = ldold->modules;
-  ldnew->IO			  = ldold->IO;
-  ldnew->IO.input_stack		  = NULL;
-  ldnew->IO.output_stack	  = NULL;
-  ldnew->encoding		  = ldold->encoding;
-#ifdef O_LOCALE
-  ldnew->locale.current		  = acquireLocale(ldold->locale.current);
-#endif
-  ldnew->_debugstatus		  = ldold->_debugstatus;
-  ldnew->_debugstatus.retryFrame  = 0;
-  ldnew->_debugstatus.suspendTrace= 0;
-  if ( ldold->_debugstatus.skiplevel != SKIP_VERY_DEEP )
-  { ldnew->_debugstatus.debugging = DBG_OFF;
-    ldnew->_debugstatus.tracing = FALSE;
-    ldnew->_debugstatus.skiplevel = SKIP_VERY_DEEP;
-  }
-
-  ldnew->tabling.node_pool.limit  = ldold->tabling.node_pool.limit;
-  ldnew->statistics.start_time    = WallTime();
-  ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
-  ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
-  ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
-  if ( ldold->prolog_flag.table )
-  { PL_LOCK(L_PLFLAG);
-    ldnew->prolog_flag.table	  = copyHTable(ldold->prolog_flag.table);
-    PL_UNLOCK(L_PLFLAG);
-  }
-  if ( !info->debug )
-  { ldnew->_debugstatus.tracing   = FALSE;
-    ldnew->_debugstatus.debugging = DBG_OFF;
-    set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
-  }
-  init_message_queue(&ldnew->thread.messages, -1);
-  init_predicate_references(ldnew);
+  copy_local_data(ldnew, ldold);
   if ( at_exit )
     thread_at_exit(at_exit, ldnew);
 
