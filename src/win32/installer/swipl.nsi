@@ -282,7 +282,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libswipl.dll
   File ${SWIPL}\bin\libeay32.dll
   File ${SWIPL}\bin\libgmp-10.dll
-  File ${SWIPL}\bin\libjpeg-8.dll
+  File ${SWIPL}\bin\libjpeg-9.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
