@@ -1634,7 +1634,12 @@ start_thread(void *closure)
 
 static void
 copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold)
-{ PL_register_atom(ldold->prompt.current);
+{ GET_LD
+
+  if ( !LD )
+    TLD_set_LD(ldnew);
+
+  PL_register_atom(ldold->prompt.current);
   ldnew->prompt			  = ldold->prompt;
   if ( ldold->prompt.first )
   { ldnew->prompt.first		  = ldold->prompt.first;
@@ -5054,31 +5059,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->goal       = NULL;
   info->module     = MODULE_user;
   info->detached   = TRUE;		/* C-side should join me */
-  info->status     = PL_THREAD_RUNNING;
   info->open_count = 1;
 
-  init_message_queue(&ldnew->thread.messages, -1);
-  init_predicate_references(ldnew);
-
-  ldnew->prompt			 = ldmain->prompt;
-  ldnew->modules		 = ldmain->modules;
-  ldnew->IO			 = ldmain->IO;
-  ldnew->IO.input_stack		 = NULL;
-  ldnew->IO.output_stack	 = NULL;
-  ldnew->encoding		 = ldmain->encoding;
-#ifdef O_LOCALE
-  ldnew->locale.current		 = acquireLocale(ldmain->locale.current);
-#endif
-  ldnew->_debugstatus		 = ldmain->_debugstatus;
-  ldnew->_debugstatus.retryFrame = 0;
-  ldnew->prolog_flag.mask	 = ldmain->prolog_flag.mask;
-  if ( ldmain->prolog_flag.table )
-  { TLD_set_LD(info->thread_data);
-
-    PL_LOCK(L_PLFLAG);
-    ldnew->prolog_flag.table	 = copyHTable(ldmain->prolog_flag.table);
-    PL_UNLOCK(L_PLFLAG);
-  }
+  copy_local_data(ldnew, ldmain);
 
   if ( !initialise_thread(info) )
   { free_thread_info(info);
@@ -5086,6 +5069,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     return -1;
   }
   set_system_thread_id(info);
+  LOCK();
+  info->status = PL_THREAD_RUNNING;
+  UNLOCK();
 
   if ( attr )
   { if ( attr->alias )
@@ -5103,7 +5089,6 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     }
   }
 
-  info->status = PL_THREAD_CREATED;
   updateAlerted(ldnew);
   PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
 
