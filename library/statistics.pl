@@ -233,14 +233,21 @@ engine_counts --> [].
 
 thread_statistics(Thread, Stats) :-
 	thread_property(Thread, status(Status)),
+	human_thread_id(Thread, Id),
 	(   catch(thread_stats(Thread, Stacks, Time), _, fail)
-	->  Stats = thread{id:Thread,
+	->  Stats = thread{id:Id,
 			   status:Status,
 			   time:Time,
 			   stacks:Stacks}
 	;   Stats = thread{id:Thread,
 			   status:Status}
 	).
+
+human_thread_id(Thread, Id) :-
+	atom(Thread), !,
+	Id = Thread.
+human_thread_id(Thread, Id) :-
+	thread_property(Thread, id(Id)).
 
 thread_stats(Thread, Stacks,
 	     time{cpu:CpuTime,
