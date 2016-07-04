@@ -88,6 +88,9 @@ dict_key(Dict, Key) :-
 	gc{type:atom} :< Dict, !,
 	Key = agc.
 dict_key(Dict, Key) :-
+	gc{type:clause} :< Dict, !,
+	Key = cgc.
+dict_key(Dict, Key) :-
 	is_dict(Dict, Key).
 
 collect_stats -->
