@@ -2051,12 +2051,16 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   { PL_error(NULL, 0, "not an engine", ERR_PERMISSION_VMI, "I_YIELD");
     THROW_EXCEPTION;
   }
-  lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+  if ( (void*)BFR < (void*)FR )
+    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+  ARGP = argFrameP(lTop, 0);
   SAVE_REGISTERS(qid);
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 
   QF->foreign_frame = PL_open_foreign_frame();
   QF->yield.term = PL_new_term_ref();
   *valTermRef(QF->yield.term) = linkVal(argFrameP(FR, 0));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 
   assert(LD->exception.throw_environment == &throw_env);
   LD->exception.throw_environment = throw_env.parent;

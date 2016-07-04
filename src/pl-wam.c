@@ -2744,6 +2744,7 @@ variables used in the B_THROW instruction.
     PL_close_foreign_frame(fid);
     if ( QF->yield.term )
     { LOAD_REGISTERS(qid);
+      DEBUG(CHK_SECURE, checkStacks(NULL));
       if ( exception_term )
 	THROW_EXCEPTION;
       NEXT_INSTRUCTION;
