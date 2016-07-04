@@ -5155,9 +5155,17 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 #ifdef O_PLMT
   else if ( key == ATOM_threads )
     v->value.i = GD->statistics.threads_created -
-		 GD->statistics.threads_finished;
+		 GD->statistics.engines_created -
+		 GD->statistics.threads_finished +
+		 GD->statistics.engines_finished;
+  else if ( key == ATOM_engines )
+    v->value.i = GD->statistics.engines_created -
+		 GD->statistics.engines_finished;
   else if ( key == ATOM_threads_created )
-    v->value.i = GD->statistics.threads_created;
+    v->value.i = GD->statistics.threads_created -
+		 GD->statistics.engines_created;
+  else if ( key == ATOM_engines_created )
+    v->value.i = GD->statistics.engines_created;
   else if ( key == ATOM_thread_cputime )
   { v->type = V_FLOAT;
     v->value.f = GD->statistics.thread_cputime;

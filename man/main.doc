@@ -235,6 +235,7 @@ California, 94041, USA.
 \include{attvar}
 \include{chr}
 \include{threads}
+\include{engines}
 \include{foreign}
 \include{runtime}
 \appendix

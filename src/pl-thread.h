@@ -82,6 +82,7 @@ typedef struct _PL_thread_info_t
   unsigned	    debug         : 1;	/* thread can be debugged */
   unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
   unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
+  unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
 #ifdef __linux__
@@ -95,7 +96,6 @@ typedef struct _PL_thread_info_t
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
   atom_t	    symbol;		/* thread_handle symbol */
-  atom_t	    name;		/* Name of the thread */
   struct _PL_thread_info_t *next_free;	/* Next in free list */
 
 					/* lock-free access to data */
@@ -110,11 +110,23 @@ typedef struct _PL_thread_info_t
 } PL_thread_info_t;
 
 
+#define TH_IS_INTERACTOR	0x0001	/* Thread is an interactor (engine) */
+#define TH_INTERACTOR_NOMORE	0x0002	/* No more answers */
+#define TH_INTERACTOR_DONE	0x0004	/* Answered last */
+
 typedef struct thread_handle
 { PL_thread_info_t     *info;		/* represented engine */
   atom_t		symbol;		/* associated symbol */
+  atom_t		alias;		/* alias name of the thread */
   int			engine_id;	/* numeric engine id */
   int			flags;		/* symbol flags */
+  struct
+  { qid_t query;			/* Query handle */
+    term_t argv;			/* Arguments */
+    record_t package;			/* Exchanged term */
+    simpleMutex *mutex;			/* Sync access */
+    atom_t thread;			/* Associated thread */
+  } interactor;
   struct thread_handle *next_free;	/* Free for GC */
 } thread_handle;
 
@@ -325,7 +337,7 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *******************************/
 
 COMMON(int)		exitPrologThreads(void);
-COMMON(bool)		aliasThread(int tid, atom_t name);
+COMMON(bool)		aliasThread(int tid, atom_t type, atom_t name);
 COMMON(word)		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
 COMMON(word)		pl_thread_exit(term_t retcode);

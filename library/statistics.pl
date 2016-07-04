@@ -99,7 +99,8 @@ collect_stats -->
 	agc_statistics,
 	cgc_statistics,
 	shift_statistics,
-	thread_counts.
+	thread_counts,
+	engine_counts.
 
 core_statistics -->
 	{ statistics(process_cputime, Cputime),
@@ -201,14 +202,26 @@ shift_statistics -->
 shift_statistics --> [].
 
 thread_counts -->
-	{ current_prolog_flag(threads, true), !,
+	{ current_prolog_flag(threads, true),
 	  statistics(threads, Active),
 	  statistics(threads_created, Created),
+	  Created > 1, !,
 	  statistics(thread_cputime, CpuTime),
 	  Finished is Created - Active
 	},
 	[ thread{count:Active, finished:Finished, time:CpuTime} ].
 thread_counts --> [].
+
+engine_counts -->
+	{ current_prolog_flag(threads, true),
+	  statistics(engines, Active),
+	  statistics(engines_created, Created),
+	  Created > 0, !,
+	  Finished is Created - Active
+	},
+	[ engine{count:Active, finished:Finished} ].
+engine_counts --> [].
+
 
 %%	thread_statistics(?Thread, -Stats:dict) is nondet.
 %
@@ -587,6 +600,13 @@ msg_statistics(thread, S) -->
 	},
 	[ '~D threads, ~D finished threads used ~3f seconds'-
 	  [Count, Finished, Time]
+	].
+msg_statistics(engine, S) -->
+	{ get_dict(count, S, Count),
+	  get_dict(finished, S, Finished)
+	},
+	[ '~D engines, ~D finished engines'-
+	  [Count, Finished]
 	].
 
 time_stats(T) -->

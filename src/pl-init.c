@@ -845,7 +845,7 @@ PL_initialise(int argc, char **argv)
   if ( !setupProlog() )
     return FALSE;
 #ifdef O_PLMT
-  aliasThread(PL_thread_self(), ATOM_main);
+  aliasThread(PL_thread_self(), ATOM_thread, ATOM_main);
   enableThreads(TRUE);
 #endif
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);

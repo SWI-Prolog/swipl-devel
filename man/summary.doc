@@ -159,6 +159,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_atom}{1}{Examine existing atoms}
 \predicatesummary{current_blob}{2}{Examine typed blobs}
 \predicatesummary{current_char_conversion}{2}{Query input character mapping}
+\predicatesummary{current_engine}{1}{Enumerate known engines}
 \predicatesummary{current_flag}{1}{Examine existing flags}
 \predicatesummary{current_foreign_library}{2}{\pllib{shlib} Examine loaded shared libraries (.so files)}
 \predicatesummary{current_format_predicate}{2}{Enumerate user-defined format codes}
@@ -219,6 +220,15 @@ suggest predicates from a keyword.
 \predicatesummary{empty_nb_set}{1}{Test/create an empty non-backtrackable set}
 \predicatesummary{encoding}{1}{Define encoding inside a source file}
 \predicatesummary{endif}{0}{End of conditional compilation (directive)}
+\predicatesummary{engine_create}{3}{Create an interactor}
+\predicatesummary{engine_create}{4}{Create an interactor}
+\predicatesummary{engine_fetch}{1}{Get term from caller}
+\predicatesummary{engine_next}{2}{Ask interactor for next term}
+\predicatesummary{engine_next_reified}{2}{Ask interactor for next term}
+\predicatesummary{engine_post}{2}{Send term to an interactor}
+\predicatesummary{engine_post}{3}{Send term to an interactor and wait for reply}
+\predicatesummary{engine_self}{1}{Get handle to running interactor}
+\predicatesummary{engine_yield}{1}{Make term available to caller}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
 \predicatesummary{erase}{1}{Erase a database record or clause}
 \predicatesummary{eval_license}{0}{Evaluate licenses of loaded modules}
@@ -325,10 +335,12 @@ suggest predicates from a keyword.
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_assoc}{1}{Verify association list}
+\predicatesummary{is_engine}{1}{Type check for an engine handle}
 \predicatesummary{is_list}{1}{Type check for a list}
 \predicatesummary{is_dict}{1}{Type check for a dict}
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
+\predicatesummary{is_thread}{1}{Type check for an thread handle}
 \predicatesummary{join_threads}{0}{Join all terminated threads interactively}
 \predicatesummary{keysort}{2}{Sort, using a key}
 \predicatesummary{last}{2}{Last element of a list}

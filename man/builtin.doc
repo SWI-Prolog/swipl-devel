@@ -8866,6 +8866,8 @@ thread_cputime  & MT-version: Seconds CPU time used by finished threads.
 		  probably some more. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
+engines		& MT-version: number of existing engines \\
+engines_created & MT-version: number of created engines \\
 \hline
 \end{tabular}
 \end{center}

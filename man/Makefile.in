@@ -55,7 +55,8 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/tabling.tex lib/tablinglib.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
-		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
+		glossary.tex ide.tex license.tex threads.tex engines.tex \
+		$(LIBFILES) \
 		profile.tex attvar.tex chr.tex xref.tex bit64.tex \
 		dialect.tex extensions.tex
 STYFILES=	html.sty txt.sty

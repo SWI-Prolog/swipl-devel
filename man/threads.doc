@@ -261,6 +261,9 @@ also \secref{thutil}, describing more high-level primitives.
 
 
 \begin{description}
+    \predicate{is_thread}{1}{@Term}
+True if \arg{Term} is a handle to an existing thread.
+
     \predicate{thread_property}{2}{?Id, ?Property}
 True if thread \arg{Id} has \arg{Property}.  Either or both arguments
 may be unbound, enumerating all relations on backtracking.
@@ -272,18 +275,25 @@ Defined properties are:
 \begin{description}
 	\termitem{alias}{Alias}
  \arg{Alias} is the alias name of thread \arg{Id}.
+
 	\termitem{detached}{Boolean}
 Current detached status of the thread.
+
 	\termitem{id}{Integer}
 Integer identifier for the thread.  Can be used as argument to the
 thread predicates, but applications must be aware that these references
 are reused.
+
 	\termitem{status}{Status}
 Current status of the thread.  \arg{Status} is one of:
 \begin{description}
     \termitem{running}{}
 The thread is running.  This is the initial status of a thread.  Please
 note that threads waiting for something are considered running too.
+
+    \termitem{suspended}{}
+Only if the thread is an engine (see \secref{engines}).  Indicates
+that the engine is currently not associated with an OS thread.
 
     \termitem{false}{}
 The \arg{Goal} of the thread has been completed and failed.
@@ -300,6 +310,15 @@ exited (using pthread_exit()) \arg{Term} is unbound.
 The \arg{Goal} of the thread has been terminated due to an uncaught
 exception (see throw/1 and catch/3).
 \end{description}
+
+	\termitem{engine}{Boolean}
+If the thread is an engine (see \chapref{engines}), \arg{Boolean} is
+\const{true}.  Othwerwise the property is not present.
+
+	\termitem{thread}{ThreadId}
+If the thread is an engine that is currently attached to a thread,
+\arg{ThreadId} is the thread that executes the engine.
+
 	\termitem{system_thread_id}{Integer}
 Thread identifier used by the operating system for the calling thread.
 Not available on all OSes. This is the same as the Prolog flag

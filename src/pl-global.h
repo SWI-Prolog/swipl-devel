@@ -126,6 +126,8 @@ struct PL_global_data
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
+    int		engines_created;	/* # engines created */
+    int		engines_finished;	/* # engines threads */
     double	thread_cputime;		/* Total CPU time of threads */
 #endif
   } statistics;

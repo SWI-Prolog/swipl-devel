@@ -64,5 +64,6 @@
 	     predopts,
 	     packs,
 	     dicts,
+	     engines,
 	     user:topvars
 	   ]).

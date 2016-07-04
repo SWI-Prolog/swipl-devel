@@ -209,7 +209,7 @@ close_windows_thread(HANDLE wt)
 		 *	    GLOBAL DATA		*
 		 *******************************/
 
-static Table threadTable;		/* name --> integer-id */
+static Table threadTable;		/* name --> reference symbol */
 static int thread_highest_id;		/* Highest handed thread-id */
 static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
@@ -414,11 +414,15 @@ static void	destroy_message_queue(message_queue *queue);
 static void	destroy_thread_message_queue(message_queue *queue);
 static void	init_message_queue(message_queue *queue, long max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
-static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks(PL_local_data_t *ld);
-static int	create_thread_handle(PL_thread_info_t *info);
+static thread_handle *create_thread_handle(PL_thread_info_t *info);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
+static thread_handle *symbol_thread_handle(atom_t a);
+static void	destroy_interactor(thread_handle *th, int gc);
+static PL_engine_t PL_current_engine(void);
+static void	detach_engine(PL_engine_t e);
+
 static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD);
 static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
@@ -609,7 +613,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
-  time = ThreadCPUTime(ld, CPU_USER);
+  time = info->is_engine ? 0.0 : ThreadCPUTime(ld, CPU_USER);
 
   if ( !after_fork )
   { LOCK();
@@ -712,7 +716,6 @@ reinit_threads_after_fork(void)
     info = GD->thread.threads[1];
     LD->thread.info = info;
     info->pl_tid = 1;
-    info->name = ATOM_main;
   }
   set_system_thread_id(info);
 
@@ -996,9 +999,11 @@ exitPrologThreads(void)
 		 *******************************/
 
 int
-aliasThread(int tid, atom_t name)
+aliasThread(int tid, atom_t type, atom_t name)
 { GET_LD
   PL_thread_info_t *info;
+  thread_handle *th;
+  int rc = TRUE;
 
   LOCK();
   if ( !threadTable )
@@ -1010,35 +1015,22 @@ aliasThread(int tid, atom_t name)
 
     UNLOCK();
     PL_put_atom(obj, name);
-    return PL_error("thread_create", 1, "Alias name already taken",
-		    ERR_PERMISSION, ATOM_create, ATOM_thread, obj);
+    return PL_error(NULL, 0, "Alias name already taken",
+		    ERR_PERMISSION, ATOM_create, type, obj);
   }
-
-  addNewHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
-  PL_register_atom(name);
 
   info = GD->thread.threads[tid];
-  info->name = name;
-  if ( info->symbol )
+  if ( (th = create_thread_handle(info)) )
+  { th->alias = name;
+    PL_register_atom(name);
     PL_register_atom(info->symbol);
-
+    addNewHTable(threadTable, (void *)name, (void *)info->symbol);
+  } else
+  { rc = PL_no_memory();
+  }
   UNLOCK();
 
-  return TRUE;
-}
-
-
-static void
-unaliasThread(atom_t name)
-{ GET_LD
-  if ( threadTable )
-  { LOCK();
-    if ( lookupHTable(threadTable, (void *)name) )
-    { deleteHTable(threadTable, (void *)name);
-      PL_unregister_atom(name);
-    }
-    UNLOCK();
-  }
+  return rc;
 }
 
 
@@ -1055,7 +1047,7 @@ to deadlock during crash analysis ...
 int
 PL_get_thread_alias(int tid, atom_t *alias)
 { PL_thread_info_t *info;
-  atom_t name;
+  thread_handle *th;
 
   if ( tid == 0 )
     tid = PL_thread_self();
@@ -1063,8 +1055,10 @@ PL_get_thread_alias(int tid, atom_t *alias)
     return FALSE;
 
   info = GD->thread.threads[tid];
-  if ( (name=info->name) )
-  { *alias = name;
+  if ( info->symbol &&
+       (th=symbol_thread_handle(info->symbol)) &&
+       th->alias )
+  { *alias = th->alias;
 
     return TRUE;
   }
@@ -1096,6 +1090,11 @@ static void
 discard_thread(thread_handle *h)
 { int alive = FALSE;
   PL_thread_info_t *info;
+
+  if ( true(h, TH_IS_INTERACTOR) )
+  { destroy_interactor(h, TRUE);		/* cannot be running */
+    return;
+  }
 
   LOCK();
   if ( (info=h->info) &&
@@ -1193,7 +1192,9 @@ write_thread_handle(IOSTREAM *s, atom_t eref, int flags)
   thread_handle *ref = *refp;
   (void)flags;
 
-  Sfprintf(s, "<thread>(%d,%p)", ref->engine_id, ref);
+  Sfprintf(s, "<%s>(%d,%p)",
+	   true(ref, TH_IS_INTERACTOR) ? "engine" : "thread",
+	   ref->engine_id, ref);
   return TRUE;
 }
 
@@ -1226,7 +1227,9 @@ save_thread(atom_t aref, IOSTREAM *fd)
   thread_handle *ref   = *refp;
   (void)fd;
 
-  return PL_warning("Cannot save reference to <thread>(%d,%p)", ref->engine_id, ref);
+  return PL_warning("Cannot save reference to <%s>(%d,%p)",
+		    true(ref, TH_IS_INTERACTOR) ? "engine" : "thread",
+		    ref->engine_id, ref);
 }
 
 
@@ -1458,6 +1461,7 @@ PL_thread_raise(int tid, int sig)
 const char *
 threadName(int id)
 { PL_thread_info_t *info;
+  thread_handle *th;
   char tmp[16];
 
   if ( id == 0 )
@@ -1466,9 +1470,10 @@ threadName(int id)
     return "[Not a prolog thread]";
 
   info = GD->thread.threads[id];
-
-  if ( info->name )
-    return PL_atom_chars(info->name);
+  if ( info->symbol &&
+       (th=symbol_thread_handle(info->symbol)) &&
+       th->alias )
+    return PL_atom_chars(th->alias);
 
   sprintf(tmp, "%d", id);
   return buffer_string(tmp, BUF_RING);
@@ -1707,6 +1712,7 @@ word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { GET_LD
   PL_thread_info_t *info;
+  thread_handle *th;
   PL_local_data_t *ldnew, *ldold = LD;
   atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
@@ -1776,21 +1782,22 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return FALSE;
   }
 
+  th = create_thread_handle(info);
   if ( alias )
-  { if ( !aliasThread(info->pl_tid, alias) )
+  { if ( !aliasThread(info->pl_tid, ATOM_thread, alias) )
     { free_thread_info(info);
       fail;
     }
   }
-  if ( !create_thread_handle(info) ||
-       !unify_thread_id(id, info) )
+  if ( !unify_thread_id(id, info) )
   { free_thread_info(info);
 
-    if ( !PL_is_variable(id) )
-      return PL_error(NULL, 0, "thread-id", ERR_UNINSTANTIATION, 0, id);
+    if ( !PL_exception(0) )
+      return PL_uninstantiation_error(id);
 
     fail;
   }
+  PL_unregister_atom(th->symbol);
 
   info->goal = PL_record(goal);
   info->module = PL_context();
@@ -1848,7 +1855,7 @@ symbol_thread_handle(atom_t a)
   size_t len;
   PL_blob_t *type;
 
-  if ( (data=PL_blob_data(a, &len, &type)) && type == &thread_blob )
+  if ( a && (data=PL_blob_data(a, &len, &type)) && type == &thread_blob )
   { thread_handle **erd = data;
 
     return *erd;
@@ -1866,8 +1873,10 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 
   if ( PL_get_atom(t, &a) )
   { thread_handle *er;
+    atom_t symbol = a;
 
-    if ( (er=symbol_thread_handle(a)) )
+  from_symbol:
+    if ( (er=symbol_thread_handle(symbol)) )
     { if ( er->info && !THREAD_STATUS_INVALID(er->info->status) )
       { i = er->engine_id;
       } else
@@ -1876,16 +1885,23 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 	  PL_existence_error("thread", t);
 	return FALSE;
       }
-    } else				/* alias name? */
-    { int tid;
+    } else if ( isTextAtom(symbol) )	/* alias name? */
+    { word w;
 
-      if ( (tid = (int)(intptr_t)lookupHTable(threadTable, (void *)a)) )
-	i = tid;
-      else
+      if ( (w = (word)lookupHTable(threadTable, (void *)symbol)) )
+      { symbol = w;
+	goto from_symbol;
+      } else
 	goto no_thread;
+    } else
+    { if ( warn )
+	PL_type_error("thread", t);
+      return FALSE;
     }
   } else if ( !PL_get_integer(t, &i) )
-  { return PL_type_error("thread", t);
+  { if ( warn )
+      PL_type_error("thread", t);
+    return FALSE;
   }
 
   if ( i < 1 ||
@@ -1900,32 +1916,51 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 }
 
 
-static int
+static thread_handle *
 create_thread_handle(PL_thread_info_t *info)
-{ thread_handle *ref = PL_malloc(sizeof(*ref));
-  int new;
+{ atom_t symbol;
 
-  memset(ref, 0, sizeof(*ref));
-  ref->info      = info;
-  ref->engine_id = info->pl_tid;
-  ref->symbol	 = lookupBlob((char*)&ref, sizeof(ref), &thread_blob, &new);
-  assert(new);
-  info->symbol   = ref->symbol;
-  if ( !info->name )
-    PL_unregister_atom(info->symbol);
+  if ( (symbol=info->symbol) )
+  { return symbol_thread_handle(symbol);
+  } else
+  { thread_handle *ref;
 
-  return TRUE;
+    if ( info->is_engine )
+      ref = PL_malloc(sizeof(*ref)+sizeof(simpleMutex));
+    else
+      ref = PL_malloc(sizeof(*ref));
+
+    if ( ref )
+    { int new;
+
+      memset(ref, 0, sizeof(*ref));
+      if ( info->is_engine )
+      { ref->interactor.mutex = (simpleMutex*)(ref+1);
+	simpleMutexInit(ref->interactor.mutex);
+      }
+
+      ref->info      = info;
+      ref->engine_id = info->pl_tid;
+      ref->symbol    = lookupBlob((char*)&ref, sizeof(ref), &thread_blob, &new);
+      assert(new);
+      info->symbol   = ref->symbol;
+    }
+
+    return ref;
+  }
 }
 
 
 int
 unify_thread_id(term_t id, PL_thread_info_t *info)
 { GET_LD
-  atom_t name = info->name ? info->name : info->symbol;
+  thread_handle *th;
 
-  if ( name )
+  if ( (th = create_thread_handle(info)) )
+  { atom_t name = th->alias ? th->alias : th->symbol;
+
     return PL_unify_atom(id, name);
-  else					/* during destruction? */
+  } else					/* during destruction? */
     return PL_unify_integer(id, info->pl_tid);
 }
 
@@ -1938,13 +1973,25 @@ unify_thread_id(term_t id, PL_thread_info_t *info)
 */
 
 static int
+unify_engine_status(term_t status, PL_thread_info_t *info ARG_LD)
+{ return PL_unify_atom(status, ATOM_suspended);
+}
+
+
+static int
 unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
 { GET_LD
 
   switch(info->status)
   { case PL_THREAD_CREATED:
     case PL_THREAD_RUNNING:
-      return PL_unify_atom(status, ATOM_running);
+    { int rc = FALSE;
+      if ( lock ) LOCK();
+      if ( info->is_engine && !info->has_tid )
+	rc = unify_engine_status(status, info PASS_LD);
+      if ( lock ) UNLOCK();
+      return rc || PL_unify_atom(status, ATOM_running);
+    }
     case PL_THREAD_EXITED:
     { term_t tmp = PL_new_term_ref();
       int rc = TRUE;
@@ -2002,6 +2049,21 @@ pl_thread_self(term_t self)
   return unify_thread_id(self, LD->thread.info);
 }
 
+static void
+unalias_thread(thread_handle *th)
+{ atom_t name;
+
+  if ( (name=th->alias) )
+  { atom_t symbol;
+
+    if ( (symbol=(word)deleteHTable(threadTable, (void *)th->alias)) )
+    { th->alias = NULL_ATOM;
+      PL_unregister_atom(name);
+      PL_unregister_atom(symbol);
+    }
+  }
+}
+
 
 static void
 free_thread_info(PL_thread_info_t *info)
@@ -2012,15 +2074,16 @@ free_thread_info(PL_thread_info_t *info)
 
   if ( info->thread_data )
     free_prolog_thread(info->thread_data);
-  if ( info->name )
-    unaliasThread(info->name);
 
   LOCK();
   if ( info->symbol )
-  { thread_handle *er;
+  { thread_handle *th;
 
-    if ( (er=symbol_thread_handle(info->symbol)) )
-      er->info = NULL;
+    if ( (th=symbol_thread_handle(info->symbol)) )
+    { th->info = NULL;
+      if ( th->alias && !info->is_engine )
+	unalias_thread(th);
+    }
   }
   if ( (rec_rv=info->return_value) )	/* sync with unify_thread_status() */
     info->return_value = NULL;
@@ -2079,7 +2142,8 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
   { case 0:
       break;
     case ESRCH:
-      Sdprintf("ESRCH from %d\n", info->tid);
+      Sdprintf("Join %s: ESRCH from %d\n",
+	       threadName(info->pl_tid), info->tid);
       return PL_error("thread_join", 2, NULL,
 		      ERR_EXISTENCE, ATOM_thread, thread);
     default:
@@ -2149,6 +2213,16 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 		 *	  THREAD PROPERTY	*
 		 *******************************/
 
+static atom_t
+symbol_alias(atom_t symbol)
+{ thread_handle *th;
+
+  if ( (th=symbol_thread_handle(symbol)) )
+    return th->alias;
+
+  return NULL_ATOM;
+}
+
 static int
 thread_id_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 { return PL_unify_integer(prop, info->pl_tid);
@@ -2156,10 +2230,11 @@ thread_id_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 
 static int
 thread_alias_propery(PL_thread_info_t *info, term_t prop ARG_LD)
-{ atom_t a;
+{ atom_t symbol, alias;
 
-  if ( (a=info->name) )
-    return PL_unify_atom(prop, a);
+  if ( (symbol=info->symbol) &&
+       (alias=symbol_alias(symbol)) )
+    return PL_unify_atom(prop, alias);
 
   fail;
 }
@@ -2186,14 +2261,39 @@ thread_debug_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 }
 
 static int
+thread_engine_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ IGNORE_LD
+
+  return PL_unify_bool_ex(prop, info->is_engine);
+}
+
+static int
+thread_thread_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ if ( info->is_engine )
+  { thread_handle *th = symbol_thread_handle(info->symbol);
+
+    if ( th->interactor.thread )
+    { atom_t alias = symbol_alias(th->interactor.thread);
+
+      return PL_unify_atom(prop, alias ? alias : th->interactor.thread);
+    }
+  }
+
+  return FALSE;
+}
+
+static int
 thread_tid_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 { IGNORE_LD
-  intptr_t tid = system_thread_id(info);
 
-  if ( tid != -1 )
-    return PL_unify_integer(prop, system_thread_id(info));
-  else
-    return FALSE;
+  if ( info->has_tid )
+  { intptr_t tid = system_thread_id(info);
+
+    if ( tid != -1 )
+      return PL_unify_integer(prop, system_thread_id(info));
+  }
+
+  return FALSE;
 }
 
 typedef struct
@@ -2208,6 +2308,8 @@ static const tprop tprop_list [] =
   { FUNCTOR_status1,	       thread_status_propery },
   { FUNCTOR_detached1,	       thread_detached_propery },
   { FUNCTOR_debug1,	       thread_debug_propery },
+  { FUNCTOR_engine1,	       thread_engine_propery },
+  { FUNCTOR_thread1,	       thread_thread_propery },
   { FUNCTOR_system_thread_id1, thread_tid_propery },
   { 0,			       NULL }
 };
@@ -2378,6 +2480,14 @@ enumerate:
       }
     }
   }
+}
+
+
+static
+PRED_IMPL("is_thread", 1, is_thread, 0)
+{ PL_thread_info_t *info;
+
+  return get_thread(A1, &info, FALSE);
 }
 
 
@@ -2710,6 +2820,456 @@ freeThreadSignals(PL_local_data_t *ld)
     PL_erase(sg->goal);
     freeHeap(sg, sizeof(*sg));
   }
+}
+
+
+		 /*******************************
+		 *	    INTERACTORS		*
+		 *******************************/
+
+static int
+get_interactor(term_t t, thread_handle **thp, int warn ARG_LD)
+{ atom_t a;
+
+  if ( PL_get_atom(t, &a) )
+  { thread_handle *th;
+    atom_t symbol = a;
+
+  from_symbol:
+    if ( (th=symbol_thread_handle(symbol)) &&
+	 true(th, TH_IS_INTERACTOR) )
+    { if ( th->info || true(th, (TH_INTERACTOR_NOMORE|TH_INTERACTOR_DONE)) )
+      { *thp = th;
+	return TRUE;
+      }
+      if ( warn )
+	PL_existence_error("engine", t);
+    } else if ( isTextAtom(symbol) )
+    { word w;
+
+      if ( (w = (word)lookupHTable(threadTable, (void *)symbol)) )
+      { symbol = w;
+	goto from_symbol;
+      }
+      if ( warn )
+	PL_existence_error("engine", t);
+    } else
+    { if ( warn )
+	PL_type_error("engine", t);
+    }
+  } else
+  { if ( warn )
+      PL_type_error("engine", t);
+  }
+
+  return FALSE;
+}
+
+
+/** '$engine_create'(-Handle, +GoalAndTemplate, +Options)
+*/
+
+static const opt_spec make_engine_options[] =
+{ { ATOM_local,		OPT_SIZE|OPT_INF },
+  { ATOM_global,	OPT_SIZE|OPT_INF },
+  { ATOM_trail,	        OPT_SIZE|OPT_INF },
+  { ATOM_alias,		OPT_ATOM },
+  { ATOM_inherit_from,	OPT_TERM },
+  { NULL_ATOM,		0 }
+};
+
+
+static
+PRED_IMPL("$engine_create", 3, engine_create, 0)
+{ PRED_LD
+  PL_engine_t new;
+  PL_thread_attr_t attrs;
+  size_t lsize	      =	0;
+  size_t gsize	      =	0;
+  size_t tsize	      =	0;
+  atom_t alias	      =	NULL_ATOM;
+  term_t inherit_from =	0;
+
+  memset(&attrs, 0, sizeof(attrs));
+  if ( !scan_options(A3, 0,
+		     ATOM_engine_option, make_engine_options,
+		     &lsize,
+		     &gsize,
+		     &tsize,
+		     &alias,
+		     &inherit_from) ||
+       !mk_kbytes(&lsize, ATOM_local  PASS_LD) ||
+       !mk_kbytes(&gsize, ATOM_global PASS_LD) ||
+       !mk_kbytes(&tsize, ATOM_trail  PASS_LD) )
+    return FALSE;
+
+  if ( lsize ) attrs.local_size  = lsize/1024;
+  if ( gsize ) attrs.global_size = gsize/1024;
+  if ( tsize ) attrs.trail_size  = tsize/1024;
+
+  if ( (new = PL_create_engine(&attrs)) )
+  { PL_engine_t me;
+    static predicate_t pred = NULL;
+    record_t r;
+    thread_handle *th;
+    term_t t;
+    int rc;
+
+    new->thread.info->is_engine = TRUE;
+    th = create_thread_handle(new->thread.info);
+    set(th, TH_IS_INTERACTOR);
+    ATOMIC_INC(&GD->statistics.engines_created);
+
+    if ( alias )
+    { if ( !aliasThread(new->thread.info->pl_tid, ATOM_engine, alias) )
+      { destroy_interactor(th, FALSE);
+	return FALSE;
+      }
+    }
+
+    if ( !(rc = unify_thread_id(A1, new->thread.info)) )
+    { destroy_interactor(th, FALSE);
+      if ( !PL_exception(0) )
+	return PL_uninstantiation_error(A1);
+
+      return FALSE;
+    }
+    PL_unregister_atom(th->symbol);
+
+    if ( !pred )
+      pred = PL_predicate("call", 1, "system");
+
+    r = PL_record(A2);
+    rc = PL_set_engine(new, &me);
+    assert(rc == PL_ENGINE_SET);
+    LOCAL_LD = new;
+
+    if  ( (t = PL_new_term_ref()) &&
+	  (th->interactor.argv = PL_new_term_refs(2)) &&
+	  PL_recorded(r, t) &&
+	  PL_get_arg(1, t, th->interactor.argv+0) &&
+	  PL_get_arg(2, t, th->interactor.argv+1) )
+    { th->interactor.query = PL_open_query(NULL,
+					   PL_Q_CATCH_EXCEPTION|
+					   PL_Q_ALLOW_YIELD|
+					   PL_Q_EXT_STATUS,
+					   pred, th->interactor.argv+1);
+      PL_set_engine(me, NULL);
+      LOCAL_LD = me;
+    } else
+    { assert(0);			/* TBD: copy exception */
+    }
+
+    PL_erase(r);
+
+    return TRUE;
+  }
+
+  return PL_no_memory();
+}
+
+
+static void
+destroy_interactor(thread_handle *th, int gc)
+{ if ( th->interactor.query )
+  { PL_engine_t me;
+
+    PL_set_engine(th->info->thread_data, &me);
+    PL_close_query(th->interactor.query);
+    PL_set_engine(me, NULL);
+    th->interactor.query = 0;
+  }
+  if ( th->info )
+  { PL_destroy_engine(th->info->thread_data);
+    ATOMIC_INC(&GD->statistics.engines_finished);
+    assert(th->info == NULL || gc);
+  }
+  if ( th->interactor.package )
+  { PL_erase(th->interactor.package);
+    th->interactor.package = 0;
+  }
+  clear(th, (TH_INTERACTOR_NOMORE|TH_INTERACTOR_DONE));
+  simpleMutexDelete(th->interactor.mutex);
+  th->interactor.mutex = NULL;
+  unalias_thread(th);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called when we computed the last result.   This means we can destroy the
+Prolog engine, but the reference (and  possible alias) must remain valid
+to deal with the engine_destroy/1  or   final  engine_next/1 if the last
+answer was deterministic.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+done_interactor(thread_handle *th)
+{ GET_LD
+  PL_engine_t e = th->info->thread_data;
+
+  assert(e->thread.info->open_count == 1);
+  assert(e == LD);
+  set(th, TH_INTERACTOR_DONE);
+  PL_thread_destroy_engine();
+  ATOMIC_INC(&GD->statistics.engines_finished);
+  assert(th->info == NULL);
+}
+
+
+static
+PRED_IMPL("engine_destroy", 1, engine_destroy, 0)
+{ PRED_LD
+  thread_handle *th;
+
+  if ( get_interactor(A1, &th, TRUE PASS_LD) )
+  { destroy_interactor(th, FALSE);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static void
+copy_debug_mode(PL_local_data_t *to, PL_local_data_t *from)
+{ PL_local_data_t *current = PL_current_engine();
+
+  if ( to->_debugstatus.debugging != from->_debugstatus.debugging )
+  { TLD_set_LD(to);
+    debugmode(from->_debugstatus.debugging, NULL);
+    TLD_set_LD(current);
+  }
+  if ( to->_debugstatus.tracing != from->_debugstatus.tracing )
+  { TLD_set_LD(to);
+    tracemode(from->_debugstatus.tracing, NULL);
+    TLD_set_LD(current);
+  }
+}
+
+
+static PL_local_data_t *
+activate_interactor(thread_handle *th)
+{ PL_local_data_t *ld = th->info->thread_data;
+
+  TLD_set_LD(ld);
+  ld->thread.info->tid = pthread_self();
+  ld->thread.info->has_tid = TRUE;
+  set_system_thread_id(ld->thread.info);
+
+  return ld;
+}
+
+
+static PL_local_data_t *
+suspend_interactor(PL_engine_t me, thread_handle *th)
+{ if ( th->info )
+    detach_engine(th->info->thread_data);
+  TLD_set_LD(me);
+
+  return me;
+}
+
+
+#define YIELD_ENGINE_YIELD  256		/* keep in sync with engine_yield/1 */
+#define YIELD_ENGINE_FETCH  257		/* keep in sync with engine_fetch/1 */
+
+static int
+interactor_post_answer_nolock(thread_handle *th,
+			      term_t ref, term_t package, term_t term ARG_LD)
+{ PL_engine_t me = LD;
+
+  if ( package && th->interactor.package )
+    return PL_permission_error("post_to", "engine", ref);
+
+  if ( !th->interactor.query )
+  { if ( true(th, TH_INTERACTOR_NOMORE) )
+    { clear(th, TH_INTERACTOR_NOMORE);
+      set(th, TH_INTERACTOR_DONE);
+      return FALSE;
+    }
+    return PL_existence_error("engine", ref);
+  }
+
+  if ( package )
+    th->interactor.package = PL_record(package);
+
+  if ( (LOCAL_LD = activate_interactor(th)) )
+  { term_t t;
+    int rc;
+    record_t r;
+
+    copy_debug_mode(LD, me);
+  again:
+    rc = PL_next_solution(th->interactor.query);
+    if ( rc != YIELD_ENGINE_FETCH )
+      copy_debug_mode(me, LD);
+
+    switch( rc )
+    { case PL_S_TRUE:
+      { r = PL_record(th->interactor.argv+0);
+	break;
+      }
+      case PL_S_LAST:
+      { r = PL_record(th->interactor.argv+0);
+	PL_close_query(th->interactor.query);
+	th->interactor.query = 0;
+	done_interactor(th);
+	set(th, TH_INTERACTOR_NOMORE);
+	break;
+      }
+      case PL_S_FALSE:
+      { PL_close_query(th->interactor.query);
+	th->interactor.query = 0;
+	done_interactor(th);
+	LOCAL_LD = suspend_interactor(me, th);
+
+	return FALSE;
+      }
+      case PL_S_EXCEPTION:
+      { record_t r = PL_record(PL_exception(th->interactor.query));
+	term_t ex;
+	int rc;
+
+	PL_close_query(th->interactor.query);
+	th->interactor.query = 0;
+	done_interactor(th);
+	LOCAL_LD = suspend_interactor(me, th);
+
+	rc = ( (ex = PL_new_term_ref()) &&
+	       PL_recorded(r, ex) &&
+	       PL_raise_exception(ex) );
+
+	PL_erase(r);
+	return rc;
+      }
+      case YIELD_ENGINE_YIELD:			/* engine_yield/1 */
+      { r = PL_record(PL_yielded(th->interactor.query));
+	break;
+      }
+      case YIELD_ENGINE_FETCH:			/* engine_fetch/1 */
+      { DEBUG(CHK_SECURE, checkStacks(NULL));
+	if ( th->interactor.package )
+	{ rc = ( (t = PL_new_term_ref()) &&
+		 PL_recorded(th->interactor.package, t) &&
+		 PL_unify(t, PL_yielded(th->interactor.query)) );
+	  DEBUG(CHK_SECURE, checkStacks(NULL));
+	  PL_erase(th->interactor.package);
+	  th->interactor.package = 0;
+	  goto again;
+	} else			/* TBD: better error */
+	{ PL_existence_error("engine_term", PL_yielded(th->interactor.query));
+	  goto again;
+	}
+      }
+      default:
+      { term_t ex = PL_new_term_ref();
+
+	return ( PL_put_integer(ex, rc) &&
+		 PL_domain_error("engine_yield_code", ex) );
+      }
+    }
+
+    LOCAL_LD = suspend_interactor(me, th);
+    rc = ( (t=PL_new_term_ref()) &&
+	   PL_recorded(r, t) &&
+	   PL_unify(term, t) );
+    PL_erase(r);
+
+    return rc;
+  }
+
+  assert(0);
+  return FALSE;
+}
+
+
+static atom_t
+thread_symbol(const PL_local_data_t *ld)
+{ if ( ld->thread.info->is_engine )
+  { const thread_handle *th = symbol_thread_handle(ld->thread.info->symbol);
+    return th->interactor.thread;
+  } else
+  { return ld->thread.info->symbol;
+  }
+}
+
+
+static int
+interactor_post_answer(term_t ref, term_t package, term_t term ARG_LD)
+{ thread_handle *th;
+
+  if ( get_interactor(ref, &th, TRUE PASS_LD) )
+  { int rc;
+
+    simpleMutexLock(th->interactor.mutex);
+    th->interactor.thread = thread_symbol(LD);
+    rc = interactor_post_answer_nolock(th, ref, package, term PASS_LD);
+    th->interactor.thread = NULL_ATOM;
+    simpleMutexUnlock(th->interactor.mutex);
+
+    return rc;
+  }
+
+  return FALSE;
+}
+
+
+/** engine_next(+Engine, -Next)
+*/
+
+static
+PRED_IMPL("engine_next", 2, engine_next, 0)
+{ PRED_LD
+
+  return interactor_post_answer(A1, 0, A2 PASS_LD);
+}
+
+/** engine_post(+Engine, +Term)
+*/
+
+static
+PRED_IMPL("engine_post", 2, engine_post, 0)
+{ PRED_LD
+  thread_handle *th;
+
+  if ( get_interactor(A1, &th, TRUE PASS_LD) )
+  { int rc;
+
+    simpleMutexLock(th->interactor.mutex);
+    if ( !th->interactor.package )
+    { if ( (th->interactor.package = PL_record(A2)) )
+	rc = TRUE;
+      else
+	rc = FALSE;
+    } else
+    { rc = PL_permission_error("post_to", "engine", A1);
+    }
+    simpleMutexUnlock(th->interactor.mutex);
+
+    return rc;
+  }
+
+  return FALSE;
+}
+
+/** engine_post(+Engine, +Term, -Next)
+*/
+
+static
+PRED_IMPL("engine_post", 3, engine_post, 0)
+{ PRED_LD
+
+  return interactor_post_answer(A1, A2, A3 PASS_LD);
+}
+
+
+static
+PRED_IMPL("is_engine", 1, is_engine, 0)
+{ PRED_LD
+  thread_handle *th;
+
+  return get_interactor(A1, &th, FALSE PASS_LD);
 }
 
 
@@ -3758,8 +4318,15 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
     }
   }
   if ( threadTable )
-  { if ( (tid = (int)(intptr_t)lookupHTable(threadTable, (void *)id)) )
-    { goto have_tid;
+  { word w;
+
+    if ( (w = (word)lookupHTable(threadTable, (void *)id)) )
+    { thread_handle *th;
+
+      if ( (th=symbol_thread_handle(w)) )
+      { tid = th->engine_id;
+	goto have_tid;
+      }
     }
   }
 
@@ -5075,7 +5642,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   if ( attr )
   { if ( attr->alias )
-    { if ( !aliasThread(info->pl_tid, PL_new_atom(attr->alias)) )
+    { if ( !aliasThread(info->pl_tid, ATOM_thread, PL_new_atom(attr->alias)) )
       { free_thread_info(info);
 	errno = EPERM;
 	return -1;
@@ -5152,8 +5719,6 @@ detach_engine(PL_engine_t e)
   info->w32id = 0;
 #endif
   memset(&info->tid, 0, sizeof(info->tid));
-
-  TLD_set_LD(NULL);
 }
 
 
@@ -5186,6 +5751,8 @@ PL_set_engine(PL_engine_t new, PL_engine_t *old)
       new->thread.info->tid = pthread_self();
 
       set_system_thread_id(new->thread.info);
+    } else
+    { TLD_set_LD(NULL);
     }
 
     UNLOCK();
@@ -6457,34 +7024,45 @@ markAccessedPredicates(PL_local_data_t *ld)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define NDET PL_FA_NONDETERMINISTIC
+
 BeginPredDefs(thread)
 #ifdef O_PLMT
-  PRED_DEF("thread_detach", 1, thread_detach, PL_FA_ISO)
-  PRED_DEF("thread_join", 2, thread_join, 0)
-  PRED_DEF("thread_statistics", 3, thread_statistics, 0)
-  PRED_DEF("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
-  PRED_DEF("message_queue_create", 1, message_queue_create, 0)
-  PRED_DEF("message_queue_create", 2, message_queue_create2, PL_FA_ISO)
-  PRED_DEF("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
-  PRED_DEF("thread_send_message", 2, thread_send_message, PL_FA_ISO)
-  PRED_DEF("thread_send_message", 3, thread_send_message, 0)
-  PRED_DEF("thread_get_message", 1, thread_get_message, PL_FA_ISO)
-  PRED_DEF("thread_get_message", 2, thread_get_message, PL_FA_ISO)
-  PRED_DEF("thread_get_message", 3, thread_get_message, PL_FA_ISO)
-  PRED_DEF("thread_peek_message", 1, thread_peek_message_1, PL_FA_ISO)
-  PRED_DEF("thread_peek_message", 2, thread_peek_message_2, PL_FA_ISO)
-  PRED_DEF("message_queue_destroy", 1, message_queue_destroy, PL_FA_ISO)
-  PRED_DEF("thread_setconcurrency", 2, thread_setconcurrency, 0)
+  PRED_DEF("thread_detach",	     1,	thread_detach,	       PL_FA_ISO)
+  PRED_DEF("thread_join",	     2,	thread_join,	       0)
+  PRED_DEF("thread_statistics",	     3,	thread_statistics,     0)
+  PRED_DEF("thread_property",	     2,	thread_property,       NDET|PL_FA_ISO)
+  PRED_DEF("is_thread",		     1,	is_thread,	       0)
 
-  PRED_DEF("mutex_statistics", 0, mutex_statistics, 0)
-  PRED_DEF("mutex_create",     1, mutex_create1,    0)
-  PRED_DEF("mutex_create",     2, mutex_create2,    PL_FA_ISO)
-  PRED_DEF("mutex_destroy",    1, mutex_destroy,    PL_FA_ISO)
-  PRED_DEF("mutex_lock",       1, mutex_lock,	    PL_FA_ISO)
-  PRED_DEF("mutex_trylock",    1, mutex_trylock,    PL_FA_ISO)
-  PRED_DEF("mutex_unlock",     1, mutex_unlock,	    PL_FA_ISO)
-  PRED_DEF("mutex_unlock_all", 0, mutex_unlock_all, 0)
-  PRED_DEF("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+  PRED_DEF("message_queue_create",   1,	message_queue_create,  0)
+  PRED_DEF("message_queue_create",   2,	message_queue_create2, PL_FA_ISO)
+  PRED_DEF("message_queue_property", 2,	message_property,      NDET|PL_FA_ISO)
+  PRED_DEF("thread_send_message",    2,	thread_send_message,   PL_FA_ISO)
+  PRED_DEF("thread_send_message",    3,	thread_send_message,   0)
+  PRED_DEF("thread_get_message",     1,	thread_get_message,    PL_FA_ISO)
+  PRED_DEF("thread_get_message",     2,	thread_get_message,    PL_FA_ISO)
+  PRED_DEF("thread_get_message",     3,	thread_get_message,    PL_FA_ISO)
+  PRED_DEF("thread_peek_message",    1,	thread_peek_message_1, PL_FA_ISO)
+  PRED_DEF("thread_peek_message",    2,	thread_peek_message_2, PL_FA_ISO)
+  PRED_DEF("message_queue_destroy",  1,	message_queue_destroy, PL_FA_ISO)
+  PRED_DEF("thread_setconcurrency",  2,	thread_setconcurrency, 0)
+
+  PRED_DEF("$engine_create",	     3,	engine_create,	       0)
+  PRED_DEF("engine_destroy",	     1,	engine_destroy,	       0)
+  PRED_DEF("engine_next",	     2,	engine_next,	       0)
+  PRED_DEF("engine_post",	     2,	engine_post,	       0)
+  PRED_DEF("engine_post",	     3,	engine_post,	       0)
+  PRED_DEF("is_engine",		     1,	is_engine,	       0)
+
+  PRED_DEF("mutex_statistics",	     0,	mutex_statistics,      0)
+  PRED_DEF("mutex_create",	     1,	mutex_create1,	       0)
+  PRED_DEF("mutex_create",	     2,	mutex_create2,	       PL_FA_ISO)
+  PRED_DEF("mutex_destroy",	     1,	mutex_destroy,	       PL_FA_ISO)
+  PRED_DEF("mutex_lock",	     1,	mutex_lock,	       PL_FA_ISO)
+  PRED_DEF("mutex_trylock",	     1,	mutex_trylock,	       PL_FA_ISO)
+  PRED_DEF("mutex_unlock",	     1,	mutex_unlock,	       PL_FA_ISO)
+  PRED_DEF("mutex_unlock_all",	     0,	mutex_unlock_all,      0)
+  PRED_DEF("mutex_property",	     2,	mutex_property,	       NDET|PL_FA_ISO)
 
   PRED_DEF("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 #endif
