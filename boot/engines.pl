@@ -37,7 +37,6 @@
 	    engine_create/4,       % ?Template, :Goal, -Engine, +Options
 	    engine_next_reified/2, % +Engine, -Term
 	    engine_yield/1,        % +Term
-	    engine_fetch/1,        % -Term
 	    engine_self/1,	   % -Engine
 	    current_engine/1       % ?Engine
 	  ]).
@@ -123,9 +122,6 @@ engine_next_reified(Engine, Answer) :-
 
 engine_yield(Term) :-
 	'$engine_yield'(Term, 256).
-
-engine_fetch(Term) :-
-	'$engine_yield'(Term, 257).
 
 %%	engine_self(E) is semidet.
 %

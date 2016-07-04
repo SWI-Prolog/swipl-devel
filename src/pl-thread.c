@@ -3072,7 +3072,6 @@ suspend_interactor(PL_engine_t me, thread_handle *th)
 
 
 #define YIELD_ENGINE_YIELD  256		/* keep in sync with engine_yield/1 */
-#define YIELD_ENGINE_FETCH  257		/* keep in sync with engine_fetch/1 */
 
 static int
 interactor_post_answer_nolock(thread_handle *th,
@@ -3100,10 +3099,7 @@ interactor_post_answer_nolock(thread_handle *th,
     record_t r;
 
     copy_debug_mode(LD, me);
-  again:
     rc = PL_next_solution(th->interactor.query);
-    if ( rc != YIELD_ENGINE_FETCH )
-      copy_debug_mode(me, LD);
 
     switch( rc )
     { case PL_S_TRUE:
@@ -3146,21 +3142,6 @@ interactor_post_answer_nolock(thread_handle *th,
       case YIELD_ENGINE_YIELD:			/* engine_yield/1 */
       { r = PL_record(PL_yielded(th->interactor.query));
 	break;
-      }
-      case YIELD_ENGINE_FETCH:			/* engine_fetch/1 */
-      { DEBUG(CHK_SECURE, checkStacks(NULL));
-	if ( th->interactor.package )
-	{ rc = ( (t = PL_new_term_ref()) &&
-		 PL_recorded(th->interactor.package, t) &&
-		 PL_unify(t, PL_yielded(th->interactor.query)) );
-	  DEBUG(CHK_SECURE, checkStacks(NULL));
-	  PL_erase(th->interactor.package);
-	  th->interactor.package = 0;
-	  goto again;
-	} else			/* TBD: better error */
-	{ PL_existence_error("engine_term", PL_yielded(th->interactor.query));
-	  goto again;
-	}
       }
       default:
       { term_t ex = PL_new_term_ref();
@@ -3261,6 +3242,37 @@ PRED_IMPL("engine_post", 3, engine_post, 0)
 { PRED_LD
 
   return interactor_post_answer(A1, A2, A3 PASS_LD);
+}
+
+
+static
+PRED_IMPL("engine_fetch", 1, engine_fetch, 0)
+{ PRED_LD
+  PL_thread_info_t *info = LD->thread.info;
+  term_t exv;
+
+  if ( info->is_engine )
+  { thread_handle *th = symbol_thread_handle(info->symbol);
+
+    if ( th->interactor.package )
+    { term_t tmp;
+      int rc;
+
+      rc = ( (tmp = PL_new_term_ref()) &&
+	     PL_recorded(th->interactor.package, tmp) &&
+	     PL_unify(A1, tmp) );
+      PL_erase(th->interactor.package);
+      th->interactor.package = 0;
+
+      return rc;
+    }
+  }
+
+  return ( (exv = PL_new_term_refs(2)) &&
+	    PL_unify_atom_chars(exv+0, "delivery") &&
+	    unify_thread_id(exv+1, info) &&
+	    PL_error("engine_fetch", 1, "Use engine_post/2,3", ERR_EXISTENCE3,
+		     ATOM_term, exv+0, exv+1) );
 }
 
 
@@ -7052,6 +7064,7 @@ BeginPredDefs(thread)
   PRED_DEF("engine_next",	     2,	engine_next,	       0)
   PRED_DEF("engine_post",	     2,	engine_post,	       0)
   PRED_DEF("engine_post",	     3,	engine_post,	       0)
+  PRED_DEF("engine_fetch",	     1, engine_fetch,	       0)
   PRED_DEF("is_engine",		     1,	is_engine,	       0)
 
   PRED_DEF("mutex_statistics",	     0,	mutex_statistics,      0)
