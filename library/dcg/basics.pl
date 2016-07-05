@@ -419,10 +419,11 @@ prolog_id_cont([]) --> "".
 		 *	     GENERATION		*
 		 *******************************/
 
-%%	atom(+Atom)// is det.
+%%	atom(++Atom)// is det.
 %
 %	Generate codes of Atom.  Current implementation uses write/1,
-%	dealing with any Prolog term.
+%	dealing with any Prolog term.  Atom must be ground though.
 
 atom(Atom, Head, Tail) :-
+	must_be(ground, Atom),
 	format(codes(Head, Tail), '~w', [Atom]).
