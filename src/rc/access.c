@@ -64,10 +64,11 @@
 static HtmlTagDef file_tag_def = NULL;
 
 static int attach_archive(RcArchive rca);
-static int attach_archive_mem(RcArchive rca, const char *mem, size_t mem_size);
+static int attach_archive_mem(RcArchive rca,
+			      const unsigned char *mem, size_t mem_size);
 
 RcArchive
-rc_open_archive_mem(const char *mem, size_t mem_size, int flags)
+rc_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
 { RcArchive rca = malloc(sizeof(rc_archive));
 
   if ( rca )
@@ -463,7 +464,7 @@ scan_archive(RcArchive rca)
 #endif
 
 static int
-attach_archive_mem(RcArchive rca, const char *mem, size_t mem_size)
+attach_archive_mem(RcArchive rca, const unsigned char *mem, size_t mem_size)
 { rca->map_size  = mem_size;
   rca->size      = rca->map_size;
   rca->offset    = 0;
