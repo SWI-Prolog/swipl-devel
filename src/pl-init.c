@@ -918,7 +918,7 @@ PL_initialise(int argc, char **argv)
 
 
 int
-PL_set_resource_db_mem(const char *data, size_t size)
+PL_set_resource_db_mem(const unsigned char *data, size_t size)
 { if ( (GD->resourceDB = rc_open_archive_mem(data, size, RC_RDONLY)) )
     return TRUE;
 

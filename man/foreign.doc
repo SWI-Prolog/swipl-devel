@@ -3343,7 +3343,8 @@ If the engine is initialised and \arg{argc} is not \const{NULL}, the
 argument count used with PL_initialise() is stored in \arg{argc}.  Same
 for the argument vector \arg{argv}.
 
-    \cfunction{int}{PL_set_resource_db_mem}{const char *data, size_t size}
+    \cfunction{int}{PL_set_resource_db_mem}{const unsigned char *data,
+					    size_t size}
 This function must be called at most once and \emph{before} calling
 PL_initialise(). The memory area designated by \arg{data} and \arg{size}
 must contain the resource data and be in the format as produced by
@@ -3383,6 +3384,49 @@ main(int argc, char **argv)
 }
 \end{code}
 \end{enumerate}
+
+Alternative to \program{xxd}, it is possible to use inline assembler,
+e.g. the \program{gcc} \const{incbin} instruction. Code for
+\program{gcc} was provided by Roberto Bagnara on the SWI-Prolog
+mailinglist.  Given the state in a file \file{state}, create the
+following assembler program:
+
+\begin{code}
+        .globl _state
+        .globl _state_end
+_state:
+        .incbin "state"
+_state_end:
+\end{code}
+
+Now include this as follows:
+
+\begin{code}
+#include <SWI-Prolog.h>
+
+#if __linux
+#define STATE _state
+#define STATE_END _state_end
+#else
+#define STATE state
+#define STATE_END state_end
+#endif
+
+extern unsigned char STATE[];
+extern unsigned char STATE_END[];
+
+int
+main(int argc, char **argv)
+{ if ( !PL_set_resource_db_mem(STATE, STATE_END - STATE) ||
+       !PL_initialise(argc, argv) )
+    PL_halt(1);
+  return PL_toplevel();
+}
+\end{code}
+
+As Jose Morales pointed at
+\url{https://github.com/graphitemaster/incbin}, which contains a
+portability layer on top of the above idea.
 
     \cfunction{void}{PL_install_readline}{}
 Installs the GNU readline line editor.  Embedded applications that do not
