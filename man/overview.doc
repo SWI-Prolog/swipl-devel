@@ -828,8 +828,8 @@ to a specific Prolog installation, while the latter uses the default
 prolog installed in \verb"$PATH".
 
 \begin{code}
-\verb$#!/path/to/swipl$
-\verb$#!/usr/bin/env swipl$
+!/path/to/swipl
+!/usr/bin/env swipl
 \end{code}
 
 The interpretation of arguments to the executable in the
