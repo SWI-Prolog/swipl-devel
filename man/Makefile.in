@@ -52,7 +52,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
 		lib/solutionsequences.tex lib/iostream.tex \
 		lib/persistency.tex lib/yall.tex lib/error.tex \
-		lib/tabling.tex lib/tablinglib.tex
+		lib/tabling.tex lib/tablinglib.tex lib/simplex.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex engines.tex \
@@ -185,6 +185,8 @@ lib/clpb.tex:	../library/clp/clpb.pl
 		$(LIBTOTEX) 'library(clpb)'
 lib/clpfd.tex:	../library/clp/clpfd.pl
 		$(LIBTOTEX) 'library(clpfd)'
+lib/simplex.tex: ../library/clp/simplex.pl
+		$(LIBTOTEX) 'library(simplex)'
 lib/url.tex:	../library/url.pl
 		$(LIBTOTEX) 'library(url)'
 lib/pairs.tex:	../library/pairs.pl
