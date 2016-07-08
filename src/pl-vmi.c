@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -2278,7 +2278,7 @@ conditions should be rare (I hope :-).
 
 C_LSCUT does the same for the condition   part  of soft-cut (*->). Here,
 the choice argument is the new choice  created by the disjunction, so we
-must get its parent.
+must cut its parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 BEGIN_SHAREDVARS
   Choice och;
@@ -2424,8 +2424,8 @@ c_cut:
 
   ARGP = argFrameP(lTop, 0);
 
-  DEBUG(3, Sdprintf(" --> BFR = #%ld, lTop = #%ld\n",
-		    loffset(BFR), loffset(lTop)));
+  DEBUG(MSG_CUT, Sdprintf(" --> BFR = #%ld, lTop = #%ld\n",
+			  loffset(BFR), loffset(lTop)));
   NEXT_INSTRUCTION;
 }
 END_SHAREDVARS
@@ -2443,6 +2443,8 @@ See pl-comp.c and C_SOFTCUT implementation for details.
 VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP))
 { varFrame(FR, *PC++) = consTermRef(lTop);	/* see C_SOFTCUT */
 
+  DEBUG(MSG_CUT, Sdprintf("Creating *-> choice at %p (%d)\n",
+			  lTop, loffset(lTop)));
   VMI_GOTO(C_OR);
 }
 
