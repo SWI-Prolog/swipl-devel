@@ -2460,7 +2460,7 @@ VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
   if ( bfr == ch )
   { BFR = bfr->parent;
   } else
-  { for(; bfr; bfr=bfr->parent)
+  { for(; bfr >= ch; bfr=bfr->parent)
     { if ( bfr->parent == ch )
       { bfr->parent = ch->parent;
 	break;
