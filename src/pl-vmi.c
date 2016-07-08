@@ -2285,15 +2285,15 @@ BEGIN_SHAREDVARS
   Choice ch;
 
 VMI(C_LSCUT, 0, 1, (CA1_CHP))
-{ och = (Choice) valTermRef(varFrame(FR, *PC));
-  och = och->parent;
+{ Choice ch = (Choice)valTermRef(varFrame(FR, *PC++));
+
+  och = ch->parent;
   goto c_lcut_cont;
 }
 
 VMI(C_LCUT, 0, 1, (CA1_CHP))
-{ och = (Choice) valTermRef(varFrame(FR, *PC));
+{ och = (Choice) valTermRef(varFrame(FR, *PC++));
 c_lcut_cont:
-  PC++;
 
   for(ch=BFR; ch; ch = ch->parent)
   { if ( ch->parent == och )
@@ -2450,25 +2450,17 @@ VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_SOFTCUT: Handle the commit-to of A *-> B; C. Simply invalidate the
-choicepoint.
+C_SOFTCUT: Handle the commit-to of A *->   B;  C. We must invalidate the
+choice point, but note that C_SOFTCUT is  executed multiple times if the
+condition succeeds multiple times. Also, C_LSCUT   must find this choice
+point to know how far to cut,  so   we  cannot  delete the choice point.
+Instead, we turn it into a dummy (CHP_DEBUG) choice point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
-{ word ch_ref = varFrame(FR, *PC);
-  Choice ch = (Choice) valTermRef(ch_ref);
-  Choice bfr = BFR;
 
-  PC++;
-  if ( bfr == ch )
-  { BFR = bfr->parent;
-  } else
-  { for(; bfr >= ch; bfr=bfr->parent)
-    { if ( bfr->parent == ch )
-      { bfr->parent = ch->parent;
-	break;
-      }
-    }
-  }
+VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
+{ Choice ch = (Choice)valTermRef(varFrame(FR, *PC++));
+
+  ch->type = CHP_DEBUG;
   NEXT_INSTRUCTION;
 }
 

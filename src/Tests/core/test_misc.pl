@@ -49,12 +49,6 @@ test(cut_to, all(X == [1])) :-
 	prolog_current_choice(Ch),
 	between(1, 5, X),
 	prolog_cut_to(Ch).
-test(cut_to, error(existence_error(choice,_))) :-
-	(   prolog_current_choice(C),
-	    p(C)
-	*-> fail
-	;   fail
-	).
 test(cut_to_cleanup) :-
 	retractall(cl),
 	prolog_current_choice(Chp),

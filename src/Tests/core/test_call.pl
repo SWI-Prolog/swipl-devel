@@ -174,6 +174,26 @@ no_cut_cond.
 test(cut3) :-				% success handling (wrong C_SCUT decl)
 	true *-> true.
 
+test(lscut, Len == 3) :-
+	findall(x, nested_softcut, Xs),
+	length(Xs, Len).
+
+:- dynamic a/1.
+
+nested_softcut :-			% Thanks to Frank Schwidom
+	retractall(a(_)),
+	(   (   repeat,
+		(    between(1, 2, B),
+		     \+ a(B),
+		     assertz(a(B))
+		*->  true
+		;    !
+		)
+	    )
+	*-> true
+	;   false
+	).
+
 :- end_tests(snip).
 
 
