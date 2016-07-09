@@ -27,6 +27,7 @@ COREMODULES+=" packages/zlib packages/tipc packages/table"
 COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
 COREMODULES+=" packages/utf8proc packages/archive packages/swipl-win"
 COREMODULES+=" packages/pengines packages/cql packages/bdb"
+COREMODULES+=" packages/ltx2htm"
 
 version="`cat VERSION`"
 servers="http://www.swi-prolog.org http://eu.swi-prolog.org"
