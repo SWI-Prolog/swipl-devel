@@ -789,6 +789,11 @@ the syntax of \arg{Domain}.
 \subsubsection{Enumeration predicates}
 \label{sec:clpfd-enumeration}
 
+When modeling combinatorial tasks, the actual search for solutions is
+typically performed by \textit{enumeration predicates} like
+\predref{labeling}{2}. See the the section about \textit{core
+  relations} and search~(\secref{clpfd-search}) for more information.
+
 \begin{description}
     \predicate{indomain}{1}{?Var}
 Bind \arg{Var} to all feasible values of its domain on backtracking. The
