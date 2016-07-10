@@ -727,10 +727,10 @@ The arithmetic expression \arg{X} equals \arg{Y}.
 The arithmetic expressions \arg{X} and \arg{Y} evaluate to distinct integers.
 
     \infixop{\Scle}{?X}{?Y}
-The arithmetic expression \arg{X} is less than or equal to \arg{Y}. 
+The arithmetic expression \arg{X} is less than or equal to \arg{Y}.
 
     \infixop{\Scge}{?X}{?Y}
-Same as \arg{Y} \Scle{} \arg{X}. 
+Same as \arg{Y} \Scle{} \arg{X}.
 
     \infixop{\Sclt}{?X}{?Y}
 The arithmetic expression \arg{X} is less than \arg{Y}.
@@ -985,10 +985,13 @@ Either \arg{P} holds or \arg{Q} holds, but not both.
 \subsubsection{Global constraints}
 \label{sec:clpfd-global}
 
-\begin{description}
+A \textit{global constraint} expresses a relation that involves many
+variables at once. The most frequently used global constraints of this
+library are the combinatorial constraints \predref{all_distinct}{1},
+\predref{global_cardinality}{2} and \predref{cumulative}{2}.
 
-    \predicate{all_different}{1}{+Vars}
-Like \predref{all_distinct}{1}, but with weaker propagation.
+
+\begin{description}
 
     \predicate{all_distinct}{1}{+Vars}
 True iff \arg{Vars} are pairwise distinct. For example, \predref{all_distinct}{1}
@@ -1001,6 +1004,12 @@ the following domains:
    all_distinct(Vs).
 false.
 \end{code}
+
+    \predicate{all_different}{1}{+Vars}
+    Like \predref{all_distinct}{1}, but with weaker
+propagation. Consider using \predref{all_distinct}{1} instead,
+since \predref{all_distinct}{1} is typically acceptably efficient and
+propagates much more strongly.
 
     \predicate{sum}{3}{+Vars, +Rel, ?Expr}
 The sum of elements of the list \arg{Vars} is in relation \arg{Rel} to \arg{Expr}.
@@ -1018,7 +1027,6 @@ C in 0..100.
 True iff the scalar product of \arg{Cs} and \arg{Vs} is in relation \arg{Rel} to \arg{Expr}.
 \arg{Cs} is a list of integers, \arg{Vs} is a list of variables and integers.
 \arg{Rel} is \#=, \#\bsl{}=, \#$<$, \#$>$, \Scle{} or \#$>$=.
-
 
 
     \predicate{lex_chain}{1}{+Lists}
@@ -1426,4 +1434,3 @@ X in 1..3\/5.
 \end{code}
 
 \end{description}
-
