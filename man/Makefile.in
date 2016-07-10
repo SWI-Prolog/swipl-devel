@@ -183,8 +183,6 @@ lib/error.tex:	../library/error.pl
 		$(LIBTOTEX) 'library(error)'
 lib/clpb.tex:	../library/clp/clpb.pl
 		$(LIBTOTEX) 'library(clpb)'
-lib/clpfd.tex:	../library/clp/clpfd.pl
-		$(LIBTOTEX) 'library(clpfd)'
 lib/simplex.tex: ../library/clp/simplex.pl
 		$(LIBTOTEX) 'library(simplex)'
 lib/url.tex:	../library/url.pl
