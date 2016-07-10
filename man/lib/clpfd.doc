@@ -692,6 +692,9 @@ force behind the implementation of attributed variables in SWI-Prolog,
 and this library could not even have started without his prior work
 and contributions. Thank you all!
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \subsection{CLP(FD) predicate index}
 
 \label{sec:clpfd-predicate-index}
@@ -702,11 +705,66 @@ We recommend the following link to refer to this manual:
 
 \url{http://eu.swi-prolog.org/man/clpfd.html}\vspace{0.7cm}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Arithmetic constraints}
+\label{sec:clpfd-arithmetic}
+
+\textit{Arithmetic} constraints are the most basic use of
+CLP(FD). Every time you use \predref{is}{2} or one of the low-level
+arithmetic comparisons (\predref{<}{2}, \predref{>}{2} etc.) over
+integers, consider using CLP(FD) constraints \textit{instead}. This
+can at most \textit{increase} the generality of your programs.
+
+See also \textit{declarative integer
+  arithmetic}~(\secref{clpfd-integer-arith}).
+
+\begin{description}
+
+    \infixop{\Sceq}{?X}{?Y}
+The arithmetic expression \arg{X} equals \arg{Y}.
+
+    \infixop{\Scne}{?X}{?Y}
+The arithmetic expressions \arg{X} and \arg{Y} evaluate to distinct integers.
+
+    \infixop{\Scle}{?X}{?Y}
+The arithmetic expression \arg{X} is less than or equal to \arg{Y}. 
+
+    \infixop{\Scge}{?X}{?Y}
+Same as \arg{Y} \Scle{} \arg{X}. 
+
+    \infixop{\Sclt}{?X}{?Y}
+The arithmetic expression \arg{X} is less than \arg{Y}.
+
+In addition to its regular use in tasks that require it, this
+constraint can also be useful to eliminate uninteresting symmetries
+from a problem. For example, all possible matches between pairs
+built from four players in total:
+
+\begin{code}
+?- Vs = [A,B,C,D], Vs ins 1..4,
+        all_different(Vs),
+        A #< B, C #< D, A #< C,
+   findall(pair(A,B)-pair(C,D), label(Vs), Ms).
+Ms = [ pair(1, 2)-pair(3, 4),
+       pair(1, 3)-pair(2, 4),
+       pair(1, 4)-pair(2, 3)].
+     \end{code}
+
+    \infixop{\Scgt}{?X}{?Y}
+Same as \arg{Y} \Sclt{} \arg{X}.
+
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Membership constraints}
+\label{sec:clpfd-membership}
+
+
 \begin{description}
     \infixop{in}{?Var}{+Domain}
 \arg{Var} is an element of \arg{Domain}. \arg{Domain} is one of:
 
-\begin{description}
     \termitem{\arg{Integer}}{}
 Singleton set consisting only of \textit{\arg{Integer}}.
     \infixtermitem{..}{\arg{Lower}}{\arg{Upper}}
@@ -716,15 +774,22 @@ denotes negative infinity. \textit{\arg{Upper}} must be an integer or
 the atom \textbf{sup}, which denotes positive infinity.
     \infixtermitem{\Sor}{\arg{Domain1}}{\arg{Domain2}}
 The union of \arg{Domain1} and \arg{Domain2}.
-\end{description}
 
     \infixop{ins}{+Vars}{+Domain}
 The variables in the list \arg{Vars} are elements of \arg{Domain}. See \predref{in}{2} for
 the syntax of \arg{Domain}.
+\end{description}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Enumeration predicates}
+\label{sec:clpfd-enumeration}
+
+\begin{description}
     \predicate{indomain}{1}{?Var}
 Bind \arg{Var} to all feasible values of its domain on backtracking. The
 domain of \arg{Var} must be finite.
+
 
     \predicate{label}{1}{+Vars}
 Equivalent to \verb$labeling([], Vars)$. See \predref{labeling}{2}.
@@ -828,71 +893,16 @@ the following domains:
    all_distinct(Vs).
 false.
 \end{code}
+\end{description}
 
-    \predicate{sum}{3}{+Vars, +Rel, ?Expr}
-The sum of elements of the list \arg{Vars} is in relation \arg{Rel} to \arg{Expr}.
-\arg{Rel} is one of \#=, \#\bsl{}=, \#$<$, \#$>$, \Scle{} or \#$>$=. For example:
 
-\begin{code}
-?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
-A in 0..100,
-A+B+C#=100,
-B in 0..100,
-C in 0..100.
-\end{code}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    \predicate{scalar_product}{4}{+Cs, +Vs, +Rel, ?Expr}
-True iff the scalar product of \arg{Cs} and \arg{Vs} is in relation \arg{Rel} to \arg{Expr}.
-\arg{Cs} is a list of integers, \arg{Vs} is a list of variables and integers.
-\arg{Rel} is \#=, \#\bsl{}=, \#$<$, \#$>$, \Scle{} or \#$>$=.
+\subsubsection{Reification predicates}
+\label{sec:clpfd-reification-predicates}
 
-    \infixop{\Scge}{?X}{?Y}
-Same as \arg{Y} \Scle{} \arg{X}. When reasoning over integers, replace \predref{\Sge}{2} by \predref{\Scge}{2}
-to obtain more general relations. See declarative integer
-arithmetic (\secref{clpfd-integer-arith}).
 
-    \infixop{\Scle}{?X}{?Y}
-The arithmetic expression \arg{X} is less than or equal to \arg{Y}. When
-reasoning over integers, replace \predref{\Sle}{2} by \predref{\Scle}{2} to obtain more
-general relations. See declarative integer
-arithmetic (\secref{clpfd-integer-arith}).
-
-    \infixop{\Sceq}{?X}{?Y}
-The arithmetic expression \arg{X} equals \arg{Y}. When reasoning over integers,
-replace \predref{is}{2} by \predref{\Sceq}{2} to obtain more general relations. See
-declarative integer arithmetic (\secref{clpfd-integer-arith}).
-
-    \infixop{\Scne}{?X}{?Y}
-The arithmetic expressions \arg{X} and \arg{Y} evaluate to distinct integers.
-When reasoning over integers, replace \predref{\Sane}{2} by \predref{\Scne}{2} to obtain more
-general relations. See declarative integer
-arithmetic (\secref{clpfd-integer-arith}).
-
-    \infixop{\Scgt}{?X}{?Y}
-Same as \arg{Y} \Sclt{} \arg{X}. When reasoning over integers, replace \predref{\Sgt}{2} by \predref{\Scgt}{2} to
-obtain more general relations See declarative integer
-arithmetic (\secref{clpfd-integer-arith}).
-
-    \infixop{\Sclt}{?X}{?Y}
-The arithmetic expression \arg{X} is less than \arg{Y}. When reasoning over
-integers, replace \predref{\Slt}{2} by \predref{\Sclt}{2} to obtain more general relations. See
-declarative integer arithmetic (\secref{clpfd-integer-arith}).
-
-In addition to its regular use in tasks that require it, this
-constraint can also be useful to eliminate uninteresting symmetries
-from a problem. For example, all possible matches between pairs
-built from four players in total:
-
-\begin{code}
-?- Vs = [A,B,C,D], Vs ins 1..4,
-        all_different(Vs),
-        A #< B, C #< D, A #< C,
-   findall(pair(A,B)-pair(C,D), label(Vs), Ms).
-Ms = [ pair(1, 2)-pair(3, 4),
-       pair(1, 3)-pair(2, 4),
-       pair(1, 4)-pair(2, 3)].
-\end{code}
-
+\begin{description}
     \prefixop{\Scnot}{+Q}
 \arg{Q} does \textit{not} hold. See reification (\secref{clpfd-reification}).
 
@@ -968,6 +978,32 @@ Sum = 233168.
     \infixop{\Scnot}{?P}{?Q}
 Either \arg{P} holds or \arg{Q} holds, but not both. See
 reification (\secref{clpfd-reification}).
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Global constraints}
+\label{sec:clpfd-global}
+
+\begin{description}
+    \predicate{sum}{3}{+Vars, +Rel, ?Expr}
+The sum of elements of the list \arg{Vars} is in relation \arg{Rel} to \arg{Expr}.
+\arg{Rel} is one of \#=, \#\bsl{}=, \#$<$, \#$>$, \Scle{} or \#$>$=. For example:
+
+\begin{code}
+?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
+A in 0..100,
+A+B+C#=100,
+B in 0..100,
+C in 0..100.
+\end{code}
+
+    \predicate{scalar_product}{4}{+Cs, +Vs, +Rel, ?Expr}
+True iff the scalar product of \arg{Cs} and \arg{Vs} is in relation \arg{Rel} to \arg{Expr}.
+\arg{Cs} is a list of integers, \arg{Vs} is a list of variables and integers.
+\arg{Rel} is \#=, \#\bsl{}=, \#$<$, \#$>$, \Scle{} or \#$>$=.
+
+
 
     \predicate{lex_chain}{1}{+Lists}
 \arg{Lists} are lexicographically non-decreasing.
@@ -1325,7 +1361,12 @@ domain variables that are a chain with respect to the partial order
 X#>=Y,
 Y#>=Z.
 \end{code}
+\end{description}
 
+\subsubsection{Reflection predicates}
+\label{sec:clpfd-reflection-predicates}
+
+\begin{description}
     \predicate{fd_var}{1}{+Var}
 True iff \arg{Var} is a CLP(FD) variable.
 
