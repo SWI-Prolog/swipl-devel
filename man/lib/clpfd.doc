@@ -1,4 +1,4 @@
-\section{library(clpfd): Constraint Logic Programming over Finite Domains}
+\libdoc{clpfd}{CLP(FD): Constraint Logic Programming over Finite Domains}
 
 \label{sec:clpfd}
 
