@@ -78,7 +78,8 @@ for citing this library in scientific publications:
 ==
 @inproceedings{Triska2016,
   author    = "Markus Triska",
-  title     = "The Boolean Constraint Solver of {SWI-Prolog}: System Description",
+  title     = "The {Boolean} Constraint Solver of {SWI-Prolog}:
+               System Description",
   booktitle = "FLOPS",
   series    = "LNCS",
   volume    = 9613,
