@@ -70,7 +70,7 @@ This is available in  ../packages/ltx2html.  This   is  _not  a  default
 package_. If you install SWI-Prolog from  the GIT sources, perform these
 steps to add it:
 
-  - run `git submodule update --init packages/ltx2html`
+  - run `git submodule update --init packages/ltx2htm`
   - Add `ltx2html` to the variable `EXTRA_PKGS` in the `build` script.
 
 After installing SWI-Prolog and with `swipl`   in your `PATH`, run `make
