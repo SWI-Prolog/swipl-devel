@@ -1443,3 +1443,24 @@ X in 1..3\/5.
 \end{code}
 
 \end{description}
+
+\subsection{Closing and opening words about CLP(FD)}
+\label{sec:clpfd-closing-opening}
+
+CLP(FD) constraints have been described as the \textit{killer
+  application} of logic programming. This means that they are one of
+the main reasons why logic programming approaches are picked over
+other paradigms for solving many tasks of high practical
+relevance. The usefulness of CLP(FD) constraints for scheduling,
+allocation and combinatorial optimization tasks is well-known both in
+academia and industry.
+
+With this library, we take the applicability of CLP(FD) constraints
+one step further, following the road that visionary systems like
+SICStus Prolog have already clearly outlined: This library is designed
+to completely subsume and \textit{replace} low-level predicates over
+integers, which were in the past repeatedly found to be a major
+stumbling block when introducing logic programming to beginners.
+
+Embrace the change and new opportunities that this paradigm allows!
+Use CLP(FD) constraints in your programs.
