@@ -54,9 +54,9 @@
 :- create_prolog_flag(clpb_monotonic, false, []).
 :- create_prolog_flag(clpb_residuals, default, []).
 
-/** <module> Constraint Logic Programming over Boolean Variables
+/** <module> CLP(B): Constraint Logic Programming over Boolean Variables
 
-### Introduction                        {#clpb-intro}
+## Introduction                        {#clpb-intro}
 
 This library provides CLP(B), Constraint Logic Programming over
 Boolean variables. It can be used to model and solve combinatorial
@@ -91,7 +91,7 @@ and the following URL to link to its documentation:
 
 http://eu.swi-prolog.org/man/clpb.html
 
-### Boolean expressions {#clpb-exprs}
+## Boolean expressions {#clpb-exprs}
 
 A _Boolean expression_ is one of:
 
@@ -130,7 +130,7 @@ expression. In residual goals, universally quantified variables always
 appear on the right-hand side of equations. Therefore, they can be
 used to express functional dependencies on input variables.
 
-### Interface predicates   {#clpb-interface}
+## Interface predicates   {#clpb-interface}
 
 Important interface predicates of CLP(B) are:
 
@@ -149,7 +149,7 @@ Important interface predicates of CLP(B) are:
 The unification of a CLP(B) variable _X_ with a term _T_ is equivalent
 to posting the constraint sat(X=:=T).
 
-### Examples                            {#clpb-examples}
+## Examples                            {#clpb-examples}
 
 Here is an example session with a few queries and their answers:
 
@@ -190,7 +190,7 @@ expressions and are declaratively equivalent to the original query.
 The last example illustrates that when applicable, remaining variables
 are expressed as functions of universally quantified variables.
 
-### Obtaining BDDs {#clpb-residual-goals}
+## Obtaining BDDs {#clpb-residual-goals}
 
 By default, CLP(B) residual goals appear in (approximately) algebraic
 normal form (ANF). This projection is often computationally expensive.
@@ -224,7 +224,7 @@ node(1)- (v(X, 1)->true;false),
 node(2)- (v(X, 1)->false;true).
 ==
 
-### Enabling monotonic CLP(B) {#clpb-monotonic}
+## Enabling monotonic CLP(B) {#clpb-monotonic}
 
 In the default execution mode, CLP(B) constraints are _not_ monotonic.
 This means that adding constraints can yield new solutions. For
