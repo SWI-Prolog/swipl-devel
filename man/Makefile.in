@@ -86,7 +86,7 @@ all:
 
 html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
 		rm -f Manual/*.html Manual/*.gif
-		env TEXINPUTS=lib:$$TEXINPUTS latex2html $(DOC)
+		env TEXINPUTS=lib:: latex2html $(DOC)
 
 pdf:		$(PDF)
 book:		$(BOOK).pdf
