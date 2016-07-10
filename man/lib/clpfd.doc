@@ -888,20 +888,6 @@ Labeling is always complete, always terminates, and yields no
 redundant solutions. See core relations and
 search (\secref{clpfd-search}) for usage advice.
 
-    \predicate{all_different}{1}{+Vars}
-Like \predref{all_distinct}{1}, but with weaker propagation.
-
-    \predicate{all_distinct}{1}{+Vars}
-True iff \arg{Vars} are pairwise distinct. For example, \predref{all_distinct}{1}
-can detect that not all variables can assume distinct values given
-the following domains:
-
-\begin{code}
-?- maplist(in, Vs,
-           [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
-   all_distinct(Vs).
-false.
-\end{code}
 \end{description}
 
 
@@ -910,10 +896,15 @@ false.
 \subsubsection{Reification predicates}
 \label{sec:clpfd-reification-predicates}
 
+Many CLP(FD) constraints can be \textit{reified}. This means that
+their truth value is itself turned into a CLP(FD) variable, so that
+you can explicitly reason about whether a constraint holds or not. See
+the section about reification~(\secref{clpfd-reification}) for more
+information.
 
 \begin{description}
     \prefixop{\Scnot}{+Q}
-\arg{Q} does \textit{not} hold. See reification (\secref{clpfd-reification}).
+\arg{Q} does \textit{not} hold.
 
 For example, to obtain the complement of a domain:
 
@@ -923,7 +914,7 @@ X in inf.. -4\/1..9\/81..sup.
 \end{code}
 
     \infixop{\Scequal}{?P}{?Q}
-\arg{P} and \arg{Q} are equivalent. See reification (\secref{clpfd-reification}).
+\arg{P} and \arg{Q} are equivalent.
 
 For example:
 
@@ -961,16 +952,16 @@ Z = 2.
 \end{code}
 
     \infixop{\Srimplies}{?P}{?Q}
-\arg{P} implies \arg{Q}. See reification (\secref{clpfd-reification}).
+\arg{P} implies \arg{Q}.
 
     \infixop{\Slimplies}{?P}{?Q}
-\arg{Q} implies \arg{P}. See reification (\secref{clpfd-reification}).
+\arg{Q} implies \arg{P}.
 
     \infixop{\Scand}{?P}{?Q}
-\arg{P} and \arg{Q} hold. See reification (\secref{clpfd-reification}).
+\arg{P} and \arg{Q} hold.
 
     \infixop{\Scor}{?P}{?Q}
-\arg{P} or \arg{Q} holds. See reification (\secref{clpfd-reification}).
+\arg{P} or \arg{Q} holds.
 
 For example, the sum of natural numbers below 1000 that are
 multiples of 3 or 5:
@@ -985,8 +976,8 @@ Sum = 233168.
 \end{code}
 
     \infixop{\Scnot}{?P}{?Q}
-Either \arg{P} holds or \arg{Q} holds, but not both. See
-reification (\secref{clpfd-reification}).
+Either \arg{P} holds or \arg{Q} holds, but not both.
+
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -995,6 +986,22 @@ reification (\secref{clpfd-reification}).
 \label{sec:clpfd-global}
 
 \begin{description}
+
+    \predicate{all_different}{1}{+Vars}
+Like \predref{all_distinct}{1}, but with weaker propagation.
+
+    \predicate{all_distinct}{1}{+Vars}
+True iff \arg{Vars} are pairwise distinct. For example, \predref{all_distinct}{1}
+can detect that not all variables can assume distinct values given
+the following domains:
+
+\begin{code}
+?- maplist(in, Vs,
+           [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
+   all_distinct(Vs).
+false.
+\end{code}
+
     \predicate{sum}{3}{+Vars, +Rel, ?Expr}
 The sum of elements of the list \arg{Vars} is in relation \arg{Rel} to \arg{Expr}.
 \arg{Rel} is one of \#=, \#\bsl{}=, \#$<$, \#$>$, \Scle{} or \#$>$=. For example:
