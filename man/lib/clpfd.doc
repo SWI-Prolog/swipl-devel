@@ -978,6 +978,46 @@ Sum = 233168.
     \infixop{\Scnot}{?P}{?Q}
 Either \arg{P} holds or \arg{Q} holds, but not both.
 
+    \predicate{zcompare}{3}{?Order, ?A, ?B}
+Analogous to \predref{compare}{3}, with finite domain variables \arg{A} and \arg{B}.
+
+This predicate allows you to make several predicates over integers
+deterministic while preserving their generality and completeness.
+For example:
+
+\begin{code}
+n_factorial(N, F) :-
+        zcompare(C, N, 0),
+        n_factorial_(C, N, F).
+
+n_factorial_(=, _, 1).
+n_factorial_(>, N, F) :-
+        F #= F0*N, N1 #= N - 1,
+        n_factorial(N1, F0).
+\end{code}
+
+This version is deterministic if the first argument is instantiated,
+because first argument indexing can distinguish the two different
+clauses:
+
+\begin{code}
+?- n_factorial(30, F).
+F = 265252859812191058636308480000000.
+\end{code}
+
+The predicate can still be used in all directions, including the
+most general query:
+
+\begin{code}
+?- n_factorial(N, F).
+N = 0,
+F = 1 ;
+N = F, F = 1 ;
+N = F, F = 2 .
+\end{code}
+
+
+
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1334,44 +1374,6 @@ Sample query:
 [4,7,2,3,1,9,5,6,8]
 [8,6,3,7,4,5,2,1,9]
 Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
-\end{code}
-
-    \predicate{zcompare}{3}{?Order, ?A, ?B}
-Analogous to \predref{compare}{3}, with finite domain variables \arg{A} and \arg{B}.
-
-This predicate allows you to make several predicates over integers
-deterministic while preserving their generality and completeness.
-For example:
-
-\begin{code}
-n_factorial(N, F) :-
-        zcompare(C, N, 0),
-        n_factorial_(C, N, F).
-
-n_factorial_(=, _, 1).
-n_factorial_(>, N, F) :-
-        F #= F0*N, N1 #= N - 1,
-        n_factorial(N1, F0).
-\end{code}
-
-This version is deterministic if the first argument is instantiated,
-because first argument indexing can distinguish the two different
-clauses:
-
-\begin{code}
-?- n_factorial(30, F).
-F = 265252859812191058636308480000000.
-\end{code}
-
-The predicate can still be used in all directions, including the
-most general query:
-
-\begin{code}
-?- n_factorial(N, F).
-N = 0,
-F = 1 ;
-N = F, F = 1 ;
-N = F, F = 2 .
 \end{code}
 
     \predicate{chain}{2}{+Zs, +Relation}
