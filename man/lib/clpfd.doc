@@ -760,6 +760,10 @@ Same as \arg{Y} \Sclt{} \arg{X}.
 \subsubsection{Membership constraints}
 \label{sec:clpfd-membership}
 
+If you are using CLP(FD) to model and solve combinatorial tasks, then
+you typically need to specify the admissible domains of variables.
+The \textit{membership constraints} \predref{in}{2} and
+\predref{ins}{2} are useful in such cases.
 
 \begin{description}
     \infixop{in}{?Var}{+Domain}
