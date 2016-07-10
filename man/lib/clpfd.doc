@@ -1392,6 +1392,13 @@ Y#>=Z.
 \subsubsection{Reflection predicates}
 \label{sec:clpfd-reflection-predicates}
 
+Reflection predicates let you obtain, in a well-defined way,
+information that is normally internal to this library. In addition to
+the predicates explained below, also take a look at
+\predref{call_residue_vars}{2} and \predref{copy_term}{3} to reason
+about CLP(FD) constraints that arise in programs. This can be useful
+in program analyzers and declarative debuggers.
+
 \begin{description}
     \predicate{fd_var}{1}{+Var}
 True iff \arg{Var} is a CLP(FD) variable.
