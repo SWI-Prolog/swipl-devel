@@ -1,4 +1,4 @@
-			SWI-Prolog manual sources
+# SWI-Prolog manual sources
 
 
 This directory contains the sources to  the SWI-Prolog manual. From this
@@ -15,8 +15,7 @@ precautions outside math mode.  Do NOT write expand\_file/2, but simply
 expand_file/2.
 
 
-Handling weird characters
--------------------------
+## Handling LaTeX special characters
 
 Predicate names that cannot  be  handled   by  TeX  because they contain
 TeX-special characters are translated by doc2tex if they appear as plain
@@ -29,15 +28,13 @@ sequences are named \S<name>. If you add such a sequence you must:
 	* Add it to ../packages/ltx2htm/pl.cmd
 	* Run "make install" in ../packages/ltx2html
 
-Summaries
----------
+## Summaries
 
 For each described predicate  there  MUST  be   an  entry  in  the  file
 summary.doc.  Note  that  the  content   of    this   file   is  ordered
 alphabetically.
 
-Documenting libraries
----------------------
+## Documenting libraries
 
 Libraries are documented in their own file  in the lib subdirectory. The
 library file has to be added to  the input statements of lib/library.doc
@@ -59,20 +56,25 @@ Note that the LaTeX filename should   not contain underscores (see e.g.,
 pure_input for an example).
 
 
-Generating the documentation
-----------------------------
+## Generating the documentation
 
-You need a recent latex  installation   with  many optional packages. We
-currently  use  the  default  Ubuntu  one.    See  README.linux  in  the
-top directory.
+You need a recent latex installation   with  many optional packages. You
+find the documentation dependencies for Debian   based  Linux systems at
+http://www.swi-prolog.org/build/Debian.txt
 
 You also need to install the fixed-width font libraries available in the
 txt subdirectory. The README there explains how this must be installed.
 
 For the HTML version, you need to   install the Prolog based latex2html.
-This is available in ../packages/ltx2html.   After installing Prolog and
-with Prolog in your PATH, a  simple   "make  install"  should suffice to
-install this in $HOME/bin
+This is available in  ../packages/ltx2html.  This   is  _not  a  default
+package_. If you install SWI-Prolog from  the GIT sources, perform these
+steps to add it:
+
+  - run `git submodule update --init packages/ltx2html`
+  - Add `ltx2html` to the variable `EXTRA_PKGS` in the `build` script.
+
+After installing SWI-Prolog and with `swipl`   in your `PATH`, run `make
+install` in `packages/ltx2html` install `latex2html` in your `$HOME/bin`
 
 Targets:
 
