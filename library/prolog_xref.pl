@@ -625,16 +625,13 @@ collect(Src, File, In, Options) :-
 	    ->	member(T, Expanded)
 	    ;	T = Expanded
 	    ),
-	    (   T == end_of_file
-	    ->  !
-	    ;   stream_position_data(line_count, TermPos, Line),
-		setup_call_cleanup(
-		    asserta(source_line(SrcSpec), Ref),
-		    catch(process(T, Comments, TermPos, Src),
-			  E, print_message(error, E)),
-		    erase(Ref)),
-		fail
-	    ).
+	    stream_position_data(line_count, TermPos, Line),
+	    setup_call_cleanup(
+		asserta(source_line(SrcSpec), Ref),
+		catch(process(T, Comments, TermPos, Src),
+		      E, print_message(error, E)),
+		erase(Ref)),
+	    T == end_of_file, !.
 
 report_syntax_error(_, _, Options) :-
 	option(silent(true), Options), !,
@@ -697,6 +694,7 @@ process(Term, Comments, TermPos, Src) :-
 
 process(Var, _) :-
 	var(Var), !.			% Warn?
+process(end_of_file, _) :- !.
 process((:- Directive), Src) :- !,
 	process_directive(Directive, Src), !.
 process((?- Directive), Src) :- !,
