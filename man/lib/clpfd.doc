@@ -709,7 +709,7 @@ We recommend the following link to refer to this manual:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % CLP(FD) predicate overview, generated from Markdown and PlDoc
-\input{clpfdpreds.tex}
+\input{clpfdlib.tex}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Closing and opening words about CLP(FD)}

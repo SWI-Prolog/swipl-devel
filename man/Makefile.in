@@ -44,7 +44,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/nbset.tex lib/libsummary.tex lib/prologpack.tex \
 		lib/assoc.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
-		lib/record.tex lib/clpfd.tex lib/clpfdpreds.tex \
+		lib/record.tex lib/clpfd.tex lib/clpfdlib.tex \
 		lib/pairs.tex lib/option.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
@@ -186,8 +186,8 @@ lib/error.tex:	../library/error.pl
 lib/clpb.tex:	../library/clp/clpb.pl
 		$(LIBTOTEX) 'library(clpb)'
 # The CLP(FD) predicate overview is written in Markdown
-lib/clpfdpreds.tex: lib/clpfdpreds.txt ../library/clp/clpfd.pl
-		$(LIBTOTEX) --lib=clpfd lib/clpfdpreds.txt
+lib/clpfdlib.tex: lib/clpfdlib.md ../library/clp/clpfd.pl
+		$(LIBTOTEX) --lib=clpfd lib/clpfdlib.md
 lib/simplexlib.tex: lib/simplexlib.md ../library/clp/simplex.pl
 		$(LIBTOTEX) --lib=simplex lib/simplexlib.md
 lib/url.tex:	../library/url.pl
