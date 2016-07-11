@@ -75,7 +75,7 @@ global_cardinality/2 and cumulative/2.
   * [[circuit/1]]
   * [[cumulative/1]]
   * [[cumulative/2]]
-  * [[disjoint/2]]
+  * [[disjoint2/1]]
   * [[automaton/3]]
   * [[automaton/8]]
   * [[transpose/2]]
