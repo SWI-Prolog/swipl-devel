@@ -1,0 +1,10 @@
+\libdoc{simplex}{Solve linear programming problems}
+
+\label{sec:simplex}
+
+\begin{tags}
+    \tag{author}
+\url[Markus Triska]{https://www.metalevel.at}
+\end{tags}
+
+\input{simplexlib.tex}
