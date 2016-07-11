@@ -1933,7 +1933,9 @@ tighten(max, E, V) :- E #> V.
 
 %% all_different(+Vars)
 %
-% Like all_distinct/1, but with weaker propagation.
+% Like all_distinct/1, but with weaker propagation. Consider using
+% all_distinct/1 instead, since all_distinct/1 is typically acceptably
+% efficient and propagates much more strongly.
 
 all_different(Ls) :-
         fd_must_be_list(Ls),
