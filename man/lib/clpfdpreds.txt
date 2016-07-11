@@ -4,8 +4,8 @@ _Arithmetic_ constraints are the most basic use of CLP(FD). Every time
 you use is/2 or one of the low-level arithmetic comparisons (</2, >/2
 etc.) over integers, consider using CLP(FD) constraints
 _instead_. This can at most _increase_ the generality of your
-programs.
-
+programs. See [declarative integer
+arithmetic](<#clpfd-integer-arith>).
 
     * [[(#=)/2]]
     * [[(#\=)/2]]
@@ -36,13 +36,12 @@ information.
   * [[labeling/2]]
 
 
-
 ### Reification predicates {#clpfd-reification-predicates}
 
 Many CLP(FD) constraints can be _reified_. This means that their truth
 value is itself turned into a CLP(FD) variable, so that you can
-explicitly reason about whether a constraint holds or not. See the
-section about reification for more information.
+explicitly reason about whether a constraint holds or not. See
+[reification](<#clpfd-reification>).
 
   * [[(#\)/1]]
   * [[(#<==>)/2]]
