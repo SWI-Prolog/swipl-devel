@@ -467,14 +467,19 @@ indicated tokens. Only has effect if the system is compiled with the
 \section{GNU Emacs Interface}			\label{sec:gemacs}
 
 \index{GNU-Emacs}\index{Emacs}
-Unfortunately the default Prolog mode of GNU-Emacs is not very good.
+
+Unfortunately the default Prolog mode of GNU~Emacs is not very good.
 There are several alternatives though:
 
 \begin{shortlist}
-    \item \url{http://turing.ubishops.ca/home/bruda/emacs-prolog/}
-    \item \url{http://www.logic.at/prolog/ediprolog/ediprolog.html}
-    \item \url{http://www.logic.at/prolog/pceprolog/pceprolog.html}
-    \item \url{http://www.logic.at/prolog/etrace/etrace.html}
+    \item \url{https://bruda.ca/emacs/prolog_mode_for_emacs}\\
+          Prolog mode for Emacs and XEmacs maintained by Stefan Bruda.
+    \item \url{https://www.metalevel.at/pceprolog/}\\
+          Recommended configuration options for editing Prolog code with Emacs.
+    \item \url{https://www.metalevel.at/ediprolog/}\\
+          Interact with SWI-Prolog directly in Emacs buffers.
+    \item \url{https://www.metalevel.at/etrace/}\\
+          Trace Prolog code with Emacs.
 \end{shortlist}
 
 
