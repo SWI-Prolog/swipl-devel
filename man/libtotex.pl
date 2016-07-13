@@ -104,6 +104,8 @@ to_option('--subsection', section_level(subsection)).
 to_option('--subsubsection', section_level(subsubsection)).
 to_option(Opt, output(TexBase)) :-
 	atom_concat('--out=', TexBase, Opt).
+to_option(Opt, module(Module)) :-
+	atom_concat('--module=', Module, Opt).
 to_option(Opt, outdir(Dir)) :-
 	atom_concat('--outdir=', Dir, Opt).
 to_option(Opt, load(File)) :-
