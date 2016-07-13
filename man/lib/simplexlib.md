@@ -60,8 +60,8 @@ when this method is applied:
 
 ## Solving LPs with special structure
 
-The following predicates allow you to use specific kinds of LP
-programs more efficiently:
+The following predicates allow you to solve specific kinds of LPs more
+efficiently:
 
 
   - [[transportation/4]]
