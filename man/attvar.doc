@@ -404,7 +404,9 @@ compatibility and symmetry.  As most scenarios will use a particular
 global variable using either non-backtrackable or backtrackable
 assignment, using nb_getval/2 can be used to document that the
 variable is non-backtrackable. Raises \term{existence_error}{variable,
-Name} if the variable does not exist.
+Name} if the variable does not exist.  Alternatively, nb_current/2 can
+used to query a global variable.  This version \emph{fails} if the
+variable does not exist rather than raising an exception.
 
     \predicate{nb_linkval}{2}{+Name, +Value}
 Associates the term \arg{Value} with the atom \arg{Name} without copying
