@@ -7,12 +7,12 @@ _instead_. This can at most _increase_ the generality of your
 programs. See [declarative integer
 arithmetic](<#clpfd-integer-arith>).
 
-    * [[(#=)/2]]
-    * [[(#\=)/2]]
-    * [[(#>=)/2]]
-    * [[(#=<)/2]]
-    * [[(#>)/2]]
-    * [[(#<)/2]]
+  * [[(#=)/2]]
+  * [[(#\=)/2]]
+  * [[(#>=)/2]]
+  * [[(#=<)/2]]
+  * [[(#>)/2]]
+  * [[(#<)/2]]
 
 
 ### Membership constraints {#clpfd-membership}
