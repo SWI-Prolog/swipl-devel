@@ -187,7 +187,7 @@ lib/clpb.tex:	../library/clp/clpb.pl
 		$(LIBTOTEX) 'library(clpb)'
 # The CLP(FD) predicate overview is written in Markdown
 lib/clpfdlib.tex: lib/clpfdlib.md ../library/clp/clpfd.pl
-		$(LIBTOTEX) --lib=clpfd lib/clpfdlib.md
+		$(LIBTOTEX) --lib=clpfd --module=clpfd lib/clpfdlib.md
 lib/simplexlib.tex: lib/simplexlib.md ../library/clp/simplex.pl
 		$(LIBTOTEX) --lib=simplex lib/simplexlib.md
 lib/url.tex:	../library/url.pl
