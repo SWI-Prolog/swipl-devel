@@ -215,39 +215,7 @@ and should therefore be deferred to more advanced lectures.
 
 For supported expressions, CLP(FD) constraints are drop-in
 replacements of these low-level arithmetic predicates, often yielding
-more general programs.
-
-Here is an example, relating each natural number to its factorial:
-
-\begin{code}
-n_factorial(0, 1).
-n_factorial(N, F) :-
-        N #> 0,
-        N1 #= N - 1,
-        F #= N * F1,
-        n_factorial(N1, F1).
-\end{code}
-
-This relation can be used in all directions. For example:
-
-\begin{code}
-?- n_factorial(47, F).
-F = 258623241511168180642964355153611979969197632389120000000000 ;
-false.
-
-?- n_factorial(N, 1).
-N = 0 ;
-N = 1 ;
-false.
-
-?- n_factorial(N, 3).
-false.
-\end{code}
-
-To make the predicate terminate if any argument is instantiated, add
-the (implied) constraint \verb$F #\= 0$ before the recursive call.
-Otherwise, the query \verb$n_factorial(N, 0)$ is the only non-terminating
-case of this kind.
+more general programs. See \secref{clpfd-factorial} for an example.
 
 This library uses \predref{goal_expansion}{2} to automatically rewrite
 constraints at compilation time so that low-level arithmetic
@@ -583,11 +551,51 @@ Z = 1,
 X in inf..sup.
 \end{code}
 
+
+\subsection{Example: Factorial relation}
+
+\label{sec:clpfd-factorial}
+
+We illustrate the benefit of using \predref{\Sceq}{2} for more
+generality with a simple example. The following Prolog program relates
+each natural number~$N$ to its factorial~$F$:
+
+\begin{code}
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0,
+        N1 #= N - 1,
+        F #= N * F1,
+        n_factorial(N1, F1).
+\end{code}
+
+This relation can be used in all directions. For example:
+
+\begin{code}
+?- n_factorial(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+false.
+
+?- n_factorial(N, 1).
+N = 0 ;
+N = 1 ;
+false.
+
+?- n_factorial(N, 3).
+false.
+\end{code}
+
+To make the predicate terminate if any argument is instantiated, add
+the (implied) constraint \verb$F #\= 0$ before the recursive call.
+Otherwise, the query \verb$n_factorial(N, 0)$ is the only non-terminating
+case of this kind.
+
+
 \subsection{Example: Eight queens puzzle}
 
 \label{sec:clpfd-n-queens}
 
-We illustrate the most important concepts of this library by means of
+We illustrate further important concepts of this library by means of
 the so-called \textit{eight queens puzzle}. The task is to place 8 queens on
 an 8x8 chessboard such that none of the queens is under attack. This
 means that no two queens share the same row, column or diagonal.
