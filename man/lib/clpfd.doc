@@ -114,7 +114,10 @@ arithmetic constraints is that they are true \textit{relations} and can be
 used in all directions. For most programs, arithmetic constraints are
 the only predicates you will ever need from this library.
 
-The arithmetic constraints are:
+The most important arithmetic constraint is \predref{\Sceq}{2}, which
+subsumes both \verb$(is)/2$ and \verb$(=:=)/2$ over integers.
+
+In total, the arithmetic constraints are:
 
 \begin{quote}
 \begin{tabular}{|l|l|}

@@ -248,7 +248,11 @@ arithmetic constraints is that they are true _relations_ and can be
 used in all directions. For most programs, arithmetic constraints are
 the only predicates you will ever need from this library.
 
-The arithmetic constraints are:
+The most important arithmetic constraint is #=/2, which subsumes both
+is/2 and =:=/2 over integers. Use #=/2 to make your programs more
+general.
+
+In total, the arithmetic constraints are:
 
     | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
     | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
@@ -2641,9 +2645,10 @@ X #=< Y :- Y #>= X.
 
 %% ?X #= ?Y
 %
-% The arithmetic expression X equals Y. When reasoning over integers,
-% replace is/2 by #=/2 to obtain more general relations. See
-% [declarative integer arithmetic](<#clpfd-integer-arith>).
+% The arithmetic expression X equals Y. This is the most important
+% [arithmetic constraint](<#clpfd-arith-constraints>), replacing both
+% is/2 _and_ =:=/2. See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #= Y :- clpfd_equal(X, Y).
 
