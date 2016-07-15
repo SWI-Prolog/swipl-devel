@@ -58,6 +58,10 @@ when this method is applied:
   - [[shadow_price/3]]
   - [[constraint_add/4]]
 
+An example application of _delayed column generation_ to solve a _bin
+packing_ task is available from:
+[**metalevel.at/various/colgen/**](https://www.metalevel.at/various/colgen/)
+
 ## Solving LPs with special structure
 
 The following predicates allow you to solve specific kinds of LPs more
