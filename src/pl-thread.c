@@ -1721,7 +1721,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   term_t at_exit = 0;
   int rc = 0;
   const char *func;
-  int debug = FALSE;
+  int debug = -1;
   int detached = FALSE;
 
   if ( !PL_is_callable(goal) )
@@ -1752,7 +1752,6 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
     fail;
   }
-  info->debug = debug;
   info->detached = detached;
   if ( at_exit && !PL_is_callable(at_exit) )
   { free_thread_info(info);
@@ -1768,6 +1767,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
       return FALSE;
     }
   }
+  if ( debug >= 0 )
+    info->debug = debug;
+  else
+    info->debug = ldold->thread.info->debug;
+
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
   { free_thread_info(info);
