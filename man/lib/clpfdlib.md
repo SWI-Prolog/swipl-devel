@@ -78,7 +78,6 @@ global_cardinality/2 and cumulative/2.
   * [[disjoint2/1]]
   * [[automaton/3]]
   * [[automaton/8]]
-  * [[transpose/2]]
   * [[chain/2]]
 
 ### Reflection predicates {#clpfd-reflection-predicates}
