@@ -30,10 +30,6 @@ for citing this library in scientific publications:
 }
 ==
 
-and the following URL to link to its documentation:
-
-http://eu.swi-prolog.org/man/clpb.html
-
 ## Boolean expressions {#clpb-exprs}
 
 A _Boolean expression_ is one of:
@@ -192,6 +188,21 @@ true.
 ?- sat(v(X)=:=1#1).
 X = 0.
 ==
+
+## CLP(B) predicate index {#clpb-predicates}
+
+In the following, each CLP(B) predicate is described in more detail.
+
+We recommend the following link to refer to this manual:
+
+http://eu.swi-prolog.org/man/clpb.html
+
+  * [[sat/1]]
+  * [[taut/2]]
+  * [[labeling/1]]
+  * [[sat_count/2]]
+  * [[weighted_maximum/3]]
+  * [[random_labeling/2]]
 
 ## Example: Boolean circuit  {#clpb-circuit}
 
