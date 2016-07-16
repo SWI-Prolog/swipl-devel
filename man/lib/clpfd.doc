@@ -40,7 +40,7 @@ The predicates of this library can be classified as:
 In most cases, arithmetic constraints (\secref{clpfd-arith-constraints})
 are the only predicates you will ever need from this library. When
 reasoning over integers, simply replace low-level arithmetic
-predicates like \predref{is}{2} and \predref{\Sgt}{2} by the corresponding CLP(FD) constraints
+predicates like \verb$(is)/2$ and \verb$(>)/2$ by the corresponding CLP(FD) constraints
 like \predref{\Sceq}{2} and \predref{\Scgt}{2} to honor and preserve declarative properties of
 your programs. For satisfactory performance, arithmetic constraints
 are implicitly rewritten at compilation time so that low-level
@@ -165,12 +165,14 @@ supported.
 
 \label{sec:clpfd-integer-arith}
 
-The arithmetic constraints (\secref{clpfd-arith-constraints}) \predref{\Sceq}{2}, \predref{\Scgt}{2}
-etc. are meant to be used \textit{instead} of the primitives \predref{is}{2}, \predref{\Saeq}{2}, \predref{\Sgt}{2}
-etc. over integers. Almost all Prolog programs also reason about
-integers. Therefore, it is recommended that you put the following
-directive in your \verb$~/.swiplrc$ initialisation file to make CLP(FD)
-constraints available in all your programs:
+The \textit{arithmetic constraints} \predref{\Sceq}{2},
+\predref{\Scgt}{2} etc. (\secref{clpfd-arith-constraints}) are meant
+to be used \textit{instead} of the primitives \verb$(is)/2$,
+\verb$(=:=)/2$, \verb$(>)/2$ etc. over integers. Almost all Prolog
+programs also reason about integers. Therefore, it is recommended that
+you put the following directive in your \verb$~/.swiplrc$
+initialisation file to make CLP(FD) constraints available in all your
+programs:
 
 \begin{code}
 :- use_module(library(clpfd)).
@@ -187,7 +189,7 @@ X = 3.
 \end{code}
 
 This could in principle also be achieved with the lower-level
-predicate \predref{is}{2}. However, an important advantage of arithmetic
+predicate \verb$(is)/2$. However, an important advantage of arithmetic
 constraints is their purely relational nature: Constraints can be used
 in \textit{all directions}, also if one or more of their arguments are only
 partially instantiated. For example:
