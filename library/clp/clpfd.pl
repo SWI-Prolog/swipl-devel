@@ -176,11 +176,12 @@ The predicates of this library can be classified as:
 In most cases, [arithmetic constraints](<#clpfd-arith-constraints>)
 are the only predicates you will ever need from this library. When
 reasoning over integers, simply replace low-level arithmetic
-predicates like is/2 and >/2 by the corresponding CLP(FD) constraints
-like #=/2 and #>/2 to honor and preserve declarative properties of
-your programs. For satisfactory performance, arithmetic constraints
-are implicitly rewritten at compilation time so that low-level
-fallback predicates are automatically used whenever possible.
+predicates like `(is)/2` and `(>)/2` by the corresponding CLP(FD)
+constraints like #=/2 and #>/2 to honor and preserve declarative
+properties of your programs. For satisfactory performance, arithmetic
+constraints are implicitly rewritten at compilation time so that
+low-level fallback predicates are automatically used whenever
+possible.
 
 Almost all Prolog programs also reason about integers. Therefore, it
 is highly advisable that you make CLP(FD) constraints available in all
@@ -249,8 +250,8 @@ used in all directions. For most programs, arithmetic constraints are
 the only predicates you will ever need from this library.
 
 The most important arithmetic constraint is #=/2, which subsumes both
-is/2 and =:=/2 over integers. Use #=/2 to make your programs more
-general.
+`(is)/2` and `(=:=)/2` over integers. Use #=/2 to make your programs
+more general.
 
 In total, the arithmetic constraints are:
 
@@ -287,11 +288,11 @@ supported.
 ## Declarative integer arithmetic		{#clpfd-integer-arith}
 
 The [arithmetic constraints](<#clpfd-arith-constraints>) #=/2, #>/2
-etc. are meant to be used _instead_ of the primitives is/2, =:=/2, >/2
-etc. over integers. Almost all Prolog programs also reason about
-integers. Therefore, it is recommended that you put the following
-directive in your =|~/.swiplrc|= initialisation file to make CLP(FD)
-constraints available in all your programs:
+etc. are meant to be used _instead_ of the primitives `(is)/2`,
+`(=:=)/2`, `(>)/2` etc. over integers. Almost all Prolog programs also
+reason about integers. Therefore, it is recommended that you put the
+following directive in your =|~/.swiplrc|= initialisation file to make
+CLP(FD) constraints available in all your programs:
 
 ==
 :- use_module(library(clpfd)).
@@ -2626,8 +2627,8 @@ match_goal(p(Prop), _) -->
 
 %% ?X #>= ?Y
 %
-% Same as Y #=< X. When reasoning over integers, replace >=/2 by #>=/2
-% to obtain more general relations. See [declarative integer
+% Same as Y #=< X. When reasoning over integers, replace `(>=)/2` by
+% #>=/2 to obtain more general relations. See [declarative integer
 % arithmetic](<#clpfd-integer-arith>).
 
 X #>= Y :- clpfd_geq(X, Y).
@@ -2637,7 +2638,7 @@ clpfd_geq(X, Y) :- clpfd_geq_(X, Y), reinforce(X), reinforce(Y).
 %% ?X #=< ?Y
 %
 % The arithmetic expression X is less than or equal to Y. When
-% reasoning over integers, replace =</2 by #=</2 to obtain more
+% reasoning over integers, replace `(=<)/2` by #=</2 to obtain more
 % general relations. See [declarative integer
 % arithmetic](<#clpfd-integer-arith>).
 
@@ -2647,8 +2648,8 @@ X #=< Y :- Y #>= X.
 %
 % The arithmetic expression X equals Y. This is the most important
 % [arithmetic constraint](<#clpfd-arith-constraints>), subsuming and
-% replacing both is/2 _and_ =:=/2 over integers. See [declarative
-% integer arithmetic](<#clpfd-integer-arith>).
+% replacing both `(is)/2` _and_ `(=:=)/2` over integers. See
+% [declarative integer arithmetic](<#clpfd-integer-arith>).
 
 X #= Y :- clpfd_equal(X, Y).
 
@@ -2946,8 +2947,8 @@ integer_kroot_leq(L, U, N, K, R) :-
 %% ?X #\= ?Y
 %
 % The arithmetic expressions X and Y evaluate to distinct integers.
-% When reasoning over integers, replace =\=/2 by #\=/2 to obtain more
-% general relations. See [declarative integer
+% When reasoning over integers, replace `(=\=)/2` by #\=/2 to obtain
+% more general relations. See [declarative integer
 % arithmetic](<#clpfd-integer-arith>).
 
 X #\= Y :- clpfd_neq(X, Y), do_queue.
@@ -2969,8 +2970,8 @@ neq_num(X, N) :-
 
 %% ?X #> ?Y
 %
-% Same as Y #< X. When reasoning over integers, replace >/2 by #>/2 to
-% obtain more general relations See [declarative integer
+% Same as Y #< X. When reasoning over integers, replace `(>)/2` by
+% #>/2 to obtain more general relations See [declarative integer
 % arithmetic](<#clpfd-integer-arith>).
 
 X #> Y  :- X #>= Y + 1.
@@ -2978,7 +2979,7 @@ X #> Y  :- X #>= Y + 1.
 %% #<(?X, ?Y)
 %
 % The arithmetic expression X is less than Y. When reasoning over
-% integers, replace </2 by #</2 to obtain more general relations. See
+% integers, replace `(<)/2` by #</2 to obtain more general relations. See
 % [declarative integer arithmetic](<#clpfd-integer-arith>).
 %
 % In addition to its regular use in tasks that require it, this
