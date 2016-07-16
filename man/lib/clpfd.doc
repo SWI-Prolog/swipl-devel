@@ -30,12 +30,14 @@ and allocation tasks.
 The predicates of this library can be classified as:
 
 \begin{itemize}
-    \item \textit{arithmetic} constraints like \predref{\Sceq}{2}, \predref{\Scgt}{2} and \predref{\Scne}{2} (\secref{clpfd-arith-constraints})
+    \item \textit{arithmetic} constraints like \predref{\Sceq}{2}, \predref{\Scgt}{2} and \predref{\Scne}{2} (\secref{clpfd-arithmetic})
     \item the \textit{membership} constraints \predref{in}{2} and \predref{ins}{2} (\secref{clpfd-membership})
     \item the \textit{enumeration} predicates \predref{indomain}{1}, \predref{label}{1} and \predref{labeling}{2} (\secref{clpfd-enumeration})
     \item \textit{combinatorial} constraints like \predref{all_distinct}{1} and \predref{global_cardinality}{2} (\secref{clpfd-global})
-    \item \textit{reification} and \textit{reflection} predicates such as \predref{\Scequal}{2} (\secref{clpfd-reification-predicates}).
-
+    \item \textit{reification} predicates such as
+      \predref{\Scequal}{2} (\secref{clpfd-reification-predicates})
+    \item \textit{reflection} predicates such as \predref{fd_dom}{2}
+      (\secref{clpfd-reflection-predicates})
 \end{itemize}
 
 In most cases, \textit{arithmetic constraints}
