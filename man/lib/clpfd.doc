@@ -444,6 +444,12 @@ optimal solutions by other criteria. For the sake of purity and
 completeness, we recommend to avoid \verb$once/1$ and other constructs
 that lead to impurities in CLP(FD) programs.
 
+Related to optimisation with CLP(FD) constraints is the
+\url[\textbf{simplex
+  library}]{http://eu.swi-prolog.org/man/simplex.html} and
+\textbf{CLP(Q)} which reason about \textit{linear} constraints over
+rational numbers.
+
 \subsection{Reification}
 
 \label{sec:clpfd-reification}
