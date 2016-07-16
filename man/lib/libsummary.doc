@@ -46,6 +46,26 @@
 \libsummary{check}
 \input{summaries.d/check.tex}
 
+\libsummary{clpb}
+\input{summaries.d/clpb.tex}
+
+\libsummary{clpfd}
+\input{summaries.d/clpfd.tex}
+
+\libsummary{clpqr}
+
+\begin{summarylist}{ll}
+\predicatesummary{entailed}{1}{Check if constraint is entailed}
+\predicatesummary{inf}{2}{Find the infimum of an expression}
+\predicatesummary{sup}{2}{Find the supremum of an expression}
+\predicatesummary{minimize}{1}{Minimizes an expression}
+\predicatesummary{maximize}{1}{Maximizes an expression}
+\predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
+\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}
+\predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}
+\predicatesummary{dump}{3}{Dump constraints on variables}
+\end{summarylist}
+
 \libsummary{csv}
 \input{summaries.d/csv.tex}
 
@@ -136,6 +156,22 @@ This library is only available on Windows systems.
 \predicatesummary{shell_register_prolog}{1}{Register Prolog}
 \end{summarylist}
 
+\libsummary{simplex}
+
+\begin{summarylist}{ll}
+\predicatesummary{assignment}{2}{Solve assignment problem}
+\predicatesummary{constraint}{3}{Add linear constraint to state}
+\predicatesummary{constraint}{4}{Add named linear constraint to state}
+\predicatesummary{constraint_add}{4}{Extend a named constraint}
+\predicatesummary{gen_state}{1}{Create empty linear program}
+\predicatesummary{maximize}{3}{Maximize objective function in to linear constraints}
+\predicatesummary{minimize}{3}{Minimize objective function in to linear constraints}
+\predicatesummary{objective}{2}{Fetch value of objective function}
+\predicatesummary{shadow_price}{3}{Fetch shadow price in solved state}
+\predicatesummary{transportation}{4}{Solve transportation problem}
+\predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
+\end{summarylist}
+
 \libsummary{ugraphs}
 
 \begin{summarylist}{ll}
@@ -165,42 +201,6 @@ This library is only available on Windows systems.
 
 \begin{summarylist}{ll}
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}
-\end{summarylist}
-
-\libsummary{clp/clpb}
-\input{summaries.d/clpb.tex}
-
-\libsummary{clp/clpfd}
-\input{summaries.d/clpfd.tex}
-
-\libsummary{clpqr}
-
-\begin{summarylist}{ll}
-\predicatesummary{entailed}{1}{Check if constraint is entailed}
-\predicatesummary{inf}{2}{Find the infimum of an expression}
-\predicatesummary{sup}{2}{Find the supremum of an expression}
-\predicatesummary{minimize}{1}{Minimizes an expression}
-\predicatesummary{maximize}{1}{Maximizes an expression}
-\predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
-\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}
-\predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}
-\predicatesummary{dump}{3}{Dump constraints on variables}
-\end{summarylist}
-
-\libsummary{clp/simplex}
-
-\begin{summarylist}{ll}
-\predicatesummary{assignment}{2}{Solve assignment problem}
-\predicatesummary{constraint}{3}{Add linear constraint to state}
-\predicatesummary{constraint}{4}{Add named linear constraint to state}
-\predicatesummary{constraint_add}{4}{Extend a named constraint}
-\predicatesummary{gen_state}{1}{Create empty linear program}
-\predicatesummary{maximize}{3}{Maximize objective function in to linear constraints}
-\predicatesummary{minimize}{3}{Minimize objective function in to linear constraints}
-\predicatesummary{objective}{2}{Fetch value of objective function}
-\predicatesummary{shadow_price}{3}{Fetch shadow price in solved state}
-\predicatesummary{transportation}{4}{Solve transportation problem}
-\predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}
 
 \libsummary{solution_sequences}
