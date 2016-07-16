@@ -30,21 +30,24 @@ and allocation tasks.
 The predicates of this library can be classified as:
 
 \begin{itemize}
-    \item \textit{arithmetic} constraints like \predref{\Sceq}{2}, \predref{\Scgt}{2} and \predref{\Scne}{2}
-    \item the \textit{membership} constraints \predref{in}{2} and \predref{ins}{2}
-    \item \textit{combinatorial} constraints like \predref{all_distinct}{1} and \predref{global_cardinality}{2}
-    \item \textit{reification} and \textit{reflection} predicates such as \predref{\Scequal}{2}
-    \item the \textit{enumeration} predicates \predref{indomain}{1}, \predref{label}{1} and \predref{labeling}{2}.
+    \item \textit{arithmetic} constraints like \predref{\Sceq}{2}, \predref{\Scgt}{2} and \predref{\Scne}{2} (\secref{clpfd-arith-constraints})
+    \item the \textit{membership} constraints \predref{in}{2} and \predref{ins}{2} (\secref{clpfd-membership})
+    \item the \textit{enumeration} predicates \predref{indomain}{1}, \predref{label}{1} and \predref{labeling}{2} (\secref{clpfd-enumeration})
+    \item \textit{combinatorial} constraints like \predref{all_distinct}{1} and \predref{global_cardinality}{2} (\secref{clpfd-global})
+    \item \textit{reification} and \textit{reflection} predicates such as \predref{\Scequal}{2} (\secref{clpfd-reification-predicates}).
+
 \end{itemize}
 
-In most cases, arithmetic constraints (\secref{clpfd-arith-constraints})
-are the only predicates you will ever need from this library. When
-reasoning over integers, simply replace low-level arithmetic
-predicates like \verb$(is)/2$ and \verb$(>)/2$ by the corresponding CLP(FD) constraints
-like \predref{\Sceq}{2} and \predref{\Scgt}{2} to honor and preserve declarative properties of
-your programs. For satisfactory performance, arithmetic constraints
-are implicitly rewritten at compilation time so that low-level
-fallback predicates are automatically used whenever possible.
+In most cases, \textit{arithmetic constraints}
+(\secref{clpfd-arith-constraints}) are the only predicates you will
+ever need from this library. When reasoning over integers, simply
+replace low-level arithmetic predicates like \verb$(is)/2$ and
+\verb$(>)/2$ by the corresponding CLP(FD) constraints like
+\predref{\Sceq}{2} and \predref{\Scgt}{2} to honor and preserve
+declarative properties of your programs. For satisfactory performance,
+arithmetic constraints are implicitly rewritten at compilation time so
+that low-level fallback predicates are automatically used whenever
+possible.
 
 Almost all Prolog programs also reason about integers. Therefore, it
 is highly advisable that you make CLP(FD) constraints available in all
