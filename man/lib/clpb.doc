@@ -1,0 +1,13 @@
+\libdoc{clpb}{CLP(B): Constraint Logic Programming over Boolean Variables}
+
+\label{sec:clpb}
+
+\begin{tags}
+    \tag{author}
+\url[Markus Triska]{https://www.metalevel.at}
+\end{tags}
+
+
+% remainder, generated from Markdown and PlDoc
+\input{clpblib.tex}
+

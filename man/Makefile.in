@@ -48,7 +48,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/pairs.tex lib/option.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
-		lib/csv.tex lib/optparse.tex lib/clpb.tex \
+		lib/csv.tex lib/optparse.tex lib/clpb.tex lib/clpblib.tex \
 		lib/predicateoptions.tex lib/predopts.tex lib/random.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
 		lib/solutionsequences.tex lib/iostream.tex \
@@ -183,9 +183,10 @@ lib/apply.tex:	../library/apply.pl
 		$(LIBTOTEX) 'library(apply)'
 lib/error.tex:	../library/error.pl
 		$(LIBTOTEX) 'library(error)'
-lib/clpb.tex:	../library/clp/clpb.pl
-		$(LIBTOTEX) 'library(clpb)'
-# The CLP(FD) predicate overview is written in Markdown
+# The CLP(B) documentation is written in Markdown
+lib/clpblib.tex: lib/clpblib.md ../library/clp/clpb.pl
+		$(LIBTOTEX) --lib=clpb --module=clpb lib/clpblib.md
+# The CLP(FD) documentation is written in Markdown
 lib/clpfdlib.tex: lib/clpfdlib.md ../library/clp/clpfd.pl
 		$(LIBTOTEX) --lib=clpfd --module=clpfd lib/clpfdlib.md
 lib/simplexlib.tex: lib/simplexlib.md ../library/clp/simplex.pl
