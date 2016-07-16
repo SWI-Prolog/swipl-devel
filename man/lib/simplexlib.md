@@ -48,7 +48,7 @@ the current implementation, all variables are implicitly constrained
 to be _non-negative_. This may change in future versions, and
 non-negativity constraints should therefore be stated explicitly.
 
-## Delayed column generation
+## Delayed column generation {#simplex-delayed-column}
 
 _Delayed column generation_ means that more constraint columns are
 added to an existing LP. The following predicates are frequently used
@@ -62,7 +62,7 @@ An example application of _delayed column generation_ to solve a _bin
 packing_ task is available from:
 [**metalevel.at/various/colgen/**](https://www.metalevel.at/various/colgen/)
 
-## Solving LPs with special structure
+## Solving LPs with special structure {#simplex-special-structure}
 
 The following predicates allow you to solve specific kinds of LPs more
 efficiently:
@@ -71,7 +71,7 @@ efficiently:
   - [[transportation/4]]
   - [[assignment/2]]
 
-## Examples
+## Examples {#simplex-examples}
 
 We include a few examples for solving LPs with this library.
 
