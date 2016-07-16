@@ -137,7 +137,7 @@ supported.
 
 ## Declarative integer arithmetic		{#clpfd-integer-arith}
 
-The [arithmetic constraints](<#clpfd-arith-constraints>) #=/2, #>/2
+The [_arithmetic constraints_](<#clpfd-arith-constraints>) #=/2, #>/2
 etc. are meant to be used _instead_ of the primitives `(is)/2`,
 `(=:=)/2`, `(>)/2` etc. over integers. Almost all Prolog programs also
 reason about integers. Therefore, it is recommended that you put the
