@@ -6850,8 +6850,9 @@ fd_sup(X, Sup) :-
 
 %% fd_size(+Var, -Size)
 %
-%  Size is the number of elements of the current domain of Var, or the
-%  atom *sup* if the domain is unbounded.
+%  Reflect the current size of a domain. Size is the number of
+%  elements of the current domain of Var, or the atom *sup* if the
+%  domain is unbounded.
 
 fd_size(X, S) :-
         (   fd_get(X, XD, _) ->
