@@ -796,4 +796,6 @@ integers, which were in the past repeatedly found to be a major
 stumbling block when introducing logic programming to beginners.
 
 Embrace the change and new opportunities that this paradigm allows!
-Use CLP(FD) constraints in your programs.
+Use CLP(FD) constraints in your programs. The use of CLP(FD)
+constraints instead of low-level arithmetic is also a good indicator
+to judge the quality of any introductory Prolog text.
