@@ -1,3 +1,71 @@
+In most cases, [arithmetic constraints](<#clpfd-arith-constraints>)
+are the only predicates you will ever need from this library. When
+reasoning over integers, simply replace low-level arithmetic
+predicates like `(is)/2` and `(>)/2` by the corresponding CLP(FD)
+constraints like #=/2 and #>/2 to honor and preserve declarative
+properties of your programs. For satisfactory performance, arithmetic
+constraints are implicitly rewritten at compilation time so that
+low-level fallback predicates are automatically used whenever
+possible.
+
+Almost all Prolog programs also reason about integers. Therefore, it
+is highly advisable that you make CLP(FD) constraints available in all
+your programs. One way to do this is to put the following directive in
+your =|~/.swiplrc|= initialisation file:
+
+==
+:- use_module(library(clpfd)).
+==
+
+All example programs that appear in the CLP(FD) documentation assume
+that you have done this.
+
+Important concepts and principles of this library are illustrated by
+means of usage examples that are available in a public git repository:
+[**github.com/triska/clpfd**](https://github.com/triska/clpfd)
+
+If you are used to the complicated operational considerations that
+low-level arithmetic primitives necessitate, then moving to CLP(FD)
+constraints may, due to their power and convenience, at first feel to
+you excessive and almost like cheating. It _isn't_. Constraints are an
+integral part of all popular Prolog systems, and they are designed
+to help you eliminate and avoid the use of low-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
+
+When teaching Prolog, CLP(FD) constraints should be introduced
+_before_ explaining low-level arithmetic predicates and their
+procedural idiosyncrasies. This is because constraints are easy to
+explain, understand and use due to their purely relational nature. In
+contrast, the modedness and directionality of low-level arithmetic
+primitives are impure limitations that are better deferred to more
+advanced lectures.
+
+We recommend the following reference (PDF:
+[metalevel.at/swiclpfd.pdf](https://www.metalevel.at/swiclpfd.pdf)) for
+citing this library in scientific publications:
+
+==
+@inproceedings{Triska12,
+  author    = {Markus Triska},
+  title     = {The Finite Domain Constraint Solver of {SWI-Prolog}},
+  booktitle = {FLOPS},
+  series    = {LNCS},
+  volume    = {7294},
+  year      = {2012},
+  pages     = {307-316}
+}
+==
+
+More information about CLP(FD) constraints and their implementation is
+contained in: [**metalevel.at/drt.pdf**](https://www.metalevel.at/drt.pdf)
+
+The best way to discuss applying, improving and extending CLP(FD)
+constraints is to use the dedicated `clpfd` tag on
+[stackoverflow.com](http://stackoverflow.com). Several of the world's
+foremost CLP(FD) experts regularly participate in these discussions
+and will help you for free on this platform.
+
 ## Arithmetic constraints		{#clpfd-arith-constraints}
 
 In modern Prolog systems, *arithmetic constraints* subsume and
