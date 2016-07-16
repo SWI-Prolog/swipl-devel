@@ -37,23 +37,6 @@ information.
   * [[labeling/2]]
 
 
-### Reification predicates {#clpfd-reification-predicates}
-
-Many CLP(FD) constraints can be _reified_. This means that their truth
-value is itself turned into a CLP(FD) variable, so that you can
-explicitly reason about whether a constraint holds or not. See
-[reification](<#clpfd-reification>).
-
-  * [[(#\)/1]]
-  * [[(#<==>)/2]]
-  * [[(#==>)/2]]
-  * [[(#<==)/2]]
-  * [[(#/\)/2]]
-  * [[(#\/)/2]]
-  * [[(#\)/2]]
-  * [[zcompare/3]]
-
-
 ### Global constraints {#clpfd-global}
 
 A _global constraint_ expresses a relation that involves many
@@ -79,6 +62,24 @@ global_cardinality/2 and cumulative/2.
   * [[automaton/3]]
   * [[automaton/8]]
   * [[chain/2]]
+
+
+### Reification predicates {#clpfd-reification-predicates}
+
+Many CLP(FD) constraints can be _reified_. This means that their truth
+value is itself turned into a CLP(FD) variable, so that you can
+explicitly reason about whether a constraint holds or not. See
+[reification](<#clpfd-reification>).
+
+  * [[(#\)/1]]
+  * [[(#<==>)/2]]
+  * [[(#==>)/2]]
+  * [[(#<==)/2]]
+  * [[(#/\)/2]]
+  * [[(#\/)/2]]
+  * [[(#\)/2]]
+  * [[zcompare/3]]
+
 
 ### Reflection predicates {#clpfd-reflection-predicates}
 
