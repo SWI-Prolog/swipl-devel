@@ -309,7 +309,7 @@ X = 3.
 ==
 
 This could in principle also be achieved with the lower-level
-predicate is/2. However, an important advantage of arithmetic
+predicate `(is)/2`. However, an important advantage of arithmetic
 constraints is their purely relational nature: Constraints can be used
 in _all directions_, also if one or more of their arguments are only
 partially instantiated. For example:
@@ -337,9 +337,48 @@ and should therefore be deferred to more advanced lectures.
 
 For supported expressions, CLP(FD) constraints are drop-in
 replacements of these low-level arithmetic predicates, often yielding
-more general programs.
+more general programs. See [`n_factorial/2`](<#clpfd-factorial>) for an
+example.
 
-Here is an example, relating each natural number to its factorial:
+This library uses goal_expansion/2 to automatically rewrite
+constraints at compilation time so that low-level arithmetic
+predicates are _automatically_ used whenever possible. For example,
+the predicate:
+
+==
+positive_integer(N) :- N #>= 1.
+==
+
+is executed as if it were written as:
+
+==
+positive_integer(N) :-
+        (   integer(N)
+        ->  N >= 1
+        ;   N #>= 1
+        ).
+==
+
+This illustrates why the performance of CLP(FD) constraints is almost
+always completely satisfactory when they are used in modes that can be
+handled by low-level arithmetic. To disable the automatic rewriting,
+set the Prolog flag `clpfd_goal_expansion` to `false`.
+
+If you are used to the complicated operational considerations that
+low-level arithmetic primitives necessitate, then moving to CLP(FD)
+constraints may, due to their power and convenience, at first feel to
+you excessive and almost like cheating. It _isn't_. Constraints are an
+integral part of all popular Prolog systems, and they are designed
+to help you eliminate and avoid the use of low-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
+
+
+## Example: Factorial relation {#clpfd-factorial}
+
+We illustrate the benefit of using #=/2 for more generality with a
+simple example. The following Prolog program relates each natural
+number _N_ to its factorial _F_:
 
 ==
 n_factorial(0, 1).
@@ -420,7 +459,7 @@ Each CLP(FD) variable has an associated set of admissible integers,
 which we call the variable's *domain*. Initially, the domain of each
 CLP(FD) variable is the set of _all_ integers. CLP(FD) constraints
 like #=/2, #>/2 and #\=/2 can at most reduce, and never extend, the
-domains of their arguments. The constraints in/2 and ins/2 let you
+domains of their arguments. The constraints in/2 and ins/2 let us
 explicitly state domains of CLP(FD) variables. The process of
 determining and adjusting domains of variables is called constraint
 *propagation*, and it is performed automatically by this library. When
@@ -429,6 +468,59 @@ is automatically unified to that element.
 
 Domains are taken into account when further constraints are stated,
 and by enumeration predicates like labeling/2.
+
+## Example: Sudoku {#clpfd-sudoku}
+
+As another example, consider _Sudoku_: It is a popular puzzle
+over integers that can be easily solved with CLP(FD) constraints.
+
+==
+sudoku(Rows) :-
+        length(Rows, 9), maplist(same_length(Rows), Rows),
+        append(Rows, Vs), Vs ins 1..9,
+        maplist(all_distinct, Rows),
+        transpose(Rows, Columns),
+        maplist(all_distinct, Columns),
+        Rows = [As,Bs,Cs,Ds,Es,Fs,Gs,Hs,Is],
+        blocks(As, Bs, Cs),
+        blocks(Ds, Es, Fs),
+        blocks(Gs, Hs, Is).
+
+blocks([], [], []).
+blocks([N1,N2,N3|Ns1], [N4,N5,N6|Ns2], [N7,N8,N9|Ns3]) :-
+        all_distinct([N1,N2,N3,N4,N5,N6,N7,N8,N9]),
+        blocks(Ns1, Ns2, Ns3).
+
+problem(1, [[_,_,_,_,_,_,_,_,_],
+            [_,_,_,_,_,3,_,8,5],
+            [_,_,1,_,2,_,_,_,_],
+            [_,_,_,5,_,7,_,_,_],
+            [_,_,4,_,_,_,1,_,_],
+            [_,9,_,_,_,_,_,_,_],
+            [5,_,_,_,_,_,_,7,3],
+            [_,_,2,_,1,_,_,_,_],
+            [_,_,_,_,4,_,_,_,9]]).
+==
+
+Sample query:
+
+==
+?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
+[9,8,7,6,5,4,3,2,1]
+[2,4,6,1,7,3,9,8,5]
+[3,5,1,9,2,8,7,4,6]
+[1,2,8,5,3,7,6,9,4]
+[6,3,4,8,9,2,1,5,7]
+[7,9,5,4,6,1,8,3,2]
+[5,1,9,2,8,6,4,7,3]
+[4,7,2,3,1,9,5,6,8]
+[8,6,3,7,4,5,2,1,9]
+Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
+==
+
+In this concrete case, the constraint solver is strong enough to find
+the unique solution without any search.
+
 
 ## Residual goals				{#clpfd-residual-goals}
 
@@ -465,7 +557,7 @@ goals, it is clear that the constraint solver has deduced additional
 domain restrictions in many cases.
 
 To inspect residual goals, it is best to let the toplevel display them
-for you. Wrap the call of your predicate into call_residue_vars/2 to
+for us. Wrap the call of your predicate into call_residue_vars/2 to
 make sure that all constrained variables are displayed. To make the
 constraints a variable is involved in available as a Prolog term for
 further reasoning within your program, use copy_term/3. For example:
@@ -478,7 +570,7 @@ Y+Z#=X.
 ==
 
 This library also provides _reflection_ predicates (like fd_dom/2,
-fd_size/2 etc.) with which you can inspect a variable's current
+fd_size/2 etc.) with which we can inspect a variable's current
 domain. These predicates can be useful if you want to implement your
 own labeling strategies.
 
@@ -494,7 +586,7 @@ consists of two phases:
 
 It is good practice to keep the modeling part, via a dedicated
 predicate called the *core relation*, separate from the actual
-search for solutions. This lets you observe termination and
+search for solutions. This lets us observe termination and
 determinism properties of the core relation in isolation from the
 search, and more easily try different search strategies.
 
@@ -556,9 +648,83 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
+## Example: Eight queens puzzle {#clpfd-n-queens}
+
+We illustrate the concepts of the preceding section by means of the
+so-called _eight queens puzzle_. The task is to place 8 queens on an
+8x8 chessboard such that none of the queens is under attack. This
+means that no two queens share the same row, column or diagonal.
+
+To express this puzzle via CLP(FD) constraints, we must first pick a
+suitable representation. Since CLP(FD) constraints reason over
+_integers_, we must find a way to map the positions of queens to
+integers. Several such mappings are conceivable, and it is not
+immediately obvious which we should use. For this reason, _modeling_
+combinatorial problems via CLP(FD) constraints often necessitates some
+creativity and has been described as more of an art than a science.
+
+In our concrete case, we observe that there must be exactly one queen
+per column. The following representation therefore suggests itself: We
+are looking for 8 integers, one for each column, where each integer
+denotes the _row_ of the queen that is placed in the respective
+column, and which are subject to certain constraints.
+
+In fact, let us now generalize the task to the so-called _N queens
+puzzle_, which is obtained by replacing 8 by _N_ everywhere it occurs
+in the above description. We implement the above considerations in the
+**core relation** `n_queens/2`, where the first argument is the number
+of queens (which is identical to the number of rows and columns of the
+generalized chessboard), and the second argument is a list of _N_
+integers that represents a solution in the form described above.
+
+==
+n_queens(N, Qs) :-
+        length(Qs, N),
+        Qs ins 1..N,
+        safe_queens(Qs).
+
+safe_queens([]).
+safe_queens([Q|Qs]) :- safe_queens(Qs, Q, 1), safe_queens(Qs).
+
+safe_queens([], _, _).
+safe_queens([Q|Qs], Q0, D0) :-
+        Q0 #\= Q,
+        abs(Q0 - Q) #\= D0,
+        D1 #= D0 + 1,
+        safe_queens(Qs, Q0, D1).
+==
+
+Note that all these predicates can be used in _all directions_: We
+can use them to _find_ solutions, _test_ solutions and _complete_
+partially instantiated solutions.
+
+The original task can be readily solved with the following query:
+
+==
+?- n_queens(8, Qs), label(Qs).
+Qs = [1, 5, 8, 6, 3, 7, 2, 4] .
+==
+
+Using suitable labeling strategies, we can easily find solutions with
+80 queens and more:
+
+==
+?- n_queens(80, Qs), labeling([ff], Qs).
+Qs = [1, 3, 5, 44, 42, 4, 50, 7, 68|...] .
+
+?- time((n_queens(90, Qs), labeling([ff], Qs))).
+% 5,904,401 inferences, 0.722 CPU in 0.737 seconds (98% CPU)
+Qs = [1, 3, 5, 50, 42, 4, 49, 7, 59|...] .
+==
+
+Experimenting with different search strategies is easy because we have
+separated the core relation from the actual search.
+
+
+
 ## Optimisation    {#clpfd-optimisation}
 
-You can use labeling/2 to minimize or maximize the value of a CLP(FD)
+We can use labeling/2 to minimize or maximize the value of a CLP(FD)
 expression, and generate solutions in increasing or decreasing order
 of the value. See the labeling options `min(Expr)` and `max(Expr)`,
 respectively.
@@ -566,15 +732,19 @@ respectively.
 Again, to easily try different labeling options in connection with
 optimisation, we recommend to introduce a dedicated predicate for
 posting constraints, and to use `labeling/2` in a separate goal. This
-way, you can observe properties of the core relation in isolation,
-and try different labeling options without recompiling your code.
+way, we can observe properties of the core relation in isolation,
+and try different labeling options without recompiling our code.
 
-If necessary, you can use `once/1` to commit to the first optimal
+If necessary, we can use `once/1` to commit to the first optimal
 solution. However, it is often very valuable to see alternative
-solutions that are _also_ optimal, so that you can choose among
+solutions that are _also_ optimal, so that we can choose among
 optimal solutions by other criteria. For the sake of purity and
 completeness, we recommend to avoid `once/1` and other constructs
 that lead to impurities in CLP(FD) programs.
+
+Related to optimisation with CLP(FD) constraints is the [**simplex
+library**](http://eu.swi-prolog.org/man/simplex.html) and **CLP(Q)**
+which reason about _linear_ constraints over rational numbers.
 
 ## Reification				{#clpfd-reification}
 
@@ -594,7 +764,8 @@ reifiable constraints or Boolean variables, then:
 The constraints of this table are reifiable as well.
 
 When reasoning over Boolean variables, also consider using
-`library(clpb)` and its dedicated CLP(B) constraints.
+CLP(B) constraints as provided by
+[**library(clpb)**](http://eu.swi-prolog.org/man/clpb.html).
 
 ## Enabling monotonic CLP(FD)		{#clpfd-monotonicity}
 
@@ -615,7 +786,7 @@ it may render declarative debugging techniques inapplicable.
 
 Set the Prolog flag `clpfd_monotonic` to `true` to make CLP(FD)
 **monotonic**: This means that _adding_ new constraints _cannot_ yield
-new solutions. When this flag is `true`, you must wrap variables that
+new solutions. When this flag is `true`, we must wrap variables that
 occur in arithmetic expressions with the functor `(?)/1` or `(#)/1`. For
 example:
 
@@ -635,7 +806,7 @@ to integers.
 
 ## Custom constraints			{#clpfd-custom-constraints}
 
-You can define custom constraints. The mechanism to do this is not yet
+We can define custom constraints. The mechanism to do this is not yet
 finalised, and we welcome suggestions and descriptions of use cases
 that are important to you.
 
@@ -680,78 +851,6 @@ Y = 5,
 Z = 1,
 X in inf..sup.
 ==
-
-## Example: Eight queens puzzle {#clpfd-n-queens}
-
-We illustrate the most important concepts of this library by means of
-the so-called _eight queens puzzle_. The task is to place 8 queens on
-an 8x8 chessboard such that none of the queens is under attack. This
-means that no two queens share the same row, column or diagonal.
-
-To express this puzzle via CLP(FD) constraints, we must first pick a
-suitable representation. Since CLP(FD) constraints reason over
-_integers_, we must find a way to map the positions of queens to
-integers. Several such mappings are conceivable, and it is not
-immediately obvious which we should use. For this reason, _modeling_
-combinatorial problems via CLP(FD) constraints often necessitates some
-creativity and has been described as more of an art than a science.
-
-In our concrete case, we observe that there must be exactly one queen
-per column. The following representation therefore suggests itself: We
-are looking for 8 integers, one for each column, where each integer
-denotes the _row_ of the queen that is placed in the respective
-column, and which are subject to certain constraints.
-
-In fact, let us now generalize the task to the so-called _N queens
-puzzle_, which is obtained by replacing 8 by _N_ everywhere it occurs
-in the above description. We implement the above considerations in the
-**core relation** `n_queens/2`, where the first argument is the number
-of queens (which is identical to the number of rows and columns of the
-generalized chessboard), and the second argument is a list of _N_
-integers that represents a solution in the form described above.
-
-==
-n_queens(N, Qs) :-
-        length(Qs, N),
-        Qs ins 1..N,
-        safe_queens(Qs).
-
-safe_queens([]).
-safe_queens([Q|Qs]) :- safe_queens(Qs, Q, 1), safe_queens(Qs).
-
-safe_queens([], _, _).
-safe_queens([Q|Qs], Q0, D0) :-
-        Q0 #\= Q,
-        abs(Q0 - Q) #\= D0,
-        D1 #= D0 + 1,
-        safe_queens(Qs, Q0, D1).
-==
-
-Note that all these predicates can be used in _all directions_: You
-can use them to _find_ solutions, _test_ solutions and _complete_
-partially instantiated solutions.
-
-The original task can be readily solved with the following query:
-
-==
-?- n_queens(8, Qs), label(Qs).
-Qs = [1, 5, 8, 6, 3, 7, 2, 4] .
-==
-
-Using suitable labeling strategies, we can easily find solutions with
-80 queens and more:
-
-==
-?- n_queens(80, Qs), labeling([ff], Qs).
-Qs = [1, 3, 5, 44, 42, 4, 50, 7, 68|...] .
-
-?- time((n_queens(90, Qs), labeling([ff], Qs))).
-% 5,904,401 inferences, 0.722 CPU in 0.737 seconds (98% CPU, 8183406 Lips)
-Qs = [1, 3, 5, 50, 42, 4, 49, 7, 59|...] .
-==
-
-Experimenting with different search strategies is easy because we have
-separated the core relation from the actual search.
 
 ## Applications   {#clpfd-applications}
 
