@@ -15,8 +15,9 @@ This library provides CLP(FD): Constraint Logic Programming over
 Finite Domains.
 
 CLP(FD) is an instance of the general CLP(.) scheme, extending logic
-programming with reasoning over specialised domains. CLP(FD) lets you
-reason about \textbf{integers}.
+programming with reasoning over specialised domains. CLP(FD) lets us
+reason about \textbf{integers} in a way that fits the relational
+nature of~Prolog.
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -274,15 +275,17 @@ useful in more specialized applications.
 \label{sec:clpfd-domains}
 
 Each CLP(FD) variable has an associated set of admissible integers,
-which we call the variable's \textbf{domain}. Initially, the domain of each
-CLP(FD) variable is the set of \textit{all} integers. CLP(FD) constraints
-like \predref{\Sceq}{2}, \predref{\Scgt}{2} and \predref{\Scne}{2} can at most reduce, and never extend, the
-domains of their arguments. The constraints \predref{in}{2} and \predref{ins}{2} let you
-explicitly state domains of CLP(FD) variables. The process of
-determining and adjusting domains of variables is called constraint
-\textbf{propagation}, and it is performed automatically by this library. When
-the domain of a variable contains only one element, then the variable
-is automatically unified to that element.
+which we call the variable's \textbf{domain}. Initially, the domain of
+each CLP(FD) variable is the set of \textit{all} integers. CLP(FD)
+constraints like \predref{\Sceq}{2}, \predref{\Scgt}{2} and
+\predref{\Scne}{2} can at most reduce, and never extend, the domains
+of their arguments. The constraints \predref{in}{2} and
+\predref{ins}{2} let us explicitly state domains of CLP(FD)
+variables. The process of determining and adjusting domains of
+variables is called constraint \textbf{propagation}, and it is
+performed automatically by this library. When the domain of a variable
+contains only one element, then the variable is automatically unified
+to that element.
 
 Domains are taken into account when further constraints are stated,
 and by enumeration predicates like \predref{labeling}{2}.
@@ -337,7 +340,7 @@ Y+Z#=X.
 \end{code}
 
 This library also provides \textit{reflection} predicates (like \predref{fd_dom}{2},
-\predref{fd_size}{2} etc.) with which you can inspect a variable's current
+\predref{fd_size}{2} etc.) with which we can inspect a variable's current
 domain. These predicates can be useful if you want to implement your
 own labeling strategies.
 
@@ -357,7 +360,7 @@ concrete solutions.
 
 It is good practice to keep the modeling part, via a dedicated
 predicate called the \textbf{core relation}, separate from the actual
-search for solutions. This lets you observe termination and
+search for solutions. This lets us observe termination and
 determinism properties of the core relation in isolation from the
 search, and more easily try different search strategies.
 
@@ -423,20 +426,20 @@ ground solutions.
 
 \label{sec:clpfd-optimisation}
 
-You can use \predref{labeling}{2} to minimize or maximize the value of a CLP(FD)
-expression, and generate solutions in increasing or decreasing order
-of the value. See the labeling options \verb$min(Expr)$ and \verb$max(Expr)$,
-respectively.
+We can use \predref{labeling}{2} to minimize or maximize the value of
+a CLP(FD) expression, and generate solutions in increasing or
+decreasing order of the value. See the labeling options
+\verb$min(Expr)$ and \verb$max(Expr)$, respectively.
 
 Again, to easily try different labeling options in connection with
 optimisation, we recommend to introduce a dedicated predicate for
 posting constraints, and to use \verb$labeling/2$ in a separate goal. This
-way, you can observe properties of the core relation in isolation,
-and try different labeling options without recompiling your code.
+way, we can observe properties of the core relation in isolation,
+and try different labeling options without recompiling our code.
 
-If necessary, you can use \verb$once/1$ to commit to the first optimal
+If necessary, we can use \verb$once/1$ to commit to the first optimal
 solution. However, it is often very valuable to see alternative
-solutions that are \textit{also} optimal, so that you can choose among
+solutions that are \textit{also} optimal, so that we can choose among
 optimal solutions by other criteria. For the sake of purity and
 completeness, we recommend to avoid \verb$once/1$ and other constructs
 that lead to impurities in CLP(FD) programs.
@@ -491,7 +494,7 @@ it may render declarative debugging techniques inapplicable.
 
 Set the Prolog flag \verb$clpfd_monotonic$ to \const{true} to make CLP(FD)
 \textbf{monotonic}: This means that \textit{adding} new constraints \textit{cannot} yield
-new solutions. When this flag is \const{true}, you must wrap variables that
+new solutions. When this flag is \const{true}, we must wrap variables that
 occur in arithmetic expressions with the functor \verb$(?)/1$ or \verb$(#)/1$. For
 example:
 
@@ -513,7 +516,7 @@ to integers.
 
 \label{sec:clpfd-custom-constraints}
 
-You can define custom constraints. The mechanism to do this is not yet
+We can define custom constraints. The mechanism to do this is not yet
 finalised, and we welcome suggestions and descriptions of use cases
 that are important to you.
 
@@ -699,7 +702,7 @@ safe_queens([Q|Qs], Q0, D0) :-
         safe_queens(Qs, Q0, D1).
 \end{code}
 
-Note that all these predicates can be used in \textit{all directions}: You
+Note that all these predicates can be used in \textit{all directions}: We
 can use them to \textit{find} solutions, \textit{test} solutions and \textit{complete}
 partially instantiated solutions.
 
