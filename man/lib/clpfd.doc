@@ -258,6 +258,44 @@ to help you eliminate and avoid the use of low-level and less general
 primitives by providing declarative alternatives that are meant to be
 used instead.
 
+\subsection{Example: Factorial relation}
+
+\label{sec:clpfd-factorial}
+
+We illustrate the benefit of using \predref{\Sceq}{2} for more
+generality with a simple example. The following Prolog program relates
+each natural number~$N$ to its factorial~$F$:
+
+\begin{code}
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0,
+        N1 #= N - 1,
+        F #= N * F1,
+        n_factorial(N1, F1).
+\end{code}
+
+This relation can be used in all directions. For example:
+
+\begin{code}
+?- n_factorial(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+false.
+
+?- n_factorial(N, 1).
+N = 0 ;
+N = 1 ;
+false.
+
+?- n_factorial(N, 3).
+false.
+\end{code}
+
+To make the predicate terminate if any argument is instantiated, add
+the (implied) constraint \verb$F #\= 0$ before the recursive call.
+Otherwise, the query \verb$n_factorial(N, 0)$ is the only non-terminating
+case of this kind.
+
 \subsection{Combinatorial constraints}
 
 \label{sec:clpfd-combinatorial}
@@ -568,44 +606,6 @@ Z = 1,
 X in inf..sup.
 \end{code}
 
-
-\subsection{Example: Factorial relation}
-
-\label{sec:clpfd-factorial}
-
-We illustrate the benefit of using \predref{\Sceq}{2} for more
-generality with a simple example. The following Prolog program relates
-each natural number~$N$ to its factorial~$F$:
-
-\begin{code}
-n_factorial(0, 1).
-n_factorial(N, F) :-
-        N #> 0,
-        N1 #= N - 1,
-        F #= N * F1,
-        n_factorial(N1, F1).
-\end{code}
-
-This relation can be used in all directions. For example:
-
-\begin{code}
-?- n_factorial(47, F).
-F = 258623241511168180642964355153611979969197632389120000000000 ;
-false.
-
-?- n_factorial(N, 1).
-N = 0 ;
-N = 1 ;
-false.
-
-?- n_factorial(N, 3).
-false.
-\end{code}
-
-To make the predicate terminate if any argument is instantiated, add
-the (implied) constraint \verb$F #\= 0$ before the recursive call.
-Otherwise, the query \verb$n_factorial(N, 0)$ is the only non-terminating
-case of this kind.
 
 \subsection{Example: Sudoku}
 \label{sec:clpfd-sudoku}
