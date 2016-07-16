@@ -156,8 +156,9 @@ This library provides CLP(FD): Constraint Logic Programming over
 Finite Domains.
 
 CLP(FD) is an instance of the general CLP(.) scheme, extending logic
-programming with reasoning over specialised domains. CLP(FD) lets you
-reason about **integers**.
+programming with reasoning over specialised domains. CLP(FD) lets us
+reason about **integers** in a way that fits the relational nature of
+Prolog.
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -167,13 +168,14 @@ There are two major use cases of CLP(FD) constraints:
 
 The predicates of this library can be classified as:
 
-    * _arithmetic_ constraints like #=/2, #>/2 and #\=/2
-    * the _membership_ constraints in/2 and ins/2
-    * _combinatorial_ constraints like all_distinct/1 and global_cardinality/2
-    * _reification_ and _reflection_ predicates such as #<==>/2
-    * the _enumeration_ predicates indomain/1, label/1 and labeling/2.
+    * _arithmetic_ constraints like #=/2, #>/2 and #\=/2 [](<#clpfd-arithmetic>)
+    * the _membership_ constraints in/2 and ins/2 [](<#clpfd-membership>)
+    * the _enumeration_ predicates indomain/1, label/1 and labeling/2 [](<#clpfd-enumeration>)
+    * _combinatorial_ constraints like all_distinct/1 and global_cardinality/2 [](<#clpfd-global>)
+    * _reification_ predicates such as #<==>/2 [](<#clpfd-reification-predicates>)
+    * _reflection_ predicates such as fd_dom/2 [](<#clpfd-reflection-predicates>)
 
-In most cases, [arithmetic constraints](<#clpfd-arith-constraints>)
+In most cases, [_arithmetic constraints_](<#clpfd-arith-constraints>)
 are the only predicates you will ever need from this library. When
 reasoning over integers, simply replace low-level arithmetic
 predicates like `(is)/2` and `(>)/2` by the corresponding CLP(FD)
