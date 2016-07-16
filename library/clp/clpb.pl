@@ -476,9 +476,9 @@ bdd_and(NA, NB, And) :-
 
 %% taut(+Expr, -T) is semidet
 %
-% Succeeds with T = 0 if the Boolean expression Expr cannot be
-% satisfied, and with T = 1 if Expr is always true with respect to the
-% current constraints. Fails otherwise.
+% Tautology check. Succeeds with T = 0 if the Boolean expression Expr
+% cannot be satisfied, and with T = 1 if Expr is always true with
+% respect to the current constraints. Fails otherwise.
 
 taut(Sat0, T) :-
         parse_sat(Sat0, Sat),
@@ -1218,8 +1218,8 @@ node_ite(Node, Node-ite(Var,High,Low)) :-
 
 %% labeling(+Vs) is multi.
 %
-% Assigns truth values to the Boolean variables Vs such that all
-% stated constraints are satisfied.
+% Find concrete solutions. Assigns truth values to the Boolean
+% variables Vs such that all stated constraints are satisfied.
 
 labeling(Vs0) :-
         must_be(list, Vs0),
@@ -1242,9 +1242,10 @@ indomain(1).
 
 %% sat_count(+Expr, -Count) is det.
 %
-% Count is the number of different assignments of truth values to the
-% variables in the Boolean expression Expr, such that Expr is true and
-% all posted constraints are satisfiable.
+% Count the number of admissible assignments. Count is the number of
+% different assignments of truth values to the variables in the
+% Boolean expression Expr, such that Expr is true and all posted
+% constraints are satisfiable.
 %
 % A common form of invocation is `sat_count(+[1|Vs], Count)`: This
 % counts the number of admissible assignments to `Vs` without imposing
@@ -1258,7 +1259,9 @@ indomain(1).
 % Count = 3,
 % sat(A=:=A*B).
 %
-% ?- length(Vs, 120), sat_count(+Vs, CountOr), sat_count(*(Vs), CountAnd).
+% ?- length(Vs, 120),
+%    sat_count(+Vs, CountOr),
+%    sat_count(*(Vs), CountAnd).
 % Vs = [...],
 % CountOr = 1329227995784915872903807060280344575,
 % CountAnd = 1.
@@ -1384,8 +1387,9 @@ random_bindings(VNum, Node) -->
 
 %% weighted_maximum(+Weights, +Vs, -Maximum) is multi.
 %
-% Maximize a linear objective function over Boolean variables Vs with
-% integer coefficients Weights. This predicate assigns 0 and 1 to the
+% Enumerate weighted optima over admissible assignments. Maximize a
+% linear objective function over Boolean variables Vs with integer
+% coefficients Weights. This predicate assigns 0 and 1 to the
 % variables in Vs such that all stated constraints are satisfied, and
 % Maximum is the maximum of sum(Weight_i*V_i) over all admissible
 % assignments.  On backtracking, all admissible assignments that
