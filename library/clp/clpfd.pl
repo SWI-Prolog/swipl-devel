@@ -2646,9 +2646,9 @@ X #=< Y :- Y #>= X.
 %% ?X #= ?Y
 %
 % The arithmetic expression X equals Y. This is the most important
-% [arithmetic constraint](<#clpfd-arith-constraints>), replacing both
-% is/2 _and_ =:=/2. See [declarative integer
-% arithmetic](<#clpfd-integer-arith>).
+% [arithmetic constraint](<#clpfd-arith-constraints>), subsuming and
+% replacing both is/2 _and_ =:=/2 over integers. See [declarative
+% integer arithmetic](<#clpfd-integer-arith>).
 
 X #= Y :- clpfd_equal(X, Y).
 
