@@ -137,7 +137,7 @@ are expressed as functions of universally quantified variables.
 
 By default, CLP(B) residual goals appear in (approximately) algebraic
 normal form (ANF). This projection is often computationally expensive.
-You can set the Prolog flag `clpb_residuals` to the value `bdd` to see
+We can set the Prolog flag `clpb_residuals` to the value `bdd` to see
 the BDD representation of all constraints. This results in faster
 projection to residual goals, and is also useful for learning more
 about BDDs. For example:
@@ -158,7 +158,7 @@ such answers as Prolog terms.
 
 The variable order of the BDD is determined by the order in which the
 variables first appear in constraints. To obtain different orders,
-you can for example use:
+we can for example use:
 
 ==
 ?- sat(+[1,Y,X]), sat(X#Y).
@@ -181,7 +181,7 @@ false.
 X = 1+0.
 ==
 
-If you set the flag `clpb_monotonic` to `true`, then CLP(B) is
+If we set the flag `clpb_monotonic` to `true`, then CLP(B) is
 *monotonic*. If this mode is enabled, then you must wrap CLP(B)
 variables with the functor `v/1`. For example:
 
@@ -191,4 +191,30 @@ true.
 
 ?- sat(v(X)=:=1#1).
 X = 0.
+==
+
+## Example: Boolean circuit  {#clpb-circuit}
+
+Consider a Boolean circuit that express the Boolean function =|XOR|=
+with 4 =|NAND|= gates. We can model such a circuit with CLP(B)
+constraints as follows:
+
+==
+:- use_module(library(clpb)).
+
+nand_gate(X, Y, Z) :- sat(Z =:= ~(X*Y)).
+
+xor(X, Y, Z) :-
+        nand_gate(X, Y, T1),
+        nand_gate(X, T1, T2),
+        nand_gate(Y, T1, T3),
+        nand_gate(T2, T3, Z).
+==
+
+Using universally quantified variables, we can show that the circuit
+does compute =|XOR|= as intended:
+
+==
+?- xor(x, y, Z).
+sat(Z=:=x#y).
 ==
