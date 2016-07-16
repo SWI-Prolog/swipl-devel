@@ -462,7 +462,8 @@ P \Slimplies{} Q & True iff Q implies P \\
 The constraints of this table are reifiable as well.
 
 When reasoning over Boolean variables, also consider using
-\verb$library(clpb)$ and its dedicated CLP(B) constraints.
+\url[\verb$library(clpb)$]{http://eu.swi-prolog.org/man/clpb.html} and
+its dedicated CLP(B) constraints.
 
 \subsection{Enabling monotonic CLP(FD)}
 
