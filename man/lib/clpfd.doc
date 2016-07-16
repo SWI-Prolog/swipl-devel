@@ -7,39 +7,6 @@
 \url[Markus Triska]{https://www.metalevel.at}
 \end{tags}
 
-\subsection{Introduction}
-
-\label{sec:clpfd-intro}
-
-This library provides CLP(FD): Constraint Logic Programming over
-Finite Domains.
-
-CLP(FD) is an instance of the general CLP(.) scheme, extending logic
-programming with reasoning over specialised domains. CLP(FD) lets us
-reason about \textbf{integers} in a way that fits the relational
-nature of~Prolog.
-
-There are two major use cases of CLP(FD) constraints:
-
-\begin{enumerate}
-    \item \textbf{declarative integer arithmetic} (\secref{clpfd-integer-arith})
-    \item solving \textbf{combinatorial problems} such as planning, scheduling
-and allocation tasks.
-\end{enumerate}
-
-\noindent
-The predicates of this library can be classified as:
-
-\begin{itemize}
-    \item \textit{arithmetic} constraints like \predref{\Sceq}{2}, \predref{\Scgt}{2} and \predref{\Scne}{2} (\secref{clpfd-arithmetic})
-    \item the \textit{membership} constraints \predref{in}{2} and \predref{ins}{2} (\secref{clpfd-membership})
-    \item the \textit{enumeration} predicates \predref{indomain}{1}, \predref{label}{1} and \predref{labeling}{2} (\secref{clpfd-enumeration})
-    \item \textit{combinatorial} constraints like \predref{all_distinct}{1} and \predref{global_cardinality}{2} (\secref{clpfd-global})
-    \item \textit{reification} predicates such as
-      \predref{\Scequal}{2} (\secref{clpfd-reification-predicates})
-    \item \textit{reflection} predicates such as \predref{fd_dom}{2}
-      (\secref{clpfd-reflection-predicates})
-\end{itemize}
 
 % remainder, generated from Markdown and PlDoc
 \input{clpfdlib.tex}
