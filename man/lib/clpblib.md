@@ -218,3 +218,45 @@ does compute =|XOR|= as intended:
 ?- xor(x, y, Z).
 sat(Z=:=x#y).
 ==
+
+## Example: Pigeons
+
+In this example, we are attempting to place _J_ pigeons into _I_ holes
+in such a way that each hole contains at most one pigeon. One
+interesting property of this task is that it can be formulated using
+only _cardinality constraints_ (`card/2`). Another interesting aspect
+is that this task has no short resolution refutations in general.
+
+In the following, we use [**Prolog DCG
+notation**](https://www.metalevel.at/prolog/dcg.html) to describe a
+_list_ `Cs` of CLP(B) constraints that must all be satisfied.
+
+==
+:- use_module(library(clpb)).
+:- use_module(library(clpfd)).
+
+pigeon(I, J, Rows, Cs) :-
+        length(Rows, J), length(Row, I),
+        maplist(same_length(Row), Rows),
+        transpose(Rows, TRows),
+        phrase((all_card1(Rows),all_max1(TRows)), Cs).
+
+all_card1([]) --> [].
+all_card1([Ls|Lss]) --> [card([1],Ls)], all_card1(Lss).
+
+all_max1([]) --> [].
+all_max1([Ls|Lss]) --> [card([0,1],Ls)], all_max1(Lss).
+==
+
+Example queries:
+
+==
+?- pigeon(8, 9, Rows, Cs), sat(*(Cs)).
+false.
+
+?- pigeon(3, 2, Rows, Cs), sat(*(Cs)),
+   append(Rows, Vs), labeling(Vs),
+   maplist(writeln, Rows).
+[0,0,1]
+[0,1,0]
+==
