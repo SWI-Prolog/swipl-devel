@@ -477,7 +477,7 @@ The constraints of this table are reifiable as well.
 
 When reasoning over Boolean variables, also consider using
 \textbf{CLP(B)~constraints} as provided by
-\url[\verb$library(clpb)$]{http://eu.swi-prolog.org/man/clpb.html}.
+\url[library(clpb)]{http://eu.swi-prolog.org/man/clpb.html}.
 
 \subsection{Enabling monotonic CLP(FD)}
 
