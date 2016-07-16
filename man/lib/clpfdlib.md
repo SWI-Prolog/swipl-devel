@@ -1,3 +1,136 @@
+## Arithmetic constraints		{#clpfd-arith-constraints}
+
+In modern Prolog systems, *arithmetic constraints* subsume and
+supersede low-level predicates over integers. The main advantage of
+arithmetic constraints is that they are true _relations_ and can be
+used in all directions. For most programs, arithmetic constraints are
+the only predicates you will ever need from this library.
+
+The most important arithmetic constraint is #=/2, which subsumes both
+`(is)/2` and `(=:=)/2` over integers. Use #=/2 to make your programs
+more general.
+
+In total, the arithmetic constraints are:
+
+    | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
+    | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
+    | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
+    | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
+
+`Expr1` and `Expr2` denote *arithmetic expressions*, which are:
+
+    | _integer_          | Given value                          |
+    | _variable_         | Unknown integer                      |
+    | ?(_variable_)      | Unknown integer                      |
+    | -Expr              | Unary minus                          |
+    | Expr + Expr        | Addition                             |
+    | Expr * Expr        | Multiplication                       |
+    | Expr - Expr        | Subtraction                          |
+    | Expr ^ Expr        | Exponentiation                       |
+    | min(Expr,Expr)     | Minimum of two expressions           |
+    | max(Expr,Expr)     | Maximum of two expressions           |
+    | Expr `mod` Expr    | Modulo induced by floored division   |
+    | Expr `rem` Expr    | Modulo induced by truncated division |
+    | abs(Expr)          | Absolute value                       |
+    | Expr // Expr       | Truncated integer division           |
+
+where `Expr` again denotes an arithmetic expression.
+
+The bitwise operations `(\)/1`, `(/\)/2`, `(\/)/2`, `(>>)/2`,
+`(<<)/2`, `lsb/1`, `msb/1`, `popcount/1` and `(xor)/2` are also
+supported.
+
+## Declarative integer arithmetic		{#clpfd-integer-arith}
+
+The [arithmetic constraints](<#clpfd-arith-constraints>) #=/2, #>/2
+etc. are meant to be used _instead_ of the primitives `(is)/2`,
+`(=:=)/2`, `(>)/2` etc. over integers. Almost all Prolog programs also
+reason about integers. Therefore, it is recommended that you put the
+following directive in your =|~/.swiplrc|= initialisation file to make
+CLP(FD) constraints available in all your programs:
+
+==
+:- use_module(library(clpfd)).
+==
+
+Throughout the following, it is assumed that you have done this.
+
+The most basic use of CLP(FD) constraints is _evaluation_ of
+arithmetic expressions involving integers. For example:
+
+==
+?- X #= 1+2.
+X = 3.
+==
+
+This could in principle also be achieved with the lower-level
+predicate `(is)/2`. However, an important advantage of arithmetic
+constraints is their purely relational nature: Constraints can be used
+in _all directions_, also if one or more of their arguments are only
+partially instantiated. For example:
+
+==
+?- 3 #= Y+2.
+Y = 1.
+==
+
+This relational nature makes CLP(FD) constraints easy to explain and
+use, and well suited for beginners and experienced Prolog programmers
+alike. In contrast, when using low-level integer arithmetic, we get:
+
+==
+?- 3 is Y+2.
+ERROR: is/2: Arguments are not sufficiently instantiated
+
+?- 3 =:= Y+2.
+ERROR: =:=/2: Arguments are not sufficiently instantiated
+==
+
+Due to the necessary operational considerations, the use of these
+low-level arithmetic predicates is considerably harder to understand
+and should therefore be deferred to more advanced lectures.
+
+For supported expressions, CLP(FD) constraints are drop-in
+replacements of these low-level arithmetic predicates, often yielding
+more general programs. See [`n_factorial/2`](<#clpfd-factorial>) for an
+example.
+
+This library uses goal_expansion/2 to automatically rewrite
+constraints at compilation time so that low-level arithmetic
+predicates are _automatically_ used whenever possible. For example,
+the predicate:
+
+==
+positive_integer(N) :- N #>= 1.
+==
+
+is executed as if it were written as:
+
+==
+positive_integer(N) :-
+        (   integer(N)
+        ->  N >= 1
+        ;   N #>= 1
+        ).
+==
+
+This illustrates why the performance of CLP(FD) constraints is almost
+always completely satisfactory when they are used in modes that can be
+handled by low-level arithmetic. To disable the automatic rewriting,
+set the Prolog flag `clpfd_goal_expansion` to `false`.
+
+If you are used to the complicated operational considerations that
+low-level arithmetic primitives necessitate, then moving to CLP(FD)
+constraints may, due to their power and convenience, at first feel to
+you excessive and almost like cheating. It _isn't_. Constraints are an
+integral part of all popular Prolog systems, and they are designed
+to help you eliminate and avoid the use of low-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
+
+
 ## Example: Factorial relation {#clpfd-factorial}
 
 We illustrate the benefit of using #=/2 for more generality with a
@@ -523,10 +656,10 @@ http://eu.swi-prolog.org/man/clpfd.html
 ### Arithmetic constraints {#clpfd-arithmetic}
 
 _Arithmetic_ constraints are the most basic use of CLP(FD). Every time
-you use is/2 or one of the low-level arithmetic comparisons (</2, >/2
-etc.) over integers, consider using CLP(FD) constraints
-_instead_. This can at most _increase_ the generality of your
-programs. See [declarative integer
+you use `(is)/2` or one of the low-level arithmetic comparisons
+(`(<)/2, `(>)/2` etc.) over integers, consider using CLP(FD)
+constraints _instead_. This can at most _increase_ the generality of
+your programs. See [declarative integer
 arithmetic](<#clpfd-integer-arith>).
 
   * [[(#=)/2]]
