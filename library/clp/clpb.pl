@@ -1218,7 +1218,7 @@ node_ite(Node, Node-ite(Var,High,Low)) :-
 
 %% labeling(+Vs) is multi.
 %
-% Find concrete solutions. Assigns truth values to the Boolean
+% Enumerate concrete solutions. Assigns truth values to the Boolean
 % variables Vs such that all stated constraints are satisfied.
 
 labeling(Vs0) :-
