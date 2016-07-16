@@ -500,7 +500,7 @@ ground solutions.
 
 ## Example: Eight queens puzzle {#clpfd-n-queens}
 
-We illustrate the concepts of the preceding section by means of the
+We illustrate the concepts of the preceding sections by means of the
 so-called _eight queens puzzle_. The task is to place 8 queens on an
 8x8 chessboard such that none of the queens is under attack. This
 means that no two queens share the same row, column or diagonal.
