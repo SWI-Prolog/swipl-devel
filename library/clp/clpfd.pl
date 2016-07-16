@@ -148,7 +148,7 @@
 :- op(700, xfx, cis_leq).
 :- op(700, xfx, cis_lt).
 
-/** <module> Constraint Logic Programming over Finite Domains
+/** <module> CLP(FD): Constraint Logic Programming over Finite Domains
 
 ## Introduction			{#clpfd-intro}
 
