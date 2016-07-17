@@ -51,6 +51,9 @@ An association list can be _queried_ with:
 Elements of an association list can be changed and inserted with:
 
   * [[put_assoc/4]]
+  * [[del_assoc/4]]
+  * [[del_min_assoc/4]]
+  * [[del_max_assoc/4]]
 
 ## Conversion predicates
 
