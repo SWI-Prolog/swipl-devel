@@ -52,17 +52,17 @@ TODO: get_next_assoc/4, get_prev_assoc/4 for SICStus compatibility
 	    assoc_to_values/2,		% +Assoc, -List
 	    gen_assoc/3,		% ?Key, +Assoc, ?Value
 	    get_assoc/3,		% +Key, +Assoc, ?Value
-	    get_assoc/5,		% +Key, +Assoc, ?Old, ?NewAssoc, +New
+	    get_assoc/5,		% +Key, +Assoc0, ?Val0, ?Assoc, ?Val
 	    list_to_assoc/2,		% +List, ?Assoc
 	    map_assoc/2,		% :Goal, +Assoc
-	    map_assoc/3,		% :Goal, +AssocIn, ?AssocOut
+	    map_assoc/3,		% :Goal, +Assoc0, ?Assoc
 	    max_assoc/3,		% +Assoc, ?Key, ?Value
 	    min_assoc/3,		% +Assoc, ?Key, ?Value
 	    ord_list_to_assoc/2,	% +List, ?Assoc
-	    put_assoc/4,		% +Key, +Assoc, +Value, ?NewAssoc
-	    del_assoc/4,                % +Key, +Assoc, ?Value, ?NewAssoc
-	    del_min_assoc/4,            % +Assoc, ?Key, ?Value, ?NewAssoc
-	    del_max_assoc/4             % +Assoc, ?Key, ?Value, ?NewAssoc
+	    put_assoc/4,		% +Key, +Assoc0, +Value, ?Assoc
+	    del_assoc/4,                % +Key, +Assoc0, ?Value, ?Assoc
+	    del_min_assoc/4,            % +Assoc0, ?Key, ?Value, ?Assoc
+	    del_max_assoc/4             % +Assoc0, ?Key, ?Value, ?Assoc
 	  ]).
 :- use_module(library(error)).
 
@@ -81,16 +81,15 @@ Assocs are Key-Value associations implemented as  a balanced binary tree
 	map_assoc(2, ?, ?).
 
 %%	empty_assoc(-Assoc) is det.
-%%	empty_assoc(+Assoc) is semidet.
 %
 %	Is true if Assoc is the empty assoc.
 
 empty_assoc(t).
 
-%%	assoc_to_list(+Assoc, -Pairs:list(Key-Value)) is semidet.
+%%	assoc_to_list(+Assoc, -Pairs) is det.
 %
-%	Translate Assoc to a list of pairs.  The keys in Pairs are
-%	sorted in ascending order.
+%	Translate Assoc to a list Pairs of Key-Value pairs.  The keys
+%	in Pairs are sorted in ascending order.
 
 assoc_to_list(Assoc, List) :-
 	assoc_to_list(Assoc, List, []).
@@ -101,7 +100,7 @@ assoc_to_list(t(Key,Val,_,L,R), List, Rest) :-
 assoc_to_list(t, List, List).
 
 
-%%	assoc_to_keys(+Assoc, -Keys:ord_set) is det.
+%%	assoc_to_keys(+Assoc, -Keys) is det.
 %
 %	True if Keys is the list of keys   in Assoc. The keys are sorted
 %	in ascending order.
@@ -115,7 +114,7 @@ assoc_to_keys(t(Key,_,_,L,R), List, Rest) :-
 assoc_to_keys(t, List, List).
 
 
-%%	assoc_to_values(+Assoc, -Values:list) is det.
+%%	assoc_to_values(+Assoc, -Values) is det.
 %
 %	True if Values is the  list  of   values  in  Assoc.  Values are
 %	ordered in ascending  order  of  the   key  to  which  they were
@@ -129,12 +128,12 @@ assoc_to_values(t(_,Value,_,L,R), List, Rest) :-
 	assoc_to_values(R, More, Rest).
 assoc_to_values(t, List, List).
 
-%%      is_assoc(+Assoc)
+%%      is_assoc(+Assoc) is semidet.
 %
-%	True if Assoc is an AVL-tree   association  list Checks that the
-%	structure is valid, elements are in  order, and tree is balanced
-%	to the extent guaranteed by AVL   trees.  I.e., branches of each
-%	subtree differ in depth by at most 1.
+%	True if Assoc is an association list. This predicate checks
+%	that the structure is valid, elements are in order, and tree
+%	is balanced to the extent guaranteed by AVL trees.  I.e.,
+%	branches of each subtree differ in depth by at most 1.
 
 is_assoc(Assoc) :-
 	is_assoc(Assoc, _Min, _Max, _Depth).
@@ -170,7 +169,7 @@ balance(>,>).
 %%	gen_assoc(?Key, +Assoc, ?Value) is nondet.
 %
 %	True if Key-Value is an association in Assoc. Enumerates keys in
-%	ascending order.
+%	ascending order on backtracking.
 %
 %	@see get_assoc/3.
 
@@ -200,9 +199,9 @@ get_assoc(>, Key, _, _, Tree, Val) :-
 	get_assoc(Key, Tree, Val).
 
 
-%%	get_assoc(+Key, +AssocIn, +Val, -AssocOut, +NewVal) is semidet.
+%%	get_assoc(+Key, +Assoc0, ?Val0, ?Assoc, ?Val) is semidet.
 %
-%	True if Key-Val is in AssocIn and Key-NewVal is in AssocOut.
+%	True if Key-Val0 is in Assoc0 and Key-Val is in Assoc.
 
 get_assoc(Key, t(K,V,B,L,R), Val, t(K,NV,B,NL,NR), NVal) :-
 	compare(Rel, Key, K),
@@ -215,9 +214,10 @@ get_assoc(>, Key, V, L, R, Val, V, L, NR, NVal) :-
 	get_assoc(Key, R, Val, NR, NVal).
 
 
-%%	list_to_assoc(+List:list(Key-Value), -Assoc) is det.
+%%	list_to_assoc(+Pairs, -Assoc) is det.
 %
-%	Create an assoc from a pair-list.
+%	Create an association from a list Pairs of Key-Value pairs. List
+%	must not contain duplicate keys.
 %
 %	@error domain_error(unique_key_pairs, List) if List contains duplicate keys
 
@@ -243,9 +243,11 @@ list_to_assoc(N, List, More, Depth, t(K,V,Balance,L,R)) :-
 	Depth is LDepth + 1,
 	compare(B, RDepth, LDepth), balance(B, Balance).
 
-%%	ord_list_to_assoc(+List:list(Key-Value), -Assoc) is det.
+%%	ord_list_to_assoc(+Pairs, -Assoc) is det.
 %
-%	Create an assoc from an ordered pair-list without duplicate keys.
+%	Assoc is created from an ordered list Pairs of Key-Value
+%	pairs. The pairs must occur in strictly ascending order of
+%	their keys.
 %
 %	@error domain_error(key_ordered_pairs, List) if pairs are not ordered.
 
@@ -258,7 +260,7 @@ ord_list_to_assoc(Sorted, Assoc) :-
 	   )
 	).
 
-%%	ord_pairs(+List:list(Key-Value)) is semidet
+%%	ord_pairs(+Pairs) is semidet
 %
 %	True if Pairs is a list of Key-Val pairs strictly ordered by key.
 
@@ -282,9 +284,10 @@ map_assoc_(t(_,Val,_,L,R), Pred) :-
 	call(Pred, Val),
 	map_assoc_(R, Pred).
 
-%%	map_assoc(:Pred, ?AssocIn, ?AssocOut) is semidet.
+%%	map_assoc(:Pred, +Assoc0, ?Assoc) is semidet.
 %
-%	True if for every Key, Pred(ValIn, ValOut) is true.
+%	Map corresponding values. True if Assoc is Assoc0 with Pred
+%	applied to all corresponding pairs of of values.
 
 map_assoc(Pred, T0, T) :-
 	map_assoc_(T0, Pred, T).
@@ -298,7 +301,7 @@ map_assoc_(t(Key,Val,B,L0,R0), Pred, t(Key,Ans,B,L1,R1)) :-
 
 %%	max_assoc(+Assoc, -Key, -Value) is semidet.
 %
-%	True if Key-Value is in assoc and Key is the largest.
+%	True if Key-Value is in Assoc and Key is the largest key.
 
 max_assoc(t(K,V,_,_,R), Key, Val) :-
 	max_assoc(R, K, V, Key, Val).
@@ -310,7 +313,7 @@ max_assoc(t(K,V,_,_,R), _, _, Key, Val) :-
 
 %%	min_assoc(+Assoc, -Key, -Value) is semidet.
 %
-%	True if Key-Value is in assoc and Key is the smallest.
+%	True if Key-Value is in assoc and Key is the smallest key.
 
 min_assoc(t(K,V,_,L,_), Key, Val) :-
 	min_assoc(L, K, V, Key, Val).
@@ -320,10 +323,10 @@ min_assoc(t(K,V,_,L,_), _, _, Key, Val) :-
 	min_assoc(L, K, V, Key, Val).
 
 
-%%	put_assoc(+Key, +AssocIn, +Value, -AssocOut) is det.
+%%	put_assoc(+Key, +Assoc0, +Value, -Assoc) is det.
 %
-%	Add Key-Value to AssocIn. If  Key   is  already  in AssocIn, the
-%	associated value is replaced.
+%	Assoc is Assoc0, except that Key is associated with
+%	Value. This can be used to insert and change associations.
 
 put_assoc(Key, A0, Value, A) :-
 	insert(A0, Key, Value, A, _).
@@ -355,11 +358,11 @@ table(<      , right   , -      , no        , no    ) :- !.
 table(>      , left    , -      , no        , no    ) :- !.
 table(>      , right   , -      , no        , yes   ) :- !.
 
-%%      del_min_assoc(+AssocIn, ?Key, ?Val, -AssocOut) is semidet.
+%%      del_min_assoc(+Assoc0, ?Key, ?Val, -Assoc) is semidet.
 %
-%	True if Key-Value  is  in  AssocIn   and  Key  is  the smallest.
-%	AssocOut is AssocIn with Key-Value   removed. Warning: this will
-%	succeed with no bindings for Key or Val if input Tree is t.
+%	True if Key-Value  is  in  Assoc0   and  Key  is  the smallest key.
+%	Assoc is Assoc0 with Key-Value   removed. Warning: this will
+%	succeed with _no_ bindings for Key or Val if Assoc0 is `t`.
 
 del_min_assoc(Tree, Key, Val, NewTree) :-
 	del_min_assoc(Tree, Key, Val, NewTree, _DepthChanged).
@@ -369,10 +372,10 @@ del_min_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 	del_min_assoc(L, Key, Val, NewL, LeftChanged),
 	deladjust(LeftChanged, t(K,V,B,NewL,R), left, NewTree, Changed).
 
-%%      del_max_assoc(+AssocIn, ?Key, ?Val, -AssocOut) is semidet.
+%%      del_max_assoc(+Assoc0, ?Key, ?Val, -Assoc) is semidet.
 %
-%	True if Key-Value  is  in  AssocIn   and  Key  is  the greatest.
-%	AssocOut is AssocIn with Key-Value   removed. Warning: this will
+%	True if Key-Value  is  in  Assoc0   and  Key  is  the greatest key.
+%	Assoc is Assoc0 with Key-Value   removed. Warning: this will
 %	succeed with no bindings for Key or Val if input Tree is t.
 
 del_max_assoc(Tree, Key, Val, NewTree) :-
@@ -383,9 +386,9 @@ del_max_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 	del_max_assoc(R, Key, Val, NewR, RightChanged),
 	deladjust(RightChanged, t(K,V,B,L,NewR), right, NewTree, Changed).
 
-%%	del_assoc(+Key, +AssocIn, ?Value, -AssocOut) is semidet.
+%%	del_assoc(+Key, +Assoc0, ?Value, -Assoc) is semidet.
 %
-%	True if Key-Value is  in  AssocIn.   AssocOut  is  AssocOut with
+%	True if Key-Value is  in  Assoc0.   Assoc  is  Assoc0 with
 %	Key-Value removed.
 
 del_assoc(Key, A0, Value, A) :-
