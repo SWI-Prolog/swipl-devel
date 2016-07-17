@@ -298,6 +298,9 @@ X = 0.
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
+
+   You should think of CLP(B) as a potentially vast collection of BDDs
+   that can range from small to gigantic in size, and which can merge.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1223,8 +1226,14 @@ node_ite(Node, Node-ite(Var,High,Low)) :-
 
 labeling(Vs0) :-
         must_be(list, Vs0),
+        maplist(labeling_var, Vs0),
         variables_in_index_order(Vs0, Vs),
         maplist(indomain, Vs).
+
+labeling_var(V) :- var(V), !.
+labeling_var(V) :- V == 0, !.
+labeling_var(V) :- V == 1, !.
+labeling_var(V) :- domain_error(clpb_variable, V).
 
 variables_in_index_order(Vs0, Vs) :-
         maplist(var_with_index, Vs0, IVs0),
