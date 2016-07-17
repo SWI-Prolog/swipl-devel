@@ -199,7 +199,7 @@ is that this task has no short resolution refutations in general.
 
 In the following, we use [**Prolog DCG
 notation**](https://www.metalevel.at/prolog/dcg.html) to describe a
-_list_ `Cs` of CLP(B) constraints that must all be satisfied.
+list `Cs` of CLP(B) constraints that must all be satisfied.
 
 ==
 :- use_module(library(clpb)).
@@ -256,6 +256,13 @@ does compute =|XOR|= as intended:
 ?- xor(x, y, Z).
 sat(Z=:=x#y).
 ==
+
+## Acknowledgments {#clpb-acknowledgments}
+
+The interface predicates of this library follow the example of
+[**SICStus Prolog**](https://sicstus.sics.se).
+
+Use SICStus Prolog for higher performance in many cases.
 
 ## CLP(B) predicate index {#clpb-predicates}
 
