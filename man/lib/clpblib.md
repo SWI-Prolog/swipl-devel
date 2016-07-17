@@ -189,47 +189,6 @@ true.
 X = 0.
 ==
 
-## CLP(B) predicate index {#clpb-predicates}
-
-In the following, each CLP(B) predicate is described in more detail.
-
-We recommend the following link to refer to this manual:
-
-http://eu.swi-prolog.org/man/clpb.html
-
-  * [[sat/1]]
-  * [[taut/2]]
-  * [[labeling/1]]
-  * [[sat_count/2]]
-  * [[weighted_maximum/3]]
-  * [[random_labeling/2]]
-
-## Example: Boolean circuit  {#clpb-circuit}
-
-Consider a Boolean circuit that express the Boolean function =|XOR|=
-with 4 =|NAND|= gates. We can model such a circuit with CLP(B)
-constraints as follows:
-
-==
-:- use_module(library(clpb)).
-
-nand_gate(X, Y, Z) :- sat(Z =:= ~(X*Y)).
-
-xor(X, Y, Z) :-
-        nand_gate(X, Y, T1),
-        nand_gate(X, T1, T2),
-        nand_gate(Y, T1, T3),
-        nand_gate(T2, T3, Z).
-==
-
-Using universally quantified variables, we can show that the circuit
-does compute =|XOR|= as intended:
-
-==
-?- xor(x, y, Z).
-sat(Z=:=x#y).
-==
-
 ## Example: Pigeons {#clpb-pigeons}
 
 In this example, we are attempting to place _I_ pigeons into _J_ holes
@@ -271,3 +230,44 @@ false.
 [0,0,1]
 [0,1,0]
 ==
+
+## Example: Boolean circuit  {#clpb-circuit}
+
+Consider a Boolean circuit that express the Boolean function =|XOR|=
+with 4 =|NAND|= gates. We can model such a circuit with CLP(B)
+constraints as follows:
+
+==
+:- use_module(library(clpb)).
+
+nand_gate(X, Y, Z) :- sat(Z =:= ~(X*Y)).
+
+xor(X, Y, Z) :-
+        nand_gate(X, Y, T1),
+        nand_gate(X, T1, T2),
+        nand_gate(Y, T1, T3),
+        nand_gate(T2, T3, Z).
+==
+
+Using universally quantified variables, we can show that the circuit
+does compute =|XOR|= as intended:
+
+==
+?- xor(x, y, Z).
+sat(Z=:=x#y).
+==
+
+## CLP(B) predicate index {#clpb-predicates}
+
+In the following, each CLP(B) predicate is described in more detail.
+
+We recommend the following link to refer to this manual:
+
+http://eu.swi-prolog.org/man/clpb.html
+
+  * [[sat/1]]
+  * [[taut/2]]
+  * [[labeling/1]]
+  * [[sat_count/2]]
+  * [[weighted_maximum/3]]
+  * [[random_labeling/2]]
