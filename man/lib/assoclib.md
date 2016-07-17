@@ -1,5 +1,5 @@
 
-## Introduction
+## Introduction {#assoc-introduction}
 
 An _association list_ as implemented by this library is a collection
 of unique _keys_ that are associated to _values_. Keys must be ground,
@@ -28,7 +28,7 @@ advantages of association lists over several other methods are:
     efficiently.
 
 
-## Creating association lists
+## Creating association lists {#assoc-creation}
 
 An assocation list is _created_ with one of the following predicates:
 
@@ -36,7 +36,7 @@ An assocation list is _created_ with one of the following predicates:
   * [[list_to_assoc/2]]
   * [[ord_list_to_assoc/2]]
 
-## Querying association lists
+## Querying association lists {#assoc-querying}
 
 An association list can be _queried_ with:
 
@@ -46,7 +46,7 @@ An association list can be _queried_ with:
   * [[min_assoc/3]]
   * [[gen_assoc/3]]
 
-## Changing associations
+## Modifying association lists {#assoc-modifications}
 
 Elements of an association list can be changed and inserted with:
 
@@ -55,7 +55,7 @@ Elements of an association list can be changed and inserted with:
   * [[del_min_assoc/4]]
   * [[del_max_assoc/4]]
 
-## Conversion predicates
+## Conversion predicates {#assoc-conversion}
 
 Conversion of (parts of) an association list to _lists_ is possible
 with:
@@ -64,7 +64,7 @@ with:
   * [[assoc_to_keys/2]]
   * [[assoc_to_values/2]]
 
-## Reasoning about association lists and their elements
+## Reasoning about association lists and their elements {#assoc-reasoning}
 
 Further inspection predicates of an association list and its elements
 are:
