@@ -230,7 +230,7 @@ does compute =|XOR|= as intended:
 sat(Z=:=x#y).
 ==
 
-## Example: Pigeons
+## Example: Pigeons {#clpb-pigeons}
 
 In this example, we are attempting to place _I_ pigeons into _J_ holes
 in such a way that each hole contains at most one pigeon. One
