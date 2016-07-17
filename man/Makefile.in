@@ -42,7 +42,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \
 		lib/lists.tex lib/bounds.tex lib/clpqr.tex lib/gensym.tex \
 		lib/nbset.tex lib/libsummary.tex lib/prologpack.tex \
-		lib/assoc.tex lib/prologxref.tex \
+		lib/assoc.tex lib/assoclib.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
 		lib/record.tex lib/clpfd.tex lib/clpfdlib.tex \
 		lib/pairs.tex lib/option.tex \
@@ -181,6 +181,9 @@ lib/shlib.tex:	../library/shlib.pl
 		$(LIBTOTEX) --subsection 'library(shlib)'
 lib/apply.tex:	../library/apply.pl
 		$(LIBTOTEX) 'library(apply)'
+# The assoc documentation is written in Markdown
+lib/assoclib.tex: lib/assoclib.md ../library/assoc.pl
+		$(LIBTOTEX) --lib=assoc --module=assoc lib/assoclib.md
 lib/error.tex:	../library/error.pl
 		$(LIBTOTEX) 'library(error)'
 # The CLP(B) documentation is written in Markdown
