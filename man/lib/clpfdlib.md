@@ -260,39 +260,6 @@ the (implied) constraint `F #\= 0` before the recursive call.
 Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
 
-This library uses goal_expansion/2 to automatically rewrite
-constraints at compilation time so that low-level arithmetic
-predicates are _automatically_ used whenever possible. For example,
-the predicate:
-
-==
-positive_integer(N) :- N #>= 1.
-==
-
-is executed as if it were written as:
-
-==
-positive_integer(N) :-
-        (   integer(N)
-        ->  N >= 1
-        ;   N #>= 1
-        ).
-==
-
-This illustrates why the performance of CLP(FD) constraints is almost
-always completely satisfactory when they are used in modes that can be
-handled by low-level arithmetic. To disable the automatic rewriting,
-set the Prolog flag `clpfd_goal_expansion` to `false`.
-
-If you are used to the complicated operational considerations that
-low-level arithmetic primitives necessitate, then moving to CLP(FD)
-constraints may, due to their power and convenience, at first feel to
-you excessive and almost like cheating. It _isn't_. Constraints are an
-integral part of all popular Prolog systems, and they are designed
-to help you eliminate and avoid the use of low-level and less general
-primitives by providing declarative alternatives that are meant to be
-used instead.
-
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
 In addition to subsuming and replacing low-level arithmetic
