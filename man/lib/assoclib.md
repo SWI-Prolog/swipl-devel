@@ -33,7 +33,7 @@ advantages of association lists over several other methods are:
 An assocation list is _created_ with one of the following predicates:
 
   * [[empty_assoc/1]]
-  * [[list_to_assoc//2]]
+  * [[list_to_assoc/2]]
   * [[ord_list_to_assoc/2]]
 
 ## Querying association lists
