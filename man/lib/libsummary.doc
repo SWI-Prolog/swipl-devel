@@ -47,7 +47,7 @@
 \input{summaries.d/check.tex}
 
 \libsummary{clpb}
-\input{summaries.d/clpb.tex}
+\input{summaries.d/clpblib.tex}
 
 \libsummary{clpfd}
 \input{summaries.d/clpfd.tex}
