@@ -64,9 +64,11 @@
 
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-   Many things can be improved; if you need any additional features or
-   want to help, please e-mail me. A good starting point is taking a
-   propagation algorithm from the literature and adding it.
+   Development of this library has moved to SICStus Prolog. If you
+   need any additional features or want to help, please file an issue at:
+
+                    https://github.com/triska/clpz
+                    ==============================
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -5600,6 +5602,7 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
    For more information about this technique, see:
 
                https://www.metalevel.at/prolog/dcg.html
+               ========================================
 
    A Prolog implementation of this algorithm is also available as a
    standalone library from:
