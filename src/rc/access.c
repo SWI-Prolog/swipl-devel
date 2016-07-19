@@ -115,23 +115,26 @@ rc_close_archive(RcArchive rca)
 { int rval = TRUE;
   RcMember m, next;
 
-  if ( rca->fd )
-  { fclose(rca->fd);
-    rca->fd = NULL;
-  }
+  if ( rca->path )
+  { if ( rca->fd )
+    { fclose(rca->fd);
+      rca->fd = NULL;
+    }
 #ifdef HAVE_MMAP
-  if ( rca->map_start )
-    munmap(rca->map_start, rca->map_size);
+    if ( rca->map_start )
+      munmap(rca->map_start, rca->map_size);
 #else
 #ifdef __WINDOWS__
-  if ( rca->map_start )
-    UnmapViewOfFile(rca->map_start);
-  if ( rca->hmap )
-    CloseHandle(rca->hmap);
-  if ( rca->hfile )
-    CloseHandle(rca->hfile);
+    if ( rca->map_start )
+      UnmapViewOfFile(rca->map_start);
+    if ( rca->hmap )
+      CloseHandle(rca->hmap);
+    if ( rca->hfile )
+      CloseHandle(rca->hfile);
 #endif /*__WINDOWS__*/
 #endif /*HAVE_MMAP*/
+    free((void*)rca->path);
+  }
 
   for(m=rca->members; m; m=next)
   { next = m->next;
@@ -142,8 +145,6 @@ rc_close_archive(RcArchive rca)
     free(m);
   }
 
-  if ( rca->path )
-    free((void*)rca->path);
   free(rca);
 
   if ( file_tag_def )			/* normally we won't need this */
