@@ -7,6 +7,10 @@
 \url[Markus Triska]{https://www.metalevel.at}
 \end{tags}
 
+\noindent\textbf{Development of this library has moved to SICStus Prolog.}\\
+Please see
+\url[\textbf{CLP(Z)}]{https://github.com/triska/clpz} for more
+information.
 
 % remainder, generated from Markdown and PlDoc
 \input{clpfdlib.tex}
