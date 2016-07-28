@@ -4603,7 +4603,8 @@ atom is referenced by the goal-term anyway.
     if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
     { args    = argTermP(goal, 0);
       arity   = (int)fd->arity;
-    } else if ( true(FR, FR_INRESET) )
+    } else if ( true(FR, FR_INRESET) &&
+		(true(fd, CONTROL_F) || fd->functor == FUNCTOR_call1) )
     { DEF = GD->procedures.dmeta_call1->definition;
       goto mcall_cont;
     } else

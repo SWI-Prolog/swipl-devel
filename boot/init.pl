@@ -202,27 +202,36 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 %	@tbd: move reset/3, etc into a library?
 %	@tbd: deal with the !
 
-'$meta_call'((A,B)) :-
-	call(A), call(B).
-'$meta_call'((I->T;E)) :- !,
-	(   call(I)
-	->  call(T)
-	;   call(E)
-	).
-'$meta_call'((I*->T;E)) :- !,
-	(   call(I)
-	*-> call(T)
-	;   call(E)
-	).
-'$meta_call'((I->T)) :- !,
-	(   call(I)
-	->  call(T)
-	).
-'$meta_call'((A;B)) :-
-	(   call(A)
-	;   call(B)
-	).
+'$meta_call'(M:G) :-
+	'$meta_call'(G, M).
 
+'$meta_call'((A,B), M) :- !,
+	'$meta_call'(A, M),
+	'$meta_call'(B, M).
+'$meta_call'((I->T;E), M) :- !,
+	(   '$meta_call'(I, M)
+	->  '$meta_call'(T, M)
+	;   '$meta_call'(E, M)
+	).
+'$meta_call'((I*->T;E), M) :- !,
+	(   '$meta_call'(I, M)
+	*-> '$meta_call'(T, M)
+	;   '$meta_call'(E, M)
+	).
+'$meta_call'((I->T), M) :- !,
+	(   '$meta_call'(I, M)
+	->  '$meta_call'(T, M)
+	).
+'$meta_call'((A;B), M) :- !,
+	(   '$meta_call'(A, M)
+	;   '$meta_call'(B, M)
+	).
+'$meta_call'(call(G), M) :- !,
+	'$meta_call'(G, M).
+'$meta_call'(M:G, _) :- !,
+	'$meta_call'(G, M).
+'$meta_call'(G, M) :-
+	call(M:G).
 
 %%	call(Closure, Arg, ...)
 %
