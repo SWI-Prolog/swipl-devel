@@ -2267,6 +2267,12 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     return PL_no_memory();
   memset(poll_map, 0, count*sizeof(*poll_map));
 #else
+#ifdef __WINDOWS__
+  if ( count > FD_SETSIZE )
+  { PL_representation_error("FD_SETSIZE");
+    goto out;
+  }
+#endif
   FD_ZERO(&fds);
 #endif
 
@@ -2381,7 +2387,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
       goto out;				/* exception */
   }
 #else
-#ifdef FD_SETSIZE
+#if defined(FD_SETSIZE) && !defined(__WINDOWS__)
   if ( max >= FD_SETSIZE )
   { PL_representation_error("FD_SETSIZE");
     goto out;

@@ -388,7 +388,7 @@ input_on_fd(int fd)
   fd_set rfds;
   struct timeval tv;
 
-#ifdef FD_SETSIZE
+#if defined(FD_SETSIZE) && !defined(__WINDOWS__)
   if ( fd >= FD_SETSIZE )
   { Sdprintf("input_on_fd(%d) > FD_SETSIZE\n", fd);
     return 1;
