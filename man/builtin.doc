@@ -7531,6 +7531,9 @@ multithreaded version the console that is associated with the
 \section{Operating System Interaction}	\label{sec:system}
 
 \begin{description}
+    \predicate{shell}{1}{+Command}
+Equivalent to `\exam{shell(Command, 0)}'.  See shell/2 for details.
+
     \predicate{shell}{2}{+Command, -Status}
 Execute \arg{Command} on the operating system. \arg{Command} is given to the
 Bourne shell (/bin/sh). \arg{Status} is unified with the exit status of
@@ -7561,14 +7564,6 @@ The library \pllib{process} provides process_create/3 and several
 related primitives that support more fine-grained interaction with
 processes, including I/O redirection and management of asynchronous
 processes.
-
-    \predicate{shell}{1}{+Command}
-Equivalent to `\exam{shell(Command, 0)}'.
-
-    \predicate{shell}{0}{}
-Start an interactive Unix shell.  Default is \file{/bin/sh}; the
-environment variable \env{SHELL} overrides this default.  Not available
-for Win32 platforms.
 
     \predicate{getenv}{2}{+Name, -Value}
 Get environment variable. Fails silently if the variable does not exist.

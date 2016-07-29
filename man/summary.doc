@@ -585,7 +585,6 @@ suggest predicates from a keyword.
 \predicatesummary{setenv}{2}{Set shell environment variable}
 \predicatesummary{setlocale}{3}{Set/query C-library regional information}
 \predicatesummary{setof}{3}{Find all unique solutions to a goal}
-\predicatesummary{shell}{0}{Execute interactive subshell}
 \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{shell}{2}{Execute OS command}
 \predicatesummary{shift}{1}{Shift control to the closest reset/3}

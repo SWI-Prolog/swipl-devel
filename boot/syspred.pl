@@ -1101,15 +1101,6 @@ trie_property(hashed(_)).
 shell(Command) :-
 	shell(Command, 0).
 
-shell :-
-	getenv('SHELL', Shell), !,	% Unix, also Cygwin
-	shell(Shell).
-shell :-
-	getenv(comspec, ComSpec), !,	% Windows
-	shell(ComSpec).
-shell :-
-	shell('/bin/sh').
-
 %%	win_add_dll_directory(+AbsDir) is det.
 %
 %	Add AbsDir to the directories where  dependent DLLs are searched

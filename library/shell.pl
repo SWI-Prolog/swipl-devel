@@ -29,7 +29,8 @@
 */
 
 :- module(shell,
-	  [ ls/0,
+	  [ shell/0,
+	    ls/0,
 	    ls/1,				% +Pattern
 	    cd/0,
 	    cd/1,				% +Dir
@@ -56,6 +57,21 @@ It is developed on the ST-MINIX version.   MINIX  did not have a vfork()
 call, and thus only allows shell/[0,1,2] if   Prolog uses less than half
 the amount of available memory.
 */
+
+%%	shell
+%
+%	Execute an interactive shell. The executed   shell is defined by
+%	the environment =SHELL= or =comspec=   (Windows).  If neither is
+%	defined, =|/bin/sh|= is used.
+
+shell :-
+	getenv('SHELL', Shell), !,	% Unix, also Cygwin
+	shell(Shell).
+shell :-
+	getenv(comspec, ComSpec), !,	% Windows
+	shell(ComSpec).
+shell :-
+	shell('/bin/sh').
 
 %%	cd.
 %%	cd(Dir).
