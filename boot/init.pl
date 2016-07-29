@@ -222,10 +222,15 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 	(   '$meta_call'(I, M)
 	->  '$meta_call'(T, M)
 	).
+'$meta_call'((I*->T), M) :- !,
+	'$meta_call'(I, M),
+	'$meta_call'(T, M).
 '$meta_call'((A;B), M) :- !,
 	(   '$meta_call'(A, M)
 	;   '$meta_call'(B, M)
 	).
+'$meta_call'(\+(G), M) :- !,
+	\+ '$meta_call'(G, M).
 '$meta_call'(call(G), M) :- !,
 	'$meta_call'(G, M).
 '$meta_call'(M:G, _) :- !,
