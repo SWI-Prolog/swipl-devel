@@ -60,7 +60,6 @@
 	    trie_property/2,			% ?Trie, ?Property
 	    working_directory/2,		% -OldDir, +NewDir
 	    shell/1,				% +Command
-	    shell/0,
 	    on_signal/3,
 	    current_signal/3,
 	    open_shared_object/2,
