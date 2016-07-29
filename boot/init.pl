@@ -176,7 +176,8 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 	setup_call_cleanup(0,0,0),
 	setup_call_catcher_cleanup(0,0,?,0),
 	call_cleanup(0,0),
-	call_cleanup(0,?,0).
+	call_cleanup(0,?,0),
+	'$meta_call'(0).
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
 
@@ -197,45 +198,62 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 
 %%	'$meta_call'(:Goal)
 %
-%	Meta call handling when we are inside reset/3
+%	Interpreted  meta-call  implementation.  By    default,   call/1
+%	compiles its argument into  a   temporary  clause. This realises
+%	better  performance  if  the  (complex)  goal   does  a  lot  of
+%	backtracking  because  this   interpreted    version   needs  to
+%	re-interpret the remainder of the goal after backtracking.
 %
-%	@tbd: move reset/3, etc into a library?
-%	@tbd: deal with the !
+%	This implementation is used by  reset/3 because the continuation
+%	cannot be captured if it contains   a  such a compiled temporary
+%	clause.
 
 '$meta_call'(M:G) :-
-	'$meta_call'(G, M).
+	prolog_current_choice(Ch),
+	'$meta_call'(G, M, Ch).
 
-'$meta_call'((A,B), M) :- !,
-	'$meta_call'(A, M),
-	'$meta_call'(B, M).
-'$meta_call'((I->T;E), M) :- !,
-	(   '$meta_call'(I, M)
-	->  '$meta_call'(T, M)
-	;   '$meta_call'(E, M)
+'$meta_call'(Var, _, _) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
+'$meta_call'((A,B), M, Ch) :- !,
+	'$meta_call'(A, M, Ch),
+	'$meta_call'(B, M, Ch).
+'$meta_call'((I->T;E), M, Ch) :- !,
+	(   prolog_current_choice(Ch2),
+	    '$meta_call'(I, M, Ch2)
+	->  '$meta_call'(T, M, Ch)
+	;   '$meta_call'(E, M, Ch)
 	).
-'$meta_call'((I*->T;E), M) :- !,
-	(   '$meta_call'(I, M)
-	*-> '$meta_call'(T, M)
-	;   '$meta_call'(E, M)
+'$meta_call'((I*->T;E), M, Ch) :- !,
+	(   prolog_current_choice(Ch2),
+	    '$meta_call'(I, M, Ch2)
+	*-> '$meta_call'(T, M, Ch)
+	;   '$meta_call'(E, M, Ch)
 	).
-'$meta_call'((I->T), M) :- !,
-	(   '$meta_call'(I, M)
-	->  '$meta_call'(T, M)
+'$meta_call'((I->T), M, Ch) :- !,
+	(   prolog_current_choice(Ch2),
+	    '$meta_call'(I, M, Ch2)
+	->  '$meta_call'(T, M, Ch)
 	).
-'$meta_call'((I*->T), M) :- !,
-	'$meta_call'(I, M),
-	'$meta_call'(T, M).
-'$meta_call'((A;B), M) :- !,
-	(   '$meta_call'(A, M)
-	;   '$meta_call'(B, M)
+'$meta_call'((I*->T), M, Ch) :- !,
+	prolog_current_choice(Ch2),
+	'$meta_call'(I, M, Ch2),
+	'$meta_call'(T, M, Ch).
+'$meta_call'((A;B), M, Ch) :- !,
+	(   '$meta_call'(A, M, Ch)
+	;   '$meta_call'(B, M, Ch)
 	).
-'$meta_call'(\+(G), M) :- !,
-	\+ '$meta_call'(G, M).
-'$meta_call'(call(G), M) :- !,
-	'$meta_call'(G, M).
-'$meta_call'(M:G, _) :- !,
-	'$meta_call'(G, M).
-'$meta_call'(G, M) :-
+'$meta_call'(\+(G), M, _) :- !,
+	prolog_current_choice(Ch),
+	\+ '$meta_call'(G, M, Ch).
+'$meta_call'(call(G), M, _) :- !,
+	prolog_current_choice(Ch),
+	'$meta_call'(G, M, Ch).
+'$meta_call'(M:G, _, Ch) :- !,
+	'$meta_call'(G, M, Ch).
+'$meta_call'(!, _, Ch) :-
+	prolog_cut_to(Ch).
+'$meta_call'(G, M, _Ch) :-
 	call(M:G).
 
 %%	call(Closure, Arg, ...)
