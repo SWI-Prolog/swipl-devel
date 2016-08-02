@@ -121,7 +121,8 @@ _|The development of this library was sponsored by SecuritEase,
 |_
 
 @compat Quintus, SICStus 4. The forall/2 is a SWI-Prolog built-in and
-	term_variables/3 is a SWI-Prolog with a *|different definition|*.
+	term_variables/3 is a SWI-Prolog built-in with
+	*|different semantics|*.
 @tbd	Analysing the aggregation template and compiling a predicate
 	for the list aggregation can be done at compile time.
 @tbd	aggregate_all/3 can be rewritten to run in constant space using
