@@ -299,16 +299,8 @@ clean_body(Goal, Goal).
 %		    added to the existential variables for bagof/3.
 %	@param Aggregate defines the aggregation operation to execute.
 
-template_to_pattern(sum(X),	      X,	 true,	  [],   sum) :- var(X), !.
-template_to_pattern(sum(X0),	      X,	 X is X0, [X0], sum) :- !.
-template_to_pattern(count,	      1,	 true,    [],   count) :- !.
-template_to_pattern(min(X),	      X,	 true,    [],   min) :- var(X), !.
-template_to_pattern(min(X0),	      X,	 X is X0, [X0], min) :- !.
-template_to_pattern(min(X0, Witness), X-Witness, X is X0, [X0], min_witness) :- !.
-template_to_pattern(max(X0),	      X,	 X is X0, [X0], max) :- !.
-template_to_pattern(max(X0, Witness), X-Witness, X is X0, [X0], max_witness) :- !.
-template_to_pattern(set(X),	      X,	 true,    [],   set) :- !.
-template_to_pattern(bag(X),	      X,	 true,    [],   bag) :- !.
+template_to_pattern(Term, Pattern, Goal, Vars, Aggregate) :-
+	templ_to_pattern(Term, Pattern, Goal, Vars, Aggregate), !.
 template_to_pattern(Term, Pattern, Goal, Vars, term(MinNeeded, Functor, AggregateArgs)) :-
 	compound(Term), !,
 	Term =.. [Functor|Args0],
@@ -316,15 +308,37 @@ template_to_pattern(Term, Pattern, Goal, Vars, term(MinNeeded, Functor, Aggregat
 	needs_one(AggregateArgs, MinNeeded),
 	Pattern =.. [Functor|Args].
 template_to_pattern(Term, _, _, _, _) :-
-	type_error(aggregate_template, Term).
+	invalid_template(Term).
+
+templ_to_pattern(sum(X),	   X,	      true,    [],   sum) :- var(X), !.
+templ_to_pattern(sum(X0),	   X,	      X is X0, [X0], sum) :- !.
+templ_to_pattern(count,	           1,	      true,    [],   count) :- !.
+templ_to_pattern(min(X),	   X,	      true,    [],   min) :- var(X), !.
+templ_to_pattern(min(X0),	   X,	      X is X0, [X0], min) :- !.
+templ_to_pattern(min(X0, Witness), X-Witness, X is X0, [X0], min_witness) :- !.
+templ_to_pattern(max(X0),	   X,	      X is X0, [X0], max) :- !.
+templ_to_pattern(max(X0, Witness), X-Witness, X is X0, [X0], max_witness) :- !.
+templ_to_pattern(set(X),	   X,	      true,    [],   set) :- !.
+templ_to_pattern(bag(X),	   X,	      true,    [],   bag) :- !.
 
 templates_to_patterns([], [], true, [], []).
 templates_to_patterns([H0], [H], G, Vars, [A]) :- !,
-	template_to_pattern(H0, H, G, Vars, A).
+	sub_template_to_pattern(H0, H, G, Vars, A).
 templates_to_patterns([H0|T0], [H|T], (G0,G), Vars, [A0|A]) :-
-	template_to_pattern(H0, H, G0, V0, A0),
+	sub_template_to_pattern(H0, H, G0, V0, A0),
 	append(V0, RV, Vars),
 	templates_to_patterns(T0, T, G, RV, A).
+
+sub_template_to_pattern(Term, Pattern, Goal, Vars, Aggregate) :-
+	templ_to_pattern(Term, Pattern, Goal, Vars, Aggregate), !.
+sub_template_to_pattern(Term, _, _, _, _) :-
+	invalid_template(Term).
+
+invalid_template(Term) :-
+	callable(Term), !,
+	domain_error(aggregate_template, Term).
+invalid_template(Term) :-
+	type_error(aggregate_template, Term).
 
 %%	needs_one(+Ops, -OneOrZero)
 %
