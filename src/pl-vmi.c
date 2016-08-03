@@ -4037,9 +4037,10 @@ VMI(I_EXITCLEANUP, 0, 0, ())
   if ( BFR->frame == FR && BFR->type == CHP_CATCH )
   { DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
     for(BFR = BFR->parent; BFR > (Choice)FR; BFR = BFR->parent)
-    { if ( BFR->frame > FR )
+    { if ( BFR->type == CHP_DEBUG )
+	continue;
+      if ( BFR->frame > FR )
 	NEXT_INSTRUCTION;		/* choice from setup of setup_call_catcher_cleanup/4 */
-      assert(BFR->type == CHP_DEBUG);
     }
 
     SAVE_REGISTERS(qid);
