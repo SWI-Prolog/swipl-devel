@@ -2285,8 +2285,12 @@ BEGIN_SHAREDVARS
   Choice ch;
 
 VMI(C_LSCUT, 0, 1, (CA1_CHP))
-{ Choice ch = (Choice)valTermRef(varFrame(FR, *PC++));
+{ word chref = varFrame(FR, *PC++);
 
+  if ( (intptr_t)chref < 0 )
+    chref = (word)-(intptr_t)chref;
+
+  ch = (Choice)valTermRef(chref);
   och = ch->parent;
   goto c_lcut_cont;
 }
@@ -2453,14 +2457,41 @@ VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP))
 C_SOFTCUT: Handle the commit-to of A *->   B;  C. We must invalidate the
 choice point, but note that C_SOFTCUT is  executed multiple times if the
 condition succeeds multiple times. Also, C_LSCUT   must find this choice
-point to know how far to cut,  so   we  cannot  delete the choice point.
-Instead, we turn it into a dummy (CHP_DEBUG) choice point.
+point to know how far to cut,  so   we  cannot  simply delete the choice
+point. Instead, a positive term reference implies we did not yet execute
+the soft cut. In this case we  delete   the  choice  and make the slot a
+negative term reference to the parent.   A second execution of C_SOFTCUT
+with a negative term reference is simply ignored.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
-{ Choice ch = (Choice)valTermRef(varFrame(FR, *PC++));
+{ Word chref = varFrameP(FR, *PC++);
 
-  ch->type = CHP_DEBUG;
+  if ( (intptr_t)*chref > 0 )
+  { Choice ch = (Choice)valTermRef((term_t)*chref);
+    Choice bfr = BFR;
+
+    DEBUG(MSG_SOFTCUT,
+	  Sdprintf("Killing choice %s from %s\n",
+		   chp_chars(ch), print_addr(chref, NULL)));
+
+    if ( bfr == ch )
+    { BFR = bfr->parent;
+      *chref = (word)-(intptr_t)consTermRef(BFR);
+    } else
+    { for(; bfr >= ch; bfr=bfr->parent)
+      { if ( bfr->parent == ch )
+	{ bfr->parent = ch->parent;
+	  *chref = (word)-(intptr_t)consTermRef(ch->parent);
+	  break;
+	}
+      }
+    }
+  } else
+  { DEBUG(MSG_SOFTCUT,
+	  Sdprintf("Already killed at %s\n", print_addr(chref, NULL)));
+  }
+
   NEXT_INSTRUCTION;
 }
 
