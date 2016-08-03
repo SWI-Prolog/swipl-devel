@@ -337,9 +337,8 @@ meta_option(O, _, _, O).
 %	classical Prolog options and dicts objects.
 
 dict_options(Dict, Options) :-
-	nonvar(Dict),
+	nonvar(Dict), !,
 	dict_pairs(Dict, _, Pairs),
 	canonicalise_options2(Pairs, Options).
 dict_options(Dict, Options) :-
-	nonvar(Options),
 	dict_create(Dict, _, Options).
