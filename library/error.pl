@@ -171,9 +171,10 @@ syntax_error(Culprit) :-
 %	True if Term satisfies the type constraints for Type. Defined
 %	types are =atom=, =atomic=, =between=, =boolean=, =callable=,
 %	=chars=, =codes=, =text=, =compound=, =constant=, =float=,
-%	=integer=, =nonneg=, =positive_integer=, =negative_integer=,
-%	=nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
-%	=symbol=, =var=, =rational=, =encoding=, =dict= and =string=.
+%	=integer=, =nonneg=, =nonpos=, =positive_integer=,
+%	=negative_integer=, =nonvar=, =number=, =oneof=, =list=,
+%	=list_or_partial_list=, =symbol=, =var=, =rational=, =encoding=,
+%	=dict=, =string= and =ground=.
 %
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
@@ -186,6 +187,7 @@ syntax_error(Culprit) :-
 %	| between(IntL,IntU) | Integer [IntL..IntU] |
 %	| between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %	| nonneg | Integer >= 0 |
+%	| nonpos | Integer >= 0 |
 %	| positive_integer | Integer > 0 |
 %	| negative_integer | Integer < 0 |
 %	| oneof(L) | Ground term that is member of L |
@@ -193,7 +195,9 @@ syntax_error(Culprit) :-
 %	| cyclic | Cyclic term (rational tree) |
 %	| acyclic | Acyclic term (tree) |
 %	| list(Type) | Proper list with elements of Type |
-%	| list_or_partial_list | A list or an open list (ending in a variable |
+%	| list_or_partial_list | A list or an open list (ending in a variable) |
+%	| symbol | An atom |
+%	| constant | An atomic value |
 %
 %	@throws instantiation_error if Term is insufficiently
 %	instantiated and type_error(Type, Term) if Term is not of Type.
@@ -315,6 +319,7 @@ has_type(cyclic, X)	  :- cyclic_term(X).
 has_type(acyclic, X)	  :- acyclic_term(X).
 has_type(integer, X)	  :- integer(X).
 has_type(nonneg, X)	  :- integer(X), X >= 0.
+has_type(nonpos, X)	  :- integer(X), X =< 0.
 has_type(positive_integer, X)	  :- integer(X), X > 0.
 has_type(negative_integer, X)	  :- integer(X), X < 0.
 has_type(nonvar, X)	  :- nonvar(X).
