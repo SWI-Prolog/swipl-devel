@@ -182,7 +182,7 @@ test(lscut, Len == 3) :-
 
 nested_softcut :-			% Thanks to Frank Schwidom
 	retractall(a(_)),
-	(   (   repeat,
+	(   (   between(1, 5, _),
 		(    between(1, 2, B),
 		     \+ a(B),
 		     assertz(a(B))
