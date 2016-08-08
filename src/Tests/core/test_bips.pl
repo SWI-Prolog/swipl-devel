@@ -142,6 +142,13 @@ test(when7,[true((R,S)==(est,sunt))]) :-
 	(X,Y)=(a,a).
 test(when8,[fail]) :-
 	when(ground(g),fail).
+test(when8,X==a) :-
+	v(A),
+	when(((nonvar(A), (nonvar(B) ; nonvar( C)))
+	     ;(nonvar(B), nonvar(C))), X = a),
+	B=2, C=3.
+
+v(_).
 
 :- end_tests(coroutining).
 

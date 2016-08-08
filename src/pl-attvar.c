@@ -866,46 +866,77 @@ typedef struct
 } when_state;
 
 
-static when_status
-add_to_list(word c, Word *tailp ARG_LD)
-{ Word t;
+static int
+is_or(word c ARG_LD)
+{ return isTerm(c) && functorTerm(c) == FUNCTOR_or1;
+}
 
-  if(isTerm(c) && functorTerm(c) == FUNCTOR_semicolon2)
-  { Word p = argTermP(c, 0);
-    int rc;
 
-    if ( (rc=add_to_list(p[0], tailp PASS_LD)) < 0 )
-      return rc;
-    return add_to_list(p[1], tailp PASS_LD);
+static int
+add_or(word or, word c2 ARG_LD)
+{ Word tail = argTermP(or, 0);
+
+  deRef(tail);
+  while(isList(*tail))
+  { tail = TailList(tail);
+    deRef(tail);
+  }
+  assert(*tail == ATOM_nil);
+
+  if ( is_or(c2 PASS_LD) )
+  { Word l = argTermP(c2, 0);
+    *tail = *l;
+  } else
+  { Word n;
+
+    if ( (n=allocGlobalNoShift(3)) )
+    { n[0] = FUNCTOR_dot2;
+      n[1] = c2;
+      n[2] = ATOM_nil;
+      *tail = consPtr(n, TAG_COMPOUND|STG_GLOBAL);
+    } else
+      return E_NOSPACE;
   }
 
-  if ( (t=allocGlobalNoShift(3)) )
-  { t[0] = FUNCTOR_dot2;
-    t[1] = c;
-    t[2] = ATOM_nil;
-    **tailp = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-    *tailp = &t[2];
-
-    return E_OK;
-  }
-
-  return E_NOSPACE;
+  return E_OK;
 }
 
 
 static when_status
-or_to_list(word c1, word c2, Word list ARG_LD)
+make_disj_list(word c1, word c2, Word result ARG_LD)
 { int rc;
-  Word tailp = list;
 
-  if ( (rc=add_to_list(c1, &tailp PASS_LD)) < 0 )
-    return rc;
-  return add_to_list(c2, &tailp PASS_LD);
+  if ( is_or(c1 PASS_LD) )
+  { if ( (rc=add_or(c1, c2 PASS_LD)) < 0 )
+      return rc;
+    *result = c1;
+  } else if ( is_or(c2 PASS_LD) )
+  { if ( (rc=add_or(c2, c1 PASS_LD)) < 0 )
+      return rc;
+    *result = c2;
+  } else
+  { Word t;
+
+    if ( (t = allocGlobalNoShift(8)) )
+    { t[0] = FUNCTOR_or1;
+      t[1] = consPtr(&t[2], TAG_COMPOUND|STG_GLOBAL);
+      t[2] = FUNCTOR_dot2;
+      t[3] = c1;
+      t[4] = consPtr(&t[5], TAG_COMPOUND|STG_GLOBAL);
+      t[5] = FUNCTOR_dot2;
+      t[6] = c2;
+      t[7] = ATOM_nil;
+      *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+    } else
+      return E_NOSPACE;
+  }
+
+  return E_OK;
 }
 
 
 static when_status
-when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
+when_condition(Word cond, Word result, when_state *state ARG_LD)
 { deRef(cond);
 
   if ( state->depth++ == 100 )
@@ -942,17 +973,15 @@ when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
     { word c1, c2;
       int rc;
 
-      if ( (rc=when_condition(&term->arguments[0], &c1, TRUE, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[0], &c1, state PASS_LD)) < 0 )
 	return rc;
-      if ( (rc=when_condition(&term->arguments[1], &c2, TRUE, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[1], &c2, state PASS_LD)) < 0 )
 	return rc;
 
       if ( c1 == ATOM_true )
       { *result = c2;
       } else if ( c2 == ATOM_true )
       { *result = c1;
-      } else if ( cond < state->gSave )
-      { *result = *cond;
       } else
       { Word t;
 
@@ -969,33 +998,17 @@ when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
     { word c1, c2;
       int rc;
 
-      if ( (rc=when_condition(&term->arguments[0], &c1, FALSE, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[0], &c1, state PASS_LD)) < 0 )
 	return rc;
       if ( c1 == ATOM_true )
       { *result = c1;
       } else
-      { if ( (rc=when_condition(&term->arguments[1], &c2, FALSE, state PASS_LD)) < 0 )
+      { if ( (rc=when_condition(&term->arguments[1], &c2, state PASS_LD)) < 0 )
 	  return rc;
 	if ( c2 == ATOM_true )
 	{ *result = c2;
-	} else if ( top_or )
-	{ Word t;
-
-	  if ( (t = allocGlobalNoShift(2)) )
-	  { t[0] = FUNCTOR_or1;
-	    if ( (rc=or_to_list(c1,c2,&t[1] PASS_LD)) < 0 )
-	      return rc;
-	    *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-	  }
 	} else
-	{ Word t;
-
-	  if ( (t = allocGlobalNoShift(3)) )
-	  { t[0] = FUNCTOR_semicolon2;
-	    t[1] = c1;
-	    t[2] = c2;
-	    *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-	  }
+	{ return make_disj_list(c1, c2, result PASS_LD);
 	}
       }
     } else
@@ -1011,6 +1024,12 @@ when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
 }
 
 
+/** '$eval_when_condition'(+Condition, -Simplified)
+ *
+ * Simplify the when/2 condition by eliminating already fullfilled
+ * conditions and join disjunctions in a term or(ListOfCond).
+ */
+
 static
 PRED_IMPL("$eval_when_condition", 2, eval_when_condition, 0)
 { PRED_LD
@@ -1023,7 +1042,7 @@ retry:
   state.gSave = gTop;
   state.depth = 0;
 
-  if ( (rc=when_condition(valTermRef(A1), valTermRef(cond), TRUE, &state PASS_LD)) < 0 )
+  if ( (rc=when_condition(valTermRef(A1), valTermRef(cond), &state PASS_LD)) < 0 )
   { gTop = state.gSave;
     PL_put_variable(cond);
 
