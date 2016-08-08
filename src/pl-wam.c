@@ -2062,8 +2062,9 @@ chp_chars(Choice ch)
 { GET_LD
   static char buf[256];
 
-  Ssprintf(buf, "Choice at #%ld for frame #%ld, type %s",
+  Ssprintf(buf, "Choice at #%ld for frame #%ld (%s), type %s",
 	   loffset(ch), loffset(ch->frame),
+	   predicateName(ch->frame->predicate),
 	   ch->type == CHP_JUMP ? "JUMP" :
 	   ch->type == CHP_CLAUSE ? "CLAUSE" :
 	   ch->type == CHP_TOP ? "TOP" :
