@@ -361,8 +361,8 @@ table(>      , right   , -      , no        , yes   ) :- !.
 %%      del_min_assoc(+Assoc0, ?Key, ?Val, -Assoc) is semidet.
 %
 %	True if Key-Value  is  in  Assoc0   and  Key  is  the smallest key.
-%	Assoc is Assoc0 with Key-Value   removed. Warning: this will
-%	succeed with _no_ bindings for Key or Val if Assoc0 is `t`.
+%	Assoc is Assoc0 with Key-Value   removed. Warning: This will
+%	succeed with _no_ bindings for Key or Val if Assoc0 is empty.
 
 del_min_assoc(Tree, Key, Val, NewTree) :-
 	del_min_assoc(Tree, Key, Val, NewTree, _DepthChanged).
@@ -375,8 +375,8 @@ del_min_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
 %%      del_max_assoc(+Assoc0, ?Key, ?Val, -Assoc) is semidet.
 %
 %	True if Key-Value  is  in  Assoc0   and  Key  is  the greatest key.
-%	Assoc is Assoc0 with Key-Value   removed. Warning: this will
-%	succeed with no bindings for Key or Val if input Tree is t.
+%	Assoc is Assoc0 with Key-Value   removed. Warning: This will
+%	succeed with _no_ bindings for Key or Val if Assoc0 is empty.
 
 del_max_assoc(Tree, Key, Val, NewTree) :-
 	del_max_assoc(Tree, Key, Val, NewTree, _DepthChanged).
