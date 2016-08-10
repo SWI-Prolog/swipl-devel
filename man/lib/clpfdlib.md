@@ -476,9 +476,11 @@ To express this puzzle via CLP(FD) constraints, we must first pick a
 suitable representation. Since CLP(FD) constraints reason over
 _integers_, we must find a way to map the positions of queens to
 integers. Several such mappings are conceivable, and it is not
-immediately obvious which we should use. For this reason, _modeling_
-combinatorial problems via CLP(FD) constraints often necessitates some
-creativity and has been described as more of an art than a science.
+immediately obvious which we should use. On top of that, different
+constraints can be used to express the desired relations. For such
+reasons, _modeling_ combinatorial problems via CLP(FD) constraints
+often necessitates some creativity and has been described as more of
+an art than a science.
 
 In our concrete case, we observe that there must be exactly one queen
 per column. The following representation therefore suggests itself: We
@@ -813,12 +815,11 @@ analyzers and declarative debuggers.
 
 ## Closing and opening words about CLP(FD) {#clpfd-closing-opening}
 
-CLP(FD) constraints have been described as the _killer application_ of
-logic programming. This means that they are one of the main reasons
-why logic programming approaches are picked over other paradigms for
-solving many tasks of high practical relevance. The usefulness of
-CLP(FD) constraints for scheduling, allocation and combinatorial
-optimization tasks is well-known both in academia and industry.
+CLP(FD) constraints are one of the main reasons why logic programming
+approaches are picked over other paradigms for solving many tasks of
+high practical relevance. The usefulness of CLP(FD) constraints for
+scheduling, allocation and combinatorial optimization tasks is
+well-known both in academia and industry.
 
 With this library, we take the applicability of CLP(FD) constraints
 one step further, following the road that visionary systems like
