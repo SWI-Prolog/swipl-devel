@@ -74,9 +74,6 @@ makes installed packages available as libaries.
 @tbd	Test packages: run tests from directory `test'.
 */
 
-:- meta_predicate
-	run_process_output(+, +, 1, +).
-
 :- multifile
 	environment/2.				% Name, Value
 
@@ -1863,17 +1860,31 @@ version_pack(pack(VersionAtom,URLs,SubDeps),
 %	  Environment passed to the new process.
 
 run_process(Executable, Argv, Options) :-
-	option(directory(Dir), Options, .),
-	(   option(env(Env), Options)
-	->  Extra = [env(Env)]
-	;   Extra = []
-	),
+	\+ option(output(_), Options),
+	\+ option(error(_), Options),
+	current_prolog_flag(unix, true),
+	current_prolog_flag(threads, true), !,
+	process_create_options(Options, Extra),
+	process_create(Executable, Argv,
+		       [ stdout(pipe(Out)),
+			 stderr(pipe(Error)),
+			 process(PID)
+		       | Extra
+		       ]),
+	thread_create(relay_output([output-Out, error-Error]), Id, []),
+	process_wait(PID, Status),
+	thread_join(Id, _),
+	(   Status == exit(0)
+	->  true
+	;   throw(error(process_error(process(Executable, Argv), Status), _))
+	).
+run_process(Executable, Argv, Options) :-
+	process_create_options(Options, Extra),
 	setup_call_cleanup(
 	    process_create(Executable, Argv,
 			   [ stdout(pipe(Out)),
 			     stderr(pipe(Error)),
-			     process(PID),
-			     cwd(Dir)
+			     process(PID)
 			   | Extra
 			   ]),
 	    (   read_stream_to_codes(Out, OutCodes, []),
@@ -1890,32 +1901,36 @@ run_process(Executable, Argv, Options) :-
 	;   throw(error(process_error(process(Executable, Argv), Status), _))
 	).
 
-%%	run_process_output(+Executable, +Argv, :OnOutput, +Options) is det.
-%
-%	Run a Executable and process the  output with OnOutput, which is
-%	called as call(OnOutput, Stream).
-
-run_process_output(Executable, Argv, OnOutput, Options) :-
+process_create_options(Options, Extra) :-
 	option(directory(Dir), Options, .),
-	setup_call_cleanup(process_create(Executable, Argv,
-                                          [ stdout(pipe(Out)),
-                                            stderr(pipe(Error)),
-                                            process(PID),
-                                            cwd(Dir)
-                                          ]),
-                           (   call(OnOutput, Out),
-			       read_stream_to_codes(Error, ErrorCodes, []),
-                               process_wait(PID, Status)
-                           ),
-			   (   close(Out),
-			       close(Error)
-			   )),
-	print_error(ErrorCodes, Options),
-	(   Status = exit(0)
-	->  true
-	;   throw(error(process_error(process(Executable, Argv), Status)))
+	(   option(env(Env), Options)
+	->  Extra = [cwd(Dir), env(Env)]
+	;   Extra = [cwd(Dir)]
 	).
 
+relay_output([]) :- !.
+relay_output(Output) :-
+	pairs_values(Output, Streams),
+	wait_for_input(Streams, Ready, infinite),
+	relay(Ready, Output, NewOutputs),
+	relay_output(NewOutputs).
+
+relay([], Outputs, Outputs).
+relay([H|T], Outputs0, Outputs) :-
+	selectchk(Type-H, Outputs0, Outputs1),
+	(   at_end_of_stream(H)
+	->  close(H),
+	    relay(T, Outputs1, Outputs)
+	;   read_pending_codes(H, Codes, []),
+	    relay(Type, Codes),
+	    relay(T, Outputs0, Outputs)
+	).
+
+relay(error,  Codes) :-
+	set_prolog_flag(thread_message_prefix, false),
+	print_error(Codes, []).
+relay(output, Codes) :-
+	print_output(Codes, []).
 
 print_output(OutCodes, Options) :-
 	option(output(Codes), Options), !,
