@@ -1347,19 +1347,26 @@ msg_property(error,   wait(0.1)) :- !.
 
 msg_prefix(debug(_),      '~N% ').
 msg_prefix(warning,	      Prefix) :-
-	thread_self(Id),
-	(   Id == main
-	->  Prefix = '~NWarning: '
-	;   Prefix = '~NWarning: [Thread ~w] '-Id
+	(   thread_message_id(Id)
+	->  Prefix = '~NWarning: [Thread ~w] '-Id
+	;   Prefix = '~NWarning: '
 	).
 msg_prefix(error,	      Prefix) :-
-	thread_self(Id),
-	(   Id == main
-	->  Prefix = '~NERROR: '
-	;   Prefix = '~NERROR: [Thread ~w] '-Id
+	(   thread_message_id(Id)
+	->  Prefix = '~NERROR: [Thread ~w] '-Id
+	;   Prefix = '~NERROR: '
 	).
 msg_prefix(informational, '~N% ').
 msg_prefix(information,   '~N% ').
+
+thread_message_id(Id) :-
+	thread_self(Id0),
+	Id0 \== main,
+	\+ current_prolog_flag(thread_message_prefix, false),
+	(   atom(Id0)
+	->  Id = Id0
+	;   thread_property(Id0, id(Id))
+	).
 
 %%	print_message_lines(+Stream, +PrefixOrKind, +Lines)
 %
