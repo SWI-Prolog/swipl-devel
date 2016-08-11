@@ -2210,7 +2210,7 @@ typedef struct fdentry
 #define ADD_FD(i) do { poll_map[i].fd = map[i].fd; \
 		       poll_map[i].events = POLLIN; \
 		     } while(0)
-#define IS_SETFD(i) (poll_map[i].revents & (POLLIN|POLLERR))
+#define IS_SETFD(i) (poll_map[i].revents & (POLLIN|POLLERR|POLLHUP))
 #define ACTION_WAIT ATOM_poll
 #else
 #define ADD_FD(i) do { FD_SET(map[i].fd, &fds); } while(0)
