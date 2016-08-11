@@ -194,6 +194,44 @@ YAP_MkApplTerm(functor_t f, int arity, term_t *tv)
 }
 
 
+/* NOTE: The arity is encoded in the functor.  We check consistency
+*/
+
+static inline term_t
+YAP_MkNewApplTerm(functor_t f, int arity)
+{ term_t t = PL_new_term_ref();
+
+  assert(PL_functor_arity(f) == arity);
+  if ( PL_put_functor(t) )
+    return t;
+  else
+    return (term_t)0;
+}
+
+
+/* NOTE: This is expensive in SWI-Prolog.  YAP term-references are
+   direct pointers and thus it merely returns a pointer to the
+   array of arguments.  In SWI-Prolog, term references are indirect
+   handles and thus we must allocate a handle for each argument.
+*/
+
+static inline term_t
+YAP_ArgsOfTerm(term_t t)
+{ atom_t name;
+  int arity, i, res;
+  term_t args;
+
+  if ( !(res = PL_get_name_arity( t, &name, &arity)) ||
+       !(args = PL_new_term_refs(arity)) ) /* Leaves an exception on failure */
+    return (term_t)0;
+
+  for (i=1; i<=arity; i++)
+    PL_get_arg_(i, t, args+i-1);
+
+  return args;
+}
+
+
 static inline functor_t
 YAP_FunctorOfTerm(term_t t)
 { functor_t f;
