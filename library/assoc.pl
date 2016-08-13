@@ -82,7 +82,7 @@ Assocs are Key-Value associations implemented as  a balanced binary tree
 
 %%	empty_assoc(-Assoc) is det.
 %
-%	Is true if Assoc is the empty assoc.
+%	Is true if Assoc is the empty association list.
 
 empty_assoc(t).
 
@@ -184,7 +184,7 @@ gen_assoc(Key, t(_,_,_,_,R), Val) :-
 %
 %	True if Key-Value is an association in Assoc.
 %
-%	@error type_error(assoc, Assoc) if Assoc is not an assoc.
+%	@error type_error(assoc, Assoc) if Assoc is not an association list.
 
 get_assoc(Key, Assoc, Val) :-
 	must_be(assoc, Assoc),
