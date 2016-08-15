@@ -4021,7 +4021,7 @@ system. Both follow the same numbering schema explained with PL_query().
 
 \index{valgrind}\index{profiling,foreign code}%
 This section is only relevant for Unix users on platforms supported by
-\url[valgrind]{http://valgrind.org/}. Valgrind is an excellent binary
+\href{http://valgrind.org/}{valgrind}. Valgrind is an excellent binary
 instrumentation platform.  Unlike many other instrumentation platforms,
 valgrind can deal with code loaded through dlopen().
 

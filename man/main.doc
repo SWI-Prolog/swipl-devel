@@ -121,7 +121,7 @@ page]{http://www.swi-prolog.org/download.html}.
 
 
 The SWI-Prolog project {\bf home page} is located
-\url[here]{http://www.swi-prolog.org}
+\href{http://www.swi-prolog.org}{here}
 
 \includegraphics[width=4cm]{figs/by-sa}\\[0mm]
 This work is licensed under the Creative Commons Attribution-ShareAlike

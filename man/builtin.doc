@@ -4794,7 +4794,7 @@ If \const{true} (default \const{false}), add a fullstop token to the
 output.  The dot is preceeded by a space if needed and followed by
 a space (default) or newline if the \term{nl}{true} option is also
 given.\footnote{Compatible with
-\url[ECLiPSe]{http://eclipseclp.org/doc/bips/kernel/ioterm/write_term-3.html}}
+\href{http://eclipseclp.org/doc/bips/kernel/ioterm/write_term-3.html}{ECLiPSe}}
 
     \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term representation (<functor>(<args>
@@ -6339,9 +6339,9 @@ SWI-Prolog provides many extensions to the set of floating point
 functions defined by the ISO standard. The current policy is to provide
 such functions on `as-needed' basis if the function is widely supported
 elsewhere and notably if it is part of the
-\url[C99]{http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf}
+\href{http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf}{C99}
 mathematical library.  In addition, we try to maintain compatibility
-with \url[YAP]{http://www.dcc.fc.up.pt/~vsc/Yap/}.
+with \href{http://www.dcc.fc.up.pt/~vsc/Yap/}{YAP}.
 
 \begin{description}
     \prefixfunction[ISO]{-}{+Expr}
@@ -6692,13 +6692,13 @@ may provide a \emph{predicate} \nopredref{lgamma}{3} that returns both
 the value and the sign.}
 
     \function{erf}{1}{+Expr}
-\url[WikipediA]{http://en.wikipedia.org/wiki/Error_function}: ``In
+\href{http://en.wikipedia.org/wiki/Error_function}{WikipediA}: ``In
 mathematics, the error function (also called the Gauss error function)
 is a special function (non-elementary) of sigmoid shape which occurs in
 probability, statistics and partial differential equations.''
 
     \function{erfc}{1}{+Expr}
-\url[WikipediA]{http://en.wikipedia.org/wiki/Error_function}: ``The
+\href{http://en.wikipedia.org/wiki/Error_function}{WikipediA}: ``The
 complementary error function.''
 
     \function[ISO]{pi}{0}{}
@@ -7800,7 +7800,7 @@ SWI-Prolog.
 
 Where older versions of SWI-Prolog relied on the POSIX conversion
 functions, the current implementation uses
-\url[libtai]{http://cr.yp.to/libtai.html} to realise conversion between
+\href{http://cr.yp.to/libtai.html}{libtai} to realise conversion between
 time-stamps and calendar dates for a period of 10 million years.
 
 \subsubsection{Time and date data structures}

@@ -4,12 +4,12 @@
 
 \begin{tags}
     \tag{author}
-\url[Markus Triska]{https://www.metalevel.at}
+\href{https://www.metalevel.at}{Markus Triska}
 \end{tags}
 
 \noindent\textbf{Development of this library has moved to SICStus Prolog.}\\
 Please see
-\url[\textbf{CLP(Z)}]{https://github.com/triska/clpz} for more
+\href{https://github.com/triska/clpz}{\textbf{CLP(Z)}} for more
 information.
 
 % remainder, generated from Markdown and PlDoc

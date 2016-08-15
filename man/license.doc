@@ -2,8 +2,8 @@
 \label{sec:license}
 
 SWI-Prolog licensing aims at a large audience, combining ideas from the
-\url[Free Software Foundation]{http://www.fsf.org} and the less
-principal \url[Open Source Initiative]{http://www.opensource.org}. The
+\href{http://www.fsf.org}{Free Software Foundation} and the less
+principal \href{http://www.opensource.org}{Open Source Initiative}. The
 license aims at the following:
 
 \begin{itemize}
@@ -19,7 +19,7 @@ Free software can build on SWI-Prolog without limitations.
     \item
 Non-free (open or proprietary) software can be produced using
 SWI-Prolog, although contributed pure
-\url[GPL-ed]{http://www.gnu.org/copyleft/gpl.html} components
+\href{http://www.gnu.org/copyleft/gpl.html}{GPL-ed} components
 cannot be used.
 \end{itemize}
 
@@ -31,9 +31,9 @@ libraries and your compiled application).
 
 For maximal coherence between free licenses, we start with the two prime
 licenses from the Free Software Foundation, the
-\url[GNU General Public License]{http://www.gnu.org/copyleft/gpl.html}
+\href{http://www.gnu.org/copyleft/gpl.html}{GNU General Public License}
 (GPL) and the
-\url[Lesser GNU General Public License]{http://www.gnu.org/copyleft/lesser.html}
+\href{http://www.gnu.org/copyleft/lesser.html}{Lesser GNU General Public License}
 (LGPL),
 after which we add a proven (used by the GNU C compiler runtime library
 as well as the GNU \emph{ClassPath} project) exception to deal with the

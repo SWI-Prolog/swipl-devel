@@ -1997,7 +1997,7 @@ This section lists various extensions w.r.t.\ the ISO Prolog syntax.
 \index{ISO Latin 1}\index{character set}%
 The processor character set specifies the class of each character used
 for parsing Prolog source text.  Character classification is fixed to
-\url[Unicode]{http://www.unicode.org/}.  See also \secref{widechars}.
+\href{http://www.unicode.org/}{Unicode}.  See also \secref{widechars}.
 
 \subsection{Nested comments}			\label{sec:nestedcomments}
 
