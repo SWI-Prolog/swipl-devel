@@ -128,6 +128,7 @@ In total, the arithmetic constraints are:
     | Expr `rem` Expr    | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
+    | Expr div Expr      | Floored integer division             |
 
 where `Expr` again denotes an arithmetic expression.
 

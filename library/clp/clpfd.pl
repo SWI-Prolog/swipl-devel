@@ -152,6 +152,11 @@
 
 /** <module> CLP(FD): Constraint Logic Programming over Finite Domains
 
+**Development of this library has moved to SICStus Prolog.**
+
+Please see [**CLP(Z)**](https://github.com/triska/clpz) for more
+information.
+
 ## Introduction			{#clpfd-intro}
 
 This library provides CLP(FD): Constraint Logic Programming over
@@ -282,6 +287,7 @@ In total, the arithmetic constraints are:
     | Expr `rem` Expr    | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
+    | Expr div Expr      | Floored integer division             |
 
 where `Expr` again denotes an arithmetic expression.
 
