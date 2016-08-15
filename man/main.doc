@@ -116,12 +116,11 @@ is converted into HTML using a converter distributed with the SWI-Prolog
 sources. From the same source we generate the plain-text version and
 index used by the online help system (located in the file \file{MANUAL}
 in the library directory) as well as the PDF version. Sources, binaries
-and documentation can be downloaded from the \url[SWI-Prolog download
-page]{http://www.swi-prolog.org/download.html}.
+and documentation can be downloaded from the \href{http://www.swi-prolog.org/Download.html}{SWI-Prolog download page}.
 
 
-The SWI-Prolog project {\bf home page} is located
-\href{http://www.swi-prolog.org}{here}
+The SWI-Prolog project {\bf home page} is
+\href{http://www.swi-prolog.org}{http://www.swi-prolog.org}
 
 \includegraphics[width=4cm]{figs/by-sa}\\[0mm]
 This work is licensed under the Creative Commons Attribution-ShareAlike
