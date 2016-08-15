@@ -158,6 +158,8 @@ base(Path, Base) :-
 	atomic(Path), !,
 	file_base_name(Path, File),
 	file_name_extension(Base, _Ext, File).
+base(_/Path, Base) :- !,
+	base(Path, Base).
 base(Path, Base) :-
 	Path =.. [_,Arg],
 	base(Arg, Base).
