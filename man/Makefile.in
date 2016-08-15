@@ -181,15 +181,12 @@ lib/shlib.tex:	../library/shlib.pl
 		$(LIBTOTEX) --subsection 'library(shlib)'
 lib/apply.tex:	../library/apply.pl
 		$(LIBTOTEX) 'library(apply)'
-# The assoc documentation is written in Markdown
 lib/assoclib.tex: lib/assoclib.md ../library/assoc.pl
 		$(LIBTOTEX) --lib=assoc --module=assoc lib/assoclib.md
 lib/error.tex:	../library/error.pl
 		$(LIBTOTEX) 'library(error)'
-# The CLP(B) documentation is written in Markdown
 lib/clpblib.tex: lib/clpblib.md ../library/clp/clpb.pl
 		$(LIBTOTEX) --lib=clpb --module=clpb lib/clpblib.md
-# The CLP(FD) documentation is written in Markdown
 lib/clpfdlib.tex: lib/clpfdlib.md ../library/clp/clpfd.pl
 		$(LIBTOTEX) --lib=clpfd --module=clpfd lib/clpfdlib.md
 lib/simplexlib.tex: lib/simplexlib.md ../library/clp/simplex.pl
