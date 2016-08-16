@@ -61,6 +61,7 @@
 	  ]).
 :- use_module(library(process)).
 :- use_module(library(socket)).
+:- use_module(library(shell), [shell/0]).
 
 :- multifile sicstus:rename_module/2.
 
