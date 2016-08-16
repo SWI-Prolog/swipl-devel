@@ -957,7 +957,7 @@ collectAtoms(void)
   size_t unregistered = 0;
   size_t index;
   int i, last=FALSE;
-  Atom temp, next, prev;
+  Atom temp, next, prev = NULL;	 /* = NULL to keep compiler happy */
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
