@@ -73,12 +73,12 @@
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{J.Wielemaker@vu.nl}	\\
-	Department of Computer Science			\\
-	VU University Amsterdam				\\
-	De Boelelaan 1081a, 1081 HV~~Amsterdam \vspace{5pt}\\
-	Human-Computer Studies (HCS, formerly SWI)	\\
-	    Kruislaan 419, 1098 VA~~Amsterdam		\\
+\author{\href{mailto:J.Wielemaker@vu.nl}{Jan Wielemaker}	\\
+	Department of Computer Science				\\
+	VU University Amsterdam					\\
+	De Boelelaan 1081a, 1081 HV~~Amsterdam \vspace{5pt}	\\
+	Human-Computer Studies (HCS, formerly SWI)		\\
+	    Kruislaan 419, 1098 VA~~Amsterdam			\\
 		    The Netherlands}
 
 \begin{htmlonly}
