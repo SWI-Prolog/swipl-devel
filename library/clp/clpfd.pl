@@ -387,8 +387,33 @@ used instead.
 ## Example: Factorial relation {#clpfd-factorial}
 
 We illustrate the benefit of using #=/2 for more generality with a
-simple example. The following Prolog program relates each natural
-number _N_ to its factorial _F_:
+simple example.
+
+Consider first a rather conventional definition of `n_factorial/2`,
+relating each natural number _N_ to its factorial _F_:
+
+==
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0,
+        N1 #= N - 1,
+        n_factorial(N1, F1),
+        F #= N * F1.
+==
+
+This program uses CLP(FD) constraints _instead_ of low-level
+arithmetic throughout, and everything that _would have worked_ with
+low-level arithmetic _continues_ to work with CLP(FD) constraints,
+retaining roughly the same performance. For example:
+
+==
+?- n_factorial(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+false.
+==
+
+Now the point: Due to the increased flexibility and generality of
+CLP(FD) constraints, we are free to _reorder_ the goals as follows:
 
 ==
 n_factorial(0, 1).
@@ -399,13 +424,10 @@ n_factorial(N, F) :-
         n_factorial(N1, F1).
 ==
 
-This relation can be used in all directions. For example:
+In this concrete case, _termination_ properties of the predicate are
+improved. For example, the following queries now both terminate:
 
 ==
-?- n_factorial(47, F).
-F = 258623241511168180642964355153611979969197632389120000000000 ;
-false.
-
 ?- n_factorial(N, 1).
 N = 0 ;
 N = 1 ;
@@ -415,10 +437,21 @@ false.
 false.
 ==
 
-To make the predicate terminate if any argument is instantiated, add
+To make the predicate terminate if _any_ argument is instantiated, add
 the (implied) constraint `F #\= 0` before the recursive call.
 Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
+
+The value of CLP(FD) constraints does _not_ lie in the removal of
+procedural phenomena. In particular, we do _not_ claim for example
+that the two programs have the same performance in all cases. Instead,
+the primary benefit of CLP(FD) constraints is that they allow you to
+try different execution orders *at all*! Reordering goals (and
+clauses) can have very significant impact on the performance of Prolog
+programs, and you are free to try different variants if you use
+declarative approaches. Moreover, since all CLP(FD) constraints
+_always terminate_, placing them earlier can at most _improve_, never
+worsen, the termination properties of your programs.
 
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
@@ -636,9 +669,11 @@ To express this puzzle via CLP(FD) constraints, we must first pick a
 suitable representation. Since CLP(FD) constraints reason over
 _integers_, we must find a way to map the positions of queens to
 integers. Several such mappings are conceivable, and it is not
-immediately obvious which we should use. For this reason, _modeling_
-combinatorial problems via CLP(FD) constraints often necessitates some
-creativity and has been described as more of an art than a science.
+immediately obvious which we should use. On top of that, different
+constraints can be used to express the desired relations. For such
+reasons, _modeling_ combinatorial problems via CLP(FD) constraints
+often necessitates some creativity and has been described as more of
+an art than a science.
 
 In our concrete case, we observe that there must be exactly one queen
 per column. The following representation therefore suggests itself: We
@@ -714,10 +749,11 @@ and try different labeling options without recompiling our code.
 
 If necessary, we can use `once/1` to commit to the first optimal
 solution. However, it is often very valuable to see alternative
-solutions that are _also_ optimal, so that we can choose among
-optimal solutions by other criteria. For the sake of purity and
-completeness, we recommend to avoid `once/1` and other constructs
-that lead to impurities in CLP(FD) programs.
+solutions that are _also_ optimal, so that we can choose among optimal
+solutions by other criteria. For the sake of
+[purity](http://www.metalevel.at/prolog/purity.html) and completeness,
+we recommend to avoid `once/1` and other constructs that lead to
+impurities in CLP(FD) programs.
 
 Related to optimisation with CLP(FD) constraints is the [**simplex
 library**](http://eu.swi-prolog.org/man/simplex.html) and **CLP(Q)**

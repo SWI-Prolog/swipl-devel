@@ -228,8 +228,33 @@ used instead.
 ## Example: Factorial relation {#clpfd-factorial}
 
 We illustrate the benefit of using #=/2 for more generality with a
-simple example. The following Prolog program relates each natural
-number _N_ to its factorial _F_:
+simple example.
+
+Consider first a rather conventional definition of `n_factorial/2`,
+relating each natural number _N_ to its factorial _F_:
+
+==
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0,
+        N1 #= N - 1,
+        n_factorial(N1, F1),
+        F #= N * F1.
+==
+
+This program uses CLP(FD) constraints _instead_ of low-level
+arithmetic throughout, and everything that _would have worked_ with
+low-level arithmetic _continues_ to work with CLP(FD) constraints,
+retaining roughly the same performance. For example:
+
+==
+?- n_factorial(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+false.
+==
+
+Now the point: Due to the increased flexibility and generality of
+CLP(FD) constraints, we are free to _reorder_ the goals as follows:
 
 ==
 n_factorial(0, 1).
@@ -240,13 +265,10 @@ n_factorial(N, F) :-
         n_factorial(N1, F1).
 ==
 
-This relation can be used in all directions. For example:
+In this concrete case, _termination_ properties of the predicate are
+improved. For example, the following queries now both terminate:
 
 ==
-?- n_factorial(47, F).
-F = 258623241511168180642964355153611979969197632389120000000000 ;
-false.
-
 ?- n_factorial(N, 1).
 N = 0 ;
 N = 1 ;
@@ -256,10 +278,21 @@ false.
 false.
 ==
 
-To make the predicate terminate if any argument is instantiated, add
+To make the predicate terminate if _any_ argument is instantiated, add
 the (implied) constraint `F #\= 0` before the recursive call.
 Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
+
+The value of CLP(FD) constraints does _not_ lie in the removal of
+procedural phenomena. In particular, we do _not_ claim for example
+that the two programs have the same performance in all cases. Instead,
+the primary benefit of CLP(FD) constraints is that they allow you to
+try different execution orders *at all*! Reordering goals (and
+clauses) can have very significant impact on the performance of Prolog
+programs, and you are free to try different variants if you use
+declarative approaches. Moreover, since all CLP(FD) constraints
+_always terminate_, placing them earlier can at most _improve_, never
+worsen, the termination properties of your programs.
 
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
