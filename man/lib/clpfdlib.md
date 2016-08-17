@@ -595,9 +595,9 @@ If necessary, we can use `once/1` to commit to the first optimal
 solution. However, it is often very valuable to see alternative
 solutions that are _also_ optimal, so that we can choose among optimal
 solutions by other criteria. For the sake of
-[purity](http://www.metalevel.at/prolog/purity.html) and completeness,
-we recommend to avoid `once/1` and other constructs that lead to
-impurities in CLP(FD) programs.
+[purity](https://www.metalevel.at/prolog/purity.html) and
+completeness, we recommend to avoid `once/1` and other constructs that
+lead to impurities in CLP(FD) programs.
 
 Related to optimisation with CLP(FD) constraints is the [**simplex
 library**](http://eu.swi-prolog.org/man/simplex.html) and **CLP(Q)**
