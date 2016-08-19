@@ -80,7 +80,7 @@ Assocs are Key-Value associations implemented as  a balanced binary tree
 	map_assoc(1, ?),
 	map_assoc(2, ?, ?).
 
-%%	empty_assoc(-Assoc) is det.
+%%	empty_assoc(?Assoc) is semidet.
 %
 %	Is true if Assoc is the empty association list.
 
