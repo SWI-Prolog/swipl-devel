@@ -443,10 +443,10 @@ Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
 
 The value of CLP(FD) constraints does _not_ lie in completely freeing
-us from _all_ procedural phenomena. In particular, the two programs do
-_not_ have the same performance in all cases.  Instead, the primary
-benefit of CLP(FD) constraints is that they allow you to try different
-execution orders and apply [**declarative
+us from _all_ procedural phenomena. For example, the two programs do
+not even have the same _termination properties_ in all cases.
+Instead, the primary benefit of CLP(FD) constraints is that they allow
+you to try different execution orders and apply [**declarative
 debugging**](https://www.metalevel.at/prolog/debugging.html)
 techniques _at all_!  Reordering goals (and clauses) can significantly
 impact the performance of Prolog programs, and you are free to try
