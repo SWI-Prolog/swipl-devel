@@ -442,19 +442,21 @@ the (implied) constraint `F #\= 0` before the recursive call.
 Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
 
-The value of CLP(FD) constraints does _not_ lie in the removal of
-procedural phenomena. In particular, we do _not_ claim for example
-that the two programs have the same performance in all cases.
-Instead, the primary benefit of CLP(FD) constraints is that they allow
-you to try different execution orders *at all*! Reordering goals (and
-clauses) can significantly impact the performance of Prolog programs,
-and you are free to try different variants if you use declarative
-approaches. Moreover, since all CLP(FD) constraints _always
-terminate_, placing them earlier can at most _improve_, never worsen,
-the termination properties of your programs. An additional benefit of
-CLP(FD) constraints is that they eliminate the complexity of
-introducing `(is)/2` and `(=:=)/2` to beginners, since _both_
-predicates are subsumed by #=/2 when reasoning over integers.
+The value of CLP(FD) constraints does _not_ lie in completely freeing
+us from _all_ procedural phenomena. In particular, the two programs do
+_not_ have the same performance in all cases.  Instead, the primary
+benefit of CLP(FD) constraints is that they allow you to try different
+execution orders and apply [**declarative
+debugging**](https://www.metalevel.at/prolog/debugging.html)
+techniques _at all_!  Reordering goals (and clauses) can significantly
+impact the performance of Prolog programs, and you are free to try
+different variants if you use declarative approaches. Moreover, since
+all CLP(FD) constraints _always terminate_, placing them earlier can
+at most _improve_, never worsen, the termination properties of your
+programs. An additional benefit of CLP(FD) constraints is that they
+eliminate the complexity of introducing `(is)/2` and `(=:=)/2` to
+beginners, since _both_ predicates are subsumed by #=/2 when reasoning
+over integers.
 
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
