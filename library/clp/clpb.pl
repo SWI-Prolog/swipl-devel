@@ -133,7 +133,7 @@ used to express functional dependencies on input variables.
 
 ## Interface predicates   {#clpb-interface}
 
-Important interface predicates of CLP(B) are:
+The most frequently used CLP(B) predicates are:
 
     * sat(+Expr)
       True iff the Boolean expression Expr is satisfiable.
@@ -228,7 +228,7 @@ node(2)- (v(X, 1)->false;true).
 ## Enabling monotonic CLP(B) {#clpb-monotonic}
 
 In the default execution mode, CLP(B) constraints are _not_ monotonic.
-This means that adding constraints can yield new solutions. For
+This means that _adding_ constraints can yield new solutions. For
 example:
 
 ==
@@ -239,9 +239,14 @@ false.
 X = 1+0.
 ==
 
-If you set the flag `clpb_monotonic` to `true`, then CLP(B) is
-*monotonic*. If this mode is enabled, then you must wrap CLP(B)
-variables with the functor `v/1`. For example:
+This behaviour is highly problematic from a logical point of view, and
+it may render [**declarative
+debugging**](https://www.metalevel.at/prolog/debugging.html)
+techniques inapplicable.
+
+Set the flag `clpb_monotonic` to `true` to make CLP(B) *monotonic*. If
+this mode is enabled, then you must wrap CLP(B) variables with the
+functor `v/1`. For example:
 
 ==
 ?- set_prolog_flag(clpb_monotonic, true).
