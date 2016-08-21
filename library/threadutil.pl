@@ -314,9 +314,9 @@ thread_list([H|T], CW) -->
 
 thread_list_header(Thread, CW) -->
 	{ _{id:_, status:_, time:_, stacks:_} :< Thread, !,
-	  HrWidth is CW+18+13
+	  HrWidth is CW+18+13+13
 	},
-	[ '~|~tThread~*+ Status~tTime~18+~tStack use~13+'-[CW], nl ],
+	[ '~|~tThread~*+ Status~tTime~18+~tStack use~13+~tallocated~13+'-[CW], nl ],
 	[ '~|~`-t~*+'-[HrWidth], nl ].
 thread_list_header(Thread, CW) -->
 	{ _{id:_, status:_} :< Thread, !,
@@ -327,8 +327,8 @@ thread_list_header(Thread, CW) -->
 
 thread_info(Thread, CW) -->
 	{ _{id:Id, status:Status, time:Time, stacks:Stacks} :< Thread }, !,
-	[ '~|~t~q~*+ ~w~t~3f~18+~t~D~13+'-
-	  [ Id, CW, Status, Time.cpu, Stacks.total.usage
+	[ '~|~t~q~*+ ~w~t~3f~18+~t~D~13+~t~D~13+'-
+	  [ Id, CW, Status, Time.cpu, Stacks.total.usage, Stacks.total.allocated
 	  ]
 	].
 thread_info(Thread, CW) -->
