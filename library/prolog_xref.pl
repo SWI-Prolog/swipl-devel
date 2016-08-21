@@ -1177,21 +1177,28 @@ arith_callable(Name/Arity, Goal) :-
 %	Process a callable body (body of  a clause or directive). Origin
 %	describes the origin of the call. Partial evaluation may lead to
 %	non-determinism, which is why we backtrack over process_goal/3.
+%
+%	We limit the number of explored paths   to  100 to avoid getting
+%	trapped in this analysis.
+%
+%	@bug  We  should  analyse  whether    bindings  due  to  partial
+%	evaluation lead to a different analysis.
 
 process_body(Body, Origin, Src) :-
-	forall(process_goal(Body, Origin, Src),
+	forall(limit(100, process_goal(Body, Origin, Src)),
 	       true).
 
 process_goal(Var, _, _) :-
 	var(Var), !.
 process_goal(Goal, Origin, Src) :-
-	Goal = (A;B), !,
+	Goal = (_;_), !,
+	phrase(disjunction(Goal), Goals),
 	setof(Goal,
-	      (   process_goal(A, Origin, Src)
-	      ;   process_goal(B, Origin, Src)
+	      (	  member(G, Goals),
+		  process_goal(G, Origin, Src)
 	      ),
 	      Alts0),
-	variants(Alts0, Alts),
+	variants(Alts0, 10, Alts),
 	member(Goal, Alts).
 process_goal(Goal, Origin, Src) :-
 	(   (   xmodule(M, Src)
@@ -1229,6 +1236,10 @@ process_goal(Goal, Origin, Src) :-
 process_goal(Goal, Origin, Src) :-
 	partial_evaluate(Goal),
 	assert_called(Src, Origin, Goal).
+
+disjunction(Var)   --> {var(Var), !}, [Var].
+disjunction((A;B)) --> !, disjunction(A), disjunction(B).
+disjunction(G)     --> [G].
 
 process_called_list([], _, _).
 process_called_list([H|T], Origin, Src) :-
@@ -1307,20 +1318,21 @@ process_assert((_:-Body), Origin, Src) :- !,
 	process_body(Body, Origin, Src).
 process_assert(_, _, _).
 
-%%	variants(+SortedList, -Variants) is det.
+%%	variants(+SortedList, +Max, -Variants) is det.
 
-variants([], []).
-variants([H|T], List) :-
-	variants(T, H, List).
+variants([], _, []).
+variants([H|T], Max, List) :-
+	variants(T, H, Max, List).
 
-variants([], H, [H]).
-variants([H|T], V, List) :-
+variants([], H, _, [H]).
+variants(_, _, 0, []) :- !.
+variants([H|T], V, Max, List) :-
 	(   H =@= V
-	->  variants(T, V, List)
+	->  variants(T, V, Max, List)
 	;   List = [V|List2],
-	    variants(T, H, List2)
+	    Max1 is Max-1,
+	    variants(T, H, Max1, List2)
 	).
-
 
 %%	partial_evaluate(Goal) is det.
 %
