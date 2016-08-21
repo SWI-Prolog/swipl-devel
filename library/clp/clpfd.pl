@@ -403,8 +403,8 @@ n_factorial(N, F) :-
 
 This program uses CLP(FD) constraints _instead_ of low-level
 arithmetic throughout, and everything that _would have worked_ with
-low-level arithmetic _continues_ to work with CLP(FD) constraints,
-retaining roughly the same performance. For example:
+low-level arithmetic _also_ works with CLP(FD) constraints, retaining
+roughly the same performance. For example:
 
 ==
 ?- n_factorial(47, F).
