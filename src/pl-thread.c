@@ -3510,31 +3510,32 @@ the queue-mutex.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-queue_message(message_queue *queue, thread_message *msgp, struct timespec *deadline ARG_LD)
+queue_message(message_queue *queue, thread_message *msgp,
+	      struct timespec *deadline ARG_LD)
 { if ( queue->max_size > 0 && queue->size >= queue->max_size )
   { queue->wait_for_drain++;
 
     while ( queue->size >= queue->max_size )
     { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline) )
       { case EINTR:
-      { if ( !LD )			/* needed for clean exit */
-	{ Sdprintf("Forced exit from queue_message()\n");
-	  exit(1);
-	}
+	{ if ( !LD )			/* needed for clean exit */
+	  { Sdprintf("Forced exit from queue_message()\n");
+	    exit(1);
+	  }
 
-	if ( is_signalled(LD) )			/* thread-signal */
-	{ queue->wait_for_drain--;
-	  return MSG_WAIT_INTR;
+	  if ( is_signalled(LD) )			/* thread-signal */
+	  { queue->wait_for_drain--;
+	    return MSG_WAIT_INTR;
+	  }
+	  break;
 	}
-	break;
-      }
-      case ETIMEDOUT:
-	queue->wait_for_drain--;
-        return MSG_WAIT_TIMEOUT;
-      case 0:
-	break;
-      default:
-	assert(0); // should never happen
+	case ETIMEDOUT:
+	  queue->wait_for_drain--;
+	  return MSG_WAIT_TIMEOUT;
+	case 0:
+	  break;
+	default:
+	  assert(0); // should never happen
       }
       if ( queue->destroyed )
       { queue->wait_for_drain--;
