@@ -3314,8 +3314,8 @@ to use pthread_cond_timedwait() which is   really  complicated and SLOW.
 Below is an  alternative  emulation   of  pthread_cond_wait()  that does
 dispatch messages. It is not fair  nor   correct,  but  neither of these
 problems bothers us considering the promises we make about Win32 message
-queues. This implentation is about 250 times faster, providing about the
-same performance as on native  pthread   implementations  such as Linux.
+queues. This implementation is about 250   times faster, providing about
+the same performance as on native pthread implementations such as Linux.
 This work was sponsored by SSS, http://www.sss.co.nz
 
 This implementation is based on   the following, summarizing discussions
