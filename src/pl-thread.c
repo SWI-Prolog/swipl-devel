@@ -3684,6 +3684,10 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *
 	  return ETIMEDOUT;
 
 	return 0;
+      case 0:
+	if ( is_signalled(LD) )
+	  return EINTR;
+      /*FALLTHROUGH*/
       default:
 	return rc;
     }
