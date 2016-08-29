@@ -2948,8 +2948,10 @@ Redefining system predicate facilitates the definition of compatibility
 packages.  Use in other contexts is discouraged.
 
     \predicate[ISO]{retract}{1}{+Term}
-When \arg{Term} is an atom or a term it is unified with the first unifying fact
-or clause in the database. The fact or clause is removed from the database.
+When \arg{Term} is an atom or a term it is unified with the first
+unifying fact or clause in the database. The fact or clause is removed
+from the database. If multiple threads attempt to retract the same
+clause at the same time only one will succeed.
 
     \predicate[ISO]{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head}
@@ -3029,7 +3031,8 @@ Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
 Erase a record or clause from the database.  \arg{Reference} is a
 db-reference returned by recorda/3, recordz/3 or recorded/3, clause/3,
 assert/2, asserta/2 or assertz/2. Fail silently if the referenced object
-no longer exists.
+no longer exists. Notably, if multiple threads attempt to erase the same
+clause one will succeed and the others will fail.
 
     \predicate{instance}{2}{+Reference, -Term}
 Unify \arg{Term} with the referenced clause or database record.  Unit

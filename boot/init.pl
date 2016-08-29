@@ -2288,8 +2288,9 @@ load_files(Module:Files, Options) :-
 	'$add_dialect'(Options, Options1),
 	'$load_ctx_options'(Options1, Options2),
 	(   clause('$load_context_module'(File, Module, _), true, Ref),
-	    \+ clause_property(Ref, file(_))
-	->  catch(erase(Ref), _, true)
+	    \+ clause_property(Ref, file(_)),
+	    erase(Ref)
+	->  true
 	;   true
 	),
 	assertz('$load_context_module'(File, Module, Options2)).
