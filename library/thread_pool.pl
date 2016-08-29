@@ -205,7 +205,7 @@ thread_create_in_pool_(Pool, Goal, Id, Options) :-
 	pool_manager(Manager),
 	thread_self(Me),
 	thread_send_message(Manager,
-			    create(Pool, Goal, Me, Wait, ThreadOptions)),
+			    create(Pool, Goal, Me, Wait, Id, ThreadOptions)),
 	wait_reply(Id).
 
 is_meta(at_exit).
@@ -317,7 +317,7 @@ update_thread_pool(Message, State0, State) :-
 	->  update_pool(Message, Pool0, Pool),
 	    rb_update(State0, Name, Pool, State)
 	;   State = State0,
-	    (	Message = create(Name, _, For, _, _)
+	    (	Message = create(Name, _, For, _, _, _)
 	    ->  reply_error(For, existence_error(thread_pool, Name))
 	    ;   true
 	    )
@@ -351,7 +351,7 @@ diff_list_length(List, Tail, Size) :-
 %	Deal with create requests and  completion   messages  on a given
 %	pool.  There are two messages:
 %
-%	    * create(PoolName, Goal, ForThread, Wait, Options)
+%	    * create(PoolName, Goal, ForThread, Wait, Id, Options)
 %	    Create a new thread on behalf of ForThread.  There are
 %	    two cases:
 %	         * Free slots: create the thread
@@ -360,7 +360,7 @@ diff_list_length(List, Tail, Size) :-
 %	    A thread completed.  If there is a request waiting,
 %	    create a new one.
 
-update_pool(create(Name, Goal, For, _, MyOptions),
+update_pool(create(Name, Goal, For, _, Id, MyOptions),
 	    tpool(Options, Free0, Size, WP, WPT, Members0),
 	    tpool(Options, Free, Size, WP, WPT, Members)) :-
 	succ(Free, Free0), !,
@@ -380,7 +380,7 @@ update_pool(create(Name, Goal, For, _, MyOptions),
 update_pool(Create,
 	    tpool(Options, 0, Size, WP, WPT0, Members),
 	    tpool(Options, 0, Size, WP, WPT, Members)) :-
-	Create = create(Name, _Goal, For, Wait, _Options), !,
+	Create = create(Name, _Goal, For, Wait, _, _Options), !,
 	option(backlog(BackLog), Options, infinite),
 	(   can_delay(Wait, BackLog, WP, WPT0)
 	->  WPT0 = [Create|WPT],
