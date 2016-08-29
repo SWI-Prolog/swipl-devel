@@ -2289,7 +2289,7 @@ load_files(Module:Files, Options) :-
 	'$load_ctx_options'(Options1, Options2),
 	(   clause('$load_context_module'(File, Module, _), true, Ref),
 	    \+ clause_property(Ref, file(_))
-	->  erase(Ref)
+	->  catch(erase(Ref), _, true)
 	;   true
 	),
 	assertz('$load_context_module'(File, Module, Options2)).

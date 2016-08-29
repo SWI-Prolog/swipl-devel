@@ -1284,7 +1284,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Retract  a  clause  from  a  dynamic  procedure.  Called  from  erase/1,
-retract/1 and retractall/1.
+retract/1 and retractall/1. Returns FALSE  if   the  clause  was already
+retracted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -1297,7 +1298,7 @@ retractClauseDefinition(Definition def, Clause clause)
   LOCKDEF(def);
   if ( true(clause, CL_ERASED) )
   { UNLOCKDEF(def);
-    return TRUE;
+    return FALSE;
   }
 
   DEBUG(CHK_SECURE, checkDefinition(def));
@@ -2413,10 +2414,9 @@ PRED_IMPL("retract", 1, retract,
     /* ctx->cref is the first candidate; next is the next one */
 
     while( cref )
-    { if ( decompile(cref->value.clause, cl, 0) )
-      { retractClauseDefinition(ctx->def, cref->value.clause);
-
-	if ( !endCritical )
+    { if ( decompile(cref->value.clause, cl, 0) &&
+	   retractClauseDefinition(ctx->def, cref->value.clause) )
+      { if ( !endCritical )
 	{ free_retract_context(ctx PASS_LD);
 	  PL_close_foreign_frame(fid);
 

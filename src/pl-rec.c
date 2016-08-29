@@ -1883,7 +1883,11 @@ PRED_IMPL("erase", 1, erase, 0)
       return PL_error("erase", 1, NULL, ERR_PERMISSION,
 		      ATOM_clause, ATOM_erase, ref);
 
-    return retractClauseDefinition(def, clause);
+    if ( retractClauseDefinition(def, clause) )
+    { return TRUE;
+    } else
+    { return PL_existence_error("db_reference", ref);
+    }
   } else
   { RecordRef r = ptr;
 
