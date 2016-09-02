@@ -2947,13 +2947,40 @@ to the module.  The system definition remains in the module \const{system}.
 Redefining system predicate facilitates the definition of compatibility
 packages.  Use in other contexts is discouraged.
 
-    \predicate[ISO]{retract}{1}{+Term}
+    \predicate[ISO,nondet]{retract}{1}{+Term}
 When \arg{Term} is an atom or a term it is unified with the first
 unifying fact or clause in the database. The fact or clause is removed
-from the database. If multiple threads attempt to retract the same
-clause at the same time only one will succeed.
+from the database. The retract/1 predicate respects the \jargon{logical
+update view}. This implies that retract/1 succeeds for all clauses that
+match \arg{Term} when the predicate was \emph{called}. The example below
+illustrates that the first call to retract/1 succeeds on \const{bee} on
+backtracking despite the fact that \const{bee} is already
+retracted.\footnote{Example by Jan Burse}.
 
-    \predicate[ISO]{retractall}{1}{+Head}
+\begin{code}
+:- dynamic insect/1.
+insect(ant).
+insect(bee).
+
+?- (   retract(insect(I)),
+       writeln(I),
+       retract(insect(bee)),
+       fail
+   ;   true
+   ).
+ant ;
+bee.
+\end{code}
+
+If multiple threads start a retract on the same predicate at the same
+time their notion of the \jargon{entry generation} is adjusted such that
+they do not retract the same first clause. This implies that, if
+multiple threads use \verb$once(retract(Term))$, no two threads will
+retract the same clause. Note that on backtracking over retract/1,
+multiple threads may retract the same clause as both threads respect the
+logical update view.
+
+    \predicate[ISO,det]{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head}
 unifies with \arg{Head} are removed. If \arg{Head} refers to a predicate
 that is not defined, it is implicitly created as a dynamic predicate.

@@ -2414,26 +2414,30 @@ PRED_IMPL("retract", 1, retract,
     /* ctx->cref is the first candidate; next is the next one */
 
     while( cref )
-    { if ( decompile(cref->value.clause, cl, 0) &&
-	   retractClauseDefinition(ctx->def, cref->value.clause) )
-      { if ( !endCritical )
-	{ free_retract_context(ctx PASS_LD);
+    { if ( decompile(cref->value.clause, cl, 0) )
+      { if ( retractClauseDefinition(ctx->def, cref->value.clause) ||
+	     CTX_CNTRL != FRG_FIRST_CALL )
+	{ if ( !endCritical )
+	  { free_retract_context(ctx PASS_LD);
+	    PL_close_foreign_frame(fid);
+
+	    return FALSE;
+	  }
+
+	  if ( !ctx->chp.cref )		/* deterministic last one */
+	  { free_retract_context(ctx PASS_LD);
+	    PL_close_foreign_frame(fid);
+	    return TRUE;
+	  }
+
+	  if ( ctx == &ctxbuf )		/* non-determinisic; save state */
+	    ctx = alloc_retract_context(ctx);
+
 	  PL_close_foreign_frame(fid);
-
-	  return FALSE;
+	  ForeignRedoPtr(ctx);
+	} else
+	{ setGenerationFrame(environment_frame, GD->generation);
 	}
-
-	if ( !ctx->chp.cref )		/* deterministic last one */
-	{ free_retract_context(ctx PASS_LD);
-	  PL_close_foreign_frame(fid);
-	  return TRUE;
-	}
-
-	if ( ctx == &ctxbuf )		/* non-determinisic; save state */
-	  ctx = alloc_retract_context(ctx);
-
-	PL_close_foreign_frame(fid);
-	ForeignRedoPtr(ctx);
       }
 
       PL_rewind_foreign_frame(fid);

@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, University of Amsterdam
+    Copyright (C): 2009-2016, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -69,7 +68,7 @@ test(cut_cond, Body = (! -> fail)) :-
 
 :- begin_tests(retract).
 
-:- dynamic foo/1.
+:- dynamic foo/1, insect/1, icopy/1.
 
 test(theorist) :-
 	(   assert((foo(A) :- bar(A))),
@@ -79,6 +78,17 @@ test(theorist) :-
 test(theorist, [cleanup(retractall(foo(_)))]) :-
 	assert((foo(A) :- bar(A))),
 	\+ retract(foo(1) :- bar(2)).
+test(update_view, L == [ant,bee]) :-
+	retractall(insect(_)),
+	retractall(icopy(_)),
+	assertz(insect(ant)),
+	assertz(insect(bee)),
+	(   retract(insect(I)),
+	    assertz(icopy(I)),
+	    retract(insect(bee)),
+	    fail
+	;   findall(I, retract(icopy(I)), L)
+	).
 test(concurrent, Sum == ConcurrentSum) :-
 	N = 10000,
 	numlist(0, N, List),
