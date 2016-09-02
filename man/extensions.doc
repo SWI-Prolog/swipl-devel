@@ -321,7 +321,7 @@ Convert \arg{String} to upper case and unify the result with
 
     \predicate{string_lower}{2}{+String, LowerCase}
 Convert \arg{String} to lower case and unify the result with
-\arg{UpperCase}.
+\arg{LowerCase}.
 
     \predicate{read_string}{3}{+Stream, ?Length, -String}
 Read at most \arg{Length} characters from \arg{Stream} and
