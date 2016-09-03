@@ -49,6 +49,8 @@ suggest predicates from a keyword.
 \predicatesummary{{}}{1}{DCG escape; constraints}
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
+\predicatesummary{abolish_all_tables}{0}{Abolish computed tables}
+\predicatesummary{abolish_table_subgoals}{1}{Abolish tables for a goal}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
@@ -633,6 +635,7 @@ suggest predicates from a keyword.
 \predicatesummary{swritef}{3}{Formatted write on a string}
 \predicatesummary{tab}{1}{Output number of spaces}
 \predicatesummary{tab}{2}{Output number of spaces on a stream}
+\predicatesummary{table}{1}{Declare predicate to be tabled}
 \predicatesummary{tdebug}{0}{Switch all threads into debug mode}
 \predicatesummary{tdebug}{1}{Switch a thread into debug mode}
 \predicatesummary{tell}{1}{Change current output stream}

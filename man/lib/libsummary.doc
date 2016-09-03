@@ -182,7 +182,7 @@ This library is only available on Windows systems.
 \predicatesummary{del_vertices}{3}{Delete vertices from graph}
 \predicatesummary{add_edges}{3}{Add edges to graph}
 \predicatesummary{del_edges}{3}{Delete edges from graph}
-\predicatesummary{transpose}{2}{Invert the direction of all edges}
+\predicatesummary{transpose_ugraph}{2}{Invert the direction of all edges}
 \predicatesummary{neighbors}{3}{Find neighbors of vertice}
 \predicatesummary{neighbours}{3}{Find neighbors of vertice}
 \predicatesummary{complement}{2}{Inverse presense of edges}
