@@ -204,13 +204,13 @@ development of this module was sponsored by Kyndi, Inc.
 	call(Goal).
 
 %%	/(+Free, :Lambda).
-%%	/(+Free, :Lambda, A1).
-%%	/(+Free, :Lambda, A1, A2).
-%%	/(+Free, :Lambda, A1, A2, A3).
-%%	/(+Free, :Lambda, A1, A2, A3, A4).
-%%	/(+Free, :Lambda, A1, A2, A3, A4, A5).
-%%	/(+Free, :Lambda, A1, A2, A3, A4, A5, A6).
-%%	/(+Free, :Lambda, A1, A2, A3, A4, A5, A6, A7).
+%%	/(+Free, :Lambda, ?A1).
+%%	/(+Free, :Lambda, ?A1, ?A2).
+%%	/(+Free, :Lambda, ?A1, ?A2, ?A3).
+%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4).
+%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5).
+%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6).
+%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6, ?A7).
 %
 %	Shorthand for `Free/[]>>Lambda`.  This is the same as applying
 %	call/N on Lambda, except that only variables appearing in Free
