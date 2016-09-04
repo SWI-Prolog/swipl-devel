@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -63,7 +63,7 @@ static void	  addUTF8Buffer(Buffer b, int c);
 
 int
 f_is_prolog_var_start(wint_t c)
-{ return PlIdStartW(c) && (PlUpperW(c) || c == '_');
+{ return (PlUpperW(c) || c == '_');
 }
 
 int
@@ -99,7 +99,7 @@ truePrologFlagNoLD(unsigned int flag)
 
 int
 atom_varnameW(const pl_wchar_t *s, size_t len)
-{ if ( PlUpperW(*s) || *s == '_' )
+{ if ( f_is_prolog_var_start(*s) )
   { for(s++; --len > 0; s++)
     { int c = *s;
 
@@ -141,7 +141,7 @@ static int  char_table[257];	/* also map -1 (EOF) */
 static int *char_conversion_table = &char_table[1];
 
 void
-initCharConversion()
+initCharConversion(void)
 { int i;
 
   for(i=-1; i< 256; i++)
