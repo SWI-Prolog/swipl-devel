@@ -132,7 +132,7 @@ colourise_stream(Fd, TB) :-
 			    ]),
 		  E,
 		  read_error(E, TB, Start, Fd)),
-	    fix_operators(Term, TB),
+	    fix_operators(Term, SM, TB),
 	    colour_state_singletons(TB, Singletons),
 	    (	colourise_term(Term, TB, TermPos, Comments)
 	    ->	true
@@ -250,32 +250,32 @@ safe_push_op(P, T, N0, State) :-
 	push_op(P, T, M:N),
 	debug(colour, ':- ~w.', [op(P,T,M:N)]).
 
-%%	fix_operators(+Term, +State) is det.
+%%	fix_operators(+Term, +Module, +State) is det.
 %
 %	Fix flags that affect the  syntax,   such  as operators and some
 %	style checking options. Src is the  canonical source as required
 %	by the cross-referencer.
 
-fix_operators((:- Directive), Src) :-
+fix_operators((:- Directive), M, Src) :-
 	ground(Directive),
-	catch(process_directive(Directive, Src), _, true), !.
-fix_operators(_, _).
+	catch(process_directive(Directive, M, Src), _, true), !.
+fix_operators(_, _, _).
 
-process_directive(style_check(X), _) :- !,
+process_directive(style_check(X), _, _) :- !,
 	style_check(X).
-process_directive(set_prolog_flag(Flag, Value), _) :-
+process_directive(set_prolog_flag(Flag, Value), M, _) :-
 	syntax_flag(Flag), !,
-	set_prolog_flag(Flag, Value).
-process_directive(M:op(P,T,N), Src) :- !,
-	process_directive(op(P,T,M:N), Src).
-process_directive(op(P,T,N), Src) :- !,
-	safe_push_op(P, T, N, Src).
-process_directive(module(_Name, Export), Src) :- !,
+	set_prolog_flag(M:Flag, Value).
+process_directive(M:op(P,T,N), _, Src) :- !,
+	process_directive(op(P,T,N), M, Src).
+process_directive(op(P,T,N), M, Src) :- !,
+	safe_push_op(P, T, M:N, Src).
+process_directive(module(_Name, Export), M, Src) :- !,
 	forall(member(op(P,A,N), Export),
-	       safe_push_op(P,A,N, Src)).
-process_directive(use_module(Spec), Src) :- !,
+	       safe_push_op(P,A,M:N, Src)).
+process_directive(use_module(Spec), _, Src) :- !,
 	catch(process_use_module(Spec, Src), _, true).
-process_directive(Directive, Src) :-
+process_directive(Directive, _, Src) :-
 	prolog_source:expand((:-Directive), Src, _).
 
 syntax_flag(character_escapes).
