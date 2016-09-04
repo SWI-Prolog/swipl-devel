@@ -143,7 +143,7 @@ colourise_stream(Fd, TB) :-
 	    ),
 	    Term == end_of_file, !.
 
-save_settings(TB, state(Style, Esc, OSM)) :-
+save_settings(TB, state(Style, Flags, OSM)) :-
 	(   source_module(TB, SM)
 	->  true
 	;   SM = prolog_colour_ops
@@ -151,14 +151,28 @@ save_settings(TB, state(Style, Esc, OSM)) :-
 	'$set_source_module'(OSM, SM),
 	colour_state_module(TB, SM),
 	push_operators([]),
-	current_prolog_flag(character_escapes, Esc),
+	syntax_flags(Flags),
 	'$style_check'(Style, Style).
 
-restore_settings(state(Style, Esc, OSM)) :-
-	set_prolog_flag(character_escapes, Esc),
+restore_settings(state(Style, Flags, OSM)) :-
+	restore_syntax_flags(Flags),
 	'$style_check'(_, Style),
 	pop_operators,
 	'$set_source_module'(OSM).
+
+syntax_flags(Pairs) :-
+	findall(set_prolog_flag(Flag, Value),
+		syntax_flag(Flag, Value),
+		Pairs).
+
+syntax_flag(Flag, Value) :-
+	syntax_flag(Flag),
+	current_prolog_flag(Flag, Value).
+
+restore_syntax_flags([]).
+restore_syntax_flags([set_prolog_flag(Flag, Value)|T]) :-
+	set_prolog_flag(Flag, Value),
+	restore_syntax_flags(T).
 
 %%	source_module(+State, -Module) is semidet.
 %
@@ -249,6 +263,9 @@ fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
+process_directive(set_prolog_flag(Flag, Value), _) :-
+	syntax_flag(Flag), !,
+	set_prolog_flag(Flag, Value).
 process_directive(M:op(P,T,N), Src) :- !,
 	process_directive(op(P,T,M:N), Src).
 process_directive(op(P,T,N), Src) :- !,
@@ -260,6 +277,11 @@ process_directive(use_module(Spec), Src) :- !,
 	catch(process_use_module(Spec, Src), _, true).
 process_directive(Directive, Src) :-
 	prolog_source:expand((:-Directive), Src, _).
+
+syntax_flag(character_escapes).
+syntax_flag(var_prefix).
+syntax_flag(allow_variable_name_as_functor).
+syntax_flag(allow_dot_in_atom).
 
 %%	process_use_module(+Imports, +Src)
 %
@@ -357,6 +379,7 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 			  TB),
 	option(subterm_positions(TermPos), Options, _),
 	findall(Op, xref_op(SourceId, Op), Ops),
+	findall(Opt, xref_flag_option(SourceId, Opt), Opts),
 	character_count(Stream, Start),
 	(   source_module(TB, Module)
 	->  true
@@ -370,6 +393,7 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	      subterm_positions(TermPos),
 	      singletons(Singletons),
 	      comments(Comments)
+	    | Opts
 	    ]),
 	(   var(Error)
 	->  colour_state_singletons(TB, Singletons),
@@ -381,6 +405,9 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	    show_syntax_error(TB, Error, Start-End),
 	    Error = Pos:_Message
 	).
+
+xref_flag_option(TB, var_prefix(Bool)) :-
+	xref_prolog_flag(TB, var_prefix, Bool, _Line).
 
 show_syntax_error(TB, Pos:Message, Range) :-
 	integer(Pos), !,

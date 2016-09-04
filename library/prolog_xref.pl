@@ -39,6 +39,7 @@
 	    xref_module/2,		% ?Source, ?Module
 	    xref_uses_file/3,		% ?Source, ?Spec, ?Path
 	    xref_op/2,			% ?Source, ?Op
+	    xref_prolog_flag/4,		% ?Source, ?Flag, ?Value, ?Line
 	    xref_comment/3,		% ?Source, ?Title, ?Comment
 	    xref_comment/4,		% ?Source, ?Head, ?Summary, ?Comment
 	    xref_mode/3,		% ?Source, ?Mode, ?Det
@@ -103,6 +104,7 @@
 	defined_class/5,		% Name, Super, Summary, Src, Line
 	(mode)/2,			% Mode, Src
 	xoption/2,			% Src, Option
+	xflag/4,			% Name, Value, Src, Line
 
 	module_comment/3,		% Src, Title, Comment
 	pred_comment/4,			% Head, Src, Summary, Comment
@@ -402,6 +404,14 @@ xref_push_op(Src, P, T, N0) :- !,
 	debug(xref(op), ':- ~w.', [op(P,T,N)]).
 
 
+%%	xref_set_prolog_flag(+Flag, +Value, +Src, +Line)
+%
+%	Called when a directive sets a Prolog flag.
+
+xref_set_prolog_flag(Flag, Value, Src, Line) :-
+	assertz(xflag(Flag, Value, Src, Line)).
+
+
 %%	xref_clean(+Source) is det.
 %
 %	Reset the database for the given source.
@@ -422,6 +432,7 @@ xref_clean(Source) :-
 	retractall(xmodule(_, Src)),
 	retractall(xop(Src, _)),
 	retractall(xoption(Src, _)),
+	retractall(xflag(_Name, _Value, Src, Line)),
 	retractall(source(Src, _)),
 	retractall(used_class(_, Src)),
 	retractall(defined_class(_, _, _, Src, _)),
@@ -569,6 +580,16 @@ xref_uses_file(Source, Spec, Path) :-
 xref_op(Source, Op) :-
 	prolog_canonical_source(Source, Src),
 	xop(Src, Op).
+
+%%	xref_prolog_flag(?Source, ?Flag, ?Value, ?Line) is nondet.
+%
+%	True when Flag is set  to  Value   at  Line  in  Source. This is
+%	intended to support incremental  parsing  of   a  term  from the
+%	source-file.
+
+xref_prolog_flag(Source, Flag, Value, Line) :-
+	prolog_canonical_source(Source, Src),
+	xflag(Flag, Value, Src, Line).
 
 xref_built_in(Head) :-
 	system_predicate(Head).
@@ -859,6 +880,9 @@ process_directive(pce_autoload(Name, From), Src) :-
 
 process_directive(op(P, A, N), Src) :-
 	xref_push_op(Src, P, A, N).
+process_directive(set_prolog_flag(Flag, Value), Src) :-
+	current_source_line(Line),
+	xref_set_prolog_flag(Flag, Value, Src, Line).
 process_directive(style_check(X), _) :-
 	style_check(X).
 process_directive(encoding(Enc), _) :-
