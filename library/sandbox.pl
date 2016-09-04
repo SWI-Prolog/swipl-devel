@@ -1063,9 +1063,14 @@ safe_path(A/B) :- !,
 %	True if it is safe to set the flag Flag in a directive to Value.
 %
 %	@tbd	If we can avoid that files are loaded after changing
-%		this flag, we can allow for more flags.
+%		this flag, we can allow for more flags.  The syntax
+%		flags are safe because they are registered with the
+%		module.
 
 safe_directive_flag(generate_debug_info, _).
+safe_directive_flag(var_prefix, _).
+safe_directive_flag(double_quotes, _).
+safe_directive_flag(back_quotes, _).
 
 %%	prolog:sandbox_allowed_expansion(:G) is det.
 %
