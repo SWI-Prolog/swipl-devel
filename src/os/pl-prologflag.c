@@ -651,6 +651,11 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	  set(m, M_CHARESCAPE);
 	else
 	  clear(m, M_CHARESCAPE);
+      } else if ( k == ATOM_var_prefix )
+      { if ( val )
+	  set(m, M_VARPREFIX);
+	else
+	  clear(m, M_VARPREFIX);
       } else if ( k == ATOM_debug )
       { if ( val )
 	{ debugmode(DBG_ALL, NULL);
@@ -898,9 +903,9 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
 { GET_LD
 
   if ( key == ATOM_character_escapes )
-  { atom_t v = (true(m, M_CHARESCAPE) ? ATOM_true : ATOM_false);
-
-    return PL_unify_atom(val, v);
+  { return PL_unify_bool(val, true(m, M_CHARESCAPE));
+  } else if ( key == ATOM_var_prefix )
+  { return PL_unify_bool(val, true(m, M_VARPREFIX));
   } else if ( key == ATOM_double_quotes )
   { atom_t v;
 
@@ -1284,6 +1289,7 @@ initPrologFlags(void)
   setPrologFlag("answer_format", FT_ATOM, "~p");
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
+  setPrologFlag("var_prefix", FT_BOOL, FALSE, PLFLAG_VARPREFIX);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, TRUE, PLFLAG_QUASI_QUOTES);

@@ -885,6 +885,7 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_WARNING		(0x0200) /* module */
 #define UNKNOWN_ERROR		(0x0400) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
+#define M_VARPREFIX		(0x0800)
 
 /* Flags on functors */
 
@@ -2210,30 +2211,31 @@ typedef struct debuginfo
 #define FT_FROM_VALUE	0x0f		/* Determine type from value */
 #define FT_MASK		0x0f		/* mask to get type */
 
-#define PLFLAG_CHARESCAPE	    0x000001 /* handle \ in atoms */
-#define PLFLAG_GC		    0x000002 /* do GC */
-#define PLFLAG_TRACE_GC		    0x000004 /* verbose gc */
-#define PLFLAG_TTY_CONTROL	    0x000008 /* allow for tty control */
-#define PLFLAG_READLINE		    0x000010 /* readline is loaded */
-#define PLFLAG_DEBUG_ON_ERROR	    0x000020 /* start tracer on error */
-#define PLFLAG_REPORT_ERROR	    0x000040 /* print error message */
-#define PLFLAG_FILE_CASE	    0x000080 /* file names are case sensitive */
-#define PLFLAG_FILE_CASE_PRESERVING 0x000100 /* case preserving file names */
-#define PLFLAG_DOS_FILE_NAMES       0x000200 /* dos (8+3) file names */
-#define ALLOW_VARNAME_FUNCTOR	    0x000400 /* Read Foo(x) as 'Foo'(x) */
-#define PLFLAG_ISO		    0x000800 /* Strict ISO compliance */
-#define PLFLAG_OPTIMISE		    0x001000 /* -O: optimised compilation */
-#define PLFLAG_FILEVARS		    0x002000 /* Expand $var and ~ in filename */
-#define PLFLAG_AUTOLOAD		    0x004000 /* do autoloading */
-#define PLFLAG_CHARCONVERSION	    0x008000 /* do character-conversion */
-#define PLFLAG_LASTCALL		    0x010000 /* Last call optimization enabled? */
-//				    0x020000 /* not used */
-#define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
-#define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
-#define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
-#define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x200000 /* Warn overriding weak symbols */
-#define PLFLAG_QUASI_QUOTES	    0x400000 /* Support quasi quotes */
-#define PLFLAG_DOT_IN_ATOM	    0x800000 /* Allow atoms a.b.c */
+#define PLFLAG_CHARESCAPE	    0x00000001 /* handle \ in atoms */
+#define PLFLAG_GC		    0x00000002 /* do GC */
+#define PLFLAG_TRACE_GC		    0x00000004 /* verbose gc */
+#define PLFLAG_TTY_CONTROL	    0x00000008 /* allow for tty control */
+#define PLFLAG_READLINE		    0x00000010 /* readline is loaded */
+#define PLFLAG_DEBUG_ON_ERROR	    0x00000020 /* start tracer on error */
+#define PLFLAG_REPORT_ERROR	    0x00000040 /* print error message */
+#define PLFLAG_FILE_CASE	    0x00000080 /* file names are case sensitive */
+#define PLFLAG_FILE_CASE_PRESERVING 0x00000100 /* case preserving file names */
+#define PLFLAG_DOS_FILE_NAMES       0x00000200 /* dos (8+3) file names */
+#define ALLOW_VARNAME_FUNCTOR	    0x00000400 /* Read Foo(x) as 'Foo'(x) */
+#define PLFLAG_ISO		    0x00000800 /* Strict ISO compliance */
+#define PLFLAG_OPTIMISE		    0x00001000 /* -O: optimised compilation */
+#define PLFLAG_FILEVARS		    0x00002000 /* Expand $var and ~ in filename */
+#define PLFLAG_AUTOLOAD		    0x00004000 /* do autoloading */
+#define PLFLAG_CHARCONVERSION	    0x00008000 /* do character-conversion */
+#define PLFLAG_LASTCALL		    0x00010000 /* Last call optimization enabled? */
+//				    0x00020000 /* not used */
+#define PLFLAG_SIGNALS		    0x00040000 /* Handle signals */
+#define PLFLAG_DEBUGINFO	    0x00080000 /* generate debug info */
+#define PLFLAG_FILEERRORS	    0x00100000 /* Edinburgh file errors */
+#define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x00200000 /* Warn overriding weak symbols */
+#define PLFLAG_QUASI_QUOTES	    0x00400000 /* Support quasi quotes */
+#define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
+#define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

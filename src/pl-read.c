@@ -2700,6 +2700,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case UC:
     upper:
+		if ( c != '_' && true(_PL_rd, M_VARPREFIX) )
+		  goto lower;
+
 		{ rdhere = SkipVarIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
@@ -4745,6 +4748,7 @@ static const opt_spec read_term_options[] =
   { ATOM_term_position,     OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
   { ATOM_character_escapes, OPT_BOOL },
+  { ATOM_var_prefix,        OPT_BOOL },
   { ATOM_double_quotes,	    OPT_ATOM },
   { ATOM_module,	    OPT_ATOM },
   { ATOM_syntax_errors,     OPT_ATOM },
@@ -4767,6 +4771,7 @@ read_term_from_stream(IOSTREAM *s, term_t term, term_t options ARG_LD)
   atom_t w;
   read_data rd;
   bool charescapes = -1;
+  bool varprefix = -1;
   atom_t dq = NULL_ATOM;
   atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
@@ -4782,6 +4787,7 @@ retry:
 		     &tpos,
 		     &rd.subtpos,
 		     &charescapes,
+		     &varprefix,
 		     &dq,
 		     &mname,
 		     &rd.on_error,
@@ -4804,6 +4810,12 @@ retry:
       set(&rd, M_CHARESCAPE);
     else
       clear(&rd, M_CHARESCAPE);
+  }
+  if ( varprefix != -1 )
+  { if ( varprefix )
+      set(&rd, M_VARPREFIX);
+    else
+      clear(&rd, M_VARPREFIX);
   }
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )

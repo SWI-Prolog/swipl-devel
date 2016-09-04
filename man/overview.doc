@@ -1138,7 +1138,7 @@ See also char_conversion/2.
     \prologflagitem{character_escapes}{bool}{rw}
 If \const{true} (default), read/1 interprets \verb$\$ escape sequences
 in quoted atoms and strings. May be changed. This flag is local to the
-module in which it is changed.
+module in which it is changed.  See \secref{charescapes}.
 
     \prologflagitem{colon_sets_calling_context}{bool}{ro}
 Using the construct <module>:<goal> sets the \jargon{calling context}
@@ -1656,7 +1656,12 @@ default is \const{silent}, but future versions may change that.
 Developers are encouraged to use another value and ensure proper use
 of create_prolog_flag/3 to create flags for their library.
 
-    \prologflagitem{verbose}{Atom}{rw}
+    \prologflagitem{var_prefix}{bool}{rw}
+If \const{true} (default \const{false}), variables must start with an
+underscore (\chr{_}).  May be changed. This flag is local to the
+module in which it is changed.  See \secref{varprefix}.
+
+    \prologflagitem{verbose}{atom}{rw}
 This flag is used by print_message/2.  If its value is \const{silent},
 messages of type \const{informational} and \const{banner} are suppressed.
 The \cmdlineoption{-q} switches the value from the initial
@@ -1999,7 +2004,7 @@ The processor character set specifies the class of each character used
 for parsing Prolog source text.  Character classification is fixed to
 \href{http://www.unicode.org/}{Unicode}.  See also \secref{widechars}.
 
-\subsection{Nested comments}			\label{sec:nestedcomments}
+\subsubsection{Nested comments}			\label{sec:nestedcomments}
 
 SWI-Prolog allows for nesting \exam{/* \ldots */} comments. Where the
 ISO standard accepts \exam{/* \ldots /* \ldots */} as a comment,
@@ -2200,6 +2205,28 @@ There is one exception to this rule. For compatibility the functions
 default system \const{NaN}. The ability to create, read and write such
 values is primarily provided to exchange data with languages that can
 represent the full range of IEEE doubles.
+
+\subsubsection{Force only underscore to introduce a variable}
+\label{sec:varprefix}
+
+According to the ISO standard and most Prolog systems, identifiers that
+start with an uppercase letter or an underscore are variables. In the
+past, \jargon{Prolog by BIM} provided an alternative syntax, where only
+the underscore (\chr{_}) introduces a variable. As of SWI-Prolog 7.3.27
+SWI-Prolog supports this alternative syntax, controlled by the Prolog
+flag \prologflag{var_prefix}. As the \prologflag{character_escapes}
+flag, this flag is maintained per module, where the default is
+\const{false}, supporting standard syntax.
+
+Having only the underscore introduce a variable is particularly useful
+if code contains identifiers for case senstive external languages.
+Examples are the RDF library where code frequently specifies property
+and class names\footnote{Samer Abdallah suggested this feature based on
+experience with non-Prolog users using the RDF library.} and the R
+interface for specifying functions or variables that start with an
+uppercase character. Lexical databases were part of the terms start with
+an uppercase letter is another category were the readability of the code
+improves using this option.
 
 
 \subsubsection{Unicode Prolog source}		\label{sec:unicodesyntax}

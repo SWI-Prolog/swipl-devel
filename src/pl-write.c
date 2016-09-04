@@ -214,11 +214,12 @@ atomType(atom_t a, write_options *options)
   char *s = atom->name;
   size_t len = atom->length;
   IOSTREAM *fd = options ? options->out : NULL;
+  Module m = options ? options->module : MODULE_user;
 
   if ( len == 0 )
     return AT_QUOTE;
 
-  if ( isLower(*s) )
+  if ( isLower(*s) || (true(m, M_VARPREFIX) && isAlpha(*s)) )
   { do
     { for( ++s;
 	   --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);

@@ -5219,6 +5219,10 @@ with the term position of the tail, otherwise with the atom \const{none}.
 Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}
 is of the same format as used by stream_property/2.
 
+    \termitem{var_prefix}{Bool}
+If \const{true}, demand variables to start with an underscore.  See
+\secref{varprefix}.
+
     \termitem{variables}{Vars}
 Unify \arg{Vars} with a list of variables in the term. The variables
 appear in the order they have been read. See also term_variables/2.
