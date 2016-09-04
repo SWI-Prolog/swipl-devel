@@ -97,5 +97,6 @@
 #define PL_open_foreign_frame() PL_open_foreign_frame__LD(PASS_LD1)
 #define PL_close_foreign_frame(id) PL_close_foreign_frame__LD(id PASS_LD)
 #define PL_strip_module_ex(t,m,p) PL_strip_module_ex__LD(t,m,p PASS_LD)
+#define var_name_ptr(p, n)	var_name_ptr__LD(p, n PASS_LD)
 
 #endif /*PL_LDPASS_H_INCLUDED*/

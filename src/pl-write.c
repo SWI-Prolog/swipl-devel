@@ -66,18 +66,28 @@ static int	enterPortray(ARG1_LD);
 static void	leavePortray(ARG1_LD);
 
 char *
-varName(term_t t, char *name)
-{ GET_LD
-  Word adr = valTermRef(t);
+var_name_ptr__LD(Word p, char *name ARG_LD)
+{ size_t iref;
 
-  deRef(adr);
+  deRef(p);
 
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
+  if (p > (Word) lBase)
+    iref = ((Word)p - (Word)lBase)*2+1;
   else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
+    iref = ((Word)p - (Word)gBase)*2;
+
+  Ssprintf(name, "_%lld", (int64_t)iref);
 
   return name;
+}
+
+
+char *
+varName(term_t t, char *name)
+{ GET_LD
+  Word p = valTermRef(t);
+
+  return var_name_ptr(p, name);
 }
 
 

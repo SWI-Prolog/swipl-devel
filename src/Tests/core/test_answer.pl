@@ -88,7 +88,9 @@ test_answer(QueryAtom, Replies) :-
 	).
 
 anon_binding(Name=_, GName=Var, Name=Var) :-
-	sub_atom(GName, 0, _, _, '_G'), !.
+	sub_atom(GName, 0, _, _, '_'),
+	sub_atom(GName, 1, 1, _, C),
+	char_type(C, digit), !.
 anon_binding(_, Binding, Binding).
 
 compare_comment(_-C, _-C).
@@ -122,20 +124,20 @@ test(freeze, true) :-
 test(hidden1, true) :-
 	test_answer('test_answer:hidden',
 		    [ '% with pending residual goals
-		      dif(_G1,a)'
+		      dif(_1,a)'
 		    ]).
 test(hidden2, true) :-
 	test_answer('test_answer:hidden, A = a',
 		    [ 'A = a,
 		      % with pending residual goals
-		      dif(_G1,a)'
+		      dif(_1,a)'
 		    ]).
 test(hidden3, true) :-
 	test_answer('test_answer:hidden, A = a, dif(B, b)',
 		    [ 'A = a,
 		      dif(B, b),
 		      % with pending residual goals
-		      dif(_G1,a)'
+		      dif(_1,a)'
 		    ]).
 
 :- end_tests(answer).

@@ -58,24 +58,6 @@ assignment. The attribute list remains   accessible  through the trailed
 assignment until this is GC'ed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG
-static char *
-vName(Word adr)
-{ GET_LD
-  static char name[32];
-
-  deRef(adr);
-
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
-  else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
-
-  return name;
-}
-#endif
-
-
 int
 PL_get_attr__LD(term_t t, term_t a ARG_LD)
 { Word p = valTermRef(t);
@@ -171,7 +153,10 @@ assignAttVar(Word av, Word value ARG_LD)
   assert(gTop+7 <= gMax && tTop+6 <= tMax);
   DEBUG(CHK_SECURE, assert(on_attvar_chain(av)));
 
-  DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
+  DEBUG(1,
+	{ char buf[32];
+	  Sdprintf("assignAttVar(%s)\n", var_name_ptr(av, buf));
+	});
 
   if ( isAttVar(*value) )
   { if ( value > av )
@@ -1204,8 +1189,9 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 
   DEBUG(MSG_CALL_RESIDUE_VARS,
 	{ char buf[64];
+	  char vname[32];
 	  Sdprintf("has_attributes_after(%s, %s)\n",
-		   vName(av), print_addr(ch->mark.globaltop, buf));
+		   var_name_ptr(av, vname), print_addr(ch->mark.globaltop, buf));
 	});
 
   av = deRefM(av, &w PASS_LD);

@@ -2034,24 +2034,6 @@ current localframe and a B_VAR instruction is  generated for it. In this
 case it can return LOCAL_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG
-static char *
-vName(Word adr)
-{ GET_LD
-  static char name[32];
-
-  deRef(adr);
-
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
-  else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
-
-  return name;
-}
-#endif
-
-
 static int
 link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
 { VarDef vd = LD->comp.vardefs[*v>>LMASK_BITS];
@@ -2059,7 +2041,10 @@ link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
   Word k = varFrameP(lTop, voffset);
 
   DEBUG(MSG_COMP_ARGVAR,
-	Sdprintf("Linking b_var(%d) to %s\n", iv, vName(vd->address)));
+	{ char vname[32];
+	  Sdprintf("Linking b_var(%d) to %s\n",
+		   iv, var_name_ptr(vd->address, vname));
+	});
 
   if ( k >= (Word) lMax )
     return LOCAL_OVERFLOW;
