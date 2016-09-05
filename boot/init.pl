@@ -2751,7 +2751,7 @@ load_files(Module:Files, Options) :-
 	).
 '$import_ops'(To, From, Pattern) :-
 	(   '$exported_op'(From, Pri, Assoc, Name),
-	    Pattern = op(Pri, Assoc, To:Name),
+	    Pattern = op(Pri, Assoc, Name),
 	    op(Pri, Assoc, To:Name),
 	    fail
 	;   true
