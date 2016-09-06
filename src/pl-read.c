@@ -445,6 +445,12 @@ free_read_data(ReadData _PL_rd)
 }
 
 
+static void
+set_module_read_data(ReadData _PL_rd, Module m)
+{ _PL_rd->module = m;
+  _PL_rd->flags  = _PL_rd->module->flags;
+}
+
 #define NeedUnlock(a) need_unlock(a, _PL_rd)
 #define Unlock(a) unlock(a, _PL_rd)
 
@@ -4696,7 +4702,7 @@ retry:
     comments = PL_new_term_ref();
   }
 
-  rd.module = LD->modules.source;
+  set_module_read_data(&rd, LD->modules.source);
   if ( comments )
     rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
