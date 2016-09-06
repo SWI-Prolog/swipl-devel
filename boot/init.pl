@@ -1680,17 +1680,6 @@ consult(M:X) :-
 consult(List) :-
 	load_files(List, [expand(true)]).
 
-%%	'$consult_goal'(+Path, -Goal)
-%
-%	Determine how to load the indicated file
-
-'$consult_goal'(Path, Goal) :-
-	file_name_extension(_, Ext, Path),
-	(   user:prolog_file_type(Ext, qlf)
-	->  Goal = system:'$qload_file'
-	;   Goal = system:'$consult_file'
-	).
-
 %%	load_files(:File, +Options)
 %
 %	Common entry for all the consult derivates.  File is the raw user
@@ -2021,8 +2010,11 @@ load_files(Module:Files, Options) :-
 	    )
 	->  true
 	;   Input == source,
-	    '$consult_goal'(Absolute, Goal),
-	    call(Goal, Absolute, Module, Action, LM, Options)
+	    file_name_extension(_, Ext, Absolute),
+	    (	user:prolog_file_type(Ext, qlf)
+	    ->	'$qload_file'(Absolute, Module, Action, LM, Options)
+	    ;	'$consult_file'(Absolute, Module, Action, LM, Options)
+	    )
 	->  true
 	;   print_message(error, load_file(failed(File))),
 	    fail
@@ -2195,7 +2187,7 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(OldModule).
 
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
-	'$set_source_module'(OldModule, Module),% Inform C we start loading
+	'$set_source_module'(OldModule, Module),
 	'$load_id'(Absolute, Id, Modified, Options),
 	'$start_consult'(Id, Modified),
 	(   '$derived_source'(Absolute, DerivedFrom, _)
