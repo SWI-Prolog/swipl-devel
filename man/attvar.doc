@@ -227,7 +227,7 @@ Note that instead of \jargon{defaulty} representations, a Prolog
 processing and reasoning about residual goals throughout all programs
 that need this functionality.
 
-    \predicate{project_attributes}{+QueryVars, +ResidualVars}
+    \predicate{project_attributes}{2}{+QueryVars, +ResidualVars}
 A hook that can be defined in each module to project constraints on
 newly introduced variables back to the query variables.
 \arg{QueryVars} is the list of variables occurring in the query and
