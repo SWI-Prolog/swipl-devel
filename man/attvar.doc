@@ -194,15 +194,16 @@ copy_term/3 and its hook attribute_goals//1.
     \dcg{attribute_goals}{1}{+Var}
 This nonterminal is the main mechanism in which residual constraints
 are obtained. It is called in every module where it is defined, and
-\arg{Var} has an attribute. Its argument is that
-variable. attribute_goals//1 must describe a list of Prolog goals that
-are declaratively equivalent to the goals that originally caused these
-attributes to be present. It is always possible to do this (since
-these attributes stem from such goals), and it is the responsibility
-of constraint library authors to provide this mapping without exposing
-any library internals. Ideally and typically, remaining relevant
-attributes are mapped to \jargon{pure} and potentially simplified
-Prolog goals that satisfy both of the following:
+\arg{Var} has an attribute. Its argument is that variable. In each
+module, attribute_goals//1 must describe a list of Prolog goals that
+are declaratively equivalent to the goals that caused the attributes
+of that module to be present and in their current state. It is always
+possible to do this (since these attributes stem from such goals), and
+it is the responsibility of constraint library authors to provide this
+mapping without exposing any library internals. Ideally and typically,
+remaining relevant attributes are mapped to \jargon{pure} and
+potentially simplified Prolog goals that satisfy both of the
+following:
 
 \begin{itemize}
 \item They are declaratively equivalent to the constraints that were
