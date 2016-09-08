@@ -379,15 +379,19 @@ with the module \const{when}.  It is defined in the autoload library
 \pllib{when}.
 
     \predicate{call_residue_vars}{2}{:Goal, -Vars}
-Find residual attributed variables left by \arg{Goal}. This predicate is
-intended for debugging programs using coroutining or constraints.
-Consider a program that poses contradicting constraints on a variable.
-Such programs should fail, but sometimes succeed because the constraint
-solver is too weak to detect the contradiction. Ideally, delayed goals
-and constraints are all executed at the end of the computation. The meta
-predicate call_residue_vars/2 finds variables that are given attribute
-variables or whose attributes are modified by \arg{Goal}, regardless of
-whether or not these variables are reachable from the arguments of
+Find residual attributed variables left by \arg{Goal}. This predicate
+is intended for reasoning about and debugging programs that use
+coroutining or constraints.  To see why this predicate is necessary,
+consider a predicate that poses contradicting constraints on a
+variable, and where that variable does not appear in any argument of
+the predicate and hence does not yield any residual goals on the
+toplevel when the predicate is invoked.  Such programs should fail,
+but sometimes succeed because the constraint solver is too weak to
+detect the contradiction. Ideally, delayed goals and constraints are
+all executed at the end of the computation. The meta predicate
+call_residue_vars/2 finds variables that are given attribute variables
+or whose attributes are modified by \arg{Goal}, regardless of whether
+or not these variables are reachable from the arguments of
 \arg{Goal}.\footnote{The implementation of call_residue_vars/2 is
 completely redone in version 7.3.2 (7.2.1) after discussion with Bart
 Demoen. The current implementation no longer performs full scans of the
