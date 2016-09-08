@@ -23,11 +23,11 @@ concrete value for \arg{X} it can be asked to \jargon{label} \arg{X} and
 produce 1 and 2 on backtracking. See \secref{clpfd}.
 
 \begin{code}
-1 ?- [library(clpfd)].
+?- use_module(library(clpfd)).
 ...
 true.
 
-2 ?- X #> 0, X #< 3.
+?- X #> 0, X #< 3.
 X in 1..2.
 \end{code}
 
@@ -36,14 +36,19 @@ Using constraints generally makes your program more
 
 \begin{itemize}
     \item Constraints and cuts do not merge well.  A cut after a goal
-    that is delayed prunes the search space before the condition
-    is true.
+    that is delayed may prematurely prune the search space, because
+    the truth of delayed goals is not yet established. There
+    are several ways to avoid cuts in constraint logic programs,
+    retaining both generality and determinism of your programs.
+    See for example zcompare/3.
     \item Term-copying operations (assertz/1, retract/1, findall/3,
     copy_term/2, etc.) generally also copy constraints.  The effect
     varies from ok, silent copying of huge constraint networks
     to violations of the internal consistency of constraint
     networks.  As a rule of thumb, copying terms holding attributes
-    must be deprecated.
+    must be deprecated. If you need to reason about a term that is
+    involved in constraints, use copy_term/3 to obtain the constraints
+    as Prolog goals, and use these goals for further processing.
 \end{itemize}
 
 
