@@ -329,7 +329,7 @@ false.
 
 If available, domain-specific constraints should be used in such
 cases.  For example, to state that a variable can only assume even
-integers, use the CLP(FD) constraint (#=)/2:
+integers, use the CLP(FD) constraint \predref{#=}{2}:
 
 \begin{code}
 ?- X mod 2 #= 0.
