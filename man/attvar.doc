@@ -303,19 +303,37 @@ side-effects.
 
 \section{Coroutining}				\label{sec:coroutining}
 
-Coroutining deals with having Prolog goals scheduled for execution as
-soon as some conditions are fulfilled.  In Prolog the most commonly
-used condition is the instantiation (binding) of a variable. Scheduling
-a goal to execute immediately after a variable is bound can
-be used to avoid instantiation errors for some built-in predicates
-(e.g.\ arithmetic), do work \jargon{lazy}, prevent the binding of
-a variable to a particular value, etc.  Using freeze/2 for example
-we can define a variable that can only be assigned an even number:
+Coroutining allows us to delay the execution of Prolog goals until
+their truth can be safely decided.
+
+Among the most important coroutining predicates is dif/2, which
+expresses \textit{disequality} of terms in a sound way. The actual
+test is delayed until the terms are sufficiently different, or have
+become identical.
+
+There are also lower-level coroutining predicates that are intended as
+building blocks for higher-level constraints. For example, we can use
+freeze/2 to define a variable that can only be assigned an atom:
 
 \begin{code}
-?- freeze(X, X mod 2 =:= 0), X = 3
+?- freeze(X, atom(X)), ( X = 3 ; X = a ).
+X = a.
+\end{code}
 
-No
+In this case, calling atom/1 earlier causes the whole query to fail:
+
+\begin{code}
+?- atom(X), ( X = 3 ; X = a ).
+false.
+\end{code}
+
+If available, domain-specific constraints should be used in such
+cases.  For example, to state that a variable can only assume even
+integers, use the CLP(FD) constraint (#=)/2:
+
+\begin{code}
+?- X mod 2 #= 0.
+X mod 2#=0.
 \end{code}
 
 \begin{description}
