@@ -337,6 +337,24 @@ X mod 2#=0.
 \end{code}
 
 \begin{description}
+    \predicate{dif}{2}{@{A}, @{B}}
+The dif/2 predicate is a \textit{constraint} that is true if and only
+if \arg{A} and \arg{B} are different terms. If \arg{A} and \arg{B} can
+never unify, dif/2 succeeds deterministically. If \arg{A} and \arg{B}
+are identical, it fails immediately. Finally, if \arg{A} and \arg{B}
+can unify, goals are delayed that prevent \arg{A} and \arg{B} to
+become equal. It is this last property that makes dif/2 a more general
+and more declarative alternative for \predref{\=}{2} and related
+predicates.
+
+This predicate behaves as if defined by \verb$dif(X, Y) :- when(?=(X,
+Y), X \== Y)$. See also \predref{?=}{2}.  The implementation can deal
+with cyclic terms.
+
+The dif/2 predicate is realised using attributed variables associated
+with the module \const{dif}.  It is an autoloaded predicate that is
+defined in the library \pllib{dif}.
+
     \predicate{freeze}{2}{+Var, :Goal}
 Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e. is
 not a variable or attributed variable).	 If \arg{Var} is bound on entry
@@ -359,20 +377,6 @@ and dif/2.  The implementation can deal with cyclic terms in \arg{X} and \arg{Y}
 The when/2 predicate is realised using attributed variables associated
 with the module \const{when}.  It is defined in the autoload library
 \pllib{when}.
-
-    \predicate{dif}{2}{@{A}, @{B}}
-The dif/2 predicate provides a constraint stating that \arg{A} and
-\arg{B} are different terms. If \arg{A} and \arg{B} can never unify,
-dif/2 succeeds deterministically. If \arg{A} and \arg{B} are identical
-it fails immediately, and finally, if \arg{A} and \arg{B} can unify,
-goals are delayed that prevent \arg{A} and \arg{B} to become equal. The
-dif/2 predicate behaves as if defined by
-\verb$dif(X, Y) :- when(?=(X, Y), X \== Y)$. See also \predref{?=}{2}.
-The implementation can deal with cyclic terms.
-
-The dif/2 predicate is realised using attributed variables associated
-with the module \const{dif}.  It is defined in the autoload library
-\pllib{dif}.
 
     \predicate{call_residue_vars}{2}{:Goal, -Vars}
 Find residual attributed variables left by \arg{Goal}. This predicate is
