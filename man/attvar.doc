@@ -75,8 +75,7 @@ on the exact definition and interface to attributed variables. The
 SWI-Prolog interface is identical to the one realised by Bart Demoen for
 hProlog \cite{Demoen:CW350}. This interface is simple and available on
 all Prolog systems that can run the Leuven CHR system (see \chapref{chr}
-and the Leuven \url[CHR
-page]{http://people.cs.kuleuven.be/~tom.schrijvers/CHR/}).
+and the Leuven \href{https://dtai.cs.kuleuven.be/CHR/}{CHR page}).
 
 Binding an attributed variable schedules a goal to be executed at the
 first possible opportunity. In the current implementation the hooks are
