@@ -1,12 +1,26 @@
 \chapter{Special Variables and Coroutining}	\label{sec:extvar}
 
 This chapter deals with extensions primarily designed to support
-constraint logic programming (CLP). The low-level attributed variable
-interface defined in \secref{attvar} is not intended for the typical
-Prolog programmer. Instead, the typical Prolog programmer should use the
-coroutining predicates and the various constraint solvers built on top
-of attributed variables. CHR (\chapref{chr}) provides a general purpose
-constraint handling language.
+constraint logic programming (CLP).
+
+Constraint solvers are typically implemented using the attributed
+variables interface described in \secref{attvar}. These low-level
+interface predicates are mainly intended for library authors, not for
+the typical Prolog programmer. Instead, the typical Prolog programmer
+should use the various constraint solvers and features that are built
+on top of attributed variables. The high-level predicates that are
+intended for typical Prolog programmers are dif/2 and the following
+libraries and packages that reason over specialized domains:
+
+\begin{itemize}
+\item \pllib{clpfd} (\chapref{clpfd}) for integers
+\item \pllib{clpb} (\chapref{clpb}) for Boolean variables
+\item \pllib{clpq} for linear constraints over rational numbers
+\item \pllib{clpr} for linear constraints over floating point numbers.
+\end{itemize}
+
+In addition, CHR (\chapref{chr}) provides a general purpose constraint
+handling language.
 
 As a rule of thumb, constraint programming reduces the search space by
 reordering goals and joining goals based on domain knowledge. A typical
