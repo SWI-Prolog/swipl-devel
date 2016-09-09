@@ -349,6 +349,10 @@ integers, use the CLP(FD) constraint \predref{#=}{2}:
 X mod 2#=0.
 \end{code}
 
+Importantly, domain-specific constraints can typically apply stronger
+propagation by exploiting logical properties of their respective
+domains.
+
 \begin{description}
     \predicate{dif}{2}{@{A}, @{B}}
 The dif/2 predicate is a \textit{constraint} that is true if and only
