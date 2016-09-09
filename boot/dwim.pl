@@ -295,7 +295,7 @@ find_predicate_(Module, Name, Arity, Module:Name/Arity) :-
 	current_predicate(Name, Module:Term),
 	functor(Term, Name, Arity).
 
-find_sim_pred(M, Name, Arity, Module:DName/Arity) :-
+find_sim_pred(M, Name, Arity, Module:DName/DArity) :-
 	sim_module(M, Module),
 	'$dwim_predicate'(Module:Name, Term),
 	functor(Term, DName, DArity),
