@@ -1,4 +1,6 @@
 \chapter{Special Variables and Coroutining}	\label{sec:extvar}
+\index{CLP}
+\index{constraint programming}
 
 This chapter deals with extensions primarily designed to support
 constraint logic programming (CLP).
