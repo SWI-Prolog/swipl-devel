@@ -1597,7 +1597,15 @@ For behaviour on cyclic terms see the Prolog flag
 \end{code}
 
     \infixop[ISO]{\=}{@Term1}{@Term2}
-Equivalent to \exam{\Snot Term1 = Term2}.  See also dif/2.
+Equivalent to \exam{\Snot Term1 = Term2}.
+
+This predicate is logically sound if its arguments are sufficiently
+instantiated. In other cases, such as \exam{?- X \Sne\ Y.},
+the predicate fails although there are solutions. This is due to the
+incomplete nature of~\predref{\+}{1}.
+
+To make your programs work correctly also in situations where the
+arguments are not yet sufficiently instantiated, use dif/2 instead.
 \end{description}
 
 
