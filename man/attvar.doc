@@ -170,6 +170,15 @@ attribute_goals//1 is used to translate remaining attributes to
 user-readable goals that, when called, reinstate these attributes or
 attributes that correspond to equivalent constraints.
 
+Implementing constraint solvers is not the only use case for
+attributed variables: If you implement algorithms that require
+efficient destructive modifications, then using attributed variables
+is often a more convenient and somewhat more declarative alternative
+for setarg/3 and related predicates whose sharing semantics are harder
+to understand. In particular, attributed variables make it easy to
+express graph networks and graph-oriented algorithms, since each
+variable can store pointers to further variables in its attributes.
+
 \subsection{Attribute manipulation predicates}
 \label{sec:attvar-predicates}
 
