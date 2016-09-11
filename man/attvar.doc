@@ -437,7 +437,7 @@ toplevel when the predicate is invoked.  Such programs should fail,
 but sometimes succeed because the constraint solver is too weak to
 detect the contradiction. Ideally, delayed goals and constraints are
 all executed at the end of the computation. The meta predicate
-call_residue_vars/2 finds variables that are given attribute variables
+call_residue_vars/2 finds variables that are given attributes
 or whose attributes are modified by \arg{Goal}, regardless of whether
 or not these variables are reachable from the arguments of
 \arg{Goal}.\footnote{The implementation of call_residue_vars/2 is
