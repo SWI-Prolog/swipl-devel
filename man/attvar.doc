@@ -394,8 +394,9 @@ become equal. It is this last property that makes dif/2 a more general
 and more declarative alternative for \predref{\=}{2} and related
 predicates.
 
-This predicate behaves as if defined by \verb$dif(X, Y) :- when(?=(X,
-Y), X \== Y)$. See also \predref{?=}{2}.  The implementation can deal
+This predicate behaves as if defined by
+\verb$dif(X, Y) :- when(?=(X,Y), X \== Y)$.
+See also \predref{?=}{2}.  The implementation can deal
 with cyclic terms.
 
 The dif/2 predicate is realised using attributed variables associated
