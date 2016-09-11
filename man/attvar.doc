@@ -224,11 +224,11 @@ put_attr/3.
 \begin{tags}
     \tag{To be done}
 The way in which this hook currently works makes the implementation of
-important classes of constraint solvers impossible or impractical. For
-increased generality and convenience, simultaneous unifications as in
-\exam{[X,Y]=[0,1]} should be processed sequentially, or a more general
-hook should be provided in the future. See \cite{clpb:Triska2016} for
-more information.
+important classes of constraint solvers impossible or at least
+extremely impractical. For increased generality and convenience,
+simultaneous unifications as in \exam{[X,Y]=[0,1]} should be processed
+sequentially, or a more general hook should be provided in the
+future. See \cite{clpb:Triska2016} for more information.
 \end{tags}
 
     \predicate[deprecated]{attr_portray_hook}{2}{+AttValue, +Var}
