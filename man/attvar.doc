@@ -8,9 +8,11 @@ variables interface described in \secref{attvar}. These low-level
 interface predicates are mainly intended for library authors, not for
 the typical Prolog programmer. Instead, the typical Prolog programmer
 should use the various constraint solvers and features that are built
-on top of attributed variables. The high-level predicates that are
-intended for typical Prolog programmers are dif/2 and the following
-libraries and packages that reason over specialized domains:
+on top of attributed variables.
+
+The high-level predicates that are intended for typical Prolog
+programmers are dif/2 and the following libraries and packages that
+reason over specialized domains:
 
 \begin{itemize}
 \item \pllib{clpfd} (\chapref{clpfd}) for integers
@@ -20,20 +22,25 @@ libraries and packages that reason over specialized domains:
 \end{itemize}
 
 In addition, CHR (\chapref{chr}) provides a general purpose constraint
-handling language.
+handling language to reason over user-defined constraints.
 
-As a rule of thumb, constraint programming reduces the search space by
-reordering goals and joining goals based on domain knowledge. A typical
-example is constraint reasoning over integer domains. Plain Prolog has
-no efficient means to deal with (integer) $X > 0$ and $X < 3$. At best
-it could translate $X > 0$ with uninstantiated X to \term{between}{1,
-infinite, X} and a similar primitive for $X < 3$. If the two are
-combined it has no choice but to generate and test over this infinite
-two-dimensional space. Instead, a constraint system will \jargon{delay}
-an uninstantiated goal to $X > 0$. If, later, it finds a value for
-\arg{X} it will execute the test. If it finds $X < 3$ it will combine
-this knowledge to infer that X is in 1..2 (see below). If it never finds a
-concrete value for \arg{X} it can be asked to \jargon{label} \arg{X} and
+A key advantage of constraints is their ability to combine all
+available information that is stated about the entities you reason
+about, independent of the order in which you state it, and before the
+actual search for solutions even begins. Using the available
+information to prune parts of the search space is called constraint
+\jargon{propagation}, and it is performed automatically by the
+available constraint solvers for their respective domains.
+
+Among the most important and typical instances is constraint reasoning
+over integers.  For example, using constraints, you can state in the
+most general way that a variable~\arg{X} is an integer that is greater
+than~0.  If, later, \arg{X} is bound to a concrete integer, the
+constraint solver will automatically perform a test that ensures
+this. If you in addition constrain~\arg{X} to integers less than~3,
+the constraint solver will combine the existing knowledge to infer
+that \arg{X} is either 1 or~2 (see below). To obtain concrete values
+for~\arg{X}, you can ask the solver to \jargon{label} \arg{X} and
 produce 1 and 2 on backtracking. See \secref{clpfd}.
 
 \begin{code}
@@ -43,10 +50,21 @@ true.
 
 ?- X #> 0, X #< 3.
 X in 1..2.
+
+?- X #> 0, X #< 3, indomain(X).
+X = 1 ;
+X = 2.
 \end{code}
 
-Using constraints generally makes your program more
-\jargon{declarative}. There are some caveats though:
+Contrast this with plain Prolog, which has no efficient means to deal
+with (integer) $X > 0$ and $X < 3$. At best it could translate $X > 0$
+to \term{between}{1, infinite, X} and a similar primitive for $X <
+3$. If the two are combined it has no choice but to generate and test
+over this infinite two-dimensional space.
+
+Using constraints therefore makes your program more
+\jargon{declarative} in that it frees you from some procedural
+aspects and limitations of Prolog. There are some caveats though:
 
 \begin{itemize}
     \item Constraints and cuts do not merge well.  A cut after a goal
