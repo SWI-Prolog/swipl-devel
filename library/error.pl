@@ -287,7 +287,7 @@ not_a_rational(X) :-
 
 is_of_type(Type, Term) :-
 	nonvar(Term), !,
-	has_type(Type, Term).
+	has_type(Type, Term), !.
 is_of_type(Type, _) :-
 	instantiation_error(Type).
 
@@ -365,7 +365,7 @@ element_types(_List, Type) :-
 
 element_types_([], _).
 element_types_([H|T], Type) :-
-	has_type(Type, H),
+	has_type(Type, H), !,
 	element_types_(T, Type).
 
 is_list_or_partial_list(L0) :-
