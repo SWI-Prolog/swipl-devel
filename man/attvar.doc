@@ -370,14 +370,14 @@ building blocks for higher-level constraints. For example, we can use
 freeze/2 to define a variable that can only be assigned an atom:
 
 \begin{code}
-?- freeze(X, atom(X)), ( X = 3 ; X = a ).
+?- freeze(X, atom(X)), X = a.
 X = a.
 \end{code}
 
 In this case, calling atom/1 earlier causes the whole query to fail:
 
 \begin{code}
-?- atom(X), ( X = 3 ; X = a ).
+?- atom(X), X = a.
 false.
 \end{code}
 
@@ -392,7 +392,19 @@ X mod 2#=0.
 
 Importantly, domain-specific constraints can typically apply stronger
 propagation by exploiting logical properties of their respective
-domains.
+domains. For example:
+
+\begin{code}
+?- X mod 2 #= 0, X in 1..3.
+X = 2.
+\end{code}
+
+Remaining constraints, such as \exam{X mod 2\#=0} in the example above,
+are called \jargon{residual}\index{residual} goals. They are said to
+\jargon{flounder}\index{flounder}, because their truth is not yet
+decided. Declaratively, the query is only true if all residual goals
+are satisfiable. Use call_residue_vars/2 to collect all variables that
+are involved in constraints.
 
 \begin{description}
     \predicate{dif}{2}{@{A}, @{B}}
