@@ -172,14 +172,17 @@ attribute_goals//1 is used to translate remaining attributes to
 user-readable goals that, when called, reinstate these attributes or
 attributes that correspond to equivalent constraints.
 
-Implementing constraint solvers is not the only use case for
-attributed variables: If you implement algorithms that require
-efficient destructive modifications, then using attributed variables
-is often a more convenient and somewhat more declarative alternative
-for setarg/3 and related predicates whose sharing semantics are harder
-to understand. In particular, attributed variables make it easy to
-express graph networks and graph-oriented algorithms, since each
-variable can store pointers to further variables in its attributes.
+Implementing constraint solvers is the most common, but not the only
+use case for attributed variables: If you implement algorithms that
+require efficient destructive modifications, then using attributed
+variables is often a more convenient and somewhat more declarative
+alternative for setarg/3 and related predicates whose sharing
+semantics are harder to understand. In particular, attributed
+variables make it easy to express graph networks and graph-oriented
+algorithms, since each variable can store pointers to further
+variables in its attributes. In such cases, the use of attributed
+variables should be confined within a module that exposes its
+functionality via more declarative interface predicates.
 
 \subsection{Attribute manipulation predicates}
 \label{sec:attvar-predicates}
@@ -242,14 +245,6 @@ sequentially, or a more general hook should be provided in the
 future. See \cite{clpb:Triska2016} for more information.
 \end{tags}
 
-    \predicate[deprecated]{attr_portray_hook}{2}{+AttValue, +Var}
-Called by write_term/2 and friends for each attribute if the option
-\term{attributes}{portray} is in effect.  If the hook succeeds the
-attribute is considered printed.  Otherwise \exam{Module = ...} is
-printed to indicate the existence of a variable.  New infrastructure
-dealing with communicating attribute values must be based on
-copy_term/3 and its hook attribute_goals//1.
-
     \dcg{attribute_goals}{1}{+Var}
 This nonterminal is the main mechanism in which residual constraints
 are obtained. It is called in every module where it is defined, and
@@ -296,6 +291,15 @@ attached. There may be variables that occur in both lists.
 If possible, project_attributes/2 should change the attributes so that
 all constraints are expressed as residual goals that refer only to
 \arg{QueryVars}, while other variables are existentially quantified.
+
+    \predicate[deprecated]{attr_portray_hook}{2}{+AttValue, +Var}
+Called by write_term/2 and friends for each attribute if the option
+\term{attributes}{portray} is in effect.  If the hook succeeds the
+attribute is considered printed.  Otherwise \exam{Module = ...} is
+printed to indicate the existence of a variable.  This predicate is
+deprecated because it cannot work with pure interface predicates like
+copy_term/3.  Use attribute_goals//1 instead to map attributes to
+residual goals.
 \end{description}
 
 \subsection{Operations on terms with attributed variables}
