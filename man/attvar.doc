@@ -66,15 +66,17 @@ over this infinite two-dimensional space.
 
 Using constraints therefore makes your program more
 \jargon{declarative} in that it frees you from some procedural
-aspects and limitations of Prolog. There are some caveats though:
+aspects and limitations of Prolog.
+
+When working with constraints, keep in mind the following:
 
 \begin{itemize}
-    \item Constraints and cuts do not merge well.  A cut after a goal
-    that is delayed may prematurely prune the search space, because
-    the truth of delayed goals is not yet established. There
-    are several ways to avoid cuts in constraint logic programs,
-    retaining both generality and determinism of your programs.
-    See for example zcompare/3.
+    \item As with plain Prolog, \predref{!}{0} also destroys the
+    declarative semantics of constraints.  A cut after a goal that is
+    delayed may prematurely prune the search space, because the truth
+    of delayed goals is not yet established. There are several ways to
+    avoid cuts in constraint logic programs, retaining both generality
+    and determinism of your programs.  See for example zcompare/3.
     \item Term-copying operations (assertz/1, retract/1, findall/3,
     copy_term/2, etc.) generally also copy constraints.  The effect
     varies from ok, silent copying of huge constraint networks
