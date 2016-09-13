@@ -6397,7 +6397,7 @@ localiseDefinition(Definition def)
 { Definition local = allocHeapOrHalt(sizeof(*local));
 
   *local = *def;
-  clear(local, P_THREAD_LOCAL);		/* remains P_DYNAMIC */
+  clear(local, P_THREAD_LOCAL|P_DIRTYREG);	/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
   ATOMIC_INC(&GD->statistics.predicates);
