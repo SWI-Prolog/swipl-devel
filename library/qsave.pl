@@ -424,6 +424,8 @@ save_attribute(P, Attribute) :-
 	    ->	true
 	    ;	predicate_property(P, volatile)
 	    )
+	;   Attribute == 'dynamic'	% no need if predicate is thread_local
+	->  \+ predicate_property(P, thread_local)
 	;   true
 	),
 	'$add_directive_wic'(D),
