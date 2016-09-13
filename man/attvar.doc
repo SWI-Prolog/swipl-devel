@@ -367,7 +367,16 @@ their truth can be safely decided.
 Among the most important coroutining predicates is dif/2, which
 expresses \textit{disequality} of terms in a sound way. The actual
 test is delayed until the terms are sufficiently different, or have
-become identical.
+become identical. For example:
+
+\begin{code}
+?- dif(X, Y), X = a, Y = b.
+X = a,
+Y = b.
+
+?- dif(X, Y), X = a, Y = a.
+false.
+\end{code}
 
 There are also lower-level coroutining predicates that are intended as
 building blocks for higher-level constraints. For example, we can use
@@ -394,7 +403,7 @@ integers, use the CLP(FD) constraint \predref{#=}{2}:
 X mod 2#=0.
 \end{code}
 
-Importantly, domain-specific constraints can typically apply stronger
+Importantly, domain-specific constraints can apply stronger
 propagation by exploiting logical properties of their respective
 domains. For example:
 
