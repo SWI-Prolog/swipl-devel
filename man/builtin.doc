@@ -2804,9 +2804,9 @@ variable. This predicate was introduced after type checking was added to
 phrase/3.\footnote{After discussion with Samer Abdallah.}
 
 A portable solution for threading state through a DCG can be implemented
-by wrapping the state in a list and use the DCG push-back facility.
+by wrapping the state in a list and use the DCG semicontext facility.
 Subsequently, the following predicates may be used to access and modify
-the state:\footnote{This solutio was proposed by Markus Triska.}
+the state:\footnote{This solution was proposed by Markus Triska.}
 
 \begin{code}
 state(S), [S] --> [S].
