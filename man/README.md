@@ -26,7 +26,7 @@ sequences are named \S<name>. If you add such a sequence you must:
 	* Add it to doc2tex
 	* Add it to pl.sty
 	* Add it to ../packages/ltx2htm/pl.cmd
-	* Run "make install" in ../packages/ltx2html
+	* Run "make install" in ../packages/ltx2htm
 
 ## Summaries
 
@@ -66,15 +66,15 @@ You also need to install the fixed-width font libraries available in the
 txt subdirectory. The README there explains how this must be installed.
 
 For the HTML version, you need to   install the Prolog based latex2html.
-This is available in  ../packages/ltx2html.  This   is  _not  a  default
+This is available in  ../packages/ltx2htm.  This   is  _not  a  default
 package_. If you install SWI-Prolog from  the GIT sources, perform these
 steps to add it:
 
   - run `git submodule update --init packages/ltx2htm`
-  - Add `ltx2html` to the variable `EXTRA_PKGS` in the `build` script.
+  - Add `ltx2htm` to the variable `EXTRA_PKGS` in the `build` script.
 
 After installing SWI-Prolog and with `swipl`   in your `PATH`, run `make
-install` in `packages/ltx2html` install `latex2html` in your `$HOME/bin`
+install` in `packages/ltx2htm` install `latex2html` in your `$HOME/bin`
 
 Targets:
 
