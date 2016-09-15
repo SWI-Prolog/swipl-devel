@@ -483,6 +483,9 @@ structured_command_start('/**').
 %
 %	Colorise a file toplevel term.
 
+colourise_term(Var, TB, Start-End) :-
+	var(Var), !,
+	colour_item(instantiation_error, TB, Start-End).
 colourise_term(Term, TB, Pos) :-
 	term_colours(Term, FuncSpec-ArgSpecs), !,
 	Pos = term_position(_,_,FF,FT,ArgPos),
@@ -1842,6 +1845,7 @@ def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
 def_style(error,		   [background(orange)]).
 def_style(type_error(_),	   [background(orange)]).
 def_style(syntax_error(_,_),	   [background(orange)]).
+def_style(instantiation_error,	   [background(orange)]).
 
 %%	syntax_colour(?Class, ?Attributes) is nondet.
 %
