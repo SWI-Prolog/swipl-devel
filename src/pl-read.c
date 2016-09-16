@@ -121,12 +121,18 @@ atom_is_named_var(atom_t name)		/* see warn_singleton() */
 
   if ( (s=PL_atom_chars(name)) )
   { if ( s[0] != '_' ) return TRUE;
-    if ( s[1] == '_' ) return FALSE;
-    if ( s[1] && !PlUpperW(s[1]) ) return TRUE;
+    if ( s[1] )
+    { if ( s[1] == '_' ) return FALSE;
+      if ( isDigitW(s[1]) ) return FALSE;
+      if ( !PlUpperW(s[1]) ) return TRUE;
+    }
   } else if ( (w=PL_atom_wchars(name, NULL)) )
   { if ( w[0] != '_' ) return TRUE;
-    if ( w[1] == '_' ) return FALSE;
-    if ( w[1] && !PlUpperW(w[1]) ) return TRUE;
+    if ( w[1] )
+    { if ( w[1] == '_' ) return FALSE;
+      if ( isDigitW(w[1]) ) return FALSE;
+      if ( !PlUpperW(w[1]) ) return TRUE;
+    }
   }
 
   return FALSE;
@@ -1599,6 +1605,8 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
   { int c;
 
     utf8_get_char(&name[1], &c);
+    if ( isDigitW(c) )
+      return FALSE;
     if ( !PlUpperW(c) )
       return TRUE;
   }
