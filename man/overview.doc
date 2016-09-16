@@ -1273,6 +1273,27 @@ default emulator.
 Set by halt/1 to its argument, making the exit status available to
 hooks registered with at_halt/1.
 
+    \prologflagitem{file_name_case_handling}{atom}{rw}
+This flag defines how Prolog handles the case of file names. The flag is
+used for case normalization and to determine whether two names refer to
+the same file.\bug{Note that file name case handling is typically a
+properly of the filesystem, while Prolog only has a global flag to
+determine its file handling.}  It has one of the following values:
+
+    \begin{description}
+    \termitem{case_sensitive}{}
+The filesystem is fully case sensitive.  Prolog does not perform
+any case modification or case insensitive matching.  This is the
+default on Unix systems.
+    \termitem{case_preserving}{}
+The filesystem is case insensitive, but it preserves the case with
+which the user jas created a file.  This is the default on Windows
+systems.
+    \termitem{case_insensitive}{}
+The filesystem doesn't store or match case.  In this scenario Prolog
+maps all file names to lower case.
+    \end{description}
+
     \prologflagitem{file_name_variables}{bool}{rw}
 If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
 and \chr{~} in arguments of built-in predicates that accept a file

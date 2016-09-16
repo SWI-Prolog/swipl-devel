@@ -340,6 +340,47 @@ setUnknown(term_t value, atom_t a, Module m)
 
 
 static int
+setFileNameCaseHandling(atom_t a)
+{ GET_LD
+
+  if ( a == ATOM_case_sensitive )
+  { setPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  } else if ( a == ATOM_case_preserving )
+  { setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
+    clearPrologFlagMask(PLFLAG_FILE_CASE);
+  } else if ( a == ATOM_case_insensitive )
+  { clearPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  } else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_file_name_case_handling, value);
+  }
+
+  return TRUE;
+}
+
+
+static atom_t
+currentFileNameCaseHandling(void)
+{ GET_LD
+
+  switch ( LD->prolog_flag.mask.flags &
+	   (PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING) )
+  { case 0:
+      return ATOM_case_insensitive;
+    case PLFLAG_FILE_CASE_PRESERVING:
+      return ATOM_case_preserving;
+    case PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING:
+      return ATOM_case_sensitive;
+    default:
+      return ATOM_unknown;
+  }
+}
+
+
+static int
 setWriteAttributes(atom_t a)
 { GET_LD
   int mask = writeAttributeMask(a);
@@ -713,6 +754,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )
       { rval = setStreamTypeCheck(a);
+      } else if ( k == ATOM_file_name_case_handling )
+      { rval = setFileNameCaseHandling(a);
 #if O_XOS
       } else if ( k == ATOM_win_file_access_check )
       { rval = set_win_file_access_check(value);
@@ -1204,6 +1247,8 @@ initPrologFlags(void)
   setPrologFlag("win_file_access_check", FT_ATOM,
 		get_win_file_access_check(), 0);
 #endif
+  setPrologFlag("file_name_case_handling", FT_ATOM,
+		stringAtom(currentFileNameCaseHandling()));
   setPrologFlag("version",	FT_INTEGER|FF_READONLY, PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
