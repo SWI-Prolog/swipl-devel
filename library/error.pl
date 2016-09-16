@@ -286,7 +286,7 @@ not_a_rational(X) :-
 %	True if Term satisfies Type.
 
 is_of_type(Type, Term) :-
-	nonvar(Term), !,
+	nonvar(Type), !,
 	has_type(Type, Term), !.
 is_of_type(Type, _) :-
 	instantiation_error(Type).
