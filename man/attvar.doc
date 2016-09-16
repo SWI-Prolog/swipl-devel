@@ -1,44 +1,38 @@
-\chapter{Attributed Variables and Coroutining}	\label{sec:extvar}
+\chapter{Constraint Logic Programming}	\label{sec:extvar}
 \index{CLP}
 \index{constraint programming}
 
-This chapter deals with extensions primarily designed to support
-constraint logic programming (CLP).
+This chapter describes the extensions primarily designed to support
+constraint logic programming~(CLP).
 
-Constraint solvers are typically implemented using the attributed
-variables interface described in \secref{attvar}. These low-level
-interface predicates are mainly intended for library authors, not for
-the typical Prolog programmer. Instead, the typical Prolog programmer
-should use the various constraint solvers and features that are built
-on top of attributed variables.
-
-The high-level predicates that are intended for typical Prolog
-programmers are dif/2 and the following libraries and packages that
-reason over specialized domains:
+The high-level constraints intended for Prolog programmers are:
 
 \begin{itemize}
+\item dif/2 to express disequality of arbitrary terms
 \item \pllib{clpfd} (\chapref{clpfd}) for integers
 \item \pllib{clpb} (\chapref{clpb}) for Boolean variables
-\item \pllib{clpq} for linear constraints over rational numbers
-\item \pllib{clpr} for linear constraints over floating point numbers.
+\item \pllib{clpq} (\chapref{clpqr}) for rational numbers
+\item \pllib{clpr} (\chapref{clpqr}) for floating point numbers.
 \end{itemize}
 
 In addition, CHR (\chapref{chr}) provides a general purpose constraint
 handling language to reason over user-defined constraints.
 
-A key advantage of constraints is their ability to combine all
-available information that is stated about the entities you reason
-about, independent of the order in which you state it, and before the
-actual search for solutions even begins. Using the available
-information to prune parts of the search space is called constraint
-\jargon{propagation}, and it is performed automatically by the
-available constraint solvers for their respective domains.
+CLP is a natural generalization of plain Prolog. A key advantage of
+constraints is their ability to combine all available information that
+is stated about the entities you reason about, independent of the
+order in which you state it, and before the actual search for
+solutions even begins. Using the available information to prune parts
+of the search space is called constraint
+\jargon{propagation}\index{propagation}, and it is performed
+automatically by the available constraint solvers for their respective
+domains.
 
 Among the most important and typical instances is constraint reasoning
-over integers.  For example, using constraints, you can state in the
-most general way that a variable~\arg{X} is an integer that is greater
-than~0.  If, later, \arg{X} is bound to a concrete integer, the
-constraint solver will automatically perform a test that ensures
+over \textit{integers}.  For example, using constraints, you can state
+in the most general way that a variable~\arg{X} is an integer that is
+greater than~0.  If, later, \arg{X} is bound to a concrete integer,
+the constraint solver will automatically perform a test that ensures
 this. If you in addition constrain~\arg{X} to integers less than~3,
 the constraint solver will combine the existing knowledge to infer
 that \arg{X} is either 1 or~2 (see below). To obtain concrete values
@@ -65,8 +59,8 @@ to \term{between}{1, infinite, X} and a similar primitive for $X <
 over this infinite two-dimensional space.
 
 Using constraints therefore makes your program more
-\jargon{declarative} in that it frees you from some procedural
-aspects and limitations of Prolog.
+\jargon{declarative}\index{declarative} in that it frees you from some
+procedural aspects and limitations of Prolog.
 
 When working with constraints, keep in mind the following:
 
@@ -87,6 +81,10 @@ When working with constraints, keep in mind the following:
     as Prolog goals, and use these goals for further processing.
 \end{itemize}
 
+All of the mentioned constraint solvers are implemented using the
+attributed variables interface described in \secref{attvar}. These are
+low-level predicates that are mainly intended for library authors, not
+for typical Prolog programmers.
 
 \section{Attributed variables}			\label{sec:attvar}
 
