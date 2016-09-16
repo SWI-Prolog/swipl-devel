@@ -429,7 +429,7 @@ prolog_list_to_sort_list(term_t t,		/* input list */
 
   if ( len == 0 )
     return SORT_NIL;
-  if ( len == 1 && !pair && argc == 0 )
+  if ( len == 1 && !pair && argc == 0 && !isList(*tail) )
     return SORT_NOSORT;
 
   if ( !hasGlobalSpace(len*3) )
