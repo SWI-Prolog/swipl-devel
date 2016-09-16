@@ -11,8 +11,8 @@ The high-level constraints intended for Prolog programmers are:
 \item dif/2 to express disequality of arbitrary terms
 \item \pllib{clpfd} (\chapref{clpfd}) for integers
 \item \pllib{clpb} (\chapref{clpb}) for Boolean variables
-\item \pllib{clpq} (\chapref{clpqr}) for rational numbers
-\item \pllib{clpr} (\chapref{clpqr}) for floating point numbers.
+\item \pllib{clpq} (\chapref{lib:clpqr}) for rational numbers
+\item \pllib{clpr} (\chapref{lib:clpqr}) for floating point numbers.
 \end{itemize}
 
 In addition, CHR (\chapref{chr}) provides a general purpose constraint
