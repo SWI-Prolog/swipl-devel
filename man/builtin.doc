@@ -2172,7 +2172,7 @@ described in \cite{DBLP:journals/tplp/SchrijversDDW13}. The mechanism
 allows for proper \jargon{coroutines}, two or more routines whose
 execution is interleaved, while they exchange data. Note that coroutines
 in this sense differ from coroutines realised using attributed variables
-as described in \chapref{extvar}.
+as described in~\chapref{clp}.
 
 The suspension mechanism provided by delimited continuations is suitable
 for the implementation of \jargon{tabling}
@@ -4944,7 +4944,7 @@ user is responsible for avoiding collisions between assigned names
 and numbered names. See also the \const{variable_names} option of
 read_term/2.
 
-Possible variable attributes (see \secref{extvar}) are ignored.  In
+Possible variable attributes (see \secref{attvar}) are ignored.  In
 most cases one should use copy_term/3 to obtain a copy that is free
 of attributed variables and handle the associated constraints as
 appropriate for the use-case.
