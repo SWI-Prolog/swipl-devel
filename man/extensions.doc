@@ -25,7 +25,7 @@ that we used to port a huge code base in half a day.
 \label{sec:ext-lists}
 
 As of version~7, SWI-Prolog lists can be distinguished unambiguously at
-runtime from \funcref{.}{2} terms and the atom \const{'[]'}. The
+runtime from \functor{.}{2} terms and the atom \const{'[]'}. The
 constant \verb$[]$ is special constant that is not an atom.  It has
 the following properties:
 
@@ -58,17 +58,17 @@ read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
 write \verb$[a]$ as \verb$.(a,[])$.
 
 
-\subsection{Motivating '{[|]}' and [] for lists}
+\subsection{Motivating '\Scons' and \Snil{} for lists}
 \label{sec:ext-list-motivation}
 
-Representing lists the conventional way using \funcref{.}{2} as
+Representing lists the conventional way using \functor{.}{2} as
 cons-cell and '[]' as list terminator both (independently) poses
 conflicts, while these conflicts are easily avoided.
 
 \begin{itemize}
-    \item Using \funcref{.}{2} prevents using this commonly used symbol
+    \item Using \functor{.}{2} prevents using this commonly used symbol
 as an operator because \verb$a.B$ cannot be distinguished from \verb$[a|B]$.
-Freeing \funcref{.}{2} provides us with a unique term that we can use
+Freeing \functor{.}{2} provides us with a unique term that we can use
 for functional notation on dicts as described in
 \secref{ext-dict-functions}.
 
@@ -802,9 +802,9 @@ X = 2,
 C = y.
 \end{code}
 
-The compiler translates a goal that contains \funcref{.}{2} terms in its
+The compiler translates a goal that contains \functor{.}{2} terms in its
 arguments into a conjunction of calls to \predref{.}{3} defined in the
-\const{system} module. Terms funcref{.}{2} that appears in the head are
+\const{system} module. Terms functor{.}{2} that appears in the head are
 replaced with a variable and calls to \predref{.}{3} are inserted at the
 start of the body. Below are two examples, where the first extracts the
 \const{x} key from a dict and the second extends a dict containing an
@@ -821,19 +821,19 @@ add_postal_code(Dict, Dict.put(postal_code, Code)) :-
 			 Code).
 \end{code}
 
-Note that expansion of \funcref{.}{2} terms implies that such terms
+Note that expansion of \functor{.}{2} terms implies that such terms
 cannot be created by writing them explicitly in your source code. Such
 terms can still be created with functor/3, \predref{=..}{2},
 compound_name_arity/3 and
 compound_name_arguments/3.\footnote{Traditional code is unlikely to use
-\funcref{.}{2} terms because they were practically reserved for usage in
+\functor{.}{2} terms because they were practically reserved for usage in
 lists. We do not provide a quoting mechanism as found in functional
-languages because it would only be needed to quote \funcref{.}{2} terms,
+languages because it would only be needed to quote \functor{.}{2} terms,
 such terms are rare and term manipulation provides an escape route.}
 
 \begin{description}
     \predicate{.}{3}{+Dict, +Function, -Result}
-This predicate is called to evaluate \funcref{.}{2} terms found in the
+This predicate is called to evaluate \functor{.}{2} terms found in the
 arguments of a goal. This predicate evaluates the field extraction
 described above, which is mapped to get_dict_ex/3. If \arg{Function} is a
 compound term, it checks for the predefined functions on dicts described
@@ -913,7 +913,7 @@ or extend the key-values in the original dict.  See put_dict/3.
 Evaluates to a new dict where the \arg{KeyPath}-\arg{Value} replaces or
 extends the key-values in the original dict. \arg{KeyPath} is either a
 key or a term \arg{KeyPath}/\arg{Key},\footnote{Note that we do not use
-the '.' functor here, because the \funcref{.}{2} would \emph{evaluate}.}
+the '.' functor here, because the \functor{.}{2} would \emph{evaluate}.}
 replacing the value associated with \arg{Key} in a sub-dict of the dict
 on which the function operates. See put_dict/4. Below are some examples:
 
