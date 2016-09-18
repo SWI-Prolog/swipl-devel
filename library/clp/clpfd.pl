@@ -165,7 +165,8 @@ Finite Domains.
 CLP(FD) is an instance of the general CLP(.) scheme, extending logic
 programming with reasoning over specialised domains. CLP(FD) lets us
 reason about **integers** in a way that honors the relational nature
-of Prolog.
+of Prolog. An introduction is available from
+[metalevel.at/prolog/clpfd.html](https://www.metalevel.at/prolog/clpfd.html).
 
 There are two major use cases of CLP(FD) constraints:
 
