@@ -5473,7 +5473,8 @@ noncopying of terms. A good practice to improve somewhat on this situation
 is to make sure that terms whose arguments are subject to setarg/3 have
 one unused and unshared variable in addition to the used arguments. This
 variable avoids unwanted sharing in, e.g., copy_term/2, and causes the
-term to be considered as non-ground.
+term to be considered as non-ground. An alternative is to use put_attr/3
+to attach information to attributed variables (see~\secref{attvar}).
 
     \predicate{nb_setarg}{3}{+Arg, +Term, +Value}
 Assigns the \arg{Arg}-th argument of the compound term \arg{Term} with
