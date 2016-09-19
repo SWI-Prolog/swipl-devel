@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -29,8 +29,9 @@
 */
 
 :- module(toplevel_variables,
-	  [ print_toplevel_variables/0
-	  , verbose_expansion/1
+	  [ print_toplevel_variables/0,
+	    verbose_expansion/1,
+	    '$switch_toplevel_mode'/1		% +Mode
 	  ]).
 
 :- dynamic
@@ -44,7 +45,6 @@
 	expand_answer/2.	% +Answer0, -Answer
 
 %%	expand_query(+Query0, -Query, +Bindings0, -Bindings) is det.
-%%	expand_answer(+Answer0, -Answer) is det.
 %
 %	These predicates realise reuse of   toplevel variables using the
 %	$Var notation. These hooks are   normally called by toplevel.pl.
@@ -61,7 +61,6 @@ expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
 	->  print_query(Expanded, ExpandedBindings)
 	;   true
 	).
-
 
 print_query(Query, Bindings) :-
 	bind_vars(Bindings),
@@ -118,27 +117,82 @@ v_member(V, [H|T]) :-
 	;   v_member(V, T)
 	).
 
+%%	expand_answer(+Answer0, -Answer) is det.
+%
+%	Save toplevel variable bindings.
+
 expand_answer(Bindings, Bindings) :-
 	assert_bindings(Bindings).
 
 assert_bindings([]).
-assert_bindings([Binding|Tail]) :-
-	Binding = (Var = Value),
-	(   ( nonvar(Value) ; attvar(Value))
-	->  forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
-	    (   (   current_prolog_flag(toplevel_var_size, Count)
-		->  '$term_size'(Value, Count, _)
-		;   true
-		)
-	    ->  recorda('$topvar', Binding, _)
-	    ;   true
-	    )
-	;   true
-	),
+assert_bindings([Var = Value|Tail]) :-
+	assert_binding(Var, Value),
 	assert_bindings(Tail).
 
+assert_binding(Var, Value) :-
+	(   ( nonvar(Value) ; attvar(Value))
+	->  update_var(Var, Value)
+	;   true
+	).
+
+update_var(Name, Value) :-
+	current_prolog_flag(toplevel_mode, recursive), !,
+	(   nb_current('$topvar', Bindings),
+	    Bindings \== []
+	->  true
+	;   Bindings = '$topvar'{}
+	),
+	put_dict(Name, Bindings, Value, NewBindings),
+	b_setval('$topvar', NewBindings).
+update_var(Name, Value) :-
+	delete_var(Name),
+	set_var(Name, Value).
+
+delete_var(Name) :-
+	forall(recorded('$topvar', Name = _, Ref), erase(Ref)).
+
+set_var(Name, Value) :-
+	current_prolog_flag(toplevel_var_size, Count), !,
+	(   '$term_size'(Value, Count, _)
+	->  recorda('$topvar', Name = Value, _)
+	;   true
+	).
+set_var(Name, Value) :-
+	recorda('$topvar', Name = Value, _).
+
+toplevel_var(Var, Binding) :-
+	current_prolog_flag(toplevel_mode, recursive), !,
+	nb_current('$topvar', Bindings),
+	Bindings \== [],
+	get_dict(Var, Bindings, Binding).
 toplevel_var(Var, Binding) :-
 	recorded('$topvar', Var=Binding).
+
+%%	'$switch_toplevel_mode'(+Mode) is det.
+%
+%	Migrate the variable database when switching   to a new toplevel
+%	mode. Alternatively we may decide to wipe it as the semantics of
+%	the variables may be slightly different.
+
+'$switch_toplevel_mode'(recursive) :-
+	findall(Name-Value, retract_topvar(Name, Value), Pairs),
+	dict_pairs(Bindings, '$topvar', Pairs),
+	b_setval('$topvar', Bindings).
+'$switch_toplevel_mode'(backtracking) :-
+	(   nb_current('$topvar', Dict),
+	    Dict \== []
+	->  forall(get_dict(Name, Dict, Value),
+		   recorda('$topvar', Name = Value, _))
+	),
+	nb_delete('$topvar').
+
+retract_topvar(Name, Value) :-
+	recorded('$topvar', Name=Value, Ref),
+	erase(Ref).
+
+%%	print_toplevel_variables
+%
+%	Print known bindings for toplevel ($Var) variables.
 
 print_toplevel_variables :-
 	(   toplevel_var(Name, Value)

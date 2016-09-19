@@ -67,6 +67,21 @@ resetProlog(int clear_stacks)
 }
 
 
+static void
+restore_after_exception(term_t except)
+{ GET_LD
+  atom_t a;
+
+  tracemode(FALSE, NULL);
+  debugmode(DBG_OFF, NULL);
+  setPrologFlagMask(PLFLAG_LASTCALL);
+  if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+  { callEventHook(PLEV_ABORT);
+    printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 query_loop() runs a zero-argument goal on   behalf  of the toplevel. The
 reason for this to be in C is to   be able to handle exceptions that are
@@ -106,16 +121,7 @@ query_loop(atom_t goal, int loop)
     }
 
     if ( !rc && (except = PL_exception(qid)) )
-    { atom_t a;
-
-      tracemode(FALSE, NULL);
-      debugmode(DBG_OFF, NULL);
-      setPrologFlagMask(PLFLAG_LASTCALL);
-      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      { callEventHook(PLEV_ABORT);
-        printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
-      }
-    }
+      restore_after_exception(except);
 
     if ( qid ) PL_close_query(qid);
     if ( fid ) PL_discard_foreign_frame(fid);
@@ -257,6 +263,29 @@ PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
 
   return rval;
 }
+
+
+/** '$call_no_catch'(:Goal)
+ *
+ * Runs a goal for the toplevel.  This notably means that exceptions
+ * are considered _uncaught_, are printed and ignored.  Also the
+ * truth value is ignored.
+ */
+
+static
+PRED_IMPL("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
+{ int rc;
+  term_t ex;
+
+  rc = callProlog(NULL, A1, PL_Q_NORMAL, &ex);
+  if ( !rc && ex )
+  { restore_after_exception(ex);
+    PL_clear_exception();
+  }
+
+  return TRUE;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -778,4 +807,5 @@ BeginPredDefs(pro)
   PRED_DEF("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
   PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
   PRED_DEF("$trap_gdb", 0, trap_gdb, 0)
+  PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
 EndPredDefs

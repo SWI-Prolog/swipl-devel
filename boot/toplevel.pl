@@ -570,6 +570,8 @@ toplevel_goal(Goal, Goal).
 prolog :-
 	break.
 
+:- create_prolog_flag(toplevel_mode, backtracking, []).
+
 %%	'$query_loop'
 %
 %	Run the normal Prolog query loop.  Note   that  the query is not
@@ -578,26 +580,52 @@ prolog :-
 %	exceptions are really unhandled (in Prolog).
 
 '$query_loop' :-
+	current_prolog_flag(toplevel_mode, recursive), !,
+	break_level(Level),
+	read_expanded_query(Level, Query, Bindings),
+	(   Query == end_of_file
+	->  print_message(query, query(eof))
+	;   '$call_no_catch'('$execute'(Query, Bindings)),
+	    (	current_prolog_flag(toplevel_mode, recursive)
+	    ->	'$query_loop'
+	    ;	'$switch_toplevel_mode'(backtracking),
+		'$query_loop'	        % Maybe throw('$switch_toplevel_mode')?
+	    )
+	).
+'$query_loop' :-
+	break_level(BreakLev),
+	repeat,
+	    read_expanded_query(BreakLev, Query, Bindings),
+	    (   Query == end_of_file
+	    ->	!, print_message(query, query(eof))
+	    ;	'$execute'(Query, Bindings),
+		(   current_prolog_flag(toplevel_mode, recursive)
+		->  !,
+		    '$switch_toplevel_mode'(recursive),
+		    '$query_loop'
+		;   fail
+		)
+	    ).
+
+break_level(BreakLev) :-
 	(   current_prolog_flag(break_level, BreakLev)
 	->  true
 	;   BreakLev = -1
+	).
+
+read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
+	'$current_typein_module'(TypeIn),
+	(   stream_property(user_input, tty(true))
+	->  '$system_prompt'(TypeIn, BreakLev, Prompt),
+	    prompt(Old, '|    ')
+	;   Prompt = '',
+	    prompt(Old, '')
 	),
-	repeat,
-	    (   '$current_typein_module'(TypeIn),
-		(   stream_property(user_input, tty(true))
-		->  '$system_prompt'(TypeIn, BreakLev, Prompt),
-		    prompt(Old, '|    ')
-		;   Prompt = '',
-		    prompt(Old, '')
-		),
-		trim_stacks,
-		read_query(Prompt, Query, Bindings),
-		prompt(_, Old),
-		call_expand_query(Query, ExpandedQuery,
-				  Bindings, ExpandedBindings)
-	    ->  expand_goal(ExpandedQuery, Goal),
-	        '$execute'(Goal, ExpandedBindings)
-	    ), !.
+	trim_stacks,
+	read_query(Prompt, Query, Bindings),
+	prompt(_, Old),
+	call_expand_query(Query, ExpandedQuery,
+			  Bindings, ExpandedBindings).
 
 
 read_query(Prompt, Goal, Bindings) :-
@@ -795,24 +823,25 @@ subst_chars([H|T]) -->
 		*           EXECUTION		*
 		********************************/
 
+%%	'$execute'(Goal, Bindings) is det.
+%
+%	Execute Goal using Bindings.
+
 '$execute'(Var, _) :-
 	var(Var), !,
-	print_message(informational, var_query(Var)),
-	fail.
-'$execute'(end_of_file, _) :- !,
-	print_message(query, query(eof)).
+	print_message(informational, var_query(Var)).
 '$execute'(Goal, Bindings) :-
 	'$current_typein_module'(TypeIn),
 	'$dwim_correct_goal'(TypeIn:Goal, Bindings, Corrected), !,
-	setup_call_cleanup('$set_source_module'(M0, TypeIn),
-			   expand_goal(Corrected, Expanded),
-			   '$set_source_module'(M0)),
+	setup_call_cleanup(
+	    '$set_source_module'(M0, TypeIn),
+	    expand_goal(Corrected, Expanded),
+	    '$set_source_module'(M0)),
 	print_message(silent, toplevel_goal(Expanded, Bindings)),
 	'$execute_goal2'(Expanded, Bindings).
 '$execute'(_, _) :-
 	notrace,
-	print_message(query, query(no)),
-	fail.
+	print_message(query, query(no)).
 
 '$execute_goal2'(Goal, Bindings) :-
 	restore_debug,
@@ -824,12 +853,11 @@ subst_chars([H|T]) -->
 	flush_output(user_output),
 	call_expand_answer(Bindings, NewBindings),
 	(    \+ \+ write_bindings(NewBindings, Vars, Det)
-	->   !, fail
+	->   !
 	).
 '$execute_goal2'(_, _) :-
 	save_debug,
-	print_message(query, query(no)),
-	fail.
+	print_message(query, query(no)).
 
 residue_vars(Goal, Vars) :-
 	current_prolog_flag(toplevel_residue_vars, true), !,
@@ -837,12 +865,14 @@ residue_vars(Goal, Vars) :-
 residue_vars(Goal, []) :-
 	call(Goal).
 
-%%	write_bindings(+Bindings, +ResidueVars, +Deterministic)
+%%	write_bindings(+Bindings, +ResidueVars, +Deterministic) is semidet.
 %
 %	Write   bindings   resulting   from   a     query.    The   flag
 %	prompt_alternatives_on determines whether the   user is prompted
 %	for alternatives. =groundness= gives   the  classical behaviour,
 %	=determinism= is considered more adequate and informative.
+%
+%	Succeeds if the user accepts the answer and fails otherwise.
 %
 %	@arg ResidueVars are the residual constraints and provided if
 %	     the prolog flag `toplevel_residue_vars` is set to

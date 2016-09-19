@@ -1556,6 +1556,20 @@ Offset in seconds west of GMT of the current time zone. Set at
 initialization time from the \const{timezone} variable associated with
 the POSIX tzset() function. See also format_time/3.
 
+    \prologflagitem{toplevel_mode}{atom}{rw}
+If \const{backtracking} (default), the toplevel backtracks after
+completing a query. If \const{recursive}, the toplevel is implemented as
+a recursive loop. This implies that global variables set using
+b_setval/2 are maintained between queries. In \jargon{recursive}
+mode, answers to toplevel variables (see \secref{topvars}) are kept
+in backtrackable global variables and thus \textbf{not copied}.  In
+\jargon{backtracking} mode answers to toplevel variables are kept in
+the recorded database (see \secref{recdb}).
+
+The recursive mode has been added for interactive usage of CHR (see
+\secref{chr}),\footnote{Suggested by Falco Nogatz} which maintains the
+global constraint store in backtrackable global variables.
+
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, top-level variables starting with an underscore
 (\chr{_}) are printed normally.  If \const{false} they are hidden.
