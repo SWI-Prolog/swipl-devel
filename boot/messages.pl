@@ -135,6 +135,8 @@ iso_message(evaluation_error(Which)) -->
 iso_message(existence_error(procedure, Proc)) -->
 	[ 'Undefined procedure: ~q'-[Proc] ],
 	undefined_proc_msg(Proc).
+iso_message(existence_error(answer_variable, Var)) -->
+	[ '$~w was not bound by a previous query'-[Var] ].
 iso_message(existence_error(Type, Object)) -->
 	[ '~w `~p'' does not exist'-[Type, Object] ].
 iso_message(existence_error(Type, Object, In)) --> % not ISO

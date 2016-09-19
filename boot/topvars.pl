@@ -53,9 +53,10 @@
 %	interaction with the user hooks.
 
 expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
-	expand_vars(Bindings, Query, Expanded),
+	phrase(expand_vars(Bindings, Query, Expanded), NewBindings),
 	term_variables(Expanded, Free),
-	delete_bound_vars(Bindings, Free, ExpandedBindings),
+	delete_bound_vars(Bindings, Free, ExpandedBindings0),
+	'$append'(ExpandedBindings0, NewBindings, ExpandedBindings),
 	(   verbose,
 	    Query \=@= Expanded
 	->  print_query(Expanded, ExpandedBindings)
@@ -73,29 +74,38 @@ bind_vars([Name=Value|Rest]) :-
 	Name = Value,
 	bind_vars(Rest).
 
+%%	expand_vars(+Bindings, +Query, -Expanded)//
+%
+%	Replace $Var terms inside Query by   the  toplevel variable term
+%	and unify the result with  Expanded. NewBindings gets Name=Value
+%	terms for toplevel variables that are bound to non-ground terms.
 
-expand_vars(_, Var, Var) :-
-	var(Var), !.
-expand_vars(_, Atomic, Atomic) :-
-	atomic(Atomic), !.
-expand_vars(Bindings, $(Var), Value) :-
-	name_var(Var, Bindings, Name),
-	(   toplevel_var(Name, Value)
-	->  !
-	;   throw(error(existence_error(variable, Name), _))
-	).
-expand_vars(Bindings, Term, Expanded) :-
-	compound_name_arity(Term, Name, Arity), !,
-	compound_name_arity(Expanded, Name, Arity),
-	End is Arity + 1,
+expand_vars(_, Var, Var) -->
+	{ var(Var) }, !.
+expand_vars(_, Atomic, Atomic) -->
+	{ atomic(Atomic) }, !.
+expand_vars(Bindings, $(Var), Value) -->
+	{ name_var(Var, Bindings, Name),
+	  (   toplevel_var(Name, Value)
+	  ->  !
+	  ;   throw(error(existence_error(answer_variable, Name), _))
+	  )
+	},
+	[ Name = Value ].
+expand_vars(Bindings, Term, Expanded) -->
+	{ compound_name_arity(Term, Name, Arity), !,
+	  compound_name_arity(Expanded, Name, Arity),
+	  End is Arity + 1
+	},
 	expand_args(1, End, Bindings, Term, Expanded).
 
-expand_args(End, End, _, _, _) :- !.
-expand_args(Arg0, End, Bindings, T0, T) :-
-	arg(Arg0, T0, V0),
+expand_args(End, End, _, _, _) --> !.
+expand_args(Arg0, End, Bindings, T0, T) -->
+	{ arg(Arg0, T0, V0),
+	  arg(Arg0, T, V1),
+	  Arg1 is Arg0 + 1
+	},
 	expand_vars(Bindings, V0, V1),
-	arg(Arg0, T, V1),
-	Arg1 is Arg0 + 1,
 	expand_args(Arg1, End, Bindings, T0, T).
 
 name_var(Var, [VarName = TheVar|_], VarName) :-

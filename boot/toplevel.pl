@@ -622,10 +622,13 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
 	    prompt(Old, '')
 	),
 	trim_stacks,
-	read_query(Prompt, Query, Bindings),
-	prompt(_, Old),
-	call_expand_query(Query, ExpandedQuery,
-			  Bindings, ExpandedBindings).
+	repeat,
+	  read_query(Prompt, Query, Bindings),
+	  prompt(_, Old),
+	  catch(call_expand_query(Query, ExpandedQuery,
+				  Bindings, ExpandedBindings),
+		Error,
+		(print_message(error, Error), fail)), !.
 
 
 read_query(Prompt, Goal, Bindings) :-
