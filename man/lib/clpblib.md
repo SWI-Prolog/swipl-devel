@@ -4,8 +4,8 @@ This library provides CLP(B), Constraint Logic Programming over
 Boolean variables. It can be used to model and solve combinatorial
 problems such as verification, allocation and covering tasks.
 
-CLP(B) is an instance of the general CLP(.) scheme, extending logic
-programming with reasoning over specialised domains.
+CLP(B) is an instance of the general [CLP(_X_) scheme](<#clp>),
+extending logic programming with reasoning over specialised domains.
 
 The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).

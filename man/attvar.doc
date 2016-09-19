@@ -6,12 +6,13 @@ This chapter describes the extensions primarily designed to support
 constraint logic programming~(CLP), an important declarative
 programming paradigm with countless practical applications.
 
-CLP($X$) stands for constraint logic programming over the domain~$X$.
-Plain Prolog can be regarded as~CLP($H$), where $H$ stands for
-\textit{Herbrand~terms}\index{Herbrand term}. Over this domain,
-\predref{=}{2} and dif/2 are the most important constraints that
-express, respectively, equality and disequality of~terms. Constraint
-logic programming is thus a natural generalization of plain Prolog.
+CLP($X$) stands for \textbf{constraint logic programming} over the
+domain~$X$.  Plain Prolog can be regarded as~CLP($H$), where $H$
+stands for \textit{Herbrand~terms}\index{Herbrand term}. Over this
+domain, \predref{=}{2} and dif/2 are the most important constraints
+that express, respectively, equality and disequality
+of~terms. Constraint logic programming is thus a natural
+generalization of plain Prolog.
 
 There are dedicated constraint solvers for several important domains:
 
