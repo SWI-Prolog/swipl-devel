@@ -660,6 +660,9 @@ Section "SSL Interface"
   File ${SWIPL}\bin\ssl4pl.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\ssl.pl
+  File ${SWIPL}\library\saml.pl
+  File ${SWIPL}\library\xmlenc.pl
+  File ${SWIPL}\library\xmldsig.pl
 # SetOutPath $INSTDIR\library\http
 # File ${SWIPL}\library\http\http_ssl_plugin.pl
   SetOutPath $INSTDIR\doc\packages
@@ -710,6 +713,7 @@ Section "SGML/XML/HTML parser"
   File ${SWIPL}\library\sgml_write.pl
   File ${SWIPL}\library\xsdp_types.pl
   File ${SWIPL}\library\iso_639.pl
+  File ${SWIPL}\library\c14n2.pl
   File ${SWIPL}\library\xpath.pl
   File ${SWIPL}\library\pwp.pl
   SetOutPath $INSTDIR\doc\packages
