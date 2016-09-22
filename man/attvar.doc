@@ -3,24 +3,23 @@
 \index{constraint programming}
 
 This chapter describes the extensions primarily designed to support
-constraint logic programming~(CLP), an important declarative
+\textbf{constraint logic programming}~(CLP), an important declarative
 programming paradigm with countless practical applications.
 
-CLP($X$) stands for \textbf{constraint logic programming} over the
-domain~$X$.  Plain Prolog can be regarded as~CLP($H$), where $H$
-stands for \textit{Herbrand~terms}\index{Herbrand term}. Over this
-domain, \predref{=}{2} and dif/2 are the most important constraints
-that express, respectively, equality and disequality
-of~terms. Constraint logic programming is thus a natural
-generalization of plain Prolog.
+CLP($X$) stands for constraint logic programming over the domain~$X$.
+Plain Prolog can be regarded as~CLP($H$), where $H$ stands for
+\textit{Herbrand~terms}\index{Herbrand term}. Over this domain,
+\predref{=}{2} and dif/2 are the most important constraints that
+express, respectively, equality and disequality of~terms. Constraint
+logic programming is thus a natural generalization of plain Prolog.
 
 There are dedicated constraint solvers for several important domains:
 
 \begin{itemize}
-\item CLP(FD) (\chapref{clpfd}) for \textbf{integers}
-\item CLP(B) (\chapref{clpb}) for \textbf{Boolean} variables
-\item CLP(Q) (\chapref{lib:clpqr}) for \textbf{rational} numbers
-\item CLP(R) (\chapref{lib:clpqr}) for \textbf{floating point} numbers.
+\item CLP(FD) for \textbf{integers} (\secref{clpfd})
+\item CLP(B) for \textbf{Boolean} variables (\secref{clpb})
+\item CLP(Q) for \textbf{rational} numbers (\secref{lib:clpqr})
+\item CLP(R) for \textbf{floating point} numbers (\secref{lib:clpqr}).
 \end{itemize}
 
 In addition, CHR (\chapref{chr}) provides a general purpose constraint
@@ -36,7 +35,7 @@ automatically by the available constraint solvers for their respective
 domains.
 
 Among the most important and typical instances is CLP(FD), constraint
-logic programming over \textit{integers}. For example, using
+logic programming over~\textit{integers}. For example, using
 constraints, you can state in the most general way that a
 variable~\arg{X} is an integer greater than~0. If, later, \arg{X} is
 bound to a concrete integer, the constraint solver automatically
