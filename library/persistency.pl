@@ -160,27 +160,30 @@ set_user_role(Name, Role) :-
 persistent(Spec) :-
 	throw(error(context_error(nodirective, persistent(Spec)), _)).
 
-compile_persistent(Var, _) -->
+compile_persistent(Var, _, _) -->
 	{ var(Var), !,
 	  instantiation_error(Var)
 	}.
-compile_persistent((A,B), Module) --> !,
-	compile_persistent(A, Module),
-	compile_persistent(B, Module).
-compile_persistent(Term, Module) -->
+compile_persistent(M:Spec, _, LoadModule) --> !,
+	compile_persistent(Spec, M, LoadModule).
+compile_persistent((A,B), Module, LoadModule) --> !,
+	compile_persistent(A, Module, LoadModule),
+	compile_persistent(B, Module, LoadModule).
+compile_persistent(Term, Module, LoadModule) -->
 	{ functor(Term, Name, Arity),		% Validates Term as callable
-	  functor(Generic, Name, Arity)
+	  functor(Generic, Name, Arity),
+	  qualify(Module, LoadModule, Name/Arity, Dynamic)
 	},
-	[ :- dynamic(Name/Arity),
+	[ :- dynamic(Dynamic),
 
 	  persistency:persistent(Module, Generic, Term)
 	],
-	assert_clause(asserta, Term, Module),
-	assert_clause(assert,  Term, Module),
-	retract_clause(Term, Module),
-	retractall_clause(Term, Module).
+	assert_clause(asserta, Term, Module, LoadModule),
+	assert_clause(assert,  Term, Module, LoadModule),
+	retract_clause(Term, Module, LoadModule),
+	retractall_clause(Term, Module, LoadModule).
 
-assert_clause(Where, Term, Module) -->
+assert_clause(Where, Term, Module, LoadModule) -->
 	{ functor(Term, Name, Arity),
 	  atomic_list_concat([Where,'_', Name], PredName),
 	  length(Args, Arity),
@@ -189,7 +192,8 @@ assert_clause(Where, Term, Module) -->
 	  type_checkers(Args, 1, Term, Check),
 	  atom_concat(db_, Where, DBActionName),
 	  DBAction =.. [DBActionName, Module:Assert],
-	  Clause = (Head :- Check, persistency:DBAction)
+	  qualify(Module, LoadModule, Head, QHead),
+	  Clause = (QHead :- Check, persistency:DBAction)
 	},
 	[ Clause ].
 
@@ -205,32 +209,38 @@ type_checkers([A0|AL], I, Spec, Check) :-
 	I2 is I + 1,
 	type_checkers(AL, I2, Spec, More).
 
-retract_clause(Term, Module) -->
+retract_clause(Term, Module, LoadModule) -->
 	{ functor(Term, Name, Arity),
 	  atom_concat(retract_, Name, PredName),
 	  length(Args, Arity),
 	  Head =.. [PredName|Args],
 	  Retract =.. [Name|Args],
-	  Clause = (Head :- persistency:db_retract(Module:Retract))
+	  qualify(Module, LoadModule, Head, QHead),
+	  Clause = (QHead :- persistency:db_retract(Module:Retract))
 	},
 	[ Clause ].
 
-retractall_clause(Term, Module) -->
+retractall_clause(Term, Module, LoadModule) -->
 	{ functor(Term, Name, Arity),
 	  atom_concat(retractall_, Name, PredName),
 	  length(Args, Arity),
 	  Head =.. [PredName|Args],
 	  Retract =.. [Name|Args],
-	  Clause = (Head :- persistency:db_retractall(Module:Retract))
+	  qualify(Module, LoadModule, Head, QHead),
+	  Clause = (QHead :- persistency:db_retractall(Module:Retract))
 	},
 	[ Clause ].
+
+qualify(Module, Module, Head, Head) :- !.
+qualify(Module, _LoadModule, Head, Module:Head).
+
 
 :- multifile
 	system:term_expansion/2.
 
 system:term_expansion((:- persistent(Spec)), Clauses) :-
 	prolog_load_context(module, Module),
-	phrase(compile_persistent(Spec, Module), Clauses).
+	phrase(compile_persistent(Spec, Module, Module), Clauses).
 
 
 %%	current_persistent_predicate(:PI) is nondet.
