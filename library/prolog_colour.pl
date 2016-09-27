@@ -247,7 +247,12 @@ colour_item(Class, TB, Pos) :-
 safe_push_op(P, T, N0, State) :-
 	colour_state_module(State, CM),
 	strip_module(CM:N0, M, N),
-	push_op(P, T, M:N),
+	(   is_list(N)
+	->  acyclic_term(N),
+	    forall(member(Name, N),
+		   safe_push_op(P, T, M:Name, State))
+	;   push_op(P, T, M:N)
+	),
 	debug(colour, ':- ~w.', [op(P,T,M:N)]).
 
 %%	fix_operators(+Term, +Module, +State) is det.
@@ -1485,8 +1490,20 @@ colour_op_name(Name, TB, Pos) :-
 colour_op_name(Name, TB, Pos) :-
 	(atom(Name) ; Name == []), !,
 	colour_item(identifier, TB, Pos).
+colour_op_name(Module:Name, TB, term_position(_F,_T,QF,QT,[MP,NP])) :- !,
+	colour_item(module(Module), TB, MP),
+	colour_item(functor, TB, QF-QT),
+	colour_op_name(Name, TB, NP).
+colour_op_name(List, TB, list_position(F,T,Elems,none)) :- !,
+	colour_item(list, TB, F-T),
+	colour_op_names(List, TB, Elems).
 colour_op_name(_, TB, Pos) :-
 	colour_item(error, TB, Pos).
+
+colour_op_names([], _, []).
+colour_op_names([H|T], TB, [HP|TP]) :-
+	colour_op_name(H, TB, HP),
+	colour_op_names(T, TB, TP).
 
 colour_op_type(Type, TB, Pos) :-
 	var(Type), !,
