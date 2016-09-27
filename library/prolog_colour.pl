@@ -1225,6 +1225,10 @@ colourise_term_arg(Map, TB, dict_position(F,T,TF,TT,KVPos)) :- !,
 	BStart is TT+1,
 	colour_item(dict_content, TB, BStart-T),
 	colourise_dict_kv(Map, TB, KVPos).
+colourise_term_arg([](List,Term), TB,			% [] as operator
+		   term_position(_,_,0,0,[ListPos,ArgPos])) :- !,
+	colourise_term_arg(List, TB, ListPos),
+	colourise_term_arg(Term, TB, ArgPos).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
 	(   Pos = term_position(_F,_T,FF,FT,_ArgPos)
