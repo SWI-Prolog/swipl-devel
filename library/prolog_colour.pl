@@ -72,7 +72,8 @@ This module defines reusable code to colourise Prolog source.
 	term_colours/2,			% +SourceTerm, -ColourSpec
 	goal_colours/2,			% +Goal, -ColourSpec
 	directive_colours/2,		% +Goal, -ColourSpec
-	goal_classification/2.		% +Goal, -Class
+	goal_classification/2,		% +Goal, -Class
+	vararg_goal_classification/3.	% +Name, +Arity, -Class
 
 
 :- record
@@ -1594,16 +1595,24 @@ goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
 goal_classification(Goal, autoload(From)) :-	% SWI-Prolog
 	predicate_property(Goal, autoload(From)).
-goal_classification(Goal, global) :-	% SWI-Prolog
+goal_classification(Goal, global) :-		% SWI-Prolog
 	current_predicate(_, user:Goal), !.
-goal_classification(SS, expanded) :-	% XPCE (TBD)
-	compound(SS),
-	compound_name_arity(SS, send_super, A),
-	A >= 2, !.
-goal_classification(SS, expanded) :-	% XPCE (TBD)
-	compound(SS),
-	compound_name_arity(SS, get_super, A),
-	A >= 3, !.
+goal_classification(Goal, Class) :-
+	compound(Goal),
+	compound_name_arity(Goal, Name, Arity),
+	vararg_goal_classification(Name, Arity, Class).
+
+%%	vararg_goal_classification(+Name, +Arity, -Class) is semidet.
+%
+%	Multifile hookable classification for _vararg_ predicates.
+
+vararg_goal_classification(call, Arity, built_in) :-
+	Arity >= 1.
+vararg_goal_classification(send_super, Arity, expanded) :- % XPCE (TBD)
+	Arity >= 2.
+vararg_goal_classification(get_super, Arity, expanded) :-  % XPCE (TBD)
+	Arity >= 3.
+
 
 classify_head(TB, Goal, exported) :-
 	colour_state_source_id(TB, SourceId),

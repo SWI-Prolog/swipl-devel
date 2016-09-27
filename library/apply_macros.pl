@@ -327,6 +327,17 @@ maplist_expansion(Expanded) :-
 
 
 		 /*******************************
+		 *	    XREF/COLOUR		*
+		 *******************************/
+
+:- multifile
+	prolog_colour:vararg_goal_classification/3.
+
+prolog_colour:vararg_goal_classification(maplist, Arity, expanded) :-
+	Arity >= 2.
+
+
+		 /*******************************
 		 *	     ACTIVATE		*
 		 *******************************/
 
