@@ -1002,7 +1002,18 @@ xref_meta(Source, Head, Called) :-
 xref_meta_src(Head, Called, Src) :-
 	meta_goal(Head, Called, Src), !.
 xref_meta_src(Head, Called, _) :-
-	xref_meta(Head, Called).
+	xref_meta(Head, Called), !.
+xref_meta_src(Head, Called, _) :-
+	compound(Head),
+	compound_name_arity(Head, Name, Arity),
+	apply_pred(Name),
+	Arity > 5, !,
+	Extra is Arity - 1,
+	arg(1, Head, G),
+	Called = [G+Extra].
+
+apply_pred(call).				% built-in
+apply_pred(maplist).				% library(apply_macros)
 
 xref_meta((A, B),		[A, B]).
 xref_meta((A; B),		[A, B]).
