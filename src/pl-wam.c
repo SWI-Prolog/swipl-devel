@@ -3068,7 +3068,14 @@ next_choice:
       BFR = ch->parent;
       if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	goto next_choice;	/* Can happen of look-ahead was too short */
-      chp = ch->value.clause;
+
+      chp    = ch->value.clause;
+      clause = CL->value.clause;
+      PC     = clause->codes;
+      lTop   = (LocalFrame)argFrameP(FR, clause->variables);
+      umode  = uread;
+
+      DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && LD->mark_bar <= gTop));
 
       if ( unlikely(LD->alerted) )
       {
@@ -3108,12 +3115,6 @@ next_choice:
 #endif
         Profile(profRedo(ch->prof_node PASS_LD));
       }
-
-      umode  = uread;
-      clause = CL->value.clause;
-      PC     = clause->codes;
-      lTop   = (LocalFrame)argFrameP(FR, clause->variables);
-      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
       if ( chp.cref )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
