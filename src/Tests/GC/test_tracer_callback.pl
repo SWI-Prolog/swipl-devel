@@ -16,6 +16,7 @@ test_tracer_callback :-
 
 test_goal(p_simple).
 test_goal(p_backtrack).
+test_goal(p_perm).
 test_goal(p_cut).
 test_goal(p_ifthen).
 test_goal(p_error1).
@@ -96,6 +97,17 @@ error3([X]) :-
 error3([_|T]) :-
 	error3(T).
 
+p_perm :-
+	(   perm([1,2,3,4],[4,3,2,1]),
+	    fail
+	;   true
+	).
+
+takeout(X,[X|R],R).
+takeout(X,[F|R],[F|S]) :- takeout(X,R,S).
+
+perm([X|Y],Z) :- perm(Y,W), takeout(X,Z,W).
+perm([],[]).
 
 
 		 /*******************************
