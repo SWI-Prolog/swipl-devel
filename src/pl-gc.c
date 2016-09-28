@@ -1165,6 +1165,20 @@ slotsInFrame(LocalFrame fr, Code PC)
 }
 
 
+void
+clearLocalVariablesFrame(LocalFrame fr)
+{ if ( fr->clause )
+  { Definition def = fr->predicate;
+    int i     = def->functor->arity;
+    int slots = fr->clause->value.clause->prolog_vars;
+    Word sp = argFrameP(fr, i);
+
+    for( ; i<slots; i++, sp++)
+      setVar(*sp);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If multiple TrailAssignment() calls happen on  the same address within a
 choicepoint we only need to keep the  first. Therefore we scan the trail

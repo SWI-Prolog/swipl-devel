@@ -4305,6 +4305,8 @@ again:
 	LOAD_REGISTERS(qid);
 	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
+	DiscardMark(ch->mark);
+	clearLocalVariablesFrame(FR);
 	PL_put_term(LD->exception.pending, exception_term);
 	if ( printed )
 	  PL_put_term(exception_printed, exception_term);

@@ -300,6 +300,7 @@ COMMON(int)		ensureGlobalSpace(size_t cells, int flags);
 COMMON(int)		ensureTrailSpace(size_t cells);
 COMMON(int)		ensureLocalSpace(size_t bytes, int flags);
 COMMON(void)		clearUninitialisedVarsFrame(LocalFrame, Code);
+COMMON(void)		clearLocalVariablesFrame(LocalFrame fr);
 COMMON(void)		setLTopInBody(void);
 COMMON(word)		check_foreign(void);	/* DEBUG(CHK_SECURE...) stuff */
 COMMON(void)		markAtomsOnStacks(PL_local_data_t *ld);
