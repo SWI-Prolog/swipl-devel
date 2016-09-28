@@ -2138,6 +2138,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	  if ( !me_undone && is_exception_finish(reason) )
 	  { me_undone = TRUE;
 	    Undo(me->mark);
+	    DiscardMark(me->mark);
 	  }
 	  BFR = me->parent;
 	  frameFinished(fr2, reason PASS_LD);
@@ -2164,8 +2165,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       { if ( !me_undone )
 	{ if ( reason == FINISH_EXTERNAL_EXCEPT_UNDO )
 	    Undo(me->mark);
-	  else
-	    DiscardMark(me->mark);
+	  DiscardMark(me->mark);
 	}
 	BFR = me->parent;
 	return;

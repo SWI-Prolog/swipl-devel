@@ -4460,6 +4460,7 @@ again:
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
     Undo(QF->choice.mark);
+    DiscardMark(QF->choice.mark);
     QF->foreign_frame = PL_open_foreign_frame();
     QF->exception = PL_copy_term_ref(exception_term);
 
