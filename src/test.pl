@@ -22,6 +22,7 @@
 */
 
 %:- set_prolog_flag(optimise, true).
+:- set_prolog_flag(optimise_debug, false).
 %:- set_prolog_flag(trace_gc, true).
 :- asserta(user:file_search_path(library, '../packages/plunit')).
 :- [library(plunit)].
