@@ -134,7 +134,7 @@ syntax(base-2) :-
 syntax(base-3) :-
 	10 af == af(10).
 syntax(base-4) :-
-	_0 = 1, B is _0+1, B == 2.
+	A = 1, B is A+1, B == 2.
 syntax(base-5) :-
 	A is 1.0e+0+1, A == 2.0.
 syntax(number-2) :-
