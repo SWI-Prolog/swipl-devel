@@ -336,7 +336,7 @@ check_mode(input, Arg) :-
 check_mode(output, Arg) :-
 	(   var(Arg)
 	->  true
-	;   instantiation_error(Arg)	% TBD: Uninstantiated
+	;   uninstantiation_error(Arg)
 	).
 
 attr_unify_hook([], _).
