@@ -105,9 +105,11 @@ static inline size_t
 text_chr(const PL_chars_t *t, int chr)
 { assert(t->canonical);
   if ( t->encoding == ENC_ISO_LATIN_1 )
-  { char *e = strchr(t->text.t, chr);
-    if ( e )
-      return e-t->text.t;
+  { if ( chr <= 0xff )
+    { char *e = strchr(t->text.t, chr);
+      if ( e )
+	return e-t->text.t;
+    }
   } else
   { wchar_t *e = wcschr(t->text.w, chr);
     if ( e )
