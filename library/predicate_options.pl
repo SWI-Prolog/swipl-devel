@@ -638,6 +638,10 @@ check_clause((Head:-Body), M, ClauseRef, Action) :- !,
 
 %%	check_body(+Body, +Module, +TermPos, +Action)
 
+:- multifile
+	prolog:called_by/4,		% +Goal, +Module, +Context, -Called
+	prolog:called_by/2.		% +Goal, -Called
+
 check_body(Var, _, _, _) :-
 	var(Var), !.
 check_body(M:G, _, term_position(_,_,_,_,[_,Pos]), Action) :- !,
