@@ -207,7 +207,7 @@ clauseNo(Definition def, Clause cl, gen_t gen)
   ClauseRef cref;
 
   if ( !gen )
-    gen = GD->generation;
+    gen = global_generation();
 
   acquire_def(def);
   for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next)

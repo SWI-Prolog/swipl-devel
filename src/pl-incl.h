@@ -984,6 +984,10 @@ typedef uint64_t lgen_t;
 #define setGenerationFrame(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
+#ifdef HAVE___SYNC_ADD_AND_FETCH_8
+#define global_generation() (GD->_generation)
+#define next_global_generation() ATOMIC_INC(&GD->_generation)
+#endif
 #else /*O_LOGICAL_UPDATE*/
 #define generationFrame(f)	(0)
 #define setGenerationFrame(f)	(void)0

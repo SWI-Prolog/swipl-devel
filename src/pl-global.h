@@ -90,7 +90,7 @@ struct PL_global_data
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  gen_t		generation;		/* generation of the database */
+  gen_t		_generation;		/* generation of the database */
 #endif
 
   struct

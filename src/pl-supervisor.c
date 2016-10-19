@@ -156,7 +156,7 @@ getClauses(Definition def, ClauseRef *refp, int max)
 
   acquire_def(def);
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-  { if ( visibleClause(cref->value.clause, GD->generation) )
+  { if ( visibleClause(cref->value.clause, global_generation()) )
     { if ( found < max )
 	refp[found] = cref;
       found++;

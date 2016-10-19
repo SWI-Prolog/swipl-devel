@@ -859,32 +859,6 @@ esac
   AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
   AC_CHECK_FUNCS(pthread_getw32threadhandle_np)
 
-dnl ATOMIC inc/dec for reference counts
-
-dnl   AC_CHECK_HEADERS(asm/atomic.h)
-dnl   AC_MSG_CHECKING("atomic increment/decrement")
-dnl   AC_TRY_RUN(
-dnl   [
-dnl #ifdef HAVE_ASM_ATOMIC_H
-dnl # include <asm/atomic.h>
-dnl #endif
-dnl     main()
-dnl     { int i = 0;
-dnl       if ( sizeof(atomic_t) != sizeof(int) )
-dnl         exit(1);
-dnl       atomic_inc((atomic_t *)&i);
-dnl       if ( i != 1 ) exit(1);
-dnl       atomic_dec((atomic_t *)&i);
-dnl       if ( i != 0 ) exit(1);
-dnl       return 0;
-dnl     }
-dnl   ],
-dnl   AC_MSG_RESULT(yes)
-dnl   AC_DEFINE(HAVE_ATOMIC_INC, 1,
-dnl	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
-dnl   AC_MSG_RESULT(no),
-dnl   AC_MSG_RESULT(assuming no))
-
 AC_CHECK_FUNCS(sysconf)
 
 AC_MSG_CHECKING("copy stack size")
@@ -1559,6 +1533,19 @@ AC_DEFINE(NON_ALIGNED_ACCESS, 1,
 	  [Define if it is allowed to access intptr_t integers with non-aligned pointers]),
 AC_MSG_RESULT(not allowed),
 AC_MSG_RESULT(assuming not allowed))
+
+AC_MSG_CHECKING("__sync_add_and_fetch_8")
+AC_LINK_IFELSE([AC_LANG_PROGRAM(
+     [[#include <inttypes.h>]],
+     [ int64_t i = 1;
+       __sync_add_and_fetch(&i, 1);
+     ])],
+     [ AC_DEFINE(HAVE___SYNC_ADD_AND_FETCH_8, 1,
+		 [Define if __sync_add_and_fetch is supported for 8 byte objects])
+       AC_MSG_RESULT(yes)
+     ],
+     [ AC_MSG_RESULT(no)
+     ])
 
 if test "$ac_cv_func_getrlimit" = "yes"; then
 AC_MSG_CHECKING("type rlim_t")

@@ -2391,7 +2391,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->prof_node = NULL;			/* true? */
 #endif
   Mark(qf->choice.mark);
-  setGenerationFrame(fr, GD->generation);
+  setGenerationFrame(fr, global_generation());
 					/* context module */
   if ( true(def, P_TRANSPARENT) )
   { if ( ctx )

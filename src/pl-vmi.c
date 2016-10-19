@@ -1655,7 +1655,7 @@ possible to be able to call-back to Prolog.
 
 depart_continue:
 retry_continue:
-  setGenerationFrame(FR, GD->generation);
+  setGenerationFrame(FR, global_generation());
 #ifdef O_PROFILE
   FR->prof_node = NULL;
 #endif
@@ -4676,8 +4676,8 @@ atom is referenced by the goal-term anyway.
 #endif
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = ~(gen_t)0;
-      cl->generation.created = GD->generation;
-      setGenerationFrame(NFR, GD->generation);
+      cl->generation.created = global_generation();
+      setGenerationFrame(NFR, global_generation());
 #endif
       PC = cl->codes;
 

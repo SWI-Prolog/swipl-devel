@@ -404,7 +404,7 @@ retry:
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif
-    setGenerationFrame(fr, GD->generation);
+    setGenerationFrame(fr, global_generation());
     enterDefinition(fr->predicate);
 
     pc     = cl->codes+pcoffset;

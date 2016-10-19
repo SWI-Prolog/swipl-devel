@@ -289,7 +289,8 @@ hasClausesDefinition(Definition def)
     { GET_LD
       ClauseRef c;
       LocalFrame fr = environment_frame;
-      gen_t generation = fr ? generationFrame(fr) : GD->generation;
+      gen_t generation = fr ? generationFrame(fr)
+			    : global_generation();
 
       acquire_def(def);
       for(c = def->impl.clauses.first_clause; c; c = c->next)
@@ -1157,7 +1158,7 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
     def->impl.clauses.number_of_rules++;
   GD->statistics.clauses++;
 #ifdef O_LOGICAL_UPDATE
-  clause->generation.created = ATOMIC_INC(&GD->generation);
+  clause->generation.created = next_global_generation();
   clause->generation.erased  = GEN_MAX;	/* infinite */
 #endif
 
@@ -1238,7 +1239,7 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   ClauseRef c;
   size_t deleted = 0;
   size_t memory = 0;
-  gen_t update = GD->generation+1;
+  gen_t update = global_generation()+1;
 
   if ( true(def, P_THREAD_LOCAL) )
     return 0;
@@ -1266,8 +1267,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   }
   release_def(def);
 
-  if ( GD->generation < update )
-    ATOMIC_INC(&GD->generation);
+  if ( global_generation() < update )
+    next_global_generation();
 
   if ( deleted )
   { ATOMIC_SUB(&def->module->code_size, memory);
@@ -1307,7 +1308,7 @@ retractClauseDefinition(Definition def, Clause clause)
   def->impl.clauses.number_of_clauses--;
   def->impl.clauses.erased_clauses++;
 #ifdef O_LOGICAL_UPDATE
-  clause->generation.erased = ATOMIC_INC(&GD->generation);
+  clause->generation.erased = next_global_generation();
 #endif
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
@@ -1459,7 +1460,7 @@ void
 reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
 { if ( true(r, P_MODIFIED) )
   { ClauseRef cref;
-    gen_t update   = GD->generation+1;	/* see (*) */
+    gen_t update   = global_generation()+1;	/* see (*) */
     size_t deleted = 0;
     size_t added   = 0;
     size_t memory  = 0;
@@ -1487,14 +1488,14 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
     }
     release_def(def);
 
-    if ( GD->generation < update )	/* see (*) */
-      ATOMIC_INC(&GD->generation);
+    if ( global_generation() < update )	/* see (*) */
+      next_global_generation();
 
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("%s: added %ld, deleted %ld clauses "
-		   "at gen=%ld, GD->gen = %ld\n",
+		   "at gen=%ld, GD->gen = %lld\n",
 		   predicateName(def), (long)added, (long)deleted,
-		   (long)update, (long)GD->generation));
+		   (long)update, (int64_t)global_generation()));
 
     if ( true(def, P_DYNAMIC) )		/* see (**) */
     { deleteIncompleteIndexes(def);
@@ -1933,7 +1934,7 @@ pl_garbage_collect_clauses(void)
   { size_t removed = 0;
     size_t erased_pending = GD->clauses.erased_size;
     double gct, t0 = ThreadCPUTime(LD, CPU_USER);
-    gen_t start_gen = GD->generation;
+    gen_t start_gen = global_generation();
     int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
 
     if ( verbose )
@@ -2436,7 +2437,7 @@ PRED_IMPL("retract", 1, retract,
 	  PL_close_foreign_frame(fid);
 	  ForeignRedoPtr(ctx);
 	} else
-	{ setGenerationFrame(environment_frame, GD->generation);
+	{ setGenerationFrame(environment_frame, global_generation());
 	}
       }
 
@@ -3105,7 +3106,7 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
   if ( !isDefinedProcedure(from) )
     trapUndefined(getProcDefinition(from) PASS_LD);
   def = getProcDefinition(from);
-  generation = GD->generation;		/* take a consistent snapshot */
+  generation = global_generation();		/* take a consistent snapshot */
 
   if ( true(def, P_FOREIGN) )
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
