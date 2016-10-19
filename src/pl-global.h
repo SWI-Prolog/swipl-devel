@@ -90,7 +90,10 @@ struct PL_global_data
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  gen_t		_generation;		/* generation of the database */
+  ggen_t	_generation;		/* generation of the database */
+#ifdef ATOMIC_GENERATION_HACK
+  gen_t		_last_generation;	/* see pl-inline.h, global_generation() */
+#endif
 #endif
 
   struct

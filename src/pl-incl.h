@@ -987,8 +987,17 @@ typedef uint64_t lgen_t;
 #ifdef HAVE___SYNC_ADD_AND_FETCH_8
 #define global_generation() (GD->_generation)
 #define next_global_generation() ATOMIC_INC(&GD->_generation)
-#endif
+typedef uint64_t ggen_t;
+#else
+#define ATOMIC_GENERATION_HACK 1
+typedef struct ggen_t
+{ uint32_t	gen_l;
+  uint32_t	gen_u;
+} ggen_t;
+#endif /*HAVE___SYNC_ADD_AND_FETCH_8*/
 #else /*O_LOGICAL_UPDATE*/
+#define global_generation()	(0)
+#define next_global_generation() (0)
 #define generationFrame(f)	(0)
 #define setGenerationFrame(f)	(void)0
 #endif /*O_LOGICAL_UPDATE*/

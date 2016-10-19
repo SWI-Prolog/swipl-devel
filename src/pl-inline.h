@@ -421,4 +421,38 @@ visibleClause__LD(Clause cl, gen_t gen ARG_LD)
   return FALSE;
 }
 
+#ifdef ATOMIC_GENERATION_HACK
+/* Work around lacking 64-bit atomic operations.  These are designed to
+   be safe if we assume that read and increment complete before other
+   threads incremented 4G generations.
+*/
+
+static inline gen_t
+global_generation(void)
+{ gen_t g;
+  gen_t last;
+
+  do
+  { last = GD->_last_generation;
+    g = (gen_t)GD->_generation.gen_u<<32 | GD->_generation.gen_l;
+  } while ( unlikely(g < last) );
+
+  if ( unlikely(last != g) )
+    GD->_last_generation = g;
+
+  return g;
+}
+
+static inline gen_t
+next_global_generation(void)
+{ uint32_t u = GD->_generation.gen_u;
+  uint32_t l;
+
+  if ( unlikely((l=ATOMIC_INC(&GD->_generation.gen_l)) == 0) )
+    u = ATOMIC_INC(&GD->_generation.gen_u);
+
+  return (gen_t)u<<32|l;
+}
+#endif /*ATOMIC_GENERATION_HACK*/
+
 #endif /*PL_INLINE_H_INCLUDED*/
