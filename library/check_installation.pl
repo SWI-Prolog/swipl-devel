@@ -28,7 +28,8 @@
 */
 
 :- module(check_installation,
-	  [ check_installation/0
+	  [ check_installation/0,
+	    check_installation/1		% -Issues
 	  ]).
 
 /** <module> Check installation issues and features
@@ -132,24 +133,44 @@ issue_base('http://www.swi-prolog.org/build/issues/').
 
 check_installation :-
 	print_message(informational, installation(checking)),
-	retractall(issue(_)),
-	forall(component(Source, _Properties),
-	       check_installation(Source)),
-	findall(I, retract(issue(I)), Issues),
+	check_installation_(Issues),
 	(   Issues == []
 	->  print_message(informational, installation(perfect))
 	;   length(Issues, Count),
 	    print_message(warning, installation(imperfect(Count)))
 	).
 
-check_installation(Source) :-
-	component(Source, Properties), !,
-	check_installation(Source, Properties.put(source,Source)).
+%%	check_insmtallation(-Issues:list(pair)) is det.
+%
+%	As check_installation/0, but additionally  returns   a  list  of
+%	Component-Problem pairs. Problem is  one of `optional_not_found`
+%	(optional component is not present),   `not_found` (component is
+%	not present) or `failed` (component  is   present  but cannot be
+%	loaded).
 
-check_installation(Source, Properties) :-
+check_installation(Issues) :-
+	check_installation_(Issues0),
+	maplist(public_issue, Issues0, Issues).
+
+public_issue(installation(Term), Source-Issue) :-
+	functor(Term, Issue, _),
+	arg(1, Term, Properties),
+	Source = Properties.source.
+
+check_installation_(Issues) :-
+	retractall(issue(_)),
+	forall(component(Source, _Properties),
+	       check_component(Source)),
+	findall(I, retract(issue(I)), Issues).
+
+check_component(Source) :-
+	component(Source, Properties), !,
+	check_component(Source, Properties.put(source,Source)).
+
+check_component(Source, Properties) :-
 	compound(Source), !,
 	check_source(Source, Properties).
-check_installation(Feature, Properties) :-
+check_component(Feature, Properties) :-
 	print_message(informational, installation(checking(Feature))),
 	(   call(Properties.test)
 	->  print_message(informational, installation(ok))
@@ -198,7 +219,7 @@ test_component(_).
 %
 %	Check for additional features of the components.
 %
-%	@see check_installation/1 should be used for checking that the
+%	@see check_component/1 should be used for checking that the
 %	component works.
 
 check_features(Dict) :-
