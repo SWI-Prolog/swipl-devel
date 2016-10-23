@@ -2251,6 +2251,7 @@ typedef struct debuginfo
 #define PLFLAG_QUASI_QUOTES	    0x00400000 /* Support quasi quotes */
 #define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
 #define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
+#define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

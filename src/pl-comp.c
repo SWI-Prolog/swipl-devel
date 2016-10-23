@@ -5282,6 +5282,24 @@ unify_head(term_t h, term_t d ARG_LD)
 }
 
 
+static int
+protected_predicate(Definition def ARG_LD)
+{ if ( true(def, P_FOREIGN) ||
+       (   false(def, P_DYNAMIC) &&
+	   (   truePrologFlag(PLFLAG_PROTECT_STATIC_CODE) ||
+	       truePrologFlag(PLFLAG_ISO)
+	   )
+       ) )
+  { Procedure proc = getDefinitionProc(def);
+    PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+	     ATOM_access, ATOM_private_procedure, proc);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /** clause(H, B).
     clause(H, B, Ref).
     '$clause'(H, B, Ref, Bindings).
@@ -5322,6 +5340,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	  if ( rc < 0 && CTX_ARITY < 4 )
 	    return FALSE;			/* erased clause */
 
+	  if ( protected_predicate(clause->predicate PASS_LD) )
+	    return FALSE;
 	  if ( decompile(clause, term, bindings) != TRUE )
 	    return FALSE;
 	  def = clause->predicate;
@@ -5344,12 +5364,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	fail;
       def = getProcDefinition(proc);
 
-      if ( true(def, P_FOREIGN) ||
-	   (   truePrologFlag(PLFLAG_ISO) &&
-	       false(def, P_DYNAMIC)
-	   ) )
-	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_access, ATOM_private_procedure, proc);
+      if ( protected_predicate(def PASS_LD) )
+	return FALSE;
 
       chp = NULL;
       pushPredicateAccess(def, generationFrame(environment_frame));

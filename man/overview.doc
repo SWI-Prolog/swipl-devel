@@ -1482,6 +1482,16 @@ if the goal succeeded while leaving choice points.  Many classical Prolog
 systems behave as \const{groundness}: they prompt for alternatives if
 and only if the query contains variables.
 
+    \prologflagitem{protect_static_code}{bool}{rw}
+If \const{true} (default \const{false}), clause/2 does not operate on
+static code, providing some basic protection from hackers that wish to
+list the static code of your Prolog program. Once the flag is
+\const{true}, it cannot be changed back to \const{false}.  Protection
+is default in ISO mode (see Prolog flag \prologflag{iso}).  Note that
+many parts of the development environment require clause/2 to work on
+static code, and enabling this flag should thus only be used for
+production code.
+
     \prologflagitem{qcompile}{atom}{rw}
 This option provides the default for the \term{qcompile}{+Atom} option
 of load_files/2.

@@ -451,6 +451,7 @@ COMMON(int)		importDefinitionModule(Module m,
 					       Definition def, int flags);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);
 COMMON(ClauseRef)	hasClausesDefinition(Definition def);
+COMMON(Procedure)	getDefinitionProc(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
 COMMON(void)		shareDefinition(Definition def);
 COMMON(int)		unshareDefinition(Definition def);

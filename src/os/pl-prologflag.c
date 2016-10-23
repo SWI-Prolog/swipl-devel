@@ -718,6 +718,15 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	    PopTty(Sinput, &ttytab, FALSE);
 	  }
 	}
+      } else if ( k == ATOM_protect_static_code )
+      { if ( val != (f->value.a == ATOM_true) && val == FALSE )
+	{ term_t ex;
+
+	  if ( (ex = PL_new_term_ref()) &&
+	       PL_put_atom(ex, ATOM_protect_static_code) )
+	    return PL_permission_error("set", "prolog_flag", ex);
+	  return FALSE;
+	}
       }
 					/* set the flag value */
       if ( f->index > 0 )
@@ -1261,6 +1270,8 @@ initPrologFlags(void)
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
   setPrologFlag("generate_debug_info", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
+  setPrologFlag("protect_static_code", FT_BOOL, FALSE,
+		PLFLAG_PROTECT_STATIC_CODE);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
   setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);

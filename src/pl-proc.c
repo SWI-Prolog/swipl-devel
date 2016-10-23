@@ -413,6 +413,15 @@ lookupProcedureToDefine(functor_t def, Module m)
 }
 
 
+Procedure
+getDefinitionProc(Definition def)
+{ GET_LD
+  Procedure proc = isCurrentProcedure(def->functor->functor, def->module);
+  assert(proc);
+  return proc;
+}
+
+
 void
 shareDefinition(Definition def)
 { int shared = ATOMIC_INC(&def->shared);
