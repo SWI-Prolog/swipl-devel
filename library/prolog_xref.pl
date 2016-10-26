@@ -399,18 +399,34 @@ xref_push_op(Src, P, T, N0) :- !,
 	;   '$current_source_module'(M),
 	    N = M:N0
 	),
+	valid_op(op(P,T,N)),
 	push_op(P, T, N),
 	assert_op(Src, op(P,T,N)),
 	debug(xref(op), ':- ~w.', [op(P,T,N)]).
 
+valid_op(op(P,T,N)) :-
+	atom(N),
+	integer(P),
+	between(0, 1200, P),
+	atom(T),
+	op_type(T).
+
+op_type(xf).
+op_type(yf).
+op_type(fx).
+op_type(fy).
+op_type(xfx).
+op_type(xfy).
+op_type(yfx).
 
 %%	xref_set_prolog_flag(+Flag, +Value, +Src, +Line)
 %
 %	Called when a directive sets a Prolog flag.
 
 xref_set_prolog_flag(Flag, Value, Src, Line) :-
+	atom(Flag), !,
 	assertz(xflag(Flag, Value, Src, Line)).
-
+xref_set_prolog_flag(_, _, _, _).
 
 %%	xref_clean(+Source) is det.
 %
@@ -881,6 +897,10 @@ process_directive(pce_autoload(Name, From), Src) :-
 process_directive(op(P, A, N), Src) :-
 	xref_push_op(Src, P, A, N).
 process_directive(set_prolog_flag(Flag, Value), Src) :-
+	(   Flag == character_escapes
+	->  set_prolog_flag(character_escapes, Value)
+	;   true
+	),
 	current_source_line(Line),
 	xref_set_prolog_flag(Flag, Value, Src, Line).
 process_directive(style_check(X), _) :-
@@ -890,8 +910,6 @@ process_directive(encoding(Enc), _) :-
 	->  catch(set_stream(Stream, encoding(Enc)), _, true)
 	;   true			% can this happen?
 	).
-process_directive(set_prolog_flag(character_escapes, Esc), _) :-
-	set_prolog_flag(character_escapes, Esc).
 process_directive(pce_expansion:push_compile_operators, _) :-
 	'$current_source_module'(SM),
 	call(pce_expansion:push_compile_operators(SM)). % call to avoid xref
@@ -2060,7 +2078,9 @@ assert_xmodule_callable([PI|T], M, Src, From) :-
 assert_op(Src, op(P,T,_:N)) :-
 	(   xop(Src, op(P,T,N))
 	->  true
-	;   assert(xop(Src, op(P,T,N)))
+	;   valid_op(op(P,T,N))
+	->  assert(xop(Src, op(P,T,N)))
+	;   true
 	).
 
 %%	assert_module(+Src, +Module)
