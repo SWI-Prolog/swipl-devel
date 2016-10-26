@@ -1256,8 +1256,11 @@ rename_preds([H0|T0], [H|T], M) :-
 
 rename(Var, Var, _) :-
 	var(Var), !.
-rename(M:Term0, M:Term, _) :- !,
-	rename(Term0, Term, M).
+rename(M:Term0, M:Term, M0) :- !,
+	(   M = '$source_location'(_File, _Line)
+	->  rename(Term0, Term, M0)
+	;   rename(Term0, Term, M)
+	).
 rename((Head0 :- Body), (Head :- Body), M) :- !,
 	rename_head(Head0, Head, M).
 rename((:-_), _, _) :- !,
