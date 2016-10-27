@@ -1105,8 +1105,8 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
-	  int ono = (of ? of->index : 0);
-	  int sno = (sf ? sf->index : 0);
+	  unsigned int ono = (of ? of->index : 0);
+	  unsigned int sno = (sf ? sf->index : 0);
 
 	  clause->owner_no = ono;
 	  clause->source_no = sno;

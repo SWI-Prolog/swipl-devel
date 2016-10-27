@@ -1209,12 +1209,9 @@ struct clause
   unsigned int		prolog_vars;	/* # real Prolog variables */
   unsigned		flags : 8;	/* Flag field holding: */
   unsigned		line_no : 24;	/* Source line-number */
-  unsigned short	source_no;	/* Index of source-file */
-  unsigned short	owner_no;	/* Index of owning source-file */
+  unsigned int		source_no;	/* Index of source-file */
+  unsigned int		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
-#if SIZEOF_VOIDP == 8
-  unsigned int		reserved[1];
-#endif
   code			code_size;	/* size of ->codes */
   code			codes[1];	/* VM codes of clause */
 };

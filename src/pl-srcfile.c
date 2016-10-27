@@ -27,7 +27,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Source administration. The core object is  SourceFile, which keeps track
 of procedures that are defined by it.  Source files are identified by an
-unsigned short, which is registered with clauses and procedures.
+unsigned int, which is registered with clauses and procedures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define LOCK()   PL_LOCK(L_SRCFILE)
@@ -1397,7 +1397,7 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   atom_t owner_name;
   atom_t file_name;
   SourceFile of, sf;		/* owner file, source file */
-  unsigned short source_no;
+  unsigned int source_no;
   int ln;
   ListCell cell;
   Clause c = NULL;
