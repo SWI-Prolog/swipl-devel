@@ -79,6 +79,24 @@ test_create(Size) :-
 dict_lookup(Dict, Key, Value) :-
 	get_dict(Key, Dict, Value).
 
+test('dict_create/3') :-
+	dict_create(D, a, []),
+	D == a{}.
+test('dict_create/3') :-
+	dict_create(D, a, [k1:v1]),
+	D == a{k1:v1}.
+test('dict_create/3') :-
+	dict_create(D, a, [k1:v1, k2:v2]),
+	D == a{k1:v1, k2:v2}.
+test('dict_create/3') :-
+	dict_create(D, a, [k1=v1]),
+	D == a{k1:v1}.
+test('dict_create/3') :-
+	dict_create(D, a, [k1-v1]),
+	D == a{k1:v1}.
+test('dict_create/3') :-
+	dict_create(D, a, [k1(v1)]),
+	D == a{k1:v1}.
 test(create, true) :-
 	forall(between(1, 100, S),
 	       test_create(S)).
@@ -88,6 +106,133 @@ test(create, true) :-
 
 :- begin_tests(dict_bips).
 
+test('is_dict/1') :-
+	is_dict(a{}).
+test('is_dict/1') :-
+	is_dict(a{k1:v1, k2:v2}).
+test('is_dict/2') :-
+	is_dict(a{}, A),
+	A == a.
+test('is_dict/2') :-
+	is_dict(a{k1:v1, k2:v2}, A),
+	A == a.
+test('dict_pairs/3') :-
+	dict_pairs(a{}, A, P),
+	A == a,
+	P == [].
+test('dict_pairs/3') :-
+	dict_pairs(a{k1:v1, k2:v2}, A, P),
+	A == a,
+	P == [k1-v1, k2-v2].
+test('dict_pairs/3') :-
+	dict_pairs(D, a, []),
+	D == a{}.
+test('dict_pairs/3') :-
+	dict_pairs(D, a, [k1-v1, k2-v2]),
+	D == a{k1:v1, k2:v2}.
+test('get_dict/3') :-
+	get_dict(k1, a{k1:v1}, V),
+	V == v1.
+test('get_dict/3') :-
+	\+ get_dict(k2, a{k1:v1}, _).
+test('get_dict/3') :-
+	findall(K-V, get_dict(K, a{k1:v1, k2:v2}, V), KVs),
+        msort(KVs, [k1-v1, k2-v2]).
+test('get_dict/5') :-
+	get_dict(k1, a{k1:v1}, V, D, v2),
+	V == v1,
+	D == a{k1:v2}.
+test('get_dict/5') :-
+	get_dict(k1, [k1:v1], V, D, v2),
+	V == v1,
+	D = a{k1:v2}.
+test('get_dict/5') :-
+	\+ get_dict(k2, a{k1:v1}, _, _, v2).
+test('get_dict/5') :-
+	\+ get_dict(k1, a{k1:v1}, v2, _, v2).
+test('put_dict/4') :-
+	put_dict(k1, a{k1:v1}, v2, D),
+	D == a{k1:v2}.
+test('put_dict/4') :-
+	put_dict(k2, a{k1:v1}, v2, D),
+	D == a{k1:v1, k2:v2}.
+test('put_dict/4') :-
+	put_dict(k1, a{}, v1, D),
+	D == a{k1:v1}.
+test('put_dict/3') :-
+	put_dict(n{k1:v2}, a{k1:v1}, D),
+	D == a{k1:v2}.
+test('put_dict/3') :-
+	put_dict(n{k2:v2}, a{k1:v1}, D),
+	D == a{k1:v1, k2:v2}.
+test('put_dict/3') :-
+	put_dict(n{k1:v1}, a{k2:v2}, D),
+	D == a{k1:v1, k2:v2}.
+test('put_dict/3') :-
+	put_dict(n{}, a{k1:v1}, D),
+	D == a{k1:v1}.
+test('put_dict/3') :-
+	put_dict(n{k1:v1}, a{}, D),
+	D == a{k1:v1}.
+test('del_dict/4') :-
+	del_dict(k1, a{k1:v1}, V, D),
+	V == v1,
+	D == a{}.
+test('del_dict/4') :-
+	del_dict(k1, a{k1:v1}, v1, D),
+	D == a{}.
+test('del_dict/4') :-
+	del_dict(k1, a{k1:v1, k2:v2}, V, D),
+	V == v1,
+	D == a{k2:v2}.
+test('del_dict/4') :-
+	\+ del_dict(k2, a{k1:v1}, _, _).
+test('del_dict/4') :-
+	\+ del_dict(k1, a{k1:v1}, v2, _).
+test('select_dict/3') :-
+	select_dict(T{}, a{k1:v1, k2:v2}, R),
+	T == a,
+	R =@= _{k1:v1, k2:v2}.
+test('select_dict/3') :-
+	select_dict(T{k1:V1}, a{k1:v1, k2:v2}, R),
+	T == a, V1 == v1,
+	R =@= _{k2:v2}.
+test('select_dict/3') :-
+	select_dict(T{k1:V1, k2:V2}, a{k1:v1, k2:v2}, R),
+	T == a, V1 == v1, V2 == v2,
+	R =@= _{}.
+test('select_dict/3') :-
+	select_dict(a{k1:v1, k2:v2}, T{k1:V1, k2:V2}, R),
+	T == a, V1 == v1, V2 == v2,
+	R =@= _{}.
+test('select_dict/3') :-
+	\+ select_dict(b{k1:v1}, a{k1:v1}, _).
+test('select_dict/3') :-
+	\+ select_dict(a{k1:v2}, a{k1:v1}, _).
+test('select_dict/3') :-
+	\+ select_dict(a{k2:v1}, a{k1:v1}, _).
+test(':</2') :-
+	T{k1:V1} :< a{k1:v1, k2:v2},
+	T == a, V1 == v1.
+test(':</2') :-
+	T{k1:V1, k2:V2} :< a{k1:v1, k2:v2},
+	T == a, V1 == v1, V2 == v2.
+test('>:</2') :-
+	T{k1:V1, k2:V2} >:< a{k1:v1, k2:v2},
+	T == a, V1 == v1, V2 == v2.
+test('>:</2') :-
+	a{k1:v1, k2:v2} >:< T{k1:V1, k2:V2},
+	T == a, V1 == v1, V2 == v2.
+test('>:</2') :-
+	T{k1:V1, k2:v2} >:< a{k1:v1, k3:v3},
+	T == a, V1 == v1.
+test('>:</2') :-
+	T{k1:V1, k2:V2} >:< a{k1:v1, k3:v3},
+	T == a, V1 == v1, var(V2).
+test('>:</2') :-
+	\+ a{k1:v1} >:< b{k1:v1}.
+test('>:</2') :-
+	\+ a{k1:v1} >:< a{k1:v2}.
 test(put, D = a{x:2}) :-
 	put_dict(x, a{x:1}, 2, D).
 test(put, D = a{x:1, y:2}) :-
@@ -102,6 +247,61 @@ test(select, R =@= _{z:3}) :-		% implicit conversion
 	select_dict([x(1)], [x(1),z(3)], R).
 
 :- end_tests(dict_bips).
+
+:- begin_tests(dict_order).
+
+test(dict_order) :-
+	atom(freshk0),
+	atom(freshk1),
+	atom(freshk2),
+	atom(freshk3),
+	atom(freshk4),
+	atom(freshk5),
+	D1 = a{freshk1:v1, freshk2:v2},
+	\+ get_dict(freshk0, D1, _),
+	get_dict(freshk1, D1, v1),
+	get_dict(freshk2, D1, v2),
+	\+ get_dict(freshk5, D1, _),
+	D2 = a{freshk1:v1, freshk2:v2, freshk3:v3},
+	\+ get_dict(freshk0, D2, _),
+	get_dict(freshk1, D2, v1),
+	get_dict(freshk2, D2, v2),
+	get_dict(freshk3, D2, v3),
+	\+ get_dict(freshk5, D2, _),
+	D3 = a{freshk1:v1, freshk2:v2, freshk3:v3, freshk4:v4},
+	\+ get_dict(freshk0, D3, _),
+	get_dict(freshk1, D3, v1),
+	get_dict(freshk2, D3, v2),
+	get_dict(freshk3, D3, v3),
+	get_dict(freshk4, D3, v4),
+	\+ get_dict(freshk5, D3, _).
+
+:- end_tests(dict_order).
+
+:- begin_tests(destructive_assignment).
+
+test('b_set_dict/3') :-
+	D = a{k1:v1},
+	b_set_dict(k1, D, v2),
+	D == a{k1:v2}.
+test('b_set_dict/3') :-
+	D = a{k1:v1},
+	(  b_set_dict(k1, D, v2),
+	   fail
+	;  D == a{k1:v1}
+	).
+test('nb_set_dict/3') :-
+	D = a{k1:v1},
+	nb_set_dict(k1, D, v2),
+	D == a{k1:v2}.
+test('nb_set_dict/3') :-
+	D = a{k1:v1},
+	(  nb_set_dict(k1, D, v2),
+	   fail
+	;  D == a{k1:v2}
+	).
+
+:- end_tests(destructive_assignment).
 
 :- begin_tests(dict_dot3).
 

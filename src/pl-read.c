@@ -3152,8 +3152,8 @@ build_dict(int pairs, ReadData _PL_rd ARG_LD)
   readValHandle(argv[0], argp++, _PL_rd PASS_LD); /* the class */
 
   for(i=0; i<pairs; i++)
-  { readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd PASS_LD);
-    readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd PASS_LD);
+  { readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd PASS_LD); /* value */
+    readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd PASS_LD); /* key */
   }
 
   setHandle(argv[0], w);
