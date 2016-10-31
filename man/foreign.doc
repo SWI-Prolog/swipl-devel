@@ -801,7 +801,7 @@ If \arg{t} is an atom, store a pointer to a 0-terminated C-string in
 of this string.  Some built-in atoms may have the string allocated in
 read-only memory, so `temporary manipulation' can cause an error.
 
-    \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, int *len}
+    \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, size_t *len}
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
 that this pointer is invalidated by backtracking, garbage collection
@@ -1434,14 +1434,6 @@ Unify \arg{t} with a list of ASCII characters constructed from
 Unify \arg{t} with a Prolog string object created from the
 zero-terminated string \arg{chars}. The data will be copied.
 See also PL_unify_string_nchars().
-    \cfunction{void}{PL_unify_string_nchars}{term_t ?t,
-					     size_t len,
-					     const char *chars}
-Unify \arg{t} with a Prolog string object created from the string
-created from the \arg{len}/\arg{chars} pair. The data will be copied.
-This interface can deal with 0-bytes in the string. See also
-\secref{foreigndata}.
-
     \cfunction{int}{PL_unify_integer}{term_t ?t, intptr_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
     \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
