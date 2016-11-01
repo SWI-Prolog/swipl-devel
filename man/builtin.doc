@@ -5886,7 +5886,7 @@ predicates to exploit the C-character classification's handling of
 \jargon{locale} (handling of local character sets). These predicates are
 fast, logical and deterministic if applicable.
 
-In addition, there is the library \pllib{ctype} providing compatibility
+In addition, there is the library \pllib{ctypes} providing compatibility
 with some other Prolog systems. The predicates of this library are defined
 in terms of code_type/2.
 
