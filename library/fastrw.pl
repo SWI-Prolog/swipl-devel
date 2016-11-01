@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, VU University Amsterdam
+    Copyright (C): 2010-2016, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,24 +34,38 @@
 	    fast_write/2,		% +Stream, +Term
 	    fast_write_to_string/3	% +Term, -String, ?Tail
 	  ]).
+:- use_module(library(lists)).
 
 /** <module> Fast reading and writing of terms
 
 This library provides the SICStus   and  Ciao library(fastrw) interface.
 The idea behind this library  is  to   design  a  fast serialization for
 Prolog  terms.  Ideally,  this  should    be   portable  between  Prolog
-implementation. The current implementation provides the API simply using
-canonical read/write.
+implementation. Unfortunately there is no   portably  binary term format
+defined.
 
-Note that the stream encoding must  be   the  same. Typically, you would
-like  to  use  these  predicate  using    UTF-8   encoded  streams.  See
-set_stream/2.
+The current implementation  is  based   on  PL_record_external(),  which
+provides a binary representation of terms  that is processed efficiently
+and can handle cycles as well as attributes.   We try to keep the format
+compatible between versions, but this is   not guaranteed. Conversion is
+always possible by reading a database  using   the  old version, dump it
+using write_canonical/1 and read it into the new version.
 
-@tbd	Establish a fast and portable binary format.
+This library is built upon the following built in predicates:
+
+  - fast_term_serialized/2 translates between a term and its
+  serialization as a byte string.
+  - fast_read/2 and fast_write/2 read/write binary serializations.
+
+@tbd	Establish a portable binary format.
 @compat The format is not compatible to SICStus/Ciao (which are not
 	compatible either).  Funture versions of this library might
 	implement a different encoding.
-@see	PL_record_external() for a C-based fast binary format.
+@bug	The current implementation of fast_read/1 *is not safe*.
+	It is guaranteed to safely read terms written using
+	fast_write/1, but may crash on arbitrary input.  The
+	implementation does perform some basic sanity checks,
+	including validation of the magic start byte.
 */
 
 %%	fast_read(-Term)
@@ -59,11 +73,10 @@ set_stream/2.
 %	The next term is read from current standard input and is unified
 %	with Term. The syntax of the term   must  agree with fast_read /
 %	fast_write format. If the end  of   the  input has been reached,
-%	Term is unified with the term   =end_of_file=.  Further calls to
-%	fast_read/1 will then cause an error.
+%	Term is unified with the term =end_of_file=.
 
 fast_read(Term) :-
-	read_term(Term, []).
+	fast_read(current_input, Term).
 
 %%	fast_write(+Term)
 %
@@ -73,34 +86,11 @@ fast_read(Term) :-
 fast_write(Term) :-
 	fast_write(current_output, Term).
 
-%%	fast_write(+Stream, +Term)
-%
-%	Output Term to Stream in a  way that fast_read/1 and fast_read/2
-%	will be able to read it back.
-
-fast_write(Stream, Term) :-
-	write_term(Stream, Term,
-		   [ attributes(ignore),
-		     ignore_ops(true),
-		     quoted(true),
-		     partial(true)
-		   ]),
-	format(Stream, '.~n', []).
-
-%%	fast_read(+Stream, -Term)
-%
-%	The next term is read from  Stream   and  unified with Term. The
-%	syntax of the term must  agree with fast_read/fast_write format.
-%	If the end of the input has   been reached, Term is unified with
-%	the term =end_of_file=. Further calls   to fast_read/2 will then
-%	cause an error.
-
-fast_read(Stream, Term):-
-	read_term(Stream, Term, []).
-
 %%	fast_write_to_string(+Term, -String, ?Tail)
 %
-%	Perform a fast-write to the difference-slist String\Term.
+%	Perform a fast-write to the difference-slist String\Tail.
 
 fast_write_to_string(T, S, R) :-
-	with_output_to(codes(S,R), fast_write(T)).
+	fast_term_serialized(T, String),
+	string_codes(String, Codes),
+	append(Codes, R, S).

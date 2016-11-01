@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -33,6 +45,7 @@ static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word, int must_be_non_empty);
 static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
+static int  is_external(const char *rec, size_t len);
 
 #define RECORDA 0
 #define RECORDZ 1
@@ -264,8 +277,8 @@ independent.
 static inline void
 addUintBuffer(Buffer b, size_t val)
 { if ( !(val & ~0x7f) )
-    addBuffer(b, (uchar)val, uchar);
-  else
+  { addBuffer(b, (uchar)val, uchar);
+  } else
   { int zips = ((sizeof(val))*8+7-1)/7 - 1;
     int leading = TRUE;
 
@@ -372,31 +385,42 @@ addAtomValue(CompileInfo info, Atom a)
 }
 
 
-static void
+static int
 addAtom(CompileInfo info, atom_t a)
 { if ( a == ATOM_nil )
   { addOpCode(info, PL_TYPE_NIL);
   } else if ( a == ATOM_dict )
   { addOpCode(info, PL_TYPE_DICT);
-  } else if ( info->external )
+  } else if ( unlikely(info->external) )
   { Atom ap = atomValue(a);
 
-    if ( isUCSAtom(ap) )
-      addOpCode(info, PL_TYPE_EXT_WATOM);
-    else
-      addOpCode(info, PL_TYPE_EXT_ATOM);
+    if ( true(ap->type, PL_BLOB_TEXT) )
+    { if ( isUCSAtom(ap) )
+	addOpCode(info, PL_TYPE_EXT_WATOM);
+      else
+	addOpCode(info, PL_TYPE_EXT_ATOM);
 
-    addAtomValue(info, ap);
+      addAtomValue(info, ap);
+    } else
+    { GET_LD
+      term_t t;
+
+      return ( (t=PL_new_term_ref()) &&
+		PL_put_atom(t, a) &&
+		PL_permission_error("fast_serialize", "blob", t) );
+    }
   } else
   { addOpCode(info, PL_TYPE_ATOM);
     addWord(info, a);
     if ( info->lock )
       PL_register_atom(a);
   }
+
+  return TRUE;
 }
 
 
-static void
+static int
 addFunctor(CompileInfo info, functor_t f)
 { if ( f == FUNCTOR_dot2 )
   { addOpCode(info, PL_TYPE_CONS);
@@ -406,12 +430,14 @@ addFunctor(CompileInfo info, functor_t f)
 
       addOpCode(info, PL_TYPE_EXT_COMPOUND);
       addSizeInt(info, fd->arity);
-      addAtom(info, fd->name);
+      return addAtom(info, fd->name);
     } else
     { addOpCode(info, PL_TYPE_COMPOUND);
       addWord(info, f);
     }
   }
+
+  return TRUE;
 }
 
 
@@ -477,7 +503,8 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	  addSizeInt(info, n);
 	  DEBUG(9, Sdprintf("Added var-link %d\n", n));
 	} else
-	{ addAtom(info, w);
+	{ if ( !addAtom(info, w) )
+	    return FALSE;
 	  DEBUG(9, Sdprintf("Added '%s'\n", stringAtom(w)));
 	}
 
@@ -562,7 +589,8 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 #endif
 
 	info->size += arity+1;
-	addFunctor(info, functor);
+	if ( !addFunctor(info, functor) )
+	  return FALSE;
 	DEBUG(9, if ( GD->io_initialised )
 		   Sdprintf("Added %s/%d\n",
 			    stringAtom(valueFunctor(functor)->name),
@@ -706,25 +734,36 @@ compileTermToHeap__LD(term_t t,
 #define REC_HDR		(REC_SZ|(REC_VERSION<<REC_VSHIFT))
 #define REC_COMPAT(m)	(((m)&(REC_VMASK|REC_SZMASK)) == REC_HDR)
 
-char *
-PL_record_external(term_t t, size_t *len)
-{ GET_LD
+typedef struct record_data
+{ int simple;				/* no header */
   compile_info info;
-  Word p;
   tmp_buffer hdr;
-  int scode, shdr;
-  char *rec;
+} record_data;
+
+
+static void
+discard_record_data(record_data *data)
+{ discardBuffer(&data->info.code);
+  if ( !data->simple )
+    discardBuffer(&data->hdr);
+}
+
+
+static int
+compile_external_record(term_t t, record_data *data ARG_LD)
+{ Word p;
   int first = REC_HDR;
   term_agenda agenda;
+  int scode, rc;
 
   DEBUG(CHK_SECURE, checkData(valTermRef(t)));
   p = valTermRef(t);
   deRef(p);
 
   init_cycle(PASS_LD1);
-  initBuffer(&info.code);
-  info.external = TRUE;
-  info.lock = FALSE;
+  initBuffer(&data->info.code);
+  data->info.external = TRUE;
+  data->info.lock = FALSE;
 
   if ( isInteger(*p) )			/* integer-only record */
   { int64_t v;
@@ -737,56 +776,345 @@ PL_record_external(term_t t, size_t *len)
       goto general;
 
     first |= (REC_INT|REC_GROUND);
-    addOpCode(&info, first);
-    addInt64(&info, v);
+    addOpCode(&data->info, first);
+    addInt64(&data->info, v);
+    data->simple = TRUE;
 
-  ret_primitive:
-    scode = (int)sizeOfBuffer(&info.code);
-    rec = PL_malloc_atomic(scode);
-    memcpy(rec, info.code.base, scode);
-    discardBuffer(&info.code);
-    *len = scode;
-    return rec;
+    return TRUE;
   } else if ( isAtom(*p) )		/* atom-only record */
   { first |= (REC_ATOM|REC_GROUND);
-    addOpCode(&info, first);
-    addAtom(&info, *p);
-    goto ret_primitive;
+    addOpCode(&data->info, first);
+    if ( !addAtom(&data->info, *p) )
+      return FALSE;
+    data->simple = TRUE;
+
+    return TRUE;
   }
 
 					/* the real stuff */
 general:
-  initBuffer(&info.vars);
-  info.size = 0;
-  info.nvars = 0;
+  data->simple = FALSE;
+  initBuffer(&data->info.vars);
+  data->info.size = 0;
+  data->info.nvars = 0;
 
   initTermAgenda(&agenda, 1, p);
-  compile_term_to_heap(&agenda, &info PASS_LD);
+  rc = compile_term_to_heap(&agenda, &data->info PASS_LD);
   clearTermAgenda(&agenda);
-  if ( info.nvars == 0 )
+  if ( !rc )
+    return FALSE;
+  if ( data->info.nvars == 0 )
     first |= REC_GROUND;
-  restoreVars(&info);
+  restoreVars(&data->info);
   unvisit(PASS_LD1);
-  scode = (int)sizeOfBuffer(&info.code);
+  scode = (int)sizeOfBuffer(&data->info.code);
 
-  initBuffer(&hdr);
-  addBuffer(&hdr, first, uchar);		/* magic code */
-  addUintBuffer((Buffer)&hdr, scode);		/* code size */
-  addUintBuffer((Buffer)&hdr, info.size);	/* size on stack */
-  if ( info.nvars > 0 )
-    addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
-  shdr = (int)sizeOfBuffer(&hdr);
+  initBuffer(&data->hdr);
+  addBuffer(&data->hdr, first, uchar);			/* magic code */
+  addUintBuffer((Buffer)&data->hdr, scode);		/* code size */
+  addUintBuffer((Buffer)&data->hdr, data->info.size);	/* size on stack */
+  if ( data->info.nvars > 0 )
+    addUintBuffer((Buffer)&data->hdr, data->info.nvars);/* Number of variables */
+  return TRUE;
+}
 
-  rec = PL_malloc_atomic_unmanaged(shdr + scode);
-  memcpy(rec, hdr.base, shdr);
-  memcpy(rec+shdr, info.code.base, scode);
 
-  discardBuffer(&info.code);
-  discardBuffer(&hdr);
+char *
+PL_record_external(term_t t, size_t *len)
+{ GET_LD
+  record_data data;
 
-  *len = shdr + scode;
+  if ( compile_external_record(t, &data PASS_LD) )
+  { if ( data.simple )
+    { int scode = (int)sizeOfBuffer(&data.info.code);
+      char *rec = malloc(scode);
 
-  return rec;
+      if ( rec )
+      { memcpy(rec, data.info.code.base, scode);
+	discard_record_data(&data);
+	*len = scode;
+
+	return rec;
+      } else
+      { discard_record_data(&data);
+	PL_no_memory();
+
+	return NULL;
+      }
+    } else
+    { int shdr  = (int)sizeOfBuffer(&data.hdr);
+      int scode = (int)sizeOfBuffer(&data.info.code);
+      char *rec = malloc(shdr + scode);
+
+      if ( rec )
+      { memcpy(rec, data.hdr.base, shdr);
+	memcpy(rec+shdr, data.info.code.base, scode);
+	discard_record_data(&data);
+	*len = shdr + scode;
+
+	return rec;
+      } else
+      { discard_record_data(&data);
+	PL_no_memory();
+
+	return NULL;
+      }
+    }
+  } else
+  { return NULL;
+  }
+}
+
+
+		 /*******************************
+		 *	      FASTRW		*
+		 *******************************/
+
+static
+PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
+{ PRED_LD
+  char *rec;
+  size_t len;
+
+  term_t term   = A1;
+  term_t string = A2;
+
+  if ( PL_is_variable(string) )
+  { record_data data;
+
+    if ( compile_external_record(term, &data PASS_LD) )
+    { if ( data.simple )
+      { int rc;
+
+	len = sizeOfBuffer(&data.info.code);
+	rc  = PL_unify_string_nchars(string, len, data.info.code.base);
+	discard_record_data(&data);
+
+	return rc;
+      } else
+      { size_t shdr  = sizeOfBuffer(&data.hdr);
+	size_t scode = sizeOfBuffer(&data.info.code);
+	Word p;
+
+	if ( (p=allocString(shdr+scode+1 PASS_LD)) )
+	{ char *q = (char *)&p[1];
+	  word w  = consPtr(p, TAG_STRING|STG_GLOBAL);
+
+	  *q++ = 'B';
+	  memcpy(q,      data.hdr.base,       shdr);
+	  memcpy(q+shdr, data.info.code.base, scode);
+
+	  return _PL_unify_atomic(string, w);
+	} else
+	{ discard_record_data(&data);
+	  return FALSE;
+	}
+      }
+    } else
+    { return FALSE;
+    }
+  } else if ( PL_get_string_chars(string, &rec, &len) )
+  { term_t tmp;
+
+    return ( (tmp = PL_new_term_ref()) &&
+	     is_external(rec, len) &&
+	     PL_recorded_external(rec, tmp) &&
+	     PL_unify(term, tmp) );
+  } else
+  { return PL_type_error("string", string);
+  }
+}
+
+/** fast_write(+Stream, +Term)
+*/
+
+static
+PRED_IMPL("fast_write", 2, fast_write, 0)
+{ PRED_LD
+  IOSTREAM *out;
+
+  if ( PL_get_stream(A1, &out, SIO_OUTPUT) )
+  { record_data data;
+    int rc;
+
+    if ( out->encoding == ENC_OCTET )
+    { if ( (rc=compile_external_record(A2, &data PASS_LD)) )
+      { if ( data.simple )
+	{ size_t len = sizeOfBuffer(&data.info.code);
+
+	  rc = (Sfwrite(data.info.code.base, 1, len, out) >= 0);
+	} else
+	{ size_t shdr  = sizeOfBuffer(&data.hdr);
+	  size_t scode = sizeOfBuffer(&data.info.code);
+
+	  rc = ( Sfwrite(data.hdr.base,       1,  shdr, out) >= 0 &&
+		 Sfwrite(data.info.code.base, 1, scode, out) >= 0
+	       );
+	}
+
+	discard_record_data(&data);
+      }
+    } else
+    { rc = PL_permission_error("fast_write", "stream", A1);
+    }
+
+    return PL_release_stream(out) && rc;
+  }
+
+  return FALSE;
+}
+
+
+#define FASTRW_FAST 512
+
+static char *
+readSizeInt(IOSTREAM *in, char *to, size_t *sz)
+{ size_t r = 0;
+  int d;
+  char *t = to;
+
+  do
+  { d = Sgetc(in);
+
+    if ( d == -1 )
+    { PL_syntax_error("fastrw_size", in);
+      return NULL;
+    }
+
+    *t++ = d;
+    if ( t-to > 10 )
+      return NULL;
+    r = (r<<7)|(d&0x7f);
+  } while((d & 0x80));
+
+  *sz = r;
+
+  return t;
+}
+
+static char *
+realloc_record(char *rec, char **np, size_t size)
+{ size_t hdr   = *np-rec;
+  size_t tsize = hdr + size;
+  char *nrec;
+
+  if ( tsize <= FASTRW_FAST )
+  { return rec;
+  } else if ( (nrec = malloc(tsize)) )
+  { memcpy(nrec, rec, hdr);
+    *np = nrec+hdr;
+
+    return nrec;
+  } else
+  { PL_no_memory();
+    return NULL;
+  }
+}
+
+
+static
+PRED_IMPL("fast_read", 2, fast_read, 0)
+{ PRED_LD
+  IOSTREAM *in;
+
+  if ( PL_get_stream(A1, &in, SIO_INPUT) )
+  { int rc;
+
+    if ( in->encoding == ENC_OCTET )
+    { int m = Sgetc(in);
+      char fast[FASTRW_FAST];
+      char *rec = fast;
+
+      switch(m)
+      { case -1:
+	  rc = PL_unify_atom(A2, ATOM_end_of_file);
+	  goto out;
+        case REC_HDR|REC_INT|REC_GROUND:
+	{ int size = Sgetc(in)&0xff;
+
+	  if ( size <= 8 )
+	  { rec[0] = m;
+	    rec[1] = size;
+	    if ( Sfread(&rec[2], 1, size, in) != size )
+	      rc = PL_syntax_error("fastrw_integer", in);
+	    else
+	      rc = TRUE;
+	  } else
+	  { rc = PL_syntax_error("fastrw_integer", in);
+	  }
+	  break;
+	}
+	case REC_HDR|REC_ATOM|REC_GROUND:
+	{ uchar op = Sgetc(in);
+
+	  switch(op)
+	  { case PL_TYPE_NIL:
+	      rc = PL_unify_nil(A2);
+	      goto out;
+	    case PL_TYPE_DICT:
+	      rc = PL_unify_atom(A2, ATOM_dict);
+	      goto out;
+	    case PL_TYPE_EXT_WATOM:
+	    case PL_TYPE_EXT_ATOM:
+	    { size_t bytes;
+	      char *np;
+
+	      rec[0] = m;
+	      rec[1] = op;
+
+	      if ( (np=readSizeInt(in, &rec[2], &bytes)) &&
+		   (rec = realloc_record(rec, &np, bytes)) &&
+		   Sfread(np, 1, bytes, in) == bytes )
+		rc = TRUE;
+	      else
+		rc = PL_syntax_error("fastrw_atom", in);
+	      break;
+	    }
+	    default:
+	      rc = PL_syntax_error("fastrw_atom_type", in);
+	  }
+	  break;
+	}
+	case REC_HDR|REC_GROUND:
+	case REC_HDR:
+	{ char *np;
+	  size_t codes, gsize, nvars;
+
+	  rec[0] = m;
+
+	  if ( (np=readSizeInt(in, &rec[1], &codes)) &&
+	       (np=readSizeInt(in, np, &gsize)) &&
+	       ((m&REC_GROUND) || (np=readSizeInt(in, np, &nvars))) &&
+	       (rec = realloc_record(rec, &np, codes)) &&
+	       Sfread(np, 1, codes, in) == codes )
+	    rc = TRUE;
+	  else
+	    rc = PL_syntax_error("fastrw_term", in);
+	  break;
+	}
+	default:
+	  rc = PL_syntax_error("fastrw_magic_expected", in);
+      }
+
+      if ( rc )
+      { term_t tmp;
+
+	rc = ( (tmp = PL_new_term_ref()) &&
+	       PL_recorded_external(rec, tmp) &&
+	       PL_unify(A2, tmp) );
+      }
+
+      if ( rec != fast )
+	free(rec);
+    } else
+    { rc = PL_permission_error("fast_read", "stream", A1);
+    }
+
+  out:
+    return PL_release_stream(in) && rc;
+  }
+
+  return FALSE;
 }
 
 
@@ -809,6 +1137,7 @@ typedef struct
   Word	        vars_buf[MAX_FAST_VARS];
 } copy_info, *CopyInfo;
 
+static void skipSizeInt(CopyInfo b);
 
 static inline int
 init_copy_vars(copy_info *info, uint n)
@@ -1191,6 +1520,52 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
   DEBUG(CHK_SECURE, checkData(valTermRef(copy)));
 
   return TRUE;
+}
+
+
+static int
+is_external(const char *rec, size_t len)
+{ if ( len >= 2 )
+  { copy_info info;
+    uchar m;
+
+    info.data = info.base = rec;
+    fetchBuf(&info, &m, uchar);
+
+    switch(m)
+    { case REC_HDR|REC_INT|REC_GROUND:
+      { uint bytes = *info.data++;
+	return len == bytes+2;
+      }
+      case REC_HDR|REC_ATOM|REC_GROUND:
+      { uchar code;
+
+	fetchBuf(&info, &code, uchar);
+	switch(code)
+	{ case PL_TYPE_NIL:
+	  case PL_TYPE_DICT:
+	    return len == 2;
+	  case PL_TYPE_EXT_WATOM:
+	  case PL_TYPE_EXT_ATOM:
+	  { size_t bytes = fetchSizeInt(&info);
+	    return len == (info.data-info.base)+bytes;
+	  }
+	}
+      }
+      case REC_HDR|REC_GROUND:
+      case REC_HDR:
+      { size_t codes = fetchSizeInt(&info);
+	skipSizeInt(&info);		/* global stack size */
+	if ( !(m & REC_GROUND) )
+	  skipSizeInt(&info);		/* # variables */
+	return len == (info.data-info.base)+codes;
+      }
+      default:
+	assert(0);
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -1906,14 +2281,20 @@ PRED_IMPL("erase", 1, erase, 0)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define NDET PL_FA_NONDETERMINISTIC
+
 BeginPredDefs(rec)
-  PRED_SHARE("recorded", 2, recorded, PL_FA_NONDETERMINISTIC)
-  PRED_SHARE("recorded", 3, recorded, PL_FA_NONDETERMINISTIC)
-  PRED_SHARE("recordz", 2, recordz, 0)
-  PRED_SHARE("recordz", 3, recordz, 0)
-  PRED_SHARE("recorda", 2, recorda, 0)
-  PRED_SHARE("recorda", 3, recorda, 0)
-  PRED_DEF("erase", 1, erase, 0)
-  PRED_DEF("instance", 2, instance, 0)
-  PRED_DEF("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
+  PRED_SHARE("recorded",	   2, recorded,		    NDET)
+  PRED_SHARE("recorded",	   3, recorded,		    NDET)
+  PRED_SHARE("recordz",		   2, recordz,		    0)
+  PRED_SHARE("recordz",		   3, recordz,		    0)
+  PRED_SHARE("recorda",		   2, recorda,		    0)
+  PRED_SHARE("recorda",		   3, recorda,		    0)
+  PRED_DEF("erase",		   1, erase,		    0)
+  PRED_DEF("instance",		   2, instance,		    0)
+  PRED_DEF("current_key",	   1, current_key,	    NDET)
+
+  PRED_DEF("fast_term_serialized", 2, fast_term_serialized, 0)
+  PRED_DEF("fast_write",	   2, fast_write,	    0)
+  PRED_DEF("fast_read",		   2, fast_read,	    0)
 EndPredDefs

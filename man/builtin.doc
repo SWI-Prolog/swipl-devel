@@ -4483,6 +4483,52 @@ Create a list of one-character atoms as a difference list.
 \end{description}
 
 
+\subsection{Fast binary term I/O}
+\label{sec:fast-term-io}
+
+The predicates in this section provide fast binary I/O of arbitrary
+Prolog terms, including cyclic terms and terms holding attributed
+variables. Library \pllib{fastrw} is a SICSTus/Ciao compatible library
+that extends the core primitives described below.
+
+The binary representation the same as used by PL_record_external(). The
+use of these primitives instead of using write_canonical/2 has
+advantages and disadvantages. Below are the main considerations:
+
+\begin{itemize}
+    \item Using write_canonical/2 allows or exchange of terms with
+    other Prolog systems.  The format is stable and, as it is text
+    based, it can be inspected and corrected.
+    \item Using the binary format improves the performance roughly
+    3 times.
+    \item The size of both representations is comparable.
+    \item The binary format can deal with cycles, sharing and
+    attributes.  Special precautions are needed to transfer
+    such terms using write_canonical/2.  See term_factorized/3
+    and copy_term/3.
+    \item In the current version, reading the binary format has
+    only incomplete consistency checks.  This implies a user must
+    be able to \textbf{trust the source} as crafted messages may
+    compromise the reading Prolog system.
+\end{itemize}
+
+\begin{description}
+    \predicate{fast_term_serialized}{2}{?Term, ?String}
+(De-)serialize \arg{Term} to/from \arg{String}.
+
+    \predicate{fast_write}{2}{+Output, +Term}
+Write \arg{Term} using the fast serialization format to the
+\arg{Output} stream.  \arg{Output} \emph{must} be a binary
+stream.
+
+    \predicate{fast_read}{2}{+Input, -Term}
+Read \arg{Term} using the fast serialization format from the
+\arg{Input} stream.  \arg{Input} \emph{must} be a binary
+stream.\bug{The predicate fast_read/2 may crash on arbitrary
+input.}
+\end{description}
+
+
 \section{Status of streams}		\label{sec:streamstat}
 
 \begin{description}
