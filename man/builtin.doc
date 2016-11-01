@@ -1894,10 +1894,10 @@ Please note that (If \verb$->$ Then) acts as (If \verb$->$ Then ;
 This unusual semantics is part of the ISO and all de-facto Prolog
 standards.
 
-Please note that \verb$(if->then;else)$ is read as
-\verb$((if->then);else)$ and that the combined semantics of this
-syntactic construct as defined above is \emph{different} from the simple
-nesting of the two individual constructs, i.e., the semantics of
+Please note that \mbox{(if{->}then;else)} is read as
+\mbox{((if{->}then);else)} and that the \emph{combined} semantics of
+this syntactic construct as defined above is \emph{different} from the
+simple nesting of the two individual constructs, i.e., the semantics of
 \predref{->}{2} \emph{changes} when embedded in \predref{;}{2}. See also
 once/1.
 
