@@ -252,6 +252,9 @@ suggest predicates from a keyword.
 \predicatesummary{export}{1}{Export a predicate from a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
+\predicatesummary{fast_term_serialized}{2}{Fast term (de-)serialization}
+\predicatesummary{fast_read}{2}{Read binary term serialization}
+\predicatesummary{fast_write}{2}{Write binary term serialization}
 \predicatesummary{current_prolog_flag}{2}{Get system configuration parameters}
 \predicatesummary{file_base_name}{2}{Get file part of path}
 \predicatesummary{file_directory_name}{2}{Get directory part of path}

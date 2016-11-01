@@ -77,6 +77,7 @@ COMMON(Word)		allocGlobal__LD(size_t words ARG_LD);
 COMMON(Word)		allocGlobalNoShift__LD(size_t words ARG_LD);
 COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
 COMMON(void)		initMemAlloc(void);
+COMMON(Word)		allocString(size_t len ARG_LD);
 COMMON(word)		globalString(size_t len, const char *s);
 COMMON(word)		globalWString(size_t len, const pl_wchar_t *s);
 COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);

@@ -1894,10 +1894,10 @@ Please note that (If \verb$->$ Then) acts as (If \verb$->$ Then ;
 This unusual semantics is part of the ISO and all de-facto Prolog
 standards.
 
-Please note that \verb$(if->then;else)$ is read as
-\verb$((if->then);else)$ and that the combined semantics of this
-syntactic construct as defined above is \emph{different} from the simple
-nesting of the two individual constructs, i.e., the semantics of
+Please note that \mbox{(if{->}then;else)} is read as
+\mbox{((if{->}then);else)} and that the \emph{combined} semantics of
+this syntactic construct as defined above is \emph{different} from the
+simple nesting of the two individual constructs, i.e., the semantics of
 \predref{->}{2} \emph{changes} when embedded in \predref{;}{2}. See also
 once/1.
 
@@ -1905,16 +1905,35 @@ once/1.
 This construct implements the so-called `soft-cut'. The control is
 defined as follows: If \arg{Condition} succeeds at least once, the
 semantics is the same as (\arg{Condition}, \arg{Action}). If
-\arg{Condition} does not succeed, the semantics is that of
-(\verb$\+$ \arg{Condition}, \arg{Else}). In other words, if
-\arg{Condition} succeeds at least once, simply behave as the conjunction
-of \arg{Condition} and \arg{Action}, otherwise execute \arg{Else}.
+\arg{Condition} does not succeed, the semantics is that of (\verb$\+$
+\arg{Condition}, \arg{Else}). In other words, if \arg{Condition}
+succeeds at least once, simply behave as the conjunction of
+\arg{Condition} and \arg{Action}, otherwise execute \arg{Else}.
+The construct is known under the name \nopredref{if}{3} in some
+other Prolog implementations.
 
-The construct \arg{A} \verb$*->$ \arg{B}, i.e.\ without an
+The construct \arg{A} \verb$*->$ \arg{B}, i.e., without an
 \arg{Else} branch, is translated as the normal conjunction \arg{A},
 \arg{B}.%
 	\bug{The decompiler implemented by clause/2 returns this
 	     construct as a normal conjunction too.}
+
+This construct is rarely used. An example use case is the implementation
+of \textsc{optional} in \textsc{sparql}.  The optional construct should
+preserve all solutions if the argument succeeds as least once but still
+succeed otherwise.  This is implemented as below.
+
+\begin{code}
+optional(Goal) :-
+    (   Goal
+    *-> true
+    ;	true
+    ).
+\end{code}
+
+Now calling e.g., \verb$optional(member(X, [a,b]))$ has the solutions
+$X=a$ and $X=b$, while \verb$optional(member(X,[]))$ succeeds without
+binding $X$.
 
 \prefixop[ISO]{\+}{:Goal}
 True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
@@ -2201,14 +2220,11 @@ code calling reset/3 to \jargon{resume} the current goal.
 \end{description}
 
 
-\section{ISO compliant Exception handling}   \label{sec:exception}
+\section{Exception handling}
+\label{sec:exception}
 
-SWI-Prolog defines the predicates catch/3 and throw/1 for ISO compliant
-raising and catching of exceptions. In the current implementation
-(as of 4.0.6), most of the built-in predicates generate exceptions, but
-some obscure predicates merely print a message, start the debugger and
-fail, which was the normal behaviour before the introduction of
-exceptions.
+The predicates catch/3 and throw/1 provide ISO compliant raising and
+catching of exceptions.
 
 \begin{description}
     \predicate[ISO]{catch}{3}{:Goal, +Catcher, :Recover}
@@ -4467,6 +4483,52 @@ Create a list of one-character atoms as a difference list.
 \end{description}
 
 
+\subsection{Fast binary term I/O}
+\label{sec:fast-term-io}
+
+The predicates in this section provide fast binary I/O of arbitrary
+Prolog terms, including cyclic terms and terms holding attributed
+variables. Library \pllib{fastrw} is a SICSTus/Ciao compatible library
+that extends the core primitives described below.
+
+The binary representation the same as used by PL_record_external(). The
+use of these primitives instead of using write_canonical/2 has
+advantages and disadvantages. Below are the main considerations:
+
+\begin{itemize}
+    \item Using write_canonical/2 allows or exchange of terms with
+    other Prolog systems.  The format is stable and, as it is text
+    based, it can be inspected and corrected.
+    \item Using the binary format improves the performance roughly
+    3 times.
+    \item The size of both representations is comparable.
+    \item The binary format can deal with cycles, sharing and
+    attributes.  Special precautions are needed to transfer
+    such terms using write_canonical/2.  See term_factorized/3
+    and copy_term/3.
+    \item In the current version, reading the binary format has
+    only incomplete consistency checks.  This implies a user must
+    be able to \textbf{trust the source} as crafted messages may
+    compromise the reading Prolog system.
+\end{itemize}
+
+\begin{description}
+    \predicate{fast_term_serialized}{2}{?Term, ?String}
+(De-)serialize \arg{Term} to/from \arg{String}.
+
+    \predicate{fast_write}{2}{+Output, +Term}
+Write \arg{Term} using the fast serialization format to the
+\arg{Output} stream.  \arg{Output} \emph{must} be a binary
+stream.
+
+    \predicate{fast_read}{2}{+Input, -Term}
+Read \arg{Term} using the fast serialization format from the
+\arg{Input} stream.  \arg{Input} \emph{must} be a binary
+stream.\bug{The predicate fast_read/2 may crash on arbitrary
+input.}
+\end{description}
+
+
 \section{Status of streams}		\label{sec:streamstat}
 
 \begin{description}
@@ -5824,7 +5886,7 @@ predicates to exploit the C-character classification's handling of
 \jargon{locale} (handling of local character sets). These predicates are
 fast, logical and deterministic if applicable.
 
-In addition, there is the library \pllib{ctype} providing compatibility
+In addition, there is the library \pllib{ctypes} providing compatibility
 with some other Prolog systems. The predicates of this library are defined
 in terms of code_type/2.
 

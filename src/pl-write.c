@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -276,7 +276,13 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
     return FALSE;
 
   if ( !f_is_prolog_atom_start(*s) )
-    return FALSE;
+  { for( ; len > 0; s++, len--)
+    { if ( !f_is_prolog_symbol(*s) ||
+	   (fd && Scanrepresent(*s, fd)<0) )
+	return FALSE;
+    }
+    return TRUE;
+  }
 
   do
   { for( ++s;

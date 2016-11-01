@@ -466,7 +466,7 @@ ignored to avoid alignment restriction problems.
 Note that these functions can trigger GC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Word
+Word
 allocString(size_t len ARG_LD)
 { size_t lw = (len+sizeof(word))/sizeof(word);
   int pad = (int)(lw*sizeof(word) - len);
