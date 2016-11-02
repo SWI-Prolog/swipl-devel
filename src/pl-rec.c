@@ -1938,6 +1938,7 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
     PL_close_foreign_frame(fid);
   }
 
+  freeTableEnum(e);
   return FALSE;
 }
 
