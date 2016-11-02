@@ -869,7 +869,9 @@ pl_current_predicate1(term_t spec, control_t ctx)
 	{ e->module = m;
 	  ForeignRedoPtr(e);
 	} else
-	  succeed;
+	{ rval = TRUE;
+	  goto clean;
+	}
       }
     } else
     { functor_t f;
