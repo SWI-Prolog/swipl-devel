@@ -2431,6 +2431,8 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 out:
   if ( map != map_buf )
     free(map);
+  if ( poll_map != poll_buf )
+    free(poll_map);
 
   return rc;
 }
