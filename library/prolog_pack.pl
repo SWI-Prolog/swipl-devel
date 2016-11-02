@@ -445,8 +445,9 @@ pack_default_options(Dir, Pack, _, Options) :-	% Install from directory
 pack_default_options(URL, Pack, _, Options) :-	% Install from URL
 	pack_version_file(Pack, Version, URL),
 	download_url(URL), !,
-	available_download_versions(URL, [_-LatestURL|_]),
-	Options = [url(LatestURL), version(Version)].
+	available_download_versions(URL, [URLVersion-LatestURL|_]),
+	Options = [url(LatestURL)|VersionOptions],
+	version_options(Version, URLVersion, VersionOptions).
 pack_default_options(Pack, Pack, OptsIn, Options) :-	% Install from a pack name
 	\+ uri_is_global(Pack),			% ignore URLs
 	query_pack_server(locate(Pack), Reply, OptsIn),
@@ -455,6 +456,12 @@ pack_default_options(Pack, Pack, OptsIn, Options) :-	% Install from a pack name
 	;   print_message(warning, pack(no_match(Pack))),
 	    fail
 	).
+
+version_options(Version, Version, [version(Version)]) :- !.
+version_options(Version, _, [version(Version)]) :-
+	Version = version(List),
+	maplist(integer, List), !.
+version_options(_, _, []).
 
 pack_select_candidate(Pack, Available, Options, OptsOut) :-
 	option(url(URL), Options),
@@ -1671,7 +1678,8 @@ available_download_versions(URL, Versions) :-
 	),
 	versioned_urls(MatchingURLs, VersionedURLs),
 	keysort(VersionedURLs, SortedVersions),
-	reverse(SortedVersions, Versions).
+	reverse(SortedVersions, Versions),
+	print_message(informational, pack(found_versions(Versions))).
 available_download_versions(URL, [Version-URL]) :-
 	(   pack_version_file(_Pack, Version0, URL)
 	->  Version = Version0
@@ -2122,6 +2130,11 @@ message(query_versions(URL)) -->
 	[ 'Querying "~w" to find new versions ...'-[URL] ].
 message(no_matching_urls(URL)) -->
 	[ 'Could not find any matching URL: ~q'-[URL] ].
+message(found_versions([Latest-_URL|More])) -->
+	{ length(More, Len),
+	  atom_version(VLatest, Latest)
+	},
+	[ '    Latest version: ~w (~D older)'-[VLatest, Len] ].
 message(process_output(Codes)) -->
 	{ split_lines(Codes, Lines) },
 	process_lines(Lines).
