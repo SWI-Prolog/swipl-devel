@@ -1036,11 +1036,16 @@ resortDictsInCodes(Code PC, Code end)
 		break;
 	      }
 	      default:
+	      { if ( kv_pos != kv_buf )
+		  free(kv_pos);
 		return TRUE;		/* not a dict */
+	      }
 	    }
 
 	    if ( !resortDictsInCodes(PCv, PC) )
-	    { return FALSE;
+	    { if ( kv_pos != kv_buf )
+		free(kv_pos);
+	      return FALSE;
 	    }
 
 	    PC = stepPC(PC);		/* skip key */
