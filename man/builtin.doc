@@ -8155,7 +8155,7 @@ Extract values from a {date}/9 term.  Provided keys are:
 Modelled after POSIX strftime(), using GNU extensions.  \arg{Out}
 is a destination as specified with with_output_to/2.  \arg{Format}
 is an atom or string with the following conversions.  Conversions
-start with a tilde (\%) character.%
+start with a percent (\%) character.%
 	\footnote{Descriptions taken from Linux Programmer's Manual}
 \arg{StampOrDateTime} is either a numeric time-stamp, a term
 \term{date}{Y,M,D,H,M,S,O,TZ,DST} or a term \term{date}{Y,M,D}.
