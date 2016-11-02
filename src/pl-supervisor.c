@@ -199,6 +199,7 @@ singleClauseSupervisor(Definition def)
 
       return codes;
     }
+    freeCodes(codes);
   }
 
   return NULL;
