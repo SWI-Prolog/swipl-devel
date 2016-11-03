@@ -535,8 +535,7 @@ static void
 clean_ld_free_list(void)
 { if ( ld_free_list )
   { PL_local_data_t *ld, **prev = &ld_free_list;
-
-    for(ld = ld_free_list; ld; ld=ld->next_free)
+    for(ld = ld_free_list; ld; ld=*prev)
     { if ( !ldata_in_use(ld) )
       { *prev = ld->next_free;
 	freeHeap(ld, sizeof(*ld));
