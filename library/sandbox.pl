@@ -883,7 +883,7 @@ strip_existential(G, G).
 safe_meta((0,0)).
 safe_meta((0;0)).
 safe_meta((0->0)).
-safe_meta((0*->0)).
+safe_meta(system:(0*->0)).
 safe_meta(catch(0,*,0)).
 safe_meta(findall(*,0,*)).
 safe_meta('$bags':findall(*,0,*,*)).
