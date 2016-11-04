@@ -816,14 +816,19 @@ static
 PRED_IMPL("tmp_file", 2, tmp_file, 0)
 { PRED_LD
   char *n;
+  atom_t fn;
 
   term_t base = A1;
   term_t name = A2;
 
-  if ( !PL_get_chars(base, &n, CVT_ALL) )
-    return PL_error("tmp_file", 2, NULL, ERR_TYPE, ATOM_atom, base);
+  if ( !PL_get_chars(base, &n, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
 
-  return PL_unify_atom(name, TemporaryFile(n, NULL));
+  if ( (fn=TemporaryFile(n, NULL)) )
+    return PL_unify_atom(name, fn);
+  else
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_create, ATOM_temporary_file, A1);
 }
 
 /** tmp_file_stream(+Mode, -File, -Stream)
@@ -863,7 +868,8 @@ PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
     s->encoding = enc;
     return PL_unify_stream(A3, s);
   } else
-  { return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_temporary_files);
+  { return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_create, ATOM_temporary_file, A2);
   }
 }
 

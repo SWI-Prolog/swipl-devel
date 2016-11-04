@@ -594,7 +594,6 @@ TemporaryFile(const char *id, int *fdp)
 { char temp[MAXPATHLEN];
   static char *tmpdir = NULL;
   atom_t tname;
-  int retries = 0;
 
   if ( !tmpdir )
   { LOCK();
@@ -637,8 +636,11 @@ retry:
 { static int MTOK_temp_counter = 0;
   const char *sep = id[0] ? "_" : "";
 
-  Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d_%d",
-	    tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++);
+  if ( Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d_%d",
+		 tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++) < 0 )
+  { errno = ENAMETOOLONG;
+    return NULL_ATOM;
+  }
 }
 #endif
 
@@ -655,8 +657,11 @@ retry:
   } else
   { const char *sep = id[0] ? "_" : "";
 
-    Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d",
-	      tmpdir, id, sep, temp_counter++);
+    if ( Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d",
+		   tmpdir, id, sep, temp_counter++) < 0 )
+    { errno = ENAMETOOLONG;
+      return NULL_ATOM;
+    }
   }
 }
 #endif
@@ -665,10 +670,10 @@ retry:
   { int fd;
 
     if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY|O_BINARY, 0600)) < 0 )
-    { if ( ++retries < 10000 )
+    { if ( errno == EEXIST )
 	goto retry;
-      else
-	return NULL_ATOM;
+
+      return NULL_ATOM;
     }
 
     *fdp = fd;

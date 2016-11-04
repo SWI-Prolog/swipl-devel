@@ -477,6 +477,11 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_FUNCTOR, FUNCTOR_resource_error1,
 			       PL_ATOM, ATOM_max_files);
 	  break;
+	case ENAMETOOLONG:
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR, FUNCTOR_representation_error1,
+			       PL_ATOM, ATOM_max_path_length);
+	  break;
 #ifdef EPIPE
 	case EPIPE:
 	  if ( !msg )
