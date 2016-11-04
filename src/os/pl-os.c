@@ -637,8 +637,8 @@ retry:
 { static int MTOK_temp_counter = 0;
   const char *sep = id[0] ? "_" : "";
 
-  Ssprintf(temp, "%s/pl_%s%s%d_%d",
-	   tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++);
+  Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d_%d",
+	    tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++);
 }
 #endif
 
@@ -655,7 +655,8 @@ retry:
   } else
   { const char *sep = id[0] ? "_" : "";
 
-    Ssprintf(temp, "%s/pl_%s%s%d", tmpdir, id, sep, temp_counter++);
+    Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d",
+	      tmpdir, id, sep, temp_counter++);
   }
 }
 #endif

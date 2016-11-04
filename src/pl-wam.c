@@ -2062,14 +2062,14 @@ chp_chars(Choice ch)
 { GET_LD
   static char buf[256];
 
-  Ssprintf(buf, "Choice at #%ld for frame #%ld (%s), type %s",
-	   loffset(ch), loffset(ch->frame),
-	   predicateName(ch->frame->predicate),
-	   ch->type == CHP_JUMP ? "JUMP" :
-	   ch->type == CHP_CLAUSE ? "CLAUSE" :
-	   ch->type == CHP_TOP ? "TOP" :
-	   ch->type == CHP_DEBUG ? "DEBUG" :
-	   ch->type == CHP_CATCH ? "CATCH" : "NONE");
+  Ssnprintf(buf, sizeof(buf), "Choice at #%ld for frame #%ld (%s), type %s",
+	    loffset(ch), loffset(ch->frame),
+	    predicateName(ch->frame->predicate),
+	    ch->type == CHP_JUMP ? "JUMP" :
+	    ch->type == CHP_CLAUSE ? "CLAUSE" :
+	    ch->type == CHP_TOP ? "TOP" :
+	    ch->type == CHP_DEBUG ? "DEBUG" :
+	    ch->type == CHP_CATCH ? "CATCH" : "NONE");
 
   return buf;
 }

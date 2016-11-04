@@ -2360,6 +2360,19 @@ Ssprintf(char *buf, const char *fm, ...)
 
 
 int
+Ssnprintf(char *buf, size_t size, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svsnprintf(buf, size, fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+
+int
 Svsprintf(char *buf, const char *fm, va_list args)
 { IOSTREAM s;
   int rval;
@@ -2373,6 +2386,43 @@ Svsprintf(char *buf, const char *fm, va_list args)
 
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';
+
+  return rval;
+}
+
+
+/* Svsnprintf() writes at most `size` bytes to `buf`, while the
+   produced string is always 0-terminated (i.e., it emits at most
+   `size-1` bytes from the specification.
+
+   It returns the numer of bytes emitted if the length limit has
+   not been enforced or -1 if the length limit was enforced.  The
+   value -1 is produced because
+
+    * s->bufp == s->limitp, so put_byte() calls S__flushbufc()
+    *   s->buffer exits, so S__flushbufc() calls S__flushbuf()
+    *     s->timeout == 0, so S__flushbuf() calls S__wait()
+    *       S__wait() calls Sfileno()
+    *         s->magic == NULL, so return INVALID_FD
+
+   FIXME: this should probably use UTF-8 encoding rather than
+   ENC_ISO_LATIN_1.
+*/
+
+int
+Svsnprintf(char *buf, size_t size, const char *fm, va_list args)
+{ IOSTREAM s;
+  int rval;
+
+  memset(&s, 0, sizeof(s));
+  s.bufp      = buf;
+  s.limitp    = &buf[size-1];
+  s.buffer    = buf;
+  s.flags     = SIO_FBUF|SIO_OUTPUT;
+  s.encoding  = ENC_ISO_LATIN_1;
+
+  rval = Svfprintf(&s, fm, args);
+  *s.bufp = '\0';
 
   return rval;
 }

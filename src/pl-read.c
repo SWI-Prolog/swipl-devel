@@ -3471,8 +3471,8 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 
 /* might use this to improve the error message!?
   if ( PL_get_name_arity(t, &name, &arity) )
-  { Ssprintf(buf, "Operator `%s' conflicts with `%s'",
-	     opname, stringAtom(name));
+  { Ssnprintf(buf, sizeof(buf), "Operator `%s' conflicts with `%s'",
+	      opname, stringAtom(name));
   }
 */
 

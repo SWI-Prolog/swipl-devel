@@ -182,7 +182,7 @@ findHome(const char *symbols, int argc, const char **argv)
     IOSTREAM *fd;
 
     strcpy(parent, DirName(DirName(AbsoluteFile(home, buf), buf), buf));
-    Ssprintf(buf, "%s/" PLHOMEFILE, parent);
+    Ssnprintf(buf, sizeof(buf), "%s/" PLHOMEFILE, parent);
 
     if ( (fd = Sopen_file(buf, "r")) )
     { if ( Sfgets(buf, sizeof(buf), fd) )
@@ -202,7 +202,7 @@ findHome(const char *symbols, int argc, const char **argv)
 	if ( !IsAbsolutePath(buf) )
 	{ char buf2[MAXPATHLEN];
 
-	  Ssprintf(buf2, "%s/%s", parent, buf);
+	  Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf);
 	  home = AbsoluteFile(buf2, plp);
 	} else
 	  home = AbsoluteFile(buf, plp);
@@ -1451,9 +1451,9 @@ vfatalError(const char *fm, va_list args)
 
 #ifdef __WINDOWS__
   { char msg[500];
-    Ssprintf(msg, "[FATAL ERROR: at %s\n\t", tbuf);
-    Svsprintf(&msg[strlen(msg)], fm, args);
-    Ssprintf(&msg[strlen(msg)], "]");
+    Ssnprintf(msg, sizeof(msg), "[FATAL ERROR: at %s\n\t", tbuf);
+    Svsnprintf(&msg[strlen(msg)], sizeof(msg)-strlen(msg), fm, args);
+    Ssnprintf(&msg[strlen(msg)], sizeof(msg)-strlen(msg), "]");
 
     PlMessage(msg);
   }
@@ -1500,7 +1500,7 @@ vwarning(const char *fm, va_list args)
       tail = PL_copy_term_ref(av+1);
       head = PL_new_term_ref();
 
-      Svsprintf(message, fm, args);
+      Svsnprintf(message, sizeof(message), fm, args);
 
       for(;;)
       { char *eol = strchr(s, '\n');
