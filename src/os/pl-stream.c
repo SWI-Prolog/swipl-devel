@@ -130,6 +130,9 @@ static int	S__removebuf(IOSTREAM *s);
 static int	S__seterror(IOSTREAM *s);
        void	unallocStream(IOSTREAM *s);
 
+static IOSTREAM *	Sopen_buffer(IOSTREAM *s, char *buf, size_t size);
+static void		Sclose_buffer(IOSTREAM *s);
+
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
 #define SUNLOCK(s)  if ( s->mutex ) recursiveMutexUnlock(s->mutex)
@@ -2394,19 +2397,6 @@ Svsprintf(char *buf, const char *fm, va_list args)
 /* Svsnprintf() writes at most `size` bytes to `buf`, while the
    produced string is always 0-terminated (i.e., it emits at most
    `size-1` bytes from the specification.
-
-   It returns the numer of bytes emitted if the length limit has
-   not been enforced or -1 if the length limit was enforced.  The
-   value -1 is produced because
-
-    * s->bufp == s->limitp, so put_byte() calls S__flushbufc()
-    *   s->buffer exits, so S__flushbufc() calls S__flushbuf()
-    *     s->timeout == 0, so S__flushbuf() calls S__wait()
-    *       S__wait() calls Sfileno()
-    *         s->magic == NULL, so return INVALID_FD
-
-   FIXME: this should probably use UTF-8 encoding rather than
-   ENC_ISO_LATIN_1.
 */
 
 int
@@ -2414,15 +2404,9 @@ Svsnprintf(char *buf, size_t size, const char *fm, va_list args)
 { IOSTREAM s;
   int rval;
 
-  memset(&s, 0, sizeof(s));
-  s.bufp      = buf;
-  s.limitp    = &buf[size-1];
-  s.buffer    = buf;
-  s.flags     = SIO_FBUF|SIO_OUTPUT;
-  s.encoding  = ENC_ISO_LATIN_1;
-
+  Sopen_buffer(&s, buf, size);
   rval = Svfprintf(&s, fm, args);
-  *s.bufp = '\0';
+  Sclose_buffer(&s);
 
   return rval;
 }
@@ -3702,6 +3686,52 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 
   return s;
 }
+
+		 /*******************************
+		 *        BUFFER STREAMS        *
+		 *******************************/
+
+static ssize_t
+Swrite_buffer(void *handle, char *buf, size_t size)
+{ (void)handle;
+  (void)buf;
+  (void)size;
+
+  return -1;
+}
+
+IOFUNCTIONS Sbufferfunctions =
+{ NULL, /* read */
+  Swrite_buffer,
+  NULL, /* seek */
+  NULL  /* close */
+};
+
+/*
+   FIXME: this should probably use UTF-8 encoding rather than
+   ENC_ISO_LATIN_1.
+*/
+
+static IOSTREAM *
+Sopen_buffer(IOSTREAM *s, char *buf, size_t size)
+{
+  memset((char *)s, 0, sizeof(IOSTREAM));
+  s->bufp      = buf;
+  s->limitp    = &buf[size-1];
+  s->buffer    = buf;
+  s->flags     = SIO_FBUF|SIO_OUTPUT;
+  s->functions = &Sbufferfunctions;
+  s->encoding  = ENC_ISO_LATIN_1;
+  s->magic     = SIO_MAGIC;
+
+  return s;
+}
+
+static void
+Sclose_buffer(IOSTREAM *s)
+{ *s->bufp++ = '\0';
+}
+
 
 		 /*******************************
 		 *	 STANDARD HANDLES	*
