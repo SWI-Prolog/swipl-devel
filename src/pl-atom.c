@@ -1774,12 +1774,14 @@ PRED_IMPL("$complete_atom", 3, complete_atom, 0)
   term_t unique = A3;
 
   char *p;
+  size_t len;
   bool u;
   char buf[LINESIZ];
   char cmm[LINESIZ];
 
-  if ( !PL_get_chars(prefix, &p, CVT_ALL|CVT_EXCEPTION) )
-    fail;
+  if ( !PL_get_nchars(prefix, &len, &p, CVT_ALL|CVT_EXCEPTION) ||
+       len >= sizeof(buf) )
+    return FALSE;
   strcpy(buf, p);
 
   if ( extendAtom(p, &u, cmm) )
@@ -1787,10 +1789,10 @@ PRED_IMPL("$complete_atom", 3, complete_atom, 0)
     if ( PL_unify_list_codes(common, buf) &&
 	 PL_unify_atom(unique, u ? ATOM_unique
 				 : ATOM_not_unique) )
-      succeed;
+      return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
