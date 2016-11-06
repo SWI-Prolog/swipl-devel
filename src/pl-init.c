@@ -741,11 +741,14 @@ openResourceDB(int argc, char **argv)
     return rc;
 
   if ( systemDefaults.home )
-  { strcpy(tmp, systemDefaults.home);
-    strcat(tmp, "/");
-    strcat(tmp, BOOTFILE);
+  { if ( strlen(systemDefaults.home)+1+strlen(BOOTFILE) < MAXPATHLEN )
+    { strcpy(tmp, systemDefaults.home);
+      strcat(tmp, "/");
+      strcat(tmp, BOOTFILE);
 
-    return rc_open_archive(tmp, flags);
+      return rc_open_archive(tmp, flags);
+    } else
+      errno = ENAMETOOLONG;
   }
 
   return NULL;
