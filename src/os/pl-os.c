@@ -653,7 +653,8 @@ retry:
 #else
   if ( (tmp = _tempnam(tmpdir, id)) )
 #endif
-  { PrologPath(tmp, temp, sizeof(temp));
+  { if ( !PrologPath(tmp, temp, sizeof(temp)) )
+      return NULL_ATOM;
   } else
   { const char *sep = id[0] ? "_" : "";
 
@@ -750,9 +751,15 @@ PrologPath(char *ospath, char *path, size_t len)
   }
   for(; *s && limit; s++, p++, limit--)
     *p = (*s == '\\' ? '/' : makeLower(*s));
-  *p = EOS;
 
-  return path;
+  if ( limit )
+  { *p = EOS;
+    return path;
+  } else
+  { path[0] = EOS;
+    errno = ENAMETOOLONG;
+    return NULL;
+  }
 }
 
 
@@ -783,9 +790,12 @@ OsPath(const char *plpath, char *path)
 #ifdef __unix__
 char *
 PrologPath(const char *p, char *buf, size_t len)
-{ strncpy(buf, p, len);
+{ if ( strlen(p) < len )
+    return strcpy(buf, p);
 
-  return buf;
+  *buf = EOS;
+  errno = ENAMETOOLONG;
+  return NULL;
 }
 
 char *
@@ -1482,7 +1492,7 @@ AbsoluteFile(const char *spec, char *path)
   char *file = PrologPath(spec, buf, sizeof(buf));
 
   if ( !file )
-     return (char *) NULL;
+    return (char *) NULL;
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(file = expandVars(buf, tmp, sizeof(tmp))) )
       return (char *) NULL;
@@ -1600,14 +1610,18 @@ PL_cwd(char *cwd, size_t cwdlen)
 
 char *
 BaseName(const char *f)
-{ const char *base;
+{ if ( f )
+  { const char *base;
 
-  for(base = f; *f; f++)
-  { if (*f == '/')
-      base = f+1;
+    for(base = f; *f; f++)
+    { if (*f == '/')
+	base = f+1;
+    }
+
+    return (char *)base;
   }
 
-  return (char *)base;
+  return NULL;
 }
 
 
@@ -2508,7 +2522,7 @@ char *command;
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    char *findExecutable(char *buf)
+    char *findExecutable(const char *progname, char *buf, size_t buflen)
 
     Return the path name of the executable of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -2517,7 +2531,7 @@ char *command;
 static char *	Which(const char *program, char *fullname);
 
 char *
-findExecutable(const char *av0, char *buffer)
+findExecutable(const char *av0, char *buffer, size_t buflen)
 { char *file;
   char buf[MAXPATHLEN];
   char tmp[MAXPATHLEN];

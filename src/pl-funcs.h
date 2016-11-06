@@ -383,7 +383,7 @@ COMMON(char *)		Getenv(const char *, char *buf, size_t buflen);
 COMMON(int)		Setenv(char *name, char *value);
 COMMON(int)		Unsetenv(char *name);
 COMMON(int)		System(char *cmd);
-COMMON(char *)		findExecutable(const char *module, char *buf);
+COMMON(char *)		findExecutable(const char *module, char *buf, size_t len);
 COMMON(int)		Pause(double time);
 
 /* pl-prims.c */

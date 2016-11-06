@@ -242,15 +242,19 @@ static char *
 defaultSystemInitFile(const char *a0)
 { char plp[MAXPATHLEN];
   char *base = BaseName(PrologPath(a0, plp, sizeof(plp)));
-  char buf[256];
-  char *s = buf;
 
-  while( *base && (isAlpha(*base) || *base == '-') )
-    *s++ = *base++;
-  *s = EOS;
+  if ( base )
+  { char buf[256];
+    char *s = buf;
+    size_t limit = sizeof(buf);
 
-  if ( buf[0] != EOS )
-    return store_string(buf);
+    while( (*base && (isAlpha(*base) || *base == '-')) && --limit > 0 )
+      *s++ = *base++;
+    *s = EOS;
+
+    if ( buf[0] != EOS && limit > 0 )
+      return store_string(buf);
+  }
 
   return store_string("swipl");
 }
@@ -319,7 +323,7 @@ initPaths(int argc, const char **argv)
   { char plp1[MAXPATHLEN];
     const char *symbols = NULL;		/* The executable */
 
-    if ( !(symbols = findExecutable(argv[0], plp1)) ||
+    if ( !(symbols = findExecutable(argv[0], plp1, sizeof(plp1))) ||
 	 !(symbols = DeRefLink(symbols, plp)) )
       symbols = argv[0];
 

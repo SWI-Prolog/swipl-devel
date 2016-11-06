@@ -319,7 +319,7 @@ setOSPrologFlags(void)
 
 
 char *
-findExecutable(const char *module, char *exe)
+findExecutable(const char *module, char *exe, size_t exelen)
 { int n;
   wchar_t wbuf[MAXPATHLEN];
   HMODULE hmod;
@@ -338,12 +338,9 @@ findExecutable(const char *module, char *exe)
 
   if ( (n = GetModuleFileNameW(hmod, wbuf, MAXPATHLEN)) > 0 )
   { wbuf[n] = EOS;
-    return _xos_long_file_name_toA(wbuf, exe, MAXPATHLEN);
+    return _xos_long_file_name_toA(wbuf, exe, exelen);
   } else if ( module )
-  { char buf[MAXPATHLEN];
-    PrologPath(module, buf, sizeof(buf));
-
-    strcpy(exe, buf);
+  { return PrologPath(module, exe, exelen);
   } else
     *exe = EOS;
 
@@ -597,7 +594,7 @@ pl_win_module_file(term_t module, term_t file)
 
   if ( !PL_get_chars(module, &m, CVT_ALL|CVT_EXCEPTION) )
     fail;
-  if ( (f = findExecutable(m, buf)) )
+  if ( (f = findExecutable(m, buf, sizeof(buf))) )
     return PL_unify_atom_chars(file, f);
 
   fail;
