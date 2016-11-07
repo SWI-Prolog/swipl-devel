@@ -1241,7 +1241,7 @@ canonicalisePath(char *path)
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
   { if ( !utf8_strlwr(path) )
-    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+    { PL_representation_error("max_path_length");
       return NULL;
     }
   }
@@ -1601,7 +1601,10 @@ to be implemented directly.  What about other Unixes?
       return NULL;
     }
 
-    canonicalisePath(buf);
+    if ( !canonicalisePath(buf) )
+    { PL_representation_error("max_path_length");
+      return NULL;
+    }
     GD->paths.CWDlen = strlen(buf);
     buf[GD->paths.CWDlen++] = '/';
     buf[GD->paths.CWDlen] = EOS;
@@ -1615,7 +1618,7 @@ to be implemented directly.  What about other Unixes?
   { memcpy(cwd, GD->paths.CWDdir, GD->paths.CWDlen+1);
     return cwd;
   } else
-  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+  { PL_representation_error("max_path_length");
     return NULL;
   }
 }
@@ -1652,24 +1655,28 @@ BaseName(const char *f)
 
 char *
 DirName(const char *f, char *dir)
-{ const char *base, *p;
+{ if ( f )
+  { const char *base, *p;
 
-  for(base = p = f; *p; p++)
-  { if ( *p == '/' )
-      base = p;
-  }
-  if ( base == f )
-  { if ( *f == '/' )
-      strcpy(dir, "/");
-    else
-      strcpy(dir, ".");
-  } else
-  { if ( dir != f )			/* otherwise it is in-place */
-      strncpy(dir, f, base-f);
-    dir[base-f] = EOS;
+    for(base = p = f; *p; p++)
+    { if ( *p == '/' )
+	base = p;
+    }
+    if ( base == f )
+    { if ( *f == '/' )
+	strcpy(dir, "/");
+      else
+	strcpy(dir, ".");
+    } else
+    { if ( dir != f )			/* otherwise it is in-place */
+	strncpy(dir, f, base-f);
+      dir[base-f] = EOS;
+    }
+
+    return dir;
   }
 
-  return dir;
+  return NULL;
 }
 
 
@@ -1690,9 +1697,10 @@ ChDir(const char *path)
 
   if ( path[0] == EOS || streq(path, ".") ||
        (GD->paths.CWDdir && streq(path, GD->paths.CWDdir)) )
-    succeed;
+    return TRUE;
 
-  AbsoluteFile(path, tmp);
+  if ( !AbsoluteFile(path, tmp) )
+    return FALSE;
 
   if ( chdir(ospath) == 0 )
   { size_t len;
@@ -1709,10 +1717,10 @@ ChDir(const char *path)
     GD->paths.CWDdir = store_string(tmp);
     UNLOCK();
 
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 

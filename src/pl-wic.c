@@ -1308,6 +1308,7 @@ loadImport(wic_state *state, int skip ARG_LD)
 static atom_t
 qlfFixSourcePath(wic_state *state, const char *raw)
 { char buf[MAXPATHLEN];
+  char *canonical;
 
   if ( state->load_state->has_moved &&
        strprefix(raw, state->load_state->save_dir) )
@@ -1323,11 +1324,18 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
-      fatalError("Path name too long: %s", raw);
+    { fatalError("Path name too long: %s", raw);
+      return NULL_ATOM;
+    }
     strcpy(buf, raw);
   }
 
-  return PL_new_atom(canonicalisePath(buf));
+  if ( (canonical=canonicalisePath(buf)) )
+  { return PL_new_atom(canonical);
+  } else
+  { fatalError("Path name too long: %s", buf);
+    return NULL_ATOM;
+  }
 }
 
 

@@ -180,8 +180,12 @@ findHome(const char *symbols, int argc, const char **argv)
   { char buf[MAXPATHLEN];
     char parent[MAXPATHLEN];
     IOSTREAM *fd;
+    char *abshome;
 
-    strcpy(parent, DirName(DirName(AbsoluteFile(home, buf), buf), buf));
+    if ( !(abshome=AbsoluteFile(home, buf)) )
+      fatalError("File name too long: %s", home);
+
+    strcpy(parent, DirName(DirName(abshome, buf), buf));
     Ssnprintf(buf, sizeof(buf), "%s/" PLHOMEFILE, parent);
 
     if ( (fd = Sopen_file(buf, "r")) )
@@ -202,10 +206,13 @@ findHome(const char *symbols, int argc, const char **argv)
 	if ( !IsAbsolutePath(buf) )
 	{ char buf2[MAXPATHLEN];
 
-	  Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf);
-	  home = AbsoluteFile(buf2, plp);
+	  if ( Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf) < 0 ||
+	       !(home = AbsoluteFile(buf2, plp)) )
+	    fatalError("Path name too long: %s/%s", parent, buf);
 	} else
-	  home = AbsoluteFile(buf, plp);
+	{ if ( !(home = AbsoluteFile(buf, plp)) )
+	    fatalError("Path name too long: %s/%s", buf);
+	}
 
 	if ( ExistsDirectory(home) )
 	{ Sclose(fd);
