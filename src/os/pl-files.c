@@ -538,7 +538,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
     return PL_error(NULL, 0, "file name contains a 0-code",
 		    ERR_DOMAIN, ATOM_file_name, n);
   }
-  if ( len+1 >= MAXPATHLEN )
+  if ( len >= MAXPATHLEN )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 		    ATOM_max_path_length);
 
