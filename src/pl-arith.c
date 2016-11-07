@@ -3089,7 +3089,7 @@ seed_from_dev(const char *dev ARG_LD)
 #if defined(S_ISCHR) && !defined(__WINDOWS__)
   int fd;
 
-  if ( (fd=open(dev, O_RDONLY)) )
+  if ( (fd=open(dev, O_RDONLY)) != -1 )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 && S_ISCHR(buf.st_mode) )
