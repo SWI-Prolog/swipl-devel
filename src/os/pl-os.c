@@ -1206,6 +1206,27 @@ utf8_strlwr(char *s)
 
     i = utf8_get_char(i, &c);
     c = towlower((wint_t)c);
+    if ( o >= s + MAXPATHLEN-6 )
+    { if ( c < 0x80 )
+      { if ( o >= s + MAXPATHLEN-1 )
+          return NULL;
+      } else if ( c < 0x800 )
+      { if ( o >= s + MAXPATHLEN-2 )
+          return NULL;
+      } else if ( c < 0x10000 )
+      { if ( o >= s + MAXPATHLEN-3 )
+          return NULL;
+      } else if ( c < 0x200000 )
+      { if ( o >= s + MAXPATHLEN-4 )
+          return NULL;
+      } else if ( c < 0x4000000 )
+      { if ( o >= s + MAXPATHLEN-5 )
+          return NULL;
+      } else if ( (unsigned)c < 0x80000000 )
+      { if ( o >= s + MAXPATHLEN-6 )
+          return NULL;
+      }
+    }
     o = utf8_put_char(o, c);
   }
   *o = EOS;
@@ -1219,7 +1240,11 @@ canonicalisePath(char *path)
 { GET_LD
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
-    utf8_strlwr(path);
+  { if ( !utf8_strlwr(path) )
+    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+      return NULL;
+    }
+  }
 
   canonicaliseFileName(path);
 
