@@ -230,8 +230,9 @@ random_perm2(A,B, X,Y) :-
 %	@compat	Quintus and SICStus libraries.
 
 random_member(X, List) :-
-	List \== [],
+	must_be(list, List),
 	length(List, Len),
+	Len > 0,
 	N is random(Len),
 	nth0(N, List, X).
 
