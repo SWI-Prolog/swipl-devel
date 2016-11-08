@@ -37,6 +37,7 @@
 	    uninstantiation_error/1,	% +Term
 	    representation_error/1,	% +Reason
 	    syntax_error/1,		% +Culprit
+	    resource_error/1,		% +Culprit
 
 	    must_be/2,			% +Type, +Term
 	    is_of_type/2		% +Type, +Term
@@ -160,6 +161,13 @@ representation_error(Reason) :-
 
 syntax_error(Culprit) :-
 	throw(error(syntax_error(Culprit), _)).
+
+%%	resource_error(+Culprit)
+%
+%	A goal cannot be completed due to lack of resources.
+
+resource_error(Culprit) :-
+	throw(error(resource_error(Culprit), _)).
 
 
 		 /*******************************
