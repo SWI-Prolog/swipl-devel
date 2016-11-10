@@ -7,7 +7,7 @@
 
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
-TARGET_DISTRO=precise
+TARGET_DISTRO=xenial
 build=true
 buildbin=false
 push=false
@@ -80,7 +80,7 @@ fi
 
 # Avoid typos ...
 case $TARGET_DISTRO in
-  precise|trusty|wily|xenial)
+  trusty|wily|xenial|yakkety)
     ;;
   *) echo "Unsupported target distro ($TARGET_DISTRO)"
      exit 1
