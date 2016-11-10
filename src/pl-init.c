@@ -340,7 +340,7 @@ initPaths(int argc, const char **argv)
 
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
-    symbols = findExecutable(NULL, plp);
+    symbols = findExecutable(NULL, plp, sizeof(plp));
     DEBUG(2, Sdprintf("Executable: %s\n", symbols));
 #endif
     GD->paths.executable       = store_string(symbols);
