@@ -3171,11 +3171,15 @@ compileFile(wic_state *state, const char *file)
     fail;
   DEBUG(MSG_QLF_PATH, Sdprintf("Expanded to %s\n", path));
 
-  nf = PL_new_atom(path);			/* NOTE: Only ISO-Latin-1 */
-  PL_put_atom(f, nf);
+  if ( PL_unify_chars(f, PL_ATOM|REP_MB, (size_t)-1, path) )
+    PL_get_atom(f, &nf);
+  else
+    fatalError("Could not unify path");
   DEBUG(MSG_QLF_BOOT, Sdprintf("Opening\n"));
   if ( !pl_see(f) )
-    fail;
+  { Sdprintf("Failed to open %s\n", path);
+    return FALSE;
+  }
   DEBUG(MSG_QLF_BOOT, Sdprintf("pl_start_consult()\n"));
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
