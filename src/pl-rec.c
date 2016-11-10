@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2016, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -942,13 +942,13 @@ PRED_IMPL("fast_write", 2, fast_write, 0)
       { if ( data.simple )
 	{ size_t len = sizeOfBuffer(&data.info.code);
 
-	  rc = (Sfwrite(data.info.code.base, 1, len, out) >= 0);
+	  rc = (Sfwrite(data.info.code.base, 1, len, out) == len);
 	} else
 	{ size_t shdr  = sizeOfBuffer(&data.hdr);
 	  size_t scode = sizeOfBuffer(&data.info.code);
 
-	  rc = ( Sfwrite(data.hdr.base,       1,  shdr, out) >= 0 &&
-		 Sfwrite(data.info.code.base, 1, scode, out) >= 0
+	  rc = ( Sfwrite(data.hdr.base,       1,  shdr, out) == shdr &&
+		 Sfwrite(data.info.code.base, 1, scode, out) == scode
 	       );
 	}
 
