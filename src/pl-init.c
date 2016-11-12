@@ -32,6 +32,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-incl.h"
 #include "pl-prof.h"
 #include "os/pl-ctype.h"
+#include <errno.h>
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
