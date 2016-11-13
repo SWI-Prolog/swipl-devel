@@ -1802,10 +1802,10 @@ load_files(Module:Files, Options) :-
 :- create_prolog_flag(qcompile, false, [type(atom)]).
 
 '$qlf_auto'(PlFile, QlfFile, Options) :-
-	\+ '$in_system_dir'(PlFile),
 	(   memberchk(qcompile(QlfMode), Options)
 	->  true
-	;   current_prolog_flag(qcompile, QlfMode)
+	;   current_prolog_flag(qcompile, QlfMode),
+	    \+ '$in_system_dir'(PlFile)
 	),
 	(   QlfMode == auto
 	->  true
