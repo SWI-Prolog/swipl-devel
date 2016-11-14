@@ -3168,8 +3168,9 @@ When using SAVE_REGISTERS(qid) in pl-vmi.c, the   PC  is either pointing
 inside or pointing to the next instruction.   Here, we find the start of
 the instruction for SHIFT/GC. We assume that   if  this is a first-write
 instruction,  the  writing  has  not  yet  been    done.   If  it  is  a
-read-intruction, we often have to be able to redo the read to compensate
-for the possible shift inside the code protected by SAVE_REGISTERS().
+read-instruction,  we  often  have  to  be  able  to  redo  the  read to
+compensate  for  the  possible  shift  inside   the  code  protected  by
+SAVE_REGISTERS().
 
 The situation is more complicated. We need to know the depth in which we
 are in *_functor...i_pop sequences. We always need to mark all arguments
