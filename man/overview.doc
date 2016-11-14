@@ -989,14 +989,23 @@ environments.
     \predicate[ISO]{current_prolog_flag}{2}{?Key, -Value}
 The predicate current_prolog_flag/2 defines an interface to installation
 features: options compiled in, version, home, etc. With both arguments
-unbound, it will generate all defined Prolog flags. With `Key'
-instantiated, it unifies the value of the Prolog flag. Flag values are
-typed. Flags marked as \const{bool} can have the values \const{true} or
-\const{false}. Some Prolog flags are not defined in all versions, which
-is normally indicated in the documentation below as \textit{``if present
-and true''}. A boolean Prolog flag is true iff the Prolog flag is
-present {\bf and} the \arg{Value} is the atom \const{true}. Tests for
-such flags should be written as below:
+unbound, it will generate all defined Prolog flags. With \arg{Key}
+instantiated, it unifies \arg{Value} with the value of the Prolog flag
+or fails if the \arg{Key} is not a Prolog flag.
+
+Flags marked \textbf{rw} can be modified by the user using
+set_prolog_flag/2. Flag values are typed. Flags marked as \const{bool}
+can have the values \const{true} or \const{false}. The predicate
+create_prolog_flag/3 may be used to create flags that describe or
+control behaviour of libraries and applications.  The library
+\pllib{settings} provides an alternative interface for managing
+notably application parameters.
+
+Some Prolog flags are not defined in all versions, which is normally
+indicated in the documentation below as \textit{``if present and
+true''}. A boolean Prolog flag is true iff the Prolog flag is present
+{\bf and} the \arg{Value} is the atom \const{true}. Tests for such flags
+should be written as below:
 
 \begin{code}
 	(   current_prolog_flag(windows, true)
