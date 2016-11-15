@@ -380,8 +380,10 @@ static int
 assign_in_dict(Word dp, Word val ARG_LD)
 { deRef(val);
 
-  if ( !isVar(*val) )
+  if ( !canBind(*val) )
   { *dp = *val;
+  } else if ( isAttVar(*val) )
+  { *dp = makeRef(val);
   } else
   { if ( dp < val )
     { if ( unlikely(tTop+1 >= tMax) )
