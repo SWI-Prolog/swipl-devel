@@ -105,7 +105,7 @@ wcstoutf8(char *dest, const wchar_t *src, size_t len)
   char *e = &o[len];
 
   for(; *src; src++)
-  { if ( o+6 > e )
+  { if ( o+6 >= e && o+utf8_code_bytes(*src) >= e )
     { errno = ENAMETOOLONG;
       return NULL;
     }
