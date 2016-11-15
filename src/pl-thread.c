@@ -6240,7 +6240,7 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
     { while( sem_wait(sem_mark_ptr) == -1 && errno == EINTR )
 	;
     }
-    sem_destroy(&sem_mark);
+    sem_destroy(sem_mark_ptr);
     sigaction(SIG_FORALL, &old, NULL);
     unblockSignals(&set);
     if ( !ok )
