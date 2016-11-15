@@ -106,4 +106,16 @@ utf8_backskip_char(const char *start, const char *s)
   return (char*)s;
 }
 
+static inline int
+utf8_code_bytes(int chr)
+{ if ( chr < 0x80 ) return 1;
+  if ( chr < 0x800 ) return 2;
+  if ( chr < 0x10000 ) return 3;
+  if ( chr < 0x200000 ) return 4;
+  if ( chr < 0x4000000 ) return 5;
+  if ( chr < 0x80000000 ) return 6;
+  return -1;
+}
+
+
 #endif /*UTF8_H_INCLUDED*/
