@@ -91,7 +91,7 @@ static int exists_file_or_dir(const TCHAR *path, int flags);
 		 *******************************/
 
 int
-_xos_errno()
+_xos_errno(void)
 { return errno;
 }
 
