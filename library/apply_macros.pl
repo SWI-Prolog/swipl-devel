@@ -3,29 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2007-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(apply_macros,
@@ -33,7 +38,6 @@
 	    expand_phrase/4		% :PhraseGoal, +Pos0, -Goal, -Pos
 	  ]).
 :- use_module(library(lists)).
-:- use_module(library(occurs)).
 
 /** <module> Goal expansion rules to avoid meta-calling
 
@@ -50,6 +54,8 @@ compiled using compile_aux_clauses/1. Currently this module supports:
 	* ignore/1
 	* phrase/2
 	* phrase/3
+	* call_dcg/2
+	* call_dcg/3
 
 The idea for this library originates from ECLiPSe and came to SWI-Prolog
 through YAP.
@@ -195,9 +201,9 @@ expand_apply(Phrase, Pos0, Expanded, Pos) :-
 %%	expand_phrase(+PhraseGoal, +Pos0, -Goal, -Pos) is semidet.
 %
 %	Provide goal-expansion for  PhraseGoal.   PhraseGoal  is  either
-%	phrase(NonTerminals, List) or phrase(NonTerminals,  List, Tail).
-%	This predicate is intended to inline calls to phrase and support
-%	code analysis.
+%	phrase/2,3  or  call_dcg/2,3.  The  current   version  does  not
+%	translate control structures, but  only   simple  terminals  and
+%	non-terminals.
 %
 %	For example:
 %
@@ -212,59 +218,89 @@ expand_phrase(Phrase, Goal) :-
 	expand_phrase(Phrase, _, Goal, _).
 
 expand_phrase(phrase(NT,Xs), Pos0, NTXsNil, Pos) :- !,
-	extend_pos(Pos0, Pos1),
+	extend_pos(Pos0, 1, Pos1),
 	expand_phrase(phrase(NT,Xs,[]), Pos1, NTXsNil, Pos).
 expand_phrase(Goal, Pos0, NewGoal, Pos) :-
-	dcg_goal(Goal, NT,Xs0,Xs),
+	dcg_goal(Goal, NT, Xs0, Xs),
 	nonvar(NT),
-	body_pos(RulePos0, Pos0),
-	catch(dcg_translate_rule((pseudo_nt --> NT), RulePos0, Rule, RulePos),
-	      error(Pat,ImplDep),
-	      ( \+ harmless_dcgexception(Pat),
-		throw(error(Pat,ImplDep))
-	      )),
-	body_pos(RulePos, Pos1),
-	Rule = (pseudo_nt(Xs0c,Xsc) :- NewGoal0),
-	Goal \== NewGoal0,
-	\+ contains_illegal_dcgnt(NT), !, % apply translation only if we are safe
-	(   var(Xsc), Xsc \== Xs0c
-	->  Xs = Xsc, NewGoal1 = NewGoal0, Pos2 = Pos1
-	;   NewGoal1 = (NewGoal0, Xsc = Xs),
-	    (	nonvar(Pos1)
-	    ->	Pos2 = term_position(0,0,0,0,[Pos1,EF-ET]),
-		arg(2, Pos1, EF),
-		ET is EF+1
-	    ;	true
-	    )
-	),
-	(   var(Xs0c)
-	->  Xs0 = Xs0c,
-	    NewGoal = NewGoal1,
-	    Pos = Pos2
-	;   NewGoal = ( Xs0 = Xs0c, NewGoal1 ),
-	    (	nonvar(Pos2)
-	    ->	Pos = term_position(0,0,0,0,[SF-ST,Pos2]),
-		arg(1, Pos2, ST),
-		SF is ST-1
-	    ;	true
-	    )
-	).
+	nt_pos(Pos0, NTPos),
+	dcg_extend(NT, NTPos, NewGoal, Pos, Xs0, Xs).
 
 dcg_goal(phrase(NT,Xs0,Xs), NT, Xs0, Xs).
 dcg_goal(call_dcg(NT,Xs0,Xs), NT, Xs0, Xs).
 
-extend_pos(Var, Var) :-
-	var(Var), !.
-extend_pos(term_position(F,T,FF,FT,ArgPos0),
-	   term_position(F,T,FF,FT,ArgPos)) :-
-	append(ArgPos0, [T-T], ArgPos).
+%%	dcg_extend(+Callable, +Pos0, -Goal, -Pos, +Xs0, ?Xs) is semidet.
 
-body_pos(RulePos, BodyPos) :-
-	var(RulePos), var(BodyPos), !.
-body_pos(RulePos, BodyPos) :-
-	nonvar(RulePos), !,
-	RulePos = term_position(_,_,_,_,[_,BodyPos]).
-body_pos(term_position(0,0,0,0,[0-0,BodyPos]), BodyPos).
+dcg_extend(Compound0, Pos0, Compound, Pos, Xs0, Xs) :-
+	compound(Compound0),
+	\+ dcg_control(Compound0), !,
+	extend_pos(Pos0, 2, Pos),
+	compound_name_arguments(Compound0, Name, Args0),
+	append(Args0, [Xs0,Xs], Args),
+	compound_name_arguments(Compound, Name, Args).
+dcg_extend(Name, Pos0, Compound, Pos, Xs0, Xs) :-
+	atom(Name),
+	\+ dcg_control(Name), !,
+	extend_pos(Pos0, 2, Pos),
+	compound_name_arguments(Compound, Name, [Xs0,Xs]).
+dcg_extend(Q0, Pos0, M:Q, Pos, Xs0, Xs) :-
+	compound(Q0), Q0 = M:Q1,
+	'$expand':f2_pos(Pos0, MPos, APos0, Pos, MPos, APos),
+	dcg_extend(Q1, APos0, Q, APos, Xs0, Xs).
+dcg_extend(Terminal, Pos0, Xs0 = DList, Pos, Xs0, Xs) :-
+	terminal(Terminal, DList, Xs), !,
+	t_pos(Pos0, Pos).
+
+dcg_control(!).
+dcg_control([]).
+dcg_control([_|_]).
+dcg_control({_}).
+dcg_control((_,_)).
+dcg_control((_;_)).
+dcg_control((_->_)).
+dcg_control((_*->_)).
+
+terminal(List, DList, Tail) :-
+	compound(List),
+	List = [_|_], !,
+	'$skip_list'(_, List, T0),
+	(   var(T0)
+	->  DList = List,
+	    Tail = T0
+	;   T0 == []
+	->  append(List, Tail, DList)
+	;   type_error(list, List)
+	).
+terminal(List, DList, Tail) :-
+	List == [], !,
+	DList = Tail.
+terminal(String, DList, Tail) :-
+	string(String),
+	string_codes(String, List),
+	append(List, Tail, DList).
+
+extend_pos(Var, _, Var) :-
+	var(Var), !.
+extend_pos(term_position(F,T,FF,FT,ArgPos0), Extra,
+	   term_position(F,T,FF,FT,ArgPos)) :- !,
+	extra_pos(Extra, T, ExtraPos),
+	append(ArgPos0, ExtraPos, ArgPos).
+extend_pos(FF-FT, Extra,
+	   term_position(FF,FT,FF,FT,ArgPos)) :- !,
+	extra_pos(Extra, FT, ArgPos).
+
+extra_pos(1, T, [T-T]).
+extra_pos(2, T, [T-T,T-T]).
+
+nt_pos(PhrasePos, _NTPos) :-
+	var(PhrasePos), !.
+nt_pos(term_position(_,_,_,_,[NTPos|_]), NTPos).
+
+t_pos(Pos0, term_position(F,T,F,T,[F-T,F-T])) :-
+	compound(Pos0), !,
+	arg(1, Pos0, F),
+	arg(2, Pos0, T).
+t_pos(_, _).
 
 
 %%	qcall_instantiated(@Term) is semidet.
@@ -281,25 +317,6 @@ qcall_instantiated(M:C) :- !,
 	callable(C).
 qcall_instantiated(C) :-
 	callable(C).
-
-
-harmless_dcgexception(instantiation_error).	% ex: phrase(([1],x:X,[3]),L)
-harmless_dcgexception(type_error(callable,_)).	% ex: phrase(27,L)
-
-
-%%	contains_illegal_dcgnt(+Term) is semidet.
-%
-%	True if Term contains a non-terminal   we cannot deal with using
-%	goal-expansion. The test is too general approximation, but safe.
-
-contains_illegal_dcgnt(NT) :-
-	sub_term(I, NT),
-	nonvar(I),
-	illegal_dcgnt(I), !.
-
-illegal_dcgnt(!).
-illegal_dcgnt(phrase(_,_,_)).
-illegal_dcgnt((_->_)).
 
 
 		 /*******************************
