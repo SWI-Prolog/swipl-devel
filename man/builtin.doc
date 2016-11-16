@@ -4794,9 +4794,13 @@ Copy all (remaining) data from \arg{StreamIn} to
 Read input pending in the input buffer of \arg{StreamIn} and return
 it in the difference list \arg{Codes}-\arg{Tail}. That is, the
 available characters codes are used to create the list \arg{Codes}
-ending in the tail \arg{Tail}.  This predicate is intended for
-efficient unbuffered copying and filtering of input coming from
-network connections or devices.
+ending in the tail \arg{Tail}. On encountering end-of-file, both
+\arg{Codes} and \arg{Tail} are unified with the empty list ({[]}).
+
+This predicate is intended for efficient unbuffered copying and
+filtering of input coming from network connections or devices. It also
+enables the library \pllib{pure_input}, which processes input from files
+and streams using a DCG.
 
 The following code fragment realises efficient non-blocking copying of data
 from an input to an output stream. The at_end_of_stream/1 call checks
@@ -4809,12 +4813,15 @@ issues.
 \begin{code}
 copy(In, Out) :-
 	repeat,
-	    (	at_end_of_stream(In)
-	    ->	!
-	    ;	read_pending_codes(In, Chars, []),
-		format(Out, '~s', [Chars]),
-		flush_output(Out),
-		fail
+	    fill_buffer(In),
+	    read_pending_codes(In, Chars, Tail),
+	    \+ \+ ( Tail = [],
+		    format(Out, '~s', [Chars]),
+		    flush_output(Out)
+		  ),
+	    (   Tail == []
+	    ->  !
+	    ;   fail
 	    ).
 \end{code}
 
