@@ -2461,7 +2461,7 @@ re_buffer(IOSTREAM *s, const char *from, size_t len)
   }
 
   memcpy(s->bufp, from, len);
-  s->bufp += len;
+  s->limitp = s->bufp + len;
 }
 
 
