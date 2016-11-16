@@ -4790,6 +4790,12 @@ between two text files.  See \secref{encoding}.
 Copy all (remaining) data from \arg{StreamIn} to
 \arg{StreamOut}.
 
+    \predicate[det]{fill_buffer}{1}{+Stream}
+Fill the \arg{Stream}'s input buffer. Subsequent calls try to read more
+input until the buffer is completely filled. This predicate is used
+together with read_pending_codes/3 to process input with minimal
+buffering.
+
     \predicate{read_pending_codes}{3}{+StreamIn, -Codes, ?Tail}
 Read input pending in the input buffer of \arg{StreamIn} and return
 it in the difference list \arg{Codes}-\arg{Tail}. That is, the

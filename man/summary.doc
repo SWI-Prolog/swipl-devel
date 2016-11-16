@@ -265,6 +265,7 @@ suggest predicates from a keyword.
 \predicatesummary{findall}{4}{Difference list version of findall/3}
 \predicatesummary{findnsols}{4}{Find first \arg{N} solutions}
 \predicatesummary{findnsols}{5}{Difference list version of findnsols/4}
+\predicatesummary{fill_buffer}{1}{Fill the input buffer of a stream}
 \predicatesummary{flag}{3}{Simple global variable system}
 \predicatesummary{float}{1}{Type check for a floating point number}
 \predicatesummary{flush_output}{0}{Output pending characters on current stream}

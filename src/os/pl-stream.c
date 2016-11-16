@@ -618,6 +618,10 @@ S__fillbuf(IOSTREAM *s)
       len = s->bufsize;
     } else if ( s->bufp < s->limitp )
     { len = s->limitp - s->bufp;
+      if ( len == s->bufsize )
+      { c = char_to_int(*s->bufp++);
+	return c;
+      }
       memmove(s->buffer, s->bufp, s->limitp - s->bufp);
       s->bufp = s->buffer;
       s->limitp = &s->bufp[len];

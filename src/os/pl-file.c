@@ -4968,6 +4968,35 @@ PRED_IMPL("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
 }
 
 
+/** fill_buffer(+Stream)
+ *
+ *   Fill the buffer of Stream.
+ */
+
+static
+PRED_IMPL("fill_buffer", 1, fill_buffer, 0)
+{ PRED_LD
+  IOSTREAM *s;
+
+  term_t stream = A1;
+
+  if ( getInputStream(stream, S_DONTCARE, &s) )
+  { if ( (s->flags & SIO_NBUF) )
+    { return ( PL_release_stream(s) &&
+	       PL_permission_error("fill_buffer", "stream", stream) );
+    }
+
+    if ( S__fillbuf(s) < 0 )
+      return PL_release_stream(s);
+
+    s->bufp--;
+    return PL_release_stream(s);
+  }
+
+  return FALSE;
+}
+
+
 static foreign_t
 peek(term_t stream, term_t chr, int how ARG_LD)
 { IOSTREAM *s;
@@ -5324,6 +5353,7 @@ BeginPredDefs(file)
   PRED_DEF("flush_output", 1, flush_output1, PL_FA_ISO)
   PRED_DEF("at_end_of_stream", 1, at_end_of_stream, PL_FA_ISO)
   PRED_DEF("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
+  PRED_DEF("fill_buffer", 1, fill_buffer, 0)
   PRED_DEF("set_stream_position", 2, set_stream_position, PL_FA_ISO)
   PRED_DEF("$stream_property", 2, dstream_property, 0)
   PRED_DEF("$stream_properties", 2, dstream_properties, 0)
