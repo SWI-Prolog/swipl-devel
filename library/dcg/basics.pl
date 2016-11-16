@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2002-2013, University of Amsterdam
+    Copyright (C): 2002-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -54,6 +54,7 @@
 	    prolog_var_name//1,		% Read a Prolog variable name
 
 	    eos//0,			% Test end of input.
+	    remainder//1,		% -List
 
 					% generation (TBD)
 	    atom//1			% generate atom
@@ -394,6 +395,13 @@ mkval([H|T], Base, W0, W) :-
 %		property of DCGs.  Explain the exact problems.
 
 eos([], []).
+
+%%	remainder(-List)//
+%
+%	Unify List with the remainder of the input.
+
+remainder(List, List, []).
+
 
 		 /*******************************
 		 *	   PROLOG SYNTAX		*
