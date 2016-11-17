@@ -1606,7 +1606,7 @@ meta_declaration(term_t spec)
 	return PL_error(NULL, 0, "0..9",
 			ERR_DOMAIN, ATOM_meta_argument_specifier, arg);
       }
-      mask |= e<<(i*4);
+      mask |= (meta_mask)e<<(i*4);
     } else if ( PL_get_atom(arg, &ma) )
     { meta_mask m;
 
