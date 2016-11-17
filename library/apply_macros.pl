@@ -259,6 +259,7 @@ dcg_control((_,_)).
 dcg_control((_;_)).
 dcg_control((_->_)).
 dcg_control((_*->_)).
+dcg_control(_:_).
 
 terminal(List, DList, Tail) :-
 	compound(List),
