@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# This script dumps the Prolog stacks of a running SWI-Prolog process
+# It requires SWI-Prolog 7.3.31 and a gdb, the GNU debugger.
+#
+# Author: Jan Wielemaker
+#
+# This code is in the public domain
+
+btflags=0
+btdepth=10
+
+usage()
+{ echo "Dump stacks of a running SWI-Prolog process"
+  echo
+  echo "Usage: $(basename $0) [--depth=N] [--safe] [--user] pid"
+  echo "Options"
+  echo "    --depth=N     Print max N goals (default 10)"
+  echo "    --safe        Do not try to print predicate arguments"
+  echo "    --user        Only print user predicates"
+}
+
+done=false
+while [ $done = false ]; do
+  case "$1" in
+    --depth=*)
+      btdepth=$(echo $1 | sed 's/--depth=//')
+      shift
+      ;;
+    --safe)
+      btflags=$(($btflags|1))
+      shift
+      ;;
+    --user)
+      btflags=$(($btflags|2))
+      shift
+      ;;
+    --*)
+      usage
+      exit 1
+      ;;
+    *)
+      done=true
+      ;;
+  esac
+done
+
+if [[ "$1" =~ ^[0-9]+$ ]]; then
+  pid=$1
+else
+  usage
+  exit 1
+fi
+
+gdb </dev/null --nx --batch \
+    -ex "set pagination off" -ex "set height 0" -ex "set width 0" \
+    -ex "set print thread-events off" \
+    -ex "attach $pid" \
+    -ex 'thread apply all printf "%s", PL_backtrace_string('$btdepth,$btflags')' \
+    -ex detach -ex quit
