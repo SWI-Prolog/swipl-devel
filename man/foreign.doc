@@ -3874,6 +3874,18 @@ following constants:
     of hidden built-in predicates.
     \end{description}
 
+    \cfunction{char *}{PL_backtrace_string}{int depth, int flags}
+As PL_backtrace(), but returns the stack as a string. The string uses
+UTF-8 encoding. The returned string must be freed using PL_free(). This
+function is was added to get stack traces from running servers where I/O
+is redirected or discarded.  For example, using \program{gdb}, a stack
+trace is printed in the gdb console regardless of Prolog I/O redirection
+using the following command:
+
+\begin{code}
+(gdb) printf "%s", PL_backtrace_string(25,0)
+\end{code}
+
     \cfunction{int}{PL_check_data}{term_t data}
     Check the consistency of the term \arg{data}.  Returns \const{TRUE}
     this is actually implemented in the current version and

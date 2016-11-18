@@ -231,7 +231,7 @@ static int		traceAction(char *cmd,
 				    Choice bfr,
 				    bool interactive);
 static void		interruptHandler(int sig);
-static int		writeFrameGoal(LocalFrame frame, Code PC,
+static int		writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC,
 				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -382,7 +382,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 
     if ( doit )
     { SAVE_PTRS();
-      writeFrameGoal(frame, PC, port|WFG_TRACE);
+      writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACE);
       RESTORE_PTRS();
     }
   }
@@ -466,7 +466,7 @@ All failed.  Things now are upto the normal Prolog tracer.
 
 again:
   SAVE_PTRS();
-  writeFrameGoal(frame, PC, port|WFG_TRACING);
+  writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACING);
   RESTORE_PTRS();
 
   if (debugstatus.leashing & port)
@@ -875,7 +875,7 @@ static const portname portnames[] =
 
 
 static int
-writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
+writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
 { GET_LD
   wakeup_state wstate;
   Definition def = frame->predicate;
@@ -887,7 +887,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   }
 
   if ( gc_status.active )
-  { Sfprintf(Serror, " (%d): %s\n",
+  { Sfprintf(out, " (%d): %s\n",
 	     levelFrame(frame), predicateName(frame->predicate));
   } else if ( !GD->bootsession && GD->initialised && GD->debug_level == 0 )
   { term_t fr   = PL_new_term_ref();
@@ -917,11 +917,15 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
       rc = PL_cons_functor(port, FUNCTOR_trace1, port);
 
     if ( rc )
+    { IOSTREAM *old = Suser_error;
+      Suser_error = out;
       printMessage(ATOM_debug,
 		   PL_FUNCTOR, FUNCTOR_frame3,
 		     PL_TERM, fr,
 		     PL_TERM, port,
 		     PL_TERM, pc);
+      Suser_error = old;
+    }
   } else
   { debug_type debugSave = debugstatus.debugging;
     term_t goal    = PL_new_term_ref();
@@ -939,23 +943,23 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     ctx.engine  = LD;
     if ( !pl_prolog_flag(tmp, options, &ctx) )
       PL_put_nil(options);
-    PL_put_atom(tmp, ATOM_user_output);
+    PL_unify_stream_or_alias(tmp, out);
 
     msg[0] = true(def, P_TRANSPARENT) ? '^' : ' ';
     msg[1] = (flags&WFG_TRACE) ? 'T' : true(def, SPY_ME) ? '*' : ' ';
     msg[2] = EOS;
 
-    Sfprintf(Sdout, "%s%s(%d) ", msg, pp, levelFrame(frame));
+    Sfprintf(out, "%s%s(%d) ", msg, pp, levelFrame(frame));
     if ( debugstatus.showContext )
-      Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
+      Sfprintf(out, "[%s] ", stringAtom(contextModule(frame)->name));
 #ifdef O_LIMIT_DEPTH
     if ( levelFrame(frame) > depth_limit )
-      Sfprintf(Sdout, "[depth-limit exceeded] ");
+      Sfprintf(out, "[depth-limit exceeded] ");
 #endif
 
     pl_write_term3(tmp, goal, options);
     if ( flags & (WFG_BACKTRACE|WFG_CHOICE) )
-      Sfprintf(Sdout, "\n");
+      Sfprintf(out, "\n");
 
     debugstatus.debugging = debugSave;
   }
@@ -977,7 +981,7 @@ alternatives(Choice ch)
   { if ( ch->type == CHP_DEBUG )
       continue;
     if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
-      writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
+      writeFrameGoal(Suser_error, ch->frame, NULL, WFG_CHOICE);
   }
 }
 
@@ -1057,20 +1061,20 @@ listGoal(LocalFrame frame)
 
 
 static void
-writeContextFrame(pl_context_t *ctx, int flags)
+writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 { if ( (flags&PL_BT_SAFE) )
   { char buf[256];
 
     PL_describe_context(ctx, buf, sizeof(buf));
-    Sdprintf("  %s\n", buf);
+    Sfprintf(out, "  %s\n", buf);
   } else
-  { writeFrameGoal(ctx->fr, ctx->pc, WFG_BACKTRACE);
+  { writeFrameGoal(out, ctx->fr, ctx->pc, WFG_BACKTRACE);
   }
 }
 
 
-void
-PL_backtrace(int depth, int flags)
+static void
+_PL_backtrace(IOSTREAM *out, int depth, int flags)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1095,14 +1099,14 @@ PL_backtrace(int depth, int flags)
       if ( frame->predicate == def )
       { if ( ++same_proc >= 10 )
 	{ if ( same_proc == 10 )
-	    Sdprintf("    ...\n    ...\n", Sdout);
+	    Sfprintf(out, "    ...\n    ...\n", Sdout);
 	  rctx = ctx;
 	  continue;
 	}
       } else
       { if ( same_proc >= 10 )
 	{ if ( isDebugFrame(rctx.fr) || !(flags&PL_BT_USER) )
-	  { writeContextFrame(&rctx, flags);
+	  { writeContextFrame(out, &rctx, flags);
 	    depth--;
 	  }
 	  same_proc = 0;
@@ -1111,13 +1115,41 @@ PL_backtrace(int depth, int flags)
       }
 
       if ( isDebugFrame(frame) || !(flags&PL_BT_USER) )
-      { writeContextFrame(&ctx, flags);
+      { writeContextFrame(out, &ctx, flags);
 	depth--;
       }
     }
   } else
-  { Sdprintf("No stack??\n");
+  { Sfprintf(out, "No stack??\n");
   }
+}
+
+
+void
+PL_backtrace(int depth, int flags)
+{ GET_LD
+
+  _PL_backtrace(Suser_error, depth, flags);
+}
+
+
+char *
+PL_backtrace_string(int depth, int flags)
+{ char *data = NULL;
+  size_t len = 0;
+  IOSTREAM *out;
+
+  if ( (out=Sopenmem(&data, &len, "w")) )
+  { out->encoding = ENC_UTF8;
+    out->newline  = SIO_NL_POSIX;
+
+    _PL_backtrace(out, depth, flags);
+    Sclose(out);
+
+    return data;
+  }
+
+  return NULL;
 }
 
 
