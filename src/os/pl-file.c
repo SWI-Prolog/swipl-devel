@@ -302,16 +302,18 @@ freeStream(IOSTREAM *s)
 					/* if we are a standard stream */
 					/* reassociate with standard I/O */
 					/* NOTE: there may be more! */
-  for(i=0, sp = LD->IO.streams; i<6; i++, sp++)
-  { if ( *sp == s )
-    { if ( s->flags & SIO_INPUT )
-	*sp = Sinput;
-      else if ( sp == &Suser_error )
-	*sp = Serror;
-      else if ( sp == &Sprotocol )
-	*sp = NULL;
-      else
-	*sp = Soutput;
+  if ( LD && (sp=LD->IO.streams) )
+  { for(i=0; i<6; i++, sp++)
+    { if ( *sp == s )
+      { if ( s->flags & SIO_INPUT )
+	  *sp = Sinput;
+	else if ( sp == &Suser_error )
+	  *sp = Serror;
+	else if ( sp == &Sprotocol )
+	  *sp = NULL;
+	else
+	  *sp = Soutput;
+      }
     }
   }
   UNLOCK();
