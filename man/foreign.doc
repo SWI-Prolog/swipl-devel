@@ -3886,6 +3886,10 @@ using the following command:
 (gdb) printf "%s", PL_backtrace_string(25,0)
 \end{code}
 
+The source distribution provides the script \file{scripts/swipl-bt} that
+exploits \program{gdb} and PL_backtrace_string() to print stack traces
+in various formats for a SWI-Prolog process, given its process id.
+
     \cfunction{int}{PL_check_data}{term_t data}
     Check the consistency of the term \arg{data}.  Returns \const{TRUE}
     this is actually implemented in the current version and
