@@ -9,15 +9,20 @@
 
 btflags=0
 btdepth=10
+thread=all
+stack=prolog
 
 usage()
 { echo "Dump stacks of a running SWI-Prolog process"
   echo
-  echo "Usage: $(basename $0) [--depth=N] [--safe] [--user] pid"
+  echo "Usage: $(basename $0) [options] pid"
   echo "Options"
   echo "    --depth=N     Print max N goals (default 10)"
+  echo "    --thread=N    Only print thread N (default all)"
   echo "    --safe        Do not try to print predicate arguments"
   echo "    --user        Only print user predicates"
+  echo "    --info        Print thread info"
+  echo "    -C	          Print the C stack (default Prolog)"
 }
 
 done=false
@@ -25,6 +30,10 @@ while [ $done = false ]; do
   case "$1" in
     --depth=*)
       btdepth=$(echo $1 | sed 's/--depth=//')
+      shift
+      ;;
+    --thread=*)
+      thread=$(echo $1 | sed 's/--thread=//')
       shift
       ;;
     --safe)
@@ -35,9 +44,17 @@ while [ $done = false ]; do
       btflags=$(($btflags|2))
       shift
       ;;
+    --info)
+      stack=info
+      shift
+      ;;
     --*)
       usage
       exit 1
+      ;;
+    -C)
+      stack=C
+      shift
       ;;
     *)
       done=true
@@ -52,9 +69,22 @@ else
   exit 1
 fi
 
+cmd="thread apply $thread "
+
+case "$stack" in
+    C)
+       cmd+=bt
+       ;;
+    prolog)
+       cmd+='printf "%s", PL_backtrace_string('$btdepth,$btflags')'
+       ;;
+    info)
+       cmd="info threads"
+esac
+
 gdb </dev/null --nx --batch \
     -ex "set pagination off" -ex "set height 0" -ex "set width 0" \
     -ex "set print thread-events off" \
     -ex "attach $pid" \
-    -ex 'thread apply all printf "%s", PL_backtrace_string('$btdepth,$btflags')' \
+    -ex "$cmd" \
     -ex detach -ex quit
