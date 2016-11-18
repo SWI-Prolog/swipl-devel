@@ -100,7 +100,7 @@ export BUILDARCH=$TARGETHOST
 GMP_VERSION=6.1.1
 PTHREADS_VERSION=2-9-1-release
 LIBDWARF_VERSION=20120410
-SSL_VERSION=1.0.2h
+SSL_VERSION=1.0.2j
 JPEG_VERSION=9b
 ZLIB_VERSION=1.2.8
 ARCHIVE_VERSION=3.2.1
@@ -149,6 +149,7 @@ if [ "$CROSSCOMPILING" = yes ]; then
     esac
   fi
   MINGWGCC=$CROSS-gcc
+  export WINDRES=$CROSS-windres
 fi
 
 # See whether pthread is built-in
