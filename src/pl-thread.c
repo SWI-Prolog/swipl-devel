@@ -2779,7 +2779,15 @@ executeThreadSignals(int sig)
     DEBUG(MSG_THREAD,
 	  Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
     if ( rval )
-    { rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
+    {
+#ifdef O_LIMIT_DEPTH
+      uintptr_t olimit = depth_limit;
+      depth_limit = DEPTH_NO_LIMIT;
+#endif
+      rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
+#ifdef O_LIMIT_DEPTH
+      depth_limit = olimit;
+#endif
     } else
     { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
       ex = exception_term;

@@ -441,6 +441,10 @@ dispatch_signal(int sig, int sync)
   if ( sh->predicate )
   { term_t sigterm = PL_new_term_ref();
     qid_t qid;
+#ifdef O_LIMIT_DEPTH
+    uintptr_t olimit = depth_limit;
+    depth_limit = DEPTH_NO_LIMIT;
+#endif
 
     PL_put_atom_chars(sigterm, signal_name(sig));
     qid = PL_open_query(NULL,
@@ -449,6 +453,9 @@ dispatch_signal(int sig, int sync)
 			sigterm);
     if ( PL_next_solution(qid) ) {};		/* cannot ignore return */
     PL_cut_query(qid);
+#ifdef O_LIMIT_DEPTH
+    depth_limit = olimit;
+#endif
   } else if ( true(sh, PLSIG_THROW) )
   { char *predname;
     int  arity;
@@ -463,7 +470,15 @@ dispatch_signal(int sig, int sync)
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
   } else if ( sh->handler )
-  { (*sh->handler)(sig);
+  {
+#ifdef O_LIMIT_DEPTH
+    uintptr_t olimit = depth_limit;
+    depth_limit = DEPTH_NO_LIMIT;
+#endif
+    (*sh->handler)(sig);
+#ifdef O_LIMIT_DEPTH
+    depth_limit = olimit;
+#endif
 
     DEBUG(MSG_SIGNAL,
 	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
