@@ -45,9 +45,6 @@
 :- use_module(library(error)).
 :- use_module(library(option)).
 :- use_module(library(record)).
-:- if(exists_source(library(pce_meta))).
-:- use_module(library(pce_meta)).
-:- endif.
 
 :- meta_predicate
 	prolog_colourise_stream(+, +, 3),
@@ -1157,14 +1154,22 @@ colourise_class(ClassName, TB, Pos) :-
 	classify_class(SourceId, ClassName, Classification),
 	colour_item(class(Classification, ClassName), TB, Pos).
 
-%%	classify_class(+SourceId, +ClassName, -Classification).
+%%	classify_class(+SourceId, +ClassName, -Classification)
+%
+%	Classify an XPCE class. As long as   this code is in this module
+%	rather than using hooks, we do not   want to load xpce unless it
+%	is already loaded.
 
 classify_class(SourceId, Name, Class) :-
 	xref_defined_class(SourceId, Name, Class), !.
-:- if(current_predicate(classify_class/2)).
-classify_class(_, Name, Class) :-
-	classify_class(Name, Class).
-:- endif.
+classify_class(_SourceId, Name, Class) :-
+	current_predicate(pce:send_class/3),
+	(   current_predicate(classify_class/2)
+	->  true
+	;   use_module(library(pce_meta), [classify_class/2])
+	),
+	member(G, [classify_class(Name, Class)]),
+	call(G).
 
 %%	colourise_term_args(+Term, +TB, +Pos)
 %
