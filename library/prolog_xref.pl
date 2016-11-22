@@ -650,6 +650,7 @@ collect(Src, File, In, Options) :-
 	    Comments = []
 	;   CommentOptions = [ comments(Comments) ]
 	),
+	E = error(syntax_error(_),_),
 	repeat,
 	    catch(prolog_read_source_term(
 		      In, Term, Expanded,
