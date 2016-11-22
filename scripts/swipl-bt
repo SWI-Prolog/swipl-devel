@@ -9,7 +9,7 @@
 
 btflags=0
 btdepth=10
-thread=all
+thread=pid
 stack=prolog
 
 usage()
@@ -18,7 +18,7 @@ usage()
   echo "Usage: $(basename $0) [options] pid"
   echo "Options"
   echo "    --depth=N     Print max N goals (default 10)"
-  echo "    --thread=N    Only print thread N (default all)"
+  echo "    --thread=N    Only print thread N (default from pid)"
   echo "    --safe        Do not try to print predicate arguments"
   echo "    --user        Only print user predicates"
   echo "    --info        Print thread info"
@@ -69,7 +69,11 @@ else
   exit 1
 fi
 
-cmd="thread apply $thread "
+if [ "$thread" = pid ]; then
+  cmd=
+else
+  cmd="thread apply $thread "
+fi
 
 case "$stack" in
     C)
