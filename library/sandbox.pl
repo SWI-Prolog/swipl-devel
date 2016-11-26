@@ -555,6 +555,7 @@ safe_primitive(system:string_length(_,_)).
 safe_primitive(system:string_lower(_,_)).
 safe_primitive(system:string_upper(_,_)).
 safe_primitive(system:term_string(_,_)).
+safe_primitive(system:term_string(_,_,_)).
 					% Lists
 safe_primitive(length(_,_)).
 					% exceptions
