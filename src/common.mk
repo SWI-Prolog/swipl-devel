@@ -54,7 +54,8 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl \
 	prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl \
 	sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl \
-	solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
+	solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl \
+	lazy_lists.pl
 
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl clpb.pl
 DCG=	basics.pl
