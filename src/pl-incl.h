@@ -2152,7 +2152,8 @@ typedef enum
   CVT_partial,				/* Input list is partial */
   CVT_nolist,				/* Input list is not a list */
   CVT_nocode,				/* List contains a non-code */
-  CVT_nochar				/* List contains a non-char */
+  CVT_nochar,				/* List contains a non-char */
+  CVT_representation			/* List contains non-reprentable code */
 } CVT_status;
 
 typedef struct

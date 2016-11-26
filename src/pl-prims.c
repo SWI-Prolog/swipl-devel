@@ -3665,8 +3665,15 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 
     if ( n >= 0 && n <= CHARCODE_MAX )
       cchr = n;
+    else if ( n > 0x10ffff )
+      return PL_type_error("character_code", chr);
+#if SIZEOF_WCHAR_T == 2
+    else if ( c > PLMAXWCHAR )
+      result->status = CVT_representation;
+#else
     else
-      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_character_code);
+      assert(0);
+#endif
   }
 
   if ( achr == cchr )

@@ -262,6 +262,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 
 	    return PL_error(NULL, 0, NULL, ERR_TYPE, type, culprit);
 	  }
+	  case CVT_representation:
+	    return PL_representation_error("character_code");
 	  default:
 	    break;
 	}
