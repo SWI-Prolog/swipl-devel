@@ -61,9 +61,9 @@ test(error, error(type_error(character, 42))) :-
 	char_code(42,_).
 test(error, error(type_error(integer, x))) :-
 	char_code(_,x).
-test(error, error(representation_error(character_code))) :-
+test(error, error(type_error(character_code, -1))) :-
 	char_code(_,-1).
-test(error, error(representation_error(character_code))) :-
+test(error, error(type_error(character_code, 0xfffffff))) :-
 	char_code(_,0xfffffff).
 
 :- end_tests(char_code).
