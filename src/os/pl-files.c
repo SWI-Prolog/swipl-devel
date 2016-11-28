@@ -865,7 +865,7 @@ PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
     }
 
     s = Sfdopen(fd, mode);
-    s->encoding = enc;
+    Ssetenc(s, enc, NULL);
     return PL_unify_stream(A3, s);
   } else
   { return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
