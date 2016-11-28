@@ -752,10 +752,10 @@ are:
 	True if \arg{Module} exports the given operators.  Each exported
 	operator is represented as a term \term{op}{Pri,Assoc,Name}.
 	\termitem{program_size}{-Bytes}
-	Memory (in bytes) used for string the predicates of this module.
-	This figure includes the predicate header and clauses.  Future
-	versions might give a more precise number, including e.g., the
-	clause index tables.
+	Memory (in bytes) used for storing the predicates of this
+	module. This figure includes the predicate header and clauses.
+	Future versions might give a more precise number, including
+	e.g., the clause index tables.
 	\termitem{program_space}{-Bytes}
 	If present, this number limits the \const{program_size}.  See
 	set_module/1.
