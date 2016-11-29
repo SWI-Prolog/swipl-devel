@@ -437,3 +437,16 @@ lazy_findall(Templ, Goal, List) :-
 lazy_findall(Chunk, Templ, Goal, List) :-
 	engine_create(Templ, Goal, Engine),
 	lazy_list(lazy_engine_next(Engine, Chunk), List).
+
+
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+:- multifile
+	sandbox:safe_meta_predicate/1.
+
+sandbox:safe_meta_predicate(lazy_lists:lazy_findall/3).
+sandbox:safe_meta_predicate(lazy_lists:lazy_findall/4).
+sandbox:safe_meta_predicate(lazy_lists:lazy_list/2).
+sandbox:safe_meta_predicate(lazy_lists:lazy_list/3).
