@@ -185,8 +185,9 @@ lazy_list(Next, State0, List) :-
 
 lazy_state(Pred, LState, [H|T], T) :-
 	LState = s(State0),
-	call(Pred, State0, State1, H),
+	call(Pred, State0, State1, H), !,
 	nb_setarg(1, LState, State1).
+lazy_state(_, _, [], []).
 
 
 		 /*******************************
