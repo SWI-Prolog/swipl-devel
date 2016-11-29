@@ -200,9 +200,9 @@ lazy_state(_, _, [], []).
 
 lazy_list_materialize(List) :-
 	'$skip_list'(_, List, Tail),
-	(   var(Tail)
-	->  Tail = [_|T2],
-	    lazy_list_materialize(T2)
+	(   var(Tail),
+	    Tail = [_|T2]
+	->  lazy_list_materialize(T2)
 	;   Tail = []
 	->  true
 	;   type_error(list, Tail)
@@ -219,9 +219,9 @@ lazy_list_length(List, Len) :-
 
 lazy_list_length(List, L0, L) :- !,
 	'$skip_list'(N, List, Tail),
-	(   var(Tail)
-	->  Tail = [_|T2],
-	    L1 is L0+N+1,
+	(   var(Tail),
+	    Tail = [_|T2]
+	->  L1 is L0+N+1,
 	    lazy_list_length(T2, L1, L)
 	;   Tail = []
 	->  L is L0+N
