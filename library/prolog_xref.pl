@@ -1447,7 +1447,8 @@ process_xpce_arg(msg, Term, Origin, Src) :-
 process_new(_M:_Term, _, _) :- !.	% TBD: Calls on other modules!
 process_new(Term, Origin, Src) :-
 	assert_new(Src, Origin, Term),
-	(   arg(_, Term, Arg),
+	(   compound(Term),
+	    arg(_, Term, Arg),
 	    process_xpce_arg(arg, Arg, Origin, Src),
 	    fail
 	;   true
