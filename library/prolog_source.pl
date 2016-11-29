@@ -81,6 +81,7 @@ users of the library are:
 	prolog:xref_source_identifier/2, % +Source, -Id
 	prolog:xref_source_time/2,	 % +Source, -Modified
 	prolog:xref_open_source/2,	 % +SourceId, -Stream
+	prolog:xref_close_source/2,	 % +SourceId, -Stream
 	prolog:alternate_syntax/4,	 % Syntax, +Module, -Setup, -Restore
 	prolog:quasi_quotation_syntax/2. % Syntax, Library
 
@@ -535,8 +536,9 @@ prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 prolog_open_source(Src, Fd) :-
 	'$push_input_context'(source),
 	catch((   prolog:xref_open_source(Src, Fd)
-	      ->  true
-	      ;   open(Src, read, Fd)
+	      ->  Hooked = true
+	      ;   open(Src, read, Fd),
+		  Hooked = false
 	      ), E,
 	      (	  '$pop_input_context',
 		  throw(E)
@@ -545,7 +547,7 @@ prolog_open_source(Src, Fd) :-
 	push_operators([]),
 	'$current_source_module'(SM),
 	'$save_lex_state'(LexState, []),
-	asserta(open_source(Fd, state(LexState, SM))).
+	asserta(open_source(Fd, state(Hooked, Src, LexState, SM))).
 
 skip_hashbang(Fd) :-
 	catch((   peek_char(Fd, #)		% Deal with #! script
@@ -557,6 +559,14 @@ skip_hashbang(Fd) :-
 		  throw(E)
 	      )).
 
+%%	prolog:xref_open_source(+SourceID, -Stream)
+%
+%	Hook  to  open   an   xref   SourceID.    This   is   used   for
+%	cross-referencing non-files, such as XPCE   buffers,  files from
+%	archives,  git  repositories,   etc.    When   successful,   the
+%	corresponding  prolog:xref_close_source/2  hook  is  called  for
+%	closing the source.
+
 
 %%	prolog_close_source(+In:stream) is det.
 %
@@ -567,24 +577,34 @@ skip_hashbang(Fd) :-
 
 prolog_close_source(In) :-
 	call_cleanup(
-	    restore_source_context(In),
-	    ( close(In, [force(true)]),
-	      '$pop_input_context'
-	    )).
+	    restore_source_context(In, Hooked, Src),
+	    close_source(Hooked, Src, In)).
 
-restore_source_context(In) :-
+close_source(true, Src, In) :-
+	catch(prolog:xref_close_source(Src, In), _, false), !,
+	'$pop_input_context'.
+close_source(_, _Src, In) :-
+	close(In, [force(true)]),
+	'$pop_input_context'.
+
+restore_source_context(In, Hooked, Src) :-
 	(   at_end_of_stream(In)
 	->  true
 	;   ignore(catch(expand(end_of_file, _, In, _), _, true))
 	),
 	pop_operators,
 	retractall(mode(In, _)),
-	(   retract(open_source(In, state(LexState, SM)))
+	(   retract(open_source(In, state(Hooked, Src, LexState, SM)))
 	->  '$restore_lex_state'(LexState),
 	    '$set_source_module'(SM)
 	;   assertion(fail)
 	).
 
+%%	prolog:xref_close_source(+SourceID, +Stream) is semidet.
+%
+%	Called by prolog_close_source/1 to  close   a  source previously
+%	opened by the hook prolog:xref_open_source/2.  If the hook fails
+%	close/2 using the option force(true) is used.
 
 %%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is semidet.
 %
