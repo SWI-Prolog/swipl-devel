@@ -169,7 +169,7 @@ Root(int i, node **r, Buffer buf)
   do
   { k = i;
     n = Node(i, buf);
-    DEBUG(CHK_SECURE, assert(n > 0));
+    DEBUG(CHK_SECURE, assert(n != NULL));
     i = node_isom(n);
   } while ( i != 0 );
 
