@@ -650,7 +650,6 @@ collect(Src, File, In, Options) :-
 	    Comments = []
 	;   CommentOptions = [ comments(Comments) ]
 	),
-	E = error(syntax_error(_),_),
 	repeat,
 	    catch(prolog_read_source_term(
 		      In, Term, Expanded,
@@ -671,6 +670,9 @@ collect(Src, File, In, Options) :-
 		erase(Ref)),
 	    T == end_of_file, !.
 
+report_syntax_error(E, _, _) :-
+	fatal_error(E),
+	throw(E).
 report_syntax_error(_, _, Options) :-
 	option(silent(true), Options), !,
 	fail.
@@ -681,6 +683,8 @@ report_syntax_error(E, Src, _Options) :-
 	),
 	fail.
 
+fatal_error(time_limit_exceeded).
+fatal_error(error(resource_error(_),_)).
 
 %%	update_condition(+Term) is det.
 %
