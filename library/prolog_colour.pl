@@ -458,7 +458,7 @@ colourise_comments([H|T], TB) :-
 	colourise_comment(H, TB),
 	colourise_comments(T, TB).
 
-colourise_comment((_)-_, _) :- !.
+colourise_comment((-)-_, _) :- !.
 colourise_comment(Pos-Comment, TB) :-
 	comment_style(Comment, Style),
 	stream_position_data(char_count, Pos, Start),
