@@ -625,6 +625,7 @@ safe_primitive(system:between(_,_,_)).
 safe_primitive(system:succ(_,_)).
 safe_primitive(system:plus(_,_,_)).
 safe_primitive(system:term_variables(_,_)).
+safe_primitive(system:'$term_size'(_,_,_)).
 safe_primitive(system:atom_to_term(_,_,_)).
 safe_primitive(system:term_to_atom(_,_)).
 safe_primitive(system:atomic_list_concat(_,_,_)).
