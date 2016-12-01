@@ -995,12 +995,13 @@ PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
     return FALSE;
 
   while( PL_get_list_ex(ttail, thead, ttail) )
-  { if ( !get_functor(thead, &targets[tcount].functor,
+  { if ( tcount >= MAX_TARGETS )
+      return PL_resource_error("target_predicates");
+    if ( !get_functor(thead, &targets[tcount].functor,
 		      NULL, 0, GF_PROCEDURE|GP_NOT_QUALIFIED) )
       return FALSE;
     targets[tcount].pi = PL_copy_term_ref(thead);
-    if ( tcount++ > MAX_TARGETS )
-      return PL_resource_error("target_predicates");
+    tcount++;
   }
   if ( !PL_get_nil_ex(ttail) )
     return FALSE;
