@@ -30,6 +30,7 @@
 :- module(terms,
 	  [ term_hash/2,		% @Term, -HashKey
 	    term_hash/4,		% @Term, +Depth, +Range, -HashKey
+	    term_size/2,		% @Term, -Size
 	    term_variables/2,		% @Term, -Variables
 	    term_variables/3,		% @Term, -Variables, +Tail
 	    variant/2,			% @Term1, @Term2
@@ -51,6 +52,30 @@ in this library are provided as SWI-Prolog built-ins.
 	exactly the same set of predicates, but defined predicates are
 	compatible.
 */
+
+%%	term_size(@Term, -Size) is det.
+%
+%	True if Size is the size  in   _cells_  occupied  by Term on the
+%	global (term) stack. A _cell_ is 4  bytes on 32-bit machines and
+%	8 bytes on 64-bit machines. The  calculation does take _sharing_
+%	into account. For example:
+%
+%	```
+%	?- A = a(1,2,3), term_size(A,S).
+%	S = 4.
+%	?- A = a(1,2,3), term_size(a(A,A),S).
+%	S = 7.
+%	?- term_size(a(a(1,2,3), a(1,2,3)), S).
+%	S = 11.
+%	```
+%
+%	Note that small objects such as atoms  and small integers have a
+%	size 0. Space is allocated for   floats, large integers, strings
+%	and compound terms.
+
+term_size(Term, Size) :-
+	'$term_size'(Term, _, Size1),
+	Size is Size1 - 1.
 
 %%	variant(@Term1, @Term2) is semidet.
 %
