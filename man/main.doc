@@ -59,8 +59,8 @@
 
 \newcommand{\vmajor}{7}
 \newcommand{\vminor}{3}
-\newcommand{\vpatch}{31}
-\newcommand{\vmonth}{November}
+\newcommand{\vpatch}{32}
+\newcommand{\vmonth}{December}
 \newcommand{\vyear}{2016}
 
 #ifdef BOOK
