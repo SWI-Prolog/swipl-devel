@@ -3669,7 +3669,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
       return PL_type_error("character_code", chr);
 #if SIZEOF_WCHAR_T == 2
     else if ( n > PLMAXWCHAR )
-      result->status = CVT_representation;
+      return PL_representation_error("character_code");
 #else
     else
       assert(0);
