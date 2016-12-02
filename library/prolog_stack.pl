@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -71,8 +71,7 @@ for example by adding the lines below   to  your ~/swiplrc (swipl.ini in
 Windows) to decorate uncaught exceptions:
 
   ==
-  :- load_files(library(prolog_stack), [silent(true)]).
-  prolog_stack:stack_guard(none).
+  :- use_module(library(prolog_stack)).
   ==
 
 @bug	Use of this library may negatively impact performance of
@@ -80,9 +79,10 @@ Windows) to decorate uncaught exceptions:
 	as part of their normal processing.
 */
 
-:- create_prolog_flag(backtrace_depth,      20,   [type(integer)]).
-:- create_prolog_flag(backtrace_goal_depth, 2,    [type(integer)]).
-:- create_prolog_flag(backtrace_show_lines, true, [type(boolean)]).
+:- create_prolog_flag(backtrace,	    true, [type(boolean), keep(true)]).
+:- create_prolog_flag(backtrace_depth,      20,   [type(integer), keep(true)]).
+:- create_prolog_flag(backtrace_goal_depth, 3,    [type(integer), keep(true)]).
+:- create_prolog_flag(backtrace_show_lines, true, [type(boolean), keep(true)]).
 
 %%	get_prolog_backtrace(+MaxDepth, -Backtrace) is det.
 %%	get_prolog_backtrace(+MaxDepth, -Backtrace, +Options) is det.
@@ -161,15 +161,20 @@ backtrace(MaxDepth, Fr, PC, GoalDepth,
 	;   PC2 = foreign
 	),
 	(   prolog_frame_attribute(Fr, parent, Parent),
-	    (	prolog_frame_attribute(Parent, predicate_indicator, PI),
-		PI \= '$toplevel':_
-	    ;	current_prolog_flag(break_level, Break),
-		Break >= 1
-	    )
+	    more_stack(Parent)
 	->  D2 is MaxDepth - 1,
 	    backtrace(D2, Parent, PC2, GoalDepth, Stack)
 	;   Stack = []
 	).
+
+more_stack(Parent) :-
+	prolog_frame_attribute(Parent, predicate_indicator, PI),
+	\+ ( PI = '$toplevel':G,
+	     G \== (toplevel_call/1)
+	   ), !.
+more_stack(_) :-
+	current_prolog_flag(break_level, Break),
+	Break >= 1.
 
 %%	copy_goal(+TermDepth, +Frame, -Goal) is det.
 %
@@ -305,20 +310,27 @@ message(Backtrace) -->
 	{default_backtrace_options(Options)},
 	message(Backtrace, Options).
 
-message([], _) -->
+message(Backtrace, Options) -->
+	message_frames(Backtrace, Options),
+	warn_nodebug(Backtrace).
+
+message_frames([], _) -->
 	[].
-message([H|T], Options) -->
-	message(H, Options),
+message_frames([H|T], Options) -->
+	message_frames(H, Options),
 	(   {T == []}
 	->  []
 	;   [nl],
-	    message(T, Options)
+	    message_frames(T, Options)
 	).
 
-message(frame(Level, Where, 0), Options) --> !,
+message_frames(frame(Level, Where, 0), Options) --> !,
 	level(Level),
 	where_no_goal(Where, Options).
-message(frame(Level, Where, Goal), Options) -->
+message_frames(frame(Level, _Where, '$toplevel':toplevel_call(_)), _) --> !,
+	level(Level),
+	[ '<user>'-[] ].
+message_frames(frame(Level, Where, Goal), Options) -->
 	level(Level),
 	[ '~q'-[Goal] ],
 	where_goal(Where, Options).
@@ -371,6 +383,22 @@ where_goal(_, _) -->
 
 level(Level) -->
 	[ '~|~t[~D]~6+ '-[Level] ].
+
+warn_nodebug(Backtrace) -->
+	{ contiguous(Backtrace) }, !.
+warn_nodebug(_Backtrace) -->
+	[ nl,nl,
+	  'Note: some frames are missing due to last-call optimization.'-[], nl,
+	  'Re-run your program in debug mode (:- debug.) to get more detail.'-[]
+	].
+
+contiguous([frame(D0,_,_)|Frames]) :-
+	contiguous(Frames, D0).
+
+contiguous([], _).
+contiguous([frame(D1,_,_)|Frames], D0) :-
+	D1 =:= D0-1,
+	contiguous(Frames, D1).
 
 
 %%	clause_predicate_name(+ClauseRef, -Predname) is det.
@@ -480,6 +508,7 @@ lineno_(Fd, Char, L) :-
 user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
 			   error(E, context(prolog_stack(Stack),Msg)),
 			   Fr, Guard) :-
+	current_prolog_flag(backtrace, true),
 	(   (Guard == none ; Guard == 'C')
 	->  debug(backtrace, 'Got uncaught (guard = ~q) exception ~p (Ctx0=~p)',
 		  [Guard, E, Ctx0]),
@@ -512,6 +541,17 @@ guard_frame(frame(_,clause(ClauseRef, _, _))) :-
 	nth_clause(M:Head, _, ClauseRef),
 	functor(Head, Name, Arity),
 	stack_guard(M:Name/Arity).
+
+%%	stack_guard(+Reason) is semidet.
+%
+%	Dynamic multifile predicate. It is called  with `none`, `'C'` or
+%	the predicate indicator of the   _guard_,  the predicate calling
+%	catch/3. The exception must be of   _compatible_  with the shape
+%	error(Formal, context(Stack, Msg)). The  default   is  to  catch
+%	`none`, uncaught exceptions. `'C'`  implies   that  the callback
+%	from C will handle the exception.
+
+stack_guard(none).
 
 
 		 /*******************************

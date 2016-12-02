@@ -1108,6 +1108,22 @@ composed of symbols.\footnote{Older versions had a boolean flag
 \const{backquoted_strings}, which toggled between \const{string} and
 \const{symbol_char}}.  See also \secref{strings}.
 
+    \prologflagitem{backtrace}{bool}{rw}
+If \const{true} (default), print a backtrace on an uncaught exception.
+
+    \prologflagitem{backtrace_depth}{integer}{rw}
+If backtraces on errors are enabled, this flag defines the maximum
+number of frames that is printed (default~20).
+
+    \prologflagitem{backtrace_goal_depth}{integer}{rw}
+The frame of a backtrace is printed after making a shallow copy of the
+goal.  This flag determines the depth to which the goal term is copied.
+Default is `3'.
+
+    \prologflagitem{backtrace_show_lines}{bool}{rw}
+If \const{true} (default), try to reconstruct the line number at which
+the exception happened.
+
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
 \prologflag{min_integer} and \prologflag{max_integer}. If \const{false}
