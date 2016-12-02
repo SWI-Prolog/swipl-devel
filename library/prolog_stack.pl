@@ -562,7 +562,9 @@ stack_guard(none).
 	prolog:message//1.
 
 prolog:message(error(Error, context(Stack, Message))) -->
-	{ is_stack(Stack, Frames) }, !,
+	{ Message \== 'DWIM could not correct goal',
+	  is_stack(Stack, Frames)
+	}, !,
 	'$messages':translate_message(error(Error, context(_, Message))),
 	[ nl, 'In:', nl ],
 	(   {is_list(Frames)}
