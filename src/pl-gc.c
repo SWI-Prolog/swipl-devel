@@ -2143,6 +2143,7 @@ mark_stacks(vm_state *vmstate)
 { GET_LD
   QueryFrame qf=NULL;
   mark_state state;
+  vm_state sub_state;
   LocalFrame fr = vmstate->frame;
   Choice ch     = vmstate->choice;
   Code PC       = vmstate->pc_start_vmi;
@@ -2154,9 +2155,7 @@ mark_stacks(vm_state *vmstate)
   trailcells_deleted = 0;
 
   while(fr)
-  { vm_state sub_state;
-
-    DEBUG(MSG_GC_MARK_QUERY, Sdprintf("Marking query %p\n", qf));
+  { DEBUG(MSG_GC_MARK_QUERY, Sdprintf("Marking query %p\n", qf));
     qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
 
     if ( qf->parent )			/* same code in checkStacks() */
