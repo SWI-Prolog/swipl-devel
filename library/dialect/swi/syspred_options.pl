@@ -125,6 +125,7 @@
 		       redefine_module(oneof([false,true,ask])),
 		       reexport(boolean),
 		       sandboxed(boolean),
+		       scope_settings(boolean),
 		       silent(boolean),
 		       stream(any)
 		     ]).
