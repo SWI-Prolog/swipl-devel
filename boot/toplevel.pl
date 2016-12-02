@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -482,6 +482,17 @@ init_debug_flags :-
 	create_prolog_flag(toplevel_residue_vars, false, []),
 	'$set_debugger_write_options'(print).
 
+%%	setup_backtrace
+%
+%	Initialise printing a backtrace.
+
+setup_backtrace :-
+	(   \+ current_prolog_flag(backtrace, false),
+	    load_setup_file(library(prolog_stack))
+	->  true
+	;   true
+	).
+
 %%	setup_colors is det.
 %
 %	Setup  interactive  usage  by  enabling    colored   output.
@@ -541,8 +552,9 @@ load_setup_file(File) :-
 	user:TopLevel.
 
 toplevel_goal(prolog, '$query_loop') :- !,
-	catch(setup_colors, E, print_message(warning, E)),
-	catch(setup_history, E, print_message(warning, E)).
+	catch(setup_backtrace, E, print_message(warning, E)),
+	catch(setup_colors,    E, print_message(warning, E)),
+	catch(setup_history,   E, print_message(warning, E)).
 toplevel_goal(Goal, Goal).
 
 
@@ -866,7 +878,13 @@ residue_vars(Goal, Vars) :-
 	current_prolog_flag(toplevel_residue_vars, true), !,
 	call_residue_vars(Goal, Vars).
 residue_vars(Goal, []) :-
-	call(Goal).
+	toplevel_call(Goal).
+
+toplevel_call(Goal) :-
+	call(Goal),
+	no_lco.
+
+no_lco.
 
 %%	write_bindings(+Bindings, +ResidueVars, +Deterministic) is semidet.
 %
