@@ -1500,12 +1500,12 @@ vwarning(const char *fm, va_list args)
 
   if ( truePrologFlag(PLFLAG_REPORT_ERROR) )
   { fid_t cid = 0;
+    char *s = NULL;
 
     if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack &&		/* cannot call Prolog */
 	 fm[0] != '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
-      char *s = message;
       fid_t cid;
       term_t av, head, tail;
 
@@ -1516,6 +1516,7 @@ vwarning(const char *fm, va_list args)
       head = PL_new_term_ref();
 
       Svsnprintf(message, sizeof(message), fm, args);
+      s = message;
 
       for(;;)
       { char *eol = strchr(s, '\n');
@@ -1547,7 +1548,10 @@ vwarning(const char *fm, va_list args)
       if ( cid )
 	PL_discard_foreign_frame(cid);
       Sfprintf(Suser_error, "ERROR: ");
-      Svfprintf(Suser_error, fm, args);
+      if ( s )
+        Sfprintf(Suser_error, s);
+      else
+        Svfprintf(Suser_error, fm, args);
       Sfprintf(Suser_error, "\n");
       Pause(0.2);
     }
