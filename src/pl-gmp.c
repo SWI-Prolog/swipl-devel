@@ -311,15 +311,15 @@ addMPZToBuffer(Buffer b, mpz_t mpz)
 void
 addMPZToBuffer(Buffer b, mpz_t mpz)
 { size_t size = (mpz_sizeinbase(mpz, 2)+7)/8;
-  long hdrsize;
+  ssize_t hdrsize;
   size_t count;
 
   if ( !growBuffer(b, size+4) )
     outOfCore();
   if ( mpz_sgn(mpz) < 0 )
-    hdrsize = -(long)size;
+    hdrsize = -(ssize_t)size;
   else
-    hdrsize = (long)size;
+    hdrsize = (ssize_t)size;
   DEBUG(1, Sdprintf("addMPZToBuffer(): Added %d bytes\n", size));
 
   *b->top++ = (char)((hdrsize>>24)&0xff);
@@ -345,8 +345,8 @@ char *
 loadMPZFromCharp(const char *data, Word r, Word *store)
 { GET_LD
   int size = 0;
-  int limpsize;
-  int wsize;
+  size_t limpsize;
+  size_t wsize;
   int neg;
   mpz_t mpz;
   Word p;
