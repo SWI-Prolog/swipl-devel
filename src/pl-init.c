@@ -1506,7 +1506,6 @@ vwarning(const char *fm, va_list args)
 	 !LD->outofstack &&		/* cannot call Prolog */
 	 fm[0] != '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
-      fid_t cid;
       term_t av, head, tail;
 
       if ( !(cid = PL_open_foreign_frame()) )
