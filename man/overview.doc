@@ -347,13 +347,13 @@ they precede predefined values for the alias. See file_search_path/2 for
 details on using this file location mechanism.
 
     \cmdlineoptionitem{--traditional}{}
-This flag disables the most important extensions of SWI-Prolog version~7
-(see \secref{extensions}) that introduce incompatibilities. In
-particular, lists will be represented in the traditional way, double
-quoted text is represented by a list of character codes and the
-functional notation on maps is not supported. Maps as a syntactic entity
-and the predicates that act on them remain supported if this flag is
-present.
+This flag disables the most important extensions of SWI-Prolog
+version~7 (see \secref{extensions}) that introduce incompatibilities
+with earlier versions.  In particular, lists are represented in the
+traditional way, double quoted text is represented by a list of
+character codes and the functional notation on dicts is not supported.
+Dicts as a syntactic entity, and the predicates that act on them, are
+still supported if this flag is present.
 
     \cmdlineoptionitem{--}{}
 \index{command line, arguments}%
@@ -1679,9 +1679,10 @@ output.
 \end{code}
 
     \prologflagitem{traditional}{bool}{r}
-Available in SWI-Prolog version~7.  If \const{true}, `traditional' mode
-has been selected using \cmdlineoption{--traditional}.  See also
-\secref{extensions}.
+Available in SWI-Prolog version~7.  If \const{true}, `traditional'
+mode has been selected using \cmdlineoption{--traditional}.  Notice
+that some SWI7 features, like the functional notation on dicts, do not
+work in this mode.  See also \secref{extensions}.
 
     \prologflagitem{tty_control}{bool}{rw}
 Determines whether the terminal is switched to raw mode for
