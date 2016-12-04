@@ -354,7 +354,7 @@ as the first example.
 Quintus' derived module systems have no means to separate the lookup
 module (for finding predicates) from the calling context (for qualifying
 meta arguments). Some other Prolog implementations (e.g., ECLiPSe and
-IF/Proloog) distinguish these operations, using \functor{@}{2} for
+IF/Prolog) distinguish these operations, using \functor{@}{2} for
 setting the calling context of a goal. This is provided by SWI-Prolog,
 currently mainly to support compatibility layers.
 
