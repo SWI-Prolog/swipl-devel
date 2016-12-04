@@ -185,6 +185,13 @@ to the actual code. See also \secref{dialect} and
 \end{code}
 \end{description}
 
+In most cases a module is imported because some of its predicates are
+being used.  However, sometimes a module is imported for other
+reasons, e.g., for its declarations.  In such cases it is best
+practice to use use_module/2 with empty ImportList.  This
+distinguishes an imported module that is used, although not for its
+predicates, from a module that is needlessly imported.
+
 The module/2, use_module/1 and use_module/2 directives are sufficient to
 partition a simple Prolog program into modules. The SWI-Prolog graphical
 cross-referencing tool gxref/0 can be used to analyse the dependencies
