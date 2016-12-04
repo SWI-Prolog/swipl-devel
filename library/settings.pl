@@ -221,6 +221,9 @@ clear_setting_cache :-
 :- multifile
 	eval_default/3.			% +Default, +Type, -Value
 
+eval_default(Default, _, _Type, Value) :-
+	var(Default), !,
+	Value = Default.
 eval_default(Default, _, Type, Value) :-
 	eval_default(Default, Type, Val), !,
 	Value = Val.
