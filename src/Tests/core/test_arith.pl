@@ -158,7 +158,10 @@ test(gcd, X == 4) :-
 	X is gcd(100, 24).
 test(gcd, X == 4) :-
 	X is gcd(24, 100).		% seems to be some argument ordering
-
+:- if(current_prolog_flag(bounded,false)).
+test(gcd, X == 9223372036854775808) :-
+	X is gcd(-9223372036854775808, -9223372036854775808).
+:-endif.
 :- end_tests(gcd).
 
 :- begin_tests(errors).
@@ -272,6 +275,24 @@ test(mpz_to_int64, A == -9223372036854775808) :-
 	A is -9223372036854775808-1+1.
 :- endif.
 
+test(addition) :-
+	X is -9223372036854775808 + -1,
+	test_minint_promotion(X).
+test(addition) :-
+	X is -1 + -9223372036854775808,
+	test_minint_promotion(X).
+test(subtraction) :-
+	X is -9223372036854775808 - 1,
+	test_minint_promotion(X).
+test(multiplication) :-
+	X is -9223372036854775808 * 2 - -9223372036854775807,
+	test_minint_promotion(X).
+test(multiplication) :-
+	X is 2 * -9223372036854775808 - -9223372036854775807,
+	test_minint_promotion(X).
+test(multiplication) :-
+	X is -4294967296 * 4294967296 - -9223372036854775807,
+	test_minint_promotion(X).
 
 :- end_tests(minint_promotion).
 
@@ -317,6 +338,25 @@ test(spaced_octal) :- test_maxint_promotion(0o10 0000 0000 0000 0000 0000).
 
 test(hexadecimal) :- test_maxint_promotion(0x8000000000000000).
 test(spaced_hexadecimal) :- test_maxint_promotion(0x8000_0000_0000_0000).
+
+test(addition) :-
+	X is 9223372036854775807 + 1,
+	test_maxint_promotion(X).
+test(addition) :-
+	X is 1 + 9223372036854775807,
+	test_maxint_promotion(X).
+test(subtraction) :-
+	X is 9223372036854775807 - -1,
+	test_maxint_promotion(X).
+test(multiplication) :-
+	X is 9223372036854775807 * 2 - 9223372036854775806,
+	test_maxint_promotion(X).
+test(multiplication) :-
+	X is 2 * 9223372036854775807 - 9223372036854775806,
+	test_maxint_promotion(X).
+test(multiplication) :-
+	X is 4294967295 * 4294967297 - 9223372036854775807,
+	test_maxint_promotion(X).
 
 :- end_tests(maxint_promotion).
 

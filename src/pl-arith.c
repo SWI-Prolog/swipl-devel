@@ -1247,7 +1247,7 @@ ar_minus(Number n1, Number n2, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-    { r->value.i = n1->value.i - n2->value.i;
+    { r->value.i = (uint64_t)n1->value.i - (uint64_t)n2->value.i;
 
       if ( (n1->value.i >= 0 && n2->value.i < 0 && r->value.i <= 0) ||
 	   (n1->value.i < 0  && n2->value.i > 0 && r->value.i >= 0) )
@@ -1506,7 +1506,7 @@ ar_gcd(Number n1, Number n2, Number r)
       int64_t t;
 
       if ( a < 0 )
-      { a = -a;
+      { a = -(uint64_t)a;
 	if ( a < 0 )
 	{ promote:
 #ifdef O_GMP
@@ -1519,7 +1519,7 @@ ar_gcd(Number n1, Number n2, Number r)
 	}
       }
       if ( b < 0 )
-      { b = -b;
+      { b = -(uint64_t)b;
 	if ( b < 0 )
 	  goto promote;
       }
@@ -2361,11 +2361,11 @@ mul64(int64_t x, int64_t y, int64_t *r)
       { ay = y;
 	sign = 1;
       } else
-      { ay = -y;
+      { ay = -(uint64_t)y;
 	sign = -1;
       }
     } else
-    { ax = -x;
+    { ax = -(uint64_t)x;
       if ( y > LL(0) )
       { ay = y;
 	sign = -1;
@@ -2377,7 +2377,7 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
     prod = (int64_t)(ax*ay);
     if ( sign < 0 )
-      prod = -prod;
+      prod = -(uint64_t)prod;
     if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) )
     { *r = prod;
       return TRUE;

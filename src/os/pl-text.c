@@ -160,7 +160,7 @@ static char *
 i64toa(int64_t val, char *out)
 { if ( val < 0 )
   { *out++ = '-';
-    val = -val;
+    val = -(uint64_t)val;
   }
 
   return ui64toa((uint64_t)val, out);
