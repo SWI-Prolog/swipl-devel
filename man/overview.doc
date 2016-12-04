@@ -1277,7 +1277,7 @@ one-character atoms and the value \const{atom} makes double quotes the
 same as single quotes, creating a atom.  See also \secref{extensions}.
 
     \prologflagitem{editor}{atom}{rw}
-Determines the editor used by edit/1. See \secref{listing} for
+Determines the editor used by edit/1. See \secref{customedit} for
 details on selecting the editor used.
 
     \prologflagitem{emacs_inferior_process}{bool}{r}
