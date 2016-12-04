@@ -126,7 +126,7 @@ curr_setting(Name, Module, Type, Default, Comment, Src) :-
 setting(Name, Type, Default, Comment) :-
 	throw(error(context_error(nodirective,
 				  setting(Name, Type, Default, Comment)),
-		    _)).
+		    context(setting/4,"Maybe module library(settings) was not explicitly loaded?"))).
 
 :- multifile
 	system:term_expansion/2.
