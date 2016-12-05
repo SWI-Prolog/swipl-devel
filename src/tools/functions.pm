@@ -1,4 +1,6 @@
 #!/usr/bin/perl -w
+# Author: Jan Wielemaker
+# This code is in the public domain
 
 use constant INITIAL => 0;
 use constant HEAD_SEEN => 1;

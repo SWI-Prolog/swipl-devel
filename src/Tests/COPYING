@@ -1,0 +1,9 @@
+# The license conditions of the SWI-Prolog test suite
+
+Most of the SWI-Prolog test suite is   licensed under the simplified BSD
+(BSD-2) license. Some of the test files  are licensed under the GPL with
+exception clause and we have  no   explicit  permission  to change their
+license. As the license of test  files   does  not affect the license of
+SWI-Prolog as a system there is no   reason  to challenge whether or not
+the contributions are subject to copyright,  nor   is  there a reason to
+replace or remove these test files.
