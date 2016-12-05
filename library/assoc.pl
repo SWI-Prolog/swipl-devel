@@ -1,48 +1,37 @@
-%   File   : ASSOC.PL
-%   Author : R.A.O'Keefe
-%   Updated: 9 November 1983
-%   Purpose: Binary tree implementation of "association lists".
+/*  Part of SWI-Prolog
 
-%   Note   : the keys should be ground, the associated values need not be.
+    Author:        R.A.O'Keefe, L.Damas, V.S.Costa, Glenn Burgess,
+		   Jiri Spitz and Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2004-2016, various people and institutions
+    All rights reserved.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Adapted for SWI-Prolog by Jan Wielemaker, January 2004.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-To the best of my knowledge, this file   is in the public domain and can
-therefore safely be distributed with SWI-Prolog and used in applications
-without restrictions.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-Various versions of this file exists. This   one  is copied from the YAP
-library. The SICStus library contains  one   using  AVL  trees to ensure
-proper balancing. Although based  on  this   library  they  changed  the
-argument order of some of the predicates.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-Richard O'Keefe has told me he  is  working   on  a  new version of this
-library. This new version, as it becomes available, is likely to replace
-this one.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-/*
-Balancing code merged from L.Damas, V.S.Costa, AVL trees in YAP.
-Tree is either:
-
-*) empty (t/0)  or
-*) t(Key,Value,Balance,Left,Right)
-   Left,Right: trees
-   Balance: <, -, or > denoting |L|-|R| = 1, 0, or -1, respectively
-
-TODO: get_next_assoc/4, get_prev_assoc/4 for SICStus compatibility
-
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
-
-/*
-   Added del_assoc/4, del_min_assoc/4 and del_max_assoc/4
-
-   Ported by Glenn Burgess from a language called Pure.
-   Jiri Spitz ported the Pure AVL library from this SWI-Prolog library,
-   but the deletion code was added by Jiri. Full circle.
-   Also added is_assoc/1, which makes testing much easier.     */
 
 :- module(assoc,
 	  [ empty_assoc/1,		% -Assoc
@@ -73,7 +62,6 @@ Assocs are Key-Value associations implemented as  a balanced binary tree
 
 @see		library(pairs), library(rbtrees)
 @author		R.A.O'Keefe, L.Damas, V.S.Costa and Jan Wielemaker
-@license	Public domain
 */
 
 :- meta_predicate

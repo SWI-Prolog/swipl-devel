@@ -1,64 +1,58 @@
 /*  Part of SWI-Prolog
 
-    Author:        Tom Schrijvers, K.U.Leuven
+    Author:        Tom Schrijvers, Markus Triska and Jan Wielemaker
     E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2003-2015, K.U.Leuven
+    Copyright (c)  2004-2016, K.U.Leuven
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This module implements the dif/2 constraint. It constraints two terms
-% to be not identical.
-%
-%	Author:		Tom Schrijvers, K.U.Leuven
-%	E-mail:		Tom.Schrijvers@cs.kuleuven.ac.be
-%	Copyright:	2003-2004, K.U.Leuven
-%
-% Update 7/3/2004:
-%   Now uses unifiable/3. It enables dif/2 to work with infinite terms.
-% Update 11/3/2004:
-%   Cleaned up code. Now uses just one or node for every call to dif/2.
-% Update Jul 8, 2005 (JW)
-%   Fixed spelling unifyable --> unifiable
-% Update Sep 4, 2007 (JW)
-%   Added support for current_prolog_flag(occurs_check, error) case
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-:- module(dif,[dif/2]).
+:- module(dif,
+	  [ dif/2				% +Term1, +Term2
+	  ]).
 :- use_module(library(lists)).
 :- set_prolog_flag(generate_debug_info, false).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/** <module> The dif/2 constraint
+*/
+
+%%	dif(+Term1, +Term2) is semidet.
+%
+%	Constraint that expresses that  Term1   and  Term2  never become
+%	identical (==/2). Fails if `Term1 ==   Term2`. Succeeds if Term1
+%	can  never  become  identical  to  Term2.  In  other  cases  the
+%	predicate succeeds after attaching constraints   to the relevant
+%	parts of Term1 and Term2 that prevent   the  two terms to become
+%	identical.
+
 dif(X,Y) :-
 	X \== Y,
 	dif_c_c(X,Y,_).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% types of attributes?
-%	vardif: X is a variable
-%%	node(Parent,Children,Variables,Counter)
 
 dif_unifiable(X, Y, Us) :-
 	(    current_prolog_flag(occurs_check, error) ->
