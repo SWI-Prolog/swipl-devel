@@ -547,6 +547,9 @@ pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
 			     file_errors(fail)
 			   ]), !.
 pack_install_dir(PackDir, Options) :-		% TBD: global/user?
+	pack_create_install_dir(PackDir, Options).
+
+pack_create_install_dir(PackDir, Options) :-
 	findall(Candidate = create_dir(Candidate),
 		( absolute_file_name(pack(.), Candidate, [solutions(all)]),
 		  \+ exists_file(Candidate),
@@ -559,11 +562,20 @@ pack_install_dir(PackDir, Options) :-		% TBD: global/user?
 		),
 		Candidates0),
 	list_to_set(Candidates0, Candidates),	% keep order
+	pack_create_install_dir(Candidates, PackDir, Options).
+
+pack_create_install_dir(Candidates, PackDir, Options) :-
 	Candidates = [Default=_|_], !,
 	append(Candidates, [cancel=cancel], Menu),
-	menu(pack(create_pack_dir), Menu, Default, PackDir, Options),
-	make_directory_path(PackDir).
-pack_install_dir(_, _) :-
+	menu(pack(create_pack_dir), Menu, Default, Selected, Options),
+	Selected \== cancel,
+	(   catch(make_directory_path(Selected), E,
+		  (print_message(warning, E), fail))
+	->  PackDir = Selected
+	;   delete(Candidates, PackDir=create_dir(PackDir), Remaining),
+	    pack_create_install_dir(Remaining, PackDir, Options)
+	).
+pack_create_install_dir(_, _, _) :-
 	print_message(error, pack(cannot_create_dir(pack(.)))),
 	fail.
 
