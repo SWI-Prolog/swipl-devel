@@ -3697,6 +3697,89 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 }
 
 
+static int
+is_code(word w)
+{ if ( isTaggedInt(w) )
+  { intptr_t code = valInt(w);
+
+    return code >= 0 && code <= CHARCODE_MAX;
+  }
+
+  return FALSE;
+}
+
+static int
+is_char(word w)
+{ PL_chars_t text;
+
+  return ( isAtom(w) &&
+	   get_atom_text(w, &text) &&
+	   text.length == 1
+	 );
+}
+
+static
+PRED_IMPL("$is_char_code", 1, is_char_code, 0)
+{ PRED_LD;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  return is_code(*p);
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("$is_char", 1, is_char, 0)
+{ PRED_LD;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  return is_char(*p);
+}
+
+
+static int
+is_text_list(term_t text, term_t lent, int (*test)(word) ARG_LD)
+{ Word p = valTermRef(text);
+  intptr_t len = 0;
+
+  deRef(p);
+  while(isList(*p))
+  { Word av = HeadList(p);
+    Word h;
+
+    deRef2(av, h);
+    if ( !(*test)(*h) )
+      return FALSE;
+    deRef2(av+1, p);
+
+    if ( ++len == 1000 )
+    { Word tail;
+      skip_list(p, &tail PASS_LD);
+      if ( !isNil(*tail) )
+	return FALSE;
+    }
+  }
+  return ( isNil(*p) &&
+	   PL_unify_int64(lent, len) );
+}
+
+static
+PRED_IMPL("$is_code_list", 2, is_code_list, 0)
+{ PRED_LD
+
+  return is_text_list(A1, A2, is_code PASS_LD);
+}
+
+static
+PRED_IMPL("$is_char_list", 2, is_char_list, 0)
+{ PRED_LD
+
+  return is_text_list(A1, A2, is_char PASS_LD);
+}
+
+
 static
 PRED_IMPL("atom_number", 2, atom_number, 0)
 { PRED_LD
@@ -5516,6 +5599,10 @@ BeginPredDefs(prims)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
   PRED_DEF("number_string", 2, number_string, 0)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
+  PRED_DEF("$is_char_code", 1, is_char_code, 0)
+  PRED_DEF("$is_char", 1, is_char, 0)
+  PRED_DEF("$is_code_list", 2, is_code_list, 0)
+  PRED_DEF("$is_char_list", 2, is_char_list, 0)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
+    Copyright (C): 1985-2016, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -188,6 +188,8 @@ resource_error(Culprit) :-
 %	types.
 %
 %	| boolean | one of =true= or =false= |
+%	| char | Atom of length 1 |
+%	| code | Representation Unicode code point |
 %	| chars | Proper list of 1-character atoms |
 %	| codes | Proper list of Unicode character codes |
 %	| text | One of =atom=, =string=, =chars= or =codes= |
@@ -202,6 +204,10 @@ resource_error(Culprit) :-
 %	| acyclic | Acyclic term (tree) |
 %	| list(Type) | Proper list with elements of Type |
 %	| list_or_partial_list | A list or an open list (ending in a variable |
+%
+%	Note: The Windows version can only represent Unicode code points
+%	up to 2^16-1. Higher values cause a representation error on most
+%	text handling predicates.
 %
 %	@throws instantiation_error if Term is insufficiently
 %	instantiated and type_error(Type, Term) if Term is not of Type.
@@ -230,13 +236,11 @@ is_not(list(Of), X) :- !,
 is_not(list_or_partial_list, X) :- !,
 	type_error(list, X).
 is_not(chars, X) :- !,
-	not_a_list(chars, X).
+	not_a_list(list(char), X).
 is_not(codes, X) :- !,
-	not_a_list(codes, X).
+	not_a_list(list(code), X).
 is_not(var,X) :- !,
 	uninstantiation_error(X).
-is_not(rational, X) :- !,
-	not_a_rational(X).
 is_not(cyclic, X) :-
 	domain_error(cyclic_term, X).
 is_not(acyclic, X) :-
@@ -256,6 +260,7 @@ ground_type(oneof(_)).
 ground_type(stream).
 ground_type(text).
 ground_type(string).
+ground_type(rational).
 
 not_a_list(Type, X) :-
 	'$skip_list'(_, X, Rest),
@@ -267,8 +272,7 @@ not_a_list(Type, X) :-
 	    ->	element_is_not(X, Of)
 	    ;	instantiation_error(Of)
 	    )
-	;   functor(Type, Name, _),
-	    type_error(Name, X)
+	;   type_error(Type, X)
 	).
 
 
@@ -279,15 +283,6 @@ element_is_not([H|_], Of) :- !,
 	is_not(Of, H).
 element_is_not(_List, _Of) :-
 	assertion(fail).
-
-not_a_rational(X) :-
-	(   var(X)
-	->  instantiation_error(X)
-	;   X = rdiv(N,D)
-	->  must_be(integer, N), must_be(integer, D),
-	    type_error(rational,X)
-	;   type_error(rational,X)
-	).
 
 %%	is_of_type(+Type, @Term) is semidet.
 %
@@ -312,8 +307,10 @@ has_type(between(L,U), X) :- (   integer(L)
 			     ).
 has_type(boolean, X)	  :- (X==true;X==false), !.
 has_type(callable, X)	  :- callable(X).
-has_type(chars,	X)	  :- chars(X).
-has_type(codes,	X)	  :- codes(X).
+has_type(char,	X)	  :- '$is_char'(X).
+has_type(code,	X)	  :- '$is_char_code'(X).
+has_type(chars,	X)	  :- '$is_char_list'(X, _Len).
+has_type(codes,	X)	  :- '$is_code_list'(X, _Len).
 has_type(text, X)	  :- text(X).
 has_type(compound, X)	  :- compound(X).
 has_type(constant, X)	  :- atomic(X).
@@ -340,29 +337,11 @@ has_type(encoding, X)	  :- current_encoding(X).
 has_type(dict, X)	  :- is_dict(X).
 has_type(list(Type), X)	  :- is_list(X), element_types(X, Type).
 
-chars(Chs) :-
-	is_list(Chs),
-	chars_i(Chs).
-
-chars_i([]).
-chars_i([H|T]) :-
-	atom(H), atom_length(H, 1),
-	chars_i(T).
-
-codes(Cds) :-
-	is_list(Cds),
-	codes_i(Cds).
-
-codes_i([]).
-codes_i([H|T]) :-
-	integer(H), between(1, 0x10ffff, H),
-	codes_i(T).
-
 text(X) :-
 	(   atom(X)
 	;   string(X)
-	;   chars(X)
-	;   codes(X)
+	;   '$is_char_list'(X, _)
+	;   '$is_code_list'(X, _)
 	), !.
 
 element_types(List, Type) :-
