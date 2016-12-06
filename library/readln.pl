@@ -1,9 +1,51 @@
-/*  $Id$
+/*  Part of SWI-Prolog
 
-    Read a sentence from the current input stream and convert it
-    into a list of atoms and numbers.
-    Letters(A-Z, a-z) are converted to atoms
-    Digits (0-9) (and a '.' if a real number) are converted to numbers
+    Author:        Wouter Jansweijer and Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  1985-2013, University of Amsterdam
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+:- module(readln,
+	  [ readln/1,			% -Line
+	    readln/2,			% -Line, +EOL
+	    readln/5			% See above
+	  ]).
+:- use_module(library(lists)).
+
+/** <module> Read line as list of tokens
+
+Read a sentence from the current input stream and convert it into a list
+of atoms and numbers:
+
+    - Letters(A-Z, a-z) are converted to atoms
+    - Digits (0-9) (and a '.' if a real number) are converted to numbers
 	Some obscure 'rounding' is done, so you have most of the times
 	only 6 significant digits with an exponent part. (This is caused
 	by the system predicate 'name'. If you want looonnnggg numbers
@@ -11,7 +53,8 @@
 	(N.B. reals work only if '.' is not defined as 'stop-char' but
 		'escape' will work in this case)
 
-    The reader is >>flexible<<, you can define yourself:
+    The reader is _flexible_, you can define yourself:
+
 	- the character on which reading will stop
 		(this character is escapable with \
 		 to read a \ type this character twice!!)
@@ -78,24 +121,11 @@ Examples:
 	read_atom(A) :-			% stop on newline,
 		readln(A,_,_," ",_).		% space is part of word
 
+@deprecated Old code. Not maintained and probably not at the
+	right level of abstraction.  Not locale support.
+@see	library(readutil), nlp package.
+*/
 
-   Author: Wouter Jansweijer
-   Date: 26 april 1985
-
-   Modified: Jan Wielemaker
-   Date: 19 feb 2001
-
-   Modernised a bit and fixed some end_of_file/-1 issues.  As we have modules
-   since a while I removed the ugly $ stuff :-)
-******************************************************************************/
-
-:- module(readln,
-	  [ readln/1,			% -Line
-	    readln/2,			% -Line, +EOL
-	    readln/5			% See above
-	  ]).
-:- use_module(library(lists)).
-:- license(swipl).
 
 readln(Read) :-			% the default is read up to EOL
 	string_codes("_0123456789", Arg2),
