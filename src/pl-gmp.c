@@ -595,7 +595,7 @@ clearGMPNumber(Number n)
 		 *******************************/
 
 void
-initGMP()
+initGMP(void)
 { if ( !GD->gmp.initialised )
   { GD->gmp.initialised = TRUE;
 
@@ -611,6 +611,12 @@ initGMP()
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
       mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
+#endif
+
+#if __GNU_MP__ > 3 && __GNU_MP__ < 6
+    PL_license("lgplv3", "libgmp");
+#else
+    PL_license("lgplv2+", "libgmp");
 #endif
   }
 }

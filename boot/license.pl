@@ -61,12 +61,28 @@ license(gplv2, gpl,
         [ comment('GNU General Public License, version 2'),
 	  url('http://www.fsf.org/copyleft/gpl.html')
 	]).
+license('gplv2+', gpl,
+        [ comment('GNU General Public License, version 2 or later'),
+	  url('http://www.fsf.org/copyleft/gpl.html')
+	]).
 license(gplv3, gpl,
         [ comment('GNU General Public License, version 3'),
 	  url('http://www.fsf.org/copyleft/gpl.html')
 	]).
 license(lgpl, lgpl,
 	[ comment('GNU Lesser General Public License'),
+	  url('http://www.fsf.org/copyleft/lesser.html')
+	]).
+license(lgplv2, lgpl,
+	[ comment('GNU Lesser General Public License, version 2'),
+	  url('http://www.fsf.org/copyleft/lesser.html')
+	]).
+license('lgplv2+', lgpl,
+	[ comment('GNU Lesser General Public License, version 2 or late'),
+	  url('http://www.fsf.org/copyleft/lesser.html')
+	]).
+license(lgplv3, lgpl,
+	[ comment('GNU Lesser General Public License, version 3'),
 	  url('http://www.fsf.org/copyleft/lesser.html')
 	]).
 license(swipl, lgpl,
