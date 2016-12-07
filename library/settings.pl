@@ -112,10 +112,10 @@ curr_setting(Name, Module, Type, Default, Comment, Src) :-
 
 %%	setting(:Name, +Type, +Default, +Comment) is det.
 %
-%	Define a setting. Name denotes the name of the setting, Type its
-%	type. Default is the value before  it is modified. Default refer
-%	to environment variables  and  use   arithmetic  expressions  as
-%	defined by eval_default/4.
+%	Define a  setting.  Name denotes  the name of the  setting, Type
+%	its type.  Default is the  value before it is  modified. Default
+%	can  refer  to  environment  variables and  can  use  arithmetic
+%	expressions as defined by eval_default/4.
 %
 %	If a second declaration for  a   setting  is  encountered, it is
 %	ignored  if  Type  and  Default  are    the  same.  Otherwise  a
