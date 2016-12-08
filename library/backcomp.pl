@@ -87,7 +87,8 @@
 	    merge_set/3,		% +Set1, +Set2, -Union
 	    index/1,			% :Head
 	    hash/1,			% :PI
-	    set_base_module/1		% :Base
+	    set_base_module/1,		% :Base
+	    eval_license/0
 	  ]).
 :- use_module(apply,  [maplist/2]).
 :- use_module(system, [lock_predicate/1, unlock_predicate/1]).
@@ -643,3 +644,9 @@ hash(PI) :-
 set_base_module(M:Base) :-
 	set_module(M:base(Base)).
 
+%%	eval_license is det.
+%
+%	@deprecated Equivalent to license/0
+
+eval_license :-
+	license.

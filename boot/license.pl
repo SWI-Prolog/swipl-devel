@@ -35,7 +35,7 @@
 :- module(license,
 	  [ license/1,			% +LicenseId
 	    license/2,			% +LicenseId, +ModuleId
-	    eval_license/0		% Eval current situation
+	    license/0			% Current situation
 	  ]).
 
 :- dynamic
@@ -85,43 +85,54 @@ license(lgplv3, lgpl,
 	[ comment('GNU Lesser General Public License, version 3'),
 	  url('http://www.fsf.org/copyleft/lesser.html')
 	]).
+license(gpl_swipl, lgpl,
+	[ comment('SWI-Prolog Prolog Source License for versions up to 7.3.32'),
+	  url('http://www.swi-prolog.org/license-old.html')
+	]).
 license(swipl, lgpl,
-	[ comment('SWI-Prolog Prolog Source License'),
-	  url('http://www.swi-prolog.org/license.html')
+	[ comment('SWI-Prolog Prolog Source License for versions up to 7.3.32'),
+	  url('http://www.swi-prolog.org/license-old.html')
 	]).
 
 %	Other GPL/LGPL compatible licenses.
+%	TBD: Check permissive status of these licenses
 
 license(guile, lgpl,
-	[ comment('License for Guile')
+	[ comment('License for Guile'),
+	  url('https://www.gnu.org/software/guile/docs/docs-1.6/guile-ref/Guile-License.html')
 	]).
 license(gnu_ada, lgpl,
-	[ comment('The license of the run-time units of the GNU Ada compiler')
+	[ comment('The license of the run-time units of the GNU Ada compiler'),
+	  url('https://en.wikipedia.org/wiki/GNAT#License')
 	]).
-license(x11, lgpl,
-	[ comment('The X11 licens'),
+license(x11, permissive,
+	[ comment('The X11 license'),
 	  url('http://www.x.org/terms.htm')
 	]).
-license(expat, lgpl,
+license(expat, permissive,
 	[ comment('Expat license'),
 	  url('http://www.jclark.com/xml/copying.txt')
 	]).
-license(sml, lgpl,
+license(sml, permissive,
 	[ comment('Standard ML of New Jersey Copyright License'),
 	  url('http://cm.bell-labs.com/cm/cs/what/smlnj/license.html')
 	]).
-license(public_domain, lgpl,
+license(public_domain, permissive,
 	[ comment('Unrestricted Public domain')
 	]).
-license(cryptix, lgpl,
+license(cryptix, permissive,
 	[ comment('The Cryptix General License'),
 	  url('http://www.cryptix.org/docs/license.html')
 	]).
-license(bsd, lgpl,
+license(bsd, permissive,
 	[ comment('The modified BSD license'),
 	  url('http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5')
 	]).
-license(zlib, lgpl,
+license(mit, permissive,
+	[ comment('The MIT License'),
+	  url('https://en.wikipedia.org/wiki/MIT_License')
+	]).
+license(zlib, permissive,
 	[ comment('The license of ZLib'),
 	  url('http://www.gzip.org/zlib/zlib_license.html')
 	]).
@@ -135,7 +146,10 @@ license(lgpl_compatible, lgpl,
 license(gpl_compatible, gpl,
 	[ comment('Other GPL and not LGPL compatible license')
 	]).
-license(asl2, lgpl,
+license(permissive, permissive,
+	[ comment('Other permissive license')
+	]).
+license(asl2, permissive,
 	[ comment('Apache License 2.0'),
 	  url('http://www.apache.org/licenses/LICENSE-2.0')
 	]).
@@ -154,18 +168,18 @@ license(License) :-
 
 license(License, File) :-
 	warn_if_unknown(License),
-	assert(licensed(License, File)).
+	assertz(licensed(License, File)).
 
 warn_if_unknown(License) :-
 	license(License, _, _), !.
 warn_if_unknown(License) :-
 	print_message(warning, unknown_license(License)).
 
-%	eval_license
+%%	license is det.
 %
 %	Report current license situation
 
-eval_license :-
+license :-
 	report_gpl,
 	report_proprietary.
 
@@ -173,11 +187,17 @@ report_gpl :-
 	setof(Module, gpled(Module), Modules), !,
 	print_message(informational, license(gpl, Modules)).
 report_gpl :-
-	print_message(informational, license(lgpl)).
+	setof(Module, lgpled(Module), Modules), !,
+	print_message(informational, license(lgpl, Modules)).
+report_gpl :-
+	print_message(informational, license(permissive)).
 
 gpled(Module) :-
 	licensed(X, Module),
 	license(X, gpl, _).
+lgpled(Module) :-
+	licensed(X, Module),
+	license(X, lgpl, _).
 
 report_proprietary :-
 	(   setof(Module, proprietary(Module, L), Modules),
@@ -204,18 +224,23 @@ prolog:message(unknown_license(License)) -->
 	[ 'Unknown license: ~w.  Known licenses are:'-[License], nl ],
 	license_list.
 prolog:message(license(gpl, Modules)) -->
-	[ 'This system may only distributed using the GNU General Public License', nl,
+	[ 'This executable may only distributed using the GNU General Public License', nl,
 	  'because the following components contain GPL-ed code:', nl, nl
 	],
 	file_list(Modules),
 	see_also.
-prolog:message(license(lgpl)) -->
-	[ 'This program may be distributed under any license, provided all', nl,
+prolog:message(license(lgpl, Modules)) -->
+	[ 'This executable may be distributed under any license, provided all', nl,
 	  'conditions implied by the GNU Lesser General Public License', nl,
-	  'are satisfied.  In particular, this implies the source code', nl,
-	  'to any modification in SWI-Prolog or one of the used libraries', nl,
-	  'must be made available.', nl
+	  'are satisfied.', nl
 	],
+	file_list(Modules),
+	see_also.
+prolog:message(license(permissive)) -->
+	[ 'No modules with restrictive conditions have been registered.', nl,
+	  'This executable is covered by several permissive licenses.', nl,
+	  'SWI-Prolog itself is coverned by the Simplified BSD license.', nl
+        ],
 	see_also.
 prolog:message(license(proprierary(L), Modules)) -->
 	{ license(L, _, Att) },
@@ -235,9 +260,8 @@ prolog:message(license(proprierary(L), Modules)) -->
 
 see_also -->
 	[ nl,
-	  'See http://www.swi-prolog.org/license.html for details on', nl,
-	  'SWI-Prolog licensing policies supporting both free and non-free',nl,
-	  'Software.'
+	  'The SWI-Prolog source is distributed under the Simplified BSD', nl,
+	  'license. See http://www.swi-prolog.org/license.html for details.'
 	].
 
 license_list -->
