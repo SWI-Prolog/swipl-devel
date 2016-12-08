@@ -1,8 +1,8 @@
 \chapter{SWI-Prolog License Conditions and Tools}
 \label{sec:license}
 
-As of version 7.4.0\footnote{Actually pre-relase 7.3.33}, the SWI-Prolog
-source code is distributed under the
+As of version 7.4.0\footnote{Actually pre-release 7.3.33}, the
+SWI-Prolog source code is distributed under the
 \href{https://opensource.org/licenses/BSD-2-Clause}{Simplified BSD}
 license:
 
@@ -100,61 +100,16 @@ use of other license conditions.  Likewise for for LGPL components.
 
     \predicate{license}{2}{+LicenseId, +Component}
 Register the fact that \arg{Component} is distributed under a license
-identified by \arg{LicenseId}. The most important \arg{LicenseId}'s are:
-
-    \begin{description}
-	\termitem{gpl_swipl}{}
-This is the `old' license used for the Prolog components of SWI-Prolog.
-It is probably still used by many libraries written for SWI-Prolog.
-Please consider migrating such libraries to the Simplified BSD license.
-If you are not able or not willing to do so, add a directive like this:
-
-\begin{code}
-:- license(gpl_swipl, mygreatlib).
-\end{code}
-
-The license indicates this module is distributed under the GNU General
-Public License (GPL) with the SWI-Prolog exception:%
-    \footnote{This exception is a straight re-phrasing of the license
-	      used for \file{libgcc}, the GNU C runtime library facing
-	      similar technical issues.}
-
-\begin{quote}\it
-As a special exception, if you link this library with other files,
-compiled with SWI-Prolog, to produce an executable, this library does
-not by itself cause the resulting executable to be covered by the GNU
-General Public License. This exception does not, however, invalidate any
-other reasons why the executable file might be covered by the GNU
-General Public License.
-\end{quote}
-
-	\termitem{lgpl}{}
-This is the default license for foreign libraries linked with
-SWI-Prolog. Use PL_license() to register the condition from foreign
-code.
-
-	\termitem{gpl}{}
-Indicates this module is strictly Free Software, which implies it cannot
-be used together with any module that is incompatible with the GPL. Please
-only use these conditions when forced by other code used in the
-component.
-    \end{description}
-
-Other licenses known to the system are \const{guile}, \const{gnu_ada},
-\const{x11}, \const{expat}, \const{sml}, \const{public_domain},
-\const{cryptix}, \const{bsd}, \const{zlib}, \const{lgpl_compatible}
-and \const{gpl_compatible}.  New licenses can be defined by adding
-clauses for the multifile predicate license:license/3.  Below is
-an example.  The second argument is either \const{gpl} or \const{lgpl}
-to indicate compatibility with these licenses.  Other values cause the
-license to be interpreted as \jargon{proprietary}.  Proprietary licenses
-are reported by eval_license/0.  See the file \file{boot/license.pl} for
-details.
+identified by \arg{LicenseId}. Known license identifiers can be listed
+using known_licenses/0. A new license can be registered as a known
+language using a declaration like below. The second argument defines the
+\jargon{category} if the license, which is one of \const{gpl},
+\const{lgpl}, \const{permissive} or \const{proprietary}.
 
 \begin{code}
 :- multifile license:license/3.
 
-license:license(mylicense, lgpl,
+license:license(mylicense, permissive,
 		[ comment('My personal license'),
 		  url('http://www.mine.org/license.html')
 		]).
@@ -169,6 +124,10 @@ filename and calls license/2.
     \cfunction{void}{PL_license}{const char *LicenseId, const char *Component}
 Intended for the install() procedure of foreign libraries. This call can
 be made \emph{before} PL_initialise().
+
+    \predicate{known_licenses}{0}{}
+List all licenses \emph{known} to the system. This does not imply the
+system contains code covered by the listed licenses.  See license/2.
 \end{description}
 
 

@@ -35,7 +35,9 @@
 :- module(license,
 	  [ license/1,			% +LicenseId
 	    license/2,			% +LicenseId, +ModuleId
-	    license/0			% Current situation
+	    license/0,			% Current situation
+
+	    known_licenses/0
 	  ]).
 
 :- dynamic
@@ -204,6 +206,17 @@ proprietary(Module, L) :-
 	;   true
 	).
 
+%%	known_licenses
+%
+%	Print all known licenses.
+
+known_licenses :-
+	findall(license(Id,Compat,Atts),
+		license(Id,Compat,Atts),
+		Licenses),
+	print_message(informational, known_licenses(Licenses)).
+
+
 		 /*******************************
 		 *	       MESSAGES		*
 		 *******************************/
@@ -214,9 +227,15 @@ proprietary(Module, L) :-
 prolog:message(license(GPL,LGPL,Proprietary)) -->
 	license_message(GPL,LGPL,Proprietary).
 prolog:message(unknown_license(License)) -->
-	[ 'The license "~w" is not known.  You can add information'-[License], nl,
-	  'about this license by extending license:license/3.'
+	[ 'The license "~w" is not known.  You can list the known '-[License], nl,
+	  'licenses using ?- known_licenses. or add information about this ',
+	  'license by extending license:license/3.'
 	].
+prolog:message(known_licenses(Licenses)) -->
+	[ 'The following license identifiers may be used in license/2',
+	  'and PL_license()'
+	],
+	known_licenses(Licenses).
 
 %%	license_message(+GPL, +LGPL, +Proprietary)//
 
@@ -308,7 +327,7 @@ license_url(License) -->
 	{ license(License, _, Att),
 	  memberchk(url(URL), Att)
 	}, !,
-	[ nl, '  See ~w'-[URL] ].
+	[ nl, '    (see ~w)'-[URL] ].
 license_url(_) --> [].
 
 file_list([]) -->
@@ -316,6 +335,17 @@ file_list([]) -->
 file_list([H|T]) -->
 	[ '    ~w'-[H], nl ],
 	file_list(T).
+
+known_licenses([]) --> [].
+known_licenses([H|T]) --> [nl,nl], known_license(H), known_licenses(T).
+
+known_license(license(ID, Compat, Atts)) -->
+	{ memberchk(comment(Comment), Atts) }, !,
+	[ '  ~w (category ~w): ~w'-[ID, Compat, Comment] ],
+	license_url(ID).
+known_license(license(ID, Compat, _)) -->
+	[ '  ~w (category ~w)'-[ID, Compat] ],
+	license_url(ID).
 
 warn([]) --> [].
 warn([H|T]) --> warn1(H), warn(T).

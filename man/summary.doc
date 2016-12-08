@@ -348,6 +348,7 @@ suggest predicates from a keyword.
 \predicatesummary{is_thread}{1}{Type check for an thread handle}
 \predicatesummary{join_threads}{0}{Join all terminated threads interactively}
 \predicatesummary{keysort}{2}{Sort, using a key}
+\predicatesummary{known_licenses}{0}{Print known licenses}
 \predicatesummary{last}{2}{Last element of a list}
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
 \predicatesummary{length}{2}{Length of a list}
