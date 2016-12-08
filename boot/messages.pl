@@ -842,33 +842,35 @@ prolog_message(address_bits) -->
 prolog_message(threads) -->
 	{ current_prolog_flag(threads, true)
 	}, !,
-	[ 'Multi-threaded, ' ].
+	[ 'threaded, ' ].
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
 	[ 'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software.', nl,
-	  'For documentation and background, please visit http://www.swi-prolog.org', nl,
-	  'Please run `?- license.` for legal details.'
+	  'Please run ?- license. for legal details.'
 	].
 prolog_message(user_versions) -->
 	{ findall(Msg, prolog:version_msg(Msg), Msgs) },
 	user_version_messages(Msgs).
+prolog_message(documentaton) -->
+	[ 'For online help and background, visit http://www.swi-prolog.org', nl,
+          'For built-in help, use ?- help(Topic). or ?- apropos(Word).'
+	].
 prolog_message(author) -->
 	[ 'Jan Wielemaker (jan@swi-prolog.org)' ].
 prolog_message(welcome) -->
 	[ 'Welcome to SWI-Prolog (' ],
 	prolog_message(threads),
 	prolog_message(address_bits),
-	['Version ' ],
+	['version ' ],
 	prolog_message(version),
 	[ ')', nl ],
 	prolog_message(copyright),
 	[ nl ],
 	prolog_message(user_versions),
-	[ nl,
-	  'For help, use ?- help(Topic). or ?- apropos(Word).',
-	  nl, nl
-	].
+	[ nl ],
+	prolog_message(documentaton),
+	[ nl, nl ].
 prolog_message(about) -->
 	[ 'SWI-Prolog version ' ],
 	prolog_message(version),
