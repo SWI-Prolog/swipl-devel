@@ -82,7 +82,8 @@
 		       process_comment(boolean),
 		       term_position(-any),
 		       variable_names(-list),
-		       subterm_positions(-any)
+		       subterm_positions(-any),
+		       comments(-list)
 		     ]).
 :- predicate_options(system:read_term/3, 3,
 		     [ backquoted_string(boolean),
