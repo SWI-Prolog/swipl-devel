@@ -1079,9 +1079,7 @@ format_float(double f, char *buf)
 
 static int
 WriteNumber(Number n, write_options *options)
-{ GET_LD
-
-  switch(n->type)
+{ switch(n->type)
   { case V_INTEGER:
     { char buf[32];
 
@@ -1090,7 +1088,8 @@ WriteNumber(Number n, write_options *options)
     }
 #ifdef O_GMP
     case V_MPZ:
-    { char tmp[1024];
+    { GET_LD
+      char tmp[1024];
       char *buf;
       size_t sz = mpz_sizeinbase(n->value.mpz, 10) + 2;
       bool rc;
