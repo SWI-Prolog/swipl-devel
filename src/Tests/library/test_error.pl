@@ -17,13 +17,13 @@ test(integer, [error(type_error(integer,Culprit))]) :-
 	x = Culprit, must_be(integer, Culprit).
 test(integer, [error(type_error(integer,Culprit))]) :-
 	[_] = Culprit, must_be(integer, Culprit).
-test(rational, [error(type_error(rational,Culprit))]) :-
+test(rational, [error(instantiation_error)]) :-
 	a(_) = Culprit, must_be(rational,Culprit).
 test(rational, []) :-
 	1 = Culprit, must_be(rational,Culprit).
 test(rational, [error(type_error(rational,Culprit))]) :-
 	a = Culprit, must_be(rational,Culprit).
-test(rational, [error(type_error(integer,x))]) :-
+test(rational, [error(type_error(rational,rdiv(x,2)))]) :-
 	rdiv(x,2) = Culprit, must_be(rational,Culprit).
 test(rational, [error(instantiation_error)]) :-
 	rdiv(_,2) = Culprit, must_be(rational,Culprit).
@@ -37,11 +37,11 @@ test(list_of_integer, [error(type_error(integer,x))]) :-  % per analogiam 8.16.4
 	[x] = Culprit, must_be(list(integer), Culprit).
 test(list_of_integer, [error(instantiation_error)]) :-  % per analogiam 8.16.4.3 a
 	[x|_] = Culprit, must_be(list(integer), Culprit).
-test(list_of_integer, [sto(rational_trees),error(type_error(list, Culprit))]) :-
+test(list_of_integer, [sto(rational_trees),error(type_error(list(integer), Culprit))]) :-
 	[1|Culprit] = Culprit, must_be(list(integer),Culprit).
-test(list_of_integer, [error(type_error(list, Culprit))]) :-
+test(list_of_integer, [error(type_error(list(integer), Culprit))]) :-
 	[1|x] = Culprit, must_be(list(integer),Culprit).
-test(list_of_integer, [error(type_error(list, Culprit))]) :-
+test(list_of_integer, [error(type_error(list(integer), Culprit))]) :-
 	[1|s(_)] = Culprit, must_be(list(integer),Culprit).
 
 :- end_tests(must_be).
