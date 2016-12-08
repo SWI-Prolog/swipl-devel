@@ -369,7 +369,7 @@ test(head, X == 1) :-
 test(put, Y == 1) :-
 	x_dict2(_{x:1}, X),
 	Y = X.y.
-test(put2, Y == 4) :-
+test(put2, Y =:= 4) :-
 	x_dict3(_{x:2}, X),
 	Y = X.y.
 test(metaarg, Out == [2]) :-
@@ -392,11 +392,11 @@ test(na, X == 1) :-
 	X = test_dict{}.test_na().
 test(aa, X == 2) :-
 	X = test_dict{a:2}.test_aa().
-test(a2, X == 4) :-
+test(a2, X =:= 4) :-
 	X = test_dict{a:2}.test_a2().
 test(qna, X == 1) :-
 	X = test_dict2{}.test_na().
-test(qa2, X == 4) :-
+test(qa2, X =:= 4) :-
 	X = test_dict{a:2}.test_a2().
 
 :- end_tests(define_functions).

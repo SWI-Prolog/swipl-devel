@@ -66,8 +66,10 @@ test(mod, true) :-
 	       forall((between(-10, 10, Y), Y =\= 0),
 		      div_ok(X, Y))).
 
+test(minint, condition(current_prolog_flag(bounded, false))) :-
+	div_ok(-9223372036854775808, 4294967297).
+
 test(minint, A == -2147483648) :-
-	assertion(div_ok(-9223372036854775808, 4294967297)),
 	A is -9223372036854775808 div 4294967297.
 
 :- end_tests(div).
@@ -284,6 +286,7 @@ test(addition) :-
 test(subtraction) :-
 	X is -9223372036854775808 - 1,
 	test_minint_promotion(X).
+:- if(current_prolog_flag(bounded,false)).
 test(multiplication) :-
 	X is -9223372036854775808 * 2 - -9223372036854775807,
 	test_minint_promotion(X).
@@ -293,6 +296,7 @@ test(multiplication) :-
 test(multiplication) :-
 	X is -4294967296 * 4294967296 - -9223372036854775807,
 	test_minint_promotion(X).
+:- endif.
 
 :- end_tests(minint_promotion).
 
@@ -348,6 +352,7 @@ test(addition) :-
 test(subtraction) :-
 	X is 9223372036854775807 - -1,
 	test_maxint_promotion(X).
+:- if(current_prolog_flag(bounded,false)).
 test(multiplication) :-
 	X is 9223372036854775807 * 2 - 9223372036854775806,
 	test_maxint_promotion(X).
@@ -357,6 +362,7 @@ test(multiplication) :-
 test(multiplication) :-
 	X is 4294967295 * 4294967297 - 9223372036854775807,
 	test_maxint_promotion(X).
+:- endif.
 
 :- end_tests(maxint_promotion).
 

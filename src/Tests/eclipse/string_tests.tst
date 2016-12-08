@@ -162,8 +162,8 @@ atomic_list_concat(["this","will","become","an","atom"], S) should_give
 atomic_list_concat([123,456], S) should_give atom(S), S == '123456'.
 atomic_list_concat(["how",  "about", " ", ?], S) should_give S == 'howabout ?'.
 atomic_list_concat([1.234,abc,
-	1111111111111111111111111,atomic,'Atom',"string"], S) should_give
-	  S == '1.234abc1111111111111111111111111atomicAtomstring'.
+	9223372036854775807,atomic,'Atom',"string"], S) should_give
+	  S == '1.234abc9223372036854775807atomicAtomstring'.
 atomic_list_concat([a,/,b,/,c,+,>], S) should_give  S == 'a/b/c+>'.
 atomic_list_concat(["","","","",''], S) should_give S == ''.
 %SWI (foreach(E, L), for(I, 1, 1234) do  E = a), atomic_list_concat(L, S) should_give
@@ -217,8 +217,8 @@ atomics_to_string([this,will,become,a,string], S) should_give
 atomics_to_string([123,456], S) should_give string(S), S == "123456".
 atomics_to_string(["how",  "about", " ", ?], S) should_give S == "howabout ?".
 atomics_to_string([1.234,abc,
-	1111111111111111111111111,atomic,'Atom',"string"], S) should_give
-	  S == "1.234abc1111111111111111111111111atomicAtomstring".
+	9223372036854775807,atomic,'Atom',"string"], S) should_give
+	  S == "1.234abc9223372036854775807atomicAtomstring".
 atomics_to_string([a,/,b,/,c,+,>], S) should_give  S == "a/b/c+>".
 atomics_to_string(["","","","",''], S) should_give S == "".
 %SWI (foreach(E, L), for(I, 1, 1234) do  E = a), atomics_to_string(L, S) should_give
