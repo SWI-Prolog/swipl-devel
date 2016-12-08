@@ -222,10 +222,15 @@ pack_default(Level, Infos, Def) :-
 
 pack_info_term(BaseDir, Info) :-
 	directory_file_path(BaseDir, 'pack.pl', InfoFile),
-	setup_call_cleanup(
-	    open(InfoFile, read, In),
-	    term_in_stream(In, Info),
-	    close(In)).
+	catch(
+	    setup_call_cleanup(
+		open(InfoFile, read, In),
+		term_in_stream(In, Info),
+		close(In)),
+	    error(existence_error(source_sink, InfoFile), _),
+	    ( print_message(error, pack(no_meta_data(BaseDir))),
+	      fail
+	    )).
 
 term_in_stream(In, Term) :-
 	repeat,
@@ -404,7 +409,7 @@ search_info(download(_)).
 %	    star (*) for the version.  In this case pack_install asks
 %	    for the deirectory content and selects the latest version.
 %	  * GIT URL (not well supported yet)
-%	  * A local directory name
+%	  * A local directory name given as =|file://|= URL.
 %	  * A package name.  This queries the package repository
 %	    at http://www.swi-prolog.org
 %
@@ -439,7 +444,8 @@ pack_default_options(Archive, Pack, _, Options) :-	% Install from .tgz/.zip/... 
 pack_default_options(URL, Pack, _, Options) :-
 	git_url(URL, Pack), !,
 	Options = [git(true), url(URL)].
-pack_default_options(Dir, Pack, _, Options) :-	% Install from directory
+pack_default_options(FileURL, Pack, _, Options) :-	% Install from directory
+	uri_file_name(FileURL, Dir),
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Pack)), !,
 	(   pack_info_term(Dir, version(Version))
@@ -2132,6 +2138,8 @@ message(git_post_install(PackDir, Pack)) -->
 	->  [ 'Run post installation scripts for pack "~w"'-[Pack] ]
 	;   [ 'Activate pack "~w"'-[Pack] ]
 	).
+message(no_meta_data(BaseDir)) -->
+	[ 'Cannot find pack.pl inside directory ~q.  Not a package?'-[BaseDir] ].
 message(inquiry(Server)) -->
 	[ 'Verify package status (anonymously)', nl,
 	  '\tat "~w"'-[Server]
