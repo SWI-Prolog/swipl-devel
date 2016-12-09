@@ -4317,7 +4317,7 @@ sub_text(term_t atom,
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { if ( !PL_get_text(atom, &ta, CVT_ATOMIC) )
+    { if ( !PL_get_text(atom, &ta, CVT_ATOMIC|BUF_ALLOW_STACK) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, expected, atom);
 
       if ( !get_positive_integer_or_unbound(before, &b PASS_LD) ||
@@ -4325,7 +4325,7 @@ sub_text(term_t atom,
 	   !get_positive_integer_or_unbound(after, &a PASS_LD) )
 	fail;
 
-      if ( !PL_get_text(sub, &ts, CVT_ATOMIC) )
+      if ( !PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK) )
       { if ( !PL_is_variable(sub) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, sub);
 	ts.text.t = NULL;
@@ -4364,16 +4364,16 @@ sub_text(term_t atom,
 
 	if ( l >= 0 )			/* len given */
 	{ if ( b+l <= (int)la )		/* deterministic fit */
-	  { if ( PL_unify_integer(after, la-b-l) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(after, la-b-l) )
 	      succeed;
 	  }
 	  fail;
 	}
 	if ( a >= 0 )			/* after given */
 	{ if ( (l = la-a-b) >= 0 )
-	  { if ( PL_unify_integer(len, l) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(len, l) )
 	      succeed;
 	  }
 
@@ -4393,8 +4393,8 @@ sub_text(term_t atom,
 
 	if ( a >= 0 )			/* len and after */
 	{ if ( (b = la-a-l) >= 0 )
-	  { if ( PL_unify_integer(before, b) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(before, b) )
 	      succeed;
 	  }
 
@@ -4429,7 +4429,7 @@ sub_text(term_t atom,
     }
     case FRG_REDO:
       state = ForeignContextPtr(h);
-      PL_get_text(atom, &ta, CVT_ATOMIC);
+      PL_get_text(atom, &ta, CVT_ATOMIC|BUF_ALLOW_STACK);
       break;
     case FRG_CUTTED:
       state = ForeignContextPtr(h);
@@ -4445,7 +4445,7 @@ sub_text(term_t atom,
 again:
   switch(state->type)
   { case SUB_SEARCH:
-    { PL_get_text(sub, &ts, CVT_ATOMIC);
+    { PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK);
       la = state->n2;
       ls = state->n3;
 
@@ -4466,10 +4466,10 @@ again:
       b  = state->n3;
       l  = state->n1++;
 
-      match = (PL_unify_integer(len, l) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(len, l) &&
 	       PL_unify_integer(after, la-b-l));
     out:
-      match = (match && PL_unify_text_range(sub, &ta, b, l, type));
       if ( b+l < (int)la )
 	goto next;
       else if ( match )
@@ -4482,7 +4482,8 @@ again:
       l  = state->n2;
       la = state->n3;
 
-      match = (PL_unify_integer(before, b) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
 	       PL_unify_integer(after, la-b-l));
       goto out;
     }
@@ -4492,9 +4493,9 @@ again:
       a  = state->n3;
       l  = la - a - b;
 
-      match = (PL_unify_integer(before, b) &&
-	       PL_unify_integer(len, l) &&
-	       PL_unify_text_range(sub, &ta, b, l, type));
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
+	       PL_unify_integer(len, l));
       if ( l > 0 )
 	goto next;
       else if ( match )
@@ -4508,10 +4509,10 @@ again:
       la = state->n3;
       a  = la-b-l;
 
-      match = (PL_unify_integer(before, b) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
 	       PL_unify_integer(len, l) &&
-	       PL_unify_integer(after, a) &&
-	       PL_unify_text_range(sub, &ta, b, l, type));
+	       PL_unify_integer(after, a));
       if ( a == 0 )
       { if ( b == (int)la )
 	{ if ( match )
