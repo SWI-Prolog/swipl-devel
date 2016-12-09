@@ -79,8 +79,7 @@ in this library are provided as SWI-Prolog built-ins.
 %	and compound terms.
 
 term_size(Term, Size) :-
-	'$term_size'(Term, _, Size1),
-	Size is Size1 - 1.
+	'$term_size'(Term, _, Size).
 
 %%	variant(@Term1, @Term2) is semidet.
 %

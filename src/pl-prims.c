@@ -833,27 +833,29 @@ term_size(Word p, size_t max ARG_LD)
   initTermAgenda(&agenda, 1, p);
 
   while((t=nextTermAgenda(&agenda)))
-  { if ( ++count > max )
-      break;
-
-    if ( isAttVar(*t) )
+  { if ( isAttVar(*t) )
     { Word p = valPAttVar(*t);
+
+      if ( ++count > max )
+	break;
 
       assert(onGlobalArea(p));
       pushWorkAgenda(&agenda, 1, p);
     } else if ( isIndirect(*t) )
-    { count += wsizeofInd(*t);
+    { Word p = addressIndirect(*t);
 
+      count += wsizeofInd(*p)+2;
       if ( count > max )
 	break;
     } else if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
-      int arity = arityFunctor(f->definition);
+      size_t arity = arityFunctor(f->definition);
 
       if ( visited(f PASS_LD) )
 	continue;
 
-      if ( ++count > max )
+      count += arity+1;
+      if ( count > max )
 	break;
 
       pushWorkAgenda(&agenda, arity, f->arguments);
