@@ -992,6 +992,9 @@ f2_pos(Var, _, _, _, _, _) :-
 	var(Var), !.
 f2_pos(term_position(F,T,FF,FT,[A10,A20]), A10, A20,
        term_position(F,T,FF,FT,[A1, A2 ]), A1,  A2) :- !.
+f2_pos(parentheses_term_position(O,C,Pos0), A10, A20,
+       parentheses_term_position(O,C,Pos),  A1,  A2) :- !,
+	f2_pos(Pos0, A10, A20, Pos, A1, A2).
 f2_pos(Pos, _, _, _, _, _) :-
 	expected_layout(f2, Pos).
 
@@ -999,6 +1002,9 @@ f1_pos(Var, _, _, _) :-
 	var(Var), !.
 f1_pos(term_position(F,T,FF,FT,[A10]), A10,
        term_position(F,T,FF,FT,[A1 ]),  A1) :- !.
+f1_pos(parentheses_term_position(O,C,Pos0), A10,
+       parentheses_term_position(O,C,Pos),  A1) :- !,
+	f1_pos(Pos0, A10, Pos, A1).
 f1_pos(Pos, _, _, _) :-
 	expected_layout(f1, Pos).
 
@@ -1006,6 +1012,9 @@ f_pos(Var, _, _, _) :-
 	var(Var), !.
 f_pos(term_position(F,T,FF,FT,ArgPos0), ArgPos0,
       term_position(F,T,FF,FT,ArgPos),  ArgPos) :- !.
+f_pos(parentheses_term_position(O,C,Pos0), A10,
+      parentheses_term_position(O,C,Pos),  A1) :- !,
+	f_pos(Pos0, A10, Pos, A1).
 f_pos(Pos, _, _, _) :-
 	expected_layout(compound, Pos).
 

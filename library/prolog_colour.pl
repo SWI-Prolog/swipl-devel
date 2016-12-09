@@ -494,6 +494,10 @@ structured_command_start('/**').
 colourise_term(Var, TB, Start-End) :-
 	var(Var), !,
 	colour_item(instantiation_error, TB, Start-End).
+colourise_term(_, _, Pos) :-
+	var(Pos), !.
+colourise_term(Term, TB, parentheses_term_position(_PO,_PC,Pos)) :- !,
+	colourise_term(Term, TB, Pos).
 colourise_term(Term, TB, Pos) :-
 	term_colours(Term, FuncSpec-ArgSpecs), !,
 	Pos = term_position(_,_,FF,FT,ArgPos),
@@ -574,6 +578,10 @@ extend(Head, N, ExtHead) :-
 extend(Head, _, Head).
 
 
+colourise_clause_head(_, _, Pos) :-
+	var(Pos), !.
+colourise_clause_head(Head, TB, parentheses_term_position(_,_,Pos)) :-
+	colourise_clause_head(Head, TB, Pos).
 colourise_clause_head(M:Head, TB, term_position(_,_,QF,QT,[MPos,HeadPos])) :-
 	head_colours(M:Head, meta-[_, ClassSpec-ArgSpecs]), !,
 	colour_item(module(M), TB, MPos),
@@ -650,6 +658,10 @@ functor_position(Pos, Pos, []).
 %
 %	Colourise the body of a directive.
 
+colourise_directive(_,_,Pos) :-
+	var(Pos), !.
+colourise_directive(Dir, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colourise_directive(Dir, TB, Pos).
 colourise_directive((A,B), TB, term_position(_,_,_,_,[PA,PB])) :- !,
 	colourise_directive(A, TB, PA),
 	colourise_directive(B, TB, PB).
@@ -685,6 +697,10 @@ colourise_body(Body, Origin, TB, Pos) :-
 %
 %	@tbd	Get this handled by a hook.
 
+colourise_method_body(_, _, Pos) :-
+	var(Pos), !.
+colourise_method_body(Body, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colourise_method_body(Body, TB, Pos).
 colourise_method_body(::(_Comment,Body), TB,
 		      term_position(_F,_T,_FF,_FT,[CP,BP])) :- !,
 	colour_item(comment_string, TB, CP),
@@ -707,6 +723,14 @@ control_op((;)).
 control_op((->)).
 control_op((*->)).
 
+%%	colourise_goals(+Body, +Origin, +TB, +Pos)
+%
+%	Colourise the goals in a body.
+
+colourise_goals(_, _, _, Pos) :-
+	var(Pos), !.
+colourise_goals(Body, Origin, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colourise_goals(Body, Origin, TB, Pos).
 colourise_goals(Body, Origin, TB, term_position(_,_,FF,FT,ArgPos)) :-
 	body_compiled(Body), !,
 	colour_item(control, TB, FF-FT),
@@ -721,7 +745,7 @@ colourise_subgoals([Pos|T], N, Body, Origin, TB) :-
 	NN is N + 1,
 	colourise_subgoals(T, NN, Body, Origin, TB).
 
-%	colourise_dcg(+Body, +Head, +TB, +Pos)
+%%	colourise_dcg(+Body, +Head, +TB, +Pos)
 %
 %	Breaks down to colourise_dcg_goal/3.
 
@@ -736,6 +760,10 @@ colourise_dcg(Body, Head, TB, Pos) :-
 colourise_dcg_goals(Var, _, TB, Pos) :-
 	var(Var), !,
 	colour_item(goal(meta,Var), TB, Pos).
+colourise_dcg_goals(_, _, _, Pos) :-
+	var(Pos), !.
+colourise_dcg_goals(Body, Origin, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colourise_dcg_goals(Body, Origin, TB, Pos).
 colourise_dcg_goals({Body}, Origin, TB,	brace_term_position(F,T,Arg)) :- !,
 	colour_item(dcg(plain), TB, F-T),
 	colourise_goals(Body, Origin, TB, Arg).
@@ -799,6 +827,10 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 %	refers to, in particular if this goal is not defined.
 
 					% Deal with list as goal (consult)
+colourise_goal(_,_,_,Pos) :-
+	var(Pos), !.
+colourise_goal(Goal, Origin, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colourise_goal(Goal, Origin, TB, Pos).
 colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :-
 	Goal = [_|_], !,
 	FT is F + 1,
@@ -1192,6 +1224,10 @@ colourise_term_args([Pos|T], N, Term, TB) :-
 	NN is N + 1,
 	colourise_term_args(T, NN, Term, TB).
 
+colourise_term_arg(_, _, Pos) :-
+	var(Pos), !.
+colourise_term_arg(Arg, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colourise_term_arg(Arg, TB, Pos).
 colourise_term_arg(Var, TB, Pos) :-			% variable
 	var(Var), Pos = _-_, !,
 	(   singleton(Var, TB)
@@ -1495,6 +1531,10 @@ colourise_op_declaration(op(P,T,N), TB, term_position(_,_,FF,FT,[PP,TP,NP])) :-
 	colour_op_type(T, TB, TP),
 	colour_op_name(N, TB, NP).
 
+colour_op_name(_, _, Pos) :-
+	var(Pos), !.
+colour_op_name(Name, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colour_op_name(Name, TB, Pos).
 colour_op_name(Name, TB, Pos) :-
 	var(Name), !,
 	colour_item(var, TB, Pos).
@@ -1547,6 +1587,10 @@ op_type(yfx).
 %
 %	Colourise the name of a Prolog flag
 
+colourise_prolog_flag_name(_, _, Pos) :-
+	var(Pos), !.
+colourise_prolog_flag_name(Name, TB, parentheses_term_position(_,_,Pos)) :- !,
+	colourise_prolog_flag_name(Name, TB, Pos).
 colourise_prolog_flag_name(Name, TB, Pos) :-
 	atom(Name), !,
 	(   current_prolog_flag(Name, _)
