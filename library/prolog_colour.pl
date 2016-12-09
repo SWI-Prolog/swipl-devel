@@ -452,7 +452,7 @@ colourise_term(Term, TB, TermPos, Comments) :-
 
 colourise_fullstop(TB, TermPos) :-
 	arg(2, TermPos, EndTerm),
-	Start is EndTerm + 1,
+	Start is EndTerm,
 	End is Start+1,
 	colour_item(fullstop, TB, Start-End).
 
