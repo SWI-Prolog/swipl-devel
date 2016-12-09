@@ -5296,6 +5296,17 @@ with the term position of the tail, otherwise with the atom \const{none}.
     that the key and value positions do not need an intermediate list
     and the key is provided in \arg{Key} to enable synchronisation of
     the file position data with the data structure.
+
+	\termitem{parentheses_term_position}{\arg{From}, \arg{To},
+					     \arg{ContentPos}}
+    Used for terms between parentheses. This is an extension compared to
+    the original Quintus specification that was considered necessary for
+    secure refactoring of terms.
+
+	\termitem{quasi_quotation_position}{\arg{From}, \arg{To},
+					    \arg{SyntaxFrom}, \arg{SyntaxTo},
+					    \arg{ContentPos}}
+    Used for quasi quotations.
     \end{description}
 
     \termitem{term_position}{Pos}

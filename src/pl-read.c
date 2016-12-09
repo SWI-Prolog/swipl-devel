@@ -3976,13 +3976,26 @@ read_brace_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 
 
 static inline int				/* read (...) */
-read_embraced_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_parentheses_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 { int rc;
+  term_t pa;
 
-  rc = complex_term(")", OP_MAXPRIORITY+1, positions, _PL_rd PASS_LD);
-  if ( rc != TRUE )
+  if ( positions )
+  { if ( !(pa = PL_new_term_ref()) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_parentheses_term_position3,
+			PL_INTPTR, token->start,
+			PL_VARIABLE,
+			PL_TERM, pa) )
+      return FALSE;
+  } else
+    pa = 0;
+
+  if ( (rc=complex_term(")", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
     return rc;
   token = get_token(FALSE, _PL_rd);	/* skip ')' */
+  if ( positions )
+    set_range_position(positions, -1, token->end PASS_LD);
 
   succeed;
 }
@@ -4279,7 +4292,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     case T_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
-	  return read_embraced_term(token, positions, _PL_rd PASS_LD);
+	  return read_parentheses_term(token, positions, _PL_rd PASS_LD);
 	case '{':
 	  return read_brace_term(token, positions, _PL_rd PASS_LD);
 	case '[':

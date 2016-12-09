@@ -489,6 +489,7 @@ A owner			"owner"
 A pair			"pair"
 A paren			"paren"
 A parent		"parent"
+A parentheses_term_position "parentheses_term_position"
 A parent_goal		"parent_goal"
 A partial		"partial"
 A past			"past"
@@ -959,6 +960,7 @@ F not_strict_equal	2
 F occurs_check		2
 F or			1
 F output		0
+F parentheses_term_position 3
 F permission_error	3
 F pi			0
 F pipe			1
