@@ -5278,10 +5278,10 @@ with the term position of the tail, otherwise with the atom \const{none}.
     is a list, each element of which describes the term position of the
     corresponding subterm.
 
-	\termitem{map_position}{\arg{From}, \arg{To},
-				\arg{TypeFrom}, \arg{TypeTo},
-				\arg{KeyValuePosList}}
-    Used for a map (see \secref{dicts}).  The position of the key-value
+	\termitem{dict_position}{\arg{From}, \arg{To},
+				 \arg{TagFrom}, \arg{TagTo},
+				 \arg{KeyValuePosList}}
+    Used for a dict (see \secref{dicts}).  The position of the key-value
     pairs is described by \arg{KeyValuePosList}, which is a list of
     \functor{key_value_position}{7} terms.  The \functor{key_value_position}{7}
     terms appear in the order of the input. Because maps to not preserve
