@@ -584,7 +584,8 @@ colourise_clause_head(_, _, Pos) :-
 colourise_clause_head(Head, TB, parentheses_term_position(PO,PC,Pos)) :-
 	colour_item(parentheses, TB, PO-PC),
 	colourise_clause_head(Head, TB, Pos).
-colourise_clause_head(M:Head, TB, term_position(_,_,QF,QT,[MPos,HeadPos])) :-
+colourise_clause_head(M:Head, TB, QHeadPos) :-
+	QHeadPos = term_position(_,_,QF,QT,[MPos,HeadPos]),
 	head_colours(M:Head, meta-[_, ClassSpec-ArgSpecs]), !,
 	colour_item(module(M), TB, MPos),
 	colour_item(functor, TB, QF-QT),
@@ -593,6 +594,7 @@ colourise_clause_head(M:Head, TB, term_position(_,_,QF,QT,[MPos,HeadPos])) :-
 	->  classify_head(TB, Head, Class)
 	;   Class = ClassSpec
 	),
+	colour_item(head_term(Class, Head), TB, QHeadPos),
 	colour_item(head(Class, Head), TB, FPos),
 	specified_items(ArgSpecs, Head, TB, ArgPos).
 colourise_clause_head(Head, TB, Pos) :-
@@ -602,6 +604,7 @@ colourise_clause_head(Head, TB, Pos) :-
 	->  classify_head(TB, Head, Class)
 	;   Class = ClassSpec
 	),
+	colour_item(head_term(Class, Head), TB, Pos),
 	colour_item(head(Class, Head), TB, FPos),
 	specified_items(ArgSpecs, Head, TB, ArgPos).
 colourise_clause_head(:=(Eval, Ret), TB,
@@ -623,6 +626,7 @@ colourise_clause_head(:=(Eval, Ret), TB,
 colourise_clause_head(Head, TB, Pos) :-
 	functor_position(Pos, FPos, _),
 	classify_head(TB, Head, Class),
+	colour_item(head_term(Class, Head), TB, Pos),
 	colour_item(head(Class, Head), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
@@ -838,19 +842,23 @@ colourise_goal(_,_,_,Pos) :-
 colourise_goal(Goal, Origin, TB, parentheses_term_position(PO,PC,Pos)) :- !,
 	colour_item(parentheses, TB, PO-PC),
 	colourise_goal(Goal, Origin, TB, Pos).
-colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :-
+colourise_goal(Goal, _, TB, Pos) :-
+	Pos = list_position(F,T,Elms,_),
 	Goal = [_|_], !,
 	FT is F + 1,
 	AT is T - 1,
+	colour_item(goal_term(built_in, Goal), TB, Pos),
 	colour_item(goal(built_in, Goal), TB, F-FT),
 	colour_item(goal(built_in, Goal), TB, AT-T),
 	colourise_file_list(Goal, TB, Elms, any).
-colourise_goal(Goal, Origin, TB, list_position(F,T,Elms,Tail)) :-
+colourise_goal(Goal, Origin, TB, Pos) :-
+	Pos = list_position(F,T,Elms,Tail),
 	callable(Goal),
 	Goal =.. [_,GH,GT|_], !,
 	goal_classification(TB, Goal, Origin, Class),
 	FT is F + 1,
 	AT is T - 1,
+	colour_item(goal_term(Class, Goal), TB, Pos),
 	colour_item(goal(Class, Goal), TB, F-FT),
 	colour_item(goal(Class, Goal), TB, AT-T),
 	colourise_list_args(Elms, Tail, [GH|GT], TB, classify).
@@ -865,16 +873,19 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	->  goal_classification(TB, Goal, Origin, Class)
 	;   Class = ClassSpec
 	),
+	colour_item(goal_term(Class, Goal), TB, Pos),
 	colour_item(goal(Class, Goal), TB, FPos),
 	colour_dict_braces(TB, Pos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
-colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,QF,QT,[PM,PG])) :- !,
+colourise_goal(Module:Goal, _Origin, TB, QGoalPos) :-
+	QGoalPos = term_position(_,_,QF,QT,[PM,PG]), !,
 	colour_item(module(Module), TB, PM),
 	colour_item(functor, TB, QF-QT),
 	(   PG = term_position(_,_,FF,FT,_)
 	->  FP = FF-FT
 	;   FP = PG
 	),
+	colour_item(goal_term(extern(Module), Goal), TB, QGoalPos),
 	colour_item(goal(extern(Module), Goal), TB, FP),
 	colourise_goal_args(Goal, Module, TB, PG).
 colourise_goal(Op, _Origin, TB, Pos) :-
@@ -887,6 +898,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	->  FPos = FF-FT
 	;   FPos = Pos
 	),
+	colour_item(goal_term(Class, Goal), TB, Pos),
 	colour_item(goal(Class, Goal), TB, FPos),
 	colourise_goal_args(Goal, TB, Pos).
 
