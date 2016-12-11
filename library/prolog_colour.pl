@@ -541,10 +541,8 @@ colourise_term(:<-(Head, Body), TB,
 	colourise_method_body(Body,    TB, BP).
 colourise_term((:- Directive), TB, Pos) :- !,
 	colour_item(directive, TB, Pos),
-	arg(1, Pos, F),
-	arg(2, Pos, T),
-	colour_item(neck(directive), TB, F-T),
-	arg(5, Pos, [ArgPos]),
+	Pos = term_position(_F,_T,FF,FT,[ArgPos]),
+	colour_item(neck(directive), TB, FF-FT),
 	colourise_directive(Directive, TB, ArgPos).
 colourise_term((?- Directive), TB, Pos) :- !,
 	colourise_term((:- Directive), TB, Pos).
@@ -1048,7 +1046,7 @@ colourise_db(Head, TB, Pos) :-
 
 
 %%	colourise_option_args(+Goal, +Module, +Arg:integer,
-%			      +TB, +ArgPos) is semidet.
+%%			      +TB, +ArgPos) is semidet.
 %
 %	Colourise  predicate  options  for  the    Arg-th   argument  of
 %	Module:Goal
