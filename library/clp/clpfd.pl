@@ -166,7 +166,7 @@ specialised domains.
 
 CLP(FD) lets us reason about **integers** in a way that honors the
 relational nature of Prolog. An introduction is available from
-[metalevel.at/prolog/clpfd.html](https://www.metalevel.at/prolog/clpfd.html).
+[metalevel.at/prolog/clpfd](https://www.metalevel.at/prolog/clpfd).
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -448,7 +448,7 @@ us from _all_ procedural phenomena. For example, the two programs do
 not even have the same _termination properties_ in all cases.
 Instead, the primary benefit of CLP(FD) constraints is that they allow
 you to try different execution orders and apply [**declarative
-debugging**](https://www.metalevel.at/prolog/debugging.html)
+debugging**](https://www.metalevel.at/prolog/debugging)
 techniques _at all_!  Reordering goals (and clauses) can significantly
 impact the performance of Prolog programs, and you are free to try
 different variants if you use declarative approaches. Moreover, since
@@ -757,7 +757,7 @@ If necessary, we can use `once/1` to commit to the first optimal
 solution. However, it is often very valuable to see alternative
 solutions that are _also_ optimal, so that we can choose among optimal
 solutions by other criteria. For the sake of
-[**purity**](https://www.metalevel.at/prolog/purity.html) and
+[**purity**](https://www.metalevel.at/prolog/purity) and
 completeness, we recommend to avoid `once/1` and other constructs that
 lead to impurities in CLP(FD) programs.
 
@@ -5649,8 +5649,8 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
 
    For more information about this technique, see:
 
-               https://www.metalevel.at/prolog/dcg.html
-               ========================================
+                 https://www.metalevel.at/prolog/dcg
+                 ===================================
 
    A Prolog implementation of this algorithm is also available as a
    standalone library from:

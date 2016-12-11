@@ -179,7 +179,7 @@ X = 1+0.
 
 This behaviour is highly problematic from a logical point of view, and
 it may render [**declarative
-debugging**](https://www.metalevel.at/prolog/debugging.html)
+debugging**](https://www.metalevel.at/prolog/debugging)
 techniques inapplicable.
 
 Set the flag `clpb_monotonic` to `true` to make CLP(B) *monotonic*. If
@@ -203,7 +203,7 @@ only _cardinality constraints_ (`card/2`). Another interesting aspect
 is that this task has no short resolution refutations in general.
 
 In the following, we use [**Prolog DCG
-notation**](https://www.metalevel.at/prolog/dcg.html) to describe a
+notation**](https://www.metalevel.at/prolog/dcg) to describe a
 list `Cs` of CLP(B) constraints that must all be satisfied.
 
 ==
