@@ -659,6 +659,7 @@ Section "SSL Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\ssl4pl.dll
+  File ${SWIPL}\bin\crypto4pl.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\ssl.pl
   File ${SWIPL}\library\saml.pl
