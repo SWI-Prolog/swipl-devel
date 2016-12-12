@@ -1884,18 +1884,21 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
   } else if ( aname == ATOM_timeout )
   { double f;
     atom_t v;
+    int tmo;
 
     if ( PL_get_atom(a, &v) && v == ATOM_infinite )
-    { s->timeout = -1;
-      return TRUE;
-    }
-    if ( !PL_get_float_ex(a, &f) )
-      return FALSE;
+    { tmo = -1;
+    } else
+    { if ( !PL_get_float_ex(a, &f) )
+	return FALSE;
 
-    s->timeout = (int)(f*1000.0);
-    if ( s->timeout < 0 )
-      s->timeout = 0;
-    return TRUE;
+      if ( (tmo = (int)(f*1000.0)) < 0 )
+	tmo = 0;
+    }
+
+    if ( Sset_timeout(s, tmo) == 0 )
+      return TRUE;
+    return PL_permission_error("timeout", "stream", stream);
   } else if ( aname == ATOM_tty )	/* tty(bool) */
   {	int val;
 

@@ -465,6 +465,28 @@ S__wait(IOSTREAM *s)
 
 #endif /*HAVE_SELECT*/
 
+int
+Sset_timeout(IOSTREAM *s, int tmo)
+{ IOSTREAM *us;
+
+  for ( us=s; us; us=us->upstream )
+  { if ( us->magic != SIO_MAGIC )
+    { errno = EINVAL;
+      return -1;
+    }
+    us->timeout = tmo;
+  }
+  for ( us=s; us; us=us->downstream )
+  { if ( us->magic != SIO_MAGIC )
+    { errno = EINVAL;
+      return -1;
+    }
+    us->timeout = tmo;
+  }
+
+  return 0;
+}
+
 
 		 /*******************************
 		 *	     FLUSH/FILL		*
@@ -2751,6 +2773,7 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
     filter->references++;
     parent->upstream = filter;
     filter->downstream = parent;
+    filter->timeout = parent->timeout;
   } else				/* clear filter */
   { if ( parent->upstream )
     { if ( --parent->upstream->references == 0 && parent->upstream->erased )
