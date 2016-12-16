@@ -3820,7 +3820,7 @@ install()
 % gcc -I/usr/local/lib/swipl-\plversion/include -fpic -c lowercase.c
 % gcc -shared -o lowercase.so lowercase.o
 % swipl
-Welcome to SWI-Prolog (Version \plversion)
+Welcome to SWI-Prolog (...)
 ...
 
 1 ?- load_foreign_library(lowercase).
