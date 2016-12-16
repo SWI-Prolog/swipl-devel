@@ -662,6 +662,7 @@ Section "SSL Interface"
   File ${SWIPL}\bin\crypto4pl.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\ssl.pl
+  File ${SWIPL}\library\crypto.pl
   File ${SWIPL}\library\saml.pl
   File ${SWIPL}\library\xmlenc.pl
   File ${SWIPL}\library\xmldsig.pl
