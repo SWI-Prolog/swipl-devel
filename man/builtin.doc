@@ -539,9 +539,11 @@ order) are defined. The user may add library directories using
 assertz/1, asserta/1 or remove system defaults using retract/1.
 Deprecated. New code should use file_search_path/2.
 
-    \predicate{file_search_path}{2}{+Alias, ?Path}
-Dynamic predicate used to specify `path aliases'.  This feature is
-best described using an example.  Given the definition:
+    \predicate{file_search_path}{2}{+Alias, -Path}
+Dynamic multifile hook predicate used to specify `path aliases'. This
+hook is called by absolute_file_name/3 to search files specified as
+\term{Alias}{Name}, e.g., \term{library}{lists}. This feature is best
+described using an example. Given the definition:
 
 \begin{code}
 file_search_path(demo, '/usr/lib/prolog/demo').
