@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2014, University of Amsterdam
+    Copyright (c)  2002-2016, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -34,9 +34,9 @@
 */
 
 :- module(prolog_main,
-	  [ main/0
+	  [ main/0,
+	    argv_options/3			% +Argv, -RestArgv, -Options
 	  ]).
-:- use_module(library(lists)).
 
 /** <module> Provide entry point for scripts
 
@@ -47,7 +47,9 @@ commandline options. Below is `echo' in Prolog (adjust /usr/bin/swipl to
 where SWI-Prolog is installed)
 
 ==
-#!/usr/bin/swipl -q -g main -s
+#!/usr/bin/env swipl
+
+:- initialization main.
 
 main(Argv) :-
 	echo(Argv).
@@ -103,6 +105,45 @@ set_signals :-
 
 interrupt(_Sig) :-
 	halt(1).
+
+%%	argv_options(+Argv, -RestArgv, -Options) is det.
+%
+%	Generic transformation of long commandline arguments to options.
+%	Each --Name=Value is mapped to Name(Value).   Each plain name is
+%	mapped to Name(true), unless Name starts  with =|no-|=, in which
+%	case the option is mapped to  Name(false). Numeric option values
+%	are mapped to Prolog numbers.
+%
+%	@see library(optparse) provides a more involved option library,
+%	providing both short and long options, help and error handling.
+%	This predicate is more for quick-and-dirty scripts.
+
+argv_options([], [], []).
+argv_options([H0|T0], R, [H|T]) :-
+	sub_atom(H0, 0, _, _, --), !,
+	(   sub_atom(H0, B, _, A, =)
+	->  B2 is B-2,
+	    sub_atom(H0, 2, B2, _, Name),
+	    sub_string(H0, _, A,  0, Value0),
+	    convert_option(Name, Value0, Value)
+	;   sub_atom(H0, 2, _, 0, Name0),
+	    (	sub_atom(Name0, 0, _, _, 'no-')
+	    ->	sub_atom(Name0, 3, _, 0, Name),
+		Value = false
+	    ;	Name = Name0,
+		Value = true
+	    )
+	),
+	H =.. [Name,Value],
+	argv_options(T0, R, T).
+argv_options([H|T0], [H|R], T) :-
+	argv_options(T0, R, T).
+
+convert_option(password, String, String) :- !.
+convert_option(_, String, Number) :-
+	number_string(Number, String), !.
+convert_option(_, String, Atom) :-
+	atom_string(Atom, String).
 
 :- multifile
 	prolog:called_by/2.
