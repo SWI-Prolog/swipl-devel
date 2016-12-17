@@ -501,7 +501,8 @@ colourise_term(Term, TB, parentheses_term_position(PO,PC,Pos)) :- !,
 	colourise_term(Term, TB, Pos).
 colourise_term(Term, TB, Pos) :-
 	term_colours(Term, FuncSpec-ArgSpecs), !,
-	Pos = term_position(_,_,FF,FT,ArgPos),
+	Pos = term_position(F,T,FF,FT,ArgPos),
+	colour_item(term, TB, F-T),	% TBD: Allow specifying by term_colours/2?
 	specified_item(FuncSpec, Term, TB, FF-FT),
 	specified_items(ArgSpecs, Term, TB, ArgPos).
 colourise_term((Head :- Body), TB,
