@@ -1932,6 +1932,7 @@ def_style(keyword(_),		   [colour(blue)]).
 def_style(identifier,		   [bold(true)]).
 def_style(delimiter,		   [bold(true)]).
 def_style(expanded,		   [colour(blue), underline(true)]).
+def_style(hook(_),		   [colour(blue), underline(true)]).
 def_style(op_type(_),		   [colour(blue)]).
 
 def_style(qq_type,		   [bold(true)]).
@@ -1978,12 +1979,12 @@ syntax_colour(Class, Attributes) :-
 term_colours((?- Directive), Colours) :-
 	term_colours((:- Directive), Colours).
 term_colours((prolog:Head --> _),
-	     expanded - [ expanded - [ expanded,
-				       expanded - [ identifier
-						  ]
-				     ],
-			  dcg_body(prolog:Head)
-			]) :-
+	     neck(grammar_rule) - [ expanded - [ module(prolog),
+						 hook(message) - [ identifier
+								 ]
+					       ],
+				    dcg_body(prolog:Head)
+				  ]) :-
 	prolog_message_hook(Head).
 
 prolog_message_hook(message(_)).
@@ -2309,6 +2310,16 @@ syntax_message(dict_function) --> !,
 	[ 'Function on a dict' ].
 syntax_message(ext_quant) --> !,
 	[ 'Existential quantification operator' ].
+syntax_message(hook(message)) -->
+	[ 'Rule for print_message/2' ].
+syntax_message(module(Module)) -->
+	(   { current_module(Module) }
+	->  (   { module_property(Module, file(File)) }
+	    ->	[ 'Module ~w defined in ~w'-[Module,File] ]
+	    ;	[ 'Module ~w'-[Module] ]
+	    )
+	;   [ 'Module ~w (not loaded)'-[Module] ]
+	).
 
 goal_message(meta, _) -->
 	[ 'Meta call' ].
