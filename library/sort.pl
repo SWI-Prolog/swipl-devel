@@ -34,9 +34,9 @@
 */
 
 :- module(sort,
-	[ predsort/3,			% :Compare, +List, -Sorted
-	  locale_sort/2			% +ListOfAtoms, -Sorted
-	]).
+	  [ predsort/3,			% :Compare, +List, -Sorted
+	    locale_sort/2		% +ListOfAtoms, -Sorted
+	  ]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
