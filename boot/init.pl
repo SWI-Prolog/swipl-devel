@@ -1182,14 +1182,14 @@ extensions to .ext
 		*            CONSULT            *
 		*********************************/
 
-:- user:(dynamic
-		library_directory/1,
-	        prolog_load_file/2).
-:- user:(multifile
-		library_directory/1,
-	        prolog_load_file/2).
+:- dynamic
+	user:library_directory/1,
+	user:prolog_load_file/2.
+:- multifile
+	user:library_directory/1,
+	user:prolog_load_file/2.
 
-:-	prompt(_, '|: ').
+:- prompt(_, '|: ').
 
 :- thread_local
 	'$compilation_mode_store'/1,	% database, wic, qlf
