@@ -33,47 +33,48 @@
 */
 
 :- module('$win_menu',
-	  [ win_insert_menu_item/4,	% +PopupName, +Item, +Before, :Goal
-	    win_has_menu/0		% Test whether we have menus
-	  ]).
+          [ win_insert_menu_item/4,     % +PopupName, +Item, +Before, :Goal
+            win_has_menu/0              % Test whether we have menus
+          ]).
 
 :- meta_predicate
-	win_insert_menu_item(+,+,+,:).
+    win_insert_menu_item(+,+,+,:).
 :- multifile
-	prolog:on_menu/1.
+    prolog:on_menu/1.
 :- dynamic
-	menu_action/2.
+    menu_action/2.
 :- volatile
-	menu_action/2.
+    menu_action/2.
 
 prolog:on_menu(Label) :-
-	menu_action(Label, Action),
-	catch(Action, Error,
-	      print_message(error, Error)).
+    menu_action(Label, Action),
+    catch(Action, Error,
+          print_message(error, Error)).
 
-%	win_has_menu
+%       win_has_menu
 %
-%	Test whether the system provides the menu interface
+%       Test whether the system provides the menu interface
 
 win_has_menu :-
-	current_predicate(_, '$win_insert_menu_item'(_, _, _)).
+    current_predicate(_, '$win_insert_menu_item'(_, _, _)).
 
-%	win_insert_menu_item(+Popup, +Item, +Before, :Goal)
+%       win_insert_menu_item(+Popup, +Item, +Before, :Goal)
 %
-%	Add a menu-item to the PLWIN.EXE menu.  See the reference manual
-%	for details.
+%       Add a menu-item to the PLWIN.EXE menu.  See the reference manual
+%       for details.
 
-win_insert_menu_item(Popup, --, Before, _Goal) :- !,
-	call('$win_insert_menu_item'(Popup, --, Before)). % fool check/0
+win_insert_menu_item(Popup, --, Before, _Goal) :-
+    !,
+    call('$win_insert_menu_item'(Popup, --, Before)). % fool check/0
 win_insert_menu_item(Popup, Item, Before, Goal) :-
-	insert_menu_item(Popup, Item, Before, Goal).
+    insert_menu_item(Popup, Item, Before, Goal).
 
 insert_menu_item(Popup, Item, Before, Goal) :-
-	(   menu_action(Item, OldGoal),
-	    OldGoal \== Goal
-	->  throw(error(permission_error(redefine, Item),
-			win_insert_menu_item/4))
-	;   true
-	),
-	call('$win_insert_menu_item'(Popup, Item, Before)),
-	assert(menu_action(Item, Goal)).
+    (   menu_action(Item, OldGoal),
+        OldGoal \== Goal
+    ->  throw(error(permission_error(redefine, Item),
+                    win_insert_menu_item/4))
+    ;   true
+    ),
+    call('$win_insert_menu_item'(Popup, Item, Before)),
+    assert(menu_action(Item, Goal)).

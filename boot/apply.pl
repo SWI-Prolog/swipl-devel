@@ -33,39 +33,41 @@
 */
 
 :- module('$apply',
-	  [ forall/2,			% :Goal, :Goal
-	    apply/2			% :Goal, +ExtraArgs
-	  ]).
+          [ forall/2,                   % :Goal, :Goal
+            apply/2                     % :Goal, +ExtraArgs
+          ]).
 
 :- meta_predicate
-	forall(0,0),
-	apply(:, +).
+    forall(0,0),
+    apply(:, +).
 
 :- noprofile((forall/2, apply/2)).
 
-%%	forall(+Condition, +Action)
+%!  forall(+Condition, +Action)
 %
-%	True if Action if true for all variable bindings for which Condition
-%	if true.
+%   True if Action if true for all variable bindings for which Condition
+%   if true.
 
 forall(Cond, Action) :-
-	\+ (Cond, \+ Action).
+    \+ (Cond, \+ Action).
 
-%%	apply(:Goal, +ExtraArgs) is nondet.
+%!  apply(:Goal, +ExtraArgs) is nondet.
 %
-%	Extend Goal with arguments from ExtraArgs and call it.
+%   Extend Goal with arguments from ExtraArgs and call it.
 %
-%	@deprecated	Almost all usage can be replaced by call/N.
+%   @deprecated     Almost all usage can be replaced by call/N.
 
 apply(M:Name, Extra) :-
-	atom(Name), !,
-	compound_name_arguments(G, Name, Extra),
-	call(M:G).
+    atom(Name),
+    !,
+    compound_name_arguments(G, Name, Extra),
+    call(M:G).
 apply(M:Goal, Extra) :-
-	compound(Goal), !,
-	compound_name_arguments(Goal, Name, Args0),
-	'$append'(Args0, Extra, Args),
-	compound_name_arguments(G, Name, Args),
-	call(M:G).
+    compound(Goal),
+    !,
+    compound_name_arguments(Goal, Name, Args0),
+    '$append'(Args0, Extra, Args),
+    compound_name_arguments(G, Name, Args),
+    call(M:G).
 apply(_:Goal, _Extra) :-
-	'$type_error'(callable, Goal).
+    '$type_error'(callable, Goal).

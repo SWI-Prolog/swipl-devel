@@ -33,76 +33,78 @@
 */
 
 :- module('$qlf',
-	  [ qcompile/1,		% :Files
-	    qcompile/2,		% :Files, +Options
-	    '$qload_file'/5,	% +Path, +Module, -Ac, -LM, +Options
-	    '$qload_stream'/5	% +Stream, +Module, -Ac, -LM, +Options
-	  ]).
+          [ qcompile/1,         % :Files
+            qcompile/2,         % :Files, +Options
+            '$qload_file'/5,    % +Path, +Module, -Ac, -LM, +Options
+            '$qload_stream'/5   % +Stream, +Module, -Ac, -LM, +Options
+          ]).
 
 
-		 /*******************************
-		 *	   COMPILATION		*
-		 *******************************/
+                 /*******************************
+                 *         COMPILATION          *
+                 *******************************/
 
 :- meta_predicate
-	qcompile(:),
-	qcompile(:, +).
+    qcompile(:),
+    qcompile(:, +).
 
-%%	qcompile(:Files) is det.
+%!  qcompile(:Files) is det.
 %
-%	Compile Files as consult/1 and generate   a  Quick Load File for
-%	each compiled file.
+%   Compile Files as consult/1 and generate   a  Quick Load File for
+%   each compiled file.
 
 qcompile(M:Files) :-
-	qcompile_(Files, M, []).
+    qcompile_(Files, M, []).
 qcompile(M:Files, Options) :-
-	qcompile_(Files, M, Options).
+    qcompile_(Files, M, Options).
 
 qcompile_([], _, _) :- !.
-qcompile_([H|T], M, Options) :- !,
-	qcompile_(H, M, Options),
-	qcompile_(T, M, Options).
+qcompile_([H|T], M, Options) :-
+    !,
+    qcompile_(H, M, Options),
+    qcompile_(T, M, Options).
 qcompile_(FileName, Module, Options) :-
-	absolute_file_name(FileName,
-			   [ file_type(prolog),
-			     access(read)
-			   ], Absolute),
-	file_name_extension(ABase, PlExt, Absolute),
-	(   user:prolog_file_type(PlExt, qlf)
-	->  throw(error(permission_error(compile, qlf, FileName),
-			context(qcompile/1, 'Conflicting extension')))
-	;   true
-	),
-	once(user:prolog_file_type(QlfExt, qlf)),
-	file_name_extension(ABase, QlfExt, Qlf),
-	load_files(Module:Absolute, ['$qlf'(Qlf)|Options]).
+    absolute_file_name(FileName,
+                       [ file_type(prolog),
+                         access(read)
+                       ], Absolute),
+    file_name_extension(ABase, PlExt, Absolute),
+    (   user:prolog_file_type(PlExt, qlf)
+    ->  throw(error(permission_error(compile, qlf, FileName),
+                    context(qcompile/1, 'Conflicting extension')))
+    ;   true
+    ),
+    once(user:prolog_file_type(QlfExt, qlf)),
+    file_name_extension(ABase, QlfExt, Qlf),
+    load_files(Module:Absolute, ['$qlf'(Qlf)|Options]).
 
 
-%%	'$qload_file'(+File, +Module, -Action, -LoadedModule, +Options)
+%!  '$qload_file'(+File, +Module, -Action, -LoadedModule, +Options)
 %
-%	Load predicate for .qlf files.  See init.pl
+%   Load predicate for .qlf files.  See init.pl
 
 '$qload_file'(File, Module, Action, LoadedModule, Options) :-
-	setup_call_cleanup(
-	    open(File, read, In, [type(binary)]),
-	    setup_call_cleanup(
-		'$save_lex_state'(LexState, Options),
-		'$qload_stream'(In, Module,
-				Action, LoadedModule, Options),
-		'$restore_lex_state'(LexState)),
-	    close(In)).
+    setup_call_cleanup(
+        open(File, read, In, [type(binary)]),
+        setup_call_cleanup(
+            '$save_lex_state'(LexState, Options),
+            '$qload_stream'(In, Module,
+                            Action, LoadedModule, Options),
+            '$restore_lex_state'(LexState)),
+        close(In)).
 
 '$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
-	'$qlf_load'(Module:In, LM),
-	check_is_module(LM, In, Options),
-	(   atom(LM)
-	->  LoadedModule = LM
-	;   LoadedModule = Module
-	).
+    '$qlf_load'(Module:In, LM),
+    check_is_module(LM, In, Options),
+    (   atom(LM)
+    ->  LoadedModule = LM
+    ;   LoadedModule = Module
+    ).
 
 check_is_module(LM, In, Options) :-
-	\+ atom(LM),
-	'$option'(must_be_module(true), Options, false), !,
-	stream_property(In, file_name(File)),
-	throw(error(domain_error(module_file, File), _)).
+    \+ atom(LM),
+    '$option'(must_be_module(true), Options, false),
+    !,
+    stream_property(In, file_name(File)),
+    throw(error(domain_error(module_file, File), _)).
 check_is_module(_, _, _).

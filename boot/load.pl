@@ -39,8 +39,8 @@
 % '$expand_term'/4 and '$expand_goal'/2 with links to the real thing.
 
 :- consult([ expand,
-	     dcg
-	   ]).
+             dcg
+           ]).
 
 :- abolish('$expand_goal'/2),
    asserta(('$expand_goal'(In, Out) :- expand_goal(In, Out))),
@@ -52,22 +52,22 @@
    '$set_predicate_attribute'(system:'$expand_goal'(_,_), hide_childs, true),
    '$set_predicate_attribute'(system:'$expand_term'(_,_,_,_), hide_childs, true).
 
-:- consult([ license,			% requires DCG
-	     syspred,
-	     messages,
-	     toplevel,
-	     attvar,
-	     bags,
-	     apply,
-	     history,
-	     dwim,
-	     parms,
-	     autoload,
-	     qlf,
-	     rc,
-	     predopts,
-	     packs,
-	     dicts,
-	     engines,
-	     user:topvars
-	   ]).
+:- consult([ license,                   % requires DCG
+             syspred,
+             messages,
+             toplevel,
+             attvar,
+             bags,
+             apply,
+             history,
+             dwim,
+             parms,
+             autoload,
+             qlf,
+             rc,
+             predopts,
+             packs,
+             dicts,
+             engines,
+             user:topvars
+           ]).
