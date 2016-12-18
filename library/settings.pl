@@ -160,7 +160,7 @@ system:term_expansion((:- setting(QName, Type, Default, Comment)),
     ).
 
 to_atom(Atom, Atom) :-
-    atom(Atom), 
+    atom(Atom),
     !.
 to_atom(String, Atom) :-
     format(atom(Atom), '~s', String).
@@ -674,7 +674,7 @@ list_setting(Module:Name, TS1, TS2) :-
     convert_text/3.                 % +Type, +Text, -Value
 
 convert_setting_text(Type, Text, Value) :-
-    convert_text(Type, Text, Value), 
+    convert_text(Type, Text, Value),
     !.
 convert_setting_text(atom, Value, Value) :-
     !,
