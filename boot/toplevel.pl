@@ -530,7 +530,7 @@ load_setup_file(File) :-
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
 
-%%	'$toplevel'/0
+%%	'$toplevel'
 %
 %	Called from PL_toplevel()
 
@@ -947,7 +947,7 @@ system:term_expansion((:- residual_goals(NonTerminal)),
 	strip_module(M:NonTerminal, M2, Head),
 	'$must_be'(callable, Head).
 
-%%	prolog:residual_goals//0 is det.
+%%	prolog:residual_goals// is det.
 %
 %	DCG that collects residual goals that   are  not associated with
 %	the answer through attributed variables.

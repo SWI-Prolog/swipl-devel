@@ -72,9 +72,14 @@ attempt to call the Prolog defined trace interceptor.
 	'$iso'(:),
 	'$hide'(:).
 
-%%	dynamic(+Spec)
-%%	multifile(+Spec)
-%%	...
+%%	dynamic(+Spec) is det.
+%%	multifile(+Spec) is det.
+%%	module_transparent(+Spec) is det.
+%%	discontiguous(+Spec) is det.
+%%	volatile(+Spec) is det.
+%%	thread_local(+Spec) is det.
+%%	noprofile(+Spec) is det.
+%%	public(+Spec) is det.
 %
 %	Predicate versions of standard  directives   that  set predicate
 %	attributes. These predicates bail out with an error on the first
@@ -261,7 +266,13 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 '$meta_call'(G, M, _Ch) :-
 	call(M:G).
 
-%%	call(Closure, Arg, ...)
+%%	call(:Closure, ?A).
+%%	call(:Closure, ?A1, ?A2).
+%%	call(:Closure, ?A1, ?A2, ?A3).
+%%	call(:Closure, ?A1, ?A2, ?A3, ?A4).
+%%	call(:Closure, ?A1, ?A2, ?A3, ?A4, ?A5).
+%%	call(:Closure, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6).
+%%	call(:Closure, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6, ?A7).
 %
 %	Arity 2..8 is demanded by the   ISO standard. Higher arities are
 %	supported, but handled by the compiler.   This  implies they are
@@ -302,7 +313,7 @@ call(Goal, A, B, C, D, E, F, G) :-
 not(Goal) :-
 	\+ Goal.
 
-%%	\+ Goal is semidet.
+%%	\+(:Goal) is semidet.
 %
 %	Predicate version that allows for meta-calling.
 
@@ -392,8 +403,8 @@ call_continuation([TB|Rest]) :-
 
 %%	setup_call_cleanup(:Setup, :Goal, :Cleanup).
 %%	setup_call_catcher_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
-%%	call_cleanup(:Goal, :Cleanup)
-%%	call_cleanup(:Goal, +Catcher, :Cleanup)
+%%	call_cleanup(:Goal, :Cleanup).
+%%	call_cleanup(:Goal, +Catcher, :Cleanup).
 %
 %	Call Cleanup once after Goal is finished (deterministic success,
 %	failure, exception or  cut).  The   call  to  '$call_cleanup' is
@@ -470,8 +481,8 @@ initialization(Goal, When) :-
 	assertz('$init_goal'(Source, Goal, Ctx)).
 
 
-%%	'$run_initialization'(?File, +Options)
-%%	'$run_initialization'(?File, +Action, +Options)
+%%	'$run_initialization'(?File, +Options) is det.
+%%	'$run_initialization'(?File, +Action, +Options) is det.
 %
 %	Run initialization directives for all files  if File is unbound,
 %	or for a specified file.   Note  that '$run_initialization'/2 is
@@ -926,7 +937,7 @@ absolute_file_name(Spec, Path, Options) :-
 '$ft_no_ext'(executable).
 '$ft_no_ext'(directory).
 
-%%	user:prolog_file_type/2
+%%	user:prolog_file_type(?Extension, ?Type)
 %
 %	Define type of file based on the extension.  This is used by
 %	absolute_file_name/3 and may be used to extend the list of
@@ -1617,7 +1628,7 @@ compiling :-
 	load_files(:),
 	load_files(:, +).
 
-%%	ensure_loaded(+File|+ListOfFiles)
+%%	ensure_loaded(+FileOrListOfFiles)
 %
 %	Load specified files, provided they where not loaded before. If the
 %	file is a module file import the public predicates into the context
@@ -1626,7 +1637,7 @@ compiling :-
 ensure_loaded(Files) :-
 	load_files(Files, [if(not_loaded)]).
 
-%%	use_module(+File|+ListOfFiles)
+%%	use_module(+FileOrListOfFiles)
 %
 %	Very similar to ensure_loaded/1, but insists on the loaded file to
 %	be a module file. If the file is already imported, but the public
@@ -1973,7 +1984,7 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(Module).
 
 %%	'$do_load_file'(+Spec, +FullFile, +ContextModule,
-%			-Action, +Options) is det.
+%%			-Action, +Options) is det.
 %
 %	Perform the actual loading.
 

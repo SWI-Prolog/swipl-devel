@@ -157,7 +157,8 @@ license(asl2, permissive,
 	]).
 
 
-%%	license(+License, [+ModuleId])
+%%	license(+License) is det.
+%%	license(+License, +ModuleId) is det.
 %
 %	Register the current file under the given license restriction.
 
