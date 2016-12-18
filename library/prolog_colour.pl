@@ -468,24 +468,26 @@ colourise_comment(Pos-Comment, TB) :-
 	stream_position_data(char_count, Pos, Start),
 	string_length(Comment, Len),
 	End is Start + Len + 1,
-	colour_item(Style, TB, Start-End).
+	colour_item(comment(Style), TB, Start-End).
 
-comment_style(Comment, structured_comment) :-
-	structured_command_start(Start),
+comment_style(Comment, structured) :-		% Starts %%, %! or /**
+	structured_comment_start(Start),
 	sub_string(Comment, 0, Len, _, Start),
 	Next is Len+1,
 	string_code(Next, Comment, NextCode),
 	code_type(NextCode, space), !.
-comment_style(_, comment).
+comment_style(Comment, line) :-			% Starts %
+	sub_string(Comment, 0, _, _, '%'), !.
+comment_style(_, block).			% Starts /*
 
-%%	structured_command_start(-Start)
+%%	structured_comment_start(-Start)
 %
 %	Copied from library(pldoc/doc_process). Unfortunate,   but we do
 %	not want to force loading pldoc.
 
-structured_command_start('%%').
-structured_command_start('%!').
-structured_command_start('/**').
+structured_comment_start('%%').
+structured_comment_start('%!').
+structured_comment_start('/**').
 
 %%	colourise_term(+Term, +TB, +Pos)
 %
@@ -710,7 +712,7 @@ colourise_method_body(Body, TB, parentheses_term_position(PO,PC,Pos)) :- !,
 	colourise_method_body(Body, TB, Pos).
 colourise_method_body(::(_Comment,Body), TB,
 		      term_position(_F,_T,_FF,_FT,[CP,BP])) :- !,
-	colour_item(comment_string, TB, CP),
+	colour_item(comment(string), TB, CP),
 	colourise_body(Body, TB, BP).
 colourise_method_body(Body, TB, Pos) :-		% deal with pri(::) < 1000
 	Body =.. [F,A,B],
@@ -1899,9 +1901,7 @@ def_style(head(def_swi,_),	   [colour(blue), bold(true)]).
 def_style(head(_,_),		   [bold(true)]).
 
 def_style(module(_),		   [colour(dark_slate_blue)]).
-def_style(comment,		   [colour(dark_green)]).
-def_style(comment_string,	   [colour(dark_green)]).
-def_style(structured_comment,	   [colour(dark_green)]).
+def_style(comment(_),		   [colour(dark_green)]).
 
 def_style(directive,		   [background(grey90)]).
 def_style(method(_),		   [bold(true)]).
@@ -1999,7 +1999,7 @@ term_colours(variable(_, _, _, _),
 	     expanded - [ identifier,
 			  classify,
 			  classify,
-			  comment_string
+			  comment(string)
 			]).
 term_colours(variable(_, _, _),
 	     expanded - [ identifier,
@@ -2021,7 +2021,7 @@ term_colours(class_variable(_,_,_,_),
 	     expanded - [ identifier,
 			  pce(type),
 			  pce(default),
-			  comment_string
+			  comment(string)
 			]).
 term_colours(class_variable(_,_,_),
 	     expanded - [ identifier,
@@ -2038,7 +2038,7 @@ term_colours((:- encoding(_)),
 term_colours((:- pce_begin_class(_, _, _)),
 	     expanded - [ expanded - [ identifier,
 				       pce_new,
-				       comment_string
+				       comment(string)
 				     ]
 			]).
 term_colours((:- pce_begin_class(_, _)),
