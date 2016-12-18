@@ -19,12 +19,12 @@
 */
 
 likes(sam,Food) :-
-        indian(Food),
-        mild(Food).
+    indian(Food),
+    mild(Food).
 likes(sam,Food) :-
-        chinese(Food).
+    chinese(Food).
 likes(sam,Food) :-
-        italian(Food).
+    italian(Food).
 likes(sam,chips).
 
 indian(curry).
