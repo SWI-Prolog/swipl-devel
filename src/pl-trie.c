@@ -676,6 +676,7 @@ put_trie_term(trie_node *node, term_t term ARG_LD)
 	{ free(keys);
 	  return PL_resource_error("memory");
 	}
+	keys = newkeys;
       }
     }
 
