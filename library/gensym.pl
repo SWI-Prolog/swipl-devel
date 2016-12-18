@@ -34,10 +34,10 @@
 */
 
 :- module(gensym,
-	[ reset_gensym/0,
-	  reset_gensym/1,		% +Base
-	  gensym/2			% +Base, -Symbol
-	]).
+        [ reset_gensym/0,
+          reset_gensym/1,               % +Base
+          gensym/2                      % +Base, -Symbol
+        ]).
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Generate unique symbols
@@ -46,55 +46,56 @@ The predicate gensym/2 is a  traditional   predicate  to generate unique
 symbols.  It should be used with care.
 */
 
-%%	gensym(+Base, -Unique)
+%!  gensym(+Base, -Unique)
 %
-%	Generate <Base>1, <Base>2, etc atoms   on  each subsequent call.
-%	Note that there is nothing  that   prevents  other  parts of the
-%	application to `invent'  the  same   identifier.  The  predicate
-%	gensym/2 is thread-safe in the sense that two threads generating
-%	identifiers from the same Base  will   never  generate  the same
-%	identifier.
+%   Generate <Base>1, <Base>2, etc atoms   on  each subsequent call.
+%   Note that there is nothing  that   prevents  other  parts of the
+%   application to `invent'  the  same   identifier.  The  predicate
+%   gensym/2 is thread-safe in the sense that two threads generating
+%   identifiers from the same Base  will   never  generate  the same
+%   identifier.
 %
-%	@see	uuid/1, term_hash/2, variant_sha1/2 may be used to
-%		generate various unique or content-based identifiers
-%		safely.
+%   @see    uuid/1, term_hash/2, variant_sha1/2 may be used to
+%           generate various unique or content-based identifiers
+%           safely.
 
 gensym(Base, Atom) :-
-	atom_concat('$gs_', Base, Key),
-	flag(Key, Old, Old+1),
-	record_gensym(Key, Old),
-	New is Old+1,
-	atom_concat(Base, New, Atom).
+    atom_concat('$gs_', Base, Key),
+    flag(Key, Old, Old+1),
+    record_gensym(Key, Old),
+    New is Old+1,
+    atom_concat(Base, New, Atom).
 
-record_gensym(Key, 0) :- !,
-	recordz('$gensym', Key).
+record_gensym(Key, 0) :-
+    !,
+    recordz('$gensym', Key).
 record_gensym(_, _).
 
-%%	reset_gensym
+%!  reset_gensym
 %
-%	Reset all gensym counters.  Please beware this is dangerous: gensym
-%	may be in use by other modules that do not expect their counter to
-%	be reset!
+%   Reset all gensym counters.  Please beware this is dangerous: gensym
+%   may be in use by other modules that do not expect their counter to
+%   be reset!
 
 reset_gensym :-
-	with_mutex('$gensym', do_reset_gensym).
+    with_mutex('$gensym', do_reset_gensym).
 
 do_reset_gensym :-
-	(   recorded('$gensym', Key, Ref),
-	    erase(Ref),
-	    set_flag(Key, 0),
-	    fail
-	;   true
-	).
+    (   recorded('$gensym', Key, Ref),
+        erase(Ref),
+        set_flag(Key, 0),
+        fail
+    ;   true
+    ).
 
-%%	reset_gensym(+Base)
+%!  reset_gensym(+Base)
 %
-%	Reset a specific gensym counter.  Please beware this still is
-%	dangerous as other code may use gensym with the same atom!
+%   Reset a specific gensym counter.  Please beware this still is
+%   dangerous as other code may use gensym with the same atom!
 
 reset_gensym(Base) :-
-	atom_concat('$gs_', Base, Key),
-	set_flag(Key, 0).
+    atom_concat('$gs_', Base, Key),
+    set_flag(Key, 0).
 
 :- multifile sandbox:safe_primitive/1.
 

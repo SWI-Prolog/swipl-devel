@@ -33,8 +33,8 @@
 */
 
 :- module(checklast,
-	  [ check_old_last/0
-	  ]).
+          [ check_old_last/0
+          ]).
 :- use_module(library(lists)).
 
 
@@ -47,48 +47,49 @@ http://www.prolog-standard.fmg.uva.nl/twiki/bin/view/Library/PredLast2
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 check_old_last :-
-	print_message(informational, last_check).
+    print_message(informational, last_check).
 
 user:goal_expansion(last(L,E), _) :-
-	print_message(warning, last_arguments(last(L,E))),
-	fail.
+    print_message(warning, last_arguments(last(L,E))),
+    fail.
 
-		 /*******************************
-		 *	CHECKING VERSION	*
-		 *******************************/
+                 /*******************************
+                 *      CHECKING VERSION        *
+                 *******************************/
 
 :- abolish(lists:last/2).
 
-%%	last(?List, ?Elem)
+%!  last(?List, ?Elem)
 %
-%	Succeeds if `Last' unifies with the last element of `List'.
+%   Succeeds if `Last' unifies with the last element of `List'.
 
 lists:last(List, Last) :-
-	\+ is_list(List), !,
-	print_message(error, last_call(last_call(List, Last))),
-	trace,
-	fail.
+    \+ is_list(List),
+    !,
+    print_message(error, last_call(last_call(List, Last))),
+    trace,
+    fail.
 lists:last([X|Xs], Last) :-
-	last_(Xs, X, Last).
+    last_(Xs, X, Last).
 
 last_([], Last, Last).
 last_([X|Xs], _, Last) :-
-	last_(Xs, X, Last).
+    last_(Xs, X, Last).
 
 
-		 /*******************************
-		 *	     MESSAGES		*
-		 *******************************/
+                 /*******************************
+                 *           MESSAGES           *
+                 *******************************/
 
 :- multifile
-	prolog:message/3.
+    prolog:message/3.
 
 prolog:message(last_check) -->
-	[ 'Enabled checking for wrong argument order in last/2' ].
+    [ 'Enabled checking for wrong argument order in last/2' ].
 prolog:message(last_arguments(S)) -->
-	{ numbervars(S, 0, _)
-	},
-	[ 'Last/2 used; check argument order: ~p'-[S] ].
+    { numbervars(S, 0, _)
+    },
+    [ 'Last/2 used; check argument order: ~p'-[S] ].
 prolog:message(last_call(S)) -->
-	[ 'Suspicious last/2 call, entering debugger: ~p'-[S] ].
+    [ 'Suspicious last/2 call, entering debugger: ~p'-[S] ].
 

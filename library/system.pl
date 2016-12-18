@@ -34,11 +34,11 @@
 */
 
 :- module(swi_system_utilities,
-	[ lock_predicate/1,
-	  unlock_predicate/1,
-	  system_mode/1,
-	  system_module/0
-	]).
+        [ lock_predicate/1,
+          unlock_predicate/1,
+          system_mode/1,
+          system_module/0
+        ]).
 :- use_module(library(error)).
 
 /** <module> System utilities
@@ -46,49 +46,49 @@
 This module provides some tools to deal with system predicates. System
 predicates cannot be traced or redefined.
 
-@deprecated	Use :- set_prolog_flag(generate_debug_info, false) to
-		hide predicate internals from the tracer.
-@tbd		Move this functionality to prolog flags.
+@deprecated     Use :- set_prolog_flag(generate_debug_info, false) to
+                hide predicate internals from the tracer.
+@tbd            Move this functionality to prolog flags.
 */
 
-%%	system_mode(+Boolean) is det.
+%!  system_mode(+Boolean) is det.
 %
-%	Switch the system into system or user mode.  When in system mode,
-%	system predicates loose most of their special properties, so it
-%	becomes possible to trace and even redefine them.
+%   Switch the system into system or user mode.  When in system mode,
+%   system predicates loose most of their special properties, so it
+%   becomes possible to trace and even redefine them.
 %
-%	@deprecated  New code should use the prolog flag =access_level=.
+%   @deprecated  New code should use the prolog flag =access_level=.
 
 system_mode(Val) :-
-	must_be(boolean, Val),
-	(   Val == true
-	->  set_prolog_flag(access_level, system)
-	;   set_prolog_flag(access_level, user)
-	).
+    must_be(boolean, Val),
+    (   Val == true
+    ->  set_prolog_flag(access_level, system)
+    ;   set_prolog_flag(access_level, user)
+    ).
 
-%%	system_module
+%!  system_module
 %
-%	Any predicate defined after this declaraction   uptil the end of
-%	the file will become a system   predicate. Normally invoked by a
-%	directive immediately following the module declaration.
+%   Any predicate defined after this declaraction   uptil the end of
+%   the file will become a system   predicate. Normally invoked by a
+%   directive immediately following the module declaration.
 
 system_module :-
-	set_prolog_flag(generate_debug_info, false).
+    set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-	lock_predicate(:),
-	unlock_predicate(:).
+    lock_predicate(:),
+    unlock_predicate(:).
 
-%%	lock_predicate(+PredInd)
+%!  lock_predicate(+PredInd)
 %
-%	Transform a predicate into a system predicate.
+%   Transform a predicate into a system predicate.
 
 lock_predicate(PredInd) :-
-	'$set_predicate_attribute'(PredInd, system, true).
+    '$set_predicate_attribute'(PredInd, system, true).
 
-%%	unlock_predicate(+PredInd)
+%!  unlock_predicate(+PredInd)
 %
-%	Transform a system predicate into a normal system predicate.
+%   Transform a system predicate into a normal system predicate.
 
 unlock_predicate(PredInd) :-
-	'$set_predicate_attribute'(PredInd, system, false).
+    '$set_predicate_attribute'(PredInd, system, false).

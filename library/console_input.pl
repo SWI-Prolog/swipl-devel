@@ -33,49 +33,51 @@
 */
 
 :- module(prolog_console_input,
-	  [
-	  ]).
+          [
+          ]).
 :- use_module(library(lists)).
 
 :- multifile
-	prolog:complete_input/4.
+    prolog:complete_input/4.
 
-%%	prolog:complete_input(+BeforeCursor, +AfterCursor,
-%%			      -Delete, -Completions) is det.
+%!  prolog:complete_input(+BeforeCursor, +AfterCursor,
+%!                        -Delete, -Completions) is det.
 %
-%	Compute    auto    completions    for      the     input    line
-%	BeforeCursor+AfterCursor.
+%   Compute    auto    completions    for      the     input    line
+%   BeforeCursor+AfterCursor.
 %
-%	@arg	Delete is an atom or string representing the text that is
-%		replaced by the completion
-%	@arg	Completions is a list of elements of this shape:
+%   @arg    Delete is an atom or string representing the text that is
+%           replaced by the completion
+%   @arg    Completions is a list of elements of this shape:
 %
-%		  - Atom
-%		  Used for a plain completion without comment
-%		  - Atom-Comment
-%		  Used for a completion with comment.  This will be
-%		  used for predicates.
+%             - Atom
+%             Used for a plain completion without comment
+%             - Atom-Comment
+%             Used for a completion with comment.  This will be
+%             used for predicates.
 
 prolog:complete_input(Before, _After, Delete, Completions) :-
-	string_codes(Before, Chars),
-	reverse(Chars, BeforeRev),
-	complete(BeforeRev, Delete, Completions).
+    string_codes(Before, Chars),
+    reverse(Chars, BeforeRev),
+    complete(BeforeRev, Delete, Completions).
 
-complete(BeforeRev, Prefix, Files) :-	% complete files
-	phrase(file_prefix(Prefix), BeforeRev, _), !,
-	atom_concat(Prefix, '*', Pattern),
-	expand_file_name(Pattern, Files).
-complete(BeforeRev, Prefix, Atoms) :-	% complete atoms
-	phrase(atom_prefix(Prefix), BeforeRev, _), !,
-	'$atom_completions'(Prefix, Atoms).
+complete(BeforeRev, Prefix, Files) :-   % complete files
+    phrase(file_prefix(Prefix), BeforeRev, _),
+    !,
+    atom_concat(Prefix, '*', Pattern),
+    expand_file_name(Pattern, Files).
+complete(BeforeRev, Prefix, Atoms) :-   % complete atoms
+    phrase(atom_prefix(Prefix), BeforeRev, _),
+    !,
+    '$atom_completions'(Prefix, Atoms).
 
-%%	atom_prefix(-Prefix) is det.
+%!  atom_prefix(-Prefix) is det.
 
 atom_prefix(Prefix) -->
-	atom_chars(RevString),
-	{ reverse(RevString, String),
-	  string_codes(Prefix, String) % do not create an atom
-	}.
+    atom_chars(RevString),
+    { reverse(RevString, String),
+      string_codes(Prefix, String) % do not create an atom
+    }.
 
 atom_chars([H|T]) --> atom_char(H), !, atom_chars(T).
 atom_chars([]) --> [].
@@ -84,15 +86,15 @@ atom_char(C) --> [C], { atom_char(C) }.
 
 atom_char(C) :- code_type(C, csym).
 
-%%	file_prefix(-Prefix)// is semidet.
+%!  file_prefix(-Prefix)// is semidet.
 %
-%	True when the part before the cursor looks like a file name.
+%   True when the part before the cursor looks like a file name.
 
 file_prefix(Prefix) -->
-	file_chars(RevString), "'",
-	{ reverse(RevString, String),
-	  atom_codes(Prefix, String)
-	}.
+    file_chars(RevString), "'",
+    { reverse(RevString, String),
+      atom_codes(Prefix, String)
+    }.
 
 file_chars([H|T]) --> file_char(H), !, file_chars(T).
 file_chars([]) --> [].

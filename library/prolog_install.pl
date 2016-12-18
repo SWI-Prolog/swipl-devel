@@ -33,8 +33,8 @@
 */
 
 :- module(prolog_install,
-	  [ qcompile_libraries/0
-	  ]).
+          [ qcompile_libraries/0
+          ]).
 :- use_module(library(make)).
 
 /** <module> Installation support predicates
@@ -43,35 +43,36 @@ This module provides helper predicates for  the (Windows) installer. The
 entry point is called from src/win32/installer.pl.nsi.
 */
 
-%%	qcompile_libraries
+%!  qcompile_libraries
 %
-%	Quick-load compilation of the Prolog libraries.
+%   Quick-load compilation of the Prolog libraries.
 
 qcompile_libraries :-
-	make,				% update library index
-	qcompile_xpce.
+    make,                           % update library index
+    qcompile_xpce.
 
-qcompile_xpce :-			% no XPCE around
-	\+ absolute_file_name(swi(xpce),
-			      [ access(exist),
-				file_type(directory),
-				file_errors(fail)
-			      ], _), !,
-	print_message(informational, qcompile(no(xpce))).
+qcompile_xpce :-                        % no XPCE around
+    \+ absolute_file_name(swi(xpce),
+                          [ access(exist),
+                            file_type(directory),
+                            file_errors(fail)
+                          ], _),
+    !,
+    print_message(informational, qcompile(no(xpce))).
 qcompile_xpce :-
-	(   absolute_file_name(swi('swipl-win.rc'), _,
-			       [ access(read),
-				 file_errors(fail)
-			       ])
-	->  use_module(swi('swipl-win.rc'))
-	;   true
-	),
-	qcompile_libs.
+    (   absolute_file_name(swi('swipl-win.rc'), _,
+                           [ access(read),
+                             file_errors(fail)
+                           ])
+    ->  use_module(swi('swipl-win.rc'))
+    ;   true
+    ),
+    qcompile_libs.
 
 
-		 /*******************************
-		 *	 PRECOMPILED PARTS	*
-		 *******************************/
+                 /*******************************
+                 *       PRECOMPILED PARTS      *
+                 *******************************/
 
 qmodule(pce, library(pce)).
 qmodule(lib, library(pce_manual)).
@@ -82,23 +83,23 @@ qmodule(lib, library('trace/trace')).
 qmodule(lib, library('cql/cql')).
 
 qcompile_libs :-
-	forall(qmodule(_Type, Module),
-	       (   exists_source(Module)
-	       ->  print_message(informational, qcompile(Module)),
-		   qcompile(Module)
-	       ;   print_message(informational, qcompile(no(Module)))
-	       )).
+    forall(qmodule(_Type, Module),
+           (   exists_source(Module)
+           ->  print_message(informational, qcompile(Module)),
+               qcompile(Module)
+           ;   print_message(informational, qcompile(no(Module)))
+           )).
 
 
-		 /*******************************
-		 *	      MESSAGES		*
-		 *******************************/
+                 /*******************************
+                 *            MESSAGES          *
+                 *******************************/
 
 :- multifile prolog:message//1.
 
 prolog:message(qcompile(no(What))) -->
-	[ 'Cannot find ~w'-[What] ].
+    [ 'Cannot find ~w'-[What] ].
 prolog:message(qcompile(library(Lib))) -->
-	[ nl, '~*c'-[64, 0'*], nl ],
-	[ 'Qcompile library ~q'-[Lib], nl ],
-	[ '~*c'-[64, 0'*] ].
+    [ nl, '~*c'-[64, 0'*], nl ],
+    [ 'Qcompile library ~q'-[Lib], nl ],
+    [ '~*c'-[64, 0'*] ].

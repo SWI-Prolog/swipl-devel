@@ -48,7 +48,7 @@
 This library defines set operations on sets represented as ordered
 lists.
 
-@author	Jon Jagger
+@author Jon Jagger
 @deprecated Use the de-facto library ordsets.pl
 */
 
@@ -159,15 +159,15 @@ dint([H|T], DInt0, DInt) :-
     dint(T, DInt1, DInt).
 
 
-%%	oset_power(+Set, -PSet)
+%!  oset_power(+Set, -PSet)
 %
-%	True when PSet is the powerset of Set. That is, Pset is a set of
-%	all subsets of Set, where each subset is a proper ordered set.
+%   True when PSet is the powerset of Set. That is, Pset is a set of
+%   all subsets of Set, where each subset is a proper ordered set.
 
 oset_power(S, PSet) :-
-	reverse(S, R),
-	pset(R, [[]], PSet0),
-	sort(PSet0, PSet).
+    reverse(S, R),
+    pset(R, [[]], PSet0),
+    sort(PSet0, PSet).
 
 % The powerset of a set  is  the  powerset   of  a  set  of one smaller,
 % together with the set of one  smaller   where  each subset is extended
@@ -176,12 +176,12 @@ oset_power(S, PSet) :-
 
 pset([], PSet, PSet).
 pset([H|T], PSet0, PSet) :-
-	happ(PSet0, H, PSet1),
-	pset(T, PSet1, PSet).
+    happ(PSet0, H, PSet1),
+    pset(T, PSet1, PSet).
 
 happ([], _, []).
 happ([S|Ss], H, [[H|S],S|Rest]) :-
-	happ(Ss, H, Rest).
+    happ(Ss, H, Rest).
 
 
 

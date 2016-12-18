@@ -34,31 +34,31 @@
 */
 
 :- module(charsio,
-	  [ format_to_chars/3,		% +Format, +Args, -Codes
-	    format_to_chars/4,		% +Format, +Args, -Codes, ?Tail
-	    write_to_chars/2,		% +Term, -Codes
-	    write_to_chars/3,		% +Term, -Codes, ?Tail
-	    atom_to_chars/2,		% +Atom, -Codes
-	    atom_to_chars/3,		% +Atom, -Codes, ?Tail
-	    number_to_chars/2,		% +Number, -Codes
-	    number_to_chars/3,		% +Number, -Codes, ?Tail
-					% read predicates
-	    read_from_chars/2,		% +Codes, -Term
-	    read_term_from_chars/3,	% +Codes, -Term, +Options
-	    open_chars_stream/2,	% +Codes, -Stream
-	    with_output_to_chars/2,	% :Goal, -Codes
-	    with_output_to_chars/3,	% :Goal, -Codes, ?Tail
-	    with_output_to_chars/4	% :Goal, -Stream, -Codes, ?Tail
-	  ]).
+          [ format_to_chars/3,          % +Format, +Args, -Codes
+            format_to_chars/4,          % +Format, +Args, -Codes, ?Tail
+            write_to_chars/2,           % +Term, -Codes
+            write_to_chars/3,           % +Term, -Codes, ?Tail
+            atom_to_chars/2,            % +Atom, -Codes
+            atom_to_chars/3,            % +Atom, -Codes, ?Tail
+            number_to_chars/2,          % +Number, -Codes
+            number_to_chars/3,          % +Number, -Codes, ?Tail
+                                        % read predicates
+            read_from_chars/2,          % +Codes, -Term
+            read_term_from_chars/3,     % +Codes, -Term, +Options
+            open_chars_stream/2,        % +Codes, -Stream
+            with_output_to_chars/2,     % :Goal, -Codes
+            with_output_to_chars/3,     % :Goal, -Codes, ?Tail
+            with_output_to_chars/4      % :Goal, -Stream, -Codes, ?Tail
+          ]).
 :- use_module(library(error)).
 
 :- meta_predicate
-	with_output_to_chars(0, -),
-	with_output_to_chars(0, -, ?),
-	with_output_to_chars(0, -, -, ?).
+    with_output_to_chars(0, -),
+    with_output_to_chars(0, -, ?),
+    with_output_to_chars(0, -, -, ?).
 
 :- predicate_options(read_term_from_chars/3, 3,
-		     [pass_to(system:read_term/3, 3)]).
+                     [pass_to(system:read_term/3, 3)]).
 
 /** <module> I/O on Lists of Character Codes
 
@@ -72,123 +72,123 @@ We believe that the SWI-Prolog  native   predicates  form a more elegant
 alternative for this library.
 */
 
-%%	format_to_chars(+Format, +Args, -Codes) is det.
+%!  format_to_chars(+Format, +Args, -Codes) is det.
 %
-%	Use format/2 to write to a list of character codes.
+%   Use format/2 to write to a list of character codes.
 
 format_to_chars(Format, Args, Codes) :-
-	format(codes(Codes), Format, Args).
+    format(codes(Codes), Format, Args).
 
-%%	format_to_chars(+Format, +Args, -Codes,	?Tail) is det.
+%!  format_to_chars(+Format, +Args, -Codes, ?Tail) is det.
 %
-%	Use format/2 to write to a difference list of character codes.
+%   Use format/2 to write to a difference list of character codes.
 
 format_to_chars(Format, Args, Codes, Tail) :-
-	format(codes(Codes, Tail), Format, Args).
+    format(codes(Codes, Tail), Format, Args).
 
-%%	write_to_chars(+Term, -Codes)
+%!  write_to_chars(+Term, -Codes)
 %
-%	Write a term to a code  list.  True   when  Codes  is  a list of
-%	character codes written by write/1 on Term.
+%   Write a term to a code  list.  True   when  Codes  is  a list of
+%   character codes written by write/1 on Term.
 
 write_to_chars(Term, Codes) :-
-	format(codes(Codes), '~w', [Term]).
+    format(codes(Codes), '~w', [Term]).
 
-%%	write_to_chars(+Term, -Codes, ?Tail)
+%!  write_to_chars(+Term, -Codes, ?Tail)
 %
-%	Write a term to a code list.  Codes\Tail is a difference list of
-%	character codes produced by write/1 on Term.
+%   Write a term to a code list.  Codes\Tail is a difference list of
+%   character codes produced by write/1 on Term.
 
 write_to_chars(Term, Codes, Tail) :-
-	format(codes(Codes, Tail), '~w', [Term]).
+    format(codes(Codes, Tail), '~w', [Term]).
 
-%%	atom_to_chars(+Atom, -Codes) is det.
+%!  atom_to_chars(+Atom, -Codes) is det.
 %
-%	Convert Atom into a list of character codes.
+%   Convert Atom into a list of character codes.
 %
-%	@deprecated	Use ISO atom_codes/2.
+%   @deprecated     Use ISO atom_codes/2.
 
 atom_to_chars(Atom, Codes) :-
-	atom_codes(Atom, Codes).
+    atom_codes(Atom, Codes).
 
-%%	atom_to_chars(+Atom, -Codes, ?Tail) is det.
+%!  atom_to_chars(+Atom, -Codes, ?Tail) is det.
 %
-%	Convert Atom into a difference list of character codes.
+%   Convert Atom into a difference list of character codes.
 
 atom_to_chars(Atom, Codes, Tail) :-
-	format(codes(Codes, Tail), '~a', [Atom]).
+    format(codes(Codes, Tail), '~a', [Atom]).
 
-%%	number_to_chars(+Number, -Codes) is det.
+%!  number_to_chars(+Number, -Codes) is det.
 %
-%	Convert Atom into a list of character codes.
+%   Convert Atom into a list of character codes.
 %
-%	@deprecated	Use ISO number_codes/2.
+%   @deprecated     Use ISO number_codes/2.
 
 number_to_chars(Number, Codes) :-
-	number_codes(Number, Codes).
+    number_codes(Number, Codes).
 
-%%	number_to_chars(+Number, -Codes, ?Tail) is det.
+%!  number_to_chars(+Number, -Codes, ?Tail) is det.
 %
-%	Convert Number into a difference list of character codes.
+%   Convert Number into a difference list of character codes.
 
 number_to_chars(Number, Codes, Tail) :-
-	must_be(number, Number),
-	format(codes(Codes, Tail), '~w', [Number]).
+    must_be(number, Number),
+    format(codes(Codes, Tail), '~w', [Number]).
 
-%%	read_from_chars(+Codes, -Term) is det.
+%!  read_from_chars(+Codes, -Term) is det.
 %
-%	Read Codes into Term.
+%   Read Codes into Term.
 %
-%	@compat	The SWI-Prolog version does not require Codes to end
-%		in a full-stop.
+%   @compat The SWI-Prolog version does not require Codes to end
+%           in a full-stop.
 
 read_from_chars([], end_of_file) :- !.
 read_from_chars(List, Term) :-
-	atom_to_term(List, Term, _).
+    atom_to_term(List, Term, _).
 
-%%	read_term_from_chars(+Codes, -Term, +Options) is det.
+%!  read_term_from_chars(+Codes, -Term, +Options) is det.
 %
-%	Read Codes into Term.  Options are processed by read_term/3.
+%   Read Codes into Term.  Options are processed by read_term/3.
 %
-%	@compat sicstus
+%   @compat sicstus
 
 read_term_from_chars(Codes, Term, Options) :-
-	read_term_from_atom(Codes, Term, Options).
+    read_term_from_atom(Codes, Term, Options).
 
-%%	open_chars_stream(+Codes, -Stream) is det.
+%!  open_chars_stream(+Codes, -Stream) is det.
 %
-%	Open Codes as an input stream.
+%   Open Codes as an input stream.
 %
-%	@see open_string/2.
+%   @see open_string/2.
 
 open_chars_stream(Codes, Stream) :-
-	open_string(Codes, Stream).
+    open_string(Codes, Stream).
 
-%%	with_output_to_chars(:Goal, -Codes) is det.
+%!  with_output_to_chars(:Goal, -Codes) is det.
 %
-%	Run Goal as with once/1.  Output written to =current_output=
-%	is collected in Codes.
+%   Run Goal as with once/1.  Output written to =current_output=
+%   is collected in Codes.
 
 with_output_to_chars(Goal, Codes) :-
-	with_output_to(codes(Codes), Goal).
+    with_output_to(codes(Codes), Goal).
 
-%%	with_output_to_chars(:Goal, -Codes, ?Tail) is det.
+%!  with_output_to_chars(:Goal, -Codes, ?Tail) is det.
 %
-%	Run Goal as with once/1.  Output written to =current_output=
-%	is collected in Codes\Tail.
+%   Run Goal as with once/1.  Output written to =current_output=
+%   is collected in Codes\Tail.
 
 with_output_to_chars(Goal, Codes, Tail) :-
-	with_output_to(codes(Codes, Tail), Goal).
+    with_output_to(codes(Codes, Tail), Goal).
 
-%%	with_output_to_chars(:Goal, -Stream, -Codes, ?Tail) is det.
+%!  with_output_to_chars(:Goal, -Stream, -Codes, ?Tail) is det.
 %
-%	Same as with_output_to_chars/3 using  an   explicit  stream. The
-%	difference list Codes\Tail contains  the   character  codes that
-%	Goal has written to Stream.
+%   Same as with_output_to_chars/3 using  an   explicit  stream. The
+%   difference list Codes\Tail contains  the   character  codes that
+%   Goal has written to Stream.
 
 with_output_to_chars(Goal, Stream, Codes, Tail) :-
-	with_output_to(codes(Codes, Tail), with_stream(Stream, Goal)).
+    with_output_to(codes(Codes, Tail), with_stream(Stream, Goal)).
 
 with_stream(Stream, Goal) :-
-	current_output(Stream),
-	call(Goal).
+    current_output(Stream),
+    call(Goal).

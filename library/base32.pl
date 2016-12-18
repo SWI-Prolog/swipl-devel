@@ -33,9 +33,9 @@
 */
 
 :- module(base32,
-	  [ base32/2,			% ?PlainText, ?Encoded
-	    base32//1			% ?PlainText
-	  ]).
+          [ base32/2,                   % ?PlainText, ?Encoded
+            base32//1                   % ?PlainText
+          ]).
 
 /** <module> Base32 encoding and decoding
 
@@ -55,195 +55,205 @@ Yes
 H = 'Hello World'
 ==
 
-@see	http://en.wikipedia.org/wiki/Base32
-@author	Jan Wielemaker
+@see    http://en.wikipedia.org/wiki/Base32
+@author Jan Wielemaker
 */
 
-%%	base32(+Plain, -Encoded) is det.
-%%	base32(-Plain, +Encoded) is det.
+%!  base32(+Plain, -Encoded) is det.
+%!  base32(-Plain, +Encoded) is det.
 %
-%	Translates between plaintext and base32  encoded atom or string.
-%	See also base32//1.
+%   Translates between plaintext and base32  encoded atom or string.
+%   See also base32//1.
 
 base32(Plain, Encoded) :-
-	nonvar(Plain), !,
-	atom_codes(Plain, PlainCodes),
-	phrase(base32(PlainCodes), EncCodes),
-	atom_codes(Encoded, EncCodes).
+    nonvar(Plain),
+    !,
+    atom_codes(Plain, PlainCodes),
+    phrase(base32(PlainCodes), EncCodes),
+    atom_codes(Encoded, EncCodes).
 base32(Plain, Encoded) :-
-	nonvar(Encoded), !,
-	atom_codes(Encoded, EncCodes),
-	phrase(base32(PlainCodes), EncCodes),
-	atom_codes(Plain, PlainCodes).
+    nonvar(Encoded),
+    !,
+    atom_codes(Encoded, EncCodes),
+    phrase(base32(PlainCodes), EncCodes),
+    atom_codes(Plain, PlainCodes).
 base32(_, _) :-
-	throw(error(instantiation_error, _)).
+    throw(error(instantiation_error, _)).
 
 
-%%	base32(+PlainText)// is det.
-%%	base32(-PlainText)// is det.
+%!  base32(+PlainText)// is det.
+%!  base32(-PlainText)// is det.
 %
-%	Encode/decode list of character codes using _base32_.  See also
-%	base32/2.
+%   Encode/decode list of character codes using _base32_.  See also
+%   base32/2.
 
 base32(Input) -->
-	{ nonvar(Input) }, !,
-	encode(Input).
+    { nonvar(Input) },
+    !,
+    encode(Input).
 base32(Output) -->
-	decode(Output).
+    decode(Output).
 
 
-		 /*******************************
-		 *	      ENCODING		*
-		 *******************************/
+                 /*******************************
+                 *            ENCODING          *
+                 *******************************/
 
-encode([I0, I1, I2, I3, I4|Rest]) --> !,
-	[O0, O1, O2, O3, O4, O5, O6, O7],
-	{ A is (I0<<32)+(I1<<24)+(I2<<16)+(I3<<8)+I4,
-	  O00 is (A>>35) /\ 0x1f,
-	  O01 is (A>>30) /\ 0x1f,
-	  O02 is (A>>25) /\ 0x1f,
-	  O03 is (A>>20) /\ 0x1f,
-	  O04 is (A>>15) /\ 0x1f,
-	  O05 is (A>>10) /\ 0x1f,
-	  O06 is  (A>>5) /\ 0x1f,
-	  O07 is       A /\ 0x1f,
-	  base32_char(O00, O0),
-	  base32_char(O01, O1),
-	  base32_char(O02, O2),
-	  base32_char(O03, O3),
-	  base32_char(O04, O4),
-	  base32_char(O05, O5),
-	  base32_char(O06, O6),
-	  base32_char(O07, O7)
-	},
-	encode(Rest).
-encode([I0, I1, I2, I3]) --> !,
-	[O0, O1, O2, O3, O4, O5, O6, 0'=],
-	{ A is (I0<<32)+(I1<<24)+(I2<<16)+(I3<<8),
-	  O00 is (A>>35) /\ 0x1f,
-	  O01 is (A>>30) /\ 0x1f,
-	  O02 is (A>>25) /\ 0x1f,
-	  O03 is (A>>20) /\ 0x1f,
-	  O04 is (A>>15) /\ 0x1f,
-	  O05 is (A>>10) /\ 0x1f,
-	  O06 is  (A>>5) /\ 0x1f,
-	  base32_char(O00, O0),
-	  base32_char(O01, O1),
-	  base32_char(O02, O2),
-	  base32_char(O03, O3),
-	  base32_char(O04, O4),
-	  base32_char(O05, O5),
-	  base32_char(O06, O6)
-	}.
-encode([I0, I1, I2]) --> !,
-	[O0, O1, O2, O3, O4, 0'=, 0'=, 0'=],
-	{ A is (I0<<32)+(I1<<24)+(I2<<16),
-	  O00 is (A>>35) /\ 0x1f,
-	  O01 is (A>>30) /\ 0x1f,
-	  O02 is (A>>25) /\ 0x1f,
-	  O03 is (A>>20) /\ 0x1f,
-	  O04 is (A>>15) /\ 0x1f,
-	  base32_char(O00, O0),
-	  base32_char(O01, O1),
-	  base32_char(O02, O2),
-	  base32_char(O03, O3),
-	  base32_char(O04, O4)
-	}.
-encode([I0, I1]) --> !,
-	[O0, O1, O2, O3, 0'=, 0'=, 0'=, 0'=],
-	{ A is (I0<<32)+(I1<<24),
-	  O00 is (A>>35) /\ 0x1f,
-	  O01 is (A>>30) /\ 0x1f,
-	  O02 is (A>>25) /\ 0x1f,
-	  O03 is (A>>20) /\ 0x1f,
-	  base32_char(O00, O0),
-	  base32_char(O01, O1),
-	  base32_char(O02, O2),
-	  base32_char(O03, O3)
-	}.
-encode([I0]) --> !,
-	[O0, O1, 0'=, 0'=, 0'=, 0'=, 0'=, 0'=],
-	{ A is (I0<<32),
-	  O00 is (A>>35) /\ 0x1f,
-	  O01 is (A>>30) /\ 0x1f,
-	  base32_char(O00, O0),
-	  base32_char(O01, O1)
-	}.
+encode([I0, I1, I2, I3, I4|Rest]) -->
+    !,
+    [O0, O1, O2, O3, O4, O5, O6, O7],
+    { A is (I0<<32)+(I1<<24)+(I2<<16)+(I3<<8)+I4,
+      O00 is (A>>35) /\ 0x1f,
+      O01 is (A>>30) /\ 0x1f,
+      O02 is (A>>25) /\ 0x1f,
+      O03 is (A>>20) /\ 0x1f,
+      O04 is (A>>15) /\ 0x1f,
+      O05 is (A>>10) /\ 0x1f,
+      O06 is  (A>>5) /\ 0x1f,
+      O07 is       A /\ 0x1f,
+      base32_char(O00, O0),
+      base32_char(O01, O1),
+      base32_char(O02, O2),
+      base32_char(O03, O3),
+      base32_char(O04, O4),
+      base32_char(O05, O5),
+      base32_char(O06, O6),
+      base32_char(O07, O7)
+    },
+    encode(Rest).
+encode([I0, I1, I2, I3]) -->
+    !,
+    [O0, O1, O2, O3, O4, O5, O6, 0'=],
+    { A is (I0<<32)+(I1<<24)+(I2<<16)+(I3<<8),
+      O00 is (A>>35) /\ 0x1f,
+      O01 is (A>>30) /\ 0x1f,
+      O02 is (A>>25) /\ 0x1f,
+      O03 is (A>>20) /\ 0x1f,
+      O04 is (A>>15) /\ 0x1f,
+      O05 is (A>>10) /\ 0x1f,
+      O06 is  (A>>5) /\ 0x1f,
+      base32_char(O00, O0),
+      base32_char(O01, O1),
+      base32_char(O02, O2),
+      base32_char(O03, O3),
+      base32_char(O04, O4),
+      base32_char(O05, O5),
+      base32_char(O06, O6)
+    }.
+encode([I0, I1, I2]) -->
+    !,
+    [O0, O1, O2, O3, O4, 0'=, 0'=, 0'=],
+    { A is (I0<<32)+(I1<<24)+(I2<<16),
+      O00 is (A>>35) /\ 0x1f,
+      O01 is (A>>30) /\ 0x1f,
+      O02 is (A>>25) /\ 0x1f,
+      O03 is (A>>20) /\ 0x1f,
+      O04 is (A>>15) /\ 0x1f,
+      base32_char(O00, O0),
+      base32_char(O01, O1),
+      base32_char(O02, O2),
+      base32_char(O03, O3),
+      base32_char(O04, O4)
+    }.
+encode([I0, I1]) -->
+    !,
+    [O0, O1, O2, O3, 0'=, 0'=, 0'=, 0'=],
+    { A is (I0<<32)+(I1<<24),
+      O00 is (A>>35) /\ 0x1f,
+      O01 is (A>>30) /\ 0x1f,
+      O02 is (A>>25) /\ 0x1f,
+      O03 is (A>>20) /\ 0x1f,
+      base32_char(O00, O0),
+      base32_char(O01, O1),
+      base32_char(O02, O2),
+      base32_char(O03, O3)
+    }.
+encode([I0]) -->
+    !,
+    [O0, O1, 0'=, 0'=, 0'=, 0'=, 0'=, 0'=],
+    { A is (I0<<32),
+      O00 is (A>>35) /\ 0x1f,
+      O01 is (A>>30) /\ 0x1f,
+      base32_char(O00, O0),
+      base32_char(O01, O1)
+    }.
 encode([]) -->
-	[].
+    [].
 
 
-		 /*******************************
-		 *	      DECODE		*
-		 *******************************/
+                 /*******************************
+                 *            DECODE            *
+                 *******************************/
 
 decode(Text) -->
-	[C0, C1, C2, C3, C4, C5, C6, C7], !,
-	{ base32_char(B0, C0),
-	  base32_char(B1, C1)
-	}, !,
-	{   C7 == 0'=
-	->  (   C6 == 0'=, C5 == 0'=
-	    ->  (   C4 == 0'=
-	        ->  (   C3 = 0'=, C2 = 0'=
-		    ->	A is (B0<<35) + (B1<<30),
-			I0 is (A>>32) /\ 0xff,
-			Text = [I0|Rest]
-		    ;   base32_char(B2, C2),
-			base32_char(B3, C3),
-			base32_char(B4, C4),
-			A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) + (B4<<15),
-			I0 is (A>>32) /\ 0xff,
-			I1 is (A>>24) /\ 0xff,
-			Text = [I0,I1|Rest]
-		    )
-		;   base32_char(B2, C2),
-	            base32_char(B3, C3),
-	            base32_char(B4, C4),
-	            base32_char(B5, C5),
-	            A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) +
-			 (B4<<15) + (B5<<10),
-		    I0 is (A>>32) /\ 0xff,
-	            I1 is (A>>24) /\ 0xff,
-	            I2 is (A>>16) /\ 0xff,
-	            Text = [I0,I1,I2|Rest]
-	        )
-	    ;   base32_char(B2, C2),
-	        base32_char(B3, C3),
-	        base32_char(B4, C4),
-	        base32_char(B5, C5),
-	        base32_char(B6, C6)
-	    ->  A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) +
-	             (B4<<15) + (B5<<10) + (B6<<5),
-	        I0 is (A>>32) /\ 0xff,
-	        I1 is (A>>24) /\ 0xff,
-	        I2 is (A>>16) /\ 0xff,
-	        I3 is  (A>>8) /\ 0xff,
-	        Text = [I0,I1,I2,I3|Rest]
-	    )
-	;   base32_char(B2, C2),
-	    base32_char(B3, C3),
-	    base32_char(B4, C4),
-	    base32_char(B5, C5),
-	    base32_char(B6, C6),
-	    base32_char(B7, C7)
-	->  A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) +
-		 (B4<<15) + (B5<<10) + (B6<<5) + B7,
-	    I0 is (A>>32) /\ 0xff,
-	    I1 is (A>>24) /\ 0xff,
-	    I2 is (A>>16) /\ 0xff,
-	    I3 is  (A>>8) /\ 0xff,
-	    I4 is      A  /\ 0xff,
-	    Text = [I0,I1,I2,I3,I4|Rest]
-	},
-	decode(Rest).
+    [C0, C1, C2, C3, C4, C5, C6, C7],
+    !,
+    { base32_char(B0, C0),
+      base32_char(B1, C1)
+    },
+    !,
+    {   C7 == 0'=
+    ->  (   C6 == 0'=, C5 == 0'=
+        ->  (   C4 == 0'=
+            ->  (   C3 = 0'=, C2 = 0'=
+                ->  A is (B0<<35) + (B1<<30),
+                    I0 is (A>>32) /\ 0xff,
+                    Text = [I0|Rest]
+                ;   base32_char(B2, C2),
+                    base32_char(B3, C3),
+                    base32_char(B4, C4),
+                    A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) + (B4<<15),
+                    I0 is (A>>32) /\ 0xff,
+                    I1 is (A>>24) /\ 0xff,
+                    Text = [I0,I1|Rest]
+                )
+            ;   base32_char(B2, C2),
+                base32_char(B3, C3),
+                base32_char(B4, C4),
+                base32_char(B5, C5),
+                A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) +
+                     (B4<<15) + (B5<<10),
+                I0 is (A>>32) /\ 0xff,
+                I1 is (A>>24) /\ 0xff,
+                I2 is (A>>16) /\ 0xff,
+                Text = [I0,I1,I2|Rest]
+            )
+        ;   base32_char(B2, C2),
+            base32_char(B3, C3),
+            base32_char(B4, C4),
+            base32_char(B5, C5),
+            base32_char(B6, C6)
+        ->  A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) +
+                 (B4<<15) + (B5<<10) + (B6<<5),
+            I0 is (A>>32) /\ 0xff,
+            I1 is (A>>24) /\ 0xff,
+            I2 is (A>>16) /\ 0xff,
+            I3 is  (A>>8) /\ 0xff,
+            Text = [I0,I1,I2,I3|Rest]
+        )
+    ;   base32_char(B2, C2),
+        base32_char(B3, C3),
+        base32_char(B4, C4),
+        base32_char(B5, C5),
+        base32_char(B6, C6),
+        base32_char(B7, C7)
+    ->  A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) +
+             (B4<<15) + (B5<<10) + (B6<<5) + B7,
+        I0 is (A>>32) /\ 0xff,
+        I1 is (A>>24) /\ 0xff,
+        I2 is (A>>16) /\ 0xff,
+        I3 is  (A>>8) /\ 0xff,
+        I4 is      A  /\ 0xff,
+        Text = [I0,I1,I2,I3,I4|Rest]
+    },
+    decode(Rest).
 decode([]) -->
-	[].
+    [].
 
 
-		 /*******************************
-		 *   BASIC CHARACTER ENCODING	*
-		 *******************************/
+                 /*******************************
+                 *   BASIC CHARACTER ENCODING   *
+                 *******************************/
 
 base32_char(00, 0'A).
 base32_char(01, 0'B).

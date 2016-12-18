@@ -33,14 +33,14 @@
 */
 
 :- module(prolog_dialect,
-	  [ expects_dialect/1,		% +Dialect
-	    exists_source/1,		% +Source
-	    source_exports/2		% +Source, ?Export
-	  ]).
+          [ expects_dialect/1,          % +Dialect
+            exists_source/1,            % +Source
+            source_exports/2            % +Source, ?Export
+          ]).
 :- use_module(library(error)).
 :- use_module(library(lists)).
 
-/**	<module> Support multiple Prolog dialects
+/**     <module> Support multiple Prolog dialects
 
 The idea for this predicate  was  raised   by  Vitor  Santos  Costa in a
 discussion to reach as a portability   framework  between SWI-Prolog and
@@ -50,96 +50,97 @@ This library defines :- expects_dialect/1, telling  the system for which
 Prolog dialect was written,  as  well   as  useful  tests in conditional
 compilation:
 
-	* exists_source/1
-	* source_exports/2
+        * exists_source/1
+        * source_exports/2
 
-@see	if/1, require/1, term_expansion/2, goal_expansion/2.
-@author	Jan Wielemaker
+@see    if/1, require/1, term_expansion/2, goal_expansion/2.
+@author Jan Wielemaker
 @author Vitor Santos Costa
 */
 
-%%	expects_dialect(+Dialect:atom) is det.
+%!  expects_dialect(+Dialect:atom) is det.
 %
-%	Tell Prolog all subsequent code to the   end  of the file or the
-%	next :- expects_dialect/1 directive is written for the indicated
-%	Dialect.   The   current   dialect     is    available   through
-%	prolog_load_context/2.
+%   Tell Prolog all subsequent code to the   end  of the file or the
+%   next :- expects_dialect/1 directive is written for the indicated
+%   Dialect.   The   current   dialect     is    available   through
+%   prolog_load_context/2.
 %
-%	@tbd	Should we setup the dialect module only as autoload for
-%		the current module?
+%   @tbd    Should we setup the dialect module only as autoload for
+%           the current module?
 
 expects_dialect(Dialect) :-
-	must_be(atom, Dialect),
-	set_prolog_flag(emulated_dialect, Dialect),
-	(   Dialect == swi
-	->  true
-	;   attach_dialect(Dialect)
-	).
+    must_be(atom, Dialect),
+    set_prolog_flag(emulated_dialect, Dialect),
+    (   Dialect == swi
+    ->  true
+    ;   attach_dialect(Dialect)
+    ).
 
 
 attach_dialect(Dialect) :-
-	exists_source(library(dialect/Dialect)), !,
-	prolog_load_context(module, Module),
-	use_module(Module:library(dialect/Dialect)),
-	(   current_predicate(Dialect:setup_dialect/0)
-	->  Dialect:setup_dialect
-	;   true
-	).
+    exists_source(library(dialect/Dialect)),
+    !,
+    prolog_load_context(module, Module),
+    use_module(Module:library(dialect/Dialect)),
+    (   current_predicate(Dialect:setup_dialect/0)
+    ->  Dialect:setup_dialect
+    ;   true
+    ).
 attach_dialect(_).
 
 
-%%	exists_source(+Source) is semidet.
+%!  exists_source(+Source) is semidet.
 %
-%	True if Source (a term  valid   for  load_files/2) exists. Fails
-%	without error if this is not the case. The predicate is intended
-%	to be used with  :-  if,  as   in  the  example  below. See also
-%	source_exports/2.
+%   True if Source (a term  valid   for  load_files/2) exists. Fails
+%   without error if this is not the case. The predicate is intended
+%   to be used with  :-  if,  as   in  the  example  below. See also
+%   source_exports/2.
 %
-%	==
-%	:- if(exists_source(library(error))).
-%	:- use_module_library(error).
-%	:- endif.
-%	==
+%   ==
+%   :- if(exists_source(library(error))).
+%   :- use_module_library(error).
+%   :- endif.
+%   ==
 
 exists_source(Source) :-
-	exists_source(Source, _Path).
+    exists_source(Source, _Path).
 
 exists_source(Source, Path) :-
-	absolute_file_name(Source, Path,
-			   [ file_type(prolog),
-			     access(read),
-			     file_errors(fail)
-			   ]).
+    absolute_file_name(Source, Path,
+                       [ file_type(prolog),
+                         access(read),
+                         file_errors(fail)
+                       ]).
 
-%%	source_exports(+Source, +Export) is semidet.
-%%	source_exports(+Source, -Export) is nondet.
+%!  source_exports(+Source, +Export) is semidet.
+%!  source_exports(+Source, -Export) is nondet.
 %
-%	True if Source exports Export. Fails   without  error if this is
-%	not the case.  See also exists_source/1.
+%   True if Source exports Export. Fails   without  error if this is
+%   not the case.  See also exists_source/1.
 %
-%	@tbd	Should we also allow for source_exports(-Source, +Export)?
+%   @tbd    Should we also allow for source_exports(-Source, +Export)?
 
 source_exports(Source, Export) :-
-	open_source(Source, In),
-	catch(call_cleanup(exports(In, Exports), close(In)), _, fail),
-	(   ground(Export)
-	->  memberchk(Export, Exports)
-	;   member(Export, Exports)
-	).
+    open_source(Source, In),
+    catch(call_cleanup(exports(In, Exports), close(In)), _, fail),
+    (   ground(Export)
+    ->  memberchk(Export, Exports)
+    ;   member(Export, Exports)
+    ).
 
-%%	open_source(+Source, -In:stream) is semidet.
+%!  open_source(+Source, -In:stream) is semidet.
 %
-%	Open a source location.
+%   Open a source location.
 
 open_source(File, In) :-
-	exists_source(File, Path),
-	open(Path, read, In),
-	(   peek_char(In, #)
-	->  skip(In, 10)
-	;   true
-	).
+    exists_source(File, Path),
+    open(Path, read, In),
+    (   peek_char(In, #)
+    ->  skip(In, 10)
+    ;   true
+    ).
 
 exports(In, Exports) :-
-	read(In, Term),
-	Term = (:- module(_Name, Exports)).
+    read(In, Term),
+    Term = (:- module(_Name, Exports)).
 

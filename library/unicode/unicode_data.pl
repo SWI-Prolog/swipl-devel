@@ -33,8 +33,8 @@
 */
 
 :- module(unicode_data,
-	  [ unicode_property/2		% ?Code, ?Property
-	  ]).
+          [ unicode_property/2          % ?Code, ?Property
+          ]).
 :- use_module(library(table)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -43,7 +43,7 @@ unicode organisation (http://www.unicode.org). This  file describes many
 aspects for all defined UNICODE  code   positions,  such  as their name,
 type, etc.  The meaning of the fields is defined here:
 
-	http://www.unicode.org/Public/UNIDATA/UCD.html#UCD_File_Format
+        http://www.unicode.org/Public/UNIDATA/UCD.html#UCD_File_Format
 
 This library uses the table package for accessing structured files. This
 maps the file in memory and performs  binary search. This is not blindly
@@ -60,17 +60,17 @@ directory  as  this  file  or  in    the   search  path  'unicode'  (see
 file_search_path/2).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	unicode_property(?Code, ?Property)
+%       unicode_property(?Code, ?Property)
 %
-%	Logical predicate relating code  points   to  properties.  It is
-%	optimised for asking a single  property   of  a  known code, but
-%	works with any instantiation.
+%       Logical predicate relating code  points   to  properties.  It is
+%       optimised for asking a single  property   of  a  known code, but
+%       works with any instantiation.
 
 unicode_property(Code, Property) :-
-	table(Handle),
-	property(Property),
-	in_table(Handle, [code(Code), Property], _),
-	\+ arg(1, Property, '').
+    table(Handle),
+    property(Property),
+    in_table(Handle, [code(Code), Property], _),
+    \+ arg(1, Property, '').
 
 property(name(_)).
 property(general_category(_)).
@@ -88,14 +88,14 @@ property(simple_lowercase_mapping(_)).
 property(simple_titlecase_mapping(_)).
 
 :- dynamic
-	handle/1.
+    handle/1.
 :- volatile
-	handle/1.
+    handle/1.
 
 :- multifile
-	user:file_search_path/2.
+    user:file_search_path/2.
 :- dynamic
-	user:file_search_path/2.
+    user:file_search_path/2.
 
 :- (   user:file_search_path(unicode, _)
    ->  true
@@ -104,31 +104,32 @@ property(simple_titlecase_mapping(_)).
    ).
 
 table(Handle) :-
-	handle(Handle), !.
+    handle(Handle), 
+    !.
 table(Handle) :-
-	absolute_file_name(unicode('UnicodeData.txt'),
-			   Path,
-			   [ access(read)
-			   ]),
-	new_table(Path,
-		  [ code(hexadecimal, [sorted, unique]),
-		    name(atom, [downcase]),		    		% 1
-		    general_category(atom), 				% 2
-		    canonical_combining_class(integer),			% 3
-		    bidi_class(atom, [downcase]),			% 4
-		    decomposition_type(atom),				% 5
-		    numeric_type_1(integer, [syntax]),			% 6
-		    numeric_type_2(integer, [syntax]),			% 7
-		    numeric_type_3(integer, [syntax]),			% 8
-		    bidi_mirrored(atom, [downcase]),			% 9
-		    unicode_1_name(atom, [downcase]),			% 10
-		    iso_comment(atom),					% 11
-		    simple_uppercase_mapping(hexadecimal, [syntax]),	% 12
-		    simple_lowercase_mapping(hexadecimal, [syntax]),	% 13
-		    simple_titlecase_mapping(hexadecimal, [syntax])	% 14
-		  ],
-		  [ field_separator(0';)
-		  ],
-		  Handle),
-	assert(handle(Handle)).
+    absolute_file_name(unicode('UnicodeData.txt'),
+                       Path,
+                       [ access(read)
+                       ]),
+    new_table(Path,
+              [ code(hexadecimal, [sorted, unique]),
+                name(atom, [downcase]),                             % 1
+                general_category(atom),                             % 2
+                canonical_combining_class(integer),                 % 3
+                bidi_class(atom, [downcase]),                       % 4
+                decomposition_type(atom),                           % 5
+                numeric_type_1(integer, [syntax]),                  % 6
+                numeric_type_2(integer, [syntax]),                  % 7
+                numeric_type_3(integer, [syntax]),                  % 8
+                bidi_mirrored(atom, [downcase]),                    % 9
+                unicode_1_name(atom, [downcase]),                   % 10
+                iso_comment(atom),                                  % 11
+                simple_uppercase_mapping(hexadecimal, [syntax]),    % 12
+                simple_lowercase_mapping(hexadecimal, [syntax]),    % 13
+                simple_titlecase_mapping(hexadecimal, [syntax])     % 14
+              ],
+              [ field_separator(0';)
+              ],
+              Handle),
+    assert(handle(Handle)).
 

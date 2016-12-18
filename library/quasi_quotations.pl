@@ -33,11 +33,11 @@
 */
 
 :- module(quasi_quotations,
-	  [ with_quasi_quotation_input/3,	% +Content, -Stream, :Goal
-	    phrase_from_quasi_quotation/2,	% :Grammar, +Content
-	    quasi_quotation_syntax_error/1,	% +Error
-	    quasi_quotation_syntax/1		% :Syntax
-	  ]).
+          [ with_quasi_quotation_input/3,       % +Content, -Stream, :Goal
+            phrase_from_quasi_quotation/2,      % :Grammar, +Content
+            quasi_quotation_syntax_error/1,     % +Error
+            quasi_quotation_syntax/1            % :Syntax
+          ]).
 :- use_module(library(error)).
 :- use_module(library(pure_input)).
 
@@ -90,10 +90,10 @@ The arguments are defined as
   quasi quotation explicit. For example:
 
     ==
-	...,
-	{|html(Name, Address)||
-	 <tr><td>Name<td>Address</tr>
-	 |}
+        ...,
+        {|html(Name, Address)||
+         <tr><td>Name<td>Address</tr>
+         |}
     ==
 
   - `VariableNames` is the complete variable dictionary of the clause as
@@ -114,175 +114,184 @@ The file library(http/html_quasiquotations) provides   the,  suprisingly
 simple, quasi quotation parser for HTML.
 
 @author Jan Wielemaker.  Introduction of Quasi Quotation was suggested
-	by Michael Hendricks.
+        by Michael Hendricks.
 @see    [Why it's nice to be quoted: quasiquoting for
-	haskell](http://www.cs.tufts.edu/comp/150FP/archive/geoff-mainland/quasiquoting.pdf)
+        haskell](http://www.cs.tufts.edu/comp/150FP/archive/geoff-mainland/quasiquoting.pdf)
 */
 
 
 :- meta_predicate
-	with_quasi_quotation_input(+, -, 0),
-	quasi_quotation_syntax(4),
-	phrase_from_quasi_quotation(//, +).
+    with_quasi_quotation_input(+, -, 0),
+    quasi_quotation_syntax(4),
+    phrase_from_quasi_quotation(//, +).
 
 :- set_prolog_flag(quasi_quotations, true).
 
-%%	with_quasi_quotation_input(+Content, -Stream, :Goal) is det.
+%!  with_quasi_quotation_input(+Content, -Stream, :Goal) is det.
 %
-%	Process the quasi-quoted Content using   Stream  parsed by Goal.
-%	Stream is a temporary stream with the following properties:
+%   Process the quasi-quoted Content using   Stream  parsed by Goal.
+%   Stream is a temporary stream with the following properties:
 %
-%	    - Its initial _position_ represents the position of the
-%	      start of the quoted material.
-%	    - It is a text stream, using =utf8= _encoding_.
-%	    - It allows for repositioning
-%	    - It will be closed after Goal completes.
+%       - Its initial _position_ represents the position of the
+%         start of the quoted material.
+%       - It is a text stream, using =utf8= _encoding_.
+%       - It allows for repositioning
+%       - It will be closed after Goal completes.
 %
-%	@arg Goal is executed as once(Goal).  Goal must succeed.
-%	     Failure or exceptions from Goal are interpreted as
-%	     syntax errors.
-%	@see phrase_from_quasi_quotation/2 can be used to process a
-%	     quotation using a grammar.
+%   @arg Goal is executed as once(Goal).  Goal must succeed.
+%        Failure or exceptions from Goal are interpreted as
+%        syntax errors.
+%   @see phrase_from_quasi_quotation/2 can be used to process a
+%        quotation using a grammar.
 
 with_quasi_quotation_input(Content, Stream, Goal) :-
-	functor(Content, '$quasi_quotation', 3), !,
-	setup_call_cleanup(
-	    '$qq_open'(Content, Stream),
-	    (	call(Goal)
-	    ->	true
-	    ;	quasi_quotation_syntax_error(
-		    quasi_quotation_parser_failed,
-		    Stream)
-	    ),
-	    close(Stream)).
+    functor(Content, '$quasi_quotation', 3),
+    !,
+    setup_call_cleanup(
+        '$qq_open'(Content, Stream),
+        (   call(Goal)
+        ->  true
+        ;   quasi_quotation_syntax_error(
+                quasi_quotation_parser_failed,
+                Stream)
+        ),
+        close(Stream)).
 
-%%	phrase_from_quasi_quotation(:Grammar, +Content) is det.
+%!  phrase_from_quasi_quotation(:Grammar, +Content) is det.
 %
-%	Process the quasi quotation using the   DCG  Grammar. Failure of
-%	the grammer is interpreted as a syntax error.
+%   Process the quasi quotation using the   DCG  Grammar. Failure of
+%   the grammer is interpreted as a syntax error.
 %
-%	@see	with_quasi_quotation_input/3 for processing quotations from
-%		stream.
+%   @see    with_quasi_quotation_input/3 for processing quotations from
+%           stream.
 
 phrase_from_quasi_quotation(Grammar, Content) :-
-	functor(Content, '$quasi_quotation', 3), !,
-	setup_call_cleanup(
-	    '$qq_open'(Content, Stream),
-	    phrase_quasi_quotation(Grammar, Stream),
-	    close(Stream)).
+    functor(Content, '$quasi_quotation', 3),
+    !,
+    setup_call_cleanup(
+        '$qq_open'(Content, Stream),
+        phrase_quasi_quotation(Grammar, Stream),
+        close(Stream)).
 
 phrase_quasi_quotation(Grammar, Stream) :-
-	set_stream(Stream, buffer_size(512)),
-	stream_to_lazy_list(Stream, List),
-	phrase(Grammar, List), !.
+    set_stream(Stream, buffer_size(512)),
+    stream_to_lazy_list(Stream, List),
+    phrase(Grammar, List), 
+    !.
 phrase_quasi_quotation(_, Stream) :-
-	quasi_quotation_syntax_error(
-	    quasi_quotation_parser_failed,
-	    Stream).
+    quasi_quotation_syntax_error(
+        quasi_quotation_parser_failed,
+        Stream).
 
-%%	quasi_quotation_syntax(:SyntaxName) is det.
+%!  quasi_quotation_syntax(:SyntaxName) is det.
 %
-%	Declare the predicate SyntaxName/4  to   implement  the  the quasi
-%	quote syntax SyntaxName.  Normally used as a directive.
+%   Declare the predicate SyntaxName/4  to   implement  the  the quasi
+%   quote syntax SyntaxName.  Normally used as a directive.
 
 quasi_quotation_syntax(M:Syntax) :-
-	must_be(atom, Syntax),
-	'$set_predicate_attribute'(M:Syntax/4, quasi_quotation_syntax, true).
+    must_be(atom, Syntax),
+    '$set_predicate_attribute'(M:Syntax/4, quasi_quotation_syntax, true).
 
-%%	quasi_quotation_syntax_error(+Error)
+%!  quasi_quotation_syntax_error(+Error)
 %
-%	Report syntax_error(Error) using the  current   location  in the
-%	quasi quoted input parser.
+%   Report syntax_error(Error) using the  current   location  in the
+%   quasi quoted input parser.
 %
-%	@throws error(syntax_error(Error), Position)
+%   @throws error(syntax_error(Error), Position)
 
 quasi_quotation_syntax_error(Error) :-
-	quasi_quotation_input(Stream),
-	quasi_quotation_syntax_error(Error, Stream).
+    quasi_quotation_input(Stream),
+    quasi_quotation_syntax_error(Error, Stream).
 
 quasi_quotation_syntax_error(Error, Stream) :-
-	stream_syntax_error_context(Stream, Context),
-	throw(error(syntax_error(Error), Context)).
+    stream_syntax_error_context(Stream, Context),
+    throw(error(syntax_error(Error), Context)).
 
 quasi_quotation_input(Stream) :-
-	'$input_context'(Stack),
-	memberchk(input(quasi_quoted, _File, _Line, StreamVar), Stack),
-	Stream = StreamVar.
+    '$input_context'(Stack),
+    memberchk(input(quasi_quoted, _File, _Line, StreamVar), Stack),
+    Stream = StreamVar.
 
 
-%%	stream_syntax_error_context(+Stream, -Position) is det.
+%!  stream_syntax_error_context(+Stream, -Position) is det.
 %
-%	Provide syntax error  location  for   the  current  position  of
-%	Stream.
+%   Provide syntax error  location  for   the  current  position  of
+%   Stream.
 
 stream_syntax_error_context(Stream, file(File, LineNo, LinePos, CharNo)) :-
-	stream_property(Stream, file_name(File)),
-	position_context(Stream, LineNo, LinePos, CharNo), !.
+    stream_property(Stream, file_name(File)),
+    position_context(Stream, LineNo, LinePos, CharNo), 
+    !.
 stream_syntax_error_context(Stream, stream(Stream, LineNo, LinePos, CharNo)) :-
-	position_context(Stream, LineNo, LinePos, CharNo), !.
+    position_context(Stream, LineNo, LinePos, CharNo), 
+    !.
 stream_syntax_error_context(_, _).
 
 position_context(Stream, LineNo, LinePos, CharNo) :-
-	stream_property(Stream, position(Pos)), !,
-	stream_position_data(line_count,    Pos, LineNo),
-	stream_position_data(line_position, Pos, LinePos),
-	stream_position_data(char_count,    Pos, CharNo).
+    stream_property(Stream, position(Pos)),
+    !,
+    stream_position_data(line_count,    Pos, LineNo),
+    stream_position_data(line_position, Pos, LinePos),
+    stream_position_data(char_count,    Pos, CharNo).
 
 
-		 /*******************************
-		 *	   SYSTEM HOOK		*
-		 *******************************/
+                 /*******************************
+                 *         SYSTEM HOOK          *
+                 *******************************/
 
-%	system:'$parse_quasi_quotations'(+Quotations:list, +Module) is
-%	det.
+%       system:'$parse_quasi_quotations'(+Quotations:list, +Module) is
+%       det.
 %
-%	@arg	Quotations is a list of terms
+%       @arg    Quotations is a list of terms
 %
-%		    quasi_quotation(Syntax, Quotation, VarNames, Result)
+%                   quasi_quotation(Syntax, Quotation, VarNames, Result)
 
 :- public
-	system:'$parse_quasi_quotations'/2.
+    system:'$parse_quasi_quotations'/2.
 
 system:'$parse_quasi_quotations'([], _).
 system:'$parse_quasi_quotations'([H|T], M) :-
-	qq_call(H, M),
-	system:'$parse_quasi_quotations'(T, M).
+    qq_call(H, M),
+    system:'$parse_quasi_quotations'(T, M).
 
 qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
-	current_prolog_flag(sandboxed_load, false),
-	Syntax =.. [SyntaxName|SyntaxArgs],
-	setup_call_cleanup(
-	    '$push_input_context'(quasi_quoted),
-	    call(M:SyntaxName, Content, SyntaxArgs, VariableNames, Result),
-	    '$pop_input_context'), !.
+    current_prolog_flag(sandboxed_load, false),
+    Syntax =.. [SyntaxName|SyntaxArgs],
+    setup_call_cleanup(
+        '$push_input_context'(quasi_quoted),
+        call(M:SyntaxName, Content, SyntaxArgs, VariableNames, Result),
+        '$pop_input_context'), 
+    !.
 qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
-	current_prolog_flag(sandboxed_load, true),
-	Syntax =.. [SyntaxName|SyntaxArgs],
-	Expand =.. [SyntaxName, Content, SyntaxArgs, VariableNames, Result],
-	QExpand = M:Expand,
-	'$expand':allowed_expansion(QExpand),
-	setup_call_cleanup(
-	    '$push_input_context'(quasi_quoted),
-	    call(QExpand),
-	    '$pop_input_context'), !.
+    current_prolog_flag(sandboxed_load, true),
+    Syntax =.. [SyntaxName|SyntaxArgs],
+    Expand =.. [SyntaxName, Content, SyntaxArgs, VariableNames, Result],
+    QExpand = M:Expand,
+    '$expand':allowed_expansion(QExpand),
+    setup_call_cleanup(
+        '$push_input_context'(quasi_quoted),
+        call(QExpand),
+        '$pop_input_context'), 
+    !.
 qq_call(quasi_quotation(_Syntax, Content, _VariableNames, _Result), _M) :-
-	setup_call_cleanup(
-	    '$push_input_context'(quasi_quoted),
-	    with_quasi_quotation_input(
-		Content, Stream,
-		quasi_quotation_syntax_error(quasi_quote_parser_failed, Stream)),
-	    '$pop_input_context'), !.
+    setup_call_cleanup(
+        '$push_input_context'(quasi_quoted),
+        with_quasi_quotation_input(
+            Content, Stream,
+            quasi_quotation_syntax_error(quasi_quote_parser_failed, Stream)),
+        '$pop_input_context'), 
+    !.
 
 
-		 /*******************************
-		 *	       MESSAGES		*
-		 *******************************/
+                 /*******************************
+                 *             MESSAGES         *
+                 *******************************/
 
 :- multifile
-	prolog:error_message//1.
+    prolog:error_message//1.
 
 prolog:error_message(syntax_error(unknown_quasi_quotation_syntax(Syntax, M))) -->
-	{ functor(Syntax, Name, _) },
-	[ 'Quasi quotation syntax ~q:~q is not defined'-[M, Name] ].
+    { functor(Syntax, Name, _) },
+    [ 'Quasi quotation syntax ~q:~q is not defined'-[M, Name] ].
 prolog:error_message(syntax_error(invalid_quasi_quotation_syntax(Syntax))) -->
-	[ 'Quasi quotation syntax must be a callable term.  Found ~q'-[Syntax] ].
+    [ 'Quasi quotation syntax must be a callable term.  Found ~q'-[Syntax] ].

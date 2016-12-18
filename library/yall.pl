@@ -33,35 +33,35 @@
 */
 
 :- module(yall,
-	  [ (>>)/2, (>>)/3, (>>)/4, (>>)/5, (>>)/6, (>>)/7, (>>)/8, (>>)/9,
-	    (/)/2, (/)/3, (/)/4, (/)/5, (/)/6, (/)/7, (/)/8, (/)/9,
+          [ (>>)/2, (>>)/3, (>>)/4, (>>)/5, (>>)/6, (>>)/7, (>>)/8, (>>)/9,
+            (/)/2, (/)/3, (/)/4, (/)/5, (/)/6, (/)/7, (/)/8, (/)/9,
 
-	    lambda_calls/2,			% +LambdaExt, -Goal
-	    lambda_calls/3,			% +Lambda, +Args, -Goal
-	    is_lambda/1				% @Term
-	  ]).
+            lambda_calls/2,                     % +LambdaExt, -Goal
+            lambda_calls/3,                     % +Lambda, +Args, -Goal
+            is_lambda/1                         % @Term
+          ]).
 :- use_module(library(error)).
 :- use_module(library(lists)).
 
 :- meta_predicate
-	'>>'(?, 0),
-	'>>'(?, :, ?),
-	'>>'(?, :, ?, ?),
-	'>>'(?, :, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?, ?, ?),
-	'>>'(?, :, ?, ?, ?, ?, ?, ?, ?).
+    '>>'(?, 0),
+    '>>'(?, :, ?),
+    '>>'(?, :, ?, ?),
+    '>>'(?, :, ?, ?, ?),
+    '>>'(?, :, ?, ?, ?, ?),
+    '>>'(?, :, ?, ?, ?, ?, ?),
+    '>>'(?, :, ?, ?, ?, ?, ?, ?),
+    '>>'(?, :, ?, ?, ?, ?, ?, ?, ?).
 
 :- meta_predicate
-	'/'(?, 0),
-	'/'(?, 1, ?),
-	'/'(?, 2, ?, ?),
-	'/'(?, 3, ?, ?, ?),
-	'/'(?, 4, ?, ?, ?, ?),
-	'/'(?, 5, ?, ?, ?, ?, ?),
-	'/'(?, 6, ?, ?, ?, ?, ?, ?),
-	'/'(?, 7, ?, ?, ?, ?, ?, ?, ?).
+    '/'(?, 0),
+    '/'(?, 1, ?),
+    '/'(?, 2, ?, ?),
+    '/'(?, 3, ?, ?, ?),
+    '/'(?, 4, ?, ?, ?, ?),
+    '/'(?, 5, ?, ?, ?, ?, ?),
+    '/'(?, 6, ?, ?, ?, ?, ?, ?),
+    '/'(?, 7, ?, ?, ?, ?, ?, ?, ?).
 
 /** <module> Lambda expressions
 
@@ -132,254 +132,260 @@ The module name, _yall_, stands for Yet Another Lambda Library.
 This  module  implements  Logtalk's   lambda  expressions  syntax.   The
 development of this module was sponsored by Kyndi, Inc.
 
-@tbd	Extend optimization support
-@author	Paulo Moura and Jan Wielemaker
+@tbd    Extend optimization support
+@author Paulo Moura and Jan Wielemaker
 */
 
-%%	>>(+Parameters, +Lambda).
-%%	>>(+Parameters, +Lambda, ?A1).
-%%	>>(+Parameters, +Lambda, ?A1, ?A2).
-%%	>>(+Parameters, +Lambda, ?A1, ?A2, ?A3).
-%%	>>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4).
-%%	>>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4, ?A5).
-%%	>>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6).
-%%	>>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6, ?A7).
+%!  >>(+Parameters, +Lambda).
+%!  >>(+Parameters, +Lambda, ?A1).
+%!  >>(+Parameters, +Lambda, ?A1, ?A2).
+%!  >>(+Parameters, +Lambda, ?A1, ?A2, ?A3).
+%!  >>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4).
+%!  >>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4, ?A5).
+%!  >>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6).
+%!  >>(+Parameters, +Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6, ?A7).
 %
-%	Calls a copy of Lambda. This  is similar to call(Lambda,A1,...),
-%	but arguments are reordered according to the list Parameters:
+%   Calls a copy of Lambda. This  is similar to call(Lambda,A1,...),
+%   but arguments are reordered according to the list Parameters:
 %
-%	  - The first length(Parameters) arguments from A1, ... are
-%	    unified with (a copy of) Parameters, which _may_ share
-%	    them with variables in Lambda.
-%	  - Possible excess arguments are passed by position.
+%     - The first length(Parameters) arguments from A1, ... are
+%       unified with (a copy of) Parameters, which _may_ share
+%       them with variables in Lambda.
+%     - Possible excess arguments are passed by position.
 %
-%	@arg	Parameters is either a plain list of parameters or a term
-%		`{Free}/List`. `Free` represents variables that are
-%		shared between the context and the Lambda term.  This
-%		is needed for compiling Lambda expressions.
+%   @arg    Parameters is either a plain list of parameters or a term
+%           `{Free}/List`. `Free` represents variables that are
+%           shared between the context and the Lambda term.  This
+%           is needed for compiling Lambda expressions.
 
 '>>'(Parms, Lambda) :-
-	unify_lambda_parameters(Parms, [],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
 '>>'(Parms, Lambda, A1) :-
-	unify_lambda_parameters(Parms, [A1],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [A1],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
 '>>'(Parms, Lambda, A1, A2) :-
-	unify_lambda_parameters(Parms, [A1,A2],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [A1,A2],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
 '>>'(Parms, Lambda, A1, A2, A3) :-
-	unify_lambda_parameters(Parms, [A1,A2,A3],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [A1,A2,A3],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
 '>>'(Parms, Lambda, A1, A2, A3, A4) :-
-	unify_lambda_parameters(Parms, [A1,A2,A3,A4],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [A1,A2,A3,A4],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
 '>>'(Parms, Lambda, A1, A2, A3, A4, A5) :-
-	unify_lambda_parameters(Parms, [A1,A2,A3,A4,A5],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [A1,A2,A3,A4,A5],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
 '>>'(Parms, Lambda, A1, A2, A3, A4, A5, A6) :-
-	unify_lambda_parameters(Parms, [A1,A2,A3,A4,A5,A6],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [A1,A2,A3,A4,A5,A6],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
 '>>'(Parms, Lambda, A1, A2, A3, A4, A5, A6, A7) :-
-	unify_lambda_parameters(Parms, [A1,A2,A3,A4,A5,A6,A7],
-				ExtraArgs, Lambda, LambdaCopy),
-	Goal =.. [call, LambdaCopy| ExtraArgs],
-	call(Goal).
+    unify_lambda_parameters(Parms, [A1,A2,A3,A4,A5,A6,A7],
+                            ExtraArgs, Lambda, LambdaCopy),
+    Goal =.. [call, LambdaCopy| ExtraArgs],
+    call(Goal).
 
-%%	/(+Free, :Lambda).
-%%	/(+Free, :Lambda, ?A1).
-%%	/(+Free, :Lambda, ?A1, ?A2).
-%%	/(+Free, :Lambda, ?A1, ?A2, ?A3).
-%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4).
-%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5).
-%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6).
-%%	/(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6, ?A7).
+%!  /(+Free, :Lambda).
+%!  /(+Free, :Lambda, ?A1).
+%!  /(+Free, :Lambda, ?A1, ?A2).
+%!  /(+Free, :Lambda, ?A1, ?A2, ?A3).
+%!  /(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4).
+%!  /(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5).
+%!  /(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6).
+%!  /(+Free, :Lambda, ?A1, ?A2, ?A3, ?A4, ?A5, ?A6, ?A7).
 %
-%	Shorthand for `Free/[]>>Lambda`.  This is the same as applying
-%	call/N on Lambda, except that only variables appearing in Free
-%	are bound by the call.  For example
+%   Shorthand for `Free/[]>>Lambda`.  This is the same as applying
+%   call/N on Lambda, except that only variables appearing in Free
+%   are bound by the call.  For example
 %
-%	  ==
-%	  p(1,a).
-%	  p(2,b).
+%     ==
+%     p(1,a).
+%     p(2,b).
 %
-%	  ?- {X}/p(X,Y).
-%	  X = 1;
-%	  X = 2.
-%	  ==
+%     ?- {X}/p(X,Y).
+%     X = 1;
+%     X = 2.
+%     ==
 %
-%	This can in particularly be combined with bagof/3 and setof/3 to
-%	_select_ particular variables to be  concerned rather than using
-%	existential quantification (^/2)  to   _exclude_  variables. For
-%	example, the two calls below are equivalent.
+%   This can in particularly be combined with bagof/3 and setof/3 to
+%   _select_ particular variables to be  concerned rather than using
+%   existential quantification (^/2)  to   _exclude_  variables. For
+%   example, the two calls below are equivalent.
 %
-%	  ==
-%	  setof(X, Y^p(X,Y), Xs)
-%	  setof(X, {X}/p(X,_), Xs)
-%	  ==
+%     ==
+%     setof(X, Y^p(X,Y), Xs)
+%     setof(X, {X}/p(X,_), Xs)
+%     ==
 
 
 '/'(Free, Lambda) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy).
 
 '/'(Free, Lambda, A1) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy, A1).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy, A1).
 
 '/'(Free, Lambda, A1, A2) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy, A1, A2).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy, A1, A2).
 
 '/'(Free, Lambda, A1, A2, A3) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy, A1, A2, A3).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy, A1, A2, A3).
 
 '/'(Free, Lambda, A1, A2, A3, A4) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy, A1, A2, A3, A4).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy, A1, A2, A3, A4).
 
 '/'(Free, Lambda, A1, A2, A3, A4, A5) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy, A1, A2, A3, A4, A5).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy, A1, A2, A3, A4, A5).
 
 '/'(Free, Lambda, A1, A2, A3, A4, A5, A6) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy, A1, A2, A3, A4, A5, A6).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy, A1, A2, A3, A4, A5, A6).
 
 '/'(Free, Lambda, A1, A2, A3, A4, A5, A6, A7) :-
-	lambda_free(Free),
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	call(LambdaCopy, A1, A2, A3, A4, A5, A6, A7).
+    lambda_free(Free),
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    call(LambdaCopy, A1, A2, A3, A4, A5, A6, A7).
 
 
-%%	unify_lambda_parameters(+ParmsAndFree, +Args, -CallArgs,
-%%				+Lambda, -LambdaCopy) is det.
+%!  unify_lambda_parameters(+ParmsAndFree, +Args, -CallArgs,
+%!                          +Lambda, -LambdaCopy) is det.
 %
-%	@arg ParmsAndFree is the first argumen of `>>`, either a list
-%	     of parameters or a term `{Free}/Params`.
-%	@arg Args is a list of input parameters, args 3.. from `>>`
-%	@arg CallArgs are the calling arguments for the Lambda
-%	     expression.  I.e., we call call(LambdaCopy, CallArgs).
+%   @arg ParmsAndFree is the first argumen of `>>`, either a list
+%        of parameters or a term `{Free}/Params`.
+%   @arg Args is a list of input parameters, args 3.. from `>>`
+%   @arg CallArgs are the calling arguments for the Lambda
+%        expression.  I.e., we call call(LambdaCopy, CallArgs).
 
 unify_lambda_parameters(Parms, _Args, _ExtraArgs, _Lambda, _LambdaCopy) :-
-	var(Parms), !,
-	instantiation_error(Parms).
-unify_lambda_parameters(Free/Parms, Args, ExtraArgs, Lambda, LambdaCopy) :- !,
-	lambda_free(Free),
-	must_be(list, Parms),
-	copy_term_nat(Free/Parms>>Lambda, Free/ParmsCopy>>LambdaCopy),
-	unify_lambda_parameters_(ParmsCopy, Args, ExtraArgs,
-				 Free/Parms>>Lambda).
+    var(Parms),
+    !,
+    instantiation_error(Parms).
+unify_lambda_parameters(Free/Parms, Args, ExtraArgs, Lambda, LambdaCopy) :-
+    !,
+    lambda_free(Free),
+    must_be(list, Parms),
+    copy_term_nat(Free/Parms>>Lambda, Free/ParmsCopy>>LambdaCopy),
+    unify_lambda_parameters_(ParmsCopy, Args, ExtraArgs,
+                             Free/Parms>>Lambda).
 unify_lambda_parameters(Parms, Args, ExtraArgs, Lambda, LambdaCopy) :-
-	must_be(list, Parms),
-	copy_term_nat(Parms>>Lambda, ParmsCopy>>LambdaCopy),
-	unify_lambda_parameters_(ParmsCopy, Args, ExtraArgs,
-				 Parms>>Lambda).
+    must_be(list, Parms),
+    copy_term_nat(Parms>>Lambda, ParmsCopy>>LambdaCopy),
+    unify_lambda_parameters_(ParmsCopy, Args, ExtraArgs,
+                             Parms>>Lambda).
 
 unify_lambda_parameters_([], ExtraArgs, ExtraArgs, _) :- !.
-unify_lambda_parameters_([Parm|Parms], [Arg|Args], ExtraArgs, Culprit) :- !,
-	Parm = Arg,
-	unify_lambda_parameters_(Parms, Args, ExtraArgs, Culprit).
+unify_lambda_parameters_([Parm|Parms], [Arg|Args], ExtraArgs, Culprit) :-
+    !,
+    Parm = Arg,
+    unify_lambda_parameters_(Parms, Args, ExtraArgs, Culprit).
 unify_lambda_parameters_(_,_,_,Culprit) :-
-	domain_error(lambda_parameters, Culprit).
+    domain_error(lambda_parameters, Culprit).
 
 lambda_free(Free) :-
-	var(Free), !,
-	instantiation_error(Free).
+    var(Free),
+    !,
+    instantiation_error(Free).
 lambda_free({_}) :- !.
 lambda_free({}) :- !.
 lambda_free(Free) :-
-	type_error(lambda_free, Free).
+    type_error(lambda_free, Free).
 
-%%	expand_lambda(+Goal, -Head) is semidet.
+%!  expand_lambda(+Goal, -Head) is semidet.
 %
-%	True if Goal is a   sufficiently  instantiated Lambda expression
-%	that is compiled to the predicate   Head.  The predicate Head is
-%	added    to    the    current    compilation    context    using
-%	compile_aux_clauses/1.
+%   True if Goal is a   sufficiently  instantiated Lambda expression
+%   that is compiled to the predicate   Head.  The predicate Head is
+%   added    to    the    current    compilation    context    using
+%   compile_aux_clauses/1.
 
 expand_lambda(Goal, Head) :-
-	Goal =.. ['>>', Parms, Lambda| ExtraArgs],
-	is_callable(Lambda),
-	nonvar(Parms),
-	lambda_functor(Parms>>Lambda, Functor),
-	(   Parms = Free/ExtraArgs
-	->  is_lambda_free(Free),
-	    free_to_list(Free, FreeList)
-	;   Parms = ExtraArgs,
-	    FreeList = []
-	),
-	append(FreeList, ExtraArgs, Args),
-	Head =.. [Functor|Args],
-	compile_aux_clause_if_new(Head, Lambda).
+    Goal =.. ['>>', Parms, Lambda| ExtraArgs],
+    is_callable(Lambda),
+    nonvar(Parms),
+    lambda_functor(Parms>>Lambda, Functor),
+    (   Parms = Free/ExtraArgs
+    ->  is_lambda_free(Free),
+        free_to_list(Free, FreeList)
+    ;   Parms = ExtraArgs,
+        FreeList = []
+    ),
+    append(FreeList, ExtraArgs, Args),
+    Head =.. [Functor|Args],
+    compile_aux_clause_if_new(Head, Lambda).
 expand_lambda(Goal, Head) :-
-	Goal =.. ['/', Free, Closure|ExtraArgs],
-	is_lambda_free(Free),
-	is_callable(Closure),
-	free_to_list(Free, FreeList),
-	lambda_functor(Free/Closure, Functor),
-	append(FreeList, ExtraArgs, Args),
-	Head =.. [Functor|Args],
-	Closure =.. [ClosureFunctor|ClosureArgs],
-	append(ClosureArgs, ExtraArgs, LambdaArgs),
-	Lambda =.. [ClosureFunctor|LambdaArgs],
-	compile_aux_clause_if_new(Head, Lambda).
+    Goal =.. ['/', Free, Closure|ExtraArgs],
+    is_lambda_free(Free),
+    is_callable(Closure),
+    free_to_list(Free, FreeList),
+    lambda_functor(Free/Closure, Functor),
+    append(FreeList, ExtraArgs, Args),
+    Head =.. [Functor|Args],
+    Closure =.. [ClosureFunctor|ClosureArgs],
+    append(ClosureArgs, ExtraArgs, LambdaArgs),
+    Lambda =.. [ClosureFunctor|LambdaArgs],
+    compile_aux_clause_if_new(Head, Lambda).
 
 lambda_functor(Term, Functor) :-
-	copy_term_nat(Term, Copy),
-	variant_sha1(Copy, Functor0),
-	atom_concat('__aux_yall_', Functor0, Functor).
+    copy_term_nat(Term, Copy),
+    variant_sha1(Copy, Functor0),
+    atom_concat('__aux_yall_', Functor0, Functor).
 
 free_to_list({}, []).
 free_to_list({VarsConj}, Vars) :-
-	conjunction_to_list(VarsConj, Vars).
+    conjunction_to_list(VarsConj, Vars).
 
 conjunction_to_list(Term, [Term]) :-
-	var(Term), !.
-conjunction_to_list((Term, Conjunction), [Term|Terms]) :- !,
-	conjunction_to_list(Conjunction, Terms).
+    var(Term), 
+    !.
+conjunction_to_list((Term, Conjunction), [Term|Terms]) :-
+    !,
+    conjunction_to_list(Conjunction, Terms).
 conjunction_to_list(Term, [Term]).
 
 compile_aux_clause_if_new(Head, Lambda) :-
-	prolog_load_context(module, Context),
-	(   predicate_property(Context:Head, defined)
-	->  true
-	;   compile_aux_clauses([(Head :- Lambda)])
-	).
+    prolog_load_context(module, Context),
+    (   predicate_property(Context:Head, defined)
+    ->  true
+    ;   compile_aux_clauses([(Head :- Lambda)])
+    ).
 
 lambda_like(Goal) :-
-	compound(Goal),
-	compound_name_arity(Goal, Name, Arity),
-	lambda_functor(Name),
-	Arity >= 2.
+    compound(Goal),
+    compound_name_arity(Goal, Name, Arity),
+    lambda_functor(Name),
+    Arity >= 2.
 
 lambda_functor(>>).
 lambda_functor(/).
@@ -388,128 +394,135 @@ lambda_functor(/).
 :- multifile system:goal_expansion/2.
 
 system:goal_expansion(Goal, Head) :-
-	lambda_like(Goal),
-	prolog_load_context(source, _),
-	\+ current_prolog_flag(xref, true),
-	expand_lambda(Goal, Head).
+    lambda_like(Goal),
+    prolog_load_context(source, _),
+    \+ current_prolog_flag(xref, true),
+    expand_lambda(Goal, Head).
 
-%%	is_lambda(@Term) is semidet.
+%!  is_lambda(@Term) is semidet.
 %
-%	True if Term is a valid Lambda expression.
+%   True if Term is a valid Lambda expression.
 
 is_lambda(Term) :-
-	compound(Term),
-	compound_name_arguments(Term, Name, Args),
-	is_lambda(Name, Args).
+    compound(Term),
+    compound_name_arguments(Term, Name, Args),
+    is_lambda(Name, Args).
 
 is_lambda(>>, [Params,Lambda|_]) :-
-	is_lamdba_params(Params),
-	is_callable(Lambda).
+    is_lamdba_params(Params),
+    is_callable(Lambda).
 is_lambda(/, [Free,Lambda|_]) :-
-	is_lambda_free(Free),
-	is_callable(Lambda).
+    is_lambda_free(Free),
+    is_callable(Lambda).
 
 is_lamdba_params(Var) :-
-	var(Var), !, fail.
-is_lamdba_params(Free/Params) :- !,
-	is_lambda_free(Free),
-	is_list(Params).
+    var(Var), !, fail.
+is_lamdba_params(Free/Params) :-
+    !,
+    is_lambda_free(Free),
+    is_list(Params).
 
 is_lambda_free(Free) :-
-	nonvar(Free), !, (Free = {_} -> true ; Free == {}).
+    nonvar(Free), !, (Free = {_} -> true ; Free == {}).
 
 is_callable(Term) :-
-	strip_module(Term, _, Goal),
-	callable(Goal).
+    strip_module(Term, _, Goal),
+    callable(Goal).
 
 
-%%	lambda_calls(+LambdaExpression, -Goal) is det.
-%%	lambda_calls(+LambdaExpression, +ExtraArgs, -Goal) is det.
+%!  lambda_calls(+LambdaExpression, -Goal) is det.
+%!  lambda_calls(+LambdaExpression, +ExtraArgs, -Goal) is det.
 %
-%	Goal  is  the   goal   called   if    call/N   is   applied   to
-%	LambdaExpression, where ExtraArgs are   the additional arguments
-%	to call/N. ExtraArgs can be an  integer   or  a list of concrete
-%	arguments. This predicate is used for cross-referencing and code
-%	highlighting.
+%   Goal  is  the   goal   called   if    call/N   is   applied   to
+%   LambdaExpression, where ExtraArgs are   the additional arguments
+%   to call/N. ExtraArgs can be an  integer   or  a list of concrete
+%   arguments. This predicate is used for cross-referencing and code
+%   highlighting.
 
 lambda_calls(LambdaExtended, Goal) :-
-	compound(LambdaExtended),
-	compound_name_arguments(LambdaExtended, Name, [A1,A2|Extra]),
-	lambda_functor(Name),
-	compound_name_arguments(Lambda, Name, [A1,A2]),
-	lambda_calls(Lambda, Extra, Goal).
+    compound(LambdaExtended),
+    compound_name_arguments(LambdaExtended, Name, [A1,A2|Extra]),
+    lambda_functor(Name),
+    compound_name_arguments(Lambda, Name, [A1,A2]),
+    lambda_calls(Lambda, Extra, Goal).
 
 lambda_calls(Lambda, Extra, Goal) :-
-	integer(Extra), !,
-	length(ExtraVars, Extra),
-	lambda_calls_(Lambda, ExtraVars, Goal).
+    integer(Extra),
+    !,
+    length(ExtraVars, Extra),
+    lambda_calls_(Lambda, ExtraVars, Goal).
 lambda_calls(Lambda, Extra, Goal) :-
-	must_be(list, Extra),
-	lambda_calls_(Lambda, Extra, Goal).
+    must_be(list, Extra),
+    lambda_calls_(Lambda, Extra, Goal).
 
 lambda_calls_(Params>>Lambda, Args, Goal) :-
-	unify_lambda_parameters(Params, Args, ExtraArgs, Lambda, LambdaCopy),
-	extend(LambdaCopy, ExtraArgs, Goal).
+    unify_lambda_parameters(Params, Args, ExtraArgs, Lambda, LambdaCopy),
+    extend(LambdaCopy, ExtraArgs, Goal).
 lambda_calls_(Free/Lambda, ExtraArgs, Goal) :-
-	copy_term_nat(Free+Lambda, Free+LambdaCopy),
-	extend(LambdaCopy, ExtraArgs, Goal).
+    copy_term_nat(Free+Lambda, Free+LambdaCopy),
+    extend(LambdaCopy, ExtraArgs, Goal).
 
 extend(Var, _, _) :-
-	var(Var), !,
-	instantiation_error(Var).
+    var(Var),
+    !,
+    instantiation_error(Var).
 extend(Cyclic, _, _) :-
-	cyclic_term(Cyclic), !,
-	type_error(acyclic_term, Cyclic).
-extend(M:Goal0, Extra, M:Goal) :- !,
-	extend(Goal0, Extra, Goal).
+    cyclic_term(Cyclic),
+    !,
+    type_error(acyclic_term, Cyclic).
+extend(M:Goal0, Extra, M:Goal) :-
+    !,
+    extend(Goal0, Extra, Goal).
 extend(Goal0, Extra, Goal) :-
-	atom(Goal0), !,
-	Goal =.. [Goal0|Extra].
+    atom(Goal0),
+    !,
+    Goal =.. [Goal0|Extra].
 extend(Goal0, Extra, Goal) :-
-	compound(Goal0), !,
-	compound_name_arguments(Goal0, Name, Args0),
-	append(Args0, Extra, Args),
-	compound_name_arguments(Goal, Name, Args).
+    compound(Goal0),
+    !,
+    compound_name_arguments(Goal0, Name, Args0),
+    append(Args0, Extra, Args),
+    compound_name_arguments(Goal, Name, Args).
 
 
-		 /*******************************
-		 *     SYNTAX HIGHLIGHTING	*
-		 *******************************/
+                 /*******************************
+                 *     SYNTAX HIGHLIGHTING      *
+                 *******************************/
 
 :- multifile prolog_colour:goal_colours/2.
 
 yall_colours(Lambda, built_in-[classify,body(Goal)|ArgSpecs]) :-
-	catch(lambda_calls(Lambda, Goal), _, fail),
-	Lambda =.. [>>,_,_|Args],
-	classify_extra(Args, ArgSpecs).
+    catch(lambda_calls(Lambda, Goal), _, fail),
+    Lambda =.. [>>,_,_|Args],
+    classify_extra(Args, ArgSpecs).
 
 classify_extra([], []).
 classify_extra([_|T0], [classify|T]) :-
-	classify_extra(T0, T).
+    classify_extra(T0, T).
 
 prolog_colour:goal_colours(Goal, Spec) :-
-	lambda_like(Goal),
-	yall_colours(Goal, Spec).
+    lambda_like(Goal),
+    yall_colours(Goal, Spec).
 
 
-		 /*******************************
-		 *	    XREF SUPPORT	*
-		 *******************************/
+                 /*******************************
+                 *          XREF SUPPORT        *
+                 *******************************/
 
 :- multifile prolog:called_by/4.
 
 prolog:called_by(Lambda, yall, _, [Goal]) :-
-	lambda_like(Lambda),
-	catch(lambda_calls(Lambda, Goal), _, fail).
+    lambda_like(Lambda),
+    catch(lambda_calls(Lambda, Goal), _, fail).
 
 
-		 /*******************************
-		 *	  SANDBOX SUPPORT	*
-		 *******************************/
+                 /*******************************
+                 *        SANDBOX SUPPORT       *
+                 *******************************/
 
 :- multifile
-	sandbox:safe_meta_predicate/1,
-	sandbox:safe_meta/2.
+    sandbox:safe_meta_predicate/1,
+    sandbox:safe_meta/2.
 
 sandbox:safe_meta_predicate(yall:(/)/2).
 sandbox:safe_meta_predicate(yall:(/)/3).
@@ -519,7 +532,7 @@ sandbox:safe_meta_predicate(yall:(/)/6).
 sandbox:safe_meta_predicate(yall:(/)/7).
 
 sandbox:safe_meta(yall:Lambda, [Goal]) :-
-	compound(Lambda),
-	compound_name_arity(Lambda, >>, Arity),
-	Arity >= 2,
-	lambda_calls(Lambda, Goal).
+    compound(Lambda),
+    compound_name_arity(Lambda, >>, Arity),
+    Arity >= 2,
+    lambda_calls(Lambda, Goal).

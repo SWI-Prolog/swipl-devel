@@ -34,45 +34,46 @@
 */
 
 :- module(sort,
-	  [ predsort/3,			% :Compare, +List, -Sorted
-	    locale_sort/2		% +ListOfAtoms, -Sorted
-	  ]).
+          [ predsort/3,                 % :Compare, +List, -Sorted
+            locale_sort/2               % +ListOfAtoms, -Sorted
+          ]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-	predsort(3, +, -).		% 3: Delta, Left, Right
+    predsort(3, +, -).              % 3: Delta, Left, Right
 
-%%	predsort(:Compare, +List, -Sorted) is det.
+%!  predsort(:Compare, +List, -Sorted) is det.
 %
-%	Sorts similar to sort/2, but determines   the order of two terms
-%	by calling Compare(-Delta, +E1, +E2). This call must unify Delta
-%	with one of <, > or =.  If built-in predicate compare/3 is used,
-%	the result is the same as sort/2 (but sort/2 is built using more
-%	low-level primitives and is considerably faster).
+%   Sorts similar to sort/2, but determines   the order of two terms
+%   by calling Compare(-Delta, +E1, +E2). This call must unify Delta
+%   with one of <, > or =.  If built-in predicate compare/3 is used,
+%   the result is the same as sort/2 (but sort/2 is built using more
+%   low-level primitives and is considerably faster).
 %
-%	@see keysort/2 provides an more portable way to sort on
-%	arbitrary keys that is usually faster.
+%   @see keysort/2 provides an more portable way to sort on
+%   arbitrary keys that is usually faster.
 
 predsort(P, L, R) :-
-	'$skip_list'(N, L, Tail),
-	(   Tail == []
-	->  predsort(P, N, L, _, R1),
-	    R = R1
-	;   must_be(L, list)
-	).
+    '$skip_list'(N, L, Tail),
+    (   Tail == []
+    ->  predsort(P, N, L, _, R1),
+        R = R1
+    ;   must_be(L, list)
+    ).
 
-predsort(P, 2, [X1, X2|L], L, R) :- !,
-	call(P, Delta, X1, X2),
-	sort2(Delta, X1, X2, R).
+predsort(P, 2, [X1, X2|L], L, R) :-
+    !,
+    call(P, Delta, X1, X2),
+    sort2(Delta, X1, X2, R).
 predsort(_, 1, [X|L], L, [X]) :- !.
 predsort(_, 0, L, L, []) :- !.
 predsort(P, N, L1, L3, R) :-
-	N1 is N // 2,
-	plus(N1, N2, N),
-	predsort(P, N1, L1, L2, R1),
-	predsort(P, N2, L2, L3, R2),
-	predmerge(P, R1, R2, R).
+    N1 is N // 2,
+    plus(N1, N2, N),
+    predsort(P, N1, L1, L2, R1),
+    predsort(P, N2, L2, L3, R2),
+    predmerge(P, R1, R2, R).
 
 sort2(<, X1, X2, [X1, X2]).
 sort2(=, X1, _,  [X1]).
@@ -81,34 +82,35 @@ sort2(>, X1, X2, [X2, X1]).
 predmerge(_, [], R, R) :- !.
 predmerge(_, R, [], R) :- !.
 predmerge(P, [H1|T1], [H2|T2], Result) :-
-	call(P, Delta, H1, H2), !,
-	predmerge(Delta, P, H1, H2, T1, T2, Result).
+    call(P, Delta, H1, H2),
+    !,
+    predmerge(Delta, P, H1, H2, T1, T2, Result).
 
 predmerge(>, P, H1, H2, T1, T2, [H2|R]) :-
-	predmerge(P, [H1|T1], T2, R).
+    predmerge(P, [H1|T1], T2, R).
 predmerge(=, P, H1, _, T1, T2, [H1|R]) :-
-	predmerge(P, T1, T2, R).
+    predmerge(P, T1, T2, R).
 predmerge(<, P, H1, H2, T1, T2, [H1|R]) :-
-	predmerge(P, T1, [H2|T2], R).
+    predmerge(P, T1, [H2|T2], R).
 
-%%	locale_sort(+List, -Sorted) is det.
+%!  locale_sort(+List, -Sorted) is det.
 %
-%	Sort a list of atoms using the current locale.
+%   Sort a list of atoms using the current locale.
 %
-%	@param List	List of atoms
-%	@param Sorted	Sorted atoms.
+%   @param List     List of atoms
+%   @param Sorted   Sorted atoms.
 
 locale_sort(List, Sorted) :-
-	collation_keys(List, Keyed),
-	keysort(Keyed, KeySorted),
-	unkey(KeySorted, Sorted).
+    collation_keys(List, Keyed),
+    keysort(Keyed, KeySorted),
+    unkey(KeySorted, Sorted).
 
 collation_keys([], []).
 collation_keys([H|T0], [K-H|T]) :-
-	collation_key(H, K),
-	collation_keys(T0, T).
+    collation_key(H, K),
+    collation_keys(T0, T).
 
 
 unkey([], []).
 unkey([_-H|T0], [H|T]) :-
-	unkey(T0, T).
+    unkey(T0, T).

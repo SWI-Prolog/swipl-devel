@@ -33,15 +33,15 @@
 */
 
 :- module(occurs,
-	  [ contains_term/2,		% +SubTerm, +Term
-	    contains_var/2,		% +SubTerm, +Term
-	    free_of_term/2,		% +SubTerm, +Term
-	    free_of_var/2,		% +SubTerm, +Term
-	    occurrences_of_term/3,	% +SubTerm, +Term, ?Tally
-	    occurrences_of_var/3,	% +SubTerm, +Term, ?Tally
-	    sub_term/2,			% -SubTerm, +Term
-	    sub_var/2			% -SubTerm, +Term (SWI extra)
-	  ]).
+          [ contains_term/2,            % +SubTerm, +Term
+            contains_var/2,             % +SubTerm, +Term
+            free_of_term/2,             % +SubTerm, +Term
+            free_of_var/2,              % +SubTerm, +Term
+            occurrences_of_term/3,      % +SubTerm, +Term, ?Tally
+            occurrences_of_var/3,       % +SubTerm, +Term, ?Tally
+            sub_term/2,                 % -SubTerm, +Term
+            sub_var/2                   % -SubTerm, +Term (SWI extra)
+          ]).
 
 /** <module> Finding and counting sub-terms
 
@@ -52,95 +52,98 @@ library, based on the generalised arg/3 predicate of SWI-Prolog.
      more wide-spread than this library.
 */
 
-%%	contains_term(+Sub, +Term) is semidet.
+%!  contains_term(+Sub, +Term) is semidet.
 %
-%	Succeeds if Sub is contained in Term (=, deterministically)
+%   Succeeds if Sub is contained in Term (=, deterministically)
 
 contains_term(X, X) :- !.
 contains_term(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	contains_term(X, Arg), !.
+    compound(Term),
+    arg(_, Term, Arg),
+    contains_term(X, Arg), 
+    !.
 
 
-%%	contains_var(+Sub, +Term) is det.
+%!  contains_var(+Sub, +Term) is det.
 %
-%	Succeeds if Sub is contained in Term (==, deterministically)
+%   Succeeds if Sub is contained in Term (==, deterministically)
 
 contains_var(X0, X1) :-
-	X0 == X1, !.
+    X0 == X1, 
+    !.
 contains_var(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	contains_var(X, Arg), !.
+    compound(Term),
+    arg(_, Term, Arg),
+    contains_var(X, Arg), 
+    !.
 
-%%	free_of_term(+Sub, +Term)
+%!  free_of_term(+Sub, +Term)
 %
-%	Succeeds of Sub does not unify to any subterm of Term
+%   Succeeds of Sub does not unify to any subterm of Term
 
 free_of_term(Sub, Term) :-
-	\+ contains_term(Sub, Term).
+    \+ contains_term(Sub, Term).
 
-%%	free_of_var(+Sub, +Term)
+%!  free_of_var(+Sub, +Term)
 %
-%	Succeeds of Sub is not equal (==) to any subterm of Term
+%   Succeeds of Sub is not equal (==) to any subterm of Term
 
 free_of_var(Sub, Term) :-
-	\+ contains_var(Sub, Term).
+    \+ contains_var(Sub, Term).
 
-%%	occurrences_of_term(+SubTerm, +Term, ?Count)
+%!  occurrences_of_term(+SubTerm, +Term, ?Count)
 %
-%	Count the number of SubTerms in Term
+%   Count the number of SubTerms in Term
 
 occurrences_of_term(Sub, Term, Count) :-
-	count(sub_term(Sub, Term), Count).
+    count(sub_term(Sub, Term), Count).
 
-%%	occurrences_of_var(+SubTerm, +Term, ?Count)
+%!  occurrences_of_var(+SubTerm, +Term, ?Count)
 %
-%	Count the number of SubTerms in Term
+%   Count the number of SubTerms in Term
 
 occurrences_of_var(Sub, Term, Count) :-
-	count(sub_var(Sub, Term), Count).
+    count(sub_var(Sub, Term), Count).
 
-%%	sub_term(-Sub, +Term)
+%!  sub_term(-Sub, +Term)
 %
-%	Generates (on backtracking) all subterms of Term.
+%   Generates (on backtracking) all subterms of Term.
 
 sub_term(X, X).
 sub_term(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	sub_term(X, Arg).
+    compound(Term),
+    arg(_, Term, Arg),
+    sub_term(X, Arg).
 
-%%	sub_var(-Sub, +Term)
+%!  sub_var(-Sub, +Term)
 %
-%	Generates (on backtracking) all subterms (==) of Term.
+%   Generates (on backtracking) all subterms (==) of Term.
 
 sub_var(X0, X1) :-
-	X0 == X1.
+    X0 == X1.
 sub_var(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	sub_var(X, Arg).
+    compound(Term),
+    arg(_, Term, Arg),
+    sub_var(X, Arg).
 
 
-		 /*******************************
-		 *		UTIL		*
-		 *******************************/
+                 /*******************************
+                 *              UTIL            *
+                 *******************************/
 
-%%	count(:Goal, -Count)
+%!  count(:Goal, -Count)
 %
-%	Count number of times Goal succeeds.
+%   Count number of times Goal succeeds.
 
 :- meta_predicate count(0,-).
 
 count(Goal, Count) :-
-	State = count(0),
-	(   Goal,
-	    arg(1, State, N0),
-	    N is N0 + 1,
-	    nb_setarg(1, State, N),
-	    fail
-	;   arg(1, State, Count)
-	).
+    State = count(0),
+    (   Goal,
+        arg(1, State, N0),
+        N is N0 + 1,
+        nb_setarg(1, State, N),
+        fail
+    ;   arg(1, State, Count)
+    ).
 

@@ -34,12 +34,12 @@
 */
 
 :- module(prolog_operator,
-	[ push_operators/1,		% +List
-	  push_operators/2,		% +List, -Undo
-	  pop_operators/0,
-	  pop_operators/1,		% +Undo
-	  push_op/3			% Precedence, Type, Name
-	]).
+        [ push_operators/1,             % +List
+          push_operators/2,             % +List, -Undo
+          pop_operators/0,
+          pop_operators/1,              % +Undo
+          push_op/3                     % Precedence, Type, Name
+        ]).
 
 
 /** <module> Manage operators
@@ -55,12 +55,12 @@ Usage:
 
 ==
 :- push_operators(
-	[ op(900, fx, hello_world)
-	, op(600, xf, *)
-	]).
+        [ op(900, fx, hello_world)
+        , op(600, xf, *)
+        ]).
 
 hello_world World :-
-	....
+        ....
 
 :- pop_operators.
 ==
@@ -75,97 +75,100 @@ otherwise a more structured approach for operator handling.
 
 ==
 :- module(mymodule,
-	  [ mypred/1,
-	    op(500, fx, myop)
-	  ]).
+          [ mypred/1,
+            op(500, fx, myop)
+          ]).
 ==
 
-@compat	SWI-Prolog
+@compat SWI-Prolog
 */
 
 :- thread_local
-	operator_stack/1.
+    operator_stack/1.
 
 :- meta_predicate
-	push_operators(:),
-	push_operators(:,-),
-	push_op(+,+,:).
+    push_operators(:),
+    push_operators(:,-),
+    push_op(+,+,:).
 
-%%	push_operators(:New) is det.
-%%	push_operators(:New, -Undo) is det.
+%!  push_operators(:New) is det.
+%!  push_operators(:New, -Undo) is det.
 %
-%	Installs the operators from New, where New is a list of op(Prec,
-%	Type, :Name). The modifications to the operator table are undone
-%	in a matching call to pop_operators/0.
+%   Installs the operators from New, where New is a list of op(Prec,
+%   Type, :Name). The modifications to the operator table are undone
+%   in a matching call to pop_operators/0.
 
 push_operators(New, Undo) :-
-	strip_module(New, Module, Ops0),
-	tag_ops(Ops0, Module, Ops),
-	undo_operators(Ops, Undo),
-	set_operators(Ops).
+    strip_module(New, Module, Ops0),
+    tag_ops(Ops0, Module, Ops),
+    undo_operators(Ops, Undo),
+    set_operators(Ops).
 
 push_operators(New) :-
-	push_operators(New, Undo),
-	asserta(operator_stack(mark-Undo)).
+    push_operators(New, Undo),
+    asserta(operator_stack(mark-Undo)).
 
-%%	push_op(+Precedence, +Type, :Name) is det.
+%!  push_op(+Precedence, +Type, :Name) is det.
 %
-%	As op/3, but this call must  appear between push_operators/1 and
-%	pop_operators/0.  The  change  is   undone    by   the  call  to
-%	pop_operators/0
+%   As op/3, but this call must  appear between push_operators/1 and
+%   pop_operators/0.  The  change  is   undone    by   the  call  to
+%   pop_operators/0
 
 push_op(P, T, A) :-
-	undo_operator(op(P,T,A), Undo),
-	op(P, T, A),
-	asserta(operator_stack(incremental-Undo)).
+    undo_operator(op(P,T,A), Undo),
+    op(P, T, A),
+    asserta(operator_stack(incremental-Undo)).
 
-%%	pop_operators is det.
+%!  pop_operators is det.
 %
-%	Revert all changes to the operator table realised since the last
-%	push_operators/1.
+%   Revert all changes to the operator table realised since the last
+%   push_operators/1.
 
 pop_operators :-
-	retract(operator_stack(Mark-Undo)),
-	set_operators(Undo),
-	Mark == mark, !.
+    retract(operator_stack(Mark-Undo)),
+    set_operators(Undo),
+    Mark == mark, 
+    !.
 
-%%	pop_operators(+Undo) is det.
+%!  pop_operators(+Undo) is det.
 %
-%	Reset operators as pushed by push_operators/2.
+%   Reset operators as pushed by push_operators/2.
 
 pop_operators(Undo) :-
-	set_operators(Undo).
+    set_operators(Undo).
 
 tag_ops([], _, []).
 tag_ops([op(P,Tp,N0)|T0], M, [op(P,Tp,N)|T]) :-
-	strip_module(M:N0, M1, N1),
-	N = M1:N1,
-	tag_ops(T0, M, T).
+    strip_module(M:N0, M1, N1),
+    N = M1:N1,
+    tag_ops(T0, M, T).
 
 set_operators([]).
 set_operators([H|R]) :-
-	set_operators(H),
-	set_operators(R).
+    set_operators(H),
+    set_operators(R).
 set_operators(op(P,T,A)) :-
-	op(P, T, A).
+    op(P, T, A).
 
 undo_operators([], []).
 undo_operators([O0|T0], [U0|T]) :-
-	undo_operator(O0, U0),
-	undo_operators(T0, T).
+    undo_operator(O0, U0),
+    undo_operators(T0, T).
 
 undo_operator(op(_P, T, N), op(OP, OT, N)) :-
-	current_op(OP, OT, N),
-	same_op_type(T, OT), !.
-undo_operator(op(P, T, [H|R]), [OH|OT]) :- !,
-	undo_operator(op(P, T, H), OH),
-	undo_operator(op(P, T, R), OT).
+    current_op(OP, OT, N),
+    same_op_type(T, OT), 
+    !.
+undo_operator(op(P, T, [H|R]), [OH|OT]) :-
+    !,
+    undo_operator(op(P, T, H), OH),
+    undo_operator(op(P, T, R), OT).
 undo_operator(op(_, _, []), []) :- !.
 undo_operator(op(_P, T, N), op(0, T, N)).
 
 same_op_type(T, OT) :-
-	op_type(T, Type),
-	op_type(OT, Type).
+    op_type(T, Type),
+    op_type(OT, Type).
 
 op_type(fx,  prefix).
 op_type(fy,  prefix).

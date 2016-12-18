@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c) 2005-2012, University of Amsterdam
-			     VU University Amsterdam
+                             VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,17 +61,17 @@ Derived from:
 #  All code points not explicitly listed for Block
 #  have the value No_Block.
 
-# Property:	Block
+# Property:     Block
 */
 
 :- module(unicode_blocks,
-	  [ unicode_block/3		% Name, From, To
-	  ]).
+          [ unicode_block/3             % Name, From, To
+          ]).
 
-%%	unicode_block(?BlockName, ?Start, ?End)
+%!  unicode_block(?BlockName, ?Start, ?End)
 %
-%	Provides the names of the  basic   unicode  blocks. Derived from
-%	UNICODE 4.1.0 from www.unicode.org
+%   Provides the names of the  basic   unicode  blocks. Derived from
+%   UNICODE 4.1.0 from www.unicode.org
 
 unicode_block('Basic Latin', 0x0000, 0x007F).
 unicode_block('Latin-1 Supplement', 0x0080, 0x00FF).
