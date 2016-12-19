@@ -366,10 +366,10 @@ base64url_char_x(62, 0'-).
 base64url_char_x(63, 0'_).
 
 base64url_char(D, E) :-
-    base64url_char_x(D, E), 
+    base64url_char_x(D, E),
     !.
 base64url_char(D, E) :-
-    base64_char(D, E), 
+    base64_char(D, E),
     !.
 base64url_char(D, E) :-
     throw(error(syntax_error(base64url_char(D, E)), _)).

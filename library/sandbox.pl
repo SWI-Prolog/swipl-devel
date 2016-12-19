@@ -168,7 +168,7 @@ safe(G, _, Parents, Safe, Safe) :-
     catch(safe_primitive(G),
           error(instantiation_error, _),
           rethrow_instantition_error([G|Parents])),
-    predicate_property(G, iso), 
+    predicate_property(G, iso),
     !.
 safe(G, M, Parents, Safe, Safe) :-
     (   predicate_property(M:G, imported_from(M2))
@@ -179,7 +179,7 @@ safe(G, M, Parents, Safe, Safe) :-
               error(instantiation_error, _),
               rethrow_instantition_error([M2:G|Parents]))
     ;   predicate_property(M2:G, number_of_rules(0))
-    ), 
+    ),
     !.
 safe(G, M, Parents, Safe0, Safe) :-
     predicate_property(G, iso),
@@ -205,7 +205,7 @@ safe(G, M, Parents, Safe0, Safe) :-
                   error(instantiation_error, Ctx),
                   unsafe(Parents, Ctx))
         )
-    ), 
+    ),
     !.
 safe(G, M, Parents, _, _) :-
     debug(sandbox(fail),
@@ -333,7 +333,7 @@ goal_id(Var, _, _) :-
     !,
     instantiation_error(Var).
 goal_id(Atom, Atom, Atom) :-
-    atom(Atom), 
+    atom(Atom),
     !.
 goal_id(Term, _, _) :-
     \+ compound(Term),
@@ -784,7 +784,7 @@ safe_meta(system:put_attr(V,M,A), Called) :-
     ;   instantiation_error(M)
     ).
 safe_meta(system:with_output_to(Output, G), [G]) :-
-    safe_output(Output), 
+    safe_output(Output),
     !.
 safe_meta(system:format(Format, Args), Calls) :-
     format_calls(Format, Args, Calls).
@@ -852,7 +852,7 @@ safe_meta_call(Goal, _Called) :-
     debug(sandbox(meta), 'Safe meta ~p?', [Goal]),
     fail.
 safe_meta_call(Goal, Called) :-
-    safe_meta(Goal, Called), 
+    safe_meta(Goal, Called),
     !.     % call hook
 safe_meta_call(Goal, Called) :-
     Goal = M:Plain,
@@ -911,7 +911,7 @@ extend(I, G0, G) :-
     G =.. All.
 
 strip_existential(Var, Var) :-
-    var(Var), 
+    var(Var),
     !.
 strip_existential(M:G0, M:G) :-
     !,
@@ -1012,7 +1012,7 @@ prolog:sandbox_allowed_directive(Directive) :-
     debug(sandbox(directive), 'Directive: ~p', [Directive]),
     fail.
 prolog:sandbox_allowed_directive(Directive) :-
-    safe_directive(Directive), 
+    safe_directive(Directive),
     !.
 prolog:sandbox_allowed_directive(M:PredAttr) :-
     \+ prolog_load_context(module, M),
@@ -1028,7 +1028,7 @@ prolog:sandbox_allowed_directive(M:PredAttr) :-
     ;   permission_error(execute, sandboxed_directive, (:- M:PredAttr))
     ).
 prolog:sandbox_allowed_directive(_:Directive) :-
-    safe_source_directive(Directive), 
+    safe_source_directive(Directive),
     !.
 prolog:sandbox_allowed_directive(_:Directive) :-
     directive_loads_file(Directive, File),

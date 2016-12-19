@@ -193,7 +193,7 @@ csv_roptions(Rows, Record) -->
     csv_data(Rows, Record).
 
 csv_data([], _) -->
-    eof, 
+    eof,
     !.
 csv_data([Row|More], Options) -->
     row(Row, Options),
@@ -212,10 +212,10 @@ row(Row, Options) -->
     }.
 
 check_arity(Options, Arity) :-
-    csv_options_arity(Options, Arity), 
+    csv_options_arity(Options, Arity),
     !.
 check_arity(Options, _) :-
-    csv_options_match_arity(Options, false), 
+    csv_options_match_arity(Options, false),
     !.
 check_arity(Options, Arity) :-
     csv_options_arity(Options, Expected),
@@ -431,18 +431,18 @@ emit_field(H, _) -->
     emit_codes(Codes).
 
 needs_quotes(Atom, _) :-
-    sub_atom(Atom, _, _, _, '"'), 
+    sub_atom(Atom, _, _, _, '"'),
     !.
 needs_quotes(Atom, _) :-
-    sub_atom(Atom, _, _, _, '\n'), 
+    sub_atom(Atom, _, _, _, '\n'),
     !.
 needs_quotes(Atom, _) :-
-    sub_atom(Atom, _, _, _, '\r'), 
+    sub_atom(Atom, _, _, _, '\r'),
     !.
 needs_quotes(Atom, Options) :-
     csv_options_separator(Options, Sep),
     char_code(Char, Sep),
-    sub_atom(Atom, _, _, _, Char), 
+    sub_atom(Atom, _, _, _, Char),
     !.
 
 emit_string([]) --> "".

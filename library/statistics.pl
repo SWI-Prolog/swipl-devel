@@ -394,7 +394,7 @@ show_profile(Options) :-
     profiler(_, Old).
 
 show_profile_(Options) :-
-    prolog:show_profile_hook(Options), 
+    prolog:show_profile_hook(Options),
     !.
 show_profile_(Options) :-
     prof_statistics(Stat),
@@ -413,7 +413,7 @@ show_profile_(Options) :-
     show_plain(Sorted, N, Stat, SortKey).
 
 sort_on(Options, ticks_self) :-
-    option(cumulative(false), Options, false), 
+    option(cumulative(false), Options, false),
     !.
 sort_on(_, ticks).
 

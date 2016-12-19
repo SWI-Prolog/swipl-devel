@@ -239,10 +239,10 @@ assoc_arg_map(I, Term, Map0, Map) :-
 assoc_arg_map(_, _, Map, Map).
 
 primitive(Term) :-
-    var(Term), 
+    var(Term),
     !.
 primitive(Term) :-
-    atomic(Term), 
+    atomic(Term),
     !.
 primitive('$VAR'(_)).
 

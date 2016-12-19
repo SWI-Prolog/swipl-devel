@@ -146,12 +146,12 @@ option(Opt, Options) :-                 % make option processing stead-fast
     Opt = GenOpt.
 
 get_option(Opt, Options) :-
-    memberchk(Opt, Options), 
+    memberchk(Opt, Options),
     !.
 get_option(Opt, Options) :-
     functor(Opt, OptName, 1),
     arg(1, Opt, OptVal),
-    memberchk(OptName=OptVal, Options), 
+    memberchk(OptName=OptVal, Options),
     !.
 
 
@@ -175,7 +175,7 @@ select_option(Opt, Options0, Options) :-        % stead-fast
     Opt = GenOpt.
 
 get_option(Opt, Options0, Options) :-
-    selectchk(Opt, Options0, Options), 
+    selectchk(Opt, Options0, Options),
     !.
 get_option(Opt, Options0, Options) :-
     functor(Opt, OptName, 1),

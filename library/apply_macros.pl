@@ -115,7 +115,7 @@ expand_maplist(Callable0, Lists, Goal) :-
     ).
 
 expand_closure_no_fail(Callable0, N, Callable1) :-
-    '$expand_closure'(Callable0, N, Callable1), 
+    '$expand_closure'(Callable0, N, Callable1),
     !.
 expand_closure_no_fail(Callable, _, Callable).
 
@@ -196,7 +196,7 @@ expand_apply(ignore(Ignore), Pos0, Goal, Pos) :-
     ;   true
     ).
 expand_apply(Phrase, Pos0, Expanded, Pos) :-
-    expand_phrase(Phrase, Pos0, Expanded, Pos), 
+    expand_phrase(Phrase, Pos0, Expanded, Pos),
     !.
 
 
@@ -290,7 +290,7 @@ terminal(String, DList, Tail) :-
     append(List, Tail, DList).
 
 extend_pos(Var, _, Var) :-
-    var(Var), 
+    var(Var),
     !.
 extend_pos(term_position(F,T,FF,FT,ArgPos0), Extra,
            term_position(F,T,FF,FT,ArgPos)) :-
@@ -306,7 +306,7 @@ extra_pos(1, T, [T-T]).
 extra_pos(2, T, [T-T,T-T]).
 
 nt_pos(PhrasePos, _NTPos) :-
-    var(PhrasePos), 
+    var(PhrasePos),
     !.
 nt_pos(term_position(_,_,_,_,[NTPos|_]), NTPos).
 

@@ -123,11 +123,11 @@ thread_has_console(Id) :-
     has_console(Id, _, _, _).
 
 thread_has_console :-
-    current_prolog_flag(break_level, _), 
+    current_prolog_flag(break_level, _),
     !.
 thread_has_console :-
     thread_self(Id),
-    thread_has_console(Id), 
+    thread_has_console(Id),
     !.
 
 %!  attach_console is det.
@@ -136,7 +136,7 @@ thread_has_console :-
 %   it.
 
 attach_console :-
-    thread_has_console, 
+    thread_has_console,
     !.
 attach_console :-
     thread_self(Id),

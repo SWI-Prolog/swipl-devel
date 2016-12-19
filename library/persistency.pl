@@ -302,7 +302,7 @@ db_attach_file(Module, File) :-
     ;   permission_error(attach, db, File)
     ).
 db_attach_file(Module, File) :-
-    db_load(Module, File), 
+    db_load(Module, File),
     !.
 db_attach_file(Module, File) :-
     assert(db_file(Module, File, 0, 0, 0)).

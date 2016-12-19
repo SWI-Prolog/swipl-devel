@@ -227,7 +227,7 @@ create_pool_lazily(Pool) :-
                )).
 
 create_pool_sync(Pool) :-
-    current_thread_pool(Pool), 
+    current_thread_pool(Pool),
     !.
 create_pool_sync(Pool) :-
     create_pool(Pool).
@@ -265,7 +265,7 @@ thread_running(Thread) :-
     ).
 
 create_pool_manager(Thread) :-
-    thread_running(Thread), 
+    thread_running(Thread),
     !.
 create_pool_manager(Thread) :-
     thread_create(pool_manager_main, _,

@@ -186,7 +186,7 @@ check_component(Feature, Properties) :-
 
 check_source(_Source, Properties) :-
     OS = Properties.get(os),
-    \+ current_os(OS), 
+    \+ current_os(OS),
     !.
 check_source(Source, Properties) :-
     exists_source(Source),

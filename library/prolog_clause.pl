@@ -123,7 +123,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset, Options) :-
     unify_clause(Clause, DecompiledClause, Module, TermPos0, TermPos),
     debug(clause_info, 'unified ...', []),
     make_varnames(Clause, DecompiledClause, VarOffset, VarNames, NameOffset),
-    debug(clause_info, 'got names~n', []), 
+    debug(clause_info, 'got names~n', []),
     !.
 
 %!  unify_term(+T1, +T2)
@@ -146,21 +146,21 @@ unify_term(X1, X2) :-
     !,
     unify_args(0, Arity, X1, X2).
 unify_term(X, Y) :-
-    float(X), float(Y), 
+    float(X), float(Y),
     !.
 unify_term(X, Y) :-
     string(X),
     is_list(Y),
-    string_codes(X, Y), 
+    string_codes(X, Y),
     !.
 unify_term(_, Y) :-
-    Y == '...', 
+    Y == '...',
     !.                          % elipses left by max_depth
 unify_term(_:X, Y) :-
-    unify_term(X, Y), 
+    unify_term(X, Y),
     !.
 unify_term(X, _:Y) :-
-    unify_term(X, Y), 
+    unify_term(X, Y),
     !.
 unify_term(X, Y) :-
     format('[INTERNAL ERROR: Diff:~n'),
@@ -214,7 +214,7 @@ read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 %     ==
 
 try_open_source(File, In) :-
-    open_source(File, In), 
+    open_source(File, In),
     !.
 try_open_source(File, In) :-
     open(File, read, In).
@@ -237,7 +237,7 @@ try_open_source(File, In) :-
 %   @param Names    List of Name=Var
 
 make_varnames(ReadClause, DecompiledClause, Offsets, Names, Term) :-
-    make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term), 
+    make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term),
     !.
 make_varnames((Head --> _Body), _, Offsets, Names, Bindings) :-
     !,
@@ -265,7 +265,7 @@ do_make_varnames([N=Var|TO], Names, Bindings) :-
     do_make_varnames(TO, Names, Bindings).
 
 find_varname(Var, [Name = TheVar|_], Name) :-
-    Var == TheVar, 
+    Var == TheVar,
     !.
 find_varname(Var, [_|T], Name) :-
     find_varname(Var, T, Name).
@@ -287,7 +287,7 @@ find_varname(Var, [_|T], Name) :-
 unify_clause(Read, Read, _, TermPos, TermPos) :- !.
                                         % XPCE send-methods
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
-    unify_clause_hook(Read, Decompiled, Module, TermPos0, TermPos), 
+    unify_clause_hook(Read, Decompiled, Module, TermPos0, TermPos),
     !.
 unify_clause(:->(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :-
     !,
@@ -370,7 +370,7 @@ match_module((H1 :- B1), (H2 :- B2), Module, Pos0, Pos) :-
 match_module((H1 :- B1), H2, _Module, Pos0, Pos) :-
     B1 == true,
     unify_clause_head(H1, H2),
-    Pos = Pos0, 
+    Pos = Pos0,
     !.
 match_module(H1, H2, _, Pos, Pos) :-    % deal with facts
     unify_clause_head(H1, H2).
@@ -394,7 +394,7 @@ expand_failed(E, Read) :-
 
 unify_body(B, C, _, Pos, Pos) :-
     B =@= C, B = C,
-    does_not_dcg_after_binding(B, Pos), 
+    does_not_dcg_after_binding(B, Pos),
     !.
 unify_body(R, D, Module,
            term_position(F,T,FF,FT,[HP,BP0]),
@@ -411,7 +411,7 @@ unify_body(R, D, Module,
 
 does_not_dcg_after_binding(B, Pos) :-
     \+ sub_term(brace_term_position(_,_,_), Pos),
-    \+ (sub_term((Cut,_=_), B), Cut == !), 
+    \+ (sub_term((Cut,_=_), B), Cut == !),
     !.
 
 
@@ -442,7 +442,7 @@ ubody(B, DB, _, P, P) :-
     B = DB.
 ubody(B, C, _, P, P) :-
     B =@= C, B = C,
-    does_not_dcg_after_binding(B, P), 
+    does_not_dcg_after_binding(B, P),
     !.
 ubody(X, call(X), _,                    % X = call(X)
       Pos,
@@ -476,7 +476,7 @@ ubody(C0, C, M, P0, P) :-
     conj(C0, P0, GL, PL),
     mkconj(C, M, P, GL, PL).
 ubody(Read, Decompiled, Module, TermPosRead, TermPosDecompiled) :-
-    unify_goal(Read, Decompiled, Module, TermPosRead, TermPosDecompiled), 
+    unify_goal(Read, Decompiled, Module, TermPosRead, TermPosDecompiled),
     !.
 ubody(X0, X, M,
       term_position(F,T,FF,TT,PA0),
@@ -515,7 +515,7 @@ ubody(A1==B1, B2==A2, _,                % const == Var --> Var == const
     A1 = A2, B1=B2.
 ubody(A is B - C, A is B + C2, _, Pos, Pos) :-
     integer(C),
-    C2 =:= -C, 
+    C2 =:= -C,
     !.
 
 ubody_list([], [], [], _, [], []).
@@ -693,10 +693,10 @@ the clause as defined in init.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 expand_goal(G, call(G), _, P, term_position(0,0,0,0,[P])) :-
-    var(G), 
+    var(G),
     !.
 expand_goal(G, G, _, P, P) :-
-    var(G), 
+    var(G),
     !.
 expand_goal(M0, M, Module, P0, P) :-
     meta(Module, M0, S),
@@ -783,7 +783,7 @@ initialization_layout(File:Line, M:Goal0, Goal, TermPos) :-
     ->  Goal = M:Goal0
     ;   Goal = Goal0
     ),
-    unify_body(ReadGoal, Goal, M, GoalPos, TermPos), 
+    unify_body(ReadGoal, Goal, M, GoalPos, TermPos),
     !.
 
 
@@ -827,7 +827,7 @@ predicate_name(Predicate, PName) :-
 %   Provide a suitable description of the indicated clause.
 
 clause_name(Ref, Name) :-
-    user:prolog_clause_name(Ref, Name), 
+    user:prolog_clause_name(Ref, Name),
     !.
 clause_name(Ref, Name) :-
     nth_clause(Head, N, Ref),

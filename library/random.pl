@@ -72,7 +72,7 @@ on the GMP library.
 */
 
 check_gmp :-
-    current_arithmetic_function(random_float), 
+    current_arithmetic_function(random_float),
     !.
 check_gmp :-
     print_message(warning, random(no_gmp)).

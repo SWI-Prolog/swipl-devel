@@ -60,7 +60,7 @@ contains_term(X, X) :- !.
 contains_term(X, Term) :-
     compound(Term),
     arg(_, Term, Arg),
-    contains_term(X, Arg), 
+    contains_term(X, Arg),
     !.
 
 
@@ -69,12 +69,12 @@ contains_term(X, Term) :-
 %   Succeeds if Sub is contained in Term (==, deterministically)
 
 contains_var(X0, X1) :-
-    X0 == X1, 
+    X0 == X1,
     !.
 contains_var(X, Term) :-
     compound(Term),
     arg(_, Term, Arg),
-    contains_var(X, Arg), 
+    contains_var(X, Arg),
     !.
 
 %!  free_of_term(+Sub, +Term)

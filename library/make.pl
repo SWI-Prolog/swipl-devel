@@ -142,7 +142,7 @@ reload_file(File) :-
 
 source_base_name(File, Compile) :-
     file_name_extension(Compile, Ext, File),
-    user:prolog_file_type(Ext, prolog), 
+    user:prolog_file_type(Ext, prolog),
     !.
 source_base_name(File, File).
 

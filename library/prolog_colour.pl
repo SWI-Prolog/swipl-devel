@@ -114,7 +114,7 @@ prolog_colourise_stream(Fd, SourceId, ColourItem) :-
         restore_settings(State)).
 
 to_list(List, List) :-
-    is_list(List), 
+    is_list(List),
     !.
 to_list(One, [One]).
 
@@ -144,7 +144,7 @@ colourise_stream(Fd, TB) :-
                           format('Failed to colourise ~p at index ~d~n',
                                  [Term, From]))
         ),
-        Term == end_of_file, 
+        Term == end_of_file,
     !.
 
 save_settings(TB, state(Style, Flags, OSM)) :-
@@ -191,7 +191,7 @@ source_module(TB, Module) :-
     colour_state_module(TB, Module).
 source_module(TB, Module) :-
     colour_state_source_id(TB, SourceId),
-    xref_option(SourceId, module(Module)), 
+    xref_option(SourceId, module(Module)),
     !.
 source_module(TB, Module) :-
     (   colour_state_source_id(TB, File),
@@ -203,7 +203,7 @@ source_module(TB, Module) :-
     module_context(File, [], Module).
 
 module_context(File, _, Module) :-
-    source_file_property(File, module(Module)), 
+    source_file_property(File, module(Module)),
     !.
 module_context(File, Seen, Module) :-
     source_file_property(File, included_in(File2, _Line)),
@@ -271,7 +271,7 @@ safe_push_op(P, T, N0, State) :-
 
 fix_operators((:- Directive), M, Src) :-
     ground(Directive),
-    catch(process_directive(Directive, M, Src), _, true), 
+    catch(process_directive(Directive, M, Src), _, true),
     !.
 fix_operators(_, _, _).
 
@@ -445,7 +445,7 @@ singleton(Var, TB) :-
     member_var(Var, Singletons).
 
 member_var(V, [_=V2|_]) :-
-    V == V2, 
+    V == V2,
     !.
 member_var(V, [_|T]) :-
     member_var(V, T).
@@ -492,10 +492,10 @@ comment_style(Comment, structured) :-           % Starts %%, %! or /**
     sub_string(Comment, 0, Len, _, Start),
     Next is Len+1,
     string_code(Next, Comment, NextCode),
-    code_type(NextCode, space), 
+    code_type(NextCode, space),
     !.
 comment_style(Comment, line) :-                 % Starts %
-    sub_string(Comment, 0, _, _, '%'), 
+    sub_string(Comment, 0, _, _, '%'),
     !.
 comment_style(_, block).                        % Starts /*
 
@@ -517,7 +517,7 @@ colourise_term(Var, TB, Start-End) :-
     !,
     colour_item(instantiation_error, TB, Start-End).
 colourise_term(_, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_term(Term, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -615,7 +615,7 @@ extend(Head, _, Head).
 
 
 colourise_clause_head(_, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_clause_head(Head, TB, parentheses_term_position(PO,PC,Pos)) :-
     colour_item(parentheses, TB, PO-PC),
@@ -705,7 +705,7 @@ functor_position(Pos, Pos, []).
 %   Colourise the body of a directive.
 
 colourise_directive(_,_,Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_directive(Dir, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -749,7 +749,7 @@ colourise_body(Body, Origin, TB, Pos) :-
 %   @tbd    Get this handled by a hook.
 
 colourise_method_body(_, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_method_body(Body, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -784,7 +784,7 @@ control_op((*->)).
 %   Colourise the goals in a body.
 
 colourise_goals(_, _, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_goals(Body, Origin, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -822,7 +822,7 @@ colourise_dcg_goals(Var, _, TB, Pos) :-
     !,
     colour_item(goal(meta,Var), TB, Pos).
 colourise_dcg_goals(_, _, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_dcg_goals(Body, Origin, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -875,7 +875,7 @@ dcg_extend(Term, Goal) :-
     compound_name_arguments(Goal, Term, [_,_]).
 
 dcg_body_compiled(G) :-
-    body_compiled(G), 
+    body_compiled(G),
     !.
 dcg_body_compiled((_|_)).
 
@@ -902,7 +902,7 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 
                                         % Deal with list as goal (consult)
 colourise_goal(_,_,_,Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_goal(Goal, Origin, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -1261,12 +1261,12 @@ colourise_file_list([H|T], TB, [PH|PT], Why) :-
 resolves_anything(TB, Path) :-
     colour_state_source_id(TB, SourceId),
     xref_defined(SourceId, Head, imported(Path)),
-    xref_called(SourceId, Head, _), 
+    xref_called(SourceId, Head, _),
     !.
 
 exports_something(TB, Path) :-
     colour_state_source_id(TB, SourceId),
-    xref_defined(SourceId, _, imported(Path)), 
+    xref_defined(SourceId, _, imported(Path)),
     !.
 
 %!  colourise_directory(+Arg, +TB, +Pos)
@@ -1313,7 +1313,7 @@ colourise_class(ClassName, TB, Pos) :-
 %   is already loaded.
 
 classify_class(SourceId, Name, Class) :-
-    xref_defined_class(SourceId, Name, Class), 
+    xref_defined_class(SourceId, Name, Class),
     !.
 classify_class(_SourceId, Name, Class) :-
     current_predicate(pce:send_class/3),
@@ -1342,7 +1342,7 @@ colourise_term_args([Pos|T], N, Term, TB) :-
     colourise_term_args(T, NN, Term, TB).
 
 colourise_term_arg(_, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_term_arg(Arg, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -1549,7 +1549,7 @@ colourise_import(PI, File, TB, Pos) :-
     ->  colour_item(undefined_import, TB, Pos)
     ;   \+ xref_called(SourceID, Goal, _)
     ->  colour_item(unused_import, TB, Pos)
-    ), 
+    ),
     !.
 colourise_import(PI, _, TB, Pos) :-
     colourise_declaration(PI, TB, Pos).
@@ -1683,7 +1683,7 @@ colourise_op_declaration(op(P,T,N), TB, term_position(_,_,FF,FT,[PP,TP,NP])) :-
     colour_op_name(N, TB, NP).
 
 colour_op_name(_, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colour_op_name(Name, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -1749,7 +1749,7 @@ op_type(yfx).
 %   Colourise the name of a Prolog flag
 
 colourise_prolog_flag_name(_, _, Pos) :-
-    var(Pos), 
+    var(Pos),
     !.
 colourise_prolog_flag_name(Name, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
@@ -1786,22 +1786,22 @@ body_compiled(\+_).
 %   Origin.  For directives, Origin is [].
 
 goal_classification(_, Goal, _, meta) :-
-    var(Goal), 
+    var(Goal),
     !.
 goal_classification(_, Goal, _, not_callable) :-
-    \+ callable(Goal), 
+    \+ callable(Goal),
     !.
 goal_classification(_, Goal, Origin, recursion) :-
     callable(Origin),
-    generalise_term(Goal, Origin), 
+    generalise_term(Goal, Origin),
     !.
 goal_classification(TB, Goal, _, How) :-
     colour_state_source_id(TB, SourceId),
     xref_defined(SourceId, Goal, How),
-    How \= public(_), 
+    How \= public(_),
     !.
 goal_classification(_TB, Goal, _, Class) :-
-    goal_classification(Goal, Class), 
+    goal_classification(Goal, Class),
     !.
 goal_classification(TB, Goal, _, How) :-
     colour_state_module(TB, Module),
@@ -1817,12 +1817,12 @@ goal_classification(_TB, _Goal, _, undefined).
 %   Multifile hookable classification for non-local goals.
 
 goal_classification(Goal, built_in) :-
-    built_in_predicate(Goal), 
+    built_in_predicate(Goal),
     !.
 goal_classification(Goal, autoload(From)) :-    % SWI-Prolog
     predicate_property(Goal, autoload(From)).
 goal_classification(Goal, global) :-            % SWI-Prolog
-    current_predicate(_, user:Goal), 
+    current_predicate(_, user:Goal),
     !.
 goal_classification(Goal, Class) :-
     compound(Goal),
@@ -1843,15 +1843,15 @@ vararg_goal_classification(get_super, Arity, expanded) :-  % XPCE (TBD)
 
 classify_head(TB, Goal, exported) :-
     colour_state_source_id(TB, SourceId),
-    xref_exported(SourceId, Goal), 
+    xref_exported(SourceId, Goal),
     !.
 classify_head(_TB, Goal, hook) :-
-    xref_hook(Goal), 
+    xref_hook(Goal),
     !.
 classify_head(TB, Goal, hook) :-
     colour_state_source_id(TB, SourceId),
     xref_module(SourceId, M),
-    xref_hook(M:Goal), 
+    xref_hook(M:Goal),
     !.
 classify_head(TB, Goal, Class) :-
     built_in_predicate(Goal),
@@ -1869,19 +1869,19 @@ classify_head(TB, Goal, Class) :-
     ).
 classify_head(TB, Goal, unreferenced) :-
     colour_state_source_id(TB, SourceId),
-    \+ (xref_called(SourceId, Goal, By), By \= Goal), 
+    \+ (xref_called(SourceId, Goal, By), By \= Goal),
     !.
 classify_head(TB, Goal, How) :-
     colour_state_source_id(TB, SourceId),
     (   xref_defined(SourceId, Goal, imported(From))
     ->  How = imported(From)
     ;   xref_defined(SourceId, Goal, How)
-    ), 
+    ),
     !.
 classify_head(_TB, _Goal, undefined).
 
 built_in_predicate(Goal) :-
-    predicate_property(system:Goal, built_in), 
+    predicate_property(system:Goal, built_in),
     !.
 built_in_predicate(module(_, _)).       % reserved expanded constructs
 built_in_predicate(module(_, _, _)).
@@ -2481,10 +2481,10 @@ specified_dict_kv([key_value_position(_F,_T,SF,ST,K,KP,VP)|Pos],
 
 specified_dict_kv1(Key, Specs, KeySpec, ValueSpec) :-
     Specs = [_|_],
-    memberchk(dict_kv(Key, KeySpec, ValueSpec), Specs), 
+    memberchk(dict_kv(Key, KeySpec, ValueSpec), Specs),
     !.
 specified_dict_kv1(Key, dict_kv(Key2, KeySpec, ValueSpec), KeySpec, ValueSpec) :-
-    \+ Key \= Key2, 
+    \+ Key \= Key2,
     !.              % do not bind Key2
 specified_dict_kv1(_, _, dict_key, classify).
 
@@ -2494,7 +2494,7 @@ specified_dict_kv1(_, _, dict_key, classify).
                  *******************************/
 
 syntax_message(Class) -->
-    message(Class), 
+    message(Class),
     !.
 syntax_message(qq(_)) -->
     [ 'Quasi quote delimiter' ].

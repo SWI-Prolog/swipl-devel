@@ -657,7 +657,7 @@ check_clause((Head:-Body), M, ClauseRef, Action) :-
     prolog:called_by/2.             % +Goal, -Called
 
 check_body(Var, _, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 check_body(M:G, _, term_position(_,_,_,_,[_,Pos]), Action) :-
     !,
@@ -667,7 +667,7 @@ check_body((A,B), M, term_position(_,_,_,_,[PA,PB]), Action) :-
     check_body(A, M, PA, Action),
     check_body(B, M, PB, Action).
 check_body(A=B, _, _, _) :-             % partial evaluation
-    unify_with_occurs_check(A,B), 
+    unify_with_occurs_check(A,B),
     !.
 check_body(Goal, M, term_position(_,_,_,_,ArgPosList), Action) :-
     callable(Goal),
@@ -749,7 +749,7 @@ check_options(PI, OptArg, QOptions, ArgPos, Action) :-
     check_option_list(Options, PI, OptArg, Options, ArgPos, Action).
 
 remove_qualifier(X, X) :-
-    var(X), 
+    var(X),
     !.
 remove_qualifier(_:X, X) :- !.
 remove_qualifier(X, X).
@@ -846,10 +846,10 @@ processes(Opt, Spec) :-
 
 option_decl(_, check) :- !.
 option_decl(M:_, _) :-
-    system_module(M), 
+    system_module(M),
     !.
 option_decl(M:_, _) :-
-    has_static_option_decl(M), 
+    has_static_option_decl(M),
     !.
 option_decl(M:Head, _) :-
     compound(Head),

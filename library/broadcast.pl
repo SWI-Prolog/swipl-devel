@@ -145,7 +145,7 @@ broadcast_request(Templ) :-
 %       using multiple registration of global listen channels.
 
 assert_listener(Templ, Listener, Module, TheGoal) :-
-    listener(Templ, Listener, Module, TheGoal), 
+    listener(Templ, Listener, Module, TheGoal),
     !.
 assert_listener(Templ, Listener, Module, TheGoal) :-
     asserta(listener(Templ, Listener, Module, TheGoal)).

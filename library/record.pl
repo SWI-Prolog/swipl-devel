@@ -100,7 +100,7 @@ is_record(Name, M, X) :-
 %     * =|user:current_record|=(:<constructor>)
 
 record(Record) :-
-    Record == '<compiled>', 
+    Record == '<compiled>',
     !.
 record(Record) :-
     throw(error(context_error(nodirective, record(Record)), _)).
@@ -308,7 +308,7 @@ type_checks([Type|T], [V|Vars], (Goal, Body)) :-
 %   Inline type checking calls.
 
 type_goal(Type, Var, Body) :-
-    defined_type(Type, Var, Body), 
+    defined_type(Type, Var, Body),
     !.
 type_goal(record(Record), Var, Body) :-
     !,
@@ -341,7 +341,7 @@ clean_body((A0,B0), (A,B)) :-
     clean_body(A0, A),
     clean_body(B0, B).
 clean_body(_:A, A) :-
-    predicate_property(A, built_in), 
+    predicate_property(A, built_in),
     !.
 clean_body(A, A).
 
@@ -415,7 +415,7 @@ set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
     set_predicates(NT, I2, Arity, TT, Constructor).
 
 type_check(Type, Value, must_be(Type, Value)) :-
-    defined_type(Type, Value, _), 
+    defined_type(Type, Value, _),
     !.
 type_check(record(Spec), Value, must_be(record(M:Name), Value)) :-
     !,

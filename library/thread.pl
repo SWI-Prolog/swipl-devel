@@ -321,7 +321,7 @@ workers(List, Count) :-
     Cores > 1,
     length(List, Len),
     Count is min(Cores,Len),
-    Count > 1, 
+    Count > 1,
     !.
 
 same_length([], [], []).

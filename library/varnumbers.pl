@@ -152,7 +152,7 @@ roundup_next_power_two(N, L) :-
 %   @compat YAP
 
 max_var_number(V, Max, Max) :-
-    var(V), 
+    var(V),
     !.
 max_var_number('$VAR'(I), Max0, Max) :-
     integer(I),

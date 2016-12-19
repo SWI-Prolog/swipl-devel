@@ -99,7 +99,7 @@ add_to_heap(heap(Q0,M),P,X,heap(Q1,N)) :-
 %        SICStus compatibility.
 
 delete_from_heap(Q0,P,X,Q) :-
-    get_from_heap(Q0,P,X,Q), 
+    get_from_heap(Q0,P,X,Q),
     !.
 delete_from_heap(Q0,Px,X,Q) :-
     get_from_heap(Q0,Py,Y,Q1),

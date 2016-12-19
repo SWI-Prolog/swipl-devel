@@ -277,7 +277,7 @@ find_walk_from_module(M, OTerm) :-
            walk_called_by_pred(M:PI, OTerm)).
 
 walk_called_by_pred(Module:Name/Arity, _) :-
-    multifile_predicate(Name, Arity, Module), 
+    multifile_predicate(Name, Arity, Module),
     !.
 walk_called_by_pred(Module:Name/Arity, _) :-
     functor(Head, Name, Arity),
@@ -338,14 +338,14 @@ clause_not_from_development(Module:Head, Body, Ref, OTerm) :-
 %     One of =ignore=, =error=
 
 walk_called_by_body(True, _, _) :-
-    True == true, 
+    True == true,
     !.                % quickly deal with facts
 walk_called_by_body(Body, Module, OTerm) :-
     set_undecided_of_walk_option(error, OTerm, OTerm1),
     set_evaluate_of_walk_option(false, OTerm1, OTerm2),
     catch(walk_called(Body, Module, _TermPos, OTerm2),
           missing(Missing),
-          walk_called_by_body(Missing, Body, Module, OTerm)), 
+          walk_called_by_body(Missing, Body, Module, OTerm)),
     !.
 walk_called_by_body(Body, Module, OTerm) :-
     format(user_error, 'Failed to analyse:~n', []),
@@ -458,7 +458,7 @@ walk_called(Goal, Module, TermPos, OTerm) :-
     print_reference(M2:Goal, TermPos, trace, OTerm),
     fail.                                   % Continue search
 walk_called(Goal, Module, _, OTerm) :-
-    evaluate(Goal, Module, OTerm), 
+    evaluate(Goal, Module, OTerm),
     !.
 walk_called(Goal, M, TermPos, OTerm) :-
     (   (   predicate_property(M:Goal, imported_from(IM))
@@ -486,7 +486,7 @@ walk_called(Meta, M, term_position(_,E,_,_,ArgPosList), OTerm) :-
     walk_meta_call(1, Head, Meta, M, ArgPosList, E-E, OTerm).
 walk_called(Goal, Module, _, _) :-
     nonvar(Module),
-    '$get_predicate_attribute'(Module:Goal, defined, 1), 
+    '$get_predicate_attribute'(Module:Goal, defined, 1),
     !.
 walk_called(Goal, Module, TermPos, OTerm) :-
     callable(Goal),
@@ -524,10 +524,10 @@ evaluate(A=B, _) :-
 %   The analysis trapped a definitely undefined predicate.
 
 undefined(_, _, OTerm) :-
-    walk_option_undefined(OTerm, ignore), 
+    walk_option_undefined(OTerm, ignore),
     !.
 undefined(Goal, _, _) :-
-    predicate_property(Goal, autoload(_)), 
+    predicate_property(Goal, autoload(_)),
     !.
 undefined(Goal, TermPos, OTerm) :-
     (   walk_option_undefined(OTerm, trace)
@@ -584,7 +584,7 @@ print_reference2(Goal, From, trace, OTerm) :-
     walk_option_on_trace(OTerm, Closure),
     walk_option_caller(OTerm, Caller),
     nonvar(Closure),
-    call(Closure, Goal, Caller, From), 
+    call(Closure, Goal, Caller, From),
     !.
 print_reference2(Goal, From, Why, _OTerm) :-
     make_message(Why, Goal, From, Message, Level),
@@ -639,7 +639,7 @@ pi_head(_, _, _) :-
 %!  infer_new_meta_predicates(-MetaSpecs, +OTerm) is det.
 
 infer_new_meta_predicates([], OTerm) :-
-    walk_option_infer_meta_predicates(OTerm, false), 
+    walk_option_infer_meta_predicates(OTerm, false),
     !.
 infer_new_meta_predicates(MetaSpecs, OTerm) :-
     findall(Module:MetaSpec,
@@ -659,7 +659,7 @@ infer_new_meta_predicates(MetaSpecs, OTerm) :-
 
 calling_metaspec(Head) :-
     arg(_, Head, Arg),
-    calling_metaarg(Arg), 
+    calling_metaarg(Arg),
     !.
 
 calling_metaarg(I) :- integer(I), !.
@@ -738,7 +738,7 @@ walk_called_by([H|T], M, Goal, TermPos, OTerm) :-
     walk_called_by(T, M, Goal, TermPos, OTerm).
 
 subterm_pos(Sub, _, Term, TermPos, Sub, SubTermPos) :-
-    subterm_pos(Sub, Term, TermPos, SubTermPos), 
+    subterm_pos(Sub, Term, TermPos, SubTermPos),
     !.
 subterm_pos(Sub, M, Term, TermPos, G, SubTermPos) :-
     nonvar(Sub),
@@ -748,16 +748,16 @@ subterm_pos(Sub, M, Term, TermPos, G, SubTermPos) :-
 subterm_pos(Sub, _, _, _, Sub, _).
 
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
-    subterm_pos(Sub, Term, same_term, TermPos, SubTermPos), 
+    subterm_pos(Sub, Term, same_term, TermPos, SubTermPos),
     !.
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
-    subterm_pos(Sub, Term, ==, TermPos, SubTermPos), 
+    subterm_pos(Sub, Term, ==, TermPos, SubTermPos),
     !.
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
-    subterm_pos(Sub, Term, =@=, TermPos, SubTermPos), 
+    subterm_pos(Sub, Term, =@=, TermPos, SubTermPos),
     !.
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
-    subterm_pos(Sub, Term, subsumes_term, TermPos, SubTermPos), 
+    subterm_pos(Sub, Term, subsumes_term, TermPos, SubTermPos),
     !.
 
 %!  walk_dcg_body(+Body, +Module, +TermPos, +OTerm)
@@ -771,7 +771,7 @@ walk_dcg_body(Var, _Module, TermPos, OTerm) :-
 walk_dcg_body([], _Module, _, _) :- !.
 walk_dcg_body([_|_], _Module, _, _) :- !.
 walk_dcg_body(String, _Module, _, _) :-
-    string(String), 
+    string(String),
     !.
 walk_dcg_body(!, _Module, _, _) :- !.
 walk_dcg_body(M:G, _, term_position(_,_,_,_,[MPos,Pos]), OTerm) :-
@@ -825,7 +825,7 @@ walk_dcg_body(G, M, TermPos, OTerm) :-
 subterm_pos(_, _, _, Pos, _) :-
     var(Pos), !, fail.
 subterm_pos(Sub, Term, Cmp, Pos, Pos) :-
-    call(Cmp, Sub, Term), 
+    call(Cmp, Sub, Term),
     !.
 subterm_pos(Sub, Term, Cmp, term_position(_,_,_,_,ArgPosList), Pos) :-
     is_list(ArgPosList),
@@ -876,7 +876,7 @@ extend(Goal, _, _, TermPos, _, OTerm) :-
     print_reference(Goal, TermPos, not_callable, OTerm).
 
 extend_term_pos(Var, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 extend_term_pos(term_position(F,T,FT,TT,ArgPosIn),
                 N,

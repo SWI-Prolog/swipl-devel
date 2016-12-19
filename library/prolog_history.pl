@@ -64,7 +64,7 @@ history_directory(Dir) :-
                        [ access(write),
                          file_type(directory),
                          file_errors(fail)
-                       ]), 
+                       ]),
     !.
 history_directory(Dir) :-
     absolute_file_name(app_preferences('.'),
@@ -168,7 +168,7 @@ load_dir_history(File) :-
     ).
 
 prolog_history(enable) :-
-    history_loaded(_), 
+    history_loaded(_),
     !.
 prolog_history(enable) :-
     catch(dir_history_file('.', File), E,

@@ -367,7 +367,7 @@ free_to_list({VarsConj}, Vars) :-
     conjunction_to_list(VarsConj, Vars).
 
 conjunction_to_list(Term, [Term]) :-
-    var(Term), 
+    var(Term),
     !.
 conjunction_to_list((Term, Conjunction), [Term|Terms]) :-
     !,

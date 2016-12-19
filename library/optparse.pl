@@ -880,23 +880,23 @@ parse_loc(atom, Cs, Result) :- atom_codes(Result, Cs), !.
 parse_loc(integer, Cs, Result) :-
     number_codes(Result, Cs),
     integer(Result),
-    
+
     !.
 parse_loc(float, Cs, Result)   :-
     number_codes(Result, Cs),
     float(Result),
-    
+
     !.
 parse_loc(term, Cs, Result) :-
     atom_codes(A, Cs),
     term_to_atom(Result, A),
-    
+
     !.
 parse_loc(Type, Cs, Result) :-
-    parse_type(Type, Cs, Result), 
+    parse_type(Type, Cs, Result),
     !.
 parse_loc(Type, _Cs, _) :- %could not parse Cs as Type
-    throw(error(type_error(flag_value, Type), _)), 
+    throw(error(type_error(flag_value, Type), _)),
     !. %}}}
 %}}}
 

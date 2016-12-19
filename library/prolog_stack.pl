@@ -177,7 +177,7 @@ more_stack(Parent) :-
     prolog_frame_attribute(Parent, predicate_indicator, PI),
     \+ ( PI = '$toplevel':G,
          G \== (toplevel_call/1)
-       ), 
+       ),
     !.
 more_stack(_) :-
     current_prolog_flag(break_level, Break),
@@ -209,7 +209,7 @@ hidden_module(system).
 hidden_module(user).
 
 copy_term_limit(0, In, '...') :-
-    compound(In), 
+    compound(In),
     !.
 copy_term_limit(N, In, Out) :-
     is_dict(In),
@@ -377,7 +377,7 @@ where_no_goal(meta_call, _) -->
     [ '<meta call>' ].
 
 where_goal(foreign(_), _) -->
-    [ ' <foreign>'-[] ], 
+    [ ' <foreign>'-[] ],
     !.
 where_goal(clause(Clause, PC), Options) -->
     { option(subgoal_positions(true), Options, true),
@@ -405,7 +405,7 @@ level(Level) -->
     [ '~|~t[~D]~6+ '-[Level] ].
 
 warn_nodebug(Backtrace) -->
-    { contiguous(Backtrace) }, 
+    { contiguous(Backtrace) },
     !.
 warn_nodebug(_Backtrace) -->
     [ nl,nl,
@@ -428,7 +428,7 @@ contiguous([frame(D1,_,_)|Frames], D0) :-
 %   which Clause belongs.
 
 clause_predicate_name(Clause, PredName) :-
-    user:prolog_clause_name(Clause, PredName), 
+    user:prolog_clause_name(Clause, PredName),
     !.
 clause_predicate_name(Clause, PredName) :-
     nth_clause(Head, _N, Clause),
@@ -552,14 +552,14 @@ user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
     clean_stack(Stack0, Stack).
 
 clean_stack(List, List) :-
-    stack_guard(X), var(X), 
+    stack_guard(X), var(X),
     !.      % Do not stop if we catch all
 clean_stack(List, Clean) :-
     clean_stack2(List, Clean).
 
 clean_stack2([], []).
 clean_stack2([H|_], [H]) :-
-    guard_frame(H), 
+    guard_frame(H),
     !.
 clean_stack2([H|T0], [H|T]) :-
     clean_stack2(T0, T).

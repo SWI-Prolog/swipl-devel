@@ -542,7 +542,7 @@ load_foreign_files(OFiles, Libs) :-
     load_foreign_files(LinkBase, OFiles, Libs).
 
 load_foreign_files(LinkBase, M:_, _) :-
-    catch(load_foreign_library(M:LinkBase), _, fail), 
+    catch(load_foreign_library(M:LinkBase), _, fail),
     !.
 load_foreign_files(LinkBase, OFiles, Libs) :-
     make_shared_object(LinkBase, OFiles, Libs),
@@ -664,7 +664,7 @@ wrapper_name(_:Head, Wrapper, Arity) :-
 %   Map Prolog interface type declarations into C types.
 
 map_C_type(X, Y) :-
-    map_C_type_(X, Y), 
+    map_C_type_(X, Y),
     !.
 map_C_type(X, X).
 

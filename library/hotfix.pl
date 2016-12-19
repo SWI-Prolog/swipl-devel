@@ -216,7 +216,7 @@ select_file_to_reload(Pairs, Local, Pair) :-
        ->  !, fail
        ;   catch(number_codes(N, Line), _, fail)
        ),
-       nth1(N, Pairs, Pair), 
+       nth1(N, Pairs, Pair),
     !.
 
 %!  file_module(+File, -Module) is semidet.

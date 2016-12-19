@@ -158,7 +158,7 @@ rl_readln(P, EOF, StopChars, WordChars, Case) :-
     rl_initread(L, EOF, StopChars),
     rl_blanks(L, LL),
     !,
-    rl_words(P, LL,[], options(WordChars, Case)), 
+    rl_words(P, LL,[], options(WordChars, Case)),
     !.
 
 rl_initread(S, EOF, StopChars) :-
@@ -171,7 +171,7 @@ rl_readrest(0'\\, [K1|R], EOF, StopChars) :-
     get_code(K2),
     rl_readrest(K2, R, EOF, StopChars).
 rl_readrest(K, [K], K, StopChars) :-    % the stop char(s)
-    member(K, StopChars), 
+    member(K, StopChars),
     !.
 rl_readrest(K, [K|R], EOF, StopChars) :-        % the normal case
     get_code(K1),
@@ -183,7 +183,7 @@ rl_words([W|Ws], S1, S4, Options) :-
     rl_blanks(S2, S3),
     rl_words(Ws, S3, S4, Options).
 rl_words([], S1, S2, _) :-
-    rl_blanks(S1, S2), 
+    rl_blanks(S1, S2),
     !.
 rl_words([], S, S, _).
 
@@ -203,7 +203,7 @@ rl_word(W, S0, S2, Options) :-
     rl_basic_chars(Rest, S1, S2, Options),
     name(W, [C1|Rest]).
 rl_word(P,[C|R], R, _) :-
-    name(P, [C]), 
+    name(P, [C]),
     !.
 
 rl_basic_chars([A|As], S0, S2, Options) :-

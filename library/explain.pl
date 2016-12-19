@@ -161,7 +161,7 @@ explain(Term, Explanation) :-
 %   provide referenced messages on them.
 
 known_predicate(Pred) :-
-    current_predicate(_, Pred), 
+    current_predicate(_, Pred),
     !.
 known_predicate(Pred) :-
     predicate_property(Pred, undefined).

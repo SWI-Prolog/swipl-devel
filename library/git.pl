@@ -188,13 +188,13 @@ print_error(OutCodes, _) :-
     print_message(Level, git(output(OutCodes))).
 
 classify_message(error) -->
-    string(_), "fatal:", 
+    string(_), "fatal:",
     !.
 classify_message(error) -->
-    string(_), "error:", 
+    string(_), "error:",
     !.
 classify_message(warning) -->
-    string(_), "warning:", 
+    string(_), "warning:",
     !.
 classify_message(informational) -->
     [].
@@ -273,7 +273,7 @@ git_open_file(Dir, File, Branch, In) :-
 
 is_git_directory(Directory) :-
     directory_file_path(Directory, '.git', GitDir),
-    exists_directory(GitDir), 
+    exists_directory(GitDir),
     !.
 is_git_directory(Directory) :-
     exists_directory(Directory),
@@ -716,7 +716,7 @@ to_nul_s([]) --> [0], !.
 to_nul_s([H|T]) --> [H], to_nul_s(T).
 
 field_to_prolog(ref_names, Line, List) :-
-    phrase(ref_names(List), Line), 
+    phrase(ref_names(List), Line),
     !.
 field_to_prolog(_, Line, Atom) :-
     atom_codes(Atom, Line).

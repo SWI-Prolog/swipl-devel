@@ -282,7 +282,7 @@ matching([_|T], Prefix, R) :-
 
 prefix(Prefix, _:Name) :-
     name(Name, Chars),
-    common_prefix_strings(Prefix, Chars, Prefix), 
+    common_prefix_strings(Prefix, Chars, Prefix),
     !.
 
 common_prefix([_:Name|T], Prefix) :-

@@ -223,7 +223,7 @@ user:url_path(swipl_quick,    swipl('man/quickstart.html')).
 %           defined.
 
 expand_url_path(URL, URL) :-
-    atomic(URL), 
+    atomic(URL),
     !.                 % Allow atom and string
 expand_url_path(Spec, URL) :-
     Spec =.. [Path, Local],

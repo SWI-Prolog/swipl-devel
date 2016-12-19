@@ -145,20 +145,20 @@ find_library(Spec, TmpFile, true) :-
             tmp_file_stream(binary, TmpFile, Out),
             copy_stream_data(In, Out),
             close(Out)),
-        close(In)), 
+        close(In)),
     !.
 find_library(Spec, Lib, false) :-
     absolute_file_name(Spec, Lib,
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
-                       ]), 
+                       ]),
     !.
 find_library(Spec, Spec, false) :-
-    atom(Spec), 
+    atom(Spec),
     !.                  % use machines finding schema
 find_library(foreign(Spec), Spec, false) :-
-    atom(Spec), 
+    atom(Spec),
     !.                  % use machines finding schema
 find_library(Spec, _, _) :-
     throw(error(existence_error(source_sink, Spec), _)).
@@ -176,7 +176,7 @@ base(Path, Base) :-
     base(Arg, Base).
 
 entry(_, Function, Function) :-
-    Function \= default(_), 
+    Function \= default(_),
     !.
 entry(Spec, default(FuncBase), Function) :-
     base(Spec, Base),
@@ -219,7 +219,7 @@ load_foreign_library(Module:LibFile, Entry) :-
                load_foreign_library(LibFile, Module, Entry)).
 
 load_foreign_library(LibFile, _Module, _) :-
-    current_library(LibFile, _, _, _, _), 
+    current_library(LibFile, _, _, _, _),
     !.
 load_foreign_library(LibFile, Module, DefEntry) :-
     retractall(error(_, _)),

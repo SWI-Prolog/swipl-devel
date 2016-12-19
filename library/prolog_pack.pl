@@ -149,7 +149,7 @@ pack_info(Level, Name) :-
 
 
 show_info(_Name, _Properties, Options) :-
-    option(silent(true), Options), 
+    option(silent(true), Options),
     !.
 show_info(Name, Properties, Options) :-
     option(info(list), Options),
@@ -487,7 +487,7 @@ pack_default_options(Pack, Pack, OptsIn, Options) :-    % Install from a pack na
 version_options(Version, Version, [version(Version)]) :- !.
 version_options(Version, _, [version(Version)]) :-
     Version = version(List),
-    maplist(integer, List), 
+    maplist(integer, List),
     !.
 version_options(_, _, []).
 
@@ -512,7 +512,7 @@ pack_select_candidate(Pack, [Version-[URL]|More], Options,
     ->  !
     ;   true
     ),
-    confirm(install_from(Pack, Version, URL), yes, Options), 
+    confirm(install_from(Pack, Version, URL), yes, Options),
     !.
 pack_select_candidate(Pack, [Version-URLs|_], Options,
                       [url(URL), inquiry(true)|Rest]) :-
@@ -530,7 +530,7 @@ pack_select_candidate(Pack, [Version-URLs|_], Options,
     ).
 
 url_menu_item(URL, git(URL)=install_from(git(URL))) :-
-    git_url(URL, _), 
+    git_url(URL, _),
     !.
 url_menu_item(URL, URL=install_from(URL)).
 
@@ -571,14 +571,14 @@ pack_install(Spec, Options) :-
     pack_install(Pack, PackDir, PackOptions).
 
 pack_install_dir(PackDir, Options) :-
-    option(package_directory(PackDir), Options), 
+    option(package_directory(PackDir), Options),
     !.
 pack_install_dir(PackDir, _Options) :-          % TBD: global/user?
     absolute_file_name(pack(.), PackDir,
                        [ file_type(directory),
                          access(write),
                          file_errors(fail)
-                       ]), 
+                       ]),
     !.
 pack_install_dir(PackDir, Options) :-           % TBD: global/user?
     pack_create_install_dir(PackDir, Options).
@@ -776,7 +776,7 @@ download_file_sanity_check(Archive, Pack, Info) :-
 
 info_field(Field, Info) :-
     memberchk(Field, Info),
-    ground(Field), 
+    ground(Field),
     !.
 info_field(Field, _Info) :-
     functor(Field, FieldName, _),
@@ -784,7 +784,7 @@ info_field(Field, _Info) :-
     fail.
 
 must_match(Values, _Field) :-
-    sort(Values, [_]), 
+    sort(Values, [_]),
     !.
 must_match(Values, Field) :-
     print_message(error, pack(conflict(Field, Values))),
@@ -1011,7 +1011,7 @@ foreign_present(PackDir) :-
 is_foreign_pack(PackDir) :-
     foreign_file(File),
     directory_file_path(PackDir, File, Path),
-    exists_file(Path), 
+    exists_file(Path),
     !.
 
 foreign_file('configure.in').
@@ -1039,7 +1039,7 @@ configure_foreign(_, _).
 
 make_configure(PackDir, _Options) :-
     directory_file_path(PackDir, 'configure', Configure),
-    exists_file(Configure), 
+    exists_file(Configure),
     !.
 make_configure(PackDir, _Options) :-
     directory_file_path(PackDir, 'configure.in', ConfigureIn),
@@ -1205,7 +1205,7 @@ pass_env('HOME').
 
 setup_path :-
     has_program(path(make), _),
-    has_program(path(gcc), _), 
+    has_program(path(gcc), _),
     !.
 setup_path :-
     current_prolog_flag(windows, true),
@@ -1249,7 +1249,7 @@ mingw_root(MinGwRoot) :-
     Drives = [PlDrive,c,d],
     member(Drive, Drives),
     format(atom(MinGwRoot), '~a:/MinGW', [Drive]),
-    exists_directory(MinGwRoot), 
+    exists_directory(MinGwRoot),
     !.
 
 
@@ -1432,7 +1432,7 @@ safe_pack_name(Name) :-
     atom_length(Name, Len),
     Len >= 3,                               % demand at least three length
     atom_codes(Name, Codes),
-    maplist(safe_pack_char, Codes), 
+    maplist(safe_pack_char, Codes),
     !.
 
 safe_pack_char(C) :- between(0'a, 0'z, C), !.
@@ -1454,7 +1454,7 @@ safe_pack_char(0'_).
 
 pack_version_file(Pack, Version, GitHubRelease) :-
     atomic(GitHubRelease),
-    github_release_url(GitHubRelease, Pack, Version), 
+    github_release_url(GitHubRelease, Pack, Version),
     !.
 pack_version_file(Pack, Version, Path) :-
     atomic(Path),
@@ -1487,7 +1487,7 @@ github_release_url(URL, Pack, Version) :-
     atomic_list_concat(['',_Project,Pack,archive,File], /, Path),
     file_name_extension(Tag, Ext, File),
     github_archive_extension(Ext),
-    tag_version(Tag, Version), 
+    tag_version(Tag, Version),
     !.
 
 github_archive_extension(tgz).
@@ -1563,7 +1563,7 @@ digits([])    --> [].
 %       Required tokens can be provided by the given provides.
 
 pack_inquiry(_, _, _, Options) :-
-    option(inquiry(false), Options), 
+    option(inquiry(false), Options),
     !.
 pack_inquiry(URL, DownloadFile, Info, Options) :-
     setting(server, ServerBase),
@@ -2046,13 +2046,13 @@ print_error(OutCodes, _) :-
     print_message(Level, pack(process_output(OutCodes))).
 
 classify_message(error) -->
-    string(_), "fatal:", 
+    string(_), "fatal:",
     !.
 classify_message(error) -->
-    string(_), "error:", 
+    string(_), "error:",
     !.
 classify_message(warning) -->
-    string(_), "warning:", 
+    string(_), "warning:",
     !.
 classify_message(informational) -->
     [].
@@ -2128,7 +2128,7 @@ confirm(Question, Default, _) :-
 
 read_yes_no(YesNo, Default) :-
     get_single_char(Code),
-    code_yes_no(Code, Default, YesNo), 
+    code_yes_no(Code, Default, YesNo),
     !.
 
 code_yes_no(0'y, _, yes).

@@ -107,20 +107,20 @@ global_url(URL, BaseURL, Global) :-
 %   a protocol identifier.
 
 is_absolute_url(URL) :-
-    sub_atom(URL, 0, _, _, 'http://'), 
+    sub_atom(URL, 0, _, _, 'http://'),
     !.
 is_absolute_url(URL) :-
-    sub_atom(URL, 0, _, _, 'https://'), 
+    sub_atom(URL, 0, _, _, 'https://'),
     !.
 is_absolute_url(URL) :-
-    sub_atom(URL, 0, _, _, 'ftp://'), 
+    sub_atom(URL, 0, _, _, 'ftp://'),
     !.
 is_absolute_url(URL) :-
-    sub_atom(URL, 0, _, _, 'file://'), 
+    sub_atom(URL, 0, _, _, 'file://'),
     !.
 is_absolute_url(URL) :-
     atom_codes(URL, Codes),
-    phrase(absolute_url, Codes, _), 
+    phrase(absolute_url, Codes, _),
     !.
 
 
@@ -407,10 +407,10 @@ parse_url(URL, BaseURL, Attributes) :-
 %   Windows- not always following the standard
 
 globalise_path(LocalPath, _, LocalPath) :-
-    sub_atom(LocalPath, 0, _, _, /), 
+    sub_atom(LocalPath, 0, _, _, /),
     !.
 globalise_path(LocalPath, _, LocalPath) :-
-    is_absolute_file_name(LocalPath), 
+    is_absolute_file_name(LocalPath),
     !.
 globalise_path(Local, Base, Path) :-
     base_dir(Base, BaseDir),
@@ -445,7 +445,7 @@ absolute_url -->
     lwalpha(_First),
     schema_chars(Rest),
     { Rest \== [] },
-    ":", 
+    ":",
     !.
 
 
@@ -497,7 +497,7 @@ relative_part([path(Path)|T], T) -->
     (   path_absolute(Path)
     ;   path_noschema(Path)
     ;   path_empty(Path)
-    ), 
+    ),
     !.
 
 http_location([path(Path)|P2]) -->
@@ -552,7 +552,7 @@ hier_part(file, [path(Path)|Tail], Tail) -->
     ;   path_absolute(Path)
     ;   path_rootless(Path)
     ;   path_empty(Path)
-    ), 
+    ),
     !.
 hier_part(_, Parts, Tail) -->
     "//",
@@ -563,7 +563,7 @@ hier_part(_, [path(Path)|T], T) -->
     (   path_absolute(Path)
     ;   path_rootless(Path)
     ;   path_empty(Path)
-    ), 
+    ),
     !.
 
 authority(Parts, Tail) -->
@@ -820,7 +820,7 @@ pchar(C) -->
     ;   sub_delim(C)
     ;   C == 0':
     ;   C == 0'@
-    }, 
+    },
     !.
 pchar(C) -->
     percent_coded(C).
@@ -1120,9 +1120,9 @@ file_name_to_url(File, FileURL) :-
     nonvar(File),
     !,
     absolute_file_name(File, Path),
-    atom_concat('file://', Path, FileURL), 
+    atom_concat('file://', Path, FileURL),
     !.
 file_name_to_url(File, FileURL) :-
-    atom_concat('file://', File, FileURL), 
+    atom_concat('file://', File, FileURL),
     !.
 

@@ -146,7 +146,7 @@ debug(Spec, Val) :-
 
 debug_target(Spec, Topic, To) :-
     nonvar(Spec),
-    Spec = (Topic > To), 
+    Spec = (Topic > To),
     !.
 debug_target(Topic, Topic, -).
 
@@ -259,7 +259,7 @@ debug(_, _, _).
     prolog:debug_print_hook/3.
 
 print_debug(Topic, _To, Format, Args) :-
-    prolog:debug_print_hook(Topic, Format, Args), 
+    prolog:debug_print_hook(Topic, Format, Args),
     !.
 print_debug(_, [], _, _) :- !.
 print_debug(Topic, To, Format, Args) :-
@@ -276,7 +276,7 @@ print_debug(Topic, To, Format, Args) :-
 
 debug_output(user, user_error) :- !.
 debug_output(Stream, Stream) :-
-    is_stream(Stream), 
+    is_stream(Stream),
     !.
 debug_output(File, Stream) :-
     open(File, append, Stream,
@@ -308,14 +308,14 @@ assertion(G) :-
     \+ \+ catch(G,
                 Error,
                 assertion_failed(Error, G)),
-    
+
     !.
 assertion(G) :-
     assertion_failed(fail, G),
     assertion_failed.               % prevent last call optimization.
 
 assertion_failed(Reason, G) :-
-    prolog:assertion_failed(Reason, G), 
+    prolog:assertion_failed(Reason, G),
     !.
 assertion_failed(Reason, _) :-
     assertion_rethrow(Reason),

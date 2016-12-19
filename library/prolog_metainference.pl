@@ -81,7 +81,7 @@ inferred_meta_predicate(M:Head, MetaSpec) :-
 %   available through inferred_meta_predicate/2.
 
 infer_meta_predicate(Head, MetaSpec) :-
-    inferred_meta_predicate(Head, MetaSpec), 
+    inferred_meta_predicate(Head, MetaSpec),
     !.
 infer_meta_predicate(M:Head, MetaSpec) :-
     predicate_property(M:Head, imported_from(From)),
@@ -127,7 +127,7 @@ meta_pred_args_in_clause(Module, Head, MetaArgs) :-
 %           paths in disjunctions.
 
 annotate_meta_vars_in_body(A, _) :-
-    atomic(A), 
+    atomic(A),
     !.
 annotate_meta_vars_in_body(Var, _) :-
     var(Var),
@@ -278,12 +278,12 @@ is_meta(//).
 
 meta_arg(HeadArg, MetaArg) :-
     get_attr(HeadArg, prolog_metainference, MetaArg),
-    MetaArg \== m, 
+    MetaArg \== m,
     !.
 meta_arg(HeadArg, :) :-
     compound(HeadArg),
     HeadArg = M:_,
-    get_attr(M, prolog_metainference, m), 
+    get_attr(M, prolog_metainference, m),
     !.
 meta_arg(_, *).
 

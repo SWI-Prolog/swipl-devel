@@ -215,7 +215,7 @@ modify_context(I, Arity, Ctx0, Mapping, Ctx) :-
 
 
 dec_depth(Ctx, Ctx) :-
-    context(Ctx, max_depth, infinite), 
+    context(Ctx, max_depth, infinite),
     !.
 dec_depth(ctx(I,D,P,MD0), ctx(I,D,P,MD)) :-
     MD is MD0 - 1.
@@ -235,7 +235,7 @@ pp(Portray, _Ctx, Options) :-
     option(write_options(WriteOptions), Options),
     option(portray(true), WriteOptions),
     option(output(Out), Options),
-    with_output_to(Out, user:portray(Portray)), 
+    with_output_to(Out, user:portray(Portray)),
     !.
 pp(List, Ctx, Options) :-
     List = [_|_],

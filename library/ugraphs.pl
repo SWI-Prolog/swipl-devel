@@ -528,7 +528,7 @@ neighbors(Vertex, Graph, Neig) :-
     neighbours(Vertex, Graph, Neig).
 
 neighbours(V,[V0-Neig|_],Neig) :-
-    V == V0, 
+    V == V0,
     !.
 neighbours(V,[_|G],Neig) :-
     neighbours(V,G,Neig).

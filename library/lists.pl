@@ -200,7 +200,7 @@ select_([X0|XList], X, Y, [X0|YList]) :-
 %   Semi-deterministic version of select/4.
 
 selectchk(X, XList, Y, YList) :-
-    select(X, XList, Y, YList), 
+    select(X, XList, Y, YList),
     !.
 
 %!  nextto(?X, ?Y, ?List)
@@ -477,7 +477,7 @@ flatten(List, FlatList) :-
     FlatList = FlatList0.
 
 flatten(Var, Tl, [Var|Tl]) :-
-    var(Var), 
+    var(Var),
     !.
 flatten([], Tl, Tl) :- !.
 flatten([Hd|Tl], Tail, List) :-

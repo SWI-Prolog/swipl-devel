@@ -184,7 +184,7 @@ init_win_menus :-
     refresh_mru.
 
 associated_file(File) :-
-    current_prolog_flag(associated_file, File), 
+    current_prolog_flag(associated_file, File),
     !.
 associated_file(File) :-
     '$cmd_option_val'(script_file, OsFiles),
@@ -334,7 +334,7 @@ prolog_file_pattern(Pattern) :-
 %   to <My Documents>\Prolog.
 
 init_win_app :-
-    current_prolog_flag(associated_file, _), 
+    current_prolog_flag(associated_file, _),
     !.
 init_win_app :-
     '$cmd_option_val'(win_app, true),
@@ -352,7 +352,7 @@ my_prolog :-
 
 
 ensure_dir(Dir) :-
-    exists_directory(Dir), 
+    exists_directory(Dir),
     !.
 ensure_dir(Dir) :-
     catch(make_directory(Dir), E, (print_message(warning, E), fail)).

@@ -65,10 +65,10 @@ defined pager, which defaults to `more'.
 %       help/0
 
 help :-
-    no_help, 
+    no_help,
     !.
 help :-
-    prolog:help_hook(help), 
+    prolog:help_hook(help),
     !.
 help :-
     help(help/1).
@@ -78,10 +78,10 @@ help :-
 %   Display online help on specified subject.
 
 help(_) :-
-    no_help, 
+    no_help,
     !.
 help(What) :-
-    prolog:help_hook(help(What)), 
+    prolog:help_hook(help(What)),
     !.
 help(What) :-
     give_help(What).
@@ -90,10 +90,10 @@ help(What) :-
 %   Give a list of subjects that might be appropriate.
 
 apropos(_) :-
-    no_help, 
+    no_help,
     !.
 apropos(What) :-
-    prolog:help_hook(apropos(What)), 
+    prolog:help_hook(apropos(What)),
     !.
 apropos(What) :-
     give_apropos(What).
@@ -128,7 +128,7 @@ give_help(What) :-
 :- dynamic asserted_help_tmp_file/1.
 
 help_tmp_file(X) :-
-    asserted_help_tmp_file(X), 
+    asserted_help_tmp_file(X),
     !.
 help_tmp_file(X) :-
     tmp_file(manual, X),
@@ -179,7 +179,7 @@ copy_chars(N, From, To) :-
     copy_chars(N, From, To, C0).
 
 copy_chars(N, _, _, _) :-
-    N =< 0, 
+    N =< 0,
     !.
 copy_chars(N, _, To, _) :-
     0 =:= N mod 4096,
@@ -215,7 +215,7 @@ find_manual(Path) :-
     absolute_file_name(library('MANUAL'), Path, [access(read)]).
 
 find_pager(Pager) :-
-    getenv('PAGER', Pager), 
+    getenv('PAGER', Pager),
     !.
 find_pager(more).
 
@@ -224,7 +224,7 @@ Set the write_help_with_overstrike feature.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 set_overstrike_feature :-
-    current_prolog_flag(write_help_with_overstrike, _), 
+    current_prolog_flag(write_help_with_overstrike, _),
     !.
 set_overstrike_feature :-
     (   getenv('TERM', xterm)
@@ -243,7 +243,7 @@ set_overstrike_feature :-
     start_of_line/2.
 
 line_start(Line, Start) :-
-    start_of_line(Line, Start), 
+    start_of_line(Line, Start),
     !.
 line_start(Line, Start) :-
     line_index,
@@ -255,7 +255,7 @@ line_start(Line, Start) :-
 %   Create index holding the byte positions for the line starts
 
 line_index :-
-    start_of_line(_,_), 
+    start_of_line(_,_),
     !.
 line_index :-
     online_manual_stream(Stream),

@@ -176,7 +176,7 @@ expand_function(Expression, NativeExpression, Goal) :-
     tidy(Goal0, Goal).
 
 do_expand_function(X, X, true) :-
-    evaluable(X), 
+    evaluable(X),
     !.
 do_expand_function(Function, Result, ArgCode) :-
     current_arithmetic_function(Function),
@@ -218,14 +218,14 @@ expand_predicate_arguments([H0|T0], [H|T], (A,B)) :-
 %   True if F and all its subterms are evaluable terms or variables.
 
 evaluable(F) :-
-    var(F), 
+    var(F),
     !.
 evaluable(F) :-
-    number(F), 
+    number(F),
     !.
 evaluable([_Code]) :- !.
 evaluable(Func) :-                              % Funtional notation.
-    functor(Func, ., 2), 
+    functor(Func, ., 2),
     !.
 evaluable(F) :-
     string(F),
@@ -243,7 +243,7 @@ evaluable(F) :-
 %   Cleanup the output from expand_function/3.
 
 tidy(A, A) :-
-    var(A), 
+    var(A),
     !.
 tidy(((A,B),C), R) :-
     !,

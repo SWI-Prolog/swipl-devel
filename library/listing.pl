@@ -270,11 +270,11 @@ declaration(Pred, Source, Decl) :-
 meta_implies_transparent(Head):-
     compound(Head),
     arg(_, Head, Arg),
-    implies_transparent(Arg), 
+    implies_transparent(Arg),
     !.
 
 implies_transparent(Arg) :-
-    integer(Arg), 
+    integer(Arg),
     !.
 implies_transparent(:).
 implies_transparent(//).
@@ -305,14 +305,14 @@ list_clauses(Pred, Source) :-
     ).
 
 write_module(Module, Context, Head) :-
-    hide_module(Module, Context, Head), 
+    hide_module(Module, Context, Head),
     !.
 write_module(Module, _, _) :-
     format('~q:', [Module]).
 
 hide_module(system, Module, Head) :-
     predicate_property(Module:Head, imported_from(M)),
-    predicate_property(system:Head, imported_from(M)), 
+    predicate_property(system:Head, imported_from(M)),
     !.
 hide_module(Module, Module, _) :- !.
 
@@ -496,7 +496,7 @@ term_needs_braces(Term, Pri) :-
     callable(Term),
     functor(Term, Name, _Arity),
     current_op(OpPri, _Type, Name),
-    OpPri > Pri, 
+    OpPri > Pri,
     !.
 
 %!  portray_or(+Term, +Indent, +Priority, +Out) is det.
@@ -651,7 +651,7 @@ contains_non_primitive_meta_arg(Call, Decl) :-
     arg(I, Call, CA),
     arg(I, Decl, DA),
     integer(DA),
-    \+ primitive(CA), 
+    \+ primitive(CA),
     !.
 
 portray_meta_args([], [], _, _, _).
@@ -863,7 +863,7 @@ sandbox:safe_meta(listing(What), []) :-
     not_qualified(What).
 
 not_qualified(Var) :-
-    var(Var), 
+    var(Var),
     !.
 not_qualified(_:_) :- !, fail.
 not_qualified(_).

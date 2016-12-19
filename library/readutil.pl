@@ -81,7 +81,7 @@ implementation if the shared object cannot be found.
     read_stream_to_codes/3.
 
 link_foreign :-
-    catch(load_foreign_library(foreign(readutil)), _, fail), 
+    catch(load_foreign_library(foreign(readutil)), _, fail),
     !.
 link_foreign :-
     assertz((read_line_to_codes(Stream, Line) :-

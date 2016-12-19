@@ -127,7 +127,7 @@ push_op(P, T, A) :-
 pop_operators :-
     retract(operator_stack(Mark-Undo)),
     set_operators(Undo),
-    Mark == mark, 
+    Mark == mark,
     !.
 
 %!  pop_operators(+Undo) is det.
@@ -157,7 +157,7 @@ undo_operators([O0|T0], [U0|T]) :-
 
 undo_operator(op(_P, T, N), op(OP, OT, N)) :-
     current_op(OP, OT, N),
-    same_op_type(T, OT), 
+    same_op_type(T, OT),
     !.
 undo_operator(op(P, T, [H|R]), [OH|OT]) :-
     !,

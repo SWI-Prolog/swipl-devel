@@ -231,7 +231,7 @@ mode_hide_called(non_built_in, M:Goal) :-
 system_predicate(Goal) :-
     goal_name_arity(Goal, Name, Arity),
     current_predicate(system:Name/Arity),   % avoid autoloading
-    predicate_property(system:Goal, built_in), 
+    predicate_property(system:Goal, built_in),
     !.
 
 
@@ -297,7 +297,7 @@ do_xref(Src, Options) :-
         xref_cleanup(State)).
 
 last_modified(Source, Modified) :-
-    prolog:xref_source_time(Source, Modified), 
+    prolog:xref_source_time(Source, Modified),
     !.
 last_modified(Source, Modified) :-
     atom(Source),
@@ -638,7 +638,7 @@ xref_used_class(Source, Class) :-
 xref_defined_class(Source, Class, local(Line, Super, Summary)) :-
     prolog_canonical_source(Source, Src),
     defined_class(Class, Super, Summary, Src, Line),
-    integer(Line), 
+    integer(Line),
     !.
 xref_defined_class(Source, Class, file(File)) :-
     prolog_canonical_source(Source, Src),
@@ -691,7 +691,7 @@ collect(Src, File, In, Options) :-
             catch(process(T, Comments, TermPos, Src),
                   E, print_message(error, E)),
             erase(Ref)),
-        T == end_of_file, 
+        T == end_of_file,
     !.
 
 report_syntax_error(E, _, _) :-
@@ -732,7 +732,7 @@ update_cond(elif(Cond)) :-
     !,
     assert(current_cond((\+C0,Cond))).
 update_cond(endif) :-
-    retract(current_cond(_)), 
+    retract(current_cond(_)),
     !.
 update_cond(_).
 
@@ -766,16 +766,16 @@ process(Term, Comments, TermPos, Src) :-
     xref_comments(Comments, TermPos, Src).
 
 process(Var, _) :-
-    var(Var), 
+    var(Var),
     !.                    % Warn?
 process(end_of_file, _) :- !.
 process((:- Directive), Src) :-
     !,
-    process_directive(Directive, Src), 
+    process_directive(Directive, Src),
     !.
 process((?- Directive), Src) :-
     !,
-    process_directive(Directive, Src), 
+    process_directive(Directive, Src),
     !.
 process((Head :- Body), Src) :-
     !,
@@ -785,7 +785,7 @@ process('$source_location'(_File, _Line):Clause, Src) :-
     !,
     process(Clause, Src).
 process(Term, Src) :-
-    process_chr(Term, Src), 
+    process_chr(Term, Src),
     !.
 process(M:(Head :- Body), Src) :-
     !,
@@ -886,7 +886,7 @@ xref_option(Source, Option) :-
                  ********************************/
 
 process_directive(Var, _) :-
-    var(Var), 
+    var(Var),
     !.                    % error, but that isn't our business
 process_directive(Dir, _Src) :-
     debug(xref(directive), 'Processing :- ~q', [Dir]),
@@ -1014,7 +1014,7 @@ process_meta_head(Src, Decl) :-         % swapped arguments for maplist
     ).
 
 meta_args(I, Arity, _, _, []) :-
-    I > Arity, 
+    I > Arity,
     !.
 meta_args(I, Arity, Decl, Head, [H|T]) :-               % 0
     arg(I, Decl, 0),
@@ -1076,10 +1076,10 @@ xref_meta(Source, Head, Called) :-
 %   @deprecated     New code should use xref_meta/3.
 
 xref_meta_src(Head, Called, Src) :-
-    meta_goal(Head, Called, Src), 
+    meta_goal(Head, Called, Src),
     !.
 xref_meta_src(Head, Called, _) :-
-    xref_meta(Head, Called), 
+    xref_meta(Head, Called),
     !.
 xref_meta_src(Head, Called, _) :-
     compound(Head),
@@ -1305,7 +1305,7 @@ process_body(Body, Origin, Src) :-
            true).
 
 process_goal(Var, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 process_goal(Goal, Origin, Src) :-
     Goal = (_;_),
@@ -1335,7 +1335,7 @@ process_goal(Goal, Origin, Src) :-
     assert_called(Src, Origin, Goal),
     process_called_list(Called, Origin, Src).
 process_goal(Goal, Origin, Src) :-
-    process_xpce_goal(Goal, Origin, Src), 
+    process_xpce_goal(Goal, Origin, Src),
     !.
 process_goal(load_foreign_library(File), _Origin, Src) :-
     process_foreign(File, Src).
@@ -1386,7 +1386,7 @@ process_meta(G, Origin, Src) :-
 %   phrase/3.
 
 process_dcg_goal(Var, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 process_dcg_goal((A,B), Origin, Src) :-
     !,
@@ -1412,10 +1412,10 @@ process_dcg_goal({Goal}, Origin, Src) :-
     !,
     process_goal(Goal, Origin, Src).
 process_dcg_goal(List, _Origin, _Src) :-
-    is_list(List), 
+    is_list(List),
     !.               % terminal
 process_dcg_goal(List, _Origin, _Src) :-
-    string(List), 
+    string(List),
     !.                % terminal
 process_dcg_goal(Callable, Origin, Src) :-
     extend(Callable, 2, Goal),
@@ -1483,7 +1483,7 @@ variants([H|T], V, Max, List) :-
 %           bindings?
 
 partial_evaluate(Goal) :-
-    eval(Goal), 
+    eval(Goal),
     !.
 partial_evaluate(_).
 
@@ -1539,7 +1539,7 @@ process_new(Term, Origin, Src) :-
     ).
 
 assert_new(_, _, Term) :-
-    \+ callable(Term), 
+    \+ callable(Term),
     !.
 assert_new(Src, Origin, Control) :-
     functor_name(Control, Class),
@@ -1765,7 +1765,7 @@ terms(H, State, State) -->
     ).
 
 eval_cond(Cond, true) :-
-    catch(Cond, _, fail), 
+    catch(Cond, _, fail),
     !.
 eval_cond(_, false).
 
@@ -1869,7 +1869,7 @@ same_pi(Canonical, PI2) :-
     canonical_pi(PI2, Canonical).
 
 meta_decls(Var) -->
-    { var(Var) }, 
+    { var(Var) },
     !.
 meta_decls((A,B)) -->
     !,
@@ -1879,7 +1879,7 @@ meta_decls(A) -->
     [A].
 
 public_decls(Var) -->
-    { var(Var) }, 
+    { var(Var) },
     !.
 public_decls((A,B)) -->
     !,
@@ -2011,7 +2011,7 @@ process_chr((:- chr_constraint(_)), Src) :-
     ).
 
 chr_head(X, _, _) :-
-    var(X), 
+    var(X),
     !.                      % Illegal.  Warn?
 chr_head(\(A,B), Src, H) :-
     chr_head(A, Src, H),
@@ -2023,7 +2023,7 @@ chr_head(H0, Src, H) :-
     chr_defined(H0, Src, H).
 
 chr_defined(X, _, _) :-
-    var(X), 
+    var(X),
     !.
 chr_defined(#(C,_Id), Src, C) :-
     !,
@@ -2043,10 +2043,10 @@ chr_body(G, From, Src) :-
     process_body(G, From, Src).
 
 assert_constraint(_, Head) :-
-    var(Head), 
+    var(Head),
     !.
 assert_constraint(Src, Head) :-
-    constraint(Head, Src, _), 
+    constraint(Head, Src, _),
     !.
 assert_constraint(Src, Head) :-
     generalise_term(Head, Term),
@@ -2064,14 +2064,14 @@ assert_constraint(Src, Head) :-
 %   assert called system predicates.
 
 assert_called(_, _, Var) :-
-    var(Var), 
+    var(Var),
     !.
 assert_called(Src, From, Goal) :-
     var(From),
     !,
     assert_called(Src, '<unknown>', Goal).
 assert_called(_, _, Goal) :-
-    expand_hide_called(Goal), 
+    expand_hide_called(Goal),
     !.
 assert_called(Src, Origin, M:G) :-
     !,
@@ -2096,7 +2096,7 @@ assert_called(Src, _, Goal) :-
     ->  M \== system
     ;   M = user
     ),
-    hide_called(M:Goal, Src), 
+    hide_called(M:Goal, Src),
     !.
 assert_called(Src, Origin, Goal) :-
     current_condition(Cond),
@@ -2120,7 +2120,7 @@ expand_hide_called(pce_principal:pce_lazy_get_method(_,_,_)).
 expand_hide_called(pce_principal:pce_lazy_send_method(_,_,_)).
 
 assert_defined(Src, Goal) :-
-    defined(Goal, Src, _), 
+    defined(Goal, Src, _),
     !.
 assert_defined(Src, Goal) :-
     generalise(Goal, Term),
@@ -2128,7 +2128,7 @@ assert_defined(Src, Goal) :-
     assert(defined(Term, Src, Line)).
 
 assert_foreign(Src, Goal) :-
-    foreign(Goal, Src, _), 
+    foreign(Goal, Src, _),
     !.
 assert_foreign(Src, Goal) :-
     generalise(Goal, Term),
@@ -2179,7 +2179,7 @@ assert_import(Src, op(P,T,N), _, _, _) :-
     xref_push_op(Src, P,T,N).
 
 in_export_list(_Head, Export) :-
-    var(Export), 
+    var(Export),
     !.
 in_export_list(Head, Export) :-
     member(PI, Export),
@@ -2223,7 +2223,7 @@ assert_op(Src, op(P,T,_:N)) :-
 %   exploit local term-expansion and other rules.
 
 assert_module(Src, Module) :-
-    xmodule(Module, Src), 
+    xmodule(Module, Src),
     !.
 assert_module(Src, Module) :-
     '$set_source_module'(Module),
@@ -2276,7 +2276,7 @@ process_predicate_list([H|T], Closure, Src) :-
     process_predicate_list(T, Closure, Src).
 
 process_predicate_comma(Var, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 process_predicate_comma(M:(A,B), Closure, Src) :-
     !,
@@ -2339,13 +2339,13 @@ pi_to_head(Name//DCGArity, Term) :-
 
 
 assert_used_class(Src, Name) :-
-    used_class(Name, Src), 
+    used_class(Name, Src),
     !.
 assert_used_class(Src, Name) :-
     assert(used_class(Name, Src)).
 
 assert_defined_class(Src, Name, _Meta, _Super, _) :-
-    defined_class(Name, _, _, Src, _), 
+    defined_class(Name, _, _, Src, _),
     !.
 assert_defined_class(_, _, _, -, _) :- !.               % :- pce_extend_class
 assert_defined_class(Src, Name, Meta, Super, Summary) :-
@@ -2365,7 +2365,7 @@ assert_defined_class(Src, Name, Meta, Super, Summary) :-
     assert_used_class(Src, Super).
 
 assert_defined_class(Src, Name, imported_from(_File)) :-
-    defined_class(Name, _, _, Src, _), 
+    defined_class(Name, _, _, Src, _),
     !.
 assert_defined_class(Src, Name, imported_from(File)) :-
     assert(defined_class(Name, _, '', Src, file(File))).
@@ -2380,15 +2380,15 @@ assert_defined_class(Src, Name, imported_from(File)) :-
 %   Generalise a callable term.
 
 generalise(Var, Var) :-
-    var(Var), 
+    var(Var),
     !.                    % error?
 generalise(pce_principal:send_implementation(Id, _, _),
            pce_principal:send_implementation(Id, _, _)) :-
-    atom(Id), 
+    atom(Id),
     !.
 generalise(pce_principal:get_implementation(Id, _, _, _),
            pce_principal:get_implementation(Id, _, _, _)) :-
-    atom(Id), 
+    atom(Id),
     !.
 generalise('<directive>'(Line), '<directive>'(Line)) :- !.
 generalise(Module:Goal0, Module:Goal) :-
@@ -2435,7 +2435,7 @@ xref_source_file(Spec, File, Source, Options) :-
     prolog:xref_source_file(Spec, File,
                             [ relative_to(Source)
                             | Options
-                            ]), 
+                            ]),
     !.
 xref_source_file(Plain, File, Source, Options) :-
     atom(Plain),
@@ -2447,13 +2447,13 @@ xref_source_file(Plain, File, Source, Options) :-
     ),
     atomic_list_concat([Dir, /, Plain], Spec0),
     absolute_file_name(Spec0, Spec),
-    do_xref_source_file(Spec, File, Options), 
+    do_xref_source_file(Spec, File, Options),
     !.
 xref_source_file(Spec, File, Source, Options) :-
     do_xref_source_file(Spec, File,
                         [ relative_to(Source)
                         | Options
-                        ]), 
+                        ]),
     !.
 xref_source_file(_, _, _, Options) :-
     option(silent(true), Options),
@@ -2471,7 +2471,7 @@ do_xref_source_file(Spec, File, Options) :-
                        [ file_type(Type),
                          access(read),
                          file_errors(fail)
-                       ]), 
+                       ]),
     !.
 
 %!  canonical_source(?Source, ?Src) is det.

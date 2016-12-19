@@ -269,7 +269,7 @@ save_resource(RC, Name, Class, FileSpec) :-
     '$rc_append_file'(RC, Name, Class, none, File).
 save_resource(RC, Name, Class, _) :-
     '$rc_handle'(SystemRC),
-    copy_resource(SystemRC, RC, Name, Class), 
+    copy_resource(SystemRC, RC, Name, Class),
     !.
 save_resource(_, Name, Class, FileSpec) :-
     print_message(warning,
@@ -319,7 +319,7 @@ special_module(system).
 special_module(user).
 
 define_predicate(Head) :-
-    '$define_predicate'(Head), 
+    '$define_predicate'(Head),
     !.   % autoloader
 define_predicate(Head) :-
     strip_module(Head, _, Term),
@@ -568,7 +568,7 @@ no_save_flag(hwnd).                     % should be read-only, but comes
 %   report_error are protected flags for the runtime kernel).
 
 restore_prolog_flag(Flag, Value, _Type) :-
-    current_prolog_flag(Flag, Value), 
+    current_prolog_flag(Flag, Value),
     !.
 restore_prolog_flag(Flag, Value, _Type) :-
     current_prolog_flag(Flag, _),
@@ -618,7 +618,7 @@ save_format_predicates :-
 save_format_predicates.
 
 qualify_head(T, T) :-
-    functor(T, :, 2), 
+    functor(T, :, 2),
     !.
 qualify_head(T, user:T).
 
@@ -684,7 +684,7 @@ open_map(_) :-
 
 close_map :-
     retract(verbose(Fd)),
-    close(Fd), 
+    close(Fd),
     !.
 close_map.
 

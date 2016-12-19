@@ -270,7 +270,7 @@ template_to_pattern(All, Template, Pattern, Goal0, Goal, Aggregate) :-
     ).
 
 existential_vars(Var, Var) -->
-    { var(Var) }, 
+    { var(Var) },
     !.
 existential_vars(Var^G0, G) -->
     !,
@@ -316,7 +316,7 @@ clean_body(Goal, Goal).
 %   @param Aggregate defines the aggregation operation to execute.
 
 template_to_pattern(Term, Pattern, Goal, Vars, Aggregate) :-
-    templ_to_pattern(Term, Pattern, Goal, Vars, Aggregate), 
+    templ_to_pattern(Term, Pattern, Goal, Vars, Aggregate),
     !.
 template_to_pattern(Term, Pattern, Goal, Vars, term(MinNeeded, Functor, AggregateArgs)) :-
     compound(Term),
@@ -349,7 +349,7 @@ templates_to_patterns([H0|T0], [H|T], (G0,G), Vars, [A0|A]) :-
     templates_to_patterns(T0, T, G, RV, A).
 
 sub_template_to_pattern(Term, Pattern, Goal, Vars, Aggregate) :-
-    templ_to_pattern(Term, Pattern, Goal, Vars, Aggregate), 
+    templ_to_pattern(Term, Pattern, Goal, Vars, Aggregate),
     !.
 sub_template_to_pattern(Term, _, _, _, _) :-
     invalid_template(Term).
@@ -368,7 +368,7 @@ invalid_template(Term) :-
 
 needs_one(Ops, 1) :-
     member(Op, Ops),
-    needs_one(Op), 
+    needs_one(Op),
     !.
 needs_one(_, 0).
 
@@ -602,10 +602,10 @@ prove_list([H|T], Templ, SharedTempl, Goal) :-
 free_variables(Term, Bound, VarList, [Term|VarList]) :-
     var(Term),
     term_is_free_of(Bound, Term),
-    list_is_free_of(VarList, Term), 
+    list_is_free_of(VarList, Term),
     !.
 free_variables(Term, _Bound, VarList, VarList) :-
-    var(Term), 
+    var(Term),
     !.
 free_variables(Term, Bound, OldList, NewList) :-
     explicit_binding(Term, Bound, NewTerm, NewBound),
@@ -642,12 +642,12 @@ term_is_free_of(Term, Var) :-
     \+ var_in_term(Term, Var).
 
 var_in_term(Term, Var) :-
-    Var == Term, 
+    Var == Term,
     !.
 var_in_term(Term, Var) :-
     compound(Term),
     arg(_, Term, Arg),
-    var_in_term(Arg, Var), 
+    var_in_term(Arg, Var),
     !.
 
 

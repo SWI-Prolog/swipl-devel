@@ -395,12 +395,12 @@ delete(=, t(Key,Val,_B,L,t), Key, Val, L, yes) :- !.
 delete(=, t(Key,Val,>,L,R), Key, Val, NewTree, WhatHasChanged) :-
     % Rh tree is deeper, so rotate from R to L
     del_min_assoc(R, K, V, NewR, RightHasChanged),
-    deladjust(RightHasChanged, t(K,V,>,L,NewR), right, NewTree, WhatHasChanged), 
+    deladjust(RightHasChanged, t(K,V,>,L,NewR), right, NewTree, WhatHasChanged),
     !.
 delete(=, t(Key,Val,B,L,R), Key, Val, NewTree, WhatHasChanged) :-
     % Rh tree is not deeper, so rotate from L to R
     del_max_assoc(L, K, V, NewL, LeftHasChanged),
-    deladjust(LeftHasChanged, t(K,V,B,NewL,R), left, NewTree, WhatHasChanged), 
+    deladjust(LeftHasChanged, t(K,V,B,NewL,R), left, NewTree, WhatHasChanged),
     !.
 
 delete(<, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-

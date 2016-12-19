@@ -304,7 +304,7 @@ element_is_not(_List, _Of) :-
 is_of_type(Type, Term) :-
     nonvar(Type),
     !,
-    has_type(Type, Term), 
+    has_type(Type, Term),
     !.
 is_of_type(Type, _) :-
     instantiation_error(Type).
@@ -357,7 +357,7 @@ text(X) :-
     ;   string(X)
     ;   '$is_char_list'(X, _)
     ;   '$is_code_list'(X, _)
-    ), 
+    ),
     !.
 
 element_types(List, Type) :-

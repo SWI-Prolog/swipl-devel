@@ -277,13 +277,13 @@ extend_goal(G, XArgs, GX) :-
     compound_name_arguments(GX, Name, Args).
 
 general_goal(Var, Var) :-
-    var(Var), 
+    var(Var),
     !.
 general_goal(M:G, M:GG) :-
     !,
     general_goal(G, GG).
 general_goal(Atom, Atom) :-
-    atom(Atom), 
+    atom(Atom),
     !.
 general_goal(G, GG) :-
     !,

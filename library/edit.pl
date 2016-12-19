@@ -275,7 +275,7 @@ locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
 %   should be called.
 
 do_edit_source(Location) :-             % hook
-    edit_source(Location), 
+    edit_source(Location),
     !.
 do_edit_source(Location) :-             % PceEmacs
     current_prolog_flag(editor, Editor),
@@ -352,13 +352,13 @@ editor(Editor) :-                       % $EDITOR
     ->  !
     ).
 editor(Editor) :-                       % User defaults
-    getenv('EDITOR', Editor), 
+    getenv('EDITOR', Editor),
     !.
 editor(vi) :-                           % Platform defaults
-    current_prolog_flag(unix, true), 
+    current_prolog_flag(unix, true),
     !.
 editor(notepad) :-
-    current_prolog_flag(windows, true), 
+    current_prolog_flag(windows, true),
     !.
 editor(_) :-                            % No luck
     throw(error(existence_error(editor), _)).
@@ -397,7 +397,7 @@ substitute(FromAtom, ToAtom, Old, New) :-
     append(Pre, S0, Old),
     append(From, Post, S0) ->
     append(Pre, To, S1),
-    append(S1, Post, New), 
+    append(S1, Post, New),
     !.
 substitute(_, _, Old, Old).
 
@@ -427,7 +427,7 @@ merge_locations(Loc1-Spec1, Loc2-Spec2, Loc-Spec) :-
     (   merge_specs(Spec1, Spec2, Spec)
     ;   merge_specs(Spec2, Spec1, Spec)
     ;   Spec = Spec1
-    ), 
+    ),
     !.
 merge_locations([file(X)]-_, Loc-Spec, Loc-Spec) :-
     memberchk(file(X), Loc),
@@ -469,7 +469,7 @@ do_select_location(Pairs, _, Location) :-
     list_pairs(Pairs, 0, N),
     print_message(help, edit(prompt_select)),
     read_number(N, I),
-    nth1(I, Pairs, Location-_Spec), 
+    nth1(I, Pairs, Location-_Spec),
     !.
 
 list_pairs([], N, N).
@@ -591,7 +591,7 @@ file_alias_path(Alias) :-
     user:file_search_path(Alias, _).
 
 remove_leading_slash(Path, Local) :-
-    atom_concat(/, Local, Path), 
+    atom_concat(/, Local, Path),
     !.
 remove_leading_slash(Path, Path).
 

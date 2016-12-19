@@ -169,17 +169,17 @@ expand(Term, In, Exp) :-
     expand(Term, _, In, Exp).
 
 expand(Var, _, _, Var) :-
-    var(Var), 
+    var(Var),
     !.
 expand(Term, _, _, Term) :-
-    no_expand(Term), 
+    no_expand(Term),
     !.
 expand(Term, _, _, _) :-
     requires_library(Term, Lib),
     ensure_loaded(user:Lib),
     fail.
 expand(Term, _, In, Term) :-
-    chr_expandable(Term, In), 
+    chr_expandable(Term, In),
     !.
 expand(Term, Pos, _, Expanded) :-
     expand_term(Term, Pos, Expanded, _).
@@ -208,7 +208,7 @@ chr_expandable(option(_, _), In) :-
     mode(In, chr).
 
 add_mode(Stream, Mode) :-
-    mode(Stream, Mode), 
+    mode(Stream, Mode),
     !.
 add_mode(Stream, Mode) :-
     asserta(mode(Stream, Mode)).
@@ -265,14 +265,14 @@ update_directive(op(P,T,N), SM) :-
     strip_module(SM:N, M, PN),
     push_op(P,T,M:PN).
 update_directive(style_check(Style), _) :-
-    style_check(Style), 
+    style_check(Style),
     !.
 update_directive(use_module(Spec), SM) :-
     catch(module_decl(Spec, Path, Public), _, fail),
     !,
     maplist(import_syntax(Path, SM), Public).
 update_directive(pce_begin_class_definition(_,_,_,_), SM) :-
-    pce_expansion:push_compile_operators(SM), 
+    pce_expansion:push_compile_operators(SM),
     !.
 update_directive(_, _).
 
@@ -282,14 +282,14 @@ update_directive(_, _).
 %   op/3 terms and Syntax/4  quasi   quotation  declarations.
 
 import_syntax(_, _, Var) :-
-    var(Var), 
+    var(Var),
     !.
 import_syntax(_, M, Op) :-
     Op = op(_,_,_),
     !,
     update_directive(Op, M).
 import_syntax(Path, SM, Syntax/4) :-
-    load_quasi_quotation_syntax(SM:Path, Syntax), 
+    load_quasi_quotation_syntax(SM:Path, Syntax),
     !.
 import_syntax(_,_,_).
 
@@ -651,10 +651,10 @@ prolog_canonical_source(Source, Src) :-
     !,
     Src = Source.
 prolog_canonical_source(User, user) :-
-    User == user, 
+    User == user,
     !.
 prolog_canonical_source(Src, Id) :-             % Call hook
-    prolog:xref_source_identifier(Src, Id), 
+    prolog:xref_source_identifier(Src, Id),
     !.
 prolog_canonical_source(Source, Src) :-
     source_file(Source),
@@ -665,7 +665,7 @@ prolog_canonical_source(Source, Src) :-
                        [ file_type(prolog),
                          access(read),
                          file_errors(fail)
-                       ]), 
+                       ]),
     !.
 
 
@@ -733,7 +733,7 @@ search_path(Alias, Dir, AliasLen, DirLen) :-
     atom_length(Dir, DirLen).
 
 ensure_slash(Dir, Dir) :-
-    sub_atom(Dir, _, _, 0, /), 
+    sub_atom(Dir, _, _, 0, /),
     !.
 ensure_slash(Dir0, Dir) :-
     atom_concat(Dir0, /, Dir).

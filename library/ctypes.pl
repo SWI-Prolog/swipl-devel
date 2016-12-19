@@ -154,7 +154,7 @@ is_digit(C, Weight) :-
     !,
     plus(Weight, 0'0, C).
 is_digit(C, Weight) :-
-    plus(Weight, 87, C), 
+    plus(Weight, 87, C),
     !.         /* `a`-10 */
 is_digit(C, Weight) :-
     plus(Weight, 55, C).            /* `A`-10 */

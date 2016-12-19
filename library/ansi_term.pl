@@ -110,7 +110,7 @@ ansi_format(Stream, _Attr, Format, Args) :-
     format(Stream, Format, Args).
 
 sgr_code_ex(Attr, Code) :-
-    sgr_code(Attr, Code), 
+    sgr_code(Attr, Code),
     !.
 sgr_code_ex(Attr, _) :-
     domain_error(sgr_code, Attr).

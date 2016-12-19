@@ -176,7 +176,7 @@ phrase_from_quasi_quotation(Grammar, Content) :-
 phrase_quasi_quotation(Grammar, Stream) :-
     set_stream(Stream, buffer_size(512)),
     stream_to_lazy_list(Stream, List),
-    phrase(Grammar, List), 
+    phrase(Grammar, List),
     !.
 phrase_quasi_quotation(_, Stream) :-
     quasi_quotation_syntax_error(
@@ -220,10 +220,10 @@ quasi_quotation_input(Stream) :-
 
 stream_syntax_error_context(Stream, file(File, LineNo, LinePos, CharNo)) :-
     stream_property(Stream, file_name(File)),
-    position_context(Stream, LineNo, LinePos, CharNo), 
+    position_context(Stream, LineNo, LinePos, CharNo),
     !.
 stream_syntax_error_context(Stream, stream(Stream, LineNo, LinePos, CharNo)) :-
-    position_context(Stream, LineNo, LinePos, CharNo), 
+    position_context(Stream, LineNo, LinePos, CharNo),
     !.
 stream_syntax_error_context(_, _).
 
@@ -260,7 +260,7 @@ qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
     setup_call_cleanup(
         '$push_input_context'(quasi_quoted),
         call(M:SyntaxName, Content, SyntaxArgs, VariableNames, Result),
-        '$pop_input_context'), 
+        '$pop_input_context'),
     !.
 qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
     current_prolog_flag(sandboxed_load, true),
@@ -271,7 +271,7 @@ qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
     setup_call_cleanup(
         '$push_input_context'(quasi_quoted),
         call(QExpand),
-        '$pop_input_context'), 
+        '$pop_input_context'),
     !.
 qq_call(quasi_quotation(_Syntax, Content, _VariableNames, _Result), _M) :-
     setup_call_cleanup(
@@ -279,7 +279,7 @@ qq_call(quasi_quotation(_Syntax, Content, _VariableNames, _Result), _M) :-
         with_quasi_quotation_input(
             Content, Stream,
             quasi_quotation_syntax_error(quasi_quote_parser_failed, Stream)),
-        '$pop_input_context'), 
+        '$pop_input_context'),
     !.
 
 

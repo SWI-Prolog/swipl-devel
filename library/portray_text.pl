@@ -155,7 +155,7 @@ emit_code(0'\t) :- !, format('\\t').
 emit_code(C) :- put_code(C).
 
 all_ascii(Var) :-
-    var_or_numbered(Var), 
+    var_or_numbered(Var),
     !.
 all_ascii([]).
 all_ascii([H|T]) :-
@@ -164,7 +164,7 @@ all_ascii([H|T]) :-
 
 isascii(Term) :-
     integer(Term),
-    ascii_code(Term), 
+    ascii_code(Term),
     !.
 
 ascii_code(9).
@@ -174,6 +174,6 @@ ascii_code(C) :-
     between(32, 126, C).
 
 var_or_numbered(Var) :-
-    var(Var), 
+    var(Var),
     !.
 var_or_numbered('$VAR'(_)).

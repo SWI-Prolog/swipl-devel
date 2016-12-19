@@ -382,7 +382,7 @@ qualify_meta_goal(N, M, Meta, Goal0, Goal) :-
 meta_goal(_, _, _, _).
 
 add_module(Arg, M, M:Arg) :-
-    var(Arg), 
+    var(Arg),
     !.
 add_module(M:Arg, _, MArg) :-
     !,
@@ -447,7 +447,7 @@ make_clause(Head, Body, (Head:-Body)).
 %   True when G is a goal called from Body.
 
 goal_in_body(M:G, M, G) :-
-    var(G), 
+    var(G),
     !.
 goal_in_body(G, _, M:G0) :-
     atom(M),
@@ -529,11 +529,11 @@ extend_list(G0, L, G) :-
 
 message_context(ClauseRef, String, Clause, file_term_position(File, StringPos)) :-
     clause_info(ClauseRef, File, TermPos, _Vars),
-    prolog_codewalk:subterm_pos(String, Clause, ==, TermPos, StringPos), 
+    prolog_codewalk:subterm_pos(String, Clause, ==, TermPos, StringPos),
     !.
 message_context(ClauseRef, _String, _Clause, file(File, Line, -1, _)) :-
     clause_property(ClauseRef, file(File)),
-    clause_property(ClauseRef, line_count(Line)), 
+    clause_property(ClauseRef, line_count(Line)),
     !.
 message_context(ClauseRef, _String, _Clause, clause(ClauseRef)).
 
@@ -805,6 +805,6 @@ aliased_path(Path, Len-Spec) :-
     Spec =.. [Alias, Local].
 
 remove_leading_slash(Path, Local) :-
-    atom_concat(/, Local, Path), 
+    atom_concat(/, Local, Path),
     !.
 remove_leading_slash(Path, Path).

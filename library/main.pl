@@ -142,7 +142,7 @@ argv_options([H|T0], [H|R], T) :-
 
 convert_option(password, String, String) :- !.
 convert_option(_, String, Number) :-
-    number_string(Number, String), 
+    number_string(Number, String),
     !.
 convert_option(_, String, Atom) :-
     atom_string(Atom, String).
