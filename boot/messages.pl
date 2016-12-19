@@ -69,7 +69,7 @@
 %       Start the messages at the same line (instead of using ~N)
 
 translate_message(Term) -->
-    translate_message2(Term), 
+    translate_message2(Term),
     !.
 translate_message(Term) -->
     { Term = error(_, _) },
@@ -392,7 +392,7 @@ swi_location(X) -->
     !,
     [].
 swi_location(Context) -->
-    prolog:message_location(Context), 
+    prolog:message_location(Context),
     !.
 swi_location(context(Caller, _Msg)) -->
     { ground(Caller)
@@ -681,7 +681,7 @@ callable_name_arity(Goal, Goal, 0) :-
     atom(Goal).
 
 user_predicate_indicator(Module:PI, PI) :-
-    hidden_module(Module), 
+    hidden_module(Module),
     !.
 user_predicate_indicator(PI, PI).
 
@@ -1259,10 +1259,10 @@ port_name(unify,     blue,    'Unify').
 port_name(exception, magenta, 'Exception').
 
 clean_goal(M:Goal, Goal) :-
-    hidden_module(M), 
+    hidden_module(M),
     !.
 clean_goal(M:Goal, Goal) :-
-    predicate_property(M:Goal, built_in), 
+    predicate_property(M:Goal, built_in),
     !.
 clean_goal(Goal, Goal).
 
@@ -1360,10 +1360,10 @@ print_message(Level, Term) :-
 
 print_system_message(_, silent, _) :- !.
 print_system_message(_, informational, _) :-
-    current_prolog_flag(verbose, silent), 
+    current_prolog_flag(verbose, silent),
     !.
 print_system_message(_, banner, _) :-
-    current_prolog_flag(verbose, silent), 
+    current_prolog_flag(verbose, silent),
     !.
 print_system_message(_, _, []) :- !.
 print_system_message(Term, Kind, Lines) :-
@@ -1398,10 +1398,10 @@ print_system_message(_, Kind, Lines) :-
     user:message_property/2.
 
 msg_property(Kind, Property) :-
-    user:message_property(Kind, Property), 
+    user:message_property(Kind, Property),
     !.
 msg_property(Kind, prefix(Prefix)) :-
-    msg_prefix(Kind, Prefix), 
+    msg_prefix(Kind, Prefix),
     !.
 msg_property(_, prefix('~N')) :- !.
 msg_property(query, stream(user_output)) :- !.
@@ -1487,7 +1487,7 @@ print_message_lines_guarded(S, [H|T]) :-
     print_message_lines_guarded(S, T).
 
 line_element(S, E) :-
-    prolog:message_line_element(S, E), 
+    prolog:message_line_element(S, E),
     !.
 line_element(S, full_stop) :-
     !,

@@ -70,7 +70,7 @@ user:file_search_path(autoload, library(.)).
     (   library_index(Head, Module, Library),
         LoadModule = Module
     ;   library_index(Head, LoadModule, Library)
-    ), 
+    ),
     !.
 
 %!  '$in_library'(+Name, +Arity, -Path) is semidet.
@@ -98,7 +98,7 @@ user:file_search_path(autoload, library(.)).
     '$define_predicate'(:).
 
 '$define_predicate'(Head) :-
-    '$defined_predicate'(Head), 
+    '$defined_predicate'(Head),
     !.
 '$define_predicate'(Term) :-
     Term = Module:Head,
@@ -191,7 +191,7 @@ clear_library_index :-
 load_library_index(Name, Arity) :-
     atom(Name), integer(Arity),
     functor(Head, Name, Arity),
-    library_index(Head, _, _), 
+    library_index(Head, _, _),
     !.
 load_library_index(_, _) :-
     notrace(with_mutex('$autoload', load_library_index_p)).
@@ -199,7 +199,7 @@ load_library_index(_, _) :-
 load_library_index_p :-
     index_checked_at(Time),
     get_time(Now),
-    Now-Time < 60, 
+    Now-Time < 60,
     !.
 load_library_index_p :-
     findall(Index, index_file_name(Index, [access(read)]), List0),
@@ -263,7 +263,7 @@ read_index(Index) :-
 read_index_from_stream(Dir, In) :-
     repeat,
         read(In, Term),
-        assert_index(Term, Dir), 
+        assert_index(Term, Dir),
     !.
 
 assert_index(end_of_file, _) :- !.
@@ -367,7 +367,7 @@ pattern_files([H|T], DirS, Files) :-
     pattern_files(T, DirS, Rest).
 
 library_index_out_of_date(Index, _Files) :-
-    \+ exists_file(Index), 
+    \+ exists_file(Index),
     !.
 library_index_out_of_date(Index, Files) :-
     time_file(Index, IndexTime),
@@ -376,7 +376,7 @@ library_index_out_of_date(Index, Files) :-
     ;   '$member'(File, Files),
         time_file(File, FileTime),
         FileTime > IndexTime
-    ), 
+    ),
     !.
 
 
@@ -393,7 +393,7 @@ do_make_library_index(Index, Dir, Files) :-
 
 index_error(E) :-
     silent,
-    E = error(permission_error(open, source_sink, _)), 
+    E = error(permission_error(open, source_sink, _)),
     !.
 index_error(E) :-
     print_message(error, E).

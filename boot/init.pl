@@ -340,7 +340,7 @@ not(Goal) :-
 %   ISO predicate, acting as call((Goal, !)).
 
 once(Goal) :-
-    Goal, 
+    Goal,
     !.
 
 %!  ignore(:Goal) is det.
@@ -349,7 +349,7 @@ once(Goal) :-
 %   intended for calling side-effects and proceed on failure.
 
 ignore(Goal) :-
-    Goal, 
+    Goal,
     !.
 ignore(_Goal).
 
@@ -415,7 +415,7 @@ call_continuation([TB|Rest]) :-
 :- public '$recover_and_rethrow'/2.
 
 '$recover_and_rethrow'(Goal, Exception) :-
-    call_cleanup(Goal, throw(Exception)), 
+    call_cleanup(Goal, throw(Exception)),
     !.
 
 
@@ -718,7 +718,7 @@ default_module(Me, Super) :-
 '$loading'(Library) :-
     current_prolog_flag(threads, true),
     '$loading_file'(FullFile, _Queue, _LoadThread),
-    file_name_extension(Library, _, FullFile), 
+    file_name_extension(Library, _, FullFile),
     !.
 
 %        handle debugger 'w', 'p' and <N> depth options.
@@ -775,7 +775,7 @@ default_module(Me, Super) :-
 
 '$in_reply'(Code, Atom) :-
     char_code(Char, Code),
-    sub_atom(Atom, _, _, _, Char), 
+    sub_atom(Atom, _, _, _, Char),
     !.
 
 :- dynamic
@@ -1038,7 +1038,7 @@ user:prolog_file_type(Ext,      executable) :-
     '$absolute_file_name'(Extended, FullName).
 
 '$segments_to_atom'(Atom, Atom) :-
-    atomic(Atom), 
+    atomic(Atom),
     !.
 '$segments_to_atom'(Segments, Atom) :-
     '$segments_to_list'(Segments, List, []),
@@ -1114,7 +1114,7 @@ user:prolog_file_type(Ext,      executable) :-
     '$absolute_file_name'(LibFile, FullFile).
 
 '$cache_file_found'(_, _, TimeOut, _) :-
-    TimeOut =:= 0, 
+    TimeOut =:= 0,
     !.
 '$cache_file_found'(SHA1, Now, TimeOut, FullFile) :-
     '$search_path_file_cache'(SHA1, Saved, FullFile),
@@ -1131,7 +1131,7 @@ user:prolog_file_type(Ext,      executable) :-
 'gc_file_search_cache'(TimeOut) :-
     get_time(Now),
     '$search_path_gc_time'(Last),
-    Now-Last < TimeOut/2, 
+    Now-Last < TimeOut/2,
     !.
 'gc_file_search_cache'(TimeOut) :-
     get_time(Now),
@@ -1232,7 +1232,7 @@ extensions to .ext
 
 '$canonicalise_extension'('', '') :- !.
 '$canonicalise_extension'(DotAtom, DotAtom) :-
-    sub_atom(DotAtom, 0, _, _, '.'), 
+    sub_atom(DotAtom, 0, _, _, '.'),
     !.
 '$canonicalise_extension'(Atom, DotAtom) :-
     atom_concat('.', Atom, DotAtom).
@@ -1536,7 +1536,7 @@ compiling :-
     ).
 
 '$expansion_member'(Var, Layout, Var, Layout) :-
-    var(Var), 
+    var(Var),
     !.
 '$expansion_member'([], _, _, _) :- !, fail.
 '$expansion_member'(List, ListLayout, Term, Layout) :-
@@ -1832,17 +1832,17 @@ load_files(Module:Files, Options) :-
     !,
     fail.
 '$noload'(not_loaded, FullFile, _) :-
-    source_file(FullFile), 
+    source_file(FullFile),
     !.
 '$noload'(changed, Derived, _) :-
     '$derived_source'(_FullFile, Derived, LoadTime),
     time_file(Derived, Modified),
-    Modified @=< LoadTime, 
+    Modified @=< LoadTime,
     !.
 '$noload'(changed, FullFile, Options) :-
     '$time_source_file'(FullFile, LoadTime, user),
     '$modified_id'(FullFile, Modified, Options),
-    Modified @=< LoadTime, 
+    Modified @=< LoadTime,
     !.
 
 %!  '$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
@@ -1854,11 +1854,11 @@ load_files(Module:Files, Options) :-
 %   replace this with a .qlf file.
 
 '$qlf_file'(Spec, _, Spec, stream, Options) :-
-    '$option'(stream(_), Options), 
+    '$option'(stream(_), Options),
     !.
 '$qlf_file'(Spec, FullFile, FullFile, compile, _) :-
     '$spec_extension'(Spec, Ext),
-    user:prolog_file_type(Ext, prolog), 
+    user:prolog_file_type(Ext, prolog),
     !.
 '$qlf_file'(_, FullFile, QlfFile, Mode, Options) :-
     '$compilation_mode'(database),
@@ -1939,7 +1939,7 @@ load_files(Module:Files, Options) :-
 
 '$load_file'(File, Module, Options) :-
     \+ memberchk(stream(_), Options),
-    user:prolog_load_file(Module:File, Options), 
+    user:prolog_load_file(Module:File, Options),
     !.
 '$load_file'(File, Module, Options) :-
     memberchk(stream(_), Options),
@@ -2017,11 +2017,11 @@ load_files(Module:Files, Options) :-
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
     '$loading_file'(FullFile, Queue, LoadThread),
-    \+ thread_self(LoadThread), 
+    \+ thread_self(LoadThread),
     !.
 '$mt_start_load'(FullFile, already_loaded, Options) :-
     '$option'(if(If), Options, true),
-    '$noload'(If, FullFile, Options), 
+    '$noload'(If, FullFile, Options),
     !.
 '$mt_start_load'(FullFile, Ref, _) :-
     thread_self(Me),
@@ -2238,7 +2238,7 @@ load_files(Module:Files, Options) :-
 '$enter_sandboxed'(false, true, true).
 
 '$ensure_loaded_library_sandbox' :-
-    source_file_property(library(sandbox), module(sandbox)), 
+    source_file_property(library(sandbox), module(sandbox)),
     !.
 '$ensure_loaded_library_sandbox' :-
     load_files(library(sandbox), [if(not_loaded), silent(true)]).
@@ -2393,7 +2393,7 @@ load_files(Module:Files, Options) :-
     '$load_context_module'/3.
 
 '$assert_load_context_module'(_, _, Options) :-
-    memberchk(register(false), Options), 
+    memberchk(register(false), Options),
     !.
 '$assert_load_context_module'(File, Module, Options) :-
     source_location(FromFile, Line),
@@ -2449,7 +2449,7 @@ load_files(Module:Files, Options) :-
 %   contexts.
 
 '$check_load_non_module'(File, _) :-
-    '$current_module'(_, File), 
+    '$current_module'(_, File),
     !.          % File is a module file
 '$check_load_non_module'(File, Module) :-
     '$load_context_module'(File, OldModule, _),
@@ -2801,13 +2801,13 @@ load_files(Module:Files, Options) :-
     !,
     '$canonical_pi'(PI, CPI),
     '$select'(P, List0, List),
-    '$canonical_pi'(CPI, P), 
+    '$canonical_pi'(CPI, P),
     !.
 '$import_except_1'(Except, _, _) :-
     throw(error(type_error(import_specifier, Except), _)).
 
 '$import_as'(CPI, N, [PI2|T], [CPI as N|T]) :-
-    '$canonical_pi'(PI2, CPI), 
+    '$canonical_pi'(PI2, CPI),
     !.
 '$import_as'(PI, N, [H|T0], [H|T]) :-
     !,
@@ -2948,7 +2948,7 @@ load_files(Module:Files, Options) :-
     !,
     throw(error(instantiation_error, _)).
 '$export1'(Op, _, [Op|T], T) :-
-    Op = op(_,_,_), 
+    Op = op(_,_,_),
     !.
 '$export1'(PI, Module, Ops, Ops) :-
     export(Module:PI).
@@ -3027,7 +3027,7 @@ load_files(Module:Files, Options) :-
 :- meta_predicate '$valid_directive'(:).
 
 '$valid_directive'(_) :-
-    current_prolog_flag(sandboxed_load, false), 
+    current_prolog_flag(sandboxed_load, false),
     !.
 '$valid_directive'(Goal) :-
     catch(prolog:sandbox_allowed_directive(Goal), Error, true),
@@ -3171,10 +3171,10 @@ load_files(Module:Files, Options) :-
     ).
 
 '$valid_clause'(_) :-
-    current_prolog_flag(sandboxed_load, false), 
+    current_prolog_flag(sandboxed_load, false),
     !.
 '$valid_clause'(Clause) :-
-    \+ '$cross_module_clause'(Clause), 
+    \+ '$cross_module_clause'(Clause),
     !.
 '$valid_clause'(Clause) :-
     catch(prolog:sandbox_allowed_clause(Clause), Error, true),
@@ -3236,7 +3236,7 @@ load_files(Module:Files, Options) :-
 %   @tbd    Deal with source code layout?
 
 compile_aux_clauses(_Clauses) :-
-    current_prolog_flag(xref, true), 
+    current_prolog_flag(xref, true),
     !.
 compile_aux_clauses(Clauses) :-
     source_location(File, _Line),
@@ -3331,7 +3331,7 @@ saved state.
     '$translate_options'(T0, T).
 
 '$split'(List, Split, [], Tail) :-
-    '$append'(Split, Tail, List), 
+    '$append'(Split, Tail, List),
     !.
 '$split'([H|T0], Split, [H|T], Tail) :-
     '$split'(T0, Split, T, Tail).
@@ -3513,7 +3513,7 @@ length(_, Length) :-
 %   True if Term looks like it provides options.
 
 '$is_options'(Map) :-
-    is_dict(Map, _), 
+    is_dict(Map, _),
     !.
 '$is_options'(List) :-
     is_list(List),
@@ -3587,7 +3587,7 @@ length(_, Length) :-
     user:prolog_list_goal/1.
 
 '$prolog_list_goal'(Goal) :-
-    user:prolog_list_goal(Goal), 
+    user:prolog_list_goal(Goal),
     !.
 '$prolog_list_goal'(Goal) :-
     user:listing(Goal).

@@ -179,7 +179,7 @@ dcg_body(T, P0, Q, S, SR, QTt, P) :-
     qualify(Q, Tt, P1, QTt, P).
 
 or_delay_bind(S, SR, S1, T, (T, SR=S)) :-
-    S1 == S, 
+    S1 == S,
     !.
 or_delay_bind(_S, SR, SR, T, T).
 
@@ -293,7 +293,7 @@ f1_pos(Pos0, A0, Pos, A) :- '$expand':f1_pos(Pos0, A0, Pos, A).
 %   Position transformation for mapping of {G} to (G, S=SR).
 
 dcg_bt_pos(Var, Var) :-
-    var(Var), 
+    var(Var),
     !.
 dcg_bt_pos(brace_term_position(F,T,P0),
            term_position(F,T,F,F,
@@ -304,7 +304,7 @@ dcg_bt_pos(Pos, _) :-
     expected_layout(brace_term, Pos).
 
 dcg_cut_pos(Var, Var) :-
-    var(Var), 
+    var(Var),
     !.
 dcg_cut_pos(F-T, term_position(F,T,F,T,
                                [ F-T,
@@ -316,7 +316,7 @@ dcg_cut_pos(Pos, _) :-
 %!  dcg_terminal_pos(+ListPos, -TermPos)
 
 dcg_terminal_pos(Pos, _) :-
-    var(Pos), 
+    var(Pos),
     !.
 dcg_terminal_pos(list_position(F,T,_Elms,_Tail),
                  term_position(F,T,_,_,_)).
@@ -328,7 +328,7 @@ dcg_terminal_pos(Pos, _) :-
 %!  dcg_qualify_pos(?TermPos0, ?ModuleCreatingPos, -TermPos)
 
 dcg_qualify_pos(Var, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 dcg_qualify_pos(Pos,
                 term_position(F,T,FF,FT,[MP,_]),

@@ -117,7 +117,7 @@ version(Message) :-
 
 '$load_init_file'(none) :- !.
 '$load_init_file'(Base) :-
-    loaded_init_file(Base, _), 
+    loaded_init_file(Base, _),
     !.
 '$load_init_file'(InitFile) :-
     exists_file(InitFile),
@@ -135,7 +135,7 @@ version(Message) :-
 '$load_init_file'(_).
 
 '$load_system_init_file' :-
-    loaded_init_file(system, _), 
+    loaded_init_file(system, _),
     !.
 '$load_system_init_file' :-
     '$cmd_option_val'(system_init_file, Base),
@@ -152,12 +152,12 @@ version(Message) :-
     load_files(user:Path,
                [ silent(true),
                  scope_settings(false)
-               ]), 
+               ]),
     !.
 '$load_system_init_file'.
 
 '$load_script_file' :-
-    loaded_init_file(script, _), 
+    loaded_init_file(script, _),
     !.
 '$load_script_file' :-
     '$cmd_option_val'(script_file, OsFiles),
@@ -238,7 +238,7 @@ prolog:message(initialize_now(Goal, Use)) -->
 
 thread_initialization(Goal) :-
     assert('$at_thread_initialization'(Goal)),
-    call(Goal), 
+    call(Goal),
     !.
 
 '$thread_init' :-
@@ -309,7 +309,7 @@ path_sep -->
     (   atom(Alias)
     ;   functor(Alias, F, 1),
         F \== /
-    ), 
+    ),
     !.
 '$make_alias'(Chars, Alias) :-
     atom_chars(Alias, Chars).
@@ -342,7 +342,7 @@ no_option_files([OsScript|Argv], Argv, [Script]) :-
                 get_char(In, '!')
               ),
               close(In)),
-          _, fail), 
+          _, fail),
     !.
 no_option_files([OsFile|Argv0], Argv, [File|T]) :-
     file_name_extension(_, Ext, OsFile),
@@ -665,7 +665,7 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
       catch(call_expand_query(Query, ExpandedQuery,
                               Bindings, ExpandedBindings),
             Error,
-            (print_message(error, Error), fail)), 
+            (print_message(error, Error), fail)),
     !.
 
 
@@ -741,7 +741,7 @@ skip_to_nl(In) :-
     ->  get_char(In, _),
         C == '\n'
     ;   true
-    ), 
+    ),
     !.
 
 remove_history_prompt('', '') :- !.
@@ -849,7 +849,7 @@ restore_debug :-
     '$append'(Pre, S0, Old),
     '$append'(FromCodes, Post, S0) ->
     '$append'(Pre, T0, S1),
-    '$append'(S1, Post, New), 
+    '$append'(S1, Post, New),
     !.
 '$substitute'(_, _, Old, Old).
 
@@ -1176,7 +1176,7 @@ omit_qualifier(G0, TypeIn, G) :-
     omit_meta_qualifiers(G0, TypeIn, G).
 
 omit_meta_qualifiers(V, _, V) :-
-    var(V), 
+    var(V),
     !.
 omit_meta_qualifiers((QA,QB), TypeIn, (A,B)) :-
     !,
@@ -1394,10 +1394,10 @@ print_predicate(0'p, [print], [ quoted(true),
 :- user:multifile(expand_query/4).
 
 call_expand_query(Goal, Expanded, Bindings, ExpandedBindings) :-
-    user:expand_query(Goal, Expanded, Bindings, ExpandedBindings), 
+    user:expand_query(Goal, Expanded, Bindings, ExpandedBindings),
     !.
 call_expand_query(Goal, Expanded, Bindings, ExpandedBindings) :-
-    toplevel_variables:expand_query(Goal, Expanded, Bindings, ExpandedBindings), 
+    toplevel_variables:expand_query(Goal, Expanded, Bindings, ExpandedBindings),
     !.
 call_expand_query(Goal, Goal, Bindings, Bindings).
 
@@ -1406,9 +1406,9 @@ call_expand_query(Goal, Goal, Bindings, Bindings).
 :- user:multifile(expand_answer/2).
 
 call_expand_answer(Goal, Expanded) :-
-    user:expand_answer(Goal, Expanded), 
+    user:expand_answer(Goal, Expanded),
     !.
 call_expand_answer(Goal, Expanded) :-
-    toplevel_variables:expand_answer(Goal, Expanded), 
+    toplevel_variables:expand_answer(Goal, Expanded),
     !.
 call_expand_answer(Goal, Goal).

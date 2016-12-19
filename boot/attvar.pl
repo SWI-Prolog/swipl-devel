@@ -110,7 +110,7 @@ unfreeze(Goal) :-
     freeze(?, 0).
 
 freeze(Var, Goal) :-
-    '$freeze'(Var, Goal), 
+    '$freeze'(Var, Goal),
     !.        % Succeeds if delayed
 freeze(_, Goal) :-
     Goal.

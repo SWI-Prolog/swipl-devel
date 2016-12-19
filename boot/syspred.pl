@@ -117,7 +117,7 @@ map_bits(_, Term, _, _) :-
     '$type_error'('+|-|?(Flag)', Term).
 
 bit(Pred, Name, Bits) :-
-    call(Pred, Name, Bits), 
+    call(Pred, Name, Bits),
     !.
 bit(_:Pred, Name, _) :-
     '$domain_error'(Pred, Name).
@@ -302,7 +302,7 @@ spy(M:[H|T]) :-
     spy(M:H),
     spy(M:T).
 spy(Spec) :-
-    notrace(prolog:debug_control_hook(spy(Spec))), 
+    notrace(prolog:debug_control_hook(spy(Spec))),
     !.
 spy(Spec) :-
     '$find_predicate'(Spec, Preds),
@@ -322,7 +322,7 @@ nospy(M:[H|T]) :-
     nospy(M:H),
     nospy(M:T).
 nospy(Spec) :-
-    notrace(prolog:debug_control_hook(nospy(Spec))), 
+    notrace(prolog:debug_control_hook(nospy(Spec))),
     !.
 nospy(Spec) :-
     '$find_predicate'(Spec, Preds),
@@ -352,7 +352,7 @@ pi_to_head(Name/Arity, Head) :-
 %   Report current status of the debugger.
 
 debugging :-
-    notrace(prolog:debug_control_hook(debugging)), 
+    notrace(prolog:debug_control_hook(debugging)),
     !.
 debugging :-
     current_prolog_flag(debug, true),
@@ -731,12 +731,12 @@ current_predicate(Name, Module:Head) :-
     generate_current_predicate(Name, Module, Head).
 current_predicate(Name, Term) :-
     '$c_current_predicate'(Name, Term),
-    '$defined_predicate'(Term), 
+    '$defined_predicate'(Term),
     !.
 current_predicate(Name, Module:Head) :-
     default_module(Module, DefModule),
     '$c_current_predicate'(Name, DefModule:Head),
-    '$defined_predicate'(DefModule:Head), 
+    '$defined_predicate'(DefModule:Head),
     !.
 current_predicate(Name, Module:Head) :-
     current_prolog_flag(autoload, true),
@@ -745,7 +745,7 @@ current_predicate(Name, Module:Head) :-
     ->  compound_name_arity(Head, Name, Arity)
     ;   Name = Head, Arity = 0
     ),
-    '$find_library'(Module, Name, Arity, _LoadModule, _Library), 
+    '$find_library'(Module, Name, Arity, _LoadModule, _Library),
     !.
 
 generate_current_predicate(Name, Module, Head) :-
@@ -755,7 +755,7 @@ generate_current_predicate(Name, Module, Head) :-
     '$get_predicate_attribute'(QHead, defined, 1).
 
 '$defined_predicate'(Head) :-
-    '$get_predicate_attribute'(Head, defined, 1), 
+    '$get_predicate_attribute'(Head, defined, 1),
     !.
 
 %!  predicate_property(?Predicate, ?Property) is nondet.
@@ -839,7 +839,7 @@ goal_name_arity(Head, Head, 0).
 define_or_generate(M:Head) :-
     callable(Head),
     atom(M),
-    '$get_predicate_attribute'(M:Head, defined, 1), 
+    '$get_predicate_attribute'(M:Head, defined, 1),
     !.
 define_or_generate(M:Head) :-
     callable(Head),
@@ -1159,7 +1159,7 @@ shell(Command) :-
 :- if(current_prolog_flag(windows, true)).
 :- export(win_add_dll_directory/1).
 win_add_dll_directory(Dir) :-
-    win_add_dll_directory(Dir, _), 
+    win_add_dll_directory(Dir, _),
     !.
 win_add_dll_directory(Dir) :-
     prolog_to_os_filename(Dir, OSDir),

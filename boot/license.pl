@@ -174,7 +174,7 @@ license(License, File) :-
     assertz(licensed(License, File)).
 
 warn_if_unknown(License) :-
-    license(License, _, _), 
+    license(License, _, _),
     !.
 warn_if_unknown(License) :-
     print_message(warning, unknown_license(License)).

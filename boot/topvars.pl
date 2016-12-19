@@ -86,10 +86,10 @@ bind_vars([Name=Value|Rest]) :-
 %   terms for toplevel variables that are bound to non-ground terms.
 
 expand_vars(_, Var, Var) -->
-    { var(Var) }, 
+    { var(Var) },
     !.
 expand_vars(_, Atomic, Atomic) -->
-    { atomic(Atomic) }, 
+    { atomic(Atomic) },
     !.
 expand_vars(Bindings, $(Var), Value) -->
     { name_var(Var, Bindings, Name),
@@ -117,7 +117,7 @@ expand_args(Arg0, End, Bindings, T0, T) -->
     expand_args(Arg1, End, Bindings, T0, T).
 
 name_var(Var, [VarName = TheVar|_], VarName) :-
-    Var == TheVar, 
+    Var == TheVar,
     !.
 name_var(Var, [_|T], Name) :-
     name_var(Var, T, Name).

@@ -58,12 +58,12 @@
     correct_goal(Goal, M, Bindings, Corrected).
 
 correct_goal(Goal, M, _, M:Goal) :-
-    var(Goal), 
+    var(Goal),
     !.
 correct_goal(Module:Goal, _, _, Module:Goal) :-
     (   var(Module)
     ;   var(Goal)
-    ), 
+    ),
     !.
 correct_goal(Vars^Goal0, M, Bindings, Vars^Goal) :-   % setof/bagof
     !,
@@ -261,27 +261,27 @@ bind_vars([Name=Var|T]) :-
     name_arity(S, Name, Arity),
     findall(Name/Arity,
             '$in_library'(Name, Arity, _Path), List),
-    List \== [], 
+    List \== [],
     !.
 '$find_predicate'(Spec, _) :-
     existence_error(Spec).
 
 find_predicate(Module, Name, Arity, VList) :-
     findall(Head, find_predicate_(Module, Name, Arity, Head), VList),
-    VList \== [], 
+    VList \== [],
     !.
 find_predicate(Module, Name, Arity, Pack) :-
     findall(PI, find_sim_pred(Module, Name, Arity, PI), List),
     pack(List, Module, Arity, Packs),
     '$member'(Dwim-Pack, Packs),
-    '$confirm'(dwim_correct(Dwim)), 
+    '$confirm'(dwim_correct(Dwim)),
     !.
 
 unqualify_if_context(_, X, X) :-
-    var(X), 
+    var(X),
     !.
 unqualify_if_context(C, C2:X, X) :-
-    C == C2, 
+    C == C2,
     !.
 unqualify_if_context(_, X, X) :- !.
 
@@ -305,13 +305,13 @@ pack_(Module, Arity, Name, List, [H|R], Rest) :-
 pack_(_, _, _, _, Rest, [], Rest).
 
 pack_name(_:Name/_, M, A,   Name) :-
-    var(M), var(A), 
+    var(M), var(A),
     !.
 pack_name(M:Name/_, _, A, M:Name) :-
-    var(A), 
+    var(A),
     !.
 pack_name(_:PI, M, _, PI)   :-
-    var(M), 
+    var(M),
     !.
 pack_name(QPI, _, _, QPI).
 
@@ -332,7 +332,7 @@ sim_module(M, Module) :-
     !,
     current_module(Module).
 sim_module(M, M) :-
-    current_module(M), 
+    current_module(M),
     !.
 sim_module(M, Module) :-
     current_module(Module),
@@ -347,7 +347,7 @@ sim_arity(A, D) :- abs(A-D) < 2.
 %   this is not a legal specification.
 
 name_arity(Atom, Atom, _) :-
-    atom(Atom), 
+    atom(Atom),
     !.
 name_arity(Name/Arity, Name, Arity) :- !.
 name_arity(Name//DCGArity, Name, Arity) :-
@@ -446,13 +446,13 @@ dwim_predicate(Head, DWIM) :-
     '$member'(DWIM, DWIMs).
 
 dwim_predicate_list(Head, [Head]) :-
-    current_predicate(_, Head), 
+    current_predicate(_, Head),
     !.
 dwim_predicate_list(M:Head, DWIMs) :-
-    setof(DWIM, dwim_pred(M:Head, DWIM), DWIMs), 
+    setof(DWIM, dwim_pred(M:Head, DWIM), DWIMs),
     !.
 dwim_predicate_list(Head, DWIMs) :-
-    setof(DWIM, '$similar_module'(Head, DWIM), DWIMs), 
+    setof(DWIM, '$similar_module'(Head, DWIM), DWIMs),
     !.
 dwim_predicate_list(_:Goal, DWIMs) :-
     setof(Module:Goal,

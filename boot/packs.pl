@@ -79,7 +79,7 @@ user:file_search_path(foreign, PackLib) :-
 %   Attach the given package
 
 '$pack_attach'(Dir) :-
-    attach_package(Dir), 
+    attach_package(Dir),
     !.
 '$pack_attach'(Dir) :-
     (   exists_directory(Dir)
@@ -137,7 +137,7 @@ attach_packages([H|T], Dir) :-
 attach_package(Entry, Dir) :-
     \+ special(Entry),
     atom_concat(Dir, Entry, PackDir),
-    attach_package(PackDir), 
+    attach_package(PackDir),
     !.
 attach_package(_, _).
 

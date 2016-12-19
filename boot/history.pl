@@ -56,7 +56,7 @@ read_history(History, Help, DontStore, Prompt, Term, Bindings) :-
     repeat,
         prompt_history(Prompt),
         '$toplevel':read_query_line(user_input, Raw),
-        read_history_(History, Help, DontStore, Raw, Term, Bindings), 
+        read_history_(History, Help, DontStore, Raw, Term, Bindings),
     !.
 
 read_history_(History, _, _, History, _, _) :-
@@ -144,7 +144,7 @@ substitute(Old, New, String, Substituted) :-
     '$append'(Old, Tail, OldAndTail),
     !,
     '$append'(Head, New, HeadAndNew),
-    '$append'(HeadAndNew, Tail, Substituted), 
+    '$append'(HeadAndNew, Tail, Substituted),
     !.
 
 %   save_event(+Event)
@@ -157,12 +157,12 @@ save_history_line(Line) :-
            [ Line, [partial(true)],
              '.', [partial(true)]
            ]),
-    catch(user:rl_add_history(CompleteLine), _, fail), 
+    catch(user:rl_add_history(CompleteLine), _, fail),
     !.
 save_history_line(_).
 
 save_event(Dont, Event) :-
-    memberchk(Event, Dont), 
+    memberchk(Event, Dont),
     !.
 save_event(_, Event) :-
     '$save_history'(Event).
@@ -180,11 +180,11 @@ save_event(_, Event) :-
     remove_history(New, Depth).
 
 remove_history(New, Depth) :-
-    New - Depth =< 0, 
+    New - Depth =< 0,
     !.
 remove_history(New, Depth) :-
     Remove is New - Depth,
-    retract('$history'(Remove, _)), 
+    retract('$history'(Remove, _)),
     !.
 remove_history(_, _).
 
@@ -194,7 +194,7 @@ remove_history(_, _).
 history_depth_(N) :-
     current_prolog_flag(history, N),
     integer(N),
-    N > 0, 
+    N > 0,
     !.
 history_depth_(25).
 
@@ -212,7 +212,7 @@ history_depth_(25).
 expand_history(Raw, Expanded, Changed) :-
     atom_chars(Raw, RawString),
     expand_history2(RawString, ExpandedString, Changed),
-    atom_chars(Expanded, ExpandedString), 
+    atom_chars(Expanded, ExpandedString),
     !.
 
 expand_history2([!], [!], false) :- !.
@@ -256,7 +256,7 @@ skip_quoted([], _, [], [], []).
 
 get_last_event(Event) :-
     '$history'(_, Atom),
-    atom_chars(Atom, Event), 
+    atom_chars(Atom, Event),
     !.
 get_last_event(_) :-
     print_message(query, history(no_event)),
@@ -267,7 +267,7 @@ get_last_event(_) :-
 %   and what is left of Spec as Rest.
 
 match_event(Spec, Event, Rest) :-
-    find_event(Spec, Event, Rest), 
+    find_event(Spec, Event, Rest),
     !.
 match_event(_, _, _) :-
     print_message(query, history(no_event)),
@@ -312,5 +312,5 @@ take_number([], [], []).
 matching_event(String, Event) :-
     '$history'(_, AtomEvent),
     atom_chars(AtomEvent, Event),
-    '$append'(String, _, Event), 
+    '$append'(String, _, Event),
     !.

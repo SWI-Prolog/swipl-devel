@@ -199,7 +199,7 @@ expand_body(_, Head, Pos, Head, Pos).
 %   source-location.
 
 expand_terms(_, X, P, X, P) :-
-    var(X), 
+    var(X),
     !.
 expand_terms(C, List0, Pos0, List, Pos) :-
     nonvar(List0),
@@ -275,7 +275,7 @@ append_tp([H|T0], [H|T1], Terms, Pos, [Pos|TP1], PosL) :-
 
 
 list_pos(Var, _, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 list_pos(list_position(F,T,Elems0,none), Elems0,
          list_position(F,T,Elems,none),  Elems).
@@ -453,7 +453,7 @@ expand_goal(A, P0, B, P) :-
     '$def_modules'([goal_expansion/4, goal_expansion/2], MList),
     (   expand_goal(A, P0, B, P, MList, _)
     ->  remove_attributes(B, '$var_info'), A \== B
-    ), 
+    ),
     !.
 expand_goal(A, P, A, P).
 
@@ -499,10 +499,10 @@ expand_goal(G0, P0, G, P, MList, Term) :-
 %         ==
 
 expand_goal(G, P, G, P, _, _, _) :-
-    var(G), 
+    var(G),
     !.
 expand_goal(M:G, P, M:G, P, _M, _MList, _Term) :-
-    var(M), var(G), 
+    var(M), var(G),
     !.
 expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
     atom(M),
@@ -591,7 +591,7 @@ fixup_or_lhs(Old, New, PNew, Fix, PFixed) :-
 fixup_or_lhs(_Old, New, P, New, P).
 
 lhs_pos(P0, _) :-
-    var(P0), 
+    var(P0),
     !.
 lhs_pos(P0, term_position(F,T,T,T,[P0,T-T])) :-
     arg(1, P0, F),
@@ -650,19 +650,19 @@ mapex([E|L], E) :- mapex(L, E).
 %   Pos is the result of adding N extra positions to Pos0.
 
 extended_pos(Var, _, Var) :-
-    var(Var), 
+    var(Var),
     !.
 extended_pos(term_position(F,T,FF,FT,Args),
              _,
              term_position(F,T,FF,FT,Args)) :-
-    var(Args), 
+    var(Args),
     !.
 extended_pos(term_position(F,T,FF,FT,Args0),
              N,
              term_position(F,T,FF,FT,Args)) :-
     length(Ex, N),
     mapex(Ex, T-T),
-    '$append'(Args0, Ex, Args), 
+    '$append'(Args0, Ex, Args),
     !.
 extended_pos(F-T,
              N,
@@ -739,7 +739,7 @@ wrap_meta_arguments(A0, M, VL, Ex, A) :-
 %   for such arguments.
 
 extend_arg_pos(A, P, _, A, P) :-
-    var(A), 
+    var(A),
     !.
 extend_arg_pos(M:A0, P0, Ex, M:A, P) :-
     !,
@@ -772,7 +772,7 @@ extend_term(Term0, Extra, Term) :-
 %   @see wrap_meta_arguments/5
 
 remove_arg_pos(A, P, _, _, _, A, P) :-
-    var(A), 
+    var(A),
     !.
 remove_arg_pos(M:A0, P0, _, VL, Ex, M:A, P) :-
     !,
@@ -803,7 +803,7 @@ wrap_meta_pos(P0, P) :-
 
 has_meta_arg(Head) :-
     arg(_, Head, Arg),
-    direct_call_meta_arg(Arg), 
+    direct_call_meta_arg(Arg),
     !.
 
 direct_call_meta_arg(I) :- integer(I).
@@ -814,7 +814,7 @@ meta_arg(//).
 meta_arg(I) :- integer(I).
 
 expand_setof_goal(Var, Pos, Var, Pos, _, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 expand_setof_goal(V^G, P0, V^EG, P, M, MList, Term) :-
     !,
@@ -921,7 +921,7 @@ expand_functional_notation(G0, P0, G, P, M, _MList, _Term) :-
 expand_functional_notation(G, P, G, P, _, _, _).
 
 wrap_var(G, P, G, P) :-
-    nonvar(G), 
+    nonvar(G),
     !.
 wrap_var(G, P0, call(G), P) :-
     (   nonvar(P0)
@@ -963,7 +963,7 @@ replace_functions(GoalIn, Eval, GoalOut, Context) :-
     replace_functions(GoalIn, _, Eval, _, GoalOut, _, Context).
 
 replace_functions(Var, Pos, true, _, Var, Pos, _Ctx) :-
-    var(Var), 
+    var(Var),
     !.
 replace_functions(F, FPos, Eval, EvalPos, Var, VarPos, Ctx) :-
     function(F, Ctx),
@@ -1009,7 +1009,7 @@ conj(X, Y, (X,Y)).
 conj(true, _, X, P, X, P) :- !.
 conj(X, P, true, _, X, P) :- !.
 conj(X, PX, Y, PY, (X,Y), _) :-
-    var(PX), var(PY), 
+    var(PX), var(PY),
     !.
 conj(X, PX, Y, PY, (X,Y), P) :-
     P = term_position(F,T,FF,FT,[PX,PY]),
@@ -1052,7 +1052,7 @@ expand_arithmetic(_G0, _P0, _G, _P, _Term) :- fail.
 %   Position progapation routines.
 
 f2_pos(Var, _, _, _, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 f2_pos(term_position(F,T,FF,FT,[A10,A20]), A10, A20,
        term_position(F,T,FF,FT,[A1, A2 ]), A1,  A2) :- !.
@@ -1064,7 +1064,7 @@ f2_pos(Pos, _, _, _, _, _) :-
     expected_layout(f2, Pos).
 
 f1_pos(Var, _, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 f1_pos(term_position(F,T,FF,FT,[A10]), A10,
        term_position(F,T,FF,FT,[A1 ]),  A1) :- !.
@@ -1076,7 +1076,7 @@ f1_pos(Pos, _, _, _) :-
     expected_layout(f1, Pos).
 
 f_pos(Var, _, _, _) :-
-    var(Var), 
+    var(Var),
     !.
 f_pos(term_position(F,T,FF,FT,ArgPos0), ArgPos0,
       term_position(F,T,FF,FT,ArgPos),  ArgPos) :- !.
@@ -1088,7 +1088,7 @@ f_pos(Pos, _, _, _) :-
     expected_layout(compound, Pos).
 
 atomic_pos(Pos, _) :-
-    var(Pos), 
+    var(Pos),
     !.
 atomic_pos(Pos, F-T) :-
     arg(1, Pos, F),
@@ -1114,7 +1114,7 @@ pos_list(Pos, _, _, _, _, _) :-
 %   Deal with extending a function to include the return value.
 
 extend_1_pos(Pos, _, _, _, _) :-
-    var(Pos), 
+    var(Pos),
     !.
 extend_1_pos(term_position(F,T,FF,FT,FArgPos), FArgPos,
              term_position(F,T,FF,FT,GArgPos), GArgPos0,
@@ -1134,7 +1134,7 @@ extend_1_pos(Pos, _, _, _, _) :-
     expected_layout(callable, Pos).
 
 '$same_length'(List, List) :-
-    var(List), 
+    var(List),
     !.
 '$same_length'([], []).
 '$same_length'([_|T0], [_|T]) :-
@@ -1169,10 +1169,10 @@ expected_layout(_, _).
 %   @tbd    Turn this into a separate module
 
 simplify(Control, P, Control, P) :-
-    current_prolog_flag(optimise, false), 
+    current_prolog_flag(optimise, false),
     !.
 simplify(Control, P0, Simple, P) :-
-    simple(Control, P0, Simple, P), 
+    simple(Control, P0, Simple, P),
     !.
 simplify(Control, P, Control, P).
 
@@ -1239,15 +1239,15 @@ eval_false(false).
 %   Compile (complex) meta-calls into a clause.
 
 compile_meta_call(CallIn, CallIn, _, Term) :-
-    var(Term), 
+    var(Term),
     !.                   % explicit call; no context
 compile_meta_call(CallIn, CallIn, _, _) :-
-    var(CallIn), 
+    var(CallIn),
     !.
 compile_meta_call(CallIn, CallIn, _, _) :-
     (   current_prolog_flag(compile_meta_arguments, false)
     ;   current_prolog_flag(xref, true)
-    ), 
+    ),
     !.
 compile_meta_call(CallIn, CallIn, _, _) :-
     strip_module(CallIn, _, Call),
@@ -1257,7 +1257,7 @@ compile_meta_call(CallIn, CallIn, _, _) :-
             \+ current_prolog_flag(compile_meta_arguments, always)
         ;   current_prolog_flag(compile_meta_arguments, control)
         )
-    ), 
+    ),
     !.
 compile_meta_call(M:CallIn, CallOut, _, Term) :-
     !,
@@ -1331,7 +1331,7 @@ member_eq(E, [H|T]) :-
     prolog:rename_predicate/2.
 
 rename(Var, Var) :-
-    var(Var), 
+    var(Var),
     !.
 rename(end_of_file, end_of_file) :- !.
 rename(Terms0, Terms) :-
@@ -1341,7 +1341,7 @@ rename(Terms0, Terms) :-
     rename_preds(Terms0, Terms, M).
 rename(Term0, Term) :-
     '$current_source_module'(M),
-    rename(Term0, Term, M), 
+    rename(Term0, Term, M),
     !.
 rename(Term, Term).
 
@@ -1354,7 +1354,7 @@ rename_preds([H0|T0], [H|T], M) :-
     rename_preds(T0, T, M).
 
 rename(Var, Var, _) :-
-    var(Var), 
+    var(Var),
     !.
 rename(M:Term0, M:Term, M0) :-
     !,
@@ -1372,7 +1372,7 @@ rename(Head0, Head, M) :-
     rename_head(Head0, Head, M).
 
 rename_head(Var, Var, _) :-
-    var(Var), 
+    var(Var),
     !.
 rename_head(M:Term0, M:Term, _) :-
     !,
