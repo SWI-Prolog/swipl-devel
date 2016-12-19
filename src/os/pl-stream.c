@@ -2084,6 +2084,12 @@ ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
 	  fe = fs+__r; \
 	}
 
+typedef enum
+{ INT_INT       = 0,
+  INT_LONG      = 1,
+  INT_LONG_LONG = 2,
+  INT_SIZE_T    = 3
+} int_type;
 
 int
 Svfprintf(IOSTREAM *s, const char *fm, va_list args)
@@ -2154,12 +2160,16 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	}
 
 	if ( *fm == 'l' )
-	{ islong++;			/* 1: %ld */
+	{ islong = INT_LONG;		/* 1: %ld */
 	  fm++;
 	}
 	switch ( *fm )
 	{ case 'l':
-	    islong++;			/* 2: %lld */
+	    islong = INT_LONG_LONG;	/* 2: %lld */
+	    fm++;
+	    break;
+	  case 'z':
+	    islong = INT_SIZE_T;
 	    fm++;
 	    break;
 	  case 'U':			/* %Us: UTF-8 string */
@@ -2200,14 +2210,17 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    char fmbuf[8], *fp=fmbuf;
 
 	    switch( islong )
-	    { case 0:
+	    { case INT_INT:
 		vi = va_arg(args, int);
 	        break;
-	      case 1:
+	      case INT_LONG:
 		vl = va_arg(args, long);
 	        break;
-	      case 2:
+	      case INT_LONG_LONG:
 	        vll = va_arg(args, int64_t);
+		break;
+	      case INT_SIZE_T:
+	        vll = va_arg(args, size_t);
 		break;
 	      default:
 		assert(0);
@@ -2217,18 +2230,19 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    if ( modified )
 	      *fp++ = '#';
 	    switch( islong )
-	    { case 0:
+	    { case INT_INT:
 		*fp++ = *fm;
 	        *fp   = '\0';
 		SNPRINTF3(fmbuf, vi);
 		break;
-	      case 1:
+	      case INT_LONG:
 		*fp++ = 'l';
 	        *fp++ = *fm;
 		*fp   = '\0';
 		SNPRINTF3(fmbuf, vl);
 		break;
-	      case 2:
+	      case INT_LONG_LONG:
+	      case INT_SIZE_T:
 #ifdef __WINDOWS__
 	        *fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
 	        *fp++ = '6';
