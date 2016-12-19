@@ -234,7 +234,11 @@ requires_library((:- pce_begin_class(_,_,_)),      library(pce)).
 update_state(Raw, _, _) :-
     Raw == (:- pce_end_class),
     !,
-    pce_expansion:pop_compile_operators.
+    ignore(pce_expansion:pop_compile_operators).
+update_state(Raw, _, SM) :-
+    subsumes_term((:- pce_extend_class(_)), Raw),
+    !,
+    pce_expansion:push_compile_operators(SM).
 update_state(_Raw, Expanded, M) :-
     update_state(Expanded, M).
 
