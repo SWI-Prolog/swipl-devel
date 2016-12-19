@@ -2254,6 +2254,18 @@ term_colours((_,_),
                        classify
                      ]).
 
+%!  specified_item(+Specified, +Term, +TB, +TermPosition) is det.
+%
+%   Colourise an item that is explicitly   classified  by the user using
+%   term_colours/2 or goal_colours/2.
+
+specified_item(_Class, _Term, _TB, Pos) :-
+    var(Pos),
+    !.
+specified_item(Class, Term, TB, parentheses_term_position(PO,PC,Pos)) :-
+    !,
+    colour_item(parentheses, TB, PO-PC),
+    specified_item(Class, Term, TB, Pos).
 specified_item(_, Var, TB, Pos) :-
     (   var(Var)
     ;   qq_position(Pos)
