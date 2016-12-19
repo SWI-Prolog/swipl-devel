@@ -2099,6 +2099,7 @@ load_files(Module:Files, Options) :-
     '$set_verbose_load'(Options, OldVerbose),
     '$update_autoload_level'(Options, OldAutoLevel),
     '$save_file_scoped_flags'(ScopedFlags),
+    set_prolog_flag(xref, false),
 
     '$compilation_level'(Level),
     '$load_msg_level'(load_file, Level, StartMsgLevel, DoneMsgLevel),
@@ -2161,11 +2162,15 @@ load_files(Module:Files, Options) :-
 '$save_file_scoped_flags'([]).
 
 '$save_file_scoped_flag'(Flag-Value) :-
-    '$file_scoped_flag'(Flag),
-    current_prolog_flag(Flag, Value).
+    '$file_scoped_flag'(Flag, Default),
+    (   current_prolog_flag(Flag, Value)
+    ->  true
+    ;   Value = Default
+    ).
 
-'$file_scoped_flag'(generate_debug_info).
-'$file_scoped_flag'(optimise).
+'$file_scoped_flag'(generate_debug_info, true).
+'$file_scoped_flag'(optimise,            false).
+'$file_scoped_flag'(xref,                false).
 
 '$restore_file_scoped_flags'([]).
 '$restore_file_scoped_flags'([Flag-Value|T]) :-

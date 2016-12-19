@@ -1819,6 +1819,13 @@ Available and set to \const{true} if the XPCE graphics system is loaded.
 
     \prologflagitem{xpce_version}{atom}{r}
 Available and set to the version of the loaded XPCE system.
+
+    \prologflagitem{xref}{bool}{rw}
+If \const{true}, source code is being read for \emph{analysis} purposes
+such as cross-referencing.  Otherwise (default) it is being read to be
+compiled.  This flag is used at several places by term_expansion/2 and
+goal_expansion/2 hooks, notably if these hooks use side effects.  See
+also the libraries \pllib{prolog_source} and \pllib{prolog_xref}.
 \end{description}
 
     \predicate[ISO]{set_prolog_flag}{2}{:Key, +Value}
