@@ -1261,6 +1261,48 @@ PL_unregister_atom(atom_t a)
 #define PL_register_atom error		/* prevent using them after this */
 #define PL_unregister_atom error
 
+
+		 /*******************************
+		 *	      CHECK		*
+		 *******************************/
+#if O_DEBUG
+
+int
+checkAtoms(void)
+{ size_t index;
+  int i, last=FALSE;
+  int errors = 0;
+
+  for(index=1, i=0; !last; i++)
+  { size_t upto = (size_t)2<<i;
+    Atom b = GD->atoms.array.blocks[i];
+
+    if ( upto >= GD->atoms.highest )
+    { upto = GD->atoms.highest;
+      last = TRUE;
+    }
+
+    for(; index<upto; index++)
+    { Atom a = b + index;
+
+      if ( ATOM_IS_VALID(a->references) )
+      { if ( !a->type || !a->name || (int)ATOM_REF_COUNT(a->references) < 0 )
+	{ size_t bs = (size_t)1<<i;
+	  Sdprintf("Invalid atom %p at index %zd in block at %p (size %d)\n",
+		   a, index, b+bs, bs);
+	  errors++;
+	  trap_gdb();
+	}
+      }
+    }
+  }
+
+  return errors == 0;
+}
+
+#endif /*O_DEBUG*/
+
+
 		 /*******************************
 		 *	    REHASH TABLE	*
 		 *******************************/
