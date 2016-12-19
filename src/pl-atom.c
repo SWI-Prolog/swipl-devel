@@ -1227,6 +1227,8 @@ PL_unregister_atom(atom_t a)
   { Atom p;
 
     p = fetchAtomArray(index);
+    assert(ATOM_IS_VALID(p->references));
+
 #ifdef ATOMIC_REFERENCES
     if ( GD->atoms.gc_active )
     { unsigned int oldref, newref;
