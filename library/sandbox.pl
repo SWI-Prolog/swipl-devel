@@ -481,6 +481,10 @@ safe_primitive(ground(_)).
 safe_primitive(system:cyclic_term(_)).
 safe_primitive(acyclic_term(_)).
 safe_primitive(system:is_stream(_)).
+safe_primitive(system:'$is_char'(_)).
+safe_primitive(system:'$is_char_code'(_)).
+safe_primitive(system:'$is_char_list'(_,_)).
+safe_primitive(system:'$is_code_list'(_,_)).
                                         % ordering
 safe_primitive(@>(_,_)).
 safe_primitive(@>=(_,_)).
