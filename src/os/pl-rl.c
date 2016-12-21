@@ -69,6 +69,8 @@ SWI-Prolog.h and SWI-Stream.h
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H) && !defined(DMALLOC)
 
+static IOFUNCTIONS	rl_functions;	/* IO+Terminal+Readline functions */
+
 #if defined(HAVE_POLL_H) && defined(HAVE_POLL)
 #include <poll.h>
 #elif defined(HAVE_SYS_SELECT_H)
@@ -644,12 +646,12 @@ PL_install_readline(void)
   rl_set_keyboard_input_timeout(20000);
 #endif
 
-  GD->os.rl_functions = *Sinput->functions;	/* structure copy */
-  GD->os.rl_functions.read = Sread_readline;	/* read through readline */
+  rl_functions = *Sinput->functions;	/* structure copy */
+  rl_functions.read = Sread_readline;	/* read through readline */
 
-  Sinput->functions  = &GD->os.rl_functions;
-  Soutput->functions = &GD->os.rl_functions;
-  Serror->functions  = &GD->os.rl_functions;
+  Sinput->functions  = &rl_functions;
+  Soutput->functions = &rl_functions;
+  Serror->functions  = &rl_functions;
 
 #define PRED(name, arity, func, attr) \
 	PL_register_foreign_in_module("system", name, arity, func, attr)

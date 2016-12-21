@@ -257,7 +257,6 @@ struct PL_global_data
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
     IOFUNCTIONS		org_terminal;	/* IO+Prolog terminal functions */
-    IOFUNCTIONS		rl_functions;	/* IO+Terminal+Readline functions */
   } os;
 
   struct
