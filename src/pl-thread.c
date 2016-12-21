@@ -157,8 +157,6 @@ for now. The USE_SEM_OPEN define  is  set   by  configure  based  on the
 substring "darwin" in the architecture identifier.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static sem_t *sem_mark_ptr;
-
 #define sem_init(ptr, flags, val) my_sem_open(&ptr, val)
 #define sem_destroy(ptr)	  ((void)0)
 
@@ -6167,6 +6165,17 @@ syscall interface works. This might  be   because  the  kernel is fairly
 up-to-date, but the C library is very much out of data (glibc 2.3)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef SIG_SYNCTIME
+#define SIG_SYNCTIME SIGUSR1
+#endif
+
+#ifdef USE_SEM_OPEN
+static sem_t *sem_synctime_ptr;
+#else
+static sem_t sem_synctime;			/* used for atom-gc */
+#define sem_synctime_ptr (&sem_synctime)
+#endif
+
 #ifdef LINUX_CPUCLOCKS
 #define NO_THREAD_SYSTEM_TIME 1
 
@@ -6185,7 +6194,7 @@ SyncUserCPU(int sig)
   }
 
   if ( sig )
-    sem_post(sem_mark_ptr);
+    sem_post(sem_synctime_ptr);
 }
 
 
@@ -6204,7 +6213,7 @@ SyncUserCPU(int sig)
   if ( LD )
     LD->statistics.user_cputime = CpuTime(CPU_USER);
   if ( sig )
-    sem_post(sem_mark_ptr);
+    sem_post(sem_synctime_ptr);
 }
 
 
@@ -6215,7 +6224,7 @@ SyncSystemCPU(int sig)
   if ( LD )
     LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
   if ( sig )
-    sem_post(sem_mark_ptr);
+    sem_post(sem_synctime_ptr);
 }
 
 #endif  /*LINUX_CPUCLOCKS*/
@@ -6243,25 +6252,25 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
     int ok;
 
     blockSignals(&set);
-    sem_init(sem_mark_ptr, USYNC_THREAD, 0);
+    sem_init(sem_synctime_ptr, USYNC_THREAD, 0);
     allSignalMask(&sigmask);
     memset(&new, 0, sizeof(new));
     new.sa_handler = (which == CPU_USER ? SyncUserCPU : SyncSystemCPU);
     new.sa_flags   = SA_RESTART;
     new.sa_mask    = sigmask;
-    sigaction(SIG_FORALL, &new, &old);
+    sigaction(SIG_SYNCTIME, &new, &old);
 
     if ( info->has_tid )
-      ok = (pthread_kill(info->tid, SIG_FORALL) == 0);
+      ok = (pthread_kill(info->tid, SIG_SYNCTIME) == 0);
     else
       ok = FALSE;
 
     if ( ok )
-    { while( sem_wait(sem_mark_ptr) == -1 && errno == EINTR )
+    { while( sem_wait(sem_synctime_ptr) == -1 && errno == EINTR )
 	;
     }
-    sem_destroy(sem_mark_ptr);
-    sigaction(SIG_FORALL, &old, NULL);
+    sem_destroy(sem_synctime_ptr);
+    sigaction(SIG_SYNCTIME, &old, NULL);
     unblockSignals(&set);
     if ( !ok )
       return 0.0;
