@@ -2239,7 +2239,7 @@ typedef struct debuginfo
 #define PLFLAG_GC		    0x00000002 /* do GC */
 #define PLFLAG_TRACE_GC		    0x00000004 /* verbose gc */
 #define PLFLAG_TTY_CONTROL	    0x00000008 /* allow for tty control */
-#define PLFLAG_READLINE		    0x00000010 /* readline is loaded */
+//				    0x00000010 /* not used */
 #define PLFLAG_DEBUG_ON_ERROR	    0x00000020 /* start tracer on error */
 #define PLFLAG_REPORT_ERROR	    0x00000040 /* print error message */
 #define PLFLAG_FILE_CASE	    0x00000080 /* file names are case sensitive */
