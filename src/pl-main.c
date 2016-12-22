@@ -102,7 +102,7 @@ consoleHandlerRoutine(DWORD id)
 #ifdef READLINE
 static void
 install_readline(int argc, char**argv)
-{ PL_install_readline();
+{ // PL_install_readline();
 }
 #endif
 
