@@ -472,6 +472,7 @@ save_unknown(M) :-
 save_records :-
     feedback('~nRECORDS~n', []),
     (   current_key(X),
+        X \== '$topvar',                        % do not safe toplevel variables
         feedback('~n~t~8|~w ', [X, V]),
         recorded(X, V, _),
         feedback('.', []),
