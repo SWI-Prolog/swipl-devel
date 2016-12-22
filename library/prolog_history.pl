@@ -36,6 +36,9 @@
           [ prolog_history/1
           ]).
 :- use_module(library(base32)).
+:- if(exists_source(library(readline))).
+:- use_module(library(readline)).
+:- endif.
 
 /** <module> Per-directory persistent commandline history
 
