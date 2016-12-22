@@ -539,6 +539,14 @@ setup_history :-
     ;   true
     ).
 
+setup_readline :-
+    (   stream_property(user_input, tty(true)),
+        \+ current_prolog_flag(readline, false),
+        load_setup_file(library(readline))
+    ->  true
+    ;   true
+    ).
+
 load_setup_file(File) :-
     catch(load_files(File,
                      [ silent(true),
@@ -578,7 +586,8 @@ toplevel_goal(prolog, '$query_loop') :-
     !,
     catch(setup_backtrace, E, print_message(warning, E)),
     catch(setup_colors,    E, print_message(warning, E)),
-    catch(setup_history,   E, print_message(warning, E)).
+    catch(setup_history,   E, print_message(warning, E)),
+    catch(setup_readline,  E, print_message(warning, E)).
 toplevel_goal(Goal, Goal).
 
 

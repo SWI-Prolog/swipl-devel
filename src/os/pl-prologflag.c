@@ -1388,7 +1388,6 @@ initPrologFlags(void)
 		truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
 		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
-  setPrologFlag("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
