@@ -184,8 +184,8 @@ warn_if_unknown(License) :-
 %   Report current license situation
 
 license :-
-    setof(Module, gpled(Module), GPL),
-    setof(Module, lgpled(Module), LGPL),
+    (setof(Module, gpled(Module), GPL)   -> true ; GPL  = []),
+    (setof(Module, lgpled(Module), LGPL) -> true ; LGPL = []),
     findall(L-Modules,
             setof(Module, proprietary(Module, L), Modules),
             Proprietary),
@@ -254,6 +254,7 @@ license_message([],[]) -->
     ],
     bsd2_license.
 license_message(GPL,_) -->
+    { GPL \== [] },
     !,
     [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
     bsd2_license, [nl, nl],
@@ -265,7 +266,7 @@ license_message(GPL,_) -->
 license_message([],LGPL) -->
     !,
     [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
-    bsd2_license,
+    bsd2_license, [nl, nl],
     warn([ 'This program contains components covered by the GNU Lesser', nl,
            'Public License.  Distribution of this program is subject to',  nl,
            'additional conditions.  These components are:', nl, nl
