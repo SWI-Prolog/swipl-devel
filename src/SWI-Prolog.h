@@ -907,11 +907,6 @@ PL_EXPORT(int)		PL_initialise(int argc, char **argv);
 PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
 PL_EXPORT(int)		PL_set_resource_db_mem(const unsigned char *data,
 					       size_t size);
-#ifdef __CYGWIN__
-PL_EXPORT(void)		PL_install_readline(void);
-#else
-install_t		PL_install_readline(void);
-#endif
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_cleanup_fork();
@@ -924,9 +919,8 @@ PL_EXPORT(int)		PL_halt(int status);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: the functions in this section are   not  documented, as as yet not
 adviced for public usage.  They  are   intended  to  provide an abstract
-interface for the GNU readline  interface   as  defined in pl-rl.c. This
-abstract interface is necessary to make an embeddable system without the
-readline overhead.
+interface for the GNU readline  interface   as  defined  in the readline
+package.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 					/* PL_dispatch() modes */
 #define PL_DISPATCH_NOWAIT    0		/* Dispatch only once */

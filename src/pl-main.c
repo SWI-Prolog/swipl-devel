@@ -60,8 +60,6 @@
 #define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 
-#define READLINE 1			/* use readline interface */
-
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -96,18 +94,6 @@ consoleHandlerRoutine(DWORD id)
 
 
 		 /*******************************
-		 *	     READLINE		*
-		 *******************************/
-
-#ifdef READLINE
-static void
-install_readline(int argc, char**argv)
-{ // PL_install_readline();
-}
-#endif
-
-
-		 /*******************************
 		 *		MAIN		*
 		 *******************************/
 
@@ -122,9 +108,6 @@ main(int argc, char **argv)
 
 #if O_ANSI_COLORS
   PL_w32_wrap_ansi_console();	/* decode ANSI color sequences (ESC[...m) */
-#endif
-#ifdef READLINE
-  PL_initialise_hook(install_readline);
 #endif
 
   if ( !PL_initialise(argc, argv) )

@@ -223,7 +223,6 @@ Runtime version.  Uses somewhat less memory and has no tracer.
 #ifdef O_RUNTIME
 #undef O_PROFILE			/* no profiling */
 #undef O_DEBUGGER			/* no debugging */
-#undef O_READLINE			/* no readline too */
 #undef O_INTERRUPT			/* no interrupts too */
 #endif
 
