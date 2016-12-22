@@ -54,5 +54,7 @@ packages/tipc/config.h.in
 packages/tipc/configure
 packages/pengines/configure
 packages/cql/configure
+packages/readline/config.h.in
+packages/readline/configure
 src/config.h.in
 src/configure
