@@ -72,10 +72,6 @@ component(gmp,
           _{ test:current_prolog_flag(bounded, false),
              url:'gmp.html'
            }).
-component(command_line_editing,
-          _{ test:current_predicate(system:rl_add_history/1),
-             url:'cmdlineedit.html'
-           }).
 % Packages that depend on foreign libraries
 component(library(archive), _{features:archive_features}).
 component(library(cgi), _{}).
@@ -96,6 +92,7 @@ component(library(pce),
 component(library(pdt_console), _{}).
 component(library(porter_stem), _{}).
 component(library(process), _{}).
+component(library(readline), _{}).
 component(library(readutil), _{}).
 component(library(rlimit), _{os:unix}).
 component(library(semweb/rdf_db), _{}).
