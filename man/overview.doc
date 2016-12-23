@@ -1686,8 +1686,9 @@ work in this mode.  See also \secref{extensions}.
 
     \prologflagitem{tty_control}{bool}{rw}
 Determines whether the terminal is switched to raw mode for
-get_single_char/1, which also reads the user actions for the trace.  May
-be set.  See also the \cmdlineoption{+/-tty} command line option.
+get_single_char/1, which also reads the user actions for the trace. May
+be set. If this flag is \const{false} at startup, command line editing
+is disabled. See also the \cmdlineoption{+/-tty} command line option.
 
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
