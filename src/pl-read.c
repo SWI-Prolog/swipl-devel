@@ -126,28 +126,33 @@ atom_varnameW(const pl_wchar_t *s, size_t len)
 }
 
 
+/* returns 1: properly named variable
+	   0: neutral (_<digit>)
+	  -1: anonymous (_<Upper> or __<lower>
+*/
+
 int
 atom_is_named_var(atom_t name)		/* see warn_singleton() */
 { const char *s;
   const pl_wchar_t *w;
 
   if ( (s=PL_atom_chars(name)) )
-  { if ( s[0] != '_' ) return TRUE;
+  { if ( s[0] != '_' ) return 1;
     if ( s[1] )
-    { if ( s[1] == '_' ) return FALSE;
-      if ( isDigitW(s[1]) ) return FALSE;
-      if ( !PlUpperW(s[1]) ) return TRUE;
+    { if ( s[1] == '_' ) return -1;
+      if ( isDigitW(s[1]) ) return 0;
+      if ( !PlUpperW(s[1]) ) return 1;
     }
   } else if ( (w=PL_atom_wchars(name, NULL)) )
-  { if ( w[0] != '_' ) return TRUE;
+  { if ( w[0] != '_' ) return 1;
     if ( w[1] )
-    { if ( w[1] == '_' ) return FALSE;
-      if ( isDigitW(w[1]) ) return FALSE;
-      if ( !PlUpperW(w[1]) ) return TRUE;
+    { if ( w[1] == '_' ) return -1;
+      if ( isDigitW(w[1]) ) return 0;
+      if ( !PlUpperW(w[1]) ) return 1;
     }
   }
 
-  return FALSE;
+  return -1;
 }
 
 
@@ -1626,6 +1631,25 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 }
 
 
+static int
+warn_multiton(const char *name)
+{ if ( !warn_singleton(name) )
+  { if ( name[0] == '_' && name[1] )
+    { int c;
+
+      utf8_get_char(&name[1], &c);
+      if ( isDigitW(c) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+
 /* is_singleton() is true if var is a singleton.  As quasi quotations
    may insert the (named) variable into the quotation, we must scan
    the quasi quotation list and check that the variable does not appear
@@ -1638,8 +1662,8 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 static int
 is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 { if ( var->times == 1 )
-  { if ( (type == IS_SINGLETON &&  warn_singleton(var->name)) ||
-	 (type == IS_MULTITON  && !warn_singleton(var->name)) )
+  { if ( (type == IS_SINGLETON && warn_singleton(var->name)) ||
+	 (type == IS_MULTITON  && warn_multiton(var->name)) )
     {
 #ifdef O_QUASIQUOTATIONS
       if ( _PL_rd->qq )
@@ -1660,9 +1684,9 @@ is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
   }
 
   if ( type == IS_SINGLETON )
-    return var->times == 1 &&  warn_singleton(var->name);
+    return var->times == 1 && warn_singleton(var->name);
   else
-    return var->times  > 1 && !warn_singleton(var->name);
+    return var->times  > 1 && warn_multiton(var->name);
 }
 
 

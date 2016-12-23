@@ -974,11 +974,11 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
       continue;
     if ( vd->name && (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
     { if ( true(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) &&
-	   atom_is_named_var(vd->name) )
+	   atom_is_named_var(vd->name) > 0 )
       { const char *type = ( true(vd, VD_MAYBE_SINGLETON) ?
 				  "branch_singleton" : "negation_singleton" );
 	compiler_warning(ci, type, vd->address);
-      } else if ( vd->times > 1 && !atom_is_named_var(vd->name) )
+      } else if ( vd->times > 1 && atom_is_named_var(vd->name) < 0 )
 	compiler_warning(ci, "multiton", vd->address);
     }
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
