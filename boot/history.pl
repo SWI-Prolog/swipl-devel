@@ -147,19 +147,26 @@ substitute(Old, New, String, Substituted) :-
     '$append'(HeadAndNew, Tail, Substituted),
     !.
 
-%   save_event(+Event)
-%   Save Event in the history system. Remove possibly outdated events.
+%!  save_history_line(+Line)
+%
+%   Add Line to the command line editing history.
+
+:- multifile
+    prolog:save_history_line/2.
 
 save_history_line(end_of_file) :- !.
 save_history_line(Line) :-
-    current_prolog_flag(readline, true),
-    format(atom(CompleteLine), '~W~W',
+    format(string(CompleteLine), '~W~W',
            [ Line, [partial(true)],
-             '.', [partial(true)]
+             '.',  [partial(true)]
            ]),
-    catch(user:rl_add_history(CompleteLine), _, fail),
+    catch(prolog:save_history_line(user_input, CompleteLine),
+          _, fail),
     !.
 save_history_line(_).
+
+%   save_event(+Event)
+%   Save Event in the history system. Remove possibly outdated events.
 
 save_event(Dont, Event) :-
     memberchk(Event, Dont),
