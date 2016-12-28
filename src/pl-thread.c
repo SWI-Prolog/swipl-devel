@@ -815,7 +815,7 @@ initPrologThreads(void)
   { GD->thread.thread_max = 4;		/* see resizeThreadMax() */
     GD->thread.highest_allocated = 1;
     GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
-				   sizeof(*GD->thread.threads));
+					 sizeof(*GD->thread.threads));
     memset(GD->thread.threads, 0,
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
     info = GD->thread.threads[1] = allocHeapOrHalt(sizeof(*info));
