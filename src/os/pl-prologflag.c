@@ -714,8 +714,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       } else if ( k == ATOM_tty_control )
       { if ( val != (f->value.a == ATOM_true) )
 	{ if ( !val && ttymodified )
-	  { Sdprintf("Disabling TTY control\n");
-	    PopTty(Sinput, &ttytab, FALSE);
+	  { PopTty(Sinput, &ttytab, FALSE);
+	  } else if ( val )
+	  { setPrologFlagMask(PLFLAG_TTY_CONTROL);
+	    PushTty(Sinput, &ttytab, TTY_SAVE);
 	  }
 	}
       } else if ( k == ATOM_protect_static_code )
