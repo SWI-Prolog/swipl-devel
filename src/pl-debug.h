@@ -96,6 +96,7 @@
 #define MSG_OPERATOR		 53
 #define MSG_MUTEX_GC		 54
 #define MSG_REC_ATTVAR		 55
+#define MSG_TTY			 56
 
 #define MSG_READ_TOKEN		 60
 

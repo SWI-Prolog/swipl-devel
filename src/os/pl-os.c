@@ -1967,9 +1967,13 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   ttymode    = mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+  { DEBUG(MSG_TTY, Sdprintf("stdin is not a terminal\n"));
     succeed;				/* not a terminal */
+  }
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
+  { DEBUG(MSG_TTY, Sdprintf("tty_control is false\n"));
     succeed;
+  }
 
   buf->state = allocHeapOrHalt(sizeof(tty_state));
 
@@ -2022,7 +2026,11 @@ PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 
     if ( (!HAS_LD || truePrologFlag(PLFLAG_TTY_CONTROL)) &&
 	 (fd = Sfileno(s)) >= 0 )
+    { DEBUG(MSG_TTY,
+	    Sdprintf("HAS_LD = %d; tty_control = %d\n",
+		     HAS_LD, truePrologFlag(PLFLAG_TTY_CONTROL)));
       rc = SetTtyState(fd, &TTY_STATE(buf));
+    }
 
     if ( do_free )
     { freeHeap(buf->state, sizeof(tty_state));
