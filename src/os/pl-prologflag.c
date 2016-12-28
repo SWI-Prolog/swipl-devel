@@ -815,18 +815,23 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 }
 
 
+int
+set_prolog_flag(term_t key, term_t value, int flags)
+{ int rc;
+
+  LOCK();
+  rc = set_prolog_flag_unlocked(key, value, FF_NOCREATE|FT_FROM_VALUE);
+  UNLOCK();
+
+  return rc;
+}
+
 /** set_prolog_flag(+Key, +Value) is det.
 */
 
 static
 PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
-{ word rc;
-
-  LOCK();
-  rc = set_prolog_flag_unlocked(A1, A2, FF_NOCREATE|FT_FROM_VALUE);
-  UNLOCK();
-
-  return rc;
+{ return set_prolog_flag(A1, A2, FF_NOCREATE|FT_FROM_VALUE);
 }
 
 
@@ -843,7 +848,6 @@ static const opt_spec prolog_flag_options[] =
 static
 PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 { PRED_LD
-  word rc;
   int flags = 0;
   atom_t type = 0;
   atom_t access = ATOM_read_write;
@@ -883,11 +887,7 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   if ( keep )
     flags |= FF_KEEP;
 
-  LOCK();
-  rc = set_prolog_flag_unlocked(A1, A2, flags);
-  UNLOCK();
-
-  return rc;
+  return set_prolog_flag(A1, A2, flags);
 }
 
 

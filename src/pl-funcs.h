@@ -433,6 +433,7 @@ COMMON(void)		raiseInferenceLimitException(void);
 
 /* pl-prologflag.c */
 COMMON(void)		setPrologFlag(const char *name, int flags, ...);
+COMMON(int)		set_prolog_flag(term_t key, term_t value, int flags);
 COMMON(word)		pl_prolog_flag(term_t key, term_t value, control_t h);
 COMMON(word)		pl_prolog_flag5(term_t key, term_t value,
 					term_t local, term_t access, term_t type,

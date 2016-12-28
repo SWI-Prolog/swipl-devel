@@ -4567,34 +4567,70 @@ PL_duplicate_record(record_t r)
 
 int
 PL_set_prolog_flag(const char *name, int type, ...)
-{ va_list args;
+{ GET_LD
+  va_list args;
   int rval = TRUE;
   int flags = (type & FF_MASK);
-
-  initPrologThreads();
+  fid_t fid;
+  term_t av;
 
   va_start(args, type);
-  switch(type & ~FF_MASK)
-  { case PL_BOOL:
-    { int val = va_arg(args, int);
+  if ( HAS_LD &&
+       GD->io_initialised &&			/* setupProlog() finished */
+       (fid = PL_open_foreign_frame()) &&
+       (av  = PL_new_term_refs(2)) )
+  { PL_put_atom_chars(av+0, name);
+    switch(type & ~FF_MASK)
+    { case PL_BOOL:
+      { int val = va_arg(args, int);
 
-      setPrologFlag(name, FT_BOOL|flags, val, 0);
-      break;
+	rval = ( PL_put_bool(av+1, val) &&
+		 set_prolog_flag(av+0, av+1, FT_BOOL|flags) );
+	break;
+      }
+      case PL_ATOM:
+      { const char *v = va_arg(args, const char *);
+
+	rval = ( PL_put_atom_chars(av+1, v) &&
+		 set_prolog_flag(av+0, av+1, FT_ATOM|flags) );
+	break;
+      }
+      case PL_INTEGER:
+      { intptr_t v = va_arg(args, intptr_t);
+
+	rval = ( PL_put_integer(av+1, v) &&
+		 set_prolog_flag(av+0, av+1, FT_INTEGER|flags) );
+	break;
+      }
+      default:
+	rval = FALSE;
     }
-    case PL_ATOM:
-    { const char *v = va_arg(args, const char *);
-      if ( !GD->initialised )
-	initAtoms();
-      setPrologFlag(name, FT_ATOM|flags, v);
-      break;
+    PL_close_foreign_frame(fid);
+  } else
+  { initPrologThreads();
+
+    switch(type & ~FF_MASK)
+    { case PL_BOOL:
+      { int val = va_arg(args, int);
+
+	setPrologFlag(name, FT_BOOL|flags, val, 0);
+	break;
+      }
+      case PL_ATOM:
+      { const char *v = va_arg(args, const char *);
+	if ( !GD->initialised )
+	  initAtoms();
+	setPrologFlag(name, FT_ATOM|flags, v);
+	break;
+      }
+      case PL_INTEGER:
+      { intptr_t v = va_arg(args, intptr_t);
+	setPrologFlag(name, FT_INTEGER|flags, v);
+	break;
+      }
+      default:
+	rval = FALSE;
     }
-    case PL_INTEGER:
-    { intptr_t v = va_arg(args, intptr_t);
-      setPrologFlag(name, FT_INTEGER|flags, v);
-      break;
-    }
-    default:
-      rval = FALSE;
   }
   va_end(args);
 
