@@ -1268,6 +1268,7 @@ initPrologFlags(void)
   setPrologFlag("pid", FT_INTEGER|FF_READONLY, getpid());
 #endif
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
+  setPrologFlag("optimise_debug", FT_ATOM, "default", 0);
   setPrologFlag("generate_debug_info", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
   setPrologFlag("protect_static_code", FT_BOOL, FALSE,

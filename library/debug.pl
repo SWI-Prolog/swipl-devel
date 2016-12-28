@@ -346,8 +346,6 @@ assertion_rethrow('$aborted').
                  *           EXPANSION          *
                  *******************************/
 
-:- create_prolog_flag(optimise_debug, default, [keep(true)]).
-
 %       The optimise_debug flag  defines whether  Prolog  optimizes
 %       away assertions and  debug/3 statements.  Values are =true=
 %       (debug is optimized away),  =false= (debug is retained) and
