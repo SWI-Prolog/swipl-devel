@@ -183,6 +183,19 @@ assignAttVar(Word av, Word value ARG_LD)
   registerWakeup(a, value PASS_LD);
 
   TrailAssignment(av);
+
+  /* When first attribute is $VAR$ skip binding (allows to be done elseware) */
+  { Word l = a;
+    deRef(l);
+    if ( isTerm(*l) )
+     { Functor f = valueTerm(*l);
+      if ( f->definition == FUNCTOR_att3 )
+      { Word n; 
+	    deRef2(&f->arguments[0], n);
+	    if ( *n == ATOM_dvard ) return;
+    }}}
+  
+
   if ( isAttVar(*value) )
   { DEBUG(1, Sdprintf("Unifying two attvars\n"));
     *av = makeRef(value);
@@ -1378,6 +1391,33 @@ PRED_IMPL("$call_residue_vars_end", 0, call_residue_vars_end, 0)
 #endif /*O_CALL_RESIDUE*/
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ attv_bind_trail(+AttVar, +Value, +NilOrTrail) is det.  
+    Binds AttVar with Value without calling wakeup
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+static
+PRED_IMPL("attv_bind_trail", 3, attv_bind_trail, 0)
+{ PRED_LD
+  Word av;
+  
+  deRef2(valTermRef(A1), av);
+  if (!isAttVar(*av) )
+  { return PL_error("attvar_bind_trail", 3, NULL, ERR_UNINSTANTIATION, 1, A1);
+  }
+  
+  /* Maybe Not needed */ 
+  if ( !hasGlobalSpace(0) )
+  { int rc;
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
+  /* 3rd arg is for a little experiment */
+  if(!PL_get_nil(A3)) TrailAssignment(av);
+  *av = linkVal(valTermRef(A2));
+  return TRUE;
+}
+
 		 /*******************************
 		 *	    REGISTRATION	*
 		 *******************************/
@@ -1398,6 +1438,7 @@ BeginPredDefs(attvar)
   PRED_DEF("$call_residue_vars_start", 0, call_residue_vars_start, 0)
   PRED_DEF("$call_residue_vars_end", 0, call_residue_vars_end, 0)
 #endif
+  PRED_DEF("attv_bind_trail", 3, attv_bind_trail, 0)
 EndPredDefs
 
 #endif /*O_ATTVAR*/
