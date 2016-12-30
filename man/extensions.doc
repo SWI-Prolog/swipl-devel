@@ -97,7 +97,7 @@ and "".
 \section{The string type and its double quoted syntax}
 \label{sec:strings}
 
-As of SWI-Prolog version~7, text encloses in double quotes (e.g.,
+As of SWI-Prolog version~7, text enclosed in double quotes (e.g.,
 \verb$"Hello world"$) is read as objects of the type \jargon{string}. A
 string is a compact representation of a character sequence that lives on
 the global (term) stack. Strings represent sequences of Unicode
