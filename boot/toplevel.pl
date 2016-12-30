@@ -530,14 +530,19 @@ setup_colors :-
     ;   true
     ).
 
+%!  setup_history
+%
+%   Enable per-directory persistent history.
+
 setup_history :-
-    (   stream_property(user_input, tty(true)),
-        current_predicate(rl_add_history/1),
-        \+ current_prolog_flag(save_history, false),
+    (   \+ current_prolog_flag(save_history, false),
+        stream_property(user_input, tty(true)),
+	current_prolog_flag(readline, true),
         load_setup_file(library(prolog_history))
     ->  prolog_history(enable)
     ;   true
-    ).
+    ),
+    set_default_history.
 
 setup_readline :-
     (   stream_property(user_input, tty(true)),
@@ -679,6 +684,12 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
     !.
 
 
+%!  read_query(+Prompt, -Goal, -Bindings) is det.
+%
+%   Read the next query. The first  clause   deals  with  the case where
+%   !-based history is enabled. The second is   used  if we have command
+%   line editing.
+
 read_query(Prompt, Goal, Bindings) :-
     current_prolog_flag(history, N),
     integer(N), N > 0,
@@ -688,18 +699,10 @@ read_query(Prompt, Goal, Bindings) :-
                  Prompt, Goal, Bindings).
 read_query(Prompt, Goal, Bindings) :-
     remove_history_prompt(Prompt, Prompt1),
-    repeat,                         % over syntax errors
+    repeat,                                 % over syntax errors
     prompt1(Prompt1),
     read_query_line(user_input, Line),
-    (   Line \== end_of_file,
-        current_predicate(_, user:rl_add_history(_))
-    ->  format(atom(CompleteLine), '~W~W',
-               [ Line, [partial(true)],
-                 '.', [partial(true)]
-               ]),
-        call(user:rl_add_history(CompleteLine))
-    ;   true
-    ),
+    '$save_history_line'(Line),             % save raw line (edit syntax errors)
     '$current_typein_module'(TypeIn),
     catch(read_term_from_atom(Line, Goal,
                               [ variable_names(Bindings),
@@ -709,7 +712,7 @@ read_query(Prompt, Goal, Bindings) :-
               fail
           )),
     !,
-    '$save_history'(Line).
+    '$save_history_event'(Line).            % save event (no syntax errors)
 
 %!  read_query_line(+Input, -Line) is det.
 
@@ -772,6 +775,15 @@ delete_leading_blanks([' '|T0], T) :-
 delete_leading_blanks(L, L).
 
 
+%!  set_default_history
+%
+%   Enable !-based numbered command history. This  is enabled by default
+%   if we are not running under GNU-emacs  and   we  do not have our own
+%   line editing.
+
+set_default_history :-
+    current_prolog_flag(history, _),
+    !.
 set_default_history :-
     (   (   current_prolog_flag(readline, true)
         ;   current_prolog_flag(emacs_inferior_process, true)
@@ -779,8 +791,6 @@ set_default_history :-
     ->  create_prolog_flag(history, 0, [])
     ;   create_prolog_flag(history, 25, [])
     ).
-
-:- initialization set_default_history.
 
 
                  /*******************************

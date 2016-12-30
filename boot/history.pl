@@ -3,7 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2005, University of Amsterdam
+    Copyright (c)  1985-2016, University of Amsterdam
+                              VU University Amsterdam
+                              CWI Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,8 +36,9 @@
 
 :- module('$history',
           [ read_history/6,
+            '$save_history_line'/1,             % +Line
             '$clean_history'/0,
-            '$save_history'/1
+            '$save_history_event'/1
           ]).
 
 %%  read_history(+History, +Help, +DontStore, +Prompt, -Term, -Bindings)
@@ -69,7 +72,7 @@ read_history_(Show, Help, _, Help, _, _) :-
     fail.
 read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
     expand_history(Raw, Expanded, Changed),
-    save_history_line(Expanded),
+    '$save_history_line'(Expanded),
     '$current_typein_module'(TypeIn),
     catch(read_term_from_atom(Expanded, Term0,
                               [ variable_names(Bindings0),
@@ -147,15 +150,15 @@ substitute(Old, New, String, Substituted) :-
     '$append'(HeadAndNew, Tail, Substituted),
     !.
 
-%!  save_history_line(+Line)
+%!  '$save_history_line'(+Line)
 %
 %   Add Line to the command line editing history.
 
 :- multifile
     prolog:save_history_line/2.
 
-save_history_line(end_of_file) :- !.
-save_history_line(Line) :-
+'$save_history_line'(end_of_file) :- !.
+'$save_history_line'(Line) :-
     format(string(CompleteLine), '~W~W',
            [ Line, [partial(true)],
              '.',  [partial(true)]
@@ -163,21 +166,27 @@ save_history_line(Line) :-
     catch(prolog:save_history_line(user_input, CompleteLine),
           _, fail),
     !.
-save_history_line(_).
+'$save_history_line'(_).
 
-%   save_event(+Event)
-%   Save Event in the history system. Remove possibly outdated events.
+%!  save_event(+DoNotSave, +Event)
+%
+%   Save Event into the  history  system  if   it  is  not  a  member of
+%   DoNotSave.
 
 save_event(Dont, Event) :-
     memberchk(Event, Dont),
     !.
 save_event(_, Event) :-
-    '$save_history'(Event).
+    '$save_history_event'(Event).
+
+%!  '$save_history_event'(+Event:atom)
+%
+%   Save an input line as text into the !- based history.
 
 :- thread_local
     '$history'/2.
 
-'$save_history'(Event) :-
+'$save_history_event'(Event) :-
     (   '$history'(Old, _)
     ->  New is Old + 1
     ;   New is 1
