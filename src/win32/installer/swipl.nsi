@@ -546,7 +546,7 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File ${SWIPL}\library\clp\clpq.pl
 SectionEnd
 
-Section "Portability (YAP, SICStus, Ciao, BIM, IF/Prolog) support"
+Section "Portability (YAP, SICStus, BIM, IF/Prolog) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\fastrw.pl

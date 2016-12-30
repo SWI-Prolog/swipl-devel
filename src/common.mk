@@ -62,19 +62,10 @@ DCG=	basics.pl
 
 # Dialect library files
 
-DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl bim.pl ifprolog.pl
+DIALECT=yap.pl hprolog.pl commons.pl sicstus.pl bim.pl ifprolog.pl
 YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl terms.pl \
 	sockets.pl swipl-lfr.pl
-CIAO=	assertions.pl basicmodes.pl isomodes.pl regtypes.pl sockets.pl \
-	read.pl write.pl strings.pl format.pl lists.pl dcg.pl freeze.pl \
-	terms.pl system.pl iso_misc.pl aggregates.pl hiordlib.pl \
-	hiord.pl classic.pl llists.pl nativeprops.pl nortchecks.pl \
-	terms_check.pl terms_vars.pl unittestdecls.pl unittestprops.pl \
-	sort.pl streams.pl file_utils.pl odd.pl prolog_flags.pl
-CIAO_REGTYPES=regtypes_tr.pl
-CIAO_ENGINE=attributes.pl basic_props.pl exceptions_db.pl exceptions.pl \
-	internals.pl hiord_rt.pl basiccontrol.pl io_aux.pl
 HPROLOG=format.pl
 ECLIPSE=test_util_iso.pl
 ISO=	iso_predicates.pl

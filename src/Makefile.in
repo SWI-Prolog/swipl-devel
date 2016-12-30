@@ -475,8 +475,6 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
 		library \
 		library/clp library/unicode library/dcg \
 		library/dialect library/dialect/yap library/dialect/iso \
-		library/dialect/ciao library/dialect/ciao/engine \
-		library/dialect/ciao/regtypes \
 		library/dialect/sicstus \
 		library/dialect/eclipse \
 		library/dialect/swi \
@@ -518,7 +516,7 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso ieclipse iunicode \
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iiso ieclipse iunicode \
 	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
 
 idirs:
@@ -549,7 +547,7 @@ idcg:		idirs
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
-idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog ieclipse
+idialect:	idirs iswi iyap iiso isicstus iifprolog ihprolog ieclipse
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -585,17 +583,6 @@ isicstus:	idirs
 			$(INSTALL_DATA) ../library/dialect/sicstus/$$f $(DESTDIR)$(PLBASE)/library/dialect/sicstus; \
 		done
 		$(INSTALL_DATA) $(srcdir)/compat/sicstus.h $(DESTDIR)$(PLBASE)/include/sicstus/sicstus.h
-
-iciao:		idirs
-		for f in $(CIAO); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao; \
-		done
-		for f in $(CIAO_ENGINE); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/engine/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/engine; \
-		done
-		for f in $(CIAO_REGTYPES); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/regtypes/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/regtypes; \
-		done
 
 iiso:		idirs
 		for f in $(ISO); do \
