@@ -423,7 +423,7 @@ S__wait(IOSTREAM *s)
 
   if ( fd == INVALID_SOCKET )
   { errno = EPERM;			/* no permission to select */
-    s->flags |= SIO_FERR;
+    Sseterr(s, SIO_FERR, "not a socket");
     return -1;
   }
 
@@ -456,7 +456,7 @@ S__wait(IOSTREAM *s)
   }
 
   if ( rc == 0 )
-  { s->flags |= (SIO_TIMEOUT|SIO_FERR);
+  { Sseterr(s, SIO_TIMEOUT|SIO_FERR, NULL);
     return -1;
   }
 
@@ -596,7 +596,7 @@ S__fillbuf(IOSTREAM *s)
 
   if ( s->flags & (SIO_FEOF|SIO_FERR) )	/* reading past eof */
   { if ( s->flags & SIO_FEOF2ERR )
-      s->flags |= (SIO_FEOF2|SIO_FERR);
+      Sseterr(s, (SIO_FEOF2|SIO_FERR), NULL);
     else
       s->flags |= SIO_FEOF2;
     return -1;
@@ -1517,57 +1517,67 @@ S__seterror(IOSTREAM *s)
     }
   }
 
-  s->flags |= SIO_FERR;
+  Sseterr(s, SIO_FERR, NULL);
   return 0;
 }
 
 
 int
 Sferror(IOSTREAM *s)
-{ IOSTREAM *q;
+{ if ( s->magic == SIO_MAGIC )
+    return (s->flags & SIO_FERR) != 0;
 
-  for(q=s; q && q->magic == SIO_MAGIC; q=q->downstream)
-  { if ( (q->flags&SIO_FERR) )
-      return TRUE;
-  }
-
-  return FALSE;
+  errno = EINVAL;
+  return -1;
 }
 
 
 int
 Sfpasteof(IOSTREAM *s)
-{ return (s->flags & (SIO_FEOF2ERR|SIO_FEOF2)) == (SIO_FEOF2ERR|SIO_FEOF2);
+{ if ( s->magic == SIO_MAGIC )
+    return (s->flags & (SIO_FEOF2ERR|SIO_FEOF2)) == (SIO_FEOF2ERR|SIO_FEOF2);
+
+  errno = EINVAL;
+  return -1;
 }
 
+
+#define SIO_ERROR_FLAGS (SIO_FEOF|SIO_WARN|SIO_FERR| \
+			 SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR)
 
 void
 Sclearerr(IOSTREAM *s)
 { for(; s && s->magic == SIO_MAGIC; s = s->downstream)
-  { s->flags &= ~(SIO_FEOF|SIO_WARN|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR);
+  { s->flags &= ~SIO_ERROR_FLAGS;
     s->io_errno = 0;
     Sseterr(s, 0, NULL);
     Sset_exception(s, 0);
   }
 }
 
+/** Sseterr(IOSTREAM *s, int flags, const char *message)
+ *
+ * Set error state of stream.
+ */
 
 int
-Sseterr(IOSTREAM *s, int flag, const char *message)
-{ if ( s->magic == SIO_MAGIC )
-  { if ( s->message )
+Sseterr(IOSTREAM *s, int flags, const char *message)
+{ for(; s && s->magic == SIO_MAGIC; s = s->upstream )
+  { s->flags = (s->flags & ~(SIO_WARN|SIO_FERR|SIO_CLEARERR)) | flags;
+
+    if ( s->message )
     { free(s->message);
       s->message = NULL;
-      s->flags &= ~SIO_CLEARERR;
     }
     if ( message )
-    { s->flags |= flag;
       s->message = strdup(message);
-    } else
-    { s->flags &= ~flag;
-    }
-    return 0;
+
+    if ( s->flags&SIO_WARN )
+      assert(s->message);
   }
+
+  if ( !s )
+    return 0;
 
   errno = EINVAL;
   return -1;
@@ -1576,18 +1586,31 @@ Sseterr(IOSTREAM *s, int flag, const char *message)
 
 int
 Sset_exception(IOSTREAM *s, term_t ex)
-{ if ( s->magic == SIO_MAGIC )
-  { if ( s->exception )
+{ record_t r = NULL;
+
+  for(; s&&s->magic == SIO_MAGIC; s = s->upstream )
+  { int nflags = ex ? ((s->flags & ~SIO_WARN) | SIO_FERR)
+		    : ((s->flags & ~(SIO_FERR|SIO_WARN)));
+
+    if ( s->exception )
     { PL_erase(s->exception);
       s->exception = NULL;
-      s->flags &= ~SIO_FERR;
     }
     if ( ex )
-    { s->exception = PL_record(ex);
-      s->flags |= SIO_FERR;
+    { if ( r )
+      { s->exception = PL_duplicate_record(r);
+      } else
+      { r = s->exception = PL_record(ex);
+      }
     }
+
+    s->flags = nflags;
+
     return 0;
   }
+
+  if ( !s )
+    return 0;
 
   errno = EINVAL;
   return -1;

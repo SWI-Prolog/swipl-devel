@@ -997,20 +997,12 @@ isConsoleStream(IOSTREAM *s)
 
 
 int
-reportStreamError(IOSTREAM *s0)
-{ IOSTREAM *s;
-
-  if ( GD->cleaning >= CLN_IO ||
+reportStreamError(IOSTREAM *s)
+{ if ( GD->cleaning >= CLN_IO ||
        isConsoleStream(s0) )
     return TRUE;
 
-  for(s=s0; s && s->magic == SIO_MAGIC; s=s->downstream)
-  { if ( (s->flags & (SIO_FERR|SIO_WARN)) )
-      goto report;
-  }
-  return TRUE;
-
-report:
+  if ( (s->flags & (SIO_FERR|SIO_WARN)) )
   { GET_LD
     atom_t op;
     term_t stream;
@@ -1018,7 +1010,7 @@ report:
 
     if ( !HAS_LD ||
 	 !(stream=PL_new_term_ref()) ||
-	 !PL_unify_stream_or_alias(stream, s0) )
+	 !PL_unify_stream_or_alias(stream, s) )
       return FALSE;
 
     if ( (s->flags & SIO_FERR) )
@@ -1071,7 +1063,7 @@ report:
       PL_error(NULL, 0, msg, ERR_STREAM_OP, op, stream);
 
       if ( (s->flags & SIO_CLEARERR) )
-	Sseterr(s, SIO_FERR, NULL);
+	Sseterr(s, 0, NULL);
 
       return FALSE;
     } else
@@ -1080,7 +1072,7 @@ report:
 		   PL_TERM, stream,
 		   PL_CHARS, s->message);
 
-      Sseterr(s, SIO_WARN, NULL);
+      Sseterr(s, 0, NULL);
     }
   }
 
@@ -1090,14 +1082,10 @@ report:
 
 int
 streamStatus(IOSTREAM *s)
-{ IOSTREAM *q;
-
-  for(q=s; q && q->magic == SIO_MAGIC; q=q->downstream)
-  { if ( (q->flags & (SIO_FERR|SIO_WARN)) )
-    { int ret = reportStreamError(s);
-      releaseStream(s);
-      return ret;
-    }
+{ if ( (s->flags & (SIO_FERR|SIO_WARN)) )
+  { int ret = reportStreamError(s);
+    releaseStream(s);
+    return ret;
   }
 
   releaseStream(s);
