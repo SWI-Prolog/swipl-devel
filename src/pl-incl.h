@@ -800,9 +800,9 @@ typedef enum
 
 typedef enum
 { CLN_NORMAL = 0,			/* Normal mode */
-  CLN_ACTIVE,				/* Started cleanup */
-  CLN_FOREIGN,				/* Foreign hooks */
   CLN_PROLOG,				/* Prolog hooks */
+  CLN_FOREIGN,				/* Foreign hooks */
+  CLN_IO,				/* Cleaning I/O */
   CLN_SHARED,				/* Unload shared objects */
   CLN_DATA				/* Remaining data */
 } cleanup_status;

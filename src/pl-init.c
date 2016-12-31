@@ -1260,6 +1260,8 @@ cleanupProlog(int rval, int reclaim_memory)
 
 emergency:
 #endif
+  GD->cleaning = CLN_IO;
+
   Scurout = Soutput;			/* reset output stream to user */
 
   qlfCleanup();				/* remove errornous .qlf files */
