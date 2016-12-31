@@ -1000,7 +1000,7 @@ int
 reportStreamError(IOSTREAM *s0)
 { IOSTREAM *s;
 
-  if ( GD->cleaning != CLN_NORMAL ||
+  if ( GD->cleaning >= CLN_IO ||
        isConsoleStream(s0) )
     return TRUE;
 
@@ -1013,10 +1013,13 @@ reportStreamError(IOSTREAM *s0)
 report:
   { GET_LD
     atom_t op;
-    term_t stream = PL_new_term_ref();
+    term_t stream;
     char *msg;
 
-    PL_unify_stream_or_alias(stream, s0);
+    if ( !HAS_LD ||
+	 !(stream=PL_new_term_ref()) ||
+	 !PL_unify_stream_or_alias(stream, s0) )
+      return FALSE;
 
     if ( (s->flags & SIO_FERR) )
     { if ( s->exception )
