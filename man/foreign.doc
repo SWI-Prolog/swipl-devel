@@ -2555,6 +2555,11 @@ threads.
     valid until PL_erase() is called on it.  PL_recorded() is used to
     copy recorded terms back to the Prolog stack.
 
+\cfunction{record_t}{PL_duplicate_record}{record_t record}
+    Return a duplicate of \arg{record}.  As records are read-only
+    objects this function merely increments the records reference
+    count.
+
 \cfunction{int}{PL_recorded}{record_t record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog

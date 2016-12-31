@@ -225,7 +225,6 @@ COMMON(predicate_t)	_PL_predicate(const char *name, int arity,
 COMMON(void)		initialiseForeign(int argc, char **argv);
 COMMON(void)		cleanupInitialiseHooks(void);
 COMMON(atom_t)		codeToAtom(int code);
-COMMON(extern)		record_t PL_duplicate_record(record_t r);
 COMMON(int)		PL_unify_termv(term_t t, va_list args);
 COMMON(term_t)		pushWordAsTermRef__LD(Word p ARG_LD);
 COMMON(void)		popTermRef__LD(ARG1_LD);
