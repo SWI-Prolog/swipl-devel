@@ -1513,7 +1513,14 @@ S__seterror(IOSTREAM *s)
 
 int
 Sferror(IOSTREAM *s)
-{ return (s->flags & SIO_FERR) != 0;
+{ IOSTREAM *q;
+
+  for(q=s; q && q->magic == SIO_MAGIC; q=q->downstream)
+  { if ( (q->flags&SIO_FERR) )
+      return TRUE;
+  }
+
+  return FALSE;
 }
 
 

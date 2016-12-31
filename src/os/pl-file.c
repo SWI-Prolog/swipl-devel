@@ -455,11 +455,7 @@ releaseStream(IOSTREAM *s)
 
 int
 PL_release_stream(IOSTREAM *s)
-{ if ( Sferror(s) )
-    return streamStatus(s);
-
-  releaseStream(s);
-  return TRUE;
+{ return streamStatus(s);
 }
 
 
@@ -1001,16 +997,26 @@ isConsoleStream(IOSTREAM *s)
 
 
 int
-reportStreamError(IOSTREAM *s)
-{ if ( GD->cleaning == CLN_NORMAL &&
-       !isConsoleStream(s) &&
-       (s->flags & (SIO_FERR|SIO_WARN)) )
+reportStreamError(IOSTREAM *s0)
+{ IOSTREAM *s;
+
+  if ( GD->cleaning != CLN_NORMAL ||
+       isConsoleStream(s0) )
+    return TRUE;
+
+  for(s=s0; s && s->magic == SIO_MAGIC; s=s->downstream)
+  { if ( (s->flags & (SIO_FERR|SIO_WARN)) )
+      goto report;
+  }
+  return TRUE;
+
+report:
   { GET_LD
     atom_t op;
     term_t stream = PL_new_term_ref();
     char *msg;
 
-    PL_unify_stream_or_alias(stream, s);
+    PL_unify_stream_or_alias(stream, s0);
 
     if ( (s->flags & SIO_FERR) )
     { if ( s->exception )
@@ -1081,10 +1087,14 @@ reportStreamError(IOSTREAM *s)
 
 int
 streamStatus(IOSTREAM *s)
-{ if ( (s->flags & (SIO_FERR|SIO_WARN)) )
-  { int ret = reportStreamError(s);
-    releaseStream(s);
-    return ret;
+{ IOSTREAM *q;
+
+  for(q=s; q && q->magic == SIO_MAGIC; q=q->downstream)
+  { if ( (q->flags & (SIO_FERR|SIO_WARN)) )
+    { int ret = reportStreamError(s);
+      releaseStream(s);
+      return ret;
+    }
   }
 
   releaseStream(s);
