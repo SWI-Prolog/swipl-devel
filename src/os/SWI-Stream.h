@@ -400,8 +400,8 @@ PL_EXPORT(int)		Sfeof(IOSTREAM *s);
 PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
 PL_EXPORT(int)		Sferror(IOSTREAM *s);
 PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
-PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
-PL_EXPORT(void)		Sset_exception(IOSTREAM *s, term_t ex);
+PL_EXPORT(int)		Sseterr(IOSTREAM *s, int which, const char *message);
+PL_EXPORT(int)		Sset_exception(IOSTREAM *s, term_t ex);
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Ssetlocale(IOSTREAM *s,
 				   struct PL_locale *new_loc,

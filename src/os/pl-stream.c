@@ -1532,32 +1532,54 @@ Sfpasteof(IOSTREAM *s)
 
 void
 Sclearerr(IOSTREAM *s)
-{ s->flags &= ~(SIO_FEOF|SIO_WARN|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR);
-  s->io_errno = 0;
-  Sseterr(s, 0, NULL);
+{ for(; s && s->magic == SIO_MAGIC; s = s->downstream)
+  { s->flags &= ~(SIO_FEOF|SIO_WARN|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR);
+    s->io_errno = 0;
+    Sseterr(s, 0, NULL);
+    Sset_exception(s, 0);
+  }
 }
 
 
-void
+int
 Sseterr(IOSTREAM *s, int flag, const char *message)
-{ if ( s->message )
-  { free(s->message);
-    s->message = NULL;
-    s->flags &= ~SIO_CLEARERR;
+{ if ( s->magic == SIO_MAGIC )
+  { if ( s->message )
+    { free(s->message);
+      s->message = NULL;
+      s->flags &= ~SIO_CLEARERR;
+    }
+    if ( message )
+    { s->flags |= flag;
+      s->message = strdup(message);
+    } else
+    { s->flags &= ~flag;
+    }
+    return 0;
   }
-  if ( message )
-  { s->flags |= flag;
-    s->message = strdup(message);
-  } else
-  { s->flags &= ~flag;
-  }
+
+  errno = EINVAL;
+  return -1;
 }
 
 
-void
+int
 Sset_exception(IOSTREAM *s, term_t ex)
-{ s->exception = PL_record(ex);
-  s->flags |= SIO_FERR;
+{ if ( s->magic == SIO_MAGIC )
+  { if ( s->exception )
+    { PL_erase(s->exception);
+      s->exception = NULL;
+      s->flags &= ~SIO_FERR;
+    }
+    if ( ex )
+    { s->exception = PL_record(ex);
+      s->flags |= SIO_FERR;
+    }
+    return 0;
+  }
+
+  errno = EINVAL;
+  return -1;
 }
 
 
