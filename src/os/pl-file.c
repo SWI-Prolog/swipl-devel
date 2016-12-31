@@ -2556,7 +2556,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
     if ( Sferror(s) )
       return streamStatus(s);
 
-    n = Sread_pending(s, buf, sizeof(buf), 0);
+    n = Sread_pending(s, buf, sizeof(buf), SIO_RP_NOPOS);
     if ( n < 0 )			/* should not happen */
       return streamStatus(s);
     if ( n == 0 )			/* end-of-file */

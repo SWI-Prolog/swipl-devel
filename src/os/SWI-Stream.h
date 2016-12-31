@@ -312,6 +312,7 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
+#define SIO_RP_NOPOS 0x2		/* Do not update position */
 
 #if IOSTREAM_REPLACES_STDIO
 

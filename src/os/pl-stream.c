@@ -1359,6 +1359,17 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
   if ( n > limit )
     n = limit;
   memcpy(&buf[done], s->bufp, n);
+  if ( s->position && !(flags&SIO_RP_NOPOS) )
+  { IOPOS *p = s->position;
+    char *f = buf;
+    char *e = &buf[done+n];
+
+    for(; f<e; f++)
+    { update_linepos(s, f[0]&0xff);
+      p->charno++;
+    }
+  }
+
   s->bufp += n;
 
   return done+n;
