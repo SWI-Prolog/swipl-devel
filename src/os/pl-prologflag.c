@@ -551,7 +551,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
   if ( (f = lookupHTable(GD->prolog_flag.table, (void *)k)) )
   { if ( flags & FF_KEEP )
       return TRUE;
-    if ( f->flags & FF_READONLY )
+    if ( (f->flags&FF_READONLY) && !(flags&FF_FORCE) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      ATOM_modify, ATOM_flag, key);
 
@@ -822,7 +822,7 @@ set_prolog_flag(term_t key, term_t value, int flags)
 { int rc;
 
   LOCK();
-  rc = set_prolog_flag_unlocked(key, value, FF_NOCREATE|FT_FROM_VALUE);
+  rc = set_prolog_flag_unlocked(key, value, flags);
   UNLOCK();
 
   return rc;

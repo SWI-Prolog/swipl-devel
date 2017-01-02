@@ -251,6 +251,7 @@ typedef union
 #define FF_READONLY	 0x1000		/* Read-only prolog flag */
 #define FF_KEEP		 0x2000		/* keep prolog flag if already set */
 #define FF_NOCREATE	 0x4000		/* Fail if flag is non-existent */
+#define FF_FORCE	 0x8000		/* Force setting, overwrite READONLY */
 #define FF_MASK		 0xf000
 
 
