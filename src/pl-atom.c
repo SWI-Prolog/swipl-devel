@@ -1889,7 +1889,7 @@ extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
 
 	m->name = a;
 	m->length = a->length;
-	if ( *altn > ALT_MAX )
+	if ( *altn >= ALT_MAX )
 	  goto out;
       }
     }
