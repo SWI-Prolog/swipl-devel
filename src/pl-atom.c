@@ -1880,7 +1880,9 @@ extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
       if ( index % 256 == 0 && PL_handle_signals() < 0 )
 	return FALSE;			/* interrupted */
 
-      if ( ATOM_IS_VALID(a->references) && completion_candidate(a) &&
+      if ( ATOM_IS_VALID(a->references) &&
+	   ATOM_REF_COUNT(a->references) != 0 &&
+	   completion_candidate(a) &&
 	   get_atom_ptr_text(a, &hit) &&
 	   hit.length < ALT_SIZ &&
 	   PL_cmp_text(prefix, 0, &hit, 0, prefix->length) == 0 &&
