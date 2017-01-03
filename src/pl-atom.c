@@ -1726,6 +1726,16 @@ completion_candidate(Atom a)
 }
 
 
+/* An atom without references cannot be part of the program
+*/
+
+static int
+global_atom(Atom a)
+{ return ( ATOM_REF_COUNT(a->references) != 0 ||
+	   indexAtom(a->atom) < GD->atoms.builtin );
+}
+
+
 static int
 is_identifier_text(PL_chars_t *txt)
 { if ( txt->length == 0 )
@@ -1787,6 +1797,7 @@ extendAtom(char *prefix, bool *unique, char *common)
     { Atom a = b + index;
 
       if ( ATOM_IS_VALID(a->references) && a->type == &text_atom &&
+	   global_atom(a) &&
 	   completion_candidate(a) &&
 	   strprefix(a->name, prefix) &&
 	   strlen(a->name) < LINESIZ )
@@ -1881,7 +1892,7 @@ extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
 	return FALSE;			/* interrupted */
 
       if ( ATOM_IS_VALID(a->references) &&
-	   ATOM_REF_COUNT(a->references) != 0 &&
+	   global_atom(a) &&
 	   completion_candidate(a) &&
 	   get_atom_ptr_text(a, &hit) &&
 	   hit.length < ALT_SIZ &&
