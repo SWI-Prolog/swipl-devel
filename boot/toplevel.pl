@@ -611,12 +611,19 @@ load_setup_file(File) :-
     toplevel_goal(TopLevel0, TopLevel),
     user:TopLevel.
 
+:- dynamic  setup_done/0.
+:- volatile setup_done/0.
+
 toplevel_goal(prolog, '$query_loop') :-
     !,
-    catch(setup_backtrace, E, print_message(warning, E)),
-    catch(setup_colors,    E, print_message(warning, E)),
-    catch(setup_readline,  E, print_message(warning, E)),
-    catch(setup_history,   E, print_message(warning, E)).
+    (   setup_done
+    ->  true
+    ;   asserta(setup_done),
+        catch(setup_backtrace, E, print_message(warning, E)),
+        catch(setup_colors,    E, print_message(warning, E)),
+        catch(setup_readline,  E, print_message(warning, E)),
+        catch(setup_history,   E, print_message(warning, E))
+    ).
 toplevel_goal(Goal, Goal).
 
 
