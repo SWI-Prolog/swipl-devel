@@ -103,3 +103,6 @@
 [submodule "packages/readline"]
 	path = packages/readline
 	url = ../packages-readline.git
+[submodule "packages/libedit"]
+	path = packages/libedit
+	url = ../packages-libedit.git
