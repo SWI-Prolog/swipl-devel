@@ -155,7 +155,7 @@ substitute(Old, New, String, Substituted) :-
 %   Add Line to the command line editing history.
 
 :- multifile
-    prolog:save_history_line/2.
+    prolog:history_line/2.
 
 '$save_history_line'(end_of_file) :- !.
 '$save_history_line'(Line) :-
@@ -163,8 +163,7 @@ substitute(Old, New, String, Substituted) :-
            [ Line, [partial(true)],
              '.',  [partial(true)]
            ]),
-    catch(prolog:save_history_line(user_input, CompleteLine),
-          _, fail),
+    catch(prolog:history(user_input, add(CompleteLine)), _, fail),
     !.
 '$save_history_line'(_).
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2014, VU University Amsterdam
+    Copyright (c)  2011-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,9 +36,9 @@
           [ prolog_history/1
           ]).
 :- use_module(library(base32)).
-:- if(exists_source(library(readline))).
-:- use_module(library(readline)).
-:- endif.
+
+:- multifile
+    prolog:history/2.
 
 /** <module> Per-directory persistent commandline history
 
@@ -101,50 +101,10 @@ dir_history_file(Dir, File) :-
     base32(Dir, Base32),
     atomic_list_concat([Dir, Base32], /, File).
 
-% Realise write/read of history for the swipl-win.exe console.
-
-:- if((\+current_predicate(rl_read_history/1),
-       current_predicate('$rl_history'/1))).
-:- use_module(library(readutil)).
-
-system:rl_read_history(File) :-
-    access_file(File, read),
-    !,
-    setup_call_cleanup(
-        open(File, read, In, [encoding(utf8)]),
-        read_history(In),
-        close(In)).
-system:rl_read_history(_).
-
-read_history(In) :-
-    repeat,
-    read_line_to_codes(In, Codes),
-    (   Codes == end_of_file
-    ->  !
-    ;   atom_codes(Line, Codes),
-        rl_add_history(Line),
-        fail
-    ).
-
-system:rl_write_history(File) :-
-    '$rl_history'(Lines),
-    (   Lines \== []
-    ->  setup_call_cleanup(
-            open(File, write, Out, [encoding(utf8)]),
-            forall(member(Line, Lines),
-                   format(Out, '~w~n', [Line])),
-            close(Out))
-    ;   true
-    ).
-
-:- endif.
-
-:- if(current_predicate(rl_write_history/1)).
 write_history(File) :-
     current_prolog_flag(save_history, true),
     !,
-    catch(rl_write_history(File), _, true).
-:- endif.
+    catch(prolog:history(user_input, save(File)), _, true).
 write_history(_).
 
 
@@ -159,13 +119,12 @@ write_history(_).
 %     Sets the Prolog flag =save_history= to =false=, such that the
 %     history is not saved on halt.
 
-:- if(current_predicate(rl_read_history/1)).
 :- dynamic
     history_loaded/1.
 
 load_dir_history(File) :-
     (   exists_file(File)
-    ->  rl_read_history(File),
+    ->  prolog:history(user_input, load(File)),
         assertz(history_loaded(File))
     ;   true
     ).
@@ -176,11 +135,49 @@ prolog_history(enable) :-
 prolog_history(enable) :-
     catch(dir_history_file('.', File), E,
           (print_message(warning, E),fail)),
-    !,
     catch(load_dir_history(File), E,
           print_message(warning, E)),
+    !,
     at_halt(write_history(File)),
     set_prolog_flag(save_history, true).
-:- endif.
 prolog_history(_) :-
     set_prolog_flag(save_history, false).
+
+		 /*******************************
+		 *      SWIPL-WIN SUPPORT	*
+		 *******************************/
+
+:- if(current_predicate('$rl_history'/1)).
+:- use_module(library(readutil)).
+
+prolog:history(_, load(File)) :-
+    access_file(File, read),
+    !,
+    setup_call_cleanup(
+        open(File, read, In, [encoding(utf8)]),
+        read_history(In),
+        close(In)).
+prolog:history(_, load(_)).
+
+read_history(In) :-
+    repeat,
+    read_line_to_codes(In, Codes),
+    (   Codes == end_of_file
+    ->  !
+    ;   atom_codes(Line, Codes),
+        rl_add_history(Line),
+        fail
+    ).
+
+prolog:history(_, save(File)) :-
+    '$rl_history'(Lines),
+    (   Lines \== []
+    ->  setup_call_cleanup(
+            open(File, write, Out, [encoding(utf8)]),
+            forall(member(Line, Lines),
+                   format(Out, '~w~n', [Line])),
+            close(Out))
+    ;   true
+    ).
+
+:- endif.

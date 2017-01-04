@@ -537,21 +537,44 @@ setup_colors :-
 setup_history :-
     (   \+ current_prolog_flag(save_history, false),
         stream_property(user_input, tty(true)),
-	current_prolog_flag(readline, true),
+        \+ current_prolog_flag(readline, false),
         load_setup_file(library(prolog_history))
     ->  prolog_history(enable)
     ;   true
     ),
     set_default_history.
 
+%!  setup_readline
+%
+%   Setup line editing.
+
 setup_readline :-
     (   stream_property(user_input, tty(true)),
         current_prolog_flag(tty_control, true),
-        \+ current_prolog_flag(readline, false),
-        load_setup_file(library(readline))
-    ->  true
-    ;   true
+        (   current_prolog_flag(readline, ReadLine)
+        ->  writeln(ReadLine)
+        ;   ReadLine = true
+        ),
+        readline_library(ReadLine, Library),
+        load_setup_file(library(Library))
+    ->  set_prolog_flag(readline, Library)
+    ;   set_prolog_flag(readline, false)
     ).
+
+readline_library(true, Library) :-
+    !,
+    preferred_readline(Library).
+readline_library(false, _) :-
+    !,
+    fail.
+readline_library(Library, Library).
+
+preferred_readline(editline).
+preferred_readline(readline).
+
+%!  load_setup_file(+File) is semidet.
+%
+%   Load a file and fail silently if the file does not exist.
 
 load_setup_file(File) :-
     catch(load_files(File,
