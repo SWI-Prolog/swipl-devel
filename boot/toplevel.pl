@@ -552,7 +552,7 @@ setup_readline :-
     (   stream_property(user_input, tty(true)),
         current_prolog_flag(tty_control, true),
         (   current_prolog_flag(readline, ReadLine)
-        ->  writeln(ReadLine)
+        ->  true
         ;   ReadLine = true
         ),
         readline_library(ReadLine, Library),
