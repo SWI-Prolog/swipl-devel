@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -174,6 +174,9 @@ human_thread_id(Thread, Id) :-
 %   Open a new console window and unify In,  Out and Err with the input,
 %   output and error streams for the new console.
 
+:- multifile
+    xterm_args/1.
+
 :- if(current_predicate(win_open_console/5)).
 
 open_console(Title, In, Out, Err) :-
@@ -189,8 +192,17 @@ regkey(_, 'Anonymous').
 
 :- else.
 
+xterm_args(['-xrm', '*backarrowKeyIsErase: false']).
+xterm_args(['-xrm', '*backarrowKey: false']).
+xterm_args(['-fa', 'monospace;pixelsize=11;regular']).
+xterm_args(['-fg', '#000000']).
+xterm_args(['-bg', '#ffffdd']).
+xterm_args(['-sb', '-sl', 1000, '-rightbar']).
+
 open_console(Title, In, Out, Err) :-
-    open_xterm(Title, In, Out, Err).
+    findall(Arg, xterm_args(Arg), Args),
+    append(Args, Argv),
+    open_xterm(Title, In, Out, Err, Argv).
 
 :- endif.
 

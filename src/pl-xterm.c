@@ -203,16 +203,38 @@ Start the Xterm window. This window  runs   in  a  separate process. How
 should this process be related to us?  Should it be a new session?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define MAXARGV 100
+#define RESARGC 10
+
 foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
-{ int master, slave, pid;
+pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
+{ GET_LD
+  int master, slave, pid;
   char *slavename;
   struct termios termio;
   xterm *xt;
   char *titlechars;
+  char *xterm_argv[MAXARGV];
+  int xterm_argc = 0;
+  int xterm_malloced_argc;
+  term_t tail = PL_copy_term_ref(argv);
+  term_t head = PL_new_term_ref();
+  int i;
 
-  if ( !PL_get_chars(title, &titlechars, CVT_ALL) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, title);
+  if ( !PL_get_chars(title, &titlechars, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
+
+  xterm_argv[xterm_argc++] = "xterm";
+  while(PL_get_list_ex(tail, head, tail))
+  { if ( xterm_argc >= MAXARGV-RESARGC )
+      return PL_representation_error("xterm_argc");
+    if ( !PL_get_chars(head, &xterm_argv[xterm_argc++],
+		       CVT_ALL|BUF_MALLOC|CVT_EXCEPTION) )
+      return FALSE;
+  }
+  if ( !PL_get_nil_ex(tail) )
+    return FALSE;
+  xterm_malloced_argc = xterm_argc;
 
 #ifdef HAVE_POSIX_OPENPT
   if ( (master = posix_openpt(O_RDWR)) < 0 )
@@ -257,12 +279,18 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
       sprintf(arg, "-S%s/%d", BaseName(slavename), master);
     else
       sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
-    execlp("xterm", "xterm", arg, "-T", titlechars,
-	   "-xrm", "*backarrowKeyIsErase: false",
-	   "-xrm", "*backarrowKey: false",
-	   NULL);
+
+    xterm_argv[xterm_argc++] = arg;
+    xterm_argv[xterm_argc++] = "-T";
+    xterm_argv[xterm_argc++] = titlechars;
+    xterm_argv[xterm_argc]   = NULL;		/* Up to RESARGC */
+
+    execvp("xterm", xterm_argv);
     perror("execlp");
   }
+
+  for(i=1; i<xterm_malloced_argc; i++)
+    PL_free(xterm_argv[i]);
 
   for (;;)			/* read 1st line containing window-id */
   { char c;
@@ -290,7 +318,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
 #else /*HAVE_GRANTPT*/
 
 foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
+pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
 { return notImplemented("open_xterm", 4);
 }
 

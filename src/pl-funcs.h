@@ -748,7 +748,9 @@ COMMON(foreign_t)	pl_rc_members(term_t rc_h, term_t members);
 
 /* pl-xterm.c */
 
-COMMON(foreign_t)	pl_open_xterm(term_t title, term_t in, term_t out, term_t err);
+COMMON(foreign_t)	pl_open_xterm(term_t title,
+				      term_t in, term_t out, term_t err,
+				      term_t argv);
 
 /* pl-ctype.c */
 

@@ -204,7 +204,7 @@ static const PL_extension foreigns[] = {
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
-  FRG("open_xterm",		4, pl_open_xterm,		0),
+  FRG("open_xterm",		5, pl_open_xterm,		0),
 #endif
 
   FRG("thread_self",		1, pl_thread_self,	      ISO),
