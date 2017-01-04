@@ -2811,6 +2811,7 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
       }
       if ( S__fillbuf(s) < 0 )
       { PL_chars_t text;
+        int rc;
 
 	if ( Sferror(s) )
 	  return streamStatus(s);
@@ -2823,7 +2824,9 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	text.encoding  = s->encoding;
 
 	PL_canonicalise_text(&text);
-	return PL_unify_text(A3, 0, &text, PL_STRING);
+	rc = PL_unify_text(A3, 0, &text, PL_STRING);
+        releaseStream(s);
+        return rc;
       }
       s->bufp--;
     }
