@@ -148,17 +148,31 @@ attach_console :-
     set_stream(Err, alias(user_error)),
     set_stream(In,  alias(current_input)),
     set_stream(Out, alias(current_output)),
+    enable_line_editing(In,Out,Err),
     thread_at_exit(detach_console(Id)).
 
 console_title(Thread, Title) :-         % uses tabbed consoles
     current_prolog_flag(console_menu_version, qt),
     !,
-    format(atom(Title), 'Thread ~w', [Thread]).
+    human_thread_id(Thread, Id),
+    format(atom(Title), 'Thread ~w', [Id]).
 console_title(Thread, Title) :-
     current_prolog_flag(system_thread_id, SysId),
+    human_thread_id(Thread, Id),
     format(atom(Title),
            'SWI-Prolog Thread ~w (~d) Interactor',
-           [Thread, SysId]).
+           [Id, SysId]).
+
+human_thread_id(Thread, Alias) :-
+    thread_property(Thread, alias(Alias)),
+    !.
+human_thread_id(Thread, Id) :-
+    thread_property(Thread, id(Id)).
+
+%!  open_console(+Title, -In, -Out, -Err) is det.
+%
+%   Open a new console window and unify In,  Out and Err with the input,
+%   output and error streams for the new console.
 
 :- if(current_predicate(win_open_console/5)).
 
@@ -180,9 +194,37 @@ open_console(Title, In, Out, Err) :-
 
 :- endif.
 
+%!  enable_line_editing(+In, +Out, +Err) is det.
+%
+%   Enable line editing for the console.  This   is  by built-in for the
+%   Windows console. We can also provide it   for the X11 xterm(1) based
+%   console if we use the BSD libedit based command line editor.
+
+:- if((current_prolog_flag(readline, editline),
+       exists_source(library(editline)))).
+:- use_module(library(editline)).
+enable_line_editing(_In, _Out, _Err) :-
+    current_prolog_flag(readline, editline),
+    !,
+    el_wrap.
+:- endif.
+enable_line_editing(_In, _Out, _Err).
+
+:- if(current_predicate(el_unwrap/1)).
+disable_line_editing(_In, _Out, _Err) :-
+    el_unwrap(user_input).
+:- endif.
+disable_line_editing(_In, _Out, _Err).
+
+
+%!  detach_console(+ThreadId) is det.
+%
+%   Destroy the console for ThreadId.
+
 detach_console(Id) :-
     (   retract(has_console(Id, In, Out, Err))
-    ->  close(In, [force(true)]),
+    ->  disable_line_editing(In, Out, Err),
+        close(In, [force(true)]),
         close(Out, [force(true)]),
         close(Err, [force(true)])
     ;   true
@@ -290,9 +332,10 @@ user:message_hook(trace_mode(on), _, Lines) :-
     prolog:message/3.
 
 prolog:message(thread_welcome) -->
-    { thread_self(Self)
+    { thread_self(Self),
+      human_thread_id(Self, Id)
     },
-    [ 'SWI-Prolog console for thread ~w'-[Self],
+    [ 'SWI-Prolog console for thread ~w'-[Id],
       nl, nl
     ].
 prolog:message(joined_threads(Threads)) -->
