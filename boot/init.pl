@@ -200,7 +200,7 @@ public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
 % clause body and if they are handed  to   call/1.  The only way to call
 % these predicates is by means of  call/2..   In  that case, we call the
 % hole control structure again to get it compiled by call/1 and properly
-% deal  with  !,  etc.  Another  reason  for  having  these  things  are
+% deal  with  !,  etc.  Another  reason  for  having  these  things   as
 % predicates is to be able to define   properties for them, helping code
 % analyzers.
 
