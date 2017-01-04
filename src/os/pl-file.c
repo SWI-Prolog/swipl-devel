@@ -3224,8 +3224,9 @@ PRED_IMPL("prompt1", 1, prompt1, 0)
 
 
 atom_t
-PrologPrompt()
+PrologPrompt(void)
 { GET_LD
+  IOSTREAM *in;
 
   if ( !LD->prompt.first_used && LD->prompt.first )
   { LD->prompt.first_used = TRUE;
@@ -3233,7 +3234,9 @@ PrologPrompt()
     return LD->prompt.first;
   }
 
-  if ( Sinput->position && Sinput->position->linepos == 0 )
+  if ( (in=Suser_input) &&
+       in->position &&
+       in->position->linepos == 0 )
     return LD->prompt.current;
   else
     return 0;				/* "" */

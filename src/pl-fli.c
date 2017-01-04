@@ -4417,7 +4417,10 @@ PL_prompt_next(int fd)
 
 char *
 PL_prompt_string(int fd)
-{ if ( fd == 0 )
+{ GET_LD
+  IOSTREAM *s;
+
+  if ( (s=Suser_input) && fd == Sfileno(s) )
   { atom_t a = PrologPrompt();		/* TBD: deal with UTF-8 */
 
     if ( a )
