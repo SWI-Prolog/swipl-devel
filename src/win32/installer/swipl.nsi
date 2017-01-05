@@ -433,6 +433,8 @@ Section "Base system (required)"
   File ${SWIPL}\doc\windows.html
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\index.html
+  File ${SWIPL}\doc\packages\readline.html
+  File ${SWIPL}\doc\packages\libedit.html
 
   SetRegView ${BITS}
   WriteRegStr HKLM ${REGKEY} "home" "$INSTDIR"
