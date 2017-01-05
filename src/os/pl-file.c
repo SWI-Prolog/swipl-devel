@@ -999,7 +999,7 @@ isConsoleStream(IOSTREAM *s)
 int
 reportStreamError(IOSTREAM *s)
 { if ( GD->cleaning >= CLN_IO ||
-       isConsoleStream(s0) )
+       isConsoleStream(s) )
     return TRUE;
 
   if ( (s->flags & (SIO_FERR|SIO_WARN)) )
