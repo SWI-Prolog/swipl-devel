@@ -7770,10 +7770,12 @@ Determine the size of the terminal.  Platforms:
     \item[Unix]
 If the system provides \jargon{ioctl} calls for this, these are
 used and tty_size/2 properly reflects the actual size after a user
-resize of the window. As a fallback, the system uses
-tty_get_capability/3 using \const{li} and \const{co} capabilities. In
-this case the reported size reflects the size at the first call and is
-not updated after a user-initiated resize of the terminal.
+resize of the window.   The \jargon{ioctl} is issued on teh file
+descriptor associated with the \const{user_input} stream. As a fallback,
+the system uses tty_get_capability/3 using \const{li} and \const{co}
+capabilities. In this case the reported size reflects the size at the
+first call and is not updated after a user-initiated resize of the
+terminal.
 
     \item[Windows]
 Getting the size of the terminal is provided for \program{swipl-win.exe}.

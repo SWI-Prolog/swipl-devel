@@ -305,23 +305,27 @@ static
 PRED_IMPL("tty_size", 2, tty_size, 0)
 { PRED_LD
   int rows, cols;
+  int fd = Sfileno(Suser_input);
 
   term_t r = A1;
   term_t c = A2;
+
+  if ( fd < 0 )
+    fd = 0;
 
 #ifdef __unix__
   int iorval;
 
 #ifdef TIOCGSIZE
   struct ttysize ws;
-  iorval = ioctl(0, TIOCGSIZE, &ws);
+  iorval = ioctl(fd, TIOCGSIZE, &ws);
 
   rows = ws.ts_lines;
   cols = ws.ts_cols;
 #else
 #ifdef TIOCGWINSZ
   struct winsize ws;
-  iorval = ioctl(0, TIOCGWINSZ, &ws);
+  iorval = ioctl(fd, TIOCGWINSZ, &ws);
 
   rows = ws.ws_row;
   cols = ws.ws_col;
