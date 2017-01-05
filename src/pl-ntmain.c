@@ -1013,7 +1013,7 @@ install_readline(rlc_console c)
       "system", "$rl_history",       1, pl_rl_history,        0);
 
   PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
-  PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
+  PL_set_prolog_flag("readline",    PL_ATOM, "swipl_win");
 }
 
 /* destroy the console on exit.  Using PL_on_halt() is the clean, but somewhat

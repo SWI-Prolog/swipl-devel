@@ -549,7 +549,9 @@ setup_history :-
 %   Setup line editing.
 
 setup_readline :-
-    (   stream_property(user_input, tty(true)),
+    (   current_prolog_flag(readline, swipl_win)
+    ->  true
+    ;   stream_property(user_input, tty(true)),
         current_prolog_flag(tty_control, true),
         (   current_prolog_flag(readline, ReadLine)
         ->  true
