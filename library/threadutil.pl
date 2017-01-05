@@ -174,8 +174,8 @@ human_thread_id(Thread, Id) :-
 %   Open a new console window and unify In,  Out and Err with the input,
 %   output and error streams for the new console.
 
-:- multifile
-    xterm_args/1.
+:- multifile xterm_args/1.
+:- dynamic   xterm_args/1.
 
 :- if(current_predicate(win_open_console/5)).
 
@@ -191,6 +191,17 @@ regkey(Key, Key) :-
 regkey(_, 'Anonymous').
 
 :- else.
+
+%!  xterm_args(-List) is nondet.
+%
+%   Multifile and dynamic hook that  provides (additional) arguments for
+%   the xterm(1) process opened  for   additional  thread consoles. Each
+%   solution must bind List to a list   of  atomic values. All solutions
+%   are concatenated using append/2 to form the final argument list.
+%
+%   The defaults set  the  colors   to  black-on-light-yellow,  enable a
+%   scrollbar, set the font using  Xft   font  pattern  and prepares the
+%   back-arrow key.
 
 xterm_args(['-xrm', '*backarrowKeyIsErase: false']).
 xterm_args(['-xrm', '*backarrowKey: false']).
