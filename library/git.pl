@@ -375,7 +375,7 @@ git_version_pattern('*').
 %   no output.
 
 git_is_clean(Dir) :-
-    setup_call_cleanup(process_create(path(git), ['diff'],
+    setup_call_cleanup(process_create(path(git), ['diff', '--stat'],
                                       [ stdout(pipe(Out)),
                                         stderr(null),
                                         cwd(Dir)
