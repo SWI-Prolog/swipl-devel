@@ -180,8 +180,6 @@ main(int argc, char **argv)
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
-  PL_install_readline();                /* delete if not required */
-
   PL_halt(PL_toplevel() ? 0 : 1);
 }
 \end{code}
@@ -3259,12 +3257,7 @@ interpreted by PL_toplevel().
 \begin{code}
 int
 main(int argc, char **argv)
-{
-#ifdef READLINE	/* Remove if you don't want readline */
-  PL_initialise_hook(install_readline);
-#endif
-
-  if ( !PL_initialise(argc, argv) )
+{ if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_halt(PL_toplevel() ? 0 : 1);
@@ -3424,12 +3417,6 @@ main(int argc, char **argv)
 As Jose Morales pointed at
 \url{https://github.com/graphitemaster/incbin}, which contains a
 portability layer on top of the above idea.
-
-    \cfunction{void}{PL_install_readline}{}
-Installs the GNU readline line editor.  Embedded applications that do not
-use the Prolog top level should normally delete this line, shrinking the
-Prolog kernel significantly.  Note that the Windows version does not use
-GNU readline.
 
     \cfunction{int}{PL_toplevel}{}
 Runs the goal of the \argoption{-t}{toplevel} switch (default prolog/0) and
