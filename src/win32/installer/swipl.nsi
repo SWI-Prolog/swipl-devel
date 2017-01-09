@@ -51,8 +51,8 @@ VIAddVersionKey FileVersion "${_VERSION}"
 VIAddVersionKey OriginalFilename "${_OUTFILE}"
 
 Icon ${SWIPL}\swipl.ico
-LicenseData ${SWIPL}\COPYING.TXT
-LicenseText "SWI-Prolog is governed by the LGPL"
+LicenseData ${SWIPL}\LICENSE.TXT
+LicenseText "SWI-Prolog is governed by the BSD-2 license"
 
 !ifdef MINGW
 InstType "Typical"				# 1
@@ -295,7 +295,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR
   File /r ${SWIPL}\customize
   File ${SWIPL}\${BOOT}
-  File ${SWIPL}\COPYING.TXT
+  File ${SWIPL}\LICENSE.TXT
   File ${SWIPL}\README.TXT
   File ${SWIPL}\VERSION
   File ${SWIPL}\swipl.home

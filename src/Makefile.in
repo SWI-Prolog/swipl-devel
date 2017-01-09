@@ -30,7 +30,7 @@
 #
 # Copyright policy:
 #
-#	* LGPL (see file COPYING or http://www.swi-prolog.org/)
+#	* BSD-2 (see file LICENSE or http://www.swi-prolog.org/)
 ################################################################
 
 .SUFFIXES: .i .pl
@@ -632,7 +632,7 @@ install-lman:
 install-readme:	idirs
 		$(INSTALL_DATA) ../README.md $(DESTDIR)$(PLBASE)/README$(TXTEXT)
 		$(INSTALL_DATA) ../VERSION $(DESTDIR)$(PLBASE)
-		$(INSTALL_DATA) ../COPYING $(DESTDIR)$(PLBASE)/COPYING$(TXTEXT)
+		$(INSTALL_DATA) ../LICENSE $(DESTDIR)$(PLBASE)/LICENSE$(TXTEXT)
 		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
 
 html-install:
