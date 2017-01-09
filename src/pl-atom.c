@@ -1227,7 +1227,10 @@ PL_unregister_atom(atom_t a)
   { Atom p;
 
     p = fetchAtomArray(index);
-    assert(ATOM_IS_VALID(p->references));
+    if ( !ATOM_IS_VALID(p->references) )
+    { Sdprintf("OOPS: PL_unregister_atom('%s'): invalid atom\n", p->name);
+      trap_gdb();
+    }
 
 #ifdef ATOMIC_REFERENCES
     if ( GD->atoms.gc_active )
@@ -1243,17 +1246,17 @@ PL_unregister_atom(atom_t a)
 
       if ( HAS_LD )
 	LD->atoms.unregistering = a;
-      if ( (refs = ATOMIC_DEC(&p->references) & ATOM_REF_COUNT_MASK) == 0 )
+      if ( (refs=ATOM_REF_COUNT(ATOMIC_DEC(&p->references))) == 0 )
 	ATOMIC_INC(&GD->atoms.unregistered);
     }
 #else
     LOCK();
-    if ( (refs = --p->references) == 0 )
+    if ( (refs=ATOM_REF_COUNT(--p->references)) == 0 )
       GD->atoms.unregistered++;
     UNLOCK();
 #endif
     if ( refs == (unsigned int)-1 )
-    { Sdprintf("OOPS: -1 references to '%s'\n", p->name);
+    { Sdprintf("OOPS: PL_unregister_atom('%s'): -1 references\n", p->name);
       trap_gdb();
     }
   }
