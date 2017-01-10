@@ -817,7 +817,7 @@ set_default_history :-
     current_prolog_flag(history, _),
     !.
 set_default_history :-
-    (   (   current_prolog_flag(readline, true)
+    (   (   \+ current_prolog_flag(readline, false)
         ;   current_prolog_flag(emacs_inferior_process, true)
         )
     ->  create_prolog_flag(history, 0, [])
