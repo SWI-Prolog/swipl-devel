@@ -534,7 +534,7 @@ user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
                            error(E, context(prolog_stack(Stack),Msg)),
                            Fr, Guard) :-
     current_prolog_flag(backtrace, true),
-    (   (Guard == none ; Guard == 'C')
+    (   atom(Guard)
     ->  debug(backtrace, 'Got uncaught (guard = ~q) exception ~p (Ctx0=~p)',
               [Guard, E, Ctx0]),
         stack_guard(Guard)
@@ -549,7 +549,8 @@ user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
     ),
     get_prolog_backtrace(Fr, Depth, Stack0),
     debug(backtrace, 'Stack = ~p', [Stack0]),
-    clean_stack(Stack0, Stack).
+    clean_stack(Stack0, Stack1),
+    join_stacks(Ctx0, Stack1, Stack).
 
 clean_stack(List, List) :-
     stack_guard(X), var(X),
@@ -568,6 +569,14 @@ guard_frame(frame(_,clause(ClauseRef, _, _))) :-
     nth_clause(M:Head, _, ClauseRef),
     functor(Head, Name, Arity),
     stack_guard(M:Name/Arity).
+
+join_stacks(Ctx0, Stack1, Stack) :-
+    nonvar(Ctx0),
+    Ctx0 = prolog_stack(Stack0),
+    is_list(Stack0), !,
+    append(Stack0, Stack1, Stack).
+join_stacks(_, Stack, Stack).
+
 
 %!  stack_guard(+Reason) is semidet.
 %
