@@ -7929,7 +7929,7 @@ written in lowercase without the \const{SW_*}:
 In addition, \const{iconic} is a synonym for \const{minimize} and
 \const{normal} for \const{shownormal}.
 
-    \predicate{win_shell}{2}{+Operation, +File, +Show}
+    \predicate{win_shell}{3}{+Operation, +File, +Show}
 Windows only. Opens the document \arg{File} using the Windows shell
 rules for doing so. \arg{Operation} is one of \const{open},
 \const{print} or \const{explore} or another operation registered with
