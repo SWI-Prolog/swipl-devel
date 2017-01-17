@@ -391,6 +391,7 @@ PL_EXPORT(qid_t)	PL_open_query(module_t m, int flags,
 PL_EXPORT(int)		PL_next_solution(qid_t qid) WUNUSED;
 PL_EXPORT(void)		PL_close_query(qid_t qid);
 PL_EXPORT(void)		PL_cut_query(qid_t qid);
+PL_EXPORT(qid_t)	PL_current_query(void);
 
 			/* Simplified (but less flexible) call-back */
 PL_EXPORT(int)		PL_call(term_t t, module_t m);

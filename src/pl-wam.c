@@ -2518,6 +2518,19 @@ PL_close_query(qid_t qid)
 }
 
 
+qid_t
+PL_current_query(void)
+{ GET_LD
+
+  if ( HAS_LD )
+  { if ( LD->query )
+      return QidFromQuery(LD->query);
+  }
+
+  return 0;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_exception(qid) is used to extract exceptions   from an query executed
 using  PL_next_solution().  The  term-reference  itself   is  no  longer

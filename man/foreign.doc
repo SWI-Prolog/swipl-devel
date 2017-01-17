@@ -2202,9 +2202,15 @@ until it fails to generate all solutions to the query.
 Discards the query, but does not delete any of the data created by the
 query.  It just invalidates \arg{qid}, allowing for a new call to
 PL_open_query() in this context.
+
     \cfunction{void}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
+
+    \cfunction{qid_t}{PL_current_query}{void}
+Returns the query id of of the current query or \const{0} if the
+current thread is not executing any queries.
+
     \cfunction{int}{PL_call_predicate}{module_t m, int flags,
 				       predicate_t pred, term_t +t0}
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),
