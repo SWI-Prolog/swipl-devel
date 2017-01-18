@@ -1260,7 +1260,7 @@ initPrologFlags(void)
 #endif
   setPrologFlag("file_name_case_handling", FT_ATOM,
 		stringAtom(currentFileNameCaseHandling()));
-  setPrologFlag("version",	FT_INTEGER|FF_READONLY, PLVERSION);
+  setPrologFlag("version", FT_INTEGER|FF_READONLY, PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
     setPrologFlag("home", FT_ATOM|FF_READONLY, systemDefaults.home);
@@ -1442,16 +1442,34 @@ setVersionPrologFlag(void)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   term_t t = PL_new_term_ref();
+  term_t o = PL_new_term_ref();
   int major = PLVERSION/10000;
   int minor = (PLVERSION/100)%100;
   int patch = (PLVERSION%100);
+
+  PL_put_nil(o);
+
+#ifdef PLVERSION_TAG
+  { const char *tag = PLVERSION_TAG;
+    if ( tag && *tag )
+    { int rc;
+      term_t tt;
+
+      rc = ( (tt=PL_new_term_ref()) &&
+	     PL_put_atom_chars(tt, tag) &&
+	     PL_cons_functor(tt, FUNCTOR_tag1, tt) &&
+	     PL_cons_functor(o,  FUNCTOR_dot2, tt, o) );
+      (void)rc;
+    }
+  }
+#endif
 
   if ( !PL_unify_term(t,
 		      PL_FUNCTOR_CHARS, PLNAME, 4,
 		        PL_INT, major,
 		        PL_INT, minor,
 		        PL_INT, patch,
-		        PL_ATOM, ATOM_nil) )
+		        PL_TERM, o) )
     sysError("Could not set version");
 
   setPrologFlag("version_data", FF_READONLY|FT_TERM, t);

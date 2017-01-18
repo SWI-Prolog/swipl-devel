@@ -862,12 +862,12 @@ prolog_message(version) -->
     !,
     [ '~w'-[Version] ].
 prolog_message(version) -->
-    { current_prolog_flag(version, Version),
-      Major is Version // 10000,
-      Minor is (Version // 100) mod 100,
-      Patch is Version mod 100
+    { current_prolog_flag(version_data, swi(Major,Minor,Patch,Options))
     },
-    [ '~w.~w.~w'-[Major, Minor, Patch] ].
+    (   { memberchk(tag(Tag), Options) }
+    ->  [ '~w.~w.~w-~w'-[Major, Minor, Patch, Tag] ]
+    ;   [ '~w.~w.~w'-[Major, Minor, Patch] ]
+    ).
 prolog_message(address_bits) -->
     { current_prolog_flag(address_bits, Bits)
     },

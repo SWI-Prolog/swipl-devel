@@ -1784,8 +1784,9 @@ The version identifier is an integer with value: $$10000 \times
     \prologflagitem{version_data}{swi(Major, Minor, Patch, Extra)}{r}
 Part of the dialect compatibility layer; see also the Prolog flag
 \prologflag{dialect} and \secref{dialect}. \arg{Extra} provides
-platform-specific version information.  Currently it is simply unified
-to \const{[]}.
+platform-specific version information as a list. \arg{Extra} is used for
+\jargon{tagged versions} such as ``7.4.0-rc1'', in which case
+\arg{Extra} contains a term \term{tag}{rc1}.
 
     \prologflagitem{version_git}{atom}{r}
 Available if created from a git repository.  See \program{git-describe}
