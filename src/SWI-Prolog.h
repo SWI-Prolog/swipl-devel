@@ -65,10 +65,15 @@ extern "C" {
 #endif
 
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
+/* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
 #define PLVERSION 70335
 #endif
+#ifndef PLVERSION_TAG
+#define PLVERSION_TAG ""
+#endif
+
 
 		 /*******************************
 		 *	       EXPORT		*
