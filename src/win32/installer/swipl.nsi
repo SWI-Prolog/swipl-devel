@@ -46,7 +46,7 @@ VIAddVersionKey Comments "SWI-Prolog installer for Windows"
 VIAddVersionKey ProductName "SWI-Prolog"
 VIAddVersionKey ProductVersion "${_VERSION}"
 VIAddVersionKey CompanyName "swi-prolog.org"
-VIAddVersionKey LegalCopyright "LGPL"
+VIAddVersionKey LegalCopyright "BSD-2"
 VIAddVersionKey FileVersion "${_VERSION}"
 VIAddVersionKey OriginalFilename "${_OUTFILE}"
 
