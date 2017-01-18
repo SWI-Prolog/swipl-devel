@@ -48,18 +48,36 @@ name :-
     daily,
     !,
     version(Major, Minor, Patch, Tag),
-    version_string(version(Major, Minor, Patch, Tag), Version),
-    format('!define _VERSION "~w"~n', [Version]),
+    vi_product_version(version(Major, Minor, Patch, Tag), VIProductVersion),
+    format('!define _VERSION "~w"~n', [VIProductVersion]),
     get_time(X),
     format_time(string(Date), '%F', X),
     format('Name "SWI-Prolog ~w"~n', [Date]).
 name :-
     version(Major, Minor, Patch, Tag),
     version_string(version(Major, Minor, Patch, Tag), Version),
-    format('!define _VERSION "~w"~n', [Version]),
+    vi_product_version(version(Major, Minor, Patch, Tag), VIProductVersion),
+    format('!define _VERSION "~w"~n', [VIProductVersion]),
     get_time(X),
     format_time(string(Date), '%F', X),
     format('Name "SWI-Prolog ~w (~s)"~n', [Version, Date]).
+
+vi_product_version(version(Major,Minor,Patch,''), Version) :-
+    !,
+    format(string(Version), '~w.~w.~w.0', [Major, Minor, Patch]).
+vi_product_version(version(Major,Minor,Patch,Tag), Version) :-
+    tag_revision(Tag, Rev),
+    format(string(Version), '~w.~w.~w.~w', [Major, Minor, Patch, Rev]).
+
+tag_revision(Tag, Rev) :-
+    atom_number(Tag, Rev),
+    !.
+tag_revision(Tag, Rev) :-
+    atom_concat(rc, RevA, Tag),
+    atom_number(RevA, Rev),
+    !.
+tag_revision(alpha, 1).
+tag_revision(beta, 2).
 
 version_string(version(Major,Minor,Patch,''), Version) :-
     !,
