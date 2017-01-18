@@ -1008,12 +1008,20 @@ usage(void)
   return TRUE;
 }
 
+#ifndef PLVERSION_TAG
+#define PLVERSION_TAG ""
+#endif
+
 static int
-version()
-{ Sprintf("SWI-Prolog version %d.%d.%d for %s\n",
+version(void)
+{ const char *tag = PLVERSION_TAG;
+
+  if ( !tag ) tag = "";
+  Sprintf("SWI-Prolog version %d.%d.%d%s%s for %s\n",
 	  PLVERSION / 10000,
 	  (PLVERSION / 100) % 100,
 	  PLVERSION % 100,
+	  tag[0] ? "-" : "", tag,
 	  PLARCH);
 
   return TRUE;
@@ -1052,6 +1060,7 @@ runtime_vars(int format)
   char base[MAXPATHLEN];
 #endif
   char version[20];
+  char *tag = PLVERSION_TAG;
 
   if ( systemDefaults.home )
   {
@@ -1084,6 +1093,8 @@ runtime_vars(int format)
   printvar("PLSOPATH",	SO_PATH, format);
 #endif
   printvar("PLVERSION", version, format);
+  if ( tag[0] )
+    printvar("PLVERSIONTAG", tag, format);
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   printvar("PLSHARED",	"yes", format);
 #else

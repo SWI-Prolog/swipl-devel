@@ -125,6 +125,9 @@ search path for shared objects.  For example, on ELF systems this is
 .B PLVERSION
 Numeric representation of the SWI-Prolog version.
 .TP
+.B PLVERSIONTAG
+If present, a version tag such as "rc1".
+.TP
 .B PLSHARED
 Has the value
 .B yes
