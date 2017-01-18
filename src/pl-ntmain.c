@@ -956,14 +956,23 @@ message_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		 *	       MAIN		*
 		 *******************************/
 
+#ifndef PLVERSION_TAG
+#define PLVERSION_TAG ""
+#endif
+
 
 static void
 set_window_title(rlc_console c)
 { TCHAR title[256];
+  TCHAR wtag[64];
   int v = (int)PL_query(PL_QUERY_VERSION);
   int major = v / 10000;
   int minor = (v / 100) % 100;
   int patch = v % 100;
+  const char *tag = PLVERSION_TAG;
+  const	char *s;
+  TCHAR *o;
+
 #ifdef O_PLMT
   TCHAR *mt = _T("Multi-threaded, ");
 #else
@@ -975,9 +984,15 @@ set_window_title(rlc_console c)
   TCHAR *w64 = _T("");
 #endif
 
+  if ( !tag ) tag = "";
+  for(s=tag,o=wtag; *s; )
+    *o++ = *s++;
+  *o = 0;
+
   snwprintf(title, sizeof(title)/sizeof(TCHAR),
-	    _T("SWI-Prolog (%s%sversion %d.%d.%d)"),
-	    w64, mt, major, minor, patch);
+	    _T("SWI-Prolog (%s%sversion %d.%d.%d%s%s)"),
+	    w64, mt, major, minor, patch,
+	    wtag[0] ? _T("-") : _T(""), wtag);
 
   rlc_title(c, title, NULL, 0);
 }
