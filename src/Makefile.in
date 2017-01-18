@@ -50,6 +50,7 @@ lmandir=$(mandir)/man$(lmansec)
 plmandir=$(PLBASE)/man
 
 PLVERSION=@PLVERSION@
+PLNVERSION=@PLNVERSION@
 PL=@PL@
 PLWIN=@PL@-win
 PLBASE=@PLBASE@
@@ -230,7 +231,7 @@ $(RUNTIME):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 
 ifeq ($(SOEXT),dylib)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
-		$(CC) -dynamiclib -current_version $(PLVERSION) \
+		$(CC) -dynamiclib -current_version $(PLNVERSION) \
 			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
