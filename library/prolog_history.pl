@@ -103,8 +103,7 @@ dir_history_file(Dir, File) :-
 
 write_history(File) :-
     current_prolog_flag(save_history, true),
-    !,
-    catch(prolog:history(user_input, save(File)), _, true).
+    catch(prolog:history(user_input, save(File)), _, true), !.
 write_history(_).
 
 
