@@ -1780,9 +1780,6 @@ debugging complicated file-search paths.  See also file_search_path/2.
     \prologflagitem{version}{integer}{r}
 The version identifier is an integer with value: $$10000 \times
 \arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
-Note that in releases up to 2.7.10 this Prolog flag yielded an atom holding
-the three numbers separated by dots. The current representation is much
-easier for implementing version-conditional statements.
 
     \prologflagitem{version_data}{swi(Major, Minor, Patch, Extra)}{r}
 Part of the dialect compatibility layer; see also the Prolog flag
@@ -1821,8 +1818,8 @@ _waccess().  This is the default.
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If present and \const{true}, the operating system is an implementation
-of Microsoft Windows (NT/2000/XP, etc.). This flag is only available on
-MS-Windows based versions.
+of Microsoft Windows. This flag is only available on MS-Windows based
+versions.  See also \prologflag{unix}.
 
     \prologflagitem{write_attributes}{atom}{rw}
 Defines how write/1 and friends write attributed variables.  The option
