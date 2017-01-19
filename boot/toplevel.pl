@@ -542,7 +542,8 @@ setup_history :-
     ->  prolog_history(enable)
     ;   true
     ),
-    set_default_history.
+    set_default_history,
+    '$load_history'.
 
 %!  setup_readline
 %

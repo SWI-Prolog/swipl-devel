@@ -38,6 +38,7 @@
           [ read_history/6,
             '$save_history_line'/1,             % +Line
             '$clean_history'/0,
+            '$load_history'/0,
             '$save_history_event'/1
           ]).
 
@@ -118,6 +119,18 @@ list_history :-
 '$clean_history' :-
     retractall('$history'(_,_)).
 
+%!  '$load_history' is det.
+%
+%   Load persistent history using a hook
+
+'$load_history' :-
+    '$clean_history',
+    current_prolog_flag(history, Depth),
+    Depth > 0,
+    catch(prolog:history(current_input, load), _, true), !.
+'$load_history'.
+
+
 %%   prompt_history(+Prompt)
 %
 %    Give prompt, substituting '~!' by the event number.
@@ -178,19 +191,47 @@ save_event(Dont, Event) :-
 save_event(_, Event) :-
     '$save_history_event'(Event).
 
-%!  '$save_history_event'(+Event:atom)
+%!  '$save_history_event'(+Event) is det.
 %
-%   Save an input line as text into the !- based history.
+%   Save an input line as text into the !- based history. Event is one
+%   of
+%
+%     * a *string*.  The event is added with a next number at the end.
+%     * a *pair*.  The event is added with the given sequence number.
 
 :- thread_local
     '$history'/2.
 
+'$save_history_event'(Num-String) :-
+    integer(Num), string(String),
+    !,
+    asserta('$history'(Num, String)),
+    truncate_history(Num).
 '$save_history_event'(Event) :-
-    (   '$history'(Old, _)
-    ->  New is Old + 1
-    ;   New is 1
-    ),
-    asserta('$history'(New, Event)),
+    to_string(Event, Event1),
+    !,
+    last_event(Num, String),
+    (   Event1 == String
+    ->  true
+    ;   New is Num + 1,
+        asserta('$history'(New, Event1)),
+        truncate_history(New)
+    ).
+'$save_history_event'(Event) :-
+    '$type_error'(history_event, Event).
+
+last_event(Num, String) :-
+    '$history'(Num, String),
+    !.
+last_event(0, "").
+
+to_string(String, String) :-
+    string(String),
+    !.
+to_string(Atom, String) :-
+    atom_string(Atom, String).
+
+truncate_history(New) :-
     history_depth_(Depth),
     remove_history(New, Depth).
 
