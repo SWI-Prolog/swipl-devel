@@ -626,7 +626,6 @@ Section "Package CLIB"
   File ${SWIPL}\bin\uri.dll
   File ${SWIPL}\bin\uuid.dll
   File ${SWIPL}\bin\memfile.dll
-  File ${SWIPL}\bin\mime.dll
   File ${SWIPL}\bin\socket.dll
   File ${SWIPL}\bin\time.dll
   File ${SWIPL}\bin\readutil.dll
@@ -643,7 +642,6 @@ Section "Package CLIB"
   File ${SWIPL}\library\uri.pl
   File ${SWIPL}\library\uuid.pl
   File ${SWIPL}\library\memfile.pl
-  File ${SWIPL}\library\mime.pl
   File ${SWIPL}\library\socket.pl
   File ${SWIPL}\library\prolog_server.pl
   File ${SWIPL}\library\random.pl
@@ -852,7 +850,6 @@ Section "C Debugging Symbols (.pdb files)"
   File ${SWIPL}\bin\swipl.pdb
   File ${SWIPL}\bin\memfile.pdb
   File ${SWIPL}\bin\streaminfo.pdb
-  File ${SWIPL}\bin\mime.pdb
   File ${SWIPL}\bin\odbc4pl.pdb
   File ${SWIPL}\bin\plterm.pdb
   File ${SWIPL}\bin\swipl-win.pdb
