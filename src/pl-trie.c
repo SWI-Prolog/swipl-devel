@@ -831,10 +831,11 @@ get_trie(term_t t, trie **tp)
       return TRUE;
     }
 
-    return PL_existence_error("trie", t);
-  }
+    PL_existence_error("trie", t);
+  } else
+    PL_type_error("trie", t);
 
-  return PL_type_error("trie", t);
+  return FALSE;
 }
 
 

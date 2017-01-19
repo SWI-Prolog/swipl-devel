@@ -815,16 +815,20 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurout)) )
       goto ok;
-    return no_stream(t, ATOM_current_output);
+    no_stream(t, ATOM_current_output);
+    return FALSE;
   }
 
   if ( !PL_get_atom(t, &a) )
-    return not_a_stream(t);
+  { not_a_stream(t);
+    return FALSE;
+  }
 
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_output)) )
       goto ok;
-    return no_stream(t, ATOM_user);
+    no_stream(t, ATOM_user);
+    return FALSE;
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
@@ -845,8 +849,9 @@ ok:
     else
       return FALSE;				/* resource error */
   }
-  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		  ATOM_output, tp, t);
+  PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_output, tp, t);
+
+  return FALSE;
 }
 
 
@@ -871,16 +876,20 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurin)) )
       goto ok;
-    return no_stream(t, ATOM_current_input);
+    no_stream(t, ATOM_current_input);
+    return FALSE;
   }
 
   if ( !PL_get_atom(t, &a) )
-    return not_a_stream(t);
+  { not_a_stream(t);
+    return FALSE;
+  }
 
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_input)) )
       goto ok;
-    return no_stream(t, ATOM_user);
+    no_stream(t, ATOM_user);
+    return FALSE;
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
@@ -901,8 +910,9 @@ ok:
     else
       return FALSE;				/* resource error */
   }
-  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		  ATOM_input, tp, t);
+  PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_input, tp, t);
+
+  return FALSE;
 }
 
 int

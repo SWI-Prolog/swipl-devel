@@ -335,9 +335,11 @@ getLocaleEx(term_t t, PL_locale **lp)
     return TRUE;
 
   if ( PL_is_atom(t) )
-    return PL_existence_error("locale", t);
+    PL_existence_error("locale", t);
   else
-    return PL_type_error("locale", t);
+    PL_type_error("locale", t);
+
+  return FALSE;
 }
 
 
@@ -641,7 +643,7 @@ get_group_size_ex(term_t t, int *s)
     { *s = i;
       return TRUE;
     }
-    return PL_domain_error("digit_group_size", t);
+    PL_domain_error("digit_group_size", t);
   }
 
   return FALSE;

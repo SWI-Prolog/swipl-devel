@@ -185,7 +185,8 @@ get_dict_ex(term_t t, Word dp, int ex ARG_LD)
   if ( !ex )
     return FALSE;
 
-  return PL_type_error("dict", t);
+  PL_type_error("dict", t);
+  return FALSE;
 }
 
 
@@ -675,7 +676,8 @@ get_name_ex(term_t t, Word np ARG_LD)
     return TRUE;
   }
 
-  return PL_type_error("dict-key", t);
+  PL_type_error("dict-key", t);
+  return FALSE;
 }
 
 

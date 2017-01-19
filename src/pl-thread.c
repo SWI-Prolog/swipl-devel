@@ -5233,7 +5233,9 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
   }
 
   if ( !id )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_mutex, t);
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_mutex, t);
+    return FALSE;
+  }
 
   LOCK();
   if ( GD->thread.mutexTable &&
