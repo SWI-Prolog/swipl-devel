@@ -99,6 +99,7 @@ dir_history_file(Dir, File) :-
     directory_files(HDir, Files),
     '$member'(Base32, Files),
     base32(Dir, Base32),
+    !,
     atomic_list_concat([Dir, Base32], /, File).
 
 write_history(File) :-
@@ -122,9 +123,9 @@ write_history(_).
     history_loaded/1.
 
 load_dir_history(File) :-
-    (   exists_file(File)
-    ->  prolog:history(user_input, load(File)),
-        assertz(history_loaded(File))
+    (   exists_file(File),
+        prolog:history(user_input, load(File))
+    ->  assertz(history_loaded(File))
     ;   true
     ).
 
