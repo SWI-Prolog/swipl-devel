@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2016, VU University Amsterdam
+    Copyright (c)  2014-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -84,7 +84,6 @@ component(library(http/json), _{}).
 component(library(isub), _{}).
 component(library(jpl), _{}).
 component(library(memfile), _{}).
-component(library(mime), _{}).
 component(library(odbc), _{}).
 component(library(pce),
           _{pre:load_foreign_library(pce_principal:foreign(pl2xpce)),
