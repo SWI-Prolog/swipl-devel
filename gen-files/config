@@ -2,10 +2,6 @@ packages/chr/config.h.in
 packages/chr/configure
 packages/clib/config.h.in
 packages/clib/configure
-packages/clib/maildrop/rfc2045/config.h.in
-packages/clib/maildrop/rfc2045/configure
-packages/clib/maildrop/rfc822/config.h.in
-packages/clib/maildrop/rfc822/configure
 packages/clpqr/configure
 packages/cpp/configure
 packages/cppproxy/config.h.in
