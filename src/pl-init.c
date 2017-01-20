@@ -322,6 +322,7 @@ setupGNUEmacsInferiorMode()
   int val;
 
   if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
+       ((s = Getenv("INSIDE_EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
   { GET_LD
 
