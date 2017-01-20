@@ -1,25 +1,36 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -101,7 +112,10 @@ predicateName(Definition def)
     return "(nil)";
 
   if ( def->module != MODULE_user && !isUserSystemPredicate(def) )
-  { strcpy(e, atom_summary(def->module->name, 50));
+  { if ( def->module )
+      strcpy(e, atom_summary(def->module->name, 50));
+    else
+      strcpy(e, "(nil)");
     e += strlen(e);
     *e++ = ':';
   }
@@ -173,20 +187,53 @@ keyName(word key)
 }
 
 
+char *
+sourceFileName(SourceFile sf)
+{ char tmp[650];
+
+  strcpy(tmp, atom_summary(sf->name, 50));
+  return buffer_string(tmp, BUF_RING);
+}
+
+
+char *
+generationName(gen_t gen)
+{ char tmp[256];
+
+  if ( gen == GEN_MAX )
+    return "GEN_MAX";
+  Ssprintf(tmp, "%lld", (int64_t)gen);
+  return buffer_string(tmp, BUF_RING);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-clauseNo() returns the clause index of the given clause
+clauseNo() returns the clause index of the given clause at the given
+generation.  Use the current generation if gen is 0;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-clauseNo(Definition def, Clause cl)
-{ int i;
+clauseNo(Definition def, Clause cl, gen_t gen)
+{ GET_LD
+  int i;
   ClauseRef cref;
 
-  for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
-  { if ( cref->value.clause == cl )
-      return i;
+  if ( !gen )
+    gen = global_generation();
+
+  acquire_def(def);
+  for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next)
+  { Clause c = cref->value.clause;
+
+    if ( visibleClause(c, gen) )
+    { if ( c == cl )
+      { release_def(def);
+	return i;
+      }
+    }
+    i++;
   }
+  release_def(def);
 
   return -1;
 }
@@ -199,7 +246,9 @@ clauseNo(Definition def, Clause cl)
 
 static bool
 isUserSystemPredicate(Definition def)
-{ if ( true(def, P_LOCKED) &&
+{ GET_LD
+
+  if ( true(def, P_LOCKED) &&
        isCurrentProcedure(def->functor->functor, MODULE_user) )
     succeed;
 

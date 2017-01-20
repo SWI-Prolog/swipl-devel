@@ -1,25 +1,36 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (c)  2004-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -54,17 +65,27 @@ destroyGlobalVars()
 
 
 static void
-free_nb_linkval_symbol(Symbol s)
-{ word w = (word)s->value;
+free_nb_linkval_name(atom_t name)
+{ PL_unregister_atom(name);
+}
 
-  if ( isAtom(w) )
-    PL_unregister_atom(w);
-  else if ( storage(w) == STG_GLOBAL )
+
+static void
+free_nb_linkval_value(word value)
+{
+  if ( isAtom(value) )
+    PL_unregister_atom(value);
+  else if ( storage(value) == STG_GLOBAL )
   { GET_LD
     LD->gvar.grefs--;
   }
+}
 
-  PL_unregister_atom((atom_t)s->name);
+
+static void
+free_nb_linkval_symbol(void *name, void* value)
+{ free_nb_linkval_value((word)value);
+  free_nb_linkval_name((atom_t)name);
 }
 
 
@@ -83,13 +104,12 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
 { atom_t name;
   Word p;
   word w, old;
-  Symbol s;
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
 
   if ( !LD->gvar.nb_vars )
-  { LD->gvar.nb_vars = newHTable(32|TABLE_UNLOCKED);
+  { LD->gvar.nb_vars = newHTable(32);
     LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
   }
 
@@ -116,14 +136,14 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     }
   }
 
-  if ( !(s=lookupHTable(LD->gvar.nb_vars, (void*)name)) )
-  { s = addHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
+  if ( !(old = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+  { addNewHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
     PL_register_atom(name);
     PL_register_atom(ATOM_nil);
+    old = ATOM_nil;
   }
-  assert(s);
+  assert(old);
 
-  old = (word)s->value;
   if ( w == old )
     succeed;
   if ( isAtom(old) )
@@ -140,7 +160,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
       freezeGlobal(PASS_LD1);		/* The value location must be */
       if ( storage(old) != STG_GLOBAL )	/* preserved */
 	LD->gvar.grefs++;
-      s->value = (void*)makeRefG(p);
+      updateHTable(LD->gvar.nb_vars, (void*)name, (void*)makeRefG(p));
     }
 
     TrailAssignment(p);
@@ -149,7 +169,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   { if ( storage(old) == STG_GLOBAL )
       LD->gvar.grefs--;
 
-    s->value = (void *)w;
+    updateHTable(LD->gvar.nb_vars, (void*)name, (void*)w);
 
     if ( storage(w) == STG_GLOBAL )
     { freezeGlobal(PASS_LD1);
@@ -216,10 +236,9 @@ auto_define_gvar(atom_t name)
 int
 gvar_value__LD(atom_t name, Word p ARG_LD)
 { if ( LD->gvar.nb_vars )
-  { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-
-    if ( s )
-    { *p = (word)s->value;
+  { word w;
+    if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+    { *p = w;
       return TRUE;
     }
   }
@@ -245,11 +264,9 @@ getval(term_t var, term_t value, int raise_error ARG_LD)
 
   for(i=0; i<2; i++)
   { if ( LD->gvar.nb_vars )
-    { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-
-      if ( s )
+    { word w;
+      if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
       { term_t tmp = PL_new_term_ref();
-	word w = (word)s->value;
 
 	*valTermRef(tmp) = w;
 	return PL_unify(value, tmp);
@@ -317,11 +334,11 @@ PRED_IMPL("nb_delete", 1, nb_delete, 0)
     fail;
 
   if ( LD->gvar.nb_vars )
-  { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-
-    if ( s )
-    { free_nb_linkval_symbol(s);
-      deleteSymbolHTable(LD->gvar.nb_vars, s);
+  { word w;
+    if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+    { deleteHTable(LD->gvar.nb_vars, (void*)name);
+      free_nb_linkval_name(name);
+      free_nb_linkval_value(w);
     }
   }
 
@@ -333,7 +350,8 @@ static
 PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   TableEnum e;
-  Symbol s;
+  atom_t name;
+  word val;
   fid_t fid;
 
   switch( CTX_CNTRL )
@@ -364,11 +382,8 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
   { freeTableEnum(e);
     return FALSE;
   }
-  while( (s=advanceTableEnum(e)) )
-  { atom_t name = (atom_t)s->name;
-    word   val = (word)s->value;
-
-    if ( PL_unify_atom(A1, name) &&
+  while( advanceTableEnum(e, (void**)&name, (void**)&val) )
+  { if ( PL_unify_atom(A1, name) &&
 	 unify_ptrs(valTermRef(A2), &val, 0 PASS_LD) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);

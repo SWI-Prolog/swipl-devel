@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -264,7 +276,7 @@ typedef struct
 #define sizeofVarTable(isize) (struct_offsetp(var_table, entry) + sizeof(int)*(isize))
 
 #define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
-#define BITSPERINT (sizeof(int)*8)
+#define BITSPERINT (int)(sizeof(int)*8)
 
 typedef struct branch_var
 { VarDef	vdef;			/* Definition record */
@@ -724,10 +736,10 @@ right_recursion:
 
 	return nvars;
       } else if ( false(fd, CONTROL_F) )
-      { int ar = fd->arity;
+      { size_t ar = fd->arity;
 
 	ci->subclausearg++;
-	for(head = f->arguments, argn = ci->arity; --ar >= 0; head++, argn++)
+	for(head = f->arguments, argn = ci->arity; ar-- > 0; head++, argn++)
 	{ nvars = analyseVariables2(head, nvars, argn, ci, depth, FALSE PASS_LD);
 	  if ( nvars < 0 )
 	    break;			/* error */
@@ -745,7 +757,7 @@ right_recursion:
 
     if ( f->definition == FUNCTOR_semicolon2 && control && !ci->islocal )
     { Buffer obv;
-      int start_vars, at_branch_vars, at_end_vars;
+      ssize_t start_vars, at_branch_vars, at_end_vars;
 
       if ( (obv=ci->branch_vars) == NULL )
       { initBuffer(&ci->branch_varbuf);
@@ -847,7 +859,7 @@ right_recursion:
 
     if ( f->definition == FUNCTOR_not_provable1 && control && !ci->islocal)
     { Buffer obv;
-      int start_vars, at_end_vars;
+      ssize_t start_vars, at_end_vars;
 
       if ( (obv=ci->branch_vars) == NULL )
       { initBuffer(&ci->branch_varbuf);
@@ -890,7 +902,8 @@ right_recursion:
 
     /* The default term processing case */
 
-    { int ar = fd->arity;
+    if ( fd->arity > 0 )
+    { size_t ar = fd->arity;
 
       head = f->arguments;
       argn = ( argn < 0 ? 0 : ci->arity );
@@ -961,11 +974,11 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
       continue;
     if ( vd->name && (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
     { if ( true(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) &&
-	   atom_is_named_var(vd->name) )
+	   atom_is_named_var(vd->name) > 0 )
       { const char *type = ( true(vd, VD_MAYBE_SINGLETON) ?
 				  "branch_singleton" : "negation_singleton" );
 	compiler_warning(ci, type, vd->address);
-      } else if ( vd->times > 1 && !atom_is_named_var(vd->name) )
+      } else if ( vd->times > 1 && atom_is_named_var(vd->name) < 0 )
 	compiler_warning(ci, "multiton", vd->address);
     }
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
@@ -985,7 +998,7 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
   ci->clause->prolog_vars = nv;
   ci->clause->variables   = nv;
   ci->cut.nextvar	  = nv;
-  ci->vartablesize = (nv + BITSPERINT-1)/BITSPERINT;
+  ci->vartablesize	  = (int)((nv + BITSPERINT-1)/BITSPERINT);
 
   return TRUE;
 }
@@ -1189,7 +1202,7 @@ last_arg:
   }
 
   if ( isTerm(*t) )
-  { int arity;
+  { ssize_t arity;
 
     arity = arityTerm(*t);
 
@@ -1531,12 +1544,13 @@ compileClause(Clause *cp, Word head, Word body,
 { compileInfo ci;			/* data base for the compiler */
   struct clause clause;
   Clause cl;
+  Definition def = getProcDefinition(proc);
   int rc;
 
   if ( head )
   { ci.islocal      = FALSE;
     ci.subclausearg = 0;
-    ci.arity        = proc->definition->functor->arity;
+    ci.arity        = (int)def->functor->arity;
     ci.argvars      = 0;
     clause.flags    = 0;
   } else
@@ -1551,10 +1565,11 @@ compileClause(Clause *cp, Word head, Word body,
     *g		    = *body;
   }
 
-  clause.procedure  = proc;
+  clause.predicate  = def;
   clause.code_size  = 0;
   clause.source_no  = clause.line_no = 0;
   clause.owner_no   = 0;
+  clause.references = 0;
 
   ci.clause = &clause;
   ci.module = module;
@@ -2031,24 +2046,6 @@ current localframe and a B_VAR instruction is  generated for it. In this
 case it can return LOCAL_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG
-static char *
-vName(Word adr)
-{ GET_LD
-  static char name[32];
-
-  deRef(adr);
-
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
-  else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
-
-  return name;
-}
-#endif
-
-
 static int
 link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
 { VarDef vd = LD->comp.vardefs[*v>>LMASK_BITS];
@@ -2056,7 +2053,10 @@ link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
   Word k = varFrameP(lTop, voffset);
 
   DEBUG(MSG_COMP_ARGVAR,
-	Sdprintf("Linking b_var(%d) to %s\n", index, vName(vd->address)));
+	{ char vname[32];
+	  Sdprintf("Linking b_var(%d) to %s\n",
+		   iv, var_name_ptr(vd->address, vname));
+	});
 
   if ( k >= (Word) lMax )
     return LOCAL_OVERFLOW;
@@ -2266,7 +2266,7 @@ isvar:
 
     return TRUE;
   } else
-  { int ar;
+  { ssize_t ar;
     functor_t fdef;
     int isright = (where & A_RIGHT);
 
@@ -2394,7 +2394,8 @@ callatmv(code call)
 
 Procedure
 lookupBodyProcedure(functor_t functor, Module tm)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
 
   if ( (proc = isCurrentProcedure(functor, tm)) &&
        ( isDefinedProcedure(proc) ||
@@ -2548,6 +2549,9 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     } else if ( *arg == ATOM_dcut )		/* $cut */
     { Output_0(ci, I_CUTCHP);
       succeed;
+    } else if ( *arg == ATOM_dyield )		/* $yield */
+    { Output_0(ci, I_YIELD);
+      succeed;
     } else
     { functor = lookupFunctorDef(*arg, 0);
       fdef = NULL;				/* NULL --> no arguments */
@@ -2571,7 +2575,7 @@ appropriate calling instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( fdef )				/* term: there are arguments */
-  { int ar = fdef->arity;
+  { size_t ar = fdef->arity;
 
     for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
     { int rc;
@@ -2845,7 +2849,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   }
 
   { functor_t fdef;
-    int n, ar;
+    size_t n, ar;
     Word a;
 
     if ( isTextAtom(*arg) )
@@ -2951,11 +2955,13 @@ right_recursion:
   if ( i >= 0 && isFirstVarSet(ci->used_var, i) )
     Output_1(ci, C_VAR, VAROFFSET(i));
   if ( isTerm(*arg) && !ci->islocal )
-  { int ar = arityFunctor(functorTerm(*arg));
+  { size_t ar = arityFunctor(functorTerm(*arg));
 
-    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
-      skippedVar(arg, ci PASS_LD);
-    goto right_recursion;
+    if ( ar > 0 )
+    { for(ar--, arg = argTermP(*arg, 0); ar-- > 0; arg++)
+	skippedVar(arg, ci PASS_LD);
+      goto right_recursion;
+    }
   }
 
   return TRUE;
@@ -3383,8 +3389,9 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(term_t term, int where, atom_t owner, SourceLoc loc ARG_LD)
+assert_term(term_t term, ClauseRef where, atom_t owner, SourceLoc loc ARG_LD)
 { Clause clause;
+  ClauseRef cref;
   Procedure proc;
   Definition def;
   Module source_module = (loc ? LD->modules.source : (Module) NULL);
@@ -3511,8 +3518,10 @@ mode, the predicate is still undefined and is not dynamic or multifile.
       of->current_procedure = proc;
     }
 
-    if ( assertProcedure(proc, clause, where PASS_LD) )
-    { if ( warnings && !PL_get_nil(warnings) )
+    if ( (cref=assertProcedureSource(of, proc, clause PASS_LD)) )
+    { clause = cref->value.clause;
+
+      if ( warnings && !PL_get_nil(warnings) )
       { fid_t fid = PL_open_foreign_frame();
 	term_t cl = PL_new_term_ref();
 
@@ -3531,14 +3540,14 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   /* assert[az]/1 */
 
   if ( false(def, P_DYNAMIC) )
-  { if ( !setDynamicProcedure(proc, TRUE) )
+  { if ( !setDynamicDefinition(def, TRUE) )
     { freeClause(clause);
       return NULL;
     }
   }
 
-  if ( assertProcedure(proc, clause, where PASS_LD) )
-    return clause;
+  if ( (cref=assertProcedure(proc, clause, where PASS_LD)) )
+    return cref->value.clause;
 
   freeClause(clause);
   return NULL;
@@ -3671,16 +3680,12 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
   SourceFile sf;
 
   if ( !PL_get_atom_ex(A1, &filename) )
-    fail;
+    return FALSE;
 
   sf = lookupSourceFile(filename, TRUE);
   if ( sf->current_procedure )
-  { if ( unify_definition(NULL, A2, sf->current_procedure->definition, 0,
-			  GP_QUALIFY|GP_NAMEARITY) )
-    { sf->current_procedure = NULL;
-      succeed;
-    }
-    fail;
+  { return unify_definition(NULL, A2, sf->current_procedure->definition, 0,
+			    GP_QUALIFY|GP_NAMEARITY);
   }
 
   return PL_unify_nil(A2);
@@ -3779,7 +3784,7 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 			GP_NAMEARITY|GP_FINDHERE|GP_EXISTENCE_ERROR) )
       return FALSE;
 
-    if ( !setDynamicProcedure(proc, FALSE) )
+    if ( !setDynamicDefinition(proc->definition, FALSE) )
       return FALSE;
   }
 
@@ -3902,6 +3907,13 @@ NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c and arg1Key() below.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline word
+murmur_key(void *ptr, size_t n)
+{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
+  if ( !k ) k = 1;
+  return k;
+}
+
 int
 argKey(Code PC, int skip, word *key)
 { if ( skip > 0 )
@@ -3932,48 +3944,30 @@ argKey(Code PC, int skip, word *key)
         succeed;
 #if SIZEOF_VOIDP == 4
       case H_INT64:			/* only on 32-bit hardware! */
-	{ word k = (word)PC[0] ^ (word)PC[1];
-	  if ( !k )
-	    k++;
-	  *key = k;
-          succeed;
-	}
+	*key = murmur_key(PC, 2*sizeof(*PC));
+	succeed;
 #endif
       case H_INTEGER:
-	{ word k;
 #if SIZEOF_VOIDP == 4
-	  k = (word)*PC;			/* indexOfWord() picks 64-bits */
-	  if ( (intptr_t)k < 0L )
-	    k ^= -1L;
-	  DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
-#else
-	  k = (word)*PC;
-#endif
-	  if ( !k )
-	    k++;
-	  *key = k;
-	  succeed;
-	}
-      case H_FLOAT:			/* tbd */
-      { word k;
-	switch(WORDS_PER_DOUBLE)
-	{ case 2:
-	    k = (word)PC[0] ^ (word)PC[1];
-	    break;
-	  case 1:
-	    k = (word)PC[0];
-	    break;
-	  default:
-	    assert(0);
-	}
-
-	if ( !k )
-	  k++;
-	*key = k;
-        succeed;
+      { int64_t val;
+	val = (int64_t)(intptr_t)*PC;
+	*key = murmur_key(&val, sizeof(val));
       }
+#else
+	*key = murmur_key(PC, sizeof(*PC));
+#endif
+        succeed;
+      case H_FLOAT:
+	*key = murmur_key(PC, sizeof(double));
+        succeed;
       case H_STRING:
       case H_MPZ:
+      { word m = *PC++;
+	size_t n = wsizeofInd(m);
+
+	*key = murmur_key(PC, n*sizeof(*PC));
+	succeed;
+      }
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
@@ -4088,7 +4082,7 @@ clauseBodyContext(const Clause cl)
     }
   }
 
-  return cl->procedure->definition->module;
+  return cl->predicate->module;
 }
 
 
@@ -4169,7 +4163,7 @@ static void
 get_arg_ref(term_t term, term_t argp ARG_LD)
 { word w = valHandle(term PASS_LD);
   Word p = argTermP(w, 0);
-  int ar = arityTerm(w);
+  size_t ar = arityTerm(w);
   Word ap = valTermRef(argp);
 
   if ( ar > 0 )
@@ -4249,7 +4243,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
   term_t argp = 0;
   int argn = 0;
   int pushed = 0;
-  Definition def = getProcDefinition(clause->procedure);
+  Definition def = clause->predicate;
 
   if ( di->bindings )
   { term_t tail = PL_copy_term_ref(di->bindings);
@@ -4272,7 +4266,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
     return PL_unify_atom(head, ATOM_dcall);
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
-  arity = def->functor->arity;
+  arity = (int)def->functor->arity;
   if ( arity > 0 )
   { if ( !PL_unify_functor(head, def->functor->functor) ||
 	 !(argp = PL_new_term_refs(2)) )
@@ -4924,6 +4918,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_CATCH:	    *ARGP++ = ATOM_dcatch;
 			    pushed++;
 			    continue;
+      case I_YIELD:	    *ARGP++ = ATOM_dyield;
+			    pushed++;
+			    continue;
       case I_CALLCLEANUP:   *ARGP++ = ATOM_dcall_cleanup;
 			    pushed++;
 			    if ( *PC == encode(I_EXITCLEANUP) )
@@ -5086,7 +5083,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
 static int
 put_functor(Word p, functor_t f ARG_LD)
-{ int arity = arityFunctor(f);
+{ size_t arity = arityFunctor(f);
   Word a, t;
 
   if ( gTop+1+arity > gMax )
@@ -5096,7 +5093,7 @@ put_functor(Word p, functor_t f ARG_LD)
   gTop += (1+arity);
 
   *a = f;
-  while( --arity >= 0 )
+  while( arity-- > 0 )
     setVar(*++a);
 
   *p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
@@ -5116,7 +5113,7 @@ Returns one of TRUE or *_OVERFLOW
 static int
 build_term(functor_t f, decompileInfo *di ARG_LD)
 { word term;
-  int i, arity = arityFunctor(f);
+  size_t i, arity = arityFunctor(f);
   Word a;
 
   if ( arity == 0 )
@@ -5222,14 +5219,18 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
 	return FALSE;
 
       _PL_get_arg(1, head, h);
-      if ( !PL_unify_atom(h, def->module->name) )
-      { atom_t a;
-	Module m;
+      if ( def->module )
+      { if ( !PL_unify_atom(h, def->module->name) )
+	{ atom_t a;
+	  Module m;
 
-	if ( !PL_get_atom(h, &a) ||
-	     !(m = isCurrentModule(a)) ||
-	     !isSuperModule(def->module, m) )
-	  fail;
+	  if ( !PL_get_atom(h, &a) ||
+	       !(m = isCurrentModule(a)) ||
+	       !isSuperModule(def->module, m) )
+	    fail;
+	}
+      } else
+      { PL_unify_atom(h, ATOM_garbage_collected);
       }
 
       _PL_get_arg(2, head, h);
@@ -5293,9 +5294,27 @@ unify_head(term_t h, term_t d ARG_LD)
 }
 
 
+static int
+protected_predicate(Definition def ARG_LD)
+{ if ( true(def, P_FOREIGN) ||
+       (   false(def, P_DYNAMIC) &&
+	   (   truePrologFlag(PLFLAG_PROTECT_STATIC_CODE) ||
+	       truePrologFlag(PLFLAG_ISO)
+	   )
+       ) )
+  { Procedure proc = getDefinitionProc(def);
+    PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+	     ATOM_access, ATOM_private_procedure, proc);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /** clause(H, B).
     clause(H, B, Ref).
-    clause(H, B, Ref, Bindings).
+    '$clause'(H, B, Ref, Bindings).
 */
 
 
@@ -5313,6 +5332,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   term_t h    = PL_new_term_ref();
   term_t b    = PL_new_term_ref();
   fid_t fid;
+  int rc = FALSE;
 
   term_t head     = A1;
   term_t body     = A2;
@@ -5332,10 +5352,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	  if ( rc < 0 && CTX_ARITY < 4 )
 	    return FALSE;			/* erased clause */
 
+	  if ( protected_predicate(clause->predicate PASS_LD) )
+	    return FALSE;
 	  if ( decompile(clause, term, bindings) != TRUE )
 	    return FALSE;
-	  proc = clause->procedure;
-	  def = getProcDefinition(proc);
+	  def = clause->predicate;
 	  if ( true(clause, GOAL_CLAUSE) )
 	  { tmp = head;
 	  } else
@@ -5355,27 +5376,21 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	fail;
       def = getProcDefinition(proc);
 
-      if ( true(def, P_FOREIGN) ||
-	   (   truePrologFlag(PLFLAG_ISO) &&
-	       false(def, P_DYNAMIC)
-	   ) )
-	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_access, ATOM_private_procedure, proc);
+      if ( protected_predicate(def PASS_LD) )
+	return FALSE;
 
       chp = NULL;
-      enterDefinition(def);		/* reference the predicate */
+      pushPredicateAccess(def, generationFrame(environment_frame));
       break;
     }
     case FRG_REDO:
-      chp  = CTX_PTR;
-      proc = chp->cref->value.clause->procedure;
-      def  = getProcDefinition(proc);
+      chp = CTX_PTR;
+      def = chp->cref->value.clause->predicate;
       break;
     case FRG_CUTTED:
       chp = CTX_PTR;
-      proc = chp->cref->value.clause->procedure;
-      def  = getProcDefinition(proc);
-      leaveDefinition(def);
+      def = chp->cref->value.clause->predicate;
+      popPredicateAccess(def);
       freeForeignState(chp, sizeof(*chp));
       succeed;
     default:
@@ -5385,7 +5400,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
   if ( def->functor->arity > 0 )
   { if ( !PL_strip_module(head, &module, head) )
+    { popPredicateAccess(def);
       return FALSE;
+    }
     argv = valTermRef(head);
     deRef(argv);
     argv = argTermP(*argv, 0);
@@ -5400,7 +5417,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
+    goto out;
 
   while(cref)
   { if ( decompile(cref->value.clause, term, bindings) )
@@ -5410,22 +5427,22 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_clref(ref, cref->value.clause)) )
       { if ( !chp->cref )
-	{ leaveDefinition(def);
-	  succeed;
+	{ rc = TRUE;
+	  goto out;
 	}
 	if ( chp == &chp_buf )
 	{ chp = allocForeignState(sizeof(*chp));
 	  *chp = chp_buf;
 	}
 
+	PL_close_foreign_frame(fid);
 	ForeignRedoPtr(chp);
       } else
       { PL_put_variable(h);		/* otherwise they point into */
 	PL_put_variable(b);		/* term, which is removed */
       }
     } else if ( exception_term )
-    { PL_discard_foreign_frame(fid);
-      return FALSE;
+    { goto out;
     }
 
     PL_rewind_foreign_frame(fid);
@@ -5437,10 +5454,13 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     cref = nextClause(chp, argv, environment_frame, def);
   }
 
+out:
+  if ( fid )
+    PL_close_foreign_frame(fid);
   if ( chp != &chp_buf )
     freeForeignState(chp, sizeof(*chp));
-  leaveDefinition(def);
-  fail;
+  popPredicateAccess(def);
+  return rc;
 }
 
 
@@ -5466,8 +5486,8 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   { cr = ForeignContextPtr(h);
 
     if ( cr )
-    { def = getProcDefinition(cr->clause->value.clause->procedure);
-      leaveDefinition(def);
+    { def = cr->clause->value.clause->predicate;
+      popPredicateAccess(def);
       freeForeignState(cr, sizeof(*cr));
     }
     succeed;
@@ -5480,19 +5500,22 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       if ( true(clause, GOAL_CLAUSE) )
 	fail;				/* I do not belong to a predicate */
 
-      proc = clause->procedure;
-      def  = getProcDefinition(proc);
+      def = clause->predicate;
+      acquire_def(def);
       for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
       { if ( cref->value.clause == clause )
-	{ if ( !PL_unify_integer(n, i) ||
-	       !unify_definition(contextModule(LD->environment), p, def, 0, 0) )
-	    fail;
+	{ Module m = contextModule(LD->environment);
+	  int rc = ( PL_unify_integer(n, i) &&
+		     unify_definition(m, p, def, 0, 0)
+		   );
 
-	  succeed;
+	  release_def(def);
+	  return rc;
 	}
-	if ( visibleClause(cref->value.clause, generation) )
+	if ( visibleClauseCNT(cref->value.clause, generation) )
 	  i++;
       }
+      release_def(def);
     }
 
     fail;
@@ -5506,43 +5529,49 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
 
     def = getProcDefinition(proc);
+    acquire_def(def);
     cref = def->impl.clauses.first_clause;
-    while ( cref && !visibleClause(cref->value.clause, generation) )
+    while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
       cref = cref->next;
+    release_def(def);
 
     if ( !cref )
-      fail;
+      return FALSE;
 
     if ( PL_get_integer(n, &i) )	/* proc and n specified */
     { i--;				/* 0-based */
 
+      acquire_def(def);
       while(i > 0 && cref)
       { do
 	{ cref = cref->next;
-	} while ( cref && !visibleClause(cref->value.clause, generation) );
+	} while ( cref && !visibleClauseCNT(cref->value.clause, generation) );
 
 	i--;
       }
+      release_def(def);
       if ( i == 0 && cref )
 	return PL_unify_clref(ref, cref->value.clause);
-      fail;
+      return FALSE;
     }
 
     cr = allocForeignState(sizeof(*cr));
     cr->clause = cref;
     cr->index  = 1;
-    enterDefinition(def);
+    pushPredicateAccess(def, generation);
   } else
   { cr = ForeignContextPtr(h);
-    def = getProcDefinition(cr->clause->value.clause->procedure);
+    def = cr->clause->value.clause->predicate;
   }
 
   PL_unify_integer(n, cr->index);
   PL_unify_clref(ref, cr->clause->value.clause);
 
+  acquire_def(def);
   cref = cr->clause->next;
-  while ( cref && !visibleClause(cref->value.clause, generation) )
+  while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
     cref = cref->next;
+  release_def(def);
 
   if ( cref )
   { cr->clause = cref;
@@ -5551,9 +5580,9 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   }
 
   freeForeignState(cr, sizeof(*cr));
-  leaveDefinition(def);
+  popPredicateAccess(def);
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -6010,8 +6039,8 @@ the different integer sizes (inline, int, int64, mpz).  Other issues:
 
 static const code_info *
 lookup_vmi(atom_t name)
-{ static Table ctable = NULL;
-  Symbol s;
+{ GET_LD
+  static Table ctable = NULL;
 
   if ( !ctable )
   { PL_LOCK(L_MISC);
@@ -6020,15 +6049,12 @@ lookup_vmi(atom_t name)
 
       ctable = newHTable(32);
       for(i=0; i<I_HIGHEST; i++)
-       addHTable(ctable, (void*)PL_new_atom(codeTable[i].name), (void*)&codeTable[i]);
+       addNewHTable(ctable, (void*)PL_new_atom(codeTable[i].name), (void*)&codeTable[i]);
     }
     PL_UNLOCK(L_MISC);
   }
 
-  if ( (s=lookupHTable(ctable, (void*)name)) )
-    return (const code_info*)s->value;
-
-  return NULL;
+  return lookupHTable(ctable, (void*)name);
 }
 
 
@@ -6037,7 +6063,7 @@ static int
 vm_compile_instruction(term_t t, CompileInfo ci)
 { GET_LD
   atom_t name;
-  int arity;
+  size_t arity;
 
   if ( PL_get_name_arity(t, &name, &arity) )
   { const code_info *cinfo;
@@ -6202,6 +6228,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   compileInfo ci;
   struct clause clause;
   Clause cl;
+  ClauseRef cref;
   Module module = NULL;
   size_t size;
 
@@ -6211,11 +6238,11 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
   ci.islocal      = FALSE;
   ci.subclausearg = 0;
-  ci.arity        = proc->definition->functor->arity;
+  ci.arity        = (int)proc->definition->functor->arity;
   ci.argvars      = 0;
 
   clause.flags       = 0;
-  clause.procedure   = proc;
+  clause.predicate   = proc->definition;
   clause.code_size   = 0;
   clause.source_no   = clause.line_no = 0;
   clause.variables   = ci.arity;
@@ -6238,10 +6265,10 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   discardBuffer(&ci.codes);
 
 					/* TBD: see assert_term() */
-  if ( !assertProcedure(proc, cl, CL_END PASS_LD) )
-    fail;
+  if ( !(cref=assertProcedure(proc, cl, CL_END PASS_LD)) )
+    return FALSE;
 
-  return PL_unify_clref(A3, cl);
+  return PL_unify_clref(A3, cref->value.clause);
 }
 
 
@@ -6591,7 +6618,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-'$break_pc'(+ClauseRef, -StartPC, EndPC) is nondet.
+'$break_pc'(+ClauseRef, -StartPC, -EndPC) is nondet.
 
 Generate (on backtracing), all  possible   break-points  of  the clause.
 Works in combination with pl_clause_term_position()   to  find the place
@@ -6630,12 +6657,11 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
       { case B_UNIFY_FIRSTVAR:
 	case B_UNIFY_VAR:
 	  do
-	  { PC     = nextpc;
-	    op     = fetchop(PC);
-	    nextpc = stepPC(PC);
+	  { op     = fetchop(nextpc);
+	    nextpc = stepPC(nextpc);
 	  } while(op != B_UNIFY_EXIT);
       }
-      if ( PL_unify_integer(A2, PC-clause->codes) &&
+      if ( PL_unify_integer(A2, PC     - clause->codes) &&
 	   PL_unify_integer(A3, nextpc - clause->codes) )
 	ForeignRedoInt(nextpc - clause->codes);
     }
@@ -6669,7 +6695,7 @@ Concurrency issues are avoided because both  setBreak and clearBreak are
 called with L_BREAK locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static int				/* must hold L_BREAK */
 matching_unify_break(Clause clause, int offset, code op)
 { switch(op)
   { case B_UNIFY_VAR:
@@ -6678,8 +6704,8 @@ matching_unify_break(Clause clause, int offset, code op)
 
       for(PC=clause->codes + offset;
 	  PC<clause->codes + clause->code_size;
-	  PC = stepPC(PC) )
-      { if ( fetchop(PC) == B_UNIFY_EXIT )
+	  PC = stepPC_unlocked(PC) )
+      { if ( fetchop_unlocked(PC) == B_UNIFY_EXIT )
 	  return PC-clause->codes;
       }
       assert(0);
@@ -6690,28 +6716,35 @@ matching_unify_break(Clause clause, int offset, code op)
 }
 
 
-static bool
+static bool				/* must hold L_BREAK */
 setBreak(Clause clause, int offset)	/* offset is already verified */
-{ Code PC = clause->codes + offset;
-  code op = *PC;
-  code dop = decode(op);
+{ int second_bp = FALSE;
+  Code PC;
+  code op, dop;
+
+set_second:
+  PC = clause->codes + offset;
+  op = *PC;
+  dop = decode(op);
 
   if ( !breakTable )
-    breakTable = newHTable(16|TABLE_UNLOCKED);
+    breakTable = newHTable(16);
 
-  if ( (codeTable[dop].flags & VIF_BREAK) || dop == B_UNIFY_EXIT )
+  if ( (codeTable[dop].flags & VIF_BREAK) || second_bp )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
 
     bp->clause = clause;
     bp->offset = offset;
     bp->saved_instruction = op;
 
-    addHTable(breakTable, PC, bp);
+    addNewHTable(breakTable, PC, bp);
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
 
     if ( (offset=matching_unify_break(clause, offset, dop)) )
-      return setBreak(clause, offset);
+    { second_bp=TRUE;
+      goto set_second;
+    }
 
     return TRUE;
   } else
@@ -6720,16 +6753,20 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
 }
 
 
-static int
+static int				/* must hold L_BREAK */
 clearBreak(Clause clause, int offset)
 { GET_LD
-  Code PC;
+  Code PC, PC0;
   BreakPoint bp;
-  Symbol s;
+  int second_bp = FALSE;
 
-  PC = clause->codes + offset;
-  if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
+clear_second:
+  PC = PC0 = clause->codes + offset;
+  if ( !breakTable || !(bp = lookupHTable(breakTable, PC)) )
   { term_t brk;
+
+    if ( second_bp )
+      return TRUE;
     if ( (brk=PL_new_term_ref()) &&
 	 PL_unify_term(brk,
 		       PL_FUNCTOR, FUNCTOR_break2,
@@ -6740,13 +6777,14 @@ clearBreak(Clause clause, int offset)
       return FALSE;			/* resource error */
   }
 
-  bp = (BreakPoint)s->value;
   *PC = bp->saved_instruction;
+  deleteHTable(breakTable, PC0);
   freeHeap(bp, sizeof(*bp));
-  deleteSymbolHTable(breakTable, s);
 
   if ( (offset=matching_unify_break(clause, offset, decode(*PC))) )
-    return clearBreak(clause, offset);
+  { second_bp = TRUE;
+    goto clear_second;
+  }
 
   return TRUE;
 }
@@ -6755,26 +6793,16 @@ clearBreak(Clause clause, int offset)
 void
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { int k;
-
-    delayEvents();
+  { delayEvents();
     PL_LOCK(L_BREAK);
-    for(k=0; k<breakTable->buckets; k++)
-    { Symbol next, s;
-
-      for(s=breakTable->entries[k]; s; s=next)
-      { BreakPoint bp = (BreakPoint)s->value;
-
-	next = s->next;
-
-	if ( bp->clause == clause )
-	{ int offset = bp->offset;
-
-	  clearBreak(clause, bp->offset);
-	  callEventHook(PLEV_NOBREAK, clause, offset);
-	}
-      }
-    }
+    for_table(breakTable, name, value,
+              { BreakPoint bp = (BreakPoint)value;
+		if ( bp->clause == clause )
+		{ int offset = bp->offset;
+		  clearBreak(clause, bp->offset);
+		  callEventHook(PLEV_NOBREAK, clause, offset);
+		}
+	      })
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
     sendDelayedEvents();
@@ -6783,22 +6811,31 @@ clearBreakPointsClause(Clause clause)
 
 
 code
-replacedBreak(Code PC)
-{ Symbol s;
+replacedBreakUnlocked(Code PC)
+{ GET_LD
   BreakPoint bp;
   code c;
 
-  PL_LOCK(L_BREAK);
   c = decode(*PC);
   if ( c == D_BREAK )
-  { if ( (s=lookupHTable(breakTable, PC)) )
-    { bp = (BreakPoint)s->value;
-      c = bp->saved_instruction;
+  { if ( (bp = lookupHTable(breakTable, PC)) )
+    { c = bp->saved_instruction;
     } else
-    { PL_UNLOCK(L_BREAK);
-      sysError("No saved instruction for break at %p", PC);
+    { sysError("No saved instruction for break at %p", PC);
+      c = (code)-1;
     }
   }
+
+  return c;
+}
+
+
+code
+replacedBreak(Code PC)
+{ code c;
+
+  PL_LOCK(L_BREAK);
+  c = replacedBreakUnlocked(PC);
   PL_UNLOCK(L_BREAK);
 
   return c;
@@ -6842,7 +6879,7 @@ static
 PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 { GET_LD
   TableEnum e = NULL;			/* make gcc happy */
-  Symbol symb;
+  BreakPoint bp;
 
   if ( !breakTable )
     fail;
@@ -6860,23 +6897,20 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
       succeed;
   }
 
-  while( (symb = advanceTableEnum(e)) )
-  { BreakPoint bp = (BreakPoint) symb->value;
+  while( advanceTableEnum(e, NULL, (void**)&bp) )
+  { fid_t cid;
 
-    { fid_t cid;
-
-      if ( !(cid=PL_open_foreign_frame()) )
-      { freeTableEnum(e);
-	return FALSE;
-      }
-
-      if ( PL_unify_clref(A1, bp->clause) &&
-	   PL_unify_integer(A2, bp->offset) )
-      { ForeignRedoPtr(e);
-      }
-
-      PL_discard_foreign_frame(cid);
+    if ( !(cid=PL_open_foreign_frame()) )
+    { freeTableEnum(e);
+      return FALSE;
     }
+
+    if ( PL_unify_clref(A1, bp->clause) &&
+	 PL_unify_integer(A2, bp->offset) )
+    { ForeignRedoPtr(e);
+    }
+
+    PL_discard_foreign_frame(cid);
   }
 
   freeTableEnum(e);

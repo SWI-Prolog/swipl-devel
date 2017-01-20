@@ -1,25 +1,35 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (c)  1998-2011, University of Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #define RC_KERNEL 1
@@ -54,6 +64,29 @@
 static HtmlTagDef file_tag_def = NULL;
 
 static int attach_archive(RcArchive rca);
+static int attach_archive_mem(RcArchive rca,
+			      const unsigned char *mem, size_t mem_size);
+
+RcArchive
+rc_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
+{ RcArchive rca = malloc(sizeof(rc_archive));
+
+  if ( rca )
+  { memset(rca, 0, sizeof(*rca));
+    rca->flags = flags;
+
+    if ( !(flags & RC_TRUNC) )
+    { if ( !attach_archive_mem(rca, mem, mem_size) && !(flags & RC_CREATE) )
+      { rc_close_archive(rca);
+	return NULL;
+      }
+    }
+  } else
+    rc_errno = RCE_ERRNO;
+
+  return rca;
+}
+
 
 RcArchive
 rc_open_archive(const char *file, int flags)
@@ -82,23 +115,26 @@ rc_close_archive(RcArchive rca)
 { int rval = TRUE;
   RcMember m, next;
 
-  if ( rca->fd )
-  { fclose(rca->fd);
-    rca->fd = NULL;
-  }
+  if ( rca->path )
+  { if ( rca->fd )
+    { fclose(rca->fd);
+      rca->fd = NULL;
+    }
 #ifdef HAVE_MMAP
-  if ( rca->map_start )
-    munmap(rca->map_start, rca->map_size);
+    if ( rca->map_start )
+      munmap(rca->map_start, rca->map_size);
 #else
 #ifdef __WINDOWS__
-  if ( rca->map_start )
-    UnmapViewOfFile(rca->map_start);
-  if ( rca->hmap )
-    CloseHandle(rca->hmap);
-  if ( rca->hfile )
-    CloseHandle(rca->hfile);
+    if ( rca->map_start )
+      UnmapViewOfFile(rca->map_start);
+    if ( rca->hmap )
+      CloseHandle(rca->hmap);
+    if ( rca->hfile )
+      CloseHandle(rca->hfile);
 #endif /*__WINDOWS__*/
 #endif /*HAVE_MMAP*/
+    free((void*)rca->path);
+  }
 
   for(m=rca->members; m; m=next)
   { next = m->next;
@@ -109,7 +145,6 @@ rc_close_archive(RcArchive rca)
     free(m);
   }
 
-  free((void *)rca->path);
   free(rca);
 
   if ( file_tag_def )			/* normally we won't need this */
@@ -428,6 +463,17 @@ scan_archive(RcArchive rca)
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *)-1)
 #endif
+
+static int
+attach_archive_mem(RcArchive rca, const unsigned char *mem, size_t mem_size)
+{ rca->map_size  = mem_size;
+  rca->size      = rca->map_size;
+  rca->offset    = 0;
+  rca->map_start = (char*)mem;
+  rca->data      = rca->map_start;
+
+  return scan_archive(rca);
+}
 
 static int
 attach_archive(RcArchive rca)

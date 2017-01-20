@@ -2,5 +2,5 @@
 
 double taia_frac(struct taia *t)
 {
-  return (t->atto * 0.000000001 + t->nano) * 0.000000001;
+  return ((double)t->atto * 0.000000001 + (double)t->nano) * 0.000000001;
 }

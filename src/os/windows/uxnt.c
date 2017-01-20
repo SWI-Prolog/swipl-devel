@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      Vu University Amsterdam
+    Copyright (c)  2011-2015, University of Amsterdam
+                              Vu University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #define UNICODE 1
@@ -45,6 +57,7 @@
 #define mkdir _xos_mkdir
 #endif
 #include <errno.h>
+#include <fcntl.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -70,13 +83,15 @@
 #define PATH_MAX 260
 #endif
 
+static int exists_file_or_dir(const TCHAR *path, int flags);
+
 
 		 /*******************************
 		 *	       ERRNO		*
 		 *******************************/
 
 int
-_xos_errno()
+_xos_errno(void)
 { return errno;
 }
 
@@ -90,7 +105,7 @@ wcstoutf8(char *dest, const wchar_t *src, size_t len)
   char *e = &o[len];
 
   for(; *src; src++)
-  { if ( o+6 > e )
+  { if ( o+6 >= e && o+utf8_code_bytes(*src) >= e )
     { errno = ENAMETOOLONG;
       return NULL;
     }
@@ -618,6 +633,21 @@ _xos_fopen(const char *path, const char *mode)
 		 *      FILE MANIPULATIONS	*
 		 *******************************/
 
+static int win_file_access_check = XOS_ACCESS_OPENCLOSE;
+
+int
+_xos_set_win_file_access_check(int new)
+{ int old = win_file_access_check;
+
+  win_file_access_check = new;
+  return old;
+}
+
+int
+_xos_get_win_file_access_check(void)
+{ return win_file_access_check;
+}
+
 int
 _xos_access(const char *path, int mode)
 { TCHAR buf[PATH_MAX];
@@ -639,8 +669,32 @@ _xos_access(const char *path, int mode)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  if ( mode == F_OK )
-    return _waccess(buf, F_OK);
+  if ( mode == F_OK || win_file_access_check == XOS_ACCESS_ACCESS )
+    return _waccess(buf, mode);
+
+  if ( win_file_access_check == XOS_ACCESS_OPENCLOSE )
+  { int m = 0;
+    int fd;
+
+    if ( exists_file_or_dir(buf, _XOS_DIR) )
+      return _waccess(buf, mode);
+
+    if ( mode & X_OK )
+      mode |= R_OK;
+
+    if ( (mode&(R_OK|W_OK)) == (R_OK|W_OK) )
+      m = _O_RDWR;
+    else if ( mode&R_OK )
+      m = _O_RDONLY;
+    else
+      m = _O_WRONLY;
+
+    if ( (fd=_wopen(buf, m)) >= 0 )
+    { _close(fd);
+      return 0;
+    }
+    return -1;
+  }
 
   sd = (SECURITY_DESCRIPTOR*)&sd_buf;
   if ( !GetFileSecurity(buf, sec_info, sd, sizeof(sd_buf), &sd_size) )
@@ -720,6 +774,17 @@ simple:
 
 
 int
+_xos_access_dir(const char *path, int mode)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return _waccess(buf, mode);
+}
+
+
+int
 _xos_chmod(const char *path, int mode)
 { TCHAR buf[PATH_MAX];
 
@@ -769,15 +834,11 @@ _xos_stat(const char *path, struct _stati64 *sbuf)
 }
 
 
-int
-_xos_exists(const char *path, int flags)
-{ TCHAR buf[PATH_MAX];
-  DWORD a;
+static int
+exists_file_or_dir(const TCHAR *path, int flags)
+{ DWORD a;
 
-  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
-    return -1;
-
-  if ( (a=GetFileAttributes(buf)) != 0xFFFFFFFF )
+  if ( (a=GetFileAttributes(path)) != 0xFFFFFFFF )
   { if ( flags & _XOS_DIR )
     { if ( a & FILE_ATTRIBUTE_DIRECTORY )
 	return TRUE;
@@ -796,6 +857,17 @@ _xos_exists(const char *path, int flags)
 }
 
 
+int
+_xos_exists(const char *path, int flags)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return exists_file_or_dir(buf, flags);
+}
+
+
 		 /*******************************
 		 *	    DIRECTORIES		*
 		 *******************************/
@@ -804,6 +876,11 @@ DIR *
 opendir(const char *path)
 { TCHAR buf[PATH_MAX];
   DIR *dp = malloc(sizeof(DIR));
+
+  if ( !dp )
+  { errno = ENOMEM;
+    return NULL;
+  }
 
   if ( !_xos_os_filenameW(path, buf, PATH_MAX-4) )
   { free(dp);

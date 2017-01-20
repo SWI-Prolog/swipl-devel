@@ -8,6 +8,7 @@
 .br
 .B @PL@
 [options]
+.IR prolog-file " ... [--] [" arg " ...]"
 .br
 .B @PL@
 [options]
@@ -18,6 +19,17 @@
 [options]
 .RB [ "\-o \fIoutput" ]
 .BI \-b " initfile ..."
+
+The first version provides information about the system and exits
+immediately. The second version is the primary way to call Prolog on one
+or more Prolog source file(s) and provide arguments to the application that
+can be requested using
+.BR "current_prolog_flag" "(argv, Argv)."
+The third version is used to create a
+.I saved state
+while the last version is used for boot-compilation of the Prolog parts of the
+system.
+
 .SH DESCRIPTION
 SWI-Prolog is a comprehensive and stable implementation of
 the Prolog language with a large set of libraries. Among its
@@ -38,7 +50,7 @@ format from the WWW home page at
 .B http://www.swi-prolog.org
 
 .SH LICENSE INFORMATION
-SWI-Prolog is distributed under the LGPL (Lesser Gnu Public License) for
+SWI-Prolog is distributed under the LGPL (GNU Lesser General Public License) for
 maximal compatibility with the Free Software movement, while allowing for
 use with proprietary software components.
 See the SWI-Prolog home page at
@@ -112,6 +124,9 @@ search path for shared objects.  For example, on ELF systems this is
 .TP
 .B PLVERSION
 Numeric representation of the SWI-Prolog version.
+.TP
+.B PLVERSIONTAG
+If present, a version tag such as "rc1".
 .TP
 .B PLSHARED
 Has the value
@@ -429,7 +444,7 @@ an action of contract, tort or otherwise, arising from, out of or in
 connection with the software or the use or other dealings in the
 software.
 .SH COPYING
-SWI-Prolog is distributed under the LGPL (Lesser GNU Public Licence).
+SWI-Prolog is distributed under the LGPL (GNU Lesser General Public License).
 The license terms are in the file
 .I COPYING
 or on the GNU website at
@@ -438,4 +453,3 @@ or on the GNU website at
 Copyright (c) 1986\-2015 University of Amsterdam, VU University Amsterdam
 .SH AUTHOR
 Jan Wielemaker
-

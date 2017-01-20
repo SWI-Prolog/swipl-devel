@@ -1,37 +1,40 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (c)  2005-2011, University of Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(unicode_data,
-	  [ unicode_property/2		% ?Code, ?Property
-	  ]).
+          [ unicode_property/2          % ?Code, ?Property
+          ]).
 :- use_module(library(table)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -40,7 +43,7 @@ unicode organisation (http://www.unicode.org). This  file describes many
 aspects for all defined UNICODE  code   positions,  such  as their name,
 type, etc.  The meaning of the fields is defined here:
 
-	http://www.unicode.org/Public/UNIDATA/UCD.html#UCD_File_Format
+        http://www.unicode.org/Public/UNIDATA/UCD.html#UCD_File_Format
 
 This library uses the table package for accessing structured files. This
 maps the file in memory and performs  binary search. This is not blindly
@@ -57,17 +60,17 @@ directory  as  this  file  or  in    the   search  path  'unicode'  (see
 file_search_path/2).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	unicode_property(?Code, ?Property)
+%       unicode_property(?Code, ?Property)
 %
-%	Logical predicate relating code  points   to  properties.  It is
-%	optimised for asking a single  property   of  a  known code, but
-%	works with any instantiation.
+%       Logical predicate relating code  points   to  properties.  It is
+%       optimised for asking a single  property   of  a  known code, but
+%       works with any instantiation.
 
 unicode_property(Code, Property) :-
-	table(Handle),
-	property(Property),
-	in_table(Handle, [code(Code), Property], _),
-	\+ arg(1, Property, '').
+    table(Handle),
+    property(Property),
+    in_table(Handle, [code(Code), Property], _),
+    \+ arg(1, Property, '').
 
 property(name(_)).
 property(general_category(_)).
@@ -85,14 +88,14 @@ property(simple_lowercase_mapping(_)).
 property(simple_titlecase_mapping(_)).
 
 :- dynamic
-	handle/1.
+    handle/1.
 :- volatile
-	handle/1.
+    handle/1.
 
 :- multifile
-	user:file_search_path/2.
+    user:file_search_path/2.
 :- dynamic
-	user:file_search_path/2.
+    user:file_search_path/2.
 
 :- (   user:file_search_path(unicode, _)
    ->  true
@@ -101,31 +104,32 @@ property(simple_titlecase_mapping(_)).
    ).
 
 table(Handle) :-
-	handle(Handle), !.
+    handle(Handle),
+    !.
 table(Handle) :-
-	absolute_file_name(unicode('UnicodeData.txt'),
-			   Path,
-			   [ access(read)
-			   ]),
-	new_table(Path,
-		  [ code(hexadecimal, [sorted, unique]),
-		    name(atom, [downcase]),		    		% 1
-		    general_category(atom), 				% 2
-		    canonical_combining_class(integer),			% 3
-		    bidi_class(atom, [downcase]),			% 4
-		    decomposition_type(atom),				% 5
-		    numeric_type_1(integer, [syntax]),			% 6
-		    numeric_type_2(integer, [syntax]),			% 7
-		    numeric_type_3(integer, [syntax]),			% 8
-		    bidi_mirrored(atom, [downcase]),			% 9
-		    unicode_1_name(atom, [downcase]),			% 10
-		    iso_comment(atom),					% 11
-		    simple_uppercase_mapping(hexadecimal, [syntax]),	% 12
-		    simple_lowercase_mapping(hexadecimal, [syntax]),	% 13
-		    simple_titlecase_mapping(hexadecimal, [syntax])	% 14
-		  ],
-		  [ field_separator(0';)
-		  ],
-		  Handle),
-	assert(handle(Handle)).
+    absolute_file_name(unicode('UnicodeData.txt'),
+                       Path,
+                       [ access(read)
+                       ]),
+    new_table(Path,
+              [ code(hexadecimal, [sorted, unique]),
+                name(atom, [downcase]),                             % 1
+                general_category(atom),                             % 2
+                canonical_combining_class(integer),                 % 3
+                bidi_class(atom, [downcase]),                       % 4
+                decomposition_type(atom),                           % 5
+                numeric_type_1(integer, [syntax]),                  % 6
+                numeric_type_2(integer, [syntax]),                  % 7
+                numeric_type_3(integer, [syntax]),                  % 8
+                bidi_mirrored(atom, [downcase]),                    % 9
+                unicode_1_name(atom, [downcase]),                   % 10
+                iso_comment(atom),                                  % 11
+                simple_uppercase_mapping(hexadecimal, [syntax]),    % 12
+                simple_lowercase_mapping(hexadecimal, [syntax]),    % 13
+                simple_titlecase_mapping(hexadecimal, [syntax])     % 14
+              ],
+              [ field_separator(0';)
+              ],
+              Handle),
+    assert(handle(Handle)).
 

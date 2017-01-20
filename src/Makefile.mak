@@ -240,8 +240,6 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\library\dialect\swi" \
 		"$(PLBASE)\library\dialect\iso" \
 		"$(PLBASE)\library\dialect\sicstus" \
-		"$(PLBASE)\library\dialect\ciao" \
-		"$(PLBASE)\library\dialect\ciao\engine" \
 		"$(PLBASE)\library\unicode" \
 		"$(PLBASE)\library\dcg" \
 		$(MANDIR)
@@ -255,7 +253,7 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idcg idialect iswi iyap isicstus iciao iiso iunicode
+ilib:		iclp idcg idialect iswi iyap isicstus iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
@@ -284,14 +282,6 @@ isicstus::
 		chdir $(PLHOME)\library\dialect\sicstus & \
 			for %f in ($(SICSTUS)) do copy %f "$(PLBASE)\library\dialect\sicstus"
 		copy compat\sicstus.h "$(PLBASE)\include\sicstus\sicstus.h"
-
-iciao::
-		chdir $(PLHOME)\library\dialect\ciao & \
-			for %f in ($(CIAO)) do copy %f "$(PLBASE)\library\dialect\ciao"
-		chdir $(PLHOME)\library\dialect\ciao\engine & \
-			for %f in ($(CIAO_ENGINE)) do copy %f "$(PLBASE)\library\dialect\ciao\engine"
-		chdir $(PLHOME)\library\dialect\ciao\regtypes & \
-			for %f in ($(CIAO_REGTYPES)) do copy %f "$(PLBASE)\library\dialect\ciao\regtypes"
 
 iiso::
 		chdir $(PLHOME)\library\dialect\iso & \

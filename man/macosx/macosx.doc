@@ -37,8 +37,8 @@ books, online tutorials and other Prolog related material.
 
 SWI-Prolog is by origin an Unix application, and not a native Macintosh
 application.  It has been brought to the Mac using the
-\url[MacPorts]{http://www.macports.org/} project, using
-\url[XQuartz]{http://xquartz.macosforge.org/} (Macintosh X11)
+\href{http://www.macports.org/}{MacPorts} project, using
+\href{http://xquartz.macosforge.org/}{XQuartz} (Macintosh X11)
 for its graphical capabilities.
 
 \section{Installation}
@@ -91,15 +91,14 @@ Now start \textsf{X11.App} and configure it to autostart at login.  Open
 
 \begin{code}
 % swipl
-Welcome to SWI-Prolog (Multi-threaded, Version 5.6.0)
-Copyright (c) 1990-2006 University of Amsterdam.
-SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
-and you are welcome to redistribute it under certain conditions.
-Please visit http://www.swi-prolog.org for details.
+Welcome to SWI-Prolog (threaded, 64 bits, version 7.3.33)
+SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software.
+Please run ?- license. for legal details.
 
-For help, use ?- help(Topic). or ?- apropos(Word).
+For online help and background, visit http://www.swi-prolog.org
+For built-in help, use ?- help(Topic). or ?- apropos(Word).
 
-1 ?-
+?-
 \end{code}
 
 If X11 is properly configured, the help system of the graphics subsystem
@@ -292,7 +291,7 @@ command \program{sudo /usr/x11r6/bin/ fc-cache}.
 \subsection{Web-site and mailing lists}
 
 The SWI-Prolog web-site is located at \url{http://www.swi-prolog.org/}.
-Part of the web is powered by \url[TWiki]{http://twiki.org/}, a
+Part of the web is powered by \href{http://twiki.org/}{TWiki}, a
 \emph{wiki} web that can be edited by any registered user and used to
 exchange ideas, problems and solutions.  The web also provides access
 to the archive of the mailing list and allows to (de)register the

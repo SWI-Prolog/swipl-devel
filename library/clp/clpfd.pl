@@ -1,30 +1,35 @@
 /*  Part of SWI-Prolog
 
     Author:        Markus Triska
-    E-mail:        triska@gmx.at
+    E-mail:        triska@metalevel.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2015 Markus Triska
+    Copyright (C): 2007-2016 Markus Triska
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -59,9 +64,11 @@
 
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-   Many things can be improved; if you need any additional features or
-   want to help, please e-mail me. A good starting point is taking a
-   propagation algorithm from the literature and adding it.
+   Development of this library has moved to SICStus Prolog. If you
+   need any additional features or want to help, please file an issue at:
+
+                    https://github.com/triska/clpz
+                    ==============================
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -143,49 +150,85 @@
 :- op(700, xfx, cis_leq).
 :- op(700, xfx, cis_lt).
 
-/** <module> Constraint Logic Programming over Finite Domains
+/** <module> CLP(FD): Constraint Logic Programming over Finite Domains
 
-### Introduction			{#clpfd-intro}
+**Development of this library has moved to SICStus Prolog.**
 
-Constraint programming is a declarative formalism that lets you state
-relations between terms. This library provides CLP(FD), Constraint
-Logic Programming over Finite Domains.
+Please see [**CLP(Z)**](https://github.com/triska/clpz) for more
+information.
 
-There are two major use cases of this library:
+## Introduction			{#clpfd-intro}
 
-    1. CLP(FD) constraints provide _declarative integer arithmetic_:
-       They implement pure _relations_ between integer expressions and
-       can be used in all directions, also if parts of expressions are
-       variables.
+This library provides CLP(FD): Constraint Logic Programming over
+Finite Domains. This is an instance of the general [CLP(_X_)
+scheme](<#clp>), extending logic programming with reasoning over
+specialised domains.
 
-    2. In connection with enumeration predicates and more complex
-       constraints, CLP(FD) is often used to model and solve
-       combinatorial problems such as planning, scheduling and
-       allocation tasks.
+CLP(FD) lets us reason about **integers** in a way that honors the
+relational nature of Prolog. An introduction is available from
+[metalevel.at/prolog/clpfd](https://www.metalevel.at/prolog/clpfd).
 
-When teaching Prolog, we _strongly recommend_ that you introduce
-CLP(FD) constraints _before_ explaining lower-level arithmetic
-predicates and their procedural idiosyncrasies. This is because
-constraints are easy to explain, understand and use due to their
-purely relational nature. In contrast, the modedness and
-directionality of low-level arithmetic primitives are non-declarative
-limitations that are better deferred to more advanced lectures.
+There are two major use cases of CLP(FD) constraints:
+
+    1. [**declarative integer arithmetic**](<#clpfd-integer-arith>)
+    2. solving **combinatorial problems** such as planning, scheduling
+       and allocation tasks.
+
+The predicates of this library can be classified as:
+
+    * _arithmetic_ constraints like #=/2, #>/2 and #\=/2 [](<#clpfd-arithmetic>)
+    * the _membership_ constraints in/2 and ins/2 [](<#clpfd-membership>)
+    * the _enumeration_ predicates indomain/1, label/1 and labeling/2 [](<#clpfd-enumeration>)
+    * _combinatorial_ constraints like all_distinct/1 and global_cardinality/2 [](<#clpfd-global>)
+    * _reification_ predicates such as #<==>/2 [](<#clpfd-reification-predicates>)
+    * _reflection_ predicates such as fd_dom/2 [](<#clpfd-reflection-predicates>)
+
+In most cases, [_arithmetic constraints_](<#clpfd-arith-constraints>)
+are the only predicates you will ever need from this library. When
+reasoning over integers, simply replace low-level arithmetic
+predicates like `(is)/2` and `(>)/2` by the corresponding CLP(FD)
+constraints like #=/2 and #>/2 to honor and preserve declarative
+properties of your programs. For satisfactory performance, arithmetic
+constraints are implicitly rewritten at compilation time so that
+low-level fallback predicates are automatically used whenever
+possible.
+
+Almost all Prolog programs also reason about integers. Therefore, it
+is highly advisable that you make CLP(FD) constraints available in all
+your programs. One way to do this is to put the following directive in
+your =|~/.swiplrc|= initialisation file:
+
+==
+:- use_module(library(clpfd)).
+==
+
+All example programs that appear in the CLP(FD) documentation assume
+that you have done this.
+
+Important concepts and principles of this library are illustrated by
+means of usage examples that are available in a public git repository:
+[**github.com/triska/clpfd**](https://github.com/triska/clpfd)
 
 If you are used to the complicated operational considerations that
 low-level arithmetic primitives necessitate, then moving to CLP(FD)
 constraints may, due to their power and convenience, at first feel to
 you excessive and almost like cheating. It _isn't_. Constraints are an
-integral part of many Prolog systems and are available to help you
-eliminate and avoid, as far as possible, the use of lower-level and
-less general primitives by providing declarative alternatives that are
-meant to be used instead.
+integral part of all popular Prolog systems, and they are designed
+to help you eliminate and avoid the use of low-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
 
-For satisfactory performance, arithmetic constraints are implicitly
-rewritten at compilation time so that lower-level fallback predicates
-are automatically used whenever possible.
+When teaching Prolog, CLP(FD) constraints should be introduced
+_before_ explaining low-level arithmetic predicates and their
+procedural idiosyncrasies. This is because constraints are easy to
+explain, understand and use due to their purely relational nature. In
+contrast, the modedness and directionality of low-level arithmetic
+primitives are impure limitations that are better deferred to more
+advanced lectures.
 
-We recommend the following reference to cite this library in
-scientific publications:
+We recommend the following reference (PDF:
+[metalevel.at/swiclpfd.pdf](https://www.metalevel.at/swiclpfd.pdf)) for
+citing this library in scientific publications:
 
 ==
 @inproceedings{Triska12,
@@ -199,15 +242,37 @@ scientific publications:
 }
 ==
 
-and the following URL to link to its documentation:
+More information about CLP(FD) constraints and their implementation is
+contained in: [**metalevel.at/drt.pdf**](https://www.metalevel.at/drt.pdf)
 
-==
-http://www.swi-prolog.org/man/clpfd.html
-==
+The best way to discuss applying, improving and extending CLP(FD)
+constraints is to use the dedicated `clpfd` tag on
+[stackoverflow.com](http://stackoverflow.com). Several of the world's
+foremost CLP(FD) experts regularly participate in these discussions
+and will help you for free on this platform.
 
-### Arithmetic constraints		{#cplfd-arith-constraints}
+## Arithmetic constraints		{#clpfd-arith-constraints}
 
-A finite domain _arithmetic expression_ is one of:
+In modern Prolog systems, *arithmetic constraints* subsume and
+supersede low-level predicates over integers. The main advantage of
+arithmetic constraints is that they are true _relations_ and can be
+used in all directions. For most programs, arithmetic constraints are
+the only predicates you will ever need from this library.
+
+The most important arithmetic constraint is #=/2, which subsumes both
+`(is)/2` and `(=:=)/2` over integers. Use #=/2 to make your programs
+more general.
+
+In total, the arithmetic constraints are:
+
+    | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
+    | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
+    | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
+    | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
+
+`Expr1` and `Expr2` denote *arithmetic expressions*, which are:
 
     | _integer_          | Given value                          |
     | _variable_         | Unknown integer                      |
@@ -223,40 +288,58 @@ A finite domain _arithmetic expression_ is one of:
     | Expr `rem` Expr    | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
+    | Expr div Expr      | Floored integer division             |
 
-Arithmetic _constraints_ are relations between arithmetic expressions.
+where `Expr` again denotes an arithmetic expression.
 
-The most important arithmetic constraints are:
+The bitwise operations `(\)/1`, `(/\)/2`, `(\/)/2`, `(>>)/2`,
+`(<<)/2`, `lsb/1`, `msb/1`, `popcount/1` and `(xor)/2` are also
+supported.
 
-    | Expr1 `#>=` Expr2  | Expr1 is greater than or equal to Expr2  |
-    | Expr1 `#=<` Expr2  | Expr1 is less than or equal to Expr2     |
-    | Expr1 `#=`  Expr2  | Expr1 equals Expr2                       |
-    | Expr1 `#\=` Expr2  | Expr1 is not equal to Expr2              |
-    | Expr1 `#>` Expr2   | Expr1 is greater than Expr2              |
-    | Expr1 `#<` Expr2   | Expr1 is less than Expr2                 |
+## Declarative integer arithmetic		{#clpfd-integer-arith}
 
-### Declarative integer arithmetic		{#clpfd-integer-arith}
-
-CLP(FD) constraints let you declaratively express integer arithmetic.
-The CLP(FD) constraints #=/2, #>/2 etc. are meant to be used instead
-of the corresponding primitives is/2, =:=/2, >/2 etc. over integers.
-
-An important advantage of arithmetic constraints is their purely
-relational nature. They are therefore easy to explain and use, and
-well suited for beginners and experienced Prolog programmers alike.
-
-Consider for example the query:
+The [_arithmetic constraints_](<#clpfd-arith-constraints>) #=/2, #>/2
+etc. are meant to be used _instead_ of the primitives `(is)/2`,
+`(=:=)/2`, `(>)/2` etc. over integers. Almost all Prolog programs also
+reason about integers. Therefore, it is recommended that you put the
+following directive in your =|~/.swiplrc|= initialisation file to make
+CLP(FD) constraints available in all your programs:
 
 ==
-?- X #> 3, X #= 5 + 2.
-X = 7.
+:- use_module(library(clpfd)).
 ==
 
-In contrast, when using low-level integer arithmetic, we get:
+Throughout the following, it is assumed that you have done this.
+
+The most basic use of CLP(FD) constraints is _evaluation_ of
+arithmetic expressions involving integers. For example:
 
 ==
-?- X > 3, X is 5 + 2.
-ERROR: >/2: Arguments are not sufficiently instantiated
+?- X #= 1+2.
+X = 3.
+==
+
+This could in principle also be achieved with the lower-level
+predicate `(is)/2`. However, an important advantage of arithmetic
+constraints is their purely relational nature: Constraints can be used
+in _all directions_, also if one or more of their arguments are only
+partially instantiated. For example:
+
+==
+?- 3 #= Y+2.
+Y = 1.
+==
+
+This relational nature makes CLP(FD) constraints easy to explain and
+use, and well suited for beginners and experienced Prolog programmers
+alike. In contrast, when using low-level integer arithmetic, we get:
+
+==
+?- 3 is Y+2.
+ERROR: is/2: Arguments are not sufficiently instantiated
+
+?- 3 =:= Y+2.
+ERROR: =:=/2: Arguments are not sufficiently instantiated
 ==
 
 Due to the necessary operational considerations, the use of these
@@ -265,26 +348,87 @@ and should therefore be deferred to more advanced lectures.
 
 For supported expressions, CLP(FD) constraints are drop-in
 replacements of these low-level arithmetic predicates, often yielding
-more general programs.
+more general programs. See [`n_factorial/2`](<#clpfd-factorial>) for an
+example.
 
-Here is an example:
+This library uses goal_expansion/2 to automatically rewrite
+constraints at compilation time so that low-level arithmetic
+predicates are _automatically_ used whenever possible. For example,
+the predicate:
 
 ==
-:- use_module(library(clpfd)).
+positive_integer(N) :- N #>= 1.
+==
 
+is executed as if it were written as:
+
+==
+positive_integer(N) :-
+        (   integer(N)
+        ->  N >= 1
+        ;   N #>= 1
+        ).
+==
+
+This illustrates why the performance of CLP(FD) constraints is almost
+always completely satisfactory when they are used in modes that can be
+handled by low-level arithmetic. To disable the automatic rewriting,
+set the Prolog flag `clpfd_goal_expansion` to `false`.
+
+If you are used to the complicated operational considerations that
+low-level arithmetic primitives necessitate, then moving to CLP(FD)
+constraints may, due to their power and convenience, at first feel to
+you excessive and almost like cheating. It _isn't_. Constraints are an
+integral part of all popular Prolog systems, and they are designed
+to help you eliminate and avoid the use of low-level and less general
+primitives by providing declarative alternatives that are meant to be
+used instead.
+
+
+## Example: Factorial relation {#clpfd-factorial}
+
+We illustrate the benefit of using #=/2 for more generality with a
+simple example.
+
+Consider first a rather conventional definition of `n_factorial/2`,
+relating each natural number _N_ to its factorial _F_:
+
+==
 n_factorial(0, 1).
 n_factorial(N, F) :-
-        N #> 0, N1 #= N - 1, F #= N * F1,
-        n_factorial(N1, F1).
+        N #> 0,
+        N1 #= N - 1,
+        n_factorial(N1, F1),
+        F #= N * F1.
 ==
 
-This predicate can be used in all directions. For example:
+This program uses CLP(FD) constraints _instead_ of low-level
+arithmetic throughout, and everything that _would have worked_ with
+low-level arithmetic _also_ works with CLP(FD) constraints, retaining
+roughly the same performance. For example:
 
 ==
 ?- n_factorial(47, F).
 F = 258623241511168180642964355153611979969197632389120000000000 ;
 false.
+==
 
+Now the point: Due to the increased flexibility and generality of
+CLP(FD) constraints, we are free to _reorder_ the goals as follows:
+
+==
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0,
+        N1 #= N - 1,
+        F #= N * F1,
+        n_factorial(N1, F1).
+==
+
+In this concrete case, _termination_ properties of the predicate are
+improved. For example, the following queries now both terminate:
+
+==
 ?- n_factorial(N, 1).
 N = 0 ;
 N = 1 ;
@@ -294,72 +438,111 @@ false.
 false.
 ==
 
-To make the predicate terminate if any argument is instantiated, add
-the (implied) constraint F #\= 0 before the recursive call. Otherwise,
-the query n_factorial(N, 0) is the only non-terminating case of this
-kind.
+To make the predicate terminate if _any_ argument is instantiated, add
+the (implied) constraint `F #\= 0` before the recursive call.
+Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
+case of this kind.
 
-This library uses goal_expansion/2 to automatically rewrite arithmetic
-constraints at compilation time. The expansion's aim is to bring the
-performance of arithmetic constraints close to that of lower-level
-arithmetic predicates whenever possible. To disable the expansion, set
-the flag `clpfd_goal_expansion` to `false`.
+The value of CLP(FD) constraints does _not_ lie in completely freeing
+us from _all_ procedural phenomena. For example, the two programs do
+not even have the same _termination properties_ in all cases.
+Instead, the primary benefit of CLP(FD) constraints is that they allow
+you to try different execution orders and apply [**declarative
+debugging**](https://www.metalevel.at/prolog/debugging)
+techniques _at all_!  Reordering goals (and clauses) can significantly
+impact the performance of Prolog programs, and you are free to try
+different variants if you use declarative approaches. Moreover, since
+all CLP(FD) constraints _always terminate_, placing them earlier can
+at most _improve_, never worsen, the termination properties of your
+programs. An additional benefit of CLP(FD) constraints is that they
+eliminate the complexity of introducing `(is)/2` and `(=:=)/2` to
+beginners, since _both_ predicates are subsumed by #=/2 when reasoning
+over integers.
 
-### Reification				{#clpfd-reification}
+## Combinatorial constraints  {#clpfd-combinatorial}
 
-The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
-_reified_, which means reflecting their truth values into Boolean
-values represented by the integers 0 and 1. Let P and Q denote
-reifiable constraints or Boolean variables, then:
+In addition to subsuming and replacing low-level arithmetic
+predicates, CLP(FD) constraints are often used to solve combinatorial
+problems such as planning, scheduling and allocation tasks. Among the
+most frequently used *combinatorial constraints* are all_distinct/1,
+global_cardinality/2 and cumulative/2. This library also provides
+several other constraints like disjoint2/1 and automaton/8, which are
+useful in more specialized applications.
 
-    | #\ Q      | True iff Q is false                  |
-    | P #\/ Q   | True iff either P or Q               |
-    | P #/\ Q   | True iff both P and Q                |
-    | P #\ Q    | True iff either P or Q, but not both |
-    | P #<==> Q | True iff P and Q are equivalent      |
-    | P #==> Q  | True iff P implies Q                 |
-    | P #<== Q  | True iff Q implies P                 |
+## Domains                             {#clpfd-domains}
 
-The constraints of this table are reifiable as well.
-
-When reasoning over Boolean variables, also consider using
-`library(clpb)` and its dedicated CLP(B) constraints.
-
-### Domains                             {#clpfd-domains}
-
-Each CLP(FD) variable has an associated set of admissible integers
-which we call the variable's _domain_. Initially, the domain of each
-CLP(FD) variable is the set of all integers. The constraints in/2 and
-ins/2 are the primary means to specify tighter domains of variables.
-
-Here are example queries and the system's declaratively equivalent
-answers:
-
-==
-?- X in 100..sup.
-X in 100..sup.
-
-?- X in 1..5 \/ 3..12.
-X in 1..12.
-
-?- [X,Y,Z] ins 0..3.
-X in 0..3,
-Y in 0..3,
-Z in 0..3.
-==
+Each CLP(FD) variable has an associated set of admissible integers,
+which we call the variable's *domain*. Initially, the domain of each
+CLP(FD) variable is the set of _all_ integers. CLP(FD) constraints
+like #=/2, #>/2 and #\=/2 can at most reduce, and never extend, the
+domains of their arguments. The constraints in/2 and ins/2 let us
+explicitly state domains of CLP(FD) variables. The process of
+determining and adjusting domains of variables is called constraint
+*propagation*, and it is performed automatically by this library. When
+the domain of a variable contains only one element, then the variable
+is automatically unified to that element.
 
 Domains are taken into account when further constraints are stated,
 and by enumeration predicates like labeling/2.
 
-### Examples				{#clpfd-examples}
+## Example: Sudoku {#clpfd-sudoku}
+
+As another example, consider _Sudoku_: It is a popular puzzle
+over integers that can be easily solved with CLP(FD) constraints.
+
+==
+sudoku(Rows) :-
+        length(Rows, 9), maplist(same_length(Rows), Rows),
+        append(Rows, Vs), Vs ins 1..9,
+        maplist(all_distinct, Rows),
+        transpose(Rows, Columns),
+        maplist(all_distinct, Columns),
+        Rows = [As,Bs,Cs,Ds,Es,Fs,Gs,Hs,Is],
+        blocks(As, Bs, Cs),
+        blocks(Ds, Es, Fs),
+        blocks(Gs, Hs, Is).
+
+blocks([], [], []).
+blocks([N1,N2,N3|Ns1], [N4,N5,N6|Ns2], [N7,N8,N9|Ns3]) :-
+        all_distinct([N1,N2,N3,N4,N5,N6,N7,N8,N9]),
+        blocks(Ns1, Ns2, Ns3).
+
+problem(1, [[_,_,_,_,_,_,_,_,_],
+            [_,_,_,_,_,3,_,8,5],
+            [_,_,1,_,2,_,_,_,_],
+            [_,_,_,5,_,7,_,_,_],
+            [_,_,4,_,_,_,1,_,_],
+            [_,9,_,_,_,_,_,_,_],
+            [5,_,_,_,_,_,_,7,3],
+            [_,_,2,_,1,_,_,_,_],
+            [_,_,_,_,4,_,_,_,9]]).
+==
+
+Sample query:
+
+==
+?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
+[9,8,7,6,5,4,3,2,1]
+[2,4,6,1,7,3,9,8,5]
+[3,5,1,9,2,8,7,4,6]
+[1,2,8,5,3,7,6,9,4]
+[6,3,4,8,9,2,1,5,7]
+[7,9,5,4,6,1,8,3,2]
+[5,1,9,2,8,6,4,7,3]
+[4,7,2,3,1,9,5,6,8]
+[8,6,3,7,4,5,2,1,9]
+Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
+==
+
+In this concrete case, the constraint solver is strong enough to find
+the unique solution without any search.
+
+
+## Residual goals				{#clpfd-residual-goals}
 
 Here is an example session with a few queries and their answers:
 
 ==
-?- use_module(library(clpfd)).
-% library(clpfd) compiled into clpfd 0.06 sec, 633,732 bytes
-true.
-
 ?- X #> 3.
 X in 4..sup.
 
@@ -382,19 +565,32 @@ X in 0..3,
 Y in 4..5.
 ==
 
-In each case, and as for all pure programs, the answer is
-declaratively equivalent to the original query, and in many cases the
-constraint solver has deduced additional domain restrictions.
+The answers emitted by the toplevel are called _residual programs_,
+and the goals that comprise each answer are called **residual goals**.
+In each case above, and as for all pure programs, the residual program
+is declaratively equivalent to the original query. From the residual
+goals, it is clear that the constraint solver has deduced additional
+domain restrictions in many cases.
 
-### Enumeration predicates and search    {#clpfd-search}
+To inspect residual goals, it is best to let the toplevel display them
+for us. Wrap the call of your predicate into call_residue_vars/2 to
+make sure that all constrained variables are displayed. To make the
+constraints a variable is involved in available as a Prolog term for
+further reasoning within your program, use copy_term/3. For example:
 
-In addition to being declarative replacements for low-level arithmetic
-predicates, CLP(FD) constraints are also often used to solve
-combinatorial problems such as planning, scheduling and allocation
-tasks. To let you conveniently model and solve such problems, this
-library provides several constraints beyond typical integer
-arithmetic, such as all_distinct/1, global_cardinality/2 and
-cumulative/1.
+==
+?- X #= Y + Z, X in 0..5, copy_term([X,Y,Z], [X,Y,Z], Gs).
+Gs = [clpfd: (X in 0..5), clpfd: (Y+Z#=X)],
+X in 0..5,
+Y+Z#=X.
+==
+
+This library also provides _reflection_ predicates (like fd_dom/2,
+fd_size/2 etc.) with which we can inspect a variable's current
+domain. These predicates can be useful if you want to implement your
+own labeling strategies.
+
+## Core relations and search    {#clpfd-search}
 
 Using CLP(FD) constraints to solve combinatorial tasks typically
 consists of two phases:
@@ -406,7 +602,7 @@ consists of two phases:
 
 It is good practice to keep the modeling part, via a dedicated
 predicate called the *core relation*, separate from the actual
-search for solutions. This lets you observe termination and
+search for solutions. This lets us observe termination and
 determinism properties of the core relation in isolation from the
 search, and more easily try different search strategies.
 
@@ -416,8 +612,6 @@ denote distinct integers between 0 and 9. It can be modeled in CLP(FD)
 as follows:
 
 ==
-:- use_module(library(clpfd)).
-
 puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
         Vars = [S,E,N,D,M,O,R,Y],
         Vars ins 0..9,
@@ -470,9 +664,85 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
-### Optimisation    {#clpfd-optimisation}
+## Example: Eight queens puzzle {#clpfd-n-queens}
 
-You can use labeling/2 to minimize or maximize the value of a CLP(FD)
+We illustrate the concepts of the preceding sections by means of the
+so-called _eight queens puzzle_. The task is to place 8 queens on an
+8x8 chessboard such that none of the queens is under attack. This
+means that no two queens share the same row, column or diagonal.
+
+To express this puzzle via CLP(FD) constraints, we must first pick a
+suitable representation. Since CLP(FD) constraints reason over
+_integers_, we must find a way to map the positions of queens to
+integers. Several such mappings are conceivable, and it is not
+immediately obvious which we should use. On top of that, different
+constraints can be used to express the desired relations. For such
+reasons, _modeling_ combinatorial problems via CLP(FD) constraints
+often necessitates some creativity and has been described as more of
+an art than a science.
+
+In our concrete case, we observe that there must be exactly one queen
+per column. The following representation therefore suggests itself: We
+are looking for 8 integers, one for each column, where each integer
+denotes the _row_ of the queen that is placed in the respective
+column, and which are subject to certain constraints.
+
+In fact, let us now generalize the task to the so-called _N queens
+puzzle_, which is obtained by replacing 8 by _N_ everywhere it occurs
+in the above description. We implement the above considerations in the
+**core relation** `n_queens/2`, where the first argument is the number
+of queens (which is identical to the number of rows and columns of the
+generalized chessboard), and the second argument is a list of _N_
+integers that represents a solution in the form described above.
+
+==
+n_queens(N, Qs) :-
+        length(Qs, N),
+        Qs ins 1..N,
+        safe_queens(Qs).
+
+safe_queens([]).
+safe_queens([Q|Qs]) :- safe_queens(Qs, Q, 1), safe_queens(Qs).
+
+safe_queens([], _, _).
+safe_queens([Q|Qs], Q0, D0) :-
+        Q0 #\= Q,
+        abs(Q0 - Q) #\= D0,
+        D1 #= D0 + 1,
+        safe_queens(Qs, Q0, D1).
+==
+
+Note that all these predicates can be used in _all directions_: We
+can use them to _find_ solutions, _test_ solutions and _complete_
+partially instantiated solutions.
+
+The original task can be readily solved with the following query:
+
+==
+?- n_queens(8, Qs), label(Qs).
+Qs = [1, 5, 8, 6, 3, 7, 2, 4] .
+==
+
+Using suitable labeling strategies, we can easily find solutions with
+80 queens and more:
+
+==
+?- n_queens(80, Qs), labeling([ff], Qs).
+Qs = [1, 3, 5, 44, 42, 4, 50, 7, 68|...] .
+
+?- time((n_queens(90, Qs), labeling([ff], Qs))).
+% 5,904,401 inferences, 0.722 CPU in 0.737 seconds (98% CPU)
+Qs = [1, 3, 5, 50, 42, 4, 49, 7, 59|...] .
+==
+
+Experimenting with different search strategies is easy because we have
+separated the core relation from the actual search.
+
+
+
+## Optimisation    {#clpfd-optimisation}
+
+We can use labeling/2 to minimize or maximize the value of a CLP(FD)
 expression, and generate solutions in increasing or decreasing order
 of the value. See the labeling options `min(Expr)` and `max(Expr)`,
 respectively.
@@ -480,40 +750,90 @@ respectively.
 Again, to easily try different labeling options in connection with
 optimisation, we recommend to introduce a dedicated predicate for
 posting constraints, and to use `labeling/2` in a separate goal. This
-way, you can observe properties of the core relation in isolation,
-and try different labeling options without recompiling your code.
+way, we can observe properties of the core relation in isolation,
+and try different labeling options without recompiling our code.
 
-If necessary, you can use `once/1` to commit to the first optimal
+If necessary, we can use `once/1` to commit to the first optimal
 solution. However, it is often very valuable to see alternative
-solutions that are _also_ optimal, so that you can choose among
-optimal solutions by other criteria. For the sake of purity and
-completeness, we recommend to avoid `once/1` and other constructs
-that lead to impurities in CLP(FD) programs.
+solutions that are _also_ optimal, so that we can choose among optimal
+solutions by other criteria. For the sake of
+[**purity**](https://www.metalevel.at/prolog/purity) and
+completeness, we recommend to avoid `once/1` and other constructs that
+lead to impurities in CLP(FD) programs.
 
-### Advanced topics			{#clpfd-advanced-topics}
+Related to optimisation with CLP(FD) constraints are
+[`library(simplex)`](http://eu.swi-prolog.org/man/simplex.html) and
+CLP(Q) which reason about _linear_ constraints over rational numbers.
 
-If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
-monotonic: Adding new constraints cannot yield new solutions. When
-this flag is `true`, you must wrap variables that occur in arithmetic
-expressions with the functor `(?)/1`. For example, `?(X) #= ?(Y) +
-?(Z)`. The wrapper can be omitted for variables that are already
-constrained to integers.
+## Reification				{#clpfd-reification}
 
-Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
-the constraints in which a variable is involved. This library also
-provides _reflection_ predicates (like fd_dom/2, fd_size/2 etc.) with
-which you can inspect a variable's current domain. These predicates
-can be useful if you want to implement your own labeling strategies.
+The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
+_reified_, which means reflecting their truth values into Boolean
+values represented by the integers 0 and 1. Let P and Q denote
+reifiable constraints or Boolean variables, then:
 
-You can also define custom constraints. The mechanism to do this is
-not yet finalised, and we welcome suggestions and descriptions of use
-cases that are important to you. As an example of how it can be done
-currently, let us define a new custom constraint `oneground(X,Y,Z)`,
-where Z shall be 1 if at least one of X and Y is instantiated:
+    | #\ Q      | True iff Q is false                  |
+    | P #\/ Q   | True iff either P or Q               |
+    | P #/\ Q   | True iff both P and Q                |
+    | P #\ Q    | True iff either P or Q, but not both |
+    | P #<==> Q | True iff P and Q are equivalent      |
+    | P #==> Q  | True iff P implies Q                 |
+    | P #<== Q  | True iff Q implies P                 |
+
+The constraints of this table are reifiable as well.
+
+When reasoning over Boolean variables, also consider using
+CLP(B) constraints as provided by
+[`library(clpb)`](http://eu.swi-prolog.org/man/clpb.html).
+
+## Enabling monotonic CLP(FD)		{#clpfd-monotonicity}
+
+In the default execution mode, CLP(FD) constraints still exhibit some
+non-relational properties. For example, _adding_ constraints can yield
+new solutions:
 
 ==
-:- use_module(library(clpfd)).
+?-          X #= 2, X = 1+1.
+false.
 
+?- X = 1+1, X #= 2, X = 1+1.
+X = 1+1.
+==
+
+This behaviour is highly problematic from a logical point of view, and
+it may render declarative debugging techniques inapplicable.
+
+Set the Prolog flag `clpfd_monotonic` to `true` to make CLP(FD)
+**monotonic**: This means that _adding_ new constraints _cannot_ yield
+new solutions. When this flag is `true`, we must wrap variables that
+occur in arithmetic expressions with the functor `(?)/1` or `(#)/1`. For
+example:
+
+==
+?- set_prolog_flag(clpfd_monotonic, true).
+true.
+
+?- #(X) #= #(Y) + #(Z).
+#(Y)+ #(Z)#= #(X).
+
+?-          X #= 2, X = 1+1.
+ERROR: Arguments are not sufficiently instantiated
+==
+
+The wrapper can be omitted for variables that are already constrained
+to integers.
+
+## Custom constraints			{#clpfd-custom-constraints}
+
+We can define custom constraints. The mechanism to do this is not yet
+finalised, and we welcome suggestions and descriptions of use cases
+that are important to you.
+
+As an example of how it can be done currently, let us define a new
+custom constraint `oneground(X,Y,Z)`, where Z shall be 1 if at least
+one of X and Y is instantiated:
+
+==
 :- multifile clpfd:run_propagator/2.
 
 oneground(X, Y, Z) :-
@@ -551,8 +871,51 @@ Z = 1,
 X in inf..sup.
 ==
 
-@author Markus Triska
+## Applications   {#clpfd-applications}
+
+CLP(FD) applications that we find particularly impressive and worth
+studying include:
+
+  * Michael Hendricks uses CLP(FD) constraints for flexible reasoning
+    about _dates_ and _times_ in the
+    [`julian`](http://www.swi-prolog.org/pack/list?p=julian) package.
+  * Julien Cumin uses CLP(FD) constraints for integer arithmetic in
+    [=Brachylog=](https://github.com/JCumin/Brachylog).
+
+## Acknowledgments {#clpfd-acknowledgments}
+
+This library gives you a glimpse of what [**SICStus
+Prolog**](https://sicstus.sics.se/) can do. The API is intentionally
+mostly compatible with that of SICStus Prolog, so that you can easily
+switch to a much more feature-rich and much faster CLP(FD) system when
+you need it. I thank [Mats Carlsson](https://www.sics.se/~matsc/), the
+designer and main implementor of SICStus Prolog, for his elegant
+example. I first encountered his system as part of the excellent
+[**GUPU**](http://www.complang.tuwien.ac.at/ulrich/gupu/) teaching
+environment by [Ulrich
+Neumerkel](http://www.complang.tuwien.ac.at/ulrich/). Ulrich was also
+the first and most determined tester of the present system, filing
+hundreds of comments and suggestions for improvement. [Tom
+Schrijvers](https://people.cs.kuleuven.be/~tom.schrijvers/) has
+contributed several constraint libraries to SWI-Prolog, and I learned
+a lot from his coding style and implementation examples. [Bart
+Demoen](https://people.cs.kuleuven.be/~bart.demoen/) was a driving
+force behind the implementation of attributed variables in SWI-Prolog,
+and this library could not even have started without his prior work
+and contributions. Thank you all!
+
+## CLP(FD) predicate index			{#clpfd-predicate-index}
+
+In the following, each CLP(FD) predicate is described in more detail.
+
+We recommend the following link to refer to this manual:
+
+http://eu.swi-prolog.org/man/clpfd.html
+
+@author [Markus Triska](https://www.metalevel.at)
 */
+
+:- create_prolog_flag(clpfd_monotonic, false, []).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A bound is either:
@@ -1242,7 +1605,8 @@ fd_variable(V) :-
 
 %% +Vars ins +Domain
 %
-%  The variables in the list Vars are elements of Domain.
+%  The variables in the list Vars are elements of Domain. See in/2 for
+%  the syntax of Domain.
 
 Vs ins D :-
         fd_must_be_list(Vs),
@@ -1273,7 +1637,7 @@ order_dom_next(random_value(_), Dom, Next) :-
 
 %% label(+Vars)
 %
-% Equivalent to labeling([], Vars).
+% Equivalent to labeling([], Vars). See labeling/2.
 
 label(Vs) :- labeling([], Vs).
 
@@ -1359,8 +1723,8 @@ label(Vs) :- labeling([], Vs).
 % ==
 %
 % Labeling is always complete, always terminates, and yields no
-% redundant solutions.
-%
+% redundant solutions. See [core relations and
+% search](<#clpfd-search>) for usage advice.
 
 labeling(Options, Vars) :-
         must_be(list, Options),
@@ -1692,7 +2056,9 @@ tighten(max, E, V) :- E #> V.
 
 %% all_different(+Vars)
 %
-% Vars are pairwise distinct.
+% Like all_distinct/1, but with weaker propagation. Consider using
+% all_distinct/1 instead, since all_distinct/1 is typically acceptably
+% efficient and propagates much more strongly.
 
 all_different(Ls) :-
         fd_must_be_list(Ls),
@@ -1711,11 +2077,11 @@ all_different([X|Right], Left, Orig) :-
         ),
         all_different(Right, [X|Left], Orig).
 
-%% all_distinct(+Ls).
+%% all_distinct(+Vars).
 %
-%  Like all_different/1, with stronger propagation. For example,
-%  all_distinct/1 can detect that not all variables can assume distinct
-%  values given the following domains:
+%  True iff Vars are pairwise distinct. For example, all_distinct/1
+%  can detect that not all variables can assume distinct values given
+%  the following domains:
 %
 %  ==
 %  ?- maplist(in, Vs,
@@ -2072,6 +2438,7 @@ parse_clpfd(E, R,
                                    g(constrain_to_integer(E)), g(E = R)],
              g(integer(E))     => [g(R = E)],
              ?(E)              => [g(must_be_fd_integer(E)), g(R = E)],
+             #(E)              => [g(must_be_fd_integer(E)), g(R = E)],
              m(A+B)            => [p(pplus(A, B, R))],
              % power_var_num/3 must occur before */2 to be useful
              g(power_var_num(E, V, N)) => [p(pexp(V, N, R))],
@@ -2088,6 +2455,16 @@ parse_clpfd(E, R,
              m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
+             % bitwise operations
+             m(\A)             => [p(pfunction(\, A, R))],
+             m(msb(A))         => [p(pfunction(msb, A, R))],
+             m(lsb(A))         => [p(pfunction(lsb, A, R))],
+             m(popcount(A))    => [p(pfunction(popcount, A, R))],
+             m(A<<B)           => [p(pfunction(<<, A, B, R))],
+             m(A>>B)           => [p(pfunction(>>, A, B, R))],
+             m(A/\B)           => [p(pfunction(/\, A, B, R))],
+             m(A\/B)           => [p(pfunction(\/, A, B, R))],
+             m(A xor B)        => [p(pfunction(xor, A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
 
@@ -2119,6 +2496,7 @@ parse_matcher(E, R, Matcher, Clause) :-
 
 parse_condition(g(Goal), E, E)       --> [Goal, !].
 parse_condition(?(E), _, ?(E))       --> [!].
+parse_condition(#(E), _, #(E))       --> [!].
 parse_condition(m(Match), _, Match0) -->
         [!],
         { copy_term(Match, Match0),
@@ -2337,7 +2715,7 @@ matcher(m_c(Matcher,Cond), Gs) -->
         ).
 
 match(any(A), T)     --> [A = T].
-match(var(V), T)     --> [( nonvar(T), T = ?(Var) ->
+match(var(V), T)     --> [( nonvar(T), ( T = ?(Var) ; T = #(Var) ) ->
                             must_be_fd_integer(Var), V = Var
                           ; v_or_i(T), V = T
                           )].
@@ -2367,7 +2745,9 @@ match_goal(p(Prop), _) -->
 
 %% ?X #>= ?Y
 %
-% X is greater than or equal to Y.
+% Same as Y #=< X. When reasoning over integers, replace `(>=)/2` by
+% #>=/2 to obtain more general relations. See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #>= Y :- clpfd_geq(X, Y).
 
@@ -2375,13 +2755,19 @@ clpfd_geq(X, Y) :- clpfd_geq_(X, Y), reinforce(X), reinforce(Y).
 
 %% ?X #=< ?Y
 %
-% X is less than or equal to Y.
+% The arithmetic expression X is less than or equal to Y. When
+% reasoning over integers, replace `(=<)/2` by #=</2 to obtain more
+% general relations. See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #=< Y :- Y #>= X.
 
 %% ?X #= ?Y
 %
-% X equals Y.
+% The arithmetic expression X equals Y. This is the most important
+% [arithmetic constraint](<#clpfd-arith-constraints>), subsuming and
+% replacing both `(is)/2` _and_ `(=:=)/2` over integers. See
+% [declarative integer arithmetic](<#clpfd-integer-arith>).
 
 X #= Y :- clpfd_equal(X, Y).
 
@@ -2396,6 +2782,7 @@ expr_conds(E, E)                 --> [integer(E)],
         { var(E), !, \+ current_prolog_flag(clpfd_monotonic, true) }.
 expr_conds(E, E)                 --> { integer(E) }.
 expr_conds(?(E), E)              --> [integer(E)].
+expr_conds(#(E), E)              --> [integer(E)].
 expr_conds(-E0, -E)              --> expr_conds(E0, E).
 expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
 expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
@@ -2413,6 +2800,16 @@ expr_conds(A0 mod B0, A mod B)   -->
 expr_conds(A0^B0, A^B)           -->
         expr_conds(A0, A), expr_conds(B0, B),
         [(B >= 0 ; A =:= -1)].
+% Bitwise operations, added to make CLP(FD) usable in more cases
+expr_conds(\ A0, \ A) --> expr_conds(A0, A).
+expr_conds(A0<<B0, A<<B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0>>B0, A>>B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0/\B0, A/\B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0\/B0, A\/B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(A0 xor B0, A xor B) --> expr_conds(A0, A), expr_conds(B0, B).
+expr_conds(lsb(A0), lsb(A)) --> expr_conds(A0, A).
+expr_conds(msb(A0), msb(A)) --> expr_conds(A0, A).
+expr_conds(popcount(A0), popcount(A)) --> expr_conds(A0, A).
 
 :- multifile
         system:goal_expansion/2.
@@ -2488,10 +2885,21 @@ expansion_simpler((False->_;Else0), Else) :-
 expansion_simpler((If->Then0;Else0), (If->Then;Else)) :- !,
         expansion_simpler(Then0, Then),
         expansion_simpler(Else0, Else).
-expansion_simpler((Var is Expr,Goal), Goal) :-
-        ground(Expr), !,
-        Var is Expr.
-expansion_simpler((Var is Expr,Goal), (Var = Expr,Goal)) :- var(Expr), !.
+expansion_simpler((A0,B0), (A,B)) :-
+        expansion_simpler(A0, A),
+        expansion_simpler(B0, B).
+expansion_simpler(Var is Expr0, Goal) :-
+        ground(Expr0), !,
+        phrase(expr_conds(Expr0, Expr), Gs),
+        (   maplist(call, Gs) -> Var is Expr, Goal = true
+        ;   Goal = false
+        ).
+expansion_simpler(Var =:= Expr0, Goal) :-
+        ground(Expr0), !,
+        phrase(expr_conds(Expr0, Expr), Gs),
+        (   maplist(call, Gs) -> Goal = (Var =:= Expr)
+        ;   Goal = false
+        ).
 expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
 expansion_simpler(between(L,U,V), Goal) :- maplist(integer, [L,U,V]), !,
         (   between(L,U,V) -> Goal = true
@@ -2514,6 +2922,7 @@ is_false(var(X)) :- nonvar(X).
 linsum(X, S, S)    --> { var(X), !, non_monotonic(X) }, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I), S is S0 + I }.
 linsum(?(X), S, S) --> { must_be_fd_integer(X) }, [vn(X,1)].
+linsum(#(X), S, S) --> { must_be_fd_integer(X) }, [vn(X,1)].
 linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
 linsum(N*A, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
 linsum(A*N, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
@@ -2617,9 +3026,15 @@ integer_log_b(N, B, Log0, Log) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Largest R such that R^K =< N.
-
-   TODO: Replace this when the GMP function becomes available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- if(current_predicate(nth_integer_root_and_remainder/4)).
+
+% This currently only works for K >= 1, which is all that is needed for now.
+integer_kth_root_leq(N, K, R) :-
+        nth_integer_root_and_remainder(K, N, R, _).
+
+:- else.
 
 integer_kth_root_leq(N, K, R) :-
         (   even(K) ->
@@ -2645,9 +3060,14 @@ integer_kroot_leq(L, U, N, K, R) :-
             )
         ).
 
+:- endif.
+
 %% ?X #\= ?Y
 %
-% X is not Y.
+% The arithmetic expressions X and Y evaluate to distinct integers.
+% When reasoning over integers, replace `(=\=)/2` by #\=/2 to obtain
+% more general relations. See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #\= Y :- clpfd_neq(X, Y), do_queue.
 
@@ -2668,16 +3088,22 @@ neq_num(X, N) :-
 
 %% ?X #> ?Y
 %
-% X is greater than Y.
+% Same as Y #< X. When reasoning over integers, replace `(>)/2` by
+% #>/2 to obtain more general relations See [declarative integer
+% arithmetic](<#clpfd-integer-arith>).
 
 X #> Y  :- X #>= Y + 1.
 
 %% #<(?X, ?Y)
 %
-% X is less than Y. In addition to its regular use in problems that
-% require it, this constraint can also be useful to eliminate
-% uninteresting symmetries from a problem. For example, all possible
-% matches between pairs built from four players in total:
+% The arithmetic expression X is less than Y. When reasoning over
+% integers, replace `(<)/2` by #</2 to obtain more general relations. See
+% [declarative integer arithmetic](<#clpfd-integer-arith>).
+%
+% In addition to its regular use in tasks that require it, this
+% constraint can also be useful to eliminate uninteresting symmetries
+% from a problem. For example, all possible matches between pairs
+% built from four players in total:
 %
 % ==
 % ?- Vs = [A,B,C,D], Vs ins 1..4,
@@ -2693,8 +3119,9 @@ X #< Y  :- Y #> X.
 
 %% #\ +Q
 %
-% The reifiable constraint Q does _not_ hold. For example, to obtain
-% the complement of a domain:
+% Q does _not_ hold. See [reification](<#clpfd-reification>).
+%
+% For example, to obtain the complement of a domain:
 %
 % ==
 % ?- #\ X in -3..0\/10..80.
@@ -2705,7 +3132,9 @@ X #< Y  :- Y #> X.
 
 %% ?P #<==> ?Q
 %
-% P and Q are equivalent. For example:
+% P and Q are equivalent. See [reification](<#clpfd-reification>).
+%
+% For example:
 %
 % ==
 % ?- X #= 4 #<==> B, X #\= 4.
@@ -2716,8 +3145,6 @@ X #< Y  :- Y #> X.
 % finite domain variables to the number of occurrences of a given value:
 %
 % ==
-% :- use_module(library(clpfd)).
-%
 % vs_n_num(Vs, N, Num) :-
 %         maplist(eq_b(N), Vs, Bs),
 %         sum(Bs, #=, Num).
@@ -2745,7 +3172,7 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 
 %% ?P #==> ?Q
 %
-% P implies Q.
+% P implies Q. See [reification](<#clpfd-reification>).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Implication is special in that created auxiliary constraints can be
@@ -2768,13 +3195,13 @@ L #==> R   :-
 
 %% ?P #<== ?Q
 %
-% Q implies P.
+% Q implies P. See [reification](<#clpfd-reification>).
 
 L #<== R   :- R #==> L.
 
 %% ?P #/\ ?Q
 %
-% P and Q hold.
+% P and Q hold. See [reification](<#clpfd-reification>).
 
 L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 
@@ -2803,8 +3230,10 @@ conjunctive_neqs_vals(A #/\ B) -->
 
 %% ?P #\/ ?Q
 %
-% P or Q holds. For example, the sum of natural numbers below 1000
-% that are multiples of 3 or 5:
+% P or Q holds. See [reification](<#clpfd-reification>).
+%
+% For example, the sum of natural numbers below 1000 that are
+% multiples of 3 or 5:
 %
 % ==
 % ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999,
@@ -2847,7 +3276,8 @@ disjunctive_eqs_vals(A #\/ B) -->
 
 %% ?P #\ ?Q
 %
-% Either P holds or Q holds, but not both.
+% Either P holds or Q holds, but not both. See
+% [reification](<#clpfd-reification>).
 
 L #\ R :- (L #\/ R) #/\ #\ (L #/\ R).
 
@@ -2882,6 +3312,7 @@ parse_reified(E, R, D,
                                  g(constrain_to_integer(E)), g(R = E), g(D=1)],
                g(integer(E)) => [g(R=E), g(D=1)],
                ?(E)          => [g(must_be_fd_integer(E)), g(R=E), g(D=1)],
+               #(E)          => [g(must_be_fd_integer(E)), g(R=E), g(D=1)],
                m(A+B)        => [d(D), p(pplus(A,B,R)), a(A,B,R)],
                m(A*B)        => [d(D), p(ptimes(A,B,R)), a(A,B,R)],
                m(A-B)        => [d(D), p(pplus(R,B,A)), a(A,B,R)],
@@ -2896,6 +3327,16 @@ parse_reified(E, R, D,
                m(A mod B)    => [skeleton(A,B,D,R,pmod)],
                m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
+               % bitwise operations
+               m(\A)         => [function(D,\,A,R)],
+               m(msb(A))     => [function(D,msb,A,R)],
+               m(lsb(A))     => [function(D,lsb,A,R)],
+               m(popcount(A)) => [function(D,popcount,A,R)],
+               m(A<<B)       => [function(D,<<,A,B,R)],
+               m(A>>B)       => [function(D,>>,A,B,R)],
+               m(A/\B)       => [function(D,/\,A,B,R)],
+               m(A\/B)       => [function(D,\/,A,B,R)],
+               m(A xor B)    => [function(D,xor,A,B,R)],
                g(true)       => [g(domain_error(clpfd_expression, E))]]
              ).
 
@@ -2925,6 +3366,7 @@ parse_reified(E, R, D, Matcher, Clause) :-
 
 reified_condition(g(Goal), E, E, []) --> [{Goal}, !].
 reified_condition(?(E), _, ?(E), []) --> [!].
+reified_condition(#(E), _, #(E), []) --> [!].
 reified_condition(m(Match), _, Match0, Ds) -->
         [!],
         { copy_term(Match, Match0),
@@ -2958,14 +3400,15 @@ reified_goal(p(Vs, Prop), _) -->
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
+reified_goal(function(D,Op,A,B,R), Ds) -->
+        reified_goals([d(D),p(pfunction(Op,A,B,R)),a(A,B,R)], Ds).
+reified_goal(function(D,Op,A,R), Ds) -->
+        reified_goals([d(D),p(pfunction(Op,A,R)),a(A,R)], Ds).
 reified_goal(skeleton(A,B,D,R,F), Ds) -->
-        { Prop =.. [F,X,Y,Z],
-          phrase(reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
-                                p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,F)),
-                                p(reified_and(D1,[],D2,[],D)),a(D2),a(A,B,R)],
-                               Ds), Goals),
-          list_goal(Goals, Goal) },
-        [Goal].
+        { Prop =.. [F,X,Y,Z] },
+        reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
+                       p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,F)),
+                       p(reified_and(D1,[],D2,[],D)),a(D2),a(A,B,R)], Ds).
 reified_goal(a(V), _)     --> [a(V)].
 reified_goal(a(X,V), _)   --> [a(X,V)].
 reified_goal(a(X,Y,V), _) --> [a(X,Y,V)].
@@ -2987,6 +3430,7 @@ reify(Expr, B, Ps) :-
 reifiable(E)      :- var(E), non_monotonic(E).
 reifiable(E)      :- integer(E), E in 0..1.
 reifiable(?(E))   :- must_be_fd_integer(E).
+reifiable(#(E))   :- must_be_fd_integer(E).
 reifiable(V in _) :- fd_variable(V).
 reifiable(Expr)   :-
         Expr =.. [Op,Left,Right],
@@ -3007,6 +3451,7 @@ reify(E, B) --> { B in 0..1 }, reify_(E, B).
 reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), E = B }.
 reify_(?(B), B) --> [].
+reify_(#(B), B) --> [].
 reify_(V in Drep, B) -->
         { drep_to_domain(Drep, Dom) },
         propagator_init_trigger(reified_in(V,Dom,B)),
@@ -3551,8 +3996,6 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % length 3 from A to D via trains that are part of the given schedule.
 %
 % ==
-% :- use_module(library(clpfd)).
-%
 % trains([[1,2,0,1],
 %         [2,3,4,5],
 %         [2,3,0,1],
@@ -4699,6 +5142,26 @@ run_propagator(pskeleton(X,Y,D,Skel,Z,_), MState) :-
         ;   true
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Propagators for arithmetic functions that only propagate
+   functionally. These are currently the bitwise operations.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+run_propagator(pfunction(Op,A,B,R), MState) :-
+        (   integer(A), integer(B) ->
+            kill(MState),
+            Expr =.. [Op,A,B],
+            R is Expr
+        ;   true
+        ).
+run_propagator(pfunction(Op,A,R), MState) :-
+        (   integer(A) ->
+            kill(MState),
+            Expr =.. [Op,A],
+            R is Expr
+        ;   true
+        ).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(reified_geq(DX,X,DY,Y,Ps,B), MState) :-
@@ -5183,6 +5646,16 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
 
    DCGs are used to implicitly pass around the global index, stack
    and the predicate relating a vertex to its successors.
+
+   For more information about this technique, see:
+
+                 https://www.metalevel.at/prolog/dcg
+                 ===================================
+
+   A Prolog implementation of this algorithm is also available as a
+   standalone library from:
+
+                   https://www.metalevel.at/scc.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 scc(Vs, Succ) :- phrase(scc(Vs), [s(0,[],Succ)], _).
@@ -5482,8 +5955,10 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 
 %%    global_cardinality(+Vs, +Pairs)
 %
-%     Global      Cardinality      constraint.        Equivalent      to
-%     global_cardinality(Vs, Pairs, []). Example:
+%     Global Cardinality constraint. Equivalent to
+%     global_cardinality(Vs, Pairs, []). See global_cardinality/3.
+%
+%     Example:
 %
 %     ==
 %     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
@@ -5936,7 +6411,7 @@ circuit_successors(V, Tos) :-
 
 %% cumulative(+Tasks)
 %
-%  Equivalent to cumulative(Tasks, [limit(1)]).
+%  Equivalent to cumulative(Tasks, [limit(1)]). See cumulative/2.
 
 cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 
@@ -6093,17 +6568,15 @@ a_not_in_b([_,AX,AW,AY,AH], [_,BX,BW,BY,BH]) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% automaton(+Signature, +Nodes, +Arcs)
+%% automaton(+Vs, +Nodes, +Arcs)
 %
 %  Describes a list of finite domain variables with a finite
-%  automaton. Equivalent to automaton(_, _, Signature, Nodes, Arcs,
+%  automaton. Equivalent to automaton(Vs, _, Vs, Nodes, Arcs,
 %  [], [], _), a common use case of automaton/8. In the following
 %  example, a list of binary finite domain variables is constrained to
 %  contain at least two consecutive ones:
 %
 %  ==
-%  :- use_module(library(clpfd)).
-%
 %  two_consecutive_ones(Vs) :-
 %          automaton(Vs, [source(a),sink(c)],
 %                    [arc(a,0,a), arc(a,1,b),
@@ -6123,7 +6596,7 @@ a_not_in_b([_,AX,AW,AY,AH], [_,BX,BW,BY,BH]) :-
 automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 
 
-%% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
+%% automaton(+Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  Describes a list of finite domain variables with a finite
 %  automaton. True iff the finite automaton induced by Nodes and Arcs
@@ -6136,15 +6609,16 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  arbitrary term. Transitions that are not mentioned go to an
 %  implicit failure node. `Exprs` is a list of arithmetic expressions,
 %  of the same length as Counters. In each expression, variables
-%  occurring in Counters correspond to old counter values, and
-%  variables occurring in Template correspond to the current element
-%  of Sequence. When a transition containing expressions is taken,
-%  each counter is updated as stated by the result of the
-%  corresponding arithmetic expression. By default, counters remain
-%  unchanged. Counters is a list of variables that must not occur
-%  anywhere outside of the constraint goal. Initials is a list of the
-%  same length as Counters. Counter arithmetic on the transitions
-%  relates the counter values in Initials to Finals.
+%  occurring in Counters symbolically refer to previous counter
+%  values, and variables occurring in Template refer to the current
+%  element of Sequence. When a transition containing arithmetic
+%  expressions is taken, each counter is updated according to the
+%  result of the corresponding expression. When a transition without
+%  arithmetic expressions is taken, all counters remain unchanged.
+%  Counters is a list of variables. Initials is a list of finite
+%  domain variables or integers denoting, in the same order, the
+%  initial value of each counter. These values are related to Finals
+%  according to the arithmetic expressions of the taken transitions.
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
@@ -6154,11 +6628,9 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  and strictly descending subsequences:
 %
 %  ==
-%  :- use_module(library(clpfd)).
-%
 %  sequence_inflexions(Vs, N) :-
 %          variables_signature(Vs, Sigs),
-%          automaton(_, _, Sigs,
+%          automaton(Sigs, _, Sigs,
 %                    [source(s),sink(i),sink(j),sink(s)],
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
 %                     arc(i,0,i), arc(i,1,j,[C+1]), arc(i,2,i),
@@ -6321,21 +6793,19 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  instance Sudoku:
 %
 %  ==
-%  :- use_module(library(clpfd)).
-%
 %  sudoku(Rows) :-
 %          length(Rows, 9), maplist(same_length(Rows), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
 %          transpose(Rows, Columns),
 %          maplist(all_distinct, Columns),
-%          Rows = [A,B,C,D,E,F,G,H,I],
-%          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
+%          Rows = [As,Bs,Cs,Ds,Es,Fs,Gs,Hs,Is],
+%          blocks(As, Bs, Cs), blocks(Ds, Es, Fs), blocks(Gs, Hs, Is).
 %
 %  blocks([], [], []).
-%  blocks([A,B,C|Bs1], [D,E,F|Bs2], [G,H,I|Bs3]) :-
-%          all_distinct([A,B,C,D,E,F,G,H,I]),
-%          blocks(Bs1, Bs2, Bs3).
+%  blocks([N1,N2,N3|Ns1], [N4,N5,N6|Ns2], [N7,N8,N9|Ns3]) :-
+%          all_distinct([N1,N2,N3,N4,N5,N6,N7,N8,N9]),
+%          blocks(Ns1, Ns2, Ns3).
 %
 %  problem(1, [[_,_,_,_,_,_,_,_,_],
 %              [_,_,_,_,_,3,_,8,5],
@@ -6381,11 +6851,12 @@ list_first_rest([L|Ls], L, Ls).
 %% zcompare(?Order, ?A, ?B)
 %
 % Analogous to compare/3, with finite domain variables A and B.
-% Example:
+%
+% This predicate allows you to make several predicates over integers
+% deterministic while preserving their generality and completeness.
+% For example:
 %
 % ==
-% :- use_module(library(clpfd)).
-%
 % n_factorial(N, F) :-
 %         zcompare(C, N, 0),
 %         n_factorial_(C, N, F).
@@ -6396,11 +6867,24 @@ list_first_rest([L|Ls], L, Ls).
 %         n_factorial(N1, F0).
 % ==
 %
-% This version is deterministic if the first argument is instantiated:
+% This version is deterministic if the first argument is instantiated,
+% because first argument indexing can distinguish the two different
+% clauses:
 %
 % ==
 % ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
+% ==
+%
+% The predicate can still be used in all directions, including the
+% most general query:
+%
+% ==
+% ?- n_factorial(N, F).
+% N = 0,
+% F = 1 ;
+% N = F, F = 1 ;
+% N = F, F = 2 .
 % ==
 
 zcompare(Order, A, B) :-
@@ -6486,8 +6970,9 @@ fd_sup(X, Sup) :-
 
 %% fd_size(+Var, -Size)
 %
-%  Size is the number of elements of the current domain of Var, or the
-%  atom *sup* if the domain is unbounded.
+%  Reflect the current size of a domain. Size is the number of
+%  elements of the current domain of Var, or the atom *sup* if the
+%  domain is unbounded.
 
 fd_size(X, S) :-
         (   fd_get(X, XD, _) ->
@@ -6661,7 +7146,7 @@ unwrap_with(Goal, Term0, Term) :-
         maplist(unwrap_with(Goal), Args0, Args),
         Term =.. [F|Args].
 
-bare_integer(V0, V)    :- ( integer(V0) -> V = V0 ; V = ?(V0) ).
+bare_integer(V0, V)    :- ( integer(V0) -> V = V0 ; V = #(V0) ).
 
 attribute_goal_(presidual(Goal))       --> [Goal].
 attribute_goal_(pgeq(A,B))             --> [?(A) #>= ?(B)].
@@ -6729,6 +7214,12 @@ attribute_goal_(reified_and(X,_,Y,_,B))    --> [?(X) #/\ ?(Y) #<==> ?(B)].
 attribute_goal_(reified_or(X, _, Y, _, B)) --> [?(X) #\/ ?(Y) #<==> ?(B)].
 attribute_goal_(reified_not(X, Y))         --> [#\ ?(X) #<==> ?(Y)].
 attribute_goal_(pimpl(X, Y, _))            --> [?(X) #==> ?(Y)].
+attribute_goal_(pfunction(Op, A, B, R)) -->
+        { Expr =.. [Op,?(A),?(B)] },
+        [?(R) #= Expr].
+attribute_goal_(pfunction(Op, A, R)) -->
+        { Expr =.. [Op,?(A)] },
+        [?(R) #= Expr].
 
 conjunction(A, B, G, D) -->
         (   { A == 1, B == 1 } -> [G #<==> ?(D)]
@@ -6857,3 +7348,5 @@ safe_api.
 sandbox:safe_primitive(clpfd:clpfd_equal(_,_)).
 sandbox:safe_primitive(clpfd:clpfd_geq(_,_)).
 sandbox:safe_primitive(clpfd:clpfd_in(_,_)).
+% Enabling monotonic CLP(FD) is safe.
+sandbox:safe_primitive(set_prolog_flag(clpfd_monotonic, _)).

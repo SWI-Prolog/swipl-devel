@@ -1,28 +1,35 @@
-/*
+/*  Part of SWI-Prolog
+
     Author:        Marcus Uneson
     E-mail:        marcus.uneson@ling.lu.se
     WWW:           http://person.sol.lu.se/MarcusUneson/
+    Copyright (c)  2011-2015, Marcus Uneson
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(optparse,
@@ -79,69 +86,69 @@ This is just a list of individual   option specifications. One of those,
 in turn, is a list of ground   prolog terms in the customary Name(Value)
 format. The following terms are recognized (any others raise error).
 
-	* opt(Key)
-	Key is what the option later will be accessed by, just like for
-	current_prolog_flag(Key, Value). This term is mandatory (an error is
-	thrown if missing).
+        * opt(Key)
+        Key is what the option later will be accessed by, just like for
+        current_prolog_flag(Key, Value). This term is mandatory (an error is
+        thrown if missing).
 
-	* shortflags(ListOfFlags)
-	ListOfFlags denotes any single-dashed, single letter args specifying the
-	current option (=|-s , -K|=, etc). Uppercase letters must be quoted.
-	Usually ListOfFlags will be a singleton list, but sometimes aliased flags
-	may be convenient.
+        * shortflags(ListOfFlags)
+        ListOfFlags denotes any single-dashed, single letter args specifying the
+        current option (=|-s , -K|=, etc). Uppercase letters must be quoted.
+        Usually ListOfFlags will be a singleton list, but sometimes aliased flags
+        may be convenient.
 
-	* longflags(ListOfFlags)
-	ListOfFlags denotes any double-dashed arguments specifying
-	the current option (=|--verbose, --no-debug|=, etc). They are
-	basically a more readable alternative to short flags, except
+        * longflags(ListOfFlags)
+        ListOfFlags denotes any double-dashed arguments specifying
+        the current option (=|--verbose, --no-debug|=, etc). They are
+        basically a more readable alternative to short flags, except
 
-	1. long flags can be specified as =|--flag value|= or
-	=|--flag=value|= (but not as =|--flagvalue|=); short flags as
-	=|-f val|= or =|-fval|= (but not =|-f=val|=)
-	2. boolean long flags can be specified as =|--bool-flag|=
-	or =|--bool-flag=true|= or =|--bool-flag true|=; and they can be
-	negated as =|--no-bool-flag|= or =|--bool-flag=false|= or
-	=|--bool-flag false|=.
+        1. long flags can be specified as =|--flag value|= or
+        =|--flag=value|= (but not as =|--flagvalue|=); short flags as
+        =|-f val|= or =|-fval|= (but not =|-f=val|=)
+        2. boolean long flags can be specified as =|--bool-flag|=
+        or =|--bool-flag=true|= or =|--bool-flag true|=; and they can be
+        negated as =|--no-bool-flag|= or =|--bool-flag=false|= or
+        =|--bool-flag false|=.
 
         Except that shortflags must be single characters, the
-	distinction between long and short is in calling convention, not
-	in namespaces. Thus, if you have shortflags([v]), you can use it
-	as =|-v2|= or =|-v 2|= or =|--v=2|= or =|--v 2|= (but not
-	=|-v=2|= or =|--v2|=).
+        distinction between long and short is in calling convention, not
+        in namespaces. Thus, if you have shortflags([v]), you can use it
+        as =|-v2|= or =|-v 2|= or =|--v=2|= or =|--v 2|= (but not
+        =|-v=2|= or =|--v2|=).
 
-	Shortflags and longflags both default to =|[]|=. It can be useful to
-	have flagless options -- see example below.
+        Shortflags and longflags both default to =|[]|=. It can be useful to
+        have flagless options -- see example below.
 
-	* meta(Meta)
-	Meta is optional and only relevant for the synthesized usage message
-	and is the name (an atom) of the metasyntactic variable (possibly)
-	appearing in it together with type and default value (e.g,
+        * meta(Meta)
+        Meta is optional and only relevant for the synthesized usage message
+        and is the name (an atom) of the metasyntactic variable (possibly)
+        appearing in it together with type and default value (e.g,
         =|x:integer=3|=, =|interest:float=0.11|=). It may be useful to
-	have named variables (=|x|=, =|interest|=) in case you wish to
-	mention them again in the help text. If not given the =|Meta:|=
-	part is suppressed -- see example below.
+        have named variables (=|x|=, =|interest|=) in case you wish to
+        mention them again in the help text. If not given the =|Meta:|=
+        part is suppressed -- see example below.
 
-	* type(Type)
-	Type is one of =|boolean, atom, integer, float, term|=.
-	The corresponding argument will be parsed appropriately. This
-	term is optional; if not given, defaults to =|term|=.
+        * type(Type)
+        Type is one of =|boolean, atom, integer, float, term|=.
+        The corresponding argument will be parsed appropriately. This
+        term is optional; if not given, defaults to =|term|=.
 
-	* default(Default)
-	Default value. This term is optional; if not given, or if given the
-	special value '_', an uninstantiated variable is created (and any
-	type declaration is ignored).
+        * default(Default)
+        Default value. This term is optional; if not given, or if given the
+        special value '_', an uninstantiated variable is created (and any
+        type declaration is ignored).
 
-	* help(Help)
-	Help is (usually) an atom of text describing the option in the
-	help text. This term is optional (but obviously strongly recommended
+        * help(Help)
+        Help is (usually) an atom of text describing the option in the
+        help text. This term is optional (but obviously strongly recommended
         for all options which have flags).
 
         Long lines are subject to basic word wrapping -- split on white
-	space, reindent, rejoin. However, you can get more control by
-	supplying the line breaking yourself: rather than a single line of
-	text, you can provide a list of lines (as atoms). If you do, they
-	will be joined with the appropriate indent but otherwise left
-	untouched (see the option =mode= in the example below).
+        space, reindent, rejoin. However, you can get more control by
+        supplying the line breaking yourself: rather than a single line of
+        text, you can provide a list of lines (as atoms). If you do, they
+        will be joined with the appropriate indent but otherwise left
+        untouched (see the option =mode= in the example below).
 
 Absence of mandatory option specs or the presence of more than one for a
 particular option throws an error, as do unknown or incompatible types.
@@ -152,21 +159,21 @@ flag(s), meta:type=default, help)
 
 ==
 --mode                  -m     atom=SCAN       data gathering mode,
-					       one of
+                                               one of
                                                 SCAN: do this
                                                 READ: do that
                                                 MAKE: make numbers
                                                 WAIT: do nothing
 --rebuild-cache         -r     boolean=true    rebuild cache in
-					       each iteration
+                                               each iteration
 --heisenberg-threshold  -t,-h  float=0.1       heisenberg threshold
 --depths, --iters       -i,-d  K:integer=3     stop after K
-					       iterations
+                                               iterations
 --distances                    term=[1,2,3,5]  initial prolog term
 --output-file           -o     FILE:atom=_     write output to FILE
 --label                 -l     atom=REPORT     report label
 --verbosity             -v     V:integer=2     verbosity level,
-					       1 <= V <= 3
+                                               1 <= V <= 3
 ==
 
 We may also have some configuration  parameters which we currently think
@@ -270,8 +277,8 @@ shown in the example below.
 
 ==
 ?- opt_parse(ExampleOptsSpec, ExampleArgs,  Opts, PositionalArgs,
-	     [ output_functor(appl_config)
-	     ]).
+             [ output_functor(appl_config)
+             ]).
 
 Opts =    [ appl_config(verbose, 2),
           , appl_config(label, 'REPORT')
@@ -328,15 +335,15 @@ parameter style above (perhaps with asserting appl_config/2).
 */
 
 :- predicate_options(opt_parse/5, 5,
-		     [ allow_empty_flag_spec(boolean),
-		       duplicated_flags(oneof([keepfirst,keeplast,keepall])),
-		       output_functor(atom),
-		       suppress_empty_meta(boolean)
-		     ]).
+                     [ allow_empty_flag_spec(boolean),
+                       duplicated_flags(oneof([keepfirst,keeplast,keepall])),
+                       output_functor(atom),
+                       suppress_empty_meta(boolean)
+                     ]).
 
 :- multifile
-	error:has_type/2,
-	parse_type/3.
+    error:has_type/2,
+    parse_type/3.
 
 %%   opt_arguments(+OptsSpec, -Opts, -PositionalArgs) is det
 %
@@ -357,8 +364,8 @@ parameter style above (perhaps with asserting appl_config/2).
 %    discarded.
 
 opt_arguments(OptsSpec, Opts, PositionalArgs) :-
-      current_prolog_flag(argv, Argv),
-      opt_parse(OptsSpec, Argv, Opts, PositionalArgs).
+    current_prolog_flag(argv, Argv),
+    opt_parse(OptsSpec, Argv, Opts, PositionalArgs).
 
 %%   opt_parse(+OptsSpec, +ApplArgs, -Opts, -PositionalArgs) is det
 %
@@ -407,7 +414,7 @@ opt_parse(OptsSpec, ApplArgs, Opts, PositionalArgs) :-
 
 
 opt_parse(OptsSpec, ApplArgs, Opts, PositionalArgs, ParseOptions) :-
-      opt_parse_(OptsSpec, ApplArgs, Opts, PositionalArgs, ParseOptions).
+    opt_parse_(OptsSpec, ApplArgs, Opts, PositionalArgs, ParseOptions).
 
 
 %%   opt_help(+OptsSpec, -Help:atom) is det
@@ -695,8 +702,9 @@ invalidate_opts_spec(OptsSpec, ParseOptions) :-
 
     %invalid if unknown type
     ;   (   memberchk(type(Type), OptSpec),
+            Type \== term,
             \+ clause(error:has_type(Type,_), _)
-	)
+        )
     ->  format(atom(Msg), 'unknown type ''~w'' in option ''~w''', [Type, Name]),
         throw(error(type_error(flag_value, Type),
               context(validate_opts_spec/1, Msg)))
@@ -863,28 +871,33 @@ parse_val(Opt, Type, Cs, Val) :-
 
 %parse_loc(+Type, +ListOfCodes, -Result).
 parse_loc(Type, _LOC, _) :-
-	var(Type), !, throw(error(instantiation_error, _)).
+    var(Type), !, throw(error(instantiation_error, _)).
 parse_loc(_Type, LOC, _) :-
-	var(LOC), !, throw(error(instantiation_error, _)).
+    var(LOC), !, throw(error(instantiation_error, _)).
 parse_loc(boolean, Cs, true) :- atom_codes(true, Cs), !.
 parse_loc(boolean, Cs, false) :- atom_codes(false, Cs), !.
 parse_loc(atom, Cs, Result) :- atom_codes(Result, Cs), !.
 parse_loc(integer, Cs, Result) :-
     number_codes(Result, Cs),
     integer(Result),
+
     !.
 parse_loc(float, Cs, Result)   :-
     number_codes(Result, Cs),
     float(Result),
+
     !.
 parse_loc(term, Cs, Result) :-
     atom_codes(A, Cs),
     term_to_atom(Result, A),
+
     !.
 parse_loc(Type, Cs, Result) :-
-    parse_type(Type, Cs, Result), !.
+    parse_type(Type, Cs, Result),
+    !.
 parse_loc(Type, _Cs, _) :- %could not parse Cs as Type
-    throw(error(type_error(flag_value, Type), _)), !. %}}}
+    throw(error(type_error(flag_value, Type), _)),
+    !. %}}}
 %}}}
 
 %%  parse_type(+Type, +Codes:list(code), -Result) is semidet.
@@ -906,7 +919,7 @@ partition_args_([pos(Arg)|Rest], RestOpts, [Arg|RestPos]) :-
 
 add_default_opts([], Opts, Opts).
 add_default_opts([OptSpec|OptsSpec], OptsIn, Result) :-
-     memberchk(opt(OptName), OptSpec),
+    memberchk(opt(OptName), OptSpec),
     (  memberchk(opt(OptName, _Val), OptsIn)
     -> Result = OptsOut                      %value given on cl, ignore default
 

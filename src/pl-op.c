@@ -3,21 +3,33 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -77,19 +89,20 @@ typedef struct _opdef			/* predefined and enumerated */
 		 *******************************/
 
 static void
-copyOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+copyOperatorSymbol(void *name, void **value)
+{ operator *op = *value;
   operator *o2 = allocHeapOrHalt(sizeof(*o2));
 
   *o2 = *op;
+  *value = o2;
 }
 
 
 static void
-freeOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+freeOperatorSymbol(void *name, void *value)
+{ operator *op = value;
 
-  PL_unregister_atom((atom_t) s->name);
+  PL_unregister_atom((atom_t) name);
   freeHeap(op, sizeof(*op));
 }
 
@@ -117,9 +130,9 @@ tables.
 static int
 defOperator(Module m, atom_t name, int type, int priority, int force)
 { GET_LD
-  Symbol s;
   operator *op;
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
+  int must_reg = FALSE;
 
   DEBUG(7, Sdprintf(":- op(%d, %s, %s) in module %s\n",
 		    priority,
@@ -148,8 +161,8 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   if ( !m->operators )
     m->operators = newOperatorTable(8);
 
-  if ( (s = lookupHTable(m->operators, (void *)name)) )
-  { op = s->value;
+  if ( (op = lookupHTable(m->operators, (void *)name)) )
+  { ;
   } else if ( priority < 0 )
   { UNLOCK();				/* already inherited: do not change */
     return TRUE;
@@ -162,13 +175,15 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
     op->type[OP_PREFIX]      = OP_INHERIT;
     op->type[OP_INFIX]       = OP_INHERIT;
     op->type[OP_POSTFIX]     = OP_INHERIT;
+
+    must_reg = TRUE;
   }
 
   op->priority[t] = priority;
   op->type[t]     = (priority >= 0 ? type : OP_INHERIT);
-  if ( !s )
+  if ( must_reg )
   { PL_register_atom(name);
-    addHTable(m->operators, (void *)name, op);
+    addNewHTable(m->operators, (void *)name, op);
   }
   UNLOCK();
 
@@ -187,14 +202,13 @@ current thread and provided module.
 
 static operator *
 visibleOperator(Module m, atom_t name, int kind)
-{ Symbol s;
+{ GET_LD
   operator *op;
   ListCell c;
 
   if ( m->operators &&
-	 (s = lookupHTable(m->operators, (void *)name)) )
-  { op = s->value;
-    if ( op->type[kind] != OP_INHERIT )
+       (op = lookupHTable(m->operators, (void *)name)) )
+  { if ( op->type[kind] != OP_INHERIT )
       return op;
   }
   for(c = m->supers; c; c=c->next)
@@ -258,11 +272,12 @@ maxOp(operator *op, int *done, int sofar)
 
 static int
 scanPriorityOperator(Module m, atom_t name, int *done, int sofar)
-{ if ( *done != 0x7 )
-  { Symbol s;
+{ GET_LD
+  if ( *done != 0x7 )
+  { operator *op;
 
-    if ( m->operators && (s=lookupHTable(m->operators, (void *)name)) )
-      sofar = maxOp(s->value, done, sofar);
+    if ( m->operators && (op = lookupHTable(m->operators, (void *)name)) )
+      sofar = maxOp(op, done, sofar);
 
     if ( *done != 0x7 )
     { ListCell c;
@@ -406,13 +421,11 @@ addOpToBuffer(Buffer b, atom_t name, int type, int priority)
 static void
 addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 { TableEnum e = newTableEnum(t);
-  Symbol s;
+  atom_t nm;
+  operator *op;
 
-  while( (s=advanceTableEnum(e)) )
-  { operator *op = s->value;
-    atom_t nm = (atom_t)s->name;
-
-    if ( nm == name || name == NULL_ATOM )
+  while( advanceTableEnum(e, (void**)&nm, (void**)&op) )
+  { if ( nm == name || name == NULL_ATOM )
     { if ( type )
       { int kind = type&OP_MASK;
 

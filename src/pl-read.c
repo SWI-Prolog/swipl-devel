@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -63,7 +75,7 @@ static void	  addUTF8Buffer(Buffer b, int c);
 
 int
 f_is_prolog_var_start(wint_t c)
-{ return PlIdStartW(c) && (PlUpperW(c) || c == '_');
+{ return (PlUpperW(c) || c == '_');
 }
 
 int
@@ -99,7 +111,7 @@ truePrologFlagNoLD(unsigned int flag)
 
 int
 atom_varnameW(const pl_wchar_t *s, size_t len)
-{ if ( PlUpperW(*s) || *s == '_' )
+{ if ( f_is_prolog_var_start(*s) )
   { for(s++; --len > 0; s++)
     { int c = *s;
 
@@ -114,22 +126,33 @@ atom_varnameW(const pl_wchar_t *s, size_t len)
 }
 
 
+/* returns 1: properly named variable
+	   0: neutral (_<digit>)
+	  -1: anonymous (_<Upper> or __<lower>
+*/
+
 int
 atom_is_named_var(atom_t name)		/* see warn_singleton() */
 { const char *s;
   const pl_wchar_t *w;
 
   if ( (s=PL_atom_chars(name)) )
-  { if ( s[0] != '_' ) return TRUE;
-    if ( s[1] == '_' ) return FALSE;
-    if ( s[1] && !PlUpperW(s[1]) ) return TRUE;
+  { if ( s[0] != '_' ) return 1;
+    if ( s[1] )
+    { if ( s[1] == '_' ) return -1;
+      if ( isDigitW(s[1]) ) return 0;
+      if ( !PlUpperW(s[1]) ) return 1;
+    }
   } else if ( (w=PL_atom_wchars(name, NULL)) )
-  { if ( w[0] != '_' ) return TRUE;
-    if ( w[1] == '_' ) return FALSE;
-    if ( w[1] && !PlUpperW(w[1]) ) return TRUE;
+  { if ( w[0] != '_' ) return 1;
+    if ( w[1] )
+    { if ( w[1] == '_' ) return -1;
+      if ( isDigitW(w[1]) ) return 0;
+      if ( !PlUpperW(w[1]) ) return 1;
+    }
   }
 
-  return FALSE;
+  return -1;
 }
 
 
@@ -141,7 +164,7 @@ static int  char_table[257];	/* also map -1 (EOF) */
 static int *char_conversion_table = &char_table[1];
 
 void
-initCharConversion()
+initCharConversion(void)
 { int i;
 
   for(i=-1; i< 256; i++)
@@ -235,7 +258,8 @@ typedef struct variable
 { char *	name;		/* Name of the variable */
   size_t	namelen;	/* length of the name */
   term_t	variable;	/* Term-reference to the variable */
-  int		times;		/* Number of occurences */
+  unsigned int	times;		/* Number of occurences */
+  unsigned int	hash_next;	/* Offset for next with same hash */
   word		signature;	/* Pseudo atom */
 } *Variable;
 
@@ -269,6 +293,8 @@ struct read_buffer
 struct var_table
 { tmp_buffer _var_name_buffer;	/* stores the names */
   tmp_buffer _var_buffer;	/* array of struct variables */
+  unsigned int _var_hash_size;	/* #buckets */
+  unsigned int *_var_buckets;	/* hash table */
 };
 
 
@@ -389,6 +415,8 @@ typedef struct
 
 #define var_name_buffer	  (_PL_rd->vt._var_name_buffer)
 #define var_buffer	  (_PL_rd->vt._var_buffer)
+#define var_hash_size	  (_PL_rd->vt._var_hash_size)
+#define var_buckets	  (_PL_rd->vt._var_buckets)
 
 #ifndef offsetof
 #define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
@@ -406,6 +434,7 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   initBuffer(&var_buffer);
   initBuffer(&_PL_rd->op.out_queue);
   initBuffer(&_PL_rd->op.side_queue);
+  var_hash_size = 0;
   init_term_stack(_PL_rd);
   _PL_rd->exception = PL_new_term_ref();
   rb.stream = in;
@@ -433,9 +462,17 @@ free_read_data(ReadData _PL_rd)
   discardBuffer(&var_buffer);
   discardBuffer(&_PL_rd->op.out_queue);
   discardBuffer(&_PL_rd->op.side_queue);
+  if ( var_hash_size )
+    PL_free(var_buckets);
   clear_term_stack(_PL_rd);
 }
 
+
+static void
+set_module_read_data(ReadData _PL_rd, Module m)
+{ _PL_rd->module = m;
+  _PL_rd->flags  = _PL_rd->module->flags;
+}
 
 #define NeedUnlock(a) need_unlock(a, _PL_rd)
 #define Unlock(a) unlock(a, _PL_rd)
@@ -497,6 +534,7 @@ str_number_error(strnumstat rc)
     case NUM_FUNDERFLOW: return "float_underflow";
     case NUM_FOVERFLOW:  return "float_overflow";
     case NUM_IOVERFLOW:  return "integer_overflow";
+    case NUM_CONSTRANGE: return "numeric constant out of range";
   }
 
   return NULL;
@@ -1468,6 +1506,53 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
   return baseBuffer(&var_name_buffer, char) + e;
 }
 
+
+static unsigned int
+variableHash(Variable var)
+{ return MurmurHashAligned2(var->name, strlen(var->name), MURMUR_SEED);
+}
+
+
+static void
+linkVariable(Variable var, ReadData _PL_rd)
+{ unsigned int key = variableHash(var) % var_hash_size;
+
+  var->hash_next = var_buckets[key];
+  var_buckets[key] = (var->signature>>LMASK_BITS)+1;
+}
+
+
+static int
+rehashVariables(ReadData _PL_rd)
+{ if ( !var_hash_size )
+  { var_hash_size = 32;
+    var_buckets = PL_malloc(var_hash_size*sizeof(*var_buckets));
+  } else
+  { var_hash_size *= 2;
+    var_buckets = PL_realloc(var_buckets, var_hash_size*sizeof(*var_buckets));
+  }
+
+  if ( var_buckets )
+  { memset(var_buckets, 0, var_hash_size*sizeof(*var_buckets));
+
+    for_vars(v, linkVariable(v, _PL_rd));
+    return 0;
+  } else
+    return MEMORY_OVERFLOW;
+}
+
+static int
+hashVariable(Variable var, ReadData _PL_rd)
+{ unsigned int i = var->signature>>LMASK_BITS;
+
+  if ( i > var_hash_size )
+    return rehashVariables(_PL_rd);
+  else
+  { linkVariable(var, _PL_rd);
+    return 0;
+  }
+}
+
 					/* use hash-key? */
 
 static Variable
@@ -1480,17 +1565,36 @@ varInfo(word w, ReadData _PL_rd)
 
 
 static Variable
+var_from_index(unsigned int i, ReadData _PL_rd)
+{ return &baseBuffer(&var_buffer, struct variable)[i-1];
+}
+
+static Variable
 lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 { struct variable next;
   Variable var;
   size_t nv;
 
   if ( !isAnonVarNameN(name, len) )		/* always add _ */
-  { for_vars(v,
-	     if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
-	     { v->times++;
-	       return v;
-	     })
+  { if ( var_hash_size )
+    { unsigned int key = MurmurHashAligned2(name, len, MURMUR_SEED) % var_hash_size;
+      unsigned int vi;
+
+      for(vi = var_buckets[key]; vi; vi=var->hash_next)
+      { var = var_from_index(vi, _PL_rd);
+
+	if ( len == var->namelen && strncmp(name, var->name, len) == 0 )
+	{ var->times++;
+	  return var;
+	}
+      }
+    } else
+    { for_vars(v,
+	       if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
+	       { v->times++;
+		 return v;
+	       })
+    }
   }
 
   nv = entriesBuffer(&var_buffer, struct variable);
@@ -1500,9 +1604,11 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   next.variable  = 0;
   next.signature = (nv<<LMASK_BITS)|TAG_VAR|STG_RESERVED;
   addBuffer(&var_buffer, next, struct variable);
-  var = topBuffer(&var_buffer, struct variable);
+  var = topBuffer(&var_buffer, struct variable) - 1;
+  if ( nv >= 16 )
+    hashVariable(var, _PL_rd);
 
-  return var-1;
+  return var;
 }
 
 
@@ -1516,11 +1622,32 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
   { int c;
 
     utf8_get_char(&name[1], &c);
+    if ( isDigitW(c) )
+      return FALSE;
     if ( !PlUpperW(c) )
       return TRUE;
   }
   return FALSE;
 }
+
+
+static int
+warn_multiton(const char *name)
+{ if ( !warn_singleton(name) )
+  { if ( name[0] == '_' && name[1] )
+    { int c;
+
+      utf8_get_char(&name[1], &c);
+      if ( isDigitW(c) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 
 /* is_singleton() is true if var is a singleton.  As quasi quotations
@@ -1535,8 +1662,8 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 static int
 is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 { if ( var->times == 1 )
-  { if ( (type == IS_SINGLETON &&  warn_singleton(var->name)) ||
-	 (type == IS_MULTITON  && !warn_singleton(var->name)) )
+  { if ( (type == IS_SINGLETON && warn_singleton(var->name)) ||
+	 (type == IS_MULTITON  && warn_multiton(var->name)) )
     {
 #ifdef O_QUASIQUOTATIONS
       if ( _PL_rd->qq )
@@ -1557,9 +1684,9 @@ is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
   }
 
   if ( type == IS_SINGLETON )
-    return var->times == 1 &&  warn_singleton(var->name);
+    return var->times == 1 && warn_singleton(var->name);
   else
-    return var->times  > 1 && !warn_singleton(var->name);
+    return var->times  > 1 && warn_multiton(var->name);
 }
 
 
@@ -1752,7 +1879,7 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
   term_t ex;
   Module m = _PL_rd->module;
   atom_t name;
-  int arity;
+  size_t arity;
 
   if ( !PL_strip_module(type, &m, plain) )
     return FALSE;
@@ -2342,6 +2469,53 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 #endif /*O_QUASIQUOTATIONS*/
 
 
+static cucharp
+float_tag(cucharp in, cucharp tag)
+{ while(*in == *tag)
+    in++, tag++;
+
+  if ( !*tag )
+  { int c;
+
+    utf8_get_uchar(in, &c);
+    if ( !PlIdContW(c) )
+      return in;
+  }
+
+  return NULL;
+}
+
+
+static strnumstat
+special_float(cucharp *in, cucharp start, Number value)
+{ cucharp s;
+
+  if ( (s=float_tag(*in, (cucharp)"Inf")) )
+  { if ( *start == '-' )
+      value->value.f = strtod("-Inf", NULL);
+    else
+      value->value.f = strtod("Inf", NULL);
+  } else if ( (s=float_tag(*in, (cucharp)"NaN")) &&
+	      start[0] == '1' && start[1] == '.' )
+  { char *e;
+    double f = strtod((char*)start, &e);
+
+    if ( e == (char*)(*in) )
+    { strnumstat rc = make_nan(&f);
+      if ( rc != NUM_OK )
+	return rc;
+      value->value.f = f;
+    } else
+      return NUM_CONSTRANGE;
+  } else
+    return NUM_ERROR;
+
+  *in = s;
+  return NUM_OK;
+}
+
+
+
 strnumstat
 str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
@@ -2442,6 +2616,12 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
       in++;
     while( isDigit(*in) )
       in++;
+  }
+
+  if ( (rc = special_float(&in, start, value)) != NUM_ERROR)
+  { if ( rc == NUM_OK )
+      *end = (ucharp)in;
+    return rc;
   }
 
   if ( value->type == V_FLOAT )
@@ -2561,14 +2741,18 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  { cur_token.type = T_NAME;
 		  }
 
-		  DEBUG(9, Sdprintf("%s: %s\n",
-				    cur_token.type == T_FUNCTOR ? "FUNC" : "NAME",
-				    stringAtom(cur_token.value.atom)));
+		  DEBUG(MSG_READ_TOKEN,
+			Sdprintf("%s: %s\n",
+				 cur_token.type == T_FUNCTOR ? "FUNC" : "NAME",
+				 stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
     case UC:
     upper:
+		if ( c != '_' && true(_PL_rd, M_VARPREFIX) )
+		  goto lower;
+
 		{ rdhere = SkipVarIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
@@ -2577,7 +2761,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  if ( start[0] == '_' &&
 		       rdhere == start + 1 &&
 		       !_PL_rd->variables ) /* report them */
-		  { DEBUG(9, Sdprintf("VOID\n"));
+		  { DEBUG(MSG_READ_TOKEN, Sdprintf("VOID\n"));
 		    if ( *rdhere == '{' )
 		      cur_token.type = T_VOID_DICT;
 		    else
@@ -2586,8 +2770,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  { cur_token.value.variable = lookupVariable((char *)start,
 							      rdhere-start,
 							      _PL_rd);
-		    DEBUG(9, Sdprintf("VAR: %s\n",
-				      cur_token.value.variable->name));
+		    DEBUG(MSG_READ_TOKEN,
+			  Sdprintf("VAR: %s\n",
+				   cur_token.value.variable->name));
 		    if ( *rdhere == '{' )
 		      cur_token.type = T_VCLASS_DICT;
 		    else
@@ -2613,9 +2798,10 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case_solo:
     case SO:	{ cur_token.value.atom = codeToAtom(c);		/* not registered */
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, Sdprintf("%s: %s\n",
-				  *rdhere == '(' ? "FUNC" : "NAME",
-				  stringAtom(cur_token.value.atom)));
+		  DEBUG(MSG_READ_TOKEN,
+			Sdprintf("%s: %s\n",
+				 *rdhere == '(' ? "FUNC" : "NAME",
+				 stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
@@ -2662,8 +2848,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 			  case '[': cur_token.value.atom = ATOM_nil;  break;
 			}
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
-			DEBUG(9, Sdprintf("NAME: %s\n",
-					  stringAtom(cur_token.value.atom)));
+			DEBUG(MSG_READ_TOKEN,
+			      Sdprintf("NAME: %s\n",
+				       stringAtom(cur_token.value.atom)));
 			goto out;
 		      }
 #ifdef O_QUASIQUOTATIONS
@@ -2678,7 +2865,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  }
 		  cur_token.value.character = c;
 		  cur_token.type = T_PUNCTUATION;
-		  DEBUG(9, Sdprintf("PUNCT: %c\n", cur_token.value.character));
+		  DEBUG(MSG_READ_TOKEN,
+			Sdprintf("PUNCT: %c\n", cur_token.value.character));
 
 		  break;
 		}
@@ -3000,8 +3188,8 @@ build_dict(int pairs, ReadData _PL_rd ARG_LD)
   readValHandle(argv[0], argp++, _PL_rd PASS_LD); /* the class */
 
   for(i=0; i<pairs; i++)
-  { readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd PASS_LD);
-    readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd PASS_LD);
+  { readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd PASS_LD); /* value */
+    readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd PASS_LD); /* key */
   }
 
   setHandle(argv[0], w);
@@ -3319,8 +3507,8 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 
 /* might use this to improve the error message!?
   if ( PL_get_name_arity(t, &name, &arity) )
-  { Ssprintf(buf, "Operator `%s' conflicts with `%s'",
-	     opname, stringAtom(name));
+  { Ssnprintf(buf, sizeof(buf), "Operator `%s' conflicts with `%s'",
+	      opname, stringAtom(name));
   }
 */
 
@@ -3812,13 +4000,26 @@ read_brace_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 
 
 static inline int				/* read (...) */
-read_embraced_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_parentheses_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 { int rc;
+  term_t pa;
 
-  rc = complex_term(")", OP_MAXPRIORITY+1, positions, _PL_rd PASS_LD);
-  if ( rc != TRUE )
+  if ( positions )
+  { if ( !(pa = PL_new_term_ref()) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_parentheses_term_position3,
+			PL_INTPTR, token->start,
+			PL_VARIABLE,
+			PL_TERM, pa) )
+      return FALSE;
+  } else
+    pa = 0;
+
+  if ( (rc=complex_term(")", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
     return rc;
   token = get_token(FALSE, _PL_rd);	/* skip ')' */
+  if ( positions )
+    set_range_position(positions, -1, token->end PASS_LD);
 
   succeed;
 }
@@ -4115,7 +4316,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     case T_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
-	  return read_embraced_term(token, positions, _PL_rd PASS_LD);
+	  return read_parentheses_term(token, positions, _PL_rd PASS_LD);
 	case '{':
 	  return read_brace_term(token, positions, _PL_rd PASS_LD);
 	case '[':
@@ -4558,7 +4759,7 @@ retry:
     comments = PL_new_term_ref();
   }
 
-  rd.module = LD->modules.source;
+  set_module_read_data(&rd, LD->modules.source);
   if ( comments )
     rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
@@ -4610,6 +4811,7 @@ static const opt_spec read_term_options[] =
   { ATOM_term_position,     OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
   { ATOM_character_escapes, OPT_BOOL },
+  { ATOM_var_prefix,        OPT_BOOL },
   { ATOM_double_quotes,	    OPT_ATOM },
   { ATOM_module,	    OPT_ATOM },
   { ATOM_syntax_errors,     OPT_ATOM },
@@ -4632,6 +4834,7 @@ read_term_from_stream(IOSTREAM *s, term_t term, term_t options ARG_LD)
   atom_t w;
   read_data rd;
   bool charescapes = -1;
+  bool varprefix = -1;
   atom_t dq = NULL_ATOM;
   atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
@@ -4647,6 +4850,7 @@ retry:
 		     &tpos,
 		     &rd.subtpos,
 		     &charescapes,
+		     &varprefix,
 		     &dq,
 		     &mname,
 		     &rd.on_error,
@@ -4669,6 +4873,12 @@ retry:
       set(&rd, M_CHARESCAPE);
     else
       clear(&rd, M_CHARESCAPE);
+  }
+  if ( varprefix != -1 )
+  { if ( varprefix )
+      set(&rd, M_VARPREFIX);
+    else
+      clear(&rd, M_VARPREFIX);
   }
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
@@ -4882,10 +5092,10 @@ PL_chars_to_term(const char *s, term_t t)
 
     if ( str_number((cucharp)s, &e, &n, FALSE) == NUM_OK &&
 	 e == (unsigned char *)s+len )
-      return PL_unify_number(t, &n);
+      return PL_put_number(t, &n);
   }
 
-  stream = Sopen_string(NULL, (char *)s, -1, "r");
+  stream = Sopen_string(NULL, (char *)s, (size_t)-1, "r");
   oldsrc = LD->read_source;
 
   init_read_data(&rd, stream PASS_LD);

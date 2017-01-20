@@ -1,3 +1,38 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2009-2016, University of Amsterdam
+			      VU University Amsterdam
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(test_tracer_callback,
 	  [ test_tracer_callback/0
 	  ]).
@@ -16,12 +51,15 @@ test_tracer_callback :-
 
 test_goal(p_simple).
 test_goal(p_backtrack).
+test_goal(p_perm).
 test_goal(p_cut).
 test_goal(p_ifthen).
-test_goal(p_error).
+test_goal(p_error1).
+test_goal(p_error2).
+test_goal(p_error3).
 
 test_tracer(G) :-
-	trim_stacks,			% there must be enough spac to force
+	trim_stacks,			% there must be enough space to force
 	'$visible'(Old, Old),		% a stack shift
 	visible(+all),
 	visible(+cut_call),
@@ -68,15 +106,43 @@ p_ifthen :-
 	;   a
 	).
 
-%%	p_error
+%%	p_error1 is det.
+%%	p_error2 is det.
+%%	p_error3 is det.
 %
-%	Test recovery from an exception.
+%	Test recovery from exceptions.
 
-p_error :-
-	catch(error, _, true).
+p_error1 :-
+	catch(error1, _, true).
 
-error :-
-	a, b, e, c.
+error1 :-
+	a, b, e1, c.
+
+p_error2 :-
+	catch(error2, _, true).
+
+error2 :-
+	a, b, e2, c.
+
+p_error3 :-
+	catch(error3([a,b,c,d,e]), _, true).
+
+error3([X]) :-
+	throw(bad(X)).
+error3([_|T]) :-
+	error3(T).
+
+p_perm :-
+	(   perm([1,2,3,4],[4,3,2,1]),
+	    fail
+	;   true
+	).
+
+takeout(X,[X|R],R).
+takeout(X,[F|R],[F|S]) :- takeout(X,R,S).
+
+perm([X|Y],Z) :- perm(Y,W), takeout(X,Z,W).
+perm([],[]).
 
 
 		 /*******************************
@@ -90,8 +156,13 @@ c.
 no :-
 	fail.
 
-e :-
+e1 :-
 	X is 1/0,
+	number(X).
+
+e2 :-
+	a(V),
+	X is V+1,
 	number(X).
 
 app([], L, L).
@@ -113,6 +184,7 @@ intercept(Port, Frame, _Choice, continue) :-
 shift :-
 	flag(shift, N, N+1),
 	I is N mod 4,
+	garbage_collect,
 	(   catch(action(I), E, true)
 	->  (   var(E)
 	    ->	true
@@ -134,20 +206,20 @@ action(3) :- trim_stacks.
 %
 %       Force a stack-shift of the global, trail or local stack.
 
-gshift :- shift(global_shifts).
-tshift :- shift(trail_shifts).
+gshift :- shift_stack(global_shifts).
+tshift :- shift_stack(trail_shifts).
 
-shift(Stat) :-
+shift_stack(Stat) :-
 	statistics(Stat, S0),
-	shift(S0, Stat, X),
+	shift_stack(S0, Stat, X),
 	a(X).				% ensure term is used.
 
 a(_).
 
-shift(S0, Stat, s(X)) :-
+shift_stack(S0, Stat, s(X)) :-
 	statistics(Stat, S0), !,
-	shift(S0, Stat, X).
-shift(_, _, _).
+	shift_stack(S0, Stat, X).
+shift_stack(_, _, _).
 
 lshift :-
 	statistics(local_shifts, S0),

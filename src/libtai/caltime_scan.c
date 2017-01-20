@@ -12,18 +12,18 @@ unsigned int caltime_scan(char *s, struct caltime *ct)
 
   while ((*t == ' ') || (*t == '\t') || (*t == 'T')) ++t;
   z = 0; while ((c = (unsigned char) (*t - '0')) <= 9) { z = z * 10 + c; ++t; }
-  ct->hour = z;
+  ct->hour = (int)z;
 
   if (*t++ != ':') return 0;
   z = 0; while ((c = (unsigned char) (*t - '0')) <= 9) { z = z * 10 + c; ++t; }
-  ct->minute = z;
+  ct->minute = (int)z;
 
   if (*t != ':')
     ct->second = 0;
   else {
     ++t;
     z = 0; while ((c = (unsigned char) (*t - '0')) <= 9) { z = z * 10 + c; ++t; }
-    ct->second = z;
+    ct->second = (int)z;
   }
 
   while ((*t == ' ') || (*t == '\t')) ++t;

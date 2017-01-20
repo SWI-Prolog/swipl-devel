@@ -28,7 +28,7 @@ void caldate_frommjd(struct caldate *cd, int64_t day, int *pwday, int *pyday)
   yday = (day < 306);
   if (day == 1460) { year += 3; day = 365; }
   else { year += (long)(day / 365); day %= 365; }
-  yday += (long)day;
+  yday += (int)day;
 
   day *= 10;
   month = (long)((day + 5) / 306);
@@ -38,8 +38,8 @@ void caldate_frommjd(struct caldate *cd, int64_t day, int *pwday, int *pyday)
   else { yday += 59; month += 2; }
 
   cd->year = year;
-  cd->month = month + 1;
-  cd->day = (long)(day + 1);
+  cd->month = (int)month + 1;
+  cd->day = (int)(day + 1);
 
   if (pyday) *pyday = yday;
 }

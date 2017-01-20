@@ -1,44 +1,47 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (c)  2001-2012, University of Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(occurs,
-	  [ contains_term/2,		% +SubTerm, +Term
-	    contains_var/2,		% +SubTerm, +Term
-	    free_of_term/2,		% +SubTerm, +Term
-	    free_of_var/2,		% +SubTerm, +Term
-	    occurrences_of_term/3,	% +SubTerm, +Term, ?Tally
-	    occurrences_of_var/3,	% +SubTerm, +Term, ?Tally
-	    sub_term/2,			% -SubTerm, +Term
-	    sub_var/2			% -SubTerm, +Term (SWI extra)
-	  ]).
+          [ contains_term/2,            % +SubTerm, +Term
+            contains_var/2,             % +SubTerm, +Term
+            free_of_term/2,             % +SubTerm, +Term
+            free_of_var/2,              % +SubTerm, +Term
+            occurrences_of_term/3,      % +SubTerm, +Term, ?Tally
+            occurrences_of_var/3,       % +SubTerm, +Term, ?Tally
+            sub_term/2,                 % -SubTerm, +Term
+            sub_var/2                   % -SubTerm, +Term (SWI extra)
+          ]).
 
 /** <module> Finding and counting sub-terms
 
@@ -49,95 +52,98 @@ library, based on the generalised arg/3 predicate of SWI-Prolog.
      more wide-spread than this library.
 */
 
-%%	contains_term(+Sub, +Term) is semidet.
+%!  contains_term(+Sub, +Term) is semidet.
 %
-%	Succeeds if Sub is contained in Term (=, deterministically)
+%   Succeeds if Sub is contained in Term (=, deterministically)
 
 contains_term(X, X) :- !.
 contains_term(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	contains_term(X, Arg), !.
+    compound(Term),
+    arg(_, Term, Arg),
+    contains_term(X, Arg),
+    !.
 
 
-%%	contains_var(+Sub, +Term) is det.
+%!  contains_var(+Sub, +Term) is det.
 %
-%	Succeeds if Sub is contained in Term (==, deterministically)
+%   Succeeds if Sub is contained in Term (==, deterministically)
 
 contains_var(X0, X1) :-
-	X0 == X1, !.
+    X0 == X1,
+    !.
 contains_var(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	contains_var(X, Arg), !.
+    compound(Term),
+    arg(_, Term, Arg),
+    contains_var(X, Arg),
+    !.
 
-%%	free_of_term(+Sub, +Term)
+%!  free_of_term(+Sub, +Term)
 %
-%	Succeeds of Sub does not unify to any subterm of Term
+%   Succeeds of Sub does not unify to any subterm of Term
 
 free_of_term(Sub, Term) :-
-	\+ contains_term(Sub, Term).
+    \+ contains_term(Sub, Term).
 
-%%	free_of_var(+Sub, +Term)
+%!  free_of_var(+Sub, +Term)
 %
-%	Succeeds of Sub is not equal (==) to any subterm of Term
+%   Succeeds of Sub is not equal (==) to any subterm of Term
 
 free_of_var(Sub, Term) :-
-	\+ contains_var(Sub, Term).
+    \+ contains_var(Sub, Term).
 
-%%	occurrences_of_term(+SubTerm, +Term, ?Count)
+%!  occurrences_of_term(+SubTerm, +Term, ?Count)
 %
-%	Count the number of SubTerms in Term
+%   Count the number of SubTerms in Term
 
 occurrences_of_term(Sub, Term, Count) :-
-	count(sub_term(Sub, Term), Count).
+    count(sub_term(Sub, Term), Count).
 
-%%	occurrences_of_var(+SubTerm, +Term, ?Count)
+%!  occurrences_of_var(+SubTerm, +Term, ?Count)
 %
-%	Count the number of SubTerms in Term
+%   Count the number of SubTerms in Term
 
 occurrences_of_var(Sub, Term, Count) :-
-	count(sub_var(Sub, Term), Count).
+    count(sub_var(Sub, Term), Count).
 
-%%	sub_term(-Sub, +Term)
+%!  sub_term(-Sub, +Term)
 %
-%	Generates (on backtracking) all subterms of Term.
+%   Generates (on backtracking) all subterms of Term.
 
 sub_term(X, X).
 sub_term(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	sub_term(X, Arg).
+    compound(Term),
+    arg(_, Term, Arg),
+    sub_term(X, Arg).
 
-%%	sub_var(-Sub, +Term)
+%!  sub_var(-Sub, +Term)
 %
-%	Generates (on backtracking) all subterms (==) of Term.
+%   Generates (on backtracking) all subterms (==) of Term.
 
 sub_var(X0, X1) :-
-	X0 == X1.
+    X0 == X1.
 sub_var(X, Term) :-
-	compound(Term),
-	arg(_, Term, Arg),
-	sub_var(X, Arg).
+    compound(Term),
+    arg(_, Term, Arg),
+    sub_var(X, Arg).
 
 
-		 /*******************************
-		 *		UTIL		*
-		 *******************************/
+                 /*******************************
+                 *              UTIL            *
+                 *******************************/
 
-%%	count(:Goal, -Count)
+%!  count(:Goal, -Count)
 %
-%	Count number of times Goal succeeds.
+%   Count number of times Goal succeeds.
 
 :- meta_predicate count(0,-).
 
 count(Goal, Count) :-
-	State = count(0),
-	(   Goal,
-	    arg(1, State, N0),
-	    N is N0 + 1,
-	    nb_setarg(1, State, N),
-	    fail
-	;   arg(1, State, Count)
-	).
+    State = count(0),
+    (   Goal,
+        arg(1, State, N0),
+        N is N0 + 1,
+        nb_setarg(1, State, N),
+        fail
+    ;   arg(1, State, Count)
+    ).
 

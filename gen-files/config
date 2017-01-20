@@ -10,13 +10,12 @@ packages/clpqr/configure
 packages/cpp/configure
 packages/cppproxy/config.h.in
 packages/cppproxy/configure
-packages/db/config.h.in
-packages/db/configure
+packages/bdb/config.h.in
+packages/bdb/configure
 packages/http/config.h.in
 packages/http/configure
 packages/inclpr/config.h.in
 packages/inclpr/configure
-packages/jasmine/configure
 packages/jpl/config.h.in
 packages/jpl/configure
 packages/ltx2htm/config.h.in
@@ -55,5 +54,9 @@ packages/tipc/config.h.in
 packages/tipc/configure
 packages/pengines/configure
 packages/cql/configure
+packages/readline/config.h.in
+packages/readline/configure
+packages/libedit/config.h.in
+packages/libedit/configure
 src/config.h.in
 src/configure

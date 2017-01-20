@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2004-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -57,24 +69,6 @@ Binding the attvar places the new  value   in  <attvar>  using a trailed
 assignment. The attribute list remains   accessible  through the trailed
 assignment until this is GC'ed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef O_DEBUG
-static char *
-vName(Word adr)
-{ GET_LD
-  static char name[32];
-
-  deRef(adr);
-
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
-  else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
-
-  return name;
-}
-#endif
-
 
 int
 PL_get_attr__LD(term_t t, term_t a ARG_LD)
@@ -171,7 +165,10 @@ assignAttVar(Word av, Word value ARG_LD)
   assert(gTop+7 <= gMax && tTop+6 <= tMax);
   DEBUG(CHK_SECURE, assert(on_attvar_chain(av)));
 
-  DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
+  DEBUG(1,
+	{ char buf[32];
+	  Sdprintf("assignAttVar(%s)\n", var_name_ptr(av, buf));
+	});
 
   if ( isAttVar(*value) )
   { if ( value > av )
@@ -866,46 +863,77 @@ typedef struct
 } when_state;
 
 
-static when_status
-add_to_list(word c, Word *tailp ARG_LD)
-{ Word t;
+static int
+is_or(word c ARG_LD)
+{ return isTerm(c) && functorTerm(c) == FUNCTOR_or1;
+}
 
-  if(isTerm(c) && functorTerm(c) == FUNCTOR_semicolon2)
-  { Word p = argTermP(c, 0);
-    int rc;
 
-    if ( (rc=add_to_list(p[0], tailp PASS_LD)) < 0 )
-      return rc;
-    return add_to_list(p[1], tailp PASS_LD);
+static int
+add_or(word or, word c2 ARG_LD)
+{ Word tail = argTermP(or, 0);
+
+  deRef(tail);
+  while(isList(*tail))
+  { tail = TailList(tail);
+    deRef(tail);
+  }
+  assert(*tail == ATOM_nil);
+
+  if ( is_or(c2 PASS_LD) )
+  { Word l = argTermP(c2, 0);
+    *tail = *l;
+  } else
+  { Word n;
+
+    if ( (n=allocGlobalNoShift(3)) )
+    { n[0] = FUNCTOR_dot2;
+      n[1] = c2;
+      n[2] = ATOM_nil;
+      *tail = consPtr(n, TAG_COMPOUND|STG_GLOBAL);
+    } else
+      return E_NOSPACE;
   }
 
-  if ( (t=allocGlobalNoShift(3)) )
-  { t[0] = FUNCTOR_dot2;
-    t[1] = c;
-    t[2] = ATOM_nil;
-    **tailp = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-    *tailp = &t[2];
-
-    return E_OK;
-  }
-
-  return E_NOSPACE;
+  return E_OK;
 }
 
 
 static when_status
-or_to_list(word c1, word c2, Word list ARG_LD)
+make_disj_list(word c1, word c2, Word result ARG_LD)
 { int rc;
-  Word tailp = list;
 
-  if ( (rc=add_to_list(c1, &tailp PASS_LD)) < 0 )
-    return rc;
-  return add_to_list(c2, &tailp PASS_LD);
+  if ( is_or(c1 PASS_LD) )
+  { if ( (rc=add_or(c1, c2 PASS_LD)) < 0 )
+      return rc;
+    *result = c1;
+  } else if ( is_or(c2 PASS_LD) )
+  { if ( (rc=add_or(c2, c1 PASS_LD)) < 0 )
+      return rc;
+    *result = c2;
+  } else
+  { Word t;
+
+    if ( (t = allocGlobalNoShift(8)) )
+    { t[0] = FUNCTOR_or1;
+      t[1] = consPtr(&t[2], TAG_COMPOUND|STG_GLOBAL);
+      t[2] = FUNCTOR_dot2;
+      t[3] = c1;
+      t[4] = consPtr(&t[5], TAG_COMPOUND|STG_GLOBAL);
+      t[5] = FUNCTOR_dot2;
+      t[6] = c2;
+      t[7] = ATOM_nil;
+      *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+    } else
+      return E_NOSPACE;
+  }
+
+  return E_OK;
 }
 
 
 static when_status
-when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
+when_condition(Word cond, Word result, when_state *state ARG_LD)
 { deRef(cond);
 
   if ( state->depth++ == 100 )
@@ -942,17 +970,15 @@ when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
     { word c1, c2;
       int rc;
 
-      if ( (rc=when_condition(&term->arguments[0], &c1, TRUE, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[0], &c1, state PASS_LD)) < 0 )
 	return rc;
-      if ( (rc=when_condition(&term->arguments[1], &c2, TRUE, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[1], &c2, state PASS_LD)) < 0 )
 	return rc;
 
       if ( c1 == ATOM_true )
       { *result = c2;
       } else if ( c2 == ATOM_true )
       { *result = c1;
-      } else if ( cond < state->gSave )
-      { *result = *cond;
       } else
       { Word t;
 
@@ -969,33 +995,17 @@ when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
     { word c1, c2;
       int rc;
 
-      if ( (rc=when_condition(&term->arguments[0], &c1, FALSE, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[0], &c1, state PASS_LD)) < 0 )
 	return rc;
       if ( c1 == ATOM_true )
       { *result = c1;
       } else
-      { if ( (rc=when_condition(&term->arguments[1], &c2, FALSE, state PASS_LD)) < 0 )
+      { if ( (rc=when_condition(&term->arguments[1], &c2, state PASS_LD)) < 0 )
 	  return rc;
 	if ( c2 == ATOM_true )
 	{ *result = c2;
-	} else if ( top_or )
-	{ Word t;
-
-	  if ( (t = allocGlobalNoShift(2)) )
-	  { t[0] = FUNCTOR_or1;
-	    if ( (rc=or_to_list(c1,c2,&t[1] PASS_LD)) < 0 )
-	      return rc;
-	    *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-	  }
 	} else
-	{ Word t;
-
-	  if ( (t = allocGlobalNoShift(3)) )
-	  { t[0] = FUNCTOR_semicolon2;
-	    t[1] = c1;
-	    t[2] = c2;
-	    *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-	  }
+	{ return make_disj_list(c1, c2, result PASS_LD);
 	}
       }
     } else
@@ -1011,6 +1021,12 @@ when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
 }
 
 
+/** '$eval_when_condition'(+Condition, -Simplified)
+ *
+ * Simplify the when/2 condition by eliminating already fullfilled
+ * conditions and join disjunctions in a term or(ListOfCond).
+ */
+
 static
 PRED_IMPL("$eval_when_condition", 2, eval_when_condition, 0)
 { PRED_LD
@@ -1023,7 +1039,7 @@ retry:
   state.gSave = gTop;
   state.depth = 0;
 
-  if ( (rc=when_condition(valTermRef(A1), valTermRef(cond), TRUE, &state PASS_LD)) < 0 )
+  if ( (rc=when_condition(valTermRef(A1), valTermRef(cond), &state PASS_LD)) < 0 )
   { gTop = state.gSave;
     PL_put_variable(cond);
 
@@ -1185,8 +1201,9 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 
   DEBUG(MSG_CALL_RESIDUE_VARS,
 	{ char buf[64];
+	  char vname[32];
 	  Sdprintf("has_attributes_after(%s, %s)\n",
-		   vName(av), print_addr(ch->mark.globaltop, buf));
+		   var_name_ptr(av, vname), print_addr(ch->mark.globaltop, buf));
 	});
 
   av = deRefM(av, &w PASS_LD);

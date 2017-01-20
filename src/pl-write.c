@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -62,20 +74,32 @@ static bool	writeArgTerm(term_t t, int prec,
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
+static int	enterPortray(ARG1_LD);
+static void	leavePortray(ARG1_LD);
+
+char *
+var_name_ptr__LD(Word p, char *name ARG_LD)
+{ size_t iref;
+
+  deRef(p);
+
+  if (p > (Word) lBase)
+    iref = ((Word)p - (Word)lBase)*2+1;
+  else
+    iref = ((Word)p - (Word)gBase)*2;
+
+  Ssprintf(name, "_%lld", (int64_t)iref);
+
+  return name;
+}
+
 
 char *
 varName(term_t t, char *name)
 { GET_LD
-  Word adr = valTermRef(t);
+  Word p = valTermRef(t);
 
-  deRef(adr);
-
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
-  else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
-
-  return name;
+  return var_name_ptr(p, name);
 }
 
 
@@ -142,7 +166,7 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
     char buf[32];			/* Max is H354745078340568300 */
 
     if ( n < 0 )
-    { sprintf(buf, "S_" INT64_FORMAT, -n);
+    { sprintf(buf, "S_%" PRId64, -n);
     } else
     { int i = (int)(n % 26);
       int64_t j = n / 26;
@@ -151,7 +175,7 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
       { buf[0] = i+'A';
 	buf[1] = EOS;
       } else
-      { sprintf(buf, "%c" INT64_FORMAT, i+'A', j);
+      { sprintf(buf, "%c%" PRId64, i+'A', j);
       }
     }
 
@@ -202,11 +226,12 @@ atomType(atom_t a, write_options *options)
   char *s = atom->name;
   size_t len = atom->length;
   IOSTREAM *fd = options ? options->out : NULL;
+  Module m = options ? options->module : MODULE_user;
 
   if ( len == 0 )
     return AT_QUOTE;
 
-  if ( isLower(*s) )
+  if ( isLower(*s) || (true(m, M_VARPREFIX) && isAlpha(*s)) )
   { do
     { for( ++s;
 	   --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);
@@ -263,7 +288,13 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
     return FALSE;
 
   if ( !f_is_prolog_atom_start(*s) )
-    return FALSE;
+  { for( ; len > 0; s++, len--)
+    { if ( !f_is_prolog_symbol(*s) ||
+	   (fd && Scanrepresent(*s, fd)<0) )
+	return FALSE;
+    }
+    return TRUE;
+  }
 
   do
   { for( ++s;
@@ -366,6 +397,7 @@ is 0x200000, which is above the Unicode range.
 
 #define C_PREFIX_SIGN		0x00200000	/* +/- as prefix op */
 #define C_PREFIX_OP		0x00400000	/* any prefix op */
+#define C_INFIX_OP		0x00800000	/* any infix op */
 #define C_MASK			0xffe00000
 
 #define isquote(c) ((c) == '\'' || (c) == '"')
@@ -383,12 +415,14 @@ needSpace(int c, IOSTREAM *s)
     return TRUE;
   if ( (s->lastc&C_PREFIX_OP) && ( c == '(' || c == '{' ) )
     return TRUE;				/* avoid op(...) */
+  if ( (s->lastc&C_INFIX_OP) && c == '(' )
+    return FALSE;
 
   s->lastc &= ~C_MASK;
 
   if ( ((isAlphaW(s->lastc) && isAlphaW(c)) ||
 	(isSymbolW(s->lastc) && isSymbolW(c)) ||
-	(s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
+	(c == '(' && !isPunctW(s->lastc)) ||
 	(c == '\'' && (isDigit(s->lastc))) ||
 	(isquote(c) && s->lastc == c)
        ) )
@@ -571,14 +605,17 @@ writeAttVar(term_t av, write_options *options)
     return TRUE;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->cleaning <= CLN_PROLOG )
-  { predicate_t pred;
+  { static predicate_t pred;
     IOSTREAM *old;
     wakeup_state wstate;
     int rc;
 
-    pred = _PL_predicate("portray_attvar", 1, "$attvar",
-			 &GD->procedures.portray_attvar1);
+    if ( !pred )
+      pred = _PL_predicate("portray_attvar", 1, "$attvar",
+			   &GD->procedures.portray_attvar1);
 
+    if ( !enterPortray(PASS_LD1) )
+      return FALSE;
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
       return FALSE;
     old = Scurout;
@@ -588,6 +625,7 @@ writeAttVar(term_t av, write_options *options)
       rc = TRUE;
     Scurout = old;
     restoreWakeup(&wstate PASS_LD);
+    leavePortray(PASS_LD1);
 
     return rc;
   }
@@ -621,7 +659,8 @@ writeAtom(atom_t a, write_options *options)
 
   if ( (options->flags & PL_WRT_BLOB_PORTRAY) &&
        false(atom->type, PL_BLOB_TEXT) &&
-       GD->cleaning <= CLN_PROLOG )
+       GD->cleaning <= CLN_PROLOG &&
+       a != ATOM_nil )
   { GET_LD
     int rc;
     fid_t fid;
@@ -633,8 +672,14 @@ writeAtom(atom_t a, write_options *options)
     PL_put_atom(av, a);
     rc = callPortray(av, 1200, options);
     PL_close_foreign_frame(fid);
-    if ( rc == TRUE )
-      return TRUE;
+    switch(rc)
+    { case TRUE:
+	return TRUE;
+      case FALSE:
+	break;
+      default:
+	return FALSE;				/* error */
+    }
   }
 
   if ( atom->type->write )
@@ -816,14 +861,158 @@ This uses dtoa.c. See pl-dtoa.c for how this is packed into SWI-Prolog.
 TBD: The number of cases are large. We should see whether it is possible
 to clean this up a bit. The 5 cases   as  such are real: there is no way
 around these.
+
+NaN         and         Inf         printing           based          on
+http://eclipseclp.org/Specs/core_update_float.html, with comments   from
+Joachim Schimpf.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_IEEE754_H
+#include <ieee754.h>
+#else
+union ieee754_double
+{ double d;
+  struct
+  {
+#ifdef WORDS_BIGENDIAN
+    unsigned int negative:1;
+    unsigned int exponent:11;
+    unsigned int mantissa0:20;
+    unsigned int mantissa1:32;
+#else
+#ifdef FLOAT_WORDS_BIGENDIAN
+    unsigned int mantissa0:20;
+    unsigned int exponent:11;
+    unsigned int negative:1;
+    unsigned int mantissa1:32;
+#else
+    unsigned int mantissa1:32;
+    unsigned int mantissa0:20;
+    unsigned int exponent:11;
+    unsigned int negative:1;
+#endif
+#endif
+  } ieee;
+};
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Joachim Schimpf: The exponent is  stored  with   a  "bias"  of  1023, so
+3ff=1023 means 0. And 0 means that the   mantissa is to be multiplied by
+2^0 = 1, maybe that's where my confusion came from...
+
+To add to the confusion, the mantissa  is a "hidden bit" representation,
+i.e. its actual value is 1.<the 52 bits   actually  stored>, so with a 0
+exponent the value of the resulting number is always >= 1 and < 2.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+writeNaN(double f, char *buf)
+{ union ieee754_double u;
+
+  u.d = f;
+  assert(u.ieee.exponent == 0x7ff);	/* NaN exponent */
+  u.ieee.exponent = 0x3ff;		/* see above */
+  format_float(u.d, buf);
+  strcat(buf, "NaN");
+  return buf;
+}
+
+
+strnumstat
+make_nan(double *f)
+{ union ieee754_double u;
+
+  u.d = *f;
+  u.ieee.exponent = 0x7ff;		/* NaN exponent */
+  if ( isnan(u.d) )
+  { *f = u.d;
+    return NUM_OK;
+  }
+
+  return NUM_CONSTRANGE;		/* 1.0NaN is in fact 1.0Inf */
+}
+
+
+static char *
+writeINF(double f, char *buf)
+{ number n;
+
+  n.value.f = f;
+  n.type = V_FLOAT;
+
+  if ( ar_signbit(&n) < 0 )
+    return strcpy(buf, "-1.0Inf");
+  else
+    return strcpy(buf, "1.0Inf");
+}
+
+
+static char *
+format_special_float(double f, char *buf)
+{
+#ifdef HAVE_FPCLASSIFY
+  switch(fpclassify(f))
+  { case FP_NAN:
+      return writeNaN(f, buf);
+    case FP_INFINITE:
+      return writeINF(f, buf);
+  }
+#else
+#ifdef HAVE_FPCLASS
+  switch(fpclass(f))
+  { case FP_SNAN:
+    case FP_QNAN:
+      return writeNaN(f, buf);
+    case FP_NINF:
+    case FP_PINF:
+      return writeINF(n, buf);
+    case FP_NDENORM:		/* pos/neg denormalized non-zero */
+    case FP_PDENORM:
+    case FP_NNORM:			/* pos/neg normalized non-zero */
+    case FP_PNORM:
+    case FP_NZERO:			/* pos/neg zero */
+    case FP_PZERO:
+      break;
+  }
+#else
+#ifdef HAVE__FPCLASS
+  switch(_fpclass(f))
+  { case _FPCLASS_SNAN:
+    case _FPCLASS_QNAN:
+      return writeNaN(f, buf);
+    case _FPCLASS_NINF:
+    case _FPCLASS_PINF:
+      return writeINF(f, buf);
+  }
+#else
+#ifdef HAVE_ISINF
+  if ( isinf(f) )
+  { return writeINF(f, buf);
+  } else
+#endif
+#ifdef HAVE_ISNAN
+  if ( isnan(f) )
+  { return writeNaN(f, buf);
+  }
+#endif
+#endif /*HAVE__FPCLASS*/
+#endif /*HAVE_FPCLASS*/
+#endif /*HAVE_FPCLASSIFY*/
+
+  return NULL;
+}
+
 
 char *
 format_float(double f, char *buf)
-{ char *end, *o=buf;
+{ char *end, *o=buf, *s;
   int decpt, sign;
-  char *s = dtoa(f, 0, 30, &decpt, &sign, &end);
 
+  if ( (s=format_special_float(f, buf)) )
+    return s;
+
+  s = dtoa(f, 0, 30, &decpt, &sign, &end);
   DEBUG(2, Sdprintf("decpt=%d, sign=%d, len = %d, '%s'\n",
 		    decpt, sign, end-s, s));
 
@@ -888,20 +1077,19 @@ format_float(double f, char *buf)
 }
 
 
-static bool
+static int
 WriteNumber(Number n, write_options *options)
-{ GET_LD
-
-  switch(n->type)
+{ switch(n->type)
   { case V_INTEGER:
     { char buf[32];
 
-      sprintf(buf, INT64_FORMAT, n->value.i);
+      sprintf(buf, "%" PRId64, n->value.i);
       return PutToken(buf, options->out);
     }
 #ifdef O_GMP
     case V_MPZ:
-    { char tmp[1024];
+    { GET_LD
+      char tmp[1024];
       char *buf;
       size_t sz = mpz_sizeinbase(n->value.mpz, 10) + 2;
       bool rc;
@@ -925,13 +1113,17 @@ WriteNumber(Number n, write_options *options)
 
       return rc;
     }
-    case V_MPQ:				/* should not get here */
 #endif
     case V_FLOAT:
-      assert(0);
-  }
+    { char buf[100];
 
-  fail;
+      format_float(n->value.f, buf);
+      return PutToken(buf, options->out);
+    }
+    default:
+      assert(0);
+      return FALSE;			/* make compiler happy */
+  }
 }
 
 
@@ -939,7 +1131,6 @@ WriteNumber(Number n, write_options *options)
 static bool
 writePrimitive(term_t t, write_options *options)
 { GET_LD
-  double f;
   atom_t a;
   char buf[32];
   IOSTREAM *out = options->out;
@@ -955,81 +1146,11 @@ writePrimitive(term_t t, write_options *options)
   if ( PL_get_atom(t, &a) )
     return writeAtom(a, options);
 
-  if ( PL_is_integer(t) )		/* beware of automatic conversion */
+  if ( PL_is_number(t) )		/* beware of automatic conversion */
   { number n;
 
     PL_get_number(t, &n);
-
     return WriteNumber(&n, options);
-  }
-
-  if ( PL_get_float(t, &f) )
-  { char *s = NULL;
-
-#ifdef HAVE_FPCLASSIFY
-    switch(fpclassify(f))
-    { case FP_NAN:
-	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-        break;
-      case FP_INFINITE:
-	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-        break;
-    }
-#else
-#ifdef HAVE_FPCLASS
-    switch(fpclass(f))
-    { case FP_SNAN:
-      case FP_QNAN:
-	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-        break;
-      case FP_NINF:
-      case FP_PINF:
-	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-        break;
-      case FP_NDENORM:			/* pos/neg denormalized non-zero */
-      case FP_PDENORM:
-      case FP_NNORM:			/* pos/neg normalized non-zero */
-      case FP_PNORM:
-      case FP_NZERO:			/* pos/neg zero */
-      case FP_PZERO:
-	break;
-    }
-#else
-#ifdef HAVE__FPCLASS
-    switch(_fpclass(f))
-    { case _FPCLASS_SNAN:
-      case _FPCLASS_QNAN:
-	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-        break;
-      case _FPCLASS_NINF:
-      case _FPCLASS_PINF:
-	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-        break;
-    }
-#else
-#ifdef HAVE_ISINF
-    if ( isinf(f) )
-    { s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
-    } else
-#endif
-#ifdef HAVE_ISNAN
-    if ( isnan(f) )
-    { s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-    }
-#endif
-#endif /*HAVE__FPCLASS*/
-#endif /*HAVE_FPCLASS*/
-#endif /*HAVE_FPCLASSIFY*/
-
-    if ( s )
-    { return PutToken(s, out);
-    } else
-    { char buf[100];
-
-      format_float(f, buf);
-
-      return PutToken(buf, out);
-    }
   }
 
 #if O_STRING
@@ -1107,7 +1228,23 @@ put_write_options(term_t opts_in, write_options *options)
 }
 
 
+static int
+enterPortray(ARG1_LD)
+{ if ( LD->IO.portray_nesting >= MAX_PORTRAY_NESTING )
+    return PL_resource_error("portray_nesting");
+  LD->IO.portray_nesting++;
+  return TRUE;
+}
 
+
+static void
+leavePortray(ARG1_LD)
+{ LD->IO.portray_nesting--;
+}
+
+
+/* returns: -1: error, FALSE: failed, TRUE: succeeded
+*/
 
 static int
 callPortray(term_t arg, int prec, write_options *options)
@@ -1130,8 +1267,10 @@ callPortray(term_t arg, int prec, write_options *options)
     int rval;
     term_t av;
 
+    if ( !enterPortray(PASS_LD1) )
+      return -1;
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-      return FALSE;
+      return -1;
     Scurout = options->out;
     if ( options->portray_goal )
     { av = PL_new_term_refs(3);
@@ -1149,6 +1288,7 @@ callPortray(term_t arg, int prec, write_options *options)
       rval = -1;
     Scurout = old;
     restoreWakeup(&wstate PASS_LD);
+    leavePortray(PASS_LD1);
 
     return rval;
   }
@@ -1294,7 +1434,7 @@ static bool
 writeTerm2(term_t t, int prec, write_options *options, bool arg)
 { GET_LD
   atom_t functor;
-  int arity, n;
+  size_t arity, n;
   int op_type, op_pri;
   atom_t a;
   IOSTREAM *out = options->out;
@@ -1306,7 +1446,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	return TRUE;
       case FALSE:
 	break;
-      default:
+      default:					/* error */
 	return FALSE;
     }
   }
@@ -1437,24 +1577,34 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
       {					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
-	{ if ( op_pri > prec )
+	{ static atom_t ATOM_fdot = 0;
+
+	  if ( !ATOM_fdot )			/* ATOM_dot can be '[|]' */
+	    ATOM_fdot = PL_new_atom(".");
+
+	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
 	  _PL_get_arg(arity-1, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri,
 			options));
-	  if ( functor == ATOM_comma )
-	  { TRY(PutComma(options));
-	  } else if ( functor == ATOM_bar )
-	  { TRY(PutBar(options));
-	  } else if ( arity == 2 )
-	  { switch(writeAtom(functor, options))
-	    { case FALSE:
-		fail;
-	      case TRUE_WITH_SPACE:
-		TRY(Putc(' ', out));
+	  if ( arity == 2 )
+	  { if ( functor == ATOM_comma )
+	    { TRY(PutComma(options));
+	    } else if ( functor == ATOM_bar )
+	    { TRY(PutBar(options));
+	    } else if ( functor == ATOM_fdot )
+	    { TRY(PutToken(".", out));
+	    } else
+	    { switch(writeAtom(functor, options))
+	      { case FALSE:
+		  fail;
+	        case TRUE_WITH_SPACE:
+		  TRY(Putc(' ', out));
+	      }
 	    }
+	    options->out->lastc |= C_INFIX_OP;
 	  } else			/* block operator */
 	  { _PL_get_arg(1, t, arg);
 	    TRY(writeTerm(arg, 1200, options));
@@ -1746,7 +1896,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     if ( !put_write_options(opts, &options) ||
 	 !PL_qualify(options.portray_goal, options.portray_goal) )
       return FALSE;
-    portray = TRUE;
+    if ( false(&options, PL_WRT_BLOB_PORTRAY) )
+      portray = TRUE;
   }
   if ( numbervars == -1 )
     numbervars = (portray ? TRUE : FALSE);
@@ -2047,7 +2198,7 @@ PRED_IMPL("write_length", 3, write_length, 0)
   lss.length = PLMAXINT;
   while(PL_get_list(options, head, options))
   { atom_t name;
-    int arity;
+    size_t arity;
 
     if ( PL_get_name_arity(head, &name, &arity) &&
 	 name == ATOM_max_length && arity == 1 )

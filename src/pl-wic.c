@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -217,7 +229,7 @@ typedef struct wic_state
   char *mkWicFile;			/* Wic file under construction */
   IOSTREAM *wicFd;			/* file descriptor of wic file */
 
-  Procedure currentProc;		/* current procedure */
+  Definition currentPred;		/* current procedure */
   SourceFile currentSource;		/* current source file */
 
   Table	savedXRTable;			/* saved XR entries */
@@ -249,7 +261,7 @@ static void	putString(const char *, size_t len, IOSTREAM *);
 static void	putNum(int64_t, IOSTREAM *);
 static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(wic_state *state, Clause cl);
-static void	closeProcedureWic(wic_state *state);
+static void	closePredicateWic(wic_state *state);
 static word	loadXRc(wic_state *state, int c ARG_LD);
 static atom_t   getBlob(wic_state *state ARG_LD);
 static bool	loadStatement(wic_state *state, int c, int skip ARG_LD);
@@ -496,7 +508,7 @@ getInt64(IOSTREAM *fd)
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
 
-    DEBUG(MSG_QLF_INTEGER, Sdprintf(INT64_FORMAT "\n", first));
+    DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
     return first;
   }
 
@@ -526,7 +538,7 @@ getInt64(IOSTREAM *fd)
   first <<= shift;
   first >>= shift;
 
-  DEBUG(MSG_QLF_INTEGER, Sdprintf(INT64_FORMAT "\n", first));
+  DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
   return first;
 }
 
@@ -663,7 +675,8 @@ loadXRc(wic_state *state, int c ARG_LD)
       break;
     }
     case XR_MODULE:
-    { atom_t name;
+    { GET_LD
+      atom_t name;
       id = ++state->XR->id;
       name = loadXR(state);
       xr = (word) lookupModule(name);
@@ -1098,13 +1111,14 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
+	clause->references = 0;
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
-	  int ono = (of ? of->index : 0);
-	  int sno = (sf ? sf->index : 0);
+	  unsigned int ono = (of ? of->index : 0);
+	  unsigned int sno = (sf ? sf->index : 0);
 
 	  clause->owner_no = ono;
 	  clause->source_no = sno;
@@ -1119,7 +1133,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	clause->variables   = (unsigned short) getInt(fd);
 	if ( getLong(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
-	clause->procedure = proc;
+	clause->predicate = def;
 	GD->statistics.codes += clause->code_size;
 
 	bp = clause->codes;
@@ -1257,7 +1271,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      exit(1);
 	    }
 	  }
-	  assertProcedure(proc, clause, CL_END PASS_LD);
+	  if ( csf )
+	    csf->current_procedure = proc;
+	  assertProcedureSource(csf, proc, clause PASS_LD);
 	}
       }
     }
@@ -1272,14 +1288,15 @@ runInitialization(SourceFile sf)
   if ( sf )
   { GET_LD
     fid_t fid = PL_open_foreign_frame();
-    term_t name = PL_new_term_ref();
+    term_t av = PL_new_term_refs(2);
     static predicate_t pred = NULL;
 
     if ( !pred )
-      pred = PL_predicate("$run_initialization", 1, "system");
+      pred = PL_predicate("$run_initialization", 2, "system");
 
-    PL_put_atom(name, sf->name);
-    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+    PL_put_atom(av+0, sf->name);
+    PL_put_nil( av+1);
+    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, av);
 
     PL_discard_foreign_frame(fid);
   }
@@ -1303,6 +1320,7 @@ loadImport(wic_state *state, int skip ARG_LD)
 static atom_t
 qlfFixSourcePath(wic_state *state, const char *raw)
 { char buf[MAXPATHLEN];
+  char *canonical;
 
   if ( state->load_state->has_moved &&
        strprefix(raw, state->load_state->save_dir) )
@@ -1318,11 +1336,18 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
-      fatalError("Path name too long: %s", raw);
+    { fatalError("Path name too long: %s", raw);
+      return NULL_ATOM;
+    }
     strcpy(buf, raw);
   }
 
-  return PL_new_atom(canonicalisePath(buf));
+  if ( (canonical=canonicalisePath(buf)) )
+  { return PL_new_atom(canonical);
+  } else
+  { fatalError("Path name too long: %s", buf);
+    return NULL_ATOM;
+  }
 }
 
 
@@ -1395,7 +1420,7 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 	if ( !skip )
 	{ Procedure proc = lookupProcedure(f, LD->modules.source);
 
-	  addHTable(LD->modules.source->public, (void *)f, proc);
+	  addNewHTable(LD->modules.source->public, (void *)f, proc);
 	} else
 	{ if ( !lookupHTable(m->public, (void *)f) )
 	  { FunctorDef fd = valueFunctor(f);
@@ -1499,10 +1524,8 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 
     switch(c)
     { case 'X':
-      { if ( !GD->bootsession && state->load_nesting > 0 )
-	{ /* top-level '$run_initialization'/1 is called from boot/init.pl */
+      { if ( !GD->bootsession  )
 	  runInitialization(state->currentSource);
-	}
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;
@@ -1724,8 +1747,8 @@ putInt32(int v, IOSTREAM *fd)
 
 
 static void
-freeXRSymbol(Symbol s)
-{ word w = (word)s->name;
+freeXRSymbol(void *name, void *value)
+{ word w = (word)name;
 
   if ( w&0x1 )
   { w &= ~0x1;
@@ -1739,7 +1762,7 @@ freeXRSymbol(Symbol s)
 
 void
 initXR(wic_state *state)
-{ state->currentProc		   = NULL;
+{ state->currentPred		   = NULL;
   state->currentSource		   = NULL;
   state->savedXRTable		   = newHTable(256);
   state->savedXRTable->free_symbol = freeXRSymbol;
@@ -1768,19 +1791,18 @@ savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 
 static int
 savedXR(wic_state *state, void *xr)
-{ IOSTREAM *fd = state->wicFd;
-  Symbol s;
+{ GET_LD
+  IOSTREAM *fd = state->wicFd;
   intptr_t id;
 
-  if ( (s = lookupHTable(state->savedXRTable, xr)) )
-  { id = (intptr_t) s->value;
-    Sputc(XR_REF, fd);
+  if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )
+  { Sputc(XR_REF, fd);
     putNum(id, fd);
 
     succeed;
   } else
   { id = ++state->savedXRTableId;
-    addHTable(state->savedXRTable, xr, (void *)id);
+    addNewHTable(state->savedXRTable, xr, (void *)id);
   }
 
   fail;
@@ -1802,9 +1824,15 @@ savedXRConstant(wic_state *state, word w)
 }
 
 
+static int XRNullPointer = 0;
+
 static inline int
 savedXRPointer(wic_state *state, void *p)
 { assert(((word)p & 0x1) == 0);
+
+  if ( !p )
+  { return savedXR(state, &XRNullPointer);
+  }
 
   return savedXR(state, p);
 }
@@ -2151,10 +2179,10 @@ saveWicClause(wic_state *state, Clause clause)
 		*********************************/
 
 static void
-closeProcedureWic(wic_state *state)
-{ if ( state->currentProc )
+closePredicateWic(wic_state *state)
+{ if ( state->currentPred )
   { Sputc('X', state->wicFd);
-    state->currentProc = NULL;
+    state->currentPred = NULL;
   }
 }
 
@@ -2179,14 +2207,13 @@ predicateFlags(Definition def, atom_t sclass)
 
 
 static void
-openProcedureWic(wic_state *state, Procedure proc, atom_t sclass ARG_LD)
-{ if ( proc != state->currentProc)
+openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
+{ if ( def != state->currentPred)
   { IOSTREAM *fd = state->wicFd;
-    Definition def = proc->definition;
     int mode = predicateFlags(def, sclass);
 
-    closeProcedureWic(state);
-    state->currentProc = proc;
+    closePredicateWic(state);
+    state->currentPred = def;
 
     if ( def->module != LD->modules.source )
     { Sputc('O', fd);
@@ -2235,7 +2262,7 @@ static bool
 writeWicTrailer(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('X', fd);
   destroyXR(state);
   Sputc('T', fd);
@@ -2261,7 +2288,7 @@ addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
   loc.line = source_line_no;
 
   if ( (clause = assert_term(term, CL_END, file, &loc PASS_LD)) )
-  { openProcedureWic(state, clause->procedure, ATOM_development PASS_LD);
+  { openPredicateWic(state, clause->predicate, ATOM_development PASS_LD);
     saveWicClause(state, clause);
 
     succeed;
@@ -2275,7 +2302,7 @@ static bool
 addDirectiveWic(wic_state *state, term_t term ARG_LD)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('D', fd);
   putNum(source_line_no, fd);
 
@@ -2288,7 +2315,7 @@ importWic(wic_state *state, Procedure proc, atom_t strength ARG_LD)
 { int flags = atomToImportStrength(strength);
 
   assert(flags >= 0);
-  closeProcedureWic(state);
+  closePredicateWic(state);
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc PASS_LD);
@@ -2500,7 +2527,7 @@ static bool
 qlfClose(wic_state *state ARG_LD)
 { int rc;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   writeSourceMarks(state);
   rc = Sclose(state->wicFd);
   state->wicFd = NULL;
@@ -2692,7 +2719,7 @@ static bool
 qlfStartModule(wic_state *state, Module m ARG_LD)
 { IOSTREAM *fd = state->wicFd;
   ListCell c;
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('Q', fd);
   Sputc('M', fd);
   saveXR(state, m->name);
@@ -2714,16 +2741,16 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
   }
 
   DEBUG(MSG_QLF_SECTION, Sdprintf("MODULE %s\n", stringAtom(m->name)));
-  for_unlocked_table(m->public, s,
-		     { functor_t f = (functor_t)s->name;
+  for_table(m->public, name, value,
+	    { functor_t f = (functor_t)name;
 
-		       DEBUG(MSG_QLF_EXPORT,
-			     Sdprintf("Exported %s/%d\n",
-				      stringAtom(nameFunctor(f)),
-				      arityFunctor(f)));
-		       Sputc('E', fd);
-		       saveXRFunctor(state, f PASS_LD);
-		     })
+	      DEBUG(MSG_QLF_EXPORT,
+		    Sdprintf("Exported %s/%d\n",
+			     stringAtom(nameFunctor(f)),
+			     arityFunctor(f)));
+	      Sputc('E', fd);
+	      saveXRFunctor(state, f PASS_LD);
+	    })
 
   Sputc('X', fd);
 
@@ -2735,7 +2762,7 @@ static bool
 qlfStartSubModule(wic_state *state, Module m ARG_LD)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('M', fd);
   saveXR(state, m->name);
 
@@ -2747,7 +2774,7 @@ static bool
 qlfStartFile(wic_state *state, SourceFile f)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('Q', fd);
   qlfSaveSource(state, f);
 
@@ -2759,7 +2786,7 @@ static bool
 qlfEndPart(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
-  closeProcedureWic(state);
+  closePredicateWic(state);
   Sputc('X', fd);
 
   succeed;
@@ -3081,7 +3108,7 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
 	 !PL_get_atom_ex(A2, &sclass) )
       fail;
 
-    openProcedureWic(state, clause->procedure, sclass PASS_LD);
+    openPredicateWic(state, clause->predicate, sclass PASS_LD);
     saveWicClause(state, clause);
   }
 
@@ -3114,7 +3141,7 @@ static int
 directiveClause(term_t directive, term_t clause, const char *functor)
 { GET_LD
   atom_t name;
-  int arity;
+  size_t arity;
   term_t d0 = PL_new_term_ref();
   functor_t f;
 
@@ -3156,11 +3183,15 @@ compileFile(wic_state *state, const char *file)
     fail;
   DEBUG(MSG_QLF_PATH, Sdprintf("Expanded to %s\n", path));
 
-  nf = PL_new_atom(path);			/* NOTE: Only ISO-Latin-1 */
-  PL_put_atom(f, nf);
+  if ( PL_unify_chars(f, PL_ATOM|REP_MB, (size_t)-1, path) )
+    PL_get_atom(f, &nf);
+  else
+    fatalError("Could not unify path");
   DEBUG(MSG_QLF_BOOT, Sdprintf("Opening\n"));
   if ( !pl_see(f) )
-    fail;
+  { Sdprintf("Failed to open %s\n", path);
+    return FALSE;
+  }
   DEBUG(MSG_QLF_BOOT, Sdprintf("pl_start_consult()\n"));
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);

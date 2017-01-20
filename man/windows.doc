@@ -28,7 +28,7 @@ This document gets you started using SWI-Prolog on MS-Windows. It
 also describes the components and issues that are specific to
 MS-Windows. It is by no means a manual or Prolog tutorial. The reference
 manual is available online or can be downloaded in HTML and PDF format
-from the \url[SWI-Prolog website]{http://www.swi-prolog.org/}, which
+from the \href{http://www.swi-prolog.org/}{SWI-Prolog website}, which
 also provides links to books, online tutorials and other Prolog-related
 material.
 \end{abstract}
@@ -247,7 +247,7 @@ C interface function.
 
 \section{Using SWI-Prolog with C/C++}
 
-Using \url[MinGW]{http://www.mingw.org} or a compiler with a compatible
+Using \href{http://www.mingw.org}{MinGW} or a compiler with a compatible
 calling format you can write C or C++ code that can be loaded into
 SWI-Prolog and called as a predicate. You can also embed SWI-Prolog in
 C/C++ applications.

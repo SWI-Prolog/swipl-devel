@@ -29,7 +29,8 @@ ensure_doc_loaded(File) :-
 	).
 
 libtotex(Options, TxtFile) :-
-	file_name_extension(Base, txt, TxtFile), !,
+	file_name_extension(Base, Ext, TxtFile),
+	markdown_ext(Ext), !,
         file_name_extension(Base, tex, TexFile),
 	file_directory_name(TexFile, Dir),
 	file_base_name(TexFile, TeXLocalFile),
@@ -60,6 +61,9 @@ libtotex(Options, LibAtom) :-
 		 [ summary(SummaryTeXFile)
 		 | Options
 		 ]).
+
+markdown_ext(txt).
+markdown_ext(md).
 
 ensure_dir(Dir) :-
 	exists_directory(Dir), !.
@@ -100,6 +104,8 @@ to_option('--subsection', section_level(subsection)).
 to_option('--subsubsection', section_level(subsubsection)).
 to_option(Opt, output(TexBase)) :-
 	atom_concat('--out=', TexBase, Opt).
+to_option(Opt, module(Module)) :-
+	atom_concat('--module=', Module, Opt).
 to_option(Opt, outdir(Dir)) :-
 	atom_concat('--outdir=', Dir, Opt).
 to_option(Opt, load(File)) :-

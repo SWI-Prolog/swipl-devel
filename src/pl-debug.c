@@ -1,25 +1,36 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2011, University of Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -52,7 +63,6 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_UNLOAD),
   DEBUG_TOPIC(MSG_INDEX_FIND),
   DEBUG_TOPIC(MSG_INDEX_UPDATE),
-  DEBUG_TOPIC(MSG_JIT),
   DEBUG_TOPIC(MSG_TRACE),
 
   DEBUG_TOPIC(MSG_QLF_INTEGER),
@@ -67,6 +77,8 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_QLF_SECTION),
   DEBUG_TOPIC(MSG_QLF_BOOT),
   DEBUG_TOPIC(MSG_QLF_BOOT_READ),
+  DEBUG_TOPIC(MSG_PROC_COUNT),
+  DEBUG_TOPIC(MSG_CUT),
 
   DEBUG_TOPIC(MSG_QUEUE),
   DEBUG_TOPIC(MSG_QUEUE_WAIT),
@@ -83,6 +95,12 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_ACYCLIC),
   DEBUG_TOPIC(MSG_OPERATOR),
   DEBUG_TOPIC(MSG_MUTEX_GC),
+  DEBUG_TOPIC(MSG_REC_ATTVAR),
+  DEBUG_TOPIC(MSG_TTY),
+						/* Parser */
+  DEBUG_TOPIC(MSG_READ_TOKEN),
+
+  DEBUG_TOPIC(MSG_CONTINUE),
 						/* GC messages */
   DEBUG_TOPIC(MSG_AGC),
   DEBUG_TOPIC(MSG_CLAUSE_GC),
@@ -114,6 +132,33 @@ const debug_topic debug_topics[] =
 
   DEBUG_TOPIC(MSG_ATTVAR_LINK),
   DEBUG_TOPIC(MSG_CALL_RESIDUE_VARS),
+  DEBUG_TOPIC(MSG_SOFTCUT),
+
+  DEBUG_TOPIC(MSG_HASH_TABLE_API),
+  DEBUG_TOPIC(MSG_HASH_TABLE_KVS),
+  DEBUG_TOPIC(MSG_HASH_TABLE_ENUM),
+
+  DEBUG_TOPIC(MSG_CGC),
+  DEBUG_TOPIC(MSG_CGC_CREF),
+  DEBUG_TOPIC(MSG_CGC_CREF_PL),
+  DEBUG_TOPIC(MSG_CGC_CREF_TRACK),
+  DEBUG_TOPIC(MSG_CGC_PRED),
+  DEBUG_TOPIC(MSG_CGC_CONSIDER),
+  DEBUG_TOPIC(MSG_CGC_STACK),
+  DEBUG_TOPIC(MSG_CGC_PRED_REF),
+
+  DEBUG_TOPIC(MSG_JIT),
+  DEBUG_TOPIC(MSG_JIT_DELINDEX),
+
+  DEBUG_TOPIC(MSG_RECONSULT),
+  DEBUG_TOPIC(MSG_RECONSULT_PRED),
+  DEBUG_TOPIC(MSG_RECONSULT_CLAUSE),
+  DEBUG_TOPIC(MSG_RECONSULT_MODULE),
+
+  DEBUG_TOPIC(MSG_TRIE_PUT_TERM),
+  DEBUG_TOPIC(MSG_TRIE_GC),
+
+  DEBUG_TOPIC(MSG_TABLING_WORK),
 
   DEBUG_TOPIC(CHK_SECURE),
   DEBUG_TOPIC(CHK_HIGH_ARITY),

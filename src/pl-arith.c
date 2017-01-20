@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -34,6 +46,12 @@ stack machine.  This module maintains an array of arithmetic  functions.
 These  functions are addressed by the WAM instructions using their index
 in this array.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#include <wincrypt.h>
+#endif
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
@@ -54,11 +72,6 @@ in this array.
 #define HAVE_FPCLASSIFY 1
 #endif
 
-#ifdef __WINDOWS__
-#include <windows.h>
-#include <wincrypt.h>
-#endif
-
 #undef LD
 #define LD LOCAL_LD
 
@@ -67,12 +80,6 @@ in this array.
 #endif
 #ifndef M_E
 #define M_E (2.7182818284590452354)
-#endif
-
-#ifdef _MSC_VER
-#define LL(x) x ## i64
-#else
-#define LL(x) x ## LL
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -102,6 +109,9 @@ problem.
 
 static int		ar_minus(Number n1, Number n2, Number r);
 static int		mul64(int64_t x, int64_t y, int64_t *r);
+static int		notLessThanZero(const char *f, int a, Number n);
+static int		mustBePositive(const char *f, int a, Number n);
+
 
 		/********************************
 		*   LOGICAL INTEGER FUNCTIONS   *
@@ -780,7 +790,7 @@ valueExpression(term_t expr, number *result ARG_LD)
         break;
       case TAG_COMPOUND:
       { Functor term = valueTerm(*p);
-	int arity = arityFunctor(term->definition);
+	size_t arity = arityFunctor(term->definition);
 
 	if ( term->definition == FUNCTOR_dot2 )
 	{ if ( getCharExpression(p, n PASS_LD) != TRUE )
@@ -849,7 +859,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 			arityFunctor(functor)));
 
       if ( (f = isCurrentArithFunction(functor)) )
-      { int arity = arityFunctor(functor);
+      { size_t arity = arityFunctor(functor);
 
 	switch(arity)
 	{ case 1:
@@ -1249,7 +1259,7 @@ ar_minus(Number n1, Number n2, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-    { r->value.i = n1->value.i - n2->value.i;
+    { r->value.i = (uint64_t)n1->value.i - (uint64_t)n2->value.i;
 
       if ( (n1->value.i >= 0 && n2->value.i < 0 && r->value.i <= 0) ||
 	   (n1->value.i < 0  && n2->value.i > 0 && r->value.i >= 0) )
@@ -1360,21 +1370,6 @@ ar_mod(Number n1, Number n2, Number r)
 
 
 static int
-msb64(int64_t i)
-{ int j = 0;
-
-  if (i >= LL(0x100000000)) {i >>= 32; j += 32;}
-  if (i >=     LL(0x10000)) {i >>= 16; j += 16;}
-  if (i >=       LL(0x100)) {i >>=  8; j +=  8;}
-  if (i >=	  LL(0x10)) {i >>=  4; j +=  4;}
-  if (i >=         LL(0x4)) {i >>=  2; j +=  2;}
-  if (i >=         LL(0x2)) j++;
-
-  return j;
-}
-
-
-static int
 int_too_big(void)
 { GET_LD
   return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
@@ -1444,11 +1439,11 @@ ar_shift(Number n1, Number n2, Number r, int dir)
         int bits = shift;
 
 	if ( n1->value.i >= 0 )
-	  bits += msb64(n1->value.i);
+	  bits += MSB64(n1->value.i);
 	else if ( n1->value.i == PLMININT )
 	  bits += sizeof(int64_t)*8;
 	else
-	  bits += msb64(-n1->value.i);
+	  bits += MSB64(-n1->value.i);
 
 	if ( bits >= (int)(sizeof(int64_t)*8-1) )
 	{ promoteToMPZNumber(n1);
@@ -1523,7 +1518,7 @@ ar_gcd(Number n1, Number n2, Number r)
       int64_t t;
 
       if ( a < 0 )
-      { a = -a;
+      { a = -(uint64_t)a;
 	if ( a < 0 )
 	{ promote:
 #ifdef O_GMP
@@ -1536,7 +1531,7 @@ ar_gcd(Number n1, Number n2, Number r)
 	}
       }
       if ( b < 0 )
-      { b = -b;
+      { b = -(uint64_t)b;
 	if ( b < 0 )
 	  goto promote;
       }
@@ -1744,7 +1739,7 @@ ar_pow(Number n1, Number n2, Number r)
 
     switch(n1->type)
     { case V_INTEGER:
-	op1_bytes = msb64(n1->value.i)+7/8;
+	op1_bytes = MSB64(n1->value.i)+7/8;
         break;
       case V_MPZ:
 	op1_bytes = mpz_sizeinbase(n1->value.mpz, 256);
@@ -1807,6 +1802,10 @@ ar_powm(Number base, Number exp, Number mod, Number r)
   promoteToMPZNumber(base);
   promoteToMPZNumber(exp);
   promoteToMPZNumber(mod);
+
+  if ( ar_sign_i(base) < 0 ) return notLessThanZero("powm", 3, base);
+  if ( ar_sign_i(exp)  < 0 ) return notLessThanZero("powm", 3, exp);
+  if ( ar_sign_i(mod) <= 0 ) return  mustBePositive("powm", 3, mod);
 
   r->type = V_MPZ;
   mpz_init(r->value.mpz);
@@ -2068,7 +2067,7 @@ ar_sign(Number n1, Number r)
 }
 
 
-static int
+int
 ar_signbit(Number n)
 { switch(n->type)
   { case V_INTEGER:
@@ -2374,11 +2373,11 @@ mul64(int64_t x, int64_t y, int64_t *r)
       { ay = y;
 	sign = 1;
       } else
-      { ay = -y;
+      { ay = -(uint64_t)y;
 	sign = -1;
       }
     } else
-    { ax = -x;
+    { ax = -(uint64_t)x;
       if ( y > LL(0) )
       { ay = y;
 	sign = -1;
@@ -2390,7 +2389,7 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
     prod = (int64_t)(ax*ay);
     if ( sign < 0 )
-      prod = -prod;
+      prod = -(uint64_t)prod;
     if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) )
     { *r = prod;
       return TRUE;
@@ -2519,7 +2518,7 @@ ar_msb(Number n1, Number r)
       if (  n1->value.i <= 0 )
 	return mustBePositive("msb", 1, n1);
 
-      r->value.i = msb64(n1->value.i);
+      r->value.i = MSB64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
 #ifdef O_GMP
@@ -2671,11 +2670,9 @@ ar_getbit(Number I, Number K, Number r)
       break;
 #endif
     default:
+      bit = 0;
       assert(0);
   }
-
-  if ( bit < 0 )
-    return notLessThanZero("bit", 2, K);
 
   switch(I->type)
   { case V_INTEGER:
@@ -3104,7 +3101,7 @@ seed_from_dev(const char *dev ARG_LD)
 #if defined(S_ISCHR) && !defined(__WINDOWS__)
   int fd;
 
-  if ( (fd=open(dev, O_RDONLY)) )
+  if ( (fd=open(dev, O_RDONLY)) != -1 )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 && S_ISCHR(buf.st_mode) )
@@ -3233,7 +3230,7 @@ static
 PRED_IMPL("set_random", 1, set_random, 0)
 { PRED_LD
   atom_t name;
-  int arity;
+  size_t arity;
 
   init_random(PASS_LD1);
 
@@ -3301,7 +3298,7 @@ static
 PRED_IMPL("random_property", 1, random_property, 0)
 { PRED_LD
   atom_t name;
-  int arity;
+  size_t arity;
 
   init_random(PASS_LD1);
 
@@ -3388,7 +3385,7 @@ ar_random_float(Number r)
     r->value.f = mpf_get_d(rop);
     mpf_clear(rop);
 #else
-  r->value.f = _PL_Random()/(float)UINT64_MAX;
+    r->value.f = _PL_Random()/(float)UINT64_MAX;
 #endif
   } while (r->value.f == 0.0);
 
@@ -3420,6 +3417,36 @@ ar_epsilon(Number r)
 { r->value.f = DBL_EPSILON;
 
   r->type = V_FLOAT;
+  succeed;
+}
+
+
+static int
+ar_inf(Number r)
+{ static number n = {0};
+
+  if ( n.type != V_FLOAT )
+  { n.value.f = strtod("Inf", NULL);
+    n.type = V_FLOAT;
+  }
+
+  *r = n;
+
+  succeed;
+}
+
+
+static int
+ar_nan(Number r)
+{ static number n = {0};
+
+  if ( n.type != V_FLOAT )
+  { n.value.f = strtod("NaN", NULL);
+    n.type = V_FLOAT;
+  }
+
+  *r = n;
+
   succeed;
 }
 
@@ -3557,9 +3584,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_backslash1,	ar_negation, F_ISO),
 
   ADD(FUNCTOR_random1,		ar_random, 0),
-#ifdef O_GMP
   ADD(FUNCTOR_random_float0,	ar_random_float, 0),
-#endif
 
   ADD(FUNCTOR_integer1,		ar_integer, F_ISO),
   ADD(FUNCTOR_round1,		ar_integer, F_ISO),
@@ -3598,6 +3623,8 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_pi0,		ar_pi, F_ISO),
   ADD(FUNCTOR_e0,		ar_e, 0),
   ADD(FUNCTOR_epsilon0,		ar_epsilon, 0),
+  ADD(FUNCTOR_inf0,		ar_inf, 0),
+  ADD(FUNCTOR_nan0,		ar_nan, 0),
 
   ADD(FUNCTOR_cputime0,		ar_cputime, 0),
   ADD(FUNCTOR_msb1,		ar_msb, 0),
@@ -3619,7 +3646,7 @@ registerFunction(functor_t f, ArithF func)
 
   while ( index >= GD->arith.functions_allocated )
   { if ( GD->arith.functions_allocated == 0 )
-    { size_t size = 256;
+    { size_t size = 512;
 
       GD->arith.functions = allocHeapOrHalt(size*sizeof(ArithF));
       memset(GD->arith.functions, 0, size*sizeof(ArithF));

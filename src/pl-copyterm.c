@@ -1,29 +1,40 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-copyterm.h"
 #define AC_TERM_WALK_LR 1
 #include "pl-termwalk.c"
 
@@ -569,7 +580,9 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
       return FALSE;			/* no space */
 
     if ( !(dest = allocGlobal(1)) )	/* make a variable on the global */
+    { PL_close_foreign_frame(fid);
       return FALSE;			/* stack */
+    }
     setVar(*dest);
     *valTermRef(to) = makeRef(dest);
     src = valTermRef(from);
@@ -594,21 +607,190 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 }
 
 
-static
-PRED_IMPL("copy_term", 2, copy_term, 0)
-{ PRED_LD
-  term_t copy = PL_new_term_ref();
+int
+duplicate_term(term_t in, term_t copy ARG_LD)
+{ return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
+}
 
-  if ( copy_term_refs(A1, copy, COPY_SHARE|COPY_ATTRS PASS_LD) )
-    return PL_unify(copy, A2);
+		 /*******************************
+		 *	  FAST HEAP TERMS	*
+		 *******************************/
 
-  fail;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The code below copies a  term  to   the  heap  (program space) just like
+PL_record(). The representation is particularly   suited  for copying it
+back to the stack really quickly: the memory can simply be copied to the
+global stack, after which a quick series of relocations is performed.
+
+This  representations  is   particularly    suited   for   re-activating
+continuations as needed for tabling.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define REL_END (~(unsigned int)0)
+
+static int
+needs_relocation(word w)
+{ return ( isTerm(w) || isRef(w) || isIndirect(w) || isAtom(w) );
+}
+
+#if SIZEOF_VOIDP == 8
+#define PTR_SHIFT (LMASK_BITS+1)
+#else
+#define PTR_SHIFT LMASK_BITS
+#endif
+
+static word
+relocate_down(word w, size_t offset)
+{ if ( isAtom(w) )
+  { PL_register_atom(w);
+    return w;
+  } else
+  { return (((w>>PTR_SHIFT)-offset)<<PTR_SHIFT) | tagex(w);
+  }
+}
+
+static word
+relocate_up(word w, size_t offset ARG_LD)
+{ if ( isAtom(w) )
+  { pushVolatileAtom(w);
+    return w;
+  } else
+  { return (((w>>PTR_SHIFT)+offset)<<PTR_SHIFT) | tagex(w);
+  }
+}
+
+
+fastheap_term *
+term_to_fastheap(term_t t ARG_LD)
+{ term_t copy = PL_new_term_ref();
+  Word gcopy, gtop, p, o;
+  size_t relocations=0;
+  fastheap_term *fht;
+  unsigned int *r;
+  size_t last_rel = 0;
+  size_t offset;
+  size_t indirect_cells = 0;
+  Word indirects;
+
+  if ( !duplicate_term(t, copy PASS_LD) )
+    return NULL;
+  gcopy = valTermRef(copy);
+  gtop  = gTop;
+  deRef(gcopy);					/* term at gcopy .. gTop */
+
+  for(p=gcopy; p<gtop; p++)
+  { if ( needs_relocation(*p) )
+    { if ( isIndirect(*p) )
+      { Word ip = addressIndirect(*p);
+	indirect_cells += wsizeofInd(*ip)+2;
+      }
+      relocations++;
+    }
+  }
+
+  if ( !(fht = malloc(sizeof(fastheap_term) +
+		      ((char*)gtop-(char *)gcopy) +
+		      indirect_cells * sizeof(word) +
+		      (relocations+1) * sizeof(unsigned int))) )
+  { PL_resource_error("memory");
+    return NULL;
+  }
+
+  fht->data_len    = (gtop-gcopy) + indirect_cells;
+  fht->data        = addPointer(fht, sizeof(fastheap_term));
+  fht->relocations = addPointer(fht->data, fht->data_len*sizeof(word));
+  indirects        = fht->data + (gtop-gcopy);
+
+  offset = gcopy-gBase;
+  for(p=gcopy, o=fht->data, r=fht->relocations; p<gtop; p++)
+  { if ( needs_relocation(*p) )
+    { size_t this_rel = p-gcopy;
+
+      if ( isIndirect(*p) )
+      { Word ip = addressIndirect(*p);
+	size_t sz = wsizeofInd(*ip)+2;
+	size_t go = gBase - (Word)base_addresses[STG_GLOBAL];
+
+	memcpy(indirects, ip, sz*sizeof(word));
+	*o++ = ((go+indirects-fht->data)<<PTR_SHIFT) | tagex(*p);
+	indirects += sz;
+      } else
+      { *o++ = relocate_down(*p, offset);
+      }
+      *r++ = this_rel-last_rel;
+      last_rel = this_rel;
+    } else
+    { *o++ = *p;
+    }
+  }
+  *r++ = REL_END;
+
+  return fht;
+}
+
+
+void
+free_fastheap(fastheap_term *fht)
+{ unsigned int *r;
+  Word p = fht->data;
+
+  for(r = fht->relocations; *r != REL_END; r++)
+  { p += *r;
+    if ( isAtom(*p) )
+      PL_unregister_atom(*p);
+  }
+
+  free(fht);
 }
 
 
 int
-duplicate_term(term_t in, term_t copy ARG_LD)
-{ return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
+put_fastheap(fastheap_term *fht, term_t t ARG_LD)
+{ Word p, o;
+  size_t offset;
+  unsigned int *r;
+
+  if ( !hasGlobalSpace(fht->data_len) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(fht->data_len, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
+  o = gTop;
+  memcpy(o, fht->data, fht->data_len*sizeof(word));
+
+  offset = o-gBase;
+  for(r = fht->relocations, p=o; *r != REL_END; r++)
+  { p += *r;
+    *p = relocate_up(*p, offset PASS_LD);
+  }
+
+  gTop += fht->data_len;
+  *valTermRef(t) = makeRefG(o);
+
+  return TRUE;
+}
+
+
+		 /*******************************
+		 *	  PROLOG BINDING	*
+		 *******************************/
+
+static
+PRED_IMPL("copy_term", 2, copy_term, 0)
+{ PRED_LD
+
+  if ( PL_is_atomic(A1) )
+  { return PL_unify(A1, A2);
+  } else
+  { term_t copy = PL_new_term_ref();
+
+    if ( copy_term_refs(A1, copy, COPY_SHARE|COPY_ATTRS PASS_LD) )
+      return PL_unify(copy, A2);
+
+    fail;
+  }
 }
 
 

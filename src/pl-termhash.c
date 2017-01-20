@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2010-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -333,9 +345,68 @@ VOID_RETURN sha1_begin(sha1_ctx ctx[1]);
 VOID_RETURN sha1_hash(const unsigned char data[], unsigned long len, sha1_ctx ctx[1]);
 VOID_RETURN sha1_end(unsigned char hval[], sha1_ctx ctx[1]);
 
+
+		 /*******************************
+		 *    INCREMENTAL MURMUR HASH	*
+		 *******************************/
+
+#define HASH_BLOCK_SIZE 256
+
+typedef struct hash_state
+{ unsigned int	  hash;
+  size_t	  len;
+  unsigned char	  buf[HASH_BLOCK_SIZE];
+} hash_state;
+
+static void
+hash_init(hash_state *state)
+{ state->len  = 0;
+  state->hash = MURMUR_SEED;
+}
+
+static void
+hash_compile(hash_state *state, const unsigned char *data, size_t len)
+{ if ( len+state->len <= HASH_BLOCK_SIZE )
+  { memcpy(&state->buf[state->len], data, len);
+    state->len += len;
+  } else
+  { while(len > 0)
+    { size_t copy = len;
+      if ( len > HASH_BLOCK_SIZE-state->len )
+	copy = HASH_BLOCK_SIZE-state->len;
+      len -= copy;
+      memcpy(&state->buf[state->len], data, copy);
+      state->len += copy;
+      if ( state->len == HASH_BLOCK_SIZE )
+      { state->hash = MurmurHashAligned2(state->buf, HASH_BLOCK_SIZE,
+					 state->hash);
+	state->len = 0;
+      }
+    }
+  }
+}
+
+static unsigned int
+hash_end(hash_state *state)
+{ return MurmurHashAligned2(state->buf, state->len, state->hash);
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+State for processing the term
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef enum
+{ HASH_SHA1,
+  HASH_MURMUR
+} hash_algo;
+
 typedef struct
 { int		var_count;
-  sha1_ctx	ctx[1];			/* The SHA1 Context */
+  hash_algo	algorithm;
+  union
+  { sha1_ctx	sha1[1];			/* The SHA1 Context */
+    hash_state	murmur[1];
+  } ctx;
   segstack	vars;
   Word		vars_first_chunk[64];
 } sha1_state;
@@ -353,8 +424,20 @@ push_var(Word p, sha1_state *state)
 { return pushSegStack(&state->vars, p, Word);
 }
 
+static int
+push_attvar(Word p, sha1_state *state)
+{ Word w = (Word)*p;
+  return ( pushSegStack(&state->vars, p, Word) &&
+	   pushSegStack(&state->vars, w, Word) );
+}
 
-#define HASH(p,l) sha1_hash((const unsigned char*)(p), (l), state->ctx)
+#define HASH(p,l) \
+	do \
+	{ if (state->algorithm == HASH_SHA1) \
+	    sha1_hash((const unsigned char*)(p), (l), state->ctx.sha1); \
+	  else \
+	    hash_compile(state->ctx.murmur, (const unsigned char*)(p), (l)); \
+	} while(0)
 
 static status
 variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
@@ -366,20 +449,33 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
     switch(tag(w))
     { const char *type;
 
+      case TAG_ATTVAR:
+      { if ( state->algorithm == HASH_SHA1 )
+	{ return E_ATTVAR;
+	} else
+	{ if ( storage(w) == STG_GLOBAL )
+	  { word i = state->var_count++;
+
+	    if ( !push_attvar(p, state) )
+	      return E_RESOURCE;
+	    *p = (i<<LMASK_BITS)|TAG_VAR|MARK_MASK;
+	  }
+	  HASH("V", 1);
+	  HASH(p, sizeof(word));
+	  continue;
+	}
+      }
       case TAG_VAR:
       { if ( isVar(w) )
 	{ word i = state->var_count++;
 
 	  if ( !push_var(p, state) )
 	    return E_RESOURCE;
-	  *p = (i<<LMASK_BITS)|MARK_MASK;
+	  *p = (i<<LMASK_BITS)|TAG_VAR|MARK_MASK;
 	}
         HASH("V", 1);
 	HASH(p, sizeof(word));
 	continue;
-      }
-      case TAG_ATTVAR:
-      { return E_ATTVAR;
       }
       case TAG_ATOM:
       { Atom av = atomValue(w);
@@ -445,6 +541,72 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
 }
 
 
+static int
+variant_hash(term_t term, term_t hash, hash_algo algorithm ARG_LD)
+{ int rc;
+  ac_term_agenda agenda;
+  sha1_state state;
+  Word p;
+  int n;
+
+  state.var_count = 0;
+  state.algorithm = algorithm;
+  if ( algorithm == HASH_SHA1 )
+    sha1_begin(state.ctx.sha1);
+  else
+    hash_init(state.ctx.murmur);
+  ac_initTermAgenda(&agenda, valTermRef(term));
+  initSegStack(&state.vars, sizeof(Word),
+	       sizeof(state.vars_first_chunk), state.vars_first_chunk);
+  rc = variant_sha1(&agenda, &state PASS_LD);
+  ac_clearTermAgenda(&agenda);
+  while(popSegStack(&state.vars, &p, Word))
+  { word w = (word)p;
+    if ( unlikely(isAttVar(w)) )
+    { popSegStack(&state.vars, &p, Word);
+      *p = w;
+    } else
+    { setVar(*p);
+    }
+  }
+
+  DEBUG(CHK_SECURE, checkData(valTermRef(term)));
+
+  switch( rc )
+  { case E_ATTVAR:
+      return PL_error(NULL, 0, NULL,
+		      ERR_TYPE, ATOM_free_of_attvar, term);
+    case E_CYCLE:
+      return PL_error(NULL, 0, NULL,
+		      ERR_TYPE, ATOM_acyclic_term, term);
+    case E_RESOURCE:
+      return PL_error(NULL, 0, NULL,
+		      ERR_RESOURCE, ATOM_memory);
+  }
+
+  if ( state.algorithm == HASH_SHA1 )
+  { unsigned char sha1[SHA1_DIGEST_SIZE];
+    char hex[SHA1_DIGEST_SIZE*2];
+    const char hexd[] = "0123456789abcdef";
+    char *o;
+    const unsigned char *i;
+
+    sha1_end(sha1, state.ctx.sha1);
+    o = hex;
+    i = sha1;
+    for(n=0; n<SHA1_DIGEST_SIZE; n++,i++)
+    { *o++ = hexd[*i >> 4];
+      *o++ = hexd[*i&0x0f];
+    }
+
+    return PL_unify_chars(hash, PL_ATOM|REP_ISO_LATIN_1, sizeof(hex), hex);
+  } else
+  { unsigned int key = hash_end(state.ctx.murmur)&PLMAXTAGGEDINT32;
+
+    return PL_unify_integer(hash, key);
+  }
+}
+
 /** variant_sha1(@Term, -SHA1:string) is det.
 
 Compute an SHA1 hash for Term. The hash  is designed such that two terms
@@ -455,53 +617,14 @@ basically execute numbervars.
 static
 PRED_IMPL("variant_sha1", 2, variant_sha1, 0)
 { PRED_LD
-  int rc;
-  ac_term_agenda agenda;
-  sha1_state state;
-  unsigned char sha1[SHA1_DIGEST_SIZE];
-  char hex[SHA1_DIGEST_SIZE*2];
-  const char hexd[] = "0123456789abcdef";
-  char *o;
-  const unsigned char *i;
-  Word p;
-  int n;
-
-  state.var_count = 0;
-  sha1_begin(state.ctx);
-  ac_initTermAgenda(&agenda, valTermRef(A1));
-  initSegStack(&state.vars, sizeof(Word),
-	       sizeof(state.vars_first_chunk), state.vars_first_chunk);
-  rc = variant_sha1(&agenda, &state PASS_LD);
-  ac_clearTermAgenda(&agenda);
-  while(popSegStack(&state.vars, &p, Word))
-    setVar(*p);
-
-  DEBUG(CHK_SECURE, checkData(valTermRef(A1)));
-
-  switch( rc )
-  { case E_ATTVAR:
-      return PL_error(NULL, 0, NULL,
-		      ERR_TYPE, ATOM_free_of_attvar, A1);
-    case E_CYCLE:
-      return PL_error(NULL, 0, NULL,
-		      ERR_TYPE, ATOM_acyclic_term, A1);
-    case E_RESOURCE:
-      return PL_error(NULL, 0, NULL,
-		      ERR_RESOURCE, ATOM_memory);
-  }
-
-  sha1_end(sha1, state.ctx);
-
-  o = hex;
-  i = sha1;
-  for(n=0; n<SHA1_DIGEST_SIZE; n++,i++)
-  { *o++ = hexd[*i >> 4];
-    *o++ = hexd[*i&0x0f];
-  }
-
-  return PL_unify_chars(A2, PL_ATOM|REP_ISO_LATIN_1, sizeof(hex), hex);
+  return variant_hash(A1, A2, HASH_SHA1 PASS_LD);
 }
 
+static
+PRED_IMPL("variant_hash", 2, variant_hash, 0)
+{ PRED_LD
+  return variant_hash(A1, A2, HASH_MURMUR PASS_LD);
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -509,6 +632,7 @@ PRED_IMPL("variant_sha1", 2, variant_sha1, 0)
 
 BeginPredDefs(termhash)
   PRED_DEF("variant_sha1", 2, variant_sha1, 0)
+  PRED_DEF("variant_hash", 2, variant_hash, 0)
   PRED_DEF("term_hash",    2, term_hash,    0)
 EndPredDefs
 

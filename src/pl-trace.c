@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -26,6 +38,7 @@
 #include "os/pl-cstack.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
+#include <stdio.h>
 
 #define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
@@ -230,7 +243,7 @@ static int		traceAction(char *cmd,
 				    Choice bfr,
 				    bool interactive);
 static void		interruptHandler(int sig);
-static int		writeFrameGoal(LocalFrame frame, Code PC,
+static int		writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC,
 				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -381,7 +394,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 
     if ( doit )
     { SAVE_PTRS();
-      writeFrameGoal(frame, PC, port|WFG_TRACE);
+      writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACE);
       RESTORE_PTRS();
     }
   }
@@ -465,7 +478,7 @@ All failed.  Things now are upto the normal Prolog tracer.
 
 again:
   SAVE_PTRS();
-  writeFrameGoal(frame, PC, port|WFG_TRACING);
+  writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACING);
   RESTORE_PTRS();
 
   if (debugstatus.leashing & port)
@@ -688,6 +701,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		return ACTION_CONTINUE;
     case 'r':	if (port & (REDO_PORT|FAIL_PORT|EXIT_PORT|EXCEPTION_PORT))
 		{ FeedBack("retry\n[retry]\n");
+		  debugstatus.retryFrame = consTermRef(frame);
 		  return ACTION_RETRY;
 		} else
 		  Warn("Can't retry at this port\n");
@@ -873,7 +887,7 @@ static const portname portnames[] =
 
 
 static int
-writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
+writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
 { GET_LD
   wakeup_state wstate;
   Definition def = frame->predicate;
@@ -885,7 +899,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   }
 
   if ( gc_status.active )
-  { Sfprintf(Serror, " (%d): %s\n",
+  { Sfprintf(out, " (%d): %s\n",
 	     levelFrame(frame), predicateName(frame->predicate));
   } else if ( !GD->bootsession && GD->initialised && GD->debug_level == 0 )
   { term_t fr   = PL_new_term_ref();
@@ -915,11 +929,15 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
       rc = PL_cons_functor(port, FUNCTOR_trace1, port);
 
     if ( rc )
+    { IOSTREAM *old = Suser_error;
+      Suser_error = out;
       printMessage(ATOM_debug,
 		   PL_FUNCTOR, FUNCTOR_frame3,
 		     PL_TERM, fr,
 		     PL_TERM, port,
 		     PL_TERM, pc);
+      Suser_error = old;
+    }
   } else
   { debug_type debugSave = debugstatus.debugging;
     term_t goal    = PL_new_term_ref();
@@ -937,23 +955,23 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     ctx.engine  = LD;
     if ( !pl_prolog_flag(tmp, options, &ctx) )
       PL_put_nil(options);
-    PL_put_atom(tmp, ATOM_user_output);
+    PL_unify_stream_or_alias(tmp, out);
 
     msg[0] = true(def, P_TRANSPARENT) ? '^' : ' ';
     msg[1] = (flags&WFG_TRACE) ? 'T' : true(def, SPY_ME) ? '*' : ' ';
     msg[2] = EOS;
 
-    Sfprintf(Sdout, "%s%s(%d) ", msg, pp, levelFrame(frame));
+    Sfprintf(out, "%s%s(%d) ", msg, pp, levelFrame(frame));
     if ( debugstatus.showContext )
-      Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
+      Sfprintf(out, "[%s] ", stringAtom(contextModule(frame)->name));
 #ifdef O_LIMIT_DEPTH
     if ( levelFrame(frame) > depth_limit )
-      Sfprintf(Sdout, "[depth-limit exceeded] ");
+      Sfprintf(out, "[depth-limit exceeded] ");
 #endif
 
     pl_write_term3(tmp, goal, options);
     if ( flags & (WFG_BACKTRACE|WFG_CHOICE) )
-      Sfprintf(Sdout, "\n");
+      Sfprintf(out, "\n");
 
     debugstatus.debugging = debugSave;
   }
@@ -975,7 +993,7 @@ alternatives(Choice ch)
   { if ( ch->type == CHP_DEBUG )
       continue;
     if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
-      writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
+      writeFrameGoal(Suser_error, ch->frame, NULL, WFG_CHOICE);
   }
 }
 
@@ -1055,20 +1073,20 @@ listGoal(LocalFrame frame)
 
 
 static void
-writeContextFrame(pl_context_t *ctx, int flags)
+writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 { if ( (flags&PL_BT_SAFE) )
   { char buf[256];
 
     PL_describe_context(ctx, buf, sizeof(buf));
-    Sdprintf("  %s\n", buf);
+    Sfprintf(out, "  %s\n", buf);
   } else
-  { writeFrameGoal(ctx->fr, ctx->pc, WFG_BACKTRACE);
+  { writeFrameGoal(out, ctx->fr, ctx->pc, WFG_BACKTRACE);
   }
 }
 
 
-void
-PL_backtrace(int depth, int flags)
+static void
+_PL_backtrace(IOSTREAM *out, int depth, int flags)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1093,14 +1111,14 @@ PL_backtrace(int depth, int flags)
       if ( frame->predicate == def )
       { if ( ++same_proc >= 10 )
 	{ if ( same_proc == 10 )
-	    Sdprintf("    ...\n    ...\n", Sdout);
+	    Sfprintf(out, "    ...\n    ...\n", Sdout);
 	  rctx = ctx;
 	  continue;
 	}
       } else
       { if ( same_proc >= 10 )
 	{ if ( isDebugFrame(rctx.fr) || !(flags&PL_BT_USER) )
-	  { writeContextFrame(&rctx, flags);
+	  { writeContextFrame(out, &rctx, flags);
 	    depth--;
 	  }
 	  same_proc = 0;
@@ -1109,13 +1127,41 @@ PL_backtrace(int depth, int flags)
       }
 
       if ( isDebugFrame(frame) || !(flags&PL_BT_USER) )
-      { writeContextFrame(&ctx, flags);
+      { writeContextFrame(out, &ctx, flags);
 	depth--;
       }
     }
   } else
-  { Sdprintf("No stack??\n");
+  { Sfprintf(out, "No stack??\n");
   }
+}
+
+
+void
+PL_backtrace(int depth, int flags)
+{ GET_LD
+
+  _PL_backtrace(Suser_error, depth, flags);
+}
+
+
+char *
+PL_backtrace_string(int depth, int flags)
+{ char *data = NULL;
+  size_t len = 0;
+  IOSTREAM *out;
+
+  if ( (out=Sopenmem(&data, &len, "w")) )
+  { out->encoding = ENC_UTF8;
+    out->newline  = SIO_NL_POSIX;
+
+    _PL_backtrace(out, depth, flags);
+    Sclose(out);
+
+    return data;
+  }
+
+  return NULL;
 }
 
 
@@ -1229,7 +1275,8 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	{ debugstatus.skiplevel = levelFrame(frame) - 1;
 	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_retry )
-	{ rval = ACTION_RETRY;
+	{ debugstatus.retryFrame = consTermRef(frame);
+	  rval = ACTION_RETRY;
 	} else if ( a == ATOM_ignore )
 	{ rval = ACTION_IGNORE;
 	} else if ( a == ATOM_abort )
@@ -1241,7 +1288,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	term_t arg = PL_new_term_ref();
 
 	if ( PL_get_arg(1, rarg, arg) && PL_get_frame(arg, &fr) )
-	{ debugstatus.retryFrame = fr;
+	{ debugstatus.retryFrame = consTermRef(fr);
 	  rval = ACTION_RETRY;
 	} else
 	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
@@ -1398,7 +1445,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
 	  return printed+snprintf(buf, len, "[PC=%ld in top query clause]",
 				  (long)pc);
 
-	clause_no = clauseNo(fr->predicate, cl);
+	clause_no = clauseNo(fr->predicate, cl, 0);
 	return printed+snprintf(buf, len, "[PC=%ld in clause %d]",
 				(long)pc,
 				clause_no);
@@ -1536,7 +1583,7 @@ resetTracer(void)
   debugstatus.debugging    = DBG_OFF;
   debugstatus.suspendTrace = 0;
   debugstatus.skiplevel    = 0;
-  debugstatus.retryFrame   = NULL;
+  debugstatus.retryFrame   = 0;
 
   setPrologFlagMask(PLFLAG_LASTCALL);
 }
@@ -1889,6 +1936,9 @@ PRED_IMPL("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
   { TRY(PL_unify_integer(old, debugstatus.skiplevel));
   }
 
+  if ( PL_compare(A1, A2) == 0 )
+    return TRUE;
+
   if ( PL_get_atom(new, &a) )
   { if ( a == ATOM_very_deep )
     { debugstatus.skiplevel = SKIP_VERY_DEEP;
@@ -2023,7 +2073,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 { GET_LD
   LocalFrame fr;
   atom_t key;
-  int arity;
+  size_t arity;
   term_t result = PL_new_term_ref();
   Module m = NULL;
 
@@ -2349,6 +2399,9 @@ typedef struct delayed_event
     { Clause clause;
       int    offset;
     } pc;
+    struct
+    { Clause clause;
+    } clause;
   } value;
 } delayed_event;
 
@@ -2368,6 +2421,9 @@ delayEvent(pl_event_type ev, va_list args)
 	dev.value.pc.clause = va_arg(args, Clause);
 	dev.value.pc.offset = va_arg(args, int);
 	break;
+      case PLEV_ERASED_CLAUSE:
+	dev.value.clause.clause = va_arg(args, Clause);
+        break;
       default:
 	assert(0);
     }
@@ -2413,6 +2469,10 @@ sendDelayedEvents(void)
       { case PLEV_BREAK:
 	case PLEV_NOBREAK:
 	  callEventHook(dev->type, dev->value.pc.clause, dev->value.pc.offset);
+	  sent++;
+	  break;
+	case PLEV_ERASED_CLAUSE:
+	  callEventHook(dev->type, dev->value.clause.clause);
 	  sent++;
 	  break;
 	default:

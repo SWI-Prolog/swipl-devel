@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef __WINDOWS__
@@ -57,6 +69,7 @@ locking is required.
 #include <wchar.h>
 #define NEEDS_SWINSOCK
 #include "SWI-Stream.h"
+#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 #include "pl-utf8.h"
 #include <sys/types.h>
@@ -81,7 +94,9 @@ locking is required.
 #include <stdarg.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#ifdef HAVE_SYS_SELECT_H
+#if defined(HAVE_POLL_H)
+#include <poll.h>
+#elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
 #endif
 #ifdef HAVE_UNISTD_H
@@ -115,10 +130,13 @@ static int	S__removebuf(IOSTREAM *s);
 static int	S__seterror(IOSTREAM *s);
        void	unallocStream(IOSTREAM *s);
 
+static IOSTREAM *	Sopen_buffer(IOSTREAM *s, char *buf, size_t size);
+static void		Sclose_buffer(IOSTREAM *s);
+
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
 #define SUNLOCK(s)  if ( s->mutex ) recursiveMutexUnlock(s->mutex)
-inline int
+static inline int
 STRYLOCK(IOSTREAM *s)
 { if ( s->mutex &&
        recursiveMutexTryLock(s->mutex) == EBUSY )
@@ -377,32 +395,51 @@ typedef int SOCKET;
 #define NFDS(n) (n+1)
 #else
 #define NFDS(n) (0)			/* 1st arg of select is ignored */
+#ifdef HAVE_WSAPOLL
+#define HAVE_POLL 1
+static inline int
+poll(struct pollfd *pfd, int nfds, int timeout)
+{ return WSAPoll(pfd, nfds, timeout);
+}
+#endif
 #endif
 
 
 static int
 S__wait(IOSTREAM *s)
 { SOCKET fd = Swinsock(s);
+  int rc;
+#ifdef HAVE_POLL
+  struct pollfd fds[1];
+#else
   fd_set wait;
   struct timeval time;
-  int rc;
-
-  if ( fd == INVALID_SOCKET )
-  { errno = EPERM;			/* no permission to select */
-    s->flags |= SIO_FERR;
-    return -1;
-  }
 
   time.tv_sec  = s->timeout / 1000;
   time.tv_usec = (s->timeout % 1000) * 1000;
   FD_ZERO(&wait);
   FD_SET(fd, &wait);
+#endif
+
+  if ( fd == INVALID_SOCKET )
+  { errno = EPERM;			/* no permission to select */
+    Sseterr(s, SIO_FERR, "not a socket");
+    return -1;
+  }
 
   for(;;)
-  { if ( (s->flags & SIO_INPUT) )
+  {
+#ifdef HAVE_POLL
+    fds[0].fd = fd;
+    fds[0].events = (s->flags & SIO_INPUT) ? POLLIN : POLLOUT;
+
+    rc = poll(fds, 1, s->timeout);
+#else
+    if ( (s->flags & SIO_INPUT) )
       rc = select(NFDS(fd), &wait, NULL, NULL, &time);
     else
       rc = select(NFDS(fd), NULL, &wait, NULL, &time);
+#endif
 
     if ( rc < 0 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
@@ -419,7 +456,7 @@ S__wait(IOSTREAM *s)
   }
 
   if ( rc == 0 )
-  { s->flags |= (SIO_TIMEOUT|SIO_FERR);
+  { Sseterr(s, SIO_TIMEOUT|SIO_FERR, NULL);
     return -1;
   }
 
@@ -427,6 +464,28 @@ S__wait(IOSTREAM *s)
 }
 
 #endif /*HAVE_SELECT*/
+
+int
+Sset_timeout(IOSTREAM *s, int tmo)
+{ IOSTREAM *us;
+
+  for ( us=s; us; us=us->upstream )
+  { if ( us->magic != SIO_MAGIC )
+    { errno = EINVAL;
+      return -1;
+    }
+    us->timeout = tmo;
+  }
+  for ( us=s; us; us=us->downstream )
+  { if ( us->magic != SIO_MAGIC )
+    { errno = EINVAL;
+      return -1;
+    }
+    us->timeout = tmo;
+  }
+
+  return 0;
+}
 
 
 		 /*******************************
@@ -537,7 +596,7 @@ S__fillbuf(IOSTREAM *s)
 
   if ( s->flags & (SIO_FEOF|SIO_FERR) )	/* reading past eof */
   { if ( s->flags & SIO_FEOF2ERR )
-      s->flags |= (SIO_FEOF2|SIO_FERR);
+      Sseterr(s, (SIO_FEOF2|SIO_FERR), NULL);
     else
       s->flags |= SIO_FEOF2;
     return -1;
@@ -581,6 +640,10 @@ S__fillbuf(IOSTREAM *s)
       len = s->bufsize;
     } else if ( s->bufp < s->limitp )
     { len = s->limitp - s->bufp;
+      if ( len == s->bufsize )
+      { c = char_to_int(*s->bufp++);
+	return c;
+      }
       memmove(s->buffer, s->bufp, s->limitp - s->bufp);
       s->bufp = s->buffer;
       s->limitp = &s->bufp[len];
@@ -643,8 +706,6 @@ update_linepos(IOSTREAM *s, int c)
       if ( p->linepos > 0 )
 	p->linepos--;
       break;
-    case EOF:
-      break;
     case '\t':
       p->linepos |= 7;
     default:
@@ -666,9 +727,11 @@ int
 S__fupdatefilepos_getc(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
-  update_linepos(s, c);
-  p->byteno++;
-  p->charno++;
+  if ( c != EOF )
+  { update_linepos(s, c);
+    p->byteno++;
+    p->charno++;
+  }
 
   return c;
 }
@@ -678,7 +741,7 @@ static inline int
 S__updatefilepos(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
-  if ( p )
+  if ( p && c != EOF )
   { update_linepos(s, c);
     p->charno++;
   }
@@ -692,7 +755,7 @@ static inline int
 get_byte(IOSTREAM *s)
 { int c = Snpgetc(s);
 
-  if ( s->position )
+  if ( s->position && c != EOF )
     s->position->byteno++;
 
   return c;
@@ -1296,6 +1359,17 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
   if ( n > limit )
     n = limit;
   memcpy(&buf[done], s->bufp, n);
+  if ( s->position && !(flags&SIO_RP_NOPOS) )
+  { IOPOS *p = s->position;
+    char *f = buf;
+    char *e = &buf[done+n];
+
+    for(; f<e; f++)
+    { update_linepos(s, f[0]&0xff);
+      p->charno++;
+    }
+  }
+
   s->bufp += n;
 
   return done+n;
@@ -1443,51 +1517,103 @@ S__seterror(IOSTREAM *s)
     }
   }
 
-  s->flags |= SIO_FERR;
+  Sseterr(s, SIO_FERR, NULL);
   return 0;
 }
 
 
 int
 Sferror(IOSTREAM *s)
-{ return (s->flags & SIO_FERR) != 0;
+{ if ( s->magic == SIO_MAGIC )
+    return (s->flags & SIO_FERR) != 0;
+
+  errno = EINVAL;
+  return -1;
 }
 
 
 int
 Sfpasteof(IOSTREAM *s)
-{ return (s->flags & (SIO_FEOF2ERR|SIO_FEOF2)) == (SIO_FEOF2ERR|SIO_FEOF2);
+{ if ( s->magic == SIO_MAGIC )
+    return (s->flags & (SIO_FEOF2ERR|SIO_FEOF2)) == (SIO_FEOF2ERR|SIO_FEOF2);
+
+  errno = EINVAL;
+  return -1;
 }
 
+
+#define SIO_ERROR_FLAGS (SIO_FEOF|SIO_WARN|SIO_FERR| \
+			 SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR)
 
 void
 Sclearerr(IOSTREAM *s)
-{ s->flags &= ~(SIO_FEOF|SIO_WARN|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR);
-  s->io_errno = 0;
-  Sseterr(s, 0, NULL);
-}
-
-
-void
-Sseterr(IOSTREAM *s, int flag, const char *message)
-{ if ( s->message )
-  { free(s->message);
-    s->message = NULL;
-    s->flags &= ~SIO_CLEARERR;
-  }
-  if ( message )
-  { s->flags |= flag;
-    s->message = strdup(message);
-  } else
-  { s->flags &= ~flag;
+{ for(; s && s->magic == SIO_MAGIC; s = s->downstream)
+  { s->flags &= ~SIO_ERROR_FLAGS;
+    s->io_errno = 0;
+    Sseterr(s, 0, NULL);
+    Sset_exception(s, 0);
   }
 }
 
+/** Sseterr(IOSTREAM *s, int flags, const char *message)
+ *
+ * Set error state of stream.
+ */
 
-void
+int
+Sseterr(IOSTREAM *s, int flags, const char *message)
+{ for(; s && s->magic == SIO_MAGIC; s = s->upstream )
+  { s->flags = (s->flags & ~(SIO_WARN|SIO_FERR|SIO_CLEARERR)) | flags;
+
+    if ( s->message )
+    { free(s->message);
+      s->message = NULL;
+    }
+    if ( message )
+      s->message = strdup(message);
+
+    if ( s->flags&SIO_WARN )
+      assert(s->message);
+  }
+
+  if ( !s )
+    return 0;
+
+  errno = EINVAL;
+  return -1;
+}
+
+
+int
 Sset_exception(IOSTREAM *s, term_t ex)
-{ s->exception = PL_record(ex);
-  s->flags |= SIO_FERR;
+{ record_t r = NULL;
+
+  for(; s&&s->magic == SIO_MAGIC; s = s->upstream )
+  { int nflags = ex ? ((s->flags & ~SIO_WARN) | SIO_FERR)
+		    : ((s->flags & ~(SIO_FERR|SIO_WARN)));
+
+    if ( s->exception )
+    { PL_erase(s->exception);
+      s->exception = NULL;
+    }
+    if ( ex )
+    { if ( r )
+      { s->exception = PL_duplicate_record(r);
+      } else
+      { r = s->exception = PL_record(ex);
+      }
+    }
+
+    s->flags = nflags;
+
+    return 0;
+  }
+
+  if ( !s )
+    return 0;
+
+  errno = EINVAL;
+  return -1;
 }
 
 
@@ -1772,6 +1898,9 @@ unallocStream(IOSTREAM *s)
   }
 #endif
 
+  if ( s->context )
+    Sdprintf("WARNING: unallocStream(): stream has context??\n");
+
   if ( !(s->flags & SIO_STATIC) )
     PL_free(s);
 }
@@ -1962,6 +2091,8 @@ Svprintf(const char *fm, va_list args)
 	    break;				\
 	  }					\
 	  default:				\
+	    c = 0;				\
+	    assert(0);				\
 	    break;				\
 	}
 
@@ -2016,6 +2147,12 @@ ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
 	  fe = fs+__r; \
 	}
 
+typedef enum
+{ INT_INT       = 0,
+  INT_LONG      = 1,
+  INT_LONG_LONG = 2,
+  INT_SIZE_T    = 3
+} int_type;
 
 int
 Svfprintf(IOSTREAM *s, const char *fm, va_list args)
@@ -2086,12 +2223,16 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	}
 
 	if ( *fm == 'l' )
-	{ islong++;			/* 1: %ld */
+	{ islong = INT_LONG;		/* 1: %ld */
 	  fm++;
 	}
 	switch ( *fm )
 	{ case 'l':
-	    islong++;			/* 2: %lld */
+	    islong = INT_LONG_LONG;	/* 2: %lld */
+	    fm++;
+	    break;
+	  case 'z':
+	    islong = INT_SIZE_T;
 	    fm++;
 	    break;
 	  case 'U':			/* %Us: UTF-8 string */
@@ -2132,14 +2273,17 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    char fmbuf[8], *fp=fmbuf;
 
 	    switch( islong )
-	    { case 0:
+	    { case INT_INT:
 		vi = va_arg(args, int);
 	        break;
-	      case 1:
+	      case INT_LONG:
 		vl = va_arg(args, long);
 	        break;
-	      case 2:
+	      case INT_LONG_LONG:
 	        vll = va_arg(args, int64_t);
+		break;
+	      case INT_SIZE_T:
+	        vll = va_arg(args, size_t);
 		break;
 	      default:
 		assert(0);
@@ -2149,18 +2293,19 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    if ( modified )
 	      *fp++ = '#';
 	    switch( islong )
-	    { case 0:
+	    { case INT_INT:
 		*fp++ = *fm;
 	        *fp   = '\0';
 		SNPRINTF3(fmbuf, vi);
 		break;
-	      case 1:
+	      case INT_LONG:
 		*fp++ = 'l';
 	        *fp++ = *fm;
 		*fp   = '\0';
 		SNPRINTF3(fmbuf, vl);
 		break;
-	      case 2:
+	      case INT_LONG_LONG:
+	      case INT_SIZE_T:
 #ifdef __WINDOWS__
 	        *fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
 	        *fp++ = '6';
@@ -2321,6 +2466,19 @@ Ssprintf(char *buf, const char *fm, ...)
 
 
 int
+Ssnprintf(char *buf, size_t size, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svsnprintf(buf, size, fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+
+int
 Svsprintf(char *buf, const char *fm, va_list args)
 { IOSTREAM s;
   int rval;
@@ -2334,6 +2492,24 @@ Svsprintf(char *buf, const char *fm, va_list args)
 
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';
+
+  return rval;
+}
+
+
+/* Svsnprintf() writes at most `size` bytes to `buf`, while the
+   produced string is always 0-terminated (i.e., it emits at most
+   `size-1` bytes from the specification.
+*/
+
+int
+Svsnprintf(char *buf, size_t size, const char *fm, va_list args)
+{ IOSTREAM s;
+  int rval;
+
+  Sopen_buffer(&s, buf, size);
+  rval = Svfprintf(&s, fm, args);
+  Sclose_buffer(&s);
 
   return rval;
 }
@@ -2674,6 +2850,7 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
     filter->references++;
     parent->upstream = filter;
     filter->downstream = parent;
+    filter->timeout = parent->timeout;
   } else				/* clear filter */
   { if ( parent->upstream )
     { if ( --parent->upstream->references == 0 && parent->upstream->erased )
@@ -3115,17 +3292,26 @@ int
 Sfileno(IOSTREAM *s)
 { int n;
 
+  if ( s->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
+
   if ( s->flags & SIO_FILE )
   { intptr_t h = (intptr_t)s->handle;
     n = (int)h;
-  } else if ( s->functions->control &&
-	      (*s->functions->control)(s->handle,
-				       SIO_GETFILENO,
-				       (void *)&n) == 0 )
-  { ;
   } else
-  { errno = EINVAL;
-    n = -1;				/* no file stream */
+  { IOFUNCTIONS *funcs = s->functions;
+
+    if ( s->magic == SIO_MAGIC &&
+	 funcs->control &&
+	 (*funcs->control)(s->handle,
+			   SIO_GETFILENO,
+			   (void *)&n) == 0 )
+      return n;
+
+    errno = EINVAL;
+    return -1;
   }
 
   return n;
@@ -3606,6 +3792,52 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 }
 
 		 /*******************************
+		 *        BUFFER STREAMS        *
+		 *******************************/
+
+static ssize_t
+Swrite_buffer(void *handle, char *buf, size_t size)
+{ (void)handle;
+  (void)buf;
+  (void)size;
+
+  return -1;
+}
+
+IOFUNCTIONS Sbufferfunctions =
+{ NULL, /* read */
+  Swrite_buffer,
+  NULL, /* seek */
+  NULL  /* close */
+};
+
+/*
+   FIXME: this should probably use UTF-8 encoding rather than
+   ENC_ISO_LATIN_1.
+*/
+
+static IOSTREAM *
+Sopen_buffer(IOSTREAM *s, char *buf, size_t size)
+{
+  memset((char *)s, 0, sizeof(IOSTREAM));
+  s->bufp      = buf;
+  s->limitp    = &buf[size-1];
+  s->buffer    = buf;
+  s->flags     = SIO_FBUF|SIO_OUTPUT;
+  s->functions = &Sbufferfunctions;
+  s->encoding  = ENC_ISO_LATIN_1;
+  s->magic     = SIO_MAGIC;
+
+  return s;
+}
+
+static void
+Sclose_buffer(IOSTREAM *s)
+{ *s->bufp++ = '\0';
+}
+
+
+		 /*******************************
 		 *	 STANDARD HANDLES	*
 		 *******************************/
 
@@ -3699,11 +3931,13 @@ static void
 run_close_hooks(IOSTREAM *s)
 { close_hook *p;
 
+  if ( s->close_hook )
+  { (*s->close_hook)(s->closure);
+    s->close_hook = NULL;
+  }
+
   for(p=close_hooks; p; p = p->next)
     (*p->hook)(s);
-
-  if ( s->close_hook )
-    (*s->close_hook)(s->closure);
 }
 
 int

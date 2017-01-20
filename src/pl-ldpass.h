@@ -1,23 +1,35 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (c)  2010-2016, University of Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef PL_LDPASS_H_INCLUDED
@@ -46,6 +58,14 @@
 #define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
 #define popTermRef()		popTermRef__LD(PASS_LD1)
 #define pushWordAsTermRef(p)	pushWordAsTermRef__LD(p PASS_LD)
+#define lookupHTable(ht, n)	lookupHTable__LD(ht, n PASS_LD)
+#define pushPredicateAccess(def, gen) pushPredicateAccess__LD(def, gen PASS_LD)
+#define popPredicateAccess(def) popPredicateAccess__LD(def PASS_LD)
+#define popNPredicateAccess(cnt) popNPredicateAccess__LD(cnt PASS_LD)
+#define nextClause(chp, argv, fr, def) nextClause__LD(chp, argv, fr, def PASS_LD)
+#define lookupModule(name)	lookupModule__LD(name PASS_LD)
+#define isCurrentProcedure(f,m) isCurrentProcedure__LD(f, m PASS_LD)
+#define resolveProcedure(f,m)	resolveProcedure__LD(f, m PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n)	_PL_put_number__LD(t, n PASS_LD)
@@ -55,6 +75,7 @@
 #define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 #define PL_unify_int64(t, i)	PL_unify_int64__LD(t, i PASS_LD)
+#define PL_unify_output(t1,t2)	PL_unify_output__LD(t1, t2 PASS_LD)
 #define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
 #define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
 #define PL_put_variable(t)	PL_put_variable__LD(t PASS_LD)
@@ -88,5 +109,6 @@
 #define PL_open_foreign_frame() PL_open_foreign_frame__LD(PASS_LD1)
 #define PL_close_foreign_frame(id) PL_close_foreign_frame__LD(id PASS_LD)
 #define PL_strip_module_ex(t,m,p) PL_strip_module_ex__LD(t,m,p PASS_LD)
+#define var_name_ptr(p, n)	var_name_ptr__LD(p, n PASS_LD)
 
 #endif /*PL_LDPASS_H_INCLUDED*/

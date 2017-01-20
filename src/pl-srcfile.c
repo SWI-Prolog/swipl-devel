@@ -3,21 +3,33 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014-2015, VU University Amsterdam
+    Copyright (c)  2014-2016, VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -27,7 +39,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Source administration. The core object is  SourceFile, which keeps track
 of procedures that are defined by it.  Source files are identified by an
-unsigned short, which is registered with clauses and procedures.
+unsigned int, which is registered with clauses and procedures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define LOCK()   PL_LOCK(L_SRCFILE)
@@ -148,8 +160,8 @@ unallocSourceFile(SourceFile sf)
 
 
 static void
-freeSymbolSourceFile(Symbol s)
-{ SourceFile sf = s->value;
+freeSymbolSourceFile(void *name, void *value)
+{ SourceFile sf = value;
 
   if ( sf->magic == SF_MAGIC )
     sf->magic = SF_MAGIC_DESTROYING;
@@ -218,12 +230,11 @@ destroySourceFile(SourceFile sf)
 
   LOCK();
   if ( sf->magic == SF_MAGIC )
-  { Symbol s;
+  { SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
-    s = lookupHTable(GD->files.table, (void*)sf->name);
-    assert(s);
-    deleteSymbolHTable(GD->files.table, s);
+    f = deleteHTable(GD->files.table, (void*)sf->name);
+    assert(f);
     PL_unregister_atom(sf->name);
     putSourceFileArray(sf->index, NULL);
     if ( GD->files.no_hole_before > sf->index )
@@ -239,8 +250,8 @@ destroySourceFile(SourceFile sf)
 
 static SourceFile
 lookupSourceFile_unlocked(atom_t name, int create)
-{ SourceFile file;
-  Symbol s;
+{ GET_LD
+  SourceFile file;
 
   if ( !GD->files.table )
   { GD->files.table = newHTable(32);
@@ -248,8 +259,8 @@ lookupSourceFile_unlocked(atom_t name, int create)
     GD->files.no_hole_before = 1;
   }
 
-  if ( (s=lookupHTable(GD->files.table, (void*)name)) )
-  { file = s->value;
+  if ( (file=lookupHTable(GD->files.table, (void*)name)) )
+  { ;
   } else if ( create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
@@ -262,7 +273,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
     file->magic = SF_MAGIC;
     registerSourceFile(file);
 
-    addHTable(GD->files.table, (void*)name, file);
+    addNewHTable(GD->files.table, (void*)name, file);
   } else
   { file = NULL;
   }
@@ -402,11 +413,15 @@ delAllModulesSourceFile__unlocked(SourceFile sf)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Remove all links from sf to  m  module.   If  sf  becomes empty, we also
 delete the source file.
+
+(*) Although the system:$init_goal/3 clauses belong   to the file, we'll
+consider a file holding only initialization goals empty.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 unlinkSourceFileModule(SourceFile sf, Module m)
-{ ListCell cell, next, prev = NULL;
+{ GET_LD
+  ListCell cell, next, prev = NULL;
 
   LOCKSRCFILE(sf);
 
@@ -415,24 +430,34 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 
   for(cell=sf->procedures; cell; cell=next)
   { Procedure proc;
+    Definition def;
 
     next = cell->next;
     proc = cell->value;
+    def  = proc->definition;
 
-    if ( lookupHTable(m->procedures, (void*)proc->definition->functor->functor) )
+    if ( lookupHTable(m->procedures, (void*)def->functor->functor) ||
+	 PROCEDURE_dinit_goal->definition == def )	/* see (*) */
     { if ( prev )
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
       freeHeap(cell, sizeof(*cell));
     } else
+    { DEBUG(MSG_DESTROY_MODULE,
+	    Sdprintf("  Keeping %s\n", procedureName(proc)));
       prev = cell;
+    }
   }
 
   UNLOCKSRCFILE(sf);
 
   if ( !sf->procedures && !sf->modules )
+  { DEBUG(MSG_DESTROY_MODULE,
+	  Sdprintf("Destroying empty source file %s\n",
+		   PL_atom_chars(sf->name)));
     destroySourceFile(sf);
+  }
 }
 
 
@@ -559,86 +584,64 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
 }
 
 
+/** '$source_file_property'(+SrcFile, +Property, -Value) is semidet.
+*/
+
+static
+PRED_IMPL("$source_file_property", 3, source_file_property, 0)
+{ PRED_LD
+  atom_t filename, property;
+  SourceFile sf;
+
+  if ( !PL_get_atom_ex(A1, &filename) ||
+       !PL_get_atom_ex(A2, &property) )
+    return FALSE;
+
+  sf = lookupSourceFile(filename, FALSE);
+
+  if ( property == ATOM_load_count )
+    return PL_unify_integer(A3, sf ? sf->count : 0);
+  if ( property == ATOM_reloading )
+    return PL_unify_bool(A3, sf ? sf->reload != NULL : 0);
+  if ( property == ATOM_number_of_clauses )
+    return PL_unify_integer(A3, sf ? sf->number_of_clauses : 0);
+
+  return PL_domain_error("source_file_property", A2);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unloadFile(SourceFile sf)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 unloadFile(SourceFile sf)
-{ GET_LD
-  ListCell cell, next;
-  sigset_t set;
-  ClauseRef garbage = NULL;
+{ ListCell cell, next;
+  size_t deleted = 0;
 
   delayEvents();
-
   LOCKSRCFILE(sf);
-  PL_LOCK(L_PREDICATE);
-  PL_LOCK(L_THREAD);
-  PL_LOCK(L_STOPTHEWORLD);
-  blockSignals(&set);
-
-  GD->procedures.active_marked = 0;
-  GD->procedures.reloading = sf;
-  markPredicatesInEnvironments(LD);
-#ifdef O_PLMT
-  forThreadLocalData(markPredicatesInEnvironments,
-		     PL_THREAD_SUSPEND_AFTER_WORK);
-#endif
-  GD->procedures.reloading = NULL;
-
 				      /* remove the clauses */
   for(cell = sf->procedures; cell; cell = cell->next)
-  { int deleted;
-
-    Procedure proc = cell->value;
+  { Procedure proc = cell->value;
     Definition def = proc->definition;
 
-    DEBUG(MSG_UNLOAD, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
-			       predicateName(def), def->references));
-
-    if ( false(def, P_FOREIGN) )
-    { deleted = removeClausesProcedure(proc,
-				       true(def, P_MULTIFILE) ? sf->index : 0,
-				       TRUE);
-    } else
-      deleted = 0;
+    if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
+    { deleted += removeClausesPredicate(
+		     def, true(def, P_MULTIFILE) ? sf->index : 0, TRUE);
+    }
 
     DEBUG(MSG_UNLOAD,
 	  if ( false(def, P_MULTIFILE) && def->impl.clauses.number_of_clauses )
 	    Sdprintf("%s: %d clauses after unload\n",
 		     predicateName(def), def->impl.clauses.number_of_clauses));
 
-    if ( deleted )
-    { if ( false(def, P_MULTIFILE|P_DYNAMIC) )
-	clearTriedIndexes(def);
-
-      if ( def->references == 0 )
-      { freeCodesDefinition(def, FALSE);
-	garbage = cleanDefinition(def, garbage);
-      } else if ( false(def, P_DYNAMIC) )
-      { registerDirtyDefinition(def);
-	freeCodesDefinition(def, TRUE);
-      }
-    }
-
     if ( false(def, P_MULTIFILE) )
     { clear(def, FILE_ASSIGNED);
       clear_meta_declaration(def);
     }
   }
-
-				      /* unmark the marked predicates */
-  for(cell = sf->procedures; cell; cell = cell->next)
-  { Procedure proc = cell->value;
-    Definition def = proc->definition;
-
-    if ( false(def, P_DYNAMIC) && def->references )
-    { assert(def->references == 1);
-      def->references = 0;
-      GD->procedures.active_marked--;
-    }
-  }
+  DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
 
 				      /* cleanup the procedure list */
   for(cell = sf->procedures; cell; cell = next)
@@ -646,22 +649,12 @@ unloadFile(SourceFile sf)
     freeHeap(cell, sizeof(struct list_cell));
   }
   sf->procedures = NULL;
-  assert(GD->procedures.active_marked == 0);
 
-#ifdef O_PLMT
-  resumeThreads();
-#endif
   delAllModulesSourceFile__unlocked(sf);
-
-  unblockSignals(&set);
-  PL_UNLOCK(L_STOPTHEWORLD);
-  PL_UNLOCK(L_THREAD);
-  PL_UNLOCK(L_PREDICATE);
   UNLOCKSRCFILE(sf);
 
   sendDelayedEvents();
-  if ( garbage )
-    freeClauseList(garbage);
+  pl_garbage_collect_clauses();
 
   return TRUE;
 }
@@ -711,6 +704,623 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 }
 
 
+		 /*******************************
+		 *	    RECONSULT		*
+		 *******************************/
+
+static void	fix_discontiguous(p_reload *r);
+static void	fix_metapredicate(p_reload *r);
+
+static int
+startReconsultFile(SourceFile sf)
+{ GET_LD
+  sf_reload *r;
+
+  DEBUG(MSG_RECONSULT, Sdprintf("Reconsult %s ...\n", sourceFileName(sf)));
+
+  if ( (r = allocHeap(sizeof(*sf->reload))) )
+  { memset(r, 0, sizeof(*r));
+    r->procedures        = newHTable(16);
+    r->reload_gen        = GEN_MAX-PL_thread_self();
+    r->pred_access_count = popNPredicateAccess(0);
+    sf->reload = r;
+
+    return TRUE;
+  }
+
+  return PL_no_memory();
+}
+
+
+static ClauseRef
+find_clause(ClauseRef cref, gen_t generation)
+{ for(; cref; cref = cref->next)
+  { if ( visibleClause(cref->value.clause, generation) )
+      break;
+  }
+
+  return cref;
+}
+
+
+static void
+advance_clause(p_reload *r ARG_LD)
+{ ClauseRef cref;
+
+  if ( (cref = r->current_clause) )
+  { acquire_def(r->predicate);
+    for(cref = cref->next; cref; cref = cref->next)
+    { if ( visibleClause(cref->value.clause, r->generation) )
+	break;
+    }
+    release_def(r->predicate);
+    r->current_clause = cref;
+  }
+}
+
+
+static void
+copy_clause_source(Clause dest, Clause src)
+{ dest->source_no = src->source_no;
+  dest->owner_no  = src->owner_no;
+  dest->line_no   = src->line_no;
+}
+
+
+static ClauseRef
+keep_clause(p_reload *r, Clause clause ARG_LD)
+{ ClauseRef cref = r->current_clause;
+  Clause keep = cref->value.clause;
+
+  copy_clause_source(keep, clause);
+  freeClause(clause);
+  advance_clause(r PASS_LD);
+
+  return cref;
+}
+
+
+static int
+equal_clause(Clause cl1, Clause cl2)
+{ if ( cl1->code_size == cl2->code_size )
+  { size_t bytes = (size_t)cl1->code_size * sizeof(code);
+
+    return memcmp(cl1->codes, cl2->codes, bytes) == 0;
+  }
+
+  return FALSE;
+}
+
+
+int
+reloadHasClauses(SourceFile sf, Procedure proc ARG_LD)
+{ p_reload *reload;
+
+  if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
+  { return reload->number_of_clauses > 0;
+  }
+
+  return FALSE;
+}
+
+
+static int
+reloadIsDefined(SourceFile sf, Procedure proc ARG_LD)
+{ p_reload *reload;
+
+  if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
+  { return ( true(reload, PROC_DEFINED) ||
+	     reload->number_of_clauses > 0 );
+  }
+
+  return FALSE;
+}
+
+
+int
+isDefinedProcedureSource(Procedure proc)
+{ GET_LD
+
+  if ( ReadingSource )
+  { SourceFile sf = lookupSourceFile(source_file_name, FALSE);
+
+    if ( sf && sf == indexToSourceFile(proc->source_no) && sf->reload )
+      return reloadIsDefined(sf, proc PASS_LD);
+  }
+
+  return isDefinedProcedure(proc);
+}
+
+
+static p_reload *
+reloadContext(SourceFile sf, Procedure proc ARG_LD)
+{ p_reload *reload;
+
+  if ( !(reload = lookupHTable(sf->reload->procedures, proc)) )
+  { Definition def = proc->definition;
+
+    if ( !(reload = allocHeap(sizeof(*reload))) )
+    { PL_no_memory();
+      return NULL;
+    }
+    memset(reload, 0, sizeof(*reload));
+    reload->predicate = def;
+    if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
+    { set(reload, P_NO_CLAUSES);
+    } else if ( isDefinedProcedure(proc) )
+    { reload->generation = global_generation();
+      pushPredicateAccess(def, reload->generation);
+      acquire_def(def);
+      reload->current_clause = find_clause(def->impl.clauses.first_clause,
+					   reload->generation);
+      release_def(def);
+    } else
+    { set(reload, P_NEW);
+    }
+    addNewHTable(sf->reload->procedures, proc, reload);
+    DEBUG(MSG_RECONSULT_PRED,
+	  Sdprintf("%s %s ...\n",
+		   true(reload, P_NEW)        ? "New"   :
+		   true(reload, P_NO_CLAUSES) ? "Alien" :
+					        "Reload",
+		   predicateName(def)));
+  }
+
+  return reload;
+}
+
+
+ClauseRef
+assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
+{ if ( sf && sf->reload )
+  { p_reload *reload;
+    Definition def = proc->definition;
+    ClauseRef cref;
+
+    assert(proc == sf->current_procedure);
+
+    sf->reload->number_of_clauses++;
+
+    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    { freeClause(clause);
+      return NULL;
+    }
+
+    if ( reload->number_of_clauses++ == 0 )
+      fix_discontiguous(reload);
+
+    if ( true(reload, P_NEW|P_NO_CLAUSES) )
+      return assertProcedure(proc, clause, CL_END PASS_LD);
+
+    if ( (cref = reload->current_clause) )
+    { ClauseRef cref2;
+
+      if ( equal_clause(cref->value.clause, clause) )
+      { DEBUG(MSG_RECONSULT_CLAUSE,
+	      Sdprintf("  Keeping clause %d\n",
+		       clauseNo(def, cref->value.clause, reload->generation)));
+	return keep_clause(reload, clause PASS_LD);
+      }
+
+      set(reload, P_MODIFIED);
+
+      acquire_def(def);
+      for(cref2 = cref->next; cref2; cref2 = cref2->next)
+      { Clause c2 = cref2->value.clause;
+
+	if ( !visibleClause(c2, reload->generation) )
+	  continue;
+	if ( true(def, P_MULTIFILE) && c2->owner_no != sf->index )
+	  continue;
+
+	if ( equal_clause(c2, clause) )
+	{ ClauseRef del;
+
+	  for(del = cref; del != cref2; del = del->next)
+	  { Clause c = del->value.clause;
+
+	    if ( !visibleClause(c, reload->generation) ||
+		 true(c, CL_ERASED) )
+	      continue;
+	    if ( true(def, P_MULTIFILE) && c->owner_no != sf->index )
+	      continue;
+
+	    c->generation.erased = sf->reload->reload_gen;
+	    DEBUG(MSG_RECONSULT_CLAUSE,
+		  Sdprintf("  Deleted clause %d\n",
+			   clauseNo(def, c, reload->generation)));
+	  }
+	  release_def(def);
+
+	  reload->current_clause = cref2;
+	  DEBUG(MSG_RECONSULT_CLAUSE,
+		Sdprintf("  Keeping clause %d\n",
+			 clauseNo(def, cref2->value.clause, reload->generation)));
+	  return keep_clause(reload, clause PASS_LD);
+	}
+      }
+      release_def(def);
+
+      DEBUG(MSG_RECONSULT_CLAUSE,
+	    Sdprintf("  Inserted before clause %d\n",
+		     clauseNo(def, cref->value.clause, reload->generation)));
+      if ( (cref2 = assertProcedure(proc, clause, cref PASS_LD)) )
+	cref2->value.clause->generation.created = sf->reload->reload_gen;
+
+      return cref2;
+    } else
+    { if ( (cref = assertProcedure(proc, clause, CL_END PASS_LD)) )
+	cref->value.clause->generation.created = sf->reload->reload_gen;
+      DEBUG(MSG_RECONSULT_CLAUSE, Sdprintf("  Added at the end\n"));
+
+      set(reload, P_MODIFIED);
+
+      return cref;
+    }
+  } else if ( sf )
+  { sf->number_of_clauses++;
+  }
+
+  return assertProcedure(proc, clause, CL_END PASS_LD);
+}
+
+
+static void
+associateSource(SourceFile sf, Procedure proc)
+{ Definition def = proc->definition;
+
+  if ( false(def, FILE_ASSIGNED) )
+  { GET_LD
+
+    DEBUG(2, Sdprintf("Associating %s to %s (%p)\n",
+		      predicateName(def), PL_atom_chars(source_file_name),
+		      def));
+    addProcedureSourceFile(sf, proc);
+
+    if ( SYSTEM_MODE )
+    { set(def, P_LOCKED|HIDE_CHILDS);
+    } else
+    { if ( truePrologFlag(PLFLAG_DEBUGINFO) )
+	clear(def, HIDE_CHILDS);
+      else
+	set(def, HIDE_CHILDS);
+    }
+  }
+}
+
+
+#define P_ATEND	(P_VOLATILE|P_PUBLIC|P_ISO|P_NOPROFILE|P_NON_TERMINAL)
+
+int
+setAttrProcedureSource(SourceFile sf, Procedure proc,
+		       unsigned attr, int val ARG_LD)
+{ if ( val && (attr&PROC_DEFINED) )
+    associateSource(sf, proc);
+
+  if ( sf->reload )
+  { p_reload *reload;
+
+    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+      return FALSE;
+
+    if ( val )
+      set(reload, attr);
+    else
+      clear(reload, attr);
+
+    if ( (attr&(P_ATEND|P_TRANSPARENT)) )
+      return TRUE;
+  }
+
+  return setAttrDefinition(proc->definition, attr, val);
+}
+
+
+static void
+fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
+{ if ( false(def, P_MULTIFILE) )
+    def->flags = (def->flags & ~P_ATEND) | (r->flags & P_ATEND);
+  else
+    def->flags |= (r->flags&P_ATEND);
+
+  fix_metapredicate(r);
+}
+
+
+static void
+fix_discontiguous(p_reload *r)
+{ Definition def = r->predicate;
+
+  if ( true(def, P_DISCONTIGUOUS) && false(r, P_DISCONTIGUOUS) )
+    clear(def, P_DISCONTIGUOUS);
+}
+
+
+int
+setMetapredicateSource(SourceFile sf, Procedure proc,
+		       meta_mask mask ARG_LD)
+{ associateSource(sf, proc);
+
+  if ( sf->reload )
+  { p_reload *reload;
+
+    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+      return FALSE;
+
+    reload->meta_info = mask;
+    if ( isTransparentMetamask(proc->definition, mask) )
+      set(reload, P_TRANSPARENT);
+    else
+      clear(reload, P_TRANSPARENT);
+    set(reload, P_META);
+  } else
+  { setMetapredicateMask(proc->definition, mask);
+  }
+
+  return TRUE;
+}
+
+
+static void
+fix_metapredicate(p_reload *r)
+{ Definition def = r->predicate;
+
+  if ( false(def, P_MULTIFILE) )
+  { int mfmask = (P_META|P_TRANSPARENT);
+
+    if ( (def->flags&mfmask) != (r->flags&mfmask) ||
+	 def->meta_info != r->meta_info )
+    { if ( true(def, P_META) && false(r, P_META) )
+	clear_meta_declaration(def);
+      else if ( true(r, P_META) )
+	setMetapredicateMask(def, r->meta_info);
+      clear(def, P_TRANSPARENT);
+      set(def, r->flags&P_TRANSPARENT);
+
+      freeCodesDefinition(def, FALSE);
+    }
+  } else if ( true(r, P_META) )
+  { setMetapredicateMask(def, r->meta_info);
+    freeCodesDefinition(def, FALSE);
+  } else if ( true(r, P_TRANSPARENT) )
+  { set(def, P_TRANSPARENT);
+  }
+}
+
+
+void
+registerReloadModule(SourceFile sf, Module module)
+{ GET_LD
+  m_reload *r;
+
+  if ( sf->reload )
+  { Table mt;
+
+    if ( !(mt=sf->reload->modules) )
+      mt = sf->reload->modules = newHTable(8);
+
+    if ( !(r=lookupHTable(mt, module)) )
+    { r = allocHeapOrHalt(sizeof(*r));
+      memset(r, 0, sizeof(*r));
+      addNewHTable(mt, module, r);
+    }
+  }
+}
+
+
+int
+exportProcedureSource(SourceFile sf, Module module, Procedure proc)
+{ GET_LD
+  m_reload *r;
+
+  if ( sf->reload && sf->reload->modules &&
+       (r = lookupHTable(sf->reload->modules, module)) )
+  { if ( !r->public )
+      r->public = newHTable(8);
+    updateHTable(r->public,
+		 (void *)proc->definition->functor->functor,
+		 proc);
+  }
+
+  return exportProcedure(module, proc);
+}
+
+
+static void
+fix_module(Module m, m_reload *r)
+{ GET_LD
+
+  LOCKMODULE(m);
+  for_table(m->public, n, v,
+	    { if ( !r->public ||
+		   !lookupHTable(r->public, n) )
+	      { DEBUG(MSG_RECONSULT_MODULE,
+		      Sdprintf("Delete export %s\n",
+			       procedureName(v)));
+		deleteHTable(m->public, n);
+	      }
+	    });
+  UNLOCKMODULE(m);
+}
+
+
+static void
+delete_old_predicate(SourceFile sf, Procedure proc)
+{ Definition def = proc->definition;
+  size_t deleted;
+
+  deleted = removeClausesPredicate(
+		def,
+		true(def, P_MULTIFILE) ? sf->index : 0,
+		TRUE);
+
+  if ( false(def, P_MULTIFILE) )
+  { clear(def, FILE_ASSIGNED);
+    clear_meta_declaration(def);
+    freeCodesDefinition(def, TRUE);
+  }
+
+  DEBUG(MSG_RECONSULT_PRED,
+	Sdprintf("Deleted %ld clauses from predicate %s\n",
+		 (long)deleted, predicateName(def)));
+
+  (void)deleted;
+}
+
+
+static void
+delete_old_predicates(SourceFile sf)
+{ GET_LD
+  ListCell cell, prev = NULL, next;
+
+  for(cell = sf->procedures; cell; cell = next)
+  { Procedure proc = cell->value;
+
+    next = cell->next;
+
+    if ( false(proc->definition, P_FOREIGN) &&
+	 !lookupHTable(sf->reload->procedures, proc) )
+    { delete_old_predicate(sf, proc);
+
+      if ( prev )
+	prev->next = cell->next;
+      else
+	sf->procedures = cell->next;
+    } else
+    { prev = cell;
+    }
+  }
+}
+
+
+static void
+delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
+{ ClauseRef cref;
+  sf_reload *rl = sf->reload;
+
+  acquire_def(def);
+  for(cref = r->current_clause; cref; cref = cref->next)
+  { Clause c = cref->value.clause;
+
+    if ( !visibleClause(c, r->generation) ||
+	 true(c, CL_ERASED) )
+      continue;
+    if ( true(r->predicate, P_MULTIFILE|P_DYNAMIC) && c->owner_no != sf->index )
+      continue;
+
+    c->generation.erased = rl->reload_gen;
+    set(r, P_MODIFIED);
+    DEBUG(MSG_RECONSULT_CLAUSE,
+	  Sdprintf("  %s: deleted clause %d\n",
+		   predicateName(def),
+		   clauseNo(def, c, r->generation)));
+  }
+  release_def(def);
+}
+
+
+static int
+endReconsult(SourceFile sf)
+{ GET_LD
+  sf_reload *reload;
+
+  if ( (reload=sf->reload) )
+  { size_t accessed_preds = reload->procedures->size;
+
+    delete_old_predicates(sf);
+
+    for_table(reload->procedures, n, v,
+	      { Procedure proc = n;
+		p_reload *r = v;
+
+		if ( false(r, P_NEW|P_NO_CLAUSES) )
+		{ Definition def = proc->definition;
+
+		  delete_pending_clauses(sf, def, r PASS_LD);
+		  fix_attributes(sf, def, r PASS_LD);
+		  reconsultFinalizePredicate(reload, def, r PASS_LD);
+		} else
+		{ accessed_preds--;
+		  if ( true(r, P_NO_CLAUSES) )
+		  { Definition def = proc->definition;
+		    fix_attributes(sf, def, r PASS_LD);
+		  }
+		}
+		freeHeap(r, sizeof(*r));
+	      });
+
+    popNPredicateAccess(accessed_preds);
+    assert(reload->pred_access_count == popNPredicateAccess(0));
+    destroyHTable(reload->procedures);
+
+    if ( reload->modules )
+    { for_table(reload->modules, n, v,
+		{ Module m = n;
+		  m_reload *r = v;
+
+		  fix_module(m, r);
+		  if ( r->public )
+		    destroyHTable(r->public);
+		  freeHeap(r, sizeof(*r));
+		});
+      destroyHTable(reload->modules);
+    }
+
+    sf->number_of_clauses = sf->reload->number_of_clauses;
+    sf->reload = NULL;
+    freeHeap(reload, sizeof(*reload));
+
+    pl_garbage_collect_clauses();
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Flush the definition of proc in the   context  of (reloading) the source
+file sf.  This performs the following steps:
+
+  - If we have not seen the predicate, remove all clauses we may have
+    for it and add as P_NEW.
+  - If we have seen the predicate, perform the generation sync we would
+    normally do at the end of the file and mark the predicate reload
+    context as P_NEW.
+
+`proc` is a predicate indicator. If it  is not qualified, it is resolved
+against M in prolog_load_context(module, M).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+flush_procedure(SourceFile sf, Procedure proc)
+{ GET_LD
+  sf_reload *reload;
+
+  if ( (reload=sf->reload) )
+  { p_reload *r;
+
+    if ( (r=lookupHTable(sf->reload->procedures, proc)) )
+    { if ( false(r, P_NEW|P_NO_CLAUSES) )
+      { Definition def = proc->definition;
+
+	delete_pending_clauses(sf, def, r PASS_LD);
+	fix_attributes(sf, def, r PASS_LD);
+	reconsultFinalizePredicate(reload, def, r PASS_LD);
+      }
+    } else
+    { delete_old_predicate(sf, proc);
+      (void)reloadContext(sf, proc PASS_LD);
+    }
+  }
+
+  return TRUE;
+}
+
+
+		 /*******************************
+		 *	      CONSULT		*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startConsult(SourceFile sf)
 
@@ -726,12 +1336,15 @@ There are two options.
     This way other threads can happily keep running.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 startConsult(SourceFile f)
 { if ( f->count++ > 0 )			/* This is a re-consult */
-    unloadFile(f);
+  { if ( !startReconsultFile(f) )
+      return FALSE;
+  }
 
   f->current_procedure = NULL;
+  return TRUE;
 }
 
 
@@ -767,10 +1380,12 @@ PRED_IMPL("$end_consult", 1, end_consult, 0)
   atom_t name;
 
   if ( PL_get_atom_ex(A1, &name) )
-  { SourceFile f;
+  { SourceFile sf;
 
-    if ( (f=lookupSourceFile(name, FALSE)) )
-      f->current_procedure = NULL;
+    if ( (sf=lookupSourceFile(name, FALSE)) )
+    { sf->current_procedure = NULL;
+      return endReconsult(sf);
+    }
 
     return TRUE;
   }
@@ -794,7 +1409,7 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   atom_t owner_name;
   atom_t file_name;
   SourceFile of, sf;		/* owner file, source file */
-  unsigned short source_no;
+  unsigned int source_no;
   int ln;
   ListCell cell;
   Clause c = NULL;
@@ -824,9 +1439,10 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
     Definition def = proc->definition;
 
     if ( def && false(def, P_FOREIGN) )
-    { ClauseRef cref = def->impl.clauses.first_clause;
+    { ClauseRef cref;
 
-      for( ; cref; cref = cref->next )
+      acquire_def(def);
+      for(cref = def->impl.clauses.first_clause; cref; cref = cref->next )
       { Clause cl = cref->value.clause;
 
 	if ( cl->source_no == source_no )
@@ -836,6 +1452,7 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 	  }
 	}
       }
+      release_def(def);
     }
   }
   UNLOCKSRCFILE(of);
@@ -846,18 +1463,88 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   fail;
 }
 
+/** '$flush_predicate'(+Predicate, +File) is det.
+ *
+ * Finalize the definition of Predicate wrt. File. After this,
+ * subsequent changes to the predicate are _immediate_.
+ */
+
+static int
+flush_predicate(term_t pred ARG_LD)
+{ SourceFile sf;
+  Procedure proc;
+  Module m = LD->modules.source;
+  functor_t fdef;
+
+  if ( ReadingSource )
+    sf = lookupSourceFile(source_file_name, TRUE);
+  else
+    return TRUE;			/* not reading source; nothing to flush */
+
+  if ( !get_functor(pred, &fdef, &m, 0, GF_PROCEDURE) )
+    return FALSE;
+  if ( (proc=isCurrentProcedure(fdef,m)) )
+    return flush_procedure(sf, proc);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("$flush_predicate", 1, flush_predicate, 0)
+{ PRED_LD
+
+  return flush_predicate(A1 PASS_LD);
+}
+
+
+/** '$flushed_predicate'(:Head) is semidet.
+ *
+ * True when the finalized definition of Goal is defined.
+ */
+
+static
+PRED_IMPL("$flushed_predicate", 1, flushed_predicate, 0)
+{ PRED_LD
+  SourceFile sf;
+  term_t head = PL_new_term_ref();
+  Module m = LD->modules.source;
+  functor_t fdef;
+  Procedure proc;
+
+  if ( !PL_strip_module(A1, &m, head) )
+    return FALSE;
+  if ( !PL_get_functor(head, &fdef) )
+    return PL_type_error("callable", A1);
+  if ( !(proc=isCurrentProcedure(fdef, m)) )
+    return FALSE;
+
+  if ( ReadingSource )
+    sf = lookupSourceFile(source_file_name, TRUE);
+  else
+    return isDefinedProcedure(proc);
+
+  flush_procedure(sf, proc);
+  return isDefinedProcedure(proc);
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define  PL_FA_NONDET PL_FA_NONDETERMINISTIC
+
 BeginPredDefs(srcfile)
-  PRED_DEF("$source_file", 2, source_file, 0)
-  PRED_DEF("$source_file_predicates", 2, source_file_predicates, 0)
-  PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$clause_from_source", 4, clause_from_source, 0)
-  PRED_DEF("$unload_file", 1, unload_file, 0)
-  PRED_DEF("$start_consult", 2, start_consult, 0)
-  PRED_DEF("$end_consult", 1, end_consult, 0)
-  PRED_DEF("$make_system_source_files", 0, make_system_source_files, 0)
+  PRED_DEF("$source_file",		2, source_file,		     0)
+  PRED_DEF("$source_file_predicates",	2, source_file_predicates,   0)
+  PRED_DEF("$time_source_file",		3, time_source_file,    PL_FA_NONDET)
+  PRED_DEF("$source_file_property",	3, source_file_property,     0)
+  PRED_DEF("$clause_from_source",	4, clause_from_source,	     0)
+  PRED_DEF("$unload_file",		1, unload_file,		     0)
+  PRED_DEF("$start_consult",		2, start_consult,	     0)
+  PRED_DEF("$end_consult",		1, end_consult,		     0)
+  PRED_DEF("$make_system_source_files",	0, make_system_source_files, 0)
+  PRED_DEF("$flush_predicate",		1, flush_predicate,          0)
+  PRED_DEF("$flushed_predicate",	1, flushed_predicate,	     0)
 EndPredDefs

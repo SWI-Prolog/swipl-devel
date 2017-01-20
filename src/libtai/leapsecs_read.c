@@ -24,7 +24,7 @@ int leapsecs_read(const char *file)
 { int fd;
   struct stat st;
   struct tai *t;
-  int n;
+  ssize_t n;
   int i;
   struct tai u;
 
@@ -46,7 +46,7 @@ int leapsecs_read(const char *file)
   close(fd);
   if (n != st.st_size) { free(t); return -1; }
 
-  n /= sizeof(struct tai);
+  n /= (int)sizeof(struct tai);
 
   for (i = 0;i < n;++i) {
     tai_unpack((char *) &t[i],&u);
@@ -56,7 +56,7 @@ int leapsecs_read(const char *file)
   if (leapsecs) free(leapsecs);
 
   leapsecs = t;
-  leapsecs_num = n;
+  leapsecs_num = (int)n;
 
   return 0;
 }

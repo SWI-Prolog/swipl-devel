@@ -46,6 +46,8 @@ test_arith :-
                     maxint,
                     maxint_promotion,
 		    float_overflow,
+		    float_zero,
+		    float_special,
 		    arith_misc
 		  ]).
 
@@ -64,8 +66,10 @@ test(mod, true) :-
 	       forall((between(-10, 10, Y), Y =\= 0),
 		      div_ok(X, Y))).
 
+test(minint, condition(current_prolog_flag(bounded, false))) :-
+	div_ok(-9223372036854775808, 4294967297).
+
 test(minint, A == -2147483648) :-
-	assertion(div_ok(-9223372036854775808, 4294967297)),
 	A is -9223372036854775808 div 4294967297.
 
 :- end_tests(div).
@@ -156,7 +160,10 @@ test(gcd, X == 4) :-
 	X is gcd(100, 24).
 test(gcd, X == 4) :-
 	X is gcd(24, 100).		% seems to be some argument ordering
-
+:- if(current_prolog_flag(bounded,false)).
+test(gcd, X == 9223372036854775808) :-
+	X is gcd(-9223372036854775808, -9223372036854775808).
+:-endif.
 :- end_tests(gcd).
 
 :- begin_tests(errors).
@@ -270,6 +277,26 @@ test(mpz_to_int64, A == -9223372036854775808) :-
 	A is -9223372036854775808-1+1.
 :- endif.
 
+test(addition) :-
+	X is -9223372036854775808 + -1,
+	test_minint_promotion(X).
+test(addition) :-
+	X is -1 + -9223372036854775808,
+	test_minint_promotion(X).
+test(subtraction) :-
+	X is -9223372036854775808 - 1,
+	test_minint_promotion(X).
+:- if(current_prolog_flag(bounded,false)).
+test(multiplication) :-
+	X is -9223372036854775808 * 2 - -9223372036854775807,
+	test_minint_promotion(X).
+test(multiplication) :-
+	X is 2 * -9223372036854775808 - -9223372036854775807,
+	test_minint_promotion(X).
+test(multiplication) :-
+	X is -4294967296 * 4294967296 - -9223372036854775807,
+	test_minint_promotion(X).
+:- endif.
 
 :- end_tests(minint_promotion).
 
@@ -316,6 +343,27 @@ test(spaced_octal) :- test_maxint_promotion(0o10 0000 0000 0000 0000 0000).
 test(hexadecimal) :- test_maxint_promotion(0x8000000000000000).
 test(spaced_hexadecimal) :- test_maxint_promotion(0x8000_0000_0000_0000).
 
+test(addition) :-
+	X is 9223372036854775807 + 1,
+	test_maxint_promotion(X).
+test(addition) :-
+	X is 1 + 9223372036854775807,
+	test_maxint_promotion(X).
+test(subtraction) :-
+	X is 9223372036854775807 - -1,
+	test_maxint_promotion(X).
+:- if(current_prolog_flag(bounded,false)).
+test(multiplication) :-
+	X is 9223372036854775807 * 2 - 9223372036854775806,
+	test_maxint_promotion(X).
+test(multiplication) :-
+	X is 2 * 9223372036854775807 - 9223372036854775806,
+	test_maxint_promotion(X).
+test(multiplication) :-
+	X is 4294967295 * 4294967297 - 9223372036854775807,
+	test_maxint_promotion(X).
+:- endif.
+
 :- end_tests(maxint_promotion).
 
 :- begin_tests(float_overflow).
@@ -345,6 +393,48 @@ test(div, error(evaluation_error(float_overflow))) :-
 :- endif.
 
 :- end_tests(float_overflow).
+
+:- begin_tests(float_zero).
+
+min_zero(X) :-
+	X is -1.0/10e300/10e300.
+
+test(eq) :-
+	min_zero(X),
+	X =:= 0.0.
+test(lt, fail) :-
+	min_zero(X),
+	X < 0.0.
+test(gt, fail) :-
+	min_zero(X),
+	X > 0.0.
+test(eq, fail) :-
+	min_zero(X),
+	X == 0.0.
+test(lt) :-
+	min_zero(X),
+	X @< 0.0.
+test(gt, fail) :-
+	min_zero(X),
+	X > 0.0.
+test(cmp, D == (<)) :-
+	min_zero(X),
+	compare(D, X, 0.0).
+test(cmp, D == (>)) :-
+	min_zero(X),
+	compare(D, 0.0, X).
+
+:- end_tests(float_zero).
+
+:- begin_tests(float_special).
+
+test(cmp, fail) :-
+	(   nan > nan
+	;   nan =:= nan
+	;   nan < nan
+	).
+
+:- end_tests(float_special).
 
 :- begin_tests(arith_misc).
 

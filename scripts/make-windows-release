@@ -23,7 +23,7 @@ check-doc()
 
 update-src()
 { git pull --tags vu master
-  ./prepare
+  ./prepare --server=http://eu.swi-prolog.org --yes
   check-src || exit 1
   check-doc || exit 1
   version=`cat VERSION`

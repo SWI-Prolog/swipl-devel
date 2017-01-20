@@ -1,23 +1,35 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (c)  2008-2016, University of Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef PL_INLINE_H_INCLUDED
@@ -29,6 +41,12 @@
 		 /*******************************
 		 *	 LOCK-FREE SUPPORT	*
 		 *******************************/
+
+#ifdef _MSC_VER
+#define LL(x) x ## i64
+#else
+#define LL(x) x ## LL
+#endif
 
 #ifdef _MSC_VER				/* Windows MSVC version */
 
@@ -53,6 +71,15 @@ MSB(size_t i)
   return index;
 }
 
+#define HAVE_MSB64 1
+static inline int
+MSB64(int64_t i)
+{ unsigned long index;
+  _BitScanReverse64(&index, i);
+  return index;
+}
+
+
 #define HAVE_MEMORY_BARRIER 1
 #ifndef MemoryBarrier
 #define MemoryBarrier() (void)0
@@ -61,8 +88,15 @@ MSB(size_t i)
 #endif /*_MSC_VER*/
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
+#if SIZEOF_VOIDP == SIZEOF_LONG
+#define MSB(i) ((int)sizeof(long)*8-1-__builtin_clzl(i)) /* GCC builtin */
 #define HAVE_MSB 1
-#define MSB(i) (sizeof(long)*8 - 1 - __builtin_clzl(i)) /* GCC builtin */
+#elif SIZEOF_VOIDP == SIZEOF_LONG_LONG
+#define MSB(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i)) /* GCC builtin */
+#define HAVE_MSB 1
+#endif
+#define HAVE_MSB64 1
+#define MSB64(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i))
 #endif
 
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE__SYNC_SYNCHRONIZE)
@@ -70,6 +104,9 @@ MSB(size_t i)
 #ifndef MemoryBarrier
 #define MemoryBarrier()			__sync_synchronize()
 #endif
+#endif
+
+#ifdef O_PLMT
 #define ATOMIC_ADD(ptr, v)		__sync_add_and_fetch(ptr, v)
 #define ATOMIC_SUB(ptr, v)		__sync_sub_and_fetch(ptr, v)
 #define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
@@ -77,6 +114,14 @@ MSB(size_t i)
 #define ATOMIC_OR(ptr, v)		__sync_fetch_and_or(ptr, v)
 #define ATOMIC_AND(ptr, v)		__sync_fetch_and_and(ptr, v)
 #define COMPARE_AND_SWAP(ptr,o,n)	__sync_bool_compare_and_swap(ptr,o,n)
+#else
+#define ATOMIC_ADD(ptr, v)		(*ptr += v)
+#define ATOMIC_SUB(ptr, v)		(*ptr -= v)
+#define ATOMIC_INC(ptr)			(++(*ptr))
+#define ATOMIC_DEC(ptr)			(--(*ptr))
+#define ATOMIC_OR(ptr, v)		(*ptr |= v)
+#define ATOMIC_AND(ptr, v)		(*ptr &= v)
+#define COMPARE_AND_SWAP(ptr,o,n)	(*ptr == o ? (*ptr = n), 1 : 0)
 #endif
 
 #ifndef HAVE_MSB
@@ -98,6 +143,25 @@ MSB(size_t i)
 }
 #endif
 
+
+#ifndef HAVE_MSB64
+#define HAVE_MSB64 1
+static inline int
+MSB64(int64_t i)
+{ int j = 0;
+
+  if (i >= LL(0x100000000)) {i >>= 32; j += 32;}
+  if (i >=     LL(0x10000)) {i >>= 16; j += 16;}
+  if (i >=       LL(0x100)) {i >>=  8; j +=  8;}
+  if (i >=	  LL(0x10)) {i >>=  4; j +=  4;}
+  if (i >=         LL(0x4)) {i >>=  2; j +=  2;}
+  if (i >=         LL(0x2)) j++;
+
+  return j;
+}
+#endif
+
+
 #ifndef HAVE_MEMORY_BARRIER
 #define HAVE_MEMORY_BARRIER 1
 #define MemoryBarrier() (void)0
@@ -111,7 +175,7 @@ static inline Atom
 fetchAtomArray(size_t index)
 { int idx = MSB(index);
 
-  return GD->atoms.array.blocks[idx][index];
+  return &GD->atoms.array.blocks[idx][index];
 }
 
 
@@ -121,6 +185,15 @@ fetchFunctorArray(size_t index)
 
   return GD->functors.array.blocks[idx][index];
 }
+
+static inline void
+pushVolatileAtom__LD(atom_t a ARG_LD)
+{ LD->atoms.unregistering = a;
+  if ( GD->atoms.gc_active )
+    markAtom(a);
+}
+
+#define pushVolatileAtom(a) pushVolatileAtom__LD(a PASS_LD)
 
 
 		 /*******************************
@@ -183,27 +256,27 @@ setall_bitvector(bit_vector *v)
 }
 
 static inline void
-set_bit(bit_vector *v, int which)
-{ int e = which/BITSPERE;
-  int b = which%BITSPERE;
+set_bit(bit_vector *v, size_t which)
+{ size_t e = which/BITSPERE;
+  size_t b = which%BITSPERE;
 
-  v->chunk[e] |= ((uintptr_t)1<<b);
+  v->chunk[e] |= ((bitv_chunk)1<<b);
 }
 
 static inline void
-clear_bit(bit_vector *v, int which)
-{ int e = which/BITSPERE;
-  int b = which%BITSPERE;
+clear_bit(bit_vector *v, size_t which)
+{ size_t e = which/BITSPERE;
+  size_t b = which%BITSPERE;
 
-  v->chunk[e] &= ~((uintptr_t)1<<b);
+  v->chunk[e] &= ~((bitv_chunk)1<<b);
 }
 
 static inline int
-true_bit(bit_vector *v, int which)
-{ int e = which/BITSPERE;
-  int b = which%BITSPERE;
+true_bit(bit_vector *v, size_t which)
+{ size_t e = which/BITSPERE;
+  size_t b = which%BITSPERE;
 
-  return (v->chunk[e]&((uintptr_t)1<<b)) != 0;
+  return (v->chunk[e]&((bitv_chunk)1<<b)) != 0;
 }
 
 
@@ -241,9 +314,31 @@ fetchop(Code PC)
 }
 
 
+static inline code			/* caller must hold the L_BREAK lock */
+fetchop_unlocked(Code PC)
+{ code op = decode(*PC);
+
+  if ( unlikely(op == D_BREAK) )
+    op = decode(replacedBreakUnlocked(PC));
+
+  return op;
+}
+
+
 static inline Code
 stepPC(Code PC)
 { code op = fetchop(PC++);
+
+  if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
+    return stepDynPC(PC, &codeTable[op]);
+  else
+    return PC + codeTable[op].arguments;
+}
+
+
+static inline Code
+stepPC_unlocked(Code PC)
+{ code op = fetchop_unlocked(PC++);
 
   if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
     return stepDynPC(PC, &codeTable[op]);
@@ -329,5 +424,47 @@ register_attvar(Word gp ARG_LD)
 
   LD->attvar.attvars = gp;
 }
+
+static inline int
+visibleClause__LD(Clause cl, gen_t gen ARG_LD)
+{ if ( likely(visibleClause(cl, gen)) )
+    return TRUE;
+  LD->clauses.erased_skipped++;
+  return FALSE;
+}
+
+#ifdef ATOMIC_GENERATION_HACK
+/* Work around lacking 64-bit atomic operations.  These are designed to
+   be safe if we assume that read and increment complete before other
+   threads incremented 4G generations.
+*/
+
+static inline gen_t
+global_generation(void)
+{ gen_t g;
+  gen_t last;
+
+  do
+  { last = GD->_last_generation;
+    g = (gen_t)GD->_generation.gen_u<<32 | GD->_generation.gen_l;
+  } while ( unlikely(g < last) );
+
+  if ( unlikely(last != g) )
+    GD->_last_generation = g;
+
+  return g;
+}
+
+static inline gen_t
+next_global_generation(void)
+{ uint32_t u = GD->_generation.gen_u;
+  uint32_t l;
+
+  if ( unlikely((l=ATOMIC_INC(&GD->_generation.gen_l)) == 0) )
+    u = ATOMIC_INC(&GD->_generation.gen_u);
+
+  return (gen_t)u<<32|l;
+}
+#endif /*ATOMIC_GENERATION_HACK*/
 
 #endif /*PL_INLINE_H_INCLUDED*/

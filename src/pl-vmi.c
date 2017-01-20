@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2008-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -224,8 +236,7 @@ VMI(H_ATOM, 0, 1, (CA1_DATA))
 { IF_WRITE_MODE_GOTO(B_ATOM);
 
   c = (word)*PC++;
-  if (GD->atoms.gc_active)
-    markAtom(c);
+  pushVolatileAtom(c);
   goto h_const;
 }
 
@@ -658,7 +669,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
   f = (functor_t) *PC++;
   deRef2(ARGP, p);
   if ( canBind(*p) )
-  { int arity = arityFunctor(f);
+  { size_t arity = arityFunctor(f);
     Word ap;
     word c;
 
@@ -680,7 +691,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
     *ap++ = f;
     ARGP = ap;
-    while(--arity>=0)			/* must clear if we want to do GC */
+    while(arity-->0)			/* must clear if we want to do GC */
       setVar(*ap++);
     bindConst(p, c);
     umode = uwrite;
@@ -845,8 +856,7 @@ this is above the stack anyway.
 
 VMI(B_ATOM, 0, 1, (CA1_DATA))
 { word c = (word)*PC++;
-  if (GD->atoms.gc_active)
-    markAtom(c);
+  pushVolatileAtom(c);
   *ARGP++ = c;
   NEXT_INSTRUCTION;
 }
@@ -1460,7 +1470,7 @@ VMI(B_FUNCTOR, 0, 1, (CA1_FUNC))
 
 VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f = (functor_t) *PC++;
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
   Word ap;
 
   if ( !hasGlobalSpace(1+arity) )
@@ -1657,7 +1667,7 @@ possible to be able to call-back to Prolog.
 
 depart_continue:
 retry_continue:
-  setGenerationFrame(FR, GD->generation);
+  setGenerationFrame(FR, global_generation());
 #ifdef O_PROFILE
   FR->prof_node = NULL;
 #endif
@@ -1916,7 +1926,11 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   { leave = true(FR, FR_WATCHED) ? FR : NULL;
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
     leaveDefinition(DEF);		/* dynamic pred only */
-    lTop = FR;
+    if ( false(FR, FR_KEEPLTOP) )
+    { lTop = FR;
+    } else
+    { DEBUG(MSG_CONTINUE, Sdprintf("Keeping lTop for %s\n", predicateName(DEF)));
+    }
     DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 		      predicateName(FR->predicate), loffset(lTop)));
   } else
@@ -2025,9 +2039,56 @@ VMI(I_EXITQUERY, 0, 0, ())
   assert(LD->exception.throw_environment == &throw_env);
   LD->exception.throw_environment = throw_env.parent;
 
-  succeed;
+#define DET_EXIT (PL_Q_DETERMINISTIC|PL_Q_EXT_STATUS)
+  return (QF->flags&DET_EXIT)==DET_EXIT ? PL_S_LAST : TRUE;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_YIELD: Yield control from this engine. This  VMI fetches the first and
+second argument. The second must be an integer. PL_next_solution() exits
+with code, providing Term through PL_yielded. Calling PL_next_solution()
+again resumes the VM.
+
+'$engine_yield'(Term, Code) :-
+	'$yield'.
+
+'$yield' translates to I_YIELD
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_YIELD, VIF_BREAK, 0, ())
+{ Word p;
+
+  QF = QueryFromQid(qid);
+  if ( !(QF->flags&PL_Q_ALLOW_YIELD) )
+  { PL_error(NULL, 0, "not an engine", ERR_PERMISSION_VMI, "I_YIELD");
+    THROW_EXCEPTION;
+  }
+  if ( (void*)BFR < (void*)FR )
+    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+  ARGP = argFrameP(lTop, 0);
+  SAVE_REGISTERS(qid);
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+
+  QF->foreign_frame = PL_open_foreign_frame();
+  QF->yield.term = PL_new_term_ref();
+  *valTermRef(QF->yield.term) = linkVal(argFrameP(FR, 0));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+
+  assert(LD->exception.throw_environment == &throw_env);
+  LD->exception.throw_environment = throw_env.parent;
+
+  p = argFrameP(FR, 1);
+  deRef(p);
+
+  if ( isTaggedInt(*p) )
+  { return valInt(*p);
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE,
+	     ATOM_integer, pushWordAsTermRef(argFrameP(FR, 1)));
+    popTermRef();
+    THROW_EXCEPTION;
+  }
+}
 
 
 		 /*******************************
@@ -2229,23 +2290,26 @@ conditions should be rare (I hope :-).
 
 C_LSCUT does the same for the condition   part  of soft-cut (*->). Here,
 the choice argument is the new choice  created by the disjunction, so we
-must get its parent.
+must cut its parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 BEGIN_SHAREDVARS
   Choice och;
-  LocalFrame fr;
   Choice ch;
 
 VMI(C_LSCUT, 0, 1, (CA1_CHP))
-{ och = (Choice) valTermRef(varFrame(FR, *PC));
-  och = och->parent;
+{ word chref = varFrame(FR, *PC++);
+
+  if ( (intptr_t)chref < 0 )
+    chref = (word)-(intptr_t)chref;
+
+  ch = (Choice)valTermRef(chref);
+  och = ch->parent;
   goto c_lcut_cont;
 }
 
 VMI(C_LCUT, 0, 1, (CA1_CHP))
-{ och = (Choice) valTermRef(varFrame(FR, *PC));
+{ och = (Choice) valTermRef(varFrame(FR, *PC++));
 c_lcut_cont:
-  PC++;
 
   for(ch=BFR; ch; ch = ch->parent)
   { if ( ch->parent == och )
@@ -2276,6 +2340,10 @@ VMI(I_CUTCHP, 0, 0, ())
       THROW_EXCEPTION;
     }
 
+    DEBUG(MSG_CUT, Sdprintf("prolog_cut_to/1 for %s on [%d] %s\n",
+			    chp_chars(och),
+			    levelFrame(FR), predicateName(FR->predicate)));
+
     goto c_cut;
   } else
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_choice, consTermRef(a));
@@ -2295,42 +2363,42 @@ VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_CUT implements -> (and most of  *->).   Unfortunately  we have to loop
-twice because calling discardFrame() in the   first  loop can invalidate
-the stacks and make GC calls from frameFinished() invalid.
+This code deals with ->, *-> and prolog_cut_to/1 (I_CUTCHP)
 
-It might be possible to fix this by updating pointers in the first loop,
-but that is complicated and might  well  turn   out  to  be slower as it
-involves more write operations.
+(*) Normally, committing destroys frames created   after  a choice point
+that is related to the running frame. In that case we can simply destroy
+all frames that are  more  recent  that   the  choice  point.  With  the
+ancestral however, it is possible that  we   must  keep  frames. We must
+destroy all frames that are not  reachable   by  the continuation of the
+current frame, nor one of the older choice points.
 
-See also discardChoicesAfter();
+Using in_continuation() seems a bit slower, but the test is rather quick
+and avoids some decisions as well. Timing   on a few syntatic cases show
+no significant performance difference and even   a  small gain using the
+implementation below.
+
+TBD: Merge with dbgDiscardChoicesAfter()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_CUT, 0, 1, (CA1_CHP))
 { och = (Choice) valTermRef(varFrame(FR, *PC));
   PC++;					/* cannot be in macro! */
 c_cut:
-  if ( !och || FR > och->frame )	/* most recent frame to keep */
-    fr = FR;
-  else
-    fr = och->frame;
 
   assert(BFR>=och);
   for(ch=BFR; ch > och; ch = ch->parent)
   { LocalFrame fr2;
-    LocalFrame delto;
 
-    if ( ch->parent && ch->parent->frame > fr )
-      delto = ch->parent->frame;
-    else
-      delto = fr;
-
-    DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
+    DEBUG(MSG_CUT, Sdprintf("Discarding choice %s for %s\n",
+			    chp_chars(ch), predicateName(ch->frame->predicate)));
 
     for(fr2 = ch->frame;
-	fr2 > delto;
+	!in_continuation(fr2, FR, ch->parent);	/* See (*) */
 	fr2 = fr2->parent)
-    { assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
+    { DEBUG(MSG_CUT, Sdprintf("Discarding [%d] %s\n",
+			      levelFrame(fr2), predicateName(fr2->predicate)));
+
+      assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
 
       if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
@@ -2346,14 +2414,13 @@ c_cut:
 	  ch  = addPointer(ch,  offset);
 	  assert(ch == BFR);
 	  och = addPointer(och, offset);
-	  fr  = addPointer(fr,  offset);
-	  delto = addPointer(delto, offset);
 	}
 	if ( exception_term )
 	  THROW_EXCEPTION;
       }
 
       discardFrame(fr2 PASS_LD);
+      killFrame(fr2);				/* kill for markPredicates() */
     }
 
     if ( ch->parent == och )
@@ -2362,19 +2429,19 @@ c_cut:
   assert(och == ch);
   BFR = ch;
 
-  if ( (void *)och > (void *)fr )
+  if ( (void *)och > (void *)FR )
   { lTop = (LocalFrame)(och+1);
   } else
-  { int nvar = (true(fr->predicate, P_FOREIGN)
-			? fr->predicate->functor->arity
-			: fr->clause->value.clause->variables);
-    lTop = (LocalFrame) argFrameP(fr, nvar);
+  { int nvar = (true(FR->predicate, P_FOREIGN)
+			? (int)FR->predicate->functor->arity
+			: FR->clause->value.clause->variables);
+    lTop = (LocalFrame) argFrameP(FR, nvar);
   }
 
   ARGP = argFrameP(lTop, 0);
 
-  DEBUG(3, Sdprintf(" --> BFR = #%ld, lTop = #%ld\n",
-		    loffset(BFR), loffset(lTop)));
+  DEBUG(MSG_CUT, Sdprintf(" --> BFR = #%ld, lTop = #%ld\n",
+			  loffset(BFR), loffset(lTop)));
   NEXT_INSTRUCTION;
 }
 END_SHAREDVARS
@@ -2392,30 +2459,51 @@ See pl-comp.c and C_SOFTCUT implementation for details.
 VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP))
 { varFrame(FR, *PC++) = consTermRef(lTop);	/* see C_SOFTCUT */
 
+  DEBUG(MSG_CUT, Sdprintf("Creating *-> choice at %p (%d)\n",
+			  lTop, loffset(lTop)));
   VMI_GOTO(C_OR);
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_SOFTCUT: Handle the commit-to of A *-> B; C. Simply invalidate the
-choicepoint.
+C_SOFTCUT: Handle the commit-to of A *->   B;  C. We must invalidate the
+choice point, but note that C_SOFTCUT is  executed multiple times if the
+condition succeeds multiple times. Also, C_LSCUT   must find this choice
+point to know how far to cut,  so   we  cannot  simply delete the choice
+point. Instead, a positive term reference implies we did not yet execute
+the soft cut. In this case we  delete   the  choice  and make the slot a
+negative term reference to the parent.   A second execution of C_SOFTCUT
+with a negative term reference is simply ignored.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
-{ word ch_ref = varFrame(FR, *PC);
-  Choice ch = (Choice) valTermRef(ch_ref);
-  Choice bfr = BFR;
 
-  PC++;
-  if ( bfr == ch )
-  { BFR = bfr->parent;
-  } else
-  { for(; bfr; bfr=bfr->parent)
-    { if ( bfr->parent == ch )
-      { bfr->parent = ch->parent;
-	break;
+VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
+{ Word chref = varFrameP(FR, *PC++);
+
+  if ( (intptr_t)*chref > 0 )
+  { Choice ch = (Choice)valTermRef((term_t)*chref);
+    Choice bfr = BFR;
+
+    DEBUG(MSG_SOFTCUT,
+	  Sdprintf("Killing choice %s from %s\n",
+		   chp_chars(ch), print_addr(chref, NULL)));
+
+    if ( bfr == ch )
+    { BFR = bfr->parent;
+      *chref = (word)-(intptr_t)consTermRef(BFR);
+    } else
+    { for(; bfr >= ch; bfr=bfr->parent)
+      { if ( bfr->parent == ch )
+	{ bfr->parent = ch->parent;
+	  *chref = (word)-(intptr_t)consTermRef(ch->parent);
+	  break;
+	}
       }
     }
+  } else
+  { DEBUG(MSG_SOFTCUT,
+	  Sdprintf("Already killed at %s\n", print_addr(chref, NULL)));
   }
+
   NEXT_INSTRUCTION;
 }
 
@@ -2657,8 +2745,9 @@ VMI(S_STATIC, 0, 0, ())
   DEBUG(9, Sdprintf("Clauses found.\n"));
 
   PC = cl->value.clause->codes;
+  ENSURE_LOCAL_SPACE(LOCAL_MARGIN+cl->value.clause->variables*sizeof(word),
+		     THROW_EXCEPTION);
   lTop = (LocalFrame)(ARGP + cl->value.clause->variables);
-  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
   CL = cl;
 
   if ( chp.cref )
@@ -2748,7 +2837,7 @@ VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
 next_clause:
   ARGP = argFrameP(FR, 0);
   for(; cref; cref = cref->next)
-  { if ( visibleClause(cref->value.clause, generationFrame(FR)) )
+  { if ( visibleClauseCNT(cref->value.clause, generationFrame(FR)) )
     { TRY_CLAUSE(cref, cref->next, PC);
     }
   }
@@ -2765,7 +2854,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
     lTop = (LocalFrame)ARGP + FR->predicate->functor->arity;
 
     for(; cref; cref = cref->next)
-    { if ( visibleClause(cref->value.clause, generationFrame(FR)) )
+    { if ( visibleClauseCNT(cref->value.clause, generationFrame(FR)) )
       {	LocalFrame fr;
 	CL = cref;
 
@@ -2962,7 +3051,7 @@ VMI(A_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 #ifdef O_GMP
   Number n = allocArithStack(PASS_LD1);
   Word p = (Word)PC;
-  int size;
+  size_t size;
 
   p++;				/* skip indirect header */
   n->type = V_MPZ;
@@ -3206,7 +3295,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     expr = gTop;
     gTop += 3;
     expr[0] = FUNCTOR_plus2;
-    expr[1] = linkVal(np);
+    bArgVar(&expr[1], np PASS_LD);
     expr[2] = consInt(add);
 
     ARGP = argFrameP(lTop, 0);
@@ -3389,7 +3478,9 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       }
     }
 
+#ifdef O_GMP
   can_bind:
+#endif
     ARGP++;				/* new_args must become 1 in */
     SAVE_REGISTERS(qid);		/* get_vmi_state() */
     rc = put_number(&c, n, ALLOW_GC PASS_LD);
@@ -3989,9 +4080,10 @@ VMI(I_EXITCLEANUP, 0, 0, ())
   if ( BFR->frame == FR && BFR->type == CHP_CATCH )
   { DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
     for(BFR = BFR->parent; BFR > (Choice)FR; BFR = BFR->parent)
-    { if ( BFR->frame > FR )
+    { if ( BFR->type == CHP_DEBUG )
+	continue;
+      if ( BFR->frame > FR )
 	NEXT_INSTRUCTION;		/* choice from setup of setup_call_catcher_cleanup/4 */
-      assert(BFR->type == CHP_DEBUG);
     }
 
     SAVE_REGISTERS(qid);
@@ -4085,17 +4177,19 @@ VMI(B_THROW, 0, 0, ())
 { term_t catchfr_ref;
   int start_tracer;
   Stack outofstack;
+  int rewritten;
 
   PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
   THROW_EXCEPTION;				/* sets origin */
 
 b_throw:
+  rewritten = 0;
   QF  = QueryFromQid(qid);
   aTop = QF->aSave;
   assert(exception_term);
   outofstack = LD->outofstack;
   LD->outofstack = NULL;
-  PC = NULL;
+  fid_t fid;
 
   if ( lTop < (LocalFrame)argFrameP(FR, FR->predicate->functor->arity) )
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
@@ -4110,6 +4204,12 @@ b_throw:
 	  PL_discard_foreign_frame(fid);
 	});
 
+  if ( has_emergency_space(&LD->stacks.local, sizeof(struct localFrame)) )
+    fid = open_foreign_frame(PASS_LD1);
+  else
+    fid = 0;
+
+again:
   SAVE_REGISTERS(qid);
   catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term PASS_LD);
   LOAD_REGISTERS(qid);
@@ -4130,21 +4230,36 @@ b_throw:
 	  LOAD_REGISTERS(qid);
 	});
 
-  if ( debugstatus.suspendTrace == FALSE )
-  { SAVE_REGISTERS(qid);
+  if ( debugstatus.suspendTrace == FALSE && !rewritten++ )
+  { int rc;
+
+    SAVE_REGISTERS(qid);
     exceptionUnwindGC(outofstack);
     LOAD_REGISTERS(qid);
     SAVE_REGISTERS(qid);
-    exception_hook(FR, catchfr_ref PASS_LD);
+    rc = exception_hook(qid, consTermRef(FR), catchfr_ref PASS_LD);
     LOAD_REGISTERS(qid);
+
+    if ( rc && fid )
+    { DEBUG(MSG_THROW,
+	    Sdprintf("Exception was rewritten to: ");
+	    PL_write_term(Serror, exception_term, 1200, 0);
+	    Sdprintf(" (retrying)\n"));
+
+      PL_rewind_foreign_frame(fid);
+      clear((LocalFrame)valTermRef(catchfr_ref), FR_CATCHED);
+      goto again;
+    }
   }
+  if ( fid )
+    PL_close_foreign_frame(fid);
 
 #if O_DEBUGGER
   start_tracer = FALSE;
   if ( !catchfr_ref &&
        !PL_same_term(exception_term, exception_printed) &&
        false(QueryFromQid(qid), PL_Q_CATCH_EXCEPTION) )
-  { int rc;
+  { term_t rc;
 
     SAVE_REGISTERS(qid);
     rc = isCaughtInOuterQuery(qid, exception_term PASS_LD);
@@ -4162,11 +4277,13 @@ b_throw:
 	} else
 	{ trimStacks(FALSE PASS_LD);		/* restore spare stacks */
 	  printMessage(ATOM_error, PL_TERM, exception_term);
+	  PL_put_term(exception_printed, exception_term);
 	}
       } else if ( !(PL_get_atom(exception_term, &a) && a == ATOM_aborted) )
       { printMessage(ATOM_error,
 		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
 		       PL_TERM, exception_term);
+	PL_put_term(exception_printed, exception_term);
       }
       LOAD_REGISTERS(qid);
     }
@@ -4200,6 +4317,8 @@ b_throw:
 	LOAD_REGISTERS(qid);
 	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
+	DiscardMark(ch->mark);
+	clearLocalVariablesFrame(FR);
 	PL_put_term(LD->exception.pending, exception_term);
 	if ( printed )
 	  PL_put_term(exception_printed, exception_term);
@@ -4277,8 +4396,12 @@ b_throw:
 #endif /*O_DEBUGGER*/
   { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
-    for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
+    for( ;
+	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
+	 PC = FR->programPointer,
+	 FR = FR->parent )
     { environment_frame = FR;
+      ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
       LD->statistics.inferences++;	/* box exit, needed for GC */
 
       SAVE_REGISTERS(qid);
@@ -4319,7 +4442,7 @@ b_throw:
     if ( (w=uncachableException(exception_term PASS_LD)) )
     { Word p = gTop;
 
-      if ( !hasGlobalSpace(3) )
+      if ( !has_emergency_space(&LD->stacks.global, 3*sizeof(word)) )
 	fatalError("Cannot wrap abort exception\n");
 
       argFrame(lTop, 0) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
@@ -4349,6 +4472,7 @@ b_throw:
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
     Undo(QF->choice.mark);
+    DiscardMark(QF->choice.mark);
     QF->foreign_frame = PL_open_foreign_frame();
     QF->exception = PL_copy_term_ref(exception_term);
 
@@ -4360,9 +4484,8 @@ b_throw:
     assert(LD->exception.throw_environment == &throw_env);
     LD->exception.throw_environment = throw_env.parent;
 
-    fail;
+    return (QF->flags & PL_Q_EXT_STATUS) ? PL_S_EXCEPTION : FALSE;
   }
-
 }
 #endif /*O_CATCHTHROW*/
 
@@ -4509,7 +4632,8 @@ Note that compilation does not give contained   atoms a reference as the
 atom is referenced by the goal-term anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( isTextAtom(goal = *a) )
+  goal = *a;
+  if ( isCallableAtom(goal) )
   { functor = lookupFunctorDef(goal, 0);
     arity   = 0;
     args    = NULL;
@@ -4521,11 +4645,15 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
 
     fd = valueFunctor(functor);
-    if ( !isTextAtom(fd->name) )
+    if ( !isCallableAtom(fd->name) )
       goto call_type_error;
     if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
     { args    = argTermP(goal, 0);
-      arity   = fd->arity;
+      arity   = (int)fd->arity;
+    } else if ( true(FR, FR_INRESET) &&
+		(true(fd, CONTROL_F) || fd->functor == FUNCTOR_call1) )
+    { DEF = GD->procedures.dmeta_call1->definition;
+      goto mcall_cont;
     } else
     { Clause cl;
       int rc;
@@ -4560,8 +4688,8 @@ atom is referenced by the goal-term anyway.
 #endif
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = ~(gen_t)0;
-      cl->generation.created = GD->generation;
-      setGenerationFrame(NFR, GD->generation);
+      cl->generation.created = global_generation();
+      setGenerationFrame(NFR, global_generation());
 #endif
       PC = cl->codes;
 
@@ -4608,9 +4736,9 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   } else if ( isTerm(goal) )
   { FunctorDef fdef = valueFunctor(functorTerm(goal));
 
-    if ( !isTextAtom(fdef->name) )
+    if ( !isCallableAtom(fdef->name) )
       goto call_type_error;
-    arity   = fdef->arity;
+    arity   = (int)fdef->arity;
     functor = lookupFunctorDef(fdef->name, arity + callargs);
     args    = argTermP(goal, 0);
   } else

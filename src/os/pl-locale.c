@@ -3,21 +3,33 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2013, VU University Amsterdam
+    Copyright (c)  2013-2015, VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -157,24 +169,27 @@ update_locale(PL_locale *l, int category, const char *locale)
 
 static int
 alias_locale(PL_locale *l, atom_t alias)
-{ int rc;
+{ GET_LD
+  int rc;
 
   LOCK();
 
   if ( !GD->locale.localeTable )
     GD->locale.localeTable = newHTable(16);
 
-  if ( addHTable(GD->locale.localeTable, (void*)alias, l) )
-  { l->alias = alias;
-    PL_register_atom(alias);
-    rc = TRUE;
-  } else
+  if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
   { GET_LD
     term_t obj = PL_new_term_ref();
 
     PL_put_atom(obj, alias);
     rc = PL_error("locale_create", 2, "Alias name already taken",
 		  ERR_PERMISSION, ATOM_create, ATOM_locale, obj);
+  }
+  else
+  { addNewHTable(GD->locale.localeTable, (void*)alias, l);
+    l->alias = alias;
+    PL_register_atom(alias);
+    rc = TRUE;
   }
   UNLOCK();
 
@@ -298,10 +313,7 @@ getLocale(term_t t, PL_locale **lp)
     } else if ( (ref=PL_blob_data(a, NULL, &bt)) && bt == &locale_blob )
     { l = ref->data;
     } else if ( GD->locale.localeTable )
-    { Symbol s;
-
-      if ( (s=lookupHTable(GD->locale.localeTable, (void*)a)) )
-	l = s->value;
+    { l = lookupHTable(GD->locale.localeTable, (void*)a);
     }
 
     if ( l )
@@ -323,9 +335,11 @@ getLocaleEx(term_t t, PL_locale **lp)
     return TRUE;
 
   if ( PL_is_atom(t) )
-    return PL_existence_error("locale", t);
+    PL_existence_error("locale", t);
   else
-    return PL_type_error("locale", t);
+    PL_type_error("locale", t);
+
+  return FALSE;
 }
 
 
@@ -441,10 +455,10 @@ advance_lstate(lprop_enum *state)
     state->p = lprop_list;
   }
   if ( state->e )
-  { Symbol s;
+  { PL_locale *l;
 
-    if ( (s = advanceTableEnum(state->e)) )
-    { state->l = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&l) )
+    { state->l = l;
 
       return TRUE;
     }
@@ -498,10 +512,10 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 
 	    if ( state->p->functor == FUNCTOR_alias1 &&
 		 get_atom_arg(property, &alias) )
-	    { Symbol s;
+	    { PL_locale *l;
 
-	      if ( (s=lookupHTable(GD->locale.localeTable, (void*)alias)) )
-		return unifyLocale(locale, s->value, FALSE);
+	      if ( (l = lookupHTable(GD->locale.localeTable, (void*)alias)) )
+		return unifyLocale(locale, l, FALSE);
 	      else
 		return FALSE;
 	    }
@@ -546,11 +560,11 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->l )			/* first time, enumerating locales */
-  { Symbol s;
+  { PL_locale *l;
 
     assert(state->e);
-    if ( (s=advanceTableEnum(state->e)) )
-    { state->l = s->value;
+    if ( advanceTableEnum(state->e, NULL, (void**)&l) )
+    { state->l = l;
     } else
     { freeTableEnum(state->e);
       assert(state != &statebuf);
@@ -629,7 +643,7 @@ get_group_size_ex(term_t t, int *s)
     { *s = i;
       return TRUE;
     }
-    return PL_domain_error("digit_group_size", t);
+    PL_domain_error("digit_group_size", t);
   }
 
   return FALSE;
@@ -687,7 +701,7 @@ set_grouping(term_t t, char **valp)
 static
 PRED_IMPL("locale_create", 3, locale_create, 0)
 { PRED_LD
-  PL_locale *def, *new;
+  PL_locale *def, *new = NULL;
   char *lname;
 
   if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|REP_MB) )
@@ -697,9 +711,6 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     if ( (old=setlocale(LC_NUMERIC, lname)) )
     { new = new_locale(NULL);
       setlocale(LC_NUMERIC, old);
-    } else
-    { assert(0);				/* keep compiler happy */
-      return FALSE;
     }
     UNLOCK();
     if ( !old )
@@ -723,7 +734,7 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 
     while(PL_get_list_ex(tail, head, tail))
     { atom_t pname;
-      int parity;
+      size_t parity;
 
       if ( !PL_get_name_arity(head, &pname, &parity) ||
 	   parity != 1 ||
@@ -764,16 +775,16 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 
 static
 PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
-{ PL_locale *l;
+{ GET_LD
+  PL_locale *l;
 
   if ( getLocaleEx(A1, &l) )
   { if ( l->alias )
-    { Symbol s;
-      atom_t alias = l->alias;
+    { atom_t alias = l->alias;
 
       LOCK();
-      if ( (s=lookupHTable(GD->locale.localeTable, (void*)alias)) )
-	deleteSymbolHTable(GD->locale.localeTable, s);
+      if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
+	deleteHTable(GD->locale.localeTable, (void*)alias);
       l->alias = 0;
       PL_unregister_atom(alias);
       UNLOCK();

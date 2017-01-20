@@ -207,7 +207,7 @@ Prolog flag \prologflag{argv}.
 		[[\const{--}] \arg{arg} ...]}
 This is the normal way to start Prolog. The options are described in
 \secref{running-options}, \secref{stacksizes} and \secref{runoptions}.
-The Prolog flag \prologflag{argc} provides access to \arg{arg} ... If
+The Prolog flag \prologflag{argv} provides access to \arg{arg} ... If
 the \arg{options} are followed by one or more Prolog file names (i.e.,
 names with extension \fileext{pl}, \fileext{prolog} or (on Windows) the
 user preferred extension registered during installation), these files
@@ -347,13 +347,13 @@ they precede predefined values for the alias. See file_search_path/2 for
 details on using this file location mechanism.
 
     \cmdlineoptionitem{--traditional}{}
-This flag disables the most important extensions of SWI-Prolog version~7
-(see \secref{extensions}) that introduce incompatibilities. In
-particular, lists will be represented in the traditional way, double
-quoted text is represented by a list of character codes and the
-functional notation on maps is not supported. Maps as a syntactic entity
-and the predicates that act on them remain supported if this flag is
-present.
+This flag disables the most important extensions of SWI-Prolog
+version~7 (see \secref{extensions}) that introduce incompatibilities
+with earlier versions.  In particular, lists are represented in the
+traditional way, double quoted text is represented by a list of
+character codes and the functional notation on dicts is not supported.
+Dicts as a syntactic entity, and the predicates that act on them, are
+still supported if this flag is present.
 
     \cmdlineoptionitem{--}{}
 \index{command line, arguments}%
@@ -394,6 +394,14 @@ choice points live.
     \cmdlineoptionitem*{-T}{size[kmg]}
 Limit for the trail stack.  This is where we keep track of assignments,
 so we can rollback on backtracking or exceptions.
+
+    \cmdlineoptionitem*{-M}{size[kmg]}
+Limit for the \arg{table space}. This is where tries holding
+memoized\footnote{The letter M is used because the T was already in
+use. It is a memnonic for \textbf{M}emoizing.} answers for
+\jargon{tabling} are stored. The default is 1Gb on 64-bit machines and
+512Mb on 32-bit machines. See the Prolog flag
+\prologflag{table_space}
 \end{description}
 
 
@@ -459,14 +467,19 @@ indicated tokens. Only has effect if the system is compiled with the
 \section{GNU Emacs Interface}			\label{sec:gemacs}
 
 \index{GNU-Emacs}\index{Emacs}
-Unfortunately the default Prolog mode of GNU-Emacs is not very good.
+
+Unfortunately the default Prolog mode of GNU~Emacs is not very good.
 There are several alternatives though:
 
 \begin{shortlist}
-    \item \url{http://turing.ubishops.ca/home/bruda/emacs-prolog/}
-    \item \url{http://www.logic.at/prolog/ediprolog/ediprolog.html}
-    \item \url{http://www.logic.at/prolog/pceprolog/pceprolog.html}
-    \item \url{http://www.logic.at/prolog/etrace/etrace.html}
+    \item \url{https://bruda.ca/emacs/prolog_mode_for_emacs}\\
+          Prolog mode for Emacs and XEmacs maintained by Stefan Bruda.
+    \item \url{https://www.metalevel.at/pceprolog/}\\
+          Recommended configuration options for editing Prolog code with Emacs.
+    \item \url{https://www.metalevel.at/ediprolog/}\\
+          Interact with SWI-Prolog directly in Emacs buffers.
+    \item \url{https://www.metalevel.at/etrace/}\\
+          Trace Prolog code with Emacs.
 \end{shortlist}
 
 
@@ -536,13 +549,12 @@ Backtracking yields further explanations.
 
 \section{Command line history}			\label{sec:history}
 
-SWI-Prolog offers a query substitution mechanism similar to what is
-seen in Unix shells. The availability of this feature is controlled by
+SWI-Prolog offers a query substitution mechanism similar to what is seen
+in Unix shells. The availability of this feature is controlled by
 set_prolog_flag/2, using the \prologflag{history} Prolog flag. By
-default, history is available if the Prolog flag \prologflag{readline}
-is \const{false}. To enable this feature, remembering the last 50
-commands, put the following into your startup file (see
-\secref{initfile}):
+default, history is available if no interactive command line editor is
+available. To enable history, remembering the last 50 commands, put the
+following into your startup file (see \secref{initfile}):
 
 \begin{code}
 :- set_prolog_flag(history, 50).
@@ -820,8 +832,8 @@ to a specific Prolog installation, while the latter uses the default
 prolog installed in \verb"$PATH".
 
 \begin{code}
-\verb$#!/path/to/swipl$
-\verb$#!/usr/bin/env swipl$
+!/path/to/swipl
+!/usr/bin/env swipl
 \end{code}
 
 The interpretation of arguments to the executable in the
@@ -976,14 +988,23 @@ environments.
     \predicate[ISO]{current_prolog_flag}{2}{?Key, -Value}
 The predicate current_prolog_flag/2 defines an interface to installation
 features: options compiled in, version, home, etc. With both arguments
-unbound, it will generate all defined Prolog flags. With `Key'
-instantiated, it unifies the value of the Prolog flag. Flag values are
-typed. Flags marked as \const{bool} can have the values \const{true} or
-\const{false}. Some Prolog flags are not defined in all versions, which
-is normally indicated in the documentation below as \textit{``if present
-and true''}. A boolean Prolog flag is true iff the Prolog flag is
-present {\bf and} the \arg{Value} is the atom \const{true}. Tests for
-such flags should be written as below:
+unbound, it will generate all defined Prolog flags. With \arg{Key}
+instantiated, it unifies \arg{Value} with the value of the Prolog flag
+or fails if the \arg{Key} is not a Prolog flag.
+
+Flags marked \textbf{rw} can be modified by the user using
+set_prolog_flag/2. Flag values are typed. Flags marked as \const{bool}
+can have the values \const{true} or \const{false}. The predicate
+create_prolog_flag/3 may be used to create flags that describe or
+control behaviour of libraries and applications.  The library
+\pllib{settings} provides an alternative interface for managing
+notably application parameters.
+
+Some Prolog flags are not defined in all versions, which is normally
+indicated in the documentation below as \textit{``if present and
+true''}. A boolean Prolog flag is true iff the Prolog flag is present
+{\bf and} the \arg{Value} is the atom \const{true}. Tests for such flags
+should be written as below:
 
 \begin{code}
 	(   current_prolog_flag(windows, true)
@@ -1086,6 +1107,22 @@ composed of symbols.\footnote{Older versions had a boolean flag
 \const{backquoted_strings}, which toggled between \const{string} and
 \const{symbol_char}}.  See also \secref{strings}.
 
+    \prologflagitem{backtrace}{bool}{rw}
+If \const{true} (default), print a backtrace on an uncaught exception.
+
+    \prologflagitem{backtrace_depth}{integer}{rw}
+If backtraces on errors are enabled, this flag defines the maximum
+number of frames that is printed (default~20).
+
+    \prologflagitem{backtrace_goal_depth}{integer}{rw}
+The frame of a backtrace is printed after making a shallow copy of the
+goal.  This flag determines the depth to which the goal term is copied.
+Default is `3'.
+
+    \prologflagitem{backtrace_show_lines}{bool}{rw}
+If \const{true} (default), try to reconstruct the line number at which
+the exception happened.
+
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
 \prologflag{min_integer} and \prologflag{max_integer}. If \const{false}
@@ -1125,7 +1162,7 @@ See also char_conversion/2.
     \prologflagitem{character_escapes}{bool}{rw}
 If \const{true} (default), read/1 interprets \verb$\$ escape sequences
 in quoted atoms and strings. May be changed. This flag is local to the
-module in which it is changed.
+module in which it is changed.  See \secref{charescapes}.
 
     \prologflagitem{colon_sets_calling_context}{bool}{ro}
 Using the construct <module>:<goal> sets the \jargon{calling context}
@@ -1203,10 +1240,10 @@ Disabling these optimisations can cause the system to run out of memory
 on programs that behave correctly if debug mode is off.
 
     \prologflagitem{debug_on_error}{bool}{rw}
-If {\tt true}, start the tracer after an error is detected.  Otherwise
-just continue execution.  The goal that raised the error will normally
-fail.  See also fileerrors/2 and the Prolog flag {\tt report_error}.  May
-be changed.  Default is {\tt true}, except for the runtime version.
+If \const{true}, start the tracer after an error is detected.
+Otherwise just continue execution. The goal that raised the error will
+normally fail. See also the Prolog flag \prologflag{report_error}.
+Default is \const{true}.
 
     \prologflagitem{debugger_write_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing goals
@@ -1239,7 +1276,7 @@ one-character atoms and the value \const{atom} makes double quotes the
 same as single quotes, creating a atom.  See also \secref{extensions}.
 
     \prologflagitem{editor}{atom}{rw}
-Determines the editor used by edit/1. See \secref{listing} for
+Determines the editor used by edit/1. See \secref{customedit} for
 details on selecting the editor used.
 
     \prologflagitem{emacs_inferior_process}{bool}{r}
@@ -1260,6 +1297,27 @@ default emulator.
 Set by halt/1 to its argument, making the exit status available to
 hooks registered with at_halt/1.
 
+    \prologflagitem{file_name_case_handling}{atom}{rw}
+This flag defines how Prolog handles the case of file names. The flag is
+used for case normalization and to determine whether two names refer to
+the same file.\bug{Note that file name case handling is typically a
+properly of the filesystem, while Prolog only has a global flag to
+determine its file handling.}  It has one of the following values:
+
+    \begin{description}
+    \termitem{case_sensitive}{}
+The filesystem is fully case sensitive.  Prolog does not perform
+any case modification or case insensitive matching.  This is the
+default on Unix systems.
+    \termitem{case_preserving}{}
+The filesystem is case insensitive, but it preserves the case with
+which the user jas created a file.  This is the default on Windows
+systems.
+    \termitem{case_insensitive}{}
+The filesystem doesn't store or match case.  In this scenario Prolog
+maps all file names to lower case.
+    \end{description}
+
     \prologflagitem{file_name_variables}{bool}{rw}
 If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
 and \chr{~} in arguments of built-in predicates that accept a file
@@ -1267,6 +1325,13 @@ name (open/3, exists_file/1, access_file/2, etc.). The predicate
 expand_file_name/2 can be used to expand environment variables and
 wildcard patterns. This Prolog flag is intended for backward
 compatibility with older versions of SWI-Prolog.
+
+    \prologflagitem{file_search_cache_time}{number}{rw}
+Time in seconds for which search results from absolute_file_name/3 are
+cached. Within this time limit, the system will first check that the old
+search result satisfies the conditions. Default is 10 seconds, which
+typically avoids most repetitive searches for (library) files during
+compilation. Setting this value to 0 (zero) disables the cache.
 
     \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
@@ -1295,9 +1360,9 @@ Set to \const{true} if XPCE is around and can be used for graphics.
     \prologflagitem{history}{integer}{rw}
 If $\arg{integer}> 0$, support Unix \program{csh(1)}-like history as
 described in \secref{history}. Otherwise, only support reusing commands
-through the command line editor. The default is to set this Prolog flag to 0
-if a command line editor is provided (see Prolog flag \prologflag{readline}) and
-15 otherwise.
+through the command line editor. The default is to set this Prolog flag
+to 0 if a command line editor is provided (see Prolog flag
+\prologflag{readline}) and 15 otherwise.
 
     \prologflagitem{home}{atom}{r}
 SWI-Prolog's notion of the home directory.  SWI-Prolog uses its home
@@ -1441,15 +1506,45 @@ if the goal succeeded while leaving choice points.  Many classical Prolog
 systems behave as \const{groundness}: they prompt for alternatives if
 and only if the query contains variables.
 
+    \prologflagitem{protect_static_code}{bool}{rw}
+If \const{true} (default \const{false}), clause/2 does not operate on
+static code, providing some basic protection from hackers that wish to
+list the static code of your Prolog program. Once the flag is
+\const{true}, it cannot be changed back to \const{false}.  Protection
+is default in ISO mode (see Prolog flag \prologflag{iso}).  Note that
+many parts of the development environment require clause/2 to work on
+static code, and enabling this flag should thus only be used for
+production code.
+
     \prologflagitem{qcompile}{atom}{rw}
 This option provides the default for the \term{qcompile}{+Atom} option
 of load_files/2.
 
-    \prologflagitem{readline}{bool}{r}
-If true, SWI-Prolog is linked with the readline library.  This is done
-by default if you have this library installed on your system.  It is
-also true for the Win32 swipl-win.exe version of SWI-Prolog, which realises
-a subset of the readline functionality.
+    \prologflagitem{readline}{atom}{rw}
+Specifies which form of command line editing is provided. Possible
+values are below. The flag may be set from the user's init file (see
+\secref{initgoal}) to one of \const{false}, \const{readline} or
+\const{editline}. This causes the toplevel not to load a command line
+editor (\const{false}) or load the specified one.  If loading fails
+the flag is set to \const{false}.
+
+\begin{description}
+    \termitem{false}{}
+No command line editing is available.
+
+    \termitem{readline}{}
+The library \pllib{readline} is loaded, providing line editing based on
+the GNU readline library.
+
+    \termitem{editline}{}
+The library \pllib{editline} is loaded, providing line editing based on
+the BSD libedit.  This is the default if \pllib{editline} is available
+and can be loaded.
+
+    \termitem{swipl_win}{}
+SWI-Prolog uses its own console (\program{swipl-win.exe} on Windows,
+the Qt based \program{swipl-win} on MacOS) which provides line editing.
+\end{description}
 
     \prologflagitem{resource_database}{atom}{r}
 Set to the absolute filename of the attached state.  Typically this is
@@ -1504,10 +1599,30 @@ operating system provides system-wide integer thread identifiers. The
 integer is the thread identifier used by the operating system for the
 calling thread. See also thread_self/1.
 
+    \prologflagitem{table_space}{integer}{rw}
+Space reserved for storing answer tables for \jargon{tabled predicates}
+(see table/1).\bug{Currently only counts the space occupied by the
+nodes in the answer tries.} When exceeded a
+\term{resource_error}{table_space} exception is raised.
+
     \prologflagitem{timezone}{integer}{r}
 Offset in seconds west of GMT of the current time zone. Set at
 initialization time from the \const{timezone} variable associated with
-the POSIX tzset() function. See also convert_time/2.
+the POSIX tzset() function. See also format_time/3.
+
+    \prologflagitem{toplevel_mode}{atom}{rw}
+If \const{backtracking} (default), the toplevel backtracks after
+completing a query. If \const{recursive}, the toplevel is implemented as
+a recursive loop. This implies that global variables set using
+b_setval/2 are maintained between queries. In \jargon{recursive}
+mode, answers to toplevel variables (see \secref{topvars}) are kept
+in backtrackable global variables and thus \textbf{not copied}.  In
+\jargon{backtracking} mode answers to toplevel variables are kept in
+the recorded database (see \secref{recdb}).
+
+The recursive mode has been added for interactive usage of CHR (see
+\secref{chr}),\footnote{Suggested by Falco Nogatz} which maintains the
+global constraint store in backtrackable global variables.
 
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, top-level variables starting with an underscore
@@ -1518,7 +1633,7 @@ This may be used to hide bindings in complex queries from the top level.
 If \const{true} (default \const{false}) show the internal sharing of
 subterms in the answer substitution.  The example below reveals internal
 sharing of leaf nodes in \jargon{red-black trees} as implemented by the
-\pllib{rbtrees} predicate rb_new/1:
+\pllib{rbtrees} predicate \libpredref{rb_new}{1}:
 
 \begin{code}
 ?- set_prolog_flag(toplevel_print_factorized, true).
@@ -1583,14 +1698,16 @@ output.
 \end{code}
 
     \prologflagitem{traditional}{bool}{r}
-Available in SWI-Prolog version~7.  If \const{true}, `traditional' mode
-has been selected using \cmdlineoption{--traditional}.  See also
-\secref{extensions}.
+Available in SWI-Prolog version~7.  If \const{true}, `traditional'
+mode has been selected using \cmdlineoption{--traditional}.  Notice
+that some SWI7 features, like the functional notation on dicts, do not
+work in this mode.  See also \secref{extensions}.
 
     \prologflagitem{tty_control}{bool}{rw}
 Determines whether the terminal is switched to raw mode for
-get_single_char/1, which also reads the user actions for the trace.  May
-be set.  See also the \cmdlineoption{+/-tty} command line option.
+get_single_char/1, which also reads the user actions for the trace. May
+be set. If this flag is \const{false} at startup, command line editing
+is disabled. See also the \cmdlineoption{+/-tty} command line option.
 
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
@@ -1630,7 +1747,12 @@ default is \const{silent}, but future versions may change that.
 Developers are encouraged to use another value and ensure proper use
 of create_prolog_flag/3 to create flags for their library.
 
-    \prologflagitem{verbose}{Atom}{rw}
+    \prologflagitem{var_prefix}{bool}{rw}
+If \const{true} (default \const{false}), variables must start with an
+underscore (\chr{_}).  May be changed. This flag is local to the
+module in which it is changed.  See \secref{varprefix}.
+
+    \prologflagitem{verbose}{atom}{rw}
 This flag is used by print_message/2.  If its value is \const{silent},
 messages of type \const{informational} and \const{banner} are suppressed.
 The \cmdlineoption{-q} switches the value from the initial
@@ -1658,15 +1780,13 @@ debugging complicated file-search paths.  See also file_search_path/2.
     \prologflagitem{version}{integer}{r}
 The version identifier is an integer with value: $$10000 \times
 \arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
-Note that in releases up to 2.7.10 this Prolog flag yielded an atom holding
-the three numbers separated by dots. The current representation is much
-easier for implementing version-conditional statements.
 
     \prologflagitem{version_data}{swi(Major, Minor, Patch, Extra)}{r}
 Part of the dialect compatibility layer; see also the Prolog flag
 \prologflag{dialect} and \secref{dialect}. \arg{Extra} provides
-platform-specific version information.  Currently it is simply unified
-to \const{[]}.
+platform-specific version information as a list. \arg{Extra} is used for
+\jargon{tagged versions} such as ``7.4.0-rc1'', in which case
+\arg{Extra} contains a term \term{tag}{rc1}.
 
     \prologflagitem{version_git}{atom}{r}
 Available if created from a git repository.  See \program{git-describe}
@@ -1677,11 +1797,30 @@ If \const{true} (default), a warning is printed if an implicitly
 imported predicate is clobbered by a local definition.  See
 use_module/1 for details.
 
+    \prologflagitem{win_file_access_check}{atom}{rw}
+Controls the behaviour or access_file/2 under Windows. There is no
+reliable way to check access to files and directories on Windows. This
+flag allows for switching between three alternative approximations.
+
+\begin{description}
+    \termitem{access}{}
+Use Windows _waccess() function. This ignores ACLs (Access Control
+List) and thus may indicate that access is allowed while it is not.
+    \termitem{filesecurity}{}
+Use the Windows GetFileSecurity() function.  This does not work on
+all file systems, but is probably the best choice on file systems
+that do support it, notably local NTFS volumes.
+    \termitem{openclose}{}
+Try to open the file and close it.  This works reliable for files,
+but not for directories.  Currently directories are checked using
+_waccess().  This is the default.
+\end{description}
+
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If present and \const{true}, the operating system is an implementation
-of Microsoft Windows (NT/2000/XP, etc.). This flag is only available on
-MS-Windows based versions.
+of Microsoft Windows. This flag is only available on MS-Windows based
+versions.  See also \prologflag{unix}.
 
     \prologflagitem{write_attributes}{atom}{rw}
 Defines how write/1 and friends write attributed variables.  The option
@@ -1698,6 +1837,13 @@ Available and set to \const{true} if the XPCE graphics system is loaded.
 
     \prologflagitem{xpce_version}{atom}{r}
 Available and set to the version of the loaded XPCE system.
+
+    \prologflagitem{xref}{bool}{rw}
+If \const{true}, source code is being read for \emph{analysis} purposes
+such as cross-referencing.  Otherwise (default) it is being read to be
+compiled.  This flag is used at several places by term_expansion/2 and
+goal_expansion/2 hooks, notably if these hooks use side effects.  See
+also the libraries \pllib{prolog_source} and \pllib{prolog_xref}.
 \end{description}
 
     \predicate[ISO]{set_prolog_flag}{2}{:Key, +Value}
@@ -1741,7 +1887,7 @@ is a list of the options below.  See also \prologflag{user_flags}.
 	value.  Note that \const{term} restricts the term to be ground.
 
 	\termitem{keep}{+Boolean}
-	If \const{true}, to not modify the flag if it already exists.
+	If \const{true}, do not modify the flag if it already exists.
 	Otherwise (default), this predicate behaves as set_prolog_flag/2
 	if the flag already exists.
     \end{description}
@@ -1780,9 +1926,9 @@ Same as term_expansion/2 for individual goals (SICStus).
 Hook into load_files/2 to load other data formats for Prolog sources
 from `non-file' resources.  The load_files/2 predicate is the ancestor
 of consult/1, use_module/1, etc.
-    \item [prolog_edit:locate/3]
+    \item [qpredref{prolog_edit}{locate}{3}]
 Hook into edit/1 to locate objects (SWI).
-    \item [prolog_edit:edit_source/1]
+    \item [qpredref{prolog_edit}{edit_source}{1}]
 Hook into edit/1 to call an internal editor (SWI).
     \item [prolog_edit:edit_command/2]
 Hook into edit/1 to define the external editor to use (SWI).
@@ -1791,10 +1937,10 @@ Hook into the tracer to list the code associated to a particular goal
 (SWI).
     \item [prolog_trace_interception/4]
 Hook into the tracer to handle trace events (SWI).
-    \item [prolog:debug_control_hook/1]
+    \item [qpredref{prolog}{debug_control_hook}{1}]
 Hook in spy/1, nospy/1, nospyall/0 and debugging/0 to extend these
 control predicates to higher-level libraries.
-    \item [prolog:help_hook/1]
+    \item [qpredref{prolog}{help_hook}{1}]
 Hook in help/0, help/1 and apropos/1 to extend the help system.
     \item [resource/3]
 Define a new resource (not really a hook, but similar) (SWI).
@@ -1952,9 +2098,9 @@ This section lists various extensions w.r.t.\ the ISO Prolog syntax.
 \index{ISO Latin 1}\index{character set}%
 The processor character set specifies the class of each character used
 for parsing Prolog source text.  Character classification is fixed to
-\url[Unicode]{http://www.unicode.org/}.  See also \secref{widechars}.
+\href{http://www.unicode.org/}{Unicode}.  See also \secref{widechars}.
 
-\subsection{Nested comments}			\label{sec:nestedcomments}
+\subsubsection{Nested comments}			\label{sec:nestedcomments}
 
 SWI-Prolog allows for nesting \exam{/* \ldots */} comments. Where the
 ISO standard accepts \exam{/* \ldots /* \ldots */} as a comment,
@@ -2114,6 +2260,69 @@ Integers can be printed using this notation with format/2, using the
 
 The current syntax has been proposed by Ulrich Neumerkel on the
 SWI-Prolog mailinglist.
+
+
+\subsubsection{NaN and Infinity floats and their syntax}
+\label{sec:floatsyntax}
+
+SWI-Prolog supports reading an printing `special' floating point values
+according to \url[Proposal for Prolog Standard core update wrt floating
+point arithmetic]{http://eclipseclp.org/Specs/core_update_float.html} by
+Joachim Schimpf and available in ECLiPSe Prolog. In particular,
+
+\begin{itemize}
+    \item Infinity is printed as \verb$1.0Inf$ or \verb$-1.0Inf$.  Any
+    sequence matching the regular expression \verb$[+-]?\sd+[.]\sd+Inf$
+    is mapped to plus or minus infinity.
+
+    \item \const{NaN} (Not a Number) is printed as \verb$1.xxxNaN$, where
+    \textit{1.xxx} is the float after replacing the exponent by `1'.
+    Such numbers are read, resulting in the same \const{NaN}. The
+    \const{NaN} constant can also be produced using the function
+    \funcref{nan}{0}, e.g.,
+
+\begin{code}
+?- A is nan.
+A = 1.5NaN.
+\end{code}
+\end{itemize}
+
+Note that, compliant with the ISO standard, SWI-Prolog arithmetic (see
+\secref{arith}) never returns one of the above values but instead raises
+an \jargon{exception}, e.g.,
+
+\begin{code}
+?- A is 1/0.
+ERROR: //2: Arithmetic: evaluation error: `zero_divisor'
+\end{code}
+
+There is one exception to this rule. For compatibility the functions
+\funcref{inf}{0} and \funcref{nan}{0} return \verb$1.0Inf$ and the
+default system \const{NaN}. The ability to create, read and write such
+values is primarily provided to exchange data with languages that can
+represent the full range of IEEE doubles.
+
+\subsubsection{Force only underscore to introduce a variable}
+\label{sec:varprefix}
+
+According to the ISO standard and most Prolog systems, identifiers that
+start with an uppercase letter or an underscore are variables. In the
+past, \jargon{Prolog by BIM} provided an alternative syntax, where only
+the underscore (\chr{_}) introduces a variable. As of SWI-Prolog 7.3.27
+SWI-Prolog supports this alternative syntax, controlled by the Prolog
+flag \prologflag{var_prefix}. As the \prologflag{character_escapes}
+flag, this flag is maintained per module, where the default is
+\const{false}, supporting standard syntax.
+
+Having only the underscore introduce a variable is particularly useful
+if code contains identifiers for case senstive external languages.
+Examples are the RDF library where code frequently specifies property
+and class names\footnote{Samer Abdallah suggested this feature based on
+experience with non-Prolog users using the RDF library.} and the R
+interface for specifying functions or variables that start with an
+uppercase character. Lexical databases were part of the terms start with
+an uppercase letter is another category were the readability of the code
+improves using this option.
 
 
 \subsubsection{Unicode Prolog source}		\label{sec:unicodesyntax}
@@ -2367,13 +2576,10 @@ The indexes of dynamic predicates are deleted if the number of clauses
 is doubled since its creation or reduced below 1/4th. The JIT approach
 will recreate a suitable index on the next call. Indexes of running
 predicates cannot be deleted. They are added to a `removed index list'
-associated to the predicate. Dynamic predicates maintain a counter for
-the number of goals running the predicate (a predicate can `run'
-multiple times due to recursion, open choice points, and
-multiple threads) and destroy removed indexes if this count drops to
-zero. Outdated indexes of static predicates (e.g., due to reconsult or
-enlarging multifile predicates) are reclaimed by
-garbage_collect_clauses/0.
+associated to the predicate. Outdated indexes of predicates are
+reclaimed by garbage_collect_clauses/0.  The clause garbage collector
+is scheduled automatically, based on time and space based heuristics.
+See garbage_collect_clauses/0 for details.
 \end{itemlist}
 
 \subsection{Future directions}
@@ -2571,8 +2777,8 @@ on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
 names \const{localSize}, \const{globalSize} and \const{trailSize}.  The
 value is a \const{DWORD} expressing the default stack size in Kbytes.
 A GUI for modifying these values is provided using the XPCE package.
-To use this, start the XPCE manual tools using manpce/0, after which
-you find \textit{Preferences} in the \textit{File} menu.
+To use this, start the XPCE manual tools using \libpredref{manpce}{0},
+after which you find \textit{Preferences} in the \textit{File} menu.
 
 Considering portability, applications that need to modify the default
 limits are advised to do so using set_prolog_stack/2.

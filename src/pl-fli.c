@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1996-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -71,6 +83,14 @@ Prolog int) is used by the garbage collector to update the stack frames.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
+#define VALID_INT_ARITY(a) \
+	{ if ( arity < 0 || arity > INT_MAX ) \
+	    fatalError("Arity out of range: %lld", (int64_t)arity); \
+	} while(0);
+
+#define VALID_TERM_ARITY(arity) \
+	do { if ( (ssize_t)arity < 0 ) \
+	       return raiseStackOverflow(GLOBAL_OVERFLOW); } while(0)
 
 static int	unify_int64_ex__LD(term_t t, int64_t i, int ex ARG_LD);
 
@@ -139,6 +159,29 @@ popTermRef__LD(ARG1_LD)
   setVar(*valTermRef(LD->tmp.h[i]));
 }
 
+
+/* bArgVar(Word ap, Word vp) unifies a pointer into a struct with a
+   pointer to a value.  This is the same as the B_ARGVAR instruction
+   and used to push terms for e.g., A_ADD_FC
+*/
+
+void
+bArgVar(Word ap, Word vp ARG_LD)
+{ deRef(vp);
+
+  if ( isVar(*vp) )
+  { if ( ap < vp )
+    { setVar(*ap);
+      Trail(vp, makeRefG(ap));
+    } else
+    { *ap = makeRefG(vp);
+    }
+  } else if ( isAttVar(*vp) )
+  { *ap = makeRefG(vp);
+  } else
+  { *ap = *vp;
+  }
+}
 
 		 /*******************************
 		 *	   CREATE/RESET		*
@@ -387,12 +430,22 @@ PL_new_atom_nchars(size_t len, const char *s)
 
 
 functor_t
-PL_new_functor(atom_t f,  int a)
+PL_new_functor_sz(atom_t f, size_t arity)
 { if ( !GD->initialised )
     initFunctors();
 
-  return lookupFunctorDef(f, a);
+  return lookupFunctorDef(f, arity);
 }
+
+#undef PL_new_functor
+functor_t
+PL_new_functor(atom_t f, int arity)
+{ if ( arity >= 0 )
+    return PL_new_functor_sz(f, arity);
+  fatalError("Arity out of range: %d", arity);
+  return 0;
+}
+#define PL_new_functor(n,a) PL_new_functor_sz(n,a)
 
 
 atom_t
@@ -401,10 +454,20 @@ PL_functor_name(functor_t f)
 }
 
 
-int
-PL_functor_arity(functor_t f)
+size_t
+PL_functor_arity_sz(functor_t f)
 { return arityFunctor(f);
 }
+
+#undef PL_functor_arity
+int
+PL_functor_arity(functor_t f)
+{ size_t arity = arityFunctor(f);
+
+  VALID_INT_ARITY(arity);
+  return (int)arity;
+}
+#define PL_functor_arity(f) PL_functor_arity_sz(f)
 
 
 		 /*******************************
@@ -883,13 +946,15 @@ bindConsVal(Word to, Word p ARG_LD)
 int
 PL_cons_functor(term_t h, functor_t fd, ...)
 { GET_LD
-  int arity = arityFunctor(fd);
+  size_t arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
   } else
   { va_list args;
     Word a, t;
+
+    VALID_TERM_ARITY(arity);
 
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
@@ -902,7 +967,7 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     gTop += 1+arity;
     va_start(args, fd);
     *a = fd;
-    while( --arity >= 0 )
+    while( arity-- > 0 )
     { term_t r = va_arg(args, term_t);
 
       bindConsVal(++a, valHandleP(r) PASS_LD);
@@ -918,12 +983,14 @@ PL_cons_functor(term_t h, functor_t fd, ...)
 int
 PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 { GET_LD
-  int arity = arityFunctor(fd);
+  size_t arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
   } else
   { Word t, a, ai;
+
+    VALID_TERM_ARITY(arity);
 
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
@@ -937,7 +1004,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 
     ai = valHandleP(a0);
     *a = fd;
-    while( --arity >= 0 )
+    while( arity-- > 0 )
       bindConsVal(++a, ai++ PASS_LD);
 
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
@@ -977,6 +1044,43 @@ PL_cons_list(term_t l, term_t head, term_t tail)
   return PL_cons_list__LD(l, head, tail PASS_LD);
 }
 #define PL_cons_list(l, h, t) PL_cons_list__LD(l, h, t PASS_LD)
+
+/* PL_cons_list_v() creates a list from a vector of term-references
+*/
+
+int
+PL_cons_list_v(term_t list, size_t count, term_t elems)
+{ GET_LD
+
+  if ( count > 0 )
+  { Word p;
+
+    if ( !hasGlobalSpace(3*count) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(3*count, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+    }
+
+    p = gTop;
+    for( ; count-- > 0; p += 3, elems++ )
+    { p[0] = FUNCTOR_dot2;
+      bindConsVal(&p[1], valHandleP(elems) PASS_LD);
+      if ( count > 0 )
+      { p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+      } else
+      { p[2] = ATOM_nil;
+      }
+    }
+
+    setHandle(list, consPtr(gTop, TAG_COMPOUND|STG_GLOBAL));
+    gTop = p;
+  } else
+  { setHandle(list, ATOM_nil);
+  }
+
+  return TRUE;
+}
 
 
 		 /*******************************
@@ -1275,13 +1379,13 @@ char *
 PL_quote(int chr, const char *s)
 { Buffer b = findBuffer(BUF_RING);
 
-  addBuffer(b, chr, char);
+  addBuffer(b, (char)chr, char);
   for(; *s; s++)
   { if ( *s == chr )
-      addBuffer(b, chr, char);
+      addBuffer(b, (char)chr, char);
     addBuffer(b, *s, char);
   }
-  addBuffer(b, chr, char);
+  addBuffer(b, (char)chr, char);
   addBuffer(b, EOS, char);
 
   return baseBuffer(b, char);
@@ -1532,7 +1636,7 @@ PL_get_pointer(term_t t, void **ptr)
 
 
 int
-PL_get_name_arity(term_t t, atom_t *name, int *arity)
+PL_get_name_arity_sz(term_t t, atom_t *name, size_t *arity)
 { GET_LD
   word w = valHandle(t);
 
@@ -1558,7 +1662,7 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 
 int
-PL_get_compound_name_arity(term_t t, atom_t *name, int *arity)
+PL_get_compound_name_arity_sz(term_t t, atom_t *name, size_t *arity)
 { GET_LD
   word w = valHandle(t);
 
@@ -1575,6 +1679,32 @@ PL_get_compound_name_arity(term_t t, atom_t *name, int *arity)
   fail;
 }
 
+#undef PL_get_name_arity
+int
+PL_get_name_arity(term_t t, atom_t *name, int *arityp)
+{ size_t arity;
+
+  if ( !PL_get_name_arity_sz(t, name, &arity) )
+    return FALSE;
+  VALID_INT_ARITY(arity);
+  *arityp = (int)arity;
+  return TRUE;
+}
+#define PL_get_name_arity(t,n,a) PL_get_name_arity_sz(t,n,a)
+
+#undef PL_get_compound_name_arity
+int
+PL_get_compound_name_arity(term_t t, atom_t *name, int *arityp)
+{ size_t arity;
+
+  if ( !PL_get_compound_name_arity_sz(t, name, &arity) )
+    return FALSE;
+  VALID_INT_ARITY(arity);
+  *arityp = (int)arity;
+  return TRUE;
+}
+#define PL_get_compound_name_arity(t,n,a) PL_get_compound_name_arity_sz(t,n,a)
+
 
 int
 PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
@@ -1584,7 +1714,7 @@ PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
   { *f = functorTerm(w);
     succeed;
   }
-  if ( isTextAtom(w) || isReservedSymbol(w) )
+  if ( isCallableAtom(w) || isReservedSymbol(w) )
   { *f = lookupFunctorDef(w, 0);
     succeed;
   }
@@ -1617,7 +1747,7 @@ PL_get_module(term_t t, module_t *m)
 
 #undef _PL_get_arg			/* undo global definition */
 void
-_PL_get_arg(int index, term_t t, term_t a)
+_PL_get_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);
   Functor f = (Functor)valPtr(w);
@@ -1625,11 +1755,18 @@ _PL_get_arg(int index, term_t t, term_t a)
 
   setHandle(a, linkVal(p));
 }
+void
+_PL_get_arg(int index, term_t t, term_t a)
+{ if ( index >= 0 )
+    _PL_get_arg_sz(index, t, a);
+  else
+    fatalError("Arity out of range: %d", a);
+}
 #define _PL_get_arg(i, t, a) _PL_get_arg__LD(i, t, a PASS_LD)
 
 
 void
-_PL_get_arg__LD(int index, term_t t, term_t a ARG_LD)
+_PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD)
 { word w = valHandle(t);
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
@@ -1639,13 +1776,13 @@ _PL_get_arg__LD(int index, term_t t, term_t a ARG_LD)
 
 
 int
-PL_get_arg(int index, term_t t, term_t a)
+PL_get_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);
 
   if ( isTerm(w) && index > 0 )
   { Functor f = (Functor)valPtr(w);
-    int arity = arityFunctor(f->definition);
+    size_t arity = arityFunctor(f->definition);
 
     if ( --index < arity )
     { Word p = &f->arguments[index];
@@ -1658,6 +1795,15 @@ PL_get_arg(int index, term_t t, term_t a)
   fail;
 }
 
+#undef PL_get_arg
+int
+PL_get_arg(int index, term_t t, term_t a)
+{ if ( index >= 0 )
+    return PL_get_arg_sz(index, t, a);
+  fatalError("Index out of range: %d", index);
+  return FALSE;
+}
+#define PL_get_arg(i,t,a) PL_get_arg_sz(i,t,a)
 
 #ifdef O_ATTVAR
 int
@@ -1950,7 +2096,7 @@ PL_is_callable(term_t t)
   { Functor f = valueTerm(w);
     FunctorDef fd = valueFunctor(f->definition);
 
-    if ( isTextAtom(fd->name) )
+    if ( isCallableAtom(fd->name) )
       return TRUE;
   }
 
@@ -2319,14 +2465,15 @@ PL_put_float(term_t t, double f)
 int
 PL_put_functor(term_t t, functor_t f)
 { GET_LD
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
 
   if ( arity == 0 )
   { setHandle(t, nameFunctor(f));
   } else
-  { Word a = allocGlobal(1 + arity);
+  { Word a;
 
-    if ( !a )
+    VALID_TERM_ARITY(arity);
+    if ( !(a = allocGlobal(1 + arity)) )
       return FALSE;
     setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
     *a++ = f;
@@ -2449,7 +2596,7 @@ int
 PL_unify_compound(term_t t, functor_t f)
 { GET_LD
   Word p = valHandleP(t);
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
 
   deRef(p);
   if ( canBind(*p) )
@@ -2457,6 +2604,7 @@ PL_unify_compound(term_t t, functor_t f)
     Word a;
     word to;
 
+    VALID_TERM_ARITY(arity);
     if ( !hasGlobalSpace(needed) )
     { int rc;
 
@@ -2471,7 +2619,7 @@ PL_unify_compound(term_t t, functor_t f)
 
     gTop += 1+arity;
     *a = f;
-    while( --arity >= 0 )
+    while( arity-- > 0 )
       setVar(*++a);
 
     bindConst(p, to);
@@ -2487,12 +2635,13 @@ int
 PL_unify_functor(term_t t, functor_t f)
 { GET_LD
   Word p = valHandleP(t);
-  int arity = arityFunctor(f);
+  size_t arity = arityFunctor(f);
 
   deRef(p);
   if ( canBind(*p) )
   { size_t needed = (1+arity);
 
+    VALID_TERM_ARITY(arity);
     if ( !hasGlobalSpace(needed) )
     { int rc;
 
@@ -2511,7 +2660,7 @@ PL_unify_functor(term_t t, functor_t f)
 
       gTop += 1+arity;
       *a = f;
-      while( --arity >= 0 )
+      while( arity-- > 0 )
 	setVar(*++a);
 
       bindConst(p, to);
@@ -2561,7 +2710,7 @@ uncachedCodeToAtom(int chrcode)
 { if ( chrcode < 256 )
   { char tmp[1];
 
-    tmp[0] = chrcode;
+    tmp[0] = (char)chrcode;
     return lookupAtom(tmp, 1);
   } else
   { pl_wchar_t tmp[1];
@@ -2857,15 +3006,14 @@ PL_unify_bool(term_t t, int val)
 }
 
 
-
 int
-PL_unify_arg(int index, term_t t, term_t a)
+PL_unify_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);
 
   if ( isTerm(w) &&
        index > 0 &&
-       index <= (int)arityFunctor(functorTerm(w)) )
+       index <=	arityFunctor(functorTerm(w)) )
   { Word p = argTermP(w, index-1);
     Word p2 = valHandleP(a);
 
@@ -2875,6 +3023,15 @@ PL_unify_arg(int index, term_t t, term_t a)
   fail;
 }
 
+#undef PL_unify_arg
+int
+PL_unify_arg(int index, term_t t, term_t a)
+{ if ( index >= 0 )
+    return PL_unify_arg_sz(index, t, a);
+  fatalError("Index out of range: %d", index);
+  return FALSE;
+}
+#define PL_unify_arg(i,t,a) PL_unify_arg_sz(i,t,a)
 
 int
 PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
@@ -2959,8 +3116,8 @@ typedef struct
   union
   { struct
     { term_t term;			/* term for which to do work on */
-      int    arity;			/* arity of the term */
-      int    arg;			/* current argument */
+      size_t arity;			/* arity of the term */
+      size_t arg;			/* current argument */
     } term;
     struct
     { term_t tail;			/* tail of list */
@@ -3112,7 +3269,7 @@ cont:
       break;
     }
   { functor_t ft;
-    int arity;
+    size_t arity;
 
     case PL_FUNCTOR_CHARS:
     { const char *s = va_arg(args, const char *);
@@ -3444,6 +3601,28 @@ PL_unify(term_t t1, term_t t2)
 
 #define PL_unify(t1, t2) PL_unify__LD(t1, t2 PASS_LD)
 
+/*
+ * Unify an output argument.  Only deals with the simple case
+ * where the output argument is unbound and the value is bound.
+ */
+
+int
+PL_unify_output__LD(term_t t1, term_t t2 ARG_LD)
+{ Word p1 = valHandleP(t1);
+  Word p2 = valHandleP(t2);
+
+  deRef(p1);
+  deRef(p2);
+  if ( canBind(*p1) && !canBind(*p2) &&
+       hasGlobalSpace(0) )
+  { bindConst(p1, *p2);
+    return TRUE;
+  } else
+  { return unify_ptrs(p1, p2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+  }
+}
+
+
 
 		 /*******************************
 		 *	       MODULES		*
@@ -3521,7 +3700,8 @@ PL_module_name(Module m)
 
 module_t
 PL_new_module(atom_t name)
-{ return lookupModule(name);
+{ GET_LD
+  return lookupModule(name);
 }
 
 int
@@ -3562,7 +3742,8 @@ PL_predicate(const char *name, int arity, const char *module)
   PL_unregister_atom(a);
 
   if ( module )
-  { a = lookupAtom(module, strlen(module));
+  { GET_LD
+    a = lookupAtom(module, strlen(module));
     m = lookupModule(a);
     PL_unregister_atom(a);
   } else
@@ -3583,7 +3764,7 @@ _PL_predicate(const char *name, int arity, const char *module,
 
 
 int
-PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
+PL_predicate_info(predicate_t pred, atom_t *name, size_t *arity, module_t *m)
 { Definition def = pred->definition;
 
   if ( name )
@@ -3659,10 +3840,28 @@ PL_foreign_control(control_t h)
 
 predicate_t				/* = Procedure */
 PL_foreign_context_predicate(control_t h)
-{ Definition def = h->predicate;
+{ GET_LD
+  Definition def = h->predicate;
 
   return isCurrentProcedure(def->functor->functor, def->module);
 }
+
+static int
+has_emergency_space(void *sv, size_t needed)
+{ Stack s = (Stack) sv;
+  ssize_t lacking = (s->top + needed) - s->max;
+
+  if ( lacking <= 0 )
+    return TRUE;
+  if ( lacking < s->spare )
+  { s->max   += lacking;
+    s->spare -= lacking;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 static int
 copy_exception(term_t ex, term_t bin ARG_LD)
@@ -3689,7 +3888,7 @@ copy_exception(term_t ex, term_t bin ARG_LD)
 	{ Sdprintf("WARNING: Removed error context due to stack overflow\n");
 	  goto ok;
 	}
-      } else if ( gTop+5 < gMax )
+      } else if ( has_emergency_space(&LD->stacks.global, 5*sizeof(word)) )
       { Word p = gTop;
 
 	Sdprintf("WARNING: cannot raise exception; raising global overflow\n");
@@ -3726,7 +3925,8 @@ PL_raise_exception(term_t exception)
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { setVar(*valTermRef(exception_bin));
     copy_exception(exception, exception_bin PASS_LD);
-    freezeGlobal(PASS_LD1);
+    if ( !PL_is_atom(exception_bin) )
+      freezeGlobal(PASS_LD1);
   }
   exception_term = exception_bin;
 
@@ -3910,9 +4110,9 @@ register_foreignv(const char *module,
   } else
   { PL_extension ext[2];
     ext->predicate_name = (char *)name;
-    ext->arity = arity;
+    ext->arity = (short)arity;
     ext->function = f;
-    ext->flags = flags;
+    ext->flags = (short)flags;
     ext[1].predicate_name = NULL;
     rememberExtensions(module, ext);
 
@@ -4217,7 +4417,10 @@ PL_prompt_next(int fd)
 
 char *
 PL_prompt_string(int fd)
-{ if ( fd == 0 )
+{ GET_LD
+  IOSTREAM *s;
+
+  if ( (s=Suser_input) && fd == Sfileno(s) )
   { atom_t a = PrologPrompt();		/* TBD: deal with UTF-8 */
 
     if ( a )
@@ -4254,7 +4457,9 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 
 
 #if defined(HAVE_SELECT) && !defined(__WINDOWS__)
-#ifdef HAVE_SYS_SELECT_H
+#if defined(HAVE_POLL_H) && defined(HAVE_POLL)
+#include <poll.h>
+#elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
 #endif
 
@@ -4267,8 +4472,24 @@ do never want this code in Windows.
 
 static int
 input_on_fd(int fd)
-{ fd_set rfds;
+{
+#ifdef HAVE_POLL
+  struct pollfd fds[1];
+
+  fds[0].fd = fd;
+  fds[0].events = POLLIN;
+
+  return poll(fds, 1, 0) != 0;
+#else
+  fd_set rfds;
   struct timeval tv;
+
+#if defined(FD_SETSIZE) && !defined(__WINDOWS__)
+  if ( fd >= FD_SETSIZE )
+  { Sdprintf("input_on_fd(%d) > FD_SETSIZE\n", fd);
+    return 1;
+  }
+#endif
 
   FD_ZERO(&rfds);
   FD_SET(fd, &rfds);
@@ -4276,6 +4497,7 @@ input_on_fd(int fd)
   tv.tv_usec = 0;
 
   return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+#endif
 }
 
 #else
@@ -4348,32 +4570,70 @@ PL_duplicate_record(record_t r)
 
 int
 PL_set_prolog_flag(const char *name, int type, ...)
-{ va_list args;
+{ GET_LD
+  va_list args;
   int rval = TRUE;
   int flags = (type & FF_MASK);
+  fid_t fid;
+  term_t av;
 
   va_start(args, type);
-  switch(type & ~FF_MASK)
-  { case PL_BOOL:
-    { int val = va_arg(args, int);
+  if ( HAS_LD &&
+       GD->io_initialised &&			/* setupProlog() finished */
+       (fid = PL_open_foreign_frame()) &&
+       (av  = PL_new_term_refs(2)) )
+  { PL_put_atom_chars(av+0, name);
+    switch(type & ~FF_MASK)
+    { case PL_BOOL:
+      { int val = va_arg(args, int);
 
-      setPrologFlag(name, FT_BOOL|flags, val, 0);
-      break;
+	rval = ( PL_put_bool(av+1, val) &&
+		 set_prolog_flag(av+0, av+1, FT_BOOL|flags) );
+	break;
+      }
+      case PL_ATOM:
+      { const char *v = va_arg(args, const char *);
+
+	rval = ( PL_put_atom_chars(av+1, v) &&
+		 set_prolog_flag(av+0, av+1, FT_ATOM|flags) );
+	break;
+      }
+      case PL_INTEGER:
+      { intptr_t v = va_arg(args, intptr_t);
+
+	rval = ( PL_put_integer(av+1, v) &&
+		 set_prolog_flag(av+0, av+1, FT_INTEGER|flags) );
+	break;
+      }
+      default:
+	rval = FALSE;
     }
-    case PL_ATOM:
-    { const char *v = va_arg(args, const char *);
-      if ( !GD->initialised )
-	initAtoms();
-      setPrologFlag(name, FT_ATOM|flags, v);
-      break;
+    PL_close_foreign_frame(fid);
+  } else
+  { initPrologThreads();
+
+    switch(type & ~FF_MASK)
+    { case PL_BOOL:
+      { int val = va_arg(args, int);
+
+	setPrologFlag(name, FT_BOOL|flags, val, 0);
+	break;
+      }
+      case PL_ATOM:
+      { const char *v = va_arg(args, const char *);
+	if ( !GD->initialised )
+	  initAtoms();
+	setPrologFlag(name, FT_ATOM|flags, v);
+	break;
+      }
+      case PL_INTEGER:
+      { intptr_t v = va_arg(args, intptr_t);
+	setPrologFlag(name, FT_INTEGER|flags, v);
+	break;
+      }
+      default:
+	rval = FALSE;
     }
-    case PL_INTEGER:
-    { intptr_t v = va_arg(args, intptr_t);
-      setPrologFlag(name, FT_INTEGER|flags, v);
-      break;
-    }
-    default:
-      rval = FALSE;
   }
   va_end(args);
 

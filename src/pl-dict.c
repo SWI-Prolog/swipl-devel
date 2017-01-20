@@ -3,21 +3,33 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2013, VU University Amsterdam
+    Copyright (c)  2013-2016, VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -34,13 +46,13 @@ The term has the following layout on the global stack:
   ------------
   | tag      |
   ------------
-  | key1     |
-  ------------
   | value1   |
   ------------
-  | key2     |
+  | key1     |
   ------------
   | value2   |
+  ------------
+  | key2     |
       ...
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -173,7 +185,8 @@ get_dict_ex(term_t t, Word dp, int ex ARG_LD)
   if ( !ex )
     return FALSE;
 
-  return PL_type_error("dict", t);
+  PL_type_error("dict", t);
+  return FALSE;
 }
 
 
@@ -222,29 +235,30 @@ Word
 dict_lookup_ptr(word dict, word name ARG_LD)
 { Functor data = valueTerm(dict);
   int arity = arityFunctor(data->definition);
-  int l = 1, h = arity-2;		/* odd numbers are the keys */
+  int l = 1, h = arity/2;
 
   if ( arity == 1 )
     return NULL;			/* empty */
   assert(arity%2 == 1);
 
   for(;;)
-  { int m = ((l+h)/2)|0x1;
+  { int m = (l+h)/2;
     Word p;
 
-    deRef2(&data->arguments[m], p);
+    deRef2(&data->arguments[m*2], p);
+
     if ( *p == name )
-      return p+1;
+      return p-1;
 
     if ( l == h )
       return NULL;
 
     if ( *p < name )
-      l=m;
-    else if ( h > m )
+      l=m+1;
+    else if ( m == l )
       h=m;
     else
-      h=m-2;
+      h=m-1;
   }
 }
 
@@ -263,7 +277,8 @@ dict_ordered(Word data, int count, int ex ARG_LD)
   Word n1, n2;
 
   if ( count > 0 )
-  { deRef2(data, n1);
+  { data++;			/* skip to key */
+    deRef2(data, n1);
     if ( !is_key(*n1) )
       return -1;
   }
@@ -299,8 +314,8 @@ dict_ordered(Word data, int count, int ex ARG_LD)
 static int
 compare_dict_entry(const void *a, const void *b, void *arg)
 { GET_LDARG(arg);
-  Word p = (Word)a;
-  Word q = (Word)b;
+  Word p = (Word)a+1;
+  Word q = (Word)b+1;
 
   deRef(p);
   deRef(q);
@@ -378,8 +393,10 @@ static int
 assign_in_dict(Word dp, Word val ARG_LD)
 { deRef(val);
 
-  if ( !isVar(*val) )
+  if ( !canBind(*val) )
   { *dp = *val;
+  } else if ( isAttVar(*val) )
+  { *dp = makeRef(val);
   } else
   { if ( dp < val )
     { if ( unlikely(tTop+1 >= tMax) )
@@ -422,24 +439,25 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
   { Word i_name, n_name;
     int rc;
 
-    deRef2(in, i_name);
-    deRef2(nv, n_name);
+    deRef2(in+1, i_name);
+    deRef2(nv+1, n_name);
+
     if ( *i_name == *n_name )
-    { *out++ = *i_name;
-      if ( (rc=assign_in_dict(out++, nv+1 PASS_LD)) != TRUE )
+    { if ( (rc=assign_in_dict(out++, nv PASS_LD)) != TRUE )
 	return rc;
-      if ( !modified && compareStandard(nv+1, in+1, TRUE PASS_LD) )
+      *out++ = *i_name;
+      if ( !modified && compareStandard(nv, in, TRUE PASS_LD) )
 	modified = TRUE;
       in += 2;
       nv += 2;
     } else if ( *i_name < *n_name )
-    { *out++ = *i_name;
-      *out++ = linkVal(in+1);
+    { *out++ = linkVal(in);
+      *out++ = *i_name;
       in += 2;
     } else
-    { *out++ = *n_name;
-      if ( (rc=assign_in_dict(out++, nv+1 PASS_LD)) != TRUE )
+    { if ( (rc=assign_in_dict(out++, nv PASS_LD)) != TRUE )
 	return rc;
+      *out++ = *n_name;
       nv += 2;
       modified = TRUE;
     }
@@ -452,10 +470,9 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
     }
     while(in < in_end)
     { Word i_name;
-
-      deRef2(in, i_name);
+      deRef2(in+1, i_name);
+      *out++ = linkVal(in);
       *out++ = *i_name;
-      *out++ = linkVal(in+1);
       in += 2;
     }
   } else
@@ -463,10 +480,10 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
     { Word n_name;
       int rc;
 
-      deRef2(nv, n_name);
-      *out++ = *n_name;
-      if ( (rc=assign_in_dict(out++, nv+1 PASS_LD)) != TRUE )
+      deRef2(nv+1, n_name);
+      if ( (rc=assign_in_dict(out++, nv PASS_LD)) != TRUE )
 	return rc;
+      *out++ = *n_name;
       nv += 2;
     }
   }
@@ -500,10 +517,10 @@ del_dict(word dict, word key, word *new_dict ARG_LD)
   while(in < in_end)
   { Word i_name;
 
-    deRef2(in, i_name);
+    deRef2(in+1, i_name);
     if ( *i_name != key )
-    { *out++ = *i_name;
-      *out++ = linkVal(in+1);
+    { *out++ = linkVal(in);
+      *out++ = *i_name;
     }
     in += 2;
   }
@@ -537,17 +554,17 @@ partial_unify_dict(word dict1, word dict2 ARG_LD)
   if ( (rc=unify_ptrs(in1, in2, ALLOW_RETCODE PASS_LD)) != TRUE )
     return rc;
 
-  /* advance to first key */
+  /* advance to first v+k entry */
   in1++;
   in2++;
 
   while(in1 < end1 && in2 < end2)
   { Word n1, n2;
 
-    deRef2(in1, n1);
-    deRef2(in2, n2);
+    deRef2(in1+1, n1);
+    deRef2(in2+1, n2);
     if ( *n1 == *n2 )
-    { if ( (rc = unify_ptrs(in1+1, in2+1, ALLOW_RETCODE PASS_LD)) != TRUE )
+    { if ( (rc = unify_ptrs(in1, in2, ALLOW_RETCODE PASS_LD)) != TRUE )
 	return rc;
       in1 += 2;
       in2 += 2;
@@ -585,17 +602,18 @@ select_dict(word del, word from, word *new_dict ARG_LD)
   if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE PASS_LD)) != TRUE )
     return rc;
 
-  /* advance to first key */
+  /* advance to first v+k entry */
   din++;
   fin++;
 
   while(din < dend && fin < fend)
   { Word d, f;
 
-    deRef2(din, d);
-    deRef2(fin, f);
+    deRef2(din+1, d);
+    deRef2(fin+1, f);
+
     if ( *d == *f )
-    { if ( (rc = unify_ptrs(din+1, fin+1, ALLOW_RETCODE PASS_LD)) != TRUE )
+    { if ( (rc = unify_ptrs(din, fin, ALLOW_RETCODE PASS_LD)) != TRUE )
 	return rc;
       din += 2;
       fin += 2;
@@ -627,14 +645,14 @@ select_dict(word del, word from, word *new_dict ARG_LD)
     while(left > 0)
     { Word d, f;
 
-      deRef2(din, d);
-      deRef2(fin, f);
+      deRef2(din+1, d);
+      deRef2(fin+1, f);
       if ( *d == *f )
       { din += 2;
 	fin += 2;
       } else
-      { *out++ = *f;
-	*out++ = linkVal(&fin[1]);
+      { *out++ = linkVal(fin);
+	*out++ = *f;
 	fin += 2;
 	left--;
       }
@@ -658,7 +676,8 @@ get_name_ex(term_t t, Word np ARG_LD)
     return TRUE;
   }
 
-  return PL_type_error("dict-key", t);
+  PL_type_error("dict-key", t);
+  return FALSE;
 }
 
 
@@ -767,7 +786,7 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     while( isList(*tail) )
     { Word head = HeadList(tail);
 
-      if ( !get_name_value(head, ap, ap+1, flags PASS_LD) )
+      if ( !get_name_value(head, ap+1, ap, flags PASS_LD) )
       { const char *type;
 
 	if ( flags == DICT_GET_PAIRS )
@@ -818,8 +837,8 @@ cmp_dict_index(const void *a1, const void *a2, void *arg)
   int *ip2 = (int*)a2;
   cmp_dict_index_data *ctx = arg;
   GET_LDARG(ctx->ld);
-  Word p = &ctx->data[*ip1*2];
-  Word q = &ctx->data[*ip2*2];
+  Word p = &ctx->data[*ip1*2+1];
+  Word q = &ctx->data[*ip2*2+1];
   int rc;
 
   deRef(p);
@@ -892,8 +911,8 @@ PL_for_dict(term_t dict,
 
     deRef(p);
     Functor f = valueTerm(*p);
-    *valTermRef(av+0) = linkVal(&f->arguments[in]);
-    *valTermRef(av+1) = linkVal(&f->arguments[in+1]);
+    *valTermRef(av+0) = linkVal(&f->arguments[in+1]);
+    *valTermRef(av+1) = linkVal(&f->arguments[in]);
 
     if ( (rc=(*func)(av+0, av+1, ++i == pairs, closure)) != 0 )
       break;
@@ -1018,11 +1037,12 @@ resortDictsInCodes(Code PC, Code end)
 	  fields_start = PC;
 
 	  for(f = 0; f < fields; f++)
-	  { Code PCv;
-	    code op = fetchop(PC);
+	  { Code PCv = PC;
 
 	    kv_pos[f].start = PC-fields_start;
+	    PC = skipArgs(PC, 1);	/* skip value */
 
+	    code op = fetchop(PC);
 	    switch(op)
 	    { case H_ATOM:
 	      case B_ATOM:
@@ -1032,16 +1052,19 @@ resortDictsInCodes(Code PC, Code end)
 		break;
 	      }
 	      default:
+	      { if ( kv_pos != kv_buf )
+		  free(kv_pos);
 		return TRUE;		/* not a dict */
+	      }
 	    }
-	    PC = stepPC(PC);		/* skip key */
-	    PCv = PC;
-	    PC = skipArgs(PC, 1);	/* skip value */
 
 	    if ( !resortDictsInCodes(PCv, PC) )
-	    { return FALSE;
+	    { if ( kv_pos != kv_buf )
+		free(kv_pos);
+	      return FALSE;
 	    }
 
+	    PC = stepPC(PC);		/* skip key */
 	    kv_pos[f].len = PC-fields_start-kv_pos[f].start;
 
 	    DEBUG(MSG_DICT,
@@ -1113,7 +1136,7 @@ right_arg:
 
     if ( fd->name == ATOM_dict && fd->arity%2 == 1 &&
 	 dict_ordered(&t->arguments[1], fd->arity/2, FALSE PASS_LD) == FALSE )
-    { Sdprintf("Re-ordering dict\n");
+    { DEBUG(MSG_DICT, Sdprintf("Re-ordering dict\n"));
       dict_order((Word)t, FALSE PASS_LD);
     }
 
@@ -1248,8 +1271,8 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
       { for( ; i < arity; i += 2 )
 	{ Word np;
 
-	  deRef2(&f->arguments[i], np);	/* TBD: check type */
-	  if ( unify_ptrs(&f->arguments[i+1], valTermRef(A3),
+	  deRef2(&f->arguments[i+1], np);	/* TBD: check type */
+	  if ( unify_ptrs(&f->arguments[i], valTermRef(A3),
 			  ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	       _PL_unify_atomic(A1, *np) )
 	  { PL_close_foreign_frame(fid);
@@ -1298,11 +1321,11 @@ PRED_IMPL("get_dict", 5, get_dict, 0)
   Word vp;
 
   if ( !get_name_ex(A1, &key PASS_LD) ||
-       !(*valTermRef(av+0) = key) ||
+       !(*valTermRef(av+1) = key) ||
        !get_create_dict_ex(A2, dt PASS_LD) ||
        !(vp=dict_lookup_ptr(*valTermRef(dt), key PASS_LD)) ||
        !unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) ||
-       !PL_put_term(av+1, A5) )
+       !PL_put_term(av+0, A5) )
     return FALSE;
 
   for(;;)
@@ -1461,8 +1484,8 @@ put_dict4(term_t key, term_t dict, term_t value, term_t newdict ARG_LD)
 
 retry:
   if ( get_create_dict_ex(dict, dt PASS_LD) &&
-       get_name_ex(key, valTermRef(av) PASS_LD) &&
-       PL_put_term(av+1, value) )
+       get_name_ex(key, valTermRef(av+1) PASS_LD) &&
+       PL_put_term(av, value) )
   { word new;
     int rc;
 

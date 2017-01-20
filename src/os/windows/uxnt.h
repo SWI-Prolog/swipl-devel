@@ -1,25 +1,36 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (c)  2011-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef _XNT_H_INCLUDED
@@ -105,6 +116,10 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define PATH_MAX 1024
 #endif
 
+#define XOS_ACCESS_ACCESS		0
+#define XOS_ACCESS_GETFILESECURITY	1
+#define XOS_ACCESS_OPENCLOSE		2
+
 #undef _xos_stat
 
 _export char *  _xos_home(void);
@@ -134,6 +149,7 @@ _export ssize_t	_xos_write(int handle, const void *buf, size_t size);
 _export long	_xos_lseek(int handle, long offset, int whence);
 _export long	_xos_tell(int handle);
 _export int	_xos_access(const char *path, int mode);
+_export int	_xos_access_dir(const char *path, int mode);
 _export int	_xos_chmod(const char *path, int mode);
 _export int	_xos_remove(const char *path);
 _export int	_xos_rename(const char *old, const char *newname);
@@ -146,6 +162,8 @@ _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
 _export size_t  _xos_getenv(const char *name, char *buf, size_t buflen);
 _export int	_xos_setenv(const char *name, char *value, int overwrite);
+_export int	_xos_set_win_file_access_check(int new);
+_export int	_xos_get_win_file_access_check(void);
 
 #define _XOS_ISFILE	0x01
 #define _XOS_ISDIR	0x02

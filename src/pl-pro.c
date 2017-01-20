@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef SECURE_GC
@@ -67,6 +79,21 @@ resetProlog(int clear_stacks)
 }
 
 
+static void
+restore_after_exception(term_t except)
+{ GET_LD
+  atom_t a;
+
+  tracemode(FALSE, NULL);
+  debugmode(DBG_OFF, NULL);
+  setPrologFlagMask(PLFLAG_LASTCALL);
+  if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+  { callEventHook(PLEV_ABORT);
+    printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 query_loop() runs a zero-argument goal on   behalf  of the toplevel. The
 reason for this to be in C is to   be able to handle exceptions that are
@@ -106,16 +133,7 @@ query_loop(atom_t goal, int loop)
     }
 
     if ( !rc && (except = PL_exception(qid)) )
-    { atom_t a;
-
-      tracemode(FALSE, NULL);
-      debugmode(DBG_OFF, NULL);
-      setPrologFlagMask(PLFLAG_LASTCALL);
-      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      { callEventHook(PLEV_ABORT);
-        printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
-      }
-    }
+      restore_after_exception(except);
 
     if ( qid ) PL_close_query(qid);
     if ( fid ) PL_discard_foreign_frame(fid);
@@ -248,19 +266,38 @@ Execute Goal as once/1 while blocking signals.
 static
 PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
 { PRED_LD
-  term_t ex;
   int rval;
 
   startCritical;
-  rval = callProlog(NULL, A1, PL_Q_CATCH_EXCEPTION, &ex);
+  rval = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
   if ( !endCritical )
     fail;				/* aborted */
 
-  if ( !rval && ex )
-    return PL_raise_exception(ex);
-
   return rval;
 }
+
+
+/** '$call_no_catch'(:Goal)
+ *
+ * Runs a goal for the toplevel.  This notably means that exceptions
+ * are considered _uncaught_, are printed and ignored.  Also the
+ * truth value is ignored.
+ */
+
+static
+PRED_IMPL("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
+{ int rc;
+  term_t ex;
+
+  rc = callProlog(NULL, A1, PL_Q_NORMAL, &ex);
+  if ( !rc && ex )
+  { restore_after_exception(ex);
+    PL_clear_exception();
+  }
+
+  return TRUE;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -452,11 +489,17 @@ those during normal execution.  Arity of terms is limited to  100  as  a
 kind of heuristic.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef struct
+{ int recursive;
+  int errors;
+  int flags;
+} chk_data;
+
 #define onGlobal(p) onStack(global, p)
 #define onLocal(p) onStack(local, p)
 
 static void
-printk(char *fm, ...)
+printk(chk_data *context, char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
@@ -465,7 +508,8 @@ printk(char *fm, ...)
   Sfprintf(Serror, "]\n");
   va_end(args);
 
-  assert(0);
+  context->errors++;
+  trap_gdb();
 }
 
 static intptr_t check_marked;
@@ -511,7 +555,7 @@ is_ht_capacity(int arity)
 #endif
 
 static word
-check_data(Word p, int *recursive ARG_LD)
+check_data(Word p, chk_data *context ARG_LD)
 { int arity; int n;
   Word p2;
   word key = 0L;
@@ -528,13 +572,13 @@ last_arg:
               if ( !isAttVar(*p2) )
 #endif
                 if ( !gc_status.blocked )
-                  printk("Reference to higher address");
+                  printk(context, "Reference to higher address");
             }
           });
     if ( p2 == p )
-      printk("Reference to same address");
+      printk(context, "Reference to same address");
     if ( !onLocal(p2) && !onGlobal(p2) )
-      printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
+      printk(context, "Illegal reference pointer at 0x%x --> 0x%x", p, p2);
 
     p = p2;
   }
@@ -545,7 +589,7 @@ last_arg:
 #ifdef O_ATTVAR
   if ( isAttVar(*p) )
   { if ( is_marked(p) )			/* loop */
-    { (*recursive)++;
+    { context->recursive++;
       return key;
     }
 
@@ -555,11 +599,13 @@ last_arg:
 
 					/* See argument_stack_to_term_refs() */
     if ( !onGlobal(p) && (!gc_status.active || p < (Word)environment_frame) )
-      printk("attvar: not on global stack: 0x%x", p);
+      printk(context, "attvar: not on global stack: 0x%x", p);
     if ( !onGlobal(p2) )
-      printk("attvar: attribute not on global stack: 0x%x --> 0x%x", p, p2);
+      printk(context, "attvar: attribute not on global stack: 0x%x --> 0x%x", p, p2);
     if ( p == p2 )
-      printk("attvar: self-reference: 0x%x", p);
+      printk(context, "attvar: self-reference: 0x%x", p);
+    if ( !(context->flags&CHK_DATA_NOATTVAR_CHAIN) && !on_attvar_chain(p) )
+      printk(context, "attvar: not on attvar chain: 0x%x", p);
 
     p = p2;
     goto last_arg;
@@ -577,9 +623,9 @@ last_arg:
     assert(!is_marked(p));
 
     if ( !onGlobal(a) )
-      printk("Indirect at %p not on global stack", a);
+      printk(context, "Indirect at %p not on global stack", a);
     if ( storage(*p) != STG_GLOBAL )
-      printk("Indirect data not on global");
+      printk(context, "Indirect data not on global");
     if ( isBignum(*p) )
       return key+(word) valBignum(*p);
     if ( isFloat(*p) )
@@ -593,9 +639,9 @@ last_arg:
 
 	if ( sz != (len=strlen(s)) )
 	{ if ( sz < len )
-	    printk("String has inconsistent length: 0x%x", *p);
+	    printk(context, "String has inconsistent length: 0x%x", *p);
 	  else if ( s[sz] )
-	    printk("String not followed by NUL-char: 0x%x", *p);
+	    printk(context, "String not followed by NUL-char: 0x%x", *p);
 /*	else
 	    printf("String contains NUL-chars: 0x%x", *p);
 */
@@ -608,9 +654,9 @@ last_arg:
 
 	if ( sz != (len=wcslen(s)) )
 	{ if ( sz < len )
-	    printk("String has inconsistent length: 0x%x", *p);
+	    printk(context, "String has inconsistent length: 0x%x", *p);
 	  else if ( s[sz] )
-	    printk("String not followed by NUL-char: 0x%x", *p);
+	    printk(context, "String not followed by NUL-char: 0x%x", *p);
 	}
       }
       return key + *addressIndirect(*p);
@@ -619,7 +665,7 @@ last_arg:
     if ( isMPZNum(*p) )
       return 0x62f8da3c;		/* TBD: make key from MPZ */
 #endif
-    printk("Illegal indirect datatype");
+    printk(context, "Illegal indirect datatype");
     return key;
   }
 
@@ -629,11 +675,11 @@ last_arg:
 
     assert(!is_marked(p));
     if ( storage(*p) != STG_STATIC )
-      printk("Atom doesn't have STG_STATIC");
+      printk(context, "Atom doesn't have STG_STATIC");
 
     idx = indexAtom(*p);
     if ( idx >= mx )
-      printk("Atom index out of range (%ld > %ld)", idx, mx);
+      printk(context, "Atom index out of range (%ld > %ld)", idx, mx);
     return key + *p;
   }
   if ( tagex(*p) == (TAG_VAR|STG_RESERVED) )
@@ -642,39 +688,39 @@ last_arg:
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||
        storage(*p) != STG_GLOBAL )
-    printk("Illegal term at: %p: 0x%x", p, *p);
+    printk(context, "Illegal term at: %p: 0x%x", p, *p);
 
   if ( is_marked(p) )
-  { (*recursive)++;
+  { context->recursive++;
     return key;				/* recursive */
   }
 
   { Functor f = valueTerm(*p);
 
     if ( !onGlobal(f) )
-      printk("Term at %p not on global stack", f);
+      printk(context, "Term at %p not on global stack", f);
 
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
-      printk("Illegal functor: 0x%x", *p);
+      printk(context, "Illegal functor: 0x%x", *p);
     if ( f->definition & MARK_MASK )
-      printk("functor with mark: 0x%x", *p);
+      printk(context, "functor with mark: 0x%x", *p);
     if ( f->definition & FIRST_MASK )
-      printk("functor with first: 0x%x", *p);
+      printk(context, "functor with first: 0x%x", *p);
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
-      printk("Illegal arity (%d)", arity);
+      printk(context, "Illegal arity (%d)", arity);
     else if ( arity == 0 )
       return key;
     else
       DEBUG(CHK_HIGH_ARITY,
             { if ( arity > 256 && !is_ht_capacity(arity) )
-                printk("Dubious arity (%d)", arity);
+                printk(context, "Dubious arity (%d)", arity);
             });
 
     mark(p);
     for(n=0; n<arity-1; n++)
-      key += check_data(&f->arguments[n], recursive PASS_LD);
+      key += check_data(&f->arguments[n], context PASS_LD);
 
     p = &f->arguments[n];
     goto last_arg;
@@ -683,15 +729,21 @@ last_arg:
 
 
 word
-checkData(Word p)
+checkDataEx(Word p, int flags)
 { GET_LD
-  int recursive = 0;
+  chk_data context = {0};
   word key;
 
-  key = check_data(p, &recursive PASS_LD);
+  context.flags = flags;
+  key = check_data(p, &context PASS_LD);
   unmark_data(p PASS_LD);
 
   return key;
+}
+
+word
+checkData(Word p)
+{ return checkDataEx(p, 0);
 }
 
 #endif /* TEST */
@@ -767,4 +819,5 @@ BeginPredDefs(pro)
   PRED_DEF("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
   PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
   PRED_DEF("$trap_gdb", 0, trap_gdb, 0)
+  PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
 EndPredDefs

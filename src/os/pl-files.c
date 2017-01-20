@@ -1,35 +1,47 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef __MINGW32__
+#include <winsock2.h>
 #include <windows.h>
 #endif
 
 #include "pl-incl.h"
 #include "pl-utf8.h"
 #include <stdio.h>
+#include <errno.h>
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -164,11 +176,9 @@ ACCESS_WRITE and ACCESS_EXECUTE.
 #define F_OK 0
 #endif
 
-int
-AccessFile(const char *path, int mode)
-{ char tmp[MAXPATHLEN];
-#ifdef HAVE_ACCESS
-  int m = 0;
+static int
+access_mode(int mode)
+{ int m = 0;
 
   if ( mode == ACCESS_EXIST )
     m = F_OK;
@@ -180,9 +190,27 @@ AccessFile(const char *path, int mode)
 #endif
   }
 
-  return access(OsPath(path, tmp), m) == 0 ? TRUE : FALSE;
+  return m;
+}
+
+int
+AccessFile(const char *path, int mode)
+{ char tmp[MAXPATHLEN];
+#ifdef HAVE_ACCESS
+  return access(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
 #else
 #error "No implementation for AccessFile()"
+#endif
+}
+
+int
+AccessDirectory(const char *path, int mode)
+{
+#if O_XOS
+  char tmp[MAXPATHLEN];
+  return _xos_access_dir(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
+#else
+  return AccessFile(path, mode);
 #endif
 }
 
@@ -290,7 +318,22 @@ DeRefLink(const	char *link, char *buf)
   { strcpy(buf, link);
     return buf;
   } else
+  { GET_LD
+    atom_t dom = PL_new_atom("dereference");
+    atom_t typ = PL_new_atom("symlink");
+    term_t t;
+    int rc;
+
+    rc = ( (t=PL_new_term_ref()) &&
+	   PL_unify_chars(t, PL_ATOM|REP_FN, -1, link) &&
+	   PL_error(NULL, 0, "too many (>20) levels of symbolic links",
+		    ERR_PERMISSION, dom, typ, t) );
+    (void)rc;
+    PL_unregister_atom(dom);
+    PL_unregister_atom(typ);
+
     return NULL;
+  }
 }
 
 
@@ -495,7 +538,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
     return PL_error(NULL, 0, "file name contains a 0-code",
 		    ERR_DOMAIN, ATOM_file_name, n);
   }
-  if ( len+1 >= MAXPATHLEN )
+  if ( len >= MAXPATHLEN )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 		    ATOM_max_path_length);
 
@@ -666,7 +709,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
     { if ( !ExistsDirectory(dir) )
 	return FALSE;
     }
-    if ( AccessFile(dir[0] ? dir : ".", md) )
+    if ( AccessDirectory(dir[0] ? dir : ".", md) )
       return TRUE;
   }
 
@@ -773,14 +816,19 @@ static
 PRED_IMPL("tmp_file", 2, tmp_file, 0)
 { PRED_LD
   char *n;
+  atom_t fn;
 
   term_t base = A1;
   term_t name = A2;
 
-  if ( !PL_get_chars(base, &n, CVT_ALL) )
-    return PL_error("tmp_file", 2, NULL, ERR_TYPE, ATOM_atom, base);
+  if ( !PL_get_chars(base, &n, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
 
-  return PL_unify_atom(name, TemporaryFile(n, NULL));
+  if ( (fn=TemporaryFile(n, NULL)) )
+    return PL_unify_atom(name, fn);
+  else
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_create, ATOM_temporary_file, A1);
 }
 
 /** tmp_file_stream(+Mode, -File, -Stream)
@@ -817,10 +865,11 @@ PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
     }
 
     s = Sfdopen(fd, mode);
-    s->encoding = enc;
+    Ssetenc(s, enc, NULL);
     return PL_unify_stream(A3, s);
   } else
-  { return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_temporary_files);
+  { return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_create, ATOM_temporary_file, A2);
   }
 }
 
@@ -929,34 +978,29 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 
 
 static
-PRED_IMPL("working_directory", 2, working_directory, 0)
-{ PRED_LD
-  char buf[MAXPATHLEN];
+PRED_IMPL("$cwd", 1, cwd, 0)
+{ char buf[MAXPATHLEN];
   const char *wd;
-
-  term_t old = A1;
-  term_t new = A2;
 
   if ( !(wd = PL_cwd(buf, sizeof(buf))) )
     return FALSE;
 
-  if ( PL_unify_chars(old, PL_ATOM|REP_FN, -1, wd) )
-  { if ( PL_compare(old, new) != 0 )
-    { char *n;
+  return PL_unify_chars(A1, PL_ATOM|REP_FN, (size_t)-1, wd);
+}
 
-      if ( PL_get_file_name(new, &n, 0) )
-      { if ( ChDir(n) )
-	  return TRUE;
 
-	if ( truePrologFlag(PLFLAG_FILEERRORS) )
-	  return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
-			  ATOM_chdir, ATOM_directory, new);
-      }
+static
+PRED_IMPL("$chdir", 1, chdir, 0)
+{ PRED_LD
+  char *n;
 
-      return FALSE;
-    }
+  if ( PL_get_file_name(A1, &n, 0) )
+  { if ( ChDir(n) )
+      return TRUE;
 
-    return TRUE;
+    if ( truePrologFlag(PLFLAG_FILEERRORS) )
+      return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
+		      ATOM_chdir, ATOM_directory, A1);
   }
 
   return FALSE;
@@ -1103,21 +1147,12 @@ PRED_IMPL("mark_executable", 1, mark_executable, 0)
 
 
 		 /*******************************
-		 *	       INIT		*
-		 *******************************/
-
-void
-initFiles(void)
-{
-}
-
-
-		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(files)
-  PRED_DEF("working_directory", 2, working_directory, 0)
+  PRED_DEF("$cwd", 1, cwd, 0)
+  PRED_DEF("$chdir", 1, chdir, 0)
   PRED_DEF("access_file", 2, access_file, 0)
   PRED_DEF("time_file", 2, time_file, 0)
   PRED_DEF("size_file", 2, size_file, 0)

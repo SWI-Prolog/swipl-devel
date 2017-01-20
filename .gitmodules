@@ -64,9 +64,9 @@
 [submodule "packages/nlp"]
 	path = packages/nlp
 	url = ../packages-nlp.git
-[submodule "packages/db"]
-	path = packages/db
-	url = ../packages-db.git
+[submodule "packages/bdb"]
+	path = packages/bdb
+	url = ../packages-bdb.git
 [submodule "packages/jasmine"]
 	path = packages/jasmine
 	url = ../packages-jasmine.git
@@ -100,3 +100,9 @@
 [submodule "packages/cql"]
 	path = packages/cql
 	url = ../packages-cql.git
+[submodule "packages/readline"]
+	path = packages/readline
+	url = ../packages-readline.git
+[submodule "packages/libedit"]
+	path = packages/libedit
+	url = ../packages-libedit.git

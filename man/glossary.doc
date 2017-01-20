@@ -84,6 +84,9 @@ defined, unless this \g{predicate} is \g{module transparent}, in
 which case the \g{context module} is inherited from the parent
 \g{goal}.  See also module_transparent/1 and \g{meta-predicate}.
 
+    \glossitem{dcg}\index{dcg}%
+Abbreviation for \g{Definite Clause Grammar}.
+
     \glossitem{det [determinism]}\index{det}%
 Short for \g{deterministic}.
 

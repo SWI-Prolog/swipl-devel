@@ -1,37 +1,40 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (c)  2003-2011, University of Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(checklast,
-	  [ check_old_last/0
-	  ]).
+          [ check_old_last/0
+          ]).
 :- use_module(library(lists)).
 
 
@@ -44,48 +47,49 @@ http://www.prolog-standard.fmg.uva.nl/twiki/bin/view/Library/PredLast2
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 check_old_last :-
-	print_message(informational, last_check).
+    print_message(informational, last_check).
 
 user:goal_expansion(last(L,E), _) :-
-	print_message(warning, last_arguments(last(L,E))),
-	fail.
+    print_message(warning, last_arguments(last(L,E))),
+    fail.
 
-		 /*******************************
-		 *	CHECKING VERSION	*
-		 *******************************/
+                 /*******************************
+                 *      CHECKING VERSION        *
+                 *******************************/
 
 :- abolish(lists:last/2).
 
-%%	last(?List, ?Elem)
+%!  last(?List, ?Elem)
 %
-%	Succeeds if `Last' unifies with the last element of `List'.
+%   Succeeds if `Last' unifies with the last element of `List'.
 
 lists:last(List, Last) :-
-	\+ is_list(List), !,
-	print_message(error, last_call(last_call(List, Last))),
-	trace,
-	fail.
+    \+ is_list(List),
+    !,
+    print_message(error, last_call(last_call(List, Last))),
+    trace,
+    fail.
 lists:last([X|Xs], Last) :-
-	last_(Xs, X, Last).
+    last_(Xs, X, Last).
 
 last_([], Last, Last).
 last_([X|Xs], _, Last) :-
-	last_(Xs, X, Last).
+    last_(Xs, X, Last).
 
 
-		 /*******************************
-		 *	     MESSAGES		*
-		 *******************************/
+                 /*******************************
+                 *           MESSAGES           *
+                 *******************************/
 
 :- multifile
-	prolog:message/3.
+    prolog:message/3.
 
 prolog:message(last_check) -->
-	[ 'Enabled checking for wrong argument order in last/2' ].
+    [ 'Enabled checking for wrong argument order in last/2' ].
 prolog:message(last_arguments(S)) -->
-	{ numbervars(S, 0, _)
-	},
-	[ 'Last/2 used; check argument order: ~p'-[S] ].
+    { numbervars(S, 0, _)
+    },
+    [ 'Last/2 used; check argument order: ~p'-[S] ].
 prolog:message(last_call(S)) -->
-	[ 'Suspicious last/2 call, entering debugger: ~p'-[S] ].
+    [ 'Suspicious last/2 call, entering debugger: ~p'-[S] ].
 

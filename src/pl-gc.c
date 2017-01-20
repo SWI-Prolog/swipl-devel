@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemake@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef SECURE_GC
@@ -358,22 +370,25 @@ print_val(word val, char *buf)
 #define RELOC_CHAINED ((void*)2)
 #define RELOC_UPDATED ((void*)3)
 
+#define LOCAL_MARKED ((void*)1)
+#define LOCAL_UNMARKED ((void*)2)
+
 static void
 needsRelocation(void *addr)
 { GET_LD
 
   needs_relocation++;
 
-  DEBUG(CHK_SECURE, addHTable(check_table, addr, RELOC_NEEDS));
+  DEBUG(CHK_SECURE, updateHTable(check_table, addr, RELOC_NEEDS));
 }
 
 
 static void
 do_check_relocation(Word addr, char *file, int line ARG_LD)
 { if ( DEBUGGING(CHK_SECURE) )
-  { Symbol s;
+  { void *chk;
 
-    if ( !(s=lookupHTable(check_table, addr)) )
+    if ( !(chk = lookupHTable(check_table, addr)) )
     { char buf1[256];
       char buf2[256];
       sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
@@ -381,12 +396,12 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
       return;
     }
 
-    if ( s->value != RELOC_NEEDS )
+    if ( chk != RELOC_NEEDS )
     { sysError("%s:%d: Relocated twice: 0x%lx", file, line, addr);
       return;
     }
 
-    s->value = RELOC_CHAINED;
+    updateHTable(check_table, addr, RELOC_CHAINED);
   }
 }
 
@@ -395,9 +410,9 @@ static void
 do_relocated_cell(Word addr ARG_LD)
 { if ( DEBUGGING(CHK_SECURE) )
   { if ( relocated_check )		/* we cannot do this during the */
-    { Symbol s;				/* final up-phase because the addresses */
+    { void *chk;			/* final up-phase because the addresses */
 					/* have already changed */
-      if ( !(s=lookupHTable(check_table, addr)) )
+      if ( !(chk = lookupHTable(check_table, addr)) )
       { char buf1[64];
 
         sysError("Address %s was not supposed to be updated",
@@ -405,14 +420,14 @@ do_relocated_cell(Word addr ARG_LD)
         return;
       }
 
-      if ( s->value == RELOC_UPDATED )
+      if ( chk == RELOC_UPDATED )
       { char buf1[64];
 
         sysError("%s: updated twice", print_addr(addr, buf1));
         return;
       }
 
-      s->value = RELOC_UPDATED;
+      updateHTable(check_table, addr, RELOC_UPDATED);
     }
   }
 
@@ -424,16 +439,16 @@ static void
 printNotRelocated()
 { GET_LD
   TableEnum e = newTableEnum(check_table);
-  Symbol s;
+  Word addr;
+  void *chk;
 
   Sdprintf("Not relocated cells:\n");
 
-  while((s=advanceTableEnum(e)))
-  { if ( s->value == RELOC_CHAINED )
-    { Word p = s->name;
-      char buf1[64];
+  while( advanceTableEnum(e, (void**)&addr, (void**)&chk) )
+  { if ( chk == RELOC_CHAINED )
+    { char buf1[64];
 
-      Sdprintf("\t%s\n", print_addr(p, buf1));
+      Sdprintf("\t%s\n", print_addr(addr, buf1));
     }
   }
 
@@ -448,10 +463,12 @@ markLocal(Word addr)
   local_marked++;
 
   DEBUG(CHK_SECURE,
-	{ Symbol s;
-	  if ( (s = lookupHTable(local_table, addr)) )
-	    assert(0);
-	  addHTable(local_table, addr, (void*)TRUE);
+	{ void *marked;
+
+	  if ( (marked = lookupHTable(local_table, addr)) )
+	  { assert(marked == LOCAL_UNMARKED);
+	  }
+	  updateHTable(local_table, addr, LOCAL_MARKED);
 	});
 }
 
@@ -463,11 +480,11 @@ processLocal(Word addr)
   local_marked--;
 
   DEBUG(CHK_SECURE,
-	{ Symbol s;
+	{ void *marked;
 
-	  if ( (s = lookupHTable(local_table, addr)) )
-	  { assert(s->value == (void*)TRUE);
-	    s->value = (void*)FALSE;
+	  if ( (marked = lookupHTable(local_table, addr)) )
+	  { assert(marked == LOCAL_MARKED);
+	    updateHTable(local_table, addr, LOCAL_UNMARKED);
 	  } else
 	  { assert(0);
 	  }
@@ -510,13 +527,6 @@ offset_cell(Word p)
     offset = 0;
 
   return offset;
-}
-
-
-static inline Word
-previous_gcell(Word p)
-{ p--;
-  return p - offset_cell(p);
 }
 
 
@@ -869,12 +879,10 @@ gvars_to_term_refs(Word **saved_bar_at)
   if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
   { TableEnum e = newTableEnum(LD->gvar.nb_vars);
     int found = 0;
-    Symbol s;
+    word w;
 
-    while( (s=advanceTableEnum(e)) )
-    { word w = (word)s->value;
-
-      if ( isGlobalRef(w) )
+    while( advanceTableEnum(e, NULL, (void**)&w) )
+    { if ( isGlobalRef(w) )
       { term_t t = PL_new_term_ref_noshift();
 
 	assert(t);
@@ -923,14 +931,14 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
   { FliFrame fr = (FliFrame) valTermRef(fid);
     Word fp = (Word)(fr+1);
     TableEnum e = newTableEnum(LD->gvar.nb_vars);
+    atom_t name;
+    word p;
     int found = 0;
-    Symbol s;
 
-    while( (s=advanceTableEnum(e)) )
-    { Word p = (Word)&s->value;
-
-      if ( isGlobalRef(*p) )
-      { *p = *fp++;
+    while( advanceTableEnum(e, (void**)&name, (void**)&p) )
+    { if ( isGlobalRef(p) )
+      { p = *fp++;
+	updateHTable(e->table, (void*)name, (void*)p);
 	found++;
       }
     }
@@ -1169,6 +1177,20 @@ slotsInFrame(LocalFrame fr, Code PC)
 }
 
 
+void
+clearLocalVariablesFrame(LocalFrame fr)
+{ if ( fr->clause )
+  { Definition def = fr->predicate;
+    int i     = def->functor->arity;
+    int slots = fr->clause->value.clause->prolog_vars;
+    Word sp = argFrameP(fr, i);
+
+    for( ; i<slots; i++, sp++)
+      setVar(*sp);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If multiple TrailAssignment() calls happen on  the same address within a
 choicepoint we only need to keep the  first. Therefore we scan the trail
@@ -1396,6 +1418,8 @@ typedef struct walk_state
   Code c0;				/* start of code list */
   Word envtop;				/* just above environment */
   int unmarked;				/* left when marking alt clauses */
+  bit_vector *active;			/* When marking active */
+  bit_vector *clear;			/* When marking active */
 #ifdef MARK_ALT_CLAUSES
   Word ARGP;				/* head unify instructions */
   int  adepth;				/* ARGP nesting */
@@ -1404,6 +1428,8 @@ typedef struct walk_state
 
 #define GCM_CLEAR	0x1		/* Clear uninitialised data */
 #define GCM_ALTCLAUSE	0x2		/* Marking alternative clauses */
+#define GCM_ACTIVE	0x4		/* Mark active environment */
+#define GCM_CHOICE	0x8		/* Mark active choicepoints */
 
 #define NO_ADEPTH 1234567
 
@@ -1515,18 +1541,32 @@ See decompileBody for details on handling the branch instructions.
 
 static inline void
 mark_frame_var(walk_state *state, code v ARG_LD)
-{ Word sp = varFrameP(state->frame, v);
+{ if ( state->active )
+  { int i = (int)v - sizeof(struct localFrame)/sizeof(word);
 
-  if ( sp < state->envtop && !is_marked(sp) )
-  { mark_local_variable(sp PASS_LD);
-    state->unmarked--;
+    DEBUG(MSG_CONTINUE, Sdprintf("Access %d (%scleared)\n",
+				 i, true_bit(state->clear, i) ? "" : "not "));
+    if ( !true_bit(state->clear, i) )
+      set_bit(state->active, i);
+  } else
+  { Word sp = varFrameP(state->frame, v);
+
+    if ( sp < state->envtop && !is_marked(sp) )
+    { mark_local_variable(sp PASS_LD);
+      state->unmarked--;
+    }
   }
 }
 
 
 static inline void
 clear_frame_var(walk_state *state, code var, Code PC)
-{ if ( (state->flags & GCM_CLEAR) )
+{ if ( state->clear )
+  { int i = (int)var - sizeof(struct localFrame)/sizeof(word);
+
+    DEBUG(MSG_CONTINUE, Sdprintf("Clear %d\n", i));
+    set_bit(state->clear, i);
+  } else if ( (state->flags & GCM_CLEAR) )
   { LocalFrame fr = state->frame;
     DEBUG(MSG_GC_CLEAR,
 	  Sdprintf("Clear var %d at %d\n",
@@ -1552,10 +1592,28 @@ clear_frame_var(walk_state *state, code var, Code PC)
 
 
 static inline void
+clear_choice_mark(walk_state *state, code slot)
+{ if ( (state->flags & GCM_CHOICE) )
+  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
+    set_bit(state->clear, i);
+  }
+}
+
+
+static inline void
+mark_choice_mark(walk_state *state, code slot)
+{ if ( (state->flags & GCM_CHOICE) )
+  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
+    set_bit(state->active, i);
+  }
+}
+
+
+static inline void
 mark_argp(walk_state *state ARG_LD)
 {
 #ifdef MARK_ALT_CLAUSES
-  if ( state->adepth == 0 )
+  if ( !(state->flags & GCM_ACTIVE) && state->adepth == 0 )
   { if ( state->ARGP < state->envtop && !is_marked(state->ARGP) )
     { mark_local_variable(state->ARGP PASS_LD);
       state->unmarked--;
@@ -1643,6 +1701,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  break;
       { Code alt = PC+PC[1]+2;
 	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
+	clear_choice_mark(state, PC[0]);
 	PC += 2;			/* skip the two arguments */
 	walk_and_mark(state, PC, C_CUT PASS_LD);
 	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
@@ -1655,6 +1714,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
+	clear_choice_mark(state, PC[0]);
 	DEBUG(MSG_GC_WALK, Sdprintf("C_IFTHENELSE at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the 'MARK' variable and jmp */
 	walk_and_mark(state, PC, C_JMP PASS_LD);
@@ -1666,12 +1726,19 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case C_SOFTIFTHEN:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
-      { PC = walk_and_mark(state, PC+1, C_END PASS_LD);
+      { clear_choice_mark(state, PC[0]);
+	PC = walk_and_mark(state, PC+1, C_END PASS_LD);
 	PC++;				/* skip C_END */
 	op = decode(*PC++);
         goto again;
       }
-
+      case C_CUT:
+      case C_LSCUT:
+      case C_LCUT:
+      case C_SOFTCUT:
+      case C_LCUTIFTHEN:
+	mark_choice_mark(state, PC[0]);
+        break;
 					/* variable access */
 
       case B_UNIFY_VAR:			/* Var = Term */
@@ -1810,6 +1877,38 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 }
 
 
+void
+mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
+{ GET_LD
+  walk_state state;
+  size_t bv_bytes = sizeof_bitvector(active->size);
+  char tmp[128];
+  char *buf;
+  bit_vector *clear;
+
+  if ( bv_bytes <= sizeof(tmp) )
+    buf = tmp;
+  else
+    buf = PL_malloc(bv_bytes);
+
+  clear = (bit_vector*)buf;
+  init_bitvector(clear, active->size);
+
+  state.frame  = fr;
+  state.flags  = GCM_ACTIVE|GCM_CLEAR|GCM_CHOICE;
+  state.adepth = 0;
+  state.ARGP   = argFrameP(fr, 0);
+  state.active = active;
+  state.clear  = clear;
+  state.envtop = NULL;
+  state.c0     = fr->clause->value.clause->codes;
+
+  walk_and_mark(&state, PC, I_EXIT PASS_LD);
+  if ( buf != tmp )
+    PL_free(buf);
+}
+
+
 #ifdef MARK_ALT_CLAUSES
 static void
 mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
@@ -1831,6 +1930,8 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
   state.flags        = GCM_ALTCLAUSE;
   state.adepth       = 0;
   state.ARGP	     = argFrameP(fr, 0);
+  state.active	     = NULL;
+  state.clear	     = NULL;
   state.envtop	     = state.ARGP + argc;
 
   DEBUG(MSG_GC_WALK,
@@ -1965,6 +2066,8 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
     { state.flags = 0;
     }
 
+    assert(wasFrame(fr));
+
     if ( true(fr->predicate, P_FOREIGN) || PC == NULL || !fr->clause )
     { DEBUG(MSG_GC_MARK_ARGS,
 	    Sdprintf("Marking arguments for [%d] %s\n",
@@ -1975,6 +2078,8 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       state.frame    = fr;
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
+      state.active   = NULL;
+      state.clear    = NULL;
       state.c0       = fr->clause->value.clause->codes;
 
       if ( fr == mstate->vm_state->frame &&
@@ -2050,6 +2155,7 @@ mark_stacks(vm_state *vmstate)
 { GET_LD
   QueryFrame qf=NULL;
   mark_state state;
+  vm_state sub_state;
   LocalFrame fr = vmstate->frame;
   Choice ch     = vmstate->choice;
   Code PC       = vmstate->pc_start_vmi;
@@ -2061,9 +2167,7 @@ mark_stacks(vm_state *vmstate)
   trailcells_deleted = 0;
 
   while(fr)
-  { vm_state sub_state;
-
-    DEBUG(MSG_GC_MARK_QUERY, Sdprintf("Marking query %p\n", qf));
+  { DEBUG(MSG_GC_MARK_QUERY, Sdprintf("Marking query %p\n", qf));
     qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
 
     if ( qf->parent )			/* same code in checkStacks() */
@@ -2240,9 +2344,9 @@ compact_trail(void)
       update_relocation_chain(&current->address, &dest->address PASS_LD);
 #if O_DEBUG
     else if ( DEBUGGING(CHK_SECURE) )
-    { Symbol s;
-      if ( (s=lookupHTable(check_table, current)) != NULL &&
-	   s->value == (void *)TRUE )
+    { void *chk;
+      if ( (chk = lookupHTable(check_table, current)) &&
+	   chk == RELOC_NEEDS )
         sysError("%p was supposed to be relocated (*= %p)",
 		 current, current->address);
     }
@@ -2742,18 +2846,15 @@ sweep_stacks(vm_state *state)
 #ifdef O_DEBUG
     if ( DEBUGGING(CHK_SECURE) )
     { TableEnum e = newTableEnum(local_table);
-      Symbol s;
+      Word addr;
 
       Sdprintf("FATAL: unprocessed local variables:\n");
 
-      while((s=advanceTableEnum(e)))
-      { if ( s->value )
-	{ Word p = s->name;
-	  char buf1[64];
-	  char buf2[64];
+      while( advanceTableEnum(e, (void**)&addr, NULL) )
+      { char buf1[64];
+	char buf2[64];
 
-	  Sdprintf("\t%s (*= %s)\n", print_addr(p, buf1), print_val(*p, buf2));
-	}
+	Sdprintf("\t%s (*= %s)\n", print_addr(addr, buf1), print_val(*addr, buf2));
       }
 
       freeTableEnum(e);
@@ -3078,8 +3179,9 @@ When using SAVE_REGISTERS(qid) in pl-vmi.c, the   PC  is either pointing
 inside or pointing to the next instruction.   Here, we find the start of
 the instruction for SHIFT/GC. We assume that   if  this is a first-write
 instruction,  the  writing  has  not  yet  been    done.   If  it  is  a
-read-intruction, we often have to be able to redo the read to compensate
-for the possible shift inside the code protected by SAVE_REGISTERS().
+read-instruction,  we  often  have  to  be  able  to  redo  the  read to
+compensate  for  the  possible  shift  inside   the  code  protected  by
+SAVE_REGISTERS().
 
 The situation is more complicated. We need to know the depth in which we
 are in *_functor...i_pop sequences. We always need to mark all arguments
@@ -3118,7 +3220,7 @@ setStartOfVMI(vm_state *state)
 	  { Sdprintf("At PC=%ld(%ld) of "
 		     "%d-th clause of %s (ARGP=%d; adepth=%d)\n",
 		     where, where0,
-		     clauseNo(fr->predicate, clause),
+		     clauseNo(fr->predicate, clause, 0),
 		     predicateName(fr->predicate),
 		     (state->argp - argFrameP(fr, 0)),
 		     state->adepth);
@@ -3495,6 +3597,8 @@ check_environments(LocalFrame fr, Code PC, Word key)
   if ( fr == NULL )
     return NULL;
 
+  assert(wasFrame(fr));
+
   for(;;)
   { int slots, n;
     Word sp;
@@ -3559,8 +3663,12 @@ check_choicepoints(Choice ch)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) argument_stack_to_term_refs() uses TAG_ATTVAR
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
-check_foreign()
+check_foreign(void)
 { GET_LD
   FliFrame ff;
   word key = 0L;
@@ -3576,7 +3684,7 @@ check_foreign()
     }
 
     for(n=0 ; n < ff->size; n++ )
-      key += checkData(&sp[n]);
+      key += checkDataEx(&sp[n], CHK_DATA_NOATTVAR_CHAIN); /* see (*) */
 
     if ( isRealMark(ff->mark) )
       check_mark(&ff->mark);
@@ -3588,7 +3696,7 @@ check_foreign()
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 static word
-check_trail()
+check_trail(void)
 { GET_LD
   TrailEntry te = tTop - 1;
   word key = 0;
@@ -3600,7 +3708,7 @@ check_trail()
     { gp = trailValP(te->address);
 
       assert(onGlobal(gp));
-      key += checkData(gp);
+      key += checkDataEx(gp, CHK_DATA_NOATTVAR_CHAIN);
       assert(te > tBase);
       te--;
       assert(!isTrailVal(te->address));
@@ -3640,7 +3748,7 @@ check_new_arguments(vm_state *state)
   return key;
 }
 
-
+#define HAVE_CHECK_STACKS 1
 
 word
 checkStacks(void *state_ptr)
@@ -3729,6 +3837,18 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
 }
 
 #endif /* O_DEBUG */
+
+int
+PL_check_stacks(void)
+{
+#ifdef HAVE_CHECK_STACKS
+  (void)checkStacks(NULL);
+  return TRUE;
+#else
+  return FALSE;
+#endif
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 About synchronisation with atom-gc (AGC). GC can run fully concurrent in
@@ -3840,7 +3960,7 @@ garbageCollect(void)
   term_t preShiftLTop;			/* safe over trimStacks() (shift) */
   intptr_t tgar, ggar;
   double t = ThreadCPUTime(LD, CPU_USER);
-  int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+  int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
   int no_mark_bar;
   int rc;
   fid_t gvars, astack, attvars;
@@ -4330,12 +4450,15 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
 
       update_local_pointer(&fr->programPointer, ls);
 					/* I_USERCALL0 compiled clause */
-      if ( fr->predicate == PROCEDURE_dcall1->definition && fr->clause )
-      { assert(onStackArea(local, fr->clause));
-	update_pointer(&fr->clause, ls);
-	update_pointer(&fr->clause->value.clause, ls);
-      } else
-      { assert(!onStackArea(local, fr->clause));
+      if ( fr->clause )
+      { if ( fr->predicate == PROCEDURE_dcall1->definition )
+	{ assert(onStackArea(local, fr->clause));
+	  update_pointer(&fr->clause, ls);
+	  update_pointer(&fr->clause->value.clause, ls);
+	} else
+	{ if ( onStackArea(local, fr->clause) ) /* reset/shift. See call_continuation/1 */
+	    update_pointer(&fr->clause, ls);
+	}
       }
 
       DEBUG(MSG_SHIFT_FRAME, Sdprintf("ok\n"));
@@ -4791,6 +4914,10 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       }
     }
 
+#ifdef O_PLMT
+    simpleMutexLock(&LD->clauses.local_shift_mutex);
+#endif
+
     if ( g || l )
     { size_t ogsize, olsize;
       void *nw;
@@ -4854,6 +4981,10 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.local.max  = addPointer(LD->stacks.local.base,  lsize);
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
+
+#ifdef O_PLMT
+    simpleMutexUnlock(&LD->clauses.local_shift_mutex);
+#endif
 
     time = ThreadCPUTime(LD, CPU_USER) - time0;
     LD->shift_status.time += time;
@@ -5088,125 +5219,70 @@ markAtomsOnStacks(PL_local_data_t *ld)
 #endif /*O_ATOMGC*/
 
 #ifdef O_CLAUSEGC
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is much like  check_environments(),  but   as  we  might  be called
-asynchronously, we have to be a bit careful about the first frame (if PC
-== NULL). The interpreter will  set  the   clause  field  to NULL before
-opening the frame, and we only have   to  consider the arguments. If the
-frame has a clause we must consider all variables of this clause.
-
-This  routine  is  used   by    garbage_collect_clauses/0   as  well  as
-start_consult/1. In the latter case, only  predicates in this sourcefile
-are marked.
-
-Predicates marked with P_FOREIGN_CREF are   foreign  predicates that use
-the frame->clause choicepoint info for  storing the clause-reference for
-the next clause. Amoung these are retract/1, clause/2, etc.
-
-(*) we must *not* use  getProcDefinition()  here   because  we  are in a
-signal handler and thus the locking there for thread-local predicates is
-not safe. That is no problem however,  because we are only interested in
-static predicates. Note that clause/2,  etc.   use  the choice point for
-searching clauses and thus chp->cref may become NULL if all clauses have
-been searched.
-
-(**) This avoids duplicate marks. Note that we   have no option if we do
-not have atomic instructions because we  cannot   use  mutexes as we are
-inside a signal handler.
+/* - - - q- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the latest generation at which a predicate is being used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static QueryFrame
-mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
-{ if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { Definition def;
-
-    if ( true(fr, FR_MARKED_PRED) )
-      return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED_PRED);
-    ld->gc._local_frames++;
-
-				/* P_FOREIGN_CREF: clause, etc. choicepoints */
-
-    if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
-    { ClauseChoice chp = (ClauseChoice)fr->clause;
-      ClauseRef cref;
-
-      if ( chp && (cref=chp->cref) )
-	def = cref->value.clause->procedure->definition; /* See (*) above */
-      else
-	def = NULL;
-    } else
-      def = fr->predicate;
-
-    if ( def &&
-	 false(def, P_DYNAMIC) &&
-	 def->references == 0 )		/* already done */
-    { if ( GD->procedures.reloading )
-      { ListCell cell;			/* startConsult() */
-
-	for(cell=GD->procedures.reloading->procedures; cell; cell=cell->next)
-	{ Procedure proc = cell->value;
-
-	  if ( proc->definition == def )
-	  { DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-#ifdef COMPARE_AND_SWAP			/* See (**) above */
-	    if ( COMPARE_AND_SWAP(&def->references, 0, 1) )
-	      ATOMIC_INC(&GD->procedures.active_marked);
+static inline int
+is_pointer_like(void *ptr)
+{
+#if SIZEOF_VOIDP == 4
+  intptr_t mask = 0x3;
+#elif SIZEOF_VOIDP == 8
+  intptr_t mask = 0x7;
 #else
-	    if ( ++def->references == 1 )
-	      GD->procedures.active_marked++;
+#error "Unknown pointer size"
 #endif
-	    break;
-	  }
-	}
-      } else				/* pl_garbage_collect_clauses() */
-      { if ( true(def, NEEDSCLAUSEGC) )
-	{ DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-	  def->references = 1;
-	}
-      }
-    }
-
-    if ( fr->parent )
-      fr = fr->parent;
-    else
-      return queryOfFrame(fr);
-  }
+  return ptr && ((intptr_t)ptr&mask) == 0;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) Note that unlike for markAtomsOnLocalStack(), we do not need to look
+behind the official top of the stack   as frames are never written above
+lTop. If anything is added, it will  be   at  a  newer generation, so we
+don't care.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 markPredicatesInEnvironments(PL_local_data_t *ld)
-{ QueryFrame qf;
-  LocalFrame fr;
-  Choice ch;
+{ GET_LD
+  Word lbase, lend, current;
 
-  ld->gc._local_frames = 0;
+#ifdef O_PLMT
+  simpleMutexLock(&ld->clauses.local_shift_mutex);
+#endif
+  lbase = (Word)ld->stacks.local.base;
+  lend  = (Word)ld->stacks.local.top;		/* see (*) */
+  for(current = lbase; current < lend; current++ )
+  { LocalFrame fr = (LocalFrame)current;
 
-  for( fr = ld->environment,
-       ch = ld->choicepoints
-     ; fr
-     ; fr = qf->saved_environment,
-       ch = qf->saved_bfr
-     )
-  { qf = mark_predicates_in_environments(ld, fr);
-    assert(qf->magic == QID_MAGIC);
+    if ( isFrame(fr) )
+    { DirtyDefInfo ddi;
+      Definition def = fr->predicate;
 
-    for(; ch; ch = ch->parent)
-    { mark_predicates_in_environments(ld, ch->frame);
+      if ( is_pointer_like(def) &&
+	   (ddi=lookupHTable(GD->procedures.dirty, def)) )
+      { gen_t gen = generationFrame(fr);
+
+	if ( gen < ddi->oldest_generation )
+	  ddi->oldest_generation = gen;
+      }
     }
   }
+#ifdef O_PLMT
+  simpleMutexUnlock(&ld->clauses.local_shift_mutex);
+#endif
 
-  unmark_stacks(ld, ld->environment, ld->choicepoints, FR_MARKED_PRED);
-
-  assert(ld->gc._local_frames == 0);
+  ld->clauses.erased_skipped = 0;
+  markAccessedPredicates(ld);
 }
 
-
 #endif /*O_CLAUSEGC*/
+
+
+		 /*******************************
+		 *	    PREDICATES		*
+		 *******************************/
 
 BeginPredDefs(gc)
 #if O_DEBUG || defined(O_MAINTENANCE)
