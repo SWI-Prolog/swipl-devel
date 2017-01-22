@@ -4,6 +4,9 @@ AC_INIT(pl-wam.c)
 AC_PREREQ([2.66])
 
 AC_CONFIG_HEADER(config.h)
+
+m4_include([ac/ax_c_float_words_bigendian.m4])
+
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
 AC_SUBST(CMFLAGS)
@@ -12,6 +15,7 @@ AC_SUBST(AR)
 AC_SUBST(MKDIR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
+AC_SUBST(LDOFLAGS)
 AC_SUBST(PROGLDFLAGS)
 AC_SUBST(STACKFLAGS)
 AC_SUBST(SUBSYSTEMFLAGS)
@@ -23,6 +27,7 @@ AC_SUBST(PLSHARED)
 AC_SUBST(PLTHREADS)
 AC_SUBST(PL)
 AC_SUBST(PLVERSION)
+AC_SUBST(PLNVERSION)
 AC_SUBST(PLLIBDIR)		dnl either @PL@-@PLVERSION@ or @PL@
 AC_SUBST(VPATH)
 AC_SUBST(COUTOPT)
@@ -32,6 +37,7 @@ AC_SUBST(BOOTFILE)
 AC_SUBST(PLLIB)			dnl libswipl.a
 AC_SUBST(PLSO)			dnl libswipl.so
 AC_SUBST(SONAMEOPT)		dnl ld options for linking shared objects
+AC_SUBST(SONAME)		dnl libswipl SONAME
 AC_SUBST(USEPLLIB)		dnl -lswipl
 AC_SUBST(LNLIBS)		dnl libs to link with Prolog
 AC_SUBST(XLIBS)                 dnl libs to link with plterm
@@ -86,7 +92,14 @@ MKLIBS=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
 DEFSTARTUP=.swiplrc
-MT=yes
+
+AC_ARG_ENABLE(mt, [  --disable-mt                Disable multi-threading],
+             [case "$enableval" in
+                  yes) MT=yes
+                       ;;
+                  *)  ;;
+              esac],
+              MT=yes)
 
 dnl ****************************************************************
 dnl Some systems don't appear to have true.  Hope all like this ...
@@ -95,6 +108,32 @@ dnl ****************************************************************
 true()
 { test a = a
 }
+
+dnl ****************************************************************
+dnl Get pure numeric version (needed for MacOS -current-version)
+dnl ****************************************************************
+
+case "$PLVERSION" in
+  *-*)
+    pversion=$(echo $PLVERSION | sed 's/-.*//')
+    vtag=$(echo $PLVERSION | sed 's/.*-//')
+    case "$vtag" in
+      rc*)   rev=$(echo $vtag | sed 's/rc//')
+             ;;
+      alpha) rev=1
+	     ;;
+      beta)  rev=2
+	     ;;
+      *)     rev=0
+	     ;;
+    esac
+    PLNVERSION="$pversion.$rev"
+    ;;
+  *)
+    PLNVERSION="$PLVERSION"
+    ;;
+esac
+
 
 dnl ****************************************************************
 dnl Find the build directory, needed for building the packages
@@ -187,6 +226,17 @@ AC_ARG_ENABLE(static, [  --disable-static	  Do not install static library],
 	       esac],
                MKSTATIC=yes)
 
+AC_ARG_WITH(gpl, [  --without-gpl		  Disable GPL components],
+	      INCLUDE_GPL="$withval",
+	      INCLUDE_GPL=yes)
+AC_ARG_WITH(lgpl, [  --without-lgpl		  Disable LGPL components],
+	      INCLUDE_LGPL="$withval",
+	      INCLUDE_LGPL=yes)
+
+if test "$INCLUDE_LGPL" = no; then
+  INCLUDE_GPL=no
+fi
+
 if test "$MKSHARED" != yes -a "$MKSTATIC" != yes; then
   AC_MSG_ERROR("--disable-static selected without explicitly selecting --enable-shared")
 fi
@@ -195,22 +245,13 @@ if test "$MKSTATIC" = yes; then
   MKLIBS=staticlib
 fi
 
-readline_ok=no
-AC_ARG_ENABLE(readline, [  --disable-readline	  Do NOT include GNU readline],
-	      configreadline="$enableval",
-	      configreadline=yes)
-
 AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
 	      configgmp="$enableval",
-	      configgmp=yes)
+	      configgmp=$INCLUDE_LGPL)
 
 AC_ARG_ENABLE(dmalloc, [  --enable-dmalloc	  Enable DMALLOC debugging],
 	      dmalloc="$enableval",
 	      dmalloc=no)
-
-AC_ARG_ENABLE(boehm-gc, [  --enable-boehm-gc	  Enable using Boehm-GC],
-	      boehmgc="$enableval",
-	      boehmgc=no)
 
 AC_ARG_ENABLE(useprofile, [  --enable-useprofile	  GCC: recompile with profile],
 	      useprofile="$enableval",
@@ -344,9 +385,8 @@ AC_ARG_ENABLE(custom-flags, [  --disable-custom-flags  Do not add custom build o
 	custom_flags=yes)
 if test "x$custom_flags" = "xyes" ; then
 	if test "$GCC" = "yes"; then
-		COFLAGS="${COFLAGS--O2}"
-		CMFLAGS="${CMFLAGS--fno-strict-aliasing}"
-		LDFLAGS="${LDFLAGS--O2}"
+		COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
+		LDOFLAGS="${LDFLAGS--O2}"
 		CWFLAGS="${CWFLAGS--Wall}"
 	else
 		COFLAGS="${COFLAGS--O}"
@@ -414,22 +454,21 @@ esac
 AC_C_INLINE
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
+AX_C_FLOAT_WORDS_BIGENDIAN
 
 dnl This fragment is from the glibc configure script
+dnl with modification to fit different platforms
 
 if test "$GCC" = "yes"; then
   AC_CACHE_CHECK(whether __attribute__((visibility())) is supported,
 		 libc_cv_visibility_attribute,
                  [cat > conftest.c <<EOF
                   int foo __attribute__ ((visibility ("hidden"))) = 1;
-                  int bar __attribute__ ((visibility ("protected"))) = 1;
 EOF
                   libc_cv_visibility_attribute=no
                   if ${CC-cc} -Werror -S conftest.c -o conftest.s >/dev/null 2>&1; then
-                    if grep '\.hidden.*foo' conftest.s >/dev/null; then
-                      if grep '\.protected.*bar' conftest.s >/dev/null; then
-                        libc_cv_visibility_attribute=yes
-                      fi
+                    if grep -E "\.(private_extern|hidden).*foo" conftest.s >/dev/null; then
+                      libc_cv_visibility_attribute=yes
                     fi
                   fi
                   rm -f conftest.[cs]
@@ -714,14 +753,16 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL$EXEEXT",
 		   [Name of the SWI-Prolog executable (normally swipl[.exe])])
+SONAMEV=`$as_echo "$PLVERSION" | sed 's/\(@<:@0-9@:>@\+\.@<:@0-9@:>@\+\)\.@<:@0-9@:>@\+/\1/'`
+SONAME='$(SHARED).'$SONAMEV
 case "$PLARCH" in
   *-win32|*-win64|*-cygwin*)
 	PLSO=libswipl.$SO_EXT
-	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a -Wl,--output-def,$(RUNTIMEDIR)/libswipl.def'
+	SONAMEOPT='-Wl,-soname=$(SONAME) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a -Wl,--output-def,$(RUNTIMEDIR)/libswipl.def'
 	;;
   *)
 	PLSO=libswipl.$SO_EXT
-	SONAMEOPT='-Wl,-soname=$(SHAREDV)'
+	SONAMEOPT='-Wl,-soname=$(SONAME)'
 	;;
 esac
 
@@ -846,32 +887,6 @@ esac
   AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
   AC_CHECK_FUNCS(pthread_getw32threadhandle_np)
 
-dnl ATOMIC inc/dec for reference counts
-
-dnl   AC_CHECK_HEADERS(asm/atomic.h)
-dnl   AC_MSG_CHECKING("atomic increment/decrement")
-dnl   AC_TRY_RUN(
-dnl   [
-dnl #ifdef HAVE_ASM_ATOMIC_H
-dnl # include <asm/atomic.h>
-dnl #endif
-dnl     main()
-dnl     { int i = 0;
-dnl       if ( sizeof(atomic_t) != sizeof(int) )
-dnl         exit(1);
-dnl       atomic_inc((atomic_t *)&i);
-dnl       if ( i != 1 ) exit(1);
-dnl       atomic_dec((atomic_t *)&i);
-dnl       if ( i != 0 ) exit(1);
-dnl       return 0;
-dnl     }
-dnl   ],
-dnl   AC_MSG_RESULT(yes)
-dnl   AC_DEFINE(HAVE_ATOMIC_INC, 1,
-dnl	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
-dnl   AC_MSG_RESULT(no),
-dnl   AC_MSG_RESULT(assuming no))
-
 AC_CHECK_FUNCS(sysconf)
 
 AC_MSG_CHECKING("copy stack size")
@@ -966,99 +981,6 @@ if test "$checkucb" = "yes"; then
     AC_CHECK_LIB(ucb, rindex)
 fi
 
-dnl Hacks for MacOS handling of libreadline.  We want to prefer the MacOS X
-dnl libraries, but we need to get libreadline from Macports, as the BSD
-dnl version is severely limited.
-
-case "$PLARCH" in
-  *darwin*)
-	if test -z "$RLPREFIX"; then
-	  RLPREFIX=/opt/local
-        fi
-	;;
-esac
-
-AC_DEFUN([pl_RL_CHECK_VAR],
-[AS_VAR_PUSHDEF([ac_var], [ac_cv_libreadline_var_$1])dnl
-AC_CACHE_CHECK([for $1], [ac_var],
-[AC_LINK_IFELSE([AC_LANG_PROGRAM([AC_INCLUDES_DEFAULT
-#include <readline/readline.h>], [$1 = 0;])],
-       [AS_VAR_SET([ac_var], [yes])],
-       [AS_VAR_SET([ac_var], [no])])])
- AH_TEMPLATE(AS_TR_CPP([HAVE_$1]),
-        [Define to 1 if libreadline has the `$1' variable.])
- AS_IF([test AS_VAR_GET([ac_var]) = yes],
-       [AC_DEFINE(AS_TR_CPP([HAVE_$1]))])
- AS_VAR_POPDEF([ac_var])dnl
-])
-
-if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
-  if test ! -z "$RLPREFIX"; then
-    AC_MSG_CHECKING(Whether setting for RLPREFIX is ok)
-    if test -f $RLPREFIX/include/readline/readline.h -a \
-	    -f $RLPREFIX/lib/libreadline.$SO_EXT; then
-      LIBS="$LIBS $RLPREFIX/lib/libreadline.$SO_EXT"
-      AC_MSG_RESULT(Using $RLPREFIX)
-      AC_DEFINE(HAVE_LIBREADLINE, 1,
-		[Define to 1 if you have libreadline])
-      AC_DEFINE(HAVE_READLINE_READLINE_H, 1,
-		[Define to 1 if you have <readline/readline.h>])
-      if test -f $RLPREFIX/include/readline/history.h; then
-	AC_DEFINE(HAVE_READLINE_HISTORY_H, 1,
-		  [Define to 1 if you have <readline/history.h>])
-      fi
-      ocflags="$CFLAGS"
-      CFLAGS="-I$RLPREFIX/include $CFLAGS"
-      AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
-      AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
-      AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
-      AC_CHECK_FUNCS(rl_filename_completion_function)
-      AC_CHECK_FUNCS(rl_set_keyboard_input_timeout)
-      AC_CHECK_DECLS([rl_done])
-      FreeBSD="$ocflags"
-      readline_ok=yes
-    else
-      AC_MSG_RESULT(no)
-      RLPREFIX=
-    fi
-  fi
-
-  if test -z "$RLPREFIX"; then
-    AC_CHECK_LIB(readline, main,
-		 have_libreadline=yes)
-
-    if test "$have_libreadline" = yes; then
-      AC_CHECK_HEADERS(readline/readline.h)
-      if test "$ac_cv_header_readline_readline_h" = no; then
-	  unset ac_cv_header_readline_readline_h
-	  CFLAGS="$CFLAGS -I/usr/local/include"
-	  AC_CHECK_HEADERS(readline/readline.h)
-	  if test "$ac_cv_header_readline_readline_h" = yes; then
-	      CIFLAGS="$CIFLAGS -I/usr/local/include"
-	  fi
-      fi
-
-      if test "$ac_cv_header_readline_readline_h" = yes; then
-	AC_CHECK_HEADERS(readline/history.h)
-	if test "$ac_cv_header_readline_history_h" = yes; then
-	  readline_ok=yes
-	  LIBS="-lreadline $LIBS"
-	  AC_DEFINE(HAVE_LIBREADLINE, 1,
-		    [ Define if you have libreadline and headers ])
-	  AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
-	  AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
-	  AC_CHECK_FUNCS(rl_cleanup_after_signal)
-	  AC_CHECK_FUNCS(rl_filename_completion_function)
-	  pl_RL_CHECK_VAR([rl_readline_state])
-	  pl_RL_CHECK_VAR([rl_done])
-	  pl_RL_CHECK_VAR([rl_event_hook])
-	fi
-      fi
-    fi
-  fi
-else
-  readline_ok=yes			# specified absent
-fi
 
 dnl ================================================================
 
@@ -1082,8 +1004,8 @@ AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
 AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
-AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
-AC_CHECK_HEADERS(crtdbg.h shlobj.h winsock2.h)
+AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h ieee754.h SupportDefs.h)
+AC_CHECK_HEADERS(crtdbg.h shlobj.h winsock2.h poll.h)
 AC_CHECK_HEADERS(valgrind/valgrind.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
@@ -1094,9 +1016,9 @@ AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan isinf tcsetattr cfmakeraw getpid)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r asctime_r)
-AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclass)
+AC_CHECK_FUNCS(ctime_r mmap confstr strcasecmp mbscoll mbscasecoll fpclass)
 AC_CHECK_FUNCS(setenv posix_openpt wcsxfrm sysctlbyname mbsnrtowcs wcsdup)
-AC_CHECK_FUNCS(mallinfo ftruncate localtime_s localeconv)
+AC_CHECK_FUNCS(ftruncate localtime_s localeconv poll WSAPoll)
 AC_CHECK_DECLS([mbsnrtowcs])
 AC_HEADER_TIME
 AC_HEADER_DIRENT
@@ -1131,18 +1053,6 @@ AC_TRY_LINK([#include <math.h>],
 	    ],
 	    [ AC_MSG_RESULT(no) ])
 
-
-if test ! "x$boehmgc" = xno; then
-  oldlibs="$LIBS"
-  AC_CHECK_LIB(gc, GC_malloc, check_gc_h=yes)
-  if test "x$check_gc_h" = "xyes"; then
-    AC_CHECK_HEADER(gc/gc.h,
-		    AC_DEFINE(HAVE_BOEHM_GC, 1,
-			      [ Define to 1 if you have Boehm GC. ])
-		    LIBS="-lgc $LIBS")
-    AC_CHECK_FUNCS(GC_set_flags)	dnl Custom extensions
-  fi
-fi
 
 case "$PLARCH" in
     *-win32|*-win64)
@@ -1221,6 +1131,7 @@ if test "x$ac_cv_func_unsetenv" = "xyes"; then
 		 AC_MSG_RESULT(yes))
 fi
 
+if test "$MT" = "yes"; then
 if test "$MINGW" = false; then
 
 dnl The tests below are Unix only.  There is no point doing this for MinGW.
@@ -1249,7 +1160,7 @@ AC_TRY_COMPILE(
 if test "x$ac_syscall_gettid" = "xyes"; then
    AC_DEFINE(HAVE_GETTID_SYSCALL, 1,
              [Define to 1 if you have syscall support for gettid()])
-else
+else dnl ! test "x$ac_syscall_gettid" = "xyes"
 
 AC_MSG_CHECKING("linux gettid _syscall0 macro")
 AC_TRY_COMPILE(
@@ -1263,7 +1174,7 @@ _syscall0(pid_t,gettid)
 	     [Define to 1 if you have the Linux gettid() _syscall0 macro])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
-fi
+fi      dnl ! test "x$ac_syscall_gettid" = "xyes"
 
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_FUNCS(clock_gettime)
@@ -1349,8 +1260,9 @@ if { test -f /proc/$$/task/$$/stat && \
 else
    AC_MSG_RESULT(no)
 fi
-fi
-fi
+fi dnl test "x$ac_linux_cpuclocks" = "xyes"
+fi dnl test "$MINGW" = false
+fi dnl if test "$MT" = "yes"
 
 AC_MSG_CHECKING(for sysconf support for _SC_NPROCESSORS_CONF)
 AC_TRY_COMPILE(
@@ -1398,22 +1310,6 @@ AC_CHECK_SIZEOF(int,  4)
 AC_CHECK_SIZEOF(long long, 8)
 AC_CHECK_SIZEOF(wchar_t, 4)
 
-if test "$ac_cv_sizeof_long" = 8; then
-  AC_DEFINE(INT64_FORMAT, ["%ld"],
-	    [printf format for int64_t datatype])
-else
-  case "$PLARCH" in
-    *-win32|*-win64)
-      AC_DEFINE(INT64_FORMAT, ["%I64d"],
-                              [printf format for int64_t datatype])
-      ;;
-    *)
-      AC_DEFINE(INT64_FORMAT, ["%lld"],
-                              [printf format for int64_t datatype])
-      ;;
-  esac
-fi
-
 if test "$configgmp" = "yes"; then
   AC_CHECK_LIB(gmp, main,
 	       check_gmp_h=yes,
@@ -1437,6 +1333,8 @@ if test "$configgmp" = "yes"; then
       AC_DEFINE(HAVE_GMP_RANDINIT_MT, 1,
 		[ Define you you have gmp_randinit_mt (gmp > 4.2.0) ]),
       AC_MSG_RESULT(no))
+
+  AC_CHECK_TYPES([mp_bitcnt_t], [], [], [[#include <gmp.h>]])
 fi
 
 dnl Setup DMALLOC
@@ -1554,6 +1452,19 @@ AC_DEFINE(NON_ALIGNED_ACCESS, 1,
 AC_MSG_RESULT(not allowed),
 AC_MSG_RESULT(assuming not allowed))
 
+AC_MSG_CHECKING("__sync_add_and_fetch_8")
+AC_LINK_IFELSE([AC_LANG_PROGRAM(
+     [[#include <inttypes.h>]],
+     [ int64_t i = 1;
+       __sync_add_and_fetch(&i, 1);
+     ])],
+     [ AC_DEFINE(HAVE___SYNC_ADD_AND_FETCH_8, 1,
+		 [Define if __sync_add_and_fetch is supported for 8 byte objects])
+       AC_MSG_RESULT(yes)
+     ],
+     [ AC_MSG_RESULT(no)
+     ])
+
 if test "$ac_cv_func_getrlimit" = "yes"; then
 AC_MSG_CHECKING("type rlim_t")
 AC_TRY_COMPILE(
@@ -1664,6 +1575,10 @@ else
 fi
 
 AC_TYPE_SIGNAL
+
+dnl Do not enable profiling unless MT is also enabled
+if test "$MT" = "yes"; then
+
 AC_MSG_CHECKING("for BSD signal handlers")
 AC_TRY_RUN(
 [
@@ -1760,10 +1675,12 @@ main()
     exit(0);
   } else
     exit(1);
-}], AC_DEFINE(O_PROFILE, 1, Define if SIGPROF and setitimer() are available)
+}], AC_DEFINE(O_SIGPROF_PROFILE, 1, Define if SIGPROF and setitimer() are available)
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no),
     true)
+
+fi	dnl End of conditional disabling profiling unless MT is enabled
 
 AC_MSG_CHECKING("for union wait")
 AC_TRY_COMPILE(
@@ -1967,20 +1884,6 @@ AC_CONFIG_COMMANDS([exe],
 		     chmod +x swipl.sh
 		   ])
 AC_OUTPUT($OutputFiles)
-
-if test "$readline_ok" = no; then
-cat << _EOM_
-****************************************************************
-* Could not find a working readline library.  Without this library
-* command-line editing is not supported.  You can continue building
-* SWI-Prolog or first install readline.  After installing
-* readline do "make distclean" and re-configure SWI-Prolog.
-*
-* On SuSE Linux, readline is in the RPM package readline-devel
-****************************************************************
-
-_EOM_
-fi
 
 if test "$WARN_NO_GMP" = yes; then
 cat << _EOM_

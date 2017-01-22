@@ -1,25 +1,36 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (c)  2011-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef _PL_STREAM_H
@@ -36,6 +47,11 @@
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define __WINDOWS__ 1
 #endif
+#endif
+
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
 #endif
 
 #include <stdarg.h>
@@ -296,6 +312,7 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
+#define SIO_RP_NOPOS 0x2		/* Do not update position */
 
 #if IOSTREAM_REPLACES_STDIO
 
@@ -362,6 +379,7 @@ PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fcheckpasteeof(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
+PL_EXPORT(int)		Sset_timeout(IOSTREAM *s, int tmo);
 PL_EXPORT(int)		Sunit_size(IOSTREAM *s);
 					/* byte I/O */
 PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);
@@ -383,8 +401,8 @@ PL_EXPORT(int)		Sfeof(IOSTREAM *s);
 PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
 PL_EXPORT(int)		Sferror(IOSTREAM *s);
 PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
-PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
-PL_EXPORT(void)		Sset_exception(IOSTREAM *s, term_t ex);
+PL_EXPORT(int)		Sseterr(IOSTREAM *s, int which, const char *message);
+PL_EXPORT(int)		Sset_exception(IOSTREAM *s, term_t ex);
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Ssetlocale(IOSTREAM *s,
 				   struct PL_locale *new_loc,
@@ -406,7 +424,9 @@ PL_EXPORT(int)		Sprintf(const char *fm, ...);
 PL_EXPORT(int)		Svprintf(const char *fm, va_list args);
 PL_EXPORT(int)		Svfprintf(IOSTREAM *s, const char *fm, va_list args);
 PL_EXPORT(int)		Ssprintf(char *buf, const char *fm, ...);
+PL_EXPORT(int)		Ssnprintf(char *buf, size_t size, const char *fm, ...);
 PL_EXPORT(int)		Svsprintf(char *buf, const char *fm, va_list args);
+PL_EXPORT(int)		Svsnprintf(char *buf, size_t size, const char *fm, va_list args);
 PL_EXPORT(int)		Svdprintf(const char *fm, va_list args);
 PL_EXPORT(int)		Sdprintf(const char *fm, ...);
 PL_EXPORT(int)		Slock(IOSTREAM *s);

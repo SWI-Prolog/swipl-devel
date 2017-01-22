@@ -46,13 +46,13 @@ VIAddVersionKey Comments "SWI-Prolog installer for Windows"
 VIAddVersionKey ProductName "SWI-Prolog"
 VIAddVersionKey ProductVersion "${_VERSION}"
 VIAddVersionKey CompanyName "swi-prolog.org"
-VIAddVersionKey LegalCopyright "LGPL"
+VIAddVersionKey LegalCopyright "BSD-2"
 VIAddVersionKey FileVersion "${_VERSION}"
 VIAddVersionKey OriginalFilename "${_OUTFILE}"
 
 Icon ${SWIPL}\swipl.ico
-LicenseData ${SWIPL}\COPYING.TXT
-LicenseText "SWI-Prolog is governed by the LGPL"
+LicenseData ${SWIPL}\LICENSE.TXT
+LicenseText "SWI-Prolog is governed by the BSD-2 license"
 
 !ifdef MINGW
 InstType "Typical"				# 1
@@ -125,7 +125,7 @@ Function GetVCRT
         IfErrors failure dl_ok
 
         failure:
-        MessageBox MB_OK "An error has occured, Microsoft Visual C++ 2008 SP1 \
+        MessageBox MB_OK "An error has occurred, Microsoft Visual C++ 2008 SP1 \
                           Redistributable$\r$\n\
                           has not been installed"
         goto abort_install
@@ -282,11 +282,12 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libswipl.dll
   File ${SWIPL}\bin\libeay32.dll
   File ${SWIPL}\bin\libgmp-10.dll
-  File ${SWIPL}\bin\libjpeg-8.dll
+  File ${SWIPL}\bin\libjpeg-9.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
+  File /nonfatal ${SWIPL}\bin\libgcc_s_seh-1.dll
 !else
   File ${SWIPL}\bin\swipl.dll
 !endif
@@ -294,7 +295,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR
   File /r ${SWIPL}\customize
   File ${SWIPL}\${BOOT}
-  File ${SWIPL}\COPYING.TXT
+  File ${SWIPL}\LICENSE.TXT
   File ${SWIPL}\README.TXT
   File ${SWIPL}\VERSION
   File ${SWIPL}\swipl.home
@@ -332,6 +333,8 @@ Section "Base system (required)"
   File ${SWIPL}\library\predicate_options.pl
   File ${SWIPL}\library\git.pl
   File ${SWIPL}\library\prolog_pack.pl
+  File ${SWIPL}\library\tabling.pl
+  File ${SWIPL}\library\lazy_lists.pl
 
 ; COMPATIBILITY
   File ${SWIPL}\library\backcomp.pl
@@ -347,6 +350,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\ctypes.pl
   File ${SWIPL}\library\gensym.pl
   File ${SWIPL}\library\lists.pl
+  File ${SWIPL}\library\dicts.pl
   File ${SWIPL}\library\sort.pl
   File ${SWIPL}\library\ugraphs.pl
   File ${SWIPL}\library\occurs.pl
@@ -377,6 +381,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\modules.pl
   File ${SWIPL}\library\win_menu.pl
   File ${SWIPL}\library\console_input.pl
+  File ${SWIPL}\library\yall.pl
 
 ; WINDOWS
   File ${SWIPL}\library\dde.pl
@@ -428,6 +433,8 @@ Section "Base system (required)"
   File ${SWIPL}\doc\windows.html
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\index.html
+  File ${SWIPL}\doc\packages\readline.html
+  File ${SWIPL}\doc\packages\libedit.html
 
   SetRegView ${BITS}
   WriteRegStr HKLM ${REGKEY} "home" "$INSTDIR"
@@ -476,6 +483,19 @@ Section "Archive library (libarchive)"
   File ${SWIPL}\bin\archive4pl.dll
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\archive.html
+SectionEnd
+
+Section "Berkeley DB interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File ${SWIPL}\library\bdb.pl
+  SetOutPath $INSTDIR\bin
+  File ${SWIPL}\bin\bdb4pl.dll
+!ifdef MINGW
+  File ${SWIPL}\bin\libdb-6.1.dll
+!endif
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\bdb4pl.html
 SectionEnd
 
 Section "Constraint Handling Rules"
@@ -528,7 +548,7 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File ${SWIPL}\library\clp\clpq.pl
 SectionEnd
 
-Section "Portability (YAP, SICStus, Ciao, BIM, IF/Prolog) support"
+Section "Portability (YAP, SICStus, BIM, IF/Prolog) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\fastrw.pl
@@ -602,24 +622,26 @@ Section "Package CLIB"
   File ${SWIPL}\bin\crypt.dll
   File ${SWIPL}\bin\files.dll
   File ${SWIPL}\bin\sha4pl.dll
+  File ${SWIPL}\bin\md54pl.dll
   File ${SWIPL}\bin\uri.dll
   File ${SWIPL}\bin\uuid.dll
   File ${SWIPL}\bin\memfile.dll
-  File ${SWIPL}\bin\mime.dll
   File ${SWIPL}\bin\socket.dll
   File ${SWIPL}\bin\time.dll
   File ${SWIPL}\bin\readutil.dll
   File ${SWIPL}\bin\process.dll
   File ${SWIPL}\bin\streaminfo.dll
+  File ${SWIPL}\bin\prolog_stream.dll
+  File ${SWIPL}\bin\hashstream.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\cgi.pl
   File ${SWIPL}\library\crypt.pl
   File ${SWIPL}\library\filesex.pl
   File ${SWIPL}\library\sha.pl
+  File ${SWIPL}\library\md5.pl
   File ${SWIPL}\library\uri.pl
   File ${SWIPL}\library\uuid.pl
   File ${SWIPL}\library\memfile.pl
-  File ${SWIPL}\library\mime.pl
   File ${SWIPL}\library\socket.pl
   File ${SWIPL}\library\prolog_server.pl
   File ${SWIPL}\library\random.pl
@@ -627,6 +649,8 @@ Section "Package CLIB"
   File ${SWIPL}\library\process.pl
   File ${SWIPL}\library\udp_broadcast.pl
   File ${SWIPL}\library\streaminfo.pl
+  File ${SWIPL}\library\prolog_stream.pl
+  File ${SWIPL}\library\hash_stream.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\clib.html
 SectionEnd
@@ -635,8 +659,13 @@ Section "SSL Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\ssl4pl.dll
+  File ${SWIPL}\bin\crypto4pl.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\ssl.pl
+  File ${SWIPL}\library\crypto.pl
+  File ${SWIPL}\library\saml.pl
+  File ${SWIPL}\library\xmlenc.pl
+  File ${SWIPL}\library\xmldsig.pl
 # SetOutPath $INSTDIR\library\http
 # File ${SWIPL}\library\http\http_ssl_plugin.pl
   SetOutPath $INSTDIR\doc\packages
@@ -687,6 +716,7 @@ Section "SGML/XML/HTML parser"
   File ${SWIPL}\library\sgml_write.pl
   File ${SWIPL}\library\xsdp_types.pl
   File ${SWIPL}\library\iso_639.pl
+  File ${SWIPL}\library\c14n2.pl
   File ${SWIPL}\library\xpath.pl
   File ${SWIPL}\library\pwp.pl
   SetOutPath $INSTDIR\doc\packages
@@ -820,7 +850,6 @@ Section "C Debugging Symbols (.pdb files)"
   File ${SWIPL}\bin\swipl.pdb
   File ${SWIPL}\bin\memfile.pdb
   File ${SWIPL}\bin\streaminfo.pdb
-  File ${SWIPL}\bin\mime.pdb
   File ${SWIPL}\bin\odbc4pl.pdb
   File ${SWIPL}\bin\plterm.pdb
   File ${SWIPL}\bin\swipl-win.pdb
@@ -954,13 +983,13 @@ SectionEnd
 
 Section "Update library index"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "make_library_index(swi(library)),halt"'
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "win_flush_filetypes,halt"'
+  nsExec::ExecToLog '"$INSTDIR\bin\swipl.exe" -f none -g "make_library_index(swi(library)),halt"'
+  nsExec::ExecToLog '"$INSTDIR\bin\swipl.exe" -f none -g "win_flush_filetypes,halt"'
 SectionEnd
 
 Section "Precompiled libraries"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g qcompile_libraries,halt'
+  nsExec::ExecToLog '"$INSTDIR\bin\swipl.exe" -f none -g qcompile_libraries,halt'
 SectionEnd
 
 ################################################################

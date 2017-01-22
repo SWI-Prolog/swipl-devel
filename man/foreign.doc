@@ -180,8 +180,6 @@ main(int argc, char **argv)
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
-  PL_install_readline();                /* delete if not required */
-
   PL_halt(PL_toplevel() ? 0 : 1);
 }
 \end{code}
@@ -237,7 +235,35 @@ following notation for arguments of type \ctype{term_t}:
 \end{tabular}
 \end{quote}
 
-\noindent
+\textbf{WARNING} Term references that are accessed in `write' (-) mode
+will refer to an invalid term if the term is allocated on the global
+stack and backtracking takes us back to a point before the term was
+written.\footnote{This could have been avoided by \jargon{trailing} term
+references when data is written to them. This seriously hurds
+performance in some scenarios though. If this is desired, use
+PL_put_variable() followed by one of the PL_unify_*() functions.}
+Compounds, large integers, floats and strings are all allocated on the
+global stack. Below is a typical scenario where this may happen. The
+first solution writes a term extracted from the solution into \arg{a}.
+After the system backtracks due to PL_next_solution(), \arg{a} becomes a
+reference to a term that no longer exists.
+
+\begin{code}
+term_t a = PL_new_term_ref();
+...
+query = PL_open_query(...);
+while(PL_next_solution(query))
+{ PL_get_arg(i, ..., a);
+}
+PL_close_query(query);
+\end{code}
+
+There are two solutions to this problem. One is to scope the term
+reference using PL_open_foreign_frame() and PL_close_foreign_frame() and
+makes sure it goes out of scope before backtracking happens. The other
+is to clear the term reference using PL_put_variable() before
+backtracking.
+
 Term references are obtained in any of the following ways:
 
 \begin{itemlist}
@@ -365,6 +391,33 @@ integer fetching functions to succeed, \emph{even} if the Prolog term is known
 to be an integer.
 \end{description}
 
+\subsubsection{PL_ARITY_AS_SIZE}
+\label{sec:pl-arity-as-size}
+
+As of SWI-Prolog 7.3.12, the arity of terms has changed from \ctype{int}
+to \ctype{size_t}. To deal with this transition, all affecting functions
+have two versions, where the old name exchanges the arity as \ctype{int}
+and a new function with name *_sz() exchanges the arity as
+\ctype{size_t}. If the C macro PL_ARITY_AS_SIZE is defined before
+loading \file{SWI-Prolog.h}, macros are put in place that map the old
+names to the new functions.  Without precautions, the old code is
+compatible, but the following warning is printed when compiling:
+
+\begin{code}
+#warning "Term arity has changed from int to size_t."
+#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+\end{code}
+
+To make the code compile silently again, include \file{SWI-Prolog.h} as
+below and change the types you use to represent arity from \ctype{int}
+to \ctype{size_t}. Please be aware that \ctype{size_t} is
+\emph{unsigned}.
+
+\begin{code}
+#define PL_ARITY_AS_SIZE
+#include <SWI-Prolog.h>
+\end{code}
+
 \section{The Foreign Include File}	\label{sec:foreigninclude}
 
 \subsection{Argument Passing and Control}
@@ -464,6 +517,15 @@ call type is \const{PL_REDO} or \const{PL_PRUNED}).
 
     \cmacro{void *}{PL_foreign_context_address}{control_t}
 Extracts an address as passed in by PL_retry_address().
+
+    \cmacro{predicate_t}{PL_foreign_context_predicate}{control_t}
+
+Fetch the Prolog predicate that is executing this function. Note that if
+the predicate is imported, the returned predicate refers to the final
+definition rather than the imported predicate, i.e., the module reported
+by PL_predicate_info() is the module in which the predicate is defined
+rather than the module where it was called. See also
+PL_predicate_info().
 \end{description}
 
 Note: If a non-deterministic foreign function returns using PL_succeed()
@@ -549,7 +611,7 @@ Returns a {\em functor identifier}, a handle for the name/arity
 pair.  The returned handle is valid for the entire Prolog session.
 \cfunction{atom_t}{PL_functor_name}{functor_t f}
 Return an atom representing the name of the given functor.
-\cfunction{int}{PL_functor_arity}{functor_t f}
+\cfunction{size_t}{PL_functor_arity}{functor_t f}
 Return the arity of the given functor.
 \end{description}
 
@@ -737,7 +799,7 @@ If \arg{t} is an atom, store a pointer to a 0-terminated C-string in
 of this string.  Some built-in atoms may have the string allocated in
 read-only memory, so `temporary manipulation' can cause an error.
 
-    \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, int *len}
+    \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, size_t *len}
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
 that this pointer is invalidated by backtracking, garbage collection
@@ -873,12 +935,12 @@ If \arg{t} is compound or an atom, the Prolog representation of the
 name-arity pair will be assigned over \arg{f}. See also
 PL_get_name_arity() and PL_is_functor().
 
-\cfunction{int}{PL_get_name_arity}{term_t +t, atom_t *name, int *arity}
+\cfunction{int}{PL_get_name_arity}{term_t +t, atom_t *name, size_t *arity}
 If \arg{t} is compound or an atom, the functor name will be assigned
 over \arg{name} and the arity over \arg{arity}. See also
-PL_get_functor() and PL_is_functor().
+PL_get_functor() and PL_is_functor().  See \secref{pl-arity-as-size}.
 
-\cfunction{int}{PL_get_compound_name_arity}{term_t +t, atom_t *name, int *arity}
+\cfunction{int}{PL_get_compound_name_arity}{term_t +t, atom_t *name, size_t *arity}
 If \arg{t} is compound term, the functor name will be assigned over
 \arg{name} and the arity over \arg{arity}.  This is the same as
 PL_get_name_arity(), but this function fails if \arg{t} is an atom.
@@ -887,10 +949,10 @@ PL_get_name_arity(), but this function fails if \arg{t} is an atom.
 If \arg{t} is an atom, the system will look up or create the
 corresponding module and assign an opaque pointer to it over {\em
 module}.
-\cfunction{int}{PL_get_arg}{int index, term_t +t, term_t -a}
+\cfunction{int}{PL_get_arg}{size_t index, term_t +t, term_t -a}
 If \arg{t} is compound and index is between 1 and arity (inclusive),
 assign \arg{a} with a term reference to the argument.
-\cfunction{int}{_PL_get_arg}{int index, term_t +t, term_t -a}
+\cfunction{int}{_PL_get_arg}{size_t index, term_t +t, term_t -a}
 Same as PL_get_arg(), but no checking is performed, neither whether \arg{t}
 is actually a term nor whether \arg{index} is a valid argument index.
 \end{description}
@@ -1186,8 +1248,8 @@ using the {\tt PL_unify_*()} functions or use PL_cons_functor().
     \cfunction{int}{PL_put_list}{term_t -l}
 As PL_put_functor(), using the list-cell functor. Note that on classical
 Prolog systems or in SWI-Prolog using the option
-\cmdlineoption{--traditional}, this is \funcref{.}{2}, while on
-SWI-Prolog version~7 this is \funcref{[|]}{2}.
+\cmdlineoption{--traditional}, this is \functor{.}{2}, while on
+SWI-Prolog version~7 this is \functor{[|]}{2}.
 
     \cfunction{int}{PL_put_nil}{term_t -l}
 Put the list terminator constant in \arg{l}. Always returns
@@ -1370,14 +1432,6 @@ Unify \arg{t} with a list of ASCII characters constructed from
 Unify \arg{t} with a Prolog string object created from the
 zero-terminated string \arg{chars}. The data will be copied.
 See also PL_unify_string_nchars().
-    \cfunction{void}{PL_unify_string_nchars}{term_t ?t,
-					     size_t len,
-					     const char *chars}
-Unify \arg{t} with a Prolog string object created from the string
-created from the \arg{len}/\arg{chars} pair. The data will be copied.
-This interface can deal with 0-bytes in the string. See also
-\secref{foreigndata}.
-
     \cfunction{int}{PL_unify_integer}{term_t ?t, intptr_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
     \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
@@ -2031,7 +2085,7 @@ Same as PL_pred(), but provides a more convenient interface to
 the C programmer.
 
     \cfunction{void}{PL_predicate_info}{predicate_t p, atom_t *n,
-					int *a, module_t *m}
+					size_t *a, module_t *m}
 Return information on the predicate \arg{p}. The name is stored over
 \arg{n}, the arity over \arg{a}, while \arg{m} receives the definition
 module. Note that the latter need not be the same as specified with
@@ -2093,7 +2147,26 @@ make it available for PL_exception().
     \definition{\const{PL_Q_PASS_EXCEPTION}}
 As \const{PL_Q_CATCH_EXCEPTION}, but do not invalidate the exception-term
 while calling PL_close_query().  This option is experimental.
+    \definition{\const{PL_Q_ALLOW_YIELD}}
+Support the \const{I_YIELD} instruction for engine-based coroutining.
+See \nopredref{\$engine_yield}{2} in \file{boot/init.pl} for details.
+    \definition{\const{PL_Q_EXT_STATUS}}
+Make PL_next_solution() return extended status.  Instead of only
+\const{TRUE} or \const{FALSE} extended status as illustrated in the
+following table:
+
+\begin{center}
+\begin{tabular}{llp{4in}}
+\bf Extended & \bf Normal & \\
+\hline
+PL_S_EXCEPTION	& FALSE & Exception available through PL_exception() \\
+PL_S_FALSE	& FALSE & Query failed \\
+PL_S_TRUE	& TRUE & Query succeeded with choicepoint \\
+PL_S_LAST	& TRUE & Query succeeded without choicepoint \\
+\end{tabular}
+\end{center}
 \end{description}
+
 
 PL_open_query() can return the query identifier `0' if there is not enough
 space on the environment stack. This function succeeds, even if the
@@ -2129,9 +2202,15 @@ until it fails to generate all solutions to the query.
 Discards the query, but does not delete any of the data created by the
 query.  It just invalidates \arg{qid}, allowing for a new call to
 PL_open_query() in this context.
+
     \cfunction{void}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
+
+    \cfunction{qid_t}{PL_current_query}{void}
+Returns the query id of of the current query or \const{0} if the
+current thread is not executing any queries.
+
     \cfunction{int}{PL_call_predicate}{module_t m, int flags,
 				       predicate_t pred, term_t +t0}
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),
@@ -2480,6 +2559,11 @@ threads.
     valid until PL_erase() is called on it.  PL_recorded() is used to
     copy recorded terms back to the Prolog stack.
 
+\cfunction{record_t}{PL_duplicate_record}{record_t record}
+    Return a duplicate of \arg{record}.  As records are read-only
+    objects this function merely increments the records reference
+    count.
+
 \cfunction{int}{PL_recorded}{record_t record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog
@@ -2700,31 +2784,6 @@ will never rebind the GMP allocation functions. See
 mp_set_memory_functions() in the GMP documentation. The action returns
 \const{FALSE} if there is no GMP support or GMP is already initialised.
 \end{description}
-
-    \cfunction{int}{PL_backtrace}{int depth, int flags}
-Print a Prolog backtrace to the standard error stream. The \arg{depth}
-argument specifies the maximum number of frames to print. The
-\arg{flags} argument is a bitwise or of the constants \const{PL_BT_SAFE}
-(0x1) and \const{PL_BT_USER} (0x2). \const{PL_BT_SAFE} causes frames not
-to be printed as normal Prolog goals, but using the predicate, program
-counter and clause-number. For example, the dump below indicates the
-frame is executing the 2nd clause of
-\verb|$autoload:load_library_index_p/0| at program pointer 25.  This
-can be interpreted by dumping the virtual machine code using vm_list/1.
-
-\begin{code}
-  [34] $autoload:load_library_index_p/0 [PC=19 in clause 2]
-\end{code}
-
-If the constant \const{PL_BT_USER} is specified, `no-debug' frames are
-ignored.  This predicate may be used from the C-debugger (e.g., gdb) to
-get the Prolog stack at a crash location.  Here is an example dumping
-the top 20 frames of the Prolog stack.
-
-\begin{code}
-(gdb) call PL_backtrace(20,0)
-\end{code}
-
 \end{description}
 
 \subsection{Querying Prolog}
@@ -3204,12 +3263,7 @@ interpreted by PL_toplevel().
 \begin{code}
 int
 main(int argc, char **argv)
-{
-#ifdef READLINE	/* Remove if you don't want readline */
-  PL_initialise_hook(install_readline);
-#endif
-
-  if ( !PL_initialise(argc, argv) )
+{ if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_halt(PL_toplevel() ? 0 : 1);
@@ -3285,11 +3339,90 @@ If the engine is initialised and \arg{argc} is not \const{NULL}, the
 argument count used with PL_initialise() is stored in \arg{argc}.  Same
 for the argument vector \arg{argv}.
 
-    \cfunction{void}{PL_install_readline}{}
-Installs the GNU readline line editor.  Embedded applications that do not
-use the Prolog top level should normally delete this line, shrinking the
-Prolog kernel significantly.  Note that the Windows version does not use
-GNU readline.
+    \cfunction{int}{PL_set_resource_db_mem}{const unsigned char *data,
+					    size_t size}
+This function must be called at most once and \emph{before} calling
+PL_initialise(). The memory area designated by \arg{data} and \arg{size}
+must contain the resource data and be in the format as produced by
+qsave_program/2. The memory area is accessed by PL_initialise() as well
+as calls to open_resource/3.\footnote{This implies that the data must
+remain accessible during the lifetime of the process if open_resource/3
+is used.  Future versions may provide a function to detach the resource
+database and cause open_resource/3 to raise an exception.}
+
+For example, we can include the bootstrap data into an embedded
+executable using the steps below. The advantage of this approach is that
+it is fully supported by any OS and you obtain a single file executable.
+
+\begin{enumerate}
+    \item Create a saved state using qsave_program/2 or
+\begin{code}
+% swipl -o state -c file.pl ...
+\end{code}
+    \item Create a C source file from the state using e.g., the
+    Unix utility \program{xxd}(1):
+\begin{code}
+% xxd -i state > state.h
+\end{code}
+    \item Embed Prolog as in the example below.  Instead of calling
+    the toplevel you probably want to call your application code.
+\begin{code}
+#include <SWI-Prolog.h>
+#include "state.h"
+
+int
+main(int argc, char **argv)
+{ if ( !PL_set_resource_db_mem(state, state_len) ||
+       !PL_initialise(argc, argv) )
+    PL_halt(1);
+
+  return PL_toplevel();
+}
+\end{code}
+\end{enumerate}
+
+Alternative to \program{xxd}, it is possible to use inline assembler,
+e.g. the \program{gcc} \const{incbin} instruction. Code for
+\program{gcc} was provided by Roberto Bagnara on the SWI-Prolog
+mailinglist.  Given the state in a file \file{state}, create the
+following assembler program:
+
+\begin{code}
+        .globl _state
+        .globl _state_end
+_state:
+        .incbin "state"
+_state_end:
+\end{code}
+
+Now include this as follows:
+
+\begin{code}
+#include <SWI-Prolog.h>
+
+#if __linux
+#define STATE _state
+#define STATE_END _state_end
+#else
+#define STATE state
+#define STATE_END state_end
+#endif
+
+extern unsigned char STATE[];
+extern unsigned char STATE_END[];
+
+int
+main(int argc, char **argv)
+{ if ( !PL_set_resource_db_mem(STATE, STATE_END - STATE) ||
+       !PL_initialise(argc, argv) )
+    PL_halt(1);
+  return PL_toplevel();
+}
+\end{code}
+
+As Jose Morales pointed at
+\url{https://github.com/graphitemaster/incbin}, which contains a
+portability layer on top of the above idea.
 
     \cfunction{int}{PL_toplevel}{}
 Runs the goal of the \argoption{-t}{toplevel} switch (default prolog/0) and
@@ -3354,16 +3487,12 @@ this is the preferred route. In other cases, Prolog is embedded in a
 complex application that---like Prolog---wants to control the process
 environment. A good example is Java. Embedding Prolog is generally the
 only way to get these environments together in one process image. Java
-applications, however, are by nature multithreaded and appear to do
+VMs, however, are by nature multithreaded and appear to do
 signal handling (software interrupts).
 
-On Unix systems, SWI-Prolog uses three signals:
+On Unix systems, SWI-Prolog uses two signals:
 
 \begin{description}
-    \item[SIGUSR1] is used to sychronise atom and clause garbage
-    collection.  The handler is installed at the start of garbage collection and
-    reverted to the old setting after completion.
-
     \item[SIGUSR2] has an empty signal handler.   This signal is
     sent to a thread after sending a thread-signal (see
     thread_signal/2).  It causes blocking system calls to return
@@ -3379,9 +3508,10 @@ On Unix systems, SWI-Prolog uses three signals:
 \end{description}
 
 The \cmdlineoption{--nosignals} option can be used to inhibit processing
-of \const{SIGINT}. The other signals are vital for the functioning of
-SWI-Prolog. If they conflict with other applications, signal handling of
-either component must be modified. The SWI-Prolog signals are defined in
+of \const{SIGINT}. The handling of \const{SIGUSR2} is vital for dealing
+with blocking system call in threads. If the way SWI-Prolog uses this
+signal conflicts with other applications, signal handling of either
+component must be modified. The SWI-Prolog signals are defined in
 \file{pl-thread.h} of the source distribution.
 
 
@@ -3688,7 +3818,7 @@ install()
 % gcc -I/usr/local/lib/swipl-\plversion/include -fpic -c lowercase.c
 % gcc -shared -o lowercase.so lowercase.o
 % swipl
-Welcome to SWI-Prolog (Version \plversion)
+Welcome to SWI-Prolog (...)
 ...
 
 1 ?- load_foreign_library(lowercase).
@@ -3704,6 +3834,108 @@ L = 'hello world!'.
 
 
 \section{Notes on Using Foreign Code}	\label{sec:foreignnotes}
+
+\subsection{Foreign debugging functions}
+\label{sec:foreign-debug}
+
+The functions in this section are primarily intended for debugging
+foreign extensions or embedded Prolog. Violating the constraints of the
+foreign interface often leads to crashes in a subsequent garbage
+collection. If this happens, the system needs to be recompiled with the
+cflags \const{-DO_DEBUG}. This is normally achieved by editing
+\file{src/Makefile} and changing the definition of \const{COFLAGS} to
+the value below. The \exam{-gdwarf-2 -g3} provides detailed debugging
+information for \program{gcc}. If you use another C compiler you may
+need other flags.
+
+\begin{code}
+COFLAGS=-DO_DEBUG -gdwarf-2 -g3
+\end{code}
+
+After recompiling the Prolog kernel all functions listed above are
+available to use from the debugger (e.g. \program{gdb}) or can be placed
+at critical location in your code or the system code.
+
+\begin{description}
+    \cfunction{void}{PL_backtrace}{int depth, int flags}
+Dump a Prolog backtrace to the \const{user_error} stream. \arg{Depth} is
+the number of frames to dump. \arg{Flags} is a bitwise or of the
+following constants:
+
+    \begin{description}
+    \termitem{PL_BT_SAFE}{}
+    (0x1) Do not try to print \jargon{goals}.  Instead, just print the
+    predicate name and arity.  This reduces the likelyhood to crash if
+    PL_backtrace() is called in a damaged environment.
+    \termitem{PL_BT_USER}{}
+    (0x2) Only show `user' frames.  Default is to also show frames
+    of hidden built-in predicates.
+    \end{description}
+
+    \cfunction{char *}{PL_backtrace_string}{int depth, int flags}
+As PL_backtrace(), but returns the stack as a string. The string uses
+UTF-8 encoding. The returned string must be freed using PL_free(). This
+function is was added to get stack traces from running servers where I/O
+is redirected or discarded.  For example, using \program{gdb}, a stack
+trace is printed in the gdb console regardless of Prolog I/O redirection
+using the following command:
+
+\begin{code}
+(gdb) printf "%s", PL_backtrace_string(25,0)
+\end{code}
+
+The source distribution provides the script \file{scripts/swipl-bt} that
+exploits \program{gdb} and PL_backtrace_string() to print stack traces
+in various formats for a SWI-Prolog process, given its process id.
+
+    \cfunction{int}{PL_check_data}{term_t data}
+    Check the consistency of the term \arg{data}.  Returns \const{TRUE}
+    this is actually implemented in the current version and
+    \const{FALSE} otherwise.  The actual implementation only exists
+    if the system is compiled with the cflag \const{-DO_DEBUG} or
+    \const{-DO_MAINTENANCE}.  This is \emph{not} the default.
+
+    \cfunction{int}{PL_check_stacks}{}
+    Check the consistency of the runtime stacks of the calling thread.
+    Returns \const{TRUE} this is actually implemented in the current
+    version and \const{FALSE} otherwise. The actual implementation only exists
+    if the system is compiled with the cflag \const{-DO_DEBUG} or
+    \const{-DO_MAINTENANCE}.  This is \emph{not} the default.
+\end{description}
+
+The Prolog kernel sources use the macro \cfuncref{DEBUG}{Topic, Code}.
+These macros are disabled in the production version and must be enabled
+by recompiling the system as described above. Specific topics can be
+enabled and disabled using the predicates prolog_debug/1 and
+prolog_nodebug/1. In addition, they can be activated from the
+commandline using commandline option \const{-d topics}, where
+\arg{topics} is a comma-separated list of debug topics to enable. For
+example, the code below adds many consistency checks and prints messages
+if the Prolog signal handler dispatches signals.
+
+\begin{code}
+$ swipl -d chk_secure,msg_signal
+\end{code}
+
+\begin{description}
+    \predicate{prolog_debug}{1}{+Topic}
+    \nodescription
+    \predicate{prolog_nodebug}{1}{+Topic}
+Enable/disable a debug topic.  \arg{Topic} is an atom that identifies
+the desired topic. The available topics are defined in
+\file{src/pl-debug.h}.  Please search the sources to find out what
+is actually printed and when.  We highlight one topic here:
+
+    \begin{description}
+    \termitem{chk_secure}
+    Add many expensive consistency checks to the system.  This should
+    typically be used when the system crashes, notably in the garbage
+    collector.  Garbage collection crashes are in most cases caused
+    by invalid data on the Prolog stacks.  This debug topic may help
+    locating how the invalid data was created.
+    \end{description}
+\end{description}
+
 
 \subsection{Memory Allocation}
 \label{sec:foreign-malloc}
@@ -3739,6 +3971,13 @@ previous PL_malloc() or PL_realloc() call.
 
 \subsubsection{Boehm-GC support}
 \label{sec:boehm-gc}
+
+\begin{quote}
+This section is obsolete.  Although the Boehm-GC interfaces
+still exist, it turns out that the scalability is not good enough for
+SWI-Prolog. It is unlikely that SWI-Prolog will ever switch to
+Boehm-GC.
+\end{quote}
 
 \index{Boehm GC}%
 To accommodate future use of the Boehm garbage
@@ -3788,7 +4027,7 @@ system. Both follow the same numbering schema explained with PL_query().
 
 \index{valgrind}\index{profiling,foreign code}%
 This section is only relevant for Unix users on platforms supported by
-\url[valgrind]{http://valgrind.org/}. Valgrind is an excellent binary
+\href{http://valgrind.org/}{valgrind}. Valgrind is an excellent binary
 instrumentation platform.  Unlike many other instrumentation platforms,
 valgrind can deal with code loaded through dlopen().
 

@@ -97,14 +97,15 @@ export BUILDARCH=$TARGETHOST
 # Versions of prerequisite packages. Used to  download the right release
 # file.
 
-GMP_VERSION=5.0.5
+GMP_VERSION=6.1.1
 PTHREADS_VERSION=2-9-1-release
 LIBDWARF_VERSION=20120410
-SSL_VERSION=1.0.2
-JPEG_VERSION=8d
-ZLIB_VERSION=1.2.7
-ARCHIVE_VERSION=3.1.2
+SSL_VERSION=1.0.2j
+JPEG_VERSION=9b
+ZLIB_VERSION=1.2.8
+ARCHIVE_VERSION=3.2.1
 UUID_VERSION=1.6.2
+BDB_VERSION=6.1.26
 PLDIR=pl-devel
 
 # installation prefix.  This path should not have spaces in one of the
@@ -148,6 +149,7 @@ if [ "$CROSSCOMPILING" = yes ]; then
     esac
   fi
   MINGWGCC=$CROSS-gcc
+  export WINDRES=$CROSS-windres
 fi
 
 # See whether pthread is built-in
@@ -318,6 +320,32 @@ build_ssl()
 }
 
 ###########################
+# Download and install BerkeleyDB
+# http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/overview/index.html
+
+download_libdb()
+{ BDB_FILE=db-$BDB_VERSION.tar.gz
+
+  [ -f $BDB_FILE ] || \
+  curl http://download.oracle.com/berkeley-db/$BDB_FILE > $BDB_FILE
+  tar zxvf $BDB_FILE
+}
+
+build_libdb()
+{ ( cd db-$BDB_VERSION/build_unix
+    sed -i -e "s:WinIoCtl.h:winioctl.h:" ../src/dbinc/win_db.h
+    ../dist/configure --enable-mingw --host=$CROSS --prefix=$install \
+       --enable-shared --disable-static
+    make library_build
+    make install_lib install_include
+    ( cd $install/lib
+      [ -f libdb.dll.a ] || ln -s libdb-*.dll.a libdb.dll.a
+      [ -f libdb.la ] || ln -s libdb-*.la libdb.la
+    )
+  )
+}
+
+###########################
 # Download and install jpeg
 
 download_jpeg()
@@ -342,7 +370,7 @@ download_libxpm()
 { if [ -d libXpm ]; then
      (cd libXpm && git pull)
   else
-     git clone git://www.swi-prolog.org/home/pl/git/misc/libXpm.git
+     git clone https://github.com/SWI-Prolog/libXpm.git
   fi
 }
 
@@ -359,11 +387,10 @@ build_libxpm()
 # Download and install zlib
 
 download_zlib()
-{ ZLIB_FILE=zlib-$ZLIB_VERSION.tar.bz2
+{ ZLIB_FILE=zlib-$ZLIB_VERSION.tar.gz
 
-  [ -f $ZLIB_FILE ] || \
-    wget http://garr.dl.sourceforge.net/project/libpng/zlib/$ZLIB_VERSION/$ZLIB_FILE
-  tar xjf $ZLIB_FILE
+  [ -f $ZLIB_FILE ] || wget http://zlib.net/$ZLIB_FILE
+  tar xzf $ZLIB_FILE
 }
 
 build_zlib()
@@ -448,6 +475,7 @@ download_prerequisites()
   download_zlib
   download_libarchive
   download_libuuid
+  download_libdb
 }
 
 build_prerequisites()
@@ -460,6 +488,7 @@ build_prerequisites()
   build_zlib
   build_libarchive
   build_libuuid
+  build_libdb
 }
 
 ###########################
@@ -504,10 +533,8 @@ build_swipl_core()
 }
 
 dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
-dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll"
-if [ -r "$(echo $install/bin/libgcc*.dll)" ]; then
-  dist_dlls+=" $(basename $install/bin/libgcc*.dll)"
-fi
+dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll libdb-*.dll "
+dist_dlls+="`(cd $install/bin && find . -name 'libgcc*.dll')` "
 if [ -r "$install/bin/libdwarf.dll" ]; then
   dist_dlls+=" libdwarf.dll"
 fi

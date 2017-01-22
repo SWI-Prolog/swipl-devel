@@ -3,21 +3,33 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2011, University of Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef PL_DEBUG_INCLUDED
@@ -51,7 +63,6 @@
 #define MSG_UNLOAD		 21
 #define MSG_INDEX_FIND		 22
 #define MSG_INDEX_UPDATE	 23
-#define MSG_JIT			 24
 #define MSG_TRACE		 25
 
 #define MSG_QLF_INTEGER		 26
@@ -66,6 +77,8 @@
 #define MSG_QLF_SECTION		 35
 #define MSG_QLF_BOOT		 36
 #define MSG_QLF_BOOT_READ	 37
+#define MSG_PROC_COUNT		 38
+#define MSG_CUT			 39
 
 #define MSG_QUEUE		 40
 #define MSG_QUEUE_WAIT		 41
@@ -82,6 +95,13 @@
 #define MSG_ACYCLIC		 52
 #define MSG_OPERATOR		 53
 #define MSG_MUTEX_GC		 54
+#define MSG_REC_ATTVAR		 55
+#define MSG_TTY			 56
+
+#define MSG_READ_TOKEN		 60
+
+#define MSG_CONTINUE		 70
+
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101
@@ -110,6 +130,36 @@
 #define	MSG_SHIFT_POINTER	 124
 #define	MSG_SHIFT_FRAME		 125
 #define	MSG_STACK_OVERFLOW	 126
+
+#define MSG_ATTVAR_LINK		 150
+#define MSG_CALL_RESIDUE_VARS	 151
+#define MSG_SOFTCUT		 152
+
+#define MSG_HASH_TABLE_API	 160
+#define MSG_HASH_TABLE_KVS	 161
+#define MSG_HASH_TABLE_ENUM	 162
+
+#define MSG_CGC			 170
+#define MSG_CGC_CREF		 171
+#define MSG_CGC_CREF_PL		 172
+#define MSG_CGC_CREF_TRACK	 173
+#define MSG_CGC_PRED		 174
+#define MSG_CGC_CONSIDER	 175
+#define MSG_CGC_STACK		 176
+#define MSG_CGC_PRED_REF	 177
+
+#define MSG_JIT			 180
+#define MSG_JIT_DELINDEX	 181
+
+#define MSG_RECONSULT		 190
+#define MSG_RECONSULT_PRED	 191
+#define MSG_RECONSULT_CLAUSE	 192
+#define MSG_RECONSULT_MODULE	 193
+
+#define MSG_TRIE_PUT_TERM	 200
+#define MSG_TRIE_GC		 201
+
+#define MSG_TABLING_WORK	 300
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001

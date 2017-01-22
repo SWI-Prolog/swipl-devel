@@ -1,30 +1,35 @@
 /*  Part of SWI-Prolog
 
     Author:        Markus Triska
-    E-mail:        triska@gmx.at
+    E-mail:        triska@metalevel.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014, 2015 Markus Triska
+    Copyright (C): 2014-2016 Markus Triska
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -37,34 +42,64 @@
                  sat/1,
                  taut/2,
                  labeling/1,
-                 sat_count/2
+                 sat_count/2,
+                 weighted_maximum/3,
+                 random_labeling/2
                 ]).
 
 :- use_module(library(error)).
 :- use_module(library(assoc)).
 :- use_module(library(apply_macros)).
 
-/** <module> Constraint Logic Programming over Boolean Variables
+:- create_prolog_flag(clpb_monotonic, false, []).
+:- create_prolog_flag(clpb_residuals, default, []).
 
-### Introduction                        {#clpb-intro}
+/** <module> CLP(B): Constraint Logic Programming over Boolean Variables
 
-Constraint programming is a declarative formalism that lets you state
-relations between terms. This library provides CLP(B), Constraint
-Logic Programming over Boolean Variables. It can be used to model and
-solve combinatorial problems such as verification, allocation and
-covering tasks.
+## Introduction                        {#clpb-intro}
+
+This library provides CLP(B), Constraint Logic Programming over
+Boolean variables. It can be used to model and solve combinatorial
+problems such as verification, allocation and covering tasks.
+
+CLP(B) is an instance of the general [CLP(_X_) scheme](<#clp>),
+extending logic programming with reasoning over specialised domains.
 
 The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
 
+Usage examples of this library are available in a public git
+repository: [**github.com/triska/clpb**](https://github.com/triska/clpb)
 
-### Boolean expressions {#clpb-exprs}
+We recommend the following reference (PDF:
+[metalevel.at/swiclpb.pdf](https://www.metalevel.at/swiclpb.pdf))
+for citing this library in scientific publications:
+
+==
+@inproceedings{Triska2016,
+  author    = "Markus Triska",
+  title     = "The {Boolean} Constraint Solver of {SWI-Prolog}:
+               System Description",
+  booktitle = "FLOPS",
+  series    = "LNCS",
+  volume    = 9613,
+  year      = 2016,
+  pages     = "45--61"
+}
+==
+
+and the following URL to link to its documentation:
+
+http://eu.swi-prolog.org/man/clpb.html
+
+## Boolean expressions {#clpb-exprs}
 
 A _Boolean expression_ is one of:
 
     | `0`                | false                                |
     | `1`                | true                                 |
     | _variable_         | unknown truth value                  |
+    | _atom_             | universally quantified variable      |
     | ~ _Expr_           | logical NOT                          |
     | _Expr_ + _Expr_    | logical OR                           |
     | _Expr_ * _Expr_    | logical AND                          |
@@ -90,9 +125,15 @@ integers and integer ranges of the form `From-To`.
 conjunction of all elements in the list `Exprs` of Boolean
 expressions.
 
-### Interface predicates   {#clpb-interface}
+Atoms denote parametric values that are universally quantified. All
+universal quantifiers appear implicitly in front of the entire
+expression. In residual goals, universally quantified variables always
+appear on the right-hand side of equations. Therefore, they can be
+used to express functional dependencies on input variables.
 
-Important interface predicates of CLP(B) are:
+## Interface predicates   {#clpb-interface}
+
+The most frequently used CLP(B) predicates are:
 
     * sat(+Expr)
       True iff the Boolean expression Expr is satisfiable.
@@ -109,7 +150,7 @@ Important interface predicates of CLP(B) are:
 The unification of a CLP(B) variable _X_ with a term _T_ is equivalent
 to posting the constraint sat(X=:=T).
 
-### Examples                            {#clpb-examples}
+## Examples                            {#clpb-examples}
 
 Here is an example session with a few queries and their answers:
 
@@ -138,14 +179,84 @@ X = Y, Y = Z, Z = 1.
 
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
-sat(1#X#X*Y),
-sat(1#Y#Y*Z).
+sat(X=:=X*Y),
+sat(Y=:=Y*Z).
+
+?- sat(1#X#a#b).
+sat(X=:=a#b).
 ==
 
 The pending residual goals constrain remaining variables to Boolean
 expressions and are declaratively equivalent to the original query.
+The last example illustrates that when applicable, remaining variables
+are expressed as functions of universally quantified variables.
 
-@author Markus Triska
+## Obtaining BDDs {#clpb-residual-goals}
+
+By default, CLP(B) residual goals appear in (approximately) algebraic
+normal form (ANF). This projection is often computationally expensive.
+You can set the Prolog flag `clpb_residuals` to the value `bdd` to see
+the BDD representation of all constraints. This results in faster
+projection to residual goals, and is also useful for learning more
+about BDDs. For example:
+
+==
+?- set_prolog_flag(clpb_residuals, bdd).
+true.
+
+?- sat(X#Y).
+node(3)- (v(X, 0)->node(2);node(1)),
+node(1)- (v(Y, 1)->true;false),
+node(2)- (v(Y, 1)->false;true).
+==
+
+Note that this representation cannot be pasted back on the toplevel,
+and its details are subject to change. Use copy_term/3 to obtain
+such answers as Prolog terms.
+
+The variable order of the BDD is determined by the order in which the
+variables first appear in constraints. To obtain different orders,
+you can for example use:
+
+==
+?- sat(+[1,Y,X]), sat(X#Y).
+node(3)- (v(Y, 0)->node(2);node(1)),
+node(1)- (v(X, 1)->true;false),
+node(2)- (v(X, 1)->false;true).
+==
+
+## Enabling monotonic CLP(B) {#clpb-monotonic}
+
+In the default execution mode, CLP(B) constraints are _not_ monotonic.
+This means that _adding_ constraints can yield new solutions. For
+example:
+
+==
+?-          sat(X=:=1), X = 1+0.
+false.
+
+?- X = 1+0, sat(X=:=1), X = 1+0.
+X = 1+0.
+==
+
+This behaviour is highly problematic from a logical point of view, and
+it may render [**declarative
+debugging**](https://www.metalevel.at/prolog/debugging)
+techniques inapplicable.
+
+Set the flag `clpb_monotonic` to `true` to make CLP(B) *monotonic*. If
+this mode is enabled, then you must wrap CLP(B) variables with the
+functor `v/1`. For example:
+
+==
+?- set_prolog_flag(clpb_monotonic, true).
+true.
+
+?- sat(v(X)=:=1#1).
+X = 0.
+==
+
+@author [Markus Triska](https://www.metalevel.at)
 */
 
 
@@ -192,14 +303,20 @@ expressions and are declaratively equivalent to the original query.
 
    Variable aliasing is treated as a conjunction of corresponding SAT
    formulae.
+
+   You should think of CLP(B) as a potentially vast collection of BDDs
+   that can range from small to gigantic in size, and which can merge.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Type checking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-is_sat(V)     :- var(V), !.
+is_sat(V)     :- var(V), !, non_monotonic(V).
+is_sat(v(V))  :- var(V), !.
+is_sat(v(I))  :- integer(I), between(0, 1, I).
 is_sat(I)     :- integer(I), between(0, 1, I).
+is_sat(A)     :- atom(A).
 is_sat(~A)    :- is_sat(A).
 is_sat(A*B)   :- is_sat(A), is_sat(B).
 is_sat(A+B)   :- is_sat(A), is_sat(B).
@@ -218,13 +335,27 @@ is_sat(card(Is,Fs)) :-
         must_be(list, Fs),
         maplist(is_sat, Fs).
 
+non_monotonic(X) :-
+        (   var_index(X, _) ->
+            % OK: already constrained to a CLP(B) variable
+            true
+        ;   current_prolog_flag(clpb_monotonic, true) ->
+            instantiation_error(X)
+        ;   true
+        ).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Rewriting to canonical expressions.
+   Atoms are converted to variables with a special attribute.
+   A global lookup table maintains the correspondence between atoms and
+   their variables throughout different sat/1 goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 % elementary
 sat_rewrite(V, V)       :- var(V), !.
-sat_rewrite(I, I)       :- integer(I).
+sat_rewrite(I, I)       :- integer(I), !.
+sat_rewrite(A, V)       :- atom(A), !, clpb_atom_var(A, V).
+sat_rewrite(v(V), V).
 sat_rewrite(P0*Q0, P*Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0+Q0, P+Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0#Q0, P#Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
@@ -247,6 +378,7 @@ or(A, B, B + A).
 and(A, B, B * A).
 
 must_be_sat(Sat) :-
+        must_be(acyclic, Sat),
         (   is_sat(Sat) -> true
         ;   no_truth_value(Sat)
         ).
@@ -293,6 +425,7 @@ sat(Sat0) :-
             maplist(del_bdd, Roots),
             maplist(=(Root), Roots),
             root_put_formula_bdd(Root, And, BDD1),
+            is_bdd(BDD1),
             satisfiable_bdd(BDD1)
         ).
 
@@ -351,84 +484,245 @@ bdd_and(NA, NB, And) :-
 
 %% taut(+Expr, -T) is semidet
 %
-% Succeeds with T = 0 if the Boolean expression Expr cannot be
-% satisfied, and with T = 1 if Expr is always true with respect to the
-% current constraints. Fails otherwise.
+% Tautology check. Succeeds with T = 0 if the Boolean expression Expr
+% cannot be satisfied, and with T = 1 if Expr is always true with
+% respect to the current constraints. Fails otherwise.
 
 taut(Sat0, T) :-
         parse_sat(Sat0, Sat),
-        sat_roots(Sat, Roots),
-        catch((roots_and(Roots, _-1, _-Ands),
-               (   T = 0, unsatisfiable_conjunction(Sat, Ands) -> true
-               ;   T = 1, unsatisfiable_conjunction(1#Sat, Ands) -> true
-               ;   false
-               ),
-               % reset all attributes
-               throw(truth(T))),
-              truth(T),
-              true).
+        (   T = 0, \+ sat(Sat) -> true
+        ;   T = 1, tautology(Sat) -> true
+        ;   false
+        ).
 
-unsatisfiable_conjunction(Sat, Ands) :-
-        sat_bdd(Sat, BDD),
-        bdd_and(BDD, Ands, B),
-        B == 0.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   The algebraic equivalence: tautology(F) <=> \+ sat(~F) does NOT
+   hold in CLP(B) because the quantifiers of universally quantified
+   variables always implicitly appear in front of the *entire*
+   expression. Thus we have for example: X+a is not a tautology, but
+   ~(X+a), meaning forall(a, ~(X+a)), is unsatisfiable:
+
+      sat(~(X+a)) = sat(~X * ~a) = sat(~X), sat(~a) = X=0, false
+
+   The actual negation of X+a, namely ~forall(A,X+A), in terms of
+   CLP(B): ~ ~exists(A, ~(X+A)), is of course satisfiable:
+
+      ?- sat(~ ~A^ ~(X+A)).
+      %@ X = 0,
+      %@ sat(A=:=A).
+
+   Instead, of such rewriting, we test whether the BDD of the negated
+   formula is 0. Critically, this avoids constraint propagation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+tautology(Sat) :-
+        (   phrase(sat_ands(Sat), Ands), Ands = [_,_|_] ->
+            maplist(tautology, Ands)
+        ;   catch((sat_roots(Sat, Roots),
+                   roots_and(Roots, _-1, _-Ands),
+                   sat_bdd(1#Sat, BDD),
+                   bdd_and(BDD, Ands, B),
+                   B == 0,
+                   % reset all attributes
+                   throw(tautology)),
+                  tautology,
+                  true)
+        ).
 
 satisfiable_bdd(BDD) :-
         (   BDD == 0 -> false
         ;   BDD == 1 -> true
-        ;   bdd_variables(BDD, Vs),
-            node_var_low_high(BDD, Var, _, _),
-            var_index(Var, Lowest),
-            maplist(variable_definite_value(BDD,Lowest), Vs, Values),
-            (   maplist(var, Values) -> true % nothing to propagate
-            ;   Vs = Values % propagate all assignments at once
+        ;   (   bdd_nodes(var_unbound, BDD, Nodes) ->
+                bdd_variables_classification(BDD, Nodes, Classes),
+                partition(var_class, Classes, Eqs, Bs, Ds),
+                domain_consistency(Eqs, Goal),
+                aliasing_consistency(Bs, Ds, Goals),
+                maplist(unification, [Goal|Goals])
+            ;   % if any variable is instantiated, we do not perform
+                % any propagation for now
+                true
             )
+        ).
+
+var_class(_=_, <).
+var_class(further_branching(_,_), =).
+var_class(negative_decisive(_), >).
+
+unification(true).
+unification(A=B) :- A = B.      % safe_goal/1 detects safety of this call
+
+var_unbound(Node) :-
+        node_var_low_high(Node, Var, _, _),
+        var(Var).
+
+universal_var(Var) :- get_attr(Var, clpb_atom, _).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   By aliasing consistency, we mean that all unifications X=Y, where
+   taut(X=:=Y, 1) holds, are posted.
+
+   To detect this, we distinguish two kinds of variables among those
+   variables that are not skipped in any branch: further-branching and
+   negative-decisive. X is negative-decisive iff every node where X
+   appears as a branching variable has 0 as one of its children. X is
+   further-branching iff 1 is not a direct child of any node where X
+   appears as a branching variable.
+
+   Any potential aliasing must involve one further-branching, and one
+   negative-decisive variable. X=Y must hold if, for each low branch
+   of nodes with X as branching variable, Y has high branch 0, and for
+   each high branch of nodes involving X, Y has low branch 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+aliasing_consistency(Bs, Ds, Goals) :-
+        phrase(aliasings(Bs, Ds), Goals).
+
+aliasings([], _) --> [].
+aliasings([further_branching(B,Nodes)|Bs], Ds) -->
+        { var_index(B, BI) },
+        aliasings_(Ds, B, BI, Nodes),
+        aliasings(Bs, Ds).
+
+aliasings_([], _, _, _) --> [].
+aliasings_([negative_decisive(D)|Ds], B, BI, Nodes) -->
+        { var_index(D, DI) },
+        (   { DI > BI,
+              always_false(high, DI, Nodes),
+              always_false(low, DI, Nodes),
+              var_or_atom(D, DA), var_or_atom(B, BA) } ->
+            [DA=BA]
+        ;   []
+        ),
+        aliasings_(Ds, B, BI, Nodes).
+
+var_or_atom(Var, VA) :-
+        (   get_attr(Var, clpb_atom, VA) -> true
+        ;   VA = Var
+        ).
+
+always_false(Which, DI, Nodes) :-
+        phrase(nodes_always_false(Nodes, Which, DI), Opposites),
+        maplist(with_aux(unvisit), Opposites).
+
+nodes_always_false([], _, _) --> [].
+nodes_always_false([Node|Nodes], Which, DI) -->
+        { which_node_child(Which, Node, Child),
+          opposite(Which, Opposite) },
+        opposite_always_false(Opposite, DI, Child),
+        nodes_always_false(Nodes, Which, DI).
+
+which_node_child(low, Node, Child) :-
+        node_var_low_high(Node, _, Child, _).
+which_node_child(high, Node, Child) :-
+        node_var_low_high(Node, _, _, Child).
+
+opposite(low, high).
+opposite(high, low).
+
+opposite_always_false(Opposite, DI, Node) -->
+        (   { node_visited(Node) } -> []
+        ;   { node_var_low_high(Node, Var, Low, High),
+              with_aux(put_visited, Node),
+              var_index(Var, VI) },
+            [Node],
+            (   { VI =:= DI } ->
+                { which_node_child(Opposite, Node, Child),
+                  Child == 0 }
+            ;   opposite_always_false(Opposite, DI, Low),
+                opposite_always_false(Opposite, DI, High)
+            )
+        ).
+
+further_branching(Node) :-
+        node_var_low_high(Node, _, Low, High),
+        Low \== 1,
+        High \== 1.
+
+negative_decisive(Node) :-
+        node_var_low_high(Node, _, Low, High),
+        (   Low == 0 -> true
+        ;   High == 0 -> true
+        ;   false
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   We walk the BDD and check for the given variable if only a single
-   value can make the formula true. This means: The variable is not
-   skipped in any branch leading to 1 (its being skipped means that it
-   may be assigned either 0 or 1 and can thus not be fixed yet), and
-   all nodes where it occurs as a branching variable have either lower
-   or upper child fixed to 0 consistently.
+   Instantiate all variables that only admit a single Boolean value.
+
+   This is the case if: The variable is not skipped in any branch
+   leading to 1 (its being skipped means that it may be assigned
+   either 0 or 1 and can thus not be fixed yet), and all nodes where
+   it occurs as a branching variable have either lower or upper child
+   fixed to 0 consistently.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-variable_definite_value(BDD, Lowest, Var, Value) :-
-        var_index(Var, VI),
-        (   VI < Lowest ->
-            Value = _             % either value is possible
-        ;   (   bdd_nodes(var_always_0(VI), BDD, _) -> Value = 0
-            ;   bdd_nodes(var_always_1(VI), BDD, _) -> Value = 1
-            ;   Value = _         % either value is possible
-            )
+domain_consistency(Eqs, Goal) :-
+        maplist(eq_a_b, Eqs, Vs, Values),
+        Goal = (Vs = Values). % propagate all assignments at once
+
+eq_a_b(A=B, A, B).
+
+consistently_false_(Which, Node) :-
+        which_node_child(Which, Node, Child),
+        Child == 0.
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   In essentially one sweep of the BDD, all variables can be classified:
+   Unification with 0 or 1, further branching and/or negative decisive.
+
+   Strategy: Breadth-first traversal of the BDD, failing (and thus
+   clearing all attributes) if the variable is skipped in some branch,
+   and moving the frontier along each time.
+
+   A formula is only satisfiable if it is a tautology after all (also
+   implicitly) existentially quantified variables are projected away.
+   However, we only need to check this explicitly if at least one
+   universally quantified variable appears. Otherwise, we know that
+   the formula is satisfiable at this point, because its BDD is not 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bdd_variables_classification(BDD, Nodes, Classes) :-
+        nodes_variables(Nodes, Vs0),
+        variables_in_index_order(Vs0, Vs),
+        (   partition(universal_var, Vs, [_|_], Es) ->
+            foldl(existential, Es, BDD, 1)
+        ;   true
+        ),
+        phrase(variables_classification(Vs, [BDD]), Classes),
+        maplist(with_aux(unvisit), Nodes).
+
+variables_classification([], _) --> [].
+variables_classification([V|Vs], Nodes0) -->
+        { var_index(V, Index) },
+        (   { phrase(nodes_with_variable(Nodes0, Index), Nodes) } ->
+            (   { maplist(consistently_false_(low), Nodes) } -> [V=1]
+            ;   { maplist(consistently_false_(high), Nodes) } -> [V=0]
+            ;   []
+            ),
+            (   { maplist(further_branching, Nodes) } ->
+                [further_branching(V, Nodes)]
+            ;   []
+            ),
+            (   { maplist(negative_decisive, Nodes) } ->
+                [negative_decisive(V)]
+            ;   []
+            ),
+            { maplist(with_aux(unvisit), Nodes) },
+            variables_classification(Vs, Nodes)
+        ;   variables_classification(Vs, Nodes0)
         ).
 
-var_always_0(VI, Node) :-
-        node_var_low_high(Node, OVar, Low, High),
-        single_truth_value(VI, OVar, High, Low). % note reverse order!
-
-var_always_1(VI, Node) :-
-        node_var_low_high(Node, OVar, Low, High),
-        single_truth_value(VI, OVar, Low, High).
-
-single_truth_value(VI, OVar, Child1, Child2) :-
-        % If any variable is instantiated, the following fails, as intended.
-        % This only means that we do not perform any propagation for now.
-        var_index(OVar, OVI),
-        (   VI =:= OVI -> Child1 == 0
-        ;   OVI > VI -> true
-        ;   % OVI < VI ->
-            \+ index_skipped(VI, Child1),
-            \+ index_skipped(VI, Child2)
-        ).
-
-index_skipped(VI, ChildNode) :-
-        (   ChildNode == 0 -> false
-        ;   ChildNode == 1 -> true
-        ;   node_var_low_high(ChildNode, ChildVar, _, _),
-            var_index(ChildVar, ChildIndex),
-            VI < ChildIndex
+nodes_with_variable([], _) --> [].
+nodes_with_variable([Node|Nodes], VI) -->
+        { Node \== 1 },
+        (   { node_visited(Node) } -> nodes_with_variable(Nodes, VI)
+        ;   { with_aux(put_visited, Node),
+              node_var_low_high(Node, OVar, Low, High),
+              var_index(OVar, OVI) },
+            { OVI =< VI },
+            (   { OVI =:= VI } -> [Node]
+            ;   nodes_with_variable([Low,High], VI)
+            ),
+            nodes_with_variable(Nodes, VI)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -521,6 +815,7 @@ counter_network(Cs, Fs, Node) :-
         same_length([_|Fs], Indicators),
         fill_indicators(Indicators, 0, Cs),
         phrase(formulas_variables(Fs, Vars0), ExBDDs),
+        maplist(unvisit, Vars0),
         % The counter network is built bottom-up, so variables with
         % highest index must be processed first.
         variables_in_index_order(Vars0, Vars1),
@@ -530,10 +825,14 @@ counter_network(Cs, Fs, Node) :-
 
 % Introduce fresh variables for expressions that are not variables.
 % These variables are later existentially quantified to remove them.
+% Also, new variables are introduced for variables that are used more
+% than once, as in card([0,1],[X,X,Y]), to keep the BDD ordered.
 
 formulas_variables([], []) --> [].
 formulas_variables([F|Fs], [V|Vs]) -->
-        (   { var(F) } -> { V = F }
+        (   { var(F), \+ is_visited(F) } ->
+            { V = F,
+              put_visited(F) }
         ;   { enumerate_variable(V),
               sat_rewrite(V =:= F, Sat),
               sat_bdd(Sat, BDD) },
@@ -693,12 +992,29 @@ attr_unify_hook(index_root(I,Root), Other) :-
                 satisfiable_bdd(BDD)
             ;   no_truth_value(Other)
             )
-        ;   parse_sat(Other, OtherSat),
+        ;   atom(Other) ->
+            root_get_formula_bdd(Root, Sat0, _),
+            parse_sat(Sat0, Sat),
+            sat_bdd(Sat, BDD),
+            root_put_formula_bdd(Root, Sat0, BDD),
+            is_bdd(BDD),
+            satisfiable_bdd(BDD)
+        ;   % due to variable aliasing, any BDDs may now be unordered,
+            % so we need to rebuild the new BDD from the conjunction.
             root_get_formula_bdd(Root, Sat0, _),
             Sat = Sat0*OtherSat,
-            sat_roots(Sat, Roots),
-            maplist(root_rebuild_bdd, Roots),
-            roots_and(Roots, 1-1, And-BDD1),
+            (   var(Other), var_index_root(Other, _, OtherRoot),
+                OtherRoot \== Root ->
+                root_get_formula_bdd(OtherRoot, OtherSat, _),
+                parse_sat(Sat, Sat1),
+                sat_bdd(Sat1, BDD1),
+                And = Sat,
+                sat_roots(Sat, Roots)
+            ;   parse_sat(Other, OtherSat),
+                sat_roots(Sat, Roots),
+                maplist(root_rebuild_bdd, Roots),
+                roots_and(Roots, 1-1, And-BDD1)
+            ),
             maplist(del_bdd, Roots),
             maplist(=(NewRoot), Roots),
             root_put_formula_bdd(NewRoot, And, BDD1),
@@ -747,7 +1063,8 @@ clpb_variable(Var) :- var_index(Var, _).
 remove_hidden_variables(QueryVars, Root) :-
         root_get_formula_bdd(Root, Formula, BDD0),
         maplist(put_visited, QueryVars),
-        bdd_variables(BDD0, HiddenVars),
+        bdd_variables(BDD0, HiddenVars0),
+        exclude(universal_var, HiddenVars0, HiddenVars),
         maplist(unvisit, QueryVars),
         foldl(existential, HiddenVars, BDD0, BDD),
         foldl(quantify_existantially, HiddenVars, Formula, ExFormula),
@@ -811,7 +1128,7 @@ bdd_nodes(VPred, BDD, Ns) :-
         maplist(with_aux(unvisit), Ns).
 
 bdd_nodes_(VPred, Node) -->
-        (   { integer(Node) ;  with_aux(is_visited, Node) } -> []
+        (   { node_visited(Node) } -> []
         ;   { call(VPred, Node),
               with_aux(put_visited, Node),
               node_var_low_high(Node, _, Low, High) },
@@ -819,6 +1136,9 @@ bdd_nodes_(VPred, Node) -->
             bdd_nodes_(VPred, Low),
             bdd_nodes_(VPred, High)
         ).
+
+node_visited(Node) :- integer(Node).
+node_visited(Node) :- with_aux(is_visited, Node).
 
 bdd_variables(BDD, Vs) :-
         bdd_nodes(BDD, Nodes),
@@ -865,14 +1185,37 @@ is_bdd(BDD) :-
             (   member(ITE, ITEs), \+ registered_node(ITE) ->
                 domain_error(registered_node, ITE)
             ;   true
+            ),
+            (   member(I, ITEs), \+ ordered(I) ->
+                domain_error(ordered_node, I)
+            ;   true
             )
         ;   true
         ).
 
+ordered(_-ite(Var,High,Low)) :-
+        (   var_index(Var, VI) ->
+            greater_varindex_than(High, VI),
+            greater_varindex_than(Low, VI)
+        ;   true
+        ).
+
+greater_varindex_than(Node, VI) :-
+        (   integer(Node) -> true
+        ;   node_var_low_high(Node, Var, _, _),
+            (   var_index(Var, OI) ->
+                OI > VI
+            ;   true
+            )
+        ).
+
 registered_node(Node-ite(Var,High,Low)) :-
-        low_high_key(Low, High, Key),
-        lookup_node(Var, Key, Node0),
-        Node == Node0.
+        (   var(Var) ->
+            low_high_key(Low, High, Key),
+            lookup_node(Var, Key, Node0),
+            Node == Node0
+        ;   true
+        ).
 
 bdd_ites(BDD, ITEs) :-
         bdd_nodes(BDD, Nodes),
@@ -881,15 +1224,21 @@ bdd_ites(BDD, ITEs) :-
 node_ite(Node, Node-ite(Var,High,Low)) :-
         node_var_low_high(Node, Var, Low, High).
 
-%% labeling(+Vs) is nondet.
+%% labeling(+Vs) is multi.
 %
-% Assigns truth values to the Boolean variables Vs such that all
-% stated constraints are satisfied.
+% Enumerate concrete solutions. Assigns truth values to the Boolean
+% variables Vs such that all stated constraints are satisfied.
 
 labeling(Vs0) :-
         must_be(list, Vs0),
+        maplist(labeling_var, Vs0),
         variables_in_index_order(Vs0, Vs),
         maplist(indomain, Vs).
+
+labeling_var(V) :- var(V), !.
+labeling_var(V) :- V == 0, !.
+labeling_var(V) :- V == 1, !.
+labeling_var(V) :- domain_error(clpb_variable, V).
 
 variables_in_index_order(Vs0, Vs) :-
         maplist(var_with_index, Vs0, IVs0),
@@ -905,16 +1254,28 @@ indomain(0).
 indomain(1).
 
 
-%% sat_count(+Expr, -N) is det.
+%% sat_count(+Expr, -Count) is det.
 %
-% N is the number of different assignments of truth values to the
-% variables in the Boolean expression Expr, such that Expr is true and
-% all posted constraints are satisfiable.
+% Count the number of admissible assignments. Count is the number of
+% different assignments of truth values to the variables in the
+% Boolean expression Expr, such that Expr is true and all posted
+% constraints are satisfiable.
 %
-% Example:
+% A common form of invocation is `sat_count(+[1|Vs], Count)`: This
+% counts the number of admissible assignments to `Vs` without imposing
+% any further constraints.
+%
+% Examples:
 %
 % ==
-% ?- length(Vs, 120), sat_count(+Vs, CountOr), sat_count(*(Vs), CountAnd).
+% ?- sat(A =< B), Vs = [A,B], sat_count(+[1|Vs], Count).
+% Vs = [A, B],
+% Count = 3,
+% sat(A=:=A*B).
+%
+% ?- length(Vs, 120),
+%    sat_count(+Vs, CountOr),
+%    sat_count(*(Vs), CountAnd).
 % Vs = [...],
 % CountOr = 1329227995784915872903807060280344575,
 % CountAnd = 1.
@@ -930,12 +1291,14 @@ sat_count(Sat0, N) :-
                maplist(put_visited, Vs),
                % ... so that they do not appear in Vs1 ...
                bdd_variables(BDD1, Vs1),
+               partition(universal_var, Vs1, Univs, Exis),
                % ... and then remove remaining variables:
-               foldl(existential, Vs1, BDD1, BDD2),
+               foldl(universal, Univs, BDD1, BDD2),
+               foldl(existential, Exis, BDD2, BDD3),
                variables_in_index_order(Vs, IVs),
                foldl(renumber_variable, IVs, 1, VNum),
-               bdd_count(BDD2, VNum, Count0),
-               var_u(BDD2, VNum, P),
+               bdd_count(BDD3, VNum, Count0),
+               var_u(BDD3, VNum, P),
                % Do not unify N directly, because we are not prepared
                % for propagation here in case N is a CLP(B) variable.
                N0 is 2^(P - 1)*Count0,
@@ -943,6 +1306,12 @@ sat_count(Sat0, N) :-
                throw(count(N0))),
               count(N0),
               N = N0).
+
+universal(V, BDD, Node) :-
+        var_index(V, Index),
+        bdd_restriction(BDD, Index, 0, NA),
+        bdd_restriction(BDD, Index, 1, NB),
+        apply(*, NA, NB, Node).
 
 renumber_variable(V, I0, I) :-
         put_attr(V, clpb, index_root(I0,_)),
@@ -973,38 +1342,365 @@ var_u(Node, VNum, Index) :-
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Pick a solution in such a way that each solution is equally likely.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%% random_labeling(+Seed, +Vs) is det.
+%
+% Select a single random solution. An admissible assignment of truth
+% values to the Boolean variables in Vs is chosen in such a way that
+% each admissible assignment is equally likely. Seed is an integer,
+% used as the initial seed for the random number generator.
+
+single_bdd(Vars0) :-
+        maplist(monotonic_variable, Vars0, Vars),
+        % capture all variables with a single BDD
+        sat(+[1|Vars]).
+
+random_labeling(Seed, Vars) :-
+        must_be(list, Vars),
+        set_random(seed(Seed)),
+        (   ground(Vars) -> true
+        ;   catch((single_bdd(Vars),
+                   once((member(Var, Vars),var(Var))),
+                   var_index_root(Var, _, Root),
+                   root_get_formula_bdd(Root, _, BDD),
+                   bdd_variables(BDD, Vs),
+                   variables_in_index_order(Vs, IVs),
+                   foldl(renumber_variable, IVs, 1, VNum),
+                   phrase(random_bindings(VNum, BDD), Bs),
+                   maplist(del_attrs, Vs),
+                   % reset all attribute modifications
+                   throw(randsol(Vars, Bs))),
+                  randsol(Vars, Bs),
+                  true),
+            maplist(call, Bs),
+            % set remaining variables to 0 or 1 with equal probability
+            include(var, Vars, Remaining),
+            maplist(maybe_zero, Remaining)
+        ).
+
+maybe_zero(Var) :-
+        (   maybe -> Var = 0
+        ;   Var = 1
+        ).
+
+random_bindings(_, Node) --> { Node == 1 }, !.
+random_bindings(VNum, Node) -->
+        { node_var_low_high(Node, Var, Low, High),
+          bdd_count(Node, VNum, Total),
+          bdd_count(Low, VNum, LCount) },
+        (   { maybe(LCount, Total) } ->
+            [Var=0], random_bindings(VNum, Low)
+        ;   [Var=1], random_bindings(VNum, High)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Find solutions with maximum weight.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%% weighted_maximum(+Weights, +Vs, -Maximum) is multi.
+%
+% Enumerate weighted optima over admissible assignments. Maximize a
+% linear objective function over Boolean variables Vs with integer
+% coefficients Weights. This predicate assigns 0 and 1 to the
+% variables in Vs such that all stated constraints are satisfied, and
+% Maximum is the maximum of sum(Weight_i*V_i) over all admissible
+% assignments.  On backtracking, all admissible assignments that
+% attain the optimum are generated.
+%
+% This predicate can also be used to _minimize_ a linear Boolean
+% program, since negative integers can appear in Weights.
+%
+% Example:
+%
+% ==
+% ?- sat(A#B), weighted_maximum([1,2,1], [A,B,C], Maximum).
+% A = 0, B = 1, C = 1, Maximum = 3.
+% ==
+
+weighted_maximum(Ws, Vars, Max) :-
+        must_be(list(integer), Ws),
+        must_be(list(var), Vars),
+        single_bdd(Vars),
+        Vars = [Var|_],
+        var_index_root(Var, _,  Root),
+        root_get_formula_bdd(Root, _, BDD0),
+        bdd_variables(BDD0, Vs),
+        % existentially quantify variables that are not considered
+        maplist(put_visited, Vars),
+        exclude(is_visited, Vs, Unvisited),
+        maplist(unvisit, Vars),
+        foldl(existential, Unvisited, BDD0, BDD),
+        maplist(var_with_index, Vars, IVs),
+        pairs_keys_values(Pairs0, IVs, Ws),
+        keysort(Pairs0, Pairs1),
+        pairs_keys_values(Pairs1, IVs1, WeightsIndexOrder),
+        pairs_values(IVs1, VarsIndexOrder),
+        % Pairs is a list of Var-Weight terms, in index order of Vars
+        pairs_keys_values(Pairs, VarsIndexOrder, WeightsIndexOrder),
+        bdd_maximum(BDD, Pairs, Max),
+        max_labeling(BDD, Pairs).
+
+max_labeling(1, Pairs) :- max_upto(Pairs, _, _).
+max_labeling(node(_,Var,Low,High,Aux), Pairs0) :-
+        max_upto(Pairs0, Var, Pairs),
+        get_attr(Aux, clpb_max, max(_,Dir)),
+        direction_labeling(Dir, Var, Low, High, Pairs).
+
+max_upto([], _, _).
+max_upto([Var0-Weight|VWs0], Var, VWs) :-
+        (   Var == Var0 -> VWs = VWs0
+        ;   Weight =:= 0 ->
+            (   Var0 = 0 ; Var0 = 1 ),
+            max_upto(VWs0, Var, VWs)
+        ;   Weight < 0 -> Var0 = 0, max_upto(VWs0, Var, VWs)
+        ;   Var0 = 1, max_upto(VWs0, Var, VWs)
+        ).
+
+direction_labeling(low, 0, Low, _, Pairs)   :- max_labeling(Low, Pairs).
+direction_labeling(high, 1, _, High, Pairs) :- max_labeling(High, Pairs).
+
+bdd_maximum(1, Pairs, Max) :-
+        pairs_values(Pairs, Weights0),
+        include(<(0), Weights0, Weights),
+        sum_list(Weights, Max).
+bdd_maximum(node(_,Var,Low,High,Aux), Pairs0, Max) :-
+        (   get_attr(Aux, clpb_max, max(Max,_)) -> true
+        ;   (   skip_to_var(Var, Weight, Pairs0, Pairs),
+                (   Low == 0 ->
+                    bdd_maximum_(High, Pairs, MaxHigh, MaxToHigh),
+                    Max is MaxToHigh + MaxHigh + Weight,
+                    Dir = high
+                ;   High == 0 ->
+                    bdd_maximum_(Low, Pairs, MaxLow, MaxToLow),
+                    Max is MaxToLow + MaxLow,
+                    Dir = low
+                ;   bdd_maximum_(Low, Pairs, MaxLow, MaxToLow),
+                    bdd_maximum_(High, Pairs, MaxHigh, MaxToHigh),
+                    Max0 is MaxToLow + MaxLow,
+                    Max1 is MaxToHigh + MaxHigh + Weight,
+                    Max is max(Max0,Max1),
+                    (   Max0 =:= Max1 -> Dir = _Any
+                    ;   Max0 < Max1 -> Dir = high
+                    ;   Dir = low
+                    )
+                ),
+                store_maximum(Aux, Max, Dir)
+            )
+        ).
+
+bdd_maximum_(Node, Pairs, Max, MaxTo) :-
+	bdd_maximum(Node, Pairs, Max),
+	between_weights(Node, Pairs, MaxTo).
+
+store_maximum(Aux, Max, Dir) :- put_attr(Aux, clpb_max, max(Max,Dir)).
+
+between_weights(Node, Pairs0, MaxTo) :-
+        (   Node == 1 -> MaxTo = 0
+        ;   node_var_low_high(Node, Var, _, _),
+            phrase(skip_to_var_(Var, _, Pairs0, _), Weights0),
+            include(<(0), Weights0, Weights),
+            sum_list(Weights, MaxTo)
+        ).
+
+skip_to_var(Var, Weight, Pairs0, Pairs) :-
+        phrase(skip_to_var_(Var, Weight, Pairs0, Pairs), _).
+
+skip_to_var_(Var, Weight, [Var0-Weight0|VWs0], VWs) -->
+        (   { Var == Var0 } ->
+            { Weight = Weight0, VWs0 = VWs }
+        ;   (   { Weight0 =< 0 } -> []
+            ;   [Weight0]
+            ),
+            skip_to_var_(Var, Weight, VWs0, VWs)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Projection to residual goals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         (   { root_get_formula_bdd(Root, Formula, BDD) } ->
-            { del_bdd(Root),
-              phrase(sat_ands(Formula), Ands),
-              maplist(formula_anf, Ands, ANFs0),
-              sort(ANFs0, ANFs1),
-              exclude(eq_1, ANFs1, ANFs),
-              % formula variables not occurring in the BDD should be booleans
-              bdd_variables(BDD, Vs),
+            { del_bdd(Root) },
+            (   { current_prolog_flag(clpb_residuals, bdd) } ->
+                { bdd_nodes(BDD, Nodes),
+                  phrase(nodes(Nodes), Ns) },
+                [clpb:'$clpb_bdd'(Ns)]
+            ;   { prepare_global_variables(BDD),
+                  phrase(sat_ands(Formula), Ands0),
+                  ands_fusion(Ands0, Ands),
+                  maplist(formula_anf, Ands, ANFs0),
+                  sort(ANFs0, ANFs1),
+                  exclude(eq_1, ANFs1, ANFs2),
+                  variables_separation(ANFs2, ANFs) },
+                sats(ANFs)
+            ),
+            (   { get_attr(Var, clpb_atom, Atom) } ->
+                [clpb:sat(Var=:=Atom)]
+            ;   []
+            ),
+            % formula variables not occurring in the BDD should be booleans
+            { bdd_variables(BDD, Vs),
               maplist(del_clpb, Vs),
               term_variables(Formula, RestVs0),
               include(clpb_variable, RestVs0, RestVs) },
-            sats(ANFs),
             booleans(RestVs)
         ;   boolean(Var)  % the variable may have occurred only in taut/2
         ).
 
 del_clpb(Var) :- del_attr(Var, clpb).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   To make residual projection work with recorded constraints, the
+   global counters must be adjusted so that new variables and nodes
+   also get new IDs. Also, clpb_next_id/2 is used to actually create
+   these counters, because creating them with b_setval/2 would make
+   them [] on backtracking, which is quite unfortunate in itself.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+prepare_global_variables(BDD) :-
+        clpb_next_id('$clpb_next_var', V0),
+        clpb_next_id('$clpb_next_node', N0),
+        bdd_nodes(BDD, Nodes),
+        foldl(max_variable_node, Nodes, V0-N0, MaxV0-MaxN0),
+        MaxV is MaxV0 + 1,
+        MaxN is MaxN0 + 1,
+        b_setval('$clpb_next_var', MaxV),
+        b_setval('$clpb_next_node', MaxN).
+
+max_variable_node(Node, V0-N0, V-N) :-
+        node_id(Node, N1),
+        node_varindex(Node, V1),
+        N is max(N0,N1),
+        V is max(V0,V1).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Fuse formulas that share the same variables into single conjunctions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+ands_fusion(Ands0, Ands) :-
+        maplist(with_variables, Ands0, Pairs0),
+        keysort(Pairs0, Pairs),
+        group_pairs_by_key(Pairs, Groups),
+        pairs_values(Groups, Andss),
+        maplist(list_to_conjunction, Andss, Ands).
+
+with_variables(F, Vs-F) :-
+        term_variables(F, Vs0),
+        variables_in_index_order(Vs0, Vs).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   If possible, separate variables into different sat/1 goals.
+   A formula F can be split in two if for two of its variables A and B,
+   taut((A^F)*(B^F) =:= F, 1) holds. In the first conjunct, A does not
+   occur, and in the second, B does not occur. We separate variables
+   until that is no longer possible. There may be a better way to do this.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+variables_separation(Fs0, Fs) :- separation_fixpoint(Fs0, [], Fs).
+
+separation_fixpoint(Fs0, Ds0, Fs) :-
+        phrase(variables_separation_(Fs0, Ds0, Rest), Fs1),
+        partition(anf_done, Fs1, Ds1, Fs2),
+        maplist(arg(1), Ds1, Ds2),
+        maplist(arg(1), Fs2, Fs3),
+        append(Ds0, Ds2, Ds3),
+        append(Rest, Fs3, Fs4),
+        sort(Fs4, Fs5),
+        sort(Ds3, Ds4),
+        (   Fs5 == [] -> Fs = Ds4
+        ;   separation_fixpoint(Fs5, Ds4, Fs)
+        ).
+
+anf_done(done(_)).
+
+variables_separation_([], _, []) --> [].
+variables_separation_([F0|Fs0], Ds, Rest) -->
+        (   { member(Done, Ds), F0 == Done } ->
+            variables_separation_(Fs0, Ds, Rest)
+        ;   { sat_rewrite(F0, F),
+              sat_bdd(F, BDD),
+              bdd_variables(BDD, Vs0),
+              exclude(universal_var, Vs0, Vs),
+              maplist(existential_(BDD), Vs, Nodes),
+              phrase(pairs(Nodes), Pairs),
+              group_pairs_by_key(Pairs, Groups),
+              phrase(groups_separation(Groups, BDD), ANFs) },
+            (   { ANFs = [_|_] } ->
+                list(ANFs),
+                { Rest = Fs0 }
+            ;   [done(F0)],
+                variables_separation_(Fs0, Ds, Rest)
+            )
+        ).
+
+
+existential_(BDD, V, Node) :- existential(V, BDD, Node).
+
+groups_separation([], _) --> [].
+groups_separation([BDD1-BDDs|Groups], OrigBDD) -->
+        { phrase(separate_pairs(BDDs, BDD1, OrigBDD), Nodes) },
+        (   { Nodes = [_|_] } ->
+            nodes_anfs([BDD1|Nodes])
+        ;   []
+        ),
+        groups_separation(Groups, OrigBDD).
+
+separate_pairs([], _, _) --> [].
+separate_pairs([BDD2|Ps], BDD1, OrigBDD) -->
+        (   { apply(*, BDD1, BDD2, And),
+              And == OrigBDD } ->
+            [BDD2]
+        ;   []
+        ),
+        separate_pairs(Ps, BDD1, OrigBDD).
+
+nodes_anfs([]) --> [].
+nodes_anfs([N|Ns]) --> { node_anf(N, ANF) }, [anf(ANF)], nodes_anfs(Ns).
+
+pairs([]) --> [].
+pairs([V|Vs]) --> pairs_(Vs, V), pairs(Vs).
+
+pairs_([], _) --> [].
+pairs_([B|Bs], A) --> [A-B], pairs_(Bs, A).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Set the Prolog flag clpb_residuals to bdd to obtain the BDD nodes
+   as residuals. Note that they cannot be used as regular goals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+nodes([]) --> [].
+nodes([Node|Nodes]) -->
+        { node_var_low_high(Node, Var0, Low, High),
+          var_or_atom(Var0, Var),
+          maplist(node_projection, [Node,High,Low], [ID,HID,LID]),
+          var_index(Var0, VI) },
+        [ID-(v(Var,VI) -> HID ; LID)],
+        nodes(Nodes).
+
+
+node_projection(Node, Projection) :-
+        node_id(Node, ID),
+        (   integer(ID) -> Projection = node(ID)
+        ;   Projection = ID
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   By default, residual goals are sat/1 calls of the remaining formulas,
+   using (mostly) algebraic normal form.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 sats([]) --> [].
-sats([A|As]) --> [sat(A)], sats(As).
+sats([A|As]) --> [clpb:sat(A)], sats(As).
 
 booleans([]) --> [].
-booleans([B|Bs]) --> boolean(B), booleans(Bs).
+booleans([B|Bs]) --> boolean(B), { del_clpb(B) }, booleans(Bs).
 
 boolean(Var) -->
         (   { get_attr(Var, clpb_omit_boolean, true) } -> []
-        ;   [sat(Var =:= Var)]
+        ;   [clpb:sat(Var =:= Var)]
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1012,11 +1708,32 @@ boolean(Var) -->
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 formula_anf(Formula0, ANF) :-
-        sat_rewrite(Formula0, Formula),
+        parse_sat(Formula0, Formula),
         sat_bdd(Formula, Node),
-        node_xors(Node, Xors),
-        maplist(list_to_conjunction, Xors, [Conj|Conjs]),
-        foldl(xor, Conjs, Conj, ANF).
+        node_anf(Node, ANF).
+
+node_anf(Node, ANF) :-
+        node_xors(Node, Xors0),
+        maplist(maplist(monotonic_variable), Xors0, Xors),
+        maplist(list_to_conjunction, Xors, Conjs),
+        (   Conjs = [Var,C|Rest], clpb_var(Var) ->
+            foldl(xor, Rest, C, RANF),
+            ANF = (Var =\= RANF)
+        ;   Conjs = [One,Var,C|Rest], One == 1, clpb_var(Var) ->
+            foldl(xor, Rest, C, RANF),
+            ANF = (Var =:= RANF)
+        ;   Conjs = [C|Cs],
+            foldl(xor, Cs, C, ANF)
+        ).
+
+monotonic_variable(Var0, Var) :-
+        (   var(Var0), current_prolog_flag(clpb_monotonic, true) ->
+            Var = v(Var0)
+        ;   Var = Var0
+        ).
+
+clpb_var(Var) :- var(Var), !.
+clpb_var(v(_)).
 
 list_to_conjunction([], 1).
 list_to_conjunction([L|Ls], Conj) :- foldl(and, Ls, L, Conj).
@@ -1041,7 +1758,8 @@ even_occurrences(_-Ls) :- length(Ls, L), L mod 2 =:= 0.
 xors(Node) -->
         (   { Node == 0 } -> []
         ;   { Node == 1 } -> [[1]]
-        ;   { node_var_low_high(Node, Var, Low, High),
+        ;   { node_var_low_high(Node, Var0, Low, High),
+              var_or_atom(Var0, Var),
               node_xors(Low, Ls0),
               node_xors(High, Hs0),
               maplist(with_var(Var), Ls0, Ls),
@@ -1057,12 +1775,16 @@ list([L|Ls]) --> [L], list(Ls).
 with_var(Var, Ls, [Var|Ls]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Global variables for unique node and variable IDs.
+   Global variables for unique node and variable IDs and atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 make_clpb_var('$clpb_next_var') :- nb_setval('$clpb_next_var', 0).
 
 make_clpb_var('$clpb_next_node') :- nb_setval('$clpb_next_node', 0).
+
+make_clpb_var('$clpb_atoms') :-
+        empty_assoc(E),
+        nb_setval('$clpb_atoms', E).
 
 :- multifile user:exception/3.
 
@@ -1073,6 +1795,15 @@ clpb_next_id(Var, ID) :-
         b_getval(Var, ID),
         Next is ID + 1,
         b_setval(Var, Next).
+
+clpb_atom_var(Atom, Var) :-
+        b_getval('$clpb_atoms', A0),
+        (   get_assoc(Atom, A0, Var) -> true
+        ;   put_attr(Var, clpb_atom, Atom),
+            put_attr(Var, clpb_omit_boolean, true),
+            put_assoc(Atom, A0, Var, A),
+            b_setval('$clpb_atoms', A)
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    The variable attributes below are not used as constraints by this
@@ -1086,13 +1817,27 @@ clpb_next_id(Var, ID) :-
         clpb_hash:attr_unify_hook/2,
         clpb_bdd:attribute_goals//1,
         clpb_hash:attribute_goals//1,
-        clpb_omit_boolean:attribute_goals//1.
+        clpb_omit_boolean:attr_unify_hook/2,
+        clpb_omit_boolean:attribute_goals//1,
+        clpb_atom:attr_unify_hook/2,
+        clpb_atom:attribute_goals//1.
 
 clpb_hash:attr_unify_hook(_,_).  % this unification is always admissible
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   If a universally quantified variable is unified to a Boolean value,
+   it indicates that the formula does not hold for the other value, so
+   it is false.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+clpb_atom:attr_unify_hook(_, _) :- false.
+
+clpb_omit_boolean:attr_unify_hook(_,_).
 
 clpb_bdd:attribute_goals(_)          --> [].
 clpb_hash:attribute_goals(_)         --> [].
 clpb_omit_boolean:attribute_goals(_) --> [].
+clpb_atom:attribute_goals(_)         --> [].
 
 % clpb_hash:attribute_goals(Var) -->
 %         { get_attr(Var, clpb_hash, Assoc),
@@ -1102,8 +1847,32 @@ clpb_omit_boolean:attribute_goals(_) --> [].
 % node_portray(Key-Node, Key-Node-ite(Var,High,Low)) :-
 %         node_var_low_high(Node, Var, Low, High).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Messages
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile prolog:message//1.
+
+prolog:message(clpb(bounded)) -->
+        ['Using CLP(B) with bounded arithmetic may yield wrong results.'-[]].
+
+warn_if_bounded_arithmetic :-
+        (   current_prolog_flag(bounded, true) ->
+            print_message(warning, clpb(bounded))
+        ;   true
+        ).
+
+:- initialization(warn_if_bounded_arithmetic).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Sanbox declarations
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 :- multifile
-        sandbox:safe_global_variable/1.
+        sandbox:safe_global_variable/1,
+        sandbox:safe_primitive/1.
 
 sandbox:safe_global_variable('$clpb_next_var').
 sandbox:safe_global_variable('$clpb_next_node').
+sandbox:safe_global_variable('$clpb_atoms').
+sandbox:safe_primitive(set_prolog_flag(clpb_residuals, _)).

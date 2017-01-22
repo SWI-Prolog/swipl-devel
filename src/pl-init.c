@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2012-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -32,6 +44,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-incl.h"
 #include "pl-prof.h"
 #include "os/pl-ctype.h"
+#include <errno.h>
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -180,9 +193,13 @@ findHome(const char *symbols, int argc, const char **argv)
   { char buf[MAXPATHLEN];
     char parent[MAXPATHLEN];
     IOSTREAM *fd;
+    char *abshome;
 
-    strcpy(parent, DirName(DirName(AbsoluteFile(home, buf), buf), buf));
-    Ssprintf(buf, "%s/" PLHOMEFILE, parent);
+    if ( !(abshome=AbsoluteFile(home, buf)) )
+      fatalError("File name too long: %s", home);
+
+    strcpy(parent, DirName(DirName(abshome, buf), buf));
+    Ssnprintf(buf, sizeof(buf), "%s/" PLHOMEFILE, parent);
 
     if ( (fd = Sopen_file(buf, "r")) )
     { if ( Sfgets(buf, sizeof(buf), fd) )
@@ -202,10 +219,13 @@ findHome(const char *symbols, int argc, const char **argv)
 	if ( !IsAbsolutePath(buf) )
 	{ char buf2[MAXPATHLEN];
 
-	  Ssprintf(buf2, "%s/%s", parent, buf);
-	  home = AbsoluteFile(buf2, plp);
+	  if ( Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf) < 0 ||
+	       !(home = AbsoluteFile(buf2, plp)) )
+	    fatalError("Path name too long: %s/%s", parent, buf);
 	} else
-	  home = AbsoluteFile(buf, plp);
+	{ if ( !(home = AbsoluteFile(buf, plp)) )
+	    fatalError("Path name too long: %s/%s", buf);
+	}
 
 	if ( ExistsDirectory(home) )
 	{ Sclose(fd);
@@ -242,15 +262,19 @@ static char *
 defaultSystemInitFile(const char *a0)
 { char plp[MAXPATHLEN];
   char *base = BaseName(PrologPath(a0, plp, sizeof(plp)));
-  char buf[256];
-  char *s = buf;
 
-  while( *base && (isAlpha(*base) || *base == '-') )
-    *s++ = *base++;
-  *s = EOS;
+  if ( base )
+  { char buf[256];
+    char *s = buf;
+    size_t limit = sizeof(buf);
 
-  if ( buf[0] != EOS )
-    return store_string(buf);
+    while( (*base && (isAlpha(*base) || *base == '-')) && --limit > 0 )
+      *s++ = *base++;
+    *s = EOS;
+
+    if ( buf[0] != EOS && limit > 0 )
+      return store_string(buf);
+  }
 
   return store_string("swipl");
 }
@@ -298,6 +322,7 @@ setupGNUEmacsInferiorMode()
   int val;
 
   if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
+       ((s = Getenv("INSIDE_EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
   { GET_LD
 
@@ -319,7 +344,7 @@ initPaths(int argc, const char **argv)
   { char plp1[MAXPATHLEN];
     const char *symbols = NULL;		/* The executable */
 
-    if ( !(symbols = findExecutable(argv[0], plp1)) ||
+    if ( !(symbols = findExecutable(argv[0], plp1, sizeof(plp1))) ||
 	 !(symbols = DeRefLink(symbols, plp)) )
       symbols = argv[0];
 
@@ -329,7 +354,7 @@ initPaths(int argc, const char **argv)
 
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
-    symbols = findExecutable(NULL, plp);
+    symbols = findExecutable(NULL, plp, sizeof(plp));
     DEBUG(2, Sdprintf("Executable: %s\n", symbols));
 #endif
     GD->paths.executable       = store_string(symbols);
@@ -409,6 +434,7 @@ initDefaults(void)
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
+  systemDefaults.table       = DEFTABLE;
   systemDefaults.goal	     = "version";
   systemDefaults.toplevel    = "prolog";
   systemDefaults.notty       = NOTTYCONTROL;
@@ -483,11 +509,12 @@ do_value:
 
 
 static void
-initDefaultOptions()
+initDefaultOptions(void)
 { GD->options.compileOut    = store_string("a.out");
   GD->options.localSize     = systemDefaults.local    K;
   GD->options.globalSize    = systemDefaults.global   K;
   GD->options.trailSize     = systemDefaults.trail    K;
+  GD->options.tableSpace    = systemDefaults.table    K;
   GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
@@ -618,6 +645,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'L':
 	case 'G':
 	case 'T':
+	case 'M':
 	case 'A':
 	case 'H':
         { uintptr_t size = memarea_limit(&s[1]);
@@ -629,6 +657,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	  { case 'L':	GD->options.localSize    = size; goto next;
 	    case 'G':	GD->options.globalSize   = size; goto next;
 	    case 'T':	GD->options.trailSize    = size; goto next;
+	    case 'M':	GD->options.tableSpace   = size; goto next;
 	    case 'H':
 	    case 'A':
 	      Sdprintf("%% Warning: -%csize is no longer supported\n", *s);
@@ -733,11 +762,14 @@ openResourceDB(int argc, char **argv)
     return rc;
 
   if ( systemDefaults.home )
-  { strcpy(tmp, systemDefaults.home);
-    strcat(tmp, "/");
-    strcat(tmp, BOOTFILE);
+  { if ( strlen(systemDefaults.home)+1+strlen(BOOTFILE) < MAXPATHLEN )
+    { strcpy(tmp, systemDefaults.home);
+      strcat(tmp, "/");
+      strcat(tmp, BOOTFILE);
 
-    return rc_open_archive(tmp, flags);
+      return rc_open_archive(tmp, flags);
+    } else
+      errno = ENAMETOOLONG;
   }
 
   return NULL;
@@ -784,14 +816,17 @@ PL_initialise(int argc, char **argv)
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
-  if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
+  if ( !GD->resourceDB )
+  { if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
 #ifdef __WINDOWS__
-       || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
+         || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
 #endif
-     )
-  { rcpath = ((RcArchive)GD->resourceDB)->path;
-    initDefaultOptions();
+       )
+    { rcpath = ((RcArchive)GD->resourceDB)->path;
+    }
   }
+  if ( GD->resourceDB )
+    initDefaultOptions();
 
   if ( !GD->resourceDB ||
        !streq(GD->options.saveclass, "runtime") )
@@ -838,7 +873,7 @@ PL_initialise(int argc, char **argv)
   if ( !setupProlog() )
     return FALSE;
 #ifdef O_PLMT
-  aliasThread(PL_thread_self(), ATOM_main);
+  aliasThread(PL_thread_self(), ATOM_thread, ATOM_main);
   enableThreads(TRUE);
 #endif
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
@@ -910,10 +945,19 @@ PL_initialise(int argc, char **argv)
 }
 
 
+int
+PL_set_resource_db_mem(const unsigned char *data, size_t size)
+{ if ( (GD->resourceDB = rc_open_archive_mem(data, size, RC_RDONLY)) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
 typedef const char *cline;
 
 static int
-usage()
+usage(void)
 { static const cline lines[] = {
     "%s: Usage:\n",
     "    1) %s --help     Display this message (also -h)\n",
@@ -965,12 +1009,20 @@ usage()
   return TRUE;
 }
 
+#ifndef PLVERSION_TAG
+#define PLVERSION_TAG ""
+#endif
+
 static int
-version()
-{ Sprintf("SWI-Prolog version %d.%d.%d for %s\n",
+version(void)
+{ const char *tag = PLVERSION_TAG;
+
+  if ( !tag ) tag = "";
+  Sprintf("SWI-Prolog version %d.%d.%d%s%s for %s\n",
 	  PLVERSION / 10000,
 	  (PLVERSION / 100) % 100,
 	  PLVERSION % 100,
+	  tag[0] ? "-" : "", tag,
 	  PLARCH);
 
   return TRUE;
@@ -1009,6 +1061,7 @@ runtime_vars(int format)
   char base[MAXPATHLEN];
 #endif
   char version[20];
+  char *tag = PLVERSION_TAG;
 
   if ( systemDefaults.home )
   {
@@ -1041,6 +1094,8 @@ runtime_vars(int format)
   printvar("PLSOPATH",	SO_PATH, format);
 #endif
   printvar("PLVERSION", version, format);
+  if ( tag[0] )
+    printvar("PLVERSIONTAG", tag, format);
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   printvar("PLSHARED",	"yes", format);
 #else
@@ -1168,12 +1223,14 @@ cleanupProlog(int rval, int reclaim_memory)
     return FALSE;
   }
 
+#ifdef O_PLMT
   if ( !LD )
   { PL_thread_attach_engine(NULL);
     LD = GLOBAL_LD;
     if ( !LD )
       goto emergency;
   }
+#endif
 
   GD->cleaning = CLN_PROLOG;
   debugmode(FALSE, NULL);		/* avoid recursive tracing */
@@ -1212,9 +1269,11 @@ cleanupProlog(int rval, int reclaim_memory)
 #endif
 #ifdef O_PLMT
   exitPrologThreads();
-#endif
 
 emergency:
+#endif
+  GD->cleaning = CLN_IO;
+
   Scurout = Soutput;			/* reset output stream to user */
 
   qlfCleanup();				/* remove errornous .qlf files */
@@ -1248,7 +1307,9 @@ emergency:
 
   if ( reclaim_memory )
   { freeStacks(PASS_LD1);
+#ifdef O_PLMT
     cleanupLocalDefinitions(LD);
+#endif
     freePrologLocalData(LD);
     cleanupSourceFiles();
     cleanupModules();
@@ -1333,10 +1394,16 @@ warning(const char *fm, ...)
 }
 
 
+#if !defined(HAVE_CTIME_R) && !defined(ctime_r)
+#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
+#endif
+
 static bool
 vsysError(const char *fm, va_list args)
 { GET_LD
   static int active = 0;
+  time_t now;
+  char tbuf[48];
 
   switch ( active++ )
   { case 1:
@@ -1345,11 +1412,23 @@ vsysError(const char *fm, va_list args)
       abort();
   }
 
+  now = time(NULL);
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
 #ifdef O_PLMT
-  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d\n\t",
-	   PL_thread_self());
+{ int tid = PL_thread_self();
+  atom_t alias;
+  const pl_wchar_t *name = L"";
+
+  if ( PL_get_thread_alias(tid, &alias) )
+    name = PL_atom_wchars(alias, NULL);
+
+  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d (%Ws) at %s\n\t",
+	   tid, name, tbuf);
+}
 #else
-  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:\n\t");
+  Sfprintf(Serror, "[PROLOG SYSTEM ERROR: at %s\n\t", tbuf);
 #endif
   Svfprintf(Serror, fm, args);
   if ( gc_status.active )
@@ -1397,6 +1476,8 @@ action:
 void
 vfatalError(const char *fm, va_list args)
 { static int active = 0;
+  time_t now;
+  char tbuf[48];
 
   switch ( active++ )
   { case 1:
@@ -1405,16 +1486,20 @@ vfatalError(const char *fm, va_list args)
       abort();
   }
 
+  now = time(NULL);
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
 #ifdef __WINDOWS__
   { char msg[500];
-    Ssprintf(msg, "[FATAL ERROR:\n\t");
-    Svsprintf(&msg[strlen(msg)], fm, args);
-    Ssprintf(&msg[strlen(msg)], "]");
+    Ssnprintf(msg, sizeof(msg), "[FATAL ERROR: at %s\n\t", tbuf);
+    Svsnprintf(&msg[strlen(msg)], sizeof(msg)-strlen(msg), fm, args);
+    Ssnprintf(&msg[strlen(msg)], sizeof(msg)-strlen(msg), "]");
 
     PlMessage(msg);
   }
 #else
-  Sfprintf(Serror, "[FATAL ERROR:\n\t");
+  Sfprintf(Serror, "[FATAL ERROR: at %s\n\t", tbuf);
   Svfprintf(Serror, fm, args);
   Sfprintf(Serror, "]\n");
 #endif
@@ -1441,13 +1526,12 @@ vwarning(const char *fm, va_list args)
 
   if ( truePrologFlag(PLFLAG_REPORT_ERROR) )
   { fid_t cid = 0;
+    char *s = NULL;
 
     if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack &&		/* cannot call Prolog */
-	 !fm[0] == '$')			/* explicit: don't call Prolog */
+	 fm[0] != '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
-      char *s = message;
-      fid_t cid;
       term_t av, head, tail;
 
       if ( !(cid = PL_open_foreign_frame()) )
@@ -1456,7 +1540,8 @@ vwarning(const char *fm, va_list args)
       tail = PL_copy_term_ref(av+1);
       head = PL_new_term_ref();
 
-      Svsprintf(message, fm, args);
+      Svsnprintf(message, sizeof(message), fm, args);
+      s = message;
 
       for(;;)
       { char *eol = strchr(s, '\n');
@@ -1488,7 +1573,10 @@ vwarning(const char *fm, va_list args)
       if ( cid )
 	PL_discard_foreign_frame(cid);
       Sfprintf(Suser_error, "ERROR: ");
-      Svfprintf(Suser_error, fm, args);
+      if ( s )
+        Sfprintf(Suser_error, s);
+      else
+        Svfprintf(Suser_error, fm, args);
       Sfprintf(Suser_error, "\n");
       Pause(0.2);
     }

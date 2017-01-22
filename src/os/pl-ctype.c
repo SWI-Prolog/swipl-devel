@@ -3,27 +3,40 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2011-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
 #include <ctype.h>
 #include "pl-ctype.h"
+#include <errno.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines:
@@ -302,7 +315,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       int c;
       int do_enum = ENUM_NONE;
       atom_t cn;
-      int arity;
+      size_t arity;
 
       if ( PL_is_variable(chr) )
 	do_enum |= ENUM_CHAR;
@@ -398,24 +411,18 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
     goto error;
 
   for(;;)
-  { int rval;
+  { int rval = (*gen->class->test)((wint_t)gen->current);
 
-    if ( (rval = (*gen->class->test)((wint_t)gen->current)) )
-    { if ( gen->do_enum & ENUM_CHAR )
+    if ( (gen->class->arity == 0 && rval) ||
+	 (gen->class->arity  > 0 && rval >= 0) )
+    { if ( (gen->do_enum & ENUM_CHAR) )
       { if ( !PL_unify_char(chr, gen->current, how) )
 	{ if ( LD->exception.term )
 	    goto error;
 	  goto next;
 	}
       }
-      if ( gen->class->arity > 0 )
-      { if ( rval < 0 ||
-	     !unify_char_type(class, gen->class, rval, how) )
-	{ if ( LD->exception.term )
-	    goto error;
-	  goto next;
-	}
-      } else if ( gen->do_enum & ENUM_CLASS )
+      if ( (gen->do_enum & ENUM_CLASS) || gen->class->arity > 0 )
       { if ( !unify_char_type(class, gen->class, rval, how) )
 	{ if ( LD->exception.term )
 	    goto error;
@@ -870,7 +877,7 @@ IOENC
 initEncoding(void)
 { GET_LD
 
-  if ( LD )
+  if ( HAS_LD )
   { if ( !LD->encoding )
     { char *enc;
 

@@ -14,11 +14,11 @@ unsigned int caldate_scan(char *s, struct caldate *cd)
 
   if (*t++ != '-') return 0;
   z = 0; while ((c = (unsigned char) (*t - '0')) <= 9) { z = z * 10 + c; ++t; }
-  cd->month = z;
+  cd->month = (int)z;
 
   if (*t++ != '-') return 0;
   z = 0; while ((c = (unsigned char) (*t - '0')) <= 9) { z = z * 10 + c; ++t; }
-  cd->day = z;
+  cd->day = (int)z;
 
   return (unsigned int)(t - s);
 }

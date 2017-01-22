@@ -33,10 +33,10 @@
 */
 
 :- module(prolog_format,
-	  [ format_spec/2,			% +Format, -Spec
-	    format_spec//1,			% -Spec
-	    format_types/2			% +Format, -Types
-	  ]).
+          [ format_spec/2,                      % +Format, -Spec
+            format_spec//1,                     % -Spec
+            format_types/2                      % +Format, -Types
+          ]).
 :- use_module(library(dcg/basics), [eos//0, integer//1, string_without//2]).
 :- use_module(library(when), [when/2]).
 
@@ -52,9 +52,9 @@ example:
   Types = [integer].
   ==
 
-@tbd	The current implementation does not support format_predicate/2.
-@see	http://www.swi-prolog.org/pack/list?p=format_spec
-@author	Michael Hendricks
+@tbd    The current implementation does not support format_predicate/2.
+@see    http://www.swi-prolog.org/pack/list?p=format_spec
+@author Michael Hendricks
 */
 
 %%  format_spec(+Format, -Spec:list) is semidet.

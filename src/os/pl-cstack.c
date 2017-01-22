@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2011-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef _WIN64
@@ -28,6 +40,7 @@
 #define _GNU_SOURCE
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#include <time.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of the library is to save   the  <N> most recent C stack traces
@@ -252,7 +265,7 @@ static btrace *
 get_trace_store(void)
 { GET_LD
 
-  if ( LD )
+  if ( HAS_LD )
   { if ( !LD->btrace_store )
     { btrace *s = malloc(sizeof(*s));
       if ( s )
@@ -439,10 +452,27 @@ print_backtrace_named(const char *why)
 
 #ifdef BTRACE_DONE
 
+#ifndef HAVE_CTIME_R
+#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
+#endif
+
 static void
 crashHandler(int sig)
-{ Sdprintf("\nSWI-Prolog [thread %d]: received fatal signal %d (%s)\n",
-	   PL_thread_self(), sig, signal_name(sig));
+{ int tid = PL_thread_self();
+  atom_t alias;
+  const pl_wchar_t *name = L"";
+  time_t now = time(NULL);
+  char tbuf[48];
+
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
+  if ( PL_get_thread_alias(tid, &alias) )
+    name = PL_atom_wchars(alias, NULL);
+
+  Sdprintf("\nSWI-Prolog [thread %d (%Ws) at %s]: "
+	   "received fatal signal %d (%s)\n",
+	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
   save_backtrace("crash");
   print_backtrace_named("crash");
   run_on_halt(&GD->os.exit_hooks, 4);

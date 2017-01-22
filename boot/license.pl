@@ -1,45 +1,50 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (c)  2002-2016, University of Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(license,
-	  [ license/1,			% +LicenseId
-	    license/2,			% +LicenseId, +ModuleId
-	    eval_license/0		% Eval current situation
-	  ]).
+          [ license/1,                  % +LicenseId
+            license/2,                  % +LicenseId, +ModuleId
+            license/0,                  % Current situation
+
+            known_licenses/0
+          ]).
 
 :- dynamic
-	licensed/2.			% +Id, +Module
+    licensed/2.                     % +Id, +Module
 
 :- multifile
-	license/3.
+    license/3.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 License  definitions.  This  data  is   (still  incomplete)  taken  from
@@ -52,180 +57,307 @@ license-information tools.
 
 license(gpl, gpl,
         [ comment('GNU General Public License'),
-	  url('http://www.fsf.org/copyleft/gpl.html')
-	]).
+          url('http://www.fsf.org/copyleft/gpl.html')
+        ]).
+license(gplv2, gpl,
+        [ comment('GNU General Public License, version 2'),
+          url('http://www.fsf.org/copyleft/gpl.html')
+        ]).
+license('gplv2+', gpl,
+        [ comment('GNU General Public License, version 2 or later'),
+          url('http://www.fsf.org/copyleft/gpl.html')
+        ]).
+license(gplv3, gpl,
+        [ comment('GNU General Public License, version 3'),
+          url('http://www.fsf.org/copyleft/gpl.html')
+        ]).
 license(lgpl, lgpl,
-	[ comment('GNU Lesser General Public License'),
-	  url('http://www.fsf.org/copyleft/lesser.html')
-	]).
-
+        [ comment('GNU Lesser General Public License'),
+          url('http://www.fsf.org/copyleft/lesser.html')
+        ]).
+license(lgplv2, lgpl,
+        [ comment('GNU Lesser General Public License, version 2'),
+          url('http://www.fsf.org/copyleft/lesser.html')
+        ]).
+license('lgplv2+', lgpl,
+        [ comment('GNU Lesser General Public License, version 2 or later'),
+          url('http://www.fsf.org/copyleft/lesser.html')
+        ]).
+license(lgplv3, lgpl,
+        [ comment('GNU Lesser General Public License, version 3'),
+          url('http://www.fsf.org/copyleft/lesser.html')
+        ]).
+license(gpl_swipl, lgpl,
+        [ comment('SWI-Prolog Prolog Source License for versions up to 7.3.32'),
+          url('http://www.swi-prolog.org/license-old.html')
+        ]).
 license(swipl, lgpl,
-	[ comment('SWI-Prolog Prolog Source License'),
-	  url('http://www.swi-prolog.org/license.html')
-	]).
+        [ comment('SWI-Prolog Prolog Source License for versions up to 7.3.32'),
+          url('http://www.swi-prolog.org/license-old.html')
+        ]).
 
-%	Other GPL/LGPL compatible licenses.
+%       Other GPL/LGPL compatible licenses.
+%       TBD: Check permissive status of these licenses
 
 license(guile, lgpl,
-	[ comment('License for Guile')
-	]).
+        [ comment('License for Guile'),
+          url('https://www.gnu.org/software/guile/docs/docs-1.6/guile-ref/Guile-License.html')
+        ]).
 license(gnu_ada, lgpl,
-	[ comment('The license of the run-time units of the GNU Ada compiler')
-	]).
-license(x11, lgpl,
-	[ comment('The X11 licens'),
-	  url('http://www.x.org/terms.htm')
-	]).
-license(expat, lgpl,
-	[ comment('Expat license'),
-	  url('http://www.jclark.com/xml/copying.txt')
-	]).
-license(sml, lgpl,
-	[ comment('Standard ML of New Jersey Copyright License'),
-	  url('http://cm.bell-labs.com/cm/cs/what/smlnj/license.html')
-	]).
-license(public_domain, lgpl,
-	[ comment('Unrestricted Public domain')
-	]).
-license(cryptix, lgpl,
-	[ comment('The Cryptix General License'),
-	  url('http://www.cryptix.org/docs/license.html')
-	]).
-license(bsd, lgpl,
-	[ comment('The modified BSD license'),
-	  url('http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5')
-	]).
-license(zlib, gpl,
-	[ comment('The license of ZLib'),
-	  url('http://www.gzip.org/zlib/zlib_license.html')
-	]).
-
+        [ comment('The license of the run-time units of the GNU Ada compiler'),
+          url('https://en.wikipedia.org/wiki/GNAT#License')
+        ]).
+license(x11, permissive,
+        [ comment('The X11 license'),
+          url('http://www.x.org/terms.htm')
+        ]).
+license(expat, permissive,
+        [ comment('Expat license'),
+          url('http://www.jclark.com/xml/copying.txt')
+        ]).
+license(sml, permissive,
+        [ comment('Standard ML of New Jersey Copyright License'),
+          url('http://cm.bell-labs.com/cm/cs/what/smlnj/license.html')
+        ]).
+license(public_domain, permissive,
+        [ comment('Unrestricted Public domain')
+        ]).
+license(cryptix, permissive,
+        [ comment('The Cryptix General License'),
+          url('http://www.cryptix.org/docs/license.html')
+        ]).
+license(bsd, permissive,
+        [ comment('The modified BSD license'),
+          url('http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5')
+        ]).
+license(mit, permissive,
+        [ comment('The MIT License'),
+          url('https://en.wikipedia.org/wiki/MIT_License')
+        ]).
+license(zlib, permissive,
+        [ comment('The license of ZLib'),
+          url('http://www.gzip.org/zlib/zlib_license.html')
+        ]).
+license(agpl, gpl,
+        [ comment('Affero General Public License'),
+          url('http://www.gnu.org/licenses/agpl-3.0.en.html')
+        ]).
 license(lgpl_compatible, lgpl,
-	[ comment('Other LGPL compatible license')
-	]).
+        [ comment('Other LGPL compatible license')
+        ]).
 license(gpl_compatible, gpl,
-	[ comment('Other GPL and not LGPL compatible license')
-	]).
+        [ comment('Other GPL and not LGPL compatible license')
+        ]).
+license(permissive, permissive,
+        [ comment('Other permissive license')
+        ]).
+license(asl2, permissive,
+        [ comment('Apache License 2.0'),
+          url('http://www.apache.org/licenses/LICENSE-2.0')
+        ]).
 
 
-%	license(+License, [+ModuleId])
+%!  license(+License) is det.
+%!  license(+License, +ModuleId) is det.
 %
-%	Register the current file under the given license restriction.
+%   Register the current file under the given license restriction.
 
 license(License) :-
-	(   prolog_load_context(file, File)
-	->  true
-	;   File = '<unknown file>'
-	),
-	license(License, File).
+    (   prolog_load_context(file, File)
+    ->  true
+    ;   File = '<unknown file>'
+    ),
+    license(License, File).
 
 license(License, File) :-
-	warn_if_unknown(License),
-	assert(licensed(License, File)).
+    warn_if_unknown(License),
+    assertz(licensed(License, File)).
 
 warn_if_unknown(License) :-
-	license(License, _, _), !.
+    license(License, _, _),
+    !.
 warn_if_unknown(License) :-
-	print_message(warning, unknown_license(License)).
+    print_message(warning, unknown_license(License)).
 
-%	eval_license
+%!  license is det.
 %
-%	Report current license situation
+%   Report current license situation
 
-eval_license :-
-	report_gpl,
-	report_proprietary.
-
-report_gpl :-
-	setof(Module, gpled(Module), Modules), !,
-	print_message(informational, license(gpl, Modules)).
-report_gpl :-
-	print_message(informational, license(lgpl)).
+license :-
+    (setof(Module, gpled(Module), GPL)   -> true ; GPL  = []),
+    (setof(Module, lgpled(Module), LGPL) -> true ; LGPL = []),
+    findall(L-Modules,
+            setof(Module, proprietary(Module, L), Modules),
+            Proprietary),
+    print_message(informational, license(GPL,LGPL,Proprietary)).
 
 gpled(Module) :-
-	licensed(X, Module),
-	license(X, gpl, _).
+    licensed(X, Module),
+    license(X, gpl, _).
 
-report_proprietary :-
-	(   setof(Module, proprietary(Module, L), Modules),
-	    print_message(informational, license(proprierary(L), Modules)),
-	    fail
-	;   true
-	).
+lgpled(Module) :-
+    licensed(X, Module),
+    license(X, lgpl, _).
 
 proprietary(Module, L) :-
-	licensed(L, Module),
-	license(L, C, _),
-	C \== gpl,
-	C \== lgpl.
+    licensed(L, Module),
+    (   license(L, C, _)
+    ->  C \== gpl,
+        C \== lgpl,
+        C \== permissive
+    ;   true
+    ).
+
+%!  known_licenses
+%
+%   Print all known licenses.
+
+known_licenses :-
+    findall(license(Id,Compat,Atts),
+            license(Id,Compat,Atts),
+            Licenses),
+    print_message(informational, known_licenses(Licenses)).
 
 
-		 /*******************************
-		 *	       MESSAGES		*
-		 *******************************/
+                 /*******************************
+                 *             MESSAGES         *
+                 *******************************/
 
 :- multifile
-	prolog:message/3.
+    prolog:message/3.
 
+prolog:message(license(GPL,LGPL,Proprietary)) -->
+    license_message(GPL,LGPL,Proprietary).
 prolog:message(unknown_license(License)) -->
-	[ 'Unknown license: ~w.  Known licenses are:'-[License], nl ],
-	license_list.
-prolog:message(license(gpl, Modules)) -->
-	[ 'This system may only distributed using the GNU General Public License', nl,
-	  'because the following components contain GPL-ed code:', nl, nl
-	],
-	file_list(Modules),
-	see_also.
-prolog:message(license(lgpl)) -->
-	[ 'This program may be distributed under any license, provided all', nl,
-	  'conditions implied by the GNU Lesser General Public License', nl,
-	  'are satisfied.  In particular, this implies the source code', nl,
-	  'to any modification in SWI-Prolog or one of the used libraries', nl,
-	  'must be made available.', nl
-	],
-	see_also.
-prolog:message(license(proprierary(L), Modules)) -->
-	{ license(L, _, Att) },
-	{   memberchk(comment(C), Att)
-	->  true
-	;   C = L
-	},
-	[ nl,
-	  'The program contains modules covered by the "~w" license'-[C], nl
-	],
-	(   { memberchk(url(URL), Att) }
-	->  [ 'See ~w'-[URL], nl ]
-	;   []
-	),
-	[ nl ],
-	file_list(Modules).
+    [ 'The license "~w" is not known.  You can list the known '-[License], nl,
+      'licenses using ?- known_licenses. or add information about this ',
+      'license by extending license:license/3.'
+    ].
+prolog:message(known_licenses(Licenses)) -->
+    [ 'The following license identifiers may be used in license/2',
+      'and PL_license()'
+    ],
+    known_licenses(Licenses).
 
-see_also -->
-	[ nl,
-	  'See http://www.swi-prolog.org/license.html for details on', nl,
-	  'SWI-Prolog licensing policies supporting both free and non-free',nl,
-	  'Software.'
-	].
+%!  license_message(+GPL, +LGPL, +Proprietary)//
 
-license_list -->
-	{ findall(X, license(X, _, _), Pairs)
-	},
-	license_list(Pairs).
+license_message(GPL, LGPL, Proprietary) -->
+    license_message(GPL, LGPL),
+    proprietary_licenses(Proprietary).
 
-license_list([]) -->
-	[].
-license_list([L|T]) -->
-	{ license(L, _, Att) },
-	(   { memberchk(comment(C), Att)
-	    ; memberchk(url(C), Att)
-	    }
-	->  [ '  ~|~w~t~20+~w'-[L, C], nl ]
-	;   [ '  ~|~w'-[L], nl ]
-	),
-	license_list(T).
+license_message([],[]) -->
+    !,
+    [ 'This program contains no modules registered with non-permissive', nl,
+      'license conditions and is therefore covered by the Simplified BSD', nl,
+      'license:',
+      nl, nl
+    ],
+    bsd2_license.
+license_message(GPL,_) -->
+    { GPL \== [] },
+    !,
+    [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
+    bsd2_license, [nl, nl],
+    warn([ 'This program contains components covered by the GNU General', nl,
+           'Public License, which therefore apply to the entire program.', nl,
+           'These components are:', nl, nl
+         ]),
+    file_list(GPL).
+license_message([],LGPL) -->
+    !,
+    [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
+    bsd2_license, [nl, nl],
+    warn([ 'This program contains components covered by the GNU Lesser', nl,
+           'Public License.  Distribution of this program is subject to',  nl,
+           'additional conditions.  These components are:', nl, nl
+         ]),
+    file_list(LGPL).
+
+
+bsd2_license -->
+    [ 'Redistribution and use in source and binary forms, with or without', nl,
+      'modification, are permitted provided that the following conditions', nl,
+      'are met:', nl,
+      nl,
+      '1. Redistributions of source code must retain the above copyright', nl,
+      '   notice, this list of conditions and the following disclaimer.', nl,
+      nl,
+      '2. Redistributions in binary form must reproduce the above copyright', nl,
+      '   notice, this list of conditions and the following disclaimer in', nl,
+      '   the documentation and/or other materials provided with the', nl,
+      '   distribution.', nl,
+      nl,
+      'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS', nl,
+      '"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT', nl,
+      'LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS', nl,
+      'FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE', nl,
+      'COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,', nl,
+      'INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,', nl,
+      'BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;', nl,
+      'LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER', nl,
+      'CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT', nl,
+      'LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN', nl,
+      'ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE', nl,
+      'POSSIBILITY OF SUCH DAMAGE.'
+    ].
+
+proprietary_licenses([]) --> !.
+proprietary_licenses(List) -->
+    warn([ nl,
+           'This program contains components with proprietary licenses:',
+           nl, nl
+         ]),
+    proprietary(List).
+
+proprietary([]) --> [].
+proprietary([License-Modules|T]) -->
+    license_title(License),
+    license_url(License),
+    [nl],
+    file_list(Modules),
+    (   {T==[]}
+    ->  []
+    ;   [nl],
+        proprietary(T)
+    ).
+
+license_title(License) -->
+    {   license(License, _, Att),
+        memberchk(comment(C), Att)
+    ->  true
+    ;   C = License
+    },
+    [ '  The following modules are covered by the "~w" license'-[C] ].
+
+license_url(License) -->
+    { license(License, _, Att),
+      memberchk(url(URL), Att)
+    },
+    !,
+    [ nl, '    (see ~w)'-[URL] ].
+license_url(_) --> [].
 
 file_list([]) -->
-	[].
+    [].
 file_list([H|T]) -->
-	[ '    ~w'-[H], nl ],
-	file_list(T).
+    [ '    ~w'-[H], nl ],
+    file_list(T).
+
+known_licenses([]) --> [].
+known_licenses([H|T]) --> [nl,nl], known_license(H), known_licenses(T).
+
+known_license(license(ID, Compat, Atts)) -->
+    { memberchk(comment(Comment), Atts) },
+    !,
+    [ '  ~w (category ~w): ~w'-[ID, Compat, Comment] ],
+    license_url(ID).
+known_license(license(ID, Compat, _)) -->
+    [ '  ~w (category ~w)'-[ID, Compat] ],
+    license_url(ID).
+
+warn([]) --> [].
+warn([H|T]) --> warn1(H), warn(T).
+
+warn1(nl) --> !, [nl].
+warn1(Line) --> [ansi([fg(red)], Line, [])].
+warn1(Line-Args) --> [ansi([fg(red)], Line, Args)].

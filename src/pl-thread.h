@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1999-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef PL_THREAD_H_DEFINED
@@ -32,9 +44,6 @@
 #endif
 
 #ifndef __WINDOWS__
-#define SIG_FORALL SIGUSR1
-#define SIG_RESUME SIG_FORALL		/* these can be shared */
-
 #define SIG_ALERT  SIGUSR2
 #endif
 
@@ -45,6 +54,9 @@ typedef enum
   LDATA_ANSWERED
 } ldata_status_t;
 
+#define THREAD_STATUS_INVALID(s) ((s) == PL_THREAD_UNUSED || \
+				  (s) == PL_THREAD_RESERVED)
+
 typedef enum
 { PL_THREAD_UNUSED = 0,			/* no thread on this slot */
   PL_THREAD_RUNNING,			/* a normally running one */
@@ -53,9 +65,8 @@ typedef enum
   PL_THREAD_FAILED,			/* finished with No */
   PL_THREAD_EXCEPTION,			/* finished with exception */
   PL_THREAD_NOMEM,			/* couldn't start due no-memory */
+  PL_THREAD_RESERVED,			/* allocated but not yet created */
   PL_THREAD_CREATED,			/* just created */
-  PL_THREAD_SUSPENDED,			/* suspended */
-  PL_THREAD_RESUMING			/* about to resume */
 } thread_status;
 
 #ifdef __WINDOWS__
@@ -78,12 +89,14 @@ typedef struct _PL_thread_info_t
   size_t	    trail_size;
   size_t	    stack_size;		/* system (C-) stack */
   int		    (*cancel)(int id);	/* cancel function */
-  int		    open_count;		/* for PL_thread_detach_engine() */
-  bool		    detached;		/* detached thread */
-  bool		    debug;		/* thread can be debugged */
+  unsigned short    open_count;		/* for PL_thread_detach_engine() */
+  unsigned	    detached      : 1;	/* detached thread */
+  unsigned	    debug         : 1;	/* thread can be debugged */
+  unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
+  unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
+  unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
-  int		    has_tid;		/* TRUE: tid = valid */
 #ifdef __linux__
   pid_t		    pid;		/* for identifying */
 #endif
@@ -94,10 +107,41 @@ typedef struct _PL_thread_info_t
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
-  atom_t	    name;		/* Name of the thread */
-  ldata_status_t    ldata_status;	/* status of forThreadLocalData() */
-  int		    in_exit_hooks;	/* TRUE: running exit hooks */
+  atom_t	    symbol;		/* thread_handle symbol */
+  struct _PL_thread_info_t *next_free;	/* Next in free list */
+
+					/* lock-free access to data */
+  struct
+  { KVS		    kvs;		/* current hash-table map accessed */
+    AtomTable	    atom_table;		/* current atom-table accessed */
+    Atom *	    atom_bucket;	/* current atom bucket-list accessed */
+    FunctorTable    functor_table;	/* current atom-table accessed */
+    Definition	    predicate;		/* current predicate walked */
+    struct PL_local_data *ldata;	/* current ldata accessed */
+  } access;
 } PL_thread_info_t;
+
+
+#define TH_IS_INTERACTOR	0x0001	/* Thread is an interactor (engine) */
+#define TH_INTERACTOR_NOMORE	0x0002	/* No more answers */
+#define TH_INTERACTOR_DONE	0x0004	/* Answered last */
+
+typedef struct thread_handle
+{ PL_thread_info_t     *info;		/* represented engine */
+  atom_t		symbol;		/* associated symbol */
+  atom_t		alias;		/* alias name of the thread */
+  int			engine_id;	/* numeric engine id */
+  int			flags;		/* symbol flags */
+  struct
+  { qid_t query;			/* Query handle */
+    term_t argv;			/* Arguments */
+    record_t package;			/* Exchanged term */
+    simpleMutex *mutex;			/* Sync access */
+    atom_t thread;			/* Associated thread */
+  } interactor;
+  struct thread_handle *next_free;	/* Free for GC */
+} thread_handle;
+
 
 #define QTYPE_THREAD	0
 #define QTYPE_QUEUE	1
@@ -111,8 +155,8 @@ typedef struct message_queue
   pthread_cond_t       cond_var;	/* condvar for reading */
   pthread_cond_t       drain_var;	/* condvar for writing */
 #endif
-  struct thread_message   *head;		/* Head of message queue */
-  struct thread_message   *tail;		/* Tail of message queue */
+  struct thread_message   *head;	/* Head of message queue */
+  struct thread_message   *tail;	/* Tail of message queue */
   uint64_t	       sequence_next;	/* next for sequence id */
   word		       id;		/* Id of the queue */
   long		       size;		/* # terms in queue */
@@ -165,10 +209,9 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TERM	       18
 #define L_GC	       19
 #define L_AGC	       20
-#define L_STOPTHEWORLD 21
-#define L_FOREIGN      22
-#define L_OS	       23
-#define L_LOCALE       24
+#define L_FOREIGN      21
+#define L_OS	       22
+#define L_LOCALE       23
 #ifdef __WINDOWS__
 #define L_DDE	       25
 #define L_CSTACK       26
@@ -226,28 +269,8 @@ countingMutexUnlock(counting_mutex *cm)
 #define PL_UNLOCK(id) IF_MT(id, countingMutexUnlock(&_PL_mutexes[id]))
 #endif
 
-#define LOCKDEF(def) \
-	if ( GD->thread.enabled ) \
-	{ if ( def->mutex ) \
-	  { countingMutexLock(def->mutex); \
-	  } else if ( false(def, P_DYNAMIC) ) \
-	  { countingMutexLock(&_PL_mutexes[L_PREDICATE]); \
-	  } \
-	}
-
-#define UNLOCKDEF(def) \
-	if ( GD->thread.enabled ) \
-	{ if ( def->mutex ) \
-	  { countingMutexUnlock(def->mutex); \
-	  } else if ( false(def, P_DYNAMIC) ) \
-	  { countingMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
-	  } \
-	}
-
-#define LOCKDYNDEF(def) \
-	if ( GD->thread.enabled && def->mutex ) countingMutexLock(def->mutex)
-#define UNLOCKDYNDEF(def) \
-	if ( GD->thread.enabled && def->mutex ) countingMutexUnlock(def->mutex)
+#define LOCKDEF(def)   PL_LOCK(L_PREDICATE)
+#define UNLOCKDEF(def) PL_UNLOCK(L_PREDICATE)
 
 #define LOCKMODULE(module)	countingMutexLock((module)->mutex)
 #define UNLOCKMODULE(module)	countingMutexUnlock((module)->mutex)
@@ -326,7 +349,7 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *******************************/
 
 COMMON(int)		exitPrologThreads(void);
-COMMON(bool)		aliasThread(int tid, atom_t name);
+COMMON(bool)		aliasThread(int tid, atom_t type, atom_t name);
 COMMON(word)		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
 COMMON(word)		pl_thread_exit(term_t retcode);
@@ -355,15 +378,15 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 *	 GLOBAL GC SUPPORT	*
 		 *******************************/
 
-COMMON(void)	forThreadLocalData(void (*func)(struct PL_local_data *),
-				   unsigned flags);
-COMMON(void)	forThreadLocalDataUnsuspended(void (*func)(struct PL_local_data *),
-				   unsigned flags);
+COMMON(void)	forThreadLocalDataUnsuspended(
+		    void (*func)(struct PL_local_data *),
+		    unsigned flags);
 COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
-#define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
+#define acquire_ldata(ld)	(LD->thread.info->access.ldata = (ld))
+#define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
 
 #else /*O_PLMT, end of threading-stuff */
 
@@ -386,10 +409,16 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
 #define LOCKDEF(def)
 #define UNLOCKDEF(def)
-#define LOCKDYNDEF(def)
 #define UNLOCKDYNDEF(def)
 #define LOCKMODULE(module)
 #define UNLOCKMODULE(module)
+#define LOCKSRCFILE(sf)
+#define UNLOCKSRCFILE(sf)
+
+#define acquire_ldata(ld)	(ld)
+#define release_ldata(ld)	(void)0
+
+COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
 #endif /*O_PLMT*/
 
@@ -397,6 +426,17 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 		 *	       COMMON		*
 		 *******************************/
 
-extern void		initPrologThreads(void);
+COMMON(void)	initPrologThreads(void);
+COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
+COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
+COMMON(Atom**)	pl_atom_buckets_in_use(void);
+COMMON(Definition*)	predicates_in_use(void);
+COMMON(int)	pl_functor_table_in_use(FunctorTable functor_table);
+COMMON(int)	pl_kvs_in_use(KVS kvs);
+COMMON(int)	pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD);
+COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
+COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
+COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
+COMMON(void)    cgc_thread_stats(cgc_stats *stats ARG_LD);
 
 #endif /*PL_THREAD_H_DEFINED*/

@@ -35,7 +35,7 @@ dealing with calling Prolog from C code.
 SWI-Prolog multithreading is based on the POSIX thread standard
 \cite{Butenhof:1997:PPT} used on most popular systems except for
 MS-Windows. On Windows it uses the
-\url[pthread-win32]{http://sources.redhat.com/pthreads-win32/} emulation
+\href{http://sources.redhat.com/pthreads-win32/}{pthread-win32} emulation
 of POSIX threads mixed with the Windows native API for smoother and
 faster operation. The SWI-Prolog thread implementation has been
 discussed in the ISO WG17 working group and is largely addopted by YAP
@@ -49,13 +49,30 @@ have dropped from the ISO WG17 agenda.}
 
 \begin{description}
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
-Create a new Prolog thread (and underlying C thread) and start it
-by executing \arg{Goal}.  If the thread is created successfully, the
-thread identifier of the created thread is unified to \arg{Id}.
-\arg{Options} is a list of options.  The currently defined options are
-below.  Stack size options can also take the value \const{inf} or
-\const{infinite}, which is mapped to the maximum stack size supported
-by the platform.
+Create a new Prolog thread (and underlying operating system thread) and
+start it by executing \arg{Goal}. If the thread is created successfully,
+the thread identifier of the created thread is unified to \arg{Id}.
+
+\arg{Id} is the \emph{alias} name if the option \term{alias}{name} is
+given. Otherwise it is a \jargon{blob} of type \const{thread}. The
+anonymous blobs are subject to atom garbage collection. If a thread
+handle is garbage collected and the thread is not \jargon{detached}, it
+is \jargon{joined} if it has already terminated (see thread_join/2) and
+detached otherwise (see thread_detach/1).\footnote{Up to version 7.3.23,
+anonymous thread handles were integers. Using integers did not allow for
+safe checking of the thread's status as the thread may have died and the
+handle may have been reused and did not allow for garbage collection to
+take care of forgotten threads.} The thread identifier blobs are printed
+as \verb$<thread>($\arg{I},\arg{Ptr}\verb$)$, where \arg{I} is the
+internal thread identifier and \arg{Ptr} is the unique address of the
+identifier. The \arg{I} is accepted as input argument for all thread
+APIs that accept a thread identifier for convenient interaction from
+the toplevel.  See also thread_property/2.
+
+\arg{Options} is a list of options. The currently defined options are
+below. Stack size options can also take the value \const{inf} or
+\const{infinite}, which is mapped to the maximum stack size supported by
+the platform.
 
 \begin{description}
     \termitem{alias}{AliasName}
@@ -244,6 +261,9 @@ also \secref{thutil}, describing more high-level primitives.
 
 
 \begin{description}
+    \predicate{is_thread}{1}{@Term}
+True if \arg{Term} is a handle to an existing thread.
+
     \predicate{thread_property}{2}{?Id, ?Property}
 True if thread \arg{Id} has \arg{Property}.  Either or both arguments
 may be unbound, enumerating all relations on backtracking.
@@ -255,14 +275,25 @@ Defined properties are:
 \begin{description}
 	\termitem{alias}{Alias}
  \arg{Alias} is the alias name of thread \arg{Id}.
+
 	\termitem{detached}{Boolean}
 Current detached status of the thread.
+
+	\termitem{id}{Integer}
+Integer identifier for the thread.  Can be used as argument to the
+thread predicates, but applications must be aware that these references
+are reused.
+
 	\termitem{status}{Status}
 Current status of the thread.  \arg{Status} is one of:
 \begin{description}
     \termitem{running}{}
 The thread is running.  This is the initial status of a thread.  Please
 note that threads waiting for something are considered running too.
+
+    \termitem{suspended}{}
+Only if the thread is an engine (see \secref{engines}).  Indicates
+that the engine is currently not associated with an OS thread.
 
     \termitem{false}{}
 The \arg{Goal} of the thread has been completed and failed.
@@ -279,6 +310,21 @@ exited (using pthread_exit()) \arg{Term} is unbound.
 The \arg{Goal} of the thread has been terminated due to an uncaught
 exception (see throw/1 and catch/3).
 \end{description}
+
+	\termitem{engine}{Boolean}
+If the thread is an engine (see \chapref{engines}), \arg{Boolean} is
+\const{true}.  Othwerwise the property is not present.
+
+	\termitem{thread}{ThreadId}
+If the thread is an engine that is currently attached to a thread,
+\arg{ThreadId} is the thread that executes the engine.
+
+	\termitem{system_thread_id}{Integer}
+Thread identifier used by the operating system for the calling thread.
+Not available on all OSes. This is the same as the Prolog flag
+\prologflag{system_thread_id} for the calling thread.  Access to the
+system thread identifier can, on some systems, be used to gain
+additional control over or information about Prolog threads.
     \end{description}
 
 See also thread_statistics/3 to obtain resource usage information and

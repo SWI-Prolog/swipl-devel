@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2012, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/			/* include crash/0 */
@@ -51,8 +63,10 @@ Link all foreign language predicates.  The arguments to FRG are:
 
 Flags almost always is TRACE_ME.  Additional common flags:
 
-	P_TRANSPARENT		Predicate is module transparent
+	P_TRANSPARENT	Predicate is module transparent
 	P_NONDET	Predicate can be resatisfied
+
+Deprecated: the modern interface uses PRED_IMPL()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define NOTRACE PL_FA_NOTRACE
@@ -80,7 +94,6 @@ static const PL_extension foreigns[] = {
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
-  FRG("notrace",		1, pl_notrace1,		     META),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
   FRG("write_term",		2, pl_write_term,	 META|ISO),
@@ -149,8 +162,6 @@ static const PL_extension foreigns[] = {
 #ifdef O_PROLOG_HOOK
   FRG("set_prolog_hook",	3, pl_set_prolog_hook,	        0),
 #endif
-  FRG("$module",		2, pl_module,			0),
-  FRG("$set_source_module",	2, pl_set_source_module,	0),
   FRG("context_module",		1, pl_context_module,	     META),
 
 #if O_STRING
@@ -193,7 +204,7 @@ static const PL_extension foreigns[] = {
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
-  FRG("open_xterm",		4, pl_open_xterm,		0),
+  FRG("open_xterm",		5, pl_open_xterm,		0),
 #endif
 
   FRG("thread_self",		1, pl_thread_self,	      ISO),
@@ -313,15 +324,15 @@ registerBuiltins(const PL_extension *f)
 
     PL_unregister_atom(name);
     if ( (proc = lookupProcedure(fdef, m)) )
-    { Definition def = lookupProcedure(fdef, m)->definition;
+    { Definition def = proc->definition;
       set(def, P_FOREIGN|HIDE_CHILDS|P_LOCKED);
 
-      if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
-      if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
+      if ( f->flags & PL_FA_NOTRACE )	       clear(def, TRACE_ME);
+      if ( f->flags & PL_FA_TRANSPARENT )      set(def, P_TRANSPARENT);
       if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, P_NONDET);
-      if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
-      if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
-      if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
+      if ( f->flags & PL_FA_VARARGS )	       set(def, P_VARARG);
+      if ( f->flags & PL_FA_CREF )	       set(def, P_FOREIGN_CREF);
+      if ( f->flags & PL_FA_ISO )	       set(def, P_ISO);
 
       def->impl.function = f->function;
       createForeignSupervisor(def, f->function);
@@ -381,11 +392,17 @@ DECL_PLIST(term);
 DECL_PLIST(debug);
 DECL_PLIST(locale);
 DECL_PLIST(dict);
+DECL_PLIST(cont);
+DECL_PLIST(trie);
+DECL_PLIST(indirect);
+DECL_PLIST(tabling);
 
 void
 initBuildIns(void)
 { ExtensionCell ecell;
   Module m = MODULE_system;
+
+  GD->procedures.dirty = newHTable(32);
 
   registerBuiltins(foreigns);
   REG_PLIST(alloc);
@@ -440,6 +457,10 @@ initBuildIns(void)
 #endif
   REG_PLIST(debug);
   REG_PLIST(dict);
+  REG_PLIST(cont);
+  REG_PLIST(trie);
+  REG_PLIST(indirect);
+  REG_PLIST(tabling);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
@@ -448,6 +469,8 @@ initBuildIns(void)
 
   LOOKUPPROC(dgarbage_collect1);
   LOOKUPPROC(catch3);
+  LOOKUPPROC(reset3);
+  LOOKUPPROC(dmeta_call1);
   LOOKUPPROC(true0);
   LOOKUPPROC(fail0);
   LOOKUPPROC(equals2);
@@ -459,12 +482,9 @@ initBuildIns(void)
   LOOKUPPROC(setup_call_catcher_cleanup4);
   LOOKUPPROC(dthread_init0);
   LOOKUPPROC(dc_call_prolog0);
+  LOOKUPPROC(dinit_goal3);
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
-#endif
-#ifdef O_CALL_RESIDUE
-  PROCEDURE_call_residue_vars2  =
-	PL_predicate("call_residue_vars", 2, "$attvar");
 #endif
 #if O_DEBUGGER
   PROCEDURE_event_hook1 =

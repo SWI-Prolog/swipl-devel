@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2014, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -27,6 +39,7 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include "pl-dbref.h"
+#include "pl-trie.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -81,6 +94,7 @@ setupProlog(void)
 			 GD->options.trailSize) )
     fatalError("Not enough address space to allocate Prolog stacks");
   initPrologLocalData(PASS_LD1);
+  LD->tabling.node_pool.limit = GD->options.tableSpace;
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -89,7 +103,6 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Functors ...\n"));
   initFunctors();
   DEBUG(1, Sdprintf("Modules ...\n"));
-  initTables();
   initModules();
 					/* initModules may be called before */
 					/* LD is present in the MT version */
@@ -98,6 +111,8 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Records ...\n"));
   initDBRef();
   initRecords();
+  DEBUG(1, Sdprintf("Tries ...\n"));
+  initTries();
   DEBUG(1, Sdprintf("Flags ...\n"));
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
@@ -112,13 +127,15 @@ setupProlog(void)
   initTracer();
   debugstatus.styleCheck = SINGLETON_CHECK;
   DEBUG(1, Sdprintf("IO ...\n"));
-  initFiles();
   initIO();
   initCharConversion();
 #ifdef O_LOCALE
   initLocale();
 #endif
   GD->io_initialised = TRUE;
+  GD->clauses.cgc_space_factor  = 8;
+  GD->clauses.cgc_stack_factor  = 0.03;
+  GD->clauses.cgc_clause_factor = 1.0;
 
   if ( !endCritical )
     return FALSE;
@@ -435,26 +452,22 @@ dispatch_signal(int sig, int sync)
 
   if ( sh->predicate )
   { term_t sigterm = PL_new_term_ref();
-    term_t except;
     qid_t qid;
+#ifdef O_LIMIT_DEPTH
+    uintptr_t olimit = depth_limit;
+    depth_limit = DEPTH_NO_LIMIT;
+#endif
 
     PL_put_atom_chars(sigterm, signal_name(sig));
     qid = PL_open_query(NULL,
-			PL_Q_CATCH_EXCEPTION,
+			PL_Q_PASS_EXCEPTION,
 			sh->predicate,
 			sigterm);
-    if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
-    { PL_cut_query(qid);
-      if ( !sync )
-	unblockGC(0 PASS_LD);
-      PL_throw(except);
-      return;				/* make sure! */
-    } else
-    { if ( sync )
-	PL_cut_query(qid);
-      else
-	PL_close_query(qid);
-    }
+    if ( PL_next_solution(qid) ) {};		/* cannot ignore return */
+    PL_cut_query(qid);
+#ifdef O_LIMIT_DEPTH
+    depth_limit = olimit;
+#endif
   } else if ( true(sh, PLSIG_THROW) )
   { char *predname;
     int  arity;
@@ -468,13 +481,16 @@ dispatch_signal(int sig, int sync)
     }
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
-    if ( !sync )
-      unblockGC(0 PASS_LD);
-
-    PL_throw(exception_term);		/* throw longjmp's */
-    return;				/* make sure! */
   } else if ( sh->handler )
-  { (*sh->handler)(sig);
+  {
+#ifdef O_LIMIT_DEPTH
+    uintptr_t olimit = depth_limit;
+    depth_limit = DEPTH_NO_LIMIT;
+#endif
+    (*sh->handler)(sig);
+#ifdef O_LIMIT_DEPTH
+    depth_limit = olimit;
+#endif
 
     DEBUG(MSG_SIGNAL,
 	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
@@ -489,7 +505,7 @@ dispatch_signal(int sig, int sync)
 
   LD->signal.current = saved_current_signal;
   LD->signal.is_sync = saved_sync;
-  if ( sync )
+  if ( sync || exception_term )
     PL_close_foreign_frame(fid);
   else
     PL_discard_foreign_frame(fid);
@@ -623,7 +639,7 @@ sig_exception_handler(int sig)
 { GET_LD
   (void)sig;
 
-  if ( LD && LD->signal.exception )
+  if ( HAS_LD && LD->signal.exception )
   { record_t ex = LD->signal.exception;
 
     LD->signal.exception = 0;
@@ -658,15 +674,10 @@ gc_handler(int sig)
 
 
 static void
-free_clauses_handler(int sig)
-{ GET_LD
-  ClauseRef cref;
-  (void)sig;
+cgc_handler(int sig)
+{ (void)sig;
 
-  if ( (cref=LD->freed_clauses) )
-  { LD->freed_clauses = NULL;
-    freeClauseList(cref);
-  }
+  pl_garbage_collect_clauses();
 }
 
 
@@ -714,7 +725,7 @@ initSignals(void)
 
   PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
-  PL_signal(SIG_FREECLAUSES|PL_SIGSYNC, free_clauses_handler);
+  PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC, cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
 
 #ifdef SIG_ALERT
@@ -917,7 +928,7 @@ int
 PL_handle_signals(void)
 { GET_LD
 
-  if ( !LD || LD->critical || !is_signalled(LD) )
+  if ( !HAS_LD || LD->critical || !is_signalled(PASS_LD1) )
     return 0;
   if ( exception_term )
     return -1;
@@ -931,7 +942,7 @@ handleSignals(ARG1_LD)
 { int done = 0;
   int i;
 
-  if ( !LD || LD->critical )
+  if ( !HAS_LD || LD->critical )
     return 0;
 
   for(i=0; i<2; i++)
@@ -954,7 +965,7 @@ handleSignals(ARG1_LD)
   }
 
   if ( done )
-    updateAlerted(PASS_LD1);
+    updateAlerted(LD);
 
   return done;
 }
@@ -1201,14 +1212,16 @@ emptyStacks(void)
   { int i;
 
     PL_open_foreign_frame();
-    exception_bin         = PL_new_term_ref();
-    exception_printed     = PL_new_term_ref();
-    LD->exception.tmp     = PL_new_term_ref();
-    LD->exception.pending = PL_new_term_ref();
-    LD->trim.dummy        = PL_new_term_ref();
+    exception_term          = 0;
+    exception_bin           = PL_new_term_ref();
+    exception_printed       = PL_new_term_ref();
+    LD->exception.tmp       = PL_new_term_ref();
+    LD->exception.pending   = PL_new_term_ref();
+    LD->trim.dummy          = PL_new_term_ref();
 #ifdef O_ATTVAR
-    LD->attvar.head	= PL_new_term_ref();
-    LD->attvar.tail       = PL_new_term_ref();
+    LD->attvar.head	    = PL_new_term_ref();
+    LD->attvar.tail         = PL_new_term_ref();
+    LD->attvar.gc_attvars   = PL_new_term_ref();
     DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
 #endif
 #ifdef O_GVAR
@@ -1294,10 +1307,22 @@ allocStacks(size_t local, size_t global, size_t trail)
 
 void
 freeStacks(ARG1_LD)
-{ if ( gBase ) { gBase--;
-		 stack_free(gBase); gBase = NULL; lBase = NULL; }
-  if ( tBase ) { stack_free(tBase); tBase = NULL; }
-  if ( aBase ) { stack_free(aBase); aBase = NULL; }
+{ if ( gBase )
+  { gBase--;
+    stack_free(gBase);
+    gTop = NULL; gBase = NULL;
+    lTop = NULL; lBase = NULL;
+  }
+  if ( tBase )
+  { stack_free(tBase);
+    tTop = NULL;
+    tBase = NULL;
+  }
+  if ( aBase )
+  { stack_free(aBase);
+    aTop = NULL;
+    aBase = NULL;
+  }
 }
 
 
@@ -1515,7 +1540,7 @@ freePrologLocalData(PL_local_data_t *ld)
 
   if ( ld->bags.default_bag )
   { PL_free(ld->bags.default_bag);
-#ifdef O_ATOMGC
+#if defined(O_ATOMGC) && defined(O_PLMT)
     simpleMutexDelete(&ld->bags.mutex);
 #endif
   }

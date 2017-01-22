@@ -15,6 +15,7 @@ A access		"access"
 A access_level		"access_level"
 A acos			"acos"
 A acosh			"acosh"
+A active		"active"
 A acyclic_term		"acyclic_term"
 A add_import		"add_import"
 A address		"address"
@@ -88,13 +89,20 @@ A busy			"busy"
 A byte			"byte"
 A c_stack		"c_stack"
 A call			"call"
+A call_continuation	"call_continuation"
 A callable		"callable"
+A callpred		"$callpred"
 A canceled		"canceled"
-A case_sensitive_file_names "case_sensitive_file_names"
+A case_insensitive	"case_insensitive"
+A case_preserving	"case_preserving"
+A case_sensitive	"case_sensitive"
 A catch			"catch"
 A category		"category"
 A ceil			"ceil"
 A ceiling		"ceiling"
+A cgc			"cgc"
+A cgc_gained		"cgc_gained"
+A cgc_time		"cgc_time"
 A char_type		"char_type"
 A character		"character"
 A character_code	"character_code"
@@ -105,6 +113,7 @@ A chmod			"chmod"
 A choice		"choice"
 A class			"class"
 A clause		"clause"
+A clause_garbage_collection "clause_garbage_collection"
 A clause_reference	"clause_reference"
 A clauses		"clauses"
 A close			"close"
@@ -121,6 +130,7 @@ A colon			":"
 A colon_eq		":="
 A comma			","
 A comments		"comments"
+A complete		"complete"
 A compound		"compound"
 A context		"context"
 A context_module	"context_module"
@@ -154,6 +164,7 @@ A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
 A dcatch		"$catch"
+A dcont			"$cont$"
 A dcut			"$cut"
 A dde_error		"dde_error"
 A dde_handle		"dde_handle"
@@ -188,6 +199,7 @@ A div			"div"
 A divide		"/"
 A dload			"$load"
 A dmessage_queue	"$message_queue"
+A dmeta_call		"$meta_call"
 A dmutex		"$mutex"
 A domain_error		"domain_error"
 A dos			"dos"
@@ -211,6 +223,7 @@ A duplicate_key		"duplicate_key"
 A dvard			"$VAR$"
 A dvariable_names	"$variable_names"
 A dwakeup		"$wakeup"
+A dyield		"$yield"
 A dynamic		"dynamic"
 A e			"e"
 A encoding		"encoding"
@@ -218,6 +231,10 @@ A end			"end"
 A end_of_file		"end_of_file"
 A end_of_line		"end_of_line"
 A end_of_stream		"end_of_stream"
+A engine		"engine"
+A engines		"engines"
+A engines_created	"engines_created"
+A engine_option		"engine_option"
 A environment		"environment"
 A eof			"eof"
 A eof_action		"eof_action"
@@ -257,6 +274,7 @@ A false			"false"
 A feature		"feature"
 A file			"file"
 A file_name		"file_name"
+A file_name_case_handling "file_name_case_handling"
 A file_name_variables	"file_name_variables"
 A file_no		"file_no"
 A flag			"flag"
@@ -279,6 +297,7 @@ A frame_finished	"frame_finished"
 A frame_reference	"frame_reference"
 A free_of_attvar	"free_of_attvar"
 A freeze		"freeze"
+A fresh			"fresh"
 A full			"full"
 A fullstop		"fullstop"
 A functor_name		"functor_name"
@@ -291,6 +310,7 @@ A gc			"gc"
 A gcd			"gcd"
 A gctime		"gctime"
 A gdiv			"//"
+A getbit		"getbit"
 A getcwd		"getcwd"
 A global		"global"
 A global_shifts		"global_shifts"
@@ -315,6 +335,7 @@ A help			"help"
 A hidden		"hidden"
 A hide_childs		"hide_childs"
 A history_depth		"history_depth"
+A id			"id"
 A ifthen		"->"
 A ignore		"ignore"
 A ignore_ops		"ignore_ops"
@@ -331,6 +352,7 @@ A infinite		"infinite"
 A informational		"informational"
 A inherit_from		"inherit_from"
 A init_file		"init_file"
+A dinit_goal		"$init_goal"
 A initialization	"initialization"
 A input			"input"
 A inserted_char		"inserted_char"
@@ -423,12 +445,14 @@ A mutex			"mutex"
 A mutex_option		"mutex_option"
 A mutex_property	"mutex_property"
 A natural		"natural"
+A nan			"nan"
 A newline		"newline"
 A next_argument		"next_argument"
 A nil			"[]"
 A nl			"nl"
 A nlink			"nlink"
 A no_memory		"no_memory"
+A node_count		"node_count"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
 A non_terminal		"non_terminal"
@@ -465,6 +489,7 @@ A owner			"owner"
 A pair			"pair"
 A paren			"paren"
 A parent		"parent"
+A parentheses_term_position "parentheses_term_position"
 A parent_goal		"parent_goal"
 A partial		"partial"
 A past			"past"
@@ -478,6 +503,7 @@ A pi			"pi"
 A pipe			"pipe"
 A plain			"plain"
 A plus			"+"
+A poll			"poll"
 A popcount		"popcount"
 A portray		"portray"
 A portray_goal		"portray_goal"
@@ -515,6 +541,7 @@ A prolog_symbol		"prolog_symbol"
 A prolog_var_start	"prolog_var_start"
 A prompt		"|:"
 A property		"property"
+A protect_static_code	"protect_static_code"
 A protocol		"protocol"
 A prove			":-"
 A public		"public"
@@ -551,6 +578,8 @@ A redo			"redo"
 A redo_in_skip		"redo_in_skip"
 A reference		"reference"
 A references		"references"
+A load_count		"load_count"
+A reloading		"reloading"
 A rem			"rem"
 A rename		"rename"
 A repeat		"repeat"
@@ -630,6 +659,7 @@ A string_position	"string_position"
 A strong		"strong"
 A subterm_positions	"subterm_positions"
 A suffix		"suffix"
+A suspended		"suspended"
 A symbol_char		"symbol_char"
 A syntax_error		"syntax_error"
 A syntax_errors		"syntax_errors"
@@ -638,9 +668,13 @@ A system_error		"system_error"
 A system_init_file	"system_init_file"
 A system_thread_id	"system_thread_id"
 A system_time		"system_time"
+A table_space		"table_space"
+A table_space_used	"table_space_used"
+A tag			"tag"
 A tan			"tan"
 A tanh			"tanh"
 A temporary		"temporary"
+A temporary_file	"temporary_file"
 A temporary_files	"temporary_files"
 A term			"term"
 A term_expansion	"term_expansion"
@@ -721,7 +755,9 @@ A user_output		"user_output"
 A utc			"UTC"
 A utf8			"utf8"
 A v			"v"
+A value_count		"value_count"
 A var			"var"
+A var_prefix		"var_prefix"
 A variable		"variable"
 A variable_names	"variable_names"
 A variables		"variables"
@@ -734,6 +770,7 @@ A walltime		"walltime"
 A warning		"warning"
 A wchar_t		"wchar_t"
 A weak			"weak"
+A win_file_access_check "win_file_access_check"
 A when_condition	"when_condition"
 A white			"white"
 A write			"write"
@@ -780,6 +817,8 @@ F buffer		1
 F buffer_size		1
 F busy			2
 F call			1
+F call_continuation	1
+F callpred		2
 F catch			3
 F ceil			1
 F ceiling		1
@@ -806,6 +845,7 @@ F date			3
 F date			9
 F dc_call_prolog	0
 F dcall			1
+F dcont			3
 F dcut			1
 F dde_error		2
 F debug			1
@@ -816,9 +856,12 @@ F dexit			2
 F dforeign_registered   2
 F dgarbage_collect	1
 F div			2
+F dinit_goal		3
 F gdiv			2
+F getbit		2
 F divide		2
 F dmessage_queue	1
+F dmeta_call		1
 F dmutex		1
 F domain_error		2
 F dot			2
@@ -837,6 +880,7 @@ F dwakeup		1
 F e			0
 F encoding		1
 F end_of_stream		1
+F engine		1
 F eof_action		1
 F epsilon		0
 F equals		2
@@ -873,8 +917,10 @@ F goal_expansion	2
 F ground		1
 F grouping		1
 F hat			2
+F id			1
 F ifthen		2
 F import_into		1
+F inf			0
 F input			0
 F input			4
 F integer		1
@@ -905,6 +951,7 @@ F minus			2
 F mod			2
 F mode			1
 F msb			1
+F nan			0
 F newline		1
 F nlink			1
 F nonvar		1
@@ -914,6 +961,7 @@ F not_strict_equal	2
 F occurs_check		2
 F or			1
 F output		0
+F parentheses_term_position 3
 F permission_error	3
 F pi			0
 F pipe			1
@@ -946,6 +994,7 @@ F repeat		1
 F reposition		1
 F representation_error	1
 F representation_errors 1
+F reset			3
 F resource_error	1
 F retry			1
 F round			1
@@ -977,6 +1026,8 @@ F string		2
 F string_position	2
 F syntax_error		1
 F syntax_error		3
+F system_thread_id	1
+F tag			1
 F tan			1
 F tanh			1
 F term_expansion	2
@@ -987,6 +1038,7 @@ F timeout_error		2
 F trace			1
 F traceinterc		3
 F tracing		1
+F thread		1
 F true			0
 F truncate		1
 F tty			1

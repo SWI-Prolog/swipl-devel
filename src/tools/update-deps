@@ -1,4 +1,6 @@
 #!/bin/bash
+# Author: Jan Wielemaker
+# Copying: this code is in the public domain
 
 tooldir=`dirname $0`
 if [ "x$tooldir" == x ]; then
@@ -68,7 +70,7 @@ update()
 ext_builtins()
 { funcs=`nm pl-ext.o | grep 'U pl_' | awk '{ print $2 }'`
   for f in $funcs; do
-    grep -w $f pl-ext.c | sed 's/.*"\(.*\)",[ 	]*\([0-9]*\).*/predicate('"'"'\1'"'"', \2, '$f')./'
+    grep -w $f pl-ext.c | sed 's/.*"\(.*\)",[	]*\([0-9]*\).*/predicate('"'"'\1'"'"', \2, '$f')./'
   done
 }
 

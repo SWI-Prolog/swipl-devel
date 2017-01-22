@@ -1,36 +1,44 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2011, VU University Amsterdam
+    Copyright (c)  2011-2017, VU University Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(prolog_history,
-	  [ prolog_history/1
-	  ]).
+          [ prolog_history/1
+          ]).
 :- use_module(library(base32)).
+
+:- multifile
+    prolog:history/2.
 
 /** <module> Per-directory persistent commandline history
 
@@ -48,125 +56,128 @@ terminal and the system supports history.
 
 :- create_prolog_flag(save_history, true, [type(boolean)]).
 
-%%	history_directory(-Dir) is semidet.
+%!  history_directory(-Dir) is semidet.
 %
-%	Dir is the directory where   the per-directory history databases
-%	are stored.
+%   Dir is the directory where   the per-directory history databases
+%   are stored.
 
 history_directory(Dir) :-
-	absolute_file_name(app_preferences('.swipl-dir-history'),
-			   Dir,
-			   [ access(write),
-			     file_type(directory),
-			     file_errors(fail)
-			   ]), !.
+    absolute_file_name(app_preferences('.swipl-dir-history'),
+                       Dir,
+                       [ access(write),
+                         file_type(directory),
+                         file_errors(fail)
+                       ]),
+    !.
 history_directory(Dir) :-
-	absolute_file_name(app_preferences('.'),
-			   Home,
-			   [ access(write),
-			     file_type(directory),
-			     file_errors(fail)
-			   ]),
-	atom_concat(Home, '/.swipl-dir-history', Dir),
-	(   exists_directory(Dir)
-	->  fail
-	;   make_directory(Dir)
-	).
+    absolute_file_name(app_preferences('.'),
+                       Home,
+                       [ access(write),
+                         file_type(directory),
+                         file_errors(fail)
+                       ]),
+    atom_concat(Home, '/.swipl-dir-history', Dir),
+    (   exists_directory(Dir)
+    ->  fail
+    ;   make_directory(Dir)
+    ).
 
-%%	dir_history_file(+Dir, -File) is det.
-%%	dir_history_file(?Dir, ?File) is nondet.
+%!  dir_history_file(+Dir, -File) is det.
+%!  dir_history_file(?Dir, ?File) is nondet.
 %
-%	File is the history file for a Prolog session running in Dir.
+%   File is the history file for a Prolog session running in Dir.
 
 dir_history_file(Dir, File) :-
-	nonvar(Dir), !,
-	history_directory(Base),
-	absolute_file_name(Dir, Path),
-	base32(Path, Encoded),
-	atomic_list_concat([Base, Encoded], /, File).
+    nonvar(Dir),
+    !,
+    history_directory(Base),
+    absolute_file_name(Dir, Path),
+    base32(Path, Encoded),
+    atomic_list_concat([Base, Encoded], /, File).
 dir_history_file(Dir, File) :-
-	history_directory(HDir),
-	directory_files(HDir, Files),
-	'$member'(Base32, Files),
-	base32(Dir, Base32),
-	atomic_list_concat([Dir, Base32], /, File).
+    history_directory(HDir),
+    directory_files(HDir, Files),
+    '$member'(Base32, Files),
+    base32(Dir, Base32),
+    !,
+    atomic_list_concat([Dir, Base32], /, File).
 
-% Realise write/read of history for the swipl-win.exe console.
-
-:- if((\+current_predicate(rl_read_history/1),
-       current_predicate('$rl_history'/1))).
-:- use_module(library(readutil)).
-
-system:rl_read_history(File) :-
-	access_file(File, read), !,
-	setup_call_cleanup(
-	    open(File, read, In, [encoding(utf8)]),
-	    read_history(In),
-	    close(In)).
-system:rl_read_history(_).
-
-read_history(In) :-
-	repeat,
-	read_line_to_codes(In, Codes),
-	(   Codes == end_of_file
-	->  !
-	;   atom_codes(Line, Codes),
-	    rl_add_history(Line),
-	    fail
-	).
-
-system:rl_write_history(File) :-
-	'$rl_history'(Lines),
-	(   Lines \== []
-	->  setup_call_cleanup(
-		open(File, write, Out, [encoding(utf8)]),
-		forall(member(Line, Lines),
-		       format(Out, '~w~n', [Line])),
-		close(Out))
-	;   true
-	).
-
-:- endif.
-
-:- if(current_predicate(rl_write_history/1)).
 write_history(File) :-
-	current_prolog_flag(save_history, true), !,
-	catch(rl_write_history(File), _, true).
-:- endif.
+    current_prolog_flag(save_history, true),
+    catch(prolog:history(user_input, save(File)), _, true), !.
 write_history(_).
 
 
-%%	prolog_history(+Action) is det.
+%!  prolog_history(+Action) is det.
 %
-%	Execute Action on  the  history.   Action is one of
+%   Execute Action on  the  history.   Action is one of
 %
-%	  * enable
-%	  Enable history. First loads history for the current directory.
-%	  Loading the history is done at most once.
-%	  * disable
-%	  Sets the Prolog flag =save_history= to =false=, such that the
-%	  history is not saved on halt.
+%     * enable
+%     Enable history. First loads history for the current directory.
+%     Loading the history is done at most once.
+%     * disable
+%     Sets the Prolog flag =save_history= to =false=, such that the
+%     history is not saved on halt.
 
-:- if(current_predicate(rl_read_history/1)).
 :- dynamic
-	history_loaded/1.
+    history_loaded/1.
 
 load_dir_history(File) :-
-	(   exists_file(File)
-	->  rl_read_history(File),
-	    assertz(history_loaded(File))
-	;   true
-	).
+    (   exists_file(File),
+        prolog:history(user_input, load(File))
+    ->  assertz(history_loaded(File))
+    ;   true
+    ).
 
 prolog_history(enable) :-
-	history_loaded(_), !.
+    history_loaded(_),
+    !.
 prolog_history(enable) :-
-	catch(dir_history_file('.', File), E,
-	      (print_message(warning, E),fail)), !,
-	catch(load_dir_history(File), E,
-	      print_message(warning, E)),
-	at_halt(write_history(File)),
-	set_prolog_flag(save_history, true).
-:- endif.
+    catch(dir_history_file('.', File), E,
+          (print_message(warning, E),fail)),
+    catch(load_dir_history(File), E,
+          print_message(warning, E)),
+    !,
+    at_halt(write_history(File)),
+    set_prolog_flag(save_history, true).
 prolog_history(_) :-
-	set_prolog_flag(save_history, false).
+    set_prolog_flag(save_history, false).
+
+		 /*******************************
+		 *      SWIPL-WIN SUPPORT	*
+		 *******************************/
+
+:- if(current_predicate('$rl_history'/1)).
+:- use_module(library(readutil)).
+
+prolog:history(_, load(File)) :-
+    access_file(File, read),
+    !,
+    setup_call_cleanup(
+        open(File, read, In, [encoding(utf8)]),
+        read_history(In),
+        close(In)).
+prolog:history(_, load(_)).
+
+read_history(In) :-
+    repeat,
+    read_line_to_codes(In, Codes),
+    (   Codes == end_of_file
+    ->  !
+    ;   atom_codes(Line, Codes),
+        rl_add_history(Line),
+        fail
+    ).
+
+prolog:history(_, save(File)) :-
+    '$rl_history'(Lines),
+    (   Lines \== []
+    ->  setup_call_cleanup(
+            open(File, write, Out, [encoding(utf8)]),
+            forall(member(Line, Lines),
+                   format(Out, '~w~n', [Line])),
+            close(Out))
+    ;   true
+    ).
+
+:- endif.

@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2008-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef _FLI_H_INCLUDED
@@ -53,10 +65,15 @@ extern "C" {
 #endif
 
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
+/* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 70301
+#define PLVERSION 70500
 #endif
+#ifndef PLVERSION_TAG
+#define PLVERSION_TAG ""
+#endif
+
 
 		 /*******************************
 		 *	       EXPORT		*
@@ -152,7 +169,7 @@ typedef uintptr_t	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
-typedef void		(*pl_function_t)(); /* pass function as void (*)() */
+typedef void *		pl_function_t;      /* pass function as void* */
 #else
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
@@ -171,7 +188,7 @@ typedef union
   atom_t a;				/* PL_ATOM */
   struct				/* PL_TERM */
   { atom_t name;
-    int    arity;
+    size_t arity;
   } t;
 } term_value_t;
 
@@ -239,6 +256,7 @@ typedef union
 #define FF_READONLY	 0x1000		/* Read-only prolog flag */
 #define FF_KEEP		 0x2000		/* keep prolog flag if already set */
 #define FF_NOCREATE	 0x4000		/* Fail if flag is non-existent */
+#define FF_FORCE	 0x8000		/* Force setting, overwrite READONLY */
 #define FF_MASK		 0xf000
 
 
@@ -274,6 +292,7 @@ PL_EXPORT(foreign_t)	_PL_retry_address(void *);
 PL_EXPORT(int)		PL_foreign_control(control_t);
 PL_EXPORT(intptr_t)	PL_foreign_context(control_t);
 PL_EXPORT(void *)	PL_foreign_context_address(control_t);
+PL_EXPORT(predicate_t)	PL_foreign_context_predicate(control_t);
 
 
 		/********************************
@@ -311,7 +330,7 @@ PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
 		 *	      LICENSE		*
 		 *******************************/
 
-void			PL_license(const char *license, const char *module);
+PL_EXPORT(void)		PL_license(const char *license, const char *module);
 
 		/********************************
 		*            MODULES            *
@@ -338,15 +357,24 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 		 *******************************/
 
 #ifdef PL_KERNEL
-#define PL_Q_DEBUG		0x01	/* = TRUE for backward compatibility */
+#define PL_Q_DEBUG		0x0001	/* = TRUE for backward compatibility */
 #endif
-#define PL_Q_NORMAL		0x02	/* normal usage */
-#define PL_Q_NODEBUG		0x04	/* use this one */
-#define PL_Q_CATCH_EXCEPTION	0x08	/* handle exceptions in C */
-#define PL_Q_PASS_EXCEPTION	0x10	/* pass to parent environment */
+#define PL_Q_NORMAL		0x0002	/* normal usage */
+#define PL_Q_NODEBUG		0x0004	/* use this one */
+#define PL_Q_CATCH_EXCEPTION	0x0008	/* handle exceptions in C */
+#define PL_Q_PASS_EXCEPTION	0x0010	/* pass to parent environment */
+#define PL_Q_ALLOW_YIELD	0x0020	/* Support I_YIELD */
+#define PL_Q_EXT_STATUS		0x0040	/* Return extended status */
 #ifdef PL_KERNEL
-#define PL_Q_DETERMINISTIC	0x20	/* call was deterministic */
+#define PL_Q_DETERMINISTIC	0x0100	/* call was deterministic */
 #endif
+
+					/* PL_Q_EXT_STATUS return codes */
+#define PL_S_EXCEPTION	       -1	/* Query raised exception */
+#define PL_S_FALSE		0	/* Query failed */
+#define PL_S_TRUE		1	/* Query succeeded with choicepoint */
+#define PL_S_LAST		2	/* Query succeeded without CP */
+
 
 			/* Foreign context frames */
 PL_EXPORT(fid_t)	PL_open_foreign_frame(void);
@@ -359,7 +387,7 @@ PL_EXPORT(predicate_t)	PL_pred(functor_t f, module_t m);
 PL_EXPORT(predicate_t)	PL_predicate(const char *name, int arity,
 				     const char* module);
 PL_EXPORT(int)		PL_predicate_info(predicate_t pred,
-					  atom_t *name, int *arity,
+					  atom_t *name, size_t *arity,
 					  module_t *module);
 
 			/* Call-back */
@@ -368,6 +396,7 @@ PL_EXPORT(qid_t)	PL_open_query(module_t m, int flags,
 PL_EXPORT(int)		PL_next_solution(qid_t qid) WUNUSED;
 PL_EXPORT(void)		PL_close_query(qid_t qid);
 PL_EXPORT(void)		PL_cut_query(qid_t qid);
+PL_EXPORT(qid_t)	PL_current_query(void);
 
 			/* Simplified (but less flexible) call-back */
 PL_EXPORT(int)		PL_call(term_t t, module_t m);
@@ -378,6 +407,8 @@ PL_EXPORT(term_t)	PL_exception(qid_t qid);
 PL_EXPORT(int)		PL_raise_exception(term_t exception);
 PL_EXPORT(int)		PL_throw(term_t exception);
 PL_EXPORT(void)		PL_clear_exception(void);
+			/* Engine-based coroutining */
+PL_EXPORT(term_t)	PL_yielded(qid_t qid);
 
 
 		 /*******************************
@@ -401,9 +432,11 @@ PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 #endif
+PL_EXPORT(functor_t)	PL_new_functor_sz(atom_t f, size_t a);
 PL_EXPORT(functor_t)	PL_new_functor(atom_t f, int a);
 PL_EXPORT(atom_t)	PL_functor_name(functor_t f);
 PL_EXPORT(int)		PL_functor_arity(functor_t f);
+PL_EXPORT(size_t)	PL_functor_arity_sz(functor_t f);
 
 			/* Get C-values from Prolog terms */
 PL_EXPORT(int)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
@@ -428,9 +461,16 @@ PL_EXPORT(int)		PL_get_intptr(term_t t, intptr_t *i) WUNUSED;
 PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr) WUNUSED;
 PL_EXPORT(int)		PL_get_float(term_t t, double *f) WUNUSED;
 PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f) WUNUSED;
-PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name, int *arity) WUNUSED;
-PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name, int *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_name_arity_sz(term_t t, atom_t *name,
+					     size_t *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_compound_name_arity_sz(term_t t, atom_t *name,
+						      size_t *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name,
+					  int *arity) WUNUSED;
+PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name,
+						   int *arity) WUNUSED;
 PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
+PL_EXPORT(int)		PL_get_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_get_head(term_t l, term_t h) WUNUSED;
@@ -503,6 +543,7 @@ PL_EXPORT(int)		PL_unify_functor(term_t t, functor_t f) WUNUSED;
 PL_EXPORT(int)		PL_unify_compound(term_t t, functor_t f) WUNUSED;
 PL_EXPORT(int)		PL_unify_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_unify_nil(term_t l) WUNUSED;
+PL_EXPORT(int)		PL_unify_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_unify_term(term_t t, ...) WUNUSED;
 PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
@@ -725,6 +766,7 @@ PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...);
 PL_EXPORT(record_t)	PL_record(term_t term);
 PL_EXPORT(int)		PL_recorded(record_t record, term_t term);
 PL_EXPORT(void)		PL_erase(record_t record);
+PL_EXPORT(record_t)	PL_duplicate_record(record_t r);
 
 PL_EXPORT(char *)	PL_record_external(term_t t, size_t *size);
 PL_EXPORT(int)		PL_recorded_external(const char *rec, term_t term);
@@ -745,6 +787,7 @@ PL_EXPORT(int)		PL_set_prolog_flag(const char *name, int type, ...);
 PL_EXPORT(PL_atomic_t)	_PL_get_atomic(term_t t);
 PL_EXPORT(void)		_PL_put_atomic(term_t t, PL_atomic_t a);
 PL_EXPORT(int)		_PL_unify_atomic(term_t t, PL_atomic_t a);
+PL_EXPORT(void)		_PL_get_arg_sz(size_t index, term_t t, term_t a);
 PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 
 
@@ -769,6 +812,7 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define BUF_DISCARDABLE	0x0000
 #define BUF_RING	0x0100
 #define BUF_MALLOC	0x0200
+#define BUF_ALLOW_STACK	0x0400		/* allow pointer into (global) stack */
 
 #define CVT_EXCEPTION	0x10000		/* throw exception on error */
 #define CVT_VARNOFAIL	0x20000		/* return 2 if argument is unbound */
@@ -869,11 +913,8 @@ PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 
 PL_EXPORT(int)		PL_initialise(int argc, char **argv);
 PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
-#ifdef __CYGWIN__
-PL_EXPORT(void)		PL_install_readline(void);
-#else
-install_t		PL_install_readline(void);
-#endif
+PL_EXPORT(int)		PL_set_resource_db_mem(const unsigned char *data,
+					       size_t size);
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_cleanup_fork();
@@ -886,9 +927,8 @@ PL_EXPORT(int)		PL_halt(int status);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: the functions in this section are   not  documented, as as yet not
 adviced for public usage.  They  are   intended  to  provide an abstract
-interface for the GNU readline  interface   as  defined in pl-rl.c. This
-abstract interface is necessary to make an embeddable system without the
-readline overhead.
+interface for the GNU readline  interface   as  defined  in the readline
+package.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 					/* PL_dispatch() modes */
 #define PL_DISPATCH_NOWAIT    0		/* Dispatch only once */
@@ -980,7 +1020,9 @@ PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void)	PL_on_halt(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_exit_hook(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_backtrace(int depth, int flags);
+PL_EXPORT(char *) PL_backtrace_string(int depth, int flags);
 PL_EXPORT(int)	PL_check_data(term_t data);
+PL_EXPORT(int)	PL_check_stacks(void);
 PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
 
 
@@ -1129,6 +1171,22 @@ PL_EXPORT(int)	PL_get_context(struct pl_context_t *c, int thead_id);
 PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
 PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 				    char *buf, size_t len);
+
+#ifdef PL_ARITY_AS_SIZE
+#define PL_new_functor(f,a) PL_new_functor_sz(f,a)
+#define PL_functor_arity(f) PL_functor_arity_sz(f)
+#define PL_get_name_arity(t,n,a) PL_get_name_arity_sz(t,n,a)
+#define PL_get_compound_name_arity(t,n,a) PL_get_compound_name_arity_sz(t,n,a)
+#define PL_get_arg(i,t,a) PL_get_arg_sz(i,t,a)
+#define PL_unify_arg(i,t,a) PL_unify_arg_sz(i,t,a)
+#ifndef _PL_INCLUDE_H
+#define _PL_get_arg(i,t,a) _PL_get_arg_sz(i,t,a)
+#endif
+#else
+//Considered too alarming
+//#warning "Term arity has changed from int to size_t."
+//#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+#endif
 
 #ifdef __cplusplus
 }

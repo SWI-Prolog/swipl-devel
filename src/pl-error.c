@@ -3,24 +3,35 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1997-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 throw(error(<Formal>, <SWI-Prolog>))
@@ -252,11 +263,20 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_ATOM, what);
       break;
     }
-    case ERR_MODIFY_STATIC_PROC:
-    { Procedure proc = va_arg(args, Procedure);
-      term_t pred = PL_new_term_ref();
+  { Definition def;				/* shared variables */
+    Procedure proc;
+    term_t pred;
 
-      rc = (unify_definition(MODULE_user, pred, proc->definition, 0,
+    case ERR_MODIFY_STATIC_PROC:
+      proc = va_arg(args, Procedure);
+      def = proc->definition;
+      goto modify_static;
+    case ERR_MODIFY_STATIC_PREDICATE:
+      def = va_arg(args, Definition);
+
+    modify_static:
+      rc = ((pred = PL_new_term_ref()) &&
+	    unify_definition(MODULE_user, pred, def, 0,
 			     GP_NAMEARITY|GP_HIDESYSTEM) &&
 	    PL_unify_term(formal,
 			  PL_FUNCTOR, FUNCTOR_permission_error3,
@@ -264,7 +284,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			    PL_ATOM, ATOM_static_procedure,
 			    PL_TERM, pred));
       break;
-    }
+  }
     case ERR_MODIFY_THREAD_LOCAL_PROC:
     { Procedure proc = va_arg(args, Procedure);
       term_t pred = PL_new_term_ref();
@@ -305,6 +325,15 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_ATOM, op,
 			     PL_ATOM, type,
 			     PL_TERM, pi));
+      break;
+    }
+    case ERR_PERMISSION_VMI:
+    { const char *vmi = va_arg(args, const char *);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_permission_error3,
+			   PL_ATOM, ATOM_execute,
+			   PL_ATOM, ATOM_vmi,
+			   PL_CHARS, vmi);
       break;
     }
     case ERR_NOT_IMPLEMENTED_PROC:
@@ -458,6 +487,11 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 	  rc = PL_unify_term(formal,
 			     PL_FUNCTOR, FUNCTOR_resource_error1,
 			       PL_ATOM, ATOM_max_files);
+	  break;
+	case ENAMETOOLONG:
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR, FUNCTOR_representation_error1,
+			       PL_ATOM, ATOM_max_path_length);
 	  break;
 #ifdef EPIPE
 	case EPIPE:
@@ -848,6 +882,9 @@ printMessage(atom_t severity, ...)
 			     pred, av);
     } else if ( LD->in_print_message <= OK_RECURSIVE*2 )
     { Sfprintf(Serror, "Message: ");
+      if ( ReadingSource )
+	Sfprintf(Serror, "%s:%d ",
+		 PL_atom_chars(source_file_name), (int)source_line_no);
       rc = PL_write_term(Serror, av+1, 1200, 0);
       Sfprintf(Serror, "\n");
     } else				/* in_print_message == 2 */
@@ -937,26 +974,65 @@ PL_get_intptr_ex(term_t t, intptr_t *i)
 #endif
 }
 
+#if SIZEOF_VOIDP < 8
+#ifndef UINTPTR_MAX
+#define UINTPTR_MAX ~(uintptr_t)0;
+#endif
+
+static int
+fits_size(int64_t val)
+{ if ( (uintptr_t)val <= (uintptr_t)UINTPTR_MAX )
+    return TRUE;
+  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+}
+#else
+#define fits_size(v) TRUE
+#endif
 
 int
 PL_get_size_ex(term_t t, size_t *i)
-{ int64_t val;
+{ number n;
 
-  if ( !PL_get_int64_ex(t, &val) )
-    fail;
-  if ( val < 0 )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, t);
-#if SIZEOF_VOIDP < 8
-#if SIZEOF_LONG == SIZEOF_VOIDP
-  if ( val > (int64_t)ULONG_MAX )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+  if ( PL_get_number(t, &n) )
+  { switch(n.type)
+    { case V_INTEGER:
+	if ( n.value.i >= 0 )
+	{ if ( fits_size(n.value.i) )
+	  { *i = n.value.i;
+	    return TRUE;
+	  }
+	  return FALSE;
+	} else
+	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, t);
+	}
+#if SIZEOF_VOIDP == 8 && defined(O_GMP)
+      case V_MPZ:
+      { uint64_t v;
+
+	switch(mpz_to_uint64(n.value.mpz, &v))
+	{ case 0:
+	    *i = v;
+	    return TRUE;
+	  case -1:
+	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			    ATOM_not_less_than_zero, t);
+	  case 1:
+	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+	  default:
+	    assert(0);
+	    return FALSE;
+	}
+      }
+#else
+      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
 #endif
-#endif
+      default:
+	break;
+    }
+  }
 
-  *i = (size_t)val;
-
-  return TRUE;
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
 

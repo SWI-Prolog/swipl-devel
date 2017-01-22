@@ -104,7 +104,8 @@ dnl winpthreads.h.  We could also consider handling this through $PLLIBS,
 dnl but in theory it should be possible to compile external packages with
 dnl different thread libraries.
 
-AC_DEFINE(_REENTRANT, 1, "Define for multi-threaded support")
+AC_DEFINE(_REENTRANT, 1, "Define for multi-threaded support (deprecated)")
+AC_DEFINE(O_PLMT, 1, "Define for multi-threaded support")
 
 case "$PLARCH" in
      *-win32|*-win64)
@@ -123,3 +124,5 @@ else dnl MT=yes
 AC_MSG_WARN([Seems that SWI-Prolog is not compiled with threads enabled])
 
 fi dnl MT=yes
+
+AC_DEFINE(PL_ARITY_AS_SIZE, 1, "Represent arity as size_t")

@@ -1,25 +1,36 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, University of Amsterdam
+    Copyright (c)  2009-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(test_db, [test_db/0]).
@@ -69,7 +80,7 @@ test(cut_cond, Body = (! -> fail)) :-
 
 :- begin_tests(retract).
 
-:- dynamic foo/1.
+:- dynamic foo/1, insect/1, icopy/1.
 
 test(theorist) :-
 	(   assert((foo(A) :- bar(A))),
@@ -79,6 +90,42 @@ test(theorist) :-
 test(theorist, [cleanup(retractall(foo(_)))]) :-
 	assert((foo(A) :- bar(A))),
 	\+ retract(foo(1) :- bar(2)).
+test(update_view, L == [ant,bee]) :-
+	retractall(insect(_)),
+	retractall(icopy(_)),
+	assertz(insect(ant)),
+	assertz(insect(bee)),
+	(   retract(insect(I)),
+	    assertz(icopy(I)),
+	    retract(insect(bee)),
+	    fail
+	;   findall(I, retract(icopy(I)), L)
+	).
+test(concurrent, Sum == ConcurrentSum) :-
+	N = 10000,
+	numlist(0, N, List),
+	sum_list(List, Sum),
+	forall(between(0, N, X),
+	       assertz(a(X))),
+	thread_self(Me),
+	thread_create(collect(Me), Id1, []),
+	thread_create(collect(Me), Id2, []),
+	thread_join(Id1, true),
+	thread_join(Id2, true),
+	thread_get_message(collected(N1)),
+	thread_get_message(collected(N2)),
+	ConcurrentSum is N1+N2.
+
+collect(Main) :-
+	collect(0, N),
+	thread_send_message(Main, collected(N)).
+
+collect(N0, N) :-
+	retract(a(A)), !,
+	N1 is N0 + A,
+	collect(N1, N).
+collect(N, N).
+
 
 :- end_tests(retract).
 

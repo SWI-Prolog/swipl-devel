@@ -692,18 +692,22 @@ do_summary(Line) :-
 do_summary(_) :- fail.
 
 parse_summary(Name, Arity, Summary) -->
-	(   "\\predicatesummary"
-	;   "\\functionsummary"
+	(   "\\predicatesummary", { Type = pred }
+	;   "\\functionsummary",  { Type = func }
+	;   "\\dcgsummary",       { Type = dcg }
 	),
 	tex_arg(Name0),
-	{ atom_codes(Name0, Chars),
-	  append(_, [0':|Chars1], Chars)
-	->atom_codes(Name, Chars1)
-	; Name = Name0
+	{   atom_codes(Name0, Chars),
+	    append(_, [0':|Chars1], Chars)
+	->  atom_codes(Name, Chars1)
+	;   Name = Name0
 	},
 	tex_arg(Arity0),
 	{   integer(Arity0)
-	->  Arity = Arity0
+	->  (   Type == dcg
+	    ->	Arity is Arity0+2
+	    ;	Arity = Arity0
+	    )
 	;   true
 	},
 	tex_string(Summary),

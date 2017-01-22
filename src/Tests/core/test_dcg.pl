@@ -39,8 +39,6 @@ test_dcg :-
 
 test(1, [G == a(L,[])]) :-
 	expand_goal(phrase(a,L), G).
-test(2, [B == (b([x], []), []=[1])]) :-
-	expand_goal(phrase({phrase(b,[x])},[1]),B).
 test(3, []) :-
 	expand_goal(phrase(L,L,L),G),
 	(L,G) \== ([],[]=[]).
@@ -88,7 +86,7 @@ test(iso_8_1_1_3, [ %blocked(disagreement_with_ISO_DTR_draft), (SWI extension)
 		  ]) :-
 	G = phrase([],a),		% must avoid apply_macros
 	call(G).
-test(uniso_8_1_1_3, [fail]) :-
+test(uniso_8_1_1_3, fail) :-
 	phrase([],a).
 test(iso1,[]) :-
 	phrase([the],[the]).
@@ -107,9 +105,6 @@ test(1, [R == (a :- b([1],[]))]) :-
 	expand_term((a :- phrase(b,[1])),R).
 test(2, [R =@= (alleq(Ys1) :- spec(Ys2,[],Ys1,[]), alleq(Ys2))]) :-
 	expand_term(( alleq(Xs1) :- phrase(spec(Xs2,[]),Xs1),	alleq(Xs2) ), R).
-test(3, [R =@= (r(X,L) :- L=[1|C],phrase(x:X,C,D),D=[3])]) :-
-	R0 = (r(X,L) :- phrase(([1],x:X,[3]),L)),
-	expand_term(R0, R).
 
 :- end_tests(rule_expansions).
 

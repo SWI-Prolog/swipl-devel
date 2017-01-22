@@ -253,11 +253,11 @@ mastered in detail for real productive programming. If you are
 familiar with a specific editor you should not be forced to change. You
 may specify your favourite editor using the Prolog flag \prologflag{editor},
 the environment variable \env{EDITOR} or by defining rules for
-\verb$prolog_edit:edit_source/1$ (see \secref{listing}).
+\qpredref{prolog_edit}{edit_source}{1}.
 
 The use of a built-in editor, which is selected by setting the
 Prolog flag \prologflag{editor} to \const{pce_emacs}, has advantages. The
-XPCE \class{editor} object, around which the built-in PceEmacs is built,
+XPCE \noclass{editor} object, around which the built-in PceEmacs is built,
 can be opened as a Prolog stream allowing analysis of your source by the
 real Prolog system.
 
@@ -329,7 +329,7 @@ Initially edit/1 uses the editor specified in the \env{EDITOR}
 environment variable. There are two ways to force it to use the built-in
 editor. One is to set the Prolog flag \prologflag{editor} to
 \const{pce_emacs} and the other is by starting the editor explicitly
-using the emacs/[0,1] predicates.
+using the \libpredref{emacs}{[0,1]} predicates.
 
 \subsection{Bluffing through PceEmacs}	\label{sec:emacsbluff}
 
@@ -342,7 +342,7 @@ beginners.%
 	      GNU-Emacs commands.}
 
 At the basis, PceEmacs maps keyboard sequences to methods defined on the
-extended \class{editor} object. Some frequently used commands are, with
+extended \noclass{editor} object. Some frequently used commands are, with
 their key-binding, presented in the menu bar above each editor window.
 A complete overview of the bindings for the current \jargon{mode} is
 provided through \menu{Help/Show key bindings}{Control-h Control-b}.
@@ -677,7 +677,7 @@ single interface called prolog_ide/1:
 \begin{description}
     \predicate{prolog_ide}{1}{+Action}
 This predicate ensures the IDE-enabling XPCE component is loaded,
-creates the XPCE class \class{prolog_ide} and sends \arg{Action}
+creates the XPCE class \noclass{prolog_ide} and sends \arg{Action}
 to its one and only instance \verb$@prolog_ide$.  \arg{Action} is one
 of the following:
 
@@ -729,7 +729,7 @@ editor at the right location.
     \item [Select editor]
 External editors are selected using the \env{EDITOR} environment
 variable, by setting the Prolog flag \prologflag{editor}, or by defining the
-hook prolog_edit:edit_source/1.
+hook qpredref{prolog_edit}{edit_source}{1}.
 
     \item [Update Prolog after editing]
 Using make/0, all files you have edited are re-loaded.

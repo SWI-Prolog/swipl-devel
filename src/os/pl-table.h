@@ -1,101 +1,113 @@
-/*  $Id$
+/*  Part of SWI-Prolog
 
-    Part of SWI-Prolog
-
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Jan Wielemaker and Keri Harris
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef TABLE_H_INCLUDED
 #define TABLE_H_INCLUDED
 
 typedef struct table *		Table;		/* (numeric) hash table */
+typedef struct kvs *		KVS;		/* map of key-values */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct table_enum *	TableEnum;	/* Enumerate table entries */
 
 struct table
-{ int		buckets;	/* size of hash table */
-  int		size;		/* # symbols in the table */
-  TableEnum	enumerators;	/* Handles for enumeration */
-#ifdef O_PLMT
-  simpleMutex  *mutex;		/* Mutex to guard table */
-#endif
-  void		(*copy_symbol)(Symbol s);
-  void		(*free_symbol)(Symbol s);
-  Symbol	*entries;	/* array of hash symbols */
+{ int		size;		/* # symbols in the table */
+  int		cleanup;	/* TRUE when KVS cleanup in progress */
+  void		(*copy_symbol)(void *n, void **v);
+  void		(*free_symbol)(void *n, void *v);
+  KVS		kvs;		/* map of key-value pairs */
+};
+
+struct kvs
+{ int len;			/* size of key-value map */
+  int resizing;			/* TRUE while resizing */
+  int accesses;			/* number of accesses */
+  KVS next;			/* next map */
+  KVS prev;			/* last map */
+  Symbol entries;		/* array of hash symbols */
 };
 
 struct symbol
-{ Symbol	next;		/* next in chain */
-  void *	name;		/* name entry of symbol */
+{ void *	name;		/* name entry of symbol */
   void *	value;		/* associated value with name */
 };
 
 struct table_enum
 { Table		table;		/* Table we are working on */
-  int		key;		/* Index of current symbol-chain */
-  Symbol	current;	/* The current symbol */
-  TableEnum	next;		/* More choice points */
+  KVS		kvs;		/* kvs we are iterating over */
+  int		idx;		/* Index of current symbol-chain */
 };
 
 COMMON(void)		initTables(void);
 COMMON(Table)		newHTable(int size);
 COMMON(void)		destroyHTable(Table ht);
-COMMON(Symbol)		lookupHTable(Table ht, void *name);
-COMMON(Symbol)		addHTable(Table ht, void *name, void *value);
-COMMON(int)		deleteHTable(Table ht, void *name);
-COMMON(void)		deleteSymbolHTable(Table ht, Symbol s);
+COMMON(void*)		lookupHTable__LD(Table ht, void *name ARG_LD);
+COMMON(void*)		addHTable(Table ht, void *name, void *value);
+COMMON(void)		addNewHTable(Table ht, void *name, void *value);
+COMMON(void*)		updateHTable(Table ht, void *name, void *value);
+COMMON(void*)		deleteHTable(Table ht, void *name);
 COMMON(void)		clearHTable(Table ht);
 COMMON(Table)		copyHTable(Table org);
 COMMON(TableEnum)	newTableEnum(Table ht);
 COMMON(void)		freeTableEnum(TableEnum e);
-COMMON(Symbol)		advanceTableEnum(TableEnum e);
+COMMON(int)		advanceTableEnum(TableEnum e, void **name, void **value);
+					/* used by for_table() macro */
+COMMON(int)		htable_iter(Table ht, KVS kvs, int *idx,
+				    void **name, void **value);
+COMMON(size_t)		sizeofTable(Table ht);
 
-#define TABLE_UNLOCKED		0x10000000L /* do not create mutex for table */
-#define TABLE_MASK		0xf0000000UL
+static inline int
+htable_valid_kv(void *kv)
+{ intptr_t kvi = (intptr_t)kv;		/* avoid NULL, HTABLE_TOMBSTONE */
+  return kvi > 0 || kvi	< -2;		/* and HTABLE_SENTINEL */
+}
 
 #define pointerHashValue(p, size) ((((intptr_t)(p) >> LMASK_BITS) ^ \
 				    ((intptr_t)(p) >> (LMASK_BITS+5)) ^ \
 				    ((intptr_t)(p))) & \
 				   ((size)-1))
 
-#define for_table(ht, s, code) \
-	{ int _k; \
-	  PL_LOCK(L_TABLE); \
-	  for(_k = 0; _k < (ht)->buckets; _k++) \
-	  { Symbol _n, s; \
-	    for(s=(ht)->entries[_k]; s; s = _n) \
-	    { _n = s->next; \
-	      code; \
-	    } \
+#define for_table(ht, n, v, code) \
+	{ int idx = 0; \
+          KVS kvs = ht->kvs; \
+          ATOMIC_INC(&kvs->accesses); \
+	  void *n = NULL; \
+          void *v = NULL; \
+          while ( htable_iter(ht, kvs, &idx, &n, &v) ) \
+	  { code; \
 	  } \
-          PL_UNLOCK(L_TABLE); \
-	}
-#define for_unlocked_table(ht, s, code) \
-	{ int _k; \
-	  for(_k = 0; _k < (ht)->buckets; _k++) \
-	  { Symbol _n, s; \
-	    for(s=(ht)->entries[_k]; s; s = _n) \
-	    { _n = s->next; \
-	      code; \
-	    } \
-	  } \
+          ATOMIC_DEC(&kvs->accesses); \
 	}
 
 #endif /*TABLE_H_INCLUDED*/

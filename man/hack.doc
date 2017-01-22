@@ -143,6 +143,12 @@ together with prolog_current_choice/1 to implement \jargon{ancestral} cuts.
 This predicate is in the hackers corner because it should not be used
 in normal Prolog code. It may be used to create new high level control
 structures, particularly for compatibility purposes.
+
+Note that in the current implementation, the pruned choice points and
+environment frames are \emph{not} reclaimed. As a consequence, where
+predicates that are deterministic due to clause indexing, normal cuts or
+\verb$(if->then;else)$ and and tail recursive run in bounded local
+stack space, predicates using prolog_cut_to/1 will run out of stack.
 \end{description}
 
 
@@ -306,7 +312,7 @@ interrupted, and is one of the following:
         \termitem{!}{}
     The instruction will call the cut. Because the semantics of
     metacalling the cut differs from executing the cut in its
-    original context we do not wrap the cut in \funcref{call}{1}.
+    original context we do not wrap the cut in \functor{call}{1}.
 
 	\termitem{:-}{}
     The breakpoint is on the \jargon{neck} instruction, i.e., after
@@ -391,7 +397,9 @@ describes the exception that is actually raised. \arg{Frame} is the
 innermost frame. See prolog_frame_attribute/3 and the library
 \pllib{prolog_stack} for getting information from this.
 \arg{CatcherFrame} is a reference to the frame calling the matching
-catch/3 or \const{none} if the exception is not caught.
+catch/3, \const{none} if the exception is not caught or \const{'C'}
+if the exception is caught in C calling Prolog using the flag
+\const{PL_Q_CATCH_EXCEPTION}.
 
 The hook is run in `nodebug' mode. If it succeeds, \arg{ExceptionOut} is
 considered the current exception. If it fails, \arg{ExceptionIn} is used
@@ -566,32 +574,4 @@ following arguments.
 
 This hook is exploited by the documentation system. See
 stream_position_data/3. See also read_term/3.
-\end{description}
-
-
-\section{Readline Interaction}		\label{sec:readline}
-
-The following predicates are available if SWI-Prolog is linked to the
-GNU readline library. This is by default the case on non-Windows
-installations and indicated by the Prolog flag \prologflag{readline}.%
-	\footnote{\program{swipl-win.exe} uses its own history system and
-		  does \emph{not} support these predicates.}
-See also \manref{readline}{3}.
-
-\begin{description}
-
-    \predicate{rl_read_init_file}{1}{+File}
-Read a readline initialisation file.  Readline by default reads
-\file{~/.inputrc}.  This predicate may be used to read alternative
-readline initialisation files.
-
-    \predicate{rl_add_history}{1}{+Line}
-Add a line to the Control-P/Control-N history system of the readline library.
-
-    \predicate{rl_write_history}{1}{+FileName}
-Write current history to \arg{FileName}.  Can be used from at_halt/1
-to save the history.
-
-    \predicate{rl_read_history}{1}{+FileName}
-Read history from \arg{FileName}, appending to the current history.
 \end{description}

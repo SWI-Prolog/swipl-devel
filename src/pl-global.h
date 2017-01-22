@@ -1,28 +1,41 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1997-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef PL_GLOBAL_H_INCLUDED
 #define PL_GLOBAL_H_INCLUDED
+#include "pl-trie.h"
 
 #ifndef GLOBAL			/* global variables */
 #define GLOBAL extern
@@ -89,7 +102,10 @@ struct PL_global_data
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  gen_t		generation;		/* generation of the database */
+  ggen_t	_generation;		/* generation of the database */
+#ifdef ATOMIC_GENERATION_HACK
+  gen_t		_last_generation;	/* see pl-inline.h, global_generation() */
+#endif
 #endif
 
   struct
@@ -125,6 +141,8 @@ struct PL_global_data
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
+    int		engines_created;	/* # engines created */
+    int		engines_finished;	/* # engines threads */
     double	thread_cputime;		/* Total CPU time of threads */
 #endif
   } statistics;
@@ -146,8 +164,6 @@ struct PL_global_data
 
   struct
   { Table	record_lists;		/* Available record lists */
-    RecordList	head;			/* first record list */
-    RecordList	tail;			/* last record list */
   } recorded_db;
 
   struct
@@ -158,8 +174,7 @@ struct PL_global_data
   struct
   { size_t	highest;		/* Highest atom index */
     atom_array	array;
-    unsigned int buckets;		/* # buckets in char * --> atom */
-    Atom *	table;			/* hash-table */
+    AtomTable	table;			/* hash-table */
     Atom	builtin_array;		/* Builtin atoms */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
@@ -223,8 +238,7 @@ struct PL_global_data
   struct
   { size_t	highest;		/* Next index to handout */
     functor_array array;		/* index --> functor */
-    int		buckets;		/* # buckets in atom --> functor */
-    FunctorDef* table;			/* hash-table */
+    FunctorTable table;			/* hash-table */
   } functors;
 
   struct
@@ -243,12 +257,13 @@ struct PL_global_data
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
     IOFUNCTIONS		org_terminal;	/* IO+Prolog terminal functions */
-    IOFUNCTIONS		rl_functions;	/* IO+Terminal+Readline functions */
   } os;
 
   struct
   { Procedure	dgarbage_collect1;
     Procedure	catch3;
+    Procedure	reset3;
+    Procedure	dmeta_call1;		/* $meta_call/1 */
     Procedure	true0;
     Procedure	fail0;
     Procedure	equals2;		/* =/2 */
@@ -268,23 +283,33 @@ struct PL_global_data
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
     Procedure   dc_call_prolog0;	/* $c_call_prolog/0 */
+    Procedure   dinit_goal3;		/* $init_goal/3 */
 #ifdef O_ATTVAR
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
 #endif
-#ifdef O_CALL_RESIDUE
-    Procedure	call_residue_vars2;	/* $attvar:call_residue_vars/2 */
-#endif
     Procedure   comment_hook3;		/* prolog:comment_hook/3 */
 
-    SourceFile  reloading;		/* source file we are re-loading */
-    int		active_marked;		/* #prodedures marked active */
     int		static_dirty;		/* #static dirty procedures */
-
 #ifdef O_CLAUSEGC
-    DefinitionChain dirty;		/* List of dirty static procedures */
+    Table	dirty;			/* Table of dirty procedures */
 #endif
   } procedures;
+
+  struct
+  { ClauseRef	lingering;		/* Unlinked clause refs */
+    size_t	lingering_count;	/* # Unlinked clause refs */
+    int		cgc_active;		/* CGC is running */
+    int64_t	cgc_count;		/* # clause GC calls */
+    int64_t	cgc_reclaimed;		/* # clauses reclaimed */
+    double	cgc_time;		/* Total time spent in CGC */
+    size_t	erased;			/* # erased pending clauses */
+    size_t	erased_size;		/* memory used by them */
+    size_t	erased_size_last;	/* memory used by them after last CGC */
+    int		cgc_space_factor;	/* Max total/margin garbage */
+    double	cgc_stack_factor;	/* Price to scan stack space */
+    double	cgc_clause_factor;	/* Pce to scan clauses */
+  } clauses;
 
   struct
   { size_t	highest;		/* highest source file index */
@@ -312,7 +337,9 @@ struct PL_global_data
     HINSTANCE		instance;	/* Win32 process instance */
 #endif
     counting_mutex     *mutexes;	/* Registered mutexes */
-    int			thread_max;	/* Maximum # threads */
+    PL_thread_info_t   *free;		/* Free threads */
+    int			highest_allocated; /* Highest with info struct */
+    int			thread_max;	/* Size of threads array */
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
   } thread;
 #endif /*O_PLMT*/
@@ -358,7 +385,7 @@ struct PL_local_data
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
-  ClauseRef	freed_clauses;		/* List of pending freeable clauses */
+  struct PL_local_data *next_free;	/* see maybe_free_local_data() */
 
   struct
   { int		pending[2];		/* PL_raise() pending signals */
@@ -393,6 +420,7 @@ struct PL_local_data
     term_t	printed;		/* already printed exception */
     term_t	tmp;			/* tmp for errors */
     term_t	pending;		/* used by the debugger */
+    term_t	fr_rewritten;		/* processed by exception_hook() */
     int		in_hook;		/* inside exception_hook() */
     int		processing;		/* processing an exception */
     exception_frame *throw_environment;	/* PL_throw() environments */
@@ -402,6 +430,9 @@ struct PL_local_data
   struct
   { term_t	head;			/* Head of wakeup list */
     term_t	tail;			/* Tail of this list */
+    term_t	gc_attvars;		/* place for attvars during GC */
+    Word	attvars;		/* linked list of all attvars */
+    int		call_residue_vars_count; /* # call_residue_vars/2 active */
   } attvar;
 #endif
 
@@ -502,6 +533,14 @@ struct PL_local_data
 #endif
 
   struct
+  { struct worklist_set *worklist;		/* Worklist of current query */
+    struct worklist_set *created_worklists;	/* Worklists created */
+    struct trie      *variant_table;	/* Variant --> table */
+    trie_allocation_pool node_pool;	/* Node allocation pool for tries */
+    int	has_scheduling_component;	/* A leader was created */
+  } tabling;
+
+  struct
   {
 #ifdef __BEOS__
     status_t	dl_error;		/* dlopen() emulation in pl-beos.c */
@@ -527,7 +566,7 @@ struct PL_local_data
   struct
   { struct findall_bag *bags;		/* Known bags */
     struct findall_bag *default_bag;	/* Bag we keep around */
-#ifdef O_ATOMGC
+#if defined(O_ATOMGC) && defined(O_PLMT)
     simpleMutex mutex;			/* Atom GC scanning synchronization */
 #endif
   } bags;
@@ -549,6 +588,7 @@ struct PL_local_data
 					/* do not copy from parent */
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
+    int	portray_nesting;		/* depth of portray nesting */
   } IO;
 
   struct
@@ -568,6 +608,8 @@ struct PL_local_data
   } inference_limit;
 #endif
 
+  definition_refs predicate_references;	/* Referenced predicates */
+
   pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
   struct btrace *btrace_store;		/* C-backtraces */
@@ -576,7 +618,6 @@ struct PL_local_data
   struct
   { intptr_t   magic;			/* PL_THREAD_MAGIC (checking) */
     struct _PL_thread_info_t *info;	/* info structure */
-    unsigned forall_flags;		/* forThreadLocalData() flags */
 					/* Communication */
     message_queue messages;		/* Message queue */
     struct _thread_sig   *sig_head;	/* Head of signal queue */
@@ -591,6 +632,14 @@ struct PL_local_data
   { PL_locale *current;			/* Current locale */
   } locale;
 #endif
+
+  struct
+  { size_t	erased_skipped;		/* # erased clauses skipped */
+    int64_t	cgc_inferences;		/* Inferences at last cgc consider */
+#ifdef O_PLMT
+    simpleMutex local_shift_mutex;	/* protect local shifts */
+#endif
+  } clauses;
 
   struct
   { intptr_t _total_marked;		/* # marked global cells */

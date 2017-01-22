@@ -30,7 +30,7 @@
 #
 # Copyright policy:
 #
-#	* LGPL (see file COPYING or http://www.swi-prolog.org/)
+#	* BSD-2 (see file LICENSE or http://www.swi-prolog.org/)
 ################################################################
 
 .SUFFIXES: .i .pl
@@ -50,6 +50,7 @@ lmandir=$(mandir)/man$(lmansec)
 plmandir=$(PLBASE)/man
 
 PLVERSION=@PLVERSION@
+PLNVERSION=@PLNVERSION@
 PL=@PL@
 PLWIN=@PL@-win
 PLBASE=@PLBASE@
@@ -88,6 +89,7 @@ CMFLAGS=@CMFLAGS@
 CPFLAGS=
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
 LDFLAGS=@LDFLAGS@ $(CPFLAGS)
+LDOFLAGS=@LDOFLAGS@
 STACKFLAGS=@STACKFLAGS@
 SUBSYSTEMFLAGS=@SUBSYSTEMFLAGS@
 
@@ -123,6 +125,7 @@ SOEXT=@SO_EXT@
 SOLIB=@SOLIB@
 SHARED=@PLSO@
 SHAREDV=$(SHARED).$(PLVERSION)
+SONAME=@SONAME@
 SONAMEOPT=@SONAMEOPT@
 LIBRARYDIR=${PLBASE}/library
 PLCUSTOM=${PLBASE}/customize
@@ -229,23 +232,24 @@ $(RUNTIME):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 
 ifeq ($(SOEXT),dylib)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
-		$(CC) -dynamiclib -current_version $(PLVERSION) \
+		$(CC) -dynamiclib -current_version $(PLNVERSION) \
 			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
-			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LDOFLAGS) $(LIBS)
 else
 ifeq ($(SOEXT),dll)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ) $(OSLIB)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(OSLIB) $(LIBS)
+		  $(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LDOFLAGS) $(OSLIB) $(LIBS)
 		(cd $(RUNTIMEDIR) && $(MSLIBEXE) /def:libswipl.def)
 else
 $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LDOFLAGS)	$(LIBS)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
+		( cd ../lib/$(PLARCH) && rm -f $(SONAME) && ln -s $(SHAREDV) $(SONAME) )
 endif
 endif
 
@@ -473,8 +477,6 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
 		library \
 		library/clp library/unicode library/dcg \
 		library/dialect library/dialect/yap library/dialect/iso \
-		library/dialect/ciao library/dialect/ciao/engine \
-		library/dialect/ciao/regtypes \
 		library/dialect/sicstus \
 		library/dialect/eclipse \
 		library/dialect/swi \
@@ -508,6 +510,7 @@ else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
 		( cd $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
+		( cd $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) && rm -f $(SONAME) && ln -s $(SHAREDV) $(SONAME) ) ; \
 		fi
 endif
 endif
@@ -515,7 +518,7 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso ieclipse iunicode \
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iiso ieclipse iunicode \
 	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
 
 idirs:
@@ -546,7 +549,7 @@ idcg:		idirs
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
-idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog ieclipse
+idialect:	idirs iswi iyap iiso isicstus iifprolog ihprolog ieclipse
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -582,17 +585,6 @@ isicstus:	idirs
 			$(INSTALL_DATA) ../library/dialect/sicstus/$$f $(DESTDIR)$(PLBASE)/library/dialect/sicstus; \
 		done
 		$(INSTALL_DATA) $(srcdir)/compat/sicstus.h $(DESTDIR)$(PLBASE)/include/sicstus/sicstus.h
-
-iciao:		idirs
-		for f in $(CIAO); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao; \
-		done
-		for f in $(CIAO_ENGINE); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/engine/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/engine; \
-		done
-		for f in $(CIAO_REGTYPES); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/regtypes/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/regtypes; \
-		done
 
 iiso:		idirs
 		for f in $(ISO); do \
@@ -640,9 +632,9 @@ install-lman:
 		$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(plmandir)/swipl-ld.$(mansec)
 
 install-readme:	idirs
-		$(INSTALL_DATA) ../README $(DESTDIR)$(PLBASE)/README$(TXTEXT)
+		$(INSTALL_DATA) ../README.md $(DESTDIR)$(PLBASE)/README$(TXTEXT)
 		$(INSTALL_DATA) ../VERSION $(DESTDIR)$(PLBASE)
-		$(INSTALL_DATA) ../COPYING $(DESTDIR)$(PLBASE)/COPYING$(TXTEXT)
+		$(INSTALL_DATA) ../LICENSE $(DESTDIR)$(PLBASE)/LICENSE$(TXTEXT)
 		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
 
 html-install:

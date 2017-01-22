@@ -27,9 +27,9 @@ Copyright (C) 1988 M.J.E. Mol 1989, 1990"
 #define nopre    9              /* no pre-amble where expected       */
 #define nobop   10              /* no bop-command where expected     */
 #define nopp    11              /* no postpost where expected        */
-#define bdpre   12              /* unexpected preamble occured       */
-#define bdbop   13              /* unexpected bop-command occured    */
-#define bdpst   14              /* unexpected post-command occured   */
+#define bdpre   12              /* unexpected preamble occurred       */
+#define bdbop   13              /* unexpected bop-command occurred    */
+#define bdpst   14              /* unexpected post-command occurred   */
 #define bdpp    15              /* unexpected postpost               */
 #define nopst   16              /* no post-amble where expected      */
 #define illch   17              /* character code out of range       */

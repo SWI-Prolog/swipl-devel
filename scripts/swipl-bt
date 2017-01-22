@@ -1,0 +1,94 @@
+#!/bin/bash
+#
+# This script dumps the Prolog stacks of a running SWI-Prolog process
+# It requires SWI-Prolog 7.3.31 and a gdb, the GNU debugger.
+#
+# Author: Jan Wielemaker
+#
+# This code is in the public domain
+
+btflags=0
+btdepth=10
+thread=pid
+stack=prolog
+
+usage()
+{ echo "Dump stacks of a running SWI-Prolog process"
+  echo
+  echo "Usage: $(basename $0) [options] pid"
+  echo "Options"
+  echo "    --depth=N     Print max N goals (default 10)"
+  echo "    --thread=N    Only print thread N (default from pid)"
+  echo "    --safe        Do not try to print predicate arguments"
+  echo "    --user        Only print user predicates"
+  echo "    --info        Print thread info"
+  echo "    -C	          Print the C stack (default Prolog)"
+}
+
+done=false
+while [ $done = false ]; do
+  case "$1" in
+    --depth=*)
+      btdepth=$(echo $1 | sed 's/--depth=//')
+      shift
+      ;;
+    --thread=*)
+      thread=$(echo $1 | sed 's/--thread=//')
+      shift
+      ;;
+    --safe)
+      btflags=$(($btflags|1))
+      shift
+      ;;
+    --user)
+      btflags=$(($btflags|2))
+      shift
+      ;;
+    --info)
+      stack=info
+      shift
+      ;;
+    --*)
+      usage
+      exit 1
+      ;;
+    -C)
+      stack=C
+      shift
+      ;;
+    *)
+      done=true
+      ;;
+  esac
+done
+
+if [[ "$1" =~ ^[0-9]+$ ]]; then
+  pid=$1
+else
+  usage
+  exit 1
+fi
+
+if [ "$thread" = pid ]; then
+  cmd=
+else
+  cmd="thread apply $thread "
+fi
+
+case "$stack" in
+    C)
+       cmd+=bt
+       ;;
+    prolog)
+       cmd+='printf "%s", PL_backtrace_string('$btdepth,$btflags')'
+       ;;
+    info)
+       cmd="info threads"
+esac
+
+gdb </dev/null --nx --batch \
+    -ex "set pagination off" -ex "set height 0" -ex "set width 0" \
+    -ex "set print thread-events off" \
+    -ex "attach $pid" \
+    -ex "$cmd" \
+    -ex detach -ex quit

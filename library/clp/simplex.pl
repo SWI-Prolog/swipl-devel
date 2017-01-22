@@ -1,32 +1,35 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Markus Triska
-    E-mail:        triska@gmx.at
+    E-mail:        triska@metalevel.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2005-2015, Markus Triska
+    Copyright (C): 2005-2016, Markus Triska
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 
@@ -47,9 +50,187 @@
                 variable_value/3
         ]).
 
+:- if(exists_source(library(clpr))).
 :- use_module(library(clpr)).
+:- endif.
 :- use_module(library(assoc)).
 :- use_module(library(pio)).
+
+/** <module> Solve linear programming problems
+
+## Introduction			{#simplex-intro}
+
+A *linear programming problem* or simply *linear program* (LP)
+consists of:
+
+  - a set of _linear_ **constraints**
+  - a set of **variables**
+  - a _linear_ **objective function**.
+
+The goal is to assign values to the variables so as to _maximize_ (or
+minimize) the value of the objective function while satisfying all
+constraints.
+
+Many optimization problems can be modeled in this way. As one basic
+example, consider a knapsack with fixed capacity C, and a number of
+items with sizes `s(i)` and values `v(i)`. The goal is to put as many
+items as possible in the knapsack (not exceeding its capacity) while
+maximizing the sum of their values.
+
+As another example, suppose you are given a set of _coins_ with
+certain values, and you are to find the minimum number of coins such
+that their values sum up to a fixed amount. Instances of these
+problems are solved below.
+
+All numeric quantities are converted to rationals via `rationalize/1`,
+and rational arithmetic is used throughout solving linear programs. In
+the current implementation, all variables are implicitly constrained
+to be _non-negative_. This may change in future versions, and
+non-negativity constraints should therefore be stated explicitly.
+
+
+## Example 1     {#simplex-ex-1}
+
+This is the "radiation therapy" example, taken from _Introduction to
+Operations Research_ by Hillier and Lieberman.
+
+[**Prolog DCG notation**](https://www.metalevel.at/prolog/dcg) is
+used to _implicitly_ thread the state through posting the constraints:
+
+==
+:- use_module(library(simplex)).
+
+radiation(S) :-
+	gen_state(S0),
+	post_constraints(S0, S1),
+	minimize([0.4*x1, 0.5*x2], S1, S).
+
+post_constraints -->
+	constraint([0.3*x1, 0.1*x2] =< 2.7),
+	constraint([0.5*x1, 0.5*x2] = 6),
+	constraint([0.6*x1, 0.4*x2] >= 6),
+	constraint([x1] >= 0),
+	constraint([x2] >= 0).
+==
+
+An example query:
+
+==
+?- radiation(S), variable_value(S, x1, Val1),
+		 variable_value(S, x2, Val2).
+Val1 = 15 rdiv 2,
+Val2 = 9 rdiv 2.
+==
+
+## Example 2     {#simplex-ex-2}
+
+Here is an instance of the knapsack problem described above, where `C
+= 8`, and we have two types of items: One item with value 7 and size
+6, and 2 items each having size 4 and value 4. We introduce two
+variables, `x(1)` and `x(2)` that denote how many items to take of
+each type.
+
+==
+:- use_module(library(simplex)).
+
+knapsack(S) :-
+	knapsack_constraints(S0),
+	maximize([7*x(1), 4*x(2)], S0, S).
+
+knapsack_constraints(S) :-
+	gen_state(S0),
+	constraint([6*x(1), 4*x(2)] =< 8, S0, S1),
+	constraint([x(1)] =< 1, S1, S2),
+	constraint([x(2)] =< 2, S2, S).
+==
+
+An example query yields:
+
+==
+?- knapsack(S), variable_value(S, x(1), X1),
+	        variable_value(S, x(2), X2).
+X1 = 1
+X2 = 1 rdiv 2.
+==
+
+That is, we are to take the one item of the first type, and half of one of
+the items of the other type to maximize the total value of items in the
+knapsack.
+
+If items can not be split, integrality constraints have to be imposed:
+
+==
+knapsack_integral(S) :-
+	knapsack_constraints(S0),
+	constraint(integral(x(1)), S0, S1),
+	constraint(integral(x(2)), S1, S2),
+	maximize([7*x(1), 4*x(2)], S2, S).
+==
+
+Now the result is different:
+
+==
+?- knapsack_integral(S), variable_value(S, x(1), X1),
+			 variable_value(S, x(2), X2).
+
+X1 = 0
+X2 = 2
+==
+
+That is, we are to take only the _two_ items of the second type.
+Notice in particular that always choosing the remaining item with best
+performance (ratio of value to size) that still fits in the knapsack
+does not necessarily yield an optimal solution in the presence of
+integrality constraints.
+
+## Example 3      {#simplex-ex-3}
+
+We are given:
+
+  - 3 coins each worth 1 unit
+  - 20 coins each worth 5 units and
+  - 10 coins each worth 20 units.
+
+The task is to find a _minimal_ number of these coins that amount to
+111 units in total. We introduce variables `c(1)`, `c(5)` and `c(20)`
+denoting how many coins to take of the respective type:
+
+==
+:- use_module(library(simplex)).
+
+coins(S) :-
+	gen_state(S0),
+	coins(S0, S).
+
+coins -->
+	constraint([c(1), 5*c(5), 20*c(20)] = 111),
+	constraint([c(1)] =< 3),
+	constraint([c(5)] =< 20),
+	constraint([c(20)] =< 10),
+	constraint([c(1)] >= 0),
+	constraint([c(5)] >= 0),
+	constraint([c(20)] >= 0),
+	constraint(integral(c(1))),
+	constraint(integral(c(5))),
+	constraint(integral(c(20))),
+	minimize([c(1), c(5), c(20)]).
+==
+
+An example query:
+
+==
+?- coins(S), variable_value(S, c(1), C1),
+	     variable_value(S, c(5), C5),
+	     variable_value(S, c(20), C20).
+
+C1 = 1,
+C5 = 2,
+C20 = 5.
+==
+
+@author [Markus Triska](https://www.metalevel.at)
+*/
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    CLP(R) bindings
@@ -101,30 +282,21 @@ clpr_shadow_price(clpr_solved(_,_,Duals,_), Name, Value) :-
 clpr_make_variables(Cs, Aliases) :-
         clpr_constraints_variables(Cs, Variables0, []),
         sort(Variables0, Variables1),
-        clpr_aliases(Variables1, Aliases).
+        pairs_keys(Aliases, Variables1).
 
 clpr_constraints_variables([]) --> [].
 clpr_constraints_variables([c(_, Left, _, _)|Cs]) -->
         variables(Left),
         clpr_constraints_variables(Cs).
 
-clpr_aliases([], []).
-clpr_aliases([Var|Vars], [Var-_|Rest]) :-
-        clpr_aliases(Vars, Rest).
-
-clpr_set_up([], _).
-clpr_set_up([C|Cs], Aliases) :-
-        C = c(_Name, Left, Op, Right),
+clpr_set_up(Aliases, c(_Name, Left, Op, Right)) :-
         clpr_translate_linsum(Left, Aliases, LinSum),
         CLPRConstraint =.. [Op, LinSum, Right],
-        clpr:{ CLPRConstraint },
-        clpr_set_up(Cs, Aliases).
+        clpr:{ CLPRConstraint }.
 
-clpr_set_up_noneg([], _).
-clpr_set_up_noneg([Var|Vs], Aliases) :-
+clpr_set_up_noneg(Aliases, Var) :-
         memberchk(Var-CLPVar, Aliases),
-        { CLPVar >= 0 },
-        clpr_set_up_noneg(Vs, Aliases).
+        { CLPVar >= 0 }.
 
 clpr_translate_linsum([], _, 0).
 clpr_translate_linsum([Coeff*Var|Ls], Aliases, LinSum) :-
@@ -136,60 +308,45 @@ clpr_dual(Objective0, S0, DualValues) :-
         clpr_state_constraints(S0, Cs0),
         clpr_constraints_variables(Cs0, Variables0, []),
         sort(Variables0, Variables1),
-        clpr_standard_form(Cs0, Cs1),
+        maplist(clpr_standard_form, Cs0, Cs1),
         clpr_include_all_vars(Cs1, Variables1, Cs2),
         clpr_merge_into(Variables1, Objective0, Objective, []),
         clpr_unique_names(Cs2, 0, Names),
-        clpr_constraints_coefficients(Cs2, Coefficients),
+        maplist(clpr_constraint_coefficient, Cs2, Coefficients),
         lists_transpose(Coefficients, TCs),
-        clpr_dual_constraints(TCs, Objective, Names, DualConstraints),
-        clpr_nonneg_constraints(Cs2, Names, DualNonNeg, []),
+        maplist(clpr_dual_constraints(Names), TCs, Objective, DualConstraints),
+        phrase(clpr_nonneg_constraints(Cs2, Names), DualNonNeg),
         append(DualConstraints, DualNonNeg, DualConstraints1),
-        clpr_dual_objective(Cs2, Names, DualObjective),
+        maplist(clpr_dual_objective, Cs2, Names, DualObjective),
         clpr_make_variables(DualConstraints1, Aliases),
-        clpr_set_up(DualConstraints1, Aliases),
+        maplist(clpr_set_up(Aliases), DualConstraints1),
         clpr_translate_linsum(DualObjective, Aliases, LinExpr),
         minimize(LinExpr),
         Aliases = DualValues.
 
 
 
-clpr_dual_objective([], _, []).
-clpr_dual_objective([C|Cs], [Name|Names], [Right*Name|Os]) :-
-        C = c(_, _, _, Right),
-        clpr_dual_objective(Cs, Names, Os).
+clpr_dual_objective(c(_, _, _, Right), Name, Right*Name).
 
-clpr_nonneg_constraints([], _, Nons, Nons).
-clpr_nonneg_constraints([C|Cs], [Name|Names], Nons0, Nons) :-
-        C = c(_, _, Op, _),
-        (   Op == (=<) -> Nons0 = [c(0, [1*Name], (>=), 0)|Rest]
-        ;   Nons0 = Rest
+clpr_nonneg_constraints([], _) --> [].
+clpr_nonneg_constraints([C|Cs], [Name|Names]) -->
+        { C = c(_, _, Op, _) },
+        (   { Op == (=<) } -> [c(0, [1*Name], (>=), 0)]
+        ;   []
         ),
-        clpr_nonneg_constraints(Cs, Names, Rest, Nons).
+        clpr_nonneg_constraints(Cs, Names).
 
 
-clpr_dual_constraints([], [], _, []).
-clpr_dual_constraints([Coeffs|Cs], [O*_|Os], Names, [Constraint|Constraints]) :-
-        clpr_dual_linsum(Coeffs, Names, Linsum),
-        Constraint = c(0, Linsum, (>=), O),
-        clpr_dual_constraints(Cs, Os, Names, Constraints).
+clpr_dual_constraints(Names, Coeffs, O*_, Constraint) :-
+        maplist(clpr_dual_linsum, Coeffs, Names, Linsum),
+        Constraint = c(0, Linsum, (>=), O).
 
+clpr_dual_linsum(Coeff, Name, Coeff*Name).
 
-clpr_dual_linsum([], [], []).
-clpr_dual_linsum([Coeff|Coeffs], [Name|Names], [Coeff*Name|Rest]) :-
-        clpr_dual_linsum(Coeffs, Names, Rest).
+clpr_constraint_coefficient(c(_, Left, _, _), Coeff) :-
+        maplist(coeff_, Left, Coeff).
 
-
-clpr_constraints_coefficients([], []).
-clpr_constraints_coefficients([C|Cs], [Coeff|Coeffs]) :-
-        C = c(_, Left, _, _),
-        all_coeffs(Left, Coeff),
-        clpr_constraints_coefficients(Cs, Coeffs).
-
-all_coeffs([], []).
-all_coeffs([Coeff*_|Cs], [Coeff|Rest]) :-
-        all_coeffs(Cs, Rest).
-
+all_coeffs(Coeff*_, Coeff).
 
 clpr_unique_names([], _, []).
 clpr_unique_names([C0|Cs0], Num, [N|Ns]) :-
@@ -222,10 +379,10 @@ clpr_maximize(Expr0, S0, S) :-
         coeff_one(Expr0, Expr),
         clpr_state_constraints(S0, Cs),
         clpr_make_variables(Cs, Aliases),
-        clpr_set_up(Cs, Aliases),
+        maplist(clpr_set_up(Aliases), Cs),
         clpr_constraints_variables(Cs, Variables0, []),
         sort(Variables0, Variables1),
-        clpr_set_up_noneg(Variables1, Aliases),
+        maplist(clpr_set_up_noneg(Aliases), Variables1),
         clpr_translate_linsum(Expr, Aliases, LinExpr),
         clpr_state_integrals(S0, Is),
         ( Is == [] ->
@@ -236,9 +393,9 @@ clpr_maximize(Expr0, S0, S) :-
         ;
                 clpr_state_options(S0, Options),
                 memberchk(eps=Eps, Options),
-                clpr_fetch_vars(Is, Aliases, Vars),
+                maplist(clpr_fetch_var(Aliases), Is, Vars),
                 bb_inf(Vars, -LinExpr, Sup, Vertex, Eps),
-                clpr_merge_vars(Is, Vertex, Values),
+                pairs_keys_values(Values, Is, Vertex),
                 % what about the dual in MIPs?
                 Sup1 is -Sup,
                 S = clpr_solved(Sup1, Values, [], S0)
@@ -246,20 +403,13 @@ clpr_maximize(Expr0, S0, S) :-
 
 clpr_minimize(Expr0, S0, S) :-
         coeff_one(Expr0, Expr1),
-        clpr_all_negate(Expr1, Expr2),
+        maplist(linsum_negate, Expr1, Expr2),
         clpr_maximize(Expr2, S0, S1),
         S1 = clpr_solved(Sup, Values, Duals, S0),
         Inf is -Sup,
         S = clpr_solved(Inf, Values, Duals, S0).
 
-clpr_merge_vars([], [], []).
-clpr_merge_vars([I|Is], [V|Vs], [I-V|Rest]) :-
-        clpr_merge_vars(Is, Vs, Rest).
-
-clpr_fetch_vars([], _, []).
-clpr_fetch_vars([Var|Vars], Aliases, [X|Xs]) :-
-        memberchk(Var-X, Aliases),
-        clpr_fetch_vars(Vars, Aliases, Xs).
+clpr_fetch_var(Aliases, Var, X) :- memberchk(Var-X, Aliases).
 
 clpr_variable_value(clpr_solved(_, Aliases, _, _), Variable, Value) :-
         memberchk(Variable-Value0, Aliases),
@@ -272,22 +422,14 @@ clpr_variable_value(clpr_solved(_, Aliases, _, _), Variable, Value) :-
 
 clpr_objective(clpr_solved(Obj, _, _, _), Obj).
 
-clpr_standard_form([], []).
-clpr_standard_form([c(Name, Left, Op, Right)|Cs], [S|Ss]) :-
-        clpr_standard_form_(Op, Name, Left, Right, S),
-        clpr_standard_form(Cs, Ss).
+clpr_standard_form(c(Name, Left, Op, Right), S) :-
+        clpr_standard_form_(Op, Name, Left, Right, S).
 
 clpr_standard_form_((=), Name, Left, Right, c(Name, Left, (=), Right)).
 clpr_standard_form_((>=), Name, Left, Right, c(Name, Left1, (=<), Right1)) :-
         Right1 is -Right,
-        clpr_all_negate(Left, Left1).
+        maplist(linsum_negate, Left, Left1).
 clpr_standard_form_((=<), Name, Left, Right, c(Name, Left, (=<), Right)).
-
-clpr_all_negate([], []).
-clpr_all_negate([Coeff0*Var|As], [Coeff1*Var|Ns]) :-
-        Coeff1 is -Coeff0,
-        clpr_all_negate(As, Ns).
-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -313,6 +455,10 @@ find_row(Variable, [Row|Rows], R) :-
         ;   find_row(Variable, Rows, R)
         ).
 
+%% variable_value(+State, +Variable, -Value)
+%
+% Value is unified with the value obtained for Variable. State must
+% correspond to a solved instance.
 
 variable_value(State, Variable, Value) :-
         functor(State, F, _),
@@ -325,12 +471,15 @@ variable_value(State, Variable, Value) :-
         ;   F == clpr_solved -> clpr_variable_value(State, Variable, Value)
         ).
 
-all_vars_zero([], _).
-all_vars_zero([_Coeff*Var|Vars], State) :-
-        variable_value(State, Var, 0),
-        all_vars_zero(Vars, State).
+var_zero(State, _Coeff*Var) :- variable_value(State, Var, 0).
 
 list_first(Ls, F, Index) :- once(nth0(Index, Ls, F)).
+
+%% shadow_price(+State, +Name, -Value)
+%
+% Unifies Value with the shadow price corresponding to the linear
+% constraint whose name is Name. State must correspond to a solved
+% instance.
 
 shadow_price(State, Name, Value) :-
         functor(State, F, _),
@@ -344,6 +493,11 @@ shadow_price(State, Name, Value) :-
             nth0(Nth0, Left, Value)
         ;   F == clpr_solved -> clpr_shadow_price(State, Name, Value)
         ).
+
+%% objective(+State, -Objective)
+%
+% Unifies Objective with the result of the objective function at the
+% obtained extremum. State must correspond to a solved instance.
 
 objective(State, Obj) :-
         functor(State, F, _),
@@ -384,6 +538,10 @@ constraint_name(c(Name, _, _, _), Name).
 constraint_op(c(_, _, Op, _), Op).
 constraint_left(c(_, Left, _, _), Left).
 constraint_right(c(_, _, _, Right), Right).
+
+%% gen_state(-State)
+%
+% Generates an initial state corresponding to an empty linear program.
 
 gen_state(state(0,[],[],[])).
 
@@ -446,6 +604,19 @@ solved_integrals(solved(_,_,Is), Is).
 % User-named constraints are wrapped with user/1 to also allow "0" in
 % constraint names.
 
+%% constraint(+Constraint, +S0, -S)
+%
+% Adds a linear or integrality constraint to the linear program
+% corresponding to state S0. A linear constraint is of the form =|Left
+% Op C|=, where `Left` is a list of `Coefficient*Variable` terms
+% (variables in the context of linear programs can be atoms or
+% compound terms) and `C` is a non-negative numeric constant. The list
+% represents the sum of its elements. `Op` can be `=`, `=<` or `>=`.
+% The coefficient `1` can be omitted. An integrality constraint is of
+% the form integral(Variable) and constrains Variable to an integral
+% value.
+
+
 constraint(C, S0, S) :-
         functor(S0, F, _),
         (   F == state ->
@@ -454,6 +625,11 @@ constraint(C, S0, S) :-
             )
         ;   F == clpr_state -> clpr_constraint(C, S0, S)
         ).
+
+%% constraint(+Name, +Constraint, +S0, -S)
+%
+% Like constraint/3, and attaches the name Name (an atom or compound
+% term) to the new constraint.
 
 constraint(Name, C, S0, S) :- constraint_(user(Name), C, S0, S).
 
@@ -469,6 +645,12 @@ constraint_(Name, C, S0, S) :-
             )
         ;   F == clpr_state -> clpr_constraint(Name, C, S0, S)
         ).
+
+%% constraint_add(+Name, +Left, +S0, -S)
+%
+% Left is a list of `Coefficient*Variable` terms. The terms are added
+% to the left-hand side of the constraint named Name. S is unified
+% with the resulting state.
 
 constraint_add(Name, A, S0, S) :-
         functor(S0, F, _),
@@ -555,6 +737,14 @@ branch_and_bound(Objective, Solved, AllInt, ZStar0, ZStar, S0, S, Found) :-
         ;   ZStar = ZStar0, S = S0, Found = 0
         ).
 
+%% maximize(+Objective, +S0, -S)
+%
+% Maximizes the objective function, stated as a list of
+% `Coefficient*Variable` terms that represents the sum of its
+% elements, with respect to the linear program corresponding to state
+% S0. \arg{S} is unified with an internal representation of the solved
+% instance.
+
 maximize(Z0, S0, S) :-
         coeff_one(Z0, Z1),
         functor(S0, F, _),
@@ -582,12 +772,15 @@ all_integers([Coeff*V|Rest], Is) :-
         memberchk(V, Is),
         all_integers(Rest, Is).
 
+%% minimize(+Objective, +S0, -S)
+%
+% Analogous to maximize/3.
 
 minimize(Z0, S0, S) :-
         coeff_one(Z0, Z1),
         functor(S0, F, _),
         (   F == state ->
-            linsum_negate(Z1, Z2),
+            maplist(linsum_negate, Z1, Z2),
             maximize_mip(Z2, S0, S1),
             solved_tableau(S1, tableau(Obj, Vars, Inds, Rows)),
             solved_names(S1, Names),
@@ -603,27 +796,27 @@ minimize(Z0, S0, S) :-
 op_pendant(>=, =<).
 op_pendant(=<, >=).
 
-constraints_collapse([], []).
-constraints_collapse([C|Cs], Colls) :-
-        C = c(Name, Left, Op, Right),
-        (   Name == 0, Left = [1*Var], op_pendant(Op, P) ->
-            Pendant = c(0, [1*Var], P, Right),
-            (   select(Pendant, Cs, Rest) ->
-                Colls = [c(0, Left, (=), Right)|CollRest],
-                CsLeft = Rest
-            ;   Colls = [C|CollRest],
-                CsLeft = Cs
+constraints_collapse([]) --> [].
+constraints_collapse([C|Cs]) -->
+        { C = c(Name, Left, Op, Right) },
+        (   { Name == 0, Left = [1*Var], op_pendant(Op, P) } ->
+            { Pendant = c(0, [1*Var], P, Right) },
+            (   { select(Pendant, Cs, Rest) } ->
+                [c(0, Left, (=), Right)],
+                { CsLeft = Rest }
+            ;   [C],
+                { CsLeft = Cs }
             )
-        ;   Colls = [C|CollRest],
-            CsLeft = Cs
+        ;   [C],
+            { CsLeft = Cs }
         ),
-        constraints_collapse(CsLeft, CollRest).
+        constraints_collapse(CsLeft).
 
 % solve a (relaxed) LP in standard form
 
 maximize_(Z, S0, S) :-
         state_constraints(S0, Cs0),
-        constraints_collapse(Cs0, Cs1),
+        phrase(constraints_collapse(Cs0), Cs1),
         phrase(constraints_normalize(Cs1, Cs, As0), [S0], [S1]),
         flatten(As0, As1),
         (   As1 == [] ->
@@ -649,26 +842,23 @@ make_tableau(Z, Cs, Tableau) :-
         all_one(Ones),
         Tableau = tableau(row(z, Obj, 0), Variables, Ones, Rows).
 
-all_one([]).
-all_one([1|Os]) :- all_one(Os).
+all_one(Ones) :- maplist(=(1), Ones).
 
-proper_form([], _, _, Obj, Obj).
-proper_form([_Coeff*A|As], Variables, Rows, Obj0, Obj) :-
+proper_form(Variables, Rows, _Coeff*A, Obj0, Obj) :-
         (   find_row(A, Rows, PivotRow) ->
             list_first(Variables, A, Col),
-            row_eliminate(Obj0, PivotRow, Col, Obj1)
-        ;   Obj1 = Obj0
-        ),
-        proper_form(As, Variables, Rows, Obj1, Obj).
+            row_eliminate(Obj0, PivotRow, Col, Obj)
+        ;   Obj = Obj0
+        ).
 
 
 two_phase_simplex(Z, Cs, As, Names, Is, S) :-
         % phase 1: minimize sum of articifial variables
         make_tableau(As, Cs, Tableau0),
         Tableau0 = tableau(Obj0, Variables, Inds, Rows),
-        proper_form(As, Variables, Rows, Obj0, Obj),
+        foldl(proper_form(Variables, Rows), As, Obj0, Obj),
         simplex(tableau(Obj, Variables, Inds, Rows), Tableau1),
-        all_vars_zero(As, solved(Tableau1, _, _)),
+        maplist(var_zero(solved(Tableau1, _, _)), As),
         % phase 2: remove artificial variables and solve actual LP.
         tableau_rows(Tableau1, Rows2),
         eliminate_artificial(As, As, Variables, Rows2, Rows3),
@@ -676,7 +866,7 @@ two_phase_simplex(Z, Cs, As, Names, Is, S) :-
         nths_to_zero(Nths0, Inds, Inds1),
         linsum_row(Variables, Z, Objective),
         all_times(Objective, -1, Objective1),
-        proper_form(Z, Variables, Rows3, row(z, Objective1, 0), ObjRow),
+        foldl(proper_form(Variables, Rows3), Z, row(z, Objective1, 0), ObjRow),
         simplex(tableau(ObjRow, Variables, Inds1, Rows3), Tableau),
         S = solved(Tableau, Names, Is).
 
@@ -722,11 +912,7 @@ list_nths([_Coeff*A|As], Variables, [Nth|Nths]) :-
         list_nths(As, Variables, Nths).
 
 
-linsum_negate([], []).
-linsum_negate([Coeff0*Var|Ls], [Coeff*Var|Ns]) :-
-        Coeff is Coeff0 * (-1),
-        linsum_negate(Ls, Ns).
-
+linsum_negate(Coeff0*Var, Coeff*Var) :- Coeff is -Coeff0.
 
 linsum_row([], _, []).
 linsum_row([V|Vs], Ls, [C|Cs]) :-
@@ -1093,6 +1279,18 @@ list_first_rest([L|Ls], L, Ls).
    TODO: use attributed variables throughout
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+
+%% transportation(+Supplies, +Demands, +Costs, -Transport)
+%
+% Solves a transportation problem. Supplies and Demands must be lists
+% of non-negative integers. Their respective sums must be equal. Costs
+% is a list of lists representing the cost matrix, where an entry
+% (_i_,_j_) denotes the integer cost of transporting one unit from _i_
+% to _j_. A transportation plan having minimum cost is computed and
+% unified with Transport in the form of a list of lists that
+% represents the transportation matrix, where element (_i_,_j_)
+% denotes how many units to ship from _i_ to _j_.
+
 transportation(Supplies, Demands, Costs, Transport) :-
         length(Supplies, LAs),
         length(Demands, LBs),
@@ -1343,11 +1541,36 @@ print_row_(N) :- format("~w ", [N]).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Assignment problem - for now, reduce to transportation problem
 
+%% assignment(+Cost, -Assignment)
+%
+%  Solves a linear assignment problem. Cost is a list of lists
+%  representing the quadratic cost matrix, where element (i,j) denotes
+%  the integer cost of assigning entity $i$ to entity $j$. An
+%  assignment with minimal cost is computed and unified with
+%  Assignment as a list of lists, representing an adjacency matrix.
+
+
+% Assignment problem - for now, reduce to transportation problem
 assignment(Costs, Assignment) :-
         length(Costs, LC),
         length(Supply, LC),
         all_one(Supply),
         transportation(Supply, Supply, Costs, Assignment).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Messages
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile prolog:message//1.
+
+prolog:message(simplex(bounded)) -->
+        ['Using library(simplex) with bounded arithmetic may yield wrong results.'-[]].
+
+warn_if_bounded_arithmetic :-
+        (   current_prolog_flag(bounded, true) ->
+            print_message(warning, simlpex(bounded))
+        ;   true
+        ).
+
+:- initialization(warn_if_bounded_arithmetic).

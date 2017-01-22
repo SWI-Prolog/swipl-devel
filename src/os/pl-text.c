@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2011-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -97,23 +109,27 @@ PL_from_stack_text() moves a string from  the   stack,  so  it won't get
 corrupted if GC/shift comes along.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-PL_from_stack_text(PL_chars_t *text)
-{ if ( text->storage == PL_CHARS_STACK )
-  { size_t bl = bufsize_text(text, text->length+1);
+static int
+PL_from_stack_text(PL_chars_t *text, int flags)
+{ if ( !(flags&BUF_ALLOW_STACK) )
+  { if ( text->storage == PL_CHARS_STACK )
+    { size_t bl = bufsize_text(text, text->length+1);
 
-    if ( bl < sizeof(text->buf) )
-    { memcpy(text->buf, text->text.t, bl);
-      text->text.t = text->buf;
-      text->storage = PL_CHARS_LOCAL;
-    } else
-    { Buffer b = findBuffer(BUF_RING);
+      if ( bl < sizeof(text->buf) )
+      { memcpy(text->buf, text->text.t, bl);
+	text->text.t = text->buf;
+	text->storage = PL_CHARS_LOCAL;
+      } else
+      { Buffer b = findBuffer(BUF_RING);
 
-      addMultipleBuffer(b, text->text.t, bl, char);
-      text->text.t = baseBuffer(b, char);
-      text->storage = PL_CHARS_RING;
+	addMultipleBuffer(b, text->text.t, bl, char);
+	text->text.t = baseBuffer(b, char);
+	text->storage = PL_CHARS_RING;
+      }
     }
   }
+
+  return TRUE;
 }
 
 
@@ -146,7 +162,7 @@ static char *
 i64toa(int64_t val, char *out)
 { if ( val < 0 )
   { *out++ = '-';
-    val = -val;
+    val = -(uint64_t)val;
   }
 
   return ui64toa((uint64_t)val, out);
@@ -165,7 +181,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
       goto maybe_write;
-    PL_from_stack_text(text);
+    if ( !PL_from_stack_text(text, flags) )
+      return FALSE;			/* no memory */
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { number n;
 
@@ -248,6 +265,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 
 	    return PL_error(NULL, 0, NULL, ERR_TYPE, type, culprit);
 	  }
+	  case CVT_representation:
+	    return PL_representation_error("character_code");
 	  default:
 	    break;
 	}
@@ -391,16 +410,21 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
       return FALSE;
     }
     case PL_STRING:
-    { word w = textToString(text);
+    { word w;
 
-      if ( w )
+      if ( !PL_from_stack_text(text, 0) )	/* TBD: only needed if no space */
+	return FALSE;
+      if ( (w = textToString(text)) )
 	return _PL_unify_atomic(term, w);
       else
 	return FALSE;
     }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
-    { if ( text->length == 0 )
+    { if ( !PL_from_stack_text(text, 0) )	/* TBD: only needed if no space */
+	return FALSE;
+
+      if ( text->length == 0 )
       { if ( tail )
 	{ GET_LD
 	  PL_put_term(tail, term);
@@ -552,7 +576,7 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
     }
 
     sub.length = len;
-    sub.storage = PL_CHARS_HEAP;
+    sub.storage = text->storage == PL_CHARS_STACK ? PL_CHARS_STACK : PL_CHARS_HEAP;
     if ( text->encoding == ENC_ISO_LATIN_1 )
     { sub.text.t   = text->text.t+offset;
       sub.encoding = ENC_ISO_LATIN_1;
@@ -991,7 +1015,6 @@ PL_canonicalise_text(PL_chars_t *text)
 	  } else
 	  { char *t, *to = PL_malloc(len+1);
 
-	    text->text.t = to;
 	    for(t=to; s<e;)
 	    { s = utf8_get_char(s, &chr);
 	      *t++ = chr;

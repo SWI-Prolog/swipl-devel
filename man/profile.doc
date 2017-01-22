@@ -49,7 +49,7 @@ to \arg{Options}:
     \begin{description}
 	\termitem{top}{+N}
     Show the only top \arg{N} predicates.  Default is 25.
-	\termitem{cummulative}{+Bool}
+	\termitem{cumulative}{+Bool}
     If \const{true} (default \const{false}), include the time spent in
     children in the time reported for a predicate.
     \end{description}

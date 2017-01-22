@@ -1,28 +1,45 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1996-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #define _UNICODE 1
 #define UNICODE 1
+
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
 
 #ifdef WIN64
 #include "config/win64.h"
@@ -30,12 +47,13 @@
 #include "config/win32.h"
 #endif
 
-#include <windows.h>
+#define PL_ARITY_AS_SIZE 1
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
 #include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
+#include <windows.h>
 #include <ctype.h>
 #include "win32/console/console.h"
 #include <signal.h>
@@ -306,7 +324,7 @@ process_console_options(rlc_console_attr *attr, term_t options)
   while(PL_get_list(tail, opt, tail))
   { atom_t name;
     const char *s;
-    int arity;
+    size_t arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
       return PL_type_error("compound", opt);
@@ -618,7 +636,7 @@ pl_window_pos(term_t options)
   while(PL_get_list(tail, opt, tail))
   { atom_t name;
     const char *s;
-    int arity;
+    size_t arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
       return PL_type_error("compound", opt);
@@ -892,9 +910,14 @@ interrupt(rlc_console c, int sig)
 { uintptr_t val;
 
   if ( rlc_get(c, RLC_APPLICATION_THREAD_ID, &val) )
-  { DWORD tid = (DWORD)val;
-
+  {
+#ifdef O_PLMT
+    DWORD tid = (DWORD)val;
     PL_w32thread_raise(tid, sig);
+#else
+    PL_raise(sig);
+#endif
+
     if ( rlc_get(c, RLC_PROLOG_WINDOW, &val) )
     { HWND hwnd = (HWND)val;
 
@@ -933,14 +956,23 @@ message_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		 *	       MAIN		*
 		 *******************************/
 
+#ifndef PLVERSION_TAG
+#define PLVERSION_TAG ""
+#endif
+
 
 static void
 set_window_title(rlc_console c)
 { TCHAR title[256];
+  TCHAR wtag[64];
   int v = (int)PL_query(PL_QUERY_VERSION);
   int major = v / 10000;
   int minor = (v / 100) % 100;
   int patch = v % 100;
+  const char *tag = PLVERSION_TAG;
+  const	char *s;
+  TCHAR *o;
+
 #ifdef O_PLMT
   TCHAR *mt = _T("Multi-threaded, ");
 #else
@@ -952,9 +984,15 @@ set_window_title(rlc_console c)
   TCHAR *w64 = _T("");
 #endif
 
+  if ( !tag ) tag = "";
+  for(s=tag,o=wtag; *s; )
+    *o++ = *s++;
+  *o = 0;
+
   snwprintf(title, sizeof(title)/sizeof(TCHAR),
-	    _T("SWI-Prolog (%s%sversion %d.%d.%d)"),
-	    w64, mt, major, minor, patch);
+	    _T("SWI-Prolog (%s%sversion %d.%d.%d%s%s)"),
+	    w64, mt, major, minor, patch,
+	    wtag[0] ? _T("-") : _T(""), wtag);
 
   rlc_title(c, title, NULL, 0);
 }
@@ -990,7 +1028,7 @@ install_readline(rlc_console c)
       "system", "$rl_history",       1, pl_rl_history,        0);
 
   PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
-  PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
+  PL_set_prolog_flag("readline",    PL_ATOM, "swipl_win");
 }
 
 /* destroy the console on exit.  Using PL_on_halt() is the clean, but somewhat

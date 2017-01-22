@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -35,13 +47,20 @@ handling times must be cleaned, but that not only holds for this module.
 /*#define O_DEBUG 1*/
 /*#define O_DEBUG_MT 1*/
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #define NEEDS_SWINSOCK
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include <errno.h>
 
-#ifdef HAVE_SYS_SELECT_H
+#if defined(HAVE_POLL_H) && defined(HAVE_POLL)
+#include <poll.h>
+#elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
 #endif
 #ifdef HAVE_SYS_TIME_H
@@ -66,6 +85,8 @@ handling times must be cleaned, but that not only holds for this module.
 
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
+
+#define STD_HANDLE_MASK 0x10
 
 /* there are two types of stream property functions. In the usual case,
    they have an argument, but in a few cases they don't */
@@ -149,11 +170,16 @@ getStreamContext(IOSTREAM *s)
 
     DEBUG(1, Sdprintf("Created ctx=%p for stream %p\n", ctx, s));
 
+    if ( s->erased )
+      Sdprintf("WARNING: created stream context for erased stream\n");
+
     ctx->alias_head = ctx->alias_tail = NULL;
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;
-    addHTable(streamContext, s, ctx);
-    s->context = ctx;
+    if ( COMPARE_AND_SWAP(&s->context, NULL, ctx) )
+      addNewHTable(streamContext, s, ctx);
+    else
+      freeHeap(ctx, sizeof(*ctx));
   }
 
   return (stream_context*)s->context;
@@ -169,16 +195,17 @@ getExistingStreamContext(IOSTREAM *s)
 
 static void
 aliasStream(IOSTREAM *s, atom_t name)
-{ stream_context *ctx;
-  Symbol symb;
+{ GET_LD
+  stream_context *ctx;
+  IOSTREAM *sp;
   alias *a;
 
 					/* ensure name is free (error?) */
-  if ( (symb = lookupHTable(streamAliases, (void *)name)) )
-    unaliasStream(symb->value, name);
+  if ( (sp = lookupHTable(streamAliases, (void *)name)) )
+    unaliasStream(sp, name);
 
   ctx = getStreamContext(s);
-  addHTable(streamAliases, (void *)name, s);
+  addNewHTable(streamAliases, (void *)name, s);
   PL_register_atom(name);
 
   a = allocHeapOrHalt(sizeof(*a));
@@ -198,13 +225,12 @@ aliasStream(IOSTREAM *s, atom_t name)
 
 static void
 unaliasStream(IOSTREAM *s, atom_t name)
-{ Symbol symb;
-
+{ GET_LD
   if ( name )
-  { if ( (symb = lookupHTable(streamAliases, (void *)name)) )
+  { if ( lookupHTable(streamAliases, (void *)name) )
     { stream_context *ctx;
 
-      deleteSymbolHTable(streamAliases, symb);
+      deleteHTable(streamAliases, (void *)name);
 
       if ( (ctx=getExistingStreamContext(s)) )
       { alias **a;
@@ -232,12 +258,10 @@ unaliasStream(IOSTREAM *s, atom_t name)
     { alias *a, *n;
 
       for(a = ctx->alias_head; a; a=n)
-      { Symbol s2;
+      { n = a->next;
 
-	n = a->next;
-
-	if ( (s2 = lookupHTable(streamAliases, (void *)a->name)) )
-	{ deleteSymbolHTable(streamAliases, s2);
+	if ( lookupHTable(streamAliases, (void *)a->name) )
+	{ deleteHTable(streamAliases, (void *)a->name);
 	  PL_unregister_atom(a->name);
 	}
 
@@ -253,7 +277,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
 static void
 freeStream(IOSTREAM *s)
 { GET_LD
-  Symbol symb;
+  stream_context *ctx;
   int i;
   IOSTREAM **sp;
 
@@ -261,9 +285,9 @@ freeStream(IOSTREAM *s)
 
   LOCK();
   unaliasStream(s, NULL_ATOM);
-  if ( (symb=lookupHTable(streamContext, s)) )
-  { stream_context *ctx = symb->value;
-
+  ctx = s->context;
+  if ( ctx && COMPARE_AND_SWAP(&s->context, ctx, NULL) )
+  { deleteHTable(streamContext, s);
     if ( ctx->filename != NULL_ATOM )
     { PL_unregister_atom(ctx->filename);
 
@@ -274,21 +298,22 @@ freeStream(IOSTREAM *s)
     }
 
     freeHeap(ctx, sizeof(*ctx));
-    deleteSymbolHTable(streamContext, symb);
   }
 					/* if we are a standard stream */
 					/* reassociate with standard I/O */
 					/* NOTE: there may be more! */
-  for(i=0, sp = LD->IO.streams; i<6; i++, sp++)
-  { if ( *sp == s )
-    { if ( s->flags & SIO_INPUT )
-	*sp = Sinput;
-      else if ( sp == &Suser_error )
-	*sp = Serror;
-      else if ( sp == &Sprotocol )
-	*sp = NULL;
-      else
-	*sp = Soutput;
+  if ( LD && (sp=LD->IO.streams) )
+  { for(i=0; i<6; i++, sp++)
+    { if ( *sp == s )
+      { if ( s->flags & SIO_INPUT )
+	  *sp = Sinput;
+	else if ( sp == &Suser_error )
+	  *sp = Serror;
+	else if ( sp == &Sprotocol )
+	  *sp = NULL;
+	else
+	  *sp = Soutput;
+      }
     }
   }
   UNLOCK();
@@ -374,8 +399,9 @@ initIO(void)
   getStreamContext(Sinput);		/* add for enumeration */
   getStreamContext(Soutput);
   getStreamContext(Serror);
+
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addHTable(streamAliases, (void *)*np, (void *)(intptr_t)i);
+    addNewHTable(streamAliases, (void *)*np, (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
 
   GD->io_initialised = TRUE;
 }
@@ -429,11 +455,7 @@ releaseStream(IOSTREAM *s)
 
 int
 PL_release_stream(IOSTREAM *s)
-{ if ( Sferror(s) )
-    return streamStatus(s);
-
-  releaseStream(s);
-  return TRUE;
+{ return streamStatus(s);
 }
 
 
@@ -599,18 +621,18 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
 
     return symbol_no_stream(a);
   } else
-  { Symbol symb;
+  { void *s0;
 
     if ( !(flags & SH_UNLOCKED) )
       LOCK();
-    if ( (symb=lookupHTable(streamAliases, (void *)a)) )
+    if ( (s0 = lookupHTable(streamAliases, (void *)a)) )
     { IOSTREAM *stream;
-      uintptr_t n = (uintptr_t)symb->value;
+      uintptr_t n = (uintptr_t)s0 & ~STD_HANDLE_MASK;
 
       if ( n < 6 )			/* standard stream! */
       { stream = LD->IO.streams[n];	/* TBD: No need to lock for std-streams */
       } else
-	stream = symb->value;
+	stream = s0;
 
       if ( !(flags & SH_UNLOCKED) )
 	UNLOCK();
@@ -710,14 +732,16 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
   if ( (i=standardStreamIndexFromStream(s)) >= 0 && i < 3 )
     return PL_unify_atom(t, standardStreams[i]);
 
-  LOCK();
-  ctx = getStreamContext(s);
-  if ( ctx->alias_head )
-    rval = PL_unify_atom(t, ctx->alias_head->name);
-  else
-    rval = unify_stream_ref(t, s);
-  UNLOCK();
-
+  if ( (ctx=getExistingStreamContext(s)) && ctx->alias_head )
+  { LOCK();
+    if ( ctx->alias_head )
+      rval = PL_unify_atom(t, ctx->alias_head->name);
+    else
+      rval = unify_stream_ref(t, s);
+    UNLOCK();
+  } else
+  { rval = unify_stream_ref(t, s);
+  }
 
   return rval;
 }
@@ -725,9 +749,7 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
-{ LOCK();
-  (void)getStreamContext(s);		/* get stream known to Prolog */
-  UNLOCK();
+{ (void)getStreamContext(s);		/* get stream known to Prolog */
 
   return unify_stream_ref(t, s);
 }
@@ -793,16 +815,20 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurout)) )
       goto ok;
-    return no_stream(t, ATOM_current_output);
+    no_stream(t, ATOM_current_output);
+    return FALSE;
   }
 
   if ( !PL_get_atom(t, &a) )
-    return not_a_stream(t);
+  { not_a_stream(t);
+    return FALSE;
+  }
 
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_output)) )
       goto ok;
-    return no_stream(t, ATOM_user);
+    no_stream(t, ATOM_user);
+    return FALSE;
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
@@ -823,8 +849,9 @@ ok:
     else
       return FALSE;				/* resource error */
   }
-  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		  ATOM_output, tp, t);
+  PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_output, tp, t);
+
+  return FALSE;
 }
 
 
@@ -849,16 +876,20 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurin)) )
       goto ok;
-    return no_stream(t, ATOM_current_input);
+    no_stream(t, ATOM_current_input);
+    return FALSE;
   }
 
   if ( !PL_get_atom(t, &a) )
-    return not_a_stream(t);
+  { not_a_stream(t);
+    return FALSE;
+  }
 
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_input)) )
       goto ok;
-    return no_stream(t, ATOM_user);
+    no_stream(t, ATOM_user);
+    return FALSE;
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
@@ -879,8 +910,9 @@ ok:
     else
       return FALSE;				/* resource error */
   }
-  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		  ATOM_input, tp, t);
+  PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_input, tp, t);
+
+  return FALSE;
 }
 
 int
@@ -976,15 +1008,20 @@ isConsoleStream(IOSTREAM *s)
 
 int
 reportStreamError(IOSTREAM *s)
-{ if ( GD->cleaning == CLN_NORMAL &&
-       !isConsoleStream(s) &&
-       (s->flags & (SIO_FERR|SIO_WARN)) )
+{ if ( GD->cleaning >= CLN_IO ||
+       isConsoleStream(s) )
+    return TRUE;
+
+  if ( (s->flags & (SIO_FERR|SIO_WARN)) )
   { GET_LD
     atom_t op;
-    term_t stream = PL_new_term_ref();
+    term_t stream;
     char *msg;
 
-    PL_unify_stream_or_alias(stream, s);
+    if ( !HAS_LD ||
+	 !(stream=PL_new_term_ref()) ||
+	 !PL_unify_stream_or_alias(stream, s) )
+      return FALSE;
 
     if ( (s->flags & SIO_FERR) )
     { if ( s->exception )
@@ -1036,7 +1073,7 @@ reportStreamError(IOSTREAM *s)
       PL_error(NULL, 0, msg, ERR_STREAM_OP, op, stream);
 
       if ( (s->flags & SIO_CLEARERR) )
-	Sseterr(s, SIO_FERR, NULL);
+	Sseterr(s, 0, NULL);
 
       return FALSE;
     } else
@@ -1045,7 +1082,7 @@ reportStreamError(IOSTREAM *s)
 		   PL_TERM, stream,
 		   PL_CHARS, s->message);
 
-      Sseterr(s, SIO_WARN, NULL);
+      Sseterr(s, 0, NULL);
     }
   }
 
@@ -1142,13 +1179,11 @@ void
 closeFiles(int all)
 { GET_LD
   TableEnum e;
-  Symbol symb;
+  IOSTREAM *s;
 
   e = newTableEnum(streamContext);
-  while( (symb=advanceTableEnum(e)) )
-  { IOSTREAM *s = symb->name;
-
-    if ( all || !(s->flags & SIO_NOCLOSE) )
+  while( advanceTableEnum(e, (void**)&s, NULL) )
+  { if ( all || !(s->flags & SIO_NOCLOSE) )
     { IOSTREAM *s2 = tryGetStream(s);
 
       if ( s2 )
@@ -1178,7 +1213,7 @@ protocol(const char *str, size_t n)
 { GET_LD
   IOSTREAM *s;
 
-  if ( LD && Sprotocol && (s = getStream(Sprotocol)) )
+  if ( HAS_LD && Sprotocol && (s = getStream(Sprotocol)) )
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     Sflush(s);
@@ -1368,6 +1403,7 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
     ctx->size = sizeof(ctx->buffer);
     ctx->stream = Sopenmem(&ctx->data, &ctx->size, "w");
     ctx->stream->encoding = ENC_WCHAR;
+    ctx->stream->newline  = SIO_NL_POSIX;
   }
 
   ctx->magic = REDIR_MAGIC;
@@ -1656,13 +1692,11 @@ noprotocol(void)
 
   if ( Sprotocol && (s = getStream(Sprotocol)) )
   { TableEnum e;
-    Symbol symb;
+    IOSTREAM *p;
 
     e = newTableEnum(streamContext);
-    while( (symb=advanceTableEnum(e)) )
-    { IOSTREAM *p = symb->name;
-
-      if ( p->tee == s )
+    while( advanceTableEnum(e, (void**)&p, NULL) )
+    { if ( p->tee == s )
 	p->tee = NULL;
     }
     freeTableEnum(e);
@@ -1861,18 +1895,21 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
   } else if ( aname == ATOM_timeout )
   { double f;
     atom_t v;
+    int tmo;
 
     if ( PL_get_atom(a, &v) && v == ATOM_infinite )
-    { s->timeout = -1;
-      return TRUE;
-    }
-    if ( !PL_get_float_ex(a, &f) )
-      return FALSE;
+    { tmo = -1;
+    } else
+    { if ( !PL_get_float_ex(a, &f) )
+	return FALSE;
 
-    s->timeout = (int)(f*1000.0);
-    if ( s->timeout < 0 )
-      s->timeout = 0;
-    return TRUE;
+      if ( (tmo = (int)(f*1000.0)) < 0 )
+	tmo = 0;
+    }
+
+    if ( Sset_timeout(s, tmo) == 0 )
+      return TRUE;
+    return PL_permission_error("timeout", "stream", stream);
   } else if ( aname == ATOM_tty )	/* tty(bool) */
   {	int val;
 
@@ -2016,7 +2053,8 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
   atom_t sblob, aname;
   stream_ref *ref;
   PL_blob_t *type;
-  int rc, arity;
+  int rc;
+  size_t arity;
   const set_stream_info *info;
   term_t aval = PL_new_term_ref();
 
@@ -2149,7 +2187,7 @@ toldString()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#ifdef HAVE_SELECT
+#if defined(HAVE_SELECT) || defined(HAVE_POLL)
 #define HAVE_PRED_WAIT_FOR_INPUT 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2168,77 +2206,166 @@ typedef int SOCKET;
 #define NFDS(max) (max+1)			/* see also S__wait() */
 #else
 #define NFDS(n) 0
+#ifdef HAVE_WSAPOLL
+#define HAVE_POLL 1
+static inline int
+poll(struct pollfd *pfd, int nfds, int timeout)
+{ return WSAPoll(pfd, nfds, timeout);
+}
+#endif
 #endif
 
 typedef struct fdentry
 { SOCKET fd;
   term_t stream;
-  struct fdentry *next;
 } fdentry;
 
+#define FASTMAP_SIZE 32
+
+#ifdef HAVE_POLL
+#define ADD_FD(i) do { poll_map[i].fd = map[i].fd; \
+		       poll_map[i].events = POLLIN; \
+		     } while(0)
+#define IS_SETFD(i) (poll_map[i].revents & (POLLIN|POLLERR|POLLHUP))
+#define ACTION_WAIT ATOM_poll
+#else
+#define ADD_FD(i) do { FD_SET(map[i].fd, &fds); } while(0)
+#define IS_SETFD(i) FD_ISSET(map[i].fd, &fds)
+#define ACTION_WAIT ATOM_select
+#endif
 
 static
 PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 { PRED_LD
+  double time;
+  fdentry map_buf[FASTMAP_SIZE];
+  fdentry *map;
+#ifdef HAVE_POLL
+  struct pollfd poll_buf[FASTMAP_SIZE];
+  struct pollfd *poll_map;
+  int to;
+#else
+  SOCKET max = 0;
   fd_set fds;
   struct timeval t, *to;
-  double time;
-  int rc;
-#ifndef __WINDOWS__
-  SOCKET max = 0, min = INT_MAX;
 #endif
-  fdentry *map     = NULL;
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(A1);
   term_t available = PL_copy_term_ref(A2);
   term_t ahead     = PL_new_term_ref();
   int from_buffer  = 0;
   atom_t a;
+  size_t count;
+  int i, nfds;
+  int rc = FALSE;
 
   term_t timeout = A3;
 
+  switch ( PL_skip_list(A1, 0, &count) )
+  { case PL_LIST:
+      break;
+    case PL_PARTIAL_LIST:
+      return PL_instantiation_error(A1);
+    default:
+      return PL_type_error("list", A1);
+  }
+
+  if ( count <= FASTMAP_SIZE )
+    map = map_buf;
+  else if ( !(map = malloc(count*sizeof(*map))) )
+    return PL_no_memory();
+  memset(map, 0, count*sizeof(*map));
+
+#ifdef HAVE_POLL
+  if ( count <= FASTMAP_SIZE )
+    poll_map = poll_buf;
+  else if ( !(poll_map = malloc(count*sizeof(*poll_map))) )
+    return PL_no_memory();
+  memset(poll_map, 0, count*sizeof(*poll_map));
+#else
+#ifdef __WINDOWS__
+  if ( count > FD_SETSIZE )
+  { PL_representation_error("FD_SETSIZE");
+    goto out;
+  }
+#endif
   FD_ZERO(&fds);
-  while( PL_get_list(streams, head, streams) )
+#endif
+
+  for(nfds=0; PL_get_list(streams, head, streams); )
   { IOSTREAM *s;
     SOCKET fd;
     fdentry *e;
 
     if ( !PL_get_stream_handle(head, &s) )
-      return FALSE;
-    if ( (fd=Swinsock(s)) < 0 )
+      goto out;
+
+    if ( (fd = Swinsock(s)) == INVALID_SOCKET )
     { releaseStream(s);
-      return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
-		      PL_new_atom("file_stream"), head);
+      PL_domain_error("waitable_stream", head);
+      goto out;
     }
-    releaseStream(s);
-					/* check for input in buffer */
+				/* check for input in buffer */
     if ( Spending(s) > 0 )
     { if ( !PL_unify_list(available, ahead, available) ||
 	   !PL_unify(ahead, head) )
-	return FALSE;
+      { releaseStream(s);
+	goto out;
+      }
       from_buffer++;
     }
 
-    e         = alloca(sizeof(*e));
+    releaseStream(s);			/* dubious, but what else? */
+    e	      = &map[nfds];
     e->fd     = fd;
     e->stream = PL_copy_term_ref(head);
-    e->next   = map;
-    map       = e;
+    ADD_FD(nfds);
+    nfds++;
 
-    FD_SET(fd, &fds);
-#ifndef __WINDOWS__
+#ifndef HAVE_POLL
     if ( fd > max )
       max = fd;
-    if( fd < min )
-      min = fd;
 #endif
   }
-  if ( !PL_get_nil(streams) )
-    return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, A1);
 
   if ( from_buffer > 0 )
-    return PL_unify_nil(available);
+  { rc = PL_unify_nil(available);
+    goto out;
+  }
 
+#ifdef HAVE_POLL
+  if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
+  { to = -1;
+  } else if ( PL_is_integer(timeout) )
+  { int i;
+
+    if ( PL_get_integer(timeout, &i) )
+    { if ( i <= 0 )
+      { to = 0;
+      } else if ( (int64_t)i*1000 <= INT_MAX )
+      { to = i*1000;
+      } else
+      { PL_representation_error("timeout");
+	goto out;
+      }
+    } else
+    { PL_representation_error("timeout");
+      goto out;
+    }
+  } else if ( PL_get_float_ex(timeout, &time) )
+  { if ( time > 0.0 )
+    { if ( time * 1000.0 <= (double)INT_MAX )
+      { to = (int)(time*1000.0);
+      } else
+      { PL_domain_error("timeout", timeout);
+	goto out;
+      }
+    } else
+    { to = 0;
+    }
+  } else
+    goto out;
+#else /*HAVE_POLL*/
   if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
   { to = NULL;
   } else if ( PL_is_integer(timeout) )
@@ -2249,17 +2376,14 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     { t.tv_sec = v;
       t.tv_usec = 0;
       to = &t;
-    } else if ( v == 0 )
-    { to = NULL;
     } else
     { t.tv_sec  = 0;
       t.tv_usec = 0;
       to = &t;
     }
   } else
-  { if ( !PL_get_float(timeout, &time) )
-      return PL_error("wait_for_input", 3, NULL,
-		      ERR_TYPE, ATOM_float, timeout);
+  { if ( !PL_get_float_ex(timeout, &time) )
+      goto out;
 
     if ( time >= 0.0 )
     { t.tv_sec  = (int)time;
@@ -2270,42 +2394,65 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     }
     to = &t;
   }
+#endif /*HAVE_POLL*/
+
+#ifdef HAVE_POLL
+  while ( (rc=poll(poll_map, nfds, to)) == -1 &&
+	   errno == EINTR )
+  { if ( PL_handle_signals() < 0 )
+      goto out;				/* exception */
+  }
+#else
+#if defined(FD_SETSIZE) && !defined(__WINDOWS__)
+  if ( max >= FD_SETSIZE )
+  { PL_representation_error("FD_SETSIZE");
+    goto out;
+  }
+#endif
 
   while( (rc=select(NFDS(max), &fds, NULL, NULL, to)) == -1 &&
 	 errno == EINTR )
-  { fdentry *e;
-
-    if ( PL_handle_signals() < 0 )
-      return FALSE;				/* exception */
+  { if ( PL_handle_signals() < 0 )
+      goto out;				/* exception */
 
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
-    for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
-      FD_SET(e->fd, &fds);
+    for(i=0; i<count; i++)		/* so we rebuild it to be safe */
+      FD_SET(map[i].fd, &fds);
   }
+#endif
 
   switch(rc)
   { case -1:
-      return PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
-		      ATOM_select, ATOM_stream, A1);
+      PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
+	       ACTION_WAIT, ATOM_stream, A1);
+      goto out;
 
     case 0: /* Timeout */
       break;
 
     default: /* Something happend -> check fds */
-    { fdentry *mp;
-
-      for(mp=map; mp; mp=mp->next)
-      { if ( FD_ISSET(mp->fd, &fds) )
+    { for(i=0; i<nfds; i++)
+      { if ( IS_SETFD(i) )
 	{ if ( !PL_unify_list(available, ahead, available) ||
-	       !PL_unify(ahead, mp->stream) )
-	    return FALSE;
+	       !PL_unify(ahead, map[i].stream) )
+	    goto out;
 	}
       }
       break;
     }
   }
 
-  return PL_unify_nil(available);
+  rc = PL_unify_nil(available);
+
+out:
+  if ( map != map_buf )
+    free(map);
+#ifdef HAVE_POLL
+  if ( poll_map != poll_buf )
+    free(poll_map);
+#endif
+
+  return rc;
 }
 
 #endif /* HAVE_SELECT */
@@ -2330,7 +2477,7 @@ re_buffer(IOSTREAM *s, const char *from, size_t len)
   }
 
   memcpy(s->bufp, from, len);
-  s->bufp += len;
+  s->limitp = s->bufp + len;
 }
 
 
@@ -2385,13 +2532,19 @@ skip_cr(IOSTREAM *s)
   return FALSE;
 }
 
+static foreign_t
+read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
+{ IOSTREAM *s;
 
-static
-PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
-{ PRED_LD
-  IOSTREAM *s;
+#define ADD_CODE(c) \
+	do \
+	{ if ( likely(chars==FALSE) ) \
+	    addSmallIntList(&ctx, c); \
+	  else \
+	    addCharList(&ctx, c); \
+	} while(0)
 
-  if ( getInputStream(A1, S_DONTCARE, &s) )
+  if ( getInputStream(input, S_DONTCARE, &s) )
   { char buf[MAX_PENDING];
     ssize_t n;
     int64_t off0 = Stell64(s);
@@ -2401,12 +2554,13 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
     if ( Sferror(s) )
       return streamStatus(s);
 
-    n = Sread_pending(s, buf, sizeof(buf), 0);
+    n = Sread_pending(s, buf, sizeof(buf), SIO_RP_NOPOS);
     if ( n < 0 )			/* should not happen */
       return streamStatus(s);
     if ( n == 0 )			/* end-of-file */
     { S__fcheckpasteeof(s, -1);
-      return PL_unify(A2, A3);
+      return ( PL_unify(list, tail) &&
+	       PL_unify_nil(list) );
     }
     if ( s->position )
     { pos0 = *s->position;
@@ -2432,7 +2586,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+n;
@@ -2474,7 +2628,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+us-buf;
@@ -2524,7 +2678,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+us-buf;
@@ -2554,7 +2708,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 
 	done = count*2;
@@ -2579,7 +2733,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
-	  addSmallIntList(&ctx, c);
+	  ADD_CODE(c);
 	}
 
 	done = count*sizeof(pl_wchar_t);
@@ -2594,7 +2748,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
         return FALSE;
     }
 
-    if ( !unifyDiffList(A2, A3, &ctx) )
+    if ( !unifyDiffList(list, tail, &ctx) )
       goto failure;
 
     releaseStream(s);
@@ -2609,6 +2763,22 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
   }
 
   return FALSE;
+}
+
+
+static
+PRED_IMPL("read_pending_codes", 3, read_pending_codes, 0)
+{ PRED_LD
+
+  return read_pending_input(A1, A2, A3, FALSE PASS_LD);
+}
+
+
+static
+PRED_IMPL("read_pending_chars", 3, read_pending_chars, 0)
+{ PRED_LD
+
+  return read_pending_input(A1, A2, A3, TRUE PASS_LD);
 }
 
 
@@ -2651,6 +2821,7 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
       }
       if ( S__fillbuf(s) < 0 )
       { PL_chars_t text;
+        int rc;
 
 	if ( Sferror(s) )
 	  return streamStatus(s);
@@ -2663,7 +2834,9 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	text.encoding  = s->encoding;
 
 	PL_canonicalise_text(&text);
-	return PL_unify_text(A3, 0, &text, PL_STRING);
+	rc = PL_unify_text(A3, 0, &text, PL_STRING);
+        releaseStream(s);
+        return rc;
       }
       s->bufp--;
     }
@@ -3014,8 +3187,12 @@ PRED_IMPL("prompt", 2, prompt, 0)
   term_t old = A1;
   term_t new = A2;
 
-  if ( PL_unify_atom(old, LD->prompt.current) &&
-       PL_get_atom_ex(new, &a) )
+  if ( !PL_unify_atom(old, LD->prompt.current) )
+    return FALSE;
+  if ( PL_compare(A1,A2) == 0 )
+    return TRUE;
+
+  if ( PL_get_atom_ex(new, &a) )
   { if ( LD->prompt.current )
       PL_unregister_atom(LD->prompt.current);
     LD->prompt.current = a;
@@ -3060,8 +3237,9 @@ PRED_IMPL("prompt1", 1, prompt1, 0)
 
 
 atom_t
-PrologPrompt()
+PrologPrompt(void)
 { GET_LD
+  IOSTREAM *in;
 
   if ( !LD->prompt.first_used && LD->prompt.first )
   { LD->prompt.first_used = TRUE;
@@ -3069,7 +3247,9 @@ PrologPrompt()
     return LD->prompt.first;
   }
 
-  if ( Sinput->position && Sinput->position->linepos == 0 )
+  if ( (in=Suser_input) &&
+       in->position &&
+       in->position->linepos == 0 )
     return LD->prompt.current;
   else
     return 0;				/* "" */
@@ -3146,7 +3326,10 @@ atom_to_encoding(atom_t a)
 
 atom_t
 encoding_to_atom(IOENC enc)
-{ return encoding_names[enc].name;
+{ if ( (int)enc > 0 &&
+       (int)enc < sizeof(encoding_names)/sizeof(encoding_names[0]) )
+    return encoding_names[enc].name;
+  return NULL_ATOM;
 }
 
 
@@ -3360,7 +3543,7 @@ openStream(term_t file, term_t mode, term_t options)
 
   if ( alias != NULL_ATOM &&
        streamAliases &&
-       lookupHTable(streamAliases, (void *)alias) != NULL )
+       lookupHTable(streamAliases, (void *)alias) )
   { term_t aliast;
 
     if ( (aliast = PL_new_term_ref()) &&
@@ -3502,16 +3685,14 @@ PRED_IMPL("open", 3, open3, PL_FA_ISO)
 static IOSTREAM *
 findStreamFromFile(atom_t name, unsigned int flags)
 { TableEnum e;
-  Symbol symb;
-  IOSTREAM *s = NULL;
+  IOSTREAM *s = NULL, *s0;
+  stream_context *ctx;
 
   e = newTableEnum(streamContext);
-  while( (symb=advanceTableEnum(e)) )
-  { stream_context *ctx = symb->value;
-
-    if ( ctx->filename == name &&
+  while( advanceTableEnum(e, (void**)&s0, (void**)&ctx) )
+  { if ( ctx->filename == name &&
 	 true(ctx, flags) )
-    { s = symb->name;
+    { s = s0;
       break;
     }
   }
@@ -3784,7 +3965,7 @@ pl_close(term_t stream, int force ARG_LD)
     return not_a_stream(stream);
 
   ref = PL_blob_data(a, NULL, &type);
-  if ( type == &stream_blob )
+  if ( type == &stream_blob )		/* close(Stream[pair], ...) */
   { int rc = TRUE;
 
     if ( ref->read && ref->write )
@@ -3808,6 +3989,7 @@ pl_close(term_t stream, int force ARG_LD)
     return rc;
   }
 
+					/* close(Alias, ...) */
   if ( get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS) )
     return do_close(s, force);
 
@@ -3849,8 +4031,9 @@ static int
 stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
 
-  for(; s; s=s->downstream)
-  { if ( (name = getStreamContext(s)->filename) )
+  for(; s && s->magic == SIO_MAGIC; s=s->downstream)
+  { if ( s->context &&
+	 (name = getStreamContext(s)->filename) )
     { return PL_unify_atom(prop, name);
     }
   }
@@ -3903,8 +4086,11 @@ Incomplete: should be non-deterministic if the stream has multiple aliases!
 static int
 stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
-  stream_context *ctx = getStreamContext(s);
+  stream_context *ctx;
   int i;
+
+  if ( s->magic != SIO_MAGIC || !(ctx=s->context) )
+    return FALSE;
 
   if ( PL_get_atom(prop, &name) )
   { alias *a;
@@ -3934,14 +4120,16 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 static int
 stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 { IGNORE_LD
+  IOPOS pos;
 
-  if ( s->position )
-  { return PL_unify_term(prop,
+  if ( s->magic == SIO_MAGIC && s->position )
+  { pos = *s->position;
+    return PL_unify_term(prop,
 			 PL_FUNCTOR, FUNCTOR_dstream_position4,
-			   PL_INT64, s->position->charno,
-			   PL_INT, s->position->lineno,
-			   PL_INT, s->position->linepos,
-			   PL_INT64, s->position->byteno);
+			   PL_INT64, pos.charno,
+			   PL_INT, pos.lineno,
+			   PL_INT, pos.linepos,
+			   PL_INT64, pos.byteno);
   }
 
   return FALSE;
@@ -3950,7 +4138,7 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_end_of_stream_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( s->flags & SIO_INPUT )
+{ if ( s->magic == SIO_MAGIC && (s->flags & SIO_INPUT) )
   { atom_t val;
 
     if ( s->flags & SIO_FEOF2 )
@@ -3994,7 +4182,7 @@ static int
 stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t val;
 
-  if ( s->functions->seek )
+  if ( s->magic == SIO_MAGIC && s->functions->seek )
   {
 #ifdef HAVE_FSTAT
     int fd = Sfileno(s);
@@ -4024,7 +4212,7 @@ stream_close_on_abort_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_type_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ return PL_unify_atom(prop, s->flags & SIO_TEXT ? ATOM_text : ATOM_binary);
+{ return PL_unify_atom(prop, (s->flags & SIO_TEXT) ? ATOM_text : ATOM_binary);
 }
 
 
@@ -4077,7 +4265,11 @@ stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ return PL_unify_atom(prop, encoding_to_atom(s->encoding));
+{ atom_t ename = encoding_to_atom(s->encoding);
+
+  if ( ename )
+    return PL_unify_atom(prop, ename);
+  return FALSE;
 }
 
 
@@ -4221,218 +4413,220 @@ static const sprop sprop_list [] =
 };
 
 
-typedef struct
-{ TableEnum e;				/* Enumerator on stream-table */
-  IOSTREAM *s;				/* Stream we are enumerating */
-  const sprop *p;			/* Pointer in properties */
-  int fixed_p;				/* Propety is given */
-} prop_enum;
+/** '$stream_property'(+Stream, +Property) is det.
+    '$stream_properties'(+Stream, -PropertyList) is det.
+    '$streams_properties'(?Property, -Pairs) is det.
+*/
+
+static const sprop *
+get_stream_property_def(term_t t ARG_LD)
+{ functor_t f;
+
+  if ( PL_get_functor(t, &f) )
+  { const sprop *p;
+
+    for(p = sprop_list; p->functor; p++ )
+    { if ( f == p->functor )
+	return p;
+    }
+  }
+
+  return NULL;
+}
 
 
 static
-PRED_IMPL("stream_property", 2, stream_property,
-	  PL_FA_ISO|PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$stream_property", 2, dstream_property, 0)
 { PRED_LD
+  const sprop *p;
   IOSTREAM *s;
-  prop_enum *pe;
-  fid_t fid;
-  term_t a1;
-  atom_t a;
+  int rc;
 
-  term_t stream = A1;
-  term_t property = A2;
+  if ( !(p=get_stream_property_def(A2 PASS_LD)) )
+    return FALSE;
 
-  switch( CTX_CNTRL )
-  { case FRG_FIRST_CALL:
-      a1 = PL_new_term_ref();
-
-      if ( PL_is_variable(stream) )	/* generate */
-      {	const sprop *p = sprop_list;
-	int fixed = FALSE;
-	functor_t f;
-
-	if ( PL_get_functor(property, &f) ) /* test for defined property */
-	{ for( ; p->functor; p++ )
-	  { if ( f == p->functor )
-	    { fixed = TRUE;
-	      break;
-	    }
-	  }
-	  if ( !p->functor )
-	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			    ATOM_stream_property, property);
-	}
-
-	pe = allocForeignState(sizeof(*pe));
-
-	pe->e = newTableEnum(streamContext);
-	pe->s = NULL;
-	pe->p = p;
-	pe->fixed_p = fixed;
-
+  LOCK();
+  if ( (rc=term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD)) )
+  { switch(arityFunctor(p->functor))
+    { case 0:
+	rc = (*(property0_t)p->function)(s PASS_LD);
 	break;
-      }
+      case 1:
+	{ term_t a1 = PL_new_term_ref();
 
-      if ( !PL_get_atom(stream, &a) )
-	return not_a_stream(stream);
-
-      LOCK();				/* given stream */
-      if ( get_stream_handle(a, &s, SH_ERRORS|SH_UNLOCKED) )
-      { functor_t f;
-
-	if ( PL_is_variable(property) )	/* generate properties */
-	{ pe = allocForeignState(sizeof(*pe));
-
-	  pe->e = NULL;
-	  pe->s = s;
-	  pe->p = sprop_list;
-	  pe->fixed_p = FALSE;
-	  UNLOCK();
-
+	  _PL_get_arg(1, A2, a1);
+	  rc = (*p->function)(s, a1 PASS_LD);
 	  break;
 	}
-
-	if ( PL_get_functor(property, &f) )
-	{ const sprop *p = sprop_list;
-
-	  for( ; p->functor; p++ )
-	  { if ( f == p->functor )
-	    { int rval;
-
-	      switch(arityFunctor(f))
-	      { case 0:
-		  rval = (*(property0_t)p->function)(s PASS_LD);
-		  break;
-		case 1:
-		{ term_t a1 = PL_new_term_ref();
-
-		  _PL_get_arg(1, property, a1);
-		  rval = (*p->function)(s, a1 PASS_LD);
-		  break;
-		}
-		default:
-		  assert(0);
-		  rval = FALSE;
-	      }
-	      UNLOCK();
-	      return rval;
-	    }
-	  }
-	} else
-	{ UNLOCK();
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_stream_property, property);
-	}
-      }
-      UNLOCK();
-      return FALSE;				/* bad stream handle */
-    case FRG_REDO:
-    { pe = CTX_PTR;
-      a1 = PL_new_term_ref();
-
-      break;
+      default:
+	assert(0);
+	rc = FALSE;
     }
-    case FRG_CUTTED:
-    { pe = CTX_PTR;
+  }
+  UNLOCK();
+  return rc;
+}
 
-      if ( pe )				/* 0 if exception on FRG_FIRST_CALL */
-      { if ( pe->e )
-	  freeTableEnum(pe->e);
 
-	freeForeignState(pe, sizeof(*pe));
+static int
+unify_stream_property_list(IOSTREAM *s, term_t plist ARG_LD)
+{ term_t tail = PL_copy_term_ref(plist);
+  term_t head = PL_new_term_ref();
+  term_t prop = PL_new_term_ref();
+  const sprop *p;
+  int rc;
+
+  for(p = sprop_list; p->functor; p++)
+  { if ( !(rc=PL_put_functor(prop, p->functor)) )
+      break;
+
+    switch(arityFunctor(p->functor))
+    { case 0:
+	rc = (*(property0_t)p->function)(s PASS_LD);
+	break;
+      case 1:
+      { term_t a1 = PL_new_term_ref();
+	_PL_get_arg(1, prop, a1);
+	rc = (*p->function)(s, a1 PASS_LD);
+	break;
       }
-      return TRUE;
+      default:
+	assert(0);
+	rc = FALSE;
+    }
+    if ( rc )
+    { rc = ( PL_unify_list(tail, head, tail) &&
+	     PL_unify(head, prop) );
+      if ( !rc )
+	break;
+    } else
+    { if ( PL_exception(0) )
+	break;
+      rc = TRUE;
+    }
+  }
+
+  rc = (rc && PL_unify_nil(tail));
+  PL_reset_term_refs(tail);
+
+  return rc;
+}
+
+
+static
+PRED_IMPL("$stream_properties", 2, dstream_properties, 0)
+{ PRED_LD
+  int rc;
+  IOSTREAM *s;
+
+  LOCK();
+  rc = ( term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD) &&
+	 unify_stream_property_list(s, A2 PASS_LD)
+       );
+  UNLOCK();
+
+  return rc;
+}
+
+
+static int
+unify_stream_property(IOSTREAM *s, const sprop *p, term_t t ARG_LD)
+{ int rc;
+
+  if ( !(rc=PL_put_functor(t, p->functor)) )
+    return FALSE;
+  switch(arityFunctor(p->functor))
+  { case 0:
+      rc = (*(property0_t)p->function)(s PASS_LD);
+      break;
+    case 1:
+    { term_t a1 = PL_new_term_ref();
+      _PL_get_arg(1, t, a1);
+      rc = (*p->function)(s, a1 PASS_LD);
+      PL_reset_term_refs(a1);
+      break;
     }
     default:
       assert(0);
-      return FALSE;
+      rc = FALSE;
   }
 
+  return rc;
+}
 
-  if ( !(fid = PL_open_foreign_frame()) )
-  { error:
 
-    if ( pe->e )
-      freeTableEnum(pe->e);
+static
+PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
+{ PRED_LD
+  int rc = FALSE;
+  const sprop *p;
+  term_t tail = PL_copy_term_ref(A2);
+  term_t head = PL_new_term_ref();
 
-    freeForeignState(pe, sizeof(*pe));
-    return FALSE;
+  if ( (p=get_stream_property_def(A1 PASS_LD)) )
+  { TableEnum e = newTableEnum(streamContext);
+    IOSTREAM *s;
+    term_t st = PL_new_term_ref();
+    term_t pt = PL_new_term_ref();
+
+    LOCK();
+    while( advanceTableEnum(e, (void**)&s, NULL))
+    { rc = ( s->context != NULL &&
+	     unify_stream_property(s, p, pt PASS_LD) &&
+	     PL_unify_list(tail, head, tail) &&
+	     PL_unify_functor(head, FUNCTOR_minus2) &&
+	     PL_get_arg(1, head, st) &&
+	     unify_stream_ref(st, s) &&
+	     PL_unify_arg(2, head, pt)
+	   );
+      if ( !rc && PL_exception(0) )
+	break;
+    }
+    freeTableEnum(e);
+    UNLOCK();
+    rc = !PL_exception(0) && PL_unify_nil(tail);
+  } else if ( PL_is_variable(A1) )
+  { TableEnum e = newTableEnum(streamContext);
+    IOSTREAM *s;
+    term_t st = PL_new_term_ref();
+    term_t pl = PL_new_term_ref();
+
+    rc = TRUE;
+    LOCK();
+    while( rc && advanceTableEnum(e, (void**)&s, NULL))
+    { rc = ( s->context != NULL &&
+	     PL_unify_list(tail, head, tail) &&
+	     PL_unify_functor(head, FUNCTOR_minus2) &&
+	     PL_get_arg(1, head, st) &&
+	     unify_stream_ref(st, s) &&
+	     PL_get_arg(2, head, pl) &&
+	     unify_stream_property_list(s, pl PASS_LD)
+	   );
+    }
+    freeTableEnum(e);
+    UNLOCK();
+    rc = !PL_exception(0) && PL_unify_nil(tail);
   }
 
-  for(;;)
-  { if ( pe->s )				/* given stream */
-    { fid_t fid2;
+  return rc;
+}
 
-      if ( PL_is_variable(stream) )
-      { if ( !PL_unify_stream(stream, pe->s) )
-	  goto enum_e;
-      }
+static
+PRED_IMPL("$alias_stream", 2, dalias_stream, 0)
+{ PRED_LD
+  atom_t a;
+  IOSTREAM *s;
+  int rc;
 
-      if ( !(fid2 = PL_open_foreign_frame()) )
-	goto error;
-      for( ; pe->p->functor ; pe->p++ )
-      { if ( PL_unify_functor(property, pe->p->functor) )
-	{ int rval;
+  LOCK();
+  rc = ( PL_get_atom_ex(A1, &a) &&
+	 get_stream_handle(a, &s, SH_UNLOCKED) &&
+	 s->context &&
+	 unify_stream_ref(A2, s)
+       );
+  UNLOCK();
 
-	  switch(arityFunctor(pe->p->functor))
-	  { case 0:
-	      rval = (*(property0_t)pe->p->function)(pe->s PASS_LD);
-	      break;
-	    case 1:
-	    { _PL_get_arg(1, property, a1);
-
-	      rval = (*pe->p->function)(pe->s, a1 PASS_LD);
-	      break;
-	    }
-	    default:
-	      assert(0);
-	      rval = FALSE;
-	  }
-	  if ( rval )
-	  { if ( pe->fixed_p )
-	      pe->s = NULL;
-	    else
-	      pe->p++;
-	    ForeignRedoPtr(pe);
-	  }
-	}
-
-	if ( exception_term )
-	  goto error;
-
-	if ( pe->fixed_p )
-	  break;
-	PL_rewind_foreign_frame(fid2);
-      }
-      PL_close_foreign_frame(fid2);
-      pe->s = NULL;
-    }
-
-  enum_e:
-    if ( pe->e )
-    { Symbol symb;
-
-      while ( (symb=advanceTableEnum(pe->e)) )
-      { PL_rewind_foreign_frame(fid);
-	if ( PL_unify_stream(stream, symb->name) )
-	{ pe->s = symb->name;
-	  if ( !pe->fixed_p )
-	    pe->p = sprop_list;
-	  break;
-	}
-	if ( exception_term )
-	  goto error;
-      }
-    }
-
-    if ( !pe->s )
-    { if ( pe->e )
-	freeTableEnum(pe->e);
-
-      freeForeignState(pe, sizeof(*pe));
-      return FALSE;
-    }
-  }
+  return rc;
 }
 
 
@@ -4796,6 +4990,35 @@ PRED_IMPL("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
 }
 
 
+/** fill_buffer(+Stream)
+ *
+ *   Fill the buffer of Stream.
+ */
+
+static
+PRED_IMPL("fill_buffer", 1, fill_buffer, 0)
+{ PRED_LD
+  IOSTREAM *s;
+
+  term_t stream = A1;
+
+  if ( getInputStream(stream, S_DONTCARE, &s) )
+  { if ( (s->flags & SIO_NBUF) )
+    { return ( PL_release_stream(s) &&
+	       PL_permission_error("fill_buffer", "stream", stream) );
+    }
+
+    if ( S__fillbuf(s) < 0 )
+      return PL_release_stream(s);
+
+    s->bufp--;
+    return PL_release_stream(s);
+  }
+
+  return FALSE;
+}
+
+
 static foreign_t
 peek(term_t stream, term_t chr, int how ARG_LD)
 { IOSTREAM *s;
@@ -4928,6 +5151,23 @@ closeWrappedIO(void *handle)
 }
 
 
+static int
+controlWrappedIO(void *handle, int action, void *arg)
+{ wrappedIO *wio = handle;
+  int rval;
+
+  if ( wio->wrapped_functions->control )
+    rval = (*wio->wrapped_functions->control)(wio->wrapped_handle,
+					      action,
+					      arg);
+  else
+    rval = 0;
+
+  return rval;
+
+}
+
+
 static void
 wrapIO(IOSTREAM *s,
        ssize_t (*read)(void *, char *, size_t),
@@ -4942,6 +5182,7 @@ wrapIO(IOSTREAM *s,
   if ( read  ) wio->functions.read  = read;
   if ( write ) wio->functions.write = write;
   wio->functions.close = closeWrappedIO;
+  wio->functions.control = controlWrappedIO;
 
   s->functions = &wio->functions;
   s->handle = wio;
@@ -5134,9 +5375,12 @@ BeginPredDefs(file)
   PRED_DEF("flush_output", 1, flush_output1, PL_FA_ISO)
   PRED_DEF("at_end_of_stream", 1, at_end_of_stream, PL_FA_ISO)
   PRED_DEF("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
-  PRED_DEF("stream_property", 2, stream_property,
-	   PL_FA_ISO|PL_FA_NONDETERMINISTIC)
+  PRED_DEF("fill_buffer", 1, fill_buffer, 0)
   PRED_DEF("set_stream_position", 2, set_stream_position, PL_FA_ISO)
+  PRED_DEF("$stream_property", 2, dstream_property, 0)
+  PRED_DEF("$stream_properties", 2, dstream_properties, 0)
+  PRED_DEF("$streams_properties", 2, dstreams_properties, 0)
+  PRED_DEF("$alias_stream", 2, dalias_stream, 0)
 
 					/* edinburgh IO */
   PRED_DEF("see", 1, see, 0)
@@ -5180,7 +5424,8 @@ BeginPredDefs(file)
   PRED_DEF("wait_for_input", 3, wait_for_input, 0)
 #endif
   PRED_DEF("get_single_char", 1, get_single_char, 0)
-  PRED_DEF("read_pending_input", 3, read_pending_input, 0)
+  PRED_DEF("read_pending_codes", 3, read_pending_codes, 0)
+  PRED_DEF("read_pending_chars", 3, read_pending_chars, 0)
   PRED_DEF("source_location", 2, source_location, 0)
   PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
   PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)

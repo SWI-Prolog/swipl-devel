@@ -186,13 +186,15 @@ if [ "$modules" = true ]; then
     else
       mto=$(mtag HEAD $d)
     fi
-    subopts=$mfrom..$mto
+    if [ ! -z "$mfrom" -a ! -z "$mto" ]; then
+      subopts=$mfrom..$mto
 
-    if $0 --dir="$d" --quiet "$subopts"; then
-      echo
-      $0 --dir="$d" $moduleoptions "$subopts"
-#   else
-#     echo "Package `basename $d`: no changes"
+      if $0 --dir="$d" --quiet "$subopts"; then
+	echo
+	$0 --dir="$d" $moduleoptions "$subopts"
+#     else
+#       echo "Package `basename $d`: no changes"
+      fi
     fi
   done
 fi

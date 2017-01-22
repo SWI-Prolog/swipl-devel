@@ -1,30 +1,43 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
 #include "pl-inline.h"
+#include <math.h>
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
@@ -226,8 +239,10 @@ do_unify(Word t1, Word t2 ARG_LD)
     deRef(t1); w1 = *t1;
     deRef(t2); w2 = *t2;
 
-    DEBUG(CHK_SECURE, assert(w1 != ATOM_garbage_collected);
-	   assert(w2 != ATOM_garbage_collected));
+    DEBUG(CHK_SECURE,
+	  { assert(w1 != ATOM_garbage_collected);
+	    assert(w2 != ATOM_garbage_collected);
+	  });
 
     if ( isVar(w1) )
     { if ( unlikely(tTop+1 >= tMax) )
@@ -818,27 +833,29 @@ term_size(Word p, size_t max ARG_LD)
   initTermAgenda(&agenda, 1, p);
 
   while((t=nextTermAgenda(&agenda)))
-  { if ( ++count > max )
-      break;
-
-    if ( isAttVar(*t) )
+  { if ( isAttVar(*t) )
     { Word p = valPAttVar(*t);
+
+      if ( ++count > max )
+	break;
 
       assert(onGlobalArea(p));
       pushWorkAgenda(&agenda, 1, p);
     } else if ( isIndirect(*t) )
-    { count += wsizeofInd(*t);
+    { Word p = addressIndirect(*t);
 
+      count += wsizeofInd(*p)+2;
       if ( count > max )
 	break;
     } else if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
-      int arity = arityFunctor(f->definition);
+      size_t arity = arityFunctor(f->definition);
 
       if ( visited(f PASS_LD) )
 	continue;
 
-      if ( ++count > max )
+      count += arity+1;
+      if ( count > max )
 	break;
 
       pushWorkAgenda(&agenda, arity, f->arguments);
@@ -883,178 +900,186 @@ PRED_IMPL("$term_size", 3, term_size, 0)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Finding cyclic terms is a bit more   complicated than one may think. The
-native way is to walk the structure  depth-first while setting marks and
-if you find a mark you have a   cycle. However, when you backup from the
-recursion you must remove your marks because otherwise you find marks if
-the same subterm appears multiple times in   the tree (sharing). This is
-undesirable for two reasons:  it   kills  last-argument optimization and
-processes the shared subterms multiple times.
+A DFS search is used to iterate over all 'term chains' in  a term graph.
+A term chain is a list of terms  where term N+1 is  the last argument of
+term N.  Terms are 'TEMP' marked as we find them. When the end of a term
+chain has been reached  all terms in the chain  are 'PERM' marked  as we
+know that all terms  in that chain are acyclic.  If we reach a term that
+was already TEMP marked then we terminate the search as a cycle has been
+detected.  If we reach a term  that has already been PERM marked then we
+backtrack as a shared term that we know to be acyclic has been reached.
 
-Ulrich Neumerkel came with the following two enhancements:
+Two strategies are used  to avoid repeated  pop+push cycles  of the same
+term chain:
 
-  1. Instead of removing the marks while backing up, put a new type of
-  mark that indicates there is no cycle there. Now, whenever we
-  encounter this second mark we know we visited this tree and it is
-  free of cycles.  This exploits sharing.
+1. aggresively cache new term chains for all args of the tail term.
+2. only cache the current term chain  if we know at least one arg of the
+   tail term is itself a term.
 
-  2. Instead of making a recursive call for the last argument so that
-  we can set the second mark after this call returns, jump to the
-  beginning and remember the number of last arguments processed.  Now
-  we can simply mark all the last arguments.
-
-Later, the function is rearranged to avoid the C-stack.
+Author: Keri Harris
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct acyclic_state
-{ Word		start;				/* start-term */
-  Word		argp;				/* argument pointer */
-  size_t	last_count;
-} acyclic_state;
+#define ACYCLIC_TEMP_MASK	FIRST_MASK
+#define ACYCLIC_PERM_MASK	MARK_MASK
+
+#define set_acyclic_temp(p)	do { *(p) |= ACYCLIC_TEMP_MASK; } while(0)
+#define set_acyclic_perm(p)	do { *(p) |= ACYCLIC_PERM_MASK; } while(0)
+
+#define clear_acyclic_temp(p)	do { *(p) &= ~ACYCLIC_TEMP_MASK; } while(0)
+#define clear_acyclic_perm(p)	do { *(p) &= ~ACYCLIC_PERM_MASK; } while(0)
+#define clear_acyclic_both(p) \
+	do { *(p) &= ~(ACYCLIC_TEMP_MASK|ACYCLIC_PERM_MASK); } while(0)
+
+#define is_acyclic_temp(p)	(*(p) & ACYCLIC_TEMP_MASK)
+#define is_acyclic_perm(p)	(*(p) & ACYCLIC_PERM_MASK)
+#define is_acyclic_or_temp(p)	(*(p) & (ACYCLIC_TEMP_MASK|ACYCLIC_PERM_MASK))
+
+typedef struct termChain
+{ Functor	head;
+  Functor	tail;
+  Word          p;
+} termChain;
+
+typedef struct term_chain_agenda
+{ termChain	work;
+  segstack	stack;
+} term_chain_agenda;
 
 
-static void
-mark_last_args(acyclic_state *state ARG_LD)
-{ size_t count;
+static int
+ph_acyclic_mark(Word p ARG_LD)
+{ term_chain_agenda agenda;
+  termChain chains[32];
+  Functor top = valueTerm(*p);
+  Functor head = top;
+  Functor tail = top;
+  Functor iter;
+  Word pdef;
+  int arity;
 
-  DEBUG(MSG_ACYCLIC, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
+  initSegStack(&agenda.stack, sizeof(termChain), sizeof(chains), chains);
 
-  if ( (count=state->last_count) > 0 )
-  { Word p = state->start;
-    int arity;
+  while ( TRUE )
+  { if ( is_acyclic_temp(&tail->definition) )
+    { if ( is_acyclic_perm(&tail->definition) )
+      { goto end_of_chain;
+      } else
+      { clearSegStack(&agenda.stack);
+        return FALSE;
+      }
+    }
 
-    for(;;)
-    { Functor f = valueTerm(*p);
+    set_acyclic_temp(&tail->definition);
 
-      f->definition |= MARK_MASK;
-      DEBUG(MSG_ACYCLIC,
-	    Sdprintf("\tmark %s/%d at %p as acyclic\n",
-		     stringAtom(nameFunctor(f->definition)),
-		     arityFunctor(f->definition),
-		     f));
+    arity = arityFunctor(tail->definition);
 
-      if ( --count == 0 )
-	return;
+    if ( arity > 1 )
+    { int i;
+      int new_workspace = FALSE;
 
-      arity = arityFunctor(f->definition);
-      p = f->arguments + arity-1;		/* next last argument */
-      deRef(p);
+      iter = tail;
+      for( i = arity-2; i >= 0; i-- )
+      { p = iter->arguments + i;
+        deRef(p);
+
+        if ( isTerm(*p) )
+        { if ( !new_workspace )
+          { pushSegStack(&agenda.stack, agenda.work, termChain);
+            agenda.work.head = head;
+            agenda.work.tail = tail;
+            agenda.work.p = iter->arguments + arity-1;
+
+            head = tail = valueTerm(*p);
+            new_workspace = TRUE;
+          } else
+          { pushSegStack(&agenda.stack, agenda.work, termChain);
+            agenda.work.head = agenda.work.tail = valueTerm(*p);
+            agenda.work.p = NULL;
+          }
+        }
+      }
+
+      if ( new_workspace )
+	continue;
+    }
+
+    p = tail->arguments + arity-1;
+    deRef(p);
+
+  process_p:
+    if ( isTerm(*p) )
+    { tail = valueTerm(*p);
+    } else
+    {
+    end_of_chain:
+
+      if ( head == top )
+	return TRUE;
+
+      iter = head;
+      pdef = &iter->definition;
+      while ( iter != tail )
+      { set_acyclic_perm(pdef);
+
+        p = iter->arguments + arityFunctor(*pdef) - 1;
+        deRef(p);
+        iter = valueTerm(*p);
+        pdef = &iter->definition;
+      }
+      set_acyclic_perm(pdef);
+
+      head = agenda.work.head;
+      tail = agenda.work.tail;
+      p = agenda.work.p;
+
+      if ( !popSegStack(&agenda.stack, &agenda.work, termChain) )
+      { assert(0);
+      }
+
+      if ( p )
+      { deRef(p);
+        goto process_p;
+      }
     }
   }
+
+  return TRUE;
 }
 
 
 static int
-ph1_is_acyclic(Word p ARG_LD)
-{ segstack stack;
-  acyclic_state buf[64];
-  acyclic_state state;
-
-  initSegStack(&stack, sizeof(acyclic_state), sizeof(buf), buf);
-
-  state.start      = NULL;
-  state.last_count = 0;
-  state.argp       = NULL;
-
-  for(;;)
-  { if ( isTerm(*p) )
-    { Functor f = valueTerm(*p);
-      int arity;
-
-      DEBUG(MSG_ACYCLIC,
-	    Sdprintf("Term %s/%d at %p (%s)\n",
-		     stringAtom(nameFunctor(f->definition)),
-		     arityFunctor(f->definition), f,
-		     (f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
-							      : "new"));
-
-      if ( f->definition & (FIRST_MASK|MARK_MASK) )
-      { if ( f->definition & MARK_MASK )	/* MARK_MASK:  already acyclic */
-	  goto next;
-	clearSegStack(&stack);
-	return FALSE;				/* FIRST_MASK: got a cycle */
-      }
-      f->definition |= FIRST_MASK;
-
-      arity = arityFunctor(f->definition);
-      if ( arity >= 2 )
-      { pushSegStack(&stack, state, acyclic_state);
-	state.last_count = 0;
-	p = state.argp   = &f->arguments[arity-2];
-	deRef(p);
-	state.start      = p;
-      } else
-      { p = &f->arguments[0];
-	deRef(p);
-	state.last_count++;
-      }
-    } else
-    { DEBUG(MSG_ACYCLIC,
-	    { if ( isAtom(*p) )
-		Sdprintf("Atom %s\n", stringAtom(*p));
-	      else if ( isVar(*p) )
-		Sdprintf("Var at %p\n", p);
-	    });
-    next:
-      if ( state.start )
-      { mark_last_args(&state PASS_LD);
-	p = --state.argp;
-	if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
-	{ popSegStack(&stack, &state, acyclic_state);
-	  DEBUG(MSG_ACYCLIC,
-		Sdprintf("Last arg of %s/%d at %p\n",
-			 stringAtom(nameFunctor(*p)),
-			 arityFunctor(*p),
-			 p));
-	  p += arityFunctor(*p);
-	  deRef(p);
-	  state.last_count++;
-	} else
-	{ deRef(p);
-	  state.start = p;
-	  state.last_count = 0;
-	}
-      } else
-      { clearSegStack(&stack);
-	return TRUE;
-      }
-    }
-  }
-}
-
-
-static void
-ph2_is_acyclic(Word p ARG_LD)
+ph_acyclic_unmark(Word p ARG_LD)
 { term_agenda agenda;
 
   initTermAgenda(&agenda, 1, p);
-  while( (p=nextTermAgenda(&agenda)) )
+  while((p=nextTermAgenda(&agenda)))
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
+      Word p = &f->definition;
 
-      if ( f->definition & FIRST_MASK )
-      { f->definition &= ~(FIRST_MASK|MARK_MASK);
-	pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      if ( is_acyclic_temp(p) )
+      { clear_acyclic_both(p);
+      } else
+      { continue;
       }
+
+      pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
     }
   }
-  clearTermAgenda(&agenda);
+
+  return TRUE;
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Returns TRUE, FALSE or MEMORY_OVERFLOW
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 int
 is_acyclic(Word p ARG_LD)
-{ deRef(p);
+{ int rc1;
 
+  deRef(p);
   if ( isTerm(*p) )
-  { int rc1;
+  { rc1 = ph_acyclic_mark(p PASS_LD);
+    ph_acyclic_unmark(p PASS_LD);
 
-    rc1 = ph1_is_acyclic(p PASS_LD);
-    ph2_is_acyclic(p PASS_LD);
     return rc1;
   }
 
@@ -1580,126 +1605,155 @@ tests (alphabetical order) are skipped and the call returns NOTEQ.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-do_compare(term_agendaLR *agenda, int eq ARG_LD)
-{ Word p1, p2;
+compare_primitives(Word p1, Word p2, int eq ARG_LD)
+{ word t1, t2;
+  word w1, w2;
 
-  while( nextTermAgendaLR(agenda, &p1, &p2) )
-  { word t1, t2;
-    word w1, w2;
+  w1 = *p1;
+  w2 = *p2;
 
-    deRef(p1); w1 = *p1;
-    deRef(p2); w2 = *p2;
-
-    if ( w1 == w2 )
-    { if ( isVar(w1) )
-	goto cmpvars;
-      continue;
+  if ( w1 == w2 )
+  { if ( isVar(w1) )
+    { cmpvars:
+      if ( p1 == p2 )
+	return CMP_EQUAL;
+      return p1 < p2 ? CMP_LESS : CMP_GREATER;
     }
+    return CMP_EQUAL;
+  }
 
-    t1 = tag(w1);
-    t2 = tag(w2);
+  t1 = tag(w1);
+  t2 = tag(w2);
 
-    if ( t1 != t2 )
-    { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
-      { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
-	     (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
-	{ number left, right;
-	  int rc;
-
-	  get_number(w1, &left PASS_LD);
-	  get_number(w2, &right PASS_LD);
-	  rc = cmpNumbers(&left, &right);
-	  clearNumber(&left);
-	  clearNumber(&right);
-
-	  if ( rc == CMP_EQUAL )
-	    return (t1 == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
-	  return rc;
-	}
-      }
-
-      if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
-	return t1 < t2 ? CMP_LESS : CMP_GREATER;
-    }
-
-    switch(t1)
-    { case TAG_VAR:
-      case TAG_ATTVAR:
-      cmpvars:
-	if ( p1 == p2 )
-	  continue;
-	return p1 < p2 ? CMP_LESS : CMP_GREATER;
-      case TAG_INTEGER:
-      { number n1, n2;
+  if ( t1 != t2 )
+  { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
+    { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
+	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
+      { number left, right;
 	int rc;
 
-	get_integer(w1, &n1);
-	get_integer(w2, &n2);
-	if ( eq && (n1.type != n2.type) )
-	  return CMP_NOTEQ;
-	rc = cmpNumbers(&n1, &n2);
-	clearNumber(&n1);
-	clearNumber(&n2);
+	get_number(w1, &left PASS_LD);
+	get_number(w2, &right PASS_LD);
+	rc = cmpNumbers(&left, &right);
+	clearNumber(&left);
+	clearNumber(&right);
 
 	if ( rc == CMP_EQUAL )
-	  continue;
+	  rc = (t1 == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
 	return rc;
       }
-      case TAG_FLOAT:
+    }
+
+    if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
+      return t1 < t2 ? CMP_LESS : CMP_GREATER;
+  }
+
+  switch(t1)
+  { case TAG_VAR:
+    case TAG_ATTVAR:
+      goto cmpvars;
+    case TAG_INTEGER:
+    { number n1, n2;
+      int rc;
+
+      get_integer(w1, &n1);
+      get_integer(w2, &n2);
+      if ( eq && (n1.type != n2.type) )
+	return CMP_NOTEQ;
+      rc = cmpNumbers(&n1, &n2);
+      clearNumber(&n1);
+      clearNumber(&n2);
+
+      return rc;
+    }
+    case TAG_FLOAT:
+    { if ( equalIndirect(w1,w2) )
+      { return CMP_EQUAL;
+      } else
       { double f1 = valFloat(w1);
 	double f2 = valFloat(w2);
 
-	if ( f1 == f2 )
-	  continue;
-	return f1 < f2 ? CMP_LESS : CMP_GREATER;
-      }
-      case TAG_ATOM:
-	return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
-      case TAG_STRING:
-      { int rc = compareStrings(w1, w2 PASS_LD);
-
-	if ( rc == CMP_EQUAL )
-	  continue;
-	return rc;
-      }
-      case TAG_COMPOUND:
-      { Functor f1 = (Functor)valPtr(w1);
-	Functor f2 = (Functor)valPtr(w2);
-
-#if O_CYCLIC
-	while ( isRef(f1->definition) )
-	  f1 = (Functor)unRef(f1->definition);
-	while ( isRef(f2->definition) )
-	  f2 = (Functor)unRef(f2->definition);
-	if ( f1 == f2 )
-	  continue;
-#endif
-
-	if ( f1->definition != f2->definition )
-	{ FunctorDef fd1 = valueFunctor(f1->definition);
-	  FunctorDef fd2 = valueFunctor(f2->definition);
-
-	  if ( eq )
-	    return CMP_NOTEQ;
-
-	  if ( fd1->arity != fd2->arity )
-	    return fd1->arity > fd2->arity ? CMP_GREATER : CMP_LESS;
-
-	  return compareAtoms(fd1->name, fd2->name);
+	if ( f1 < f2 )
+	{ return CMP_LESS;
+	} else if ( f1 > f2 )
+	{ return CMP_GREATER;
 	} else
-	{ int arity = arityFunctor(f1->definition);
-
-	  linkTermsCyclic(f1, f2 PASS_LD);
-	  if ( !pushWorkAgendaLR(agenda, arity, f1->arguments, f2->arguments) )
-	  { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
-	    return CMP_ERROR;
-	  }
-	  continue;
+	{ assert(signbit(f1) != signbit(f2));
+	  return signbit(f1) ? CMP_LESS : CMP_GREATER;
 	}
       }
-      default:
-	assert(0);
-	return CMP_ERROR;
+    }
+    case TAG_ATOM:
+      return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
+    case TAG_STRING:
+      return compareStrings(w1, w2 PASS_LD);
+    case TAG_COMPOUND:
+      return CMP_COMPOUND;
+    default:
+      assert(0);
+      return CMP_ERROR;
+  }
+}
+
+static int
+compare_functors(word f1, word f2, int eq)
+{ if ( eq )
+  { return CMP_NOTEQ;
+  } else
+  { FunctorDef fd1 = valueFunctor(f1);
+    FunctorDef fd2 = valueFunctor(f2);
+
+    if ( fd1->arity != fd2->arity )
+      return fd1->arity > fd2->arity ? CMP_GREATER : CMP_LESS;
+
+    return compareAtoms(fd1->name, fd2->name);
+  }
+}
+
+static int
+do_compare(term_agendaLR *agenda, Functor f1, Functor f2, int eq ARG_LD)
+{ Word p1, p2;
+
+  goto compound;
+
+  while( nextTermAgendaLR(agenda, &p1, &p2) )
+  { int rc;
+
+    deRef(p1);
+    deRef(p2);
+
+    if ( (rc=compare_primitives(p1, p2, eq PASS_LD)) != CMP_COMPOUND )
+    { if ( rc == CMP_EQUAL )
+	continue;
+      return rc;
+    } else
+    { f1 = (Functor)valPtr(*p1);
+      f2 = (Functor)valPtr(*p2);
+
+#if O_CYCLIC
+      while ( isRef(f1->definition) )
+	f1 = (Functor)unRef(f1->definition);
+      while ( isRef(f2->definition) )
+	f2 = (Functor)unRef(f2->definition);
+      if ( f1 == f2 )
+	continue;
+#endif
+
+      if ( f1->definition != f2->definition )
+      { return compare_functors(f1->definition, f2->definition, eq);
+      } else
+      { int arity;
+
+      compound:
+	arity = arityFunctor(f1->definition);
+
+	linkTermsCyclic(f1, f2 PASS_LD);
+	if ( !pushWorkAgendaLR(agenda, arity, f1->arguments, f2->arguments) )
+	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	  return CMP_ERROR;
+	}
+	continue;
+      }
     }
   }
 
@@ -1709,16 +1763,31 @@ do_compare(term_agendaLR *agenda, int eq ARG_LD)
 
 int
 compareStandard(Word p1, Word p2, int eq ARG_LD)
-{ term_agendaLR agenda;
-  int rc;
+{ int rc;
 
-  initCyclic(PASS_LD1);
-  initTermAgendaLR(&agenda, 1, p1, p2);
-  rc = do_compare(&agenda, eq PASS_LD);
-  clearTermAgendaLR(&agenda);
-  exitCyclic(PASS_LD1);
+  deRef(p1);
+  deRef(p2);
 
-  return rc;
+  if ( (rc=compare_primitives(p1, p2, eq PASS_LD)) != CMP_COMPOUND )
+  { return rc;
+  } else
+  { Functor f1 = (Functor)valPtr(*p1);
+    Functor f2 = (Functor)valPtr(*p2);
+
+    if ( f1->definition != f2->definition )
+    { return compare_functors(f1->definition, f2->definition, eq);
+    } else
+    { term_agendaLR agenda;
+
+      initCyclic(PASS_LD1);
+      initTermAgendaLR0(&agenda);
+      rc = do_compare(&agenda, f1, f2, eq PASS_LD);
+      clearTermAgendaLR(&agenda);
+      exitCyclic(PASS_LD1);
+
+      return rc;
+    }
+  }
 }
 
 
@@ -1727,22 +1796,26 @@ compareStandard(Word p1, Word p2, int eq ARG_LD)
 static
 PRED_IMPL("compare", 3, compare, PL_FA_ISO)
 { PRED_LD
+  Word d  = valTermRef(A1);
   Word p1 = valTermRef(A2);
   Word p2 = p1+1;
   int val;
   atom_t a;
 
-  if ( !PL_is_variable(A1) )
-  { if ( !PL_get_atom_ex(A1, &a) )
-      fail;
-
-    if ( a == ATOM_equals )
-      return compareStandard(p1, p2, TRUE PASS_LD) == CMP_EQUAL ? TRUE : FALSE;
-
-    if ( a != ATOM_smaller && a != ATOM_larger )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
-  } else
+  deRef(d);
+  if ( canBind(*d) )
   { a = 0;
+  } else
+  { if ( isAtom(*d) )
+    { a = *d;
+
+      if ( a == ATOM_equals )
+	return compareStandard(p1, p2, TRUE PASS_LD) == CMP_EQUAL ? TRUE : FALSE;
+
+      if ( a != ATOM_smaller && a != ATOM_larger )
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
+    } else
+      return PL_type_error("atom", A1);
   }
 
   if ( (val = compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
@@ -1753,11 +1826,13 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
       return val < 0;
     else
       return val > 0;
-  }
+  } else
+  { a = val < 0 ? ATOM_smaller :
+        val > 0 ? ATOM_larger :
+	          ATOM_equals;
 
-  return PL_unify_atom(A1, val < 0 ? ATOM_smaller :
-		           val > 0 ? ATOM_larger :
-		                     ATOM_equals);
+    return PL_unify_atom(A1, a);
+  }
 }
 
 
@@ -1990,6 +2065,45 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 }
 
 
+/** '$filled_array'(-Compound, +Name, +Arity, +Value) is det.
+ * Created an array (compound) with all arguments set to Value.
+ */
+
+
+PRED_IMPL("$filled_array", 4, filled_array, 0)
+{ PRED_LD
+  size_t arity;
+  atom_t name;
+  functor_t f;
+  Word p, v;
+  term_t compound = PL_new_term_ref();
+  size_t i;
+
+  if ( !PL_get_atom_ex(A2, &name) ||
+       !PL_get_size_ex(A3, &arity) )
+    return FALSE;
+
+  f = PL_new_functor(name, arity);
+  p = allocGlobal(arity+1);
+  v = valTermRef(A4);
+  deRef(v);
+
+  p[0] = f;
+  if ( arity > 0 )
+  { word w;
+    bArgVar(&p[1], v PASS_LD);
+    w = isVar(p[1]) ? makeRefG(&p[1]) : p[1];
+    for(i=2; i<=arity; i++)
+      p[i] = w;
+  }
+
+  *valTermRef(compound) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  return PL_unify(A1, compound);
+}
+
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int get_arg_integer_ex(term_t t, intptr_t *n)
 
@@ -2145,19 +2259,14 @@ unify_vp(Word vp, Word val ARG_LD)
 static word
 setarg(term_t n, term_t term, term_t value, int flags)
 { GET_LD
-  int arity, argn;
+  size_t arity, argn;
   atom_t name;
   Word a, v;
 
-  if ( !PL_get_integer_ex(n, &argn) )
-    fail;
-  if ( argn <= 0 )
-  { if ( argn < 0 )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		      ATOM_not_less_than_zero, n);
-    else
-      fail;
-  }
+  if ( !PL_get_size_ex(n, &argn) )
+    return FALSE;
+  if ( argn == 0 )
+    return FALSE;
   if ( !PL_get_name_arity(term, &name, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, term);
 
@@ -2231,37 +2340,53 @@ PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 }
 
 
-/*  Cycle detection uses Brent's algorithm.
-See http://en.wikipedia.org/wiki/Cycle_detection#Brent.27s_algorithm
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Cycle detection for lists using Brent's algorithm.
 
-Author: Ulrich Neumerkel.
-*/
+skip_list() was originally added to SWI-Prolog by Ulrich Neumerkel.  The
+code below is a clean-room re-implementation by Keri Harris.
+
+See http://en.wikipedia.org/wiki/Cycle_detection#Brent.27s_algorithm
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 intptr_t
 skip_list(Word l, Word *tailp ARG_LD)
-{ intptr_t length = 0;
-  Word s; /* slow */
+{ deRef(l);
 
-  deRef(l);
-  s = l;
+  if ( !isList(*l) )
+  { *tailp = l;
+    return 0;
+  } else
+  { Word checkCell, currentCell;
+    intptr_t length = 0;
+    int power, lam;
 
-  if ( isList(*l) )
-  { intptr_t power = 1, lam = 0;
-    do
-    { if ( power == lam )
-      { s = l;
-	power *= 2;
-	lam = 0;
-      }
-      lam++;
+    checkCell = currentCell = l;
+    lam       = 0;
+    power     = 1;
+
+    while ( TRUE )
+    { currentCell = TailList(currentCell);
+      deRef(currentCell);
       length++;
-      l = TailList(l); deRef(l);
-    } while ( *l != *s && isList(*l) );
-  }
-  *tailp = l;
 
-  return length;
+      if ( !isList(*currentCell) || (*checkCell == *currentCell) )
+	break;
+
+      lam++;
+      if ( power == lam )
+      { checkCell = currentCell;
+        power *= 2;
+        lam = 0;
+      }
+    }
+
+    *tailp = currentCell;
+
+    return length;
+  }
 }
+
 
 /** '$skip_list'(-Length, +Xs0, -Xs) is det.
 
@@ -2355,15 +2480,25 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     }
 
-    if ( !PL_unify_functor(t, PL_new_functor(name, arity)) )
-      fail;
+    if ( (p = allocGlobal(arity+1)) )
+    { Word l = valTermRef(tail);
 
-    for(n=1; PL_get_list(tail, head, tail); n++)
-    { if ( !PL_unify_arg(n, t, head) )
-	fail;
+      *valTermRef(head) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *p++ = PL_new_functor(name, arity);
+      deRef(l);
+      while(isList(*l))
+      { Word h = HeadList(l);
+
+	deRef(h);
+	*p++ = needsRef(*h) ? makeRef(h) : *h;
+	l = TailList(l);
+	deRef(l);
+      }
+
+      return PL_unify(t, head);
     }
 
-    succeed;
+    return FALSE;
   }
 
   p = valTermRef(t);
@@ -2415,9 +2550,10 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
 { GET_LD
   term_t t = A1;
   term_t list = A3;
-  int arity;
+  intptr_t len;
+  size_t arity;
   atom_t name;
-  int n;
+  size_t n;
 
   if ( PL_is_variable(t) )
   { term_t tail = PL_copy_term_ref(list);
@@ -2426,14 +2562,14 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
     if ( !PL_get_atom_ex(A2, &name) )
       return FALSE;
 
-    if ( (arity = (int)lengthList(tail, FALSE)) < 0 ) /* TBD: check MAXINT */
-    { if ( arity == -1 )
+    if ( (len = lengthList(tail, FALSE)) < 0 )
+    { if ( len == -1 )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
       else
 	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     }
 
-    if ( !PL_unify_compound(t, PL_new_functor(name, arity)) )
+    if ( !PL_unify_compound(t, PL_new_functor(name, (size_t)len)) )
       fail;
 
     for(n=1; PL_get_list(tail, head, tail); n++)
@@ -2483,13 +2619,14 @@ both flags:
     - both-marked: done
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define ALREADY_NUMBERED (-10)
-#define CONTAINS_ATTVAR  (-11)
+#define ALREADY_NUMBERED     (-10)
+#define CONTAINS_ATTVAR      (-11)
+#define REPRESENTATION_ERROR (-12)
 
-static int
-do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
+static intptr_t
+do_number_vars(Word p, nv_options *options, intptr_t n, mark *m ARG_LD)
 { term_agenda agenda;
-  int start = n;
+  intptr_t start = n;
 
   initTermAgenda(&agenda, 1, p);
   while((p=nextTermAgenda(&agenda)))
@@ -2519,8 +2656,12 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
       if ( options->singletons )
       { a[1] = ATOM_anonvar;
       } else
-      { a[1] = consInt(n);
-	assert(valInt(a[1]) == n);
+      { intptr_t v = n+options->offset;
+	a[1] = consInt(v);
+	if ( valInt(a[1]) != v )
+	{ n = REPRESENTATION_ERROR;
+	  goto out;
+	}
 	n++;
       }
       gTop += 2;
@@ -2536,8 +2677,13 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 	  { Word p = &f->arguments[0];
 
 	    if ( *p == ATOM_anonvar )
-	    { *p = consInt(n);		/* stack cannot hold enough vars */
-	      n++;			/* to averflow this */
+	    { intptr_t v = n+options->offset;
+	      *p = consInt(v);
+	      if ( valInt(*p) != v )
+	      { n = REPRESENTATION_ERROR;
+		goto out;
+	      }
+	      n++;
 	    }
 	  }
 	} else
@@ -2581,11 +2727,19 @@ Returns	>= 0: Number for next variable variable
 	  -1: Error.  Exception is left in the environment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-numberVars(term_t t, nv_options *options, int n ARG_LD)
-{ for(;;)
+intptr_t
+numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
+{ if ( !inTaggedNumRange(n) )
+  { PL_representation_error("tagged_integer");
+    return NV_ERROR;
+  }
+
+  options->offset = n;
+  n = 0;
+
+  for(;;)
   { mark m;
-    int rc;
+    intptr_t rc;
 
     Mark(m);
     initvisited(PASS_LD1);
@@ -2593,24 +2747,29 @@ numberVars(term_t t, nv_options *options, int n ARG_LD)
     unvisit(PASS_LD1);
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
-      return rc;
-    } else if ( rc == CONTAINS_ATTVAR )
-    { DiscardMark(m);
-
-      PL_error(NULL, 0, NULL,
-	       ERR_TYPE, ATOM_free_of_attvar, t);
-      return -1;
-    } else if ( rc == ALREADY_NUMBERED )
-    { DiscardMark(m);
-
-      PL_error(NULL, 0, "already numbered",
-	       ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
-      return -1;
-    } else				/* stack overflow */
-    { Undo(m);
-      DiscardMark(m);
-      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	return -1;
+      return rc + options->offset;
+    } else
+    { switch( rc )
+      { case CONTAINS_ATTVAR:
+	  DiscardMark(m);
+	  PL_error(NULL, 0, NULL,
+		   ERR_TYPE, ATOM_free_of_attvar, t);
+	  return NV_ERROR;
+	case ALREADY_NUMBERED:
+	  DiscardMark(m);
+	  PL_error(NULL, 0, "already numbered",
+		   ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
+	  return NV_ERROR;
+	case REPRESENTATION_ERROR:
+	  DiscardMark(m);
+	  PL_representation_error("tagged_integer");
+	  return NV_ERROR;
+        default:
+	  Undo(m);
+	  DiscardMark(m);
+	  if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	    return NV_ERROR;
+      }
     }
   }
 }
@@ -2632,7 +2791,7 @@ numbervars(+Term, +Functor, +Start, -End)
 static
 PRED_IMPL("numbervars", 4, numbervars, 0)
 { GET_LD
-  int n;
+  intptr_t n;
   atom_t name = ATOM_isovar;		/* '$VAR' */
   atom_t av = ATOM_error;
   term_t t, end, options;
@@ -2643,18 +2802,11 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   t = PL_copy_term_ref(A1);
 
-  if ( !PL_get_integer(A2, &n) )
-  { if ( PL_get_atom(A2, &name) &&
-	 PL_get_integer(A3, &n)	)	/* old calling conventions */
-    { end = A4;
-      options = 0;
-    } else
-    { return PL_get_integer_ex(A2, &n);
-    }
-  } else
+  if ( PL_get_intptr_ex(A2, &n) )
   { end = A3;
     options = A4;
-  }
+  } else
+    return FALSE;
 
   if ( options &&
        !scan_options(options, 0, ATOM_numbervar_option, numbervar_options,
@@ -2677,8 +2829,8 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   opts.functor = PL_new_functor(name, 1);
   n = numberVars(t, &opts, n PASS_LD);
-  if ( n >= 0 )
-    return PL_unify_integer(end, n);
+  if ( n != NV_ERROR )
+    return PL_unify_int64(end, n);
 
   return FALSE;
 }
@@ -2932,7 +3084,7 @@ subsumes(term_t general, term_t specific ARG_LD)
     { Word p = valTermRef(v0+i);
       deRef(p);
 
-      if ( !isVar(*p) || visitedWord(p PASS_LD) )
+      if ( !canBind(*p) || visitedWord(p PASS_LD) )
       { rc = FALSE;
 	break;
       }
@@ -3334,12 +3486,17 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
   PL_chars_t txt;
 
   if ( truePrologFlag(PLFLAG_ISO) )
-    flags = CVT_ATOM|CVT_STRING|CVT_EXCEPTION;	/* strings are not known to ISO */
+    flags = CVT_ATOM|CVT_STRING|CVT_EXCEPTION|BUF_ALLOW_STACK;
   else
-    flags = CVT_ALL|CVT_EXCEPTION;
+    flags = CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK;
 
   if ( PL_get_text(A1, &txt, flags) )
-    return PL_unify_int64_ex(A2, txt.length);
+  { int rc = PL_unify_int64_ex(A2, txt.length);
+
+    PL_free_text(&txt);
+
+    return rc;
+  }
 
   fail;
 }
@@ -3373,7 +3530,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 
     ok = PL_unify_text(string, 0, &atext, out_type);
 
-    if ( ok || !(how & X_NUMBER) )
+    if ( ok )
     { PL_close_foreign_frame(fid);
       return ok;
     }
@@ -3522,8 +3679,15 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 
     if ( n >= 0 && n <= CHARCODE_MAX )
       cchr = n;
+    else if ( n < 0 || n > 0x10ffff )
+      return PL_type_error("character_code", chr);
+#if SIZEOF_WCHAR_T == 2
+    else if ( n > PLMAXWCHAR )
+      return PL_representation_error("character_code");
+#else
     else
-      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_character_code);
+      assert(0);
+#endif
   }
 
   if ( achr == cchr )
@@ -3532,6 +3696,89 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
     return PL_unify_atom(atom, codeToAtom(cchr));
   else
     return PL_unify_integer(chr, achr);
+}
+
+
+static int
+is_code(word w)
+{ if ( isTaggedInt(w) )
+  { intptr_t code = valInt(w);
+
+    return code >= 0 && code <= CHARCODE_MAX;
+  }
+
+  return FALSE;
+}
+
+static int
+is_char(word w)
+{ PL_chars_t text;
+
+  return ( isAtom(w) &&
+	   get_atom_text(w, &text) &&
+	   text.length == 1
+	 );
+}
+
+static
+PRED_IMPL("$is_char_code", 1, is_char_code, 0)
+{ PRED_LD;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  return is_code(*p);
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("$is_char", 1, is_char, 0)
+{ PRED_LD;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  return is_char(*p);
+}
+
+
+static int
+is_text_list(term_t text, term_t lent, int (*test)(word) ARG_LD)
+{ Word p = valTermRef(text);
+  intptr_t len = 0;
+
+  deRef(p);
+  while(isList(*p))
+  { Word av = HeadList(p);
+    Word h;
+
+    deRef2(av, h);
+    if ( !(*test)(*h) )
+      return FALSE;
+    deRef2(av+1, p);
+
+    if ( ++len == 1000 )
+    { Word tail;
+      skip_list(p, &tail PASS_LD);
+      if ( !isNil(*tail) )
+	return FALSE;
+    }
+  }
+  return ( isNil(*p) &&
+	   PL_unify_int64(lent, len) );
+}
+
+static
+PRED_IMPL("$is_code_list", 2, is_code_list, 0)
+{ PRED_LD
+
+  return is_text_list(A1, A2, is_code PASS_LD);
+}
+
+static
+PRED_IMPL("$is_char_list", 2, is_char_list, 0)
+{ PRED_LD
+
+  return is_text_list(A1, A2, is_char PASS_LD);
 }
 
 
@@ -3577,6 +3824,14 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
     return FALSE;
 }
 
+/* MacOS X Mavericks and Yosemite write a char (nul) too many if the
+ * buffer is short.  Thanks to Samer Abdallah for sorting this out.
+ */
+#ifdef __APPLE__
+#define WCSXFRM_BUFFER_OVERRUN 1
+#else
+#define WCSXFRM_BUFFER_OVERRUN 0
+#endif
 
 static
 PRED_IMPL("collation_key", 2, collation_key, 0)
@@ -3585,7 +3840,7 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
   wchar_t *s;
   size_t len;
   wchar_t buf[256];
-  size_t buflen = sizeof(buf)/sizeof(wchar_t);
+  size_t buflen = sizeof(buf)/sizeof(wchar_t) - WCSXFRM_BUFFER_OVERRUN;
   wchar_t *o = buf;
   size_t n;
 
@@ -4062,7 +4317,7 @@ sub_text(term_t atom,
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { if ( !PL_get_text(atom, &ta, CVT_ATOMIC) )
+    { if ( !PL_get_text(atom, &ta, CVT_ATOMIC|BUF_ALLOW_STACK) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, expected, atom);
 
       if ( !get_positive_integer_or_unbound(before, &b PASS_LD) ||
@@ -4070,7 +4325,7 @@ sub_text(term_t atom,
 	   !get_positive_integer_or_unbound(after, &a PASS_LD) )
 	fail;
 
-      if ( !PL_get_text(sub, &ts, CVT_ATOMIC) )
+      if ( !PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK) )
       { if ( !PL_is_variable(sub) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, sub);
 	ts.text.t = NULL;
@@ -4109,16 +4364,16 @@ sub_text(term_t atom,
 
 	if ( l >= 0 )			/* len given */
 	{ if ( b+l <= (int)la )		/* deterministic fit */
-	  { if ( PL_unify_integer(after, la-b-l) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(after, la-b-l) )
 	      succeed;
 	  }
 	  fail;
 	}
 	if ( a >= 0 )			/* after given */
 	{ if ( (l = la-a-b) >= 0 )
-	  { if ( PL_unify_integer(len, l) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(len, l) )
 	      succeed;
 	  }
 
@@ -4138,8 +4393,8 @@ sub_text(term_t atom,
 
 	if ( a >= 0 )			/* len and after */
 	{ if ( (b = la-a-l) >= 0 )
-	  { if ( PL_unify_integer(before, b) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(before, b) )
 	      succeed;
 	  }
 
@@ -4174,7 +4429,7 @@ sub_text(term_t atom,
     }
     case FRG_REDO:
       state = ForeignContextPtr(h);
-      PL_get_text(atom, &ta, CVT_ATOMIC);
+      PL_get_text(atom, &ta, CVT_ATOMIC|BUF_ALLOW_STACK);
       break;
     case FRG_CUTTED:
       state = ForeignContextPtr(h);
@@ -4190,7 +4445,7 @@ sub_text(term_t atom,
 again:
   switch(state->type)
   { case SUB_SEARCH:
-    { PL_get_text(sub, &ts, CVT_ATOMIC);
+    { PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK);
       la = state->n2;
       ls = state->n3;
 
@@ -4211,10 +4466,10 @@ again:
       b  = state->n3;
       l  = state->n1++;
 
-      match = (PL_unify_integer(len, l) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(len, l) &&
 	       PL_unify_integer(after, la-b-l));
     out:
-      match = (match && PL_unify_text_range(sub, &ta, b, l, type));
       if ( b+l < (int)la )
 	goto next;
       else if ( match )
@@ -4227,7 +4482,8 @@ again:
       l  = state->n2;
       la = state->n3;
 
-      match = (PL_unify_integer(before, b) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
 	       PL_unify_integer(after, la-b-l));
       goto out;
     }
@@ -4237,9 +4493,9 @@ again:
       a  = state->n3;
       l  = la - a - b;
 
-      match = (PL_unify_integer(before, b) &&
-	       PL_unify_integer(len, l) &&
-	       PL_unify_text_range(sub, &ta, b, l, type));
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
+	       PL_unify_integer(len, l));
       if ( l > 0 )
 	goto next;
       else if ( match )
@@ -4253,10 +4509,10 @@ again:
       la = state->n3;
       a  = la-b-l;
 
-      match = (PL_unify_integer(before, b) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
 	       PL_unify_integer(len, l) &&
-	       PL_unify_integer(after, a) &&
-	       PL_unify_text_range(sub, &ta, b, l, type));
+	       PL_unify_integer(after, a));
       if ( a == 0 )
       { if ( b == (int)la )
 	{ if ( match )
@@ -4316,7 +4572,7 @@ PRED_IMPL("string_length", 2, string_length, 0)
 { PRED_LD
   PL_chars_t t;
 
-  if ( PL_get_text(A1, &t, CVT_ALL|CVT_EXCEPTION) )
+  if ( PL_get_text(A1, &t, CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK) )
   { int rc = PL_unify_int64_ex(A2, t.length);
 
     PL_free_text(&t);
@@ -4882,6 +5138,16 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
 #else
     vn = 0;				/* no values */
 #endif
+  } else if ( key == ATOM_clause_garbage_collection )
+  {
+#ifdef O_CLAUSEGC
+    v[0] = GD->clauses.cgc_count;
+    v[1] = GD->clauses.cgc_reclaimed;
+    v[2] = (int64_t)(GD->clauses.cgc_time * 1000.0);
+    vn = 3;
+#else
+    vn = 0;				/* no values */
+#endif
   } else
     vn = -1;				/* unknown key */
 
@@ -4971,6 +5237,16 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.f = GD->atoms.gc_time;
   }
 #endif
+#ifdef O_ATOMGC
+  else if (key == ATOM_cgc)
+    v->value.i = GD->clauses.cgc_count;
+  else if (key == ATOM_cgc_gained)
+    v->value.i = GD->clauses.cgc_reclaimed;
+  else if (key == ATOM_cgc_time)
+  { v->type = V_FLOAT;
+    v->value.f = GD->clauses.cgc_time;
+  }
+#endif
   else if (key == ATOM_global_shifts)
     v->value.i = LD->shift_status.global_shifts;
   else if (key == ATOM_local_shifts)
@@ -4984,14 +5260,24 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 #ifdef O_PLMT
   else if ( key == ATOM_threads )
     v->value.i = GD->statistics.threads_created -
-		 GD->statistics.threads_finished;
+		 GD->statistics.engines_created -
+		 GD->statistics.threads_finished +
+		 GD->statistics.engines_finished;
+  else if ( key == ATOM_engines )
+    v->value.i = GD->statistics.engines_created -
+		 GD->statistics.engines_finished;
   else if ( key == ATOM_threads_created )
-    v->value.i = GD->statistics.threads_created;
+    v->value.i = GD->statistics.threads_created -
+		 GD->statistics.engines_created;
+  else if ( key == ATOM_engines_created )
+    v->value.i = GD->statistics.engines_created;
   else if ( key == ATOM_thread_cputime )
   { v->type = V_FLOAT;
     v->value.f = GD->statistics.thread_cputime;
   }
 #endif
+  else if (key == ATOM_table_space_used)
+    v->value.i = LD->tabling.node_pool.size*sizeof(trie_node);
   else
     return -1;				/* unknown key */
 
@@ -5063,57 +5349,6 @@ PRED_IMPL("statistics", 2, statistics, 0)
 
   return pl_statistics_ld(A1, A2, LD PASS_LD);
 }
-
-
-#ifdef O_MEMSTATS
-
-static int
-addNameInteger(term_t list, const char *name, intptr_t val)
-{ GET_LD
-  term_t head = PL_new_term_ref();
-
-  if ( !PL_unify_list(list, head, list) )
-    return FALSE;
-  if ( !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
-		      PL_CHARS, name, PL_INTPTR, val) )
-    return FALSE;
-
-  PL_reset_term_refs(head);
-
-  return TRUE;
-}
-
-
-/** memory_statistics(-Stats) is det.
-
-Provide  statistics  on  memory  allocation    if  the  system  provides
-mallinfo(), the values of this structure  are   added  to  the list. See
-"info mallinfo" for a the defined names and their meaning. Unused values
-are not included.
-*/
-
-static
-PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
-{ PRED_LD
-  term_t tail = PL_copy_term_ref(A1);
-
-#ifdef HAVE_MALLINFO
-  { struct mallinfo info = mallinfo();
-
-    addNameInteger(tail, "arena",    info.arena);
-    addNameInteger(tail, "ordblks",  info.ordblks);
-    addNameInteger(tail, "hblks",    info.hblks);
-    addNameInteger(tail, "hblkhd",   info.hblkhd);
-    addNameInteger(tail, "uordblks", info.uordblks);
-    addNameInteger(tail, "fordblks", info.fordblks);
-    addNameInteger(tail, "keepcost", info.keepcost);
-  }
-#endif
-
-  return PL_unify_nil(tail);
-}
-
-#endif /*O_MEMSTATS*/
 
 
 		/********************************
@@ -5333,6 +5568,7 @@ BeginPredDefs(prims)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("compound_name_arity", 3, compound_name_arity, 0)
   PRED_DEF("compound_name_arguments", 3, compound_name_arguments, 0)
+  PRED_DEF("$filled_array", 4, filled_array, 0)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)
@@ -5366,6 +5602,10 @@ BeginPredDefs(prims)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
   PRED_DEF("number_string", 2, number_string, 0)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
+  PRED_DEF("$is_char_code", 1, is_char_code, 0)
+  PRED_DEF("$is_char", 1, is_char, 0)
+  PRED_DEF("$is_code_list", 2, is_code_list, 0)
+  PRED_DEF("$is_char_list", 2, is_char_list, 0)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)
@@ -5384,7 +5624,4 @@ BeginPredDefs(prims)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
   PRED_DEF("$skip_list", 3, skip_list, 0)
   PRED_DEF("throw", 1, throw, PL_FA_ISO)
-#ifdef O_MEMSTATS
-  PRED_DEF("memory_statistics", 1, memory_statistics, 0)
-#endif
 EndPredDefs

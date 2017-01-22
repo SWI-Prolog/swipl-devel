@@ -1,36 +1,41 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, VU University Amsterdam
+    Copyright (c)  2010-2011, VU University Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(coinduction,
-	  [ (coinductive)/1,
-	    op(1150, fx, (coinductive))
-	  ]).
+          [ (coinductive)/1,
+            op(1150, fx, (coinductive))
+          ]).
 :- use_module(library(error)).
 
 /** <module> Co-Logic Programming
@@ -52,120 +57,126 @@ notably on infinite trees (cyclic terms).
 This predicate is  true  for  any   cyclic  list  containing  only  1-s,
 regardless of the cycle-length.
 
-@bug	Programs mixing normal predicates and coinductive predicates must
-	be _stratified_.  The theory does not apply to normal Prolog calling
-	coinductive predicates, calling normal Prolog predicates, etc.
+@bug    Programs mixing normal predicates and coinductive predicates must
+        be _stratified_.  The theory does not apply to normal Prolog calling
+        coinductive predicates, calling normal Prolog predicates, etc.
 
-	Stratification is not checked or enforced in any other way and thus
-	left as a responsibility to the user.
-@see	"Co-Logic Programming: Extending Logic  Programming with Coinduction"
-	by Luke Simon et al.
+        Stratification is not checked or enforced in any other way and thus
+        left as a responsibility to the user.
+@see    "Co-Logic Programming: Extending Logic  Programming with Coinduction"
+        by Luke Simon et al.
 */
 
 :- multifile
-	system:term_expansion/2,
-	coinductive_declaration/2.	% Head, Module
+    system:term_expansion/2,
+    coinductive_declaration/2.      % Head, Module
 
-%%	head(+Term, -QHead) is semidet.
+%!  head(+Term, -QHead) is semidet.
 %
-%	Must be first to allow reloading!
+%   Must be first to allow reloading!
 
 head(Var, _) :-
-	var(Var), !, fail.
-head((H:-_B), Head) :- !,
-	head(H, Head).
+    var(Var), !, fail.
+head((H:-_B), Head) :-
+    !,
+    head(H, Head).
 head(H, Head) :-
-	(   H = _:_
-	->  Head = H
-	;   prolog_load_context(module, M),
-	    Head = M:H
-	).
+    (   H = _:_
+    ->  Head = H
+    ;   prolog_load_context(module, M),
+        Head = M:H
+    ).
 
-%%	coinductive(:Spec)
+%!  coinductive(:Spec)
 %
-%	The  declaration  :-   coinductive    name/arity,   ...  defines
-%	predicates as _coinductive_. The predicate definition is wrapped
-%	such that goals unify with their  ancestors. This directive must
-%	preceed all clauses of the predicate.
+%   The  declaration  :-   coinductive    name/arity,   ...  defines
+%   predicates as _coinductive_. The predicate definition is wrapped
+%   such that goals unify with their  ancestors. This directive must
+%   preceed all clauses of the predicate.
 
 coinductive(Spec) :-
-	throw(error(context_error(nodirective, coinductive(Spec)), _)).
+    throw(error(context_error(nodirective, coinductive(Spec)), _)).
 
 expand_coinductive_declaration(Spec, Clauses) :-
-	prolog_load_context(module, Module),
-	phrase(expand_specs(Spec, Module), Clauses).
+    prolog_load_context(module, Module),
+    phrase(expand_specs(Spec, Module), Clauses).
 
 expand_specs(Var, _) -->
-	{ var(Var), !,
-	  instantiation_error(Var)
-	}.
-expand_specs(M:Spec, _) --> !,
-	expand_specs(Spec, M).
-expand_specs((A,B), Module) --> !,
-	expand_specs(A, Module),
-	expand_specs(B, Module).
+    { var(Var),
+      !,
+      instantiation_error(Var)
+    }.
+expand_specs(M:Spec, _) -->
+    !,
+    expand_specs(Spec, M).
+expand_specs((A,B), Module) -->
+    !,
+    expand_specs(A, Module),
+    expand_specs(B, Module).
 expand_specs(Head, Module) -->
-	{ valid_pi(Head, Name, Arity),
-	  functor(GenHead, Name, Arity)
-	},
-	[ coinduction:coinductive_declaration(GenHead, Module) ].
+    { valid_pi(Head, Name, Arity),
+      functor(GenHead, Name, Arity)
+    },
+    [ coinduction:coinductive_declaration(GenHead, Module) ].
 
 
 valid_pi(Name/Arity, Name, Arity) :-
-	must_be(atom, Name),
-	must_be(integer, Arity).
+    must_be(atom, Name),
+    must_be(integer, Arity).
 
 
-%%	wrap_coinductive(+Head, +Term, -Clauses) is det.
+%!  wrap_coinductive(+Head, +Term, -Clauses) is det.
 %
-%	Create a wrapper. The first clause deal   with the case where we
-%	already created the wrapper. The second  creates the wrapper and
-%	the first clause.
+%   Create a wrapper. The first clause deal   with the case where we
+%   already created the wrapper. The second  creates the wrapper and
+%   the first clause.
 
 wrap_coinductive(Pred, Term, Clause) :-
-	current_predicate(_, Pred), !,
-	rename_clause(Term, 'coinductive ', Clause).
+    current_predicate(_, Pred),
+    !,
+    rename_clause(Term, 'coinductive ', Clause).
 wrap_coinductive(Pred, Term, [Wrapper_1,Wrapper_2,FirstClause]) :-
-	Pred = M:Head,
-	functor(Head, Name, Arity),
-	length(Args, Arity),
-	GenHead =.. [Name|Args],
-	atom_concat('coinductive ', Name, WrappedName),
-	WrappedHead =.. [WrappedName|Args],
-	Wrapper_1 = (GenHead :-
-			prolog_current_frame(F),
-		        prolog_frame_attribute(F, parent, FP),
-		        prolog_frame_attribute(FP, parent_goal, M:GenHead)),
-	Wrapper_2 = (GenHead :- WrappedHead, coinduction:no_lco),
-	rename_clause(Term, 'coinductive ', FirstClause).
+    Pred = M:Head,
+    functor(Head, Name, Arity),
+    length(Args, Arity),
+    GenHead =.. [Name|Args],
+    atom_concat('coinductive ', Name, WrappedName),
+    WrappedHead =.. [WrappedName|Args],
+    Wrapper_1 = (GenHead :-
+                    prolog_current_frame(F),
+                    prolog_frame_attribute(F, parent, FP),
+                    prolog_frame_attribute(FP, parent_goal, M:GenHead)),
+    Wrapper_2 = (GenHead :- WrappedHead, coinduction:no_lco),
+    rename_clause(Term, 'coinductive ', FirstClause).
 
 :- public no_lco/0.
 
-no_lco.					% true, but do not optimize away
+no_lco.                                 % true, but do not optimize away
 
-%%	rename_clause(+Clause, +Prefix, -Renamed) is det.
+%!  rename_clause(+Clause, +Prefix, -Renamed) is det.
 %
-%	Rename a clause by prefixing its old name wit h Prefix.
+%   Rename a clause by prefixing its old name wit h Prefix.
 
-rename_clause((Head :- Body), Prefix, (NewHead :- Body)) :- !,
-        rename_clause(Head, Prefix, NewHead).
+rename_clause((Head :- Body), Prefix, (NewHead :- Body)) :-
+    !,
+    rename_clause(Head, Prefix, NewHead).
 rename_clause(M:Head, Prefix, M:NewHead) :-
-	rename_clause(Head, Prefix, NewHead).
+    rename_clause(Head, Prefix, NewHead).
 rename_clause(Head, Prefix, NewHead) :-
-        Head =.. [Name|Args],
-        atom_concat(Prefix, Name, WrapName),
-        NewHead =.. [WrapName|Args].
+    Head =.. [Name|Args],
+    atom_concat(Prefix, Name, WrapName),
+    NewHead =.. [WrapName|Args].
 
 
-		 /*******************************
-		 *	  EXPANSION HOOKS	*
-		 *******************************/
+                 /*******************************
+                 *        EXPANSION HOOKS       *
+                 *******************************/
 
 system:term_expansion((:- coinductive(Spec)), Clauses) :-
-	expand_coinductive_declaration(Spec, Clauses).
+    expand_coinductive_declaration(Spec, Clauses).
 system:term_expansion(Term, Wrapper) :-
-	head(Term, Module:Head),
-	coinductive_declaration(Head, Module),
-	wrap_coinductive(Module:Head, Term, Wrapper).
+    head(Term, Module:Head),
+    coinductive_declaration(Head, Module),
+    wrap_coinductive(Module:Head, Term, Wrapper).
 
 

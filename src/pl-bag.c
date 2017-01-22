@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2014, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -112,6 +124,7 @@ typedef struct findall_bag
 { struct findall_bag *parent;		/* parent bag */
   int		magic;			/* FINDALL_MAGIC */
   int		suspended;		/* Used for findnsols/4  */
+  size_t	suspended_solutions;	/* Already handed out solutions */
   size_t	solutions;		/* count # solutions */
   size_t	gsize;			/* required size on stack */
   mem_pool	records;		/* stored records */
@@ -128,7 +141,7 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
   if ( !LD->bags.bags )			/* outer one */
   { if ( !LD->bags.default_bag )
     {
-#ifdef O_ATOMGC
+#if defined(O_ATOMGC) && defined(O_PLMT)
       simpleMutexInit(&LD->bags.mutex);
 #endif
       LD->bags.default_bag = PL_malloc(sizeof(*bag));
@@ -141,11 +154,12 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
   if ( !bag )
     return PL_no_memory();
 
-  bag->magic     = FINDALL_MAGIC;
-  bag->suspended = FALSE;
-  bag->solutions = 0;
-  bag->gsize     = 0;
-  bag->parent    = LD->bags.bags;
+  bag->magic		   = FINDALL_MAGIC;
+  bag->suspended	   = FALSE;
+  bag->suspended_solutions = 0;
+  bag->solutions	   = 0;
+  bag->gsize		   = 0;
+  bag->parent		   = LD->bags.bags;
   init_mem_pool(&bag->records);
   initSegStack(&bag->answers, sizeof(Record),
 	       sizeof(bag->answer_buf), bag->answer_buf);
@@ -183,7 +197,10 @@ add_findall_bag(term_t term, term_t count ARG_LD)
   Record r;
 
   DEBUG(MSG_NSOLS, { Sdprintf("Adding to %p: ", bag);
-		     pl_writeln(term);
+		     PL_write_term(Serror, term, 1200,
+				   PL_WRT_ATTVAR_DOTS|
+				   PL_WRT_NEWLINE|
+				   PL_WRT_QUOTED);
 		   });
 
   if ( !(r = compileTermToHeap__LD(term, alloc_record, bag, R_NOLOCK PASS_LD)) )
@@ -197,7 +214,7 @@ add_findall_bag(term_t term, term_t count ARG_LD)
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
 
   if ( count )
-    return PL_unify_int64(count, bag->solutions);
+    return PL_unify_int64(count, bag->solutions + bag->suspended_solutions);
   else
     return FALSE;
 }
@@ -236,6 +253,7 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
+      DEBUG(MSG_NSOLS, Sdprintf("Retrieving answer\n"));
       copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
       if (GD->atoms.gc_active)
         markAtomsRecord(r);
@@ -279,6 +297,9 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
   { case FRG_FIRST_CALL:
       bag = current_bag(PASS_LD1);
       clear_mem_pool(&bag->records);
+      bag->suspended_solutions += bag->solutions;
+      bag->solutions = 0;
+      bag->gsize = 0;
       DEBUG(MSG_NSOLS, Sdprintf("Suspend %p\n", bag));
       bag->suspended = TRUE;
       ForeignRedoPtr(bag);

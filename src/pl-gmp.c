@@ -1,25 +1,36 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (c)  2005-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -34,6 +45,7 @@ static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
 static mpz_t MPZ_MAX_TAGGED;
 static mpz_t MPZ_MIN_PLINT;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_PLINT;
+static mpz_t MPZ_MAX_UINT64;
 #if SIZEOF_LONG	< SIZEOF_VOIDP
 static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_LONG;
@@ -221,7 +233,9 @@ mpz_wsize(mpz_t mpz, size_t *s)
 
 static int
 globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
-{ if ( mpz->_mp_alloc )
+{ DEBUG(CHK_SECURE, assert(!onStackArea(global, at) && !onStackArea(local, at)));
+
+  if ( mpz->_mp_alloc )
   { Word p;
     size_t size;
     size_t wsz = mpz_wsize(mpz, &size);
@@ -309,15 +323,15 @@ addMPZToBuffer(Buffer b, mpz_t mpz)
 void
 addMPZToBuffer(Buffer b, mpz_t mpz)
 { size_t size = (mpz_sizeinbase(mpz, 2)+7)/8;
-  long hdrsize;
+  ssize_t hdrsize;
   size_t count;
 
   if ( !growBuffer(b, size+4) )
     outOfCore();
   if ( mpz_sgn(mpz) < 0 )
-    hdrsize = -(long)size;
+    hdrsize = -(ssize_t)size;
   else
-    hdrsize = (long)size;
+    hdrsize = (ssize_t)size;
   DEBUG(1, Sdprintf("addMPZToBuffer(): Added %d bytes\n", size));
 
   *b->top++ = (char)((hdrsize>>24)&0xff);
@@ -343,8 +357,8 @@ char *
 loadMPZFromCharp(const char *data, Word r, Word *store)
 { GET_LD
   int size = 0;
-  int limpsize;
-  int wsize;
+  size_t limpsize;
+  size_t wsize;
   int neg;
   mpz_t mpz;
   Word p;
@@ -422,7 +436,7 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 #if SIZEOF_LONG == 8
   mpz_init_set_si(mpz, (long)i);
 #else
-  DEBUG(2, Sdprintf("Converting " INT64_FORMAT " to MPZ\n", i));
+  DEBUG(2, Sdprintf("Converting %" PRId64 " to MPZ\n", i));
 
   if ( i >= LONG_MIN && i <= LONG_MAX )
   { mpz_init_set_si(mpz, (long)i);
@@ -438,6 +452,14 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
   }
   DEBUG(2, gmp_printf("\t--> %Zd\n", mpz));
 #endif
+}
+
+
+static void
+mpz_init_max_uint(mpz_t mpz, int bits)
+{ mpz_init_set_si(mpz, 1);
+  mpz_mul_2exp(mpz, mpz, bits);
+  mpz_sub_ui(mpz, mpz, 1);
 }
 
 
@@ -573,7 +595,7 @@ clearGMPNumber(Number n)
 		 *******************************/
 
 void
-initGMP()
+initGMP(void)
 { if ( !GD->gmp.initialised )
   { GD->gmp.initialised = TRUE;
 
@@ -581,6 +603,7 @@ initGMP()
     mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
     mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
     mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
+    mpz_init_max_uint(MPZ_MAX_UINT64, 64);
 #if SIZEOF_LONG < SIZEOF_VOIDP
     mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
     mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
@@ -588,6 +611,12 @@ initGMP()
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
       mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
+#endif
+
+#if __GNU_MP__ > 3 && __GNU_MP__ < 6
+    PL_license("lgplv3", "libgmp");
+#else
+    PL_license("lgplv2+", "libgmp");
 #endif
   }
 }
@@ -640,6 +669,29 @@ mpz_to_int64(mpz_t mpz, int64_t *i)
   }
 
   return FALSE;
+}
+
+
+/* return: <0:              -1
+	   >MPZ_UINT64_MAX:  1
+	   (ok)		     0
+*/
+
+int
+mpz_to_uint64(mpz_t mpz, uint64_t *i)
+{ if ( mpz_sgn(mpz) < 0 )
+    return -1;
+
+  if ( mpz_cmp(mpz, MPZ_MAX_UINT64) <= 0 )
+  { uint64_t v;
+
+    mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
+    *i = v;
+
+    return 0;
+  }
+
+  return 1;
 }
 
 
@@ -978,12 +1030,14 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d2 = (double)n2->value.i;
 	break;
+#ifdef O_GMP
       case V_MPZ:
 	d2 = mpz_get_d(n2->value.mpz);
 	break;
       case V_MPQ:
 	d2 = mpq_get_d(n2->value.mpq);
 	break;
+#endif
       default:
 	assert(0);
 	d2 = 0.0;
@@ -1000,12 +1054,14 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d1 = (double)n1->value.i;
 	break;
+#ifdef O_GMP
       case V_MPZ:
 	d1 = mpz_get_d(n1->value.mpz);
 	break;
       case V_MPQ:
 	d1 = mpq_get_d(n1->value.mpq);
 	break;
+#endif
       default:
 	assert(0);
 	d1 = 0.0;
@@ -1046,7 +1102,8 @@ cmpNumbers(Number n1, Number n2)
 #endif
     case V_FLOAT:
       return n1->value.f  < n2->value.f ? CMP_LESS :
-	     n1->value.f == n2->value.f ? CMP_EQUAL : CMP_GREATER;
+	     n1->value.f == n2->value.f ? CMP_EQUAL :
+	     n1->value.f  > n2->value.f ? CMP_GREATER : CMP_NOTEQ;
   }
 
   assert(0);
