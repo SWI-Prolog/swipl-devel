@@ -189,5 +189,7 @@ test(transducer, Sum == 6) :-
 	play(sum(Sum),transduce(fromList([1,2]), doubler)).
 test(ifthen, R == 'Hello world') :-
 	reset_in_cond(R).
+test(mcall2, Ball == a) :-
+	reset(call(shift, a), Ball, _Continuation).
 
 :- end_tests(continuation).
