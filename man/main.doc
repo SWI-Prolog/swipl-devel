@@ -58,8 +58,8 @@
 #endif
 
 \newcommand{\vmajor}{7}
-\newcommand{\vminor}{3}
-\newcommand{\vpatch}{35}
+\newcommand{\vminor}{5}
+\newcommand{\vpatch}{0}
 \newcommand{\vtag}{}
 \newcommand{\vmonth}{January}
 \newcommand{\vyear}{2017}
