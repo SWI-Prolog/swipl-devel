@@ -4630,6 +4630,13 @@ field.
 The clause data is discarded automatically  if the frame is invalidated.
 Note that compilation does not give contained   atoms a reference as the
 atom is referenced by the goal-term anyway.
+
+Creating a `local clause'  is  needed   for  control  structures and for
+meta-calling call/N for N >  8  as   there  are  no real predicates that
+provide a backup. In  the  case  we   are  under  reset/3,  we can never
+generate a local clause while  passing  call(<call/N>)   for  N  >  8 to
+'$meta_call'/1 however leads to an infinite loop. For now we generate an
+undefined predicate for call/N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   goal = *a;
@@ -4647,13 +4654,18 @@ atom is referenced by the goal-term anyway.
     fd = valueFunctor(functor);
     if ( !isCallableAtom(fd->name) )
       goto call_type_error;
-    if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
+    if ( false(fd, CONTROL_F) && !(fd->name == ATOM_call && fd->arity > 8) )
     { args    = argTermP(goal, 0);
       arity   = (int)fd->arity;
-    } else if ( true(FR, FR_INRESET) &&
-		(true(fd, CONTROL_F) || fd->functor == FUNCTOR_call1) )
-    { DEF = GD->procedures.dmeta_call1->definition;
-      goto mcall_cont;
+    } else if ( true(FR, FR_INRESET) )
+    { if ( false(fd, CONTROL_F) && !(fd->name == ATOM_call) )
+      { /* arity > 8 will raise existence error */
+	args  = argTermP(goal, 0);
+	arity = (int)fd->arity;
+      } else
+      { DEF = GD->procedures.dmeta_call1->definition;
+	goto mcall_cont;
+      }
     } else
     { Clause cl;
       int rc;
