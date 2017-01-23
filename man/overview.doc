@@ -284,9 +284,9 @@ details.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
-the user's browser on \url{http://localhost:<port>}.  If \arg{port} is
-specified, the server is started at the given port and the browser is
-\emph{not} launched.
+the user's browser on \verb$http://localhost:$\arg{port}. If
+\arg{port} is specified, the server is started at the given port and the
+browser is \emph{not} launched.
 
     \cmdlineoptionitem{-tty}{}
 Unix only.  Switches controlling the terminal for allowing
