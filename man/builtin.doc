@@ -8223,7 +8223,8 @@ Number of microseconds.  The \const{f} can be prefixed by an integer
 to print the desired number of digits.  E.g., \const{\%3f} prints
 milliseconds.  This format is not covered by any standard, but
 available with different format specifiers in various incarnations
-of the strftime() function.
+of the strftime() function.  The fraction is rounded \emph{down} to
+avoid ending up with e.g., 1000 milliseconds.
     \fmtchar{F}
 Equivalent to \%Y-\%m-\%d (the ISO 8601 date format).
     \fmtchar{g}
