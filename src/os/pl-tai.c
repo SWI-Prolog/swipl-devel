@@ -828,7 +828,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	      cal_ftm(ftm, HAS_STAMP);
 	      fp = modf(ftm->stamp, &ip) * pow(10, digits);
 	      Ssprintf(fmt, "%%0%dlld", digits);
-	      OUTNUMBER(fd, fmt, (long)(fp+0.5));
+	      OUTNUMBER(fd, fmt, (long)fp);
 	    }
 	    break;
 	  }
