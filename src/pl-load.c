@@ -74,6 +74,7 @@ contributions.
 		 *     DLOPEN() AND FRIENDS	*
 		 *******************************/
 
+#ifndef EMULATE_DLOPEN
 #ifdef HAVE_DLOPEN			/* sysvr4, elf binaries */
 
 #ifdef HAVE_DLFCN_H
@@ -107,6 +108,7 @@ dlsym(void *handle, const char *name)
 
 #endif /*HAVE_SHL_LOAD*/
 #endif /*HAVE_DLOPEN*/
+#endif /*EMULATE_DLOPEN*/
 
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
 #define HAVE_SHARED_OBJECTS
