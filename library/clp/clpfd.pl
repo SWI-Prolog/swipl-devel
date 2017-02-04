@@ -2722,9 +2722,10 @@ match(var(V), T)     --> [( nonvar(T), ( T = ?(Var) ; T = #(Var) ) ->
 match(integer(I), T) --> [integer(T), I = T].
 match(-X, T)         --> [nonvar(T), T = -A], match(X, A).
 match(abs(X), T)     --> [nonvar(T), T = abs(A)], match(X, A).
-match(X+Y, T)        --> [nonvar(T), T = A + B], match(X, A), match(Y, B).
-match(X-Y, T)        --> [nonvar(T), T = A - B], match(X, A), match(Y, B).
-match(X*Y, T)        --> [nonvar(T), T = A * B], match(X, A), match(Y, B).
+match(Binary, T)     -->
+        { Binary =.. [Op,X,Y], Term =.. [Op,A,B] },
+        [nonvar(T), T = Term],
+        match(X, A), match(Y, B).
 
 match_goals([], _)     --> [].
 match_goals([G|Gs], F) --> match_goal(G, F), match_goals(Gs, F).
@@ -2901,6 +2902,16 @@ expansion_simpler(Var =:= Expr0, Goal) :-
         ;   Goal = false
         ).
 expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
+expansion_simpler(Var is Expr, Goal) :- !,
+        (   var(Var), nonvar(Expr),
+            Expr = E mod M, nonvar(E), E = A^B ->
+            Goal = ( ( integer(A), integer(B), integer(M),
+                       A >= 0, B >= 0, M > 0 ->
+                       Var is powm(A, B, M)
+                     ; Var is Expr
+                     ) )
+        ;   Goal = ( Var is Expr )
+        ).
 expansion_simpler(between(L,U,V), Goal) :- maplist(integer, [L,U,V]), !,
         (   between(L,U,V) -> Goal = true
         ;   Goal = false
