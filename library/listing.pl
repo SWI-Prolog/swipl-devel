@@ -196,6 +196,10 @@ list_define(M:Pred, DefM:Pred) :-
     ;   DefM = M
     ).
 
+pi_to_head(PI, _) :-
+    var(PI),
+    !,
+    instantiation_error(PI).
 pi_to_head(M:PI, M:Head) :-
     !,
     pi_to_head(PI, Head).
