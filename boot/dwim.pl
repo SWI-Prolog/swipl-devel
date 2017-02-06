@@ -264,7 +264,8 @@ bind_vars([Name=Var|T]) :-
     List \== [],
     !.
 '$find_predicate'(Spec, _) :-
-    existence_error(Spec).
+    existence_error(Spec),
+    fail.
 
 find_predicate(Module, Name, Arity, VList) :-
     findall(Head, find_predicate_(Module, Name, Arity, Head), VList),
