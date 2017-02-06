@@ -635,7 +635,9 @@ install-readme:	idirs
 		$(INSTALL_DATA) ../README.md $(DESTDIR)$(PLBASE)/README$(TXTEXT)
 		$(INSTALL_DATA) ../VERSION $(DESTDIR)$(PLBASE)
 		$(INSTALL_DATA) ../LICENSE $(DESTDIR)$(PLBASE)/LICENSE$(TXTEXT)
-		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
+		if [ -f ../man/windows.html ]; then \
+		  $(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc; \
+		fi
 
 html-install:
 		if [ -d ../man/Manual ]; then \
