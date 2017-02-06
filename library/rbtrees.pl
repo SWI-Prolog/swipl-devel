@@ -86,7 +86,8 @@ form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
 :- meta_predicate
     rb_map(+,:,-),
     rb_partial_map(+,+,:,-),
-    rb_apply(+,+,:,-).
+    rb_apply(+,+,:,-),
+    rb_fold(3,+,+,-).
 
 /*
 :- use_module(library(type_check)).
@@ -817,6 +818,28 @@ map(black(L,_,V,R),Goal) :-
     !,
     map(L,Goal),
     map(R,Goal).
+
+%!  rb_fold(+Pred:pred(+pair,+S,-S), +Tree, +S1:S, -S2:S) is det.
+%
+%   Fold the given predicate over all the key-value pairs in Tree, starting
+%   with initial state S1 and returning the final state S2. Pred should
+%   be callable as =|call(Pred, Key-Value, S1, S2)|=.
+
+rb_fold(Pred, t(_,T), S1, S2) :-
+    fold(T, Pred, S1, S2).
+
+fold(black(L,K,V,R), Pred) -->
+   ( {L = ''} -> []
+   ; fold_parts(Pred, L, K-V, R)
+   ).
+fold(red(L,K,V,R), Pred) -->
+   fold_parts(Pred, L, K-V, R).
+
+fold_parts(Pred, L, KV, R) -->
+   fold(L, Pred), 
+   call(Pred, KV),
+   fold(R, Pred).
+
 
 %!  rb_clone(+T, -NT, -Pairs)
 %
