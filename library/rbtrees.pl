@@ -39,7 +39,6 @@
            rb_update/4,                 % +T, +Key, +NewVal, -TN
            rb_update/5,                 % +T, +Key, ?OldVal, +NewVal, -TN
            rb_apply/4,                  % +T, +Key, :G, -TN
-           rb_lookupall/3,              % +Key, -Value, +T
            rb_insert/4,                 % +T0, +Key, ?Value, -TN
            rb_insert_new/4,             % +T0, +Key, ?Value, -TN
            rb_delete/3,                 % +T, +Key, -TN
@@ -130,8 +129,10 @@ rb_empty(t(Nil,Nil)) :-
 
 %!  rb_lookup(+Key, -Value, +T) is semidet.
 %
-%   Backtrack through all elements with  key   Key  in the Red-Black
-%   tree T, returning for each the value Value.
+%   True when Value is associated with Key in the Red-Black tree T.
+%   The given Key may include variables, in which case the RB tree is searched
+%   for a key with equivalent, as in (==)/2, variables. Time complexity is O(log N) in
+%   the number of elements in the tree.
 
 rb_lookup(Key, Val, t(_,Tree)) :-
     lookup(Key, Val, Tree).
@@ -316,15 +317,11 @@ apply(red(Left,Key0,Val0,Right), Key, Goal,
 
 %!  rb_in(?Key, ?Val, +Tree) is nondet.
 %
-%   True if Key-Val appear in Tree. Uses indexing if Key is bound.
+%   True for each key-value pair in red-black tree Tree that unifies with the
+%   given Key and Value. The entire tree is scanned. 
 
 rb_in(Key, Val, t(_,T)) :-
-    var(Key),
-    !,
     enum(Key, Val, T).
-rb_in(Key, Val, t(_,T)) :-
-    lookup(Key, Val, T).
-
 
 enum(Key, Val, black(L,K,V,R)) :-
     L \= '',
@@ -339,32 +336,6 @@ enum_cases(Key, Val, _, _, _, R) :-
     enum(Key, Val, R).
 
 
-%!  rb_lookupall(+Key, -Value, +T)
-%
-%   Lookup all elements with  key  Key   in  the  red-black  tree T,
-%   returning the value Value.
-
-rb_lookupall(Key, Val, t(_,Tree)) :-
-    lookupall(Key, Val, Tree).
-
-
-lookupall(_, _, black('',_,_,'')) :- !, fail.
-lookupall(Key, Val, Tree) :-
-    arg(2,Tree,KA),
-    compare(Cmp,KA,Key),
-    lookupall(Cmp,Key,Val,Tree).
-
-lookupall(>, K, V, Tree) :-
-    arg(4,Tree,NTree),
-    rb_lookupall(K, V, NTree).
-lookupall(=, _, V, Tree) :-
-    arg(3,Tree,V).
-lookupall(=, K, V, Tree) :-
-    arg(1,Tree,NTree),
-    lookupall(K, V, NTree).
-lookupall(<, K, V, Tree) :-
-    arg(1,Tree,NTree),
-    lookupall(K, V, NTree).
 
                  /*******************************
                  *       TREE INSERTION         *
@@ -950,7 +921,9 @@ keys(black(L,K,_,R),L0,Lf) :-
 
 %!  list_to_rbtree(+L, -T) is det.
 %
-%   T is the red-black tree corresponding to the mapping in list L.
+%   T is the red-black tree corresponding to the mapping in list L, which
+%   should be a list of Key-Value pairs. L should not contain more than one 
+%   entry for each distinct key.
 
 list_to_rbtree(List, T) :-
     sort(List,Sorted),
@@ -958,8 +931,10 @@ list_to_rbtree(List, T) :-
 
 %!  ord_list_to_rbtree(+L, -T) is det.
 %
-%   T is the red-black tree corresponding  to the mapping in ordered
-%   list L.
+%   T is the red-black tree corresponding to the mapping in list L, which
+%   should be a list of Key-Value pairs. L should not contain more than one 
+%   entry for each distinct key. L is assumed to be sorted according to the
+%   standard order of terms.
 
 ord_list_to_rbtree([], t(Nil,Nil)) :-
     !,
