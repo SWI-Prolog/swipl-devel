@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam,
+    Copyright (c)  1999-2017, University of Amsterdam,
                               VU University Amsterdam
     All rights reserved.
 
@@ -48,6 +48,7 @@
 #ifdef __MINGW32__
 #include <winsock2.h>
 #include <windows.h>
+#include <errno.h>			/* must be before pl-incl.h */
 #endif
 
 #include "pl-incl.h"

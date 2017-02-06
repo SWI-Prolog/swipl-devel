@@ -39,9 +39,7 @@ to libraries that are more restrictive and in addition your code may
 have loaded extension packages that have more restrictive conditions. In
 particular, the core is by default linked to
 \href{https://gmplib.org/}{libgmp}, distributed under the Lesser GNU
-Public license. On Unix, SWI-Prolog is also linked to
-\href{https://cnswww.cns.cwru.edu/php/chet/readline/rltop.html}{The GNU
-Readline Library}, distributed under the General GNU Public license.
+Public license.
 
 The above implies you need to configure and recompile the system without
 these components. For this we provide options to the \program{configure}
@@ -52,19 +50,18 @@ script:
 ./configure --without-lgpl
 \end{code}
 
-Dropping the GNU Readline Library from a packaged product is in most
-cases not a big loss. The GNU MP Bignum Library however provides
-unbounded integers, rational numbers and some cryptographical
-functionality. As libgmp is provided under the Lesser GNU Public license
-it may legally be combined with proprietary software as long as libgmp
-is \jargon{dynamically linked} (default) and the end user can replace
-the libgmp shared object and use your application with their (possibly
-modified) version of libgmp. In practice this leads to problems if the
-application is not accessible (e.g., embedded in closed hardware) or you
-want to avoid customers to peek around in the process memory as they can
-easily do so by adding a backdoor to the modified LGPL component. Note
-that such a protection is in general not possible anyway if the customer
-has root access to the machine on which the application runs.
+The GNU MP Bignum Library provides unbounded integers, rational numbers
+and some cryptographical functionality. As libgmp is provided under the
+Lesser GNU Public license it may legally be combined with proprietary
+software as long as libgmp is \jargon{dynamically linked} (default) and
+the end user can replace the libgmp shared object and use your
+application with their (possibly modified) version of libgmp. In
+practice this leads to problems if the application is not accessible
+(e.g., embedded in closed hardware) or you want to avoid customers to
+peek around in the process memory as they can easily do so by adding a
+backdoor to the modified LGPL component. Note that such a protection is
+in general not possible anyway if the customer has unrestricted access
+to the machine on which the application runs.
 
 
 \section{Contributing to the SWI-Prolog project}	\label{sec:contrib}
@@ -83,12 +80,12 @@ the code must be excluded using the \verb$--without-gpl$ or
 \label{sec:softlicense}
 
 Given the above, it is possible that SWI-Prolog packages and extensions
-rely on the GPL or LGPL. The predicates below allow for registering
-license requirements for Prolog files and foreign modules. The predicate
-eval_license/0 reports which components from the currently configured
-system are distributed under copy-left and open source enforcing
-licenses (the GPL) and therefore must be replaced before distributing
-linked applications under non-free license conditions.
+rely on the GPL, LGPL or other licenses. The predicates below allow for
+registering license requirements for Prolog files and foreign modules.
+The predicate license/0 reports which components from the currently
+configured system are distributed under non-permissive open source
+licenses and therefore may need to be replaced to suit your
+requirements.
 
 \begin{description}
     \predicate{license}{0}{}

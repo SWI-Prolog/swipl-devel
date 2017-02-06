@@ -33,39 +33,37 @@
 */
 
 :- module(rbtrees,
-          [rb_new/1,
-           rb_empty/1,                  % ?T
-           rb_lookup/3,                 % +Key, -Value, +T
-           rb_update/4,                 % +T, +Key, +NewVal, -TN
-           rb_update/5,                 % +T, +Key, ?OldVal, +NewVal, -TN
-           rb_apply/4,                  % +T, +Key, :G, -TN
-           rb_lookupall/3,              % +Key, -Value, +T
-           rb_insert/4,                 % +T0, +Key, ?Value, -TN
-           rb_insert_new/4,             % +T0, +Key, ?Value, -TN
-           rb_delete/3,                 % +T, +Key, -TN
-           rb_delete/4,                 % +T, +Key, -Val, -TN
-           rb_visit/2,                  % +T, -Pairs
-           rb_visit/3,
-           rb_keys/2,                   % +T, +Keys
-           rb_keys/3,
-           rb_map/2,
-           rb_map/3,
-           rb_partial_map/4,
-           rb_fold/4,                   % +Pred, +T, +S1, -S2
-           rb_clone/3,
-           rb_clone/4,
-           rb_min/3,
-           rb_max/3,
-           rb_del_min/4,
-           rb_del_max/4,
-           rb_next/4,
-           rb_previous/4,
-           list_to_rbtree/2,
-           ord_list_to_rbtree/2,
-           is_rbtree/1,
-           rb_size/2,
-           rb_in/3
-       ]).
+          [ rb_new/1,
+            rb_empty/1,                 % ?T
+            rb_lookup/3,                % +Key, -Value, +T
+            rb_update/4,                % +T, +Key, +NewVal, -TN
+            rb_update/5,                % +T, +Key, ?OldVal, +NewVal, -TN
+            rb_apply/4,                 % +T, +Key, :G, -TN
+            rb_insert/4,                % +T0, +Key, ?Value, -TN
+            rb_insert_new/4,            % +T0, +Key, ?Value, -TN
+            rb_delete/3,                % +T, +Key, -TN
+            rb_delete/4,                % +T, +Key, -Val, -TN
+            rb_visit/2,                 % +T, -Pairs
+            rb_visit/3,
+            rb_keys/2,                  % +T, +Keys
+            rb_keys/3,
+            rb_map/2,                   % +Tree, :Goal
+            rb_map/3,                   % +Tree, :Goal, -MappedTree
+            rb_partial_map/4,
+            rb_clone/3,
+            rb_clone/4,
+            rb_min/3,                   % +Tree, -Key, -Value
+            rb_max/3,                   % +Tree, -Key, -Value
+            rb_del_min/4,               % +Tree, -Key, -Val, -TreeDel
+            rb_del_max/4,               % +Tree, -Key, -Val, -TreeDel
+            rb_next/4,                  % +Tree, +Key, -Next, -Value
+            rb_previous/4,              % +Tree, +Key, -Next, -Value
+            list_to_rbtree/2,           % +Pairs, -Tree
+            ord_list_to_rbtree/2,       % +Pairs, -Tree
+            is_rbtree/1,                % @Tree
+            rb_size/2,                  % +T, -Size
+            rb_in/3                     % ?Key, ?Value, +Tree
+          ]).
 
 /** <module> Red black trees
 
@@ -132,8 +130,10 @@ rb_empty(t(Nil,Nil)) :-
 
 %!  rb_lookup(+Key, -Value, +T) is semidet.
 %
-%   Backtrack through all elements with  key   Key  in the Red-Black
-%   tree T, returning for each the value Value.
+%   True when Value is associated with Key  in the Red-Black tree T. The
+%   given Key may include variables,  in  which   case  the  RB  tree is
+%   searched for a key with equivalent,   as  in (==)/2, variables. Time
+%   complexity is O(log N) in the number of elements in the tree.
 
 rb_lookup(Key, Val, t(_,Tree)) :-
     lookup(Key, Val, Tree).
@@ -181,7 +181,7 @@ max(red(_,_,_,Left), Key, Val) :-
 max(black(_,_,_,Left), Key, Val) :-
     max(Left,Key,Val).
 
-%!  rb_next(+T, +Key, -Next,-Value) is semidet.
+%!  rb_next(+T, +Key, -Next, -Value) is semidet.
 %
 %   Next is the next element after Key  in T, and is associated with
 %   Val.
@@ -316,17 +316,15 @@ apply(red(Left,Key0,Val0,Right), Key, Goal,
         apply(Right, Key, Goal, NewRight)
     ).
 
-%!  rb_in(?Key, ?Val, +Tree) is nondet.
+%!  rb_in(?Key, ?Value, +Tree) is nondet.
 %
-%   True if Key-Val appear in Tree. Uses indexing if Key is bound.
+%   True when Key-Value is a key-value pair in red-black tree Tree. Same
+%   as below, but does not materialize the pairs.
+%
+%        rb_visit(Tree, Pairs), member(Key-Value, Pairs)
 
 rb_in(Key, Val, t(_,T)) :-
-    var(Key),
-    !,
     enum(Key, Val, T).
-rb_in(Key, Val, t(_,T)) :-
-    lookup(Key, Val, T).
-
 
 enum(Key, Val, black(L,K,V,R)) :-
     L \= '',
@@ -341,32 +339,6 @@ enum_cases(Key, Val, _, _, _, R) :-
     enum(Key, Val, R).
 
 
-%!  rb_lookupall(+Key, -Value, +T)
-%
-%   Lookup all elements with  key  Key   in  the  red-black  tree T,
-%   returning the value Value.
-
-rb_lookupall(Key, Val, t(_,Tree)) :-
-    lookupall(Key, Val, Tree).
-
-
-lookupall(_, _, black('',_,_,'')) :- !, fail.
-lookupall(Key, Val, Tree) :-
-    arg(2,Tree,KA),
-    compare(Cmp,KA,Key),
-    lookupall(Cmp,Key,Val,Tree).
-
-lookupall(>, K, V, Tree) :-
-    arg(4,Tree,NTree),
-    rb_lookupall(K, V, NTree).
-lookupall(=, _, V, Tree) :-
-    arg(3,Tree,V).
-lookupall(=, K, V, Tree) :-
-    arg(1,Tree,NTree),
-    lookupall(K, V, NTree).
-lookupall(<, K, V, Tree) :-
-    arg(1,Tree,NTree),
-    lookupall(K, V, NTree).
 
                  /*******************************
                  *       TREE INSERTION         *
@@ -779,11 +751,6 @@ fixup3(black(black(red(Fi,KE,VE,Ep),KD,VD,C),KB,VB,black(Be,KA,VA,Al)),
        black(black(Fi,KE,VE,Ep),KD,VD,black(C,KB,VB,black(Be,KA,VA,Al))),
        done).
 
-
-%
-% whole list
-%
-
 %!  rb_visit(+T, -Pairs)
 %
 %   Pairs is an infix visit of tree   T, where each element of Pairs
@@ -949,13 +916,10 @@ partial_map(black(L,K,V,R),Map,MapF,Nil,Goal,black(NL,K,NV,NR)) :-
     ).
 
 
+%!  rb_keys(+T, -Keys)
 %
-% whole keys
-%
-%%      rb_keys(+T, -Keys)
-%
-%       Keys is unified with  an  ordered  list   of  all  keys  in  the
-%       Red-Black tree T.
+%   Keys is unified with an ordered list   of  all keys in the Red-Black
+%   tree T.
 
 rb_keys(t(_,T),Lf) :-
     keys(T,[],Lf).
@@ -974,7 +938,9 @@ keys(black(L,K,_,R),L0,Lf) :-
 
 %!  list_to_rbtree(+L, -T) is det.
 %
-%   T is the red-black tree corresponding to the mapping in list L.
+%   T is the red-black tree corresponding  to   the  mapping  in list L,
+%   which should be a list of Key-Value pairs. L should not contain more
+%   than one entry for each distinct key.
 
 list_to_rbtree(List, T) :-
     sort(List,Sorted),
@@ -982,8 +948,10 @@ list_to_rbtree(List, T) :-
 
 %!  ord_list_to_rbtree(+L, -T) is det.
 %
-%   T is the red-black tree corresponding  to the mapping in ordered
-%   list L.
+%   T is the red-black tree corresponding  to   the  mapping  in list L,
+%   which should be a list of Key-Value pairs. L should not contain more
+%   than one entry for each distinct  key.   L  is  assumed to be sorted
+%   according to the standard order of terms.
 
 ord_list_to_rbtree([], t(Nil,Nil)) :-
     !,

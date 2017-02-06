@@ -671,7 +671,8 @@ S__fillbuf(IOSTREAM *s)
 	return -1;
 #endif
       } else
-      { S__seterror(s);
+      { if ( !(s->flags & SIO_FERR) )	/* error already set */
+	  S__seterror(s);
 	return -1;
       }
     }

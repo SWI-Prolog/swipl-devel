@@ -407,7 +407,9 @@
                     \else
                       \@makeschapterhead{#1}%
                       \@afterheading
-                    \fi}
+                    \fi
+		 \fi
+		}
 \def\@makeschapterhead#1{%
   \vspace*{50\p@}%
   {\parindent \z@ \raggedright \normalfont

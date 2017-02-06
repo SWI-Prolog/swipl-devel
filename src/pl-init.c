@@ -468,43 +468,40 @@ This  file  is  parsed,  and  the    values  are  interpreted.  See  the
 if-then-else below for the defined values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAXVARNAME 256
-#define MAXVARVAL  1024
-
 static int
-getVarFromStream(IOSTREAM *s, char *name, char *value)
-{ char *q;
-  int l;
-  int c;
+getVarFromStream(IOSTREAM *s, tmp_buffer *name, tmp_buffer *value)
+{ int c;
 
 again:
-  for(l=MAXVARNAME, q=name; --l > 0; )
+  initBuffer(name);
+  initBuffer(value);
+
+  for(;;)
   { switch(c = Sgetc(s))
     { case EOF:
 	return FALSE;
       case '=':
-	*q = EOS;
+	addBuffer(name, EOS, char);
         goto do_value;
       case '\n':
+	discardBuffer(name);
 	goto again;
       default:
-	*q++ = c;
+	addBuffer(name, c, char);
     }
   }
-  return FALSE;
 
 do_value:
-  for(l=MAXVARVAL, q=value; --l > 0; )
+  for(;;)
   { switch(c = Sgetc(s))
     { case EOF:
       case '\n':
-	*q = EOS;
+	addBuffer(value, EOS, char);
         return TRUE;
       default:
-	*q++ = c;
+	addBuffer(value, c, char);
     }
   }
-  return FALSE;
 }
 
 
@@ -525,11 +522,14 @@ initDefaultOptions(void)
   { IOSTREAM *op = SopenRC(GD->resourceDB, "$options", "$prolog", RC_RDONLY);
 
     if ( op )
-    { char name[MAXVARNAME];
-      char val[MAXVARVAL];
+    { tmp_buffer name;
+      tmp_buffer val;
 
-      while( getVarFromStream(op, name, val) )
-	set_pl_option(name, val);
+      while( getVarFromStream(op, &name, &val) )
+      { set_pl_option(baseBuffer(&name, char), baseBuffer(&val, char));
+	discardBuffer(&name);
+	discardBuffer(&val);
+      }
 
       Sclose(op);
     }

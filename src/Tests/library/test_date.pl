@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2006-2013, University of Amsterdam
+    Copyright (c)  2006-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -45,7 +45,8 @@
 
 test_date :-
 	non_unit_tests,
-	run_tests([ parse_time
+	run_tests([ parse_time,
+		    format_time
 		  ]).
 
 non_unit_tests :-
@@ -223,3 +224,10 @@ test(iso_8601, T =:= 1165536000) :-
 	parse_time('2006-342', iso_8601, T).
 
 :- end_tests(parse_time).
+
+:- begin_tests(format_time).
+
+test(fraction, A == '999') :-
+	format_time(atom(A), '%3f', 0.9999999).
+
+:- end_tests(format_time).
