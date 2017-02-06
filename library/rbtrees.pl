@@ -3,7 +3,7 @@
     Author:        Vitor Santos Costa
     E-mail:        vscosta@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2013, Vitor Santos Costa
+    Copyright (c)  2007-2017, Vitor Santos Costa
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@
             rb_map/2,                   % +Tree, :Goal
             rb_map/3,                   % +Tree, :Goal, -MappedTree
             rb_partial_map/4,
+            rb_fold/4,                  % :Goal, +Tree, +State0, -State
             rb_clone/3,
             rb_clone/4,
             rb_min/3,                   % +Tree, -Key, -Value
@@ -78,7 +79,7 @@ Nil-node, a node shared for each nil-node in  the tree. Any node has the
 form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
 =black=.
 
-@author Vitor Santos Costa, Jan Wielemaker
+@author Vitor Santos Costa, Jan Wielemaker, Samer Abdallah
 @see "Introduction to Algorithms", Second Edition Cormen, Leiserson,
      Rivest, and Stein, MIT Press
 */
@@ -86,7 +87,8 @@ form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
 :- meta_predicate
     rb_map(+,:,-),
     rb_partial_map(+,+,:,-),
-    rb_apply(+,+,:,-).
+    rb_apply(+,+,:,-),
+    rb_fold(3,+,+,-).
 
 /*
 :- use_module(library(type_check)).
@@ -818,11 +820,35 @@ map(black(L,_,V,R),Goal) :-
     map(L,Goal),
     map(R,Goal).
 
-%!  rb_clone(+T, -NT, -Pairs)
+%!  rb_fold(:Goal, +Tree, +State0, -State) is det.
 %
-%   "Clone" the red-back tree into a new  tree with the same keys as
-%   the original but with all values set to unbound values. Nodes is
-%   a list containing all new nodes as pairs K-V.
+%   Fold the given predicate  over  all   the  key-value  pairs in Tree,
+%   starting with initial state State0  and   returning  the final state
+%   State. Pred is called as
+%
+%       call(Pred, Key-Value, State1, State2)
+
+rb_fold(Pred, t(_,T), S1, S2) :-
+    fold(T, Pred, S1, S2).
+
+fold(black(L,K,V,R), Pred) -->
+    (   {L == ''}
+    ->  []
+    ;   fold_parts(Pred, L, K-V, R)
+    ).
+fold(red(L,K,V,R), Pred) -->
+    fold_parts(Pred, L, K-V, R).
+
+fold_parts(Pred, L, KV, R) -->
+    fold(L, Pred),
+    call(Pred, KV),
+    fold(R, Pred).
+
+%!  rb_clone(+TreeIn, -TreeOut, -Pairs) is det.
+%
+%   `Clone' the red-back tree TreeIn into a   new  tree TreeOut with the
+%   same keys as the original but with all values set to unbound values.
+%   Pairs is a list containing all new nodes as pairs K-V.
 
 rb_clone(t(Nil,T),t(Nil,NT),Ns) :-
     clone(T,Nil,NT,Ns,[]).
