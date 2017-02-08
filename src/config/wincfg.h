@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015-2016, University of Amsterdam
+    Copyright (c)  2015-2017, University of Amsterdam
                               Vu University Amsterdam
     All rights reserved.
 
@@ -39,7 +39,6 @@
 #endif
 
 #define NOTTYCONTROL		TRUE	/* default -tty */
-#define O_GMP			1
 
 #if defined(O_PLMT) && !defined(_REENTRANT)
 #define _REENTRANT 1
