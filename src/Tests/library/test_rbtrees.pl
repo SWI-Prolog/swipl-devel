@@ -52,11 +52,6 @@ test(clone3, true(NPS =@= [1-_, 2-_, 3-_, 4-_])) :-
 	build_ptree(4, Tree),
 	rb_clone(Tree, _, NPS).
 
-test(clone4, true(OPS=[1-1,2-2,3-3,4-4])) :-
-	build_ptree(4, Tree),
-	rb_clone(Tree, OPS, _, NPS),
-	NPS =@= [1-_, 2-_, 3-_, 4-_].
-
 test(pos) :-
 	test_pos(100).
 test(neg) :-
