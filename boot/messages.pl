@@ -494,6 +494,13 @@ prolog_message(initialization_failure(Goal, _)) -->
 prolog_message(initialization_exception(E)) -->
     [ 'Prolog initialisation failed:', nl ],
     translate_message(E).
+prolog_message(init_goal_failed(failed, Text)) -->
+    !,
+    [ '-g ~w: false'-[Text] ].
+prolog_message(init_goal_failed(Error, Text)) -->
+    !,
+    [ '-g ~w: '-[Text] ],
+    translate_message(Error).
 prolog_message(unhandled_exception(E)) -->
     [ 'Unhandled exception: ' ],
     (   translate_message2(E)

@@ -149,7 +149,7 @@ Using command line arguments (see \secref{cmdline}), SWI-Prolog can be
 forced to load files and execute queries for initialisation purposes or
 non-interactive operation. The most commonly used options are
 \argoption{-f}{file} or \argoption{-s}{file} to make Prolog load a file,
-\argoption{-g}{goal} to define an initialisation goal and
+\argoption{-g}{goal} to define initialisation goals and
 \argoption{-t}{goal} to define the \jargon{top-level goal}. The following
 is a typical example for starting an application directly from the
 command line.
@@ -160,8 +160,17 @@ machine% swipl -s load.pl -g go -t halt
 
 It tells SWI-Prolog to load \file{load.pl}, start the application using
 the \jargon{entry point} \nopredref{go}{0} and ---instead of entering
-the interactive top level--- exit after completing \nopredref{go}{0}. The
-\cmdlineoption{-q} may be used to suppress all informational messages.
+the interactive top level--- exit after completing \nopredref{go}{0}.
+
+The command line may have multiple \argoption{-g}{goal} occurrences. The
+goals are executed in order. Possible choice points of individual goals
+are pruned. If a \arg{goal} fails execution stops with exit status
+\const{1}. If a \arg{goal} raises an exception, the exception is printed
+and the process stops with exit code \const{2}.
+
+The \cmdlineoption{-q} may be used to suppress all informational
+messages as well as the error message that is normally printed if an
+initialisation goal \emph{fails}.
 
 In MS-Windows, the same can be achieved using a short-cut with
 appropriately defined command line arguments. A typically seen
@@ -410,26 +419,31 @@ use. It is a memnonic for \textbf{M}emoizing.} answers for
 
 \begin{description}
     \cmdlineoptionitem{-g}{goal}
-\arg{Goal} is executed just before entering the top level. Default is a
-predicate which prints the welcome message. The welcome message can be
-suppressed with \cmdlineoption{--quiet}, but also with
-\argoption{-g}{true}. \arg{goal} can be a complex term. In this case
-quotes are normally needed to protect it from being expanded by the
-shell. A safe way to run a goal non-interactively is here:
+\arg{Goal} is executed just before entering the top level. This option
+may appear multiple times. See \secref{initgoal} for details. If no
+initialization goal is present the system calls version/0 to print the
+welcome message. The welcome message can be suppressed with
+\cmdlineoption{--quiet}, but also with \argoption{-g}{true}. \arg{goal}
+can be a complex term. In this case quotes are normally needed to
+protect it from being expanded by the shell. A safe way to run a goal
+non-interactively is below. If \nopredref{go/0} succeeds
+\argoption{-g}{halt} causes the process to stop with exit code 0. If it
+fails, the exit code is 1 and it it raises an exception the exit code is
+2.
 
 \begin{code}
-% swipl <options> -g go,halt -t 'halt(1)'
+% swipl <options> -g go -g halt
 \end{code}
 
     \cmdlineoptionitem{-t}{goal}
 Use \arg{goal} as interactive top level instead of the default goal
-prolog/0. \arg{goal} can be a complex term. If the top-level goal
+prolog/0. The \arg{goal} can be a complex term. If the top-level goal
 succeeds SWI-Prolog exits with status 0. If it fails the exit status is
 1. If the top level raises an exception, this is printed as an uncaught
-error and the top level is restarted. This flag also determines the goal
-started by break/0 and abort/0. If you want to stop the user from
-entering interactive mode, start the application with
-`\argoption{-g}{goal}' and give `halt' as top level.
+error and the top level is \emph{restarted}. This flag also determines
+the goal started by break/0 and abort/0. If you want to prevent the user
+from entering interactive mode, start the application with
+`\argoption{-g}{goal} \argoption{-t}{halt}'.
 \end{description}
 
 
