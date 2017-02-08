@@ -583,6 +583,7 @@ setup_readline :-
     ->  true
     ;   stream_property(user_input, tty(true)),
         current_prolog_flag(tty_control, true),
+        \+ getenv('TERM', dumb),
         (   current_prolog_flag(readline, ReadLine)
         ->  true
         ;   ReadLine = true
