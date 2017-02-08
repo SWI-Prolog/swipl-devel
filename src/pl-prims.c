@@ -5385,7 +5385,7 @@ static const optdef optdefs[] =
   { "global",		CMDOPT_SIZE_T,	&GD->options.globalSize },
   { "trail",		CMDOPT_SIZE_T,	&GD->options.trailSize },
 
-  { "goal",		CMDOPT_STRING,	&GD->options.goal },
+  { "goals",		CMDOPT_LIST,	&GD->options.goals },
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
   { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
   { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
@@ -5453,13 +5453,16 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
     }
   }
 
-  fail;
+  return PL_existence_error("cmd_option", key);
 }
 
 
 int
 set_pl_option(const char *name, const char *value)
 { OptDef d = (OptDef)optdefs;
+
+  if ( streq(name, "goal") )
+    name = "goals";			/* HACK */
 
   for( ; d->name; d++ )
   { if ( streq(name, d->name) )
@@ -5483,6 +5486,14 @@ set_pl_option(const char *name, const char *value)
 	  *val = store_string(value);
 	  succeed;
 	}
+        case CMDOPT_LIST:
+	{ opt_list **l = d->address;
+
+	  opt_append(l, value);
+	  succeed;
+	}
+        default:
+	  assert(0);
       }
     }
   }
