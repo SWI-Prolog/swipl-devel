@@ -411,7 +411,6 @@ xref_input_stream(Stream) :-
 %   them to be undone by pop_operators/0.
 
 xref_push_op(Src, P, T, N0) :-
-    !,
     (   N0 = _:_
     ->  N = N0
     ;   '$current_source_module'(M),
@@ -422,7 +421,8 @@ xref_push_op(Src, P, T, N0) :-
     assert_op(Src, op(P,T,N)),
     debug(xref(op), ':- ~w.', [op(P,T,N)]).
 
-valid_op(op(P,T,N)) :-
+valid_op(op(P,T,M:N)) :-
+    atom(M),
     atom(N),
     integer(P),
     between(0, 1200, P),
