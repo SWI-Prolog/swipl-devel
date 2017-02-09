@@ -105,17 +105,18 @@ clause_info(ClauseRef, File, TermPos, NameOffset, Options) :-
     ;   true
     ),
     clause_property(ClauseRef, file(File)),
-    '$clause'(Head, Body, ClauseRef, VarOffset),
+    File \== user,                  % loaded using ?- [user].
+    '$clause'(Head0, Body, ClauseRef, VarOffset),
+    (   module_property(Module, file(File))
+    ->  true
+    ;   strip_module(user:Head0, Module, _)
+    ),
+    unqualify(Head0, Module, Head),
     (   Body == true
     ->  DecompiledClause = Head
     ;   DecompiledClause = (Head :- Body)
     ),
-    File \== user,                  % loaded using ?- [user].
     clause_property(ClauseRef, line_count(LineNo)),
-    (   module_property(Module, file(File))
-    ->  true
-    ;   strip_module(user:Head, Module, _)
-    ),
     debug(clause_info, 'from ~w:~d ... ', [File, LineNo]),
     read_term_at_line(File, LineNo, Module, Clause, TermPos0, VarNames),
     option(variable_names(VarNames), Options, _),
@@ -125,6 +126,11 @@ clause_info(ClauseRef, File, TermPos, NameOffset, Options) :-
     make_varnames(Clause, DecompiledClause, VarOffset, VarNames, NameOffset),
     debug(clause_info, 'got names~n', []),
     !.
+
+unqualify(Module:Head, Module, Head) :-
+    !.
+unqualify(Head, _, Head).
+
 
 %!  unify_term(+T1, +T2)
 %
