@@ -227,7 +227,20 @@ test(iso_8601, T =:= 1165536000) :-
 
 :- begin_tests(format_time).
 
-test(fraction, A == '999') :-
-	format_time(atom(A), '%3f', 0.9999999).
+test(fraction) :-
+	forall(member(T, [100000.0, 100000.9, 100000.99,
+			  100000.999, 100000.9999]),
+	       ( format_time(string(S), '%3f', T),
+	         assertion(fok(S)))).
+test(negfraction) :-
+	forall(member(T, [-100000.0, -100000.9, -100000.99,
+			  -100000.999, -100000.9999]),
+	       ( format_time(string(S), '%3f', T),
+	         assertion(fok(S)))).
+
+fok("000").
+fok("900").
+fok("990").
+fok("999").
 
 :- end_tests(format_time).
