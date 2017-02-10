@@ -71,7 +71,7 @@ extern "C" {
 #define PLVERSION 70400
 #endif
 #ifndef PLVERSION_TAG
-#define PLVERSION_TAG "rc1"
+#define PLVERSION_TAG "rc2"
 #endif
 
 
