@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -821,14 +821,16 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  { int digits = (arg == NOARG ? 6 : arg);
 
 	    if ( digits > 0 )
-	    { double ip, fp;
-	      char fmt[64];
-
+	    { char fmt[64];
+	      char buf[64];
+	      const char *e;
 
 	      cal_ftm(ftm, HAS_STAMP);
-	      fp = modf(ftm->stamp, &ip) * pow(10, digits);
-	      Ssprintf(fmt, "%%0%dlld", digits);
-	      OUTNUMBER(fd, fmt, (long)fp);
+	      Ssprintf(fmt, "%%.%df", digits);
+	      Ssprintf(buf, fmt, ftm->stamp);
+	      for(e=buf+strlen(buf); e>buf && e[-1]>='0' && e[-1]<='9'; e--)
+		;
+	      OUTSTR(e);
 	    }
 	    break;
 	  }
