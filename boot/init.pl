@@ -3132,13 +3132,13 @@ load_files(Module:Files, Options) :-
 %   Store a clause into the   database  for administrative purposes.
 %   This bypasses sanity checking.
 
-'$store_admin_clause'(Clause, Layout, File, SrcLoc) :-
-    source_location(File, _Line),
+'$store_admin_clause'(Clause, Layout, Owner, SrcLoc) :-
+    Owner \== (-),
     !,
     setup_call_cleanup(
-        '$start_aux'(File, Context),
-        '$store_admin_clause2'(Clause, Layout, File, SrcLoc),
-        '$end_aux'(File, Context)).
+        '$start_aux'(Owner, Context),
+        '$store_admin_clause2'(Clause, Layout, Owner, SrcLoc),
+        '$end_aux'(Owner, Context)).
 '$store_admin_clause'(Clause, Layout, File, SrcLoc) :-
     '$store_admin_clause2'(Clause, Layout, File, SrcLoc).
 
