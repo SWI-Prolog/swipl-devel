@@ -2329,7 +2329,7 @@ flag, this flag is maintained per module, where the default is
 \const{false}, supporting standard syntax.
 
 Having only the underscore introduce a variable is particularly useful
-if code contains identifiers for case senstive external languages.
+if code contains identifiers for case sensitive external languages.
 Examples are the RDF library where code frequently specifies property
 and class names\footnote{Samer Abdallah suggested this feature based on
 experience with non-Prolog users using the RDF library.} and the R
