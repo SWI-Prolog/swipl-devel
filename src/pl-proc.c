@@ -2680,6 +2680,7 @@ static const patt_mask patt_masks[] =
   { ATOM_public,	   P_PUBLIC },
   { ATOM_non_terminal,	   P_NON_TERMINAL },
   { ATOM_quasi_quotation_syntax, P_QUASI_QUOTATION_SYNTAX },
+  { ATOM_clausable,	   P_CLAUSABLE },
   { (atom_t)0,		   0 }
 };
 
@@ -2873,6 +2874,22 @@ setThreadLocalDefinition(Definition def, bool val)
 }
 
 
+static int
+setClausableDefinition(Definition def, int val)
+{ GET_LD
+
+  if ( val )
+  { if ( truePrologFlag(PLFLAG_PROTECT_STATIC_CODE) &&
+	 hasClausesDefinition(def) )
+      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PREDICATE, def);
+    set(def, P_CLAUSABLE);
+  } else
+  { clear(def, P_CLAUSABLE);
+  }
+
+  return TRUE;
+}
+
 int
 setAttrDefinition(Definition def, unsigned attr, int val)
 { int rc;
@@ -2881,6 +2898,8 @@ setAttrDefinition(Definition def, unsigned attr, int val)
   { rc = setDynamicDefinition(def, val);
   } else if ( attr == P_THREAD_LOCAL )
   { rc = setThreadLocalDefinition(def, val);
+  } else if ( attr == P_CLAUSABLE )
+  { rc = setClausableDefinition(def, val);
   } else
   { if ( !val )
     { clear(def, attr);

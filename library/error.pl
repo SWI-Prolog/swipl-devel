@@ -314,6 +314,8 @@ is_of_type(Type, _) :-
 %
 %   True if Term satisfies Type.
 
+:- '$clausable'(has_type/2).            % always allow clause/2
+
 has_type(any, _).
 has_type(atom, X)         :- atom(X).
 has_type(atomic, X)       :- atomic(X).

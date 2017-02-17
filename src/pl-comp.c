@@ -5297,7 +5297,7 @@ unify_head(term_t h, term_t d ARG_LD)
 static int
 protected_predicate(Definition def ARG_LD)
 { if ( true(def, P_FOREIGN) ||
-       (   false(def, P_DYNAMIC) &&
+       (   false(def, (P_DYNAMIC|P_CLAUSABLE)) &&
 	   (   truePrologFlag(PLFLAG_PROTECT_STATIC_CODE) ||
 	       truePrologFlag(PLFLAG_ISO)
 	   )
