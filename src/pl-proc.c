@@ -2804,7 +2804,11 @@ setDynamicDefinition_unlocked(Definition def, bool isdyn)
     return TRUE;
 
   if ( isdyn )				/* static --> dynamic */
-  { set(def, P_DYNAMIC);
+  { if ( truePrologFlag(PLFLAG_PROTECT_STATIC_CODE) &&
+	 hasClausesDefinition(def) )
+      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PREDICATE, def);
+
+    set(def, P_DYNAMIC);
     freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
     registerDirtyDefinition(def PASS_LD);	/* always considered dirty */
   } else				/* dynamic --> static */
