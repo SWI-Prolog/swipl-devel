@@ -69,6 +69,7 @@ attempt to call the Prolog defined trace interceptor.
     volatile(:),
     thread_local(:),
     noprofile(:),
+    '$clausable'(:),
     '$iso'(:),
     '$hide'(:).
 
@@ -94,6 +95,7 @@ thread_local(Spec)       :- '$set_pattr'(Spec, pred, (thread_local)).
 noprofile(Spec)          :- '$set_pattr'(Spec, pred, (noprofile)).
 public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, (iso)).
+'$clausable'(Spec)       :- '$set_pattr'(Spec, pred, (clausable)).
 
 '$set_pattr'(M:Pred, How, Attr) :-
     '$set_pattr'(Pred, M, How, Attr).
