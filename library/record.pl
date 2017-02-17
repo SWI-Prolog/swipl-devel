@@ -308,7 +308,7 @@ type_checks([Type|T], [V|Vars], (Goal, Body)) :-
 %   Inline type checking calls.
 
 type_goal(Type, Var, Body) :-
-    defined_type(Type, Var, Body),
+    current_type(Type, Var, Body),
     !.
 type_goal(record(Record), Var, Body) :-
     !,
@@ -321,9 +321,6 @@ type_goal(Record, Var, Body) :-
     Body =.. [Pred,Var].
 type_goal(Type, _, _) :-
     domain_error(type, Type).
-
-defined_type(Type, Var, error:Body) :-
-    clause(error:has_type(Type, Var), Body).
 
 
 clean_body(M:(A0,B0), G) :-
@@ -415,7 +412,7 @@ set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
     set_predicates(NT, I2, Arity, TT, Constructor).
 
 type_check(Type, Value, must_be(Type, Value)) :-
-    defined_type(Type, Value, _),
+    current_type(Type, Value, _),
     !.
 type_check(record(Spec), Value, must_be(record(M:Name), Value)) :-
     !,
