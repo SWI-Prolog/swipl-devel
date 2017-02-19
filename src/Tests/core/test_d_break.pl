@@ -61,6 +61,8 @@ test_d_break :-
    set_prolog_flag(optimise, true),
    asserta(old_optimise(Old)).
 
+:- '$clausable'(t_break/1).
+
 t_break(i_depart(c0/0)) :- c0.
 t_break(i_call(c0/0)) :- c0, c1.
 t_break(i_call(c1/1)) :- c1(42), c1.
@@ -121,7 +123,7 @@ test:c0 :- stress(call).
 
 test:c1(M:M).
 
-
+:- '$clausable'(t_call/0).
 t_call :- t_called([a,b], [c], [a,b,c]), c1.
 t_call :- t_called([a,b], [c], [a,b,c]), c1.
 

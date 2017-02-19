@@ -195,6 +195,8 @@ test(compound_name_arguments, Args == []) :-
 
 :- begin_tests(zero_arity_compound).
 
+:- '$clausable'((t1/1,t2/1,t3/1,t4/1,t5/1)).
+
 t1(A) :- t(A,a()).
 t2(A) :- t(a(),A).
 t3(a()).

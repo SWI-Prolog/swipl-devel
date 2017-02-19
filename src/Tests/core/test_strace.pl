@@ -67,6 +67,7 @@ Structures:
 	not
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- '$clausable'(c/1).
 c(conj1) :- a.
 c(conj2) :- a,b,c.
 c(disj1) :- (a;b).
