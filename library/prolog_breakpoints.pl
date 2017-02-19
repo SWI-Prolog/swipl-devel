@@ -98,8 +98,8 @@ set_breakpoint(Owner, File, Line, Char, Id) :-
         debug(break, 'Clause ~p, PC=~p NextPC=~p', [ClauseRef, PC, NextPC]),
         '$clause_term_position'(ClauseRef, NextPC, List),
         debug(break, 'Location = ~w', [List]),
-        range(List, TermPos, A, Z),
-        debug(break, 'Term from ~w-~w', [A, Z]),
+        range(List, TermPos, _0A, Z),
+        debug(break, 'Term from ~w-~w', [_0A, Z]),
         Z >= Char, !
     ;   format('Failed to unify clause ~p, using first break',
                [ClauseRef]),
