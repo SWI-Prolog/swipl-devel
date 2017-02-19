@@ -2084,6 +2084,56 @@ all predicates that would normally be autoloaded explicitly.  This
 is discussed in \secref{runtime}.  See autoload/0.
 
 
+\section{Packs: community add-ons}		\label{sec:packs}
+
+SWI-Prolog has a mechanism for easy incorporation of community
+extensions. See the \href{http://www.swi-prolog.org/pack/list}{pack
+landing page} for details and available packs.  This section documents
+the built-in predicates to attach packs.  Predicates for creating,
+registering and installing packs are provided by the library
+\pllib{prolog_pack}.
+
+\begin{description}
+    \predicate{attach_packs}{0}{}
+Attaches all packs in subdirectories of directories that are accessible
+through the \jargon{file search path} (see absolute_file_name/3)
+\const{pack}.  The default for this search path is:
+
+\begin{code}
+user:file_search_path(pack, app_data(pack)).
+user:file_search_path(pack, swi(pack)).
+\end{code}
+
+The predicate attach_packs/0 is called on startup of SWI-Prolog.
+
+    \predicate{attach_packs}{1}{+Directory}
+Attach all packs in subdirectories of \arg{Directory}.  Same as
+\term{attach_packs}{Directory, []}.
+    \nodescription
+    \predicate{attach_packs}{2}{+Directory, +Options}
+Attach all packs in subdirectories of \arg{Directory}.  Options
+is one of:
+
+    \begin{description}
+	\termitem{search}{+Where}
+Determines the order in which pack library directories are searched.
+Default is to add new packages at the end (\const{last}).  Using
+\const{first}, new packages are added at the start.
+
+	\termitem{duplicate}{+Action}
+Determines what happens if a pack with the same name is already
+attached.  Default is \const{warning}, which prints a warning and
+ignores the new pack.  Other options are \const{keep}, which is
+like \const{warning} but operates silently and \const{replace},
+which detaches the old pack and attaches the new.
+    \end{description}
+
+The predicate attach_packs/2 can be used to attach packages that
+are bundled with an application.
+\end{description}
+
+
+
 \section{Garbage Collection}			\label{sec:gc}
 
 SWI-Prolog provides garbage collection, last-call optimization and atom

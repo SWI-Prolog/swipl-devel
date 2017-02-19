@@ -72,6 +72,9 @@ suggest predicates from a keyword.
 \predicatesummary{assertz}{1}{Add a clause to the database (last)}
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
 \predicatesummary{attach_console}{0}{Attach I/O console to thread}
+\predicatesummary{attach_packs}{0}{Attach add-ons}
+\predicatesummary{attach_packs}{1}{Attach add-ons from directory}
+\predicatesummary{attach_packs}{2}{Attach add-ons from directory}
 \predicatesummary{attribute_goals}{3}{Project attributes to goals}
 \predicatesummary{attr_unify_hook}{2}{Attributed variable unification hook}
 \predicatesummary{attr_portray_hook}{2}{Attributed variable print hook}
