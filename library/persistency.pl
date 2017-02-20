@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2016, VU University, Amsterdam
+    Copyright (c)  2009-2017, VU University, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 
             db_attach/2,                % :File, +Options
             db_detach/0,
+            db_attached/1,              % :File
 
             db_sync/1,                  % :What
             db_sync_all/1,              % +What
@@ -46,6 +47,7 @@
           ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
+:- use_module(library(option)).
 :- use_module(library(aggregate)).
 
 :- predicate_options(db_attach/2, 2,
@@ -115,6 +117,7 @@ set_user_role(Name, Role) :-
 
 :- meta_predicate
     db_attach(:, +),
+    db_attached(:),
     db_sync(:),
     current_persistent_predicate(:).
 :- module_transparent
@@ -407,6 +410,13 @@ db_size(Module, Total) :-
 persistent_size(Module, Count) :-
     persistent(Module, Term, _Types),
     predicate_property(Module:Term, number_of_clauses(Count)).
+
+%!  db_attached(:File) is semidet.
+%
+%   True if the context module attached to the persistent database File.
+
+db_attached(Module:File) :-
+    db_file(Module, File, _Created, _Modified, _EndPos).
 
 %!  db_assert(:Term) is det.
 %
