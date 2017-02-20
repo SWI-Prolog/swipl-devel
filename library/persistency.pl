@@ -275,30 +275,39 @@ prolog:generated_predicate(PI) :-
 
 %!  db_attach(:File, +Options)
 %
-%   Use File as persistent database  for   the  calling  module. The
-%   calling module must defined persistent/1   to  declare the database
-%   terms.  Defined options:
+%   Use File as persistent database for  the calling module. The calling
+%   module must defined persistent/1  to   declare  the  database terms.
+%   Defined options:
 %
-%           * sync(+Sync)
-%           One of =close= (close journal after write), =flush=
-%           (default, flush journal after write) or =none=
-%           (handle as fully buffered stream).
+%     - sync(+Sync)
+%       One of =close= (close journal after write), =flush=
+%       (default, flush journal after write) or =none=
+%       (handle as fully buffered stream).
+%
+%   If File is already attached  this   operation  may change the `sync`
+%   behaviour.
 
 db_attach(Module:File, Options) :-
     db_set_options(Module, Options),
     db_attach_file(Module, File).
 
 db_set_options(Module, Options) :-
-    retractall(db_option(Module, _)),
     option(sync(Sync), Options, flush),
     must_be(oneof([close,flush,none]), Sync),
-    assert(db_option(Module, sync(Sync))).
+    (   db_option(Module, sync(Sync))
+    ->  true
+    ;   retractall(db_option(Module, _)),
+        assert(db_option(Module, sync(Sync)))
+    ).
 
 db_attach_file(Module, File) :-
     db_file(Module, Old, _, _, _),         % we already have a db
     !,
     (   Old == File
-    ->  true
+    ->  (   db_stream(Module, Stream)
+        ->  sync(Module, Stream)
+        ;   true
+        )
     ;   permission_error(attach, db, File)
     ).
 db_attach_file(Module, File) :-
