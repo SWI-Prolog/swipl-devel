@@ -4534,7 +4534,7 @@ input.}
 \section{Status of streams}		\label{sec:streamstat}
 
 \begin{description}
-    \predicate{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
+    \predicate[det]{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
 Wait for input on one of the streams in \arg{ListOfStreams} and return a
 list of streams on which input is available in \arg{ReadyList}.
 wait_for_input/3 waits for at most \arg{TimeOut} seconds. \arg{TimeOut}
