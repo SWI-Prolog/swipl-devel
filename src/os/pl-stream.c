@@ -1929,6 +1929,7 @@ Sclose(IOSTREAM *s)
   if ( s->upstream )
   { Sseterr(s, SIO_FERR, "Locked by upstream filter");
     reportStreamError(s);
+    Sunlock(s);
     return -1;
   }
 
