@@ -602,7 +602,7 @@ numlist_(L, U, [L|Ns]) :-
                 *       SET MANIPULATION        *
                 *********************************/
 
-%!  is_set(@Set) is det.
+%!  is_set(@Set) is semidet.
 %
 %   True if Set is a proper  list without duplicates. Equivalence is
 %   based on ==/2. The  implementation   uses  sort/2, which implies
