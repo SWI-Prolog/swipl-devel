@@ -457,6 +457,13 @@ PL_release_stream(IOSTREAM *s)
 { return streamStatus(s);
 }
 
+int
+PL_release_stream_noerror(IOSTREAM *s)
+{ releaseStream(s);
+
+  return TRUE;
+}
+
 
 		 /*******************************
 		 *	      ERRORS		*
