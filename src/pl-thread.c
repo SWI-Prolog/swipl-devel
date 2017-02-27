@@ -1211,7 +1211,7 @@ write_thread_handle(IOSTREAM *s, atom_t eref, int flags)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 release_thread_handle() is called from AGC. As  the symbol is destroyed,
-we must clear info->symbol. That is find   as AGC locks L_THREAD and the
+we must clear info->symbol. That is safe   as AGC locks L_THREAD and the
 competing interaction in free_thread_info() is also locked with L_THREAD
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1222,7 +1222,8 @@ release_thread_handle(atom_t aref)
   PL_thread_info_t *info;
 
   if ( (info=ref->info) )
-  { info->symbol = 0;
+  { assert(info->detached == FALSE || info->is_engine);
+    info->symbol = 0;
     gc_thread(ref);
   } else
     PL_free(ref);
@@ -1308,6 +1309,7 @@ alloc_thread(void)				/* called with L_THREAD locked */
 
   if ( info )
   { int i = info->pl_tid;
+    assert(info->status == PL_THREAD_UNUSED);
     memset(info, 0, sizeof(*info));
     info->pl_tid = i;
   } else
@@ -1811,7 +1813,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
     fail;
   }
-  PL_unregister_atom(th->symbol);
+  if ( !info->detached )
+    PL_unregister_atom(th->symbol);
 
   info->goal = PL_record(goal);
   info->module = PL_context();
@@ -2084,6 +2087,7 @@ free_thread_info(PL_thread_info_t *info)
 { record_t rec_rv, rec_g;
   PL_thread_info_t *freelist;
 
+  assert(info->status != PL_THREAD_UNUSED);
   info->status = PL_THREAD_UNUSED;
 
   if ( info->thread_data )
@@ -2098,6 +2102,9 @@ free_thread_info(PL_thread_info_t *info)
       if ( th->alias && !info->is_engine )
 	unalias_thread(th);
     }
+
+    if ( info->detached )
+      PL_unregister_atom(info->symbol);
   }
   if ( (rec_rv=info->return_value) )	/* sync with unify_thread_status() */
     info->return_value = NULL;
@@ -2210,7 +2217,8 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 
       release = info;
     } else
-    { info->detached = TRUE;
+    { PL_register_atom(info->symbol);
+      info->detached = TRUE;
     }
   }
 
