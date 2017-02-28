@@ -2091,7 +2091,9 @@ free_thread_info(PL_thread_info_t *info)
   info->status = PL_THREAD_UNUSED;
 
   if ( info->thread_data )
+  { info->detached = FALSE;	/* avoid recursion and we are dead anyway */
     free_prolog_thread(info->thread_data);
+  }
 
   LOCK();
   if ( info->symbol )
