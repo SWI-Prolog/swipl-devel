@@ -2222,6 +2222,8 @@ message(inquiry(Server)) -->
     [ 'Verify package status (anonymously)', nl,
       '\tat "~w"'-[Server]
     ].
+message(search_no_matches(Name)) -->
+    [ 'Search for "~w", returned no matching packages'-[Name] ].
 message(rebuild(Pack)) -->
     [ 'Checking pack "~w" for rebuild ...'-[Pack] ].
 message(upgrade(Pack, From, To)) -->
