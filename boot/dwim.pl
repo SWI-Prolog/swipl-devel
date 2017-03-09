@@ -231,6 +231,9 @@ goal_name(Goal, Bindings, String) :-
 bind_vars([]).
 bind_vars([Name=Var|T]) :-
     Var = '$VAR'(Name),             % portray prints Name
+    !,
+    bind_vars(T).
+bind_vars([_|T]) :-
     bind_vars(T).
 
 
