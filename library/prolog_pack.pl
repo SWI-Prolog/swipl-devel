@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, VU University Amsterdam
+    Copyright (c)  2012-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -446,7 +446,7 @@ pack_default_options(_Spec, Pack, OptsIn, Options) :-
     ->  true
     ;   pack_version_file(Pack, _Version, URL)
     ).
-pack_default_options(Archive, Pack, _, Options) :-      % Install from .tgz/.zip/... file
+pack_default_options(Archive, Pack, _, Options) :-      % Install from archive
     must_be(atom, Archive),
     expand_file_name(Archive, [File]),
     exists_file(File),
@@ -468,15 +468,15 @@ pack_default_options(FileURL, Pack, _, Options) :-      % Install from directory
         Options = [url(DirURL), version(Version)]
     ;   throw(error(existence_error(key, version, Dir),_))
     ).
-pack_default_options(URL, Pack, _, Options) :-  % Install from URL
+pack_default_options(URL, Pack, _, Options) :-          % Install from URL
     pack_version_file(Pack, Version, URL),
     download_url(URL),
     !,
     available_download_versions(URL, [URLVersion-LatestURL|_]),
     Options = [url(LatestURL)|VersionOptions],
     version_options(Version, URLVersion, VersionOptions).
-pack_default_options(Pack, Pack, OptsIn, Options) :-    % Install from a pack name
-    \+ uri_is_global(Pack),                 % ignore URLs
+pack_default_options(Pack, Pack, OptsIn, Options) :-    % Install from name
+    \+ uri_is_global(Pack),                             % ignore URLs
     query_pack_server(locate(Pack), Reply, OptsIn),
     (   Reply = true(Results)
     ->  pack_select_candidate(Pack, Results, OptsIn, Options)
@@ -1505,6 +1505,12 @@ version_tag_prefix('').
 
 :- public
     atom_version/2.
+
+%!  atom_version(?Atom, ?Version)
+%
+%   Translate   between   atomic   version   representation   and   term
+%   representation.  The  term  representation  is  a  list  of  version
+%   components as integers and can be compared using `@>`
 
 atom_version(Atom, version(Parts)) :-
     (   atom(Atom)
