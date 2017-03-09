@@ -431,6 +431,15 @@ pack_install(Spec) :-
     pack_default_options(Spec, Pack, [], Options),
     pack_install(Pack, [pack(Pack)|Options]).
 
+%!  pack_default_options(+Spec, -Pack, +OptionsIn, -Options) is det.
+%
+%   Establish  the  pack  name  (Pack)  and    install  options  from  a
+%   specification and options (OptionsIn) provided by the user.
+
+pack_default_options(_Spec, Pack, OptsIn, Options) :-
+    option(already_installed(pack(Pack,_Version)), OptsIn),
+    !,
+    Options = OptsIn.
 pack_default_options(_Spec, Pack, OptsIn, Options) :-
     option(url(URL), OptsIn),
     !,
@@ -491,6 +500,17 @@ version_options(Version, _, [version(Version)]) :-
     !.
 version_options(_, _, []).
 
+%!  pack_select_candidate(+Pack, +AvailableVersions, +OptionsIn, -Options)
+%
+%   Select from available packages.
+
+pack_select_candidate(Pack, [Version-_|_], Options,
+                      [already_installed(pack(Pack, Installed))|Options]) :-
+    current_pack(Pack),
+    pack_info(Pack, _, version(InstalledAtom)),
+    atom_version(InstalledAtom, Installed),
+    Installed @>= Version,
+    !.
 pack_select_candidate(Pack, Available, Options, OptsOut) :-
     option(url(URL), Options),
     memberchk(_Version-URLs, Available),
@@ -565,10 +585,13 @@ url_menu_item(URL, URL=install_from(URL)).
 
 pack_install(Spec, Options) :-
     pack_default_options(Spec, Pack, Options, DefOptions),
-    merge_options(Options, DefOptions, PackOptions),
-    update_dependency_db,
-    pack_install_dir(PackDir, PackOptions),
-    pack_install(Pack, PackDir, PackOptions).
+    (   option(already_installed(Installed), DefOptions)
+    ->  print_message(informational, pack(already_installed(Installed)))
+    ;   merge_options(Options, DefOptions, PackOptions),
+        update_dependency_db,
+        pack_install_dir(PackDir, PackOptions),
+        pack_install(Pack, PackDir, PackOptions)
+    ).
 
 pack_install_dir(PackDir, Options) :-
     option(package_directory(PackDir), Options),
@@ -1716,6 +1739,15 @@ local_dep(_-resolved(_)).
 %   @tbd: Query URI to use
 
 install_dependency(Options,
+                   _Token-resolve(Pack, VersionAtom, [_URL|_], SubResolve)) :-
+    atom_version(VersionAtom, Version),
+    current_pack(Pack),
+    pack_info(Pack, _, version(InstalledAtom)),
+    atom_version(InstalledAtom, Installed),
+    Installed == Version,               % already installed
+    !,
+    maplist(install_dependency(Options), SubResolve).
+install_dependency(Options,
                    _Token-resolve(Pack, VersionAtom, [URL|_], SubResolve)) :-
     !,
     atom_version(VersionAtom, Version),
@@ -2163,6 +2195,9 @@ message(directory_exists(Dir)) -->
     [ 'Package target directory exists and is not empty:', nl,
       '\t~q'-[Dir]
     ].
+message(already_installed(pack(Pack, Version))) -->
+    { atom_version(AVersion, Version) },
+    [ 'Pack `~w'' is already installed @~w'-[Pack, AVersion] ].
 message(already_installed(Pack)) -->
     [ 'Pack `~w'' is already installed. Package info:'-[Pack] ].
 message(invalid_name(File)) -->
