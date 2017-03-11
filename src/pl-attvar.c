@@ -175,6 +175,11 @@ assignAttVar(Word av, Word value ARG_LD)
     { Word tmp = av;
       av = value;
       value = tmp;
+      if (flags & ATT_ASSIGNONLY)
+      { a = valPAttVar(*value);
+        TrailAssignment(a);
+        *a = *valPAttVar(*av);
+      }
     } else if ( av == value )
       return;
   }
