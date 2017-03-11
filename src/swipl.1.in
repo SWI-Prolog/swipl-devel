@@ -12,6 +12,10 @@
 .br
 .B @PL@
 [options]
+.I "prolog-file ... [-- arg ...]"
+.br
+.B @PL@
+[options]
 .RB [ "\-o \fIoutput" ]
 .BI \-c " file ..."
 .br
