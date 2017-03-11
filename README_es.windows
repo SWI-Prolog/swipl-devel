@@ -1,0 +1,23 @@
+SWI-Prolog para Windows
+			----------------------
+
+Última actualización: Sep 22, 2011
+
+Se recomienda enfáticamente instalar los binarios desde http://www.swi-prolog.org.
+Estos son distribuidoscon un archivo leame que explica  problemas especificos
+acerca de la ejecución de SWI-Prolog  en la  platforma Windows.
+
+La construcción a aprtir del código solía ser muy difícil,  pero gracias al trabajo de
+Degski es un poco más factible ahora. Sin embargo, probablemente usted desearía esto
+solo si desea desarrollar basado  en SWI-Prolog  o  analice problemas de ejecución con la 
+interfaz C<->Prolog. Vea http://www.swi-prolog.org/build/windows.html
+para más detalles.
+
+Degski dice "ser capaz de incluir  un   GMP/MPIR afinado  en la construcción es
+otra [JW: razón para construirlo usted mismo]. En x64, una construcción GMP/swipl tuneada
+es cerca de 4 veces más rápida en comparación con una construcción genérica, así que
+vale realmente las dificultades si uno realiza muchas cosas con numeros grandes."
+
+Vea también README.mingw, el cual  explica  la construcción de SWI-Prolog usando la
+Cadena de herramientas MinGW (http://www.mingw.org/). También puede ser suado para compilar cruzadamente
+SWI-Prolog para Windows usando p.ej.  una  máquina Linux para la compilación.
