@@ -381,6 +381,8 @@ swi_message(conditional_compilation_error(unterminated, Where)) -->
     cond_location(Where).
 swi_message(conditional_compilation_error(no_if, What)) -->
     [ ':- ~w without :- if'-[What] ].
+swi_message(duplicate_key(Key)) -->
+    [ 'Duplicate key: ~p'-[Key] ].
 
 cond_location(File:Line) -->
     { file_base_name(File, Base) },
