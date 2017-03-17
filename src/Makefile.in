@@ -166,6 +166,15 @@ COMMON= README
 UNICODE=blocks.pl unicode_data.pl
 builddirs=../lib ../lib/$(PLARCH) os
 
+# For reproducible builds
+DATE_FMT = "%b %e %Y"
+TIME_FMT = "%R"
+ifdef SOURCE_DATE_EPOCH
+BUILD_DATE ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" "+$(DATE_FMT)" 2>/dev/null || date -u -r "$(SOURCE_DATE_EPOCH)" "+$(DATE_FMT)" 2>/dev/null || date -u "+$(DATE_FMT)")
+BUILD_TIME ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" "+$(TIME_FMT)" 2>/dev/null || date -u -r "$(SOURCE_DATE_EPOCH)" "+$(TIME_FMT)" 2>/dev/null || date -u "+$(DATE_FMT)")
+CFLAGS += -DBUILD_DATE=\"${BUILD_DATE}\" -DBUILD_TIME=\"${BUILD_TIME}\"
+endif
+
 # OPTIMISE=noprof: normal build; prof: build twice, using profiling
 # information to optimise branches.  Normally set through
 # configure --enable-useprofile

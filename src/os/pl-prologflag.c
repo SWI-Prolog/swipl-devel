@@ -1396,7 +1396,9 @@ initPrologFlags(void)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
 #endif
 
-#if defined(__DATE__) && defined(__TIME__)
+#if defined(BUILD_TIME) && defined(BUILD_DATE)
+  setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, BUILD_DATE ", " BUILD_TIME);
+#elif defined(__DATE__) && defined(__TIME__)
   setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, __DATE__ ", " __TIME__);
 #endif
 
