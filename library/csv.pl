@@ -39,6 +39,8 @@
             csv_read_file/2,            % +File, -Data
             csv_read_file/3,            % +File, -Data, +Options
             csv_read_file_row/3,        % +File, -Row, +Options
+            csv_read_row/3,		% +Stream, -Row, +CompiledOptions
+            csv_options/2,		% -Compiled, +Options
 
             csv_write_file/2,           % +File, +Data
             csv_write_file/3,           % +File, +Data, +Options
@@ -343,20 +345,28 @@ csv_read_file_row(File, Row, Options) :-
 
 csv_read_stream_row(Stream, Row, Line, Options) :-
     between(1, infinite, Line),
-    (   read_row(Stream, Row0, Options),
+    (   csv_read_row(Stream, Row0, Options),
         Row0 \== end_of_file
     ->  Row = Row0
     ;   !,
         fail
     ).
 
-read_row(Stream, Row, _Options) :-
+
+%!  csv_read_row(+Stream, -Row, +CompiledOptions) is det.
+%
+%   Read the next CSV record from Stream  and unify the result with Row.
+%   CompiledOptions is created from  options   defined  for csv//2 using
+%   csv_options/2. Row is unified with   `end_of_file` upon reaching the
+%   end of the input.
+
+csv_read_row(Stream, Row, _Record) :-
     at_end_of_stream(Stream),
     !,
     Row = end_of_file.
-read_row(Stream, Row, Options) :-
+csv_read_row(Stream, Row, Record) :-
     read_lines_to_codes(Stream, Codes),
-    phrase(row(Row0, Options), Codes),
+    phrase(row(Row0, Record), Codes),
     !,
     Row = Row0.
 
@@ -367,6 +377,17 @@ read_lines_to_codes(Stream, Codes) :-
     ;   Tail = []
     ;   read_lines_to_codes(Stream, Tail)
     ).
+
+
+%!  csv_options(-Compiled, +Options) is det.
+%
+%   Compiled is the  compiled  representation   of  the  CSV  processing
+%   options as they may be passed into   csv//2,  etc. This predicate is
+%   used in combination with csv_read_row/3 to avoid repeated processing
+%   of the options.
+
+csv_options(Compiled, Options) :-
+    make_csv_options(Options, Compiled, _Ignored).
 
 
                 /*******************************
