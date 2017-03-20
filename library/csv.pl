@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2016, VU University Amsterdam
+    Copyright (c)  2009-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,11 @@
 :- module(csv,
           [ csv//1,                     % +Rows
             csv//2,                     % +Rows, +Options
+
             csv_read_file/2,            % +File, -Data
             csv_read_file/3,            % +File, -Data, +Options
             csv_read_file_row/3,        % +File, -Row, +Options
+
             csv_write_file/2,           % +File, +Data
             csv_write_file/3,           % +File, +Data, +Options
             csv_write_stream/3          % +Stream, +Data, +Options
@@ -339,18 +341,19 @@ csv_read_file_row(File, Row, Options) :-
         csv_read_stream_row(Stream, Row, Line, RecordOptions),
         close(Stream)).
 
-csv_read_stream_row(Stream, _Row, _Line, _Options) :-
-    at_end_of_stream(Stream),
-    !,
-    fail.
 csv_read_stream_row(Stream, Row, Line, Options) :-
     between(1, infinite, Line),
-    read_row(Stream, Row, Options),
-    (   at_end_of_stream(Stream)            % make reading the last row
-    ->  !                                   % deterministic.
-    ;   true
+    (   read_row(Stream, Row0, Options),
+        Row0 \== end_of_file
+    ->  Row = Row0
+    ;   !,
+        fail
     ).
 
+read_row(Stream, Row, _Options) :-
+    at_end_of_stream(Stream),
+    !,
+    Row = end_of_file.
 read_row(Stream, Row, Options) :-
     read_lines_to_codes(Stream, Codes),
     phrase(row(Row0, Options), Codes),
