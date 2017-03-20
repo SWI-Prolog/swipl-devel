@@ -174,7 +174,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	  map = &Out->code[Out->size];
 	  Out->size += 16;
 	  if ( Out->size >= MAXCODE )
-	  { warning("Pattern too intptr_t");
+	  { warning("Pattern too long");
 	    return (char *) NULL;
 	  }
 
