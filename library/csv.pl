@@ -70,6 +70,7 @@ have the same name and arity.
                        strip(boolean),
                        ignore_quotes(boolean),
                        convert(boolean),
+                       case(oneof([down,preserve,up])),
                        functor(atom),
                        arity(-nonneg),          % actually ?nonneg
                        match_arity(boolean)
@@ -96,6 +97,7 @@ have the same name and arity.
                 strip:boolean=false,
                 ignore_quotes:boolean=false,
                 convert:boolean=true,
+                case:oneof([down,preserve,up])=preserve,
                 functor:atom=row,
                 arity:integer,
                 match_arity:boolean=true).
@@ -168,6 +170,10 @@ ext_separator(tsv, 0'\t).
 %       * convert(+Boolean)
 %       If =true= (default), use name/2 on the field data.  This
 %       translates the field into a number if possible.
+%
+%       * case(+Action)
+%       If =down=, downcase atomic values.  If =up=, upcase them
+%       and if =preserve= (default), do not change the case.
 %
 %       * functor(+Atom)
 %       Functor to use for creating row terms.  Default is =row=.
@@ -297,12 +303,35 @@ field_codes([], _), "\n" --> "\n", !.
 field_codes([H|T], Sep) --> [H], !, field_codes(T, Sep).
 field_codes([], _) --> [].              % unterminated last record
 
+%!  make_value(+Codes, -Value, +Options) is det.
+%
+%   Convert a list of character codes to the actual value, depending
+%   on Options.
+
 make_value(Codes, Value, Options) :-
-    csv_options_convert(Options, true),
+    csv_options_convert(Options, Convert),
+    csv_options_case(Options, Case),
+    make_value(Convert, Case, Codes, Value).
+
+make_value(true, preserve, Codes, Value) :-
     !,
     name(Value, Codes).
-make_value(Codes, Value, _) :-
+make_value(true, Case, Codes, Value) :-
+    !,
+    (   number_string(Value, Codes)
+    ->  true
+    ;   make_value(false, Case, Codes, Value)
+    ).
+make_value(false, preserve, Codes, Value) :-
+    !,
     atom_codes(Value, Codes).
+make_value(false, down, Codes, Value) :-
+    !,
+    string_codes(String, Codes),
+    downcase_atom(String, Value).
+make_value(false, up, Codes, Value) :-
+    string_codes(String, Codes),
+    upcase_atom(String, Value).
 
 separator(Options) -->
     { csv_options_separator(Options, Sep) },
