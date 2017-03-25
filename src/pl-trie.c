@@ -134,6 +134,9 @@ static void		destroy_node(trie *trie, trie_node *n);
 static void		clear_node(trie *trie, trie_node *n);
 static unsigned int	key_nvar(word key);
 static void		max_nvar(unsigned int *nvars, word key);
+static size_t		key_gsize(trie *trie, word key);
+static void		max_gsize(size_t *gsize, trie *trie, word key);
+
 
 static inline void
 acquire_key(word key)
@@ -347,6 +350,8 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 
 	    hnode->nvars = key_nvar(children.key->key);
 	    max_nvar(&hnode->nvars, key);
+	    hnode->gsize = key_gsize(trie, children.key->key);
+	    max_gsize(&hnode->gsize, trie, key);
 
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
 	    { PL_free(children.any);		/* TBD: Safely free */
@@ -366,6 +371,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	  if ( new == old )
 	  { new->parent = n;
 	    max_nvar(&children.hash->nvars, key);
+	    max_gsize(&children.hash->gsize, trie, key);
 	  } else
 	  { destroy_node(trie, new);
 	  }
@@ -591,6 +597,13 @@ key_gsize(trie *trie, word key)
     return gsize_indirect(trie->indirects, key);
 
   return 0;
+}
+
+static void
+max_gsize(size_t *gsize, trie *trie, word key)
+{ size_t gs = key_gsize(trie, key);
+  if ( gs > *gsize )
+    *gsize = gs;
 }
 
 static unsigned int
@@ -1085,23 +1098,29 @@ trie_choice *
 add_choice(trie_gen_state *state, trie_node *node)
 { trie_choice *ch = PL_malloc(sizeof(*ch));
   trie_children children = node->children;
-  size_t psize = state->tail ? state->tail->gsize : 0;
+  size_t gsize = state->tail ? state->tail->gsize : 0;
   unsigned int nvars = state->tail ? state->tail->nvars : 0;
-  unsigned int keyvar;
 
   if ( children.any )
   { switch( children.any->type )
     { case TN_KEY:
-      {	ch->key    = children.key->key;
+      {	word key   = children.key->key;
+
+	max_nvar(&nvars, key);
+	gsize += key_gsize(state->trie, key);
+
+	ch->key    = key;
 	ch->child  = children.key->child;
         ch->choice.any = NULL;
 	break;
       }
       case TN_HASHED:
       { void *k, *v;
+	unsigned int maxchildvar;
 
-	if ( (keyvar=children.hash->nvars) > nvars )
-	  nvars = keyvar;
+	if ( (maxchildvar=children.hash->nvars) > nvars )
+	  nvars = maxchildvar;
+	gsize += children.hash->gsize;
 
 	ch->choice.table = newTableEnum(children.hash->table);
         advanceTableEnum(ch->choice.table, &k, &v);
@@ -1117,11 +1136,7 @@ add_choice(trie_gen_state *state, trie_node *node)
     ch->child = node;
   }
 
-  ch->gsize = psize + key_gsize(state->trie, ch->key);
-  if ( (keyvar=key_nvar(ch->key)) > nvars )
-  { DEBUG(MSG_TRIE_PUT_TERM, Sdprintf("Got var %d\n", keyvar));
-    nvars = keyvar;
-  }
+  ch->gsize = gsize;
   ch->nvars = nvars;
 
   ch->next = NULL;
@@ -1204,7 +1219,9 @@ put_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
 			gstate->trie,
 			gstate->tail->gsize,
 			gstate->tail->nvars+1 PASS_LD) )
-  { for( ch = gstate->head; ch; ch = ch->next )
+  { Word gok = gTop + gstate->tail->gsize;
+
+    for( ch = gstate->head; ch; ch = ch->next )
     { if ( !eval_key(&bstate, ch->key PASS_LD) )
       { rc = FALSE;
 	break;
@@ -1216,7 +1233,8 @@ put_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
 
     clear_build_state(&bstate);
     if ( rc )
-    { gTop = bstate.gp;
+    { assert(bstate.gp <= gok);
+      gTop = bstate.gp;
       *valTermRef(term) = bstate.result;
       DEBUG(CHK_SECURE, PL_check_data(term));
     }
