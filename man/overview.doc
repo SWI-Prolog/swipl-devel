@@ -2280,9 +2280,10 @@ SWI-Prolog mailinglist.
 \label{sec:floatsyntax}
 
 SWI-Prolog supports reading an printing `special' floating point values
-according to \url[Proposal for Prolog Standard core update wrt floating
-point arithmetic]{http://eclipseclp.org/Specs/core_update_float.html} by
-Joachim Schimpf and available in ECLiPSe Prolog. In particular,
+according to
+\href{http://eclipseclp.org/Specs/core_update_float.html}{Proposal for
+Prolog Standard core update wrt floating point arithmetic} by Joachim
+Schimpf and available in ECLiPSe Prolog. In particular,
 
 \begin{itemize}
     \item Infinity is printed as \verb$1.0Inf$ or \verb$-1.0Inf$.  Any
