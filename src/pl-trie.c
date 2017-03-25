@@ -132,6 +132,8 @@ static trie_node       *new_trie_node(trie *trie, word key);
 static void		clear_vars(Word k, size_t var_number ARG_LD);
 static void		destroy_node(trie *trie, trie_node *n);
 static void		clear_node(trie *trie, trie_node *n);
+static unsigned int	key_nvar(word key);
+static void		max_nvar(unsigned int *nvars, word key);
 
 static inline void
 acquire_key(word key)
@@ -343,6 +345,9 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 				    children.key->child);
 	    addHTable(hnode->table, (void*)key, (void*)new);
 
+	    hnode->nvars = key_nvar(children.key->key);
+	    max_nvar(&hnode->nvars, key);
+
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
 	    { PL_free(children.any);		/* TBD: Safely free */
 	      new->parent = n;
@@ -360,6 +365,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 
 	  if ( new == old )
 	  { new->parent = n;
+	    max_nvar(&children.hash->nvars, key);
 	  } else
 	  { destroy_node(trie, new);
 	  }
@@ -556,6 +562,9 @@ init_build_state(build_state *state, trie *trie,
   if ( (rc=ensureGlobalSpace(gsize, ALLOW_GC)) != TRUE )
     return raiseStackOverflow(rc);
 
+  DEBUG(MSG_TRIE_PUT_TERM,
+	Sdprintf("Creating build-state for %d vars\n", (int)nvars));
+
   state->is_compound = FALSE;
   state->vp   = &state->result;
   state->gp   = gTop;
@@ -589,6 +598,13 @@ key_nvar(word key)
 { if ( tag(key) == TAG_VAR )
     return (unsigned int)(key>>LMASK_BITS);
   return 0;
+}
+
+static void
+max_nvar(unsigned int *nvars, word key)
+{ unsigned int nv = key_nvar(key);
+  if ( nv > *nvars )
+    *nvars = nv;
 }
 
 static int
@@ -1083,6 +1099,9 @@ add_choice(trie_gen_state *state, trie_node *node)
       }
       case TN_HASHED:
       { void *k, *v;
+
+	if ( (keyvar=children.hash->nvars) > nvars )
+	  nvars = keyvar;
 
 	ch->choice.table = newTableEnum(children.hash->table);
         advanceTableEnum(ch->choice.table, &k, &v);
