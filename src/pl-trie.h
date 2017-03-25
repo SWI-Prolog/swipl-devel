@@ -52,6 +52,7 @@ typedef struct trie_children_hashed
 { tn_node_type type;
   Table table;
   unsigned int nvars;
+  size_t gsize;
 } trie_children_hashed;
 
 typedef struct trie_children_key
