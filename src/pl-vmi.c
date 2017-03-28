@@ -4230,7 +4230,8 @@ again:
 	  LOAD_REGISTERS(qid);
 	});
 
-  if ( debugstatus.suspendTrace == FALSE && !rewritten++ )
+  if ( debugstatus.suspendTrace == FALSE && !rewritten++ &&
+       !uncachableException(exception_term PASS_LD) ) /* e.g., $aborted */
   { int rc;
 
     SAVE_REGISTERS(qid);
