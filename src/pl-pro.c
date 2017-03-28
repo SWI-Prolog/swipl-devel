@@ -101,7 +101,7 @@ considered unhandled and thus  can  trap   the  debugger.  I.e., if goal
 terminates due to an exception, the exception   is  reported and goal is
 restarted. Before the restart, the system is   restored to a sane state.
 This notably affects I/O  (reset  current  I/O   to  user  I/O)  and the
-debugger.
+debugger.  Return: FALSE: failed, TRUE: success, -1: exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -128,12 +128,14 @@ query_loop(atom_t goal, int loop)
     } else
     { error:
       except = exception_term;
-      rc = FALSE;			/* Won't get any better */
+      rc = -1;				/* Won't get any better */
       break;
     }
 
     if ( !rc && (except = PL_exception(qid)) )
-      restore_after_exception(except);
+    { restore_after_exception(except);
+      rc = -1;
+    }
 
     if ( qid ) PL_close_query(qid);
     if ( fid ) PL_discard_foreign_frame(fid);
@@ -196,7 +198,7 @@ pl_break1(atom_t goal)
   Scurout = outSave;
   Scurin  = inSave;
 
-  return rc;
+  return rc == TRUE;
 }
 
 
@@ -440,7 +442,7 @@ prologToplevel(atom_t goal)
   rc = query_loop(goal, loop);
   LD->break_level = old_level;
 
-  return rc;
+  return rc == TRUE;
 }
 
 

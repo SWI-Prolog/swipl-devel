@@ -1245,9 +1245,8 @@ cleanupProlog(int rval, int reclaim_memory)
       emptyStacks();
 
     PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
-    if ( !query_loop(PL_new_atom("$run_at_halt"), FALSE) &&
-	 rval == 0 &&
-	 !PL_exception(0) )
+    if ( query_loop(PL_new_atom("$run_at_halt"), FALSE) == FALSE &&
+	 rval == 0 )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
 	UNLOCK();
