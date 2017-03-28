@@ -53,7 +53,7 @@
 /** <module> Tabled execution (SLG WAM)
 
 This  library  handled  _tabled_  execution   of  predicates  using  the
-characteristics if the _SLG WAM_. The required suspension is is realised
+characteristics if the _SLG WAM_. The required suspension is realised
 using _delimited continuations_ implemented by  reset/3 and shift/1. The
 table space and work lists are part of the SWI-Prolog core.
 
