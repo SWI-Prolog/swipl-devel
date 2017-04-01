@@ -323,24 +323,50 @@ type_goal(Type, _, _) :-
     domain_error(type, Type).
 
 
-clean_body(M:(A0,B0), G) :-
+clean_body(Var, G) :-
+    var(Var),
     !,
-    clean_body(M:A0, A),
-    clean_body(M:B0, B),
-    clean_body((A,B), G).
+    G = Var.
+clean_body(M:C0, G) :-
+    nonvar(C0),
+    control(C0),
+    !,
+    C0 =.. [Name|Args0],
+    clean_args(Args0, M, Args),
+    G =.. [Name|Args].
 clean_body((A0,true), A) :-
     !,
     clean_body(A0, A).
 clean_body((true,A0), A) :-
     !,
     clean_body(A0, A).
-clean_body((A0,B0), (A,B)) :-
-    clean_body(A0, A),
-    clean_body(B0, B).
+clean_body(C0, G) :-
+    control(C0),
+    !,
+    C0 =.. [Name|Args0],
+    clean_args(Args0, Args),
+    G =.. [Name|Args].
 clean_body(_:A, A) :-
-    predicate_property(A, built_in),
+    predicate_property(system:A, built_in),
+    \+ predicate_property(system:A, meta_predicate(_)),
     !.
 clean_body(A, A).
+
+clean_args([], []).
+clean_args([H0|T0], [H|T]) :-
+    clean_body(H0, H),
+    clean_args(T0, T).
+
+clean_args([], _, []).
+clean_args([H0|T0], M, [H|T]) :-
+    clean_body(M:H0, H),
+    clean_args(T0, M, T).
+
+control((_,_)).
+control((_;_)).
+control((_->_)).
+control((_*->_)).
+control(\+(_)).
 
 
 %!  access_predicates(+Names, +Idx0, +Arity, +Constructor)// is det.
