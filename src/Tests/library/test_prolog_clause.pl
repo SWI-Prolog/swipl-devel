@@ -57,6 +57,7 @@ test_prolog_clause :-
 :- begin_tests(prolog_clause).
 
 :- style_check(-no_effect).
+:- '$clausable'((t0/0,t1/0,t2/0,t3/0,t4/0,t5/0)).
 t0 :-	a(X), b(Y), X=Y.
 t1 :-	a, _ = hello, b.
 t2 :-	a(X), a(b) = X, b(X).

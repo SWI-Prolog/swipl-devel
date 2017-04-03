@@ -191,12 +191,10 @@ convert_option(Stack, Val, NewVal, "~w") :-     % stack-sizes are in K-bytes
     ->  NewVal = Val
     ;   NewVal is max(Min, Val*1024)
     ).
-convert_option(goal, Callable, Callable, "~q") :- !.
 convert_option(toplevel, Callable, Callable, "~q") :- !.
 convert_option(_, Value, Value, "~w").
 
 doption(Name) :- min_stack(Name, _).
-doption(goal).
 doption(toplevel).
 doption(init_file).
 doption(system_init_file).
@@ -205,17 +203,17 @@ doption(home).
 
 %!  save_options(+ArchiveHandle, +SaveClass, +Options)
 %
-%   Save the options in the '$options'  resource. The home directory
-%   is saved for development saves,  so   it  keeps  refering to the
+%   Save the options in the '$options'   resource. The home directory is
+%   saved for development  states  to  make   it  keep  refering  to the
 %   development home.
 %
-%   The script-file (-s script) is not saved at all. I think this is
+%   The script files (-s script) are not saved   at all. I think this is
 %   fine to avoid a save-script loading itself.
 
 save_options(RC, SaveClass, Options) :-
     '$rc_open'(RC, '$options', '$prolog', write, Fd),
     (   doption(OptionName),
-        '$cmd_option_val'(OptionName, OptionVal0),
+            '$cmd_option_val'(OptionName, OptionVal0),
             save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
             OptTerm =.. [OptionName,OptionVal2],
             (   option(OptTerm, Options)
@@ -228,6 +226,7 @@ save_options(RC, SaveClass, Options) :-
         fail
     ;   true
     ),
+    save_init_goals(Fd, Options),
     close(Fd).
 
 %!  save_option_value(+SaveClass, +OptionName, +OptionValue, -FinalValue)
@@ -235,6 +234,20 @@ save_options(RC, SaveClass, Options) :-
 save_option_value(Class,   class, _,     Class) :- !.
 save_option_value(runtime, home,  _,     _) :- !, fail.
 save_option_value(_,       _,     Value, Value).
+
+%!  save_init_goals(+Stream, +Options)
+%
+%   Save initialization goals. If there  is   a  goal(Goal)  option, use
+%   that, else save the goals from '$cmd_option_val'/2.
+
+save_init_goals(Out, Options) :-
+    option(goal(Goal), Options),
+    !,
+    format(Out, 'goal=~q~n', [Goal]).
+save_init_goals(Out, _) :-
+    '$cmd_option_val'(goals, Goals),
+    forall(member(Goal, Goals),
+           format(Out, 'goal=~w~n', [Goal])).
 
 
                  /*******************************

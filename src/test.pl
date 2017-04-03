@@ -2724,6 +2724,7 @@ wide_character_types :-
 %
 %	Enumerate directories holding tests.
 
+testdir('Tests/unprotected').
 testdir('Tests/core').
 testdir('Tests/attvar').
 testdir('Tests/library').

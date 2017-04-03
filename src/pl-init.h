@@ -32,7 +32,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-/********************************
+		/********************************
 		*           STRUCTURES		*
 		********************************/
 
@@ -60,7 +60,7 @@ typedef struct
   size_t	globalSize;		/* size of global stack */
   size_t	trailSize;		/* size of trail stack */
   size_t	tableSpace;		/* table space */
-  char *	goal;			/* initial goal */
+  opt_list     *goals;			/* initialization goals */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
@@ -75,6 +75,8 @@ typedef struct
   bool		win_app;		/* --win_app: be Windows application */
 #endif
 } pl_options_t;
+
+COMMON(int)	opt_append(opt_list **l, const char *s);
 
 
 		/********************************

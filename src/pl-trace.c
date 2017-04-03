@@ -1663,7 +1663,7 @@ again:
       Sfprintf(Sdout,
 	       "\n"
 	       "WARNING: By typing Control-C twice, you have forced an asynchronous\n"
-	       "WARNING: interrupt.  Your only SAFE operation are: c(ontinue), p(id),\n"
+	       "WARNING: interrupt.  Your only SAFE operations are: c(ontinue), p(id),\n"
 	       "WARNING: s(stack) and e(xit).  Notably a(abort) often works, but\n"
 	       "WARNING: leaves the system in an UNSTABLE state\n\n");
     }

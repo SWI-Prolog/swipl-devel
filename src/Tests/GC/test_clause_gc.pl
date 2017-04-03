@@ -71,6 +71,8 @@ run(N, H, B, [x|L]) :-
 	run(N2, H, B, L).
 run(_, _, _, []).
 
+:- '$clausable'(cl/8).
+
 cl(a,
    A, A,
    1,

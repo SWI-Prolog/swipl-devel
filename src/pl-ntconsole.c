@@ -367,7 +367,7 @@ control_ansi(void *handle, int op, void *data)
       return -1;			/* We cannot change the encoding! */
     case SIO_LASTERROR:
     { const char *s;
-      if ( (s = WinError()) );
+      if ( (s = WinError()) )
       { const char **sp = data;
 	*sp = s;
 	return 0;

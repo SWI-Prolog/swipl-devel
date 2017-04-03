@@ -68,7 +68,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 70500
+#define PLVERSION 70503
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -847,6 +847,7 @@ PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
 PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
 PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
+PL_EXPORT(int)		PL_release_stream_noerror(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 					 const char *name,
 					 const char *rc_class,

@@ -59,6 +59,7 @@ for the graphical debugger, notably:
 		 *	     TEST CASES		*
 		 *******************************/
 
+:- '$clausable'(test_clause/2).
 					% control structures
 test_clause(1, target) :- target.
 test_clause(2, target) :- true, target.

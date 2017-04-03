@@ -69,6 +69,7 @@ attempt to call the Prolog defined trace interceptor.
     volatile(:),
     thread_local(:),
     noprofile(:),
+    '$clausable'(:),
     '$iso'(:),
     '$hide'(:).
 
@@ -94,6 +95,7 @@ thread_local(Spec)       :- '$set_pattr'(Spec, pred, (thread_local)).
 noprofile(Spec)          :- '$set_pattr'(Spec, pred, (noprofile)).
 public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, (iso)).
+'$clausable'(Spec)       :- '$set_pattr'(Spec, pred, (clausable)).
 
 '$set_pattr'(M:Pred, How, Attr) :-
     '$set_pattr'(Pred, M, How, Attr).
@@ -3132,13 +3134,13 @@ load_files(Module:Files, Options) :-
 %   Store a clause into the   database  for administrative purposes.
 %   This bypasses sanity checking.
 
-'$store_admin_clause'(Clause, Layout, File, SrcLoc) :-
-    source_location(File, _Line),
+'$store_admin_clause'(Clause, Layout, Owner, SrcLoc) :-
+    Owner \== (-),
     !,
     setup_call_cleanup(
-        '$start_aux'(File, Context),
-        '$store_admin_clause2'(Clause, Layout, File, SrcLoc),
-        '$end_aux'(File, Context)).
+        '$start_aux'(Owner, Context),
+        '$store_admin_clause2'(Clause, Layout, Owner, SrcLoc),
+        '$end_aux'(Owner, Context)).
 '$store_admin_clause'(Clause, Layout, File, SrcLoc) :-
     '$store_admin_clause2'(Clause, Layout, File, SrcLoc).
 

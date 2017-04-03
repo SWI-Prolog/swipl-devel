@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, University of Amsterdam
+    Copyright (c)  2012-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -76,7 +76,7 @@ static bool	vsysError(const char *fm, va_list args);
 			  } \
 			}
 #define	optionList(l)   { if (argc > 1) \
-			  { opt_append(l, store_string(argv[1])); \
+			  { opt_append(l, argv[1]); \
 			    argc--; argv++; \
 			  } else \
 			  { return -1; \
@@ -139,11 +139,11 @@ is_longopt(const char *optstring, const char *name)
 }
 
 
-static int
-opt_append(opt_list **l, char *s)
+int
+opt_append(opt_list **l, const char *s)
 { opt_list *n = allocHeapOrHalt(sizeof(*n));
 
-  n->opt_val = s;
+  n->opt_val = store_string(s);
   n->next = NULL;
 
   while(*l)
@@ -413,7 +413,6 @@ cleanupPaths(void)
   cleanupStringP(&systemDefaults.startup);
   cleanupStringP(&GD->options.systemInitFile);
   cleanupStringP(&GD->options.compileOut);
-  cleanupStringP(&GD->options.goal);
   cleanupStringP(&GD->options.topLevel);
   cleanupStringP(&GD->options.initFile);
   cleanupStringP(&GD->options.saveclass);
@@ -423,6 +422,7 @@ cleanupPaths(void)
 #endif
 
   cleanupOptListP(&GD->options.scriptFiles);
+  cleanupOptListP(&GD->options.goals);
 }
 
 
@@ -435,7 +435,7 @@ initDefaults(void)
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
   systemDefaults.table       = DEFTABLE;
-  systemDefaults.goal	     = "version";
+  systemDefaults.goal	     = NULL;
   systemDefaults.toplevel    = "prolog";
   systemDefaults.notty       = NOTTYCONTROL;
 
@@ -512,11 +512,14 @@ initDefaultOptions(void)
   GD->options.globalSize    = systemDefaults.global   K;
   GD->options.trailSize     = systemDefaults.trail    K;
   GD->options.tableSpace    = systemDefaults.table    K;
-  GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
   GD->options.scriptFiles   = NULL;
   GD->options.saveclass	    = store_string("none");
+
+  if ( systemDefaults.goal )
+    opt_append(&GD->options.goals, systemDefaults.goal);
+
 
   if ( !GD->bootsession && GD->resourceDB )
   { IOSTREAM *op = SopenRC(GD->resourceDB, "$options", "$prolog", RC_RDONLY);
@@ -632,7 +635,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'l':
 	case 's':	optionList(&GD->options.scriptFiles);
 			break;
-	case 'g':	optionString(GD->options.goal);
+	case 'g':	optionList(&GD->options.goals);
 			break;
 	case 't':	optionString(GD->options.topLevel);
 			break;
@@ -1242,9 +1245,8 @@ cleanupProlog(int rval, int reclaim_memory)
       emptyStacks();
 
     PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
-    if ( !query_loop(PL_new_atom("$run_at_halt"), FALSE) &&
-	 rval == 0 &&
-	 !PL_exception(0) )
+    if ( query_loop(PL_new_atom("$run_at_halt"), FALSE) == FALSE &&
+	 rval == 0 )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
 	UNLOCK();

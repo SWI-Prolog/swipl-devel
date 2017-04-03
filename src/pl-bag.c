@@ -182,7 +182,7 @@ static findall_bag *
 current_bag(ARG1_LD)
 { findall_bag *bag = LD->bags.bags;
 
-  while(bag->suspended)
+  while(bag && bag->suspended)
   { assert(bag->parent);
     bag = bag->parent;
   }
@@ -202,6 +202,16 @@ add_findall_bag(term_t term, term_t count ARG_LD)
 				   PL_WRT_NEWLINE|
 				   PL_WRT_QUOTED);
 		   });
+
+  if ( !bag )
+  { static atom_t cbag;
+
+    if ( !cbag )
+      cbag = PL_new_atom("findall-bag");
+
+    return PL_error(NULL, 0, "continuation in findall/3 generator?",
+		    ERR_PERMISSION, ATOM_append, cbag, term);
+  }
 
   if ( !(r = compileTermToHeap__LD(term, alloc_record, bag, R_NOLOCK PASS_LD)) )
     return PL_no_memory();

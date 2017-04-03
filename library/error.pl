@@ -45,7 +45,8 @@
             resource_error/1,           % +Culprit
 
             must_be/2,                  % +Type, +Term
-            is_of_type/2                % +Type, +Term
+            is_of_type/2,               % +Type, +Term
+            current_type/3              % ?Type, @Var, -Body
           ]).
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -261,7 +262,7 @@ is_not(Type, X) :-
     ->  instantiation_error(X)
     ;   ground_type(Type), \+ ground(X)
     ->  instantiation_error(X)
-    ;   clause(has_type(Type,_), _Body)
+    ;   current_type(Type, _Var, _Body)
     ->  type_error(Type, X)
     ;   existence_error(type, Type)
     ).
@@ -312,6 +313,8 @@ is_of_type(Type, _) :-
 %!  has_type(+Type, @Term) is semidet.
 %
 %   True if Term satisfies Type.
+
+:- '$clausable'(has_type/2).            % always allow clause/2
 
 has_type(any, _).
 has_type(atom, X)         :- atom(X).
@@ -390,3 +393,12 @@ current_encoding(utf8).
 current_encoding(unicode_be).
 current_encoding(unicode_le).
 current_encoding(wchar_t).
+
+
+%!  current_type(?Type, @Var, -Body) is nondet.
+%
+%   True when Type is a currently defined type and Var satisfies Type of
+%   the body term Body succeeds.
+
+current_type(Type, Var, Body) :-
+    clause(has_type(Type, Var), Body).

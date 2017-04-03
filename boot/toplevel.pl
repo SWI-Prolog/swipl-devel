@@ -489,9 +489,38 @@ initialise_prolog :-
     '$load_init_file'(File),
     '$load_script_file',
     load_associated_files(Files),
-    '$cmd_option_val'(goal, GoalAtom),
-    term_to_atom(Goal, GoalAtom),
-    ignore(user:Goal).
+    '$cmd_option_val'(goals, Goals),
+    (   Goals == []
+    ->  version
+    ;   run_init_goals(Goals)
+    ).
+
+%!  run_init_goals(+Goals) is det.
+%
+%   Run registered initialization goals  on  order.   If  a  goal fails,
+%   execution is halted.
+
+run_init_goals([]).
+run_init_goals([H|T]) :-
+    run_init_goal(H),
+    run_init_goals(T).
+
+run_init_goal(Text) :-
+    (   term_to_atom(Goal, Text),
+        catch(user:Goal, E, true)
+    ->  (   var(E)
+        ->  true
+        ;   print_message(error, init_goal_failed(E, Text)),
+            halt(2)
+        )
+    ;   (   current_prolog_flag(verbose, silent)
+        ->  Level = silent
+        ;   Level = error
+        ),
+        print_message(Level, init_goal_failed(failed, Text)),
+        halt(1)
+    ).
+
 
 init_debug_flags :-
     once(print_predicate(_, [print], PrintOptions)),
@@ -554,6 +583,7 @@ setup_readline :-
     ->  true
     ;   stream_property(user_input, tty(true)),
         current_prolog_flag(tty_control, true),
+        \+ getenv('TERM', dumb),
         (   current_prolog_flag(readline, ReadLine)
         ->  true
         ;   ReadLine = true

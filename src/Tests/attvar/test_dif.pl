@@ -37,6 +37,8 @@
 	  [ test_dif/0
 	  ]).
 
+:- '$clausable'(dif/1).
+
 dif(1) :-
 	dif(1, A), \+ A = 1.
 dif(2) :-

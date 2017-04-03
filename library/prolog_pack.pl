@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, VU University Amsterdam
+    Copyright (c)  2012-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -431,6 +431,15 @@ pack_install(Spec) :-
     pack_default_options(Spec, Pack, [], Options),
     pack_install(Pack, [pack(Pack)|Options]).
 
+%!  pack_default_options(+Spec, -Pack, +OptionsIn, -Options) is det.
+%
+%   Establish  the  pack  name  (Pack)  and    install  options  from  a
+%   specification and options (OptionsIn) provided by the user.
+
+pack_default_options(_Spec, Pack, OptsIn, Options) :-
+    option(already_installed(pack(Pack,_Version)), OptsIn),
+    !,
+    Options = OptsIn.
 pack_default_options(_Spec, Pack, OptsIn, Options) :-
     option(url(URL), OptsIn),
     !,
@@ -446,7 +455,7 @@ pack_default_options(_Spec, Pack, OptsIn, Options) :-
     ->  true
     ;   pack_version_file(Pack, _Version, URL)
     ).
-pack_default_options(Archive, Pack, _, Options) :-      % Install from .tgz/.zip/... file
+pack_default_options(Archive, Pack, _, Options) :-      % Install from archive
     must_be(atom, Archive),
     expand_file_name(Archive, [File]),
     exists_file(File),
@@ -468,15 +477,15 @@ pack_default_options(FileURL, Pack, _, Options) :-      % Install from directory
         Options = [url(DirURL), version(Version)]
     ;   throw(error(existence_error(key, version, Dir),_))
     ).
-pack_default_options(URL, Pack, _, Options) :-  % Install from URL
+pack_default_options(URL, Pack, _, Options) :-          % Install from URL
     pack_version_file(Pack, Version, URL),
     download_url(URL),
     !,
     available_download_versions(URL, [URLVersion-LatestURL|_]),
     Options = [url(LatestURL)|VersionOptions],
     version_options(Version, URLVersion, VersionOptions).
-pack_default_options(Pack, Pack, OptsIn, Options) :-    % Install from a pack name
-    \+ uri_is_global(Pack),                 % ignore URLs
+pack_default_options(Pack, Pack, OptsIn, Options) :-    % Install from name
+    \+ uri_is_global(Pack),                             % ignore URLs
     query_pack_server(locate(Pack), Reply, OptsIn),
     (   Reply = true(Results)
     ->  pack_select_candidate(Pack, Results, OptsIn, Options)
@@ -491,6 +500,17 @@ version_options(Version, _, [version(Version)]) :-
     !.
 version_options(_, _, []).
 
+%!  pack_select_candidate(+Pack, +AvailableVersions, +OptionsIn, -Options)
+%
+%   Select from available packages.
+
+pack_select_candidate(Pack, [Version-_|_], Options,
+                      [already_installed(pack(Pack, Installed))|Options]) :-
+    current_pack(Pack),
+    pack_info(Pack, _, version(InstalledAtom)),
+    atom_version(InstalledAtom, Installed),
+    Installed @>= Version,
+    !.
 pack_select_candidate(Pack, Available, Options, OptsOut) :-
     option(url(URL), Options),
     memberchk(_Version-URLs, Available),
@@ -565,10 +585,13 @@ url_menu_item(URL, URL=install_from(URL)).
 
 pack_install(Spec, Options) :-
     pack_default_options(Spec, Pack, Options, DefOptions),
-    merge_options(Options, DefOptions, PackOptions),
-    update_dependency_db,
-    pack_install_dir(PackDir, PackOptions),
-    pack_install(Pack, PackDir, PackOptions).
+    (   option(already_installed(Installed), DefOptions)
+    ->  print_message(informational, pack(already_installed(Installed)))
+    ;   merge_options(Options, DefOptions, PackOptions),
+        update_dependency_db,
+        pack_install_dir(PackDir, PackOptions),
+        pack_install(Pack, PackDir, PackOptions)
+    ).
 
 pack_install_dir(PackDir, Options) :-
     option(package_directory(PackDir), Options),
@@ -1506,6 +1529,12 @@ version_tag_prefix('').
 :- public
     atom_version/2.
 
+%!  atom_version(?Atom, ?Version)
+%
+%   Translate   between   atomic   version   representation   and   term
+%   representation.  The  term  representation  is  a  list  of  version
+%   components as integers and can be compared using `@>`
+
 atom_version(Atom, version(Parts)) :-
     (   atom(Atom)
     ->  atom_codes(Atom, Codes),
@@ -1715,6 +1744,15 @@ local_dep(_-resolved(_)).
 %
 %   @tbd: Query URI to use
 
+install_dependency(Options,
+                   _Token-resolve(Pack, VersionAtom, [_URL|_], SubResolve)) :-
+    atom_version(VersionAtom, Version),
+    current_pack(Pack),
+    pack_info(Pack, _, version(InstalledAtom)),
+    atom_version(InstalledAtom, Installed),
+    Installed == Version,               % already installed
+    !,
+    maplist(install_dependency(Options), SubResolve).
 install_dependency(Options,
                    _Token-resolve(Pack, VersionAtom, [URL|_], SubResolve)) :-
     !,
@@ -2163,6 +2201,9 @@ message(directory_exists(Dir)) -->
     [ 'Package target directory exists and is not empty:', nl,
       '\t~q'-[Dir]
     ].
+message(already_installed(pack(Pack, Version))) -->
+    { atom_version(AVersion, Version) },
+    [ 'Pack `~w'' is already installed @~w'-[Pack, AVersion] ].
 message(already_installed(Pack)) -->
     [ 'Pack `~w'' is already installed. Package info:'-[Pack] ].
 message(invalid_name(File)) -->
@@ -2222,6 +2263,8 @@ message(inquiry(Server)) -->
     [ 'Verify package status (anonymously)', nl,
       '\tat "~w"'-[Server]
     ].
+message(search_no_matches(Name)) -->
+    [ 'Search for "~w", returned no matching packages'-[Name] ].
 message(rebuild(Pack)) -->
     [ 'Checking pack "~w" for rebuild ...'-[Pack] ].
 message(upgrade(Pack, From, To)) -->

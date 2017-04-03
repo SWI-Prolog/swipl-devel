@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2015, VU University Amsterdam
+    Copyright (c)  2012-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 :- module('$pack',
           [ attach_packs/0,
             attach_packs/1,                     % +Dir
+            attach_packs/2,                     % +Dir, +Options
             '$pack_detach'/2,                   % +Name, -Dir
             '$pack_attach'/1                    % +Dir
           ]).
@@ -79,7 +80,7 @@ user:file_search_path(foreign, PackLib) :-
 %   Attach the given package
 
 '$pack_attach'(Dir) :-
-    attach_package(Dir),
+    attach_package(Dir, []),
     !.
 '$pack_attach'(Dir) :-
     (   exists_directory(Dir)
@@ -118,47 +119,74 @@ remove_dups([H|T0], [H|T], Seen) :-
     remove_dups(T0, T, [H|Seen]).
 
 
-%!  attach_packs(+Dir)
+%!  attach_packs(+Dir) is det.
+%!  attach_packs(+Dir, +Options) is det.
 %
-%   Attach packages from directory Dir.
+%   Attach packages from directory Dir.  Options processed:
+%
+%     - duplicate(+Action)
+%     What to do if the same package is already installed in a different
+%     directory.  Action is one of
+%       - warning
+%       Warn and ignore the package
+%       - keep
+%       Silently ignore the package
+%       - replace
+%       Unregister the existing and insert the new package
+%     - search(+Where)
+%     Determines the order of searching package library directories.
+%     Default is `last`, alternative is `first`.
 
 attach_packs(Dir) :-
-    catch(directory_files(Dir, Entries), _, fail),
+    attach_packs(Dir, []).
+
+attach_packs(Dir, Options) :-
+    absolute_file_name(Dir, Path,
+                       [ file_type(directory),
+                         file_errors(fail)
+                       ]),
+    catch(directory_files(Path, Entries), _, fail),
     !,
-    ensure_slash(Dir, SDir),
-    attach_packages(Entries, SDir).
-attach_packs(_).
+    ensure_slash(Path, SPath),
+    attach_packages(Entries, SPath, Options).
+attach_packs(_, _).
 
-attach_packages([], _).
-attach_packages([H|T], Dir) :-
-    attach_package(H, Dir),
-    attach_packages(T, Dir).
+attach_packages([], _, _).
+attach_packages([H|T], Dir, Options) :-
+    attach_package(H, Dir, Options),
+    attach_packages(T, Dir, Options).
 
-attach_package(Entry, Dir) :-
+attach_package(Entry, Dir, Options) :-
     \+ special(Entry),
     atom_concat(Dir, Entry, PackDir),
-    attach_package(PackDir),
+    attach_package(PackDir, Options),
     !.
-attach_package(_, _).
+attach_package(_, _, _).
 
 special(.).
 special(..).
 
 
-%!  attach_package(+PackDir) is semidet.
+%!  attach_package(+PackDir, +Options) is semidet.
 %
 %   @tbd    Deal with autoload index.  Reload?
 
-attach_package(PackDir) :-
+attach_package(PackDir, Options) :-
     atomic_list_concat([PackDir, '/pack.pl'], InfoFile),
     access_file(InfoFile, read),
     file_base_name(PackDir, Pack),
-    check_existing(Pack, PackDir),
+    check_existing(Pack, PackDir, Options),
     foreign_dir(Pack, PackDir, ForeignDir),
     prolog_dir(PackDir, PrologDir),
     !,
     assertz(pack(Pack, PackDir)),
-    assertz(pack_dir(Pack, prolog, PrologDir)),
+    '$option'(search(Where), Options, last),
+    (   Where == last
+    ->  assertz(pack_dir(Pack, prolog, PrologDir))
+    ;   Where == first
+    ->  asserta(pack_dir(Pack, prolog, PrologDir))
+    ;   '$domain_error'(option_search, Where)
+    ),
     update_autoload(PrologDir),
     (   ForeignDir \== (-)
     ->  assertz(pack_dir(Pack, foreign, ForeignDir))
@@ -167,20 +195,29 @@ attach_package(PackDir) :-
     print_message(silent, pack(attached(Pack, PackDir))).
 
 
-%!  check_existing(+Pack, +PackDir) is semidet.
+%!  check_existing(+Pack, +PackDir, +Options) is semidet.
 %
 %   Verify that we did not load this package before.
 
-check_existing(Entry, Dir) :-
+check_existing(Entry, Dir, _) :-
     retract(pack(Entry, Dir)),             % registered from same place
     !,
     retractall(pack_dir(Entry, _, _)).
-check_existing(Entry, Dir) :-
+check_existing(Entry, Dir, Options) :-
     pack(Entry, OldDir),
     !,
-    print_message(warning, pack(duplicate(Entry, OldDir, Dir))),
-    fail.
-check_existing(_, _).
+    '$option'(duplicate(Action), Options, warning),
+    (   Action == warning
+    ->  print_message(warning, pack(duplicate(Entry, OldDir, Dir))),
+        fail
+    ;   Action == keep
+    ->  fail
+    ;   Action == replace
+    ->  print_message(silent, pack(replaced(Entry, OldDir, Dir))),
+        '$pack_detach'(Entry, OldDir)
+    ;   '$domain_error'(option_duplicate, Action)
+    ).
+check_existing(_, _, _).
 
 
 prolog_dir(PackDir, PrologDir) :-

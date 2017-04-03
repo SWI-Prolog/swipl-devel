@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2016, University of Amsterdam
+    Copyright (c)  2009-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -46,6 +46,7 @@ test_db :-
 		    retract,
 		    retractall,
 		    dynamic,
+		    protect,
 		    res_compiler
 		  ]).
 
@@ -167,6 +168,26 @@ test(make_dynamic, [true, cleanup(abolish(Name, 1))]) :-
 	Term.
 
 :- end_tests(dynamic).
+
+:- begin_tests(protect, [ setup(set_prolog_flag(protect_static_code, true)),
+			  setup(set_prolog_flag(protect_static_code, false))
+			]).
+
+p1.
+:- '$clausable'(p2/0).
+p2.
+
+test(clause, error(permission_error(access, private_procedure, _))) :-
+	clause(p1, _).
+test(clause, Body == true) :-
+	clause(p2, Body).
+test(dynamic, error(permission_error(modify, static_procedure, _))) :-
+	dynamic(p1/0).
+test(clausable, error(permission_error(modify, static_procedure, _))) :-
+	'$clausable'(p1/0).
+
+:- end_tests(protect).
+
 
 :- begin_tests(res_compiler).
 

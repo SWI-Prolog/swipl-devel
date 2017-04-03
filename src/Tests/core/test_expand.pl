@@ -68,6 +68,8 @@ goal_expansion(g_b, g_c).
 		 *	     PROGRAMS		*
 		 *******************************/
 
+:- '$clausable'((a/2, final_c/0)).
+
 :- if(false).				% nothing compiles if false
 no_a --> [].
 :- endif.

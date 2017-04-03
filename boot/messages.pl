@@ -381,6 +381,8 @@ swi_message(conditional_compilation_error(unterminated, Where)) -->
     cond_location(Where).
 swi_message(conditional_compilation_error(no_if, What)) -->
     [ ':- ~w without :- if'-[What] ].
+swi_message(duplicate_key(Key)) -->
+    [ 'Duplicate key: ~p'-[Key] ].
 
 cond_location(File:Line) -->
     { file_base_name(File, Base) },
@@ -494,6 +496,13 @@ prolog_message(initialization_failure(Goal, _)) -->
 prolog_message(initialization_exception(E)) -->
     [ 'Prolog initialisation failed:', nl ],
     translate_message(E).
+prolog_message(init_goal_failed(failed, Text)) -->
+    !,
+    [ '-g ~w: false'-[Text] ].
+prolog_message(init_goal_failed(Error, Text)) -->
+    !,
+    [ '-g ~w: '-[Text] ],
+    translate_message(Error).
 prolog_message(unhandled_exception(E)) -->
     [ 'Unhandled exception: ' ],
     (   translate_message2(E)
