@@ -248,7 +248,7 @@ typedef struct io_stream
 #define SIO_STATIC	SmakeFlag(11)	/* Stream in static memory */
 #define SIO_RECORDPOS	SmakeFlag(12)	/* Maintain position */
 #define SIO_FILE	SmakeFlag(13)	/* Stream refers to an OS file */
-/*      SIO_PIPE	SmakeFlag(14)	   Unused */
+#define SIO_NOERROR	SmakeFlag(14)	/* Ignore write errors */
 #define SIO_NOFEOF	SmakeFlag(15)	/* don't set SIO_FEOF flag */
 #define SIO_TEXT	SmakeFlag(16)	/* text-mode operation */
 #define SIO_FEOF2	SmakeFlag(17)	/* attempt to read past eof */

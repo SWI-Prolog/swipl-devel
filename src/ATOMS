@@ -776,6 +776,7 @@ A when_condition	"when_condition"
 A white			"white"
 A write			"write"
 A write_attributes	"write_attributes"
+A write_errors		"write_errors"
 A write_option		"write_option"
 A xdigit		"xdigit"
 A xf			"xf"
@@ -1051,6 +1052,7 @@ F uninstantiation_error	1
 F var			1
 F wakeup		3
 F warning		3
+F write_errors		1
 F xor			2
 F xpceref		1
 F xpceref		2

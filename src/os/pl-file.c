@@ -1987,6 +1987,20 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 		      ATOM_representation_errors, a);
 
     return TRUE;
+  } else if ( aname == ATOM_write_errors )
+  { atom_t val;
+
+    if ( !PL_get_atom_ex(a, &val) )
+      return FALSE;
+
+    if ( val == ATOM_error )
+      clear(s, SIO_NOERROR);
+    else if ( val == ATOM_ignore )
+      set(s, SIO_NOERROR);
+    else
+      return PL_domain_error("write_errors", a);
+
+    return TRUE;
   } else if ( aname == ATOM_newline )
   { atom_t val;
 
@@ -2047,6 +2061,7 @@ static const set_stream_info ss_info[] =
   SS_INFO(ATOM_encoding,	      SS_BOTH),
   SS_INFO(ATOM_locale,		      SS_BOTH),
   SS_INFO(ATOM_representation_errors, SS_WRITE),
+  SS_INFO(ATOM_write_errors,          SS_WRITE),
   SS_INFO(ATOM_newline,		      SS_BOTH),
   SS_INFO(ATOM_close_on_exec,	      SS_BOTH),
   SS_INFO((atom_t)0,		      0)
@@ -4305,6 +4320,19 @@ stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 
 static int
+stream_writeerror_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ atom_t a;
+
+  if ( (s->flags & SIO_NOERROR) )
+    a = ATOM_ignore;
+  else
+    a = ATOM_error;
+
+  return PL_unify_atom(prop, a);
+}
+
+
+static int
 stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t b;
 
@@ -4413,6 +4441,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_bom1,	    stream_bom_prop },
   { FUNCTOR_newline1,	    stream_newline_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },
+  { FUNCTOR_write_errors1,  stream_writeerror_prop },
   { FUNCTOR_timeout1,       stream_timeout_prop },
   { FUNCTOR_nlink1,         stream_nlink_prop },
   { FUNCTOR_close_on_exec1, stream_close_on_exec_prop },

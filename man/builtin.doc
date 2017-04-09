@@ -4082,6 +4082,12 @@ Unify \arg{Type} with \const{text} or \const{binary}.
     \termitem{tty}{Bool}
 This property is reported with \arg{Bool} equal to \const{true} if
 the stream is associated with a terminal.  See also set_stream/2.
+
+    \termitem{write_errors}{Atom}
+\arg{Atom} is one of \const{error} (default) or \const{ignore}. The
+latter is intended to deal with service processes for which the standard
+output handles are not connected to valid streams. In these cases write
+errors may be ignored on \const{user_error}.
 \end{description}
 
     \predicate{current_stream}{3}{?Object, ?Mode, ?Stream}

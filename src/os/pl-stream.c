@@ -529,7 +529,7 @@ S__flushbuf(IOSTREAM *s)
 	  errno = EPLEXCEPTION;
 	} else
 	  goto retry;
-      } else if ( errno != EPLEXCEPTION )
+      } else if ( errno != EPLEXCEPTION && !(s->flags&SIO_NOERROR) )
 	S__seterror(s);
       rc = -1;
       goto out;
