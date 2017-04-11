@@ -408,11 +408,10 @@ retry:
 
     fr->programPointer = me->programPointer;
     fr->parent         = me->parent;
-    fr->level          = me->level;
     fr->clause         = cref;
     fr->predicate      = cl->predicate;
     fr->context	       = fr->predicate->module;
-    fr->flags          = FR_MAGIC;		/* TBD: anything else needed? */
+    setNextFrameFlags(fr, me);
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif
