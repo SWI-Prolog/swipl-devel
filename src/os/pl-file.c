@@ -1871,9 +1871,11 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
     if ( !PL_get_bool_ex(a, &rec) )
       return FALSE;
 
-    if ( rec )
+    if ( rec ) {
+      memset(&s->posbuf, 0, sizeof(s->posbuf));
+      s->posbuf.lineno = 1;
       s->position = &s->posbuf;
-    else
+    } else
       s->position = NULL;
 
     return TRUE;
@@ -1918,7 +1920,7 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
       return TRUE;
     return PL_permission_error("timeout", "stream", stream);
   } else if ( aname == ATOM_tty )	/* tty(bool) */
-  {	int val;
+  { int val;
 
     if ( !PL_get_bool_ex(a, &val) )
       return FALSE;
@@ -1930,7 +1932,7 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     return TRUE;
   } else if ( aname == ATOM_encoding )	/* encoding(atom) */
-  {	atom_t val;
+  { atom_t val;
     IOENC enc;
 
     if ( !PL_get_atom_ex(a, &val) )
@@ -1958,7 +1960,7 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 		    ATOM_encoding, ATOM_stream, stream);
 #ifdef O_LOCALE
   } else if ( aname == ATOM_locale )	/* locale(Locale) */
-  {	PL_locale *val;
+  { PL_locale *val;
 
     if ( !getLocaleEx(a, &val) )
       return FALSE;

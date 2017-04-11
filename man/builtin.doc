@@ -4255,7 +4255,8 @@ to \const{binary} sets the encoding to \const{octet}.  Switching to
 
     \termitem{record_position}{Bool}
 Do/do not record the line count and line position (see line_count/2
-and line_position/2).
+and line_position/2). Calling \verb$set_stream(S,
+record_position(true))$ resets the position the start of line~1.
 
     \termitem{representation_errors}{Mode}
 Change the behaviour when writing characters to the stream that cannot
