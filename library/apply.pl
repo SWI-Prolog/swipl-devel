@@ -168,7 +168,7 @@ partition_(>, H, Pred, T, L, E, [H|G]) :-
     !,
     partition_(T, Pred, L, E, G).
 partition_(Diff, _, _, _, _, _, _) :-
-    must_be(oneof([<.=,>]), Diff).
+    must_be(oneof([<,=,>]), Diff).
 
 
                  /*******************************
