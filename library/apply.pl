@@ -156,15 +156,18 @@ partition_([H|T], Pred, L, E, G) :-
     call(Pred, H, Diff),
     partition_(Diff, H, Pred, T, L, E, G).
 
-partition_(<, H, Pred, T, [H|L], E, G) :-
+partition_(<, H, Pred, T, L, E, G) :-
     !,
-    partition_(T, Pred, L, E, G).
-partition_(=, H, Pred, T, L, [H|E], G) :-
+    L = [H|Rest],
+    partition_(T, Pred, Rest, E, G).
+partition_(=, H, Pred, T, L, E, G) :-
     !,
-    partition_(T, Pred, L, E, G).
-partition_(>, H, Pred, T, L, E, [H|G]) :-
+    E = [H|Rest],
+    partition_(T, Pred, L, Rest, G).
+partition_(>, H, Pred, T, L, E, G) :-
     !,
-    partition_(T, Pred, L, E, G).
+    G = [H|Rest],
+    partition_(T, Pred, L, E, Rest).
 partition_(Diff, _, _, _, _, _, _) :-
     must_be(oneof([<,=,>]), Diff).
 
