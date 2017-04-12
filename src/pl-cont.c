@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2016-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -216,7 +216,8 @@ unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
   { Clause     cl = fr->clause->value.clause;
     long pcoffset = pc - cl->codes;
 
-    assert(!onStackArea(local, cl));
+    if ( onStackArea(local, cl) )
+      return PL_representation_error("continuation");
     fr_ref = consTermRef(fr);
 
     if ( !PL_put_clref(argv+0, cl) ||
@@ -408,11 +409,10 @@ retry:
 
     fr->programPointer = me->programPointer;
     fr->parent         = me->parent;
-    fr->level          = me->level;
     fr->clause         = cref;
     fr->predicate      = cl->predicate;
     fr->context	       = fr->predicate->module;
-    fr->flags          = FR_MAGIC;		/* TBD: anything else needed? */
+    setNextFrameFlags(fr, me);
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif

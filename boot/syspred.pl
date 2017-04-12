@@ -588,8 +588,7 @@ prolog_load_context(source, F) :-       % SICStus compatibility
     '$input_context'(Context),
     '$top_file'(Context, F0, F).
 prolog_load_context(stream, S) :-
-    source_location(F, _),
-    (   system:'$load_input'(F, S0)
+    (   system:'$load_input'(_, S0)
     ->  S = S0
     ).
 prolog_load_context(directory, D) :-

@@ -2978,11 +2978,11 @@ load_files(Module:Files, Options) :-
     '$expand_goal'(Goal, Goal1),
     '$execute_directive_2'(Goal1, F).
 
-'$execute_directive_2'(encoding(Encoding), F) :-
+'$execute_directive_2'(encoding(Encoding), _F) :-
     !,
-    source_location(F, _),
-    '$load_input'(F, S),
-    set_stream(S, encoding(Encoding)).
+    (   '$load_input'(_F, S)
+    ->  set_stream(S, encoding(Encoding))
+    ).
 '$execute_directive_2'(ISO, F) :-
     '$expand_directive'(ISO, Normal),
     !,

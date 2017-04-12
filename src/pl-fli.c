@@ -1151,6 +1151,12 @@ PL_get_term_value(term_t t, term_value_t *val)
       break;
     case PL_ATOM:
       val->a = (atom_t)w;
+      if ( !isTextAtom(val->a) )
+      { if ( val->a == ATOM_nil )
+	  return PL_NIL;
+	else
+	  return PL_BLOB;
+      }
       break;
     case PL_STRING:
       val->s = getCharsString(w, NULL);
@@ -1159,6 +1165,10 @@ PL_get_term_value(term_t t, term_value_t *val)
     { FunctorDef fd = valueFunctor(functorTerm(w));
       val->t.name  = fd->name;
       val->t.arity = fd->arity;
+      if ( fd->functor == FUNCTOR_dot2 )
+	return PL_LIST_PAIR;
+      if ( val->t.name == ATOM_dict )
+	return PL_DICT;
       break;
     }
     default:
