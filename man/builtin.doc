@@ -5481,7 +5481,7 @@ Name of the functor to use instead of \verb|$VAR|.
 	\termitem{attvar}{+Action}
 What to do if an attributed variable is encountered.  Options are
 \const{skip}, which causes numbervars/3 to ignore the attributed
-variable, \const{bind} which causes it to thread it as a normal
+variable, \const{bind} which causes it to treat it as a normal
 variable and assign the next \verb|'$VAR'|(N) term to it, or (default)
 \const{error} which raises a \const{type_error} exception.%
 	\footnote{This behaviour was decided after a long discussion
