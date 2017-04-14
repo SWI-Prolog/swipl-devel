@@ -169,8 +169,7 @@ reduced_(State, Witness1, SizeLimit) :-
     add_nb_set(Witness1, Set, true),
     size_nb_set(Set, Size),
     (   Size > SizeLimit
-    ->  writeln(clear),
-        empty_nb_set(New),
+    ->  empty_nb_set(New),
         nb_setarg(1, State, New)
     ;   true
     ).
