@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -105,7 +105,7 @@ UTF-8 format in the state's `buffer'.   The  `buffered' field represents
 the number of UTF-8 characters in the buffer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static WUNUSED int
 outchr(format_state *state, int chr)
 { if ( state->pending_rubber )
   { if ( chr > 0x7f )
@@ -138,7 +138,7 @@ Emit ASCII 0-terminated strings resulting from sprintf() on numeric
 arguments.  No fuzz with wide characters here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static WUNUSED int
 outstring(format_state *state, const char *s, size_t len)
 { const char *q;
   const char *e = &s[len];
@@ -160,7 +160,7 @@ outstring(format_state *state, const char *s, size_t len)
 }
 
 
-static int
+static WUNUSED int
 oututf8(format_state *state, const char *s, size_t len)
 { const char *e = &s[len];
 
@@ -176,13 +176,13 @@ oututf8(format_state *state, const char *s, size_t len)
 }
 
 
-static int
+static WUNUSED int
 oututf80(format_state *state, const char *s)
 { return oututf8(state, s, strlen(s));
 }
 
 
-static int
+static WUNUSED int
 outtext(format_state *state, PL_chars_t *txt)
 { switch(txt->encoding)
   { case ENC_ISO_LATIN_1:
@@ -474,14 +474,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	    tellString(&str, &bufsize, ENC_UTF8);
 	    rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, proc, av);
 	    toldString();
-	    if ( !rc )
-	    { if ( str != buf )
-		free(str);
-	      goto out;
-	    }
-	    oututf8(&state, str, bufsize);
+	    if ( rc )
+	      rc = oututf8(&state, str, bufsize);
 	    if ( str != buf )
 	      free(str);
+	    if ( !rc )
+	      goto out;
 
 	    here++;
 	  } else
@@ -672,11 +670,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    tellString(&str, &bufsize, ENC_UTF8);
 		    rc = (*f)(argv);
 		    toldString();
-		    if ( !rc )
-		      goto out;
-		    oututf8(&state, str, bufsize);
+		    if ( rc )
+		      rc = oututf8(&state, str, bufsize);
 		    if ( str != buf )
 		      free(str);
+		    if ( !rc )
+		      goto out;
 		  } else
 		  { if ( fd->position &&
 			 fd->position->linepos == state.column )
@@ -696,11 +695,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      tellString(&str, &bufsize, ENC_UTF8);
 		      rc = (*f)(argv);
 		      toldString();
-		      if ( !rc )
-		        goto out;
-		      oututf8(&state, str, bufsize);
+		      if ( rc )
+			rc = oututf8(&state, str, bufsize);
 		      if ( str != buf )
 			free(str);
+		      if ( !rc )
+			goto out;
 		    }
 		  }
 		  SHIFT;
@@ -721,11 +721,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    tellString(&str, &bufsize, ENC_UTF8);
 		    rc = (int)pl_write_term(argv, argv+1);
 		    toldString();
-		    if ( !rc )
-		      goto out;
-		    oututf8(&state, str, bufsize);
+		    if ( rc )
+		      rc = oututf8(&state, str, bufsize);
 		    if ( str != buf )
 		      free(str);
+		    if ( !rc )
+		      goto out;
 		  } else
 		  { if ( fd->position &&
 			 fd->position->linepos == state.column )
@@ -744,12 +745,13 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      str = buf;
 		      tellString(&str, &bufsize, ENC_UTF8);
 		      rc = (int)pl_write_term(argv, argv+1);
-		      if ( !rc )
-			goto out;
 		      toldString();
-		      oututf8(&state, str, bufsize);
+		      if ( rc )
+			rc = oututf8(&state, str, bufsize);
 		      if ( str != buf )
 			free(str);
+		      if ( !rc )
+			goto out;
 		    }
 		  }
 		  SHIFT;
@@ -762,25 +764,22 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  char *str = buf;
 		  size_t bufsize = BUFSIZE;
 		  term_t ex = 0;
-		  int rval;
 
 		  if ( argc < 1 )
 		  { FMT_ERROR("not enough arguments");
 		  }
 		  tellString(&str, &bufsize, ENC_UTF8);
-		  rval = callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex);
+		  rc = callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex);
 		  toldString();
-		  oututf8(&state, str, bufsize);
+		  if ( rc )
+		    rc = oututf8(&state, str, bufsize);
 		  if ( str != buf )
 		    free(str);
 
-		  if ( !rval )
-		  { Sunlock(fd);
-
-		    if ( ex )
-		      return PL_raise_exception(ex);
-		    else
-		      fail;
+		  if ( !rc )
+		  { if ( ex )
+		      rc = PL_raise_exception(ex);
+		    goto out;
 		  }
 
 		  SHIFT;
