@@ -503,6 +503,9 @@ PL_EXPORT(int)		PL_put_atom(term_t t, atom_t a);
 PL_EXPORT(int)		PL_put_bool(term_t t, int val);
 PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_put_string_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(int)		PL_put_string_nmbchars(term_t t,
+					       int rep, size_t len,
+					       const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_chars(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_codes(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);

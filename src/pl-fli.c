@@ -37,6 +37,7 @@
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
+#include "os/pl-text.h"
 #include "pl-codelist.h"
 #include <errno.h>
 
@@ -2318,6 +2319,36 @@ PL_put_string_nchars(term_t t, size_t len, const char *s)
   word w = globalString(len, s);
 
   if ( w )
+  { setHandle(t, w);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+int
+PL_put_string_nmbchars(term_t t, int rep, size_t len, const char *s)
+{ GET_LD
+  PL_chars_t text;
+  word w;
+  IOENC enc;
+
+  if ( rep == REP_ISO_LATIN_1 )
+    enc = ENC_ISO_LATIN_1;
+  else if ( rep == REP_UTF8 )
+    enc = ENC_UTF8;
+  else if ( rep == REP_MB )
+    enc = ENC_ANSI;
+  else
+    assert(0);
+
+  text.text.t    = (char*)s;
+  text.length    = len;
+  text.canonical = (enc == ENC_ISO_LATIN_1);
+  text.encoding  = enc;
+
+  if ( (w = textToString(&text)) )
   { setHandle(t, w);
     return TRUE;
   }
