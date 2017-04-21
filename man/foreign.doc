@@ -597,6 +597,14 @@ The list constructor itself is created using
 PL_get_list(), PL_put_list() or PL_unify_list() where applicable.
     \end{description}
 
+    \cfunction{atom_t}{PL_new_atom_mbchars}{int rep, size_t len,
+					    const char *s}
+This function generalizes PL_new_atom() and PL_new_atom_nchars() while
+allowing for multiple encodings. The \arg{rep} argument is one of
+\const{REP_ISO_LATIN_1}, \const{REP_UTF8} or \const{REP_MB}. If
+\arg{len} is \exam{(size_t)-1}, it is computed from \arg{s} using
+strlen().
+
     \cfunction{const char*}{PL_atom_chars}{atom_t atom}
 Return a C-string for the text represented by the given atom. The
 returned text will not be changed by Prolog. It is not allowed to modify

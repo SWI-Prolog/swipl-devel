@@ -425,6 +425,7 @@ PL_EXPORT(void)		PL_reset_term_refs(term_t r);
 PL_EXPORT(atom_t)	PL_new_atom(const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_nchars(size_t len, const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
+PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);

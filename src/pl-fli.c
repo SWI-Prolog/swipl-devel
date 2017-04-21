@@ -430,6 +430,29 @@ PL_new_atom_nchars(size_t len, const char *s)
 }
 
 
+atom_t
+PL_new_atom_mbchars(int flags, size_t len, const char *s)
+{ PL_chars_t text;
+  atom_t a;
+
+  if ( len == (size_t)-1 )
+    len = strlen(s);
+
+  text.text.t    = (char*)s;
+  text.encoding  = ((flags&REP_UTF8) ? ENC_UTF8 : \
+		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
+  text.length    = len;
+  text.canonical = FALSE;
+  text.storage   = PL_CHARS_HEAP;
+
+  a = textToAtom(&text);
+  PL_free_text(&text);
+
+  return a;
+}
+
+
+
 functor_t
 PL_new_functor_sz(atom_t f, size_t arity)
 { if ( !GD->initialised )
@@ -2336,6 +2359,7 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
 { GET_LD
   PL_chars_t text;
   word w = 0;
+  int rc = FALSE;
 
   if ( len == (size_t)-1 )
     len = strlen(s);
@@ -2355,16 +2379,18 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
     w = textToString(&text);
   else if ( flags == PL_CODE_LIST || flags == PL_CHAR_LIST )
   { PL_put_variable(t);
-    return PL_unify_text(t, 0, &text, flags);
+    rc = PL_unify_text(t, 0, &text, flags);
   } else
     assert(0);
 
   if ( w )
   { setHandle(t, w);
-    return TRUE;
+    rc = TRUE;
   }
 
-  return FALSE;
+  PL_free_text(&text);
+
+  return rc;
 }
 
 
