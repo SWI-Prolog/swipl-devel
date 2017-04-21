@@ -2328,28 +2328,34 @@ PL_put_string_nchars(term_t t, size_t len, const char *s)
 
 
 int
-PL_put_string_nmbchars(term_t t, int rep, size_t len, const char *s)
+PL_put_chars(term_t t, int flags, size_t len, const char *s)
 { GET_LD
   PL_chars_t text;
-  word w;
-  IOENC enc;
+  word w = 0;
 
-  if ( rep == REP_ISO_LATIN_1 )
-    enc = ENC_ISO_LATIN_1;
-  else if ( rep == REP_UTF8 )
-    enc = ENC_UTF8;
-  else if ( rep == REP_MB )
-    enc = ENC_ANSI;
-  else
-    assert(0);
+  if ( len == (size_t)-1 )
+    len = strlen(s);
 
   text.text.t    = (char*)s;
+  text.encoding  = ((flags&REP_UTF8) ? ENC_UTF8 : \
+		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
   text.length    = len;
-  text.canonical = (enc == ENC_ISO_LATIN_1);
-  text.encoding  = enc;
+  text.canonical = FALSE;
   text.storage   = PL_CHARS_HEAP;
 
-  if ( (w = textToString(&text)) )
+  flags &= ~(REP_UTF8|REP_MB|REP_ISO_LATIN_1);
+
+  if ( flags == PL_ATOM )
+    w = textToAtom(&text);
+  else if ( flags == PL_STRING )
+    w = textToString(&text);
+  else if ( flags == PL_CODE_LIST || flags == PL_CHAR_LIST )
+  { PL_put_variable(t);
+    return PL_unify_text(t, 0, &text, flags);
+  } else
+    assert(0);
+
+  if ( w )
   { setHandle(t, w);
     return TRUE;
   }

@@ -1213,6 +1213,18 @@ PL_new_atom() and PL_atom_chars().
 \cfunction{void}{PL_put_bool}{term_t -t, int val}
 Put one of the atoms \const{true} or \const{false} in the term reference
 See also PL_put_atom(), PL_unify_bool() and PL_get_bool().
+\cfunction{int}{PL_put_chars}{term_t -t, int flags,
+			      size_t len,
+			      const char *chars}
+New function to deal with setting a term from a \ctype{char*} with
+various encodings. The \arg{flags} argument is a bitwise \emph{or}
+specifying the Prolog target type and the encoding of \arg{chars}. A
+Prolog type is one of \const{PL_ATOM}, \const{PL_STRING},
+\const{PL_CODE_LIST} or \const{PL_CHAR_LIST}. A representation is one of
+\const{REP_ISO_LATIN_1}, \const{REP_UTF8} or \const{REP_MB}. See
+PL_get_chars() for a definition of the representation types. If
+\arg{len} is \const{-1} \arg{chars} must be zero-terminated and the
+length is computed from \arg{chars} using strlen().
 \cfunction{int}{PL_put_atom_chars}{term_t -t, const char *chars}
 Put an atom in the term reference constructed from the zero-terminated
 string.  The string itself will never be referenced by Prolog after this
