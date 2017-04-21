@@ -2347,6 +2347,7 @@ PL_put_string_nmbchars(term_t t, int rep, size_t len, const char *s)
   text.length    = len;
   text.canonical = (enc == ENC_ISO_LATIN_1);
   text.encoding  = enc;
+  text.storage   = PL_CHARS_HEAP;
 
   if ( (w = textToString(&text)) )
   { setHandle(t, w);
