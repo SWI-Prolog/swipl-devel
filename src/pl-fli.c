@@ -517,6 +517,7 @@ lookupUCSAtom(const pl_wchar_t *s, size_t len)
 atom_t
 PL_new_atom_wchars(size_t len, const wchar_t *s)
 { PL_chars_t txt;
+  atom_t a;
 
   if ( !GD->initialised )
     initAtoms();
@@ -530,7 +531,10 @@ PL_new_atom_wchars(size_t len, const wchar_t *s)
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
 
-  return textToAtom(&txt);
+  a = textToAtom(&txt);
+  PL_free_text(&txt);
+
+  return a;
 }
 
 
