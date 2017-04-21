@@ -5078,24 +5078,48 @@ PRED_IMPL("term_string", 2, term_string, 0)
 
 
 int
-PL_chars_to_term(const char *s, term_t t)
+PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
 { GET_LD
-  size_t len = strlen(s);
   read_data rd;
   int rval;
   IOSTREAM *stream;
   source_location oldsrc;
 
-  if ( isDigit(*s&0xff) || *s == '-' || *s == '+' )
-  { unsigned char *e;
-    number n;
+  if ( len == (size_t)-1 )
+    len = strlen(s);
 
-    if ( str_number((cucharp)s, &e, &n, FALSE) == NUM_OK &&
-	 e == (unsigned char *)s+len )
+  if ( len >= 1 &&
+       (isDigit(*s&0xff) || *s == '-' || *s == '+') &&
+       isDigit(s[len-1]) )
+  { char buf[256];
+    unsigned char *e;
+    char *ns;
+    number n;
+    int isnum;
+
+    if ( s[len] != EOS )		/* not 0-terminated */
+    { if ( len+1 > sizeof(buf) )
+      { if ( !(ns=malloc(len+1)) )
+	  return PL_resource_error("memory");
+      } else
+	ns = buf;
+      memcpy(ns, s, len);
+      ns[len] = EOS;
+    } else
+    { ns = (char*)s;
+    }
+
+    isnum = ( str_number((cucharp)ns, &e, &n, FALSE) == NUM_OK &&
+	      e == (unsigned char *)ns+len );
+    if ( ns != s && ns != buf )
+      free(ns);
+    if ( isnum )
       return PL_put_number(t, &n);
   }
 
-  stream = Sopen_string(NULL, (char *)s, (size_t)-1, "r");
+  stream = Sopen_string(NULL, (char *)s, len, "r");
+  stream->encoding = ((flags&REP_UTF8) ? ENC_UTF8 : \
+		      (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
   oldsrc = LD->read_source;
 
   init_read_data(&rd, stream PASS_LD);
@@ -5107,6 +5131,12 @@ PL_chars_to_term(const char *s, term_t t)
   LD->read_source = oldsrc;
 
   return rval;
+}
+
+
+int
+PL_chars_to_term(const char *s, term_t t)
+{ return PL_put_term_from_chars(t, REP_ISO_LATIN_1, (size_t)-1, s);
 }
 
 

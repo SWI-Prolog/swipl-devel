@@ -905,6 +905,8 @@ PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
 
 #endif /*SIO_MAGIC*/
 
+PL_EXPORT(int)  PL_put_term_from_chars(term_t t, int flags,
+				       size_t len, const char *s);
 PL_EXPORT(int)	PL_chars_to_term(const char *chars,
 				term_t term);
 PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
