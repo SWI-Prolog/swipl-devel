@@ -24,6 +24,7 @@
 ./packages/utf8proc/utf8proc.pdf
 ./packages/archive/archive.pdf
 ./packages/cql/cql.pdf
+./packages/pcre/pcre.pdf
 ./packages/bdb/bdb4pl.html
 ./packages/cpp/pl2cpp.html
 ./packages/nlp/nlp.html
@@ -54,3 +55,4 @@
 ./packages/jpl/jpl.html
 ./packages/readline/readline.html
 ./packages/libedit/libedit.html
+./packages/pcre/pcre.html
