@@ -8563,8 +8563,7 @@ canonicalised: references to \file{.} and \file{..} are deleted. This
 predicate ensures that expanding a filename returns the same
 absolute path regardless of how the file is addressed. SWI-Prolog uses
 absolute filenames to register source files independent of the current
-working directory. See also absolute_file_name/3. See also
-absolute_file_name/3 and expand_file_name/2.
+working directory. See also absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
 Convert the given file specification into an absolute path. \arg{Spec}
