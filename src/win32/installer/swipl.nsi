@@ -285,6 +285,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libjpeg-9.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
+  File ${SWIPL}\bin\libpcre-1.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_seh-1.dll
@@ -800,6 +801,16 @@ Section "NLP package"
   File ${SWIPL}\library\isub.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\nlp.html
+SectionEnd
+
+Section "Regular expression library (libpcre)"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File ${SWIPL}\library\pcre.pl
+  SetOutPath $INSTDIR\bin
+  File ${SWIPL}\bin\pcre4pl.dll
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\pcre.html
 SectionEnd
 
 Section "ZLIB package"
