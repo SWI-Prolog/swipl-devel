@@ -114,6 +114,7 @@ qsave_program(FileBase, Options0) :-
         ( save_modules(SaveClass),
           save_records,
           save_flags,
+          save_prompt,
           save_imports,
           save_prolog_flags,
           save_operators(Options),
@@ -508,6 +509,12 @@ save_flags :-
         fail
     ;   true
     ).
+
+save_prompt :-
+    feedback('~nPROMPT~n~n', []),
+    prompt(Prompt, Prompt),
+    '$add_directive_wic'(prompt(_, Prompt)).
+
 
                  /*******************************
                  *           IMPORTS            *
