@@ -606,7 +606,10 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
 
   ref = PL_blob_data(a, NULL, &type);
   if ( type == &stream_blob )
-  { if ( ref->read )
+  { if ( ref->read  ) assert(ref->read->references);
+    if ( ref->write ) assert(ref->write->references);
+
+    if ( ref->read )
     { if ( ref->write && (flags&SH_OUTPUT) )
 	s = ref->write;
       else
@@ -3991,15 +3994,20 @@ pl_close(term_t stream, int force ARG_LD)
   { int rc = TRUE;
 
     if ( ref->read && ref->write )
-    { if ( ref->read && !ref->read->erased )
+    { assert(ref->read->references);
+      assert(ref->write->references);
+      if ( ref->read && !ref->read->erased )
 	rc = do_close(getStream(ref->read), force);
       if ( ref->write && !ref->write->erased )
 	rc = do_close(getStream(ref->write), force) && rc;
     } else
     { if ( ref->read )
+      { assert(ref->read->references);
 	rc = do_close(getStream(ref->read), force);
-      else if ( ref->write )
+      } else if ( ref->write )
+      { assert(ref->write->references);
 	rc = do_close(getStream(ref->write), force);
+      }
     }
 
     if ( rc == FALSE && !PL_exception(0) )
