@@ -356,6 +356,7 @@ StryLock(IOSTREAM *s)
 int
 Sunlock(IOSTREAM *s)
 { int rval = 0;
+  int unalloc;
 
 #ifdef DEBUG_IO_LOCKS
   if ( s->locks > 3 )
@@ -373,9 +374,10 @@ Sunlock(IOSTREAM *s)
   { assert(0);
   }
 
-  s->references--;
+  unalloc = (--s->references == 0 && s->erased);
+
   SUNLOCK(s);
-  if ( s->references == 0 && s->erased )
+  if ( unalloc )
     unallocStream(s);
 
   return rval;
