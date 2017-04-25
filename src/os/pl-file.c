@@ -3095,14 +3095,13 @@ get_code2(term_t in, term_t chr ARG_LD)
   if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
-    if ( PL_unify_integer(chr, c) )
-      return streamStatus(s);
+    if ( !streamStatus(s) )		/* I/O error */
+      return FALSE;
 
-    if ( Sferror(s) )
-      return streamStatus(s);
+    if ( PL_unify_integer(chr, c) )
+      return TRUE;
 
     PL_get_char(chr, &c, TRUE);		/* set type-error */
-    releaseStream(s);
   }
 
   return FALSE;
@@ -3130,14 +3129,13 @@ get_char2(term_t in, term_t chr ARG_LD)
   if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
-    if ( PL_unify_atom(chr, c == -1 ? ATOM_end_of_file : codeToAtom(c)) )
-      return streamStatus(s);
+    if ( !streamStatus(s) )		/* I/O error */
+      return FALSE;
 
-    if ( Sferror(s) )
-      return streamStatus(s);
+    if ( PL_unify_atom(chr, c == -1 ? ATOM_end_of_file : codeToAtom(c)) )
+      return TRUE;
 
     PL_get_char(chr, &c, TRUE);		/* set type-error */
-    releaseStream(s);
   }
 
   return FALSE;
