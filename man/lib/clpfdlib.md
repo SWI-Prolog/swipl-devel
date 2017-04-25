@@ -6,8 +6,9 @@ scheme](<#clp>), extending logic programming with reasoning over
 specialised domains.
 
 CLP(FD) lets us reason about **integers** in a way that honors the
-relational nature of Prolog.  An introduction is available from
-[metalevel.at/prolog/clpfd](https://www.metalevel.at/prolog/clpfd).
+relational nature of Prolog.  Read [**The Power of
+Prolog**](https://www.metalevel.at/prolog) to understand how this
+library is meant to be used in practice.
 
 There are two major use cases of CLP(FD) constraints:
 

@@ -165,8 +165,9 @@ scheme](<#clp>), extending logic programming with reasoning over
 specialised domains.
 
 CLP(FD) lets us reason about **integers** in a way that honors the
-relational nature of Prolog. An introduction is available from
-[metalevel.at/prolog/clpfd](https://www.metalevel.at/prolog/clpfd).
+relational nature of Prolog. Read [**The Power of
+Prolog**](https://www.metalevel.at/prolog) to understand how this
+library is meant to be used in practice.
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -1629,11 +1630,16 @@ indomain(Var) :- label([Var]).
 order_dom_next(up, Dom, Next)   :- domain_infimum(Dom, n(Next)).
 order_dom_next(down, Dom, Next) :- domain_supremum(Dom, n(Next)).
 order_dom_next(random_value(_), Dom, Next) :-
-        domain_to_list(Dom, Ls),
-        length(Ls, L),
-        I is random(L),
-        nth0(I, Ls, Next).
+        phrase(domain_to_intervals(Dom), Is),
+        length(Is, L),
+        R is random(L),
+        nth0(R, Is, From-To),
+        random_between(From, To, Next).
 
+domain_to_intervals(from_to(n(From),n(To))) --> [From-To].
+domain_to_intervals(split(_, Left, Right)) -->
+        domain_to_intervals(Left),
+        domain_to_intervals(Right).
 
 %% label(+Vars)
 %
