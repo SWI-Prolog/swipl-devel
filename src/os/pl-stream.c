@@ -2850,13 +2850,16 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
       return -1;
     }
     filter->references++;
+    assert(parent->upstream==NULL && filter->downstream==NULL);
     parent->upstream = filter;
     filter->downstream = parent;
     filter->timeout = parent->timeout;
   } else				/* clear filter */
-  { if ( parent->upstream )
-    { if ( --parent->upstream->references == 0 && parent->upstream->erased )
-	unallocStream(parent->upstream);
+  { if ( (filter=parent->upstream) )
+    { assert(filter->downstream == parent);
+      filter->downstream = NULL;
+      if ( --filter->references == 0 && filter->erased )
+	unallocStream(filter);
       parent->upstream = NULL;
     }
   }
