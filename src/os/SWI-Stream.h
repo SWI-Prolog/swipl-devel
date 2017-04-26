@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -136,7 +136,8 @@ stuff.
 
 #define SIO_BUFSIZE	(4096)		/* buffering buffer-size */
 #define SIO_LINESIZE	(1024)		/* Sgets() default buffer size */
-#define SIO_MAGIC	(7212676)	/* magic number */
+#define SIO_OMAGIC	(7212676)	/* old magic number */
+#define SIO_MAGIC	(7212677)	/* magic number */
 #define SIO_CMAGIC	(42)		/* we are close (and thus illegal!) */
 
 typedef ssize_t (*Sread_function)(void *handle, char *buf, size_t bufsize);
@@ -206,30 +207,25 @@ typedef struct io_stream
   IOPOS *		position;	/* pointer to above */
   void		       *handle;		/* function's handle */
   IOFUNCTIONS	       *functions;	/* open/close/read/write/seek */
+  int			timeout;	/* timeout (milliseconds) */
+  IOENC			encoding;	/* character encoding used */
   int		        locks;		/* lock/unlock count */
+  int			references;	/* Reference-count */
   IOLOCK *		mutex;		/* stream mutex */
-					/* SWI-Prolog 4.0.7 */
   void			(*close_hook)(void* closure);
   void *		closure;
-					/* SWI-Prolog 5.1.3 */
-  int			timeout;	/* timeout (milliseconds) */
-					/* SWI-Prolog 5.4.4 */
-  char *		message;	/* error/warning message */
-  IOENC			encoding;	/* character encoding used */
-  struct io_stream *	tee;		/* copy data to this stream */
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
+  struct io_stream *	tee;		/* copy data to this stream */
   struct io_stream *	upstream;	/* stream providing our input */
   struct io_stream *	downstream;	/* stream providing our output */
   unsigned		newline : 2;	/* Newline mode */
   unsigned		erased : 1;	/* Stream was erased */
-  unsigned		references : 4;	/* Reference-count */
   int			io_errno;	/* Save errno value */
+  char *		message;	/* error/warning message */
   void *		exception;	/* pending exception (record_t) */
   void *		context;	/* getStreamContext() */
   struct PL_locale *	locale;		/* Locale associated to stream */
-#if 0 /* We used them all :-( */
-  intptr_t		reserved[0];	/* reserved for extension */
-#endif
+  intptr_t		reserved[4];	/* reserved for extension */
 } IOSTREAM;
 
 

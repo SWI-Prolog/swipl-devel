@@ -375,9 +375,11 @@ pl-arith.o:	$(srcdir)/pl-segstack.h
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
-os/pl-dtoa.o:	os/dtoa.c
 pl-text.o:	$(srcdir)/pl-codelist.h
 pl-codetable.o: $(srcdir)/pl-codetable.c
+os/pl-dtoa.o:	$(srcdir)/os/dtoa.c
+os/pl-file.o:	$(srcdir)/os/pl-stream.h
+os/pl-stream.o:	$(srcdir)/os/pl-stream.h
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi$(EXEEXT_FOR_BUILD)
 		./mkvmi$(EXEEXT_FOR_BUILD) "$(srcdir)"

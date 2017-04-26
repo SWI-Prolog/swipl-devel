@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -56,6 +56,7 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-stream.h"
 #include <errno.h>
 
 #if defined(HAVE_POLL_H) && defined(HAVE_POLL)
@@ -538,9 +539,9 @@ acquire_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-    ref->read->references++;
+    Sreference(ref->read);
   if ( ref->write )
-    ref->write->references++;
+    Sreference(ref->write);
 }
 
 
@@ -549,11 +550,11 @@ release_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-  { if ( --ref->read->references == 0 && ref->read->erased )
+  { if ( Sunreference(ref->read) == 0 && ref->read->erased )
       unallocStream(ref->read);
   }
   if ( ref->write )
-  { if ( --ref->write->references == 0 && ref->write->erased )
+  { if ( Sunreference(ref->write) == 0 && ref->write->erased )
       unallocStream(ref->write);
   }
 
@@ -985,6 +986,10 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
     ref.write = out;
 
     rc = PL_unify_blob(A1, &ref, sizeof(ref), &stream_blob);
+    if ( rc )
+    { assert(ref.read->references >= 2);
+      assert(ref.write->references >= 2);
+    }
   }
 
   if ( in )
