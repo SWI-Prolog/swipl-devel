@@ -59,7 +59,7 @@
 
 \newcommand{\vmajor}{7}
 \newcommand{\vminor}{5}
-\newcommand{\vpatch}{4}
+\newcommand{\vpatch}{5}
 \newcommand{\vtag}{}
 \newcommand{\vmonth}{April}
 \newcommand{\vyear}{2017}
