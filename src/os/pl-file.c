@@ -507,6 +507,17 @@ symbol_not_a_stream(atom_t symbol)
 }
 
 
+static int
+symbol_stream_pair_not_allowed(atom_t symbol)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+  PL_put_atom(t, symbol);
+
+  return PL_error(NULL, 0, "operation is ambiguous on a stream pair",
+		  ERR_TYPE, ATOM_stream, t);
+}
+
+
 
 		 /*******************************
 		 *	  PROLOG HANDLES	*
@@ -598,6 +609,7 @@ static PL_blob_t stream_blob =
 #define SH_UNLOCKED 0x04		/* don't lock the stream */
 #define SH_OUTPUT   0x08		/* We want an output stream */
 #define SH_INPUT    0x10		/* We want an input stream */
+#define SH_NOPAIR   0x20		/* Do not allow for a pair */
 
 static int
 get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
@@ -611,9 +623,27 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
     if ( ref->write ) assert(ref->write->references);
 
     if ( ref->read )
-    { if ( ref->write && (flags&SH_OUTPUT) )
-	s = ref->write;
-      else
+    { if ( ref->write )
+      { if ( (flags&SH_OUTPUT) )
+	  s = ref->write;
+	else if ( (flags&SH_INPUT) )
+	  s = ref->read;
+	else if ( (flags&SH_NOPAIR) )
+	{ if ( truePrologFlag(PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR) )
+	  { return symbol_stream_pair_not_allowed(a);
+	  } else
+	  { term_t t;
+
+	    if ( (t=PL_new_term_ref()) &&
+		 PL_put_atom(t, a) )
+	      printMessage(ATOM_warning,
+			   PL_FUNCTOR_CHARS, "ambiguous_stream_pair", 1,
+			   PL_TERM, t);
+	    s = ref->read;
+	  }
+	} else
+	  s = ref->read;			/* dubious */
+      } else
 	s = ref->read;
     } else
       s = ref->write;
@@ -696,7 +726,7 @@ int
 PL_get_stream_handle(term_t t, IOSTREAM **s)
 { GET_LD
 
-  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS PASS_LD);
+  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS|SH_NOPAIR PASS_LD);
 }
 
 
@@ -705,8 +735,10 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
 { GET_LD
   int myflags = SH_ERRORS|SH_ALIAS;
 
-  if ( flags & SIO_INPUT  ) myflags |= SH_INPUT;
-  if ( flags & SIO_OUTPUT ) myflags |= SH_OUTPUT;
+  if ( flags&SIO_INPUT  ) myflags |= SH_INPUT;
+  if ( flags&SIO_OUTPUT ) myflags |= SH_OUTPUT;
+  if ( !(flags&(SIO_INPUT|SIO_OUTPUT)) )
+    myflags |= SH_NOPAIR;
 
   return term_stream_handle(t, s, myflags PASS_LD);
 }
@@ -2112,8 +2144,7 @@ found:
   if ( type == &stream_blob )		/* got a stream handle */
   { if ( ref->read && ref->write &&	/* stream pair */
 	 (info->flags & SS_NOPAIR) )
-      return PL_error("set_stream", 2, NULL, ERR_PERMISSION,
-		      aname, ATOM_stream_pair, stream);
+      return symbol_stream_pair_not_allowed(sblob);
 
     rc = TRUE;
     if ( ref->read && (info->flags&SS_READ))
@@ -4730,7 +4761,7 @@ static int
 getStreamWithPosition(term_t stream, IOSTREAM **sp)
 { IOSTREAM *s;
 
-  if ( PL_get_stream_handle(stream, &s) )
+  if ( PL_get_stream(stream, &s, 0) )
   { if ( !s->position )
     { PL_error(NULL, 0, NULL, ERR_PERMISSION, /* non-ISO */
 	       ATOM_property, ATOM_position, stream);
@@ -5246,7 +5277,8 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   int wrapin = FALSE;
   int i;
 
-  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) )
+  if ( !term_stream_handle(A1, &in,
+			   SH_ERRORS|SH_ALIAS|SH_UNLOCKED|SH_INPUT PASS_LD) )
     goto out;
 
   wrapin = (LD->IO.streams[0] != in);
@@ -5255,7 +5287,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
       goto out;
   }
 
-  if ( !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
+  if ( !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS|SH_OUTPUT PASS_LD) )
     goto out;
 
   if ( PL_compare(A2, A3) == 0 )	/* == */
@@ -5265,7 +5297,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
     error->flags &= ~SIO_ABUF;		/* disable buffering */
     error->flags |= SIO_NBUF;
   } else
-  { if ( !PL_get_stream_handle(A3, &error) )
+  { if ( !PL_get_stream(A3, &error, SIO_OUTPUT) )
       goto out;
   }
 

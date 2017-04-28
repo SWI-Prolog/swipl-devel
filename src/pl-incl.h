@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam,
+    Copyright (c)  1985-2017, University of Amsterdam,
                               VU University Amsterdam
     All rights reserved.
 
@@ -2261,6 +2261,7 @@ typedef struct debuginfo
 #define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
 #define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
 #define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
+#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x04000000
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

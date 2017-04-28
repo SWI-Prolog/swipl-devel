@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1401,6 +1401,8 @@ initPrologFlags(void)
 #elif defined(__DATE__) && defined(__TIME__)
   setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, __DATE__ ", " __TIME__);
 #endif
+  setPrologFlag("error_ambiguous_stream_pair", FT_BOOL, FALSE,
+		PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR);
 
   setTZPrologFlag();
   setOSPrologFlags();
