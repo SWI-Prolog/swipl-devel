@@ -1270,10 +1270,40 @@ PL_unregister_atom(atom_t a)
 		 /*******************************
 		 *	      CHECK		*
 		 *******************************/
-#if O_DEBUG
+
+#ifdef O_DEBUG
+
+static int
+findAtomSelf(Atom a)
+{ GET_LD
+  Atom *table;
+  int buckets;
+  Atom head, ap;
+  unsigned int v;
+
+redo:
+  acquire_atom_table(table, buckets);
+  v = a->hash_value & (buckets-1);
+  head = table[v];
+  acquire_atom_bucket(table+v);
+
+  for(ap=head; ap; ap = ap->next )
+  { if ( ap == a )
+    { release_atom_table();
+      release_atom_bucket();
+      return TRUE;
+    }
+  }
+
+  if ( !( table == atomTable->table && head == table[v] ) )
+    goto redo;
+
+  return FALSE;
+}
+
 
 int
-checkAtoms(void)
+checkAtoms_src(const char *file, int line)
 { size_t index;
   int i, last=FALSE;
   int errors = 0;
@@ -1293,16 +1323,23 @@ checkAtoms(void)
       if ( ATOM_IS_VALID(a->references) )
       { if ( !a->type || !a->name || (int)ATOM_REF_COUNT(a->references) < 0 )
 	{ size_t bs = (size_t)1<<i;
-	  Sdprintf("Invalid atom %p at index %zd in block at %p (size %d)\n",
-		   a, index, b+bs, bs);
+	  Sdprintf("%s%d: invalid atom %p at index %zd in "
+		   "block at %p (size %d)\n",
+		   file, line, a, index, b+bs, bs);
 	  errors++;
 	  trap_gdb();
+	}
+
+	if ( true(a->type, PL_BLOB_UNIQUE) )
+	{ if ( !findAtomSelf(a) )
+	  { Sdprintf("%s%d: cannot find self: %p\n", file, line, a);
+	  }
 	}
       }
     }
   }
 
-  return errors == 0;
+  return errors;
 }
 
 #endif /*O_DEBUG*/

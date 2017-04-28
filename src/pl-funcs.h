@@ -88,6 +88,7 @@ COMMON(size_t)		supervisorLength(Code base);
 COMMON(void)		initSupervisors(void);
 
 /* pl-atom.c */
+#define checkAtoms()	checkAtoms_src(__FILE__, __LINE__)
 COMMON(word)		lookupAtom(const char *s, size_t len);
 COMMON(word)		lookupBlob(const char *s, size_t len,
 				   PL_blob_t *type, int *new);
@@ -98,7 +99,7 @@ COMMON(void)		cleanupAtoms(void);
 COMMON(void)		markAtom(atom_t a);
 COMMON(foreign_t)	pl_garbage_collect_atoms(void);
 COMMON(void)		resetAtoms(void);
-COMMON(int)		checkAtoms(void);
+COMMON(int)		checkAtoms_src(const char *file, int line);
 #ifdef O_DEBUG_ATOMGC
 COMMON(word)		pl_track_atom(term_t which, term_t stream);
 COMMON(void)		_PL_debug_register_atom(atom_t a,
