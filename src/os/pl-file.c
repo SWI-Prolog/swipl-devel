@@ -2182,7 +2182,7 @@ PRED_IMPL("set_end_of_stream", 1, set_end_of_stream, 0)
 { IOSTREAM *s;
   int rc;
 
-  if ( (rc=PL_get_stream_handle(A1, &s)) )
+  if ( (rc=PL_get_stream(A1, &s, SIO_OUTPUT)) )
   {
 #ifdef HAVE_FTRUNCATE
     int fileno = Sfileno(s);
@@ -2360,7 +2360,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     SOCKET fd;
     fdentry *e;
 
-    if ( !PL_get_stream_handle(head, &s) )
+    if ( !PL_get_stream(head, &s, SIO_INPUT) )
       goto out;
 
     if ( (fd = Swinsock(s)) == INVALID_SOCKET )
