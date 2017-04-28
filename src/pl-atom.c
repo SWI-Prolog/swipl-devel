@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -492,6 +492,13 @@ pick up the request and process it.
 
 PL_handle_signals() decides on the actual invocation of atom-gc and will
 treat the signal as bogus if agc has already been performed.
+
+(**) Without this  check,  some  threads   may  pass  the  LOCK() around
+rehashAtoms() and create their atom. If they manage to register the atom
+in the old table  before  rehashAtoms()   activates  the  new  table the
+insertion is successful, but rehashAtoms() may   not have moved the atom
+to the new table. Now we will repeat   if we bypassed the LOCK as either
+GD->atoms.rehashing is TRUE or the new table is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
@@ -621,6 +628,7 @@ redo:
   if ( true(type, PL_BLOB_UNIQUE) )
   { a->next = table[v];
     if ( !( COMPARE_AND_SWAP(&table[v], head, a) &&
+	    !GD->atoms.rehashing &&	/* See (**) above */
             table == atomTable->table ) )
     { if ( false(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
@@ -1371,7 +1379,10 @@ rehashAtoms(void)
   mask = newtab->buckets-1;
 
   DEBUG(MSG_HASH_STAT,
-	Sdprintf("rehashing atoms (%d --> %d)\n", atomTable->buckets, newtab->buckets));
+	Sdprintf("rehashing atoms (%d --> %d)\n",
+		 atomTable->buckets, newtab->buckets));
+
+  GD->atoms.rehashing = TRUE;
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -1395,6 +1406,7 @@ rehashAtoms(void)
   }
 
   atomTable = newtab;
+  GD->atoms.rehashing = FALSE;
 }
 
 

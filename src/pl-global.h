@@ -180,6 +180,7 @@ struct PL_global_data
     int		cmps;			/* # string compares for lookup */
 #ifdef O_ATOMGC
     int		gc_active;		/* Atom-GC is in progress */
+    int		rehashing;		/* Atom-rehash in progress */
     size_t	builtin;		/* Locked atoms (atom-gc) */
     size_t	no_hole_before;		/* You won't find a hole before here */
     size_t	margin;			/* # atoms to grow before collect */
