@@ -1147,7 +1147,8 @@ thread_gc_loop(void *closure)
     } while ( h && !COMPARE_AND_SWAP(&gced_threads, h, h->next_free) );
 
     if ( h )
-    { discard_thread(h);
+    { if ( GD->cleaning == CLN_NORMAL )
+	discard_thread(h);
       PL_free(h);
     } else
     { break;
