@@ -155,7 +155,8 @@ void
 destroyDefinition(Definition def)
 { ATOMIC_DEC(&GD->statistics.predicates);
   ATOMIC_SUB(&def->module->code_size, sizeof(*def));
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
+
+  freeCodesDefinition(def, FALSE);
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
   { bit_vector *v;
@@ -168,10 +169,18 @@ destroyDefinition(Definition def)
     removeClausesPredicate(def, 0, FALSE);
     DEBUG(MSG_CGC_PRED,
 	  Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
-    def->module = NULL;
-    set(def, P_ERASED);
+    if ( true(def, P_DIRTYREG) )
+    { DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
+      def->module = NULL;
+      set(def, P_ERASED);
+    } else
+    { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
+      freeHeap(def, sizeof(*def));
+    }
   } else					/* foreign and thread-local */
-  { if ( true(def, P_DIRTYREG) )
+  { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
+				   predicateName(def)));
+    if ( true(def, P_DIRTYREG) )
     { DEBUG(0, Sdprintf("Dirty: %s\n", predicateName(def)));
       unregisterDirtyDefinition(def);
     }
@@ -1916,8 +1925,11 @@ maybeUnregisterDirtyDefinition(Definition def)
        true(def, P_DIRTYREG) &&
        def->impl.clauses.erased_clauses == 0 )
   { unregisterDirtyDefinition(def);
-  } else if ( true(def, P_ERASED) )
-  { assert(def->module == NULL);
+  }
+
+  if ( true(def, P_ERASED) )
+  { DEBUG(MSG_PROC_COUNT, Sdprintf("Delayed unalloc %s\n", predicateName(def)));
+    assert(def->module == NULL);
     if ( def->impl.clauses.first_clause == NULL )
     { unregisterDirtyDefinition(def);
       freeHeap(def, sizeof(*def));
