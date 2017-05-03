@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@metalevel.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2016 Markus Triska
+    Copyright (C): 2007-2017 Markus Triska
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1735,12 +1735,16 @@ label(Vs) :- labeling([], Vs).
 labeling(Options, Vars) :-
         must_be(list, Options),
         fd_must_be_list(Vars),
-        maplist(finite_domain, Vars),
+        maplist(must_be_finite_fdvar, Vars),
         label(Options, Options, default(leftmost), default(up), default(step), [], upto_ground, Vars).
 
-finite_domain(Var) :-
+finite_domain(Dom) :-
+        domain_infimum(Dom, n(_)),
+        domain_supremum(Dom, n(_)).
+
+must_be_finite_fdvar(Var) :-
         (   fd_get(Var, Dom, _) ->
-            (   domain_infimum(Dom, n(_)), domain_supremum(Dom, n(_)) -> true
+            (   finite_domain(Dom) -> true
             ;   instantiation_error(Var)
             )
         ;   integer(Var) -> true
@@ -1967,7 +1971,7 @@ delete_eq([X|Xs], Y, List) :-
 
 contracting(Vs) :-
         must_be(list, Vs),
-        maplist(finite_domain, Vs),
+        maplist(must_be_finite_fdvar, Vs),
         contracting(Vs, false, Vs).
 
 contracting([], Repeat, Vars) :-
@@ -5472,8 +5476,10 @@ domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
 
 difference_arcs([], []) --> [].
 difference_arcs([V|Vs], FL0) -->
-        (   { fd_get(V, Dom, _), domain_to_list(Dom, Ns) } ->
-            { FL0 = [V|FL] },
+        (   { fd_get(V, Dom, _),
+              finite_domain(Dom) } ->
+            { FL0 = [V|FL],
+              domain_to_list(Dom, Ns) },
             enumerate(Ns, V),
             difference_arcs(Vs, FL)
         ;   difference_arcs(Vs, FL0)
@@ -6528,7 +6534,7 @@ task_bs(Task, InfStart-Bs) :-
         Task = task(Start,D,End,_,_Id),
         ?(D) #> 0,
         ?(End) #= ?(Start) + ?(D),
-        maplist(finite_domain, [End,Start,D]),
+        maplist(must_be_finite_fdvar, [End,Start,D]),
         fd_inf(Start, InfStart),
         fd_sup(End, SupEnd),
         L is SupEnd - InfStart,
