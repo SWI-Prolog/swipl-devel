@@ -6521,46 +6521,6 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 }
 
 
-
-		 /*******************************
-		 *	DEBUGGING SUPPORT	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This function is called from  GNU  <assert.h>,   so  we  can print which
-thread caused the problem. If the thread is   not the main one, we could
-try to recover!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if !defined(HAVE_CTIME_R) && !defined(ctime_r)
-#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
-#endif
-
-void
-__assert_fail(const char *assertion,
-	      const char *file,
-	      unsigned int line,
-	      const char *function)
-{ int tid = PL_thread_self();
-  atom_t alias;
-  const pl_wchar_t *name = L"";
-  time_t now = time(NULL);
-  char tbuf[48];
-
-  ctime_r(&now, tbuf);
-  tbuf[24] = '\0';
-
-  if ( PL_get_thread_alias(tid, &alias) )
-    name = PL_atom_wchars(alias, NULL);
-
-  Sdprintf("[Thread %d (%Ws) at %s] %s:%d: %s: Assertion failed: %s\n",
-	   PL_thread_self(), name, tbuf,
-	   file, line, function, assertion);
-  save_backtrace("assert_fail");
-  print_backtrace_named("assert_fail");
-  abort();
-}
-
 #else /*O_PLMT*/
 
 int
