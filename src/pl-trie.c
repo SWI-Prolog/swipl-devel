@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2016-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,8 @@ TODO
   - Provide deletion from a trie
   - Make trie_gen/3 take the known prefix into account
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TRIE_ERROR_VAL (((~(word)0)<<LMASK_BITS)|TAG_VAR)
 
 
 		 /*******************************
@@ -430,6 +432,18 @@ trie_intern_indirect(trie *trie, word w, int add ARG_LD)
 #define TRIE_LOOKUP_CONTAINS_ATTVAR	-10
 #define TRIE_LOOKUP_CYCLIC		-11
 
+/* If there is an error, we prune the part that we have created.
+ * We should only start the prune from a new node though.  To be sure
+ * we do so we first add a new node.  As this is for exception handling
+ * only, the performance loss is not vital.
+ */
+
+static void
+prune_error(trie *trie, trie_node *node ARG_LD)
+{ prune_node(trie, follow_node(trie, node, TRIE_ERROR_VAL, TRUE PASS_LD));
+}
+
+
 int
 trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
 { term_agenda agenda;
@@ -451,7 +465,8 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
 	break;
       case TAG_ATTVAR:
 	rc = TRIE_LOOKUP_CONTAINS_ATTVAR;
-        prune_node(trie, node);
+
+        prune_error(trie, node PASS_LD);
         node = NULL;
         break;
       case TAG_COMPOUND:
@@ -460,7 +475,7 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
 
 	if ( add && ++compounds == 1000 && !is_acyclic(p PASS_LD) )
 	{ rc = TRIE_LOOKUP_CYCLIC;
-	  prune_node(trie, node);
+	  prune_error(trie, node PASS_LD);
 	  node = NULL;
 	} else
 	{ node = follow_node(trie, node, f->definition, add PASS_LD);
