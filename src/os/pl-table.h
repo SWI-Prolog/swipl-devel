@@ -110,4 +110,17 @@ htable_valid_kv(void *kv)
           ATOMIC_DEC(&kvs->accesses); \
 	}
 
+#define for_table_as_long_as(ht, n, v, code) \
+	{ int idx = 0; \
+          KVS kvs = ht->kvs; \
+          ATOMIC_INC(&kvs->accesses); \
+	  void *n = NULL; \
+          void *v = NULL; \
+          while ( htable_iter(ht, kvs, &idx, &n, &v) ) \
+	  { if ( !(code) ) \
+	      break; \
+	  } \
+          ATOMIC_DEC(&kvs->accesses); \
+	}
+
 #endif /*TABLE_H_INCLUDED*/

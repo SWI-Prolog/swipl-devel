@@ -437,6 +437,6 @@ COMMON(int)	pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD);
 COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
 COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
 COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
-COMMON(void)    cgc_thread_stats(cgc_stats *stats ARG_LD);
+COMMON(int)     cgc_thread_stats(cgc_stats *stats ARG_LD);
 
 #endif /*PL_THREAD_H_DEFINED*/

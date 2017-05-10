@@ -6659,7 +6659,7 @@ Find the summed size of the local stack.   This is a measure for the CGC
 marking cost.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 cgc_thread_stats(cgc_stats *stats ARG_LD)
 {
 #ifdef O_PLMT
@@ -6680,12 +6680,16 @@ cgc_thread_stats(cgc_stats *stats ARG_LD)
       }
     }
     release_ldata(ld);
+    if ( GD->clauses.cgc_active )
+      return FALSE;
   }
 #else
   stats->local_size = usedStack(local);
   stats->threads = 1;
   stats->erased_skipped = LD->clauses.erased_skipped;
 #endif
+
+  return TRUE;
 }
 
 

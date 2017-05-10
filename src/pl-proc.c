@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1849,7 +1849,11 @@ considerClauseGC(ARG1_LD)
     LD->clauses.cgc_inferences = LD->statistics.inferences + 500;
 
     stats.dirty_pred_clauses = clause_count_in_dirty_predicates(PASS_LD1);
-    cgc_thread_stats(&stats PASS_LD);
+    if ( stats.dirty_pred_clauses == (size_t)-1 )
+      return FALSE;			/* already clicked in */
+
+    if ( !cgc_thread_stats(&stats PASS_LD) )
+      return FALSE;
 
     rgc =  ( (double)stats.erased_skipped >
 	     (double)stats.local_size*GD->clauses.cgc_stack_factor +
@@ -1904,7 +1908,9 @@ registerDirtyDefinition(Definition def ARG_LD)
     else
       PL_free(ddi);			/* someone else did this */
   }
-  if ( !PL_pending(SIG_CLAUSE_GC) && considerClauseGC(PASS_LD1) )
+  if ( !PL_pending(SIG_CLAUSE_GC) &&	/* already asked for */
+       !GD->clauses.cgc_active &&	/* currently running */
+       considerClauseGC(PASS_LD1) )
     PL_raise(SIG_CLAUSE_GC);
 }
 
@@ -1938,17 +1944,29 @@ maybeUnregisterDirtyDefinition(Definition def)
 }
 
 
+static int
+sum_dirty_clauses(void *n, size_t *countp)
+{ Definition def = n;
+
+  if ( GD->clauses.cgc_active )
+  { *countp = (size_t)-1;
+    return FALSE;
+  }
+
+  if ( false(def, P_FOREIGN) &&
+       def->impl.clauses.erased_clauses > 0 )
+    *countp += def->impl.clauses.number_of_clauses;
+
+  return TRUE;
+}
+
+
 static size_t
 clause_count_in_dirty_predicates(ARG1_LD)
 { size_t ccount = 0;
 
-  for_table(GD->procedures.dirty, n, v,
-	    { Definition def = n;
-
-	      if ( false(def, P_FOREIGN) &&
-		   def->impl.clauses.erased_clauses > 0 )
-		ccount += def->impl.clauses.number_of_clauses;
-	    });
+  for_table_as_long_as(GD->procedures.dirty, n, v,
+		       sum_dirty_clauses(n, &ccount));
 
   return ccount;
 }
