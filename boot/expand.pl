@@ -564,6 +564,8 @@ expand_goal(call(A), P0, call(EA), P, M, MList, Term) :-
 expand_goal(G0, P0, G, P, M, MList, Term) :-
     is_meta_call(G0, M, Head),
     !,
+    term_variables(G0, Vars),
+    mark_vars_non_fresh(Vars),
     expand_meta(Head, G0, P0, G, P, M, MList, Term).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
     term_variables(G0, Vars),
@@ -691,6 +693,7 @@ expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term) :-
     replace_functions(A0, true, _, M),
     !,
     length(Ex, N),
+    mark_vars_non_fresh(Ex),
     extend_arg_pos(A0, P0, Ex, A1, PA1),
     expand_goal(A1, PA1, A2, PA2, M, MList, Term),
     compile_meta_call(A2, A3, M, Term),
