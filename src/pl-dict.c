@@ -32,6 +32,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _GNU_SOURCE 1				/* get qsort_r() */
 #include "pl-incl.h"
 #include "pl-dict.h"
 
@@ -90,13 +91,7 @@ dict_functor(int pairs)
 Copied from https://github.com/noporpoise/sort_r
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(__MINGW32__) || defined(__OpenBSD__) || defined(AMIGA) || \
-defined(__gnu_hurd__) || defined(__CYGWIN__) \
-|| (__GLIBC__ == 2 && __GLIBC_MINOR__ < 8)
-  #define QSORT_WITH_NESTED_FUNCTIONS 1
-#endif
-
-#ifdef QSORT_WITH_NESTED_FUNCTIONS
+#if !defined(HAVE_QSORT_R) && !defined(HAVE_QSORT_S)
 
 void sort_r(void *base, size_t nel, size_t width,
             int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
@@ -109,7 +104,7 @@ void sort_r(void *base, size_t nel, size_t width,
   qsort(base, nel, width, nested_cmp);
 }
 
-#else
+#else /*HAVE_QSORT_R|HAVE_QSORT_S*/
 
 struct sort_r_data
 {
@@ -123,18 +118,10 @@ int sort_r_arg_swap(void *s, const void *aa, const void *bb)
   return (ss->compar)(aa, bb, ss->arg);
 }
 
-#if (defined _GNU_SOURCE || defined __GNU__ || defined __linux__)
-
-typedef int(* __compar_d_fn_t)(const void *, const void *, void *);
-extern void qsort_r (void *__base, size_t __nmemb, size_t __size,
-                     __compar_d_fn_t __compar, void *__arg)
-  __nonnull ((1, 4));
-
-#endif
-
 void sort_r(void *base, size_t nel, size_t width,
             int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
 {
+#ifdef HAVE_QSORT_R
   #if (defined _GNU_SOURCE || defined __GNU__ || defined __linux__)
 
     qsort_r(base, nel, width, compar, arg);
@@ -147,18 +134,18 @@ void sort_r(void *base, size_t nel, size_t width,
     tmp.arg = arg;
     tmp.compar = compar;
     qsort_r(base, nel, width, &tmp, &sort_r_arg_swap);
-
-  #elif (defined _WIN32 || defined _WIN64 || defined __WINDOWS__)
+  #else
+    #error Cannot detect operating system
+  #endif
+#else
 
     struct sort_r_data tmp = {arg, compar};
     qsort_s(*base, nel, width, &sort_r_arg_swap, &tmp);
 
-  #else
-    #error Cannot detect operating system
-  #endif
+#endif
 }
 
-#endif /* !QSORT_WITH_NESTED_FUNCTIONS */
+#endif /*HAVE_QSORT_R|HAVE_QSORT_S*/
 
 
 
