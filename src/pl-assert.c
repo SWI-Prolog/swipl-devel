@@ -36,6 +36,7 @@
 
 #define __assert_fail __sys_assert_fail
 #include <assert.h>
+#undef __assert_fail
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #if TIME_WITH_SYS_TIME
