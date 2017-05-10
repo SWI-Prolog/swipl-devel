@@ -450,6 +450,9 @@ ubody(B, C, _, P, P) :-
     B =@= C, B = C,
     does_not_dcg_after_binding(B, P),
     !.
+ubody(X0, X, M, parentheses_term_position(_, _, P0), P) :-
+    !,
+    ubody(X0, X, M, P0, P).
 ubody(X, call(X), _,                    % X = call(X)
       Pos,
       term_position(From, To, From, To, [Pos])) :-
