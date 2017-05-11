@@ -1054,6 +1054,78 @@ AC_TRY_LINK([#include <math.h>],
 	    [ AC_MSG_RESULT(no) ])
 
 
+if test "x$ac_cv_func_qsort_r" = xno -a "x$ac_cv_func_qsort_s" = xno; then
+  AC_CHECKING("Use nested functions to emulate qsort_r()")
+  nested_rsort=no
+  if test "$GCC" = "yes"; then
+    ac_oldcflags="$CFLAGS"
+    CFLAGS="$CFLAGS -Werror"
+
+dnl NOTE: We put the function in the include section as we have to define
+dnl NOTE: a function rather than provide a body.
+
+AC_TRY_COMPILE(
+[
+#include <stdlib.h>
+
+void sort_r(void *base, size_t nel, size_t width,
+            int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
+{ int nested_cmp(const void *a, const void *b)
+  {
+    return compar(a, b, arg);
+  }
+
+  qsort(base, nel, width, nested_cmp);
+}
+],
+[ ;
+],
+AC_DEFINE(QSORT_R_WITH_NESTED_FUNCTIONS, 1,
+	  [Emulate qsort_r() with nested functions])
+nested_rsort=yes,
+true)
+    CFLAGS="$ac_oldcflags"
+  fi
+  AC_MSG_RESULT($nested_rsort)
+fi
+
+if test "x$ac_cv_func_qsort_r" = xyes; then
+  AC_CHECKING("GNU style qsort_r()")
+  qsort_r_gnu=no
+
+  AC_TRY_RUN(
+[
+#define _GNU_SOURCE
+#include <stdlib.h>
+
+static int
+mycompare(const void *p1, const void *p2, void *c)
+{ const int *s1 = p1;
+  const int *s2 = p2;
+  int *ip = c;
+
+  if ( *ip != 1 )
+    exit(1);
+
+  return *s1 - *s2;
+}
+
+int
+main(int argc, char**argv)
+{ int data[] = {0,1,2,3,4,5,6,7,8,9};
+  int ctx = 1;
+
+  qsort_r(data, 10, sizeof(int), mycompare, (void*)&ctx);
+  return 0;
+}
+],
+AC_DEFINE(QSORT_R_GNU, 1,
+	  [If qsort_r() is has closure before context])
+qsort_r_gnu=yes,
+true)
+AC_MSG_RESULT($qsort_r_gnu)
+fi
+
 case "$PLARCH" in
     *-win32|*-win64)
       if test "x$ac_cv_func_select" = xno; then
