@@ -916,7 +916,7 @@ absolute_file_name(Spec, Path, Options) :-
                     % Search for files
     (   Sols == first
     ->  (   '$chk_file'(Spec1, Extensions, Options5, true, Path)
-        ->  true
+        ->  !       % also kill choice point of expand_file_name/2
         ;   (   FileErrors == fail
             ->  fail
             ;   findall(P,
