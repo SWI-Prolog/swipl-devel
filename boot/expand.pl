@@ -915,6 +915,7 @@ expand_functions(G0, P0, G, P, M, MList, Term) :-
 %   @tbd: make functions module-local
 
 expand_functional_notation(G0, P0, G, P, M, _MList, _Term) :-
+    current_prolog_flag(M:functional_notation, true),
     contains_functions(G0),
     replace_functions(G0, P0, Eval, EvalPos, G1, G1Pos, M),
     Eval \== true,
