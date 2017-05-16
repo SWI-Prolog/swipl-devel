@@ -2884,6 +2884,11 @@ setThreadLocalDefinition(Definition def, bool val)
     def->codes = SUPERVISOR(thread_local);
     def->impl.local = new_ldef_vector();
 
+    if ( def->tried_index )
+    { free_bitvector(def->tried_index);
+      def->tried_index = NULL;
+    }
+
     UNLOCKDEF(def);
     return TRUE;
   } else				/* local --> static */
