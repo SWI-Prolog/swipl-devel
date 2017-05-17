@@ -458,12 +458,14 @@ print_backtrace_named(const char *why)
 
 static void
 crashHandler(int sig)
-{ int tid = PL_thread_self();
+{ int tid;
   atom_t alias;
   const pl_wchar_t *name = L"";
   time_t now = time(NULL);
   char tbuf[48];
 
+  signal(sig, SIG_DFL);
+  tid = PL_thread_self();
   ctime_r(&now, tbuf);
   tbuf[24] = '\0';
 
@@ -476,7 +478,6 @@ crashHandler(int sig)
   save_backtrace("crash");
   print_backtrace_named("crash");
   run_on_halt(&GD->os.exit_hooks, 4);
-  signal(sig, SIG_DFL);
 
 #if defined(HAVE_KILL) && defined(HAVE_GETPID)
   kill(getpid(), sig);
