@@ -877,7 +877,12 @@ void blockSignal(int sig) {}
 
 #endif
 
-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+BUG: The interface of PL_signal() is broken   as  it does not return the
+current flags associated with the signal and therefore we cannot restore
+the signal safely. We should  design  a   struct  based  API  similar to
+sigaction().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 handler_t
 PL_signal(int sigandflags, handler_t func)
