@@ -83,10 +83,7 @@ setupProlog(void)
   initForeign();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
-  if ( truePrologFlag(PLFLAG_SIGNALS) )
-  { initSignals();
-    initBackTrace();
-  }
+  initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.localSize,
@@ -166,17 +163,25 @@ initPrologLocalData(ARG1_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			   SIGNAL HANDLING
 
-SWI-Prolog catches a number of signals.   Interrupt  is catched to allow
-the user to interrupt  normal   execution.  Segmentation  violations are
-trapped on machines using the MMU to implement stack overflow checks and
-stack expansion. These signal handlers needs  to be preserved over saved
-states and the system  should  allow   foreign  language  code to handle
-signals without interfering  with  Prologs   signal  handlers.  For this
-reason a layer is wired around the OS signal handling.
+SWI-Prolog catches a number of signals:
+
+  - SIGINT is caught to allow the user to interrupt normal execution.
+  - SIGUSR2 is caught using an empty handler to break blocking system
+    calls and allow handling of Prolog signals from them.
+  - SIGTERM, SIGABRT and SIGQUIT are caught to cleanup before killing
+    the process again using the same signal.
+  - SIGSEGV, SIGILL, SIGBUS, SIGFPE and SIGSYS are caught by
+    os/pl-cstack.c to print a backtrace and exit.
+  - SIGHUP is caught and causes the process to exit with status 2 after
+    cleanup.
+
+If the system is started using --nosignals, only SIGUSR2 is modified.
+
+Note that library(time) uses SIGUSR1.
 
 Code in SWI-Prolog should  call  PL_signal()  rather  than  signal()  to
 install  signal  handlers.  SWI-Prolog assumes the handler function is a
-void function.  On some systems this gives  some  compiler  warnigns  as
+void function.  On some systems this gives  some  compiler  warnings  as
 they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -279,9 +284,14 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
+
+/* The signals below here are recorded as Prolog interrupts, but
+   not supported by OS signals.  They start at offset 32.
+*/
+
   { SIG_EXCEPTION,     "prolog:exception",     0 },
 #ifdef SIG_ATOM_GC
-  { SIG_ATOM_GC,   "prolog:atom_gc",       0 },
+  { SIG_ATOM_GC,       "prolog:atom_gc",       0 },
 #endif
   { SIG_GC,	       "prolog:gc",	       0 },
 #ifdef SIG_THREAD_SIGNAL
@@ -704,41 +714,52 @@ alert_handler(int sig)
 
 static void
 initSignals(void)
-{ struct signame *sn = signames;
+{ GET_LD
 
+  /* This is general signal handling that is not strictly needed */
+  if ( truePrologFlag(PLFLAG_SIGNALS) )
+  { struct signame *sn = signames;
 #ifdef SIGPIPE
-  set_sighandler(SIGPIPE, SIG_IGN);
+    set_sighandler(SIGPIPE, SIG_IGN);
 #endif
-  initTerminationSignals();
-  for( ; sn->name; sn++)
-  {
+    initTerminationSignals();
+    initBackTrace();
+    for( ; sn->name; sn++)
+    {
 #ifdef HAVE_BOEHM_GC
-    if ( sn->sig == GC_get_suspend_signal() ||
-	 sn->sig == GC_get_thr_restart_signal() )
-      sn->flags = 0;
+      if ( sn->sig == GC_get_suspend_signal() ||
+	   sn->sig == GC_get_thr_restart_signal() )
+	sn->flags = 0;
 #endif
-    if ( sn->flags )
-    { SigHandler sh = prepareSignal(sn->sig);
-      sh->flags |= sn->flags;
+      if ( sn->flags )
+      { SigHandler sh = prepareSignal(sn->sig);
+	sh->flags |= sn->flags;
+      }
     }
+
+#ifdef SIGHUP
+    PL_signal(SIGHUP|PL_SIGSYNC, hupHandler);
+#endif
   }
 
-  PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
-  PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
-  PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC, cgc_handler);
-  PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
-
+  /* We do need this one to make thread signals work while the */
+  /* system is blocked in a system call */
 #ifdef SIG_ALERT
   PL_signal(SIG_ALERT|PL_SIGNOFRAME, alert_handler);
 #endif
+
+  /* these signals are not related to Unix signals and can thus */
+  /* be enabled always */
+
+  PL_signal(SIG_EXCEPTION|PL_SIGSYNC,     sig_exception_handler);
+  PL_signal(SIG_GC|PL_SIGSYNC,	          gc_handler);
+  PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
+  PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
 #endif
 #ifdef SIG_ATOM_GC
-  PL_signal(SIG_ATOM_GC|PL_SIGSYNC, agc_handler);
-#endif
-#ifdef SIGHUP
-  PL_signal(SIGHUP|PL_SIGSYNC, hupHandler);
+  PL_signal(SIG_ATOM_GC|PL_SIGSYNC,       agc_handler);
 #endif
 }
 
