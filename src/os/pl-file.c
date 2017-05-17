@@ -466,6 +466,12 @@ PL_release_stream_noerror(IOSTREAM *s)
   return TRUE;
 }
 
+IOSTREAM *
+PL_acquire_stream(IOSTREAM *s)
+{ return getStream(s);
+}
+
+
 
 		 /*******************************
 		 *	      ERRORS		*
