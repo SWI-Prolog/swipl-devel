@@ -103,7 +103,7 @@ linear complexity using program transformation, where we use bottom-up
 instead of top-down evaluation, i.e., we compute \term{fib}{N,F} for
 growing $N$, where we pass the last two Fibonacci numbers to the next
 iteration. Not having to create the tables and not having to suspend and
-resume goals makes this implementatio about 25 times faster than the
+resume goals makes this implementation about 25 times faster than the
 tabled one. However, even in this simple case the transformation is not
 obvious and it is far more difficult to recognise the algorithm as an
 implementation of Fibonacci numbers.
