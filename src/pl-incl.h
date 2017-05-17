@@ -1814,7 +1814,6 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals */
 
 typedef RETSIGTYPE (*handler_t)(int);
-typedef void *SignalContext;		/* struct sigcontext on sun */
 
 typedef struct
 { handler_t   saved_handler;		/* Original handler */
