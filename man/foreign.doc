@@ -2482,9 +2482,39 @@ If a signal is not used by Prolog and the handler does not call Prolog
 in any way, the native signal interface routines may be used.
 
 Any handler that wishes to call one of the Prolog interface functions
-should call PL_signal() for its installation.
+should call PL_sigaction() to install the handler.  PL_signal() provides
+a deprecated interface that is notably not capable of properly restoring
+the old signal status if the signal was previously handled by Prolog.
 
 \begin{description}
+    \cfunction{int}{PL_sigaction}{int sig, pl_sigaction_t *act,
+				  pl_sigaction_t *oldact}
+Install or query the status for signal \arg{sig}.  The signal is
+an integer between 1 and 64, where the where the signals up to 32
+are mapped to OS signals and signals above that are handled by
+Prolog's synchronous signal handling.  The \ctype{pl_sigaction_t}
+is a struct with the following definition:
+
+\begin{code}
+typedef struct pl_sigaction
+{ void        (*sa_cfunction)(int);	/* traditional C function */
+  predicate_t sa_predicate;		/* call a predicate */
+  int	      sa_flags;			/* additional flags */
+} pl_sigaction_t;
+\end{code}
+
+The \const{sa_flags} is a bitwise or of \const{PLSIG_THROW},
+\const{PLSIG_SYNC} and \const{PLSIG_NOFRAME}. Signal handling is enabled
+if \const{PLSIG_THROW} is provided, \const{sa_cfunction} or
+\const{sa_predicate} is provided. \const{sa_predicate} is a predicate
+handle for a predicate with arity~1. If no action is provided the signal
+handling for this signal is restored to the default before
+PL_initialise() was called.
+
+Finally, 0 (zero) may be passsed for \arg{sig}.  In that case the system
+allocates a free signal in the \textit{Prolog range} (32\ldots{}64).
+Such signal handler are activated using PL_thread_raise().
+
     \cfunction{void (*)()}{PL_signal}{sig, func}
 This function is equivalent to the BSD-Unix signal() function,
 regardless of the platform used.  The signal handler is blocked

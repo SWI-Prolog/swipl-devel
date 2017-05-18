@@ -99,7 +99,10 @@ struct PL_global_data
   void *	resourceDB;		/* program resource database */
 
 #ifdef HAVE_SIGNAL
-  sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+  struct
+  { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+    int		sig_alert;		/* our alert signal */
+  } signals;
 #endif
 #ifdef O_LOGICAL_UPDATE
   ggen_t	_generation;		/* generation of the database */

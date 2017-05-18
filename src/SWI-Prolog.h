@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -992,10 +992,27 @@ PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 		*            SIGNALS            *
 		*********************************/
 
+/* PL_signal() masks (deprecated) */
 #define PL_SIGSYNC	0x00010000	/* call handler synchronously */
 #define PL_SIGNOFRAME	0x00020000	/* Do not create a Prolog frame */
 
+#define PLSIG_THROW     0x0002		/* throw signal(num, name) */
+#define PLSIG_SYNC      0x0004		/* call synchronously */
+#define PLSIG_NOFRAME   0x0008		/* Do not create a Prolog frame */
+
+
+
+
+typedef struct pl_sigaction
+{ void        (*sa_cfunction)(int);	/* traditional C function */
+  predicate_t sa_predicate;		/* call a predicate */
+  int	      sa_flags;			/* additional flags */
+  void       *reserved[2];		/* future extentions */
+} pl_sigaction_t;
+
+
 PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
+PL_EXPORT(int)  PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old);
 PL_EXPORT(void)	PL_interrupt(int sig);
 PL_EXPORT(int)	PL_raise(int sig);
 PL_EXPORT(int)	PL_handle_signals(void);

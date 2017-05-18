@@ -189,10 +189,7 @@ some day.
 #if HAVE_SIGNAL
 #define HAVE_SIGNALS 1
 
-#define PLSIG_PREPARED 0x01		/* signal is prepared */
-#define PLSIG_THROW    0x02		/* throw signal(num, name) */
-#define PLSIG_SYNC     0x04		/* call synchronously */
-#define PLSIG_NOFRAME  0x08		/* Do not create a Prolog frame */
+#define PLSIG_PREPARED 0x00010000	/* signal is prepared */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Define the signals and  their  properties.   This  could  be  nicer, but
@@ -392,7 +389,7 @@ to the main thread.
 static void
 dispatch_signal(int sig, int sync)
 { GET_LD
-  SigHandler sh = &GD->sig_handlers[sig-1];
+  SigHandler sh = &GD->signals.handlers[sig-1];
   fid_t fid;
   term_t lTopSave;
   int saved_current_signal;
@@ -575,7 +572,7 @@ set_sighandler(int sig, handler_t func)
 
 static SigHandler
 prepareSignal(int sig)
-{ SigHandler sh = &GD->sig_handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[sig-1];
 
   if ( false(sh, PLSIG_PREPARED) )
   { set(sh, PLSIG_PREPARED);
@@ -589,7 +586,7 @@ prepareSignal(int sig)
 
 static void
 unprepareSignal(int sig)
-{ SigHandler sh = &GD->sig_handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[sig-1];
 
   if ( true(sh, PLSIG_PREPARED) )
   { if ( sig < SIG_PROLOG_OFFSET )
@@ -742,11 +739,11 @@ initSignals(void)
 #endif
   }
 
-  /* We do need this one to make thread signals work while the */
-  /* system is blocked in a system call */
-#ifdef SIG_ALERT
-  PL_signal(SIG_ALERT|PL_SIGNOFRAME, alert_handler);
-#endif
+  /* We do need alerting to make thread signals work while the */
+  /* system is blocked in a system call. Can be controlled with --sigalert=N */
+
+  if ( GD->signals.sig_alert )
+    PL_signal(GD->signals.sig_alert|PL_SIGNOFRAME, alert_handler);
 
   /* these signals are not related to Unix signals and can thus */
   /* be enabled always */
@@ -905,45 +902,93 @@ the signal safely. We should  design  a   struct  based  API  similar to
 sigaction().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+int
+PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
+{ SigHandler sh = NULL;
+
+  if ( sig < 0 || sig > MAXSIGNAL )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  if ( sig == 0 )
+  { for(sig=SIG_PROLOG_OFFSET; sig<MAXSIGNAL; sig++)
+    { sh = &GD->signals.handlers[sig-1];
+      if ( sh->flags == 0 )
+	break;
+    }
+    if ( !sh )
+    { errno = EBUSY;
+      return -2;
+    }
+  } else
+  { sh = &GD->signals.handlers[sig-1];
+  }
+
+  if ( old )
+  { memset(old, 0, sizeof(*old));
+    old->sa_cfunction   = sh->handler;
+    old->sa_predicate = sh->predicate;
+    old->sa_flags     = sh->flags;
+  }
+
+  if ( act && act != old )
+  { int active;
+
+    if ( (act->sa_flags&PLSIG_THROW) || act->sa_predicate )
+    { if ( ((act->sa_flags&PLSIG_THROW) && act->sa_predicate) ||
+	   act->sa_cfunction )
+      { errno = EINVAL;
+	return -1;
+      }
+      active = TRUE;
+    } else if ( act->sa_cfunction &&
+		(false(sh, PLSIG_PREPARED)||act->sa_cfunction!=sh->saved_handler) )
+    { active = TRUE;
+    }
+
+    if ( active )
+    { sh->handler   = act->sa_cfunction;
+      sh->predicate = act->sa_predicate;
+      sh->flags     = (sh->flags&~0xffff)|act->sa_flags;
+      if ( false(sh, PLSIG_PREPARED) )
+	prepareSignal(sig);
+    } else
+    { unprepareSignal(sig);
+      sh->handler   = NULL;
+      sh->predicate = NULL;
+      sh->flags     = 0;
+    }
+  }
+
+  return sig;
+}
+
+
 handler_t
 PL_signal(int sigandflags, handler_t func)
-{ if ( HAVE_SIGNALS )
-  { handler_t old;
-    SigHandler sh;
-    int sig = (sigandflags & 0xffff);
+{
+#ifdef HAVE_SIGNALS
+  pl_sigaction_t act = {0};
+  pl_sigaction_t old;
 
-    if ( sig > MAXSIGNAL )
-    { warning("PL_signal(): illegal signal number: %d", sig);
-      return SIG_DFL;
-    }
+  act.sa_cfunction = func;
+  if ( (sigandflags&PL_SIGSYNC) )
+    act.sa_flags |= PLSIG_SYNC;
+  if ( (sigandflags&PL_SIGNOFRAME) )
+    act.sa_flags |= PLSIG_NOFRAME;
 
-    sh = &GD->sig_handlers[sig-1];
-    if ( true(sh, PLSIG_PREPARED) )
-    { old = sh->handler;
-      if ( func == sh->saved_handler )
-	unprepareSignal(sig);
-      else
-	sh->handler = func;
-    } else
-    { sh = prepareSignal(sig);
-      old = sh->saved_handler;
-      sh->handler = func;
-    }
-    if ( func != SIG_DFL )
-      clear(sh, PLSIG_THROW);		/* we have a user handler now */
+  if ( PL_sigaction((sigandflags & 0xffff), &act, &old) >= 0 )
+  { if ( (old.sa_flags&PLSIG_PREPARED) && old.sa_cfunction )
+      return old.sa_cfunction;
 
-    if ( (sigandflags & PL_SIGSYNC) )
-      set(sh, PLSIG_SYNC);
-    else
-      clear(sh, PLSIG_SYNC);
-    if ( (sigandflags & PL_SIGNOFRAME) )
-      set(sh, PLSIG_NOFRAME);
-    else
-      clear(sh, PLSIG_NOFRAME);
-
-    return old;
-  } else
     return SIG_DFL;
+  }
+
+  return NULL;
+#else
+  return SIG_DFL;
+#endif
 }
 
 
@@ -1069,7 +1114,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   } else
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal, sig);
 
-  sh = &GD->sig_handlers[sign-1];
+  sh = &GD->signals.handlers[sign-1];
 
   if ( false(sh, PLSIG_PREPARED) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));
