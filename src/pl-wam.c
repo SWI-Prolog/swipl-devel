@@ -182,11 +182,12 @@ loffset__LD(void *p ARG_LD)
 
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
-{ GET_LD
-  static LocalFrame ofr = NULL;		/* not thread-safe */
+{ static LocalFrame ofr = NULL;		/* not thread-safe */
 
   if ( DEBUGGING(MSG_VMI) )
-  { if ( ofr != FR )
+  { GET_LD
+
+    if ( ofr != FR )
     { Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
 	       loffset(FR),
 	       levelFrame(FR),
