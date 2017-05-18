@@ -330,6 +330,14 @@ and the tracer will wait for a carriage return.
 Disable handling of signals.  Often used if SWI-Prolog is embedded in
 another application on Unix systems.
 .TP
+.B \-\-sigalert= "NUM"
+Use
+.I NUM
+for unblocking system calls.  Default is
+.BR SIGUSR2 "."
+Using 0 disables installing a signal handler, delaying the delivery
+of thread signals until the blocking system call completes.
+.TP
 .B \-\-
 Stops scanning for more arguments.
 .SH ENVIRONMENT VARIABLES

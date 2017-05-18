@@ -289,13 +289,23 @@ Disable debugging.  See the current_prolog_flag/2 flag
 Inhibit any signal handling by Prolog, a property that is sometimes
 desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for
-details.
+details.  Note that the handler to unblock system calls is still
+installed. This can be prevented using \exam{--sigalert=0} additionally.
+See \cmdlineoption{--sigalert}.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
 the user's browser on \verb$http://localhost:$\arg{port}. If
 \arg{port} is specified, the server is started at the given port and the
 browser is \emph{not} launched.
+
+    \cmdlineoptionitem{--sigalert=NUM}{}
+Use signal \arg{NUM} (1\ldots{}31) for alerting a thread. This is needed
+to make thread_signal/2, and derived Prolog signal handling act
+immediately when the target thread is blocked on an interruptable
+system call (e.g., sleep/1, read/write to most devices).  The default is
+to use \const{SIGUSR2}.  If \arg{NUM} is 0 (zero), this handler is not
+installed.
 
     \cmdlineoptionitem{-tty}{}
 Unix only.  Switches controlling the terminal for allowing

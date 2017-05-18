@@ -1435,8 +1435,8 @@ alertThread(PL_thread_info_t *info)
 					/* fail if thread is being created */
   }
 #else
-  if ( info->has_tid )
-    return pthread_kill(info->tid, SIG_ALERT) == 0;
+  if ( info->has_tid && GD->signals.sig_alert )
+    return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
 #endif
   return FALSE;
 }

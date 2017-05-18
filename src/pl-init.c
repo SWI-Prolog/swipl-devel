@@ -446,6 +446,9 @@ initDefaults(void)
   GD->io_initialised	     = FALSE;
   GD->initialised	     = FALSE;
   GD->bootsession	     = FALSE;
+#ifdef SIG_ALERT
+  GD->signals.sig_alert      = SIG_ALERT;
+#endif
 
   if ( systemDefaults.notty )
     clearPrologFlagMask(PLFLAG_TTY_CONTROL);
@@ -608,6 +611,14 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 #endif
       } else if ( (optval=is_longopt(s, "traditional")) )
       { setTraditional();
+      } else if ( (optval=is_longopt(s, "sigalert")) )
+      { char *e;
+	long sig = strtol(optval, &e, 10);
+
+	if ( e > optval && *e == EOS && sig >= 0 && sig < 32 )
+	  GD->signals.sig_alert = sig;
+	else
+	  return -1;
       }
 
       continue;				/* don't handle --long=value */
