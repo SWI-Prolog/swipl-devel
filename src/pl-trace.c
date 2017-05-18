@@ -2601,7 +2601,8 @@ PL_call_event_hook(pl_event_type ev, ...)
     }
 
     if ( rc )
-      rc = PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
+      rc = PL_call_predicate(MODULE_user, PL_Q_NODEBUG,
+			     PROCEDURE_event_hook1, arg);
 
   out:
     restoreWakeup(&wstate PASS_LD);
