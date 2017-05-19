@@ -2640,7 +2640,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
   { rc = PL_call_predicate(MODULE_user, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			   PROCEDURE_event_hook1, arg);
     if ( !rc && PL_exception(0) )
-      set(&wstate, WAKEUP_STATE_SKIP_EXCEPTION);
+      set(&wstate, WAKEUP_KEEP_URGENT_EXCEPTION);
     else
       rc = TRUE;				/* only FALSE on error */
   }

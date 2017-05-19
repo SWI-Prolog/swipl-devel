@@ -896,7 +896,7 @@ printMessage(atom_t severity, ...)
   }
 
   if ( !rc && PL_exception(0) )
-    set(&wstate, WAKEUP_STATE_SKIP_EXCEPTION);
+    set(&wstate, WAKEUP_KEEP_URGENT_EXCEPTION);
   else
     rc = TRUE;
 

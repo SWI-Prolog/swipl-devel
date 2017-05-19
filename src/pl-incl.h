@@ -2048,9 +2048,10 @@ typedef struct
 		 *	      WAKEUP		*
 		 *******************************/
 
-#define WAKEUP_STATE_WAKEUP    0x1
-#define WAKEUP_STATE_EXCEPTION 0x2
-#define WAKEUP_STATE_SKIP_EXCEPTION 0x4
+#define WAKEUP_STATE_WAKEUP          0x1 /* State contains a wakeup */
+#define WAKEUP_STATE_EXCEPTION	     0x2 /* State contains an exception */
+#define WAKEUP_STATE_SKIP_EXCEPTION  0x4 /* Do not restore exception from state */
+#define WAKEUP_KEEP_URGENT_EXCEPTION 0x8 /* Keep the most urgent exception */
 
 typedef struct wakeup_state
 { fid_t		fid;			/* foreign frame reference */

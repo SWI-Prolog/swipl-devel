@@ -111,5 +111,6 @@
 #define PL_strip_module_ex(t,m,p) PL_strip_module_ex__LD(t,m,p PASS_LD)
 #define var_name_ptr(p, n)	var_name_ptr__LD(p, n PASS_LD)
 #define classify_exception(ex)  classify_exception__LD(ex PASS_LD)
+#define classify_exception_p(p) classify_exception_p__LD(p PASS_LD)
 
 #endif /*PL_LDPASS_H_INCLUDED*/

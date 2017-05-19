@@ -631,7 +631,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     assert(fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition);
 
     if ( !(cid=PL_open_foreign_frame()) )
-      return;
+      return;				/* exception is in the environment */
 
     fr = (LocalFrame)valTermRef(fref);
     catcher = consTermRef(argFrameP(fr, 2));
@@ -639,24 +639,29 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
     { term_t clean;
-      term_t ex = 0;
-      int rval;
       wakeup_state wstate;
 
       fr = (LocalFrame)valTermRef(fref);
       clean = consTermRef(argFrameP(fr, 3));
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
-      { startCritical;
-	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+      { static predicate_t PRED_call1 = NULL;
+	int rval;
+	qid_t qid;
+
+	if ( !PRED_call1 )
+	  PRED_call1 = PL_predicate("call", 1, "system");
+
+	startCritical;
+	qid = PL_open_query(contextModule(fr), PL_Q_PASS_EXCEPTION,
+			    PRED_call1, clean);
+	rval = PL_next_solution(qid);
+	PL_cut_query(qid);
 	if ( !endCritical )
 	  rval = FALSE;
+	if ( !rval && exception_term )
+	  wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
 	restoreWakeup(&wstate PASS_LD);
-      } else
-      { rval = FALSE;
       }
-
-      if ( !rval && ex && !exception_term )
-	PL_raise_exception(ex);
     }
 
     PL_close_foreign_frame(cid);

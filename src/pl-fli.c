@@ -3991,10 +3991,8 @@ copy_exception(term_t ex, term_t bin ARG_LD)
 
 
 except_class
-classify_exception__LD(term_t exception ARG_LD)
-{ Word p = valTermRef(exception);
-
-  deRef(p);
+classify_exception_p__LD(Word p ARG_LD)
+{ deRef(p);
   if ( isVar(*p) )
   { return EXCEPT_NONE;
   } else if ( isAtom(*p) )
@@ -4015,6 +4013,18 @@ classify_exception__LD(term_t exception ARG_LD)
   }
 
   return EXCEPT_OTHER;
+}
+
+
+except_class
+classify_exception__LD(term_t exception ARG_LD)
+{ Word p;
+
+  if ( !exception )
+    return EXCEPT_NONE;
+
+  p = valTermRef(exception);
+  return classify_exception_p(p);
 }
 
 
