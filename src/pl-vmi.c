@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -2699,16 +2699,18 @@ VMI(S_UNDEF, 0, 0, ())
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
       SAVE_REGISTERS(qid);
       if ( (fid = PL_open_foreign_frame()) )
-      { term_t pred = PL_new_term_ref();
+      { term_t pred;
+	int rc;
 
-	if ( !unify_definition(MODULE_user, pred, DEF, 0, GP_NAMEARITY) )
-	{ printMessage(ATOM_warning,
-		       PL_FUNCTOR, FUNCTOR_error2,
-		         PL_FUNCTOR, FUNCTOR_existence_error2,
-		           PL_ATOM, ATOM_procedure,
-		           PL_TERM, pred,
-			 PL_VARIABLE);
-	}
+	rc = ( (pred=PL_new_term_ref()) &&
+	       unify_definition(MODULE_user, pred, DEF, 0, GP_NAMEARITY) &&
+	       printMessage(ATOM_warning,
+			    PL_FUNCTOR, FUNCTOR_error2,
+			      PL_FUNCTOR, FUNCTOR_existence_error2,
+			        PL_ATOM, ATOM_procedure,
+			        PL_TERM, pred,
+			      PL_VARIABLE) );
+	(void)rc;			/* checking for exception term below */
 	PL_close_foreign_frame(fid);
       }
       if ( exception_term )
@@ -4271,23 +4273,24 @@ again:
     LOAD_REGISTERS(qid);
 
     if ( !rc )					/* uncaught exception */
-    { atom_t a;
-
-      SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(qid);
       if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
       { debugmode(TRUE, NULL);
 	if ( !trace_if_space() )		/* see (*) */
 	{ start_tracer = TRUE;
 	} else
-	{ trimStacks(FALSE PASS_LD);		/* restore spare stacks */
-	  printMessage(ATOM_error, PL_TERM, exception_term);
+	{ int rc;
+	  trimStacks(FALSE PASS_LD);		/* restore spare stacks */
+	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
+	  (void)rc;
 	  PL_put_term(exception_printed, exception_term);
 	}
-      } else if ( !(PL_get_atom(exception_term, &a) && a == ATOM_aborted) )
-      { printMessage(ATOM_error,
-		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		       PL_TERM, exception_term);
+      } else if ( classify_exception(exception_term) != EXCEPT_ABORT )
+      { int rc = printMessage(ATOM_error,
+			      PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+			        PL_TERM, exception_term);
+	(void)rc;
 	PL_put_term(exception_printed, exception_term);
       }
       LOAD_REGISTERS(qid);
@@ -4387,11 +4390,13 @@ again:
 			  spaceStack(trail)));
 
 	if ( trace_if_space() )
-	{ start_tracer = FALSE;
+	{ int rc;
+	  start_tracer = FALSE;
 	  SAVE_REGISTERS(qid);
 	  LD->critical++;		/* do not handle signals */
 	  trimStacks(FALSE PASS_LD);
-	  printMessage(ATOM_error, PL_TERM, exception_term);
+	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
+	  (void)rc;
 	  LD->critical--;
 	  LOAD_REGISTERS(qid);
 	}

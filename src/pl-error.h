@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2016, University of Amsterdam
+    Copyright (c)  1997-2017, University of Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,7 @@ typedef enum
 COMMON(int)		PL_error(const char *pred, int arity, const char *msg,
 				 PL_error_code id, ...);
 COMMON(int)		PL_no_memory(void);
-COMMON(int)		printMessage(atom_t severity, ...);
+COMMON(int)		printMessage(atom_t severity, ...) WUNUSED;
 #ifdef ARG_LD
 COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
 #endif

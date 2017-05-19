@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2016, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -727,23 +727,22 @@ singletonWarning(const char *which, const char **vars, int nvars)
   { term_t l = PL_new_term_ref();
     term_t a = PL_copy_term_ref(l);
     term_t h = PL_new_term_ref();
-    int n;
+    int n, rc = TRUE;
 
     for(n=0; n<nvars; n++)
-    { if ( !PL_unify_list(a, h, a) ||
-	   !PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n]) )
-	return FALSE;
+    { if ( !(rc=PL_unify_list(a, h, a)) ||
+	   !(rc=PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n])) )
+	break;
     }
-    if ( !PL_unify_nil(a) )
-      return FALSE;
-
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR_CHARS, which, 1,
-		   PL_TERM, l);
+    rc = ( rc &&
+	   PL_unify_nil(a) &&
+	   printMessage(ATOM_warning,
+			PL_FUNCTOR_CHARS, which, 1,
+			  PL_TERM, l) );
 
     PL_discard_foreign_frame(fid);
 
-    return TRUE;
+    return rc;
   }
 
   return FALSE;
@@ -757,10 +756,13 @@ singletonWarning(const char *which, const char **vars, int nvars)
 
 static int
 reportReadError(ReadData rd)
-{ if ( rd->on_error == ATOM_error )
+{ int rc;
+
+  if ( rd->on_error == ATOM_error )
     return PL_raise_exception(rd->exception);
   if ( rd->on_error != ATOM_quiet )
-    printMessage(ATOM_error, PL_TERM, rd->exception);
+    rc = printMessage(ATOM_error, PL_TERM, rd->exception);
+  (void)rc;
   PL_clear_exception();
 
   if ( rd->on_error == ATOM_dec10 )
@@ -2238,7 +2240,8 @@ again:
 		last_token_start = errpos;
 		ex = makeErrorTerm("swi_backslash_newline", NULL, 0, _PL_rd);
 		last_token_start = old_start;
-		printMessage(ATOM_warning, PL_TERM, ex);
+		if ( !ex || !printMessage(ATOM_warning, PL_TERM, ex) )
+		  return ESC_ERROR;
 	      }
 	      break;
 	    }
@@ -2645,19 +2648,20 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 }
 
 
-static void
+static int
 checkASCII(unsigned char *name, size_t len, const char *type)
 { size_t i;
 
   for(i=0; i<len; i++)
   { if ( (name[i]) >= 128 )
-    { printMessage(ATOM_warning,
-		   PL_FUNCTOR_CHARS, "non_ascii", 2,
-                   PL_NCHARS, len, (char const *)name,
-		     PL_CHARS, type);
-      return;
+    { return printMessage(ATOM_warning,
+			  PL_FUNCTOR_CHARS, "non_ascii", 2,
+			    PL_NCHARS, len, (char const *)name,
+			    PL_CHARS, type);
     }
   }
+
+  return TRUE;
 }
 
 
@@ -2721,7 +2725,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  rdhere = SkipAtomIdCont(rdhere);
 		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
-		    checkASCII(start, rdhere-start, "atom");
+		  { if ( !checkASCII(start, rdhere-start, "atom") )
+		      return FALSE;
+		  }
 
 		functor:
 		  txt.text.t    = (char *)start;
@@ -2755,7 +2761,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		{ rdhere = SkipVarIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
-		    checkASCII(start, rdhere-start, "variable");
+		  { if ( !checkASCII(start, rdhere-start, "variable") )
+		      return FALSE;
+		  }
 		  if ( *rdhere == '(' && truePrologFlag(ALLOW_VARNAME_FUNCTOR) )
 		    goto functor;
 		  if ( start[0] == '_' &&
@@ -4687,12 +4695,13 @@ static const opt_spec read_clause_options[] =
 };
 
 
-static void
+static int
 callCommentHook(predicate_t comment_hook,
 		term_t comments, term_t tpos, term_t term)
 { GET_LD
   fid_t fid;
   term_t av;
+  int rc = TRUE;
 
   if ( (fid = PL_open_foreign_frame()) &&
        (av = PL_new_term_refs(3)) )
@@ -4702,18 +4711,21 @@ callCommentHook(predicate_t comment_hook,
     PL_put_term(av+1, tpos);
     PL_put_term(av+2, term);
 
-    if ( (qid = PL_open_query(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+    if ( (qid = PL_open_query(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			      comment_hook, av)) )
     { term_t ex;
 
       if ( !PL_next_solution(qid) && (ex=PL_exception(qid)) )
-	printMessage(ATOM_error, PL_TERM, ex);
+	rc = FALSE;
 
       PL_close_query(qid);
     }
 
     PL_discard_foreign_frame(fid);
-  }
+  } else
+    rc = FALSE;
+
+  return rc;
 }
 
 
@@ -4771,7 +4783,7 @@ retry:
     { if ( opt_comments )
 	rval = PL_unify(opt_comments, comments);
       else if ( !PL_get_nil(comments) )
-	callCommentHook(comment_hook, comments, tpos, term);
+	rval = callCommentHook(comment_hook, comments, tpos, term);
     }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )

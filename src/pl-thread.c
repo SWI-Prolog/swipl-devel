@@ -1610,23 +1610,26 @@ start_thread(void *closure)
       { int print = TRUE;
 
 	if ( LD->exit_requested )
-	{ atom_t a;
-
-	  if ( PL_get_atom(ex, &a) && a == ATOM_aborted )
+	{ if ( classify_exception(ex) == EXCEPT_ABORT )
 	    print = FALSE;
 	}
 
 	if ( print )
-	  printMessage(ATOM_warning,
-		       PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
-			 PL_TERM, goal,
-			 PL_FUNCTOR, FUNCTOR_exception1,
-			   PL_TERM, ex);
+	{ int rc;
+
+	  rc = printMessage(ATOM_warning,
+			    PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
+			      PL_TERM, goal,
+			      PL_FUNCTOR, FUNCTOR_exception1,
+			      PL_TERM, ex);
+	  (void)rc;			/* it is dead anyway */
+	}
       } else
-      { printMessage(ATOM_warning,
-		     PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
-		       PL_TERM, goal,
-		       PL_ATOM, ATOM_fail);
+      { if ( !printMessage(ATOM_warning,
+			   PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
+			     PL_TERM, goal,
+			     PL_ATOM, ATOM_fail) )
+	  PL_clear_exception();		/* it is dead anyway */
       }
     }
 

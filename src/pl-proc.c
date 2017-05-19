@@ -385,14 +385,15 @@ overruleImportedProcedure(Procedure proc, Module target)
   } else
   { if ( proc->flags & PROC_WEAK )
     { if ( truePrologFlag(PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT) )
-      { term_t pi = PL_new_term_ref();
+      { term_t pi;
 
-	if ( PL_unify_predicate(pi, proc, GP_NAMEARITY) )
-	{ printMessage(ATOM_warning,
-		       PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
-		         PL_ATOM, target->name,
-		         PL_TERM, pi);
-	}				/* no space to print message */
+	if ( !(pi=PL_new_term_ref()) ||
+	     !PL_unify_predicate(pi, proc, GP_NAMEARITY) ||
+	     !printMessage(ATOM_warning,
+			   PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
+			     PL_ATOM, target->name,
+			     PL_TERM, pi) )
+	  return FALSE;
       }
 
       abolishProcedure(proc, target);
@@ -1998,9 +1999,10 @@ pl_garbage_collect_clauses(void)
     int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
 
     if ( verbose )
-    { printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "cgc", 1,
-		     PL_CHARS, "start");
+    { if ( (rc=printMessage(ATOM_informational,
+			    PL_FUNCTOR_CHARS, "cgc", 1,
+			      PL_CHARS, "start")) == FALSE )
+	goto out;
     }
 
     DEBUG(MSG_CGC, Sdprintf("CGC @ %lld ... ", start_gen));
@@ -2066,16 +2068,16 @@ pl_garbage_collect_clauses(void)
 			    gct));
 
     if ( verbose )
-      printMessage(
-	  ATOM_informational,
-	  PL_FUNCTOR_CHARS, "cgc", 1,
-	    PL_FUNCTOR_CHARS, "done", 4,
-	      PL_INT64,  (int64_t)removed,
-	      PL_INT64,  (int64_t)(erased_pending - GD->clauses.erased_size),
-	      PL_INT64,  (int64_t)GD->clauses.erased_size,
-	      PL_DOUBLE, gct);
+      rc = printMessage(
+	      ATOM_informational,
+	      PL_FUNCTOR_CHARS, "cgc", 1,
+		PL_FUNCTOR_CHARS, "done", 4,
+		  PL_INT64,  (int64_t)removed,
+		  PL_INT64,  (int64_t)(erased_pending - GD->clauses.erased_size),
+		  PL_INT64,  (int64_t)GD->clauses.erased_size,
+		  PL_DOUBLE, gct);
 
-
+  out:
     GD->clauses.cgc_active = FALSE;
   }
 
@@ -3089,10 +3091,11 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
   if ( true(def, P_FOREIGN) )
   {			/* first call printMessage() */
 			/* so we can provide info about the old definition */
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR_CHARS, "redefined_procedure", 2,
-		   PL_CHARS, "foreign",
-		   _PL_PREDICATE_INDICATOR, proc);
+    if ( !printMessage(ATOM_warning,
+		       PL_FUNCTOR_CHARS, "redefined_procedure", 2,
+		         PL_CHARS, "foreign",
+		         _PL_PREDICATE_INDICATOR, proc) )
+      return FALSE;
 			/* ... then abolish */
     abolishProcedure(proc, def->module);
   } else if ( false(def, P_MULTIFILE) )
@@ -3109,20 +3112,22 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
       if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, P_DISCONTIGUOUS) &&
 	   sf->current_procedure )
-      { printMessage(ATOM_warning,
-		     PL_FUNCTOR_CHARS, "discontiguous", 2,
-		       _PL_PREDICATE_INDICATOR, proc,
-		       _PL_PREDICATE_INDICATOR, sf->current_procedure);
+      { if ( !printMessage(ATOM_warning,
+			   PL_FUNCTOR_CHARS, "discontiguous", 2,
+			     _PL_PREDICATE_INDICATOR, proc,
+			     _PL_PREDICATE_INDICATOR, sf->current_procedure) )
+	  return FALSE;
       }
     } else if ( !hasProcedureSourceFile(sf, proc) )
     { if ( true(def, P_THREAD_LOCAL) )
 	return PL_error(NULL, 0, NULL, ERR_MODIFY_THREAD_LOCAL_PROC, proc);
 
       if ( first )
-      { printMessage(ATOM_warning,
-		     PL_FUNCTOR_CHARS, "redefined_procedure", 2,
-		       PL_CHARS, "static",
-		       _PL_PREDICATE_INDICATOR, proc);
+      { if ( !printMessage(ATOM_warning,
+			   PL_FUNCTOR_CHARS, "redefined_procedure", 2,
+			     PL_CHARS, "static",
+			     _PL_PREDICATE_INDICATOR, proc) )
+	  return FALSE;
       }
 			/* again, _after_ the printMessage() */
       abolishProcedure(proc, def->module);

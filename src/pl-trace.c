@@ -931,11 +931,11 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     if ( rc )
     { IOSTREAM *old = Suser_error;
       Suser_error = out;
-      printMessage(ATOM_debug,
-		   PL_FUNCTOR, FUNCTOR_frame3,
-		     PL_TERM, fr,
-		     PL_TERM, port,
-		     PL_TERM, pc);
+      rc = printMessage(ATOM_debug,
+			PL_FUNCTOR, FUNCTOR_frame3,
+			  PL_TERM, fr,
+			  PL_TERM, port,
+			  PL_TERM, pc);
       Suser_error = old;
     }
   } else
@@ -1294,14 +1294,20 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
       }
     } else if ( (ex=PL_exception(qid)) )
-    { atom_t a;
-
-      if ( PL_get_atom(ex, &a) && a == ATOM_aborted )
+    { if ( classify_exception(ex) == EXCEPT_ABORT )
       { rval = ACTION_ABORT;
       } else
-      { printMessage(ATOM_error, PL_TERM, ex);
-	nodebug = TRUE;
-	rval = ACTION_CONTINUE;
+      { if ( printMessage(ATOM_error, PL_TERM, ex) )
+	{ nodebug = TRUE;
+	  rval = ACTION_CONTINUE;
+	} else if ( classify_exception(exception_term) >= EXCEPT_TIMEOUT )
+	{ PL_clear_exception();
+	  rval = ACTION_ABORT;
+	} else
+	{ PL_clear_exception();
+	  nodebug = TRUE;
+	  rval = ACTION_CONTINUE;
+	}
       }
     }
 
@@ -1656,7 +1662,9 @@ interruptHandler(int sig)
   Sreset();
 again:
   if ( safe )
-  { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
+  { if ( !printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1,
+		                     PL_ATOM, ATOM_begin) )
+      PL_clear_exception();
   } else
   { if ( first )
     { first = FALSE;
@@ -1688,7 +1696,10 @@ again:
 		}
 		goto again;
     case 'c':	if ( safe )
-		{ printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_end);
+		{ if ( !printMessage(ATOM_debug,
+				     PL_FUNCTOR, FUNCTOR_interrupt1,
+				       PL_ATOM, ATOM_end) )
+		    PL_clear_exception();
 		} else
 		{ Sfprintf(Sdout, "continue\n");
 		}
@@ -1714,9 +1725,10 @@ again:
 #ifdef O_DEBUGGER
     case 't':	if ( safe )
 		{ Sfprintf(Sdout, "trace\n");
-		  printMessage(ATOM_debug,
-			       PL_FUNCTOR, FUNCTOR_interrupt1,
-			         PL_ATOM, ATOM_trace);
+		  if ( !printMessage(ATOM_debug,
+				     PL_FUNCTOR, FUNCTOR_interrupt1,
+				       PL_ATOM, ATOM_trace) )
+		    PL_clear_exception();
 		  pl_trace();
 		  break;
 		} else
