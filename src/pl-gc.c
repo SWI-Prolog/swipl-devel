@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -3979,6 +3979,13 @@ garbageCollect(void)
   save_backtrace("GC");
 #endif
 
+  if ( verbose )
+  { if ( !printMessage(ATOM_informational,
+		       PL_FUNCTOR_CHARS, "gc", 1,
+		         PL_CHARS, "start") )
+      return FALSE;
+  }
+
   get_vmi_state(LD->query, &state);
   safeLTop = lTop;
   if ( (rc=gcEnsureSpace(&state PASS_LD)) < 0 )
@@ -3998,11 +4005,6 @@ garbageCollect(void)
 
   if ( (no_mark_bar=(LD->mark_bar == NO_MARK_BAR)) )
     LD->mark_bar = gTop;		/* otherwise we cannot relocate */
-
-  if ( verbose )
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "gc", 1,
-		   PL_CHARS, "start");
 
 #ifdef O_PROFILE
   if ( LD->profile.active )
@@ -4089,18 +4091,6 @@ garbageCollect(void)
 	  checkStacks(&state);
 	});
 
-  if ( verbose )
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "gc", 1,
-		   PL_FUNCTOR_CHARS, "done", 7,
-		     PL_INTPTR, ggar,
-		     PL_INTPTR, tgar,
-		     PL_DOUBLE, (double)t,
-		     PL_INTPTR, usedStack(global),
-		     PL_INTPTR, usedStack(trail),
-		     PL_INTPTR, roomStack(global),
-		     PL_INTPTR, roomStack(trail));
-
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active )
     profExit(prof_node PASS_LD);
@@ -4126,9 +4116,21 @@ garbageCollect(void)
 #endif
   leaveGC(PASS_LD1);
 
-  shiftTightStacks();
+  if ( verbose )
+    rc = printMessage(ATOM_informational,
+		      PL_FUNCTOR_CHARS, "gc", 1,
+		        PL_FUNCTOR_CHARS, "done", 7,
+		          PL_INTPTR, ggar,
+		          PL_INTPTR, tgar,
+		          PL_DOUBLE, (double)t,
+		          PL_INTPTR, usedStack(global),
+		          PL_INTPTR, usedStack(trail),
+		          PL_INTPTR, roomStack(global),
+		          PL_INTPTR, roomStack(trail));
 
-  return TRUE;
+  rc = shiftTightStacks() && rc;
+
+  return rc;
 }
 
 word
@@ -4265,7 +4267,8 @@ ensureGlobalSpace(size_t cells, int flags)
     size_t tmin;
 
     if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
-    { garbageCollect();
+    { if ( garbageCollect() == FALSE )
+	return FALSE;
 
       if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
 	return TRUE;
@@ -4283,7 +4286,8 @@ ensureGlobalSpace(size_t cells, int flags)
     else
       tmin = 0;
 
-    growStacks(0, gmin, tmin);
+    if ( growStacks(0, gmin, tmin) == FALSE )
+      return FALSE;
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
   }
@@ -4318,7 +4322,8 @@ ensureTrailSpace(size_t cells)
   }
 
   if ( considerGarbageCollect(NULL) )
-  { garbageCollect();
+  { if ( !garbageCollect() )
+      return FALSE;
 
     if ( tTop+cells <= tMax )
       return TRUE;
@@ -4326,7 +4331,8 @@ ensureTrailSpace(size_t cells)
 
   { size_t tmin = cells*sizeof(struct trail_entry);
 
-    growStacks(0, 0, tmin);
+    if ( !growStacks(0, 0, tmin) )
+      return FALSE;
     if ( tTop+cells <= tMax )
       return TRUE;
   }

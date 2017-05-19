@@ -3522,14 +3522,20 @@ mode, the predicate is still undefined and is not dynamic or multifile.
     { clause = cref->value.clause;
 
       if ( warnings && !PL_get_nil(warnings) )
-      { fid_t fid = PL_open_foreign_frame();
+      { int rc;
+	fid_t fid = PL_open_foreign_frame();
 	term_t cl = PL_new_term_ref();
 
 	PL_put_clref(cl, clause);
-	printMessage(ATOM_warning, PL_FUNCTOR_CHARS, "compiler_warnings", 2,
-				     PL_TERM, cl,
-				     PL_TERM, warnings);
+	rc = printMessage(ATOM_warning,
+			  PL_FUNCTOR_CHARS, "compiler_warnings", 2,
+			    PL_TERM, cl,
+			    PL_TERM, warnings);
 	PL_discard_foreign_frame(fid);
+	if ( !rc )
+	{ freeClause(clause);
+	  return NULL;
+	}
       }
 
       return clause;

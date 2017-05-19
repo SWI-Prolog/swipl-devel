@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -617,11 +617,15 @@ TemporaryFile(const char *id, int *fdp)
 	    tmpdir = strdup(td);
 
 	  if ( reason )
-	    printMessage(ATOM_warning,
-			 PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
-			   PL_CHARS, env_names[i],
-			   PL_CHARS, td,
-			   PL_CHARS, reason);
+	  { if ( !printMessage(ATOM_warning,
+			       PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
+			         PL_CHARS, env_names[i],
+			         PL_CHARS, td,
+			         PL_CHARS, reason) )
+	    { UNLOCK();
+	      return NULL_ATOM;
+	    }
+	  }
 	}
       }
 

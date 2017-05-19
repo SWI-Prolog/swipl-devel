@@ -1088,9 +1088,12 @@ pl_garbage_collect_atoms(void)
     PL_backtrace(5, 0);
 */
 #endif
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "agc", 1,
-		   PL_CHARS, "start");
+    if ( !printMessage(ATOM_informational,
+		       PL_FUNCTOR_CHARS, "agc", 1,
+		         PL_CHARS, "start") )
+    { PL_UNLOCK(L_GC);
+      return FALSE;
+    }
   }
 
   PL_LOCK(L_THREAD);
@@ -1121,14 +1124,14 @@ pl_garbage_collect_atoms(void)
   PL_UNLOCK(L_GC);
 
   if ( verbose )
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "agc", 1,
-		   PL_FUNCTOR_CHARS, "done", 3,
-		     PL_INT64, GD->atoms.collected - oldcollected,
-		     PL_INT, GD->statistics.atoms,
-		     PL_DOUBLE, (double)t);
+    return printMessage(ATOM_informational,
+		        PL_FUNCTOR_CHARS, "agc", 1,
+			  PL_FUNCTOR_CHARS, "done", 3,
+			    PL_INT64, GD->atoms.collected - oldcollected,
+			    PL_INT, GD->statistics.atoms,
+			    PL_DOUBLE, (double)t);
 
-  succeed;
+  return TRUE;
 }
 
 

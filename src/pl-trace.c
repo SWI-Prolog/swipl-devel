@@ -1784,9 +1784,9 @@ tracemode(int doit, int *old)
 
   if ( debugstatus.tracing != doit )
   { debugstatus.tracing = doit;
-    printMessage(ATOM_silent,
-		 PL_FUNCTOR_CHARS, "trace_mode", 1,
-		   PL_ATOM, doit ? ATOM_on : ATOM_off);
+    return printMessage(ATOM_silent,
+			PL_FUNCTOR_CHARS, "trace_mode", 1,
+			  PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
   if ( doit )				/* make sure trace works inside skip */
   { debugstatus.skiplevel = SKIP_VERY_DEEP;
@@ -1881,9 +1881,9 @@ debugmode(debug_type doit, debug_type *old)
     }
     debugstatus.debugging = doit;
     updateAlerted(LD);
-    printMessage(ATOM_silent,
-		 PL_FUNCTOR_CHARS, "debug_mode", 1,
-		   PL_ATOM, doit ? ATOM_on : ATOM_off);
+    return printMessage(ATOM_silent,
+			PL_FUNCTOR_CHARS, "debug_mode", 1,
+			  PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
 
   return TRUE;
@@ -1985,15 +1985,15 @@ pl_spy(term_t p)
     { LOCKDEF(def);
       set(def, SPY_ME);
       UNLOCKDEF(def);
-      printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "spy", 1,
-		     PL_TERM, p);
+      if ( !printMessage(ATOM_informational,
+			 PL_FUNCTOR_CHARS, "spy", 1,
+			   PL_TERM, p) )
+	return FALSE;
     }
-    debugmode(DBG_ALL, NULL);
-    succeed;
+    return debugmode(DBG_ALL, NULL);
   }
 
-  fail;
+  return FALSE;
 }
 
 word
@@ -2008,14 +2008,14 @@ pl_nospy(term_t p)
     { LOCKDEF(def);
       clear(def, SPY_ME);
       UNLOCKDEF(def);
-      printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "nospy", 1,
-		     PL_TERM, p);
+      return printMessage(ATOM_informational,
+			  PL_FUNCTOR_CHARS, "nospy", 1,
+			    PL_TERM, p);
     }
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 word

@@ -330,12 +330,14 @@ setUnknown(term_t value, atom_t a, Module m)
     }
 
     if ( !SYSTEM_MODE )
-      printMessage(ATOM_warning, PL_CHARS, "unknown_in_module_user");
+    { if ( !printMessage(ATOM_warning, PL_CHARS, "unknown_in_module_user") )
+	return FALSE;
+    }
   }
 
   m->flags = flags;
 
-  succeed;
+  return TRUE;
 }
 
 

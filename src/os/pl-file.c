@@ -642,9 +642,11 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
 
 	    if ( (t=PL_new_term_ref()) &&
 		 PL_put_atom(t, a) )
-	      printMessage(ATOM_warning,
-			   PL_FUNCTOR_CHARS, "ambiguous_stream_pair", 1,
-			   PL_TERM, t);
+	    { if ( !printMessage(ATOM_warning,
+				 PL_FUNCTOR_CHARS, "ambiguous_stream_pair", 1,
+				   PL_TERM, t) )
+		return FALSE;
+	    }
 	    s = ref->read;
 	  }
 	} else
@@ -1130,12 +1132,15 @@ reportStreamError(IOSTREAM *s)
 
       return FALSE;
     } else
-    { printMessage(ATOM_warning,
-		   PL_FUNCTOR_CHARS, "io_warning", 2,
-		   PL_TERM, stream,
-		   PL_CHARS, s->message);
+    { int rc;
 
+      rc = printMessage(ATOM_warning,
+			PL_FUNCTOR_CHARS, "io_warning", 2,
+			  PL_TERM, stream,
+			  PL_CHARS, s->message);
       Sseterr(s, 0, NULL);
+
+      return rc;
     }
   }
 
@@ -1228,6 +1233,10 @@ closeStream(IOSTREAM *s)
 }
 
 
+/* Close all files.  As this only happens during termination we report,
+ * but otherwise ignore possible errors.
+ */
+
 void
 closeFiles(int all)
 { GET_LD
@@ -1244,14 +1253,16 @@ closeFiles(int all)
 	{ term_t t = PL_new_term_ref();
 
 	  PL_unify_stream_or_alias(t, s2);
-	  printMessage(ATOM_informational,
-		       PL_FUNCTOR, FUNCTOR_close_on_abort1,
-		         PL_TERM, t);
+	  if ( !printMessage(ATOM_informational,
+			     PL_FUNCTOR, FUNCTOR_close_on_abort1,
+			       PL_TERM, t) )
+	    PL_clear_exception();
 	  PL_reset_term_refs(t);
 	}
 
 	if ( !closeStream(s2) && exception_term )
-	{ printMessage(ATOM_warning, PL_TERM, exception_term);
+	{ int rc = printMessage(ATOM_warning, PL_TERM, exception_term);
+	  (void)rc;
 	  PL_clear_exception();
 	}
       }
