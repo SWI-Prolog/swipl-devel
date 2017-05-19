@@ -850,6 +850,9 @@ printMessage(atom_t severity, ...)
 Calls print_message(severity, term), where  ...   are  arguments  as for
 PL_unify_term(). This predicate saves possible   pending  exceptions and
 restores them to make the call from B_THROW possible.
+
+Returns FALSE if there was an   exception while executing printMessage()
+and TRUE if the printing succeeded or merely failed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define OK_RECURSIVE 10
@@ -878,7 +881,7 @@ printMessage(atom_t severity, ...)
 
   if ( rc )
   { if ( isDefinedProcedure(pred) && LD->in_print_message <= OK_RECURSIVE )
-    { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+    { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			     pred, av);
     } else if ( LD->in_print_message <= OK_RECURSIVE*2 )
     { Sfprintf(Serror, "Message: ");
@@ -891,6 +894,11 @@ printMessage(atom_t severity, ...)
     { Sfprintf(Serror, "printMessage(): recursive call\n");
     }
   }
+
+  if ( !rc && PL_exception(0) )
+    set(&wstate, WAKEUP_STATE_SKIP_EXCEPTION);
+  else
+    rc = TRUE;
 
   restoreWakeup(&wstate PASS_LD);
   LD->in_print_message--;
