@@ -1803,6 +1803,8 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
       LOAD_REGISTERS(qid);
       lTop = LD->query->next_environment;
       LD->query->next_environment = NULL;
+      if ( exception_term )
+	THROW_EXCEPTION;
     }
 
     FR->clause = NULL;			/* for save atom-gc */
@@ -1947,6 +1949,8 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   { SAVE_REGISTERS(qid);
     frameFinished(leave, FINISH_EXIT PASS_LD);
     LOAD_REGISTERS(qid);
+    if ( exception_term )
+      THROW_EXCEPTION;
   }
 
   NEXT_INSTRUCTION;
