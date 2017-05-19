@@ -282,6 +282,7 @@ COMMON(int)		PL_pending__LD(int sig ARG_LD);
 COMMON(int)		PL_clearsig__LD(int sig ARG_LD);
 COMMON(void)		cleanupCodeToAtom(void);
 COMMON(void)		PL_clear_foreign_exception(LocalFrame fr);
+COMMON(except_class)    classify_exception__LD(term_t ex ARG_LD);
 
 /* pl-fmt.c */
 COMMON(word)		pl_format_predicate(term_t chr, term_t descr);

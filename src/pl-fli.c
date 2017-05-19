@@ -3990,18 +3990,8 @@ copy_exception(term_t ex, term_t bin ARG_LD)
 }
 
 
-typedef enum except_class
-{ EXCEPT_NONE = 0,			/* no exception */
-  EXCEPT_OTHER,				/* any other exception */
-  EXCEPT_ERROR,				/* ISO error(Formal,Context) */
-  EXCEPT_RESOURCE,			/* ISO error(resource_error(_), _) */
-  EXCEPT_TIMEOUT,			/* time_limit_exceeded */
-  EXCEPT_ABORT				/* '$aborted' */
-} except_class;
-
-
-static except_class
-classify_exception(term_t exception ARG_LD)
+except_class
+classify_exception__LD(term_t exception ARG_LD)
 { Word p = valTermRef(exception);
 
   deRef(p);
@@ -4039,8 +4029,8 @@ PL_raise_exception(term_t exception)
 
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
-  { except_class co = classify_exception(exception_bin PASS_LD);
-    except_class cn = classify_exception(exception     PASS_LD);
+  { except_class co = classify_exception(exception_bin);
+    except_class cn = classify_exception(exception);
 
     if ( cn >= co )
     { setVar(*valTermRef(exception_bin));

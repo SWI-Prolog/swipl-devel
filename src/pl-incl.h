@@ -1586,6 +1586,21 @@ struct recordRef
   Record	record;			/* the record itself */
 };
 
+
+		 /*******************************
+		 *	EXCEPTION CLASSES	*
+		 *******************************/
+
+typedef enum except_class
+{ EXCEPT_NONE = 0,			/* no exception */
+  EXCEPT_OTHER,				/* any other exception */
+  EXCEPT_ERROR,				/* ISO error(Formal,Context) */
+  EXCEPT_RESOURCE,			/* ISO error(resource_error(_), _) */
+  EXCEPT_TIMEOUT,			/* time_limit_exceeded */
+  EXCEPT_ABORT				/* '$aborted' */
+} except_class;
+
+
 		 /*******************************
 		 *	SOURCE FILE ADMIN	*
 		 *******************************/
