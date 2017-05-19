@@ -592,14 +592,16 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 			     info->pl_tid, info->status));
 
   if ( !after_fork )
-  { LOCK();
+  { int rc;
+    LOCK();
     if ( info->status == PL_THREAD_RUNNING )
       info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
     acknowledge = ld->exit_requested;
     UNLOCK();
 
     info->in_exit_hooks = TRUE;
-    callEventHook(PL_EV_THREADFINISHED, info);
+    rc = callEventHook(PL_EV_THREADFINISHED, info);
+    (void)rc;
     run_thread_exit_hooks(ld);
     info->in_exit_hooks = FALSE;
   } else

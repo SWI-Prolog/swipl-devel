@@ -6790,23 +6790,29 @@ clear_second:
 }
 
 
-void
+/* returns -1 if there is an exception or # events sent */
+
+int
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { delayEvents();
+  { int rc = TRUE;
+
+    delayEvents();
     PL_LOCK(L_BREAK);
     for_table(breakTable, name, value,
               { BreakPoint bp = (BreakPoint)value;
 		if ( bp->clause == clause )
 		{ int offset = bp->offset;
 		  clearBreak(clause, bp->offset);
-		  callEventHook(PLEV_NOBREAK, clause, offset);
+		  rc = callEventHook(PLEV_NOBREAK, clause, offset) && rc;
 		}
 	      })
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
-    sendDelayedEvents();
+    return sendDelayedEvents(rc);
   }
+
+  return 0;
 }
 
 

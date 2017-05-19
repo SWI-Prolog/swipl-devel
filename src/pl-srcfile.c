@@ -618,6 +618,7 @@ static int
 unloadFile(SourceFile sf)
 { ListCell cell, next;
   size_t deleted = 0;
+  int rc;
 
   delayEvents();
   LOCKSRCFILE(sf);
@@ -653,10 +654,10 @@ unloadFile(SourceFile sf)
   delAllModulesSourceFile__unlocked(sf);
   UNLOCKSRCFILE(sf);
 
-  sendDelayedEvents();
+  rc = sendDelayedEvents(TRUE) >= 0;
   pl_garbage_collect_clauses();
 
-  return TRUE;
+  return rc;
 }
 
 

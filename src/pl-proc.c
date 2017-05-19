@@ -1379,17 +1379,22 @@ freeClause(Clause c)
 }
 
 
-static void
+static int WUNUSED			/* FALSE if there was an error */
 announceErasedClause(Clause clause)
 {
 #if O_DEBUGGER
+  int rc;
   Definition def = clause->predicate;
 
-  clearBreakPointsClause(clause);
+  rc = clearBreakPointsClause(clause) >= 0;
   if ( PROCEDURE_event_hook1 &&
        def != PROCEDURE_event_hook1->definition )
-    callEventHook(PLEV_ERASED_CLAUSE, clause);
+    rc = callEventHook(PLEV_ERASED_CLAUSE, clause) && rc;
+
+  return rc;
 #endif
+
+  return TRUE;
 }
 
 
@@ -1406,7 +1411,7 @@ cleanDefinition()
 static int	mustCleanDefinition(const Definition def);
 
 static size_t
-cleanDefinition(Definition def, gen_t marked, gen_t start)
+cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
 { GET_LD
   size_t removed = 0;
   gen_t active = start < marked ? start : marked;
@@ -1426,7 +1431,8 @@ cleanDefinition(Definition def, gen_t marked, gen_t start)
     { Clause cl = cref->value.clause;
 
       if ( true(cl, CL_ERASED) && cl->generation.erased < active )
-      { announceErasedClause(cl);
+      { if ( !announceErasedClause(cl) )
+	  *rcp = FALSE;
 
 	LOCKDEF(def);
 	if ( !prev )
@@ -1981,6 +1987,7 @@ the start generation of the clause garbage collector.
 foreign_t
 pl_garbage_collect_clauses(void)
 { GET_LD
+  int rc = TRUE;
 
   if ( GD->procedures.dirty->size > 0 &&
        COMPARE_AND_SWAP(&GD->clauses.cgc_active, FALSE, TRUE) )
@@ -2030,7 +2037,7 @@ pl_garbage_collect_clauses(void)
 		     def->impl.clauses.erased_clauses > 0 )
 		{ size_t del = cleanDefinition(def,
 					       ddi->oldest_generation,
-					       start_gen);
+					       start_gen, &rc);
 
 		  removed += del;
 		  DEBUG(MSG_CGC_PRED,
@@ -2072,7 +2079,7 @@ pl_garbage_collect_clauses(void)
     GD->clauses.cgc_active = FALSE;
   }
 
-  return TRUE;
+  return rc;
 }
 
 #endif /*O_CLAUSEGC*/

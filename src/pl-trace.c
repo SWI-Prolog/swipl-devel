@@ -2452,8 +2452,13 @@ delayEvents(void)
 }
 
 
+/* Returns
+     -1: an exception occurred while sending events
+      N: number of events sent
+*/
+
 int
-sendDelayedEvents(void)
+sendDelayedEvents(int noerror)
 { GET_LD
   int sent = 0;
 
@@ -2465,18 +2470,21 @@ sendDelayedEvents(void)
     LD->event.buffered = NULL;
 
     for(; count-- > 0; dev++)
-    { switch(dev->type)
-      { case PLEV_BREAK:
-	case PLEV_NOBREAK:
-	  callEventHook(dev->type, dev->value.pc.clause, dev->value.pc.offset);
-	  sent++;
-	  break;
-	case PLEV_ERASED_CLAUSE:
-	  callEventHook(dev->type, dev->value.clause.clause);
-	  sent++;
-	  break;
-	default:
-	  assert(0);
+    { if ( noerror )
+      { switch(dev->type)
+	{ case PLEV_BREAK:
+	  case PLEV_NOBREAK:
+	    noerror = callEventHook(dev->type,
+				    dev->value.pc.clause, dev->value.pc.offset);
+	    sent++;
+	    break;
+	  case PLEV_ERASED_CLAUSE:
+	    noerror = callEventHook(dev->type, dev->value.clause.clause);
+	    sent++;
+	    break;
+	  default:
+	    assert(0);
+	}
       }
     }
 
@@ -2484,7 +2492,7 @@ sendDelayedEvents(void)
     free(b);
   }
 
-  return sent;
+  return noerror ? sent	: -1;
 }
 
 
@@ -2492,126 +2500,143 @@ int
 PL_call_event_hook(pl_event_type ev, ...)
 { if ( PROCEDURE_event_hook1->definition->impl.any &&
        GD->cleaning != CLN_DATA )
-  { GET_LD
-    wakeup_state wstate;
+  { va_list args;
     int rc;
-    va_list args;
-    term_t arg;
-
-    if ( LD->event.delay_nesting )
-    { va_start(args, ev);
-      delayEvent(ev, args);
-      va_end(args);
-      return TRUE;
-    }
-
-    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-      return FALSE;
-    arg = PL_new_term_ref();
 
     va_start(args, ev);
-    switch(ev)
-    { case PLEV_ABORT:
-      { rc = PL_unify_atom(arg, ATOM_abort);
-	break;
-      }
-      case PLEV_ERASED_CLAUSE:
-      {	Clause cl = va_arg(args, Clause);	/* object erased */
-	term_t dbref = PL_new_term_ref();
-
-	rc = (  PL_unify_clref(dbref, cl) &&
-		PL_unify_term(arg,
-			      PL_FUNCTOR, FUNCTOR_erased1,
-			        PL_TERM, dbref)
-	     );
-	break;
-      }
-      case PLEV_ERASED_RECORD:
-      {	RecordRef r = va_arg(args, RecordRef);	/* object erased */
-	term_t dbref = PL_new_term_ref();
-
-	rc = (  PL_unify_recref(dbref, r) &&
-		PL_unify_term(arg,
-			      PL_FUNCTOR, FUNCTOR_erased1,
-			        PL_TERM, dbref)
-	     );
-	break;
-      }
-      case PLEV_DEBUGGING:
-      { int dbg = va_arg(args, int);
-
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_debugging1,
-			     PL_ATOM, dbg ? ATOM_true : ATOM_false);
-	break;
-      }
-      case PLEV_TRACING:
-      { int trc = va_arg(args, int);
-
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_tracing1,
-			     PL_ATOM, trc ? ATOM_true : ATOM_false);
-	break;
-      }
-      case PLEV_BREAK:
-      case PLEV_NOBREAK:
-      { Clause clause = va_arg(args, Clause);
-	int offset = va_arg(args, int);
-	term_t cref = PL_new_term_ref();
-
-
-	rc = ( PL_unify_clref(cref, clause) &&
-	       PL_unify_term(arg,
-			     PL_FUNCTOR, FUNCTOR_break3,
-			       PL_TERM, cref,
-			       PL_INT, offset,
-			       PL_ATOM, ev == PLEV_BREAK ? ATOM_true
-						         : ATOM_false)
-	     );
-	break;
-      }
-      case PLEV_FRAMEFINISHED:
-      { LocalFrame fr = va_arg(args, LocalFrame);
-	term_t ref = PL_new_term_ref();
-
-	PL_put_frame(ref, fr);
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_frame_finished1,
-			     PL_TERM, ref);
-	break;
-      }
-#ifdef O_PLMT
-      case PL_EV_THREADFINISHED:
-      { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
-	term_t id;
-
-	rc = ( (id = PL_new_term_ref()) &&
-	       unify_thread_id(id, info) &&
-	       PL_unify_term(arg,
-			     PL_FUNCTOR_CHARS, "thread_finished", 1,
-			       PL_TERM, id)
-	     );
-
-	break;
-      }
-#endif
-      default:
-	rc = warning("callEventHook(): unknown event: %d", ev);
-        goto out;
-    }
-
-    if ( rc )
-      rc = PL_call_predicate(MODULE_user, PL_Q_NODEBUG,
-			     PROCEDURE_event_hook1, arg);
-
-  out:
-    restoreWakeup(&wstate PASS_LD);
+    rc = PL_call_event_hook_va(ev, args);
     va_end(args);
 
     return rc;
   }
 
   return TRUE;
+}
+
+
+/* Returns FALSE iff there is an exception inside the execution of the
+ * hook
+ */
+
+int
+PL_call_event_hook_va(pl_event_type ev, va_list args)
+{ GET_LD
+  wakeup_state wstate;
+  int rc;
+  term_t arg;
+
+  if ( LD->event.delay_nesting )
+  { delayEvent(ev, args);
+    return TRUE;
+  }
+
+  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+    return FALSE;
+  arg = PL_new_term_ref();
+
+  switch(ev)
+  { case PLEV_ABORT:
+    { rc = PL_unify_atom(arg, ATOM_abort);
+      break;
+    }
+    case PLEV_ERASED_CLAUSE:
+    { Clause cl = va_arg(args, Clause);		/* object erased */
+      term_t dbref = PL_new_term_ref();
+
+      rc = (  PL_unify_clref(dbref, cl) &&
+	      PL_unify_term(arg,
+			    PL_FUNCTOR, FUNCTOR_erased1,
+			      PL_TERM, dbref)
+	   );
+      break;
+    }
+    case PLEV_ERASED_RECORD:
+    { RecordRef r = va_arg(args, RecordRef);	/* object erased */
+      term_t dbref = PL_new_term_ref();
+
+      rc = (  PL_unify_recref(dbref, r) &&
+	      PL_unify_term(arg,
+			    PL_FUNCTOR, FUNCTOR_erased1,
+			      PL_TERM, dbref)
+	   );
+      break;
+    }
+    case PLEV_DEBUGGING:
+    { int dbg = va_arg(args, int);
+
+      rc = PL_unify_term(arg,
+			 PL_FUNCTOR, FUNCTOR_debugging1,
+			   PL_ATOM, dbg ? ATOM_true : ATOM_false);
+      break;
+    }
+    case PLEV_TRACING:
+    { int trc = va_arg(args, int);
+
+      rc = PL_unify_term(arg,
+			 PL_FUNCTOR, FUNCTOR_tracing1,
+			   PL_ATOM, trc ? ATOM_true : ATOM_false);
+      break;
+    }
+    case PLEV_BREAK:
+    case PLEV_NOBREAK:
+    { Clause clause = va_arg(args, Clause);
+      int offset = va_arg(args, int);
+      term_t cref = PL_new_term_ref();
+
+
+      rc = ( PL_unify_clref(cref, clause) &&
+	     PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_break3,
+			     PL_TERM, cref,
+			     PL_INT, offset,
+			     PL_ATOM, ev == PLEV_BREAK ? ATOM_true
+						       : ATOM_false)
+	   );
+      break;
+    }
+    case PLEV_FRAMEFINISHED:
+    { LocalFrame fr = va_arg(args, LocalFrame);
+      term_t ref = PL_new_term_ref();
+
+      PL_put_frame(ref, fr);
+      rc = PL_unify_term(arg,
+			 PL_FUNCTOR, FUNCTOR_frame_finished1,
+			   PL_TERM, ref);
+      break;
+    }
+#ifdef O_PLMT
+    case PL_EV_THREADFINISHED:
+    { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
+      term_t id;
+
+      rc = ( (id = PL_new_term_ref()) &&
+	     unify_thread_id(id, info) &&
+	     PL_unify_term(arg,
+			   PL_FUNCTOR_CHARS, "thread_finished", 1,
+			     PL_TERM, id)
+	   );
+
+      break;
+    }
+#endif
+    default:
+      rc = warning("callEventHook(): unknown event: %d", ev);
+      goto out;
+  }
+
+  if ( rc )
+  { rc = PL_call_predicate(MODULE_user, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
+			   PROCEDURE_event_hook1, arg);
+    if ( !rc && PL_exception(0) )
+      set(&wstate, WAKEUP_STATE_SKIP_EXCEPTION);
+    else
+      rc = TRUE;				/* only FALSE on error */
+  }
+
+out:
+  restoreWakeup(&wstate PASS_LD);
+
+  return rc;
 }
 
 #endif /*O_DEBUGGER*/

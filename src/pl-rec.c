@@ -2262,8 +2262,9 @@ PRED_IMPL("erase", 1, erase, 0)
     return retractClauseDefinition(def, clause);
   } else
   { RecordRef r = ptr;
+    int rc;
 
-    callEventHook(PLEV_ERASED_RECORD, r);
+    rc = callEventHook(PLEV_ERASED_RECORD, r);
 
     LOCK();
     l = r->list;
@@ -2274,7 +2275,7 @@ PRED_IMPL("erase", 1, erase, 0)
     { remove_record(r);
     }
     UNLOCK();
-    return TRUE;
+    return rc;
   }
 }
 

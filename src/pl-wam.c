@@ -664,7 +664,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 }
 
 
-static void
+static int
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 { if ( true(fr, FR_CLEANUP) )
   { size_t fref = consTermRef(fr);
@@ -672,7 +672,7 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
     fr = (LocalFrame)valTermRef(fref);
   }
 
-  callEventHook(PLEV_FRAMEFINISHED, fr);
+  return callEventHook(PLEV_FRAMEFINISHED, fr);
 }
 
 

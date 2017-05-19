@@ -467,4 +467,23 @@ next_global_generation(void)
 }
 #endif /*ATOMIC_GENERATION_HACK*/
 
+static inline int WUNUSED
+callEventHook(pl_event_type ev, ...)
+{
+#ifdef O_DEBUGGER
+  if ( PROCEDURE_event_hook1->definition->impl.any )
+  { va_list args;
+    int rc;
+
+    va_start(args, ev);
+    rc = PL_call_event_hook_va(ev, args);
+    va_end(args);
+
+    return rc;
+  }
+#endif
+
+  return TRUE;
+}
+
 #endif /*PL_INLINE_H_INCLUDED*/

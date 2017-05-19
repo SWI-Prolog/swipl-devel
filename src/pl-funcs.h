@@ -169,7 +169,7 @@ COMMON(int)		unify_definition(Module ctx, term_t head, Definition def,
 					 term_t thehead, int flags);
 COMMON(code)		replacedBreak(Code PC);
 COMMON(code)		replacedBreakUnlocked(Code PC);
-COMMON(void)		clearBreakPointsClause(Clause clause);
+COMMON(int)		clearBreakPointsClause(Clause clause) WUNUSED;
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 COMMON(void)		vm_list(Code code);
 COMMON(Module)		clauseBodyContext(const Clause cl);
@@ -641,9 +641,10 @@ COMMON(word)		pl_leash(term_t old, term_t new);
 COMMON(word)		pl_visible(term_t old, term_t new);
 COMMON(word)		pl_debuglevel(term_t old, term_t new);
 COMMON(word)		pl_prolog_current_frame(term_t fr);
-COMMON(int)		PL_call_event_hook(pl_event_type ev, ...);
+COMMON(int)		PL_call_event_hook(pl_event_type ev, ...) WUNUSED;
+COMMON(int)		PL_call_event_hook_va(pl_event_type ev, va_list args);
 COMMON(int)		delayEvents(void);
-COMMON(int)		sendDelayedEvents(void);
+COMMON(int)		sendDelayedEvents(int noerror) WUNUSED;
 COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
 COMMON(void)		PL_put_choice(term_t t, Choice ch);
 
