@@ -3990,6 +3990,44 @@ copy_exception(term_t ex, term_t bin ARG_LD)
 }
 
 
+typedef enum except_class
+{ EXCEPT_NONE = 0,			/* no exception */
+  EXCEPT_OTHER,				/* any other exception */
+  EXCEPT_ERROR,				/* ISO error(Formal,Context) */
+  EXCEPT_RESOURCE,			/* ISO error(resource_error(_), _) */
+  EXCEPT_TIMEOUT,			/* time_limit_exceeded */
+  EXCEPT_ABORT				/* '$aborted' */
+} except_class;
+
+
+static except_class
+classify_exception(term_t exception ARG_LD)
+{ Word p = valTermRef(exception);
+
+  deRef(p);
+  if ( isVar(*p) )
+  { return EXCEPT_NONE;
+  } else if ( isAtom(*p) )
+  { if ( *p == ATOM_aborted )
+      return EXCEPT_ABORT;
+    if ( *p == ATOM_time_limit_exceeded )
+      return EXCEPT_TIMEOUT;
+  } else if ( hasFunctor(*p, FUNCTOR_error2) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+
+    if ( isAtom(*p) )
+    { if ( *p == ATOM_resource_error )
+	return EXCEPT_RESOURCE;
+    }
+
+    return EXCEPT_ERROR;
+  }
+
+  return EXCEPT_OTHER;
+}
+
+
 int
 PL_raise_exception(term_t exception)
 { GET_LD
@@ -4001,10 +4039,15 @@ PL_raise_exception(term_t exception)
 
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
-  { setVar(*valTermRef(exception_bin));
-    copy_exception(exception, exception_bin PASS_LD);
-    if ( !PL_is_atom(exception_bin) )
-      freezeGlobal(PASS_LD1);
+  { except_class co = classify_exception(exception_bin PASS_LD);
+    except_class cn = classify_exception(exception     PASS_LD);
+
+    if ( cn >= co )
+    { setVar(*valTermRef(exception_bin));
+      copy_exception(exception, exception_bin PASS_LD);
+      if ( !PL_is_atom(exception_bin) )
+	freezeGlobal(PASS_LD1);
+    }
   }
   exception_term = exception_bin;
 
