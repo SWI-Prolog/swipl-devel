@@ -742,8 +742,10 @@ initSignals(void)
   /* We do need alerting to make thread signals work while the */
   /* system is blocked in a system call. Can be controlled with --sigalert=N */
 
+#ifdef SIG_ALERT
   if ( GD->signals.sig_alert )
     PL_signal(GD->signals.sig_alert|PL_SIGNOFRAME, alert_handler);
+#endif
 
   /* these signals are not related to Unix signals and can thus */
   /* be enabled always */
