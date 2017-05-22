@@ -3540,7 +3540,8 @@ only way to get these environments together in one process image. Java
 VMs, however, are by nature multithreaded and appear to do
 signal handling (software interrupts).
 
-On Unix systems, SWI-Prolog uses two signals:
+On Unix systems, SWI-Prolog installs handlers for the following
+signals:
 
 \begin{description}
     \item[SIGUSR2] has an empty signal handler.   This signal is
@@ -3549,20 +3550,41 @@ On Unix systems, SWI-Prolog uses two signals:
     with \const{EINTR}, which gives them the opportunity to react
     to thread-signals.
 
+    In some cases the embedded system and SWI-Prolog may both use
+    \const{SIGUSR2} without conflict. If the embedded system redefines
+    \const{SIGUSR2} with a handler that runs quickly and no harm is
+    done in the embedded system due to spurious wakeup when initiated
+    from Prolog, there is no problem.  If SWI-Prolog is initialised
+    \emph{after} the embedded system it will call the handler set by
+    the embedded system and the same conditions as above apply.
+    SWI-Prolog's handler is a simple function only chaining a possibly
+    previously registered handler.  SWI-Prolog can handle spurious
+    \const{SIGUSR2} signals.
+
     \item[SIGINT] is used by the top level to activate the tracer
     (typically bound to control-C).  The first control-C posts a
     request for	starting the tracer in a safe, synchronous fashion.
     If control-C is hit again before the safe route is executed,
     it prompts the user whether or not a forced interrupt is
     desired.
+
+    \item[SIGTERM, SIGABRT and SIGQUIT] are caught to cleanup before
+    killing the process again using the same signal.
+
+    \item[SIGSEGV, SIGILL, SIGBUS, SIGFPE and SIGSYS] are caught by
+    to print a backtrace before killing the process again using
+    the same signal.
+
+    \item[SIGHUP] is caught and causes the process to exit with status 2
+    after cleanup.
 \end{description}
 
-The \cmdlineoption{--nosignals} option can be used to inhibit processing
-of \const{SIGINT}. The handling of \const{SIGUSR2} is vital for dealing
-with blocking system call in threads. If the way SWI-Prolog uses this
-signal conflicts with other applications, signal handling of either
-component must be modified. The SWI-Prolog signals are defined in
-\file{pl-thread.h} of the source distribution.
+The \cmdlineoption{--nosignals} option can be used to inhibit all signal
+processing except for \const{SIGUSR2}. The handling of \const{SIGUSR2}
+is vital for dealing with blocking system call in threads. The used
+signal may be changed using the \cmdlineoption{--sigalert=NUM} option or
+disabled using \verb$--sigalert=0$.
+
 
 
 \section{Linking embedded applications using swipl-ld}	\label{sec:plld}
