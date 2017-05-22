@@ -2080,18 +2080,20 @@ the current limit does not change the effective limit. See also
 call_with_depth_limit/3 and call_with_time_limit/2.
 
     \predicate{setup_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
-Calls \exam{(once(Setup), Goal)}.  If \arg{Setup} succeeds, \arg{Cleanup} will be
-called exactly once after \arg{Goal} is finished: either on failure,
-deterministic success, commit, or an exception. The execution of
-\arg{Setup} is protected from asynchronous interrupts like
+Calls \exam{(once(Setup), Goal)}. If \arg{Setup} succeeds, \arg{Cleanup}
+will be called exactly once after \arg{Goal} is finished: either on
+failure, deterministic success, commit, or an exception. The execution
+of \arg{Setup} is protected from asynchronous interrupts like
 call_with_time_limit/2 (package clib) or thread_signal/2. In most uses,
 \arg{Setup} will perform temporary side-effects required by \arg{Goal}
 that are finally undone by \arg{Cleanup}.
 
 Success or failure of \arg{Cleanup} is ignored, and choice points it
 created are destroyed (as once/1). If \arg{Cleanup} throws an exception,
-this is executed as normal.\bug{During the execution of \arg{Cleanup},
-garbage collection and stack-shifts are disabled.}
+this is executed as normal while it was not triggered as the result of
+an exception the exception is propagated as normal. If \arg{Cleanup} was
+triggered by an exception the rules are described in
+\secref{urgentexceptions}
 
 Typically, this predicate is used to cleanup permanent data storage
 required to execute \arg{Goal}, close file descriptors, etc. The example
@@ -2239,7 +2241,9 @@ the thrown exception term, and \arg{Recover} is called as in call/1.
 
 The overhead of calling a goal through catch/3 is comparable to
 call/1.  Recovery from an exception is much slower, especially if the
-exception term is large due to the copying thereof.
+exception term is large due to the copying thereof or is decorated with
+a stack trace using, e.g., the library \pllib{prolog_stack} based on the
+prolog_exception_hook/4 hook predicate to rewrite exceptions.
 
     \predicate[ISO]{throw}{1}{+Exception}
 Raise an exception. The system looks for the innermost catch/3
@@ -2273,6 +2277,61 @@ If an exception is raised in a call-back from C (see \chapref{foreign})
 and not caught in the same call-back, PL_next_solution() fails and
 the exception context can be retrieved using PL_exception().
 \end{description}
+
+
+\subsection{Urgency of exceptions}
+\label{sec:urgentexceptions}
+
+Under some conditions an exception may be raised as a result of handling
+another exception.  Below are some of the scenarios:
+
+\begin{itemize}
+    \item
+The predicate setup_call_cleanup/3 calls the cleanup handler as a result
+of an exception and the cleanup handler raises an exception itself. In
+this case the most \jargon{urgent} exception is propagated into the
+environment.
+    \item
+Raising an exception fails due to lack of resources, e.g., lack of
+stack space to store the exception. In this case a resource exception is
+raised. If that too fails the system tries to raise a resource exception
+without (stack) context. If that fails it will raise the exception
+\verb$'$aborted'$, also raised by abort/0. As no stack space is required
+for processing this atomic exception, this should always succeed.
+    \item
+Certain \jargon{callback} operations raise an exception while processing
+another exception or a previous callback already raised an exception
+before there was an opportunity to process the exception. The most
+notable \jargon{callback} subject to this issue are prolog_event_hook/1
+(supporting e.g., the graphical debugger), prolog_exception_hook/4
+(rewriting exceptions, e.g., by adding context) and print_message/2 when
+called from the core facilities such as the internal debugger. As with
+setup_call_cleanup/3, the most \jargon{urgent} exception is preserved.
+\end{itemize}
+
+If the most urgent exceptions needs to be preserved, the following
+exception ordering is respected, preserving the topmost matching error.
+
+\begin{enumerate}
+    \item \verb$'$aborted'$ (abort/0)
+    \item \verb$time_limit_exceeded$ (call_with_time_limit/2)
+    \item \term{error}{\term{resource_error}{Resource}, Context}
+    \item \term{error}{Formal, Context}
+    \item All other exceptions
+\end{enumerate}
+
+\paragraph{Note} The above resolution is not described in the ISO
+standard. This is not needed either because ISO does not specify
+setup_call_cleanup/3 and does not deal with environment management
+issues such as (debugger) callbacks. Neither does it define abort/0 or
+timeout handling. Notably abort/0 and timeout are non-logical control
+structures. They are implemented on top of exceptions as they need to
+unwind the stack, destroy choice points and call cleanup handlers in
+the same way.  However, the pending exception should not be replaced
+by another one before the intended handler is reached.  The abort
+exception cannot be caught, something which is achieved by wrapping
+the \jargon{cleanup handler} of catch/3 into
+\term{call_cleanup}{Handler, abort}.
 
 
 \subsection{Debugging and exceptions}
@@ -8776,14 +8835,14 @@ thread.
     \predicate{abort}{0}{}
 Abort the Prolog execution and restart the top level. If the
 \argoption{-t}{toplevel} command line option is given, this goal is
-started instead of entering the default interactive top level.
+restarted instead of entering the default interactive top level.
 
 Aborting is implemented by throwing the reserved exception
 \verb='$aborted'=. This exception can be caught using catch/3, but the
 recovery goal is wrapped with a predicate that prunes the choice points
 of the recovery goal (i.e., as once/1) and re-throws the exception.
 This is illustrated in the example below, where we press control-C
-and `a'.
+and `a'.  See also \secref{urgentexceptions}.
 
 \begin{code}
 ?- catch((repeat,fail), E, true).
