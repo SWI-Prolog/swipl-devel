@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -704,7 +704,12 @@ with EINTR and thus make them interruptable for thread-signals.
 #ifdef SIG_ALERT
 static void
 alert_handler(int sig)
-{ (void)sig;
+{ SigHandler sh = &GD->signals.handlers[sig-1];
+
+  if ( sh->saved_handler &&
+       sh->saved_handler != SIG_IGN &&
+       sh->saved_handler != SIG_DFL )
+    (*sh->saved_handler)(sig);
 }
 #endif
 
@@ -929,7 +934,7 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
 
   if ( old )
   { memset(old, 0, sizeof(*old));
-    old->sa_cfunction   = sh->handler;
+    old->sa_cfunction = sh->handler;
     old->sa_predicate = sh->predicate;
     old->sa_flags     = sh->flags;
   }
