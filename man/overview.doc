@@ -1357,6 +1357,10 @@ search result satisfies the conditions. Default is 10 seconds, which
 typically avoids most repetitive searches for (library) files during
 compilation. Setting this value to 0 (zero) disables the cache.
 
+    \prologflagitem{functional_notation}{bool}{rw}
+If \const{true} (default) the functional notation ./2 is expanded. If false,
+./2 can be used for other purposes. This flag must be set on a per-module basis.
+
     \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
 garbage collection, nor stack shifts will take place, even not on

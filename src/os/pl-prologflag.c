@@ -1375,6 +1375,7 @@ initPrologFlags(void)
 		ALLOW_VARNAME_FUNCTOR);
   setPrologFlag("allow_dot_in_atom", FT_BOOL, FALSE,
 		PLFLAG_DOT_IN_ATOM);
+  setPrologFlag("functional_notation", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
   setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
