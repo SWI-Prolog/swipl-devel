@@ -6877,9 +6877,15 @@ list_first_rest([L|Ls], L, Ls).
 %
 % Analogous to compare/3, with finite domain variables A and B.
 %
-% This predicate allows you to make several predicates over integers
-% deterministic while preserving their generality and completeness.
-% For example:
+% Think of zcompare/3 as _reifying_ an arithmetic comparison of two
+% integers. This means that we can explicitly reason about the
+% different cases _within_ our programs. As in compare/3, the atoms
+% =|<|=, =|>|= and =|=|= denote the different cases of the
+% trichotomy. In contrast to compare/3 though, zcompare/3 works
+% correctly for _all modes_, also if only a subset of the arguments is
+% instantiated. This allows you to make several predicates over
+% integers deterministic while preserving their generality and
+% completeness.  For example:
 %
 % ==
 % n_factorial(N, F) :-
@@ -6892,17 +6898,19 @@ list_first_rest([L|Ls], L, Ls).
 %         n_factorial(N1, F0).
 % ==
 %
-% This version is deterministic if the first argument is instantiated,
-% because first argument indexing can distinguish the two different
-% clauses:
+% This version of n_factorial/2 is deterministic if the first argument
+% is instantiated, because argument indexing can distinguish the
+% different clauses that reflect the possible and admissible outcomes
+% of a comparison of `N` against 0. Example:
 %
 % ==
 % ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
 % ==
 %
-% The predicate can still be used in all directions, including the
-% most general query:
+% Since there is no clause for =|<|=, the predicate automatically
+% _fails_ if `N` is less than 0. The predicate can still be used in
+% all directions, including the most general query:
 %
 % ==
 % ?- n_factorial(N, F).
@@ -6911,6 +6919,16 @@ list_first_rest([L|Ls], L, Ls).
 % N = F, F = 1 ;
 % N = F, F = 2 .
 % ==
+%
+% In this case, all clauses are tried on backtracking, and zcompare/3
+% ensures that the respective ordering between N and 0 holds in each
+% case.
+%
+% The truth value of a comparison can also be reified with (#<==>)/2
+% in combination with one of the [_arithmetic
+% constraints_](<#clpfd-arith-constraints>). See
+% [reification](<#clpfd-reification>). However, zcompare/3 lets you
+% more conveniently distinguish the cases.
 
 zcompare(Order, A, B) :-
         (   nonvar(Order) ->
