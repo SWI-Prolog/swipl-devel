@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -45,7 +45,8 @@ typedef struct hash_hints
 static int		bestHash(Word av, Definition def,
 				 float minbest, struct bit_vector *tried,
 				 hash_hints *hints);
-static ClauseIndex	hashDefinition(Definition def, int arg, hash_hints *h);
+static ClauseIndex	hashDefinition(Definition def, unsigned short *arg,
+				       hash_hints *h);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
 static void		setClauseChoice(ClauseChoice chp, ClauseRef cref,
@@ -307,9 +308,13 @@ first_clause_guarded(Word argv, LocalFrame fr,
 	if ( (best=bestHash(argv, def,
 			    best_index->speedup, best_index->tried_better,
 			    &hints)) >= 0 )
-	{ DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best+1));
+	{ unsigned short ha[MAX_MULTI_INDEX];
+	  DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best+1));
 
-	  if ( (ci=hashDefinition(def, best+1, &hints)) )
+	  ha[0] = best+1;
+	  ha[1] = 0;
+
+	  if ( (ci=hashDefinition(def, ha, &hints)) )
 	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
 	    assert(chp->key);
 	    best_index = ci;
@@ -335,7 +340,12 @@ first_clause_guarded(Word argv, LocalFrame fr,
 
 
   if ( (best=bestHash(argv, def, 0.0, NULL, &hints)) >= 0 )
-  { if ( (ci=hashDefinition(def, best+1, &hints)) )
+  { unsigned short ha[4];
+
+    ha[0] = best+1;
+    ha[1] = 0;
+
+    if ( (ci=hashDefinition(def, ha, &hints)) )
     { int hi;
 
       chp->key = indexKeyFromArgv(ci, argv PASS_LD);
@@ -411,8 +421,20 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
 		 *	   HASH SUPPORT		*
 		 *******************************/
 
+static void
+canonicalHap(unsigned short *hap)
+{ int i;
+
+  for(i=0; i<MAX_MULTI_INDEX; i++)
+  { if ( !hap[i] )
+    { for(; i<MAX_MULTI_INDEX; i++)
+	hap[i] = 0;
+    }
+  }
+}
+
 static ClauseIndex
-newClauseIndexTable(int arg, hash_hints *hints)
+newClauseIndexTable(unsigned short *hap, hash_hints *hints)
 { ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   unsigned int m = 4;
   size_t bytes;
@@ -422,8 +444,10 @@ newClauseIndexTable(int arg, hash_hints *hints)
   hints->buckets = m;
   bytes = sizeof(struct clause_bucket) * hints->buckets;
 
+  canonicalHap(hap);
+
   memset(ci, 0, sizeof(*ci));
-  ci->args[0] = (unsigned short)arg;
+  memcpy(ci->args, hap, sizeof(ci->args));
   ci->buckets = hints->buckets;
   ci->is_list = hints->list;
   ci->speedup = hints->speedup;
@@ -1207,7 +1231,7 @@ the new index to the indexes of the predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseIndex
-hashDefinition(Definition def, int arg, hash_hints *hints)
+hashDefinition(Definition def, unsigned short *hap, hash_hints *hints)
 { GET_LD
   ClauseRef cref;
   ClauseIndex ci, old;
@@ -1220,7 +1244,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   for(;;)
   { ClauseRef first, last;
 
-    ci = newClauseIndexTable(arg, hints);
+    ci = newClauseIndexTable(hap, hints);
 
     acquire_def(def);
     first = def->impl.clauses.first_clause;
@@ -1244,7 +1268,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   ci->resize_below = ci->size/4;
 
   for(old=def->impl.clauses.clause_indexes; old; old=old->next)
-  { if ( old->args[0] == arg )
+  { if ( memcmp(old->args, hap, sizeof(old->args)) == 0 )
       break;
   }
 
@@ -1252,7 +1276,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   { ClauseIndex conc;
 
     for(conc=def->impl.clauses.clause_indexes; conc; conc=conc->next)
-    { if ( conc->args[0] == arg )
+    { if ( memcmp(conc->args, hap, sizeof(conc->args)) == 0 )
       { UNLOCKDEF(def);
 	unallocClauseIndexTable(ci);
 	return conc;

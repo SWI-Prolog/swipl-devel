@@ -1319,7 +1319,7 @@ struct clause_bucket
   unsigned int	dirty;			/* # of garbage clauses */
 };
 
-#define MAX_MULTI_INDEX 1
+#define MAX_MULTI_INDEX 4
 
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
