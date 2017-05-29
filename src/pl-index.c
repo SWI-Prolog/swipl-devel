@@ -243,8 +243,24 @@ setClauseChoice(ClauseChoice chp, ClauseRef cref, gen_t generation ARG_LD)
 
 
 static inline word
+murmur_key(void *ptr, size_t n)
+{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
+  if ( !k ) k = 1;
+  return k;
+}
+
+
+static inline word
 indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
-{ return indexOfWord(argv[ci->args[0]-1] PASS_LD);
+{ word key[MAX_MULTI_INDEX];
+  int  harg;
+
+  for(harg=0; ci->args[harg]; harg++)
+  { if ( !(key[harg] = indexOfWord(argv[ci->args[harg]-1] PASS_LD)) )
+      return 0;
+  }
+
+  return murmur_key(key, sizeof(word)*harg);
 }
 
 
@@ -1023,10 +1039,20 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 static inline word
 indexKeyFromClause(ClauseIndex ci, Clause cl)
-{ word key;
+{ word key[MAX_MULTI_INDEX];			/* TBD: special case for 1 arg */
+  Code PC    = cl->codes;
+  int  pcarg = 1;
+  int  harg;
 
-  argKey(cl->codes, ci->args[0]-1, &key);
-  return key;
+  for(harg=0; ci->args[harg]; harg++)
+  { if ( ci->args[harg] > pcarg )
+      PC = skipArgs(PC, ci->args[harg]-pcarg);
+    pcarg = ci->args[harg];
+    if ( !argKey(PC, 0, &key[harg]) )
+      return 0;
+  }
+
+  return murmur_key(key, sizeof(word)*harg);
 }
 
 
