@@ -1518,13 +1518,14 @@ assess_scan_clauses(Definition def,
   ClauseRef cref;
   size_t clause_count = 0;
   int i;
-  bit_vector *ai = new_bitvector(def->functor->arity); /* TBD: avoid malloc() */
+  bit_vector *ai = alloca(sizeof_bitvector(def->functor->arity));
   int ac = 0;
   int kp[MAXARITY+1];				/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
   word keys[MAXARITY];
 
+  init_bitvector(ai, def->functor->arity);
   for(i=0, a=assessments; i<assess_count; i++, a++)
   { int j;
 
@@ -1575,8 +1576,6 @@ assess_scan_clauses(Definition def,
 
     clause_count++;
   }
-
-  free_bitvector(ai);
 
   return clause_count;
 }
