@@ -1545,7 +1545,7 @@ assess_scan_clauses(Definition def,
   for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause cl = cref->value.clause;
     Code pc = cref->value.clause->codes;
-    int carg = 1;
+    int carg = 0;
 
     if ( true(cl, CL_ERASED) )
       continue;
