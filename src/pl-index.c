@@ -1518,6 +1518,29 @@ assess_scan_clauses(Definition def,
   ClauseRef cref;
   size_t clause_count = 0;
   int i;
+  bit_vector *ai = new_bitvector(def->functor->arity); /* TBD: avoid malloc() */
+  int ac = 0;
+  int kp[MAXARITY];				/* key-arg positions */
+  int nk = 0;					/* number of key args */
+  int *kpp;
+  word keys[MAXARITY];
+
+  for(i=0, a=assessments; i<assess_count; i++, a++)
+  { int j;
+
+    for(j=0; a->args[j]; j++)
+    { if ( !true_bit(ai, a->args[j]-1) )
+      { set_bit(ai, a->args[j]-1);
+	ac++;
+      }
+    }
+  }
+
+  for(i=0; i<def->functor->arity; i++)
+  { if ( true_bit(ai, i) )
+      kp[nk++] = i;
+  }
+  kp[nk] = -1;
 
   for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause cl = cref->value.clause;
@@ -1527,22 +1550,31 @@ assess_scan_clauses(Definition def,
     if ( true(cl, CL_ERASED) )
       continue;
 
-    for(i=0, a=assessments; i<assess_count; i++, a++)
-    { word k;
-
-      if ( carg < a->args[0] )
-      { pc = skipArgs(pc, a->args[0]-carg);
-	carg = a->args[0];
-      }
-      if ( argKey(pc, 0, &k) )
-      { assessAddKey(a, k);
-      } else
-      { a->var_count++;
-      }
+    for(kpp=kp; kpp[0] >= 0; kpp++)
+    { pc = skipArgs(pc, kpp[0]-carg);
+      carg = kpp[0];
+      argKey(pc, 0, &keys[kpp[0]]);
     }
 
+    for(i=0, a=assessments; i<assess_count; i++, a++)
+    { word key[MAX_MULTI_INDEX];
+      int  harg;
+
+      for(harg=0; a->args[harg]; harg++)
+      { if ( !(key[harg] = keys[a->args[harg]-1]) )
+	{ a->var_count++;
+	  goto next_assessment;
+	}
+      }
+
+      assessAddKey(a, murmur_key(key, sizeof(word)*harg));
+    next_assessment:
+      ;
+    }
     clause_count++;
   }
+
+  free_bitvector(ai);
 
   return clause_count;
 }
