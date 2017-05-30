@@ -37,7 +37,8 @@
 #include <math.h>
 
 typedef struct hash_hints
-{ unsigned int	buckets;		/* # buckets to use */
+{ unsigned short args[MAX_MULTI_INDEX];	/* Hash these arguments */
+  unsigned int	buckets;		/* # buckets to use */
   float		speedup;		/* Expected speedup */
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
@@ -45,8 +46,7 @@ typedef struct hash_hints
 static int		bestHash(Word av, Definition def,
 				 float minbest, struct bit_vector *tried,
 				 hash_hints *hints ARG_LD);
-static ClauseIndex	hashDefinition(Definition def, unsigned short *arg,
-				       hash_hints *h);
+static ClauseIndex	hashDefinition(Definition def, hash_hints *h);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
 static void		setClauseChoice(ClauseChoice chp, ClauseRef cref,
@@ -324,13 +324,10 @@ first_clause_guarded(Word argv, LocalFrame fr,
 	if ( (best=bestHash(argv, def,
 			    best_index->speedup, best_index->tried_better,
 			    &hints PASS_LD)) )
-	{ unsigned short ha[MAX_MULTI_INDEX];
-	  DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best));
+	{ DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
+				  iargsName(hints.args)));
 
-	  ha[0] = best;
-	  ha[1] = 0;
-
-	  if ( (ci=hashDefinition(def, ha, &hints)) )
+	  if ( (ci=hashDefinition(def, &hints)) )
 	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
 	    assert(chp->key);
 	    best_index = ci;
@@ -356,12 +353,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
 
 
   if ( (best=bestHash(argv, def, 0.0, NULL, &hints PASS_LD)) )
-  { unsigned short ha[4];
-
-    ha[0] = best;
-    ha[1] = 0;
-
-    if ( (ci=hashDefinition(def, ha, &hints)) )
+  { if ( (ci=hashDefinition(def, &hints)) )
     { int hi;
 
       chp->key = indexKeyFromArgv(ci, argv PASS_LD);
@@ -1257,7 +1249,7 @@ the new index to the indexes of the predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseIndex
-hashDefinition(Definition def, unsigned short *hap, hash_hints *hints)
+hashDefinition(Definition def, hash_hints *hints)
 { GET_LD
   ClauseRef cref;
   ClauseIndex ci, old;
@@ -1270,7 +1262,7 @@ hashDefinition(Definition def, unsigned short *hap, hash_hints *hints)
   for(;;)
   { ClauseRef first, last;
 
-    ci = newClauseIndexTable(hap, hints);
+    ci = newClauseIndexTable(hints->args, hints);
 
     acquire_def(def);
     first = def->impl.clauses.first_clause;
@@ -1294,7 +1286,7 @@ hashDefinition(Definition def, unsigned short *hap, hash_hints *hints)
   ci->resize_below = ci->size/4;
 
   for(old=def->impl.clauses.clause_indexes; old; old=old->next)
-  { if ( memcmp(old->args, hap, sizeof(old->args)) == 0 )
+  { if ( memcmp(old->args, hints->args, sizeof(old->args)) == 0 )
       break;
   }
 
@@ -1302,7 +1294,7 @@ hashDefinition(Definition def, unsigned short *hap, hash_hints *hints)
   { ClauseIndex conc;
 
     for(conc=def->impl.clauses.clause_indexes; conc; conc=conc->next)
-    { if ( memcmp(conc->args, hap, sizeof(conc->args)) == 0 )
+    { if ( memcmp(conc->args, hints->args, sizeof(conc->args)) == 0 )
       { UNLOCKDEF(def);
 	unallocClauseIndexTable(ci);
 	return conc;
@@ -1631,7 +1623,6 @@ bestHash(Word av, Definition def,
   size_t clause_count;
   hash_assessment *a;
   hash_assessment *best = NULL;		/* argument */
-  int best_arg = 0;
 
   if ( !def->tried_index )
     def->tried_index = new_bitvector(def->functor->arity);
@@ -1690,7 +1681,7 @@ bestHash(Word av, Definition def,
   }
 
   if ( best )
-  { best_arg       = best->args[0];
+  { memcpy(hints->args, best->args, sizeof(best->args));
     hints->buckets = (unsigned int)best->size;
     hints->speedup = best->speedup;
     hints->list    = best->list;
@@ -1699,7 +1690,7 @@ bestHash(Word av, Definition def,
   if ( assessments != assess_buf )
     free(assessments);
 
-  return best_arg;
+  return best != NULL;
 }
 
 
