@@ -1511,6 +1511,20 @@ assessAddKey(hash_assessment *a, word key)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Given an array of assessments, scan through   all  (life) clauses of the
+predicate and add their key to the assessment.  To do this:
+
+  - We first find all arguments involved in some index
+  - Then, for each clause
+    - We decompile adding placing the key of each argument involved in
+      some index in the array `keys`.
+    - Walk through the assessments and update them.
+
+TBD: if some argument has too many   non-indexable  values we could stop
+trying.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static size_t
 assess_scan_clauses(Definition def,
 		    hash_assessment *assessments, int assess_count)
