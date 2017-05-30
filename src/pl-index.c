@@ -323,11 +323,11 @@ first_clause_guarded(Word argv, LocalFrame fr,
 
 	if ( (best=bestHash(argv, def,
 			    best_index->speedup, best_index->tried_better,
-			    &hints PASS_LD)) >= 0 )
+			    &hints PASS_LD)) )
 	{ unsigned short ha[MAX_MULTI_INDEX];
-	  DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best+1));
+	  DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best));
 
-	  ha[0] = best+1;
+	  ha[0] = best;
 	  ha[1] = 0;
 
 	  if ( (ci=hashDefinition(def, ha, &hints)) )
@@ -355,10 +355,10 @@ first_clause_guarded(Word argv, LocalFrame fr,
   }
 
 
-  if ( (best=bestHash(argv, def, 0.0, NULL, &hints PASS_LD)) >= 0 )
+  if ( (best=bestHash(argv, def, 0.0, NULL, &hints PASS_LD)) )
   { unsigned short ha[4];
 
-    ha[0] = best+1;
+    ha[0] = best;
     ha[1] = 0;
 
     if ( (ci=hashDefinition(def, ha, &hints)) )
@@ -1528,6 +1528,8 @@ expected speedup is
 	       #clauses * #distinct
 	----------------------------------
 	#clauses - #var + #var * #distinct
+
+@returns 1-based argument holding best hash
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define ASSESS_BUFSIZE 10
@@ -1546,7 +1548,7 @@ bestHash(Word av, Definition def,
   int clause_count = 0;
   hash_assessment *a;
   hash_assessment *best = NULL;		/* argument */
-  int best_arg = -1;
+  int best_arg = 0;
 
   if ( !def->tried_index )
     def->tried_index = new_bitvector(def->functor->arity);
@@ -1576,7 +1578,7 @@ bestHash(Word av, Definition def,
   }
 
   if ( assess_count == 0 )
-    return -1;				/* no luck */
+    return 0;				/* no luck */
 
 					/* Step 2: assess */
   for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
@@ -1628,7 +1630,7 @@ bestHash(Word av, Definition def,
   }
 
   if ( best )
-  { best_arg       = best->arg;
+  { best_arg       = best->arg+1;
     hints->buckets = (unsigned int)best->size;
     hints->speedup = best->speedup;
     hints->list    = best->list;
