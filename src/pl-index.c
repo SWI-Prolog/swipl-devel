@@ -1511,6 +1511,43 @@ assessAddKey(hash_assessment *a, word key)
 }
 
 
+static size_t
+assess_scan_clauses(Definition def,
+		    hash_assessment *assessments, int assess_count)
+{ hash_assessment *a;
+  ClauseRef cref;
+  size_t clause_count = 0;
+  int i;
+
+  for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
+  { Clause cl = cref->value.clause;
+    Code pc = cref->value.clause->codes;
+    int carg = 1;
+
+    if ( true(cl, CL_ERASED) )
+      continue;
+
+    for(i=0, a=assessments; i<assess_count; i++, a++)
+    { word k;
+
+      if ( carg < a->args[0] )
+      { pc = skipArgs(pc, a->args[0]-carg);
+	carg = a->args[0];
+      }
+      if ( argKey(pc, 0, &k) )
+      { assessAddKey(a, k);
+      } else
+      { a->var_count++;
+      }
+    }
+
+    clause_count++;
+  }
+
+  return clause_count;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bestHash() finds the best argument for creating a hash, given a concrete
 argument vector and a list of  clauses.   To  do  so, it establishes the
@@ -1540,12 +1577,11 @@ bestHash(Word av, Definition def,
 	 float minbest, struct bit_vector *tried,
 	 hash_hints *hints ARG_LD)
 { int i;
-  ClauseRef cref;
   hash_assessment assess_buf[ASSESS_BUFSIZE];
   hash_assessment *assessments = assess_buf;
   int assess_allocated = ASSESS_BUFSIZE;
   int assess_count = 0;
-  int clause_count = 0;
+  size_t clause_count;
   hash_assessment *a;
   hash_assessment *best = NULL;		/* argument */
   int best_arg = 0;
@@ -1581,30 +1617,7 @@ bestHash(Word av, Definition def,
     return 0;				/* no luck */
 
 					/* Step 2: assess */
-  for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
-  { Clause cl = cref->value.clause;
-    Code pc = cref->value.clause->codes;
-    int carg = 1;
-
-    if ( true(cl, CL_ERASED) )
-      continue;
-
-    for(i=0, a=assessments; i<assess_count; i++, a++)
-    { word k;
-
-      if ( carg < a->args[0] )
-      { pc = skipArgs(pc, a->args[0]-carg);
-	carg = a->args[0];
-      }
-      if ( argKey(pc, 0, &k) )
-      { assessAddKey(a, k);
-      } else
-      { a->var_count++;
-      }
-    }
-
-    clause_count++;
-  }
+  clause_count = assess_scan_clauses(def, assessments, assess_count);
 
   for(i=0, a=assessments; i<assess_count; i++, a++)
   {
