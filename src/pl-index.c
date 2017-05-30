@@ -44,7 +44,7 @@ typedef struct hash_hints
 
 static int		bestHash(Word av, Definition def,
 				 float minbest, struct bit_vector *tried,
-				 hash_hints *hints);
+				 hash_hints *hints ARG_LD);
 static ClauseIndex	hashDefinition(Definition def, unsigned short *arg,
 				       hash_hints *h);
 static void		replaceIndex(Definition def,
@@ -323,7 +323,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
 
 	if ( (best=bestHash(argv, def,
 			    best_index->speedup, best_index->tried_better,
-			    &hints)) >= 0 )
+			    &hints PASS_LD)) >= 0 )
 	{ unsigned short ha[MAX_MULTI_INDEX];
 	  DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best+1));
 
@@ -355,7 +355,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
   }
 
 
-  if ( (best=bestHash(argv, def, 0.0, NULL, &hints)) >= 0 )
+  if ( (best=bestHash(argv, def, 0.0, NULL, &hints PASS_LD)) >= 0 )
   { unsigned short ha[4];
 
     ha[0] = best+1;
@@ -1536,9 +1536,8 @@ expected speedup is
 static int
 bestHash(Word av, Definition def,
 	 float minbest, struct bit_vector *tried,
-	 hash_hints *hints)
-{ GET_LD
-  int i;
+	 hash_hints *hints ARG_LD)
+{ int i;
   ClauseRef cref;
   hash_assessment assess_buf[ASSESS_BUFSIZE];
   hash_assessment *assessments = assess_buf;
