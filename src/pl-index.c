@@ -264,6 +264,31 @@ indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
 }
 
 
+#ifdef O_DEBUG
+static char *
+iargsName(const unsigned short args[MAX_MULTI_INDEX], char *buf)
+{ static char sbuf[64];
+  char *s;
+  int i;
+
+  if ( !buf )
+    buf = sbuf;
+
+  s = buf;
+  *s++ = '<';
+  for(i=0; args[i]; i++)
+  { if ( i > 0 )
+      *s++ = ' ';
+    Ssprintf(s, "%d", args[i]);
+    s += strlen(s);
+  }
+  *s++ = '>';
+  *s = EOS;
+
+  return buf;
+}
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 firstClause() finds the first applicable   clause  and leave information
 for finding the next clause in chp.
@@ -309,8 +334,8 @@ first_clause_guarded(Word argv, LocalFrame fr,
       if ( def->impl.clauses.number_of_clauses > 10 &&
 	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
       { DEBUG(MSG_JIT,
-	      Sdprintf("Poor index in arg %d of %s (try to find better)\n",
-		       best_index->args[0], predicateName(def)));
+	      Sdprintf("Poor index %s of %s (trying to find better)\n",
+		       iargsName(best_index->args, NULL), predicateName(def)));
 
 	if ( !best_index->tried_better )
 	{ best_index->tried_better = new_bitvector(def->functor->arity);
@@ -325,7 +350,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
 			    best_index->speedup, best_index->tried_better,
 			    &hints PASS_LD)) )
 	{ DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
-				  iargsName(hints.args)));
+				  iargsName(hints.args, NULL)));
 
 	  if ( (ci=hashDefinition(def, &hints)) )
 	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
@@ -1255,8 +1280,9 @@ hashDefinition(Definition def, hash_hints *hints)
   ClauseIndex ci, old;
   ClauseIndex *cip;
 
-  DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
-			  predicateName(def), arg, hints->buckets,
+  DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %s, %d) (%s)\n",
+			  predicateName(def),
+			  iargsName(hints->args, NULL), hints->buckets,
 			  hints->list ? "lists" : "clauses"));
 
   for(;;)
