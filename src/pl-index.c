@@ -1394,6 +1394,9 @@ Even without secondary indices, lists can be   profitable  if a rare key
 and a popular key collide on the same hash-bucket.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define ASSESS_BUFSIZE 10
+#define MIN_SPEEDUP    1.5
+
 typedef struct key_asm
 { word		key;
   uintptr_t	count;
@@ -1411,6 +1414,68 @@ typedef struct hash_assessment
   size_t	space;			/* Space indication */
   key_asm      *keys;			/* tmp key-set */
 } hash_assessment;
+
+
+typedef struct assessment_set
+{ hash_assessment *assessments;
+  int		  count;
+  int		  allocated;
+  hash_assessment buf[ASSESS_BUFSIZE];
+} assessment_set;
+
+
+static void
+init_assessment_set(assessment_set *as)
+{ as->assessments = as->buf;
+  as->count	  = 0;
+  as->allocated   = ASSESS_BUFSIZE;
+}
+
+static void
+free_assessment_set(assessment_set *as)
+{ if ( as->assessments != as->buf )
+    free(as->assessments);
+}
+
+static hash_assessment *			/* TBD: resource error */
+alloc_assessment(assessment_set *as, int i)
+{ hash_assessment *a;
+
+  if ( as->count >= as->allocated )
+  { size_t newbytes = sizeof(*as->assessments)*2*as->allocated;
+
+    if ( as->assessments == as->buf )
+    { as->assessments = malloc(newbytes);
+      memcpy(as->assessments, as->buf, sizeof(as->buf));
+    } else
+    { as->assessments = realloc(as->assessments, newbytes);
+    }
+    as->allocated *= 2;
+  }
+
+  a = &as->assessments[as->count++];
+  memset(a, 0, sizeof(*a));
+  a->args[0] = i;
+
+  return a;
+}
+
+
+static int
+best_hash_assessment(const void *p1, const void *p2)
+{ const hash_assessment *a1 = p1;
+  const hash_assessment *a2 = p2;
+
+  return a1->speedup - a2->speedup > 0 ?  1 :
+	 a1->speedup - a2->speedup < 0 ? -1 : 0;
+}
+
+
+static void
+sort_assessments(assessment_set *aset)
+{ qsort(aset->assessments, aset->count, sizeof(*aset->assessments),
+	best_hash_assessment);
+}
 
 
 static int
@@ -1613,16 +1678,6 @@ assess_scan_clauses(Definition def,
 }
 
 
-static int
-best_hash_assessment(const void *p1, const void *p2)
-{ const hash_assessment *a1 = p1;
-  const hash_assessment *a2 = p2;
-
-  return a1->speedup - a2->speedup > 0 ?  1 :
-	 a1->speedup - a2->speedup < 0 ? -1 : 0;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bestHash() finds the best argument for creating a hash, given a concrete
 argument vector and a list of  clauses.   To  do  so, it establishes the
@@ -1644,24 +1699,20 @@ expected speedup is
 @returns 1-based argument holding best hash
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define ASSESS_BUFSIZE 10
-#define MIN_SPEEDUP 1.5
-
 static int
 bestHash(Word av, Definition def,
 	 float minbest, struct bit_vector *tried,
 	 hash_hints *hints ARG_LD)
 { int i;
-  hash_assessment assess_buf[ASSESS_BUFSIZE];
-  hash_assessment *assessments = assess_buf;
-  int assess_allocated = ASSESS_BUFSIZE;
-  int assess_count = 0;
+  assessment_set aset;
   size_t clause_count;
   hash_assessment *a;
   hash_assessment *best = NULL;		/* argument */
 
   if ( !def->tried_index )
     def->tried_index = new_bitvector(def->functor->arity);
+
+  init_assessment_set(&aset);
 
 					/* Step 1: allocate assessments */
   for(i=0; i<(int)def->functor->arity; i++)
@@ -1670,30 +1721,16 @@ bestHash(Word av, Definition def,
     if ( !true_bit(def->tried_index, i) &&	/* non-indexable */
 	 !(tried && true_bit(tried, i)) &&	/* already tried, not better */
 	 (k=indexOfWord(av[i] PASS_LD)) )
-    { if ( assess_count	>= assess_allocated )
-      { size_t newbytes = sizeof(*assessments)*2*assess_allocated;
-
-	if ( assessments == assess_buf )
-	{ assessments = malloc(newbytes);
-	  memcpy(assessments, assess_buf, sizeof(assess_buf));
-	} else
-	{ assessments = realloc(assessments, newbytes);
-	}
-	assess_allocated *= 2;
-      }
-      a = &assessments[assess_count++];
-      memset(a, 0, sizeof(*a));
-      a->args[0] = i+1;
-    }
+      a = alloc_assessment(&aset, i+1);
   }
 
-  if ( assess_count == 0 )
+  if ( aset.count == 0 )
     return 0;				/* no luck */
 
 					/* Step 2: assess */
-  clause_count = assess_scan_clauses(def, assessments, assess_count);
+  clause_count = assess_scan_clauses(def, aset.assessments, aset.count);
 
-  for(i=0, a=assessments; i<assess_count; i++, a++)
+  for(i=0, a=aset.assessments; i<aset.count; i++, a++)
   { if ( assess_remove_duplicates(a, clause_count) )
     { DEBUG(MSG_JIT,
 	    Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
@@ -1719,8 +1756,7 @@ bestHash(Word av, Definition def,
   if ( best && (float)clause_count/best->speedup > 3 )
   { Sdprintf("Not very good for %s\n", predicateName(def));
 
-    qsort(assessments, assess_count, sizeof(*assessments), best_hash_assessment);
-
+    sort_assessments(&aset);
   }
 
   if ( best )
@@ -1730,8 +1766,7 @@ bestHash(Word av, Definition def,
     hints->list    = best->list;
   }
 
-  if ( assessments != assess_buf )
-    free(assessments);
+  free_assessment_set(&aset);
 
   return best != NULL;
 }
