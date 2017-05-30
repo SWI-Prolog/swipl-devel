@@ -418,7 +418,7 @@ check:
 
 .PHONY: check-installation
 check-installation:
-		$(bindir)/$(PL)$(EXEEXT) -g check_installation,halt -t 'halt(1)'
+		$(bindir)/$(PL)$(EXEEXT) -f none -g check_installation,halt -t 'halt(1)'
 
 .PHONY: ln-install install dv-install
 
