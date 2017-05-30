@@ -1542,11 +1542,6 @@ assess_scan_clauses(Definition def,
   }
   kp[nk] = -1;
 
-  Sdprintf("Assessing %s:", predicateName(def));
-  for(kpp=kp; kpp[0] >= 0; kpp++)
-    Sdprintf(" %d", kpp[0]);
-  Sdprintf("\n");
-
   for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause cl = cref->value.clause;
     Code pc = cref->value.clause->codes;
@@ -1556,7 +1551,8 @@ assess_scan_clauses(Definition def,
       continue;
 
     for(kpp=kp; kpp[0] >= 0; kpp++)
-    { pc = skipArgs(pc, kpp[0]-carg);
+    { if ( kpp[0] > carg )
+	pc = skipArgs(pc, kpp[0]-carg);
       carg = kpp[0];
       argKey(pc, 0, &keys[kpp[0]]);
     }
