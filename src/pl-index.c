@@ -1520,7 +1520,7 @@ assess_scan_clauses(Definition def,
   int i;
   bit_vector *ai = new_bitvector(def->functor->arity); /* TBD: avoid malloc() */
   int ac = 0;
-  int kp[MAXARITY];				/* key-arg positions */
+  int kp[MAXARITY+1];				/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
   word keys[MAXARITY];
@@ -1571,6 +1571,7 @@ assess_scan_clauses(Definition def,
     next_assessment:
       ;
     }
+
     clause_count++;
   }
 
