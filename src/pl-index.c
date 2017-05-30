@@ -1382,7 +1382,7 @@ typedef struct key_asm
 } key_asm;
 
 typedef struct hash_assessment
-{ int		arg;			/* arg for which to assess */
+{ unsigned short args[MAX_MULTI_INDEX]; /* arg for which to assess */
   size_t	allocated;		/* allocated size of array */
   size_t	size;			/* keys in array */
   size_t	var_count;		/* # non-indexable cases */
@@ -1573,7 +1573,7 @@ bestHash(Word av, Definition def,
       }
       a = &assessments[assess_count++];
       memset(a, 0, sizeof(*a));
-      a->arg = i;
+      a->args[0] = i+1;
     }
   }
 
@@ -1592,9 +1592,9 @@ bestHash(Word av, Definition def,
     for(i=0, a=assessments; i<assess_count; i++, a++)
     { word k;
 
-      if ( carg < a->arg )
-      { pc = skipArgs(pc, a->arg-carg);
-	carg = a->arg;
+      if ( carg < a->args[0] )
+      { pc = skipArgs(pc, a->args[0]-carg);
+	carg = a->args[0];
       }
       if ( argKey(pc, 0, &k) )
       { assessAddKey(a, k);
@@ -1611,18 +1611,18 @@ bestHash(Word av, Definition def,
     if ( assess_remove_duplicates(a, clause_count) )
     { DEBUG(MSG_JIT,
 	    Sdprintf("Assess arg %d of %s: speedup %f, stdev=%f\n",
-		     a->arg+1, predicateName(def), a->speedup, a->stdev));
+		     a->args[0], predicateName(def), a->speedup, a->stdev));
 
       if ( a->speedup > minbest )
       { best = a;
 	minbest = a->speedup;
       } else if ( tried )
-      { set_bit(tried, a->arg);
+      { set_bit(tried, a->args[0]-1);
       }
     } else
-    { set_bit(def->tried_index, a->arg);
+    { set_bit(def->tried_index, a->args[0]-1);
       DEBUG(MSG_JIT, Sdprintf("Assess arg %d of %s: not indexable\n",
-			      a->arg+1, predicateName(def)));
+			      a->args[0], predicateName(def)));
     }
 
     if ( a->keys )
@@ -1630,7 +1630,7 @@ bestHash(Word av, Definition def,
   }
 
   if ( best )
-  { best_arg       = best->arg+1;
+  { best_arg       = best->args[0];
     hints->buckets = (unsigned int)best->size;
     hints->speedup = best->speedup;
     hints->list    = best->list;
