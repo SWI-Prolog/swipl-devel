@@ -1613,6 +1613,16 @@ assess_scan_clauses(Definition def,
 }
 
 
+static int
+best_hash_assessment(const void *p1, const void *p2)
+{ const hash_assessment *a1 = p1;
+  const hash_assessment *a2 = p2;
+
+  return a1->speedup - a2->speedup > 0 ?  1 :
+	 a1->speedup - a2->speedup < 0 ? -1 : 0;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bestHash() finds the best argument for creating a hash, given a concrete
 argument vector and a list of  clauses.   To  do  so, it establishes the
@@ -1684,11 +1694,11 @@ bestHash(Word av, Definition def,
   clause_count = assess_scan_clauses(def, assessments, assess_count);
 
   for(i=0, a=assessments; i<assess_count; i++, a++)
-  {
-    if ( assess_remove_duplicates(a, clause_count) )
+  { if ( assess_remove_duplicates(a, clause_count) )
     { DEBUG(MSG_JIT,
-	    Sdprintf("Assess arg %d of %s: speedup %f, stdev=%f\n",
-		     a->args[0], predicateName(def), a->speedup, a->stdev));
+	    Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
+		     iargsName(a->args, NULL), predicateName(def),
+		     a->speedup, a->stdev));
 
       if ( a->speedup > minbest )
       { best = a;
@@ -1698,12 +1708,19 @@ bestHash(Word av, Definition def,
       }
     } else
     { set_bit(def->tried_index, a->args[0]-1);
-      DEBUG(MSG_JIT, Sdprintf("Assess arg %d of %s: not indexable\n",
-			      a->args[0], predicateName(def)));
+      DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
+			      iargsName(a->args, NULL), predicateName(def)));
     }
 
     if ( a->keys )
       free(a->keys);
+  }
+
+  if ( best && (float)clause_count/best->speedup > 3 )
+  { Sdprintf("Not very good for %s\n", predicateName(def));
+
+    qsort(assessments, assess_count, sizeof(*assessments), best_hash_assessment);
+
   }
 
   if ( best )
