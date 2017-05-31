@@ -1803,13 +1803,14 @@ bestHash(Word av, Definition def,
     { hash_assessment *nbest;
 
       for(m=1; m<ok; m++)
-      { ia[0] = m;
+      { ia[0] = m+1;
 	for(n=0; n<m; n++)
-	{ ia[1] = n;
+	{ ia[1] = n+1;
 	  alloc_assessment(&aset, ia);
 	}
       }
 
+      Sdprintf("Assessing %d new indexes\n", aset.count-ok);
       assess_scan_clauses(def, &aset.assessments[ok], aset.count-ok);
       nbest = best_assessment(&aset.assessments[ok], aset.count-ok, clause_count);
       if ( nbest && nbest->speedup > best->speedup*MIN_SPEEDUP )
