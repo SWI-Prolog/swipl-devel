@@ -312,14 +312,14 @@ first_clause_guarded(Word argv, LocalFrame fr,
   int best;
 
   if ( def->functor->arity == 0 )
-    goto simple;				/* TBD: alt supervisor */
+    goto simple;			/* TBD: alt supervisor */
 
   if ( def->impl.clauses.clause_indexes )
   { float speedup = 0.0;
     ClauseIndex best_index = NULL;
 
     for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-    { if ( ci->speedup > speedup )
+    { if ( ci->speedup > speedup )	/* TBD: if near perfect we can stop */
       { word k;
 
 	if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
@@ -377,7 +377,6 @@ first_clause_guarded(Word argv, LocalFrame fr,
   { chp->cref = def->impl.clauses.first_clause;
     return nextClauseArg1(chp, generation PASS_LD);
   }
-
 
   if ( (best=bestHash(argv, def, MIN_SPEEDUP, NULL, &hints PASS_LD)) )
   { if ( (ci=hashDefinition(def, &hints)) )
