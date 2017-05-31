@@ -1514,7 +1514,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   { if ( s->key != c )
     { if ( i++ > 0 && clause_count )
       { float A0 = A;
-	A = A+((float)o->count-A)/(float)i;
+	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
       }
       c = s->key;
@@ -1524,6 +1524,11 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
     } else
     { o->count += s->count;
     }
+  }
+  if ( i > 0 && clause_count )
+  { float A0 = A;
+    A = A+((float)o->count-A)/(float)i;
+    Q = Q+((float)o->count-A0)*((float)o->count-A);
   }
 
   a->size        = i;
