@@ -1842,18 +1842,38 @@ bestHash(Word av, Definition def,
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Index info is
 
-	Arg - hash(Buckets, Speedup, IsList)
+	[Arg1, Arg2, ...] - hash(Buckets, Speedup, IsList)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 unify_clause_index(term_t t, ClauseIndex ci)
-{ return PL_unify_term(t,
-		       PL_FUNCTOR, FUNCTOR_minus2,
-			 PL_INT, (int)ci->args[0],
-			 PL_FUNCTOR_CHARS, "hash", 3,
-			   PL_INT, (int)ci->buckets,
-			   PL_DOUBLE, (double)ci->speedup,
-		           PL_BOOL, ci->is_list);
+{ GET_LD
+  term_t args = PL_new_term_ref();
+  term_t tmp  = PL_new_term_ref();
+
+  if ( (args=PL_new_term_ref()) &&
+       (tmp =PL_new_term_ref()) )
+  { int i;
+
+    PL_put_nil(args);
+    for(i=MAX_MULTI_INDEX-1; i>= 0; i--)
+    { if ( ci->args[i] )
+      { if ( !PL_put_integer(tmp, ci->args[i]) ||
+	     !PL_cons_list(args, tmp, args) )
+	  return FALSE;
+      }
+    }
+
+    return PL_unify_term(t,
+			 PL_FUNCTOR, FUNCTOR_minus2,
+			   PL_TERM, args,
+			   PL_FUNCTOR_CHARS, "hash", 3,
+			     PL_INT, (int)ci->buckets,
+			     PL_DOUBLE, (double)ci->speedup,
+			     PL_BOOL, ci->is_list);
+  }
+
+  return FALSE;
 }
 
 bool
