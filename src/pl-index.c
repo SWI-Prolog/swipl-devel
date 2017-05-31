@@ -277,14 +277,14 @@ iargsName(const unsigned short args[MAX_MULTI_INDEX], char *buf)
     buf = sbuf;
 
   s = buf;
-  *s++ = '<';
+  *s++ = '[';
   for(i=0; args[i]; i++)
   { if ( i > 0 )
-      *s++ = ' ';
+      *s++ = ',';
     Ssprintf(s, "%d", args[i]);
     s += strlen(s);
   }
-  *s++ = '>';
+  *s++ = ']';
   *s = EOS;
 
   return buf;
