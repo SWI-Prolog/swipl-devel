@@ -1400,7 +1400,7 @@ and a popular key collide on the same hash-bucket.
 
 typedef struct key_asm
 { word		key;
-  uintptr_t	count;
+  size_t	count;
 } key_asm;
 
 typedef struct hash_assessment
