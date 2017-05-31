@@ -343,7 +343,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
 	{ best_index->tried_better = new_bitvector(def->functor->arity);
 
 	  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-	  { if ( indexKeyFromArgv(ci, argv PASS_LD) )
+	  { if ( ci->args[1] == 0 && indexKeyFromArgv(ci, argv PASS_LD) )
 	      set_bit(best_index->tried_better, ci->args[0]-1);
 	  }
 	}
@@ -1787,9 +1787,6 @@ bestHash(Word av, Definition def,
   if ( best && (float)clause_count/best->speedup > 3 )
   { int ok, m, n;
 
-    Sdprintf("%s: %zd clauses, index %s speedup = %f\n",
-	     predicateName(def), clause_count, iargsName(best->args, NULL),
-	     best->speedup);
     sort_assessments(&aset);
     best = aset.assessments;		/* first is now best */
 
@@ -1797,10 +1794,13 @@ bestHash(Word av, Definition def,
       ;
     aset.count = ok;			/* discard others */
 
-    Sdprintf("%d promising arguments\n", ok);
-
     if ( ok >= 2 )
     { hash_assessment *nbest;
+
+      DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index %s: speedup = %f"
+			      "; %d promising arguments\n",
+			      predicateName(def), clause_count,
+			      iargsName(best->args, NULL), best->speedup, ok));
 
       for(m=1; m<ok; m++)
       { ia[1] = m+1;
@@ -1810,13 +1810,12 @@ bestHash(Word av, Definition def,
 	}
       }
 
-      Sdprintf("Assessing %d new indexes\n", aset.count-ok);
       assess_scan_clauses(def, &aset.assessments[ok], aset.count-ok);
       nbest = best_assessment(&aset.assessments[ok], aset.count-ok, clause_count);
       if ( nbest && nbest->speedup > best->speedup*MIN_SPEEDUP )
-      { Sdprintf("%s: using index %s, speedup = %f\n",
-		 predicateName(def), iargsName(nbest->args, NULL),
-		 nbest->speedup);
+      { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
+				predicateName(def), iargsName(nbest->args, NULL),
+				nbest->speedup));
 	best = nbest;
       }
     }
