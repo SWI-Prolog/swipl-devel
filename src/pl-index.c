@@ -36,6 +36,8 @@
 #include "pl-incl.h"
 #include <math.h>
 
+#define MIN_SPEEDUP    1.5
+
 typedef struct hash_hints
 { unsigned short args[MAX_MULTI_INDEX];	/* Hash these arguments */
   unsigned int	buckets;		/* # buckets to use */
@@ -377,7 +379,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
   }
 
 
-  if ( (best=bestHash(argv, def, 0.0, NULL, &hints PASS_LD)) )
+  if ( (best=bestHash(argv, def, MIN_SPEEDUP, NULL, &hints PASS_LD)) )
   { if ( (ci=hashDefinition(def, &hints)) )
     { int hi;
 
@@ -1395,7 +1397,6 @@ and a popular key collide on the same hash-bucket.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define ASSESS_BUFSIZE 10
-#define MIN_SPEEDUP    1.5
 
 typedef struct key_asm
 { word		key;
@@ -1438,7 +1439,7 @@ free_assessment_set(assessment_set *as)
 }
 
 static hash_assessment *			/* TBD: resource error */
-alloc_assessment(assessment_set *as, int i)
+alloc_assessment(assessment_set *as, unsigned short *ia)
 { hash_assessment *a;
 
   if ( as->count >= as->allocated )
@@ -1455,7 +1456,7 @@ alloc_assessment(assessment_set *as, int i)
 
   a = &as->assessments[as->count++];
   memset(a, 0, sizeof(*a));
-  a->args[0] = i;
+  memcpy(a->args, ia, sizeof(a->args));
 
   return a;
 }
@@ -1466,8 +1467,8 @@ best_hash_assessment(const void *p1, const void *p2)
 { const hash_assessment *a1 = p1;
   const hash_assessment *a2 = p2;
 
-  return a1->speedup - a2->speedup > 0 ?  1 :
-	 a1->speedup - a2->speedup < 0 ? -1 : 0;
+  return a1->speedup - a2->speedup > 0 ? -1 :
+	 a1->speedup - a2->speedup < 0 ?  1 : 0;
 }
 
 
@@ -1504,6 +1505,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   size_t i  = 0;
   float A=0.0, Q=0.0;
 
+  a->speedup = 0.0;
   if ( !a->keys )
     return FALSE;
 
@@ -1557,7 +1559,9 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 #endif
 
     if ( (float)a->var_count/(float)a->size > 0.1 )
+    { a->speedup = 0.0;
       return FALSE;			/* not indexable */
+    }
   }
 
   return TRUE;
@@ -1678,6 +1682,24 @@ assess_scan_clauses(Definition def,
 }
 
 
+static hash_assessment *
+best_assessment(hash_assessment *assessments, int count, size_t clause_count)
+{ int i;
+  hash_assessment *a, *best = NULL;
+  float minbest = MIN_SPEEDUP;
+
+  for(i=0, a=assessments; i<count; i++, a++)
+  { assess_remove_duplicates(a, clause_count);
+    if ( a->speedup > minbest )
+    { best = a;
+      minbest = a->speedup;
+    }
+  }
+
+  return best;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bestHash() finds the best argument for creating a hash, given a concrete
 argument vector and a list of  clauses.   To  do  so, it establishes the
@@ -1708,6 +1730,7 @@ bestHash(Word av, Definition def,
   size_t clause_count;
   hash_assessment *a;
   hash_assessment *best = NULL;		/* argument */
+  unsigned short ia[MAX_MULTI_INDEX] = {0};
 
   if ( !def->tried_index )
     def->tried_index = new_bitvector(def->functor->arity);
@@ -1721,7 +1744,9 @@ bestHash(Word av, Definition def,
     if ( !true_bit(def->tried_index, i) &&	/* non-indexable */
 	 !(tried && true_bit(tried, i)) &&	/* already tried, not better */
 	 (k=indexOfWord(av[i] PASS_LD)) )
-      a = alloc_assessment(&aset, i+1);
+    { ia[0] = i+1;
+      a = alloc_assessment(&aset, ia);
+    }
   }
 
   if ( aset.count == 0 )
@@ -1754,9 +1779,40 @@ bestHash(Word av, Definition def,
   }
 
   if ( best && (float)clause_count/best->speedup > 3 )
-  { Sdprintf("Not very good for %s\n", predicateName(def));
+  { int ok, m, n;
 
+    Sdprintf("%s: %zd clauses, index %s speedup = %f\n",
+	     predicateName(def), clause_count, iargsName(best->args, NULL),
+	     best->speedup);
     sort_assessments(&aset);
+    best = aset.assessments;		/* first is now best */
+
+    for(ok=0; ok<aset.count && aset.assessments[ok].speedup > 2.0; ok++)
+      ;
+    aset.count = ok;			/* discard others */
+
+    Sdprintf("%d promising arguments\n", ok);
+
+    if ( ok >= 2 )
+    { hash_assessment *nbest;
+
+      for(m=1; m<ok; m++)
+      { ia[0] = m;
+	for(n=0; n<m; n++)
+	{ ia[1] = n;
+	  alloc_assessment(&aset, ia);
+	}
+      }
+
+      assess_scan_clauses(def, &aset.assessments[ok], aset.count-ok);
+      nbest = best_assessment(&aset.assessments[ok], aset.count-ok, clause_count);
+      if ( nbest && nbest->speedup > best->speedup*MIN_SPEEDUP )
+      { Sdprintf("%s: using index %s, speedup = %f\n",
+		 predicateName(def), iargsName(nbest->args, NULL),
+		 nbest->speedup);
+	best = nbest;
+      }
+    }
   }
 
   if ( best )
