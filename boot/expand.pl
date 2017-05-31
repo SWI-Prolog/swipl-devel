@@ -469,6 +469,7 @@ expand_goal(A, P, A, P).
 
 '$expand_closure'(G0, P0, N, G, P) :-
     length(Ex, N),
+    mark_vars_non_fresh(Ex),
     extend_arg_pos(G0, P0, Ex, G1, P1),
     expand_goal(G1, P1, G2, P2),
     term_variables(G0, VL),
