@@ -1803,9 +1803,9 @@ bestHash(Word av, Definition def,
     { hash_assessment *nbest;
 
       for(m=1; m<ok; m++)
-      { ia[0] = m+1;
+      { ia[1] = m+1;
 	for(n=0; n<m; n++)
-	{ ia[1] = n+1;
+	{ ia[0] = n+1;
 	  alloc_assessment(&aset, ia);
 	}
       }
