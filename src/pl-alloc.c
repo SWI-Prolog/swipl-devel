@@ -213,7 +213,7 @@ free_lingering(linger_list **list)
 
   for(; c; c=n)
   { n = c->next;
-    (*n->unalloc)(n->object);
+    (*c->unalloc)(c->object);
     freeHeap(c, sizeof(*c));
   }
 }

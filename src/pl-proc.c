@@ -1455,10 +1455,12 @@ cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
 	DEBUG(MSG_PROC, left++);
       }
     }
-    if ( removed ) {
+    if ( removed )
       cleanClauseIndexes(def, active);
-      if ( marked == GEN_MAX )
-	unallocOldClauseIndexes(def);
+    if ( marked == GEN_MAX && def->lingering )
+    { free_lingering(&def->lingering);
+      if ( def->tried_index )
+	clear_bitvector(def->tried_index);
     }
     release_def(def);
 

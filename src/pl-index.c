@@ -910,36 +910,6 @@ cleanClauseIndex(Definition def, ClauseIndex ci, gen_t active)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unallocOldClauseIndexes() removed lingering clause indexes.  This can be
-done if nobody has a choice-point on this index.
-
-If we reclaim old  indexes,  there   apparently  have  been  significant
-changes to the predicate  and  therefore   we  also  delete  the `tried'
-bitvector to force reevaluation.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-unallocOldClauseIndexes(Definition def)
-{ if ( def->old_clause_indexes )
-  { ClauseIndexList li = def->old_clause_indexes;
-    ClauseIndexList next;
-
-    def->old_clause_indexes = NULL;
-
-    for(; li; li=next)
-    { next = li->next;
-
-      unallocClauseIndexTable(li->index);
-      freeHeap(li, sizeof(*li));
-    }
-
-    if ( def->tried_index )
-      clear_bitvector(def->tried_index);
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 cleanClauseIndexes() is called from cleanDefinition()   to remove clause
 references erased before generation `active` from the indexes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1358,10 +1328,14 @@ hashDefinition(Definition def, hash_hints *hints)
 
 /* Caller must have the predicate locked */
 
+static void
+unalloc_ci(void *p)
+{ unallocClauseIndexTable(p);
+}
+
 static void				/* definition must be locked */
 replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
 { ClauseIndex *cip;
-  ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
 
   for(cip=&def->impl.clauses.clause_indexes;
       *cip && *cip != old;
@@ -1381,9 +1355,7 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
   { *cip = old->next;
   }
 
-  c->index = old;
-  c->next = def->old_clause_indexes;
-  def->old_clause_indexes = c;
+  linger(&def->lingering, unalloc_ci, old);
 }
 
 
