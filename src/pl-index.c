@@ -254,15 +254,19 @@ murmur_key(void *ptr, size_t n)
 
 static inline word
 indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
-{ word key[MAX_MULTI_INDEX];
-  int  harg;
+{ if ( likely(ci->args[1] == 0) )
+  { return indexOfWord(argv[ci->args[0]-1] PASS_LD);
+  } else
+  { word key[MAX_MULTI_INDEX];
+    int  harg;
 
-  for(harg=0; ci->args[harg]; harg++)
-  { if ( !(key[harg] = indexOfWord(argv[ci->args[harg]-1] PASS_LD)) )
-      return 0;
+    for(harg=0; ci->args[harg]; harg++)
+    { if ( !(key[harg] = indexOfWord(argv[ci->args[harg]-1] PASS_LD)) )
+	return 0;
+    }
+
+    return murmur_key(key, sizeof(word)*harg);
   }
-
-  return murmur_key(key, sizeof(word)*harg);
 }
 
 
@@ -1057,20 +1061,32 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 static inline word
 indexKeyFromClause(ClauseIndex ci, Clause cl)
-{ word key[MAX_MULTI_INDEX];			/* TBD: special case for 1 arg */
-  Code PC    = cl->codes;
-  int  pcarg = 1;
-  int  harg;
+{ Code PC = cl->codes;
 
-  for(harg=0; ci->args[harg]; harg++)
-  { if ( ci->args[harg] > pcarg )
-      PC = skipArgs(PC, ci->args[harg]-pcarg);
-    pcarg = ci->args[harg];
-    if ( !argKey(PC, 0, &key[harg]) )
-      return 0;
+  if ( likely(ci->args[1] == 0) )
+  { int arg = ci->args[0] - 1;
+    word key;
+
+    if ( arg > 0 )
+      PC = skipArgs(PC, arg);
+    if ( argKey(PC, 0, &key) )
+      return key;
+    return 0;
+  } else
+  { word key[MAX_MULTI_INDEX];			/* TBD: special case for 1 arg */
+    int  pcarg = 1;
+    int  harg;
+
+    for(harg=0; ci->args[harg]; harg++)
+    { if ( ci->args[harg] > pcarg )
+	PC = skipArgs(PC, ci->args[harg]-pcarg);
+      pcarg = ci->args[harg];
+      if ( !argKey(PC, 0, &key[harg]) )
+	return 0;
+    }
+
+    return murmur_key(key, sizeof(word)*harg);
   }
-
-  return murmur_key(key, sizeof(word)*harg);
 }
 
 
