@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, VU University Amsterdam
+    Copyright (c)  2012-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,19 @@ COMMON(void) GC_linger(void *ptr);
 #define freeForeignState(ptr, size)		freeHeap(ptr, size)
 
 #endif /*HAVE_BOEHM_GC*/
+
+		 /*******************************
+		 *	      LINGER		*
+		 *******************************/
+
+typedef struct linger_list
+{ struct linger_list *next;		/* Next lingering object */
+  void		*object;		/* The lingering data */
+  void	       (*unalloc)(void* obj);   /* actually free the object */
+} linger_list;
+
+COMMON(void)	linger(linger_list** list, void (*unalloc)(void *), void *object);
+COMMON(void)	free_lingering(linger_list **list);
 
 
 		 /*******************************

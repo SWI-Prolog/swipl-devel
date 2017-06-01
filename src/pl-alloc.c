@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -183,6 +183,40 @@ freeHeap(void *mem, size_t n)
 
 #endif /*PL_ALLOC_DONE*/
 
+
+		 /*******************************
+		 *	 LINGERING OBJECTS	*
+		 *******************************/
+
+void
+linger(linger_list** list, void (*unalloc)(void *), void *object)
+{ linger_list *c = allocHeapOrHalt(sizeof(*c));
+  linger_list *o;
+
+  c->object  = object;
+  c->unalloc = unalloc;
+
+  do
+  { o = *list;
+    c->next = o;
+  } while( !COMPARE_AND_SWAP(list, o, c) );
+}
+
+void
+free_lingering(linger_list **list)
+{ linger_list *c, *n;
+
+  do
+  { if ( !(c = *list) )
+      return;
+  } while( !COMPARE_AND_SWAP(list, c, NULL) );
+
+  for(; c; c=n)
+  { n = c->next;
+    (*n->unalloc)(n->object);
+    freeHeap(c, sizeof(*c));
+  }
+}
 
 		/********************************
 		*             STACKS            *
