@@ -1432,7 +1432,7 @@ copyIndex(ClauseIndex *org, int extra)
   { ClauseIndex *ncipo;
     int i;
 
-    ncipo = ncip = allocHeapOrHalt(size*sizeof(*ncip)+1);
+    ncipo = ncip = allocHeapOrHalt((size+1)*sizeof(*ncip));
     if ( org )
     { ClauseIndex *cip;
 
