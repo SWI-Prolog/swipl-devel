@@ -459,17 +459,31 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
 		 *	   HASH SUPPORT		*
 		 *******************************/
 
+static int
+cmp_ushort(const void *p1, const void *p2)
+{ const unsigned short *u1 = p1;
+  const unsigned short *u2 = p2;
+
+  return *u1 < *u2 ? -1 : *u1 > *u2 ? 1 : 0;
+}
+
 static void
 canonicalHap(unsigned short *hap)
 { int i;
 
   for(i=0; i<MAX_MULTI_INDEX; i++)
   { if ( !hap[i] )
-    { for(; i<MAX_MULTI_INDEX; i++)
-	hap[i] = 0;
+    { int j;
+
+      for(j=i; j<MAX_MULTI_INDEX; j++)
+	hap[j] = 0;
+      break;
     }
   }
+
+  qsort(hap, i, sizeof(*hap), cmp_ushort);
 }
+
 
 static ClauseIndex
 newClauseIndexTable(unsigned short *hap, hash_hints *hints)
@@ -1444,6 +1458,7 @@ alloc_assessment(assessment_set *as, unsigned short *ia)
   a = &as->assessments[as->count++];
   memset(a, 0, sizeof(*a));
   memcpy(a->args, ia, sizeof(a->args));
+  canonicalHap(a->args);
 
   return a;
 }
