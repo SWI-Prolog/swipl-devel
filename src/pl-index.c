@@ -1790,9 +1790,9 @@ bestHash(Word av, Definition def,
 			      iargsName(best->args, NULL), best->speedup, ok));
 
       for(m=1; m<ok; m++)
-      { ia[1] = m+1;
+      { ia[1] = aset.assessments[m].args[0];
 	for(n=0; n<m; n++)
-	{ ia[0] = n+1;
+	{ ia[0] = aset.assessments[n].args[0];
 	  alloc_assessment(&aset, ia);
 	}
       }
