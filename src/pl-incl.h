@@ -1230,7 +1230,7 @@ struct clause
 typedef struct clause_list
 { ClauseRef	first_clause;		/* clause list of procedure */
   ClauseRef	last_clause;		/* last clause of list */
-  ClauseIndex	clause_indexes;		/* Hash index(es) */
+  ClauseIndex  *clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
   unsigned int	erased_clauses;		/* number of erased clauses in set */
   unsigned int	number_of_rules;	/* number of real rules */
@@ -1332,7 +1332,6 @@ struct clause_index
   unsigned	 incomplete : 1;	/* Not all clauses are in the index */
   float		 speedup;		/* Estimated speedup */
   struct bit_vector *tried_better;	/* We tried to access for better hash */
-  ClauseIndex	 next;			/* Next index */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 

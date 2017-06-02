@@ -199,6 +199,10 @@ COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
 COMMON(void)		deleteIncompleteIndexes(Definition def);
+COMMON(void)		deleteIndexes(Definition def, int isnew);
+COMMON(int)		checkClauseIndexSizes(Definition def, int nindexable);
+COMMON(void)		checkClauseIndexes(Definition def);
+COMMON(void)		listIndexGenerations(Definition def, gen_t gen);
 
 /* pl-dwim.c */
 COMMON(word)		pl_dwim_match(term_t a1, term_t a2, term_t mm);

@@ -277,18 +277,7 @@ resetProcedure(Procedure proc, bool isnew)
   def->impl.clauses.number_of_clauses = 0;
 
   if ( isnew )
-  { ClauseIndex ci;
-
-    if ( (ci=def->impl.clauses.clause_indexes) )
-    { ClauseIndex next;
-
-      def->impl.clauses.clause_indexes = NULL;
-      for (ci=def->impl.clauses.clause_indexes; ci; ci=next)
-      { next = ci->next;
-	unallocClauseIndexTable(ci);
-	def->impl.clauses.clause_indexes = NULL;
-      }
-    }
+  { deleteIndexes(def, TRUE);
     freeCodesDefinition(def, FALSE);
   } else
     freeCodesDefinition(def, TRUE);	/* carefully sets to S_VIRGIN */
@@ -2101,7 +2090,6 @@ pl_check_definition(term_t spec)
   int nclauses = 0;
   int nerased = 0;
   int nindexable = 0;
-  ClauseIndex ci;
   ClauseRef cref;
 
   if ( !get_procedure(spec, &proc, 0, GP_FIND) )
@@ -2129,11 +2117,7 @@ pl_check_definition(term_t spec)
     Sdprintf("%s has %d erased clauses, claims %d\n",
 	     predicateName(def), nerased, def->impl.clauses.erased_clauses);
 
-  for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
-  { if ( ci->size != nindexable )
-      Sdprintf("%s has inconsistent clause index->size",
-	      predicateName(def));
-  }
+  checkClauseIndexSizes(def, nindexable);
 
   if ( def->impl.clauses.number_of_clauses != nclauses )
     Sdprintf("%s has inconsistent number_of_clauses (%d, should be %d)",
@@ -3278,61 +3262,7 @@ listGenerations(Definition def)
   }
   release_def(def);
 
-  if ( def->impl.clauses.clause_indexes )
-  { ClauseIndex ci;
-
-    for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
-    { unsigned int i;
-
-      Sdprintf("\nHash %sindex for arg %d (%d dirty)\n",
-	       ci->is_list ? "list-" : "", ci->args[0], ci->dirty);
-
-      for(i=0; i<ci->buckets; i++)
-      { if ( !ci->entries[i].head &&
-	     !ci->entries[i].dirty )
-	  continue;
-
-	Sdprintf("\nEntries at i = %d, dirty = %d:\n",
-		 i, ci->entries[i].dirty);
-
-	acquire_def(def);
-	for(cref=ci->entries[i].head; cref; cref=cref->next)
-	{ if ( ci->is_list )
-	  { ClauseList cl = &cref->value.clauses;
-	    ClauseRef cr;
-
-	    Sdprintf("List count=%d, erased=%d (%s)\n",
-		     cl->number_of_clauses, cl->erased_clauses,
-		     keyName(cref->d.key));
-
-	    for(cr=cl->first_clause; cr; cr=cr->next)
-	    { Clause clause = cr->value.clause;
-
-	      Sdprintf("  %p: [%2d] %8u-%10u%s%s\n",
-		       clause,
-		       clauseNo(def, clause, 0),
-		       clause->generation.created,
-		       clause->generation.erased,
-		       true(clause, CL_ERASED) ? " erased" : "",
-		       visibleClause(clause, gen) ? " v" : " X");
-	    }
-	  } else
-	  { Clause clause = cref->value.clause;
-
-	    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
-		     clause,
-		     clauseNo(def, clause, 0),
-		     clause->generation.created,
-		     clause->generation.erased,
-		     true(clause, CL_ERASED) ? " erased" : "",
-		     visibleClause(clause, gen) ? " v " : " X ",
-		     keyName(cref->d.key));
-	  }
-	}
-	release_def(def);
-      }
-    }
-  }
+  listIndexGenerations(def, gen);
 }
 
 
@@ -3341,7 +3271,6 @@ checkDefinition(Definition def)
 { GET_LD
   unsigned int nc, indexed = 0;
   ClauseRef cref;
-  ClauseIndex ci;
   unsigned int erased = 0;
 
 						/* check basic clause list */
@@ -3362,55 +3291,7 @@ checkDefinition(Definition def)
   assert(nc == def->impl.clauses.number_of_clauses);
   assert(erased == def->impl.clauses.erased_clauses);
 
-						/* Check indexes */
-  for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
-  { unsigned int i;
-    ClauseBucket cb;
-    unsigned int ci_dirty = 0;		/* # dirty buckets */
-    unsigned int ci_size = 0;		/* # indexable values in table */
-
-    nc = 0;
-    for(i=0,cb=ci->entries; i<ci->buckets; i++,cb++)
-    { unsigned int dirty = 0;
-
-      acquire_def(def);
-      for(cref=cb->head; cref; cref=cref->next)
-      { if ( cref->d.key )
-	  ci_size++;
-
-	if ( ci->is_list )
-	{ ClauseList cl = &cref->value.clauses;
-	  ClauseRef cr;
-	  unsigned int erased = 0;
-	  unsigned int count = 0;
-
-	  for(cr=cl->first_clause; cr; cr=cr->next)
-	  { if ( true(cr->value.clause, CL_ERASED) )
-	      erased++;
-	    else
-	      count++;
-	  }
-	  assert(erased == cl->erased_clauses);
-	  assert(count  == cl->number_of_clauses);
-	  if ( erased )
-	    dirty++;
-	} else
-	{ Clause clause = cref->value.clause;
-
-	  if ( true(clause, CL_ERASED) )
-	    dirty++;
-	}
-      }
-      release_def(def);
-
-      assert(cb->dirty == dirty);
-      if ( cb->dirty )
-	ci_dirty++;
-    }
-
-    assert(ci->dirty == ci_dirty);
-    assert(ci->size  == ci_size);
-  }
+  checkClauseIndexes(def);
 }
 
 
