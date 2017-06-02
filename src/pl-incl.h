@@ -1336,11 +1336,6 @@ struct clause_index
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
-typedef struct clause_index_list
-{ ClauseIndex index;
-  struct clause_index_list *next;
-} clause_index_list, *ClauseIndexList;
-
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
 typedef struct local_definitions

@@ -168,7 +168,7 @@ this functor, in which case we can use   this or we don't. In the latter
 case we must still perform the traditional   search as clauses without a
 key may match.
 
-TBD: Keep a flag telling is whether there are non-indexable clauses.
+TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
