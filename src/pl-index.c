@@ -333,26 +333,20 @@ first_clause_guarded(Word argv, LocalFrame fr,
   if ( def->functor->arity == 0 )
     goto simple;			/* TBD: alt supervisor */
 
-  if ( def->impl.clauses.clause_indexes )
-  { float speedup = 0.0;
-    ClauseIndex best_index = NULL;
+  if ( (cip=def->impl.clauses.clause_indexes) )
+  { ClauseIndex best_index = NULL;
 
-    if ( (cip=def->impl.clauses.clause_indexes) )
-    { for(; *cip; cip++)
-      { ClauseIndex ci = *cip;
+    for(; *cip; cip++)
+    { ClauseIndex ci = *cip;
+      word k;
 
-	if ( ISDEADCI(ci) )
-	  continue;
+      if ( ISDEADCI(ci) )
+	continue;
 
-	if ( ci->speedup > speedup )	/* TBD: if near perfect we can stop */
-	{ word k;
-
-	  if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
-	  { chp->key = k;
-	    speedup = ci->speedup;
-	    best_index = ci;
-	  }
-	}
+      if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
+      { best_index = ci;
+	chp->key = k;
+	break;
       }
     }
 
@@ -1419,6 +1413,110 @@ out:
 }
 
 
+static ClauseIndex *
+copyIndex(ClauseIndex *org, int extra)
+{ ClauseIndex *ncip;
+  int size = extra;
+
+  if ( org )
+  { ClauseIndex *cip;
+
+    for(cip=org; *cip; cip++)
+    { ClauseIndex ci = *cip;
+      if ( !ISDEADCI(ci) )
+	size++;
+    }
+  }
+
+  if ( size )
+  { ClauseIndex *ncipo;
+    int i;
+
+    ncipo = ncip = allocHeapOrHalt(size*sizeof(*ncip)+1);
+    if ( org )
+    { ClauseIndex *cip;
+
+      for(cip=org; *cip; cip++)
+      { ClauseIndex ci = *cip;
+	if ( !ISDEADCI(ci) )
+	  *ncipo++ = ci;
+      }
+    }
+    for(i=0; i<extra; i++)
+      *ncipo++ = DEAD_INDEX;
+    *ncipo = NULL;
+  } else
+    ncip = NULL;
+
+  return ncip;
+}
+
+
+static int
+cmp_indexes(const void *p1, const void *p2)
+{ const struct clause_index *ci1 = p1;
+  const struct clause_index *ci2 = p2;
+
+  if ( ISDEADCI(ci1) )
+  { if ( ISDEADCI(ci2) )
+      return 0;
+    return 1;
+  } else if ( ISDEADCI(ci2) )
+    return -1;
+
+  return ci1->speedup < ci2->speedup ?  1 :
+         ci1->speedup > ci2->speedup ? -1 : 0;
+}
+
+
+static void
+sortIndexes(ClauseIndex *cip)
+{ if ( cip )
+  { int i;
+
+    for(i=0; cip[i]; i++)
+      ;
+
+    qsort(cip, i, sizeof(*cip), cmp_indexes);
+  }
+}
+
+
+static int
+isSortedIndexes(ClauseIndex *cip)
+{ if ( cip )
+  { float speedup = (float)PLMAXINT;
+
+    for( ; *cip; cip++)
+    { ClauseIndex ci = *cip;
+
+      if ( ISDEADCI(ci) )
+	continue;
+      if ( speedup < ci->speedup )
+	return FALSE;
+      speedup = ci->speedup;
+    }
+  }
+
+  return TRUE;
+}
+
+
+static void
+unalloc_index_array(void *p)
+{ freeHeap(p, 0);
+}
+
+static void
+setIndexes(Definition def, ClauseIndex *cip)
+{ ClauseIndex *cipo = def->impl.clauses.clause_indexes;
+
+  def->impl.clauses.clause_indexes = cip;
+  if ( cipo )
+    linger(&def->lingering, unalloc_index_array, cipo);
+}
+
+
 /* Caller must have the predicate locked */
 
 static void
@@ -1428,12 +1526,9 @@ unalloc_ci(void *p)
 
 static void				/* definition must be locked */
 replaceIndex(Definition def, ClauseIndex *cip, ClauseIndex ci)
-{ ClauseIndex old;
+{ ClauseIndex old = *cip;
 
-  do
-  { old = *cip;
-  } while( !COMPARE_AND_SWAP(cip, old, ci) );
-
+  *cip = ci;
   DEBUG(MSG_JIT, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
 			  PL_thread_self(),
 			  predicateName(def),
@@ -1441,12 +1536,20 @@ replaceIndex(Definition def, ClauseIndex *cip, ClauseIndex ci)
 
   if ( !ISDEADCI(old) )
     linger(&def->lingering, unalloc_ci, old);
+
+  if ( !isSortedIndexes(def->impl.clauses.clause_indexes) )
+  { cip = copyIndex(def->impl.clauses.clause_indexes, 0);
+    sortIndexes(cip);
+    setIndexes(def, cip);
+  }
 }
+
 
 static void
 deleteIndexP(Definition def, ClauseIndex *cip)
 { replaceIndex(def, cip, DEAD_INDEX);
 }
+
 
 static void
 deleteIndex(Definition def, ClauseIndex ci)
@@ -1466,34 +1569,31 @@ deleteIndex(Definition def, ClauseIndex ci)
 
 
 static void
-unalloc_index_array(void *p)
-{ freeHeap(p, 0);
-}
-
-
-static void
 insertIndex(Definition def, ClauseIndex ci)
 { ClauseIndex *ocip;
 
   if ( (ocip=def->impl.clauses.clause_indexes) )
   { ClauseIndex *cip = ocip;
-    ClauseIndex *ncip, *ncipo;
+    ClauseIndex *ncip;
+    int dead = 0;
 
     for(; *cip; cip++)
     { if ( ISDEADCI(*cip) )
       { *cip = ci;
-	return;
+	if ( isSortedIndexes(ocip) )
+	  return;
+	*cip = DEAD_INDEX;
+	dead++;
       }
     }
 
-    ncipo = ncip = allocHeapOrHalt((cip-ocip+2)*sizeof(*cip));
-    for(cip=ocip; *cip; )
-      *ncipo++ = *cip++;
-    *ncipo++ = ci;
-    *ncipo   = NULL;
-
-    def->impl.clauses.clause_indexes = ncip;
-    linger(&def->lingering, unalloc_index_array, ocip);
+    ncip = copyIndex(ocip, 1);
+    for(cip=ncip; *cip; cip++)
+    { if ( ISDEADCI(*cip) )
+	*cip = ci;
+    }
+    sortIndexes(ncip);
+    setIndexes(def, ncip);
   } else
   { ClauseIndex *cip = allocHeapOrHalt(2*sizeof(*cip));
 
