@@ -1392,12 +1392,12 @@ hashDefinition(Definition def, hash_hints *hints)
 
   if ( (cip=def->impl.clauses.clause_indexes) )
   { for(; *cip; cip++)
-    { ClauseIndex ci = *cip;
+    { ClauseIndex cio = *cip;
 
-      if ( ISDEADCI(ci) )
+      if ( ISDEADCI(cio) )
 	continue;
 
-      if ( memcmp(ci->args, hints->args, sizeof(ci->args)) == 0 )
+      if ( memcmp(cio->args, hints->args, sizeof(ci->args)) == 0 )
       { replaceIndex(def, cip, ci);
 	goto out;
       }
@@ -1454,8 +1454,10 @@ copyIndex(ClauseIndex *org, int extra)
 
 static int
 cmp_indexes(const void *p1, const void *p2)
-{ const struct clause_index *ci1 = p1;
-  const struct clause_index *ci2 = p2;
+{ const ClauseIndex* const cip1 = p1;
+  const ClauseIndex* const cip2 = p2;
+  const ClauseIndex ci1 = *cip1;
+  const ClauseIndex ci2 = *cip2;
 
   if ( ISDEADCI(ci1) )
   { if ( ISDEADCI(ci2) )
