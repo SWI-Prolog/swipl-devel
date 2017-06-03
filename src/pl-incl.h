@@ -1335,6 +1335,13 @@ struct clause_index
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
+typedef struct arg_info
+{ float		speedup;		/* Computed speedup */
+  unsigned	ln_buckets : 5;		/* lg2(bucket count) */
+  unsigned	assessed   : 1;		/* Value was assessed */
+  unsigned	meta	   : 4;		/* Meta-argument info */
+} arg_info;
+
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
 typedef struct local_definitions
@@ -1360,6 +1367,7 @@ struct definition
   } impl;
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   meta_mask	meta_info;		/* meta-predicate info */
+  arg_info     *args;			/* Meta and indexing info */
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */

@@ -93,6 +93,8 @@ lookupProcedure(functor_t f, Module m)
   def->functor = valueFunctor(f);
   def->module  = m;
   def->shared  = 1;
+  def->args    = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
+  memset(def->args, 0, sizeof(arg_info)*def->functor->arity);
   resetProcedure(proc, TRUE);
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));
@@ -166,6 +168,7 @@ destroyDefinition(Definition def)
       free_bitvector(v);
     }
 
+    freeHeap(def->args, sizeof(arg_info)*def->functor->arity);
     removeClausesPredicate(def, 0, FALSE);
     DEBUG(MSG_CGC_PRED,
 	  Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
