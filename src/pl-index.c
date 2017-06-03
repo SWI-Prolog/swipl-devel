@@ -285,7 +285,7 @@ indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
 }
 
 
-#ifdef O_DEBUG
+#if defined(O_DEBUG) || defined(O_MAINTENANCE)
 static char *
 iargsName(const unsigned short args[MAX_MULTI_INDEX], char *buf)
 { static char sbuf[64];
