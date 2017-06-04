@@ -1842,24 +1842,27 @@ alloc_assessment(assessment_set *as, unsigned short *ia)
 }
 
 
-/*
 static int
-best_hash_assessment(const void *p1, const void *p2)
-{ const hash_assessment *a1 = p1;
-  const hash_assessment *a2 = p2;
+best_hash_assessment(const void *p1, const void *p2, void *ctx)
+{ Definition def = ctx;
+  const unsigned short *a1 = p1;
+  const unsigned short *a2 = p2;
+  const arg_info *i1 = &def->args[*a1];
+  const arg_info *i2 = &def->args[*a2];
 
-  return a1->speedup - a2->speedup > 0 ? -1 :
-	 a1->speedup - a2->speedup < 0 ?  1 : 0;
+
+  return i1->speedup - i2->speedup > 0 ? -1 :
+	 i1->speedup - i2->speedup < 0 ?  1 : 0;
 }
 
 
 static void
 sort_assessments(Definition def,
 		 unsigned short *instantiated, int ninstantiated)
-{ qsort(aset->assessments, aset->count, sizeof(*aset->assessments),
-	best_hash_assessment);
+{ qsort_r(instantiated, ninstantiated, sizeof(*instantiated),
+	  best_hash_assessment, def);
 }
-*/
+
 
 static int
 compar_keys(const void *p1, const void *p2)
@@ -2114,7 +2117,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   int best = -1;
   float minbest = ci ? ci->speedup : MIN_SPEEDUP;
   unsigned short ia[MAX_MULTI_INDEX] = {0};
-  unsigned short instantiated[arity];
+  unsigned short instantiated[arity];	/* GCC dynamic array */
   int ninstantiated = 0;
 
   init_assessment_set(&aset);
@@ -2134,7 +2137,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     }
   }
 
-  if ( aset.count )				/* Step 3: assess them */
+  if ( aset.count )			/* Step 3: assess them */
   { assess_scan_clauses(def, aset.assessments, aset.count);
 
     for(i=0, a=aset.assessments; i<aset.count; i++, a++)
@@ -2176,45 +2179,49 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     }
   }
 
-#if 0
   if ( best >= 0 &&
-       (float)def->impl.clauses.number_of_clauses/best->speedup > 3 )
+       (float)def->impl.clauses.number_of_clauses/minbest > 3 )
   { int ok, m, n;
 
     sort_assessments(def, instantiated, ninstantiated);
-    best = aset.assessments;		/* first is now best */
-
-    for(ok=0; ok<aset.count && aset.assessments[ok].speedup > 2.0; ok++)
+    for(ok=0; ok<ninstantiated && def->args[instantiated[ok]].speedup > 2.0; ok++)
       ;
-    aset.count = ok;			/* discard others */
 
     if ( ok >= 2 )
     { hash_assessment *nbest;
 
-      DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index %s: speedup = %f"
+      DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
 			      "; %d promising arguments\n",
-			      predicateName(def), clause_count,
-			      iargsName(best->args, NULL), best->speedup, ok));
+			      predicateName(def),
+			      def->impl.clauses.number_of_clauses,
+			      best+1, minbest, ok));
 
+      init_assessment_set(&aset);
       for(m=1; m<ok; m++)
-      { ia[1] = aset.assessments[m].args[0];
+      { ia[1] = instantiated[m]+1;
 	for(n=0; n<m; n++)
-	{ ia[0] = aset.assessments[n].args[0];
+	{ ia[0] = instantiated[n]+1;
 	  alloc_assessment(&aset, ia);
 	}
       }
 
-      assess_scan_clauses(def, &aset.assessments[ok], aset.count-ok);
-      nbest = best_assessment(&aset.assessments[ok], aset.count-ok, clause_count);
-      if ( nbest && nbest->speedup > best->speedup*MIN_SPEEDUP )
+      assess_scan_clauses(def, aset.assessments, aset.count);
+      nbest = best_assessment(aset.assessments, aset.count,
+			      def->impl.clauses.number_of_clauses);
+      if ( nbest && nbest->speedup > minbest*MIN_SPEEDUP )
       { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
 				predicateName(def), iargsName(nbest->args, NULL),
 				nbest->speedup));
-	best = nbest;
+	memcpy(hints->args, nbest->args, sizeof(nbest->args));
+	hints->ln_buckets = MSB(nbest->size);
+	hints->speedup    = nbest->speedup;
+
+	free_assessment_set(&aset);
+	return TRUE;
       }
+      free_assessment_set(&aset);
     }
   }
-#endif
 
   if ( best >= 0 )
   { arg_info *ainfo = &def->args[best];

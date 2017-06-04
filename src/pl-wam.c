@@ -34,6 +34,7 @@
 */
 
 /*#define O_DEBUG 1*/
+#define _GNU_SOURCE 1
 #include "pl-incl.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
