@@ -58,6 +58,7 @@
 :- use_module(library(settings)).
 :- use_module(library(uri)).
 :- use_module(library(http/http_open)).
+:- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).   % plugin for POST support
 :- if(exists_source(library(archive))).
 :- use_module(library(archive)).
@@ -1781,6 +1782,13 @@ install_dependency(_, _-_).
 %   @tbd    Deal with protocols other than HTTP
 
 available_download_versions(URL, Versions) :-
+    uri_components(URL, uri_components(https,'github.com',Path,_,_)),
+    atomic_list_concat(['',User,Repo|_], /, Path),
+    !,
+    findall(Version-VersionURL,
+            github_version(User, Repo, Version, VersionURL),
+            Versions).
+available_download_versions(URL, Versions) :-
     wildcard_pattern(URL),
     !,
     file_directory_name(URL, DirURL0),
@@ -1808,6 +1816,23 @@ available_download_versions(URL, [Version-URL]) :-
     ->  Version = Version0
     ;   Version = unknown
     ).
+
+%!  github_version(+User, +Repo, -Version, -VersionURI) is nondet.
+
+github_version(User, Repo, Version, VersionURI) :-
+    atomic_list_concat(['',repos,User,Repo,tags], /, Path1),
+    uri_components(ApiUri, uri_components(https,'api.github.com',Path1,_,_)),
+    setup_call_cleanup(
+      http_open(ApiUri, In,
+                [ request_header('Accept'='application/vnd.github.v3+json')
+                ]),
+      json_read_dict(In, Dicts),
+      close(In)),
+    member(Dict, Dicts),
+    atom_string(Tag, Dict.name),
+    tag_version(Tag, Version),
+    atomic_list_concat(['',User,Repo,releases,tag,Tag], /, Path2),
+    uri_components(VersionURI, uri_components(https,'github.com',Path2,_,_)).
 
 wildcard_pattern(URL) :- sub_atom(URL, _, _, _, *).
 wildcard_pattern(URL) :- sub_atom(URL, _, _, _, ?).
