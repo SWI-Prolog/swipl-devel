@@ -2138,32 +2138,36 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
       a = alloc_assessment(&aset, ia);
     }
   }
-					/* Step 3: assess them */
-  assess_scan_clauses(def, aset.assessments, aset.count);
 
-  for(i=0, a=aset.assessments; i<aset.count; i++, a++)
-  { arg_info *ainfo = &def->args[a->args[0]-1];
+  if ( aset.count )				/* Step 3: assess them */
+  { assess_scan_clauses(def, aset.assessments, aset.count);
 
-    if ( assess_remove_duplicates(a, def->impl.clauses.number_of_clauses) )
-    { DEBUG(MSG_JIT,
-	    Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
-		     iargsName(a->args, NULL), predicateName(def),
-		     a->speedup, a->stdev));
+    for(i=0, a=aset.assessments; i<aset.count; i++, a++)
+    { arg_info *ainfo = &def->args[a->args[0]-1];
 
-      ainfo->speedup    = a->speedup;
-      ainfo->ln_buckets = MSB(a->size);
-    } else
-    { ainfo->speedup    = 0.0;
-      ainfo->ln_buckets = 0;
+      if ( assess_remove_duplicates(a, def->impl.clauses.number_of_clauses) )
+      { DEBUG(MSG_JIT,
+	      Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
+		       iargsName(a->args, NULL), predicateName(def),
+		       a->speedup, a->stdev));
 
-      DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
-			      iargsName(a->args, NULL), predicateName(def)));
+	ainfo->speedup    = a->speedup;
+	ainfo->ln_buckets = MSB(a->size);
+      } else
+      { ainfo->speedup    = 0.0;
+	ainfo->ln_buckets = 0;
+
+	DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
+				iargsName(a->args, NULL), predicateName(def)));
+      }
+
+      ainfo->assessed = TRUE;
+
+      if ( a->keys )
+	free(a->keys);
     }
 
-    ainfo->assessed = TRUE;
-
-    if ( a->keys )
-      free(a->keys);
+    free_assessment_set(&aset);
   }
 
 					/* Step 4: find the best (single) arg */
@@ -2171,11 +2175,9 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   { int arg = instantiated[i];
     arg_info *ainfo = &def->args[arg];
 
-    if ( indexOfWord(av[arg] PASS_LD) )
-    { if ( ainfo->speedup > minbest )
-      { best = arg;
-	minbest = ainfo->speedup;
-      }
+    if ( ainfo->speedup > minbest )
+    { best = arg;
+      minbest = ainfo->speedup;
     }
   }
 
@@ -2227,8 +2229,6 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     hints->ln_buckets = ainfo->ln_buckets;
     hints->speedup    = ainfo->speedup;
   }
-
-  free_assessment_set(&aset);
 
   return best >= 0;
 }
