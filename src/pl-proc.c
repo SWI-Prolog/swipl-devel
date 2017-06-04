@@ -161,14 +161,7 @@ destroyDefinition(Definition def)
   freeCodesDefinition(def, FALSE);
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
-  { bit_vector *v;
-
-    if ( (v=def->tried_index) )
-    { def->tried_index = NULL;
-      free_bitvector(v);
-    }
-
-    freeHeap(def->args, sizeof(arg_info)*def->functor->arity);
+  { freeHeap(def->args, sizeof(arg_info)*def->functor->arity);
     removeClausesPredicate(def, 0, FALSE);
     DEBUG(MSG_CGC_PRED,
 	  Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
@@ -1450,10 +1443,7 @@ cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
     if ( removed )
       cleanClauseIndexes(def, active);
     if ( marked == GEN_MAX && def->lingering )
-    { free_lingering(&def->lingering);
-      if ( def->tried_index )
-	clear_bitvector(def->tried_index);
-    }
+      free_lingering(&def->lingering);
     release_def(def);
 
     DEBUG(CHK_SECURE, checkDefinition(def));
@@ -2881,11 +2871,6 @@ setThreadLocalDefinition(Definition def, bool val)
 
     def->codes = SUPERVISOR(thread_local);
     def->impl.local = new_ldef_vector();
-
-    if ( def->tried_index )
-    { free_bitvector(def->tried_index);
-      def->tried_index = NULL;
-    }
 
     UNLOCKDEF(def);
     return TRUE;

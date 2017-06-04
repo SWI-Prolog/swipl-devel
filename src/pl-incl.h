@@ -1331,7 +1331,6 @@ struct clause_index
   unsigned	 is_list : 1;		/* Index with lists */
   unsigned	 incomplete : 1;	/* Not all clauses are in the index */
   float		 speedup;		/* Estimated speedup */
-  struct bit_vector *tried_better;	/* We tried to access for better hash */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
@@ -1365,7 +1364,6 @@ struct definition
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-  struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   meta_mask	meta_info;		/* meta-predicate info */
   arg_info     *args;			/* Meta and indexing info */
   unsigned int  flags;			/* booleans (P_*) */

@@ -982,13 +982,11 @@ has_pow2_clauses(Definition def)
 static void
 reconsider_index(Definition def)
 { if ( true(def, P_DYNAMIC) )
-  { struct bit_vector *tried;
-
-    if ( (tried=def->tried_index) && has_pow2_clauses(def) )
+  { if ( has_pow2_clauses(def) )
     { if ( true(def, P_SHRUNKPOW2) )
       { clear(def, P_SHRUNKPOW2);
       } else
-      { clear_bitvector(tried);
+      { clearTriedIndexes(def);
       }
     }
   }
@@ -2118,9 +2116,6 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   unsigned short ia[MAX_MULTI_INDEX] = {0};
   unsigned short instantiated[arity];
   int ninstantiated = 0;
-
-  if ( !def->tried_index )
-    def->tried_index = new_bitvector(def->functor->arity);
 
   init_assessment_set(&aset);
 
