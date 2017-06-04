@@ -61,8 +61,8 @@
 
 typedef struct hash_hints
 { unsigned short args[MAX_MULTI_INDEX];	/* Hash these arguments */
-  unsigned int	buckets;		/* # buckets to use */
   float		speedup;		/* Expected speedup */
+  unsigned int	ln_buckets;		/* Lg2 of #buckets to use */
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
@@ -515,19 +515,17 @@ canonicalHap(unsigned short *hap)
 static ClauseIndex
 newClauseIndexTable(unsigned short *hap, hash_hints *hints)
 { ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
-  unsigned int m = 4;
+  unsigned int buckets;
   size_t bytes;
 
-  while(m<hints->buckets)
-    m *= 2;
-  hints->buckets = m;
-  bytes = sizeof(struct clause_bucket) * hints->buckets;
+  buckets = 2<<hints->ln_buckets;
+  bytes = sizeof(struct clause_bucket) * buckets;
 
   canonicalHap(hap);
 
   memset(ci, 0, sizeof(*ci));
   memcpy(ci->args, hap, sizeof(ci->args));
-  ci->buckets = hints->buckets;
+  ci->buckets = buckets;
   ci->is_list = hints->list;
   ci->speedup = hints->speedup;
   ci->entries = allocHeapOrHalt(bytes);
@@ -1361,7 +1359,7 @@ hashDefinition(Definition def, hash_hints *hints)
 
   DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %s, %d) (%s)\n",
 			  predicateName(def),
-			  iargsName(hints->args, NULL), hints->buckets,
+			  iargsName(hints->args, NULL), 2<<hints->ln_buckets,
 			  hints->list ? "lists" : "clauses"));
 
   for(;;)
@@ -2124,7 +2122,8 @@ expected speedup is
 	----------------------------------
 	#clauses - #var + #var * #distinct
 
-@returns 1-based argument holding best hash
+@returns TRUE if a best hash was found.  Details on the best hash are in
+*hints.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2223,9 +2222,9 @@ bestHash(Word av, Definition def,
 
   if ( best )
   { memcpy(hints->args, best->args, sizeof(best->args));
-    hints->buckets = (unsigned int)best->size;
-    hints->speedup = best->speedup;
-    hints->list    = best->list;
+    hints->ln_buckets = MSB(best->size);
+    hints->speedup    = best->speedup;
+    hints->list       = best->list;
   }
 
   free_assessment_set(&aset);
