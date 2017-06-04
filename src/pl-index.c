@@ -66,8 +66,7 @@ typedef struct hash_hints
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int		bestHash(Word av, Definition def,
-				 float minbest, struct bit_vector *tried,
+static int		bestHash(Word av, Definition def, ClauseIndex ci,
 				 hash_hints *hints ARG_LD);
 static ClauseIndex	hashDefinition(Definition def, hash_hints *h);
 static void		replaceIndex(Definition def,
@@ -328,7 +327,6 @@ first_clause_guarded(Word argv, LocalFrame fr,
   ClauseIndex *cip;
   hash_hints hints;
   gen_t generation = generationFrame(fr);
-  int best;
 
   if ( def->functor->arity == 0 )
     goto simple;			/* TBD: alt supervisor */
@@ -359,25 +357,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL), predicateName(def)));
 
-	if ( !best_index->tried_better )
-	{ best_index->tried_better = new_bitvector(def->functor->arity);
-
-	  if ( (cip=def->impl.clauses.clause_indexes) )
-	  { for(; *cip; cip++)
-	    { ClauseIndex ci = *cip;
-
-	      if ( ISDEADCI(ci) )
-		continue;
-
-	      if ( ci->args[1] == 0 && indexKeyFromArgv(ci, argv PASS_LD) )
-		set_bit(best_index->tried_better, ci->args[0]-1);
-	    }
-	  }
-	}
-
-	if ( (best=bestHash(argv, def,
-			    best_index->speedup, best_index->tried_better,
-			    &hints PASS_LD)) )
+	if ( bestHash(argv, def, best_index, &hints PASS_LD) )
 	{ ClauseIndex ci;
 
 	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
@@ -407,7 +387,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
-  if ( (best=bestHash(argv, def, MIN_SPEEDUP, NULL, &hints PASS_LD)) )
+  if ( bestHash(argv, def, NULL, &hints PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(def, &hints)) )
@@ -1860,6 +1840,7 @@ alloc_assessment(assessment_set *as, unsigned short *ia)
 }
 
 
+/*
 static int
 best_hash_assessment(const void *p1, const void *p2)
 { const hash_assessment *a1 = p1;
@@ -1871,11 +1852,12 @@ best_hash_assessment(const void *p1, const void *p2)
 
 
 static void
-sort_assessments(assessment_set *aset)
+sort_assessments(Definition def,
+		 unsigned short *instantiated, int ninstantiated)
 { qsort(aset->assessments, aset->count, sizeof(*aset->assessments),
 	best_hash_assessment);
 }
-
+*/
 
 static int
 compar_keys(const void *p1, const void *p2)
@@ -2016,12 +1998,11 @@ TBD: if some argument has too many   non-indexable  values we could stop
 trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static size_t
+static void
 assess_scan_clauses(Definition def,
 		    hash_assessment *assessments, int assess_count)
 { hash_assessment *a;
   ClauseRef cref;
-  size_t clause_count = 0;
   int i;
   bit_vector *ai = alloca(sizeof_bitvector(def->functor->arity));
   int ac = 0;
@@ -2078,11 +2059,7 @@ assess_scan_clauses(Definition def,
     next_assessment:
       ;
     }
-
-    clause_count++;
   }
-
-  return clause_count;
 }
 
 
@@ -2127,66 +2104,83 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-bestHash(Word av, Definition def,
-	 float minbest, struct bit_vector *tried,
-	 hash_hints *hints ARG_LD)
+bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 { int i;
+  int arity = (int)def->functor->arity;
   assessment_set aset;
-  size_t clause_count;
   hash_assessment *a;
-  hash_assessment *best = NULL;		/* argument */
+  int best = -1;
+  float minbest = ci ? ci->speedup : MIN_SPEEDUP;
   unsigned short ia[MAX_MULTI_INDEX] = {0};
+  unsigned short instantiated[arity];
+  int ninstantiated = 0;
 
   if ( !def->tried_index )
     def->tried_index = new_bitvector(def->functor->arity);
 
   init_assessment_set(&aset);
 
-					/* Step 1: allocate assessments */
-  for(i=0; i<(int)def->functor->arity; i++)
-  { word k;
+					/* Step 1: find instantiated args */
+  for(i=0; i<arity; i++)
+  { if ( indexOfWord(av[i] PASS_LD) )
+      instantiated[ninstantiated++] = i;
+  }
+					/* Step 2: find non-yet assessed args */
+  for(i=0; i<ninstantiated; i++)
+  { int arg = instantiated[i];
 
-    if ( !true_bit(def->tried_index, i) &&	/* non-indexable */
-	 !(tried && true_bit(tried, i)) &&	/* already tried, not better */
-	 (k=indexOfWord(av[i] PASS_LD)) )
-    { ia[0] = i+1;
+    if ( !def->args[arg].assessed )
+    { ia[0] = arg+1;
       a = alloc_assessment(&aset, ia);
     }
   }
-
-  if ( aset.count == 0 )
-    return 0;				/* no luck */
-
-					/* Step 2: assess */
-  clause_count = assess_scan_clauses(def, aset.assessments, aset.count);
+					/* Step 3: assess them */
+  assess_scan_clauses(def, aset.assessments, aset.count);
 
   for(i=0, a=aset.assessments; i<aset.count; i++, a++)
-  { if ( assess_remove_duplicates(a, clause_count) )
+  { arg_info *ainfo = &def->args[a->args[0]-1];
+
+    if ( assess_remove_duplicates(a, def->impl.clauses.number_of_clauses) )
     { DEBUG(MSG_JIT,
 	    Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
 		     iargsName(a->args, NULL), predicateName(def),
 		     a->speedup, a->stdev));
 
-      if ( a->speedup > minbest )
-      { best = a;
-	minbest = a->speedup;
-      } else if ( tried )
-      { set_bit(tried, a->args[0]-1);
-      }
+      ainfo->speedup    = a->speedup;
+      ainfo->ln_buckets = MSB(a->size);
     } else
-    { set_bit(def->tried_index, a->args[0]-1);
+    { ainfo->speedup    = 0.0;
+      ainfo->ln_buckets = 0;
+
       DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
 			      iargsName(a->args, NULL), predicateName(def)));
     }
+
+    ainfo->assessed = TRUE;
 
     if ( a->keys )
       free(a->keys);
   }
 
-  if ( best && (float)clause_count/best->speedup > 3 )
+					/* Step 4: find the best (single) arg */
+  for(i=0; i<ninstantiated; i++)
+  { int arg = instantiated[i];
+    arg_info *ainfo = &def->args[arg];
+
+    if ( indexOfWord(av[i] PASS_LD) )
+    { if ( ainfo->speedup > minbest )
+      { best = arg;
+	minbest = ainfo->speedup;
+      }
+    }
+  }
+
+#if 0
+  if ( best >= 0 &&
+       (float)def->impl.clauses.number_of_clauses/best->speedup > 3 )
   { int ok, m, n;
 
-    sort_assessments(&aset);
+    sort_assessments(def, instantiated, ninstantiated);
     best = aset.assessments;		/* first is now best */
 
     for(ok=0; ok<aset.count && aset.assessments[ok].speedup > 2.0; ok++)
@@ -2219,17 +2213,20 @@ bestHash(Word av, Definition def,
       }
     }
   }
+#endif
 
-  if ( best )
-  { memcpy(hints->args, best->args, sizeof(best->args));
-    hints->ln_buckets = MSB(best->size);
-    hints->speedup    = best->speedup;
-    hints->list       = best->list;
+  if ( best >= 0 )
+  { arg_info *ainfo = &def->args[best];
+
+    memset(hints, 0, sizeof(*hints));
+    hints->args[0]    = best+1;
+    hints->ln_buckets = ainfo->ln_buckets;
+    hints->speedup    = ainfo->speedup;
   }
 
   free_assessment_set(&aset);
 
-  return best != NULL;
+  return best >= 0;
 }
 
 
