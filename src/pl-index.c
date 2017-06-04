@@ -2115,7 +2115,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   assessment_set aset;
   hash_assessment *a;
   int best = -1;
-  float minbest = ci ? ci->speedup : MIN_SPEEDUP;
+  float best_speedup = 0.0;
   unsigned short ia[MAX_MULTI_INDEX] = {0};
   unsigned short instantiated[arity];	/* GCC dynamic array */
   int ninstantiated = 0;
@@ -2173,14 +2173,14 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   { int arg = instantiated[i];
     arg_info *ainfo = &def->args[arg];
 
-    if ( ainfo->speedup > minbest )
+    if ( ainfo->speedup > best_speedup )
     { best = arg;
-      minbest = ainfo->speedup;
+      best_speedup = ainfo->speedup;
     }
   }
 
   if ( best >= 0 &&
-       (float)def->impl.clauses.number_of_clauses/minbest > 3 )
+       (float)def->impl.clauses.number_of_clauses/best_speedup > 3 )
   { int ok, m, n;
 
     sort_assessments(def, instantiated, ninstantiated);
@@ -2194,7 +2194,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 			      "; %d promising arguments\n",
 			      predicateName(def),
 			      def->impl.clauses.number_of_clauses,
-			      best+1, minbest, ok));
+			      best+1, best_speedup, ok));
 
       init_assessment_set(&aset);
       for(m=1; m<ok; m++)
@@ -2208,7 +2208,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
       assess_scan_clauses(def, aset.assessments, aset.count);
       nbest = best_assessment(aset.assessments, aset.count,
 			      def->impl.clauses.number_of_clauses);
-      if ( nbest && nbest->speedup > minbest*MIN_SPEEDUP )
+      if ( nbest && nbest->speedup > best_speedup*MIN_SPEEDUP )
       { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
 				predicateName(def), iargsName(nbest->args, NULL),
 				nbest->speedup));
@@ -2223,7 +2223,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     }
   }
 
-  if ( best >= 0 )
+  if ( best >= 0 && (!ci || best_speedup > ci->speedup) )
   { arg_info *ainfo = &def->args[best];
 
     memset(hints, 0, sizeof(*hints));
