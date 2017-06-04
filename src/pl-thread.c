@@ -6445,6 +6445,8 @@ localiseDefinition(Definition def)
 { Definition local = allocHeapOrHalt(sizeof(*local));
 
   *local = *def;
+  local->args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
+  memcpy(local->args, def->args, sizeof(arg_info)*def->functor->arity);
   clear(local, P_THREAD_LOCAL|P_DIRTYREG);	/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
