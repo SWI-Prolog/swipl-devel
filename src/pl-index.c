@@ -951,10 +951,14 @@ cleanClauseIndexes(Definition def, gen_t active)
 
 void
 clearTriedIndexes(Definition def)
-{ struct bit_vector *v;
+{ int arity = def->functor->arity;
+  int i;
 
-  if ( (v=def->tried_index) )
-    clear_bitvector(v);
+  for(i=0; i<arity; i++)
+  { arg_info *ainfo = &def->args[i];
+
+    ainfo->assessed = FALSE;
+  }
 }
 
 
@@ -2167,7 +2171,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   { int arg = instantiated[i];
     arg_info *ainfo = &def->args[arg];
 
-    if ( indexOfWord(av[i] PASS_LD) )
+    if ( indexOfWord(av[arg] PASS_LD) )
     { if ( ainfo->speedup > minbest )
       { best = arg;
 	minbest = ainfo->speedup;
