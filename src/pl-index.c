@@ -2284,6 +2284,8 @@ unify_index_pattern(Procedure proc, term_t value)
 { GET_LD
   Definition def = getProcDefinition__LD(proc->definition PASS_LD);
   ClauseIndex *cip;
+  int rc = FALSE;
+  int found = 0;
 
   acquire_def(def);
   if ( (cip=def->impl.clauses.clause_indexes) )
@@ -2296,18 +2298,18 @@ unify_index_pattern(Procedure proc, term_t value)
       if ( ISDEADCI(ci) )
 	continue;
 
+      found++;
       if ( !PL_unify_list(tail, head, tail) ||
 	   !unify_clause_index(head, ci) )
-      { release_def(def);
-	return FALSE;
-      }
+	goto out;
     }
 
-    return PL_unify_nil(tail);
+    rc = found && PL_unify_nil(tail);
   }
+out:
   release_def(def);
 
-  return FALSE;
+  return rc;
 }
 
 
