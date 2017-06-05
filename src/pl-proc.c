@@ -1214,6 +1214,8 @@ abolishProcedure(Procedure proc, Module module)
 
     memset(ndef, 0, sizeof(*ndef));
     ndef->functor            = def->functor; /* should be merged with */
+    ndef->args		     = allocHeapOrHalt(sizeof(*ndef->args)*
+					       def->functor->arity);
     ndef->module             = module;	     /* lookupProcedure()!! */
     ndef->codes		     = SUPERVISOR(virgin);
     proc->definition         = ndef;
