@@ -1190,8 +1190,8 @@ deleteIncompleteIndexes(Definition def)
 
       if ( ci->incomplete )
       { DEBUG(MSG_JIT_DELINDEX,
-	      Sdprintf("Deleted index %d from %s (incomplete)\n",
-		       (int)ci->args[0], predicateName(def)));
+	      Sdprintf("Deleted index %s from %s (incomplete)\n",
+		       iargsName(ci->args, NULL), predicateName(def)));
 	deleteIndexP(def, cip);
       }
     }
