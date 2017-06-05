@@ -1564,7 +1564,7 @@ isTransparentMetamask(Definition def, arg_info *args)
 
   for(i=0; i<arity && !transparent; i++)
   { int ma = args[i].meta;
-    if ( ma <= 9 || ma == MA_META || ma == MA_HAT || ma == MA_DCG )
+    if ( MA_NEEDS_TRANSPARENT(ma) )
       transparent = TRUE;
   }
 
@@ -1763,7 +1763,7 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 
     def->args[i].meta = spec;
     mask |= spec<<(i*4);
-    if ( spec < 10 || spec == MA_META || spec == MA_HAT || spec == MA_DCG )
+    if ( MA_NEEDS_TRANSPARENT(spec) )
       transparent = TRUE;
   }
 

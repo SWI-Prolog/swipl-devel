@@ -321,7 +321,7 @@ chainMetaPredicateSupervisor(Definition def, Code post)
     for(i=0; i < def->functor->arity; i++)
     { int ma = def->args[i].meta;
 
-      if ( ma <= 9 || ma == MA_META || ma == MA_HAT || ma == MA_DCG ) /* 0..9, :, ^ or // */
+      if ( MA_NEEDS_TRANSPARENT(ma) )
       { addBuffer(&buf, encode(S_MQUAL), code);
 	addBuffer(&buf, VAROFFSET(i), code);
 	count++;

@@ -1697,6 +1697,8 @@ struct gc_trail_entry
 #define MA_HAT		14		/* ^ */
 #define MA_DCG		15		/* // */
 
+#define MA_NEEDS_TRANSPARENT(m) \
+	((m) < 10 || (m) == MA_META || (m) == MA_HAT || (m) == MA_DCG)
 
 		 /*******************************
 		 *	     MARK/UNDO		*
