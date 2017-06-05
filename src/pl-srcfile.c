@@ -1039,28 +1039,49 @@ fix_discontiguous(p_reload *r)
 
 int
 setMetapredicateSource(SourceFile sf, Procedure proc,
-		       meta_mask mask ARG_LD)
+		       arg_info *args ARG_LD)
 { associateSource(sf, proc);
 
   if ( sf->reload )
   { p_reload *reload;
+    size_t i, arity = proc->definition->functor->arity;
 
     if ( !(reload = reloadContext(sf, proc PASS_LD)) )
       return FALSE;
 
-    reload->meta_info = mask;
-    if ( isTransparentMetamask(proc->definition, mask) )
+    if ( !reload->args )
+      reload->args = allocHeapOrHalt(sizeof(*reload->args)*arity);
+    for(i=0; i<arity; i++)
+      reload->args[i].meta = args[i].meta;
+
+    if ( isTransparentMetamask(proc->definition, args) )
       set(reload, P_TRANSPARENT);
     else
       clear(reload, P_TRANSPARENT);
     set(reload, P_META);
   } else
-  { setMetapredicateMask(proc->definition, mask);
+  { setMetapredicateMask(proc->definition, args);
   }
 
   return TRUE;
 }
 
+
+static int
+equal_meta(Definition def, const arg_info *args)
+{ if ( def->args && args )
+  { size_t i, arity = def->functor->arity;
+
+    for(i=0; i<arity; i++)
+    { if ( def->args[i].meta != args[i].meta )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 static void
 fix_metapredicate(p_reload *r)
@@ -1070,18 +1091,18 @@ fix_metapredicate(p_reload *r)
   { int mfmask = (P_META|P_TRANSPARENT);
 
     if ( (def->flags&mfmask) != (r->flags&mfmask) ||
-	 def->meta_info != r->meta_info )
+	 !equal_meta(def, r->args) )
     { if ( true(def, P_META) && false(r, P_META) )
 	clear_meta_declaration(def);
       else if ( true(r, P_META) )
-	setMetapredicateMask(def, r->meta_info);
+	setMetapredicateMask(def, r->args);
       clear(def, P_TRANSPARENT);
       set(def, r->flags&P_TRANSPARENT);
 
       freeCodesDefinition(def, FALSE);
     }
   } else if ( true(r, P_META) )
-  { setMetapredicateMask(def, r->meta_info);
+  { setMetapredicateMask(def, r->args);
     freeCodesDefinition(def, FALSE);
   } else if ( true(r, P_TRANSPARENT) )
   { set(def, P_TRANSPARENT);
@@ -1247,6 +1268,8 @@ endReconsult(SourceFile sf)
 		    fix_attributes(sf, def, r PASS_LD);
 		  }
 		}
+		if ( r->args )
+		  freeHeap(r->args, 0);
 		freeHeap(r, sizeof(*r));
 	      });
 

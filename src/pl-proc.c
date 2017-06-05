@@ -1558,12 +1558,12 @@ the declaration contains at least one meta-argument (: or 0..9).
 */
 
 int
-isTransparentMetamask(Definition def, meta_mask mask)
+isTransparentMetamask(Definition def, arg_info *args)
 { size_t i, arity = def->functor->arity;
   int transparent = FALSE;
 
   for(i=0; i<arity && !transparent; i++)
-  { int ma = (mask>>(4*i))&0xf;
+  { int ma = args[i].meta;
     if ( ma <= 9 || ma == MA_META || ma == MA_HAT || ma == MA_DCG )
       transparent = TRUE;
   }
@@ -1573,9 +1573,13 @@ isTransparentMetamask(Definition def, meta_mask mask)
 
 
 void
-setMetapredicateMask(Definition def, meta_mask mask)
-{ def->meta_info = mask;
-  if ( isTransparentMetamask(def, mask) )
+setMetapredicateMask(Definition def, arg_info *args)
+{ size_t i, arity = def->functor->arity;
+
+  for(i=0; i<arity; i++)
+    def->args[i].meta = args[i].meta;
+
+  if ( isTransparentMetamask(def, args) )
     set(def, P_TRANSPARENT);
   else
     clear(def, P_TRANSPARENT);
@@ -1591,19 +1595,12 @@ meta_declaration(term_t spec)
   Procedure proc;
   atom_t name;
   size_t i, arity;
-  meta_mask mask = 0;
 
   if ( !get_procedure(spec, &proc, head, GP_DEFINE) ||
        !PL_get_name_arity(head, &name, &arity) )
     return FALSE;
 
-  if ( arity > (int)sizeof(mask)*2 )
-  { char msg[64];
-
-    Ssprintf(msg, "max arity of meta predicates is %d", (int)sizeof(mask)*2);
-    return PL_error(NULL, 0, msg,
-		    ERR_REPRESENTATION, ATOM_max_arity);
-  }
+  arg_info args[arity];			/* GCC dynamic allocation */
 
   for(i=0; i<arity; i++)
   { atom_t ma;
@@ -1620,9 +1617,9 @@ meta_declaration(term_t spec)
 	return PL_error(NULL, 0, "0..9",
 			ERR_DOMAIN, ATOM_meta_argument_specifier, arg);
       }
-      mask |= (meta_mask)e<<(i*4);
+      args[i].meta = e;
     } else if ( PL_get_atom(arg, &ma) )
-    { meta_mask m;
+    { int m;
 
       if      ( ma == ATOM_plus )          m = MA_NONVAR;
       else if ( ma == ATOM_minus )         m = MA_VAR;
@@ -1633,7 +1630,7 @@ meta_declaration(term_t spec)
       else if ( ma == ATOM_gdiv )          m = MA_DCG;
       else goto domain_error;
 
-      mask |= m<<(i*4);
+      args[i].meta = m;
     } else
     { return PL_error(NULL, 0, "0..9",
 			ERR_TYPE, ATOM_meta_argument_specifier, arg);;
@@ -1642,9 +1639,9 @@ meta_declaration(term_t spec)
 
   if ( ReadingSource )
   { SourceFile sf = lookupSourceFile(source_file_name, TRUE);
-    return setMetapredicateSource(sf, proc, mask PASS_LD);
+    return setMetapredicateSource(sf, proc, args PASS_LD);
   } else
-  { setMetapredicateMask(proc->definition, mask);
+  { setMetapredicateMask(proc->definition, args);
     return TRUE;
   }
 }
@@ -1674,7 +1671,7 @@ static int
 unify_meta_argument(term_t head, Definition def, int i)
 { GET_LD
   term_t arg = PL_new_term_ref();
-  int m = MA_INFO(def, i);
+  int m = def->args[i].meta;
 
   _PL_get_arg(i+1, head, arg);
   if ( m < 10 )
@@ -1764,12 +1761,12 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 	return FALSE;
     }
 
+    def->args[i].meta = spec;
     mask |= spec<<(i*4);
     if ( spec < 10 || spec == MA_META || spec == MA_HAT || spec == MA_DCG )
       transparent = TRUE;
   }
 
-  def->meta_info = mask;
   if ( transparent )
     set(def, P_TRANSPARENT);
   else
@@ -1782,7 +1779,11 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 
 void
 clear_meta_declaration(Definition def)
-{ def->meta_info = 0;
+{ int i;
+
+  for(i=0; i<def->functor->arity; i++)
+    def->args[i].meta = MA_ANY;
+
   clear(def, P_META|P_TRANSPARENT);
 }
 

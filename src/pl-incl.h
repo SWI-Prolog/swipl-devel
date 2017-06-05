@@ -1348,12 +1348,6 @@ typedef struct local_definitions
   Definition preallocated[7];
 } local_definitions;
 
-#ifdef _MSC_VER
-typedef __int64 meta_mask;		/* MSVC cannot do typedef of typedef!? */
-#else
-typedef uint64_t meta_mask;
-#endif
-
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
   Module	module;			/* module of the predicate */
@@ -1364,7 +1358,6 @@ struct definition
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-  meta_mask	meta_info;		/* meta-predicate info */
   arg_info     *args;			/* Meta and indexing info */
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
@@ -1612,7 +1605,7 @@ typedef struct p_reload
 { Definition	predicate;		/* definition we are working on */
   gen_t		generation;		/* generation we update */
   ClauseRef	current_clause;		/* currently reloading clause */
-  meta_mask	meta_info;		/* new meta declaration (if any) */
+  arg_info     *args;			/* Meta info on arguments */
   unsigned	flags;			/* new flags (P_DYNAMIC, etc.) */
   unsigned	number_of_clauses;	/* Number of clauses we've seen */
 } p_reload;
@@ -1703,12 +1696,6 @@ struct gc_trail_entry
 #define MA_NONVAR	13		/* + */
 #define MA_HAT		14		/* ^ */
 #define MA_DCG		15		/* // */
-
-#define MA_INFO(def, n) \
-	(((def)->meta_info >> ((n)*4)) & 0xf)
-#define MA_SETINFO(def, n, i) \
-	((def)->meta_info &= ~((meta_mask)0xf << (n)*4), \
-	 (def)->meta_info |= ((meta_mask)(i) << (n)*4))
 
 
 		 /*******************************
