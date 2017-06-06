@@ -336,6 +336,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\prolog_pack.pl
   File ${SWIPL}\library\tabling.pl
   File ${SWIPL}\library\lazy_lists.pl
+  File ${SWIPL}\library\prolog_jiti.pl
 
 ; COMPATIBILITY
   File ${SWIPL}\library\backcomp.pl
