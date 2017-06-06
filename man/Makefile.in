@@ -45,7 +45,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/assoc.tex lib/assoclib.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
 		lib/record.tex lib/clpfd.tex lib/clpfdlib.tex \
-		lib/pairs.tex lib/option.tex \
+		lib/pairs.tex lib/option.tex lib/main.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
 		lib/csv.tex lib/optparse.tex lib/clpb.tex lib/clpblib.tex \
@@ -217,6 +217,8 @@ lib/csv.tex: ../library/csv.pl
 		$(LIBTOTEX) 'library(csv)'
 lib/lists.tex: ../library/lists.pl
 		$(LIBTOTEX) 'library(lists)'
+lib/main.tex: ../library/main.pl
+		$(LIBTOTEX) 'library(main)'
 lib/check.tex: ../library/check.pl
 		$(LIBTOTEX) 'library(check)'
 lib/random.tex: ../library/random.pl
