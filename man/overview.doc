@@ -844,16 +844,14 @@ vs.\ Windows).
 \subsubsection{Using PrologScript}	\label{sec:plscript}
 
 A Prolog source file can be used directly as a Unix program using the
-Unix \verb$#!$ magic start. The same mechanism is useful for specifying
-additional parameters for running a Prolog file on Windows. The Unix
-\verb$#!$ magic is allowed because if the first letter of a Prolog file
-is \verb$#$, the first line is treated as a comment.\footnote{The
-\texttt{\#}-sign can be the legal start of a normal Prolog clause. In
-the unlikely case this is required, leave the first line blank or add a
-header comment.} To create a Prolog script, use one of the two
-alternatives below as first line. The first can be used to bind a script
-to a specific Prolog installation, while the latter uses the default
-prolog installed in \verb"$PATH".
+Unix \verb$#!$ magic start. The Unix \verb$#!$ magic is allowed because
+if the first letter of a Prolog file is \verb$#$, the first line is
+treated as a comment.\footnote{The \texttt{\#}-sign can be the legal
+start of a normal Prolog clause. In the unlikely case this is required,
+leave the first line blank or add a header comment.} To create a Prolog
+script, use one of the two alternatives below as first line. The first
+can be used to bind a script to a specific Prolog installation, while
+the latter uses the default prolog installed in \verb"$PATH".
 
 \begin{code}
 !/path/to/swipl
@@ -866,26 +864,25 @@ portability, the \verb$#!$ must be followed immediately with an absolute
 path to the executable and should have none or one argument. Neither the
 executable path, nor the argument shall use quotes or spaces. When
 started this way, the Prolog flag \prologflag{argv} contains the command
-line arguments that follow the script invocation. Below is a simple
-script doing expression evaluation:
+line arguments that follow the script invocation.
+
+Starting with version 7.5.8, initialization/2 support the \arg{When}
+options \const{program} and \const{main}, allowing for the following
+definition of a Prolog script that evaluates an arithmetic expression on
+the command line. Note that main/0 is defined lib the library
+\pllib{main}. It calls main/1 with the command line arguments after
+disabling signal handling.
 
 \begin{code}
 #!/usr/bin/env swipl
 
-:- initialization main.
+:- initialization(main, main).
 
-eval :-
-	current_prolog_flag(argv, Argv),
+main(Argv) :-
 	concat_atom(Argv, ' ', SingleArg),
 	term_to_atom(Term, SingleArg),
 	Val is Term,
 	format('~w~n', [Val]).
-
-main :-
-	catch(eval, E, (print_message(error, E), fail)),
-	halt.
-main :-
-	halt(1).
 \end{code}
 
 And here are two example runs:
@@ -895,7 +892,6 @@ And here are two example runs:
 3
 % ./eval foo
 ERROR: is/2: Arithmetic: `foo/0' is not a function
-%
 \end{code}
 
 The Windows version simply ignores the \verb$#!$ line.\footnote{Older

@@ -809,13 +809,40 @@ compatibility issue.
 Similar to initialization/1, but allows for specifying when \arg{Goal}
 is executed while loading the program text:
 
-    \begin{description}
-	\termitem{now}{} Execute \arg{Goal} immediately.
-	\termitem{after_load}{} Execute \arg{Goal} after loading
-	program text.  This is the same as initialization/1.
-	\termitem{restore}{} Do not execute \arg{Goal} while loading
-	the program, but \emph{only} when restoring a state.
-    \end{description}
+\begin{description}
+    \termitem{now}{} Execute \arg{Goal} immediately.
+
+    \termitem{after_load}{} Execute \arg{Goal} after loading the
+program text in which the directive appears. This is the same as
+initialization/1.
+
+    \termitem{restore}{}
+Do not execute \arg{Goal} while loading the program, but \emph{only}
+when restoring a saved state.
+
+    \termitem{program}{}
+Execute \arg{Goal} once after executing the \cmdlineoption{-g} goals
+at program startup. Registered goals are executed in the order
+encountered and a failure or exception causes the Prolog to exit with
+non-zero exit status.  These goals are \emph{not} executed if the
+\cmdlineoption{-l} is given to merely \emph{load} files.  In that case
+they may be executed explicitly using initialize/0. See also
+\secref{plscript}.
+
+    \termitem{main}{}
+When Prolog starts, the last goal registered using
+\term{initialization}{Goal, main} is executed as main goal. If
+\arg{Goal} fails or raises an exception, the process terminates with
+non-zero exit code.  If \arg{Goal} succeeds, the process terminates
+with zero exit code. See also \secref{plscript}.
+\end{description}
+
+    \predicate[det]{initialization}{0}{}
+Run all initialization goals registered using
+\term{initialization}{Goal, program}. Raises an error
+\term{initialization_error}{Reason, Goal, File:Line} if \arg{Goal}
+fails or raises an exception.  \arg{Reason} is \const{failed} or
+the exception raised.
 
     \predicate{compiling}{0}{}
 True if the system is compiling source files with the \cmdlineoption{-c}
