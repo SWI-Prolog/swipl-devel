@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -468,28 +468,32 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 %       * restore
 %       Do not execute immediately, but only when restoring the
 %       state.  Not allowed in a sandboxed environment.
+%
+%   Note that all goals are executed when a program is restored.
 
 initialization(Goal, When) :-
+    '$must_be'(oneof(atom, initialization_type,
+                     [ now,
+                       after_load,
+                       restore
+                     ]), When),
     '$initialization_context'(Source, Ctx),
-    (   When == now
-    ->  '$run_init_goal'(Goal, Ctx),
-        '$compile_init_goal'(-, Goal, Ctx)
-    ;   When == after_load
-    ->  (   Source \== (-)
-        ->  '$compile_init_goal'(Source, Goal, Ctx)
-        ;   throw(error(context_error(nodirective,
-                                      initialization(Goal, after_load)),
-                        _))
-        )
-    ;   When == restore,
-        \+ current_prolog_flag(sandboxed_load, true)
+    '$initialization'(When, Goal, Source, Ctx).
+
+'$initialization'(now, Goal, _Source, Ctx) :-
+    '$run_init_goal'(Goal, Ctx),
+    '$compile_init_goal'(-, Goal, Ctx).
+'$initialization'(after_load, Goal, Source, Ctx) :-
+    (   Source \== (-)
+    ->  '$compile_init_goal'(Source, Goal, Ctx)
+    ;   throw(error(context_error(nodirective,
+                                  initialization(Goal, after_load)),
+                    _))
+    ).
+'$initialization'(restore, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
     ->  '$compile_init_goal'(-, Goal, Ctx)
-    ;   (   var(When)
-        ->  throw(error(instantiation_error, _))
-        ;   atom(When)
-        ->  throw(error(domain_error(initialization_type, When), _))
-        ;   throw(error(type_error(atom, When), _))
-        )
+    ;   '$permission_error'(register, initialization(restore), Goal)
     ).
 
 '$compile_init_goal'(Source, Goal, Ctx) :-
