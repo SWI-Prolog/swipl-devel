@@ -1234,6 +1234,7 @@ typedef struct clause_list
   unsigned int	number_of_clauses;	/* number of associated clauses */
   unsigned int	erased_clauses;		/* number of erased clauses in set */
   unsigned int	number_of_rules;	/* number of real rules */
+  unsigned int	jiti_tried;		/* number of times we tried to find */
 } clause_list, *ClauseList;
 
 typedef struct clause_ref

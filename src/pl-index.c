@@ -959,6 +959,8 @@ clearTriedIndexes(Definition def)
 
     ainfo->assessed = FALSE;
   }
+
+  def->impl.clauses.jiti_tried = 0;
 }
 
 
@@ -2184,10 +2186,12 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   { int ok, m, n;
 
     sort_assessments(def, instantiated, ninstantiated);
-    for(ok=0; ok<ninstantiated && def->args[instantiated[ok]].speedup > 2.0; ok++)
+    for( ok=0;
+	 ok<ninstantiated && def->args[instantiated[ok]].speedup > MIN_SPEEDUP;
+	 ok++ )
       ;
 
-    if ( ok >= 2 )
+    if ( ok >= 2 && ++def->impl.clauses.jiti_tried <= arity )
     { hash_assessment *nbest;
 
       DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
