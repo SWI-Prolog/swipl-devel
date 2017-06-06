@@ -2620,16 +2620,12 @@ this index key.
     \item [Hash lookup]
 If none of the above applies, the system considers the available hash
 tables for which the corresponding argument is instantiated. If a table
-is found with acceptable characteristics, it is used. Otherwise, there
-are two cases. First, if no hash table is available for the instantiated
-arguments, it assesses the clauses for all instantiated arguments and
-selects the best candidate for creating a hash table. Arguments that
-cannot be indexed are flagged to avoid repeated scanning. Second, if
-there is a hash table for an indexed argument but it has poor
-characteristics, the system scans other instantiated arguments to see
-whether it can create a better hash table. The system maintains a bit
-vector on each table in which it marks arguments that are less suitable
-than the argument to which the table belongs.
+is found with acceptable characteristics, it is used. Otherwise it
+assesses the clauses for all instantiated arguments and selects the best
+candidate for creating a new hash table. If there is no single argument
+that provides an acceptable hash quality it will search for a
+combination of arguments.\footnote{The last step was added in SWI-Prolog
+7.5.8.}
 
 Clauses that have a variable at an otherwise indexable argument must be
 linked into all hash buckets. Currently, predicates that have more than
@@ -2652,6 +2648,10 @@ reclaimed by garbage_collect_clauses/0.  The clause garbage collector
 is scheduled automatically, based on time and space based heuristics.
 See garbage_collect_clauses/0 for details.
 \end{itemlist}
+
+The library \pllib{prolog_jiti} provides jiti_list/0,1 to list the
+characteristics of all or some of the created hash tables.
+
 
 \subsection{Future directions}
 \label{sec:indexfut}
