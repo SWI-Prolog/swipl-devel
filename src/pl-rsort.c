@@ -105,6 +105,7 @@ sort_r(void *base, size_t nel, size_t width,
 
 #else /*HAVE_QSORT_R|HAVE_QSORT_S*/
 
+#ifndef QSORT_R_GNU
 struct sort_r_data
 { void *arg;
   int (*compar)(const void *a1, const void *a2, void *aarg);
@@ -115,6 +116,7 @@ sort_r_arg_swap(void *s, const void *aa, const void *bb)
 { struct sort_r_data *ss = (struct sort_r_data*)s;
   return (ss->compar)(aa, bb, ss->arg);
 }
+#endif
 
 void
 sort_r(void *base, size_t nel, size_t width,
