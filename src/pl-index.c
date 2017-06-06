@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-rsort.h"
 #include <math.h>
 
 		 /*******************************
@@ -1861,8 +1862,8 @@ best_hash_assessment(const void *p1, const void *p2, void *ctx)
 static void
 sort_assessments(Definition def,
 		 unsigned short *instantiated, int ninstantiated)
-{ qsort_r(instantiated, ninstantiated, sizeof(*instantiated),
-	  best_hash_assessment, def);
+{ sort_r(instantiated, ninstantiated, sizeof(*instantiated),
+	 best_hash_assessment, def);
 }
 
 

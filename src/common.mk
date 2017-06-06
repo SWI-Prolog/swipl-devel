@@ -21,7 +21,7 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
 	pl-dbref.o pl-termhash.o pl-variant.o pl-assert.o \
 	pl-copyterm.o pl-debug.o pl-cont.o pl-ressymbol.o pl-dict.o \
-	pl-trie.o pl-indirect.o pl-tabling.o
+	pl-trie.o pl-indirect.o pl-tabling.o pl-rsort.o
 
 # Prolog library
 

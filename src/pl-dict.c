@@ -32,11 +32,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define _GNU_SOURCE 1				/* get qsort_r() */
 #include "pl-incl.h"
 #include "pl-dict.h"
-#define LOCK()   PL_LOCK(L_DICT)
-#define UNLOCK() PL_UNLOCK(L_DICT)
+#include "pl-rsort.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Dicts are associative arrays,  where  keys   are  either  atoms  or small
@@ -83,83 +81,6 @@ dict_functor(int pairs)
   { return lookupFunctorDef(ATOM_dict, pairs*2+1);
   }
 }
-
-
-		 /*******************************
-		 *	      SORTING		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Copied from https://github.com/noporpoise/sort_r
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if !defined(HAVE_QSORT_R) && !defined(HAVE_QSORT_S)
-
-#ifdef QSORT_R_WITH_NESTED_FUNCTIONS
-
-void sort_r(void *base, size_t nel, size_t width,
-            int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
-{ int nested_cmp(const void *a, const void *b)
-  {
-    return compar(a, b, arg);
-  }
-
-  qsort(base, nel, width, nested_cmp);
-}
-
-#else
-
-static void *sort_r_ctx;
-static int (*sort_r_compar)(const void *a1, const void *a2, void *aarg);
-
-int
-nested_cmp(const void *a, const void *b)
-{ return (*sort_r_compar)(a, b, sort_r_ctx);
-}
-
-void sort_r(void *base, size_t nel, size_t width,
-            int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
-{ LOCK();
-  sort_r_ctx = arg;
-  sort_r_compar = compar;
-
-  qsort(base, nel, width, nested_cmp);
-  UNLOCK();
-}
-
-#endif
-
-#else /*HAVE_QSORT_R|HAVE_QSORT_S*/
-
-struct sort_r_data
-{ void *arg;
-  int (*compar)(const void *a1, const void *a2, void *aarg);
-};
-
-int sort_r_arg_swap(void *s, const void *aa, const void *bb)
-{ struct sort_r_data *ss = (struct sort_r_data*)s;
-  return (ss->compar)(aa, bb, ss->arg);
-}
-
-void sort_r(void *base, size_t nel, size_t width,
-            int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
-{
-#ifdef HAVE_QSORT_R
-#ifdef QSORT_R_GNU
-    qsort_r(base, nel, width, compar, arg);
-#else
-    struct sort_r_data tmp = {arg, compar};
-    qsort_r(base, nel, width, &tmp, &sort_r_arg_swap);
-#endif
-#else
-    struct sort_r_data tmp = {arg, compar};
-    qsort_s(base, nel, width, &sort_r_arg_swap, &tmp);
-#endif
-}
-
-#endif /*HAVE_QSORT_R|HAVE_QSORT_S*/
-
-
 
 		 /*******************************
 		 *      LOW-LEVEL FUNCTIONS	*
