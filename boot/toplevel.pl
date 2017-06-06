@@ -514,7 +514,7 @@ initialise_prolog :-
     ->  version                                 % default interactive run
     ;   run_init_goals(Goals),
         (   load_only
-        ->  true
+        ->  version
         ;   run_program_init,
             run_main_init
         )
