@@ -496,6 +496,17 @@ prolog_message(initialization_failure(Goal, _)) -->
 prolog_message(initialization_exception(E)) -->
     [ 'Prolog initialisation failed:', nl ],
     translate_message(E).
+prolog_message(init_goal_syntax(Error, Text)) -->
+    !,
+    [ '-g ~w: '-[Text] ],
+    translate_message(Error).
+prolog_message(init_goal_failed(failed, @(Goal,File:Line))) -->
+    !,
+    [ '~w:~w: ~p: false'-[File, Line, Goal] ].
+prolog_message(init_goal_failed(Error, @(Goal,File:Line))) -->
+    !,
+    [ '~w:~w: ~p '-[File, Line, Goal] ],
+    translate_message(Error).
 prolog_message(init_goal_failed(failed, Text)) -->
     !,
     [ '-g ~w: false'-[Text] ].

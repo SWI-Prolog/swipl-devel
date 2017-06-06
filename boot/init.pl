@@ -475,7 +475,9 @@ initialization(Goal, When) :-
     '$must_be'(oneof(atom, initialization_type,
                      [ now,
                        after_load,
-                       restore
+                       restore,
+                       program,
+                       main
                      ]), When),
     '$initialization_context'(Source, Ctx),
     '$initialization'(When, Goal, Source, Ctx).
@@ -495,6 +497,17 @@ initialization(Goal, When) :-
     ->  '$compile_init_goal'(-, Goal, Ctx)
     ;   '$permission_error'(register, initialization(restore), Goal)
     ).
+'$initialization'(program, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
+    ->  '$compile_init_goal'(when(program), Goal, Ctx)
+    ;   '$permission_error'(register, initialization(restore), Goal)
+    ).
+'$initialization'(main, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
+    ->  '$compile_init_goal'(when(main), Goal, Ctx)
+    ;   '$permission_error'(register, initialization(restore), Goal)
+    ).
+
 
 '$compile_init_goal'(Source, Goal, Ctx) :-
     atom(Source),
@@ -534,6 +547,7 @@ initialization(Goal, When) :-
 
 '$run_initialization_2'(File) :-
     (   '$init_goal'(File, Goal, Ctx),
+        File \= when(_),
         '$run_init_goal'(Goal, Ctx),
         fail
     ;   true

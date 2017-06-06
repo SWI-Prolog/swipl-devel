@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2016, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -490,10 +490,22 @@ initialise_prolog :-
     '$load_script_file',
     load_associated_files(Files),
     '$cmd_option_val'(goals, Goals),
-    (   Goals == []
-    ->  version
-    ;   run_init_goals(Goals)
+    (   Goals == [],
+        \+ '$init_goal'(when(_), _, _)
+    ->  version                                 % default interactive run
+    ;   run_init_goals(Goals),
+        (   load_only
+        ->  true
+        ;   run_program_init,
+            run_main_init
+        )
     ).
+
+load_only :-
+    current_prolog_flag(os_argv, OSArgv),
+    memberchk('-l', OSArgv),
+    current_prolog_flag(argv, Argv),
+    \+ memberchk('-l', Argv).
 
 %!  run_init_goals(+Goals) is det.
 %
@@ -506,21 +518,47 @@ run_init_goals([H|T]) :-
     run_init_goals(T).
 
 run_init_goal(Text) :-
-    (   term_to_atom(Goal, Text),
-        catch(user:Goal, E, true)
+    catch(term_to_atom(Goal, Text), E,
+          (   print_message(error, init_goal_syntax(E, Text)),
+              halt(2)
+          )),
+    run_init_goal(Goal, Text).
+
+%!  run_program_init is det.
+%
+%   Run goals registered using
+
+run_program_init :-
+    forall('$init_goal'(when(program), Goal, Ctx),
+           run_init_goal(Goal, @(Goal,Ctx))).
+
+run_main_init :-
+    findall(Goal-Ctx, '$init_goal'(when(main), Goal, Ctx), Pairs),
+    '$append'(_, [Goal-Ctx|_], Pairs),
+    !,
+    run_init_goal(Goal, @(Goal,Ctx)),
+    halt.
+run_main_init.
+
+run_init_goal(Goal, Ctx) :-
+    (   catch(user:Goal, E, true)
     ->  (   var(E)
         ->  true
-        ;   print_message(error, init_goal_failed(E, Text)),
+        ;   print_message(error, init_goal_failed(E, Ctx)),
             halt(2)
         )
     ;   (   current_prolog_flag(verbose, silent)
         ->  Level = silent
         ;   Level = error
         ),
-        print_message(Level, init_goal_failed(failed, Text)),
+        print_message(Level, init_goal_failed(failed, Ctx)),
         halt(1)
     ).
 
+%!  init_debug_flags is det.
+%
+%   Initialize the various Prolog flags that   control  the debugger and
+%   toplevel.
 
 init_debug_flags :-
     once(print_predicate(_, [print], PrintOptions)),
