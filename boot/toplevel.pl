@@ -555,6 +555,7 @@ run_main_init :-
     findall(Goal-Ctx, '$init_goal'(when(main), Goal, Ctx), Pairs),
     '$append'(_, [Goal-Ctx|_], Pairs),
     !,
+    '$cmd_option_set'(toplevel, 'halt(1)'),
     run_init_goal(Goal, @(Goal,Ctx)),
     halt.
 run_main_init.

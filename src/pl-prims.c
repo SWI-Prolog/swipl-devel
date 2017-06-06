@@ -5457,6 +5457,22 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 }
 
 
+static
+PRED_IMPL("$cmd_option_set", 2, cmd_option_set, 0)
+{ char *k, *v;
+
+  term_t key = A1;
+  term_t val = A2;
+
+  if ( PL_get_chars(key, &k, CVT_ALL|CVT_EXCEPTION) &&
+       PL_get_chars(val, &v, CVT_ALL|CVT_EXCEPTION) )
+  { return set_pl_option(k, v);
+  }
+
+  return FALSE;
+}
+
+
 int
 set_pl_option(const char *name, const char *value)
 { OptDef d = (OptDef)optdefs;
@@ -5628,6 +5644,7 @@ BeginPredDefs(prims)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$cmd_option_val", 2, cmd_option_val, 0)
+  PRED_DEF("$cmd_option_set", 2, cmd_option_set, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
   PRED_DEF("setarg", 3, setarg, 0)
