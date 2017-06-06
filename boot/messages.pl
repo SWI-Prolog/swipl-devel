@@ -383,6 +383,12 @@ swi_message(conditional_compilation_error(no_if, What)) -->
     [ ':- ~w without :- if'-[What] ].
 swi_message(duplicate_key(Key)) -->
     [ 'Duplicate key: ~p'-[Key] ].
+swi_message(initialization_error(failed, Goal, File:Line)) -->
+    !,
+    [ '~w:~w: ~p: false'-[File, Line, Goal] ].
+swi_message(initialization_error(Error, Goal, File:Line)) -->
+    [ '~w:~w: ~p '-[File, Line, Goal] ],
+    translate_message(Error).
 
 cond_location(File:Line) -->
     { file_base_name(File, Base) },

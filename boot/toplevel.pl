@@ -37,6 +37,7 @@
           [ '$initialise'/0,            % start Prolog
             '$toplevel'/0,              % Prolog top-level (re-entrant)
             '$compile'/0,               % `-c' toplevel
+            initialize/0,               % Run program initialization
             version/0,                  % Write initial banner
             version/1,                  % Add message to the banner
             prolog/0,                   % user toplevel predicate
@@ -221,6 +222,24 @@ prolog:message(initialize_now(Goal, Use)) -->
 '$run_initialization' :-
     '$run_initialization'(_, []),
     '$thread_init'.
+
+%!  initialize
+%
+%   Run goals registered with `:-  initialization(Goal, program).`. Stop
+%   with an exception if a goal fails or raises an exception.
+
+initialize :-
+    forall('$init_goal'(when(program), Goal, Ctx),
+           run_initialize(Goal, Ctx)).
+
+run_initialize(Goal, Ctx) :-
+    (   catch(Goal, E, true),
+        (   var(E)
+        ->  true
+        ;   throw(error(initialization_error(E, Goal, Ctx), _))
+        )
+    ;   throw(error(initialization_error(failed, Goal, Ctx), _))
+    ).
 
 
                  /*******************************
