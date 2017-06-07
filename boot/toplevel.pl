@@ -340,8 +340,8 @@ path_sep -->
 
 %!  argv_files(-Files) is det.
 %
-%   Updated the prolog flag =argv=, extracting the leading directory
-%   and files.
+%   Update the Prolog flag =argv=, extracting  the leading directory and
+%   files.
 
 argv_files(Files) :-
     current_prolog_flag(argv, Argv),
