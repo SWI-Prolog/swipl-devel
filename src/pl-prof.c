@@ -94,6 +94,8 @@ activateProfiler(prof_status active ARG_LD)
     Ssprintf(msg, "Already profiling thread %d",
 	     profiling->thread.info->pl_tid);
 
+    PL_UNLOCK(L_THREAD);
+
     return PL_error(NULL, 0, msg, ERR_PERMISSION,
 		    ATOM_profile, ATOM_thread, tid);
   }
