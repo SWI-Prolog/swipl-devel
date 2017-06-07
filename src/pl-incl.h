@@ -1729,14 +1729,20 @@ struct gc_trail_entry
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
-			     DEBUG(CHK_SECURE, assert((b).saved_bar >= gBase && \
-						      (b).saved_bar <= gTop)); \
-			     LD->mark_bar = (b).globaltop = gTop; \
+			     DEBUG(CHK_SECURE, \
+				   assert((b).saved_bar == NO_MARK_BAR || \
+					  ((b).saved_bar >= gBase && \
+					   (b).saved_bar <= gTop))); \
+			     (b).globaltop = gTop; \
+			     if ( LD->mark_bar != NO_MARK_BAR ) \
+			       LD->mark_bar = (b).globaltop; \
 			   } while(0)
 #define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
 					     LD->frozen_bar : (b).saved_bar); \
-			     DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && \
-						      LD->mark_bar <= gTop)); \
+			     DEBUG(CHK_SECURE, \
+				   assert(LD->mark_bar == NO_MARK_BAR || \
+					  (LD->mark_bar >= gBase && \
+					   LD->mark_bar <= gTop))); \
 			   } while(0)
 #define NOT_A_MARK	(TrailEntry)(~(word)0)
 #define NoMark(b)	do { (b).trailtop = NOT_A_MARK; \
