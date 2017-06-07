@@ -325,6 +325,12 @@ does not exist.
 Optimised compilation. See current_prolog_flag/2 flag
 \prologflag{optimise} for details.
 
+    \cmdlineoptionitem{-l}{file}
+Load \arg{file}. This flag provides compatibility with some other Prolog
+systems.\footnote{YAP, SICStus} It is used in SWI-Prolog to skip the
+program initialization specified using initialization/2 directives. See
+also \secref{plscript}, and initialize/0.
+
     \cmdlineoptionitem{-s}{file}
 Use \arg{file} as a script file.  The script file is loaded after
 the initialisation file specified with the \argoption{-f}{file}
