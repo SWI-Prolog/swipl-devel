@@ -42,7 +42,7 @@
 :- meta_predicate
     jiti_list(:).
 
-/** <module Just In Time Indexing (JITI) utilities
+/** <module> Just In Time Indexing (JITI) utilities
 
 This module provides utilities to   examine just-in-time indexes created
 by the system and can help diagnosing space and performance issues.
