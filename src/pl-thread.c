@@ -2010,20 +2010,24 @@ unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
   { case PL_THREAD_CREATED:
     case PL_THREAD_RUNNING:
     { int rc = FALSE;
-      if ( lock ) LOCK();
-      if ( info->is_engine && !info->has_tid )
-	rc = unify_engine_status(status, info PASS_LD);
-      if ( lock ) UNLOCK();
+      if ( info->is_engine )
+      { if ( lock ) LOCK();
+	if ( !info->has_tid )
+	  rc = unify_engine_status(status, info PASS_LD);
+	if ( lock ) UNLOCK();
+      }
       return rc || PL_unify_atom(status, ATOM_running);
     }
     case PL_THREAD_EXITED:
     { term_t tmp = PL_new_term_ref();
       int rc = TRUE;
 
-      if ( lock ) LOCK();
       if ( info->return_value )
-	rc = PL_recorded(info->return_value, tmp);
-      if ( lock ) UNLOCK();
+      { if ( lock ) LOCK();
+	if ( info->return_value )
+	  rc = PL_recorded(info->return_value, tmp);
+	if ( lock ) UNLOCK();
+      }
 
       if ( !rc )
 	return raiseStackOverflow(GLOBAL_OVERFLOW);
