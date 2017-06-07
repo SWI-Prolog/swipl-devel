@@ -4198,7 +4198,7 @@ makeMoreStackSpace(int overflow, int flags)
   }
 
   if ( LD->exception.processing && s && enableSpareStack(s) )
-      return TRUE;
+    return TRUE;
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
        (flags & ALLOW_GC) &&
