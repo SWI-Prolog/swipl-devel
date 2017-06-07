@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2016, University of Amsterdam
+    Copyright (c)  2004-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -121,7 +121,10 @@ registerWakeup(Word name, Word value ARG_LD)
     *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
     TrailAssignment(tail);		/* on local stack! */
     *tail = makeRef(wake+3);
-    DEBUG(1, Sdprintf("appended to wakeup\n"));
+    DEBUG(MSG_WAKEUP,
+	  { char buf[32];
+	    Sdprintf("appended wakeup %s\n", print_addr(wake, buf));
+	  });
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
 
@@ -131,7 +134,10 @@ registerWakeup(Word name, Word value ARG_LD)
     TrailAssignment(tail);
     *tail = makeRef(wake+3);
     LD->alerted |= ALERT_WAKEUP;
-    DEBUG(1, Sdprintf("new wakeup\n"));
+    DEBUG(MSG_WAKEUP,
+	  { char buf[32];
+	    Sdprintf("new wakeup %s\n", print_addr(wake, buf));
+	  });
   }
 }
 
@@ -165,9 +171,11 @@ assignAttVar(Word av, Word value ARG_LD)
   assert(gTop+7 <= gMax && tTop+6 <= tMax);
   DEBUG(CHK_SECURE, assert(on_attvar_chain(av)));
 
-  DEBUG(1,
-	{ char buf[32];
-	  Sdprintf("assignAttVar(%s)\n", var_name_ptr(av, buf));
+  DEBUG(MSG_WAKEUP,
+	{ char buf[32]; char buf2[32];
+	  Sdprintf("assignAttVar(%s) at %s\n",
+		   var_name_ptr(av, buf),
+		   print_addr(av, buf2));
 	});
 
   if ( isAttVar(*value) )
