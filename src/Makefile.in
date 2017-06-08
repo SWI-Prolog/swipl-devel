@@ -188,7 +188,7 @@ noprof:	system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
-		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
+		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL)' -t halt
 		$(MAKE) clean
 		$(MAKE) CPFLAGS=-fprofile-use noprof
 		$(MAKE) profclean
@@ -414,11 +414,11 @@ cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
 .PHONY: check
 check:
-		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
+		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test -t halt
 
 .PHONY: check-installation
 check-installation:
-		$(bindir)/$(PL)$(EXEEXT) -f none -g check_installation,halt -t 'halt(1)'
+		$(bindir)/$(PL)$(EXEEXT) -f none -g check_installation -t halt
 
 .PHONY: ln-install install dv-install
 
