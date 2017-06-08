@@ -208,7 +208,7 @@ JW: I think we can reduce locking for AGC further.
   - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void	rehashAtoms(void);
+static int	rehashAtoms(void);
 
 #define atomTable    GD->atoms.table
 
@@ -590,9 +590,14 @@ redo:
   }
 
   if ( atomTable->buckets * 2 < GD->statistics.atoms )
-  { LOCK();
-    rehashAtoms();
+  { int rc;
+
+    LOCK();
+    rc = rehashAtoms();
     UNLOCK();
+
+    if ( !rc )
+      outOfCore();
   }
 
   if ( !( table == atomTable->table && head == table[v] ) )
@@ -1357,7 +1362,7 @@ checkAtoms_src(const char *file, int line)
 		 *	    REHASH TABLE	*
 		 *******************************/
 
-static void
+static int
 rehashAtoms(void)
 { AtomTable newtab;
   uintptr_t mask;
@@ -1365,15 +1370,19 @@ rehashAtoms(void)
   int i, last=FALSE;
 
   if ( GD->cleaning != CLN_NORMAL )
-    return;				/* no point anymore and foreign ->type */
+    return TRUE;			/* no point anymore and foreign ->type */
 					/* pointers may have gone */
 
   if ( atomTable->buckets * 2 >= GD->statistics.atoms )
-    return;
+    return TRUE;
 
-  newtab = allocHeapOrHalt(sizeof(*newtab));
+  if ( !(newtab = allocHeap(sizeof(*newtab))) )
+    return FALSE;
   newtab->buckets = atomTable->buckets * 2;
-  newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(Atom));
+  if ( !(newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(Atom))) )
+  { freeHeap(newtab, sizeof(*newtab));
+    return FALSE;
+  }
   memset(newtab->table, 0, newtab->buckets * sizeof(Atom));
   newtab->prev = atomTable;
   mask = newtab->buckets-1;
@@ -1407,6 +1416,8 @@ rehashAtoms(void)
 
   atomTable = newtab;
   GD->atoms.rehashing = FALSE;
+
+  return TRUE;
 }
 
 
