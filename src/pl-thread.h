@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -184,6 +184,14 @@ typedef struct pl_mutex
   unsigned auto_destroy	: 1;		/* asked to destroy */
 } pl_mutex;
 
+typedef struct
+{ functor_t functor;			/* functor of property */
+  int (*function)();			/* function to generate */
+} tprop;
+
+COMMON(int)	get_prop_def(term_t t, atom_t expected,
+			     const tprop *list, const tprop **def);
+
 #define PL_THREAD_MAGIC 0x2737234f
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
@@ -213,9 +221,10 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_OS	       22
 #define L_LOCALE       23
 #define L_SORTR        24
+#define L_UMUTEX       25
 #ifdef __WINDOWS__
-#define L_DDE	       25
-#define L_CSTACK       26
+#define L_DDE	       26
+#define L_CSTACK       27
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

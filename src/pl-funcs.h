@@ -775,6 +775,10 @@ COMMON(int)		unify_thread_id(term_t id, PL_thread_info_t *info);
 COMMON(int)		enableThreads(int enable);
 
 
+/* pl-mutex.c */
+COMMON(void)		initMutexes(void);
+
+
 /* pl-gmp.c */
 COMMON(int)	PL_unify_number__LD(term_t t, Number n ARG_LD);
 COMMON(int)	PL_put_number__LD(term_t t, Number n ARG_LD);
