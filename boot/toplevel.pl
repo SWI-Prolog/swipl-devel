@@ -555,9 +555,18 @@ run_main_init :-
     findall(Goal-Ctx, '$init_goal'(when(main), Goal, Ctx), Pairs),
     '$append'(_, [Goal-Ctx|_], Pairs),
     !,
-    '$cmd_option_set'(toplevel, halt),
+    (   toplevel_option_given
+    ->  true
+    ;   '$cmd_option_set'(toplevel, halt)
+    ),
     run_init_goal(Goal, @(Goal,Ctx)).
 run_main_init.
+
+toplevel_option_given :-
+    current_prolog_flag(os_argv, OSArgv),
+    memberchk('-t', OSArgv),
+    current_prolog_flag(argv, Argv),
+    \+ memberchk('-t', Argv).
 
 run_init_goal(Goal, Ctx) :-
     (   catch(user:Goal, E, true)
