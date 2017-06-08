@@ -833,8 +833,12 @@ they may be executed explicitly using initialize/0. See also
 When Prolog starts, the last goal registered using
 \term{initialization}{Goal, main} is executed as main goal. If
 \arg{Goal} fails or raises an exception, the process terminates with
-non-zero exit code.  If \arg{Goal} succeeds, the process terminates
-with zero exit code. See also \secref{plscript}.
+non-zero exit code. If not explicitly specified using the
+\cmdlineoption{-t} the \jargon{toplevel goal} is set to halt/0, causing
+the process to exit with status 0. An explicitly specified toplevel is
+executed normally. This implies that \exam{-t prolog} causes the
+application to start the normal interactive toplevel after completing
+\arg{Goal}.
 \end{description}
 
     \predicate[det]{initialization}{0}{}

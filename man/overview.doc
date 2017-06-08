@@ -900,6 +900,31 @@ And here are two example runs:
 ERROR: is/2: Arithmetic: `foo/0' is not a function
 \end{code}
 
+Prolog script may be lauched for debugging or inspection purposes using
+the \cmdlineoption{-l} or \cmdlineoption{-t}. For example,
+\cmdlineoption{-l} merely loads the script, ignoring \const{main} and
+\const{program} initialization.
+
+\begin{code}
+swipl -l eval 1+1
+<banner>
+
+?- main.
+2
+true.
+
+?-
+\end{code}
+
+We can also force the program to enter the interactive toplevel after
+the application is completed using \exam{-t prolog}:
+
+\begin{code}
+swipl -t prolog eval 1+1
+2
+?-
+\end{code}
+
 The Windows version simply ignores the \verb$#!$ line.\footnote{Older
 versions extracted command line arguments from the \jargon{HashBang}
 line.  As of version 5.9 all relevant setup can be achieved using
