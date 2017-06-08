@@ -38,10 +38,24 @@
 :- use_module(library(doc_latex)).
 :- use_module(library(main)).
 :- use_module(library(apply)).
+:- use_module(library(option)).
 :- use_module(library(lists)).
 
 :- initialization(main, main).
 
+pltotex(File, Options) :-
+    (   option(preload(Library), Options)
+    ->  use_module(Library)
+    ;   true
+    ),
+    wiki_extension(Ext),
+    file_name_extension(_, Ext, File),
+    !,
+    tex_file(File, Out, Options),
+    doc_latex(File, Out,
+              [ stand_alone(false)
+              | Options
+              ]).
 pltotex(Lib, Options) :-
     (   file_name_extension(_, pl, Lib)
     ->  Spec = Lib
@@ -51,14 +65,21 @@ pltotex(Lib, Options) :-
                        [ access(read),
                          file_type(prolog)
                        ]),
-    tex_file(File, Out),
+    tex_file(File, Out, Options),
     user:use_module(File),          % we want the operators in user
     doc_latex(File, Out,
               [ stand_alone(false)
               | Options
               ]).
 
-tex_file(File, TeXFile) :-
+wiki_extension(txt).
+wiki_extension(md).
+
+tex_file(_, TeXFile, Options) :-
+    option(out(Base), Options),
+    !,
+    file_name_extension(Base, tex, TeXFile).
+tex_file(File, TeXFile, _) :-
     file_base_name(File, Local),
     file_name_extension(Base0, _, Local),
     strip(Base0, 0'_, Base),
@@ -69,10 +90,14 @@ strip(In, Code, Out) :-
     delete(Codes0, Code, Codes),
     atom_codes(Out, Codes).
 
+%!  main(+Argv)
+%
+%   The entry point
 
 main(Argv) :-
     partition(is_option, Argv, OptArgs, Files),
-    maplist(to_option, OptArgs, Options),
+    maplist(to_option, OptArgs, Options0),
+    flatten(Options0, Options),
     maplist(process_file(Options), Files).
 
 is_option(Arg) :-
@@ -81,6 +106,17 @@ is_option(Arg) :-
 to_option('--section', section_level(section)).
 to_option('--subsection', section_level(subsection)).
 to_option('--subsubsection', section_level(subsubsection)).
+to_option('--rdf11',
+          [ preload(library(semweb/rdf11)), modules([rdf11,rdf_db]) ]) :- !.
+to_option('--rdfdb',
+          [ preload(library(semweb/rdf_db)), module(rdf_db)]) :- !.
+to_option(Arg, Option) :-
+    atom_concat(--, Opt, Arg),
+    sub_atom(Opt, B, _, A, =),
+    !,
+    sub_atom(Opt, 0, B, _, Name),
+    sub_atom(Opt, _, A, 0, Value),
+    Option =.. [Name, Value].
 
 process_file(Options, File) :-
     pltotex(File, Options).
