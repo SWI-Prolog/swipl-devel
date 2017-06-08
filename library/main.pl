@@ -79,23 +79,7 @@ main :-
     context_module(M),
     set_signals,
     current_prolog_flag(argv, Av),
-    run_main(M, Av).
-
-%!  run_main(+Module, +Args)
-%
-%   Run the main routine, guarding for exceptions and failure of the
-%   main/1 routine
-
-run_main(Module, Av) :-
-    (   catch(call(Module:main, Av), E, true)
-    ->  (   var(E)
-        ->  halt(0)
-        ;   print_message(error, E),
-            halt(1)
-        )
-    ;   print_message(error, goal_failed(main(Av))),
-        halt(1)
-    ).
+    call(M:main, Av).
 
 set_signals :-
     on_signal(int, _, interrupt).
