@@ -318,7 +318,7 @@ link_mutexes(void)
 #ifdef USE_CRITICAL_SECTIONS
 
 static void
-initMutexes(void)
+W32initMutexes(void)
 { static int done = FALSE;
   counting_mutex *m;
   int n = sizeof(_PL_mutexes)/sizeof(*m);
@@ -352,7 +352,7 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
   switch(fdwReason)
   { case DLL_PROCESS_ATTACH:
       GD->thread.instance = hinstDll;
-      initMutexes();
+      W32initMutexes();
       TLD_alloc(&PL_ldata);
       break;
     case DLL_PROCESS_DETACH:
@@ -780,7 +780,7 @@ initPrologThreads(void)
   initAlloc();
 
 #if defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL)
-  initMutexes();		/* see also DllMain() */
+  W32initMutexes();		/* see also DllMain() */
 #endif
 
 #ifdef PTW32_STATIC_LIB
