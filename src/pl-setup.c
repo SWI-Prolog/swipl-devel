@@ -1358,11 +1358,18 @@ allocStacks(size_t local, size_t global, size_t trail)
   global   = max(global,   minglobal);
   trail    = max(trail,    mintrail);
 
+  gBase = NULL;
+  tBase = NULL;
+  aBase = NULL;
+
   gBase = (Word)       stack_malloc(iglobal + ilocal);
   tBase = (TrailEntry) stack_malloc(itrail);
   aBase = (Word *)     stack_malloc(minargument);
+
   if ( !gBase || !tBase || !aBase )
-  { freeStacks(PASS_LD1);
+  { if ( gBase )
+      *gBase++ = MARK_MASK;		/* compensate for freeStacks */
+    freeStacks(PASS_LD1);
     fail;
   }
 
