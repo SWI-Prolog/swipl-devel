@@ -399,10 +399,7 @@ another atom.
 
 static void
 allocateAtomBlock(int idx)
-{
-  PL_LOCK(L_MISC);
-
-  if ( !GD->atoms.array.blocks[idx] )
+{ if ( !GD->atoms.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
     Atom newblock;
 
@@ -410,10 +407,10 @@ allocateAtomBlock(int idx)
       outOfCore();
 
     memset(newblock, 0, bs*sizeof(struct atom));
-    GD->atoms.array.blocks[idx] = newblock-bs;
+    if ( !COMPARE_AND_SWAP(&GD->atoms.array.blocks[idx],
+			   NULL, newblock-bs) )
+      PL_free(newblock);		/* done by someone else */
   }
-
-  PL_UNLOCK(L_MISC);
 }
 
 static Atom
