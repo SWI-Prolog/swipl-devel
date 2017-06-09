@@ -580,6 +580,7 @@ PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
 
 PL_EXPORT(int)		PL_get_int64(term_t t, int64_t *i) WUNUSED;
 PL_EXPORT(int)		PL_unify_int64(term_t t, int64_t value) WUNUSED;
+PL_EXPORT(int)		PL_unify_uint64(term_t t, uint64_t value) WUNUSED;
 PL_EXPORT(int)		PL_put_int64(term_t t, int64_t i) WUNUSED;
 
 

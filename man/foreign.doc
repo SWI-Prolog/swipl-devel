@@ -916,9 +916,7 @@ function succeeds as well.  See also PL_get_int64().
 
 \cfunction{int}{PL_get_int64}{term_t +t, int64_t *i}
 If \arg{t} is a Prolog integer or float that can be represented as a
-\ctype{int64_t}, assign its value over \arg{i}.  Currently all Prolog
-integers can be represented using this type, but this might change if
-SWI-Prolog introduces unbounded integers.
+\ctype{int64_t}, assign its value over \arg{i}.
 
 \cfunction{int}{PL_get_intptr}{term_t +t, intptr_t *i}
 Get an integer that is at least as wide as a pointer. On most
@@ -1456,6 +1454,11 @@ See also PL_unify_string_nchars().
 Unify \arg{t} with a Prolog integer from \arg{n}.
     \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
+    \cfunction{int}{PL_unify_uint64}{term_t ?t, uint64_t n}
+Unify \arg{t} with a Prolog integer from \arg{n}.  Note that unbounded
+integer support is required if \arg{n} does not fit in a \emph{signed}
+\ctype{int64_t}.  If unbounded integers are not supported a
+\const{representation_error} is raised.
     \cfunction{int}{PL_unify_float}{term_t ?t, double f}
 Unify \arg{t} with a Prolog float from \arg{f}.
     \cfunction{int}{PL_unify_pointer}{term_t ?t, void *ptr}

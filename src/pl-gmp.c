@@ -456,6 +456,18 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 
 
 static void
+mpz_init_set_uint64(mpz_t mpz, uint64_t i)
+{
+#if SIZEOF_LONG == 8
+  mpz_init_set_ui(mpz, (unsigned long)i);
+#else
+  mpz_init(mpz);
+  mpz_import(mpz, sizeof(i), ORDER, 1, 0, 0, &i);
+#endif
+}
+
+
+static void
 mpz_init_max_uint(mpz_t mpz, int bits)
 { mpz_init_set_si(mpz, 1);
   mpz_mul_2exp(mpz, mpz, bits);
@@ -738,6 +750,32 @@ put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
 }
 
 #endif /*O_GMP*/
+
+/* returns one of
+
+  TRUE: ok
+  FALSE: some error
+  GLOBAL_OVERFLOW: no space
+  LOCAL_OVERFLOW: cannot represent (no GMP)
+*/
+
+int
+put_uint64(Word at, uint64_t l, int flags ARG_LD)
+{ if ( (int64_t)l >= 0 )
+  { return put_int64(at, l, flags PASS_LD);
+  } else
+  {
+#ifdef O_GMP
+    mpz_t mpz;
+
+    mpz_init_set_uint64(mpz, l);
+    return put_mpz(at, mpz, flags PASS_LD);
+#else
+    return LOCAL_OVERFLOW;
+#endif
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 put_number()   translates   a   number   structure   into   its   Prolog

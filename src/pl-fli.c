@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2016, University of Amsterdam
+    Copyright (c)  1996-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -2997,12 +2997,52 @@ PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
 { return unify_int64_ex__LD(t, i, TRUE PASS_LD);
 }
 
-
 int
 PL_unify_int64__LD(term_t t, int64_t i ARG_LD)
 { return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
 
+int
+PL_unify_uint64(term_t t, uint64_t i)
+{ GET_LD
+
+  if ( (int64_t)i >= 0 )
+  { return unify_int64_ex__LD(t, i, TRUE PASS_LD);
+  } else if ( PL_is_variable(t) )
+  { word w;
+    int rc;
+
+    switch ( (rc=put_uint64(&w, i, ALLOW_GC PASS_LD)) )
+    { case TRUE:
+	return unifyAtomic(t, w PASS_LD);
+      case LOCAL_OVERFLOW:
+	return PL_representation_error("uint64_t");
+      default:
+	return raiseStackOverflow(rc);
+    }
+  } else
+  { number n;
+
+    if ( PL_get_number(t, &n) )
+    { switch(n.type)
+      { case V_INTEGER:
+	  return FALSE;			/* we have a too big integer */
+#ifdef O_GMP
+	case V_MPZ:
+	{ uint64_t v;
+
+	  if ( mpz_to_uint64(n.value.mpz, &v) == 0 )
+	    return v == i;
+	}
+#endif
+	default:
+	  break;
+      }
+    }
+
+    return FALSE;
+  }
+}
 
 int
 PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
