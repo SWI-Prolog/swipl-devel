@@ -142,24 +142,17 @@ static void		max_gsize(size_t *gsize, trie *trie, word key);
 
 static  word
 acquire_key(word key)
-{ word ret;
-  functor_t write;
-  term_t call;
-  //  call= PL_new_term_ref();
-  //write = PL_new_functor(PL_new_atom("writeln"), 1);
-  //  PL_cons_functor(call, write, key);
-  //PL_call(call,NULL);
+{
+  word ret;
 
   ret= (word) PL_record(key);
-
-
-  //printf("key %d handle %d\n",key,ret );
   return ret;
 }
 
 static  void
 release_key(word key)
-{ PL_erase((record_t)key);
+{
+  PL_erase((record_t)key);
 }
 
 
@@ -956,28 +949,13 @@ PRED_IMPL("trie_insert", 3, trie_insert, 0)
     trie_node *node;
     int rc;
     word val;
-functor_t write;
-term_t call;
     kp = valTermRef(A2);
-    //vp = valTermRef(A3);
     vp=PL_new_term_ref();
     PL_unify(vp,A3);
-    //deRef(vp);
 
-  //  call= PL_new_term_ref();
-//  write = PL_new_functor(PL_new_atom("writeln"), 1);
-//    PL_cons_functor(call, write, vp);
-  //PL_call(call,NULL);
-
-  /*  if ( !isAtomic(*vp) || isFloat(*vp) )
-      return PL_type_error("primitive", A3);
-    if ( isBignum(*vp) )
-      return PL_domain_error("primitive", A3);
-*/
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
       {
-        //  printf("qui1\n");
         val = PL_new_term_ref();
         PL_recorded((record_t)node->value,val);
         if ( !PL_compare(vp,val) )
@@ -1016,25 +994,10 @@ PRED_IMPL("trie_update", 3, trie_update, 0)
     word vp;
     trie_node *node;
     int rc;
-    word val;
-functor_t write;
-term_t call;
     kp = valTermRef(A2);
-    //vp = valTermRef(A3);
     vp=PL_new_term_ref();
     PL_unify(vp,A3);
-    //deRef(vp);
 
-  //  call= PL_new_term_ref();
-//  write = PL_new_functor(PL_new_atom("writeln"), 1);
-//    PL_cons_functor(call, write, vp);
-  //PL_call(call,NULL);
-
-  /*  if ( !isAtomic(*vp) || isFloat(*vp) )
-      return PL_type_error("primitive", A3);
-    if ( isBignum(*vp) )
-      return PL_domain_error("primitive", A3);
-*/
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
         release_key(node->value);
@@ -1343,13 +1306,9 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   trie_gen_state state_buf;
   trie_gen_state *state;
-  term_t key,val,call;
+  term_t key,val;
   word value;
   fid_t fid;
-  char s[1000];
-  int res;
-  word rec;
-  functor_t write;
 
 
   switch( CTX_CNTRL )
@@ -1389,38 +1348,13 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
   key = PL_new_term_ref();
   val = PL_new_term_ref();
   fid = PL_open_foreign_frame();
-write = PL_new_functor(PL_new_atom("write"), 1);
-call= PL_new_term_ref();
-//   PL_call(call,NULL);
-/*  rec=PL_record(A2);
-  PL_recorded(rec,val);
-PL_cons_functor(call, write, val);
-//  write = PL_new_functor(PL_new_atom("write"), 1);
-//  PL_cons_functor(call, write, val);
-  PL_call(call,NULL);
-/*  PL_get_chars(val,&s,CVT_ALL|REP_MB);
-  printf("%s\n",s );
-  return PL_unify(A3,val);
-*/
 
   for( ; state->head; next_choice(state) )
   { if ( !put_trie_path(key, &value, state PASS_LD) )
     { PL_close_foreign_frame(fid);
       return FALSE;				/* resource error */
     }
-    //printf("handle %d val %d\n",value,val);
-
-    // PL_call(call,NULL);
-//    PL_get_chars(val,&s,CVT_ALL);
-  //  printf("%d\n",value );
-    res=PL_recorded((record_t)value,val);
-//    PL_cons_functor(call, write, val);
-  //  printf("res %d\n",res );
-
-    //   PL_call(call,NULL);
-//  printf("val %d\n",val);
-//        PL_get_chars(val,&s,CVT_ALL);
-//    printf("%d %s\n",value,s );
+    PL_recorded((record_t)value,val);
     if ( PL_unify(A2, key) && PL_unify(A3, val) )
     { if ( next_choice(state) )
       { if ( state == &state_buf )
