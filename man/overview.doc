@@ -1661,6 +1661,16 @@ Offset in seconds west of GMT of the current time zone. Set at
 initialization time from the \const{timezone} variable associated with
 the POSIX tzset() function. See also format_time/3.
 
+    \prologflagitem{toplevel_goal}{term}{rw}
+Defines the goal that is executed after running the initialization goals
+and entry point (see \cmdlineoption{-g}, initialization/2 and
+\secref{plscript}. The initial value is \const{default}, starting a
+normal interactive session. This value may be changed using the command
+line option \cmdlineoption{-t}. The explicit value \const{prolog} is
+equavalent to \const{default}. If \term{initialization}{Goal,main} is
+used and the toplevel is \const{default}, the toplevel is set to
+\const{halt} (see halt/0).
+
     \prologflagitem{toplevel_mode}{atom}{rw}
 If \const{backtracking} (default), the toplevel backtracks after
 completing a query. If \const{recursive}, the toplevel is implemented as

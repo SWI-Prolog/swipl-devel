@@ -436,7 +436,7 @@ initDefaults(void)
   systemDefaults.trail       = DEFTRAIL;
   systemDefaults.table       = DEFTABLE;
   systemDefaults.goal	     = NULL;
-  systemDefaults.toplevel    = "prolog";
+  systemDefaults.toplevel    = "default";
   systemDefaults.notty       = NOTTYCONTROL;
 
 #ifdef __WINDOWS__

@@ -838,7 +838,8 @@ non-zero exit code. If not explicitly specified using the
 the process to exit with status 0. An explicitly specified toplevel is
 executed normally. This implies that \exam{-t prolog} causes the
 application to start the normal interactive toplevel after completing
-\arg{Goal}.
+\arg{Goal}.  See also the Prolog flag \prologflag{toplevel_goal} and
+\secref{plscript}.
 \end{description}
 
     \predicate[det]{initialization}{0}{}

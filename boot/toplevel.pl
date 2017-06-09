@@ -496,6 +496,7 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
+    set_toplevel,
     associated_files(Files),
     '$set_file_search_paths',
     init_debug_flags,
@@ -519,6 +520,13 @@ initialise_prolog :-
             run_main_init
         )
     ).
+
+set_toplevel :-
+    '$cmd_option_val'(toplevel, TopLevelAtom),
+    catch(term_to_atom(TopLevel, TopLevelAtom), E,
+          (print_message(error, E),
+           halt(1))),
+    create_prolog_flag(toplevel_goal, TopLevel, [type(term)]).
 
 load_only :-
     current_prolog_flag(os_argv, OSArgv),
@@ -555,18 +563,12 @@ run_main_init :-
     findall(Goal-Ctx, '$init_goal'(when(main), Goal, Ctx), Pairs),
     '$last'(Pairs, Goal-Ctx),
     !,
-    (   toplevel_option_given
-    ->  true
-    ;   '$cmd_option_set'(toplevel, halt)
+    (   current_prolog_flag(toplevel_goal, default)
+    ->  set_prolog_flag(toplevel_goal, halt)
+    ;   true
     ),
     run_init_goal(Goal, @(Goal,Ctx)).
 run_main_init.
-
-toplevel_option_given :-
-    current_prolog_flag(os_argv, OSArgv),
-    memberchk('-t', OSArgv),
-    current_prolog_flag(argv, Argv),
-    \+ memberchk('-t', Argv).
 
 run_init_goal(Goal, Ctx) :-
     (   catch(user:Goal, E, true)
@@ -694,37 +696,37 @@ load_setup_file(File) :-
 
 %!  '$runtoplevel'
 %
-%   Actually run the toplevel. If there  is   a  syntax error in the
-%   goal there is no reason to   persue.  Something like that should
-%   happen to repetitive exceptions in the toplevel as well, but how
-%   do we distinguish between  interactive   usage  that  frequently
-%   raises and error and a program crashing in a loop?
+%   Actually run the toplevel. The values   `default`  and `prolog` both
+%   start the interactive toplevel, where `prolog` implies the user gave
+%   =|-t prolog|=.
 %
 %   @see prolog/0 is the default interactive toplevel
 
 '$runtoplevel' :-
-    '$cmd_option_val'(toplevel, TopLevelAtom),
-    catch(term_to_atom(TopLevel0, TopLevelAtom), E,
-          (print_message(error, E),
-           halt(1))),
+    current_prolog_flag(toplevel_goal, TopLevel0),
     toplevel_goal(TopLevel0, TopLevel),
     user:TopLevel.
 
 :- dynamic  setup_done/0.
 :- volatile setup_done/0.
 
+toplevel_goal(default, '$query_loop') :-
+    !,
+    setup_interactive.
 toplevel_goal(prolog, '$query_loop') :-
     !,
-    (   setup_done
-    ->  true
-    ;   asserta(setup_done),
-        catch(setup_backtrace, E, print_message(warning, E)),
-        catch(setup_colors,    E, print_message(warning, E)),
-        catch(setup_readline,  E, print_message(warning, E)),
-        catch(setup_history,   E, print_message(warning, E))
-    ).
+    setup_interactive.
 toplevel_goal(Goal, Goal).
 
+setup_interactive :-
+    setup_done,
+    !.
+setup_interactive :-
+    asserta(setup_done),
+    catch(setup_backtrace, E, print_message(warning, E)),
+    catch(setup_colors,    E, print_message(warning, E)),
+    catch(setup_readline,  E, print_message(warning, E)),
+    catch(setup_history,   E, print_message(warning, E)).
 
 %!  '$compile'
 %
