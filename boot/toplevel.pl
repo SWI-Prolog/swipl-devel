@@ -553,7 +553,7 @@ run_program_init :-
 
 run_main_init :-
     findall(Goal-Ctx, '$init_goal'(when(main), Goal, Ctx), Pairs),
-    '$append'(_, [Goal-Ctx|_], Pairs),
+    '$last'(Pairs, Goal-Ctx),
     !,
     (   toplevel_option_given
     ->  true
