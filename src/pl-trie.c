@@ -976,8 +976,8 @@ term_t call;
 */
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
-      {        printf("qui1\n");
-
+      {
+        //  printf("qui1\n");
         val = PL_new_term_ref();
         PL_recorded((record_t)node->value,val);
         if ( !PL_compare(vp,val) )
@@ -1408,16 +1408,16 @@ PL_cons_functor(call, write, val);
     { PL_close_foreign_frame(fid);
       return FALSE;				/* resource error */
     }
-    printf("handle %d val %d\n",value,val);
+    //printf("handle %d val %d\n",value,val);
 
     // PL_call(call,NULL);
 //    PL_get_chars(val,&s,CVT_ALL);
-    printf("%d\n",value );
+  //  printf("%d\n",value );
     res=PL_recorded((record_t)value,val);
-    PL_cons_functor(call, write, val);
-    printf("res %d\n",res );
+//    PL_cons_functor(call, write, val);
+  //  printf("res %d\n",res );
 
-       PL_call(call,NULL);
+    //   PL_call(call,NULL);
 //  printf("val %d\n",val);
 //        PL_get_chars(val,&s,CVT_ALL);
 //    printf("%d %s\n",value,s );
