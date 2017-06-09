@@ -180,8 +180,6 @@ main(int argc, char **argv)
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
-  PL_install_readline();                /* delete if not required */
-
   PL_halt(PL_toplevel() ? 0 : 1);
 }
 \end{code}
@@ -599,6 +597,14 @@ The list constructor itself is created using
 PL_get_list(), PL_put_list() or PL_unify_list() where applicable.
     \end{description}
 
+    \cfunction{atom_t}{PL_new_atom_mbchars}{int rep, size_t len,
+					    const char *s}
+This function generalizes PL_new_atom() and PL_new_atom_nchars() while
+allowing for multiple encodings. The \arg{rep} argument is one of
+\const{REP_ISO_LATIN_1}, \const{REP_UTF8} or \const{REP_MB}. If
+\arg{len} is \exam{(size_t)-1}, it is computed from \arg{s} using
+strlen().
+
     \cfunction{const char*}{PL_atom_chars}{atom_t atom}
 Return a C-string for the text represented by the given atom. The
 returned text will not be changed by Prolog. It is not allowed to modify
@@ -801,7 +807,7 @@ If \arg{t} is an atom, store a pointer to a 0-terminated C-string in
 of this string.  Some built-in atoms may have the string allocated in
 read-only memory, so `temporary manipulation' can cause an error.
 
-    \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, int *len}
+    \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, size_t *len}
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
 that this pointer is invalidated by backtracking, garbage collection
@@ -1215,6 +1221,18 @@ PL_new_atom() and PL_atom_chars().
 \cfunction{void}{PL_put_bool}{term_t -t, int val}
 Put one of the atoms \const{true} or \const{false} in the term reference
 See also PL_put_atom(), PL_unify_bool() and PL_get_bool().
+\cfunction{int}{PL_put_chars}{term_t -t, int flags,
+			      size_t len,
+			      const char *chars}
+New function to deal with setting a term from a \ctype{char*} with
+various encodings. The \arg{flags} argument is a bitwise \emph{or}
+specifying the Prolog target type and the encoding of \arg{chars}. A
+Prolog type is one of \const{PL_ATOM}, \const{PL_STRING},
+\const{PL_CODE_LIST} or \const{PL_CHAR_LIST}. A representation is one of
+\const{REP_ISO_LATIN_1}, \const{REP_UTF8} or \const{REP_MB}. See
+PL_get_chars() for a definition of the representation types. If
+\arg{len} is \const{-1} \arg{chars} must be zero-terminated and the
+length is computed from \arg{chars} using strlen().
 \cfunction{int}{PL_put_atom_chars}{term_t -t, const char *chars}
 Put an atom in the term reference constructed from the zero-terminated
 string.  The string itself will never be referenced by Prolog after this
@@ -1434,14 +1452,6 @@ Unify \arg{t} with a list of ASCII characters constructed from
 Unify \arg{t} with a Prolog string object created from the
 zero-terminated string \arg{chars}. The data will be copied.
 See also PL_unify_string_nchars().
-    \cfunction{void}{PL_unify_string_nchars}{term_t ?t,
-					     size_t len,
-					     const char *chars}
-Unify \arg{t} with a Prolog string object created from the string
-created from the \arg{len}/\arg{chars} pair. The data will be copied.
-This interface can deal with 0-bytes in the string. See also
-\secref{foreigndata}.
-
     \cfunction{int}{PL_unify_integer}{term_t ?t, intptr_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
     \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
@@ -2212,9 +2222,15 @@ until it fails to generate all solutions to the query.
 Discards the query, but does not delete any of the data created by the
 query.  It just invalidates \arg{qid}, allowing for a new call to
 PL_open_query() in this context.
+
     \cfunction{void}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
+
+    \cfunction{qid_t}{PL_current_query}{void}
+Returns the query id of of the current query or \const{0} if the
+current thread is not executing any queries.
+
     \cfunction{int}{PL_call_predicate}{module_t m, int flags,
 				       predicate_t pred, term_t +t0}
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),
@@ -2466,9 +2482,39 @@ If a signal is not used by Prolog and the handler does not call Prolog
 in any way, the native signal interface routines may be used.
 
 Any handler that wishes to call one of the Prolog interface functions
-should call PL_signal() for its installation.
+should call PL_sigaction() to install the handler.  PL_signal() provides
+a deprecated interface that is notably not capable of properly restoring
+the old signal status if the signal was previously handled by Prolog.
 
 \begin{description}
+    \cfunction{int}{PL_sigaction}{int sig, pl_sigaction_t *act,
+				  pl_sigaction_t *oldact}
+Install or query the status for signal \arg{sig}.  The signal is
+an integer between 1 and 64, where the where the signals up to 32
+are mapped to OS signals and signals above that are handled by
+Prolog's synchronous signal handling.  The \ctype{pl_sigaction_t}
+is a struct with the following definition:
+
+\begin{code}
+typedef struct pl_sigaction
+{ void        (*sa_cfunction)(int);	/* traditional C function */
+  predicate_t sa_predicate;		/* call a predicate */
+  int	      sa_flags;			/* additional flags */
+} pl_sigaction_t;
+\end{code}
+
+The \const{sa_flags} is a bitwise or of \const{PLSIG_THROW},
+\const{PLSIG_SYNC} and \const{PLSIG_NOFRAME}. Signal handling is enabled
+if \const{PLSIG_THROW} is provided, \const{sa_cfunction} or
+\const{sa_predicate} is provided. \const{sa_predicate} is a predicate
+handle for a predicate with arity~1. If no action is provided the signal
+handling for this signal is restored to the default before
+PL_initialise() was called.
+
+Finally, 0 (zero) may be passsed for \arg{sig}.  In that case the system
+allocates a free signal in the \textit{Prolog range} (32\ldots{}64).
+Such signal handler are activated using PL_thread_raise().
+
     \cfunction{void (*)()}{PL_signal}{sig, func}
 This function is equivalent to the BSD-Unix signal() function,
 regardless of the platform used.  The signal handler is blocked
@@ -2562,6 +2608,11 @@ threads.
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase() is called on it.  PL_recorded() is used to
     copy recorded terms back to the Prolog stack.
+
+\cfunction{record_t}{PL_duplicate_record}{record_t record}
+    Return a duplicate of \arg{record}.  As records are read-only
+    objects this function merely increments the records reference
+    count.
 
 \cfunction{int}{PL_recorded}{record_t record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
@@ -3262,12 +3313,7 @@ interpreted by PL_toplevel().
 \begin{code}
 int
 main(int argc, char **argv)
-{
-#ifdef READLINE	/* Remove if you don't want readline */
-  PL_initialise_hook(install_readline);
-#endif
-
-  if ( !PL_initialise(argc, argv) )
+{ if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_halt(PL_toplevel() ? 0 : 1);
@@ -3428,12 +3474,6 @@ As Jose Morales pointed at
 \url{https://github.com/graphitemaster/incbin}, which contains a
 portability layer on top of the above idea.
 
-    \cfunction{void}{PL_install_readline}{}
-Installs the GNU readline line editor.  Embedded applications that do not
-use the Prolog top level should normally delete this line, shrinking the
-Prolog kernel significantly.  Note that the Windows version does not use
-GNU readline.
-
     \cfunction{int}{PL_toplevel}{}
 Runs the goal of the \argoption{-t}{toplevel} switch (default prolog/0) and
 returns 1 if successful, 0 otherwise.
@@ -3500,7 +3540,8 @@ only way to get these environments together in one process image. Java
 VMs, however, are by nature multithreaded and appear to do
 signal handling (software interrupts).
 
-On Unix systems, SWI-Prolog uses two signals:
+On Unix systems, SWI-Prolog installs handlers for the following
+signals:
 
 \begin{description}
     \item[SIGUSR2] has an empty signal handler.   This signal is
@@ -3509,20 +3550,41 @@ On Unix systems, SWI-Prolog uses two signals:
     with \const{EINTR}, which gives them the opportunity to react
     to thread-signals.
 
+    In some cases the embedded system and SWI-Prolog may both use
+    \const{SIGUSR2} without conflict. If the embedded system redefines
+    \const{SIGUSR2} with a handler that runs quickly and no harm is
+    done in the embedded system due to spurious wakeup when initiated
+    from Prolog, there is no problem.  If SWI-Prolog is initialised
+    \emph{after} the embedded system it will call the handler set by
+    the embedded system and the same conditions as above apply.
+    SWI-Prolog's handler is a simple function only chaining a possibly
+    previously registered handler.  SWI-Prolog can handle spurious
+    \const{SIGUSR2} signals.
+
     \item[SIGINT] is used by the top level to activate the tracer
     (typically bound to control-C).  The first control-C posts a
     request for	starting the tracer in a safe, synchronous fashion.
     If control-C is hit again before the safe route is executed,
     it prompts the user whether or not a forced interrupt is
     desired.
+
+    \item[SIGTERM, SIGABRT and SIGQUIT] are caught to cleanup before
+    killing the process again using the same signal.
+
+    \item[SIGSEGV, SIGILL, SIGBUS, SIGFPE and SIGSYS] are caught by
+    to print a backtrace before killing the process again using
+    the same signal.
+
+    \item[SIGHUP] is caught and causes the process to exit with status 2
+    after cleanup.
 \end{description}
 
-The \cmdlineoption{--nosignals} option can be used to inhibit processing
-of \const{SIGINT}. The handling of \const{SIGUSR2} is vital for dealing
-with blocking system call in threads. If the way SWI-Prolog uses this
-signal conflicts with other applications, signal handling of either
-component must be modified. The SWI-Prolog signals are defined in
-\file{pl-thread.h} of the source distribution.
+The \cmdlineoption{--nosignals} option can be used to inhibit all signal
+processing except for \const{SIGUSR2}. The handling of \const{SIGUSR2}
+is vital for dealing with blocking system call in threads. The used
+signal may be changed using the \cmdlineoption{--sigalert=NUM} option or
+disabled using \verb$--sigalert=0$.
+
 
 
 \section{Linking embedded applications using swipl-ld}	\label{sec:plld}
@@ -3828,7 +3890,7 @@ install()
 % gcc -I/usr/local/lib/swipl-\plversion/include -fpic -c lowercase.c
 % gcc -shared -o lowercase.so lowercase.o
 % swipl
-Welcome to SWI-Prolog (Version \plversion)
+Welcome to SWI-Prolog (...)
 ...
 
 1 ?- load_foreign_library(lowercase).
@@ -3881,6 +3943,22 @@ following constants:
     (0x2) Only show `user' frames.  Default is to also show frames
     of hidden built-in predicates.
     \end{description}
+
+    \cfunction{char *}{PL_backtrace_string}{int depth, int flags}
+As PL_backtrace(), but returns the stack as a string. The string uses
+UTF-8 encoding. The returned string must be freed using PL_free(). This
+function is was added to get stack traces from running servers where I/O
+is redirected or discarded.  For example, using \program{gdb}, a stack
+trace is printed in the gdb console regardless of Prolog I/O redirection
+using the following command:
+
+\begin{code}
+(gdb) printf "%s", PL_backtrace_string(25,0)
+\end{code}
+
+The source distribution provides the script \file{scripts/swipl-bt} that
+exploits \program{gdb} and PL_backtrace_string() to print stack traces
+in various formats for a SWI-Prolog process, given its process id.
 
     \cfunction{int}{PL_check_data}{term_t data}
     Check the consistency of the term \arg{data}.  Returns \const{TRUE}
@@ -4021,7 +4099,7 @@ system. Both follow the same numbering schema explained with PL_query().
 
 \index{valgrind}\index{profiling,foreign code}%
 This section is only relevant for Unix users on platforms supported by
-\url[valgrind]{http://valgrind.org/}. Valgrind is an excellent binary
+\href{http://valgrind.org/}{valgrind}. Valgrind is an excellent binary
 instrumentation platform.  Unlike many other instrumentation platforms,
 valgrind can deal with code loaded through dlopen().
 

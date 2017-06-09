@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -330,12 +330,55 @@ setUnknown(term_t value, atom_t a, Module m)
     }
 
     if ( !SYSTEM_MODE )
-      printMessage(ATOM_warning, PL_CHARS, "unknown_in_module_user");
+    { if ( !printMessage(ATOM_warning, PL_CHARS, "unknown_in_module_user") )
+	return FALSE;
+    }
   }
 
   m->flags = flags;
 
-  succeed;
+  return TRUE;
+}
+
+
+static int
+setFileNameCaseHandling(atom_t a)
+{ GET_LD
+
+  if ( a == ATOM_case_sensitive )
+  { setPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  } else if ( a == ATOM_case_preserving )
+  { setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
+    clearPrologFlagMask(PLFLAG_FILE_CASE);
+  } else if ( a == ATOM_case_insensitive )
+  { clearPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  } else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_file_name_case_handling, value);
+  }
+
+  return TRUE;
+}
+
+
+static atom_t
+currentFileNameCaseHandling(void)
+{ GET_LD
+
+  switch ( LD->prolog_flag.mask.flags &
+	   (PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING) )
+  { case 0:
+      return ATOM_case_insensitive;
+    case PLFLAG_FILE_CASE_PRESERVING:
+      return ATOM_case_preserving;
+    case PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING:
+      return ATOM_case_sensitive;
+    default:
+      return ATOM_unknown;
+  }
 }
 
 
@@ -510,7 +553,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
   if ( (f = lookupHTable(GD->prolog_flag.table, (void *)k)) )
   { if ( flags & FF_KEEP )
       return TRUE;
-    if ( f->flags & FF_READONLY )
+    if ( (f->flags&FF_READONLY) && !(flags&FF_FORCE) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      ATOM_modify, ATOM_flag, key);
 
@@ -651,6 +694,11 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	  set(m, M_CHARESCAPE);
 	else
 	  clear(m, M_CHARESCAPE);
+      } else if ( k == ATOM_var_prefix )
+      { if ( val )
+	  set(m, M_VARPREFIX);
+	else
+	  clear(m, M_VARPREFIX);
       } else if ( k == ATOM_debug )
       { if ( val )
 	{ debugmode(DBG_ALL, NULL);
@@ -668,9 +716,20 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       } else if ( k == ATOM_tty_control )
       { if ( val != (f->value.a == ATOM_true) )
 	{ if ( !val && ttymodified )
-	  { Sdprintf("Disabling TTY control\n");
-	    PopTty(Sinput, &ttytab, FALSE);
+	  { PopTty(Sinput, &ttytab, FALSE);
+	  } else if ( val )
+	  { setPrologFlagMask(PLFLAG_TTY_CONTROL);
+	    PushTty(Sinput, &ttytab, TTY_SAVE);
 	  }
+	}
+      } else if ( k == ATOM_protect_static_code )
+      { if ( val != (f->value.a == ATOM_true) && val == FALSE )
+	{ term_t ex;
+
+	  if ( (ex = PL_new_term_ref()) &&
+	       PL_put_atom(ex, ATOM_protect_static_code) )
+	    return PL_permission_error("set", "prolog_flag", ex);
+	  return FALSE;
 	}
       }
 					/* set the flag value */
@@ -708,6 +767,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )
       { rval = setStreamTypeCheck(a);
+      } else if ( k == ATOM_file_name_case_handling )
+      { rval = setFileNameCaseHandling(a);
 #if O_XOS
       } else if ( k == ATOM_win_file_access_check )
       { rval = set_win_file_access_check(value);
@@ -758,18 +819,23 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 }
 
 
+int
+set_prolog_flag(term_t key, term_t value, int flags)
+{ int rc;
+
+  LOCK();
+  rc = set_prolog_flag_unlocked(key, value, flags);
+  UNLOCK();
+
+  return rc;
+}
+
 /** set_prolog_flag(+Key, +Value) is det.
 */
 
 static
 PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
-{ word rc;
-
-  LOCK();
-  rc = set_prolog_flag_unlocked(A1, A2, FF_NOCREATE|FT_FROM_VALUE);
-  UNLOCK();
-
-  return rc;
+{ return set_prolog_flag(A1, A2, FF_NOCREATE|FT_FROM_VALUE);
 }
 
 
@@ -786,7 +852,6 @@ static const opt_spec prolog_flag_options[] =
 static
 PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 { PRED_LD
-  word rc;
   int flags = 0;
   atom_t type = 0;
   atom_t access = ATOM_read_write;
@@ -826,11 +891,7 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   if ( keep )
     flags |= FF_KEEP;
 
-  LOCK();
-  rc = set_prolog_flag_unlocked(A1, A2, flags);
-  UNLOCK();
-
-  return rc;
+  return set_prolog_flag(A1, A2, flags);
 }
 
 
@@ -898,9 +959,9 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
 { GET_LD
 
   if ( key == ATOM_character_escapes )
-  { atom_t v = (true(m, M_CHARESCAPE) ? ATOM_true : ATOM_false);
-
-    return PL_unify_atom(val, v);
+  { return PL_unify_bool(val, true(m, M_CHARESCAPE));
+  } else if ( key == ATOM_var_prefix )
+  { return PL_unify_bool(val, true(m, M_VARPREFIX));
   } else if ( key == ATOM_double_quotes )
   { atom_t v;
 
@@ -1199,7 +1260,9 @@ initPrologFlags(void)
   setPrologFlag("win_file_access_check", FT_ATOM,
 		get_win_file_access_check(), 0);
 #endif
-  setPrologFlag("version",	FT_INTEGER|FF_READONLY, PLVERSION);
+  setPrologFlag("file_name_case_handling", FT_ATOM,
+		stringAtom(currentFileNameCaseHandling()));
+  setPrologFlag("version", FT_INTEGER|FF_READONLY, PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
     setPrologFlag("home", FT_ATOM|FF_READONLY, systemDefaults.home);
@@ -1209,8 +1272,11 @@ initPrologFlags(void)
   setPrologFlag("pid", FT_INTEGER|FF_READONLY, getpid());
 #endif
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
+  setPrologFlag("optimise_debug", FT_ATOM, "default", 0);
   setPrologFlag("generate_debug_info", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
+  setPrologFlag("protect_static_code", FT_BOOL, FALSE,
+		PLFLAG_PROTECT_STATIC_CODE);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
   setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
@@ -1284,6 +1350,7 @@ initPrologFlags(void)
   setPrologFlag("answer_format", FT_ATOM, "~p");
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
+  setPrologFlag("var_prefix", FT_BOOL, FALSE, PLFLAG_VARPREFIX);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, TRUE, PLFLAG_QUASI_QUOTES);
@@ -1326,15 +1393,18 @@ initPrologFlags(void)
 		truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
 		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
-  setPrologFlag("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
 #endif
 
-#if defined(__DATE__) && defined(__TIME__)
+#if defined(BUILD_TIME) && defined(BUILD_DATE)
+  setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, BUILD_DATE ", " BUILD_TIME);
+#elif defined(__DATE__) && defined(__TIME__)
   setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, __DATE__ ", " __TIME__);
 #endif
+  setPrologFlag("error_ambiguous_stream_pair", FT_BOOL, FALSE,
+		PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR);
 
   setTZPrologFlag();
   setOSPrologFlags();
@@ -1378,16 +1448,34 @@ setVersionPrologFlag(void)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   term_t t = PL_new_term_ref();
+  term_t o = PL_new_term_ref();
   int major = PLVERSION/10000;
   int minor = (PLVERSION/100)%100;
   int patch = (PLVERSION%100);
+
+  PL_put_nil(o);
+
+#ifdef PLVERSION_TAG
+  { const char *tag = PLVERSION_TAG;
+    if ( tag && *tag )
+    { int rc;
+      term_t tt;
+
+      rc = ( (tt=PL_new_term_ref()) &&
+	     PL_put_atom_chars(tt, tag) &&
+	     PL_cons_functor(tt, FUNCTOR_tag1, tt) &&
+	     PL_cons_functor(o,  FUNCTOR_dot2, tt, o) );
+      (void)rc;
+    }
+  }
+#endif
 
   if ( !PL_unify_term(t,
 		      PL_FUNCTOR_CHARS, PLNAME, 4,
 		        PL_INT, major,
 		        PL_INT, minor,
 		        PL_INT, patch,
-		        PL_ATOM, ATOM_nil) )
+		        PL_TERM, o) )
     sysError("Could not set version");
 
   setPrologFlag("version_data", FF_READONLY|FT_TERM, t);

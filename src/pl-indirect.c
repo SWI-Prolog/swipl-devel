@@ -235,7 +235,7 @@ allocate_indirect_block(indirect_table *tab, int idx)
   { size_t bs = (size_t)1<<idx;
     indirect *newblock;
 
-    if ( !(newblock=PL_malloc(bs*sizeof(struct atom))) )
+    if ( !(newblock=PL_malloc(bs*sizeof(*newblock))) )
       outOfCore();
 
     memset(newblock, 0, bs*sizeof(*newblock));

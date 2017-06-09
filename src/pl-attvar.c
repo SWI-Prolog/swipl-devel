@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2004-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -57,24 +69,6 @@ Binding the attvar places the new  value   in  <attvar>  using a trailed
 assignment. The attribute list remains   accessible  through the trailed
 assignment until this is GC'ed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef O_DEBUG
-static char *
-vName(Word adr)
-{ GET_LD
-  static char name[32];
-
-  deRef(adr);
-
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
-  else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
-
-  return name;
-}
-#endif
-
 
 int
 PL_get_attr__LD(term_t t, term_t a ARG_LD)
@@ -127,7 +121,10 @@ registerWakeup(Word name, Word value ARG_LD)
     *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
     TrailAssignment(tail);		/* on local stack! */
     *tail = makeRef(wake+3);
-    DEBUG(1, Sdprintf("appended to wakeup\n"));
+    DEBUG(MSG_WAKEUP,
+	  { char buf[32];
+	    Sdprintf("appended wakeup %s\n", print_addr(wake, buf));
+	  });
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
 
@@ -137,7 +134,10 @@ registerWakeup(Word name, Word value ARG_LD)
     TrailAssignment(tail);
     *tail = makeRef(wake+3);
     LD->alerted |= ALERT_WAKEUP;
-    DEBUG(1, Sdprintf("new wakeup\n"));
+    DEBUG(MSG_WAKEUP,
+	  { char buf[32];
+	    Sdprintf("new wakeup %s\n", print_addr(wake, buf));
+	  });
   }
 }
 
@@ -171,7 +171,12 @@ assignAttVar(Word av, Word value ARG_LD)
   assert(gTop+7 <= gMax && tTop+6 <= tMax);
   DEBUG(CHK_SECURE, assert(on_attvar_chain(av)));
 
-  DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
+  DEBUG(MSG_WAKEUP,
+	{ char buf[32]; char buf2[32];
+	  Sdprintf("assignAttVar(%s) at %s\n",
+		   var_name_ptr(av, buf),
+		   print_addr(av, buf2));
+	});
 
   if ( isAttVar(*value) )
   { if ( value > av )
@@ -574,8 +579,12 @@ restoreWakeup(wakeup_state *state ARG_LD)
       Word p = (Word)(fr+1);
 
       if ( (state->flags & WAKEUP_STATE_EXCEPTION) )
-      { if ( !(state->flags & WAKEUP_STATE_SKIP_EXCEPTION) )
-	  restore_exception(p PASS_LD);
+      { if ( true(state, WAKEUP_KEEP_URGENT_EXCEPTION) )
+	{ if ( classify_exception_p(p) >= classify_exception(exception_term) )
+	    restore_exception(p PASS_LD);
+	} else if ( !(state->flags & WAKEUP_STATE_SKIP_EXCEPTION) )
+	{ restore_exception(p PASS_LD);
+	}
         p++;
       }
       if ( (state->flags & WAKEUP_STATE_WAKEUP) )
@@ -1204,8 +1213,9 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 
   DEBUG(MSG_CALL_RESIDUE_VARS,
 	{ char buf[64];
+	  char vname[32];
 	  Sdprintf("has_attributes_after(%s, %s)\n",
-		   vName(av), print_addr(ch->mark.globaltop, buf));
+		   var_name_ptr(av, vname), print_addr(ch->mark.globaltop, buf));
 	});
 
   av = deRefM(av, &w PASS_LD);

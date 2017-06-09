@@ -1,51 +1,112 @@
-\chapter{Special Variables and Coroutining}	\label{sec:extvar}
+\chapter{Constraint Logic Programming}	\label{sec:clp}
+\index{CLP}
+\index{constraint programming}
 
-This chapter deals with extensions primarily designed to support
-constraint logic programming (CLP). The low-level attributed variable
-interface defined in \secref{attvar} is not intended for the typical
-Prolog programmer. Instead, the typical Prolog programmer should use the
-coroutining predicates and the various constraint solvers built on top
-of attributed variables. CHR (\chapref{chr}) provides a general purpose
-constraint handling language.
+This chapter describes the extensions primarily designed to support
+\textbf{constraint logic programming}~(CLP), an important declarative
+programming paradigm with countless practical applications.
 
-As a rule of thumb, constraint programming reduces the search space by
-reordering goals and joining goals based on domain knowledge. A typical
-example is constraint reasoning over integer domains. Plain Prolog has
-no efficient means to deal with (integer) $X > 0$ and $X < 3$. At best
-it could translate $X > 0$ with uninstantiated X to \term{between}{1,
-infinite, X} and a similar primitive for $X < 3$. If the two are
-combined it has no choice but to generate and test over this infinite
-two-dimensional space. Instead, a constraint system will \jargon{delay}
-an uninstantiated goal to $X > 0$. If, later, it finds a value for
-\arg{X} it will execute the test. If it finds $X < 3$ it will combine
-this knowledge to infer that X is in 1..2 (see below). If it never finds a
-concrete value for \arg{X} it can be asked to \jargon{label} \arg{X} and
-produce 1 and 2 on backtracking. See \secref{clpfd}.
+CLP($X$) stands for constraint logic programming over the domain~$X$.
+Plain Prolog can be regarded as~CLP($H$), where $H$ stands for
+\textit{Herbrand~terms}\index{Herbrand term}. Over this domain,
+\predref{=}{2} and dif/2 are the most important constraints that
+express, respectively, equality and disequality of~terms. Plain Prolog
+can thus be regarded as a special~case of~CLP.
+
+There are dedicated constraint solvers for several important domains:
+
+\begin{itemize}
+\item CLP(FD) for \textbf{integers} (\secref{clpfd})
+\item CLP(B) for \textbf{Boolean} variables (\secref{clpb})
+\item CLP(Q) for \textbf{rational} numbers (\secref{lib:clpqr})
+\item CLP(R) for \textbf{floating point} numbers (\secref{lib:clpqr}).
+\end{itemize}
+
+In addition, CHR (\chapref{chr}) provides a general purpose constraint
+handling language to reason over user-defined constraints.
+
+Constraints blend in naturally into Prolog programs, and behave
+exactly like plain Prolog predicates in those cases that can also be
+expressed without constraints. However, there are two key differences
+between constraints and plain Prolog predicates:
+
+\begin{itemize}
+\item Constraints can \textit{delay} checks until their truth can be
+  safely decided. This feature can significantly increase the
+  \textit{generality} of your programs, and preserves their relational
+  nature.
+
+\item Constraints can take into account everything you state about the
+  entities you reason about, independent of the order in which you
+  state it, both \textit{before} and also \textit{during} any search
+  for concrete solutions. Using available information to prune parts
+  of the search space is called constraint
+  \jargon{propagation}\index{propagation}, and it is performed
+  automatically by the available constraint solvers for their
+  respective domains. This feature can significantly increase the
+  \textit{performance} of your programs.
+\end{itemize}
+
+Due to these two key advantages over plain Prolog, CLP has become an
+extremely important declarative programming paradigm in practice.
+
+Among its most important and typical instances is CLP(FD), constraint
+logic programming over~\textit{integers}. For example, using
+constraints, you can state in the most general way that a
+variable~\arg{X} is an integer greater than~0. If, later, \arg{X} is
+bound to a concrete integer, the constraint solver automatically
+ensures this. If you in addition constrain~\arg{X} to integers less
+than~3, the constraint solver combines the existing knowledge to infer
+that \arg{X} is either 1 or~2 (see below). To obtain concrete values
+for~\arg{X}, you can ask the solver to \jargon{label}~\arg{X} and
+produce 1 and 2 on backtracking. See~\secref{clpfd}.
 
 \begin{code}
-1 ?- [library(clpfd)].
+?- use_module(library(clpfd)).
 ...
 true.
 
-2 ?- X #> 0, X #< 3.
+?- X #> 0, X #< 3.
 X in 1..2.
+
+?- X #> 0, X #< 3, indomain(X).
+X = 1 ;
+X = 2.
 \end{code}
 
-Using constraints generally makes your program more
-\jargon{declarative}. There are some caveats though:
+Contrast this with plain Prolog, which has no efficient means to deal
+with (integer) $X > 0$ and $X < 3$. At best it could translate $X > 0$
+to \term{between}{1, infinite, X} and a similar primitive for $X <
+3$. If the two are combined it has no choice but to generate and test
+over this infinite two-dimensional space.
+
+Using constraints therefore makes your program more
+\jargon{declarative}\index{declarative} in that it frees you from some
+procedural aspects and limitations of Prolog.
+
+When working with constraints, keep in mind the following:
 
 \begin{itemize}
-    \item Constraints and cuts do not merge well.  A cut after a goal
-    that is delayed prunes the search space before the condition
-    is true.
+    \item As with plain Prolog, \predref{!}{0} also destroys the
+    declarative semantics of constraints.  A cut after a goal that is
+    delayed may prematurely prune the search space, because the truth
+    of delayed goals is not yet established. There are several ways to
+    avoid cuts in constraint logic programs, retaining both generality
+    and determinism of your programs.  See for example zcompare/3.
     \item Term-copying operations (assertz/1, retract/1, findall/3,
     copy_term/2, etc.) generally also copy constraints.  The effect
     varies from ok, silent copying of huge constraint networks
     to violations of the internal consistency of constraint
     networks.  As a rule of thumb, copying terms holding attributes
-    must be deprecated.
+    must be deprecated. If you need to reason about a term that is
+    involved in constraints, use copy_term/3 to obtain the constraints
+    as Prolog goals, and use these goals for further processing.
 \end{itemize}
 
+All of the mentioned constraint solvers are implemented using the
+attributed variables interface described in~\secref{attvar}. These are
+lower-level predicates that are mainly intended for library authors,
+not for typical Prolog programmers.
 
 \section{Attributed variables}			\label{sec:attvar}
 
@@ -56,8 +117,7 @@ on the exact definition and interface to attributed variables. The
 SWI-Prolog interface is identical to the one realised by Bart Demoen for
 hProlog \cite{Demoen:CW350}. This interface is simple and available on
 all Prolog systems that can run the Leuven CHR system (see \chapref{chr}
-and the Leuven \url[CHR
-page]{http://people.cs.kuleuven.be/~tom.schrijvers/CHR/}).
+and the Leuven \href{https://dtai.cs.kuleuven.be/CHR/}{CHR page}).
 
 Binding an attributed variable schedules a goal to be executed at the
 first possible opportunity. In the current implementation the hooks are
@@ -128,8 +188,21 @@ intersection of the domains and either fail if the intersection is empty
 (first example), assign the value if there is only one value in
 the intersection (second example), or assign the intersection as the new
 domain of the variable (third example). The nonterminal
-attribute_goals/3 is used to translate remaining attributes to
-user-readable goals that, when executed, reinstate these attributes.
+attribute_goals//1 is used to translate remaining attributes to
+user-readable goals that, when called, reinstate these attributes or
+attributes that correspond to equivalent constraints.
+
+Implementing constraint solvers (\chapref{clp}) is the most common,
+but not the only use case for attributed variables: If you implement
+algorithms that require efficient destructive modifications, then
+using attributed variables is often a more convenient and somewhat
+more declarative alternative for setarg/3 and related predicates whose
+sharing semantics are harder to understand. In particular, attributed
+variables make it easy to express graph networks and graph-oriented
+algorithms, since each variable can store pointers to further
+variables in its attributes. In such cases, the use of attributed
+variables should be confined within a module that exposes its
+functionality via more declarative interface predicates.
 
 \subsection{Attribute manipulation predicates}
 \label{sec:attvar-predicates}
@@ -145,8 +218,8 @@ If \arg{Var} is a variable or attributed variable, set the value for the
 attribute named \arg{Module} to \arg{Value}. If an attribute with this
 name is already associated with \var{Var}, the old value is replaced.
 Backtracking will restore the old value (i.e., an attribute is a mutable
-term; see also setarg/3). This predicate raises a representation error if
-\arg{Var} is not a variable and a type error if \arg{Module} is not an atom.
+term; see also setarg/3). This predicate raises an uninstantiation error if
+\arg{Var} is not a variable, and a type error if \arg{Module} is not an atom.
 
     \predicate{get_attr}{3}{+Var, +Module, -Value}
 Request the current \arg{value} for the attribute named \arg{Module}.  If
@@ -182,20 +255,55 @@ another attributed variable the hook often combines the two attributes
 and associates the combined attribute with \arg{VarValue} using
 put_attr/3.
 
-    \predicate[deprecated]{attr_portray_hook}{2}{+AttValue, +Var}
-Called by write_term/2 and friends for each attribute if the option
-\term{attributes}{portray} is in effect.  If the hook succeeds the
-attribute is considered printed.  Otherwise \exam{Module = ...} is
-printed to indicate the existence of a variable.  New infrastructure
-dealing with communicating attribute values must be based on
-copy_term/3 and its hook attribute_goals//1.
+\begin{tags}
+    \tag{To be done}
+The way in which this hook currently works makes the implementation of
+important classes of constraint solvers impossible or at least
+extremely impractical. For increased generality and convenience,
+simultaneous unifications as in \exam{[X,Y]=[0,1]} should be processed
+sequentially by the Prolog engine, or a more general hook should be
+provided in the future. See \cite{clpb:Triska2016} for more
+information.
+\end{tags}
 
     \dcg{attribute_goals}{1}{+Var}
-This nonterminal, if it is defined in a module, is used by copy_term/3
-to project attributes of that module to residual goals. It is also
-used by the top level to obtain residual goals after executing a query.
+This nonterminal is the main mechanism in which residual constraints
+are obtained. It is called in every module where it is defined, and
+\arg{Var} has an attribute. Its argument is that variable. In each
+module, attribute_goals//1 must describe a list of Prolog goals that
+are declaratively equivalent to the goals that caused the attributes
+of that module to be present and in their current state. It is always
+possible to do this (since these attributes stem from such goals), and
+it is the responsibility of constraint library authors to provide this
+mapping without exposing any library internals. Ideally and typically,
+remaining relevant attributes are mapped to \jargon{pure} and
+potentially simplified Prolog goals that satisfy both of the
+following:
 
-    \predicate{project_attributes}{+QueryVars, +ResidualVars}
+\begin{itemize}
+\item They are declaratively equivalent to the constraints that were
+originally posted.
+
+\item They use only predicates that are themselves exported and
+documented in the modules they stem from.
+\end{itemize}
+
+The latter property ensures that users can reason about residual
+goals, and see for themselves whether a constraint library behaves
+correctly. It is this property that makes it possible to thoroughly
+test constraint solvers by contrasting obtained residual goals with
+expected answers.
+
+This nonterminal is used by copy_term/3, on which the Prolog top level
+relies to ensure the basic invariant of pure Prolog programs: The
+answer is \textit{declaratively equivalent} to the query.
+
+Note that instead of \jargon{defaulty} representations, a Prolog
+\textit{list} is used to represent residual goals. This simplifies
+processing and reasoning about residual goals throughout all programs
+that need this functionality.
+
+    \predicate{project_attributes}{2}{+QueryVars, +ResidualVars}
 A hook that can be defined in each module to project constraints on
 newly introduced variables back to the query variables.
 \arg{QueryVars} is the list of variables occurring in the query and
@@ -204,6 +312,15 @@ attached. There may be variables that occur in both lists.
 If possible, project_attributes/2 should change the attributes so that
 all constraints are expressed as residual goals that refer only to
 \arg{QueryVars}, while other variables are existentially quantified.
+
+    \predicate[deprecated]{attr_portray_hook}{2}{+AttValue, +Var}
+Called by write_term/2 and friends for each attribute if the option
+\term{attributes}{portray} is in effect.  If the hook succeeds the
+attribute is considered printed.  Otherwise \exam{Module = ...} is
+printed to indicate the existence of a variable.  This predicate is
+deprecated because it cannot work with pure interface predicates like
+copy_term/3.  Use attribute_goals//1 instead to map attributes to
+residual goals.
 \end{description}
 
 \subsection{Operations on terms with attributed variables}
@@ -213,13 +330,16 @@ all constraints are expressed as residual goals that refer only to
     \predicate{copy_term}{3}{+Term, -Copy, -Gs}
 Create a regular term \arg{Copy} as a copy of \arg{Term} (without
 any attributes), and a list \arg{Gs} of goals that represents the attributes.
-The goal maplist(call,\arg{Gs}) recreates the attributes for \arg{Copy}.
+The goal \texttt{maplist(call, Gs)} recreates the attributes for \arg{Copy}.
 The nonterminal attribute_goals//1, as defined in the modules the
 attributes stem from, is used to convert attributes to lists of goals.
 
 This building block is used by the top level to report pending attributes
 in a portable and understandable fashion. This predicate is the
 preferred way to reason about and communicate terms with constraints.
+
+The form \texttt{copy_term(Term, Term, Gs)} can be used to reason
+about the constraints in which \texttt{Term} is involved.
 
     \predicate{copy_term_nat}{2}{+Term, -Copy}
 As copy_term/2.  Attributes, however, are \emph{not} copied but replaced
@@ -262,22 +382,84 @@ side-effects.
 
 \section{Coroutining}				\label{sec:coroutining}
 
-Coroutining deals with having Prolog goals scheduled for execution as
-soon as some conditions are fulfilled.  In Prolog the most commonly
-used condition is the instantiation (binding) of a variable. Scheduling
-a goal to execute immediately after a variable is bound can
-be used to avoid instantiation errors for some built-in predicates
-(e.g.\ arithmetic), do work \jargon{lazy}, prevent the binding of
-a variable to a particular value, etc.  Using freeze/2 for example
-we can define a variable that can only be assigned an even number:
+Coroutining allows us to delay the execution of Prolog goals until
+their truth can be safely decided.
+
+Among the most important coroutining predicates is dif/2, which
+expresses \textit{disequality} of terms in a sound way. The actual
+test is delayed until the terms are sufficiently different, or have
+become identical. For example:
 
 \begin{code}
-?- freeze(X, X mod 2 =:= 0), X = 3
+?- dif(X, Y), X = a, Y = b.
+X = a,
+Y = b.
 
-No
+?- dif(X, Y), X = a, Y = a.
+false.
 \end{code}
 
+There are also lower-level coroutining predicates that are intended as
+building blocks for higher-level constraints. For example, we can use
+freeze/2 to define a variable that can only be assigned an atom:
+
+\begin{code}
+?- freeze(X, atom(X)), X = a.
+X = a.
+\end{code}
+
+In this case, calling atom/1 earlier causes the whole query to fail:
+
+\begin{code}
+?- atom(X), X = a.
+false.
+\end{code}
+
+If available, domain-specific constraints should be used in such
+cases.  For example, to state that a variable can only assume even
+integers, use the CLP(FD) constraint \predref{#=}{2}:
+
+\begin{code}
+?- X mod 2 #= 0.
+X mod 2#=0.
+\end{code}
+
+Importantly, domain-specific constraints can apply stronger
+propagation by exploiting logical properties of their respective
+domains. For example:
+
+\begin{code}
+?- X mod 2 #= 0, X in 1..3.
+X = 2.
+\end{code}
+
+Remaining constraints, such as \exam{X mod 2\#=0} in the example above,
+are called \jargon{residual}\index{residual} goals. They are said to
+\jargon{flounder}\index{flounder}, because their truth is not yet
+decided. Declaratively, the query is only true if all residual goals
+are satisfiable. Use call_residue_vars/2 to collect all variables that
+are involved in constraints.
+
 \begin{description}
+    \predicate{dif}{2}{@{A}, @{B}}
+The dif/2 predicate is a \textit{constraint} that is true if and only
+if \arg{A} and \arg{B} are different terms. If \arg{A} and \arg{B} can
+never unify, dif/2 succeeds deterministically. If \arg{A} and \arg{B}
+are identical, it fails immediately. Finally, if \arg{A} and \arg{B}
+can unify, goals are delayed that prevent \arg{A} and \arg{B} to
+become equal. It is this last property that makes dif/2 a more general
+and more declarative alternative for \predref{\=}{2} and related
+predicates.
+
+This predicate behaves as if defined by
+\verb$dif(X, Y) :- when(?=(X,Y), X \== Y)$.
+See also \predref{?=}{2}.  The implementation can deal
+with cyclic terms.
+
+The dif/2 predicate is realised using attributed variables associated
+with the module \const{dif}.  It is an autoloaded predicate that is
+defined in the library \pllib{dif}.
+
     \predicate{freeze}{2}{+Var, :Goal}
 Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e. is
 not a variable or attributed variable).	 If \arg{Var} is bound on entry
@@ -301,163 +483,23 @@ The when/2 predicate is realised using attributed variables associated
 with the module \const{when}.  It is defined in the autoload library
 \pllib{when}.
 
-    \predicate{dif}{2}{@{A}, @{B}}
-The dif/2 predicate provides a constraint stating that \arg{A} and
-\arg{B} are different terms. If \arg{A} and \arg{B} can never unify,
-dif/2 succeeds deterministically. If \arg{A} and \arg{B} are identical
-it fails immediately, and finally, if \arg{A} and \arg{B} can unify,
-goals are delayed that prevent \arg{A} and \arg{B} to become equal. The
-dif/2 predicate behaves as if defined by
-\verb$dif(X, Y) :- when(?=(X, Y), X \== Y)$. See also \predref{?=}{2}.
-The implementation can deal with cyclic terms.
-
-The dif/2 predicate is realised using attributed variables associated
-with the module \const{dif}.  It is defined in the autoload library
-\pllib{dif}.
-
     \predicate{call_residue_vars}{2}{:Goal, -Vars}
-Find residual attributed variables left by \arg{Goal}. This predicate is
-intended for debugging programs using coroutining or constraints.
-Consider a program that poses contradicting constraints on a variable.
-Such programs should fail, but sometimes succeed because the constraint
-solver is too weak to detect the contradiction. Ideally, delayed goals
-and constraints are all executed at the end of the computation. The meta
-predicate call_residue_vars/2 finds variables that are given attribute
-variables or whose attributes are modified by \arg{Goal}, regardless of
-whether or not these variables are reachable from the arguments of
+Find residual attributed variables left by \arg{Goal}. This predicate
+is intended for reasoning about and debugging programs that use
+coroutining or constraints.  To see why this predicate is necessary,
+consider a predicate that poses contradicting constraints on a
+variable, and where that variable does not appear in any argument of
+the predicate and hence does not yield any residual goals on the
+toplevel when the predicate is invoked.  Such programs should fail,
+but sometimes succeed because the constraint solver is too weak to
+detect the contradiction. Ideally, delayed goals and constraints are
+all executed at the end of the computation. The meta predicate
+call_residue_vars/2 finds variables that are given attributes
+or whose attributes are modified by \arg{Goal}, regardless of whether
+or not these variables are reachable from the arguments of
 \arg{Goal}.\footnote{The implementation of call_residue_vars/2 is
 completely redone in version 7.3.2 (7.2.1) after discussion with Bart
 Demoen. The current implementation no longer performs full scans of the
 stacks. The overhead is proportional to the number of attributed
 variables on the stack, dead or alive.}.
 \end{description}
-
-
-\section{Global variables}			\label{sec:gvar}
-
-Global variables are associations between names (atoms) and terms.
-They differ in various ways from storing information using assert/1
-or recorda/3.
-
-\begin{itemize}
-    \item The value lives on the Prolog (global) stack.  This implies
-          that lookup time is independent of the size of the term.
-	  This is particularly interesting for large data structures
-	  such as parsed XML documents or the CHR global constraint
-	  store.
-
-    \item They support both global assignment using nb_setval/2 and
-          backtrackable assignment using b_setval/2.
-
-    \item Only one value (which can be an arbitrary complex Prolog
-	  term) can be associated to a variable at a time.
-
-    \item Their value cannot be shared among threads.  Each thread
-          has its own namespace and values for global variables.
-
-    \item Currently global variables are scoped globally.  We may
-          consider module scoping in future versions.
-\end{itemize}
-
-Both b_setval/2 and nb_setval/2 implicitly create a variable if the
-referenced name does not already refer to a variable.
-
-Global variables may be initialised from directives to make them
-available during the program lifetime, but some considerations are
-necessary for saved states and threads. Saved states do not store global
-variables, which implies they have to be declared with initialization/1
-to recreate them after loading the saved state.  Each thread has
-its own set of global variables, starting with an empty set.  Using
-thread_initialization/1 to define a global variable it will be
-defined, restored after reloading a saved state and created in all
-threads that are created \emph{after} the registration.  Finally,
-global variables can be initialised using the exception hook
-exception/3.  The latter technique is used by CHR (see \chapref{chr}).
-
-
-\begin{description}
-    \predicate{b_setval}{2}{+Name, +Value}
-Associate the term \arg{Value} with the atom \arg{Name} or replace
-the currently associated value with \arg{Value}.  If \arg{Name} does
-not refer to an existing global variable, a variable with initial value
-\const{[]} is created (the empty list).  On backtracking the
-assignment is reversed.
-
-    \predicate{b_getval}{2}{+Name, -Value}
-Get the value associated with the global variable \arg{Name} and unify
-it with \arg{Value}. Note that this unification may further instantiate
-the value of the global variable. If this is undesirable the normal
-precautions (double negation or copy_term/2) must be taken. The
-b_getval/2 predicate generates errors if \arg{Name} is not an atom or
-the requested variable does not exist.
-\end{description}
-
-\begin{description}
-    \predicate{nb_setval}{2}{+Name, +Value}
-Associates a copy of \arg{Value} created with duplicate_term/2
-with the atom \arg{Name}.  Note that this can be used to set an
-initial value other than \const{[]} prior to backtrackable assignment.
-
-    \predicate{nb_getval}{2}{+Name, -Value}
-The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
-compatibility and symmetry.  As most scenarios will use a particular
-global variable using either non-backtrackable or backtrackable
-assignment, using nb_getval/2 can be used to document that the
-variable is non-backtrackable. Raises \term{existence_error}{variable,
-Name} if the variable does not exist.  Alternatively, nb_current/2 can
-used to query a global variable.  This version \emph{fails} if the
-variable does not exist rather than raising an exception.
-
-    \predicate{nb_linkval}{2}{+Name, +Value}
-Associates the term \arg{Value} with the atom \arg{Name} without copying
-it. This is a fast special-purpose variation of nb_setval/2 intended for
-expert users only because the semantics on backtracking to a point
-before creating the link are poorly defined for compound terms. The
-principal term is always left untouched, but backtracking behaviour on
-arguments is undone if the original assignment was \jargon{trailed} and
-left alone otherwise, which implies that the history that created the
-term affects the behaviour on backtracking. Consider the
-following example:
-
-\begin{code}
-demo_nb_linkval :-
-	T = nice(N),
-	(   N = world,
-	    nb_linkval(myvar, T),
-	    fail
-	;   nb_getval(myvar, V),
-	    writeln(V)
-	).
-\end{code}
-
-    \predicate{nb_current}{2}{?Name, ?Value}
-Enumerate all defined variables with their value. The order of
-enumeration is undefined. Note that nb_current/2 can be used as an
-alternative for nb_getval/2 to request the value of a variable and fail
-silently if the variable does not exists.
-
-    \predicate{nb_delete}{1}{+Name}
-Delete the named global variable.  Succeeds also if the named variable
-does not exist.
-\end{description}
-
-
-\subsection{Compatibility of SWI-Prolog Global Variables}
-\label{sec:gvars-compat}
-
-Global variables have been introduced by various Prolog implementations
-recently.  The implementation of them in SWI-Prolog is based on hProlog
-by Bart Demoen. In discussion with Bart it was decided that the
-semantics of hProlog nb_setval/2, which is equivalent to nb_linkval/2,
-is not acceptable for normal Prolog users as the behaviour is influenced
-by how built-in predicates that construct terms (read/1, =../2, etc.) are
-implemented.
-
-GNU-Prolog provides a rich set of global variables, including arrays.
-Arrays can be implemented easily in SWI-Prolog using functor/3 and
-setarg/3 due to the unrestricted arity of compound terms.
-
-
-
-
-

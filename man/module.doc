@@ -96,7 +96,7 @@ Same as module/2.  The additional \arg{Dialect} argument provides a list
 of \jargon{language options}.  Each atom in the list \arg{Dialect} is
 mapped to a use_module/1 goal as given below. See also \secref{dialect}.
 The third argument is supported for compatibility with the
-\url[Prolog Commons project]{http://prolog-commons.org/}.
+\href{http://prolog-commons.org/}{Prolog Commons project}.
 
 \begin{code}
 :- use_module(library(dialect/LangOption)).
@@ -184,6 +184,13 @@ to the actual code. See also \secref{dialect} and
 :- use_module(library(option), except([meta_options/3])).
 \end{code}
 \end{description}
+
+In most cases a module is imported because some of its predicates are
+being used.  However, sometimes a module is imported for other
+reasons, e.g., for its declarations.  In such cases it is best
+practice to use use_module/2 with empty ImportList.  This
+distinguishes an imported module that is used, although not for its
+predicates, from a module that is needlessly imported.
 
 The module/2, use_module/1 and use_module/2 directives are sufficient to
 partition a simple Prolog program into modules. The SWI-Prolog graphical
@@ -354,7 +361,7 @@ as the first example.
 Quintus' derived module systems have no means to separate the lookup
 module (for finding predicates) from the calling context (for qualifying
 meta arguments). Some other Prolog implementations (e.g., ECLiPSe and
-IF/Proloog) distinguish these operations, using \functor{@}{2} for
+IF/Prolog) distinguish these operations, using \functor{@}{2} for
 setting the calling context of a goal. This is provided by SWI-Prolog,
 currently mainly to support compatibility layers.
 
@@ -752,10 +759,10 @@ are:
 	True if \arg{Module} exports the given operators.  Each exported
 	operator is represented as a term \term{op}{Pri,Assoc,Name}.
 	\termitem{program_size}{-Bytes}
-	Memory (in bytes) used for string the predicates of this module.
-	This figure includes the predicate header and clauses.  Future
-	versions might give a more precise number, including e.g., the
-	clause index tables.
+	Memory (in bytes) used for storing the predicates of this
+	module. This figure includes the predicate header and clauses.
+	Future versions might give a more precise number, including
+	e.g., the clause index tables.
 	\termitem{program_space}{-Bytes}
 	If present, this number limits the \const{program_size}.  See
 	set_module/1.

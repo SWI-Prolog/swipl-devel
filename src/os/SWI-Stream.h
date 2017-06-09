@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -136,7 +136,8 @@ stuff.
 
 #define SIO_BUFSIZE	(4096)		/* buffering buffer-size */
 #define SIO_LINESIZE	(1024)		/* Sgets() default buffer size */
-#define SIO_MAGIC	(7212676)	/* magic number */
+#define SIO_OMAGIC	(7212676)	/* old magic number */
+#define SIO_MAGIC	(7212677)	/* magic number */
 #define SIO_CMAGIC	(42)		/* we are close (and thus illegal!) */
 
 typedef ssize_t (*Sread_function)(void *handle, char *buf, size_t bufsize);
@@ -206,30 +207,25 @@ typedef struct io_stream
   IOPOS *		position;	/* pointer to above */
   void		       *handle;		/* function's handle */
   IOFUNCTIONS	       *functions;	/* open/close/read/write/seek */
+  int			timeout;	/* timeout (milliseconds) */
+  IOENC			encoding;	/* character encoding used */
   int		        locks;		/* lock/unlock count */
+  int			references;	/* Reference-count */
   IOLOCK *		mutex;		/* stream mutex */
-					/* SWI-Prolog 4.0.7 */
   void			(*close_hook)(void* closure);
   void *		closure;
-					/* SWI-Prolog 5.1.3 */
-  int			timeout;	/* timeout (milliseconds) */
-					/* SWI-Prolog 5.4.4 */
-  char *		message;	/* error/warning message */
-  IOENC			encoding;	/* character encoding used */
-  struct io_stream *	tee;		/* copy data to this stream */
   mbstate_t *		mbstate;	/* ENC_ANSI decoding */
+  struct io_stream *	tee;		/* copy data to this stream */
   struct io_stream *	upstream;	/* stream providing our input */
   struct io_stream *	downstream;	/* stream providing our output */
   unsigned		newline : 2;	/* Newline mode */
   unsigned		erased : 1;	/* Stream was erased */
-  unsigned		references : 4;	/* Reference-count */
   int			io_errno;	/* Save errno value */
+  char *		message;	/* error/warning message */
   void *		exception;	/* pending exception (record_t) */
   void *		context;	/* getStreamContext() */
   struct PL_locale *	locale;		/* Locale associated to stream */
-#if 0 /* We used them all :-( */
-  intptr_t		reserved[0];	/* reserved for extension */
-#endif
+  intptr_t		reserved[4];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -248,7 +244,7 @@ typedef struct io_stream
 #define SIO_STATIC	SmakeFlag(11)	/* Stream in static memory */
 #define SIO_RECORDPOS	SmakeFlag(12)	/* Maintain position */
 #define SIO_FILE	SmakeFlag(13)	/* Stream refers to an OS file */
-/*      SIO_PIPE	SmakeFlag(14)	   Unused */
+#define SIO_NOERROR	SmakeFlag(14)	/* Ignore write errors */
 #define SIO_NOFEOF	SmakeFlag(15)	/* don't set SIO_FEOF flag */
 #define SIO_TEXT	SmakeFlag(16)	/* text-mode operation */
 #define SIO_FEOF2	SmakeFlag(17)	/* attempt to read past eof */
@@ -312,6 +308,7 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
+#define SIO_RP_NOPOS 0x2		/* Do not update position */
 
 #if IOSTREAM_REPLACES_STDIO
 
@@ -378,6 +375,7 @@ PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fcheckpasteeof(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
+PL_EXPORT(int)		Sset_timeout(IOSTREAM *s, int tmo);
 PL_EXPORT(int)		Sunit_size(IOSTREAM *s);
 					/* byte I/O */
 PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);
@@ -399,8 +397,8 @@ PL_EXPORT(int)		Sfeof(IOSTREAM *s);
 PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
 PL_EXPORT(int)		Sferror(IOSTREAM *s);
 PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
-PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
-PL_EXPORT(void)		Sset_exception(IOSTREAM *s, term_t ex);
+PL_EXPORT(int)		Sseterr(IOSTREAM *s, int which, const char *message);
+PL_EXPORT(int)		Sset_exception(IOSTREAM *s, term_t ex);
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Ssetlocale(IOSTREAM *s,
 				   struct PL_locale *new_loc,
@@ -422,7 +420,9 @@ PL_EXPORT(int)		Sprintf(const char *fm, ...);
 PL_EXPORT(int)		Svprintf(const char *fm, va_list args);
 PL_EXPORT(int)		Svfprintf(IOSTREAM *s, const char *fm, va_list args);
 PL_EXPORT(int)		Ssprintf(char *buf, const char *fm, ...);
+PL_EXPORT(int)		Ssnprintf(char *buf, size_t size, const char *fm, ...);
 PL_EXPORT(int)		Svsprintf(char *buf, const char *fm, va_list args);
+PL_EXPORT(int)		Svsnprintf(char *buf, size_t size, const char *fm, va_list args);
 PL_EXPORT(int)		Svdprintf(const char *fm, va_list args);
 PL_EXPORT(int)		Sdprintf(const char *fm, ...);
 PL_EXPORT(int)		Slock(IOSTREAM *s);

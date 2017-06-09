@@ -3,21 +3,33 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014-2015, VU University Amsterdam
+    Copyright (c)  2014-2016, VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -27,7 +39,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Source administration. The core object is  SourceFile, which keeps track
 of procedures that are defined by it.  Source files are identified by an
-unsigned short, which is registered with clauses and procedures.
+unsigned int, which is registered with clauses and procedures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define LOCK()   PL_LOCK(L_SRCFILE)
@@ -606,6 +618,7 @@ static int
 unloadFile(SourceFile sf)
 { ListCell cell, next;
   size_t deleted = 0;
+  int rc;
 
   delayEvents();
   LOCKSRCFILE(sf);
@@ -641,10 +654,10 @@ unloadFile(SourceFile sf)
   delAllModulesSourceFile__unlocked(sf);
   UNLOCKSRCFILE(sf);
 
-  sendDelayedEvents();
+  rc = sendDelayedEvents(TRUE) >= 0;
   pl_garbage_collect_clauses();
 
-  return TRUE;
+  return rc;
 }
 
 
@@ -836,7 +849,7 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
     if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
     { set(reload, P_NO_CLAUSES);
     } else if ( isDefinedProcedure(proc) )
-    { reload->generation = GD->generation;
+    { reload->generation = global_generation();
       pushPredicateAccess(def, reload->generation);
       acquire_def(def);
       reload->current_clause = find_clause(def->impl.clauses.first_clause,
@@ -1026,28 +1039,49 @@ fix_discontiguous(p_reload *r)
 
 int
 setMetapredicateSource(SourceFile sf, Procedure proc,
-		       meta_mask mask ARG_LD)
+		       arg_info *args ARG_LD)
 { associateSource(sf, proc);
 
   if ( sf->reload )
   { p_reload *reload;
+    size_t i, arity = proc->definition->functor->arity;
 
     if ( !(reload = reloadContext(sf, proc PASS_LD)) )
       return FALSE;
 
-    reload->meta_info = mask;
-    if ( isTransparentMetamask(proc->definition, mask) )
+    if ( !reload->args )
+      reload->args = allocHeapOrHalt(sizeof(*reload->args)*arity);
+    for(i=0; i<arity; i++)
+      reload->args[i].meta = args[i].meta;
+
+    if ( isTransparentMetamask(proc->definition, args) )
       set(reload, P_TRANSPARENT);
     else
       clear(reload, P_TRANSPARENT);
     set(reload, P_META);
   } else
-  { setMetapredicateMask(proc->definition, mask);
+  { setMetapredicateMask(proc->definition, args);
   }
 
   return TRUE;
 }
 
+
+static int
+equal_meta(Definition def, const arg_info *args)
+{ if ( def->args && args )
+  { size_t i, arity = def->functor->arity;
+
+    for(i=0; i<arity; i++)
+    { if ( def->args[i].meta != args[i].meta )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 static void
 fix_metapredicate(p_reload *r)
@@ -1057,18 +1091,18 @@ fix_metapredicate(p_reload *r)
   { int mfmask = (P_META|P_TRANSPARENT);
 
     if ( (def->flags&mfmask) != (r->flags&mfmask) ||
-	 def->meta_info != r->meta_info )
+	 !equal_meta(def, r->args) )
     { if ( true(def, P_META) && false(r, P_META) )
 	clear_meta_declaration(def);
       else if ( true(r, P_META) )
-	setMetapredicateMask(def, r->meta_info);
+	setMetapredicateMask(def, r->args);
       clear(def, P_TRANSPARENT);
       set(def, r->flags&P_TRANSPARENT);
 
       freeCodesDefinition(def, FALSE);
     }
   } else if ( true(r, P_META) )
-  { setMetapredicateMask(def, r->meta_info);
+  { setMetapredicateMask(def, r->args);
     freeCodesDefinition(def, FALSE);
   } else if ( true(r, P_TRANSPARENT) )
   { set(def, P_TRANSPARENT);
@@ -1234,6 +1268,8 @@ endReconsult(SourceFile sf)
 		    fix_attributes(sf, def, r PASS_LD);
 		  }
 		}
+		if ( r->args )
+		  freeHeap(r->args, 0);
 		freeHeap(r, sizeof(*r));
 	      });
 
@@ -1397,7 +1433,7 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   atom_t owner_name;
   atom_t file_name;
   SourceFile of, sf;		/* owner file, source file */
-  unsigned short source_no;
+  unsigned int source_no;
   int ln;
   ListCell cell;
   Clause c = NULL;

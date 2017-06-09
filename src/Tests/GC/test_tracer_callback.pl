@@ -1,3 +1,38 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2009-2016, University of Amsterdam
+			      VU University Amsterdam
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(test_tracer_callback,
 	  [ test_tracer_callback/0
 	  ]).
@@ -16,6 +51,7 @@ test_tracer_callback :-
 
 test_goal(p_simple).
 test_goal(p_backtrack).
+test_goal(p_perm).
 test_goal(p_cut).
 test_goal(p_ifthen).
 test_goal(p_error1).
@@ -96,6 +132,17 @@ error3([X]) :-
 error3([_|T]) :-
 	error3(T).
 
+p_perm :-
+	(   perm([1,2,3,4],[4,3,2,1]),
+	    fail
+	;   true
+	).
+
+takeout(X,[X|R],R).
+takeout(X,[F|R],[F|S]) :- takeout(X,R,S).
+
+perm([X|Y],Z) :- perm(Y,W), takeout(X,Z,W).
+perm([],[]).
 
 
 		 /*******************************

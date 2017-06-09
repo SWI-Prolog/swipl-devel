@@ -2,7 +2,7 @@
 
 \index{GUI}\index{XPCE}\index{Graphics}\index{Window interface}%
 \index{X11}%
-The \url[XPCE GUI system]{http://www.swi-prolog.org/packages/xpce/} for
+The \href{http://www.swi-prolog.org/packages/xpce/}{XPCE GUI system} for
 dynamically typed languages has been with SWI-Prolog for a long time. It
 is developed by Anjo Anjewierden and Jan Wielemaker from the department
 of SWI, University of Amsterdam. It aims at a high-productive

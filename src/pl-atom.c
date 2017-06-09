@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -196,7 +208,7 @@ JW: I think we can reduce locking for AGC further.
   - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void	rehashAtoms(void);
+static int	rehashAtoms(void);
 
 #define atomTable    GD->atoms.table
 
@@ -387,10 +399,7 @@ another atom.
 
 static void
 allocateAtomBlock(int idx)
-{
-  PL_LOCK(L_MISC);
-
-  if ( !GD->atoms.array.blocks[idx] )
+{ if ( !GD->atoms.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
     Atom newblock;
 
@@ -398,10 +407,10 @@ allocateAtomBlock(int idx)
       outOfCore();
 
     memset(newblock, 0, bs*sizeof(struct atom));
-    GD->atoms.array.blocks[idx] = newblock-bs;
+    if ( !COMPARE_AND_SWAP(&GD->atoms.array.blocks[idx],
+			   NULL, newblock-bs) )
+      PL_free(newblock);		/* done by someone else */
   }
-
-  PL_UNLOCK(L_MISC);
 }
 
 static Atom
@@ -480,6 +489,13 @@ pick up the request and process it.
 
 PL_handle_signals() decides on the actual invocation of atom-gc and will
 treat the signal as bogus if agc has already been performed.
+
+(**) Without this  check,  some  threads   may  pass  the  LOCK() around
+rehashAtoms() and create their atom. If they manage to register the atom
+in the old table  before  rehashAtoms()   activates  the  new  table the
+insertion is successful, but rehashAtoms() may   not have moved the atom
+to the new table. Now we will repeat   if we bypassed the LOCK as either
+GD->atoms.rehashing is TRUE or the new table is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
@@ -574,9 +590,14 @@ redo:
   }
 
   if ( atomTable->buckets * 2 < GD->statistics.atoms )
-  { LOCK();
-    rehashAtoms();
+  { int rc;
+
+    LOCK();
+    rc = rehashAtoms();
     UNLOCK();
+
+    if ( !rc )
+      outOfCore();
   }
 
   if ( !( table == atomTable->table && head == table[v] ) )
@@ -609,6 +630,7 @@ redo:
   if ( true(type, PL_BLOB_UNIQUE) )
   { a->next = table[v];
     if ( !( COMPARE_AND_SWAP(&table[v], head, a) &&
+	    !GD->atoms.rehashing &&	/* See (**) above */
             table == atomTable->table ) )
     { if ( false(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
@@ -957,7 +979,7 @@ collectAtoms(void)
   size_t unregistered = 0;
   size_t index;
   int i, last=FALSE;
-  Atom temp, next, prev;
+  Atom temp, next, prev = NULL;	 /* = NULL to keep compiler happy */
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -1068,9 +1090,12 @@ pl_garbage_collect_atoms(void)
     PL_backtrace(5, 0);
 */
 #endif
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "agc", 1,
-		   PL_CHARS, "start");
+    if ( !printMessage(ATOM_informational,
+		       PL_FUNCTOR_CHARS, "agc", 1,
+		         PL_CHARS, "start") )
+    { PL_UNLOCK(L_GC);
+      return FALSE;
+    }
   }
 
   PL_LOCK(L_THREAD);
@@ -1101,14 +1126,14 @@ pl_garbage_collect_atoms(void)
   PL_UNLOCK(L_GC);
 
   if ( verbose )
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "agc", 1,
-		   PL_FUNCTOR_CHARS, "done", 3,
-		     PL_INT64, GD->atoms.collected - oldcollected,
-		     PL_INT, GD->statistics.atoms,
-		     PL_DOUBLE, (double)t);
+    return printMessage(ATOM_informational,
+		        PL_FUNCTOR_CHARS, "agc", 1,
+			  PL_FUNCTOR_CHARS, "done", 3,
+			    PL_INT64, GD->atoms.collected - oldcollected,
+			    PL_INT, GD->statistics.atoms,
+			    PL_DOUBLE, (double)t);
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1215,6 +1240,11 @@ PL_unregister_atom(atom_t a)
   { Atom p;
 
     p = fetchAtomArray(index);
+    if ( !ATOM_IS_VALID(p->references) )
+    { Sdprintf("OOPS: PL_unregister_atom('%s'): invalid atom\n", p->name);
+      trap_gdb();
+    }
+
 #ifdef ATOMIC_REFERENCES
     if ( GD->atoms.gc_active )
     { unsigned int oldref, newref;
@@ -1229,17 +1259,17 @@ PL_unregister_atom(atom_t a)
 
       if ( HAS_LD )
 	LD->atoms.unregistering = a;
-      if ( (refs = ATOMIC_DEC(&p->references) & ATOM_REF_COUNT_MASK) == 0 )
+      if ( (refs=ATOM_REF_COUNT(ATOMIC_DEC(&p->references))) == 0 )
 	ATOMIC_INC(&GD->atoms.unregistered);
     }
 #else
     LOCK();
-    if ( (refs = --p->references) == 0 )
+    if ( (refs=ATOM_REF_COUNT(--p->references)) == 0 )
       GD->atoms.unregistered++;
     UNLOCK();
 #endif
     if ( refs == (unsigned int)-1 )
-    { Sdprintf("OOPS: -1 references to '%s'\n", p->name);
+    { Sdprintf("OOPS: PL_unregister_atom('%s'): -1 references\n", p->name);
       trap_gdb();
     }
   }
@@ -1249,11 +1279,90 @@ PL_unregister_atom(atom_t a)
 #define PL_register_atom error		/* prevent using them after this */
 #define PL_unregister_atom error
 
+
+		 /*******************************
+		 *	      CHECK		*
+		 *******************************/
+
+#ifdef O_DEBUG
+
+static int
+findAtomSelf(Atom a)
+{ GET_LD
+  Atom *table;
+  int buckets;
+  Atom head, ap;
+  unsigned int v;
+
+redo:
+  acquire_atom_table(table, buckets);
+  v = a->hash_value & (buckets-1);
+  head = table[v];
+  acquire_atom_bucket(table+v);
+
+  for(ap=head; ap; ap = ap->next )
+  { if ( ap == a )
+    { release_atom_table();
+      release_atom_bucket();
+      return TRUE;
+    }
+  }
+
+  if ( !( table == atomTable->table && head == table[v] ) )
+    goto redo;
+
+  return FALSE;
+}
+
+
+int
+checkAtoms_src(const char *file, int line)
+{ size_t index;
+  int i, last=FALSE;
+  int errors = 0;
+
+  for(index=1, i=0; !last; i++)
+  { size_t upto = (size_t)2<<i;
+    Atom b = GD->atoms.array.blocks[i];
+
+    if ( upto >= GD->atoms.highest )
+    { upto = GD->atoms.highest;
+      last = TRUE;
+    }
+
+    for(; index<upto; index++)
+    { Atom a = b + index;
+
+      if ( ATOM_IS_VALID(a->references) )
+      { if ( !a->type || !a->name || (int)ATOM_REF_COUNT(a->references) < 0 )
+	{ size_t bs = (size_t)1<<i;
+	  Sdprintf("%s%d: invalid atom %p at index %zd in "
+		   "block at %p (size %d)\n",
+		   file, line, a, index, b+bs, bs);
+	  errors++;
+	  trap_gdb();
+	}
+
+	if ( true(a->type, PL_BLOB_UNIQUE) )
+	{ if ( !findAtomSelf(a) )
+	  { Sdprintf("%s%d: cannot find self: %p\n", file, line, a);
+	  }
+	}
+      }
+    }
+  }
+
+  return errors;
+}
+
+#endif /*O_DEBUG*/
+
+
 		 /*******************************
 		 *	    REHASH TABLE	*
 		 *******************************/
 
-static void
+static int
 rehashAtoms(void)
 { AtomTable newtab;
   uintptr_t mask;
@@ -1261,21 +1370,28 @@ rehashAtoms(void)
   int i, last=FALSE;
 
   if ( GD->cleaning != CLN_NORMAL )
-    return;				/* no point anymore and foreign ->type */
+    return TRUE;			/* no point anymore and foreign ->type */
 					/* pointers may have gone */
 
   if ( atomTable->buckets * 2 >= GD->statistics.atoms )
-    return;
+    return TRUE;
 
-  newtab = allocHeapOrHalt(sizeof(*newtab));
+  if ( !(newtab = allocHeap(sizeof(*newtab))) )
+    return FALSE;
   newtab->buckets = atomTable->buckets * 2;
-  newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(Atom));
+  if ( !(newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(Atom))) )
+  { freeHeap(newtab, sizeof(*newtab));
+    return FALSE;
+  }
   memset(newtab->table, 0, newtab->buckets * sizeof(Atom));
   newtab->prev = atomTable;
   mask = newtab->buckets-1;
 
   DEBUG(MSG_HASH_STAT,
-	Sdprintf("rehashing atoms (%d --> %d)\n", atomTable->buckets, newtab->buckets));
+	Sdprintf("rehashing atoms (%d --> %d)\n",
+		 atomTable->buckets, newtab->buckets));
+
+  GD->atoms.rehashing = TRUE;
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -1299,6 +1415,9 @@ rehashAtoms(void)
   }
 
   atomTable = newtab;
+  GD->atoms.rehashing = FALSE;
+
+  return TRUE;
 }
 
 
@@ -1670,6 +1789,16 @@ completion_candidate(Atom a)
 }
 
 
+/* An atom without references cannot be part of the program
+*/
+
+static int
+global_atom(Atom a)
+{ return ( ATOM_REF_COUNT(a->references) != 0 ||
+	   indexAtom(a->atom) < GD->atoms.builtin );
+}
+
+
 static int
 is_identifier_text(PL_chars_t *txt)
 { if ( txt->length == 0 )
@@ -1731,6 +1860,7 @@ extendAtom(char *prefix, bool *unique, char *common)
     { Atom a = b + index;
 
       if ( ATOM_IS_VALID(a->references) && a->type == &text_atom &&
+	   global_atom(a) &&
 	   completion_candidate(a) &&
 	   strprefix(a->name, prefix) &&
 	   strlen(a->name) < LINESIZ )
@@ -1774,12 +1904,14 @@ PRED_IMPL("$complete_atom", 3, complete_atom, 0)
   term_t unique = A3;
 
   char *p;
+  size_t len;
   bool u;
   char buf[LINESIZ];
   char cmm[LINESIZ];
 
-  if ( !PL_get_chars(prefix, &p, CVT_ALL|CVT_EXCEPTION) )
-    fail;
+  if ( !PL_get_nchars(prefix, &len, &p, CVT_ALL|CVT_EXCEPTION) ||
+       len >= sizeof(buf) )
+    return FALSE;
   strcpy(buf, p);
 
   if ( extendAtom(p, &u, cmm) )
@@ -1787,10 +1919,10 @@ PRED_IMPL("$complete_atom", 3, complete_atom, 0)
     if ( PL_unify_list_codes(common, buf) &&
 	 PL_unify_atom(unique, u ? ATOM_unique
 				 : ATOM_not_unique) )
-      succeed;
+      return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -1822,7 +1954,9 @@ extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
       if ( index % 256 == 0 && PL_handle_signals() < 0 )
 	return FALSE;			/* interrupted */
 
-      if ( ATOM_IS_VALID(a->references) && completion_candidate(a) &&
+      if ( ATOM_IS_VALID(a->references) &&
+	   global_atom(a) &&
+	   completion_candidate(a) &&
 	   get_atom_ptr_text(a, &hit) &&
 	   hit.length < ALT_SIZ &&
 	   PL_cmp_text(prefix, 0, &hit, 0, prefix->length) == 0 &&
@@ -1831,7 +1965,7 @@ extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
 
 	m->name = a;
 	m->length = a->length;
-	if ( *altn > ALT_MAX )
+	if ( *altn >= ALT_MAX )
 	  goto out;
       }
     }

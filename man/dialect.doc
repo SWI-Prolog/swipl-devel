@@ -127,7 +127,7 @@ are some considerations.
     minimal changes, often keeping compatibility with the original
     dialect(s).  This problem is well known from the C/Unix world
     and we advise anyone to study the philosophy of
-    \url[GNU autoconf]{http://www.gnu.org/software/autoconf/}, from
+    \href{http://www.gnu.org/software/autoconf/}{GNU autoconf}, from
     which we will illustrate some highlights below.
 \end{itemize}
 

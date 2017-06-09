@@ -100,3 +100,12 @@
 [submodule "packages/cql"]
 	path = packages/cql
 	url = ../packages-cql.git
+[submodule "packages/readline"]
+	path = packages/readline
+	url = ../packages-readline.git
+[submodule "packages/libedit"]
+	path = packages/libedit
+	url = ../packages-libedit.git
+[submodule "packages/pcre"]
+	path = packages/pcre
+	url = ../packages-pcre.git

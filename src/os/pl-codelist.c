@@ -73,6 +73,10 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *res
 	result->status = CVT_partial;
       else if ( c < 0 || c > 0x10ffff )
 	result->status = CVT_nocode;
+#if SIZEOF_WCHAR_T == 2
+      else if ( c > PLMAXWCHAR )
+	result->status = CVT_representation;
+#endif
       else if ( c > 0xff )
 	result->status = CVT_wide;
       return NULL;
@@ -115,6 +119,10 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *res
 	result->status = CVT_partial;
       else if ( c < 0 || c > 0x10ffff )
 	result->status = (type == CODES ? CVT_nocode : CVT_nochar);
+#if SIZEOF_WCHAR_T == 2
+      else if ( c > PLMAXWCHAR )
+	result->status = CVT_representation;
+#endif
       else if ( c > 0xff )
 	result->status = CVT_wide;
       return NULL;

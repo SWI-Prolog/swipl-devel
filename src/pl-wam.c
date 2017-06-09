@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -170,11 +182,12 @@ loffset__LD(void *p ARG_LD)
 
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
-{ GET_LD
-  static LocalFrame ofr = NULL;		/* not thread-safe */
+{ static LocalFrame ofr = NULL;		/* not thread-safe */
 
   if ( DEBUGGING(MSG_VMI) )
-  { if ( ofr != FR )
+  { GET_LD
+
+    if ( ofr != FR )
     { Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
 	       loffset(FR),
 	       levelFrame(FR),
@@ -618,7 +631,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     assert(fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition);
 
     if ( !(cid=PL_open_foreign_frame()) )
-      return;
+      return;				/* exception is in the environment */
 
     fr = (LocalFrame)valTermRef(fref);
     catcher = consTermRef(argFrameP(fr, 2));
@@ -626,24 +639,29 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
     { term_t clean;
-      term_t ex = 0;
-      int rval;
       wakeup_state wstate;
 
       fr = (LocalFrame)valTermRef(fref);
       clean = consTermRef(argFrameP(fr, 3));
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
-      { startCritical;
-	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+      { static predicate_t PRED_call1 = NULL;
+	int rval;
+	qid_t qid;
+
+	if ( !PRED_call1 )
+	  PRED_call1 = PL_predicate("call", 1, "system");
+
+	startCritical;
+	qid = PL_open_query(contextModule(fr), PL_Q_PASS_EXCEPTION,
+			    PRED_call1, clean);
+	rval = PL_next_solution(qid);
+	PL_cut_query(qid);
 	if ( !endCritical )
 	  rval = FALSE;
+	if ( !rval && exception_term )
+	  wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
 	restoreWakeup(&wstate PASS_LD);
-      } else
-      { rval = FALSE;
       }
-
-      if ( !rval && ex && !exception_term )
-	PL_raise_exception(ex);
     }
 
     PL_close_foreign_frame(cid);
@@ -651,7 +669,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 }
 
 
-static void
+static int
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 { if ( true(fr, FR_CLEANUP) )
   { size_t fref = consTermRef(fr);
@@ -659,7 +677,7 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
     fr = (LocalFrame)valTermRef(fref);
   }
 
-  callEventHook(PLEV_FRAMEFINISHED, fr);
+  return callEventHook(PLEV_FRAMEFINISHED, fr);
 }
 
 
@@ -1708,6 +1726,9 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
   while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
   { LocalFrame fr = qf->saved_environment;
 
+    if ( !fr )
+      break;
+
     while( fr )
     { if ( fr->predicate == catch3 )
       { term_t fref  = consTermRef(fr);
@@ -1732,7 +1753,7 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
     }
   }
 
-  if ( qf && true(qf, PL_Q_CATCH_EXCEPTION) )
+  if ( qf && true(qf, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) )
     return (term_t)-1;
 
   return 0;
@@ -2062,14 +2083,14 @@ chp_chars(Choice ch)
 { GET_LD
   static char buf[256];
 
-  Ssprintf(buf, "Choice at #%ld for frame #%ld (%s), type %s",
-	   loffset(ch), loffset(ch->frame),
-	   predicateName(ch->frame->predicate),
-	   ch->type == CHP_JUMP ? "JUMP" :
-	   ch->type == CHP_CLAUSE ? "CLAUSE" :
-	   ch->type == CHP_TOP ? "TOP" :
-	   ch->type == CHP_DEBUG ? "DEBUG" :
-	   ch->type == CHP_CATCH ? "CATCH" : "NONE");
+  Ssnprintf(buf, sizeof(buf), "Choice at #%ld for frame #%ld (%s), type %s",
+	    loffset(ch), loffset(ch->frame),
+	    predicateName(ch->frame->predicate),
+	    ch->type == CHP_JUMP ? "JUMP" :
+	    ch->type == CHP_CLAUSE ? "CLAUSE" :
+	    ch->type == CHP_TOP ? "TOP" :
+	    ch->type == CHP_DEBUG ? "DEBUG" :
+	    ch->type == CHP_CATCH ? "CATCH" : "NONE");
 
   return buf;
 }
@@ -2138,6 +2159,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	  if ( !me_undone && is_exception_finish(reason) )
 	  { me_undone = TRUE;
 	    Undo(me->mark);
+	    DiscardMark(me->mark);
 	  }
 	  BFR = me->parent;
 	  frameFinished(fr2, reason PASS_LD);
@@ -2164,8 +2186,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       { if ( !me_undone )
 	{ if ( reason == FINISH_EXTERNAL_EXCEPT_UNDO )
 	    Undo(me->mark);
-	  else
-	    DiscardMark(me->mark);
+	  DiscardMark(me->mark);
 	}
 	BFR = me->parent;
 	return;
@@ -2391,7 +2412,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->prof_node = NULL;			/* true? */
 #endif
   Mark(qf->choice.mark);
-  setGenerationFrame(fr, GD->generation);
+  setGenerationFrame(fr, global_generation());
 					/* context module */
   if ( true(def, P_TRANSPARENT) )
   { if ( ctx )
@@ -2503,6 +2524,19 @@ PL_close_query(qid_t qid)
     restore_after_query(qf);
     qf->magic = 0;			/* disqualify the frame */
   }
+}
+
+
+qid_t
+PL_current_query(void)
+{ GET_LD
+
+  if ( HAS_LD )
+  { if ( LD->query )
+      return QidFromQuery(LD->query);
+  }
+
+  return 0;
 }
 
 
@@ -3068,7 +3102,14 @@ next_choice:
       BFR = ch->parent;
       if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	goto next_choice;	/* Can happen of look-ahead was too short */
-      chp = ch->value.clause;
+
+      chp    = ch->value.clause;
+      clause = CL->value.clause;
+      PC     = clause->codes;
+      lTop   = (LocalFrame)argFrameP(FR, clause->variables);
+      umode  = uread;
+
+      DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && LD->mark_bar <= gTop));
 
       if ( unlikely(LD->alerted) )
       {
@@ -3108,12 +3149,6 @@ next_choice:
 #endif
         Profile(profRedo(ch->prof_node PASS_LD));
       }
-
-      umode  = uread;
-      clause = CL->value.clause;
-      PC     = clause->codes;
-      lTop   = (LocalFrame)argFrameP(FR, clause->variables);
-      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
       if ( chp.cref )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);

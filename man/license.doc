@@ -1,175 +1,112 @@
 \chapter{SWI-Prolog License Conditions and Tools}
 \label{sec:license}
 
-SWI-Prolog licensing aims at a large audience, combining ideas from the
-\url[Free Software Foundation]{http://www.fsf.org} and the less
-principal \url[Open Source Initiative]{http://www.opensource.org}. The
-license aims at the following:
+As of version 7.4.0\footnote{Actually pre-release 7.3.33}, the
+SWI-Prolog source code is distributed under the
+\href{https://opensource.org/licenses/BSD-2-Clause}{Simplified BSD}
+license:
 
-\begin{itemize}
-    \item
-Make SWI-Prolog and its libraries `as free as possible'.
+\begin{verbatim}
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    \item
-Allow for easy integration of contributions.  See \secref{contrib}.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    \item
-Free software can build on SWI-Prolog without limitations.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    \item
-Non-free (open or proprietary) software can be produced using
-SWI-Prolog, although contributed pure
-\url[GPL-ed]{http://www.gnu.org/copyleft/gpl.html} components
-cannot be used.
-\end{itemize}
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+\end{verbatim}
 
-To achieve this, different parts of the system have different licenses.
-SWI-Prolog programs consist of a mixture of `native' code (source compiled
-to machine instructions) and `virtual machine' code (Prolog source compiled to
-SWI-Prolog virtual machine instructions, covering both compiled SWI-Prolog
-libraries and your compiled application).
+This, unfortunately, \textbf{does not mean you can any version of
+SWI-Prolog under the above license}. The SWI-Prolog core may be linked
+to libraries that are more restrictive and in addition your code may
+have loaded extension packages that have more restrictive conditions. In
+particular, the core is by default linked to
+\href{https://gmplib.org/}{libgmp}, distributed under the Lesser GNU
+Public license.
 
-For maximal coherence between free licenses, we start with the two prime
-licenses from the Free Software Foundation, the
-\url[GNU General Public License]{http://www.gnu.org/copyleft/gpl.html}
-(GPL) and the
-\url[Lesser GNU General Public License]{http://www.gnu.org/copyleft/lesser.html}
-(LGPL),
-after which we add a proven (used by the GNU C compiler runtime library
-as well as the GNU \emph{ClassPath} project) exception to deal with the
-specific nature of compiled virtual machine code in a saved state.
+The above implies you need to configure and recompile the system without
+these components. For this we provide options to the \program{configure}
+script:
 
+\begin{code}
+./configure --without-gpl
+./configure --without-lgpl
+\end{code}
 
-\section{The SWI-Prolog kernel and foreign libraries} \label{sec:clicense}
-
-The SWI-Prolog kernel and our foreign libraries are distributed under
-the %href(lgpl, Lesser GNU Public License), also called the
-\textbf{LGPL}. A Prolog executable consists of the combination of these
-`native' code components and Prolog virtual machine code. The SWI-Prolog
-\program{swipl-rc} utility allows for disassembling and re-assembling these
-parts, a process satisfying article \textbf{6b} of the LGPL.
-
-Under the LGPL, SWI-Prolog can be linked to code distributed under
-arbitrary licenses, provided a number of requirements are fulfilled.
-The most important requirement is that if an application relies on a
-\emph{modified} version of SWI-Prolog, the modified sources must
-be made available.
-
-
-\subsection{The SWI-Prolog Prolog libraries}
-\label{sec:license-lib}
-
-Lacking a satisfactory technical solution to handle article \textbf{6} of the
-LGPL, this license cannot be used for the Prolog source code that is part
-of the SWI-Prolog system (both libraries and kernel code).  This situation
-is comparable to \file{libgcc}, the runtime library used
-with the GNU C compiler. Therefore, we use the same proven license terms
-as this library. The libgcc license is the %href(gpl, GPL), accompanied
-with a special exception. Below we rephrase this exception adjusted to
-our needs:
-
-\begin{quote}\it
-As a special exception, if you link this library with other files,
-compiled with a Free Software compiler, to produce an executable, this
-library does not by itself cause the resulting executable to be covered
-by the GNU General Public License. This exception does not, however,
-invalidate any other reasons why the executable file might be covered by
-the GNU General Public License.
-\end{quote}
+The GNU MP Bignum Library provides unbounded integers, rational numbers
+and some cryptographical functionality. As libgmp is provided under the
+Lesser GNU Public license it may legally be combined with proprietary
+software as long as libgmp is \jargon{dynamically linked} (default) and
+the end user can replace the libgmp shared object and use your
+application with their (possibly modified) version of libgmp. In
+practice this leads to problems if the application is not accessible
+(e.g., embedded in closed hardware) or you want to avoid customers to
+peek around in the process memory as they can easily do so by adding a
+backdoor to the modified LGPL component. Note that such a protection is
+in general not possible anyway if the customer has unrestricted access
+to the machine on which the application runs.
 
 
 \section{Contributing to the SWI-Prolog project}	\label{sec:contrib}
 
-To achieve maximal coherence using SWI-Prolog for Free and Non-Free
-software we advise using LGPL for contributed foreign code and
-using GPL with the SWI-Prolog exception for Prolog code for
-contributed modules.
-
-As a rule of thumb it is advised to use the above licenses whenever possible,
-and use a strict GPL compliant license only if the module contains other
-code under strict GPL compliant licenses.
+To reach maximal coherence we will, as a rule of thumb, only accept new
+code that has the Simplified BSD license and existing code with a
+\jargon{permissive} license such as MIT, Apache, BSD-3, etc. In
+exceptional cases we may accept code with GPL or LGPL conditions. Such
+code must be tagged using a license/1 directive (Prolog) or a call to
+PL_license() for foreign code and, if they are part of the core,
+the code must be excluded using the \verb$--without-gpl$ or
+\verb$--without-lgpl$ option.
 
 
 \section{Software support to keep track of license conditions}
 \label{sec:softlicense}
 
 Given the above, it is possible that SWI-Prolog packages and extensions
-will rely on the GPL.%
-    \footnote{On the Unix version, the default toplevel uses the
-	      GNU readline library for command line editing.  This
-	      library is distributed under the GPL.  In practice this
-	      problem is small as most final applications have Prolog
-	      embedded, without direct access to the command line and
-	      therefore without need for \file{libreadline}.}
-The predicates below allow for registering license requirements for
-Prolog files and foreign modules.  The predicate eval_license/0 reports
-which components from the currently configured system are distributed
-under copy-left and open source enforcing licenses (the GPL) and
-therefore must be replaced before distributing linked applications
-under non-free license conditions.
+rely on the GPL, LGPL or other licenses. The predicates below allow for
+registering license requirements for Prolog files and foreign modules.
+The predicate license/0 reports which components from the currently
+configured system are distributed under non-permissive open source
+licenses and therefore may need to be replaced to suit your
+requirements.
 
 \begin{description}
-    \predicate{eval_license}{0}{}
+    \predicate{license}{0}{}
 Evaluate the license conditions of all loaded components.  If the system
 contains one or more components that are licenced under GPL-like
 restrictions the system indicates this program may only be distributed
 under the \const{GPL} license as well as which components prohibit the
-use of other license conditions.
+use of other license conditions.  Likewise for for LGPL components.
 
     \predicate{license}{2}{+LicenseId, +Component}
 Register the fact that \arg{Component} is distributed under a license
-identified by \arg{LicenseId}. The most important \arg{LicenseId}'s are:
-
-    \begin{description}
-	\termitem{swipl}{}
-Indicates this module is distributed under the GNU General Public
-License (GPL) with the SWI-Prolog exception:%
-    \footnote{This exception is a straight re-phrasing of the license
-	      used for \file{libgcc}, the GNU C runtime library facing
-	      similar technical issues.}
-
-\begin{quote}\it
-As a special exception, if you link this library with other files,
-compiled with SWI-Prolog, to produce an executable, this library does
-not by itself cause the resulting executable to be covered by the GNU
-General Public License. This exception does not, however, invalidate any
-other reasons why the executable file might be covered by the GNU
-General Public License.
-\end{quote}
-
-This should be the default for software contributed to the SWI-Prolog
-project as it allows the community to prosper both in the free and
-non-free world.  Still, people using SWI-Prolog to create non-free
-applications must contribute sources to improvements they make to
-the community.
-
-	\termitem{lgpl}{}
-This is the default license for foreign libraries linked with
-SWI-Prolog. Use PL_license() to register the condition from foreign
-code.
-
-	\termitem{gpl}{}
-Indicates this module is strictly Free Software, which implies it cannot
-be used together with any module that is incompatible with the GPL. Please
-only use these conditions when forced by other code used in the
-component.
-    \end{description}
-
-Other licenses known to the system are \const{guile}, \const{gnu_ada},
-\const{x11}, \const{expat}, \const{sml}, \const{public_domain},
-\const{cryptix}, \const{bsd}, \const{zlib}, \const{lgpl_compatible}
-and \const{gpl_compatible}.  New licenses can be defined by adding
-clauses for the multifile predicate license:license/3.  Below is
-an example.  The second argument is either \const{gpl} or \const{lgpl}
-to indicate compatibility with these licenses.  Other values cause the
-license to be interpreted as \jargon{proprietary}.  Proprietary licenses
-are reported by eval_license/0.  See the file \file{boot/license.pl} for
-details.
+identified by \arg{LicenseId}. Known license identifiers can be listed
+using known_licenses/0. A new license can be registered as a known
+language using a declaration like below. The second argument defines the
+\jargon{category} if the license, which is one of \const{gpl},
+\const{lgpl}, \const{permissive} or \const{proprietary}.
 
 \begin{code}
 :- multifile license:license/3.
 
-license:license(mylicense, lgpl,
+license:license(mylicense, permissive,
 		[ comment('My personal license'),
 		  url('http://www.mine.org/license.html')
 		]).
@@ -184,6 +121,10 @@ filename and calls license/2.
     \cfunction{void}{PL_license}{const char *LicenseId, const char *Component}
 Intended for the install() procedure of foreign libraries. This call can
 be made \emph{before} PL_initialise().
+
+    \predicate{known_licenses}{0}{}
+List all licenses \emph{known} to the system. This does not imply the
+system contains code covered by the listed licenses.  See license/2.
 \end{description}
 
 

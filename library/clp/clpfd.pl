@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@metalevel.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2016 Markus Triska
+    Copyright (C): 2007-2017 Markus Triska
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -152,15 +152,22 @@
 
 /** <module> CLP(FD): Constraint Logic Programming over Finite Domains
 
+**Development of this library has moved to SICStus Prolog.**
+
+Please see [**CLP(Z)**](https://github.com/triska/clpz) for more
+information.
+
 ## Introduction			{#clpfd-intro}
 
 This library provides CLP(FD): Constraint Logic Programming over
-Finite Domains.
+Finite Domains. This is an instance of the general [CLP(_X_)
+scheme](<#clp>), extending logic programming with reasoning over
+specialised domains.
 
-CLP(FD) is an instance of the general CLP(.) scheme, extending logic
-programming with reasoning over specialised domains. CLP(FD) lets us
-reason about **integers** in a way that fits the relational nature of
-Prolog.
+CLP(FD) lets us reason about **integers** in a way that honors the
+relational nature of Prolog. Read [**The Power of
+Prolog**](https://www.metalevel.at/prolog) to understand how this
+library is meant to be used in practice.
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -282,6 +289,7 @@ In total, the arithmetic constraints are:
     | Expr `rem` Expr    | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr // Expr       | Truncated integer division           |
+    | Expr div Expr      | Floored integer division             |
 
 where `Expr` again denotes an arithmetic expression.
 
@@ -381,8 +389,33 @@ used instead.
 ## Example: Factorial relation {#clpfd-factorial}
 
 We illustrate the benefit of using #=/2 for more generality with a
-simple example. The following Prolog program relates each natural
-number _N_ to its factorial _F_:
+simple example.
+
+Consider first a rather conventional definition of `n_factorial/2`,
+relating each natural number _N_ to its factorial _F_:
+
+==
+n_factorial(0, 1).
+n_factorial(N, F) :-
+        N #> 0,
+        N1 #= N - 1,
+        n_factorial(N1, F1),
+        F #= N * F1.
+==
+
+This program uses CLP(FD) constraints _instead_ of low-level
+arithmetic throughout, and everything that _would have worked_ with
+low-level arithmetic _also_ works with CLP(FD) constraints, retaining
+roughly the same performance. For example:
+
+==
+?- n_factorial(47, F).
+F = 258623241511168180642964355153611979969197632389120000000000 ;
+false.
+==
+
+Now the point: Due to the increased flexibility and generality of
+CLP(FD) constraints, we are free to _reorder_ the goals as follows:
 
 ==
 n_factorial(0, 1).
@@ -393,13 +426,10 @@ n_factorial(N, F) :-
         n_factorial(N1, F1).
 ==
 
-This relation can be used in all directions. For example:
+In this concrete case, _termination_ properties of the predicate are
+improved. For example, the following queries now both terminate:
 
 ==
-?- n_factorial(47, F).
-F = 258623241511168180642964355153611979969197632389120000000000 ;
-false.
-
 ?- n_factorial(N, 1).
 N = 0 ;
 N = 1 ;
@@ -409,10 +439,26 @@ false.
 false.
 ==
 
-To make the predicate terminate if any argument is instantiated, add
+To make the predicate terminate if _any_ argument is instantiated, add
 the (implied) constraint `F #\= 0` before the recursive call.
 Otherwise, the query `n_factorial(N, 0)` is the only non-terminating
 case of this kind.
+
+The value of CLP(FD) constraints does _not_ lie in completely freeing
+us from _all_ procedural phenomena. For example, the two programs do
+not even have the same _termination properties_ in all cases.
+Instead, the primary benefit of CLP(FD) constraints is that they allow
+you to try different execution orders and apply [**declarative
+debugging**](https://www.metalevel.at/prolog/debugging)
+techniques _at all_!  Reordering goals (and clauses) can significantly
+impact the performance of Prolog programs, and you are free to try
+different variants if you use declarative approaches. Moreover, since
+all CLP(FD) constraints _always terminate_, placing them earlier can
+at most _improve_, never worsen, the termination properties of your
+programs. An additional benefit of CLP(FD) constraints is that they
+eliminate the complexity of introducing `(is)/2` and `(=:=)/2` to
+beginners, since _both_ predicates are subsumed by #=/2 when reasoning
+over integers.
 
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
@@ -630,9 +676,11 @@ To express this puzzle via CLP(FD) constraints, we must first pick a
 suitable representation. Since CLP(FD) constraints reason over
 _integers_, we must find a way to map the positions of queens to
 integers. Several such mappings are conceivable, and it is not
-immediately obvious which we should use. For this reason, _modeling_
-combinatorial problems via CLP(FD) constraints often necessitates some
-creativity and has been described as more of an art than a science.
+immediately obvious which we should use. On top of that, different
+constraints can be used to express the desired relations. For such
+reasons, _modeling_ combinatorial problems via CLP(FD) constraints
+often necessitates some creativity and has been described as more of
+an art than a science.
 
 In our concrete case, we observe that there must be exactly one queen
 per column. The following representation therefore suggests itself: We
@@ -708,14 +756,15 @@ and try different labeling options without recompiling our code.
 
 If necessary, we can use `once/1` to commit to the first optimal
 solution. However, it is often very valuable to see alternative
-solutions that are _also_ optimal, so that we can choose among
-optimal solutions by other criteria. For the sake of purity and
-completeness, we recommend to avoid `once/1` and other constructs
-that lead to impurities in CLP(FD) programs.
+solutions that are _also_ optimal, so that we can choose among optimal
+solutions by other criteria. For the sake of
+[**purity**](https://www.metalevel.at/prolog/purity) and
+completeness, we recommend to avoid `once/1` and other constructs that
+lead to impurities in CLP(FD) programs.
 
-Related to optimisation with CLP(FD) constraints is the [**simplex
-library**](http://eu.swi-prolog.org/man/simplex.html) and **CLP(Q)**
-which reason about _linear_ constraints over rational numbers.
+Related to optimisation with CLP(FD) constraints are
+[`library(simplex)`](http://eu.swi-prolog.org/man/simplex.html) and
+CLP(Q) which reason about _linear_ constraints over rational numbers.
 
 ## Reification				{#clpfd-reification}
 
@@ -736,7 +785,7 @@ The constraints of this table are reifiable as well.
 
 When reasoning over Boolean variables, also consider using
 CLP(B) constraints as provided by
-[**library(clpb)**](http://eu.swi-prolog.org/man/clpb.html).
+[`library(clpb)`](http://eu.swi-prolog.org/man/clpb.html).
 
 ## Enabling monotonic CLP(FD)		{#clpfd-monotonicity}
 
@@ -1581,11 +1630,16 @@ indomain(Var) :- label([Var]).
 order_dom_next(up, Dom, Next)   :- domain_infimum(Dom, n(Next)).
 order_dom_next(down, Dom, Next) :- domain_supremum(Dom, n(Next)).
 order_dom_next(random_value(_), Dom, Next) :-
-        domain_to_list(Dom, Ls),
-        length(Ls, L),
-        I is random(L),
-        nth0(I, Ls, Next).
+        phrase(domain_to_intervals(Dom), Is),
+        length(Is, L),
+        R is random(L),
+        nth0(R, Is, From-To),
+        random_between(From, To, Next).
 
+domain_to_intervals(from_to(n(From),n(To))) --> [From-To].
+domain_to_intervals(split(_, Left, Right)) -->
+        domain_to_intervals(Left),
+        domain_to_intervals(Right).
 
 %% label(+Vars)
 %
@@ -1681,12 +1735,16 @@ label(Vs) :- labeling([], Vs).
 labeling(Options, Vars) :-
         must_be(list, Options),
         fd_must_be_list(Vars),
-        maplist(finite_domain, Vars),
+        maplist(must_be_finite_fdvar, Vars),
         label(Options, Options, default(leftmost), default(up), default(step), [], upto_ground, Vars).
 
-finite_domain(Var) :-
+finite_domain(Dom) :-
+        domain_infimum(Dom, n(_)),
+        domain_supremum(Dom, n(_)).
+
+must_be_finite_fdvar(Var) :-
         (   fd_get(Var, Dom, _) ->
-            (   domain_infimum(Dom, n(_)), domain_supremum(Dom, n(_)) -> true
+            (   finite_domain(Dom) -> true
             ;   instantiation_error(Var)
             )
         ;   integer(Var) -> true
@@ -1913,7 +1971,7 @@ delete_eq([X|Xs], Y, List) :-
 
 contracting(Vs) :-
         must_be(list, Vs),
-        maplist(finite_domain, Vs),
+        maplist(must_be_finite_fdvar, Vs),
         contracting(Vs, false, Vs).
 
 contracting([], Repeat, Vars) :-
@@ -2674,9 +2732,10 @@ match(var(V), T)     --> [( nonvar(T), ( T = ?(Var) ; T = #(Var) ) ->
 match(integer(I), T) --> [integer(T), I = T].
 match(-X, T)         --> [nonvar(T), T = -A], match(X, A).
 match(abs(X), T)     --> [nonvar(T), T = abs(A)], match(X, A).
-match(X+Y, T)        --> [nonvar(T), T = A + B], match(X, A), match(Y, B).
-match(X-Y, T)        --> [nonvar(T), T = A - B], match(X, A), match(Y, B).
-match(X*Y, T)        --> [nonvar(T), T = A * B], match(X, A), match(Y, B).
+match(Binary, T)     -->
+        { Binary =.. [Op,X,Y], Term =.. [Op,A,B] },
+        [nonvar(T), T = Term],
+        match(X, A), match(Y, B).
 
 match_goals([], _)     --> [].
 match_goals([G|Gs], F) --> match_goal(G, F), match_goals(Gs, F).
@@ -2853,6 +2912,16 @@ expansion_simpler(Var =:= Expr0, Goal) :-
         ;   Goal = false
         ).
 expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
+expansion_simpler(Var is Expr, Goal) :- !,
+        (   var(Var), nonvar(Expr),
+            Expr = E mod M, nonvar(E), E = A^B ->
+            Goal = ( ( integer(A), integer(B), integer(M),
+                       A >= 0, B >= 0, M > 0 ->
+                       Var is powm(A, B, M)
+                     ; Var is Expr
+                     ) )
+        ;   Goal = ( Var is Expr )
+        ).
 expansion_simpler(between(L,U,V), Goal) :- maplist(integer, [L,U,V]), !,
         (   between(L,U,V) -> Goal = true
         ;   Goal = false
@@ -5407,8 +5476,10 @@ domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
 
 difference_arcs([], []) --> [].
 difference_arcs([V|Vs], FL0) -->
-        (   { fd_get(V, Dom, _), domain_to_list(Dom, Ns) } ->
-            { FL0 = [V|FL] },
+        (   { fd_get(V, Dom, _),
+              finite_domain(Dom) } ->
+            { FL0 = [V|FL],
+              domain_to_list(Dom, Ns) },
             enumerate(Ns, V),
             difference_arcs(Vs, FL)
         ;   difference_arcs(Vs, FL0)
@@ -5601,8 +5672,8 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
 
    For more information about this technique, see:
 
-               https://www.metalevel.at/prolog/dcg.html
-               ========================================
+                 https://www.metalevel.at/prolog/dcg
+                 ===================================
 
    A Prolog implementation of this algorithm is also available as a
    standalone library from:
@@ -6463,7 +6534,7 @@ task_bs(Task, InfStart-Bs) :-
         Task = task(Start,D,End,_,_Id),
         ?(D) #> 0,
         ?(End) #= ?(Start) + ?(D),
-        maplist(finite_domain, [End,Start,D]),
+        maplist(must_be_finite_fdvar, [End,Start,D]),
         fd_inf(Start, InfStart),
         fd_sup(End, SupEnd),
         L is SupEnd - InfStart,
@@ -6773,16 +6844,16 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  Sample query:
 %
 %  ==
-%  ?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
-%  [9,8,7,6,5,4,3,2,1]
-%  [2,4,6,1,7,3,9,8,5]
-%  [3,5,1,9,2,8,7,4,6]
-%  [1,2,8,5,3,7,6,9,4]
-%  [6,3,4,8,9,2,1,5,7]
-%  [7,9,5,4,6,1,8,3,2]
-%  [5,1,9,2,8,6,4,7,3]
-%  [4,7,2,3,1,9,5,6,8]
-%  [8,6,3,7,4,5,2,1,9]
+%  ?- problem(1, Rows), sudoku(Rows), maplist(portray_clause, Rows).
+%  [9, 8, 7, 6, 5, 4, 3, 2, 1].
+%  [2, 4, 6, 1, 7, 3, 9, 8, 5].
+%  [3, 5, 1, 9, 2, 8, 7, 4, 6].
+%  [1, 2, 8, 5, 3, 7, 6, 9, 4].
+%  [6, 3, 4, 8, 9, 2, 1, 5, 7].
+%  [7, 9, 5, 4, 6, 1, 8, 3, 2].
+%  [5, 1, 9, 2, 8, 6, 4, 7, 3].
+%  [4, 7, 2, 3, 1, 9, 5, 6, 8].
+%  [8, 6, 3, 7, 4, 5, 2, 1, 9].
 %  Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
 %  ==
 
@@ -6791,7 +6862,9 @@ transpose(Ls, Ts) :-
         lists_transpose(Ls, Ts).
 
 lists_transpose([], []).
-lists_transpose([L|Ls], Ts) :- foldl(transpose_, L, Ts, [L|Ls], _).
+lists_transpose([L|Ls], Ts) :-
+        maplist(same_length(L), Ls),
+        foldl(transpose_, L, Ts, [L|Ls], _).
 
 transpose_(_, Fs, Lists0, Lists) :-
         maplist(list_first_rest, Lists0, Fs, Lists).
@@ -6804,9 +6877,15 @@ list_first_rest([L|Ls], L, Ls).
 %
 % Analogous to compare/3, with finite domain variables A and B.
 %
-% This predicate allows you to make several predicates over integers
-% deterministic while preserving their generality and completeness.
-% For example:
+% Think of zcompare/3 as _reifying_ an arithmetic comparison of two
+% integers. This means that we can explicitly reason about the
+% different cases _within_ our programs. As in compare/3, the atoms
+% =|<|=, =|>|= and =|=|= denote the different cases of the
+% trichotomy. In contrast to compare/3 though, zcompare/3 works
+% correctly for _all modes_, also if only a subset of the arguments is
+% instantiated. This allows you to make several predicates over
+% integers deterministic while preserving their generality and
+% completeness.  For example:
 %
 % ==
 % n_factorial(N, F) :-
@@ -6819,17 +6898,19 @@ list_first_rest([L|Ls], L, Ls).
 %         n_factorial(N1, F0).
 % ==
 %
-% This version is deterministic if the first argument is instantiated,
-% because first argument indexing can distinguish the two different
-% clauses:
+% This version of n_factorial/2 is deterministic if the first argument
+% is instantiated, because argument indexing can distinguish the
+% different clauses that reflect the possible and admissible outcomes
+% of a comparison of `N` against 0. Example:
 %
 % ==
 % ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
 % ==
 %
-% The predicate can still be used in all directions, including the
-% most general query:
+% Since there is no clause for =|<|=, the predicate automatically
+% _fails_ if `N` is less than 0. The predicate can still be used in
+% all directions, including the most general query:
 %
 % ==
 % ?- n_factorial(N, F).
@@ -6838,6 +6919,16 @@ list_first_rest([L|Ls], L, Ls).
 % N = F, F = 1 ;
 % N = F, F = 2 .
 % ==
+%
+% In this case, all clauses are tried on backtracking, and zcompare/3
+% ensures that the respective ordering between N and 0 holds in each
+% case.
+%
+% The truth value of a comparison can also be reified with (#<==>)/2
+% in combination with one of the [_arithmetic
+% constraints_](<#clpfd-arith-constraints>). See
+% [reification](<#clpfd-reification>). However, zcompare/3 lets you
+% more conveniently distinguish the cases.
 
 zcompare(Order, A, B) :-
         (   nonvar(Order) ->

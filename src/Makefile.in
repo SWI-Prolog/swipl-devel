@@ -30,7 +30,7 @@
 #
 # Copyright policy:
 #
-#	* LGPL (see file COPYING or http://www.swi-prolog.org/)
+#	* BSD-2 (see file LICENSE or http://www.swi-prolog.org/)
 ################################################################
 
 .SUFFIXES: .i .pl
@@ -50,6 +50,7 @@ lmandir=$(mandir)/man$(lmansec)
 plmandir=$(PLBASE)/man
 
 PLVERSION=@PLVERSION@
+PLNVERSION=@PLNVERSION@
 PL=@PL@
 PLWIN=@PL@-win
 PLBASE=@PLBASE@
@@ -88,6 +89,7 @@ CMFLAGS=@CMFLAGS@
 CPFLAGS=
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
 LDFLAGS=@LDFLAGS@ $(CPFLAGS)
+LDOFLAGS=@LDOFLAGS@
 STACKFLAGS=@STACKFLAGS@
 SUBSYSTEMFLAGS=@SUBSYSTEMFLAGS@
 
@@ -164,6 +166,15 @@ COMMON= README
 UNICODE=blocks.pl unicode_data.pl
 builddirs=../lib ../lib/$(PLARCH) os
 
+# For reproducible builds
+DATE_FMT = "%b %e %Y"
+TIME_FMT = "%R"
+ifdef SOURCE_DATE_EPOCH
+BUILD_DATE ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" "+$(DATE_FMT)" 2>/dev/null || date -u -r "$(SOURCE_DATE_EPOCH)" "+$(DATE_FMT)" 2>/dev/null || date -u "+$(DATE_FMT)")
+BUILD_TIME ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" "+$(TIME_FMT)" 2>/dev/null || date -u -r "$(SOURCE_DATE_EPOCH)" "+$(TIME_FMT)" 2>/dev/null || date -u "+$(DATE_FMT)")
+CFLAGS += -DBUILD_DATE=\"${BUILD_DATE}\" -DBUILD_TIME=\"${BUILD_TIME}\"
+endif
+
 # OPTIMISE=noprof: normal build; prof: build twice, using profiling
 # information to optimise branches.  Normally set through
 # configure --enable-useprofile
@@ -177,7 +188,7 @@ noprof:	system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
-		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
+		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL)' -t halt
 		$(MAKE) clean
 		$(MAKE) CPFLAGS=-fprofile-use noprof
 		$(MAKE) profclean
@@ -230,20 +241,20 @@ $(RUNTIME):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 
 ifeq ($(SOEXT),dylib)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
-		$(CC) -dynamiclib -current_version $(PLVERSION) \
+		$(CC) -dynamiclib -current_version $(PLNVERSION) \
 			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
-			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LDOFLAGS) $(LIBS)
 else
 ifeq ($(SOEXT),dll)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ) $(OSLIB)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(OSLIB) $(LIBS)
+		  $(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LDOFLAGS) $(OSLIB) $(LIBS)
 		(cd $(RUNTIMEDIR) && $(MSLIBEXE) /def:libswipl.def)
 else
 $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LDOFLAGS)	$(LIBS)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
@@ -364,9 +375,11 @@ pl-arith.o:	$(srcdir)/pl-segstack.h
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
-os/pl-dtoa.o:	os/dtoa.c
 pl-text.o:	$(srcdir)/pl-codelist.h
 pl-codetable.o: $(srcdir)/pl-codetable.c
+os/pl-dtoa.o:	$(srcdir)/os/dtoa.c
+os/pl-file.o:	$(srcdir)/os/pl-stream.h
+os/pl-stream.o:	$(srcdir)/os/pl-stream.h
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi$(EXEEXT_FOR_BUILD)
 		./mkvmi$(EXEEXT_FOR_BUILD) "$(srcdir)"
@@ -401,11 +414,11 @@ cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
 .PHONY: check
 check:
-		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
+		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test -t halt
 
 .PHONY: check-installation
 check-installation:
-		$(bindir)/$(PL)$(EXEEXT) -g check_installation,halt -t 'halt(1)'
+		$(bindir)/$(PL)$(EXEEXT) -f none -g check_installation -t halt
 
 .PHONY: ln-install install dv-install
 
@@ -475,8 +488,6 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
 		library \
 		library/clp library/unicode library/dcg \
 		library/dialect library/dialect/yap library/dialect/iso \
-		library/dialect/ciao library/dialect/ciao/engine \
-		library/dialect/ciao/regtypes \
 		library/dialect/sicstus \
 		library/dialect/eclipse \
 		library/dialect/swi \
@@ -518,7 +529,7 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso ieclipse iunicode \
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iiso ieclipse iunicode \
 	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
 
 idirs:
@@ -549,7 +560,7 @@ idcg:		idirs
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
-idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog ieclipse
+idialect:	idirs iswi iyap iiso isicstus iifprolog ihprolog ieclipse
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -585,17 +596,6 @@ isicstus:	idirs
 			$(INSTALL_DATA) ../library/dialect/sicstus/$$f $(DESTDIR)$(PLBASE)/library/dialect/sicstus; \
 		done
 		$(INSTALL_DATA) $(srcdir)/compat/sicstus.h $(DESTDIR)$(PLBASE)/include/sicstus/sicstus.h
-
-iciao:		idirs
-		for f in $(CIAO); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao; \
-		done
-		for f in $(CIAO_ENGINE); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/engine/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/engine; \
-		done
-		for f in $(CIAO_REGTYPES); do \
-			$(INSTALL_DATA) ../library/dialect/ciao/regtypes/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/regtypes; \
-		done
 
 iiso:		idirs
 		for f in $(ISO); do \
@@ -645,8 +645,10 @@ install-lman:
 install-readme:	idirs
 		$(INSTALL_DATA) ../README.md $(DESTDIR)$(PLBASE)/README$(TXTEXT)
 		$(INSTALL_DATA) ../VERSION $(DESTDIR)$(PLBASE)
-		$(INSTALL_DATA) ../COPYING $(DESTDIR)$(PLBASE)/COPYING$(TXTEXT)
-		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
+		$(INSTALL_DATA) ../LICENSE $(DESTDIR)$(PLBASE)/LICENSE$(TXTEXT)
+		if [ -f ../man/windows.html ]; then \
+		  $(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc; \
+		fi
 
 html-install:
 		if [ -d ../man/Manual ]; then \

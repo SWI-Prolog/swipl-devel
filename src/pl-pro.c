@@ -3,28 +3,41 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef SECURE_GC
 #define O_DEBUG 1			/* include checkData() */
 #endif
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 
 
 		/********************************
@@ -67,6 +80,24 @@ resetProlog(int clear_stacks)
 }
 
 
+static int
+restore_after_exception(term_t except)
+{ GET_LD
+  atom_t a;
+  int rc = TRUE;
+
+  tracemode(FALSE, NULL);
+  debugmode(DBG_OFF, NULL);
+  setPrologFlagMask(PLFLAG_LASTCALL);
+  if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+  { rc = ( callEventHook(PLEV_ABORT) &&
+	   printMessage(ATOM_informational, PL_ATOM, ATOM_aborted) );
+  }
+
+  return rc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 query_loop() runs a zero-argument goal on   behalf  of the toplevel. The
 reason for this to be in C is to   be able to handle exceptions that are
@@ -74,7 +105,7 @@ considered unhandled and thus  can  trap   the  debugger.  I.e., if goal
 terminates due to an exception, the exception   is  reported and goal is
 restarted. Before the restart, the system is   restored to a sane state.
 This notably affects I/O  (reset  current  I/O   to  user  I/O)  and the
-debugger.
+debugger.  Return: FALSE: failed, TRUE: success, -1: exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -101,20 +132,13 @@ query_loop(atom_t goal, int loop)
     } else
     { error:
       except = exception_term;
-      rc = FALSE;			/* Won't get any better */
+      rc = -1;				/* Won't get any better */
       break;
     }
 
     if ( !rc && (except = PL_exception(qid)) )
-    { atom_t a;
-
-      tracemode(FALSE, NULL);
-      debugmode(DBG_OFF, NULL);
-      setPrologFlagMask(PLFLAG_LASTCALL);
-      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      { callEventHook(PLEV_ABORT);
-        printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
-      }
+    { restore_after_exception(except);
+      rc = -1;
     }
 
     if ( qid ) PL_close_query(qid);
@@ -136,7 +160,7 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 static int
 pl_break1(atom_t goal)
 { GET_LD
-  int rc;
+  int rc = TRUE;
   int old_level = LD->break_level;
 
   IOSTREAM *inSave  = Scurin;
@@ -154,19 +178,19 @@ pl_break1(atom_t goal)
 
   LD->break_level++;
   if ( LD->break_level > 0 )
-  { printMessage(ATOM_informational,
-		 PL_FUNCTOR, FUNCTOR_break2,
-	           PL_ATOM, ATOM_begin,
-		   PL_INT,  LD->break_level);
+  { rc = printMessage(ATOM_informational,
+		      PL_FUNCTOR, FUNCTOR_break2,
+		        PL_ATOM, ATOM_begin,
+		        PL_INT,  LD->break_level);
   }
 
-  rc = query_loop(goal, TRUE);
+  rc = rc && (query_loop(goal, TRUE) == TRUE);
 
   if ( LD->break_level > 0 )
-  { printMessage(ATOM_informational,
-		 PL_FUNCTOR, FUNCTOR_break2,
-	           PL_ATOM, ATOM_end,
-		   PL_INT,  LD->break_level);
+  { rc = rc && printMessage(ATOM_informational,
+			    PL_FUNCTOR, FUNCTOR_break2,
+			      PL_ATOM, ATOM_end,
+			      PL_INT,  LD->break_level);
   }
   LD->break_level = old_level;
 
@@ -257,6 +281,29 @@ PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
 
   return rval;
 }
+
+
+/** '$call_no_catch'(:Goal)
+ *
+ * Runs a goal for the toplevel.  This notably means that exceptions
+ * are considered _uncaught_, are printed and ignored.  Also the
+ * truth value is ignored.
+ */
+
+static
+PRED_IMPL("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
+{ int rc;
+  term_t ex;
+
+  rc = callProlog(NULL, A1, PL_Q_NORMAL, &ex);
+  if ( !rc && ex )
+  { restore_after_exception(ex);
+    PL_clear_exception();
+  }
+
+  return TRUE;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -362,6 +409,10 @@ abortProlog(void)
     PL_close_foreign_frame(fid);
   }
 
+#ifdef O_MAINTENANCE
+  save_backtrace("abort");
+#endif
+
   return rc;
 }
 
@@ -399,7 +450,7 @@ prologToplevel(atom_t goal)
   rc = query_loop(goal, loop);
   LD->break_level = old_level;
 
-  return rc;
+  return rc == TRUE;
 }
 
 
@@ -778,4 +829,5 @@ BeginPredDefs(pro)
   PRED_DEF("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
   PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
   PRED_DEF("$trap_gdb", 0, trap_gdb, 0)
+  PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
 EndPredDefs

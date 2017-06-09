@@ -1,25 +1,35 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (c)  1999-2016, University of Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #if defined(__linux__) || defined(__GLIBC__) || defined(__GNU__) || defined(__CYGWIN__)
@@ -193,16 +203,38 @@ Start the Xterm window. This window  runs   in  a  separate process. How
 should this process be related to us?  Should it be a new session?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define MAXARGV 100
+#define RESARGC 10
+
 foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
-{ int master, slave, pid;
+pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
+{ GET_LD
+  int master, slave, pid;
   char *slavename;
   struct termios termio;
   xterm *xt;
   char *titlechars;
+  char *xterm_argv[MAXARGV];
+  int xterm_argc = 0;
+  int xterm_malloced_argc;
+  term_t tail = PL_copy_term_ref(argv);
+  term_t head = PL_new_term_ref();
+  int i;
 
-  if ( !PL_get_chars(title, &titlechars, CVT_ALL) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, title);
+  if ( !PL_get_chars(title, &titlechars, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
+
+  xterm_argv[xterm_argc++] = "xterm";
+  while(PL_get_list_ex(tail, head, tail))
+  { if ( xterm_argc >= MAXARGV-RESARGC )
+      return PL_representation_error("xterm_argc");
+    if ( !PL_get_chars(head, &xterm_argv[xterm_argc++],
+		       CVT_ALL|BUF_MALLOC|CVT_EXCEPTION) )
+      return FALSE;
+  }
+  if ( !PL_get_nil_ex(tail) )
+    return FALSE;
+  xterm_malloced_argc = xterm_argc;
 
 #ifdef HAVE_POSIX_OPENPT
   if ( (master = posix_openpt(O_RDWR)) < 0 )
@@ -247,12 +279,18 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
       sprintf(arg, "-S%s/%d", BaseName(slavename), master);
     else
       sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
-    execlp("xterm", "xterm", arg, "-T", titlechars,
-	   "-xrm", "*backarrowKeyIsErase: false",
-	   "-xrm", "*backarrowKey: false",
-	   NULL);
+
+    xterm_argv[xterm_argc++] = arg;
+    xterm_argv[xterm_argc++] = "-T";
+    xterm_argv[xterm_argc++] = titlechars;
+    xterm_argv[xterm_argc]   = NULL;		/* Up to RESARGC */
+
+    execvp("xterm", xterm_argv);
     perror("execlp");
   }
+
+  for(i=1; i<xterm_malloced_argc; i++)
+    PL_free(xterm_argv[i]);
 
   for (;;)			/* read 1st line containing window-id */
   { char c;
@@ -280,7 +318,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
 #else /*HAVE_GRANTPT*/
 
 foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
+pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
 { return notImplemented("open_xterm", 4);
 }
 

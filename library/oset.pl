@@ -1,24 +1,35 @@
-% Filename: oset.pl
-% Author--: Jon Jagger,  J.R.Jagger@shu.ac.uk
-% Created-: 05/03/93
-% Version-: 1.0
-% Updates-: Mon Oct 21 12:39:41 1996
-%	    Fix in oset_int/3 by Robert van Engelen.
-% Notes---: This file provides some basic set manipulation
-%           predicates. The representation of the sets is
-%           assumed to be ordered with no duplication. You
-%           can create an ordered set from a free form list
-%           by using the sort/2 predicate. The advantage of
-%           using an ordered representation is that the algorithms
-%           are order sum of the sizes of the operands, rather than
-%           product of the sizes of the operands.
-%
-%           I have tried to make all the predicates as efficient as
-%           possible with respect to first argument indexing, and tail
-%           clause determinacy.
-%
-%           These routines are provided as is, with no guarantees.
-%           They have undergone minimal testing.
+/*  Part of SWI-Prolog
+
+    Author:        Jon Jagger
+    E-mail:        J.R.Jagger@shu.ac.uk
+    Copyright (c)  1993-2011, Jon Jagger
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
 
 :- module(oset, [  oset_is/1,
                     oset_union/3,
@@ -37,7 +48,7 @@
 This library defines set operations on sets represented as ordered
 lists.
 
-@author	Jon Jagger
+@author Jon Jagger
 @deprecated Use the de-facto library ordsets.pl
 */
 
@@ -148,15 +159,15 @@ dint([H|T], DInt0, DInt) :-
     dint(T, DInt1, DInt).
 
 
-%%	oset_power(+Set, -PSet)
+%!  oset_power(+Set, -PSet)
 %
-%	True when PSet is the powerset of Set. That is, Pset is a set of
-%	all subsets of Set, where each subset is a proper ordered set.
+%   True when PSet is the powerset of Set. That is, Pset is a set of
+%   all subsets of Set, where each subset is a proper ordered set.
 
 oset_power(S, PSet) :-
-	reverse(S, R),
-	pset(R, [[]], PSet0),
-	sort(PSet0, PSet).
+    reverse(S, R),
+    pset(R, [[]], PSet0),
+    sort(PSet0, PSet).
 
 % The powerset of a set  is  the  powerset   of  a  set  of one smaller,
 % together with the set of one  smaller   where  each subset is extended
@@ -165,12 +176,12 @@ oset_power(S, PSet) :-
 
 pset([], PSet, PSet).
 pset([H|T], PSet0, PSet) :-
-	happ(PSet0, H, PSet1),
-	pset(T, PSet1, PSet).
+    happ(PSet0, H, PSet1),
+    pset(T, PSet1, PSet).
 
 happ([], _, []).
 happ([S|Ss], H, [[H|S],S|Rest]) :-
-	happ(Ss, H, Rest).
+    happ(Ss, H, Rest).
 
 
 

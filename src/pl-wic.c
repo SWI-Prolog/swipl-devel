@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -1006,10 +1018,11 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	      PL_write_term(Serror, goal, 1200, PL_WRT_NEWLINE));
 	if ( !skip )
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
-	  { printMessage(ATOM_warning,
-			 PL_FUNCTOR_CHARS, "goal_failed", 2,
-			   PL_CHARS, "directive",
-			   PL_TERM, goal);
+	  { if ( !printMessage(ATOM_warning,
+			       PL_FUNCTOR_CHARS, "goal_failed", 2,
+			         PL_CHARS, "directive",
+			         PL_TERM, goal) )
+	      PL_clear_exception();
 	  }
 	}
 	PL_discard_foreign_frame(cid);
@@ -1076,9 +1089,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   if ( !skip && state->currentSource )
   { if ( def->impl.any )
     { if ( !redefineProcedure(proc, state->currentSource, DISCONTIGUOUS_STYLE) )
-      { printMessage(ATOM_error, exception_term);
-	exception_term = 0;
-	setVar(*valTermRef(exception_bin));
+      { int rc = printMessage(ATOM_error, exception_term);
+	(void)rc;
+	PL_clear_exception();
 	skip = TRUE;
       }
     }
@@ -1105,8 +1118,8 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
-	  int ono = (of ? of->index : 0);
-	  int sno = (sf ? sf->index : 0);
+	  unsigned int ono = (of ? of->index : 0);
+	  unsigned int sno = (sf ? sf->index : 0);
 
 	  clause->owner_no = ono;
 	  clause->source_no = sno;
@@ -1308,6 +1321,7 @@ loadImport(wic_state *state, int skip ARG_LD)
 static atom_t
 qlfFixSourcePath(wic_state *state, const char *raw)
 { char buf[MAXPATHLEN];
+  char *canonical;
 
   if ( state->load_state->has_moved &&
        strprefix(raw, state->load_state->save_dir) )
@@ -1323,11 +1337,18 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
-      fatalError("Path name too long: %s", raw);
+    { fatalError("Path name too long: %s", raw);
+      return NULL_ATOM;
+    }
     strcpy(buf, raw);
   }
 
-  return PL_new_atom(canonicalisePath(buf));
+  if ( (canonical=canonicalisePath(buf)) )
+  { return PL_new_atom(canonical);
+  } else
+  { fatalError("Path name too long: %s", buf);
+    return NULL_ATOM;
+  }
 }
 
 
@@ -3163,11 +3184,15 @@ compileFile(wic_state *state, const char *file)
     fail;
   DEBUG(MSG_QLF_PATH, Sdprintf("Expanded to %s\n", path));
 
-  nf = PL_new_atom(path);			/* NOTE: Only ISO-Latin-1 */
-  PL_put_atom(f, nf);
+  if ( PL_unify_chars(f, PL_ATOM|REP_MB, (size_t)-1, path) )
+    PL_get_atom(f, &nf);
+  else
+    fatalError("Could not unify path");
   DEBUG(MSG_QLF_BOOT, Sdprintf("Opening\n"));
   if ( !pl_see(f) )
-    fail;
+  { Sdprintf("Failed to open %s\n", path);
+    return FALSE;
+  }
   DEBUG(MSG_QLF_BOOT, Sdprintf("pl_start_consult()\n"));
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
@@ -3277,10 +3302,11 @@ qlfCleanup(void)
 
   while ( (state=LD->qlf.current_state) )
   { if ( state->mkWicFile )
-    { printMessage(ATOM_warning,
-		   PL_FUNCTOR_CHARS, "qlf", 1,
-		     PL_FUNCTOR_CHARS, "removed_after_error", 1,
-		       PL_CHARS, state->mkWicFile);
+    { if ( !printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "qlf", 1,
+			   PL_FUNCTOR_CHARS, "removed_after_error", 1,
+			     PL_CHARS, state->mkWicFile) )
+	PL_clear_exception();
       RemoveFile(state->mkWicFile);
       remove_string(state->mkWicFile);
       state->mkWicFile = NULL;

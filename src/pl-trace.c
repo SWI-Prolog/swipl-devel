@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -231,7 +243,7 @@ static int		traceAction(char *cmd,
 				    Choice bfr,
 				    bool interactive);
 static void		interruptHandler(int sig);
-static int		writeFrameGoal(LocalFrame frame, Code PC,
+static int		writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC,
 				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -382,7 +394,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 
     if ( doit )
     { SAVE_PTRS();
-      writeFrameGoal(frame, PC, port|WFG_TRACE);
+      writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACE);
       RESTORE_PTRS();
     }
   }
@@ -466,7 +478,7 @@ All failed.  Things now are upto the normal Prolog tracer.
 
 again:
   SAVE_PTRS();
-  writeFrameGoal(frame, PC, port|WFG_TRACING);
+  writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACING);
   RESTORE_PTRS();
 
   if (debugstatus.leashing & port)
@@ -875,7 +887,7 @@ static const portname portnames[] =
 
 
 static int
-writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
+writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
 { GET_LD
   wakeup_state wstate;
   Definition def = frame->predicate;
@@ -887,7 +899,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   }
 
   if ( gc_status.active )
-  { Sfprintf(Serror, " (%d): %s\n",
+  { Sfprintf(out, " (%d): %s\n",
 	     levelFrame(frame), predicateName(frame->predicate));
   } else if ( !GD->bootsession && GD->initialised && GD->debug_level == 0 )
   { term_t fr   = PL_new_term_ref();
@@ -917,11 +929,15 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
       rc = PL_cons_functor(port, FUNCTOR_trace1, port);
 
     if ( rc )
-      printMessage(ATOM_debug,
-		   PL_FUNCTOR, FUNCTOR_frame3,
-		     PL_TERM, fr,
-		     PL_TERM, port,
-		     PL_TERM, pc);
+    { IOSTREAM *old = Suser_error;
+      Suser_error = out;
+      rc = printMessage(ATOM_debug,
+			PL_FUNCTOR, FUNCTOR_frame3,
+			  PL_TERM, fr,
+			  PL_TERM, port,
+			  PL_TERM, pc);
+      Suser_error = old;
+    }
   } else
   { debug_type debugSave = debugstatus.debugging;
     term_t goal    = PL_new_term_ref();
@@ -939,23 +955,23 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     ctx.engine  = LD;
     if ( !pl_prolog_flag(tmp, options, &ctx) )
       PL_put_nil(options);
-    PL_put_atom(tmp, ATOM_user_output);
+    PL_unify_stream_or_alias(tmp, out);
 
     msg[0] = true(def, P_TRANSPARENT) ? '^' : ' ';
     msg[1] = (flags&WFG_TRACE) ? 'T' : true(def, SPY_ME) ? '*' : ' ';
     msg[2] = EOS;
 
-    Sfprintf(Sdout, "%s%s(%d) ", msg, pp, levelFrame(frame));
+    Sfprintf(out, "%s%s(%d) ", msg, pp, levelFrame(frame));
     if ( debugstatus.showContext )
-      Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
+      Sfprintf(out, "[%s] ", stringAtom(contextModule(frame)->name));
 #ifdef O_LIMIT_DEPTH
     if ( levelFrame(frame) > depth_limit )
-      Sfprintf(Sdout, "[depth-limit exceeded] ");
+      Sfprintf(out, "[depth-limit exceeded] ");
 #endif
 
     pl_write_term3(tmp, goal, options);
     if ( flags & (WFG_BACKTRACE|WFG_CHOICE) )
-      Sfprintf(Sdout, "\n");
+      Sfprintf(out, "\n");
 
     debugstatus.debugging = debugSave;
   }
@@ -977,7 +993,7 @@ alternatives(Choice ch)
   { if ( ch->type == CHP_DEBUG )
       continue;
     if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
-      writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
+      writeFrameGoal(Suser_error, ch->frame, NULL, WFG_CHOICE);
   }
 }
 
@@ -1057,20 +1073,20 @@ listGoal(LocalFrame frame)
 
 
 static void
-writeContextFrame(pl_context_t *ctx, int flags)
+writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 { if ( (flags&PL_BT_SAFE) )
   { char buf[256];
 
     PL_describe_context(ctx, buf, sizeof(buf));
-    Sdprintf("  %s\n", buf);
+    Sfprintf(out, "  %s\n", buf);
   } else
-  { writeFrameGoal(ctx->fr, ctx->pc, WFG_BACKTRACE);
+  { writeFrameGoal(out, ctx->fr, ctx->pc, WFG_BACKTRACE);
   }
 }
 
 
-void
-PL_backtrace(int depth, int flags)
+static void
+_PL_backtrace(IOSTREAM *out, int depth, int flags)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1095,14 +1111,14 @@ PL_backtrace(int depth, int flags)
       if ( frame->predicate == def )
       { if ( ++same_proc >= 10 )
 	{ if ( same_proc == 10 )
-	    Sdprintf("    ...\n    ...\n", Sdout);
+	    Sfprintf(out, "    ...\n    ...\n", Sdout);
 	  rctx = ctx;
 	  continue;
 	}
       } else
       { if ( same_proc >= 10 )
 	{ if ( isDebugFrame(rctx.fr) || !(flags&PL_BT_USER) )
-	  { writeContextFrame(&rctx, flags);
+	  { writeContextFrame(out, &rctx, flags);
 	    depth--;
 	  }
 	  same_proc = 0;
@@ -1111,13 +1127,41 @@ PL_backtrace(int depth, int flags)
       }
 
       if ( isDebugFrame(frame) || !(flags&PL_BT_USER) )
-      { writeContextFrame(&ctx, flags);
+      { writeContextFrame(out, &ctx, flags);
 	depth--;
       }
     }
   } else
-  { Sdprintf("No stack??\n");
+  { Sfprintf(out, "No stack??\n");
   }
+}
+
+
+void
+PL_backtrace(int depth, int flags)
+{ GET_LD
+
+  _PL_backtrace(Suser_error, depth, flags);
+}
+
+
+char *
+PL_backtrace_string(int depth, int flags)
+{ char *data = NULL;
+  size_t len = 0;
+  IOSTREAM *out;
+
+  if ( (out=Sopenmem(&data, &len, "w")) )
+  { out->encoding = ENC_UTF8;
+    out->newline  = SIO_NL_POSIX;
+
+    _PL_backtrace(out, depth, flags);
+    Sclose(out);
+
+    return data;
+  }
+
+  return NULL;
 }
 
 
@@ -1250,14 +1294,20 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
       }
     } else if ( (ex=PL_exception(qid)) )
-    { atom_t a;
-
-      if ( PL_get_atom(ex, &a) && a == ATOM_aborted )
+    { if ( classify_exception(ex) == EXCEPT_ABORT )
       { rval = ACTION_ABORT;
       } else
-      { printMessage(ATOM_error, PL_TERM, ex);
-	nodebug = TRUE;
-	rval = ACTION_CONTINUE;
+      { if ( printMessage(ATOM_error, PL_TERM, ex) )
+	{ nodebug = TRUE;
+	  rval = ACTION_CONTINUE;
+	} else if ( classify_exception(exception_term) >= EXCEPT_TIMEOUT )
+	{ PL_clear_exception();
+	  rval = ACTION_ABORT;
+	} else
+	{ PL_clear_exception();
+	  nodebug = TRUE;
+	  rval = ACTION_CONTINUE;
+	}
       }
     }
 
@@ -1612,14 +1662,16 @@ interruptHandler(int sig)
   Sreset();
 again:
   if ( safe )
-  { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
+  { if ( !printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1,
+		                     PL_ATOM, ATOM_begin) )
+      PL_clear_exception();
   } else
   { if ( first )
     { first = FALSE;
       Sfprintf(Sdout,
 	       "\n"
 	       "WARNING: By typing Control-C twice, you have forced an asynchronous\n"
-	       "WARNING: interrupt.  Your only SAFE operation are: c(ontinue), p(id),\n"
+	       "WARNING: interrupt.  Your only SAFE operations are: c(ontinue), p(id),\n"
 	       "WARNING: s(stack) and e(xit).  Notably a(abort) often works, but\n"
 	       "WARNING: leaves the system in an UNSTABLE state\n\n");
     }
@@ -1644,7 +1696,10 @@ again:
 		}
 		goto again;
     case 'c':	if ( safe )
-		{ printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_end);
+		{ if ( !printMessage(ATOM_debug,
+				     PL_FUNCTOR, FUNCTOR_interrupt1,
+				       PL_ATOM, ATOM_end) )
+		    PL_clear_exception();
 		} else
 		{ Sfprintf(Sdout, "continue\n");
 		}
@@ -1670,9 +1725,10 @@ again:
 #ifdef O_DEBUGGER
     case 't':	if ( safe )
 		{ Sfprintf(Sdout, "trace\n");
-		  printMessage(ATOM_debug,
-			       PL_FUNCTOR, FUNCTOR_interrupt1,
-			         PL_ATOM, ATOM_trace);
+		  if ( !printMessage(ATOM_debug,
+				     PL_FUNCTOR, FUNCTOR_interrupt1,
+				       PL_ATOM, ATOM_trace) )
+		    PL_clear_exception();
 		  pl_trace();
 		  break;
 		} else
@@ -1740,9 +1796,9 @@ tracemode(int doit, int *old)
 
   if ( debugstatus.tracing != doit )
   { debugstatus.tracing = doit;
-    printMessage(ATOM_silent,
-		 PL_FUNCTOR_CHARS, "trace_mode", 1,
-		   PL_ATOM, doit ? ATOM_on : ATOM_off);
+    return printMessage(ATOM_silent,
+			PL_FUNCTOR_CHARS, "trace_mode", 1,
+			  PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
   if ( doit )				/* make sure trace works inside skip */
   { debugstatus.skiplevel = SKIP_VERY_DEEP;
@@ -1837,9 +1893,9 @@ debugmode(debug_type doit, debug_type *old)
     }
     debugstatus.debugging = doit;
     updateAlerted(LD);
-    printMessage(ATOM_silent,
-		 PL_FUNCTOR_CHARS, "debug_mode", 1,
-		   PL_ATOM, doit ? ATOM_on : ATOM_off);
+    return printMessage(ATOM_silent,
+			PL_FUNCTOR_CHARS, "debug_mode", 1,
+			  PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
 
   return TRUE;
@@ -1941,15 +1997,15 @@ pl_spy(term_t p)
     { LOCKDEF(def);
       set(def, SPY_ME);
       UNLOCKDEF(def);
-      printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "spy", 1,
-		     PL_TERM, p);
+      if ( !printMessage(ATOM_informational,
+			 PL_FUNCTOR_CHARS, "spy", 1,
+			   PL_TERM, p) )
+	return FALSE;
     }
-    debugmode(DBG_ALL, NULL);
-    succeed;
+    return debugmode(DBG_ALL, NULL);
   }
 
-  fail;
+  return FALSE;
 }
 
 word
@@ -1964,14 +2020,14 @@ pl_nospy(term_t p)
     { LOCKDEF(def);
       clear(def, SPY_ME);
       UNLOCKDEF(def);
-      printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "nospy", 1,
-		     PL_TERM, p);
+      return printMessage(ATOM_informational,
+			  PL_FUNCTOR_CHARS, "nospy", 1,
+			    PL_TERM, p);
     }
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 word
@@ -2408,8 +2464,13 @@ delayEvents(void)
 }
 
 
+/* Returns
+     -1: an exception occurred while sending events
+      N: number of events sent
+*/
+
 int
-sendDelayedEvents(void)
+sendDelayedEvents(int noerror)
 { GET_LD
   int sent = 0;
 
@@ -2421,18 +2482,21 @@ sendDelayedEvents(void)
     LD->event.buffered = NULL;
 
     for(; count-- > 0; dev++)
-    { switch(dev->type)
-      { case PLEV_BREAK:
-	case PLEV_NOBREAK:
-	  callEventHook(dev->type, dev->value.pc.clause, dev->value.pc.offset);
-	  sent++;
-	  break;
-	case PLEV_ERASED_CLAUSE:
-	  callEventHook(dev->type, dev->value.clause.clause);
-	  sent++;
-	  break;
-	default:
-	  assert(0);
+    { if ( noerror )
+      { switch(dev->type)
+	{ case PLEV_BREAK:
+	  case PLEV_NOBREAK:
+	    noerror = callEventHook(dev->type,
+				    dev->value.pc.clause, dev->value.pc.offset);
+	    sent++;
+	    break;
+	  case PLEV_ERASED_CLAUSE:
+	    noerror = callEventHook(dev->type, dev->value.clause.clause);
+	    sent++;
+	    break;
+	  default:
+	    assert(0);
+	}
       }
     }
 
@@ -2440,7 +2504,7 @@ sendDelayedEvents(void)
     free(b);
   }
 
-  return sent;
+  return noerror ? sent	: -1;
 }
 
 
@@ -2448,125 +2512,143 @@ int
 PL_call_event_hook(pl_event_type ev, ...)
 { if ( PROCEDURE_event_hook1->definition->impl.any &&
        GD->cleaning != CLN_DATA )
-  { GET_LD
-    wakeup_state wstate;
+  { va_list args;
     int rc;
-    va_list args;
-    term_t arg;
-
-    if ( LD->event.delay_nesting )
-    { va_start(args, ev);
-      delayEvent(ev, args);
-      va_end(args);
-      return TRUE;
-    }
-
-    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-      return FALSE;
-    arg = PL_new_term_ref();
 
     va_start(args, ev);
-    switch(ev)
-    { case PLEV_ABORT:
-      { rc = PL_unify_atom(arg, ATOM_abort);
-	break;
-      }
-      case PLEV_ERASED_CLAUSE:
-      {	Clause cl = va_arg(args, Clause);	/* object erased */
-	term_t dbref = PL_new_term_ref();
-
-	rc = (  PL_unify_clref(dbref, cl) &&
-		PL_unify_term(arg,
-			      PL_FUNCTOR, FUNCTOR_erased1,
-			        PL_TERM, dbref)
-	     );
-	break;
-      }
-      case PLEV_ERASED_RECORD:
-      {	RecordRef r = va_arg(args, RecordRef);	/* object erased */
-	term_t dbref = PL_new_term_ref();
-
-	rc = (  PL_unify_recref(dbref, r) &&
-		PL_unify_term(arg,
-			      PL_FUNCTOR, FUNCTOR_erased1,
-			        PL_TERM, dbref)
-	     );
-	break;
-      }
-      case PLEV_DEBUGGING:
-      { int dbg = va_arg(args, int);
-
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_debugging1,
-			     PL_ATOM, dbg ? ATOM_true : ATOM_false);
-	break;
-      }
-      case PLEV_TRACING:
-      { int trc = va_arg(args, int);
-
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_tracing1,
-			     PL_ATOM, trc ? ATOM_true : ATOM_false);
-	break;
-      }
-      case PLEV_BREAK:
-      case PLEV_NOBREAK:
-      { Clause clause = va_arg(args, Clause);
-	int offset = va_arg(args, int);
-	term_t cref = PL_new_term_ref();
-
-
-	rc = ( PL_unify_clref(cref, clause) &&
-	       PL_unify_term(arg,
-			     PL_FUNCTOR, FUNCTOR_break3,
-			       PL_TERM, cref,
-			       PL_INT, offset,
-			       PL_ATOM, ev == PLEV_BREAK ? ATOM_true
-						         : ATOM_false)
-	     );
-	break;
-      }
-      case PLEV_FRAMEFINISHED:
-      { LocalFrame fr = va_arg(args, LocalFrame);
-	term_t ref = PL_new_term_ref();
-
-	PL_put_frame(ref, fr);
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_frame_finished1,
-			     PL_TERM, ref);
-	break;
-      }
-#ifdef O_PLMT
-      case PL_EV_THREADFINISHED:
-      { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
-	term_t id;
-
-	rc = ( (id = PL_new_term_ref()) &&
-	       unify_thread_id(id, info) &&
-	       PL_unify_term(arg,
-			     PL_FUNCTOR_CHARS, "thread_finished", 1,
-			       PL_TERM, id)
-	     );
-
-	break;
-      }
-#endif
-      default:
-	rc = warning("callEventHook(): unknown event: %d", ev);
-        goto out;
-    }
-
-    if ( rc )
-      rc = PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
-
-  out:
-    restoreWakeup(&wstate PASS_LD);
+    rc = PL_call_event_hook_va(ev, args);
     va_end(args);
 
     return rc;
   }
 
   return TRUE;
+}
+
+
+/* Returns FALSE iff there is an exception inside the execution of the
+ * hook
+ */
+
+int
+PL_call_event_hook_va(pl_event_type ev, va_list args)
+{ GET_LD
+  wakeup_state wstate;
+  int rc;
+  term_t arg;
+
+  if ( LD->event.delay_nesting )
+  { delayEvent(ev, args);
+    return TRUE;
+  }
+
+  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+    return FALSE;
+  arg = PL_new_term_ref();
+
+  switch(ev)
+  { case PLEV_ABORT:
+    { rc = PL_unify_atom(arg, ATOM_abort);
+      break;
+    }
+    case PLEV_ERASED_CLAUSE:
+    { Clause cl = va_arg(args, Clause);		/* object erased */
+      term_t dbref = PL_new_term_ref();
+
+      rc = (  PL_unify_clref(dbref, cl) &&
+	      PL_unify_term(arg,
+			    PL_FUNCTOR, FUNCTOR_erased1,
+			      PL_TERM, dbref)
+	   );
+      break;
+    }
+    case PLEV_ERASED_RECORD:
+    { RecordRef r = va_arg(args, RecordRef);	/* object erased */
+      term_t dbref = PL_new_term_ref();
+
+      rc = (  PL_unify_recref(dbref, r) &&
+	      PL_unify_term(arg,
+			    PL_FUNCTOR, FUNCTOR_erased1,
+			      PL_TERM, dbref)
+	   );
+      break;
+    }
+    case PLEV_DEBUGGING:
+    { int dbg = va_arg(args, int);
+
+      rc = PL_unify_term(arg,
+			 PL_FUNCTOR, FUNCTOR_debugging1,
+			   PL_ATOM, dbg ? ATOM_true : ATOM_false);
+      break;
+    }
+    case PLEV_TRACING:
+    { int trc = va_arg(args, int);
+
+      rc = PL_unify_term(arg,
+			 PL_FUNCTOR, FUNCTOR_tracing1,
+			   PL_ATOM, trc ? ATOM_true : ATOM_false);
+      break;
+    }
+    case PLEV_BREAK:
+    case PLEV_NOBREAK:
+    { Clause clause = va_arg(args, Clause);
+      int offset = va_arg(args, int);
+      term_t cref = PL_new_term_ref();
+
+
+      rc = ( PL_unify_clref(cref, clause) &&
+	     PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_break3,
+			     PL_TERM, cref,
+			     PL_INT, offset,
+			     PL_ATOM, ev == PLEV_BREAK ? ATOM_true
+						       : ATOM_false)
+	   );
+      break;
+    }
+    case PLEV_FRAMEFINISHED:
+    { LocalFrame fr = va_arg(args, LocalFrame);
+      term_t ref = PL_new_term_ref();
+
+      PL_put_frame(ref, fr);
+      rc = PL_unify_term(arg,
+			 PL_FUNCTOR, FUNCTOR_frame_finished1,
+			   PL_TERM, ref);
+      break;
+    }
+#ifdef O_PLMT
+    case PL_EV_THREADFINISHED:
+    { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
+      term_t id;
+
+      rc = ( (id = PL_new_term_ref()) &&
+	     unify_thread_id(id, info) &&
+	     PL_unify_term(arg,
+			   PL_FUNCTOR_CHARS, "thread_finished", 1,
+			     PL_TERM, id)
+	   );
+
+      break;
+    }
+#endif
+    default:
+      rc = warning("callEventHook(): unknown event: %d", ev);
+      goto out;
+  }
+
+  if ( rc )
+  { rc = PL_call_predicate(MODULE_user, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
+			   PROCEDURE_event_hook1, arg);
+    if ( !rc && PL_exception(0) )
+      set(&wstate, WAKEUP_KEEP_URGENT_EXCEPTION);
+    else
+      rc = TRUE;				/* only FALSE on error */
+  }
+
+out:
+  restoreWakeup(&wstate PASS_LD);
+
+  return rc;
 }
 
 #endif /*O_DEBUGGER*/

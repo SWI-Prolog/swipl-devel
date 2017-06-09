@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011, University of Amsterdam
+    Copyright (c)  2011-2016, University of Amsterdam
+                              Vu University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -63,5 +64,22 @@
 
 static char *_xos_utf8_get_char(const char *in, int *chr);
 static char *_xos_utf8_put_char(char *out, int chr);
+
+
+		 /*******************************
+		 *	 INLINE FUNCTIONS	*
+		 *******************************/
+
+static inline int
+utf8_code_bytes(int chr)
+{ if ( chr < 0x80 ) return 1;
+  if ( chr < 0x800 ) return 2;
+  if ( chr < 0x10000 ) return 3;
+  if ( chr < 0x200000 ) return 4;
+  if ( chr < 0x4000000 ) return 5;
+  if ( chr < 0x80000000 ) return 6;
+  return -1;
+}
+
 
 #endif /*UTF8_H_INCLUDED*/

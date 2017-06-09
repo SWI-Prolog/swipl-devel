@@ -58,27 +58,30 @@
 #endif
 
 \newcommand{\vmajor}{7}
-\newcommand{\vminor}{3}
-\newcommand{\vpatch}{25}
-\newcommand{\vmonth}{August}
-\newcommand{\vyear}{2016}
+\newcommand{\vminor}{5}
+\newcommand{\vpatch}{8}
+\newcommand{\vtag}{}
+\newcommand{\vmonth}{June}
+\newcommand{\vyear}{2017}
 
 #ifdef BOOK
 \newcommand{\versionshort}{\vmajor}
 \newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}
 #else
 \newcommand{\versionshort}{\vmajor.\vminor}
-\newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
+\ifthenelse{\equal{}{\vtag}}{%
+  \newcommand{\versionlong}{\vmajor.\vminor-\vpatch, \vmonth~\vyear}}{%
+  \newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}}
 #endif
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{J.Wielemaker@vu.nl}	\\
-	Department of Computer Science			\\
-	VU University Amsterdam				\\
-	De Boelelaan 1081a, 1081 HV~~Amsterdam \vspace{5pt}\\
-	Human-Computer Studies (HCS, formerly SWI)	\\
-	    Kruislaan 419, 1098 VA~~Amsterdam		\\
+\author{\href{mailto:J.Wielemaker@vu.nl}{Jan Wielemaker}	\\
+	Department of Computer Science				\\
+	VU University Amsterdam					\\
+	De Boelelaan 1081a, 1081 HV~~Amsterdam \vspace{5pt}	\\
+	Human-Computer Studies (HCS, formerly SWI)		\\
+	    Kruislaan 419, 1098 VA~~Amsterdam			\\
 		    The Netherlands}
 
 \begin{htmlonly}
@@ -116,12 +119,11 @@ is converted into HTML using a converter distributed with the SWI-Prolog
 sources. From the same source we generate the plain-text version and
 index used by the online help system (located in the file \file{MANUAL}
 in the library directory) as well as the PDF version. Sources, binaries
-and documentation can be downloaded from the \url[SWI-Prolog download
-page]{http://www.swi-prolog.org/download.html}.
+and documentation can be downloaded from the \href{http://www.swi-prolog.org/Download.html}{SWI-Prolog download page}.
 
 
-The SWI-Prolog project {\bf home page} is located
-\url[here]{http://www.swi-prolog.org}
+The SWI-Prolog project {\bf home page} is
+\href{http://www.swi-prolog.org}{http://www.swi-prolog.org}
 
 \includegraphics[width=4cm]{figs/by-sa}\\[0mm]
 This work is licensed under the Creative Commons Attribution-ShareAlike

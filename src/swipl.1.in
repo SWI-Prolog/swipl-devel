@@ -50,7 +50,7 @@ format from the WWW home page at
 .B http://www.swi-prolog.org
 
 .SH LICENSE INFORMATION
-SWI-Prolog is distributed under the LGPL (Lesser GNU Public License) for
+SWI-Prolog is distributed under the LGPL (GNU Lesser General Public License) for
 maximal compatibility with the Free Software movement, while allowing for
 use with proprietary software components.
 See the SWI-Prolog home page at
@@ -124,6 +124,9 @@ search path for shared objects.  For example, on ELF systems this is
 .TP
 .B PLVERSION
 Numeric representation of the SWI-Prolog version.
+.TP
+.B PLVERSIONTAG
+If present, a version tag such as "rc1".
 .TP
 .B PLSHARED
 Has the value
@@ -250,8 +253,18 @@ messages.
 .TP
 .BI \-g " goal"
 .I Goal
-is executed just before entering the top level. The default is a
-predicate which prints the welcome message. The welcome message
+is executed just before entering the top level. This option may appear
+multiple times.  Goals are executed in the order of appearance.  Possible
+choice points are pruned.  If a goal
+.I fails
+an error is printed (depending on the
+.B "\-q"
+flag) and the process stops with exit code 1.  If a goal
+.I "raises an exception"
+the error is printed and the process stops with exit code 2.  In no
+goal is present
+.I "version/0"
+is called to write the welcome message.  The welcome message
 can thus be suppressed by giving
 .BR "\-g true" .
 .I goal
@@ -316,6 +329,14 @@ and the tracer will wait for a carriage return.
 .B \-\-nosignals
 Disable handling of signals.  Often used if SWI-Prolog is embedded in
 another application on Unix systems.
+.TP
+.B \-\-sigalert= "NUM"
+Use
+.I NUM
+for unblocking system calls.  Default is
+.BR SIGUSR2 "."
+Using 0 disables installing a signal handler, delaying the delivery
+of thread signals until the blocking system call completes.
 .TP
 .B \-\-
 Stops scanning for more arguments.
@@ -441,7 +462,7 @@ an action of contract, tort or otherwise, arising from, out of or in
 connection with the software or the use or other dealings in the
 software.
 .SH COPYING
-SWI-Prolog is distributed under the LGPL (Lesser GNU Public Licence).
+SWI-Prolog is distributed under the LGPL (GNU Lesser General Public License).
 The license terms are in the file
 .I COPYING
 or on the GNU website at

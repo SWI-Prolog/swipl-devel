@@ -7,7 +7,7 @@
 
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
-TARGET_DISTRO=precise
+TARGET_DISTRO=xenial
 build=true
 buildbin=false
 push=false
@@ -80,18 +80,17 @@ fi
 
 # Avoid typos ...
 case $TARGET_DISTRO in
-  precise|trusty|wily|xenial)
+  trusty|xenial|yakkety|zesty)
     ;;
   *) echo "Unsupported target distro ($TARGET_DISTRO)"
      exit 1
 esac
 
-case "$(git describe $VTAG)" in
-  *-*) GIT_SHORT_HASH=`git describe $VTAG | sed 's/[^-]*-//'`
-       ;;
-  *)   GIT_SHORT_HASH=0
-       ;;
-esac
+gitd="$(git describe $VTAG)"
+GIT_SHORT_HASH=`echo $gitd | sed 's/.*-\([0-9]*-g.*\)/\1/'`
+if [ "$GIT_SHORT_HASH" = "$gitd" ]; then
+  GIT_SHORT_HASH=0
+fi
 
 VERSION=$PL_VERSION-$GIT_SHORT_HASH-${TARGET_DISTRO}ppa2
 

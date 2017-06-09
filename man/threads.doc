@@ -35,7 +35,7 @@ dealing with calling Prolog from C code.
 SWI-Prolog multithreading is based on the POSIX thread standard
 \cite{Butenhof:1997:PPT} used on most popular systems except for
 MS-Windows. On Windows it uses the
-\url[pthread-win32]{http://sources.redhat.com/pthreads-win32/} emulation
+\href{http://sources.redhat.com/pthreads-win32/}{pthread-win32} emulation
 of POSIX threads mixed with the Windows native API for smoother and
 faster operation. The SWI-Prolog thread implementation has been
 discussed in the ISO WG17 working group and is largely addopted by YAP

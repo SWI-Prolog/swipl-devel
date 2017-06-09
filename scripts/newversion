@@ -23,16 +23,24 @@ function confirm ()
 version=`cat VERSION`
 versiondate=`date +"%B %Y"`
 
-major=`echo $version | sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\1/'`
-minor=`echo $version | sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\2/'`
-patch=`echo $version | sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\3/'`
+vpat='\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)\(-\([a-z0-9]*\)\)\{0,1\}'
+
+major=$(echo $version | sed "s/$vpat/\1/")
+minor=$(echo $version | sed "s/$vpat/\2/")
+patch=$(echo $version | sed "s/$vpat/\3/")
+ vtag=$(echo $version | sed "s/$vpat/\5/")
+
+# echo "major=$major minor=$minor patch=$patch tag=$vtag"
+# exit 0
 
 numversion=$(($major * 10000 + $minor * 100 + $patch))
 
 tmp=.tmp$$
 
 f=src/SWI-Prolog.h
-sed "s/^#define PLVERSION.*/#define PLVERSION $numversion/" $f > $tmp
+sed -e "s/^#define PLVERSION\>.*/#define PLVERSION $numversion/" \
+    -e "s/^#define PLVERSION_TAG.*/#define PLVERSION_TAG "'"'"$vtag"'"/' \
+	$f > $tmp
 if cmp $f $tmp; then
     rm -f $tmp
 else
@@ -50,6 +58,7 @@ f=man/main.doc
 sed -e "s@{\\\\vmajor}{[0-9]*}@{\\\\vmajor}{$major}@" \
     -e "s@{\\\\vminor}{[0-9]*}@{\\\\vminor}{$minor}@" \
     -e "s@{\\\\vpatch}{[0-9]*}@{\\\\vpatch}{$patch}@" \
+    -e "s@{\\\\vtag}{[a-z0-9]*}@{\\\\vtag}{$vtag}@" \
     -e "s@{\\\\vmonth}{[A-Za-z]*}@{\\\\vmonth}{$month}@" \
     -e "s@{\\\\vyear}{[0-9]*}@{\\\\vyear}{$year}@" \
 	$f > $tmp
@@ -61,22 +70,27 @@ else
     echo "Updated $f"
 fi
 
+vlong=${major}.${minor}.${patch}
+if [ ! -z "$vtag" ]; then
+  vlong="$vlong-$vtag"
+fi
+
 if [ ! -z "$(git diff --stat)" ]; then
   if confirm "Commit final changes? "; then
-    git commit -a -m "Preparing version ${major}.${minor}.${patch}"
+    git commit -a -m "Preparing version ${vlong}"
   fi
 fi
 
-gittag="V${major}.${minor}.${patch}"
+gittag="V${vlong}"
 
 if confirm "Tag the GIT repository with $gittag? "; then
-  git tag -s -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
+  git tag -s -f -m "Release tag for ${vlong}" $gittag
 fi
 
 
 if confirm "Tag all packages with $gittag? "; then
     tmp=/tmp/msg$$
-    echo "Release tag for ${major}.${minor}.${patch}" > $tmp
+    echo "Release tag for ${vlong}" > $tmp
 
     git submodule foreach git tag -s -f -F $tmp  $gittag
 

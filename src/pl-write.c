@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "pl-incl.h"
@@ -66,18 +78,28 @@ static int	enterPortray(ARG1_LD);
 static void	leavePortray(ARG1_LD);
 
 char *
-varName(term_t t, char *name)
-{ GET_LD
-  Word adr = valTermRef(t);
+var_name_ptr__LD(Word p, char *name ARG_LD)
+{ size_t iref;
 
-  deRef(adr);
+  deRef(p);
 
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
+  if (p > (Word) lBase)
+    iref = ((Word)p - (Word)lBase)*2+1;
   else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
+    iref = ((Word)p - (Word)gBase)*2;
+
+  Ssprintf(name, "_%lld", (int64_t)iref);
 
   return name;
+}
+
+
+char *
+varName(term_t t, char *name)
+{ GET_LD
+  Word p = valTermRef(t);
+
+  return var_name_ptr(p, name);
 }
 
 
@@ -204,11 +226,12 @@ atomType(atom_t a, write_options *options)
   char *s = atom->name;
   size_t len = atom->length;
   IOSTREAM *fd = options ? options->out : NULL;
+  Module m = options ? options->module : MODULE_user;
 
   if ( len == 0 )
     return AT_QUOTE;
 
-  if ( isLower(*s) )
+  if ( isLower(*s) || (true(m, M_VARPREFIX) && isAlpha(*s)) )
   { do
     { for( ++s;
 	   --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);
@@ -265,7 +288,13 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
     return FALSE;
 
   if ( !f_is_prolog_atom_start(*s) )
-    return FALSE;
+  { for( ; len > 0; s++, len--)
+    { if ( !f_is_prolog_symbol(*s) ||
+	   (fd && Scanrepresent(*s, fd)<0) )
+	return FALSE;
+    }
+    return TRUE;
+  }
 
   do
   { for( ++s;
@@ -1050,9 +1079,7 @@ format_float(double f, char *buf)
 
 static int
 WriteNumber(Number n, write_options *options)
-{ GET_LD
-
-  switch(n->type)
+{ switch(n->type)
   { case V_INTEGER:
     { char buf[32];
 
@@ -1061,7 +1088,8 @@ WriteNumber(Number n, write_options *options)
     }
 #ifdef O_GMP
     case V_MPZ:
-    { char tmp[1024];
+    { GET_LD
+      char tmp[1024];
       char *buf;
       size_t sz = mpz_sizeinbase(n->value.mpz, 10) + 2;
       bool rc;
@@ -1943,10 +1971,14 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.out	    = s;
   options.module    = MODULE_user;
 
-  PutOpenToken(EOF, s);			/* reset this */
-  rc = writeTopTerm(term, precedence, &options);
-  if ( rc && (flags&PL_WRT_NEWLINE) )
-    rc = Putc('\n', s);
+  if ( (s=PL_acquire_stream(s)) )
+  { PutOpenToken(EOF, s);			/* reset this */
+    rc = writeTopTerm(term, precedence, &options);
+    if ( rc && (flags&PL_WRT_NEWLINE) )
+      rc = Putc('\n', s);
+    rc = PL_release_stream(s) && rc;
+  } else
+    rc = FALSE;
 
   return rc;
 }

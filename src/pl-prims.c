@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -821,27 +833,29 @@ term_size(Word p, size_t max ARG_LD)
   initTermAgenda(&agenda, 1, p);
 
   while((t=nextTermAgenda(&agenda)))
-  { if ( ++count > max )
-      break;
-
-    if ( isAttVar(*t) )
+  { if ( isAttVar(*t) )
     { Word p = valPAttVar(*t);
+
+      if ( ++count > max )
+	break;
 
       assert(onGlobalArea(p));
       pushWorkAgenda(&agenda, 1, p);
     } else if ( isIndirect(*t) )
-    { count += wsizeofInd(*t);
+    { Word p = addressIndirect(*t);
 
+      count += wsizeofInd(*p)+2;
       if ( count > max )
 	break;
     } else if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
-      int arity = arityFunctor(f->definition);
+      size_t arity = arityFunctor(f->definition);
 
       if ( visited(f PASS_LD) )
 	continue;
 
-      if ( ++count > max )
+      count += arity+1;
+      if ( count > max )
 	break;
 
       pushWorkAgenda(&agenda, arity, f->arguments);
@@ -3665,8 +3679,15 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 
     if ( n >= 0 && n <= CHARCODE_MAX )
       cchr = n;
+    else if ( n < 0 || n > 0x10ffff )
+      return PL_type_error("character_code", chr);
+#if SIZEOF_WCHAR_T == 2
+    else if ( n > PLMAXWCHAR )
+      return PL_representation_error("character_code");
+#else
     else
-      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_character_code);
+      assert(0);
+#endif
   }
 
   if ( achr == cchr )
@@ -3675,6 +3696,89 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
     return PL_unify_atom(atom, codeToAtom(cchr));
   else
     return PL_unify_integer(chr, achr);
+}
+
+
+static int
+is_code(word w)
+{ if ( isTaggedInt(w) )
+  { intptr_t code = valInt(w);
+
+    return code >= 0 && code <= CHARCODE_MAX;
+  }
+
+  return FALSE;
+}
+
+static int
+is_char(word w)
+{ PL_chars_t text;
+
+  return ( isAtom(w) &&
+	   get_atom_text(w, &text) &&
+	   text.length == 1
+	 );
+}
+
+static
+PRED_IMPL("$is_char_code", 1, is_char_code, 0)
+{ PRED_LD;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  return is_code(*p);
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("$is_char", 1, is_char, 0)
+{ PRED_LD;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  return is_char(*p);
+}
+
+
+static int
+is_text_list(term_t text, term_t lent, int (*test)(word) ARG_LD)
+{ Word p = valTermRef(text);
+  intptr_t len = 0;
+
+  deRef(p);
+  while(isList(*p))
+  { Word av = HeadList(p);
+    Word h;
+
+    deRef2(av, h);
+    if ( !(*test)(*h) )
+      return FALSE;
+    deRef2(av+1, p);
+
+    if ( ++len == 1000 )
+    { Word tail;
+      skip_list(p, &tail PASS_LD);
+      if ( !isNil(*tail) )
+	return FALSE;
+    }
+  }
+  return ( isNil(*p) &&
+	   PL_unify_int64(lent, len) );
+}
+
+static
+PRED_IMPL("$is_code_list", 2, is_code_list, 0)
+{ PRED_LD
+
+  return is_text_list(A1, A2, is_code PASS_LD);
+}
+
+static
+PRED_IMPL("$is_char_list", 2, is_char_list, 0)
+{ PRED_LD
+
+  return is_text_list(A1, A2, is_char PASS_LD);
 }
 
 
@@ -4213,7 +4317,7 @@ sub_text(term_t atom,
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { if ( !PL_get_text(atom, &ta, CVT_ATOMIC) )
+    { if ( !PL_get_text(atom, &ta, CVT_ATOMIC|BUF_ALLOW_STACK) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, expected, atom);
 
       if ( !get_positive_integer_or_unbound(before, &b PASS_LD) ||
@@ -4221,7 +4325,7 @@ sub_text(term_t atom,
 	   !get_positive_integer_or_unbound(after, &a PASS_LD) )
 	fail;
 
-      if ( !PL_get_text(sub, &ts, CVT_ATOMIC) )
+      if ( !PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK) )
       { if ( !PL_is_variable(sub) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, sub);
 	ts.text.t = NULL;
@@ -4260,16 +4364,16 @@ sub_text(term_t atom,
 
 	if ( l >= 0 )			/* len given */
 	{ if ( b+l <= (int)la )		/* deterministic fit */
-	  { if ( PL_unify_integer(after, la-b-l) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(after, la-b-l) )
 	      succeed;
 	  }
 	  fail;
 	}
 	if ( a >= 0 )			/* after given */
 	{ if ( (l = la-a-b) >= 0 )
-	  { if ( PL_unify_integer(len, l) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(len, l) )
 	      succeed;
 	  }
 
@@ -4289,8 +4393,8 @@ sub_text(term_t atom,
 
 	if ( a >= 0 )			/* len and after */
 	{ if ( (b = la-a-l) >= 0 )
-	  { if ( PL_unify_integer(before, b) &&
-		 PL_unify_text_range(sub, &ta, b, l, type) )
+	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
+		 PL_unify_integer(before, b) )
 	      succeed;
 	  }
 
@@ -4325,7 +4429,7 @@ sub_text(term_t atom,
     }
     case FRG_REDO:
       state = ForeignContextPtr(h);
-      PL_get_text(atom, &ta, CVT_ATOMIC);
+      PL_get_text(atom, &ta, CVT_ATOMIC|BUF_ALLOW_STACK);
       break;
     case FRG_CUTTED:
       state = ForeignContextPtr(h);
@@ -4341,7 +4445,7 @@ sub_text(term_t atom,
 again:
   switch(state->type)
   { case SUB_SEARCH:
-    { PL_get_text(sub, &ts, CVT_ATOMIC);
+    { PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK);
       la = state->n2;
       ls = state->n3;
 
@@ -4362,10 +4466,10 @@ again:
       b  = state->n3;
       l  = state->n1++;
 
-      match = (PL_unify_integer(len, l) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(len, l) &&
 	       PL_unify_integer(after, la-b-l));
     out:
-      match = (match && PL_unify_text_range(sub, &ta, b, l, type));
       if ( b+l < (int)la )
 	goto next;
       else if ( match )
@@ -4378,7 +4482,8 @@ again:
       l  = state->n2;
       la = state->n3;
 
-      match = (PL_unify_integer(before, b) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
 	       PL_unify_integer(after, la-b-l));
       goto out;
     }
@@ -4388,9 +4493,9 @@ again:
       a  = state->n3;
       l  = la - a - b;
 
-      match = (PL_unify_integer(before, b) &&
-	       PL_unify_integer(len, l) &&
-	       PL_unify_text_range(sub, &ta, b, l, type));
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
+	       PL_unify_integer(len, l));
       if ( l > 0 )
 	goto next;
       else if ( match )
@@ -4404,10 +4509,10 @@ again:
       la = state->n3;
       a  = la-b-l;
 
-      match = (PL_unify_integer(before, b) &&
+      match = (PL_unify_text_range(sub, &ta, b, l, type) &&
+	       PL_unify_integer(before, b) &&
 	       PL_unify_integer(len, l) &&
-	       PL_unify_integer(after, a) &&
-	       PL_unify_text_range(sub, &ta, b, l, type));
+	       PL_unify_integer(after, a));
       if ( a == 0 )
       { if ( b == (int)la )
 	{ if ( match )
@@ -5280,7 +5385,7 @@ static const optdef optdefs[] =
   { "global",		CMDOPT_SIZE_T,	&GD->options.globalSize },
   { "trail",		CMDOPT_SIZE_T,	&GD->options.trailSize },
 
-  { "goal",		CMDOPT_STRING,	&GD->options.goal },
+  { "goals",		CMDOPT_LIST,	&GD->options.goals },
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
   { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
   { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
@@ -5348,13 +5453,32 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
     }
   }
 
-  fail;
+  return PL_existence_error("cmd_option", key);
+}
+
+
+static
+PRED_IMPL("$cmd_option_set", 2, cmd_option_set, 0)
+{ char *k, *v;
+
+  term_t key = A1;
+  term_t val = A2;
+
+  if ( PL_get_chars(key, &k, CVT_ALL|CVT_EXCEPTION) &&
+       PL_get_chars(val, &v, CVT_ALL|CVT_EXCEPTION) )
+  { return set_pl_option(k, v);
+  }
+
+  return FALSE;
 }
 
 
 int
 set_pl_option(const char *name, const char *value)
 { OptDef d = (OptDef)optdefs;
+
+  if ( streq(name, "goal") )
+    name = "goals";			/* HACK */
 
   for( ; d->name; d++ )
   { if ( streq(name, d->name) )
@@ -5378,6 +5502,14 @@ set_pl_option(const char *name, const char *value)
 	  *val = store_string(value);
 	  succeed;
 	}
+        case CMDOPT_LIST:
+	{ opt_list **l = d->address;
+
+	  opt_append(l, value);
+	  succeed;
+	}
+        default:
+	  assert(0);
       }
     }
   }
@@ -5497,6 +5629,10 @@ BeginPredDefs(prims)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
   PRED_DEF("number_string", 2, number_string, 0)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
+  PRED_DEF("$is_char_code", 1, is_char_code, 0)
+  PRED_DEF("$is_char", 1, is_char, 0)
+  PRED_DEF("$is_code_list", 2, is_code_list, 0)
+  PRED_DEF("$is_char_list", 2, is_char_list, 0)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)
@@ -5508,6 +5644,7 @@ BeginPredDefs(prims)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$cmd_option_val", 2, cmd_option_val, 0)
+  PRED_DEF("$cmd_option_set", 2, cmd_option_set, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
   PRED_DEF("setarg", 3, setarg, 0)

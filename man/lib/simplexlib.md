@@ -80,7 +80,7 @@ We include a few examples for solving LPs with this library.
 This is the "radiation therapy" example, taken from
 _Introduction to Operations Research_ by Hillier and Lieberman.
 
-[**Prolog DCG notation**](https://www.metalevel.at/prolog/dcg.html) is
+[**Prolog DCG notation**](https://www.metalevel.at/prolog/dcg) is
 used to _implicitly_ thread the state through posting the
 constraints:
 

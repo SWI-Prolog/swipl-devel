@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2014, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -71,10 +83,7 @@ setupProlog(void)
   initForeign();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
-  if ( truePrologFlag(PLFLAG_SIGNALS) )
-  { initSignals();
-    initBackTrace();
-  }
+  initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.localSize,
@@ -154,17 +163,25 @@ initPrologLocalData(ARG1_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			   SIGNAL HANDLING
 
-SWI-Prolog catches a number of signals.   Interrupt  is catched to allow
-the user to interrupt  normal   execution.  Segmentation  violations are
-trapped on machines using the MMU to implement stack overflow checks and
-stack expansion. These signal handlers needs  to be preserved over saved
-states and the system  should  allow   foreign  language  code to handle
-signals without interfering  with  Prologs   signal  handlers.  For this
-reason a layer is wired around the OS signal handling.
+SWI-Prolog catches a number of signals:
+
+  - SIGINT is caught to allow the user to interrupt normal execution.
+  - SIGUSR2 is caught using an empty handler to break blocking system
+    calls and allow handling of Prolog signals from them.
+  - SIGTERM, SIGABRT and SIGQUIT are caught to cleanup before killing
+    the process again using the same signal.
+  - SIGSEGV, SIGILL, SIGBUS, SIGFPE and SIGSYS are caught by
+    os/pl-cstack.c to print a backtrace and exit.
+  - SIGHUP is caught and causes the process to exit with status 2 after
+    cleanup.
+
+If the system is started using --nosignals, only SIGUSR2 is modified.
+
+Note that library(time) uses SIGUSR1.
 
 Code in SWI-Prolog should  call  PL_signal()  rather  than  signal()  to
 install  signal  handlers.  SWI-Prolog assumes the handler function is a
-void function.  On some systems this gives  some  compiler  warnigns  as
+void function.  On some systems this gives  some  compiler  warnings  as
 they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -172,10 +189,7 @@ some day.
 #if HAVE_SIGNAL
 #define HAVE_SIGNALS 1
 
-#define PLSIG_PREPARED 0x01		/* signal is prepared */
-#define PLSIG_THROW    0x02		/* throw signal(num, name) */
-#define PLSIG_SYNC     0x04		/* call synchronously */
-#define PLSIG_NOFRAME  0x08		/* Do not create a Prolog frame */
+#define PLSIG_PREPARED 0x00010000	/* signal is prepared */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Define the signals and  their  properties.   This  could  be  nicer, but
@@ -267,9 +281,14 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
+
+/* The signals below here are recorded as Prolog interrupts, but
+   not supported by OS signals.  They start at offset 32.
+*/
+
   { SIG_EXCEPTION,     "prolog:exception",     0 },
 #ifdef SIG_ATOM_GC
-  { SIG_ATOM_GC,   "prolog:atom_gc",       0 },
+  { SIG_ATOM_GC,       "prolog:atom_gc",       0 },
 #endif
   { SIG_GC,	       "prolog:gc",	       0 },
 #ifdef SIG_THREAD_SIGNAL
@@ -370,7 +389,7 @@ to the main thread.
 static void
 dispatch_signal(int sig, int sync)
 { GET_LD
-  SigHandler sh = &GD->sig_handlers[sig-1];
+  SigHandler sh = &GD->signals.handlers[sig-1];
   fid_t fid;
   term_t lTopSave;
   int saved_current_signal;
@@ -441,6 +460,10 @@ dispatch_signal(int sig, int sync)
   if ( sh->predicate )
   { term_t sigterm = PL_new_term_ref();
     qid_t qid;
+#ifdef O_LIMIT_DEPTH
+    uintptr_t olimit = depth_limit;
+    depth_limit = DEPTH_NO_LIMIT;
+#endif
 
     PL_put_atom_chars(sigterm, signal_name(sig));
     qid = PL_open_query(NULL,
@@ -449,6 +472,9 @@ dispatch_signal(int sig, int sync)
 			sigterm);
     if ( PL_next_solution(qid) ) {};		/* cannot ignore return */
     PL_cut_query(qid);
+#ifdef O_LIMIT_DEPTH
+    depth_limit = olimit;
+#endif
   } else if ( true(sh, PLSIG_THROW) )
   { char *predname;
     int  arity;
@@ -463,7 +489,15 @@ dispatch_signal(int sig, int sync)
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
   } else if ( sh->handler )
-  { (*sh->handler)(sig);
+  {
+#ifdef O_LIMIT_DEPTH
+    uintptr_t olimit = depth_limit;
+    depth_limit = DEPTH_NO_LIMIT;
+#endif
+    (*sh->handler)(sig);
+#ifdef O_LIMIT_DEPTH
+    depth_limit = olimit;
+#endif
 
     DEBUG(MSG_SIGNAL,
 	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
@@ -538,7 +572,7 @@ set_sighandler(int sig, handler_t func)
 
 static SigHandler
 prepareSignal(int sig)
-{ SigHandler sh = &GD->sig_handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[sig-1];
 
   if ( false(sh, PLSIG_PREPARED) )
   { set(sh, PLSIG_PREPARED);
@@ -552,7 +586,7 @@ prepareSignal(int sig)
 
 static void
 unprepareSignal(int sig)
-{ SigHandler sh = &GD->sig_handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[sig-1];
 
   if ( true(sh, PLSIG_PREPARED) )
   { if ( sig < SIG_PROLOG_OFFSET )
@@ -670,48 +704,66 @@ with EINTR and thus make them interruptable for thread-signals.
 #ifdef SIG_ALERT
 static void
 alert_handler(int sig)
-{ (void)sig;
+{ SigHandler sh = &GD->signals.handlers[sig-1];
+
+  if ( sh->saved_handler &&
+       sh->saved_handler != SIG_IGN &&
+       sh->saved_handler != SIG_DFL )
+    (*sh->saved_handler)(sig);
 }
 #endif
 
 
 static void
 initSignals(void)
-{ struct signame *sn = signames;
+{ GET_LD
 
+  /* This is general signal handling that is not strictly needed */
+  if ( truePrologFlag(PLFLAG_SIGNALS) )
+  { struct signame *sn = signames;
 #ifdef SIGPIPE
-  set_sighandler(SIGPIPE, SIG_IGN);
+    set_sighandler(SIGPIPE, SIG_IGN);
 #endif
-  initTerminationSignals();
-  for( ; sn->name; sn++)
-  {
+    initTerminationSignals();
+    initBackTrace();
+    for( ; sn->name; sn++)
+    {
 #ifdef HAVE_BOEHM_GC
-    if ( sn->sig == GC_get_suspend_signal() ||
-	 sn->sig == GC_get_thr_restart_signal() )
-      sn->flags = 0;
+      if ( sn->sig == GC_get_suspend_signal() ||
+	   sn->sig == GC_get_thr_restart_signal() )
+	sn->flags = 0;
 #endif
-    if ( sn->flags )
-    { SigHandler sh = prepareSignal(sn->sig);
-      sh->flags |= sn->flags;
+      if ( sn->flags )
+      { SigHandler sh = prepareSignal(sn->sig);
+	sh->flags |= sn->flags;
+      }
     }
+
+#ifdef SIGHUP
+    PL_signal(SIGHUP|PL_SIGSYNC, hupHandler);
+#endif
   }
 
-  PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
-  PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
-  PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC, cgc_handler);
-  PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
+  /* We do need alerting to make thread signals work while the */
+  /* system is blocked in a system call. Can be controlled with --sigalert=N */
 
 #ifdef SIG_ALERT
-  PL_signal(SIG_ALERT|PL_SIGNOFRAME, alert_handler);
+  if ( GD->signals.sig_alert )
+    PL_signal(GD->signals.sig_alert|PL_SIGNOFRAME, alert_handler);
 #endif
+
+  /* these signals are not related to Unix signals and can thus */
+  /* be enabled always */
+
+  PL_signal(SIG_EXCEPTION|PL_SIGSYNC,     sig_exception_handler);
+  PL_signal(SIG_GC|PL_SIGSYNC,	          gc_handler);
+  PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
+  PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
 #endif
 #ifdef SIG_ATOM_GC
-  PL_signal(SIG_ATOM_GC|PL_SIGSYNC, agc_handler);
-#endif
-#ifdef SIGHUP
-  PL_signal(SIGHUP|PL_SIGSYNC, hupHandler);
+  PL_signal(SIG_ATOM_GC|PL_SIGSYNC,       agc_handler);
 #endif
 }
 
@@ -850,47 +902,100 @@ void blockSignal(int sig) {}
 
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+BUG: The interface of PL_signal() is broken   as  it does not return the
+current flags associated with the signal and therefore we cannot restore
+the signal safely. We should  design  a   struct  based  API  similar to
+sigaction().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
+{ SigHandler sh = NULL;
+
+  if ( sig < 0 || sig > MAXSIGNAL )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  if ( sig == 0 )
+  { for(sig=SIG_PROLOG_OFFSET; sig<MAXSIGNAL; sig++)
+    { sh = &GD->signals.handlers[sig-1];
+      if ( sh->flags == 0 )
+	break;
+    }
+    if ( !sh )
+    { errno = EBUSY;
+      return -2;
+    }
+  } else
+  { sh = &GD->signals.handlers[sig-1];
+  }
+
+  if ( old )
+  { memset(old, 0, sizeof(*old));
+    old->sa_cfunction = sh->handler;
+    old->sa_predicate = sh->predicate;
+    old->sa_flags     = sh->flags;
+  }
+
+  if ( act && act != old )
+  { int active;
+
+    if ( (act->sa_flags&PLSIG_THROW) || act->sa_predicate )
+    { if ( ((act->sa_flags&PLSIG_THROW) && act->sa_predicate) ||
+	   act->sa_cfunction )
+      { errno = EINVAL;
+	return -1;
+      }
+      active = TRUE;
+    } else if ( act->sa_cfunction &&
+		(false(sh, PLSIG_PREPARED)||act->sa_cfunction!=sh->saved_handler) )
+    { active = TRUE;
+    }
+
+    if ( active )
+    { sh->handler   = act->sa_cfunction;
+      sh->predicate = act->sa_predicate;
+      sh->flags     = (sh->flags&~0xffff)|act->sa_flags;
+      if ( false(sh, PLSIG_PREPARED) )
+	prepareSignal(sig);
+    } else
+    { unprepareSignal(sig);
+      sh->handler   = NULL;
+      sh->predicate = NULL;
+      sh->flags     = 0;
+    }
+  }
+
+  return sig;
+}
 
 
 handler_t
 PL_signal(int sigandflags, handler_t func)
-{ if ( HAVE_SIGNALS )
-  { handler_t old;
-    SigHandler sh;
-    int sig = (sigandflags & 0xffff);
+{
+#ifdef HAVE_SIGNALS
+  pl_sigaction_t act = {0};
+  pl_sigaction_t old;
 
-    if ( sig > MAXSIGNAL )
-    { warning("PL_signal(): illegal signal number: %d", sig);
-      return SIG_DFL;
-    }
+  act.sa_cfunction = func;
+  if ( (sigandflags&PL_SIGSYNC) )
+    act.sa_flags |= PLSIG_SYNC;
+  if ( (sigandflags&PL_SIGNOFRAME) )
+    act.sa_flags |= PLSIG_NOFRAME;
 
-    sh = &GD->sig_handlers[sig-1];
-    if ( true(sh, PLSIG_PREPARED) )
-    { old = sh->handler;
-      if ( func == sh->saved_handler )
-	unprepareSignal(sig);
-      else
-	sh->handler = func;
-    } else
-    { sh = prepareSignal(sig);
-      old = sh->saved_handler;
-      sh->handler = func;
-    }
-    if ( func != SIG_DFL )
-      clear(sh, PLSIG_THROW);		/* we have a user handler now */
+  if ( PL_sigaction((sigandflags & 0xffff), &act, &old) >= 0 )
+  { if ( (old.sa_flags&PLSIG_PREPARED) && old.sa_cfunction )
+      return old.sa_cfunction;
 
-    if ( (sigandflags & PL_SIGSYNC) )
-      set(sh, PLSIG_SYNC);
-    else
-      clear(sh, PLSIG_SYNC);
-    if ( (sigandflags & PL_SIGNOFRAME) )
-      set(sh, PLSIG_NOFRAME);
-    else
-      clear(sh, PLSIG_NOFRAME);
-
-    return old;
-  } else
     return SIG_DFL;
+  }
+
+  return NULL;
+#else
+  return SIG_DFL;
+#endif
 }
 
 
@@ -1016,7 +1121,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   } else
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal, sig);
 
-  sh = &GD->sig_handlers[sign-1];
+  sh = &GD->signals.handlers[sign-1];
 
   if ( false(sh, PLSIG_PREPARED) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));
@@ -1253,11 +1358,18 @@ allocStacks(size_t local, size_t global, size_t trail)
   global   = max(global,   minglobal);
   trail    = max(trail,    mintrail);
 
+  gBase = NULL;
+  tBase = NULL;
+  aBase = NULL;
+
   gBase = (Word)       stack_malloc(iglobal + ilocal);
   tBase = (TrailEntry) stack_malloc(itrail);
   aBase = (Word *)     stack_malloc(minargument);
+
   if ( !gBase || !tBase || !aBase )
-  { freeStacks(PASS_LD1);
+  { if ( gBase )
+      *gBase++ = MARK_MASK;		/* compensate for freeStacks */
+    freeStacks(PASS_LD1);
     fail;
   }
 
@@ -1309,10 +1421,8 @@ stack_malloc(size_t size)
 #ifdef SECURE_GC
     memset(sp, 0xFB, size);
 #endif
+    ATOMIC_ADD(&GD->statistics.stack_space, size);
 
-    PL_LOCK(L_MISC);
-    GD->statistics.stack_space += size;
-    PL_UNLOCK(L_MISC);
     return sp;
   }
 
@@ -1335,10 +1445,10 @@ stack_realloc(void *old, size_t size)
   if ( (mem = realloc(sp, size+sizeof(size_t))) )
   { sp = mem;
     *sp++ = size;
-    PL_LOCK(L_MISC);
-    GD->statistics.stack_space -= osize;
-    GD->statistics.stack_space += size;
-    PL_UNLOCK(L_MISC);
+    if ( size > osize )
+      ATOMIC_ADD(&GD->statistics.stack_space, size-osize);
+    else
+      ATOMIC_SUB(&GD->statistics.stack_space, osize-size);
     return sp;
   }
 #endif
@@ -1351,9 +1461,7 @@ stack_free(void *mem)
 { size_t *sp = mem;
   size_t osize = *--sp;
 
-  PL_LOCK(L_MISC);
-  GD->statistics.stack_space -= osize;
-  PL_UNLOCK(L_MISC);
+  ATOMIC_SUB(&GD->statistics.stack_space, osize);
 
 #ifdef SECURE_GC
   memset(sp, 0xFB, osize+sizeof(size_t));

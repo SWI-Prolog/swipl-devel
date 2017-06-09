@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -962,11 +974,11 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
       continue;
     if ( vd->name && (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
     { if ( true(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) &&
-	   atom_is_named_var(vd->name) )
+	   atom_is_named_var(vd->name) > 0 )
       { const char *type = ( true(vd, VD_MAYBE_SINGLETON) ?
 				  "branch_singleton" : "negation_singleton" );
 	compiler_warning(ci, type, vd->address);
-      } else if ( vd->times > 1 && !atom_is_named_var(vd->name) )
+      } else if ( vd->times > 1 && atom_is_named_var(vd->name) < 0 )
 	compiler_warning(ci, "multiton", vd->address);
     }
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
@@ -2034,24 +2046,6 @@ current localframe and a B_VAR instruction is  generated for it. In this
 case it can return LOCAL_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG
-static char *
-vName(Word adr)
-{ GET_LD
-  static char name[32];
-
-  deRef(adr);
-
-  if (adr > (Word) lBase)
-    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
-  else
-    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
-
-  return name;
-}
-#endif
-
-
 static int
 link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
 { VarDef vd = LD->comp.vardefs[*v>>LMASK_BITS];
@@ -2059,7 +2053,10 @@ link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
   Word k = varFrameP(lTop, voffset);
 
   DEBUG(MSG_COMP_ARGVAR,
-	Sdprintf("Linking b_var(%d) to %s\n", iv, vName(vd->address)));
+	{ char vname[32];
+	  Sdprintf("Linking b_var(%d) to %s\n",
+		   iv, var_name_ptr(vd->address, vname));
+	});
 
   if ( k >= (Word) lMax )
     return LOCAL_OVERFLOW;
@@ -3525,14 +3522,20 @@ mode, the predicate is still undefined and is not dynamic or multifile.
     { clause = cref->value.clause;
 
       if ( warnings && !PL_get_nil(warnings) )
-      { fid_t fid = PL_open_foreign_frame();
+      { int rc;
+	fid_t fid = PL_open_foreign_frame();
 	term_t cl = PL_new_term_ref();
 
 	PL_put_clref(cl, clause);
-	printMessage(ATOM_warning, PL_FUNCTOR_CHARS, "compiler_warnings", 2,
-				     PL_TERM, cl,
-				     PL_TERM, warnings);
+	rc = printMessage(ATOM_warning,
+			  PL_FUNCTOR_CHARS, "compiler_warnings", 2,
+			    PL_TERM, cl,
+			    PL_TERM, warnings);
 	PL_discard_foreign_frame(fid);
+	if ( !rc )
+	{ freeClause(clause);
+	  return NULL;
+	}
       }
 
       return clause;
@@ -5297,6 +5300,24 @@ unify_head(term_t h, term_t d ARG_LD)
 }
 
 
+static int
+protected_predicate(Definition def ARG_LD)
+{ if ( true(def, P_FOREIGN) ||
+       (   false(def, (P_DYNAMIC|P_CLAUSABLE)) &&
+	   (   truePrologFlag(PLFLAG_PROTECT_STATIC_CODE) ||
+	       truePrologFlag(PLFLAG_ISO)
+	   )
+       ) )
+  { Procedure proc = getDefinitionProc(def);
+    PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+	     ATOM_access, ATOM_private_procedure, proc);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /** clause(H, B).
     clause(H, B, Ref).
     '$clause'(H, B, Ref, Bindings).
@@ -5337,6 +5358,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	  if ( rc < 0 && CTX_ARITY < 4 )
 	    return FALSE;			/* erased clause */
 
+	  if ( protected_predicate(clause->predicate PASS_LD) )
+	    return FALSE;
 	  if ( decompile(clause, term, bindings) != TRUE )
 	    return FALSE;
 	  def = clause->predicate;
@@ -5359,12 +5382,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	fail;
       def = getProcDefinition(proc);
 
-      if ( true(def, P_FOREIGN) ||
-	   (   truePrologFlag(PLFLAG_ISO) &&
-	       false(def, P_DYNAMIC)
-	   ) )
-	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_access, ATOM_private_procedure, proc);
+      if ( protected_predicate(def PASS_LD) )
+	return FALSE;
 
       chp = NULL;
       pushPredicateAccess(def, generationFrame(environment_frame));
@@ -6777,23 +6796,29 @@ clear_second:
 }
 
 
-void
+/* returns -1 if there is an exception or # events sent */
+
+int
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { delayEvents();
+  { int rc = TRUE;
+
+    delayEvents();
     PL_LOCK(L_BREAK);
     for_table(breakTable, name, value,
               { BreakPoint bp = (BreakPoint)value;
 		if ( bp->clause == clause )
 		{ int offset = bp->offset;
 		  clearBreak(clause, bp->offset);
-		  callEventHook(PLEV_NOBREAK, clause, offset);
+		  rc = callEventHook(PLEV_NOBREAK, clause, offset) && rc;
 		}
 	      })
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
-    sendDelayedEvents();
+    return sendDelayedEvents(rc);
   }
+
+  return 0;
 }
 
 

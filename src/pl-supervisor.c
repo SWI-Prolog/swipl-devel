@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2006-2012, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2008-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
@@ -56,8 +68,14 @@ deallocate the old supervisor. If TRUE,   there may be references. I.e.,
 other threads may have started executing this predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+free_codes_ptr(void *ptr)
+{ freeCodes(ptr);
+}
+
+
 void
-freeCodesDefinition(Definition def, int linger)
+freeCodesDefinition(Definition def, int do_linger)
 { Code codes;
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
@@ -66,8 +84,8 @@ freeCodesDefinition(Definition def, int linger)
 
       def->codes = SUPERVISOR(virgin);
       if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-      { if ( linger )
-	  PL_linger(&codes[-1]);
+      { if ( do_linger )
+	  linger(&def->lingering, free_codes_ptr, codes);
 	else
 	  freeHeap(&codes[-1], (size+1)*sizeof(code));
       }
@@ -156,7 +174,7 @@ getClauses(Definition def, ClauseRef *refp, int max)
 
   acquire_def(def);
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-  { if ( visibleClause(cref->value.clause, GD->generation) )
+  { if ( visibleClause(cref->value.clause, global_generation()) )
     { if ( found < max )
 	refp[found] = cref;
       found++;
@@ -199,6 +217,7 @@ singleClauseSupervisor(Definition def)
 
       return codes;
     }
+    freeCodes(codes);
   }
 
   return NULL;
@@ -300,9 +319,9 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 
     initBuffer(&buf);
     for(i=0; i < def->functor->arity; i++)
-    { int ma = MA_INFO(def, i);
+    { int ma = def->args[i].meta;
 
-      if ( ma <= 9 || ma == MA_META || ma == MA_HAT || ma == MA_DCG ) /* 0..9, :, ^ or // */
+      if ( MA_NEEDS_TRANSPARENT(ma) )
       { addBuffer(&buf, encode(S_MQUAL), code);
 	addBuffer(&buf, VAROFFSET(i), code);
 	count++;

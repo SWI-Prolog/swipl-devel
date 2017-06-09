@@ -46,13 +46,13 @@ VIAddVersionKey Comments "SWI-Prolog installer for Windows"
 VIAddVersionKey ProductName "SWI-Prolog"
 VIAddVersionKey ProductVersion "${_VERSION}"
 VIAddVersionKey CompanyName "swi-prolog.org"
-VIAddVersionKey LegalCopyright "LGPL"
+VIAddVersionKey LegalCopyright "BSD-2"
 VIAddVersionKey FileVersion "${_VERSION}"
 VIAddVersionKey OriginalFilename "${_OUTFILE}"
 
 Icon ${SWIPL}\swipl.ico
-LicenseData ${SWIPL}\COPYING.TXT
-LicenseText "SWI-Prolog is governed by the LGPL"
+LicenseData ${SWIPL}\LICENSE.TXT
+LicenseText "SWI-Prolog is governed by the BSD-2 license"
 
 !ifdef MINGW
 InstType "Typical"				# 1
@@ -285,6 +285,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libjpeg-9.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
+  File ${SWIPL}\bin\libpcre-1.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_seh-1.dll
@@ -295,7 +296,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR
   File /r ${SWIPL}\customize
   File ${SWIPL}\${BOOT}
-  File ${SWIPL}\COPYING.TXT
+  File ${SWIPL}\LICENSE.TXT
   File ${SWIPL}\README.TXT
   File ${SWIPL}\VERSION
   File ${SWIPL}\swipl.home
@@ -334,6 +335,8 @@ Section "Base system (required)"
   File ${SWIPL}\library\git.pl
   File ${SWIPL}\library\prolog_pack.pl
   File ${SWIPL}\library\tabling.pl
+  File ${SWIPL}\library\lazy_lists.pl
+  File ${SWIPL}\library\prolog_jiti.pl
 
 ; COMPATIBILITY
   File ${SWIPL}\library\backcomp.pl
@@ -432,6 +435,8 @@ Section "Base system (required)"
   File ${SWIPL}\doc\windows.html
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\index.html
+  File ${SWIPL}\doc\packages\readline.html
+  File ${SWIPL}\doc\packages\libedit.html
 
   SetRegView ${BITS}
   WriteRegStr HKLM ${REGKEY} "home" "$INSTDIR"
@@ -545,7 +550,7 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File ${SWIPL}\library\clp\clpq.pl
 SectionEnd
 
-Section "Portability (YAP, SICStus, Ciao, BIM, IF/Prolog) support"
+Section "Portability (YAP, SICStus, BIM, IF/Prolog) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\fastrw.pl
@@ -623,13 +628,13 @@ Section "Package CLIB"
   File ${SWIPL}\bin\uri.dll
   File ${SWIPL}\bin\uuid.dll
   File ${SWIPL}\bin\memfile.dll
-  File ${SWIPL}\bin\mime.dll
   File ${SWIPL}\bin\socket.dll
   File ${SWIPL}\bin\time.dll
   File ${SWIPL}\bin\readutil.dll
   File ${SWIPL}\bin\process.dll
   File ${SWIPL}\bin\streaminfo.dll
   File ${SWIPL}\bin\prolog_stream.dll
+  File ${SWIPL}\bin\hashstream.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\cgi.pl
   File ${SWIPL}\library\crypt.pl
@@ -639,7 +644,6 @@ Section "Package CLIB"
   File ${SWIPL}\library\uri.pl
   File ${SWIPL}\library\uuid.pl
   File ${SWIPL}\library\memfile.pl
-  File ${SWIPL}\library\mime.pl
   File ${SWIPL}\library\socket.pl
   File ${SWIPL}\library\prolog_server.pl
   File ${SWIPL}\library\random.pl
@@ -648,6 +652,7 @@ Section "Package CLIB"
   File ${SWIPL}\library\udp_broadcast.pl
   File ${SWIPL}\library\streaminfo.pl
   File ${SWIPL}\library\prolog_stream.pl
+  File ${SWIPL}\library\hash_stream.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\clib.html
 SectionEnd
@@ -656,8 +661,13 @@ Section "SSL Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\ssl4pl.dll
+  File ${SWIPL}\bin\crypto4pl.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\ssl.pl
+  File ${SWIPL}\library\crypto.pl
+  File ${SWIPL}\library\saml.pl
+  File ${SWIPL}\library\xmlenc.pl
+  File ${SWIPL}\library\xmldsig.pl
 # SetOutPath $INSTDIR\library\http
 # File ${SWIPL}\library\http\http_ssl_plugin.pl
   SetOutPath $INSTDIR\doc\packages
@@ -708,6 +718,7 @@ Section "SGML/XML/HTML parser"
   File ${SWIPL}\library\sgml_write.pl
   File ${SWIPL}\library\xsdp_types.pl
   File ${SWIPL}\library\iso_639.pl
+  File ${SWIPL}\library\c14n2.pl
   File ${SWIPL}\library\xpath.pl
   File ${SWIPL}\library\pwp.pl
   SetOutPath $INSTDIR\doc\packages
@@ -756,6 +767,7 @@ Section "Pengines"
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\pengines.pl
   File ${SWIPL}\library\pengines_io.pl
+  File ${SWIPL}\library\pengines_sandbox.pl
   File ${SWIPL}\library\term_to_json.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\pengines.html
@@ -791,6 +803,16 @@ Section "NLP package"
   File ${SWIPL}\library\isub.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\nlp.html
+SectionEnd
+
+Section "Regular expression library (libpcre)"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File ${SWIPL}\library\pcre.pl
+  SetOutPath $INSTDIR\bin
+  File ${SWIPL}\bin\pcre4pl.dll
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\pcre.html
 SectionEnd
 
 Section "ZLIB package"
@@ -841,7 +863,6 @@ Section "C Debugging Symbols (.pdb files)"
   File ${SWIPL}\bin\swipl.pdb
   File ${SWIPL}\bin\memfile.pdb
   File ${SWIPL}\bin\streaminfo.pdb
-  File ${SWIPL}\bin\mime.pdb
   File ${SWIPL}\bin\odbc4pl.pdb
   File ${SWIPL}\bin\plterm.pdb
   File ${SWIPL}\bin\swipl-win.pdb

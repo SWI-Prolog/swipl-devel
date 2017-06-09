@@ -109,7 +109,7 @@ PL_from_stack_text() moves a string from  the   stack,  so  it won't get
 corrupted if GC/shift comes along.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 PL_from_stack_text(PL_chars_t *text, int flags)
 { if ( !(flags&BUF_ALLOW_STACK) )
   { if ( text->storage == PL_CHARS_STACK )
@@ -128,6 +128,8 @@ PL_from_stack_text(PL_chars_t *text, int flags)
       }
     }
   }
+
+  return TRUE;
 }
 
 
@@ -160,7 +162,7 @@ static char *
 i64toa(int64_t val, char *out)
 { if ( val < 0 )
   { *out++ = '-';
-    val = -val;
+    val = -(uint64_t)val;
   }
 
   return ui64toa((uint64_t)val, out);
@@ -179,7 +181,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
       goto maybe_write;
-    PL_from_stack_text(text, flags);
+    if ( !PL_from_stack_text(text, flags) )
+      return FALSE;			/* no memory */
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { number n;
 
@@ -262,6 +265,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 
 	    return PL_error(NULL, 0, NULL, ERR_TYPE, type, culprit);
 	  }
+	  case CVT_representation:
+	    return PL_representation_error("character_code");
 	  default:
 	    break;
 	}
@@ -405,16 +410,21 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
       return FALSE;
     }
     case PL_STRING:
-    { word w = textToString(text);
+    { word w;
 
-      if ( w )
+      if ( !PL_from_stack_text(text, 0) )	/* TBD: only needed if no space */
+	return FALSE;
+      if ( (w = textToString(text)) )
 	return _PL_unify_atomic(term, w);
       else
 	return FALSE;
     }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
-    { if ( text->length == 0 )
+    { if ( !PL_from_stack_text(text, 0) )	/* TBD: only needed if no space */
+	return FALSE;
+
+      if ( text->length == 0 )
       { if ( tail )
 	{ GET_LD
 	  PL_put_term(tail, term);
@@ -566,7 +576,7 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
     }
 
     sub.length = len;
-    sub.storage = PL_CHARS_HEAP;
+    sub.storage = text->storage == PL_CHARS_STACK ? PL_CHARS_STACK : PL_CHARS_HEAP;
     if ( text->encoding == ENC_ISO_LATIN_1 )
     { sub.text.t   = text->text.t+offset;
       sub.encoding = ENC_ISO_LATIN_1;

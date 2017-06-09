@@ -149,3 +149,4 @@ src/reqs32.cab
 .pl-history
 ReleaseNotes
 build-ppa-tmp
+scripts/upload

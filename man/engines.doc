@@ -1,4 +1,4 @@
-\chapter{Corouting using Prolog engines}
+\chapter{Coroutining using Prolog engines}
 \label{sec:engines}
 
 Where the term \jargon{coroutine} in Prolog typically refer to hooks

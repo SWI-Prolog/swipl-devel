@@ -3,22 +3,34 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam,
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam,
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,6 +88,7 @@ COMMON(size_t)		supervisorLength(Code base);
 COMMON(void)		initSupervisors(void);
 
 /* pl-atom.c */
+#define checkAtoms()	checkAtoms_src(__FILE__, __LINE__)
 COMMON(word)		lookupAtom(const char *s, size_t len);
 COMMON(word)		lookupBlob(const char *s, size_t len,
 				   PL_blob_t *type, int *new);
@@ -86,6 +99,7 @@ COMMON(void)		cleanupAtoms(void);
 COMMON(void)		markAtom(atom_t a);
 COMMON(foreign_t)	pl_garbage_collect_atoms(void);
 COMMON(void)		resetAtoms(void);
+COMMON(int)		checkAtoms_src(const char *file, int line);
 #ifdef O_DEBUG_ATOMGC
 COMMON(word)		pl_track_atom(term_t which, term_t stream);
 COMMON(void)		_PL_debug_register_atom(atom_t a,
@@ -155,7 +169,7 @@ COMMON(int)		unify_definition(Module ctx, term_t head, Definition def,
 					 term_t thehead, int flags);
 COMMON(code)		replacedBreak(Code PC);
 COMMON(code)		replacedBreakUnlocked(Code PC);
-COMMON(void)		clearBreakPointsClause(Clause clause);
+COMMON(int)		clearBreakPointsClause(Clause clause) WUNUSED;
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 COMMON(void)		vm_list(Code code);
 COMMON(Module)		clauseBodyContext(const Clause cl);
@@ -180,12 +194,15 @@ COMMON(int)		addClauseToIndexes(Definition def, Clause cl,
 					   ClauseRef where);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndexes(Definition def, gen_t active);
-COMMON(void)		unallocOldClauseIndexes(Definition def);
 COMMON(void)		clearTriedIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
 COMMON(void)		deleteIncompleteIndexes(Definition def);
+COMMON(void)		deleteIndexes(Definition def, int isnew);
+COMMON(int)		checkClauseIndexSizes(Definition def, int nindexable);
+COMMON(void)		checkClauseIndexes(Definition def);
+COMMON(void)		listIndexGenerations(Definition def, gen_t gen);
 
 /* pl-dwim.c */
 COMMON(word)		pl_dwim_match(term_t a1, term_t a2, term_t mm);
@@ -212,7 +229,6 @@ COMMON(predicate_t)	_PL_predicate(const char *name, int arity,
 COMMON(void)		initialiseForeign(int argc, char **argv);
 COMMON(void)		cleanupInitialiseHooks(void);
 COMMON(atom_t)		codeToAtom(int code);
-COMMON(extern)		record_t PL_duplicate_record(record_t r);
 COMMON(int)		PL_unify_termv(term_t t, va_list args);
 COMMON(term_t)		pushWordAsTermRef__LD(Word p ARG_LD);
 COMMON(void)		popTermRef__LD(ARG1_LD);
@@ -269,6 +285,8 @@ COMMON(int)		PL_pending__LD(int sig ARG_LD);
 COMMON(int)		PL_clearsig__LD(int sig ARG_LD);
 COMMON(void)		cleanupCodeToAtom(void);
 COMMON(void)		PL_clear_foreign_exception(LocalFrame fr);
+COMMON(except_class)    classify_exception__LD(term_t ex ARG_LD);
+COMMON(except_class)    classify_exception_p__LD(Word p ARG_LD);
 
 /* pl-fmt.c */
 COMMON(word)		pl_format_predicate(term_t chr, term_t descr);
@@ -300,6 +318,7 @@ COMMON(int)		ensureGlobalSpace(size_t cells, int flags);
 COMMON(int)		ensureTrailSpace(size_t cells);
 COMMON(int)		ensureLocalSpace(size_t bytes, int flags);
 COMMON(void)		clearUninitialisedVarsFrame(LocalFrame, Code);
+COMMON(void)		clearLocalVariablesFrame(LocalFrame fr);
 COMMON(void)		setLTopInBody(void);
 COMMON(word)		check_foreign(void);	/* DEBUG(CHK_SECURE...) stuff */
 COMMON(void)		markAtomsOnStacks(PL_local_data_t *ld);
@@ -382,7 +401,7 @@ COMMON(char *)		Getenv(const char *, char *buf, size_t buflen);
 COMMON(int)		Setenv(char *name, char *value);
 COMMON(int)		Unsetenv(char *name);
 COMMON(int)		System(char *cmd);
-COMMON(char *)		findExecutable(const char *module, char *buf);
+COMMON(char *)		findExecutable(const char *module, char *buf, size_t len);
 COMMON(int)		Pause(double time);
 
 /* pl-prims.c */
@@ -419,6 +438,7 @@ COMMON(void)		raiseInferenceLimitException(void);
 
 /* pl-prologflag.c */
 COMMON(void)		setPrologFlag(const char *name, int flags, ...);
+COMMON(int)		set_prolog_flag(term_t key, term_t value, int flags);
 COMMON(word)		pl_prolog_flag(term_t key, term_t value, control_t h);
 COMMON(word)		pl_prolog_flag5(term_t key, term_t value,
 					term_t local, term_t access, term_t type,
@@ -450,6 +470,7 @@ COMMON(int)		importDefinitionModule(Module m,
 					       Definition def, int flags);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);
 COMMON(ClauseRef)	hasClausesDefinition(Definition def);
+COMMON(Procedure)	getDefinitionProc(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
 COMMON(void)		shareDefinition(Definition def);
 COMMON(int)		unshareDefinition(Definition def);
@@ -465,8 +486,8 @@ COMMON(int)		overruleImportedProcedure(Procedure proc, Module target);
 COMMON(word)		pl_current_predicate(term_t name, term_t functor, control_t h);
 COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(void)		clear_meta_declaration(Definition def);
-COMMON(void)		setMetapredicateMask(Definition def, meta_mask mask);
-COMMON(int)		isTransparentMetamask(Definition def, meta_mask mask);
+COMMON(void)		setMetapredicateMask(Definition def, arg_info *args);
+COMMON(int)		isTransparentMetamask(Definition def, arg_info *args);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 					ClauseRef where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
@@ -522,7 +543,7 @@ COMMON(ClauseRef)	assertProcedureSource(SourceFile sf, Procedure proc,
 COMMON(int)		setAttrProcedureSource(SourceFile sf, Procedure proc,
 					       unsigned attr, int val ARG_LD);
 COMMON(int)		setMetapredicateSource(SourceFile sf, Procedure proc,
-					       meta_mask mask ARG_LD);
+					       arg_info *args ARG_LD);
 COMMON(int)		exportProcedureSource(SourceFile sf, Module module,
 					      Procedure proc);
 COMMON(void)		registerReloadModule(SourceFile sf, Module module);
@@ -625,9 +646,10 @@ COMMON(word)		pl_leash(term_t old, term_t new);
 COMMON(word)		pl_visible(term_t old, term_t new);
 COMMON(word)		pl_debuglevel(term_t old, term_t new);
 COMMON(word)		pl_prolog_current_frame(term_t fr);
-COMMON(int)		PL_call_event_hook(pl_event_type ev, ...);
+COMMON(int)		PL_call_event_hook(pl_event_type ev, ...) WUNUSED;
+COMMON(int)		PL_call_event_hook_va(pl_event_type ev, va_list args);
 COMMON(int)		delayEvents(void);
-COMMON(int)		sendDelayedEvents(void);
+COMMON(int)		sendDelayedEvents(int noerror) WUNUSED;
 COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
 COMMON(void)		PL_put_choice(term_t t, Choice ch);
 
@@ -657,6 +679,7 @@ COMMON(pl_wchar_t*)	wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 					 pl_wchar_t *buf, size_t bufsize);
 
 /* pl-write.c */
+COMMON(char *)		var_name_ptr__LD(Word p, char *name ARG_LD);
 COMMON(char *)		varName(term_t var, char *buf);
 COMMON(word)		pl_write_canonical(term_t term);
 COMMON(word)		pl_write_canonical2(term_t stream, term_t term);
@@ -732,7 +755,9 @@ COMMON(foreign_t)	pl_rc_members(term_t rc_h, term_t members);
 
 /* pl-xterm.c */
 
-COMMON(foreign_t)	pl_open_xterm(term_t title, term_t in, term_t out, term_t err);
+COMMON(foreign_t)	pl_open_xterm(term_t title,
+				      term_t in, term_t out, term_t err,
+				      term_t argv);
 
 /* pl-ctype.c */
 
@@ -748,6 +773,10 @@ COMMON(foreign_t)	pl_thread_self(term_t self);
 COMMON(int)		unify_thread_id(term_t id, PL_thread_info_t *info);
 #endif
 COMMON(int)		enableThreads(int enable);
+
+
+/* pl-mutex.c */
+COMMON(void)		initMutexes(void);
 
 
 /* pl-gmp.c */

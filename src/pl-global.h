@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1997-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef PL_GLOBAL_H_INCLUDED
@@ -87,10 +99,16 @@ struct PL_global_data
   void *	resourceDB;		/* program resource database */
 
 #ifdef HAVE_SIGNAL
-  sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+  struct
+  { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+    int		sig_alert;		/* our alert signal */
+  } signals;
 #endif
 #ifdef O_LOGICAL_UPDATE
-  gen_t		generation;		/* generation of the database */
+  ggen_t	_generation;		/* generation of the database */
+#ifdef ATOMIC_GENERATION_HACK
+  gen_t		_last_generation;	/* see pl-inline.h, global_generation() */
+#endif
 #endif
 
   struct
@@ -165,6 +183,7 @@ struct PL_global_data
     int		cmps;			/* # string compares for lookup */
 #ifdef O_ATOMGC
     int		gc_active;		/* Atom-GC is in progress */
+    int		rehashing;		/* Atom-rehash in progress */
     size_t	builtin;		/* Locked atoms (atom-gc) */
     size_t	no_hole_before;		/* You won't find a hole before here */
     size_t	margin;			/* # atoms to grow before collect */
@@ -242,7 +261,6 @@ struct PL_global_data
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
     IOFUNCTIONS		org_terminal;	/* IO+Prolog terminal functions */
-    IOFUNCTIONS		rl_functions;	/* IO+Terminal+Readline functions */
   } os;
 
   struct

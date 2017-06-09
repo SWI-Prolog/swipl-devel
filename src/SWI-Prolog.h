@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef _FLI_H_INCLUDED
@@ -53,10 +65,15 @@ extern "C" {
 #endif
 
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
+/* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 70325
+#define PLVERSION 70508
 #endif
+#ifndef PLVERSION_TAG
+#define PLVERSION_TAG ""
+#endif
+
 
 		 /*******************************
 		 *	       EXPORT		*
@@ -239,6 +256,7 @@ typedef union
 #define FF_READONLY	 0x1000		/* Read-only prolog flag */
 #define FF_KEEP		 0x2000		/* keep prolog flag if already set */
 #define FF_NOCREATE	 0x4000		/* Fail if flag is non-existent */
+#define FF_FORCE	 0x8000		/* Force setting, overwrite READONLY */
 #define FF_MASK		 0xf000
 
 
@@ -378,6 +396,7 @@ PL_EXPORT(qid_t)	PL_open_query(module_t m, int flags,
 PL_EXPORT(int)		PL_next_solution(qid_t qid) WUNUSED;
 PL_EXPORT(void)		PL_close_query(qid_t qid);
 PL_EXPORT(void)		PL_cut_query(qid_t qid);
+PL_EXPORT(qid_t)	PL_current_query(void);
 
 			/* Simplified (but less flexible) call-back */
 PL_EXPORT(int)		PL_call(term_t t, module_t m);
@@ -406,6 +425,7 @@ PL_EXPORT(void)		PL_reset_term_refs(term_t r);
 PL_EXPORT(atom_t)	PL_new_atom(const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_nchars(size_t len, const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
+PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
@@ -484,6 +504,8 @@ PL_EXPORT(int)		PL_put_atom(term_t t, atom_t a);
 PL_EXPORT(int)		PL_put_bool(term_t t, int val);
 PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_put_string_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(int)		PL_put_chars(term_t t, int flags,
+				     size_t len, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_chars(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_codes(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);
@@ -747,6 +769,7 @@ PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...);
 PL_EXPORT(record_t)	PL_record(term_t term);
 PL_EXPORT(int)		PL_recorded(record_t record, term_t term);
 PL_EXPORT(void)		PL_erase(record_t record);
+PL_EXPORT(record_t)	PL_duplicate_record(record_t r);
 
 PL_EXPORT(char *)	PL_record_external(term_t t, size_t *size);
 PL_EXPORT(int)		PL_recorded_external(const char *rec, term_t term);
@@ -826,7 +849,9 @@ UNICODE file functions.
 PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
 PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
+PL_EXPORT(IOSTREAM*)	PL_acquire_stream(IOSTREAM *s);
 PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
+PL_EXPORT(int)		PL_release_stream_noerror(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 					 const char *name,
 					 const char *rc_class,
@@ -881,6 +906,8 @@ PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
 
 #endif /*SIO_MAGIC*/
 
+PL_EXPORT(int)  PL_put_term_from_chars(term_t t, int flags,
+				       size_t len, const char *s);
 PL_EXPORT(int)	PL_chars_to_term(const char *chars,
 				term_t term);
 PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
@@ -895,11 +922,6 @@ PL_EXPORT(int)		PL_initialise(int argc, char **argv);
 PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
 PL_EXPORT(int)		PL_set_resource_db_mem(const unsigned char *data,
 					       size_t size);
-#ifdef __CYGWIN__
-PL_EXPORT(void)		PL_install_readline(void);
-#else
-install_t		PL_install_readline(void);
-#endif
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_cleanup_fork();
@@ -912,9 +934,8 @@ PL_EXPORT(int)		PL_halt(int status);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: the functions in this section are   not  documented, as as yet not
 adviced for public usage.  They  are   intended  to  provide an abstract
-interface for the GNU readline  interface   as  defined in pl-rl.c. This
-abstract interface is necessary to make an embeddable system without the
-readline overhead.
+interface for the GNU readline  interface   as  defined  in the readline
+package.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 					/* PL_dispatch() modes */
 #define PL_DISPATCH_NOWAIT    0		/* Dispatch only once */
@@ -971,10 +992,27 @@ PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 		*            SIGNALS            *
 		*********************************/
 
+/* PL_signal() masks (deprecated) */
 #define PL_SIGSYNC	0x00010000	/* call handler synchronously */
 #define PL_SIGNOFRAME	0x00020000	/* Do not create a Prolog frame */
 
+#define PLSIG_THROW     0x0002		/* throw signal(num, name) */
+#define PLSIG_SYNC      0x0004		/* call synchronously */
+#define PLSIG_NOFRAME   0x0008		/* Do not create a Prolog frame */
+
+
+
+
+typedef struct pl_sigaction
+{ void        (*sa_cfunction)(int);	/* traditional C function */
+  predicate_t sa_predicate;		/* call a predicate */
+  int	      sa_flags;			/* additional flags */
+  void       *reserved[2];		/* future extentions */
+} pl_sigaction_t;
+
+
 PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
+PL_EXPORT(int)  PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old);
 PL_EXPORT(void)	PL_interrupt(int sig);
 PL_EXPORT(int)	PL_raise(int sig);
 PL_EXPORT(int)	PL_handle_signals(void);
@@ -1006,6 +1044,7 @@ PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void)	PL_on_halt(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_exit_hook(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_backtrace(int depth, int flags);
+PL_EXPORT(char *) PL_backtrace_string(int depth, int flags);
 PL_EXPORT(int)	PL_check_data(term_t data);
 PL_EXPORT(int)	PL_check_stacks(void);
 PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);

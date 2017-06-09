@@ -49,6 +49,8 @@ suggest predicates from a keyword.
 \predicatesummary{{}}{1}{DCG escape; constraints}
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
+\predicatesummary{abolish_all_tables}{0}{Abolish computed tables}
+\predicatesummary{abolish_table_subgoals}{1}{Abolish tables for a goal}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
@@ -70,6 +72,9 @@ suggest predicates from a keyword.
 \predicatesummary{assertz}{1}{Add a clause to the database (last)}
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
 \predicatesummary{attach_console}{0}{Attach I/O console to thread}
+\predicatesummary{attach_packs}{0}{Attach add-ons}
+\predicatesummary{attach_packs}{1}{Attach add-ons from directory}
+\predicatesummary{attach_packs}{2}{Attach add-ons from directory}
 \predicatesummary{attribute_goals}{3}{Project attributes to goals}
 \predicatesummary{attr_unify_hook}{2}{Attributed variable unification hook}
 \predicatesummary{attr_portray_hook}{2}{Attributed variable print hook}
@@ -231,7 +236,6 @@ suggest predicates from a keyword.
 \predicatesummary{engine_yield}{1}{Make term available to caller}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
 \predicatesummary{erase}{1}{Erase a database record or clause}
-\predicatesummary{eval_license}{0}{Evaluate licenses of loaded modules}
 \predicatesummary{exception}{3}{\hook{user} Handle runtime exceptions}
 \predicatesummary{exists_directory}{1}{Check existence of directory}
 \predicatesummary{exists_file}{1}{Check existence of file}
@@ -250,6 +254,9 @@ suggest predicates from a keyword.
 \predicatesummary{export}{1}{Export a predicate from a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
+\predicatesummary{fast_term_serialized}{2}{Fast term (de-)serialization}
+\predicatesummary{fast_read}{2}{Read binary term serialization}
+\predicatesummary{fast_write}{2}{Write binary term serialization}
 \predicatesummary{current_prolog_flag}{2}{Get system configuration parameters}
 \predicatesummary{file_base_name}{2}{Get file part of path}
 \predicatesummary{file_directory_name}{2}{Get directory part of path}
@@ -260,6 +267,7 @@ suggest predicates from a keyword.
 \predicatesummary{findall}{4}{Difference list version of findall/3}
 \predicatesummary{findnsols}{4}{Find first \arg{N} solutions}
 \predicatesummary{findnsols}{5}{Difference list version of findnsols/4}
+\predicatesummary{fill_buffer}{1}{Fill the input buffer of a stream}
 \predicatesummary{flag}{3}{Simple global variable system}
 \predicatesummary{float}{1}{Type check for a floating point number}
 \predicatesummary{flush_output}{0}{Output pending characters on current stream}
@@ -329,6 +337,7 @@ suggest predicates from a keyword.
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{initialization}{1}{Initialization directive}
 \predicatesummary{initialization}{2}{Initialization directive}
+\predicatesummary{initialize}{0}{Run program initialization}
 \predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and top level}
@@ -343,10 +352,12 @@ suggest predicates from a keyword.
 \predicatesummary{is_thread}{1}{Type check for an thread handle}
 \predicatesummary{join_threads}{0}{Join all terminated threads interactively}
 \predicatesummary{keysort}{2}{Sort, using a key}
+\predicatesummary{known_licenses}{0}{Print known licenses}
 \predicatesummary{last}{2}{Last element of a list}
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
 \predicatesummary{length}{2}{Length of a list}
 \predicatesummary{library_directory}{1}{\hook{user} Directories holding Prolog libraries}
+\predicatesummary{license}{0}{Evaluate licenses of loaded modules}
 \predicatesummary{license}{1}{Define license for current file}
 \predicatesummary{license}{2}{Define license for named module}
 \predicatesummary{line_count}{2}{Line number on stream}
@@ -593,10 +604,6 @@ suggest predicates from a keyword.
 \predicatesummary{size_nb_set}{2}{Determine size of non-backtrackable set}
 \predicatesummary{skip}{1}{Skip to character in current input}
 \predicatesummary{skip}{2}{Skip to character on stream}
-\predicatesummary{rl_add_history}{1}{Add line to readline(3) history}
-\predicatesummary{rl_read_history}{1}{Read readline(3) history}
-\predicatesummary{rl_read_init_file}{1}{Read readline(3) init file}
-\predicatesummary{rl_write_history}{1}{Write readline(3) history}
 \predicatesummary{sleep}{1}{Suspend execution for specified time}
 \predicatesummary{sort}{2}{Sort elements in a list}
 \predicatesummary{sort}{4}{Sort elements in a list}
@@ -633,6 +640,7 @@ suggest predicates from a keyword.
 \predicatesummary{swritef}{3}{Formatted write on a string}
 \predicatesummary{tab}{1}{Output number of spaces}
 \predicatesummary{tab}{2}{Output number of spaces on a stream}
+\predicatesummary{table}{1}{Declare predicate to be tabled}
 \predicatesummary{tdebug}{0}{Switch all threads into debug mode}
 \predicatesummary{tdebug}{1}{Switch a thread into debug mode}
 \predicatesummary{tell}{1}{Change current output stream}

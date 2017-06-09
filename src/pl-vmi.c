@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2016, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1655,7 +1667,7 @@ possible to be able to call-back to Prolog.
 
 depart_continue:
 retry_continue:
-  setGenerationFrame(FR, GD->generation);
+  setGenerationFrame(FR, global_generation());
 #ifdef O_PROFILE
   FR->prof_node = NULL;
 #endif
@@ -1791,6 +1803,8 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
       LOAD_REGISTERS(qid);
       lTop = LD->query->next_environment;
       LD->query->next_environment = NULL;
+      if ( exception_term )
+	THROW_EXCEPTION;
     }
 
     FR->clause = NULL;			/* for save atom-gc */
@@ -1935,6 +1949,8 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   { SAVE_REGISTERS(qid);
     frameFinished(leave, FINISH_EXIT PASS_LD);
     LOAD_REGISTERS(qid);
+    if ( exception_term )
+      THROW_EXCEPTION;
   }
 
   NEXT_INSTRUCTION;
@@ -2683,16 +2699,18 @@ VMI(S_UNDEF, 0, 0, ())
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
       SAVE_REGISTERS(qid);
       if ( (fid = PL_open_foreign_frame()) )
-      { term_t pred = PL_new_term_ref();
+      { term_t pred;
+	int rc;
 
-	if ( !unify_definition(MODULE_user, pred, DEF, 0, GP_NAMEARITY) )
-	{ printMessage(ATOM_warning,
-		       PL_FUNCTOR, FUNCTOR_error2,
-		         PL_FUNCTOR, FUNCTOR_existence_error2,
-		           PL_ATOM, ATOM_procedure,
-		           PL_TERM, pred,
-			 PL_VARIABLE);
-	}
+	rc = ( (pred=PL_new_term_ref()) &&
+	       unify_definition(MODULE_user, pred, DEF, 0, GP_NAMEARITY) &&
+	       printMessage(ATOM_warning,
+			    PL_FUNCTOR, FUNCTOR_error2,
+			      PL_FUNCTOR, FUNCTOR_existence_error2,
+			        PL_ATOM, ATOM_procedure,
+			        PL_TERM, pred,
+			      PL_VARIABLE) );
+	(void)rc;			/* checking for exception term below */
 	PL_close_foreign_frame(fid);
       }
       if ( exception_term )
@@ -4218,7 +4236,8 @@ again:
 	  LOAD_REGISTERS(qid);
 	});
 
-  if ( debugstatus.suspendTrace == FALSE && !rewritten++ )
+  if ( debugstatus.suspendTrace == FALSE && !rewritten++ &&
+       !uncachableException(exception_term PASS_LD) ) /* e.g., $aborted */
   { int rc;
 
     SAVE_REGISTERS(qid);
@@ -4254,23 +4273,24 @@ again:
     LOAD_REGISTERS(qid);
 
     if ( !rc )					/* uncaught exception */
-    { atom_t a;
-
-      SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(qid);
       if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
       { debugmode(TRUE, NULL);
 	if ( !trace_if_space() )		/* see (*) */
 	{ start_tracer = TRUE;
 	} else
-	{ trimStacks(FALSE PASS_LD);		/* restore spare stacks */
-	  printMessage(ATOM_error, PL_TERM, exception_term);
+	{ int rc;
+	  trimStacks(FALSE PASS_LD);		/* restore spare stacks */
+	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
+	  (void)rc;
 	  PL_put_term(exception_printed, exception_term);
 	}
-      } else if ( !(PL_get_atom(exception_term, &a) && a == ATOM_aborted) )
-      { printMessage(ATOM_error,
-		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		       PL_TERM, exception_term);
+      } else if ( classify_exception(exception_term) != EXCEPT_ABORT )
+      { int rc = printMessage(ATOM_error,
+			      PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+			        PL_TERM, exception_term);
+	(void)rc;
 	PL_put_term(exception_printed, exception_term);
       }
       LOAD_REGISTERS(qid);
@@ -4305,6 +4325,8 @@ again:
 	LOAD_REGISTERS(qid);
 	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
+	DiscardMark(ch->mark);
+	clearLocalVariablesFrame(FR);
 	PL_put_term(LD->exception.pending, exception_term);
 	if ( printed )
 	  PL_put_term(exception_printed, exception_term);
@@ -4368,11 +4390,13 @@ again:
 			  spaceStack(trail)));
 
 	if ( trace_if_space() )
-	{ start_tracer = FALSE;
+	{ int rc;
+	  start_tracer = FALSE;
 	  SAVE_REGISTERS(qid);
 	  LD->critical++;		/* do not handle signals */
 	  trimStacks(FALSE PASS_LD);
-	  printMessage(ATOM_error, PL_TERM, exception_term);
+	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
+	  (void)rc;
 	  LD->critical--;
 	  LOAD_REGISTERS(qid);
 	}
@@ -4458,6 +4482,7 @@ again:
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
     Undo(QF->choice.mark);
+    DiscardMark(QF->choice.mark);
     QF->foreign_frame = PL_open_foreign_frame();
     QF->exception = PL_copy_term_ref(exception_term);
 
@@ -4615,6 +4640,13 @@ field.
 The clause data is discarded automatically  if the frame is invalidated.
 Note that compilation does not give contained   atoms a reference as the
 atom is referenced by the goal-term anyway.
+
+Creating a `local clause'  is  needed   for  control  structures and for
+meta-calling call/N for N >  8  as   there  are  no real predicates that
+provide a backup. In  the  case  we   are  under  reset/3,  we can never
+generate a local clause while  passing  call(<call/N>)   for  N  >  8 to
+'$meta_call'/1 however leads to an infinite loop. For now we generate an
+undefined predicate for call/N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   goal = *a;
@@ -4632,13 +4664,18 @@ atom is referenced by the goal-term anyway.
     fd = valueFunctor(functor);
     if ( !isCallableAtom(fd->name) )
       goto call_type_error;
-    if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
+    if ( false(fd, CONTROL_F) && !(fd->name == ATOM_call && fd->arity > 8) )
     { args    = argTermP(goal, 0);
       arity   = (int)fd->arity;
-    } else if ( true(FR, FR_INRESET) &&
-		(true(fd, CONTROL_F) || fd->functor == FUNCTOR_call1) )
-    { DEF = GD->procedures.dmeta_call1->definition;
-      goto mcall_cont;
+    } else if ( true(FR, FR_INRESET) )
+    { if ( false(fd, CONTROL_F) && !(fd->name == ATOM_call) )
+      { /* arity > 8 will raise existence error */
+	args  = argTermP(goal, 0);
+	arity = (int)fd->arity;
+      } else
+      { DEF = GD->procedures.dmeta_call1->definition;
+	goto mcall_cont;
+      }
     } else
     { Clause cl;
       int rc;
@@ -4673,8 +4710,8 @@ atom is referenced by the goal-term anyway.
 #endif
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = ~(gen_t)0;
-      cl->generation.created = GD->generation;
-      setGenerationFrame(NFR, GD->generation);
+      cl->generation.created = global_generation();
+      setGenerationFrame(NFR, global_generation());
 #endif
       PC = cl->codes;
 

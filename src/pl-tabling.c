@@ -534,7 +534,8 @@ get_worklist(term_t t, worklist **wlp)
     return TRUE;
   }
 
-  return PL_type_error("worklist", t);
+  PL_type_error("worklist", t);
+  return FALSE;
 }
 
 /*

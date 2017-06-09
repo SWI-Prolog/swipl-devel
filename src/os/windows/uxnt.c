@@ -91,7 +91,7 @@ static int exists_file_or_dir(const TCHAR *path, int flags);
 		 *******************************/
 
 int
-_xos_errno()
+_xos_errno(void)
 { return errno;
 }
 
@@ -105,7 +105,7 @@ wcstoutf8(char *dest, const wchar_t *src, size_t len)
   char *e = &o[len];
 
   for(; *src; src++)
-  { if ( o+6 > e )
+  { if ( o+6 >= e && o+utf8_code_bytes(*src) >= e )
     { errno = ENAMETOOLONG;
       return NULL;
     }
@@ -612,16 +612,18 @@ _xos_tell(int handle)
 }
 
 
+#define MAX_FOPEN_FLAGS 10
+
 FILE *
 _xos_fopen(const char *path, const char *mode)
 { TCHAR buf[PATH_MAX];
-  TCHAR m[10];
+  TCHAR m[MAX_FOPEN_FLAGS];
   int i;
 
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return NULL;
 
-  for(i=0; *mode && i < sizeof(m-1); )
+  for(i=0; *mode && i < MAX_FOPEN_FLAGS-1; )
     m[i++] = (*mode++)&0xff;
   m[i] = 0;
 

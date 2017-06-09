@@ -1,24 +1,36 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2015, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1985-2015, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1247,7 +1259,7 @@ ar_minus(Number n1, Number n2, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-    { r->value.i = n1->value.i - n2->value.i;
+    { r->value.i = (uint64_t)n1->value.i - (uint64_t)n2->value.i;
 
       if ( (n1->value.i >= 0 && n2->value.i < 0 && r->value.i <= 0) ||
 	   (n1->value.i < 0  && n2->value.i > 0 && r->value.i >= 0) )
@@ -1506,7 +1518,7 @@ ar_gcd(Number n1, Number n2, Number r)
       int64_t t;
 
       if ( a < 0 )
-      { a = -a;
+      { a = -(uint64_t)a;
 	if ( a < 0 )
 	{ promote:
 #ifdef O_GMP
@@ -1519,7 +1531,7 @@ ar_gcd(Number n1, Number n2, Number r)
 	}
       }
       if ( b < 0 )
-      { b = -b;
+      { b = -(uint64_t)b;
 	if ( b < 0 )
 	  goto promote;
       }
@@ -2361,11 +2373,11 @@ mul64(int64_t x, int64_t y, int64_t *r)
       { ay = y;
 	sign = 1;
       } else
-      { ay = -y;
+      { ay = -(uint64_t)y;
 	sign = -1;
       }
     } else
-    { ax = -x;
+    { ax = -(uint64_t)x;
       if ( y > LL(0) )
       { ay = y;
 	sign = -1;
@@ -2377,7 +2389,7 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
     prod = (int64_t)(ax*ay);
     if ( sign < 0 )
-      prod = -prod;
+      prod = -(uint64_t)prod;
     if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) )
     { *r = prod;
       return TRUE;
@@ -3089,7 +3101,7 @@ seed_from_dev(const char *dev ARG_LD)
 #if defined(S_ISCHR) && !defined(__WINDOWS__)
   int fd;
 
-  if ( (fd=open(dev, O_RDONLY)) )
+  if ( (fd=open(dev, O_RDONLY)) != -1 )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 && S_ISCHR(buf.st_mode) )

@@ -33,120 +33,120 @@
 */
 
 :- module('$engines',
-	  [ engine_create/3,       % ?Template, :Goal, -Engine
-	    engine_create/4,       % ?Template, :Goal, -Engine, +Options
-	    engine_next_reified/2, % +Engine, -Term
-	    engine_yield/1,        % +Term
-	    engine_self/1,	   % -Engine
-	    current_engine/1       % ?Engine
-	  ]).
+          [ engine_create/3,       % ?Template, :Goal, -Engine
+            engine_create/4,       % ?Template, :Goal, -Engine, +Options
+            engine_next_reified/2, % +Engine, -Term
+            engine_yield/1,        % +Term
+            engine_self/1,         % -Engine
+            current_engine/1       % ?Engine
+          ]).
 
 :- meta_predicate
-	engine_create(?, 0, -),
-	engine_create(?, 0, -, +).
+    engine_create(?, 0, -),
+    engine_create(?, 0, -, +).
 
 /** <module> Engine (interactor) support
 
 
 */
 
-%%	engine_create(?Template, :Goal, ?Engine) is det.
-%%	engine_create(?Template, :Goal, -Engine, +Options) is det.
+%!  engine_create(?Template, :Goal, ?Engine) is det.
+%!  engine_create(?Template, :Goal, -Engine, +Options) is det.
 %
-%	Create a new engine, prepared to run  Goal and return answers as
-%	instances of Template. Goal is not started.
+%   Create a new engine, prepared to run  Goal and return answers as
+%   instances of Template. Goal is not started.
 
 engine_create(Template, Goal, Engine) :-
-	(   atom(Engine)
-	->  '$engine_create'(Engine, Template+Goal, [alias(Engine)])
-	;   '$engine_create'(Engine, Template+Goal, [])
-	).
+    (   atom(Engine)
+    ->  '$engine_create'(Engine, Template+Goal, [alias(Engine)])
+    ;   '$engine_create'(Engine, Template+Goal, [])
+    ).
 engine_create(Template, Goal, Engine, Options) :-
-	'$engine_create'(Engine, Template+Goal, Options).
+    '$engine_create'(Engine, Template+Goal, Options).
 
-%%	engine_next(+Engine, -Term) is semidet.
+%!  engine_next(+Engine, -Term) is semidet.
 %
-%	Switch control to Engine and if engine produces a result, switch
-%	control  back  and  unify   the    instance   of  Template  from
-%	engine_create/3,4 with Term. Repeatedly calling engine_next/2 on
-%	Engine retrieves new instances of  Template by backtracking over
-%	Goal. Fails of Goal has no  more   solutions.  If Goal raises an
-%	exception the exception is re-raised by this predicate.
+%   Switch control to Engine and if engine produces a result, switch
+%   control  back  and  unify   the    instance   of  Template  from
+%   engine_create/3,4 with Term. Repeatedly calling engine_next/2 on
+%   Engine retrieves new instances of  Template by backtracking over
+%   Goal. Fails of Goal has no  more   solutions.  If Goal raises an
+%   exception the exception is re-raised by this predicate.
 
-%%	engine_next_reified(+Engine, -Term) is det.
+%!  engine_next_reified(+Engine, -Term) is det.
 %
-%	Similar to engine_next/2 but returning answers in reified form.
-%	Answers  are  returned  using  the  terms  the(Answer), no, and
-%	exception(Error).
+%   Similar to engine_next/2 but returning answers in reified form.
+%   Answers  are  returned  using  the  terms  the(Answer), no, and
+%   exception(Error).
 
 engine_next_reified(Engine, Answer) :-
-	(   catch(engine_next(Engine, Answer0), Error, true)
-	->  (   var(Error)
-	    ->  Answer = the(Answer0)
-	    ;   Answer = exception(Error)
-	    )
-	;   Answer = no
-	).
+    (   catch(engine_next(Engine, Answer0), Error, true)
+    ->  (   var(Error)
+        ->  Answer = the(Answer0)
+        ;   Answer = exception(Error)
+        )
+    ;   Answer = no
+    ).
 
-%%	engine_post(+Engine, +Package) is det.
+%!  engine_post(+Engine, +Package) is det.
 %
-%	Make the term Package available   for engine_fetch/1 from within
-%	the engine. At most one term can   be  made available. Posting a
-%	package does not cause  the  engine   to  wakeup.  Therefore, an
-%	engine_next/2 call must follow a call to this predicate to make
-%	the engine fetch the package. The predicate engine_post/3
-%	combines engine_post/2 and engine_next/2.
+%   Make the term Package available   for engine_fetch/1 from within
+%   the engine. At most one term can   be  made available. Posting a
+%   package does not cause  the  engine   to  wakeup.  Therefore, an
+%   engine_next/2 call must follow a call to this predicate to make
+%   the engine fetch the package. The predicate engine_post/3
+%   combines engine_post/2 and engine_next/2.
 %
-%	@error permission_error(post_to, engine, Package) if a package
-%	was already posted and has not yet been fetched by the engine.
+%   @error permission_error(post_to, engine, Package) if a package
+%   was already posted and has not yet been fetched by the engine.
 
-%%	engine_post(+Engine, +Package, -Reply) is semidet.
+%!  engine_post(+Engine, +Package, -Reply) is semidet.
 %
-%	Same as engine_next/2, but transfer Term to Engine if Engine
-%	calls engine_fetch/1. Acts as:
+%   Same as engine_next/2, but transfer Term to Engine if Engine
+%   calls engine_fetch/1. Acts as:
 %
-%	  ==
-%	  engine_post(Engine, Package, Answer) :-
-%	      engine_post(Engine, Package),
-%	      engine_next(Engine, Answer).
-%	  ==
+%     ==
+%     engine_post(Engine, Package, Answer) :-
+%         engine_post(Engine, Package),
+%         engine_next(Engine, Answer).
+%     ==
 
-%%	engine_destroy(+Engine) is det.
+%!  engine_destroy(+Engine) is det.
 %
-%	Destroy Engine. Eventually, engine  destruction   will  also  be
-%	subject to symbol garbage collection.
+%   Destroy Engine. Eventually, engine  destruction   will  also  be
+%   subject to symbol garbage collection.
 
-%%	engine_yield(+Term) is det.
+%!  engine_yield(+Term) is det.
 %
-%	Make engine_answer/2 return with the given term.
+%   Make engine_answer/2 return with the given term.
 
 engine_yield(Term) :-
-	'$engine_yield'(Term, 256).
+    '$engine_yield'(Term, 256).
 
-%%	engine_self(E) is semidet.
+%!  engine_self(E) is semidet.
 %
-%	True if executed inside engine E
+%   True if executed inside engine E
 
 engine_self(E) :-
-	thread_self(E),
-	is_engine(E).
+    thread_self(E),
+    is_engine(E).
 
-%%	current_engine(?E)
+%!  current_engine(?E)
 %
-%	True if E is a currently know engine.
+%   True if E is a currently know engine.
 
 current_engine(E) :-
-	thread_property(E, engine(true)).
+    thread_property(E, engine(true)).
 
-%%	'$engine_yield'(?Term, +Code:integer)
+%!  '$engine_yield'(?Term, +Code:integer)
 %
-%	Cause PL_next_solution() to return with   Code, providing access
-%	to  Term  through  PL_yielded().   Can    only   be   called  if
-%	PL_open_query() is called with PL_Q_ALLOW_YIELD.  Code tells the
-%	code that controls PL_next_solution() what to   do and the codes
-%	used must be agreed upon for   a specific application. Code must
-%	be an integer >= 256. Other  return   codes  are reserved by the
-%	system.
+%   Cause PL_next_solution() to return with   Code, providing access
+%   to  Term  through  PL_yielded().   Can    only   be   called  if
+%   PL_open_query() is called with PL_Q_ALLOW_YIELD.  Code tells the
+%   code that controls PL_next_solution() what to   do and the codes
+%   used must be agreed upon for   a specific application. Code must
+%   be an integer >= 256. Other  return   codes  are reserved by the
+%   system.
 
 '$engine_yield'(_Term, _Code) :-
-	'$yield'.
+    '$yield'.

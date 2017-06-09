@@ -68,6 +68,19 @@ test(insert_variant, N == noot) :-
 	trie_insert(T, aap(_,_), noot),
 	trie_lookup(T, aap(_,_), N),
 	assertion(\+ trie_lookup(T, aap(A,A), N)).
+test(insert_vars, STKeys =@= Keys) :-
+	Keys = [a(1,a,x), a(_,b,y), a(_,_,z)],
+	trie_new(T),
+	forall(member(K, Keys), trie_insert(T, K, true)),
+	findall(K, trie_gen(T, K, _), TKeys),
+	sort(3, @<, TKeys, STKeys).
+test(insert_gsize, STKeys =@= KPairs) :-
+	Keys = [a(1,a), a(1.0,b), a("hello world",c)],
+	sort(Keys, KPairs),
+	trie_new(T),
+	forall(member(K, Keys), trie_insert(T, K, true)),
+	findall(K, trie_gen(T, K, _V), TKeys),
+	sort(TKeys, STKeys).
 test(insert_cycle, [sto(rational_trees)]) :-
 	trie_new(T),
 	X = f(X),

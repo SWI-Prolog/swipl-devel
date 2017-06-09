@@ -84,6 +84,7 @@ void	PL_save_text(PL_chars_t *text, int flags);
 
 COMMON(int)		PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD);
 COMMON(atom_t)		textToAtom(PL_chars_t *text);
+COMMON(word)		textToString(PL_chars_t *text);
 
 COMMON(IOSTREAM *)	Sopen_text(PL_chars_t *text, const char *mode);
 COMMON(int)		PL_text_recode(PL_chars_t *text, IOENC encoding);
@@ -105,9 +106,11 @@ static inline size_t
 text_chr(const PL_chars_t *t, int chr)
 { assert(t->canonical);
   if ( t->encoding == ENC_ISO_LATIN_1 )
-  { char *e = strchr(t->text.t, chr);
-    if ( e )
-      return e-t->text.t;
+  { if ( chr <= 0xff )
+    { char *e = strchr(t->text.t, chr);
+      if ( e )
+	return e-t->text.t;
+    }
   } else
   { wchar_t *e = wcschr(t->text.w, chr);
     if ( e )

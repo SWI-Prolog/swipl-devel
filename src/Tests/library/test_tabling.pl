@@ -2,7 +2,7 @@
 
     Author:        Benoit Desouter <Benoit.Desouter@UGent.be>
 		   Jan Wielemaker (SWI-Prolog port)
-    Copyright (c)  2016, Benoit Desouter
+    Copyright (c)  2016-2017, Benoit Desouter and Jan Wielemaker
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,8 @@ test_tabling :-
 		    tabling_ex14,
 		    tabling_ex15,
 		    tabling_ex16,
-		    tabling_ex17
+		    tabling_ex17,
+		    tabling_clpdf
 		  ]).
 
 		 /*******************************
@@ -932,6 +933,25 @@ test(ex17) :-
 
 :- end_tests(tabling_ex17).
 
+
+:- begin_tests(tabling_clpdf, [cleanup(abolish_all_tables)]).
+
+:- use_module(library(tabling)).
+:- table fib/2.
+:- use_module(library(clpfd)).
+
+fib(1, 1).
+fib(2, 2).
+fib(N, X) :-
+    N #> 2, N1 #= N-1, N2 #= N-2,
+    fib(N1, X1),
+    fib(N2, X2),
+    X #= X1+X2.
+
+test(fib_error, error(type_error(free_of_attvar, _))) :-
+	fib(_N, 13).
+
+:- end_tests(tabling_clpdf).
 
 		 /*******************************
 		 *	      COMMON		*

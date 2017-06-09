@@ -93,7 +93,9 @@ A call_continuation	"call_continuation"
 A callable		"callable"
 A callpred		"$callpred"
 A canceled		"canceled"
-A case_sensitive_file_names "case_sensitive_file_names"
+A case_insensitive	"case_insensitive"
+A case_preserving	"case_preserving"
+A case_sensitive	"case_sensitive"
 A catch			"catch"
 A category		"category"
 A ceil			"ceil"
@@ -110,6 +112,7 @@ A chdir			"chdir"
 A chmod			"chmod"
 A choice		"choice"
 A class			"class"
+A clausable		"clausable"
 A clause		"clause"
 A clause_garbage_collection "clause_garbage_collection"
 A clause_reference	"clause_reference"
@@ -272,6 +275,7 @@ A false			"false"
 A feature		"feature"
 A file			"file"
 A file_name		"file_name"
+A file_name_case_handling "file_name_case_handling"
 A file_name_variables	"file_name_variables"
 A file_no		"file_no"
 A flag			"flag"
@@ -486,6 +490,7 @@ A owner			"owner"
 A pair			"pair"
 A paren			"paren"
 A parent		"parent"
+A parentheses_term_position "parentheses_term_position"
 A parent_goal		"parent_goal"
 A partial		"partial"
 A past			"past"
@@ -535,8 +540,9 @@ A prolog_flag_type	"prolog_flag_type"
 A prolog_identifier_continue "prolog_identifier_continue"
 A prolog_symbol		"prolog_symbol"
 A prolog_var_start	"prolog_var_start"
-A prompt		"|:"
+A prompt		"|: "
 A property		"property"
+A protect_static_code	"protect_static_code"
 A protocol		"protocol"
 A prove			":-"
 A public		"public"
@@ -665,9 +671,11 @@ A system_thread_id	"system_thread_id"
 A system_time		"system_time"
 A table_space		"table_space"
 A table_space_used	"table_space_used"
+A tag			"tag"
 A tan			"tan"
 A tanh			"tanh"
 A temporary		"temporary"
+A temporary_file	"temporary_file"
 A temporary_files	"temporary_files"
 A term			"term"
 A term_expansion	"term_expansion"
@@ -691,6 +699,7 @@ A threads_created	"threads_created"
 A throw			"throw"
 A tilde			"~"
 A time			"time"
+A time_limit_exceeded	"time_limit_exceeded"
 A time_stamp		"time_stamp"
 A timeout		"timeout"
 A timeout_error		"timeout_error"
@@ -750,6 +759,7 @@ A utf8			"utf8"
 A v			"v"
 A value_count		"value_count"
 A var			"var"
+A var_prefix		"var_prefix"
 A variable		"variable"
 A variable_names	"variable_names"
 A variables		"variables"
@@ -767,6 +777,7 @@ A when_condition	"when_condition"
 A white			"white"
 A write			"write"
 A write_attributes	"write_attributes"
+A write_errors		"write_errors"
 A write_option		"write_option"
 A xdigit		"xdigit"
 A xf			"xf"
@@ -953,6 +964,7 @@ F not_strict_equal	2
 F occurs_check		2
 F or			1
 F output		0
+F parentheses_term_position 3
 F permission_error	3
 F pi			0
 F pipe			1
@@ -1018,6 +1030,7 @@ F string_position	2
 F syntax_error		1
 F syntax_error		3
 F system_thread_id	1
+F tag			1
 F tan			1
 F tanh			1
 F term_expansion	2
@@ -1040,6 +1053,7 @@ F uninstantiation_error	1
 F var			1
 F wakeup		3
 F warning		3
+F write_errors		1
 F xor			2
 F xpceref		1
 F xpceref		2

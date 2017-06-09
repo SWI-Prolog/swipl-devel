@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -149,8 +149,7 @@ initOs(void)
 #ifdef __WINDOWS__
   setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #else
-  setPrologFlagMask(PLFLAG_FILE_CASE);
-  setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
+  setPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
 #endif
 
   DEBUG(1, Sdprintf("OS:done\n"));
@@ -595,7 +594,6 @@ TemporaryFile(const char *id, int *fdp)
 { char temp[MAXPATHLEN];
   static char *tmpdir = NULL;
   atom_t tname;
-  int retries = 0;
 
   if ( !tmpdir )
   { LOCK();
@@ -619,11 +617,15 @@ TemporaryFile(const char *id, int *fdp)
 	    tmpdir = strdup(td);
 
 	  if ( reason )
-	    printMessage(ATOM_warning,
-			 PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
-			   PL_CHARS, env_names[i],
-			   PL_CHARS, td,
-			   PL_CHARS, reason);
+	  { if ( !printMessage(ATOM_warning,
+			       PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
+			         PL_CHARS, env_names[i],
+			         PL_CHARS, td,
+			         PL_CHARS, reason) )
+	    { UNLOCK();
+	      return NULL_ATOM;
+	    }
+	  }
 	}
       }
 
@@ -638,8 +640,11 @@ retry:
 { static int MTOK_temp_counter = 0;
   const char *sep = id[0] ? "_" : "";
 
-  Ssprintf(temp, "%s/pl_%s%s%d_%d",
-	   tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++);
+  if ( Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d_%d",
+		 tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++) < 0 )
+  { errno = ENAMETOOLONG;
+    return NULL_ATOM;
+  }
 }
 #endif
 
@@ -652,11 +657,16 @@ retry:
 #else
   if ( (tmp = _tempnam(tmpdir, id)) )
 #endif
-  { PrologPath(tmp, temp, sizeof(temp));
+  { if ( !PrologPath(tmp, temp, sizeof(temp)) )
+      return NULL_ATOM;
   } else
   { const char *sep = id[0] ? "_" : "";
 
-    Ssprintf(temp, "%s/pl_%s%s%d", tmpdir, id, sep, temp_counter++);
+    if ( Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d",
+		   tmpdir, id, sep, temp_counter++) < 0 )
+    { errno = ENAMETOOLONG;
+      return NULL_ATOM;
+    }
   }
 }
 #endif
@@ -665,10 +675,10 @@ retry:
   { int fd;
 
     if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY|O_BINARY, 0600)) < 0 )
-    { if ( ++retries < 10000 )
+    { if ( errno == EEXIST )
 	goto retry;
-      else
-	return NULL_ATOM;
+
+      return NULL_ATOM;
     }
 
     *fdp = fd;
@@ -745,9 +755,15 @@ PrologPath(char *ospath, char *path, size_t len)
   }
   for(; *s && limit; s++, p++, limit--)
     *p = (*s == '\\' ? '/' : makeLower(*s));
-  *p = EOS;
 
-  return path;
+  if ( limit )
+  { *p = EOS;
+    return path;
+  } else
+  { path[0] = EOS;
+    errno = ENAMETOOLONG;
+    return NULL;
+  }
 }
 
 
@@ -778,9 +794,12 @@ OsPath(const char *plpath, char *path)
 #ifdef __unix__
 char *
 PrologPath(const char *p, char *buf, size_t len)
-{ strncpy(buf, p, len);
+{ if ( strlen(p) < len )
+    return strcpy(buf, p);
 
-  return buf;
+  *buf = EOS;
+  errno = ENAMETOOLONG;
+  return NULL;
 }
 
 char *
@@ -1191,6 +1210,27 @@ utf8_strlwr(char *s)
 
     i = utf8_get_char(i, &c);
     c = towlower((wint_t)c);
+    if ( o >= s + MAXPATHLEN-6 )
+    { if ( c < 0x80 )
+      { if ( o >= s + MAXPATHLEN-1 )
+          return NULL;
+      } else if ( c < 0x800 )
+      { if ( o >= s + MAXPATHLEN-2 )
+          return NULL;
+      } else if ( c < 0x10000 )
+      { if ( o >= s + MAXPATHLEN-3 )
+          return NULL;
+      } else if ( c < 0x200000 )
+      { if ( o >= s + MAXPATHLEN-4 )
+          return NULL;
+      } else if ( c < 0x4000000 )
+      { if ( o >= s + MAXPATHLEN-5 )
+          return NULL;
+      } else if ( (unsigned)c < 0x80000000 )
+      { if ( o >= s + MAXPATHLEN-6 )
+          return NULL;
+      }
+    }
     o = utf8_put_char(o, c);
   }
   *o = EOS;
@@ -1204,7 +1244,11 @@ canonicalisePath(char *path)
 { GET_LD
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
-    utf8_strlwr(path);
+  { if ( !utf8_strlwr(path) )
+    { PL_representation_error("max_path_length");
+      return NULL;
+    }
+  }
 
   canonicaliseFileName(path);
 
@@ -1477,7 +1521,7 @@ AbsoluteFile(const char *spec, char *path)
   char *file = PrologPath(spec, buf, sizeof(buf));
 
   if ( !file )
-     return (char *) NULL;
+    return (char *) NULL;
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(file = expandVars(buf, tmp, sizeof(tmp))) )
       return (char *) NULL;
@@ -1561,7 +1605,10 @@ to be implemented directly.  What about other Unixes?
       return NULL;
     }
 
-    canonicalisePath(buf);
+    if ( !canonicalisePath(buf) )
+    { PL_representation_error("max_path_length");
+      return NULL;
+    }
     GD->paths.CWDlen = strlen(buf);
     buf[GD->paths.CWDlen++] = '/';
     buf[GD->paths.CWDlen] = EOS;
@@ -1575,7 +1622,7 @@ to be implemented directly.  What about other Unixes?
   { memcpy(cwd, GD->paths.CWDdir, GD->paths.CWDlen+1);
     return cwd;
   } else
-  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+  { PL_representation_error("max_path_length");
     return NULL;
   }
 }
@@ -1595,37 +1642,45 @@ PL_cwd(char *cwd, size_t cwdlen)
 
 char *
 BaseName(const char *f)
-{ const char *base;
+{ if ( f )
+  { const char *base;
 
-  for(base = f; *f; f++)
-  { if (*f == '/')
-      base = f+1;
+    for(base = f; *f; f++)
+    { if (*f == '/')
+	base = f+1;
+    }
+
+    return (char *)base;
   }
 
-  return (char *)base;
+  return NULL;
 }
 
 
 char *
 DirName(const char *f, char *dir)
-{ const char *base, *p;
+{ if ( f )
+  { const char *base, *p;
 
-  for(base = p = f; *p; p++)
-  { if ( *p == '/' )
-      base = p;
-  }
-  if ( base == f )
-  { if ( *f == '/' )
-      strcpy(dir, "/");
-    else
-      strcpy(dir, ".");
-  } else
-  { if ( dir != f )			/* otherwise it is in-place */
-      strncpy(dir, f, base-f);
-    dir[base-f] = EOS;
+    for(base = p = f; *p; p++)
+    { if ( *p == '/' )
+	base = p;
+    }
+    if ( base == f )
+    { if ( *f == '/' )
+	strcpy(dir, "/");
+      else
+	strcpy(dir, ".");
+    } else
+    { if ( dir != f )			/* otherwise it is in-place */
+	strncpy(dir, f, base-f);
+      dir[base-f] = EOS;
+    }
+
+    return dir;
   }
 
-  return dir;
+  return NULL;
 }
 
 
@@ -1646,9 +1701,10 @@ ChDir(const char *path)
 
   if ( path[0] == EOS || streq(path, ".") ||
        (GD->paths.CWDdir && streq(path, GD->paths.CWDdir)) )
-    succeed;
+    return TRUE;
 
-  AbsoluteFile(path, tmp);
+  if ( !AbsoluteFile(path, tmp) )
+    return FALSE;
 
   if ( chdir(ospath) == 0 )
   { size_t len;
@@ -1665,10 +1721,10 @@ ChDir(const char *path)
     GD->paths.CWDdir = store_string(tmp);
     UNLOCK();
 
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -1898,7 +1954,7 @@ SetTtyState(int fd, struct termios *tio)
 #endif
 #endif
 
-  ttymodified = memcmp(&TTY_STATE(&ttytab), &tio, sizeof(*tio));
+  ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
 
   return TRUE;
 }
@@ -1915,9 +1971,13 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   ttymode    = mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+  { DEBUG(MSG_TTY, Sdprintf("stdin is not a terminal\n"));
     succeed;				/* not a terminal */
+  }
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
+  { DEBUG(MSG_TTY, Sdprintf("tty_control is false\n"));
     succeed;
+  }
 
   buf->state = allocHeapOrHalt(sizeof(tty_state));
 
@@ -1970,7 +2030,11 @@ PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 
     if ( (!HAS_LD || truePrologFlag(PLFLAG_TTY_CONTROL)) &&
 	 (fd = Sfileno(s)) >= 0 )
+    { DEBUG(MSG_TTY,
+	    Sdprintf("HAS_LD = %d; tty_control = %d\n",
+		     HAS_LD, truePrologFlag(PLFLAG_TTY_CONTROL)));
       rc = SetTtyState(fd, &TTY_STATE(buf));
+    }
 
     if ( do_free )
     { freeHeap(buf->state, sizeof(tty_state));
@@ -2503,7 +2567,7 @@ char *command;
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    char *findExecutable(char *buf)
+    char *findExecutable(const char *progname, char *buf, size_t buflen)
 
     Return the path name of the executable of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -2512,7 +2576,7 @@ char *command;
 static char *	Which(const char *program, char *fullname);
 
 char *
-findExecutable(const char *av0, char *buffer)
+findExecutable(const char *av0, char *buffer, size_t buflen)
 { char *file;
   char buf[MAXPATHLEN];
   char tmp[MAXPATHLEN];

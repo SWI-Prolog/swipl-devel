@@ -1,30 +1,43 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      VU University Amsterdam
+    Copyright (c)  1996-2016, University of Amsterdam
+                              VU University Amsterdam
+    All rights reserved.
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
+#include "os/pl-text.h"
 #include "pl-codelist.h"
 #include <errno.h>
 
@@ -417,6 +430,29 @@ PL_new_atom_nchars(size_t len, const char *s)
 }
 
 
+atom_t
+PL_new_atom_mbchars(int flags, size_t len, const char *s)
+{ PL_chars_t text;
+  atom_t a;
+
+  if ( len == (size_t)-1 )
+    len = strlen(s);
+
+  text.text.t    = (char*)s;
+  text.encoding  = ((flags&REP_UTF8) ? ENC_UTF8 : \
+		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
+  text.length    = len;
+  text.canonical = FALSE;
+  text.storage   = PL_CHARS_HEAP;
+
+  a = textToAtom(&text);
+  PL_free_text(&text);
+
+  return a;
+}
+
+
+
 functor_t
 PL_new_functor_sz(atom_t f, size_t arity)
 { if ( !GD->initialised )
@@ -504,6 +540,7 @@ lookupUCSAtom(const pl_wchar_t *s, size_t len)
 atom_t
 PL_new_atom_wchars(size_t len, const wchar_t *s)
 { PL_chars_t txt;
+  atom_t a;
 
   if ( !GD->initialised )
     initAtoms();
@@ -517,7 +554,10 @@ PL_new_atom_wchars(size_t len, const wchar_t *s)
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
 
-  return textToAtom(&txt);
+  a = textToAtom(&txt);
+  PL_free_text(&txt);
+
+  return a;
 }
 
 
@@ -1139,6 +1179,12 @@ PL_get_term_value(term_t t, term_value_t *val)
       break;
     case PL_ATOM:
       val->a = (atom_t)w;
+      if ( !isTextAtom(val->a) )
+      { if ( val->a == ATOM_nil )
+	  return PL_NIL;
+	else
+	  return PL_BLOB;
+      }
       break;
     case PL_STRING:
       val->s = getCharsString(w, NULL);
@@ -1147,6 +1193,10 @@ PL_get_term_value(term_t t, term_value_t *val)
     { FunctorDef fd = valueFunctor(functorTerm(w));
       val->t.name  = fd->name;
       val->t.arity = fd->arity;
+      if ( fd->functor == FUNCTOR_dot2 )
+	return PL_LIST_PAIR;
+      if ( val->t.name == ATOM_dict )
+	return PL_DICT;
       break;
     }
     default:
@@ -2301,6 +2351,46 @@ PL_put_string_nchars(term_t t, size_t len, const char *s)
   }
 
   return FALSE;
+}
+
+
+int
+PL_put_chars(term_t t, int flags, size_t len, const char *s)
+{ GET_LD
+  PL_chars_t text;
+  word w = 0;
+  int rc = FALSE;
+
+  if ( len == (size_t)-1 )
+    len = strlen(s);
+
+  text.text.t    = (char*)s;
+  text.encoding  = ((flags&REP_UTF8) ? ENC_UTF8 : \
+		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
+  text.length    = len;
+  text.canonical = FALSE;
+  text.storage   = PL_CHARS_HEAP;
+
+  flags &= ~(REP_UTF8|REP_MB|REP_ISO_LATIN_1);
+
+  if ( flags == PL_ATOM )
+    w = textToAtom(&text);
+  else if ( flags == PL_STRING )
+    w = textToString(&text);
+  else if ( flags == PL_CODE_LIST || flags == PL_CHAR_LIST )
+  { PL_put_variable(t);
+    rc = PL_unify_text(t, 0, &text, flags);
+  } else
+    assert(0);
+
+  if ( w )
+  { setHandle(t, w);
+    rc = TRUE;
+  }
+
+  PL_free_text(&text);
+
+  return rc;
 }
 
 
@@ -3900,6 +3990,44 @@ copy_exception(term_t ex, term_t bin ARG_LD)
 }
 
 
+except_class
+classify_exception_p__LD(Word p ARG_LD)
+{ deRef(p);
+  if ( isVar(*p) )
+  { return EXCEPT_NONE;
+  } else if ( isAtom(*p) )
+  { if ( *p == ATOM_aborted )
+      return EXCEPT_ABORT;
+    if ( *p == ATOM_time_limit_exceeded )
+      return EXCEPT_TIMEOUT;
+  } else if ( hasFunctor(*p, FUNCTOR_error2) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+
+    if ( isAtom(*p) )
+    { if ( *p == ATOM_resource_error )
+	return EXCEPT_RESOURCE;
+    }
+
+    return EXCEPT_ERROR;
+  }
+
+  return EXCEPT_OTHER;
+}
+
+
+except_class
+classify_exception__LD(term_t exception ARG_LD)
+{ Word p;
+
+  if ( !exception )
+    return EXCEPT_NONE;
+
+  p = valTermRef(exception);
+  return classify_exception_p(p);
+}
+
+
 int
 PL_raise_exception(term_t exception)
 { GET_LD
@@ -3911,10 +4039,15 @@ PL_raise_exception(term_t exception)
 
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
-  { setVar(*valTermRef(exception_bin));
-    copy_exception(exception, exception_bin PASS_LD);
-    if ( !PL_is_atom(exception_bin) )
-      freezeGlobal(PASS_LD1);
+  { except_class co = classify_exception(exception_bin);
+    except_class cn = classify_exception(exception);
+
+    if ( cn >= co )
+    { setVar(*valTermRef(exception_bin));
+      copy_exception(exception, exception_bin PASS_LD);
+      if ( !PL_is_atom(exception_bin) )
+	freezeGlobal(PASS_LD1);
+    }
   }
   exception_term = exception_bin;
 
@@ -4405,7 +4538,10 @@ PL_prompt_next(int fd)
 
 char *
 PL_prompt_string(int fd)
-{ if ( fd == 0 )
+{ GET_LD
+  IOSTREAM *s;
+
+  if ( (s=Suser_input) && fd == Sfileno(s) )
   { atom_t a = PrologPrompt();		/* TBD: deal with UTF-8 */
 
     if ( a )
@@ -4555,34 +4691,70 @@ PL_duplicate_record(record_t r)
 
 int
 PL_set_prolog_flag(const char *name, int type, ...)
-{ va_list args;
+{ GET_LD
+  va_list args;
   int rval = TRUE;
   int flags = (type & FF_MASK);
-
-  initPrologThreads();
+  fid_t fid;
+  term_t av;
 
   va_start(args, type);
-  switch(type & ~FF_MASK)
-  { case PL_BOOL:
-    { int val = va_arg(args, int);
+  if ( HAS_LD &&
+       GD->io_initialised &&			/* setupProlog() finished */
+       (fid = PL_open_foreign_frame()) &&
+       (av  = PL_new_term_refs(2)) )
+  { PL_put_atom_chars(av+0, name);
+    switch(type & ~FF_MASK)
+    { case PL_BOOL:
+      { int val = va_arg(args, int);
 
-      setPrologFlag(name, FT_BOOL|flags, val, 0);
-      break;
+	rval = ( PL_put_bool(av+1, val) &&
+		 set_prolog_flag(av+0, av+1, FT_BOOL|flags) );
+	break;
+      }
+      case PL_ATOM:
+      { const char *v = va_arg(args, const char *);
+
+	rval = ( PL_put_atom_chars(av+1, v) &&
+		 set_prolog_flag(av+0, av+1, FT_ATOM|flags) );
+	break;
+      }
+      case PL_INTEGER:
+      { intptr_t v = va_arg(args, intptr_t);
+
+	rval = ( PL_put_integer(av+1, v) &&
+		 set_prolog_flag(av+0, av+1, FT_INTEGER|flags) );
+	break;
+      }
+      default:
+	rval = FALSE;
     }
-    case PL_ATOM:
-    { const char *v = va_arg(args, const char *);
-      if ( !GD->initialised )
-	initAtoms();
-      setPrologFlag(name, FT_ATOM|flags, v);
-      break;
+    PL_close_foreign_frame(fid);
+  } else
+  { initPrologThreads();
+
+    switch(type & ~FF_MASK)
+    { case PL_BOOL:
+      { int val = va_arg(args, int);
+
+	setPrologFlag(name, FT_BOOL|flags, val, 0);
+	break;
+      }
+      case PL_ATOM:
+      { const char *v = va_arg(args, const char *);
+	if ( !GD->initialised )
+	  initAtoms();
+	setPrologFlag(name, FT_ATOM|flags, v);
+	break;
+      }
+      case PL_INTEGER:
+      { intptr_t v = va_arg(args, intptr_t);
+	setPrologFlag(name, FT_INTEGER|flags, v);
+	break;
+      }
+      default:
+	rval = FALSE;
     }
-    case PL_INTEGER:
-    { intptr_t v = va_arg(args, intptr_t);
-      setPrologFlag(name, FT_INTEGER|flags, v);
-      break;
-    }
-    default:
-      rval = FALSE;
   }
   va_end(args);
 
