@@ -140,16 +140,14 @@ static size_t		key_gsize(trie *trie, word key);
 static void		max_gsize(size_t *gsize, trie *trie, word key);
 
 
-static inline void
+static inline word
 acquire_key(word key)
-{ if ( isAtom(key) )
-    PL_register_atom(key);
+{ return (word) PL_record(key);
 }
 
 static inline void
 release_key(word key)
-{ if ( isAtom(key) )
-    PL_unregister_atom(key);
+{ PL_erase((record_t)key);
 }
 
 
@@ -235,7 +233,6 @@ new_trie_node(trie *trie, word key)
   if ( (n = PL_malloc(sizeof(*n))) )
   { ATOMIC_INC(&trie->node_count);
     memset(n, 0, sizeof(*n));
-    acquire_key(key);
     n->key = key;
   } else
   { PL_resource_error("memory");
@@ -946,24 +943,30 @@ PRED_IMPL("trie_insert", 3, trie_insert, 0)
   { Word kp, vp;
     trie_node *node;
     int rc;
+    word val;
 
     kp = valTermRef(A2);
     vp = valTermRef(A3);
     deRef(vp);
 
-    if ( !isAtomic(*vp) || isFloat(*vp) )
+  /*  if ( !isAtomic(*vp) || isFloat(*vp) )
       return PL_type_error("primitive", A3);
     if ( isBignum(*vp) )
       return PL_domain_error("primitive", A3);
-
+*/
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
-      { if ( node->value == *vp )
-	  return FALSE;				/* already in trie */
+      {        printf("qui1\n");
+
+        val = PL_new_term_ref();
+        PL_recorded((record_t)node->value,val);
+        printf("qui2\n");
+        if ( !PL_compare(*vp,val) )
+	  return FALSE;
+    printf("qui3\n");/* already in trie */
 	return PL_permission_error("modify", "trie_key", A2);
       }
-      acquire_key(*vp);
-      node->value = *vp;
+      node->value = acquire_key(*vp);
 
       return TRUE;
     }
@@ -1265,7 +1268,7 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   trie_gen_state state_buf;
   trie_gen_state *state;
-  term_t key;
+  term_t key,val;
   word value;
   fid_t fid;
 
@@ -1304,6 +1307,7 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
   }
 
   key = PL_new_term_ref();
+  val = PL_new_term_ref();
   fid = PL_open_foreign_frame();
 
   for( ; state->head; next_choice(state) )
@@ -1311,7 +1315,8 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
     { PL_close_foreign_frame(fid);
       return FALSE;				/* resource error */
     }
-    if ( PL_unify(A2, key) && _PL_unify_atomic(A3, value) )
+    PL_recorded((record_t)value,val);
+    if ( PL_unify(A2, key) && PL_unify(A3, val) )
     { if ( next_choice(state) )
       { if ( state == &state_buf )
 	{ state = allocForeignState(sizeof(*state));
