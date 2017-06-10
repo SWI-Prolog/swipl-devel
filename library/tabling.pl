@@ -172,7 +172,13 @@ add_answer(WorkList, M:Wrapper, M:WrapperNoModes,Worker):-
 writeln(modes),
     extract_mode_args(M:Wrapper, ModeArgs, _WrapperNoModes),
     writeln(ModeArgs),
-    '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs),
+writeln(        '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs)),
+
+    '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs,Trie),
+    writeln(        '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs,Trie)),
+%    '$tbl_variant_table'(M:WrapperNoModes, Trie, Status),
+%    writeln('trie '),writeln(Trie),
+    trie_gen(Trie, M:WrapperNoModes, Val),write('val '),writeln(Val),
     writeln("dopo"),
     writeln(ModeArgs).
 
@@ -222,7 +228,10 @@ completion :-
 completion_step(SourceTable) :-
     (   '$tbl_wkl_work'(SourceTable, Answer, Dependency),
         dep(Answer, Dependency, Wrapper,Continuation,TargetTable),
-        delim(Wrapper,Continuation,TargetTable),
+        write(delim(Wrapper,Continuation,TargetTable)),
+        get_wrapper_no_mode_args(Wrapper,WrapperNoModes),
+%            extract_mode_args(Wrapper, _ModeArgs, WrapperNoModes),
+        delim(Wrapper,WrapperNoModes,Continuation,TargetTable),
         fail
     ;   true
     ).
