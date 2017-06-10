@@ -35,6 +35,20 @@
 #include "pl-incl.h"
 #include "pl-tabling.h"
 #include "pl-copyterm.h"
+static  word
+acquire_key(word key)
+{
+  word ret;
+
+  ret= (word) PL_record(key);
+  return ret;
+}
+
+static  void
+release_key(word key)
+{
+  PL_erase((record_t)key);
+}
 
 #define record_t fastheap_term *
 #define PL_record(t)      term_to_fastheap(t PASS_LD)
@@ -45,6 +59,7 @@ static void	free_worklist(worklist *wl);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
 #endif
+
 
 
 static worklist_set *
@@ -656,6 +671,58 @@ PRED_IMPL("$tbl_wkl_add_answer", 2, tbl_wkl_add_answer, 0)
   return FALSE;
 }
 
+/** '$tbl_wkl_mode_add_answer'(+Worklist, +Term, +Args) is semidet.
+ *
+ * Add an answer Args for moded arguments to the worklist's trie  and the worklist answer cluster
+ * using trie_insert_new/3 and mode directed tabling
+ */
+
+static
+PRED_IMPL("$tbl_wkl_mode_add_answer", 3, tbl_wkl_mode_add_answer, 0)
+{ PRED_LD
+  worklist *wl;
+
+  if ( get_worklist(A1, &wl) )
+  { Word kp;
+    trie_node *node;
+    int rc;
+    term_t val,old_val,new_val,update;
+    functor_t update_func;
+
+    kp = valTermRef(A2);
+    val= PL_new_term_ref();
+    PL_unify(A3,val);
+
+    old_val= PL_new_term_ref();
+    new_val= PL_new_term_ref();
+    update= PL_new_term_ref();
+    update_func= PL_new_functor(PL_new_atom("update"),4);
+
+
+
+    if ( (rc=trie_lookup(wl->table, &node, kp, TRUE PASS_LD)) == TRUE )
+    { if ( node->value )
+      {
+        if (!(node->value==ATOM_nil))
+        	return PL_permission_error("modify", "trie_key", A2);
+        PL_recorded((record_t)node->value,old_val);
+        PL_cons_functor(update,update_func,kp,old_val,val,new_val);
+        PL_call(update,PL_context());
+        release_key(node->value);
+        node->value = acquire_key(new_val);
+      }
+     else
+      {
+        node->value = acquire_key(val);
+      }
+      return wkl_add_answer(wl, node PASS_LD);
+    }
+
+    return trie_error(rc, A2);
+  }
+
+  return FALSE;
+}
 /** '$tbl_wkl_add_suspension'(+Worklist, +Suspension) is det.
  *
  * Add a suspension to the worklist.
@@ -963,6 +1030,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_new_worklist",		2, tbl_new_worklist,	     0)
   PRED_DEF("$tbl_pop_worklist",		1, tbl_pop_worklist,	     0)
   PRED_DEF("$tbl_wkl_add_answer",	2, tbl_wkl_add_answer,	     0)
+  PRED_DEF("$tbl_wkl_mode_add_answer",	3, tbl_wkl_mode_add_answer,	     0)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
   PRED_DEF("$tbl_wkl_done",		1, tbl_wkl_done,	     0)
   PRED_DEF("$tbl_wkl_work",		3, tbl_wkl_work, PL_FA_NONDETERMINISTIC)

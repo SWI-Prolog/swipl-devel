@@ -152,7 +152,8 @@ acquire_key(word key)
 static  void
 release_key(word key)
 {
-  PL_erase((record_t)key);
+  if (!(key==ATOM_nil))
+    PL_erase((record_t)key);
 }
 
 
@@ -956,10 +957,12 @@ PRED_IMPL("trie_insert", 3, trie_insert, 0)
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
       {
-        val = PL_new_term_ref();
-        PL_recorded((record_t)node->value,val);
-        if ( !PL_compare(vp,val) )
-	  return FALSE; /* already in trie */
+        if (!(node->value==ATOM_nil))
+        	  return FALSE; /* already in trie */
+          val = PL_new_term_ref();
+          PL_recorded((record_t)node->value,val);
+          if ( !PL_compare(vp,val) )
+	           return FALSE; /* already in trie */
 	return PL_permission_error("modify", "trie_key", A2);
       }
       node->value = acquire_key(vp);
@@ -1000,7 +1003,7 @@ PRED_IMPL("trie_update", 3, trie_update, 0)
 
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
-        release_key(node->value);
+       release_key(node->value);
       node->value = acquire_key(vp);
       return TRUE;
     }
@@ -1061,15 +1064,18 @@ PRED_IMPL("trie_lookup", 3, trie_lookup, 0)
   { Word kp;
     trie_node *node;
     int rc;
+    term_t val;
+    val=PL_new_term_ref();
 
     kp = valTermRef(A2);
 
     if ( (rc=trie_lookup(trie, &node, kp, FALSE PASS_LD)) == TRUE )
     { if ( node->value )
       {
-        term_t val;
-        val=PL_new_term_ref();
-        PL_recorded((record_t)node->value,val);
+            if (!(node->value==ATOM_nil))
+              PL_recorded((record_t)node->value,val);
+            else
+              PL_put_atom(val,ATOM_nil);
         return PL_unify(A3, val);
       }
       return FALSE;
@@ -1354,7 +1360,12 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
     { PL_close_foreign_frame(fid);
       return FALSE;				/* resource error */
     }
-    PL_recorded((record_t)value,val);
+//    printf("%d %d\n",value,ATOM_nil);
+    if (!(value==ATOM_nil))
+      PL_recorded((record_t)value,val);
+    else
+      PL_put_atom(val,ATOM_nil);
+//      printf("qui\n" );
     if ( PL_unify(A2, key) && PL_unify(A3, val) )
     { if ( next_choice(state) )
       { if ( state == &state_buf )

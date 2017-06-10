@@ -49,6 +49,10 @@
     start_tabling(+, 0),
     current_table(:, -),
     abolish_table_subgoals(:).
+%    get_wrapper_no_mode_args(:,:).
+%    add_answer(+,0,0).
+  %  extract_mode_args(+,:,-),
+  %  get_modes(:,-).
 
 /** <module> Tabled execution (SLG WAM)
 
@@ -84,48 +88,128 @@ table(PIList) :-
 %           from future versions.
 
 start_tabling(Wrapper,Worker) :-
-    '$tbl_variant_table'(Wrapper, Trie, Status),
+writeln(st),
+%WrapperNoModes=Wrapper,
+  %  writeln(    get_wrapper_no_mode_args(Wrapper,WrapperNoModes))
+    get_wrapper_no_mode_args(Wrapper,WrapperNoModes),
+    writeln(    get_wrapper_no_mode_args(Wrapper,WrapperNoModes)),
+    '$tbl_variant_table'(WrapperNoModes, Trie, Status),
     (   Status == complete
-    ->  trie_gen(Trie, Wrapper, _)
+    ->  writeln(qui),
+    trie_gen(Trie, WrapperNoModes, _),
+    writeln(after_trie_gen)
     ;   (   '$tbl_scheduling_component'(false, true)
-        ->  catch(run_leader(Wrapper, Worker, Trie), E, true),
+        ->  catch(run_leader(Wrapper, WrapperNoModes, Worker, Trie), E, true),
             (   var(E)
-            ->  trie_gen(Trie, Wrapper, _)
-            ;   '$tbl_table_discard_all',
+            ->  writeln(qua),
+            writeln(trie_gen(Trie, WrapperNoModes, _Val)),
+            %'$trie_property'(Trie,Prop),writeln(Prop),
+            trie_gen(Trie, WrapperNoModes, Val),write('val '),writeln(Val)
+            ;   %'$tbl_table_discard_all',
                 throw(E)
             )
-        ;   run_follower(Status, Wrapper, Worker, Trie)
+        ;   run_follower(Status, Wrapper, WrapperNoModes, Worker, Trie)
         )
     ).
 
-run_follower(fresh, Wrapper, Worker, Trie) :-
+get_wrapper_no_mode_args(M:Wrapper,M:WrapperNoModes):-
+writeln(get_wrapper_no_mode_args(M:Wrapper,WrapperNoModes)),
+    writeln(M:'$table_modes'(Wrapper,_)),
+    M:'$table_modes'(Wrapper,_),!,
+    writeln(M:'$table_modes'(Wrapper,_)),
+%    WrapperNoModes=Wrapper.
+    extract_mode_args(M:Wrapper, _ModeArgs, WrapperNoModes),
+    writeln(    extract_mode_args(M:Wrapper, _ModeArgs, WrapperNoModes)).
+
+get_wrapper_no_mode_args(Wrapper,Wrapper).
+
+run_follower(fresh, Wrapper, WrapperNoModes, Worker, Trie) :-
     !,
-    activate(Wrapper, Worker, Trie, Worklist),
+    activate(Wrapper, WrapperNoModes, Worker, Trie, Worklist),
     shift(call_info(Wrapper, Worklist)).
-run_follower(Worklist, Wrapper, _Worker, _Trie) :-
+run_follower(Worklist, Wrapper, _WrapperNoModes, _Worker, _Trie) :-
     shift(call_info(Wrapper, Worklist)).
 
-run_leader(Wrapper, Worker, Trie) :-
-    activate(Wrapper, Worker, Trie, _Worklist),
+run_leader(Wrapper, WrapperNoModes, Worker, Trie) :-
+writeln(leader),
+    activate(Wrapper, WrapperNoModes, Worker, Trie, _Worklist),
     completion,
     '$tbl_scheduling_component'(_, false).
 
-activate(Wrapper, Worker, Trie, WorkList) :-
+activate(Wrapper, WrapperNoModes, Worker, Trie, WorkList) :-
+writeln(activate),
     '$tbl_new_worklist'(WorkList, Trie),
-    (   delim(Wrapper, Worker, WorkList),
+    (   delim(Wrapper, WrapperNoModes, Worker, WorkList),
         fail
     ;   true
     ).
 
-delim(Wrapper, Worker, WorkList) :-
+delim(Wrapper, WrapperNoModes, Worker, WorkList) :-
+writeln(delim),
     reset(Worker,SourceCall,Continuation),
     (   Continuation == 0
-    ->  '$tbl_wkl_add_answer'(WorkList, Wrapper)
+    ->  add_answer(WorkList,Wrapper,WrapperNoModes,Worker)
+
     ;   SourceCall = call_info(SrcWrapper, SourceWL),
         TargetCall = call_info(Wrapper,    WorkList),
         Dependency = dependency(SrcWrapper,Continuation,TargetCall),
         '$tbl_wkl_add_suspension'(SourceWL, Dependency)
     ).
+
+add_answer(WorkList, M:Wrapper,M:Wrapper, Worker):-!,
+writeln(add_answer(WorkList, M:Wrapper,M:Wrapper, Worker)),
+%     functor(Wrapper, Name, Arity),
+%     functor(TableAtom, Name, Arity),
+%     write('name '),writeln(Name),
+%     \+ M:'$table_modes'(TableAtom,_),
+%     !, % no mode directed tabling
+     writeln(no_modes),
+     writeln('$tbl_wkl_add_answer'(WorkList, M:Wrapper)),
+    '$tbl_wkl_add_answer'(WorkList, M:Wrapper).
+
+add_answer(WorkList, M:Wrapper, M:WrapperNoModes,Worker):-
+% mode directed tabling
+writeln(modes),
+    extract_mode_args(M:Wrapper, ModeArgs, _WrapperNoModes),
+    writeln(ModeArgs),
+    '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs),
+    writeln("dopo"),
+    writeln(ModeArgs).
+
+extract_mode_args(M:Wrapper, ModeArgs, WrapperNoModes):-
+  get_modes(M:Wrapper, Modes),
+  writeln(get_modes(M:Wrapper, Modes)),
+  Wrapper =.. [P|Args],
+  writeln(  separate_args(Modes,Args,NoModesArgs,ModeArgs)),
+  separate_args(Modes,Args,NoModesArgs,ModeArgs),
+  writeln(  separate_args(Modes,Args,NoModesArgs,ModeArgs)),
+  WrapperNoModes =.. [P|NoModesArgs],
+  write("wrapper nm "),writeln(WrapperNoModes).
+
+update(Wrapper,A1,A2,A3):-
+  get_modes(Wrapper, Modes),
+  get_mode_list(Modes,Preds),
+  writeln(  get_mode_list(Modes,Preds)),
+  writeln(maplist(join,Preds,A1,A2,A3)),
+  maplist(join,Preds,A1,A2,A3).
+
+get_modes(M:Wrapper,Modes):-
+  functor(Wrapper,Name,Args),
+  functor(Head,Name,Args),
+  M:'$table_modes'(Head, Modes).
+
+get_mode_list([],[]).
+
+get_mode_list([H|TM],TP):-
+  var(H),!,
+  get_mode_list(TM,TP).
+
+get_mode_list([H|TM],[H|TP]):-
+  get_mode_list(TM,TP).
+
+
+join(Pred,E1,E2,E3):-
+  call(Pred,E1,E2,E3).
 
 completion :-
     '$tbl_pop_worklist'(WorkList),
@@ -230,6 +314,33 @@ wrappers(Name/Arity) -->
              start_tabling(Module:Head, WrappedHead)
       )
     ].
+wrappers(ModeDirectedSpec) -->
+    {
+      functor(ModeDirectedSpec, Name, Arity),
+      ModeDirectedSpec=..[Name|Modes],
+      functor(Head, Name, Arity),
+      atom_concat(Name, ' tabled', WrapName),
+      Head =.. [Name|Args],
+      WrappedHead =.. [WrapName|Args],
+%      separate_args(Modes,Args,NoModesArg,_ModeArgs),
+%      HeadNoModeArgs =..[Name|NoModesArg],
+      prolog_load_context(module, Module)
+    },
+    [ '$tabled'(Head),
+      '$table_modes'(Head,Modes),
+      (   Head :-
+             start_tabling(Module:Head, WrappedHead)
+      )
+    ].
+
+separate_args([],[],[],[]).
+
+separate_args([HM|TM],[H|TA],[H|TNA],TMA):-
+  var(HM),!,
+  separate_args(TM,TA,TNA,TMA).
+
+separate_args([_H|TM],[H|TA],TNA,[H|TMA]):-
+  separate_args(TM,TA,TNA,TMA).
 
 %!  prolog:rename_predicate(:Head0, :Head) is semidet.
 %
@@ -253,7 +364,9 @@ rename_term(Name, WrapName) :-
 
 
 system:term_expansion((:- table(Preds)),
-                      [ (:- discontiguous('$tabled'/1))
+                      [ (:- discontiguous('$tabled'/1)),
+                        (:- dynamic('$table_modes'/2)),
+                        (:- discontiguous('$table_modes'/2))
                       | Clauses
                       ]) :-
     phrase(wrappers(Preds), Clauses).
