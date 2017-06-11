@@ -3259,12 +3259,14 @@ used for debugging purposes.
 
     \predicate{trie_insert}{3}{+Trie, +Key, +Value}
 Insert the term \arg{Key} into \arg{Trie} and associate it with
-\arg{Value}.  Currently, \arg{Value} is either an atom or small
-integer.  Future versions will probably allow for arbitrary terms.
+\arg{Value}. \arg{Value} can be any term.  If \arg{Key}-\arg{Value}
+is already part of \arg{Trie}, the predicates \emph{fails} silently.
+If \arg{Key} is in \arg{Trie} associated with a different value, a
+\const{permission_error} is raised.
 
-    \predicate{trie_lookup}{3}{+Trie, +Key, -Value}
-True if the term \arg{Key} is in \arg{Trie} and associated with
-\arg{Value}.
+    \predicate{trie_update}{3}{+Trie, +Key, +Value}
+As trie_insert/3, but if \arg{Key} is in \arg{Trie}, its associated
+value is \emph{updated}.
 
     \predicate{trie_insert_new}{3}{+Trie, +Term, -Handle}
 Add \arg{Term} to \arg{Trie} and return a handle to the node. Fails if
@@ -3273,6 +3275,10 @@ trie_term/2 to retrieve (a copy of) \arg{Term}. This predicate is
 currently unsafe as \arg{Handle} is an integer used to encode a pointer.
 It was used to implement a pure Prolog version of the \pllib{tabling}
 library.
+
+    \predicate{trie_lookup}{3}{+Trie, +Key, -Value}
+True if the term \arg{Key} is in \arg{Trie} and associated with
+\arg{Value}.
 
     \predicate{trie_term}{2}{+Handle, -Term}
 True when \arg{Term} is a copy of the term associated with \arg{Handle}.

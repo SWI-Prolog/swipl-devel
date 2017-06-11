@@ -710,6 +710,15 @@ compileTermToHeap__LD(term_t t,
   return record;
 }
 
+
+int
+variantRecords(const Record r1, const Record r2)
+{ return ( r1->size == r2->size &&
+	   memcpy(r1, r2, r1->size) == 0
+	 );
+}
+
+
 		 /*******************************
 		 *	 EXTERNAL RECORDS	*
 		 *******************************/

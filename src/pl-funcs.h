@@ -579,6 +579,7 @@ COMMON(Record)		compileTermToHeap__LD(term_t term,
 					      int flags ARG_LD);
 COMMON(int)		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
+COMMON(int)		variantRecords(const Record r1, const Record r2);
 COMMON(bool)		freeRecord(Record record);
 COMMON(void)		unallocRecordRef(RecordRef r);
 COMMON(bool)		unifyKey(term_t key, word val);

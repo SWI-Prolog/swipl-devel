@@ -138,6 +138,7 @@ static unsigned int	key_nvar(word key);
 static void		max_nvar(unsigned int *nvars, word key);
 static size_t		key_gsize(trie *trie, word key);
 static void		max_gsize(size_t *gsize, trie *trie, word key);
+static inline void	release_value(word value);
 
 
 static inline void
@@ -254,7 +255,7 @@ clear_node(trie *trie, trie_node *n)
 
   release_key(n->key);
   if ( n->value )
-    release_key(n->value);
+    release_value(n->value);
 
   if ( children.any &&
        COMPARE_AND_SWAP(&n->children.any, children.any, NULL) )
@@ -928,6 +929,123 @@ PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 }
 
 
+#define isRecord(w) (((w)&0x3) == 0)
+
+static word
+intern_value(term_t value ARG_LD)
+{ Word vp = valTermRef(value);
+
+  assert((TAG_INTEGER&0x3) && (TAG_ATOM&0x3));
+
+  deRef(vp);
+  if ( isAtom(*vp) || isTaggedInt(*vp) )
+    return *vp;
+
+  return (word)PL_record(value);
+}
+
+
+static inline void
+acquire_value(word value)
+{ if ( isAtom(value) )
+    PL_register_atom(value);
+}
+
+
+static inline void
+release_value(word value)
+{ if ( isAtom(value) )
+    PL_unregister_atom(value);
+  else if ( isRecord(value) )
+    PL_erase((record_t)value);
+}
+
+
+static int
+equal_value(word v1, word v2)
+{ if ( v1 == v2 )
+    return TRUE;
+
+  if ( isRecord(v1) && isRecord(v2) )
+    return variantRecords((record_t)v1, (record_t)v2);
+
+  return FALSE;
+}
+
+
+static int
+unify_value(term_t t, word value ARG_LD)
+{ if ( !isRecord(value) )
+  { return _PL_unify_atomic(t, value);
+  } else
+  { term_t t2;
+
+    return ( (t2=PL_new_term_ref()) &&
+	     PL_recorded((record_t)value, t2) &&
+	     PL_unify(t, t2)
+	   );
+  }
+}
+
+
+/**
+ * trie_insert(+Trie, +Key, +Value) is semidet.
+ *
+ * True if Key was added as a new   key  to the trie and associated with
+ * Value. False if Key was already in the trie with Value
+ *
+ * @error permission_error if Key was associated with a different value
+ */
+
+static int
+trie_insert(term_t Trie, term_t Key, term_t Value, int update ARG_LD)
+{ trie *trie;
+
+  if ( get_trie(Trie, &trie) )
+  { Word kp;
+    word val;
+    trie_node *node;
+    int rc;
+
+    kp	= valTermRef(Key);
+    val = intern_value(Value PASS_LD);
+
+    if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
+    { if ( node->value )
+      { if ( update )
+	{ if ( !equal_value(node->value, val) )
+	  { word old = node->value;
+
+	    acquire_key(val);
+	    node->value = val;
+	    release_value(old);
+	  } else if ( isRecord(val) )
+	  { PL_erase((record_t)val);
+	  }
+
+	  return TRUE;
+	} else
+	{ if ( !equal_value(node->value, val) )
+	    PL_permission_error("modify", "trie_key", Key);
+	  if ( isRecord(val) )
+	    PL_erase((record_t)val);
+
+	  return FALSE;
+	}
+      }
+      acquire_key(val);
+      node->value = val;
+
+      return TRUE;
+    }
+
+    return trie_error(rc, Key);
+  }
+
+  return FALSE;
+}
+
+
 /**
  * trie_insert(+Trie, +Key, +Value) is semidet.
  *
@@ -940,38 +1058,24 @@ PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 static
 PRED_IMPL("trie_insert", 3, trie_insert, 0)
 { PRED_LD
-  trie *trie;
 
-  if ( get_trie(A1, &trie) )
-  { Word kp, vp;
-    trie_node *node;
-    int rc;
+  return trie_insert(A1, A2, A3, FALSE PASS_LD);
+}
 
-    kp = valTermRef(A2);
-    vp = valTermRef(A3);
-    deRef(vp);
+/**
+ * trie_update(+Trie, +Key, +Value) is semidet.
+ *
+ * Similar to trie_insert/3, but updates the associated value rather
+ * then failing or raising an error.
+ *
+ * @error permission_error if Key was associated with a different value
+ */
 
-    if ( !isAtomic(*vp) || isFloat(*vp) )
-      return PL_type_error("primitive", A3);
-    if ( isBignum(*vp) )
-      return PL_domain_error("primitive", A3);
+static
+PRED_IMPL("trie_update", 3, trie_update, 0)
+{ PRED_LD
 
-    if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
-    { if ( node->value )
-      { if ( node->value == *vp )
-	  return FALSE;				/* already in trie */
-	return PL_permission_error("modify", "trie_key", A2);
-      }
-      acquire_key(*vp);
-      node->value = *vp;
-
-      return TRUE;
-    }
-
-    return trie_error(rc, A2);
-  }
-
-  return FALSE;
+  return trie_insert(A1, A2, A3, TRUE PASS_LD);
 }
 
 
@@ -1311,7 +1415,7 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
     { PL_close_foreign_frame(fid);
       return FALSE;				/* resource error */
     }
-    if ( PL_unify(A2, key) && _PL_unify_atomic(A3, value) )
+    if ( PL_unify(A2, key) && unify_value(A3, value PASS_LD) )
     { if ( next_choice(state) )
       { if ( state == &state_buf )
 	{ state = allocForeignState(sizeof(*state));
@@ -1381,6 +1485,7 @@ BeginPredDefs(trie)
   PRED_DEF("trie_destroy",        1, trie_destroy,       0)
   PRED_DEF("trie_insert",         3, trie_insert,        0)
   PRED_DEF("trie_insert_new",     3, trie_insert_new,    0)
+  PRED_DEF("trie_update",         3, trie_update,        0)
   PRED_DEF("trie_lookup",         3, trie_lookup,        0)
   PRED_DEF("trie_term",		  2, trie_term,		 0)
   PRED_DEF("trie_gen",            3, trie_gen, PL_FA_NONDETERMINISTIC)
