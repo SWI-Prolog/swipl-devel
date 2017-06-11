@@ -97,23 +97,23 @@ writeln(st),
     write("variant tree "),writeln(Trie),
     (   Status == complete
     ->  writeln(qui),
-    (Wrapper==WrapperNoModes->
-      trie_gen(Trie, WrapperNoModes, _)
-    ;
+  %  (Wrapper==WrapperNoModes->
+  %    trie_gen(Trie, WrapperNoModes, _)
+  %  ;
       trie_gen(Trie, WrapperNoModes, ModeArgs)
-    ),
-    writeln(after_trie_gen)
+  %  ),
+  ,  writeln(after_trie_gen)
     ;   (   '$tbl_scheduling_component'(false, true)
         ->  catch(run_leader(Wrapper, WrapperNoModes, Worker, Trie), E, true),
             (   var(E)
             ->  writeln(qua),
             writeln(trie_gen(Trie, WrapperNoModes, _Val)),
             %'$trie_property'(Trie,Prop),writeln(Prop),
-            (Wrapper==WrapperNoModes->
-              trie_gen(Trie, WrapperNoModes, _)
-            ;
+%            (Wrapper==WrapperNoModes->
+%              trie_gen(Trie, WrapperNoModes, _)
+%            ;
               trie_gen(Trie, WrapperNoModes, ModeArgs)
-            )
+%            )
             ;   %'$tbl_table_discard_all',
                 throw(E)
             )
@@ -135,6 +135,7 @@ get_wrapper_no_mode_args(Wrapper,Wrapper,[]).
 run_follower(fresh, Wrapper, WrapperNoModes, Worker, Trie) :-
     !,
     activate(Wrapper, WrapperNoModes, Worker, Trie, Worklist),
+    writeln(shift),
     shift(call_info(Wrapper, Worklist)).
 run_follower(Worklist, Wrapper, _WrapperNoModes, _Worker, _Trie) :-
     shift(call_info(Wrapper, Worklist)).
@@ -142,6 +143,7 @@ run_follower(Worklist, Wrapper, _WrapperNoModes, _Worker, _Trie) :-
 run_leader(Wrapper, WrapperNoModes, Worker, Trie) :-
 writeln(leader),
     activate(Wrapper, WrapperNoModes, Worker, Trie, _Worklist),
+    writeln(completion),
     completion,
     '$tbl_scheduling_component'(_, false).
 
@@ -151,10 +153,12 @@ writeln(activate),
     (   delim(Wrapper, WrapperNoModes, Worker, WorkList),
         fail
     ;   true
+    , writeln(true_act)
     ).
 
 delim(Wrapper, WrapperNoModes, Worker, WorkList) :-
 writeln(delim(Wrapper, WrapperNoModes, Worker, WorkList)),
+    writeln(reset(Worker,SourceCall,Continuation)),
     reset(Worker,SourceCall,Continuation),
     writeln(reset(Worker,SourceCall,Continuation)),
     (   Continuation == 0
@@ -164,7 +168,8 @@ writeln(delim(Wrapper, WrapperNoModes, Worker, WorkList)),
         TargetCall = call_info(Wrapper,    WorkList),
         Dependency = dependency(SrcWrapper,Continuation,TargetCall),
         writeln('$tbl_wkl_add_suspension'(SourceWL, Dependency)),
-        '$tbl_wkl_add_suspension'(SourceWL, Dependency)
+        '$tbl_wkl_add_suspension'(SourceWL, Dependency),
+                writeln('$tbl_wkl_add_suspension'(SourceWL, Dependency))
     ).
 
 add_answer(WorkList, M:Wrapper,M:Wrapper, Worker):-!,
@@ -178,7 +183,7 @@ writeln(add_answer(WorkList, M:Wrapper,M:Wrapper, Worker)),
      writeln('$tbl_wkl_add_answer'(WorkList, M:Wrapper)),
     '$tbl_wkl_add_answer'(WorkList, M:Wrapper).
 
-add_answer(WorkList, M:Wrapper, M:WrapperNoModes,Worker):-
+add_answer(WorkList, M:Wrapper, M:WrapperNoModes,_Worker):-
 % mode directed tabling
 writeln(modes),
     extract_mode_args(M:Wrapper, ModeArgs, _WrapperNoModes),
@@ -186,7 +191,7 @@ writeln(modes),
     writeln(Wrapper),
 writeln(        '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs)),
 
-    '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs,Trie),
+    '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs,Trie,M:Wrapper),
     writeln(        '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs,Trie)),
 %    '$tbl_variant_table'(M:WrapperNoModes, Trie, Status),
 %    writeln('trie '),writeln(Trie),
@@ -204,12 +209,13 @@ extract_mode_args(M:Wrapper, ModeArgs, WrapperNoModes):-
   WrapperNoModes =.. [P|NoModesArgs],
   write("wrapper nm "),writeln(WrapperNoModes).
 
-update(Wrapper,A1,A2,A3):-
-  get_modes(Wrapper, Modes),
+update(M:Wrapper,A1,A2,A3):-
+writeln(update(M:Wrapper,A1,A2,A3)),
+  get_modes(M:Wrapper, Modes),
   get_mode_list(Modes,Preds),
   writeln(  get_mode_list(Modes,Preds)),
   writeln(maplist(join,Preds,A1,A2,A3)),
-  maplist(join,Preds,A1,A2,A3).
+  maplist(join(M),Preds,A1,A2,A3).
 
 get_modes(M:Wrapper,Modes):-
   functor(Wrapper,Name,Args),
@@ -226,8 +232,8 @@ get_mode_list([H|TM],[H|TP]):-
   get_mode_list(TM,TP).
 
 
-join(Pred,E1,E2,E3):-
-  call(Pred,E1,E2,E3).
+join(M,Pred,E1,E2,E3):-
+  M:call(Pred,E1,E2,E3).
 
 completion :-
     '$tbl_pop_worklist'(WorkList),
@@ -238,18 +244,26 @@ completion :-
     '$tbl_table_complete_all'.
 
 completion_step(SourceTable) :-
-    (   '$tbl_wkl_work'(SourceTable, Answer, Dependency),
-        dep(Answer, Dependency, Wrapper,Continuation,TargetTable),
-        write(delim(Wrapper,Continuation,TargetTable)),
-        get_wrapper_no_mode_args(Wrapper,WrapperNoModes),
+writeln(completion_step(SourceTable)),
+    (   '$tbl_wkl_work'(SourceTable, Answer, ModeArgs, Dependency),
+    writeln('$tbl_wkl_work'(SourceTable, Answer, ModeArgs, Dependency)),
+    writeln(after_work),
+    writeln(dep(Answer,ModeArgs, Dependency, Wrapper,Continuation,TargetTable)),
+        dep(Answer, ModeArgs,Dependency, Wrapper,Continuation,TargetTable),
+        writeln(dep(Answer,ModeArgs, Dependency, Wrapper,Continuation,TargetTable)),
+  writeln(completion_step(SourceTable)),
+        get_wrapper_no_mode_args(Wrapper,WrapperNoModes,_ModeArgs),
 %            extract_mode_args(Wrapper, _ModeArgs, WrapperNoModes),
         delim(Wrapper,WrapperNoModes,Continuation,TargetTable),
         fail
     ;   true
     ).
 
-dep(Answer, dependency(Answer, Continuation, call_info(Wrapper, TargetTable)),
-    Wrapper, Continuation,TargetTable).
+dep(Answer,ModeArgs, dependency(Goal, Continuation, call_info(Wrapper, TargetTable)),
+    Wrapper, Continuation,TargetTable):-
+    writeln(answer(Answer)),
+            get_wrapper_no_mode_args(Goal,Answer,ModeArgs),
+            writeln(goal(Goal)).
 
 
                  /*******************************
