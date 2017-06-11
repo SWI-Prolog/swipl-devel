@@ -47,13 +47,15 @@ acquire_key(word key)
 static  void
 release_key(word key)
 {
+  if (!(key==ATOM_nil))
   PL_erase((record_t)key);
 }
 
 static  void
 retrieve_term(word key,term_t key_t)
 {
-  PL_recorded((record_t)key,key_t);
+  if (!(key==ATOM_nil))
+    PL_recorded((record_t)key,key_t);
 }
 
 #define record_t fastheap_term *
@@ -693,7 +695,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 2, tbl_wkl_add_answer, 0)
  */
 
 static
-PRED_IMPL("$tbl_wkl_mode_add_answer", 5, tbl_wkl_mode_add_answer, 0)
+PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
 { PRED_LD
   worklist *wl;
 
@@ -703,7 +705,6 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 5, tbl_wkl_mode_add_answer, 0)
     int rc;
     term_t val,old_val,new_val,update,key,wrapper;
     atom_t module_name;
-    module_t module;
     functor_t update_func;
 
     kp = valTermRef(A2);
@@ -712,7 +713,7 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 5, tbl_wkl_mode_add_answer, 0)
     wrapper =PL_new_term_ref();
     PL_unify(A3,val);
     PL_unify(A2,key);
-    PL_unify(A5,wrapper);
+    PL_unify(A4,wrapper);
 
     old_val= PL_new_term_ref();
     new_val= PL_new_term_ref();
@@ -729,12 +730,10 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 5, tbl_wkl_mode_add_answer, 0)
         if (node->value==ATOM_nil)
         	return PL_permission_error("modify", "trie_key", A2);
         retrieve_term(node->value,old_val);
-        printf("dopo retrieve\n");
-        PL_cons_functor(update,update_func,wrapper,old_val,val,new_val);
-        printf("dopo cons\n");
+        if (!PL_cons_functor(update,update_func,wrapper,old_val,val,new_val))
+          return FALSE;
         module_name=PL_new_atom("tabling");
         PL_call(update,PL_new_module(module_name));
-        printf("dopo call\n");
         release_key(node->value);
         node->value = acquire_key(new_val);
       }
@@ -742,7 +741,7 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 5, tbl_wkl_mode_add_answer, 0)
       {
         node->value = acquire_key(val);
       }
-      return _PL_unify_atomic(A4, trie->symbol)&&wkl_add_answer(wl, node PASS_LD);
+      return wkl_add_answer(wl, node PASS_LD);
     }
 
     return trie_error(rc, A2);
@@ -1060,7 +1059,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_new_worklist",		2, tbl_new_worklist,	     0)
   PRED_DEF("$tbl_pop_worklist",		1, tbl_pop_worklist,	     0)
   PRED_DEF("$tbl_wkl_add_answer",	2, tbl_wkl_add_answer,	     0)
-  PRED_DEF("$tbl_wkl_mode_add_answer",	5, tbl_wkl_mode_add_answer,	     0)
+  PRED_DEF("$tbl_wkl_mode_add_answer",	4, tbl_wkl_mode_add_answer,	     0)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
   PRED_DEF("$tbl_wkl_done",		1, tbl_wkl_done,	     0)
   PRED_DEF("$tbl_wkl_work",		4, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
