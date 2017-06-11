@@ -49,6 +49,10 @@
     start_tabling(+, 0),
     current_table(:, -),
     abolish_table_subgoals(:).
+%    get_wrapper_no_mode_args(:,:).
+%    add_answer(+,0,0).
+  %  extract_mode_args(+,:,-),
+  %  get_modes(:,-).
 
 /** <module> Tabled execution (SLG WAM)
 
@@ -84,48 +88,95 @@ table(PIList) :-
 %           from future versions.
 
 start_tabling(Wrapper,Worker) :-
-    '$tbl_variant_table'(Wrapper, Trie, Status),
+    get_wrapper_no_mode_args(Wrapper,WrapperNoModes,ModeArgs),
+    '$tbl_variant_table'(WrapperNoModes, Trie, Status),
     (   Status == complete
-    ->  trie_gen(Trie, Wrapper, _)
+    ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   (   '$tbl_scheduling_component'(false, true)
-        ->  catch(run_leader(Wrapper, Worker, Trie), E, true),
+        ->  catch(run_leader(Wrapper, WrapperNoModes, Worker, Trie), E, true),
             (   var(E)
-            ->  trie_gen(Trie, Wrapper, _)
+            ->   trie_gen(Trie, WrapperNoModes, ModeArgs)
             ;   '$tbl_table_discard_all',
                 throw(E)
             )
-        ;   run_follower(Status, Wrapper, Worker, Trie)
+        ;   run_follower(Status, Wrapper, WrapperNoModes, Worker, Trie)
         )
     ).
 
-run_follower(fresh, Wrapper, Worker, Trie) :-
+get_wrapper_no_mode_args(M:Wrapper,M:WrapperNoModes,ModeArgs):-
+    M:'$table_modes'(Wrapper,_),!,
+    extract_mode_args(M:Wrapper, ModeArgs, WrapperNoModes).
+
+get_wrapper_no_mode_args(Wrapper,Wrapper,[]).
+
+run_follower(fresh, Wrapper, WrapperNoModes, Worker, Trie) :-
     !,
-    activate(Wrapper, Worker, Trie, Worklist),
+    activate(Wrapper, WrapperNoModes, Worker, Trie, Worklist),
     shift(call_info(Wrapper, Worklist)).
-run_follower(Worklist, Wrapper, _Worker, _Trie) :-
+run_follower(Worklist, Wrapper, _WrapperNoModes, _Worker, _Trie) :-
     shift(call_info(Wrapper, Worklist)).
 
-run_leader(Wrapper, Worker, Trie) :-
-    activate(Wrapper, Worker, Trie, _Worklist),
+run_leader(Wrapper, WrapperNoModes, Worker, Trie) :-
+    activate(Wrapper, WrapperNoModes, Worker, Trie, _Worklist),
     completion,
     '$tbl_scheduling_component'(_, false).
 
-activate(Wrapper, Worker, Trie, WorkList) :-
+activate(Wrapper, WrapperNoModes, Worker, Trie, WorkList) :-
     '$tbl_new_worklist'(WorkList, Trie),
-    (   delim(Wrapper, Worker, WorkList),
+    (   delim(Wrapper, WrapperNoModes, Worker, WorkList),
         fail
     ;   true
     ).
 
-delim(Wrapper, Worker, WorkList) :-
+delim(Wrapper, WrapperNoModes, Worker, WorkList) :-
     reset(Worker,SourceCall,Continuation),
     (   Continuation == 0
-    ->  '$tbl_wkl_add_answer'(WorkList, Wrapper)
+    ->  add_answer(WorkList,Wrapper,WrapperNoModes)
+
     ;   SourceCall = call_info(SrcWrapper, SourceWL),
         TargetCall = call_info(Wrapper,    WorkList),
         Dependency = dependency(SrcWrapper,Continuation,TargetCall),
         '$tbl_wkl_add_suspension'(SourceWL, Dependency)
     ).
+
+add_answer(WorkList, M:Wrapper,M:Wrapper):-
+     !,
+%    no mode directed tabling
+    '$tbl_wkl_add_answer'(WorkList, M:Wrapper).
+
+add_answer(WorkList, M:Wrapper, M:WrapperNoModes):-
+% mode directed tabling
+    extract_mode_args(M:Wrapper, ModeArgs, _WrapperNoModes),
+    '$tbl_wkl_mode_add_answer'(WorkList, M:WrapperNoModes,ModeArgs,M:Wrapper).
+
+extract_mode_args(M:Wrapper, ModeArgs, WrapperNoModes):-
+  get_modes(M:Wrapper, Modes),
+  Wrapper =.. [P|Args],
+  separate_args(Modes,Args,NoModesArgs,ModeArgs),
+  WrapperNoModes =.. [P|NoModesArgs].
+
+update(M:Wrapper,A1,A2,A3):-
+  get_modes(M:Wrapper, Modes),
+  get_mode_list(Modes,Preds),
+  maplist(join(M),Preds,A1,A2,A3).
+
+get_modes(M:Wrapper,Modes):-
+  functor(Wrapper,Name,Args),
+  functor(Head,Name,Args),
+  M:'$table_modes'(Head, Modes).
+
+get_mode_list([],[]).
+
+get_mode_list([H|TM],TP):-
+  var(H),!,
+  get_mode_list(TM,TP).
+
+get_mode_list([H|TM],[H|TP]):-
+  get_mode_list(TM,TP).
+
+
+join(M,Pred,E1,E2,E3):-
+  M:call(Pred,E1,E2,E3).
 
 completion :-
     '$tbl_pop_worklist'(WorkList),
@@ -136,15 +187,17 @@ completion :-
     '$tbl_table_complete_all'.
 
 completion_step(SourceTable) :-
-    (   '$tbl_wkl_work'(SourceTable, Answer, Dependency),
-        dep(Answer, Dependency, Wrapper,Continuation,TargetTable),
-        delim(Wrapper,Continuation,TargetTable),
+    (   '$tbl_wkl_work'(SourceTable, Answer, ModeArgs, Dependency),
+        dep(Answer, ModeArgs,Dependency, Wrapper,Continuation,TargetTable),
+        get_wrapper_no_mode_args(Wrapper,WrapperNoModes,_ModeArgs),
+        delim(Wrapper,WrapperNoModes,Continuation,TargetTable),
         fail
     ;   true
     ).
 
-dep(Answer, dependency(Answer, Continuation, call_info(Wrapper, TargetTable)),
-    Wrapper, Continuation,TargetTable).
+dep(Answer,ModeArgs, dependency(Goal, Continuation, call_info(Wrapper, TargetTable)),
+    Wrapper, Continuation,TargetTable):-
+            get_wrapper_no_mode_args(Goal,Answer,ModeArgs).
 
 
                  /*******************************
@@ -230,6 +283,33 @@ wrappers(Name/Arity) -->
              start_tabling(Module:Head, WrappedHead)
       )
     ].
+wrappers(ModeDirectedSpec) -->
+    {
+      functor(ModeDirectedSpec, Name, Arity),
+      ModeDirectedSpec=..[Name|Modes],
+      functor(Head, Name, Arity),
+      atom_concat(Name, ' tabled', WrapName),
+      Head =.. [Name|Args],
+      WrappedHead =.. [WrapName|Args],
+%      separate_args(Modes,Args,NoModesArg,_ModeArgs),
+%      HeadNoModeArgs =..[Name|NoModesArg],
+      prolog_load_context(module, Module)
+    },
+    [ '$tabled'(Head),
+      '$table_modes'(Head,Modes),
+      (   Head :-
+             start_tabling(Module:Head, WrappedHead)
+      )
+    ].
+
+separate_args([],[],[],[]).
+
+separate_args([HM|TM],[H|TA],[H|TNA],TMA):-
+  var(HM),!,
+  separate_args(TM,TA,TNA,TMA).
+
+separate_args([_H|TM],[H|TA],TNA,[H|TMA]):-
+  separate_args(TM,TA,TNA,TMA).
 
 %!  prolog:rename_predicate(:Head0, :Head) is semidet.
 %
@@ -253,7 +333,9 @@ rename_term(Name, WrapName) :-
 
 
 system:term_expansion((:- table(Preds)),
-                      [ (:- discontiguous('$tabled'/1))
+                      [ (:- discontiguous('$tabled'/1)),
+                        (:- dynamic('$table_modes'/2)),
+                        (:- discontiguous('$table_modes'/2))
                       | Clauses
                       ]) :-
     phrase(wrappers(Preds), Clauses).

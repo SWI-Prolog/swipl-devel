@@ -198,6 +198,35 @@ YAP_MkApplTerm(functor_t f, int arity, term_t *tv)
   return (term_t)0;
 }
 
+static inline term_t
+YAP_MkNewApplTerm(functor_t f, int arity)
+{ 
+  term_t t = PL_new_term_refs(arity);
+  term_t t1= PL_new_term_ref();
+  int res;
+  res=PL_cons_functor_v(t1,f,t);
+  if (res==TRUE)
+   return t1;
+  else
+   return (term_t)0;
+
+}
+static inline term_t  YAP_ArgsOfTerm(term_t t)
+{
+  atom_t name;
+  int arity,i,res;
+  res=PL_get_name_arity( t, &name, &arity);
+  if (res==FALSE)
+    return (term_t)0;
+  term_t args= PL_new_term_refs(arity);
+  for (i=1; i<=arity;i++)
+  {
+    res=PL_get_arg(i, t, args+i-1);
+    if (res==FALSE)
+      return (term_t)0;
+  }
+  return args;
+}
 
 /* NOTE: The arity is encoded in the functor.  We check consistency
 */

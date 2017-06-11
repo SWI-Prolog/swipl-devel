@@ -35,6 +35,28 @@
 #include "pl-incl.h"
 #include "pl-tabling.h"
 #include "pl-copyterm.h"
+static  word
+acquire_key(word key)
+{
+  word ret;
+
+  ret= (word) PL_record(key);
+  return ret;
+}
+
+static  void
+release_key(word key)
+{
+  if (!(key==ATOM_nil))
+  PL_erase((record_t)key);
+}
+
+static  void
+retrieve_term(word key,term_t key_t)
+{
+  if (!(key==ATOM_nil))
+    PL_recorded((record_t)key,key_t);
+}
 
 #define record_t fastheap_term *
 #define PL_record(t)      term_to_fastheap(t PASS_LD)
@@ -45,6 +67,7 @@ static void	free_worklist(worklist *wl);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
 #endif
+
 
 
 static worklist_set *
@@ -200,10 +223,19 @@ get_variant_table(term_t t, int create ARG_LD)
 
   if ( (rc=trie_lookup(variants, &node, v, create PASS_LD)) == TRUE )
   { if ( node->value )
-    { return symbol_trie(node->value);
+    {
+      atom_t trie_s[1];
+      term_t val;
+      val = PL_new_term_ref();
+      retrieve_term(node->value,val);
+      PL_get_atom(val,trie_s);
+      return symbol_trie(trie_s[0]);
     } else if ( create )
     { trie *vt = trie_create();
-      node->value = trie_symbol(vt);
+      atom_t trie_sym = trie_symbol(vt);
+      term_t trie_term= PL_new_term_ref();
+      PL_put_atom(trie_term,trie_sym);
+      node->value = acquire_key(trie_term);
       vt->data.variant = node;
       vt->alloc_pool = &LD->tabling.node_pool;
       return vt;
@@ -656,6 +688,67 @@ PRED_IMPL("$tbl_wkl_add_answer", 2, tbl_wkl_add_answer, 0)
   return FALSE;
 }
 
+/** '$tbl_wkl_mode_add_answer'(+Worklist, +Term, +Args) is semidet.
+ *
+ * Add an answer Args for moded arguments to the worklist's trie  and the worklist answer cluster
+ * using trie_insert_new/3 and mode directed tabling
+ */
+
+static
+PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
+{ PRED_LD
+  worklist *wl;
+
+  if ( get_worklist(A1, &wl) )
+  { Word kp;
+    trie_node *node;
+    int rc;
+    term_t val,old_val,new_val,update,key,wrapper;
+    atom_t module_name;
+    functor_t update_func;
+
+    kp = valTermRef(A2);
+    key = PL_new_term_ref();
+    val= PL_new_term_ref();
+    wrapper =PL_new_term_ref();
+    PL_unify(A3,val);
+    PL_unify(A2,key);
+    PL_unify(A4,wrapper);
+
+    old_val= PL_new_term_ref();
+    new_val= PL_new_term_ref();
+    update= PL_new_term_ref();
+    update_func= PL_new_functor(PL_new_atom("update"),4);
+
+  trie *trie;
+
+  trie=wl->table;
+
+    if ( (rc=trie_lookup(wl->table, &node, kp, TRUE PASS_LD)) == TRUE )
+    { if ( node->value )
+      {
+        if (node->value==ATOM_nil)
+        	return PL_permission_error("modify", "trie_key", A2);
+        retrieve_term(node->value,old_val);
+        if (!PL_cons_functor(update,update_func,wrapper,old_val,val,new_val))
+          return FALSE;
+        module_name=PL_new_atom("tabling");
+        PL_call(update,PL_new_module(module_name));
+        release_key(node->value);
+        node->value = acquire_key(new_val);
+      }
+     else
+      {
+        node->value = acquire_key(val);
+      }
+      return wkl_add_answer(wl, node PASS_LD);
+    }
+
+    return trie_error(rc, A2);
+  }
+
+  return FALSE;
+}
 /** '$tbl_wkl_add_suspension'(+Worklist, +Suspension) is det.
  *
  * Add a suspension to the worklist.
@@ -716,7 +809,7 @@ typedef struct
 } wkl_step_state;
 
 static
-PRED_IMPL("$tbl_wkl_work", 3, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$tbl_wkl_work", 4, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   wkl_step_state *state;
 
@@ -786,11 +879,14 @@ PRED_IMPL("$tbl_wkl_work", 3, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
     { record_t sr       = get_suspension_from_cluster(state->scp, state->scp_index-1);
       term_t answer     = PL_new_term_ref();
       term_t suspension = PL_new_term_ref();
-
+      term_t value      = PL_new_term_ref();
+                retrieve_term(an->value,value);
       if ( !( put_trie_term(an, answer PASS_LD) &&
 	      PL_recorded(sr, suspension) &&
 	      PL_unify_output(A2, answer) &&
-	      PL_unify_output(A3, suspension) ) )
+	      PL_unify_output(A4, suspension) &&
+        PL_unify_output(A3,value)
+         ) )
       { freeForeignState(state, sizeof(*state));
 	return FALSE;			/* resource error */
       }
@@ -963,9 +1059,10 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_new_worklist",		2, tbl_new_worklist,	     0)
   PRED_DEF("$tbl_pop_worklist",		1, tbl_pop_worklist,	     0)
   PRED_DEF("$tbl_wkl_add_answer",	2, tbl_wkl_add_answer,	     0)
+  PRED_DEF("$tbl_wkl_mode_add_answer",	4, tbl_wkl_mode_add_answer,	     0)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
   PRED_DEF("$tbl_wkl_done",		1, tbl_wkl_done,	     0)
-  PRED_DEF("$tbl_wkl_work",		3, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$tbl_wkl_work",		4, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$tbl_variant_table",	3, tbl_variant_table,	     0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		2, tbl_table_status,	     0)
