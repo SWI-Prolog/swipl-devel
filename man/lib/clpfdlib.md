@@ -301,6 +301,14 @@ eliminate the complexity of introducing `(is)/2` and `(=:=)/2` to
 beginners, since _both_ predicates are subsumed by #=/2 when reasoning
 over integers.
 
+In the case above, the clauses are mutually exclusive _if_ the first
+argument is sufficiently instantiated. To make the predicate
+deterministic in such cases while retaining its generality, you can
+use zcompare/3 to _reify_ a comparison, making the different cases
+distinguishable by pattern matching. For example, in this concrete
+case and others like it, you can use `zcompare(Comp, 0, N)` to obtain
+as `Comp` the symbolic outcome (`<`, `=`, `>`) of 0 compared to N.
+
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
 In addition to subsuming and replacing low-level arithmetic
