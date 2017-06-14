@@ -1031,7 +1031,8 @@ set_trie_value(trie_node *node, term_t value ARG_LD)
  */
 
 static int
-trie_insert(term_t Trie, term_t Key, term_t Value, int update ARG_LD)
+trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
+	    int update ARG_LD)
 { trie *trie;
 
   if ( get_trie(Trie, &trie) )
@@ -1044,7 +1045,10 @@ trie_insert(term_t Trie, term_t Key, term_t Value, int update ARG_LD)
     val = intern_value(Value PASS_LD);
 
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
-    { if ( node->value )
+    { if ( nodep )
+	*nodep = node;
+
+      if ( node->value )
       { if ( update )
 	{ if ( !equal_value(node->value, val) )
 	  { word old = node->value;
@@ -1092,7 +1096,7 @@ static
 PRED_IMPL("trie_insert", 3, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, FALSE PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, FALSE PASS_LD);
 }
 
 /**
@@ -1108,12 +1112,12 @@ static
 PRED_IMPL("trie_update", 3, trie_update, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, TRUE PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, TRUE PASS_LD);
 }
 
 
 /**
- * trie_insert_new(+Trie, +Term, -Handle) is semidet.
+ * trie_insert(+Trie, +Term, +Value, -Handle) is semidet.
  *
  * Add Term to Trie and unify Handle with a handle to the term.
  * Fails if Term is already in Trie.
@@ -1124,32 +1128,12 @@ PRED_IMPL("trie_update", 3, trie_update, 0)
  */
 
 static
-PRED_IMPL("trie_insert_new", 3, trie_insert_new, 0)
+PRED_IMPL("trie_insert", 4, trie_insert, 0)
 { PRED_LD
-  trie *trie;
+  trie_node *node;
 
-  if ( get_trie(A1, &trie) )
-  { Word kp;
-    trie_node *node;
-    int rc;
-
-    kp = valTermRef(A2);
-
-    if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
-    { if ( node->value )
-      { if ( node->value == ATOM_nil )
-	  return FALSE;				/* already in trie */
-	return PL_permission_error("modify", "trie_key", A2);
-      }
-      node->value = ATOM_nil;
-
-      return PL_unify_pointer(A3, node);
-    }
-
-    return trie_error(rc, A2);
-  }
-
-  return FALSE;
+  return ( trie_insert(A1, A2, A3, &node, FALSE PASS_LD) &&
+	   PL_unify_pointer(A4, node) );
 }
 
 
@@ -1181,7 +1165,7 @@ PRED_IMPL("trie_lookup", 3, trie_lookup, 0)
 /**
  * trie_term(+Handle, -Term) is det.
  *
- * Retrieve a term for a handle returned by trie_insert_new/3.
+ * Retrieve a term for a handle returned by trie_insert/4.
  */
 
 static
@@ -1517,7 +1501,7 @@ BeginPredDefs(trie)
   PRED_DEF("trie_new",            1, trie_new,           0)
   PRED_DEF("trie_destroy",        1, trie_destroy,       0)
   PRED_DEF("trie_insert",         3, trie_insert,        0)
-  PRED_DEF("trie_insert_new",     3, trie_insert_new,    0)
+  PRED_DEF("trie_insert",         4, trie_insert,        0)
   PRED_DEF("trie_update",         3, trie_update,        0)
   PRED_DEF("trie_lookup",         3, trie_lookup,        0)
   PRED_DEF("trie_term",		  2, trie_term,		 0)

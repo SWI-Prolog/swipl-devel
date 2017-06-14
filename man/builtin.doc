@@ -3268,10 +3268,8 @@ If \arg{Key} is in \arg{Trie} associated with a different value, a
 As trie_insert/3, but if \arg{Key} is in \arg{Trie}, its associated
 value is \emph{updated}.
 
-    \predicate{trie_insert_new}{3}{+Trie, +Term, -Handle}
-Add \arg{Term} to \arg{Trie} and return a handle to the node. Fails if
-\arg{Term} is already part of the \arg{Trie}. The handle can used with
-trie_term/2 to retrieve (a copy of) \arg{Term}. This predicate is
+    \predicate{trie_insert}{3}{+Trie, +Term, +Value, -Handle}
+As trie_insert/3, returning a handle to the trie node. This predicate is
 currently unsafe as \arg{Handle} is an integer used to encode a pointer.
 It was used to implement a pure Prolog version of the \pllib{tabling}
 library.

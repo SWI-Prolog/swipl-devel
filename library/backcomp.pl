@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2013, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -88,7 +88,8 @@
             index/1,                    % :Head
             hash/1,                     % :PI
             set_base_module/1,          % :Base
-            eval_license/0
+            eval_license/0,
+            trie_insert_new/3		% +Trie, +Term, -Node
           ]).
 :- use_module(apply,  [maplist/2]).
 :- use_module(system, [lock_predicate/1, unlock_predicate/1]).
@@ -654,3 +655,10 @@ set_base_module(M:Base) :-
 
 eval_license :-
     license.
+
+%!  trie_insert_new(+Trie, +Term, -Handle) is semidet.
+%
+%   @deprecated use trie_insert/4.
+
+trie_insert_new(Trie, Term, Handle) :-
+    trie_insert(Trie, Term, [], Handle).
