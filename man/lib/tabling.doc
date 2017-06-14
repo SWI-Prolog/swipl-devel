@@ -257,10 +257,10 @@ must be unified with a term that represents the new aggregated answer.
 In SWI-Prolog the arity (3) may be omitted. See the example above.
 
     \termitem{po}{PI}
-\jargon{Partial Ordening}. The new answer is added iff \call{PI}{+Old,
-+Answer} succeeds. For example, \verb$po('<'/2)$ accumulates the largest
-result.  In SWI-Prolog the arity (2) may be omitted, resulting in
-\verb$po(<)$.
+\jargon{Partial Ordening}. The new answer is added iff
+\term{call}{PI, +Old, +Answer} succeeds. For example, \verb$po('<'/2)$
+accumulates the largest result. In SWI-Prolog the arity (2) may be
+omitted, resulting in \verb$po(<)$.
 
     \termitem{-}{}
 \nodescription
