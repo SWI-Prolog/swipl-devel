@@ -988,6 +988,39 @@ unify_value(term_t t, word value ARG_LD)
 }
 
 
+int
+put_trie_value(term_t t, trie_node *node ARG_LD)
+{ if ( !isRecord(node->value) )
+  { *valTermRef(t) = node->value;
+    return TRUE;
+  } else
+  { return PL_recorded((record_t)node->value, t);
+  }
+}
+
+int
+set_trie_value(trie_node *node, term_t value ARG_LD)
+{ word val = intern_value(value PASS_LD);
+
+  if ( node->value )
+  { if ( !equal_value(node->value, val) )
+    { word old = node->value;
+
+      acquire_key(val);
+      node->value = val;
+      release_value(old);
+    } else if ( isRecord(val) )
+    { PL_erase((record_t)val);
+    }
+  } else
+  { acquire_key(val);
+    node->value = val;
+  }
+
+  return TRUE;
+}
+
+
 /**
  * trie_insert(+Trie, +Key, +Value) is semidet.
  *

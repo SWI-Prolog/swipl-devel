@@ -115,5 +115,7 @@ COMMON(int)	trie_lookup(trie *trie, trie_node **nodep, Word k,
 COMMON(int)	trie_error(int rc, term_t culprit);
 COMMON(atom_t)	trie_symbol(trie *trie);
 COMMON(trie *)	symbol_trie(atom_t symbol);
+COMMON(int)	put_trie_value(term_t t, trie_node *node ARG_LD);
+COMMON(int)	set_trie_value(trie_node *node, term_t value ARG_LD);
 
 #endif /*_PL_TRIE_H*/
