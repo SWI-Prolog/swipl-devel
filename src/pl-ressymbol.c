@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013, VU University Amsterdam
+    Copyright (c)  2013-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,7 @@ static const atom_t special_atoms[] =
 { ATOM_nil,				/* 0: [] */
   ATOM_dot,				/* 1: .(_|_) or '[|]'(_,_) */
   ATOM_dict,				/* 2: <dict> */
+  ATOM_trienode,			/* 3: <trienode> */
   (atom_t)0
 };
 
@@ -81,7 +82,8 @@ static const atom_t reserved_symbols[] =
 void
 initReservedSymbols(void)
 { PL_register_blob_type(&reserved_symbol);
-  atomValue(ATOM_dict)->type = &reserved_symbol;
+  atomValue(ATOM_dict)->type     = &reserved_symbol;
+  atomValue(ATOM_trienode)->type = &reserved_symbol;
 
   if ( !GD->options.traditional )
   { const atom_t *ap;

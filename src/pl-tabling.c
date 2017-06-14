@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ static void	free_worklist(worklist *wl);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
 #endif
+
 
 
 static worklist_set *
@@ -641,11 +642,11 @@ PRED_IMPL("$tbl_wkl_add_answer", 2, tbl_wkl_add_answer, 0)
 
     if ( (rc=trie_lookup(wl->table, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
-      { if ( node->value == ATOM_nil )
+      { if ( node->value == ATOM_trienode )
 	  return FALSE;				/* already in trie */
 	return PL_permission_error("modify", "trie_key", A2);
       }
-      node->value = ATOM_nil;
+      node->value = ATOM_trienode;
 
       return wkl_add_answer(wl, node PASS_LD);
     }
@@ -655,6 +656,64 @@ PRED_IMPL("$tbl_wkl_add_answer", 2, tbl_wkl_add_answer, 0)
 
   return FALSE;
 }
+
+/** '$tbl_wkl_mode_add_answer'(+Worklist, +TermNoModes, +Args, +Term) is semidet.
+ *
+ * Add an answer Args for moded arguments to the worklist's trie and the
+ * worklist answer cluster using  trie_insert_new/3   and  mode directed
+ * tabling.
+ *
+ * @arg TermNoModes is the call variant without moded arguments
+ * @arg Args is a term holding the moded arguments.  If there is
+ * only one moded argument, this is the value.  Otherwise it is a
+ * term s(V1,V2,...).  See extract_modes/5.
+ * @arg Term is the full tabled goal, including moded
+ * arguments. This is is passed to update/4 to find the correct
+ * update clause.
+ */
+
+static
+PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
+{ PRED_LD
+  worklist *wl;
+
+  if ( get_worklist(A1, &wl) )
+  { Word kp;
+    trie_node *node;
+    int rc;
+
+    kp = valTermRef(A2);
+
+    if ( (rc=trie_lookup(wl->table, &node, kp, TRUE PASS_LD)) == TRUE )
+    { if ( node->value )
+      { static predicate_t PRED_update4 = 0;
+	term_t av;
+
+	if ( !PRED_update4 )
+	  PRED_update4 = PL_predicate("update", 4, "tabling");
+
+	if ( !((av=PL_new_term_refs(4)) &&
+	       PL_put_term(av+0, A4) &&
+	       put_trie_value(av+1, node PASS_LD) &&
+	       PL_put_term(av+2, A3) &&
+	       PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_update4, av) &&
+	       set_trie_value(node, av+3 PASS_LD)) )
+	  return FALSE;
+
+	return TRUE;
+      } else
+      { if ( !set_trie_value(node, A3 PASS_LD) )
+	  return FALSE;
+      }
+      return wkl_add_answer(wl, node PASS_LD);
+    }
+
+    return trie_error(rc, A2);
+  }
+
+  return FALSE;
+}
+
 
 /** '$tbl_wkl_add_suspension'(+Worklist, +Suspension) is det.
  *
@@ -685,7 +744,8 @@ PRED_IMPL("$tbl_wkl_done", 1, tbl_wkl_done, 0)
 }
 
 
-/** '$tbl_wkl_work'(+Worklist, -Answer, -Suspension) is nondet.
+/** '$tbl_wkl_work'(+Worklist, -Answer, -ModeArgs,
+ *		    -Goal, -Continuation, -Wrapper, -TargetTable) is nondet.
  *
  * True when Answer must be tried on Suspension.  Backtracking
  * basically does
@@ -715,8 +775,47 @@ typedef struct
   int next_step;
 } wkl_step_state;
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unify the 4 arguments  of  the   dependecy  structure  with subsequent 4
+output arguments.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+unify_arg_term(term_t a, Word v ARG_LD)
+{ Word p = valTermRef(a);
+
+  deRef(p);
+  DEBUG(CHK_SECURE, assert(isVar(*p)));
+  Trail(p, linkVal(v));
+}
+
+static int
+unify_dependency(term_t a0, term_t dependency ARG_LD)
+{ if ( tTop + 4 < tMax ||
+       makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
+  { Word dp = valTermRef(dependency);
+    Functor f;
+
+    deRef(dp);
+    if ( unlikely(!isTerm(*dp)) )
+      return FALSE;
+    f = (Functor)valPtr(*dp);
+
+    unify_arg_term(a0+0, &f->arguments[0] PASS_LD);
+    unify_arg_term(a0+1, &f->arguments[1] PASS_LD);
+    unify_arg_term(a0+2, &f->arguments[2] PASS_LD);
+    unify_arg_term(a0+3, &f->arguments[3] PASS_LD);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static
-PRED_IMPL("$tbl_wkl_work", 3, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$tbl_wkl_work", 7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   wkl_step_state *state;
 
@@ -783,14 +882,20 @@ PRED_IMPL("$tbl_wkl_work", 3, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
   { trie_node *an = get_answer_from_cluster(state->acp, state->acp_index-1);
 
     if ( state->scp_index > 0 )
-    { record_t sr       = get_suspension_from_cluster(state->scp, state->scp_index-1);
-      term_t answer     = PL_new_term_ref();
-      term_t suspension = PL_new_term_ref();
+    { record_t sr       = get_suspension_from_cluster(state->scp,
+						      state->scp_index-1);
+      term_t av         = PL_new_term_refs(3);
+      term_t answer     = av+0;
+      term_t suspension = av+1;
+      term_t modeargs   = av+2;
 
       if ( !( put_trie_term(an, answer PASS_LD) &&
+	      put_trie_value(modeargs, an PASS_LD) &&
 	      PL_recorded(sr, suspension) &&
 	      PL_unify_output(A2, answer) &&
-	      PL_unify_output(A3, suspension) ) )
+	      PL_unify_output(A3, modeargs) &&
+	      unify_dependency(A4, suspension PASS_LD)
+         ) )
       { freeForeignState(state, sizeof(*state));
 	return FALSE;			/* resource error */
       }
@@ -954,6 +1059,18 @@ PRED_IMPL("$tbl_abolish_all_tables", 0, tbl_abolish_all_tables, 0)
   }
 }
 
+/** '$tbl_trienode'(-X) is det.
+ *
+ * X is the reserved node value for non-moded arguments.
+ */
+
+static
+PRED_IMPL("$tbl_trienode", 1, tbl_trienode, 0)
+{ PRED_LD
+
+  return PL_unify_atom(A1, ATOM_trienode);
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -963,9 +1080,10 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_new_worklist",		2, tbl_new_worklist,	     0)
   PRED_DEF("$tbl_pop_worklist",		1, tbl_pop_worklist,	     0)
   PRED_DEF("$tbl_wkl_add_answer",	2, tbl_wkl_add_answer,	     0)
+  PRED_DEF("$tbl_wkl_mode_add_answer",	4, tbl_wkl_mode_add_answer,  0)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
   PRED_DEF("$tbl_wkl_done",		1, tbl_wkl_done,	     0)
-  PRED_DEF("$tbl_wkl_work",		3, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$tbl_wkl_work",		7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$tbl_variant_table",	3, tbl_variant_table,	     0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		2, tbl_table_status,	     0)
@@ -974,5 +1092,6 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_scheduling_component",	2, tbl_scheduling_component, 0)
   PRED_DEF("$tbl_abolish_all_tables",   0, tbl_abolish_all_tables,   0)
   PRED_DEF("$tbl_destroy_table",        1, tbl_destroy_table,        0)
+  PRED_DEF("$tbl_trienode",             1, tbl_trienode,             0)
 
 EndPredDefs

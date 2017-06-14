@@ -61,7 +61,12 @@ test_tabling :-
 		    tabling_ex15,
 		    tabling_ex16,
 		    tabling_ex17,
-		    tabling_clpdf
+		    tabling_clpdf,
+		    tabling_eruption,
+		    tabling_sneezing,
+		    tabling_yappath,
+		    tabling_minpath,
+		    tabling_train
 		  ]).
 
 		 /*******************************
@@ -952,6 +957,143 @@ test(fib_error, error(type_error(free_of_attvar, _))) :-
 	fib(_N, 13).
 
 :- end_tests(tabling_clpdf).
+
+
+		 /*******************************
+		 *     MODE DIRECTED TABLING	*
+		 *******************************/
+
+:- begin_tests(tabling_eruption, [cleanup(abolish_all_tables)]).
+
+:- table
+  eruption(lattice(prob_sum_e/3)),
+  sudden_energy_release/0,
+  fault_rupture(_,lattice(prob_sum_e/3)).
+
+eruption(P)  :-
+  sudden_energy_release,
+  fault_rupture(_,P0),
+  P is P0*0.6.
+% If there is a sudden energy release under the island and there is a fault
+% rupture, then there can be an eruption of the volcano on the island with
+% probability 0.6
+
+sudden_energy_release.
+% The energy release occurs with certainty
+
+fault_rupture(southwest_northeast,0.7).
+fault_rupture(east_west,0.6).
+% we are sure that ruptures occur
+
+prob_sum_e(A,B,C):-
+  C is 1-(1-A)*(1-B).
+
+test(tabling_eruption, P =:= 0.6288) :-
+	eruption(P).
+
+:- end_tests(tabling_eruption).
+
+:- begin_tests(tabling_sneezing, [cleanup(abolish_all_tables)]).
+
+:- use_module(library(tabling)).
+:- table
+    sneezing(_,lattice(prob_sum)),
+    flu(_,lattice(prob_sum)),
+    hay_fever(_,lattice(prob_sum)).
+
+sneezing(X,P) :- flu(X,P0), P is P0*0.3.
+% if X has the flu, there is a probability of 0.3 that he sneezes
+
+sneezing(X,P) :- hay_fever(X,P0), P is P0*0.2.
+% if X has hay fever, there is a probability of 0.2 that he sneezes
+
+flu(bob,0.2).
+% bob has the flu with prob 0.2
+
+hay_fever(bob,0.4).
+% bob has hay fever with prob 0.4
+
+prob_sum(A,B,C):-
+  C is 1-(1-A)*(1-B).
+
+test(tabling_sneezing, P =:= 0.1352000000000001) :-
+	sneezing(bob, P).
+
+:- end_tests(tabling_sneezing).
+
+:- begin_tests(tabling_yappath, [cleanup(abolish_all_tables)]).
+:- use_module(library(tabling)).
+
+:- table
+    path(index, index, first).
+
+path(X, Y, N) :- path(X, Z, N1), edge(Z, Y), N is N1 + 1.
+path(X, Y, 1) :- edge(X, Y).
+
+edge(a, b).
+edge(b, a).
+
+min(A,B,C) :-
+    writeln(A-B-C),
+    C is min(A,B).
+
+test(yappath, set(t(X,Y,L) == [t(a,a,2),t(a,b,1),t(b,a,1),t(b,b,2)])) :-
+    path(X,Y,L).
+
+:- end_tests(tabling_yappath).
+
+:- begin_tests(tabling_minpath, [cleanup(abolish_all_tables)]).
+:- use_module(library(tabling)).
+:- table connection(_,_,min).
+
+connection(X, Y,1) :-
+        connection(X, Y).
+connection(X, Y,N) :-
+        connection(X, Z,N1),
+        connection(Z, Y),
+        N is N1+1.
+
+connection('Amsterdam', 'Schiphol').
+connection('Amsterdam', 'Haarlem').
+connection('Schiphol', 'Leiden').
+connection('Haarlem', 'Leiden').
+connection('Amsterdam', 'Leiden').
+
+test(tabling_minpath, N =:= 1) :-
+	connection('Amsterdam','Leiden',N).
+
+:- end_tests(tabling_minpath).
+
+:- begin_tests(tabling_train, [cleanup(abolish_all_tables)]).
+:- use_module(library(tabling)).
+:- table train(_,_,lattice(shortest/3)).
+
+train(X, Y, [X,Y]) :-
+    train(X, Y).
+train(X, Y, P) :-
+    train(X, Z, P0),
+    train(Z, Y),
+    append(P0, [Y], P).
+
+train('Amsterdam', 'Schiphol').
+train('Amsterdam', 'Haarlem').
+train('Schiphol',  'Leiden').
+train('Haarlem',   'Leiden').
+train('Amsterdam', 'Leiden').
+
+shortest(P1, P2, P):-
+    length(P1, L1),
+    length(P2, L2),
+    (   L1 < L2
+    ->  P = P1
+    ;   P = P2
+    ).
+
+test(tabling_train, P == ['Amsterdam','Leiden']) :-
+	train('Amsterdam','Leiden', P).
+
+:- end_tests(tabling_train).
+
 
 		 /*******************************
 		 *	      COMMON		*
