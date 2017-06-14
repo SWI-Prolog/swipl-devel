@@ -249,7 +249,22 @@ Bart Demoen and Tom Schrijvers have helped me adding coroutining,
 constraints, global variables and support for cyclic terms to the
 kernel. Tom Schrijvers has provided a first clp(fd) constraint solver,
 the CHR compiler and some of the coroutining predicates.  Markus Triska
-contributed the current clp(fd) implementation.
+contributed the current clp(fd) implementation as well as the clp(b)
+implementation.
+
+Tom Schrijvers and Bart Demoen initiated the implementation of
+\jargon{delimited continuations} (\secref{delcont}), which was used by
+Benoit Desouter and Tom Schrijvers to implement \jargon{tabling}
+(\secref{tabling}) as a library. Fabrizio Riguzzi added a first
+implementation for \jargon{mode directed tabling}
+(\secref{tabling-mode-directed}).
+
+The SWI-Prolog~7 extensions (\secref{extensions}) are the result of a
+long heated discussion on the mailinglist. Nicos Angelopoulos' wish for
+a smooth integration with the R language triggered the overall intend of
+these extensions to enable a smoother integration of Prolog with other
+languages.  Michael Hendrix suggested and helped shaping SWI-Prolog
+\jargon{quasi quotations}.
 
 Paul Singleton has integrated Fred Dushin's Java-calls-Prolog side
 with his Prolog-calls-Java side into the current bidirectional JPL
@@ -272,3 +287,9 @@ Paulo Moura's great experience in maintaining Logtalk for many Prolog
 systems including SWI-Prolog has helped in many places fixing
 compatibility issues.  He also worked on the MacOS port and fixed many
 typos in the 5.6.9 release of the documentation.
+
+Kyndi (\url{https://kyndi.com/}) sponsored the development of the
+\jargon{engines} interface (\chapref{engines}).  The final API was
+established after discussion with the founding father of engines,
+Paul Tarau and Paulo Moura.  Kyndi also sponsored JIT indexing on
+multiple arguments.
