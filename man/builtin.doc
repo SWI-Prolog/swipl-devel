@@ -1651,8 +1651,7 @@ so-called ``standard order''. This order is defined as follows:
 \begin{enumerate}
     \item $\arg{Variables} < \arg{Numbers} < \arg{Strings} < \arg{Atoms}
           < \arg{Compound Terms}$
-    \item Variables are sorted by address.  Attaching attributes
-          (see \secref{attvar}) does not affect the ordering.
+    \item Variables are sorted by address.
     \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
 	  as floats. If the comparison is equal, the float is considered
 	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
@@ -1664,6 +1663,39 @@ so-called ``standard order''. This order is defined as follows:
 	  on their arguments, leftmost argument first.
 \end{enumerate}
 
+Although variables are ordered, there are some unexpected properties one
+should keep in mind when relying on variable ordering. This applies to
+the predicates below as to predicate such as sort/2 as well as libraries
+that reply on ordering such as library \pllib{assoc} and library
+\pllib{ordsets}. Obviously, an established relation \mbox{\arg{A}
+\const{@<} \arg{B}} no longer holds if \arg{A} is unified with e.g., a
+number. Also unifying \arg{A} with \arg{B} invalidates the relation
+because they become equivalent (==/2) after unification.
+
+As stated above, variables are sorted by address, which implies that
+they are sorted by `age', where `older' variables are ordered before
+`newer' variables. If two variables are unified their `shared' age is
+the age of oldest variable. This implies we can examine a list of sorted
+variables with `newer' (fresh) variables without invalidating the order.
+Attaching an \jargon{attribute}, see \secref{attvar}, turns an `old'
+variable into a `new' one as illustrated below. Note that the first
+always succeeds as the first argument of a term is always the oldest.
+This only applies for the \emph{first} attribute, i.e., further
+manipulation of the attribute list does \emph{not} change the `age'.
+
+\begin{code}
+?- T = f(A,B), A @< B.
+T = f(A, B).
+
+?- T = f(A,B), put_attr(A, name, value), A @< B.
+false.
+\end{code}
+
+The above implies you \emph{can} use e.g., an assoc (from library
+\pllib{assoc}, implemented as an AVL tree) to maintain information about
+a set of variables. You must be careful about what you do with the
+attributes though. In many cases it is more robust to use attributes to
+register information about variables.
 
 \begin{description}
     \infixop[ISO]{==}{@Term1}{@Term2}
@@ -7136,6 +7168,13 @@ in C, using \jargon{natural merge sort}.%
 	\footnote{Contributed by Richard O'Keefe.}
 The sort/2 predicate can sort a cyclic list, returning a non-cyclic
 version with the same elements.
+
+Note that \arg{List} may contain non-ground terms. If \arg{Sorted} is
+unbound at call-time, for each consequtive pair of elements in
+\arg{Sorted}, the relation \verb$E1 @< E2$ will hold. However, unifying
+a variable in \arg{Sorted} may cause this relation to become invalid,
+\emph{even} unifying a variable in \arg{Sorted} with another (older)
+variable.  See also \secref{standardorder}.
 
     \predicate{sort}{4}{+Key, +Order, +List, -Sorted}
 True when \arg{Sorted} can be unified with a list holding the element of
