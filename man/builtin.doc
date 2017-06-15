@@ -6725,11 +6725,18 @@ with support for unbounded arithmetic (default) it uses the GMP library
 random functions. In this case, each thread keeps its own random state.
 The default algorithm is the \jargon{Mersenne Twister} algorithm. The
 seed is set when the first random number in a thread is generated. If
-available, it is set from \file{/dev/random}. Otherwise it is set from
+available, it is set from \file{/dev/random}.\footnote{On Windows the
+state is initialised from CryptGenRandom().} Otherwise it is set from
 the system clock. If unbounded arithmetic is not supported, random
 numbers are shared between threads and the seed is initialised from the
 clock when SWI-Prolog was started. The predicate set_random/1 can be
 used to control the random number generator.
+
+\textbf{Warning!} Although properly seeded (if supported on the OS), the
+Mersenne Twister algorithm does \emph{not} produce cryptographically
+secure random numbers. To generate cryptographically secure random
+numbers, use crypto_n_random_bytes/2 from library \pllib{crypto}
+provided by the \const{ssl} package.
 
     \function{random_float}{0}{}
 Evaluate to a random float $I$ for which $0.0 < i < 1.0$. This function
