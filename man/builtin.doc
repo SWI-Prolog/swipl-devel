@@ -8366,7 +8366,8 @@ Modifier to select locale-specific output.  Not implemented.
     \fmtchar{p}
 Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
-and midnight as `am'.
+and midnight as `am'.\footnote{Despite the above clain, some locales
+yield \const{am} or \const{pm} in lower case.}
     \fmtchar{P}
 Like \%p but in lowercase: `am' or `pm' or a corresponding string
 for the current locale.
