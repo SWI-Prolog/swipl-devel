@@ -454,6 +454,9 @@ static void	print_trace(int depth);
 
 static void get_current_timespec(struct timespec *time);
 static void carry_timespec_nanos(struct timespec *time);
+static void timespec_diff(struct timespec *diff,
+			  const struct timespec *a, const struct timespec *b);
+static int  timespec_sign(const struct timespec *t);
 
 		 /*******************************
 		 *	     LOCAL DATA		*
@@ -3388,22 +3391,34 @@ win32_cond_destroy(win32_cond_t *cv)
 }
 
 
+#define WIN_MAX_WAIT (INFINITE-1)
+#define WIN_MAX_SECS (WIN_MAX_WAIT/1000-1)
+
 static int
 win32_cond_wait(win32_cond_t *cv,
 		CRITICAL_SECTION *external_mutex,
 	        struct timespec *deadline)
 { int rc, last;
   DWORD dwMilliseconds;
+  int short_wait;
+
+restart:
+  short_wait = FALSE;
 
   if ( deadline )
-  { struct timespec now;
+  { struct timespec now, diff;
 
     get_current_timespec(&now);
-    dwMilliseconds = 1000*(DWORD)(deadline->tv_sec - now.tv_sec)
-                     + (deadline->tv_nsec - now.tv_nsec)/1000000;
-
-     if ( dwMilliseconds <= 0 )
+    timespec_diff(&diff, &now, deadline);
+    if ( timespec_sign(&diff) > 0 )
       return ETIMEDOUT;
+
+    if ( diff.tv_sec > WIN_MAX_SECS )
+    { dwMilliseconds = WIN_MAX_WAIT;
+      short_wait = TRUE;
+    } else
+    { dwMilliseconds = 1000*(DWORD)(diff.tv_sec) + (diff.tv_nsec)/1000000;
+    }
   } else
   { dwMilliseconds = INFINITE;
   }
@@ -3432,6 +3447,8 @@ win32_cond_wait(win32_cond_t *cv,
     }
   } else if ( rc == WAIT_TIMEOUT )
   { EnterCriticalSection(external_mutex);
+    if ( short_wait )
+      goto restart;
     return ETIMEDOUT;
   }
 
@@ -3615,21 +3632,35 @@ queue_message(message_queue *queue, thread_message *msgp,
 #include <sys/timeb.h>
 #endif
 
+static void
+timespec_diff(struct timespec *diff,
+	      const struct timespec *a, const struct timespec *b)
+{ diff->tv_sec  = a->tv_sec - b->tv_sec;
+  diff->tv_nsec = a->tv_nsec - b->tv_nsec;
+  if ( diff->tv_nsec < 0 )
+  { --diff->tv_sec;
+    diff->tv_nsec += 1000000000;
+  }
+}
+
+
 static int
-timespec_cmp(struct timespec *a, struct timespec *b)
+timespec_sign(const struct timespec *t)
+{ return ( t->tv_sec > 0 ?  1 :
+	   t->tv_sec < 0 ? -1 :
+	   t->tv_nsec > 0 ? 1 :
+                            0 );
+
+}
+
+
+static int
+timespec_cmp(const struct timespec *a, const struct timespec *b)
 { struct timespec diff;
 
-  diff.tv_sec  = a->tv_sec - b->tv_sec;
-  diff.tv_nsec = a->tv_nsec - b->tv_nsec;
-  if ( diff.tv_nsec < 0 )
-  { --diff.tv_sec;
-    diff.tv_nsec += 1000000000;
-  }
+  timespec_diff(&diff, a, b);
 
-  return ( diff.tv_sec > 0 ?  1 :
-	   diff.tv_sec < 0 ? -1 :
-	   diff.tv_nsec > 0 ? 1 :
-                              0 );
+  return timespec_sign(&diff);
 }
 
 
