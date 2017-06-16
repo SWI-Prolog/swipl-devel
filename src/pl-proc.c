@@ -1443,7 +1443,10 @@ cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
       }
     }
     if ( removed )
+    { LOCKDEF(def);
       cleanClauseIndexes(def, active);
+      UNLOCKDEF(def);
+    }
     if ( marked == GEN_MAX && def->lingering )
       free_lingering(&def->lingering);
     release_def(def);
