@@ -472,9 +472,9 @@ swi_comment(Msg) -->
 
 
 thread_context -->
-    { thread_self(Me), Me \== main },
+    { thread_self(Me), Me \== main, thread_property(Me, id(Id)) },
     !,
-    ['[Thread ~w] '-[Me]].
+    ['[Thread ~w] '-[Id]].
 thread_context -->
     [].
 
