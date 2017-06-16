@@ -3399,11 +3399,11 @@ win32_cond_wait(win32_cond_t *cv,
   { struct timespec now;
 
     get_current_timespec(&now);
+    if (now.tv_sec > deadline->tv_sec ||
+        ( now.tv_sec == deadline->tv_sec && now.tv_nsec > deadline->tv_nsec))
+      return ETIMEDOUT;
     dwMilliseconds = 1000*(DWORD)(deadline->tv_sec - now.tv_sec)
                      + (deadline->tv_nsec - now.tv_nsec)/1000000;
-
-     if ( dwMilliseconds <= 0 )
-      return ETIMEDOUT;
   } else
   { dwMilliseconds = INFINITE;
   }
