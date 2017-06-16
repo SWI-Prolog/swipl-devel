@@ -1802,7 +1802,8 @@ dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
     return fr;				/* system mode; debug everything */
   if ( isDebugFrame(fr) && false(fr->predicate, HIDE_CHILDS) )
     return fr;				/* normal user code */
-  for( ; fr && !isDebugFrame(fr); fr = fr->parent)
+  for( ; fr && fr->parent && true(fr->parent->predicate, HIDE_CHILDS);
+       fr = fr->parent)
     ;					/* find top of hidden children */
   DEBUG(MSG_TRACE, if ( fr )
 	Sdprintf("REDO user frame of [%d] %s%s\n",
