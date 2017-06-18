@@ -6941,6 +6941,8 @@ list_first_rest([L|Ls], L, Ls).
 zcompare(Order, A, B) :-
         (   nonvar(Order) ->
             zcompare_(Order, A, B)
+        ;   integer(A), integer(B) ->
+            compare(Order, A, B)
         ;   freeze(Order, zcompare_(Order, A, B)),
             fd_variable(A),
             fd_variable(B),
