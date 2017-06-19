@@ -379,6 +379,9 @@ restore_variable_info([Var=State|States]) :-
 %     - fresh(Fresh)
 %     Variable is first introduced in this goal and thus guaranteed
 %     to be unbound.  This property is always present.
+%     - singleton(Bool)
+%     It `true` indicate that the variable appears once in the source.
+%     Note this doesn't mean it is a semantic singleton.
 %     - name(-Name)
 %     True when Name is the name of the variable.
 
@@ -391,6 +394,9 @@ prop_var(fresh(Fresh), Var) :-
     ->  Fresh = Fresh0
     ;   Fresh = true
     ).
+prop_var(singleton(Singleton), Var) :-
+    get_attr(Var, '$var_info', Info),
+    get_dict(singleton, Info, Singleton).
 prop_var(name(Name), Var) :-
     (   nb_current('$variable_names', Bindings),
         '$member'(Name0=Var0, Bindings),
