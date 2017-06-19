@@ -3313,7 +3313,15 @@ compileBodyInteger(Word arg, compileInfo *ci ARG_LD)
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-      return always(ATOM_false, "integer", a1, ci PASS_LD);
+    { int rc;
+
+      if ( (rc=always(ATOM_false, "integer", a1, ci PASS_LD)) == TRUE )
+      { isFirstVarSet(ci->used_var, i1);
+	Output_1(ci, C_VAR, VAROFFSET(i1));
+      }
+
+      return rc;
+    }
 
     Output_1(ci, I_INTEGER, VAROFFSET(i1));
     return TRUE;
