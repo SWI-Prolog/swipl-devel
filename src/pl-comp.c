@@ -169,7 +169,7 @@ initWamTable()
 		 *     WARNING DECLARATIONS	*
 		 *******************************/
 
-#define CW_MAX_ARGC 2
+#define CW_MAX_ARGC 3
 
 typedef struct cw_def
 { const char *name;
@@ -184,7 +184,7 @@ const static cw_def cw_defs[] =
   CW("neq_vv",             2),		/* Var \== Var */
   CW("neq_singleton",	   2),		/* SingleTon \== ? */
   CW("unify_singleton",    2),		/* SingleTon = ? */
-  CW("var_true",           1),		/* var(SingleTonOrFirst) */
+  CW("always",             1),		/* always(Bool, pred(Arg)) */
   CW("nonvar_false",       1),		/* nonvar(SingleTonOrFirst) */
   CW("unbalanced_var",     1),		/* Var initialised in some disjunctions */
   CW("branch_singleton",   1),		/* Singleton in some branch */
@@ -341,13 +341,13 @@ static int link_local_var(Word v, int iv, CompileInfo ci ARG_LD);
 		 *	      WARNINGS		*
 		 *******************************/
 
-static void
+static int
 compiler_warning(CompileInfo ci, const char *name, ...)
 { c_warning *w;
   const cw_def *def;
 
   if ( !ci->warning_list )
-    return;
+    return TRUE;
 
   for(def = cw_defs; def->name; def++)
   { if ( strcmp(def->name,name) == 0 )
@@ -356,7 +356,7 @@ compiler_warning(CompileInfo ci, const char *name, ...)
 
   if ( !def->name )
   { sysError("Undefined compiler warning: %s", name);
-    return;				/* not reached */
+    return FALSE;				/* not reached */
   }
 
   if ( (w=allocHeap(sizeof(*w))) )
@@ -367,6 +367,20 @@ compiler_warning(CompileInfo ci, const char *name, ...)
     w->def = def;
     w->pc  = entriesBuffer(&ci->codes, code);
     va_start(args, name);
+    if ( strcmp(name, "always") == 0 )
+    { GET_LD
+      Word val, pred;
+
+      if ( gTop + 2 > gMax )
+	return GLOBAL_OVERFLOW;
+
+      val  = gTop++;
+      pred = gTop++;
+      *val  = va_arg(args, atom_t);
+      *pred = PL_new_atom(va_arg(args, const char *));
+      w->argv[w->argc++] = val;
+      w->argv[w->argc++] = pred;
+    }
     for(i=0; i<def->argc; i++)
       w->argv[w->argc++] = va_arg(args, Word);
     va_end(args);
@@ -374,6 +388,8 @@ compiler_warning(CompileInfo ci, const char *name, ...)
     w->next = ci->warnings;
     ci->warnings = w;
   }
+
+  return TRUE;
 }
 
 
@@ -420,7 +436,7 @@ push_compiler_warnings(CompileInfo ci ARG_LD)
       atom_t name = PL_new_atom(cw->def->name);
       int rc;
 
-      rc = ((f=PL_new_functor(name, cw->def->argc)) &&
+      rc = ((f=PL_new_functor(name, cw->argc)) &&
 	    PL_cons_functor_v(tmp, f, cw->av) &&
 	    PL_cons_list(ci->warning_list, tmp, ci->warning_list));
 
@@ -3216,6 +3232,22 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 
 #endif /*O_COMPILE_IS*/
 
+static int
+always(atom_t val, const char *pred, Word arg, compileInfo *ci ARG_LD)
+{ if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+  { int rc;
+
+    if ( (rc=compiler_warning(ci, "always", val, pred, arg)) != TRUE )
+      return rc;
+  }
+  if ( truePrologFlag(PLFLAG_OPTIMISE) )
+  { Output_0(ci, val == ATOM_true ? I_TRUE : I_FAIL);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 static int
 compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
@@ -3224,41 +3256,21 @@ compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
-  if ( isVar(*a1) )			/* Singleton == ?: always true */
-  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-      compiler_warning(ci, "var_true", a1);
-    if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_TRUE);
-      return TRUE;
-    }
-
-    return FALSE;
-  }
+  if ( isVar(*a1) )			/* Singleton: always true */
+    return always(ATOM_true, "var", a1, ci PASS_LD);
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   if ( i1 >=0 )
   { int f1 = isFirstVar(ci->used_var, i1);
 
-    if ( f1 )
-    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-	compiler_warning(ci, "var_true", a1);
-      if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      { Output_0(ci, I_TRUE);
-	return TRUE;
-      }
-      return FALSE;
-    }
+    if ( f1 )				/* first var */
+      return always(ATOM_true, "var", a1, ci PASS_LD);
 
     Output_1(ci, I_VAR, VAROFFSET(i1));
     return TRUE;
   }
 
-  if ( truePrologFlag(PLFLAG_OPTIMISE) )
-  { Output_0(ci, I_FAIL);
-    return TRUE;
-  }
-
-  return FALSE;
+  return always(ATOM_false, "var", a1, ci PASS_LD);
 }
 
 
@@ -3269,41 +3281,21 @@ compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
-  if ( isVar(*a1) )			/* Singleton == ?: always false */
-  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-      compiler_warning(ci, "nonvar_false", a1);
-    if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_FAIL);
-      return TRUE;
-    }
-
-    return FALSE;
-  }
+  if ( isVar(*a1) )			/* Singleton: always false */
+    return always(ATOM_false, "nonvar", a1, ci PASS_LD);
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   if ( i1 >=0 )
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-	compiler_warning(ci, "nonvar_false", a1);
-      if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      { Output_0(ci, I_FAIL);
-	return TRUE;
-      }
-      return FALSE;
-    }
+      return always(ATOM_false, "nonvar", a1, ci PASS_LD);
 
     Output_1(ci, I_NONVAR, VAROFFSET(i1));
     return TRUE;
   }
 
-  if ( truePrologFlag(PLFLAG_OPTIMISE) )
-  { Output_0(ci, I_TRUE);
-    return TRUE;
-  }
-
-  return FALSE;
+  return always(ATOM_true, "nonvar", a1, ci PASS_LD);
 }
 
 static int
@@ -3313,56 +3305,24 @@ compileBodyInteger(Word arg, compileInfo *ci ARG_LD)
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
-  if ( isVar(*a1) )			/* Singleton == ?: always false */
-  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-      compiler_warning(ci, "integer_false", a1);
-    Sdprintf("integer() false 1\n");
-    if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_FAIL);
-      return TRUE;
-    }
-
-    return FALSE;
-  }
+  if ( isVar(*a1) )			/* Singleton: always false */
+    return always(ATOM_false, "integer", a1, ci PASS_LD);
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   if ( i1 >=0 )
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-	compiler_warning(ci, "integer_false", a1);
-      if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      { Output_0(ci, I_FAIL);
-	return TRUE;
-      }
-      return FALSE;
-    }
+      return always(ATOM_false, "integer", a1, ci PASS_LD);
 
     Output_1(ci, I_INTEGER, VAROFFSET(i1));
     return TRUE;
   }
 
   if ( isInteger(*a1) )
-  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-      compiler_warning(ci, "integer_true", a1);
-    if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_TRUE);
-      return TRUE;
-    }
-
-    return FALSE;
-  } else
-  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-      compiler_warning(ci, "integer_false", a1);
-    if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_FAIL);
-      return TRUE;
-    }
-    return FALSE;
-  }
-
-  return FALSE;
+    return always(ATOM_true, "integer", a1, ci PASS_LD);
+  else
+    return always(ATOM_false, "integer", a1, ci PASS_LD);
 }
 
 

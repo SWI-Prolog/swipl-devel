@@ -860,14 +860,9 @@ compiler_warning(neq_singleton(A,B), _Clause, Options) -->
     [ 'Test is always true: ~W'-[A\==B, Options] ].
 compiler_warning(unify_singleton(A,B), _Clause, Options) -->
     [ 'Unified variable is not used: ~W'-[A=B, Options] ].
-compiler_warning(var_true(A), _Clause, Options) -->
-    [ 'Test is always true: ~W'-[var(A), Options] ].
-compiler_warning(nonvar_false(A), _Clause, Options) -->
-    [ 'Test is always false: ~W'-[nonvar(A), Options] ].
-compiler_warning(integer_false(A), _Clause, Options) -->
-    [ 'Test is always false: ~W'-[integer(A), Options] ].
-compiler_warning(integer_true(A), _Clause, Options) -->
-    [ 'Test is always true: ~W'-[integer(A), Options] ].
+compiler_warning(always(Bool, Pred, Arg), _Clause, Options) -->
+    { Goal =.. [Pred,Arg] },
+    [ 'Test is always ~w: ~W'-[Bool, Goal, Options] ].
 compiler_warning(unbalanced_var(V), _Clause, Options) -->
     [ 'Variable not introduced in all branches: ~W'-[V, Options] ].
 compiler_warning(branch_singleton(V), _Clause, Options) -->
