@@ -2621,6 +2621,25 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
   BODY_FAILED;
 }
 
+/** integer(@Term)
+*/
+
+VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR))
+{ p = varFrameP(FR, (int)*PC++);
+
+#ifdef O_DEBUGGER
+  if ( unlikely(debugstatus.debugging) )
+  { fpred = FUNCTOR_integer1;
+    goto debug_pred1;
+  }
+#endif
+
+  deRef(p);
+  if ( isInteger(*p) )
+    NEXT_INSTRUCTION;
+  BODY_FAILED;
+}
+
 END_SHAREDVARS
 
 		 /*******************************

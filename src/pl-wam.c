@@ -940,8 +940,9 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
       { return PL_put_atom_chars(t, "unify_exit");
       }
     }
-    case I_VAR:		ftor = FUNCTOR_var1;    goto fa_1;
-    case I_NONVAR:	ftor = FUNCTOR_nonvar1; goto fa_1;
+    case I_VAR:		ftor = FUNCTOR_var1;     goto fa_1;
+    case I_NONVAR:	ftor = FUNCTOR_nonvar1;  goto fa_1;
+    case I_INTEGER:	ftor = FUNCTOR_integer1; goto fa_1;
     fa_1:
     { Word gt       = allocGlobal(1+1+2);	/* call(f(A)) */
       LocalFrame fr = (LocalFrame)valTermRef(frref);

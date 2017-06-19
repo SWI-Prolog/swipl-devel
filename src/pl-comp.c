@@ -190,6 +190,8 @@ const static cw_def cw_defs[] =
   CW("branch_singleton",   1),		/* Singleton in some branch */
   CW("negation_singleton", 1),		/* Singleton in \+(Goal) */
   CW("multiton",	   1),		/* Multiple _Name variables */
+  CW("integer_false",      1),		/* integer(VarOrNonInt) */
+  CW("integer_true",       1),		/* integer(Integer) */
   CW(NULL,                 0)
 };
 
@@ -1070,6 +1072,7 @@ forwards int	compileBodyNEQ(Word arg, compileInfo *ci ARG_LD);
 #endif
 forwards int	compileBodyVar1(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyInteger(Word arg, compileInfo *ci ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
@@ -2522,6 +2525,11 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
 
 	if ( (rc=compileBodyNonVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
+      } else if ( functor == FUNCTOR_integer1 )
+      { int rc;
+
+	if ( (rc=compileBodyInteger(arg, ci PASS_LD)) != FALSE )
+	  return rc;
       }
     }
 #endif
@@ -3293,6 +3301,65 @@ compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
   if ( truePrologFlag(PLFLAG_OPTIMISE) )
   { Output_0(ci, I_TRUE);
     return TRUE;
+  }
+
+  return FALSE;
+}
+
+static int
+compileBodyInteger(Word arg, compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton == ?: always false */
+  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "integer_false", a1);
+    Sdprintf("integer() false 1\n");
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { Output_0(ci, I_FAIL);
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  if ( i1 >=0 )
+  { int f1 = isFirstVar(ci->used_var, i1);
+
+    if ( f1 )
+    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+	compiler_warning(ci, "integer_false", a1);
+      if ( truePrologFlag(PLFLAG_OPTIMISE) )
+      { Output_0(ci, I_FAIL);
+	return TRUE;
+      }
+      return FALSE;
+    }
+
+    Output_1(ci, I_INTEGER, VAROFFSET(i1));
+    return TRUE;
+  }
+
+  if ( isInteger(*a1) )
+  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "integer_true", a1);
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { Output_0(ci, I_TRUE);
+      return TRUE;
+    }
+
+    return FALSE;
+  } else
+  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "integer_false", a1);
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { Output_0(ci, I_FAIL);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   return FALSE;
@@ -4909,6 +4976,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
       case I_NONVAR:	    *ARGP++ = makeVarRef((int)*PC++);
 			    BUILD_TERM(FUNCTOR_nonvar1);
+			    pushed++;
+			    continue;
+      case I_INTEGER:	    *ARGP++ = makeVarRef((int)*PC++);
+			    BUILD_TERM(FUNCTOR_integer1);
 			    pushed++;
 			    continue;
       case C_LCUTIFTHEN:

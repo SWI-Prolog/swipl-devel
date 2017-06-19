@@ -1784,6 +1784,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       case I_VAR:
       case I_NONVAR:
+      case I_INTEGER:
 	mark_frame_var(state, PC[0] PASS_LD);
         break;
 
