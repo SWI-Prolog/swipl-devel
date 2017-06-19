@@ -928,6 +928,8 @@ process_directive(public(Public), Src) :-
     process_predicates(assert_public, Public, Src).
 process_directive(export(Export), Src) :-
     process_predicates(assert_export, Export, Src).
+process_directive(import(Import), Src) :-
+    process_import(Import, Src).
 process_directive(module(Module, Export), Src) :-
     assert_module(Src, Module),
     assert_module_export(Src, Export).
@@ -2188,6 +2190,22 @@ in_export_list(Head, Export) :-
 assert_reexport(false, _, _) :- !.
 assert_reexport(true, Src, Term) :-
     assert(exported(Term, Src)).
+
+%!  process_import(:Import, +Src)
+%
+%   Process an import/1 directive
+
+process_import(M:PI, Src) :-
+    pi_to_head(PI, Head),
+    !,
+    (   atom(M),
+        current_module(M),
+        module_property(M, file(From))
+    ->  true
+    ;   From = '<unknown>'
+    ),
+    assert(imported(Head, Src, From)).
+process_import(_, _).
 
 %!  assert_xmodule_callable(PIs, Module, Src, From)
 %
