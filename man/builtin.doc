@@ -5659,7 +5659,7 @@ L = [X, Y, Z].
 Difference list version of term_variables/2.  That is, \arg{Tail} is the
 tail of the variable list \arg{List}.
 
-    \predicate[ISO]{term_singletons}{2}{+Term, -List}
+    \predicate{term_singletons}{2}{+Term, -List}
 Unify \arg{List} with a list of variables, each sharing with a variable
 that appears only once in \arg{Term}.\bug{In the current implementation
 \arg{Term} must be acyclic.  If not, a \const{representation_error} is
