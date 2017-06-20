@@ -417,3 +417,11 @@ qualify(G0, G) :-
     G = G0.
 qualify(G, error:G).
 
+
+		 /*******************************
+		 *           SANDBOX		*
+		 *******************************/
+
+:- multifile sandbox:safe_primitive/1.
+
+sandbox:safe_primitive(error:current_type(_,_,_)).
