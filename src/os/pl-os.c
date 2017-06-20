@@ -1923,7 +1923,8 @@ ResetTty(void)
 
 static int
 GetTtyState(int fd, struct termios *tio)
-{
+{ memset(tio, 0, sizeof(*tio));
+
 #ifdef HAVE_TCSETATTR
   if ( tcgetattr(fd, tio) )
     return FALSE;
@@ -2063,7 +2064,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  buf->state = allocHeapOrHalt(sizeof(tty_state));
+  buf->state = allocHeapOrHalt(sizeof((*buf->state));
+  memset(buf->state, 0, sizeof(*buf->state));
 
   if ( ioctl(fd, TIOCGETP, &TTY_STATE(buf)) )  /* save the old one */
     fail;
