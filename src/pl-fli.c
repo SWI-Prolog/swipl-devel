@@ -3274,9 +3274,8 @@ typedef struct
 
 
 int
-PL_unify_termv(term_t t, va_list args)
-{ GET_LD
-  term_t tsave = PL_new_term_refs(0);	/* save for reclaim */
+PL_unify_termv__LD(term_t t ARG_LD, va_list args)
+{ term_t tsave = PL_new_term_refs(0);	/* save for reclaim */
   tmp_buffer buf;
   int tos = 0;				/* Top-of-stack */
   int rval;
@@ -3516,19 +3515,45 @@ failout:
   return FALSE;
 }
 
+int
+PL_unify_termv(term_t t, va_list args)
+{ GET_LD
+
+  return PL_unify_termv__LD(t PASS_LD, args);
+}
+
 
 int
-PL_unify_term(term_t t, ...)
+PL_unify_term__LD(term_t t ARG_LD, ...)
 { va_list args;
   int rval;
 
+#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
+  va_start(args, LOCAL_LD);
+#else
   va_start(args, t);
-  rval = PL_unify_termv(t, args);
+#endif
+  rval = PL_unify_termv__LD(t PASS_LD, args);
   va_end(args);
 
   return rval;
 }
 
+
+#undef PL_unify_term
+int
+PL_unify_term(term_t t, ...)
+{ GET_LD
+  va_list args;
+  int rval;
+
+  va_start(args, t);
+  rval = PL_unify_termv__LD(t PASS_LD, args);
+  va_end(args);
+
+  return rval;
+}
+#define PL_unify_term(t, ...) PL_unify_term__LD(t PASS_LD, __VA_ARGS__)
 
 static inline word
 put_xpce_ref_arg(xpceref_t *ref ARG_LD)

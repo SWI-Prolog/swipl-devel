@@ -78,6 +78,7 @@
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 #define PL_unify_int64(t, i)	PL_unify_int64__LD(t, i PASS_LD)
 #define PL_unify_functor(t, f)	PL_unify_functor__LD(t, f PASS_LD)
+#define PL_unify_term(t, ...)	PL_unify_term__LD(t PASS_LD, __VA_ARGS__)
 #define PL_unify_output(t1,t2)	PL_unify_output__LD(t1, t2 PASS_LD)
 #define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
 #define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)

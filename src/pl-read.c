@@ -2459,7 +2459,9 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 
 	return rc;
       } else
-      { return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_dquasi_quotation3,
+      { GET_LD
+
+	return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_dquasi_quotation3,
 			          PL_POINTER, _PL_rd,
 				  PL_INTPTR, (intptr_t)(start-rdbase),
 			          PL_INTPTR, (intptr_t)(in-start));
@@ -3651,7 +3653,7 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
 
 
 static int
-unify_atomic_position(term_t positions, Token token)
+unify_atomic_position(term_t positions, Token token ARG_LD)
 { if ( positions )
   { return PL_unify_term(positions,
 			 PL_FUNCTOR, FUNCTOR_minus2,
@@ -3663,7 +3665,7 @@ unify_atomic_position(term_t positions, Token token)
 
 
 static int
-unify_string_position(term_t positions, Token token)
+unify_string_position(term_t positions, Token token ARG_LD)
 { if ( positions )
   { return PL_unify_term(positions,
 			 PL_FUNCTOR, FUNCTOR_string_position2,
@@ -3745,7 +3747,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  PL_put_term(in_op.op.block, *top);
 	  truncate_term_stack(top, _PL_rd);
 	} else
-	{ if ( !unify_atomic_position(pin, token) )
+	{ if ( !unify_atomic_position(pin, token PASS_LD) )
 	    return FALSE;
 	}
 	PushOp();
@@ -4289,31 +4291,31 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     case T_VOID:
       alloc_term(_PL_rd PASS_LD);
       /* nothing to do; term is already a variable */
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     case T_VARIABLE:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       setHandle(term, token->value.variable->signature);
       DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     }
     case T_NAME:
     case T_QNAME:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     }
     case T_NUMBER:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       if ( !_PL_put_number(term, &token->value.number) )
 	return FALSE;
       clearNumber(&token->value.number);
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     }
     case T_STRING:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_term(term, token->value.term);
-      return unify_string_position(positions, token);
+      return unify_string_position(positions, token PASS_LD);
     }
     case T_FUNCTOR:
       return read_compound(token, positions, _PL_rd PASS_LD);
@@ -4332,7 +4334,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 	default:
 	{ term_t term = alloc_term(_PL_rd PASS_LD);
 	  PL_put_atom(term, codeToAtom(token->value.character));
-	  return unify_atomic_position(positions, token);
+	  return unify_atomic_position(positions, token PASS_LD);
 	}
       }
     }

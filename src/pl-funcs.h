@@ -229,7 +229,9 @@ COMMON(predicate_t)	_PL_predicate(const char *name, int arity,
 COMMON(void)		initialiseForeign(int argc, char **argv);
 COMMON(void)		cleanupInitialiseHooks(void);
 COMMON(atom_t)		codeToAtom(int code);
+COMMON(int)		PL_unify_term__LD(term_t t ARG_LD, ...);
 COMMON(int)		PL_unify_termv(term_t t, va_list args);
+COMMON(int)		PL_unify_termv__LD(term_t t ARG_LD, va_list args);
 COMMON(term_t)		pushWordAsTermRef__LD(Word p ARG_LD);
 COMMON(void)		popTermRef__LD(ARG1_LD);
 COMMON(void)		_PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD);

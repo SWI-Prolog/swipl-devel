@@ -5210,7 +5210,9 @@ unify_definition(+Module, ?Head, +Def, -TheHead, flags)
 
 int
 unify_functor(term_t t, functor_t fd, int how)
-{ if ( how&GP_NAMEARITY )
+{ GET_LD
+
+  if ( how&GP_NAMEARITY )
   { FunctorDef fdef = valueFunctor(fd);
 
     return PL_unify_term(t,
@@ -5218,8 +5220,7 @@ unify_functor(term_t t, functor_t fd, int how)
 			   PL_ATOM, fdef->name,
 			   PL_INT, fdef->arity);
   } else
-  { GET_LD
-    return PL_unify_functor(t, fd);
+  { return PL_unify_functor(t, fd);
   }
 }
 
