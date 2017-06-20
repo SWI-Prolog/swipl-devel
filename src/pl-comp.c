@@ -5218,7 +5218,8 @@ unify_functor(term_t t, functor_t fd, int how)
 			   PL_ATOM, fdef->name,
 			   PL_INT, fdef->arity);
   } else
-  { return PL_unify_functor(t, fd);
+  { GET_LD
+    return PL_unify_functor(t, fd);
   }
 }
 

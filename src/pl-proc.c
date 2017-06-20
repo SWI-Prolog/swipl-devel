@@ -1671,9 +1671,8 @@ PRED_IMPL("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
 
 
 static int
-unify_meta_argument(term_t head, Definition def, int i)
-{ GET_LD
-  term_t arg = PL_new_term_ref();
+unify_meta_argument(term_t head, Definition def, int i ARG_LD)
+{ term_t arg = PL_new_term_ref();
   int m = def->args[i].meta;
 
   _PL_get_arg(i+1, head, arg);
@@ -1699,14 +1698,15 @@ unify_meta_argument(term_t head, Definition def, int i)
 
 static int
 unify_meta_pattern(Procedure proc, term_t head)
-{ Definition def = proc->definition;
+{ GET_LD
+  Definition def = proc->definition;
 
   if ( PL_unify_functor(head, def->functor->functor) )
   { int arity = def->functor->arity;
     int i;
 
     for(i=0; i<arity; i++)
-    { if ( !unify_meta_argument(head, def, i) )
+    { if ( !unify_meta_argument(head, def, i PASS_LD) )
 	return FALSE;
     }
 

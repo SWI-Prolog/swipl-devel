@@ -1877,9 +1877,12 @@ real atom.
 bool
 unifyKey(term_t key, word val)
 { if ( isAtom(val) || isTaggedInt(val) )
-    return _PL_unify_atomic(key, val);
+  { return _PL_unify_atomic(key, val);
+  } else
+  { GET_LD
 
-  return PL_unify_functor(key, (functor_t) val);
+    return PL_unify_functor(key, (functor_t) val);
+  }
 }
 
 

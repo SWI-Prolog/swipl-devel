@@ -318,20 +318,17 @@ PL_new_nil_ref(void)
 
 
 void
-PL_reset_term_refs(term_t r)
-{ GET_LD
-  FliFrame fr = fli_context;
+PL_reset_term_refs__LD(term_t r ARG_LD)
+{ FliFrame fr = fli_context;
 
   lTop = (LocalFrame) valTermRef(r);
   fr->size = (int)((Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame)));
   DEBUG(0, assert(fr->size >= 0));
 }
 
-
 term_t
-PL_copy_term_ref(term_t from)
-{ GET_LD
-  Word t, p2;
+PL_copy_term_ref__LD(term_t from ARG_LD)
+{ Word t, p2;
   term_t r;
   FliFrame fr;
 
@@ -359,6 +356,27 @@ PL_copy_term_ref(term_t from)
 
   return r;
 }
+
+#undef PL_reset_term_refs
+#undef PL_copy_term_ref
+
+void
+PL_reset_term_refs(term_t r)
+{ GET_LD
+
+  PL_reset_term_refs__LD(r PASS_LD);
+}
+
+term_t
+PL_copy_term_ref(term_t from)
+{ GET_LD
+
+  return PL_copy_term_ref__LD(from PASS_LD);
+}
+
+#define PL_reset_term_refs(t)	PL_reset_term_refs__LD(t PASS_LD)
+#define PL_copy_term_ref(t)	PL_copy_term_ref__LD(t PASS_LD)
+
 
 		 /*******************************
 		 *	    UNIFICATION		*
@@ -2710,9 +2728,8 @@ PL_unify_compound(term_t t, functor_t f)
 
 
 int
-PL_unify_functor(term_t t, functor_t f)
-{ GET_LD
-  Word p = valHandleP(t);
+PL_unify_functor__LD(term_t t, functor_t f ARG_LD)
+{ Word p = valHandleP(t);
   size_t arity = arityFunctor(f);
 
   deRef(p);
@@ -2758,6 +2775,17 @@ PL_unify_functor(term_t t, functor_t f)
   }
 }
 
+
+#undef PL_unify_functor
+
+int
+PL_unify_functor(term_t t, functor_t f)
+{ GET_LD
+
+  return PL_unify_functor__LD(t, f PASS_LD);
+}
+
+#define PL_unify_functor(t, f) PL_unify_functor__LD(t, f PASS_LD)
 
 int
 PL_unify_atom_chars(term_t t, const char *chars)
