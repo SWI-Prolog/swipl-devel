@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2016, University of Amsterdam
+    Copyright (c)  1997-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -373,6 +373,7 @@ struct PL_local_data
 #ifdef O_GVAR
   Word		frozen_bar;		/* Frozen part of the global stack */
 #endif
+  Code		fast_condition;		/* Fast condition support */
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
   int		alerted;		/* Special mode. See updateAlerted() */

@@ -1711,6 +1711,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       }
       case C_SOFTIF:
       case C_IFTHENELSE:
+      case C_FASTCOND:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;

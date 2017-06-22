@@ -1324,7 +1324,7 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   if ( rc == CMP_ERROR )
     THROW_EXCEPTION;
 
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -1349,7 +1349,7 @@ VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   if ( *v1 == c )
     NEXT_INSTRUCTION;
 
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -1376,7 +1376,7 @@ VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 #endif
 
   if ( (rc=compareStandard(v1, v2, TRUE PASS_LD)) == 0 )
-    BODY_FAILED;
+    FASTCOND_FAILED;
   if ( rc == CMP_ERROR )
     THROW_EXCEPTION;
 
@@ -1405,7 +1405,7 @@ VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   if ( *v1 != c )
     NEXT_INSTRUCTION;
 
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -2228,7 +2228,6 @@ VMI(C_IFTHEN, 0, 1, (CA1_CHP))
   NEXT_INSTRUCTION;
 }
 
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_IFTHENELSE: contraction of C_IFTHEN and C_OR.  This contraction has been
 made to help the decompiler distinguis between (a ; b) -> c and a -> b ;
@@ -2246,6 +2245,32 @@ VMI(C_IFTHENELSE, 0, 2, (CA1_CHP,CA1_JUMP))
 { varFrame(FR, *PC++) = consTermRef(BFR); /* == C_IFTHEN */
 
   VMI_GOTO(C_OR);
+}
+
+VMI(C_FASTCOND, 0, 2, (CA1_CHP,CA1_JUMP))
+{ size_t skip;
+
+#ifdef O_DEBUGGER
+  if ( unlikely(debugstatus.debugging) )
+    VMI_GOTO(C_IFTHENELSE);
+#endif
+
+  varFrame(FR, *PC++) = consTermRef(BFR); /* == C_IFTHEN */
+  skip = *PC++;
+  LD->fast_condition = PC+skip;
+  NEXT_INSTRUCTION;
+}
+
+VMI(C_FASTCUT, 0, 1, (CA1_CHP))
+{
+#ifdef O_DEBUGGER
+  if ( unlikely(debugstatus.debugging) )
+    VMI_GOTO(C_CUT);
+#endif
+
+  PC++;
+  LD->fast_condition = NULL;
+  NEXT_INSTRUCTION;
 }
 
 
@@ -2598,7 +2623,7 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
   deRef(p);
   if ( canBind(*p) )
     NEXT_INSTRUCTION;
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -2618,7 +2643,7 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
   deRef(p);
   if ( !canBind(*p) )
     NEXT_INSTRUCTION;
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 /** integer(@Term)
@@ -2637,7 +2662,7 @@ VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR))
   deRef(p);
   if ( isInteger(*p) )
     NEXT_INSTRUCTION;
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 END_SHAREDVARS
@@ -3433,7 +3458,7 @@ a_cmp_out:
   AR_END();
   if ( rc )
     NEXT_INSTRUCTION;
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 VMI(A_LE, VIF_BREAK, 0, ())		/* A =< B */
@@ -4208,6 +4233,7 @@ VMI(B_THROW, 0, 0, ())
   THROW_EXCEPTION;				/* sets origin */
 
 b_throw:
+  LD->fast_condition = NULL;		/* A_FUNC exceptions */
   rewritten = 0;
   QF  = QueryFromQid(qid);
   aTop = QF->aSave;

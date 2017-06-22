@@ -1092,6 +1092,7 @@ forwards int	compileBodyInteger(Word arg, compileInfo *ci ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
+static int	try_fast_condition(CompileInfo ci, size_t tc_or);
 
 static inline int
 isIndexedVarTerm(word w ARG_LD)
@@ -1893,6 +1894,7 @@ right_argument:
 	  size_t tc_or, tc_jmp;
 	  int rv;
 	  cutInfo cutsave = ci->cut;
+	  int fast = FALSE;
 
 	  if ( !(var=allocChoiceVar(ci)) )
 	    return FALSE;
@@ -1903,8 +1905,10 @@ right_argument:
 	  ci->cut.instruction = hard ? C_LCUT : C_LSCUT;
 	  if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci PASS_LD)) != TRUE )
 	    return rv;
+	  if ( hard )
+	    fast = try_fast_condition(ci, tc_or);
 	  ci->cut = cutsave;
-	  Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
+	  Output_1(ci, fast ? C_FASTCUT : hard ? C_CUT : C_SOFTCUT, var);
 	  if ( (rv=compileBody(argTermP(*a0, 1), call, ci PASS_LD)) != TRUE )
 	    return rv;
 	  if ( !ci->islocal )
@@ -2047,6 +2051,56 @@ right_argument:
   return compileSubClause(body, call, ci);
 }
 
+
+static int
+try_fast_condition(CompileInfo ci, size_t tc_or)
+{ Code pc  = &OpCode(ci, tc_or);
+  Code end = &OpCode(ci, PC(ci));
+
+  while(pc < end)
+  { switch( decode(*pc) )
+    { case I_INTEGER:
+      case I_VAR:
+      case I_NONVAR:
+      case B_EQ_VV:
+      case B_EQ_VC:
+      case B_NEQ_VV:
+      case B_NEQ_VC:
+      case A_ENTER:
+      case A_VAR0:
+      case A_VAR1:
+      case A_VAR2:
+      case A_VAR:
+      case A_INTEGER:
+      case A_INT64:
+      case A_MPZ:
+      case A_DOUBLE:
+      case A_FUNC0:
+      case A_FUNC1:
+      case A_FUNC2:
+      case A_FUNC:
+      case A_ADD:
+      case A_MUL:
+      case A_LT:
+      case A_LE:
+      case A_GT:
+      case A_GE:
+      case A_EQ:
+      case A_NE:
+	break;
+      default:
+	return FALSE;
+    }
+
+    pc = stepPC(pc);
+  }
+
+  pc = &OpCode(ci, tc_or);
+  assert(decode(pc[-3]) == C_IFTHENELSE);
+  pc[-3] = encode(C_FASTCOND);
+
+  return TRUE;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 compileArgument() is the key function of the compiler.  Its function  is
@@ -5040,6 +5094,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			  TRY_DECOMPILE(di, (code)-1, PC+to_jump); \
 			}
       case C_CUT:
+      case C_FASTCUT:
       case C_VAR:
       case C_JMP:
 			    PC++;
@@ -5069,6 +5124,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case C_SOFTIF:				/* A *-> B ; C */
 			    icut = C_SOFTCUT;
 			    f = FUNCTOR_softcut2;
+			    goto ifcommon;
+      case C_FASTCOND:
+			    icut = C_FASTCUT;
+			    f = FUNCTOR_ifthen2;
 			    goto ifcommon;
       case C_IFTHENELSE:			/* A  -> B ; C */
 			    icut = C_CUT;
@@ -6364,6 +6423,7 @@ find_if_then_end(Code PC, Code base)
         break;
       case C_SOFTIF:
       case C_IFTHENELSE:
+      case C_FASTCOND:
       { Code elseloc = nextpc + PC[2];
 
 	PC = elseloc + elseloc[-1];
@@ -6555,9 +6615,11 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       }
       case C_SOFTIF:
       case C_IFTHENELSE:	/* C_IFTHENELSE <var> <jmp1> */
-				/* <IF> C_CUT <THEN> C_JMP <jmp2> <ELSE> */
+      case C_FASTCOND:		/* <IF> C_CUT <THEN> C_JMP <jmp2> <ELSE> */
       { Code elseloc = nextpc + PC[2];
-	code cut = (op == C_IFTHENELSE ? C_CUT : C_SOFTCUT);
+	code cut = (op == C_IFTHENELSE ? C_CUT :
+		    op == C_FASTCOND   ? C_FASTCUT :
+		                         C_SOFTCUT);
 
 	endloc = elseloc + elseloc[-1];
 

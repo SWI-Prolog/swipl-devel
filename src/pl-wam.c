@@ -2707,6 +2707,17 @@ code thiscode;
 
 #endif /* VMCODE_IS_ADDRESS */
 
+#define FASTCOND_FAILED \
+	{ if ( !LD->fast_condition )   \
+	  { BODY_FAILED;	       \
+	  } else		       \
+	  { PC = LD->fast_condition;   \
+	    LD->fast_condition = NULL; \
+	    NEXT_INSTRUCTION;          \
+	  }                            \
+	}
+
+
 #if VMCODE_IS_ADDRESS
   if ( qid == QID_EXPORT_WAM_TABLE )
   { interpreter_jmp_table = jmp_table;	/* make it globally known */
