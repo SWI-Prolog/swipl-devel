@@ -1088,7 +1088,8 @@ forwards int	compileBodyNEQ(Word arg, compileInfo *ci ARG_LD);
 #endif
 forwards int	compileBodyVar1(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
-forwards int	compileBodyInteger(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyTypeTest(functor_t functor, Word arg,
+				    compileInfo *ci ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
@@ -2570,36 +2571,25 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
 
 #ifdef O_COMPILE_IS
     if ( !ci->islocal )
-    { if ( functor == FUNCTOR_equals2 )	/* =/2 */
-      { int rc;
+    { int rc;
 
-	if ( (rc=compileBodyUnify(arg, ci PASS_LD)) != FALSE )
+      if ( functor == FUNCTOR_equals2 )	/* =/2 */
+      { if ( (rc=compileBodyUnify(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_strict_equal2 )	/* ==/2 */
-      { int rc;
-
-	if ( (rc=compileBodyEQ(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_not_strict_equal2 ) /* \==/2 */
-      { int rc;
-
-	if ( (rc=compileBodyNEQ(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyNEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_var1 )
-      { int rc;
-
-	if ( (rc=compileBodyVar1(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_nonvar1 )
-      { int rc;
-
-	if ( (rc=compileBodyNonVar1(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyNonVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
-      } else if ( functor == FUNCTOR_integer1 )
-      { int rc;
-
-	if ( (rc=compileBodyInteger(arg, ci PASS_LD)) != FALSE )
-	  return rc;
+      } else if ( (rc=compileBodyTypeTest(functor, arg, ci PASS_LD)) != FALSE )
+      { return rc;
       }
     }
 #endif
@@ -3353,14 +3343,16 @@ compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
 }
 
 static int
-compileBodyInteger(Word arg, compileInfo *ci ARG_LD)
+compileTypeTest(Word arg,
+		code instruction, const char *name, int (*test)(word),
+		compileInfo *ci ARG_LD)
 { Word a1;
   int i1;
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
   if ( isVar(*a1) )			/* Singleton: always false */
-    return always(ATOM_false, "integer", a1, ci PASS_LD);
+    return always(ATOM_false, name, a1, ci PASS_LD);
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   if ( i1 >=0 )
@@ -3369,7 +3361,7 @@ compileBodyInteger(Word arg, compileInfo *ci ARG_LD)
     if ( f1 )
     { int rc;
 
-      if ( (rc=always(ATOM_false, "integer", a1, ci PASS_LD)) == TRUE )
+      if ( (rc=always(ATOM_false, name, a1, ci PASS_LD)) == TRUE )
       { isFirstVarSet(ci->used_var, i1);
 	Output_1(ci, C_VAR, VAROFFSET(i1));
       }
@@ -3377,14 +3369,41 @@ compileBodyInteger(Word arg, compileInfo *ci ARG_LD)
       return rc;
     }
 
-    Output_1(ci, I_INTEGER, VAROFFSET(i1));
+    Output_1(ci, instruction, VAROFFSET(i1));
     return TRUE;
   }
 
-  if ( isInteger(*a1) )
-    return always(ATOM_true, "integer", a1, ci PASS_LD);
+  if ( (*test)(*a1) )
+    return always(ATOM_true, name, a1, ci PASS_LD);
   else
-    return always(ATOM_false, "integer", a1, ci PASS_LD);
+    return always(ATOM_false, name, a1, ci PASS_LD);
+}
+
+typedef struct type_test
+{ functor_t	functor;
+  code		instruction;
+  const char *  name;
+  int	        (*test)(word);
+} type_test;
+
+static int fisInteger(word w) { return isInteger(w); }
+
+const type_test type_tests[] =
+{ { FUNCTOR_integer1, I_INTEGER, "integer", fisInteger },
+  { 0, 0, NULL, NULL }
+};
+
+static int
+compileBodyTypeTest(functor_t functor, Word arg, compileInfo *ci ARG_LD)
+{ const type_test *tt;
+
+  for(tt = type_tests; tt->functor; tt++)
+  { if ( functor == tt->functor )
+      return compileTypeTest(arg, tt->instruction, tt->name, tt->test,
+			     ci PASS_LD);
+  }
+
+  return FALSE;
 }
 
 
