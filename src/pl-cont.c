@@ -336,7 +336,7 @@ retry:
   if ( PL_is_functor(cont, FUNCTOR_dcont3) )
   { term_t env  = PL_new_term_ref();
     term_t arg  = PL_new_term_ref();
-    term_t head = PL_new_term_ref();
+    Word ep;
     Clause cl;
     ClauseRef cref;
     long pcoffset;
@@ -373,34 +373,54 @@ retry:
     for(i=cl->variables-cl->prolog_vars; i-- > 0; )
       *ap++ = consTermRef(LD->choicepoints);
 
-    while( PL_get_list_ex(env, head, env) )
-    { int offset;
+    ep = valTermRef(env);
+    for(;;)
+    { deRef(ep);
+      if ( isList(*ep) )
+      { Word hp = HeadList(ep);
 
-      if ( !PL_is_functor(head, FUNCTOR_minus2) )
-	return PL_type_error("pair", head);
+	deRef(hp);
+	if ( hasFunctor(*hp, FUNCTOR_minus2) )
+	{ Word p = argTermP(*hp, 0);
+	  Word ap;
 
-      _PL_get_arg(1, head, arg);
-      if ( !PL_get_integer_ex(arg, &offset) )
-	return FALSE;
-      _PL_get_arg(2, head, arg);
+	  deRef2(p, ap);
+	  if ( isTaggedInt(*ap) )
+	  { intptr_t offset = valInt(*ap);
 
-      if ( offset < cl->prolog_vars )
-      { argFrame(fr, offset) = linkVal(valTermRef(arg));
+	    p++;
+
+	    if ( offset < cl->prolog_vars )
+	    { argFrame(fr, offset) = linkVal(p);
+	    } else
+	    { deRef(p);
+	      if ( isTaggedInt(*p) )
+	      { intptr_t i = valInt(*p);
+		Choice ch, chp;
+
+		ch = (Choice)valTermRef(i);
+		for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
+		  ;
+		if ( ch == chp )
+		  argFrame(fr, offset) = i;
+	      } else
+	      { return PL_type_error("environment", env);
+	      }
+	    }
+	  } else
+	  { return PL_type_error("environment", env);
+	  }
+	} else
+	{ return PL_type_error("environment", env);
+	}
+
+	ep = TailList(ep);
+      } else if ( isNil(*ep) )
+      { break;
       } else
-      { intptr_t i;
-	Choice ch, chp;
-
-	if ( !PL_get_intptr_ex(arg, &i) )
-	  return FALSE;
-	ch = (Choice)valTermRef(i);
-	for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
-	  ;
-	if ( ch == chp )
-	  argFrame(fr, offset) = i;
+      { return PL_type_error("environment", env);
       }
     }
-    if ( !PL_get_nil_ex(env) )
-      return FALSE;
 
     lTop = top;
 
