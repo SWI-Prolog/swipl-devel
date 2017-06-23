@@ -808,6 +808,7 @@ F atan			2
 F atanh			1
 F atan2			2
 F atom			1
+F atomic		1
 F att			3
 F backslash		1
 F bar			2
@@ -836,6 +837,7 @@ F codes			1
 F codes			2
 F colon			2
 F comma			2
+F compound		1
 F context		2
 F copysign		2
 F cos			1
@@ -962,6 +964,7 @@ F nonvar		1
 F not_implemented	2
 F not_provable		1
 F not_strict_equal	2
+F number		1
 F occurs_check		2
 F or			1
 F output		0

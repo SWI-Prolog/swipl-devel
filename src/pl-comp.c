@@ -2061,6 +2061,12 @@ try_fast_condition(CompileInfo ci, size_t tc_or)
   while(pc < end)
   { switch( decode(*pc) )
     { case I_INTEGER:
+      case I_FLOAT:
+      case I_NUMBER:
+      case I_ATOMIC:
+      case I_ATOM:
+      case I_STRING:
+      case I_COMPOUND:
       case I_VAR:
       case I_NONVAR:
       case B_EQ_VV:
@@ -3386,10 +3392,22 @@ typedef struct type_test
   int	        (*test)(word);
 } type_test;
 
-static int fisInteger(word w) { return isInteger(w); }
+static int fisInteger(word w)  { return isInteger(w); }
+static int fisFloat(word w)    { return isFloat(w);   }
+static int fisNumber(word w)   { return isNumber(w);  }
+static int fisAtomic(word w)   { return isAtomic(w);  }
+static int fisAtom(word w)     { return isAtom(w);    }
+static int fisString(word w)   { return isString(w);  }
+static int fisCompound(word w) { return isTerm(w);    }
 
 const type_test type_tests[] =
-{ { FUNCTOR_integer1, I_INTEGER, "integer", fisInteger },
+{ { FUNCTOR_integer1,  I_INTEGER,  "integer",  fisInteger  },
+  { FUNCTOR_float1,    I_FLOAT,	   "float",    fisFloat    },
+  { FUNCTOR_number1,   I_NUMBER,   "number",   fisNumber   },
+  { FUNCTOR_atomic1,   I_ATOMIC,   "atomic",   fisAtomic   },
+  { FUNCTOR_atom1,     I_ATOM,     "atom",     fisAtom     },
+  { FUNCTOR_string1,   I_STRING,   "string",   fisString   },
+  { FUNCTOR_compound1, I_COMPOUND, "compound", fisCompound },
   { 0, 0, NULL, NULL }
 };
 
@@ -5011,18 +5029,22 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_TRUE:	    *ARGP++ = ATOM_true;
 			    pushed++;
 			    continue;
-      case I_VAR:	    *ARGP++ = makeVarRef((int)*PC++);
-			    BUILD_TERM(FUNCTOR_var1);
+    { functor_t f;
+      case I_VAR:	    f = FUNCTOR_var1;
+    common_type_test:
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    BUILD_TERM(f);
 			    pushed++;
 			    continue;
-      case I_NONVAR:	    *ARGP++ = makeVarRef((int)*PC++);
-			    BUILD_TERM(FUNCTOR_nonvar1);
-			    pushed++;
-			    continue;
-      case I_INTEGER:	    *ARGP++ = makeVarRef((int)*PC++);
-			    BUILD_TERM(FUNCTOR_integer1);
-			    pushed++;
-			    continue;
+      case I_NONVAR:	    f = FUNCTOR_nonvar1;   goto common_type_test;
+      case I_INTEGER:	    f = FUNCTOR_integer1;  goto common_type_test;
+      case I_FLOAT:	    f = FUNCTOR_float1;    goto common_type_test;
+      case I_NUMBER:	    f = FUNCTOR_number1;   goto common_type_test;
+      case I_ATOMIC:	    f = FUNCTOR_atomic1;   goto common_type_test;
+      case I_ATOM:	    f = FUNCTOR_atom1;     goto common_type_test;
+      case I_STRING:	    f = FUNCTOR_string1;   goto common_type_test;
+      case I_COMPOUND:	    f = FUNCTOR_compound1; goto common_type_test;
+    }
       case C_LCUTIFTHEN:
       case C_LSCUT:
       case C_LCUT:	    PC++;

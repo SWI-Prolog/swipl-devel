@@ -1786,6 +1786,12 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case I_VAR:
       case I_NONVAR:
       case I_INTEGER:
+      case I_FLOAT:
+      case I_NUMBER:
+      case I_ATOMIC:
+      case I_ATOM:
+      case I_STRING:
+      case I_COMPOUND:
 	mark_frame_var(state, PC[0] PASS_LD);
         break;
 
