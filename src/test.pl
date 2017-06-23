@@ -981,6 +981,11 @@ type_test(type-2) :-
 	atom(hello), \+ atom(10), \+ atom("hello").
 type_test(type-3) :-
 	callable(atom), callable(term(a)), \+ callable(_Var).
+type_test(type-4) :-				% a blob is not an atom.
+	setup_call_cleanup(
+	    open_null_stream(X),
+	    \+ atom(X),
+	    close(X)).
 
 
 		 /*******************************

@@ -3392,13 +3392,13 @@ typedef struct type_test
   int	        (*test)(word);
 } type_test;
 
-static int fisInteger(word w)  { return isInteger(w); }
-static int fisFloat(word w)    { return isFloat(w);   }
-static int fisNumber(word w)   { return isNumber(w);  }
-static int fisAtomic(word w)   { return isAtomic(w);  }
-static int fisAtom(word w)     { return isAtom(w);    }
-static int fisString(word w)   { return isString(w);  }
-static int fisCompound(word w) { return isTerm(w);    }
+static int fisInteger(word w)  { return isInteger(w);  }
+static int fisFloat(word w)    { return isFloat(w);    }
+static int fisNumber(word w)   { return isNumber(w);   }
+static int fisAtomic(word w)   { return isAtomic(w);   }
+static int fisAtom(word w)     { return isTextAtom(w); }
+static int fisString(word w)   { return isString(w);   }
+static int fisCompound(word w) { return isTerm(w);     }
 
 const type_test type_tests[] =
 { { FUNCTOR_integer1,  I_INTEGER,  "integer",  fisInteger  },
