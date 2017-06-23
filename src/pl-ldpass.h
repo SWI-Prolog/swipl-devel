@@ -90,6 +90,8 @@
 #define PL_get_integer(t, i)	PL_get_integer__LD(t, i PASS_LD)
 #define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)
 #define PL_get_int64(t, i)	PL_get_int64__LD(t, i PASS_LD)
+#define PL_get_size_ex(t,i)	PL_get_size_ex__LD(t,i PASS_LD)
+#define PL_get_number(t, n)	PL_get_number__LD(t, n PASS_LD)
 #define PL_unify_number(t, n)	PL_unify_number__LD(t, n PASS_LD)
 #define PL_put_number(t, n)	PL_put_number__LD(t, n PASS_LD)
 #define PL_get_pointer(t, ptr)	PL_get_pointer__LD(t, ptr PASS_LD)
@@ -108,6 +110,7 @@
 #define PL_pending(sig)	        PL_pending__LD(sig PASS_LD)
 #define PL_clearsig(sig)        PL_clearsig__LD(sig PASS_LD)
 #define PL_same_term(t1, t2)	PL_same_term__LD(t1, t2 PASS_LD)
+#define PL_get_name_arity_sz(t,n,a) PL_get_name_arity_sz__LD(t,n,a PASS_LD)
 
 #define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
 #define PL_open_foreign_frame() PL_open_foreign_frame__LD(PASS_LD1)

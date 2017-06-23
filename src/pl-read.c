@@ -3356,7 +3356,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 
 
 static inline atom_t
-op_name(op_entry *e)
+op_name(op_entry *e ARG_LD)
 { if ( !e->isterm )
   { return e->op.atom;
   } else
@@ -3399,7 +3399,7 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     av[0] = term;
     PL_put_term(term, op->op.block);
 
-    if ( (rc = build_term(op_name(op), arity+1, _PL_rd PASS_LD)) != TRUE )
+    if ( (rc = build_term(op_name(op PASS_LD), arity+1, _PL_rd PASS_LD)) != TRUE )
       return rc;
   }
 
@@ -3430,11 +3430,11 @@ static int simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
 
 
 static bool
-isOp(op_entry *e, int kind, ReadData _PL_rd)
+isOp(op_entry *e, int kind, ReadData _PL_rd ARG_LD)
 { int pri;
   int type;
 
-  if ( !currentOperator(_PL_rd->module, op_name(e), kind, &type, &pri) )
+  if ( !currentOperator(_PL_rd->module, op_name(e PASS_LD), kind, &type, &pri) )
     fail;
   e->kind   = kind;
   e->op_pri = pri;
@@ -3454,7 +3454,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 
 
 #define stringOp(e) \
-	stringAtom(op_name(e))
+	stringAtom(op_name(e PASS_LD))
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
 	side_n++, side_p++;
@@ -3478,7 +3478,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 	    out_n++; \
 	    PopOp(); \
 	  } else if ( op->kind == OP_INFIX && out_n > 0 && \
-		      isOp(op, OP_POSTFIX, _PL_rd) ) \
+		      isOp(op, OP_POSTFIX, _PL_rd PASS_LD) ) \
 	  { int rc; \
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
 			      stringOp(op))); \
@@ -3492,7 +3492,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
-{ /*term_t t;*/
+{ GET_LD
   char *opname = stringOp(op);
 
   last_token_start = op->token_start;
@@ -3731,7 +3731,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 
       DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringOp(&in_op), rmo));
 
-      if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
+      if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd PASS_LD) )
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
       push_op:
@@ -3754,7 +3754,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 
 	continue;
       }
-      if ( isOp(&in_op, OP_INFIX, _PL_rd) )
+      if ( isOp(&in_op, OP_INFIX, _PL_rd PASS_LD) )
       { DEBUG(9, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);
@@ -3764,7 +3764,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  goto push_op;
 	}
       }
-      if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
+      if ( isOp(&in_op, OP_POSTFIX, _PL_rd PASS_LD) )
       { DEBUG(9, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);

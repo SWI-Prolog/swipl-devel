@@ -947,9 +947,8 @@ get_number(word w, Number n ARG_LD)
 
 
 int
-PL_get_number(term_t t, Number n)
-{ GET_LD
-  Word p = valTermRef(t);
+PL_get_number__LD(term_t t, Number n ARG_LD)
+{ Word p = valTermRef(t);
 
   deRef(p);
   if ( isInteger(*p) )
@@ -964,6 +963,15 @@ PL_get_number(term_t t, Number n)
 
   fail;
 }
+
+#undef PL_get_number
+int
+PL_get_number(term_t t, Number n)
+{ GET_LD
+
+  return PL_get_number__LD(t, n PASS_LD);
+}
+#define PL_get_number(t, n) PL_get_number__LD(t, n PASS_LD)
 
 
 		 /*******************************

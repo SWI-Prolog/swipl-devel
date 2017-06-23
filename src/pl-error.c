@@ -998,7 +998,7 @@ fits_size(int64_t val)
 #endif
 
 int
-PL_get_size_ex(term_t t, size_t *i)
+PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
 { number n;
 
   if ( PL_get_number(t, &n) )
@@ -1043,6 +1043,14 @@ PL_get_size_ex(term_t t, size_t *i)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
+
+#undef PL_get_size_ex
+int
+PL_get_size_ex(term_t t, size_t *i)
+{ GET_LD
+  return PL_get_size_ex__LD(t, i PASS_LD);
+}
+#define PL_get_size_ex(t,i) PL_get_size_ex__LD(t,i PASS_LD)
 
 int
 PL_get_bool_ex(term_t t, int *i)

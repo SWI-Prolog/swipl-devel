@@ -850,7 +850,8 @@ PL_cvt_i_long(term_t p, long *c)
 
 bool
 PL_cvt_i_size_t(term_t p, size_t *c)
-{ return PL_get_size_ex(p, c);
+{ GET_LD
+  return PL_get_size_ex(p, c);
 }
 
 
@@ -1692,9 +1693,8 @@ PL_get_pointer(term_t t, void **ptr)
 
 
 int
-PL_get_name_arity_sz(term_t t, atom_t *name, size_t *arity)
-{ GET_LD
-  word w = valHandle(t);
+PL_get_name_arity_sz__LD(term_t t, atom_t *name, size_t *arity ARG_LD)
+{ word w = valHandle(t);
 
   if ( isTerm(w) )
   { FunctorDef fd = valueFunctor(functorTerm(w));
@@ -1715,6 +1715,15 @@ PL_get_name_arity_sz(term_t t, atom_t *name, size_t *arity)
 
   fail;
 }
+
+
+#undef PL_get_name_arity_sz
+int
+PL_get_name_arity_sz(term_t t, atom_t *name, size_t *arity)
+{ GET_LD
+  return PL_get_name_arity_sz__LD(t, name, arity PASS_LD);
+}
+#define PL_get_name_arity_sz(t,n,a) PL_get_name_arity_sz__LD(t,n,a PASS_LD)
 
 
 int
@@ -1738,7 +1747,8 @@ PL_get_compound_name_arity_sz(term_t t, atom_t *name, size_t *arity)
 #undef PL_get_name_arity
 int
 PL_get_name_arity(term_t t, atom_t *name, int *arityp)
-{ size_t arity;
+{ GET_LD
+  size_t arity;
 
   if ( !PL_get_name_arity_sz(t, name, &arity) )
     return FALSE;

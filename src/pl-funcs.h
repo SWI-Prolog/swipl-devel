@@ -259,9 +259,13 @@ COMMON(int)		PL_qualify(term_t raw, term_t qualified);
 COMMON(int)		PL_get_integer__LD(term_t t, int *i ARG_LD);
 COMMON(int)		PL_get_long__LD(term_t t, long *i ARG_LD);
 COMMON(int)		PL_get_int64__LD(term_t t, int64_t *i ARG_LD);
+COMMON(int)		PL_get_size_ex__LD(term_t t, size_t *i ARG_LD);
+COMMON(int)		PL_get_number__LD(term_t t, Number n ARG_LD);
 COMMON(int)		PL_get_pointer__LD(term_t t, void **ptr ARG_LD);
 COMMON(int)		PL_put_term__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int)		PL_get_functor__LD(term_t t, functor_t *f ARG_LD);
+COMMON(int)		PL_get_name_arity_sz__LD(term_t t, atom_t *name,
+						 size_t *arity ARG_LD);
 COMMON(int)		PL_get_uintptr(term_t t, size_t *i);
 COMMON(int)		PL_unify_atom__LD(term_t t, atom_t a ARG_LD);
 COMMON(int)		PL_unify_pointer__LD(term_t t, void *ptr ARG_LD);
