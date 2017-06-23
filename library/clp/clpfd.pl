@@ -6902,7 +6902,8 @@ list_first_rest([L|Ls], L, Ls).
 %
 % n_factorial_(=, _, 1).
 % n_factorial_(>, N, F) :-
-%         F #= F0*N, N1 #= N - 1,
+%         F #= F0*N,
+%         N1 #= N - 1,
 %         n_factorial(N1, F0).
 % ==
 %
