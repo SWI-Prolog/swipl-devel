@@ -2649,20 +2649,29 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
 /** integer(@Term)
 */
 
-VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR))
-{ p = varFrameP(FR, (int)*PC++);
-
 #ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
-  { fpred = FUNCTOR_integer1;
-    goto debug_pred1;
-  }
+#define TYPE_TEST(functor, test)           \
+	p = varFrameP(FR, (int)*PC++);     \
+	deRef(p);                          \
+        if ( test(*p) )			   \
+          NEXT_INSTRUCTION;                \
+	FASTCOND_FAILED;
+#else
+#define TYPE_TEST(functor, test)		\
+	p = varFrameP(FR, (int)*PC++);		\
+	if ( unlikely(debugstatus.debugging) )	\
+        { fpred = functor;			\
+	  goto debug_pred1;			\
+	}					\
+	deRef(p);				\
+        if ( test(*p) )				\
+          NEXT_INSTRUCTION;			\
+	FASTCOND_FAILED;
 #endif
 
-  deRef(p);
-  if ( isInteger(*p) )
-    NEXT_INSTRUCTION;
-  FASTCOND_FAILED;
+
+VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_integer1, isInteger);
 }
 
 END_SHAREDVARS
