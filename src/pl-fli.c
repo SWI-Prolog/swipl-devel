@@ -3074,7 +3074,12 @@ PL_unify_uint64(term_t t, uint64_t i)
 
 int
 PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
-{ return unify_int64_ex__LD(t, i, FALSE PASS_LD);
+{ word w = consInt(i);
+
+  if ( valInt(w) == i )
+    return unifyAtomic(t, w PASS_LD);
+
+  return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
 
 
