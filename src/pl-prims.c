@@ -2266,9 +2266,8 @@ unify_vp(Word vp, Word val ARG_LD)
 
 
 static word
-setarg(term_t n, term_t term, term_t value, int flags)
-{ GET_LD
-  size_t arity, argn;
+setarg(term_t n, term_t term, term_t value, int flags ARG_LD)
+{ size_t arity, argn;
   atom_t name;
   Word a, v;
 
@@ -2280,7 +2279,7 @@ setarg(term_t n, term_t term, term_t value, int flags)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, term);
 
   if ( argn > arity )
-    fail;
+    return FALSE;
 
   if ( (flags & SETARG_BACKTRACKABLE) )
   { a = valTermRef(term);
@@ -2333,19 +2332,25 @@ setarg(term_t n, term_t term, term_t value, int flags)
 
 static
 PRED_IMPL("setarg", 3, setarg, 0)
-{ return setarg(A1, A2, A3, SETARG_BACKTRACKABLE);
+{ PRED_LD
+
+  return setarg(A1, A2, A3, SETARG_BACKTRACKABLE PASS_LD);
 }
 
 
 static
 PRED_IMPL("nb_setarg", 3, nb_setarg, 0)
-{ return setarg(A1, A2, A3, 0);
+{ PRED_LD
+
+  return setarg(A1, A2, A3, 0 PASS_LD);
 }
 
 
 static
 PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
-{ return setarg(A1, A2, A3, SETARG_LINK);
+{ PRED_LD
+
+  return setarg(A1, A2, A3, SETARG_LINK PASS_LD);
 }
 
 
