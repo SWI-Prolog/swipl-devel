@@ -4642,6 +4642,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
       update_pointer(&state->lSave, ls);
       update_pointer(&state->lNext, ls);
       update_pointer(&LD->query, ls);
+      update_local_pointer(&LD->fast_condition, ls);
     }
 
     for( fr = state->frame,
