@@ -530,7 +530,7 @@ PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
 		 *******************************/
 
 Number
-allocArithStack(ARG1_LD)
+growArithStack(ARG1_LD)
 { Number n;
 
   if ( LD->arith.stack.top == LD->arith.stack.max )
@@ -538,7 +538,8 @@ allocArithStack(ARG1_LD)
 
     if ( LD->arith.stack.base )
     { size = (size_t)(LD->arith.stack.max - LD->arith.stack.base);
-      LD->arith.stack.base = PL_realloc(LD->arith.stack.base, size*sizeof(number)*2);
+      LD->arith.stack.base = PL_realloc(LD->arith.stack.base,
+					size*sizeof(number)*2);
       LD->arith.stack.top  = LD->arith.stack.base+size;
       size *= 2;
     } else
@@ -554,39 +555,6 @@ allocArithStack(ARG1_LD)
   LD->arith.stack.top++;
 
   return n;
-}
-
-
-void
-pushArithStack(Number n ARG_LD)
-{ Number np = allocArithStack(PASS_LD1);
-
-  *np = *n;				/* structure copy */
-}
-
-
-void
-resetArithStack(ARG1_LD)
-{ LD->arith.stack.top = LD->arith.stack.base;
-}
-
-
-Number
-argvArithStack(int n ARG_LD)
-{ assert(LD->arith.stack.top - n >= LD->arith.stack.base);
-
-  return LD->arith.stack.top - n;
-}
-
-
-void
-popArgvArithStack(int n ARG_LD)
-{ assert(LD->arith.stack.top - n >= LD->arith.stack.base);
-
-  for(; n>0; n--)
-  { LD->arith.stack.top--;
-    clearNumber(LD->arith.stack.top);
-  }
 }
 
 

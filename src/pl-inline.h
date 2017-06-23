@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -485,5 +485,47 @@ callEventHook(pl_event_type ev, ...)
 
   return TRUE;
 }
+
+		 /*******************************
+		 *	     ARITHMETIC		*
+		 *******************************/
+
+static inline Number
+allocArithStack(ARG1_LD)
+{ if ( unlikely(LD->arith.stack.top == LD->arith.stack.max) )
+    return growArithStack(PASS_LD1);
+
+  return LD->arith.stack.top++;
+}
+
+static inline void
+pushArithStack(Number n ARG_LD)
+{ Number np = allocArithStack(PASS_LD1);
+
+  *np = *n;				/* structure copy */
+}
+
+static inline void
+resetArithStack(ARG1_LD)
+{ LD->arith.stack.top = LD->arith.stack.base;
+}
+
+static inline Number
+argvArithStack(int n ARG_LD)
+{ DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
+
+  return LD->arith.stack.top - n;
+}
+
+static inline void
+popArgvArithStack(int n ARG_LD)
+{ DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
+
+  for(; n>0; n--)
+  { LD->arith.stack.top--;
+    clearNumber(LD->arith.stack.top);
+  }
+}
+
 
 #endif /*PL_INLINE_H_INCLUDED*/
