@@ -321,7 +321,7 @@ COMMON(size_t)		nextStackSize(Stack s, size_t minfree);
 COMMON(int)		makeMoreStackSpace(int overflow, int flags);
 COMMON(int)		ensureGlobalSpace(size_t cells, int flags);
 COMMON(int)		ensureTrailSpace(size_t cells);
-COMMON(int)		ensureLocalSpace(size_t bytes, int flags);
+COMMON(int)		growLocalSpace__LD(size_t bytes, int flags ARG_LD);
 COMMON(void)		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(void)		clearLocalVariablesFrame(LocalFrame fr);
 COMMON(void)		setLTopInBody(void);

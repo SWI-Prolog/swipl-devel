@@ -355,10 +355,11 @@ retry:
     lneeded = SIZEOF_CREF_CLAUSE +
 	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
     lroom   = roomStack(local);
-    if ( lroom < lneeded )		/* resize the stack */
+    if ( unlikely(lroom < lneeded) )	/* resize the stack */
     { int rc;
 
-      if ( (rc = ensureLocalSpace(roomStack(local)*2, ALLOW_SHIFT)) != TRUE )
+      if ( (rc=growLocalSpace__LD(roomStack(local)*2, ALLOW_SHIFT PASS_LD))
+	   != TRUE )
 	return raiseStackOverflow(rc);
       goto retry;
     }

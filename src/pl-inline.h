@@ -486,6 +486,20 @@ callEventHook(pl_event_type ev, ...)
   return TRUE;
 }
 
+static inline int
+ensureLocalSpace__LD(size_t bytes ARG_LD)
+{ int rc;
+
+  if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
+    return TRUE;
+
+  if ( (rc=growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD)) == TRUE )
+    return TRUE;
+
+  return raiseStackOverflow(rc);
+}
+
+
 		 /*******************************
 		 *	     ARITHMETIC		*
 		 *******************************/

@@ -3084,19 +3084,9 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 }
 
 
-static int
+static inline int
 ensureSpaceForTermRefs(size_t n ARG_LD)
-{ size_t bytes = n*sizeof(word);
-
-  if ( addPointer(lTop, bytes) > (void*)lMax )
-  { int rc;
-
-    rc = ensureLocalSpace(bytes, ALLOW_SHIFT);
-    if ( rc != TRUE )
-      return rc;
-  }
-
-  return TRUE;
+{ return ensureLocalSpace(n*sizeof(word));
 }
 
 

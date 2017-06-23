@@ -1657,7 +1657,7 @@ possible to be able to call-back to Prolog.
 
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
     SAVE_REGISTERS(qid);
-    rc = ensureLocalSpace(LOCAL_MARGIN, ALLOW_SHIFT);
+    rc = growLocalSpace__LD(LOCAL_MARGIN, ALLOW_SHIFT PASS_LD);
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { rc = raiseStackOverflow(rc);
@@ -2193,7 +2193,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
   { int rc;
 
     SAVE_REGISTERS(qid);
-    rc = ensureLocalSpace(sizeof(*ch), ALLOW_SHIFT);
+    rc = growLocalSpace__LD(sizeof(*ch), ALLOW_SHIFT PASS_LD);
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
@@ -4768,7 +4768,7 @@ undefined predicate for call/N.
 
 	lTop = (LocalFrame)argFrameP(NFR, 1);
 	SAVE_REGISTERS(qid);
-	rc = ensureLocalSpace(room*2, ALLOW_SHIFT);
+	rc = growLocalSpace__LD(room*2, ALLOW_SHIFT PASS_LD);
 	LOAD_REGISTERS(qid);
 	lTop = (LocalFrame)valTermRef(lTopH);
 	if ( rc != TRUE )

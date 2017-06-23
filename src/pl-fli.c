@@ -195,14 +195,8 @@ PL_new_term_refs__LD(int n ARG_LD)
   int i;
   FliFrame fr;
 
-  if ( addPointer(lTop, n*sizeof(word)) > (void*) lMax )
-  { int rc = ensureLocalSpace(n*sizeof(word), ALLOW_SHIFT);
-
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      return 0;
-    }
-  }
+  if ( !ensureLocalSpace(n*sizeof(word)) )
+    return 0;
 
   t = (Word)lTop;
   r = consTermRef(t);
@@ -247,14 +241,8 @@ new_term_ref(ARG1_LD)
 
 term_t
 PL_new_term_ref__LD(ARG1_LD)
-{ if ( addPointer(lTop, sizeof(word)) > (void*) lMax )
-  { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
-
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      return 0;
-    }
-  }
+{ if ( !ensureLocalSpace(sizeof(word)) )
+    return 0;
 
   return new_term_ref(PASS_LD1);
 }
@@ -262,7 +250,7 @@ PL_new_term_ref__LD(ARG1_LD)
 
 term_t
 PL_new_term_ref_noshift__LD(ARG1_LD)
-{ if ( addPointer(lTop, sizeof(word)) > (void*) lMax )
+{ if ( unlikely(addPointer(lTop, sizeof(word)) > (void*) lMax) )
     return 0;
   return new_term_ref(PASS_LD1);
 }
@@ -332,14 +320,8 @@ PL_copy_term_ref__LD(term_t from ARG_LD)
   term_t r;
   FliFrame fr;
 
-  if ( addPointer(lTop, sizeof(word)) > (void*) lMax )
-  { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
-
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      return 0;
-    }
-  }
+  if ( !ensureLocalSpace(sizeof(word)) )
+    return 0;
 
   t  = (Word)lTop;
   r  = consTermRef(t);

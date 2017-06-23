@@ -343,10 +343,10 @@ Brief description of the local stack-layout.  This stack contains:
 /* Note that lTop can be >= lMax when calling ENSURE_LOCAL_SPACE() */
 
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
-	if ( addPointer(lTop, (bytes)) > (void*)lMax ) \
+	if ( unlikely(addPointer(lTop, (bytes)) > (void*)lMax) ) \
         { int rc; \
 	  SAVE_REGISTERS(qid); \
-	  rc = ensureLocalSpace(bytes, ALLOW_SHIFT); \
+	  rc = growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD); \
 	  LOAD_REGISTERS(qid); \
 	  if ( rc != TRUE ) \
 	  { rc = raiseStackOverflow(rc); \
@@ -394,14 +394,8 @@ fid_t
 PL_open_foreign_frame__LD(ARG1_LD)
 { size_t lneeded = sizeof(struct fliFrame) + MINFOREIGNSIZE*sizeof(word);
 
-  if ( (char*)lTop + lneeded > (char*)lMax )
-  { int rc;
-
-    if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
-    { raiseStackOverflow(rc);
-      return 0;
-    }
-  }
+  if ( !ensureLocalSpace(lneeded) )
+    return 0;
 
   return open_foreign_frame(PASS_LD1);
 }
@@ -435,7 +429,7 @@ PL_open_signal_foreign_frame(int sync)
   { if ( sync )
     { int rc;
 
-      if ( (rc=ensureLocalSpace(minspace, ALLOW_SHIFT)) != TRUE )
+      if ( (rc=growLocalSpace__LD(minspace, ALLOW_SHIFT PASS_LD)) != TRUE )
 	return 0;
     } else
     { return 0;
@@ -2320,14 +2314,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   lneeded = sizeof(struct queryFrame)+MAXARITY*sizeof(word);
 #endif
 
-  if ( (char*)lTop + lneeded > (char*)lMax )
-  { int rc;
-
-    if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
-    { raiseStackOverflow(rc);
-      return (qid_t)0;
-    }
-  }
+  if ( !ensureLocalSpace(lneeded) )
+    return (qid_t)0;
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */

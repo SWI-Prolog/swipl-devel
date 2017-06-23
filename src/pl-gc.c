@@ -3925,7 +3925,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
     { int rc2;
 
       restore_vmi_state(state);
-      if ( (rc2=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
+      if ( (rc2=growLocalSpace__LD(lneeded, ALLOW_SHIFT PASS_LD)) != TRUE )
 	return rc2;
       rc = FALSE;
     } else
@@ -4350,17 +4350,16 @@ ensureTrailSpace(size_t cells)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ensureLocalSpace() ensures sufficient local stack space.
+growLocalSpace__LD() ensures sufficient local  stack   space.  User code
+typically calls the inlined ensureLocalSpace().
 
 NOTE: This is often called from ENSURE_LOCAL_SPACE(), while already lTop
 > lMax. The stack-shifter must be able to deal with this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-ensureLocalSpace(size_t bytes, int flags)
-{ GET_LD
-
-  if ( addPointer(lTop, bytes) <= (void*)lMax )
+growLocalSpace__LD(size_t bytes, int flags ARG_LD)
+{ if ( addPointer(lTop, bytes) <= (void*)lMax )
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
