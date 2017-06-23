@@ -1000,8 +1000,19 @@ fits_size(int64_t val)
 int
 PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
 { number n;
+  Word p = valTermRef(t);
 
-  if ( PL_get_number(t, &n) )
+  deRef(p);
+  if ( isTaggedInt(*p) )
+  { intptr_t v = valInt(*p);
+
+    if ( v >= 0 )
+    { *i = v;
+      return TRUE;
+    }
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, t);
+  } if ( PL_get_number(t, &n) )
   { switch(n.type)
     { case V_INTEGER:
 	if ( n.value.i >= 0 )
