@@ -974,7 +974,7 @@ when_condition(Word cond, Word result, when_state *state ARG_LD)
     { Word a1;
 
       deRef2(&term->arguments[0], a1);
-      if ( ground__LD(a1 PASS_LD) )
+      if ( ground__LD(a1 PASS_LD) == NULL )
 	*result = ATOM_true;
       else
 	*result = *cond;

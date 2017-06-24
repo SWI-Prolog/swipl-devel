@@ -1601,7 +1601,8 @@ ERROR:    [6] p(user:22)
 \end{code}
 
     \predicate[ISO]{ground}{1}{@Term}
-True if \arg{Term} holds no free variables.
+True if \arg{Term} holds no free variables. See also nonground/2
+and term_variables/2.
 
     \predicate{cyclic_term}{1}{@Term}
 True if \arg{Term} contains cycles, i.e.\ is an infinite term.
@@ -5648,12 +5649,22 @@ of \arg{Term}.%
 	library \pllib{backcomp}.}
 The variables in \arg{List} are ordered in order of appearance
 traversing \arg{Term} depth-first and left-to-right. See also
-term_variables/3. For example:
+term_variables/3 and nonground/2. For example:
 
 \begin{code}
 ?- term_variables(a(X, b(Y, X), Z), L).
 L = [X, Y, Z].
 \end{code}
+
+    \predicate[semidet]{nonground}{2}{+Term, -Var}
+True when \arg{Var} is a variable in \arg{Term}.  Fails if \arg{Term}
+is \jargon{ground} (see ground/1).  This predicate is intended for
+coroutining to trigger a wakeup if \arg{Term} becomes ground, e.g.,
+using when/2.  The current implemention always returns the first
+variable in depth-first left-right search.  Ideally it should return
+a random member of the set of variables (see term_variables/2) to
+realise logarithmetic complexity for the ground trigger.  Compatible
+with ECLiPSe and hProlog.
 
     \predicate{term_variables}{3}{+Term, -List, ?Tail}
 Difference list version of term_variables/2.  That is, \arg{Tail} is the

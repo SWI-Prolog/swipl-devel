@@ -757,7 +757,7 @@ ph_visited(Functor f, phase ph)
 }
 
 
-static int
+static Word
 ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
 { term_agenda agenda;
 
@@ -765,7 +765,7 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
   while((p=nextTermAgenda(&agenda)))
   { if ( canBind(*p) )
     { clearTermAgenda(&agenda);
-      return FALSE;
+      return p;
     }
     if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -776,25 +776,22 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
     }
   }
 
-  return TRUE;
+  return NULL;
 }
 
 
-int
+Word
 ground__LD(Word p ARG_LD)
-{ int rc1, rc2;
+{ Word rc1, rc2;
 
   deRef(p);
   if ( canBind(*p) )
-    return FALSE;
+    return p;
   if ( !isTerm(*p) )
-    return TRUE;
+    return NULL;
 
-  startCritical;
   rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
   rc2 = ph_ground(p, ph_unmark PASS_LD);  /* unmark the very same functors */
-  if ( !endCritical )
-    return FALSE;
   assert(rc1 == rc2);
   return rc1;
 }
@@ -804,7 +801,7 @@ int
 PL_is_ground(term_t t)
 { GET_LD
 
-  return ground__LD(valTermRef(t) PASS_LD);
+  return ground__LD(valTermRef(t) PASS_LD) == NULL;
 }
 
 
@@ -812,7 +809,18 @@ static
 PRED_IMPL("ground", 1, ground, PL_FA_ISO)
 { PRED_LD
 
-  return ground__LD(valTermRef(A1) PASS_LD);
+  return ground__LD(valTermRef(A1) PASS_LD) == NULL;
+}
+
+static
+PRED_IMPL("nonground", 2, nonground, 0)
+{ PRED_LD
+  Word p;
+
+  if ( (p=ground__LD(valTermRef(A1) PASS_LD)) )
+    return unify_ptrs(valTermRef(A2), p, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+
+  return FALSE;
 }
 
 
@@ -5623,6 +5631,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
+  PRED_DEF("nonground", 2, nonground, 0)
   PRED_DEF("$term_size", 3, term_size, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, PL_FA_ISO)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
