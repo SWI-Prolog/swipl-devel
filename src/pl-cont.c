@@ -123,8 +123,8 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   char tmp[128];
   char *buf;
   bit_vector *active;
-  term_t argv = PL_new_term_refs(2);
   int rc = TRUE;
+  Word p;
 
   if ( bv_bytes <= sizeof(tmp) )
     buf = tmp;
@@ -139,30 +139,35 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 
   active = (bit_vector*)buf;
   init_bitvector(active, slots);
-  fr = (LocalFrame)valTermRef(fr_ref);
   mark_active_environment(active, fr, pc);
 
-  PL_put_nil(env);
+  if ( gTop+1+slots >= gMax )
+  { int rc;
+    term_t fr_ref = consTermRef(fr);
+
+    if ( (rc=ensureGlobalSpace(1+slots, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+      return raiseStackOverflow(rc);
+
+    fr = (LocalFrame)valTermRef(fr_ref);
+  }
+
+  fr = (LocalFrame)valTermRef(fr_ref);
+  p = gTop;
+
+  *p++ = PL_new_functor(ATOM_environment, slots);
+
   for(i=0; i<cl->prolog_vars; i++)
   { if ( true_bit(active, i) )
-    { Word p;
+    { Word vp = argFrameP(fr, i);
+      DEBUG(CHK_SECURE, checkData(vp));
 
-      fr = (LocalFrame)valTermRef(fr_ref);
-      p = argFrameP(fr, i);
-      DEBUG(CHK_SECURE, checkData(p));
+      deRef(vp);
+      if ( isVar(*vp) && vp > (Word)lBase )
+	LTrail(vp);
 
-      deRef(p);
-      if ( isVar(*p) && p > (Word)lBase )
-	LTrail(p);
-					/* internal one is void */
-      PL_put_term(argv+1, consTermRef(argFrameP(fr, i)));
-
-      if ( !PL_put_integer(argv+0, i) ||
-	   !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
-	   !PL_cons_list(env, argv+0, env) )
-      { rc = FALSE;			/* resource error */
-	break;
-      }
+      *p++ = linkVal(vp);
+    } else
+    { *p++ = ATOM_garbage_collected;
     }
   }
 					/* Store choice points (*) */
@@ -172,20 +177,22 @@ put_environment(term_t env, LocalFrame fr, Code pc)
       { DEBUG(MSG_CONTINUE,
 	      Sdprintf("%s: add choice-point reference from slot %d\n",
 		       predicateName(fr->predicate), i));
-	PL_put_integer(argv+1, argFrame(fr, i));
 
-	if ( !PL_put_integer(argv+0, i) ||
-	     !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
-	     !PL_cons_list(env, argv+0, env) )
-	{ rc = FALSE;			/* resource error */
-	  break;
-	}
-      }
+	*p++ = consInt(argFrame(fr, i));
+      } else
+	*p++ = 0;
     }
   }
 
   if ( buf != tmp )
     PL_free(buf);
+
+  if ( rc )
+  { Word tp = gTop;
+    gTop = p;
+
+    *valTermRef(env) = consPtr(tp, TAG_COMPOUND|STG_GLOBAL);
+  }
 
   return rc;
 }
@@ -341,8 +348,6 @@ retry:
     ClauseRef cref;
     long pcoffset;
     size_t lneeded, lroom;
-    Word ap;
-    int i;
 
     _PL_get_arg(1, cont, arg);
     if ( !PL_get_clref(arg, &cl) )
@@ -368,58 +373,39 @@ retry:
     fr   = addPointer(cref, SIZEOF_CREF_CLAUSE);
     top  = addPointer(top, lneeded);
 
-    for(ap = argFrameP(fr, 0), i=cl->prolog_vars; i-- > 0; )
-      *ap++ = ATOM_garbage_collected;
-    for(i=cl->variables-cl->prolog_vars; i-- > 0; )
-      *ap++ = consTermRef(LD->choicepoints);
-
     ep = valTermRef(env);
-    for(;;)
-    { deRef(ep);
-      if ( isList(*ep) )
-      { Word hp = HeadList(ep);
+    deRef(ep);
+    if ( isTerm(*ep) )
+    { Functor f = valueTerm(*ep);
+      Word p = f->arguments;
+      Word ap = ap = argFrameP(fr, 0);
+      int i;
 
-	deRef(hp);
-	if ( hasFunctor(*hp, FUNCTOR_minus2) )
-	{ Word p = argTermP(*hp, 0);
-	  Word ap;
+      if ( arityFunctor(f->definition) != cl->variables )
+	return PL_domain_error("environment", env);
 
-	  deRef2(p, ap);
-	  if ( isTaggedInt(*ap) )
-	  { intptr_t offset = valInt(*ap);
-
-	    p++;
-
-	    if ( offset < cl->prolog_vars )
-	    { argFrame(fr, offset) = linkVal(p);
-	    } else
-	    { deRef(p);
-	      if ( isTaggedInt(*p) )
-	      { intptr_t i = valInt(*p);
-		Choice ch, chp;
-
-		ch = (Choice)valTermRef(i);
-		for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
-		  ;
-		if ( ch == chp )
-		  argFrame(fr, offset) = i;
-	      } else
-	      { return PL_type_error("environment", env);
-	      }
-	    }
-	  } else
-	  { return PL_type_error("environment", env);
-	  }
-	} else
-	{ return PL_type_error("environment", env);
-	}
-
-	ep = TailList(ep);
-      } else if ( isNil(*ep) )
-      { break;
-      } else
-      { return PL_type_error("environment", env);
+      for(i=0; i<cl->prolog_vars; i++, p++, ap++)
+      { *ap = linkVal(p);
       }
+
+      for(; i<cl->variables; i++, p++, ap++)
+      { if ( isTaggedInt(*p) )
+	{ intptr_t i = valInt(*p);
+	  Choice ch, chp;
+
+	  ch = (Choice)valTermRef(i);
+	  for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
+	    ;
+	  if ( ch == chp )
+	    *ap = i;
+	  else
+	    *ap = consTermRef(LD->choicepoints);
+	} else
+	{ *ap = consTermRef(LD->choicepoints);
+	}
+      }
+    } else
+    { return PL_type_error("environment", env);
     }
 
     lTop = top;
