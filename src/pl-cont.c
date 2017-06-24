@@ -118,8 +118,10 @@ environment as integers.
 static functor_t fast_functors[FAST_FUNCTORS] = {0};
 
 static functor_t
-env_functor(int arity)
-{ if ( arity < FAST_FUNCTORS )
+env_functor(int slots)
+{ int arity = slots+2;				/* clause and PC */
+
+  if ( arity < FAST_FUNCTORS )
   { if ( likely(fast_functors[arity]) )
       return fast_functors[arity];
     fast_functors[arity] = PL_new_functor(ATOM_environment, arity);
@@ -142,6 +144,7 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   bit_vector *active;
   int rc = TRUE;
   Word p;
+  atom_t cref;
 
   if ( bv_bytes <= sizeof(tmp) )
     buf = tmp;
@@ -171,7 +174,10 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   fr = (LocalFrame)valTermRef(fr_ref);
   p = gTop;
 
+  cref = lookup_clref(cl);
   *p++ = env_functor(slots);
+  *p++ = cref;
+  *p++ = consInt(pc - cl->codes);
 
   for(i=0; i<cl->prolog_vars; i++)
   { if ( true_bit(active, i) )
@@ -211,6 +217,8 @@ put_environment(term_t env, LocalFrame fr, Code pc)
     *valTermRef(env) = consPtr(tp, TAG_COMPOUND|STG_GLOBAL);
   }
 
+  PL_unregister_atom(cref);
+
   return rc;
 }
 
@@ -220,7 +228,6 @@ unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 { GET_LD
   term_t reset_ref = consTermRef(resetfr);
   term_t fr_ref    = consTermRef(fr);
-  term_t argv      = PL_new_term_refs(3);
   term_t contv;
   LocalFrame fr2;
   int depth = 0;
@@ -237,17 +244,13 @@ unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
   for( depth=0;
        fr != resetfr;
        pc = fr->programPointer, fr=fr->parent, depth++)
-  { Clause     cl = fr->clause->value.clause;
-    long pcoffset = pc - cl->codes;
+  { Clause cl = fr->clause->value.clause;
 
     if ( onStackArea(local, cl) )
       return PL_representation_error("continuation");
     fr_ref = consTermRef(fr);
 
-    if ( !PL_put_clref(argv+0, cl) ||
-	 !PL_put_integer(argv+1, pcoffset) ||
-	 !put_environment(argv+2, fr, pc) ||
-	 !PL_cons_functor_v(contv+depth, FUNCTOR_dcont3, argv)  )
+    if ( !put_environment(contv+depth, fr, pc) )
       return FALSE;
 
     resetfr = (LocalFrame)valTermRef(reset_ref);
@@ -349,30 +352,33 @@ representation of the continuation.
 static
 PRED_IMPL("$call_one_tail_body", 1, call_one_tail_body, 0)
 { PRED_LD
-  term_t cont = A1;
+  Word cont = valTermRef(A1);
   LocalFrame me, top, fr;
   Code pc;
 
 retry:
-  top    = lTop;
-  me     = environment_frame;
+  cont = valTermRef(A1);
+  top  = lTop;
+  me   = environment_frame;
 
-  if ( PL_is_functor(cont, FUNCTOR_dcont3) )
-  { term_t env  = PL_new_term_ref();
-    term_t arg  = PL_new_term_ref();
-    Word ep;
+  deRef(cont);
+
+  if ( isTerm(*cont) )
+  { Functor f = valueTerm(*cont);
+    Word ep = f->arguments;
+    Word ap;
     Clause cl;
     ClauseRef cref;
-    long pcoffset;
+    intptr_t pcoffset;
     size_t lneeded, lroom;
+    int i;
 
-    _PL_get_arg(1, cont, arg);
-    if ( !PL_get_clref(arg, &cl) )
-      return FALSE;
-    _PL_get_arg(2, cont, arg);
-    if ( !PL_get_long_ex(arg, &pcoffset) )
-      return FALSE;
-    _PL_get_arg(3, cont, env);
+    if ( !(cl = clause_clref(*ep++)) )
+      return PL_type_error("continuation", A1);
+    if ( arityFunctor(f->definition) != cl->variables + 2 )
+      return PL_domain_error("continuation", A1);
+
+    pcoffset = valInt(*ep++);
 
     lneeded = SIZEOF_CREF_CLAUSE +
 	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
@@ -390,39 +396,27 @@ retry:
     fr   = addPointer(cref, SIZEOF_CREF_CLAUSE);
     top  = addPointer(top, lneeded);
 
-    ep = valTermRef(env);
-    deRef(ep);
-    if ( isTerm(*ep) )
-    { Functor f = valueTerm(*ep);
-      Word p = f->arguments;
-      Word ap = ap = argFrameP(fr, 0);
-      int i;
+    ap = argFrameP(fr, 0);
 
-      if ( arityFunctor(f->definition) != cl->variables )
-	return PL_domain_error("environment", env);
+    for(i=0; i<cl->prolog_vars; i++, ep++, ap++)
+    { *ap = linkVal(ep);
+    }
 
-      for(i=0; i<cl->prolog_vars; i++, p++, ap++)
-      { *ap = linkVal(p);
+    for(; i<cl->variables; i++, ep++, ap++)
+    { if ( isTaggedInt(*ep) )
+      { intptr_t i = valInt(*ep);
+	Choice ch, chp;
+
+	ch = (Choice)valTermRef(i);
+	for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
+	  ;
+	if ( ch == chp )
+	  *ap = i;
+	else
+	  *ap = consTermRef(LD->choicepoints);
+      } else
+      { *ap = consTermRef(LD->choicepoints);
       }
-
-      for(; i<cl->variables; i++, p++, ap++)
-      { if ( isTaggedInt(*p) )
-	{ intptr_t i = valInt(*p);
-	  Choice ch, chp;
-
-	  ch = (Choice)valTermRef(i);
-	  for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
-	    ;
-	  if ( ch == chp )
-	    *ap = i;
-	  else
-	    *ap = consTermRef(LD->choicepoints);
-	} else
-	{ *ap = consTermRef(LD->choicepoints);
-	}
-      }
-    } else
-    { return PL_type_error("environment", env);
     }
 
     lTop = top;
@@ -443,7 +437,7 @@ retry:
     setGenerationFrame(fr, global_generation());
     enterDefinition(fr->predicate);
 
-    pc     = cl->codes+pcoffset;
+    pc = cl->codes+pcoffset;
 
     me->parent = fr;
     me->programPointer = pc;
@@ -451,7 +445,7 @@ retry:
 
     return TRUE;
   } else
-  { return PL_type_error("continuation", cont);
+  { return PL_type_error("continuation", A1);
   }
 }
 

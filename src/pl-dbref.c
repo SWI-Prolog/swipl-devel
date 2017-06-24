@@ -145,6 +145,37 @@ static PL_blob_t record_blob =
 };
 
 
+atom_t
+lookup_clref(Clause clause)
+{ struct clref ref;
+  int new;
+
+  DEBUG(0,
+	{ GET_LD
+	  assert(!onStackArea(local, clause));
+	});
+
+  ref.clause = clause;
+  return lookupBlob((const char*)&ref, sizeof(ref), &clause_blob, &new);
+}
+
+
+Clause
+clause_clref(atom_t aref)
+{ PL_blob_t *type;
+  clref *ref = PL_blob_data(aref, NULL, &type);
+  Clause clause;
+
+  if ( type == &clause_blob )
+  { clause = ref->clause;
+    if ( false(clause, CL_ERASED) )
+      return clause;
+  }
+
+  return NULL;
+}
+
+
 int
 PL_unify_clref(term_t t, Clause clause)
 { struct clref ref;
