@@ -113,6 +113,23 @@ stored as offsets  to  the  local  stack   base.  We  put  them  in  the
 environment as integers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define FAST_FUNCTORS 256
+
+static functor_t fast_functors[FAST_FUNCTORS] = {0};
+
+static functor_t
+env_functor(int arity)
+{ if ( arity < FAST_FUNCTORS )
+  { if ( likely(fast_functors[arity]) )
+      return fast_functors[arity];
+    fast_functors[arity] = PL_new_functor(ATOM_environment, arity);
+    return fast_functors[arity];
+  }
+
+  return PL_new_functor(ATOM_environment, arity);
+}
+
+
 static int
 put_environment(term_t env, LocalFrame fr, Code pc)
 { GET_LD
@@ -154,7 +171,7 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   fr = (LocalFrame)valTermRef(fr_ref);
   p = gTop;
 
-  *p++ = PL_new_functor(ATOM_environment, slots);
+  *p++ = env_functor(slots);
 
   for(i=0; i<cl->prolog_vars; i++)
   { if ( true_bit(active, i) )
