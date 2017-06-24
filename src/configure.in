@@ -1036,6 +1036,14 @@ AC_TRY_LINK([],
 			[Define if you have __builtin_clz])
 	    ],
 	    [ AC_MSG_RESULT(no) ])
+AC_MSG_CHECKING(for __builtin_popcount)
+AC_TRY_LINK([],
+	    [ __builtin_popcount(0); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE__BUILTIN_POPCOUNT, 1,
+			[Define if you have __builtin_popcount])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
 AC_MSG_CHECKING(for __sync_synchronize)
 AC_TRY_LINK([],
 	    [ __sync_synchronize(); ],

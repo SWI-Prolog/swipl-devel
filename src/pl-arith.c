@@ -2556,7 +2556,11 @@ ar_lsb(Number n1, Number r)
 
 static int
 my_popcount64(int64_t i)		/* my_: avoid NetBSD name conflict */
-{ int c;
+{
+#ifdef HAVE__BUILTIN_POPCOUNT
+  return __builtin_popcountll(i);
+#else
+  int c;
   size_t j;
   int64_t m = LL(1);
 
@@ -2566,6 +2570,7 @@ my_popcount64(int64_t i)		/* my_: avoid NetBSD name conflict */
   }
 
   return c;
+#endif
 }
 
 
