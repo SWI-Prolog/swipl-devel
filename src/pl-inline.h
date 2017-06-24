@@ -200,7 +200,7 @@ pushVolatileAtom__LD(atom_t a ARG_LD)
 		 *	     BITVECTOR		*
 		 *******************************/
 
-typedef uintptr_t bitv_chunk;
+typedef unsigned int bitv_chunk;
 typedef struct bit_vector
 { size_t size;
   bitv_chunk chunk[1];				/* bits */
@@ -277,6 +277,18 @@ true_bit(bit_vector *v, size_t which)
   size_t b = which%BITSPERE;
 
   return (v->chunk[e]&((bitv_chunk)1<<b)) != 0;
+}
+
+static inline size_t
+popcount_bitvector(const bit_vector *v)
+{ const bitv_chunk *p = v->chunk;
+  int cnt = (v->size+BITSPERE-1)/BITSPERE;
+  size_t bits = 0;
+
+  while( cnt-- > 0 )
+    bits += __builtin_popcount(*p++);
+
+  return bits;
 }
 
 
