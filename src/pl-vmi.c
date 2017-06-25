@@ -4939,4 +4939,53 @@ mcall_cont:
 
   goto normal_call;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+reset(:Goal, ?Ball, -Continuation) :-
+    '$reset'.
+
+Where '$reset' maps to
+
+    I_RESET
+    I_EXITRESET
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_RESET, 0, 0, ())
+{ set(FR, FR_INRESET);
+			  /* = B_VAR0 */
+  *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
+  VMI_GOTO(I_USERCALL0);
+}
+
+
+VMI(I_EXITRESET, 0, 0, ())
+{ Word p = argFrameP(FR, 2);
+
+  deRef(p);
+  if ( canBind(*p) )
+  { if ( !hasGlobalSpace(0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(0, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	THROW_EXCEPTION;
+      }
+
+      p = argFrameP(FR, 2);
+      deRef(p);
+    }
+    bindConst(p, consInt(0));
+    NEXT_INSTRUCTION;
+  } else
+  { PL_uninstantiation_error(pushWordAsTermRef(p));
+    popTermRef();
+    THROW_EXCEPTION;
+  }
+}
+
 END_SHAREDVARS

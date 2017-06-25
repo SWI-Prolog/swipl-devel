@@ -2264,8 +2264,7 @@ as described in~\chapref{clp}.
 
 The suspension mechanism provided by delimited continuations is suitable
 for the implementation of \jargon{tabling}
-\cite{DBLP:journals/tplp/DesouterDS15}.
-
+\cite{DBLP:journals/tplp/DesouterDS15}, see library \pllib{tabling}.
 
 \begin{description}
     \predicate{reset}{3}{:Goal, ?Ball, -Continuation}
@@ -2276,9 +2275,11 @@ can be unified with \arg{Ball},\footnote{The argument order described in
 compatibility with catch/3} shift/1 causes reset/3 to return, unifying
 \arg{Continuation} with a goal that represents the \jargon{continuation}
 after shift/1. In other words, meta-calling \arg{Continuation} completes
-the execution where shift it. If \arg{Goal} does not call shift/1, both
-\arg{Ball} and \arg{Continuation} are unified with the integer \const{0}
-(zero).
+the execution where shift left it. If \arg{Goal} does not call shift/1,
+\arg{Continuation} are unified with the integer \const{0}
+(zero).\footnote{Note that older versions also unify \arg{Ball} with
+\const{0}.  Testing whether or not shift happened on \arg{Ball} however
+is \emph{always} ambiguous.}
 
     \predicate{shift}{1}{+Ball}
 Abandon the execution of the current goal, returning control to just

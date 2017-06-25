@@ -1112,6 +1112,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
       { case I_EXIT:			/* terminate code list */
 	case I_EXITFACT:
 	case I_EXITCATCH:
+	case I_EXITRESET:
 	case I_EXITQUERY:
 	case I_FEXITDET:
 	case I_FEXITNDET:
@@ -1820,6 +1821,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(3) PASS_LD); /* cleanup goal */
 	  break;
 	case I_EXITCATCH:
+	case I_EXITRESET:
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
 	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
 	  break;

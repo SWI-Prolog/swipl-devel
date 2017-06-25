@@ -2616,6 +2616,10 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     { Output_0(ci, I_CATCH);
       Output_0(ci, I_EXITCATCH);
       succeed;
+    } else if ( *arg == ATOM_dreset )		/* $reset */
+    { Output_0(ci, I_RESET);
+      Output_0(ci, I_EXITRESET);
+      succeed;
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
     { Output_0(ci, I_CALLCLEANUP);
       Output_0(ci, I_EXITCLEANUP);
@@ -4105,6 +4109,7 @@ argKey(Code PC, int skip, word *key)
       case H_VOID:
       case H_VOID_N:
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -4166,6 +4171,7 @@ arg1Key(Code PC, word *key)
       case H_VOID:
       case H_VOID_N:
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -4557,6 +4563,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	continue;
       }
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -5058,6 +5065,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_CATCH:	    *ARGP++ = ATOM_dcatch;
 			    pushed++;
 			    continue;
+      case I_RESET:	    *ARGP++ = ATOM_dreset;
+			    pushed++;
+			    continue;
       case I_YIELD:	    *ARGP++ = ATOM_dyield;
 			    pushed++;
 			    continue;
@@ -5209,6 +5219,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
     }
 #endif /* O_COMPILE_OR */
       case I_EXITCATCH:
+      case I_EXITRESET:
 	goto exit;
       case I_EXIT:
 			    break;
@@ -6556,7 +6567,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   end = &PC[clause->code_size - 1];		/* forget the final I_EXIT */
   assert(fetchop(end) == I_EXIT ||
 	 fetchop(end) == I_EXITFACT ||
-	 fetchop(end) == I_EXITCATCH);
+	 fetchop(end) == I_EXITCATCH ||
+	 fetchop(end) == I_EXITRESET);
 
   if ( pcoffset == (int)clause->code_size )
     return PL_unify_atom(A3, ATOM_exit);
@@ -6584,6 +6596,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       case I_EXIT:
       case I_EXITFACT:
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITCLEANUP:
 	if ( loc == nextpc )
 	{ return PL_unify_nil(tail);

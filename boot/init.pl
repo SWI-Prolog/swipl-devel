@@ -382,11 +382,8 @@ prolog_cut_to(_Choice) :-
 %
 %   Delimited continuation support.
 
-reset(Goal, Ball, Cont) :-
-    '$start_reset',
-    call(Goal),
-    Cont = 0,
-    Ball = 0.                       % only reached if there is no shift
+reset(_Goal, _Ball, _Cont) :-
+    '$reset'.
 
 %!  call_continuation(+Continuation:list)
 %
