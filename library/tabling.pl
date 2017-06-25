@@ -134,18 +134,30 @@ activate(Wrapper, WrapperNoModes, Worker, Trie, WorkList) :-
     ;   true
     ).
 
+%!  delim(+Wrapper, +Worker, +WorkList).
+%!  delim(+Wrapper, +WrapperNoModes, +Worker, +WorkList).
+%
+%   Call/resume Worker
+
 delim(Wrapper, Worker, WorkList) :-
     reset(Worker, SourceCall, Continuation),
-    add_answer_or_suspend(Continuation, Wrapper, Wrapper,
+    add_answer_or_suspend(Continuation, Wrapper,
                           WorkList, SourceCall).
+
+add_answer_or_suspend(0, Wrapper, WorkList, _) :-
+    !,
+    '$tbl_wkl_add_answer'(WorkList, Wrapper).
+add_answer_or_suspend(Continuation, Wrapper, WorkList,
+                      call_info(SrcWrapper, SourceWL)) :-
+    '$tbl_wkl_add_suspension'(
+        SourceWL,
+        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
+
 delim(Wrapper, WrapperNoModes, Worker, WorkList) :-
     reset(Worker, SourceCall, Continuation),
     add_answer_or_suspend(Continuation, Wrapper, WrapperNoModes,
                           WorkList, SourceCall).
 
-add_answer_or_suspend(0, Wrapper, Wrapper, WorkList, _) :-
-    !,
-    '$tbl_wkl_add_answer'(WorkList, Wrapper).
 add_answer_or_suspend(0, Wrapper, WrapperNoModes, WorkList, _) :-
     !,
     get_wrapper_no_mode_args(Wrapper, _, ModeArgs),
