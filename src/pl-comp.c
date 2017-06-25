@@ -2067,6 +2067,7 @@ try_fast_condition(CompileInfo ci, size_t tc_or)
       case I_ATOM:
       case I_STRING:
       case I_COMPOUND:
+      case I_CALLABLE:
       case I_VAR:
       case I_NONVAR:
       case B_EQ_VV:
@@ -3403,6 +3404,7 @@ static int fisAtomic(word w)   { return isAtomic(w);   }
 static int fisAtom(word w)     { return isTextAtom(w); }
 static int fisString(word w)   { return isString(w);   }
 static int fisCompound(word w) { return isTerm(w);     }
+static int fisCallable(word w) { GET_LD return isCallable(w PASS_LD); }
 
 const type_test type_tests[] =
 { { FUNCTOR_integer1,  I_INTEGER,  "integer",  fisInteger  },
@@ -3412,6 +3414,7 @@ const type_test type_tests[] =
   { FUNCTOR_atom1,     I_ATOM,     "atom",     fisAtom     },
   { FUNCTOR_string1,   I_STRING,   "string",   fisString   },
   { FUNCTOR_compound1, I_COMPOUND, "compound", fisCompound },
+  { FUNCTOR_callable1, I_CALLABLE, "callable", fisCallable },
   { 0, 0, NULL, NULL }
 };
 
@@ -5051,6 +5054,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_ATOM:	    f = FUNCTOR_atom1;     goto common_type_test;
       case I_STRING:	    f = FUNCTOR_string1;   goto common_type_test;
       case I_COMPOUND:	    f = FUNCTOR_compound1; goto common_type_test;
+      case I_CALLABLE:	    f = FUNCTOR_callable1; goto common_type_test;
     }
       case C_LCUTIFTHEN:
       case C_LSCUT:

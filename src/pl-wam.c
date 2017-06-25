@@ -943,6 +943,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
     case I_ATOM:	ftor = FUNCTOR_atom1;     goto fa_1;
     case I_STRING:	ftor = FUNCTOR_string1;   goto fa_1;
     case I_COMPOUND:	ftor = FUNCTOR_compound1; goto fa_1;
+    case I_CALLABLE:	ftor = FUNCTOR_callable1; goto fa_1;
     fa_1:
     { Word gt       = allocGlobal(1+1+2);	/* call(f(A)) */
       LocalFrame fr = (LocalFrame)valTermRef(frref);

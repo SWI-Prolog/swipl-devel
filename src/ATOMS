@@ -824,6 +824,7 @@ F buffer_size		1
 F busy			2
 F call			1
 F call_continuation	1
+F callable		1
 F callpred		2
 F catch			3
 F ceil			1

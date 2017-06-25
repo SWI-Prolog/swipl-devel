@@ -2646,8 +2646,10 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
   FASTCOND_FAILED;
 }
 
-/** integer(@Term)
+/** integer(@Term), atom(@Term), etc.
 */
+
+#define isCallableLD(t) isCallable(t PASS_LD)
 
 #ifdef O_DEBUGGER
 #define TYPE_TEST(functor, test)           \
@@ -2695,6 +2697,10 @@ VMI(I_STRING, VIF_BREAK, 1, (CA1_VAR))
 
 VMI(I_COMPOUND, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_compound1, isTerm);
+}
+
+VMI(I_CALLABLE, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_callable1, isCallableLD);
 }
 
 END_SHAREDVARS

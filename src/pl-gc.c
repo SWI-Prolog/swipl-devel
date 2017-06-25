@@ -1793,6 +1793,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case I_ATOM:
       case I_STRING:
       case I_COMPOUND:
+      case I_CALLABLE:
 	mark_frame_var(state, PC[0] PASS_LD);
         break;
 

@@ -280,6 +280,7 @@ COMMON(int)		PL_same_term__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int)		isUCSAtom(Atom a);
 COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, size_t len);
 COMMON(int)		charCode(word w);
+COMMON(int)		isCallable(word w ARG_LD);
 
 COMMON(void)		registerForeignLicenses(void);
 COMMON(void)            bindExtensions(const char *module,

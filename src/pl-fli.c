@@ -2136,11 +2136,8 @@ PL_is_compound(term_t t)
 
 
 int
-PL_is_callable(term_t t)
-{ GET_LD
-  word w = valHandle(t);
-
-  if ( isTerm(w) )
+isCallable(word w ARG_LD)
+{ if ( isTerm(w) )
   { Functor f = valueTerm(w);
     FunctorDef fd = valueFunctor(f->definition);
 
@@ -2149,6 +2146,13 @@ PL_is_callable(term_t t)
   }
 
   return isTextAtom(w) != 0;
+}
+
+int
+PL_is_callable(term_t t)
+{ GET_LD
+
+  return isCallable(valHandle(t) PASS_LD);
 }
 
 
