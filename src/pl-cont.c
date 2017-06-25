@@ -57,10 +57,6 @@ reset/3 is implemented as
     variable activation map.
   - As put_environment() documents, we should also find the
     active non-Prolog slots.
-  - It is probably better to represent the continuation frame
-    as a compound term rather than a list.  This is generally
-    more compact and quicker to process.  The abovew table can
-    provide the functor with the correct arity.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
@@ -124,11 +120,11 @@ env_functor(int slots)
   if ( arity < FAST_FUNCTORS )
   { if ( likely(fast_functors[arity]) )
       return fast_functors[arity];
-    fast_functors[arity] = PL_new_functor(ATOM_environment, arity);
+    fast_functors[arity] = PL_new_functor(ATOM_dcont, arity);
     return fast_functors[arity];
   }
 
-  return PL_new_functor(ATOM_environment, arity);
+  return PL_new_functor(ATOM_dcont, arity);
 }
 
 
