@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2016, VU University Amsterdam
+    Copyright (c)  2013-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -602,8 +602,10 @@ get_name_ex(term_t t, Word np ARG_LD)
 
 
 static int
-get_name_value(Word p, Word name, Word value, int flags ARG_LD)
-{ deRef(p);
+get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
+{ const char *type;
+
+  deRef(p);
 
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
@@ -620,6 +622,12 @@ get_name_value(Word p, Word name, Word value, int flags ARG_LD)
 	*value = linkVal(vp);
 
 	return TRUE;
+      } else
+      { gTop = mark;
+	PL_type_error("dict-key", pushWordAsTermRef(np));
+	popTermRef();
+
+	return FALSE;
       }
     } else if ( arityFunctor(f->definition) == 1 &&
 		(flags&DICT_GET_TERM) ) /* Name(Value) */
@@ -631,6 +639,15 @@ get_name_value(Word p, Word name, Word value, int flags ARG_LD)
       return TRUE;
     }
   }
+
+  if ( flags == DICT_GET_PAIRS )
+    type = "pair";
+  else
+    type = "key-value";
+
+  gTop = mark;
+  PL_type_error(type, pushWordAsTermRef(p));
+  popTermRef();
 
   return FALSE;				/* type error */
 }
@@ -706,17 +723,8 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     while( isList(*tail) )
     { Word head = HeadList(tail);
 
-      if ( !get_name_value(head, ap+1, ap, flags PASS_LD) )
-      { const char *type;
-
-	if ( flags == DICT_GET_PAIRS )
-	  type = "pair";
-	else
-	  type = "key-value";
-
-	gTop = m;
-	PL_type_error(type, pushWordAsTermRef(head));
-	popTermRef();
+      if ( !get_name_value(head, ap+1, ap, m, flags PASS_LD) )
+      {
 	return FALSE;
       }
       ap += 2;
