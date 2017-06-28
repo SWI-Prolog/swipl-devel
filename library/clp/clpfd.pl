@@ -3053,6 +3053,16 @@ integer_log_b(N, B, Log0, Log) :-
             integer_log_b(N, B, Log1, Log)
         ).
 
+floor_integer_log_b(N, B, Log0, Log) :-
+        T is B^Log0,
+        (   T > N -> Log is Log0 - 1
+        ;   T =:= N -> Log = Log0
+        ;   T < N,
+            Log1 is Log0 + 1,
+            floor_integer_log_b(N, B, Log1, Log)
+        ).
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Largest R such that R^K =< N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -4964,6 +4974,13 @@ run_propagator(pexp(X,Y,Z), MState) :-
                     NZU cis n(X)^YU,
                     domains_intersection(ZD, from_to(NZL,NZU), NZD),
                     fd_put(Z, NZD, ZPs)
+                ;   true
+                ),
+                (   X > 0,
+                    fd_get(Z, _, _, n(ZMax), _),
+                    ZMax > 0 ->
+                    floor_integer_log_b(ZMax, X, 1, YCeil),
+                    Y in inf..YCeil
                 ;   true
                 )
             )
