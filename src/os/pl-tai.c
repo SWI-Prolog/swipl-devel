@@ -154,15 +154,12 @@ tz_name_as_atom(int dst)
   dst = (dst > 0);			/* 0 or 1 */
 
   if ( !a[dst] )
-  { wchar_t wbuf[256];
-    const char *str = tz_name(dst);
-    size_t n;
+  { const char *str = tz_name(dst);
 
-    if ( (n = mbstowcs(wbuf, str, sizeof(wbuf)/sizeof(wbuf[0])-1)) != (size_t)-1 )
-    { a[dst] = PL_new_atom_wchars(n, wbuf);
-    } else
-    { a[dst] = PL_new_atom(str);
-    }
+    if ( str )
+      a[dst] = PL_new_atom_mbchars(REP_MB, (size_t)-1, str);
+    else
+      a[dst] = PL_new_atom("<unknown>");
   }
 
   return a[dst];
