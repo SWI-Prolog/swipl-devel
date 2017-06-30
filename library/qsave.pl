@@ -675,6 +675,7 @@ save_foreign_libraries(_, _).
 find_foreign_library(FileSpec, SharedObject) :-
     absolute_file_name(FileSpec,
                        [ file_type(executable),
+                         access(read),
                          file_errors(fail)
                        ], File),
     !,
