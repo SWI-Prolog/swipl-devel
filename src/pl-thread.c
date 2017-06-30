@@ -1420,6 +1420,12 @@ PL_w32thread_raise(DWORD id, int sig)
 
 #endif /*__WINDOWS__*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Make a thread stop processing blocking operations such that it can check
+whether it is signalled. Returns  TRUE   when  successful,  FALSE if the
+thread no longer exists and -1 if alerting is disabled.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 alertThread(PL_thread_info_t *info)
 {
@@ -1433,37 +1439,39 @@ alertThread(PL_thread_info_t *info)
   if ( info->has_tid && GD->signals.sig_alert )
     return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
 #endif
-  return FALSE;
+  return -1;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_thread_raise() is used  for  re-routing   interrupts  in  the Windows
-version, where the signal handler is running  from a different thread as
-Prolog.
+PL_thread_raise() raises a  synchronous  signal   in  (usually)  another
+thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 PL_thread_raise(int tid, int sig)
-{ PL_thread_info_t *info;
+{ if ( tid >= 1 && tid <= thread_highest_id )
+  { PL_thread_info_t *info = GD->thread.threads[tid];
 
-  LOCK();
-  if ( tid < 1 || tid > thread_highest_id )
-  { error:
-    UNLOCK();
-    return FALSE;
+    if ( info->status == PL_THREAD_UNUSED ||
+	 info->status == PL_THREAD_RESERVED )
+    { return FALSE;
+    } else
+    { GET_LD
+      PL_local_data_t *ld = acquire_ldata(info->thread_data);
+      int rc;
+
+      rc = ( ld &&
+	     ld->magic == LD_MAGIC &&
+	     raiseSignal(info->thread_data, sig) &&
+	     (alertThread(info) != FALSE) );
+
+      release_ldata(ld);
+
+      return rc;
+    }
   }
-  info = GD->thread.threads[tid];
-  if ( info->status == PL_THREAD_UNUSED ||
-       info->status == PL_THREAD_RESERVED )
-    goto error;
 
-  if ( !raiseSignal(info->thread_data, sig) ||
-       !alertThread(info) )
-    goto error;
-
-  UNLOCK();
-
-  return TRUE;
+  return FALSE;
 }
 
 
