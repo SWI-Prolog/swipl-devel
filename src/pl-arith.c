@@ -1634,6 +1634,21 @@ as long as the result fits  in  the   address  space.  In that case, the
 normal overflow handling will nicely generate a resource error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+mpz_set_num(mpz_t mpz, Number n)
+{ switch ( n->type )
+  { case V_MPZ:
+      mpz_set(mpz, n->value.mpz);
+      break;
+    case V_INTEGER:
+      mpz_init_set_si64(mpz, n->value.i);
+      break;
+    default:
+      assert(0);
+  }
+}
+
+
 static int
 ar_pow(Number n1, Number n2, Number r)
 {
@@ -1742,6 +1757,36 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
         fail;
     }
+  }
+
+  if ( n1->type == V_MPQ && intNumber(n2) )
+  { number nr, nd, nrp, ndp;
+
+    nr.type = V_MPZ;
+    nr.value.mpz[0] = mpq_numref(n1->value.mpq)[0];
+    nr.value.mpz->_mp_alloc = 0;	/* read-only */
+    nd.type = V_MPZ;
+    nd.value.mpz[0] = mpq_denref(n1->value.mpq)[0];
+    nd.value.mpz->_mp_alloc = 0;
+
+    nrp.type = ndp.type = V_INTEGER;
+
+    if ( ar_pow(&nr, n2, &nrp) && intNumber(&nrp) &&
+	 ar_pow(&nd, n2, &ndp) && intNumber(&ndp) )
+    { r->type = V_MPQ;
+      mpq_init(r->value.mpq);
+      mpz_set_num(mpq_numref(r->value.mpq), &nrp);
+      mpz_set_num(mpq_denref(r->value.mpq), &ndp);
+      mpq_canonicalize(r->value.mpq);
+
+      clearNumber(&nrp);
+      clearNumber(&ndp);
+
+      return TRUE;
+    }
+
+    clearNumber(&nrp);
+    clearNumber(&ndp);
   }
 
 doreal:

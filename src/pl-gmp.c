@@ -430,7 +430,7 @@ skipMPZOnCharp(const char *data)
 #define ORDER -1
 #endif
 
-static void
+void
 mpz_init_set_si64(mpz_t mpz, int64_t i)
 {
 #if SIZEOF_LONG == 8
