@@ -1650,11 +1650,50 @@ mpz_set_num(mpz_t mpz, Number n)
 
 
 static int
+get_int_exponent(Number n, unsigned long *expp, int *sign)
+{ long exp;
+  int64_t i;
+
+  switch(n->type)
+  { case V_INTEGER:
+      i = n->value.i;
+      break;
+    case V_MPZ:
+      if ( !mpz_to_int64(n->value.mpz, &i) )
+	return int_too_big();
+      break;
+    default:
+      assert(0);
+      return FALSE;
+  }
+
+  exp = (long)i;
+#if SIZEOF_LONG < 8
+  if ( (intptr_t)exp == i )
+    return int_too_big();
+#endif
+
+  if ( exp >= 0 )
+  { *expp = (unsigned long)exp;
+    *sign = (exp > 0);
+  } else if ( -exp != exp )
+  { *expp = (unsigned long)-exp;
+    *sign = -1;
+  } else
+  { return int_too_big();
+  }
+
+  return TRUE;
+}
+
+
+static int
 ar_pow(Number n1, Number n2, Number r)
 {
 #ifdef O_GMP
   if ( intNumber(n1) && intNumber(n2) )
   { unsigned long exp;
+    int exp_sign;
 
     switch(n1->type)			/* test for 0**X and 1**X */
     { case V_INTEGER:
@@ -1695,25 +1734,14 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
     }
 
-					/* get the exponent */
-    switch(n2->type)
-    { case V_INTEGER:
-	if ( n2->value.i < 0 )
-	  goto doreal;
-        if ( n2->value.i > LONG_MAX )
-	  return int_too_big();
-	exp = (long)n2->value.i;
-	break;
-      case V_MPZ:
-	if ( mpz_sgn(n2->value.mpz) < 0 )
-	  goto doreal;
-        if ( mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	  return int_too_big();
-        exp = mpz_get_ui(n2->value.mpz);
-	break;
-      default:
-	assert(0);
-        fail;
+    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+      return FALSE;
+    if ( exp_sign < 0 )
+      goto doreal;
+    if ( exp_sign == 0 )
+    { r->type = V_INTEGER;
+      r->value.i = 1;
+      return TRUE;
     }
 
   { GET_LD				/* estimate the size, see above */
