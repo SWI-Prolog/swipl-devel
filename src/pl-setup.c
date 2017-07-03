@@ -40,6 +40,7 @@
 #include "os/pl-cstack.h"
 #include "pl-dbref.h"
 #include "pl-trie.h"
+#include "pl-tabling.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -1642,6 +1643,8 @@ freePrologLocalData(PL_local_data_t *ld)
 
   if ( ld->qlf.getstr_buffer )
     free(ld->qlf.getstr_buffer);
+
+  clearThreadTablingData(ld);
 }
 
 

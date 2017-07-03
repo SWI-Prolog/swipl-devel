@@ -622,7 +622,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   if ( ld->stacks.global.base )		/* otherwise assume they are not */
     freeStacks(ld);			/* initialised */
   freePrologLocalData(ld);
-  clearThreadTablingData(ld);
 
   /*PL_unregister_atom(ld->prompt.current);*/
 
