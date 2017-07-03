@@ -3553,8 +3553,10 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
     return -1;
   }
 
-  DEBUG(9, if ( rc ) Sdprintf("Reducing %s/%d\n",
-			      stringOp(op), arity));
+  DEBUG(9, if ( rc )
+	{ GET_LD
+	  Sdprintf("Reducing %s/%d\n", stringOp(op), arity);
+	});
 
   return rc;
 }
