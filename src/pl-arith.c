@@ -1788,7 +1788,21 @@ ar_pow(Number n1, Number n2, Number r)
   }
 
   if ( n1->type == V_MPQ && intNumber(n2) )
-  { number nr, nd, nrp, ndp;
+  { number nr, nd, nrp, ndp, nexp;
+    unsigned long exp;
+    int exp_sign;
+
+    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+      return FALSE;
+
+    if ( exp_sign == 0 )
+    { r->type = V_INTEGER;
+      r->value.i = 1;
+      return TRUE;
+    }
+
+    nexp.type = V_INTEGER;
+    nexp.value.i = exp;
 
     nr.type = V_MPZ;
     nr.value.mpz[0] = mpq_numref(n1->value.mpq)[0];
@@ -1799,12 +1813,17 @@ ar_pow(Number n1, Number n2, Number r)
 
     nrp.type = ndp.type = V_INTEGER;
 
-    if ( ar_pow(&nr, n2, &nrp) && intNumber(&nrp) &&
-	 ar_pow(&nd, n2, &ndp) && intNumber(&ndp) )
+    if ( ar_pow(&nr, &nexp, &nrp) &&
+	 ar_pow(&nd, &nexp, &ndp) )
     { r->type = V_MPQ;
       mpq_init(r->value.mpq);
-      mpz_set_num(mpq_numref(r->value.mpq), &nrp);
-      mpz_set_num(mpq_denref(r->value.mpq), &ndp);
+      if ( exp_sign > 0 )
+      { mpz_set_num(mpq_numref(r->value.mpq), &nrp);
+	mpz_set_num(mpq_denref(r->value.mpq), &ndp);
+      } else
+      { mpz_set_num(mpq_numref(r->value.mpq), &ndp);
+	mpz_set_num(mpq_denref(r->value.mpq), &nrp);
+      }
       mpq_canonicalize(r->value.mpq);
 
       clearNumber(&nrp);

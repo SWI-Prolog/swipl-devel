@@ -6966,15 +6966,13 @@ functions in ISO and SWI.
 \hline
 Int	      & Int	     & \funcref{**}{2} &  Int or Float & Float \\
 Int	      & Float	     & \funcref{**}{2} &  Float        & Float \\
-Rational      & NonNegInt    & \funcref{**}{2} &  Rational     & - \\
-Rational      & NegInt	     & \funcref{**}{2} &  Float        & - \\
+Rational      & Int	     & \funcref{**}{2} &  Rational     & - \\
 Float	      & Int	     & \funcref{**}{2} &  Float        & Float \\
 Float         & Float        & \funcref{**}{2} &  Float        & Float \\
 \hline
 Int	      & Int	     & \funcref{^}{2}  &  Int or Float & Int or error \\
 Int	      & Float	     & \funcref{^}{2}  &  Float        & Float \\
-Rational      & NonNegInt    & \funcref{^}{2}  &  Rational     & - \\
-Rational      & NegInt	     & \funcref{^}{2}  &  Float        & - \\
+Rational      & Int          & \funcref{^}{2}  &  Rational     & - \\
 Float	      & Int	     & \funcref{^}{2}  &  Float        & Float \\
 Float         & Float        & \funcref{^}{2}  &  Float        & Float \\
 \hline

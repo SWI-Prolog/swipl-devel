@@ -145,10 +145,8 @@ test(rat, X == 32 rdiv 243) :-
 	X is (2 rdiv 3)^(5).
 test(rat, X == 1) :-
 	X is (2 rdiv 3)^(0).
-test(rat) :-
-	X is (2 rdiv 3)^(-5),
-	assertion(float(X)),
-	assertion(abs(X-7.593750000000002) < 0.0000001).
+test(rat, X == 243 rdiv 32) :-
+	X is (2 rdiv 3)^(-5).
 :- endif.
 
 :- end_tests(pow).
