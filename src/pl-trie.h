@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -103,7 +103,6 @@ typedef struct trie
 
 COMMON(void)	initTries(void);
 COMMON(trie *)	trie_create(void);
-COMMON(void)	trie_destroy(trie *trie);
 COMMON(void)	trie_empty(trie *trie);
 COMMON(void)	trie_clean(trie *trie);
 COMMON(void)	prune_node(trie *trie, trie_node *n);

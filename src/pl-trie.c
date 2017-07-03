@@ -60,6 +60,8 @@ TODO
 
 #define TRIE_ERROR_VAL (((~(word)0)<<LMASK_BITS)|TAG_VAR)
 
+static void	trie_destroy(trie *trie);
+
 
 		 /*******************************
 		 *	       SYMBOL		*
@@ -80,9 +82,8 @@ write_trie_ref(IOSTREAM *s, atom_t aref, int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-GC a message queue from the atom  garbage collector. This should be fine
-because atoms in messages do  not  have   locked  atoms,  so  we are not
-calling atom functions.
+GC a trie. Note that the  Prolog predicate trie_destroy/1 merely empties
+the trie, leaving its destruction to the atom garbage collector.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -170,7 +171,7 @@ trie_create(void)
 }
 
 
-void
+static void
 trie_destroy(trie *trie)
 { DEBUG(MSG_TRIE_GC, Sdprintf("Destroying trie %p\n", trie));
   trie_empty(trie);
