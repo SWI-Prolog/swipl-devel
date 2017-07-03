@@ -3485,8 +3485,9 @@ returns 1 if successful, 0 otherwise.
 This function performs the reverse of PL_initialise(). It runs the
 PL_on_halt() and at_halt/1 handlers, closes all streams (except for the
 `standard I/O' streams which are flushed only), deallocates all memory
-and restores all signal handlers. The \arg{status} argument is passed to
-the various termination hooks and indicates the \jargon{exit-status}.
+if \arg{status} equals `0' and restores all signal handlers. The
+\arg{status} argument is passed to the various termination hooks and
+indicates the \jargon{exit-status}.
 
 The function returns \const{TRUE} if successful and \const{FALSE}
 otherwise. Currently, \const{FALSE} is returned when an attempt is made

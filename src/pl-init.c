@@ -1362,7 +1362,7 @@ emergency:
 
 int
 PL_cleanup(int rc)
-{ return cleanupProlog(rc, TRUE);
+{ return cleanupProlog(rc, rc == 0);
 }
 
 
