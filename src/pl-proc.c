@@ -201,7 +201,8 @@ unallocProcedure(Procedure proc)
     destroyDefinition(def);
   }
   freeHeap(proc, sizeof(*proc));
-  ATOMIC_SUB(&m->code_size, sizeof(*proc));
+  if ( m )
+    ATOMIC_SUB(&m->code_size, sizeof(*proc));
 }
 
 
