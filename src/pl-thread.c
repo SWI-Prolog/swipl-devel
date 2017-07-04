@@ -1451,10 +1451,9 @@ PL_thread_raise(int tid, int sig)
 { if ( tid >= 1 && tid <= thread_highest_id )
   { PL_thread_info_t *info = GD->thread.threads[tid];
 
-    if ( info->status == PL_THREAD_UNUSED ||
-	 info->status == PL_THREAD_RESERVED )
-    { return FALSE;
-    } else
+    if ( info &&
+	 info->status != PL_THREAD_UNUSED &&
+	 info->status != PL_THREAD_RESERVED )
     { GET_LD
       PL_local_data_t *ld = acquire_ldata(info->thread_data);
       int rc;
@@ -1467,6 +1466,8 @@ PL_thread_raise(int tid, int sig)
       release_ldata(ld);
 
       return rc;
+    } else
+    { return FALSE;
     }
   }
 
