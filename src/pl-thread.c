@@ -1461,7 +1461,7 @@ PL_thread_raise(int tid, int sig)
 
       rc = ( ld &&
 	     ld->magic == LD_MAGIC &&
-	     raiseSignal(info->thread_data, sig) &&
+	     raiseSignal(ld, sig) &&
 	     (alertThread(info) != FALSE) );
 
       release_ldata(ld);
