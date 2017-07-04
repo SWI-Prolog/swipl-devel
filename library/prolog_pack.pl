@@ -905,11 +905,12 @@ download_file(URL, Pack, File, Options) :-
     format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
 download_file(URL, Pack, File, _) :-
     file_base_name(URL,Basename),
-    file_name_extension(Tag,Ext,Basename),
+    no_int_file_name_extension(Tag,Ext,Basename),
     tag_version(Tag,Version),
     !,
     atom_version(VersionA,Version),
-    format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
+    format(atom(File0), '~w-~w', [Pack, VersionA]),
+    file_name_extension(File0, Ext, File).
 download_file(URL, _, File, _) :-
     file_base_name(URL, File).
 
@@ -1489,12 +1490,7 @@ pack_version_file(Pack, Version, GitHubRelease) :-
 pack_version_file(Pack, Version, Path) :-
     atomic(Path),
     file_base_name(Path, File),
-    file_name_extension(Base0, Ext, File),
-    Ext \== '',
-    (   atom_number(Ext, _)
-    ->  Base = File
-    ;   Base = Base0
-    ),
+    no_int_file_name_extension(Base, _Ext, File),
     atom_codes(Base, Codes),
     (   phrase(pack_version(Pack, Version), Codes),
         safe_pack_name(Pack)
@@ -1502,6 +1498,16 @@ pack_version_file(Pack, Version, Path) :-
     ;   print_message(error, pack(invalid_name(File))),
         fail
     ).
+
+no_int_file_name_extension(Base, Ext, File) :-
+    file_name_extension(Base0, Ext0, File),
+    \+ atom_number(Ext0, _),
+    !,
+    Base = Base0,
+    Ext = Ext0.
+no_int_file_name_extension(File, '', File).
+
+
 
 %!  github_release_url(+URL, -Pack, -Version) is semidet.
 %
@@ -1792,6 +1798,7 @@ install_dependency(_, _-_).
 %   @tbd    Deal with protocols other than HTTP
 
 available_download_versions(URL, Versions) :-
+    wildcard_pattern(URL),
     github_url(URL, User, Repo),
     !,
     findall(Version-VersionURL,
