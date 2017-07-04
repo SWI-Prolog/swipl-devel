@@ -1078,9 +1078,9 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
        PL_get_chars(ext, &e, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { char *s;
 
-    if ( e[0] == '.' )		/* +Base, +Extension, -full */
+    if ( e[0] == '.' )		/* +Base, +Extension, -Full */
       e++;
-    if ( has_extension(b, e) )
+    if ( has_extension(b, e) || e[0] == EOS )
       return PL_unify(base, full);
     if ( strlen(b) + 1 + strlen(e) + 1 > MAXPATHLEN )
       return name_too_long();
