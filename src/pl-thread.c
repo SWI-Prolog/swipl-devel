@@ -1294,7 +1294,7 @@ resizeThreadMax(void)
 /* MT: thread-safe */
 
 static PL_thread_info_t *
-alloc_thread(void)				/* called with L_THREAD locked */
+alloc_thread(void)
 { PL_thread_info_t *info;
   PL_local_data_t *ld;
   int mx;
@@ -2120,23 +2120,25 @@ free_thread_info(PL_thread_info_t *info)
     if ( info->detached )
       PL_unregister_atom(info->symbol);
   }
+
   if ( (rec_rv=info->return_value) )	/* sync with unify_thread_status() */
     info->return_value = NULL;
   if ( (rec_g=info->goal) )
     info->goal = NULL;
+  UNLOCK();
 
   if ( info->pl_tid == thread_highest_id )
   { int i;
 
     for(i=info->pl_tid-1; i>1; i--)
     { PL_thread_info_t *ih = GD->thread.threads[i];
-      if ( ih->status != PL_THREAD_UNUSED )
+      if ( ih && ih->status != PL_THREAD_UNUSED )
 	break;
     }
 
-    thread_highest_id = i;
+					/* do not update if alloc_thread() did */
+    COMPARE_AND_SWAP(&thread_highest_id, info->pl_tid, i);
   }
-  UNLOCK();
 
   do
   { freelist = GD->thread.free;
