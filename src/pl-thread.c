@@ -1444,6 +1444,12 @@ alertThread(PL_thread_info_t *info)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_thread_raise() raises a  synchronous  signal   in  (usually)  another
 thread.
+
+(*) HACK. We should not lock L_THREAD in this function but we do need to
+prevent ld from dropping while we process   it.  Possibly we should move
+the signal mask to the info structure? This patch is badly needed as the
+system now crashes on any  alrm   from  library(time). We need something
+better though.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -1455,15 +1461,21 @@ PL_thread_raise(int tid, int sig)
 	 info->status != PL_THREAD_UNUSED &&
 	 info->status != PL_THREAD_RESERVED )
     { GET_LD
-      PL_local_data_t *ld = acquire_ldata(info->thread_data);
+      PL_local_data_t *ld;
       int rc;
+
+      if ( LD )					/* See (*) */
+	ld = acquire_ldata(info->thread_data);
+      else
+	ld = info->thread_data;
 
       rc = ( ld &&
 	     ld->magic == LD_MAGIC &&
 	     raiseSignal(ld, sig) &&
 	     (alertThread(info) != FALSE) );
 
-      release_ldata(ld);
+      if ( LD )
+	release_ldata(ld);
 
       return rc;
     } else
