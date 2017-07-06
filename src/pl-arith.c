@@ -1669,7 +1669,7 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 
   exp = (long)i;
 #if SIZEOF_LONG < 8
-  if ( (intptr_t)exp == i )
+  if ( (int64_t)exp != i )
     return int_too_big();
 #endif
 
