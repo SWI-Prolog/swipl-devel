@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1634,6 +1634,7 @@ as long as the result fits  in  the   address  space.  In that case, the
 normal overflow handling will nicely generate a resource error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_GMP
 static void
 mpz_set_num(mpz_t mpz, Number n)
 { switch ( n->type )
@@ -1647,6 +1648,7 @@ mpz_set_num(mpz_t mpz, Number n)
       assert(0);
   }
 }
+#endif
 
 
 static int
