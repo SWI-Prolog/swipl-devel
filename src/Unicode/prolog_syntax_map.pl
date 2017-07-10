@@ -70,6 +70,18 @@ needs to be classified as
 
 	* lowercase
 	<not needed by Prolog>
+
+Usage:
+
+  1. Get DerivedCoreProperties.txt and UnicodeData.txt from the Unicode
+     consortium and copy or link them into this directory.
+  2. Run `swipl prolog_syntax_map.pl` in this directory, which updates
+     `../pl-umap.c`
+
+This module can also create a JavaScript  file, which is used for SWISH.
+The command for this is
+
+    swipl prolog_syntax_map.pl --out=prolog-ctype.js --lang=javascript
 */
 
 :- multifile
