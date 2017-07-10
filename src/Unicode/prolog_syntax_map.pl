@@ -273,15 +273,15 @@ function uflagsW(chr) {
 }
 
 return {
-  uflagsW:     uflagsW,
+  flags:       uflagsW,
   id_start:    function(chr) { return (uflagsW(chr) & U_ID_START)    != 0 },
   id_continue: function(chr) { return (uflagsW(chr) & U_ID_CONTINUE) != 0 },
   uppercase:   function(chr) { return (uflagsW(chr) & U_UPPERCASE)   != 0 },
   separator:   function(chr) { return (uflagsW(chr) & U_SEPARATOR)   != 0 },
   symbol:      function(chr) { return (uflagsW(chr) & U_SYMBOL)      != 0 },
-  symbol:      function(chr) { return (uflagsW(chr) & U_SYMBOL)      != 0 },
   other:       function(chr) { return (uflagsW(chr) & U_OTHER)       != 0 },
   control:     function(chr) { return (uflagsW(chr) & U_CONTROL)     != 0 }
+}
 });~n', []).
 write_footer(Out, _Options) :-
 	format(Out,
