@@ -338,7 +338,10 @@ or([H|T], F) :-
 
 flag(Code, Flag) :-
 	flag_name(Name, Flag),
-	code_flag(Code, Name).
+	(   Code < 256
+	->  predef_code_flag(Code, Name)
+	;   code_flag(Code, Name)
+	).
 
 flag_name(id_start,    0x01).
 flag_name(id_continue, 0x02).
@@ -347,6 +350,30 @@ flag_name(separator,   0x08).
 flag_name(symbol,      0x10).
 flag_name(other,       0x20).
 flag_name(control,     0x40).
+
+%!	predef_code_flag(+C, ?Class) is nondet.
+%
+%	Fill code page 0 (0..255) using   predefined categories. This is
+%	used for consistency of the JavaScript classifier.
+
+predef_code_flag(C, id_start) :-
+	(   code_type(C, prolog_atom_start)
+	;   code_type(C, prolog_var_start)
+	).
+predef_code_flag(C, id_continue) :-
+	code_type(C, prolog_identifier_continue).
+predef_code_flag(C, symbol) :-
+	code_type(C, prolog_symbol).
+predef_code_flag(C, uppercase) :- unicode_derived_core_property(C, uppercase).
+predef_code_flag(C, other) :-
+	unicode_property(C, general_category(Cat)),
+	other_cat(Cat).
+predef_code_flag(C, control) :-
+	unicode_property(C, general_category(Cat)),
+	control_cat(Cat).
+predef_code_flag(C, unassigned) :-
+	\+ unicode_property(C, general_category(_)).
+
 
 code_flag(C, id_start) :-    unicode_derived_core_property(C, id_start).
 code_flag(C, id_continue) :- unicode_derived_core_property(C, id_continue).
