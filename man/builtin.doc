@@ -6162,7 +6162,7 @@ close parenthesis.
 \arg{Char} can start a unquoted Prolog atom that is not a symbol.
     \termitem{prolog_identifier_continue}{}
 \arg{Char} can continue a Prolog variable name or atom.
-    \termitem{prolog_prolog_symbol}{}
+    \termitem{prolog_symbol}{}
 \arg{Char} is a Prolog symbol character.  Sequences of Prolog
 symbol characters glue together to form an unquoted atom.  Examples
 are \const{=..}, \const{\=}, etc.
