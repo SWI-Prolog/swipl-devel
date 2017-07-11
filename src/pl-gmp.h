@@ -56,7 +56,6 @@ COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
 COMMON(char *)	skipMPZOnCharp(const char *data);
 COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 COMMON(int)	mpz_to_uint64(mpz_t mpz, uint64_t *i);
-COMMON(int)	put_uint64(Word at, uint64_t l, int flags ARG_LD);
 COMMON(void)	mpz_init_set_si64(mpz_t mpz, int64_t i);
 
 #define clearNumber(n) \

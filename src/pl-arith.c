@@ -1648,8 +1648,6 @@ mpz_set_num(mpz_t mpz, Number n)
       assert(0);
   }
 }
-#endif
-
 
 static int
 get_int_exponent(Number n, unsigned long *expp, int *sign)
@@ -1687,6 +1685,7 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 
   return TRUE;
 }
+#endif /*O_GMP*/
 
 
 static int
