@@ -1645,6 +1645,9 @@ not worthwile.
 
 Note: we are working above `lTop' here!!   We restore this as quickly as
 possible to be able to call-back to Prolog.
+
+(*) If we do not resolve here,  the handleSignals() may resolve the same
+procedure and deallocate our temporary version if threading is not used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   NFR->parent         = FR;
   NFR->predicate      = DEF;		/* TBD */
@@ -1688,6 +1691,13 @@ retry_continue:
 
     if ( is_signalled(PASS_LD1) )
     { SAVE_REGISTERS(qid);
+      DEF = getProcDefinedDefinition(DEF PASS_LD); /* see (*) above */
+      LOAD_REGISTERS(qid);
+      if ( FR->predicate != DEF )		/* auto imported/loaded */
+      { FR->predicate = DEF;
+	setGenerationFrame(FR, global_generation());
+      }
+      SAVE_REGISTERS(qid);
       handleSignals(PASS_LD1);
       LOAD_REGISTERS(qid);
       if ( exception_term )
