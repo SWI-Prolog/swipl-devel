@@ -894,6 +894,8 @@ initBackTrace(void)
 		 *	     SHARED		*
 		 *******************************/
 
+#ifdef BTRACE_DONE
+
 void
 print_backtrace_named(const char *why)
 { bstore_print_backtrace_named(get_trace_store(FALSE), why);
@@ -908,6 +910,8 @@ print_c_backtrace(const char *why)
   if ( bt && !bt->shared )
     btrace_destroy(bt);
 }
+
+#endif /*BTRACE_DONE*/
 
 
 	         /*******************************
@@ -937,6 +941,11 @@ void
 print_backtrace_named(const char *why)
 { Sdprintf("%s:%d C-stack dumps are not supported on this platform\n",
 	   __FILE__, __LINE__);
+}
+
+void
+print_c_backtrace(const char *why)
+{
 }
 
 void
