@@ -175,18 +175,21 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   *p++ = cref;
   *p++ = consInt(pc - cl->codes);
 
-  for(i=0; i<cl->prolog_vars; i++)
+  for(i=0; i<cl->prolog_vars; i++, p++)
   { if ( true_bit(active, i) )
     { Word vp = argFrameP(fr, i);
       DEBUG(CHK_SECURE, checkData(vp));
 
       deRef(vp);
       if ( isVar(*vp) && vp > (Word)lBase )
+      { setVar(*p);
 	LTrail(vp);
-
-      *p++ = linkVal(vp);
+	*vp = makeRefG(p);
+      } else
+      { *p = linkVal(vp);
+      }
     } else
-    { *p++ = ATOM_garbage_collected;
+    { *p = ATOM_cont_inactive;
     }
   }
 					/* Store choice points (*) */

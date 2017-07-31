@@ -1914,6 +1914,9 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
   state.envtop = NULL;
   state.c0     = fr->clause->value.clause->codes;
 
+  DEBUG(MSG_GC_WALK,
+	Sdprintf("Mark active for %s\n", predicateName(fr->predicate)));
+
   walk_and_mark(&state, PC, I_EXIT PASS_LD);
   if ( buf != tmp )
     PL_free(buf);
