@@ -1135,7 +1135,7 @@ arguments. Application command line arguments are those that have
 Prolog's argument processing stops at \const{--} or the first non-option
 argument.  See also \prologflag{os_argv}.\footnote{Prior to version
 6.5.2, \prologflag{argv} was defined as \prologflag{os_argv} is now.
-The change was made for compatibility reasone and because the current
+The change was made for compatibility reasons and because the current
 definition is more practical.}
 
     \prologflagitem{arch}{atom}{r}
