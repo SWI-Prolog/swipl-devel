@@ -1495,8 +1495,6 @@ pack_version_file(Pack, Version, Path) :-
     (   phrase(pack_version(Pack, Version), Codes),
         safe_pack_name(Pack)
     ->  true
-    ;   print_message(error, pack(invalid_name(File))),
-        fail
     ).
 
 no_int_file_name_extension(Base, Ext, File) :-
