@@ -222,8 +222,18 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 }
 
 
+static functor_t
+env3_predicate(Definition def)
+{ if ( def == PROCEDURE_catch3->definition )
+    return FUNCTOR_catch3;
+  if ( def == PROCEDURE_reset3->definition )
+    return FUNCTOR_reset3;
+  return 0;
+}
+
+
 static int
-unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
+put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 { GET_LD
   term_t reset_ref = consTermRef(resetfr);
   term_t fr_ref    = consTermRef(fr);
@@ -244,12 +254,27 @@ unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
        fr != resetfr;
        pc = fr->programPointer, fr=fr->parent, depth++)
   { Clause cl = fr->clause->value.clause;
+    functor_t env_f;
 
     if ( onStackArea(local, cl) )
       return PL_representation_error("continuation");
     fr_ref = consTermRef(fr);
 
-    if ( !put_environment(contv+depth, fr, pc) )
+    if ( (env_f=env3_predicate(fr->predicate)) )
+    { term_t av = PL_new_term_refs(2);
+
+      fr = (LocalFrame)valTermRef(fr_ref);
+      PL_put_term(av+0, consTermRef(argFrameP(fr, 1)));
+      PL_put_term(av+1, consTermRef(argFrameP(fr, 2)));
+
+      if ( PL_cons_list_v(contv, depth, contv) &&
+	   PL_cons_functor(contv, FUNCTOR_call_continuation1, contv) &&
+	   PL_cons_functor(contv, env_f, contv, av+0, av+1) &&
+	   PL_cons_functor(contv, FUNCTOR_call1, contv) )
+	depth = 0;
+      else
+	return FALSE;
+    } else if ( !put_environment(contv+depth, fr, pc) )
       return FALSE;
 
     resetfr = (LocalFrame)valTermRef(reset_ref);
@@ -295,9 +320,9 @@ PRED_IMPL("shift", 1, shift, 0)
     DEBUG(MSG_CONTINUE, Sdprintf("Found reset/3 at %ld\n", reset));
     PL_put_nil(cont);
     resetfr = (LocalFrame)valTermRef(reset);
-    if ( !unify_continuation(cont, resetfr,
-			     environment_frame->parent,
-			     environment_frame->programPointer) )
+    if ( !put_continuation(cont, resetfr,
+			   environment_frame->parent,
+			   environment_frame->programPointer) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to collect continuation\n"));
       return FALSE;			/* resource error */
     }
