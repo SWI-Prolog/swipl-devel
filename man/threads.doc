@@ -48,6 +48,9 @@ have dropped from the ISO WG17 agenda.}
 \label{sec:threadcreate}
 
 \begin{description}
+    \predicate{thread_create}{2}{:Goal, -Id}
+Shorthand for \exam{thread_create(Goal, Id, [])}.  See thread_create/3.
+
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
 Create a new Prolog thread (and underlying operating system thread) and
 start it by executing \arg{Goal}. If the thread is created successfully,
@@ -157,6 +160,11 @@ data from their stacks.
     \predicate{thread_self}{1}{-Id}
 Get the Prolog thread identifier of the running thread.  If the thread
 has an alias, the alias name is returned.
+
+    \predicate{thread_join}{2}{+Id}
+Calls thread_join/2 and succeeds if thread \arg{Id} terminated with
+success. Otherwise the exception
+\term{error}{\term{thread_error}{Status}, _} is raised.
 
     \predicate{thread_join}{2}{+Id, -Status}
 Wait for the termination of the thread with the given \arg{Id}.  Then unify

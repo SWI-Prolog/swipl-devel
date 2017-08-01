@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -75,11 +75,13 @@
             prolog_stack_property/2,
             absolute_file_name/2,
             require/1,
-            call_with_depth_limit/3,    % :Goal, +Limit, -Result
-            call_with_inference_limit/3,% :Goal, +Limit, -Result
-            numbervars/3,               % +Term, +Start, -End
-            term_string/3,              % ?Term, ?String, +Options
-            nb_setval/2                 % +Var, +Value
+            call_with_depth_limit/3,            % :Goal, +Limit, -Result
+            call_with_inference_limit/3,        % :Goal, +Limit, -Result
+            numbervars/3,                       % +Term, +Start, -End
+            term_string/3,                      % ?Term, ?String, +Options
+            nb_setval/2,                        % +Var, +Value
+            thread_create/2,                    % :Goal, -Id
+            thread_join/1                       % +Id
           ]).
 
                 /********************************
@@ -1359,3 +1361,32 @@ term_string(Term, String, Options) :-
 nb_setval(Name, Value) :-
     duplicate_term(Value, Copy),
     nb_linkval(Name, Copy).
+
+
+		 /*******************************
+		 *            THREADS		*
+		 *******************************/
+
+:- meta_predicate
+    thread_create(0, -).
+
+%!  thread_create(:Goal, -Id)
+%
+%   Shorthand for thread_create(Goal, Id, []).
+
+thread_create(Goal, Id) :-
+    thread_create(Goal, Id, []).
+
+%!  thread_join(+Id)
+%
+%   Join a thread and raise an error of the thread did not succeed.
+%
+%   @error  thread_error(Status),  where  Status  is    the   result  of
+%   thread_join/2.
+
+thread_join(Id) :-
+    thread_join(Id, Status),
+    (   Status == true
+    ->  true
+    ;   throw(error(thread_error(Status), _))
+    ).

@@ -654,6 +654,7 @@ suggest predicates from a keyword.
 \predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
+\predicatesummary{thread_create}{2}{Create a new Prolog task}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
 \predicatesummary{thread_detach}{1}{Make thread cleanup after completion}
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
@@ -661,6 +662,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
 \predicatesummary{thread_get_message}{3}{Wait for message in a queue}
 \predicatesummary{thread_initialization}{1}{Run action at start of thread}
+\predicatesummary{thread_join}{1}{Wait for Prolog task-completion}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
 \predicatesummary{thread_local}{1}{Declare thread-specific clauses for a predicate}
 \predicatesummary{thread_message_hook}{3}{Thread local message_hook/3}
