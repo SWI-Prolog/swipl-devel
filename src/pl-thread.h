@@ -215,16 +215,15 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_OP	       16
 #define L_INIT	       17
 #define L_TERM	       18
-#define L_GC	       19
-#define L_AGC	       20
-#define L_FOREIGN      21
-#define L_OS	       22
-#define L_LOCALE       23
-#define L_SORTR        24
-#define L_UMUTEX       25
+#define L_AGC	       19
+#define L_FOREIGN      20
+#define L_OS	       21
+#define L_LOCALE       22
+#define L_SORTR        23
+#define L_UMUTEX       24
 #ifdef __WINDOWS__
-#define L_DDE	       26
-#define L_CSTACK       27
+#define L_DDE	       25
+#define L_CSTACK       26
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -395,7 +394,7 @@ COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
-#define acquire_ldata(ld)	(LD->thread.info->access.ldata = (ld))
+#define acquire_ldata(info)	acquire_ldata__LD(info PASS_LD)
 #define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
 
 #else /*O_PLMT, end of threading-stuff */

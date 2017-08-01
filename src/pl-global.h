@@ -201,7 +201,6 @@ struct PL_global_data
 #ifdef O_PLMT
   struct
   { int		active;			/* #GC active */
-    int		agc_waiting;		/* AGC is waiting for us */
   } gc;
 #endif
 
@@ -629,6 +628,7 @@ struct PL_local_data
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
+    simpleMutex scan_lock;		/* Hold for asynchronous scans */
   } thread;
 #endif
 

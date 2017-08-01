@@ -553,5 +553,18 @@ popArgvArithStack(int n ARG_LD)
   }
 }
 
+		 /*******************************
+		 *	      THREADS		*
+		 *******************************/
+
+static inline PL_local_data_t *
+acquire_ldata__LD(PL_thread_info_t *info ARG_LD)
+{ PL_local_data_t *ld = info->thread_data;
+  LD->thread.info->access.ldata = ld;
+  if ( ld && ld->magic == LD_MAGIC )
+    return ld;
+  LD->thread.info->access.ldata = NULL;
+  return NULL;
+}
 
 #endif /*PL_INLINE_H_INCLUDED*/

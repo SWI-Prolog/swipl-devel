@@ -162,8 +162,8 @@ This is a hard problem. Atom-GC cannot   run  while some thread performs
 normal GC because the pointer relocation makes it extremely hard to find
 referenced atoms. Otherwise, ask all  threads   to  mark their reachable
 atoms and run collectAtoms() to reclaim the unreferenced atoms. The lock
-L_GC is used to ensure garbage collection does not run concurrently with
-atom garbage collection.
+LD->thread.scan_lock is used to ensure garbage   collection does not run
+concurrently with atom garbage collection.
 
 Atom-GC asynchronously walks  the  stacks  of   all  threads  and  marks
 everything  that  looks  `atom-like',   i.e.,    our   collector   is  a
@@ -200,10 +200,6 @@ Note that threads can mark their atoms and continue execution because:
       that they can safely be walked.
 
 JW: I think we can reduce locking for AGC further.
-  - L_GC is needed, but we could give each thread its own GC lock,
-    as we only need to sync with the thread we are marking.
-  - L_THREAD is needed to guarantee no new threads are started or
-    destroyed. That too can probably be done more subtle.
   - L_AGC is only used for syncing with current_blob().
   - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1065,43 +1061,20 @@ pl_garbage_collect_atoms(void)
   if ( GD->cleaning != CLN_NORMAL )	/* Cleaning up */
     return TRUE;
 
-  PL_LOCK(L_GC);
-  if ( gc_status.blocked )		/* Tricky things; avoid problems. */
-  { PL_UNLOCK(L_GC);
-    succeed;
-  }
-
-#ifdef O_PLMT
-  if ( GD->gc.active )			/* GC in progress: delay */
-  { DEBUG(MSG_AGC, Sdprintf("GC active; delaying AGC\n"));
-    GD->gc.agc_waiting = TRUE;
-    PL_UNLOCK(L_GC);
-    succeed;
-  }
-#endif
-
-  gc_status.blocked++;			/* avoid recursion */
+  if ( !COMPARE_AND_SWAP(&GD->atoms.gc_active, FALSE, TRUE) )
+    return TRUE;
 
   if ( verbose )
-  {
-#ifdef O_DEBUG_ATOMGC
-/*
-    Sdprintf("Starting ATOM-GC.  Stack:\n");
-    PL_backtrace(5, 0);
-*/
-#endif
-    if ( !printMessage(ATOM_informational,
+  { if ( !printMessage(ATOM_informational,
 		       PL_FUNCTOR_CHARS, "agc", 1,
 		         PL_CHARS, "start") )
-    { PL_UNLOCK(L_GC);
+    { GD->atoms.gc_active = FALSE;
       return FALSE;
     }
   }
 
-  PL_LOCK(L_THREAD);
   PL_LOCK(L_AGC);
   LOCK();
-  GD->atoms.gc_active = TRUE;
   blockSignals(&set);
   t = CpuTime(CPU_USER);
   unmarkAtoms();
@@ -1112,7 +1085,6 @@ pl_garbage_collect_atoms(void)
 #endif
   oldcollected = GD->atoms.collected;
   reclaimed = collectAtoms();
-  GD->atoms.gc_active = FALSE;
   GD->atoms.collected += reclaimed;
   ATOMIC_SUB(&GD->statistics.atoms, reclaimed);
   t = CpuTime(CPU_USER) - t;
@@ -1121,9 +1093,6 @@ pl_garbage_collect_atoms(void)
   unblockSignals(&set);
   UNLOCK();
   PL_UNLOCK(L_AGC);
-  PL_UNLOCK(L_THREAD);
-  gc_status.blocked--;
-  PL_UNLOCK(L_GC);
 
   if ( verbose )
     return printMessage(ATOM_informational,
@@ -1132,6 +1101,8 @@ pl_garbage_collect_atoms(void)
 			    PL_INT64, GD->atoms.collected - oldcollected,
 			    PL_INT, GD->statistics.atoms,
 			    PL_DOUBLE, (double)t);
+
+  GD->atoms.gc_active = FALSE;
 
   return TRUE;
 }

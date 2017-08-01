@@ -156,6 +156,10 @@ initPrologLocalData(ARG1_LD)
   LD->break_level = -1;
   LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
 
+#ifdef O_PLMT
+  simpleMutexInit(&LD->thread.scan_lock);
+#endif
+
   updateAlerted(LD);
 }
 

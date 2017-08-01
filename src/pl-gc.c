@@ -3868,24 +3868,17 @@ PL_check_stacks(void)
 About synchronisation with atom-gc (AGC). GC can run fully concurrent in
 different threads as it only  affects   the  runtime stacks. AGC however
 must sweep the other threads. It can only do so if these are in a fairly
-sane state, which isn't the case during GC.  So:
-
-We keep the number of threads doing GC in GD->gc.active, a variable that
-is incremented and decremented using  the   L_GC  mutex. This same mutex
-guards AGC as a whole. This  means  that   if  AGC  is working, GC can't
-start. If AGC notices at the start  a   GC  is working, it sets the flag
-GD->gc.agc_waiting and returns. If the last   GC  stops, and notices the
-system wants to do AGC it raised a request for AGC.
+sane   state,   which   isn't   the   case    during   GC.   The   mutex
+LD->thread.scan_lock is used to avoid GC during AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 enterGC(ARG1_LD)
 {
 #ifdef O_PLMT
-  PL_LOCK(L_GC);
-  GD->gc.active++;
-  PL_UNLOCK(L_GC);
-  LD->gc.active = TRUE;
+  if ( !LD->gc.active )
+    simpleMutexLock(&LD->thread.scan_lock);
+  LD->gc.active++;
 #endif
 }
 
@@ -3893,13 +3886,8 @@ static void
 leaveGC(ARG1_LD)
 {
 #ifdef O_PLMT
-  LD->gc.active = FALSE;
-  PL_LOCK(L_GC);
-  if ( --GD->gc.active == 0 && GD->gc.agc_waiting )
-  { GD->gc.agc_waiting = FALSE;
-    PL_raise(SIG_ATOM_GC);
-  }
-  PL_UNLOCK(L_GC);
+  if ( --LD->gc.active == 0 )
+    simpleMutexUnlock(&LD->thread.scan_lock);
 #endif
 }
 

@@ -2015,9 +2015,7 @@ pl_garbage_collect_clauses(void)
 
     markPredicatesInEnvironments(LD);
 #ifdef O_PLMT
-    PL_LOCK(L_THREAD);			/* avoid threads to drop out */
     forThreadLocalDataUnsuspended(markPredicatesInEnvironments, 0);
-    PL_UNLOCK(L_THREAD);
 #endif
 
     DEBUG(MSG_CGC, Sdprintf("(marking done)\n"));

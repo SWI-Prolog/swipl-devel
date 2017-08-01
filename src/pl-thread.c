@@ -289,7 +289,6 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_OP"),
   COUNT_MUTEX_INITIALIZER("L_INIT"),
   COUNT_MUTEX_INITIALIZER("L_TERM"),
-  COUNT_MUTEX_INITIALIZER("L_GC"),
   COUNT_MUTEX_INITIALIZER("L_AGC"),		/* 20 */
   COUNT_MUTEX_INITIALIZER("L_FOREIGN"),
   COUNT_MUTEX_INITIALIZER("L_OS"),
@@ -542,6 +541,13 @@ initialise_thread(PL_thread_info_t *info)
   return TRUE;
 }
 
+
+static void
+free_local_data(PL_local_data_t *ld)
+{ simpleMutexDelete(&ld->thread.scan_lock);
+  freeHeap(ld, sizeof(*ld));
+}
+
 static PL_local_data_t *ld_free_list = NULL;
 
 static void
@@ -551,7 +557,7 @@ clean_ld_free_list(void)
     for(ld = ld_free_list; ld; ld=*prev)
     { if ( !ldata_in_use(ld) )
       { *prev = ld->next_free;
-	freeHeap(ld, sizeof(*ld));
+	free_local_data(ld);
       } else
       { prev = &ld->next_free;
       }
@@ -562,7 +568,7 @@ clean_ld_free_list(void)
 static void
 maybe_free_local_data(PL_local_data_t *ld)
 { if ( !ldata_in_use(ld) )
-  { freeHeap(ld, sizeof(*ld));
+  { free_local_data(ld);
   } else
   { LOCK();
     clean_ld_free_list();
@@ -619,8 +625,11 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 
   DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
   ld->magic = 0;
-  if ( ld->stacks.global.base )		/* otherwise assume they are not */
-    freeStacks(ld);			/* initialised */
+  if ( ld->stacks.global.base )		/* otherwise not initialised */
+  { simpleMutexLock(&ld->thread.scan_lock);
+    freeStacks(ld);
+    simpleMutexUnlock(&ld->thread.scan_lock);
+  }
   freePrologLocalData(ld);
 
   /*PL_unregister_atom(ld->prompt.current);*/
@@ -1084,8 +1093,7 @@ fully reclaimed, we have several situations:
     reclaimed slilently when done.
   - The engine has completed.  Join it.
 
-collectAtoms() is called with many locks   held: L_ATOM, L_AGC, L_GC and
-L_THREAD.
+collectAtoms() is called with many locks   held: L_ATOM and L_AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static thread_handle *gced_threads = NULL;
@@ -1465,7 +1473,7 @@ PL_thread_raise(int tid, int sig)
       int rc;
 
       if ( LD )					/* See (*) */
-	ld = acquire_ldata(info->thread_data);
+	ld = acquire_ldata(info);
       else
 	ld = info->thread_data;
 
@@ -5708,7 +5716,8 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 
 void
 forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
-{ int me = PL_thread_self();
+{ GET_LD
+  int me = PL_thread_self();
   PL_thread_info_t **th;
 
   for( th = &GD->thread.threads[1];
@@ -5718,8 +5727,13 @@ forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
 
     if ( info->thread_data && info->pl_tid != me &&
 	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
-    { PL_local_data_t *ld = info->thread_data;
-      (*func)(ld);
+    { PL_local_data_t *ld;
+
+      if ( (ld = acquire_ldata(info)) )
+      { simpleMutexLock(&ld->thread.scan_lock);
+	(*func)(ld);
+	simpleMutexUnlock(&ld->thread.scan_lock);
+      }
     }
   }
 
@@ -6036,9 +6050,9 @@ cgc_thread_stats(cgc_stats *stats ARG_LD)
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
-    PL_local_data_t *ld = acquire_ldata(info->thread_data);
+    PL_local_data_t *ld = acquire_ldata(info);
 
-    if ( ld && ld->magic == LD_MAGIC )
+    if ( ld )
     { char *ltop  = (char*)ld->stacks.local.top;
       char *lbase = (char*)ld->stacks.local.base;
 
@@ -6047,8 +6061,8 @@ cgc_thread_stats(cgc_stats *stats ARG_LD)
 	stats->threads++;
 	stats->erased_skipped += ld->clauses.erased_skipped;
       }
+      release_ldata(ld);
     }
-    release_ldata(ld);
     if ( GD->clauses.cgc_active )
       return FALSE;
   }
