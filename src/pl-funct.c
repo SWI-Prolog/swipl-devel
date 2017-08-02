@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -76,8 +76,7 @@ static void	  rehashFunctors(void);
 
 static void
 allocateFunctorBlock(int idx)
-{
-  PL_LOCK(L_MISC);
+{ PL_LOCK(L_MISC);
 
   if ( !GD->functors.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
@@ -96,8 +95,7 @@ allocateFunctorBlock(int idx)
 
 static void
 registerFunctor(FunctorDef fd)
-{
-  size_t index;
+{ size_t index;
   int idx, amask;
 
   index = ATOMIC_INC(&GD->functors.highest) - 1;
@@ -178,8 +176,8 @@ redo:
 
 static void
 maybe_free_functor_tables(void)
-{
-  FunctorTable t = functorDefTable;
+{ FunctorTable t = functorDefTable;
+
   while ( t )
   { FunctorTable t2 = t->prev;
     if ( t2 && !pl_functor_table_in_use(t2) )
