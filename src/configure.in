@@ -1371,8 +1371,63 @@ fi dnl "$MINGW" = false
 
 dnl Used in OpenBSD
 AC_CHECK_LIB(execinfo, backtrace_symbols)
-AC_CHECK_FUNCS(dladdr)
 
+if test "$ac_cv_header_execinfo_h" = "yes"; then
+AC_MSG_CHECKING("whether backtrace() works")
+AC_TRY_RUN(
+[
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define BT_MAX_DEPTH 10
+
+int
+print_backtrace(void)
+{ void *bt[BT_MAX_DEPTH];
+  char **strings;
+  int i, d;
+
+  d = backtrace(bt, BT_MAX_DEPTH);
+  if ( d == -1 )
+    return 1;
+
+  strings = backtrace_symbols(bt, d);
+
+  if (strings == NULL)
+    return 1;
+
+  free(strings);
+
+  return 0;
+}
+
+int
+fac(int n)
+{ if ( n <= 1 )
+  { if ( print_backtrace() )
+      exit(1);
+    return n;
+  }
+  int m = fac(n-1)*n;
+  return m;
+}
+
+int
+main(int argc, char**argv)
+{ fac(10);
+
+  return 0;
+}
+],
+AC_MSG_RESULT(yes)
+AC_DEFINE(HAVE_BACKTRACE, 1,
+	  [Define if backtrace is provided and works]),
+AC_MSG_RESULT(no),
+AC_MSG_RESULT(assuming no))
+fi
+
+AC_CHECK_FUNCS(dladdr)
 if test "$ac_cv_func_dladdr" != "yes"; then
   AC_CHECK_LIB(unwind, main,
 	       check_unwind_h=yes)

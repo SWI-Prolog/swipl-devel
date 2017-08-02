@@ -234,7 +234,7 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 		 *	       GLIBC		*
 		 *******************************/
 
-#if !defined(BTRACE_DONE) && defined(HAVE_EXECINFO_H)
+#if !defined(BTRACE_DONE) && defined(HAVE_EXECINFO_H) && defined(HAVE_BACKTRACE)
 #define BTRACE_DONE 1
 #include <execinfo.h>
 #include <string.h>
