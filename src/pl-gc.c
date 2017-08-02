@@ -5209,6 +5209,9 @@ void
 markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
 
+  if ( !ld->magic )
+    return;				/* avoid AGC on finished threads */
+
   DEBUG(MSG_AGC, save_backtrace("AGC"));
 #ifdef O_MAINTENANCE
   save_backtrace("AGC");
