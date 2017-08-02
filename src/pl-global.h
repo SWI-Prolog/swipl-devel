@@ -242,6 +242,7 @@ struct PL_global_data
   { size_t	highest;		/* Next index to handout */
     functor_array array;		/* index --> functor */
     FunctorTable table;			/* hash-table */
+    int		 rehashing;		/* Table is being rehashed */
   } functors;
 
   struct

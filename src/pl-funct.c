@@ -123,7 +123,6 @@ lookupFunctorDef(atom_t atom, size_t arity)
   FunctorDef f, head;
 
 redo:
-
   acquire_functor_table(table, buckets);
 
   v = (int)pointerHashValue(atom, buckets);
@@ -157,6 +156,7 @@ redo:
   f->flags   = 0;
   f->next    = table[v];
   if ( !( COMPARE_AND_SWAP(&table[v], head, f) &&
+	  !GD->functors.rehashing &&
           table == functorDefTable->table) )
   { PL_free(f);
     goto redo;
@@ -206,30 +206,35 @@ rehashFunctors(void)
   newtab->prev = functorDefTable;
 
   DEBUG(MSG_HASH_STAT,
-	Sdprintf("Rehashing functor-table (%d --> %d)\n", functorDefTable->buckets, newtab->buckets));
+	Sdprintf("Rehashing functor-table (%d --> %d)\n",
+		 functorDefTable->buckets, newtab->buckets));
 
+  GD->functors.rehashing = TRUE;
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
-    FunctorDef *b = GD->functors.array.blocks[i];
+    FunctorDef *b;
 
-    if ( upto >= GD->functors.highest )
-    { upto = GD->functors.highest;
-      last = TRUE;
-    }
+    if ( (b=GD->functors.array.blocks[i]) )
+    { if ( upto >= GD->functors.highest )
+      { upto = GD->functors.highest;
+	last = TRUE;
+      }
 
-    for(; index<upto; index++)
-    { FunctorDef f = b[index];
+      for(; index<upto; index++)
+      { FunctorDef f = b[index];
 
-      if ( FUNCTOR_IS_VALID(f->flags) )
-      { size_t v = pointerHashValue(f->name, newtab->buckets);
+	if ( f && FUNCTOR_IS_VALID(f->flags) )
+	{ size_t v = pointerHashValue(f->name, newtab->buckets);
 
-	f->next = newtab->table[v];
-	newtab->table[v] = f;
+	  f->next = newtab->table[v];
+	  newtab->table[v] = f;
+	}
       }
     }
   }
 
   functorDefTable = newtab;
+  GD->functors.rehashing = FALSE;
   maybe_free_functor_tables();
 }
 
