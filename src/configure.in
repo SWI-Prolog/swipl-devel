@@ -753,7 +753,7 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL$EXEEXT",
 		   [Name of the SWI-Prolog executable (normally swipl[.exe])])
-SONAMEV=`$as_echo "$PLVERSION" | sed 's/\(@<:@0-9@:>@\+\.@<:@0-9@:>@\+\)\.@<:@0-9@:>@\+/\1/'`
+SONAMEV=`$as_echo "$PLVERSION" | sed 's/\(@<:@0-9@:>@@<:@0-9@:>@*\.@<:@0-9@:>@@<:@0-9@:>@*\)\.@<:@0-9@:>@@<:@0-9@:>@*/\1/'`
 SONAME='$(SHARED).'$SONAMEV
 case "$PLARCH" in
   *-win32|*-win64|*-cygwin*)
