@@ -49,6 +49,10 @@ test(insert_atom, N == noot) :-
 	trie_new(T),
 	trie_insert(T, aap, noot),
 	trie_lookup(T, aap, N).
+test(insert_value_term, N == noot(1)) :-
+	trie_new(T),
+	trie_insert(T, aap, noot(1)),
+	trie_lookup(T, aap, N).
 test(insert_two, N1-N2 == noot1-noot2) :-
 	trie_new(T),
 	trie_insert(T, aap1, noot1),
