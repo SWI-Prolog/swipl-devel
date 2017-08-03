@@ -397,12 +397,7 @@ locale_grouping_property(PL_locale *l, term_t prop ARG_LD)
 }
 
 
-typedef struct
-{ functor_t functor;			/* functor of property */
-  int (*function)();			/* function to generate */
-} lprop;
-
-static const lprop lprop_list [] =
+static const tprop lprop_list [] =
 { { FUNCTOR_alias1,	    locale_alias_property },
   { FUNCTOR_decimal_point1, locale_decimal_point_property },
   { FUNCTOR_thousands_sep1, locale_thousands_sep_property },
@@ -413,36 +408,9 @@ static const lprop lprop_list [] =
 typedef struct
 { TableEnum e;				/* Enumerator on mutex-table */
   PL_locale *l;				/* current locale */
-  const lprop *p;			/* Pointer in properties */
+  const tprop *p;			/* Pointer in properties */
   int enum_properties;			/* Enumerate the properties */
 } lprop_enum;
-
-
-static int
-get_prop_def(term_t t, atom_t expected, const lprop *list, const lprop **def)
-{ GET_LD
-  functor_t f;
-
-  if ( PL_get_functor(t, &f) )
-  { const lprop *p = list;
-
-    for( ; p->functor; p++ )
-    { if ( f == p->functor )
-      { *def = p;
-        return TRUE;
-      }
-    }
-
-    PL_error(NULL, 0, NULL, ERR_DOMAIN, expected, t);
-    return -1;
-  }
-
-  if ( PL_is_variable(t) )
-    return 0;
-
-  PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
-  return -1;
-}
 
 
 static int

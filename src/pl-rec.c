@@ -710,6 +710,15 @@ compileTermToHeap__LD(term_t t,
   return record;
 }
 
+
+int
+variantRecords(const Record r1, const Record r2)
+{ return ( r1->size == r2->size &&
+	   memcpy(r1, r2, r1->size) == 0
+	 );
+}
+
+
 		 /*******************************
 		 *	 EXTERNAL RECORDS	*
 		 *******************************/
@@ -1868,9 +1877,12 @@ real atom.
 bool
 unifyKey(term_t key, word val)
 { if ( isAtom(val) || isTaggedInt(val) )
-    return _PL_unify_atomic(key, val);
+  { return _PL_unify_atomic(key, val);
+  } else
+  { GET_LD
 
-  return PL_unify_functor(key, (functor_t) val);
+    return PL_unify_functor(key, (functor_t) val);
+  }
 }
 
 
@@ -2262,8 +2274,9 @@ PRED_IMPL("erase", 1, erase, 0)
     return retractClauseDefinition(def, clause);
   } else
   { RecordRef r = ptr;
+    int rc;
 
-    callEventHook(PLEV_ERASED_RECORD, r);
+    rc = callEventHook(PLEV_ERASED_RECORD, r);
 
     LOCK();
     l = r->list;
@@ -2274,7 +2287,7 @@ PRED_IMPL("erase", 1, erase, 0)
     { remove_record(r);
     }
     UNLOCK();
-    return TRUE;
+    return rc;
   }
 }
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam,
+    Copyright (c)  1985-2017, University of Amsterdam,
                               VU University Amsterdam
     All rights reserved.
 
@@ -1230,10 +1230,11 @@ struct clause
 typedef struct clause_list
 { ClauseRef	first_clause;		/* clause list of procedure */
   ClauseRef	last_clause;		/* last clause of list */
-  ClauseIndex	clause_indexes;		/* Hash index(es) */
+  ClauseIndex  *clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
   unsigned int	erased_clauses;		/* number of erased clauses in set */
   unsigned int	number_of_rules;	/* number of real rules */
+  unsigned int	jiti_tried;		/* number of times we tried to find */
 } clause_list, *ClauseList;
 
 typedef struct clause_ref
@@ -1319,7 +1320,7 @@ struct clause_bucket
   unsigned int	dirty;			/* # of garbage clauses */
 };
 
-#define MAX_MULTI_INDEX 1
+#define MAX_MULTI_INDEX 4
 
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
@@ -1331,15 +1332,15 @@ struct clause_index
   unsigned	 is_list : 1;		/* Index with lists */
   unsigned	 incomplete : 1;	/* Not all clauses are in the index */
   float		 speedup;		/* Estimated speedup */
-  struct bit_vector *tried_better;	/* We tried to access for better hash */
-  ClauseIndex	 next;			/* Next index */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
-typedef struct clause_index_list
-{ ClauseIndex index;
-  struct clause_index_list *next;
-} clause_index_list, *ClauseIndexList;
+typedef struct arg_info
+{ float		speedup;		/* Computed speedup */
+  unsigned	ln_buckets : 5;		/* lg2(bucket count) */
+  unsigned	assessed   : 1;		/* Value was assessed */
+  unsigned	meta	   : 4;		/* Meta-argument info */
+} arg_info;
 
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
@@ -1347,12 +1348,6 @@ typedef struct local_definitions
 { Definition *blocks[MAX_BLOCKS];
   Definition preallocated[7];
 } local_definitions;
-
-#ifdef _MSC_VER
-typedef __int64 meta_mask;		/* MSVC cannot do typedef of typedef!? */
-#else
-typedef uint64_t meta_mask;
-#endif
 
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
@@ -1364,11 +1359,10 @@ struct definition
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-  ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
-  struct bit_vector *tried_index;	/* Arguments on which we tried to index */
-  meta_mask	meta_info;		/* meta-predicate info */
+  arg_info     *args;			/* Meta and indexing info */
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
+  struct linger_list  *lingering;	/* Assocated lingering objects */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
@@ -1586,6 +1580,21 @@ struct recordRef
   Record	record;			/* the record itself */
 };
 
+
+		 /*******************************
+		 *	EXCEPTION CLASSES	*
+		 *******************************/
+
+typedef enum except_class
+{ EXCEPT_NONE = 0,			/* no exception */
+  EXCEPT_OTHER,				/* any other exception */
+  EXCEPT_ERROR,				/* ISO error(Formal,Context) */
+  EXCEPT_RESOURCE,			/* ISO error(resource_error(_), _) */
+  EXCEPT_TIMEOUT,			/* time_limit_exceeded */
+  EXCEPT_ABORT				/* '$aborted' */
+} except_class;
+
+
 		 /*******************************
 		 *	SOURCE FILE ADMIN	*
 		 *******************************/
@@ -1597,7 +1606,7 @@ typedef struct p_reload
 { Definition	predicate;		/* definition we are working on */
   gen_t		generation;		/* generation we update */
   ClauseRef	current_clause;		/* currently reloading clause */
-  meta_mask	meta_info;		/* new meta declaration (if any) */
+  arg_info     *args;			/* Meta info on arguments */
   unsigned	flags;			/* new flags (P_DYNAMIC, etc.) */
   unsigned	number_of_clauses;	/* Number of clauses we've seen */
 } p_reload;
@@ -1689,12 +1698,8 @@ struct gc_trail_entry
 #define MA_HAT		14		/* ^ */
 #define MA_DCG		15		/* // */
 
-#define MA_INFO(def, n) \
-	(((def)->meta_info >> ((n)*4)) & 0xf)
-#define MA_SETINFO(def, n, i) \
-	((def)->meta_info &= ~((meta_mask)0xf << (n)*4), \
-	 (def)->meta_info |= ((meta_mask)(i) << (n)*4))
-
+#define MA_NEEDS_TRANSPARENT(m) \
+	((m) < 10 || (m) == MA_META || (m) == MA_HAT || (m) == MA_DCG)
 
 		 /*******************************
 		 *	     MARK/UNDO		*
@@ -1724,14 +1729,20 @@ struct gc_trail_entry
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
-			     DEBUG(CHK_SECURE, assert((b).saved_bar >= gBase && \
-						      (b).saved_bar <= gTop)); \
-			     LD->mark_bar = (b).globaltop = gTop; \
+			     DEBUG(CHK_SECURE, \
+				   assert((b).saved_bar == NO_MARK_BAR || \
+					  ((b).saved_bar >= gBase && \
+					   (b).saved_bar <= gTop))); \
+			     (b).globaltop = gTop; \
+			     if ( LD->mark_bar != NO_MARK_BAR ) \
+			       LD->mark_bar = (b).globaltop; \
 			   } while(0)
 #define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
 					     LD->frozen_bar : (b).saved_bar); \
-			     DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && \
-						      LD->mark_bar <= gTop)); \
+			     DEBUG(CHK_SECURE, \
+				   assert(LD->mark_bar == NO_MARK_BAR || \
+					  (LD->mark_bar >= gBase && \
+					   LD->mark_bar <= gTop))); \
 			   } while(0)
 #define NOT_A_MARK	(TrailEntry)(~(word)0)
 #define NoMark(b)	do { (b).trailtop = NOT_A_MARK; \
@@ -1814,7 +1825,6 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals */
 
 typedef RETSIGTYPE (*handler_t)(int);
-typedef void *SignalContext;		/* struct sigcontext on sun */
 
 typedef struct
 { handler_t   saved_handler;		/* Original handler */
@@ -1852,14 +1862,6 @@ typedef enum pl_event_type
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
   PL_EV_THREADFINISHED			/* A thread has finished */
 } pl_event_type;
-
-#ifdef O_DEBUGGER
-#define callEventHook(...) \
-        ( PROCEDURE_event_hook1->definition->impl.any ? \
-		PL_call_event_hook(__VA_ARGS__) : TRUE )
-#else
-#define callEventHook(...) TRUE
-#endif
 
 
 		 /*******************************
@@ -2042,9 +2044,10 @@ typedef struct
 		 *	      WAKEUP		*
 		 *******************************/
 
-#define WAKEUP_STATE_WAKEUP    0x1
-#define WAKEUP_STATE_EXCEPTION 0x2
-#define WAKEUP_STATE_SKIP_EXCEPTION 0x4
+#define WAKEUP_STATE_WAKEUP          0x1 /* State contains a wakeup */
+#define WAKEUP_STATE_EXCEPTION	     0x2 /* State contains an exception */
+#define WAKEUP_STATE_SKIP_EXCEPTION  0x4 /* Do not restore exception from state */
+#define WAKEUP_KEEP_URGENT_EXCEPTION 0x8 /* Keep the most urgent exception */
 
 typedef struct wakeup_state
 { fid_t		fid;			/* foreign frame reference */
@@ -2261,6 +2264,7 @@ typedef struct debuginfo
 #define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
 #define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
 #define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
+#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x04000000
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -617,11 +617,15 @@ TemporaryFile(const char *id, int *fdp)
 	    tmpdir = strdup(td);
 
 	  if ( reason )
-	    printMessage(ATOM_warning,
-			 PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
-			   PL_CHARS, env_names[i],
-			   PL_CHARS, td,
-			   PL_CHARS, reason);
+	  { if ( !printMessage(ATOM_warning,
+			       PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
+			         PL_CHARS, env_names[i],
+			         PL_CHARS, td,
+			         PL_CHARS, reason) )
+	    { UNLOCK();
+	      return NULL_ATOM;
+	    }
+	  }
 	}
       }
 
@@ -1919,7 +1923,8 @@ ResetTty(void)
 
 static int
 GetTtyState(int fd, struct termios *tio)
-{
+{ memset(tio, 0, sizeof(*tio));
+
 #ifdef HAVE_TCSETATTR
   if ( tcgetattr(fd, tio) )
     return FALSE;
@@ -1950,7 +1955,7 @@ SetTtyState(int fd, struct termios *tio)
 #endif
 #endif
 
-  ttymodified = memcmp(&TTY_STATE(&ttytab), &tio, sizeof(*tio));
+  ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
 
   return TRUE;
 }
@@ -2059,7 +2064,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  buf->state = allocHeapOrHalt(sizeof(tty_state));
+  buf->state = allocHeapOrHalt(sizeof((*buf->state));
+  memset(buf->state, 0, sizeof(*buf->state));
 
   if ( ioctl(fd, TIOCGETP, &TTY_STATE(buf)) )  /* save the old one */
     fail;

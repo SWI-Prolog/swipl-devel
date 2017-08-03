@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -68,7 +68,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 70503
+#define PLVERSION 70511
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -425,6 +425,7 @@ PL_EXPORT(void)		PL_reset_term_refs(term_t r);
 PL_EXPORT(atom_t)	PL_new_atom(const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_nchars(size_t len, const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
+PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
@@ -503,6 +504,8 @@ PL_EXPORT(int)		PL_put_atom(term_t t, atom_t a);
 PL_EXPORT(int)		PL_put_bool(term_t t, int val);
 PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_put_string_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(int)		PL_put_chars(term_t t, int flags,
+				     size_t len, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_chars(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_codes(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);
@@ -577,6 +580,7 @@ PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
 
 PL_EXPORT(int)		PL_get_int64(term_t t, int64_t *i) WUNUSED;
 PL_EXPORT(int)		PL_unify_int64(term_t t, int64_t value) WUNUSED;
+PL_EXPORT(int)		PL_unify_uint64(term_t t, uint64_t value) WUNUSED;
 PL_EXPORT(int)		PL_put_int64(term_t t, int64_t i) WUNUSED;
 
 
@@ -846,6 +850,7 @@ UNICODE file functions.
 PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
 PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
+PL_EXPORT(IOSTREAM*)	PL_acquire_stream(IOSTREAM *s);
 PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
 PL_EXPORT(int)		PL_release_stream_noerror(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
@@ -902,6 +907,8 @@ PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
 
 #endif /*SIO_MAGIC*/
 
+PL_EXPORT(int)  PL_put_term_from_chars(term_t t, int flags,
+				       size_t len, const char *s);
 PL_EXPORT(int)	PL_chars_to_term(const char *chars,
 				term_t term);
 PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
@@ -986,10 +993,27 @@ PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 		*            SIGNALS            *
 		*********************************/
 
+/* PL_signal() masks (deprecated) */
 #define PL_SIGSYNC	0x00010000	/* call handler synchronously */
 #define PL_SIGNOFRAME	0x00020000	/* Do not create a Prolog frame */
 
+#define PLSIG_THROW     0x0002		/* throw signal(num, name) */
+#define PLSIG_SYNC      0x0004		/* call synchronously */
+#define PLSIG_NOFRAME   0x0008		/* Do not create a Prolog frame */
+
+
+
+
+typedef struct pl_sigaction
+{ void        (*sa_cfunction)(int);	/* traditional C function */
+  predicate_t sa_predicate;		/* call a predicate */
+  int	      sa_flags;			/* additional flags */
+  void       *reserved[2];		/* future extentions */
+} pl_sigaction_t;
+
+
 PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
+PL_EXPORT(int)  PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old);
 PL_EXPORT(void)	PL_interrupt(int sig);
 PL_EXPORT(int)	PL_raise(int sig);
 PL_EXPORT(int)	PL_handle_signals(void);

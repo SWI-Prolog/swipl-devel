@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -162,8 +162,8 @@ This is a hard problem. Atom-GC cannot   run  while some thread performs
 normal GC because the pointer relocation makes it extremely hard to find
 referenced atoms. Otherwise, ask all  threads   to  mark their reachable
 atoms and run collectAtoms() to reclaim the unreferenced atoms. The lock
-L_GC is used to ensure garbage collection does not run concurrently with
-atom garbage collection.
+LD->thread.scan_lock is used to ensure garbage   collection does not run
+concurrently with atom garbage collection.
 
 Atom-GC asynchronously walks  the  stacks  of   all  threads  and  marks
 everything  that  looks  `atom-like',   i.e.,    our   collector   is  a
@@ -200,15 +200,11 @@ Note that threads can mark their atoms and continue execution because:
       that they can safely be walked.
 
 JW: I think we can reduce locking for AGC further.
-  - L_GC is needed, but we could give each thread its own GC lock,
-    as we only need to sync with the thread we are marking.
-  - L_THREAD is needed to guarantee no new threads are started or
-    destroyed. That too can probably be done more subtle.
   - L_AGC is only used for syncing with current_blob().
   - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void	rehashAtoms(void);
+static int	rehashAtoms(void);
 
 #define atomTable    GD->atoms.table
 
@@ -399,10 +395,7 @@ another atom.
 
 static void
 allocateAtomBlock(int idx)
-{
-  PL_LOCK(L_MISC);
-
-  if ( !GD->atoms.array.blocks[idx] )
+{ if ( !GD->atoms.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
     Atom newblock;
 
@@ -410,10 +403,10 @@ allocateAtomBlock(int idx)
       outOfCore();
 
     memset(newblock, 0, bs*sizeof(struct atom));
-    GD->atoms.array.blocks[idx] = newblock-bs;
+    if ( !COMPARE_AND_SWAP(&GD->atoms.array.blocks[idx],
+			   NULL, newblock-bs) )
+      PL_free(newblock);		/* done by someone else */
   }
-
-  PL_UNLOCK(L_MISC);
 }
 
 static Atom
@@ -492,6 +485,13 @@ pick up the request and process it.
 
 PL_handle_signals() decides on the actual invocation of atom-gc and will
 treat the signal as bogus if agc has already been performed.
+
+(**) Without this  check,  some  threads   may  pass  the  LOCK() around
+rehashAtoms() and create their atom. If they manage to register the atom
+in the old table  before  rehashAtoms()   activates  the  new  table the
+insertion is successful, but rehashAtoms() may   not have moved the atom
+to the new table. Now we will repeat   if we bypassed the LOCK as either
+GD->atoms.rehashing is TRUE or the new table is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
@@ -586,9 +586,14 @@ redo:
   }
 
   if ( atomTable->buckets * 2 < GD->statistics.atoms )
-  { LOCK();
-    rehashAtoms();
+  { int rc;
+
+    LOCK();
+    rc = rehashAtoms();
     UNLOCK();
+
+    if ( !rc )
+      outOfCore();
   }
 
   if ( !( table == atomTable->table && head == table[v] ) )
@@ -621,6 +626,7 @@ redo:
   if ( true(type, PL_BLOB_UNIQUE) )
   { a->next = table[v];
     if ( !( COMPARE_AND_SWAP(&table[v], head, a) &&
+	    !GD->atoms.rehashing &&	/* See (**) above */
             table == atomTable->table ) )
     { if ( false(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
@@ -1055,40 +1061,20 @@ pl_garbage_collect_atoms(void)
   if ( GD->cleaning != CLN_NORMAL )	/* Cleaning up */
     return TRUE;
 
-  PL_LOCK(L_GC);
-  if ( gc_status.blocked )		/* Tricky things; avoid problems. */
-  { PL_UNLOCK(L_GC);
-    succeed;
-  }
-
-#ifdef O_PLMT
-  if ( GD->gc.active )			/* GC in progress: delay */
-  { DEBUG(MSG_AGC, Sdprintf("GC active; delaying AGC\n"));
-    GD->gc.agc_waiting = TRUE;
-    PL_UNLOCK(L_GC);
-    succeed;
-  }
-#endif
-
-  gc_status.blocked++;			/* avoid recursion */
+  if ( !COMPARE_AND_SWAP(&GD->atoms.gc_active, FALSE, TRUE) )
+    return TRUE;
 
   if ( verbose )
-  {
-#ifdef O_DEBUG_ATOMGC
-/*
-    Sdprintf("Starting ATOM-GC.  Stack:\n");
-    PL_backtrace(5, 0);
-*/
-#endif
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "agc", 1,
-		   PL_CHARS, "start");
+  { if ( !printMessage(ATOM_informational,
+		       PL_FUNCTOR_CHARS, "agc", 1,
+		         PL_CHARS, "start") )
+    { GD->atoms.gc_active = FALSE;
+      return FALSE;
+    }
   }
 
-  PL_LOCK(L_THREAD);
   PL_LOCK(L_AGC);
   LOCK();
-  GD->atoms.gc_active = TRUE;
   blockSignals(&set);
   t = CpuTime(CPU_USER);
   unmarkAtoms();
@@ -1099,7 +1085,6 @@ pl_garbage_collect_atoms(void)
 #endif
   oldcollected = GD->atoms.collected;
   reclaimed = collectAtoms();
-  GD->atoms.gc_active = FALSE;
   GD->atoms.collected += reclaimed;
   ATOMIC_SUB(&GD->statistics.atoms, reclaimed);
   t = CpuTime(CPU_USER) - t;
@@ -1108,19 +1093,18 @@ pl_garbage_collect_atoms(void)
   unblockSignals(&set);
   UNLOCK();
   PL_UNLOCK(L_AGC);
-  PL_UNLOCK(L_THREAD);
-  gc_status.blocked--;
-  PL_UNLOCK(L_GC);
 
   if ( verbose )
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "agc", 1,
-		   PL_FUNCTOR_CHARS, "done", 3,
-		     PL_INT64, GD->atoms.collected - oldcollected,
-		     PL_INT, GD->statistics.atoms,
-		     PL_DOUBLE, (double)t);
+    return printMessage(ATOM_informational,
+		        PL_FUNCTOR_CHARS, "agc", 1,
+			  PL_FUNCTOR_CHARS, "done", 3,
+			    PL_INT64, GD->atoms.collected - oldcollected,
+			    PL_INT, GD->statistics.atoms,
+			    PL_DOUBLE, (double)t);
 
-  succeed;
+  GD->atoms.gc_active = FALSE;
+
+  return TRUE;
 }
 
 
@@ -1270,10 +1254,40 @@ PL_unregister_atom(atom_t a)
 		 /*******************************
 		 *	      CHECK		*
 		 *******************************/
-#if O_DEBUG
+
+#ifdef O_DEBUG
+
+static int
+findAtomSelf(Atom a)
+{ GET_LD
+  Atom *table;
+  int buckets;
+  Atom head, ap;
+  unsigned int v;
+
+redo:
+  acquire_atom_table(table, buckets);
+  v = a->hash_value & (buckets-1);
+  head = table[v];
+  acquire_atom_bucket(table+v);
+
+  for(ap=head; ap; ap = ap->next )
+  { if ( ap == a )
+    { release_atom_table();
+      release_atom_bucket();
+      return TRUE;
+    }
+  }
+
+  if ( !( table == atomTable->table && head == table[v] ) )
+    goto redo;
+
+  return FALSE;
+}
+
 
 int
-checkAtoms(void)
+checkAtoms_src(const char *file, int line)
 { size_t index;
   int i, last=FALSE;
   int errors = 0;
@@ -1293,16 +1307,23 @@ checkAtoms(void)
       if ( ATOM_IS_VALID(a->references) )
       { if ( !a->type || !a->name || (int)ATOM_REF_COUNT(a->references) < 0 )
 	{ size_t bs = (size_t)1<<i;
-	  Sdprintf("Invalid atom %p at index %zd in block at %p (size %d)\n",
-		   a, index, b+bs, bs);
+	  Sdprintf("%s%d: invalid atom %p at index %zd in "
+		   "block at %p (size %d)\n",
+		   file, line, a, index, b+bs, bs);
 	  errors++;
 	  trap_gdb();
+	}
+
+	if ( true(a->type, PL_BLOB_UNIQUE) )
+	{ if ( !findAtomSelf(a) )
+	  { Sdprintf("%s%d: cannot find self: %p\n", file, line, a);
+	  }
 	}
       }
     }
   }
 
-  return errors == 0;
+  return errors;
 }
 
 #endif /*O_DEBUG*/
@@ -1312,7 +1333,7 @@ checkAtoms(void)
 		 *	    REHASH TABLE	*
 		 *******************************/
 
-static void
+static int
 rehashAtoms(void)
 { AtomTable newtab;
   uintptr_t mask;
@@ -1320,21 +1341,28 @@ rehashAtoms(void)
   int i, last=FALSE;
 
   if ( GD->cleaning != CLN_NORMAL )
-    return;				/* no point anymore and foreign ->type */
+    return TRUE;			/* no point anymore and foreign ->type */
 					/* pointers may have gone */
 
   if ( atomTable->buckets * 2 >= GD->statistics.atoms )
-    return;
+    return TRUE;
 
-  newtab = allocHeapOrHalt(sizeof(*newtab));
+  if ( !(newtab = allocHeap(sizeof(*newtab))) )
+    return FALSE;
   newtab->buckets = atomTable->buckets * 2;
-  newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(Atom));
+  if ( !(newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(Atom))) )
+  { freeHeap(newtab, sizeof(*newtab));
+    return FALSE;
+  }
   memset(newtab->table, 0, newtab->buckets * sizeof(Atom));
   newtab->prev = atomTable;
   mask = newtab->buckets-1;
 
   DEBUG(MSG_HASH_STAT,
-	Sdprintf("rehashing atoms (%d --> %d)\n", atomTable->buckets, newtab->buckets));
+	Sdprintf("rehashing atoms (%d --> %d)\n",
+		 atomTable->buckets, newtab->buckets));
+
+  GD->atoms.rehashing = TRUE;
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -1358,6 +1386,9 @@ rehashAtoms(void)
   }
 
   atomTable = newtab;
+  GD->atoms.rehashing = FALSE;
+
+  return TRUE;
 }
 
 

@@ -121,13 +121,21 @@ trigger_nonvar(X, Goal) :-
     ;   '$suspend'(X, when, trigger_nonvar(X, Goal))
     ).
 
+%!  trigger_ground(@Term, :Goal)
+%
+%   Trigger Goal when Term becomes   ground.  The current implementation
+%   uses nonground/2, waiting for an   atribtrary  variable and re-check
+%   Term  when  this  variable   is    bound.   Previous   version  used
+%   term_variables and suspended  on  a   term  constructed  from  these
+%   variables. It is clear  that  either   approach  performs  better on
+%   certain types of terms. The term_variables/2  based approach wins on
+%   large terms that are almost  ground.   Possibly  we need a nonground
+%   that also returns the number of tests   performed  and switch to the
+%   term_variables/2 based approach if this becomes large.
+
 trigger_ground(X, Goal) :-
-    term_variables(X, Vs),
-    (   Vs = [H]
-    ->  '$suspend'(H, when, trigger_ground(H, Goal))
-    ;   Vs = [H|_]
-    ->  T =.. [f|Vs],
-        '$suspend'(H, when, trigger_ground(T, Goal))
+    (   nonground(X, V)
+    ->  '$suspend'(V, when, trigger_ground(X, Goal))
     ;   call(Goal)
     ).
 

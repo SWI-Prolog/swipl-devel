@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@metalevel.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2016 Markus Triska
+    Copyright (C): 2007-2017 Markus Triska
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -165,8 +165,9 @@ scheme](<#clp>), extending logic programming with reasoning over
 specialised domains.
 
 CLP(FD) lets us reason about **integers** in a way that honors the
-relational nature of Prolog. An introduction is available from
-[metalevel.at/prolog/clpfd](https://www.metalevel.at/prolog/clpfd).
+relational nature of Prolog. Read [**The Power of
+Prolog**](https://www.metalevel.at/prolog) to understand how this
+library is meant to be used in practice.
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -458,6 +459,14 @@ programs. An additional benefit of CLP(FD) constraints is that they
 eliminate the complexity of introducing `(is)/2` and `(=:=)/2` to
 beginners, since _both_ predicates are subsumed by #=/2 when reasoning
 over integers.
+
+In the case above, the clauses are mutually exclusive _if_ the first
+argument is sufficiently instantiated. To make the predicate
+deterministic in such cases while retaining its generality, you can
+use zcompare/3 to _reify_ a comparison, making the different cases
+distinguishable by pattern matching. For example, in this concrete
+case and others like it, you can use `zcompare(Comp, 0, N)` to obtain as
+`Comp` the symbolic outcome (`<`, `=`, `>`) of 0 compared to N.
 
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
@@ -1629,11 +1638,16 @@ indomain(Var) :- label([Var]).
 order_dom_next(up, Dom, Next)   :- domain_infimum(Dom, n(Next)).
 order_dom_next(down, Dom, Next) :- domain_supremum(Dom, n(Next)).
 order_dom_next(random_value(_), Dom, Next) :-
-        domain_to_list(Dom, Ls),
-        length(Ls, L),
-        I is random(L),
-        nth0(I, Ls, Next).
+        phrase(domain_to_intervals(Dom), Is),
+        length(Is, L),
+        R is random(L),
+        nth0(R, Is, From-To),
+        random_between(From, To, Next).
 
+domain_to_intervals(from_to(n(From),n(To))) --> [From-To].
+domain_to_intervals(split(_, Left, Right)) -->
+        domain_to_intervals(Left),
+        domain_to_intervals(Right).
 
 %% label(+Vars)
 %
@@ -1729,12 +1743,16 @@ label(Vs) :- labeling([], Vs).
 labeling(Options, Vars) :-
         must_be(list, Options),
         fd_must_be_list(Vars),
-        maplist(finite_domain, Vars),
+        maplist(must_be_finite_fdvar, Vars),
         label(Options, Options, default(leftmost), default(up), default(step), [], upto_ground, Vars).
 
-finite_domain(Var) :-
+finite_domain(Dom) :-
+        domain_infimum(Dom, n(_)),
+        domain_supremum(Dom, n(_)).
+
+must_be_finite_fdvar(Var) :-
         (   fd_get(Var, Dom, _) ->
-            (   domain_infimum(Dom, n(_)), domain_supremum(Dom, n(_)) -> true
+            (   finite_domain(Dom) -> true
             ;   instantiation_error(Var)
             )
         ;   integer(Var) -> true
@@ -1961,7 +1979,7 @@ delete_eq([X|Xs], Y, List) :-
 
 contracting(Vs) :-
         must_be(list, Vs),
-        maplist(finite_domain, Vs),
+        maplist(must_be_finite_fdvar, Vs),
         contracting(Vs, false, Vs).
 
 contracting([], Repeat, Vars) :-
@@ -2892,13 +2910,13 @@ expansion_simpler((A0,B0), (A,B)) :-
 expansion_simpler(Var is Expr0, Goal) :-
         ground(Expr0), !,
         phrase(expr_conds(Expr0, Expr), Gs),
-        (   maplist(call, Gs) -> Var is Expr, Goal = true
+        (   maplist(call, Gs) -> Value is Expr, Goal = (Var = Value)
         ;   Goal = false
         ).
 expansion_simpler(Var =:= Expr0, Goal) :-
         ground(Expr0), !,
         phrase(expr_conds(Expr0, Expr), Gs),
-        (   maplist(call, Gs) -> Goal = (Var =:= Expr)
+        (   maplist(call, Gs) -> Value is Expr, Goal = (Var =:= Value)
         ;   Goal = false
         ).
 expansion_simpler(Var is Expr, Var = Expr) :- var(Expr), !.
@@ -3034,6 +3052,16 @@ integer_log_b(N, B, Log0, Log) :-
             Log1 is Log0 + 1,
             integer_log_b(N, B, Log1, Log)
         ).
+
+floor_integer_log_b(N, B, Log0, Log) :-
+        T is B^Log0,
+        (   T > N -> Log is Log0 - 1
+        ;   T =:= N -> Log = Log0
+        ;   T < N,
+            Log1 is Log0 + 1,
+            floor_integer_log_b(N, B, Log1, Log)
+        ).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Largest R such that R^K =< N.
@@ -4947,6 +4975,13 @@ run_propagator(pexp(X,Y,Z), MState) :-
                     domains_intersection(ZD, from_to(NZL,NZU), NZD),
                     fd_put(Z, NZD, ZPs)
                 ;   true
+                ),
+                (   X > 0,
+                    fd_get(Z, _, _, n(ZMax), _),
+                    ZMax > 0 ->
+                    floor_integer_log_b(ZMax, X, 1, YCeil),
+                    Y in inf..YCeil
+                ;   true
                 )
             )
         ;   nonvar(Z) ->
@@ -5466,8 +5501,10 @@ domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
 
 difference_arcs([], []) --> [].
 difference_arcs([V|Vs], FL0) -->
-        (   { fd_get(V, Dom, _), domain_to_list(Dom, Ns) } ->
-            { FL0 = [V|FL] },
+        (   { fd_get(V, Dom, _),
+              finite_domain(Dom) } ->
+            { FL0 = [V|FL],
+              domain_to_list(Dom, Ns) },
             enumerate(Ns, V),
             difference_arcs(Vs, FL)
         ;   difference_arcs(Vs, FL0)
@@ -6522,7 +6559,7 @@ task_bs(Task, InfStart-Bs) :-
         Task = task(Start,D,End,_,_Id),
         ?(D) #> 0,
         ?(End) #= ?(Start) + ?(D),
-        maplist(finite_domain, [End,Start,D]),
+        maplist(must_be_finite_fdvar, [End,Start,D]),
         fd_inf(Start, InfStart),
         fd_sup(End, SupEnd),
         L is SupEnd - InfStart,
@@ -6832,16 +6869,16 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  Sample query:
 %
 %  ==
-%  ?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
-%  [9,8,7,6,5,4,3,2,1]
-%  [2,4,6,1,7,3,9,8,5]
-%  [3,5,1,9,2,8,7,4,6]
-%  [1,2,8,5,3,7,6,9,4]
-%  [6,3,4,8,9,2,1,5,7]
-%  [7,9,5,4,6,1,8,3,2]
-%  [5,1,9,2,8,6,4,7,3]
-%  [4,7,2,3,1,9,5,6,8]
-%  [8,6,3,7,4,5,2,1,9]
+%  ?- problem(1, Rows), sudoku(Rows), maplist(portray_clause, Rows).
+%  [9, 8, 7, 6, 5, 4, 3, 2, 1].
+%  [2, 4, 6, 1, 7, 3, 9, 8, 5].
+%  [3, 5, 1, 9, 2, 8, 7, 4, 6].
+%  [1, 2, 8, 5, 3, 7, 6, 9, 4].
+%  [6, 3, 4, 8, 9, 2, 1, 5, 7].
+%  [7, 9, 5, 4, 6, 1, 8, 3, 2].
+%  [5, 1, 9, 2, 8, 6, 4, 7, 3].
+%  [4, 7, 2, 3, 1, 9, 5, 6, 8].
+%  [8, 6, 3, 7, 4, 5, 2, 1, 9].
 %  Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
 %  ==
 
@@ -6850,7 +6887,9 @@ transpose(Ls, Ts) :-
         lists_transpose(Ls, Ts).
 
 lists_transpose([], []).
-lists_transpose([L|Ls], Ts) :- foldl(transpose_, L, Ts, [L|Ls], _).
+lists_transpose([L|Ls], Ts) :-
+        maplist(same_length(L), Ls),
+        foldl(transpose_, L, Ts, [L|Ls], _).
 
 transpose_(_, Fs, Lists0, Lists) :-
         maplist(list_first_rest, Lists0, Fs, Lists).
@@ -6863,9 +6902,15 @@ list_first_rest([L|Ls], L, Ls).
 %
 % Analogous to compare/3, with finite domain variables A and B.
 %
-% This predicate allows you to make several predicates over integers
-% deterministic while preserving their generality and completeness.
-% For example:
+% Think of zcompare/3 as _reifying_ an arithmetic comparison of two
+% integers. This means that we can explicitly reason about the
+% different cases _within_ our programs. As in compare/3, the atoms
+% =|<|=, =|>|= and =|=|= denote the different cases of the
+% trichotomy. In contrast to compare/3 though, zcompare/3 works
+% correctly for _all modes_, also if only a subset of the arguments is
+% instantiated. This allows you to make several predicates over
+% integers deterministic while preserving their generality and
+% completeness.  For example:
 %
 % ==
 % n_factorial(N, F) :-
@@ -6874,21 +6919,24 @@ list_first_rest([L|Ls], L, Ls).
 %
 % n_factorial_(=, _, 1).
 % n_factorial_(>, N, F) :-
-%         F #= F0*N, N1 #= N - 1,
+%         F #= F0*N,
+%         N1 #= N - 1,
 %         n_factorial(N1, F0).
 % ==
 %
-% This version is deterministic if the first argument is instantiated,
-% because first argument indexing can distinguish the two different
-% clauses:
+% This version of n_factorial/2 is deterministic if the first argument
+% is instantiated, because argument indexing can distinguish the
+% different clauses that reflect the possible and admissible outcomes
+% of a comparison of `N` against 0. Example:
 %
 % ==
 % ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
 % ==
 %
-% The predicate can still be used in all directions, including the
-% most general query:
+% Since there is no clause for =|<|=, the predicate automatically
+% _fails_ if `N` is less than 0. The predicate can still be used in
+% all directions, including the most general query:
 %
 % ==
 % ?- n_factorial(N, F).
@@ -6897,10 +6945,22 @@ list_first_rest([L|Ls], L, Ls).
 % N = F, F = 1 ;
 % N = F, F = 2 .
 % ==
+%
+% In this case, all clauses are tried on backtracking, and zcompare/3
+% ensures that the respective ordering between N and 0 holds in each
+% case.
+%
+% The truth value of a comparison can also be reified with (#<==>)/2
+% in combination with one of the [_arithmetic
+% constraints_](<#clpfd-arith-constraints>). See
+% [reification](<#clpfd-reification>). However, zcompare/3 lets you
+% more conveniently distinguish the cases.
 
 zcompare(Order, A, B) :-
         (   nonvar(Order) ->
             zcompare_(Order, A, B)
+        ;   integer(A), integer(B) ->
+            compare(Order, A, B)
         ;   freeze(Order, zcompare_(Order, A, B)),
             fd_variable(A),
             fd_variable(B),

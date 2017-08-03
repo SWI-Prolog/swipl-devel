@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -76,8 +76,7 @@ static void	  rehashFunctors(void);
 
 static void
 allocateFunctorBlock(int idx)
-{
-  PL_LOCK(L_MISC);
+{ PL_LOCK(L_MISC);
 
   if ( !GD->functors.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
@@ -96,8 +95,7 @@ allocateFunctorBlock(int idx)
 
 static void
 registerFunctor(FunctorDef fd)
-{
-  size_t index;
+{ size_t index;
   int idx, amask;
 
   index = ATOMIC_INC(&GD->functors.highest) - 1;
@@ -125,7 +123,6 @@ lookupFunctorDef(atom_t atom, size_t arity)
   FunctorDef f, head;
 
 redo:
-
   acquire_functor_table(table, buckets);
 
   v = (int)pointerHashValue(atom, buckets);
@@ -159,6 +156,7 @@ redo:
   f->flags   = 0;
   f->next    = table[v];
   if ( !( COMPARE_AND_SWAP(&table[v], head, f) &&
+	  !GD->functors.rehashing &&
           table == functorDefTable->table) )
   { PL_free(f);
     goto redo;
@@ -178,8 +176,8 @@ redo:
 
 static void
 maybe_free_functor_tables(void)
-{
-  FunctorTable t = functorDefTable;
+{ FunctorTable t = functorDefTable;
+
   while ( t )
   { FunctorTable t2 = t->prev;
     if ( t2 && !pl_functor_table_in_use(t2) )
@@ -208,30 +206,35 @@ rehashFunctors(void)
   newtab->prev = functorDefTable;
 
   DEBUG(MSG_HASH_STAT,
-	Sdprintf("Rehashing functor-table (%d --> %d)\n", functorDefTable->buckets, newtab->buckets));
+	Sdprintf("Rehashing functor-table (%d --> %d)\n",
+		 functorDefTable->buckets, newtab->buckets));
 
+  GD->functors.rehashing = TRUE;
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
-    FunctorDef *b = GD->functors.array.blocks[i];
+    FunctorDef *b;
 
-    if ( upto >= GD->functors.highest )
-    { upto = GD->functors.highest;
-      last = TRUE;
-    }
+    if ( (b=GD->functors.array.blocks[i]) )
+    { if ( upto >= GD->functors.highest )
+      { upto = GD->functors.highest;
+	last = TRUE;
+      }
 
-    for(; index<upto; index++)
-    { FunctorDef f = b[index];
+      for(; index<upto; index++)
+      { FunctorDef f = b[index];
 
-      if ( FUNCTOR_IS_VALID(f->flags) )
-      { size_t v = pointerHashValue(f->name, newtab->buckets);
+	if ( f && FUNCTOR_IS_VALID(f->flags) )
+	{ size_t v = pointerHashValue(f->name, newtab->buckets);
 
-	f->next = newtab->table[v];
-	newtab->table[v] = f;
+	  f->next = newtab->table[v];
+	  newtab->table[v] = f;
+	}
       }
     }
   }
 
   functorDefTable = newtab;
+  GD->functors.rehashing = FALSE;
   maybe_free_functor_tables();
 }
 

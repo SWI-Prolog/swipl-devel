@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1038,6 +1038,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
 { GET_LD
   Module module = lookupModule(name);
   term_t tmp = 0, rdef = 0, rtail = 0;
+  int rc = TRUE;
 
   LOCK();
   if ( class )
@@ -1095,14 +1096,14 @@ declareModule(atom_t name, atom_t class, atom_t super,
   { if ( !PL_unify_nil(rtail) )
       return FALSE;
 
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR_CHARS, "declare_module", 2,
-		   PL_ATOM, name,
-		   PL_FUNCTOR_CHARS, "abolish", 1,
-		     PL_TERM, rdef);
+    rc = printMessage(ATOM_warning,
+		      PL_FUNCTOR_CHARS, "declare_module", 2,
+		        PL_ATOM, name,
+		        PL_FUNCTOR_CHARS, "abolish", 1,
+		          PL_TERM, rdef);
   }
 
-  succeed;
+  return rc;
 }
 
 
@@ -1430,10 +1431,11 @@ retry:
 	  if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
 	    return FALSE;
 
-	  printMessage(ATOM_warning,
-		       PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
-		         PL_ATOM, destination->name,
-		         PL_TERM, pi);
+	  if ( !printMessage(ATOM_warning,
+			     PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
+			       PL_ATOM, destination->name,
+			       PL_TERM, pi) )
+	    return FALSE;
 	}
 
 	return TRUE;
@@ -1459,10 +1461,11 @@ retry:
 
     if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
       return FALSE;
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR_CHARS, "import_private", 2,
-		   PL_ATOM, destination->name,
-		   PL_TERM, pi);
+    if ( !printMessage(ATOM_warning,
+		       PL_FUNCTOR_CHARS, "import_private", 2,
+		         PL_ATOM, destination->name,
+		         PL_TERM, pi) )
+      return FALSE;
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));

@@ -513,10 +513,9 @@ pl_nat_sort(term_t in, term_t out,
 	    ARG_LD)
 { list l = 0;
   Word top = NULL;
-  int rc;
 
-  if ( (rc=ensureLocalSpace(sizeof(word), ALLOW_SHIFT)) != TRUE )
-    return raiseStackOverflow(rc);
+  if ( !ensureLocalSpace(sizeof(word)) )
+    return FALSE;
 
   switch( prolog_list_to_sort_list(in, remove_dups,
 				   argc, argv, pair,

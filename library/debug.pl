@@ -401,12 +401,23 @@ prolog:message(debug_no_topic(Topic)) -->
 
 show_thread_context -->
     { debug_context(thread),
-      thread_self(Me) ,
-      Me \== main
+      thread_self(Me),
+      report_as(Me, Name)
     },
-    [ '[Thread ~w] '-[Me] ].
+    [ '[Thread ~w] '-[Name] ].
 show_thread_context -->
     [].
+
+report_as(main, _) :-
+    !,
+    fail.
+report_as(Alias, Alias) :-
+    atom(Alias),
+    !.
+report_as(Handle, Id) :-
+    catch(thread_property(Handle, id(Id)), _, fail),
+    !.
+report_as(Thread, Thread).
 
 show_time_context -->
     { debug_context(time(Format)),

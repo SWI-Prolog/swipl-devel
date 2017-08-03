@@ -1971,10 +1971,14 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.out	    = s;
   options.module    = MODULE_user;
 
-  PutOpenToken(EOF, s);			/* reset this */
-  rc = writeTopTerm(term, precedence, &options);
-  if ( rc && (flags&PL_WRT_NEWLINE) )
-    rc = Putc('\n', s);
+  if ( (s=PL_acquire_stream(s)) )
+  { PutOpenToken(EOF, s);			/* reset this */
+    rc = writeTopTerm(term, precedence, &options);
+    if ( rc && (flags&PL_WRT_NEWLINE) )
+      rc = Putc('\n', s);
+    rc = PL_release_stream(s) && rc;
+  } else
+    rc = FALSE;
 
   return rc;
 }

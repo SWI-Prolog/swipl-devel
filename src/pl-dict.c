@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2016, VU University Amsterdam
+    Copyright (c)  2013-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
 
 #include "pl-incl.h"
 #include "pl-dict.h"
+#include "pl-rsort.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Dicts are associative arrays,  where  keys   are  either  atoms  or small
@@ -80,87 +81,6 @@ dict_functor(int pairs)
   { return lookupFunctorDef(ATOM_dict, pairs*2+1);
   }
 }
-
-
-		 /*******************************
-		 *	      SORTING		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Copied from https://github.com/noporpoise/sort_r
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(__MINGW32__) || defined(__OpenBSD__) || defined(AMIGA) || \
-defined(__gnu_hurd__) || defined(__CYGWIN__) \
-|| (__GLIBC__ == 2 && __GLIBC_MINOR__ < 8)
-  #define QSORT_WITH_NESTED_FUNCTIONS 1
-#endif
-
-#ifdef QSORT_WITH_NESTED_FUNCTIONS
-
-void sort_r(void *base, size_t nel, size_t width,
-            int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
-{
-  int nested_cmp(const void *a, const void *b)
-  {
-    return compar(a, b, arg);
-  }
-
-  qsort(base, nel, width, nested_cmp);
-}
-
-#else
-
-struct sort_r_data
-{
-  void *arg;
-  int (*compar)(const void *a1, const void *a2, void *aarg);
-};
-
-int sort_r_arg_swap(void *s, const void *aa, const void *bb)
-{
-  struct sort_r_data *ss = (struct sort_r_data*)s;
-  return (ss->compar)(aa, bb, ss->arg);
-}
-
-#if (defined _GNU_SOURCE || defined __GNU__ || defined __linux__)
-
-typedef int(* __compar_d_fn_t)(const void *, const void *, void *);
-extern void qsort_r (void *__base, size_t __nmemb, size_t __size,
-                     __compar_d_fn_t __compar, void *__arg)
-  __nonnull ((1, 4));
-
-#endif
-
-void sort_r(void *base, size_t nel, size_t width,
-            int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
-{
-  #if (defined _GNU_SOURCE || defined __GNU__ || defined __linux__)
-
-    qsort_r(base, nel, width, compar, arg);
-
-  #elif (defined __APPLE__ || defined __MACH__ || defined __DARWIN__ || \
-         defined __FreeBSD__ || defined __BSD__ || \
-         defined OpenBSD3_1 || defined OpenBSD3_9)
-
-    struct sort_r_data tmp;
-    tmp.arg = arg;
-    tmp.compar = compar;
-    qsort_r(base, nel, width, &tmp, &sort_r_arg_swap);
-
-  #elif (defined _WIN32 || defined _WIN64 || defined __WINDOWS__)
-
-    struct sort_r_data tmp = {arg, compar};
-    qsort_s(*base, nel, width, &sort_r_arg_swap, &tmp);
-
-  #else
-    #error Cannot detect operating system
-  #endif
-}
-
-#endif /* !QSORT_WITH_NESTED_FUNCTIONS */
-
-
 
 		 /*******************************
 		 *      LOW-LEVEL FUNCTIONS	*
@@ -682,8 +602,10 @@ get_name_ex(term_t t, Word np ARG_LD)
 
 
 static int
-get_name_value(Word p, Word name, Word value, int flags ARG_LD)
-{ deRef(p);
+get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
+{ const char *type;
+
+  deRef(p);
 
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
@@ -700,6 +622,12 @@ get_name_value(Word p, Word name, Word value, int flags ARG_LD)
 	*value = linkVal(vp);
 
 	return TRUE;
+      } else
+      { gTop = mark;
+	PL_type_error("dict-key", pushWordAsTermRef(np));
+	popTermRef();
+
+	return FALSE;
       }
     } else if ( arityFunctor(f->definition) == 1 &&
 		(flags&DICT_GET_TERM) ) /* Name(Value) */
@@ -711,6 +639,15 @@ get_name_value(Word p, Word name, Word value, int flags ARG_LD)
       return TRUE;
     }
   }
+
+  if ( flags == DICT_GET_PAIRS )
+    type = "pair";
+  else
+    type = "key-value";
+
+  gTop = mark;
+  PL_type_error(type, pushWordAsTermRef(p));
+  popTermRef();
 
   return FALSE;				/* type error */
 }
@@ -786,17 +723,8 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     while( isList(*tail) )
     { Word head = HeadList(tail);
 
-      if ( !get_name_value(head, ap+1, ap, flags PASS_LD) )
-      { const char *type;
-
-	if ( flags == DICT_GET_PAIRS )
-	  type = "pair";
-	else
-	  type = "key-value";
-
-	gTop = m;
-	PL_type_error(type, pushWordAsTermRef(head));
-	popTermRef();
+      if ( !get_name_value(head, ap+1, ap, m, flags PASS_LD) )
+      {
 	return FALSE;
       }
       ap += 2;

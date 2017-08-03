@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -37,6 +37,7 @@
 #define O_DEBUG 1			/* include checkData() */
 #endif
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 
 
 		/********************************
@@ -79,18 +80,21 @@ resetProlog(int clear_stacks)
 }
 
 
-static void
+static int
 restore_after_exception(term_t except)
 { GET_LD
   atom_t a;
+  int rc = TRUE;
 
   tracemode(FALSE, NULL);
   debugmode(DBG_OFF, NULL);
   setPrologFlagMask(PLFLAG_LASTCALL);
   if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-  { callEventHook(PLEV_ABORT);
-    printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+  { rc = ( callEventHook(PLEV_ABORT) &&
+	   printMessage(ATOM_informational, PL_ATOM, ATOM_aborted) );
   }
+
+  return rc;
 }
 
 
@@ -156,7 +160,7 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 static int
 pl_break1(atom_t goal)
 { GET_LD
-  int rc;
+  int rc = TRUE;
   int old_level = LD->break_level;
 
   IOSTREAM *inSave  = Scurin;
@@ -174,19 +178,19 @@ pl_break1(atom_t goal)
 
   LD->break_level++;
   if ( LD->break_level > 0 )
-  { printMessage(ATOM_informational,
-		 PL_FUNCTOR, FUNCTOR_break2,
-	           PL_ATOM, ATOM_begin,
-		   PL_INT,  LD->break_level);
+  { rc = printMessage(ATOM_informational,
+		      PL_FUNCTOR, FUNCTOR_break2,
+		        PL_ATOM, ATOM_begin,
+		        PL_INT,  LD->break_level);
   }
 
-  rc = query_loop(goal, TRUE);
+  rc = rc && (query_loop(goal, TRUE) == TRUE);
 
   if ( LD->break_level > 0 )
-  { printMessage(ATOM_informational,
-		 PL_FUNCTOR, FUNCTOR_break2,
-	           PL_ATOM, ATOM_end,
-		   PL_INT,  LD->break_level);
+  { rc = rc && printMessage(ATOM_informational,
+			    PL_FUNCTOR, FUNCTOR_break2,
+			      PL_ATOM, ATOM_end,
+			      PL_INT,  LD->break_level);
   }
   LD->break_level = old_level;
 
@@ -198,7 +202,7 @@ pl_break1(atom_t goal)
   Scurout = outSave;
   Scurin  = inSave;
 
-  return rc == TRUE;
+  return rc;
 }
 
 
@@ -404,6 +408,10 @@ abortProlog(void)
     rc = PL_raise_exception(ex);
     PL_close_foreign_frame(fid);
   }
+
+#ifdef O_MAINTENANCE
+  save_backtrace("abort");
+#endif
 
   return rc;
 }

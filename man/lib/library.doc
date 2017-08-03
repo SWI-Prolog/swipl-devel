@@ -41,6 +41,7 @@ documented at all.
 \input{gensym}
 \input{iostream}
 \input{lists}
+\input{main}
 \input{nbset}
 \input{wwwbrowser}
 \input{option}

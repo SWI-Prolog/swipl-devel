@@ -240,13 +240,25 @@ git_process_output(Argv, OnOutput, Options) :-
             ( call(OnOutput, Out),
               read_stream_to_codes(Error, ErrorCodes, [])
             ),
-            process_wait(PID, Status)),
+            git_wait(PID, Out, Status)),
         close_streams([Out,Error])),
     print_error(ErrorCodes, Options),
     (   Status = exit(0)
     ->  true
     ;   throw(error(process_error(git, Status)))
     ).
+
+
+git_wait(PID, Out, Status) :-
+    at_end_of_stream(Out),
+    !,
+    process_wait(PID, Status).
+git_wait(PID, Out, Status) :-
+    setup_call_cleanup(
+        open_null_stream(Null),
+        copy_stream_data(Out, Null),
+        close(Null)),
+    process_wait(PID, Status).
 
 
 %!  git_open_file(+GitRepoDir, +File, +Branch, -Stream) is det.
@@ -325,7 +337,7 @@ git_describe(Version, Options) :-
                        ]),
         call_cleanup(
             read_stream_to_codes(Out, V0, []),
-            process_wait(PID, Status)),
+            git_wait(PID, Out, Status)),
         close(Out)),
     Status = exit(0),
     !,
@@ -350,7 +362,7 @@ git_describe(Version, Options) :-
                        ]),
         call_cleanup(
             read_stream_to_codes(Out, V0, []),
-            process_wait(PID, Status)),
+            git_wait(PID, Out, Status)),
         close(Out)),
     Status = exit(0),
     atom_codes(V1, V0),

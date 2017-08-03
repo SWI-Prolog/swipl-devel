@@ -97,7 +97,8 @@ prepare_temporary_module(Module) :-
     (   repeat,
         I is random(1<<63),
         atom_concat('tmp-', I, Module),
-        set_module(Module:class(temporary))
+        catch(set_module(Module:class(temporary)),
+              error(permission_error(_,_,_),_), fail)
     ->  true
     ).
 prepare_temporary_module(Module) :-

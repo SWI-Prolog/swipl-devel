@@ -19,9 +19,9 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
 	pl-init.o pl-gmp.o pl-segstack.o pl-hash.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
-	pl-dbref.o pl-termhash.o pl-variant.o \
+	pl-dbref.o pl-termhash.o pl-variant.o pl-assert.o \
 	pl-copyterm.o pl-debug.o pl-cont.o pl-ressymbol.o pl-dict.o \
-	pl-trie.o pl-indirect.o pl-tabling.o
+	pl-trie.o pl-indirect.o pl-tabling.o pl-rsort.o pl-mutex.o
 
 # Prolog library
 
@@ -55,7 +55,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl \
 	sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl \
 	solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl \
-	lazy_lists.pl
+	lazy_lists.pl prolog_jiti.pl
 
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl clpb.pl
 DCG=	basics.pl

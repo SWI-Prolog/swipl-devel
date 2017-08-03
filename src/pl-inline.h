@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -200,7 +200,7 @@ pushVolatileAtom__LD(atom_t a ARG_LD)
 		 *	     BITVECTOR		*
 		 *******************************/
 
-typedef uintptr_t bitv_chunk;
+typedef unsigned int bitv_chunk;
 typedef struct bit_vector
 { size_t size;
   bitv_chunk chunk[1];				/* bits */
@@ -277,6 +277,18 @@ true_bit(bit_vector *v, size_t which)
   size_t b = which%BITSPERE;
 
   return (v->chunk[e]&((bitv_chunk)1<<b)) != 0;
+}
+
+static inline size_t
+popcount_bitvector(const bit_vector *v)
+{ const bitv_chunk *p = v->chunk;
+  int cnt = (v->size+BITSPERE-1)/BITSPERE;
+  size_t bits = 0;
+
+  while( cnt-- > 0 )
+    bits += __builtin_popcount(*p++);
+
+  return bits;
 }
 
 
@@ -466,5 +478,93 @@ next_global_generation(void)
   return (gen_t)u<<32|l;
 }
 #endif /*ATOMIC_GENERATION_HACK*/
+
+static inline int WUNUSED
+callEventHook(pl_event_type ev, ...)
+{
+#ifdef O_DEBUGGER
+  if ( PROCEDURE_event_hook1->definition->impl.any )
+  { va_list args;
+    int rc;
+
+    va_start(args, ev);
+    rc = PL_call_event_hook_va(ev, args);
+    va_end(args);
+
+    return rc;
+  }
+#endif
+
+  return TRUE;
+}
+
+static inline int
+ensureLocalSpace__LD(size_t bytes ARG_LD)
+{ int rc;
+
+  if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
+    return TRUE;
+
+  if ( (rc=growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD)) == TRUE )
+    return TRUE;
+
+  return raiseStackOverflow(rc);
+}
+
+
+		 /*******************************
+		 *	     ARITHMETIC		*
+		 *******************************/
+
+static inline Number
+allocArithStack(ARG1_LD)
+{ if ( unlikely(LD->arith.stack.top == LD->arith.stack.max) )
+    return growArithStack(PASS_LD1);
+
+  return LD->arith.stack.top++;
+}
+
+static inline void
+pushArithStack(Number n ARG_LD)
+{ Number np = allocArithStack(PASS_LD1);
+
+  *np = *n;				/* structure copy */
+}
+
+static inline void
+resetArithStack(ARG1_LD)
+{ LD->arith.stack.top = LD->arith.stack.base;
+}
+
+static inline Number
+argvArithStack(int n ARG_LD)
+{ DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
+
+  return LD->arith.stack.top - n;
+}
+
+static inline void
+popArgvArithStack(int n ARG_LD)
+{ DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
+
+  for(; n>0; n--)
+  { LD->arith.stack.top--;
+    clearNumber(LD->arith.stack.top);
+  }
+}
+
+		 /*******************************
+		 *	      THREADS		*
+		 *******************************/
+
+static inline PL_local_data_t *
+acquire_ldata__LD(PL_thread_info_t *info ARG_LD)
+{ PL_local_data_t *ld = info->thread_data;
+  LD->thread.info->access.ldata = ld;
+  if ( ld && ld->magic == LD_MAGIC )
+    return ld;
+  LD->thread.info->access.ldata = NULL;
+  return NULL;
+}
 
 #endif /*PL_INLINE_H_INCLUDED*/

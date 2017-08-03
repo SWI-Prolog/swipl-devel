@@ -106,3 +106,6 @@
 [submodule "packages/libedit"]
 	path = packages/libedit
 	url = ../packages-libedit.git
+[submodule "packages/pcre"]
+	path = packages/pcre
+	url = ../packages-pcre.git

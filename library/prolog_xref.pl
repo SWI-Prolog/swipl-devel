@@ -928,6 +928,8 @@ process_directive(public(Public), Src) :-
     process_predicates(assert_public, Public, Src).
 process_directive(export(Export), Src) :-
     process_predicates(assert_export, Export, Src).
+process_directive(import(Import), Src) :-
+    process_import(Import, Src).
 process_directive(module(Module, Export), Src) :-
     assert_module(Src, Module),
     assert_module_export(Src, Export).
@@ -2189,6 +2191,22 @@ assert_reexport(false, _, _) :- !.
 assert_reexport(true, Src, Term) :-
     assert(exported(Term, Src)).
 
+%!  process_import(:Import, +Src)
+%
+%   Process an import/1 directive
+
+process_import(M:PI, Src) :-
+    pi_to_head(PI, Head),
+    !,
+    (   atom(M),
+        current_module(M),
+        module_property(M, file(From))
+    ->  true
+    ;   From = '<unknown>'
+    ),
+    assert(imported(Head, Src, From)).
+process_import(_, _).
+
 %!  assert_xmodule_callable(PIs, Module, Src, From)
 %
 %   We can call all exports  and   public  predicates of an imported
@@ -2290,7 +2308,6 @@ process_predicate_comma(A, Closure, Src) :-
     call(Closure, A, Src).
 
 
-assert_dynamic(_M:_Name/_Arity, _Src) :- !.   % not local
 assert_dynamic(PI, Src) :-
     pi_to_head(PI, Term),
     (   thread_local(Term, Src, _)  % dynamic after thread_local has
@@ -2299,7 +2316,6 @@ assert_dynamic(PI, Src) :-
         assert(dynamic(Term, Src, Line))
     ).
 
-assert_thread_local(_M:_Name/_Arity, _Src) :- !. % not local
 assert_thread_local(PI, Src) :-
     pi_to_head(PI, Term),
     current_source_line(Line),

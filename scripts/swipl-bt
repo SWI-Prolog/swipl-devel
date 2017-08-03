@@ -11,6 +11,7 @@ btflags=0
 btdepth=10
 thread=pid
 stack=prolog
+out=
 
 usage()
 { echo "Dump stacks of a running SWI-Prolog process"
@@ -23,6 +24,7 @@ usage()
   echo "    --user        Only print user predicates"
   echo "    --info        Print thread info"
   echo "    -C	          Print the C stack (default Prolog)"
+  echo "    --out=file    Also write result to file"
 }
 
 done=false
@@ -34,6 +36,10 @@ while [ $done = false ]; do
       ;;
     --thread=*)
       thread=$(echo $1 | sed 's/--thread=//')
+      shift
+      ;;
+    --out=*)
+      out=$(eval echo $(echo $1 | sed 's/--out=//'))
       shift
       ;;
     --safe)
@@ -91,4 +97,4 @@ gdb </dev/null --nx --batch \
     -ex "set print thread-events off" \
     -ex "attach $pid" \
     -ex "$cmd" \
-    -ex detach -ex quit
+    -ex detach -ex quit | tee $out

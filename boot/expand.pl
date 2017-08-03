@@ -379,6 +379,9 @@ restore_variable_info([Var=State|States]) :-
 %     - fresh(Fresh)
 %     Variable is first introduced in this goal and thus guaranteed
 %     to be unbound.  This property is always present.
+%     - singleton(Bool)
+%     It `true` indicate that the variable appears once in the source.
+%     Note this doesn't mean it is a semantic singleton.
 %     - name(-Name)
 %     True when Name is the name of the variable.
 
@@ -391,6 +394,9 @@ prop_var(fresh(Fresh), Var) :-
     ->  Fresh = Fresh0
     ;   Fresh = true
     ).
+prop_var(singleton(Singleton), Var) :-
+    get_attr(Var, '$var_info', Info),
+    get_dict(singleton, Info, Singleton).
 prop_var(name(Name), Var) :-
     (   nb_current('$variable_names', Bindings),
         '$member'(Name0=Var0, Bindings),
@@ -469,6 +475,7 @@ expand_goal(A, P, A, P).
 
 '$expand_closure'(G0, P0, N, G, P) :-
     length(Ex, N),
+    mark_vars_non_fresh(Ex),
     extend_arg_pos(G0, P0, Ex, G1, P1),
     expand_goal(G1, P1, G2, P2),
     term_variables(G0, VL),
@@ -564,6 +571,8 @@ expand_goal(call(A), P0, call(EA), P, M, MList, Term) :-
 expand_goal(G0, P0, G, P, M, MList, Term) :-
     is_meta_call(G0, M, Head),
     !,
+    term_variables(G0, Vars),
+    mark_vars_non_fresh(Vars),
     expand_meta(Head, G0, P0, G, P, M, MList, Term).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
     term_variables(G0, Vars),
@@ -691,6 +700,7 @@ expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term) :-
     replace_functions(A0, true, _, M),
     !,
     length(Ex, N),
+    mark_vars_non_fresh(Ex),
     extend_arg_pos(A0, P0, Ex, A1, PA1),
     expand_goal(A1, PA1, A2, PA2, M, MList, Term),
     compile_meta_call(A2, A3, M, Term),

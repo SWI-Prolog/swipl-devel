@@ -337,6 +337,7 @@ suggest predicates from a keyword.
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{initialization}{1}{Initialization directive}
 \predicatesummary{initialization}{2}{Initialization directive}
+\predicatesummary{initialize}{0}{Run program initialization}
 \predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and top level}
@@ -427,6 +428,7 @@ suggest predicates from a keyword.
 \predicatesummary{nodebug}{0}{Disable debugging}
 \predicatesummary{nodebug}{1}{Disable debug-topic}
 \predicatesummary{noguitracer}{0}{Disable the graphical debugger}
+\predicatesummary{nonground}{2}{Term is not ground due to witness}
 \predicatesummary{nonvar}{1}{Type check for bound term}
 \predicatesummary{noprofile}{1}{Hide (meta-) predicate for the profiler}
 \predicatesummary{noprotocol}{0}{Disable logging of user interaction}
@@ -646,11 +648,13 @@ suggest predicates from a keyword.
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
 \predicatesummary{term_expansion}{4}{\hook{user} Convert term before compilation}
+\predicatesummary{term_singletons}{2}{Find singleton variables in a term}
 \predicatesummary{term_string}{2}{Read/write a term from/to a string}
 \predicatesummary{term_string}{3}{Read/write a term from/to a string}
 \predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
+\predicatesummary{thread_create}{2}{Create a new Prolog task}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
 \predicatesummary{thread_detach}{1}{Make thread cleanup after completion}
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
@@ -658,6 +662,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
 \predicatesummary{thread_get_message}{3}{Wait for message in a queue}
 \predicatesummary{thread_initialization}{1}{Run action at start of thread}
+\predicatesummary{thread_join}{1}{Wait for Prolog task-completion}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
 \predicatesummary{thread_local}{1}{Declare thread-specific clauses for a predicate}
 \predicatesummary{thread_message_hook}{3}{Thread local message_hook/3}
@@ -687,10 +692,11 @@ suggest predicates from a keyword.
 \predicatesummary{trie_destroy}{1}{Destroy a trie}
 \predicatesummary{trie_gen}{3}{Get all terms from a trie}
 \predicatesummary{trie_insert}{3}{Insert term into a trie}
-\predicatesummary{trie_insert_new}{3}{Insert term into a trie}
+\predicatesummary{trie_insert}{4}{Insert term into a trie}
 \predicatesummary{trie_lookup}{3}{Lookup a term in a trie}
 \predicatesummary{trie_new}{1}{Create a trie}
 \predicatesummary{trie_property}{2}{Examine a trie's properties}
+\predicatesummary{trie_update}{3}{Update associated value in trie}
 \predicatesummary{trie_term}{2}{Get term from a trie by handle}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
 \predicatesummary{true}{0}{Succeed}

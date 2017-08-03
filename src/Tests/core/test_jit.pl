@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -53,23 +53,39 @@ This module tests behaviour of the just-in-time indexes.
 :- dynamic
 	d/2.
 
+:- meta_predicate
+	has_hashes(:, ?),
+	not_hashed(:).
+
+has_hashes(P, Hashes) :-
+	maplist(index, Hashes, RIndexed),
+	predicate_property(P, indexed(Indexed)),
+	msort(Indexed, RIndexed).
+
+index(N, [N]-_) :- integer(N), !.
+index(L, L-_).
+
+not_hashed(P) :-
+	\+ predicate_property(P, indexed(_)).
+
+
 test(remove, [cleanup(retractall(d(_,_)))]) :-
 	forall(between(1,50,X), assertz(d(X,X))),
 	d(_,30),
-	assertion(predicate_property(d(_,_), indexed([2-_]))),
+	assertion(has_hashes(d(_,_), [2])),
 	forall(between(51,125,X), assertz(d(X,X))),
-	assertion(\+ predicate_property(d(_,_), indexed(_))),
+	assertion(not_hashed(p(_,_))),
 	d(30,_),
-	assertion(predicate_property(d(_,_), indexed([1-_]))).
+	assertion(has_hashes(d(_,_), [1])).
 test(remove, [cleanup(retractall(d(_,_)))]) :-
 	forall(between(1,40,X), assertz(d(X,a))),
 	forall(between(41,50,X), assertz(d(X,X))),
 	d(30,a),
-	assertion(predicate_property(d(_,_), indexed([1-_]))),
+	assertion(has_hashes(d(_,_), [1])),
 	retractall(d(_,a)),
-	assertion(\+ predicate_property(d(_,_), indexed(_))),
+	assertion(not_hashed(p(_,_))),
 	d(_,45),
-	assertion(predicate_property(d(_,_), indexed([2-_]))).
+	assertion(has_hashes(d(_,_), [2])).
 test(retract, [cleanup(retractall(d(_,_))), Xs == Xsok]) :-
 	forall(between(1,10,X), assertz(d(X,X))),
 	forall(between(11,100,X), assertz(d(a,X))),
@@ -137,7 +153,7 @@ test_index_1(Convert) :-
 	       (   call(Convert, I, D),
 		   assertion((d(D, I2), I2 == I))
 	       )),
-	assertion(predicate_property(d(_,_), indexed([1-_]))).
+	assertion(has_hashes(d(_,_), [1])).
 
 test_index_2(Convert) :-
 	retractall(d(_,_)),
@@ -149,6 +165,6 @@ test_index_2(Convert) :-
 	       (   call(Convert, I, D),
 		   assertion((d(I2, D), I2 == I))
 	       )),
-	assertion(predicate_property(d(_,_), indexed([2-_]))).
+	assertion(has_hashes(d(_,_), [2])).
 
 :- end_tests(jit).

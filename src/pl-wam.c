@@ -182,11 +182,12 @@ loffset__LD(void *p ARG_LD)
 
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
-{ GET_LD
-  static LocalFrame ofr = NULL;		/* not thread-safe */
+{ static LocalFrame ofr = NULL;		/* not thread-safe */
 
   if ( DEBUGGING(MSG_VMI) )
-  { if ( ofr != FR )
+  { GET_LD
+
+    if ( ofr != FR )
     { Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
 	       loffset(FR),
 	       levelFrame(FR),
@@ -342,10 +343,10 @@ Brief description of the local stack-layout.  This stack contains:
 /* Note that lTop can be >= lMax when calling ENSURE_LOCAL_SPACE() */
 
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
-	if ( addPointer(lTop, (bytes)) > (void*)lMax ) \
+	if ( unlikely(addPointer(lTop, (bytes)) > (void*)lMax) ) \
         { int rc; \
 	  SAVE_REGISTERS(qid); \
-	  rc = ensureLocalSpace(bytes, ALLOW_SHIFT); \
+	  rc = growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD); \
 	  LOAD_REGISTERS(qid); \
 	  if ( rc != TRUE ) \
 	  { rc = raiseStackOverflow(rc); \
@@ -393,14 +394,8 @@ fid_t
 PL_open_foreign_frame__LD(ARG1_LD)
 { size_t lneeded = sizeof(struct fliFrame) + MINFOREIGNSIZE*sizeof(word);
 
-  if ( (char*)lTop + lneeded > (char*)lMax )
-  { int rc;
-
-    if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
-    { raiseStackOverflow(rc);
-      return 0;
-    }
-  }
+  if ( !ensureLocalSpace(lneeded) )
+    return 0;
 
   return open_foreign_frame(PASS_LD1);
 }
@@ -434,7 +429,7 @@ PL_open_signal_foreign_frame(int sync)
   { if ( sync )
     { int rc;
 
-      if ( (rc=ensureLocalSpace(minspace, ALLOW_SHIFT)) != TRUE )
+      if ( (rc=growLocalSpace__LD(minspace, ALLOW_SHIFT PASS_LD)) != TRUE )
 	return 0;
     } else
     { return 0;
@@ -630,7 +625,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     assert(fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition);
 
     if ( !(cid=PL_open_foreign_frame()) )
-      return;
+      return;				/* exception is in the environment */
 
     fr = (LocalFrame)valTermRef(fref);
     catcher = consTermRef(argFrameP(fr, 2));
@@ -638,24 +633,29 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
     { term_t clean;
-      term_t ex = 0;
-      int rval;
       wakeup_state wstate;
 
       fr = (LocalFrame)valTermRef(fref);
       clean = consTermRef(argFrameP(fr, 3));
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
-      { startCritical;
-	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+      { static predicate_t PRED_call1 = NULL;
+	int rval;
+	qid_t qid;
+
+	if ( !PRED_call1 )
+	  PRED_call1 = PL_predicate("call", 1, "system");
+
+	startCritical;
+	qid = PL_open_query(contextModule(fr), PL_Q_PASS_EXCEPTION,
+			    PRED_call1, clean);
+	rval = PL_next_solution(qid);
+	PL_cut_query(qid);
 	if ( !endCritical )
 	  rval = FALSE;
+	if ( !rval && exception_term )
+	  wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
 	restoreWakeup(&wstate PASS_LD);
-      } else
-      { rval = FALSE;
       }
-
-      if ( !rval && ex && !exception_term )
-	PL_raise_exception(ex);
     }
 
     PL_close_foreign_frame(cid);
@@ -663,7 +663,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 }
 
 
-static void
+static int
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 { if ( true(fr, FR_CLEANUP) )
   { size_t fref = consTermRef(fr);
@@ -671,7 +671,7 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
     fr = (LocalFrame)valTermRef(fref);
   }
 
-  callEventHook(PLEV_FRAMEFINISHED, fr);
+  return callEventHook(PLEV_FRAMEFINISHED, fr);
 }
 
 
@@ -934,8 +934,16 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
       { return PL_put_atom_chars(t, "unify_exit");
       }
     }
-    case I_VAR:		ftor = FUNCTOR_var1;    goto fa_1;
-    case I_NONVAR:	ftor = FUNCTOR_nonvar1; goto fa_1;
+    case I_VAR:		ftor = FUNCTOR_var1;      goto fa_1;
+    case I_NONVAR:	ftor = FUNCTOR_nonvar1;   goto fa_1;
+    case I_INTEGER:	ftor = FUNCTOR_integer1;  goto fa_1;
+    case I_FLOAT:	ftor = FUNCTOR_float1;    goto fa_1;
+    case I_NUMBER:	ftor = FUNCTOR_number1;   goto fa_1;
+    case I_ATOMIC:	ftor = FUNCTOR_atomic1;   goto fa_1;
+    case I_ATOM:	ftor = FUNCTOR_atom1;     goto fa_1;
+    case I_STRING:	ftor = FUNCTOR_string1;   goto fa_1;
+    case I_COMPOUND:	ftor = FUNCTOR_compound1; goto fa_1;
+    case I_CALLABLE:	ftor = FUNCTOR_callable1; goto fa_1;
     fa_1:
     { Word gt       = allocGlobal(1+1+2);	/* call(f(A)) */
       LocalFrame fr = (LocalFrame)valTermRef(frref);
@@ -1720,6 +1728,9 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
   while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
   { LocalFrame fr = qf->saved_environment;
 
+    if ( !fr )
+      break;
+
     while( fr )
     { if ( fr->predicate == catch3 )
       { term_t fref  = consTermRef(fr);
@@ -1744,7 +1755,7 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
     }
   }
 
-  if ( qf && true(qf, PL_Q_CATCH_EXCEPTION) )
+  if ( qf && true(qf, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) )
     return (term_t)-1;
 
   return 0;
@@ -1793,7 +1804,8 @@ dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
     return fr;				/* system mode; debug everything */
   if ( isDebugFrame(fr) && false(fr->predicate, HIDE_CHILDS) )
     return fr;				/* normal user code */
-  for( ; fr && !isDebugFrame(fr); fr = fr->parent)
+  for( ; fr && fr->parent && true(fr->parent->predicate, HIDE_CHILDS);
+       fr = fr->parent)
     ;					/* find top of hidden children */
   DEBUG(MSG_TRACE, if ( fr )
 	Sdprintf("REDO user frame of [%d] %s%s\n",
@@ -2303,14 +2315,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   lneeded = sizeof(struct queryFrame)+MAXARITY*sizeof(word);
 #endif
 
-  if ( (char*)lTop + lneeded > (char*)lMax )
-  { int rc;
-
-    if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
-    { raiseStackOverflow(rc);
-      return (qid_t)0;
-    }
-  }
+  if ( !ensureLocalSpace(lneeded) )
+    return (qid_t)0;
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
@@ -2695,6 +2701,17 @@ code thiscode;
 #define SEPERATE_VMI		(void)0
 
 #endif /* VMCODE_IS_ADDRESS */
+
+#define FASTCOND_FAILED \
+	{ if ( !LD->fast_condition )   \
+	  { BODY_FAILED;	       \
+	  } else		       \
+	  { PC = LD->fast_condition;   \
+	    LD->fast_condition = NULL; \
+	    NEXT_INSTRUCTION;          \
+	  }                            \
+	}
+
 
 #if VMCODE_IS_ADDRESS
   if ( qid == QID_EXPORT_WAM_TABLE )

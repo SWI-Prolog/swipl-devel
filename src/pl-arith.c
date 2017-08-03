@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -530,7 +530,7 @@ PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
 		 *******************************/
 
 Number
-allocArithStack(ARG1_LD)
+growArithStack(ARG1_LD)
 { Number n;
 
   if ( LD->arith.stack.top == LD->arith.stack.max )
@@ -538,7 +538,8 @@ allocArithStack(ARG1_LD)
 
     if ( LD->arith.stack.base )
     { size = (size_t)(LD->arith.stack.max - LD->arith.stack.base);
-      LD->arith.stack.base = PL_realloc(LD->arith.stack.base, size*sizeof(number)*2);
+      LD->arith.stack.base = PL_realloc(LD->arith.stack.base,
+					size*sizeof(number)*2);
       LD->arith.stack.top  = LD->arith.stack.base+size;
       size *= 2;
     } else
@@ -554,39 +555,6 @@ allocArithStack(ARG1_LD)
   LD->arith.stack.top++;
 
   return n;
-}
-
-
-void
-pushArithStack(Number n ARG_LD)
-{ Number np = allocArithStack(PASS_LD1);
-
-  *np = *n;				/* structure copy */
-}
-
-
-void
-resetArithStack(ARG1_LD)
-{ LD->arith.stack.top = LD->arith.stack.base;
-}
-
-
-Number
-argvArithStack(int n ARG_LD)
-{ assert(LD->arith.stack.top - n >= LD->arith.stack.base);
-
-  return LD->arith.stack.top - n;
-}
-
-
-void
-popArgvArithStack(int n ARG_LD)
-{ assert(LD->arith.stack.top - n >= LD->arith.stack.base);
-
-  for(; n>0; n--)
-  { LD->arith.stack.top--;
-    clearNumber(LD->arith.stack.top);
-  }
 }
 
 
@@ -1666,12 +1634,67 @@ as long as the result fits  in  the   address  space.  In that case, the
 normal overflow handling will nicely generate a resource error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_GMP
+static void
+mpz_set_num(mpz_t mpz, Number n)
+{ switch ( n->type )
+  { case V_MPZ:
+      mpz_set(mpz, n->value.mpz);
+      break;
+    case V_INTEGER:
+      mpz_init_set_si64(mpz, n->value.i);
+      break;
+    default:
+      assert(0);
+  }
+}
+
+static int
+get_int_exponent(Number n, unsigned long *expp, int *sign)
+{ long exp;
+  int64_t i;
+
+  switch(n->type)
+  { case V_INTEGER:
+      i = n->value.i;
+      break;
+    case V_MPZ:
+      if ( !mpz_to_int64(n->value.mpz, &i) )
+	return int_too_big();
+      break;
+    default:
+      assert(0);
+      return FALSE;
+  }
+
+  exp = (long)i;
+#if SIZEOF_LONG < 8
+  if ( (int64_t)exp != i )
+    return int_too_big();
+#endif
+
+  if ( exp >= 0 )
+  { *expp = (unsigned long)exp;
+    *sign = (exp > 0);
+  } else if ( -exp != exp )
+  { *expp = (unsigned long)-exp;
+    *sign = -1;
+  } else
+  { return int_too_big();
+  }
+
+  return TRUE;
+}
+#endif /*O_GMP*/
+
+
 static int
 ar_pow(Number n1, Number n2, Number r)
 {
 #ifdef O_GMP
   if ( intNumber(n1) && intNumber(n2) )
   { unsigned long exp;
+    int exp_sign;
 
     switch(n1->type)			/* test for 0**X and 1**X */
     { case V_INTEGER:
@@ -1712,25 +1735,14 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
     }
 
-					/* get the exponent */
-    switch(n2->type)
-    { case V_INTEGER:
-	if ( n2->value.i < 0 )
-	  goto doreal;
-        if ( n2->value.i > LONG_MAX )
-	  return int_too_big();
-	exp = (long)n2->value.i;
-	break;
-      case V_MPZ:
-	if ( mpz_sgn(n2->value.mpz) < 0 )
-	  goto doreal;
-        if ( mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	  return int_too_big();
-        exp = mpz_get_ui(n2->value.mpz);
-	break;
-      default:
-	assert(0);
-        fail;
+    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+      return FALSE;
+    if ( exp_sign < 0 )
+      goto doreal;
+    if ( exp_sign == 0 )
+    { r->type = V_INTEGER;
+      r->value.i = 1;
+      return TRUE;
     }
 
   { GET_LD				/* estimate the size, see above */
@@ -1774,6 +1786,55 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
         fail;
     }
+  }
+
+  if ( n1->type == V_MPQ && intNumber(n2) )
+  { number nr, nd, nrp, ndp, nexp;
+    unsigned long exp;
+    int exp_sign;
+
+    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+      return FALSE;
+
+    if ( exp_sign == 0 )
+    { r->type = V_INTEGER;
+      r->value.i = 1;
+      return TRUE;
+    }
+
+    nexp.type = V_INTEGER;
+    nexp.value.i = exp;
+
+    nr.type = V_MPZ;
+    nr.value.mpz[0] = mpq_numref(n1->value.mpq)[0];
+    nr.value.mpz->_mp_alloc = 0;	/* read-only */
+    nd.type = V_MPZ;
+    nd.value.mpz[0] = mpq_denref(n1->value.mpq)[0];
+    nd.value.mpz->_mp_alloc = 0;
+
+    nrp.type = ndp.type = V_INTEGER;
+
+    if ( ar_pow(&nr, &nexp, &nrp) &&
+	 ar_pow(&nd, &nexp, &ndp) )
+    { r->type = V_MPQ;
+      mpq_init(r->value.mpq);
+      if ( exp_sign > 0 )
+      { mpz_set_num(mpq_numref(r->value.mpq), &nrp);
+	mpz_set_num(mpq_denref(r->value.mpq), &ndp);
+      } else
+      { mpz_set_num(mpq_numref(r->value.mpq), &ndp);
+	mpz_set_num(mpq_denref(r->value.mpq), &nrp);
+      }
+      mpq_canonicalize(r->value.mpq);
+
+      clearNumber(&nrp);
+      clearNumber(&ndp);
+
+      return TRUE;
+    }
+
+    clearNumber(&nrp);
+    clearNumber(&ndp);
   }
 
 doreal:
@@ -2588,7 +2649,11 @@ ar_lsb(Number n1, Number r)
 
 static int
 my_popcount64(int64_t i)		/* my_: avoid NetBSD name conflict */
-{ int c;
+{
+#ifdef HAVE__BUILTIN_POPCOUNT
+  return __builtin_popcountll(i);
+#else
+  int c;
   size_t j;
   int64_t m = LL(1);
 
@@ -2598,6 +2663,7 @@ my_popcount64(int64_t i)		/* my_: avoid NetBSD name conflict */
   }
 
   return c;
+#endif
 }
 
 

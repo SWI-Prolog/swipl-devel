@@ -88,6 +88,7 @@ component(library(odbc), _{}).
 component(library(pce),
           _{pre:load_foreign_library(pce_principal:foreign(pl2xpce)),
             url:'xpce.html'}).
+component(library(pcre), _{features:pcre_features}).
 component(library(pdt_console), _{}).
 component(library(porter_stem), _{}).
 component(library(process), _{}).
@@ -347,6 +348,24 @@ a_format(tar).
 a_format(xar).
 a_format(zip).
 
+%!  pcre_features
+
+pcre_features :-
+    findall(X, pcre_missing(X), Missing),
+    (   Missing == []
+    ->  true
+    ;   print_message(warning, installation(pcre_missing(Missing)))
+    ).
+
+pcre_missing(X) :-
+    pcre_must_have(X),
+    Term =.. [X,true],
+    \+ catch(re_config(Term), _, fail).
+
+pcre_must_have(utf8).
+pcre_must_have(unicode_properties).
+
+
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
@@ -459,3 +478,7 @@ list_names([H|T]) -->
         list_names(T)
     ).
 
+prolog:message(installation(pcre_missing(Features))) -->
+    !,
+    [ 'Missing libpcre features: '-[] ],
+    list_names(Features).

@@ -850,6 +850,9 @@ printMessage(atom_t severity, ...)
 Calls print_message(severity, term), where  ...   are  arguments  as for
 PL_unify_term(). This predicate saves possible   pending  exceptions and
 restores them to make the call from B_THROW possible.
+
+Returns FALSE if there was an   exception while executing printMessage()
+and TRUE if the printing succeeded or merely failed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define OK_RECURSIVE 10
@@ -878,7 +881,7 @@ printMessage(atom_t severity, ...)
 
   if ( rc )
   { if ( isDefinedProcedure(pred) && LD->in_print_message <= OK_RECURSIVE )
-    { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+    { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			     pred, av);
     } else if ( LD->in_print_message <= OK_RECURSIVE*2 )
     { Sfprintf(Serror, "Message: ");
@@ -891,6 +894,11 @@ printMessage(atom_t severity, ...)
     { Sfprintf(Serror, "printMessage(): recursive call\n");
     }
   }
+
+  if ( !rc && PL_exception(0) )
+    set(&wstate, WAKEUP_KEEP_URGENT_EXCEPTION);
+  else
+    rc = TRUE;
 
   restoreWakeup(&wstate PASS_LD);
   LD->in_print_message--;
@@ -990,10 +998,21 @@ fits_size(int64_t val)
 #endif
 
 int
-PL_get_size_ex(term_t t, size_t *i)
+PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
 { number n;
+  Word p = valTermRef(t);
 
-  if ( PL_get_number(t, &n) )
+  deRef(p);
+  if ( isTaggedInt(*p) )
+  { intptr_t v = valInt(*p);
+
+    if ( v >= 0 )
+    { *i = v;
+      return TRUE;
+    }
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, t);
+  } if ( PL_get_number(t, &n) )
   { switch(n.type)
     { case V_INTEGER:
 	if ( n.value.i >= 0 )
@@ -1035,6 +1054,14 @@ PL_get_size_ex(term_t t, size_t *i)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
+
+#undef PL_get_size_ex
+int
+PL_get_size_ex(term_t t, size_t *i)
+{ GET_LD
+  return PL_get_size_ex__LD(t, i PASS_LD);
+}
+#define PL_get_size_ex(t,i) PL_get_size_ex__LD(t,i PASS_LD)
 
 int
 PL_get_bool_ex(term_t t, int *i)

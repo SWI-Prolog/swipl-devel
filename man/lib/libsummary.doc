@@ -81,6 +81,9 @@
 \libsummary{lists}
 \input{summaries.d/lists.tex}
 
+\libsummary{main}
+\input{summaries.d/main.tex}
+
 \libsummary{option}
 \input{summaries.d/option.tex}
 

@@ -54,5 +54,7 @@ packages/readline/config.h.in
 packages/readline/configure
 packages/libedit/config.h.in
 packages/libedit/configure
+packages/pcre/config.h.in
+packages/pcre/configure
 src/config.h.in
 src/configure

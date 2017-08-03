@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1112,6 +1112,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
       { case I_EXIT:			/* terminate code list */
 	case I_EXITFACT:
 	case I_EXITCATCH:
+	case I_EXITRESET:
 	case I_EXITQUERY:
 	case I_FEXITDET:
 	case I_FEXITNDET:
@@ -1711,6 +1712,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       }
       case C_SOFTIF:
       case C_IFTHENELSE:
+      case C_FASTCOND:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
@@ -1784,6 +1786,14 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       case I_VAR:
       case I_NONVAR:
+      case I_INTEGER:
+      case I_FLOAT:
+      case I_NUMBER:
+      case I_ATOMIC:
+      case I_ATOM:
+      case I_STRING:
+      case I_COMPOUND:
+      case I_CALLABLE:
 	mark_frame_var(state, PC[0] PASS_LD);
         break;
 
@@ -1812,6 +1822,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(3) PASS_LD); /* cleanup goal */
 	  break;
 	case I_EXITCATCH:
+	case I_EXITRESET:
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
 	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
 	  break;
@@ -1902,6 +1913,9 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
   state.clear  = clear;
   state.envtop = NULL;
   state.c0     = fr->clause->value.clause->codes;
+
+  DEBUG(MSG_GC_WALK,
+	Sdprintf("Mark active for %s\n", predicateName(fr->predicate)));
 
   walk_and_mark(&state, PC, I_EXIT PASS_LD);
   if ( buf != tmp )
@@ -3854,24 +3868,17 @@ PL_check_stacks(void)
 About synchronisation with atom-gc (AGC). GC can run fully concurrent in
 different threads as it only  affects   the  runtime stacks. AGC however
 must sweep the other threads. It can only do so if these are in a fairly
-sane state, which isn't the case during GC.  So:
-
-We keep the number of threads doing GC in GD->gc.active, a variable that
-is incremented and decremented using  the   L_GC  mutex. This same mutex
-guards AGC as a whole. This  means  that   if  AGC  is working, GC can't
-start. If AGC notices at the start  a   GC  is working, it sets the flag
-GD->gc.agc_waiting and returns. If the last   GC  stops, and notices the
-system wants to do AGC it raised a request for AGC.
+sane   state,   which   isn't   the   case    during   GC.   The   mutex
+LD->thread.scan_lock is used to avoid GC during AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 enterGC(ARG1_LD)
 {
 #ifdef O_PLMT
-  PL_LOCK(L_GC);
-  GD->gc.active++;
-  PL_UNLOCK(L_GC);
-  LD->gc.active = TRUE;
+  if ( !LD->gc.active )
+    simpleMutexLock(&LD->thread.scan_lock);
+  LD->gc.active++;
 #endif
 }
 
@@ -3879,13 +3886,8 @@ static void
 leaveGC(ARG1_LD)
 {
 #ifdef O_PLMT
-  LD->gc.active = FALSE;
-  PL_LOCK(L_GC);
-  if ( --GD->gc.active == 0 && GD->gc.agc_waiting )
-  { GD->gc.agc_waiting = FALSE;
-    PL_raise(SIG_ATOM_GC);
-  }
-  PL_UNLOCK(L_GC);
+  if ( --LD->gc.active == 0 )
+    simpleMutexUnlock(&LD->thread.scan_lock);
 #endif
 }
 
@@ -3917,7 +3919,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
     { int rc2;
 
       restore_vmi_state(state);
-      if ( (rc2=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
+      if ( (rc2=growLocalSpace__LD(lneeded, ALLOW_SHIFT PASS_LD)) != TRUE )
 	return rc2;
       rc = FALSE;
     } else
@@ -3979,6 +3981,13 @@ garbageCollect(void)
   save_backtrace("GC");
 #endif
 
+  if ( verbose )
+  { if ( !printMessage(ATOM_informational,
+		       PL_FUNCTOR_CHARS, "gc", 1,
+		         PL_CHARS, "start") )
+      return FALSE;
+  }
+
   get_vmi_state(LD->query, &state);
   safeLTop = lTop;
   if ( (rc=gcEnsureSpace(&state PASS_LD)) < 0 )
@@ -3998,11 +4007,6 @@ garbageCollect(void)
 
   if ( (no_mark_bar=(LD->mark_bar == NO_MARK_BAR)) )
     LD->mark_bar = gTop;		/* otherwise we cannot relocate */
-
-  if ( verbose )
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "gc", 1,
-		   PL_CHARS, "start");
 
 #ifdef O_PROFILE
   if ( LD->profile.active )
@@ -4089,18 +4093,6 @@ garbageCollect(void)
 	  checkStacks(&state);
 	});
 
-  if ( verbose )
-    printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "gc", 1,
-		   PL_FUNCTOR_CHARS, "done", 7,
-		     PL_INTPTR, ggar,
-		     PL_INTPTR, tgar,
-		     PL_DOUBLE, (double)t,
-		     PL_INTPTR, usedStack(global),
-		     PL_INTPTR, usedStack(trail),
-		     PL_INTPTR, roomStack(global),
-		     PL_INTPTR, roomStack(trail));
-
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active )
     profExit(prof_node PASS_LD);
@@ -4126,9 +4118,21 @@ garbageCollect(void)
 #endif
   leaveGC(PASS_LD1);
 
-  shiftTightStacks();
+  if ( verbose )
+    rc = printMessage(ATOM_informational,
+		      PL_FUNCTOR_CHARS, "gc", 1,
+		        PL_FUNCTOR_CHARS, "done", 7,
+		          PL_INTPTR, ggar,
+		          PL_INTPTR, tgar,
+		          PL_DOUBLE, (double)t,
+		          PL_INTPTR, usedStack(global),
+		          PL_INTPTR, usedStack(trail),
+		          PL_INTPTR, roomStack(global),
+		          PL_INTPTR, roomStack(trail));
 
-  return TRUE;
+  rc = shiftTightStacks() && rc;
+
+  return rc;
 }
 
 word
@@ -4196,7 +4200,7 @@ makeMoreStackSpace(int overflow, int flags)
   }
 
   if ( LD->exception.processing && s && enableSpareStack(s) )
-      return TRUE;
+    return TRUE;
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
        (flags & ALLOW_GC) &&
@@ -4265,7 +4269,8 @@ ensureGlobalSpace(size_t cells, int flags)
     size_t tmin;
 
     if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
-    { garbageCollect();
+    { if ( garbageCollect() == FALSE )
+	return FALSE;
 
       if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
 	return TRUE;
@@ -4283,7 +4288,8 @@ ensureGlobalSpace(size_t cells, int flags)
     else
       tmin = 0;
 
-    growStacks(0, gmin, tmin);
+    if ( growStacks(0, gmin, tmin) == FALSE )
+      return FALSE;
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
   }
@@ -4318,7 +4324,8 @@ ensureTrailSpace(size_t cells)
   }
 
   if ( considerGarbageCollect(NULL) )
-  { garbageCollect();
+  { if ( !garbageCollect() )
+      return FALSE;
 
     if ( tTop+cells <= tMax )
       return TRUE;
@@ -4326,7 +4333,8 @@ ensureTrailSpace(size_t cells)
 
   { size_t tmin = cells*sizeof(struct trail_entry);
 
-    growStacks(0, 0, tmin);
+    if ( !growStacks(0, 0, tmin) )
+      return FALSE;
     if ( tTop+cells <= tMax )
       return TRUE;
   }
@@ -4336,17 +4344,16 @@ ensureTrailSpace(size_t cells)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ensureLocalSpace() ensures sufficient local stack space.
+growLocalSpace__LD() ensures sufficient local  stack   space.  User code
+typically calls the inlined ensureLocalSpace().
 
 NOTE: This is often called from ENSURE_LOCAL_SPACE(), while already lTop
 > lMax. The stack-shifter must be able to deal with this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-ensureLocalSpace(size_t bytes, int flags)
-{ GET_LD
-
-  if ( addPointer(lTop, bytes) <= (void*)lMax )
+growLocalSpace__LD(size_t bytes, int flags ARG_LD)
+{ if ( addPointer(lTop, bytes) <= (void*)lMax )
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
@@ -4634,6 +4641,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
       update_pointer(&state->lSave, ls);
       update_pointer(&state->lNext, ls);
       update_pointer(&LD->query, ls);
+      update_local_pointer(&LD->fast_condition, ls);
     }
 
     for( fr = state->frame,
@@ -5200,6 +5208,9 @@ time).
 void
 markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
+
+  if ( !ld->magic )
+    return;				/* avoid AGC on finished threads */
 
   DEBUG(MSG_AGC, save_backtrace("AGC"));
 #ifdef O_MAINTENANCE

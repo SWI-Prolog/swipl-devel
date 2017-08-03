@@ -72,7 +72,8 @@ yield(Term) :-
 
 init_iterator(Goal,Iterator) :-
 	reset(Goal,YE,Cont),
-	(   YE = yield(Element)
+	(   Cont \== 0,
+	    YE = yield(Element)
 	->  Iterator = next(Element,Cont)
 	;   Iterator = done
 	).
@@ -98,7 +99,8 @@ ask(X) :-
 
 with_read(Goal) :-
 	reset(Goal,Term,Cont),
-	(   Term = ask(X)
+	(   Cont \== 0,
+	    Term = ask(X)
 	->  read(X),
 	    with_read(Cont)
 	;   true
@@ -106,7 +108,8 @@ with_read(Goal) :-
 
 with_list(L, Goal) :-
 	reset(Goal,Term,Cont),
-	(   Term = ask(X)
+	(   Cont \== 0,
+	    Term = ask(X)
 	->  L = [X|T],
 	    with_list(T,Cont)
 	;   true
@@ -146,7 +149,7 @@ transduce_(yield(NValue), ContT, IG) :-
 	transduce(IG, ContT).
 transduce_(ask(Value), ContT, IG) :-
 	reset(IG, TermI, ContI),
-	(   TermI == 0
+	(   ContI == 0
 	->  true
 	;   TermI = yield(Value),
 	    transduce(ContI, ContT)

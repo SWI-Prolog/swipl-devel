@@ -809,13 +809,45 @@ compatibility issue.
 Similar to initialization/1, but allows for specifying when \arg{Goal}
 is executed while loading the program text:
 
-    \begin{description}
-	\termitem{now}{} Execute \arg{Goal} immediately.
-	\termitem{after_load}{} Execute \arg{Goal} after loading
-	program text.  This is the same as initialization/1.
-	\termitem{restore}{} Do not execute \arg{Goal} while loading
-	the program, but \emph{only} when restoring a state.
-    \end{description}
+\begin{description}
+    \termitem{now}{} Execute \arg{Goal} immediately.
+
+    \termitem{after_load}{} Execute \arg{Goal} after loading the
+program text in which the directive appears. This is the same as
+initialization/1.
+
+    \termitem{restore}{}
+Do not execute \arg{Goal} while loading the program, but \emph{only}
+when restoring a saved state.
+
+    \termitem{program}{}
+Execute \arg{Goal} once after executing the \cmdlineoption{-g} goals
+at program startup. Registered goals are executed in the order
+encountered and a failure or exception causes the Prolog to exit with
+non-zero exit status.  These goals are \emph{not} executed if the
+\cmdlineoption{-l} is given to merely \emph{load} files.  In that case
+they may be executed explicitly using initialize/0. See also
+\secref{plscript}.
+
+    \termitem{main}{}
+When Prolog starts, the last goal registered using
+\term{initialization}{Goal, main} is executed as main goal. If
+\arg{Goal} fails or raises an exception, the process terminates with
+non-zero exit code. If not explicitly specified using the
+\cmdlineoption{-t} the \jargon{toplevel goal} is set to halt/0, causing
+the process to exit with status 0. An explicitly specified toplevel is
+executed normally. This implies that \exam{-t prolog} causes the
+application to start the normal interactive toplevel after completing
+\arg{Goal}.  See also the Prolog flag \prologflag{toplevel_goal} and
+\secref{plscript}.
+\end{description}
+
+    \predicate[det]{initialization}{0}{}
+Run all initialization goals registered using
+\term{initialization}{Goal, program}. Raises an error
+\term{initialization_error}{Reason, Goal, File:Line} if \arg{Goal}
+fails or raises an exception.  \arg{Reason} is \const{failed} or
+the exception raised.
 
     \predicate{compiling}{0}{}
 True if the system is compiling source files with the \cmdlineoption{-c}
@@ -1569,7 +1601,8 @@ ERROR:    [6] p(user:22)
 \end{code}
 
     \predicate[ISO]{ground}{1}{@Term}
-True if \arg{Term} holds no free variables.
+True if \arg{Term} holds no free variables. See also nonground/2
+and term_variables/2.
 
     \predicate{cyclic_term}{1}{@Term}
 True if \arg{Term} contains cycles, i.e.\ is an infinite term.
@@ -1619,8 +1652,7 @@ so-called ``standard order''. This order is defined as follows:
 \begin{enumerate}
     \item $\arg{Variables} < \arg{Numbers} < \arg{Strings} < \arg{Atoms}
           < \arg{Compound Terms}$
-    \item Variables are sorted by address.  Attaching attributes
-          (see \secref{attvar}) does not affect the ordering.
+    \item Variables are sorted by address.
     \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
 	  as floats. If the comparison is equal, the float is considered
 	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
@@ -1632,6 +1664,39 @@ so-called ``standard order''. This order is defined as follows:
 	  on their arguments, leftmost argument first.
 \end{enumerate}
 
+Although variables are ordered, there are some unexpected properties one
+should keep in mind when relying on variable ordering. This applies to
+the predicates below as to predicate such as sort/2 as well as libraries
+that reply on ordering such as library \pllib{assoc} and library
+\pllib{ordsets}. Obviously, an established relation \mbox{\arg{A}
+\const{@<} \arg{B}} no longer holds if \arg{A} is unified with e.g., a
+number. Also unifying \arg{A} with \arg{B} invalidates the relation
+because they become equivalent (==/2) after unification.
+
+As stated above, variables are sorted by address, which implies that
+they are sorted by `age', where `older' variables are ordered before
+`newer' variables. If two variables are unified their `shared' age is
+the age of oldest variable. This implies we can examine a list of sorted
+variables with `newer' (fresh) variables without invalidating the order.
+Attaching an \jargon{attribute}, see \secref{attvar}, turns an `old'
+variable into a `new' one as illustrated below. Note that the first
+always succeeds as the first argument of a term is always the oldest.
+This only applies for the \emph{first} attribute, i.e., further
+manipulation of the attribute list does \emph{not} change the `age'.
+
+\begin{code}
+?- T = f(A,B), A @< B.
+T = f(A, B).
+
+?- T = f(A,B), put_attr(A, name, value), A @< B.
+false.
+\end{code}
+
+The above implies you \emph{can} use e.g., an assoc (from library
+\pllib{assoc}, implemented as an AVL tree) to maintain information about
+a set of variables. You must be careful about what you do with the
+attributes though. In many cases it is more robust to use attributes to
+register information about variables.
 
 \begin{description}
     \infixop[ISO]{==}{@Term1}{@Term2}
@@ -2080,18 +2145,20 @@ the current limit does not change the effective limit. See also
 call_with_depth_limit/3 and call_with_time_limit/2.
 
     \predicate{setup_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
-Calls \exam{(once(Setup), Goal)}.  If \arg{Setup} succeeds, \arg{Cleanup} will be
-called exactly once after \arg{Goal} is finished: either on failure,
-deterministic success, commit, or an exception. The execution of
-\arg{Setup} is protected from asynchronous interrupts like
+Calls \exam{(once(Setup), Goal)}. If \arg{Setup} succeeds, \arg{Cleanup}
+will be called exactly once after \arg{Goal} is finished: either on
+failure, deterministic success, commit, or an exception. The execution
+of \arg{Setup} is protected from asynchronous interrupts like
 call_with_time_limit/2 (package clib) or thread_signal/2. In most uses,
 \arg{Setup} will perform temporary side-effects required by \arg{Goal}
 that are finally undone by \arg{Cleanup}.
 
 Success or failure of \arg{Cleanup} is ignored, and choice points it
 created are destroyed (as once/1). If \arg{Cleanup} throws an exception,
-this is executed as normal.\bug{During the execution of \arg{Cleanup},
-garbage collection and stack-shifts are disabled.}
+this is executed as normal while it was not triggered as the result of
+an exception the exception is propagated as normal. If \arg{Cleanup} was
+triggered by an exception the rules are described in
+\secref{urgentexceptions}
 
 Typically, this predicate is used to cleanup permanent data storage
 required to execute \arg{Goal}, close file descriptors, etc. The example
@@ -2197,8 +2264,7 @@ as described in~\chapref{clp}.
 
 The suspension mechanism provided by delimited continuations is suitable
 for the implementation of \jargon{tabling}
-\cite{DBLP:journals/tplp/DesouterDS15}.
-
+\cite{DBLP:journals/tplp/DesouterDS15}, see library \pllib{tabling}.
 
 \begin{description}
     \predicate{reset}{3}{:Goal, ?Ball, -Continuation}
@@ -2209,9 +2275,11 @@ can be unified with \arg{Ball},\footnote{The argument order described in
 compatibility with catch/3} shift/1 causes reset/3 to return, unifying
 \arg{Continuation} with a goal that represents the \jargon{continuation}
 after shift/1. In other words, meta-calling \arg{Continuation} completes
-the execution where shift it. If \arg{Goal} does not call shift/1, both
-\arg{Ball} and \arg{Continuation} are unified with the integer \const{0}
-(zero).
+the execution where shift left it. If \arg{Goal} does not call shift/1,
+\arg{Continuation} are unified with the integer \const{0}
+(zero).\footnote{Note that older versions also unify \arg{Ball} with
+\const{0}.  Testing whether or not shift happened on \arg{Ball} however
+is \emph{always} ambiguous.}
 
     \predicate{shift}{1}{+Ball}
 Abandon the execution of the current goal, returning control to just
@@ -2239,7 +2307,9 @@ the thrown exception term, and \arg{Recover} is called as in call/1.
 
 The overhead of calling a goal through catch/3 is comparable to
 call/1.  Recovery from an exception is much slower, especially if the
-exception term is large due to the copying thereof.
+exception term is large due to the copying thereof or is decorated with
+a stack trace using, e.g., the library \pllib{prolog_stack} based on the
+prolog_exception_hook/4 hook predicate to rewrite exceptions.
 
     \predicate[ISO]{throw}{1}{+Exception}
 Raise an exception. The system looks for the innermost catch/3
@@ -2273,6 +2343,62 @@ If an exception is raised in a call-back from C (see \chapref{foreign})
 and not caught in the same call-back, PL_next_solution() fails and
 the exception context can be retrieved using PL_exception().
 \end{description}
+
+
+\subsection{Urgency of exceptions}
+\label{sec:urgentexceptions}
+
+Under some conditions an exception may be raised as a result of handling
+another exception.  Below are some of the scenarios:
+
+\begin{itemize}
+    \item
+The predicate setup_call_cleanup/3 calls the cleanup handler as a result
+of an exception and the cleanup handler raises an exception itself. In
+this case the most \jargon{urgent} exception is propagated into the
+environment.
+    \item
+Raising an exception fails due to lack of resources, e.g., lack of
+stack space to store the exception. In this case a resource exception is
+raised. If that too fails the system tries to raise a resource exception
+without (stack) context. If that fails it will raise the exception
+\verb='$aborted'=, also raised by abort/0. As no stack space is
+required for processing this atomic exception, this should always
+succeed.
+    \item
+Certain \jargon{callback} operations raise an exception while processing
+another exception or a previous callback already raised an exception
+before there was an opportunity to process the exception. The most
+notable \jargon{callback} subject to this issue are prolog_event_hook/1
+(supporting e.g., the graphical debugger), prolog_exception_hook/4
+(rewriting exceptions, e.g., by adding context) and print_message/2 when
+called from the core facilities such as the internal debugger. As with
+setup_call_cleanup/3, the most \jargon{urgent} exception is preserved.
+\end{itemize}
+
+If the most urgent exceptions needs to be preserved, the following
+exception ordering is respected, preserving the topmost matching error.
+
+\begin{enumerate}
+    \item \verb='$aborted'= (abort/0)
+    \item \verb$time_limit_exceeded$ (call_with_time_limit/2)
+    \item \term{error}{\term{resource_error}{Resource}, Context}
+    \item \term{error}{Formal, Context}
+    \item All other exceptions
+\end{enumerate}
+
+\paragraph{Note} The above resolution is not described in the ISO
+standard. This is not needed either because ISO does not specify
+setup_call_cleanup/3 and does not deal with environment management
+issues such as (debugger) callbacks. Neither does it define abort/0 or
+timeout handling. Notably abort/0 and timeout are non-logical control
+structures. They are implemented on top of exceptions as they need to
+unwind the stack, destroy choice points and call cleanup handlers in
+the same way.  However, the pending exception should not be replaced
+by another one before the intended handler is reached.  The abort
+exception cannot be caught, something which is achieved by wrapping
+the \jargon{cleanup handler} of catch/3 into
+\term{call_cleanup}{Handler, abort}.
 
 
 \subsection{Debugging and exceptions}
@@ -3167,20 +3293,24 @@ used for debugging purposes.
 
     \predicate{trie_insert}{3}{+Trie, +Key, +Value}
 Insert the term \arg{Key} into \arg{Trie} and associate it with
-\arg{Value}.  Currently, \arg{Value} is either an atom or small
-integer.  Future versions will probably allow for arbitrary terms.
+\arg{Value}. \arg{Value} can be any term.  If \arg{Key}-\arg{Value}
+is already part of \arg{Trie}, the predicates \emph{fails} silently.
+If \arg{Key} is in \arg{Trie} associated with a different value, a
+\const{permission_error} is raised.
+
+    \predicate{trie_update}{3}{+Trie, +Key, +Value}
+As trie_insert/3, but if \arg{Key} is in \arg{Trie}, its associated
+value is \emph{updated}.
+
+    \predicate{trie_insert}{3}{+Trie, +Term, +Value, -Handle}
+As trie_insert/3, returning a handle to the trie node. This predicate is
+currently unsafe as \arg{Handle} is an integer used to encode a pointer.
+It was used to implement a pure Prolog version of the \pllib{tabling}
+library.
 
     \predicate{trie_lookup}{3}{+Trie, +Key, -Value}
 True if the term \arg{Key} is in \arg{Trie} and associated with
 \arg{Value}.
-
-    \predicate{trie_insert_new}{3}{+Trie, +Term, -Handle}
-Add \arg{Term} to \arg{Trie} and return a handle to the node. Fails if
-\arg{Term} is already part of the \arg{Trie}. The handle can used with
-trie_term/2 to retrieve (a copy of) \arg{Term}. This predicate is
-currently unsafe as \arg{Handle} is an integer used to encode a pointer.
-It was used to implement a pure Prolog version of the \pllib{tabling}
-library.
 
     \predicate{trie_term}{2}{+Handle, -Term}
 True when \arg{Term} is a copy of the term associated with \arg{Handle}.
@@ -4255,8 +4385,8 @@ to \const{binary} sets the encoding to \const{octet}.  Switching to
 
     \termitem{record_position}{Bool}
 Do/do not record the line count and line position (see line_count/2
-and line_position/2). Calling \verb$set_stream(S,
-record_position(true))$ resets the position the start of line~1.
+and line_position/2). Calling \exam{set_stream(S,
+record_position(true))} resets the position the start of line~1.
 
     \termitem{representation_errors}{Mode}
 Change the behaviour when writing characters to the stream that cannot
@@ -5488,7 +5618,7 @@ Name of the functor to use instead of \verb|$VAR|.
 	\termitem{attvar}{+Action}
 What to do if an attributed variable is encountered.  Options are
 \const{skip}, which causes numbervars/3 to ignore the attributed
-variable, \const{bind} which causes it to thread it as a normal
+variable, \const{bind} which causes it to treat it as a normal
 variable and assign the next \verb|'$VAR'|(N) term to it, or (default)
 \const{error} which raises a \const{type_error} exception.%
 	\footnote{This behaviour was decided after a long discussion
@@ -5520,16 +5650,43 @@ of \arg{Term}.%
 	library \pllib{backcomp}.}
 The variables in \arg{List} are ordered in order of appearance
 traversing \arg{Term} depth-first and left-to-right. See also
-term_variables/3. For example:
+term_variables/3 and nonground/2. For example:
 
 \begin{code}
 ?- term_variables(a(X, b(Y, X), Z), L).
 L = [X, Y, Z].
 \end{code}
 
+    \predicate[semidet]{nonground}{2}{+Term, -Var}
+True when \arg{Var} is a variable in \arg{Term}.  Fails if \arg{Term}
+is \jargon{ground} (see ground/1).  This predicate is intended for
+coroutining to trigger a wakeup if \arg{Term} becomes ground, e.g.,
+using when/2.  The current implemention always returns the first
+variable in depth-first left-right search.  Ideally it should return
+a random member of the set of variables (see term_variables/2) to
+realise logarithmetic complexity for the ground trigger.  Compatible
+with ECLiPSe and hProlog.
+
     \predicate{term_variables}{3}{+Term, -List, ?Tail}
 Difference list version of term_variables/2.  That is, \arg{Tail} is the
 tail of the variable list \arg{List}.
+
+    \predicate{term_singletons}{2}{+Term, -List}
+Unify \arg{List} with a list of variables, each sharing with a variable
+that appears only once in \arg{Term}.\bug{In the current implementation
+\arg{Term} must be acyclic.  If not, a \const{representation_error} is
+raised.}  Note that, if a variable appears
+in a shared subterm, it is \emph{not} considered singleton. Thus,
+\arg{A} is \emph{not} a singleton in the example below.  See also
+the \const{singleton} option of numbervars/4.
+
+\begin{code}
+
+?- S = a(A), term_singletons(t(S,S), L).
+L = [].
+\end{code}
+
+
 
     \predicate[ISO]{copy_term}{2}{+In, -Out}
 Create a version of \arg{In} with renamed (fresh) variables and unify it
@@ -5927,7 +6084,11 @@ in terms of code_type/2.
     \predicate{char_type}{2}{?Char, ?Type}
 Tests or generates alternative \arg{Type}s or \arg{Char}s. The
 character types are inspired by the standard C \file{<ctype.h>}
-primitives.
+primitives.  Note that the mode (-,+) is only efficient if the
+\arg{Type} has a parameter, e.g., \term{char_type}{C, digit(8)}.
+With an atomic \arg{Type} the whole unicode range (0..0x1ffff)
+is generated and tested against the C character classification
+function.
 
 \begin{description}
     \termitem{alnum}{}
@@ -6001,7 +6162,7 @@ close parenthesis.
 \arg{Char} can start a unquoted Prolog atom that is not a symbol.
     \termitem{prolog_identifier_continue}{}
 \arg{Char} can continue a Prolog variable name or atom.
-    \termitem{prolog_prolog_symbol}{}
+    \termitem{prolog_symbol}{}
 \arg{Char} is a Prolog symbol character.  Sequences of Prolog
 symbol characters glue together to form an unquoted atom.  Examples
 are \const{=..}, \const{\=}, etc.
@@ -6597,11 +6758,18 @@ with support for unbounded arithmetic (default) it uses the GMP library
 random functions. In this case, each thread keeps its own random state.
 The default algorithm is the \jargon{Mersenne Twister} algorithm. The
 seed is set when the first random number in a thread is generated. If
-available, it is set from \file{/dev/random}. Otherwise it is set from
+available, it is set from \file{/dev/random}.\footnote{On Windows the
+state is initialised from CryptGenRandom().} Otherwise it is set from
 the system clock. If unbounded arithmetic is not supported, random
 numbers are shared between threads and the seed is initialised from the
 clock when SWI-Prolog was started. The predicate set_random/1 can be
 used to control the random number generator.
+
+\textbf{Warning!} Although properly seeded (if supported on the OS), the
+Mersenne Twister algorithm does \emph{not} produce cryptographically
+secure random numbers. To generate cryptographically secure random
+numbers, use crypto_n_random_bytes/2 from library \pllib{crypto}
+provided by the \const{ssl} package.
 
     \function{random_float}{0}{}
 Evaluate to a random float $I$ for which $0.0 < i < 1.0$. This function
@@ -6798,11 +6966,13 @@ functions in ISO and SWI.
 \hline
 Int	      & Int	     & \funcref{**}{2} &  Int or Float & Float \\
 Int	      & Float	     & \funcref{**}{2} &  Float        & Float \\
+Rational      & Int	     & \funcref{**}{2} &  Rational     & - \\
 Float	      & Int	     & \funcref{**}{2} &  Float        & Float \\
 Float         & Float        & \funcref{**}{2} &  Float        & Float \\
 \hline
 Int	      & Int	     & \funcref{^}{2}  &  Int or Float & Int or error \\
 Int	      & Float	     & \funcref{^}{2}  &  Float        & Float \\
+Rational      & Int          & \funcref{^}{2}  &  Rational     & - \\
 Float	      & Int	     & \funcref{^}{2}  &  Float        & Float \\
 Float         & Float        & \funcref{^}{2}  &  Float        & Float \\
 \hline
@@ -7040,6 +7210,13 @@ in C, using \jargon{natural merge sort}.%
 	\footnote{Contributed by Richard O'Keefe.}
 The sort/2 predicate can sort a cyclic list, returning a non-cyclic
 version with the same elements.
+
+Note that \arg{List} may contain non-ground terms. If \arg{Sorted} is
+unbound at call-time, for each consequtive pair of elements in
+\arg{Sorted}, the relation \verb$E1 @< E2$ will hold. However, unifying
+a variable in \arg{Sorted} may cause this relation to become invalid,
+\emph{even} unifying a variable in \arg{Sorted} with another (older)
+variable.  See also \secref{standardorder}.
 
     \predicate{sort}{4}{+Key, +Order, +List, -Sorted}
 True when \arg{Sorted} can be unified with a list holding the element of
@@ -8270,7 +8447,8 @@ Modifier to select locale-specific output.  Not implemented.
     \fmtchar{p}
 Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
-and midnight as `am'.
+and midnight as `am'.\footnote{Despite the above clain, some locales
+yield \const{am} or \const{pm} in lower case.}
     \fmtchar{P}
 Like \%p but in lowercase: `am' or `pm' or a corresponding string
 for the current locale.
@@ -8563,8 +8741,7 @@ canonicalised: references to \file{.} and \file{..} are deleted. This
 predicate ensures that expanding a filename returns the same
 absolute path regardless of how the file is addressed. SWI-Prolog uses
 absolute filenames to register source files independent of the current
-working directory. See also absolute_file_name/3. See also
-absolute_file_name/3 and expand_file_name/2.
+working directory. See also absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
 Convert the given file specification into an absolute path. \arg{Spec}
@@ -8777,14 +8954,14 @@ thread.
     \predicate{abort}{0}{}
 Abort the Prolog execution and restart the top level. If the
 \argoption{-t}{toplevel} command line option is given, this goal is
-started instead of entering the default interactive top level.
+restarted instead of entering the default interactive top level.
 
 Aborting is implemented by throwing the reserved exception
 \verb='$aborted'=. This exception can be caught using catch/3, but the
 recovery goal is wrapped with a predicate that prunes the choice points
 of the recovery goal (i.e., as once/1) and re-throws the exception.
 This is illustrated in the example below, where we press control-C
-and `a'.
+and `a'.  See also \secref{urgentexceptions}.
 
 \begin{code}
 ?- catch((repeat,fail), E, true).

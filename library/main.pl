@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2016, University of Amsterdam
+    Copyright (c)  2002-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -49,7 +49,7 @@ where SWI-Prolog is installed)
 ==
 #!/usr/bin/env swipl
 
-:- initialization main.
+:- initialization(main, main).
 
 main(Argv) :-
         echo(Argv).
@@ -71,29 +71,15 @@ echo([H|T]) :-
 
 %!  main
 %
-%   Call main/1 using the passed command-line arguments.
+%   Call main/1 using the passed  command-line arguments. Before calling
+%   main/1  this  predicate  installs  a  signal  handler  for  =SIGINT=
+%   (Control-C) that terminates the process with status 1.
 
 main :-
     context_module(M),
     set_signals,
     current_prolog_flag(argv, Av),
-    run_main(M, Av).
-
-%!  run_main(+Module, +Args)
-%
-%   Run the main routine, guarding for exceptions and failure of the
-%   main/1 routine
-
-run_main(Module, Av) :-
-    (   catch(call(Module:main, Av), E, true)
-    ->  (   var(E)
-        ->  halt(0)
-        ;   print_message(error, E),
-            halt(1)
-        )
-    ;   print_message(error, goal_failed(main(Av))),
-        halt(1)
-    ).
+    call(M:main, Av).
 
 set_signals :-
     on_signal(int, _, interrupt).

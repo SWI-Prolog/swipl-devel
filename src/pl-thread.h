@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -184,6 +184,14 @@ typedef struct pl_mutex
   unsigned auto_destroy	: 1;		/* asked to destroy */
 } pl_mutex;
 
+typedef struct
+{ functor_t functor;			/* functor of property */
+  int (*function)();			/* function to generate */
+} tprop;
+
+COMMON(int)	get_prop_def(term_t t, atom_t expected,
+			     const tprop *list, const tprop **def);
+
 #define PL_THREAD_MAGIC 0x2737234f
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
@@ -207,11 +215,12 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_OP	       16
 #define L_INIT	       17
 #define L_TERM	       18
-#define L_GC	       19
-#define L_AGC	       20
-#define L_FOREIGN      21
-#define L_OS	       22
-#define L_LOCALE       23
+#define L_AGC	       19
+#define L_FOREIGN      20
+#define L_OS	       21
+#define L_LOCALE       22
+#define L_SORTR        23
+#define L_UMUTEX       24
 #ifdef __WINDOWS__
 #define L_DDE	       25
 #define L_CSTACK       26
@@ -385,7 +394,7 @@ COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
-#define acquire_ldata(ld)	(LD->thread.info->access.ldata = (ld))
+#define acquire_ldata(info)	acquire_ldata__LD(info PASS_LD)
 #define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
 
 #else /*O_PLMT, end of threading-stuff */
@@ -437,6 +446,6 @@ COMMON(int)	pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD);
 COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
 COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
 COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
-COMMON(void)    cgc_thread_stats(cgc_stats *stats ARG_LD);
+COMMON(int)     cgc_thread_stats(cgc_stats *stats ARG_LD);
 
 #endif /*PL_THREAD_H_DEFINED*/

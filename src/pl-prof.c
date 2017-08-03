@@ -94,6 +94,8 @@ activateProfiler(prof_status active ARG_LD)
     Ssprintf(msg, "Already profiling thread %d",
 	     profiling->thread.info->pl_tid);
 
+    PL_UNLOCK(L_THREAD);
+
     return PL_error(NULL, 0, msg, ERR_PERMISSION,
 		    ATOM_profile, ATOM_thread, tid);
   }
@@ -398,7 +400,7 @@ get_node(term_t t, call_node **node ARG_LD)
 
 
 static int
-unify_node(term_t t, call_node *node)
+unify_node(term_t t, call_node *node ARG_LD)
 { return PL_unify_term(t,
 		       PL_FUNCTOR, FUNCTOR_dprof_node1,
 		         PL_POINTER, node);
@@ -418,7 +420,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
       if ( !PL_is_variable(A1) )
       { if ( get_node(A1, &sibling PASS_LD) )
 	{ if ( sibling->parent )
-	    return unify_node(A2, sibling->parent);
+	    return unify_node(A2, sibling->parent PASS_LD);
 	}
 	fail;
       } else
@@ -439,7 +441,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
     { sibling = CTX_PTR;
 
     return_sibling:
-      if ( !unify_node(A1, sibling) )
+      if ( !unify_node(A1, sibling PASS_LD) )
 	fail;
       if ( sibling->next )
 	ForeignRedoPtr(sibling->next);

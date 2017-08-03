@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -77,6 +77,7 @@ typedef struct
 typedef struct btrace
 { btrace_stack dumps[SAVE_TRACES];		/* ring of buffers */
   int current;					/* next to fill */
+  int shared;					/* shared on LD */
 } btrace;
 
 
@@ -87,7 +88,7 @@ btrace_destroy(struct btrace *bt)
 
 
 static btrace *
-get_trace_store(void)
+get_trace_store(int create)
 { GET_LD
 
   if ( LD )
@@ -95,14 +96,21 @@ get_trace_store(void)
     { btrace *s = malloc(sizeof(*s));
       if ( s )
       { memset(s, 0, sizeof(*s));
+	s->shared = TRUE;
 	LD->btrace_store = s;
       }
     }
 
     return LD->btrace_store;
-  }
+  } else if ( create )
+  { btrace *s = malloc(sizeof(*s));
 
-  return NULL;
+    if ( s )
+      memset(s, 0, sizeof(*s));
+
+    return s;
+  } else
+    return NULL;
 }
 
 
@@ -138,9 +146,9 @@ next_btrace_id(btrace *bt)
 }
 
 
-void
+btrace *
 save_backtrace(const char *why)
-{ btrace *bt = get_trace_store();
+{ btrace *bt = get_trace_store(TRUE);
 
   if ( bt )
   { btrace_stack *s;
@@ -160,6 +168,7 @@ save_backtrace(const char *why)
     s->depth = depth;
   }
 
+  return bt;
 }
 
 
@@ -184,7 +193,7 @@ print_trace(btrace *bt, int me)
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store();
+{ btrace *bt = get_trace_store(FALSE);
 
   if ( bt )
   { int me = bt->current-last;
@@ -199,10 +208,8 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 
 void
-print_backtrace_named(const char *why)
-{ btrace *bt = get_trace_store();
-
-  if ( bt )
+bstore_print_backtrace_named(btrace *bt, const char *why)
+{ if ( bt )
   { int me = bt->current-1;
 
     for(;;)
@@ -227,7 +234,7 @@ print_backtrace_named(const char *why)
 		 *	       GLIBC		*
 		 *******************************/
 
-#if !defined(BTRACE_DONE) && defined(HAVE_EXECINFO_H)
+#if !defined(BTRACE_DONE) && defined(HAVE_EXECINFO_H) && defined(HAVE_BACKTRACE)
 #define BTRACE_DONE 1
 #include <execinfo.h>
 #include <string.h>
@@ -245,6 +252,7 @@ typedef struct btrace
   const char   *why[SAVE_TRACES];
   size_t	sizes[SAVE_TRACES];
   int		current;
+  int		shared;
 } btrace;
 
 
@@ -262,7 +270,7 @@ btrace_destroy(struct btrace *bt)
 
 
 static btrace *
-get_trace_store(void)
+get_trace_store(int create)
 { GET_LD
 
   if ( HAS_LD )
@@ -270,11 +278,19 @@ get_trace_store(void)
     { btrace *s = malloc(sizeof(*s));
       if ( s )
       { memset(s, 0, sizeof(*s));
+	s->shared = TRUE;
 	LD->btrace_store = s;
       }
     }
 
     return LD->btrace_store;
+  } else if ( create )
+  { btrace *s = malloc(sizeof(*s));
+
+    if ( s )
+      memset(s, 0, sizeof(*s));
+
+    return s;
   }
 
   return NULL;
@@ -308,9 +324,9 @@ next_btrace_id(btrace *bt)
 }
 
 
-void
+btrace *
 save_backtrace(const char *why)
-{ btrace *bt = get_trace_store();
+{ btrace *bt = get_trace_store(TRUE);
 
   if ( bt )
   { void *array[100];
@@ -325,6 +341,8 @@ save_backtrace(const char *why)
       memcpy(bt->retaddr[current], array, sizeof(void*)*frames);
     bt->why[current] = why;
   }
+
+  return bt;
 }
 
 
@@ -406,7 +424,7 @@ print_trace(btrace *bt, int me)
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store();
+{ btrace *bt = get_trace_store(FALSE);
 
   if ( bt )
   { int me = bt->current-last;
@@ -421,10 +439,8 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 
 void
-print_backtrace_named(const char *why)
-{ btrace *bt = get_trace_store();
-
-  if ( bt )
+bstore_print_backtrace_named(btrace *bt, const char *why)
+{ if ( bt )
   { int me = bt->current-1;
 
     for(;;)
@@ -458,12 +474,14 @@ print_backtrace_named(const char *why)
 
 static void
 crashHandler(int sig)
-{ int tid = PL_thread_self();
+{ int tid;
   atom_t alias;
   const pl_wchar_t *name = L"";
   time_t now = time(NULL);
   char tbuf[48];
 
+  signal(sig, SIG_DFL);
+  tid = PL_thread_self();
   ctime_r(&now, tbuf);
   tbuf[24] = '\0';
 
@@ -473,10 +491,8 @@ crashHandler(int sig)
   Sdprintf("\nSWI-Prolog [thread %d (%Ws) at %s]: "
 	   "received fatal signal %d (%s)\n",
 	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
-  save_backtrace("crash");
-  print_backtrace_named("crash");
+  print_c_backtrace("crash");
   run_on_halt(&GD->os.exit_hooks, 4);
-  signal(sig, SIG_DFL);
 
 #if defined(HAVE_KILL) && defined(HAVE_GETPID)
   kill(getpid(), sig);
@@ -547,6 +563,7 @@ typedef struct
 typedef struct btrace
 { btrace_stack dumps[SAVE_TRACES];	/* ring of buffers */
   int current;				/* next to fill */
+  int shared;
 } btrace;
 
 void
@@ -556,15 +573,23 @@ btrace_destroy(struct btrace *bt)
 
 
 static btrace *
-get_trace_store(void)
+get_trace_store(int create)
 { GET_LD
 
   if ( !LD->btrace_store )
   { btrace *s = malloc(sizeof(*s));
     if ( s )
     { memset(s, 0, sizeof(*s));
+      s->shared = TRUE;
       LD->btrace_store = s;
     }
+  } else if ( create )
+  { btrace *s = malloc(sizeof(*s));
+
+    if ( s )
+      memset(s, 0, sizeof(*s));
+
+    return s;
   }
 
   return LD->btrace_store;
@@ -741,9 +766,9 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
    return depth;
 }
 
-void
+btrace *
 win_save_backtrace(const char *why, PEXCEPTION_POINTERS pExceptionInfo)
-{ btrace *bt = get_trace_store();
+{ btrace *bt = get_trace_store(TRUE);
   if ( bt )
   { int current = next_btrace_id(bt);
     btrace_stack *s = &bt->dumps[current];
@@ -752,17 +777,21 @@ win_save_backtrace(const char *why, PEXCEPTION_POINTERS pExceptionInfo)
     UNLOCK();
     s->name = why;
   }
+
+  return bt;
 }
 
 
-void save_backtrace(const char *why)
-{ win_save_backtrace(why, NULL);
+btrace *
+save_backtrace(const char *why)
+{ return win_save_backtrace(why, NULL);
 }
 
 
 static void
 print_trace(btrace *bt, int me)
 { btrace_stack *s = &bt->dumps[me];
+
   if ( s->name )
   { int depth;
     HANDLE hProcess = GetCurrentProcess();
@@ -811,7 +840,7 @@ print_trace(btrace *bt, int me)
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store();
+{ btrace *bt = get_trace_store(FALSE);
 
   if ( bt )
   { int me = bt->current-last;
@@ -826,10 +855,8 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 
 void
-print_backtrace_named(const char *why)
-{ btrace *bt = get_trace_store();
-
-  if ( bt )
+bstore_print_backtrace_named(btrace *bt, const char *why)
+{ if ( bt )
   { int me = bt->current-1;
 
     for(;;)
@@ -863,6 +890,30 @@ initBackTrace(void)
 #endif /*__WINDOWS__*/
 
 
+		 /*******************************
+		 *	     SHARED		*
+		 *******************************/
+
+#ifdef BTRACE_DONE
+
+void
+print_backtrace_named(const char *why)
+{ bstore_print_backtrace_named(get_trace_store(FALSE), why);
+}
+
+
+void
+print_c_backtrace(const char *why)
+{ btrace *bt = save_backtrace(why);
+
+  bstore_print_backtrace_named(bt, why);
+  if ( bt && !bt->shared )
+    btrace_destroy(bt);
+}
+
+#endif /*BTRACE_DONE*/
+
+
 	         /*******************************
 		 *   FALLBACK IMPLEMENTATION	*
 		 *******************************/
@@ -870,7 +921,7 @@ initBackTrace(void)
 
 #ifndef BTRACE_DONE
 
-void
+struct btrace *
 save_backtrace(const char *why)
 {
 }
@@ -890,6 +941,11 @@ void
 print_backtrace_named(const char *why)
 { Sdprintf("%s:%d C-stack dumps are not supported on this platform\n",
 	   __FILE__, __LINE__);
+}
+
+void
+print_c_backtrace(const char *why)
+{
 }
 
 void

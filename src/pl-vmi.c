@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1324,7 +1324,7 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   if ( rc == CMP_ERROR )
     THROW_EXCEPTION;
 
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -1349,7 +1349,7 @@ VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   if ( *v1 == c )
     NEXT_INSTRUCTION;
 
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -1376,7 +1376,7 @@ VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 #endif
 
   if ( (rc=compareStandard(v1, v2, TRUE PASS_LD)) == 0 )
-    BODY_FAILED;
+    FASTCOND_FAILED;
   if ( rc == CMP_ERROR )
     THROW_EXCEPTION;
 
@@ -1405,7 +1405,7 @@ VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   if ( *v1 != c )
     NEXT_INSTRUCTION;
 
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -1645,6 +1645,9 @@ not worthwile.
 
 Note: we are working above `lTop' here!!   We restore this as quickly as
 possible to be able to call-back to Prolog.
+
+(*) If we do not resolve here,  the handleSignals() may resolve the same
+procedure and deallocate our temporary version if threading is not used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   NFR->parent         = FR;
   NFR->predicate      = DEF;		/* TBD */
@@ -1657,7 +1660,7 @@ possible to be able to call-back to Prolog.
 
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
     SAVE_REGISTERS(qid);
-    rc = ensureLocalSpace(LOCAL_MARGIN, ALLOW_SHIFT);
+    rc = growLocalSpace__LD(LOCAL_MARGIN, ALLOW_SHIFT PASS_LD);
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { rc = raiseStackOverflow(rc);
@@ -1688,6 +1691,13 @@ retry_continue:
 
     if ( is_signalled(PASS_LD1) )
     { SAVE_REGISTERS(qid);
+      DEF = getProcDefinedDefinition(DEF PASS_LD); /* see (*) above */
+      LOAD_REGISTERS(qid);
+      if ( FR->predicate != DEF )		/* auto imported/loaded */
+      { FR->predicate = DEF;
+	setGenerationFrame(FR, global_generation());
+      }
+      SAVE_REGISTERS(qid);
       handleSignals(PASS_LD1);
       LOAD_REGISTERS(qid);
       if ( exception_term )
@@ -1803,6 +1813,8 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
       LOAD_REGISTERS(qid);
       lTop = LD->query->next_environment;
       LD->query->next_environment = NULL;
+      if ( exception_term )
+	THROW_EXCEPTION;
     }
 
     FR->clause = NULL;			/* for save atom-gc */
@@ -1947,6 +1959,8 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   { SAVE_REGISTERS(qid);
     frameFinished(leave, FINISH_EXIT PASS_LD);
     LOAD_REGISTERS(qid);
+    if ( exception_term )
+      THROW_EXCEPTION;
   }
 
   NEXT_INSTRUCTION;
@@ -2189,7 +2203,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
   { int rc;
 
     SAVE_REGISTERS(qid);
-    rc = ensureLocalSpace(sizeof(*ch), ALLOW_SHIFT);
+    rc = growLocalSpace__LD(sizeof(*ch), ALLOW_SHIFT PASS_LD);
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
@@ -2224,7 +2238,6 @@ VMI(C_IFTHEN, 0, 1, (CA1_CHP))
   NEXT_INSTRUCTION;
 }
 
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_IFTHENELSE: contraction of C_IFTHEN and C_OR.  This contraction has been
 made to help the decompiler distinguis between (a ; b) -> c and a -> b ;
@@ -2242,6 +2255,32 @@ VMI(C_IFTHENELSE, 0, 2, (CA1_CHP,CA1_JUMP))
 { varFrame(FR, *PC++) = consTermRef(BFR); /* == C_IFTHEN */
 
   VMI_GOTO(C_OR);
+}
+
+VMI(C_FASTCOND, 0, 2, (CA1_CHP,CA1_JUMP))
+{ size_t skip;
+
+#ifdef O_DEBUGGER
+  if ( unlikely(debugstatus.debugging) )
+    VMI_GOTO(C_IFTHENELSE);
+#endif
+
+  varFrame(FR, *PC++) = consTermRef(BFR); /* == C_IFTHEN */
+  skip = *PC++;
+  LD->fast_condition = PC+skip;
+  NEXT_INSTRUCTION;
+}
+
+VMI(C_FASTCUT, 0, 1, (CA1_CHP))
+{
+#ifdef O_DEBUGGER
+  if ( unlikely(debugstatus.debugging) )
+    VMI_GOTO(C_CUT);
+#endif
+
+  PC++;
+  LD->fast_condition = NULL;
+  NEXT_INSTRUCTION;
 }
 
 
@@ -2594,7 +2633,7 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
   deRef(p);
   if ( canBind(*p) )
     NEXT_INSTRUCTION;
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 
@@ -2614,7 +2653,64 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
   deRef(p);
   if ( !canBind(*p) )
     NEXT_INSTRUCTION;
-  BODY_FAILED;
+  FASTCOND_FAILED;
+}
+
+/** integer(@Term), atom(@Term), etc.
+*/
+
+#define isCallableLD(t) isCallable(t PASS_LD)
+
+#ifdef O_DEBUGGER
+#define TYPE_TEST(functor, test)           \
+	p = varFrameP(FR, (int)*PC++);     \
+	deRef(p);                          \
+        if ( test(*p) )			   \
+          NEXT_INSTRUCTION;                \
+	FASTCOND_FAILED;
+#else
+#define TYPE_TEST(functor, test)		\
+	p = varFrameP(FR, (int)*PC++);		\
+	if ( unlikely(debugstatus.debugging) )	\
+        { fpred = functor;			\
+	  goto debug_pred1;			\
+	}					\
+	deRef(p);				\
+        if ( test(*p) )				\
+          NEXT_INSTRUCTION;			\
+	FASTCOND_FAILED;
+#endif
+
+VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_integer1, isInteger);
+}
+
+VMI(I_FLOAT, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_float1, isFloat);
+}
+
+VMI(I_NUMBER, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_number1, isNumber);
+}
+
+VMI(I_ATOMIC, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_atomic1, isAtomic);
+}
+
+VMI(I_ATOM, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_atom1, isTextAtom);
+}
+
+VMI(I_STRING, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_string1, isString);
+}
+
+VMI(I_COMPOUND, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_compound1, isTerm);
+}
+
+VMI(I_CALLABLE, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_callable1, isCallableLD);
 }
 
 END_SHAREDVARS
@@ -2695,16 +2791,18 @@ VMI(S_UNDEF, 0, 0, ())
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
       SAVE_REGISTERS(qid);
       if ( (fid = PL_open_foreign_frame()) )
-      { term_t pred = PL_new_term_ref();
+      { term_t pred;
+	int rc;
 
-	if ( !unify_definition(MODULE_user, pred, DEF, 0, GP_NAMEARITY) )
-	{ printMessage(ATOM_warning,
-		       PL_FUNCTOR, FUNCTOR_error2,
-		         PL_FUNCTOR, FUNCTOR_existence_error2,
-		           PL_ATOM, ATOM_procedure,
-		           PL_TERM, pred,
-			 PL_VARIABLE);
-	}
+	rc = ( (pred=PL_new_term_ref()) &&
+	       unify_definition(MODULE_user, pred, DEF, 0, GP_NAMEARITY) &&
+	       printMessage(ATOM_warning,
+			    PL_FUNCTOR, FUNCTOR_error2,
+			      PL_FUNCTOR, FUNCTOR_existence_error2,
+			        PL_ATOM, ATOM_procedure,
+			        PL_TERM, pred,
+			      PL_VARIABLE) );
+	(void)rc;			/* checking for exception term below */
 	PL_close_foreign_frame(fid);
       }
       if ( exception_term )
@@ -3408,7 +3506,7 @@ a_cmp_out:
   AR_END();
   if ( rc )
     NEXT_INSTRUCTION;
-  BODY_FAILED;
+  FASTCOND_FAILED;
 }
 
 VMI(A_LE, VIF_BREAK, 0, ())		/* A =< B */
@@ -4183,6 +4281,7 @@ VMI(B_THROW, 0, 0, ())
   THROW_EXCEPTION;				/* sets origin */
 
 b_throw:
+  LD->fast_condition = NULL;		/* A_FUNC exceptions */
   rewritten = 0;
   QF  = QueryFromQid(qid);
   aTop = QF->aSave;
@@ -4267,23 +4366,24 @@ again:
     LOAD_REGISTERS(qid);
 
     if ( !rc )					/* uncaught exception */
-    { atom_t a;
-
-      SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(qid);
       if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
       { debugmode(TRUE, NULL);
 	if ( !trace_if_space() )		/* see (*) */
 	{ start_tracer = TRUE;
 	} else
-	{ trimStacks(FALSE PASS_LD);		/* restore spare stacks */
-	  printMessage(ATOM_error, PL_TERM, exception_term);
+	{ int rc;
+	  trimStacks(FALSE PASS_LD);		/* restore spare stacks */
+	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
+	  (void)rc;
 	  PL_put_term(exception_printed, exception_term);
 	}
-      } else if ( !(PL_get_atom(exception_term, &a) && a == ATOM_aborted) )
-      { printMessage(ATOM_error,
-		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		       PL_TERM, exception_term);
+      } else if ( classify_exception(exception_term) != EXCEPT_ABORT )
+      { int rc = printMessage(ATOM_error,
+			      PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+			        PL_TERM, exception_term);
+	(void)rc;
 	PL_put_term(exception_printed, exception_term);
       }
       LOAD_REGISTERS(qid);
@@ -4383,11 +4483,13 @@ again:
 			  spaceStack(trail)));
 
 	if ( trace_if_space() )
-	{ start_tracer = FALSE;
+	{ int rc;
+	  start_tracer = FALSE;
 	  SAVE_REGISTERS(qid);
 	  LD->critical++;		/* do not handle signals */
 	  trimStacks(FALSE PASS_LD);
-	  printMessage(ATOM_error, PL_TERM, exception_term);
+	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
+	  (void)rc;
 	  LD->critical--;
 	  LOAD_REGISTERS(qid);
 	}
@@ -4682,7 +4784,7 @@ undefined predicate for call/N.
 
 	lTop = (LocalFrame)argFrameP(NFR, 1);
 	SAVE_REGISTERS(qid);
-	rc = ensureLocalSpace(room*2, ALLOW_SHIFT);
+	rc = growLocalSpace__LD(room*2, ALLOW_SHIFT PASS_LD);
 	LOAD_REGISTERS(qid);
 	lTop = (LocalFrame)valTermRef(lTopH);
 	if ( rc != TRUE )
@@ -4853,4 +4955,53 @@ mcall_cont:
 
   goto normal_call;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+reset(:Goal, ?Ball, -Continuation) :-
+    '$reset'.
+
+Where '$reset' maps to
+
+    I_RESET
+    I_EXITRESET
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_RESET, 0, 0, ())
+{ set(FR, FR_INRESET);
+			  /* = B_VAR0 */
+  *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
+  VMI_GOTO(I_USERCALL0);
+}
+
+
+VMI(I_EXITRESET, 0, 0, ())
+{ Word p = argFrameP(FR, 2);
+
+  deRef(p);
+  if ( canBind(*p) )
+  { if ( !hasGlobalSpace(0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(0, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	THROW_EXCEPTION;
+      }
+
+      p = argFrameP(FR, 2);
+      deRef(p);
+    }
+    bindConst(p, consInt(0));
+    NEXT_INSTRUCTION;
+  } else
+  { PL_uninstantiation_error(pushWordAsTermRef(p));
+    popTermRef();
+    THROW_EXCEPTION;
+  }
+}
+
 END_SHAREDVARS

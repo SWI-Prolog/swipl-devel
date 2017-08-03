@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1018,10 +1018,11 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	      PL_write_term(Serror, goal, 1200, PL_WRT_NEWLINE));
 	if ( !skip )
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
-	  { printMessage(ATOM_warning,
-			 PL_FUNCTOR_CHARS, "goal_failed", 2,
-			   PL_CHARS, "directive",
-			   PL_TERM, goal);
+	  { if ( !printMessage(ATOM_warning,
+			       PL_FUNCTOR_CHARS, "goal_failed", 2,
+			         PL_CHARS, "directive",
+			         PL_TERM, goal) )
+	      PL_clear_exception();
 	  }
 	}
 	PL_discard_foreign_frame(cid);
@@ -1088,9 +1089,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   if ( !skip && state->currentSource )
   { if ( def->impl.any )
     { if ( !redefineProcedure(proc, state->currentSource, DISCONTIGUOUS_STYLE) )
-      { printMessage(ATOM_error, exception_term);
-	exception_term = 0;
-	setVar(*valTermRef(exception_bin));
+      { int rc = printMessage(ATOM_error, exception_term);
+	(void)rc;
+	PL_clear_exception();
 	skip = TRUE;
       }
     }
@@ -3301,10 +3302,11 @@ qlfCleanup(void)
 
   while ( (state=LD->qlf.current_state) )
   { if ( state->mkWicFile )
-    { printMessage(ATOM_warning,
-		   PL_FUNCTOR_CHARS, "qlf", 1,
-		     PL_FUNCTOR_CHARS, "removed_after_error", 1,
-		       PL_CHARS, state->mkWicFile);
+    { if ( !printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "qlf", 1,
+			   PL_FUNCTOR_CHARS, "removed_after_error", 1,
+			     PL_CHARS, state->mkWicFile) )
+	PL_clear_exception();
       RemoveFile(state->mkWicFile);
       remove_string(state->mkWicFile);
       state->mkWicFile = NULL;
