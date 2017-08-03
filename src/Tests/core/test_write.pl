@@ -137,7 +137,7 @@ test(nan) :-
 	atom_number(F, Float),
 	(   Float =:= 1.5
 	->  true
-	;   abs(Float-1.5) < 0.00001
+	;   abs(abs(Float)-1.5) < 0.00001
 	->  print_message(warning, write(nan, X))
 	;   fail
 	).

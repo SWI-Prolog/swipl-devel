@@ -1152,7 +1152,7 @@ PRED_IMPL("trie_lookup", 3, trie_lookup, 0)
 
     if ( (rc=trie_lookup(trie, &node, kp, FALSE PASS_LD)) == TRUE )
     { if ( node->value )
-	return _PL_unify_atomic(A3, node->value);
+	return unify_value(A3, node->value PASS_LD);
       return FALSE;
     }
 

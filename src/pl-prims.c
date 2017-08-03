@@ -1686,6 +1686,8 @@ compare_primitives(Word p1, Word p2, int eq ARG_LD)
     case TAG_FLOAT:
     { if ( equalIndirect(w1,w2) )
       { return CMP_EQUAL;
+      } else if ( eq )
+      { return CMP_NOTEQ;
       } else
       { double f1 = valFloat(w1);
 	double f2 = valFloat(w2);
