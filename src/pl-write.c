@@ -906,14 +906,21 @@ i.e. its actual value is 1.<the 52 bits   actually  stored>, so with a 0
 exponent the value of the resulting number is always >= 1 and < 2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *
-writeNaN(double f, char *buf)
+double
+NaN_value(double f)
 { union ieee754_double u;
 
   u.d = f;
   assert(u.ieee.exponent == 0x7ff);	/* NaN exponent */
-  u.ieee.exponent = 0x3ff;		/* see above */
-  format_float(u.d, buf);
+  u.ieee.exponent = 0x3ff;
+
+  return u.d;
+}
+
+
+static char *
+writeNaN(double f, char *buf)
+{ format_float(NaN_value(f), buf);
   strcat(buf, "NaN");
   return buf;
 }

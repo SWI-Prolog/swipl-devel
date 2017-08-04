@@ -708,6 +708,7 @@ COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
 COMMON(char *)		format_float(double f, char *buf);
 COMMON(int)		unquoted_atom(atom_t a);
 COMMON(strnumstat)	make_nan(double *f);
+COMMON(double)		NaN_value(double f);
 
 /* pl-term.c */
 COMMON(void)		cleanupTerm(void);
