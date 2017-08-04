@@ -2491,6 +2491,14 @@ float_tag(cucharp in, cucharp tag)
 }
 
 
+static int
+starts_1dot(cucharp s)
+{ if ( s[0] == '-' )
+    s++;
+  return (s[0] == '1' && s[1] == '.');
+}
+
+
 static strnumstat
 special_float(cucharp *in, cucharp start, Number value)
 { cucharp s;
@@ -2501,7 +2509,7 @@ special_float(cucharp *in, cucharp start, Number value)
     else
       value->value.f = strtod("Inf", NULL);
   } else if ( (s=float_tag(*in, (cucharp)"NaN")) &&
-	      start[0] == '1' && start[1] == '.' )
+	      starts_1dot(start) )
   { char *e;
     double f = strtod((char*)start, &e);
 
