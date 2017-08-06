@@ -119,6 +119,11 @@ fi
 # GMP.
 # export CIFLAGS='-I/usr/local/include'
 
+# [EDIT] Open OpenBSD, the following are needed to fetch the required
+# non-default dependencies:
+# export CIFLAGS="-I/usr/local/include"
+# export LDFLAGS="-O2 -g -L/usr/local/lib"
+
 export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 
 ################################################################
