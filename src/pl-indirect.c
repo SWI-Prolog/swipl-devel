@@ -345,8 +345,9 @@ rehash_indirect_table(indirect_table *tab)
 
 	if ( INDIRECT_IS_VALID(a->references) )
 	{ size_t sz = wsizeofInd(a->header);
-	  unsigned int v = MurmurHashAligned2(a->data, sz, MURMUR_SEED) & mask;
+	  unsigned int v;
 
+	  v = MurmurHashAligned2(a->data, sz*sizeof(word), MURMUR_SEED) & mask;
 	  a->next = newtab->buckets[v];
 	  newtab->buckets[v] = a;
 	}
