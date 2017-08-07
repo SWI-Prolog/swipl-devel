@@ -394,7 +394,6 @@ DECL_PLIST(locale);
 DECL_PLIST(dict);
 DECL_PLIST(cont);
 DECL_PLIST(trie);
-DECL_PLIST(indirect);
 DECL_PLIST(tabling);
 DECL_PLIST(mutex);
 
@@ -460,7 +459,6 @@ initBuildIns(void)
   REG_PLIST(dict);
   REG_PLIST(cont);
   REG_PLIST(trie);
-  REG_PLIST(indirect);
   REG_PLIST(tabling);
   REG_PLIST(mutex);
 
