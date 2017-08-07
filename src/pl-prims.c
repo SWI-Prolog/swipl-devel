@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1691,6 +1691,26 @@ compare_primitives(Word p1, Word p2, int eq ARG_LD)
       } else
       { double f1 = valFloat(w1);
 	double f2 = valFloat(w2);
+
+	if ( isnan(f1) )
+	{ if ( isnan(f2) )
+	  { double nf1 = NaN_value(f1);
+	    double nf2 = NaN_value(f2);
+
+	    if ( nf1 < nf2 )
+	    { return CMP_LESS;
+	    } else if ( nf1 > nf2 )
+	    { return CMP_GREATER;
+	    } else if ( signbit(nf1) != signbit(nf2) )
+	    { return signbit(nf1) ? CMP_LESS : CMP_GREATER;
+	    } else
+	    { return CMP_EQUAL;
+	    }
+	  }
+	  return CMP_LESS;
+	} else if ( isnan(f2) )
+	{ return CMP_GREATER;
+	}
 
 	if ( f1 < f2 )
 	{ return CMP_LESS;
