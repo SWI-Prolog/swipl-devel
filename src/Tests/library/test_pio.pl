@@ -48,6 +48,14 @@ seq([E|Es]) -->
 	[E],
 	seq(Es).
 
+get_all(Codes) -->
+    seq(Codes),
+    (   \+ [_]
+    ;   { \+ ground(Codes) }
+    ),
+    !.
+
+
 cfc(Content,Tmp) :-
 	tmp_file(plunit_pio,Tmp),
 	open(Tmp,write,Out),
@@ -88,6 +96,25 @@ test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)), fail ]) :-
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)), nondet ]) :-
 	phrase_from_file((seq(Seq),...,seq(Seq)), ABA),
 	Seq = [_|_].
+
+test(abc_nodebug, [ Codes == `abc`,
+		    setup(cfc("abc",ABC)), cleanup(df(ABC))
+		  ]) :-
+	setup_call_cleanup(
+	    (	current_prolog_flag(debug, Old),
+		set_prolog_flag(debug, false)
+	    ),
+	    phrase_from_file(get_all(Codes), ABC),
+	    set_prolog_flag(debug, Old)).
+test(abc_debug, [ Codes == `abc`,
+		  setup(cfc("abc",ABC)), cleanup(df(ABC))
+		]) :-
+	setup_call_cleanup(
+	    (	current_prolog_flag(debug, Old),
+		set_prolog_flag(debug, true)
+	    ),
+	    phrase_from_file(get_all(Codes), ABC),
+	    set_prolog_flag(debug, Old)).
 
 
 :- end_tests(phrase_from_file).
