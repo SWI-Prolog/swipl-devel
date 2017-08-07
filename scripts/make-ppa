@@ -7,7 +7,8 @@
 
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
-TARGET_DISTRO=xenial
+TARGET_DISTRO=none
+distros="trusty xenial zesty"
 build=true
 buildbin=false
 push=false
@@ -18,7 +19,7 @@ usage()
 { cat << EOM
 Usage: $(basename $program) [option ...]
 Options:
-    --distro=Distro [default: $TARGET_DISTRO]
+    --distro=Distro
       Set the target distribution
     --no-build
       Only create the ppa directory, do not build a source deb
@@ -80,10 +81,24 @@ fi
 
 # Avoid typos ...
 case $TARGET_DISTRO in
-  trusty|xenial|yakkety|zesty)
+  trusty|xenial|zesty)
     ;;
-  *) echo "Unsupported target distro ($TARGET_DISTRO)"
-     exit 1
+  none)
+    echo "Known distros: $distros"
+    exit 1
+    ;;
+  *)
+    distrook=false
+    for d in $distros; do
+      if [ $d = $TARGET_DISTRO ]; then
+	distrook=true;
+      fi
+    done
+    if [ $distrook != true ]; then
+      echo "ERROR: Unknown target distro ($TARGET_DISTRO)"
+      echo "Known distros: $distros"
+      exit 1
+    fi
 esac
 
 gitd="$(git describe $VTAG)"
