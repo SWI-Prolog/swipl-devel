@@ -194,9 +194,6 @@ Note that threads can mark their atoms and continue execution because:
       AGC is running, we are ok, because this is merely the same issue
       as atoms living on the stack.  TBD: redesign the structures such
       that they can safely be walked.
-
-JW: I think we can reduce locking for AGC further.
-  - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int	rehashAtoms(void);
@@ -488,12 +485,13 @@ pick up the request and process it.
 PL_handle_signals() decides on the actual invocation of atom-gc and will
 treat the signal as bogus if agc has already been performed.
 
-(**) Without this check,  some  threads   may  pass  the PL_LOCK(L_ATOM)
-around rehashAtoms() and create their atom.   If they manage to register
-the atom in the old table before   rehashAtoms() activates the new table
-the insertion is successful, but rehashAtoms()   may  not have moved the
-atom to the new table. Now we  will   repeat  if we bypassed the LOCK as
-either GD->atoms.rehashing is TRUE or the new table is activated.
+(**)   Without   this    check,    some     threads    may    pass   the
+PL_LOCK(L_REHASH_ATOMS) around rehashAtoms() and create   their atom. If
+they manage to register the atom in   the old table before rehashAtoms()
+activates the new table the insertion   is successful, but rehashAtoms()
+may not have moved the atom to the new   table. Now we will repeat if we
+bypassed the LOCK as either GD->atoms.rehashing is TRUE or the new table
+is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
@@ -564,9 +562,9 @@ redo:
   if ( GD->atoms.table->buckets * 2 < GD->statistics.atoms )
   { int rc;
 
-    PL_LOCK(L_ATOM);
+    PL_LOCK(L_REHASH_ATOMS);
     rc = rehashAtoms();
-    PL_UNLOCK(L_ATOM);
+    PL_UNLOCK(L_REHASH_ATOMS);
 
     if ( !rc )
       outOfCore();
@@ -1036,7 +1034,7 @@ pl_garbage_collect_atoms(void)
     }
   }
 
-  PL_LOCK(L_ATOM);
+  PL_LOCK(L_REHASH_ATOMS);
   blockSignals(&set);
   t = CpuTime(CPU_USER);
   unmarkAtoms();
@@ -1053,7 +1051,7 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
   unblockSignals(&set);
-  PL_UNLOCK(L_ATOM);
+  PL_UNLOCK(L_REHASH_ATOMS);
 
   if ( verbose )
     rc = printMessage(ATOM_informational,
