@@ -200,7 +200,6 @@ Note that threads can mark their atoms and continue execution because:
       that they can safely be walked.
 
 JW: I think we can reduce locking for AGC further.
-  - L_AGC is only used for syncing with current_blob().
   - Why is L_ATOM needed?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1074,7 +1073,6 @@ pl_garbage_collect_atoms(void)
     }
   }
 
-  PL_LOCK(L_AGC);
   PL_LOCK(L_ATOM);
   blockSignals(&set);
   t = CpuTime(CPU_USER);
@@ -1093,7 +1091,6 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc++;
   unblockSignals(&set);
   PL_UNLOCK(L_ATOM);
-  PL_UNLOCK(L_AGC);
 
   if ( verbose )
     rc = printMessage(ATOM_informational,
@@ -1247,9 +1244,6 @@ PL_unregister_atom(atom_t a)
   }
 #endif
 }
-
-#define PL_register_atom error		/* prevent using them after this */
-#define PL_unregister_atom error
 
 
 		 /*******************************
@@ -1656,10 +1650,9 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
   if ( type )
   { if ( !PL_is_variable(type) &&
 	 !PL_get_atom_ex(type, &type_name) )
-      fail;
+      return FALSE;
   }
 
-  PL_LOCK(L_AGC);
   for(i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
     Atom b = GD->atoms.array.blocks[i];
@@ -1671,30 +1664,40 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
 
     for(; index<upto; index++)
     { Atom atom = b + index;
+      unsigned int refs = atom->references;
+      PL_blob_t *btype = atom->type;
+      int rc;
 
-      if ( ATOM_IS_VALID(atom->references) )
+      if ( ATOM_IS_VALID(refs) && btype &&
+	   (!type_name || type_name == btype->atom_name) &&
+	   bump_atom_references(atom, refs) )
       { DEBUG(CHK_SECURE,	/* avoid trap through linkVal__LD() check */
 	      if ( atom->atom == ATOM_garbage_collected )
-	        continue;);
+	      { PL_unregister_atom(atom->atom);
+	        continue;
+	      });
 
 	if ( type )
-	{ if ( type_name && type_name != atom->type->atom_name )
-	    continue;
-
-	  if ( !PL_unify_atom(type, atom->type->atom_name) )
-	    goto error;
-	} else if ( false(atom->type, PL_BLOB_TEXT) )
+	{ if ( !type_name )
+	  { if ( !PL_unify_atom(type, btype->atom_name) )
+	    { PL_unregister_atom(atom->atom);
+	      return FALSE;
+	    }
+	  }
+	} else if ( false(btype, PL_BLOB_TEXT) )
+	{ PL_unregister_atom(atom->atom);
 	  continue;
+	}
 
-	if ( !PL_unify_atom(a, atom->atom) )
-	  goto error;
-	PL_UNLOCK(L_AGC);
-	ForeignRedoInt(index+1);
+	rc = PL_unify_atom(a, atom->atom);
+	PL_unregister_atom(atom->atom);
+	if ( rc )
+	  ForeignRedoInt(index+1);
+	else
+	  return rc;
       }
     }
   }
-error:
-  PL_UNLOCK(L_AGC);
 
   return FALSE;
 }
