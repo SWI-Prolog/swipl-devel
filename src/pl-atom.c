@@ -1055,6 +1055,7 @@ pl_garbage_collect_atoms(void)
   double t;
   sigset_t set;
   size_t reclaimed;
+  int rc = TRUE;
 
   if ( GD->cleaning != CLN_NORMAL )	/* Cleaning up */
     return TRUE;
@@ -1093,16 +1094,16 @@ pl_garbage_collect_atoms(void)
   PL_UNLOCK(L_AGC);
 
   if ( verbose )
-    return printMessage(ATOM_informational,
-		        PL_FUNCTOR_CHARS, "agc", 1,
-			  PL_FUNCTOR_CHARS, "done", 3,
-			    PL_INT64, GD->atoms.collected - oldcollected,
-			    PL_INT, GD->statistics.atoms,
-			    PL_DOUBLE, (double)t);
+    rc = printMessage(ATOM_informational,
+		      PL_FUNCTOR_CHARS, "agc", 1,
+		        PL_FUNCTOR_CHARS, "done", 3,
+		          PL_INT64, GD->atoms.collected - oldcollected,
+		          PL_INT, GD->statistics.atoms,
+		          PL_DOUBLE, (double)t);
 
   GD->atoms.gc_active = FALSE;
 
-  return TRUE;
+  return rc;
 }
 
 
