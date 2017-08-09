@@ -1633,7 +1633,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
       { if ( type )
 	  return PL_unify_atom(type, bt->atom_name);
 	else if ( false(bt, PL_BLOB_TEXT) )
-	  fail;
+	  return FALSE;
 
 	succeed;
       }
@@ -1648,7 +1648,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
       break;
     case FRG_CUTTED:
     default:
-      succeed;
+      return TRUE;
   }
 
   if ( type )
@@ -1670,22 +1670,28 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
     for(; index<upto; index++)
     { Atom atom = b + index;
 
-      if ( ATOM_IS_VALID(atom->references) &&
-	   atom->atom != ATOM_garbage_collected )
-      { if ( type )
+      if ( ATOM_IS_VALID(atom->references) )
+      { DEBUG(CHK_SECURE,	/* avoid trap through linkVal__LD() check */
+	      if ( atom->atom == ATOM_garbage_collected )
+	        continue;);
+
+	if ( type )
 	{ if ( type_name && type_name != atom->type->atom_name )
 	    continue;
 
-	  PL_unify_atom(type, atom->type->atom_name);
+	  if ( !PL_unify_atom(type, atom->type->atom_name) )
+	    goto error;
 	} else if ( false(atom->type, PL_BLOB_TEXT) )
 	  continue;
 
-	PL_unify_atom(a, atom->atom);
+	if ( !PL_unify_atom(a, atom->atom) )
+	  goto error;
 	PL_UNLOCK(L_AGC);
 	ForeignRedoInt(index+1);
       }
     }
   }
+error:
   PL_UNLOCK(L_AGC);
 
   return FALSE;
