@@ -492,6 +492,22 @@ atom to the new table. Now we  will   repeat  if we bypassed the LOCK as
 either GD->atoms.rehashing is TRUE or the new table is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline int
+bump_atom_references(Atom a, unsigned int ref)
+{ for(;;)
+  { if ( COMPARE_AND_SWAP(&a->references, ref, ref+1) )
+    { if ( ATOM_REF_COUNT(ref) == 0 )
+	ATOMIC_DEC(&GD->atoms.unregistered);
+      return TRUE;
+    } else
+    { ref = a->references;
+      if ( !ATOM_IS_VALID(ref) )
+	return FALSE;
+    }
+  }
+}
+
+
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 { GET_LD
@@ -527,15 +543,8 @@ redo:
 	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
 	  {
 #ifdef ATOMIC_REFERENCES
-	  redo_refbump1:
-	    if ( !COMPARE_AND_SWAP(&a->references, ref, ref+1) )
-	    { ref = a->references;
-	      if ( !ATOM_IS_VALID(ref) )
-	        continue;
-	      goto redo_refbump1;
-	    }
-	    if ( ATOM_REF_COUNT(ref+1) == 1 )
-	      ATOMIC_DEC(&GD->atoms.unregistered);
+	    if ( !likely(bump_atom_references(a, ref)) )
+	      continue;
 #else
 	    if ( ATOM_REF_COUNT(++a->references) == 1 )
 	      GD->atoms.unregistered--;
@@ -560,15 +569,8 @@ redo:
 	{
 #ifdef O_ATOMGC
 #ifdef ATOMIC_REFERENCES
-	redo_refbump2:
-	  if ( !COMPARE_AND_SWAP(&a->references, ref, ref+1) )
-	  { ref = a->references;
-	    if ( !ATOM_IS_VALID(ref) )
-	      continue;
-	    goto redo_refbump2;
-	  }
-	  if ( ATOM_REF_COUNT(ref+1) == 1 )
-	    ATOMIC_DEC(&GD->atoms.unregistered);
+	  if ( !likely(bump_atom_references(a, ref)) )
+	    continue;
 #else
 	  if ( ATOM_REF_COUNT(a->references++) == 0 )
 	    GD->atoms.unregistered--;
