@@ -178,14 +178,8 @@ Note that threads can mark their atoms and continue execution because:
 
   - If a marked atom is no longer needed it is merely not reclaimed this
     time (but might be in the next collection).
-  - If a new atom is referenced from the stack it is either a
-    - builtin atom (no problem)
-    - an atom from a structure using reference counting (is referenced
-      by this structure, so no problem, unless the reference count drops
-      to zero in PL_unregister_atom().  See PL_unregister_atom() for
-      handling the no-locking case.
-    - It is created.  This case blocks on L_ATOM being locked from
-      lookupBlob().
+  - New atoms are added to the stacks using pushVolatileAtom(), which
+    marks the atom if AGC is active.
   - Finally, message queues and bags as used by findall/3 complicate
     the issue.  An atom sent to these structures subsequently may
     become inaccessible from the stack (the normal case for findall/3,
