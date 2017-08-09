@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2011, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -41,9 +41,6 @@
 #define bool pl_bool			/* avoid conflict with curses */
 #include "pl-incl.h"
 #undef bool
-
-#define LOCK()   PL_LOCK(L_TERM)
-#define UNLOCK() PL_UNLOCK(L_TERM)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines some hacks to get to the unix  termcap  library.   I
@@ -177,7 +174,7 @@ lookupEntry(atom_t name, atom_t type)
 { GET_LD
   Entry e;
 
-  LOCK();
+  PL_LOCK(L_TERM);
   if ( !capabilities ||
        !(e = lookupHTable(capabilities, (void*)name)) )
   { if ( !initTerm() )
@@ -218,7 +215,7 @@ lookupEntry(atom_t name, atom_t type)
   }
 
 out:
-  UNLOCK();
+  PL_UNLOCK(L_TERM);
   return e;
 }
 

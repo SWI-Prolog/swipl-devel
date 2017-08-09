@@ -37,9 +37,6 @@
 #include "pl-incl.h"
 #include "pl-thread.h"
 
-#define LOCK()   PL_LOCK(L_UMUTEX)
-#define UNLOCK() PL_UNLOCK(L_UMUTEX)
-
 #undef LD
 #define LD LOCAL_LD
 
@@ -251,9 +248,9 @@ static
 PRED_IMPL("mutex_create", 1, mutex_create1, 0)
 { int rval;
 
-  LOCK();
+  PL_LOCK(L_UMUTEX);
   rval = (unlocked_pl_mutex_create(A1) ? TRUE : FALSE);
-  UNLOCK();
+  PL_UNLOCK(L_UMUTEX);
 
   return rval;
 }
@@ -281,9 +278,9 @@ PRED_IMPL("mutex_create", 2, mutex_create2, 0)
       return PL_error("mutex_create", 2, NULL, ERR_UNINSTANTIATION, 1, A1);
   }
 
-  LOCK();
+  PL_LOCK(L_UMUTEX);
   rval = (unlocked_pl_mutex_create(A1) ? TRUE : FALSE);
-  UNLOCK();
+  PL_UNLOCK(L_UMUTEX);
 
   return rval;
 }
@@ -313,7 +310,7 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
     return FALSE;
   }
 
-  LOCK();
+  PL_LOCK(L_UMUTEX);
   if ( GD->thread.mutexTable &&
        (m = lookupHTable(GD->thread.mutexTable, (void *)id)) )
   { ;
@@ -322,7 +319,7 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
   } else
   { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_mutex, t);
   }
-  UNLOCK();
+  PL_UNLOCK(L_UMUTEX);
 
 out:
   if ( m )
@@ -429,9 +426,9 @@ PRED_IMPL("mutex_unlock", 1, mutex_unlock, 0)
 
   if ( PL_mutex_unlock(m) )
   { if ( m->auto_destroy )
-    { LOCK();
+    { PL_LOCK(L_UMUTEX);
       try_really_destroy_mutex(m);
-      UNLOCK();
+      PL_UNLOCK(L_UMUTEX);
     }
 
     return TRUE;
@@ -491,10 +488,10 @@ PRED_IMPL("mutex_destroy", 1, mutex_destroy, 0)
   if ( !get_mutex(A1, &m, FALSE) )
     return FALSE;
 
-  LOCK();
+  PL_LOCK(L_UMUTEX);
   if ( !try_really_destroy_mutex(m) )
     m->auto_destroy = TRUE;
-  UNLOCK();
+  PL_UNLOCK(L_UMUTEX);
 
   return TRUE;
 }

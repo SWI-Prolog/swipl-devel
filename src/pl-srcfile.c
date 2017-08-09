@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2016, VU University Amsterdam
+    Copyright (c)  2014-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,6 @@ of procedures that are defined by it.  Source files are identified by an
 unsigned int, which is registered with clauses and procedures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOCK()   PL_LOCK(L_SRCFILE)
-#define UNLOCK() PL_UNLOCK(L_SRCFILE)
 #undef LD
 #define LD LOCAL_LD
 
@@ -228,7 +226,7 @@ destroySourceFile(SourceFile sf)
 
   clearSourceAdmin(sf);
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   if ( sf->magic == SF_MAGIC )
   { SourceFile f;
 
@@ -240,7 +238,7 @@ destroySourceFile(SourceFile sf)
     if ( GD->files.no_hole_before > sf->index )
       GD->files.no_hole_before = sf->index;
   }
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   unallocSourceFile(sf);
 
@@ -286,9 +284,9 @@ SourceFile
 lookupSourceFile(atom_t name, int create)
 { SourceFile sf;
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   sf = lookupSourceFile_unlocked(name, create);
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   return sf;
 }
@@ -465,7 +463,7 @@ static
 PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
 { int i, n;
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   n = highSourceFileIndex();
   for(i=1; i<n; i++)
   { SourceFile f = indexToSourceFile(i);
@@ -473,7 +471,7 @@ PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
     if ( f )
       f->system = TRUE;
   }
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   return TRUE;
 }
@@ -513,7 +511,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
 
   term_t file = A1;
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   if ( PL_get_atom_ex(file, &name) &&
        (sf = lookupSourceFile_unlocked(name, FALSE)) &&
        sf->count > 0 )
@@ -534,7 +532,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
     UNLOCKSRCFILE(sf);
   } else
     rc = FALSE;
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   return rc;
 }

@@ -44,9 +44,6 @@
 
 #include <locale.h>
 
-#define LOCK()   PL_LOCK(L_LOCALE)	/* MT locking */
-#define UNLOCK() PL_UNLOCK(L_LOCALE)
-
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
@@ -172,7 +169,7 @@ alias_locale(PL_locale *l, atom_t alias)
 { GET_LD
   int rc;
 
-  LOCK();
+  PL_LOCK(L_LOCALE);
 
   if ( !GD->locale.localeTable )
     GD->locale.localeTable = newHTable(16);
@@ -191,7 +188,7 @@ alias_locale(PL_locale *l, atom_t alias)
     PL_register_atom(alias);
     rc = TRUE;
   }
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 
   return rc;
 }
@@ -229,12 +226,12 @@ static int
 release_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  LOCK();
+  PL_LOCK(L_LOCALE);
   if ( ref->data->references == 0 )
     free_locale(ref->data);
   else
     ref->data->symbol = 0;
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 
   return TRUE;
 }
@@ -675,12 +672,12 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
   if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|REP_MB) )
   { const char *old;
 
-    LOCK();
+    PL_LOCK(L_LOCALE);
     if ( (old=setlocale(LC_NUMERIC, lname)) )
     { new = new_locale(NULL);
       setlocale(LC_NUMERIC, old);
     }
-    UNLOCK();
+    PL_UNLOCK(L_LOCALE);
     if ( !old )
     { if ( errno == ENOENT )
 	return PL_existence_error("locale", A2);
@@ -750,12 +747,12 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
   { if ( l->alias )
     { atom_t alias = l->alias;
 
-      LOCK();
+      PL_LOCK(L_LOCALE);
       if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
 	deleteHTable(GD->locale.localeTable, (void*)alias);
       l->alias = 0;
       PL_unregister_atom(alias);
-      UNLOCK();
+      PL_UNLOCK(L_LOCALE);
     }
 
     releaseLocale(l);
@@ -876,9 +873,9 @@ initStreamLocale(IOSTREAM *s)
 
 PL_locale *
 acquireLocale(PL_locale *l)
-{ LOCK();
+{ PL_LOCK(L_LOCALE);
   l->references++;
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 
   return l;
 }
@@ -886,10 +883,10 @@ acquireLocale(PL_locale *l)
 
 void
 releaseLocale(PL_locale *l)
-{ LOCK();
+{ PL_LOCK(L_LOCALE);
   if ( --l->references == 0 && l->symbol == 0 && l->alias == 0 )
     free_locale(l);
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 }
 
 

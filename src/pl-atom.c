@@ -213,8 +213,6 @@ static int	rehashAtoms(void);
 #define	cmps	GD->atoms.cmps
 #endif
 
-#define LOCK()   PL_LOCK(L_ATOM)
-#define UNLOCK() PL_UNLOCK(L_ATOM)
 #undef LD
 #define LD LOCAL_LD
 
@@ -303,7 +301,7 @@ PL_unregister_blob_type(PL_blob_t *type)
 
   PL_register_blob_type(&unregistered_blob_atom);
 
-  LOCK();
+  PL_LOCK(L_ATOM);
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
     Atom b = GD->atoms.array.blocks[i];
@@ -326,7 +324,7 @@ PL_unregister_blob_type(PL_blob_t *type)
       }
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_ATOM);
 
   return discarded == 0 ? TRUE : FALSE;
 }
@@ -486,12 +484,12 @@ pick up the request and process it.
 PL_handle_signals() decides on the actual invocation of atom-gc and will
 treat the signal as bogus if agc has already been performed.
 
-(**) Without this  check,  some  threads   may  pass  the  LOCK() around
-rehashAtoms() and create their atom. If they manage to register the atom
-in the old table  before  rehashAtoms()   activates  the  new  table the
-insertion is successful, but rehashAtoms() may   not have moved the atom
-to the new table. Now we will repeat   if we bypassed the LOCK as either
-GD->atoms.rehashing is TRUE or the new table is activated.
+(**) Without this check,  some  threads   may  pass  the PL_LOCK(L_ATOM)
+around rehashAtoms() and create their atom.   If they manage to register
+the atom in the old table before   rehashAtoms() activates the new table
+the insertion is successful, but rehashAtoms()   may  not have moved the
+atom to the new table. Now we  will   repeat  if we bypassed the LOCK as
+either GD->atoms.rehashing is TRUE or the new table is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
@@ -588,9 +586,9 @@ redo:
   if ( atomTable->buckets * 2 < GD->statistics.atoms )
   { int rc;
 
-    LOCK();
+    PL_LOCK(L_ATOM);
     rc = rehashAtoms();
-    UNLOCK();
+    PL_UNLOCK(L_ATOM);
 
     if ( !rc )
       outOfCore();
@@ -1074,7 +1072,7 @@ pl_garbage_collect_atoms(void)
   }
 
   PL_LOCK(L_AGC);
-  LOCK();
+  PL_LOCK(L_ATOM);
   blockSignals(&set);
   t = CpuTime(CPU_USER);
   unmarkAtoms();
@@ -1091,7 +1089,7 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
   unblockSignals(&set);
-  UNLOCK();
+  PL_UNLOCK(L_ATOM);
   PL_UNLOCK(L_AGC);
 
   if ( verbose )
@@ -1143,10 +1141,10 @@ register_atom(Atom p)
   if ( (ATOMIC_INC(&p->references) & ATOM_REF_COUNT_MASK) == 1 )
     ATOMIC_DEC(&GD->atoms.unregistered);
 #else
-  LOCK();
+  PL_LOCK(L_ATOM);
   if ( p->references++ == 0 )
     GD->atoms.unregistered--;
-  UNLOCK();
+  PL_UNLOCK(L_ATOM);
 #endif
 }
 
@@ -1234,10 +1232,10 @@ PL_unregister_atom(atom_t a)
 	ATOMIC_INC(&GD->atoms.unregistered);
     }
 #else
-    LOCK();
+    PL_LOCK(L_ATOM);
     if ( (refs=ATOM_REF_COUNT(--p->references)) == 0 )
       GD->atoms.unregistered++;
-    UNLOCK();
+    PL_UNLOCK(L_ATOM);
 #endif
     if ( refs == (unsigned int)-1 )
     { Sdprintf("OOPS: PL_unregister_atom('%s'): -1 references\n", p->name);
@@ -1525,7 +1523,7 @@ exitAtoms(int status, void *context)
 
 void
 initAtoms(void)
-{ LOCK();
+{ PL_LOCK(L_ATOM);
   if ( !atomTable )			/* Atom hash table */
   { atomTable = allocHeapOrHalt(sizeof(*atomTable));
     atomTable->buckets = ATOMHASHSIZE;
@@ -1550,7 +1548,7 @@ initAtoms(void)
 
 
   }
-  UNLOCK();
+  PL_UNLOCK(L_ATOM);
 }
 
 
