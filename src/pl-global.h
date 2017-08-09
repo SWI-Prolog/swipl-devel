@@ -198,12 +198,6 @@ struct PL_global_data
     PL_blob_t  *types;			/* registered atom types */
   } atoms;
 
-#ifdef O_PLMT
-  struct
-  { int		active;			/* #GC active */
-  } gc;
-#endif
-
   struct
   { Table	breakpoints;		/* Breakpoint table */
   } comp;
