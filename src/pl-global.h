@@ -181,14 +181,15 @@ struct PL_global_data
     Atom	builtin_array;		/* Builtin atoms */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
+    int		initialised;		/* atoms have been initialised */
 #ifdef O_ATOMGC
+    int		gc;			/* # atom garbage collections */
     int		gc_active;		/* Atom-GC is in progress */
     int		rehashing;		/* Atom-rehash in progress */
     size_t	builtin;		/* Locked atoms (atom-gc) */
     size_t	no_hole_before;		/* You won't find a hole before here */
     size_t	margin;			/* # atoms to grow before collect */
     size_t	non_garbage;		/* # atoms for after last AGC */
-    int		gc;			/* # atom garbage collections */
     int64_t	collected;		/* # collected atoms */
     size_t	unregistered;		/* # candidate GC atoms */
     double	gc_time;		/* Time spent on atom-gc */

@@ -171,6 +171,12 @@ MSB64(int64_t i)
 		 *	 ATOMS/FUNCTORS		*
 		 *******************************/
 
+static inline void
+initAtoms(void)
+{ if ( !likely(GD->atoms.initialised) )
+    do_init_atoms();
+}
+
 static inline Atom
 fetchAtomArray(size_t index)
 { int idx = MSB(index);

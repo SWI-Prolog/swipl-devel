@@ -236,33 +236,37 @@ static PL_blob_t unregistered_blob_atom =
 
 void
 PL_register_blob_type(PL_blob_t *type)
-{ PL_LOCK(L_MISC);			/* cannot use L_ATOM */
+{ if ( !type->registered )
+  { PL_LOCK(L_MISC);
 
-  if ( !type->registered )
-  { if ( !GD->atoms.types )
-    { GD->atoms.types = type;
-    } else
-    { PL_blob_t *t = GD->atoms.types;
+    if ( !type->registered )
+    { if ( !GD->atoms.types )
+      { GD->atoms.types = type;
+      } else
+      { PL_blob_t *t = GD->atoms.types;
 
-      while(t->next)
-	t = t->next;
+	while(t->next)
+	  t = t->next;
 
-      t->next = type;
-      type->rank = t->rank+1;
+	t->next = type;
+	type->rank = t->rank+1;
+      }
+      if ( true(type, PL_BLOB_TEXT) )
+      { if ( true(type, PL_BLOB_WCHAR) )
+	  type->padding = sizeof(pl_wchar_t);
+	else
+	  type->padding = sizeof(char);
+      }
+
+      if ( !GD->atoms.initialised )
+	type->registered = TRUE;
+      if ( !type->atom_name )
+	type->atom_name = PL_new_atom(type->name);
+      type->registered = TRUE;
     }
-    type->registered = TRUE;
-    if ( !type->atom_name )
-      type->atom_name = PL_new_atom(type->name);
 
-    if ( true(type, PL_BLOB_TEXT) )
-    { if ( true(type, PL_BLOB_WCHAR) )
-	type->padding = sizeof(pl_wchar_t);
-      else
-	type->padding = sizeof(char);
-    }
+    PL_UNLOCK(L_MISC);
   }
-
-  PL_UNLOCK(L_MISC);
 }
 
 
@@ -1463,9 +1467,9 @@ exitAtoms(int status, void *context)
 
 
 void
-initAtoms(void)
-{ PL_LOCK(L_ATOM);
-  if ( !GD->atoms.table )			/* Atom hash table */
+do_init_atoms(void)
+{ PL_LOCK(L_INIT_ATOMS);
+  if ( !GD->atoms.initialised )			/* Atom hash table */
   { GD->atoms.table = allocHeapOrHalt(sizeof(*GD->atoms.table));
     GD->atoms.table->buckets = ATOMHASHSIZE;
     GD->atoms.table->table = allocHeapOrHalt(ATOMHASHSIZE * sizeof(Atom));
@@ -1486,10 +1490,9 @@ initAtoms(void)
 #ifdef O_RESERVED_SYMBOLS
     initReservedSymbols();
 #endif
-
-
+    GD->atoms.initialised = TRUE;
   }
-  PL_UNLOCK(L_ATOM);
+  PL_UNLOCK(L_INIT_ATOMS);
 }
 
 
