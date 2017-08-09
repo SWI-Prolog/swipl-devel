@@ -216,6 +216,21 @@ static int	rehashAtoms(void);
 #define LD LOCAL_LD
 
 
+static inline int
+bump_atom_references(Atom a, unsigned int ref)
+{ for(;;)
+  { if ( COMPARE_AND_SWAP(&a->references, ref, ref+1) )
+    { if ( ATOM_REF_COUNT(ref) == 0 )
+	ATOMIC_DEC(&GD->atoms.unregistered);
+      return TRUE;
+    } else
+    { ref = a->references;
+      if ( !ATOM_IS_VALID(ref) )
+	return FALSE;
+    }
+  }
+}
+
 		 /*******************************
 		 *	      TYPES		*
 		 *******************************/
@@ -300,7 +315,6 @@ PL_unregister_blob_type(PL_blob_t *type)
 
   PL_register_blob_type(&unregistered_blob_atom);
 
-  PL_LOCK(L_ATOM);
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
     Atom b = GD->atoms.array.blocks[i];
@@ -312,18 +326,20 @@ PL_unregister_blob_type(PL_blob_t *type)
 
     for(; index<upto; index++)
     { Atom atom = b + index;
+      unsigned int refs = atom->references;
+      PL_blob_t *btype = atom->type;
 
-      if ( ATOM_IS_VALID(atom->references) && atom->type == type )
+      if ( ATOM_IS_VALID(refs) && btype == type &&
+	   bump_atom_references(atom, refs) )
       { atom->type = &unregistered_blob_atom;
 
 	atom->name = "<discarded blob>";
 	atom->length = strlen(atom->name);
-
 	discarded++;
+	PL_unregister_atom(atom->atom);
       }
     }
   }
-  PL_UNLOCK(L_ATOM);
 
   return discarded == 0 ? TRUE : FALSE;
 }
@@ -490,22 +506,6 @@ the insertion is successful, but rehashAtoms()   may  not have moved the
 atom to the new table. Now we  will   repeat  if we bypassed the LOCK as
 either GD->atoms.rehashing is TRUE or the new table is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static inline int
-bump_atom_references(Atom a, unsigned int ref)
-{ for(;;)
-  { if ( COMPARE_AND_SWAP(&a->references, ref, ref+1) )
-    { if ( ATOM_REF_COUNT(ref) == 0 )
-	ATOMIC_DEC(&GD->atoms.unregistered);
-      return TRUE;
-    } else
-    { ref = a->references;
-      if ( !ATOM_IS_VALID(ref) )
-	return FALSE;
-    }
-  }
-}
-
 
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
