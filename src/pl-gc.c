@@ -5216,9 +5216,7 @@ markAtomsOnStacks(PL_local_data_t *ld)
 #ifdef O_MAINTENANCE
   save_backtrace("AGC");
 #endif
-#ifdef ATOMIC_REFERENCES
   markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
-#endif
   markAtomsOnGlobalStack(ld);
   markAtomsOnLocalStack(ld);
   markAtomsFindall(ld);

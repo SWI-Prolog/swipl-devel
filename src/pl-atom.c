@@ -539,16 +539,9 @@ redo:
 	     memcmp(s, a->name, length) == 0 )
 	{
 #ifdef O_ATOMGC
-	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
-	  {
-#ifdef ATOMIC_REFERENCES
-	    if ( !likely(bump_atom_references(a, ref)) )
-	      continue;
-#else
-	    if ( ATOM_REF_COUNT(++a->references) == 1 )
-	      GD->atoms.unregistered--;
-#endif
-	  }
+	  if ( indexAtom(a->atom) >= GD->atoms.builtin &&
+	       !likely(bump_atom_references(a, ref)) )
+	    continue;
 #endif
 	  *new = FALSE;
 	  release_atom_table();
@@ -567,13 +560,8 @@ redo:
 	     s == a->name )
 	{
 #ifdef O_ATOMGC
-#ifdef ATOMIC_REFERENCES
 	  if ( !likely(bump_atom_references(a, ref)) )
 	    continue;
-#else
-	  if ( ATOM_REF_COUNT(a->references++) == 0 )
-	    GD->atoms.unregistered--;
-#endif
 #endif
 	  *new = FALSE;
 	  release_atom_table();
@@ -792,11 +780,7 @@ markAtom(atom_t a)
     if ( atomLogFd )
       Sfprintf(atomLogFd, "Marked `%s' at (#%d)\n", ap->name, i);
 #endif
-#ifdef ATOMIC_REFERENCES
     ATOMIC_OR(&ap->references, ATOM_MARKED_REFERENCE);
-#else
-    ap->references |= ATOM_MARKED_REFERENCE;
-#endif
   }
 }
 
@@ -818,12 +802,7 @@ unmarkAtoms(void)
     { Atom a = b + index;
 
       if ( ATOM_IS_MARKED(a->references) )
-      {
-#ifdef ATOMIC_REFERENCES
-        ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
-#else
-        a->references &= ~ATOM_MARKED_REFERENCE;
-#endif
+      { ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
       }
     }
   }
@@ -996,12 +975,7 @@ collectAtoms(void)
       if ( !ATOM_IS_MARKED(ref) && (ATOM_REF_COUNT(ref) == 0) )
       { invalidateAtom(a, ref);
       } else
-      {
-#ifdef ATOMIC_REFERENCES
-	ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
-#else
-	a->references &= ~ATOM_MARKED_REFERENCE;
-#endif
+      {	ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
         if ( ATOM_REF_COUNT(ref) == 0 )
 	  unregistered++;
       }
@@ -1136,16 +1110,8 @@ operations. This should be safe because:
 
 static void
 register_atom(Atom p)
-{
-#ifdef ATOMIC_REFERENCES
-  if ( (ATOMIC_INC(&p->references) & ATOM_REF_COUNT_MASK) == 1 )
+{ if ( (ATOMIC_INC(&p->references) & ATOM_REF_COUNT_MASK) == 1 )
     ATOMIC_DEC(&GD->atoms.unregistered);
-#else
-  PL_LOCK(L_ATOM);
-  if ( p->references++ == 0 )
-    GD->atoms.unregistered--;
-  PL_UNLOCK(L_ATOM);
-#endif
 }
 
 
@@ -1214,7 +1180,6 @@ PL_unregister_atom(atom_t a)
       trap_gdb();
     }
 
-#ifdef ATOMIC_REFERENCES
     if ( GD->atoms.gc_active )
     { unsigned int oldref, newref;
 
@@ -1231,12 +1196,6 @@ PL_unregister_atom(atom_t a)
       if ( (refs=ATOM_REF_COUNT(ATOMIC_DEC(&p->references))) == 0 )
 	ATOMIC_INC(&GD->atoms.unregistered);
     }
-#else
-    PL_LOCK(L_ATOM);
-    if ( (refs=ATOM_REF_COUNT(--p->references)) == 0 )
-      GD->atoms.unregistered++;
-    PL_UNLOCK(L_ATOM);
-#endif
     if ( refs == (unsigned int)-1 )
     { Sdprintf("OOPS: PL_unregister_atom('%s'): -1 references\n", p->name);
       trap_gdb();

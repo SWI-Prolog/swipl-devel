@@ -2365,10 +2365,6 @@ decrease).
 #include "os/pl-string.h"		/* Basic string functions */
 #include "pl-ressymbol.h"		/* Meta atom handling */
 
-#ifdef ATOMIC_INC
-#define ATOMIC_REFERENCES 1		/* Use atomic +/- for atom references */
-#endif
-
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave
 #undef except
