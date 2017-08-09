@@ -232,6 +232,39 @@ env3_predicate(Definition def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The continuation may be empty. This is  typically the case in debug mode
+when last-call optimization is enabled. It  can also happen in optimized
+mode if the last call was not optimized   away due to a choice point. As
+the choice point is not part of the   continuation we do not need to add
+an empty continuation. Samer  Abdallah   discovered  that  without this,
+continuations are quite often empty.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+is_last_call(Code PC)
+{ for( ; ; PC = stepPC(PC) )
+  { code c = fetchop(PC);
+
+  again:
+    switch( c )
+    { case I_EXIT:
+      case I_EXITFACT:
+      case I_EXITCATCH:
+      case I_EXITRESET:
+      case I_EXITCLEANUP:
+	return TRUE;
+      case C_JMP:
+	PC += (int)PC[1]+2;
+        c = fetchop(PC);
+	goto again;
+      default:
+	return FALSE;
+    }
+  }
+}
+
+
 static int
 put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 { GET_LD
@@ -252,33 +285,37 @@ put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 
   for( depth=0;
        fr != resetfr;
-       pc = fr->programPointer, fr=fr->parent, depth++)
+       pc = fr->programPointer, fr=fr->parent)
   { Clause cl = fr->clause->value.clause;
-    functor_t env_f;
 
-    if ( onStackArea(local, cl) )
-      return PL_representation_error("continuation");
-    fr_ref = consTermRef(fr);
+    if ( !is_last_call(pc) )
+    { functor_t env_f;
 
-    if ( (env_f=env3_predicate(fr->predicate)) )
-    { term_t av = PL_new_term_refs(2);
+      if ( onStackArea(local, cl) )
+	return PL_representation_error("continuation");
+      fr_ref = consTermRef(fr);
 
-      fr = (LocalFrame)valTermRef(fr_ref);
-      PL_put_term(av+0, consTermRef(argFrameP(fr, 1)));
-      PL_put_term(av+1, consTermRef(argFrameP(fr, 2)));
+      if ( (env_f=env3_predicate(fr->predicate)) )
+      { term_t av = PL_new_term_refs(2);
 
-      if ( PL_cons_list_v(contv, depth, contv) &&
-	   PL_cons_functor(contv, FUNCTOR_call_continuation1, contv) &&
-	   PL_cons_functor(contv, env_f, contv, av+0, av+1) &&
-	   PL_cons_functor(contv, FUNCTOR_call1, contv) )
-	depth = 0;
-      else
+	fr = (LocalFrame)valTermRef(fr_ref);
+	PL_put_term(av+0, consTermRef(argFrameP(fr, 1)));
+	PL_put_term(av+1, consTermRef(argFrameP(fr, 2)));
+
+	if ( PL_cons_list_v(contv, depth, contv) &&
+	     PL_cons_functor(contv, FUNCTOR_call_continuation1, contv) &&
+	     PL_cons_functor(contv, env_f, contv, av+0, av+1) &&
+	     PL_cons_functor(contv, FUNCTOR_call1, contv) )
+	  depth = 0;
+	else
+	  return FALSE;
+      } else if ( !put_environment(contv+depth, fr, pc) )
 	return FALSE;
-    } else if ( !put_environment(contv+depth, fr, pc) )
-      return FALSE;
 
-    resetfr = (LocalFrame)valTermRef(reset_ref);
-    fr      = (LocalFrame)valTermRef(fr_ref);
+      resetfr = (LocalFrame)valTermRef(reset_ref);
+      fr      = (LocalFrame)valTermRef(fr_ref);
+      depth++;
+    }
   }
 
   return ( PL_cons_list_v(cont, depth, contv) &&
