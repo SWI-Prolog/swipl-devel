@@ -36,6 +36,8 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
+#undef LD
+#define LD LOCAL_LD
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Implementation issues
@@ -205,17 +207,6 @@ JW: I think we can reduce locking for AGC further.
 
 static int	rehashAtoms(void);
 
-#define atomTable    GD->atoms.table
-
-#if O_DEBUG
-#define lookups GD->atoms.lookups
-#define	cmps	GD->atoms.cmps
-#endif
-
-#undef LD
-#define LD LOCAL_LD
-
-
 static inline int
 bump_atom_references(Atom a, unsigned int ref)
 { for(;;)
@@ -361,7 +352,7 @@ static const ccharp atoms[] = {
 #ifdef O_PLMT
 
 #define acquire_atom_table(t, b) \
-  { LD->thread.info->access.atom_table = atomTable; \
+  { LD->thread.info->access.atom_table = GD->atoms.table; \
     t = LD->thread.info->access.atom_table->table; \
     b = LD->thread.info->access.atom_table->buckets; \
   }
@@ -382,8 +373,8 @@ static const ccharp atoms[] = {
 #else
 
 #define acquire_atom_table(t, b) \
-  { t = atomTable->table; \
-    b = atomTable->buckets; \
+  { t = GD->atoms.table->table; \
+    b = GD->atoms.table->buckets; \
   }
 
 #define release_atom_table() (void)0
@@ -526,12 +517,12 @@ redo:
   v  = v0 & (buckets-1);
   head = table[v];
   acquire_atom_bucket(table+v);
-  DEBUG(MSG_HASH_STAT, lookups++);
+  DEBUG(MSG_HASH_STAT, GD->atoms.lookups++);
 
   if ( true(type, PL_BLOB_UNIQUE) )
   { if ( false(type, PL_BLOB_NOCOPY) )
     { for(a = table[v]; a; a = a->next)
-      { DEBUG(MSG_HASH_STAT, cmps++);
+      { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
 	ref = a->references;
 	if ( ATOM_IS_VALID(ref) &&
 	     length == a->length &&
@@ -551,7 +542,7 @@ redo:
       }
     } else
     { for(a = table[v]; a; a = a->next)
-      { DEBUG(MSG_HASH_STAT, cmps++);
+      { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
 	ref = a->references;
 
 	if ( ATOM_IS_VALID(ref) &&
@@ -572,7 +563,7 @@ redo:
     }
   }
 
-  if ( atomTable->buckets * 2 < GD->statistics.atoms )
+  if ( GD->atoms.table->buckets * 2 < GD->statistics.atoms )
   { int rc;
 
     PL_LOCK(L_ATOM);
@@ -583,7 +574,7 @@ redo:
       outOfCore();
   }
 
-  if ( !( table == atomTable->table && head == table[v] ) )
+  if ( !( table == GD->atoms.table->table && head == table[v] ) )
     goto redo;
 
   a = reserveAtom();
@@ -614,7 +605,7 @@ redo:
   { a->next = table[v];
     if ( !( COMPARE_AND_SWAP(&table[v], head, a) &&
 	    !GD->atoms.rehashing &&	/* See (**) above */
-            table == atomTable->table ) )
+            table == GD->atoms.table->table ) )
     { if ( false(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
       a->references = 0;
@@ -812,7 +803,7 @@ unmarkAtoms(void)
 void
 maybe_free_atom_tables(void)
 {
-  AtomTable t = atomTable;
+  AtomTable t = GD->atoms.table;
   while ( t )
   { AtomTable t2 = t->prev;
     if ( t2 && !pl_atom_table_in_use(t2) )
@@ -866,7 +857,7 @@ invalidateAtom(Atom a, unsigned int ref)
     uintptr_t mask;
 
   redo:
-    table = atomTable;
+    table = GD->atoms.table;
     mask = table->buckets-1;
     ap = &table->table[a->hash_value & mask];
 
@@ -908,7 +899,7 @@ destroyAtom(Atom a, Atom **buckets)
   size_t index;
 
   while ( buckets && *buckets )
-  { t = atomTable;
+  { t = GD->atoms.table;
     while ( t )
     { v = a->hash_value & (t->buckets-1);
       if ( *buckets == t->table+v )
@@ -1233,7 +1224,7 @@ redo:
     }
   }
 
-  if ( !( table == atomTable->table && head == table[v] ) )
+  if ( !( table == GD->atoms.table->table && head == table[v] ) )
     goto redo;
 
   return FALSE;
@@ -1298,23 +1289,23 @@ rehashAtoms(void)
     return TRUE;			/* no point anymore and foreign ->type */
 					/* pointers may have gone */
 
-  if ( atomTable->buckets * 2 >= GD->statistics.atoms )
+  if ( GD->atoms.table->buckets * 2 >= GD->statistics.atoms )
     return TRUE;
 
   if ( !(newtab = allocHeap(sizeof(*newtab))) )
     return FALSE;
-  newtab->buckets = atomTable->buckets * 2;
+  newtab->buckets = GD->atoms.table->buckets * 2;
   if ( !(newtab->table = allocHeapOrHalt(newtab->buckets * sizeof(Atom))) )
   { freeHeap(newtab, sizeof(*newtab));
     return FALSE;
   }
   memset(newtab->table, 0, newtab->buckets * sizeof(Atom));
-  newtab->prev = atomTable;
+  newtab->prev = GD->atoms.table;
   mask = newtab->buckets-1;
 
   DEBUG(MSG_HASH_STAT,
 	Sdprintf("rehashing atoms (%d --> %d)\n",
-		 atomTable->buckets, newtab->buckets));
+		 GD->atoms.table->buckets, newtab->buckets));
 
   GD->atoms.rehashing = TRUE;
 
@@ -1339,7 +1330,7 @@ rehashAtoms(void)
     }
   }
 
-  atomTable = newtab;
+  GD->atoms.table = newtab;
   GD->atoms.rehashing = FALSE;
 
   return TRUE;
@@ -1380,7 +1371,7 @@ resetListAtoms(void)
 { Atom a = atomValue(ATOM_dot);
 
   if ( strcmp(a->name, ".") != 0 )
-  { Atom *ap2 = &atomTable->table[a->hash_value & (atomTable->buckets-1)];
+  { Atom *ap2 = &GD->atoms.table->table[a->hash_value & (GD->atoms.table->buckets-1)];
     unsigned int v;
     static char *s = ".";
 
@@ -1400,10 +1391,10 @@ resetListAtoms(void)
     a->name   = s;
     a->length = strlen(s);
     a->hash_value = MurmurHashAligned2(s, a->length, MURMUR_SEED);
-    v = a->hash_value & (atomTable->buckets-1);
+    v = a->hash_value & (GD->atoms.table->buckets-1);
 
-    a->next      = atomTable->table[v];
-    atomTable->table[v] = a;
+    a->next      = GD->atoms.table->table[v];
+    GD->atoms.table->table[v] = a;
   }
 
   a = atomValue(ATOM_nil);
@@ -1441,7 +1432,7 @@ registerBuiltinAtoms(void)
     }
 
     v0 = MurmurHashAligned2(s, len, MURMUR_SEED);
-    v  = v0 & (atomTable->buckets-1);
+    v  = v0 & (GD->atoms.table->buckets-1);
 
     a = &GD->atoms.array.blocks[idx][index];
     a->atom       = (index<<LMASK_BITS)|TAG_ATOM;
@@ -1454,8 +1445,8 @@ registerBuiltinAtoms(void)
 #ifdef O_TERMHASH
     a->hash_value = v0;
 #endif
-    a->next       = atomTable->table[v];
-    atomTable->table[v]  = a;
+    a->next       = GD->atoms.table->table[v];
+    GD->atoms.table->table[v]  = a;
 
     GD->atoms.no_hole_before = index+1;
     GD->atoms.highest = index+1;
@@ -1470,7 +1461,7 @@ exitAtoms(int status, void *context)
   (void)context;
 
   Sdprintf("hashstat: %d lookupAtom() calls used %d strcmp() calls\n",
-	   lookups, cmps);
+	   GD->atoms.lookups, GD->atoms.cmps);
 
   return 0;
 }
@@ -1480,12 +1471,12 @@ exitAtoms(int status, void *context)
 void
 initAtoms(void)
 { PL_LOCK(L_ATOM);
-  if ( !atomTable )			/* Atom hash table */
-  { atomTable = allocHeapOrHalt(sizeof(*atomTable));
-    atomTable->buckets = ATOMHASHSIZE;
-    atomTable->table = allocHeapOrHalt(ATOMHASHSIZE * sizeof(Atom));
-    memset(atomTable->table, 0, ATOMHASHSIZE * sizeof(Atom));
-    atomTable->prev = NULL;
+  if ( !GD->atoms.table )			/* Atom hash table */
+  { GD->atoms.table = allocHeapOrHalt(sizeof(*GD->atoms.table));
+    GD->atoms.table->buckets = ATOMHASHSIZE;
+    GD->atoms.table->table = allocHeapOrHalt(ATOMHASHSIZE * sizeof(Atom));
+    memset(GD->atoms.table->table, 0, ATOMHASHSIZE * sizeof(Atom));
+    GD->atoms.table->prev = NULL;
 
     GD->atoms.highest = 1;
     GD->atoms.no_hole_before = 1;
@@ -1561,15 +1552,15 @@ cleanupAtoms(void)
     }
   }
 
-  table = atomTable;
+  table = GD->atoms.table;
   while ( table )
   { AtomTable prev = table->prev;
     freeHeap(table->table, table->buckets * sizeof(Atom));
     freeHeap(table, sizeof(atom_table));
     table = prev;
   }
-  if ( atomTable )
-  { atomTable = NULL;
+  if ( GD->atoms.table )
+  { GD->atoms.table = NULL;
   }
 }
 
