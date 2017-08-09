@@ -197,6 +197,7 @@ Note that threads can mark their atoms and continue execution because:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int	rehashAtoms(void);
+static void	considerAGC(void);
 
 static inline int
 bump_atom_references(Atom a, unsigned int ref)
@@ -613,22 +614,15 @@ redo:
   a->references = 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE;
 #endif
 
-  ATOMIC_INC(&GD->statistics.atoms);
-
-#ifdef O_ATOMGC
-  if ( GD->atoms.margin != 0 &&
-       GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
-  { if ( GD->statistics.atoms % 128 == 0 ) /* see (*) above */
-      PL_raise(SIG_ATOM_GC);
-  }
-#endif
-
   *new = TRUE;
   if ( type->acquire )
     (*type->acquire)(a->atom);
 
   release_atom_table();
   release_atom_bucket();
+
+  if ( ATOMIC_INC(&GD->statistics.atoms) % 128 == 0 )
+    considerAGC();
 
   return a->atom;
 }
@@ -1073,6 +1067,15 @@ PL_agc_hook(PL_agc_hook_t new)
   GD->atoms.gc_hook = new;
 
   return old;
+}
+
+
+static void
+considerAGC(void)
+{ if ( GD->atoms.margin != 0 &&
+       GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
+  { PL_raise(SIG_ATOM_GC);
+  }
 }
 
 
