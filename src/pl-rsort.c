@@ -37,8 +37,6 @@
 #define _GNU_SOURCE 1				/* get qsort_r() */
 #include "pl-incl.h"
 #include "pl-rsort.h"
-#define LOCK()   PL_LOCK(L_SORTR)
-#define UNLOCK() PL_UNLOCK(L_SORTR)
 
 
 		 /*******************************
@@ -93,12 +91,12 @@ nested_cmp(const void *a, const void *b)
 void
 sort_r(void *base, size_t nel, size_t width,
        int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
-{ LOCK();
+{ PL_LOCK(L_SORTR);
   sort_r_ctx = arg;
   sort_r_compar = compar;
 
   qsort(base, nel, width, nested_cmp);
-  UNLOCK();
+  PL_UNLOCK(L_SORTR);
 }
 
 #endif

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2011, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -61,9 +61,6 @@ static functor_t FUNCTOR_dde_disconnect1;
 static functor_t FUNCTOR_dde_request4;
 static functor_t FUNCTOR_dde_execute3;
 static functor_t FUNCTOR_error1;
-
-#define LOCK()   PL_LOCK(L_DDE)
-#define UNLOCK() PL_UNLOCK(L_DDE)
 
 static const char *
 dde_error_message(int errn)
@@ -197,14 +194,14 @@ static int
 allocServerHandle(HCONV handle)
 { int i;
 
-  LOCK();
+  PL_LOCK(L_DDE);
   for(i=0; i<MAX_CONVERSATIONS; i++)
   { if ( !server_handle[i] )
     { server_handle[i] = handle;
       break;
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_DDE);
 
   if ( i<MAX_CONVERSATIONS )
     return i;
@@ -457,14 +454,14 @@ PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
   }
 
   /* Establish a connection and get a handle for it */
-  LOCK();
+  PL_LOCK(L_DDE);
   for (i=0; i < MAX_CONVERSATIONS; i++)		/* Find an open slot */
   { if (conv_handle[i] == (HCONV)NULL)
     { conv_handle[i] = (HCONV)~0;		/* reserve it */
       break;
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_DDE);
   if (i == MAX_CONVERSATIONS)
   { rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_max_dde_handles);
     goto out;

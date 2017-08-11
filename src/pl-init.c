@@ -52,9 +52,6 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include <process.h>			/* getpid() */
 #endif
 
-#define LOCK()   PL_LOCK(L_INIT)
-#define UNLOCK() PL_UNLOCK(L_INIT)
-
 #if defined(_DEBUG) && defined(__WINDOWS__) && !defined(__MINGW32__)
 #include <crtdbg.h>
 #endif
@@ -1231,9 +1228,9 @@ cleanupProlog(int rval, int reclaim_memory)
     PlMessage("Exit status is %d", rval);
 #endif
 
-  LOCK();
+  PL_LOCK(L_INIT);
   if ( GD->cleaning != CLN_NORMAL )
-  { UNLOCK();
+  { PL_UNLOCK(L_INIT);
     return FALSE;
   }
 
@@ -1260,7 +1257,7 @@ cleanupProlog(int rval, int reclaim_memory)
 	 rval == 0 )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
-	UNLOCK();
+	PL_UNLOCK(L_INIT);
 	return FALSE;
       }
     }
@@ -1269,7 +1266,7 @@ cleanupProlog(int rval, int reclaim_memory)
     if ( !run_on_halt(&GD->os.on_halt_list, rval) && rval == 0 )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
-	UNLOCK();
+	PL_UNLOCK(L_INIT);
 	return FALSE;
       }
     }
@@ -1349,7 +1346,7 @@ emergency:
     cleanupDebug();
   }
 
-  UNLOCK();				/* requires GD->thread.enabled */
+  PL_UNLOCK(L_INIT);				/* requires GD->thread.enabled */
 
   if ( reclaim_memory )
   { memset(&PL_global_data, 0, sizeof(PL_global_data));

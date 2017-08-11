@@ -36,8 +36,6 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 
-#define LOCK()   PL_LOCK(L_ALLOC)
-#define UNLOCK() PL_UNLOCK(L_ALLOC)
 #undef LD
 #define LD LOCAL_LD
 
@@ -122,10 +120,10 @@ GC_linger(void *ptr)
 { linger *l = GC_MALLOC_UNCOLLECTABLE(sizeof(*l));
 
   l->object = ptr;
-  LOCK();
+  PL_LOCK(L_ALLOC);
   l->next = GC_lingering;
   GC_lingering = l->next;
-  UNLOCK();
+  PL_UNLOCK(L_ALLOC);
 }
 
 #endif /*GC_DEBUG*/
@@ -1007,9 +1005,6 @@ properly on Linux. Don't bother with it.
   initHBase();
 }
 
-
-#undef LOCK
-#undef UNLOCK
 
 		 /*******************************
 		 *	      PREDICATES	*

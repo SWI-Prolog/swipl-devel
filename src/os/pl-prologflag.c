@@ -45,9 +45,6 @@
 #endif
 #include <time.h>
 
-#define LOCK()   PL_LOCK(L_PLFLAG)
-#define UNLOCK() PL_UNLOCK(L_PLFLAG)
-
 
 		 /*******************************
 		 *	PROLOG FLAG HANDLING	*
@@ -823,9 +820,9 @@ int
 set_prolog_flag(term_t key, term_t value, int flags)
 { int rc;
 
-  LOCK();
+  PL_LOCK(L_PLFLAG);
   rc = set_prolog_flag_unlocked(key, value, flags);
-  UNLOCK();
+  PL_UNLOCK(L_PLFLAG);
 
   return rc;
 }
@@ -1179,7 +1176,7 @@ pl_prolog_flag5(term_t key, term_t value,
   }
 
   fid = PL_open_foreign_frame();
-  LOCK();
+  PL_LOCK(L_PLFLAG);
   for(;;)
   { atom_t fn;
     prolog_flag *f;
@@ -1195,7 +1192,7 @@ pl_prolog_flag5(term_t key, term_t value,
 	   (!scope  || PL_unify_atom(scope, e->scope)) &&
 	   (!access || unify_prolog_flag_access(f, access)) &&
 	   (!type   || unify_prolog_flag_type(f, type)) )
-      { UNLOCK();
+      { PL_UNLOCK(L_PLFLAG);
 	ForeignRedoPtr(e);
       }
       if ( exception_term )
@@ -1212,7 +1209,7 @@ pl_prolog_flag5(term_t key, term_t value,
     } else
       break;
   }
-  UNLOCK();
+  PL_UNLOCK(L_PLFLAG);
 
   freeTableEnum(e->table_enum);
   freeHeap(e, sizeof(*e));

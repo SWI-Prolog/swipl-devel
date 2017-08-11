@@ -42,8 +42,6 @@ General  handling  of  procedures:  creation;  adding/removing  clauses;
 finding source files, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOCK()   PL_LOCK(L_PREDICATE)
-#define UNLOCK() PL_UNLOCK(L_PREDICATE)
 #undef LD
 #define LD LOCAL_LD
 

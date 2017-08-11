@@ -137,6 +137,7 @@ issue_base('http://www.swi-prolog.org/build/issues/').
 check_installation :-
     print_message(informational, installation(checking)),
     check_installation_(Issues),
+    check_on_path,
     (   Issues == []
     ->  print_message(informational, installation(perfect))
     ;   length(Issues, Count),
@@ -365,6 +366,31 @@ pcre_missing(X) :-
 pcre_must_have(utf8).
 pcre_must_have(unicode_properties).
 
+%!  check_on_path
+%
+%   Validate that Prolog is installed in $PATH
+
+check_on_path :-
+    current_prolog_flag(executable, EXE),
+    file_base_name(EXE, Prog),
+    (   absolute_file_name(path(Prog), OnPath,
+                           [ access(execute),
+                             file_errors(fail)
+                           ])
+    ->  (   same_file(EXE, OnPath)
+        ->  true
+        ;   absolute_file_name(path(Prog), OnPathAny,
+                               [ access(execute),
+                                 file_errors(fail),
+                                 solutions(all)
+                               ]),
+            same_file(EXE, OnPathAny)
+        ->  print_message(warning, installation(not_first_on_path(EXE, OnPath)))
+        ;   print_message(warning, installation(not_same_on_path(EXE, OnPath)))
+        )
+    ;   print_message(warning, installation(not_on_path(EXE, Prog)))
+    ).
+
 
                  /*******************************
                  *            MESSAGES          *
@@ -390,7 +416,10 @@ issue_url(Properties, URL) :-
     issue_base(Issues),
     atom_concat(Issues, URLFile, URL).
 
-prolog:message(installation(checking)) -->
+prolog:message(installation(Message)) -->
+    message(Message).
+
+message(checking) -->
     { current_prolog_flag(address_bits, Bits) },
     { current_prolog_flag(arch, Arch) },
     { current_prolog_flag(home, Home) },
@@ -402,39 +431,88 @@ prolog:message(installation(checking)) -->
     [ 'Installed at: ~`.t~24| ~w'-[Home] ], [nl],
     [ 'Cores: ~`.t~24| ~w'-[Cores] ], [nl],
     [ nl ].
-prolog:message(installation(perfect)) -->
+message(perfect) -->
     [ nl, 'Congratulations, your kit seems sound and complete!'-[] ].
-prolog:message(installation(imperfect(N))) -->
+message(imperfect(N)) -->
     [ 'Found ~w issues.'-[N] ].
-prolog:message(installation(checking(Feature))) -->
+message(checking(Feature)) -->
     [ 'Checking ~w ...'-[Feature], flush ].
-prolog:message(installation(missing(Properties))) -->
+message(missing(Properties)) -->
     [ at_same_line, '~`.t~48| not present'-[] ],
     details(Properties).
-prolog:message(installation(loading(Source))) -->
+message(loading(Source)) -->
     [ 'Loading ~q ...'-[Source], flush ].
-prolog:message(installation(ok)) -->
+message(ok) -->
     [ at_same_line, '~`.t~48| ok'-[] ].
-prolog:message(installation(optional_not_found(Properties))) -->
+message(optional_not_found(Properties)) -->
     [ 'Optional ~q ~`.t~48| not present'-[Properties.source] ].
-prolog:message(installation(not_found(Properties))) -->
+message(not_found(Properties)) -->
     [ '~q ~`.t~48| NOT FOUND'-[Properties.source] ],
     details(Properties).
-prolog:message(installation(failed(Properties, false, []))) -->
+message(failed(Properties, false, [])) -->
     !,
     [ at_same_line, '~`.t~48| FAILED'-[] ],
     details(Properties).
-prolog:message(installation(failed(Properties, exception(Ex0), []))) -->
+message(failed(Properties, exception(Ex0), [])) -->
     !,
     { strip_stack(Ex0, Ex),
       message_to_string(Ex, Msg) },
     [ '~w'-[Msg] ],
     details(Properties).
-prolog:message(installation(failed(Properties, true, Messages))) -->
-    !,
+message(failed(Properties, true, Messages)) -->
     [ at_same_line, '~`.t~48| FAILED'-[] ],
     explain(Messages),
     details(Properties).
+message(archive(What, Names)) -->
+    [ '  Supported ~w: '-[What] ],
+    list_names(Names).
+message(pcre_missing(Features)) -->
+    [ 'Missing libpcre features: '-[] ],
+    list_names(Features).
+message(not_first_on_path(EXE, OnPath)) -->
+    { public_executable(EXE, PublicEXE),
+      file_base_name(EXE, Prog)
+    },
+    [ 'The first ~w on '-[Prog] ], 'PATH', [ ' is ~p, while '-[OnPath], nl ],
+    [ 'this version is ~p.'-[PublicEXE] ].
+message(not_same_on_path(EXE, OnPath)) -->
+    { public_executable(EXE, PublicEXE),
+      file_base_name(EXE, Prog)
+    },
+    [ 'The ~w on '-[Prog] ], 'PATH', [ ' is ~p, while '-[OnPath], nl ],
+    [ 'this version is ~p.'-[PublicEXE] ].
+message(not_on_path(EXE, Prog)) -->
+    { public_bin_dir(EXE, Dir),
+      prolog_to_os_filename(Dir, OSDir)
+    },
+    [ 'Could not find ~w on '-[Prog] ], 'PATH', [ '. '-[], nl ],
+    [ 'You may wish to add ~p to '-[OSDir] ], 'PATH', [ '. '-[], nl ].
+
+public_executable(EXE, PublicProg) :-
+    file_base_name(EXE, Prog),
+    file_directory_name(EXE, ArchDir),
+    file_directory_name(ArchDir, BinDir),
+    file_directory_name(BinDir, Home),
+    file_directory_name(Home, Lib),
+    file_directory_name(Lib, Prefix),
+    atomic_list_concat([Prefix, bin, Prog], /, PublicProg),
+    exists_file(PublicProg),
+    same_file(EXE, PublicProg),
+    !.
+public_executable(EXE, EXE).
+
+public_bin_dir(EXE, Dir) :-
+    public_executable(EXE, PublicEXE),
+    file_directory_name(PublicEXE, Dir).
+
+
+
+'PATH' -->
+    { current_prolog_flag(windows, true) },
+    !,
+    [ '%PATH%'-[] ].
+'PATH' -->
+    [ '$PATH'-[] ].
 
 strip_stack(error(Error, context(prolog_stack(S), Msg)),
             error(Error, context(_, Msg))) :-
@@ -464,11 +542,6 @@ print_messages([message(_Term, _Kind, Lines)|T]) -->
     Lines, [nl],
     print_messages(T).
 
-prolog:message(installation(archive(What, Names))) -->
-    !,
-    [ '  Supported ~w: '-[What] ],
-    list_names(Names).
-
 list_names([]) --> [].
 list_names([H|T]) -->
     [ '~w'-[H] ],
@@ -478,7 +551,3 @@ list_names([H|T]) -->
         list_names(T)
     ).
 
-prolog:message(installation(pcre_missing(Features))) -->
-    !,
-    [ 'Missing libpcre features: '-[] ],
-    list_names(Features).

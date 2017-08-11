@@ -41,8 +41,6 @@ Functor (name/arity) handling.  A functor is a unique object (like atoms).
 See pl-atom.c for many useful comments on the representation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOCK()   PL_LOCK(L_FUNCTOR)
-#define UNLOCK() PL_UNLOCK(L_FUNCTOR)
 #undef LD
 #define LD LOCAL_LD
 
@@ -141,9 +139,9 @@ redo:
   }
 
   if ( functorDefTable->buckets * 2 < GD->statistics.functors )
-  { LOCK();
+  { PL_LOCK(L_FUNCTOR);
     rehashFunctors();
-    UNLOCK();
+    PL_UNLOCK(L_FUNCTOR);
   }
 
   if ( !( table == functorDefTable->table && head == table[v] ) )
@@ -267,9 +265,9 @@ redo:
   release_functor_table();
 
   if ( !rc && functorDefTable->buckets * 2 < GD->statistics.functors )
-  { LOCK();
+  { PL_LOCK(L_FUNCTOR);
     rehashFunctors();
-    UNLOCK();
+    PL_UNLOCK(L_FUNCTOR);
   }
   if ( table != functorDefTable->table )
     goto redo;
@@ -371,7 +369,7 @@ registerArithFunctors()
 
 void
 initFunctors(void)
-{ LOCK();
+{ PL_LOCK(L_FUNCTOR);
   if ( !functorDefTable )
   { initAtoms();
     allocFunctorTable();
@@ -380,7 +378,7 @@ initFunctors(void)
     registerControlFunctors();
     registerArithFunctors();
   }
-  UNLOCK();
+  PL_UNLOCK(L_FUNCTOR);
 }
 
 
@@ -484,7 +482,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
   }
 
   fid = PL_open_foreign_frame();
-  LOCK();
+  PL_LOCK(L_FUNCTOR);
   for(i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
     FunctorDef *b = GD->functors.array.blocks[i];
@@ -500,7 +498,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
       if ( fd && (!nm || nm == fd->name) )
       { if ( PL_unify_atom(name, fd->name) &&
 	     PL_unify_integer(arity, fd->arity) )
-	{ UNLOCK();
+	{ PL_UNLOCK(L_FUNCTOR);
 	  ForeignRedoInt(index+1);
 	} else
 	{ PL_rewind_foreign_frame(fid);
@@ -509,6 +507,6 @@ pl_current_functor(term_t name, term_t arity, control_t h)
     }
   }
 
-  UNLOCK();
+  PL_UNLOCK(L_FUNCTOR);
   return FALSE;
 }

@@ -81,9 +81,6 @@ handling times must be cleaned, but that not only holds for this module.
 #include <bstring.h>
 #endif
 
-#define LOCK()   PL_LOCK(L_FILE)	/* MT locking */
-#define UNLOCK() PL_UNLOCK(L_FILE)
-
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
@@ -284,7 +281,7 @@ freeStream(IOSTREAM *s)
 
   DEBUG(1, Sdprintf("freeStream(%p)\n", s));
 
-  LOCK();
+  PL_LOCK(L_FILE);
   unaliasStream(s, NULL_ATOM);
   ctx = s->context;
   if ( ctx && COMPARE_AND_SWAP(&s->context, ctx, NULL) )
@@ -317,7 +314,7 @@ freeStream(IOSTREAM *s)
       }
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 }
 
 
@@ -339,10 +336,10 @@ setFileNameStream_unlocked(IOSTREAM *s, atom_t name)
 
 int
 setFileNameStream(IOSTREAM *s, atom_t name)
-{ LOCK();
+{ PL_LOCK(L_FILE);
   setFileNameStream_unlocked(s, name);
   PL_register_atom(name);
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return TRUE;
 }
@@ -352,9 +349,9 @@ atom_t
 fileNameStream(IOSTREAM *s)
 { atom_t name;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   name = getStreamContext(s)->filename;
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return name;
 }
@@ -673,7 +670,7 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
   { void *s0;
 
     if ( !(flags & SH_UNLOCKED) )
-      LOCK();
+      PL_LOCK(L_FILE);
     if ( (s0 = lookupHTable(streamAliases, (void *)a)) )
     { IOSTREAM *stream;
       uintptr_t n = (uintptr_t)s0 & ~STD_HANDLE_MASK;
@@ -684,7 +681,7 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
 	stream = s0;
 
       if ( !(flags & SH_UNLOCKED) )
-	UNLOCK();
+	PL_UNLOCK(L_FILE);
 
       if ( stream )
       { if ( (flags & SH_UNLOCKED) )
@@ -698,7 +695,7 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
       }
     }
     if ( !(flags & SH_UNLOCKED) )
-      UNLOCK();
+      PL_UNLOCK(L_FILE);
 
     goto noent;
   }
@@ -784,12 +781,12 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
     return PL_unify_atom(t, standardStreams[i]);
 
   if ( (ctx=getExistingStreamContext(s)) && ctx->alias_head )
-  { LOCK();
+  { PL_LOCK(L_FILE);
     if ( ctx->alias_head )
       rval = PL_unify_atom(t, ctx->alias_head->name);
     else
       rval = unify_stream_ref(t, s);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
   } else
   { rval = unify_stream_ref(t, s);
   }
@@ -1834,9 +1831,9 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
       return TRUE;
     }
 
-    LOCK();
+    PL_LOCK(L_FILE);
     aliasStream(s, alias);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
     return TRUE;
   } else if ( aname == ATOM_buffer ) /* buffer(Buffering) */
   { atom_t b;
@@ -3617,7 +3614,7 @@ openStream(term_t file, term_t mode, term_t options)
   if ( type == ATOM_binary )
     *h++ = 'b';
 
-					/* LOCK */
+					/* File locking */
   if ( lock != ATOM_none )
   { *h++ = (wait ? 'l' : 'L');
     if ( lock == ATOM_read || lock == ATOM_shared )
@@ -3721,9 +3718,9 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   if ( alias != NULL_ATOM )
-  { LOCK();
+  { PL_LOCK(L_FILE);
     aliasStream(s, alias);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
   }
   if ( !reposition )
     s->position = NULL;
@@ -4557,7 +4554,7 @@ PRED_IMPL("$stream_property", 2, dstream_property, 0)
   if ( !(p=get_stream_property_def(A2 PASS_LD)) )
     return FALSE;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   if ( (rc=term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD)) )
   { switch(arityFunctor(p->functor))
     { case 0:
@@ -4575,7 +4572,7 @@ PRED_IMPL("$stream_property", 2, dstream_property, 0)
 	rc = FALSE;
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
   return rc;
 }
 
@@ -4631,11 +4628,11 @@ PRED_IMPL("$stream_properties", 2, dstream_properties, 0)
   int rc;
   IOSTREAM *s;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   rc = ( term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD) &&
 	 unify_stream_property_list(s, A2 PASS_LD)
        );
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return rc;
 }
@@ -4681,7 +4678,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     term_t st = PL_new_term_ref();
     term_t pt = PL_new_term_ref();
 
-    LOCK();
+    PL_LOCK(L_FILE);
     while( advanceTableEnum(e, (void**)&s, NULL))
     { rc = ( s->context != NULL &&
 	     unify_stream_property(s, p, pt PASS_LD) &&
@@ -4695,7 +4692,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 	break;
     }
     freeTableEnum(e);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
     rc = !PL_exception(0) && PL_unify_nil(tail);
   } else if ( PL_is_variable(A1) )
   { TableEnum e = newTableEnum(streamContext);
@@ -4704,7 +4701,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     term_t pl = PL_new_term_ref();
 
     rc = TRUE;
-    LOCK();
+    PL_LOCK(L_FILE);
     while( rc && advanceTableEnum(e, (void**)&s, NULL))
     { rc = ( s->context != NULL &&
 	     PL_unify_list(tail, head, tail) &&
@@ -4716,7 +4713,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 	   );
     }
     freeTableEnum(e);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
     rc = !PL_exception(0) && PL_unify_nil(tail);
   }
 
@@ -4730,13 +4727,13 @@ PRED_IMPL("$alias_stream", 2, dalias_stream, 0)
   IOSTREAM *s;
   int rc;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   rc = ( PL_get_atom_ex(A1, &a) &&
 	 get_stream_handle(a, &s, SH_UNLOCKED) &&
 	 s->context &&
 	 unify_stream_ref(A2, s)
        );
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return rc;
 }
@@ -5333,7 +5330,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
       goto out;
   }
 
-  LOCK();
+  PL_LOCK(L_FILE);
   out->flags &= ~SIO_ABUF;		/* output: line buffered */
   out->flags |= SIO_LBUF;
 
@@ -5353,7 +5350,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
     LD->IO.streams[i]->flags |= SIO_RECORDPOS;
   }
 
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
   rval = TRUE;
 
 out:

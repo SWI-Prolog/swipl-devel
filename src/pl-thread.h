@@ -198,7 +198,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 
 #define L_MISC		0
 #define L_ALLOC		1
-#define L_ATOM		2
+#define L_REHASH_ATOMS	2
 #define L_FLAG	        3
 #define L_FUNCTOR	4
 #define L_RECORD	5
@@ -215,12 +215,12 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_OP	       16
 #define L_INIT	       17
 #define L_TERM	       18
-#define L_AGC	       19
-#define L_FOREIGN      20
-#define L_OS	       21
-#define L_LOCALE       22
-#define L_SORTR        23
-#define L_UMUTEX       24
+#define L_FOREIGN      19
+#define L_OS	       20
+#define L_LOCALE       21
+#define L_SORTR        22
+#define L_UMUTEX       23
+#define L_INIT_ATOMS   24
 #ifdef __WINDOWS__
 #define L_DDE	       25
 #define L_CSTACK       26
