@@ -657,7 +657,8 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   maybe_free_local_data(ld);
 
   if ( acknowledge )			/* == canceled */
-  { pthread_detach(pthread_self());
+  { DEBUG(MSG_THREAD, Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
+    pthread_detach(pthread_self());
     sem_post(sem_canceled_ptr);
   }
 }
@@ -1082,10 +1083,8 @@ gc_thread() is (indirectly) called from atom-GC if the engine is not yet
 fully reclaimed, we have several situations:
 
   - The engine is still running.  Detach it, such that it will be
-    reclaimed slilently when done.
+    reclaimed silently when done.
   - The engine has completed.  Join it.
-
-collectAtoms() is called with many locks   held: L_ATOM and L_AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static thread_handle *gced_threads = NULL;
@@ -4020,20 +4019,28 @@ static const opt_spec thread_get_message_options[] =
 #define DBL_MAX         1.7976931348623158e+308
 #endif
 
-/* This function is shared between thread_get_message/3 and thread_send_message/3.
-	It extracts a deadline from the deadline/1 and timeout/1 options.
+/* This function is shared between thread_get_message/3 and
+   thread_send_message/3.
+
+   It extracts a deadline from the deadline/1 and timeout/1 options.
    In both cases, the deadline is passed through to dispatch_cond_wait().
-	Semantics are relatively simple:
-	1. If neither option is given, the deadline is NULL, which corresponds to
-		an indefinite wait, or a deadline in the infinite future.
-	2. A timeout is _exactly_ like a deadline of Now + Timeout, where Now is
-		evaluated near the beginning of this function.
-	3. If both deadline and a timeout options are given, the earlier deadline is effective.
-	4. If the effective deadline is before Now, then return FALSE (leading to failure).
+   Semantics are relatively simple:
+
+	1. If neither option is given, the deadline is NULL, which
+	   corresponds to an indefinite wait, or a deadline in the
+	   infinite future.
+	2. A timeout is _exactly_ like a deadline of Now + Timeout,
+	   where Now is evaluated near the beginning of this function.
+	3. If both deadline and a timeout options are given, the
+	   earlier deadline is effective.
+	4. If the effective deadline is before Now, then return
+	   FALSE (leading to failure).
 */
-static int process_deadline_options(term_t options, struct timespec *ts, struct timespec **pts)
-{
-  struct timespec now;
+
+static int
+process_deadline_options(term_t options,
+			 struct timespec *ts, struct timespec **pts)
+{ struct timespec now;
   struct timespec deadline;
   struct timespec timeout;
   struct timespec *dlop=NULL;
@@ -4076,49 +4083,45 @@ static int process_deadline_options(term_t options, struct timespec *ts, struct 
       return FALSE;      // ... then FAIL
   }
   if (dlop)
-  { *ts=*dlop; *pts=ts; }
-  else
-  { *pts=NULL; }
+  { *ts  = *dlop;
+    *pts = ts;
+  } else
+  { *pts=NULL;
+  }
+
   return TRUE;
 }
 
 
 static int
-thread_send_message__LD(term_t queue, term_t msgterm,
-			struct timespec *deadline ARG_LD)
-{ message_queue *q;
-  thread_message *msg;
-  int rc;
-
-  if ( !(msg = create_thread_message(msgterm PASS_LD)) )
-    return PL_no_memory();
+wait_queue_message(term_t qterm, message_queue *q, thread_message *msg,
+		   struct timespec *deadline ARG_LD)
+{ int rc;
 
   for(;;)
-  { if ( !get_message_queue__LD(queue, &q PASS_LD) )
-    { free_thread_message(msg);
-      return FALSE;
-    }
-
-    rc = queue_message(q, msg, deadline PASS_LD);
+  { rc = queue_message(q, msg, deadline PASS_LD);
     release_message_queue(q);
 
     switch(rc)
     { case MSG_WAIT_INTR:
       { if ( PL_handle_signals() >= 0 )
 	  continue;
-	free_thread_message(msg);
 	rc = FALSE;
-
 	break;
       }
       case MSG_WAIT_DESTROYED:
-      { free_thread_message(msg);
-	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, queue);
+      { if ( qterm )
+	  PL_existence_error("message_queue", qterm);
+	rc = FALSE;
 	break;
       }
       case MSG_WAIT_TIMEOUT:
-	 rc = FALSE;
-	 break;
+	rc = FALSE;
+        break;
+      case TRUE:
+	break;
+      default:
+	assert(0);
     }
 
     break;
@@ -5701,8 +5704,6 @@ forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
       }
     }
   }
-
-  DEBUG(MSG_THREAD, Sdprintf(" All done!\n"));
 }
 
 
