@@ -824,7 +824,7 @@ PL_initialise(int argc, char **argv)
 
   { GET_LD
 #ifdef HAVE_SIGNAL
-  setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
+    setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
   if ( !GD->resourceDB )
@@ -923,8 +923,7 @@ PL_initialise(int argc, char **argv)
     if ( statefd )
     { GD->bootsession = TRUE;
       if ( !loadWicFromStream(statefd) )
-      { fail;
-      }
+	return FALSE;
       GD->bootsession = FALSE;
 
       Sclose(statefd);
