@@ -2367,33 +2367,6 @@ typedef struct
 } tprop_enum;
 
 
-int
-get_prop_def(term_t t, atom_t expected, const tprop *list, const tprop **def)
-{ GET_LD
-  functor_t f;
-
-  if ( PL_get_functor(t, &f) )
-  { const tprop *p = list;
-
-    for( ; p->functor; p++ )
-    { if ( f == p->functor )
-      { *def = p;
-        return TRUE;
-      }
-    }
-
-    PL_error(NULL, 0, NULL, ERR_DOMAIN, expected, t);
-    return -1;
-  }
-
-  if ( PL_is_variable(t) )
-    return 0;
-
-  PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
-  return -1;
-}
-
-
 static int
 advance_state(tprop_enum *state)
 { if ( state->enum_properties )
@@ -6024,6 +5997,33 @@ PL_get_thread_alias(int tid, atom_t *alias)
 }
 
 #endif  /*O_PLMT*/
+
+int
+get_prop_def(term_t t, atom_t expected, const tprop *list, const tprop **def)
+{ GET_LD
+  functor_t f;
+
+  if ( PL_get_functor(t, &f) )
+  { const tprop *p = list;
+
+    for( ; p->functor; p++ )
+    { if ( f == p->functor )
+      { *def = p;
+        return TRUE;
+      }
+    }
+
+    PL_error(NULL, 0, NULL, ERR_DOMAIN, expected, t);
+    return -1;
+  }
+
+  if ( PL_is_variable(t) )
+    return 0;
+
+  PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
+  return -1;
+}
+
 
 		 /*******************************
 		 *	     STATISTICS		*

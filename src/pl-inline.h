@@ -563,6 +563,7 @@ popArgvArithStack(int n ARG_LD)
 		 *	      THREADS		*
 		 *******************************/
 
+#ifdef O_PLMT
 static inline PL_local_data_t *
 acquire_ldata__LD(PL_thread_info_t *info ARG_LD)
 { PL_local_data_t *ld = info->thread_data;
@@ -572,5 +573,6 @@ acquire_ldata__LD(PL_thread_info_t *info ARG_LD)
   LD->thread.info->access.ldata = NULL;
   return NULL;
 }
+#endif
 
 #endif /*PL_INLINE_H_INCLUDED*/

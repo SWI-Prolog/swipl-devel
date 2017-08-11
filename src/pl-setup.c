@@ -45,6 +45,7 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <errno.h>
 
 #undef max
 #define max(a,b) ((a) > (b) ? (a) : (b))

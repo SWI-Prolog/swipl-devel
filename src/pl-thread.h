@@ -184,14 +184,6 @@ typedef struct pl_mutex
   unsigned auto_destroy	: 1;		/* asked to destroy */
 } pl_mutex;
 
-typedef struct
-{ functor_t functor;			/* functor of property */
-  int (*function)();			/* function to generate */
-} tprop;
-
-COMMON(int)	get_prop_def(term_t t, atom_t expected,
-			     const tprop *list, const tprop **def);
-
 #define PL_THREAD_MAGIC 0x2737234f
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
@@ -434,6 +426,14 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 /*******************************
 		 *	       COMMON		*
 		 *******************************/
+
+typedef struct
+{ functor_t functor;			/* functor of property */
+  int (*function)();			/* function to generate */
+} tprop;
+
+COMMON(int)	get_prop_def(term_t t, atom_t expected,
+			     const tprop *list, const tprop **def);
 
 COMMON(void)	initPrologThreads(void);
 COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
