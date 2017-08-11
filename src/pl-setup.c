@@ -300,6 +300,8 @@ static struct signame
 #ifdef SIG_THREAD_SIGNAL
   { SIG_THREAD_SIGNAL, "prolog:thread_signal", 0 },
 #endif
+  { SIG_CLAUSE_GC,     "prolog:clause_gc",     0 },
+  { SIG_PLABORT,       "prolog:abort",         0 },
 
   { -1,		NULL,     0}
 };
