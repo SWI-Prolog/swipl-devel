@@ -1632,6 +1632,26 @@ mk_kbytes(size_t *sz, atom_t name ARG_LD)
 }
 
 
+static void
+set_thread_completion(PL_thread_info_t *info, int rc, term_t ex)
+{ PL_LOCK(L_THREAD);
+  if ( rc )
+  { info->status = PL_THREAD_SUCCEEDED;
+  } else
+  { if ( ex )
+    { if ( info->detached )
+	info->return_value = 0;
+      else
+	info->return_value = PL_record(ex);
+      info->status = PL_THREAD_EXCEPTION;
+    } else
+    { info->status = PL_THREAD_FAILED;
+    }
+  }
+  PL_UNLOCK(L_THREAD);
+}
+
+
 static void *
 start_thread(void *closure)
 { PL_thread_info_t *info = closure;
@@ -1696,22 +1716,7 @@ start_thread(void *closure)
       }
     }
 
-    PL_LOCK(L_THREAD);
-    if ( rval )
-    { info->status = PL_THREAD_SUCCEEDED;
-    } else
-    { if ( ex )
-      { if ( info->detached )
-	  info->return_value = 0;
-	else
-	  info->return_value = PL_record(ex);
-	info->status = PL_THREAD_EXCEPTION;
-      } else
-      { info->status = PL_THREAD_FAILED;
-      }
-    }
-    PL_UNLOCK(L_THREAD);
-
+    set_thread_completion(info, rval, ex);
     pthread_cleanup_pop(1);
   }
 
