@@ -4186,6 +4186,26 @@ wait_queue_message(term_t qterm, message_queue *q, thread_message *msg,
   return rc;
 }
 
+static int
+thread_send_message__LD(term_t queue, term_t msgterm,
+			struct timespec *deadline ARG_LD)
+{ message_queue *q;
+  thread_message *msg;
+  int rc;
+
+  if ( !get_message_queue__LD(queue, &q PASS_LD) )
+    return FALSE;
+  if ( !(msg = create_thread_message(msgterm PASS_LD)) )
+  { release_message_queue(q);
+    return PL_no_memory();
+  }
+
+  if ( (rc=wait_queue_message(queue, q, msg, deadline PASS_LD)) == FALSE )
+    free_thread_message(msg);
+
+  return rc;
+}
+
 static
 PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
 { PRED_LD
