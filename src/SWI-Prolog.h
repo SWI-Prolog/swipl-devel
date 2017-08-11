@@ -1078,6 +1078,7 @@ PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 		 *******************************/
 
 #define PL_THREAD_NO_DEBUG	0x01	/* Start thread in nodebug mode */
+#define PL_THREAD_NOT_DETACHED	0x02	/* Allow Prolog to join */
 
 typedef struct
 { long	    local_size;			/* Stack sizes (Kbytes) */
