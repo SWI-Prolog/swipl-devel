@@ -5386,7 +5386,7 @@ signalGCThread(int sig)
 
   if ( truePrologFlag(PLFLAG_GCTHREAD) &&
        !GD->bootsession &&
-       (tid = GCthread() > 0) &&
+       (tid = GCthread()) > 0 &&
        PL_thread_raise(tid, sig) )
     return TRUE;
 
