@@ -1730,9 +1730,17 @@ gc(agc-2) :-		% not if concurrent: this is too simple.  There
 	    UpTo is Margin*2+400,
 	    statistics(agc_gained, Gained0),
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
-	    statistics(agc_gained, Gained1),
-	    Gained is Gained1 - Gained0,
-	    Gained > UpTo - 400		% might be some junk
+	    (	between(1, 6, X),
+		(   statistics(agc_gained, Gained1),
+		    Gained is Gained1 - Gained0,
+		    Gained > UpTo - 400
+		->  true
+		;   Time is 0.01*(2^X),
+		    sleep(Time),
+		    fail
+		)
+	    ->	true
+	    )
 	;   true			% no atom-gc
 	).
 
