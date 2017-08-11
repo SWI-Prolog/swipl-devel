@@ -1204,12 +1204,6 @@ write_thread_handle(IOSTREAM *s, atom_t eref, int flags)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-release_thread_handle() is called from AGC. As  the symbol is destroyed,
-we must clear info->symbol. That is safe   as AGC locks L_THREAD and the
-competing interaction in free_thread_info() is also locked with L_THREAD
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static int
 release_thread_handle(atom_t aref)
 { thread_handle **refp = PL_blob_data(aref, NULL, NULL);
@@ -1217,8 +1211,8 @@ release_thread_handle(atom_t aref)
   PL_thread_info_t *info;
 
   if ( (info=ref->info) )
-  { assert(info->detached == FALSE || info->is_engine);
-    info->symbol = 0;
+  { /* assert(info->detached == FALSE || info->is_engine); TBD: Sort out */
+    info->symbol = 0;				/* TBD: Dubious */
     gc_thread(ref);
   } else
     PL_free(ref);
