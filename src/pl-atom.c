@@ -1074,7 +1074,7 @@ static void
 considerAGC(void)
 { if ( GD->atoms.margin != 0 &&
        GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
-  { PL_raise(SIG_ATOM_GC);
+  { signalGCThread(SIG_ATOM_GC);
   }
 }
 

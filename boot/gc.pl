@@ -3,8 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2013, University of Amsterdam
-                              VU University Amsterdam
+    Copyright (c)  2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,42 +32,27 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-% Load the rest of the system as modules, so we can write a bit more
-% readable code.  First we need to load term-expansion, etc. because
-% this gives us DCGs.  Then we need to replace the dummy clauses for
-% '$expand_term'/4 and '$expand_goal'/2 with links to the real thing.
+:- module('$gc', []).
 
-:- consult([ gc,
-             expand,
-             dcg
-           ]).
+system:'$gc' :-
+    gc_loop.
 
-:- abolish('$expand_goal'/2),
-   asserta(('$expand_goal'(In, Out) :- expand_goal(In, Out))),
-   abolish('$expand_term'/4),
-   asserta(('$expand_term'(In, P0, Out, P) :- expand_term(In, P0, Out, P))),
-   compile_predicates(['$expand_goal'/2, '$expand_term'/4]),
-   '$set_predicate_attribute'(system:'$expand_goal'(_,_), system, true),
-   '$set_predicate_attribute'(system:'$expand_term'(_,_,_,_), system, true),
-   '$set_predicate_attribute'(system:'$expand_goal'(_,_), hide_childs, true),
-   '$set_predicate_attribute'(system:'$expand_term'(_,_,_,_), hide_childs, true).
+%!  gc_loop
+%
+%   Wait for signals from other threads  to perform global GC operations
+%   and do them for them.
 
-:- consult([ license,                   % requires DCG
-             syspred,
-             messages,
-             toplevel,
-             attvar,
-             bags,
-             apply,
-             history,
-             dwim,
-             parms,
-             autoload,
-             qlf,
-             rc,
-             predopts,
-             packs,
-             dicts,
-             engines,
-             user:topvars
-           ]).
+gc_loop :-
+    repeat,
+    '$thread_sigwait'(Signal),
+    (   Signal == 'prolog:abort'
+    ->  true
+    ;   process(Signal)
+    ->  fail
+    ;   print_message(warning, gc(ignored(Signal)))
+    ).
+
+process('prolog:atom_gc') :-
+    garbage_collect_atoms.
+process('prolog:clause_gc') :-
+    garbage_collect_clauses.

@@ -5308,6 +5308,113 @@ PL_destroy_engine(PL_engine_t e)
 
 
 		 /*******************************
+		 *	      GC THREAD		*
+		 *******************************/
+
+static int GC_id = 0;
+static int GC_starting = 0;
+static pthread_mutex_t GC_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  GC_cond  = PTHREAD_COND_INITIALIZER;
+
+static void *
+GCmain(void *closure)
+{ PL_thread_attr_t attrs = {0};
+
+  attrs.alias = "gc";
+  attrs.flags = PL_THREAD_NO_DEBUG|PL_THREAD_NOT_DETACHED;
+
+  if ( PL_thread_attach_engine(&attrs) > 0 )
+  { GET_LD
+    PL_thread_info_t *info = LD->thread.info;
+    static predicate_t pred = 0;
+    int rc;
+
+    if ( !pred )
+      pred = PL_predicate("$gc", 0, "system");
+
+    pthread_mutex_lock(&GC_mutex);
+    GC_id = PL_thread_self();
+    GC_starting = FALSE;
+    pthread_cond_broadcast(&GC_cond);
+    pthread_mutex_unlock(&GC_mutex);
+    rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
+    GC_id = 0;
+
+    set_thread_completion(info, rc, exception_term);
+    PL_thread_destroy_engine();
+  }
+
+  return NULL;
+}
+
+
+static int
+GCthread(void)
+{ if ( GC_id <= 0 )
+  { pthread_mutex_lock(&GC_mutex);
+
+    if ( GC_id <= 0 )
+    { pthread_attr_t attr;
+      int rc;
+      pthread_t thr;
+
+      if ( !GC_starting )
+      { GC_starting = TRUE;
+	pthread_attr_init(&attr);
+	rc = pthread_create(&thr, &attr, GCmain, NULL);
+	pthread_attr_destroy(&attr);
+	if ( rc != 0 )
+	{ pthread_mutex_unlock(&GC_mutex);
+	  return 0;
+	}
+      }
+
+      while( GC_id <= 0 )
+	pthread_cond_wait(&GC_cond, &GC_mutex);
+      pthread_mutex_unlock(&GC_mutex);
+    }
+  }
+
+  return GC_id;
+}
+
+
+int
+signalGCThread(int sig)
+{ GET_LD
+  int tid;
+
+  if ( truePrologFlag(PLFLAG_GCTHREAD) &&
+       !GD->bootsession &&
+       (tid = GCthread() > 0) &&
+       PL_thread_raise(tid, sig) )
+    return TRUE;
+
+  return raiseSignal(LD, sig);
+}
+
+
+int
+isSignalledGCThread(int sig ARG_LD)
+{ int tid;
+  PL_thread_info_t *info;
+  int rc;
+
+  if ( (tid=GC_id) > 0 && (info = GD->thread.threads[tid]) &&
+       info->status == PL_THREAD_RUNNING )
+  { PL_local_data_t *ld = acquire_ldata(info);
+
+    rc = PL_pending__LD(sig, ld);
+    release_ldata(ld);
+  } else
+  { rc = PL_pending(sig);
+  }
+
+  return rc;
+}
+
+
+		 /*******************************
 		 *	     STATISTICS		*
 		 *******************************/
 
@@ -5980,6 +6087,19 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 
 
 #else /*O_PLMT*/
+
+int
+signalGCThread(int sig)
+{ GET_LD
+
+  return raiseSignal(LD, sig);
+}
+
+int
+isSignalledGCThread(int sig ARG_LD)
+{ return PL_pending(sig);
+}
+
 
 int
 PL_thread_self()

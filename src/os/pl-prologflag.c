@@ -1304,8 +1304,10 @@ initPrologFlags(void)
 #ifdef O_PLMT
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
+  setPrologFlag("gc_thread",    FT_BOOL, TRUE, PLFLAG_GCTHREAD);
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
+  setPrologFlag("gc_thread",    FT_BOOL|FF_READONLY, FALSE, PLFLAG_GCTHREAD);
 #endif
 #ifdef O_DDE
   setPrologFlag("dde", FT_BOOL|FF_READONLY, TRUE, 0);

@@ -374,7 +374,6 @@ COMMON(void)		cleanupThreads(void);
 COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
-
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
 		 *******************************/
@@ -447,5 +446,7 @@ COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
 COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
 COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
 COMMON(int)     cgc_thread_stats(cgc_stats *stats ARG_LD);
+COMMON(int)	signalGCThread(int sig);
+COMMON(int)	isSignalledGCThread(int sig ARG_LD);
 
 #endif /*PL_THREAD_H_DEFINED*/

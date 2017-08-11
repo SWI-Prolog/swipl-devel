@@ -2265,6 +2265,7 @@ typedef struct debuginfo
 #define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
 #define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
 #define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x04000000
+#define PLFLAG_GCTHREAD		    0x08000000 /* Do atom/clause GC in a thread */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

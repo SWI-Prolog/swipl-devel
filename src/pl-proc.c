@@ -1904,10 +1904,10 @@ registerDirtyDefinition(Definition def ARG_LD)
     else
       PL_free(ddi);			/* someone else did this */
   }
-  if ( !PL_pending(SIG_CLAUSE_GC) &&	/* already asked for */
+  if ( !isSignalledGCThread(SIG_CLAUSE_GC PASS_LD) &&	/* already asked for */
        !GD->clauses.cgc_active &&	/* currently running */
        considerClauseGC(PASS_LD1) )
-    PL_raise(SIG_CLAUSE_GC);
+    signalGCThread(SIG_CLAUSE_GC);
 }
 
 static void
