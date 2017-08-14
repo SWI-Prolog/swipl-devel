@@ -918,15 +918,17 @@ exitPrologThreads(void)
 	  break;
 	}
 	case PL_THREAD_RUNNING:
-	{ info->thread_data->exit_requested = TRUE;
+	{ if ( !info->is_engine )
+	  { info->thread_data->exit_requested = TRUE;
 
-	  if ( info->cancel )
-	  { if ( (*info->cancel)(i) == TRUE )
-	      break;			/* done so */
+	    if ( info->cancel )
+	    { if ( (*info->cancel)(i) == TRUE )
+		break;			/* done so */
+	    }
+
+	    if ( PL_thread_raise(i, SIG_PLABORT) )
+	      canceled++;
 	  }
-
-	  if ( PL_thread_raise(i, SIG_PLABORT) )
-	    canceled++;
 
 	  break;
 	}
