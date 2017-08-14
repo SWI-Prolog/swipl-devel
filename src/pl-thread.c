@@ -936,18 +936,22 @@ exitPrologThreads(void)
     }
   }
 
-  DEBUG(MSG_THREAD, Sdprintf("Waiting for %d threads ...", canceled));
-  for(i=canceled; i-- > 0;)
+  if ( canceled > 0 )
   { int maxwait = 10;
 
-    while(maxwait--)
-    { if ( sem_trywait(sem_canceled_ptr) == 0 )
-      { DEBUG(MSG_THREAD, Sdprintf(" (ok)"));
+    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads ", canceled));
+    for(maxwait = 10; maxwait > 0 && canceled > 0; maxwait--)
+    { while ( sem_trywait(sem_canceled_ptr) == 0 )
+      { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("."));
 	canceled--;
 	break;
       }
-      Pause(0.1);
+      if ( canceled > 0 )
+      { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("W"));
+	Pause(0.1);
+      }
     }
+    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("\nLeft: %d threads\n", canceled));
   }
 
   if ( canceled )
