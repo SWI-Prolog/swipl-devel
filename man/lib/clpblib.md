@@ -231,9 +231,9 @@ false.
 
 ?- pigeon(2, 3, Rows, Cs), sat(*(Cs)),
    append(Rows, Vs), labeling(Vs),
-   maplist(writeln, Rows).
-[0,0,1]
-[0,1,0]
+   maplist(portray_clause, Rows).
+[0, 0, 1].
+[0, 1, 0].
 ==
 
 ## Example: Boolean circuit  {#clpb-circuit}
