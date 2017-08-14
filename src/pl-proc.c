@@ -1393,9 +1393,33 @@ cleanDefinition()
 
     We cannot delete the clauses immediately as the debugger requires a
     call-back and we have the L_PREDICATE mutex when running this code.
+
+find_prev() finds the real  previous  clause.   The  not-locked  loop of
+cleanDefinition() keep track of this, but  in the meanwhile the previous
+may change due to an assert. Now that we are in the locked region we can
+search for the real previous, using   the  one from cleanDefinition() as
+the likely candidate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int	mustCleanDefinition(const Definition def);
+
+static ClauseRef
+find_prev(Definition def, ClauseRef prev, ClauseRef cref)
+{ if ( (!prev && def->impl.clauses.first_clause == cref) ||
+       ( prev && prev->next == cref) )
+    return prev;
+
+  DEBUG(MSG_PROC, Sdprintf("Fixing prev\n"));
+  for(prev = def->impl.clauses.first_clause; prev; prev = prev->next)
+  { if ( prev->next == cref )
+      return prev;
+  }
+
+  assert(0);
+  return NULL;
+}
+
+
 
 static size_t
 cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
@@ -1422,6 +1446,7 @@ cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
 	  *rcp = FALSE;
 
 	LOCKDEF(def);
+	prev = find_prev(def, prev, cref);
 	if ( !prev )
 	{ def->impl.clauses.first_clause = cref->next;
 	  if ( !cref->next )
