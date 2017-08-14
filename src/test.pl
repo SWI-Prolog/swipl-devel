@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2016, University of Amsterdam
+    Copyright (c)  1996-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1727,13 +1727,17 @@ gc(agc-2) :-		% not if concurrent: this is too simple.  There
 	    Margin > 0,
 	    \+ current_prolog_flag(test_concurrent, true)
 	->  garbage_collect_atoms,
-	    UpTo is Margin*2+400,
+	    UpTo is Margin*10+400,
+	    statistics(agc, AGC0),
 	    statistics(agc_gained, Gained0),
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
 	    (	between(1, 6, X),
-		(   statistics(agc_gained, Gained1),
+		(   statistics(agc, AGC1),
+		    AGC is AGC1 - AGC0,
+		    AGC > 5,
+		    statistics(agc_gained, Gained1),
 		    Gained is Gained1 - Gained0,
-		    Gained > UpTo - 400
+		    Gained > AGC*Margin*0.7
 		->  true
 		;   Time is 0.01*(2^X),
 		    sleep(Time),
