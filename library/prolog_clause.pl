@@ -550,6 +550,10 @@ conj((A,B), brace_term_position(_,T,PA), GL, TG, PL, TP) :-
     conj(A, PA, GL, TGA, PL, TPA),
     T1 is T - 1,
     conj(B, T1-T, TGA, TG, TPA, TP).
+conj(A, parentheses_term_position(_,_,Pos), GL, TG, PL, TP) :-
+    nonvar(Pos),
+    !,
+    conj(A, Pos, GL, TG, PL, TP).
 conj((!,(S=SR)), F-T, [!,S=SR|TG], TG, [F-T,F1-T1|TP], TP) :-
     F1 is F+1,
     T1 is T+1.
