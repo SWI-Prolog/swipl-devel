@@ -1938,11 +1938,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   { leave = true(FR, FR_WATCHED) ? FR : NULL;
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
     leaveDefinition(DEF);		/* dynamic pred only */
-    if ( false(FR, FR_KEEPLTOP) )
-    { lTop = FR;
-    } else
-    { DEBUG(MSG_CONTINUE, Sdprintf("Keeping lTop for %s\n", predicateName(DEF)));
-    }
+    lTop = FR;
     DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 		      predicateName(FR->predicate), loffset(lTop)));
   } else
