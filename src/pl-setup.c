@@ -45,6 +45,7 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <errno.h>
 
 #undef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
@@ -299,6 +300,8 @@ static struct signame
 #ifdef SIG_THREAD_SIGNAL
   { SIG_THREAD_SIGNAL, "prolog:thread_signal", 0 },
 #endif
+  { SIG_CLAUSE_GC,     "prolog:clause_gc",     0 },
+  { SIG_PLABORT,       "prolog:abort",         0 },
 
   { -1,		NULL,     0}
 };
@@ -391,7 +394,7 @@ to the main thread.
 #undef LD
 #define LD LOCAL_LD
 
-static void
+void
 dispatch_signal(int sig, int sync)
 { GET_LD
   SigHandler sh = &GD->signals.handlers[sig-1];

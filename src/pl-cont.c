@@ -42,12 +42,16 @@ Implementation of `delimited continuation'.  Implements
   * shift(+Ball)
   * call_continuation(+Cont)
 
-reset/3 is implemented as
+reset/3 is implemented as:
 
-  reset(Goal, Cont, Ball) :-
-	'$start_reset',
-	call(Goal),
-	Cont = 0, Ball = 0.
+  reset(_Goal, _Cont, _Ball) :-
+	'$reset'.
+
+Where the compiler translates '$reset' into
+
+  I_RESET
+  I_EXITRESET
+  I_EXIT
 
 ## Future optimizations
 
@@ -58,18 +62,6 @@ reset/3 is implemented as
   - As put_environment() documents, we should also find the
     active non-Prolog slots.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static
-PRED_IMPL("$start_reset", 0, start_reset, 0)
-{ PRED_LD
-  LocalFrame fr = environment_frame;
-
-  assert(fr->parent);
-  set(fr->parent, FR_INRESET);
-
-  return TRUE;
-}
-
 
 static term_t
 findReset(LocalFrame fr, term_t ball ARG_LD)
@@ -250,9 +242,6 @@ is_last_call(Code PC)
     switch( c )
     { case I_EXIT:
       case I_EXITFACT:
-      case I_EXITCATCH:
-      case I_EXITRESET:
-      case I_EXITCLEANUP:
 	return TRUE;
       case C_JMP:
 	PC += (int)PC[1]+2;
@@ -515,7 +504,6 @@ retry:
 		 *******************************/
 
 BeginPredDefs(cont)
-  PRED_DEF("$start_reset",        0, start_reset,        0)
   PRED_DEF("shift",               1, shift,              0)
   PRED_DEF("$call_one_tail_body", 1, call_one_tail_body, 0)
 EndPredDefs

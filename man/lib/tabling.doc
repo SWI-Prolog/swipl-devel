@@ -337,7 +337,6 @@ particular,
 \begin{shortlist}
     \item The performance needs to be improved.
     \item Memory usage needs to be reduced.
-    \item \jargon{mode-directed} tabling should be added.
     \item Tables must be shared between threads, both to
           reduce space and avoid recomputation.
     \item Tables must be invalidated and reclaimed automatically.

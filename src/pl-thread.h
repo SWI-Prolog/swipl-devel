@@ -184,14 +184,6 @@ typedef struct pl_mutex
   unsigned auto_destroy	: 1;		/* asked to destroy */
 } pl_mutex;
 
-typedef struct
-{ functor_t functor;			/* functor of property */
-  int (*function)();			/* function to generate */
-} tprop;
-
-COMMON(int)	get_prop_def(term_t t, atom_t expected,
-			     const tprop *list, const tprop **def);
-
 #define PL_THREAD_MAGIC 0x2737234f
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
@@ -382,7 +374,6 @@ COMMON(void)		cleanupThreads(void);
 COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
-
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
 		 *******************************/
@@ -435,6 +426,14 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 *	       COMMON		*
 		 *******************************/
 
+typedef struct
+{ functor_t functor;			/* functor of property */
+  int (*function)();			/* function to generate */
+} tprop;
+
+COMMON(int)	get_prop_def(term_t t, atom_t expected,
+			     const tprop *list, const tprop **def);
+
 COMMON(void)	initPrologThreads(void);
 COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
 COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
@@ -447,5 +446,7 @@ COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
 COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
 COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
 COMMON(int)     cgc_thread_stats(cgc_stats *stats ARG_LD);
+COMMON(int)	signalGCThread(int sig);
+COMMON(int)	isSignalledGCThread(int sig ARG_LD);
 
 #endif /*PL_THREAD_H_DEFINED*/

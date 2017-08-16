@@ -599,6 +599,7 @@ COMMON(void)		install_rl(void);
 /* pl-setup.c */
 COMMON(int)		setupProlog(void);
 COMMON(int)		endCritical__LD(ARG1_LD);
+COMMON(void)		dispatch_signal(int sig, int sync);
 COMMON(handler_t)	set_sighandler(int sig, handler_t func);
 COMMON(void)		blockSignals(sigset_t *mask);
 COMMON(void)		allSignalMask(sigset_t *set);

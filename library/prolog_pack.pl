@@ -700,7 +700,10 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
 pack_unpack(Source, PackDir, Pack, Options) :-
     pack_archive_info(Source, Pack, _Info, StripOptions),
     prepare_pack_dir(PackDir, Options),
-    archive_extract(Source, PackDir, StripOptions).
+    archive_extract(Source, PackDir,
+                    [ exclude(['._*'])          % MacOS resource forks
+                    | StripOptions
+                    ]).
 :- else.
 pack_unpack(_,_,_,_) :-
     existence_error(library, archive).

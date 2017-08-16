@@ -300,7 +300,11 @@ freeStream(IOSTREAM *s)
 					/* if we are a standard stream */
 					/* reassociate with standard I/O */
 					/* NOTE: there may be more! */
-  if ( LD && (sp=LD->IO.streams) )
+  if (
+#ifdef O_PLMT
+       LD &&
+#endif
+       (sp=LD->IO.streams) )
   { for(i=0; i<6; i++, sp++)
     { if ( *sp == s )
       { if ( s->flags & SIO_INPUT )
