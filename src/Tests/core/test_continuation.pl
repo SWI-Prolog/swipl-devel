@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2016, University of Amsterdam
+    Copyright (c)  2017, University of Amsterdam
                          VU University Amsterdam
     All rights reserved.
 
@@ -38,6 +38,7 @@
 	  ]).
 user:file_search_path(library, '../packages/plunit').
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 test_continuation :-
 	run_tests([ continuation
@@ -178,6 +179,10 @@ shift_in_cond(R) :-
 
 :- begin_tests(continuation).
 
+test(basic, [Ball,After] == [a,after]) :-
+	reset(shift(a), Ball, Continuation),
+	assertion(callable(Continuation)),
+	After = after.
 test(sum, Sum == 12) :-
 	init_iterator(fromList([7,2,3]), It),
 	sum(It, 0, Sum).

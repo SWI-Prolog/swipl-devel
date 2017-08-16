@@ -385,6 +385,13 @@ prolog_cut_to(_Choice) :-
 reset(_Goal, _Ball, _Cont) :-
     '$reset'.
 
+%!  shift(+Ball)
+%
+%   Shift control back to the enclosing reset/3
+
+shift(Ball) :-
+    '$shift'(Ball).
+
 %!  call_continuation(+Continuation:list)
 %
 %   Call a continuation as created  by   shift/1.  The continuation is a
@@ -399,14 +406,11 @@ reset(_Goal, _Ball, _Cont) :-
 
 call_continuation([]).
 call_continuation([TB|Rest]) :-
-    call_one_continuation(TB),
-    call_continuation(Rest).
-
-call_one_continuation(call(Goal)) :-
-    !,
-    call(Goal).
-call_one_continuation(Continuation) :-
-    '$call_one_tail_body'(Continuation).
+    (   Rest == []
+    ->  '$call_continuation'(TB)
+    ;   '$call_continuation'(TB),
+        call_continuation(Rest)
+    ).
 
 
 %!  '$recover_and_rethrow'(:Goal, +Term)

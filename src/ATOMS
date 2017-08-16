@@ -164,6 +164,7 @@ A db_reference		"db_reference"
 A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
+A dcall_continuation	"$call_continuation"
 A dcatch		"$catch"
 A dcont			"$cont$"
 A dcut			"$cut"
@@ -215,6 +216,7 @@ A dquasi_quotation	"$quasi_quotation"
 A dquery_loop		"$query_loop"
 A drecover_and_rethrow	"$recover_and_rethrow"
 A dreset		"$reset"
+A dshift		"$shift"
 A dstream		"$stream"
 A dstream_position	"$stream_position"
 A dthread_init		"$thread_init"
@@ -854,6 +856,7 @@ F date			3
 F date			9
 F dc_call_prolog	0
 F dcall			1
+F dcall_continuation	1
 F dcont			3
 F dcut			1
 F dde_error		2
@@ -879,6 +882,7 @@ F dparse_quasi_quotations 2
 F dprof_node		1
 F dquasi_quotation	3
 F drecover_and_rethrow	2
+F dshift		1
 F dstream		1
 F dthread_init		0
 F dthrow		1

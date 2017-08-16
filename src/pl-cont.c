@@ -322,21 +322,23 @@ Performs the following steps:
   2. Collect the continuation as a list of terms, each
      term is of the form
 
-	cont(Clause, PC, Env)
+	'$cont'(Clause, PC, EnvArg1, ...)
 
      Here, Clause is the clause, PC is the program counter inside
-     the clause, Env is a list of Offset-Value pairs, containing
-     the reachable part of the environment.
+     the clause, EnvArg1 is an array holding the frame argumnets
+     in the same order as the frame layout.  The atom '<inactive>'
+     is used for frame slots that are not accessed by the remainder
+     of the continuation.
   3. Unify Cont of the reset/2 goal with the continuation
-  4. Modify the saved PC of current frame to return to the exit
-     of reset/0
+  4. Return the program counter for contueing in the parent of the
+     reset/3. Sets environment_frame to the parent of the reset frame.
+     These parameters are used by I_SHIFT to continue in the reset
+     frame.
 */
 
-static
-PRED_IMPL("shift", 1, shift, 0)
-{ PRED_LD
-  term_t ball = A1;
-  term_t reset;
+Code
+shift(term_t ball ARG_LD)
+{ term_t reset;
 
   if ( (reset=findReset(environment_frame, ball PASS_LD)) )
   { term_t cont = PL_new_term_ref();
@@ -358,58 +360,43 @@ PRED_IMPL("shift", 1, shift, 0)
     resetfr = (LocalFrame)valTermRef(reset);
     if ( !PL_unify(consTermRef(argFrameP(resetfr, 2)), cont) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to unify continuation\n"));
-      if ( PL_exception(0) )
-	return FALSE;
-      else
-	return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION,
-			0, consTermRef(argFrameP(resetfr, 1)));
+      if ( !PL_exception(0) )
+	PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION,
+		 0, consTermRef(argFrameP(resetfr, 1)));
+      return NULL;
     }
     resetfr = (LocalFrame)valTermRef(reset);
 
 					/* Find parent to keep and trim lTop */
-					/* Note that I_EXIT does not touch this */
-					/* (FR_KEEPLTOP) */
     for( fr = environment_frame->parent; ; fr = fr->parent )
     { if ( fr <= (LocalFrame)LD->choicepoints )
       { lTop = (LocalFrame)(LD->choicepoints+1);
 	break;				/* found newer choicepoint */
       } else if ( fr == resetfr )
-      { lTop = (LocalFrame)argFrameP(fr, fr->clause->value.clause->variables);
+      { fr = fr->parent;
+	lTop = (LocalFrame)argFrameP(fr, fr->clause->value.clause->variables);
         break;
       }
       assert(fr > resetfr);
     }
 					/* return as from reset/3 */
-    fr = environment_frame;
-    fr->programPointer = resetfr->programPointer;
-    fr->parent         = resetfr->parent;
-    set(fr, FR_KEEPLTOP);
-
-    return TRUE;
+    environment_frame = resetfr->parent;
+    return resetfr->programPointer;
   }
 
-  return PL_existence_error("reset/3", ball);
+  PL_existence_error("reset/3", ball);
+  return NULL;
 }
 
 
-/** '$call_one_tail_body'(+Cont)
-
-Reactivate a single tail body from a continuation. See shift for the
-representation of the continuation.
-*/
-
-
-static
-PRED_IMPL("$call_one_tail_body", 1, call_one_tail_body, 0)
-{ PRED_LD
-  Word cont = valTermRef(A1);
-  LocalFrame me, top, fr;
-  Code pc;
+Code
+push_continuation(term_t continuation, LocalFrame pfr, Code pcret ARG_LD)
+{ LocalFrame top, fr;
+  Word cont;
 
 retry:
-  cont = valTermRef(A1);
+  cont = valTermRef(continuation);
   top  = lTop;
-  me   = environment_frame;
 
   deRef(cont);
 
@@ -423,10 +410,11 @@ retry:
     size_t lneeded, lroom;
     int i;
 
-    if ( !(cl = clause_clref(*ep++)) )
-      return PL_type_error("continuation", A1);
-    if ( arityFunctor(f->definition) != cl->variables + 2 )
-      return PL_domain_error("continuation", A1);
+    if ( !(cl = clause_clref(*ep++)) ||
+	 arityFunctor(f->definition) != cl->variables + 2 )
+    { PL_type_error("continuation", continuation);
+      return NULL;
+    }
 
     pcoffset = valInt(*ep++);
 
@@ -438,7 +426,9 @@ retry:
 
       if ( (rc=growLocalSpace__LD(roomStack(local)*2, ALLOW_SHIFT PASS_LD))
 	   != TRUE )
-	return raiseStackOverflow(rc);
+      { raiseStackOverflow(rc);
+	return NULL;
+      }
       goto retry;
     }
 
@@ -475,35 +465,36 @@ retry:
     cref->d.key        = 0;
     cref->value.clause = cl;
 
-    fr->programPointer = me->programPointer;
-    fr->parent         = me->parent;
+    fr->programPointer = pcret;
+    fr->parent         = pfr;
     fr->clause         = cref;
     fr->predicate      = cl->predicate;
     fr->context	       = fr->predicate->module;
-    setNextFrameFlags(fr, me);
+    setNextFrameFlags(fr, pfr);
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif
     setGenerationFrame(fr, global_generation());
     enterDefinition(fr->predicate);
+    environment_frame = fr;
 
-    pc = cl->codes+pcoffset;
+    DEBUG(MSG_CONTINUE,
+	  Sdprintf("Resume clause %d of %s at PC=%ld\n",
+		   clauseNo(fr->predicate, cl, 0),
+		   predicateName(fr->predicate),
+		   pcoffset));
 
-    me->parent = fr;
-    me->programPointer = pc;
-    set(me, FR_KEEPLTOP);
-
-    return TRUE;
+    return cl->codes + pcoffset;
   } else
-  { return PL_type_error("continuation", A1);
+  { PL_type_error("continuation", continuation);
+    return NULL;
   }
 }
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(cont)
-  PRED_DEF("shift",               1, shift,              0)
-  PRED_DEF("$call_one_tail_body", 1, call_one_tail_body, 0)
 EndPredDefs

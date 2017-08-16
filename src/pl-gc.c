@@ -1794,6 +1794,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case I_STRING:
       case I_COMPOUND:
       case I_CALLABLE:
+      case I_CALLCONT:
+      case I_SHIFT:
 	mark_frame_var(state, PC[0] PASS_LD);
         break;
 
