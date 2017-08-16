@@ -171,7 +171,7 @@ gc_engines(Create, N) :-
 	->  true
 	;   aggregate_all(count, current_engine(_), Count2),
 	    Dangling is Count2-Count0,
-	    format('~NWARNING: left ~D of ~D danging engines~n',
+	    format('~NWARNING: left ~D of ~D engines dangling~n',
 		   [Dangling, N])
 	).
 

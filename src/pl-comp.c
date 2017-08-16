@@ -1090,6 +1090,8 @@ forwards int	compileBodyVar1(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyTypeTest(functor_t functor, Word arg,
 				    compileInfo *ci ARG_LD);
+forwards int	compileBodyCallContinuation(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyShift(Word arg, compileInfo *ci ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
@@ -2597,6 +2599,12 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
 	  return rc;
       } else if ( (rc=compileBodyTypeTest(functor, arg, ci PASS_LD)) != FALSE )
       { return rc;
+      } else if ( functor == FUNCTOR_dcall_continuation1 )
+      { if ( (rc=compileBodyCallContinuation(arg, ci PASS_LD)) != FALSE )
+	  return rc;
+      } else if ( functor == FUNCTOR_dshift1 )
+      { if ( (rc=compileBodyShift(arg, ci PASS_LD)) != FALSE )
+	  return rc;
       }
     }
 #endif
@@ -3430,6 +3438,41 @@ compileBodyTypeTest(functor_t functor, Word arg, compileInfo *ci ARG_LD)
 
   return FALSE;
 }
+
+static int
+compileBodyCallContinuation(Word arg, compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+
+  if ( (i1 = isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
+       !isFirstVar(ci->used_var, i1) )
+  { Output_1(ci, I_CALLCONT, VAROFFSET(i1));
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static int
+compileBodyShift(Word arg, compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+
+  if ( (i1 = isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
+       !isFirstVar(ci->used_var, i1) )
+  { Output_1(ci, I_SHIFT, VAROFFSET(i1));
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 
 		 /*******************************
@@ -5055,6 +5098,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_STRING:	    f = FUNCTOR_string1;   goto common_type_test;
       case I_COMPOUND:	    f = FUNCTOR_compound1; goto common_type_test;
       case I_CALLABLE:	    f = FUNCTOR_callable1; goto common_type_test;
+      case I_CALLCONT:	    f = FUNCTOR_dcall_continuation1;
+						   goto common_type_test;
+      case I_SHIFT:	    f = FUNCTOR_dshift1;
+						   goto common_type_test;
     }
       case C_LCUTIFTHEN:
       case C_LSCUT:

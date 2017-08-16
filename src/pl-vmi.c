@@ -1938,11 +1938,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   { leave = true(FR, FR_WATCHED) ? FR : NULL;
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
     leaveDefinition(DEF);		/* dynamic pred only */
-    if ( false(FR, FR_KEEPLTOP) )
-    { lTop = FR;
-    } else
-    { DEBUG(MSG_CONTINUE, Sdprintf("Keeping lTop for %s\n", predicateName(DEF)));
-    }
+    lTop = FR;
     DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 		      predicateName(FR->predicate), loffset(lTop)));
   } else
@@ -5001,6 +4997,68 @@ VMI(I_EXITRESET, 0, 0, ())
   { PL_uninstantiation_error(pushWordAsTermRef(p));
     popTermRef();
     THROW_EXCEPTION;
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$call_continuation(Cont)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_CALLCONT, 0, 1, (CA1_VAR))
+{ Word cp = varFrameP(FR, (int)*PC++);
+
+  deRef(cp);
+  if ( hasFunctor(*cp, FUNCTOR_call1) )
+  { *ARGP++ = linkVal(argTermP(*cp, 0));
+    VMI_GOTO(I_USERCALL0);
+  } else
+  { term_t cont = pushWordAsTermRef(cp);
+    Code pc;
+
+    SAVE_REGISTERS(qid);
+    pc = push_continuation(cont, FR, PC PASS_LD);
+    LOAD_REGISTERS(qid);
+    popTermRef();
+
+    if ( pc )
+    { PC = pc;
+      FR = environment_frame;
+      DEF = FR->predicate;
+      ARGP = argFrameP(lTop, 0);
+      NEXT_INSTRUCTION;
+    } else
+    { THROW_EXCEPTION;
+    }
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+shift(Ball) :-
+    '$shift'(Ball).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_SHIFT, 0, 1, (CA1_VAR))
+{ Word ballp  = varFrameP(FR, (int)*PC++);
+  term_t ball = pushWordAsTermRef(ballp);
+  Code pc;
+  fid_t fid;
+
+  SAVE_REGISTERS(qid);
+  fid = PL_open_foreign_frame();
+  pc = shift(ball PASS_LD);
+  PL_close_foreign_frame(fid);
+  LOAD_REGISTERS(qid);
+
+  popTermRef();
+
+  if ( pc )
+  { PC = pc;
+    FR = environment_frame;
+    DEF = FR->predicate;
+    ARGP = argFrameP(lTop, 0);
+    NEXT_INSTRUCTION;
+  } else
+  { THROW_EXCEPTION;
   }
 }
 
