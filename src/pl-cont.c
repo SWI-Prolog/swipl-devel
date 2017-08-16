@@ -242,9 +242,6 @@ is_last_call(Code PC)
     switch( c )
     { case I_EXIT:
       case I_EXITFACT:
-      case I_EXITCATCH:
-      case I_EXITRESET:
-      case I_EXITCLEANUP:
 	return TRUE;
       case C_JMP:
 	PC += (int)PC[1]+2;
