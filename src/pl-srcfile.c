@@ -718,11 +718,35 @@ startReconsultFile(SourceFile sf)
   DEBUG(MSG_RECONSULT, Sdprintf("Reconsult %s ...\n", sourceFileName(sf)));
 
   if ( (r = allocHeap(sizeof(*sf->reload))) )
-  { memset(r, 0, sizeof(*r));
+  { ListCell cell, next;
+
+    memset(r, 0, sizeof(*r));
     r->procedures        = newHTable(16);
     r->reload_gen        = GEN_MAX-PL_thread_self();
     r->pred_access_count = popNPredicateAccess(0);
     sf->reload = r;
+
+    LD->gen_reload = r->reload_gen;
+
+    for(cell = sf->procedures; cell; cell = next)
+    { Procedure proc = cell->value;
+      Definition def = proc->definition;
+      ClauseRef c;
+
+      next = cell->next;
+      acquire_def(def);
+      for(c = def->impl.clauses.first_clause; c; c = c->next)
+      { Clause cl = c->value.clause;
+
+        if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) || true(cl, CL_ERASED) )
+          continue;
+        if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
+          continue;
+
+        cl->generation.erased = r->reload_gen;
+      }
+      release_def(def);
+    }
 
     return TRUE;
   }
@@ -734,7 +758,7 @@ startReconsultFile(SourceFile sf)
 static ClauseRef
 find_clause(ClauseRef cref, gen_t generation)
 { for(; cref; cref = cref->next)
-  { if ( visibleClause(cref->value.clause, generation) )
+  { if ( GLOBALLY_VISIBLE_CLAUSE(cref->value.clause, generation) )
       break;
   }
 
@@ -749,7 +773,7 @@ advance_clause(p_reload *r ARG_LD)
   if ( (cref = r->current_clause) )
   { acquire_def(r->predicate);
     for(cref = cref->next; cref; cref = cref->next)
-    { if ( visibleClause(cref->value.clause, r->generation) )
+    { if ( GLOBALLY_VISIBLE_CLAUSE(cref->value.clause, r->generation) )
 	break;
     }
     release_def(r->predicate);
@@ -771,6 +795,7 @@ keep_clause(p_reload *r, Clause clause ARG_LD)
 { ClauseRef cref = r->current_clause;
   Clause keep = cref->value.clause;
 
+  keep->generation.erased = GEN_MAX;
   copy_clause_source(keep, clause);
   freeClause(clause);
   advance_clause(r PASS_LD);
@@ -831,6 +856,27 @@ isDefinedProcedureSource(Procedure proc)
 }
 
 
+int
+isRedefinedProcedure(Procedure proc, gen_t gen)
+{ GET_LD
+  Definition def = proc->definition;
+  ClauseRef c;
+  int ret = FALSE;
+
+  acquire_def(def);
+  for(c = def->impl.clauses.first_clause; c; c = c->next)
+  { Clause cl = c->value.clause;
+    if ( GLOBALLY_VISIBLE_CLAUSE(cl, gen) )
+    { ret = TRUE;
+      break;
+    }
+  }
+  release_def(def);
+
+  return ret;
+}
+
+
 static p_reload *
 reloadContext(SourceFile sf, Procedure proc ARG_LD)
 { p_reload *reload;
@@ -846,7 +892,7 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
     reload->predicate = def;
     if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
     { set(reload, P_NO_CLAUSES);
-    } else if ( isDefinedProcedure(proc) )
+    } else if ( isRedefinedProcedure(proc, global_generation()) )
     { reload->generation = global_generation();
       pushPredicateAccess(def, reload->generation);
       acquire_def(def);
@@ -907,7 +953,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       for(cref2 = cref->next; cref2; cref2 = cref2->next)
       { Clause c2 = cref2->value.clause;
 
-	if ( !visibleClause(c2, reload->generation) )
+	if ( !GLOBALLY_VISIBLE_CLAUSE(c2, reload->generation) )
 	  continue;
 	if ( true(def, P_MULTIFILE) && c2->owner_no != sf->index )
 	  continue;
@@ -918,13 +964,12 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 	  for(del = cref; del != cref2; del = del->next)
 	  { Clause c = del->value.clause;
 
-	    if ( !visibleClause(c, reload->generation) ||
+	    if ( !GLOBALLY_VISIBLE_CLAUSE(c, reload->generation) ||
 		 true(c, CL_ERASED) )
 	      continue;
 	    if ( true(def, P_MULTIFILE) && c->owner_no != sf->index )
 	      continue;
 
-	    c->generation.erased = sf->reload->reload_gen;
 	    DEBUG(MSG_RECONSULT_CLAUSE,
 		  Sdprintf("  Deleted clause %d\n",
 			   clauseNo(def, c, reload->generation)));
@@ -1222,7 +1267,7 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
   for(cref = r->current_clause; cref; cref = cref->next)
   { Clause c = cref->value.clause;
 
-    if ( !visibleClause(c, r->generation) ||
+    if ( !GLOBALLY_VISIBLE_CLAUSE(c, r->generation) ||
 	 true(c, CL_ERASED) )
       continue;
     if ( true(r->predicate, P_MULTIFILE|P_DYNAMIC) && c->owner_no != sf->index )
@@ -1291,6 +1336,8 @@ endReconsult(SourceFile sf)
     sf->number_of_clauses = sf->reload->number_of_clauses;
     sf->reload = NULL;
     freeHeap(reload, sizeof(*reload));
+
+    LD->gen_reload = GEN_INVALID;
 
     pl_garbage_collect_clauses();
   }

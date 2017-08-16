@@ -288,7 +288,9 @@ isCurrentProcedure__LD(functor_t f, Module m ARG_LD)
 ClauseRef
 hasClausesDefinition(Definition def)
 { if ( def->impl.clauses.first_clause )
-  { if ( def->impl.clauses.erased_clauses == 0 )
+  { GET_LD
+    if ( def->impl.clauses.erased_clauses == 0 &&
+         LD->gen_reload == GEN_INVALID )
     { return def->impl.clauses.first_clause;
     } else
     { GET_LD
@@ -2750,6 +2752,32 @@ attribute_mask(atom_t key)
 }
 
 
+int
+num_visible_clauses(Definition def, atom_t key)
+{ GET_LD;
+
+  if ( LD->gen_reload != GEN_INVALID )
+  { ClauseRef c;
+    int num_clauses = 0;
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = c->next)
+    { Clause cl = c->value.clause;
+      if ( key == ATOM_number_of_rules && true(cl, UNIT_CLAUSE) )
+        continue;
+      if ( visibleClause(cl, generationFrame(environment_frame)) )
+        num_clauses++;
+    }
+    release_def(def);
+    return num_clauses;
+  }
+
+  if ( key == ATOM_number_of_clauses )
+    return def->impl.clauses.number_of_clauses;
+  else
+    return def->impl.clauses.number_of_rules;
+}
+
+
 word
 pl_get_predicate_attribute(term_t pred,
 			   term_t what, term_t value)
@@ -2819,13 +2847,16 @@ pl_get_predicate_attribute(term_t pred,
   } else if ( key == ATOM_foreign )
   { return PL_unify_integer(value, true(def, P_FOREIGN) ? 1 : 0);
   } else if ( key == ATOM_number_of_clauses )
-  { if ( def->flags & P_FOREIGN )
+  { int num_clauses;
+    if ( def->flags & P_FOREIGN )
       fail;
 
     def = getProcDefinition(proc);
-    if ( def->impl.clauses.number_of_clauses == 0 && false(def, P_DYNAMIC) )
+    num_clauses = num_visible_clauses(def, key);
+    if ( num_clauses == 0 && false(def, P_DYNAMIC) )
       fail;
-    return PL_unify_integer(value, def->impl.clauses.number_of_clauses);
+
+    return PL_unify_integer(value, num_clauses);
   } else if ( key == ATOM_number_of_rules )
   { if ( def->flags & P_FOREIGN )
       fail;
@@ -2833,7 +2864,7 @@ pl_get_predicate_attribute(term_t pred,
     def = getProcDefinition(proc);
     if ( def->impl.clauses.number_of_clauses == 0 && false(def, P_DYNAMIC) )
       fail;
-    return PL_unify_integer(value, def->impl.clauses.number_of_rules);
+    return PL_unify_integer(value, num_visible_clauses(def, key));
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else

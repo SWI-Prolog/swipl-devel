@@ -71,6 +71,10 @@ setupProlog(void)
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
+#ifdef O_LOGICAL_UPDATE
+  next_global_generation();
+#endif
+
   LD->critical = 0;
   LD->signal.pending[0] = 0;
   LD->signal.pending[1] = 0;

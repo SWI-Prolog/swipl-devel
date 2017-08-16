@@ -445,7 +445,12 @@ register_attvar(Word gp ARG_LD)
 
 static inline int
 visibleClause__LD(Clause cl, gen_t gen ARG_LD)
-{ if ( likely(visibleClause(cl, gen)) )
+{ return VISIBLE_CLAUSE(cl, gen);
+}
+
+static inline int
+visibleClauseCNT__LD(Clause cl, gen_t gen ARG_LD)
+{ if ( likely(visibleClause__LD(cl, gen PASS_LD)) )
     return TRUE;
   LD->clauses.erased_skipped++;
   return FALSE;

@@ -382,6 +382,7 @@ struct PL_local_data
 #endif
   int		in_arithmetic;		/* doing arithmetic */
   int		in_print_message;	/* Inside printMessage() */
+  int		gen_reload;		/* reload generation */
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
