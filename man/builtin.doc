@@ -1123,7 +1123,7 @@ limitations of the process.
         \item The predicate is new.  It is handled the same as
 	if the file was loaded for the first time.
 	\item The predicate is foreign or thread local.  These
-	too are threaded as if the file was loaded for the first
+	too are treated as if the file was loaded for the first
 	time.
 	\item Normal predicates.  Here we initialise a pointer
 	to the \emph{current clause}.
@@ -1176,36 +1176,22 @@ files can typically be activated safely using make/0. Global changes
 such as operator changes, changes of module names, changes to multi-file
 predicates, etc.\ sometimes require a restart. In almost all cases, the
 need for restart is indicated by permission or syntax errors during the
-reload or existence errors while running the program. If the content of
-a source file refers to itself there are some additional limitations,
-which are listed below. In some cases, loading the file \emph{twice}
-establishes the right result. In others one may use unload_file/1 to
-remove the file before reloading. In some cases, the process needs to be
-restarted.
+reload or existence errors while running the program.
 
-\begin{itemize}
-    \item \jargon{Directives} that execute code in the current file
-    will use the old definition of predicates because the new only
-    become available at the end of the loading process.  If the
-    standard required initialization/1 directive is used there is
-    no problem because the associated goal is executed after the
-    file completes loading.
-    \item Module-local rules for goal_expansion/2 or term_expansion/2
-    execute the old definition.  If such rules are changed, they become
-    active after loading the file \emph{twice}, where the first reload
-    updates the expansion rules and the second uses them.
-    \item Expansion and directives can normally only refer to predicates
-    defined \emph{before} they are used. During reload, it is also
-    possible to refer to predicates defined \emph{after} the location
-    they are used.  This may cause a file to work properly while being
-    reloaded, but failing while being loaded in a fresh image.
-    \item Using goal_expansion/2 that calls compile_aux_clauses/1,
-    assuming that multiple expansions can use the same auxiliary
-    definition must use predicate_property/2 using the property
-    \const{defined} to test whether the definition is already defined
-    in the current context.
-\end{itemize}
-
+In some cases the content of a source file refers `to itself'. This is
+notably the case if local rules for goal_expansion/2 or term_expansion/2
+are defined or goals are executed using
+\jargon{directives}.\footnote{Note that initialization/1 directives are
+executed \emph{after} loading the file. SWI-Prolog allows for directives
+that are executed \emph{while} loading the file using \exam{:- Goal.} or
+initialization/2}. Up to version 7.5.12 it was typically needed to
+reload the file \emph{twice}, once for updating the code that was used
+for compiling the remainder of the file and once to effectuate this. As
+of version 7.5.13, conventional \jargon{transaction semantics} apply.
+This implies that for the thread performing the reload the file's
+content is first wiped and gradually rebuilt, while other threads see
+an \jargon{atomic} update from the old file content to the
+new.\footnote{This feature was implemented by Keri Harris.}
 
 \begin{description}
     \predicate{garbage_collect_clauses}{0}{}
