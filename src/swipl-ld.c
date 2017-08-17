@@ -325,7 +325,7 @@ error(int status)
 
 
 static void
-catched_signal(int sig)
+caught_signal(int sig)
 { error(sig);
 }
 
@@ -1616,8 +1616,8 @@ removeTempFiles()
 
 static void
 catchSignals()
-{ signal(SIGINT,	catched_signal);
-  signal(SIGSEGV,	catched_signal);
+{ signal(SIGINT,	caught_signal);
+  signal(SIGSEGV,	caught_signal);
 }
 
 
