@@ -657,7 +657,8 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   maybe_free_local_data(ld);
 
   if ( acknowledge )			/* == canceled */
-  { DEBUG(MSG_THREAD, Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
+  { DEBUG(MSG_CLEANUP_THREAD,
+	  Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
     pthread_detach(pthread_self());
     sem_post(sem_canceled_ptr);
   }
@@ -946,7 +947,6 @@ exitPrologThreads(void)
     { while ( sem_trywait(sem_canceled_ptr) == 0 )
       { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("."));
 	canceled--;
-	break;
       }
       if ( canceled > 0 )
       { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("W"));
