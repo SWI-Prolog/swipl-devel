@@ -1500,8 +1500,8 @@ thread_wait_signal(ARG1_LD)
   while( !is_signalled(PASS_LD1) )
   {
 #ifdef __WINDOWS__
-    MSG *msg;
-    if ( !GetMessage(&msg, -1, WM_SIGNALLED, WM_SIGNALLED) )
+    MSG msg;
+    if ( !GetMessage(&msg, (HWND)-1, WM_SIGNALLED, WM_SIGNALLED) )
       return -1;
 #else
     sigset_t set;
