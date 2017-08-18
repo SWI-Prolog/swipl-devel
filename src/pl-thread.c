@@ -1139,7 +1139,14 @@ discard_thread(thread_handle *h)
 
 static void *
 thread_gc_loop(void *closure)
-{ for(;;)
+{
+#ifdef HAVE_SIGPROCMASK
+  sigset_t set;
+  allSignalMask(&set);
+  pthread_sigmask(SIG_BLOCK, &set, NULL);
+#endif
+
+  for(;;)
   { thread_handle *h;
 
     do
@@ -5325,9 +5332,17 @@ static pthread_cond_t  GC_cond  = PTHREAD_COND_INITIALIZER;
 static void *
 GCmain(void *closure)
 { PL_thread_attr_t attrs = {0};
+#ifdef HAVE_SIGPROCMASK
+  sigset_t set;
+  allSignalMask(&set);
+  if ( GD->signals.sig_alert )
+    sigdelset(&set, GD->signals.sig_alert);
+  pthread_sigmask(SIG_BLOCK, &set, NULL);
+#endif
 
   attrs.alias = "gc";
   attrs.flags = PL_THREAD_NO_DEBUG|PL_THREAD_NOT_DETACHED;
+
 
   if ( PL_thread_attach_engine(&attrs) > 0 )
   { GET_LD
