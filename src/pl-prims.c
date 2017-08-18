@@ -2123,7 +2123,8 @@ PRED_IMPL("$filled_array", 4, filled_array, 0)
     return FALSE;
 
   f = PL_new_functor(name, arity);
-  p = allocGlobal(arity+1);
+  if ( !(p = allocGlobal(arity+1)) )
+    return FALSE;
   v = valTermRef(A4);
   deRef(v);
 
