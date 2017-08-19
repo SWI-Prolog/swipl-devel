@@ -289,26 +289,19 @@ ClauseRef
 hasClausesDefinition(Definition def)
 { if ( def->impl.clauses.first_clause )
   { GET_LD
-    if ( def->impl.clauses.erased_clauses == 0 &&
-         LD->gen_reload == GEN_INVALID )
-    { return def->impl.clauses.first_clause;
-    } else
-    { GET_LD
-      ClauseRef c;
-      LocalFrame fr = environment_frame;
-      gen_t generation = fr ? generationFrame(fr)
-			    : global_generation();
+    ClauseRef c;
+    gen_t generation = global_generation();
 
-      acquire_def(def);
-      for(c = def->impl.clauses.first_clause; c; c = c->next)
-      { Clause cl = c->value.clause;
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = c->next)
+    { Clause cl = c->value.clause;
 
-	if ( visibleClauseCNT(cl, generation) )
-	  break;
-      }
-      release_def(def);
-      return c;
+      if ( visibleClauseCNT(cl, generation) )
+	break;
     }
+    release_def(def);
+
+    return c;
   }
 
   return NULL;
