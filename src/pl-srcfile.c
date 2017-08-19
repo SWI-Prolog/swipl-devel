@@ -738,7 +738,8 @@ startReconsultFile(SourceFile sf)
       for(c = def->impl.clauses.first_clause; c; c = c->next)
       { Clause cl = c->value.clause;
 
-        if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) || true(cl, CL_ERASED) )
+        if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) ||
+	     true(cl, CL_ERASED) )
           continue;
         if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
           continue;
