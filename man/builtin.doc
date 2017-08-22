@@ -3294,6 +3294,10 @@ currently unsafe as \arg{Handle} is an integer used to encode a pointer.
 It was used to implement a pure Prolog version of the \pllib{tabling}
 library.
 
+    \predicate{trie_delete}{3}{+Trie, +Key, ?Value}
+Delete \arg{Key} from \arg{Trie} if the value associated with \arg{Key}
+unifies with \arg{Value}.
+
     \predicate{trie_lookup}{3}{+Trie, +Key, -Value}
 True if the term \arg{Key} is in \arg{Trie} and associated with
 \arg{Value}.

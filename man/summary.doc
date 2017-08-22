@@ -689,6 +689,7 @@ suggest predicates from a keyword.
 \predicatesummary{trace}{1}{Set trace point on predicate}
 \predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
+\predicatesummary{trie_delete}{3}{Remove term from trie}
 \predicatesummary{trie_destroy}{1}{Destroy a trie}
 \predicatesummary{trie_gen}{3}{Get all terms from a trie}
 \predicatesummary{trie_insert}{3}{Insert term into a trie}

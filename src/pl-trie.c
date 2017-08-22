@@ -1139,6 +1139,35 @@ PRED_IMPL("trie_insert", 4, trie_insert, 0)
 
 
 static
+PRED_IMPL("trie_delete", 3, trie_delete, 0)
+{ PRED_LD
+  trie *trie;
+
+  if ( get_trie(A1, &trie) )
+  { Word kp;
+    trie_node *node;
+    int rc;
+
+    kp = valTermRef(A2);
+
+    if ( (rc=trie_lookup(trie, &node, kp, FALSE PASS_LD)) == TRUE )
+    { if ( node->value )
+      { if ( unify_value(A3, node->value PASS_LD) )
+	{ prune_node(trie, node);
+	  return TRUE;
+	}
+      }
+      return FALSE;
+    }
+
+    return trie_error(rc, A2);
+  }
+
+  return FALSE;
+}
+
+
+static
 PRED_IMPL("trie_lookup", 3, trie_lookup, 0)
 { PRED_LD
   trie *trie;
@@ -1505,6 +1534,7 @@ BeginPredDefs(trie)
   PRED_DEF("trie_insert",         4, trie_insert,        0)
   PRED_DEF("trie_update",         3, trie_update,        0)
   PRED_DEF("trie_lookup",         3, trie_lookup,        0)
+  PRED_DEF("trie_delete",         3, trie_delete,        0)
   PRED_DEF("trie_term",		  2, trie_term,		 0)
   PRED_DEF("trie_gen",            3, trie_gen, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$trie_property",      2, trie_property,      0)
