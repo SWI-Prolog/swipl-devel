@@ -3272,10 +3272,13 @@ Destroy \arg{Trie}. This removes all nodes from the trie and causes
 further access to \arg{Trie} to raise an existence_error exception. The
 handle itself is reclaimed by atom garbage collection.
 
+    \predicate[semidet]{is_trie}{1}{@Trie}
+True when \arg{Trie} is a trie object.  See also current_trie/1.
+
     \predicate[nondet]{current_trie}{1}{-Trie}
 True if \arg{Trie} is a currently existing trie.  As this enumerates and
 then filters all known atoms this predicate is slow and should only be
-used for debugging purposes.
+used for debugging purposes.  See also is_trie/1.
 
     \predicate{trie_insert}{3}{+Trie, +Key, +Value}
 Insert the term \arg{Key} into \arg{Trie} and associate it with

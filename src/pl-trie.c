@@ -917,6 +917,22 @@ PRED_IMPL("trie_new", 1, trie_new, 0)
 
 
 static
+PRED_IMPL("is_trie", 1, is_trie, 0)
+{ void *data;
+  PL_blob_t *type;
+
+  if ( PL_get_blob(A1, &data, NULL, &type) && type == &trie_blob )
+  { tref *ref = data;
+
+    if ( ref->trie->magic == TRIE_MAGIC )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static
 PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 { trie *trie;
 
@@ -1528,6 +1544,7 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 		 *******************************/
 
 BeginPredDefs(trie)
+  PRED_DEF("is_trie",             1, is_trie,            0)
   PRED_DEF("trie_new",            1, trie_new,           0)
   PRED_DEF("trie_destroy",        1, trie_destroy,       0)
   PRED_DEF("trie_insert",         3, trie_insert,        0)

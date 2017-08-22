@@ -1117,7 +1117,8 @@ working_directory(Old, New) :-
 %   True if Trie is the handle of an existing trie.
 
 current_trie(Trie) :-
-    current_blob(Trie, trie).
+    current_blob(Trie, trie),
+    is_trie(Trie).
 
 %!  trie_property(?Trie, ?Property)
 %
