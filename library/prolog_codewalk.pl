@@ -201,10 +201,10 @@ prolog_walk_code(Iteration, Options) :-
                  current_module(M),
                  scan_module(M, OTerm)
                ),
-               find_walk_from_module(M, OTerm))
+               find_walk_from_module(M, OTerm)),
+        walk_from_multifile(OTerm),
+        walk_from_initialization(OTerm)
     ),
-    walk_from_multifile(OTerm),
-    walk_from_initialization(OTerm),
     infer_new_meta_predicates(New, OTerm),
     statistics(cputime, CPU1),
     (   New \== []
