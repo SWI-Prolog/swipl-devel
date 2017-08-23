@@ -1,0 +1,118 @@
+#!/bin/sh
+
+# This  program  is  used  to  build    the  SWI-Prolog  packages.  Both
+# configure.in  and  Makefile.in  receive  info  from  the  main  Prolog
+# configure run.   Typically the packages are build using
+#
+#	./configure
+#	make
+#	make install
+#
+# If  you  also  plan  to  share  the  packages  for  both  single-  and
+# multi-threaded SWI-Prolog they must be built for multi-threading.
+
+MAKE=@MAKE@
+
+# Setup the environment, so that targets of configure can find the shared
+# objects of Prolog
+
+BUILDDIR=@BUILDDIR@
+srcdir=`echo @abs_srcdir@ | sed 's=/../packages$=='`
+PLARCH=@PLARCH@
+PL=@PL@
+bdir=$srcdir/../$BUILDDIR
+ldir=$srcdir/../lib/$PLARCH
+
+export MAKE PLARCH PL
+
+if [ "x$@DLLIBVAR@" = "x" ]; then
+  @DLLIBVAR@=$ldir
+else
+  @DLLIBVAR@="$ldir:$@DLLIBVAR@"
+fi
+export @DLLIBVAR@
+
+
+delpkg()
+{ tmp=""
+  found=no
+
+  for p in $PKG; do
+    if [ "$p" = "$1" ]; then
+      found=$p
+    else
+      tmp="$tmp $p"
+    fi
+  done
+
+  if [ "$found" = "no" ]; then
+    return 1
+  else
+    echo "Dropped package $found"
+    PKG="$tmp"
+  fi
+}
+
+
+if [ -z "$PKG" ]; then
+  PKG="clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib protobufs windows PDT libedit readline utf8proc archive pengines cql bdb pcre"
+fi
+
+if [ ! -z "$EXTRA_PKGS" ]; then
+  for pkg in $EXTRA_PKGS; do
+    PKG="$PKG $pkg"
+  done
+fi
+
+if [ ! -z "$DISABLE_PKGS" ]; then
+  for pkg in $DISABLE_PKGS; do
+    delpkg $pkg
+  done
+fi
+
+configoptions=""
+
+while [ "$1" != "" ]; do
+  case "$1" in
+	--without-*)	pkg=`echo "$1" | sed 's/--without-//'`
+			if ! delpkg $pkg; then
+			  configoptions="$configoptions $1"
+			fi
+			shift;
+			;;
+	--with-*)	pkg=`echo "$1" | sed 's/--with-//'`
+			if [ -d "$pkg" ]; then
+			  delpkg $pkg > /dev/null
+			  echo "Added package $pkg"
+			  PKG="$PKG $pkg"
+			else
+			  configoptions="$configoptions $1"
+			fi
+			shift;
+			;;
+	*)		configoptions="$configoptions $1"
+			shift
+			;;
+  esac
+done
+
+for p in $PKG; do
+  if test -f $p/testenv; then
+    echo -n "Checking environment for package $p ..."
+    if $p/testenv; then
+      echo "ok"
+    else
+      echo "test failed, deleting $p from targets"
+      delpkg $p
+    fi
+  fi
+done
+
+sed "s@^PKG=.*@PKG=$PKG@" Makefile > Makefile.pkg
+if cmp -s Makefile Makefile.pkg; then
+   rm Makefile.pkg
+else
+   mv Makefile.pkg Makefile
+fi
+
+$MAKE CNFGPASSED="$configoptions" configure || exit 1
