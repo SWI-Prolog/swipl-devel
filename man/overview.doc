@@ -291,7 +291,9 @@ desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for
 details.  Note that the handler to unblock system calls is still
 installed. This can be prevented using \exam{--sigalert=0} additionally.
-See \cmdlineoption{--sigalert}.
+See \cmdlineoption{--sigalert}. This flag also sets
+\prologflag{gc_thread} to \const{false} as synchronization with the
+garbage collect thread is based on signals.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch

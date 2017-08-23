@@ -584,6 +584,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
       continue;
     } else if ( isoption(s, "nosignals") )
     { clearPrologFlagMask(PLFLAG_SIGNALS);
+      clearPrologFlagMask(PLFLAG_GCTHREAD);
       continue;
     } else if ( isoption(s, "nodebug") )
     { clearPrologFlagMask(PLFLAG_DEBUGINFO);
