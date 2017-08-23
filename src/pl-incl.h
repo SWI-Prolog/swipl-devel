@@ -1375,6 +1375,7 @@ struct definition
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
+  gen_t		last_modified;		/* Generation I was last modified */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */

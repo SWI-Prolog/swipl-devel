@@ -1170,6 +1170,7 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
     def->impl.clauses.number_of_rules++;
   GD->statistics.clauses++;
 #ifdef O_LOGICAL_UPDATE
+  def->last_modified         =
   clause->generation.created = next_global_generation();
   clause->generation.erased  = GEN_MAX;	/* infinite */
 #endif
@@ -1322,6 +1323,7 @@ retractClauseDefinition(Definition def, Clause clause)
   def->impl.clauses.number_of_clauses--;
   def->impl.clauses.erased_clauses++;
 #ifdef O_LOGICAL_UPDATE
+  def->last_modified        =
   clause->generation.erased = next_global_generation();
 #endif
   DEBUG(CHK_SECURE, checkDefinition(def));
@@ -2850,6 +2852,8 @@ pl_get_predicate_attribute(term_t pred,
       fail;
 
     return PL_unify_integer(value, num_clauses);
+  } else if ( key == ATOM_last_modified_generation )
+  { return PL_unify_int64(value, def->last_modified);
   } else if ( key == ATOM_number_of_rules )
   { if ( def->flags & P_FOREIGN )
       fail;

@@ -894,6 +894,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, number_of_clauses, N).
 '$predicate_property'(number_of_rules(N), Pred) :-
     '$get_predicate_attribute'(Pred, number_of_rules, N).
+'$predicate_property'(last_modified_generation(Gen), Pred) :-
+    '$get_predicate_attribute'(Pred, last_modified_generation, Gen).
 '$predicate_property'(indexed(Indices), Pred) :-
     '$get_predicate_attribute'(Pred, indexed, Indices).
 '$predicate_property'(noprofile, Pred) :-
