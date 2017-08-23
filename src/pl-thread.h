@@ -373,6 +373,8 @@ int			PL_thread_raise(int tid, int sig);
 COMMON(void)		cleanupThreads(void);
 COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
+COMMON(void)		get_current_timespec(struct timespec *time);
+COMMON(void)	        carry_timespec_nanos(struct timespec *time);
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*

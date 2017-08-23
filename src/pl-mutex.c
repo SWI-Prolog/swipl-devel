@@ -342,7 +342,25 @@ PL_mutex_lock(struct pl_mutex *m)
   if ( self == m->owner )
   { m->count++;
   } else
-  { pthread_mutex_lock(&m->mutex);
+  { int rc;
+#ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
+    for(;;)
+    { struct timespec deadline;
+
+      get_current_timespec(&deadline);
+      deadline.tv_nsec += 250000000;
+      carry_timespec_nanos(&deadline);
+
+      if ( (rc=pthread_mutex_timedlock(&m->mutex, &deadline)) == ETIMEDOUT )
+      { if ( PL_handle_signals() < 0 )
+	  return FALSE;
+      } else
+	break;
+    }
+#else
+    rc = pthread_mutex_lock(&m->mutex);
+#endif
+    assert(rc == 0);
     m->count = 1;
     m->owner = self;
   }

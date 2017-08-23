@@ -451,8 +451,6 @@ static void	print_trace(int depth);
 #define		print_trace(depth) (void)0
 #endif
 
-static void get_current_timespec(struct timespec *time);
-static void carry_timespec_nanos(struct timespec *time);
 static void timespec_diff(struct timespec *diff,
 			  const struct timespec *a, const struct timespec *b);
 static int  timespec_sign(const struct timespec *t);
@@ -2230,6 +2228,31 @@ free_thread_info(PL_thread_info_t *info)
 }
 
 
+static int
+pthread_join_interruptible(pthread_t thread, void **retval)
+{
+#ifdef HAVE_PTHREAD_TIMEDJOIN_NP
+  for(;;)
+  { struct timespec deadline;
+    int rc;
+
+    get_current_timespec(&deadline);
+    deadline.tv_nsec += 250000000;
+    carry_timespec_nanos(&deadline);
+
+    if ( (rc=pthread_timedjoin_np(thread, retval, &deadline)) == ETIMEDOUT )
+    { if ( PL_handle_signals() < 0 )
+	return EINTR;
+    } else
+      return rc;
+  }
+#else
+  return pthread_join(thread, retval);
+#endif
+}
+
+
+
 static
 PRED_IMPL("thread_join", 2, thread_join, 0)
 { PRED_LD
@@ -2251,13 +2274,13 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 		    ERR_PERMISSION, ATOM_join, ATOM_thread, thread);
   }
 
-  while( (rc=pthread_join(info->tid, &r)) == EINTR )
-  { if ( PL_handle_signals() < 0 )
-      fail;
-  }
+  rc = pthread_join_interruptible(info->tid, &r);
+
   switch(rc)
   { case 0:
       break;
+    case EINTR:
+      return FALSE;
     case ESRCH:
       Sdprintf("Join %s: ESRCH from %d\n",
 	       threadName(info->pl_tid), info->tid);
@@ -3727,7 +3750,7 @@ timespec_cmp(const struct timespec *a, const struct timespec *b)
 }
 
 
-static void
+void
 get_current_timespec(struct timespec *time)
 {
 #ifdef HAVE_CLOCK_GETTIME
@@ -3750,7 +3773,7 @@ get_current_timespec(struct timespec *time)
 }
 
 
-static void
+void
 carry_timespec_nanos(struct timespec *time)
 { while ( time->tv_nsec >= 1000000000 )
   { time->tv_nsec -= 1000000000;
