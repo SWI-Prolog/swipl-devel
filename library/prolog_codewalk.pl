@@ -438,6 +438,17 @@ walk_called((A,B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
     !,
     walk_called(A, M, PA, OTerm),
     walk_called(B, M, PB, OTerm).
+walk_called((A->B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
+    !,
+    walk_called(A, M, PA, OTerm),
+    walk_called(B, M, PB, OTerm).
+walk_called((A*->B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
+    !,
+    walk_called(A, M, PA, OTerm),
+    walk_called(B, M, PB, OTerm).
+walk_called(\+(A), M, term_position(_,_,_,_,[PA]), OTerm) :-
+    !,
+    \+ \+ walk_called(A, M, PA, OTerm).
 walk_called((A;B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
     !,
     (   walk_option_evaluate(OTerm, Eval), Eval == true
