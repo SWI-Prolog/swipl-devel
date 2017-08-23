@@ -1052,8 +1052,8 @@ foreign_file('makefile').
 
 %!  configure_foreign(+PackDir, +Options) is det.
 %
-%   Run configure if it exists.  If =|configure.in|= exists, first
-%   run =autoheader= and =autoconf=
+%   Run configure if it exists.  If =|configure.ac|= or =|configure.in|=
+%   exists, first run =autoheader= and =autoconf=
 
 configure_foreign(PackDir, Options) :-
     make_configure(PackDir, Options),
@@ -1072,12 +1072,17 @@ make_configure(PackDir, _Options) :-
     exists_file(Configure),
     !.
 make_configure(PackDir, _Options) :-
-    directory_file_path(PackDir, 'configure.in', ConfigureIn),
+    autoconf_master(ConfigMaster),
+    directory_file_path(PackDir, ConfigMaster, ConfigureIn),
     exists_file(ConfigureIn),
     !,
     run_process(path(autoheader), [], [directory(PackDir)]),
     run_process(path(autoconf),   [], [directory(PackDir)]).
 make_configure(_, _).
+
+autoconf_master('configure.ac').
+autoconf_master('configure.in').
+
 
 %!  make_foreign(+PackDir, +Options) is det.
 %
