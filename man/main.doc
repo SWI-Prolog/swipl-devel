@@ -60,7 +60,7 @@
 \newcommand{\vmajor}{7}
 \newcommand{\vminor}{6}
 \newcommand{\vpatch}{0}
-\newcommand{\vtag}{}
+\newcommand{\vtag}{rc1}
 \newcommand{\vmonth}{August}
 \newcommand{\vyear}{2017}
 
