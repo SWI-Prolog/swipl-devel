@@ -452,7 +452,7 @@ initDefaults(void)
   else
     setPrologFlagMask(PLFLAG_TTY_CONTROL);
 
-  setPrologFlagMask(PLFLAG_DEBUGINFO);
+  setPrologFlagMask(PLFLAG_DEBUGINFO|PLFLAG_GCTHREAD);
 }
 
 
