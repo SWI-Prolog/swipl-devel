@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,9 +61,6 @@ Unfortunately, one atom can  be  at   most  3  operators (prefix, infix,
 postfix). The best solution is probably to  define one structure for the
 whole thing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define LOCK()   PL_LOCK(L_OP)
-#define UNLOCK() PL_UNLOCK(L_OP)
 
 static atom_t	operatorTypeToAtom(int type);
 
@@ -157,14 +154,14 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   }
 
 
-  LOCK();
+  PL_LOCK(L_OP);
   if ( !m->operators )
     m->operators = newOperatorTable(8);
 
   if ( (op = lookupHTable(m->operators, (void *)name)) )
   { ;
   } else if ( priority < 0 )
-  { UNLOCK();				/* already inherited: do not change */
+  { PL_UNLOCK(L_OP);				/* already inherited: do not change */
     return TRUE;
   } else
   { op = allocHeapOrHalt(sizeof(*op));
@@ -185,7 +182,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   { PL_register_atom(name);
     addNewHTable(m->operators, (void *)name, op);
   }
-  UNLOCK();
+  PL_UNLOCK(L_OP);
 
   return TRUE;
 }

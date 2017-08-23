@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, VU University Amsterdam
+    Copyright (c)  2012-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,7 @@
 :- use_module(library(settings)).
 :- use_module(library(uri)).
 :- use_module(library(http/http_open)).
+:- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).   % plugin for POST support
 :- if(exists_source(library(archive))).
 :- use_module(library(archive)).
@@ -455,7 +456,7 @@ pack_default_options(_Spec, Pack, OptsIn, Options) :-
     ->  true
     ;   pack_version_file(Pack, _Version, URL)
     ).
-pack_default_options(Archive, Pack, _, Options) :-      % Install from .tgz/.zip/... file
+pack_default_options(Archive, Pack, _, Options) :-      % Install from archive
     must_be(atom, Archive),
     expand_file_name(Archive, [File]),
     exists_file(File),
@@ -477,15 +478,15 @@ pack_default_options(FileURL, Pack, _, Options) :-      % Install from directory
         Options = [url(DirURL), version(Version)]
     ;   throw(error(existence_error(key, version, Dir),_))
     ).
-pack_default_options(URL, Pack, _, Options) :-  % Install from URL
+pack_default_options(URL, Pack, _, Options) :-          % Install from URL
     pack_version_file(Pack, Version, URL),
     download_url(URL),
     !,
     available_download_versions(URL, [URLVersion-LatestURL|_]),
     Options = [url(LatestURL)|VersionOptions],
     version_options(Version, URLVersion, VersionOptions).
-pack_default_options(Pack, Pack, OptsIn, Options) :-    % Install from a pack name
-    \+ uri_is_global(Pack),                 % ignore URLs
+pack_default_options(Pack, Pack, OptsIn, Options) :-    % Install from name
+    \+ uri_is_global(Pack),                             % ignore URLs
     query_pack_server(locate(Pack), Reply, OptsIn),
     (   Reply = true(Results)
     ->  pack_select_candidate(Pack, Results, OptsIn, Options)
@@ -699,7 +700,10 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
 pack_unpack(Source, PackDir, Pack, Options) :-
     pack_archive_info(Source, Pack, _Info, StripOptions),
     prepare_pack_dir(PackDir, Options),
-    archive_extract(Source, PackDir, StripOptions).
+    archive_extract(Source, PackDir,
+                    [ exclude(['._*'])          % MacOS resource forks
+                    | StripOptions
+                    ]).
 :- else.
 pack_unpack(_,_,_,_) :-
     existence_error(library, archive).
@@ -756,6 +760,8 @@ strip_option(Prefix, Pack, [remove_prefix(Prefix)]) :-
     (   Base == Pack
     ->  true
     ;   pack_version_file(Pack, _, Base)
+    ->  true
+    ;   \+ sub_atom(PrefixDir, _, _, _, /)
     ).
 
 read_stream_to_terms(Stream, Terms) :-
@@ -902,11 +908,12 @@ download_file(URL, Pack, File, Options) :-
     format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
 download_file(URL, Pack, File, _) :-
     file_base_name(URL,Basename),
-    file_name_extension(Tag,Ext,Basename),
+    no_int_file_name_extension(Tag,Ext,Basename),
     tag_version(Tag,Version),
     !,
     atom_version(VersionA,Version),
-    format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
+    format(atom(File0), '~w-~w', [Pack, VersionA]),
+    file_name_extension(File0, Ext, File).
 download_file(URL, _, File, _) :-
     file_base_name(URL, File).
 
@@ -1045,8 +1052,8 @@ foreign_file('makefile').
 
 %!  configure_foreign(+PackDir, +Options) is det.
 %
-%   Run configure if it exists.  If =|configure.in|= exists, first
-%   run =autoheader= and =autoconf=
+%   Run configure if it exists.  If =|configure.ac|= or =|configure.in|=
+%   exists, first run =autoheader= and =autoconf=
 
 configure_foreign(PackDir, Options) :-
     make_configure(PackDir, Options),
@@ -1065,12 +1072,17 @@ make_configure(PackDir, _Options) :-
     exists_file(Configure),
     !.
 make_configure(PackDir, _Options) :-
-    directory_file_path(PackDir, 'configure.in', ConfigureIn),
+    autoconf_master(ConfigMaster),
+    directory_file_path(PackDir, ConfigMaster, ConfigureIn),
     exists_file(ConfigureIn),
     !,
     run_process(path(autoheader), [], [directory(PackDir)]),
     run_process(path(autoconf),   [], [directory(PackDir)]).
 make_configure(_, _).
+
+autoconf_master('configure.ac').
+autoconf_master('configure.in').
+
 
 %!  make_foreign(+PackDir, +Options) is det.
 %
@@ -1322,14 +1334,18 @@ pack_upgrade(Pack) :-
     once(pack_info(Pack, _, version(VersionAtom))),
     atom_version(VersionAtom, Version),
     pack_info(Pack, _, download(URL)),
-    wildcard_pattern(URL),
+    (   wildcard_pattern(URL)
+    ->  true
+    ;   github_url(URL, _User, _Repo)
+    ),
     !,
     available_download_versions(URL, [Latest-LatestURL|_Versions]),
     (   Latest @> Version
     ->  confirm(upgrade(Pack, Version, Latest), yes, []),
         pack_install(Pack,
                      [ url(LatestURL),
-                       upgrade(true)
+                       upgrade(true),
+                       pack(Pack)
                      ])
     ;   print_message(informational, pack(up_to_date(Pack)))
     ).
@@ -1482,15 +1498,22 @@ pack_version_file(Pack, Version, GitHubRelease) :-
 pack_version_file(Pack, Version, Path) :-
     atomic(Path),
     file_base_name(Path, File),
-    file_name_extension(Base, Ext, File),
-    Ext \== '',
+    no_int_file_name_extension(Base, _Ext, File),
     atom_codes(Base, Codes),
     (   phrase(pack_version(Pack, Version), Codes),
         safe_pack_name(Pack)
     ->  true
-    ;   print_message(error, pack(invalid_name(File))),
-        fail
     ).
+
+no_int_file_name_extension(Base, Ext, File) :-
+    file_name_extension(Base0, Ext0, File),
+    \+ atom_number(Ext0, _),
+    !,
+    Base = Base0,
+    Ext = Ext0.
+no_int_file_name_extension(File, '', File).
+
+
 
 %!  github_release_url(+URL, -Pack, -Version) is semidet.
 %
@@ -1528,6 +1551,12 @@ version_tag_prefix('').
 
 :- public
     atom_version/2.
+
+%!  atom_version(?Atom, ?Version)
+%
+%   Translate   between   atomic   version   representation   and   term
+%   representation.  The  term  representation  is  a  list  of  version
+%   components as integers and can be compared using `@>`
 
 atom_version(Atom, version(Parts)) :-
     (   atom(Atom)
@@ -1776,6 +1805,13 @@ install_dependency(_, _-_).
 
 available_download_versions(URL, Versions) :-
     wildcard_pattern(URL),
+    github_url(URL, User, Repo),
+    !,
+    findall(Version-VersionURL,
+            github_version(User, Repo, Version, VersionURL),
+            Versions).
+available_download_versions(URL, Versions) :-
+    wildcard_pattern(URL),
     !,
     file_directory_name(URL, DirURL0),
     ensure_slash(DirURL0, DirURL),
@@ -1802,6 +1838,34 @@ available_download_versions(URL, [Version-URL]) :-
     ->  Version = Version0
     ;   Version = unknown
     ).
+
+%!  github_url(+URL, -User, -Repo) is semidet.
+%
+%   True when URL refers to a github repository.
+
+github_url(URL, User, Repo) :-
+    uri_components(URL, uri_components(https,'github.com',Path,_,_)),
+    atomic_list_concat(['',User,Repo|_], /, Path).
+
+
+%!  github_version(+User, +Repo, -Version, -VersionURI) is nondet.
+%
+%   True when Version is a release version and VersionURI is the
+%   download location for the zip file.
+
+github_version(User, Repo, Version, VersionURI) :-
+    atomic_list_concat(['',repos,User,Repo,tags], /, Path1),
+    uri_components(ApiUri, uri_components(https,'api.github.com',Path1,_,_)),
+    setup_call_cleanup(
+      http_open(ApiUri, In,
+                [ request_header('Accept'='application/vnd.github.v3+json')
+                ]),
+      json_read_dict(In, Dicts),
+      close(In)),
+    member(Dict, Dicts),
+    atom_string(Tag, Dict.name),
+    tag_version(Tag, Version),
+    atom_string(VersionURI, Dict.zipball_url).
 
 wildcard_pattern(URL) :- sub_atom(URL, _, _, _, *).
 wildcard_pattern(URL) :- sub_atom(URL, _, _, _, ?).
@@ -2308,6 +2372,8 @@ message(no_prolog_response(ContentType, String)) -->
     [ 'Expected Prolog response.  Got content of type ~p'-[ContentType], nl,
       '~s'-[String]
     ].
+message(pack(no_upgrade_info(Pack))) -->
+    [ '~w: pack meta-data does not provide an upgradable URL'-[Pack] ].
 
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2016, VU University Amsterdam
+    Copyright (c)  2014-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,6 @@ of procedures that are defined by it.  Source files are identified by an
 unsigned int, which is registered with clauses and procedures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOCK()   PL_LOCK(L_SRCFILE)
-#define UNLOCK() PL_UNLOCK(L_SRCFILE)
 #undef LD
 #define LD LOCAL_LD
 
@@ -228,7 +226,7 @@ destroySourceFile(SourceFile sf)
 
   clearSourceAdmin(sf);
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   if ( sf->magic == SF_MAGIC )
   { SourceFile f;
 
@@ -240,7 +238,7 @@ destroySourceFile(SourceFile sf)
     if ( GD->files.no_hole_before > sf->index )
       GD->files.no_hole_before = sf->index;
   }
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   unallocSourceFile(sf);
 
@@ -286,9 +284,9 @@ SourceFile
 lookupSourceFile(atom_t name, int create)
 { SourceFile sf;
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   sf = lookupSourceFile_unlocked(name, create);
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   return sf;
 }
@@ -465,7 +463,7 @@ static
 PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
 { int i, n;
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   n = highSourceFileIndex();
   for(i=1; i<n; i++)
   { SourceFile f = indexToSourceFile(i);
@@ -473,7 +471,7 @@ PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
     if ( f )
       f->system = TRUE;
   }
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   return TRUE;
 }
@@ -513,7 +511,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
 
   term_t file = A1;
 
-  LOCK();
+  PL_LOCK(L_SRCFILE);
   if ( PL_get_atom_ex(file, &name) &&
        (sf = lookupSourceFile_unlocked(name, FALSE)) &&
        sf->count > 0 )
@@ -534,7 +532,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
     UNLOCKSRCFILE(sf);
   } else
     rc = FALSE;
-  UNLOCK();
+  PL_UNLOCK(L_SRCFILE);
 
   return rc;
 }
@@ -618,6 +616,7 @@ static int
 unloadFile(SourceFile sf)
 { ListCell cell, next;
   size_t deleted = 0;
+  int rc;
 
   delayEvents();
   LOCKSRCFILE(sf);
@@ -653,10 +652,10 @@ unloadFile(SourceFile sf)
   delAllModulesSourceFile__unlocked(sf);
   UNLOCKSRCFILE(sf);
 
-  sendDelayedEvents();
+  rc = sendDelayedEvents(TRUE) >= 0;
   pl_garbage_collect_clauses();
 
-  return TRUE;
+  return rc;
 }
 
 
@@ -719,11 +718,36 @@ startReconsultFile(SourceFile sf)
   DEBUG(MSG_RECONSULT, Sdprintf("Reconsult %s ...\n", sourceFileName(sf)));
 
   if ( (r = allocHeap(sizeof(*sf->reload))) )
-  { memset(r, 0, sizeof(*r));
+  { ListCell cell, next;
+
+    memset(r, 0, sizeof(*r));
     r->procedures        = newHTable(16);
     r->reload_gen        = GEN_MAX-PL_thread_self();
     r->pred_access_count = popNPredicateAccess(0);
     sf->reload = r;
+
+    LD->gen_reload = r->reload_gen;
+
+    for(cell = sf->procedures; cell; cell = next)
+    { Procedure proc = cell->value;
+      Definition def = proc->definition;
+      ClauseRef c;
+
+      next = cell->next;
+      acquire_def(def);
+      for(c = def->impl.clauses.first_clause; c; c = c->next)
+      { Clause cl = c->value.clause;
+
+        if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) ||
+	     true(cl, CL_ERASED) )
+          continue;
+        if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
+          continue;
+
+        cl->generation.erased = r->reload_gen;
+      }
+      release_def(def);
+    }
 
     return TRUE;
   }
@@ -735,7 +759,7 @@ startReconsultFile(SourceFile sf)
 static ClauseRef
 find_clause(ClauseRef cref, gen_t generation)
 { for(; cref; cref = cref->next)
-  { if ( visibleClause(cref->value.clause, generation) )
+  { if ( GLOBALLY_VISIBLE_CLAUSE(cref->value.clause, generation) )
       break;
   }
 
@@ -750,7 +774,7 @@ advance_clause(p_reload *r ARG_LD)
   if ( (cref = r->current_clause) )
   { acquire_def(r->predicate);
     for(cref = cref->next; cref; cref = cref->next)
-    { if ( visibleClause(cref->value.clause, r->generation) )
+    { if ( GLOBALLY_VISIBLE_CLAUSE(cref->value.clause, r->generation) )
 	break;
     }
     release_def(r->predicate);
@@ -772,6 +796,7 @@ keep_clause(p_reload *r, Clause clause ARG_LD)
 { ClauseRef cref = r->current_clause;
   Clause keep = cref->value.clause;
 
+  keep->generation.erased = GEN_MAX;
   copy_clause_source(keep, clause);
   freeClause(clause);
   advance_clause(r PASS_LD);
@@ -832,6 +857,27 @@ isDefinedProcedureSource(Procedure proc)
 }
 
 
+int
+isRedefinedProcedure(Procedure proc, gen_t gen)
+{ GET_LD
+  Definition def = proc->definition;
+  ClauseRef c;
+  int ret = FALSE;
+
+  acquire_def(def);
+  for(c = def->impl.clauses.first_clause; c; c = c->next)
+  { Clause cl = c->value.clause;
+    if ( GLOBALLY_VISIBLE_CLAUSE(cl, gen) )
+    { ret = TRUE;
+      break;
+    }
+  }
+  release_def(def);
+
+  return ret;
+}
+
+
 static p_reload *
 reloadContext(SourceFile sf, Procedure proc ARG_LD)
 { p_reload *reload;
@@ -847,7 +893,7 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
     reload->predicate = def;
     if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
     { set(reload, P_NO_CLAUSES);
-    } else if ( isDefinedProcedure(proc) )
+    } else if ( isRedefinedProcedure(proc, global_generation()) )
     { reload->generation = global_generation();
       pushPredicateAccess(def, reload->generation);
       acquire_def(def);
@@ -908,7 +954,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       for(cref2 = cref->next; cref2; cref2 = cref2->next)
       { Clause c2 = cref2->value.clause;
 
-	if ( !visibleClause(c2, reload->generation) )
+	if ( !GLOBALLY_VISIBLE_CLAUSE(c2, reload->generation) )
 	  continue;
 	if ( true(def, P_MULTIFILE) && c2->owner_no != sf->index )
 	  continue;
@@ -919,13 +965,12 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 	  for(del = cref; del != cref2; del = del->next)
 	  { Clause c = del->value.clause;
 
-	    if ( !visibleClause(c, reload->generation) ||
+	    if ( !GLOBALLY_VISIBLE_CLAUSE(c, reload->generation) ||
 		 true(c, CL_ERASED) )
 	      continue;
 	    if ( true(def, P_MULTIFILE) && c->owner_no != sf->index )
 	      continue;
 
-	    c->generation.erased = sf->reload->reload_gen;
 	    DEBUG(MSG_RECONSULT_CLAUSE,
 		  Sdprintf("  Deleted clause %d\n",
 			   clauseNo(def, c, reload->generation)));
@@ -1038,28 +1083,49 @@ fix_discontiguous(p_reload *r)
 
 int
 setMetapredicateSource(SourceFile sf, Procedure proc,
-		       meta_mask mask ARG_LD)
+		       arg_info *args ARG_LD)
 { associateSource(sf, proc);
 
   if ( sf->reload )
   { p_reload *reload;
+    size_t i, arity = proc->definition->functor->arity;
 
     if ( !(reload = reloadContext(sf, proc PASS_LD)) )
       return FALSE;
 
-    reload->meta_info = mask;
-    if ( isTransparentMetamask(proc->definition, mask) )
+    if ( !reload->args )
+      reload->args = allocHeapOrHalt(sizeof(*reload->args)*arity);
+    for(i=0; i<arity; i++)
+      reload->args[i].meta = args[i].meta;
+
+    if ( isTransparentMetamask(proc->definition, args) )
       set(reload, P_TRANSPARENT);
     else
       clear(reload, P_TRANSPARENT);
     set(reload, P_META);
   } else
-  { setMetapredicateMask(proc->definition, mask);
+  { setMetapredicateMask(proc->definition, args);
   }
 
   return TRUE;
 }
 
+
+static int
+equal_meta(Definition def, const arg_info *args)
+{ if ( def->args && args )
+  { size_t i, arity = def->functor->arity;
+
+    for(i=0; i<arity; i++)
+    { if ( def->args[i].meta != args[i].meta )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 static void
 fix_metapredicate(p_reload *r)
@@ -1069,18 +1135,18 @@ fix_metapredicate(p_reload *r)
   { int mfmask = (P_META|P_TRANSPARENT);
 
     if ( (def->flags&mfmask) != (r->flags&mfmask) ||
-	 def->meta_info != r->meta_info )
+	 !equal_meta(def, r->args) )
     { if ( true(def, P_META) && false(r, P_META) )
 	clear_meta_declaration(def);
       else if ( true(r, P_META) )
-	setMetapredicateMask(def, r->meta_info);
+	setMetapredicateMask(def, r->args);
       clear(def, P_TRANSPARENT);
       set(def, r->flags&P_TRANSPARENT);
 
       freeCodesDefinition(def, FALSE);
     }
   } else if ( true(r, P_META) )
-  { setMetapredicateMask(def, r->meta_info);
+  { setMetapredicateMask(def, r->args);
     freeCodesDefinition(def, FALSE);
   } else if ( true(r, P_TRANSPARENT) )
   { set(def, P_TRANSPARENT);
@@ -1202,7 +1268,7 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
   for(cref = r->current_clause; cref; cref = cref->next)
   { Clause c = cref->value.clause;
 
-    if ( !visibleClause(c, r->generation) ||
+    if ( !GLOBALLY_VISIBLE_CLAUSE(c, r->generation) ||
 	 true(c, CL_ERASED) )
       continue;
     if ( true(r->predicate, P_MULTIFILE|P_DYNAMIC) && c->owner_no != sf->index )
@@ -1246,6 +1312,8 @@ endReconsult(SourceFile sf)
 		    fix_attributes(sf, def, r PASS_LD);
 		  }
 		}
+		if ( r->args )
+		  freeHeap(r->args, 0);
 		freeHeap(r, sizeof(*r));
 	      });
 
@@ -1269,6 +1337,8 @@ endReconsult(SourceFile sf)
     sf->number_of_clauses = sf->reload->number_of_clauses;
     sf->reload = NULL;
     freeHeap(reload, sizeof(*reload));
+
+    LD->gen_reload = GEN_INVALID;
 
     pl_garbage_collect_clauses();
   }

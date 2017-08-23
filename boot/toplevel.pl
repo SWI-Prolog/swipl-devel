@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2016, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -37,6 +37,7 @@
           [ '$initialise'/0,            % start Prolog
             '$toplevel'/0,              % Prolog top-level (re-entrant)
             '$compile'/0,               % `-c' toplevel
+            initialize/0,               % Run program initialization
             version/0,                  % Write initial banner
             version/1,                  % Add message to the banner
             prolog/0,                   % user toplevel predicate
@@ -222,6 +223,24 @@ prolog:message(initialize_now(Goal, Use)) -->
     '$run_initialization'(_, []),
     '$thread_init'.
 
+%!  initialize
+%
+%   Run goals registered with `:-  initialization(Goal, program).`. Stop
+%   with an exception if a goal fails or raises an exception.
+
+initialize :-
+    forall('$init_goal'(when(program), Goal, Ctx),
+           run_initialize(Goal, Ctx)).
+
+run_initialize(Goal, Ctx) :-
+    (   catch(Goal, E, true),
+        (   var(E)
+        ->  true
+        ;   throw(error(initialization_error(E, Goal, Ctx), _))
+        )
+    ;   throw(error(initialization_error(failed, Goal, Ctx), _))
+    ).
+
 
                  /*******************************
                  *     THREAD INITIALIZATION    *
@@ -321,8 +340,8 @@ path_sep -->
 
 %!  argv_files(-Files) is det.
 %
-%   Updated the prolog flag =argv=, extracting the leading directory
-%   and files.
+%   Update the Prolog flag =argv=, extracting  the leading directory and
+%   files.
 
 argv_files(Files) :-
     current_prolog_flag(argv, Argv),
@@ -477,6 +496,7 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
+    set_toplevel,
     associated_files(Files),
     '$set_file_search_paths',
     init_debug_flags,
@@ -490,10 +510,29 @@ initialise_prolog :-
     '$load_script_file',
     load_associated_files(Files),
     '$cmd_option_val'(goals, Goals),
-    (   Goals == []
-    ->  version
-    ;   run_init_goals(Goals)
+    (   Goals == [],
+        \+ '$init_goal'(when(_), _, _)
+    ->  version                                 % default interactive run
+    ;   run_init_goals(Goals),
+        (   load_only
+        ->  version
+        ;   run_program_init,
+            run_main_init
+        )
     ).
+
+set_toplevel :-
+    '$cmd_option_val'(toplevel, TopLevelAtom),
+    catch(term_to_atom(TopLevel, TopLevelAtom), E,
+          (print_message(error, E),
+           halt(1))),
+    create_prolog_flag(toplevel_goal, TopLevel, [type(term)]).
+
+load_only :-
+    current_prolog_flag(os_argv, OSArgv),
+    memberchk('-l', OSArgv),
+    current_prolog_flag(argv, Argv),
+    \+ memberchk('-l', Argv).
 
 %!  run_init_goals(+Goals) is det.
 %
@@ -506,21 +545,50 @@ run_init_goals([H|T]) :-
     run_init_goals(T).
 
 run_init_goal(Text) :-
-    (   term_to_atom(Goal, Text),
-        catch(user:Goal, E, true)
+    catch(term_to_atom(Goal, Text), E,
+          (   print_message(error, init_goal_syntax(E, Text)),
+              halt(2)
+          )),
+    run_init_goal(Goal, Text).
+
+%!  run_program_init is det.
+%
+%   Run goals registered using
+
+run_program_init :-
+    forall('$init_goal'(when(program), Goal, Ctx),
+           run_init_goal(Goal, @(Goal,Ctx))).
+
+run_main_init :-
+    findall(Goal-Ctx, '$init_goal'(when(main), Goal, Ctx), Pairs),
+    '$last'(Pairs, Goal-Ctx),
+    !,
+    (   current_prolog_flag(toplevel_goal, default)
+    ->  set_prolog_flag(toplevel_goal, halt)
+    ;   true
+    ),
+    run_init_goal(Goal, @(Goal,Ctx)).
+run_main_init.
+
+run_init_goal(Goal, Ctx) :-
+    (   catch(user:Goal, E, true)
     ->  (   var(E)
         ->  true
-        ;   print_message(error, init_goal_failed(E, Text)),
+        ;   print_message(error, init_goal_failed(E, Ctx)),
             halt(2)
         )
     ;   (   current_prolog_flag(verbose, silent)
         ->  Level = silent
         ;   Level = error
         ),
-        print_message(Level, init_goal_failed(failed, Text)),
+        print_message(Level, init_goal_failed(failed, Ctx)),
         halt(1)
     ).
 
+%!  init_debug_flags is det.
+%
+%   Initialize the various Prolog flags that   control  the debugger and
+%   toplevel.
 
 init_debug_flags :-
     once(print_predicate(_, [print], PrintOptions)),
@@ -628,37 +696,37 @@ load_setup_file(File) :-
 
 %!  '$runtoplevel'
 %
-%   Actually run the toplevel. If there  is   a  syntax error in the
-%   goal there is no reason to   persue.  Something like that should
-%   happen to repetitive exceptions in the toplevel as well, but how
-%   do we distinguish between  interactive   usage  that  frequently
-%   raises and error and a program crashing in a loop?
+%   Actually run the toplevel. The values   `default`  and `prolog` both
+%   start the interactive toplevel, where `prolog` implies the user gave
+%   =|-t prolog|=.
 %
 %   @see prolog/0 is the default interactive toplevel
 
 '$runtoplevel' :-
-    '$cmd_option_val'(toplevel, TopLevelAtom),
-    catch(term_to_atom(TopLevel0, TopLevelAtom), E,
-          (print_message(error, E),
-           halt(1))),
+    current_prolog_flag(toplevel_goal, TopLevel0),
     toplevel_goal(TopLevel0, TopLevel),
     user:TopLevel.
 
 :- dynamic  setup_done/0.
 :- volatile setup_done/0.
 
+toplevel_goal(default, '$query_loop') :-
+    !,
+    setup_interactive.
 toplevel_goal(prolog, '$query_loop') :-
     !,
-    (   setup_done
-    ->  true
-    ;   asserta(setup_done),
-        catch(setup_backtrace, E, print_message(warning, E)),
-        catch(setup_colors,    E, print_message(warning, E)),
-        catch(setup_readline,  E, print_message(warning, E)),
-        catch(setup_history,   E, print_message(warning, E))
-    ).
+    setup_interactive.
 toplevel_goal(Goal, Goal).
 
+setup_interactive :-
+    setup_done,
+    !.
+setup_interactive :-
+    asserta(setup_done),
+    catch(setup_backtrace, E, print_message(warning, E)),
+    catch(setup_colors,    E, print_message(warning, E)),
+    catch(setup_readline,  E, print_message(warning, E)),
+    catch(setup_history,   E, print_message(warning, E)).
 
 %!  '$compile'
 %

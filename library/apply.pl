@@ -42,6 +42,7 @@
             maplist/3,                  % :Pred, ?List, ?List
             maplist/4,                  % :Pred, ?List, ?List, ?List
             maplist/5,                  % :Pred, ?List, ?List, ?List, ?List
+            convlist/3,                 % :Pred, +List, -List
             foldl/4,                    % :Pred, +List, ?V0, ?V
             foldl/5,                    % :Pred, +List1, +List2, ?V0, ?V
             foldl/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?V
@@ -75,6 +76,7 @@ members of a list.
     maplist(2, ?, ?),
     maplist(3, ?, ?, ?),
     maplist(4, ?, ?, ?, ?),
+    convlist(2, +, -),
     foldl(3, +, +, -),
     foldl(4, +, +, +, -),
     foldl(5, +, +, +, +, -),
@@ -227,6 +229,32 @@ maplist_([], [], [], [], _).
 maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
     call(Goal, Elem1, Elem2, Elem3, Elem4),
     maplist_(Tail1, Tail2, Tail3, Tail4, Goal).
+
+
+%!  convlist(:Goal, +ListIn, -ListOut) is det.
+%
+%   Similar to maplist/3, but elements for   which call(Goal, ElemIn, _)
+%   fails are omitted from ListOut.  For example (using library(yall)):
+%
+%   ```
+%   ?- convlist([X,Y]>>(integer(X), Y is X^2),
+%               [3, 5, 4.4, 2], L).
+%   L = [9, 25, 4].
+%   ```
+%
+%   @compat  Also  appears  in  YAP   =|library(maplist)|=  and  SICStus
+%   =|library(lists)|=.
+
+convlist(Goal, ListIn, ListOut) :-
+    convlist_(ListIn, ListOut, Goal).
+
+convlist_([], [], _).
+convlist_([H0|T0], ListOut, Goal) :-
+    (   call(Goal, H0, H)
+    ->  ListOut = [H|T],
+        convlist_(T0, T, Goal)
+    ;   convlist_(T0, ListOut, Goal)
+    ).
 
 
                  /*******************************

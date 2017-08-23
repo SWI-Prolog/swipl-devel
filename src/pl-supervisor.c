@@ -68,8 +68,14 @@ deallocate the old supervisor. If TRUE,   there may be references. I.e.,
 other threads may have started executing this predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+free_codes_ptr(void *ptr)
+{ freeCodes(ptr);
+}
+
+
 void
-freeCodesDefinition(Definition def, int linger)
+freeCodesDefinition(Definition def, int do_linger)
 { Code codes;
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
@@ -78,8 +84,8 @@ freeCodesDefinition(Definition def, int linger)
 
       def->codes = SUPERVISOR(virgin);
       if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-      { if ( linger )
-	  PL_linger(&codes[-1]);
+      { if ( do_linger )
+	  linger(&def->lingering, free_codes_ptr, codes);
 	else
 	  freeHeap(&codes[-1], (size+1)*sizeof(code));
       }
@@ -313,9 +319,9 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 
     initBuffer(&buf);
     for(i=0; i < def->functor->arity; i++)
-    { int ma = MA_INFO(def, i);
+    { int ma = def->args[i].meta;
 
-      if ( ma <= 9 || ma == MA_META || ma == MA_HAT || ma == MA_DCG ) /* 0..9, :, ^ or // */
+      if ( MA_NEEDS_TRANSPARENT(ma) )
       { addBuffer(&buf, encode(S_MQUAL), code);
 	addBuffer(&buf, VAROFFSET(i), code);
 	count++;

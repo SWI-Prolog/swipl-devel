@@ -27,7 +27,7 @@ COREMODULES+=" packages/zlib packages/tipc packages/table"
 COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
 COREMODULES+=" packages/utf8proc packages/archive packages/swipl-win"
 COREMODULES+=" packages/pengines packages/cql packages/bdb"
-COREMODULES+=" packages/readline packages/libedit"
+COREMODULES+=" packages/readline packages/libedit packages/pcre"
 
 version="`cat VERSION`"
 servers="http://www.swi-prolog.org http://eu.swi-prolog.org"
@@ -35,6 +35,8 @@ serverpath="/download"
 yes=ask
 man=auto
 tar=tar
+# This is required by OpenBSD
+export AUTOCONF_VERSION=2.69
 
 # avoid surprises and printing paths.
 unset CDPATH
@@ -296,7 +298,7 @@ esac
 ################################################################
 
 confdir()
-{ if grep AC_INIT configure.in 2>&1 >/dev/null; then
+{ if grep AC_INIT configure.ac 2>&1 >/dev/null; then
     for dep in "$2/ac_swi_c.m4" "$2/ac_swi_noc.m4" "aclocal.m4"; do
       if [ -f configure -a -f "$dep" -a "$dep" -nt configure ]; then
         rm configure;
@@ -309,11 +311,11 @@ confdir()
         fi
       done
     fi
-    if [ -f configure -a ! configure.in -nt configure ]; then
+    if [ -f configure -a ! configure.ac -nt configure ]; then
       return
     fi
     printf "Generating configure in $1 ... "
-    if grep AC_CONFIG_HEADER configure.in 2>&1 >/dev/null; then
+    if grep AC_CONFIG_HEADER configure.ac 2>&1 >/dev/null; then
       autoheader
     fi
     autoconf
@@ -335,7 +337,7 @@ is_mingw()
 
 
 if findexe autoconf; then
-  for f in ./src/configure.in $(find packages -name configure.in); do
+  for f in ./src/configure.ac $(find packages -name configure.ac); do
     pkgdir="$(cd packages && pwd)"
     d=`dirname $f`
     (cd $d && confdir $d $pkgdir)

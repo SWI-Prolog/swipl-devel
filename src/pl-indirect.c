@@ -345,8 +345,9 @@ rehash_indirect_table(indirect_table *tab)
 
 	if ( INDIRECT_IS_VALID(a->references) )
 	{ size_t sz = wsizeofInd(a->header);
-	  unsigned int v = MurmurHashAligned2(a->data, sz, MURMUR_SEED) & mask;
+	  unsigned int v;
 
+	  v = MurmurHashAligned2(a->data, sz*sizeof(word), MURMUR_SEED) & mask;
 	  a->next = newtab->buckets[v];
 	  newtab->buckets[v] = a;
 	}
@@ -402,55 +403,3 @@ gsize_indirect(indirect_table *tab, word val)
 
   return wsize+2;
 }
-
-
-		 /*******************************
-		 *	      TESTING		*
-		 *******************************/
-
-static indirect_table *test_table;
-
-static indirect_table *
-initIndirect(void)
-{ if ( !test_table )
-    test_table = new_indirect_table();
-
-  return test_table;
-}
-
-static
-PRED_IMPL("intern_indirect", 2, intern_indirect, 0)
-{ PRED_LD
-  indirect_table *tab = initIndirect();
-  Word p = valTermRef(A1);
-  word w;
-
-  deRef(p);
-  if ( isIndirect(*p) )
-  { w = intern_indirect(tab, *p, TRUE PASS_LD);
-    return PL_unify_int64(A2, w);
-  } else
-    return PL_type_error("indirect", A1);
-}
-
-static
-PRED_IMPL("extern_indirect", 2, extern_indirect, 0)
-{ PRED_LD
-  indirect_table *tab = initIndirect();
-  intptr_t i;
-
-  if ( PL_get_intptr_ex(A1, &i) )
-  { word w = i;
-    term_t t = PL_new_term_ref();
-
-    *valTermRef(t) = extern_indirect(tab, w, NULL PASS_LD);
-    return PL_unify(A2, t);
-  }
-
-  return FALSE;
-}
-
-BeginPredDefs(indirect)
-  PRED_DEF("intern_indirect", 2, intern_indirect, 0)
-  PRED_DEF("extern_indirect", 2, extern_indirect, 0)
-EndPredDefs

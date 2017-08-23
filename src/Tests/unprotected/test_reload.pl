@@ -169,6 +169,9 @@ test(mod_dynamic) :-
 	assertion(mod_dynamic:p(x)),
 	reload(mod_dynamic, 2),
 	assertion(forall(mod_dynamic:p(X), mod_dynamic:p(X))).
+test(goal_expansion) :-
+	reload(goal_expansion, 1),
+	reload(goal_expansion, 1).
 
 :- end_tests(reconsult).
 

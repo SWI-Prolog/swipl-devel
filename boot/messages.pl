@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2016, University of Amsterdam
+    Copyright (c)  1997-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -383,6 +383,12 @@ swi_message(conditional_compilation_error(no_if, What)) -->
     [ ':- ~w without :- if'-[What] ].
 swi_message(duplicate_key(Key)) -->
     [ 'Duplicate key: ~p'-[Key] ].
+swi_message(initialization_error(failed, Goal, File:Line)) -->
+    !,
+    [ '~w:~w: ~p: false'-[File, Line, Goal] ].
+swi_message(initialization_error(Error, Goal, File:Line)) -->
+    [ '~w:~w: ~p '-[File, Line, Goal] ],
+    translate_message(Error).
 
 cond_location(File:Line) -->
     { file_base_name(File, Base) },
@@ -466,9 +472,9 @@ swi_comment(Msg) -->
 
 
 thread_context -->
-    { thread_self(Me), Me \== main },
+    { thread_self(Me), Me \== main, thread_property(Me, id(Id)) },
     !,
-    ['[Thread ~w] '-[Me]].
+    ['[Thread ~w] '-[Id]].
 thread_context -->
     [].
 
@@ -496,6 +502,17 @@ prolog_message(initialization_failure(Goal, _)) -->
 prolog_message(initialization_exception(E)) -->
     [ 'Prolog initialisation failed:', nl ],
     translate_message(E).
+prolog_message(init_goal_syntax(Error, Text)) -->
+    !,
+    [ '-g ~w: '-[Text] ],
+    translate_message(Error).
+prolog_message(init_goal_failed(failed, @(Goal,File:Line))) -->
+    !,
+    [ '~w:~w: ~p: false'-[File, Line, Goal] ].
+prolog_message(init_goal_failed(Error, @(Goal,File:Line))) -->
+    !,
+    [ '~w:~w: ~p '-[File, Line, Goal] ],
+    translate_message(Error).
 prolog_message(init_goal_failed(failed, Text)) -->
     !,
     [ '-g ~w: false'-[Text] ].
@@ -843,10 +860,9 @@ compiler_warning(neq_singleton(A,B), _Clause, Options) -->
     [ 'Test is always true: ~W'-[A\==B, Options] ].
 compiler_warning(unify_singleton(A,B), _Clause, Options) -->
     [ 'Unified variable is not used: ~W'-[A=B, Options] ].
-compiler_warning(var_true(A), _Clause, Options) -->
-    [ 'Test is always true: ~W'-[var(A), Options] ].
-compiler_warning(nonvar_false(A), _Clause, Options) -->
-    [ 'Test is always false: ~W'-[nonvar(A), Options] ].
+compiler_warning(always(Bool, Pred, Arg), _Clause, Options) -->
+    { Goal =.. [Pred,Arg] },
+    [ 'Test is always ~w: ~W'-[Bool, Goal, Options] ].
 compiler_warning(unbalanced_var(V), _Clause, Options) -->
     [ 'Variable not introduced in all branches: ~W'-[V, Options] ].
 compiler_warning(branch_singleton(V), _Clause, Options) -->
@@ -1322,6 +1338,8 @@ prolog_message(null_byte_in_path(Component)) -->
 prolog_message(invalid_tmp_var(Var, Value, Reason)) -->
     [ 'Cannot use '-[] ], env(Var),
     [ ' as temporary file directory: ~p: ~w'-[Value, Reason] ].
+prolog_message(ambiguous_stream_pair(Pair)) -->
+    [ 'Ambiguous operation on stream pair ~p'-[Pair] ].
 
 env(Name) -->
     { current_prolog_flag(windows, true) },

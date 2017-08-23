@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -382,28 +382,35 @@ prolog_cut_to(_Choice) :-
 %
 %   Delimited continuation support.
 
-reset(Goal, Ball, Cont) :-
-    '$start_reset',
-    call(Goal),
-    Cont = 0,
-    Ball = 0.                       % only reached if there is no shift
+reset(_Goal, _Ball, _Cont) :-
+    '$reset'.
+
+%!  shift(+Ball)
+%
+%   Shift control back to the enclosing reset/3
+
+shift(Ball) :-
+    '$shift'(Ball).
 
 %!  call_continuation(+Continuation:list)
 %
-%   Call a continuation as created by shift/1. The continuation is a
-%   list  of  '$cont$'(Clause,  PC,   Environment)  structures.  The
-%   predicate  '$call_one_tail_body'/1  creates  a  frame  from  the
+%   Call a continuation as created  by   shift/1.  The continuation is a
+%   list of '$cont$'(Clause, PC, EnvironmentArg,   ...)  structures. The
+%   predicate  '$call_one_tail_body'/1  creates   a    frame   from  the
 %   continuation and calls this.
 %
-%   Note that we can technically also   push the entire continuation
-%   onto the environment and call  it.   Doing  it  incrementally as
-%   below exploits last-call  optimization   and  therefore possible
-%   quadratic expansion of the continuation.
+%   Note that we can technically also  push the entire continuation onto
+%   the environment and  call  it.  Doing   it  incrementally  as  below
+%   exploits last-call optimization  and   therefore  possible quadratic
+%   expansion of the continuation.
 
 call_continuation([]).
 call_continuation([TB|Rest]) :-
-    '$call_one_tail_body'(TB),
-    call_continuation(Rest).
+    (   Rest == []
+    ->  '$call_continuation'(TB)
+    ;   '$call_continuation'(TB),
+        call_continuation(Rest)
+    ).
 
 
 %!  '$recover_and_rethrow'(:Goal, +Term)
@@ -468,29 +475,46 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 %       * restore
 %       Do not execute immediately, but only when restoring the
 %       state.  Not allowed in a sandboxed environment.
+%
+%   Note that all goals are executed when a program is restored.
 
 initialization(Goal, When) :-
+    '$must_be'(oneof(atom, initialization_type,
+                     [ now,
+                       after_load,
+                       restore,
+                       program,
+                       main
+                     ]), When),
     '$initialization_context'(Source, Ctx),
-    (   When == now
-    ->  '$run_init_goal'(Goal, Ctx),
-        '$compile_init_goal'(-, Goal, Ctx)
-    ;   When == after_load
-    ->  (   Source \== (-)
-        ->  '$compile_init_goal'(Source, Goal, Ctx)
-        ;   throw(error(context_error(nodirective,
-                                      initialization(Goal, after_load)),
-                        _))
-        )
-    ;   When == restore,
-        \+ current_prolog_flag(sandboxed_load, true)
-    ->  '$compile_init_goal'(-, Goal, Ctx)
-    ;   (   var(When)
-        ->  throw(error(instantiation_error, _))
-        ;   atom(When)
-        ->  throw(error(domain_error(initialization_type, When), _))
-        ;   throw(error(type_error(atom, When), _))
-        )
+    '$initialization'(When, Goal, Source, Ctx).
+
+'$initialization'(now, Goal, _Source, Ctx) :-
+    '$run_init_goal'(Goal, Ctx),
+    '$compile_init_goal'(-, Goal, Ctx).
+'$initialization'(after_load, Goal, Source, Ctx) :-
+    (   Source \== (-)
+    ->  '$compile_init_goal'(Source, Goal, Ctx)
+    ;   throw(error(context_error(nodirective,
+                                  initialization(Goal, after_load)),
+                    _))
     ).
+'$initialization'(restore, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
+    ->  '$compile_init_goal'(-, Goal, Ctx)
+    ;   '$permission_error'(register, initialization(restore), Goal)
+    ).
+'$initialization'(program, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
+    ->  '$compile_init_goal'(when(program), Goal, Ctx)
+    ;   '$permission_error'(register, initialization(restore), Goal)
+    ).
+'$initialization'(main, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
+    ->  '$compile_init_goal'(when(main), Goal, Ctx)
+    ;   '$permission_error'(register, initialization(restore), Goal)
+    ).
+
 
 '$compile_init_goal'(Source, Goal, Ctx) :-
     atom(Source),
@@ -530,6 +554,7 @@ initialization(Goal, When) :-
 
 '$run_initialization_2'(File) :-
     (   '$init_goal'(File, Goal, Ctx),
+        File \= when(_),
         '$run_init_goal'(Goal, Ctx),
         fail
     ;   true
@@ -916,7 +941,7 @@ absolute_file_name(Spec, Path, Options) :-
                     % Search for files
     (   Sols == first
     ->  (   '$chk_file'(Spec1, Extensions, Options5, true, Path)
-        ->  true
+        ->  !       % also kill choice point of expand_file_name/2
         ;   (   FileErrors == fail
             ->  fail
             ;   findall(P,
@@ -2978,11 +3003,11 @@ load_files(Module:Files, Options) :-
     '$expand_goal'(Goal, Goal1),
     '$execute_directive_2'(Goal1, F).
 
-'$execute_directive_2'(encoding(Encoding), F) :-
+'$execute_directive_2'(encoding(Encoding), _F) :-
     !,
-    source_location(F, _),
-    '$load_input'(F, S),
-    set_stream(S, encoding(Encoding)).
+    (   '$load_input'(_F, S)
+    ->  set_stream(S, encoding(Encoding))
+    ).
 '$execute_directive_2'(ISO, F) :-
     '$expand_directive'(ISO, Normal),
     !,

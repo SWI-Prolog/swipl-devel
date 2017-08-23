@@ -6,8 +6,9 @@ scheme](<#clp>), extending logic programming with reasoning over
 specialised domains.
 
 CLP(FD) lets us reason about **integers** in a way that honors the
-relational nature of Prolog.  An introduction is available from
-[metalevel.at/prolog/clpfd](https://www.metalevel.at/prolog/clpfd).
+relational nature of Prolog.  Read [**The Power of
+Prolog**](https://www.metalevel.at/prolog) to understand how this
+library is meant to be used in practice.
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -300,6 +301,14 @@ eliminate the complexity of introducing `(is)/2` and `(=:=)/2` to
 beginners, since _both_ predicates are subsumed by #=/2 when reasoning
 over integers.
 
+In the case above, the clauses are mutually exclusive _if_ the first
+argument is sufficiently instantiated. To make the predicate
+deterministic in such cases while retaining its generality, you can
+use zcompare/3 to _reify_ a comparison, making the different cases
+distinguishable by pattern matching. For example, in this concrete
+case and others like it, you can use `zcompare(Comp, 0, N)` to obtain
+as `Comp` the symbolic outcome (`<`, `=`, `>`) of 0 compared to N.
+
 ## Combinatorial constraints  {#clpfd-combinatorial}
 
 In addition to subsuming and replacing low-level arithmetic
@@ -362,16 +371,16 @@ problem(1, [[_,_,_,_,_,_,_,_,_],
 Sample query:
 
 ==
-?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
-[9,8,7,6,5,4,3,2,1]
-[2,4,6,1,7,3,9,8,5]
-[3,5,1,9,2,8,7,4,6]
-[1,2,8,5,3,7,6,9,4]
-[6,3,4,8,9,2,1,5,7]
-[7,9,5,4,6,1,8,3,2]
-[5,1,9,2,8,6,4,7,3]
-[4,7,2,3,1,9,5,6,8]
-[8,6,3,7,4,5,2,1,9]
+?- problem(1, Rows), sudoku(Rows), maplist(portray_clause, Rows).
+[9, 8, 7, 6, 5, 4, 3, 2, 1].
+[2, 4, 6, 1, 7, 3, 9, 8, 5].
+[3, 5, 1, 9, 2, 8, 7, 4, 6].
+[1, 2, 8, 5, 3, 7, 6, 9, 4].
+[6, 3, 4, 8, 9, 2, 1, 5, 7].
+[7, 9, 5, 4, 6, 1, 8, 3, 2].
+[5, 1, 9, 2, 8, 6, 4, 7, 3].
+[4, 7, 2, 3, 1, 9, 5, 6, 8].
+[8, 6, 3, 7, 4, 5, 2, 1, 9].
 Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
 ==
 

@@ -188,7 +188,7 @@ noprof:	system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
-		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
+		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL)' -t halt
 		$(MAKE) clean
 		$(MAKE) CPFLAGS=-fprofile-use noprof
 		$(MAKE) profclean
@@ -375,9 +375,11 @@ pl-arith.o:	$(srcdir)/pl-segstack.h
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
-os/pl-dtoa.o:	os/dtoa.c
 pl-text.o:	$(srcdir)/pl-codelist.h
 pl-codetable.o: $(srcdir)/pl-codetable.c
+os/pl-dtoa.o:	$(srcdir)/os/dtoa.c
+os/pl-file.o:	$(srcdir)/os/pl-stream.h
+os/pl-stream.o:	$(srcdir)/os/pl-stream.h
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi$(EXEEXT_FOR_BUILD)
 		./mkvmi$(EXEEXT_FOR_BUILD) "$(srcdir)"
@@ -412,11 +414,11 @@ cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
 .PHONY: check
 check:
-		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
+		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test -t halt
 
 .PHONY: check-installation
 check-installation:
-		$(bindir)/$(PL)$(EXEEXT) -g check_installation,halt -t 'halt(1)'
+		$(bindir)/$(PL)$(EXEEXT) -f none -g check_installation -t halt
 
 .PHONY: ln-install install dv-install
 

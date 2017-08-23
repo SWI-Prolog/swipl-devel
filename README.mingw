@@ -106,6 +106,7 @@ ZLIB_VERSION=1.2.8
 ARCHIVE_VERSION=3.2.1
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
+PCRE_VERSION=8.40
 PLDIR=pl-devel
 
 # installation prefix.  This path should not have spaces in one of the
@@ -431,6 +432,32 @@ build_libarchive()
 }
 
 
+#################################
+# Download and install libpcre
+
+
+download_libpcre()
+{ PCRE_FILE=pcre-$PCRE_VERSION.tar.gz
+
+  [ -f $PCRE_FILE ] || \
+    wget https://ftp.pcre.org/pub/pcre/$PCRE_FILE
+  tar xzf $PCRE_FILE
+}
+
+
+build_libpcre()
+{ ( cd pcre-$PCRE_VERSION
+    ./configure --host=$CROSS --prefix=$install \
+	--disable-static --disable-cpp --enable-utf8 --enable-unicode-properties
+    make pcre.dll
+    make install
+  )
+}
+
+
+#################################
+# Download and install libuuid
+
 download_libuuid()
 { UUID_FILE=uuid-$UUID_VERSION.tar.gz
 
@@ -476,6 +503,7 @@ download_prerequisites()
   download_libarchive
   download_libuuid
   download_libdb
+  download_libpcre
 }
 
 build_prerequisites()
@@ -489,6 +517,7 @@ build_prerequisites()
   build_libarchive
   build_libuuid
   build_libdb
+  build_libpcre
 }
 
 ###########################
@@ -534,6 +563,7 @@ build_swipl_core()
 
 dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
 dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll libdb-*.dll "
+dist_dlls+="libpcre-*.dll "
 dist_dlls+="`(cd $install/bin && find . -name 'libgcc*.dll')` "
 if [ -r "$install/bin/libdwarf.dll" ]; then
   dist_dlls+=" libdwarf.dll"

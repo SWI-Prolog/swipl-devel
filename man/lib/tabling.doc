@@ -103,7 +103,7 @@ linear complexity using program transformation, where we use bottom-up
 instead of top-down evaluation, i.e., we compute \term{fib}{N,F} for
 growing $N$, where we pass the last two Fibonacci numbers to the next
 iteration. Not having to create the tables and not having to suspend and
-resume goals makes this implementatio about 25 times faster than the
+resume goals makes this implementation about 25 times faster than the
 tabled one. However, even in this simple case the transformation is not
 obvious and it is far more difficult to recognise the algorithm as an
 implementation of Fibonacci numbers.
@@ -186,6 +186,106 @@ memory (the list of already visited cities and the still open choices)
 and does not need to deal with maintaining consistency between the
 tables and ground facts.
 
+\subsubsection{Mode directed tabling}
+\label{sec:tabling-mode-directed}
+
+\index{answer subsumption,tabling}%
+Tabling as defined above has a serious limitation. Although the
+definition of \nopredref{connection}{2} from section
+\secref{tabling-non-termination} can compute the transitive closure of
+connected cities, it cannot provide you with a route to travel. The
+reason is that there are infinitely many routes if there are cycles in
+the network and each new route found will be added to the answer table
+and cause the tabled execution's completion algorithm to search for more
+routes, eventually running out of memory.
+
+The solution to this problem is called \jargon{mode directed tabling} or
+\jargon{answer subsumption}.\footnote{The term \jargon{answer
+subsumption} is used by XSB and \jargon{mode directed tabling} by YAP
+and B-Prolog. The idea is that some arguments are considered `outputs',
+where multiple values for the same `input' are combined. Possibly
+\jargon{answer aggregation} would have been a better name.} In this
+execution model one or more arguments are \emph{not} added to the table.
+Instead, we remember a single \jargon{aggregated} value for these
+arguments. The example below is derived from
+\secref{tabling-non-termination} and returns the connection as a list of
+cities. This argument is defined as a \jargon{moded} argument using the
+\term{lattice}{PI} mode.\footnote{This mode is compatible to XSB
+Prolog.} This causes the tabling engine each time that it finds an new
+path to call \nopredref{shortest}{3} and keep the shortest route.
+
+\begin{code}
+:- use_module(library(tabling)).
+:- table
+    connection(_,_,lattice(shortest/3)).
+
+shortest(P1, P2, P):-
+    length(P1, L1),
+    length(P2, L2),
+    (   L1 < L2
+    ->  P = P1
+    ;   P = P2
+    ).
+
+connection(X, Y, [X,Y]) :-
+    connection(X, Y).
+connection(X, Y, P) :-
+    connection(X, Z, P0),
+    connection(Z, Y),
+    append(P0, [Y], P).
+\end{code}
+
+The mode declation scheme is equivalent to XSB with partial
+compatibility support for YAP and B-Prolog. The \term{lattice}{PI} mode
+is the most general mode.  The YAP \const{all} (B-Prolog \const{@}) mode
+is not yet supported. The list below describes the supported modes and
+indicates the portability.
+
+\begin{description}
+    \termitem{Var}{}
+\nodescription
+    \termitem{+}{}
+    \termitem{index}{}
+A variable (XSB), the atom \const{index} (YAP) or a \const{+}
+(B-Prolog) declare that the argument is tabled normally.
+
+    \termitem{lattice}{PI}
+\arg{PI} must be the predicate indicator of a predicate with arity~3.
+On each answer, \arg{PI} is called with three arguments: the current
+aggregated answer and the new answer are inputs.  The last argument
+must be unified with a term that represents the new aggregated answer.
+In SWI-Prolog the arity (3) may be omitted. See the example above.
+
+    \termitem{po}{PI}
+\jargon{Partial Ordening}. The new answer is added iff
+\term{call}{PI, +Old, +Answer} succeeds. For example, \verb$po('<'/2)$
+accumulates the largest result. In SWI-Prolog the arity (2) may be
+omitted, resulting in \verb$po(<)$.
+
+    \termitem{-}{}
+\nodescription
+    \termitem{first}
+The atom \const{-} (B-Prolog) and \const{first} (YAP) declare to keep
+the first answer for this argument.
+
+    \termitem{last}{}
+The atom \const{last} (YAP) declares to keep the last answer.
+
+    \termitem{min}{}
+The atom \const{min} (YAP) declares to keep the smallest answer
+according to the standard order of terms (see \predref{@<}{2}). Note
+that in SWI-Prolog the standard order of terms orders numbers by value.
+
+    \termitem{max}{}
+The atom \const{max} (YAP) declares to keep the largest answer
+according to the standard order of terms (see \predref{@>}{2}). Note
+that in SWI-Prolog the standard order of terms orders numbers by value.
+
+    \termitem{sum}{}
+The atom \const{sum} (YAP) declares to sum numeric answers.
+\end{description}
+
+
 \input{tablinglib.tex}
 
 \subsubsection{About the tabling implementation}
@@ -197,6 +297,8 @@ version was written by Benoit Desouter and described in
 \cite{DBLP:journals/tplp/DesouterDS15}. We moved the main data
 structures required for tabling, the \jargon{answer tables} (see
 \secref{trie}) and the \jargon{worklist} to SWI-Prolog's C~core.
+\jargon{Mode directed tabling} (\secref{tabling-mode-directed}) is based
+on a prototype implementation by Fabrizio Riguzzi.
 
 The table/1 directive causes the creation of a wrapper calling the
 renamed original predicate. For example, the program in
@@ -235,7 +337,6 @@ particular,
 \begin{shortlist}
     \item The performance needs to be improved.
     \item Memory usage needs to be reduced.
-    \item \jargon{mode-directed} tabling should be added.
     \item Tables must be shared between threads, both to
           reduce space and avoid recomputation.
     \item Tables must be invalidated and reclaimed automatically.

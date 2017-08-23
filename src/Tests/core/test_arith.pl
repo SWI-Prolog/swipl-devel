@@ -34,6 +34,7 @@ test_arith :-
 		    gdiv,
 		    rem,
 		    mod,
+		    pow,
 		    gcd,
 		    shift,
 		    errors,
@@ -136,6 +137,19 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 	R is -3 mod (10^50).
 
 :- end_tests(mod).
+
+:- begin_tests(pow).
+
+:- if(current_prolog_flag(bounded, false)).
+test(rat, X == 32 rdiv 243) :-
+	X is (2 rdiv 3)^(5).
+test(rat, X == 1) :-
+	X is (2 rdiv 3)^(0).
+test(rat, X == 243 rdiv 32) :-
+	X is (2 rdiv 3)^(-5).
+:- endif.
+
+:- end_tests(pow).
 
 :- begin_tests(shift).
 

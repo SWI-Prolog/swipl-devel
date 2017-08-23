@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2016, University of Amsterdam
+    Copyright (c)  1997-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -99,7 +99,10 @@ struct PL_global_data
   void *	resourceDB;		/* program resource database */
 
 #ifdef HAVE_SIGNAL
-  sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+  struct
+  { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+    int		sig_alert;		/* our alert signal */
+  } signals;
 #endif
 #ifdef O_LOGICAL_UPDATE
   ggen_t	_generation;		/* generation of the database */
@@ -178,13 +181,15 @@ struct PL_global_data
     Atom	builtin_array;		/* Builtin atoms */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
+    int		initialised;		/* atoms have been initialised */
 #ifdef O_ATOMGC
+    int		gc;			/* # atom garbage collections */
     int		gc_active;		/* Atom-GC is in progress */
+    int		rehashing;		/* Atom-rehash in progress */
     size_t	builtin;		/* Locked atoms (atom-gc) */
     size_t	no_hole_before;		/* You won't find a hole before here */
     size_t	margin;			/* # atoms to grow before collect */
     size_t	non_garbage;		/* # atoms for after last AGC */
-    int		gc;			/* # atom garbage collections */
     int64_t	collected;		/* # collected atoms */
     size_t	unregistered;		/* # candidate GC atoms */
     double	gc_time;		/* Time spent on atom-gc */
@@ -193,13 +198,6 @@ struct PL_global_data
     atom_t     *for_code[256];		/* code --> one-char-atom */
     PL_blob_t  *types;			/* registered atom types */
   } atoms;
-
-#ifdef O_PLMT
-  struct
-  { int		active;			/* #GC active */
-    int		agc_waiting;		/* AGC is waiting for us */
-  } gc;
-#endif
 
   struct
   { Table	breakpoints;		/* Breakpoint table */
@@ -239,6 +237,7 @@ struct PL_global_data
   { size_t	highest;		/* Next index to handout */
     functor_array array;		/* index --> functor */
     FunctorTable table;			/* hash-table */
+    int		 rehashing;		/* Table is being rehashed */
   } functors;
 
   struct
@@ -369,6 +368,7 @@ struct PL_local_data
 #ifdef O_GVAR
   Word		frozen_bar;		/* Frozen part of the global stack */
 #endif
+  Code		fast_condition;		/* Fast condition support */
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
   int		alerted;		/* Special mode. See updateAlerted() */
@@ -383,6 +383,7 @@ struct PL_local_data
   int		in_arithmetic;		/* doing arithmetic */
   int		in_print_message;	/* Inside printMessage() */
   int		autoload_nesting;	/* Nesting level in autoloader */
+  gen_t		gen_reload;		/* reload generation */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
   struct PL_local_data *next_free;	/* see maybe_free_local_data() */
@@ -624,6 +625,7 @@ struct PL_local_data
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
+    simpleMutex scan_lock;		/* Hold for asynchronous scans */
   } thread;
 #endif
 

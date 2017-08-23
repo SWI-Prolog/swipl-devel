@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -41,8 +41,6 @@ Functor (name/arity) handling.  A functor is a unique object (like atoms).
 See pl-atom.c for many useful comments on the representation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOCK()   PL_LOCK(L_FUNCTOR)
-#define UNLOCK() PL_UNLOCK(L_FUNCTOR)
 #undef LD
 #define LD LOCAL_LD
 
@@ -76,8 +74,7 @@ static void	  rehashFunctors(void);
 
 static void
 allocateFunctorBlock(int idx)
-{
-  PL_LOCK(L_MISC);
+{ PL_LOCK(L_MISC);
 
   if ( !GD->functors.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
@@ -96,8 +93,7 @@ allocateFunctorBlock(int idx)
 
 static void
 registerFunctor(FunctorDef fd)
-{
-  size_t index;
+{ size_t index;
   int idx, amask;
 
   index = ATOMIC_INC(&GD->functors.highest) - 1;
@@ -125,7 +121,6 @@ lookupFunctorDef(atom_t atom, size_t arity)
   FunctorDef f, head;
 
 redo:
-
   acquire_functor_table(table, buckets);
 
   v = (int)pointerHashValue(atom, buckets);
@@ -144,9 +139,9 @@ redo:
   }
 
   if ( functorDefTable->buckets * 2 < GD->statistics.functors )
-  { LOCK();
+  { PL_LOCK(L_FUNCTOR);
     rehashFunctors();
-    UNLOCK();
+    PL_UNLOCK(L_FUNCTOR);
   }
 
   if ( !( table == functorDefTable->table && head == table[v] ) )
@@ -159,6 +154,7 @@ redo:
   f->flags   = 0;
   f->next    = table[v];
   if ( !( COMPARE_AND_SWAP(&table[v], head, f) &&
+	  !GD->functors.rehashing &&
           table == functorDefTable->table) )
   { PL_free(f);
     goto redo;
@@ -178,8 +174,8 @@ redo:
 
 static void
 maybe_free_functor_tables(void)
-{
-  FunctorTable t = functorDefTable;
+{ FunctorTable t = functorDefTable;
+
   while ( t )
   { FunctorTable t2 = t->prev;
     if ( t2 && !pl_functor_table_in_use(t2) )
@@ -208,30 +204,35 @@ rehashFunctors(void)
   newtab->prev = functorDefTable;
 
   DEBUG(MSG_HASH_STAT,
-	Sdprintf("Rehashing functor-table (%d --> %d)\n", functorDefTable->buckets, newtab->buckets));
+	Sdprintf("Rehashing functor-table (%d --> %d)\n",
+		 functorDefTable->buckets, newtab->buckets));
 
+  GD->functors.rehashing = TRUE;
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
-    FunctorDef *b = GD->functors.array.blocks[i];
+    FunctorDef *b;
 
-    if ( upto >= GD->functors.highest )
-    { upto = GD->functors.highest;
-      last = TRUE;
-    }
+    if ( (b=GD->functors.array.blocks[i]) )
+    { if ( upto >= GD->functors.highest )
+      { upto = GD->functors.highest;
+	last = TRUE;
+      }
 
-    for(; index<upto; index++)
-    { FunctorDef f = b[index];
+      for(; index<upto; index++)
+      { FunctorDef f = b[index];
 
-      if ( FUNCTOR_IS_VALID(f->flags) )
-      { size_t v = pointerHashValue(f->name, newtab->buckets);
+	if ( f && FUNCTOR_IS_VALID(f->flags) )
+	{ size_t v = pointerHashValue(f->name, newtab->buckets);
 
-	f->next = newtab->table[v];
-	newtab->table[v] = f;
+	  f->next = newtab->table[v];
+	  newtab->table[v] = f;
+	}
       }
     }
   }
 
   functorDefTable = newtab;
+  GD->functors.rehashing = FALSE;
   maybe_free_functor_tables();
 }
 
@@ -264,9 +265,9 @@ redo:
   release_functor_table();
 
   if ( !rc && functorDefTable->buckets * 2 < GD->statistics.functors )
-  { LOCK();
+  { PL_LOCK(L_FUNCTOR);
     rehashFunctors();
-    UNLOCK();
+    PL_UNLOCK(L_FUNCTOR);
   }
   if ( table != functorDefTable->table )
     goto redo;
@@ -368,7 +369,7 @@ registerArithFunctors()
 
 void
 initFunctors(void)
-{ LOCK();
+{ PL_LOCK(L_FUNCTOR);
   if ( !functorDefTable )
   { initAtoms();
     allocFunctorTable();
@@ -377,7 +378,7 @@ initFunctors(void)
     registerControlFunctors();
     registerArithFunctors();
   }
-  UNLOCK();
+  PL_UNLOCK(L_FUNCTOR);
 }
 
 
@@ -481,7 +482,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
   }
 
   fid = PL_open_foreign_frame();
-  LOCK();
+  PL_LOCK(L_FUNCTOR);
   for(i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
     FunctorDef *b = GD->functors.array.blocks[i];
@@ -497,7 +498,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
       if ( fd && (!nm || nm == fd->name) )
       { if ( PL_unify_atom(name, fd->name) &&
 	     PL_unify_integer(arity, fd->arity) )
-	{ UNLOCK();
+	{ PL_UNLOCK(L_FUNCTOR);
 	  ForeignRedoInt(index+1);
 	} else
 	{ PL_rewind_foreign_frame(fid);
@@ -506,6 +507,6 @@ pl_current_functor(term_t name, term_t arity, control_t h)
     }
   }
 
-  UNLOCK();
+  PL_UNLOCK(L_FUNCTOR);
   return FALSE;
 }

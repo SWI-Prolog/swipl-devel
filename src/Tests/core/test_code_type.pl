@@ -52,15 +52,19 @@ test_code_type :-
 
 test(code_type, true) :-
 	assert_ct,
-	gen.
+	gen,
+	retractall(ct(_,_)).
 
 :- end_tests(code_type).
 
 :- thread_local ct/2.
 
+test_range(0, 0x1000).
+
 assert_ct :-
 	retractall(ct(_,_)),
-	forall(( between(0, 255, C),
+	test_range(Low, High),
+	forall(( between(Low, High, C),
 		 code_type(C, T)
 	       ),
 	       assertz(ct(C,T))).
@@ -70,18 +74,27 @@ gen_t(T) :-
 	(   atom(T0)
 	->  T = T0
 	;   functor(T0,F,A),
-	    functor(T,F,A)
+	    assertion(A==1),
+	    T =.. [F, '$VAR'(0)]
 	).
 
 gen :-
-	setof(T, gen_t(T), TL),
-	maplist(gen, TL).
+	setof(T, gen_t(T), TL0),
+	maplist(gen, TL0).
 
-gen(T) :-
-	(setof(C, code_type(C,T), CL) -> true ; CL = []),
+t_code_type(C, T) :-
+	test_range(Low, High),
+	code_type(C, T),
+	between(Low, High, C).
+
+gen(T0) :-
+	varnumbers(T0, T),
+	(setof(C, t_code_type(C,T), CL) -> true ; CL = []),
 	(setof(C, ct(C,T), CL2) -> true ; CL2 = []),
 	(   CL == CL2
 	->  true
-	;   format('ERROR: code_type ~p: ~p \\== ~p~n', [T, CL, CL2]),
+	;   ord_subtract(CL, CL2, Add),
+	    ord_subtract(CL2, CL, Del),
+	    format('ERROR: code_type ~p: Add: ~p, Del: ~p~n', [T, Add, Del]),
 	    fail
 	).

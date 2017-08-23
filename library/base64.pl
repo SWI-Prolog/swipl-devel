@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2015, University of Amsterdam
+    Copyright (c)  2007-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -34,12 +34,17 @@
 */
 
 :- module(base64,
-          [ base64/2,                   % ?PlainText, ?Encoded
-            base64url/2,                % ?PlainText, ?Encoded
+          [ base64_encoded/3,		% ?Plain, ?Encoded, +Options
+            base64_encoded//2,          % ?Plain, +Options
 
+            base64/2,                   % ?PlainText, ?Encoded
             base64//1,                  % ?PlainText
+
+            base64url/2,                % ?PlainText, ?Encoded
             base64url//1                % ?PlainText
           ]).
+:- use_module(library(error)).
+:- use_module(library(option)).
 
 /** <module> Base64 encoding and decoding
 
@@ -48,13 +53,10 @@ rfc2045. For example:
 
 ==
 1 ?- base64('Hello World', X).
+X = 'SGVsbG8gV29ybGQ='.
 
-X = 'SGVsbG8gV29ybGQ='
-
-Yes
 2 ?- base64(H, 'SGVsbG8gV29ybGQ=').
-
-H = 'Hello World'
+H = 'Hello World'.
 ==
 
 The Base64URL encoding provides a URL and file name friendly alternative
@@ -64,6 +66,52 @@ to base64. Base64URL encoded strings do not contain white space.
 @tbd    White-space introduction and parsing
 @author Jan Wielemaker
 */
+
+%!  base64_encoded(+Plain, -Encoded, +Options) is det.
+%!  base64_encoded(-Plain, +Encoded, +Options) is det.
+%
+%   General the base64 encoding and   decoding.  This predicate subsumes
+%   base64/2  and  base64url/2,  providing  control  over  padding,  the
+%   characters used for encoding and the output type. Options:
+%
+%     - charset(+Charset)
+%     Define the encoding character set to use.  The (default) `classic`
+%     uses the classical rfc2045 characters.  The value `url` uses URL
+%     and file name friendly characters.  See base64url/2.
+%     - padding(+Boolean)
+%     If `true` (default), the output is padded with `=` characters.
+%     - as(+Type)
+%     Defines the type of the output.  One of `string` (default) or
+%     `atom`.
+%
+%   @arg Plain is an atom or string containing the unencoded (plain)
+%   text.
+%   @arg Encoded is an atom or string containing the base64 encoded
+%   version of Plain.
+
+base64_encoded(Plain, Encoded, Options) :-
+    option(charset(CharSet), Options, classic),
+    option(padding(Padding), Options, true),
+    option(as(As), Options, string),
+    (   nonvar(Plain)
+    ->  atom_codes(Plain, PlainCodes),
+        phrase(base64(Padding, PlainCodes, CharSet), EncCodes),
+        as(As, Encoded, EncCodes)
+    ;   nonvar(Encoded)
+    ->  atom_codes(Encoded, EncCodes),
+        phrase(base64(Padding, PlainCodes, CharSet), EncCodes),
+        as(As, Plain, PlainCodes)
+    ;   instantiation_error(base64(Plain, Encoded))
+    ).
+
+as(atom, Atom, Codes) :-
+    !,
+    atom_codes(Atom, Codes).
+as(string, String, Codes) :-
+    !,
+    string_codes(String, Codes).
+as(As, _, _) :-
+    must_be(oneof([atom,string]), As).
 
 %!  base64(+Plain, -Encoded) is det.
 %!  base64(-Plain, +Encoded) is det.
@@ -75,16 +123,16 @@ base64(Plain, Encoded) :-
     nonvar(Plain),
     !,
     atom_codes(Plain, PlainCodes),
-    phrase(base64(PlainCodes), EncCodes),
+    phrase(base64(true, PlainCodes, classic), EncCodes),
     atom_codes(Encoded, EncCodes).
 base64(Plain, Encoded) :-
     nonvar(Encoded),
     !,
     atom_codes(Encoded, EncCodes),
-    phrase(base64(PlainCodes), EncCodes),
+    phrase(base64(true, PlainCodes, classic), EncCodes),
     atom_codes(Plain, PlainCodes).
-base64(_, _) :-
-    throw(error(instantiation_error, _)).
+base64(Plain, Encoded) :-
+    instantiation_error(base64(Plain, Encoded)).
 
 %!  base64url(+Plain, -Encoded) is det.
 %!  base64url(-Plain, +Encoded) is det.
@@ -99,16 +147,26 @@ base64url(Plain, Encoded) :-
     nonvar(Plain),
     !,
     atom_codes(Plain, PlainCodes),
-    phrase(encode_url(PlainCodes), EncCodes),
+    phrase(encode(false, PlainCodes, url), EncCodes),
     atom_codes(Encoded, EncCodes).
 base64url(Plain, Encoded) :-
     nonvar(Encoded),
     !,
     atom_codes(Encoded, EncCodes),
-    phrase(decode_url(PlainCodes), EncCodes),
+    phrase(decode(false, PlainCodes, url), EncCodes),
     atom_codes(Plain, PlainCodes).
 base64url(_, _) :-
     throw(error(instantiation_error, _)).
+
+%!  base64_encoded(+PlainText, +Options)// is det.
+%!  base64_encoded(-PlainText, +Options)// is det.
+
+base64_encoded(PlainText, Options) -->
+    { option(charset(CharSet), Options, classic),
+      option(padding(Padding), Options, true)
+    },
+    base64(Padding, PlainText, CharSet).
+
 
 %!  base64(+PlainText)// is det.
 %!  base64(-PlainText)// is det.
@@ -116,12 +174,8 @@ base64url(_, _) :-
 %   Encode/decode list of character codes using _base64_.  See also
 %   base64/2.
 
-base64(Input) -->
-    { nonvar(Input) },
-    !,
-    encode(Input).
-base64(Output) -->
-    decode(Output).
+base64(PlainText) -->
+    base64(true, PlainText, classic).
 
 %!  base64url(+PlainText)// is det.
 %!  base64url(-PlainText)// is det.
@@ -129,18 +183,23 @@ base64(Output) -->
 %   Encode/decode list of character codes  using Base64URL. See also
 %   base64url/2.
 
-base64url(Input) -->
+base64url(PlainText) -->
+    base64(false, PlainText, url).
+
+base64(Padded, Input, Charset) -->
     { nonvar(Input) },
     !,
-    encode_url(Input).
-base64url(Output) -->
-    decode_url(Output).
+    encode(Padded, Input, Charset).
+base64(Padded, Output, Charset) -->
+    decode(Padded, Output, Charset).
 
                  /*******************************
                  *            ENCODING          *
                  *******************************/
 
-encode([I0, I1, I2|Rest]) -->
+%!  encode(+Padded, +PlainText, +Charset)//
+
+encode(Padded, [I0, I1, I2|Rest], Charset) -->
     !,
     [O0, O1, O2, O3],
     { A is (I0<<16)+(I1<<8)+I2,
@@ -148,71 +207,53 @@ encode([I0, I1, I2|Rest]) -->
       O01 is (A>>12) /\ 0x3f,
       O02 is  (A>>6) /\ 0x3f,
       O03 is       A /\ 0x3f,
-      base64_char(O00, O0),
-      base64_char(O01, O1),
-      base64_char(O02, O2),
-      base64_char(O03, O3)
+      base64_char(Charset, O00, O0),
+      base64_char(Charset, O01, O1),
+      base64_char(Charset, O02, O2),
+      base64_char(Charset, O03, O3)
     },
-    encode(Rest).
-encode([I0, I1]) -->
+    encode(Padded, Rest, Charset).
+encode(true, [I0, I1], Charset) -->
     !,
     [O0, O1, O2, 0'=],
     { A is (I0<<16)+(I1<<8),
       O00 is (A>>18) /\ 0x3f,
       O01 is (A>>12) /\ 0x3f,
       O02 is  (A>>6) /\ 0x3f,
-      base64_char(O00, O0),
-      base64_char(O01, O1),
-      base64_char(O02, O2)
+      base64_char(Charset, O00, O0),
+      base64_char(Charset, O01, O1),
+      base64_char(Charset, O02, O2)
     }.
-encode([I0]) -->
+encode(true, [I0], Charset) -->
     !,
     [O0, O1, 0'=, 0'=],
     { A is (I0<<16),
       O00 is (A>>18) /\ 0x3f,
       O01 is (A>>12) /\ 0x3f,
-      base64_char(O00, O0),
-      base64_char(O01, O1)
+      base64_char(Charset, O00, O0),
+      base64_char(Charset, O01, O1)
     }.
-encode([]) -->
-    [].
-
-
-encode_url([I0, I1, I2|Rest]) -->
-    !,
-    [O0, O1, O2, O3],
-    { A is (I0<<16)+(I1<<8)+I2,
-      O00 is (A>>18) /\ 0x3f,
-      O01 is (A>>12) /\ 0x3f,
-      O02 is  (A>>6) /\ 0x3f,
-      O03 is       A /\ 0x3f,
-      base64url_char(O00, O0),
-      base64url_char(O01, O1),
-      base64url_char(O02, O2),
-      base64url_char(O03, O3)
-    },
-    encode_url(Rest).
-encode_url([I0, I1]) -->
+encode(false, [I0, I1], Charset) -->
     !,
     [O0, O1, O2],
     { A is (I0<<16)+(I1<<8),
       O00 is (A>>18) /\ 0x3f,
       O01 is (A>>12) /\ 0x3f,
       O02 is  (A>>6) /\ 0x3f,
-      base64url_char(O00, O0),
-      base64url_char(O01, O1),
-      base64url_char(O02, O2)
+      base64_char(Charset, O00, O0),
+      base64_char(Charset, O01, O1),
+      base64_char(Charset, O02, O2)
     }.
-encode_url([I0]) -->
+encode(false, [I0], Charset) -->
     !,
     [O0, O1],
     { A is (I0<<16),
       O00 is (A>>18) /\ 0x3f,
       O01 is (A>>12) /\ 0x3f,
-      base64url_char(O00, O0),
-      base64url_char(O01, O1)
+      base64_char(Charset, O00, O0),
+      base64_char(Charset, O01, O1)
     }.
-encode_url([]) -->
+encode(_, [], _) -->
     [].
 
 
@@ -220,11 +261,13 @@ encode_url([]) -->
                  *            DECODE            *
                  *******************************/
 
-decode(Text) -->
+%!  decode(+Padded, -PlainText, +Charset)//
+
+decode(true, Text, Charset) -->
     [C0, C1, C2, C3],
     !,
-    { base64_char(B0, C0),
-      base64_char(B1, C1)
+    { base64_char(Charset, B0, C0),
+      base64_char(Charset, B1, C1)
     },
     !,
     {   C3 == 0'=
@@ -232,65 +275,58 @@ decode(Text) -->
         ->  A is (B0<<18) + (B1<<12),
             I0 is (A>>16) /\ 0xff,
             Text = [I0|Rest]
-        ;   base64_char(B2, C2)
+        ;   base64_char(Charset, B2, C2)
         ->  A is (B0<<18) + (B1<<12) + (B2<<6),
             I0 is (A>>16) /\ 0xff,
             I1 is  (A>>8) /\ 0xff,
             Text = [I0,I1|Rest]
         )
-    ;   base64_char(B2, C2),
-        base64_char(B3, C3)
+    ;   base64_char(Charset, B2, C2),
+        base64_char(Charset, B3, C3)
     ->  A is (B0<<18) + (B1<<12) + (B2<<6) + B3,
         I0 is (A>>16) /\ 0xff,
         I1 is  (A>>8) /\ 0xff,
         I2 is      A  /\ 0xff,
         Text = [I0,I1,I2|Rest]
     },
-    decode(Rest).
-decode([]) -->
-    [].
-
-%!  decode_url(-Text)//
-%
-%   Decode a Base64URL string that has a   given length, i.e., it is
-%   not a Base64 string embedded in a longer string.
-
-decode_url(Text) -->
+    decode(true, Rest, Charset).
+decode(false, Text, Charset) -->
     [C0, C1, C2, C3],
     !,
-    { base64url_char(B0, C0),
-      base64url_char(B1, C1),
-      base64url_char(B2, C2),
-      base64url_char(B3, C3),
+    { base64_char(Charset, B0, C0),
+      base64_char(Charset, B1, C1),
+      base64_char(Charset, B2, C2),
+      base64_char(Charset, B3, C3),
       A is (B0<<18) + (B1<<12) + (B2<<6) + B3,
       I0 is (A>>16) /\ 0xff,
       I1 is  (A>>8) /\ 0xff,
       I2 is      A  /\ 0xff,
       Text = [I0,I1,I2|Rest]
     },
-    decode_url(Rest).
-decode_url(Text) -->
+    decode(false, Rest, Charset).
+decode(false, Text, Charset) -->
     [C0, C1, C2],
     !,
-    { base64url_char(B0, C0),
-      base64url_char(B1, C1),
-      base64url_char(B2, C2),
+    { base64_char(Charset, B0, C0),
+      base64_char(Charset, B1, C1),
+      base64_char(Charset, B2, C2),
       A is (B0<<18) + (B1<<12) + (B2<<6),
       I0 is (A>>16) /\ 0xff,
       I1 is  (A>>8) /\ 0xff,
       Text = [I0,I1]
     }.
-decode_url(Text) -->
+decode(false, Text, Charset) -->
     [C0, C1],
     !,
-    { base64url_char(B0, C0),
-      base64url_char(B1, C1),
+    { base64_char(Charset, B0, C0),
+      base64_char(Charset, B1, C1),
       A is (B0<<18) + (B1<<12),
       I0 is (A>>16) /\ 0xff,
       Text = [I0]
     }.
-decode_url([]) -->
+decode(_, [], _) -->
     [].
+
 
 
                  /*******************************
@@ -365,14 +401,18 @@ base64_char(63, 0'/).
 base64url_char_x(62, 0'-).
 base64url_char_x(63, 0'_).
 
-base64url_char(D, E) :-
-    base64url_char_x(D, E),
-    !.
-base64url_char(D, E) :-
-    base64_char(D, E),
-    !.
-base64url_char(D, E) :-
-    throw(error(syntax_error(base64url_char(D, E)), _)).
+base64_char(classic, Value, Char) :-
+    (   base64_char(Value, Char)
+    ->  true
+    ;   syntax_error(base64_char(Value, Char))
+    ).
+base64_char(url, Value, Char) :-
+    (   base64url_char_x(Value, Char)
+    ->  true
+    ;   base64_char(Value, Char)
+    ->  true
+    ;   syntax_error(base64_char(Value, Char))
+    ).
 
 
                  /*******************************
@@ -381,7 +421,7 @@ base64url_char(D, E) :-
 
 :- multifile prolog:error_message//1.
 
-prolog:error_message(syntax_error(base64url_char(_D,E))) -->
+prolog:error_message(syntax_error(base64_char(_D,E))) -->
     { nonvar(E) },
     !,
-    [ 'Illegal Base64URL character: "~c"'-[E] ].
+    [ 'Illegal Base64 character: "~c"'-[E] ].

@@ -649,7 +649,7 @@ case "$PLARCH" in
 	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
 	fi
 	;;
-  *x86_64*linux|*hppa*linux|*arm*linux)
+  *x86_64*linux|*hppa*linux|*arm*linux|x86_64*openbsd*)
 	if test "x$MKSHARED" = "x"; then
 	    MKSHARED=yes
 	fi
@@ -753,7 +753,7 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL$EXEEXT",
 		   [Name of the SWI-Prolog executable (normally swipl[.exe])])
-SONAMEV=`$as_echo "$PLVERSION" | sed 's/\(@<:@0-9@:>@\+\.@<:@0-9@:>@\+\)\.@<:@0-9@:>@\+/\1/'`
+SONAMEV=`$as_echo "$PLVERSION" | sed 's/\(@<:@0-9@:>@@<:@0-9@:>@*\.@<:@0-9@:>@@<:@0-9@:>@*\)\.@<:@0-9@:>@@<:@0-9@:>@*/\1/'`
 SONAME='$(SHARED).'$SONAMEV
 case "$PLARCH" in
   *-win32|*-win64|*-cygwin*)
@@ -863,7 +863,7 @@ esac
 	AC_CHECK_FUNCS(sema_init)
   fi
   AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
-  AC_CHECK_FUNCS(pthread_kill)
+  AC_CHECK_FUNCS(pthread_kill pthread_mutex_timedlock pthread_timedjoin_np)
   AC_MSG_CHECKING([whether mutex support recursive locking])
   case "$PLARCH" in
     *-win32|*-win64)
@@ -1018,7 +1018,7 @@ AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r asctime_r)
 AC_CHECK_FUNCS(ctime_r mmap confstr strcasecmp mbscoll mbscasecoll fpclass)
 AC_CHECK_FUNCS(setenv posix_openpt wcsxfrm sysctlbyname mbsnrtowcs wcsdup)
-AC_CHECK_FUNCS(ftruncate localtime_s localeconv poll WSAPoll)
+AC_CHECK_FUNCS(ftruncate localtime_s localeconv poll WSAPoll qsort_r qsort_s)
 AC_CHECK_DECLS([mbsnrtowcs])
 AC_HEADER_TIME
 AC_HEADER_DIRENT
@@ -1034,6 +1034,14 @@ AC_TRY_LINK([],
 	    [ AC_MSG_RESULT(yes)
 	      AC_DEFINE(HAVE__BUILTIN_CLZ, 1,
 			[Define if you have __builtin_clz])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
+AC_MSG_CHECKING(for __builtin_popcount)
+AC_TRY_LINK([],
+	    [ __builtin_popcount(0); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE__BUILTIN_POPCOUNT, 1,
+			[Define if you have __builtin_popcount])
 	    ],
 	    [ AC_MSG_RESULT(no) ])
 AC_MSG_CHECKING(for __sync_synchronize)
@@ -1053,6 +1061,78 @@ AC_TRY_LINK([#include <math.h>],
 	    ],
 	    [ AC_MSG_RESULT(no) ])
 
+
+if test "x$ac_cv_func_qsort_r" = xno -a "x$ac_cv_func_qsort_s" = xno; then
+  AC_CHECKING("Use nested functions to emulate qsort_r()")
+  nested_rsort=no
+  if test "$GCC" = "yes"; then
+    ac_oldcflags="$CFLAGS"
+    CFLAGS="$CFLAGS -Werror"
+
+dnl NOTE: We put the function in the include section as we have to define
+dnl NOTE: a function rather than provide a body.
+
+AC_TRY_COMPILE(
+[
+#include <stdlib.h>
+
+void sort_r(void *base, size_t nel, size_t width,
+            int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
+{ int nested_cmp(const void *a, const void *b)
+  {
+    return compar(a, b, arg);
+  }
+
+  qsort(base, nel, width, nested_cmp);
+}
+],
+[ ;
+],
+AC_DEFINE(QSORT_R_WITH_NESTED_FUNCTIONS, 1,
+	  [Emulate qsort_r() with nested functions])
+nested_rsort=yes,
+true)
+    CFLAGS="$ac_oldcflags"
+  fi
+  AC_MSG_RESULT($nested_rsort)
+fi
+
+if test "x$ac_cv_func_qsort_r" = xyes; then
+  AC_CHECKING("GNU style qsort_r()")
+  qsort_r_gnu=no
+
+  AC_TRY_RUN(
+[
+#define _GNU_SOURCE
+#include <stdlib.h>
+
+static int
+mycompare(const void *p1, const void *p2, void *c)
+{ const int *s1 = p1;
+  const int *s2 = p2;
+  int *ip = c;
+
+  if ( *ip != 1 )
+    exit(1);
+
+  return *s1 - *s2;
+}
+
+int
+main(int argc, char**argv)
+{ int data[] = {0,1,2,3,4,5,6,7,8,9};
+  int ctx = 1;
+
+  qsort_r(data, 10, sizeof(int), mycompare, (void*)&ctx);
+  return 0;
+}
+],
+AC_DEFINE(QSORT_R_GNU, 1,
+	  [If qsort_r() is has closure before context])
+qsort_r_gnu=yes,
+true)
+AC_MSG_RESULT($qsort_r_gnu)
+fi
 
 case "$PLARCH" in
     *-win32|*-win64)
@@ -1291,8 +1371,63 @@ fi dnl "$MINGW" = false
 
 dnl Used in OpenBSD
 AC_CHECK_LIB(execinfo, backtrace_symbols)
-AC_CHECK_FUNCS(dladdr)
 
+if test "$ac_cv_header_execinfo_h" = "yes"; then
+AC_MSG_CHECKING("whether backtrace() works")
+AC_TRY_RUN(
+[
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define BT_MAX_DEPTH 10
+
+int
+print_backtrace(void)
+{ void *bt[BT_MAX_DEPTH];
+  char **strings;
+  int i, d;
+
+  d = backtrace(bt, BT_MAX_DEPTH);
+  if ( d == -1 )
+    return 1;
+
+  strings = backtrace_symbols(bt, d);
+
+  if (strings == NULL)
+    return 1;
+
+  free(strings);
+
+  return 0;
+}
+
+int
+fac(int n)
+{ if ( n <= 1 )
+  { if ( print_backtrace() )
+      exit(1);
+    return n;
+  }
+  int m = fac(n-1)*n;
+  return m;
+}
+
+int
+main(int argc, char**argv)
+{ fac(10);
+
+  return 0;
+}
+],
+AC_MSG_RESULT(yes)
+AC_DEFINE(HAVE_BACKTRACE, 1,
+	  [Define if backtrace is provided and works]),
+AC_MSG_RESULT(no),
+AC_MSG_RESULT(assuming no))
+fi
+
+AC_CHECK_FUNCS(dladdr)
 if test "$ac_cv_func_dladdr" != "yes"; then
   AC_CHECK_LIB(unwind, main,
 	       check_unwind_h=yes)

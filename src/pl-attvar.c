@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2016, University of Amsterdam
+    Copyright (c)  2004-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -121,7 +121,10 @@ registerWakeup(Word name, Word value ARG_LD)
     *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
     TrailAssignment(tail);		/* on local stack! */
     *tail = makeRef(wake+3);
-    DEBUG(1, Sdprintf("appended to wakeup\n"));
+    DEBUG(MSG_WAKEUP,
+	  { char buf[32];
+	    Sdprintf("appended wakeup %s\n", print_addr(wake, buf));
+	  });
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
 
@@ -131,7 +134,10 @@ registerWakeup(Word name, Word value ARG_LD)
     TrailAssignment(tail);
     *tail = makeRef(wake+3);
     LD->alerted |= ALERT_WAKEUP;
-    DEBUG(1, Sdprintf("new wakeup\n"));
+    DEBUG(MSG_WAKEUP,
+	  { char buf[32];
+	    Sdprintf("new wakeup %s\n", print_addr(wake, buf));
+	  });
   }
 }
 
@@ -165,9 +171,11 @@ assignAttVar(Word av, Word value ARG_LD)
   assert(gTop+7 <= gMax && tTop+6 <= tMax);
   DEBUG(CHK_SECURE, assert(on_attvar_chain(av)));
 
-  DEBUG(1,
-	{ char buf[32];
-	  Sdprintf("assignAttVar(%s)\n", var_name_ptr(av, buf));
+  DEBUG(MSG_WAKEUP,
+	{ char buf[32]; char buf2[32];
+	  Sdprintf("assignAttVar(%s) at %s\n",
+		   var_name_ptr(av, buf),
+		   print_addr(av, buf2));
 	});
 
   if ( isAttVar(*value) )
@@ -571,8 +579,12 @@ restoreWakeup(wakeup_state *state ARG_LD)
       Word p = (Word)(fr+1);
 
       if ( (state->flags & WAKEUP_STATE_EXCEPTION) )
-      { if ( !(state->flags & WAKEUP_STATE_SKIP_EXCEPTION) )
-	  restore_exception(p PASS_LD);
+      { if ( true(state, WAKEUP_KEEP_URGENT_EXCEPTION) )
+	{ if ( classify_exception_p(p) >= classify_exception(exception_term) )
+	    restore_exception(p PASS_LD);
+	} else if ( !(state->flags & WAKEUP_STATE_SKIP_EXCEPTION) )
+	{ restore_exception(p PASS_LD);
+	}
         p++;
       }
       if ( (state->flags & WAKEUP_STATE_WAKEUP) )
@@ -962,7 +974,7 @@ when_condition(Word cond, Word result, when_state *state ARG_LD)
     { Word a1;
 
       deRef2(&term->arguments[0], a1);
-      if ( ground__LD(a1 PASS_LD) )
+      if ( ground__LD(a1 PASS_LD) == NULL )
 	*result = ATOM_true;
       else
 	*result = *cond;

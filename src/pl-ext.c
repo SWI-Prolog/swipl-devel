@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2012, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -394,8 +394,8 @@ DECL_PLIST(locale);
 DECL_PLIST(dict);
 DECL_PLIST(cont);
 DECL_PLIST(trie);
-DECL_PLIST(indirect);
 DECL_PLIST(tabling);
+DECL_PLIST(mutex);
 
 void
 initBuildIns(void)
@@ -459,8 +459,8 @@ initBuildIns(void)
   REG_PLIST(dict);
   REG_PLIST(cont);
   REG_PLIST(trie);
-  REG_PLIST(indirect);
   REG_PLIST(tabling);
+  REG_PLIST(mutex);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2016, University of Amsterdam
+    Copyright (c)  2017, University of Amsterdam
                          VU University Amsterdam
     All rights reserved.
 
@@ -38,6 +38,7 @@
 	  ]).
 user:file_search_path(library, '../packages/plunit').
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 test_continuation :-
 	run_tests([ continuation
@@ -72,7 +73,8 @@ yield(Term) :-
 
 init_iterator(Goal,Iterator) :-
 	reset(Goal,YE,Cont),
-	(   YE = yield(Element)
+	(   Cont \== 0,
+	    YE = yield(Element)
 	->  Iterator = next(Element,Cont)
 	;   Iterator = done
 	).
@@ -98,7 +100,8 @@ ask(X) :-
 
 with_read(Goal) :-
 	reset(Goal,Term,Cont),
-	(   Term = ask(X)
+	(   Cont \== 0,
+	    Term = ask(X)
 	->  read(X),
 	    with_read(Cont)
 	;   true
@@ -106,7 +109,8 @@ with_read(Goal) :-
 
 with_list(L, Goal) :-
 	reset(Goal,Term,Cont),
-	(   Term = ask(X)
+	(   Cont \== 0,
+	    Term = ask(X)
 	->  L = [X|T],
 	    with_list(T,Cont)
 	;   true
@@ -146,7 +150,7 @@ transduce_(yield(NValue), ContT, IG) :-
 	transduce(IG, ContT).
 transduce_(ask(Value), ContT, IG) :-
 	reset(IG, TermI, ContI),
-	(   TermI == 0
+	(   ContI == 0
 	->  true
 	;   TermI = yield(Value),
 	    transduce(ContI, ContT)
@@ -175,6 +179,10 @@ shift_in_cond(R) :-
 
 :- begin_tests(continuation).
 
+test(basic, [Ball,After] == [a,after]) :-
+	reset(shift(a), Ball, Continuation),
+	assertion(callable(Continuation)),
+	After = after.
 test(sum, Sum == 12) :-
 	init_iterator(fromList([7,2,3]), It),
 	sum(It, 0, Sum).

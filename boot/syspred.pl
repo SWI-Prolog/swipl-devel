@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -75,11 +75,13 @@
             prolog_stack_property/2,
             absolute_file_name/2,
             require/1,
-            call_with_depth_limit/3,    % :Goal, +Limit, -Result
-            call_with_inference_limit/3,% :Goal, +Limit, -Result
-            numbervars/3,               % +Term, +Start, -End
-            term_string/3,              % ?Term, ?String, +Options
-            nb_setval/2                 % +Var, +Value
+            call_with_depth_limit/3,            % :Goal, +Limit, -Result
+            call_with_inference_limit/3,        % :Goal, +Limit, -Result
+            numbervars/3,                       % +Term, +Start, -End
+            term_string/3,                      % ?Term, ?String, +Options
+            nb_setval/2,                        % +Var, +Value
+            thread_create/2,                    % :Goal, -Id
+            thread_join/1                       % +Id
           ]).
 
                 /********************************
@@ -588,8 +590,7 @@ prolog_load_context(source, F) :-       % SICStus compatibility
     '$input_context'(Context),
     '$top_file'(Context, F0, F).
 prolog_load_context(stream, S) :-
-    source_location(F, _),
-    (   system:'$load_input'(F, S0)
+    (   system:'$load_input'(_, S0)
     ->  S = S0
     ).
 prolog_load_context(directory, D) :-
@@ -1116,7 +1117,8 @@ working_directory(Old, New) :-
 %   True if Trie is the handle of an existing trie.
 
 current_trie(Trie) :-
-    current_blob(Trie, trie).
+    current_blob(Trie, trie),
+    is_trie(Trie).
 
 %!  trie_property(?Trie, ?Property)
 %
@@ -1360,3 +1362,32 @@ term_string(Term, String, Options) :-
 nb_setval(Name, Value) :-
     duplicate_term(Value, Copy),
     nb_linkval(Name, Copy).
+
+
+		 /*******************************
+		 *            THREADS		*
+		 *******************************/
+
+:- meta_predicate
+    thread_create(0, -).
+
+%!  thread_create(:Goal, -Id)
+%
+%   Shorthand for thread_create(Goal, Id, []).
+
+thread_create(Goal, Id) :-
+    thread_create(Goal, Id, []).
+
+%!  thread_join(+Id)
+%
+%   Join a thread and raise an error of the thread did not succeed.
+%
+%   @error  thread_error(Status),  where  Status  is    the   result  of
+%   thread_join/2.
+
+thread_join(Id) :-
+    thread_join(Id, Status),
+    (   Status == true
+    ->  true
+    ;   throw(error(thread_error(Status), _))
+    ).

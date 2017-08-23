@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -190,7 +190,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 
 #define L_MISC		0
 #define L_ALLOC		1
-#define L_ATOM		2
+#define L_REHASH_ATOMS	2
 #define L_FLAG	        3
 #define L_FUNCTOR	4
 #define L_RECORD	5
@@ -207,11 +207,12 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_OP	       16
 #define L_INIT	       17
 #define L_TERM	       18
-#define L_GC	       19
-#define L_AGC	       20
-#define L_FOREIGN      21
-#define L_OS	       22
-#define L_LOCALE       23
+#define L_FOREIGN      19
+#define L_OS	       20
+#define L_LOCALE       21
+#define L_SORTR        22
+#define L_UMUTEX       23
+#define L_INIT_ATOMS   24
 #ifdef __WINDOWS__
 #define L_DDE	       25
 #define L_CSTACK       26
@@ -372,7 +373,8 @@ int			PL_thread_raise(int tid, int sig);
 COMMON(void)		cleanupThreads(void);
 COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
-
+COMMON(void)		get_current_timespec(struct timespec *time);
+COMMON(void)	        carry_timespec_nanos(struct timespec *time);
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
@@ -385,7 +387,7 @@ COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
-#define acquire_ldata(ld)	(LD->thread.info->access.ldata = (ld))
+#define acquire_ldata(info)	acquire_ldata__LD(info PASS_LD)
 #define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
 
 #else /*O_PLMT, end of threading-stuff */
@@ -426,6 +428,14 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 *	       COMMON		*
 		 *******************************/
 
+typedef struct
+{ functor_t functor;			/* functor of property */
+  int (*function)();			/* function to generate */
+} tprop;
+
+COMMON(int)	get_prop_def(term_t t, atom_t expected,
+			     const tprop *list, const tprop **def);
+
 COMMON(void)	initPrologThreads(void);
 COMMON(int)	pl_atom_table_in_use(AtomTable atom_table);
 COMMON(int)	pl_atom_bucket_in_use(Atom *atom_bucket);
@@ -437,6 +447,8 @@ COMMON(int)	pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD);
 COMMON(void)	popPredicateAccess__LD(Definition def ARG_LD);
 COMMON(size_t)	popNPredicateAccess__LD(size_t n ARG_LD);
 COMMON(void)	markAccessedPredicates(PL_local_data_t *ld);
-COMMON(void)    cgc_thread_stats(cgc_stats *stats ARG_LD);
+COMMON(int)     cgc_thread_stats(cgc_stats *stats ARG_LD);
+COMMON(int)	signalGCThread(int sig);
+COMMON(int)	isSignalledGCThread(int sig ARG_LD);
 
 #endif /*PL_THREAD_H_DEFINED*/

@@ -120,8 +120,8 @@ random_between(L, U, _) :-
 %
 %   @deprecated Please use random/1 for   generating  a random float
 %   and random_between/3 for generating a  random integer. Note that
-%   the  random_between/3  includes  the  upper  bound,  while  this
-%   predicate excludes the upper bound.
+%   random_between/3  includes  the  upper  bound,  while  this
+%   predicate excludes it.
 
 random(L, U, R) :-
     integer(L), integer(U),

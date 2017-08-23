@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2016, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -49,9 +49,6 @@ static int  is_external(const char *rec, size_t len);
 
 #define RECORDA 0
 #define RECORDZ 1
-
-#define LOCK()   PL_LOCK(L_RECORD)
-#define UNLOCK() PL_UNLOCK(L_RECORD)
 
 #undef LD
 #define LD LOCAL_LD
@@ -114,12 +111,12 @@ isCurrentRecordList(word key, int must_be_non_empty)
   { if ( must_be_non_empty )
     { RecordRef record;
 
-      LOCK();
+      PL_LOCK(L_RECORD);
       for(record = rl->firstRecord; record; record = record->next)
       { if ( false(record->record, R_ERASED) )
 	  break;
       }
-      UNLOCK();
+      PL_UNLOCK(L_RECORD);
       return record ? rl : NULL;
     } else
     { return rl;
@@ -709,6 +706,15 @@ compileTermToHeap__LD(term_t t,
 
   return record;
 }
+
+
+int
+variantRecords(const Record r1, const Record r2)
+{ return ( r1->size == r2->size &&
+	   memcpy(r1, r2, r1->size) == 0
+	 );
+}
+
 
 		 /*******************************
 		 *	 EXTERNAL RECORDS	*
@@ -1868,9 +1874,12 @@ real atom.
 bool
 unifyKey(term_t key, word val)
 { if ( isAtom(val) || isTaggedInt(val) )
-    return _PL_unify_atomic(key, val);
+  { return _PL_unify_atomic(key, val);
+  } else
+  { GET_LD
 
-  return PL_unify_functor(key, (functor_t) val);
+    return PL_unify_functor(key, (functor_t) val);
+  }
 }
 
 
@@ -1970,7 +1979,7 @@ record(term_t key, term_t term, term_t ref, int az)
     return FALSE;
   }
 
-  LOCK();
+  PL_LOCK(L_RECORD);
   l = lookupRecordList(k);
   r->list = l;
 
@@ -1989,7 +1998,7 @@ record(term_t key, term_t term, term_t ref, int az)
     l->lastRecord = r;
   }
 
-  UNLOCK();
+  PL_UNLOCK(L_RECORD);
 
   succeed;
 }
@@ -2053,7 +2062,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       { RecordRef record;
 
 	if ( PL_get_recref(ref, &record) )
-	{ LOCK();
+	{ PL_LOCK(L_RECORD);
 	  if ( unifyKey(key, record->list->key) )
 	  { term_t copy = PL_new_term_ref();
 
@@ -2064,7 +2073,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	      rc = PL_unify(term, copy);
 	  } else
 	    rc = FALSE;
-	  UNLOCK();
+	  PL_UNLOCK(L_RECORD);
 
 	  return rc;
 	}
@@ -2084,12 +2093,12 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       } else
       { return FALSE;
       }
-      LOCK();
+      PL_LOCK(L_RECORD);
       break;
     }
     case FRG_REDO:
     { state = CTX_PTR;
-      LOCK();
+      PL_LOCK(L_RECORD);
       break;
     }
     case FRG_CUTTED:
@@ -2098,10 +2107,10 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       if ( state->r )
       { RecordList rl = state->r->list;
 
-	LOCK();
+	PL_LOCK(L_RECORD);
 	if ( --rl->references == 0 && true(rl, RL_DIRTY) )
 	  cleanRecordList(rl);
-	UNLOCK();
+	PL_UNLOCK(L_RECORD);
       }
       free_state(state);
     }
@@ -2144,7 +2153,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
 	if ( record->next )
 	{ state->r = record->next;
-	  UNLOCK();
+	  PL_UNLOCK(L_RECORD);
 	  PL_close_foreign_frame(fid);
 	  ForeignRedoPtr(save_state(state));
 	} else
@@ -2172,7 +2181,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       }
 
       if ( answered )
-      { UNLOCK();
+      { PL_UNLOCK(L_RECORD);
 	PL_close_foreign_frame(fid);
 	if ( state->e )
 	  ForeignRedoPtr(save_state(state));
@@ -2187,7 +2196,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
     PL_close_foreign_frame(fid);
   }
 
-  UNLOCK();
+  PL_UNLOCK(L_RECORD);
   free_state(state);
   return FALSE;
 }
@@ -2262,10 +2271,11 @@ PRED_IMPL("erase", 1, erase, 0)
     return retractClauseDefinition(def, clause);
   } else
   { RecordRef r = ptr;
+    int rc;
 
-    callEventHook(PLEV_ERASED_RECORD, r);
+    rc = callEventHook(PLEV_ERASED_RECORD, r);
 
-    LOCK();
+    PL_LOCK(L_RECORD);
     l = r->list;
     if ( l->references )		/* a recorded has choicepoints */
     { set(r->record, R_ERASED);
@@ -2273,8 +2283,8 @@ PRED_IMPL("erase", 1, erase, 0)
     } else
     { remove_record(r);
     }
-    UNLOCK();
-    return TRUE;
+    PL_UNLOCK(L_RECORD);
+    return rc;
   }
 }
 

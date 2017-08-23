@@ -420,6 +420,10 @@ walk_called_by_body(no_positions, Body, Module, OTerm) :-
 %
 %   @tbd    Analyse e.g. assert((Head:-Body))?
 
+walk_called(Term, Module, parentheses_term_position(_,_,Pos), OTerm) :-
+    nonvar(Pos),
+    !,
+    walk_called(Term, Module, Pos, OTerm).
 walk_called(Var, _, TermPos, OTerm) :-
     var(Var),                              % Incomplete analysis
     !,

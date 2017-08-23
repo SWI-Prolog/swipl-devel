@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -68,7 +68,8 @@ locking is required.
 #define O_LOCALE 1
 #include <wchar.h>
 #define NEEDS_SWINSOCK
-#include "SWI-Stream.h"
+#define PL_STREAM_IMPL
+#include "pl-stream.h"
 #define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 #include "pl-utf8.h"
@@ -307,29 +308,32 @@ print_trace(void)
 #endif /*DEBUG_IO_LOCKS*/
 
 
-int
-Slock(IOSTREAM *s)
-{ SLOCK(s);
-
-  if ( s->erased )
+static int
+S__lock(IOSTREAM *s)
+{ if ( s->erased )
   { SUNLOCK(s);
     return -1;
   }
 
-#ifdef DEBUG_IO_LOCKS
-  if ( s->locks > 2 )
-  { printf("  Lock [%d]: %s: %d locks", PL_thread_self(), Sname(s), s->locks+1);
-    print_trace();
+  if ( s->locks == 0 )
+  { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) &&
+	 S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 )
+    { SUNLOCK(s);
+      return -1;
+    }
   }
-#endif
 
-  s->references++;
-  if ( !s->locks++ )
-  { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-      return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
-  }
+  s->locks++;
+  Sreference(s);
 
   return 0;
+}
+
+int
+Slock(IOSTREAM *s)
+{ SLOCK(s);
+
+  return S__lock(s);
 }
 
 
@@ -338,24 +342,14 @@ StryLock(IOSTREAM *s)
 { if ( !STRYLOCK(s) )
     return -1;
 
-  if ( s->erased )
-  { SUNLOCK(s);
-    return -1;
-  }
-
-  if ( !s->locks++ )
-  { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-      return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
-  }
-  s->references++;
-
-  return 0;
+  return S__lock(s);
 }
 
 
 int
 Sunlock(IOSTREAM *s)
 { int rval = 0;
+  int unalloc;
 
 #ifdef DEBUG_IO_LOCKS
   if ( s->locks > 3 )
@@ -373,9 +367,10 @@ Sunlock(IOSTREAM *s)
   { assert(0);
   }
 
-  s->references--;
+  unalloc = (Sunreference(s) == 0 && s->erased);
+
   SUNLOCK(s);
-  if ( s->references == 0 && s->erased )
+  if ( unalloc )
     unallocStream(s);
 
   return rval;
@@ -499,6 +494,10 @@ S__flushbuf(IOSTREAM *s)
 { char *from, *to;
   ssize_t rc;
 
+  if ( s->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
   SLOCK(s);
   from = s->buffer;
   to   = s->bufp;
@@ -529,7 +528,7 @@ S__flushbuf(IOSTREAM *s)
 	  errno = EPLEXCEPTION;
 	} else
 	  goto retry;
-      } else if ( errno != EPLEXCEPTION )
+      } else if ( errno != EPLEXCEPTION && !(s->flags&SIO_NOERROR) )
 	S__seterror(s);
       rc = -1;
       goto out;
@@ -593,6 +592,11 @@ It also realises the SWI-Prolog timeout facility.
 int
 S__fillbuf(IOSTREAM *s)
 { int c;
+
+  if ( s->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
 
   if ( s->flags & (SIO_FEOF|SIO_FERR) )	/* reading past eof */
   { if ( s->flags & SIO_FEOF2ERR )
@@ -1890,7 +1894,8 @@ Stell(IOSTREAM *s)
 
 void
 unallocStream(IOSTREAM *s)
-{
+{ S__destroyed(s);
+
 #ifdef O_PLMT
   if ( s->mutex )
   { recursiveMutexDelete(s->mutex);
@@ -2834,7 +2839,7 @@ If parent is an input stream we have
 
 	--> parent --> filter --> application
 
-This filter is referenced, so it won't be freed, even if it is closed.
+The filter is referenced, so it won't be freed, even if it is closed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -2849,15 +2854,21 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
     { errno = EINVAL;
       return -1;
     }
-    filter->references++;
+    Sreference(filter);
+    Sreference(parent);
+    assert(parent->upstream==NULL && filter->downstream==NULL);
     parent->upstream = filter;
     filter->downstream = parent;
     filter->timeout = parent->timeout;
   } else				/* clear filter */
-  { if ( parent->upstream )
-    { if ( --parent->upstream->references == 0 && parent->upstream->erased )
-	unallocStream(parent->upstream);
+  { if ( (filter=parent->upstream) )
+    { assert(filter->downstream == parent);
+      filter->downstream = NULL;
       parent->upstream = NULL;
+      if ( Sunreference(filter) == 0 && filter->erased )
+	unallocStream(filter);
+      if ( Sunreference(parent) == 0 && parent->erased )
+	unallocStream(parent);
     }
   }
 
@@ -3029,6 +3040,9 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   { errno = ENOMEM;
     return NULL;
   }
+
+  S__created(s);
+
   memset((char *)s, 0, sizeof(IOSTREAM));
   s->magic         = SIO_MAGIC;
   s->lastc         = EOF;
@@ -3846,10 +3860,7 @@ Sclose_buffer(IOSTREAM *s)
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
 		      (void *)(n), &Sttyfunctions, \
-		      0, NULL, \
-		      (void (*)(void *))0, NULL, \
 		      -1, \
-		      0, \
 		      ENC_ISO_LATIN_1 \
 		    }
 

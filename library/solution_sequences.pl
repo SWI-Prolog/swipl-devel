@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015, VU University Amsterdam
+    Copyright (c)  2015-2017, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,8 @@
 :- module(solution_sequences,
           [ distinct/1,                 % :Goal
             distinct/2,                 % ?Witness, :Goal
+            reduced/1,                  % :Goal
+            reduced/3,                  % ?Witness, :Goal, +Options
             limit/2,                    % +Limit, :Goal
             offset/2,                   % +Offset, :Goal
             order_by/2,                 % +Spec, :Goal
@@ -45,6 +47,7 @@
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(ordsets)).
+:- use_module(library(option)).
 
 /** <module> Modify solution sequences
 
@@ -100,6 +103,8 @@ b(X)) and the ones using this library side-by-side.
 :- meta_predicate
     distinct(0),
     distinct(?, 0),
+    reduced(0),
+    reduced(?, 0, +),
     limit(+, 0),
     offset(+, 0),
     order_by(+, 0),
@@ -132,6 +137,43 @@ distinct(Witness, Goal) :-
     empty_nb_set(Set),
     call(Goal),
     add_nb_set(Witness1, Set, true).
+
+%!  reduced(:Goal).
+%!  reduced(?Witness, :Goal, +Options).
+%
+%   Similar to distinct/1, but does  not   guarantee  unique  results in
+%   return for using a limited  amount   of  memory. Both distinct/1 and
+%   reduced/1  create  a  table  that    block  duplicate  results.  For
+%   distinct/1,  this  table  may  get  arbitrary  large.  In  contrast,
+%   reduced/1 discards the table and starts a  new one of the table size
+%   exceeds a specified limit. This filter   is  useful for reducing the
+%   number of answers when  processing  large   or  infinite  long  tail
+%   distributions. Options:
+%
+%     - size_limit(+Integer)
+%     Max number of elements kept in the table.  Default is 10,000.
+
+reduced(Goal) :-
+    reduced(Goal, Goal, []).
+reduced(Witness, Goal, Options) :-
+    option(size_limit(SizeLimit), Options, 10_000),
+    term_variables(Witness, Vars),
+    Witness1 =.. [v|Vars],
+    empty_nb_set(Set),
+    State = state(Set),
+    call(Goal),
+    reduced_(State, Witness1, SizeLimit).
+
+reduced_(State, Witness1, SizeLimit) :-
+    arg(1, State, Set),
+    add_nb_set(Witness1, Set, true),
+    size_nb_set(Set, Size),
+    (   Size > SizeLimit
+    ->  empty_nb_set(New),
+        nb_setarg(1, State, New)
+    ;   true
+    ).
+
 
 %!  limit(+Count, :Goal)
 %

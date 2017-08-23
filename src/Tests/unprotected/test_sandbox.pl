@@ -71,5 +71,7 @@ test(aggregate) :-
 	safe_goal(aggregate(sum(I), X^between(1,X,I), _Count)).
 test(dcg, error(permission_error(call, sandboxed, open(_,_,_)))) :-
 	safe_goal(my_call(open(_,_,_))).
+test(contexr, error(permission_error(call, sandboxed, @(_,_)))) :-
+	safe_goal(@(open(_,_,_), user)).
 
 :- end_tests(sandbox).

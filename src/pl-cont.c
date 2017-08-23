@@ -42,12 +42,16 @@ Implementation of `delimited continuation'.  Implements
   * shift(+Ball)
   * call_continuation(+Cont)
 
-reset/3 is implemented as
+reset/3 is implemented as:
 
-  reset(Goal, Cont, Ball) :-
-	'$start_reset',
-	call(Goal),
-	Cont = 0, Ball = 0.
+  reset(_Goal, _Cont, _Ball) :-
+	'$reset'.
+
+Where the compiler translates '$reset' into
+
+  I_RESET
+  I_EXITRESET
+  I_EXIT
 
 ## Future optimizations
 
@@ -57,23 +61,7 @@ reset/3 is implemented as
     variable activation map.
   - As put_environment() documents, we should also find the
     active non-Prolog slots.
-  - It is probably better to represent the continuation frame
-    as a compound term rather than a list.  This is generally
-    more compact and quicker to process.  The abovew table can
-    provide the functor with the correct arity.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static
-PRED_IMPL("$start_reset", 0, start_reset, 0)
-{ PRED_LD
-  LocalFrame fr = environment_frame;
-
-  assert(fr->parent);
-  set(fr->parent, FR_INRESET);
-
-  return TRUE;
-}
-
 
 static term_t
 findReset(LocalFrame fr, term_t ball ARG_LD)
@@ -113,6 +101,25 @@ stored as offsets  to  the  local  stack   base.  We  put  them  in  the
 environment as integers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define FAST_FUNCTORS 256
+
+static functor_t fast_functors[FAST_FUNCTORS] = {0};
+
+static functor_t
+env_functor(int slots)
+{ int arity = slots+2;				/* clause and PC */
+
+  if ( arity < FAST_FUNCTORS )
+  { if ( likely(fast_functors[arity]) )
+      return fast_functors[arity];
+    fast_functors[arity] = PL_new_functor(ATOM_dcont, arity);
+    return fast_functors[arity];
+  }
+
+  return PL_new_functor(ATOM_dcont, arity);
+}
+
+
 static int
 put_environment(term_t env, LocalFrame fr, Code pc)
 { GET_LD
@@ -123,8 +130,9 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   char tmp[128];
   char *buf;
   bit_vector *active;
-  term_t argv = PL_new_term_refs(2);
   int rc = TRUE;
+  Word p;
+  atom_t cref;
 
   if ( bv_bytes <= sizeof(tmp) )
     buf = tmp;
@@ -139,30 +147,41 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 
   active = (bit_vector*)buf;
   init_bitvector(active, slots);
-  fr = (LocalFrame)valTermRef(fr_ref);
   mark_active_environment(active, fr, pc);
 
-  PL_put_nil(env);
-  for(i=0; i<cl->prolog_vars; i++)
+  if ( gTop+1+slots >= gMax )
+  { int rc;
+    term_t fr_ref = consTermRef(fr);
+
+    if ( (rc=ensureGlobalSpace(1+slots, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+      return raiseStackOverflow(rc);
+
+    fr = (LocalFrame)valTermRef(fr_ref);
+  }
+
+  fr = (LocalFrame)valTermRef(fr_ref);
+  p = gTop;
+
+  cref = lookup_clref(cl);
+  *p++ = env_functor(slots);
+  *p++ = cref;
+  *p++ = consInt(pc - cl->codes);
+
+  for(i=0; i<cl->prolog_vars; i++, p++)
   { if ( true_bit(active, i) )
-    { Word p;
+    { Word vp = argFrameP(fr, i);
+      DEBUG(CHK_SECURE, checkData(vp));
 
-      fr = (LocalFrame)valTermRef(fr_ref);
-      p = argFrameP(fr, i);
-      DEBUG(CHK_SECURE, checkData(p));
-
-      deRef(p);
-      if ( isVar(*p) && p > (Word)lBase )
-	LTrail(p);
-					/* internal one is void */
-      PL_put_term(argv+1, consTermRef(argFrameP(fr, i)));
-
-      if ( !PL_put_integer(argv+0, i) ||
-	   !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
-	   !PL_cons_list(env, argv+0, env) )
-      { rc = FALSE;			/* resource error */
-	break;
+      deRef(vp);
+      if ( isVar(*vp) && vp > (Word)lBase )
+      { setVar(*p);
+	LTrail(vp);
+	*vp = makeRefG(p);
+      } else
+      { *p = linkVal(vp);
       }
+    } else
+    { *p = ATOM_cont_inactive;
     }
   }
 					/* Store choice points (*) */
@@ -172,31 +191,74 @@ put_environment(term_t env, LocalFrame fr, Code pc)
       { DEBUG(MSG_CONTINUE,
 	      Sdprintf("%s: add choice-point reference from slot %d\n",
 		       predicateName(fr->predicate), i));
-	PL_put_integer(argv+1, argFrame(fr, i));
 
-	if ( !PL_put_integer(argv+0, i) ||
-	     !PL_cons_functor_v(argv+0, FUNCTOR_minus2, argv) ||
-	     !PL_cons_list(env, argv+0, env) )
-	{ rc = FALSE;			/* resource error */
-	  break;
-	}
-      }
+	*p++ = consInt(argFrame(fr, i));
+      } else
+	*p++ = 0;
     }
   }
 
   if ( buf != tmp )
     PL_free(buf);
 
+  if ( rc )
+  { Word tp = gTop;
+    gTop = p;
+
+    *valTermRef(env) = consPtr(tp, TAG_COMPOUND|STG_GLOBAL);
+  }
+
+  PL_unregister_atom(cref);
+
   return rc;
 }
 
 
+static functor_t
+env3_predicate(Definition def)
+{ if ( def == PROCEDURE_catch3->definition )
+    return FUNCTOR_catch3;
+  if ( def == PROCEDURE_reset3->definition )
+    return FUNCTOR_reset3;
+  return 0;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The continuation may be empty. This is  typically the case in debug mode
+when last-call optimization is enabled. It  can also happen in optimized
+mode if the last call was not optimized   away due to a choice point. As
+the choice point is not part of the   continuation we do not need to add
+an empty continuation. Samer  Abdallah   discovered  that  without this,
+continuations are quite often empty.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
+is_last_call(Code PC)
+{ for( ; ; PC = stepPC(PC) )
+  { code c = fetchop(PC);
+
+  again:
+    switch( c )
+    { case I_EXIT:
+      case I_EXITFACT:
+	return TRUE;
+      case C_JMP:
+	PC += (int)PC[1]+2;
+        c = fetchop(PC);
+	goto again;
+      default:
+	return FALSE;
+    }
+  }
+}
+
+
+static int
+put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 { GET_LD
   term_t reset_ref = consTermRef(resetfr);
   term_t fr_ref    = consTermRef(fr);
-  term_t argv      = PL_new_term_refs(3);
   term_t contv;
   LocalFrame fr2;
   int depth = 0;
@@ -212,22 +274,37 @@ unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 
   for( depth=0;
        fr != resetfr;
-       pc = fr->programPointer, fr=fr->parent, depth++)
-  { Clause     cl = fr->clause->value.clause;
-    long pcoffset = pc - cl->codes;
+       pc = fr->programPointer, fr=fr->parent)
+  { Clause cl = fr->clause->value.clause;
 
-    if ( onStackArea(local, cl) )
-      return PL_representation_error("continuation");
-    fr_ref = consTermRef(fr);
+    if ( !is_last_call(pc) )
+    { functor_t env_f;
 
-    if ( !PL_put_clref(argv+0, cl) ||
-	 !PL_put_integer(argv+1, pcoffset) ||
-	 !put_environment(argv+2, fr, pc) ||
-	 !PL_cons_functor_v(contv+depth, FUNCTOR_dcont3, argv)  )
-      return FALSE;
+      if ( onStackArea(local, cl) )
+	return PL_representation_error("continuation");
+      fr_ref = consTermRef(fr);
 
-    resetfr = (LocalFrame)valTermRef(reset_ref);
-    fr      = (LocalFrame)valTermRef(fr_ref);
+      if ( (env_f=env3_predicate(fr->predicate)) )
+      { term_t av = PL_new_term_refs(2);
+
+	fr = (LocalFrame)valTermRef(fr_ref);
+	PL_put_term(av+0, consTermRef(argFrameP(fr, 1)));
+	PL_put_term(av+1, consTermRef(argFrameP(fr, 2)));
+
+	if ( PL_cons_list_v(contv, depth, contv) &&
+	     PL_cons_functor(contv, FUNCTOR_call_continuation1, contv) &&
+	     PL_cons_functor(contv, env_f, contv, av+0, av+1) &&
+	     PL_cons_functor(contv, FUNCTOR_call1, contv) )
+	  depth = 0;
+	else
+	  return FALSE;
+      } else if ( !put_environment(contv+depth, fr, pc) )
+	return FALSE;
+
+      resetfr = (LocalFrame)valTermRef(reset_ref);
+      fr      = (LocalFrame)valTermRef(fr_ref);
+      depth++;
+    }
   }
 
   return ( PL_cons_list_v(cont, depth, contv) &&
@@ -245,21 +322,23 @@ Performs the following steps:
   2. Collect the continuation as a list of terms, each
      term is of the form
 
-	cont(Clause, PC, Env)
+	'$cont'(Clause, PC, EnvArg1, ...)
 
      Here, Clause is the clause, PC is the program counter inside
-     the clause, Env is a list of Offset-Value pairs, containing
-     the reachable part of the environment.
+     the clause, EnvArg1 is an array holding the frame argumnets
+     in the same order as the frame layout.  The atom '<inactive>'
+     is used for frame slots that are not accessed by the remainder
+     of the continuation.
   3. Unify Cont of the reset/2 goal with the continuation
-  4. Modify the saved PC of current frame to return to the exit
-     of reset/0
+  4. Return the program counter for contueing in the parent of the
+     reset/3. Sets environment_frame to the parent of the reset frame.
+     These parameters are used by I_SHIFT to continue in the reset
+     frame.
 */
 
-static
-PRED_IMPL("shift", 1, shift, 0)
-{ PRED_LD
-  term_t ball = A1;
-  term_t reset;
+Code
+shift(term_t ball ARG_LD)
+{ term_t reset;
 
   if ( (reset=findReset(environment_frame, ball PASS_LD)) )
   { term_t cont = PL_new_term_ref();
@@ -269,9 +348,9 @@ PRED_IMPL("shift", 1, shift, 0)
     DEBUG(MSG_CONTINUE, Sdprintf("Found reset/3 at %ld\n", reset));
     PL_put_nil(cont);
     resetfr = (LocalFrame)valTermRef(reset);
-    if ( !unify_continuation(cont, resetfr,
-			     environment_frame->parent,
-			     environment_frame->programPointer) )
+    if ( !put_continuation(cont, resetfr,
+			   environment_frame->parent,
+			   environment_frame->programPointer) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to collect continuation\n"));
       return FALSE;			/* resource error */
     }
@@ -281,85 +360,75 @@ PRED_IMPL("shift", 1, shift, 0)
     resetfr = (LocalFrame)valTermRef(reset);
     if ( !PL_unify(consTermRef(argFrameP(resetfr, 2)), cont) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to unify continuation\n"));
-      if ( PL_exception(0) )
-	return FALSE;
-      else
-	return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION,
-			0, consTermRef(argFrameP(resetfr, 1)));
+      if ( !PL_exception(0) )
+	PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION,
+		 0, consTermRef(argFrameP(resetfr, 1)));
+      return NULL;
     }
     resetfr = (LocalFrame)valTermRef(reset);
 
 					/* Find parent to keep and trim lTop */
-					/* Note that I_EXIT does not touch this */
-					/* (FR_KEEPLTOP) */
     for( fr = environment_frame->parent; ; fr = fr->parent )
     { if ( fr <= (LocalFrame)LD->choicepoints )
       { lTop = (LocalFrame)(LD->choicepoints+1);
 	break;				/* found newer choicepoint */
       } else if ( fr == resetfr )
-      { lTop = (LocalFrame)argFrameP(fr, fr->clause->value.clause->variables);
+      { fr = fr->parent;
+	lTop = (LocalFrame)argFrameP(fr, fr->clause->value.clause->variables);
         break;
       }
       assert(fr > resetfr);
     }
 					/* return as from reset/3 */
-    fr = environment_frame;
-    fr->programPointer = resetfr->programPointer;
-    fr->parent         = resetfr->parent;
-    set(fr, FR_KEEPLTOP);
-
-    return TRUE;
+    environment_frame = resetfr->parent;
+    return resetfr->programPointer;
   }
 
-  return PL_existence_error("reset/3", ball);
+  PL_existence_error("reset/3", ball);
+  return NULL;
 }
 
 
-/** '$call_one_tail_body'(+Cont)
-
-Reactivate a single tail body from a continuation. See shift for the
-representation of the continuation.
-*/
-
-
-static
-PRED_IMPL("$call_one_tail_body", 1, call_one_tail_body, 0)
-{ PRED_LD
-  term_t cont = A1;
-  LocalFrame me, top, fr;
-  Code pc;
+Code
+push_continuation(term_t continuation, LocalFrame pfr, Code pcret ARG_LD)
+{ LocalFrame top, fr;
+  Word cont;
 
 retry:
-  top    = lTop;
-  me     = environment_frame;
+  cont = valTermRef(continuation);
+  top  = lTop;
 
-  if ( PL_is_functor(cont, FUNCTOR_dcont3) )
-  { term_t env  = PL_new_term_ref();
-    term_t arg  = PL_new_term_ref();
-    term_t head = PL_new_term_ref();
+  deRef(cont);
+
+  if ( isTerm(*cont) )
+  { Functor f = valueTerm(*cont);
+    Word ep = f->arguments;
+    Word ap;
     Clause cl;
     ClauseRef cref;
-    long pcoffset;
+    intptr_t pcoffset;
     size_t lneeded, lroom;
-    Word ap;
     int i;
 
-    _PL_get_arg(1, cont, arg);
-    if ( !PL_get_clref(arg, &cl) )
-      return FALSE;
-    _PL_get_arg(2, cont, arg);
-    if ( !PL_get_long_ex(arg, &pcoffset) )
-      return FALSE;
-    _PL_get_arg(3, cont, env);
+    if ( !(cl = clause_clref(*ep++)) ||
+	 arityFunctor(f->definition) != cl->variables + 2 )
+    { PL_type_error("continuation", continuation);
+      return NULL;
+    }
+
+    pcoffset = valInt(*ep++);
 
     lneeded = SIZEOF_CREF_CLAUSE +
 	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
     lroom   = roomStack(local);
-    if ( lroom < lneeded )		/* resize the stack */
+    if ( unlikely(lroom < lneeded) )	/* resize the stack */
     { int rc;
 
-      if ( (rc = ensureLocalSpace(roomStack(local)*2, ALLOW_SHIFT)) != TRUE )
-	return raiseStackOverflow(rc);
+      if ( (rc=growLocalSpace__LD(roomStack(local)*2, ALLOW_SHIFT PASS_LD))
+	   != TRUE )
+      { raiseStackOverflow(rc);
+	return NULL;
+      }
       goto retry;
     }
 
@@ -367,39 +436,28 @@ retry:
     fr   = addPointer(cref, SIZEOF_CREF_CLAUSE);
     top  = addPointer(top, lneeded);
 
-    for(ap = argFrameP(fr, 0), i=cl->prolog_vars; i-- > 0; )
-      *ap++ = ATOM_garbage_collected;
-    for(i=cl->variables-cl->prolog_vars; i-- > 0; )
-      *ap++ = consTermRef(LD->choicepoints);
+    ap = argFrameP(fr, 0);
 
-    while( PL_get_list_ex(env, head, env) )
-    { int offset;
+    for(i=0; i<cl->prolog_vars; i++, ep++, ap++)
+    { *ap = linkVal(ep);
+    }
 
-      if ( !PL_is_functor(head, FUNCTOR_minus2) )
-	return PL_type_error("pair", head);
-
-      _PL_get_arg(1, head, arg);
-      if ( !PL_get_integer_ex(arg, &offset) )
-	return FALSE;
-      _PL_get_arg(2, head, arg);
-
-      if ( offset < cl->prolog_vars )
-      { argFrame(fr, offset) = linkVal(valTermRef(arg));
-      } else
-      { intptr_t i;
+    for(; i<cl->variables; i++, ep++, ap++)
+    { if ( isTaggedInt(*ep) )
+      { intptr_t i = valInt(*ep);
 	Choice ch, chp;
 
-	if ( !PL_get_intptr_ex(arg, &i) )
-	  return FALSE;
 	ch = (Choice)valTermRef(i);
 	for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
 	  ;
 	if ( ch == chp )
-	  argFrame(fr, offset) = i;
+	  *ap = i;
+	else
+	  *ap = consTermRef(LD->choicepoints);
+      } else
+      { *ap = consTermRef(LD->choicepoints);
       }
     }
-    if ( !PL_get_nil_ex(env) )
-      return FALSE;
 
     lTop = top;
 
@@ -407,36 +465,36 @@ retry:
     cref->d.key        = 0;
     cref->value.clause = cl;
 
-    fr->programPointer = me->programPointer;
-    fr->parent         = me->parent;
+    fr->programPointer = pcret;
+    fr->parent         = pfr;
     fr->clause         = cref;
     fr->predicate      = cl->predicate;
     fr->context	       = fr->predicate->module;
-    setNextFrameFlags(fr, me);
+    setNextFrameFlags(fr, pfr);
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif
     setGenerationFrame(fr, global_generation());
     enterDefinition(fr->predicate);
+    environment_frame = fr;
 
-    pc     = cl->codes+pcoffset;
+    DEBUG(MSG_CONTINUE,
+	  Sdprintf("Resume clause %d of %s at PC=%ld\n",
+		   clauseNo(fr->predicate, cl, 0),
+		   predicateName(fr->predicate),
+		   pcoffset));
 
-    me->parent = fr;
-    me->programPointer = pc;
-    set(me, FR_KEEPLTOP);
-
-    return TRUE;
+    return cl->codes + pcoffset;
   } else
-  { return PL_type_error("continuation", cont);
+  { PL_type_error("continuation", continuation);
+    return NULL;
   }
 }
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(cont)
-  PRED_DEF("$start_reset",        0, start_reset,        0)
-  PRED_DEF("shift",               1, shift,              0)
-  PRED_DEF("$call_one_tail_body", 1, call_one_tail_body, 0)
 EndPredDefs

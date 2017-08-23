@@ -289,13 +289,25 @@ Disable debugging.  See the current_prolog_flag/2 flag
 Inhibit any signal handling by Prolog, a property that is sometimes
 desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for
-details.
+details.  Note that the handler to unblock system calls is still
+installed. This can be prevented using \exam{--sigalert=0} additionally.
+See \cmdlineoption{--sigalert}. This flag also sets
+\prologflag{gc_thread} to \const{false} as synchronization with the
+garbage collect thread is based on signals.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
 the user's browser on \verb$http://localhost:$\arg{port}. If
 \arg{port} is specified, the server is started at the given port and the
 browser is \emph{not} launched.
+
+    \cmdlineoptionitem{--sigalert=NUM}{}
+Use signal \arg{NUM} (1\ldots{}31) for alerting a thread. This is needed
+to make thread_signal/2, and derived Prolog signal handling act
+immediately when the target thread is blocked on an interruptable
+system call (e.g., sleep/1, read/write to most devices).  The default is
+to use \const{SIGUSR2}.  If \arg{NUM} is 0 (zero), this handler is not
+installed.
 
     \cmdlineoptionitem{-tty}{}
 Unix only.  Switches controlling the terminal for allowing
@@ -314,6 +326,12 @@ does not exist.
     \cmdlineoptionitem{-O}{}
 Optimised compilation. See current_prolog_flag/2 flag
 \prologflag{optimise} for details.
+
+    \cmdlineoptionitem{-l}{file}
+Load \arg{file}. This flag provides compatibility with some other Prolog
+systems.\footnote{YAP, SICStus} It is used in SWI-Prolog to skip the
+program initialization specified using initialization/2 directives. See
+also \secref{plscript}, and initialize/0.
 
     \cmdlineoptionitem{-s}{file}
 Use \arg{file} as a script file.  The script file is loaded after
@@ -834,20 +852,18 @@ vs.\ Windows).
 \subsubsection{Using PrologScript}	\label{sec:plscript}
 
 A Prolog source file can be used directly as a Unix program using the
-Unix \verb$#!$ magic start. The same mechanism is useful for specifying
-additional parameters for running a Prolog file on Windows. The Unix
-\verb$#!$ magic is allowed because if the first letter of a Prolog file
-is \verb$#$, the first line is treated as a comment.\footnote{The
-\texttt{\#}-sign can be the legal start of a normal Prolog clause. In
-the unlikely case this is required, leave the first line blank or add a
-header comment.} To create a Prolog script, use one of the two
-alternatives below as first line. The first can be used to bind a script
-to a specific Prolog installation, while the latter uses the default
-prolog installed in \verb"$PATH".
+Unix \verb$#!$ magic start. The Unix \verb$#!$ magic is allowed because
+if the first letter of a Prolog file is \verb$#$, the first line is
+treated as a comment.\footnote{The \texttt{\#}-sign can be the legal
+start of a normal Prolog clause. In the unlikely case this is required,
+leave the first line blank or add a header comment.} To create a Prolog
+script, use one of the two alternatives below as first line. The first
+can be used to bind a script to a specific Prolog installation, while
+the latter uses the default prolog installed in \verb"$PATH".
 
 \begin{code}
-!/path/to/swipl
-!/usr/bin/env swipl
+#!/path/to/swipl
+#!/usr/bin/env swipl
 \end{code}
 
 The interpretation of arguments to the executable in the
@@ -856,26 +872,25 @@ portability, the \verb$#!$ must be followed immediately with an absolute
 path to the executable and should have none or one argument. Neither the
 executable path, nor the argument shall use quotes or spaces. When
 started this way, the Prolog flag \prologflag{argv} contains the command
-line arguments that follow the script invocation. Below is a simple
-script doing expression evaluation:
+line arguments that follow the script invocation.
+
+Starting with version 7.5.8, initialization/2 support the \arg{When}
+options \const{program} and \const{main}, allowing for the following
+definition of a Prolog script that evaluates an arithmetic expression on
+the command line. Note that main/0 is defined lib the library
+\pllib{main}. It calls main/1 with the command line arguments after
+disabling signal handling.
 
 \begin{code}
 #!/usr/bin/env swipl
 
-:- initialization main.
+:- initialization(main, main).
 
-eval :-
-	current_prolog_flag(argv, Argv),
+main(Argv) :-
 	concat_atom(Argv, ' ', SingleArg),
 	term_to_atom(Term, SingleArg),
 	Val is Term,
 	format('~w~n', [Val]).
-
-main :-
-	catch(eval, E, (print_message(error, E), fail)),
-	halt.
-main :-
-	halt(1).
 \end{code}
 
 And here are two example runs:
@@ -885,7 +900,31 @@ And here are two example runs:
 3
 % ./eval foo
 ERROR: is/2: Arithmetic: `foo/0' is not a function
-%
+\end{code}
+
+Prolog script may be lauched for debugging or inspection purposes using
+the \cmdlineoption{-l} or \cmdlineoption{-t}. For example,
+\cmdlineoption{-l} merely loads the script, ignoring \const{main} and
+\const{program} initialization.
+
+\begin{code}
+swipl -l eval 1+1
+<banner>
+
+?- main.
+2
+true.
+
+?-
+\end{code}
+
+We can also force the program to enter the interactive toplevel after
+the application is completed using \exam{-t prolog}:
+
+\begin{code}
+swipl -t prolog eval 1+1
+2
+?-
 \end{code}
 
 The Windows version simply ignores the \verb$#!$ line.\footnote{Older
@@ -1098,7 +1137,7 @@ arguments. Application command line arguments are those that have
 Prolog's argument processing stops at \const{--} or the first non-option
 argument.  See also \prologflag{os_argv}.\footnote{Prior to version
 6.5.2, \prologflag{argv} was defined as \prologflag{os_argv} is now.
-The change was made for compatibility reasone and because the current
+The change was made for compatibility reasons and because the current
 definition is more practical.}
 
     \prologflagitem{arch}{atom}{r}
@@ -1351,6 +1390,14 @@ compilation. Setting this value to 0 (zero) disables the cache.
 If true (default), the garbage collector is active.  If false, neither
 garbage collection, nor stack shifts will take place, even not on
 explicit request.  May be changed.
+
+    \prologflagitem{rc_thread}{bool}{rw}
+If \const{true} (default if threading is enabled), atom and
+clause garbage collection are executed in a seperate thread with the
+\jargon{alias} \const{gc}.  Otherwise the thread the detect sufficient
+garbage executes the garbage collector. As running these global
+collectors may take relatively using a seperate thread improves
+real time behaviour.
 
     \prologflagitem{generate_debug_info}{bool}{rw}
 If \const{true} (default) generate code that can be debugged using
@@ -1623,6 +1670,16 @@ nodes in the answer tries.} When exceeded a
 Offset in seconds west of GMT of the current time zone. Set at
 initialization time from the \const{timezone} variable associated with
 the POSIX tzset() function. See also format_time/3.
+
+    \prologflagitem{toplevel_goal}{term}{rw}
+Defines the goal that is executed after running the initialization goals
+and entry point (see \cmdlineoption{-g}, initialization/2 and
+\secref{plscript}. The initial value is \const{default}, starting a
+normal interactive session. This value may be changed using the command
+line option \cmdlineoption{-t}. The explicit value \const{prolog} is
+equavalent to \const{default}. If \term{initialization}{Goal,main} is
+used and the toplevel is \const{default}, the toplevel is set to
+\const{halt} (see halt/0).
 
     \prologflagitem{toplevel_mode}{atom}{rw}
 If \const{backtracking} (default), the toplevel backtracks after
@@ -2082,6 +2139,56 @@ When creating an executable using either qsave_program/2 or the
 \cmdlineoption{-c} command line options, it is necessarry to load
 all predicates that would normally be autoloaded explicitly.  This
 is discussed in \secref{runtime}.  See autoload/0.
+
+
+\section{Packs: community add-ons}		\label{sec:packs}
+
+SWI-Prolog has a mechanism for easy incorporation of community
+extensions. See the \href{http://www.swi-prolog.org/pack/list}{pack
+landing page} for details and available packs.  This section documents
+the built-in predicates to attach packs.  Predicates for creating,
+registering and installing packs are provided by the library
+\pllib{prolog_pack}.
+
+\begin{description}
+    \predicate{attach_packs}{0}{}
+Attaches all packs in subdirectories of directories that are accessible
+through the \jargon{file search path} (see absolute_file_name/3)
+\const{pack}.  The default for this search path is:
+
+\begin{code}
+user:file_search_path(pack, app_data(pack)).
+user:file_search_path(pack, swi(pack)).
+\end{code}
+
+The predicate attach_packs/0 is called on startup of SWI-Prolog.
+
+    \predicate{attach_packs}{1}{+Directory}
+Attach all packs in subdirectories of \arg{Directory}.  Same as
+\term{attach_packs}{Directory, []}.
+    \nodescription
+    \predicate{attach_packs}{2}{+Directory, +Options}
+Attach all packs in subdirectories of \arg{Directory}.  Options
+is one of:
+
+    \begin{description}
+	\termitem{search}{+Where}
+Determines the order in which pack library directories are searched.
+Default is to add new packages at the end (\const{last}).  Using
+\const{first}, new packages are added at the start.
+
+	\termitem{duplicate}{+Action}
+Determines what happens if a pack with the same name is already
+attached.  Default is \const{warning}, which prints a warning and
+ignores the new pack.  Other options are \const{keep}, which is
+like \const{warning} but operates silently and \const{replace},
+which detaches the old pack and attaches the new.
+    \end{description}
+
+The predicate attach_packs/2 can be used to attach packages that
+are bundled with an application.
+\end{description}
+
 
 
 \section{Garbage Collection}			\label{sec:gc}
@@ -2564,16 +2671,12 @@ this index key.
     \item [Hash lookup]
 If none of the above applies, the system considers the available hash
 tables for which the corresponding argument is instantiated. If a table
-is found with acceptable characteristics, it is used. Otherwise, there
-are two cases. First, if no hash table is available for the instantiated
-arguments, it assesses the clauses for all instantiated arguments and
-selects the best candidate for creating a hash table. Arguments that
-cannot be indexed are flagged to avoid repeated scanning. Second, if
-there is a hash table for an indexed argument but it has poor
-characteristics, the system scans other instantiated arguments to see
-whether it can create a better hash table. The system maintains a bit
-vector on each table in which it marks arguments that are less suitable
-than the argument to which the table belongs.
+is found with acceptable characteristics, it is used. Otherwise it
+assesses the clauses for all instantiated arguments and selects the best
+candidate for creating a new hash table. If there is no single argument
+that provides an acceptable hash quality it will search for a
+combination of arguments.\footnote{The last step was added in SWI-Prolog
+7.5.8.}
 
 Clauses that have a variable at an otherwise indexable argument must be
 linked into all hash buckets. Currently, predicates that have more than
@@ -2596,6 +2699,10 @@ reclaimed by garbage_collect_clauses/0.  The clause garbage collector
 is scheduled automatically, based on time and space based heuristics.
 See garbage_collect_clauses/0 for details.
 \end{itemlist}
+
+The library \pllib{prolog_jiti} provides jiti_list/0,1 to list the
+characteristics of all or some of the created hash tables.
+
 
 \subsection{Future directions}
 \label{sec:indexfut}

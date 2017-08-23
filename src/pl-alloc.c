@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -36,8 +36,6 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 
-#define LOCK()   PL_LOCK(L_ALLOC)
-#define UNLOCK() PL_UNLOCK(L_ALLOC)
 #undef LD
 #define LD LOCAL_LD
 
@@ -122,10 +120,10 @@ GC_linger(void *ptr)
 { linger *l = GC_MALLOC_UNCOLLECTABLE(sizeof(*l));
 
   l->object = ptr;
-  LOCK();
+  PL_LOCK(L_ALLOC);
   l->next = GC_lingering;
   GC_lingering = l->next;
-  UNLOCK();
+  PL_UNLOCK(L_ALLOC);
 }
 
 #endif /*GC_DEBUG*/
@@ -183,6 +181,40 @@ freeHeap(void *mem, size_t n)
 
 #endif /*PL_ALLOC_DONE*/
 
+
+		 /*******************************
+		 *	 LINGERING OBJECTS	*
+		 *******************************/
+
+void
+linger(linger_list** list, void (*unalloc)(void *), void *object)
+{ linger_list *c = allocHeapOrHalt(sizeof(*c));
+  linger_list *o;
+
+  c->object  = object;
+  c->unalloc = unalloc;
+
+  do
+  { o = *list;
+    c->next = o;
+  } while( !COMPARE_AND_SWAP(list, o, c) );
+}
+
+void
+free_lingering(linger_list **list)
+{ linger_list *c, *n;
+
+  do
+  { if ( !(c = *list) )
+      return;
+  } while( !COMPARE_AND_SWAP(list, c, NULL) );
+
+  for(; c; c=n)
+  { n = c->next;
+    (*c->unalloc)(c->object);
+    freeHeap(c, sizeof(*c));
+  }
+}
 
 		/********************************
 		*             STACKS            *
@@ -973,9 +1005,6 @@ properly on Linux. Don't bother with it.
   initHBase();
 }
 
-
-#undef LOCK
-#undef UNLOCK
 
 		 /*******************************
 		 *	      PREDICATES	*

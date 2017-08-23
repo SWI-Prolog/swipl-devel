@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -44,9 +44,6 @@
 #include <process.h>			/* getpid() */
 #endif
 #include <time.h>
-
-#define LOCK()   PL_LOCK(L_PLFLAG)
-#define UNLOCK() PL_UNLOCK(L_PLFLAG)
 
 
 		 /*******************************
@@ -330,12 +327,14 @@ setUnknown(term_t value, atom_t a, Module m)
     }
 
     if ( !SYSTEM_MODE )
-      printMessage(ATOM_warning, PL_CHARS, "unknown_in_module_user");
+    { if ( !printMessage(ATOM_warning, PL_CHARS, "unknown_in_module_user") )
+	return FALSE;
+    }
   }
 
   m->flags = flags;
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -821,9 +820,9 @@ int
 set_prolog_flag(term_t key, term_t value, int flags)
 { int rc;
 
-  LOCK();
+  PL_LOCK(L_PLFLAG);
   rc = set_prolog_flag_unlocked(key, value, flags);
-  UNLOCK();
+  PL_UNLOCK(L_PLFLAG);
 
   return rc;
 }
@@ -1177,7 +1176,7 @@ pl_prolog_flag5(term_t key, term_t value,
   }
 
   fid = PL_open_foreign_frame();
-  LOCK();
+  PL_LOCK(L_PLFLAG);
   for(;;)
   { atom_t fn;
     prolog_flag *f;
@@ -1193,7 +1192,7 @@ pl_prolog_flag5(term_t key, term_t value,
 	   (!scope  || PL_unify_atom(scope, e->scope)) &&
 	   (!access || unify_prolog_flag_access(f, access)) &&
 	   (!type   || unify_prolog_flag_type(f, type)) )
-      { UNLOCK();
+      { PL_UNLOCK(L_PLFLAG);
 	ForeignRedoPtr(e);
       }
       if ( exception_term )
@@ -1210,7 +1209,7 @@ pl_prolog_flag5(term_t key, term_t value,
     } else
       break;
   }
-  UNLOCK();
+  PL_UNLOCK(L_PLFLAG);
 
   freeTableEnum(e->table_enum);
   freeHeap(e, sizeof(*e));
@@ -1305,8 +1304,11 @@ initPrologFlags(void)
 #ifdef O_PLMT
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
+  setPrologFlag("gc_thread",    FT_BOOL,
+		truePrologFlag(PLFLAG_GCTHREAD), PLFLAG_GCTHREAD);
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
+  setPrologFlag("gc_thread",    FT_BOOL|FF_READONLY, FALSE, PLFLAG_GCTHREAD);
 #endif
 #ifdef O_DDE
   setPrologFlag("dde", FT_BOOL|FF_READONLY, TRUE, 0);
@@ -1401,6 +1403,8 @@ initPrologFlags(void)
 #elif defined(__DATE__) && defined(__TIME__)
   setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, __DATE__ ", " __TIME__);
 #endif
+  setPrologFlag("error_ambiguous_stream_pair", FT_BOOL, FALSE,
+		PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR);
 
   setTZPrologFlag();
   setOSPrologFlags();

@@ -44,9 +44,6 @@
 
 #include <locale.h>
 
-#define LOCK()   PL_LOCK(L_LOCALE)	/* MT locking */
-#define UNLOCK() PL_UNLOCK(L_LOCALE)
-
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
@@ -172,7 +169,7 @@ alias_locale(PL_locale *l, atom_t alias)
 { GET_LD
   int rc;
 
-  LOCK();
+  PL_LOCK(L_LOCALE);
 
   if ( !GD->locale.localeTable )
     GD->locale.localeTable = newHTable(16);
@@ -191,7 +188,7 @@ alias_locale(PL_locale *l, atom_t alias)
     PL_register_atom(alias);
     rc = TRUE;
   }
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 
   return rc;
 }
@@ -229,12 +226,12 @@ static int
 release_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  LOCK();
+  PL_LOCK(L_LOCALE);
   if ( ref->data->references == 0 )
     free_locale(ref->data);
   else
     ref->data->symbol = 0;
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 
   return TRUE;
 }
@@ -397,12 +394,7 @@ locale_grouping_property(PL_locale *l, term_t prop ARG_LD)
 }
 
 
-typedef struct
-{ functor_t functor;			/* functor of property */
-  int (*function)();			/* function to generate */
-} lprop;
-
-static const lprop lprop_list [] =
+static const tprop lprop_list [] =
 { { FUNCTOR_alias1,	    locale_alias_property },
   { FUNCTOR_decimal_point1, locale_decimal_point_property },
   { FUNCTOR_thousands_sep1, locale_thousands_sep_property },
@@ -413,36 +405,9 @@ static const lprop lprop_list [] =
 typedef struct
 { TableEnum e;				/* Enumerator on mutex-table */
   PL_locale *l;				/* current locale */
-  const lprop *p;			/* Pointer in properties */
+  const tprop *p;			/* Pointer in properties */
   int enum_properties;			/* Enumerate the properties */
 } lprop_enum;
-
-
-static int
-get_prop_def(term_t t, atom_t expected, const lprop *list, const lprop **def)
-{ GET_LD
-  functor_t f;
-
-  if ( PL_get_functor(t, &f) )
-  { const lprop *p = list;
-
-    for( ; p->functor; p++ )
-    { if ( f == p->functor )
-      { *def = p;
-        return TRUE;
-      }
-    }
-
-    PL_error(NULL, 0, NULL, ERR_DOMAIN, expected, t);
-    return -1;
-  }
-
-  if ( PL_is_variable(t) )
-    return 0;
-
-  PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
-  return -1;
-}
 
 
 static int
@@ -707,12 +672,12 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
   if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|REP_MB) )
   { const char *old;
 
-    LOCK();
+    PL_LOCK(L_LOCALE);
     if ( (old=setlocale(LC_NUMERIC, lname)) )
     { new = new_locale(NULL);
       setlocale(LC_NUMERIC, old);
     }
-    UNLOCK();
+    PL_UNLOCK(L_LOCALE);
     if ( !old )
     { if ( errno == ENOENT )
 	return PL_existence_error("locale", A2);
@@ -782,12 +747,12 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
   { if ( l->alias )
     { atom_t alias = l->alias;
 
-      LOCK();
+      PL_LOCK(L_LOCALE);
       if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
 	deleteHTable(GD->locale.localeTable, (void*)alias);
       l->alias = 0;
       PL_unregister_atom(alias);
-      UNLOCK();
+      PL_UNLOCK(L_LOCALE);
     }
 
     releaseLocale(l);
@@ -908,9 +873,9 @@ initStreamLocale(IOSTREAM *s)
 
 PL_locale *
 acquireLocale(PL_locale *l)
-{ LOCK();
+{ PL_LOCK(L_LOCALE);
   l->references++;
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 
   return l;
 }
@@ -918,10 +883,10 @@ acquireLocale(PL_locale *l)
 
 void
 releaseLocale(PL_locale *l)
-{ LOCK();
+{ PL_LOCK(L_LOCALE);
   if ( --l->references == 0 && l->symbol == 0 && l->alias == 0 )
     free_locale(l);
-  UNLOCK();
+  PL_UNLOCK(L_LOCALE);
 }
 
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -115,9 +115,6 @@ is supposed to give the POSIX standard one.
 #if OS2 && EMX
 static double initial_time;
 #endif /* OS2 */
-
-#define LOCK()   PL_LOCK(L_OS)
-#define UNLOCK() PL_UNLOCK(L_OS)
 
 static void	initExpand(void);
 static void	cleanupExpand(void);
@@ -596,7 +593,7 @@ TemporaryFile(const char *id, int *fdp)
   atom_t tname;
 
   if ( !tmpdir )
-  { LOCK();
+  { PL_LOCK(L_OS);
     if ( !tmpdir )
     { char envbuf[MAXPATHLEN];
       char *td;
@@ -617,18 +614,22 @@ TemporaryFile(const char *id, int *fdp)
 	    tmpdir = strdup(td);
 
 	  if ( reason )
-	    printMessage(ATOM_warning,
-			 PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
-			   PL_CHARS, env_names[i],
-			   PL_CHARS, td,
-			   PL_CHARS, reason);
+	  { if ( !printMessage(ATOM_warning,
+			       PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
+			         PL_CHARS, env_names[i],
+			         PL_CHARS, td,
+			         PL_CHARS, reason) )
+	    { PL_UNLOCK(L_OS);
+	      return NULL_ATOM;
+	    }
+	  }
 	}
       }
 
       if ( !tmpdir )
 	tmpdir = DEFTMPDIR;
     }
-    UNLOCK();
+    PL_UNLOCK(L_OS);
   }
 
 retry:
@@ -682,12 +683,12 @@ retry:
 
   tname = PL_new_atom(temp);		/* locked: ok! */
 
-  LOCK();
+  PL_LOCK(L_OS);
   if ( !GD->os.tmp_files )
   { GD->os.tmp_files = newHTable(4);
     GD->os.tmp_files->free_symbol = free_tmp_symbol;
   }
-  UNLOCK();
+  PL_UNLOCK(L_OS);
 
   addNewHTable(GD->os.tmp_files, (void*)tname, (void*)TRUE);
 
@@ -701,14 +702,14 @@ DeleteTemporaryFile(atom_t name)
   int rc = FALSE;
 
   if ( GD->os.tmp_files )
-  { LOCK();
+  { PL_LOCK(L_OS);
     if ( GD->os.tmp_files && GD->os.tmp_files->size > 0 )
     { if ( lookupHTable(GD->os.tmp_files, (void*)name) )
       { deleteHTable(GD->os.tmp_files, (void*)name);
 	rc = free_tmp_name(name);
       }
     }
-    UNLOCK();
+    PL_UNLOCK(L_OS);
   }
 
   return rc;
@@ -717,15 +718,15 @@ DeleteTemporaryFile(atom_t name)
 
 void
 RemoveTemporaryFiles(void)
-{ LOCK();
+{ PL_LOCK(L_OS);
   if ( GD->os.tmp_files )
   { Table t = GD->os.tmp_files;
 
     GD->os.tmp_files = NULL;
-    UNLOCK();
+    PL_UNLOCK(L_OS);
     destroyHTable(t);
   } else
-  { UNLOCK();
+  { PL_UNLOCK(L_OS);
   }
 }
 
@@ -1305,7 +1306,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 
     pattern++;
     user = takeWord(&pattern, wordbuf, sizeof(wordbuf));
-    LOCK();
+    PL_LOCK(L_OS);
 
     if ( user[0] == EOS )		/* ~/bla */
     {
@@ -1337,7 +1338,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	    PL_put_atom_chars(name, user);
 	    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_user, name);
 	  }
-	  UNLOCK();
+	  PL_UNLOCK(L_OS);
 	  fail;
 	}
 	if ( GD->os.fred )
@@ -1353,7 +1354,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
     { if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED, "user_info");
 
-      UNLOCK();
+      PL_UNLOCK(L_OS);
       fail;
     }
 #endif
@@ -1364,7 +1365,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
     }
     strcpy(expanded, value);
     expanded += l;
-    UNLOCK();
+    PL_UNLOCK(L_OS);
 
 					/* ~/ should not become // */
     if ( expanded[-1] == '/' && pattern[0] == '/' )
@@ -1385,7 +1386,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 
 	  if ( var[0] == EOS )
 	    goto def;
-	  LOCK();
+	  PL_LOCK(L_OS);
 	  value = Getenv(var, envbuf, sizeof(envbuf));
 	  if ( value == (char *) NULL )
 	  { if ( truePrologFlag(PLFLAG_FILEERRORS) )
@@ -1395,18 +1396,18 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	      PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_variable, name);
 	    }
 
-	    UNLOCK();
+	    PL_UNLOCK(L_OS);
 	    fail;
 	  }
 	  size += (l = (int)strlen(value));
 	  if ( size+1 >= maxlen )
-	  { UNLOCK();
+	  { PL_UNLOCK(L_OS);
 	    PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 		     ATOM_max_path_length);
 	    return NULL;
 	  }
 	  strcpy(expanded, value);
-	  UNLOCK();
+	  PL_UNLOCK(L_OS);
 
 	  expanded += l;
 
@@ -1559,12 +1560,12 @@ AbsoluteFile(const char *spec, char *path)
 
 void
 PL_changed_cwd(void)
-{ LOCK();
+{ PL_LOCK(L_OS);
   if ( GD->paths.CWDdir )
     remove_string(GD->paths.CWDdir);
   GD->paths.CWDdir = NULL;
   GD->paths.CWDlen = 0;
-  UNLOCK();
+  PL_UNLOCK(L_OS);
 }
 
 
@@ -1628,9 +1629,9 @@ char *
 PL_cwd(char *cwd, size_t cwdlen)
 { char *rc;
 
-  LOCK();
+  PL_LOCK(L_OS);
   rc = cwd_unlocked(cwd, cwdlen);
-  UNLOCK();
+  PL_UNLOCK(L_OS);
 
   return rc;
 }
@@ -1710,12 +1711,12 @@ ChDir(const char *path)
     { tmp[len++] = '/';
       tmp[len] = EOS;
     }
-    LOCK();					/* Lock with PL_changed_cwd() */
+    PL_LOCK(L_OS);					/* Lock with PL_changed_cwd() */
     GD->paths.CWDlen = len;			/* and PL_cwd() */
     if ( GD->paths.CWDdir )
       remove_string(GD->paths.CWDdir);
     GD->paths.CWDdir = store_string(tmp);
-    UNLOCK();
+    PL_UNLOCK(L_OS);
 
     return TRUE;
   }
@@ -1770,12 +1771,12 @@ PL_localtime_r(const time_t *t, struct tm *r)
 #else
   struct tm *rc;
 
-  LOCK();
+  PL_LOCK(L_OS);
   if ( (rc = localtime(t)) )
     *r = *rc;
   else
     r = NULL;
-  UNLOCK();
+  PL_UNLOCK(L_OS);
 
   return r;
 #endif
@@ -1790,12 +1791,12 @@ PL_asctime_r(const struct tm *tm, char *buf)
 #else
   char *rc;
 
-  LOCK();
+  PL_LOCK(L_OS);
   if ( (rc = asctime(tm)) )
     strcpy(buf, rc);
   else
     buf = NULL;
-  UNLOCK();
+  PL_UNLOCK(L_OS);
 
   return buf;
 #endif
@@ -1919,7 +1920,8 @@ ResetTty(void)
 
 static int
 GetTtyState(int fd, struct termios *tio)
-{
+{ memset(tio, 0, sizeof(*tio));
+
 #ifdef HAVE_TCSETATTR
   if ( tcgetattr(fd, tio) )
     return FALSE;
@@ -1950,7 +1952,7 @@ SetTtyState(int fd, struct termios *tio)
 #endif
 #endif
 
-  ttymodified = memcmp(&TTY_STATE(&ttytab), &tio, sizeof(*tio));
+  ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
 
   return TRUE;
 }
@@ -2059,7 +2061,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  buf->state = allocHeapOrHalt(sizeof(tty_state));
+  buf->state = allocHeapOrHalt(sizeof((*buf->state));
+  memset(buf->state, 0, sizeof(*buf->state));
 
   if ( ioctl(fd, TIOCGETP, &TTY_STATE(buf)) )  /* save the old one */
     fail;

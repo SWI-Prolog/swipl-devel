@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -56,6 +56,7 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-stream.h"
 #include <errno.h>
 
 #if defined(HAVE_POLL_H) && defined(HAVE_POLL)
@@ -79,9 +80,6 @@ handling times must be cleaned, but that not only holds for this module.
 #ifdef HAVE_BSTRING_H
 #include <bstring.h>
 #endif
-
-#define LOCK()   PL_LOCK(L_FILE)	/* MT locking */
-#define UNLOCK() PL_UNLOCK(L_FILE)
 
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
@@ -190,6 +188,7 @@ getExistingStreamContext(IOSTREAM *s)
 { return (stream_context*)s->context;
 }
 
+
 /* MT: Must be called locked */
 
 static void
@@ -282,7 +281,7 @@ freeStream(IOSTREAM *s)
 
   DEBUG(1, Sdprintf("freeStream(%p)\n", s));
 
-  LOCK();
+  PL_LOCK(L_FILE);
   unaliasStream(s, NULL_ATOM);
   ctx = s->context;
   if ( ctx && COMPARE_AND_SWAP(&s->context, ctx, NULL) )
@@ -301,7 +300,11 @@ freeStream(IOSTREAM *s)
 					/* if we are a standard stream */
 					/* reassociate with standard I/O */
 					/* NOTE: there may be more! */
-  if ( LD && (sp=LD->IO.streams) )
+  if (
+#ifdef O_PLMT
+       LD &&
+#endif
+       (sp=LD->IO.streams) )
   { for(i=0; i<6; i++, sp++)
     { if ( *sp == s )
       { if ( s->flags & SIO_INPUT )
@@ -315,7 +318,7 @@ freeStream(IOSTREAM *s)
       }
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 }
 
 
@@ -337,10 +340,10 @@ setFileNameStream_unlocked(IOSTREAM *s, atom_t name)
 
 int
 setFileNameStream(IOSTREAM *s, atom_t name)
-{ LOCK();
+{ PL_LOCK(L_FILE);
   setFileNameStream_unlocked(s, name);
   PL_register_atom(name);
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return TRUE;
 }
@@ -350,9 +353,9 @@ atom_t
 fileNameStream(IOSTREAM *s)
 { atom_t name;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   name = getStreamContext(s)->filename;
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return name;
 }
@@ -464,6 +467,12 @@ PL_release_stream_noerror(IOSTREAM *s)
   return TRUE;
 }
 
+IOSTREAM *
+PL_acquire_stream(IOSTREAM *s)
+{ return getStream(s);
+}
+
+
 
 		 /*******************************
 		 *	      ERRORS		*
@@ -505,6 +514,17 @@ symbol_not_a_stream(atom_t symbol)
 }
 
 
+static int
+symbol_stream_pair_not_allowed(atom_t symbol)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+  PL_put_atom(t, symbol);
+
+  return PL_error(NULL, 0, "operation is ambiguous on a stream pair",
+		  ERR_TYPE, ATOM_stream, t);
+}
+
+
 
 		 /*******************************
 		 *	  PROLOG HANDLES	*
@@ -537,9 +557,9 @@ acquire_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-    ref->read->references++;
+    Sreference(ref->read);
   if ( ref->write )
-    ref->write->references++;
+    Sreference(ref->write);
 }
 
 
@@ -548,11 +568,11 @@ release_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-  { if ( --ref->read->references == 0 && ref->read->erased )
+  { if ( Sunreference(ref->read) == 0 && ref->read->erased )
       unallocStream(ref->read);
   }
   if ( ref->write )
-  { if ( --ref->write->references == 0 && ref->write->erased )
+  { if ( Sunreference(ref->write) == 0 && ref->write->erased )
       unallocStream(ref->write);
   }
 
@@ -596,6 +616,7 @@ static PL_blob_t stream_blob =
 #define SH_UNLOCKED 0x04		/* don't lock the stream */
 #define SH_OUTPUT   0x08		/* We want an output stream */
 #define SH_INPUT    0x10		/* We want an input stream */
+#define SH_NOPAIR   0x20		/* Do not allow for a pair */
 
 static int
 get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
@@ -605,10 +626,33 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
 
   ref = PL_blob_data(a, NULL, &type);
   if ( type == &stream_blob )
-  { if ( ref->read )
-    { if ( ref->write && (flags&SH_OUTPUT) )
-	s = ref->write;
-      else
+  { if ( ref->read  ) assert(ref->read->references);
+    if ( ref->write ) assert(ref->write->references);
+
+    if ( ref->read )
+    { if ( ref->write )
+      { if ( (flags&SH_OUTPUT) )
+	  s = ref->write;
+	else if ( (flags&SH_INPUT) )
+	  s = ref->read;
+	else if ( (flags&SH_NOPAIR) )
+	{ if ( truePrologFlag(PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR) )
+	  { return symbol_stream_pair_not_allowed(a);
+	  } else
+	  { term_t t;
+
+	    if ( (t=PL_new_term_ref()) &&
+		 PL_put_atom(t, a) )
+	    { if ( !printMessage(ATOM_warning,
+				 PL_FUNCTOR_CHARS, "ambiguous_stream_pair", 1,
+				   PL_TERM, t) )
+		return FALSE;
+	    }
+	    s = ref->read;
+	  }
+	} else
+	  s = ref->read;			/* dubious */
+      } else
 	s = ref->read;
     } else
       s = ref->write;
@@ -630,7 +674,7 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
   { void *s0;
 
     if ( !(flags & SH_UNLOCKED) )
-      LOCK();
+      PL_LOCK(L_FILE);
     if ( (s0 = lookupHTable(streamAliases, (void *)a)) )
     { IOSTREAM *stream;
       uintptr_t n = (uintptr_t)s0 & ~STD_HANDLE_MASK;
@@ -641,7 +685,7 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
 	stream = s0;
 
       if ( !(flags & SH_UNLOCKED) )
-	UNLOCK();
+	PL_UNLOCK(L_FILE);
 
       if ( stream )
       { if ( (flags & SH_UNLOCKED) )
@@ -655,7 +699,7 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
       }
     }
     if ( !(flags & SH_UNLOCKED) )
-      UNLOCK();
+      PL_UNLOCK(L_FILE);
 
     goto noent;
   }
@@ -691,7 +735,7 @@ int
 PL_get_stream_handle(term_t t, IOSTREAM **s)
 { GET_LD
 
-  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS PASS_LD);
+  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS|SH_NOPAIR PASS_LD);
 }
 
 
@@ -700,8 +744,10 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
 { GET_LD
   int myflags = SH_ERRORS|SH_ALIAS;
 
-  if ( flags & SIO_INPUT  ) myflags |= SH_INPUT;
-  if ( flags & SIO_OUTPUT ) myflags |= SH_OUTPUT;
+  if ( flags&SIO_INPUT  ) myflags |= SH_INPUT;
+  if ( flags&SIO_OUTPUT ) myflags |= SH_OUTPUT;
+  if ( !(flags&(SIO_INPUT|SIO_OUTPUT)) )
+    myflags |= SH_NOPAIR;
 
   return term_stream_handle(t, s, myflags PASS_LD);
 }
@@ -739,12 +785,12 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
     return PL_unify_atom(t, standardStreams[i]);
 
   if ( (ctx=getExistingStreamContext(s)) && ctx->alias_head )
-  { LOCK();
+  { PL_LOCK(L_FILE);
     if ( ctx->alias_head )
       rval = PL_unify_atom(t, ctx->alias_head->name);
     else
       rval = unify_stream_ref(t, s);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
   } else
   { rval = unify_stream_ref(t, s);
   }
@@ -981,6 +1027,10 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
     ref.write = out;
 
     rc = PL_unify_blob(A1, &ref, sizeof(ref), &stream_blob);
+    if ( rc )
+    { assert(ref.read->references >= 2);
+      assert(ref.write->references >= 2);
+    }
   }
 
   if ( in )
@@ -1083,12 +1133,15 @@ reportStreamError(IOSTREAM *s)
 
       return FALSE;
     } else
-    { printMessage(ATOM_warning,
-		   PL_FUNCTOR_CHARS, "io_warning", 2,
-		   PL_TERM, stream,
-		   PL_CHARS, s->message);
+    { int rc;
 
+      rc = printMessage(ATOM_warning,
+			PL_FUNCTOR_CHARS, "io_warning", 2,
+			  PL_TERM, stream,
+			  PL_CHARS, s->message);
       Sseterr(s, 0, NULL);
+
+      return rc;
     }
   }
 
@@ -1181,6 +1234,10 @@ closeStream(IOSTREAM *s)
 }
 
 
+/* Close all files.  As this only happens during termination we report,
+ * but otherwise ignore possible errors.
+ */
+
 void
 closeFiles(int all)
 { GET_LD
@@ -1197,14 +1254,16 @@ closeFiles(int all)
 	{ term_t t = PL_new_term_ref();
 
 	  PL_unify_stream_or_alias(t, s2);
-	  printMessage(ATOM_informational,
-		       PL_FUNCTOR, FUNCTOR_close_on_abort1,
-		         PL_TERM, t);
+	  if ( !printMessage(ATOM_informational,
+			     PL_FUNCTOR, FUNCTOR_close_on_abort1,
+			       PL_TERM, t) )
+	    PL_clear_exception();
 	  PL_reset_term_refs(t);
 	}
 
 	if ( !closeStream(s2) && exception_term )
-	{ printMessage(ATOM_warning, PL_TERM, exception_term);
+	{ int rc = printMessage(ATOM_warning, PL_TERM, exception_term);
+	  (void)rc;
 	  PL_clear_exception();
 	}
       }
@@ -1776,9 +1835,9 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
       return TRUE;
     }
 
-    LOCK();
+    PL_LOCK(L_FILE);
     aliasStream(s, alias);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
     return TRUE;
   } else if ( aname == ATOM_buffer ) /* buffer(Buffering) */
   { atom_t b;
@@ -1870,9 +1929,11 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
     if ( !PL_get_bool_ex(a, &rec) )
       return FALSE;
 
-    if ( rec )
+    if ( rec ) {
+      memset(&s->posbuf, 0, sizeof(s->posbuf));
+      s->posbuf.lineno = 1;
       s->position = &s->posbuf;
-    else
+    } else
       s->position = NULL;
 
     return TRUE;
@@ -1917,7 +1978,7 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
       return TRUE;
     return PL_permission_error("timeout", "stream", stream);
   } else if ( aname == ATOM_tty )	/* tty(bool) */
-  {	int val;
+  { int val;
 
     if ( !PL_get_bool_ex(a, &val) )
       return FALSE;
@@ -1929,7 +1990,7 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     return TRUE;
   } else if ( aname == ATOM_encoding )	/* encoding(atom) */
-  {	atom_t val;
+  { atom_t val;
     IOENC enc;
 
     if ( !PL_get_atom_ex(a, &val) )
@@ -1957,7 +2018,7 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 		    ATOM_encoding, ATOM_stream, stream);
 #ifdef O_LOCALE
   } else if ( aname == ATOM_locale )	/* locale(Locale) */
-  {	PL_locale *val;
+  { PL_locale *val;
 
     if ( !getLocaleEx(a, &val) )
       return FALSE;
@@ -1984,6 +2045,20 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
     else
       return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		      ATOM_representation_errors, a);
+
+    return TRUE;
+  } else if ( aname == ATOM_write_errors )
+  { atom_t val;
+
+    if ( !PL_get_atom_ex(a, &val) )
+      return FALSE;
+
+    if ( val == ATOM_error )
+      clear(s, SIO_NOERROR);
+    else if ( val == ATOM_ignore )
+      set(s, SIO_NOERROR);
+    else
+      return PL_domain_error("write_errors", a);
 
     return TRUE;
   } else if ( aname == ATOM_newline )
@@ -2046,6 +2121,7 @@ static const set_stream_info ss_info[] =
   SS_INFO(ATOM_encoding,	      SS_BOTH),
   SS_INFO(ATOM_locale,		      SS_BOTH),
   SS_INFO(ATOM_representation_errors, SS_WRITE),
+  SS_INFO(ATOM_write_errors,          SS_WRITE),
   SS_INFO(ATOM_newline,		      SS_BOTH),
   SS_INFO(ATOM_close_on_exec,	      SS_BOTH),
   SS_INFO((atom_t)0,		      0)
@@ -2086,8 +2162,7 @@ found:
   if ( type == &stream_blob )		/* got a stream handle */
   { if ( ref->read && ref->write &&	/* stream pair */
 	 (info->flags & SS_NOPAIR) )
-      return PL_error("set_stream", 2, NULL, ERR_PERMISSION,
-		      aname, ATOM_stream_pair, stream);
+      return symbol_stream_pair_not_allowed(sblob);
 
     rc = TRUE;
     if ( ref->read && (info->flags&SS_READ))
@@ -2125,7 +2200,7 @@ PRED_IMPL("set_end_of_stream", 1, set_end_of_stream, 0)
 { IOSTREAM *s;
   int rc;
 
-  if ( (rc=PL_get_stream_handle(A1, &s)) )
+  if ( (rc=PL_get_stream(A1, &s, SIO_OUTPUT)) )
   {
 #ifdef HAVE_FTRUNCATE
     int fileno = Sfileno(s);
@@ -2303,7 +2378,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     SOCKET fd;
     fdentry *e;
 
-    if ( !PL_get_stream_handle(head, &s) )
+    if ( !PL_get_stream(head, &s, SIO_INPUT) )
       goto out;
 
     if ( (fd = Swinsock(s)) == INVALID_SOCKET )
@@ -2794,6 +2869,17 @@ Peek input from Stream for  Len  characters   or  the  entire content of
 Stream.
 */
 
+static size_t
+roundp2(size_t i)
+{ size_t r = 2;
+
+  while(r<i)
+    r = r<<1;
+
+  return r;
+}
+
+
 PRED_IMPL("peek_string", 3, peek_string, 0)
 { PRED_LD
   IOSTREAM *s;
@@ -2804,7 +2890,7 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 
   if ( getInputStream(A1, S_DONTCARE, &s) )
   { if ( s->bufsize < len )
-      Ssetbuffer(s, NULL, len);
+      Ssetbuffer(s, NULL, roundp2(len));
     for(;;)
     { if ( s->limitp > s->bufp )
       { PL_chars_t text;
@@ -2825,6 +2911,10 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 
 	PL_free_text(&text);
       }
+
+      if ( s->limitp - s->bufp == s->bufsize )
+	Ssetbuffer(s, NULL, s->bufsize*2);
+
       if ( S__fillbuf(s) < 0 )
       { PL_chars_t text;
         int rc;
@@ -3077,14 +3167,13 @@ get_code2(term_t in, term_t chr ARG_LD)
   if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
-    if ( PL_unify_integer(chr, c) )
-      return streamStatus(s);
+    if ( !streamStatus(s) )		/* I/O error */
+      return FALSE;
 
-    if ( Sferror(s) )
-      return streamStatus(s);
+    if ( PL_unify_integer(chr, c) )
+      return TRUE;
 
     PL_get_char(chr, &c, TRUE);		/* set type-error */
-    releaseStream(s);
   }
 
   return FALSE;
@@ -3112,14 +3201,13 @@ get_char2(term_t in, term_t chr ARG_LD)
   if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
-    if ( PL_unify_atom(chr, c == -1 ? ATOM_end_of_file : codeToAtom(c)) )
-      return streamStatus(s);
+    if ( !streamStatus(s) )		/* I/O error */
+      return FALSE;
 
-    if ( Sferror(s) )
-      return streamStatus(s);
+    if ( PL_unify_atom(chr, c == -1 ? ATOM_end_of_file : codeToAtom(c)) )
+      return TRUE;
 
     PL_get_char(chr, &c, TRUE);		/* set type-error */
-    releaseStream(s);
   }
 
   return FALSE;
@@ -3530,7 +3618,7 @@ openStream(term_t file, term_t mode, term_t options)
   if ( type == ATOM_binary )
     *h++ = 'b';
 
-					/* LOCK */
+					/* File locking */
   if ( lock != ATOM_none )
   { *h++ = (wait ? 'l' : 'L');
     if ( lock == ATOM_read || lock == ATOM_shared )
@@ -3634,9 +3722,9 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   if ( alias != NULL_ATOM )
-  { LOCK();
+  { PL_LOCK(L_FILE);
     aliasStream(s, alias);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
   }
   if ( !reposition )
     s->position = NULL;
@@ -3975,15 +4063,20 @@ pl_close(term_t stream, int force ARG_LD)
   { int rc = TRUE;
 
     if ( ref->read && ref->write )
-    { if ( ref->read && !ref->read->erased )
+    { assert(ref->read->references);
+      assert(ref->write->references);
+      if ( ref->read && !ref->read->erased )
 	rc = do_close(getStream(ref->read), force);
       if ( ref->write && !ref->write->erased )
 	rc = do_close(getStream(ref->write), force) && rc;
     } else
     { if ( ref->read )
+      { assert(ref->read->references);
 	rc = do_close(getStream(ref->read), force);
-      else if ( ref->write )
+      } else if ( ref->write )
+      { assert(ref->write->references);
 	rc = do_close(getStream(ref->write), force);
+      }
     }
 
     if ( rc == FALSE && !PL_exception(0) )
@@ -4304,6 +4397,19 @@ stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 
 static int
+stream_writeerror_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ atom_t a;
+
+  if ( (s->flags & SIO_NOERROR) )
+    a = ATOM_ignore;
+  else
+    a = ATOM_error;
+
+  return PL_unify_atom(prop, a);
+}
+
+
+static int
 stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t b;
 
@@ -4412,6 +4518,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_bom1,	    stream_bom_prop },
   { FUNCTOR_newline1,	    stream_newline_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },
+  { FUNCTOR_write_errors1,  stream_writeerror_prop },
   { FUNCTOR_timeout1,       stream_timeout_prop },
   { FUNCTOR_nlink1,         stream_nlink_prop },
   { FUNCTOR_close_on_exec1, stream_close_on_exec_prop },
@@ -4451,7 +4558,7 @@ PRED_IMPL("$stream_property", 2, dstream_property, 0)
   if ( !(p=get_stream_property_def(A2 PASS_LD)) )
     return FALSE;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   if ( (rc=term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD)) )
   { switch(arityFunctor(p->functor))
     { case 0:
@@ -4469,7 +4576,7 @@ PRED_IMPL("$stream_property", 2, dstream_property, 0)
 	rc = FALSE;
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
   return rc;
 }
 
@@ -4525,11 +4632,11 @@ PRED_IMPL("$stream_properties", 2, dstream_properties, 0)
   int rc;
   IOSTREAM *s;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   rc = ( term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD) &&
 	 unify_stream_property_list(s, A2 PASS_LD)
        );
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return rc;
 }
@@ -4575,7 +4682,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     term_t st = PL_new_term_ref();
     term_t pt = PL_new_term_ref();
 
-    LOCK();
+    PL_LOCK(L_FILE);
     while( advanceTableEnum(e, (void**)&s, NULL))
     { rc = ( s->context != NULL &&
 	     unify_stream_property(s, p, pt PASS_LD) &&
@@ -4589,7 +4696,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 	break;
     }
     freeTableEnum(e);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
     rc = !PL_exception(0) && PL_unify_nil(tail);
   } else if ( PL_is_variable(A1) )
   { TableEnum e = newTableEnum(streamContext);
@@ -4598,7 +4705,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     term_t pl = PL_new_term_ref();
 
     rc = TRUE;
-    LOCK();
+    PL_LOCK(L_FILE);
     while( rc && advanceTableEnum(e, (void**)&s, NULL))
     { rc = ( s->context != NULL &&
 	     PL_unify_list(tail, head, tail) &&
@@ -4610,7 +4717,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 	   );
     }
     freeTableEnum(e);
-    UNLOCK();
+    PL_UNLOCK(L_FILE);
     rc = !PL_exception(0) && PL_unify_nil(tail);
   }
 
@@ -4624,13 +4731,13 @@ PRED_IMPL("$alias_stream", 2, dalias_stream, 0)
   IOSTREAM *s;
   int rc;
 
-  LOCK();
+  PL_LOCK(L_FILE);
   rc = ( PL_get_atom_ex(A1, &a) &&
 	 get_stream_handle(a, &s, SH_UNLOCKED) &&
 	 s->context &&
 	 unify_stream_ref(A2, s)
        );
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
 
   return rc;
 }
@@ -4687,7 +4794,7 @@ static int
 getStreamWithPosition(term_t stream, IOSTREAM **sp)
 { IOSTREAM *s;
 
-  if ( PL_get_stream_handle(stream, &s) )
+  if ( PL_get_stream(stream, &s, 0) )
   { if ( !s->position )
     { PL_error(NULL, 0, NULL, ERR_PERMISSION, /* non-ISO */
 	       ATOM_property, ATOM_position, stream);
@@ -5203,7 +5310,8 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   int wrapin = FALSE;
   int i;
 
-  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) )
+  if ( !term_stream_handle(A1, &in,
+			   SH_ERRORS|SH_ALIAS|SH_UNLOCKED|SH_INPUT PASS_LD) )
     goto out;
 
   wrapin = (LD->IO.streams[0] != in);
@@ -5212,7 +5320,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
       goto out;
   }
 
-  if ( !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
+  if ( !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS|SH_OUTPUT PASS_LD) )
     goto out;
 
   if ( PL_compare(A2, A3) == 0 )	/* == */
@@ -5222,11 +5330,11 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
     error->flags &= ~SIO_ABUF;		/* disable buffering */
     error->flags |= SIO_NBUF;
   } else
-  { if ( !PL_get_stream_handle(A3, &error) )
+  { if ( !PL_get_stream(A3, &error, SIO_OUTPUT) )
       goto out;
   }
 
-  LOCK();
+  PL_LOCK(L_FILE);
   out->flags &= ~SIO_ABUF;		/* output: line buffered */
   out->flags |= SIO_LBUF;
 
@@ -5246,7 +5354,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
     LD->IO.streams[i]->flags |= SIO_RECORDPOS;
   }
 
-  UNLOCK();
+  PL_UNLOCK(L_FILE);
   rval = TRUE;
 
 out:

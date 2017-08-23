@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -169,7 +169,7 @@ initWamTable()
 		 *     WARNING DECLARATIONS	*
 		 *******************************/
 
-#define CW_MAX_ARGC 2
+#define CW_MAX_ARGC 3
 
 typedef struct cw_def
 { const char *name;
@@ -184,12 +184,14 @@ const static cw_def cw_defs[] =
   CW("neq_vv",             2),		/* Var \== Var */
   CW("neq_singleton",	   2),		/* SingleTon \== ? */
   CW("unify_singleton",    2),		/* SingleTon = ? */
-  CW("var_true",           1),		/* var(SingleTonOrFirst) */
+  CW("always",             1),		/* always(Bool, pred(Arg)) */
   CW("nonvar_false",       1),		/* nonvar(SingleTonOrFirst) */
   CW("unbalanced_var",     1),		/* Var initialised in some disjunctions */
   CW("branch_singleton",   1),		/* Singleton in some branch */
   CW("negation_singleton", 1),		/* Singleton in \+(Goal) */
   CW("multiton",	   1),		/* Multiple _Name variables */
+  CW("integer_false",      1),		/* integer(VarOrNonInt) */
+  CW("integer_true",       1),		/* integer(Integer) */
   CW(NULL,                 0)
 };
 
@@ -339,13 +341,13 @@ static int link_local_var(Word v, int iv, CompileInfo ci ARG_LD);
 		 *	      WARNINGS		*
 		 *******************************/
 
-static void
+static int
 compiler_warning(CompileInfo ci, const char *name, ...)
 { c_warning *w;
   const cw_def *def;
 
   if ( !ci->warning_list )
-    return;
+    return TRUE;
 
   for(def = cw_defs; def->name; def++)
   { if ( strcmp(def->name,name) == 0 )
@@ -354,7 +356,7 @@ compiler_warning(CompileInfo ci, const char *name, ...)
 
   if ( !def->name )
   { sysError("Undefined compiler warning: %s", name);
-    return;				/* not reached */
+    return FALSE;				/* not reached */
   }
 
   if ( (w=allocHeap(sizeof(*w))) )
@@ -365,6 +367,20 @@ compiler_warning(CompileInfo ci, const char *name, ...)
     w->def = def;
     w->pc  = entriesBuffer(&ci->codes, code);
     va_start(args, name);
+    if ( strcmp(name, "always") == 0 )
+    { GET_LD
+      Word val, pred;
+
+      if ( gTop + 2 > gMax )
+	return GLOBAL_OVERFLOW;
+
+      val  = gTop++;
+      pred = gTop++;
+      *val  = va_arg(args, atom_t);
+      *pred = PL_new_atom(va_arg(args, const char *));
+      w->argv[w->argc++] = val;
+      w->argv[w->argc++] = pred;
+    }
     for(i=0; i<def->argc; i++)
       w->argv[w->argc++] = va_arg(args, Word);
     va_end(args);
@@ -372,6 +388,8 @@ compiler_warning(CompileInfo ci, const char *name, ...)
     w->next = ci->warnings;
     ci->warnings = w;
   }
+
+  return TRUE;
 }
 
 
@@ -418,7 +436,7 @@ push_compiler_warnings(CompileInfo ci ARG_LD)
       atom_t name = PL_new_atom(cw->def->name);
       int rc;
 
-      rc = ((f=PL_new_functor(name, cw->def->argc)) &&
+      rc = ((f=PL_new_functor(name, cw->argc)) &&
 	    PL_cons_functor_v(tmp, f, cw->av) &&
 	    PL_cons_list(ci->warning_list, tmp, ci->warning_list));
 
@@ -1070,9 +1088,14 @@ forwards int	compileBodyNEQ(Word arg, compileInfo *ci ARG_LD);
 #endif
 forwards int	compileBodyVar1(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyTypeTest(functor_t functor, Word arg,
+				    compileInfo *ci ARG_LD);
+forwards int	compileBodyCallContinuation(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyShift(Word arg, compileInfo *ci ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
+static int	try_fast_condition(CompileInfo ci, size_t tc_or);
 
 static inline int
 isIndexedVarTerm(word w ARG_LD)
@@ -1874,6 +1897,7 @@ right_argument:
 	  size_t tc_or, tc_jmp;
 	  int rv;
 	  cutInfo cutsave = ci->cut;
+	  int fast = FALSE;
 
 	  if ( !(var=allocChoiceVar(ci)) )
 	    return FALSE;
@@ -1884,8 +1908,10 @@ right_argument:
 	  ci->cut.instruction = hard ? C_LCUT : C_LSCUT;
 	  if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci PASS_LD)) != TRUE )
 	    return rv;
+	  if ( hard )
+	    fast = try_fast_condition(ci, tc_or);
 	  ci->cut = cutsave;
-	  Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
+	  Output_1(ci, fast ? C_FASTCUT : hard ? C_CUT : C_SOFTCUT, var);
 	  if ( (rv=compileBody(argTermP(*a0, 1), call, ci PASS_LD)) != TRUE )
 	    return rv;
 	  if ( !ci->islocal )
@@ -2028,6 +2054,63 @@ right_argument:
   return compileSubClause(body, call, ci);
 }
 
+
+static int
+try_fast_condition(CompileInfo ci, size_t tc_or)
+{ Code pc  = &OpCode(ci, tc_or);
+  Code end = &OpCode(ci, PC(ci));
+
+  while(pc < end)
+  { switch( decode(*pc) )
+    { case I_INTEGER:
+      case I_FLOAT:
+      case I_NUMBER:
+      case I_ATOMIC:
+      case I_ATOM:
+      case I_STRING:
+      case I_COMPOUND:
+      case I_CALLABLE:
+      case I_VAR:
+      case I_NONVAR:
+      case B_EQ_VV:
+      case B_EQ_VC:
+      case B_NEQ_VV:
+      case B_NEQ_VC:
+      case A_ENTER:
+      case A_VAR0:
+      case A_VAR1:
+      case A_VAR2:
+      case A_VAR:
+      case A_INTEGER:
+      case A_INT64:
+      case A_MPZ:
+      case A_DOUBLE:
+      case A_FUNC0:
+      case A_FUNC1:
+      case A_FUNC2:
+      case A_FUNC:
+      case A_ADD:
+      case A_MUL:
+      case A_LT:
+      case A_LE:
+      case A_GT:
+      case A_GE:
+      case A_EQ:
+      case A_NE:
+	break;
+      default:
+	return FALSE;
+    }
+
+    pc = stepPC(pc);
+  }
+
+  pc = &OpCode(ci, tc_or);
+  assert(decode(pc[-3]) == C_IFTHENELSE);
+  pc[-3] = encode(C_FASTCOND);
+
+  return TRUE;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 compileArgument() is the key function of the compiler.  Its function  is
@@ -2497,30 +2580,30 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
 
 #ifdef O_COMPILE_IS
     if ( !ci->islocal )
-    { if ( functor == FUNCTOR_equals2 )	/* =/2 */
-      { int rc;
+    { int rc;
 
-	if ( (rc=compileBodyUnify(arg, ci PASS_LD)) != FALSE )
+      if ( functor == FUNCTOR_equals2 )	/* =/2 */
+      { if ( (rc=compileBodyUnify(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_strict_equal2 )	/* ==/2 */
-      { int rc;
-
-	if ( (rc=compileBodyEQ(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_not_strict_equal2 ) /* \==/2 */
-      { int rc;
-
-	if ( (rc=compileBodyNEQ(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyNEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_var1 )
-      { int rc;
-
-	if ( (rc=compileBodyVar1(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_nonvar1 )
-      { int rc;
-
-	if ( (rc=compileBodyNonVar1(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyNonVar1(arg, ci PASS_LD)) != FALSE )
+	  return rc;
+      } else if ( (rc=compileBodyTypeTest(functor, arg, ci PASS_LD)) != FALSE )
+      { return rc;
+      } else if ( functor == FUNCTOR_dcall_continuation1 )
+      { if ( (rc=compileBodyCallContinuation(arg, ci PASS_LD)) != FALSE )
+	  return rc;
+      } else if ( functor == FUNCTOR_dshift1 )
+      { if ( (rc=compileBodyShift(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       }
     }
@@ -2541,6 +2624,10 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     } else if ( *arg == ATOM_dcatch )		/* $catch */
     { Output_0(ci, I_CATCH);
       Output_0(ci, I_EXITCATCH);
+      succeed;
+    } else if ( *arg == ATOM_dreset )		/* $reset */
+    { Output_0(ci, I_RESET);
+      Output_0(ci, I_EXITRESET);
       succeed;
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
     { Output_0(ci, I_CALLCLEANUP);
@@ -3208,6 +3295,22 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 
 #endif /*O_COMPILE_IS*/
 
+static int
+always(atom_t val, const char *pred, Word arg, compileInfo *ci ARG_LD)
+{ if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+  { int rc;
+
+    if ( (rc=compiler_warning(ci, "always", val, pred, arg)) != TRUE )
+      return rc;
+  }
+  if ( truePrologFlag(PLFLAG_OPTIMISE) )
+  { Output_0(ci, val == ATOM_true ? I_TRUE : I_FAIL);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 static int
 compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
@@ -3216,41 +3319,21 @@ compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
-  if ( isVar(*a1) )			/* Singleton == ?: always true */
-  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-      compiler_warning(ci, "var_true", a1);
-    if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_TRUE);
-      return TRUE;
-    }
-
-    return FALSE;
-  }
+  if ( isVar(*a1) )			/* Singleton: always true */
+    return always(ATOM_true, "var", a1, ci PASS_LD);
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   if ( i1 >=0 )
   { int f1 = isFirstVar(ci->used_var, i1);
 
-    if ( f1 )
-    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-	compiler_warning(ci, "var_true", a1);
-      if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      { Output_0(ci, I_TRUE);
-	return TRUE;
-      }
-      return FALSE;
-    }
+    if ( f1 )				/* first var */
+      return always(ATOM_true, "var", a1, ci PASS_LD);
 
     Output_1(ci, I_VAR, VAROFFSET(i1));
     return TRUE;
   }
 
-  if ( truePrologFlag(PLFLAG_OPTIMISE) )
-  { Output_0(ci, I_FAIL);
-    return TRUE;
-  }
-
-  return FALSE;
+  return always(ATOM_false, "var", a1, ci PASS_LD);
 }
 
 
@@ -3261,42 +3344,135 @@ compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
 
   a1 = argTermP(*arg, 0);
   deRef(a1);
-  if ( isVar(*a1) )			/* Singleton == ?: always false */
-  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-      compiler_warning(ci, "nonvar_false", a1);
-    if ( truePrologFlag(PLFLAG_OPTIMISE) )
-    { Output_0(ci, I_FAIL);
-      return TRUE;
-    }
-
-    return FALSE;
-  }
+  if ( isVar(*a1) )			/* Singleton: always false */
+    return always(ATOM_false, "nonvar", a1, ci PASS_LD);
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   if ( i1 >=0 )
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-	compiler_warning(ci, "nonvar_false", a1);
-      if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      { Output_0(ci, I_FAIL);
-	return TRUE;
-      }
-      return FALSE;
-    }
+      return always(ATOM_false, "nonvar", a1, ci PASS_LD);
 
     Output_1(ci, I_NONVAR, VAROFFSET(i1));
     return TRUE;
   }
 
-  if ( truePrologFlag(PLFLAG_OPTIMISE) )
-  { Output_0(ci, I_TRUE);
+  return always(ATOM_true, "nonvar", a1, ci PASS_LD);
+}
+
+static int
+compileTypeTest(Word arg,
+		code instruction, const char *name, int (*test)(word),
+		compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton: always false */
+    return always(ATOM_false, name, a1, ci PASS_LD);
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  if ( i1 >=0 )
+  { int f1 = isFirstVar(ci->used_var, i1);
+
+    if ( f1 )
+    { int rc;
+
+      if ( (rc=always(ATOM_false, name, a1, ci PASS_LD)) == TRUE )
+      { isFirstVarSet(ci->used_var, i1);
+	Output_1(ci, C_VAR, VAROFFSET(i1));
+      }
+
+      return rc;
+    }
+
+    Output_1(ci, instruction, VAROFFSET(i1));
+    return TRUE;
+  }
+
+  if ( (*test)(*a1) )
+    return always(ATOM_true, name, a1, ci PASS_LD);
+  else
+    return always(ATOM_false, name, a1, ci PASS_LD);
+}
+
+typedef struct type_test
+{ functor_t	functor;
+  code		instruction;
+  const char *  name;
+  int	        (*test)(word);
+} type_test;
+
+static int fisInteger(word w)  { return isInteger(w);  }
+static int fisFloat(word w)    { return isFloat(w);    }
+static int fisNumber(word w)   { return isNumber(w);   }
+static int fisAtomic(word w)   { return isAtomic(w);   }
+static int fisAtom(word w)     { return isTextAtom(w); }
+static int fisString(word w)   { return isString(w);   }
+static int fisCompound(word w) { return isTerm(w);     }
+static int fisCallable(word w) { GET_LD return isCallable(w PASS_LD); }
+
+const type_test type_tests[] =
+{ { FUNCTOR_integer1,  I_INTEGER,  "integer",  fisInteger  },
+  { FUNCTOR_float1,    I_FLOAT,	   "float",    fisFloat    },
+  { FUNCTOR_number1,   I_NUMBER,   "number",   fisNumber   },
+  { FUNCTOR_atomic1,   I_ATOMIC,   "atomic",   fisAtomic   },
+  { FUNCTOR_atom1,     I_ATOM,     "atom",     fisAtom     },
+  { FUNCTOR_string1,   I_STRING,   "string",   fisString   },
+  { FUNCTOR_compound1, I_COMPOUND, "compound", fisCompound },
+  { FUNCTOR_callable1, I_CALLABLE, "callable", fisCallable },
+  { 0, 0, NULL, NULL }
+};
+
+static int
+compileBodyTypeTest(functor_t functor, Word arg, compileInfo *ci ARG_LD)
+{ const type_test *tt;
+
+  for(tt = type_tests; tt->functor; tt++)
+  { if ( functor == tt->functor )
+      return compileTypeTest(arg, tt->instruction, tt->name, tt->test,
+			     ci PASS_LD);
+  }
+
+  return FALSE;
+}
+
+static int
+compileBodyCallContinuation(Word arg, compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+
+  if ( (i1 = isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
+       !isFirstVar(ci->used_var, i1) )
+  { Output_1(ci, I_CALLCONT, VAROFFSET(i1));
     return TRUE;
   }
 
   return FALSE;
 }
+
+static int
+compileBodyShift(Word arg, compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+
+  if ( (i1 = isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
+       !isFirstVar(ci->used_var, i1) )
+  { Output_1(ci, I_SHIFT, VAROFFSET(i1));
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 
 		 /*******************************
@@ -3522,14 +3698,20 @@ mode, the predicate is still undefined and is not dynamic or multifile.
     { clause = cref->value.clause;
 
       if ( warnings && !PL_get_nil(warnings) )
-      { fid_t fid = PL_open_foreign_frame();
+      { int rc;
+	fid_t fid = PL_open_foreign_frame();
 	term_t cl = PL_new_term_ref();
 
 	PL_put_clref(cl, clause);
-	printMessage(ATOM_warning, PL_FUNCTOR_CHARS, "compiler_warnings", 2,
-				     PL_TERM, cl,
-				     PL_TERM, warnings);
+	rc = printMessage(ATOM_warning,
+			  PL_FUNCTOR_CHARS, "compiler_warnings", 2,
+			    PL_TERM, cl,
+			    PL_TERM, warnings);
 	PL_discard_foreign_frame(fid);
+	if ( !rc )
+	{ freeClause(clause);
+	  return NULL;
+	}
       }
 
       return clause;
@@ -3973,6 +4155,7 @@ argKey(Code PC, int skip, word *key)
       case H_VOID:
       case H_VOID_N:
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -4034,6 +4217,7 @@ arg1Key(Code PC, word *key)
       case H_VOID:
       case H_VOID_N:
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -4425,6 +4609,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	continue;
       }
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -4897,14 +5082,27 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_TRUE:	    *ARGP++ = ATOM_true;
 			    pushed++;
 			    continue;
-      case I_VAR:	    *ARGP++ = makeVarRef((int)*PC++);
-			    BUILD_TERM(FUNCTOR_var1);
+    { functor_t f;
+      case I_VAR:	    f = FUNCTOR_var1;
+    common_type_test:
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    BUILD_TERM(f);
 			    pushed++;
 			    continue;
-      case I_NONVAR:	    *ARGP++ = makeVarRef((int)*PC++);
-			    BUILD_TERM(FUNCTOR_nonvar1);
-			    pushed++;
-			    continue;
+      case I_NONVAR:	    f = FUNCTOR_nonvar1;   goto common_type_test;
+      case I_INTEGER:	    f = FUNCTOR_integer1;  goto common_type_test;
+      case I_FLOAT:	    f = FUNCTOR_float1;    goto common_type_test;
+      case I_NUMBER:	    f = FUNCTOR_number1;   goto common_type_test;
+      case I_ATOMIC:	    f = FUNCTOR_atomic1;   goto common_type_test;
+      case I_ATOM:	    f = FUNCTOR_atom1;     goto common_type_test;
+      case I_STRING:	    f = FUNCTOR_string1;   goto common_type_test;
+      case I_COMPOUND:	    f = FUNCTOR_compound1; goto common_type_test;
+      case I_CALLABLE:	    f = FUNCTOR_callable1; goto common_type_test;
+      case I_CALLCONT:	    f = FUNCTOR_dcall_continuation1;
+						   goto common_type_test;
+      case I_SHIFT:	    f = FUNCTOR_dshift1;
+						   goto common_type_test;
+    }
       case C_LCUTIFTHEN:
       case C_LSCUT:
       case C_LCUT:	    PC++;
@@ -4916,6 +5114,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
       case I_CATCH:	    *ARGP++ = ATOM_dcatch;
+			    pushed++;
+			    continue;
+      case I_RESET:	    *ARGP++ = ATOM_dreset;
 			    pushed++;
 			    continue;
       case I_YIELD:	    *ARGP++ = ATOM_dyield;
@@ -4995,6 +5196,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			  TRY_DECOMPILE(di, (code)-1, PC+to_jump); \
 			}
       case C_CUT:
+      case C_FASTCUT:
       case C_VAR:
       case C_JMP:
 			    PC++;
@@ -5024,6 +5226,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case C_SOFTIF:				/* A *-> B ; C */
 			    icut = C_SOFTCUT;
 			    f = FUNCTOR_softcut2;
+			    goto ifcommon;
+      case C_FASTCOND:
+			    icut = C_FASTCUT;
+			    f = FUNCTOR_ifthen2;
 			    goto ifcommon;
       case C_IFTHENELSE:			/* A  -> B ; C */
 			    icut = C_CUT;
@@ -5064,6 +5270,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
     }
 #endif /* O_COMPILE_OR */
       case I_EXITCATCH:
+      case I_EXITRESET:
 	goto exit;
       case I_EXIT:
 			    break;
@@ -5165,7 +5372,9 @@ unify_definition(+Module, ?Head, +Def, -TheHead, flags)
 
 int
 unify_functor(term_t t, functor_t fd, int how)
-{ if ( how&GP_NAMEARITY )
+{ GET_LD
+
+  if ( how&GP_NAMEARITY )
   { FunctorDef fdef = valueFunctor(fd);
 
     return PL_unify_term(t,
@@ -6317,6 +6526,7 @@ find_if_then_end(Code PC, Code base)
         break;
       case C_SOFTIF:
       case C_IFTHENELSE:
+      case C_FASTCOND:
       { Code elseloc = nextpc + PC[2];
 
 	PC = elseloc + elseloc[-1];
@@ -6408,7 +6618,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   end = &PC[clause->code_size - 1];		/* forget the final I_EXIT */
   assert(fetchop(end) == I_EXIT ||
 	 fetchop(end) == I_EXITFACT ||
-	 fetchop(end) == I_EXITCATCH);
+	 fetchop(end) == I_EXITCATCH ||
+	 fetchop(end) == I_EXITRESET);
 
   if ( pcoffset == (int)clause->code_size )
     return PL_unify_atom(A3, ATOM_exit);
@@ -6436,6 +6647,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       case I_EXIT:
       case I_EXITFACT:
       case I_EXITCATCH:
+      case I_EXITRESET:
       case I_EXITCLEANUP:
 	if ( loc == nextpc )
 	{ return PL_unify_nil(tail);
@@ -6508,9 +6720,11 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       }
       case C_SOFTIF:
       case C_IFTHENELSE:	/* C_IFTHENELSE <var> <jmp1> */
-				/* <IF> C_CUT <THEN> C_JMP <jmp2> <ELSE> */
+      case C_FASTCOND:		/* <IF> C_CUT <THEN> C_JMP <jmp2> <ELSE> */
       { Code elseloc = nextpc + PC[2];
-	code cut = (op == C_IFTHENELSE ? C_CUT : C_SOFTCUT);
+	code cut = (op == C_IFTHENELSE ? C_CUT :
+		    op == C_FASTCOND   ? C_FASTCUT :
+		                         C_SOFTCUT);
 
 	endloc = elseloc + elseloc[-1];
 
@@ -6790,23 +7004,29 @@ clear_second:
 }
 
 
-void
+/* returns -1 if there is an exception or # events sent */
+
+int
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { delayEvents();
+  { int rc = TRUE;
+
+    delayEvents();
     PL_LOCK(L_BREAK);
     for_table(breakTable, name, value,
               { BreakPoint bp = (BreakPoint)value;
 		if ( bp->clause == clause )
 		{ int offset = bp->offset;
 		  clearBreak(clause, bp->offset);
-		  callEventHook(PLEV_NOBREAK, clause, offset);
+		  rc = callEventHook(PLEV_NOBREAK, clause, offset) && rc;
 		}
 	      })
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
-    sendDelayedEvents();
+    return sendDelayedEvents(rc);
   }
+
+  return 0;
 }
 
 

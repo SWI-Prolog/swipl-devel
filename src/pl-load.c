@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2013, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -38,9 +38,6 @@
 #define MAXPATHLEN 1024
 #endif
 
-#define LOCK()   PL_LOCK(L_FOREIGN)
-#define UNLOCK() PL_UNLOCK(L_FOREIGN)
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog interface for runtime loading of foreign code (plugins).
 
@@ -74,6 +71,7 @@ contributions.
 		 *     DLOPEN() AND FRIENDS	*
 		 *******************************/
 
+#ifndef EMULATE_DLOPEN
 #ifdef HAVE_DLOPEN			/* sysvr4, elf binaries */
 
 #ifdef HAVE_DLFCN_H
@@ -107,6 +105,7 @@ dlsym(void *handle, const char *name)
 
 #endif /*HAVE_SHL_LOAD*/
 #endif /*HAVE_DLOPEN*/
+#endif /*EMULATE_DLOPEN*/
 
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
 #define HAVE_SHARED_OBJECTS
@@ -199,7 +198,7 @@ PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
 
   e = allocHeapOrHalt(sizeof(struct dl_entry));
 
-  LOCK();
+  PL_LOCK(L_FOREIGN);
   e->id       = ++dl_plid;
   e->dlhandle = dlhandle;
   e->file     = afile;
@@ -212,7 +211,7 @@ PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
   { dl_tail->next = e;
     dl_tail = e;
   }
-  UNLOCK();
+  PL_UNLOCK(L_FOREIGN);
 
   return PL_unify_integer(plhandle, e->id);
 }

@@ -401,4 +401,27 @@ current_encoding(wchar_t).
 %   the body term Body succeeds.
 
 current_type(Type, Var, Body) :-
-    clause(has_type(Type, Var), Body).
+    clause(has_type(Type, Var), Body0),
+    qualify(Body0, Body).
+
+qualify(Var, VarQ) :-
+    var(Var),
+    !,
+    VarQ = Var.
+qualify((A0,B0), (A,B)) :-
+    qualify(A0, A),
+    qualify(B0, B).
+qualify(G0, G) :-
+    predicate_property(system:G0, built_in),
+    !,
+    G = G0.
+qualify(G, error:G).
+
+
+		 /*******************************
+		 *           SANDBOX		*
+		 *******************************/
+
+:- multifile sandbox:safe_primitive/1.
+
+sandbox:safe_primitive(error:current_type(_,_,_)).

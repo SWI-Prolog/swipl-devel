@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2016, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -727,23 +727,22 @@ singletonWarning(const char *which, const char **vars, int nvars)
   { term_t l = PL_new_term_ref();
     term_t a = PL_copy_term_ref(l);
     term_t h = PL_new_term_ref();
-    int n;
+    int n, rc = TRUE;
 
     for(n=0; n<nvars; n++)
-    { if ( !PL_unify_list(a, h, a) ||
-	   !PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n]) )
-	return FALSE;
+    { if ( !(rc=PL_unify_list(a, h, a)) ||
+	   !(rc=PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n])) )
+	break;
     }
-    if ( !PL_unify_nil(a) )
-      return FALSE;
-
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR_CHARS, which, 1,
-		   PL_TERM, l);
+    rc = ( rc &&
+	   PL_unify_nil(a) &&
+	   printMessage(ATOM_warning,
+			PL_FUNCTOR_CHARS, which, 1,
+			  PL_TERM, l) );
 
     PL_discard_foreign_frame(fid);
 
-    return TRUE;
+    return rc;
   }
 
   return FALSE;
@@ -757,10 +756,13 @@ singletonWarning(const char *which, const char **vars, int nvars)
 
 static int
 reportReadError(ReadData rd)
-{ if ( rd->on_error == ATOM_error )
+{ int rc;
+
+  if ( rd->on_error == ATOM_error )
     return PL_raise_exception(rd->exception);
   if ( rd->on_error != ATOM_quiet )
-    printMessage(ATOM_error, PL_TERM, rd->exception);
+    rc = printMessage(ATOM_error, PL_TERM, rd->exception);
+  (void)rc;
   PL_clear_exception();
 
   if ( rd->on_error == ATOM_dec10 )
@@ -2238,7 +2240,8 @@ again:
 		last_token_start = errpos;
 		ex = makeErrorTerm("swi_backslash_newline", NULL, 0, _PL_rd);
 		last_token_start = old_start;
-		printMessage(ATOM_warning, PL_TERM, ex);
+		if ( !ex || !printMessage(ATOM_warning, PL_TERM, ex) )
+		  return ESC_ERROR;
 	      }
 	      break;
 	    }
@@ -2456,7 +2459,9 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 
 	return rc;
       } else
-      { return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_dquasi_quotation3,
+      { GET_LD
+
+	return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_dquasi_quotation3,
 			          PL_POINTER, _PL_rd,
 				  PL_INTPTR, (intptr_t)(start-rdbase),
 			          PL_INTPTR, (intptr_t)(in-start));
@@ -2486,6 +2491,14 @@ float_tag(cucharp in, cucharp tag)
 }
 
 
+static int
+starts_1dot(cucharp s)
+{ if ( s[0] == '-' )
+    s++;
+  return (s[0] == '1' && s[1] == '.');
+}
+
+
 static strnumstat
 special_float(cucharp *in, cucharp start, Number value)
 { cucharp s;
@@ -2496,7 +2509,7 @@ special_float(cucharp *in, cucharp start, Number value)
     else
       value->value.f = strtod("Inf", NULL);
   } else if ( (s=float_tag(*in, (cucharp)"NaN")) &&
-	      start[0] == '1' && start[1] == '.' )
+	      starts_1dot(start) )
   { char *e;
     double f = strtod((char*)start, &e);
 
@@ -2645,19 +2658,20 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 }
 
 
-static void
+static int
 checkASCII(unsigned char *name, size_t len, const char *type)
 { size_t i;
 
   for(i=0; i<len; i++)
   { if ( (name[i]) >= 128 )
-    { printMessage(ATOM_warning,
-		   PL_FUNCTOR_CHARS, "non_ascii", 2,
-                   PL_NCHARS, len, (char const *)name,
-		     PL_CHARS, type);
-      return;
+    { return printMessage(ATOM_warning,
+			  PL_FUNCTOR_CHARS, "non_ascii", 2,
+			    PL_NCHARS, len, (char const *)name,
+			    PL_CHARS, type);
     }
   }
+
+  return TRUE;
 }
 
 
@@ -2721,7 +2735,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  rdhere = SkipAtomIdCont(rdhere);
 		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
-		    checkASCII(start, rdhere-start, "atom");
+		  { if ( !checkASCII(start, rdhere-start, "atom") )
+		      return FALSE;
+		  }
 
 		functor:
 		  txt.text.t    = (char *)start;
@@ -2755,7 +2771,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		{ rdhere = SkipVarIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
-		    checkASCII(start, rdhere-start, "variable");
+		  { if ( !checkASCII(start, rdhere-start, "variable") )
+		      return FALSE;
+		  }
 		  if ( *rdhere == '(' && truePrologFlag(ALLOW_VARNAME_FUNCTOR) )
 		    goto functor;
 		  if ( start[0] == '_' &&
@@ -3074,19 +3092,9 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 }
 
 
-static int
+static inline int
 ensureSpaceForTermRefs(size_t n ARG_LD)
-{ size_t bytes = n*sizeof(word);
-
-  if ( addPointer(lTop, bytes) > (void*)lMax )
-  { int rc;
-
-    rc = ensureLocalSpace(bytes, ALLOW_SHIFT);
-    if ( rc != TRUE )
-      return rc;
-  }
-
-  return TRUE;
+{ return ensureLocalSpace(n*sizeof(word));
 }
 
 
@@ -3346,7 +3354,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 
 
 static inline atom_t
-op_name(op_entry *e)
+op_name(op_entry *e ARG_LD)
 { if ( !e->isterm )
   { return e->op.atom;
   } else
@@ -3389,7 +3397,7 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     av[0] = term;
     PL_put_term(term, op->op.block);
 
-    if ( (rc = build_term(op_name(op), arity+1, _PL_rd PASS_LD)) != TRUE )
+    if ( (rc = build_term(op_name(op PASS_LD), arity+1, _PL_rd PASS_LD)) != TRUE )
       return rc;
   }
 
@@ -3420,11 +3428,11 @@ static int simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
 
 
 static bool
-isOp(op_entry *e, int kind, ReadData _PL_rd)
+isOp(op_entry *e, int kind, ReadData _PL_rd ARG_LD)
 { int pri;
   int type;
 
-  if ( !currentOperator(_PL_rd->module, op_name(e), kind, &type, &pri) )
+  if ( !currentOperator(_PL_rd->module, op_name(e PASS_LD), kind, &type, &pri) )
     fail;
   e->kind   = kind;
   e->op_pri = pri;
@@ -3444,7 +3452,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 
 
 #define stringOp(e) \
-	stringAtom(op_name(e))
+	stringAtom(op_name(e PASS_LD))
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
 	side_n++, side_p++;
@@ -3468,7 +3476,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 	    out_n++; \
 	    PopOp(); \
 	  } else if ( op->kind == OP_INFIX && out_n > 0 && \
-		      isOp(op, OP_POSTFIX, _PL_rd) ) \
+		      isOp(op, OP_POSTFIX, _PL_rd PASS_LD) ) \
 	  { int rc; \
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
 			      stringOp(op))); \
@@ -3482,7 +3490,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
-{ /*term_t t;*/
+{ GET_LD
   char *opname = stringOp(op);
 
   last_token_start = op->token_start;
@@ -3553,8 +3561,10 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
     return -1;
   }
 
-  DEBUG(9, if ( rc ) Sdprintf("Reducing %s/%d\n",
-			      stringOp(op), arity));
+  DEBUG(9, if ( rc )
+	{ GET_LD
+	  Sdprintf("Reducing %s/%d\n", stringOp(op), arity);
+	});
 
   return rc;
 }
@@ -3643,7 +3653,7 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
 
 
 static int
-unify_atomic_position(term_t positions, Token token)
+unify_atomic_position(term_t positions, Token token ARG_LD)
 { if ( positions )
   { return PL_unify_term(positions,
 			 PL_FUNCTOR, FUNCTOR_minus2,
@@ -3655,7 +3665,7 @@ unify_atomic_position(term_t positions, Token token)
 
 
 static int
-unify_string_position(term_t positions, Token token)
+unify_string_position(term_t positions, Token token ARG_LD)
 { if ( positions )
   { return PL_unify_term(positions,
 			 PL_FUNCTOR, FUNCTOR_string_position2,
@@ -3721,7 +3731,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 
       DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringOp(&in_op), rmo));
 
-      if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
+      if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd PASS_LD) )
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
       push_op:
@@ -3737,14 +3747,14 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  PL_put_term(in_op.op.block, *top);
 	  truncate_term_stack(top, _PL_rd);
 	} else
-	{ if ( !unify_atomic_position(pin, token) )
+	{ if ( !unify_atomic_position(pin, token PASS_LD) )
 	    return FALSE;
 	}
 	PushOp();
 
 	continue;
       }
-      if ( isOp(&in_op, OP_INFIX, _PL_rd) )
+      if ( isOp(&in_op, OP_INFIX, _PL_rd PASS_LD) )
       { DEBUG(9, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);
@@ -3754,7 +3764,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  goto push_op;
 	}
       }
-      if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
+      if ( isOp(&in_op, OP_POSTFIX, _PL_rd PASS_LD) )
       { DEBUG(9, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);
@@ -4281,31 +4291,31 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     case T_VOID:
       alloc_term(_PL_rd PASS_LD);
       /* nothing to do; term is already a variable */
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     case T_VARIABLE:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       setHandle(term, token->value.variable->signature);
       DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     }
     case T_NAME:
     case T_QNAME:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     }
     case T_NUMBER:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       if ( !_PL_put_number(term, &token->value.number) )
 	return FALSE;
       clearNumber(&token->value.number);
-      return unify_atomic_position(positions, token);
+      return unify_atomic_position(positions, token PASS_LD);
     }
     case T_STRING:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_term(term, token->value.term);
-      return unify_string_position(positions, token);
+      return unify_string_position(positions, token PASS_LD);
     }
     case T_FUNCTOR:
       return read_compound(token, positions, _PL_rd PASS_LD);
@@ -4324,7 +4334,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 	default:
 	{ term_t term = alloc_term(_PL_rd PASS_LD);
 	  PL_put_atom(term, codeToAtom(token->value.character));
-	  return unify_atomic_position(positions, token);
+	  return unify_atomic_position(positions, token PASS_LD);
 	}
       }
     }
@@ -4687,12 +4697,13 @@ static const opt_spec read_clause_options[] =
 };
 
 
-static void
+static int
 callCommentHook(predicate_t comment_hook,
 		term_t comments, term_t tpos, term_t term)
 { GET_LD
   fid_t fid;
   term_t av;
+  int rc = TRUE;
 
   if ( (fid = PL_open_foreign_frame()) &&
        (av = PL_new_term_refs(3)) )
@@ -4702,18 +4713,21 @@ callCommentHook(predicate_t comment_hook,
     PL_put_term(av+1, tpos);
     PL_put_term(av+2, term);
 
-    if ( (qid = PL_open_query(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+    if ( (qid = PL_open_query(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			      comment_hook, av)) )
     { term_t ex;
 
       if ( !PL_next_solution(qid) && (ex=PL_exception(qid)) )
-	printMessage(ATOM_error, PL_TERM, ex);
+	rc = FALSE;
 
       PL_close_query(qid);
     }
 
     PL_discard_foreign_frame(fid);
-  }
+  } else
+    rc = FALSE;
+
+  return rc;
 }
 
 
@@ -4771,7 +4785,7 @@ retry:
     { if ( opt_comments )
 	rval = PL_unify(opt_comments, comments);
       else if ( !PL_get_nil(comments) )
-	callCommentHook(comment_hook, comments, tpos, term);
+	rval = callCommentHook(comment_hook, comments, tpos, term);
     }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
@@ -5078,24 +5092,48 @@ PRED_IMPL("term_string", 2, term_string, 0)
 
 
 int
-PL_chars_to_term(const char *s, term_t t)
+PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
 { GET_LD
-  size_t len = strlen(s);
   read_data rd;
   int rval;
   IOSTREAM *stream;
   source_location oldsrc;
 
-  if ( isDigit(*s&0xff) || *s == '-' || *s == '+' )
-  { unsigned char *e;
-    number n;
+  if ( len == (size_t)-1 )
+    len = strlen(s);
 
-    if ( str_number((cucharp)s, &e, &n, FALSE) == NUM_OK &&
-	 e == (unsigned char *)s+len )
+  if ( len >= 1 &&
+       (isDigit(*s&0xff) || *s == '-' || *s == '+') &&
+       isDigit(s[len-1]) )
+  { char buf[256];
+    unsigned char *e;
+    char *ns;
+    number n;
+    int isnum;
+
+    if ( s[len] != EOS )		/* not 0-terminated */
+    { if ( len+1 > sizeof(buf) )
+      { if ( !(ns=malloc(len+1)) )
+	  return PL_resource_error("memory");
+      } else
+	ns = buf;
+      memcpy(ns, s, len);
+      ns[len] = EOS;
+    } else
+    { ns = (char*)s;
+    }
+
+    isnum = ( str_number((cucharp)ns, &e, &n, FALSE) == NUM_OK &&
+	      e == (unsigned char *)ns+len );
+    if ( ns != s && ns != buf )
+      free(ns);
+    if ( isnum )
       return PL_put_number(t, &n);
   }
 
-  stream = Sopen_string(NULL, (char *)s, (size_t)-1, "r");
+  stream = Sopen_string(NULL, (char *)s, len, "r");
+  stream->encoding = ((flags&REP_UTF8) ? ENC_UTF8 : \
+		      (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
   oldsrc = LD->read_source;
 
   init_read_data(&rd, stream PASS_LD);
@@ -5107,6 +5145,12 @@ PL_chars_to_term(const char *s, term_t t)
   LD->read_source = oldsrc;
 
   return rval;
+}
+
+
+int
+PL_chars_to_term(const char *s, term_t t)
+{ return PL_put_term_from_chars(t, REP_ISO_LATIN_1, (size_t)-1, s);
 }
 
 

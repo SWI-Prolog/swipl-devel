@@ -2,7 +2,8 @@
 
     Author:        Benoit Desouter <Benoit.Desouter@UGent.be>
                    Jan Wielemaker (SWI-Prolog port)
-    Copyright (c)  2016, Benoit Desouter
+                   Fabrizio Riguzzi (mode directed tabling)
+    Copyright (c)  2016, Benoit Desouter, Jan Wielemaker, Fabrizio Riguzzi
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -53,7 +54,7 @@
 /** <module> Tabled execution (SLG WAM)
 
 This  library  handled  _tabled_  execution   of  predicates  using  the
-characteristics if the _SLG WAM_. The required suspension is is realised
+characteristics if the _SLG WAM_. The   required  suspension is realised
 using _delimited continuations_ implemented by  reset/3 and shift/1. The
 table space and work lists are part of the SWI-Prolog core.
 
@@ -69,6 +70,17 @@ table space and work lists are part of the SWI-Prolog core.
 %     ==
 %     :- table edge/2, statement//1.
 %     ==
+%
+%   In addition to using _predicate  indicators_,   a  predicate  can be
+%   declared for _mode  directed  tabling_  using   a  term  where  each
+%   argument declares the intended mode.  For example:
+%
+%     ==
+%     :- table connection(_,_,min).
+%     ==
+%
+%   _Mode directed tabling_ is  discussed   in  the general introduction
+%   section about tabling.
 
 table(PIList) :-
     throw(error(context_error(nodirective, table(PIList)), _)).
@@ -83,49 +95,96 @@ table(PIList) :-
 %   @compat This interface may change or disappear without notice
 %           from future versions.
 
-start_tabling(Wrapper,Worker) :-
-    '$tbl_variant_table'(Wrapper, Trie, Status),
+start_tabling(Wrapper, Worker) :-
+    get_wrapper_no_mode_args(Wrapper, WrapperNoModes, ModeArgs),
+    '$tbl_variant_table'(WrapperNoModes, Trie, Status),
     (   Status == complete
-    ->  trie_gen(Trie, Wrapper, _)
+    ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   (   '$tbl_scheduling_component'(false, true)
-        ->  catch(run_leader(Wrapper, Worker, Trie), E, true),
+        ->  catch(run_leader(Wrapper, WrapperNoModes, Worker, Trie),
+                  E, true),
             (   var(E)
-            ->  trie_gen(Trie, Wrapper, _)
+            ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
             ;   '$tbl_table_discard_all',
                 throw(E)
             )
-        ;   run_follower(Status, Wrapper, Worker, Trie)
+        ;   run_follower(Status, Wrapper, WrapperNoModes, Worker, Trie)
         )
     ).
 
-run_follower(fresh, Wrapper, Worker, Trie) :-
+get_wrapper_no_mode_args(M:Wrapper, M:WrapperNoModes, ModeArgs) :-
+    M:'$table_mode'(Wrapper, WrapperNoModes, ModeArgs).
+
+run_follower(fresh, Wrapper, WrapperNoModes, Worker, Trie) :-
     !,
-    activate(Wrapper, Worker, Trie, Worklist),
+    activate(Wrapper, WrapperNoModes, Worker, Trie, Worklist),
     shift(call_info(Wrapper, Worklist)).
-run_follower(Worklist, Wrapper, _Worker, _Trie) :-
+run_follower(Worklist, Wrapper, _WrapperNoModes, _Worker, _Trie) :-
     shift(call_info(Wrapper, Worklist)).
 
-run_leader(Wrapper, Worker, Trie) :-
-    activate(Wrapper, Worker, Trie, _Worklist),
+run_leader(Wrapper, WrapperNoModes, Worker, Trie) :-
+    activate(Wrapper, WrapperNoModes, Worker, Trie, _Worklist),
     completion,
     '$tbl_scheduling_component'(_, false).
 
-activate(Wrapper, Worker, Trie, WorkList) :-
+activate(Wrapper, WrapperNoModes, Worker, Trie, WorkList) :-
     '$tbl_new_worklist'(WorkList, Trie),
-    (   delim(Wrapper, Worker, WorkList),
+    (   delim(Wrapper, WrapperNoModes, Worker, WorkList),
         fail
     ;   true
     ).
 
+%!  delim(+Wrapper, +Worker, +WorkList).
+%!  delim(+Wrapper, +WrapperNoModes, +Worker, +WorkList).
+%
+%   Call/resume Worker
+
 delim(Wrapper, Worker, WorkList) :-
-    reset(Worker,SourceCall,Continuation),
-    (   Continuation == 0
-    ->  '$tbl_wkl_add_answer'(WorkList, Wrapper)
-    ;   SourceCall = call_info(SrcWrapper, SourceWL),
-        TargetCall = call_info(Wrapper,    WorkList),
-        Dependency = dependency(SrcWrapper,Continuation,TargetCall),
-        '$tbl_wkl_add_suspension'(SourceWL, Dependency)
-    ).
+    reset(Worker, SourceCall, Continuation),
+    add_answer_or_suspend(Continuation, Wrapper,
+                          WorkList, SourceCall).
+
+add_answer_or_suspend(0, Wrapper, WorkList, _) :-
+    !,
+    '$tbl_wkl_add_answer'(WorkList, Wrapper).
+add_answer_or_suspend(Continuation, Wrapper, WorkList,
+                      call_info(SrcWrapper, SourceWL)) :-
+    '$tbl_wkl_add_suspension'(
+        SourceWL,
+        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
+
+delim(Wrapper, WrapperNoModes, Worker, WorkList) :-
+    reset(Worker, SourceCall, Continuation),
+    add_answer_or_suspend(Continuation, Wrapper, WrapperNoModes,
+                          WorkList, SourceCall).
+
+add_answer_or_suspend(0, Wrapper, WrapperNoModes, WorkList, _) :-
+    !,
+    get_wrapper_no_mode_args(Wrapper, _, ModeArgs),
+    '$tbl_wkl_mode_add_answer'(WorkList, WrapperNoModes,
+                               ModeArgs, Wrapper).
+add_answer_or_suspend(Continuation, Wrapper, _WrapperNoModes, WorkList,
+                      call_info(SrcWrapper, SourceWL)) :-
+    '$tbl_wkl_add_suspension'(
+        SourceWL,
+        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
+
+%!  update(+Wrapper, +A1, +A2, -A3) is det.
+%
+%   Update the aggregated value for  an   answer.  Wrapper is the tabled
+%   goal, A1 is the aggregated value so far, A2 is the new answer and A3
+%   should be unified with the new aggregated value.
+
+:- public
+    update/4.
+
+update(M:Wrapper, A1, A2, A3) :-
+    M:'$table_update'(Wrapper, A1, A2, A3).
+
+
+%!  completion
+%
+%   Wakeup suspended goals until no new answers are generated.
 
 completion :-
     '$tbl_pop_worklist'(WorkList),
@@ -136,16 +195,20 @@ completion :-
     '$tbl_table_complete_all'.
 
 completion_step(SourceTable) :-
-    (   '$tbl_wkl_work'(SourceTable, Answer, Dependency),
-        dep(Answer, Dependency, Wrapper,Continuation,TargetTable),
-        delim(Wrapper,Continuation,TargetTable),
+    (   '$tbl_trienode'(Reserved),
+        '$tbl_wkl_work'(SourceTable,
+                        Answer, ModeArgs,
+                        Goal, Continuation, Wrapper, TargetTable),
+        (   ModeArgs == Reserved
+        ->  Goal = Answer,
+            delim(Wrapper, Continuation, TargetTable)
+        ;   get_wrapper_no_mode_args(Goal, Answer, ModeArgs),
+            get_wrapper_no_mode_args(Wrapper, WrapperNoModes, _),
+            delim(Wrapper, WrapperNoModes, Continuation, TargetTable)
+        ),
         fail
     ;   true
     ).
-
-dep(Answer, dependency(Answer, Continuation, call_info(Wrapper, TargetTable)),
-    Wrapper, Continuation,TargetTable).
-
 
                  /*******************************
                  *            CLEANUP           *
@@ -223,13 +286,187 @@ wrappers(Name/Arity) -->
       atom_concat(Name, ' tabled', WrapName),
       Head =.. [Name|Args],
       WrappedHead =.. [WrapName|Args],
-      prolog_load_context(module, Module)
+      prolog_load_context(module, Module),
+      '$tbl_trienode'(Reserved)
     },
     [ '$tabled'(Head),
+      '$table_mode'(Head, Head, Reserved),
       (   Head :-
              start_tabling(Module:Head, WrappedHead)
       )
     ].
+wrappers(ModeDirectedSpec) -->
+    { callable(ModeDirectedSpec),
+      !,
+      functor(ModeDirectedSpec, Name, Arity),
+      functor(Head, Name, Arity),
+      atom_concat(Name, ' tabled', WrapName),
+      Head =.. [Name|Args],
+      WrappedHead =.. [WrapName|Args],
+      extract_modes(ModeDirectedSpec, Head, Variant, Modes, Moded),
+      updater_clauses(Modes, Head, UpdateClauses),
+      prolog_load_context(module, Module)
+    },
+    [ '$tabled'(Head),
+      '$table_mode'(Head, Variant, Moded),
+      (   Head :-
+             start_tabling(Module:Head, WrappedHead)
+      )
+    | UpdateClauses
+    ].
+wrappers(TableSpec) -->
+    { type_error(table_desclaration, TableSpec)
+    }.
+
+
+%!  extract_modes(+ModeSpec, +Head, -Variant, -Modes, -ModedAnswer) is det.
+%
+%   Split Head into  its  variant  and   term  that  matches  the  moded
+%   arguments.
+%
+%   @arg ModedAnswer is a term that  captures   that  value of all moded
+%   arguments of an answer. If there  is   only  one,  this is the value
+%   itself. If there are multiple, this is a term s(A1,A2,...)
+
+extract_modes(ModeSpec, Head, Variant, Modes, ModedAnswer) :-
+    compound_name_arguments(ModeSpec, Name, ModeSpecArgs),
+    compound_name_arguments(Head, Name, HeadArgs),
+    separate_args(ModeSpecArgs, HeadArgs, VariantArgs, Modes, ModedArgs),
+    Variant =.. [Name|VariantArgs],
+    (   ModedArgs == []
+    ->  '$tbl_trienode'(ModedAnswer)
+    ;   ModedArgs = [ModedAnswer]
+    ->  true
+    ;   ModedAnswer =.. [s|ModedArgs]
+    ).
+
+%!  separate_args(+ModeSpecArgs, +HeadArgs,
+%!		  -NoModesArgs, -Modes, -ModeArgs) is det.
+%
+%   Split the arguments in those that  need   to  be part of the variant
+%   identity (NoModesArgs) and those that are aggregated (ModeArgs).
+%
+%   @arg Args seems a copy of ModeArgs, why?
+
+separate_args([], [], [], [], []).
+separate_args([HM|TM], [H|TA], [H|TNA], Modes, TMA):-
+    indexed_mode(HM),
+    !,
+    separate_args(TM, TA, TNA, Modes, TMA).
+separate_args([M|TM], [H|TA], TNA, [M|Modes], [H|TMA]):-
+    separate_args(TM, TA, TNA, Modes, TMA).
+
+indexed_mode(Mode) :-                           % XSB
+    var(Mode),
+    !.
+indexed_mode(index).                            % YAP
+indexed_mode(+).                                % B
+
+%!  updater_clauses(+Modes, +Head, -Clauses)
+%
+%   Generates a clause to update the aggregated state.  Modes is
+%   a list of predicate names we apply to the state.
+
+updater_clauses([], _, []) :- !.
+updater_clauses([P], Head, [('$table_update'(Head, S0, S1, S2) :- Body)]) :- !,
+    update_goal(P, S0,S1,S2, Body).
+updater_clauses(Modes, Head, [('$table_update'(Head, S0, S1, S2) :- Body)]) :-
+    length(Modes, Len),
+    functor(S0, s, Len),
+    functor(S1, s, Len),
+    functor(S2, s, Len),
+    S0 =.. [_|Args0],
+    S1 =.. [_|Args1],
+    S2 =.. [_|Args2],
+    update_body(Modes, Args0, Args1, Args2, true, Body).
+
+update_body([], _, _, _, Body, Body).
+update_body([P|TM], [A0|Args0], [A1|Args1], [A2|Args2], Body0, Body) :-
+    update_goal(P, A0,A1,A2, Goal),
+    mkconj(Body0, Goal, Body1),
+    update_body(TM, Args0, Args1, Args2, Body1, Body).
+
+update_goal(Var, _,_,_, _) :-
+    var(Var),
+    !,
+    instantiation_error(Var).
+update_goal(lattice(M:PI), S0,S1,S2, M:Goal) :-
+    !,
+    must_be(atom, M),
+    update_goal(lattice(PI), S0,S1,S2, Goal).
+update_goal(lattice(Name/Arity), S0,S1,S2, Goal) :-
+    !,
+    must_be(oneof([3]), Arity),
+    must_be(atom, Name),
+    Goal =.. [Name,S0,S1,S2].
+update_goal(lattice(Name), S0,S1,S2, Goal) :-
+    !,
+    must_be(atom, Name),
+    update_goal(lattice(Name/3), S0,S1,S2, Goal).
+update_goal(po(Name/Arity), S0,S1,S2, Goal) :-
+    !,
+    must_be(oneof([2]), Arity),
+    must_be(atom, Name),
+    Call =.. [Name, S0, S1],
+    Goal = (Call -> S2 = S0 ; S2 = S1).
+update_goal(po(M:Name/Arity), S0,S1,S2, Goal) :-
+    !,
+    must_be(atom, M),
+    must_be(oneof([2]), Arity),
+    must_be(atom, Name),
+    Call =.. [Name, S0, S1],
+    Goal = (M:Call -> S2 = S0 ; S2 = S1).
+update_goal(po(M:Name), S0,S1,S2, Goal) :-
+    !,
+    must_be(atom, M),
+    must_be(atom, Name),
+    update_goal(po(M:Name/2), S0,S1,S2, Goal).
+update_goal(po(Name), S0,S1,S2, Goal) :-
+    !,
+    must_be(atom, Name),
+    update_goal(po(Name/2), S0,S1,S2, Goal).
+update_goal(Alias, S0,S1,S2, Goal) :-
+    update_alias(Alias, Update),
+    !,
+    update_goal(Update, S0,S1,S2, Goal).
+update_goal(Mode, _,_,_, _) :-
+    domain_error(tabled_mode, Mode).
+
+update_alias(first, lattice(tabling:first/3)).
+update_alias(-,     lattice(tabling:first/3)).
+update_alias(last,  lattice(tabling:last/3)).
+update_alias(min,   lattice(tabling:min/3)).
+update_alias(max,   lattice(tabling:max/3)).
+update_alias(sum,   lattice(tabling:sum/3)).
+
+mkconj(true, G,  G) :- !.
+mkconj(G1,   G2, (G1,G2)).
+
+
+		 /*******************************
+		 *          AGGREGATION		*
+		 *******************************/
+
+%!  first(+S0, +S1, -S) is det.
+%!  last(+S0, +S1, -S) is det.
+%!  min(+S0, +S1, -S) is det.
+%!  max(+S0, +S1, -S) is det.
+%!  sum(+S0, +S1, -S) is det.
+%
+%   Implement YAP tabling modes.
+
+:- public first/3, last/3, min/3, max/3, sum/3.
+
+first(S, _, S).
+last(_, S, S).
+min(S0, S1, S) :- (S0 @< S1 -> S = S0 ; S = S1).
+max(S0, S1, S) :- (S0 @> S1 -> S = S0 ; S = S1).
+sum(S0, S1, S) :- S is S0+S1.
+
+
+		 /*******************************
+		 *         RENAME WORKER	*
+		 *******************************/
 
 %!  prolog:rename_predicate(:Head0, :Head) is semidet.
 %
@@ -253,7 +490,9 @@ rename_term(Name, WrapName) :-
 
 
 system:term_expansion((:- table(Preds)),
-                      [ (:- discontiguous('$tabled'/1))
+                      [ (:- multifile('$tabled'/1)),
+                        (:- multifile('$table_mode'/3)),
+                        (:- multifile('$table_update'/4))
                       | Clauses
                       ]) :-
     phrase(wrappers(Preds), Clauses).

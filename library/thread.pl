@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2016, University of Amsterdam
+    Copyright (c)  2007-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -44,6 +44,7 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
+:- use_module(library(option)).
 
 %:- debug(concurrent).
 
@@ -125,7 +126,7 @@ following consequences:
 %     * If the tasks are I/O bound the number of threads is
 %     typically higher than the number of CPUs.
 %
-%     * If one or more of the goals may fail or produce an errors,
+%     * If one or more of the goals may fail or produce an error,
 %     using a higher number of threads may find this earlier.
 %
 %   @param N Number of worker-threads to create. Using 1, no threads
@@ -155,7 +156,8 @@ concurrent(N, M:List, Options) :-
     forall(between(1, WorkerCount, _),
            thread_send_message(Queue, done)),
     VT =.. [vars|VarList],
-    concur_wait(JobCount, Done, VT, Result, Exitted),
+    concur_wait(JobCount, Done, VT, cleanup(Workers, Queue),
+                Result, [], Exitted),
     subtract(Workers, Exitted, RemainingWorkers),
     concur_cleanup(Result, RemainingWorkers, [Queue, Done]),
     (   Result == true
@@ -180,33 +182,41 @@ submit_goals([H|T], I, M, Queue, [Vars|VT]) :-
     submit_goals(T, I2, M, Queue, VT).
 
 
-%!  concur_wait(+N, +Done:queue, +VT:compound, -Result, -Exitted) is semidet.
+%!  concur_wait(+N, +Done:queue, +VT:compound, +Cleanup,
+%!              -Result, +Exitted0, -Exitted) is semidet.
 %
 %   Wait for completion, failure or error.
 %
-%   @param  Exited  List of thread-ids with threads that completed before
-%                   all work was done.
+%   @arg Exited List of thread-ids with threads that completed
+%   before all work was done.
 
-concur_wait(0, _, _, true, []) :- !.
-concur_wait(N, Done, VT, Status, Exitted) :-
-    debug(concurrent, 'Waiting: ...', []),
-    thread_get_message(Done, Exit),
+concur_wait(0, _, _, _, true, Exited, Exited) :- !.
+concur_wait(N, Done, VT, Cleanup, Status, Exitted0, Exitted) :-
+    debug(concurrent, 'Concurrent: waiting for workers ...', []),
+    catch(thread_get_message(Done, Exit), Error,
+          concur_abort(Error, Cleanup, Done, Exitted0)),
     debug(concurrent, 'Waiting: received ~p', [Exit]),
     (   Exit = done(Id, Vars)
-    ->  arg(Id, VT, Vars),
+    ->  debug(concurrent, 'Concurrent: Job ~p completed with ~p', [Id, Vars]),
+        arg(Id, VT, Vars),
         N2 is N - 1,
-        concur_wait(N2, Done, VT, Status, Exitted)
+        concur_wait(N2, Done, VT, Cleanup, Status, Exitted0, Exitted)
     ;   Exit = finished(Thread)
     ->  thread_join(Thread, JoinStatus),
-        debug(concurrent, 'Joined ~w with ~p', [Thread, JoinStatus]),
+        debug(concurrent, 'Concurrent: waiter ~p joined: ~p',
+              [Thread, JoinStatus]),
         (   JoinStatus == true
-        ->  Exitted = [Thread|Exitted2],
-            concur_wait(N, Done, VT, Status, Exitted2)
+        ->  concur_wait(N, Done, VT, Cleanup, Status, [Thread|Exitted0], Exitted)
         ;   Status = JoinStatus,
-            Exitted = [Thread]
+            Exitted = [Thread|Exitted0]
         )
     ).
 
+concur_abort(Error, cleanup(Workers, Queue), Done, Exitted) :-
+    debug(concurrent, 'Concurrent: got ~p', [Error]),
+    subtract(Workers, Exitted, RemainingWorkers),
+    concur_cleanup(Error, RemainingWorkers, [Queue, Done]),
+    throw(Error).
 
 create_workers(N, Queue, Done, [Id|Ids], Options) :-
     N > 0,

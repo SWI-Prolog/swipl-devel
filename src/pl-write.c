@@ -906,14 +906,21 @@ i.e. its actual value is 1.<the 52 bits   actually  stored>, so with a 0
 exponent the value of the resulting number is always >= 1 and < 2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *
-writeNaN(double f, char *buf)
+double
+NaN_value(double f)
 { union ieee754_double u;
 
   u.d = f;
   assert(u.ieee.exponent == 0x7ff);	/* NaN exponent */
-  u.ieee.exponent = 0x3ff;		/* see above */
-  format_float(u.d, buf);
+  u.ieee.exponent = 0x3ff;
+
+  return u.d;
+}
+
+
+static char *
+writeNaN(double f, char *buf)
+{ format_float(NaN_value(f), buf);
   strcat(buf, "NaN");
   return buf;
 }
@@ -1971,10 +1978,14 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.out	    = s;
   options.module    = MODULE_user;
 
-  PutOpenToken(EOF, s);			/* reset this */
-  rc = writeTopTerm(term, precedence, &options);
-  if ( rc && (flags&PL_WRT_NEWLINE) )
-    rc = Putc('\n', s);
+  if ( (s=PL_acquire_stream(s)) )
+  { PutOpenToken(EOF, s);			/* reset this */
+    rc = writeTopTerm(term, precedence, &options);
+    if ( rc && (flags&PL_WRT_NEWLINE) )
+      rc = Putc('\n', s);
+    rc = PL_release_stream(s) && rc;
+  } else
+    rc = FALSE;
 
   return rc;
 }

@@ -207,7 +207,7 @@ YAP_MkNewApplTerm(functor_t f, int arity)
 { term_t t = PL_new_term_ref();
 
   assert(PL_functor_arity(f) == arity);
-  if ( PL_put_functor(t) )
+  if ( PL_put_functor(t, f) )
     return t;
   else
     return (term_t)0;
@@ -231,7 +231,7 @@ YAP_ArgsOfTerm(term_t t)
     return (term_t)0;
 
   for (i=1; i<=arity; i++)
-    PL_get_arg_(i, t, args+i-1);
+    _PL_get_arg(i, t, args+i-1);
 
   return args;
 }

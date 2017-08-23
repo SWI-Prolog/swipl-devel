@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -34,8 +34,6 @@
 */
 
 #include "pl-incl.h"
-#define LOCK()   PL_LOCK(L_MODULE)
-#define UNLOCK() PL_UNLOCK(L_MODULE)
 #undef LD
 #define LD LOCAL_LD
 
@@ -124,9 +122,9 @@ lookupModule__LD(atom_t name ARG_LD)
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
 
-  LOCK();
+  PL_LOCK(L_MODULE);
   m = _lookupModule(name PASS_LD);
-  UNLOCK();
+  PL_UNLOCK(L_MODULE);
 
   return m;
 }
@@ -148,7 +146,7 @@ unallocModuleSymbol(void *name, void *value)
 void
 initModules(void)
 { GET_LD
-  LOCK();
+  PL_LOCK(L_MODULE);
   if ( !GD->tables.modules )
   {
 #ifdef O_PLMT
@@ -161,7 +159,7 @@ initModules(void)
     GD->modules.system = _lookupModule(ATOM_system PASS_LD);
     GD->modules.user   = _lookupModule(ATOM_user PASS_LD);
   }
-  UNLOCK();
+  PL_UNLOCK(L_MODULE);
 }
 
 
@@ -399,9 +397,9 @@ int
 addSuperModule(Module m, Module s, int where)
 { int rc;
 
-  LOCK();
+  PL_LOCK(L_MODULE);
   rc = addSuperModule_no_lock(m, s, where);
-  UNLOCK();
+  PL_UNLOCK(L_MODULE);
 
   return rc;
 }
@@ -443,9 +441,9 @@ clearSupersModule_no_lock(Module m)
 
 void
 clearSupersModule(Module m)
-{ LOCK();
+{ PL_LOCK(L_MODULE);
   clearSupersModule_no_lock(m);
-  UNLOCK();
+  PL_UNLOCK(L_MODULE);
 }
 
 
@@ -491,9 +489,9 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
       if ( !PL_get_atom_ex(arg, &mname) )
 	return FALSE;
       super = lookupModule(mname);
-      LOCK();
+      PL_LOCK(L_MODULE);
       rc = setSuperModule(m, super);
-      UNLOCK();
+      PL_UNLOCK(L_MODULE);
       return rc;
     } else if ( pname == ATOM_class )
     { atom_t class;
@@ -706,9 +704,9 @@ PRED_IMPL("delete_import_module", 2, delete_import_module, 0)
        !get_module(A2, &super, TRUE) )
     fail;
 
-  LOCK();
+  PL_LOCK(L_MODULE);
   rval = delSuperModule(me, super);
-  UNLOCK();
+  PL_UNLOCK(L_MODULE);
 
   return rval;
 }
@@ -1038,15 +1036,16 @@ declareModule(atom_t name, atom_t class, atom_t super,
 { GET_LD
   Module module = lookupModule(name);
   term_t tmp = 0, rdef = 0, rtail = 0;
+  int rc = TRUE;
 
-  LOCK();
+  PL_LOCK(L_MODULE);
   if ( class )
     module->class = class;
 
   if ( !allow_newfile && module->file && module->file != sf)
   { term_t obj;
     char msg[256];
-    UNLOCK();
+    PL_UNLOCK(L_MODULE);
 
     obj = PL_new_term_ref();
     PL_put_atom(obj, name);
@@ -1089,20 +1088,20 @@ declareModule(atom_t name, atom_t class, atom_t super,
   if ( super )
     setSuperModule(module, _lookupModule(super PASS_LD));
 
-  UNLOCK();
+  PL_UNLOCK(L_MODULE);
 
   if ( rdef )
   { if ( !PL_unify_nil(rtail) )
       return FALSE;
 
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR_CHARS, "declare_module", 2,
-		   PL_ATOM, name,
-		   PL_FUNCTOR_CHARS, "abolish", 1,
-		     PL_TERM, rdef);
+    rc = printMessage(ATOM_warning,
+		      PL_FUNCTOR_CHARS, "declare_module", 2,
+		        PL_ATOM, name,
+		        PL_FUNCTOR_CHARS, "abolish", 1,
+		          PL_TERM, rdef);
   }
 
-  succeed;
+  return rc;
 }
 
 
@@ -1358,10 +1357,10 @@ fixExportModule(Module m, Definition old, Definition new)
 
 static void
 fixExport(Definition old, Definition new)
-{ LOCK();
+{ PL_LOCK(L_MODULE);
   for_table(GD->tables.modules, name, value,
 	    fixExportModule(value, old, new));
-  UNLOCK();
+  PL_UNLOCK(L_MODULE);
 }
 
 
@@ -1430,10 +1429,11 @@ retry:
 	  if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
 	    return FALSE;
 
-	  printMessage(ATOM_warning,
-		       PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
-		         PL_ATOM, destination->name,
-		         PL_TERM, pi);
+	  if ( !printMessage(ATOM_warning,
+			     PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
+			       PL_ATOM, destination->name,
+			       PL_TERM, pi) )
+	    return FALSE;
 	}
 
 	return TRUE;
@@ -1459,10 +1459,11 @@ retry:
 
     if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
       return FALSE;
-    printMessage(ATOM_warning,
-		 PL_FUNCTOR_CHARS, "import_private", 2,
-		   PL_ATOM, destination->name,
-		   PL_TERM, pi);
+    if ( !printMessage(ATOM_warning,
+		       PL_FUNCTOR_CHARS, "import_private", 2,
+		         PL_ATOM, destination->name,
+		         PL_TERM, pi) )
+      return FALSE;
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));

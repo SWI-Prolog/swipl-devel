@@ -52,9 +52,6 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include <process.h>			/* getpid() */
 #endif
 
-#define LOCK()   PL_LOCK(L_INIT)
-#define UNLOCK() PL_UNLOCK(L_INIT)
-
 #if defined(_DEBUG) && defined(__WINDOWS__) && !defined(__MINGW32__)
 #include <crtdbg.h>
 #endif
@@ -436,7 +433,7 @@ initDefaults(void)
   systemDefaults.trail       = DEFTRAIL;
   systemDefaults.table       = DEFTABLE;
   systemDefaults.goal	     = NULL;
-  systemDefaults.toplevel    = "prolog";
+  systemDefaults.toplevel    = "default";
   systemDefaults.notty       = NOTTYCONTROL;
 
 #ifdef __WINDOWS__
@@ -446,13 +443,16 @@ initDefaults(void)
   GD->io_initialised	     = FALSE;
   GD->initialised	     = FALSE;
   GD->bootsession	     = FALSE;
+#ifdef SIG_ALERT
+  GD->signals.sig_alert      = SIG_ALERT;
+#endif
 
   if ( systemDefaults.notty )
     clearPrologFlagMask(PLFLAG_TTY_CONTROL);
   else
     setPrologFlagMask(PLFLAG_TTY_CONTROL);
 
-  setPrologFlagMask(PLFLAG_DEBUGINFO);
+  setPrologFlagMask(PLFLAG_DEBUGINFO|PLFLAG_GCTHREAD);
 }
 
 
@@ -584,6 +584,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
       continue;
     } else if ( isoption(s, "nosignals") )
     { clearPrologFlagMask(PLFLAG_SIGNALS);
+      clearPrologFlagMask(PLFLAG_GCTHREAD);
       continue;
     } else if ( isoption(s, "nodebug") )
     { clearPrologFlagMask(PLFLAG_DEBUGINFO);
@@ -608,6 +609,14 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 #endif
       } else if ( (optval=is_longopt(s, "traditional")) )
       { setTraditional();
+      } else if ( (optval=is_longopt(s, "sigalert")) )
+      { char *e;
+	long sig = strtol(optval, &e, 10);
+
+	if ( e > optval && *e == EOS && sig >= 0 && sig < 32 )
+	  GD->signals.sig_alert = sig;
+	else
+	  return -1;
       }
 
       continue;				/* don't handle --long=value */
@@ -816,7 +825,7 @@ PL_initialise(int argc, char **argv)
 
   { GET_LD
 #ifdef HAVE_SIGNAL
-  setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
+    setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
   if ( !GD->resourceDB )
@@ -915,8 +924,7 @@ PL_initialise(int argc, char **argv)
     if ( statefd )
     { GD->bootsession = TRUE;
       if ( !loadWicFromStream(statefd) )
-      { fail;
-      }
+	return FALSE;
       GD->bootsession = FALSE;
 
       Sclose(statefd);
@@ -1220,9 +1228,9 @@ cleanupProlog(int rval, int reclaim_memory)
     PlMessage("Exit status is %d", rval);
 #endif
 
-  LOCK();
+  PL_LOCK(L_INIT);
   if ( GD->cleaning != CLN_NORMAL )
-  { UNLOCK();
+  { PL_UNLOCK(L_INIT);
     return FALSE;
   }
 
@@ -1249,7 +1257,7 @@ cleanupProlog(int rval, int reclaim_memory)
 	 rval == 0 )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
-	UNLOCK();
+	PL_UNLOCK(L_INIT);
 	return FALSE;
       }
     }
@@ -1258,7 +1266,7 @@ cleanupProlog(int rval, int reclaim_memory)
     if ( !run_on_halt(&GD->os.on_halt_list, rval) && rval == 0 )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
-	UNLOCK();
+	PL_UNLOCK(L_INIT);
 	return FALSE;
       }
     }
@@ -1338,7 +1346,7 @@ emergency:
     cleanupDebug();
   }
 
-  UNLOCK();				/* requires GD->thread.enabled */
+  PL_UNLOCK(L_INIT);				/* requires GD->thread.enabled */
 
   if ( reclaim_memory )
   { memset(&PL_global_data, 0, sizeof(PL_global_data));
@@ -1351,7 +1359,7 @@ emergency:
 
 int
 PL_cleanup(int rc)
-{ return cleanupProlog(rc, TRUE);
+{ return cleanupProlog(rc, rc == 0);
 }
 
 

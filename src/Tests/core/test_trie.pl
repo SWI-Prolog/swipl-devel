@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, University of Amsterdam
+    Copyright (c)  2017, University of Amsterdam
                          VU University Amsterdam
     All rights reserved.
 
@@ -49,6 +49,10 @@ test(insert_atom, N == noot) :-
 	trie_new(T),
 	trie_insert(T, aap, noot),
 	trie_lookup(T, aap, N).
+test(insert_value_term, N == noot(1)) :-
+	trie_new(T),
+	trie_insert(T, aap, noot(1)),
+	trie_lookup(T, aap, N).
 test(insert_two, N1-N2 == noot1-noot2) :-
 	trie_new(T),
 	trie_insert(T, aap1, noot1),
@@ -91,5 +95,14 @@ test(insert_attvar, error(type_error(free_of_attvar,f(_)))) :-
 	trie_new(T),
 	freeze(X, true),
 	trie_insert(T, f(X), noot).
+test(delete, Keys == [aap,mies]) :-
+	trie_new(T),
+	trie_insert(T, aap, a),
+	trie_insert(T, noot, n),
+	trie_insert(T, mies, m),
+	trie_delete(T, noot, N),
+	assertion(N==n),
+	findall(K, trie_gen(T, K, _), Keys0),
+	sort(Keys0, Keys).
 
 :- end_tests(trie).

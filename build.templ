@@ -119,6 +119,13 @@ fi
 # GMP.
 # export CIFLAGS='-I/usr/local/include'
 
+# [EDIT] Open OpenBSD, the following are needed to fetch the required
+# non-default dependencies.  Using "CC=cc" the preferred clang compiler
+# is used.  SWI-Prolog compiles both with clang and gcc.
+# export CC=cc
+# export CIFLAGS="-I/usr/local/include"
+# export LDFLAGS="-O2 -g -L/usr/local/lib"
+
 export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 
 ################################################################
@@ -243,15 +250,15 @@ if [ "$setvars" = "false" ]; then
   fi
 
   if [ -z "$DESTDIR" ]; then
-    make check-installation
+    $MAKE check-installation
   fi
 
   # Parse build log for warnings that may indicate serious runtime issues
   if [ "$make" = "true" ]; then
-    [ -f make.out ] && scripts/check_build_log.sh make.out
+    [ -f make.out ] && bash scripts/check_build_log.sh make.out
   fi
 
   # See whether any package failed to build
-  ./packages/report-failed || exit 1
+  bash packages/report-failed || exit 1
 fi # setvars
 

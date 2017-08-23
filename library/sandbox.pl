@@ -229,8 +229,9 @@ rethrow_instantition_error(Parents) :-
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
     predicate_property(M:G, interpreted),
-    !,
     def_module(M:G, MD:QG),
+    \+ compiled(MD:QG),
+    !,
     findall(Ref-Body, clause(MD:QG, Body, Ref), Bodies),
     safe_bodies(Bodies, MD, Parents, Safe0, Safe).
 safe_clauses(G, M, [_|Parents], _, _) :-
@@ -241,6 +242,8 @@ safe_clauses(G, M, [_|Parents], _, _) :-
 safe_clauses(_, _, [G|Parents], _, _) :-
     throw(error(existence_error(procedure, G),
                 sandbox(G, Parents))).
+
+compiled(system:(@(_,_))).
 
 %!  safe_bodies(+Bodies, +Module, +Parents, +Safe0, -Safe)
 %
@@ -651,6 +654,7 @@ safe_primitive(system:between(_,_,_)).
 safe_primitive(system:succ(_,_)).
 safe_primitive(system:plus(_,_,_)).
 safe_primitive(system:term_variables(_,_)).
+safe_primitive(system:term_variables(_,_,_)).
 safe_primitive(system:'$term_size'(_,_,_)).
 safe_primitive(system:atom_to_term(_,_,_)).
 safe_primitive(system:term_to_atom(_,_)).

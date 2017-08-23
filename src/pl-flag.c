@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2012, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -54,8 +54,6 @@ typedef struct flag
 static void	freeFlagValue(Flag f);
 
 #define flagTable (GD->flags.table)
-#define LOCK()   PL_LOCK(L_FLAG)
-#define UNLOCK() PL_UNLOCK(L_FLAG)
 
 #undef LD
 #define LD LOCAL_LD
@@ -131,7 +129,7 @@ PRED_IMPL("get_flag", 2, get_flag, 0)
     return FALSE;
 
   f = lookupFlag(key);
-  LOCK();
+  PL_LOCK(L_FLAG);
   switch(f->type)
   { case FLG_ATOM:
       rc = PL_unify_atom(value, f->value.a);
@@ -146,7 +144,7 @@ PRED_IMPL("get_flag", 2, get_flag, 0)
       rc = FALSE;
       assert(0);
   }
-  UNLOCK();
+  PL_UNLOCK(L_FLAG);
 
   return rc;
 }
@@ -168,21 +166,21 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
   f = lookupFlag(key);
 
   if ( PL_get_atom(value, &a) )
-  { LOCK();
+  { PL_LOCK(L_FLAG);
     freeFlagValue(f);
     f->type = FLG_ATOM;
     f->value.a = a;
     PL_register_atom(a);
-    UNLOCK();
+    PL_UNLOCK(L_FLAG);
     return TRUE;
   } else if ( PL_get_number(value, &n) )
   { switch(n.type)
     { case V_INTEGER:
-      { LOCK();
+      { PL_LOCK(L_FLAG);
 	freeFlagValue(f);
 	f->type = FLG_INTEGER;
 	f->value.i = n.value.i;
-	UNLOCK();
+	PL_UNLOCK(L_FLAG);
 	return TRUE;
       }
 #ifdef O_GMP
@@ -192,11 +190,11 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
 	goto type_error;
 #endif
       case V_FLOAT:
-      { LOCK();
+      { PL_LOCK(L_FLAG);
 	freeFlagValue(f);
 	f->type = FLG_FLOAT;
         f->value.f = n.value.f;
-	UNLOCK();
+	PL_UNLOCK(L_FLAG);
 	return TRUE;
       }
       default:

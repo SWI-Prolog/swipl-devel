@@ -96,6 +96,10 @@ PRED_IMPL("atom_string", 2, atom_string, 0)
     rc = PL_unify_text(a, 0, &t, PL_ATOM);
   else if ( PL_get_text(a, &t, CVT_ALL) )
     rc = PL_unify_text(str, 0, &t, PL_STRING);
+  else if ( !PL_is_variable(str) )
+    return PL_type_error("string", str);
+  else if ( !PL_is_variable(a) )
+    return PL_type_error("atom", a);
   else
     return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 

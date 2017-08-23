@@ -153,6 +153,9 @@ found_undef(To, _Caller, From) :-
 compiled(system:'$call_cleanup'/0).     % compiled to VM instructions
 compiled(system:'$catch'/0).
 compiled(system:'$cut'/0).
+compiled(system:'$reset'/0).
+compiled(system:'$call_continuation'/1).
+compiled(system:'$shift'/1).
 
 goal_pi(M:Head, M:Name/Arity) :-
     functor(Head, Name, Arity).

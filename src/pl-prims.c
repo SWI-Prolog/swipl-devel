@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -143,6 +143,15 @@ unvisit(ARG1_LD)
 
   while( popSegStack(&LD->cycle.vstack, &p, Word) )
   { clear_marked(p);
+  }
+}
+
+static void
+unvisit_and_unfirst(ARG1_LD)
+{ Word p;
+
+  while( popSegStack(&LD->cycle.vstack, &p, Word) )
+  { clear_both(p);
   }
 }
 
@@ -748,7 +757,7 @@ ph_visited(Functor f, phase ph)
 }
 
 
-static int
+static Word
 ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
 { term_agenda agenda;
 
@@ -756,7 +765,7 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
   while((p=nextTermAgenda(&agenda)))
   { if ( canBind(*p) )
     { clearTermAgenda(&agenda);
-      return FALSE;
+      return p;
     }
     if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -767,25 +776,22 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
     }
   }
 
-  return TRUE;
+  return NULL;
 }
 
 
-int
+Word
 ground__LD(Word p ARG_LD)
-{ int rc1, rc2;
+{ Word rc1, rc2;
 
   deRef(p);
   if ( canBind(*p) )
-    return FALSE;
+    return p;
   if ( !isTerm(*p) )
-    return TRUE;
+    return NULL;
 
-  startCritical;
   rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
   rc2 = ph_ground(p, ph_unmark PASS_LD);  /* unmark the very same functors */
-  if ( !endCritical )
-    return FALSE;
   assert(rc1 == rc2);
   return rc1;
 }
@@ -795,7 +801,7 @@ int
 PL_is_ground(term_t t)
 { GET_LD
 
-  return ground__LD(valTermRef(t) PASS_LD);
+  return ground__LD(valTermRef(t) PASS_LD) == NULL;
 }
 
 
@@ -803,7 +809,18 @@ static
 PRED_IMPL("ground", 1, ground, PL_FA_ISO)
 { PRED_LD
 
-  return ground__LD(valTermRef(A1) PASS_LD);
+  return ground__LD(valTermRef(A1) PASS_LD) == NULL;
+}
+
+static
+PRED_IMPL("nonground", 2, nonground, 0)
+{ PRED_LD
+  Word p;
+
+  if ( (p=ground__LD(valTermRef(A1) PASS_LD)) )
+    return unify_ptrs(valTermRef(A2), p, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+
+  return FALSE;
 }
 
 
@@ -1669,9 +1686,31 @@ compare_primitives(Word p1, Word p2, int eq ARG_LD)
     case TAG_FLOAT:
     { if ( equalIndirect(w1,w2) )
       { return CMP_EQUAL;
+      } else if ( eq )
+      { return CMP_NOTEQ;
       } else
       { double f1 = valFloat(w1);
 	double f2 = valFloat(w2);
+
+	if ( isnan(f1) )
+	{ if ( isnan(f2) )
+	  { double nf1 = NaN_value(f1);
+	    double nf2 = NaN_value(f2);
+
+	    if ( nf1 < nf2 )
+	    { return CMP_LESS;
+	    } else if ( nf1 > nf2 )
+	    { return CMP_GREATER;
+	    } else if ( signbit(nf1) != signbit(nf2) )
+	    { return signbit(nf1) ? CMP_LESS : CMP_GREATER;
+	    } else
+	    { return CMP_EQUAL;
+	    }
+	  }
+	  return CMP_LESS;
+	} else if ( isnan(f2) )
+	{ return CMP_GREATER;
+	}
 
 	if ( f1 < f2 )
 	{ return CMP_LESS;
@@ -2084,7 +2123,8 @@ PRED_IMPL("$filled_array", 4, filled_array, 0)
     return FALSE;
 
   f = PL_new_functor(name, arity);
-  p = allocGlobal(arity+1);
+  if ( !(p = allocGlobal(arity+1)) )
+    return FALSE;
   v = valTermRef(A4);
   deRef(v);
 
@@ -2257,9 +2297,8 @@ unify_vp(Word vp, Word val ARG_LD)
 
 
 static word
-setarg(term_t n, term_t term, term_t value, int flags)
-{ GET_LD
-  size_t arity, argn;
+setarg(term_t n, term_t term, term_t value, int flags ARG_LD)
+{ size_t arity, argn;
   atom_t name;
   Word a, v;
 
@@ -2271,7 +2310,7 @@ setarg(term_t n, term_t term, term_t value, int flags)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, term);
 
   if ( argn > arity )
-    fail;
+    return FALSE;
 
   if ( (flags & SETARG_BACKTRACKABLE) )
   { a = valTermRef(term);
@@ -2324,19 +2363,25 @@ setarg(term_t n, term_t term, term_t value, int flags)
 
 static
 PRED_IMPL("setarg", 3, setarg, 0)
-{ return setarg(A1, A2, A3, SETARG_BACKTRACKABLE);
+{ PRED_LD
+
+  return setarg(A1, A2, A3, SETARG_BACKTRACKABLE PASS_LD);
 }
 
 
 static
 PRED_IMPL("nb_setarg", 3, nb_setarg, 0)
-{ return setarg(A1, A2, A3, 0);
+{ PRED_LD
+
+  return setarg(A1, A2, A3, 0 PASS_LD);
 }
 
 
 static
 PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
-{ return setarg(A1, A2, A3, SETARG_LINK);
+{ PRED_LD
+
+  return setarg(A1, A2, A3, SETARG_LINK PASS_LD);
 }
 
 
@@ -2863,7 +2908,8 @@ PRED_IMPL("var_number", 2, var_number, 0)
 		 *	   TERM-VARIABLES	*
 		 *******************************/
 
-#define TV_ATTVAR 0x1
+#define TV_ATTVAR    0x1
+#define TV_SINGLETON 0x2
 #define TV_EXCEPTION ((size_t)-1)
 #define TV_NOSPACE   ((size_t)-2)
 #define TV_NOMEM     ((size_t)-3)
@@ -2883,9 +2929,12 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
     { term_t v;
 
       if ( visitedWord(p PASS_LD) )
+      { if ( (flags&TV_SINGLETON) )
+	  (*p) |= FIRST_MASK;
 	continue;
+      }
 
-      if ( flags & TV_ATTVAR )
+      if ( (flags&TV_ATTVAR) )
       { if ( isAttVar(w) )
 	{ Word p2 = valPAttVar(w);
 
@@ -2908,7 +2957,7 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
     } else if ( isTerm(w) )
     { Functor f = valueTerm(w);
 
-      if ( visited(f PASS_LD) )
+      if ( visited(f PASS_LD) && !(flags&TV_SINGLETON) )
 	continue;
       if ( !pushWorkAgenda(agenda, arityFunctor(f->definition), f->arguments) )
 	return TV_NOMEM;
@@ -2930,7 +2979,25 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
   initTermAgenda(&agenda, 1, valTermRef(t));
   count = term_variables_loop(&agenda, maxcount, flags PASS_LD);
   clearTermAgenda(&agenda);
-  unvisit(PASS_LD1);
+  if ( (flags&TV_SINGLETON) && (ssize_t)count >= 0 )
+  { size_t o = 0;
+    size_t i;
+
+    for(i=0; i<count; i++)
+    { Word p = valTermRef(v0+i);
+
+      assert(isRef(*p));
+      p = unRef(*p);
+      if ( !((*p)&FIRST_MASK) )
+      { if ( o != i )
+	  *valTermRef(v0+o) = *valTermRef(v0+i);
+	o++;
+      }
+    }
+
+    count = o;
+  }
+  unvisit_and_unfirst(PASS_LD1);
   if ( !endCritical )
     return TV_EXCEPTION;
 
@@ -2942,8 +3009,8 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
 
 static int
 term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
-{ term_t head = PL_new_term_ref();
-  term_t list = PL_copy_term_ref(vars);
+{ term_t list = PL_copy_term_ref(vars);
+  term_t head = PL_new_term_ref();
   term_t v0;
   size_t i, maxcount, count;
 
@@ -2972,7 +3039,7 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
 	 !PL_unify(head, v0+i) )
       fail;
   }
-  PL_reset_term_refs(v0);
+  PL_reset_term_refs(head);
 
   if ( tail )
     return PL_unify(list, tail);
@@ -2995,6 +3062,17 @@ PRED_IMPL("term_variables", 3, term_variables3, 0)
 { PRED_LD
 
   return term_variables(A1, A2, A3, 0 PASS_LD);
+}
+
+
+static
+PRED_IMPL("term_singletons", 2, term_singletons, 0)
+{ PRED_LD
+
+  if ( PL_is_acyclic(A1) )
+    return term_variables(A1, A2, 0, TV_SINGLETON PASS_LD);
+  else
+    return PL_representation_error("acyclic_term");
 }
 
 
@@ -5457,6 +5535,22 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 }
 
 
+static
+PRED_IMPL("$cmd_option_set", 2, cmd_option_set, 0)
+{ char *k, *v;
+
+  term_t key = A1;
+  term_t val = A2;
+
+  if ( PL_get_chars(key, &k, CVT_ALL|CVT_EXCEPTION) &&
+       PL_get_chars(val, &v, CVT_ALL|CVT_EXCEPTION) )
+  { return set_pl_option(k, v);
+  }
+
+  return FALSE;
+}
+
+
 int
 set_pl_option(const char *name, const char *value)
 { OptDef d = (OptDef)optdefs;
@@ -5560,6 +5654,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
+  PRED_DEF("nonground", 2, nonground, 0)
   PRED_DEF("$term_size", 3, term_size, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, PL_FA_ISO)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
@@ -5584,6 +5679,7 @@ BeginPredDefs(prims)
   PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)
   PRED_DEF("term_variables", 3, term_variables3, 0)
+  PRED_DEF("term_singletons", 2, term_singletons, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
   PRED_DEF("$free_variable_set", 3, free_variable_set, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
@@ -5628,6 +5724,7 @@ BeginPredDefs(prims)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$cmd_option_val", 2, cmd_option_val, 0)
+  PRED_DEF("$cmd_option_set", 2, cmd_option_set, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
   PRED_DEF("setarg", 3, setarg, 0)

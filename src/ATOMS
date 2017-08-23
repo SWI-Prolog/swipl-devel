@@ -164,6 +164,7 @@ A db_reference		"db_reference"
 A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
+A dcall_continuation	"$call_continuation"
 A dcatch		"$catch"
 A dcont			"$cont$"
 A dcut			"$cut"
@@ -214,6 +215,8 @@ A dprof_node		"$profile_node"
 A dquasi_quotation	"$quasi_quotation"
 A dquery_loop		"$query_loop"
 A drecover_and_rethrow	"$recover_and_rethrow"
+A dreset		"$reset"
+A dshift		"$shift"
 A dstream		"$stream"
 A dstream_position	"$stream_position"
 A dthread_init		"$thread_init"
@@ -344,6 +347,7 @@ A import_into		"import_into"
 A import_type		"import_type"
 A imported		"imported"
 A imported_procedure	"imported_procedure"
+A cont_inactive		"<inactive>"
 A index			"index"
 A indexed		"indexed"
 A inf			"inf"
@@ -540,7 +544,7 @@ A prolog_flag_type	"prolog_flag_type"
 A prolog_identifier_continue "prolog_identifier_continue"
 A prolog_symbol		"prolog_symbol"
 A prolog_var_start	"prolog_var_start"
-A prompt		"|:"
+A prompt		"|: "
 A property		"property"
 A protect_static_code	"protect_static_code"
 A protocol		"protocol"
@@ -696,9 +700,11 @@ A thread_option		"thread_option"
 A thread_property	"thread_property"
 A threads		"threads"
 A threads_created	"threads_created"
+A trienode		"trienode"
 A throw			"throw"
 A tilde			"~"
 A time			"time"
+A time_limit_exceeded	"time_limit_exceeded"
 A time_stamp		"time_stamp"
 A timeout		"timeout"
 A timeout_error		"timeout_error"
@@ -776,6 +782,7 @@ A when_condition	"when_condition"
 A white			"white"
 A write			"write"
 A write_attributes	"write_attributes"
+A write_errors		"write_errors"
 A write_option		"write_option"
 A xdigit		"xdigit"
 A xf			"xf"
@@ -805,6 +812,7 @@ F atan			2
 F atanh			1
 F atan2			2
 F atom			1
+F atomic		1
 F att			3
 F backslash		1
 F bar			2
@@ -819,6 +827,7 @@ F buffer_size		1
 F busy			2
 F call			1
 F call_continuation	1
+F callable		1
 F callpred		2
 F catch			3
 F ceil			1
@@ -833,6 +842,7 @@ F codes			1
 F codes			2
 F colon			2
 F comma			2
+F compound		1
 F context		2
 F copysign		2
 F cos			1
@@ -846,6 +856,7 @@ F date			3
 F date			9
 F dc_call_prolog	0
 F dcall			1
+F dcall_continuation	1
 F dcont			3
 F dcut			1
 F dde_error		2
@@ -871,6 +882,7 @@ F dparse_quasi_quotations 2
 F dprof_node		1
 F dquasi_quotation	3
 F drecover_and_rethrow	2
+F dshift		1
 F dstream		1
 F dthread_init		0
 F dthrow		1
@@ -959,6 +971,7 @@ F nonvar		1
 F not_implemented	2
 F not_provable		1
 F not_strict_equal	2
+F number		1
 F occurs_check		2
 F or			1
 F output		0
@@ -1051,6 +1064,7 @@ F uninstantiation_error	1
 F var			1
 F wakeup		3
 F warning		3
+F write_errors		1
 F xor			2
 F xpceref		1
 F xpceref		2

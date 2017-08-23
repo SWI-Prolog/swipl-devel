@@ -450,6 +450,9 @@ ubody(B, C, _, P, P) :-
     B =@= C, B = C,
     does_not_dcg_after_binding(B, P),
     !.
+ubody(X0, X, M, parentheses_term_position(_, _, P0), P) :-
+    !,
+    ubody(X0, X, M, P0, P).
 ubody(X, call(X), _,                    % X = call(X)
       Pos,
       term_position(From, To, From, To, [Pos])) :-
@@ -547,6 +550,10 @@ conj((A,B), brace_term_position(_,T,PA), GL, TG, PL, TP) :-
     conj(A, PA, GL, TGA, PL, TPA),
     T1 is T - 1,
     conj(B, T1-T, TGA, TG, TPA, TP).
+conj(A, parentheses_term_position(_,_,Pos), GL, TG, PL, TP) :-
+    nonvar(Pos),
+    !,
+    conj(A, Pos, GL, TG, PL, TP).
 conj((!,(S=SR)), F-T, [!,S=SR|TG], TG, [F-T,F1-T1|TP], TP) :-
     F1 is F+1,
     T1 is T+1.
