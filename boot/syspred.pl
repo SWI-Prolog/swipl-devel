@@ -1083,6 +1083,7 @@ module_property(exports(_)).
 module_property(exported_operators(_)).
 module_property(program_size(_)).
 module_property(program_space(_)).
+module_property(last_modified_generation(_)).
 
 %!  module(+Module) is det.
 %

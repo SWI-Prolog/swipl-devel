@@ -1107,6 +1107,28 @@ activePredicate(const Definition *defs, const Definition def)
   return FALSE;
 }
 
+static void
+setLastModifiedPredicate(Definition def, gen_t gen)
+{ Module m = def->module;
+
+  def->last_modified = gen;
+
+#ifdef HAVE___SYNC_ADD_AND_FETCH_8
+{ gen_t lmm;
+
+  do
+  { lmm = m->last_modified;
+  } while ( lmm < gen &&
+	    !COMPARE_AND_SWAP(&m->last_modified, lmm, gen) );
+}
+#else
+  LOCKMODULE(m);
+  if ( m->last_modified < gen )
+    m->last_modified = gen;
+  UNLOCKMODULE(m);
+#endif
+}
+
 
 		 /*******************************
 		 *	      ASSERT		*
@@ -1170,9 +1192,9 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
     def->impl.clauses.number_of_rules++;
   GD->statistics.clauses++;
 #ifdef O_LOGICAL_UPDATE
-  def->last_modified         =
   clause->generation.created = next_global_generation();
   clause->generation.erased  = GEN_MAX;	/* infinite */
+  setLastModifiedPredicate(def, clause->generation.created);
 #endif
 
   if ( false(def, P_DYNAMIC) )		/* see (*) above */
@@ -1323,8 +1345,8 @@ retractClauseDefinition(Definition def, Clause clause)
   def->impl.clauses.number_of_clauses--;
   def->impl.clauses.erased_clauses++;
 #ifdef O_LOGICAL_UPDATE
-  def->last_modified        =
   clause->generation.erased = next_global_generation();
+  setLastModifiedPredicate(def, clause->generation.erased);
 #endif
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);

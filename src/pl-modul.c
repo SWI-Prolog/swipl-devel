@@ -1170,31 +1170,38 @@ PRED_IMPL("$module_property", 2, module_property, 0)
 { PRED_LD
   Module m;
   term_t a = PL_new_term_ref();
+  atom_t pname;
+  size_t parity;
 
   if ( !get_module(A1, &m, FALSE) )
     fail;
 
-  if ( !PL_get_arg(1, A2, a) )
+  if ( !PL_get_name_arity(A2, &pname, &parity) ||
+       parity != 1 )
     return PL_error(NULL, 0, NULL, ERR_TYPE,
 		    ATOM_module_property, A2);
 
-  if ( PL_is_functor(A2, FUNCTOR_line_count1) )
+  _PL_get_arg(1, A2, a);
+
+  if ( pname == ATOM_line_count )
   { if ( m->line_no > 0 )
       return PL_unify_integer(a, m->line_no);
     else
       fail;
-  } else if ( PL_is_functor(A2, FUNCTOR_file1) )
+  } else if ( pname == ATOM_file )
   { if ( m->file )
       return PL_unify_atom(a, m->file->name);
     else
       fail;
-  } else if ( PL_is_functor(A2, FUNCTOR_exports1) )
+  } else if ( pname == ATOM_exports )
   { return unify_export_list(a, m PASS_LD);
-  } else if ( PL_is_functor(A2, FUNCTOR_class1) )
+  } else if ( pname == ATOM_class )
   { return PL_unify_atom(a, m->class);
-  } else if ( PL_is_functor(A2, FUNCTOR_program_size1) )
+  } else if ( pname == ATOM_program_size )
   { return PL_unify_int64(a, m->code_size);
-  } else if ( PL_is_functor(A2, FUNCTOR_program_space1) )
+  } else if ( pname == ATOM_last_modified_generation )
+  { return PL_unify_int64(a, m->last_modified);
+  } else if ( pname == ATOM_program_space )
   { if ( m->code_limit )
       return PL_unify_int64(a, m->code_limit);
     return FALSE;

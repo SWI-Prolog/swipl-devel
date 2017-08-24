@@ -766,6 +766,10 @@ are:
 	\termitem{program_space}{-Bytes}
 	If present, this number limits the \const{program_size}.  See
 	set_module/1.
+	\termitem{last_modified_generation}{-Generation}
+	Integer expression the last database generation where a clause
+	was added or removed from a predicate that is implemented in
+	this module.  See also predicate_property/2.
     \end{description}
 
     \predicate{set_module}{1}{:Property}

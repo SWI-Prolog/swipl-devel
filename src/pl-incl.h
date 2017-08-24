@@ -1689,6 +1689,7 @@ struct module
   int		level;		/* Distance to root (root=0) */
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
+  gen_t		last_modified;	/* Generation I was last modified */
 };
 
 struct trail_entry
