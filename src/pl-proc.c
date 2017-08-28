@@ -1575,6 +1575,9 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
       clearTriedIndexes(def);
     }
 
+    if ( added || deleted )
+      setLastModifiedPredicate(def, update);
+
     if ( deleted )
     { ATOMIC_SUB(&def->module->code_size, memory);
       ATOMIC_ADD(&GD->clauses.erased_size, memory);
