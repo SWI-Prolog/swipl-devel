@@ -535,6 +535,7 @@ COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 /* pl-srcfile.c */
 
 COMMON(int)		startConsult(SourceFile f);
+COMMON(int)		endConsult(SourceFile f);
 COMMON(size_t)		highSourceFileIndex(void);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
 COMMON(SourceFile)	indexToSourceFile(int index);

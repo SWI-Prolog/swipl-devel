@@ -1444,6 +1444,13 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
 }
 
 
+int
+endConsult(SourceFile f)
+{ f->current_procedure = NULL;
+  return endReconsult(f);
+}
+
+
 static
 PRED_IMPL("$end_consult", 1, end_consult, 0)
 { PRED_LD
@@ -1453,8 +1460,7 @@ PRED_IMPL("$end_consult", 1, end_consult, 0)
   { SourceFile sf;
 
     if ( (sf=lookupSourceFile(name, FALSE)) )
-    { sf->current_procedure = NULL;
-      return endReconsult(sf);
+    { return endConsult(sf);
     }
 
     return TRUE;
