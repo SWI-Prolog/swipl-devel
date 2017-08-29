@@ -287,7 +287,8 @@ isCurrentProcedure__LD(functor_t f, Module m ARG_LD)
 
 ClauseRef
 hasClausesDefinition(Definition def)
-{ if ( def->impl.clauses.first_clause )
+{ if ( false(def, P_FOREIGN|P_THREAD_LOCAL) &&
+       def->impl.clauses.first_clause )
   { GET_LD
     ClauseRef c;
     gen_t generation = global_generation();

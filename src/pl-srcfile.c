@@ -734,19 +734,21 @@ startReconsultFile(SourceFile sf)
       ClauseRef c;
 
       next = cell->next;
-      acquire_def(def);
-      for(c = def->impl.clauses.first_clause; c; c = c->next)
-      { Clause cl = c->value.clause;
+      if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
+      { acquire_def(def);
+	for(c = def->impl.clauses.first_clause; c; c = c->next)
+	{ Clause cl = c->value.clause;
 
-        if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) ||
-	     true(cl, CL_ERASED) )
-          continue;
-        if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
-          continue;
+	  if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) ||
+	       true(cl, CL_ERASED) )
+	    continue;
+	  if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
+	    continue;
 
-        cl->generation.erased = r->reload_gen;
+	  cl->generation.erased = r->reload_gen;
+	}
+	release_def(def);
       }
-      release_def(def);
     }
 
     return TRUE;
