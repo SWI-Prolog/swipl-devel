@@ -5165,7 +5165,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   info->goal       = NULL;
   info->module     = MODULE_user;
-  info->detached   = (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
+  info->detached   = attr && (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
   info->open_count = 1;
 
   copy_local_data(ldnew, ldmain);
