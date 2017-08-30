@@ -3,8 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2016, University of Amsterdam
-    Copyright (C): 2009-2016, SCIENTIFIC SOFTWARE AND SYSTEMS LIMITED
+    Copyright (c)  1995-2017, University of Amsterdam
+    Copyright (C): 2009-2017, SCIENTIFIC SOFTWARE AND SYSTEMS LIMITED
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -390,6 +390,14 @@ control_ansi(void *handle, int op, void *data)
 		 *	USER WIN32 CONSOLE	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows 10 seems to have a bug that MsgWaitForMultipleObjects() followed
+by ReadConsoleW() claims to have read  0   characters  (end of file). In
+fact it does leave characters in the output  buffer, so we hack around a
+little ...  See https://github.com/SWI-Prolog/swipl-devel/issues/245
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 static ssize_t
 Sread_win32_console(void *handle, char *buffer, size_t size)
 { GET_LD
@@ -411,11 +419,21 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
   if ( !PL_wait_for_console_input(as->hConsole) )
     goto error;
 
+  if ( isRaw )
+    memset(buffer, 0, size);		/* see (*) */
   rc = ReadConsoleW(as->hConsole,
 		    buffer,
 		    (DWORD)(size / sizeof(wchar_t)),
 		    &done,
 		    NULL);
+  if ( rc && done == 0 && isRaw )	/* see (*) */
+  { size_t i;
+    const wchar_t *wbuf = (const wchar_t*)buffer;
+
+    for(i=0; i<size/sizeof(wchar_t) && wbuf[i]; i++)
+      ;
+    done = i;
+  }
 
   if ( rc )
   { if ( isRaw )
