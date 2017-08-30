@@ -345,14 +345,14 @@ initPaths(int argc, const char **argv)
 	 !(symbols = DeRefLink(symbols, plp)) )
       symbols = argv[0];
 
-    DEBUG(2, Sdprintf("rc-module: %s\n", symbols));
+    DEBUG(MSG_INITIALISE, Sdprintf("rc-module: %s\n", symbols));
 
     systemDefaults.home	       = findHome(symbols, argc, argv);
 
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
     symbols = findExecutable(NULL, plp, sizeof(plp));
-    DEBUG(2, Sdprintf("Executable: %s\n", symbols));
+    DEBUG(MSG_INITIALISE, Sdprintf("Executable: %s\n", symbols));
 #endif
     GD->paths.executable       = store_string(symbols);
     GD->options.systemInitFile = defaultSystemInitFile(argv[0]);
@@ -567,6 +567,12 @@ static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
 { GET_LD
   int argc = argc0;
+
+  DEBUG(MSG_INITIALISE,
+	{ Sdprintf("parseCommandLineOptions");
+	  for(int i=0; i<argc; i++)
+	    Sdprintf("%s ", argv[i]);
+	});
 
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
@@ -858,7 +864,7 @@ PL_initialise(int argc, char **argv)
       }
     }
 
-    DEBUG(1, if (GD->bootsession) Sdprintf("Boot session\n"););
+    DEBUG(MSG_INITIALISE, if (GD->bootsession) Sdprintf("Boot session\n"););
 
     if ( !GD->resourceDB )
     { if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
@@ -941,7 +947,7 @@ PL_initialise(int argc, char **argv)
   GD->initialised = TRUE;
   registerForeignLicenses();
 
-  DEBUG(1, Sdprintf("Starting Prolog Part of initialisation\n"));
+  DEBUG(MSG_INITIALISE, Sdprintf("Starting Prolog Part of initialisation\n"));
 
   if ( compile )
   { int status = prologToplevel(PL_new_atom("$compile")) ? 0 : 1;
@@ -1247,7 +1253,7 @@ cleanupProlog(int rval, int reclaim_memory)
   debugmode(FALSE, NULL);		/* avoid recursive tracing */
 
   if ( GD->initialised )
-  { DEBUG(5, Sdprintf("Running at_halt hooks\n"));
+  { DEBUG(MSG_CLEANUP, Sdprintf("Running at_halt hooks\n"));
 
     if ( LD->outofstack )
       emptyStacks();

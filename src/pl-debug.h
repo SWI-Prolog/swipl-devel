@@ -103,6 +103,7 @@
 #define MSG_CONTINUE		 70
 
 #define MSG_CLEANUP_THREAD	 80
+#define MSG_INITIALISE		 81
 
 						/* GC messages */
 #define	MSG_AGC			 100
