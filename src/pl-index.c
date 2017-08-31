@@ -2217,6 +2217,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
       { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
 				predicateName(def), iargsName(nbest->args, NULL),
 				nbest->speedup));
+	memset(hints, 0, sizeof(*hints));
 	memcpy(hints->args, nbest->args, sizeof(nbest->args));
 	hints->ln_buckets = MSB(nbest->size);
 	hints->speedup    = nbest->speedup;
