@@ -3000,8 +3000,7 @@ load_files(Module:Files, Options) :-
 %   Execute the argument of :- or ?- while loading a file.
 
 '$execute_directive'(Goal, F) :-
-    '$expand_goal'(Goal, Goal1),
-    '$execute_directive_2'(Goal1, F).
+    '$execute_directive_2'(Goal, F).
 
 '$execute_directive_2'(encoding(Encoding), _F) :-
     !,

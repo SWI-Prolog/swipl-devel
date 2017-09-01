@@ -5165,7 +5165,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   info->goal       = NULL;
   info->module     = MODULE_user;
-  info->detached   = (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
+  info->detached   = attr && (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
   info->open_count = 1;
 
   copy_local_data(ldnew, ldmain);
@@ -5913,21 +5913,21 @@ void
 forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
 { GET_LD
   int me = PL_thread_self();
-  PL_thread_info_t **th;
+  int i;
 
-  for( th = &GD->thread.threads[1];
-       th <= &GD->thread.threads[thread_highest_id];
-       th++ )
-  { PL_thread_info_t *info = *th;
+  for( i=1; i<=thread_highest_id; i++ )
+  { if ( i != me )
+    { PL_thread_info_t *info = GD->thread.threads[i];
 
-    if ( info->thread_data && info->pl_tid != me &&
-	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
-    { PL_local_data_t *ld;
+      if ( info && info->thread_data &&
+	   ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
+      { PL_local_data_t *ld;
 
-      if ( (ld = acquire_ldata(info)) )
-      { simpleMutexLock(&ld->thread.scan_lock);
-	(*func)(ld);
-	simpleMutexUnlock(&ld->thread.scan_lock);
+	if ( (ld = acquire_ldata(info)) )
+	{ simpleMutexLock(&ld->thread.scan_lock);
+	  (*func)(ld);
+	  simpleMutexUnlock(&ld->thread.scan_lock);
+	}
       }
     }
   }

@@ -734,19 +734,21 @@ startReconsultFile(SourceFile sf)
       ClauseRef c;
 
       next = cell->next;
-      acquire_def(def);
-      for(c = def->impl.clauses.first_clause; c; c = c->next)
-      { Clause cl = c->value.clause;
+      if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
+      { acquire_def(def);
+	for(c = def->impl.clauses.first_clause; c; c = c->next)
+	{ Clause cl = c->value.clause;
 
-        if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) ||
-	     true(cl, CL_ERASED) )
-          continue;
-        if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
-          continue;
+	  if ( !GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) ||
+	       true(cl, CL_ERASED) )
+	    continue;
+	  if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
+	    continue;
 
-        cl->generation.erased = r->reload_gen;
+	  cl->generation.erased = r->reload_gen;
+	}
+	release_def(def);
       }
-      release_def(def);
     }
 
     return TRUE;
@@ -1444,6 +1446,13 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
 }
 
 
+int
+endConsult(SourceFile f)
+{ f->current_procedure = NULL;
+  return endReconsult(f);
+}
+
+
 static
 PRED_IMPL("$end_consult", 1, end_consult, 0)
 { PRED_LD
@@ -1453,8 +1462,7 @@ PRED_IMPL("$end_consult", 1, end_consult, 0)
   { SourceFile sf;
 
     if ( (sf=lookupSourceFile(name, FALSE)) )
-    { sf->current_procedure = NULL;
-      return endReconsult(sf);
+    { return endConsult(sf);
     }
 
     return TRUE;

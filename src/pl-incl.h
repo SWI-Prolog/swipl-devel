@@ -823,8 +823,8 @@ with one operation, it turns out to be faster as well.
 
 #define true(s, a)		((s)->flags & (a))
 #define false(s, a)		(!true((s), (a)))
-#define set(s, a)		((s)->flags |= (a))
-#define clear(s, a)		((s)->flags &= ~(a))
+#define set(s, a)		ATOMIC_OR(&(s)->flags, (a))
+#define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))
 #define clearFlags(s)		((s)->flags = 0)
 
 /* Flags on predicates (packed in unsigned int */
@@ -1230,8 +1230,8 @@ struct clause
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		variables;	/* # of variables for frame */
   unsigned int		prolog_vars;	/* # real Prolog variables */
-  unsigned		flags : 8;	/* Flag field holding: */
-  unsigned		line_no : 24;	/* Source line-number */
+  unsigned int		flags;		/* Flag field holding: */
+  unsigned int		line_no;	/* Source line-number */
   unsigned int		source_no;	/* Index of source-file */
   unsigned int		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
@@ -1375,6 +1375,7 @@ struct definition
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
+  gen_t		last_modified;		/* Generation I was last modified */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
@@ -1562,8 +1563,8 @@ struct fliFrame
 struct record
 { int		size;			/* # bytes of the record */
   unsigned      gsize;			/* Size on global stack */
-  unsigned	nvars : 27;		/* # variables in the term */
-  unsigned	flags : 5;		/* Flags, holding */
+  unsigned	nvars;			/* # variables in the term */
+  unsigned	flags;			/* Flags, holding */
 					/* R_ERASED */
 					/* R_EXTERNAL */
 					/* R_DUPLICATE */
@@ -1688,6 +1689,7 @@ struct module
   int		level;		/* Distance to root (root=0) */
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
+  gen_t		last_modified;	/* Generation I was last modified */
 };
 
 struct trail_entry

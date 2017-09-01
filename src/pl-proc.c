@@ -287,7 +287,8 @@ isCurrentProcedure__LD(functor_t f, Module m ARG_LD)
 
 ClauseRef
 hasClausesDefinition(Definition def)
-{ if ( def->impl.clauses.first_clause )
+{ if ( false(def, P_FOREIGN|P_THREAD_LOCAL) &&
+       def->impl.clauses.first_clause )
   { GET_LD
     ClauseRef c;
     gen_t generation = global_generation();
@@ -1107,6 +1108,28 @@ activePredicate(const Definition *defs, const Definition def)
   return FALSE;
 }
 
+static void
+setLastModifiedPredicate(Definition def, gen_t gen)
+{ Module m = def->module;
+
+  def->last_modified = gen;
+
+#ifdef HAVE___SYNC_ADD_AND_FETCH_8
+{ gen_t lmm;
+
+  do
+  { lmm = m->last_modified;
+  } while ( lmm < gen &&
+	    !COMPARE_AND_SWAP(&m->last_modified, lmm, gen) );
+}
+#else
+  LOCKMODULE(m);
+  if ( m->last_modified < gen )
+    m->last_modified = gen;
+  UNLOCKMODULE(m);
+#endif
+}
+
 
 		 /*******************************
 		 *	      ASSERT		*
@@ -1172,6 +1195,7 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
 #ifdef O_LOGICAL_UPDATE
   clause->generation.created = next_global_generation();
   clause->generation.erased  = GEN_MAX;	/* infinite */
+  setLastModifiedPredicate(def, clause->generation.created);
 #endif
 
   if ( false(def, P_DYNAMIC) )		/* see (*) above */
@@ -1323,6 +1347,7 @@ retractClauseDefinition(Definition def, Clause clause)
   def->impl.clauses.erased_clauses++;
 #ifdef O_LOGICAL_UPDATE
   clause->generation.erased = next_global_generation();
+  setLastModifiedPredicate(def, clause->generation.erased);
 #endif
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
@@ -1550,6 +1575,9 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
     { deleteActiveClauseFromIndexes(def, NULL);
       clearTriedIndexes(def);
     }
+
+    if ( added || deleted )
+      setLastModifiedPredicate(def, update);
 
     if ( deleted )
     { ATOMIC_SUB(&def->module->code_size, memory);
@@ -2850,6 +2878,8 @@ pl_get_predicate_attribute(term_t pred,
       fail;
 
     return PL_unify_integer(value, num_clauses);
+  } else if ( key == ATOM_last_modified_generation )
+  { return PL_unify_int64(value, def->last_modified);
   } else if ( key == ATOM_number_of_rules )
   { if ( def->flags & P_FOREIGN )
       fail;
