@@ -1191,7 +1191,7 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
   def->impl.clauses.number_of_clauses++;
   if ( false(clause, UNIT_CLAUSE) )
     def->impl.clauses.number_of_rules++;
-  GD->statistics.clauses++;
+  ATOMIC_INC(&GD->statistics.clauses);
 #ifdef O_LOGICAL_UPDATE
   clause->generation.created = next_global_generation();
   clause->generation.erased  = GEN_MAX;	/* infinite */
@@ -1366,8 +1366,8 @@ retractClauseDefinition(Definition def, Clause clause)
 
 void
 unallocClause(Clause c)
-{ GD->statistics.codes -= c->code_size;
-  GD->statistics.clauses--;
+{ ATOMIC_SUB(&GD->statistics.codes, c->code_size);
+  ATOMIC_DEC(&GD->statistics.clauses);
   PL_free(c);
 }
 
