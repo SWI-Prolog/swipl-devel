@@ -4789,7 +4789,8 @@ retry:
     }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
-    { PL_rewind_foreign_frame(fid);
+    { LD->exception.processing = FALSE;
+      PL_rewind_foreign_frame(fid);
       free_read_data(&rd);
       goto retry;
     }
