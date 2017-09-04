@@ -186,12 +186,13 @@ all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT)
 
 noprof:	system headers plwin startup index
 prof:
-		$(MAKE) clean profclean
-		$(MAKE) CPFLAGS=-fprofile-generate noprof
-		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL)' -t halt
-		$(MAKE) clean
-		$(MAKE) CPFLAGS=-fprofile-use noprof
-		$(MAKE) profclean
+	$(MAKE) clean profclean
+	$(MAKE) CPFLAGS=-fprofile-generate noprof
+	$(DEVPL) -f none -s $(PROFILE_SRC) --nosignals -q \
+		-g '$(PROFILE_GOAL)' -t halt
+	$(MAKE) clean
+	$(MAKE) CPFLAGS=-fprofile-use noprof
+	$(MAKE) profclean
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
