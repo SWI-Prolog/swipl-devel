@@ -279,8 +279,8 @@ pack_info_term(packager(atom, email_or_url)).
 pack_info_term(home(atom)).                     % Home page
 pack_info_term(download(atom)).                 % Source
 pack_info_term(provides(atom)).                 % Dependencies
-pack_info_term(requires(atom)).
-pack_info_term(conflicts(atom)).                % Conflicts with package
+pack_info_term(requires(dependency)).
+pack_info_term(conflicts(dependency)).          % Conflicts with package
 pack_info_term(replaces(atom)).                 % Replaces another package
 pack_info_term(autoload(boolean)).              % Default installation options
 
@@ -296,10 +296,26 @@ error:has_type(email_or_url, Address) :-
     ->  true
     ;   uri_is_global(Address)
     ).
+error:has_type(dependency, Value) :-
+    is_dependency(Value, _Token, _Version).
 
 version_data(Version, version(Data)) :-
     atomic_list_concat(Parts, '.', Version),
     maplist(atom_number, Parts, Data).
+
+is_dependency(Token, Token, *) :-
+    atom(Token).
+is_dependency(Term, Token, VersionCmp) :-
+    Term =.. [Op,Token,Version],
+    cmp(Op, _),
+    version_data(Version, _),
+    VersionCmp =.. [Op,Version].
+
+cmp(<,  @<).
+cmp(=<, @=<).
+cmp(==, ==).
+cmp(>=, @>=).
+cmp(>,  @>).
 
 
                  /*******************************
@@ -1939,7 +1955,21 @@ unsatisfied_dependencies(Unsatisfied) :-
     Unsatisfied \== [].
 
 satisfied_dependency(Needed-_By) :-
-    pack_provides(_, Needed).
+    pack_provides(_, Needed),
+    !.
+satisfied_dependency(Needed-_By) :-
+    compound(Needed),
+    Needed =.. [Op, Pack, ReqVersion],
+    (   pack_provides(Pack, Pack)
+    ->  pack_info(Pack, _, version(PackVersion)),
+        version_data(PackVersion, PackData)
+    ;   Pack == prolog
+    ->  current_prolog_flag(version_data, swi(Major,Minor,Patch,_)),
+        PackData = [Major,Minor,Patch]
+    ),
+    version_data(ReqVersion, ReqData),
+    cmp(Op, Cmp),
+    call(Cmp, PackData, ReqData).
 
 %!  pack_provides(?Package, ?Token) is multi.
 %
