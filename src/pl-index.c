@@ -342,6 +342,9 @@ first_clause_guarded(Word argv, LocalFrame fr,
       if ( ISDEADCI(ci) )
 	continue;
 
+      if ( ci->incomplete && LD->gen_reload )
+	continue;
+
       if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
       { best_index = ci;
 	chp->key = k;
@@ -353,7 +356,8 @@ first_clause_guarded(Word argv, LocalFrame fr,
     { int hi;
 
       if ( def->impl.clauses.number_of_clauses > 10 &&
-	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
+	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 &&
+	   !LD->gen_reload )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL), predicateName(def)));
@@ -383,12 +387,12 @@ first_clause_guarded(Word argv, LocalFrame fr,
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
-       def->impl.clauses.number_of_clauses <= 10 )
+       (def->impl.clauses.number_of_clauses <= 10 || LD->gen_reload) )
   { chp->cref = def->impl.clauses.first_clause;
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
-  if ( bestHash(argv, def, NULL, &hints PASS_LD) )
+  if ( !LD->gen_reload && bestHash(argv, def, NULL, &hints PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(def, &hints)) )
