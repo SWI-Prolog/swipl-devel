@@ -219,6 +219,7 @@ pack_level_info(_,    provides(_),      'Provides',                -).
 pack_level_info(_,    requires(_),      'Requires',                -).
 pack_level_info(_,    conflicts(_),     'Conflicts with',          -).
 pack_level_info(_,    replaces(_),      'Replaces packages',       -).
+pack_level_info(info, library(_),	'Provided libraries',      -).
 
 pack_default(Level, Infos, Def) :-
     pack_level_info(Level, ITerm, _Format, Def),
@@ -240,6 +241,16 @@ pack_info_term(BaseDir, Info) :-
         ( print_message(error, pack(no_meta_data(BaseDir))),
           fail
         )).
+pack_info_term(BaseDir, library(Lib)) :-
+    atom_concat(BaseDir, '/prolog/', LibDir),
+    atom_concat(LibDir, '*.pl', Pattern),
+    expand_file_name(Pattern, Files),
+    maplist(atom_concat(LibDir), Plain, Files),
+    convlist(base_name, Plain, Libs),
+    member(Lib, Libs).
+
+base_name(File, Base) :-
+    file_name_extension(Base, pl, File).
 
 term_in_stream(In, Term) :-
     repeat,
