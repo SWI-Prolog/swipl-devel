@@ -1612,6 +1612,7 @@ set_system_thread_id(PL_thread_info_t *info)
 static int
 set_os_thread_name_from_charp(pthread_t tid, const char *s)
 {
+#ifndef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
 #ifdef HAVE_PTHREAD_SETNAME_NP
   char name[16];
 
@@ -1624,6 +1625,7 @@ set_os_thread_name_from_charp(pthread_t tid, const char *s)
   if ( pthread_setname_np(tid, name) == 0 )
     return TRUE;
 #endif
+#endif
   return FALSE;
 }
 
@@ -1631,6 +1633,7 @@ set_os_thread_name_from_charp(pthread_t tid, const char *s)
 static int
 set_os_thread_name(pthread_t tid, atom_t alias)
 {
+#ifndef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
 #ifdef HAVE_PTHREAD_SETNAME_NP
   GET_LD
   term_t t = PL_new_term_ref();
@@ -1639,6 +1642,7 @@ set_os_thread_name(pthread_t tid, atom_t alias)
 
   if ( PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_DISCARDABLE) )
     return set_os_thread_name_from_charp(tid, s);
+#endif
 #endif
   return FALSE;
 }

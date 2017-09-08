@@ -865,6 +865,18 @@ esac
   AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
   AC_CHECK_FUNCS(pthread_kill pthread_mutex_timedlock pthread_timedjoin_np)
   AC_CHECK_FUNCS(pthread_getname_np pthread_setname_np)
+  AC_MSG_CHECKING(for pthread_setname_np(const char*))
+  AC_LINK_IFELSE(
+      [AC_LANG_PROGRAM(
+	   [#define _GNU_SOURCE 1
+	    #include <pthread.h>
+           ],
+	   [pthread_setname_np("example")])],
+      [AC_MSG_RESULT(yes)
+       AC_DEFINE(HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID,1,
+		 [Have function pthread_setname_np(const char*)])],
+      [AC_MSG_RESULT(no)])
+
   AC_MSG_CHECKING([whether mutex support recursive locking])
   case "$PLARCH" in
     *-win32|*-win64)
