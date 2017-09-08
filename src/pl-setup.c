@@ -952,7 +952,7 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
   }
 
   if ( act && act != old )
-  { int active;
+  { int active = FALSE;
 
     if ( (act->sa_flags&PLSIG_THROW) || act->sa_predicate )
     { if ( ((act->sa_flags&PLSIG_THROW) && act->sa_predicate) ||
