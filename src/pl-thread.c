@@ -1609,6 +1609,41 @@ set_system_thread_id(PL_thread_info_t *info)
 }
 
 
+static int
+set_os_thread_name_from_charp(pthread_t tid, const char *s)
+{
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  char name[16];
+
+  if ( strlen(s) > 15 )
+  { strncpy(name, s, 15);
+    name[15] = EOS;
+  } else
+  { strcpy(name, s);
+  }
+  if ( pthread_setname_np(tid, name) == 0 )
+    return TRUE;
+#endif
+  return FALSE;
+}
+
+
+static int
+set_os_thread_name(pthread_t tid, atom_t alias)
+{
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  GET_LD
+  term_t t = PL_new_term_ref();
+  PL_put_atom(t, alias);
+  char *s;
+
+  if ( PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_DISCARDABLE) )
+    return set_os_thread_name_from_charp(tid, s);
+#endif
+  return FALSE;
+}
+
+
 static const opt_spec make_thread_options[] =
 { { ATOM_local,		OPT_SIZE|OPT_INF },
   { ATOM_global,	OPT_SIZE|OPT_INF },
@@ -1942,7 +1977,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   pthread_attr_destroy(&attr);
 
-  if ( rc != 0 )
+  if ( rc == 0 )
+  { if ( alias )
+      set_os_thread_name(info->tid, alias);
+  } else
   { free_thread_info(info);
     return PL_error(NULL, 0, ThError(rc),
 		    ERR_SYSCALL, func);
@@ -5407,7 +5445,9 @@ GCthread(void)
 	pthread_attr_init(&attr);
 	rc = pthread_create(&thr, &attr, GCmain, NULL);
 	pthread_attr_destroy(&attr);
-	if ( rc != 0 )
+	if ( rc == 0 )
+	{ set_os_thread_name_from_charp(thr, "gc");
+	} else
 	{ pthread_mutex_unlock(&GC_mutex);
 	  return 0;
 	}

@@ -79,9 +79,10 @@ the platform.
 
 \begin{description}
     \termitem{alias}{AliasName}
-Associate an `alias name' with the thread.  This name may be used to
-refer to the thread and remains valid until the thread is joined
-(see thread_join/2).
+Associate an `alias name' with the thread. This name may be used to
+refer to the thread and remains valid until the thread is joined (see
+thread_join/2). If the OS supports it (e.g., Linux), the operating
+system thread is named as well.
 
     \termitem{at_exit}{:AtExit}
 Register \arg{AtExit} as using thread_at_exit/1 before entering the

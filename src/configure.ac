@@ -864,6 +864,7 @@ esac
   fi
   AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
   AC_CHECK_FUNCS(pthread_kill pthread_mutex_timedlock pthread_timedjoin_np)
+  AC_CHECK_FUNCS(pthread_getname_np pthread_setname_np)
   AC_MSG_CHECKING([whether mutex support recursive locking])
   case "$PLARCH" in
     *-win32|*-win64)
