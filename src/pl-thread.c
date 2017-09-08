@@ -1610,9 +1610,8 @@ set_system_thread_id(PL_thread_info_t *info)
 
 
 static int
-set_os_thread_name_from_charp(pthread_t tid, const char *s)
+set_os_thread_name_from_charp(const char *s)
 {
-#ifndef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
 #ifdef HAVE_PTHREAD_SETNAME_NP
   char name[16];
 
@@ -1622,7 +1621,11 @@ set_os_thread_name_from_charp(pthread_t tid, const char *s)
   } else
   { strcpy(name, s);
   }
-  if ( pthread_setname_np(tid, name) == 0 )
+#ifdef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
+  if ( pthread_setname_np(name) == 0 )
+    return TRUE;
+#else
+  if ( pthread_setname_np(pthread_self(), name) == 0 )
     return TRUE;
 #endif
 #endif
@@ -1631,9 +1634,8 @@ set_os_thread_name_from_charp(pthread_t tid, const char *s)
 
 
 static int
-set_os_thread_name(pthread_t tid, atom_t alias)
+set_os_thread_name(atom_t alias)
 {
-#ifndef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
 #ifdef HAVE_PTHREAD_SETNAME_NP
   GET_LD
   term_t t = PL_new_term_ref();
@@ -1641,8 +1643,7 @@ set_os_thread_name(pthread_t tid, atom_t alias)
   char *s;
 
   if ( PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_DISCARDABLE) )
-    return set_os_thread_name_from_charp(tid, s);
-#endif
+    return set_os_thread_name_from_charp(s);
 #endif
   return FALSE;
 }
@@ -1705,6 +1706,7 @@ set_thread_completion(PL_thread_info_t *info, int rc, term_t ex)
 static void *
 start_thread(void *closure)
 { PL_thread_info_t *info = closure;
+  thread_handle *th;
   term_t ex, goal;
   int rval;
 
@@ -1723,6 +1725,11 @@ start_thread(void *closure)
     PL_LOCK(L_THREAD);
     info->status = PL_THREAD_RUNNING;
     PL_UNLOCK(L_THREAD);
+
+    if ( info->symbol &&
+	 (th=symbol_thread_handle(info->symbol)) &&
+	 th->alias )
+      set_os_thread_name(th->alias);
 
     goal = PL_new_term_ref();
     PL_put_atom(goal, ATOM_dthread_init);
@@ -1981,10 +1988,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   pthread_attr_destroy(&attr);
 
-  if ( rc == 0 )
-  { if ( alias )
-      set_os_thread_name(info->tid, alias);
-  } else
+  if ( rc != 0 )
   { free_thread_info(info);
     return PL_error(NULL, 0, ThError(rc),
 		    ERR_SYSCALL, func);
@@ -5407,7 +5411,7 @@ GCmain(void *closure)
 
   attrs.alias = "gc";
   attrs.flags = PL_THREAD_NO_DEBUG|PL_THREAD_NOT_DETACHED;
-
+  set_os_thread_name_from_charp("gc");
 
   if ( PL_thread_attach_engine(&attrs) > 0 )
   { GET_LD
@@ -5449,9 +5453,7 @@ GCthread(void)
 	pthread_attr_init(&attr);
 	rc = pthread_create(&thr, &attr, GCmain, NULL);
 	pthread_attr_destroy(&attr);
-	if ( rc == 0 )
-	{ set_os_thread_name_from_charp(thr, "gc");
-	} else
+	if ( rc != 0 )
 	{ pthread_mutex_unlock(&GC_mutex);
 	  return 0;
 	}
