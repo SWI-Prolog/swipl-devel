@@ -81,6 +81,7 @@ component(library(double_metaphone), _{}).
 component(library(filesex), _{}).
 component(library(http/http_stream), _{}).
 component(library(http/json), _{}).
+component(library(http/jquery), _{features:jquery_file}).
 component(library(isub), _{}).
 component(library(jpl), _{}).
 component(library(memfile), _{}).
@@ -366,6 +367,18 @@ pcre_missing(X) :-
 pcre_must_have(utf8).
 pcre_must_have(unicode_properties).
 
+%!  jquery_file
+%
+%   Test whether jquery.js can be found
+
+jquery_file :-
+    setting(jquery:version, File),
+    (   absolute_file_name(js(File), Path, [access(read), file_errors(fail)])
+    ->  print_message(informational, installation(jquery(found(Path))))
+    ;   print_message(warning, installation(jquery(not_found(File))))
+    ).
+
+
 %!  check_on_path
 %
 %   Validate that Prolog is installed in $PATH
@@ -487,6 +500,11 @@ message(not_on_path(EXE, Prog)) -->
     },
     [ 'Could not find ~w on '-[Prog] ], 'PATH', [ '. '-[], nl ],
     [ 'You may wish to add ~p to '-[OSDir] ], 'PATH', [ '. '-[], nl ].
+message(jquery(found(Path))) -->
+    [ '  jQuery from ~w'-[Path] ].
+message(jquery(not_found(File))) -->
+    [ '  Cannot find jQuery (~w)'-[File] ].
+
 
 public_executable(EXE, PublicProg) :-
     file_base_name(EXE, Prog),
