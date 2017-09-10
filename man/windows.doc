@@ -252,13 +252,14 @@ calling format you can write C or C++ code that can be loaded into
 SWI-Prolog and called as a predicate. You can also embed SWI-Prolog in
 C/C++ applications.
 
-Details on how to interact with Prolog are in the \url[SWI-Prolog
-reference manual]{http://www.swi-prolog.org/pldoc/refman/}. The mailing
-list archives and TWiki web provide problems and solutions to the many
-problems that may occur. Documentation of the \file{SWI-cpp.h} C++
-include file is available from the \url[package
-documentation]{http://www.swi-prolog.org/pldoc/package/pl2cpp.html}.
-This section only discusses some Windows-specific issues.
+Details on how to interact with Prolog are in the
+\href{http://www.swi-prolog.org/pldoc/refman/}{SWI-Prolog reference
+manual}. The mailing list archives and TWiki web provide problems and
+solutions to the many problems that may occur. Documentation of the
+\file{SWI-cpp.h} C++ include file is available from the
+\href{http://www.swi-prolog.org/pldoc/package/pl2cpp.html}{package
+documentation}. This section only discusses some Windows-specific
+issues.
 
 \subsection{Using MSVC}
 
