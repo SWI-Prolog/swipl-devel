@@ -52,10 +52,8 @@ pltotex(File, Options) :-
     file_name_extension(_, Ext, File),
     !,
     tex_file(File, Out, Options),
-    doc_latex(File, Out,
-              [ stand_alone(false)
-              | Options
-              ]).
+    merge_options(Options, [stand_alone(false)], LatexOptions),
+    doc_latex(File, Out, LatexOptions).
 pltotex(Lib, Options) :-
     (   file_name_extension(_, pl, Lib)
     ->  Spec = Lib
@@ -67,10 +65,8 @@ pltotex(Lib, Options) :-
                        ]),
     tex_file(File, Out, Options),
     user:use_module(File),          % we want the operators in user
-    doc_latex(File, Out,
-              [ stand_alone(false)
-              | Options
-              ]).
+    merge_options(Options, [stand_alone(false)], LatexOptions),
+    doc_latex(File, Out, LatexOptions).
 
 wiki_extension(txt).
 wiki_extension(md).
