@@ -1342,7 +1342,6 @@ struct clause_index
   unsigned int	 dirty;			/* # chains that are dirty */
   unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
   unsigned	 is_list : 1;		/* Index with lists */
-  unsigned	 incomplete : 1;	/* Not all clauses are in the index */
   float		 speedup;		/* Estimated speedup */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };

@@ -342,9 +342,6 @@ first_clause_guarded(Word argv, LocalFrame fr,
       if ( ISDEADCI(ci) )
 	continue;
 
-      if ( ci->incomplete && LD->gen_reload )
-	continue;
-
       if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
       { best_index = ci;
 	chp->key = k;
@@ -1204,31 +1201,6 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
   }
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-See addClauseToIndexes() and reconsultFinalizePredicate()
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-deleteIncompleteIndexes(Definition def)
-{ ClauseIndex *cip;
-
-  if ( (cip=def->impl.clauses.clause_indexes) )
-  { for(; *cip; cip++)
-    { ClauseIndex ci = *cip;
-
-      if ( ISDEADCI(ci) )
-	continue;
-
-      if ( ci->incomplete )
-      { DEBUG(MSG_JIT_DELINDEX,
-	      Sdprintf("Deleted index %s from %s (incomplete)\n",
-		       iargsName(ci->args, NULL), predicateName(def)));
-	deleteIndexP(def, cip);
-      }
-    }
-  }
-}
 
 
 void
