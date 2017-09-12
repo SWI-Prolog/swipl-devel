@@ -1522,10 +1522,6 @@ end makes the transaction truely atomic.   In the current implementation
 though, another thread may increment the  generation as well, making our
 changes not entirely atomic. The lock-free retry mechanism won't work to
 fix this. Only a true lock for modifying the generation can fix this.
-
-(**) If the procedure is static, we just discard the indexes to get nice
-fresh ones. If it is dynamic,  we  need   to  do  destroy  indexes if we
-inserted clauses in the middle.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -1568,13 +1564,6 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
 		   "at gen=%ld, GD->gen = %lld\n",
 		   predicateName(def), (long)added, (long)deleted,
 		   (long)update, (int64_t)global_generation()));
-
-    if ( true(def, P_DYNAMIC) )		/* see (**) */
-    { deleteIncompleteIndexes(def);
-    } else				/* delete all indexes */
-    { deleteActiveClauseFromIndexes(def, NULL);
-      clearTriedIndexes(def);
-    }
 
     if ( added || deleted )
       setLastModifiedPredicate(def, update);

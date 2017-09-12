@@ -666,12 +666,37 @@ addClauseBucket(ClauseBucket ch, Clause cl,
   if ( !ch->tail )
   { ch->head = ch->tail = cr;
   } else
-  { if ( where != CL_START )
+  { if ( where == CL_END )
     { ch->tail->next = cr;
       ch->tail = cr;
-    } else
+    } else if ( where == CL_START )
     { cr->next = ch->head;
       ch->head = cr;
+    } else
+    { ClauseRef pred_cref = cl->predicate->impl.clauses.first_clause;
+      ClauseRef ci_cref = ch->head;
+      ClauseRef ci_prev = NULL;
+      for(; pred_cref; pred_cref=pred_cref->next)
+      { if ( pred_cref == where || ci_prev == ch->tail )
+        { if ( ci_cref == ch->head )
+          { cr->next = ch->head;
+            ch->head = cr;
+          } else if ( ci_prev == ch->tail )
+          { ch->tail->next = cr;
+            ch->tail = cr;
+          } else
+          { cr->next = ci_cref;
+            ci_prev->next = cr;
+          }
+          break;
+        }
+        if ( is_list )
+	  assert(0); /* TODO: get working with deep-indexing */
+        if ( pred_cref->value.clause == ci_cref->value.clause )
+        { ci_prev = ci_cref;
+          ci_cref = ci_cref->next;
+        }
+      }
     }
   }
 
@@ -1279,12 +1304,8 @@ addClauseToIndexes(Definition def, Clause cl, ClauseRef where)
 
       if ( ci->size >= ci->resize_above )
 	deleteIndexP(def, cip);
-      else if ( where == CL_START || where == CL_END )
-	addClauseToIndex(ci, cl, where);
       else
-      { ci->incomplete = TRUE;
-	rc = FALSE;
-      }
+	addClauseToIndex(ci, cl, where);
     }
   }
 
