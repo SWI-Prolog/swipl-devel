@@ -353,7 +353,8 @@ first_clause_guarded(Word argv, LocalFrame fr,
     { int hi;
 
       if ( def->impl.clauses.number_of_clauses > 10 &&
-	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
+	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 &&
+	   !LD->gen_reload )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL), predicateName(def)));
@@ -383,12 +384,12 @@ first_clause_guarded(Word argv, LocalFrame fr,
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
-       def->impl.clauses.number_of_clauses <= 10 )
+       (def->impl.clauses.number_of_clauses <= 10 || LD->gen_reload) )
   { chp->cref = def->impl.clauses.first_clause;
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
-  if ( bestHash(argv, def, NULL, &hints PASS_LD) )
+  if ( !LD->gen_reload && bestHash(argv, def, NULL, &hints PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(def, &hints)) )
@@ -662,12 +663,37 @@ addClauseBucket(ClauseBucket ch, Clause cl,
   if ( !ch->tail )
   { ch->head = ch->tail = cr;
   } else
-  { if ( where != CL_START )
+  { if ( where == CL_END )
     { ch->tail->next = cr;
       ch->tail = cr;
-    } else
+    } else if ( where == CL_START )
     { cr->next = ch->head;
       ch->head = cr;
+    } else
+    { ClauseRef pred_cref = cl->predicate->impl.clauses.first_clause;
+      ClauseRef ci_cref = ch->head;
+      ClauseRef ci_prev = NULL;
+      for(; pred_cref; pred_cref=pred_cref->next)
+      { if ( pred_cref == where || ci_prev == ch->tail )
+        { if ( ci_cref == ch->head )
+          { cr->next = ch->head;
+            ch->head = cr;
+          } else if ( ci_prev == ch->tail )
+          { ch->tail->next = cr;
+            ch->tail = cr;
+          } else
+          { cr->next = ci_cref;
+            ci_prev->next = cr;
+          }
+          break;
+        }
+        if ( is_list )
+	  assert(0); /* TODO: get working with deep-indexing */
+        if ( pred_cref->value.clause == ci_cref->value.clause )
+        { ci_prev = ci_cref;
+          ci_cref = ci_cref->next;
+        }
+      }
     }
   }
 
@@ -1176,31 +1202,6 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-See addClauseToIndexes() and reconsultFinalizePredicate()
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-deleteIncompleteIndexes(Definition def)
-{ ClauseIndex *cip;
-
-  if ( (cip=def->impl.clauses.clause_indexes) )
-  { for(; *cip; cip++)
-    { ClauseIndex ci = *cip;
-
-      if ( ISDEADCI(ci) )
-	continue;
-
-      if ( ci->incomplete )
-      { DEBUG(MSG_JIT_DELINDEX,
-	      Sdprintf("Deleted index %s from %s (incomplete)\n",
-		       iargsName(ci->args, NULL), predicateName(def)));
-	deleteIndexP(def, cip);
-      }
-    }
-  }
-}
-
 
 void
 deleteIndexes(Definition def, int isnew)
@@ -1275,12 +1276,8 @@ addClauseToIndexes(Definition def, Clause cl, ClauseRef where)
 
       if ( ci->size >= ci->resize_above )
 	deleteIndexP(def, cip);
-      else if ( where == CL_START || where == CL_END )
-	addClauseToIndex(ci, cl, where);
       else
-      { ci->incomplete = TRUE;
-	rc = FALSE;
-      }
+	addClauseToIndex(ci, cl, where);
     }
   }
 
@@ -2217,6 +2214,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
       { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
 				predicateName(def), iargsName(nbest->args, NULL),
 				nbest->speedup));
+	memset(hints, 0, sizeof(*hints));
 	memcpy(hints->args, nbest->args, sizeof(nbest->args));
 	hints->ln_buckets = MSB(nbest->size);
 	hints->speedup    = nbest->speedup;

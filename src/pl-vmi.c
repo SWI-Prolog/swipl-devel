@@ -4326,7 +4326,8 @@ again:
 	});
 
   if ( debugstatus.suspendTrace == FALSE && !rewritten++ &&
-       !uncachableException(exception_term PASS_LD) ) /* e.g., $aborted */
+       !uncachableException(exception_term PASS_LD) && /* e.g., $aborted */
+       !resourceException(exception_term PASS_LD) )
   { int rc;
 
     SAVE_REGISTERS(qid);

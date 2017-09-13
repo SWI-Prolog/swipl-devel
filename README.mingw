@@ -127,7 +127,7 @@ case "$(uname)" in
 	MINGWGCC=gcc
 	;;
     *)
-	CROSSCOMPILING=yes
+	export CROSSCOMPILING=yes
 	export WINEDEBUG=-all
 	DRIVEC="$HOME/.wine/drive_c"
 	export WINEPATH="$(winepath -w $install/bin)"

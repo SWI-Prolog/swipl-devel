@@ -1609,6 +1609,46 @@ set_system_thread_id(PL_thread_info_t *info)
 }
 
 
+static int
+set_os_thread_name_from_charp(const char *s)
+{
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  char name[16];
+
+  if ( strlen(s) > 15 )
+  { strncpy(name, s, 15);
+    name[15] = EOS;
+  } else
+  { strcpy(name, s);
+  }
+#ifdef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
+  if ( pthread_setname_np(name) == 0 )
+    return TRUE;
+#else
+  if ( pthread_setname_np(pthread_self(), name) == 0 )
+    return TRUE;
+#endif
+#endif
+  return FALSE;
+}
+
+
+static int
+set_os_thread_name(atom_t alias)
+{
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  GET_LD
+  term_t t = PL_new_term_ref();
+  PL_put_atom(t, alias);
+  char *s;
+
+  if ( PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_DISCARDABLE) )
+    return set_os_thread_name_from_charp(s);
+#endif
+  return FALSE;
+}
+
+
 static const opt_spec make_thread_options[] =
 { { ATOM_local,		OPT_SIZE|OPT_INF },
   { ATOM_global,	OPT_SIZE|OPT_INF },
@@ -1666,6 +1706,7 @@ set_thread_completion(PL_thread_info_t *info, int rc, term_t ex)
 static void *
 start_thread(void *closure)
 { PL_thread_info_t *info = closure;
+  thread_handle *th;
   term_t ex, goal;
   int rval;
 
@@ -1684,6 +1725,11 @@ start_thread(void *closure)
     PL_LOCK(L_THREAD);
     info->status = PL_THREAD_RUNNING;
     PL_UNLOCK(L_THREAD);
+
+    if ( info->symbol &&
+	 (th=symbol_thread_handle(info->symbol)) &&
+	 th->alias )
+      set_os_thread_name(th->alias);
 
     goal = PL_new_term_ref();
     PL_put_atom(goal, ATOM_dthread_init);
@@ -5365,7 +5411,7 @@ GCmain(void *closure)
 
   attrs.alias = "gc";
   attrs.flags = PL_THREAD_NO_DEBUG|PL_THREAD_NOT_DETACHED;
-
+  set_os_thread_name_from_charp("gc");
 
   if ( PL_thread_attach_engine(&attrs) > 0 )
   { GET_LD

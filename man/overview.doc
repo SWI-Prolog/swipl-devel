@@ -2203,11 +2203,11 @@ garbage collection.  These features are controlled using Prolog flags
 SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is based
 on the Edinburgh Prolog syntax. A formal description can be found in the
 ISO standard document. For an informal introduction we refer to Prolog
-text books (see \secref{intro}) and \url[online
-tutorials]{http://www.swi-prolog.org/Links.html}. In addition to the
-differences from the ISO standard documented here, SWI-Prolog offers
-several extensions, some of which also extend the syntax. See
-\secref{extensions} for more information.
+text books (see \secref{intro}) and
+\href{http://www.swi-prolog.org/Links.html}{online tutorials}. In
+addition to the differences from the ISO standard documented here,
+SWI-Prolog offers several extensions, some of which also extend the
+syntax. See \secref{extensions} for more information.
 
 
 \subsection{ISO Syntax Support}			\label{sec:isosyntax}
