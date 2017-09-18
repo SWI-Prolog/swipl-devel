@@ -280,10 +280,10 @@ Section "Base system (required)"
   File ${SWIPL}\bin\${PTHREAD}.dll
 !ifdef MINGW
   File ${SWIPL}\bin\libswipl.dll
-  File ${SWIPL}\bin\libeay32.dll
   File ${SWIPL}\bin\libgmp-10.dll
   File ${SWIPL}\bin\libjpeg-9.dll
-  File ${SWIPL}\bin\ssleay32.dll
+  File ${SWIPL}\bin\libcrypto-1_1-x64.dll
+  File ${SWIPL}\bin\libssl-1_1-x64.dll
   File ${SWIPL}\bin\libarchive-13.dll
   File ${SWIPL}\bin\libpcre-1.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
