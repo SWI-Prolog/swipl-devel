@@ -563,7 +563,11 @@ build_swipl_core()
 
 dist_dlls="libarchive-*.dll libgmp-*.dll libjpeg-*.dll "
 dist_dlls+="*pthread*.dll zlib*.dll libdb-*.dll "
-dist_dlls+="libcrypto-1_1-x64.dll libssl-1_1-x64.dll "
+if [ "$BITS" = 64 ]; then
+  dist_dlls+="libcrypto-1_1-x64.dll libssl-1_1-x64.dll "
+else
+  dist_dlls+="libcrypto-1_1.dll libssl-1_1.dll "
+fi
 dist_dlls+="libpcre-*.dll "
 dist_dlls+="`(cd $install/bin && find . -name 'libgcc*.dll')` "
 if [ -r "$install/bin/libdwarf.dll" ]; then

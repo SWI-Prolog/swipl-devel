@@ -282,8 +282,13 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libswipl.dll
   File ${SWIPL}\bin\libgmp-10.dll
   File ${SWIPL}\bin\libjpeg-9.dll
+!ifdef WIN64
   File ${SWIPL}\bin\libcrypto-1_1-x64.dll
   File ${SWIPL}\bin\libssl-1_1-x64.dll
+!else
+  File ${SWIPL}\bin\libcrypto-1_1.dll
+  File ${SWIPL}\bin\libssl-1_1.dll
+!endif
   File ${SWIPL}\bin\libarchive-13.dll
   File ${SWIPL}\bin\libpcre-1.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
