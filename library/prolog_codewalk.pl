@@ -350,11 +350,17 @@ walk_called_by_body(Body, Module, OTerm) :-
 walk_called_by_body(Body, Module, OTerm) :-
     format(user_error, 'Failed to analyse:~n', []),
     portray_clause(('<head>' :- Body)),
-    (   debugging(codewalk(trace))
-    ->  gtrace,
-        walk_called_by_body(Body, Module, OTerm)
-    ;   true
-    ).
+    debug_walk(Body, Module, OTerm).
+
+% recompile this library after `debug(codewalk(trace))` and re-try
+% for debugging failures.
+:- if(debugging(codewalk(trace))).
+debug_walk(Body, Module, OTerm) :-
+    gtrace,
+    walk_called_by_body(Body, Module, OTerm).
+:- else.
+debug_walk(_,_,_).
+:- endif.
 
 %!  walk_called_by_body(+Missing, +Body, +Module, +OTerm)
 %
