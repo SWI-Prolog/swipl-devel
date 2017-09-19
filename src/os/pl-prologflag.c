@@ -219,29 +219,58 @@ setPrologFlag(const char *name, int flags, ...)
 
 static void
 freePrologFlag(prolog_flag *f)
-{ if ( (f->flags & FT_MASK) == FT_TERM )
-    PL_erase(f->value.t);
+{ switch((f->flags & FT_MASK))
+  { case FT_TERM:
+      PL_erase(f->value.t);
+      break;
+    case FT_ATOM:
+      PL_unregister_atom(f->value.a);
+      break;
+    default:
+      ;
+  }
 
   freeHeap(f, sizeof(*f));
 }
 
 
 #ifdef O_PLMT
-static void
-copySymbolPrologFlagTable(void *name, void **value)
-{ prolog_flag *f = *value;
-  prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
+static prolog_flag *
+copy_prolog_flag(const prolog_flag *f)
+{ prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
 
   *copy = *f;
-  if ( (f->flags & FT_MASK) == FT_TERM )
-    copy->value.t = PL_duplicate_record(f->value.t);
-  *value = copy;
+  switch((f->flags & FT_MASK))
+  { case FT_TERM:
+      copy->value.t = PL_duplicate_record(f->value.t);
+      break;
+    case FT_ATOM:
+      PL_register_atom(copy->value.a);
+      break;
+    default:
+      ;
+  }
+
+  return copy;
+}
+
+
+static void
+copySymbolPrologFlagTable(void *name, void **value)
+{ atom_t key = (atom_t)name;
+  prolog_flag *f = *value;
+
+  PL_register_atom(key);
+  *value = copy_prolog_flag(f);
 }
 
 
 static void
 freeSymbolPrologFlagTable(void *name, void *value)
-{ freePrologFlag(value);
+{ atom_t key = (atom_t)name;
+
+  PL_unregister_atom(key);
+  freePrologFlag(value);
 }
 #endif
 
@@ -556,11 +585,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
-    { prolog_flag *f2 = allocHeapOrHalt(sizeof(*f2));
-
-      *f2 = *f;
-      if ( (f2->flags & FT_MASK) == FT_TERM )
-	f2->value.t = PL_duplicate_record(f2->value.t);
+    { f = copy_prolog_flag(f);
 
       if ( !LD->prolog_flag.table )
       { LD->prolog_flag.table = newHTable(4);
@@ -569,10 +594,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	LD->prolog_flag.table->free_symbol = freeSymbolPrologFlagTable;
       }
 
-      addNewHTable(LD->prolog_flag.table, (void *)k, f2);
+      addNewHTable(LD->prolog_flag.table, (void *)k, f);
+      PL_register_atom(k);
       DEBUG(MSG_PROLOG_FLAG,
 	    Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
-      f = f2;
     }
 #endif
   } else if ( !(flags & FF_NOCREATE) )	/* define new Prolog flag */
