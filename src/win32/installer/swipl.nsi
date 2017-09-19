@@ -10,12 +10,21 @@
 Var /GLOBAL cmdLineParams  ; Command Line Options
 
 !define REGKEY SOFTWARE\SWI\Prolog
+!define MKINSTALLER "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}"
+
+!ifdef WIN64
+!define DWIN64 "/DWIN64=1"
+!else
+!define DWIN64 ""
+!endif
 
 !ifdef MINGW
-!system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMINGW=1" = 0
+!define DMINGW "/DMINGW=1"
 !else
-!system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
+!define DMINGW ""
 !endif
+
+!system "${MKINSTALLER} ${DWIN64} ${DMINGW}" = 0
 !include "version.nsi"
 !include "FileFunc.nsh"
 
