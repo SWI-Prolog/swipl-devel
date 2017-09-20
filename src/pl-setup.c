@@ -71,6 +71,10 @@ setupProlog(void)
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
+#ifdef O_LOGICAL_UPDATE
+  next_global_generation();
+#endif
+
   LD->critical = 0;
   LD->signal.pending[0] = 0;
   LD->signal.pending[1] = 0;
@@ -948,7 +952,7 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
   }
 
   if ( act && act != old )
-  { int active;
+  { int active = FALSE;
 
     if ( (act->sa_flags&PLSIG_THROW) || act->sa_predicate )
     { if ( ((act->sa_flags&PLSIG_THROW) && act->sa_predicate) ||

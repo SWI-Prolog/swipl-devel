@@ -1773,6 +1773,24 @@ uncachableException(term_t t ARG_LD)
   return 0;
 }
 
+static word
+resourceException(term_t t ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_error2) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+    if ( hasFunctor(*p, FUNCTOR_resource_error1) )
+    { p = argTermP(*p, 0);
+      deRef(p);
+      return *p;
+    }
+  }
+
+  return 0;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

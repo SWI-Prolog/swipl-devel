@@ -25,9 +25,9 @@
 This document briefly explains the MacOS X specific issues for
 SWI-Prolog. This is by no means a manual or Prolog tutorial. The
 reference manual is available online or can be downloaded in HTML and
-PDF format from the \url[SWI-Prolog
-website]{http://www.swi-prolog.org/}, which also provides links to
-books, online tutorials and other Prolog related material.
+PDF format from the \href{http://www.swi-prolog.org/}{SWI-Prolog
+website}, which also provides links to books, online tutorials and other
+Prolog related material.
 \end{abstract}
 
 

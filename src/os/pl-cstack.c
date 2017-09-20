@@ -920,7 +920,7 @@ print_c_backtrace(const char *why)
 
 struct btrace *
 save_backtrace(const char *why)
-{
+{ return NULL;
 }
 
 void

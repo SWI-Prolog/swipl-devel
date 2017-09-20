@@ -661,6 +661,11 @@ mapex([E|L], E) :- mapex(L, E).
 extended_pos(Var, _, Var) :-
     var(Var),
     !.
+extended_pos(parentheses_term_position(O,C,Pos0),
+             N,
+             parentheses_term_position(O,C,Pos)) :-
+    !,
+    extended_pos(Pos0, N, Pos).
 extended_pos(term_position(F,T,FF,FT,Args),
              _,
              term_position(F,T,FF,FT,Args)) :-

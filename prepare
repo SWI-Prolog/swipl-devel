@@ -298,7 +298,7 @@ esac
 ################################################################
 
 confdir()
-{ if grep AC_INIT configure.in 2>&1 >/dev/null; then
+{ if grep AC_INIT configure.ac 2>&1 >/dev/null; then
     for dep in "$2/ac_swi_c.m4" "$2/ac_swi_noc.m4" "aclocal.m4"; do
       if [ -f configure -a -f "$dep" -a "$dep" -nt configure ]; then
         rm configure;
@@ -311,11 +311,11 @@ confdir()
         fi
       done
     fi
-    if [ -f configure -a ! configure.in -nt configure ]; then
+    if [ -f configure -a ! configure.ac -nt configure ]; then
       return
     fi
     printf "Generating configure in $1 ... "
-    if grep AC_CONFIG_HEADER configure.in 2>&1 >/dev/null; then
+    if grep AC_CONFIG_HEADER configure.ac 2>&1 >/dev/null; then
       autoheader
     fi
     autoconf
@@ -337,7 +337,7 @@ is_mingw()
 
 
 if findexe autoconf; then
-  for f in ./src/configure.in $(find packages -name configure.in); do
+  for f in ./src/configure.ac $(find packages -name configure.ac); do
     pkgdir="$(cd packages && pwd)"
     d=`dirname $f`
     (cd $d && confdir $d $pkgdir)

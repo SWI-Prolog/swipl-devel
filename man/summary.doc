@@ -349,6 +349,7 @@ suggest predicates from a keyword.
 \predicatesummary{is_dict}{1}{Type check for a dict}
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
+\predicatesummary{is_trie}{1}{Type check for a trie handle}
 \predicatesummary{is_thread}{1}{Type check for an thread handle}
 \predicatesummary{join_threads}{0}{Join all terminated threads interactively}
 \predicatesummary{keysort}{2}{Sort, using a key}
@@ -689,6 +690,7 @@ suggest predicates from a keyword.
 \predicatesummary{trace}{1}{Set trace point on predicate}
 \predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
+\predicatesummary{trie_delete}{3}{Remove term from trie}
 \predicatesummary{trie_destroy}{1}{Destroy a trie}
 \predicatesummary{trie_gen}{3}{Get all terms from a trie}
 \predicatesummary{trie_insert}{3}{Insert term into a trie}

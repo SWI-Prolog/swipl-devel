@@ -1422,6 +1422,8 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 	{ Procedure proc = lookupProcedure(f, LD->modules.source);
 
 	  addNewHTable(LD->modules.source->public, (void *)f, proc);
+          if ( state->currentSource )
+            exportProcedureSource(state->currentSource, m, proc);
 	} else
 	{ if ( !lookupHTable(m->public, (void *)f) )
 	  { FunctorDef fd = valueFunctor(f);
@@ -1526,7 +1528,10 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
     switch(c)
     { case 'X':
       { if ( !GD->bootsession  )
-	  runInitialization(state->currentSource);
+	{ runInitialization(state->currentSource);
+	  if ( state->currentSource )
+	    endConsult(state->currentSource);
+        }
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;

@@ -823,8 +823,8 @@ with one operation, it turns out to be faster as well.
 
 #define true(s, a)		((s)->flags & (a))
 #define false(s, a)		(!true((s), (a)))
-#define set(s, a)		((s)->flags |= (a))
-#define clear(s, a)		((s)->flags &= ~(a))
+#define set(s, a)		ATOMIC_OR(&(s)->flags, (a))
+#define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))
 #define clearFlags(s)		((s)->flags = 0)
 
 /* Flags on predicates (packed in unsigned int */
@@ -1190,14 +1190,27 @@ typedef struct functor_table
 
 
 #ifdef O_LOGICAL_UPDATE
-#define visibleClause(cl, gen) \
-	((cl)->generation.created <= (gen) && \
-	 (cl)->generation.erased   > (gen))
+#define VISIBLE_CLAUSE(cl, gen) \
+	( ( (cl)->generation.created <= (gen) && \
+	    (cl)->generation.erased   > (gen) && \
+	    (cl)->generation.erased  != LD->gen_reload \
+	  ) || \
+	  ( (cl)->generation.created == LD->gen_reload \
+	  ) \
+	)
+#define GLOBALLY_VISIBLE_CLAUSE(cl, gen) \
+	( (cl)->generation.created <= (gen) && \
+	  (cl)->generation.erased   > (gen) \
+	)
 #else
-#define visibleClause(cl, gen) false(cl, CL_ERASED)
+#define VISIBLE_CLAUSE(cl, gen) false(cl, CL_ERASED)
+#define GLOBALLY_VISIBLE_CLAUSE(cl, gen) false(cl, CL_ERASED)
 #endif
 
-#define visibleClauseCNT(cl, gen) visibleClause__LD(cl, gen PASS_LD)
+#define visibleClause(cl, gen) visibleClause__LD(cl, gen PASS_LD)
+#define visibleClauseCNT(cl, gen) visibleClauseCNT__LD(cl, gen PASS_LD)
+
+#define GEN_INVALID 0
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Struct clause must be a  multiple   of  sizeof(word)  for compilation on
@@ -1217,8 +1230,8 @@ struct clause
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		variables;	/* # of variables for frame */
   unsigned int		prolog_vars;	/* # real Prolog variables */
-  unsigned		flags : 8;	/* Flag field holding: */
-  unsigned		line_no : 24;	/* Source line-number */
+  unsigned int		flags;		/* Flag field holding: */
+  unsigned int		line_no;	/* Source line-number */
   unsigned int		source_no;	/* Index of source-file */
   unsigned int		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
@@ -1329,7 +1342,6 @@ struct clause_index
   unsigned int	 dirty;			/* # chains that are dirty */
   unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
   unsigned	 is_list : 1;		/* Index with lists */
-  unsigned	 incomplete : 1;	/* Not all clauses are in the index */
   float		 speedup;		/* Estimated speedup */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
@@ -1362,6 +1374,7 @@ struct definition
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
+  gen_t		last_modified;		/* Generation I was last modified */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
@@ -1549,8 +1562,8 @@ struct fliFrame
 struct record
 { int		size;			/* # bytes of the record */
   unsigned      gsize;			/* Size on global stack */
-  unsigned	nvars : 27;		/* # variables in the term */
-  unsigned	flags : 5;		/* Flags, holding */
+  unsigned	nvars;			/* # variables in the term */
+  unsigned	flags;			/* Flags, holding */
 					/* R_ERASED */
 					/* R_EXTERNAL */
 					/* R_DUPLICATE */
@@ -1675,6 +1688,7 @@ struct module
   int		level;		/* Distance to root (root=0) */
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
+  gen_t		last_modified;	/* Generation I was last modified */
 };
 
 struct trail_entry

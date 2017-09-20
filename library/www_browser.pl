@@ -63,7 +63,10 @@ example, the SWI-Prolog home page can be opened using:
 %   browser.  This predicate tries the following steps:
 %
 %     1. If a prolog flag (see set_prolog_flag/2) =browser= is set
-%     and this is the name of a known executable, use this.
+%     and this is the name of a known executable, use this.  The
+%     flag may be set to `Command-Mode`, where mode is one of `fg`
+%     or `bg`, requesting Command to run in foreground or background
+%     mode.  Default is `bg`.
 %
 %     2. On Windows, use win_shell(open, URL)
 %
@@ -84,9 +87,10 @@ www_open_url(Spec) :-                   % user configured
 
 open_url(URL) :-
     current_prolog_flag(browser, Browser),
-    has_command(Browser),
+    expand_browser_flag(Browser, Command, Mode),
+    has_command(Command),
     !,
-    run_browser(Browser, URL).
+    run_command(Command, [URL], Mode).
 :- if(current_predicate(win_shell/2)).
 open_url(URL) :-                        % Windows shell
     win_shell(open, URL).
@@ -106,6 +110,9 @@ open_url(URL) :-                        % something we know
     has_command(Browser),
     !,
     run_browser(Browser, URL).
+
+expand_browser_flag(Command-Mode, Command, Mode) :- !.
+expand_browser_flag(Command, Command, bg) :- atomic(Command).
 
 open_command(open) :-                   % Apples open command
     current_prolog_flag(apple, true).

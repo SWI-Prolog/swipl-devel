@@ -291,7 +291,9 @@ desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for
 details.  Note that the handler to unblock system calls is still
 installed. This can be prevented using \exam{--sigalert=0} additionally.
-See \cmdlineoption{--sigalert}.
+See \cmdlineoption{--sigalert}. This flag also sets
+\prologflag{gc_thread} to \const{false} as synchronization with the
+garbage collect thread is based on signals.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
@@ -2201,11 +2203,11 @@ garbage collection.  These features are controlled using Prolog flags
 SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is based
 on the Edinburgh Prolog syntax. A formal description can be found in the
 ISO standard document. For an informal introduction we refer to Prolog
-text books (see \secref{intro}) and \url[online
-tutorials]{http://www.swi-prolog.org/Links.html}. In addition to the
-differences from the ISO standard documented here, SWI-Prolog offers
-several extensions, some of which also extend the syntax. See
-\secref{extensions} for more information.
+text books (see \secref{intro}) and
+\href{http://www.swi-prolog.org/Links.html}{online tutorials}. In
+addition to the differences from the ISO standard documented here,
+SWI-Prolog offers several extensions, some of which also extend the
+syntax. See \secref{extensions} for more information.
 
 
 \subsection{ISO Syntax Support}			\label{sec:isosyntax}

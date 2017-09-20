@@ -451,8 +451,6 @@ static void	print_trace(int depth);
 #define		print_trace(depth) (void)0
 #endif
 
-static void get_current_timespec(struct timespec *time);
-static void carry_timespec_nanos(struct timespec *time);
 static void timespec_diff(struct timespec *diff,
 			  const struct timespec *a, const struct timespec *b);
 static int  timespec_sign(const struct timespec *t);
@@ -657,7 +655,8 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   maybe_free_local_data(ld);
 
   if ( acknowledge )			/* == canceled */
-  { DEBUG(MSG_THREAD, Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
+  { DEBUG(MSG_CLEANUP_THREAD,
+	  Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
     pthread_detach(pthread_self());
     sem_post(sem_canceled_ptr);
   }
@@ -946,7 +945,6 @@ exitPrologThreads(void)
     { while ( sem_trywait(sem_canceled_ptr) == 0 )
       { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("."));
 	canceled--;
-	break;
       }
       if ( canceled > 0 )
       { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("W"));
@@ -1139,7 +1137,14 @@ discard_thread(thread_handle *h)
 
 static void *
 thread_gc_loop(void *closure)
-{ for(;;)
+{
+#ifdef HAVE_SIGPROCMASK
+  sigset_t set;
+  allSignalMask(&set);
+  pthread_sigmask(SIG_BLOCK, &set, NULL);
+#endif
+
+  for(;;)
   { thread_handle *h;
 
     do
@@ -1493,8 +1498,8 @@ thread_wait_signal(ARG1_LD)
   while( !is_signalled(PASS_LD1) )
   {
 #ifdef __WINDOWS__
-    MSG *msg;
-    if ( !GetMessage(&msg, -1, WM_SIGNALLED, WM_SIGNALLED) )
+    MSG msg;
+    if ( !GetMessage(&msg, (HWND)-1, WM_SIGNALLED, WM_SIGNALLED) )
       return -1;
 #else
     sigset_t set;
@@ -1604,6 +1609,46 @@ set_system_thread_id(PL_thread_info_t *info)
 }
 
 
+static int
+set_os_thread_name_from_charp(const char *s)
+{
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  char name[16];
+
+  if ( strlen(s) > 15 )
+  { strncpy(name, s, 15);
+    name[15] = EOS;
+  } else
+  { strcpy(name, s);
+  }
+#ifdef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
+  if ( pthread_setname_np(name) == 0 )
+    return TRUE;
+#else
+  if ( pthread_setname_np(pthread_self(), name) == 0 )
+    return TRUE;
+#endif
+#endif
+  return FALSE;
+}
+
+
+static int
+set_os_thread_name(atom_t alias)
+{
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  GET_LD
+  term_t t = PL_new_term_ref();
+  PL_put_atom(t, alias);
+  char *s;
+
+  if ( PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_DISCARDABLE) )
+    return set_os_thread_name_from_charp(s);
+#endif
+  return FALSE;
+}
+
+
 static const opt_spec make_thread_options[] =
 { { ATOM_local,		OPT_SIZE|OPT_INF },
   { ATOM_global,	OPT_SIZE|OPT_INF },
@@ -1661,6 +1706,7 @@ set_thread_completion(PL_thread_info_t *info, int rc, term_t ex)
 static void *
 start_thread(void *closure)
 { PL_thread_info_t *info = closure;
+  thread_handle *th;
   term_t ex, goal;
   int rval;
 
@@ -1679,6 +1725,11 @@ start_thread(void *closure)
     PL_LOCK(L_THREAD);
     info->status = PL_THREAD_RUNNING;
     PL_UNLOCK(L_THREAD);
+
+    if ( info->symbol &&
+	 (th=symbol_thread_handle(info->symbol)) &&
+	 th->alias )
+      set_os_thread_name(th->alias);
 
     goal = PL_new_term_ref();
     PL_put_atom(goal, ATOM_dthread_init);
@@ -2223,6 +2274,31 @@ free_thread_info(PL_thread_info_t *info)
 }
 
 
+static int
+pthread_join_interruptible(pthread_t thread, void **retval)
+{
+#ifdef HAVE_PTHREAD_TIMEDJOIN_NP
+  for(;;)
+  { struct timespec deadline;
+    int rc;
+
+    get_current_timespec(&deadline);
+    deadline.tv_nsec += 250000000;
+    carry_timespec_nanos(&deadline);
+
+    if ( (rc=pthread_timedjoin_np(thread, retval, &deadline)) == ETIMEDOUT )
+    { if ( PL_handle_signals() < 0 )
+	return EINTR;
+    } else
+      return rc;
+  }
+#else
+  return pthread_join(thread, retval);
+#endif
+}
+
+
+
 static
 PRED_IMPL("thread_join", 2, thread_join, 0)
 { PRED_LD
@@ -2244,13 +2320,13 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 		    ERR_PERMISSION, ATOM_join, ATOM_thread, thread);
   }
 
-  while( (rc=pthread_join(info->tid, &r)) == EINTR )
-  { if ( PL_handle_signals() < 0 )
-      fail;
-  }
+  rc = pthread_join_interruptible(info->tid, &r);
+
   switch(rc)
   { case 0:
       break;
+    case EINTR:
+      return FALSE;
     case ESRCH:
       Sdprintf("Join %s: ESRCH from %d\n",
 	       threadName(info->pl_tid), info->tid);
@@ -3720,7 +3796,7 @@ timespec_cmp(const struct timespec *a, const struct timespec *b)
 }
 
 
-static void
+void
 get_current_timespec(struct timespec *time)
 {
 #ifdef HAVE_CLOCK_GETTIME
@@ -3743,7 +3819,7 @@ get_current_timespec(struct timespec *time)
 }
 
 
-static void
+void
 carry_timespec_nanos(struct timespec *time)
 { while ( time->tv_nsec >= 1000000000 )
   { time->tv_nsec -= 1000000000;
@@ -5135,7 +5211,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   info->goal       = NULL;
   info->module     = MODULE_user;
-  info->detached   = (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
+  info->detached   = attr && (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
   info->open_count = 1;
 
   copy_local_data(ldnew, ldmain);
@@ -5325,9 +5401,17 @@ static pthread_cond_t  GC_cond  = PTHREAD_COND_INITIALIZER;
 static void *
 GCmain(void *closure)
 { PL_thread_attr_t attrs = {0};
+#ifdef HAVE_SIGPROCMASK
+  sigset_t set;
+  allSignalMask(&set);
+  if ( GD->signals.sig_alert )
+    sigdelset(&set, GD->signals.sig_alert);
+  pthread_sigmask(SIG_BLOCK, &set, NULL);
+#endif
 
   attrs.alias = "gc";
   attrs.flags = PL_THREAD_NO_DEBUG|PL_THREAD_NOT_DETACHED;
+  set_os_thread_name_from_charp("gc");
 
   if ( PL_thread_attach_engine(&attrs) > 0 )
   { GET_LD
@@ -5875,21 +5959,21 @@ void
 forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
 { GET_LD
   int me = PL_thread_self();
-  PL_thread_info_t **th;
+  int i;
 
-  for( th = &GD->thread.threads[1];
-       th <= &GD->thread.threads[thread_highest_id];
-       th++ )
-  { PL_thread_info_t *info = *th;
+  for( i=1; i<=thread_highest_id; i++ )
+  { if ( i != me )
+    { PL_thread_info_t *info = GD->thread.threads[i];
 
-    if ( info->thread_data && info->pl_tid != me &&
-	 ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
-    { PL_local_data_t *ld;
+      if ( info && info->thread_data &&
+	   ( info->status == PL_THREAD_RUNNING || info->in_exit_hooks ) )
+      { PL_local_data_t *ld;
 
-      if ( (ld = acquire_ldata(info)) )
-      { simpleMutexLock(&ld->thread.scan_lock);
-	(*func)(ld);
-	simpleMutexUnlock(&ld->thread.scan_lock);
+	if ( (ld = acquire_ldata(info)) )
+	{ simpleMutexLock(&ld->thread.scan_lock);
+	  (*func)(ld);
+	  simpleMutexUnlock(&ld->thread.scan_lock);
+	}
       }
     }
   }

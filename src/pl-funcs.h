@@ -194,7 +194,6 @@ COMMON(void)		clearTriedIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
-COMMON(void)		deleteIncompleteIndexes(Definition def);
 COMMON(void)		deleteIndexes(Definition def, int isnew);
 COMMON(int)		checkClauseIndexSizes(Definition def, int nindexable);
 COMMON(void)		checkClauseIndexes(Definition def);
@@ -535,6 +534,7 @@ COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 /* pl-srcfile.c */
 
 COMMON(int)		startConsult(SourceFile f);
+COMMON(int)		endConsult(SourceFile f);
 COMMON(size_t)		highSourceFileIndex(void);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
 COMMON(SourceFile)	indexToSourceFile(int index);

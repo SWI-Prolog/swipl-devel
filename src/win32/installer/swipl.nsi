@@ -10,12 +10,21 @@
 Var /GLOBAL cmdLineParams  ; Command Line Options
 
 !define REGKEY SOFTWARE\SWI\Prolog
+!define MKINSTALLER "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}"
+
+!ifdef WIN64
+!define DWIN64 "/DWIN64=1"
+!else
+!define DWIN64 ""
+!endif
 
 !ifdef MINGW
-!system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMINGW=1" = 0
+!define DMINGW "/DMINGW=1"
 !else
-!system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
+!define DMINGW ""
 !endif
+
+!system "${MKINSTALLER} ${DWIN64} ${DMINGW}" = 0
 !include "version.nsi"
 !include "FileFunc.nsh"
 
@@ -280,10 +289,15 @@ Section "Base system (required)"
   File ${SWIPL}\bin\${PTHREAD}.dll
 !ifdef MINGW
   File ${SWIPL}\bin\libswipl.dll
-  File ${SWIPL}\bin\libeay32.dll
   File ${SWIPL}\bin\libgmp-10.dll
   File ${SWIPL}\bin\libjpeg-9.dll
-  File ${SWIPL}\bin\ssleay32.dll
+!ifdef WIN64
+  File ${SWIPL}\bin\libcrypto-1_1-x64.dll
+  File ${SWIPL}\bin\libssl-1_1-x64.dll
+!else
+  File ${SWIPL}\bin\libcrypto-1_1.dll
+  File ${SWIPL}\bin\libssl-1_1.dll
+!endif
   File ${SWIPL}\bin\libarchive-13.dll
   File ${SWIPL}\bin\libpcre-1.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll

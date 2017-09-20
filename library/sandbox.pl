@@ -47,6 +47,7 @@
     safe_primitive/1,               % Goal
     safe_meta_predicate/1,          % Name/Arity
     safe_meta/2,                    % Goal, Calls
+    safe_meta/3,                    % Goal, Context, Calls
     safe_global_variable/1,         % Name
     safe_directive/1.               % Module:Goal
 
@@ -183,7 +184,7 @@ safe(G, M, Parents, Safe, Safe) :-
     !.
 safe(G, M, Parents, Safe0, Safe) :-
     predicate_property(G, iso),
-    safe_meta_call(G, Called),
+    safe_meta_call(G, M, Called),
     !,
     safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
@@ -191,7 +192,7 @@ safe(G, M, Parents, Safe0, Safe) :-
     ->  true
     ;   M2 = M
     ),
-    safe_meta_call(M2:G, Called),
+    safe_meta_call(M2:G, M, Called),
     !,
     safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
@@ -851,18 +852,21 @@ expand_nt(NT, Xs0, Xs, NewGoal) :-
     ;   NewGoal = ( Xs0 = Xs0c, NewGoal1 )
     ).
 
-%!  safe_meta_call(+Goal, -Called:list(callable)) is semidet.
+%!  safe_meta_call(+Goal, +Context, -Called:list(callable)) is semidet.
 %
 %   True if Goal is a   meta-predicate that is considered safe
 %   iff all elements in Called are safe.
 
-safe_meta_call(Goal, _Called) :-
+safe_meta_call(Goal, _, _Called) :-
     debug(sandbox(meta), 'Safe meta ~p?', [Goal]),
     fail.
-safe_meta_call(Goal, Called) :-
-    safe_meta(Goal, Called),
+safe_meta_call(Goal, Context, Called) :-
+    (   safe_meta(Goal, Called)
+    ->  true
+    ;   safe_meta(Goal, Context, Called)
+    ),
     !.     % call hook
-safe_meta_call(Goal, Called) :-
+safe_meta_call(Goal, _, Called) :-
     Goal = M:Plain,
     compound(Plain),
     compound_name_arity(Plain, Name, Arity),
@@ -870,12 +874,12 @@ safe_meta_call(Goal, Called) :-
     predicate_property(Goal, meta_predicate(Spec)),
     !,
     findall(C, called(Spec, Plain, C), Called).
-safe_meta_call(M:Goal, Called) :-
+safe_meta_call(M:Goal, _, Called) :-
     !,
     generic_goal(Goal, Gen),
     safe_meta(M:Gen),
     findall(C, called(Gen, Goal, C), Called).
-safe_meta_call(Goal, Called) :-
+safe_meta_call(Goal, _, Called) :-
     generic_goal(Goal, Gen),
     safe_meta(Gen),
     findall(C, called(Gen, Goal, C), Called).

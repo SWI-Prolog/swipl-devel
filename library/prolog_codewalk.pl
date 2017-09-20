@@ -201,10 +201,10 @@ prolog_walk_code(Iteration, Options) :-
                  current_module(M),
                  scan_module(M, OTerm)
                ),
-               find_walk_from_module(M, OTerm))
+               find_walk_from_module(M, OTerm)),
+        walk_from_multifile(OTerm),
+        walk_from_initialization(OTerm)
     ),
-    walk_from_multifile(OTerm),
-    walk_from_initialization(OTerm),
     infer_new_meta_predicates(New, OTerm),
     statistics(cputime, CPU1),
     (   New \== []
@@ -350,11 +350,17 @@ walk_called_by_body(Body, Module, OTerm) :-
 walk_called_by_body(Body, Module, OTerm) :-
     format(user_error, 'Failed to analyse:~n', []),
     portray_clause(('<head>' :- Body)),
-    (   debugging(codewalk(trace))
-    ->  gtrace,
-        walk_called_by_body(Body, Module, OTerm)
-    ;   true
-    ).
+    debug_walk(Body, Module, OTerm).
+
+% recompile this library after `debug(codewalk(trace))` and re-try
+% for debugging failures.
+:- if(debugging(codewalk(trace))).
+debug_walk(Body, Module, OTerm) :-
+    gtrace,
+    walk_called_by_body(Body, Module, OTerm).
+:- else.
+debug_walk(_,_,_).
+:- endif.
 
 %!  walk_called_by_body(+Missing, +Body, +Module, +OTerm)
 %
@@ -420,6 +426,10 @@ walk_called_by_body(no_positions, Body, Module, OTerm) :-
 %
 %   @tbd    Analyse e.g. assert((Head:-Body))?
 
+walk_called(Term, Module, parentheses_term_position(_,_,Pos), OTerm) :-
+    nonvar(Pos),
+    !,
+    walk_called(Term, Module, Pos, OTerm).
 walk_called(Var, _, TermPos, OTerm) :-
     var(Var),                              % Incomplete analysis
     !,
@@ -434,6 +444,17 @@ walk_called((A,B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
     !,
     walk_called(A, M, PA, OTerm),
     walk_called(B, M, PB, OTerm).
+walk_called((A->B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
+    !,
+    walk_called(A, M, PA, OTerm),
+    walk_called(B, M, PB, OTerm).
+walk_called((A*->B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
+    !,
+    walk_called(A, M, PA, OTerm),
+    walk_called(B, M, PB, OTerm).
+walk_called(\+(A), M, term_position(_,_,_,_,[PA]), OTerm) :-
+    !,
+    \+ \+ walk_called(A, M, PA, OTerm).
 walk_called((A;B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :-
     !,
     (   walk_option_evaluate(OTerm, Eval), Eval == true

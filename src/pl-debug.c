@@ -103,6 +103,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_CONTINUE),
 
   DEBUG_TOPIC(MSG_CLEANUP_THREAD),
+  DEBUG_TOPIC(MSG_INITIALISE),
 						/* GC messages */
   DEBUG_TOPIC(MSG_AGC),
   DEBUG_TOPIC(MSG_CLAUSE_GC),

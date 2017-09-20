@@ -917,6 +917,22 @@ PRED_IMPL("trie_new", 1, trie_new, 0)
 
 
 static
+PRED_IMPL("is_trie", 1, is_trie, 0)
+{ void *data;
+  PL_blob_t *type;
+
+  if ( PL_get_blob(A1, &data, NULL, &type) && type == &trie_blob )
+  { tref *ref = data;
+
+    if ( ref->trie->magic == TRIE_MAGIC )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static
 PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 { trie *trie;
 
@@ -1135,6 +1151,35 @@ PRED_IMPL("trie_insert", 4, trie_insert, 0)
 
   return ( trie_insert(A1, A2, A3, &node, FALSE PASS_LD) &&
 	   PL_unify_pointer(A4, node) );
+}
+
+
+static
+PRED_IMPL("trie_delete", 3, trie_delete, 0)
+{ PRED_LD
+  trie *trie;
+
+  if ( get_trie(A1, &trie) )
+  { Word kp;
+    trie_node *node;
+    int rc;
+
+    kp = valTermRef(A2);
+
+    if ( (rc=trie_lookup(trie, &node, kp, FALSE PASS_LD)) == TRUE )
+    { if ( node->value )
+      { if ( unify_value(A3, node->value PASS_LD) )
+	{ prune_node(trie, node);
+	  return TRUE;
+	}
+      }
+      return FALSE;
+    }
+
+    return trie_error(rc, A2);
+  }
+
+  return FALSE;
 }
 
 
@@ -1499,12 +1544,14 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 		 *******************************/
 
 BeginPredDefs(trie)
+  PRED_DEF("is_trie",             1, is_trie,            0)
   PRED_DEF("trie_new",            1, trie_new,           0)
   PRED_DEF("trie_destroy",        1, trie_destroy,       0)
   PRED_DEF("trie_insert",         3, trie_insert,        0)
   PRED_DEF("trie_insert",         4, trie_insert,        0)
   PRED_DEF("trie_update",         3, trie_update,        0)
   PRED_DEF("trie_lookup",         3, trie_lookup,        0)
+  PRED_DEF("trie_delete",         3, trie_delete,        0)
   PRED_DEF("trie_term",		  2, trie_term,		 0)
   PRED_DEF("trie_gen",            3, trie_gen, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$trie_property",      2, trie_property,      0)

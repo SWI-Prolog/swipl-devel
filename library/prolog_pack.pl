@@ -219,6 +219,7 @@ pack_level_info(_,    provides(_),      'Provides',                -).
 pack_level_info(_,    requires(_),      'Requires',                -).
 pack_level_info(_,    conflicts(_),     'Conflicts with',          -).
 pack_level_info(_,    replaces(_),      'Replaces packages',       -).
+pack_level_info(info, library(_),	'Provided libraries',      -).
 
 pack_default(Level, Infos, Def) :-
     pack_level_info(Level, ITerm, _Format, Def),
@@ -240,6 +241,16 @@ pack_info_term(BaseDir, Info) :-
         ( print_message(error, pack(no_meta_data(BaseDir))),
           fail
         )).
+pack_info_term(BaseDir, library(Lib)) :-
+    atom_concat(BaseDir, '/prolog/', LibDir),
+    atom_concat(LibDir, '*.pl', Pattern),
+    expand_file_name(Pattern, Files),
+    maplist(atom_concat(LibDir), Plain, Files),
+    convlist(base_name, Plain, Libs),
+    member(Lib, Libs).
+
+base_name(File, Base) :-
+    file_name_extension(Base, pl, File).
 
 term_in_stream(In, Term) :-
     repeat,
@@ -279,8 +290,8 @@ pack_info_term(packager(atom, email_or_url)).
 pack_info_term(home(atom)).                     % Home page
 pack_info_term(download(atom)).                 % Source
 pack_info_term(provides(atom)).                 % Dependencies
-pack_info_term(requires(atom)).
-pack_info_term(conflicts(atom)).                % Conflicts with package
+pack_info_term(requires(dependency)).
+pack_info_term(conflicts(dependency)).          % Conflicts with package
 pack_info_term(replaces(atom)).                 % Replaces another package
 pack_info_term(autoload(boolean)).              % Default installation options
 
@@ -296,10 +307,26 @@ error:has_type(email_or_url, Address) :-
     ->  true
     ;   uri_is_global(Address)
     ).
+error:has_type(dependency, Value) :-
+    is_dependency(Value, _Token, _Version).
 
 version_data(Version, version(Data)) :-
     atomic_list_concat(Parts, '.', Version),
     maplist(atom_number, Parts, Data).
+
+is_dependency(Token, Token, *) :-
+    atom(Token).
+is_dependency(Term, Token, VersionCmp) :-
+    Term =.. [Op,Token,Version],
+    cmp(Op, _),
+    version_data(Version, _),
+    VersionCmp =.. [Op,Version].
+
+cmp(<,  @<).
+cmp(=<, @=<).
+cmp(==, ==).
+cmp(>=, @>=).
+cmp(>,  @>).
 
 
                  /*******************************
@@ -1052,8 +1079,8 @@ foreign_file('makefile').
 
 %!  configure_foreign(+PackDir, +Options) is det.
 %
-%   Run configure if it exists.  If =|configure.in|= exists, first
-%   run =autoheader= and =autoconf=
+%   Run configure if it exists.  If =|configure.ac|= or =|configure.in|=
+%   exists, first run =autoheader= and =autoconf=
 
 configure_foreign(PackDir, Options) :-
     make_configure(PackDir, Options),
@@ -1072,12 +1099,17 @@ make_configure(PackDir, _Options) :-
     exists_file(Configure),
     !.
 make_configure(PackDir, _Options) :-
-    directory_file_path(PackDir, 'configure.in', ConfigureIn),
+    autoconf_master(ConfigMaster),
+    directory_file_path(PackDir, ConfigMaster, ConfigureIn),
     exists_file(ConfigureIn),
     !,
     run_process(path(autoheader), [], [directory(PackDir)]),
     run_process(path(autoconf),   [], [directory(PackDir)]).
 make_configure(_, _).
+
+autoconf_master('configure.ac').
+autoconf_master('configure.in').
+
 
 %!  make_foreign(+PackDir, +Options) is det.
 %
@@ -1934,7 +1966,21 @@ unsatisfied_dependencies(Unsatisfied) :-
     Unsatisfied \== [].
 
 satisfied_dependency(Needed-_By) :-
-    pack_provides(_, Needed).
+    pack_provides(_, Needed),
+    !.
+satisfied_dependency(Needed-_By) :-
+    compound(Needed),
+    Needed =.. [Op, Pack, ReqVersion],
+    (   pack_provides(Pack, Pack)
+    ->  pack_info(Pack, _, version(PackVersion)),
+        version_data(PackVersion, PackData)
+    ;   Pack == prolog
+    ->  current_prolog_flag(version_data, swi(Major,Minor,Patch,_)),
+        PackData = [Major,Minor,Patch]
+    ),
+    version_data(ReqVersion, ReqData),
+    cmp(Op, Cmp),
+    call(Cmp, PackData, ReqData).
 
 %!  pack_provides(?Package, ?Token) is multi.
 %
