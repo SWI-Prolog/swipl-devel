@@ -40,6 +40,7 @@
             interactor/0,               % Create a new interactor
             thread_has_console/0,       % Test whether calling thread has a console
             attach_console/0,           % Create an xterm-console for thread.
+            attach_console/1,           % +Title
 
             tspy/1,                     % :Spec
             tspy/2,                     % :Spec, +ThreadId
@@ -131,16 +132,22 @@ thread_has_console :-
     !.
 
 %!  attach_console is det.
+%   attach_console(+Title) is det.
 %
 %   Create an xterm-console and make the standard Prolog streams point to
-%   it.
+%   it. If not provided, the title is built using the thread id. Does
+%   nothing if the current thread already has a console attached.
 
-attach_console :-
-    thread_has_console,
-    !.
 attach_console :-
     thread_self(Id),
     console_title(Id, Title),
+    attach_console(Title).
+
+attach_console(_) :-
+    thread_has_console,
+    !.
+attach_console(Title) :-
+    thread_self(Id),
     open_console(Title, In, Out, Err),
     assert(has_console(Id, In, Out, Err)),
     set_stream(In,  alias(user_input)),
