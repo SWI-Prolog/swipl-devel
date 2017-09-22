@@ -2098,6 +2098,8 @@ def_style(no_flag_name(_),         [colour(red)]).
 def_style(unused_import,           [colour(blue), background(pink)]).
 def_style(undefined_import,        [colour(red)]).
 
+def_style(constraint(_),           [colour(darkcyan)]).
+
 def_style(keyword(_),              [colour(blue)]).
 def_style(identifier,              [bold(true)]).
 def_style(delimiter,               [bold(true)]).
