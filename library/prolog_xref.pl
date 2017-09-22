@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2016, University of Amsterdam
+    Copyright (c)  2006-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -67,9 +67,10 @@
             xref_defined_class/3        % ?Source, ?ClassName, -How
           ]).
 :- use_module(library(debug), [debug/3]).
-:- use_module(library(lists), [append/3, member/2, select/3]).
+:- use_module(library(lists), [append/3, append/2, member/2, select/3]).
 :- use_module(library(operators), [push_op/3]).
 :- use_module(library(shlib), [current_foreign_library/2]).
+:- use_module(library(ordsets)).
 :- use_module(library(prolog_source)).
 :- use_module(library(option)).
 :- use_module(library(error)).
@@ -1298,9 +1299,6 @@ arith_callable(Name/Arity, Goal) :-
 %
 %   We limit the number of explored paths   to  100 to avoid getting
 %   trapped in this analysis.
-%
-%   @bug  We  should  analyse  whether    bindings  due  to  partial
-%   evaluation lead to a different analysis.
 
 process_body(Body, Origin, Src) :-
     forall(limit(100, process_goal(Body, Origin, Src, _Partial)),
@@ -1315,24 +1313,16 @@ process_goal(Var, _, _, _) :-
     var(Var),
     !.
 process_goal(Goal, Origin, Src, P) :-
-    Goal = (_;_),
+    Goal = (_,_),                               % problems
+    !,
+    phrase(conjunction(Goal), Goals),
+    process_conjunction(Goals, Origin, Src, P).
+process_goal(Goal, Origin, Src, _) :-           % Final disjunction, no
+    Goal = (_;_),                               % problems
     !,
     phrase(disjunction(Goal), Goals),
-    findall(Goal,
-            (   member(G, Goals),
-                process_goal(G, Origin, Src, PS),
-                PS == true
-            ),
-            Alts0),
-    (   Alts0 == []
-    ->  true
-    ;   (   true
-        ;   P = true,
-            sort(Alts0, Alts1),
-            variants(Alts1, 10, Alts),
-            member(Goal, Alts)
-        )
-    ).
+    forall(member(G, Goals),
+           process_body(G, Origin, Src)).
 process_goal(Goal, Origin, Src, P) :-
     (   (   xmodule(M, Src)
         ->  true
@@ -1377,6 +1367,56 @@ process_goal(Goal, Origin, Src, P) :-
 disjunction(Var)   --> {var(Var), !}, [Var].
 disjunction((A;B)) --> !, disjunction(A), disjunction(B).
 disjunction(G)     --> [G].
+
+conjunction(Var)   --> {var(Var), !}, [Var].
+conjunction((A,B)) --> !, conjunction(A), conjunction(B).
+conjunction(G)     --> [G].
+
+shares_vars(RVars, T) :-
+    term_variables(T, TVars0),
+    sort(TVars0, TVars),
+    ord_intersect(RVars, TVars).
+
+process_conjunction([], _, _, _).
+process_conjunction([Disj|Rest], Origin, Src, P) :-
+    nonvar(Disj),
+    Disj = (_;_),
+    Rest \== [],
+    !,
+    phrase(disjunction(Disj), Goals),
+    term_variables(Rest, RVars0),
+    sort(RVars0, RVars),
+    partition(shares_vars(RVars), Goals, Sharing, NonSHaring),
+    forall(member(G, NonSHaring),
+           process_body(G, Origin, Src)),
+    (   Sharing == []
+    ->  true
+    ;   maplist(term_variables, Sharing, GVars0),
+        append(GVars0, GVars1),
+        sort(GVars1, GVars),
+        ord_intersection(GVars, RVars, SVars),
+        VT =.. [v|SVars],
+        findall(VT,
+                (   member(G, Sharing),
+                    process_goal(G, Origin, Src, PS),
+                    PS == true
+                ),
+                Alts0),
+        (   Alts0 == []
+        ->  true
+        ;   (   true
+            ;   P = true,
+                sort(Alts0, Alts1),
+                variants(Alts1, 10, Alts),
+                member(VT, Alts)
+            )
+        )
+    ),
+    process_conjunction(Rest, Origin, Src, P).
+process_conjunction([H|T], Origin, Src, P) :-
+    process_goal(H, Origin, Src, P),
+    process_conjunction(T, Origin, Src, P).
+
 
 process_called_list([], _, _, _).
 process_called_list([H|T], Origin, Src, P) :-
