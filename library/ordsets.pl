@@ -201,10 +201,14 @@ l_int([_-H|T], S0, S) :-
 
 %!  ord_intersection(+Set1, +Set2, -Intersection) is det.
 %
-%   Intersection holds the common elements of Set1 and Set2.
+%   Intersection holds the common elements of Set1 and Set2.  Uses
+%   ord_disjoint/2 if Intersection is bound to `[]` on entry.
 
 ord_intersection(Set1, Set2, Intersection) :-
-    oset_int(Set1, Set2, Intersection).
+    (   Intersection == []
+    ->  ord_disjoint(Set1, Set2)
+    ;   oset_int(Set1, Set2, Intersection)
+    ).
 
 
 %!  ord_intersection(+Set1, +Set2, ?Intersection, ?Difference) is det.
