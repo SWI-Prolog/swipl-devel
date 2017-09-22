@@ -72,6 +72,7 @@ This module defines reusable code to colourise Prolog source.
     message//1,                     % +ColourClass
     term_colours/2,                 % +SourceTerm, -ColourSpec
     goal_colours/2,                 % +Goal, -ColourSpec
+    goal_colours/3,                 % +Goal, +Class, -ColourSpec
     directive_colours/2,            % +Goal, -ColourSpec
     goal_classification/2,          % +Goal, -Class
     vararg_goal_classification/3.   % +Name, +Arity, -Class
@@ -936,8 +937,12 @@ colourise_goal(Goal, _Origin, TB, Pos) :-
     colourise_term_arg(Goal, TB, Pos).
 colourise_goal(Goal, Origin, TB, Pos) :-
     nonvar(Goal),
-    goal_colours(Goal, ClassSpec-ArgSpecs),   % specified
-    !,
+    (   goal_classification(TB, Goal, Origin, ClassInferred),
+        goal_colours(Goal, ClassInferred, ClassSpec-ArgSpecs)
+    ->  true
+    ;   goal_colours(Goal, ClassSpec-ArgSpecs)
+    ),
+    !,                                          % specified
     functor_position(Pos, FPos, ArgPos),
     (   ClassSpec == classify
     ->  goal_classification(TB, Goal, Origin, Class)
