@@ -10,12 +10,11 @@ extending logic programming with reasoning over specialised domains.
 The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
 
-Usage examples of this library are available in a public git
-repository: [**github.com/triska/clpb**](https://github.com/triska/clpb)
+Benchmarks and usage examples of this library are available from:
+[**https://www.metalevel.at/clpb/**](https://www.metalevel.at/clpb/)
 
-We recommend the following reference (PDF:
-[metalevel.at/swiclpb.pdf](https://www.metalevel.at/swiclpb.pdf))
-for citing this library in scientific publications:
+We recommend the following reference for citing this library in
+scientific publications:
 
 ==
 @inproceedings{Triska2016,
@@ -29,6 +28,9 @@ for citing this library in scientific publications:
   pages     = "45--61"
 }
 ==
+
+The paper is available from
+[https://www.metalevel.at/swiclpb.pdf](https://www.metalevel.at/swiclpb.pdf)
 
 ## Boolean expressions {#clpb-exprs}
 
