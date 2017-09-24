@@ -38,9 +38,10 @@
             threads/0,                  % List available threads
             join_threads/0,             % Join all terminated threads
             interactor/0,               % Create a new interactor
-            thread_has_console/0,       % Test whether calling thread has a console
-            attach_console/0,           % Create an xterm-console for thread.
-            attach_console/1,           % +Title
+            interactor/1,               % ?Title
+            thread_has_console/0,       % True if thread has a console
+            attach_console/0,           % Create a new console for thread.
+            attach_console/1,           % ?Title
 
             tspy/1,                     % :Spec
             tspy/2,                     % :Spec, +ThreadId
@@ -94,19 +95,37 @@ rip_thread(thread{id:id, status:Status}) :-
     \+ thread_self(Id),
     thread_join(Id, _).
 
-%!  interactor
+%!  interactor is det.
+%!  interactor(?Title) is det.
 %
-%   Run a Prolog toplevel in another thread with a new console window.
+%   Run a Prolog toplevel in another thread   with a new console window.
+%   If Title is given, this will be used as the window title.
 
 interactor :-
-    thread_create(thread_run_interactor, _Id,
+    interactor(_).
+
+interactor(Title) :-
+    thread_self(Me),
+    thread_create(thread_run_interactor(Me, Title), _Id,
                   [ detached(true),
                     debug(false)
-                  ]).
+                  ]),
+    thread_get_message(title(Title)).
+
+thread_run_interactor(Creator, Title) :-
+    set_prolog_flag(query_debug_settings, debug(false, false)),
+    attach_console(Title),
+    thread_send_message(Creator, title(Title)),
+    print_message(banner, thread_welcome),
+    prolog.
+
+%!  thread_run_interactor
+%
+%   Attach a console and run a Prolog toplevel in the current thread.
 
 thread_run_interactor :-
     set_prolog_flag(query_debug_settings, debug(false, false)),
-    attach_console,
+    attach_console(_Title),
     print_message(banner, thread_welcome),
     prolog.
 
@@ -132,22 +151,24 @@ thread_has_console :-
     !.
 
 %!  attach_console is det.
-%!  attach_console(+Title) is det.
+%!  attach_console(?Title) is det.
 %
 %   Create a new console and make the   standard Prolog streams point to
 %   it. If not provided, the title is   built  using the thread id. Does
 %   nothing if the current thread already has a console attached.
 
 attach_console :-
-    thread_self(Id),
-    console_title(Id, Title),
-    attach_console(Title).
+    attach_console(_).
 
 attach_console(_) :-
     thread_has_console,
     !.
 attach_console(Title) :-
     thread_self(Id),
+    (   var(Title)
+    ->  console_title(Id, Title)
+    ;   true
+    ),
     open_console(Title, In, Out, Err),
     assert(has_console(Id, In, Out, Err)),
     set_stream(In,  alias(user_input)),
