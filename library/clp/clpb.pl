@@ -69,7 +69,7 @@ The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
 
 Benchmarks and usage examples of this library are available from:
-[**https://www.metalevel.at/clpb**](https://www.metalevel.at/clpb/)
+[__https://www.metalevel.at/clpb/__](https://www.metalevel.at/clpb/)
 
 We recommend the following reference (PDF:
 [https://www.metalevel.at/swiclpb.pdf](https://www.metalevel.at/swiclpb.pdf))
