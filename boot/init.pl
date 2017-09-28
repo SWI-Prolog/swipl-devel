@@ -1409,27 +1409,20 @@ compiling :-
 %           * term_position(-Pos)
 
 '$source_term'(From, Read, RLayout, Term, TLayout, Stream, Options) :-
-    '$source_term'(From, Read, RLayout, Term, TLayout, Stream, [], Options),
-    (   Term == end_of_file
-    ->  !, fail
-    ;   true
-    ).
+    '$source_term'(From, Options, Read-RLayout, Term-TLayout, Stream, []).
 
-'$source_term'(Input, _,_,_,_,_,_,_) :-
+'$source_term'(Input, _,_,_,_) :-
     \+ ground(Input),
     !,
     '$instantiation_error'(Input).
-'$source_term'(stream(Id, In, Opts),
-               Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
+'$source_term'(stream(Id, In, Opts), Options, ReadL, TermL, Stream, Parents) :-
     !,
     '$record_included'(Parents, Id, Id, 0.0, Message),
     setup_call_cleanup(
         '$open_source'(stream(Id, In, Opts), In, State, Parents, Options),
-        '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream,
-                        [Id|Parents], Options),
+        '$term_in_file'(In, ReadL, TermL, Stream, [Id|Parents], Options),
         '$close_source'(State, Message)).
-'$source_term'(File,
-               Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
+'$source_term'(File, Options, ReadL, TermL, Stream, Parents) :-
     absolute_file_name(File, Path,
                        [ file_type(prolog),
                          access(read)
@@ -1438,8 +1431,7 @@ compiling :-
     '$record_included'(Parents, File, Path, Time, Message),
     setup_call_cleanup(
         '$open_source'(Path, In, State, Parents, Options),
-        '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream,
-                        [Path|Parents], Options),
+        '$term_in_file'(In, ReadL, TermL, Stream, [Path|Parents], Options),
         '$close_source'(State, Message)).
 
 :- thread_local
@@ -1486,18 +1478,19 @@ compiling :-
 '$close_message'(_).
 
 
-%!  '$term_in_file'(+In, -Read, -RLayout, -Term, -TLayout,
-%!                  -Stream, +Parents, +Options) is multi.
+%!  '$term_in_file'(+In, -ReadL, -TermL, -Stream, +Parents, +Options) is multi.
 %
-%   True when Term is an expanded term from   In. Read is a raw term
+%   If ReadL is the pair =|Read-RLayout|=, and TermL is =|Term-TLayout|=, then
+%   this predicate is true when Term is an expanded term from   In. Read is a raw term
 %   (before term-expansion). Stream is  the   actual  stream,  which
 %   starts at In, but may change due to processing included files.
 %
 %   @see '$source_term'/8 for details.
 
-'$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
+'$term_in_file'(In, ReadL, TermL, Stream, Parents, Options) :-
     '$skip_script_line'(In),
     '$read_clause_options'(Options, ReadOptions),
+    RawL = Raw - RawLayout,
     repeat,
       read_clause(In, Raw,
                   [ variable_names(Bindings),
@@ -1511,12 +1504,11 @@ compiling :-
       ->  !,
           (   Parents = [_,_|_]     % Included file
           ->  fail
-          ;   '$expanded_term'(In,
-                               Raw, RawLayout, Read, RLayout, Term, TLayout,
-                               Stream, Parents, Options)
+          ;   '$expanded_term'(In, RawL, ReadL, TermL, Stream, Parents, Options)
           )
-      ;   '$expanded_term'(In, Raw, RawLayout, Read, RLayout, Term, TLayout,
-                           Stream, Parents, Options)
+      ;   var(Raw) % !!! SA 201709 - should this be allowed?
+      ->  ReadL = RawL, TermL = RawL, Stream = In
+      ;   '$expanded_term'(In, RawL, ReadL, TermL, Stream, Parents, Options)
       ).
 
 '$read_clause_options'([], []).
@@ -1531,62 +1523,45 @@ compiling :-
 '$read_clause_option'(term_position(_)).
 '$read_clause_option'(process_comment(_)).
 
-'$expanded_term'(In, Raw, RawLayout, Read, RLayout, Term, TLayout,
-                 Stream, Parents, Options) :-
-    catch('$expand_term'(Raw, RawLayout, Expanded, ExpandedLayout), E,
+'$expanded_term'(In, RawL, ReadL, TermL, Stream, Parents, Options) :-
+    catch('$expand_term'(RawL, Expanded), E,
           '$print_message_fail'(E)),
-    (   Expanded \== []
-    ->  '$expansion_member'(Expanded, ExpandedLayout, Term1, Layout1)
-    ;   Term1 = Expanded,
-        Layout1 = ExpandedLayout
-    ),
-    (   nonvar(Term1), Term1 = (:-Directive), nonvar(Directive)
-    ->  (   Directive = include(File),
-            '$current_source_module'(Module),
-            '$valid_directive'(Module:include(File))
-        ->  stream_property(In, encoding(Enc)),
-            '$add_encoding'(Enc, Options, Options1),
-            '$source_term'(File, Read, RLayout, Term, TLayout,
-                           Stream, Parents, Options1)
-        ;   Directive = encoding(Enc)
-        ->  set_stream(In, encoding(Enc)),
-            fail
-        ;   Term = Term1,
-            Stream = In,
-            Read = Raw
+    (   Expanded = []
+    ->  '$empty_expansion'(RawL,TermL),
+        ReadL = RawL, Stream = In
+    ;   '$member'(Term1, Expanded),
+        \+(Term1 = end_of_file - _),
+        (   Term1 = (:-Directive) - _,
+            nonvar(Directive), % !!! SA: shouldn't we raise an exception if var?
+            '$directive_action'(Directive, In, Options, GetTerm)
+        ->  call(GetTerm, ReadL, TermL, Stream, Parents) 
+        ;   ReadL = RawL,
+            TermL = Term1,
+            Stream = In
         )
-    ;   Term = Term1,
-        TLayout = Layout1,
-        Stream = In,
-        Read = Raw,
-        RLayout = RawLayout
     ).
 
-'$expansion_member'(Var, Layout, Var, Layout) :-
-    var(Var),
+'$directive_action'(encoding(Enc), In, _, '$set_stream_encoding'(In, Enc)).
+'$directive_action'(include(File), In, Options, '$source_term'(File, Options1)) :-
+    '$current_source_module'(Module),
+    '$valid_directive'(Module:include(File)), !,  % !!! what should happen if directive is invalid?
+    stream_property(In, encoding(Enc)),
+    '$add_encoding'(Enc, Options, Options1).
+
+'$set_stream_encoding'(In, Enc, _, _, _, _) :-
+    set_stream(In, encoding(Enc)),
+    fail.
+
+'$empty_expansion'(_-RLayout, []-ELayout) :- 
+    '$atomic_pos'(RLayout, ELayout).
+
+'$atomic_pos'(Pos, _) :-
+    var(Pos),
     !.
-'$expansion_member'([], _, _, _) :- !, fail.
-'$expansion_member'(List, ListLayout, Term, Layout) :-
-    is_list(List),
-    !,
-    (   var(ListLayout)
-    ->  '$member'(Term, List)
-    ;   is_list(ListLayout)
-    ->  '$member_rep2'(Term, Layout, List, ListLayout)
-    ;   Layout = ListLayout,
-        '$member'(Term, List)
-    ).
-'$expansion_member'(X, Layout, X, Layout).
+'$atomic_pos'(Pos, F-T) :-
+    arg(1, Pos, F),
+    arg(2, Pos, T).
 
-% pairwise member, repeating last element of the second
-% list.
-
-'$member_rep2'(H1, H2, [H1|_], [H2|_]).
-'$member_rep2'(H1, H2, [_|T1], [T2]) :-
-    !,
-    '$member_rep2'(H1, H2, T1, [T2]).
-'$member_rep2'(H1, H2, [_|T1], [_|T2]) :-
-    '$member_rep2'(H1, H2, T1, T2).
 
 %!  '$add_encoding'(+Enc, +Options0, -Options)
 
@@ -2503,8 +2478,7 @@ load_files(Module:Files, Options) :-
 
 '$load_file'(Path, Id, Module, Options) :-
     State = state(true, _, true, false, Id, -),
-    (   '$source_term'(Path, _Read, _Layout, Term, Layout,
-                       _Stream, Options),
+    (   '$source_term'(Path, Options, _, Term-Layout, _Stream, []),
         '$valid_term'(Term),
         (   arg(1, State, true)
         ->  '$first_term'(Term, Layout, Id, State, Options),
@@ -3311,10 +3285,10 @@ compile_aux_clauses(Clauses) :-
 
 :- dynamic
     '$expand_goal'/2,
-    '$expand_term'/4.
+    '$expand_term'/2.
 
 '$expand_goal'(In, In).
-'$expand_term'(In, Layout, In, Layout).
+'$expand_term'(In, [In]).
 
 
                 /********************************

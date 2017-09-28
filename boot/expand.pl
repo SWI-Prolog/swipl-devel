@@ -39,6 +39,7 @@
             expand_term/4,              % +Term0, ?Pos0, -Term, -Pos
             expand_goal/4,              % +Goal0, ?Pos0, -Goal, -Pos
             var_property/2,             % +Var, ?Property
+            expand_term_to_terms/2,     % +TermPos0, -TermPosList
 
             '$expand_closure'/3         % +GoalIn, +Extra, -GoalOut
           ]).
@@ -48,7 +49,8 @@
 This module specifies, together with dcg.pl, the transformation of terms
 as they are read from a file before they are processed by the compiler.
 
-The toplevel is expand_term/2.  This uses three other translators:
+The main work is done by expand_term_to_terms/4, which maps a term and
+layout to a list of term-layout pairs. It uses three other translators:
 
         * Conditional compilation
         * term_expansion/2 rules provided by the user
@@ -85,15 +87,18 @@ expansion.
     user:term_expansion/4,
     user:goal_expansion/4.
 
-:- meta_predicate
-    expand_terms(4, +, ?, -, -).
 
 %!  expand_term(+Input, -Output) is det.
 %!  expand_term(+Input, +Pos0, -Output, -Pos) is det.
 %
-%   This predicate is used to translate terms  as they are read from
-%   a source-file before they are added to the Prolog database.
+%   This predicate provides a legacy interface to term expansion using
+%   expand_term_to_terms/4. It does not handle conditional compilation
+%   directives. It is possible to use prolog_load_context/2 while this
+%   the expansion is running to obtain the original term. The term is
+%   expanded in the context of the current module. The Prolog flag
+%   =sandboxed_load= is checked.
 
+:- module_transparent expand_term/2, expand_term/4.
 expand_term(Term0, Term) :-
     expand_term(Term0, _, Term, _).
 
@@ -101,185 +106,223 @@ expand_term(Var, Pos, Expanded, Pos) :-
     var(Var),
     !,
     Expanded = Var.
-expand_term(Term, Pos0, [], Pos) :-
-    cond_compilation(Term, X),
-    X == [],
-    !,
-    atomic_pos(Pos0, Pos).
-expand_term(Term, Pos0, Expanded, Pos) :-
-    b_setval('$term', Term),
-    '$def_modules'([term_expansion/4,term_expansion/2], MList),
-    call_term_expansion(MList, Term, Pos0, Term1, Pos1),
-    expand_term_2(Term1, Pos1, Term2, Pos),
-    rename(Term2, Expanded),
+expand_term(Term, Pos, ETerm, EPos) :-
+    b_setval('$term', Term), % NB. for prolog_load_context/2
+    context_module(M), % !!! or $current_source_module?
+    current_prolog_flag(sandboxed_load, Sandbox),
+    expand_term_to_terms(M, Sandbox, Term-Pos, Expansions),
+    expansions_to_expand_term_results(Expansions, ETerm, EPos),
     b_setval('$term', []).
 
-call_term_expansion([], Term, Pos, Term, Pos).
-call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-
-    current_prolog_flag(sandboxed_load, false),
-    !,
-    (   '$member'(Pred, Preds),
-        (   Pred == term_expansion/2
-        ->  M:term_expansion(Term0, Term1),
-            Pos1 = Pos0
-        ;   M:term_expansion(Term0, Pos0, Term1, Pos1)
-        )
-    ->  expand_terms(call_term_expansion(T), Term1, Pos1, Term, Pos)
-    ;   call_term_expansion(T, Term0, Pos0, Term, Pos)
+expansions_to_expand_term_results([Term-Pos], Term, Pos) :- !.
+expansions_to_expand_term_results(Expansions, TermList, PosList) :- 
+    maplist(pair, TermList, PosList, Expansions).
+
+%!  expand_term_to_terms(+Input:pair(term,pos), -Outputs:list(pair(term,pos))) is det.
+%   Interface to boot/init.pl
+expand_term_to_terms(Term-Pos, Expanded) :-
+    b_setval('$term', Term), % NB. for prolog_load_context/2
+    (   cond_compilation(Term, X), X=[] 
+    ->  true
+    ;   '$current_source_module'(Module),
+        current_prolog_flag(sandboxed_load, Sandbox),
+        expand_term_to_terms(Module, Sandbox, Term-Pos, Expanded)
+    ),
+    b_setval('$term', []).
+
+%!  expand_term_to_terms(+M:module, +TermL:pair(term,pos), -Outputs:list(pair(term,pos))) is det.
+%   This predicate does not consult or use any global state except for
+%   things that may happen inside expand_goal/7.
+expand_term_to_terms(Mod, Sandbox, TermL, Expanded) :-
+    '$def_modules'(Mod:[term_expansion/4,term_expansion/2], TMList),
+    '$def_modules'(Mod:[goal_expansion/4,goal_expansion/2], GMList),
+    foldl(extend_expansion(Sandbox), TMList, [TermL], Exp1),
+    maplist(expand_dcg_rule, Exp1, Exp2), 
+    maplist(expand_body(Mod,GMList), Exp2, Exp3), 
+    maplist(rename(Mod), Exp3, Expanded).
+
+extend_expansion(Sandbox, M-Preds, E1, E2) :-
+    extend(expand_one(c(M,Preds,Sandbox)), E1, E2).
+
+expand_one(Context, TermL, Exp2) :-
+    (   TermL = (L:Clause1)-Pos1,
+        L = '$source_location'(_,_)
+    ->  once(term_expansion_in(Context, Clause1-Pos1, Exp1)),
+        maplist(add_source_location(L), Exp1, Exp2)
+    ;   once(term_expansion_in(Context, TermL, Exp2))
     ).
-call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-
-    (   '$member'(Pred, Preds),
-        (   Pred == term_expansion/2
-        ->  allowed_expansion(M:term_expansion(Term0, Term1)),
-            call(M:term_expansion(Term0, Term1)),
-            Pos1 = Pos
-        ;   allowed_expansion(M:term_expansion(Term0, Pos0, Term1, Pos1)),
-            call(M:term_expansion(Term0, Pos0, Term1, Pos1))
-        )
-    ->  expand_terms(call_term_expansion(T), Term1, Pos1, Term, Pos)
-    ;   call_term_expansion(T, Term0, Pos0, Term, Pos)
+
+add_source_location(_, (L1:Term)-Pos, (L1:Term)-Pos) :-
+    L1 = '$source_location'(_,_), !.
+add_source_location(L, Term-Pos, (L:Term)-Pos).
+
+term_expansion_in(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
+    '$member'(Pred, Preds),
+    (   Pred == term_expansion/2
+    ->  Goal = term_expansion(Term1, Term2)
+    ;   Goal = term_expansion(Term1, Pos1, Term2, Pos2)
+    ),
+    allowed_expansion(Sandbox, M:Goal),
+    call(M:Goal),
+    (   nonvar(Term2), normalise_expansion(Term2, Pos2, Exp) ->  true
+    ;   throw(error(bad_term_expansion(Term2, Pos2)))
+    ).
+term_expansion_in(_, TermL, [TermL]).
+
+normalise_expansion([], _, []) :- !.
+normalise_expansion([T|Ts], Pos, Exp) :-
+    !,
+    is_list(Ts),
+    normalise_list_pos(Pos, Pos1),
+    maplist(nonvar,[T|Ts]),
+    maplist(normalise_term, [T|Ts], Terms),
+    maplist(pair, Terms, Pos1, Exp).
+% !!! should we allow '$source_location'(_,_):List ?
+normalise_expansion(Term, Pos, [Term1-Pos]) :-
+    normalise_term(Term, Term1).
+
+normalise_term(end_of_file, end_of_file) :- !.
+normalise_term((?- Dir), (:- Dir)) :- !, nonvar(Dir).
+normalise_term((:- Dir), (:- Dir)) :- !, nonvar(Dir).
+normalise_term(L:QClause, L:QClause) :-
+    nonvar(L),
+    L = '$source_location'(_,_), !,
+    valid_qclause(QClause).
+normalise_term(QClause, QClause) :-
+    valid_qclause(QClause).
+
+valid_qclause(QClause) :-
+    (   QClause = M:Clause
+    ->  nonvar(M),
+        nonvar(Clause),
+        valid_qclause(Clause)
+    ;   valid_clause(QClause)
     ).
 
-expand_term_2((Head --> Body), Pos0, Expanded, Pos) :-
-    dcg_translate_rule((Head --> Body), Pos0, Expanded0, Pos1),
-    !,
-    expand_bodies(Expanded0, Pos1, Expanded, Pos).
-expand_term_2(Term0, Pos0, Term, Pos) :-
-    nonvar(Term0),
-    !,
-    expand_bodies(Term0, Pos0, Term, Pos).
-expand_term_2(Term, Pos, Term, Pos).
+valid_clause(QHead :- _)  :- !, nonvar(QHead), valid_qhead(QHead).
+valid_clause(QHead --> _) :- !, nonvar(QHead), valid_qhead(QHead).
+valid_clause(Head)        :- valid_qhead(Head).
 
-%!  expand_bodies(+Term, +Pos0, -Out, -Pos) is det.
-%
-%   Find the body terms in Term and   give them to expand_goal/2 for
-%   further processing. Note that  we   maintain  status information
-%   about variables. Currently we only  detect whether variables are
-%   _fresh_ or not. See var_info/3.
+valid_qhead(M:Head) :- nonvar(M), nonvar(Head).
+valid_qhead(_).
 
-expand_bodies(Terms, Pos0, Out, Pos) :-
-    '$def_modules'([goal_expansion/4,goal_expansion/2], MList),
-    expand_terms(expand_body(MList), Terms, Pos0, Out, Pos),
-    remove_attributes(Out, '$var_info').
+normalise_list_pos(Var, _) :- var(Var), !.
+normalise_list_pos(list_position(_,_,Elems0,none), Elems0).
+normalise_list_pos(Pos, Pos) :- is_list(Pos).
 
-expand_body(MList, (Head0 :- Body), Pos0, (Head :- ExpandedBody), Pos) :-
+
+%! extend(+P:pred(+A,-list(B)), +Xs:list(A), -Ys:list(B)) is det.
+%  Monadic extend (arg-flipped bind) for list monad.
+:- meta_predicate extend(2,+,-).
+extend(_, [], []) :- !.
+extend(P, [X|Xs], AllYs) :-
+    call(P, X, Ys),
+    '$append'(Ys, MoreYs, AllYs),
+    extend(P, Xs, MoreYs).
+
+maplist(_, [], []) :- !.
+maplist(P, [X|Xs], [Y|Ys]) :- 
+    call(P, X, Y),
+    maplist(P, Xs, Ys).
+
+foldl(_, [], Y, Y) :- !.
+foldl(P, [X|Xs], Y1, Y3) :-
+    call(P, X, Y1, Y2),
+    foldl(P, Xs, Y2, Y3).
+
+pair(X,Y,X-Y).
+
+                 /*******************************
+                 *      DCG EXPANSION           *
+                 *******************************/
+
+expand_dcg_rule(Term1-Pos1, Term2-Pos2) :-
+   expand_dcg_term(Term1, Pos1, Term2, Pos2).
+
+% structural recursion on term(head | rule | dcg_rule) type (see notes.txt)
+% This is version has explicit and exhausive pattern matching down to the level
+% of the q(head) type (possibly qualified rule heads).
+expand_dcg_term(end_of_file, Pos, end_of_file, Pos) :- !.
+expand_dcg_term((:- Dir), Pos, (:- Dir), Pos) :- !.
+expand_dcg_term(L:QC1, Pos1, L:QC2, Pos2) :- 
+    L = '$source_location'(_, _),
+    !, 
+    expand_dcg_qclause(QC1, Pos1, QC2, Pos2).
+expand_dcg_term(QC1, Pos1, QC2, Pos2) :- 
+    expand_dcg_qclause(QC1, Pos1, QC2, Pos2).
+
+expand_dcg_qclause(M:QC1, Pos1, M:QC2, Pos2) :- 
+    !, 
+    f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
+    expand_dcg_qclause(QC1, SPos1, QC2, SPos2).
+expand_dcg_qclause(Clause1, Pos1, Clause2, Pos2) :- 
+    expand_dcg_clause(Clause1, Pos1, Clause2, Pos2).
+
+expand_dcg_clause((Head :- Body), Pos, (Head :- Body), Pos) :- !.
+expand_dcg_clause((Head --> Body), Pos1, Clause, Pos2) :- 
+    !, 
+    dcg_translate_rule((Head --> Body), Pos1, Clause, Pos2).
+expand_dcg_clause(Head, Pos, Head, Pos).
+
+
+                 /*******************************
+                 *      BODY GOALS EXPANSION    *
+                 *******************************/
+
+expand_body(Mod, MList, Term1-Pos1, Term2-Pos2) :-
+    expand_body_term(Term1, Pos1, Term2, Pos2, Mod-MList),
+    remove_attributes(Term2, '$var_info').
+
+% structural recursion on term(head | rule) type (see notes.txt)
+expand_body_term(end_of_file, Pos, end_of_file, Pos, _) :- !.
+expand_body_term((:- Dir1), Pos1, (:- Dir2), Pos2, M0-MList) :- 
     !,
-    term_variables(Head0, HVars),
+    f1_pos(Pos1, DPos1, Pos2, DPos2),
+    expand_goal(Dir1, DPos1, Dir2, DPos2, M0, MList, (:- Dir1)).
+expand_body_term(L:QC1, Pos1, L:QC2, Pos2, Ctx) :-
+    L = '$source_location'(_, _),
+    !, 
+    expand_body_qclause(QC1, Pos1, QC2, Pos2, Ctx).
+expand_body_term(QC1, Pos1, QC2, Pos2, Ctx) :-
+    expand_body_qclause(QC1, Pos1, QC2, Pos2, Ctx).
+
+expand_body_qclause(M:QC1, Pos1, M:QC2, Pos2, Ctx) :- 
+    !,
+    f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
+    expand_body_qclause(QC1, SPos1, QC2, SPos2, Ctx).
+expand_body_qclause(C1, Pos1, C2, Pos2, Ctx) :-
+    expand_body_clause(C1, Pos1, C2, Pos2, Ctx).
+
+expand_body_clause((Head1 :- Body1), Pos1, (Head2 :- Body2), Pos2, Ctx) :-
+    !,
+    (   expand_body_qhead(Head1, Head2, Eval, Ctx)
+    ->  expand_body_body(Head2, (Eval, Body1), _, Body2, Pos2, Ctx) % TBD: Position handling
+    ;   f2_pos(Pos1, HPos, BPos1, Pos2, HPos, BPos2),
+        expand_body_body(Head1, Body1, BPos1, Body2, BPos2, Ctx),
+        Head2 = Head1
+    ).
+
+expand_body_clause(Head1, Pos1, Clause, Pos2, Ctx) :- % TBD: Position handling
+    (   expand_body_qhead(Head1, Head2, Eval, Ctx)
+    ->  expand_body_body(Head2, Eval, _, Body, Pos2, Ctx),
+        Clause = (Head2 :- Body)
+    ;   Clause = Head1, Pos2 = Pos1
+    ).
+
+expand_body_body(Head, Body1, BPos1, Body2, BPos2, M0-MList) :-
+    term_variables(Head, HVars),
     mark_vars_non_fresh(HVars),
-    f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
-    expand_goal(Body, BPos0, ExpandedBody0, BPos, MList, (Head0 :- Body)),
-    (   compound(Head0),
-        '$current_source_module'(M),
-        replace_functions(Head0, Eval, Head, M),
-        Eval \== true
-    ->  ExpandedBody = (Eval,ExpandedBody0)
-    ;   Head = Head0,
-        ExpandedBody = ExpandedBody0
-    ).
-expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
-    !,
-    f1_pos(Pos0, BPos0, Pos, BPos),
-    expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (:- Body)).
+    expand_goal(Body1, BPos1, Body2, BPos2, M0, MList, (Head :- Body1)).
 
-expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
-    compound(Head0),
-    '$current_source_module'(M),
-    replace_functions(Head0, Eval, Head, M),
-    Eval \== true,
-    !,
-    Clause = (Head :- Eval).
-expand_body(_, Head, Pos, Head, Pos).
+expand_body_qhead(M:Head1, M:Head2, Eval, M0-_) :- !, 
+    expand_head_functions(M0, Head1, Head2, Eval).
+expand_body_qhead(Head1, Head2, Eval, M0-_) :- 
+    expand_head_functions(M0, Head1, Head2, Eval).
 
-
-%!  expand_terms(:Closure, +In, +Pos0, -Out, -Pos)
-%
-%   Loop over two constructs that  can   be  added by term-expansion
-%   rules in order to run the   next phase: calling term_expansion/2
-%   can  return  a  list  and  terms    may   be  preceeded  with  a
-%   source-location.
-
-expand_terms(_, X, P, X, P) :-
-    var(X),
-    !.
-expand_terms(C, List0, Pos0, List, Pos) :-
-    nonvar(List0),
-    List0 = [_|_],
-    !,
-    (   is_list(List0)
-    ->  list_pos(Pos0, Elems0, Pos, Elems),
-        expand_term_list(C, List0, Elems0, List, Elems)
-    ;   '$type_error'(list, List0)
-    ).
-expand_terms(C, '$source_location'(File, Line):Clause0, Pos0, Clause, Pos) :-
-    !,
-    expand_terms(C, Clause0, Pos0, Clause1, Pos),
-    add_source_location(Clause1, '$source_location'(File, Line), Clause).
-expand_terms(C, Term0, Pos0, Term, Pos) :-
-    call(C, Term0, Pos0, Term, Pos).
-
-%!  add_source_location(+Term, +SrcLoc, -SrcTerm)
-%
-%   Re-apply source location after term expansion.  If the result is
-%   a list, claim all terms to originate from this location.
-
-add_source_location(Clauses0, SrcLoc, Clauses) :-
-    (   is_list(Clauses0)
-    ->  add_source_location_list(Clauses0, SrcLoc, Clauses)
-    ;   Clauses = SrcLoc:Clauses0
-    ).
-
-add_source_location_list([], _, []).
-add_source_location_list([Clause|Clauses0], SrcLoc, [SrcLoc:Clause|Clauses]) :-
-    add_source_location_list(Clauses0, SrcLoc, Clauses).
-
-%!  expand_term_list(:Expander, +TermList, +Pos, -NewTermList, -PosList)
-
-expand_term_list(_, [], _, [], []) :- !.
-expand_term_list(C, [H0|T0], [PH0], Terms, PosL) :-
-    !,
-    expand_terms(C, H0, PH0, H, PH),
-    add_term(H, PH, Terms, TT, PosL, PT),
-    expand_term_list(C, T0, [PH0], TT, PT).
-expand_term_list(C, [H0|T0], [PH0|PT0], Terms, PosL) :-
-    !,
-    expand_terms(C, H0, PH0, H, PH),
-    add_term(H, PH, Terms, TT, PosL, PT),
-    expand_term_list(C, T0, PT0, TT, PT).
-expand_term_list(C, [H0|T0], PH0, Terms, PosL) :-
-    expected_layout(list, PH0),
-    expand_terms(C, H0, PH0, H, PH),
-    add_term(H, PH, Terms, TT, PosL, PT),
-    expand_term_list(C, T0, [PH0], TT, PT).
-
-%!  add_term(+ExpandOut, ?ExpandPosOut, -Terms, ?TermsT, -PosL, ?PosLT)
-
-add_term(List, Pos, Terms, TermT, PosL, PosT) :-
-    nonvar(List), List = [_|_],
-    !,
-    (   is_list(List)
-    ->  append_tp(List, Terms, TermT, Pos, PosL, PosT)
-    ;   '$type_error'(list, List)
-    ).
-add_term(Term, Pos, [Term|Terms], Terms, [Pos|PosT], PosT).
-
-append_tp([], Terms, Terms, _, PosL, PosL).
-append_tp([H|T0], [H|T1], Terms, [HP], [HP|TP1], PosL) :-
-    !,
-    append_tp(T0, T1, Terms, [HP], TP1, PosL).
-append_tp([H|T0], [H|T1], Terms, [HP0|TP0], [HP0|TP1], PosL) :-
-    !,
-    append_tp(T0, T1, Terms, TP0, TP1, PosL).
-append_tp([H|T0], [H|T1], Terms, Pos, [Pos|TP1], PosL) :-
-    expected_layout(list, Pos),
-    append_tp(T0, T1, Terms, [Pos], TP1, PosL).
-
-
-list_pos(Var, _, _, _) :-
-    var(Var),
-    !.
-list_pos(list_position(F,T,Elems0,none), Elems0,
-         list_position(F,T,Elems,none),  Elems).
-list_pos(Pos, [Pos], Elems, Elems).
+expand_head_functions(M, Head1, Head2, Eval) :-
+    compound(Head1),
+    replace_functions(Head1, Eval, Head2, M),
+    Eval \== true.
 
 
                  /*******************************
@@ -812,7 +855,7 @@ remove_arg_pos(A, P, _, _, _, A, P).
 wrap_meta_pos(P0, P) :-
     (   nonvar(P0)
     ->  P = term_position(F,T,_,_,_),
-        atomic_pos(P0, F-T)
+        '$atomic_pos'(P0, F-T)
     ;   true
     ).
 
@@ -854,34 +897,23 @@ expand_setof_goal(G, P0, EG, P, M, MList, Term) :-
 %   fixed-point is reached.
 
 call_goal_expansion(MList, G0, P0, G, P) :-
-    current_prolog_flag(sandboxed_load, false),
-    !,
-    (   '$member'(M-Preds, MList),
-        '$member'(Pred, Preds),
-        (   Pred == goal_expansion/4
-        ->  M:goal_expansion(G0, P0, G, P)
-        ;   M:goal_expansion(G0, G),
-            P = P0
-        ),
-        G0 \== G
-    ->  true
-    ).
-call_goal_expansion(MList, G0, P0, G, P) :-
+    current_prolog_flag(sandboxed_load, Sandbox),
     (   '$member'(M-Preds, MList),
         '$member'(Pred, Preds),
         (   Pred == goal_expansion/4
         ->  Expand = M:goal_expansion(G0, P0, G, P)
         ;   Expand = M:goal_expansion(G0, G)
         ),
-        allowed_expansion(Expand),
+        allowed_expansion(Sandbox, Expand),
         call(Expand),
         G0 \== G
     ->  true
     ).
 
-%!  allowed_expansion(:Goal) is semidet.
+%!  allowed_expansion(+Flag, :Goal) is semidet.
 %
-%   Calls prolog:sandbox_allowed_expansion(:Goal) prior   to calling
+%   Succeeds immediately if Flag is false. Otherwise,
+%   calls prolog:sandbox_allowed_expansion(:Goal) prior   to calling
 %   Goal for the purpose of term or   goal  expansion. This hook can
 %   prevent the expansion to take place by raising an exception.
 %
@@ -890,16 +922,12 @@ call_goal_expansion(MList, G0, P0, G, P) :-
 :- multifile
     prolog:sandbox_allowed_expansion/1.
 
-allowed_expansion(QGoal) :-
+allowed_expansion(false, _) :- !.
+allowed_expansion(_, QGoal) :-
     strip_module(QGoal, M, Goal),
-    catch(prolog:sandbox_allowed_expansion(M:Goal), E, true),
-    (   var(E)
-    ->  fail
-    ;   !,
-        print_message(error, E),
-        fail
-    ).
-allowed_expansion(_).
+    % NB: any result is fine except for an exception !!! SA: is this right?
+    catch(ignore(prolog:sandbox_allowed_expansion(M:Goal)), E, 
+          (print_message(error, E), fail)).
 
 
                  /*******************************
@@ -941,7 +969,7 @@ wrap_var(G, P, G, P) :-
 wrap_var(G, P0, call(G), P) :-
     (   nonvar(P0)
     ->  P = term_position(F,T,F,T,[P0]),
-        atomic_pos(P0, F-T)
+        '$atomic_pos'(P0, F-T)
     ;   true
     ).
 
@@ -1028,8 +1056,8 @@ conj(X, PX, Y, PY, (X,Y), _) :-
     !.
 conj(X, PX, Y, PY, (X,Y), P) :-
     P = term_position(F,T,FF,FT,[PX,PY]),
-    atomic_pos(PX, F-FF),
-    atomic_pos(PY, FT-T).
+    '$atomic_pos'(PX, F-FF),
+    '$atomic_pos'(PY, FT-T).
 
 %!  function(?Term, +Context)
 %
@@ -1062,7 +1090,6 @@ expand_arithmetic(_G0, _P0, _G, _P, _Term) :- fail.
 %!         ?TermPos,  ?PosArg1,  ?PosArg2) is det.
 %!  f1_pos(?TermPos0, ?PosArg10, ?TermPos,  ?PosArg1) is det.
 %!  f_pos(?TermPos0, ?PosArgs0, ?TermPos,  ?PosArgs) is det.
-%!  atomic_pos(?TermPos0, -AtomicPos) is det.
 %
 %   Position progapation routines.
 
@@ -1101,13 +1128,6 @@ f_pos(parentheses_term_position(O,C,Pos0), A10,
     f_pos(Pos0, A10, Pos, A1).
 f_pos(Pos, _, _, _) :-
     expected_layout(compound, Pos).
-
-atomic_pos(Pos, _) :-
-    var(Pos),
-    !.
-atomic_pos(Pos, F-T) :-
-    arg(1, Pos, F),
-    arg(2, Pos, T).
 
 %!  pos_nil(+Nil, -Nil) is det.
 %!  pos_list(+List0, -H0, -T0, -List, -H, -T) is det.
@@ -1205,7 +1225,7 @@ simple((X,Y), P0, Conj, P) :-
     ;   false(X)
     ->  Conj = fail,
         f2_pos(P0, P1, _, _, _, _),
-        atomic_pos(P1, P)
+        '$atomic_pos'(P1, P)
     ;   true(Y)
     ->  Conj = X,
         f2_pos(P0, P, _, _, _, _)
@@ -1345,55 +1365,27 @@ member_eq(E, [H|T]) :-
 :- multifile
     prolog:rename_predicate/2.
 
-rename(Var, Var) :-
-    var(Var),
-    !.
-rename(end_of_file, end_of_file) :- !.
-rename(Terms0, Terms) :-
-    is_list(Terms0),
-    !,
-    '$current_source_module'(M),
-    rename_preds(Terms0, Terms, M).
-rename(Term0, Term) :-
-    '$current_source_module'(M),
-    rename(Term0, Term, M),
-    !.
-rename(Term, Term).
+%!  rename(+M:module, +T1:exp_term, -T2:exp_term) is det.
+%   Strict structural recursion term(head | rule) type (see notes.txt).
+rename(M, Term1-Pos, Term2-Pos) :- rename_term(Term1, Term2, M).
 
-rename_preds([], [], _).
-rename_preds([H0|T0], [H|T], M) :-
-    (   rename(H0, H, M)
-    ->  true
-    ;   H = H0
-    ),
-    rename_preds(T0, T, M).
+rename_term(end_of_file, end_of_file, _) :- !.
+rename_term((:-Dir), (:-Dir), _) :- !.
+rename_term(L:QC1, L:QC2, M) :-
+    L = '$source_location'(_File, _Line),
+    !,
+    rename_qual(rename_clause, QC1, QC2, M).
+rename_term(QC1, QC2, M) :-
+    rename_qual(rename_clause, QC1, QC2, M).
 
-rename(Var, Var, _) :-
-    var(Var),
-    !.
-rename(M:Term0, M:Term, M0) :-
-    !,
-    (   M = '$source_location'(_File, _Line)
-    ->  rename(Term0, Term, M0)
-    ;   rename(Term0, Term, M)
-    ).
-rename((Head0 :- Body), (Head :- Body), M) :-
-    !,
-    rename_head(Head0, Head, M).
-rename((:-_), _, _) :-
-    !,
-    fail.
-rename(Head0, Head, M) :-
-    rename_head(Head0, Head, M).
+rename_qual(R, M:T1, M:T2, _) :- !, rename_qual(R, T1, T2, M).
+rename_qual(R, T1, T2, M)     :- call(R, T1, T2, M).
 
-rename_head(Var, Var, _) :-
-    var(Var),
-    !.
-rename_head(M:Term0, M:Term, _) :-
-    !,
-    rename_head(Term0, Term, M).
-rename_head(Head0, Head, M) :-
-    prolog:rename_predicate(M:Head0, M:Head).
+rename_clause((QH1 :- Body), (QH2 :- Body), M) :- !, rename_qual(rename_head, QH1, QH2, M).
+rename_clause(Head1, Head2, M) :- rename_head(Head1, Head2, M).
+
+rename_head(Head0, Head, M) :- prolog:rename_predicate(M:Head0, M:Head), !.
+rename_head(Head, Head, _).
 
 
                  /*******************************
