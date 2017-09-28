@@ -2999,7 +2999,7 @@ START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
 #endif
   Choice ch;
 
-  DEBUG(3, Sdprintf("BACKTRACKING\n"));
+  DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
 next_choice:
   ch = BFR;
@@ -3068,9 +3068,10 @@ next_choice:
 
   switch(ch->type)
   { case CHP_JUMP:
-      DEBUG(3, Sdprintf("    REDO #%ld: Jump in %s\n",
-			loffset(FR),
-			predicateName(DEF)));
+      DEBUG(MSG_BACKTRACK,
+	    Sdprintf("    REDO #%ld: Jump in %s\n",
+		     loffset(FR),
+		     predicateName(DEF)));
       PC   = ch->value.PC;
       DiscardMark(ch->mark);
       BFR  = ch->parent;
@@ -3120,9 +3121,10 @@ next_choice:
     { Clause clause;
       struct clause_choice chp;
 
-      DEBUG(3, Sdprintf("    REDO #%ld: Clause in %s\n",
-			loffset(FR),
-			predicateName(DEF)));
+      DEBUG(MSG_BACKTRACK,
+	    Sdprintf("    REDO #%ld: Clause in %s\n",
+		     loffset(FR),
+		     predicateName(DEF)));
       ARGP = argFrameP(FR, 0);
       DiscardMark(ch->mark);
       BFR = ch->parent;
@@ -3196,7 +3198,11 @@ next_choice:
       NEXT_INSTRUCTION;
     }
     case CHP_TOP:			/* Query toplevel */
-    { DiscardMark(ch->mark);
+    { DEBUG(MSG_BACKTRACK,
+	    Sdprintf("    REDO #%ld: %s: TOP\n",
+		     loffset(FR),
+		     predicateName(DEF)));
+      DiscardMark(ch->mark);
       Profile(profRedo(ch->prof_node PASS_LD));
       QF = QueryFromQid(qid);
       set(QF, PL_Q_DETERMINISTIC);
@@ -3206,7 +3212,11 @@ next_choice:
       fail;
     }
     case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
-      if ( true(ch->frame, FR_WATCHED) )
+      DEBUG(MSG_BACKTRACK,
+	    Sdprintf("    REDO #%ld: %s: CATCH\n",
+		     loffset(FR),
+		     predicateName(DEF)));
+            if ( true(ch->frame, FR_WATCHED) )
       { DiscardMark(ch->mark);
 	environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
@@ -3226,7 +3236,11 @@ next_choice:
       }
       /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
-#ifdef O_DEBUGGER
+      DEBUG(MSG_BACKTRACK,
+	    Sdprintf("    REDO #%ld: %s: DEBUG\n",
+		     loffset(FR),
+		     predicateName(DEF)));
+      #ifdef O_DEBUGGER
       ch0_ref = consTermRef(ch);
 #endif
       BFR = ch->parent;
