@@ -34,6 +34,7 @@
 
 :- module(test_meta_predicate, [test_meta_predicate/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test meta predicate handling
 
@@ -72,6 +73,37 @@ mdepart(_) :-
 mdepart(X) :-
 	context_module(X).
 
+% What a variable is qualified, a term is pushed onto the global stack
+% and the frame argument becomes a reference pointer to a var in this
+% term.  This should be trailed.  Backtracking should also maintain the
+% qualification.
+
+:- meta_predicate mq(:).
+
+mq(T) :-
+    assertion(functor(T, :, 2)),
+    fail.
+mq(T) :-
+    assertion(functor(T, :, 2)),
+    fail.
+
+tbacktrack :-
+    tbacktrack(X),
+    term(T),
+    term(T),
+    assertion(var(X)).
+
+tbacktrack(V) :-
+    mq(V).
+tbacktrack(V) :-
+    assertion(var(V)).
+
+term(t(42)).
+
+		 /*******************************
+		 *	       TESTS		*
+		 *******************************/
+
 test(qualify, X == M:x) :-
 	this(M),
 	m(x, X).
@@ -94,5 +126,7 @@ test(alias2, X == Out) :-		% shared variables
 test(i_departm, X == Me) :-
 	context_module(Me),
 	mdepart(X).
+test(backtrack) :-
+	tbacktrack.
 
 :- end_tests(meta_predicate).

@@ -1442,6 +1442,7 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
     p2[1] = contextModule(fr)->name;
     if ( isVar(*p) && p > (Word)lBase )
     { setVar(p2[2]);
+      LTrail(p);
       *p = makeRefG(&p2[2]);
     } else
     { p2[2] = (needsRef(*p) ? makeRef(p) : *p);
