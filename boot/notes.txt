@@ -1,0 +1,42 @@
+   Position and layout type:
+
+      % NB: A | B denotes an UNTAGGED union 
+      %     {X,Y,...} is type containing exactly terms X, Y etc
+      
+      pos == int. % position in a stream
+      key == atom | small_int.
+      layout ---> pos-pos
+                ; string_position(pos, pos)
+                ; brace_term_position(pos, pos, layout)
+                ; parentheses_term_position(pos, pos, layout)
+                ; term_position(pos, pos, pos, pos, list(layout))
+                ; list_position(pos, pos, list(layout), (layout|{none}))
+                ; dict_position(pos, pos, pos, pos, list(key_value_pos))
+                ; quasi_quotation_position(pos, pos, pos, pos, layout).
+
+      key_value_pos ---> key_value_position(pos, pos, pos, pos, key, layout, layout).
+
+    Terms that can be expanded or result from expansion:
+    [Question: can any term be located, or just clauses?]
+
+        (these are defaulty untagged unions)
+            raw_term == {end_of_file} | directive | q(head | rule | dcg_rule).
+            term(A)  == {end_of_file} | directive | q(A) | located(q(A)).
+            q(A)    == A | qualified(q(A)).
+            head    == excluding([(:)/2, (?-)/1, (:-)/1, (:-)/2]).
+
+        (these are fine)
+            directive       ---> (:- body).
+            rule            ---> (q(head) :- body).
+            dcg_rule        ---> (q(head) --> body).
+            qualified(A)    ---> module:A.
+            located(A)      ---> source_location:A.
+            source_location ---> '$source_location'(filename, int).
+
+    Terms that can result from term_expansion hooks
+
+            term_out == term(head | rule | dcg_rule) 
+            exp_out == pair(term_out, layout)
+                     | pair(list(term_out), layout)
+                     | pair(list(term)out), list(layout)).
+
