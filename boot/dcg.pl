@@ -319,9 +319,9 @@ dcg_terminal_pos(Pos, _) :-
     var(Pos),
     !.
 dcg_terminal_pos(list_position(F,T,_Elms,_Tail),
-                 term_position(F,T,_,_,_)).
+                 term_position(F,T,_,_,_)) :- !.
 dcg_terminal_pos(F-T,
-                 term_position(F,T,_,_,_)).
+                 term_position(F,T,_,_,_)) :- !.
 dcg_terminal_pos(Pos, _) :-
     expected_layout(terminal, Pos).
 
