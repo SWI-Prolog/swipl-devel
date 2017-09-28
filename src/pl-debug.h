@@ -105,6 +105,8 @@
 #define MSG_CLEANUP_THREAD	 80
 #define MSG_INITIALISE		 81
 
+#define MSG_BACKTRACK		 90
+
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101
