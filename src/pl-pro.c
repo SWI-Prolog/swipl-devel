@@ -588,7 +588,7 @@ last_arg:
     if ( p2 == p )
       printk(context, "Reference to same address");
     if ( !onLocal(p2) && !onGlobal(p2) )
-      printk(context, "Illegal reference pointer at 0x%x --> 0x%x", p, p2);
+      printk(context, "Illegal reference pointer at %p --> %p", p, p2);
 
     p = p2;
   }
@@ -609,13 +609,13 @@ last_arg:
 
 					/* See argument_stack_to_term_refs() */
     if ( !onGlobal(p) && (!gc_status.active || p < (Word)environment_frame) )
-      printk(context, "attvar: not on global stack: 0x%x", p);
+      printk(context, "attvar: not on global stack: %p", p);
     if ( !onGlobal(p2) )
-      printk(context, "attvar: attribute not on global stack: 0x%x --> 0x%x", p, p2);
+      printk(context, "attvar: attribute not on global stack: %p --> %p", p, p2);
     if ( p == p2 )
-      printk(context, "attvar: self-reference: 0x%x", p);
+      printk(context, "attvar: self-reference: %p", p);
     if ( !(context->flags&CHK_DATA_NOATTVAR_CHAIN) && !on_attvar_chain(p) )
-      printk(context, "attvar: not on attvar chain: 0x%x", p);
+      printk(context, "attvar: not on attvar chain: %p", p);
 
     p = p2;
     goto last_arg;
@@ -649,11 +649,11 @@ last_arg:
 
 	if ( sz != (len=strlen(s)) )
 	{ if ( sz < len )
-	    printk(context, "String has inconsistent length: 0x%x", *p);
+	    printk(context, "String has inconsistent length: %p", *p);
 	  else if ( s[sz] )
-	    printk(context, "String not followed by NUL-char: 0x%x", *p);
+	    printk(context, "String not followed by NUL-char: %p", *p);
 /*	else
-	    printf("String contains NUL-chars: 0x%x", *p);
+	    printf("String contains NUL-chars: %p", *p);
 */
 	}
       } else
@@ -664,9 +664,9 @@ last_arg:
 
 	if ( sz != (len=wcslen(s)) )
 	{ if ( sz < len )
-	    printk(context, "String has inconsistent length: 0x%x", *p);
+	    printk(context, "String has inconsistent length: %p", *p);
 	  else if ( s[sz] )
-	    printk(context, "String not followed by NUL-char: 0x%x", *p);
+	    printk(context, "String not followed by NUL-char: %p", *p);
 	}
       }
       return key + *addressIndirect(*p);
@@ -698,7 +698,7 @@ last_arg:
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||
        storage(*p) != STG_GLOBAL )
-    printk(context, "Illegal term at: %p: 0x%x", p, *p);
+    printk(context, "Illegal term at: %p: %p", p, *p);
 
   if ( is_marked(p) )
   { context->recursive++;
@@ -712,11 +712,11 @@ last_arg:
 
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
-      printk(context, "Illegal functor: 0x%x", *p);
+      printk(context, "Illegal functor: %p", *p);
     if ( f->definition & MARK_MASK )
-      printk(context, "functor with mark: 0x%x", *p);
+      printk(context, "functor with mark: %p", *p);
     if ( f->definition & FIRST_MASK )
-      printk(context, "functor with first: 0x%x", *p);
+      printk(context, "functor with first: %p", *p);
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk(context, "Illegal arity (%d)", arity);
