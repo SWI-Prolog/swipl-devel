@@ -2216,9 +2216,12 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 
 	deRef2(argv+n, a);
 	if ( isVar(*a) && onStack(local, a) )
-	  Trail(a, makeRef(argp));
-	else
+	{ LTrail(a);
+	  *a = makeRef(argp);
+	} else
+	{ GTrail(argp);
 	  *argp = (needsRef(*a) ? makeRef(a) : *a);
+	}
       }
     }
   } else if ( key == ATOM_predicate_indicator )
