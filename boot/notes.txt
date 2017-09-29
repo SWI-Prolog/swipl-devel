@@ -1,23 +1,4 @@
-   Position and layout type:
-
-      % NB: A | B denotes an UNTAGGED union 
-      %     {X,Y,...} is type containing exactly terms X, Y etc
-      
-      pos == int. % position in a stream
-      key == atom | small_int.
-      layout ---> pos-pos
-                ; string_position(pos, pos)
-                ; brace_term_position(pos, pos, layout)
-                ; parentheses_term_position(pos, pos, layout)
-                ; term_position(pos, pos, pos, pos, list(layout))
-                ; list_position(pos, pos, list(layout), (layout|{none}))
-                ; dict_position(pos, pos, pos, pos, list(key_value_pos))
-                ; quasi_quotation_position(pos, pos, pos, pos, layout).
-
-      key_value_pos ---> key_value_position(pos, pos, pos, pos, key, layout, layout).
-
     Terms that can be expanded or result from expansion:
-    [Question: can any term be located, or just clauses?]
 
         (these are defaulty untagged unions)
             raw_term == {end_of_file} | directive | q(head | rule | dcg_rule).
@@ -36,7 +17,6 @@
     Terms that can result from term_expansion hooks
 
             term_out == term(head | rule | dcg_rule) 
-            exp_out == pair(term_out, layout)
-                     | pair(list(term_out), layout)
-                     | pair(list(term)out), list(layout)).
-
+            term_layout_out == pair(term_out, layout)
+                             | pair(list(term_out), layout) % must be list_position/4
+                             | pair(list(term_out), list(layout)).
