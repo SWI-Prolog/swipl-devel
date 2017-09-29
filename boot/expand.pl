@@ -95,7 +95,7 @@ expansion.
 %   expand_term_to_terms/4. It does not handle conditional compilation
 %   directives. It is possible to use prolog_load_context/2 while this
 %   the expansion is running to obtain the original term. The term is
-%   expanded in the context of the current module. The Prolog flag
+%   expanded in the context of '$current_source_module'. The Prolog flag
 %   =sandboxed_load= is checked.
 
 :- module_transparent expand_term/2, expand_term/4.
@@ -108,21 +108,21 @@ expand_term(Var, Pos, Expanded, Pos) :-
     Expanded = Var.
 expand_term(Term, Pos, ETerm, EPos) :-
     b_setval('$term', Term), % NB. for prolog_load_context/2
-    context_module(M), % !!! or $current_source_module?
+    '$current_source_module'(M),
     current_prolog_flag(sandboxed_load, Sandbox),
     expand_term_to_terms(M, Sandbox, Term-Pos, Expansions),
     expansions_to_expand_term_results(Expansions, ETerm, EPos),
     b_setval('$term', []).
 
 expansions_to_expand_term_results([Term-Pos], Term, Pos) :- !.
-expansions_to_expand_term_results(Expansions, TermList, PosList) :- 
+expansions_to_expand_term_results(Expansions, TermList, PosList) :-
     maplist(pair, TermList, PosList, Expansions).
 
 %!  expand_term_to_terms(+Input:pair(term,pos), -Outputs:list(pair(term,pos))) is det.
-%   Interface to boot/init.pl
+%   Interface for boot/init.pl to use.
 expand_term_to_terms(Term-Pos, Expanded) :-
     b_setval('$term', Term), % NB. for prolog_load_context/2
-    (   cond_compilation(Term, X), X=[] 
+    (   cond_compilation(Term, X), X=[]
     ->  true
     ;   '$current_source_module'(Module),
         current_prolog_flag(sandboxed_load, Sandbox),
@@ -131,14 +131,13 @@ expand_term_to_terms(Term-Pos, Expanded) :-
     b_setval('$term', []).
 
 %!  expand_term_to_terms(+M:module, +TermL:pair(term,pos), -Outputs:list(pair(term,pos))) is det.
-%   This predicate does not consult or use any global state except for
-%   things that may happen inside expand_goal/7.
+%   This predicate does depend on or change any global state except.
 expand_term_to_terms(Mod, Sandbox, TermL, Expanded) :-
     '$def_modules'(Mod:[term_expansion/4,term_expansion/2], TMList),
     '$def_modules'(Mod:[goal_expansion/4,goal_expansion/2], GMList),
     foldl(extend_expansion(Sandbox), TMList, [TermL], Exp1),
-    maplist(expand_dcg_rule, Exp1, Exp2), 
-    maplist(expand_body(Mod,GMList), Exp2, Exp3), 
+    maplist(expand_dcg_rule(Mod), Exp1, Exp2),
+    maplist(expand_body(Mod,GMList), Exp2, Exp3),
     maplist(rename(Mod), Exp3, Expanded).
 
 extend_expansion(Sandbox, M-Preds, E1, E2) :-
@@ -157,15 +156,14 @@ add_source_location(_, (L1:Term)-Pos, (L1:Term)-Pos) :-
 add_source_location(L, Term-Pos, (L:Term)-Pos).
 
 term_expansion_in(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
-    '$member'(Pred, Preds),
-    (   Pred == term_expansion/2
-    ->  Goal = term_expansion(Term1, Term2)
-    ;   Goal = term_expansion(Term1, Pos1, Term2, Pos2)
+    '$member'(term_expansion/N, Preds),
+    (   N = 2 -> Goal = term_expansion(Term1, Term2)
+    ;   N = 4 -> Goal = term_expansion(Term1, Pos1, Term2, Pos2)
     ),
     allowed_expansion(Sandbox, M:Goal),
     call(M:Goal),
     (   nonvar(Term2), normalise_expansion(Term2, Pos2, Exp) ->  true
-    ;   throw(error(bad_term_expansion(Term2, Pos2)))
+    ;   throw(error(bad_term_expansion(M:Goal)))
     ).
 term_expansion_in(_, TermL, [TermL]).
 
@@ -182,7 +180,7 @@ normalise_expansion(Term, Pos, [Term1-Pos]) :-
     normalise_term(Term, Term1).
 
 normalise_term(end_of_file, end_of_file) :- !.
-normalise_term((?- Dir), (:- Dir)) :- !, nonvar(Dir).
+normalise_term((?- Dir), (:- Dir)) :- !, nonvar(Dir). % NB convert to :-
 normalise_term((:- Dir), (:- Dir)) :- !, nonvar(Dir).
 normalise_term(L:QClause, L:QClause) :-
     nonvar(L),
@@ -203,11 +201,11 @@ valid_clause(QHead :- _)  :- !, nonvar(QHead), valid_qhead(QHead).
 valid_clause(QHead --> _) :- !, nonvar(QHead), valid_qhead(QHead).
 valid_clause(Head)        :- valid_qhead(Head).
 
-valid_qhead(M:Head) :- nonvar(M), nonvar(Head).
+valid_qhead(M:Head) :- !, nonvar(M), nonvar(Head).
 valid_qhead(_).
 
 normalise_list_pos(Var, _) :- var(Var), !.
-normalise_list_pos(list_position(_,_,Elems0,none), Elems0).
+normalise_list_pos(list_position(_,_,Elems0,none), Elems0) :- !.
 normalise_list_pos(Pos, Pos) :- is_list(Pos).
 
 
@@ -236,33 +234,31 @@ pair(X,Y,X-Y).
                  *      DCG EXPANSION           *
                  *******************************/
 
-expand_dcg_rule(Term1-Pos1, Term2-Pos2) :-
-   expand_dcg_term(Term1, Pos1, Term2, Pos2).
+expand_dcg_rule(M, Term1-Pos1, Term2-Pos2) :-
+   expand_dcg_term(Term1, Pos1, Term2, Pos2, M).
 
 % structural recursion on term(head | rule | dcg_rule) type (see notes.txt)
-% This is version has explicit and exhausive pattern matching down to the level
-% of the q(head) type (possibly qualified rule heads).
-expand_dcg_term(end_of_file, Pos, end_of_file, Pos) :- !.
-expand_dcg_term((:- Dir), Pos, (:- Dir), Pos) :- !.
-expand_dcg_term(L:QC1, Pos1, L:QC2, Pos2) :- 
+expand_dcg_term(end_of_file, Pos, end_of_file, Pos, _) :- !.
+expand_dcg_term((:- Dir), Pos, (:- Dir), Pos, _) :- !.
+expand_dcg_term(L:QC1, Pos1, L:QC2, Pos2, M) :-
     L = '$source_location'(_, _),
-    !, 
-    expand_dcg_qclause(QC1, Pos1, QC2, Pos2).
-expand_dcg_term(QC1, Pos1, QC2, Pos2) :- 
-    expand_dcg_qclause(QC1, Pos1, QC2, Pos2).
+    !,
+    expand_dcg_qclause(QC1, Pos1, QC2, Pos2, M).
+expand_dcg_term(QC1, Pos1, QC2, Pos2, M) :-
+    expand_dcg_qclause(QC1, Pos1, QC2, Pos2, M).
 
-expand_dcg_qclause(M:QC1, Pos1, M:QC2, Pos2) :- 
-    !, 
+expand_dcg_qclause(M:QC1, Pos1, M:QC2, Pos2, M) :-
+    !,
     f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
-    expand_dcg_qclause(QC1, SPos1, QC2, SPos2).
-expand_dcg_qclause(Clause1, Pos1, Clause2, Pos2) :- 
-    expand_dcg_clause(Clause1, Pos1, Clause2, Pos2).
+    expand_dcg_qclause(QC1, SPos1, QC2, SPos2, M).
+expand_dcg_qclause(Clause1, Pos1, Clause2, Pos2, M) :-
+    expand_dcg_clause(Clause1, Pos1, Clause2, Pos2, M).
 
-expand_dcg_clause((Head :- Body), Pos, (Head :- Body), Pos) :- !.
-expand_dcg_clause((Head --> Body), Pos1, Clause, Pos2) :- 
-    !, 
-    dcg_translate_rule((Head --> Body), Pos1, Clause, Pos2).
-expand_dcg_clause(Head, Pos, Head, Pos).
+expand_dcg_clause((Head :- Body), Pos, (Head :- Body), Pos, _) :- !.
+expand_dcg_clause((Head --> Body), Pos1, Clause, Pos2, M) :-
+    !,
+    dcg_translate_rule((Head --> Body), Pos1, Clause, Pos2, M).
+expand_dcg_clause(Head, Pos, Head, Pos, _).
 
 
                  /*******************************
@@ -275,18 +271,18 @@ expand_body(Mod, MList, Term1-Pos1, Term2-Pos2) :-
 
 % structural recursion on term(head | rule) type (see notes.txt)
 expand_body_term(end_of_file, Pos, end_of_file, Pos, _) :- !.
-expand_body_term((:- Dir1), Pos1, (:- Dir2), Pos2, M0-MList) :- 
+expand_body_term((:- Dir1), Pos1, (:- Dir2), Pos2, M0-MList) :-
     !,
     f1_pos(Pos1, DPos1, Pos2, DPos2),
     expand_goal(Dir1, DPos1, Dir2, DPos2, M0, MList, (:- Dir1)).
 expand_body_term(L:QC1, Pos1, L:QC2, Pos2, Ctx) :-
     L = '$source_location'(_, _),
-    !, 
+    !,
     expand_body_qclause(QC1, Pos1, QC2, Pos2, Ctx).
 expand_body_term(QC1, Pos1, QC2, Pos2, Ctx) :-
     expand_body_qclause(QC1, Pos1, QC2, Pos2, Ctx).
 
-expand_body_qclause(M:QC1, Pos1, M:QC2, Pos2, Ctx) :- 
+expand_body_qclause(M:QC1, Pos1, M:QC2, Pos2, Ctx) :-
     !,
     f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
     expand_body_qclause(QC1, SPos1, QC2, SPos2, Ctx).
@@ -314,9 +310,9 @@ expand_body_body(Head, Body1, BPos1, Body2, BPos2, M0-MList) :-
     mark_vars_non_fresh(HVars),
     expand_goal(Body1, BPos1, Body2, BPos2, M0, MList, (Head :- Body1)).
 
-expand_body_qhead(M:Head1, M:Head2, Eval, M0-_) :- !, 
+expand_body_qhead(M:Head1, M:Head2, Eval, M0-_) :- !,
     expand_head_functions(M0, Head1, Head2, Eval).
-expand_body_qhead(Head1, Head2, Eval, M0-_) :- 
+expand_body_qhead(Head1, Head2, Eval, M0-_) :-
     expand_head_functions(M0, Head1, Head2, Eval).
 
 expand_head_functions(M, Head1, Head2, Eval) :-
@@ -926,7 +922,7 @@ allowed_expansion(false, _) :- !.
 allowed_expansion(_, QGoal) :-
     strip_module(QGoal, M, Goal),
     % NB: any result is fine except for an exception !!! SA: is this right?
-    catch(ignore(prolog:sandbox_allowed_expansion(M:Goal)), E, 
+    catch(ignore(prolog:sandbox_allowed_expansion(M:Goal)), E,
           (print_message(error, E), fail)).
 
 
