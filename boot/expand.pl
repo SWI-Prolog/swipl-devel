@@ -136,9 +136,9 @@ expand_term_to_terms(Mod, Sandbox, TermL, Expanded) :-
     '$def_modules'(Mod:[term_expansion/4,term_expansion/2], TMList),
     '$def_modules'(Mod:[goal_expansion/4,goal_expansion/2], GMList),
     foldl(extend_expansion(Sandbox), TMList, [TermL], Exp1),
-    maplist(expand_dcg_rule(Mod), Exp1, Exp2),
-    maplist(expand_body(Mod,GMList), Exp2, Exp3),
-    maplist(rename(Mod), Exp3, Expanded).
+    maplist(map_term(=, map_qual(ex_dcg_clause(Mod))), Exp1, Exp2),
+    maplist(map_term(ex_body_dir(Mod-GMList), map_qual(ex_body_clause(Mod-GMList))), Exp2, Exp3),
+    maplist(map_term(=, rename_qclause(Mod)), Exp3, Expanded).
 
 extend_expansion(Sandbox, M-Preds, E1, E2) :-
     extend(expand_one(c(M,Preds,Sandbox)), E1, E2).
@@ -154,6 +154,33 @@ expand_one(Context, TermL, Exp2) :-
 add_source_location(_, (L1:Term)-Pos, (L1:Term)-Pos) :-
     L1 = '$source_location'(_,_), !.
 add_source_location(L, Term-Pos, (L:Term)-Pos).
+
+% structural recursion on term(A) type (see notes.txt)
+:- meta_predicate map_term(2,4,+,-).
+map_term(MapDir, MapClause, Term1-Pos1, Term2-Pos2) :-
+    map_term(Term1, Term2, Pos1, Pos2, MapDir-MapClause).
+
+map_term(end_of_file, end_of_file, Pos, Pos, _) :- !.
+map_term((:- Dir1), (:- Dir2), Pos1, Pos2, MapDir-_) :-
+    !,
+    f1_pos(Pos1, DPos1, Pos2, DPos2),
+    call(MapDir, Dir1-DPos1, Dir2-DPos2).
+
+map_term(L:QC1, L:QC2, Pos1, Pos2, _-MapClause) :-
+    L = '$source_location'(_, _),
+    !,
+    call(MapClause, QC1, QC2, Pos1, Pos2).
+map_term(QC1, QC2, Pos1, Pos2, _-MapClause) :-
+    call(MapClause, QC1, QC2, Pos1, Pos2).
+
+% structural recursion on q(A) type (see notes.txt)
+:- meta_predicate map_qual(4,+,-,+,-).
+map_qual(P, M:QC1, M:QC2, Pos1, Pos2) :-
+    !,
+    f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
+    map_qual(P, QC1, QC2, SPos1, SPos2).
+map_qual(P, Clause1, Clause2, Pos1, Pos2) :-
+    call(P, Clause1, Clause2, Pos1, Pos2).
 
 term_expansion_in(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
     '$member'(term_expansion/N, Preds),
@@ -208,7 +235,6 @@ normalise_list_pos(Var, _) :- var(Var), !.
 normalise_list_pos(list_position(_,_,Elems0,none), Elems0) :- !.
 normalise_list_pos(Pos, Pos) :- is_list(Pos).
 
-
 %! extend(+P:pred(+A,-list(B)), +Xs:list(A), -Ys:list(B)) is det.
 %  Monadic extend (arg-flipped bind) for list monad.
 :- meta_predicate extend(2,+,-).
@@ -219,7 +245,7 @@ extend(P, [X|Xs], AllYs) :-
     extend(P, Xs, MoreYs).
 
 maplist(_, [], []) :- !.
-maplist(P, [X|Xs], [Y|Ys]) :- 
+maplist(P, [X|Xs], [Y|Ys]) :-
     call(P, X, Y),
     maplist(P, Xs, Ys).
 
@@ -234,78 +260,42 @@ pair(X,Y,X-Y).
                  *      DCG EXPANSION           *
                  *******************************/
 
-expand_dcg_rule(M, Term1-Pos1, Term2-Pos2) :-
-   expand_dcg_term(Term1, Pos1, Term2, Pos2, M).
-
-% structural recursion on term(head | rule | dcg_rule) type (see notes.txt)
-expand_dcg_term(end_of_file, Pos, end_of_file, Pos, _) :- !.
-expand_dcg_term((:- Dir), Pos, (:- Dir), Pos, _) :- !.
-expand_dcg_term(L:QC1, Pos1, L:QC2, Pos2, M) :-
-    L = '$source_location'(_, _),
-    !,
-    expand_dcg_qclause(QC1, Pos1, QC2, Pos2, M).
-expand_dcg_term(QC1, Pos1, QC2, Pos2, M) :-
-    expand_dcg_qclause(QC1, Pos1, QC2, Pos2, M).
-
-expand_dcg_qclause(M:QC1, Pos1, M:QC2, Pos2, M) :-
-    !,
-    f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
-    expand_dcg_qclause(QC1, SPos1, QC2, SPos2, M).
-expand_dcg_qclause(Clause1, Pos1, Clause2, Pos2, M) :-
-    expand_dcg_clause(Clause1, Pos1, Clause2, Pos2, M).
-
-expand_dcg_clause((Head :- Body), Pos, (Head :- Body), Pos, _) :- !.
-expand_dcg_clause((Head --> Body), Pos1, Clause, Pos2, M) :-
-    !,
+% structural recursion on (head | rule | dcg_rule) type (see notes.txt)
+ex_dcg_clause(_, (Head :- Body), (Head :- Body), Pos, Pos) :- !.
+ex_dcg_clause(M, (Head --> Body), Clause, Pos1, Pos2) :- !,
     dcg_translate_rule((Head --> Body), Pos1, Clause, Pos2, M).
-expand_dcg_clause(Head, Pos, Head, Pos, _).
-
+ex_dcg_clause(_, Head, Head, Pos, Pos).
 
                  /*******************************
                  *      BODY GOALS EXPANSION    *
                  *******************************/
 
-expand_body(Mod, MList, Term1-Pos1, Term2-Pos2) :-
-    expand_body_term(Term1, Pos1, Term2, Pos2, Mod-MList),
-    remove_attributes(Term2, '$var_info').
+ex_body_dir(M0-MList, Dir1-Pos1, Dir2-Pos2) :-
+    expand_goal(Dir1, Pos1, Dir2, Pos2, M0, MList, (:- Dir1)),
+    remove_attributes(Dir2, '$var_info').
 
-% structural recursion on term(head | rule) type (see notes.txt)
-expand_body_term(end_of_file, Pos, end_of_file, Pos, _) :- !.
-expand_body_term((:- Dir1), Pos1, (:- Dir2), Pos2, M0-MList) :-
-    !,
-    f1_pos(Pos1, DPos1, Pos2, DPos2),
-    expand_goal(Dir1, DPos1, Dir2, DPos2, M0, MList, (:- Dir1)).
-expand_body_term(L:QC1, Pos1, L:QC2, Pos2, Ctx) :-
-    L = '$source_location'(_, _),
-    !,
-    expand_body_qclause(QC1, Pos1, QC2, Pos2, Ctx).
-expand_body_term(QC1, Pos1, QC2, Pos2, Ctx) :-
-    expand_body_qclause(QC1, Pos1, QC2, Pos2, Ctx).
+% structural recursion on q(head | rule) type (see notes.txt)
+ex_body_clause(Ctx, Clause1, Clause2, Pos1, Pos2) :-
+    expand_body_clause(Clause1, Clause2, Pos1, Pos2, Ctx),
+    remove_attributes(Clause2, '$var_info').
 
-expand_body_qclause(M:QC1, Pos1, M:QC2, Pos2, Ctx) :-
-    !,
-    f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
-    expand_body_qclause(QC1, SPos1, QC2, SPos2, Ctx).
-expand_body_qclause(C1, Pos1, C2, Pos2, Ctx) :-
-    expand_body_clause(C1, Pos1, C2, Pos2, Ctx).
-
-expand_body_clause((Head1 :- Body1), Pos1, (Head2 :- Body2), Pos2, Ctx) :-
+expand_body_clause((Head1 :- Body1), (Head2 :- Body2), Pos1, Pos2, Ctx) :-
     !,
     (   expand_body_qhead(Head1, Head2, Eval, Ctx)
-    ->  expand_body_body(Head2, (Eval, Body1), _, Body2, Pos2, Ctx) % TBD: Position handling
+    ->  expand_body_body(Head2, (Eval, Body1), Body2, _, Pos2, Ctx) % TBD: Position handling
     ;   f2_pos(Pos1, HPos, BPos1, Pos2, HPos, BPos2),
-        expand_body_body(Head1, Body1, BPos1, Body2, BPos2, Ctx),
+        expand_body_body(Head1, Body1, Body2, BPos1, BPos2, Ctx),
         Head2 = Head1
     ).
 
-expand_body_clause(Head1, Pos1, Clause, Pos2, Ctx) :- % TBD: Position handling
+expand_body_clause(Head1, Clause, Pos1, Pos2, Ctx) :- % TBD: Position handling
     (   expand_body_qhead(Head1, Head2, Eval, Ctx)
-    ->  expand_body_body(Head2, Eval, _, Body, Pos2, Ctx),
+    ->  expand_body_body(Head2, Eval, Body, _, Pos2, Ctx),
         Clause = (Head2 :- Body)
     ;   Clause = Head1, Pos2 = Pos1
     ).
 
-expand_body_body(Head, Body1, BPos1, Body2, BPos2, M0-MList) :-
+expand_body_body(Head, Body1, Body2, BPos1, BPos2, M0-MList) :-
     term_variables(Head, HVars),
     mark_vars_non_fresh(HVars),
     expand_goal(Body1, BPos1, Body2, BPos2, M0, MList, (Head :- Body1)).
@@ -1361,26 +1351,17 @@ member_eq(E, [H|T]) :-
 :- multifile
     prolog:rename_predicate/2.
 
-%!  rename(+M:module, +T1:exp_term, -T2:exp_term) is det.
-%   Strict structural recursion term(head | rule) type (see notes.txt).
-rename(M, Term1-Pos, Term2-Pos) :- rename_term(Term1, Term2, M).
+%   Structural recursion q(head | rule) type (see notes.txt).
+rename_qclause(M, Term1, Term2, Pos, Pos) :-
+    rename_qual(Term1, Term2, M, rename_clause).
 
-rename_term(end_of_file, end_of_file, _) :- !.
-rename_term((:-Dir), (:-Dir), _) :- !.
-rename_term(L:QC1, L:QC2, M) :-
-    L = '$source_location'(_File, _Line),
-    !,
-    rename_qual(rename_clause, QC1, QC2, M).
-rename_term(QC1, QC2, M) :-
-    rename_qual(rename_clause, QC1, QC2, M).
+rename_qual(M:T1, M:T2, _, R) :- !, rename_qual(T1, T2, M, R).
+rename_qual(T1, T2, M, R)     :- call(R, T1, T2, M).
 
-rename_qual(R, M:T1, M:T2, _) :- !, rename_qual(R, T1, T2, M).
-rename_qual(R, T1, T2, M)     :- call(R, T1, T2, M).
-
-rename_clause((QH1 :- Body), (QH2 :- Body), M) :- !, rename_qual(rename_head, QH1, QH2, M).
+rename_clause((QH1 :- Body), (QH2 :- Body), M) :- !, rename_qual(QH1, QH2, M, rename_head).
 rename_clause(Head1, Head2, M) :- rename_head(Head1, Head2, M).
 
-rename_head(Head0, Head, M) :- prolog:rename_predicate(M:Head0, M:Head), !.
+rename_head(Head1, Head2, M) :- prolog:rename_predicate(M:Head1, M:Head2), !.
 rename_head(Head, Head, _).
 
 
