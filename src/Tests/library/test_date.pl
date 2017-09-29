@@ -244,3 +244,20 @@ fok("990").
 fok("999").
 
 :- end_tests(format_time).
+
+:- begin_tests(timestamp_roundtrip).
+
+test(roundtrip_local, T =:= T2) :-
+	T = 1165591784,
+	stamp_date_time(T, D, local),
+	date_time_stamp(D, T2).
+test(roundtrip_utc, T =:= T2) :-
+	T = 1165591784,
+	stamp_date_time(T, D, 'UTC'),
+	date_time_stamp(D, T2).
+test(roundtrip_epoch, T =:= T2) :-
+	T = 0,
+	stamp_date_time(T, D, 0),
+	date_time_stamp(D, T2).
+
+:- end_tests(timestamp_roundtrip).
