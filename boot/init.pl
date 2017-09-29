@@ -1524,8 +1524,11 @@ compiling :-
 '$read_clause_option'(process_comment(_)).
 
 '$expanded_term'(In, RawL, ReadL, TermL, Stream, Parents, Options) :-
-    catch('$expand_term'(RawL, Expanded), E,
-          '$print_message_fail'(E)),
+    (   catch('$expand_term'(RawL, Expanded), E,
+              '$print_message_fail'(E))
+    ->  true
+    ;   throw(unexpected_failure('$expand_term'(RawL,Expanded)))
+    ),
     (   Expanded = []
     ->  '$empty_expansion'(RawL,TermL),
         ReadL = RawL, Stream = In
