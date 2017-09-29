@@ -39,6 +39,7 @@
 #include <math.h>
 #include "libtai/taia.h"
 #include "libtai/caltime.h"
+#include "libtai/leapsecs.h"
 #include <stdio.h>
 #include <ctype.h>
 
@@ -202,6 +203,8 @@ get_taia(term_t t, struct taia *taia, double *seconds)
     taia->sec.x = (int64_t)ip + TAI_UTC_OFFSET;
     taia->nano  = (long)(fp*1e9);
     taia->atto  = 0L;
+
+    leapsecs_add(&taia->sec, 0);
 
     return TRUE;
   }
@@ -403,18 +406,20 @@ cal_ftm(ftm *ftm, int required)
     ct.offset     = -ftm->utcoff / 60;	/* TBD: make libtai speak seconds */
 
     caltime_tai(&ct, &tai);
-    ftm->stamp  = (double)((int64_t)tai.x - TAI_UTC_OFFSET);
-    ftm->stamp -= (double)ct.second;
-    ftm->stamp += ftm->sec;
-    ftm->flags |= HAS_STAMP;
 
     if ( missing & HAS_WYDAY )
     { caltime_utc(&ct, &tai, &ftm->tm.tm_wday, &ftm->tm.tm_yday);
       ftm->flags |= HAS_WYDAY;
     }
+
+    leapsecs_sub(&tai);
+    ftm->stamp  = (double)((int64_t)tai.x - TAI_UTC_OFFSET);
+    ftm->stamp -= (double)ct.second;
+    ftm->stamp += ftm->sec;
+    ftm->flags |= HAS_STAMP;
+
   }
 }
-
 
 static
 PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
@@ -438,10 +443,12 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
       { time_t unixt;
 	int64_t ut64;
 	struct tm tm;
+	struct tai tai = taia.sec;
 
 	utcoffset = tz_offset();
 
-	ut64 = taia.sec.x - TAI_UTC_OFFSET;
+	leapsecs_sub(&tai);
+	ut64 = tai.x - TAI_UTC_OFFSET;
 	unixt = (time_t) ut64;
 
 	if ( (int64_t)unixt == ut64 )
@@ -962,8 +969,10 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
   memset(&tb, 0, sizeof(tb));
   if ( get_taia(time, &taia, &tb.stamp) )
   { double ip;
+    struct tai tai = taia.sec;
 
-    ut64 = taia.sec.x - TAI_UTC_OFFSET;
+    leapsecs_sub(&tai);
+    ut64 = tai.x - TAI_UTC_OFFSET;
     unixt = (time_t) ut64;
 
     if ( (int64_t)unixt == ut64 )
