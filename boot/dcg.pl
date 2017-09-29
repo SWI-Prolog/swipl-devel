@@ -36,6 +36,7 @@
 :- module('$dcg',
           [ dcg_translate_rule/2,       % +Rule, -Clause
             dcg_translate_rule/4,       % +Rule, ?Pos0, -Clause, -Pos
+            dcg_translate_rule/5,       % +Rule, ?Pos0, -Clause, -Pos, +Module
             phrase/2,                   % :Rule, ?Input
             phrase/3,                   % :Rule, ?Input, ?Rest
             call_dcg/3                  % :Rule, ?State0, ?State
@@ -62,21 +63,23 @@ resulting code is simply the same), I've removed that.
 dcg_translate_rule(Rule, Clause) :-
     dcg_translate_rule(Rule, _, Clause, _).
 
-dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B), Pos) :-
+dcg_translate_rule(Rule, Pos0, Clause, Pos) :-
+    '$current_source_module'(M),
+    dcg_translate_rule(Rule, Pos0, Clause, Pos, M).
+
+dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B), Pos, M) :-
     !,
     f2_pos(Pos0, PosH0, PosRP0, Pos, PosH, PosRP),
     f2_pos(PosH0, PosLP0, PosMNT0, PosH, PosLP, PosMNT),
-    '$current_source_module'(M),
     Qualify = q(M,M,_),
     dcg_extend(LP, PosLP0, S0, SR, H, PosLP),
     dcg_body(RP, PosRP0, Qualify, S0, S1, B0, PosRP),
     dcg_body(MNT, PosMNT0, Qualify, SR, S1, B1, PosMNT),
     dcg_optimise((B0,B1),B2,S0),
     dcg_optimise(B2,B,SR).
-dcg_translate_rule((LP-->RP), Pos0, (H:-B), Pos) :-
+dcg_translate_rule((LP-->RP), Pos0, (H:-B), Pos, M) :-
     f2_pos(Pos0, PosLP0, PosRP0, Pos, PosLP, PosRP),
     dcg_extend(LP, PosLP0, S0, S, H, PosLP),
-    '$current_source_module'(M),
     Qualify = q(M,M,_),
     dcg_body(RP, PosRP0, Qualify, S0, S, B0, PosRP),
     dcg_optimise(B0,B,S0).
