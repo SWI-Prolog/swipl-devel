@@ -1411,7 +1411,7 @@ compiling :-
 '$source_term'(From, Read, RLayout, Term, TLayout, Stream, Options) :-
     '$source_term'(From, Options, Read-RLayout, Term-TLayout, Stream, []).
 
-'$source_term'(Input, _,_,_,_) :-
+'$source_term'(Input, _,_,_,_,_) :-
     \+ ground(Input),
     !,
     '$instantiation_error'(Input).
@@ -1545,7 +1545,7 @@ compiling :-
 '$directive_action'(encoding(Enc), In, _, '$set_stream_encoding'(In, Enc)).
 '$directive_action'(include(File), In, Options, '$source_term'(File, Options1)) :-
     '$current_source_module'(Module),
-    '$valid_directive'(Module:include(File)), !,  % !!! what should happen if directive is invalid?
+    '$valid_directive'(Module:include(File)), !,
     stream_property(In, encoding(Enc)),
     '$add_encoding'(Enc, Options, Options1).
 
