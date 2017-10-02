@@ -146,9 +146,9 @@ extend_expansion(Sandbox, M-Preds, E1, E2) :-
 expand_one(Context, TermL, Exp2) :-
     (   TermL = (L:Clause1)-Pos1,
         L = '$source_location'(_,_)
-    ->  once(term_expansion_in(Context, Clause1-Pos1, Exp1)),
+    ->  once(call_term_expansion(Context, Clause1-Pos1, Exp1)),
         maplist(add_source_location(L), Exp1, Exp2)
-    ;   once(term_expansion_in(Context, TermL, Exp2))
+    ;   once(call_term_expansion(Context, TermL, Exp2))
     ).
 
 add_source_location(_, (L1:Term)-Pos, (L1:Term)-Pos) :-
@@ -182,7 +182,7 @@ map_qual(P, M:QC1, M:QC2, Pos1, Pos2) :-
 map_qual(P, Clause1, Clause2, Pos1, Pos2) :-
     call(P, Clause1, Clause2, Pos1, Pos2).
 
-term_expansion_in(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
+call_term_expansion(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
     '$member'(term_expansion/N, Preds),
     (   N = 2 -> Goal = term_expansion(Term1, Term2)
     ;   N = 4 -> Goal = term_expansion(Term1, Pos1, Term2, Pos2)
@@ -192,7 +192,7 @@ term_expansion_in(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
     (   nonvar(Term2), normalise_expansion(Term2, Pos2, Exp) ->  true
     ;   throw(error(bad_term_expansion(M:Goal)))
     ).
-term_expansion_in(_, TermL, [TermL]).
+call_term_expansion(_, TermL, [TermL]).
 
 normalise_expansion([], _, []) :- !.
 normalise_expansion([T|Ts], Pos, Exp) :-
