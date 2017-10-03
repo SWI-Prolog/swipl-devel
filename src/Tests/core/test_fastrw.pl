@@ -93,4 +93,12 @@ read_and_check(In, T) :-
 	fast_read(In, T2),
 	assertion(T =@= T2).
 
+test(error, error(permission_error(fast_serialize, blob, S))) :-
+	setup_call_cleanup(
+	    ( open_null_stream(S),
+	      set_stream(S, encoding(octet))
+	    ),
+	    fast_write(S, a(X,X,S)),
+	    close(S)).
+
 :- end_tests(fastrw).
