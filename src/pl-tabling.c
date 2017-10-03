@@ -700,7 +700,7 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
 	       set_trie_value(node, av+3 PASS_LD)) )
 	  return FALSE;
 
-	return TRUE;
+	return wkl_add_answer(wl, node PASS_LD);
       } else
       { if ( !set_trie_value(node, A3 PASS_LD) )
 	  return FALSE;

@@ -66,7 +66,8 @@ test_tabling :-
 		    tabling_sneezing,
 		    tabling_yappath,
 		    tabling_minpath,
-		    tabling_train
+		    tabling_train,
+		    moded_tabling_path
 		  ]).
 
 		 /*******************************
@@ -1093,6 +1094,54 @@ test(tabling_train, P == ['Amsterdam','Leiden']) :-
 	train('Amsterdam','Leiden', P).
 
 :- end_tests(tabling_train).
+
+:- begin_tests(moded_tabling_path, [cleanup(abolish_all_tables)]).
+:- use_module(library(tabling)).
+:- table
+    path(_,_,lattice(or/3)),
+    edge(_,_,lattice(or/3)).
+
+path(X,X,one).
+path(X,Y,C):-
+    edge(X,Z,A),
+    path(Z,Y,B),
+    and(A,B,C).
+
+path(A,B,zero) :-
+    nonvar(A),
+    nonvar(B).
+
+edge(a,b,e(a,b)).
+edge(b,e,e(b,e)).
+edge(a,e,e(a,e)).
+
+edge(A,B,zero):-
+    nonvar(A),
+    nonvar(B).
+
+or(zero, B, B) :- !.
+or(B, zero, B) :- !.
+or(one, one, one) :- !.
+or(A,A,A):-!.
+or(A, B, or(A,B)).
+
+and(zero, _, _) :- !, fail.
+and(_, zero, _) :- !, fail.
+and(one, B, B) :- !.
+and(B, one, B) :- !.
+and(A,A,A):-!.
+and(A, B, and(A,B)).
+
+test(path, T == or(e(a, e), and(e(a, b), e(b, e)))) :-
+	path(a, e, T),
+	assertion(ground(T)),
+	assertion(ok_path(T)).
+
+ok_path(or(e(a, e), and(e(a, b), e(b, e)))).
+ok_path(or(and(e(a, b), e(b, e)), e(a, e))).
+
+:- end_tests(moded_tabling_path).
+
 
 
 		 /*******************************

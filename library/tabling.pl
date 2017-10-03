@@ -173,13 +173,15 @@ add_answer_or_suspend(Continuation, Wrapper, _WrapperNoModes, WorkList,
 %
 %   Update the aggregated value for  an   answer.  Wrapper is the tabled
 %   goal, A1 is the aggregated value so far, A2 is the new answer and A3
-%   should be unified with the new aggregated value.
+%   should be unified with the new   aggregated value. The new aggregate
+%   is ignored if it is the same as the old one.
 
 :- public
     update/4.
 
 update(M:Wrapper, A1, A2, A3) :-
-    M:'$table_update'(Wrapper, A1, A2, A3).
+    M:'$table_update'(Wrapper, A1, A2, A3),
+    A1 \=@= A3.
 
 
 %!  completion
