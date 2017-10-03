@@ -200,6 +200,11 @@ unallocRecordList(RecordList rl)
 
 #define dataRecord(r) ((char *)addPointer(r, SIZERECORD(r->flags)))
 
+typedef enum
+{ ENONE = 0,
+  EFAST_SERIALIZE
+} cerror;
+
 typedef struct
 { tmp_buffer code;			/* code buffer */
   tmp_buffer vars;			/* variable pointers */
@@ -207,6 +212,8 @@ typedef struct
   uint	     nvars;			/* # variables */
   int	     external;			/* Allow for external storage */
   int	     lock;			/* lock compiled atoms */
+  cerror     error;			/* generated error */
+  word	     econtext[1];		/* error context */
 } compile_info, *CompileInfo;
 
 #define	PL_TYPE_VARIABLE	(1)	/* variable */
@@ -399,12 +406,9 @@ addAtom(CompileInfo info, atom_t a)
 
       addAtomValue(info, ap);
     } else
-    { GET_LD
-      term_t t;
-
-      return ( (t=PL_new_term_ref()) &&
-		PL_put_atom(t, a) &&
-		PL_permission_error("fast_serialize", "blob", t) );
+    { info->error = EFAST_SERIALIZE;
+      info->econtext[0] = a;
+      return FALSE;
     }
   } else
   { addOpCode(info, PL_TYPE_ATOM);
@@ -754,6 +758,22 @@ discard_record_data(record_data *data)
     discardBuffer(&data->hdr);
 }
 
+static int
+rec_error(CompileInfo info)
+{ switch(info->error)
+  { case EFAST_SERIALIZE:
+    { GET_LD
+      term_t t;
+
+      return ( (t=PL_new_term_ref()) &&
+		PL_put_atom(t, info->econtext[0]) &&
+		PL_permission_error("fast_serialize", "blob", t) );
+    }
+    default:
+      assert(0);
+  }
+}
+
 
 static int
 compile_external_record(term_t t, record_data *data ARG_LD)
@@ -807,12 +827,12 @@ general:
   initTermAgenda(&agenda, 1, p);
   rc = compile_term_to_heap(&agenda, &data->info PASS_LD);
   clearTermAgenda(&agenda);
-  if ( !rc )
-    return FALSE;
   if ( data->info.nvars == 0 )
     first |= REC_GROUND;
   restoreVars(&data->info);
   unvisit(PASS_LD1);
+  if ( !rc )
+    return rec_error(&data->info);
   scode = (int)sizeOfBuffer(&data->info.code);
 
   initBuffer(&data->hdr);
