@@ -146,41 +146,16 @@ extend_expansion(Sandbox, M-Preds, E1, E2) :-
 expand_one(Context, TermL, Exp2) :-
     (   TermL = (L:Clause1)-Pos1,
         L = '$source_location'(_,_)
-    ->  once(call_term_expansion(Context, Clause1-Pos1, Exp1)),
-        maplist(add_source_location(L), Exp1, Exp2)
-    ;   once(call_term_expansion(Context, TermL, Exp2))
+        call_term_expansion(Context, Clause1-Pos1, Exp1)
+    ->  maplist(add_source_location(L), Exp1, Exp2)
+    ;   call_term_expansion(Context, TermL, Exp2)
+    ->  true
+    ;   Exp2 = [TermL]
     ).
 
 add_source_location(_, (L1:Term)-Pos, (L1:Term)-Pos) :-
     L1 = '$source_location'(_,_), !.
 add_source_location(L, Term-Pos, (L:Term)-Pos).
-
-% structural recursion on term(A) type (see notes.txt)
-:- meta_predicate map_term(2,4,+,-).
-map_term(MapDir, MapClause, Term1-Pos1, Term2-Pos2) :-
-    map_term(Term1, Term2, Pos1, Pos2, MapDir-MapClause).
-
-map_term(end_of_file, end_of_file, Pos, Pos, _) :- !.
-map_term((:- Dir1), (:- Dir2), Pos1, Pos2, MapDir-_) :-
-    !,
-    f1_pos(Pos1, DPos1, Pos2, DPos2),
-    call(MapDir, Dir1-DPos1, Dir2-DPos2).
-
-map_term(L:QC1, L:QC2, Pos1, Pos2, _-MapClause) :-
-    L = '$source_location'(_, _),
-    !,
-    call(MapClause, QC1, QC2, Pos1, Pos2).
-map_term(QC1, QC2, Pos1, Pos2, _-MapClause) :-
-    call(MapClause, QC1, QC2, Pos1, Pos2).
-
-% structural recursion on q(A) type (see notes.txt)
-:- meta_predicate map_qual(4,+,-,+,-).
-map_qual(P, M:QC1, M:QC2, Pos1, Pos2) :-
-    !,
-    f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
-    map_qual(P, QC1, QC2, SPos1, SPos2).
-map_qual(P, Clause1, Clause2, Pos1, Pos2) :-
-    call(P, Clause1, Clause2, Pos1, Pos2).
 
 call_term_expansion(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
     '$member'(term_expansion/N, Preds),
@@ -190,9 +165,8 @@ call_term_expansion(c(M,Preds,Sandbox), Term1-Pos1, Exp) :-
     allowed_expansion(Sandbox, M:Goal),
     call(M:Goal),
     (   nonvar(Term2), normalise_expansion(Term2, Pos2, Exp) ->  true
-    ;   throw(error(bad_term_expansion(M:Goal)))
+    ;   throw(error(bad_term_expansion(M:Goal))) % !!! SA: needs a message
     ).
-call_term_expansion(_, TermL, [TermL]).
 
 normalise_expansion([], _, []) :- !.
 normalise_expansion([T|Ts], Pos, Exp) :-
@@ -234,6 +208,33 @@ valid_qhead(_).
 normalise_list_pos(Var, _) :- var(Var), !.
 normalise_list_pos(list_position(_,_,Elems0,none), Elems0) :- !.
 normalise_list_pos(Pos, Pos) :- is_list(Pos).
+
+% structural recursion on term(A) type (see notes.txt)
+:- meta_predicate map_term(2,4,+,-).
+map_term(MapDir, MapClause, Term1-Pos1, Term2-Pos2) :-
+    map_term(Term1, Term2, Pos1, Pos2, MapDir-MapClause).
+
+map_term(end_of_file, end_of_file, Pos, Pos, _) :- !.
+map_term((:- Dir1), (:- Dir2), Pos1, Pos2, MapDir-_) :-
+    !,
+    f1_pos(Pos1, DPos1, Pos2, DPos2),
+    call(MapDir, Dir1-DPos1, Dir2-DPos2).
+
+map_term(L:QC1, L:QC2, Pos1, Pos2, _-MapClause) :-
+    L = '$source_location'(_, _),
+    !,
+    call(MapClause, QC1, QC2, Pos1, Pos2).
+map_term(QC1, QC2, Pos1, Pos2, _-MapClause) :-
+    call(MapClause, QC1, QC2, Pos1, Pos2).
+
+% structural recursion on q(A) type (see notes.txt)
+:- meta_predicate map_qual(4,+,-,+,-).
+map_qual(P, M:QC1, M:QC2, Pos1, Pos2) :-
+    !,
+    f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
+    map_qual(P, QC1, QC2, SPos1, SPos2).
+map_qual(P, Clause1, Clause2, Pos1, Pos2) :-
+    call(P, Clause1, Clause2, Pos1, Pos2).
 
 %! extend(+P:pred(+A,-list(B)), +Xs:list(A), -Ys:list(B)) is det.
 %  Monadic extend (arg-flipped bind) for list monad.
