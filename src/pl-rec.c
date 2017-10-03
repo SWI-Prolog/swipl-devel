@@ -939,7 +939,8 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
     } else
     { return FALSE;
     }
-  } else if ( PL_get_string_chars(string, &rec, &len) )
+  } else if ( PL_get_nchars(string, &len, &rec,
+			    CVT_STRING|BUF_RING|REP_ISO_LATIN_1|CVT_EXCEPTION) )
   { term_t tmp;
 
     return ( (tmp = PL_new_term_ref()) &&
@@ -947,7 +948,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 	     PL_recorded_external(rec, tmp) &&
 	     PL_unify(term, tmp) );
   } else
-  { return PL_type_error("string", string);
+  { return FALSE;
   }
 }
 
