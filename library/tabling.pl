@@ -179,7 +179,8 @@ add_answer_or_suspend(Continuation, Wrapper, _WrapperNoModes, WorkList,
     update/4.
 
 update(M:Wrapper, A1, A2, A3) :-
-    M:'$table_update'(Wrapper, A1, A2, A3).
+    M:'$table_update'(Wrapper, A1, A2, A3),
+    A1\==A3.
 
 
 %!  completion
