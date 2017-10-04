@@ -145,7 +145,7 @@ extend_expansion(Sandbox, M-Preds, E1, E2) :-
 
 expand_one(Context, TermL, Exp2) :-
     (   TermL = (L:Clause1)-Pos1,
-        L = '$source_location'(_,_)
+        L = '$source_location'(_,_),
         call_term_expansion(Context, Clause1-Pos1, Exp1)
     ->  maplist(add_source_location(L), Exp1, Exp2)
     ;   call_term_expansion(Context, TermL, Exp2)
@@ -176,7 +176,6 @@ normalise_expansion([T|Ts], Pos, Exp) :-
     maplist(nonvar,[T|Ts]),
     maplist(normalise_term, [T|Ts], Terms),
     maplist(pair, Terms, Pos1, Exp).
-% !!! should we allow '$source_location'(_,_):List ?
 normalise_expansion(Term, Pos, [Term1-Pos]) :-
     normalise_term(Term, Term1).
 
@@ -192,7 +191,7 @@ normalise_term(QClause, QClause) :-
 
 valid_qclause(QClause) :-
     (   QClause = M:Clause
-    ->  nonvar(M),
+    ->  atom(M),
         nonvar(Clause),
         valid_qclause(Clause)
     ;   valid_clause(QClause)
@@ -202,7 +201,7 @@ valid_clause(QHead :- _)  :- !, nonvar(QHead), valid_qhead(QHead).
 valid_clause(QHead --> _) :- !, nonvar(QHead), valid_qhead(QHead).
 valid_clause(Head)        :- valid_qhead(Head).
 
-valid_qhead(M:Head) :- !, nonvar(M), nonvar(Head).
+valid_qhead(M:Head) :- !, atom(M), nonvar(Head).
 valid_qhead(_).
 
 normalise_list_pos(Var, _) :- var(Var), !.
