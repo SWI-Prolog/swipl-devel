@@ -187,22 +187,17 @@ normalise_term((:- Dir), (:- Dir)) :- !, nonvar(Dir).
 normalise_term(L:QClause, L:QClause) :-
     nonvar(L),
     L = '$source_location'(_,_), !,
-    valid_qclause(QClause).
+    valid_qual(QClause, valid_clause).
 normalise_term(QClause, QClause) :-
-    valid_qclause(QClause).
+    valid_qual(QClause, valid_clause).
 
-valid_qclause(QClause) :-
-    (   QClause = M:Clause
-    ->  atom(M), % NB if QClause was a variable, it will fail here
-        valid_qclause(Clause)
-    ;   valid_clause(QClause)
-    ).
+valid_clause(QHead :- _)  :- !, valid_qual(QHead, valid_head).
+valid_clause(Head)        :- valid_qual(Head, valid_head).
 
-valid_clause(QHead :- _)  :- !, valid_qhead(QHead).
-valid_clause(Head)        :- valid_qhead(Head).
+valid_head(Head) :- nonvar(Head), Head \= _:_.
 
-valid_qhead(M:Head) :- !, atom(M), nonvar(Head).
-valid_qhead(_).
+valid_qual(M:X, P) :- !, atom(M), call(P, X).
+valid_qual(X, P) :- call(P, X).
 
 normalise_list_pos(Var, _) :- var(Var), !.
 normalise_list_pos(list_position(_,_,Elems0,none), Elems0) :- !.
@@ -228,12 +223,12 @@ map_term(QC1, QC2, Pos1, Pos2, _-MapClause) :-
 
 % structural recursion on q(A) type (see notes.txt)
 :- meta_predicate map_qual(4,+,-,+,-).
-map_qual(P, M:QC1, M:QC2, Pos1, Pos2) :-
+map_qual(P, M:X1, M:X2, Pos1, Pos2) :-
     !,
     f2_pos(Pos1, MPos, SPos1, Pos2, MPos, SPos2),
-    map_qual(P, QC1, QC2, SPos1, SPos2).
-map_qual(P, Clause1, Clause2, Pos1, Pos2) :-
-    call(P, Clause1, Clause2, Pos1, Pos2).
+    call(P, X1, X2, SPos1, SPos2).
+map_qual(P, X1, X2, Pos1, Pos2) :-
+    call(P, X1, X2, Pos1, Pos2).
 
 %! extend(+P:pred(+A,-list(B)), +Xs:list(A), -Ys:list(B)) is det.
 %  Monadic extend (arg-flipped bind) for list monad.
@@ -1355,8 +1350,8 @@ member_eq(E, [H|T]) :-
 rename_qclause(M, Term1, Term2, Pos, Pos) :-
     rename_qual(Term1, Term2, M, rename_clause).
 
-rename_qual(M:T1, M:T2, _, R) :- !, rename_qual(T1, T2, M, R).
-rename_qual(T1, T2, M, R)     :- call(R, T1, T2, M).
+rename_qual(M:X1, M:X2, _, R) :- !, call(R, X1, X2, M).
+rename_qual(X1, X2, M, R)     :- call(R, X1, X2, M).
 
 rename_clause((QH1 :- Body), (QH2 :- Body), M) :- !, rename_qual(QH1, QH2, M, rename_head).
 rename_clause(Head1, Head2, M) :- rename_head(Head1, Head2, M).

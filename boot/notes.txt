@@ -2,7 +2,7 @@
 
         (these are defaulty untagged unions)
             term(A) == {end_of_file} | directive | q(A) | located(q(A)).
-            q(A)    == A | qualified(q(A)).
+            q(A)    == A | qualified(A).
             head    == excluding([(:)/2, (?-)/1, (:-)/1, (:-)/2]).
 
         (these are fine)
