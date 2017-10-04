@@ -2299,7 +2299,12 @@ assert_module(Src, Module) :-
     !.
 assert_module(Src, Module) :-
     '$set_source_module'(Module),
-    assert(xmodule(Module, Src)).
+    assert(xmodule(Module, Src)),
+    (   module_property(Module, class(system))
+    ->  retractall(xoption(Src, register_called(_))),
+        assert(xoption(Src, register_called(all)))
+    ;   true
+    ).
 
 assert_module_export(_, []) :- !.
 assert_module_export(Src, [H|T]) :-
