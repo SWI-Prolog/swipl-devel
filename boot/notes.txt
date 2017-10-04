@@ -1,22 +1,20 @@
     Terms that can be expanded or result from expansion:
 
         (these are defaulty untagged unions)
-            raw_term == {end_of_file} | directive | q(head | rule | dcg_rule).
-            term(A)  == {end_of_file} | directive | q(A) | located(q(A)).
+            term(A) == {end_of_file} | directive | q(A) | located(q(A)).
             q(A)    == A | qualified(q(A)).
             head    == excluding([(:)/2, (?-)/1, (:-)/1, (:-)/2]).
 
         (these are fine)
             directive       ---> (:- body).
             rule            ---> (q(head) :- body).
-            dcg_rule        ---> (q(head) --> body).
             qualified(A)    ---> module:A.
             located(A)      ---> source_location:A.
             source_location ---> '$source_location'(filename, int).
 
-    Terms that can result from term_expansion hooks
+    Terms that can result from term_expansion hooks (can include (?-)/2 Directives)
 
-            term_out == term(head | rule | dcg_rule) 
+            term_out == term(head | rule) 
             term_layout_out == pair(term_out, layout)
-                             | pair(list(term_out), layout) % must be list_position/4
+                             | pair(list(term_out), layout) % layout must be list_position/4
                              | pair(list(term_out), list(layout)).

@@ -198,7 +198,6 @@ valid_qclause(QClause) :-
     ).
 
 valid_clause(QHead :- _)  :- !, nonvar(QHead), valid_qhead(QHead).
-valid_clause(QHead --> _) :- !, nonvar(QHead), valid_qhead(QHead).
 valid_clause(Head)        :- valid_qhead(Head).
 
 valid_qhead(M:Head) :- !, atom(M), nonvar(Head).
@@ -260,7 +259,7 @@ pair(X,Y,X-Y).
                  *      DCG EXPANSION           *
                  *******************************/
 
-% structural recursion on (head | rule | dcg_rule) type (see notes.txt)
+% structural recursion on (head | rule) type (see notes.txt)
 ex_dcg_clause(_, (Head :- Body), (Head :- Body), Pos, Pos) :- !.
 ex_dcg_clause(M, (Head --> Body), Clause, Pos1, Pos2) :- !,
     dcg_translate_rule((Head --> Body), Pos1, Clause, Pos2, M).
