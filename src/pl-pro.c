@@ -202,7 +202,7 @@ pl_break1(atom_t goal)
   Scurout = outSave;
   Scurin  = inSave;
 
-  return rc == TRUE;
+  return rc;
 }
 
 
