@@ -173,14 +173,16 @@ normalise_expansion([T|Ts], Pos, Exp) :-
     !,
     is_list(Ts),
     normalise_list_pos(Pos, Pos1),
-    maplist(nonvar,[T|Ts]),
-    maplist(normalise_term, [T|Ts], Terms),
-    maplist(pair, Terms, Pos1, Exp).
+    maplist(normalise_and_pair, [T|Ts], Pos1, Exp).
 normalise_expansion(Term, Pos, [Term1-Pos]) :-
     normalise_term(Term, Term1).
 
+normalise_and_pair(T1, Pos, T2-Pos) :-
+    nonvar(T1),
+    normalise_term(T1, T2).
+
 normalise_term(end_of_file, end_of_file) :- !.
-normalise_term((?- Dir), (:- Dir)) :- !, nonvar(Dir). % NB convert to :-
+normalise_term((?- Dir), (:- Dir)) :- !, nonvar(Dir). % convert ?- to :-
 normalise_term((:- Dir), (:- Dir)) :- !, nonvar(Dir).
 normalise_term(L:QClause, L:QClause) :-
     nonvar(L),
@@ -191,13 +193,12 @@ normalise_term(QClause, QClause) :-
 
 valid_qclause(QClause) :-
     (   QClause = M:Clause
-    ->  atom(M),
-        nonvar(Clause),
+    ->  atom(M), % NB if QClause was a variable, it will fail here
         valid_qclause(Clause)
     ;   valid_clause(QClause)
     ).
 
-valid_clause(QHead :- _)  :- !, nonvar(QHead), valid_qhead(QHead).
+valid_clause(QHead :- _)  :- !, valid_qhead(QHead).
 valid_clause(Head)        :- valid_qhead(Head).
 
 valid_qhead(M:Head) :- !, atom(M), nonvar(Head).
