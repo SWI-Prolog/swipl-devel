@@ -8068,16 +8068,6 @@ are passed as Prolog integers, float arguments and Prolog floating
 point numbers and all other arguments as Prolog atoms.  New applications
 should use the Prolog flag \prologflag{argv}.  See also the Prolog flag
 \prologflag{argv}.
-
-A stand-alone program could use the following skeleton to handle
-command line arguments. See also \secref{cmdlinecomp}.
-
-\begin{code}
-main :-
-	current_prolog_flag(argv, Argv),
-	append(_PrologArgs, [--|AppArgs], Argv), !,
-	main(AppArgs).
-\end{code}
 \end{description}
 \end{description}
 
