@@ -337,8 +337,9 @@ separator(Options) -->
     { csv_options_separator(Options, Sep) },
     [Sep].
 
-end_of_record --> "\n".
-end_of_record --> "\r\n".
+end_of_record --> "\n".			% Unix files
+end_of_record --> "\r\n".               % DOS files
+end_of_record --> "\r".                 % MacOS files
 end_of_record --> eof.                  % unterminated last record
 
 
