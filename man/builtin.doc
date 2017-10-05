@@ -7968,6 +7968,13 @@ multithreaded version the console that is associated with the
 
 \section{Operating System Interaction}	\label{sec:system}
 
+The predicates in this section provide basic access to the operating
+system that has been part of the Prolog legacy tradition. Note that more
+advanced access to low-level OS features is provided by several libaries
+from the \const{clib} package, notably library \pllib{process},
+\pllib{socket}, \pllib{unix} and \pllib{filesex}.
+
+
 \begin{description}
     \predicate{shell}{1}{+Command}
 Equivalent to `\exam{shell(Command, 0)}'.  See shell/2 for details.
