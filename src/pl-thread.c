@@ -3541,8 +3541,8 @@ restart:
   { struct timespec now, diff;
 
     get_current_timespec(&now);
-    timespec_diff(&diff, &now, deadline);
-    if ( timespec_sign(&diff) > 0 )
+    timespec_diff(&diff, deadline, &now);
+    if ( timespec_sign(&diff) <= 0 )
       return ETIMEDOUT;
 
     if ( diff.tv_sec > WIN_MAX_SECS )
