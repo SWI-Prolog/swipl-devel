@@ -60,8 +60,8 @@
 \newcommand{\vmajor}{7}
 \newcommand{\vminor}{6}
 \newcommand{\vpatch}{0}
-\newcommand{\vtag}{rc2}
-\newcommand{\vmonth}{September}
+\newcommand{\vtag}{}
+\newcommand{\vmonth}{October}
 \newcommand{\vyear}{2017}
 
 #ifdef BOOK
