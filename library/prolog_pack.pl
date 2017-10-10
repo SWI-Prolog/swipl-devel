@@ -1072,6 +1072,7 @@ is_foreign_pack(PackDir) :-
     !.
 
 foreign_file('configure.in').
+foreign_file('configure.ac').
 foreign_file('configure').
 foreign_file('Makefile').
 foreign_file('makefile').
