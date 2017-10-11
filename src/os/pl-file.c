@@ -4681,23 +4681,28 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     IOSTREAM *s;
     term_t st = PL_new_term_ref();
     term_t pt = PL_new_term_ref();
+    term_t ex = PL_new_term_ref();
 
     PL_LOCK(L_FILE);
     while( advanceTableEnum(e, (void**)&s, NULL))
     { rc = ( s->context != NULL &&
 	     unify_stream_property(s, p, pt PASS_LD) &&
+	     can_unify(valTermRef(A1), valTermRef(pt), ex) &&
 	     PL_unify_list(tail, head, tail) &&
 	     PL_unify_functor(head, FUNCTOR_minus2) &&
 	     PL_get_arg(1, head, st) &&
 	     unify_stream_ref(st, s) &&
 	     PL_unify_arg(2, head, pt)
 	   );
-      if ( !rc && PL_exception(0) )
+      if ( !rc && (!PL_is_variable(ex) || PL_exception(0)) )
 	break;
     }
     freeTableEnum(e);
     PL_UNLOCK(L_FILE);
-    rc = !PL_exception(0) && PL_unify_nil(tail);
+    if ( !PL_is_variable(ex) )
+      rc = PL_raise_exception(ex);
+    else
+      rc = !PL_exception(0) && PL_unify_nil(tail);
   } else if ( PL_is_variable(A1) )
   { TableEnum e = newTableEnum(streamContext);
     IOSTREAM *s;
