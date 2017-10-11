@@ -1418,9 +1418,9 @@ confirm_remove(Pack, Deps, Delete) :-
 
 %!  pack_property(?Pack, ?Property) is nondet.
 %
-%   True when Property is a  property   of  Pack.  This interface is
-%   intended for programs that wish  to   interact  with the package
-%   manager.  Defined properties are:
+%   True when Property  is  a  property   of  an  installed  Pack.  This
+%   interface is intended for programs that   wish  to interact with the
+%   package manager. Defined properties are:
 %
 %     - directory(Directory)
 %     Directory into which the package is installed
