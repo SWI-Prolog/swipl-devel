@@ -300,6 +300,7 @@ string_codes(List) -->
 field_codes([], Sep), [Sep] --> [Sep], !.
 field_codes([], _), "\n" --> "\r\n", !.
 field_codes([], _), "\n" --> "\n", !.
+field_codes([], _), "\n" --> "\r", !.
 field_codes([H|T], Sep) --> [H], !, field_codes(T, Sep).
 field_codes([], _) --> [].              % unterminated last record
 
