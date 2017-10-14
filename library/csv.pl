@@ -402,11 +402,13 @@ csv_read_row(Stream, Row, Record) :-
     Row = Row0.
 
 read_lines_to_codes(Stream, Codes) :-
-    read_line_to_codes(Stream, Codes, Tail),
-    (   Tail == []
-    ->  true
-    ;   Tail = []
-    ;   read_lines_to_codes(Stream, Tail)
+    read_string(Stream, "\r\n", "\r\n", Sep, String),
+    string_codes(String, Codes0),
+    (   Sep == -1
+    ->  Codes = Codes0
+    ;   Codes = Codes0
+    ;   append(Codes0, [0'\n|Tail], Codes),
+        read_lines_to_codes(Stream, Tail)
     ).
 
 
