@@ -131,9 +131,8 @@ lookupModule__LD(atom_t name ARG_LD)
 
 
 Module
-isCurrentModule(atom_t name)
-{ GET_LD
-  return lookupHTable(GD->tables.modules, (void*)name);
+isCurrentModule__LD(atom_t name ARG_LD)
+{ return lookupHTable(GD->tables.modules, (void*)name);
 }
 
 

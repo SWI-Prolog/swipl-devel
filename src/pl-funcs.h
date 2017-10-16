@@ -347,7 +347,7 @@ COMMON(void)		cleanupForeign(void);
 
 /* pl-modul.c */
 COMMON(Module)		lookupModule__LD(atom_t name ARG_LD);
-COMMON(Module)		isCurrentModule(atom_t name);
+COMMON(Module)		isCurrentModule__LD(atom_t name ARG_LD);
 COMMON(void)		initModules(void);
 COMMON(void)		cleanupModules(void);
 COMMON(int)		addModuleSourceFile(SourceFile sf, Module m);
