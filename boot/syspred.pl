@@ -475,7 +475,8 @@ source_file(File) :-
 source_file(M:Head, File) :-
     nonvar(M), nonvar(Head),
     !,
-    (   predicate_property(M:Head, multifile)
+    (   '$c_current_predicate'(_, M:Head),
+        predicate_property(M:Head, multifile)
     ->  multi_source_files(M:Head, Files),
         '$member'(File, Files)
     ;   '$source_file'(M:Head, File)
