@@ -776,6 +776,7 @@ typedef enum
 #define GF_PROCEDURE	0x2		/* check for max arity */
 #define GF_NAMEARITY	0x4		/* only accept name/arity */
 
+#define SM_NOCREATE	0x1		/* stripModule(): do not create modules */
 
 		 /*******************************
 		 *	       ALERT		*

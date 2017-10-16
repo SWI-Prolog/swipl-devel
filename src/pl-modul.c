@@ -571,7 +571,7 @@ remaining term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-stripModule(Word term, Module *module ARG_LD)
+stripModule(Word term, Module *module, int flags ARG_LD)
 { int depth = 100;
   deRef(term);
 
@@ -581,7 +581,15 @@ stripModule(Word term, Module *module ARG_LD)
     deRef(mp);
     if ( !isTextAtom(*mp) )
       break;
-    *module = lookupModule(*mp);
+    if ( unlikely(flags&SM_NOCREATE) )
+    { Module m;
+
+      if ( !(m=isCurrentModule(*mp)) )
+	return NULL;
+      *module = m;
+    } else
+    { *module = lookupModule(*mp);
+    }
     term = argTermP(*term, 1);
     deRef(term);
     if ( --depth == 0 && !is_acyclic(term PASS_LD) )
