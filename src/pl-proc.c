@@ -655,7 +655,7 @@ pl_current_predicate(term_t name, term_t spec, control_t h)
     succeed;
   }
 
-  if ( !PL_strip_module(spec, &m, functor) )
+  if ( !PL_strip_module__LD(spec, &m, functor, SM_NOCREATE PASS_LD) )
     fail;
 
   if ( !PL_get_atom(name, &n) )

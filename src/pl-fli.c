@@ -3801,12 +3801,12 @@ PL_unify_output__LD(term_t t1, term_t t2 ARG_LD)
 		 *******************************/
 
 int
-PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
+PL_strip_module__LD(term_t raw, module_t *m, term_t plain, int flags ARG_LD)
 { Word p = valTermRef(raw);
 
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { if ( !(p = stripModule(p, m PASS_LD)) )
+  { if ( !(p = stripModule(p, m, flags PASS_LD)) )
       return FALSE;
     setHandle(plain, linkVal(p));
   } else
@@ -3824,9 +3824,9 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 int
 PL_strip_module(term_t raw, module_t *m, term_t plain)
 { GET_LD
-  return PL_strip_module__LD(raw, m, plain PASS_LD);
+  return PL_strip_module__LD(raw, m, plain, 0 PASS_LD);
 }
-#define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
+#define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t, 0 PASS_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_strip_module_ex() is similar to  PL_strip_module(),   but  returns an
@@ -3839,7 +3839,7 @@ PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { if ( !(p = stripModule(p, m PASS_LD)) )
+  { if ( !(p = stripModule(p, m, 0 PASS_LD)) )
       return FALSE;
     if ( hasFunctor(*p, FUNCTOR_colon2) )
     { Word a1 = argTermP(*p, 0);

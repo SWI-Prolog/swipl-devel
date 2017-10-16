@@ -251,7 +251,7 @@ COMMON(int)		PL_is_atomic__LD(term_t t ARG_LD);
 COMMON(int)		PL_is_functor__LD(term_t t, functor_t f ARG_LD);
 COMMON(int)		PL_is_variable__LD(term_t t ARG_LD);
 COMMON(int)		PL_strip_module__LD(term_t q, module_t *m,
-					    term_t t ARG_LD) WUNUSED;
+					    term_t t, int flags ARG_LD) WUNUSED;
 COMMON(int)		PL_strip_module_ex__LD(term_t raw, module_t *m,
 					       term_t plain ARG_LD) WUNUSED;
 COMMON(int)		PL_qualify(term_t raw, term_t qualified);
@@ -356,7 +356,7 @@ COMMON(int)		isSuperModule(Module s, Module m);
 COMMON(void)		clearSupersModule(Module m);
 COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(int)		getUnknownModule(Module m);
-COMMON(Word)		stripModule(Word term, Module *module ARG_LD);
+COMMON(Word)		stripModule(Word term, Module *module, int flags ARG_LD);
 COMMON(bool)		isPublicModule(Module module, Procedure proc);
 COMMON(int)		exportProcedure(Module module, Procedure proc);
 COMMON(int)		declareModule(atom_t name, atom_t class, atom_t super,
