@@ -64,6 +64,7 @@
 #define popNPredicateAccess(cnt) popNPredicateAccess__LD(cnt PASS_LD)
 #define nextClause(chp, argv, fr, def) nextClause__LD(chp, argv, fr, def PASS_LD)
 #define lookupModule(name)	lookupModule__LD(name PASS_LD)
+#define isCurrentModule(name)	isCurrentModule__LD(name PASS_LD)
 #define isCurrentProcedure(f,m) isCurrentProcedure__LD(f, m PASS_LD)
 #define resolveProcedure(f,m)	resolveProcedure__LD(f, m PASS_LD)
 #define ensureLocalSpace(n)	likely(ensureLocalSpace__LD(n PASS_LD))

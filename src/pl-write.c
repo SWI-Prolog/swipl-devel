@@ -1894,7 +1894,9 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     }
   }
 
-  options.module = lookupModule(mname);
+  options.module = isCurrentModule(mname);
+  if ( !options.module )
+    options.module = MODULE_user;
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, M_CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
