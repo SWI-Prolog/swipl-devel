@@ -563,10 +563,34 @@ procedure is created in the module.  Otherwise, the system traverses the
 module-inheritance chain to find the existing procedure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static Module
+get_module(atom_t mname, int how ARG_LD)
+{ if ( mname )
+  { switch(how&GP_HOW_MASK)
+    { case GP_CREATE:
+      case GP_FINDHERE:
+      case GP_DEFINE:
+	return lookupModule(mname);
+      case GP_FIND:
+      case GP_RESOLVE:
+      { Module m;
+	if ( (m=isCurrentModule(mname)) )
+	  return m;
+	return MODULE_user;
+      }
+    }
+  }
+
+  return (environment_frame ? contextModule(environment_frame)
+			    : MODULE_user);
+}
+
+
 int
 get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 { GET_LD
-  Module m = (Module) NULL;
+  atom_t mname = 0;
+  Module m = NULL;
   functor_t fdef;
   Procedure p;
 
@@ -576,8 +600,13 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       fail;
   } else
   { term_t head = PL_new_term_ref();
+    Word p;
 
-    if ( !PL_strip_module(descr, &m, head) )
+    if ( !(p=stripModuleName(valTermRef(descr), &mname PASS_LD)) )
+      return FALSE;
+    *valTermRef(head) = linkVal(p);
+
+    if ( !(m = get_module(mname, how PASS_LD)) )
       return FALSE;
 
     if ( h )
