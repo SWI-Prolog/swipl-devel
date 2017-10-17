@@ -562,18 +562,17 @@ getUnknownModule(Module m)
   return u;
 }
 
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-stripModule() takes an atom or term, possible embedded in the :/2 module
-term.  It will assign *module with the associated module and return  the
-remaining term.
+stripModuleName() takes an atom or term,   possible  embedded in the :/2
+module term. It assigns *name  with   the  associated  module names. The
+return value is the plain term or NULL if `term` is cyclic.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-stripModule(Word term, Module *module, int flags ARG_LD)
+stripModuleName(Word term, atom_t *name ARG_LD)
 { int depth = 100;
   deRef(term);
+  atom_t nm = 0;
 
   while( hasFunctor(*term, FUNCTOR_colon2) )
   { Word mp;
@@ -581,15 +580,7 @@ stripModule(Word term, Module *module, int flags ARG_LD)
     deRef(mp);
     if ( !isTextAtom(*mp) )
       break;
-    if ( unlikely(flags&SM_NOCREATE) )
-    { Module m;
-
-      if ( !(m=isCurrentModule(*mp)) )
-	return NULL;
-      *module = m;
-    } else
-    { *module = lookupModule(*mp);
-    }
+    nm = *mp;
     term = argTermP(*term, 1);
     deRef(term);
     if ( --depth == 0 && !is_acyclic(term PASS_LD) )
@@ -600,12 +591,45 @@ stripModule(Word term, Module *module, int flags ARG_LD)
     }
   }
 
-  if ( ! *module )
-    *module = (environment_frame ? contextModule(environment_frame)
-				 : MODULE_user);
+  if ( nm )
+    *name = nm;
 
   return term;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+stripModule() takes an atom or term, possible embedded in the :/2 module
+term.  It will assign *module with the associated module and return  the
+remaining term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Word
+stripModule(Word term, Module *module, int flags ARG_LD)
+{ atom_t mname = 0;
+  Word rc;
+
+  if ( (rc=stripModuleName(term, &mname PASS_LD)) )
+  { if ( mname )
+    { if ( unlikely(flags&SM_NOCREATE) )
+      { Module m;
+
+	if ( (m=isCurrentModule(mname)) )
+	  *module = m;
+	else
+	  return NULL;
+      } else
+      { *module = lookupModule(mname);
+      }
+    } else
+    { *module = (environment_frame ? contextModule(environment_frame)
+		                   : MODULE_user);
+    }
+  }
+
+  return rc;
+}
+
 
 bool
 isPublicModule(Module module, Procedure proc)

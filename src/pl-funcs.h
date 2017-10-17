@@ -357,6 +357,7 @@ COMMON(void)		clearSupersModule(Module m);
 COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(int)		getUnknownModule(Module m);
 COMMON(Word)		stripModule(Word term, Module *module, int flags ARG_LD);
+COMMON(Word)		stripModuleName(Word term, atom_t *name ARG_LD);
 COMMON(bool)		isPublicModule(Module module, Procedure proc);
 COMMON(int)		exportProcedure(Module module, Procedure proc);
 COMMON(int)		declareModule(atom_t name, atom_t class, atom_t super,

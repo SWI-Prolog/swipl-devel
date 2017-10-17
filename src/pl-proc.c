@@ -598,7 +598,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       }
       goto notfound;
     case GP_FIND:
-      if ( (p=visibleProcedure(fdef, m PASS_LD)) )
+      if ( (p = visibleProcedure(fdef, m PASS_LD)) )
       { *proc = p;
         goto out;
       }
