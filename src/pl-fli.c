@@ -3814,7 +3814,7 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain, int flags ARG_LD)
       *m = environment_frame ? contextModule(environment_frame)
 			     : MODULE_user;
     if ( raw != plain )
-      setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
+      setHandle(plain, linkVal(p));
   }
 
   return TRUE;
