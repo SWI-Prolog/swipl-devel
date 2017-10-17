@@ -477,11 +477,11 @@ PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
 }
 
 
-/** '$source_file'(+Head, -File) is semidet.
+/** '$source_file'(:Head, -File) is semidet.
 */
 
 static
-PRED_IMPL("$source_file", 2, source_file, 0)
+PRED_IMPL("$source_file", 2, source_file, PL_FA_TRANSPARENT)
 { PRED_LD
   Procedure proc;
   SourceFile sf;
@@ -489,7 +489,7 @@ PRED_IMPL("$source_file", 2, source_file, 0)
   term_t descr = A1;
   term_t file  = A2;
 
-  if ( get_procedure(descr, &proc, 0, GP_FIND) )
+  if ( get_procedure(descr, &proc, 0, GP_FINDHERE) )
   { if ( isDefinedProcedure(proc) &&
 	 (sf = indexToSourceFile(proc->source_no)) &&
 	 sf->count > 0 )
