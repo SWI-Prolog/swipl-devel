@@ -440,7 +440,7 @@ unshareDefinition(Definition def)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 get_functor() translates term  of  the   format  +Name/+Arity  into  the
 internal functor represenation. It fails and  raises an exception on the
-various possible format or represenation errors.  ISO compliant.
+various possible format or representation errors.  ISO compliant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
