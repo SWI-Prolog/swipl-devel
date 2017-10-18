@@ -571,17 +571,36 @@ current_op(Module m, int inherit,
   fail;
 }
 
+static int
+get_op_module(term_t a3, term_t name, Module *m ARG_LD)
+{ atom_t mname = 0;
+  Word p;
+
+  if ( !(p=stripModuleName(valTermRef(a3), &mname PASS_LD)) )
+    return FALSE;
+  *valTermRef(name) = linkVal(p);
+
+  if ( mname && !(*m=isCurrentModule(mname)) )
+    *m = MODULE_user;
+
+  return TRUE;
+}
+
+
 static
-PRED_IMPL("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
+PRED_IMPL("current_op", 3, current_op,
+	  PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
 { PRED_LD
   Module m = MODULE_parse;
+  term_t name = A3;
 
   if ( CTX_CNTRL != FRG_CUTTED )
-  { if ( !PL_strip_module(A3, &m, A3) )
+  { if ( !(name = PL_new_term_ref()) ||
+	 !get_op_module(A3, name, &m PASS_LD) )
       return FALSE;
   }
 
-  return current_op(m, TRUE, A1, A2, A3, PL__ctx PASS_LD);
+  return current_op(m, TRUE, A1, A2, name, PL__ctx PASS_LD);
 }
 
 /** '$local_op'(?Precedence, ?Type, ?Name) is nondet.
@@ -596,13 +615,15 @@ static
 PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
 { PRED_LD
   Module m = MODULE_user;
+  term_t name = A3;
 
   if ( CTX_CNTRL != FRG_CUTTED )
-  { if ( !PL_strip_module(A3, &m, A3) )
+  { if ( !(name = PL_new_term_ref()) ||
+	 !get_op_module(A3, name, &m PASS_LD) )
       return FALSE;
   }
 
-  return current_op(m, FALSE, A1, A2, A3, PL__ctx PASS_LD);
+  return current_op(m, FALSE, A1, A2, name, PL__ctx PASS_LD);
 }
 
 
