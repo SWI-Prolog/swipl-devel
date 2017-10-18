@@ -1224,6 +1224,8 @@ if test "x$ac_cv_func_unsetenv" = "xyes"; then
 		 AC_MSG_RESULT(yes))
 fi
 
+AC_CHECK_MEMBERS([struct stat.st_mtim])
+
 if test "$MT" = "yes"; then
 if test "$MINGW" = false; then
 
