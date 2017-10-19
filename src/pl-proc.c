@@ -568,10 +568,10 @@ get_module(atom_t mname, int how ARG_LD)
 { if ( mname )
   { switch(how&GP_HOW_MASK)
     { case GP_CREATE:
-      case GP_FINDHERE:
       case GP_DEFINE:
 	return lookupModule(mname);
       case GP_FIND:
+      case GP_FINDHERE:
       case GP_RESOLVE:
       { Module m;
 	if ( (m=isCurrentModule(mname)) )
