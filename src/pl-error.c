@@ -470,12 +470,18 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     { atom_t action = va_arg(args, atom_t);
       atom_t type   = va_arg(args, atom_t);
       term_t file   = va_arg(args, term_t);
+      atom_t repr   = ATOM_max_path_length;
 
       switch(errno)
       { case EAGAIN:
 	  action = ATOM_lock;		/* Hack for file-locking*/
 	  /*FALLTHROUGH*/
 	case EACCES:
+	case EPERM:
+#ifdef EROFS
+	case EROFS:
+#endif
+	case ENOTEMPTY:
 	  rc = PL_unify_term(formal,
 			     PL_FUNCTOR, FUNCTOR_permission_error3,
 			       PL_ATOM, action,
@@ -488,10 +494,15 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_FUNCTOR, FUNCTOR_resource_error1,
 			       PL_ATOM, ATOM_max_files);
 	  break;
+#ifdef ELOOP
+	case ELOOP:
+	  repr = ATOM_max_symbolic_links;
+	  /*FALLTHROUGH*/
+#endif
 	case ENAMETOOLONG:
 	  rc = PL_unify_term(formal,
 			     PL_FUNCTOR, FUNCTOR_representation_error1,
-			       PL_ATOM, ATOM_max_path_length);
+			       PL_ATOM, repr);
 	  break;
 #ifdef EPIPE
 	case EPIPE:
