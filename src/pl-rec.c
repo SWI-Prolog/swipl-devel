@@ -1966,8 +1966,13 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
 
     while(advanceTableEnum(e, &sk, &sv))
     { RecordList rl = sv;
+      RecordRef record;
 
-      if ( rl->firstRecord && unifyKey(A1, rl->key) )
+      PL_LOCK(L_RECORD);
+      record = firstRecordRecordList(rl);
+      PL_UNLOCK(L_RECORD);
+
+      if ( record && unifyKey(A1, rl->key) )
       { PL_close_foreign_frame(fid);
 
 	ForeignRedoPtr(e);
