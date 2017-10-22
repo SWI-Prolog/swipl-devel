@@ -102,6 +102,19 @@ lookupRecordList(word key)
 }
 
 
+static RecordRef
+firstRecordRecordList(RecordList rl)
+{ RecordRef record;
+
+  for(record = rl->firstRecord; record; record = record->next)
+  { if ( false(record->record, R_ERASED) )
+      return record;
+  }
+
+  return NULL;
+}
+
+
 static RecordList
 isCurrentRecordList(word key, int must_be_non_empty)
 { GET_LD
@@ -112,11 +125,9 @@ isCurrentRecordList(word key, int must_be_non_empty)
     { RecordRef record;
 
       PL_LOCK(L_RECORD);
-      for(record = rl->firstRecord; record; record = record->next)
-      { if ( false(record->record, R_ERASED) )
-	  break;
-      }
+      record = firstRecordRecordList(rl);
       PL_UNLOCK(L_RECORD);
+
       return record ? rl : NULL;
     } else
     { return rl;
@@ -2037,6 +2048,16 @@ PRED_IMPL("recordz", va, recordz, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+recorded/2,3. The state enumerates keys using the  `e` member if the key
+is unbound on  entry.  The  `r`  member   is  the  current  record.
+
+Enumeration first scans the records and then, if `e` is set, advanced to
+the next key.
+
+All manipulation on the state is done whild holding L_RECORD.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 typedef struct
 { TableEnum e;				/* enumerating over keys */
   RecordRef r;				/* current record */
@@ -2055,12 +2076,43 @@ save_state(recorded_state *state)
   }
 }
 
+/* MT: must hold L_RECORD */
+
 static void
 free_state(recorded_state *state)
 { if ( state->e )
     freeTableEnum(state->e);
+  if ( state->r )
+  { RecordList rl = state->r->list;
+
+    if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+      cleanRecordList(rl);
+  }
   if ( state->saved )
     freeForeignState(state, sizeof(*state));
+}
+
+
+/* set state to the next non-erased record.  Cleanup the record
+   list if we reached the end.
+*/
+
+static RecordRef
+advance_state(recorded_state *state)
+{ RecordRef r = state->r;
+
+  do
+  { if ( !r->next )
+    { RecordList rl = r->list;
+
+      if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+	cleanRecordList(rl);
+    }
+    r = r->next;
+  } while ( r && true(r->record, R_ERASED) );
+
+  state->r = r;
+  return r;
 }
 
 
@@ -2125,18 +2177,11 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
     }
     case FRG_CUTTED:
     { state = CTX_PTR;
-
-      if ( state->r )
-      { RecordList rl = state->r->list;
-
-	PL_LOCK(L_RECORD);
-	if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	  cleanRecordList(rl);
-	PL_UNLOCK(L_RECORD);
-      }
+      PL_LOCK(L_RECORD);
       free_state(state);
+      PL_UNLOCK(L_RECORD);
     }
-      /* FALLTHROUGH */
+    /*FALLTHROUGH*/
     default:
       succeed;
   }
@@ -2144,18 +2189,17 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
   /* Now holding L_RECORD */
   if ( (fid = PL_open_foreign_frame()) )
   { int answered = FALSE;
+    term_t copy = 0;
 
     while( !answered )
-    { for( ; state->r; state->r = state->r->next )
-      { term_t copy;
-	RecordRef record;
+    { for( ; state->r; advance_state(state) )
+      { RecordRef record;
 
       next:
 	record = state->r;
-	if ( true(record->record, R_ERASED) )
-	  continue;
 
-	copy = PL_new_term_ref();
+	if ( !copy && !(copy = PL_new_term_ref()) )
+	  goto error;
 	if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
 	{ raiseStackOverflow(rc);
 	  goto error;
@@ -2179,11 +2223,6 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  PL_UNLOCK(L_RECORD);
 	  PL_close_foreign_frame(fid);
 	  ForeignRedoPtr(save_state(state));
-	} else
-	{ RecordList rl = record->list;
-
-	  if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	    cleanRecordList(rl);
 	}
       }
 
@@ -2192,10 +2231,11 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
 	while(advanceTableEnum(state->e, &sk, &sv))
 	{ RecordList rl = sv;
+	  RecordRef r;
 
-	  if ( rl->firstRecord )
+	  if ( (r=firstRecordRecordList(rl)) )
 	  { rl->references++;
-	    state->r = rl->firstRecord;
+	    state->r = r;
 	    if ( answered )
 	      break;
 	    goto next;			/* try next list */
@@ -2204,12 +2244,15 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       }
 
       if ( answered )
-      { PL_UNLOCK(L_RECORD);
-	PL_close_foreign_frame(fid);
+      { PL_close_foreign_frame(fid);
 	if ( state->e )
+	{ PL_UNLOCK(L_RECORD);
 	  ForeignRedoPtr(save_state(state));
-	else
+	} else
+	{ free_state(state);
+	  PL_UNLOCK(L_RECORD);
 	  return TRUE;
+	}
       }
 
       break;
@@ -2219,8 +2262,9 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
     PL_close_foreign_frame(fid);
   }
 
-  PL_UNLOCK(L_RECORD);
   free_state(state);
+  PL_UNLOCK(L_RECORD);
+
   return FALSE;
 }
 
