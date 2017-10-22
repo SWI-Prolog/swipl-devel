@@ -2104,17 +2104,18 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       memset(state, 0, sizeof(*state));
       if ( PL_is_variable(key) )
       { state->e = newTableEnum(GD->recorded_db.record_lists);
+	PL_LOCK(L_RECORD);
       } else if ( getKeyEx(key, &k PASS_LD) )
       { RecordList rl;
 
 	if ( !(rl = isCurrentRecordList(k, TRUE)) )
 	  return FALSE;
+	PL_LOCK(L_RECORD);
 	rl->references++;
 	state->r = rl->firstRecord;
       } else
       { return FALSE;
       }
-      PL_LOCK(L_RECORD);
       break;
     }
     case FRG_REDO:
@@ -2140,6 +2141,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       succeed;
   }
 
+  /* Now holding L_RECORD */
   if ( (fid = PL_open_foreign_frame()) )
   { int answered = FALSE;
 
