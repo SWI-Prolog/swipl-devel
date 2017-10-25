@@ -1145,6 +1145,7 @@ xref_meta(call_dcg(G, _A, _R),  [//(G)]).
 xref_meta(phrase_from_file(G,_),[//(G)]).
 xref_meta(catch(A, _, B),       [A, B]).
 xref_meta(thread_create(A,_,_), [A]).
+xref_meta(thread_create(A,_),   [A]).
 xref_meta(thread_signal(_,A),   [A]).
 xref_meta(thread_at_exit(A),    [A]).
 xref_meta(thread_initialization(A), [A]).
