@@ -5546,6 +5546,11 @@ GCmain(void *closure)
 
     set_thread_completion(info, rc, exception_term);
     PL_thread_destroy_engine();
+  } else
+  { Sdprintf("Failed to create GC thread\n");
+    pthread_mutex_lock(&GC_mutex);
+    pthread_cond_broadcast(&GC_cond);
+    pthread_mutex_unlock(&GC_mutex);
   }
 
   return NULL;
