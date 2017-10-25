@@ -397,12 +397,17 @@ static void
 allocateAtomBlock(int idx)
 { if ( !GD->atoms.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
+    size_t i;
     Atom newblock;
 
     if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(struct atom))) )
       outOfCore();
 
     memset(newblock, 0, bs*sizeof(struct atom));
+    for(i=0; i<bs; i++)
+    { newblock[i].type = ATOM_TYPE_INVALID;
+      newblock[i].name = "<virgin>";
+    }
     if ( !COMPARE_AND_SWAP(&GD->atoms.array.blocks[idx],
 			   NULL, newblock-bs) )
       PL_free(newblock);		/* done by someone else */
@@ -435,7 +440,8 @@ reserveAtom(void)
 
       if ( ATOM_IS_FREE(ref) &&
 	   COMPARE_AND_SWAP(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-      { GD->atoms.no_hole_before = index+1;
+      { assert(a->type == ATOM_TYPE_INVALID);
+	GD->atoms.no_hole_before = index+1;
         a->atom = (index<<LMASK_BITS)|TAG_ATOM;
 
 	return a;
@@ -605,6 +611,9 @@ redo:
             table == GD->atoms.table->table ) )
     { if ( false(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
+      a->type = ATOM_TYPE_INVALID;
+      a->name = "<race>";
+      MemoryBarrier();
       a->references = 0;
       goto redo;
     }
@@ -916,8 +925,9 @@ destroyAtom(Atom a, Atom **buckets)
   { PL_free(a->name);
   }
 
-  a->name = NULL;
-  a->type = NULL;
+  a->name = "<reclaimed>";
+  a->type = ATOM_TYPE_INVALID;
+  MemoryBarrier();
   a->references = 0;
 
   index = indexAtom(a->atom);
