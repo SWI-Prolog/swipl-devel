@@ -649,7 +649,7 @@ case "$PLARCH" in
 	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
 	fi
 	;;
-  *x86_64*linux|*hppa*linux|*arm*linux|x86_64*openbsd*)
+  *x86_64*linux|*hppa*linux|*arm*linux|*power*linux|x86_64*openbsd*)
 	if test "x$MKSHARED" = "x"; then
 	    MKSHARED=yes
 	fi
@@ -899,7 +899,7 @@ esac
   esac
   AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
   AC_CHECK_FUNCS(pthread_attr_setaffinity_np)
-  AC_CHECK_FUNCS(pthread_getw32threadhandle_np)
+  AC_CHECK_FUNCS(pthread_getw32threadhandle_np sched_setaffinity)
 
 AC_CHECK_FUNCS(sysconf)
 

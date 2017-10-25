@@ -265,6 +265,17 @@ are using CPU time. This option is provided if the thread implementation
 provides pthread_setconcurrency(). Solaris is a typical example of this
 family. On other systems this predicate unifies \arg{Old} to 0 (zero)
 and succeeds silently.
+
+    \predicate{thread_affinity}{3}{+ThreadID, -Current, +New}
+True when \arg{Current} is unified with the current thread affinity and
+the thread affinity is successfully set to \arg{New}. The \jargon{thread
+affinity} specifies the set of CPUs on which this thread is allowed to
+run.  The affinity is represented as a list of non-negative integers.
+See also the option \term{affinity}{+Affinity} of thread_create/3.
+
+This predicate is only present if this functionality can be supported
+and has been ported to the target operating system.   Currently, only
+Linux support is provided.
 \end{description}
 
 

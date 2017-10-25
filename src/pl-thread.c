@@ -1852,49 +1852,52 @@ round_pages(size_t n)
   return ROUND(n, psize);
 }
 
+
 static int
-set_affinity(term_t affinity, pthread_attr_t *attr)
-{
-#ifdef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
-  GET_LD
-  cpu_set_t cpuset;
+get_cpuset(term_t affinity, cpu_set_t *set)
+{ GET_LD
   term_t head, tail;
   int n=0;
   int cpu_count = CpuCount();
 
   if ( !(tail = PL_copy_term_ref(affinity)) ||
        !(head = PL_new_term_ref()) )
-    return EINVAL;
+    return FALSE;
 
-  CPU_ZERO(&cpuset);
+  CPU_ZERO(set);
   while(PL_get_list_ex(tail, head, tail))
   { int i;
 
     if ( !PL_get_integer_ex(head, &i) )
-      return EINVAL;
+      return FALSE;
     if ( i < 0 )
-    { PL_domain_error("not_less_than_zero", head);
-      return EINVAL;
-    }
+      return PL_domain_error("not_less_than_zero", head);
     if ( i >= cpu_count )
-    { PL_existence_error("cpu", head);
-      return EINVAL;
-    }
-    CPU_SET(i, &cpuset);
+      return PL_existence_error("cpu", head);
 
-    Sdprintf("Adding cpu %d\n", i);
+    CPU_SET(i, set);
 
     if ( n++ == 100 && !PL_is_acyclic(tail) )
-    { PL_type_error("list", tail);
-      return EINVAL;
-    }
+      return PL_type_error("list", tail);
   }
   if ( !PL_get_nil_ex(tail) )
-    return -1;
+    return FALSE;
+
   if ( n == 0 )
-  { PL_domain_error("cpu_affinity", affinity);
+    return PL_domain_error("cpu_affinity", affinity);
+
+  return TRUE;
+}
+
+
+static int
+set_affinity(term_t affinity, pthread_attr_t *attr)
+{
+#ifdef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
+  cpu_set_t cpuset;
+
+  if ( !get_cpuset(affinity, &cpuset) )
     return EINVAL;
-  }
 
   return pthread_attr_setaffinity_np(attr, sizeof(cpuset), &cpuset);
 #endif
@@ -2725,6 +2728,60 @@ PRED_IMPL("thread_setconcurrency", 2, thread_setconcurrency, 0)
   return PL_unify_integer(A1, 0);
 #endif
 }
+
+#ifdef HAVE_SCHED_SETAFFINITY
+#define HAVE_PRED_THREAD_AFFINITY 1
+static
+PRED_IMPL("thread_affinity", 3, thread_affinity, 0)
+{ PRED_LD
+  PL_thread_info_t *info;
+  int rc;
+
+  PL_LOCK(L_THREAD);
+  if ( (rc=get_thread(A1, &info, TRUE)) )
+  { cpu_set_t cpuset;
+
+    if ( (rc=sched_getaffinity(info->pid, sizeof(cpuset), &cpuset)) == 0 )
+    { int count = CPU_COUNT(&cpuset);
+      int i, n;
+      term_t tail = PL_copy_term_ref(A2);
+      term_t head = PL_new_term_ref();
+
+      for(i=0, n=0; n<count; i++)
+      { if ( CPU_ISSET(i, &cpuset) )
+	{ n++;
+	  if ( !PL_unify_list_ex(tail, head, tail) ||
+	       !PL_unify_integer(head, i) )
+	    goto error;			/* rc == 0 (FALSE) */
+	}
+      }
+      if ( !PL_unify_nil_ex(tail) )
+	goto error;			/* rc == 0 (FALSE) */
+    } else
+    { rc = PL_error(NULL, 0, ThError(rc),
+		    ERR_SYSCALL, "sched_getaffinity");
+      goto error;
+    }
+
+    if ( PL_compare(A2, A3) != 0 )
+    { if ( (rc=get_cpuset(A3, &cpuset)) )
+      { if ( (rc=sched_setaffinity(info->pid, sizeof(cpuset), &cpuset)) == 0 )
+	{ rc = TRUE;
+	} else
+	{ rc = PL_error(NULL, 0, ThError(rc),
+			ERR_SYSCALL, "sched_setaffinity");
+	}
+      }
+    } else
+    { rc = TRUE;
+    }
+  }
+error:
+  PL_UNLOCK(L_THREAD);
+
+  return rc;
+}
+#endif /*HAVE_SCHED_SETAFFINITY*/
 
 
 		 /*******************************
@@ -6780,6 +6837,9 @@ BeginPredDefs(thread)
   PRED_DEF("thread_property",	     2,	thread_property,       NDET|PL_FA_ISO)
   PRED_DEF("is_thread",		     1,	is_thread,	       0)
   PRED_DEF("$thread_sigwait",	     1, thread_sigwait,	       0)
+#ifdef HAVE_PRED_THREAD_AFFINITY
+  PRED_DEF("thread_affinity",        3, thread_affinity,       0)
+#endif
 
   PRED_DEF("message_queue_create",   1,	message_queue_create,  0)
   PRED_DEF("message_queue_create",   2,	message_queue_create2, PL_FA_ISO)
