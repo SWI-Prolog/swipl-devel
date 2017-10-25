@@ -322,16 +322,17 @@ WallTime(void)
 #ifndef __WINDOWS__			/* Windows version in pl-nt.c */
 
 #ifdef HAVE_SC_NPROCESSORS_CONF
-static int
-CpuCount()
-{
-  return sysconf(_SC_NPROCESSORS_CONF);
+
+int
+CpuCount(void)
+{ return sysconf(_SC_NPROCESSORS_CONF);
 }
+
 #else
 
 #ifdef PROCFS_CPUINFO
-static int
-CpuCount()
+int
+CpuCount(void)
 { FILE *fd = fopen("/proc/cpuinfo", "r");
 
   if ( fd )
@@ -384,7 +385,10 @@ CpuCount(void)
 
 #else
 
-#define CpuCount() 0
+int
+CpuCount(void)
+{ return 0;
+}
 
 #endif /*sysctlbyname*/
 

@@ -312,7 +312,7 @@ CpuTime(cputime_kind which)
 }
 
 
-static int
+int
 CpuCount(void)
 { SYSTEM_INFO si;
 

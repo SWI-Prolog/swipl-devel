@@ -78,6 +78,18 @@ below. Stack size options can also take the value \const{inf} or
 the platform.
 
 \begin{description}
+    \termitem{affinity}{+CpuSet}
+Specify that the thread should only on any of the listed CPUs (cores).
+\arg{CpuSet} is a list of integers between 0 (zero) and the known number
+of CPUs (see \prologflag{cpu_count}). In \arg{CpuSet} is empty a
+\const{domain_error} is raised. Referring to CPUs equal to or higher
+than the known number of CPUs returns a \const{existence_error}.
+
+This option is currently implemented for systems that provide
+pthread_attr_setaffinity_np(). The option is silently ignored on other
+systems.\bug{There is currently no way to discover whether this option
+is supported.}
+
     \termitem{alias}{AliasName}
 Associate an `alias name' with the thread. This name may be used to
 refer to the thread and remains valid until the thread is joined (see

@@ -1660,6 +1660,7 @@ static const opt_spec make_thread_options[] =
   { ATOM_c_stack,	OPT_SIZE },
   { ATOM_at_exit,	OPT_TERM },
   { ATOM_inherit_from,	OPT_TERM },
+  { ATOM_affinity,	OPT_TERM },
   { NULL_ATOM,		0 }
 };
 
@@ -1851,6 +1852,56 @@ round_pages(size_t n)
   return ROUND(n, psize);
 }
 
+static int
+set_affinity(term_t affinity, pthread_attr_t *attr)
+{
+#ifdef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
+  GET_LD
+  cpu_set_t cpuset;
+  term_t head, tail;
+  int n=0;
+  int cpu_count = CpuCount();
+
+  if ( !(tail = PL_copy_term_ref(affinity)) ||
+       !(head = PL_new_term_ref()) )
+    return EINVAL;
+
+  CPU_ZERO(&cpuset);
+  while(PL_get_list_ex(tail, head, tail))
+  { int i;
+
+    if ( !PL_get_integer_ex(head, &i) )
+      return EINVAL;
+    if ( i < 0 )
+    { PL_domain_error("not_less_than_zero", head);
+      return EINVAL;
+    }
+    if ( i >= cpu_count )
+    { PL_existence_error("cpu", head);
+      return EINVAL;
+    }
+    CPU_SET(i, &cpuset);
+
+    Sdprintf("Adding cpu %d\n", i);
+
+    if ( n++ == 100 && !PL_is_acyclic(tail) )
+    { PL_type_error("list", tail);
+      return EINVAL;
+    }
+  }
+  if ( !PL_get_nil_ex(tail) )
+    return -1;
+  if ( n == 0 )
+  { PL_domain_error("cpu_affinity", affinity);
+    return EINVAL;
+  }
+
+  return pthread_attr_setaffinity_np(attr, sizeof(cpuset), &cpuset);
+#endif
+
+  return 0;
+}
+
 
 word
 pl_thread_create(term_t goal, term_t id, term_t options)
@@ -1863,6 +1914,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   size_t stack = 0;
   term_t inherit_from = 0;
   term_t at_exit = 0;
+  term_t affinity = 0;
   int rc = 0;
   const char *func;
   int debug = -1;
@@ -1892,7 +1944,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &stack,		/* stack */
 		     &stack,		/* c_stack */
 		     &at_exit,
-		     &inherit_from) )
+		     &inherit_from,
+		     &affinity) )
   { free_thread_info(info);
     fail;
   }
@@ -1959,6 +2012,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { func = "pthread_attr_setdetachstate";
     rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   }
+  if ( rc == 0 && affinity )
+    rc = set_affinity(affinity, &attr);
   if ( rc == 0 )
   {
 #ifdef USE_COPY_STACK_SIZE
@@ -1990,11 +2045,13 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   if ( rc != 0 )
   { free_thread_info(info);
-    return PL_error(NULL, 0, ThError(rc),
-		    ERR_SYSCALL, func);
+    if ( !PL_exception(0) )
+      PL_error(NULL, 0, ThError(rc),
+	       ERR_SYSCALL, func);
+    return FALSE;
   }
 
-  succeed;
+  return TRUE;
 }
 
 

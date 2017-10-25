@@ -898,6 +898,7 @@ esac
       ;;
   esac
   AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
+  AC_CHECK_FUNCS(pthread_attr_setaffinity_np)
   AC_CHECK_FUNCS(pthread_getw32threadhandle_np)
 
 AC_CHECK_FUNCS(sysconf)
