@@ -5576,6 +5576,8 @@ GCthread(void)
       while( GC_id <= 0 )
 	pthread_cond_wait(&GC_cond, &GC_mutex);
       pthread_mutex_unlock(&GC_mutex);
+    } else
+    { pthread_mutex_unlock(&GC_mutex);
     }
   }
 
