@@ -5395,8 +5395,6 @@ PL_destroy_engine(PL_engine_t e)
 
 static int GC_id = 0;
 static int GC_starting = 0;
-static pthread_mutex_t GC_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t  GC_cond  = PTHREAD_COND_INITIALIZER;
 
 static void *
 GCmain(void *closure)
@@ -5422,24 +5420,15 @@ GCmain(void *closure)
     if ( !pred )
       pred = PL_predicate("$gc", 0, "system");
 
-    pthread_mutex_lock(&GC_mutex);
     GC_id = PL_thread_self();
-    GC_starting = FALSE;
-    pthread_cond_broadcast(&GC_cond);
-    pthread_mutex_unlock(&GC_mutex);
     rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
-    GC_id = -1;
+    GC_id = 0;
 
     set_thread_completion(info, rc, exception_term);
     PL_thread_destroy_engine();
-  } else
-  { Sdprintf("Failed to create GC thread: could not create engine\n");
-    GC_starting = FALSE;
-    GC_id = -1;
-    pthread_mutex_lock(&GC_mutex);
-    pthread_cond_broadcast(&GC_cond);
-    pthread_mutex_unlock(&GC_mutex);
   }
+
+  GC_starting = FALSE;
 
   return NULL;
 }
@@ -5448,32 +5437,16 @@ GCmain(void *closure)
 static int
 GCthread(void)
 { if ( GC_id <= 0 )
-  { pthread_mutex_lock(&GC_mutex);
-
-    if ( GC_id <= 0 )
+  { if ( COMPARE_AND_SWAP(&GC_starting, FALSE, TRUE) )
     { pthread_attr_t attr;
-      int rc;
       pthread_t thr;
+      int rc;
 
-      if ( !GC_starting )
-      { GC_starting = TRUE;
-	GC_id = 0;
-	pthread_attr_init(&attr);
-	rc = pthread_create(&thr, &attr, GCmain, NULL);
-	pthread_attr_destroy(&attr);
-	if ( rc != 0 )
-	{ GC_starting = FALSE;
-	  Sdprintf("Failed to create GC thread: %s\n", ThError(rc));
-	  pthread_mutex_unlock(&GC_mutex);
-	  return 0;
-	}
-      }
-
-      while( GC_id != 0 )
-	pthread_cond_wait(&GC_cond, &GC_mutex);
-      pthread_mutex_unlock(&GC_mutex);
-    } else
-    { pthread_mutex_unlock(&GC_mutex);
+      pthread_attr_init(&attr);
+      rc = pthread_create(&thr, &attr, GCmain, NULL);
+      pthread_attr_destroy(&attr);
+      if ( rc != 0 )
+	GC_starting = FALSE;
     }
   }
 
