@@ -1853,6 +1853,8 @@ round_pages(size_t n)
 }
 
 
+#if defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP) || defined(HAVE_SCHED_SETAFFINITY)
+
 static int
 get_cpuset(term_t affinity, cpu_set_t *set)
 { GET_LD
@@ -1889,6 +1891,7 @@ get_cpuset(term_t affinity, cpu_set_t *set)
   return TRUE;
 }
 
+#endif /*defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP) || defined(HAVE_SCHED_SETAFFINITY)*/
 
 static int
 set_affinity(term_t affinity, pthread_attr_t *attr)
