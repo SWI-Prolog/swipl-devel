@@ -141,6 +141,7 @@ safe(M:G, _, Parents, Safe0, Safe) :-
     !,
     must_be(atom, M),
     must_be(callable, G),
+    known_module(M:G, Parents),
     (   predicate_property(M:G, imported_from(M2))
     ->  true
     ;   M2 = M
@@ -172,6 +173,7 @@ safe(G, _, Parents, Safe, Safe) :-
     predicate_property(G, iso),
     !.
 safe(G, M, Parents, Safe, Safe) :-
+    known_module(M:G, Parents),
     (   predicate_property(M:G, imported_from(M2))
     ->  true
     ;   M2 = M
@@ -245,6 +247,14 @@ safe_clauses(_, _, [G|Parents], _, _) :-
                 sandbox(G, Parents))).
 
 compiled(system:(@(_,_))).
+
+known_module(M:_, _) :-
+    current_module(M),
+    !.
+known_module(M:G, Parents) :-
+    throw(error(permission_error(call, sandboxed, M:G),
+                sandbox(M:G, Parents))).
+
 
 %!  safe_bodies(+Bodies, +Module, +Parents, +Safe0, -Safe)
 %
