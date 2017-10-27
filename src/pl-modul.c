@@ -1015,7 +1015,7 @@ find_modules_with_defs(Module m, int count, defm_target targets[],
 /** '$def_modules'(:list(PI), -list(Pair)) is det.
 
 Each Pair is a  pair  Module-list(PI),   where  Module:PI  is  a defined
-predicate in a the starting module or   a default module thereof. If the
+predicate in the starting module or  a   default  module thereof. If the
 first argument is qualified, this  is   the  starting  module. Else, the
 default source module is the starting module.   Only modules in which PI
 has a real definition are returned (i.e., _not_ modules where PI is only
@@ -1037,9 +1037,23 @@ PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
   term_t tmp   = PL_new_term_refs(3);
   term_t tail  = PL_copy_term_ref(A2);
   term_t thead = tmp+0;
+  atom_t mname = 0;
+  Word mp;
 
-  if ( !PL_strip_module(A1, &m, ttail) )
+  if ( !(mp=stripModuleName(valTermRef(A1), &mname PASS_LD)) )
     return FALSE;
+  *valTermRef(ttail) = linkVal(mp);
+
+  if ( mname )
+  { Module m2;
+
+    if ( (m2 = isCurrentModule(mname)) )
+      m = m2;
+    else if ( stringAtom(mname)[0] == '$' )
+      m = MODULE_system;
+    else
+      m = MODULE_user;
+  }
 
   while( PL_get_list_ex(ttail, thead, ttail) )
   { if ( tcount >= MAX_TARGETS )
