@@ -426,16 +426,16 @@ reserveAtom(void)
 
   for(index=GD->atoms.no_hole_before, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
     for(; index<upto; index++)
-    {
-      a = b + index;
+    { a = b + index;
       ref = a->references;
 
       if ( ATOM_IS_FREE(ref) &&
@@ -451,28 +451,25 @@ reserveAtom(void)
   GD->atoms.no_hole_before = index+1;
 #endif /*O_ATOMGC*/
 
-redo:
+  for(;;)
+  { index = GD->atoms.highest;
+    idx = MSB(index);
+    assert(index >= 0);
 
-  index = GD->atoms.highest;
-  idx = MSB(index);
-  assert(index >= 0);
+    if ( !GD->atoms.array.blocks[idx] )
+      allocateAtomBlock(idx);
 
-  if ( !GD->atoms.array.blocks[idx] )
-  { allocateAtomBlock(idx);
+    a = &GD->atoms.array.blocks[idx][index];
+    ref = a->references;
+
+    if ( ATOM_IS_FREE(ref) &&
+	 COMPARE_AND_SWAP(&a->references, ref, ATOM_RESERVED_REFERENCE) )
+    { ATOMIC_INC(&GD->atoms.highest);
+      a->atom = (index<<LMASK_BITS)|TAG_ATOM;
+
+      return a;
+    }
   }
-
-  a = &GD->atoms.array.blocks[idx][index];
-  ref = a->references;
-
-  if ( ATOM_IS_FREE(ref) &&
-       COMPARE_AND_SWAP(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-  { ATOMIC_INC(&GD->atoms.highest);
-    a->atom = (index<<LMASK_BITS)|TAG_ATOM;
-
-    return a;
-  }
-
-  goto redo;
 }
 
 
