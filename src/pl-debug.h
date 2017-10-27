@@ -91,12 +91,13 @@
 #define MSG_NSOLS		 48
 #define MSG_SRCFILE		 49
 #define MSG_DESTROY_MODULE	 50
-#define MSG_QUEUE_GC		 51
-#define MSG_ACYCLIC		 52
-#define MSG_OPERATOR		 53
-#define MSG_MUTEX_GC		 54
-#define MSG_REC_ATTVAR		 55
-#define MSG_TTY			 56
+#define MSG_CREATE_MODULE	 51
+#define MSG_QUEUE_GC		 52
+#define MSG_ACYCLIC		 53
+#define MSG_OPERATOR		 54
+#define MSG_MUTEX_GC		 55
+#define MSG_REC_ATTVAR		 56
+#define MSG_TTY			 57
 
 #define MSG_READ_TOKEN		 60
 

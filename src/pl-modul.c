@@ -68,6 +68,12 @@ _lookupModule(atom_t name ARG_LD)
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
 
+  DEBUG(MSG_CREATE_MODULE,
+	{ Sdprintf("Creating module %s:\n%s",
+		   PL_atom_chars(name),
+		   PL_backtrace_string(10,0));
+	});
+
   m = allocHeapOrHalt(sizeof(struct module));
   memset(m, 0, sizeof(*m));
 
