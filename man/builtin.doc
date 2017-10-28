@@ -4003,11 +4003,12 @@ flag \prologflag{encoding}. For \const{binary} streams the default encoding
 is \const{octet}. For details on encoding issues, see \secref{encoding}.
 
     \termitem{eof_action}{Action}
-Defines what happens if the end of the input stream is reached. Action
-\const{eof_code} makes get0/1 and friends return -1, and read/1 and friends
-return the atom \const{end_of_file}. Repetitive reading keeps yielding the
-same result. Action \const{error} is like \const{eof_code}, but repetitive
-reading will raise an error. With action \const{reset}, Prolog will
+Defines what happens if the end of the input stream is reached. The
+default value for Action is \const{eof_code}, which makes get0/1 and
+friends return -1, and read/1 and friends return the atom
+\const{end_of_file}.  Repetitive reading keeps yielding the same
+result.  Action \const{error} is like \const{eof_code}, but repetitive
+reading will raise an error.  With action \const{reset}, Prolog will
 examine the file again and return more data if the file has grown.
 
     \termitem{locale}{+Locale}
