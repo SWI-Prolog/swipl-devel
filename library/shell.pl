@@ -209,7 +209,7 @@ tag_file(File, File).
 %!  mv(+From, +To) is det.
 %
 %   Move (Rename) a file. If To is   a directory, From is moved into
-%   the directory.
+%   the directory.  Uses expand_file_name/2 on the From argument.
 
 mv(From, To) :-
     name_to_files(From, Src),
