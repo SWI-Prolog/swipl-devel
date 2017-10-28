@@ -326,7 +326,7 @@ cfragment(_) -->
 %       * search(ListOfNameValue)
 %       Search-specification of HTTP URL. This is the part after the
 %       =|?|=, normally used to transfer data   from HTML forms that
-%       use the =GET=  protocol.  In  the   URL  it  consists  of  a
+%       use the HTTP GET method.  In  the   URL  it  consists  of  a
 %       www-form-encoded list of Name=Value pairs. This is mapped to
 %       a list of Prolog Name=Value  terms   with  decoded names and
 %       values.
