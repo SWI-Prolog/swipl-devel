@@ -961,15 +961,17 @@ the behavior of the functional `.`-notation, which throws an existence
 error in that case.
 
     \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, +NewValue}
-Create a new dict after updating the value for \arg{Key}. Fails if
+Create a new dict after updating the value for \arg{Key}.  Fails if
 \arg{Value} does not unify with the current value associated with
-\arg{Key}. Acts according to the following below. \arg{Dict} is either a
-dict or a list the can be converted into a dict.
+\arg{Key}.  \arg{Dict} is either a dict or a list the can be converted
+into a dict.
+
+Has the behavior as if defined in the following way:
 
 \begin{code}
-get_dict(Key, Dict, Value, NewDict, NewDict) :-
+get_dict(Key, Dict, Value, NewDict, NewValue) :-
 	get_dict(Key, Dict, Value),
-	put_dict(Key, Dict, NewDict, NewDict).
+	put_dict(Key, Dict, NewValue, NewDict).
 \end{code}
 
     \predicate{dict_create}{3}{-Dict, +Tag, +Data}
