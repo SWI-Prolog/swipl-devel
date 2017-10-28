@@ -6108,10 +6108,10 @@ function.
 \arg{Char} is a digit.
     \termitem{digit}{Weight}
 \arg{Char} is a digit with value \arg{Weight}. I.e.\ \exam{char_type(X,
-digit(6)} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
+digit(6))} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
     \termitem{xdigit}{Weight}
 \arg{Char} is a hexadecimal digit with value \arg{Weight}. I.e.\
-\exam{char_type(a, xdigit(X)} yields \arg{X} = \exam{'10'}. Useful for
+\exam{char_type(a, xdigit(X))} yields \arg{X} = \exam{'10'}. Useful for
 parsing numbers.
     \termitem{graph}{}
 \arg{Char} produces a visible mark on a page when printed. Note that
