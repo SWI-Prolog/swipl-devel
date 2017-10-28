@@ -5838,9 +5838,10 @@ white space.  Prolog syntax-based conversion can be achieved using
 format/3 and read_from_chars/2.}
 
     \predicate[ISO]{number_codes}{2}{?Number, ?CodeList}
-As number_chars/2, but converts to a list of character codes rather than
-one-character atoms. In the mode (-, +), both predicates behave
-identically to improve handling of non-ISO source.
+As number_chars/2, but converts to a list of character codes rather
+than one-character atoms.  The first code in CodeList may be a number
+sign (i.e., `0'+` or `0'-`).  In the mode (-, +), both predicates
+behave identically to improve handling of non-ISO source.
 
     \predicate{atom_number}{2}{?Atom, ?Number}
 Realises the popular combination of atom_codes/2 and number_codes/2 to
