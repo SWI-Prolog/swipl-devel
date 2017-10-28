@@ -678,10 +678,20 @@ intersection([_|T], L, R) :-
 
 %!  union(+Set1, +Set2, -Set3) is det.
 %
-%   True if Set3 unifies with the union of Set1 and Set2.
-%   The complexity of this predicate is |Set1|*|Set2|
+%   True if Set3 unifies with the union of lists Set1 and Set2.  The
+%   complexity of this predicate is |Set1|*|Set2|.
 %
-%   @see ord_union/3.
+%   Set3 is not guaranteed to be ordered, even if Set1 and Set2 are
+%   ordered.  For example, `union([2], [1], [2,1])`.
+%
+%   Set3 may contain duplicates in case Set1 and/or Set2 are
+%   unordered.  For example, `union([1,2], [2,1], [1,2,1])`.
+%
+%   Only works if Set1 and Set2 are ground.  For example, `union([X],
+%   [Y], [X,Y])` fails.
+%
+%   @see ord_union/3 in library(ordsets) is an alternative
+%   implementation of set union.
 
 union([], L, L) :- !.
 union([H|T], L, R) :-
