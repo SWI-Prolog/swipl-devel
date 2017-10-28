@@ -956,6 +956,10 @@ backtracking.  The order in which the associations are returned is
 undefined.  This predicate is normally accessed using the functional
 notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
 
+Fails silently if Key does not appear in Dict.  This is different from
+the behavior of the functional `.`-notation, which throws an existence
+error in that case.
+
     \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, +NewValue}
 Create a new dict after updating the value for \arg{Key}. Fails if
 \arg{Value} does not unify with the current value associated with
