@@ -160,7 +160,7 @@ with_quasi_quotation_input(Content, Stream, Goal) :-
 %!  phrase_from_quasi_quotation(:Grammar, +Content) is det.
 %
 %   Process the quasi quotation using the   DCG  Grammar. Failure of
-%   the grammer is interpreted as a syntax error.
+%   the grammar is interpreted as a syntax error.
 %
 %   @see    with_quasi_quotation_input/3 for processing quotations from
 %           stream.

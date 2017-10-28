@@ -125,7 +125,7 @@ phrase_from_file(Grammar, File, Options) :-
         phrase_from_stream(Grammar, In),
         close(In)).
 
-%!  phrase_from_stream(:Grammer, +Stream)
+%!  phrase_from_stream(:Grammar, +Stream)
 %
 %   Run Grammer against the character codes   on Stream. Stream must
 %   be buffered.

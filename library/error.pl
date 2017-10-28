@@ -197,7 +197,7 @@ resource_error(Culprit) :-
 %   | any | |
 %   | between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %   | between(IntL,IntU) | Integer [IntL..IntU] |
-%   | boolean | one of =true= or =false= |
+%   | boolean | One of =true= or =false= |
 %   | char | Atom of length 1 |
 %   | chars | Proper list of 1-character atoms |
 %   | code | Representation Unicode code point |
