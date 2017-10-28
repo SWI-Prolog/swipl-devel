@@ -1005,12 +1005,19 @@ A = point{x:3, y:2, z:0}.
 
     \predicate{put_dict}{4}{+Key, +DictIn, +Value, -DictOut}
 \arg{DictOut} is a new dict created by replacing or adding
-\arg{Key}-\arg{Value} to \arg{DictIn}. This predicate is normally
-accessed using the functional notation. Below is an example:
+\arg{Key}-\arg{Value} to \arg{DictIn}.  For example:
 
 \begin{code}
 ?- A = point{x:1, y:2}.put(x, 3).
 A = point{x:3, y:2}.
+\end{code}
+
+This predicate can also be accessed by using the functional notation,
+in which case Key can also be a *path* of keys.  For example:
+
+\begin{code}
+?- Dict = _{}.put(a/b, c).
+Dict = _6096{a:_6200{b:c}}.
 \end{code}
 
     \predicate{del_dict}{4}{+Key, +DictIn, ?Value, -DictOut}
