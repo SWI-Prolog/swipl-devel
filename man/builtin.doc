@@ -7001,13 +7001,13 @@ may provide a \emph{predicate} \nopredref{lgamma}{3} that returns both
 the value and the sign.}
 
     \function{erf}{1}{+Expr}
-\href{http://en.wikipedia.org/wiki/Error_function}{WikipediA}: ``In
+\href{https://en.wikipedia.org/wiki/Error_function}{Wikipedia}: ``In
 mathematics, the error function (also called the Gauss error function)
 is a special function (non-elementary) of sigmoid shape which occurs in
 probability, statistics and partial differential equations.''
 
     \function{erfc}{1}{+Expr}
-\href{http://en.wikipedia.org/wiki/Error_function}{WikipediA}: ``The
+\href{https://en.wikipedia.org/wiki/Error_function}{Wikipedia}: ``The
 complementary error function.''
 
     \function[ISO]{pi}{0}{}
