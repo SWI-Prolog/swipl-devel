@@ -3146,8 +3146,10 @@ to this clause. The handle can be used to access this specific clause
 using clause/3 and erase/1.
 
     \predicate{assertz}{2}{+Term, -Reference}
-Equivalent to asserta/1, asserting the new clause as the last clause of
-the predicate.
+Equivalent to asserta/1, asserting the new clause as the last clause
+of the predicate.  Reference is unified with a handle to this clause.
+The handle can be used to access this clause with clause/3 and
+erase/1.
 
     \predicate{assert}{2}{+Term, -Reference}
 Equivalent to assertz/2. Deprecated: new code should use assertz/2.
