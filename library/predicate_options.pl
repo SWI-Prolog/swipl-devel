@@ -158,7 +158,7 @@ Below, we describe some use-cases.
 %
 %     write_xml_file(File, XMLTerm, Options) :-
 %         open(File, write, Out, Options),
-%         (   option(header(true), Option, true)
+%         (   option(header(true), Options, true)
 %         ->  write_xml_header(Out)
 %         ;   true
 %         ),
