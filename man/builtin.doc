@@ -6103,7 +6103,8 @@ function.
     \termitem{white}{}
 \arg{Char} is a space or tab, i.e.\ white space inside a line.
     \termitem{cntrl}{}
-\arg{Char} is an ASCII control character (0..31).
+\arg{Char} is an ASCII control character (0..31), ASCII DEL character
+(127), or non-ASCII character in the range 128..159 or 8232..8233.
     \termitem{digit}{}
 \arg{Char} is a digit.
     \termitem{digit}{Weight}
