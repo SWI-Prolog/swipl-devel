@@ -661,8 +661,10 @@ remove_same_key(L, _, L).
 
 %!  intersection(+Set1, +Set2, -Set3) is det.
 %
-%   True if Set3 unifies with the intersection of Set1 and Set2.
-%   The complexity of this predicate is |Set1|*|Set2|
+%   True if Set3 unifies with the  intersection   of  Set1 and Set2. The
+%   complexity of this predicate is |Set1|*|Set2|. A _set_ is defined to
+%   be an unordered list  without   duplicates.  Elements are considered
+%   duplicates if they can be unified.
 %
 %   @see ord_intersection/3.
 
@@ -678,20 +680,12 @@ intersection([_|T], L, R) :-
 
 %!  union(+Set1, +Set2, -Set3) is det.
 %
-%   True if Set3 unifies with the union of lists Set1 and Set2.  The
-%   complexity of this predicate is |Set1|*|Set2|.
+%   True if Set3 unifies with the union of  the lists Set1 and Set2. The
+%   complexity of this predicate is |Set1|*|Set2|. A _set_ is defined to
+%   be an unordered list  without   duplicates.  Elements are considered
+%   duplicates if they can be unified.
 %
-%   Set3 is not guaranteed to be ordered, even if Set1 and Set2 are
-%   ordered.  For example, `union([2], [1], [2,1])`.
-%
-%   Set3 may contain duplicates in case Set1 and/or Set2 are
-%   unordered.  For example, `union([1,2], [2,1], [1,2,1])`.
-%
-%   Only works if Set1 and Set2 are ground.  For example, `union([X],
-%   [Y], [X,Y])` fails.
-%
-%   @see ord_union/3 in library(ordsets) is an alternative
-%   implementation of set union.
+%   @see ord_union/3
 
 union([], L, L) :- !.
 union([H|T], L, R) :-
@@ -704,8 +698,10 @@ union([H|T], L, [H|R]) :-
 
 %!  subset(+SubSet, +Set) is semidet.
 %
-%   True if all elements of SubSet belong to Set as well. Membership
-%   test is based on memberchk/2.  The complexity is |SubSet|*|Set|.
+%   True if all elements of SubSet  belong   to  Set as well. Membership
+%   test is based on memberchk/2. The   complexity  is |SubSet|*|Set|. A
+%   _set_ is defined  to  be  an   unordered  list  without  duplicates.
+%   Elements are considered duplicates if they can be unified.
 %
 %   @see ord_subset/2.
 
@@ -717,8 +713,10 @@ subset([E|R], Set) :-
 
 %!  subtract(+Set, +Delete, -Result) is det.
 %
-%   Delete all elements in Delete  from   Set.  Deletion is based on
-%   unification using memberchk/2. The complexity is |Delete|*|Set|.
+%   Delete all elements  in  Delete  from   Set.  Deletion  is  based on
+%   unification using memberchk/2. The complexity   is |Delete|*|Set|. A
+%   _set_ is defined  to  be  an   unordered  list  without  duplicates.
+%   Elements are considered duplicates if they can be unified.
 %
 %   @see ord_subtract/3.
 
