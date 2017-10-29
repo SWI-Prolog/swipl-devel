@@ -5826,21 +5826,27 @@ character.%
 
     \predicate[ISO]{number_chars}{2}{?Number, ?CharList}
 Similar to atom_chars/2, but converts between a number and its
-representation as a list of one-character atoms. Fails with a
-\except{syntax_error} if \arg{Number} is unbound or \arg{CharList} does
-not describe a number. Following the ISO standard, it allows for
-\emph{leading} white space (including newlines) and does not allow for
-\emph{trailing} white space.\footnote{ISO also allows for Prolog
-comments in leading white space. We--and most other
-implementations--believe this is incorrect. We also beleive it would have been better not
-to allow for white space, or to allow for both leading and trailing
-white space.  Prolog syntax-based conversion can be achieved using
-format/3 and read_from_chars/2.}
+representation as a list of one-character atoms. If \arg{CharList} is a
+\jargon{proper list}, i.e., not unbound or a \jargon{partial list},
+\arg{CharList} is parsed according to the Prolog syntax for numbers and
+the resulting number is unified with \arg{Number}. Otherwise, if
+\arg{Number} is a number, \arg{Number} is serialized and the result is
+unified with \arg{CharList}.
+
+If \arg{CharList} is parsed, it is parsed using the Prolog syntax for
+numbers. Following the ISO standard, it allows for \emph{leading} white
+space (including newlines) and does not allow for \emph{trailing} white
+space.\footnote{ISO also allows for Prolog comments in leading white
+space. We--and most other implementations--believe this is incorrect. We
+also beleive it would have been better not to allow for white space, or
+to allow for both leading and trailing white space. Prolog syntax-based
+conversion can also be achieved using format/3 and read_from_chars/2.}
+A \except{syntax_error} exception is raised if \arg{CharList} does not
+represent a valid Prolog number.
 
     \predicate[ISO]{number_codes}{2}{?Number, ?CodeList}
 As number_chars/2, but converts to a list of character codes rather
-than one-character atoms.  The first code in CodeList may be a number
-sign (i.e., `0'+` or `0'-`).  In the mode (-, +), both predicates
+than one-character atoms.  In the mode (-,+), both predicates
 behave identically to improve handling of non-ISO source.
 
     \predicate{atom_number}{2}{?Atom, ?Number}
@@ -5848,7 +5854,7 @@ Realises the popular combination of atom_codes/2 and number_codes/2 to
 convert between atom and number (integer or float) in one predicate,
 avoiding the intermediate list. Unlike the ISO number_codes/2
 predicates, atom_number/2 fails silently in mode (+,-) if \arg{Atom}
-does not represent a number.\footnote{Versions prior to 6.1.7 raise a
+does not represent a number.\footnote{Versions prior to 6.1.7 raised a
 syntax error, compliant to number_codes/2} See also atomic_list_concat/2
 for assembling an atom from atoms and numbers.
 
@@ -5860,19 +5866,16 @@ When \arg{CodeList} describes an integer or floating point number and
 value described by \arg{CodeList} (e.g., \exam{name(N, "300"), 400 is N +
 100} succeeds). If \arg{CodeList} is not a representation of a number,
 \arg{Atomic} will be unified with the atom with the name given by the
-character code list. When \arg{Atomic} is an atom or number, the
-unquoted print representation of it as a character code list will be
+character code list. If \arg{Atomic} is an atom or number, the
+unquoted print representation of it as a character code list is
 unified with \arg{CodeList}.
 
-Note that it is not possible to produce the atom '300' using name/2, and
-that \exam{name(300, CodeList), name('300', CodeList)} succeeds. For these
-reasons, new code should consider using the ISO predicates atom_codes/2
-or number_codes/2.\footnote{Unfortunately, the ISO predicates provide no
-neat way to check that a string can be interpreted as a number. The most
-sensible way is to use catch/3 to catch the exception from
-number_codes/2; however, this is both slow and cumbersome. We consider
-making, e.g., \exam{number_codes(N, "abc")} fail silently in future
-versions.}  See also atom_number/2.
+This predicate is part of the Edinburgh tradition. It should be
+considered \jargon{deprecated} although, given its long tradition, it is
+unlikely to be removed from the system. It still has some value for
+converting input to, depending on the syntax, a number or atom. New code
+should consider the ISO predicates atom_codes/2, number_codes/2 or the
+SWI-Prolog predicate atom_number/2.
 
     \predicate{term_to_atom}{2}{?Term, ?Atom}
 True if \arg{Atom} describes a term that unifies with \arg{Term}. When
