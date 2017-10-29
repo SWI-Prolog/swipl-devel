@@ -9230,14 +9230,6 @@ caller handles the case where the variable is unbound.  The status of
 this style check is unclear. It might be removed in the future or it
 might be enhanced with a deeper analysis to be more precise.
 
-    \termitem{atom}{true}
-The predicate read/1 and derived predicates produce an error message on
-quoted atoms or strings with more than 6 \emph{unescaped} newlines.
-Newlines may be escaped with \chr{\} or \chr{\}\chr{c}. This flag also
-enables warnings on \chr{\}<newline> followed by blank space in native
-mode. See \secref{charescapes}. Note that the ISO standard does not
-allow for unescaped newlines in quoted atoms.
-
     \termitem{discontiguous}{true}
 Warn if the clauses for a predicate are not together in the same source file.
 It is advised to disable the warning for discontiguous predicates using
