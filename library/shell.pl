@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam
+    Copyright (c)  1985-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -213,7 +213,7 @@ tag_file(File, File).
 
 mv(From, To) :-
     name_to_files(From, Src),
-    name_to_file(To, Dest),
+    name_to_new_file(To, Dest),
     mv_(Src, Dest).
 
 mv_([One], Dest) :-
@@ -253,15 +253,25 @@ name_to_file(Spec, File) :-
         fail
     ).
 
+name_to_new_file(Spec, File) :-
+    name_to_files(Spec, Files, false),
+    (   Files = [File]
+    ->  true
+    ;   print_message(warning, format('Ambiguous: ~w', [Spec])),
+        fail
+    ).
+
 name_to_files(Spec, Files) :-
-    name_to_files_(Spec, Files),
+    name_to_files(Spec, Files, true).
+name_to_files(Spec, Files, Exists) :-
+    name_to_files_(Spec, Files, Exists),
     (   Files == []
     ->  print_message(warning, format('No match: ~w', [Spec])),
         fail
     ;   true
     ).
 
-name_to_files_(Spec, Files) :-
+name_to_files_(Spec, Files, _) :-
     compound(Spec),
     compound_name_arity(Spec, _Alias, 1),
     !,
@@ -279,19 +289,24 @@ name_to_files_(Spec, Files) :-
                                    ])
             ),
             Files).
-name_to_files_(Spec, Files) :-
-    (   atomic(Spec)
-    ->  S1 = Spec
-    ;   phrase(segments(Spec), L),
-        atomic_list_concat(L, /, S1)
-    ),
+name_to_files_(Spec, Files, Exists) :-
+    file_name_to_atom(Spec, S1),
     expand_file_name(S1, Files0),
-    (   Files0 == [S1],
+    (   Exists == true,
+        Files0 == [S1],
         \+ access_file(S1, exist)
     ->  warning('"~w" does not exist', [S1]),
         fail
     ;   Files = Files0
     ).
+
+file_name_to_atom(Spec, File) :-
+    atomic(Spec),
+    !,
+    atom_string(File, Spec).
+file_name_to_atom(Spec, File) :-
+    phrase(segments(Spec), L),
+    atomic_list_concat(L, /, File).
 
 segments(Var) -->
     { var(Var),
