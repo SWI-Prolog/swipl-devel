@@ -2291,6 +2291,10 @@ instead of
 format('This is a long line that looks better if it was\
  split across multiple physical lines in the input')
 \end{code}
+
+Note that SWI-Prolog also allows unescaped newlines to appear in quoted
+material.  This is not allowed be the ISO standard, but used to be
+common practice before.
     \escapeitem{e}
 Escape character (\textsc{ASCII} 27). Not ISO, but widely supported.
     \escapeitem{f}
@@ -2957,13 +2961,9 @@ the head), which is limited to 1024.  Raising this limit is easy and
 relatively cheap; removing it is harder.
 
     \item[Atoms and Strings]
-SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
-its derivatives, however, normally limit the number of newlines in an atom
-or string to 6 to improve error detection and recovery.  This can be
-switched off with style_check/1.
-
-The number of atoms is limited to 16777216 (16M) on 32-bit machines.  On
-64-bit machines this is virtually unlimited.  See also \secref{atomgc}.
+SWI-Prolog has no limits on the length of atoms and strings. The number
+of atoms is limited to 16777216 (16M) on 32-bit machines. On 64-bit
+machines this is virtually unlimited. See also \secref{atomgc}.
 
     \item[Memory areas]
 On 32-bit hardware, SWI-Prolog data is packed in a 32-bit word, which
