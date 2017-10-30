@@ -547,7 +547,7 @@ redo:
 #ifdef O_ATOMGC
         if ( indexAtom(a->atom) >= GD->atoms.builtin &&
 	     !likely(bump_atom_references(a, ref)) )
-	  continue;
+	  break;			/* atom was just GCed.  Re-create */
 #endif
         *new = FALSE;
 	release_atom_table();
