@@ -106,6 +106,7 @@ registerFunctor(FunctorDef fd)
   amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
   fd->functor = MK_FUNCTOR(index, amask);
   GD->functors.array.blocks[idx][index] = fd;
+  MemoryBarrier();
   fd->flags |= VALID_F;
 
   DEBUG(CHK_SECURE, assert(fd->arity == arityFunctor(fd->functor)));
