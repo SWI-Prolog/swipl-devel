@@ -35,25 +35,39 @@
 */
 
 :- module(test_agc_deadlock,
-          [ test_agc_deadlock/0
+          [ test_agc_deadlock/0,
+            test_agc_deadlock/1
           ]).
 
-%!  test_agc_deadlock
+%!  test_agc_deadlock is det.
+%!  test_agc_deadlock(+Threads) is det.
 %
 %   Tests a deadlock situation that occurred between queues, GC and AGC.
 
 test_agc_deadlock :-
+    current_prolog_flag(cpu_count, Count),
+    Threads is min(4, Count),
+    test_agc_deadlock(Threads).
+test_agc_deadlock(N) :-
     thread_create(receiver, Receiver, [alias(receiver)]),
     thread_create(sender(Receiver), Sender, [alias(sender)]),
-    thread_create(agc, AGC, [alias(agc)]),
+    length(AGC, N),
+    maplist(thread_create(agc), AGC),
     thread_join(Receiver),
     thread_join(Sender),
-    thread_signal(AGC, abort),
-    thread_join(AGC, _).
+    maplist(abort, AGC),
+    maplist(join, AGC).
+
+abort(Thread) :-
+    thread_signal(Thread, abort).
+
+join(Thread) :-
+    thread_join(Thread, _).
 
 sender(Client) :-
     numlist(1, 1000, L),
-    forall(between(1, 10000, _), thread_send_message(Client, L)),
+    maplist(atom_concat(x), L, Message),
+    forall(between(1, 50000, _), thread_send_message(Client, Message)),
     thread_send_message(Client, done).
 
 receiver :-
@@ -67,7 +81,10 @@ receive([H|T]) :-
     ).
 
 agc :-
+    thread_self(Me),
+    thread_property(Me, id(Id)),
+    atom_concat(a, Id, Prefix),
     forall(between(1, infinite, X),
-           atom_concat(a, X, _)).
+           atom_concat(Prefix, X, _)).
 
 
