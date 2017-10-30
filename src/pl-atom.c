@@ -835,7 +835,8 @@ static int
 invalidateAtom(Atom a, unsigned int ref)
 { Atom *ap;
 
-  if ( !COMPARE_AND_SWAP(&a->references, ref, ATOM_DESTROY_REFERENCE) )
+  if ( !COMPARE_AND_SWAP(&a->references, ref,
+			 ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE) )
   { return FALSE;
   }
 
@@ -850,6 +851,8 @@ invalidateAtom(Atom a, unsigned int ref)
       return FALSE;				/* foreign hooks says `no' */
     }
   }
+
+  a->references = ATOM_DESTROY_REFERENCE;
 
 #ifdef O_DEBUG_ATOMGC
   if ( atomLogFd )
