@@ -504,6 +504,15 @@ bypassed the LOCK as either GD->atoms.rehashing is TRUE or the new table
 is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
+{ if ( false(type, PL_BLOB_NOCOPY) )
+    return memcmp(s, a->name, length) == 0;
+  else
+    return s == a->name;
+}
+
+
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 { GET_LD
@@ -526,46 +535,24 @@ redo:
   DEBUG(MSG_HASH_STAT, GD->atoms.lookups++);
 
   if ( true(type, PL_BLOB_UNIQUE) )
-  { if ( false(type, PL_BLOB_NOCOPY) )
-    { for(a = table[v]; a; a = a->next)
-      { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
-	ref = a->references;
-	if ( ATOM_IS_RESERVED(ref) &&
-	     length == a->length &&
-	     type == a->type &&
-	     memcmp(s, a->name, length) == 0 )
-	{ if ( !ATOM_IS_VALID(ref) )
-	    goto redo;
+  { for(a = table[v]; a; a = a->next)
+    { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
+      ref = a->references;
+      if ( ATOM_IS_RESERVED(ref) &&
+	   length == a->length &&
+	   type == a->type &&
+	   same_name(a, s, length, type) )
+      { if ( !ATOM_IS_VALID(ref) )
+	  goto redo;
 #ifdef O_ATOMGC
-	  if ( indexAtom(a->atom) >= GD->atoms.builtin &&
-	       !likely(bump_atom_references(a, ref)) )
-	    continue;
+        if ( indexAtom(a->atom) >= GD->atoms.builtin &&
+	     !likely(bump_atom_references(a, ref)) )
+	  continue;
 #endif
-	  *new = FALSE;
-	  release_atom_table();
-	  release_atom_bucket();
-	  return a->atom;
-	}
-      }
-    } else
-    { for(a = table[v]; a; a = a->next)
-      { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
-	ref = a->references;
-	if ( ATOM_IS_RESERVED(ref) &&
-	     length == a->length &&
-	     type == a->type &&
-	     s == a->name )
-	{ if ( !ATOM_IS_VALID(ref) )
-	    goto redo;
-#ifdef O_ATOMGC
-	  if ( !likely(bump_atom_references(a, ref)) )
-	    continue;
-#endif
-	  *new = FALSE;
-	  release_atom_table();
-	  release_atom_bucket();
-	  return a->atom;
-	}
+        *new = FALSE;
+	release_atom_table();
+	release_atom_bucket();
+	return a->atom;
       }
     }
   }
