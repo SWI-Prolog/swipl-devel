@@ -525,11 +525,12 @@ redo:
     { for(a = table[v]; a; a = a->next)
       { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
 	ref = a->references;
-	if ( ATOM_IS_VALID(ref) &&
+	if ( ATOM_IS_RESERVED(ref) &&
 	     length == a->length &&
 	     type == a->type &&
 	     memcmp(s, a->name, length) == 0 )
-	{
+	{ if ( !ATOM_IS_VALID(ref) )
+	    goto redo;
 #ifdef O_ATOMGC
 	  if ( indexAtom(a->atom) >= GD->atoms.builtin &&
 	       !likely(bump_atom_references(a, ref)) )
@@ -545,12 +546,12 @@ redo:
     { for(a = table[v]; a; a = a->next)
       { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
 	ref = a->references;
-
-	if ( ATOM_IS_VALID(ref) &&
+	if ( ATOM_IS_RESERVED(ref) &&
 	     length == a->length &&
 	     type == a->type &&
 	     s == a->name )
-	{
+	{ if ( !ATOM_IS_VALID(ref) )
+	    goto redo;
 #ifdef O_ATOMGC
 	  if ( !likely(bump_atom_references(a, ref)) )
 	    continue;
@@ -829,18 +830,18 @@ static int
 invalidateAtom(Atom a, unsigned int ref)
 { Atom *ap;
 
-  if ( !COMPARE_AND_SWAP(&a->references, ref, (ref & ~ATOM_VALID_REFERENCE)) )
+  if ( !COMPARE_AND_SWAP(&a->references, ref, ATOM_DESTROY_REFERENCE) )
   { return FALSE;
   }
 
   if ( a->type->release )
   { if ( !(*a->type->release)(a->atom) )
-    { ATOMIC_OR(&a->references, ATOM_VALID_REFERENCE);
+    { COMPARE_AND_SWAP(&a->references, ATOM_DESTROY_REFERENCE, ref);
       return FALSE;
     }
   } else if ( GD->atoms.gc_hook )
   { if ( !(*GD->atoms.gc_hook)(a->atom) )
-    { ATOMIC_OR(&a->references, ATOM_VALID_REFERENCE);
+    { COMPARE_AND_SWAP(&a->references, ATOM_DESTROY_REFERENCE, ref);
       return FALSE;				/* foreign hooks says `no' */
     }
   }
@@ -1330,13 +1331,19 @@ rehashAtoms(void)
     }
 
     for(; index<upto; index++)
-    { Atom a = b + index;
-
-      if ( ATOM_IS_VALID(a->references) && true(a->type, PL_BLOB_UNIQUE) )
-      { size_t v = a->hash_value & mask;
-
-	a->next = newtab->table[v];
-	newtab->table[v] = a;
+    { volatile Atom a = b + index;
+      unsigned int ref;
+redo:
+      ref = a->references;
+      if ( ATOM_IS_RESERVED(ref) )
+      { if ( !ATOM_IS_VALID(ref) )
+	  goto redo;
+	if ( true(a->type, PL_BLOB_UNIQUE) )
+	{ size_t v;
+	  v = a->hash_value & mask;
+	  a->next = newtab->table[v];
+	  newtab->table[v] = a;
+	}
       }
     }
   }

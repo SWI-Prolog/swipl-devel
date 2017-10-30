@@ -1136,15 +1136,17 @@ typedef struct atom_table
 
 #ifdef O_ATOMGC
 
-#define ATOM_STATE_MASK		((unsigned int)0x7 << (INTBITSIZE-3))
+#define ATOM_STATE_MASK		((unsigned int)0xF << (INTBITSIZE-4))
 #define ATOM_RESERVED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-1))
 #define ATOM_VALID_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-2))
 #define ATOM_MARKED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-3))
+#define ATOM_DESTROY_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-4))
 
 #define ATOM_IS_FREE(ref)	(((ref) & ATOM_STATE_MASK) == 0)
 #define ATOM_IS_RESERVED(ref)	((ref) & ATOM_RESERVED_REFERENCE)
 #define ATOM_IS_VALID(ref)	((ref) & ATOM_VALID_REFERENCE)
 #define ATOM_IS_MARKED(ref)	((ref) & ATOM_MARKED_REFERENCE)
+#define ATOM_IS_DESTROYED(ref)	((ref) & ATOM_DESTROY_REFERENCE)
 
 #define ATOM_REF_COUNT_MASK	(~ATOM_STATE_MASK)
 #define ATOM_REF_COUNT(ref)	((ref) & ATOM_REF_COUNT_MASK)
