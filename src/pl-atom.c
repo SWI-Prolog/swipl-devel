@@ -202,7 +202,12 @@ static void	considerAGC(void);
 static inline int
 bump_atom_references(Atom a, unsigned int ref)
 { for(;;)
-  { if ( COMPARE_AND_SWAP(&a->references, ref, ref+1) )
+  { unsigned int nref = ref+1;
+
+    if ( ATOM_REF_COUNT(nref) == 0 )
+      return TRUE;			/* reached max references */
+
+    if ( COMPARE_AND_SWAP(&a->references, ref, nref) )
     { if ( ATOM_REF_COUNT(ref) == 0 )
 	ATOMIC_DEC(&GD->atoms.unregistered);
       return TRUE;
@@ -1110,9 +1115,21 @@ operations. This should be safe because:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-register_atom(Atom p)
-{ if ( (ATOMIC_INC(&p->references) & ATOM_REF_COUNT_MASK) == 1 )
-    ATOMIC_DEC(&GD->atoms.unregistered);
+register_atom(volatile Atom p)
+{ for(;;)
+  { unsigned int ref  = p->references;
+    unsigned int nref = ref+1;
+
+    if ( ATOM_REF_COUNT(nref) != 0 )
+    { if ( COMPARE_AND_SWAP(&p->references, ref, nref) )
+      { if ( ATOM_REF_COUNT(nref) == 1 )
+	  ATOMIC_DEC(&GD->atoms.unregistered);
+	return;
+      }
+    } else
+    { return;
+    }
+  }
 }
 
 
@@ -1180,6 +1197,9 @@ PL_unregister_atom(atom_t a)
     { Sdprintf("OOPS: PL_unregister_atom('%s'): invalid atom\n", p->name);
       trap_gdb();
     }
+
+    if ( unlikely(ATOM_REF_COUNT(p->references+1) == 0) )
+      return;
 
     if ( GD->atoms.gc_active )
     { unsigned int oldref, newref;
