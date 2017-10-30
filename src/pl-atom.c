@@ -470,7 +470,7 @@ reserveAtom(void)
 
     if ( ATOM_IS_FREE(ref) &&
 	 COMPARE_AND_SWAP(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-    { ATOMIC_INC(&GD->atoms.highest);
+    { COMPARE_AND_SWAP(&GD->atoms.highest, index, index+1);
       a->atom = (index<<LMASK_BITS)|TAG_ATOM;
 
       return a;
