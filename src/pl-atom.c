@@ -304,10 +304,11 @@ PL_unregister_blob_type(PL_blob_t *type)
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -778,10 +779,11 @@ unmarkAtoms(void)
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -945,10 +947,11 @@ collectAtoms(void)
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -1245,10 +1248,11 @@ checkAtoms_src(const char *file, int line)
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -1317,10 +1321,11 @@ rehashAtoms(void)
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -1518,10 +1523,11 @@ cleanupAtoms(void)
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -1610,10 +1616,11 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
 
   for(i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -1785,10 +1792,11 @@ extendAtom(char *prefix, bool *unique, char *common)
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -1876,10 +1884,11 @@ extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
   *altn = 0;
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
@@ -1999,10 +2008,11 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 
   for(i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
     Atom b = GD->atoms.array.blocks[i];
 
-    if ( upto >= GD->atoms.highest )
-    { upto = GD->atoms.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
