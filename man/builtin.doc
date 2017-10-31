@@ -264,6 +264,10 @@ Prolog flag \prologflag{verbose_autoload}, the load action is printed at
 level \const{informational} or \const{silent}.  See also print_message/2
 and current_prolog_flag/2.
 
+    \termitem{check_script}{Bool}
+If \const{false} (default \const{true}), do not check the first
+character to be \chr{#} and skip the first line when found.
+
     \termitem{derived_from}{File}
 Indicate that the loaded file is derived from \arg{File}.  Used by
 make/0 to time-check and load the original file rather than the derived

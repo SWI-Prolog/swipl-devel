@@ -1496,7 +1496,7 @@ compiling :-
 %   @see '$source_term'/8 for details.
 
 '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
-    '$skip_script_line'(In),
+    '$skip_script_line'(In, Options),
     '$read_clause_options'(Options, ReadOptions),
     repeat,
       read_clause(In, Raw,
@@ -1646,7 +1646,10 @@ compiling :-
 '$master_file'(File, File).
 
 
-'$skip_script_line'(In) :-
+'$skip_script_line'(_In, Options) :-
+    '$option'(check_script(false), Options),
+    !.
+'$skip_script_line'(In, _Options) :-
     (   peek_char(In, #)
     ->  skip(In, 10)
     ;   true
@@ -1793,7 +1796,7 @@ consult(M:X) :-
     flag('$user_consult', N, N+1),
     NN is N + 1,
     atom_concat('user://', NN, Id),
-    load_files(M:Id, [stream(user_input)]).
+    load_files(M:Id, [stream(user_input), check_script(false), silent(false)]).
 consult(List) :-
     load_files(List, [expand(true)]).
 
