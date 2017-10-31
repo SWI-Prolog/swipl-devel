@@ -214,8 +214,10 @@ rehashFunctors(void)
     FunctorDef *b;
 
     if ( (b=GD->functors.array.blocks[i]) )
-    { if ( upto >= GD->functors.highest )
-      { upto = GD->functors.highest;
+    { size_t high = GD->functors.highest;
+
+      if ( upto >= high )
+      { upto = high;
 	last = TRUE;
       }
 
@@ -399,13 +401,14 @@ cleanupFunctors(void)
     for(i=0; (fp0=GD->functors.array.blocks[i]); i++)
     { size_t bs = (size_t)1<<i;
       size_t upto = (size_t)2<<i;
+      size_t high = GD->functors.highest;
       FunctorDef *fp, *ep;
 
       fp0 += bs;
       fp = fp0;
       ep=fp+bs;
-      if ( upto > GD->functors.highest )
-	ep -= upto-GD->functors.highest;
+      if ( upto > high )
+	ep -= upto-high;
 
       for(; fp<ep; fp++)
       { FunctorDef f = *fp;
@@ -486,10 +489,11 @@ pl_current_functor(term_t name, term_t arity, control_t h)
   PL_LOCK(L_FUNCTOR);
   for(i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
+    size_t high = GD->functors.highest;
     FunctorDef *b = GD->functors.array.blocks[i];
 
-    if ( upto >= GD->functors.highest )
-    { upto = GD->functors.highest;
+    if ( upto >= high )
+    { upto = high;
       last = TRUE;
     }
 
