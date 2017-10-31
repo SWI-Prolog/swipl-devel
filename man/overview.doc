@@ -12,7 +12,7 @@ using standard Unix \program{man} pages. SWI-Prolog is normally operated
 as an interactive application simply by starting the program:
 
 \begin{code}
-machine% swipl
+$ swipl
 Welcome to SWI-Prolog ...
 ...
 
@@ -22,15 +22,24 @@ Welcome to SWI-Prolog ...
 After starting Prolog, one normally loads a program into it using
 consult/1, which may be abbreviated by putting the name of the program
 file between square brackets. The following goal loads the file
-\file{likes.pl} containing clauses for the predicates
-\nopredref{likes}{2}:
+\href{https://raw.githubusercontent.com/SWI-Prolog/swipl-devel/master/demo/likes.pl}{likes.pl}
+containing clauses for the predicates \nopredref{likes}{2}:
 
 \begin{code}
 ?- [likes].
-% likes compiled, 0.00 sec, 17 clauses
 true.
 
 ?-
+\end{code}
+
+Alternatively, the source file may be given as command line arguments:
+
+\begin{code}
+$ swipl likes.pl
+Welcome to SWI-Prolog ...
+...
+
+1 ?-
 \end{code}
 
 After this point, Unix and Windows users unite, so if you are using
@@ -60,6 +69,28 @@ important new things are available to the user:
 The normal way to start the \file{likes.pl} file mentioned in
 \secref{startunix} is by simply double-clicking this file in the Windows
 explorer.
+
+\subsection{Adding rules from the console}	\label{sec:consultuser}
+
+Although we strongly advice to put your program in a file, optionally
+edit it and use make/0 to reload it (see \secref{viewprogram}), it is
+possible to manage facts and rules from the terminal. The most
+conveniant way to add a few clauses is by consulting the pseudo file
+\const{user}. The input is ended using the system end-of-file character.
+
+\begin{code}
+?- [user].
+|: hello :- format('Hello world~n').
+|: ^D
+true.
+
+?- hello.
+Hello world
+true.
+\end{code}
+
+The predicates assertz/1 and retract/1 are alternatives to add and
+remove rules and facts.
 
 
 \subsection{Executing a query}			\label{sec:execquery}
@@ -92,6 +123,63 @@ when executed, produces the same set of answers as the original
 program.\footnote{The SWI-Prolog top level differs in several ways from
 traditional Prolog top level. The current top level was designed in
 cooperation with Ulrich Neumerkel.}
+
+
+\subsection{Examining and modifying your program} \label{sec:viewprogram}
+
+If properly configured, the predicate edit/1 starts the built-in or
+user configured editor on the argument.  The argument can be anything
+that can be linked to a location: a file name, predicate name, module
+name, etc.  If the argument resolves to only one location the editor
+is started on this location, otherwise the use is presented a choice.
+
+If a graphical user interface is available, the editor normally creates
+a new window and the system prompts for the next command. The user may
+edit the source file, save it and run make/0 to update any modified
+source file. If the editor cannot be opened in a window it the same
+console and leaving the editor runs make/0 to reload any source files
+that have been modified.
+
+\begin{code}
+?- edit(likes).
+
+true.
+?- make.
+% /home/jan/src/pl-devel/linux/likes compiled 0.00 sec, 0 clauses
+
+?- likes(sam, X).
+...
+\end{code}
+
+The program can also be \jargon{decompiled} using listing/1 as below.
+The argument is listing/1 is just a predicate name, a predicate
+\jargon{indicator} of the form \arg{Name/Arity}, e.g., \exam{?-
+listing(mild/1).} or a \jargon{head}, e.g., \exam{?- listing(likes(sam,
+_).}, listing all \jargon{matching} clauses. The predicate listing/0,
+i.e., without arguments lists the entire program.\footnote{This lists
+several \jargon{hook} predicates that are defined by default and is
+typically not very informative.}
+
+\begin{code}
+?- listing(mild).
+mild(dahl).
+mild(tandoori).
+mild(kurma).
+
+true.
+\end{code}
+
+
+\subsection{Stopping Prolog}			\label{sec:halt}
+
+The interactive toplevel can be stopped in two ways: enter the system
+end-of-file character (typically \textit{Control-D}) or by executing the
+halt/0 predicate:
+
+\begin{code}
+?- halt.
+$
+\end{code}
 
 
 \section{The user's initialisation file}	\label{sec:initfile}
