@@ -3520,8 +3520,23 @@ storing arbitrary BLOBs (Binary Large Object) or handles to external
 entities. See \secref{blob} for details.
 
     \predicate{current_functor}{2}{?Name, ?Arity}
-Successively unifies \arg{Name} with the name and \arg{Arity} with the
-arity of functors known to the system.
+True when \arg{Name}/\arg{Arity is a known functor. This means that at
+some point in time a term with name \arg{Name} and \arg{Arity} arguments
+was created. Functor objects are currently not subject to garbage
+collection. Due to timing, \nopredref{t}{2} below with instantiated
+\arg{Name} and \arg{Arity} can theoretically fail, i.e., a functor may
+be visible in instantiated mode while it is not yet visible in unbound
+mode.  Considering that the only practical value of current_functor/2
+we are aware of is to analyse resource usage we accept this impure
+behaviour.
+
+\begin{code}
+t(Name, Arity) :-
+    (   current_functor(Name, Arity)
+    ->  current_functor(N, A), N == Name, A == Arity
+    ;   true
+    ).
+\end{code}
 
     \predicate{current_flag}{1}{-FlagKey}
 Successively unifies \arg{FlagKey} with all keys used for flags (see
