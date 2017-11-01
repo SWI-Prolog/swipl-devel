@@ -3130,33 +3130,35 @@ See also dynamic/1.\footnote{The ISO standard only allows using
 dynamic/1 as a \jargon{directive}.}
 
     \predicate[ISO]{asserta}{1}{+Term}
-Assert a fact or clause in the database. \arg{Term} is asserted as the
-first fact or clause of the corresponding predicate. Equivalent to
-assert/1, but \arg{Term} is asserted as first clause or fact of the
-predicate.  If the program space for the target module is limited
-(see set_module/1), asserta/1 can raise a
-\term{resource_error}{program_space}.
-
+\nodescription
     \predicate[ISO]{assertz}{1}{+Term}
-Equivalent to asserta/1, but \arg{Term} is asserted as the last clause
-or fact of the predicate.
+\nodescription
+    \predicate[deprecated]{assert}{1}{+Term}
+Assert a clause (fact or rule) into the database. The predicate
+asserta/1 asserts the clause as first clause of the predicate while
+assertz/1 assert the clause as last clause. The deprecated assert/1 is
+equivalent to assertz/1. If the program space for the target module is
+limited (see set_module/1), asserta/1 can raise a
+\term{resource_error}{program_space} exception.  The example below
+adds two facts and a rule.  Note the double parentheses around the
+rule.
 
-    \predicate{assert}{1}{+Term}
-Equivalent to assertz/1.  Deprecated: new code should use assertz/1.
+\begin{code}
+?- assertz(parent('Bob', 'Jane')).
+?- assertz(female('Jane')).
+?- assertz((mother(Child, Mother) :-
+	        parent(Child, Mother),
+	        female(Mother))).
+\end{code}
 
     \predicate{asserta}{2}{+Term, -Reference}
-Asserts a clause as asserta/1 and unifies \arg{Reference} with a handle
-to this clause. The handle can be used to access this specific clause
-using clause/3 and erase/1.
-
+\nodescription
     \predicate{assertz}{2}{+Term, -Reference}
-Equivalent to asserta/1, asserting the new clause as the last clause
-of the predicate.  Reference is unified with a handle to this clause.
-The handle can be used to access this clause with clause/3 and
-erase/1.
-
-    \predicate{assert}{2}{+Term, -Reference}
-Equivalent to assertz/2. Deprecated: new code should use assertz/2.
+\nodescription
+    \predicate[deprecated]{assert}{2}{+Term, -Reference}
+Equivalent to asserta/1, assertz/1, assert/1, but in addition unifies
+\arg{Reference} with a handle to the asserted clauses. The handle can be
+used to access this clause with clause/3 and erase/1.
 \end{description}
 
 \subsection{The recorded database}

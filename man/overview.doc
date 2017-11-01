@@ -131,7 +131,7 @@ If properly configured, the predicate edit/1 starts the built-in or
 user configured editor on the argument.  The argument can be anything
 that can be linked to a location: a file name, predicate name, module
 name, etc.  If the argument resolves to only one location the editor
-is started on this location, otherwise the use is presented a choice.
+is started on this location, otherwise the user is presented a choice.
 
 If a graphical user interface is available, the editor normally creates
 a new window and the system prompts for the next command. The user may
