@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -382,7 +382,9 @@ createSupervisor(Definition def)
 	       (codes = listSupervisor(def)) ||
 	       (codes = staticSupervisor(def)));
   assert(has_codes);
-  def->codes = chainMetaPredicateSupervisor(def, codes);
+  codes = chainMetaPredicateSupervisor(def, codes);
+  MemoryBarrier();
+  def->codes = codes;
   PL_UNLOCK(L_PREDICATE);
 
   succeed;
