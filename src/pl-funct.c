@@ -91,6 +91,12 @@ allocateFunctorBlock(int idx)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) The first two may  not  be   reordered  because  lookup  will return
+fd->functor if it finds a valid functor. The second barrier ensures only
+valid functors appear in the array.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 registerFunctor(FunctorDef fd)
 { size_t index;
@@ -105,8 +111,9 @@ registerFunctor(FunctorDef fd)
 
   amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
   fd->functor = MK_FUNCTOR(index, amask);
+  MemoryBarrier();			/* See (*) */
   fd->flags |= VALID_F;
-  MemoryBarrier();
+  MemoryBarrier();			/* See (*) */
   GD->functors.array.blocks[idx][index] = fd;
 
   DEBUG(CHK_SECURE, assert(fd->arity == arityFunctor(fd->functor)));
