@@ -3520,7 +3520,7 @@ storing arbitrary BLOBs (Binary Large Object) or handles to external
 entities. See \secref{blob} for details.
 
     \predicate{current_functor}{2}{?Name, ?Arity}
-True when \arg{Name}/\arg{Arity is a known functor. This means that at
+True when \arg{Name}/\arg{Arity} is a known functor. This means that at
 some point in time a term with name \arg{Name} and \arg{Arity} arguments
 was created. Functor objects are currently not subject to garbage
 collection. Due to timing, \nopredref{t}{2} below with instantiated
