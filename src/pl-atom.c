@@ -822,19 +822,21 @@ static int
 invalidateAtom(Atom a, unsigned int ref)
 { Atom *ap;
 
-  if ( !COMPARE_AND_SWAP(&a->references, ref,
-			 ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE) )
+#define ATOM_PRE_DESTROY_REFERENCE \
+	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
+
+  if ( !COMPARE_AND_SWAP(&a->references, ref, ATOM_PRE_DESTROY_REFERENCE) )
   { return FALSE;
   }
 
   if ( a->type->release )
   { if ( !(*a->type->release)(a->atom) )
-    { COMPARE_AND_SWAP(&a->references, ATOM_DESTROY_REFERENCE, ref);
+    { COMPARE_AND_SWAP(&a->references, ATOM_PRE_DESTROY_REFERENCE, ref);
       return FALSE;
     }
   } else if ( GD->atoms.gc_hook )
   { if ( !(*GD->atoms.gc_hook)(a->atom) )
-    { COMPARE_AND_SWAP(&a->references, ATOM_DESTROY_REFERENCE, ref);
+    { COMPARE_AND_SWAP(&a->references, ATOM_PRE_DESTROY_REFERENCE, ref);
       return FALSE;				/* foreign hooks says `no' */
     }
   }
