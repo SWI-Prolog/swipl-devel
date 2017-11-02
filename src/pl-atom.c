@@ -1198,9 +1198,12 @@ PL_unregister_atom(atom_t a)
 
       do
       { oldref = p->references;
-        newref = (ATOM_REF_COUNT(oldref) == 1) ? ((oldref-1) | ATOM_MARKED_REFERENCE) : oldref-1;
+	newref = oldref - 1;
+
+	if ( ATOM_REF_COUNT(newref) == 0 )
+	  newref |= ATOM_MARKED_REFERENCE;
       } while( !COMPARE_AND_SWAP(&p->references, oldref, newref) );
-      refs = newref;
+      refs = ATOM_REF_COUNT(newref);
     } else
     { GET_LD
 
