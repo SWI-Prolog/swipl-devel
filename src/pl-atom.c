@@ -1140,6 +1140,23 @@ PL_register_atom(atom_t a)
 }
 
 
+static char *
+dbgAtomName(Atom a, char *enc, char **buf)
+{ if ( a->type == &text_atom )
+  { if ( enc ) *enc = 'L';
+    return a->name;
+  } else if ( isUCSAtom(a) )
+  { if ( enc ) *enc = 'W';
+    return a->name;
+  } else
+  { size_t len = 0;
+    IOSTREAM *fd = Sopenmem(buf, &len, "w");
+    (a->type->write)(fd, a->atom, 0);
+    Sclose(fd);
+    return *buf;
+  }
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign code reduces the reference count. This is safe, unless we are in
 the following scenario:
@@ -1212,8 +1229,17 @@ PL_unregister_atom(atom_t a)
       if ( (refs=ATOM_REF_COUNT(ATOMIC_DEC(&p->references))) == 0 )
 	ATOMIC_INC(&GD->atoms.unregistered);
     }
-    if ( refs == (unsigned int)-1 )
-    { Sdprintf("OOPS: PL_unregister_atom('%s'): -1 references\n", p->name);
+    if ( refs == ATOM_REF_COUNT((unsigned int)-1) )
+    { char fmt[100];
+      char *enc;
+      char *buf = NULL;
+
+      strcpy(fmt, "OOPS: PL_unregister_atom('%Ls'): -1 references\n");
+      enc = strchr(fmt, '%')+1;
+
+      Sdprintf(fmt, dbgAtomName(p, enc, &buf));
+      if ( buf )
+	PL_free(buf);
       trap_gdb();
     }
   }
