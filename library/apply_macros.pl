@@ -79,16 +79,18 @@ expand_maplist(Callable0, Lists, Goal) :-
     expand_closure_no_fail(Callable0, N, Callable1),
     (   Callable1 = _:_
     ->  strip_module(Callable0, M, Callable),
-        NextGoal = M:NextCall
+        NextGoal = M:NextCall,
+        QPred = M:Pred
     ;   Callable = Callable1,
-        NextGoal = NextCall
+        NextGoal = NextCall,
+        QPred = Pred
     ),
     Callable =.. [Pred|Args],
     length(Args, Argc),
     length(Argv, Argc),
     length(Vars, N),
     MapArity is N + 1,
-    format(atom(AuxName), '__aux_maplist/~d_~w+~d', [MapArity, Pred, Argc]),
+    format(atom(AuxName), '__aux_maplist/~d_~w+~d', [MapArity, QPred, Argc]),
     append(Lists, Args, AuxArgs),
     Goal =.. [AuxName|AuxArgs],
 
