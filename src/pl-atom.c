@@ -1748,12 +1748,6 @@ typedef struct match
 } *Match;
 
 
-static inline int
-completion_candidate(Atom a)
-{ return (a->references || indexAtom(a->atom) < GD->atoms.builtin);
-}
-
-
 /* An atom without references cannot be part of the program
 */
 
@@ -1827,7 +1821,6 @@ extendAtom(char *prefix, bool *unique, char *common)
 
       if ( ATOM_IS_VALID(a->references) && a->type == &text_atom &&
 	   global_atom(a) &&
-	   completion_candidate(a) &&
 	   strprefix(a->name, prefix) &&
 	   strlen(a->name) < LINESIZ )
       { if ( first == TRUE )
@@ -1923,7 +1916,6 @@ extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
 
       if ( ATOM_IS_VALID(a->references) &&
 	   global_atom(a) &&
-	   completion_candidate(a) &&
 	   get_atom_ptr_text(a, &hit) &&
 	   hit.length < ALT_SIZ &&
 	   PL_cmp_text(prefix, 0, &hit, 0, prefix->length) == 0 &&
@@ -2044,7 +2036,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
       if ( is_signalled(PASS_LD1) )	/* Notably allow windows version */
 	PL_handle_signals();		/* to break out on ^C */
 
-      if ( ATOM_IS_VALID(a->references) && completion_candidate(a) &&
+      if ( ATOM_IS_VALID(a->references) && global_atom(a) &&
 	   get_atom_ptr_text(a, hit) &&
 	   hit->length < ALT_SIZ &&
 	   PL_cmp_text(prefix, 0, hit, 0, prefix->length) == 0 &&
