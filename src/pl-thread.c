@@ -2304,7 +2304,7 @@ free_thread_info(PL_thread_info_t *info)
 	unalias_thread(th);
     }
 
-    if ( info->detached )
+    if ( info->detached && !info->is_engine )
       PL_unregister_atom(info->symbol);
   }
 
