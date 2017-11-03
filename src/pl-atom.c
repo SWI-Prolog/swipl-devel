@@ -2034,7 +2034,9 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
     { Atom a = b + index;
 
       if ( is_signalled(PASS_LD1) )	/* Notably allow windows version */
-	PL_handle_signals();		/* to break out on ^C */
+      { if ( PL_handle_signals() < 0 )	/* to break out on ^C */
+	  return FALSE;
+      }
 
       if ( ATOM_IS_VALID(a->references) && global_atom(a) &&
 	   get_atom_ptr_text(a, hit) &&
