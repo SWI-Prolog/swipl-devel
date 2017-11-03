@@ -2086,6 +2086,7 @@ Svprintf(const char *fm, va_list args)
 #define NEXTCHR(s, c)				\
 	switch (enc)				\
 	{ case ENC_ANSI:			\
+	  case ENC_ISO_LATIN_1:			\
 	    c = *(s)++; c &= 0xff;		\
 	    break;				\
 	  case ENC_UTF8:			\
@@ -2240,6 +2241,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    break;
 	  case 'z':
 	    islong = INT_SIZE_T;
+	    fm++;
+	    break;
+	  case 'L':			/* %Ls: ISO-Latin-1 string */
+	    enc = ENC_ISO_LATIN_1;
 	    fm++;
 	    break;
 	  case 'U':			/* %Us: UTF-8 string */
