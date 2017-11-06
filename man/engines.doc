@@ -318,6 +318,9 @@ options.  See thread_create/3 for details.
 The \arg{Engine} argument of engine_create/3 may be instantiated to an
 atom, creating an engine with the given alias.
 
+    \predicate[det]{engine_destroy}{1}{+Engine}
+Destroy \arg{Engine}.
+
     \predicate[semidet]{engine_next}{2}{+Engine, -Term}
 Ask the engine \arg{Engine} to produce a next answer.  On this first
 call on a specific engine, the \arg{Goal} of the engine is started.
