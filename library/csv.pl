@@ -396,21 +396,32 @@ csv_read_row(Stream, Row, _Record) :-
     !,
     Row = end_of_file.
 csv_read_row(Stream, Row, Record) :-
-    read_lines_to_codes(Stream, Codes),
+    read_lines_to_codes(Stream, Codes, even),
     phrase(row(Row0, Record), Codes),
     !,
     Row = Row0.
 
-read_lines_to_codes(Stream, Codes) :-
+read_lines_to_codes(Stream, Codes, Quotes) :-
     read_string(Stream, "\r\n", "\r\n", Sep, String),
     string_codes(String, Codes0),
     (   Sep == -1
     ->  Codes = Codes0
-    ;   Codes = Codes0
+    ;   check_quotes(Codes0, Quotes, even)
+    ->  Codes = Codes0
     ;   append(Codes0, [0'\n|Tail], Codes),
-        read_lines_to_codes(Stream, Tail)
+        read_lines_to_codes(Stream, Tail, odd)
     ).
 
+check_quotes([], Quotes, Quotes) :- !.
+
+check_quotes([0'"|T], odd, Result) :- !,
+  check_quotes(T, even, Result).
+
+check_quotes([0'"|T], even, Result) :- !,
+  check_quotes(T, odd, Result).
+
+check_quotes([_|T], Quotes, Result) :-
+  check_quotes(T, Quotes, Result).
 
 %!  csv_options(-Compiled, +Options) is det.
 %
