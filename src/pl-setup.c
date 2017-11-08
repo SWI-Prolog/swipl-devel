@@ -76,6 +76,7 @@ setupProlog(void)
 #endif
 
   LD->critical = 0;
+  LD->magic = LD_MAGIC;
   LD->signal.pending[0] = 0;
   LD->signal.pending[1] = 0;
   LD->statistics.start_time = WallTime();
