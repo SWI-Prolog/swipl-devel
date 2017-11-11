@@ -1640,7 +1640,9 @@ warn_multiton(const char *name)
     { int c;
 
       utf8_get_char(&name[1], &c);
-      if ( isDigitW(c) )
+      if ( isDigitW(c) )			/* _<digit>: never warn */
+	return FALSE;
+      if ( !PlUpperW(c) )			/* _<lower>: never warn */
 	return FALSE;
     }
 
