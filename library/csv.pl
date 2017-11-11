@@ -404,21 +404,25 @@ csv_read_row(Stream, Row, Record) :-
 read_lines_to_codes(Stream, Codes, Options, QuoteQuantity) :-
     read_line_to_codes(Stream, Codes0),
     Codes0 \== end_of_file,
-    (   ( csv_options_ignore_quotes(Options, true)
-        ; check_quotes(Codes0, QuoteQuantity, even)
+    (   (   csv_options_ignore_quotes(Options, true)
+        ;   check_quotes(Codes0, QuoteQuantity, even)
         )
     ->  Codes = Codes0
     ;   append(Codes0, [0'\n|Tail], Codes),
         read_lines_to_codes(Stream, Tail, Options, odd)
     ).
 
-check_quotes([], QuoteQuantity, QuoteQuantity) :- !.
-check_quotes([0'"|T], odd, Result) :- !,
+check_quotes([], QuoteQuantity, QuoteQuantity) :-
+    !.
+check_quotes([0'"|T], odd, Result) :-
+    !,
     check_quotes(T, even, Result).
-check_quotes([0'"|T], even, Result) :- !,
+check_quotes([0'"|T], even, Result) :-
+    !,
     check_quotes(T, odd, Result).
 check_quotes([_|T], QuoteQuantity, Result) :-
     check_quotes(T, QuoteQuantity, Result).
+
 
 %!  csv_options(-Compiled, +Options) is det.
 %
