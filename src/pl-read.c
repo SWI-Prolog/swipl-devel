@@ -136,7 +136,7 @@ atom_is_named_var(atom_t name)		/* see warn_singleton() */
 { const char *s;
   const pl_wchar_t *w;
 
-  if ( (s=PL_atom_chars(name)) )
+  if ( (s=PL_atom_nchars(name, NULL)) )
   { if ( s[0] != '_' ) return 1;
     if ( s[1] )
     { if ( s[1] == '_' ) return -1;
