@@ -162,12 +162,11 @@ information.
 This library provides CLP(FD): Constraint Logic Programming over
 Finite Domains. This is an instance of the general [CLP(_X_)
 scheme](<#clp>), extending logic programming with reasoning over
-specialised domains.
+specialised domains. CLP(FD) lets us reason about **integers** in a
+way that honors the relational nature of Prolog.
 
-CLP(FD) lets us reason about **integers** in a way that honors the
-relational nature of Prolog. Read [**The Power of
-Prolog**](https://www.metalevel.at/prolog) to understand how this
-library is meant to be used in practice.
+Read [**The Power of Prolog**](https://www.metalevel.at/prolog) to
+understand how this library is meant to be used in practice.
 
 There are two major use cases of CLP(FD) constraints:
 
@@ -262,7 +261,8 @@ the only predicates you will ever need from this library.
 
 The most important arithmetic constraint is #=/2, which subsumes both
 `(is)/2` and `(=:=)/2` over integers. Use #=/2 to make your programs
-more general.
+more general. See [declarative integer
+arithmetic](<#clpfd-integer-arith>).
 
 In total, the arithmetic constraints are:
 
