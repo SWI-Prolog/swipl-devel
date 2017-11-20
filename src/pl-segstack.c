@@ -226,7 +226,14 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
 
   if ( (chunk=stack->last) )		/* something there */
   { if ( stack->base == CHUNK_DATA(chunk) )
-      chunk->top = stack->top;		/* close last chunk */
+    { char *top = stack->top;
+
+      if ( !(top >  (char*)chunk &&
+	     top <= (char*)((intptr_t)chunk + chunk->size)) )
+	top = chunk->top;              /* top has moved to new chunk */
+      scan_chunk(stack, top, CHUNK_DATA(chunk), func);
+      chunk = chunk->previous;
+    }
     for(; chunk; chunk=chunk->previous)
       scan_chunk(stack, chunk->top, CHUNK_DATA(chunk), func);
   }
