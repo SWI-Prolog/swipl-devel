@@ -803,7 +803,7 @@ property_predicate(autoload(File), _:Head) :-
         (   '$find_library'(_, Name, Arity, _, File)
         ->  true
         )
-    ;   '$find_library'(_, Name, Arity, _, File),
+    ;   '$in_library'(Name, Arity, File),
         functor(Head, Name, Arity)
     ).
 property_predicate(implementation_module(IM), M:Head) :-
