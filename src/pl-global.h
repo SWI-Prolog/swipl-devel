@@ -105,9 +105,9 @@ struct PL_global_data
   } signals;
 #endif
 #ifdef O_LOGICAL_UPDATE
-  ggen_t	_generation;		/* generation of the database */
+  volatile ggen_t _generation;		/* generation of the database */
 #ifdef ATOMIC_GENERATION_HACK
-  gen_t		_last_generation;	/* see pl-inline.h, global_generation() */
+  volatile gen_t _last_generation;	/* see pl-inline.h, global_generation() */
 #endif
 #endif
 
