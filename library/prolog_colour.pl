@@ -936,7 +936,8 @@ colourise_goal(Goal, _Origin, TB, Pos) :-
     !,
     colourise_term_arg(Goal, TB, Pos).
 colourise_goal(Goal, Origin, TB, Pos) :-
-    nonvar(Goal),
+    strip_module(Goal, _, PGoal),
+    nonvar(PGoal),
     (   goal_classification(TB, Goal, Origin, ClassInferred),
         goal_colours(Goal, ClassInferred, ClassSpec-ArgSpecs)
     ->  true
@@ -962,9 +963,9 @@ colourise_goal(Module:Goal, _Origin, TB, QGoalPos) :-
     ;   FP = PG
     ),
     colour_item(goal_term(extern(Module), Goal), TB, QGoalPos),
-    colour_item(goal(extern(Module), Goal), TB, FP),
     (   callable(Goal)
-    ->  colourise_goal_args(Goal, Module, TB, PG)
+    ->  colour_item(goal(extern(Module), Goal), TB, FP),
+        colourise_goal_args(Goal, Module, TB, PG)
     ;   var(Goal)
     ->  colourise_term_arg(Goal, TB, PG)
     ;   colour_item(type_error(callable), TB, PG)
@@ -1800,12 +1801,13 @@ body_compiled(\+_).
 %   Classify Goal appearing in TB and called from a clause with head
 %   Origin.  For directives, Origin is [].
 
-goal_classification(_, Goal, _, meta) :-
-    var(Goal),
-    !.
-goal_classification(_, Goal, _, not_callable) :-
-    \+ callable(Goal),
-    !.
+goal_classification(_, QGoal, _, Class) :-
+    strip_module(QGoal, _, Goal),
+    (   var(Goal)
+    ->  !, Class = meta
+    ;   \+ callable(Goal)
+    ->  !, Class = not_callable
+    ).
 goal_classification(_, Goal, Origin, recursion) :-
     callable(Origin),
     generalise_term(Goal, Origin),
