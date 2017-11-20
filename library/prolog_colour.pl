@@ -963,7 +963,12 @@ colourise_goal(Module:Goal, _Origin, TB, QGoalPos) :-
     ),
     colour_item(goal_term(extern(Module), Goal), TB, QGoalPos),
     colour_item(goal(extern(Module), Goal), TB, FP),
-    colourise_goal_args(Goal, Module, TB, PG).
+    (   callable(Goal)
+    ->  colourise_goal_args(Goal, Module, TB, PG)
+    ;   var(Goal)
+    ->  colourise_term_arg(Goal, TB, PG)
+    ;   colour_item(type_error(callable), TB, PG)
+    ).
 colourise_goal(Op, _Origin, TB, Pos) :-
     nonvar(Op),
     Op = op(_,_,_),
