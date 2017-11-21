@@ -1173,8 +1173,7 @@ The `where` argument is one of
   - CL_START (asserta)
   - CL_END   (assertz)
   - The clause reference before which the clause must be inserted.
-    This is used by reconsult.  Note that addClauseToIndexes() may
-    not add the clause to the index, but we do not care.
+    This is used by reconsult.
 
 (*) This function updates the indexing information.  If we have a static
 procedure, it deletes the supervisor. This is  probably a bit rough, but

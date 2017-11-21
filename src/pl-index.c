@@ -608,6 +608,12 @@ Return how many indexable entries have been added to the bucket.
 
 The non-indexable clauses are added to an   entry with key=0. This entry
 must be used if none of the indexes matches.
+
+Where is one of
+  - CL_START (asserta)
+  - CL_END   (assertz)
+  - The clause reference before which the clause must be inserted.
+    This is used by reconsult.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -673,6 +679,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     { ClauseRef pred_cref = cl->predicate->impl.clauses.first_clause;
       ClauseRef ci_cref = ch->head;
       ClauseRef ci_prev = NULL;
+
       for(; pred_cref; pred_cref=pred_cref->next)
       { if ( pred_cref == where || ci_prev == ch->tail )
         { if ( ci_cref == ch->head )
@@ -687,8 +694,10 @@ addClauseBucket(ClauseBucket ch, Clause cl,
           }
           break;
         }
+
         if ( is_list )
 	  assert(0); /* TODO: get working with deep-indexing */
+
         if ( pred_cref->value.clause == ci_cref->value.clause )
         { ci_prev = ci_cref;
           ci_cref = ci_cref->next;
@@ -1256,10 +1265,6 @@ addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 addClauseToIndexes() is called (only) by   assertProcedure(),  which has
 the definition locked.
-
-We currently fail if the clause was not   added at the end or the start.
-This may be the case while  reconsulting.   In  this  case we delete the
-index after completion of the reconsult.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
