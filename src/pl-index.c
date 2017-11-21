@@ -67,7 +67,7 @@ typedef struct hash_hints
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int	bestHash(Word av, Definition def, ClauseIndex ci,
+static int	bestHash(Word av, Definition def, float min_speedup,
 			 hash_hints *hints ARG_LD);
 static ClauseIndex hashDefinition(Definition def, hash_hints *h);
 static void	replaceIndex(Definition def, ClauseList cl,
@@ -367,7 +367,7 @@ first_clause_guarded(Word argv, gen_t generation,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL), predicateName(def)));
 
-	if ( bestHash(argv, def, best_index, &hints PASS_LD) )
+	if ( bestHash(argv, def, best_index->speedup, &hints PASS_LD) )
 	{ ClauseIndex ci;
 
 	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
@@ -397,7 +397,7 @@ first_clause_guarded(Word argv, gen_t generation,
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
-  if ( !LD->gen_reload && bestHash(argv, def, NULL, &hints PASS_LD) )
+  if ( !LD->gen_reload && bestHash(argv, def, 0.0, &hints PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(def, &hints)) )
@@ -2040,17 +2040,19 @@ trying.
 static void
 assess_scan_clauses(Definition def,
 		    hash_assessment *assessments, int assess_count)
-{ hash_assessment *a;
+{ ClauseList clist = &def->impl.clauses;
+  size_t arity = def->functor->arity;
+  hash_assessment *a;
   ClauseRef cref;
   int i;
-  bit_vector *ai = alloca(sizeof_bitvector(def->functor->arity));
+  bit_vector *ai = alloca(sizeof_bitvector(arity));
   int ac = 0;
   int kp[MAXARITY+1];				/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
   word keys[MAXARITY];
 
-  init_bitvector(ai, def->functor->arity);
+  init_bitvector(ai, arity);
   for(i=0, a=assessments; i<assess_count; i++, a++)
   { int j;
 
@@ -2062,13 +2064,13 @@ assess_scan_clauses(Definition def,
     }
   }
 
-  for(i=0; i<def->functor->arity; i++)
+  for(i=0; i<arity; i++)
   { if ( true_bit(ai, i) )
       kp[nk++] = i;
   }
   kp[nk] = -1;
 
-  for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
+  for(cref=clist->first_clause; cref; cref=cref->next)
   { Clause cl = cref->value.clause;
     Code pc = cref->value.clause->codes;
     int carg = 0;
@@ -2143,7 +2145,7 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
+bestHash(Word av, Definition def, float min_speedup, hash_hints *hints ARG_LD)
 { int i;
   int arity = (int)def->functor->arity;
   assessment_set aset;
@@ -2153,9 +2155,9 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   unsigned short ia[MAX_MULTI_INDEX] = {0};
   unsigned short instantiated[arity];	/* GCC dynamic array */
   int ninstantiated = 0;
+  ClauseList clist = &def->impl.clauses;
 
   init_assessment_set(&aset);
-
 					/* Step 1: find instantiated args */
   for(i=0; i<arity; i++)
   { if ( indexOfWord(av[i] PASS_LD) )
@@ -2165,7 +2167,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   for(i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
 
-    if ( !def->impl.clauses.args[arg].assessed )
+    if ( !clist->args[arg].assessed )
     { ia[0] = arg+1;
       a = alloc_assessment(&aset, ia);
     }
@@ -2175,9 +2177,9 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   { assess_scan_clauses(def, aset.assessments, aset.count);
 
     for(i=0, a=aset.assessments; i<aset.count; i++, a++)
-    { arg_info *ainfo = &def->impl.clauses.args[a->args[0]-1];
+    { arg_info *ainfo = &clist->args[a->args[0]-1];
 
-      if ( assess_remove_duplicates(a, def->impl.clauses.number_of_clauses) )
+      if ( assess_remove_duplicates(a, clist->number_of_clauses) )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
 		       iargsName(a->args, NULL), predicateName(def),
@@ -2205,7 +2207,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 					/* Step 4: find the best (single) arg */
   for(i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
-    arg_info *ainfo = &def->impl.clauses.args[arg];
+    arg_info *ainfo = &clist->args[arg];
 
     if ( ainfo->speedup > best_speedup )
     { best = arg;
@@ -2214,23 +2216,23 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   }
 
   if ( best >= 0 &&
-       (float)def->impl.clauses.number_of_clauses/best_speedup > 3 )
+       (float)clist->number_of_clauses/best_speedup > 3 )
   { int ok, m, n;
 
     sort_assessments(def, instantiated, ninstantiated);
     for( ok=0;
 	 ok<ninstantiated &&
-	 def->impl.clauses.args[instantiated[ok]].speedup > MIN_SPEEDUP;
+	 clist->args[instantiated[ok]].speedup > MIN_SPEEDUP;
 	 ok++ )
       ;
 
-    if ( ok >= 2 && ++def->impl.clauses.jiti_tried <= arity )
+    if ( ok >= 2 && ++clist->jiti_tried <= arity )
     { hash_assessment *nbest;
 
       DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
 			      "; %d promising arguments\n",
 			      predicateName(def),
-			      def->impl.clauses.number_of_clauses,
+			      clist->number_of_clauses,
 			      best+1, best_speedup, ok));
 
       init_assessment_set(&aset);
@@ -2244,7 +2246,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 
       assess_scan_clauses(def, aset.assessments, aset.count);
       nbest = best_assessment(aset.assessments, aset.count,
-			      def->impl.clauses.number_of_clauses);
+			      clist->number_of_clauses);
       if ( nbest && nbest->speedup > best_speedup*MIN_SPEEDUP )
       { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
 				predicateName(def), iargsName(nbest->args, NULL),
@@ -2261,8 +2263,8 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     }
   }
 
-  if ( best >= 0 && (!ci || best_speedup > ci->speedup) )
-  { arg_info *ainfo = &def->impl.clauses.args[best];
+  if ( best >= 0 && best_speedup > min_speedup )
+  { arg_info *ainfo = &clist->args[best];
 
     memset(hints, 0, sizeof(*hints));
     hints->args[0]    = best+1;
