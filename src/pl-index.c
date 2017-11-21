@@ -334,12 +334,13 @@ first_clause_guarded(Word argv, gen_t generation,
 		     Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   ClauseIndex *cip;
+  ClauseList clist = &def->impl.clauses;
   hash_hints hints;
 
   if ( def->functor->arity == 0 )
     goto simple;			/* TBD: alt supervisor */
 
-  if ( (cip=def->impl.clauses.clause_indexes) )
+  if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index = NULL;
 
     for(; *cip; cip++)
@@ -359,8 +360,8 @@ first_clause_guarded(Word argv, gen_t generation,
     if ( best_index )
     { int hi;
 
-      if ( def->impl.clauses.number_of_clauses > 10 &&
-	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 &&
+      if ( clist->number_of_clauses > 10 &&
+	   (float)clist->number_of_clauses/best_index->speedup > 10 &&
 	   !LD->gen_reload )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
@@ -387,12 +388,12 @@ first_clause_guarded(Word argv, gen_t generation,
     }
   }
 
-  if ( def->impl.clauses.number_of_clauses == 0 )
+  if ( clist->number_of_clauses == 0 )
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
-       (def->impl.clauses.number_of_clauses <= 10 || LD->gen_reload) )
-  { chp->cref = def->impl.clauses.first_clause;
+       (clist->number_of_clauses <= 10 || LD->gen_reload) )
+  { chp->cref = clist->first_clause;
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
@@ -411,12 +412,12 @@ first_clause_guarded(Word argv, gen_t generation,
   }
 
   if ( chp->key )
-  { chp->cref = def->impl.clauses.first_clause;
+  { chp->cref = clist->first_clause;
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
 simple:
-  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
+  for(cref = clist->first_clause; cref; cref = cref->next)
   { if ( visibleClauseCNT(cref->value.clause, generation) )
     { chp->key = 0;
       setClauseChoice(chp, cref->next, generation PASS_LD);
