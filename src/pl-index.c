@@ -192,11 +192,12 @@ TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-nextClauseFromBucket(ClauseChoice chp, gen_t generation, int is_list ARG_LD)
+nextClauseFromBucket(ClauseChoice chp, gen_t generation,
+		     ClauseIndex ci, Word argv ARG_LD)
 { ClauseRef cref;
   word key = chp->key;
 
-  if ( is_list )
+  if ( ci->is_list )
   { DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
 
   non_indexed:
@@ -328,13 +329,12 @@ TBD:
   - When to ignore the best and try again?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-ClauseRef
-first_clause_guarded(Word argv, LocalFrame fr,
+static ClauseRef
+first_clause_guarded(Word argv, gen_t generation,
 		     Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   ClauseIndex *cip;
   hash_hints hints;
-  gen_t generation = generationFrame(fr);
 
   if ( def->functor->arity == 0 )
     goto simple;			/* TBD: alt supervisor */
@@ -383,7 +383,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
       hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(chp, generation,
-				  best_index->is_list PASS_LD);
+				  best_index, argv PASS_LD);
     }
   }
 
@@ -406,7 +406,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
-      return nextClauseFromBucket(chp, generation, ci->is_list PASS_LD);
+      return nextClauseFromBucket(chp, generation, ci, argv PASS_LD);
     }
   }
 
@@ -433,7 +433,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
 
   acquire_def(def);
-  cref = first_clause_guarded(argv, fr, def, chp PASS_LD);
+  cref = first_clause_guarded(argv, generationFrame(fr), def, chp PASS_LD);
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
 					 generationFrame(fr))));
