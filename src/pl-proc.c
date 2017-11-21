@@ -91,8 +91,8 @@ lookupProcedure(functor_t f, Module m)
   def->functor = valueFunctor(f);
   def->module  = m;
   def->shared  = 1;
-  def->args    = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
-  memset(def->args, 0, sizeof(arg_info)*def->functor->arity);
+  def->impl.any.args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
+  memset(def->impl.any.args, 0, sizeof(arg_info)*def->functor->arity);
   resetProcedure(proc, TRUE);
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));
@@ -159,7 +159,7 @@ destroyDefinition(Definition def)
   freeCodesDefinition(def, FALSE);
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
-  { freeHeap(def->args, sizeof(arg_info)*def->functor->arity);
+  { freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
     removeClausesPredicate(def, 0, FALSE);
     DEBUG(MSG_CGC_PRED,
 	  Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
@@ -263,7 +263,7 @@ resetProcedure(Procedure proc, bool isnew)
 { Definition def = proc->definition;
 
   if ( (true(def, P_DYNAMIC) /*&& def->references == 0*/) ||
-       !def->impl.any )
+       !def->impl.any.defined )
     isnew = TRUE;
 
   def->flags ^= def->flags & ~(SPY_ME|P_DIRTYREG);
@@ -1260,7 +1260,7 @@ abolishProcedure(Procedure proc, Module module)
 
     memset(ndef, 0, sizeof(*ndef));
     ndef->functor            = def->functor; /* should be merged with */
-    ndef->args		     = allocHeapOrHalt(sizeof(*ndef->args)*
+    ndef->impl.any.args	     = allocHeapOrHalt(sizeof(*ndef->impl.any.args)*
 					       def->functor->arity);
     ndef->module             = module;	     /* lookupProcedure()!! */
     ndef->codes		     = SUPERVISOR(virgin);
@@ -1644,7 +1644,7 @@ setMetapredicateMask(Definition def, arg_info *args)
 { size_t i, arity = def->functor->arity;
 
   for(i=0; i<arity; i++)
-    def->args[i].meta = args[i].meta;
+    def->impl.any.args[i].meta = args[i].meta;
 
   if ( isTransparentMetamask(def, args) )
     set(def, P_TRANSPARENT);
@@ -1737,7 +1737,7 @@ PRED_IMPL("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
 static int
 unify_meta_argument(term_t head, Definition def, int i ARG_LD)
 { term_t arg = PL_new_term_ref();
-  int m = def->args[i].meta;
+  int m = def->impl.any.args[i].meta;
 
   _PL_get_arg(i+1, head, arg);
   if ( m < 10 )
@@ -1828,7 +1828,7 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 	return FALSE;
     }
 
-    def->args[i].meta = spec;
+    def->impl.any.args[i].meta = spec;
     mask |= spec<<(i*4);
     if ( MA_NEEDS_TRANSPARENT(spec) )
       transparent = TRUE;
@@ -1849,7 +1849,7 @@ clear_meta_declaration(Definition def)
 { int i;
 
   for(i=0; i<def->functor->arity; i++)
-    def->args[i].meta = MA_ANY;
+    def->impl.any.args[i].meta = MA_ANY;
 
   clear(def, P_META|P_TRANSPARENT);
 }

@@ -3666,7 +3666,7 @@ takes care of reconsult, redefinition, etc.
     }
 
     if ( proc != of->current_procedure )
-    { if ( def->impl.any )	/* i.e. is (might be) defined */
+    { if ( def->impl.any.defined )
       { if ( !redefineProcedure(proc, of, 0) )
 	{ freeClause(clause);
 	  return NULL;
@@ -5810,7 +5810,7 @@ wouldBindToDefinition(Definition from, Definition to)
     { if ( def == to )			/* found it */
 	succeed;
 
-      if ( def->impl.any ||		/* defined and not the same */
+      if ( def->impl.any.defined ||	/* defined and not the same */
 	   true(def, PROC_DEFINED) ||
 	   getUnknownModule(def->module) == UNKNOWN_FAIL )
 	fail;

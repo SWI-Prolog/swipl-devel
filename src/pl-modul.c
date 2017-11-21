@@ -982,7 +982,7 @@ find_modules_with_defs(Module m, int count, defm_target targets[],
   { Procedure proc;
 
     if ( (proc = isCurrentProcedure(targets[i].functor, m)) &&
-	 proc->definition->impl.any )
+	 proc->definition->impl.any.defined )
     { if ( !found )
       { found = TRUE;
 	PL_put_variable(plist);

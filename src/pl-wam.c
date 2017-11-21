@@ -530,7 +530,7 @@ static void
 discardForeignFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
   int argc       = (int)def->functor->arity;
-  Func function  = def->impl.function;
+  Func function  = def->impl.foreign.function;
   struct foreign_context context;
   fid_t fid;
 
@@ -1083,7 +1083,7 @@ callBreakHook(LocalFrame frame, Choice bfr,
   }
   proc = _PL_predicate("break_hook", 6, "prolog",
 		       &GD->procedures.prolog_break_hook6);
-  if ( !getProcDefinition(proc)->impl.any )
+  if ( !getProcDefinition(proc)->impl.any.defined )
     goto default_action;
 
   if ( strchr(codeTable[op].argtype, CA1_FVAR) )
@@ -1364,7 +1364,7 @@ getProcDefinitionForThread(Definition def, unsigned int tid)
 
 static inline Definition
 getProcDefinedDefinition(Definition def ARG_LD)
-{ if ( !def->impl.any && false(def, PROC_DEFINED) )
+{ if ( !def->impl.any.defined && false(def, PROC_DEFINED) )
     def = trapUndefined(def PASS_LD);
 
 #ifdef O_PLMT

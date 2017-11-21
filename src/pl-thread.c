@@ -6192,10 +6192,11 @@ free_ldef_vector(LocalDefinitions ldefs)
 Definition
 localiseDefinition(Definition def)
 { Definition local = allocHeapOrHalt(sizeof(*local));
+  size_t bytes = sizeof(arg_info)*def->functor->arity;
 
   *local = *def;
-  local->args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
-  memcpy(local->args, def->args, sizeof(arg_info)*def->functor->arity);
+  local->impl.any.args = allocHeapOrHalt(bytes);
+  memcpy(local->impl.any.args, def->impl.any.args, bytes);
   clear(local, P_THREAD_LOCAL|P_DIRTYREG);	/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;

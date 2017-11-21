@@ -1190,7 +1190,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
 		       &GD->procedures.prolog_trace_interception4);
-  if ( !getProcDefinition(proc)->impl.any )
+  if ( !getProcDefinition(proc)->impl.any.defined )
     return rval;
 
   if ( !GD->bootsession && GD->debug_level == 0 )
@@ -2054,7 +2054,7 @@ pl_prolog_current_frame(term_t frame)
 { GET_LD
   LocalFrame fr = environment_frame;
 
-  if ( fr->predicate->impl.function == pl_prolog_current_frame )
+  if ( fr->predicate->impl.foreign.function == pl_prolog_current_frame )
     fr = parentFrame(fr);		/* thats me! */
 
   return PL_unify_frame(frame, fr);
@@ -2513,7 +2513,7 @@ sendDelayedEvents(int noerror)
 
 int
 PL_call_event_hook(pl_event_type ev, ...)
-{ if ( PROCEDURE_event_hook1->definition->impl.any &&
+{ if ( PROCEDURE_event_hook1->definition->impl.any.defined &&
        GD->cleaning != CLN_DATA )
   { va_list args;
     int rc;

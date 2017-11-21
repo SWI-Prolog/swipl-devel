@@ -4747,7 +4747,7 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 
   comment_hook = _PL_predicate("comment_hook", 3, "prolog",
 			       &GD->procedures.comment_hook3);
-  process_comment = (comment_hook->definition->impl.any != NULL);
+  process_comment = (comment_hook->definition->impl.any.defined != NULL);
 
   if ( !(fid=PL_open_foreign_frame()) )
     return FALSE;

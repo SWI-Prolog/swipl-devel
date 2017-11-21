@@ -1244,8 +1244,26 @@ struct clause
   code			codes[1];	/* VM codes of clause */
 };
 
+typedef struct arg_info
+{ float		speedup;		/* Computed speedup */
+  unsigned	ln_buckets : 5;		/* lg2(bucket count) */
+  unsigned	assessed   : 1;		/* Value was assessed */
+  unsigned	meta	   : 4;		/* Meta-argument info */
+} arg_info;
+
+typedef struct impl_any
+{ arg_info     *args;			/* Meta and indexing info */
+  void         *defined;		/* One of function or first_clause */
+} impl_any, *ImplAny;
+
+typedef struct impl_foreign
+{ arg_info     *args;			/* Meta and indexing info */
+  Func		function;		/* Function pointer */
+} impl_foreign, *ImplForeign;
+
 typedef struct clause_list
-{ ClauseRef	first_clause;		/* clause list of procedure */
+{ arg_info     *args;			/* Meta and indexing info */
+  ClauseRef	first_clause;		/* clause list of procedure */
   ClauseRef	last_clause;		/* last clause of list */
   ClauseIndex  *clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
@@ -1351,13 +1369,6 @@ struct clause_index
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
-typedef struct arg_info
-{ float		speedup;		/* Computed speedup */
-  unsigned	ln_buckets : 5;		/* lg2(bucket count) */
-  unsigned	assessed   : 1;		/* Value was assessed */
-  unsigned	meta	   : 4;		/* Meta-argument info */
-} arg_info;
-
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
 typedef struct local_definitions
@@ -1370,12 +1381,11 @@ struct definition
   Module	module;			/* module of the predicate */
   Code		codes;			/* Executable code */
   union
-  { void *	any;			/* has some value */
+  { impl_any	any;			/* has some value */
     clause_list	clauses;		/* (Indexed) list of clauses */
-    Func	function;		/* function pointer of procedure */
+    impl_foreign foreign;		/* Foreign implementation */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-  arg_info     *args;			/* Meta and indexing info */
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */

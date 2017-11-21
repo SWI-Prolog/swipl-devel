@@ -334,7 +334,7 @@ registerBuiltins(const PL_extension *f)
       if ( f->flags & PL_FA_CREF )	       set(def, P_FOREIGN_CREF);
       if ( f->flags & PL_FA_ISO )	       set(def, P_ISO);
 
-      def->impl.function = f->function;
+      def->impl.foreign.function = f->function;
       createForeignSupervisor(def, f->function);
     } else
     { assert(0);

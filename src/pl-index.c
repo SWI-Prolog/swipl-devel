@@ -1035,7 +1035,7 @@ clearTriedIndexes(Definition def)
   int i;
 
   for(i=0; i<arity; i++)
-  { arg_info *ainfo = &def->args[i];
+  { arg_info *ainfo = &def->impl.clauses.args[i];
 
     ainfo->assessed = FALSE;
   }
@@ -1881,8 +1881,8 @@ best_hash_assessment(const void *p1, const void *p2, void *ctx)
 { Definition def = ctx;
   const unsigned short *a1 = p1;
   const unsigned short *a2 = p2;
-  const arg_info *i1 = &def->args[*a1];
-  const arg_info *i2 = &def->args[*a2];
+  const arg_info *i1 = &def->impl.clauses.args[*a1];
+  const arg_info *i2 = &def->impl.clauses.args[*a2];
 
 
   return i1->speedup - i2->speedup > 0 ? -1 :
@@ -2165,7 +2165,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   for(i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
 
-    if ( !def->args[arg].assessed )
+    if ( !def->impl.clauses.args[arg].assessed )
     { ia[0] = arg+1;
       a = alloc_assessment(&aset, ia);
     }
@@ -2175,7 +2175,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   { assess_scan_clauses(def, aset.assessments, aset.count);
 
     for(i=0, a=aset.assessments; i<aset.count; i++, a++)
-    { arg_info *ainfo = &def->args[a->args[0]-1];
+    { arg_info *ainfo = &def->impl.clauses.args[a->args[0]-1];
 
       if ( assess_remove_duplicates(a, def->impl.clauses.number_of_clauses) )
       { DEBUG(MSG_JIT,
@@ -2205,7 +2205,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 					/* Step 4: find the best (single) arg */
   for(i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
-    arg_info *ainfo = &def->args[arg];
+    arg_info *ainfo = &def->impl.clauses.args[arg];
 
     if ( ainfo->speedup > best_speedup )
     { best = arg;
@@ -2219,7 +2219,8 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 
     sort_assessments(def, instantiated, ninstantiated);
     for( ok=0;
-	 ok<ninstantiated && def->args[instantiated[ok]].speedup > MIN_SPEEDUP;
+	 ok<ninstantiated &&
+	 def->impl.clauses.args[instantiated[ok]].speedup > MIN_SPEEDUP;
 	 ok++ )
       ;
 
@@ -2261,7 +2262,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   }
 
   if ( best >= 0 && (!ci || best_speedup > ci->speedup) )
-  { arg_info *ainfo = &def->args[best];
+  { arg_info *ainfo = &def->impl.clauses.args[best];
 
     memset(hints, 0, sizeof(*hints));
     hints->args[0]    = best+1;

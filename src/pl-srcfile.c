@@ -1115,11 +1115,11 @@ setMetapredicateSource(SourceFile sf, Procedure proc,
 
 static int
 equal_meta(Definition def, const arg_info *args)
-{ if ( def->args && args )
+{ if ( def->impl.any.args && args )
   { size_t i, arity = def->functor->arity;
 
     for(i=0; i<arity; i++)
-    { if ( def->args[i].meta != args[i].meta )
+    { if ( def->impl.any.args[i].meta != args[i].meta )
 	return FALSE;
     }
 

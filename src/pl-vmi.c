@@ -1799,7 +1799,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
   { Procedure proc = (Procedure) *PC++;
 
-    if ( !proc->definition->impl.any &&	/* see (*) */
+    if ( !proc->definition->impl.any.defined &&	/* see (*) */
 	 false(proc->definition, PROC_DEFINED) )
     { PC--;
       VMI_GOTO(I_CALL);
@@ -4928,7 +4928,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
 
 mcall_cont:
   setNextFrameFlags(NFR, FR);
-  if ( !DEF->impl.any && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     NFR->predicate      = DEF;		/* TBD */

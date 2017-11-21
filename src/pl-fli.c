@@ -4243,16 +4243,16 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
     return NULL;
   }
   def = proc->definition;
-  if ( def->module != m || def->impl.any )
+  if ( def->module != m || def->impl.any.defined )
   { DEBUG(MSG_PROC, Sdprintf("Abolish %s from %s\n",
 			     procedureName(proc), PL_atom_chars(m->name)));
     abolishProcedure(proc, m);
     def = proc->definition;
   }
 
-  if ( def->impl.any )
-    PL_linger(def->impl.any);
-  def->impl.function = f;
+  if ( def->impl.any.defined )
+    PL_linger(def->impl.any.defined);	/* Dubious: what if a clause list? */
+  def->impl.foreign.function = f;
   def->flags &= ~(P_DYNAMIC|P_THREAD_LOCAL|P_TRANSPARENT|P_NONDET|P_VARARG);
   def->flags |= (P_FOREIGN|TRACE_ME);
 
