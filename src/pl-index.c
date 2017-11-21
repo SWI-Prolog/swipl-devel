@@ -67,16 +67,17 @@ typedef struct hash_hints
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int		bestHash(Word av, Definition def, ClauseIndex ci,
-				 hash_hints *hints ARG_LD);
-static ClauseIndex	hashDefinition(Definition def, hash_hints *h);
-static void		replaceIndex(Definition def,
-				     ClauseIndex *cip, ClauseIndex ci);
-static void		deleteIndexP(Definition def, ClauseIndex *cip);
-static void		deleteIndex(Definition def, ClauseIndex ci);
-static void		insertIndex(Definition def, ClauseIndex ci);
-static void		setClauseChoice(ClauseChoice chp, ClauseRef cref,
-					gen_t generation ARG_LD);
+static int	bestHash(Word av, Definition def, ClauseIndex ci,
+			 hash_hints *hints ARG_LD);
+static ClauseIndex hashDefinition(Definition def, hash_hints *h);
+static void	replaceIndex(Definition def, ClauseList cl,
+			     ClauseIndex *cip, ClauseIndex ci);
+static void	deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip);
+static void	deleteIndex(Definition def, ClauseList cl, ClauseIndex ci);
+static void	insertIndex(Definition def, ClauseIndex ci);
+static void	setClauseChoice(ClauseChoice chp, ClauseRef cref,
+				gen_t generation ARG_LD);
+static void	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -574,10 +575,10 @@ newClauseListRef(word key)
 static void
 addClauseList(ClauseRef cref, Clause clause, ClauseRef where)
 { ClauseList cl = &cref->value.clauses;
-  ClauseRef cr = newClauseRef(clause, 0); /* TBD: key? */
+  ClauseRef cr = newClauseRef(clause, 0);	/* TBD: key? */
 
   if ( cl->first_clause )
-  { if ( where != CL_START )
+  { if ( where != CL_START )			/* TBD: where is a clause */
     { cl->last_clause->next = cr;
       cl->last_clause = cr;
     } else
@@ -592,6 +593,28 @@ addClauseList(ClauseRef cref, Clause clause, ClauseRef where)
 
   /* TBD: Add to sub-indexes */
 }
+
+
+static void
+addClauseToListIndexes(Definition def, ClauseList cl, Clause clause,
+		       ClauseRef where)
+{ ClauseIndex *cip;
+
+  if ( (cip=cl->clause_indexes) )
+  { for(; *cip; cip++)
+    { ClauseIndex ci = *cip;
+
+      if ( ISDEADCI(ci) )
+	continue;
+
+      if ( ci->size >= ci->resize_above )
+	deleteIndexP(def, cl, cip);
+      else
+	addClauseToIndex(ci, clause, where);
+    }
+  }
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -942,9 +965,9 @@ See also deleteActiveClauseFromIndexes() comment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-cleanClauseIndex(Definition def, ClauseIndex ci, gen_t active)
-{ if ( def->impl.clauses.number_of_clauses < ci->resize_below )
-  { deleteIndex(def, ci);
+cleanClauseIndex(Definition def, ClauseList cl, ClauseIndex ci, gen_t active)
+{ if ( cl->number_of_clauses < ci->resize_below )
+  { deleteIndex(def, cl, ci);
   } else
   { if ( ci->dirty )
     { ClauseBucket ch = ci->entries;
@@ -970,16 +993,16 @@ references erased before generation `active` from the indexes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-cleanClauseIndexes(Definition def, gen_t active)
+cleanClauseIndexes(Definition def, ClauseList cl, gen_t active)
 { ClauseIndex *cip;
 
-  if ( (cip=def->impl.clauses.clause_indexes) )
+  if ( (cip=cl->clause_indexes) )
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
       if ( ISDEADCI(ci) )
 	continue;
-      cleanClauseIndex(def, ci, active);
+      cleanClauseIndex(def, cl, ci, active);
     }
   }
 }
@@ -1199,12 +1222,12 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 	{ DEBUG(MSG_JIT_DELINDEX,
 		Sdprintf("Deleted index %d from %s (shrunk too much)\n",
 			 (int)ci->args[0], predicateName(def)));
-	  deleteIndexP(def, cip);
+	  deleteIndexP(def, &def->impl.clauses, cip);
 	} else
 	{ deleteActiveClauseFromIndex(ci, cl);
 	}
       } else
-      { deleteIndexP(def, cip);
+      { deleteIndexP(def, &def->impl.clauses, cip);
       }
     }
   }
@@ -1268,28 +1291,12 @@ the definition locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-addClauseToIndexes(Definition def, Clause cl, ClauseRef where)
-{ ClauseIndex *cip;
-  int rc = TRUE;
-
-  if ( (cip=def->impl.clauses.clause_indexes) )
-  { for(; *cip; cip++)
-    { ClauseIndex ci = *cip;
-
-      if ( ISDEADCI(ci) )
-	continue;
-
-      if ( ci->size >= ci->resize_above )
-	deleteIndexP(def, cip);
-      else
-	addClauseToIndex(ci, cl, where);
-    }
-  }
-
+addClauseToIndexes(Definition def, Clause clause, ClauseRef where)
+{ addClauseToListIndexes(def, &def->impl.clauses, clause, where);
   reconsider_index(def);
 
   DEBUG(CHK_SECURE, checkDefinition(def));
-  return rc;
+  return TRUE;
 }
 
 
@@ -1383,7 +1390,7 @@ hashDefinition(Definition def, hash_hints *hints)
 	continue;
 
       if ( memcmp(cio->args, hints->args, sizeof(ci->args)) == 0 )
-      { replaceIndex(def, cip, ci);
+      { replaceIndex(def, &def->impl.clauses, cip, ci);
 	goto out;
       }
     }
@@ -1495,10 +1502,11 @@ unalloc_index_array(void *p)
 }
 
 static void
-setIndexes(Definition def, ClauseIndex *cip)
-{ ClauseIndex *cipo = def->impl.clauses.clause_indexes;
+setIndexes(Definition def, ClauseList cl, ClauseIndex *cip)
+{ ClauseIndex *cipo = cl->clause_indexes;
 
-  def->impl.clauses.clause_indexes = cip;
+  MemoryBarrier();
+  cl->clause_indexes = cip;
   if ( cipo )
     linger(&def->lingering, unalloc_index_array, cipo);
 }
@@ -1512,7 +1520,7 @@ unalloc_ci(void *p)
 }
 
 static void				/* definition must be locked */
-replaceIndex(Definition def, ClauseIndex *cip, ClauseIndex ci)
+replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
 { ClauseIndex old = *cip;
 
   *cip = ci;
@@ -1524,28 +1532,28 @@ replaceIndex(Definition def, ClauseIndex *cip, ClauseIndex ci)
   if ( !ISDEADCI(old) )
     linger(&def->lingering, unalloc_ci, old);
 
-  if ( !isSortedIndexes(def->impl.clauses.clause_indexes) )
-  { cip = copyIndex(def->impl.clauses.clause_indexes, 0);
+  if ( !isSortedIndexes(cl->clause_indexes) )
+  { cip = copyIndex(cl->clause_indexes, 0);
     sortIndexes(cip);
-    setIndexes(def, cip);
+    setIndexes(def, cl, cip);
   }
 }
 
 
 static void
-deleteIndexP(Definition def, ClauseIndex *cip)
-{ replaceIndex(def, cip, DEAD_INDEX);
+deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip)
+{ replaceIndex(def, cl, cip, DEAD_INDEX);
 }
 
 
 static void
-deleteIndex(Definition def, ClauseIndex ci)
+deleteIndex(Definition def, ClauseList cl, ClauseIndex ci)
 { ClauseIndex *cip;
 
   if ( (cip=def->impl.clauses.clause_indexes) )
   { for(; *cip; cip++)
     { if ( *cip == ci )
-      { deleteIndexP(def, cip);
+      { deleteIndexP(def, &def->impl.clauses, cip);
 	return;
       }
     }
@@ -1580,7 +1588,7 @@ insertIndex(Definition def, ClauseIndex ci)
 	*cip = ci;
     }
     sortIndexes(ncip);
-    setIndexes(def, ncip);
+    setIndexes(def, &def->impl.clauses, ncip);
   } else
   { ClauseIndex *cip = allocHeapOrHalt(2*sizeof(*cip));
 
