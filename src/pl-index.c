@@ -69,12 +69,13 @@ typedef struct hash_hints
 
 static int	bestHash(Word av, size_t ac, Definition def, float min_speedup,
 			 hash_hints *hints ARG_LD);
-static ClauseIndex hashDefinition(Definition def, hash_hints *h);
+static ClauseIndex hashDefinition(Definition def, ClauseList clist,
+				  hash_hints *h);
 static void	replaceIndex(Definition def, ClauseList cl,
 			     ClauseIndex *cip, ClauseIndex ci);
 static void	deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip);
 static void	deleteIndex(Definition def, ClauseList cl, ClauseIndex ci);
-static void	insertIndex(Definition def, ClauseIndex ci);
+static void	insertIndex(Definition def, ClauseList clist, ClauseIndex ci);
 static void	setClauseChoice(ClauseChoice chp, ClauseRef cref,
 				gen_t generation ARG_LD);
 static void	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
@@ -395,7 +396,7 @@ first_clause_guarded(Word argv, size_t argc, gen_t generation,
 	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
 				  iargsName(hints.args, NULL)));
 
-	  if ( (ci=hashDefinition(def, &hints)) )
+	  if ( (ci=hashDefinition(def, &def->impl.clauses, &hints)) )
 	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
 	    assert(chp->key);
 	    best_index = ci;
@@ -423,7 +424,7 @@ first_clause_guarded(Word argv, size_t argc, gen_t generation,
        bestHash(argv, argc, def, 0.0, &hints PASS_LD) )
   { ClauseIndex ci;
 
-    if ( (ci=hashDefinition(def, &hints)) )
+    if ( (ci=hashDefinition(def, &def->impl.clauses, &hints)) )
     { int hi;
 
       chp->key = indexKeyFromArgv(ci, argv PASS_LD);
@@ -1395,7 +1396,7 @@ the new index to the indexes of the predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseIndex
-hashDefinition(Definition def, hash_hints *hints)
+hashDefinition(Definition def, ClauseList clist, hash_hints *hints)
 { GET_LD
   ClauseRef cref;
   ClauseIndex ci;
@@ -1412,8 +1413,8 @@ hashDefinition(Definition def, hash_hints *hints)
     ci = newClauseIndexTable(hints->args, hints);
 
     acquire_def(def);
-    first = def->impl.clauses.first_clause;
-    last  = def->impl.clauses.last_clause;
+    first = clist->first_clause;
+    last  = clist->last_clause;
 
     for(cref = first; cref; cref = cref->next)
     { if ( false(cref->value.clause, CL_ERASED) )
@@ -1422,8 +1423,8 @@ hashDefinition(Definition def, hash_hints *hints)
     release_def(def);
 
     LOCKDEF(def);
-    if ( first == def->impl.clauses.first_clause &&
-	 last  == def->impl.clauses.last_clause )
+    if ( first == clist->first_clause &&
+	 last  == clist->last_clause )
       break;
     UNLOCKDEF(def);
     unallocClauseIndexTable(ci);
@@ -1432,7 +1433,7 @@ hashDefinition(Definition def, hash_hints *hints)
   ci->resize_above = ci->size*2;
   ci->resize_below = ci->size/4;
 
-  if ( (cip=def->impl.clauses.clause_indexes) )
+  if ( (cip=clist->clause_indexes) )
   { for(; *cip; cip++)
     { ClauseIndex cio = *cip;
 
@@ -1440,13 +1441,13 @@ hashDefinition(Definition def, hash_hints *hints)
 	continue;
 
       if ( memcmp(cio->args, hints->args, sizeof(ci->args)) == 0 )
-      { replaceIndex(def, &def->impl.clauses, cip, ci);
+      { replaceIndex(def, clist, cip, ci);
 	goto out;
       }
     }
   }
 
-  insertIndex(def, ci);
+  insertIndex(def, clist, ci);
 
 out:
   UNLOCKDEF(def);
@@ -1614,10 +1615,10 @@ deleteIndex(Definition def, ClauseList cl, ClauseIndex ci)
 
 
 static void
-insertIndex(Definition def, ClauseIndex ci)
+insertIndex(Definition def, ClauseList clist, ClauseIndex ci)
 { ClauseIndex *ocip;
 
-  if ( (ocip=def->impl.clauses.clause_indexes) )
+  if ( (ocip=clist->clause_indexes) )
   { ClauseIndex *cip = ocip;
     ClauseIndex *ncip;
     int dead = 0;
@@ -1638,13 +1639,13 @@ insertIndex(Definition def, ClauseIndex ci)
 	*cip = ci;
     }
     sortIndexes(ncip);
-    setIndexes(def, &def->impl.clauses, ncip);
+    setIndexes(def, clist, ncip);
   } else
   { ClauseIndex *cip = allocHeapOrHalt(2*sizeof(*cip));
 
     cip[0] = ci;
     cip[1] = NULL;
-    def->impl.clauses.clause_indexes = cip;
+    clist->clause_indexes = cip;
   }
 }
 
