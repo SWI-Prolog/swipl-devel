@@ -80,6 +80,9 @@ static void	setClauseChoice(ClauseChoice chp, ClauseRef cref,
 static void	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
 static void	addClauseToListIndexes(Definition def, ClauseList cl,
 				       Clause clause, ClauseRef where);
+static void	insertIntoSparseList(ClauseRef cref, int is_list,
+				     ClauseRef *headp, ClauseRef *tailp,
+				     ClauseRef where);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -587,7 +590,7 @@ addToClauseList(ClauseRef cref, Clause clause, ClauseRef where)
     { cr->next = cl->first_clause;
       cl->first_clause = cr;
     } else
-    { assert(0);				/* TBD */
+    { insertIntoSparseList(cr, FALSE, &cl->first_clause, &cl->last_clause, where);
     }
     cl->number_of_clauses++;
   } else
@@ -2262,7 +2265,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     hints->args[0]    = best+1;
     hints->ln_buckets = ainfo->ln_buckets;
     hints->speedup    = ainfo->speedup;
-    hints->list       = TRUE;
+//    hints->list       = TRUE;
 
     return TRUE;
   }
