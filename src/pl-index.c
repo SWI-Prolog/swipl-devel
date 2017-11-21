@@ -83,6 +83,9 @@ static void	addClauseToListIndexes(Definition def, ClauseList cl,
 static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef *headp, ClauseRef *tailp,
 				     ClauseRef where);
+static ClauseRef first_clause_guarded(Word argv, size_t argc, gen_t generation,
+				      ClauseList clist, Definition def,
+				      ClauseChoice chp ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -192,13 +195,16 @@ TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-nextClauseFromBucket(ClauseChoice chp, gen_t generation,
+nextClauseFromBucket(Definition def,
+		     ClauseChoice chp, gen_t generation,
 		     ClauseIndex ci, Word argv ARG_LD)
 { ClauseRef cref;
   word key = chp->key;
 
   if ( ci->is_list )
   { DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
+
+    assert(ci->args[1] == 0);
 
   non_indexed:
     for(cref = chp->cref; cref; cref = cref->next)
@@ -207,6 +213,22 @@ nextClauseFromBucket(ClauseChoice chp, gen_t generation,
 	ClauseRef cr;
 
 	DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
+
+	if ( isFunctor(cref->d.key) )
+	{ Word a = argv+ci->args[0]-1;
+	  Functor at;
+	  size_t argc;
+
+	  deRef(a);
+	  assert(isTerm(*a));
+	  at = valueTerm(*a);
+	  argv = at->arguments;
+	  argc = arityFunctor(at->definition);
+
+	  Sdprintf("Recursive index for %s\n", keyName(cref->d.key));
+	  return first_clause_guarded(argv, argc, generation, cl,
+				      def, chp PASS_LD);
+	}
 
 	for(cr=cl->first_clause; cr; cr=cr->next)
 	{ if ( visibleClauseCNT(cr->value.clause, generation) )
@@ -330,14 +352,13 @@ TBD:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-first_clause_guarded(Word argv, gen_t generation,
-		     Definition def, ClauseChoice chp ARG_LD)
+first_clause_guarded(Word argv, size_t argc, gen_t generation,
+		     ClauseList clist, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   ClauseIndex *cip;
-  ClauseList clist = &def->impl.clauses;
   hash_hints hints;
 
-  if ( def->functor->arity == 0 )
+  if ( argc == 0 )
     goto simple;			/* TBD: alt supervisor */
 
   if ( (cip=clist->clause_indexes) )
@@ -367,7 +388,7 @@ first_clause_guarded(Word argv, gen_t generation,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL), predicateName(def)));
 
-	if ( bestHash(argv, def->functor->arity, def,
+	if ( bestHash(argv, argc, def,
 		      best_index->speedup, &hints PASS_LD) )
 	{ ClauseIndex ci;
 
@@ -384,7 +405,7 @@ first_clause_guarded(Word argv, gen_t generation,
 
       hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
-      return nextClauseFromBucket(chp, generation,
+      return nextClauseFromBucket(def, chp, generation,
 				  best_index, argv PASS_LD);
     }
   }
@@ -399,7 +420,7 @@ first_clause_guarded(Word argv, gen_t generation,
   }
 
   if ( !LD->gen_reload &&
-       bestHash(argv, def->functor->arity, def, 0.0, &hints PASS_LD) )
+       bestHash(argv, argc, def, 0.0, &hints PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(def, &hints)) )
@@ -409,7 +430,7 @@ first_clause_guarded(Word argv, gen_t generation,
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
-      return nextClauseFromBucket(chp, generation, ci, argv PASS_LD);
+      return nextClauseFromBucket(def, chp, generation, ci, argv PASS_LD);
     }
   }
 
@@ -436,7 +457,13 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
 
   acquire_def(def);
-  cref = first_clause_guarded(argv, generationFrame(fr), def, chp PASS_LD);
+  cref = first_clause_guarded(argv,
+			      def->functor->arity,
+			      generationFrame(fr),
+			      &def->impl.clauses,
+			      def,
+			      chp
+			      PASS_LD);
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
 					 generationFrame(fr))));
