@@ -80,7 +80,7 @@ static void	setClauseChoice(ClauseChoice chp, ClauseRef cref,
 static void	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
 static void	addClauseToListIndexes(Definition def, ClauseList cl,
 				       Clause clause, ClauseRef where);
-static void	insertIntoSparseList(ClauseRef cref, int is_list,
+static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef *headp, ClauseRef *tailp,
 				     ClauseRef where);
 
@@ -590,7 +590,7 @@ addToClauseList(ClauseRef cref, Clause clause, ClauseRef where)
     { cr->next = cl->first_clause;
       cl->first_clause = cr;
     } else
-    { insertIntoSparseList(cr, FALSE, &cl->first_clause, &cl->last_clause, where);
+    { insertIntoSparseList(cr, &cl->first_clause, &cl->last_clause, where);
     }
     cl->number_of_clauses++;
   } else
@@ -628,7 +628,7 @@ clauses.  Insert cref into this list.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-insertIntoSparseList(ClauseRef cref, int is_list,
+insertIntoSparseList(ClauseRef cref,
 		     ClauseRef *headp, ClauseRef *tailp,
 		     ClauseRef where)
 { if ( !(*headp) )
@@ -660,9 +660,6 @@ insertIntoSparseList(ClauseRef cref, int is_list,
 
 	return;
       }
-
-      if ( is_list )
-	assert(0); /* TODO: get working with deep-indexing */
 
       if ( pred_cref->value.clause == ci_cref->value.clause )
       { ci_prev = ci_cref;
@@ -746,7 +743,9 @@ addClauseBucket(ClauseBucket ch, Clause cl,
   { cr = newClauseRef(cl, key);
   }
 
-  insertIntoSparseList(cr, is_list, &ch->head, &ch->tail, where);
+  if ( is_list )
+    where = CL_START;		/* doesn't matter where we insert */
+  insertIntoSparseList(cr, &ch->head, &ch->tail, where);
 
   return key ? 1 : 0;
 }
