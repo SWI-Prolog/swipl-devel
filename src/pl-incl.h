@@ -1366,6 +1366,7 @@ struct clause_index
   unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
   unsigned	 is_list : 1;		/* Index with lists */
   float		 speedup;		/* Estimated speedup */
+  ClauseIndex	 parent;		/* Parent index */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
