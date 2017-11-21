@@ -675,6 +675,7 @@ COMMON(int)		notImplemented(char *name, int arity);
 COMMON(word)		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word)		setInteger(int *val, term_t old, term_t new);
 COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
+COMMON(const char *)	string_summary(word name, unsigned int maxlen);
 
 /* pl-wic.c */
 COMMON(bool)		loadWicFromStream(IOSTREAM *fd);
