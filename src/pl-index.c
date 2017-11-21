@@ -2238,6 +2238,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     hints->args[0]    = best+1;
     hints->ln_buckets = ainfo->ln_buckets;
     hints->speedup    = ainfo->speedup;
+    hints->list       = TRUE;
 
     return TRUE;
   }
