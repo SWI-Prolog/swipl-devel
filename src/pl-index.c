@@ -78,7 +78,8 @@ static void	insertIndex(Definition def, ClauseIndex ci);
 static void	setClauseChoice(ClauseChoice chp, ClauseRef cref,
 				gen_t generation ARG_LD);
 static void	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
-
+static void	addClauseToListIndexes(Definition def, ClauseList cl,
+				       Clause clause, ClauseRef where);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -573,17 +574,20 @@ newClauseListRef(word key)
 
 
 static void
-addClauseList(ClauseRef cref, Clause clause, ClauseRef where)
-{ ClauseList cl = &cref->value.clauses;
+addToClauseList(ClauseRef cref, Clause clause, ClauseRef where)
+{ Definition def = clause->predicate;
+  ClauseList cl = &cref->value.clauses;
   ClauseRef cr = newClauseRef(clause, 0);	/* TBD: key? */
 
   if ( cl->first_clause )
-  { if ( where != CL_START )			/* TBD: where is a clause */
+  { if ( where == CL_END )
     { cl->last_clause->next = cr;
       cl->last_clause = cr;
-    } else
+    } else if ( where == CL_START )
     { cr->next = cl->first_clause;
       cl->first_clause = cr;
+    } else
+    { assert(0);				/* TBD */
     }
     cl->number_of_clauses++;
   } else
@@ -591,7 +595,7 @@ addClauseList(ClauseRef cref, Clause clause, ClauseRef where)
     cl->number_of_clauses = 1;
   }
 
-  /* TBD: Add to sub-indexes */
+  addClauseToListIndexes(def, cl, clause, where);
 }
 
 
@@ -611,6 +615,56 @@ addClauseToListIndexes(Definition def, ClauseList cl, Clause clause,
 	deleteIndexP(def, cl, cip);
       else
 	addClauseToIndex(ci, clause, where);
+    }
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This linked list *headp *tailp is a sparse (filtered) list of the
+clauses.  Insert cref into this list.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+insertIntoSparseList(ClauseRef cref, int is_list,
+		     ClauseRef *headp, ClauseRef *tailp,
+		     ClauseRef where)
+{ if ( !(*headp) )
+  { *headp = *tailp = cref;
+  } else if ( where == CL_END )
+  { (*tailp)->next = cref;
+    *tailp = cref;
+  } else if ( where == CL_START )
+  { cref->next = *headp;
+    *headp = cref;
+  } else
+  { Clause clause = cref->value.clause;
+    ClauseRef pred_cref = clause->predicate->impl.clauses.first_clause;
+    ClauseRef ci_cref = *headp;
+    ClauseRef ci_prev = NULL;
+
+    for(; pred_cref; pred_cref=pred_cref->next)
+    { if ( pred_cref == where || ci_prev == *tailp )
+      { if ( ci_cref == *headp )
+	{ cref->next = *headp;
+	  *headp = cref;
+	} else if ( ci_prev == *tailp )
+	{ (*tailp)->next = cref;
+	  *tailp = cref;
+	} else
+	{ cref->next = ci_cref;
+	  ci_prev->next = cref;
+	}
+
+	return;
+      }
+
+      if ( is_list )
+	assert(0); /* TODO: get working with deep-indexing */
+
+      if ( pred_cref->value.clause == ci_cref->value.clause )
+      { ci_prev = ci_cref;
+	ci_cref = ci_cref->next;
+      }
     }
   }
 }
@@ -651,7 +705,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     if ( key )
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( cref->d.key == key )
-	{ addClauseList(cref, cl, where);
+	{ addToClauseList(cref, cl, where);
 	  DEBUG(MSG_INDEX_UPDATE,
 		Sdprintf("Adding to existing %s\n", keyName(key)));
 	  return 0;
@@ -663,7 +717,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( !cref->d.key )
 	  vars = &cref->value.clauses;
-	addClauseList(cref, cl, where);
+	addToClauseList(cref, cl, where);
       }
       if ( vars )
 	return 0;
@@ -673,7 +727,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
-      { addClauseList(cr, cref->value.clause, CL_END);
+      { addToClauseList(cr, cref->value.clause, CL_END);
 	if ( true(cref->value.clause, CL_ERASED) )	/* or do not add? */
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
@@ -684,50 +738,12 @@ addClauseBucket(ClauseBucket ch, Clause cl,
       if ( cr->value.clauses.erased_clauses )
 	ch->dirty++;
     }
-    addClauseList(cr, cl, where);
+    addToClauseList(cr, cl, where);
   } else
   { cr = newClauseRef(cl, key);
   }
 
-  if ( !ch->tail )
-  { ch->head = ch->tail = cr;
-  } else
-  { if ( where == CL_END )
-    { ch->tail->next = cr;
-      ch->tail = cr;
-    } else if ( where == CL_START )
-    { cr->next = ch->head;
-      ch->head = cr;
-    } else
-    { ClauseRef pred_cref = cl->predicate->impl.clauses.first_clause;
-      ClauseRef ci_cref = ch->head;
-      ClauseRef ci_prev = NULL;
-
-      for(; pred_cref; pred_cref=pred_cref->next)
-      { if ( pred_cref == where || ci_prev == ch->tail )
-        { if ( ci_cref == ch->head )
-          { cr->next = ch->head;
-            ch->head = cr;
-          } else if ( ci_prev == ch->tail )
-          { ch->tail->next = cr;
-            ch->tail = cr;
-          } else
-          { cr->next = ci_cref;
-            ci_prev->next = cr;
-          }
-          break;
-        }
-
-        if ( is_list )
-	  assert(0); /* TODO: get working with deep-indexing */
-
-        if ( pred_cref->value.clause == ci_cref->value.clause )
-        { ci_prev = ci_cref;
-          ci_cref = ci_cref->next;
-        }
-      }
-    }
-  }
+  insertIntoSparseList(cr, is_list, &ch->head, &ch->tail, where);
 
   return key ? 1 : 0;
 }
