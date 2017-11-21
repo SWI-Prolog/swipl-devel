@@ -67,7 +67,7 @@ typedef struct hash_hints
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int	bestHash(Word av, Definition def, float min_speedup,
+static int	bestHash(Word av, size_t ac, Definition def, float min_speedup,
 			 hash_hints *hints ARG_LD);
 static ClauseIndex hashDefinition(Definition def, hash_hints *h);
 static void	replaceIndex(Definition def, ClauseList cl,
@@ -367,7 +367,8 @@ first_clause_guarded(Word argv, gen_t generation,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL), predicateName(def)));
 
-	if ( bestHash(argv, def, best_index->speedup, &hints PASS_LD) )
+	if ( bestHash(argv, def->functor->arity, def,
+		      best_index->speedup, &hints PASS_LD) )
 	{ ClauseIndex ci;
 
 	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
@@ -397,7 +398,8 @@ first_clause_guarded(Word argv, gen_t generation,
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
-  if ( !LD->gen_reload && bestHash(argv, def, 0.0, &hints PASS_LD) )
+  if ( !LD->gen_reload &&
+       bestHash(argv, def->functor->arity, def, 0.0, &hints PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(def, &hints)) )
@@ -2145,21 +2147,21 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-bestHash(Word av, Definition def, float min_speedup, hash_hints *hints ARG_LD)
+bestHash(Word av, size_t ac, Definition def,
+	 float min_speedup, hash_hints *hints ARG_LD)
 { int i;
-  int arity = (int)def->functor->arity;
   assessment_set aset;
   hash_assessment *a;
   int best = -1;
   float best_speedup = 0.0;
   unsigned short ia[MAX_MULTI_INDEX] = {0};
-  unsigned short instantiated[arity];	/* GCC dynamic array */
+  unsigned short instantiated[ac];	/* TBD: remove GCC dynamic array */
   int ninstantiated = 0;
   ClauseList clist = &def->impl.clauses;
 
   init_assessment_set(&aset);
 					/* Step 1: find instantiated args */
-  for(i=0; i<arity; i++)
+  for(i=0; i<ac; i++)
   { if ( indexOfWord(av[i] PASS_LD) )
       instantiated[ninstantiated++] = i;
   }
@@ -2226,7 +2228,7 @@ bestHash(Word av, Definition def, float min_speedup, hash_hints *hints ARG_LD)
 	 ok++ )
       ;
 
-    if ( ok >= 2 && ++clist->jiti_tried <= arity )
+    if ( ok >= 2 && ++clist->jiti_tried <= ac )
     { hash_assessment *nbest;
 
       DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
