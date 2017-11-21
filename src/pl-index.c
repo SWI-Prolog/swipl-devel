@@ -205,6 +205,8 @@ nextClauseFromBucket(ClauseChoice chp, gen_t generation, int is_list ARG_LD)
       { ClauseList cl = &cref->value.clauses;
 	ClauseRef cr;
 
+	DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
+
 	for(cr=cl->first_clause; cr; cr=cr->next)
 	{ if ( visibleClauseCNT(cr->value.clause, generation) )
 	  { setClauseChoice(chp, cr->next, generation PASS_LD);

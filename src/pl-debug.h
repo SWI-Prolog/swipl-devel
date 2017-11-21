@@ -63,6 +63,7 @@
 #define MSG_UNLOAD		 21
 #define MSG_INDEX_FIND		 22
 #define MSG_INDEX_UPDATE	 23
+#define MSG_INDEX_DEEP		 24
 #define MSG_TRACE		 25
 
 #define MSG_QLF_INTEGER		 26
