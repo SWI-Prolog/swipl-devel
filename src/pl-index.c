@@ -77,8 +77,8 @@ typedef struct index_context
   int		arg[MAXINDEXDEPTH];	/* Keep track of argument position */
 } index_context, *IndexContext;
 
-static int	bestHash(Word av, size_t ac, Definition def, float min_speedup,
-			 hash_hints *hints ARG_LD);
+static int	bestHash(Word av, size_t ac, float min_speedup,
+			 hash_hints *hints, IndexContext ctx ARG_LD);
 static ClauseIndex hashDefinition(Definition def, ClauseList clist,
 				  hash_hints *h);
 static void	replaceIndex(Definition def, ClauseList cl,
@@ -399,8 +399,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 		       iargsName(best_index->args, NULL),
 		       predicateName(ctx->predicate)));
 
-	if ( bestHash(argv, argc, ctx->predicate,
-		      best_index->speedup, &hints PASS_LD) )
+	if ( bestHash(argv, argc, best_index->speedup, &hints, ctx PASS_LD) )
 	{ ClauseIndex ci;
 
 	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
@@ -431,7 +430,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   }
 
   if ( !LD->gen_reload &&
-       bestHash(argv, argc, ctx->predicate, 0.0, &hints PASS_LD) )
+       bestHash(argv, argc, 0.0, &hints, ctx PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(ctx->predicate, &ctx->predicate->impl.clauses, &hints)) )
@@ -1922,12 +1921,11 @@ alloc_assessment(assessment_set *as, unsigned short *ia)
 
 static int
 best_hash_assessment(const void *p1, const void *p2, void *ctx)
-{ Definition def = ctx;
+{ ClauseList clist = ctx;
   const unsigned short *a1 = p1;
   const unsigned short *a2 = p2;
-  const arg_info *i1 = &def->impl.clauses.args[*a1];
-  const arg_info *i2 = &def->impl.clauses.args[*a2];
-
+  const arg_info *i1 = &clist->args[*a1];
+  const arg_info *i2 = &clist->args[*a2];
 
   return i1->speedup - i2->speedup > 0 ? -1 :
 	 i1->speedup - i2->speedup < 0 ?  1 : 0;
@@ -1935,10 +1933,10 @@ best_hash_assessment(const void *p1, const void *p2, void *ctx)
 
 
 static void
-sort_assessments(Definition def,
+sort_assessments(ClauseList clist,
 		 unsigned short *instantiated, int ninstantiated)
 { sort_r(instantiated, ninstantiated, sizeof(*instantiated),
-	 best_hash_assessment, def);
+	 best_hash_assessment, clist);
 }
 
 
@@ -2082,10 +2080,10 @@ trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-assess_scan_clauses(Definition def,
-		    hash_assessment *assessments, int assess_count)
-{ ClauseList clist = &def->impl.clauses;
-  size_t arity = def->functor->arity;
+assess_scan_clauses(hash_assessment *assessments, int assess_count,
+		    IndexContext ctx)
+{ ClauseList clist = &ctx->predicate->impl.clauses;
+  size_t arity = ctx->predicate->functor->arity;
   hash_assessment *a;
   ClauseRef cref;
   int i;
@@ -2189,8 +2187,8 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-bestHash(Word av, size_t ac, Definition def,
-	 float min_speedup, hash_hints *hints ARG_LD)
+bestHash(Word av, size_t ac, float min_speedup, hash_hints *hints,
+	 IndexContext ctx ARG_LD)
 { int i;
   assessment_set aset;
   hash_assessment *a;
@@ -2199,7 +2197,7 @@ bestHash(Word av, size_t ac, Definition def,
   unsigned short ia[MAX_MULTI_INDEX] = {0};
   unsigned short instantiated[ac];	/* TBD: remove GCC dynamic array */
   int ninstantiated = 0;
-  ClauseList clist = &def->impl.clauses;
+  ClauseList clist = &ctx->predicate->impl.clauses;
 
   init_assessment_set(&aset);
 					/* Step 1: find instantiated args */
@@ -2218,7 +2216,7 @@ bestHash(Word av, size_t ac, Definition def,
   }
 
   if ( aset.count )			/* Step 3: assess them */
-  { assess_scan_clauses(def, aset.assessments, aset.count);
+  { assess_scan_clauses(aset.assessments, aset.count, ctx);
 
     for(i=0, a=aset.assessments; i<aset.count; i++, a++)
     { arg_info *ainfo = &clist->args[a->args[0]-1];
@@ -2226,7 +2224,8 @@ bestHash(Word av, size_t ac, Definition def,
       if ( assess_remove_duplicates(a, clist->number_of_clauses) )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
-		       iargsName(a->args, NULL), predicateName(def),
+		       iargsName(a->args, NULL),
+		       predicateName(ctx->predicate),
 		       a->speedup, a->stdev));
 
 	ainfo->speedup    = a->speedup;
@@ -2236,7 +2235,8 @@ bestHash(Word av, size_t ac, Definition def,
 	ainfo->ln_buckets = 0;
 
 	DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
-				iargsName(a->args, NULL), predicateName(def)));
+				iargsName(a->args, NULL),
+				predicateName(ctx->predicate)));
       }
 
       ainfo->assessed = TRUE;
@@ -2263,7 +2263,7 @@ bestHash(Word av, size_t ac, Definition def,
        (float)clist->number_of_clauses/best_speedup > 3 )
   { int ok, m, n;
 
-    sort_assessments(def, instantiated, ninstantiated);
+    sort_assessments(clist, instantiated, ninstantiated);
     for( ok=0;
 	 ok<ninstantiated &&
 	 clist->args[instantiated[ok]].speedup > MIN_SPEEDUP;
@@ -2275,7 +2275,7 @@ bestHash(Word av, size_t ac, Definition def,
 
       DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
 			      "; %d promising arguments\n",
-			      predicateName(def),
+			      predicateName(ctx->predicate),
 			      clist->number_of_clauses,
 			      best+1, best_speedup, ok));
 
@@ -2288,12 +2288,13 @@ bestHash(Word av, size_t ac, Definition def,
 	}
       }
 
-      assess_scan_clauses(def, aset.assessments, aset.count);
+      assess_scan_clauses(aset.assessments, aset.count, ctx);
       nbest = best_assessment(aset.assessments, aset.count,
 			      clist->number_of_clauses);
       if ( nbest && nbest->speedup > best_speedup*MIN_SPEEDUP )
       { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
-				predicateName(def), iargsName(nbest->args, NULL),
+				predicateName(ctx->predicate),
+				iargsName(nbest->args, NULL),
 				nbest->speedup));
 	memset(hints, 0, sizeof(*hints));
 	memcpy(hints->args, nbest->args, sizeof(nbest->args));
