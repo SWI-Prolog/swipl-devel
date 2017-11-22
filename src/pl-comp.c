@@ -4086,7 +4086,7 @@ position after skipping skip argument terms   by  inspecting the virtual
 machine code.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
-pl-index.c and arg1Key() below.
+pl-index.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline word
