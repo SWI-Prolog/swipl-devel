@@ -4098,7 +4098,9 @@ murmur_key(void *ptr, size_t n)
 
 int
 argKey(Code PC, int skip, word *key)
-{ if ( skip > 0 )
+{ word ikey;
+
+  if ( skip > 0 )
     PC = skipArgs(PC, skip);
 
   for(;;)
@@ -4126,29 +4128,33 @@ argKey(Code PC, int skip, word *key)
         succeed;
 #if SIZEOF_VOIDP == 4
       case H_INT64:			/* only on 32-bit hardware! */
-	*key = murmur_key(PC, 2*sizeof(*PC));
-	succeed;
+	ikey = murmur_key(PC, 2*sizeof(*PC));
+        goto nofunctor;
 #endif
       case H_INTEGER:
 #if SIZEOF_VOIDP == 4
       { int64_t val;
 	val = (int64_t)(intptr_t)*PC;
-	*key = murmur_key(&val, sizeof(val));
+	ikey = murmur_key(&val, sizeof(val));
       }
 #else
-	*key = murmur_key(PC, sizeof(*PC));
+	ikey = murmur_key(PC, sizeof(*PC));
 #endif
-        succeed;
+      nofunctor:
+	ikey &= ~((word)STG_GLOBAL);
+	if ( !ikey ) ikey = 1;
+	*key = ikey;
+	succeed;
       case H_FLOAT:
-	*key = murmur_key(PC, sizeof(double));
-        succeed;
+	ikey = murmur_key(PC, sizeof(double));
+        goto nofunctor;
       case H_STRING:
       case H_MPZ:
       { word m = *PC++;
 	size_t n = wsizeofInd(m);
 
-	*key = murmur_key(PC, n*sizeof(*PC));
-	succeed;
+	ikey = murmur_key(PC, n*sizeof(*PC));
+	goto nofunctor;
       }
       case H_FIRSTVAR:
       case H_VAR:
@@ -4169,6 +4175,8 @@ argKey(Code PC, int skip, word *key)
 	goto again;
 #endif
       default:
+	Sdprintf("Unexpected VM code %d at %p\n", c, PC);
+	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
         fail;
     }
