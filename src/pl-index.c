@@ -2118,6 +2118,8 @@ skipToTerm(Clause clause, const iarg_t *position)
       case H_RFUNCTOR:
       case H_RLIST:
 	break;
+      case H_VOID:			/* a variable, we stay here */
+	return pc;
       default:
 	assert(0);
     }
