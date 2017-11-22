@@ -79,8 +79,8 @@ typedef struct index_context
 
 static int	bestHash(Word av, size_t ac, float min_speedup,
 			 hash_hints *hints, IndexContext ctx ARG_LD);
-static ClauseIndex hashDefinition(Definition def, ClauseList clist,
-				  hash_hints *h);
+static ClauseIndex hashDefinition(ClauseList clist, hash_hints *h,
+				  IndexContext ctx);
 static void	replaceIndex(Definition def, ClauseList cl,
 			     ClauseIndex *cip, ClauseIndex ci);
 static void	deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip);
@@ -226,7 +226,8 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
 
 	if ( isFunctor(cref->d.key) )
-	{ Word a = argv+ci->args[0]-1;
+	{ int an = ci->args[0]-1;
+	  Word a = argv+an;
 	  Functor at;
 	  size_t argc;
 
@@ -235,6 +236,8 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	  at = valueTerm(*a);
 	  argv = at->arguments;
 	  argc = arityFunctor(at->definition);
+
+	  ctx->arg[ctx->depth++] = an;
 
 	  Sdprintf("Recursive index for %s\n", keyName(cref->d.key));
 	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
@@ -405,8 +408,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
 				  iargsName(hints.args, NULL)));
 
-	  if ( (ci=hashDefinition(ctx->predicate,
-				  &ctx->predicate->impl.clauses, &hints)) )
+	  if ( (ci=hashDefinition(clist, &hints, ctx)) )
 	  { ctx->chp->key = indexKeyFromArgv(ci, argv PASS_LD);
 	    assert(ctx->chp->key);
 	    best_index = ci;
@@ -433,7 +435,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
        bestHash(argv, argc, 0.0, &hints, ctx PASS_LD) )
   { ClauseIndex ci;
 
-    if ( (ci=hashDefinition(ctx->predicate, &ctx->predicate->impl.clauses, &hints)) )
+    if ( (ci=hashDefinition(clist, &hints, ctx)) )
     { int hi;
 
       ctx->chp->key = indexKeyFromArgv(ci, argv PASS_LD);
@@ -1409,14 +1411,14 @@ the new index to the indexes of the predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseIndex
-hashDefinition(Definition def, ClauseList clist, hash_hints *hints)
+hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
 { GET_LD
   ClauseRef cref;
   ClauseIndex ci;
   ClauseIndex *cip;
 
   DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %s, %d) (%s)\n",
-			  predicateName(def),
+			  predicateName(ctx->predicate),
 			  iargsName(hints->args, NULL), 2<<hints->ln_buckets,
 			  hints->list ? "lists" : "clauses"));
 
@@ -1425,7 +1427,7 @@ hashDefinition(Definition def, ClauseList clist, hash_hints *hints)
 
     ci = newClauseIndexTable(hints->args, hints);
 
-    acquire_def(def);
+    acquire_def(ctx->predicate);
     first = clist->first_clause;
     last  = clist->last_clause;
 
@@ -1433,13 +1435,13 @@ hashDefinition(Definition def, ClauseList clist, hash_hints *hints)
     { if ( false(cref->value.clause, CL_ERASED) )
 	addClauseToIndex(ci, cref->value.clause, CL_END);
     }
-    release_def(def);
+    release_def(ctx->predicate);
 
-    LOCKDEF(def);
+    LOCKDEF(ctx->predicate);
     if ( first == clist->first_clause &&
 	 last  == clist->last_clause )
       break;				/* no change.  We are ok */
-    UNLOCKDEF(def);
+    UNLOCKDEF(ctx->predicate);
     unallocClauseIndexTable(ci);
   }
 
@@ -1454,16 +1456,16 @@ hashDefinition(Definition def, ClauseList clist, hash_hints *hints)
 	continue;
 
       if ( memcmp(cio->args, hints->args, sizeof(ci->args)) == 0 )
-      { replaceIndex(def, clist, cip, ci);
+      { replaceIndex(ctx->predicate, clist, cip, ci);
 	goto out;
       }
     }
   }
 
-  insertIndex(def, clist, ci);
+  insertIndex(ctx->predicate, clist, ci);
 
 out:
-  UNLOCKDEF(def);
+  UNLOCKDEF(ctx->predicate);
 
   return ci;
 }
