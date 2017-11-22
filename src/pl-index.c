@@ -2118,10 +2118,24 @@ skipToTerm(Clause clause, const iarg_t *position)
       case H_RFUNCTOR:
       case H_RLIST:
 	break;
-      case H_VOID:			/* a variable, we stay here */
+#if defined(O_DEBUG) || defined(O_MAINTENANCE)
+      case H_FIRSTVAR:
+      case H_VAR:
+      case H_VOID:
+      case H_VOID_N:
+      case H_POP:
+      case I_EXITCATCH:
+      case I_EXITRESET:
+      case I_EXITFACT:
+      case I_EXIT:			/* fact */
+      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
 	return pc;
       default:
 	assert(0);
+#else
+      default:
+	return pc;
+#endif
     }
     pc = stepPC(pc);
   }
