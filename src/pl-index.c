@@ -2036,10 +2036,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
     a->list    = FALSE;
 
     if ( a->size == 1 )			/* Single value that is not compound */
-    {
-#ifdef O_DEEP_INDEX
-      if ( tagex(a->keys[0].key) != (TAG_ATOM|STG_GLOBAL) )
-#endif
+    { if ( !isFunctor(a->keys[0].key) )
 	return FALSE;
     }
 
@@ -2052,13 +2049,11 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 		 clause_count * SIZEOF_CREF_CLAUSE +
 		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
 
-#ifdef O_DEEP_INDEX
     if ( clause_count/a->size > 10 ||
 	 a->stdev > 3 )
     { a->list = TRUE;
       a->space += a->size * SIZEOF_CREF_LIST;
     }
-#endif
 
     if ( (float)a->var_count/(float)a->size > 0.1 )
     { a->speedup = 0.0;
@@ -2317,9 +2312,11 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup, hash_hints *hi
 		       a->speedup, a->stdev));
 
 	ainfo->speedup    = a->speedup;
+	ainfo->list       = a->list;
 	ainfo->ln_buckets = MSB(a->size);
       } else
       { ainfo->speedup    = 0.0;
+	ainfo->list       = FALSE;
 	ainfo->ln_buckets = 0;
 
 	DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
@@ -2403,7 +2400,7 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup, hash_hints *hi
     hints->args[0]    = best+1;
     hints->ln_buckets = ainfo->ln_buckets;
     hints->speedup    = ainfo->speedup;
-    hints->list       = TRUE;
+    hints->list       = ainfo->list;
 
     return TRUE;
   }
