@@ -2082,8 +2082,9 @@ trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-skipToTerm(IndexContext ctx, Code pc)
+skipToTerm(Clause clause, IndexContext ctx)
 { int i;
+  Code pc = clause->codes;
 
   for(i=0; i<ctx->depth; i++)
   { int an = ctx->arg[i];
@@ -2143,13 +2144,13 @@ assess_scan_clauses(hash_assessment *assessments, int assess_count,
 
   for(cref=clist->first_clause; cref; cref=cref->next)
   { Clause cl = cref->value.clause;
-    Code pc = cref->value.clause->codes;
+    Code pc;
     int carg = 0;
 
     if ( true(cl, CL_ERASED) )
       continue;
 
-    pc = skipToTerm(ctx, pc);
+    pc = skipToTerm(cref->value.clause, ctx);
 
     for(kpp=kp; kpp[0] >= 0; kpp++)
     { if ( kpp[0] > carg )
