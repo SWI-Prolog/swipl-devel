@@ -94,6 +94,8 @@ static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef where);
 static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 				      IndexContext ctx ARG_LD);
+static Code	skipToTerm(Clause clause, const iarg_t *position);
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -1199,7 +1201,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 static inline word
 indexKeyFromClause(ClauseIndex ci, Clause cl)
-{ Code PC = cl->codes;
+{ Code PC = skipToTerm(cl, ci->position);
 
   if ( likely(ci->args[1] == 0) )
   { int arg = ci->args[0] - 1;
