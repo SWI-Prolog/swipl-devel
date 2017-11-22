@@ -556,7 +556,7 @@ copytpos(iarg_t *to, const iarg_t *from)
 { iarg_t p;
 
   do
-  { *to = p = *from;
+  { *to++ = p = *from++;
   } while ( p != END_INDEX_POS );
 }
 
