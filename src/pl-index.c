@@ -2019,7 +2019,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       { float A0 = A;
 	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
-	if ( single && isFunctor(s->key) )
+	if ( single && isFunctor(o->key) )
 	{ Sdprintf("%s: %zd clauses\n", keyName(s->key), o->count);
 	  fc += o->count;
 	}
