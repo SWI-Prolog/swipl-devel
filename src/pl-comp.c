@@ -4158,6 +4158,7 @@ argKey(Code PC, int skip, word *key)
       case H_VAR:
       case H_VOID:
       case H_VOID_N:
+      case H_POP:
       case I_EXITCATCH:
       case I_EXITRESET:
       case I_EXITFACT:
