@@ -42,14 +42,19 @@
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  - MAXSEARCH
-  Maximum number of clauses we look ahead on indexed clauses for an
-  alternative clause. If the choice is committed this is lost effort, if
-  it reaches the end of the clause list without finding one the call is
-  deterministic.
+  - MAX_LOOKAHEAD
+    Maximum number of clauses we look ahead on indexed clauses for an
+    alternative clause. If the choice is committed this is lost effort,
+    if it reaches the end of the clause list without finding one the
+    call is deterministic.
+  - MIN_SPEEDUP
+    Do not create an index if the speedup is less
+  - MAX_VAR_FRAC
+    Do not create an index if the fraction of clauses with a variable
+    in the target position exceeds this threshold.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAXSEARCH      100
+#define MAX_LOOKAHEAD  100
 #define MIN_SPEEDUP    1.5
 #define MAX_VAR_FRAC   0.1
 
@@ -176,7 +181,7 @@ nextClauseArg1(ClauseChoice chp, gen_t generation ARG_LD)
   { if ( (!cref->d.key || key == cref->d.key) &&
 	 visibleClauseCNT(cref->value.clause, generation))
     { ClauseRef result = cref;
-      int maxsearch = MAXSEARCH;
+      int maxsearch = MAX_LOOKAHEAD;
 
       for( cref = cref->next; cref; cref = cref->next )
       { if ( ((!cref->d.key || key == cref->d.key) &&
@@ -274,7 +279,7 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
   { if ( (!cref->d.key || key == cref->d.key) &&
 	 visibleClauseCNT(cref->value.clause, ctx->generation))
     { ClauseRef result = cref;
-      int maxsearch = MAXSEARCH;
+      int maxsearch = MAX_LOOKAHEAD;
 
       for( cref = cref->next; cref; cref = cref->next )
       { if ( ((!cref->d.key || key == cref->d.key) &&
@@ -2015,8 +2020,8 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
       }
       c = s->key;
-      if ( tagex(s->key) == (TAG_ATOM|STG_GLOBAL) )
-	fc++;
+      if ( isFunctor(s->key) )
+	fc += o->count;
       *++o = *s;
     } else
     { o->count += s->count;
@@ -2030,7 +2035,6 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
   a->size        = i;
   a->funct_count = fc;
-
 					/* assess quality */
   if ( clause_count )
   { a->stdev   = (float)sqrt(Q/(float)i);
