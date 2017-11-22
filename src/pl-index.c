@@ -2081,6 +2081,33 @@ TBD: if some argument has too many   non-indexable  values we could stop
 trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static Code
+skipToTerm(IndexContext ctx, Code pc)
+{ int i;
+
+  for(i=0; i<ctx->depth; i++)
+  { int an = ctx->arg[i];
+    code c;
+
+    if ( an > 0 )
+      pc = skipArgs(pc, an);
+    c = decode(*pc);
+    switch(c)
+    { case H_FUNCTOR:
+      case H_LIST:
+      case H_RFUNCTOR:
+      case H_RLIST:
+	break;
+      default:
+	assert(0);
+    }
+    pc = stepPC(pc);
+  }
+
+  return pc;
+}
+
+
 static void
 assess_scan_clauses(hash_assessment *assessments, int assess_count,
 		    IndexContext ctx)
@@ -2121,6 +2148,8 @@ assess_scan_clauses(hash_assessment *assessments, int assess_count,
 
     if ( true(cl, CL_ERASED) )
       continue;
+
+    pc = skipToTerm(ctx, pc);
 
     for(kpp=kp; kpp[0] >= 0; kpp++)
     { if ( kpp[0] > carg )
