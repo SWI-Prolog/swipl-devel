@@ -2006,6 +2006,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   size_t fc = 0;
   size_t i  = 0;
   float A=0.0, Q=0.0;
+  int single = !a->args[1];
 
   a->speedup = 0.0;
   if ( !a->keys )
@@ -2018,10 +2019,12 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       { float A0 = A;
 	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
+	if ( single && isFunctor(s->key) )
+	{ Sdprintf("%s: %zd clauses\n", keyName(s->key), o->count);
+	  fc += o->count;
+	}
       }
       c = s->key;
-      if ( isFunctor(s->key) )
-	fc += o->count;
       *++o = *s;
     } else
     { o->count += s->count;
@@ -2031,10 +2034,16 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   { float A0 = A;
     A = A+((float)o->count-A)/(float)i;
     Q = Q+((float)o->count-A0)*((float)o->count-A);
+    if ( single && isFunctor(o->key) )
+    { Sdprintf("Final: %s: %zd clauses\n", keyName(o->key), o->count);
+      fc += o->count;
+    }
+    a->funct_count = fc;
+    if ( fc > 0 )
+      Sdprintf("%zd clauses have a functor\n", fc);
   }
 
   a->size        = i;
-  a->funct_count = fc;
 					/* assess quality */
   if ( clause_count )
   { a->stdev   = (float)sqrt(Q/(float)i);
@@ -2072,7 +2081,9 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
 static int
 assessAddKey(hash_assessment *a, word key)
-{ if ( a->size < a->allocated )
+{ if ( a->size > 0 && a->keys[a->size-1].key == key )
+  { a->keys[a->size-1].count++;		/* TBD: Keep last-key? */
+  } else if ( a->size < a->allocated )
   {
   put_key:
     a->keys[a->size].key   = key;
@@ -2211,17 +2222,28 @@ assess_scan_clauses(ClauseList clist, size_t arity,
     }
 
     for(i=0, a=assessments; i<assess_count; i++, a++)
-    { word key[MAX_MULTI_INDEX];
-      int  harg;
+    { if ( !a->args[1] )
+      { word key;
 
-      for(harg=0; a->args[harg]; harg++)
-      { if ( !(key[harg] = keys[a->args[harg]-1]) )
+	if ( (key=keys[a->args[0]-1]) )
+	{ assessAddKey(a, key);
+	} else
 	{ a->var_count++;
 	  goto next_assessment;
 	}
-      }
+      } else
+      { word key[MAX_MULTI_INDEX];
+	int  harg;
 
-      assessAddKey(a, murmur_key(key, sizeof(word)*harg));
+	for(harg=0; a->args[harg]; harg++)
+	{ if ( !(key[harg] = keys[a->args[harg]-1]) )
+	  { a->var_count++;
+	    goto next_assessment;
+	  }
+	}
+
+	assessAddKey(a, murmur_key(key, sizeof(word)*harg));
+      }
     next_assessment:
       ;
     }
