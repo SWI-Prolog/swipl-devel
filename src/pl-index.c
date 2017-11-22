@@ -2090,6 +2090,9 @@ skipToTerm(Clause clause, IndexContext ctx)
   { int an = ctx->arg[i];
     code c;
 
+    Sdprintf("Skipping to arg %d for clause %d of %s\n",
+	     an, clauseNo(clause, ctx->generation), predicateName(clause->predicate));
+
     if ( an > 0 )
       pc = skipArgs(pc, an);
     c = decode(*pc);
