@@ -759,7 +759,7 @@ Where is one of
 
 static int
 addClauseBucket(ClauseBucket ch, Clause cl,
-		word key, ClauseRef where, int is_list)
+		word key, word arg1key, ClauseRef where, int is_list)
 { ClauseRef cr;
 
   if ( is_list )
@@ -769,7 +769,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     if ( key )
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( cref->d.key == key )
-	{ addToClauseList(cref, cl, key, where);
+	{ addToClauseList(cref, cl, arg1key, where);
 	  DEBUG(MSG_INDEX_UPDATE,
 		Sdprintf("Adding to existing %s\n", keyName(key)));
 	  return 0;
@@ -781,7 +781,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( !cref->d.key )
 	  vars = &cref->value.clauses;
-	addToClauseList(cref, cl, key, where);
+	addToClauseList(cref, cl, arg1key, where);
       }
       if ( vars )
 	return 0;
@@ -791,7 +791,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
-      { addToClauseList(cr, cref->value.clause, key, CL_END);
+      { addToClauseList(cr, cref->value.clause, arg1key, CL_END);
 	if ( true(cref->value.clause, CL_ERASED) )	/* or do not add? */
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
@@ -802,7 +802,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
       if ( cr->value.clauses.erased_clauses )
 	ch->dirty++;
     }
-    addToClauseList(cr, cl, key, where);
+    addToClauseList(cr, cl, arg1key, where);
   } else
   { cr = newClauseRef(cl, key);
   }
@@ -1346,23 +1346,40 @@ added to all indexes.
 
 ClauseIndex->size maintains the number of elements  in the list that are
 indexed. This is needed for resizing the index.
+
+TBD: Avoid duplicate skipToTerm() in indexKeyFromClause() and here.
+TBD: Merge compound detection with skipToTerm()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 { ClauseBucket ch = ci->entries;
   word key = indexKeyFromClause(ci, cl);
+  word arg1key = 0;
+
+  if ( ci->is_list )			/* find first argument key for term */
+  { Code pc = skipToTerm(cl, ci->position);
+
+    switch(decode(*pc))
+    { case H_FUNCTOR:
+      case H_LIST:
+      case H_RFUNCTOR:
+      case H_RLIST:
+	pc = stepPC(pc);
+        argKey(pc, 0, &arg1key);
+    }
+  }
 
   if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
 
     for(; n; n--, ch++)
-      addClauseBucket(ch, cl, key, where, ci->is_list);
+      addClauseBucket(ch, cl, key, arg1key, where, ci->is_list);
   } else
   { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(MSG_INDEX_UPDATE, Sdprintf("Storing in bucket %d\n", hi));
-    ci->size += addClauseBucket(&ch[hi], cl, key, where, ci->is_list);
+    ci->size += addClauseBucket(&ch[hi], cl, key, arg1key, where, ci->is_list);
   }
 }
 
