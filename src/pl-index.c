@@ -2218,7 +2218,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
     }
 
     for(i=0, a=assessments; i<assess_count; i++, a++)
-    { if ( !a->args[1] )
+    { if ( !a->args[1] )			/* single argument index */
       { word key;
 
 	if ( (key=keys[a->args[0]-1]) )
@@ -2227,7 +2227,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
 	{ a->var_count++;
 	  goto next_assessment;
 	}
-      } else
+      } else					/* multi-argument index */
       { word key[MAX_MULTI_INDEX];
 	int  harg;
 
