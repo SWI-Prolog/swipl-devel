@@ -180,6 +180,7 @@ A debugger_write_options "debugger_write_options"
 A debugging		"debugging"
 A dec10			"dec10"
 A decimal_point		"decimal_point"
+A deep			"deep"
 A default		"default"
 A defined		"defined"
 A delete		"delete"
@@ -448,6 +449,7 @@ A module_property	"module_property"
 A module_transparent	"module_transparent"
 A modules		"modules"
 A msb			"msb"
+A multi			"multi"
 A multifile		"multifile"
 A mutex			"mutex"
 A mutex_option		"mutex_option"
@@ -625,6 +627,7 @@ A signal		"signal"
 A signal_handler	"signal_handler"
 A silent		"silent"
 A sin			"sin"
+A single		"single"
 A singletons		"singletons"
 A sinh			"sinh"
 A size			"size"
@@ -866,6 +869,7 @@ F dde_error		2
 F debug			1
 F debugging		1
 F decimal_point		1
+F deep			1
 F detached		1
 F dexit			2
 F dforeign_registered   2
@@ -933,6 +937,7 @@ F goal_expansion	2
 F ground		1
 F grouping		1
 F hat			2
+F hash			3
 F id			1
 F ifthen		2
 F import_into		1
@@ -967,6 +972,7 @@ F minus			2
 F mod			2
 F mode			1
 F msb			1
+F multi			1
 F nan			0
 F newline		1
 F nlink			1
@@ -1024,6 +1030,7 @@ F sign			1
 F signal		1
 F signal		2
 F sin			1
+F single		1
 F singletons		1
 F sinh			1
 F size			1

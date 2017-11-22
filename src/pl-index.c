@@ -242,7 +242,8 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	  ctx->position[ctx->depth++] = an;
 	  ctx->position[ctx->depth]   = END_INDEX_POS;
 
-	  Sdprintf("Recursive index for %s\n", keyName(cref->d.key));
+	  DEBUG(MSG_INDEX_DEEP,
+		Sdprintf("Recursive index for %s\n", keyName(cref->d.key)));
 	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
 	}
 
@@ -2104,8 +2105,9 @@ skipToTerm(Clause clause, const iarg_t *position)
   for(; (an = *position) != END_INDEX_POS; position++)
   { code c;
 
-    Sdprintf("Skipping to arg %d for clause %d of %s\n",
-	     an, clauseNo(clause, 0), predicateName(clause->predicate));
+    DEBUG(MSG_INDEX_DEEP,
+	  Sdprintf("Skipping to arg %d for clause %d of %s\n",
+		   an, clauseNo(clause, 0), predicateName(clause->predicate)));
 
     if ( an > 0 )
       pc = skipArgs(pc, an);
@@ -2382,41 +2384,105 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup, hash_hints *hi
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Index info is
+Index info is of the form
 
-	[Arg1, Arg2, ...] - hash(Buckets, Speedup, IsList)
+    Where - hash(Buckets, Speedup, IsList)
+
+Where is one of
+
+  - Simple index		single(ArgN)
+  - Multi-argument index	multi([Arg1,Arg2,...])
+  - Deep index		        deep([Arg1,Arg2,...])
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 unify_clause_index(term_t t, ClauseIndex ci)
 { GET_LD
-  term_t args = PL_new_term_ref();
+  term_t where = PL_new_term_ref();
   term_t tmp  = PL_new_term_ref();
 
-  if ( (args=PL_new_term_ref()) &&
-       (tmp =PL_new_term_ref()) )
+  if ( !(where=PL_new_term_ref()) ||
+       !(tmp =PL_new_term_ref()) )
+    return FALSE;
+
+  if ( ci->position[0] != END_INDEX_POS )
+  { iarg_t *ap = ci->position;
+
+    while(*ap != END_INDEX_POS)
+      ap++;
+    PL_put_nil(where);
+    for(--ap; ap >= ci->position; ap--)
+    { if ( !PL_put_integer(tmp, (*ap)+1) ||
+	   !PL_cons_list(where, tmp, where) )
+	return FALSE;
+    }
+    if ( !PL_put_integer(tmp, ci->args[0]) ||
+	 !PL_cons_list(where, tmp, where) )
+      return FALSE;
+    if ( !PL_cons_functor(where, FUNCTOR_deep1, where) )
+      return FALSE;
+  } else if ( ci->args[1] )
   { int i;
 
-    PL_put_nil(args);
+    PL_put_nil(where);
     for(i=MAX_MULTI_INDEX-1; i>= 0; i--)
     { if ( ci->args[i] )
       { if ( !PL_put_integer(tmp, ci->args[i]) ||
-	     !PL_cons_list(args, tmp, args) )
+	     !PL_cons_list(where, tmp, where) )
 	  return FALSE;
       }
     }
 
-    return PL_unify_term(t,
-			 PL_FUNCTOR, FUNCTOR_minus2,
-			   PL_TERM, args,
-			   PL_FUNCTOR_CHARS, "hash", 3,
-			     PL_INT, (int)ci->buckets,
-			     PL_DOUBLE, (double)ci->speedup,
-			     PL_BOOL, ci->is_list);
+    if ( !PL_cons_functor(where, FUNCTOR_multi1, where) )
+      return FALSE;
+  } else
+  { if ( !PL_put_integer(where, ci->args[0]) ||
+	 !PL_cons_functor(where, FUNCTOR_single1, where) )
+      return FALSE;
   }
 
-  return FALSE;
+  return PL_unify_term(t,
+		       PL_FUNCTOR, FUNCTOR_minus2,
+			 PL_TERM, where,
+			 PL_FUNCTOR, FUNCTOR_hash3,
+			   PL_INT, (int)ci->buckets,
+			   PL_DOUBLE, (double)ci->speedup,
+			   PL_BOOL, ci->is_list);
 }
+
+
+static int
+add_deep_indexes(ClauseIndex ci, term_t head, term_t tail ARG_LD)
+{ size_t i;
+
+  for(i=0; i<ci->size; i++)
+  { ClauseRef cref = ci->entries[i].head;
+
+    for(; cref; cref = cref->next)
+    { if ( isFunctor(cref->d.key) )
+      { ClauseList cl = &cref->value.clauses;
+	ClauseIndex *cip;
+
+	if ( (cip = cl->clause_indexes) )
+	{ for(; *cip; cip++)
+	  { ClauseIndex ci = *cip;
+
+	    if ( ISDEADCI(ci) )
+	      continue;
+
+	    if ( !PL_unify_list(tail, head, tail) ||
+		 !unify_clause_index(head, ci) )
+	      return FALSE;
+	  }
+	}
+      }
+    }
+  }
+
+  return TRUE;
+}
+
 
 bool
 unify_index_pattern(Procedure proc, term_t value)
@@ -2441,6 +2507,10 @@ unify_index_pattern(Procedure proc, term_t value)
       if ( !PL_unify_list(tail, head, tail) ||
 	   !unify_clause_index(head, ci) )
 	goto out;
+      if ( ci->is_list )
+      { if ( !add_deep_indexes(ci, head, tail PASS_LD) )
+	  goto out;
+      }
     }
 
     rc = found && PL_unify_nil(tail);
