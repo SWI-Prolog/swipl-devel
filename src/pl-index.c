@@ -2458,7 +2458,7 @@ static int
 add_deep_indexes(ClauseIndex ci, term_t head, term_t tail ARG_LD)
 { size_t i;
 
-  for(i=0; i<ci->size; i++)
+  for(i=0; i<ci->buckets; i++)
   { ClauseRef cref = ci->entries[i].head;
 
     for(; cref; cref = cref->next)
