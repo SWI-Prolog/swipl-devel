@@ -2063,8 +2063,10 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 		 clause_count * SIZEOF_CREF_CLAUSE +
 		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
 
-    if ( clause_count/a->size > 10 ||
-	 a->stdev > 3 )
+    if ( single &&
+	 ( clause_count/a->size > 10 ||
+	   a->stdev > 3
+	 ) )
     { a->list = TRUE;
       a->space += a->size * SIZEOF_CREF_LIST;
     }
