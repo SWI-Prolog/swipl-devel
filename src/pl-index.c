@@ -51,6 +51,7 @@
 
 #define MAXSEARCH      100
 #define MIN_SPEEDUP    1.5
+#define MAX_VAR_FRAC   0.1
 
 
 		 /*******************************
@@ -2055,7 +2056,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       a->space += a->size * SIZEOF_CREF_LIST;
     }
 
-    if ( (float)a->var_count/(float)a->size > 0.1 )
+    if ( (float)a->var_count/(float)a->size > MAX_VAR_FRAC )
     { a->speedup = 0.0;
       return FALSE;			/* not indexable */
     }
