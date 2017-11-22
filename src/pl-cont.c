@@ -142,7 +142,7 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   DEBUG(MSG_CONTINUE,
 	Sdprintf("put_environment() for %s, clause %d@PC=%ld\n",
 		 predicateName(fr->predicate),
-		 clauseNo(fr->predicate, cl, 0),
+		 clauseNo(cl, 0),
 		 (long)(pc-cl->codes)));
 
   active = (bit_vector*)buf;
@@ -480,7 +480,7 @@ retry:
 
     DEBUG(MSG_CONTINUE,
 	  Sdprintf("Resume clause %d of %s at PC=%ld\n",
-		   clauseNo(fr->predicate, cl, 0),
+		   clauseNo(cl, 0),
 		   predicateName(fr->predicate),
 		   pcoffset));
 

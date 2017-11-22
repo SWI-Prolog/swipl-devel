@@ -670,7 +670,7 @@ COMMON(char *)		functorName(functor_t f);
 COMMON(char *)		keyName(word key);
 COMMON(char *)		sourceFileName(SourceFile sf);
 COMMON(char *)		generationName(gen_t gen);
-COMMON(int)		clauseNo(Definition def, Clause clause, gen_t gen);
+COMMON(int)		clauseNo(Clause clause, gen_t gen);
 COMMON(int)		notImplemented(char *name, int arity);
 COMMON(word)		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word)		setInteger(int *val, term_t old, term_t new);

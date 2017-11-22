@@ -1801,7 +1801,7 @@ listIndexGenerations(Definition def, gen_t gen)
 
 	      Sdprintf("  %p: [%2d] %8u-%10u%s%s\n",
 		       clause,
-		       clauseNo(def, clause, 0),
+		       clauseNo(clause, 0),
 		       clause->generation.created,
 		       clause->generation.erased,
 		       true(clause, CL_ERASED) ? " erased" : "",
@@ -1812,7 +1812,7 @@ listIndexGenerations(Definition def, gen_t gen)
 
 	    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
 		     clause,
-		     clauseNo(def, clause, 0),
+		     clauseNo(clause, 0),
 		     clause->generation.created,
 		     clause->generation.erased,
 		     true(clause, CL_ERASED) ? " erased" : "",

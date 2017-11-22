@@ -243,10 +243,11 @@ generation.  Use the current generation if gen is 0;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-clauseNo(Definition def, Clause cl, gen_t gen)
+clauseNo(Clause cl, gen_t gen)
 { GET_LD
   int i;
   ClauseRef cref;
+  Definition def = cl->predicate;
 
   if ( !gen )
     gen = global_generation();

@@ -1451,7 +1451,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
 	  return printed+snprintf(buf, len, "[PC=%ld in top query clause]",
 				  (long)pc);
 
-	clause_no = clauseNo(fr->predicate, cl, 0);
+	clause_no = clauseNo(cl, 0);
 	return printed+snprintf(buf, len, "[PC=%ld in clause %d]",
 				(long)pc,
 				clause_no);
