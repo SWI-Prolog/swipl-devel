@@ -129,7 +129,8 @@ indexOfWord(word w ARG_LD)
 	word k;
 
 	k = MurmurHashAligned2(p+1, n*sizeof(*p), MURMUR_SEED);
-	if ( !k ) k = 1;
+	k &= ~((word)STG_GLOBAL);	/* avoid confusion with functor_t */
+	if ( !k ) k = 1;		/* avoid no-key */
 	return k;
       }
       case TAG_COMPOUND:
