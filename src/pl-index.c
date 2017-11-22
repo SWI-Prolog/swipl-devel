@@ -2005,7 +2005,6 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   size_t fc = 0;
   size_t i  = 0;
   float A=0.0, Q=0.0;
-  int single = !a->args[1];
 
   a->speedup = 0.0;
   if ( !a->keys )
@@ -2018,7 +2017,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       { float A0 = A;
 	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
-	fc += o->nvcomp;
+	fc += o->nvcomp - 1;		/* no point if there is just one */
       }
       c = s->key;
       *++o = *s;
@@ -2031,7 +2030,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   { float A0 = A;
     A = A+((float)o->count-A)/(float)i;
     Q = Q+((float)o->count-A0)*((float)o->count-A);
-    fc += o->nvcomp;
+    fc += o->nvcomp - 1;
     a->funct_count = fc;
   }
 
@@ -2055,10 +2054,8 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 		 clause_count * SIZEOF_CREF_CLAUSE +
 		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
 
-    if ( single &&
-	 ( clause_count/a->size > 10 ||
-	   a->stdev > 3
-	 ) )
+    if ( a->speedup < 0.8*(float)clause_count &&
+	 a->funct_count > 0 )
     { a->list = TRUE;
       a->space += a->size * SIZEOF_CREF_LIST;
     }
