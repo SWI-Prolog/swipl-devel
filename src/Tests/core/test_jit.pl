@@ -60,10 +60,16 @@ This module tests behaviour of the just-in-time indexes.
 has_hashes(P, Hashes) :-
 	maplist(index, Hashes, RIndexed),
 	predicate_property(P, indexed(Indexed)),
-	msort(Indexed, RIndexed).
+	maplist(pindex, Indexed, PIndexed),
+	msort(PIndexed, RIndexed).
 
 index(N, [N]-_) :- integer(N), !.
 index(L, L-_).
+
+pindex(single(I)-Hash, [I]-Hash).
+pindex(multi(List)-Hash, List-Hash).
+pindex(deep(_)-_, _) :-
+	assertion(fail).
 
 not_hashed(P) :-
 	\+ predicate_property(P, indexed(_)).
