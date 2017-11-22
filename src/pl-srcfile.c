@@ -946,7 +946,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       if ( equal_clause(cref->value.clause, clause) )
       { DEBUG(MSG_RECONSULT_CLAUSE,
 	      Sdprintf("  Keeping clause %d\n",
-		       clauseNo(def, cref->value.clause, reload->generation)));
+		       clauseNo(cref->value.clause, reload->generation)));
 	return keep_clause(reload, clause PASS_LD);
       }
 
@@ -975,14 +975,14 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
 	    DEBUG(MSG_RECONSULT_CLAUSE,
 		  Sdprintf("  Deleted clause %d\n",
-			   clauseNo(def, c, reload->generation)));
+			   clauseNo(c, reload->generation)));
 	  }
 	  release_def(def);
 
 	  reload->current_clause = cref2;
 	  DEBUG(MSG_RECONSULT_CLAUSE,
 		Sdprintf("  Keeping clause %d\n",
-			 clauseNo(def, cref2->value.clause, reload->generation)));
+			 clauseNo(cref2->value.clause, reload->generation)));
 	  return keep_clause(reload, clause PASS_LD);
 	}
       }
@@ -990,7 +990,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
       DEBUG(MSG_RECONSULT_CLAUSE,
 	    Sdprintf("  Inserted before clause %d\n",
-		     clauseNo(def, cref->value.clause, reload->generation)));
+		     clauseNo(cref->value.clause, reload->generation)));
       if ( (cref2 = assertProcedure(proc, clause, cref PASS_LD)) )
 	cref2->value.clause->generation.created = sf->reload->reload_gen;
 
@@ -1281,7 +1281,7 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("  %s: deleted clause %d\n",
 		   predicateName(def),
-		   clauseNo(def, c, r->generation)));
+		   clauseNo(c, r->generation)));
   }
   release_def(def);
 }
