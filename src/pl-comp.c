@@ -4091,9 +4091,7 @@ pl-index.c.
 
 static inline word
 murmur_key(void *ptr, size_t n)
-{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
-  if ( !k ) k = 1;
-  return k;
+{ return MurmurHashAligned2(ptr, n, MURMUR_SEED);
 }
 
 int
