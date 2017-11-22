@@ -2020,9 +2020,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
 	if ( single && isFunctor(o->key) )
-	{ Sdprintf("%s: %zd clauses\n", keyName(s->key), o->count);
 	  fc += o->count;
-	}
       }
       c = s->key;
       *++o = *s;
@@ -2035,12 +2033,8 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
     A = A+((float)o->count-A)/(float)i;
     Q = Q+((float)o->count-A0)*((float)o->count-A);
     if ( single && isFunctor(o->key) )
-    { Sdprintf("Final: %s: %zd clauses\n", keyName(o->key), o->count);
       fc += o->count;
-    }
     a->funct_count = fc;
-    if ( fc > 0 )
-      Sdprintf("%zd clauses have a functor\n", fc);
   }
 
   a->size        = i;
