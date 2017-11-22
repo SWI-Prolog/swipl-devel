@@ -1365,12 +1365,7 @@ struct clause_index
   unsigned int	 dirty;			/* # chains that are dirty */
   unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
   unsigned	 is_list : 1;		/* Index with lists */
-  unsigned       is_top : 1;		/* Toplevel index */
   float		 speedup;		/* Estimated speedup */
-  union
-  { ClauseIndex	 index;			/* if .is_top = FALSE */
-    Definition   predicate;		/* if .is_top = TRUE */
-  } parent;				/* Context */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
