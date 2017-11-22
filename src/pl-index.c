@@ -2017,7 +2017,8 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       { float A0 = A;
 	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
-	fc += o->nvcomp - 1;		/* no point if there is just one */
+	if ( o->nvcomp )
+	  fc += o->nvcomp - 1;		/* no point if there is just one */
       }
       c = s->key;
       *++o = *s;
@@ -2030,7 +2031,8 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   { float A0 = A;
     A = A+((float)o->count-A)/(float)i;
     Q = Q+((float)o->count-A0)*((float)o->count-A);
-    fc += o->nvcomp - 1;
+    if ( o->nvcomp )
+      fc += o->nvcomp - 1;
     a->funct_count = fc;
   }
 
@@ -2216,13 +2218,14 @@ assess_scan_clauses(ClauseList clist, size_t arity,
       argKey(pc, 0, &keys[kpp[0]]);
       nvcomp[kpp[0]] = FALSE;
 						/* see whether this a compound */
-      if ( !a->args[1] )			/* with nonvar args */
+      if ( isFunctor(keys[kpp[0]]) )		/* with nonvar args */
       { switch(decode(*pc))
 	{ case H_FUNCTOR:
 	  case H_LIST:
 	  case H_RFUNCTOR:
 	  case H_RLIST:
 	  { Code pc2 = stepPC(pc);
+
 	    if ( decode(*pc2) != H_POP )
 	      nvcomp[kpp[0]] = TRUE;
 	  }
