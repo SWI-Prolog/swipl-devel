@@ -51,8 +51,6 @@
 
 #define MAXSEARCH      100
 #define MIN_SPEEDUP    1.5
-#define MAXINDEXARG    255
-#define MAXINDEXDEPTH   10
 
 
 		 /*******************************
@@ -74,7 +72,7 @@ typedef struct index_context
   Definition	predicate;		/* Current predicate */
   ClauseChoice	chp;			/* Clause choice point */
   int		depth;			/* current depth (0..) */
-  int		arg[MAXINDEXDEPTH];	/* Keep track of argument position */
+  iarg_t	position[MAXINDEXDEPTH+1]; /* Keep track of argument position */
 } index_context, *IndexContext;
 
 static int	bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
@@ -225,7 +223,7 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 
 	DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
 
-	if ( isFunctor(cref->d.key) )
+	if ( isFunctor(cref->d.key) && ctx->depth < MAXINDEXDEPTH )
 	{ int an = ci->args[0]-1;
 	  Word a = argv+an;
 	  Functor at;
@@ -236,8 +234,11 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	  at = valueTerm(*a);
 	  argv = at->arguments;
 	  argc = arityFunctor(at->definition);
+	  if ( argc > MAXINDEXARG )
+	    argc = MAXINDEXARG;
 
-	  ctx->arg[ctx->depth++] = an;
+	  ctx->position[ctx->depth++] = an;
+	  ctx->position[ctx->depth]   = END_INDEX_POS;
 
 	  Sdprintf("Recursive index for %s\n", keyName(cref->d.key));
 	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
@@ -469,10 +470,11 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   index_context ctx;
 
-  ctx.generation = generationFrame(fr);
-  ctx.predicate  = def;
-  ctx.chp        = chp;
-  ctx.depth      = 0;
+  ctx.generation  = generationFrame(fr);
+  ctx.predicate   = def;
+  ctx.chp         = chp;
+  ctx.depth       = 0;
+  ctx.position[0] = END_INDEX_POS;
 
   acquire_def(def);
   cref = first_clause_guarded(argv,
@@ -547,8 +549,18 @@ canonicalHap(unsigned short *hap)
 }
 
 
+static void
+copytpos(iarg_t *to, const iarg_t *from)
+{ iarg_t p;
+
+  do
+  { *to = p = *from;
+  } while ( p != END_INDEX_POS );
+}
+
+
 static ClauseIndex
-newClauseIndexTable(unsigned short *hap, hash_hints *hints)
+newClauseIndexTable(unsigned short *hap, hash_hints *hints, IndexContext ctx)
 { ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   unsigned int buckets;
   size_t bytes;
@@ -564,6 +576,7 @@ newClauseIndexTable(unsigned short *hap, hash_hints *hints)
   ci->is_list = hints->list;
   ci->speedup = hints->speedup;
   ci->entries = allocHeapOrHalt(bytes);
+  copytpos(ci->position, ctx->position);
 
   memset(ci->entries, 0, bytes);
 
@@ -1425,7 +1438,7 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
   for(;;)				/* retry if predicate changed */
   { ClauseRef first, last;
 
-    ci = newClauseIndexTable(hints->args, hints);
+    ci = newClauseIndexTable(hints->args, hints, ctx);
 
     acquire_def(ctx->predicate);
     first = clist->first_clause;
@@ -2082,16 +2095,15 @@ trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-skipToTerm(Clause clause, IndexContext ctx)
-{ int i;
+skipToTerm(Clause clause, const iarg_t *position)
+{ int an;
   Code pc = clause->codes;
 
-  for(i=0; i<ctx->depth; i++)
-  { int an = ctx->arg[i];
-    code c;
+  for(; (an = *position) != END_INDEX_POS; position++)
+  { code c;
 
     Sdprintf("Skipping to arg %d for clause %d of %s\n",
-	     an, clauseNo(clause, ctx->generation), predicateName(clause->predicate));
+	     an, clauseNo(clause, 0), predicateName(clause->predicate));
 
     if ( an > 0 )
       pc = skipArgs(pc, an);
@@ -2152,7 +2164,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
     if ( true(cl, CL_ERASED) )
       continue;
 
-    pc = skipToTerm(cref->value.clause, ctx);
+    pc = skipToTerm(cref->value.clause, ctx->position);
 
     for(kpp=kp; kpp[0] >= 0; kpp++)
     { if ( kpp[0] > carg )

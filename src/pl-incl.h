@@ -1355,7 +1355,12 @@ struct clause_bucket
   unsigned int	dirty;			/* # of garbage clauses */
 };
 
-#define MAX_MULTI_INDEX 4
+#define MAX_MULTI_INDEX  4
+#define MAXINDEXARG    254
+#define MAXINDEXDEPTH    7
+#define END_INDEX_POS  255
+
+typedef unsigned char iarg_t;		/* index argument */
 
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
@@ -1365,6 +1370,7 @@ struct clause_index
   unsigned int	 dirty;			/* # chains that are dirty */
   unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
   unsigned	 is_list : 1;		/* Index with lists */
+  iarg_t	 position[MAXINDEXDEPTH+1]; /* Deep index position */
   float		 speedup;		/* Estimated speedup */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
