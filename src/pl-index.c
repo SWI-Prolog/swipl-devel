@@ -242,8 +242,6 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	  at = valueTerm(*a);
 	  argv = at->arguments;
 	  argc = arityFunctor(at->definition);
-	  if ( argc > MAXINDEXARG )
-	    argc = MAXINDEXARG;
 
 	  ctx->position[ctx->depth++] = an;
 	  ctx->position[ctx->depth]   = END_INDEX_POS;
@@ -1897,7 +1895,8 @@ and a popular key collide on the same hash-bucket.
 
 typedef struct key_asm
 { word		key;
-  size_t	count;
+  unsigned int	count;
+  unsigned int	nvcomp;		/* compound with arguments */
 } key_asm;
 
 typedef struct hash_assessment
@@ -2019,21 +2018,20 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       { float A0 = A;
 	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
-	if ( single && isFunctor(o->key) )
-	  fc += o->count;
+	fc += o->nvcomp;
       }
       c = s->key;
       *++o = *s;
     } else
-    { o->count += s->count;
+    { o->count  += s->count;
+      s->nvcomp += s->nvcomp;
     }
   }
   if ( i > 0 && clause_count )
   { float A0 = A;
     A = A+((float)o->count-A)/(float)i;
     Q = Q+((float)o->count-A0)*((float)o->count-A);
-    if ( single && isFunctor(o->key) )
-      fc += o->count;
+    fc += o->nvcomp;
     a->funct_count = fc;
   }
 
@@ -2076,14 +2074,17 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
 
 static int
-assessAddKey(hash_assessment *a, word key)
+assessAddKey(hash_assessment *a, word key, int nvcomp)
 { if ( a->size > 0 && a->keys[a->size-1].key == key )
   { a->keys[a->size-1].count++;		/* TBD: Keep last-key? */
+    if ( nvcomp )
+      a->keys[a->size-1].nvcomp++;
   } else if ( a->size < a->allocated )
   {
   put_key:
-    a->keys[a->size].key   = key;
-    a->keys[a->size].count = 1;
+    a->keys[a->size].key    = key;
+    a->keys[a->size].count  = 1;
+    a->keys[a->size].nvcomp = nvcomp;
     a->size++;
   } else
   { if ( a->allocated == 0 )
@@ -2177,10 +2178,11 @@ assess_scan_clauses(ClauseList clist, size_t arity,
   int i;
   bit_vector *ai = alloca(sizeof_bitvector(arity));
   int ac = 0;
-  int kp[MAXARITY+1];				/* key-arg positions */
+  int kp[MAXINDEXARG+1];				/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
-  word keys[MAXARITY];
+  word keys[MAXINDEXARG];
+  char nvcomp[MAXINDEXARG];
 
   init_bitvector(ai, arity);
   for(i=0, a=assessments; i<assess_count; i++, a++)
@@ -2215,14 +2217,29 @@ assess_scan_clauses(ClauseList clist, size_t arity,
 	pc = skipArgs(pc, kpp[0]-carg);
       carg = kpp[0];
       argKey(pc, 0, &keys[kpp[0]]);
+      nvcomp[kpp[0]] = FALSE;
+						/* see whether this a compound */
+      if ( !a->args[1] )			/* with nonvar args */
+      { switch(decode(*pc))
+	{ case H_FUNCTOR:
+	  case H_LIST:
+	  case H_RFUNCTOR:
+	  case H_RLIST:
+	  { Code pc2 = stepPC(pc);
+	    if ( decode(*pc2) != H_POP )
+	      nvcomp[kpp[0]] = TRUE;
+	  }
+	}
+      }
     }
 
     for(i=0, a=assessments; i<assess_count; i++, a++)
     { if ( !a->args[1] )			/* single argument index */
       { word key;
+	int an = a->args[0]-1;
 
-	if ( (key=keys[a->args[0]-1]) )
-	{ assessAddKey(a, key);
+	if ( (key=keys[an]) )
+	{ assessAddKey(a, key, nvcomp[an]);
 	} else
 	{ a->var_count++;
 	  goto next_assessment;
@@ -2238,7 +2255,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
 	  }
 	}
 
-	assessAddKey(a, murmur_key(key, sizeof(word)*harg));
+	assessAddKey(a, murmur_key(key, sizeof(word)*harg), FALSE);
       }
     next_assessment:
       ;
@@ -2288,16 +2305,20 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-bestHash(Word av, size_t ac, ClauseList clist, float min_speedup, hash_hints *hints,
-	 IndexContext ctx ARG_LD)
+bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
+	 hash_hints *hints, IndexContext ctx ARG_LD)
 { int i;
   assessment_set aset;
   hash_assessment *a;
   int best = -1;
   float best_speedup = 0.0;
   unsigned short ia[MAX_MULTI_INDEX] = {0};
-  unsigned short instantiated[ac];	/* TBD: remove GCC dynamic array */
+  unsigned short *instantiated;
   int ninstantiated = 0;
+
+  if ( ac > MAXINDEXARG )
+    ac = MAXINDEXARG;
+  instantiated = alloca(ac*sizeof(*instantiated));
 
   init_assessment_set(&aset);
 					/* Step 1: find instantiated args */
