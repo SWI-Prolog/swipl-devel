@@ -2168,6 +2168,24 @@ skipToTerm(Clause clause, const iarg_t *position)
 }
 
 
+static int
+indexableCompound(Code pc)
+{ pc = stepPC(pc);				/* skip functor */
+
+  for(;; pc = stepPC(pc))
+  { switch(decode(*pc))
+    { case H_FIRSTVAR:
+      case H_VAR:
+	continue;
+      case H_POP:
+	return FALSE;
+      default:
+	return TRUE;
+    }
+  }
+}
+
+
 static void
 assess_scan_clauses(ClauseList clist, size_t arity,
 		    hash_assessment *assessments, int assess_count,
@@ -2219,17 +2237,8 @@ assess_scan_clauses(ClauseList clist, size_t arity,
       nvcomp[kpp[0]] = FALSE;
 						/* see whether this a compound */
       if ( isFunctor(keys[kpp[0]]) )		/* with nonvar args */
-      { switch(decode(*pc))
-	{ case H_FUNCTOR:
-	  case H_LIST:
-	  case H_RFUNCTOR:
-	  case H_RLIST:
-	  { Code pc2 = stepPC(pc);
-
-	    if ( decode(*pc2) != H_POP )
-	      nvcomp[kpp[0]] = TRUE;
-	  }
-	}
+      { if ( indexableCompound(pc) )
+	  nvcomp[kpp[0]] = TRUE;
       }
     }
 
