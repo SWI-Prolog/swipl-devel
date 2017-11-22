@@ -51,6 +51,8 @@
 
 #define MAXSEARCH      100
 #define MIN_SPEEDUP    1.5
+#define MAXINDEXARG    255
+#define MAXINDEXDEPTH   10
 
 
 		 /*******************************
@@ -66,6 +68,14 @@ typedef struct hash_hints
   unsigned int	ln_buckets;		/* Lg2 of #buckets to use */
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
+
+typedef struct index_context
+{ gen_t		generation;		/* Current generation */
+  Definition	predicate;		/* Current predicate */
+  ClauseChoice	chp;			/* Clause choice point */
+  int		depth;			/* current depth (0..) */
+  int		arg[MAXINDEXDEPTH];	/* Keep track of argument position */
+} index_context, *IndexContext;
 
 static int	bestHash(Word av, size_t ac, Definition def, float min_speedup,
 			 hash_hints *hints ARG_LD);
@@ -84,9 +94,8 @@ static void	addClauseToListIndexes(Definition def, ClauseList cl,
 static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef *headp, ClauseRef *tailp,
 				     ClauseRef where);
-static ClauseRef first_clause_guarded(Word argv, size_t argc, gen_t generation,
-				      ClauseList clist, Definition def,
-				      ClauseChoice chp ARG_LD);
+static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
+				      IndexContext ctx ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -99,6 +108,8 @@ tag-bits.
 NOTE: this function must be kept  consistent with argKey() in pl-comp.c!
 NOTE: This function returns 0 on non-indexable   fields, which is why we
 guarantee that the value is non-0 for indexable values.
+NOTE: Indirects should not collide  with   functor_t  to  allow for deep
+indexing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline int
@@ -197,11 +208,9 @@ TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-nextClauseFromBucket(Definition def,
-		     ClauseChoice chp, gen_t generation,
-		     ClauseIndex ci, Word argv ARG_LD)
+nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 { ClauseRef cref;
-  word key = chp->key;
+  word key = ctx->chp->key;
 
   if ( ci->is_list )
   { DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
@@ -209,7 +218,7 @@ nextClauseFromBucket(Definition def,
     assert(ci->args[1] == 0);
 
   non_indexed:
-    for(cref = chp->cref; cref; cref = cref->next)
+    for(cref = ctx->chp->cref; cref; cref = cref->next)
     { if ( cref->d.key == key )
       { ClauseList cl = &cref->value.clauses;
 	ClauseRef cr;
@@ -228,13 +237,12 @@ nextClauseFromBucket(Definition def,
 	  argc = arityFunctor(at->definition);
 
 	  Sdprintf("Recursive index for %s\n", keyName(cref->d.key));
-	  return first_clause_guarded(argv, argc, generation, cl,
-				      def, chp PASS_LD);
+	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
 	}
 
 	for(cr=cl->first_clause; cr; cr=cr->next)
-	{ if ( visibleClauseCNT(cr->value.clause, generation) )
-	  { setClauseChoice(chp, cr->next, generation PASS_LD);
+	{ if ( visibleClauseCNT(cr->value.clause, ctx->generation) )
+	  { setClauseChoice(ctx->chp, cr->next, ctx->generation PASS_LD);
 	    return cr;
 	  }
 	}
@@ -254,22 +262,22 @@ nextClauseFromBucket(Definition def,
     return NULL;
   }
 
-  for(cref = chp->cref; cref; cref = cref->next)
+  for(cref = ctx->chp->cref; cref; cref = cref->next)
   { if ( (!cref->d.key || key == cref->d.key) &&
-	 visibleClauseCNT(cref->value.clause, generation))
+	 visibleClauseCNT(cref->value.clause, ctx->generation))
     { ClauseRef result = cref;
       int maxsearch = MAXSEARCH;
 
       for( cref = cref->next; cref; cref = cref->next )
       { if ( ((!cref->d.key || key == cref->d.key) &&
-	      visibleClauseCNT(cref->value.clause, generation)) ||
+	      visibleClauseCNT(cref->value.clause, ctx->generation)) ||
 	     --maxsearch == 0 )
-	{ setClauseChoice(chp, cref, generation PASS_LD);
+	{ setClauseChoice(ctx->chp, cref, ctx->generation PASS_LD);
 
 	  return result;
 	}
       }
-      chp->cref = NULL;
+      ctx->chp->cref = NULL;
 
       return result;
     }
@@ -354,8 +362,8 @@ TBD:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-first_clause_guarded(Word argv, size_t argc, gen_t generation,
-		     ClauseList clist, Definition def, ClauseChoice chp ARG_LD)
+first_clause_guarded(Word argv, size_t argc, ClauseList clist,
+		     IndexContext ctx ARG_LD)
 { ClauseRef cref;
   ClauseIndex *cip;
   hash_hints hints;
@@ -375,7 +383,7 @@ first_clause_guarded(Word argv, size_t argc, gen_t generation,
 
       if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
       { best_index = ci;
-	chp->key = k;
+	ctx->chp->key = k;
 	break;
       }
     }
@@ -388,64 +396,65 @@ first_clause_guarded(Word argv, size_t argc, gen_t generation,
 	   !LD->gen_reload )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
-		       iargsName(best_index->args, NULL), predicateName(def)));
+		       iargsName(best_index->args, NULL),
+		       predicateName(ctx->predicate)));
 
-	if ( bestHash(argv, argc, def,
+	if ( bestHash(argv, argc, ctx->predicate,
 		      best_index->speedup, &hints PASS_LD) )
 	{ ClauseIndex ci;
 
 	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
 				  iargsName(hints.args, NULL)));
 
-	  if ( (ci=hashDefinition(def, &def->impl.clauses, &hints)) )
-	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
-	    assert(chp->key);
+	  if ( (ci=hashDefinition(ctx->predicate,
+				  &ctx->predicate->impl.clauses, &hints)) )
+	  { ctx->chp->key = indexKeyFromArgv(ci, argv PASS_LD);
+	    assert(ctx->chp->key);
 	    best_index = ci;
 	  }
 	}
       }
 
-      hi = hashIndex(chp->key, best_index->buckets);
-      chp->cref = best_index->entries[hi].head;
-      return nextClauseFromBucket(def, chp, generation,
-				  best_index, argv PASS_LD);
+      hi = hashIndex(ctx->chp->key, best_index->buckets);
+      ctx->chp->cref = best_index->entries[hi].head;
+      return nextClauseFromBucket(best_index, argv, ctx PASS_LD);
     }
   }
 
   if ( clist->number_of_clauses == 0 )
     return NULL;
 
-  if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
+  if ( (ctx->chp->key = indexOfWord(argv[0] PASS_LD)) &&
        (clist->number_of_clauses <= 10 || LD->gen_reload) )
-  { chp->cref = clist->first_clause;
-    return nextClauseArg1(chp, generation PASS_LD);
+  { ctx->chp->cref = clist->first_clause;
+    return nextClauseArg1(ctx->chp, ctx->generation PASS_LD);
   }
 
   if ( !LD->gen_reload &&
-       bestHash(argv, argc, def, 0.0, &hints PASS_LD) )
+       bestHash(argv, argc, ctx->predicate, 0.0, &hints PASS_LD) )
   { ClauseIndex ci;
 
-    if ( (ci=hashDefinition(def, &def->impl.clauses, &hints)) )
+    if ( (ci=hashDefinition(ctx->predicate, &ctx->predicate->impl.clauses, &hints)) )
     { int hi;
 
-      chp->key = indexKeyFromArgv(ci, argv PASS_LD);
-      assert(chp->key);
-      hi = hashIndex(chp->key, ci->buckets);
-      chp->cref = ci->entries[hi].head;
-      return nextClauseFromBucket(def, chp, generation, ci, argv PASS_LD);
+      ctx->chp->key = indexKeyFromArgv(ci, argv PASS_LD);
+      assert(ctx->chp->key);
+      hi = hashIndex(ctx->chp->key, ci->buckets);
+      ctx->chp->cref = ci->entries[hi].head;
+      return nextClauseFromBucket(ci, argv, ctx PASS_LD);
     }
   }
 
-  if ( chp->key )
-  { chp->cref = clist->first_clause;
-    return nextClauseArg1(chp, generation PASS_LD);
+  if ( ctx->chp->key )
+  { ctx->chp->cref = clist->first_clause;
+    return nextClauseArg1(ctx->chp, ctx->generation PASS_LD);
   }
 
 simple:
   for(cref = clist->first_clause; cref; cref = cref->next)
-  { if ( visibleClauseCNT(cref->value.clause, generation) )
-    { chp->key = 0;
-      setClauseChoice(chp, cref->next, generation PASS_LD);
+  { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
+    { ctx->chp->key = 0;
+      setClauseChoice(ctx->chp, cref->next, ctx->generation PASS_LD);
       break;
     }
   }
@@ -457,14 +466,18 @@ simple:
 ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
+  index_context ctx;
+
+  ctx.generation = generationFrame(fr);
+  ctx.predicate  = def;
+  ctx.chp        = chp;
+  ctx.depth      = 0;
 
   acquire_def(def);
   cref = first_clause_guarded(argv,
 			      def->functor->arity,
-			      generationFrame(fr),
 			      &def->impl.clauses,
-			      def,
-			      chp
+			      &ctx
 			      PASS_LD);
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
@@ -1408,7 +1421,7 @@ hashDefinition(Definition def, ClauseList clist, hash_hints *hints)
 			  iargsName(hints->args, NULL), 2<<hints->ln_buckets,
 			  hints->list ? "lists" : "clauses"));
 
-  for(;;)
+  for(;;)				/* retry if predicate changed */
   { ClauseRef first, last;
 
     ci = newClauseIndexTable(hints->args, hints);
@@ -1426,7 +1439,7 @@ hashDefinition(Definition def, ClauseList clist, hash_hints *hints)
     LOCKDEF(def);
     if ( first == clist->first_clause &&
 	 last  == clist->last_clause )
-      break;
+      break;				/* no change.  We are ok */
     UNLOCKDEF(def);
     unallocClauseIndexTable(ci);
   }
