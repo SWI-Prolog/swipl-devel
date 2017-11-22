@@ -641,10 +641,10 @@ newClauseListRef(word key)
 
 
 static void
-addToClauseList(ClauseRef cref, Clause clause, ClauseRef where)
+addToClauseList(ClauseRef cref, Clause clause, word key, ClauseRef where)
 { Definition def = clause->predicate;
   ClauseList cl = &cref->value.clauses;
-  ClauseRef cr = newClauseRef(clause, 0);	/* TBD: key? */
+  ClauseRef cr = newClauseRef(clause, key);
 
   if ( cl->first_clause )
   { if ( where == CL_END )
@@ -769,7 +769,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     if ( key )
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( cref->d.key == key )
-	{ addToClauseList(cref, cl, where);
+	{ addToClauseList(cref, cl, key, where);
 	  DEBUG(MSG_INDEX_UPDATE,
 		Sdprintf("Adding to existing %s\n", keyName(key)));
 	  return 0;
@@ -781,7 +781,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( !cref->d.key )
 	  vars = &cref->value.clauses;
-	addToClauseList(cref, cl, where);
+	addToClauseList(cref, cl, key, where);
       }
       if ( vars )
 	return 0;
@@ -791,7 +791,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
-      { addToClauseList(cr, cref->value.clause, CL_END);
+      { addToClauseList(cr, cref->value.clause, key, CL_END);
 	if ( true(cref->value.clause, CL_ERASED) )	/* or do not add? */
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
@@ -802,7 +802,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
       if ( cr->value.clauses.erased_clauses )
 	ch->dirty++;
     }
-    addToClauseList(cr, cl, where);
+    addToClauseList(cr, cl, key, where);
   } else
   { cr = newClauseRef(cl, key);
   }
