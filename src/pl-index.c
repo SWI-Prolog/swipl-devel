@@ -1205,7 +1205,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 
 static inline word
-indexKeyFromClause(ClauseIndex ci, Clause cl)
+indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
 { Code PC = skipToTerm(cl, ci->position);
 
   if ( likely(ci->args[1] == 0) )
@@ -1214,6 +1214,8 @@ indexKeyFromClause(ClauseIndex ci, Clause cl)
 
     if ( arg > 0 )
       PC = skipArgs(PC, arg);
+    if ( end )
+      *end = PC;
     if ( argKey(PC, 0, &key) )
       return key;
     return 0;
@@ -1221,6 +1223,8 @@ indexKeyFromClause(ClauseIndex ci, Clause cl)
   { word key[MAX_MULTI_INDEX];			/* TBD: special case for 1 arg */
     int  pcarg = 1;
     int  harg;
+
+    DEBUG(CHK_SECURE, if ( end ) *end = NULL);
 
     for(harg=0; ci->args[harg]; harg++)
     { if ( ci->args[harg] > pcarg )
@@ -1250,7 +1254,7 @@ bucket.
 
 static void
 deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
-{ word key = indexKeyFromClause(ci, cl);
+{ word key = indexKeyFromClause(ci, cl, NULL);
 
   if ( key == 0 )			/* not indexed */
   { int i;
@@ -1351,20 +1355,18 @@ added to all indexes.
 ClauseIndex->size maintains the number of elements  in the list that are
 indexed. This is needed for resizing the index.
 
-TBD: Avoid duplicate skipToTerm() in indexKeyFromClause() and here.
 TBD: Merge compound detection with skipToTerm()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 { ClauseBucket ch = ci->entries;
-  word key = indexKeyFromClause(ci, cl);
+  Code pc;
+  word key = indexKeyFromClause(ci, cl, &pc);
   word arg1key = 0;
 
   if ( ci->is_list )			/* find first argument key for term */
-  { Code pc = skipToTerm(cl, ci->position);
-
-    switch(decode(*pc))
+  { switch(decode(*pc))
     { case H_FUNCTOR:
       case H_LIST:
       case H_RFUNCTOR:
@@ -1424,7 +1426,7 @@ delClauseFromIndex(Definition def, Clause cl)
       continue;
 
     ch  = ci->entries;
-    key = indexKeyFromClause(ci, cl);
+    key = indexKeyFromClause(ci, cl, NULL);
 
     if ( key == 0 )			/* a non-indexable field */
     { int n = ci->buckets;
