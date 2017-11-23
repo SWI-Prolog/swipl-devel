@@ -227,7 +227,7 @@ suggest predicates from a keyword.
 \predicatesummary{endif}{0}{End of conditional compilation (directive)}
 \predicatesummary{engine_create}{3}{Create an interactor}
 \predicatesummary{engine_create}{4}{Create an interactor}
-\predicatesummary{engine_destroy{1}{Destroy an interactor}
+\predicatesummary{engine_destroy}{1}{Destroy an interactor}
 \predicatesummary{engine_fetch}{1}{Get term from caller}
 \predicatesummary{engine_next}{2}{Ask interactor for next term}
 \predicatesummary{engine_next_reified}{2}{Ask interactor for next term}
