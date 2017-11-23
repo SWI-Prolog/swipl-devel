@@ -1361,7 +1361,7 @@ TBD: Merge compound detection with skipToTerm()
 static void
 addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 { ClauseBucket ch = ci->entries;
-  Code pc;
+  Code pc = NULL;
   word key = indexKeyFromClause(ci, cl, &pc);
   word arg1key = 0;
 
@@ -2471,7 +2471,7 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Index info is of the form
 
-    Where - hash(Buckets, Speedup, IsList)
+    Where - hash(Buckets, Speedup, SizeInBytes, IsList)
 
 Where is one of
 
@@ -2480,6 +2480,26 @@ Where is one of
   - Deep index		        deep([Arg1,Arg2,...])
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static size_t
+sizeofClauseIndex(ClauseIndex ci)
+{ size_t size = sizeof(*ci);
+  size_t vars = 0;
+  ClauseRef cref;
+  size_t usize = ci->is_list ? SIZEOF_CREF_LIST : SIZEOF_CREF_CLAUSE;
+
+  size += ci->buckets * sizeof(*ci->entries);
+  size += ci->size * usize;
+
+  for(cref=ci->entries[0].head; cref; cref=cref->next)
+  { if ( cref->d.key == 0 )
+      vars++;
+  }
+  size += vars * ci->buckets * usize;
+
+  return size;
+}
+
 
 static int
 unify_clause_index(term_t t, ClauseIndex ci)
@@ -2530,9 +2550,10 @@ unify_clause_index(term_t t, ClauseIndex ci)
   return PL_unify_term(t,
 		       PL_FUNCTOR, FUNCTOR_minus2,
 			 PL_TERM, where,
-			 PL_FUNCTOR, FUNCTOR_hash3,
+			 PL_FUNCTOR, FUNCTOR_hash4,
 			   PL_INT, (int)ci->buckets,
 			   PL_DOUBLE, (double)ci->speedup,
+		           PL_INT64, (int64_t)sizeofClauseIndex(ci),
 			   PL_BOOL, ci->is_list);
 }
 
