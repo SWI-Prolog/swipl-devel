@@ -121,7 +121,7 @@ indexing.
 
 static inline int
 hashIndex(word key, int buckets)
-{ unsigned int k = MurmurHashAligned2(&key, sizeof(key), MURMUR_SEED);
+{ unsigned int k = MurmurHashIntptr(key, MURMUR_SEED);
 
   return k & (buckets-1);
 }
