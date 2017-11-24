@@ -129,6 +129,23 @@ hashIndex(word key, int buckets)
 }
 
 
+static inline int
+canIndex(word w ARG_LD)
+{ for(;;)
+  { switch(tag(w))
+    { case TAG_VAR:
+      case TAG_ATTVAR:
+	return FALSE;
+      case TAG_REFERENCE:
+	w = *unRef(w);
+	continue;
+      default:
+	return TRUE;
+    }
+  }
+}
+
+
 static inline word
 indexOfWord(word w ARG_LD)
 { for(;;)
@@ -2337,7 +2354,7 @@ new_indexing_opportunities(Word argv, size_t argc, const ClauseList clist ARG_LD
 
     for(i=0; i<argc; i++)
     { if ( !ai->assessed &&
-	   indexOfWord(argv[i] PASS_LD) )
+	   canIndex(argv[i] PASS_LD) )
 	return TRUE;
     }
 
@@ -2393,7 +2410,7 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
 
 					/* Step 1: find instantiated args */
   for(i=0; i<ac; i++)
-  { if ( indexOfWord(av[i] PASS_LD) )
+  { if ( canIndex(av[i] PASS_LD) )
       instantiated[ninstantiated++] = i;
   }
 
