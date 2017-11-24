@@ -102,8 +102,6 @@ static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 				      IndexContext ctx ARG_LD);
 static Code	skipToTerm(Clause clause, const iarg_t *position);
 static void	unalloc_index_array(void *p);
-static int	new_indexing_opportunities(Word argv, size_t argc,
-					   const ClauseList clist ARG_LD);
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -434,9 +432,8 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 
       if ( clist->number_of_clauses > 10 &&
 	   (float)clist->number_of_clauses/best_index->speedup > 10 &&
-	   new_indexing_opportunities(argv, argc, clist PASS_LD) &&
 	   !LD->gen_reload )
-      { DEBUG(MSG_JIT,
+      { DEBUG(MSG_JIT_POOR,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL),
 		       predicateName(ctx->predicate)));
@@ -2346,26 +2343,6 @@ best_assessment(hash_assessment *assessments, int count, size_t clause_count)
   }
 
   return best;
-}
-
-
-static int
-new_indexing_opportunities(Word argv, size_t argc, const ClauseList clist ARG_LD)
-{ const arg_info *ai;
-
-  if ( (ai = clist->args) )
-  { size_t i;
-
-    for(i=0; i<argc; i++)
-    { if ( !ai->assessed &&
-	   canIndex(argv[i] PASS_LD) )
-	return TRUE;
-    }
-
-    return FALSE;
-  }
-
-  return TRUE;
 }
 
 
