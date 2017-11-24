@@ -123,9 +123,9 @@ indexing.
 
 static inline int
 hashIndex(word key, int buckets)
-{ word k = key >> LMASK_BITS;
+{ unsigned int k = MurmurHashAligned2(&key, sizeof(key), MURMUR_SEED);
 
-  return (int)((key^k) & (buckets-1));
+  return k & (buckets-1);
 }
 
 
