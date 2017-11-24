@@ -102,6 +102,8 @@ static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 				      IndexContext ctx ARG_LD);
 static Code	skipToTerm(Clause clause, const iarg_t *position);
 static void	unalloc_index_array(void *p);
+static int	new_indexing_opportunities(Word argv, size_t argc,
+					   const ClauseList clist ARG_LD);
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -383,6 +385,8 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 
   if ( argc == 0 )
     goto simple;			/* TBD: alt supervisor */
+  if ( argc > MAXINDEXARG )
+    argc = MAXINDEXARG;
 
   if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index = NULL;
@@ -406,6 +410,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 
       if ( clist->number_of_clauses > 10 &&
 	   (float)clist->number_of_clauses/best_index->speedup > 10 &&
+	   new_indexing_opportunities(argv, argc, clist PASS_LD) &&
 	   !LD->gen_reload )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
@@ -2320,6 +2325,26 @@ best_assessment(hash_assessment *assessments, int count, size_t clause_count)
 }
 
 
+static int
+new_indexing_opportunities(Word argv, size_t argc, const ClauseList clist ARG_LD)
+{ const arg_info *ai;
+
+  if ( (ai = clist->args) )
+  { size_t i;
+
+    for(i=0; i<argc; i++)
+    { if ( !ai->assessed &&
+	   indexOfWord(argv[i] PASS_LD) )
+	return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bestHash() finds the best argument for creating a hash, given a concrete
 argument vector and a list of  clauses.   To  do  so, it establishes the
@@ -2354,8 +2379,6 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
   unsigned short *instantiated;
   int ninstantiated = 0;
 
-  if ( ac > MAXINDEXARG )
-    ac = MAXINDEXARG;
   instantiated = alloca(ac*sizeof(*instantiated));
   init_assessment_set(&aset);
   if ( !clist->args )
