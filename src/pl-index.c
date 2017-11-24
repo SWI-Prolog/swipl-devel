@@ -321,14 +321,18 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 }
 
 /* Make sure the ClauseChoice contains a pointer to a clause that
-   is visible in generation.  This garantees that the clause will
-   not be destroyed.
+   is still visible in generation.  This garantees that the clause will
+   not be destroyed. Note that we do not have to perform the full
+   visibility test, just avoid we end up at a clause reference that
+   is free for CGC.
 */
 
 static void
 setClauseChoice(ClauseChoice chp, ClauseRef cref, gen_t generation ARG_LD)
-{ while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
+{ while ( cref &&
+	  cref->value.clause->generation.erased <= generation )
     cref = cref->next;
+
   chp->cref = cref;
 }
 
