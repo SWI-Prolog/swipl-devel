@@ -2357,19 +2357,20 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
   if ( ac > MAXINDEXARG )
     ac = MAXINDEXARG;
   instantiated = alloca(ac*sizeof(*instantiated));
-
   init_assessment_set(&aset);
+  if ( !clist->args )
+  { arg_info *ai = allocHeapOrHalt(ac*sizeof(*ai));
+    memset(ai, 0, ac*sizeof(*ai));
+    if ( !COMPARE_AND_SWAP(&clist->args, NULL, ai) )
+      freeHeap(ai, ac*sizeof(*ai));
+  }
+
 					/* Step 1: find instantiated args */
   for(i=0; i<ac; i++)
   { if ( indexOfWord(av[i] PASS_LD) )
       instantiated[ninstantiated++] = i;
   }
 
-  if ( !clist->args )
-  { arg_info *ai = allocHeapOrHalt(ac*sizeof(*ai));
-    memset(ai, 0, ac*sizeof(*ai));
-    clist->args = ai;
-  }
 					/* Step 2: find non-yet assessed args */
   for(i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
