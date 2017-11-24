@@ -2163,6 +2163,12 @@ skipToTerm(Clause clause, const iarg_t *position)
       case H_RFUNCTOR:
       case H_RLIST:
 	break;
+      case H_LIST_FF:			/* FF1, FF2 */
+      { static code var[2];		/* Create dummy code */
+	var[0] = encode(H_VOID);
+	var[1] = encode(H_VOID);
+	return var;
+      }
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
       case H_FIRSTVAR:
       case H_VAR:
@@ -2176,6 +2182,8 @@ skipToTerm(Clause clause, const iarg_t *position)
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
 	return pc;
       default:
+	Sdprintf("Unexpected VM code %d at %p\n", c, pc);
+	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
 #else
       default:
