@@ -440,7 +440,8 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   { chp->cref = clist->first_clause;
 
     cref = nextClauseArg1(chp, ctx->generation PASS_LD);
-    if ( !(chp->cref && chp->cref->d.key == chp->key &&
+    if ( !cref ||
+	 !(chp->cref && chp->cref->d.key == chp->key &&
 	   cref->d.key == chp->key) )
       return cref;
     /* else duplicate; see whether we can create a deep index */
@@ -1342,12 +1343,14 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 
 void
 deleteIndexes(ClauseList clist, int isnew)
-{ ClauseIndex *cip;
+{ ClauseIndex *cip0;
 
   assert(isnew);			/* TBD for non-new */
 
-  if ( (cip=clist->clause_indexes) )
-  { for(; *cip; cip++)
+  if ( (cip0=clist->clause_indexes) )
+  { ClauseIndex *cip;
+
+    for(cip = cip0; *cip; cip++)
     { ClauseIndex ci = *cip;
 
       if ( ISDEADCI(ci) )
@@ -1356,7 +1359,7 @@ deleteIndexes(ClauseList clist, int isnew)
       unallocClauseIndexTable(ci);
     }
 
-    unalloc_index_array(cip);
+    unalloc_index_array(cip0);
     clist->clause_indexes = NULL;
   }
 }
