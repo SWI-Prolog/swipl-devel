@@ -435,6 +435,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   if ( clist->number_of_clauses == 0 )
     return NULL;
 
+#if 0
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
        (clist->number_of_clauses <= 10 || LD->gen_reload) )
   { chp->cref = clist->first_clause;
@@ -447,6 +448,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
     /* else duplicate functor; see whether we can create a deep index */
     /* TBD: Avoid trying this every goal */
   }
+#endif
 
   if ( !LD->gen_reload &&
        bestHash(argv, argc, clist, 0.0, &hints, ctx PASS_LD) )
@@ -463,7 +465,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
     }
   }
 
-  if ( chp->key )
+  if ( (chp->key = indexOfWord(argv[0] PASS_LD)) )
   { chp->cref = clist->first_clause;
     return nextClauseArg1(chp, ctx->generation PASS_LD);
   }
