@@ -379,6 +379,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 { ClauseRef cref;
   ClauseIndex *cip;
   hash_hints hints;
+  ClauseChoice chp = ctx->chp;
 
   if ( argc == 0 )
     goto simple;			/* TBD: alt supervisor */
@@ -395,7 +396,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 
       if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
       { best_index = ci;
-	ctx->chp->key = k;
+	chp->key = k;
 	break;
       }
     }
@@ -418,15 +419,15 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 				  iargsName(hints.args, NULL)));
 
 	  if ( (ci=hashDefinition(clist, &hints, ctx)) )
-	  { ctx->chp->key = indexKeyFromArgv(ci, argv PASS_LD);
-	    assert(ctx->chp->key);
+	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
+	    assert(chp->key);
 	    best_index = ci;
 	  }
 	}
       }
 
-      hi = hashIndex(ctx->chp->key, best_index->buckets);
-      ctx->chp->cref = best_index->entries[hi].head;
+      hi = hashIndex(chp->key, best_index->buckets);
+      chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(best_index, argv, ctx PASS_LD);
     }
   }
@@ -434,10 +435,17 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   if ( clist->number_of_clauses == 0 )
     return NULL;
 
-  if ( (ctx->chp->key = indexOfWord(argv[0] PASS_LD)) &&
+  if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
        (clist->number_of_clauses <= 10 || LD->gen_reload) )
-  { ctx->chp->cref = clist->first_clause;
-    return nextClauseArg1(ctx->chp, ctx->generation PASS_LD);
+  { chp->cref = clist->first_clause;
+
+    cref = nextClauseArg1(chp, ctx->generation PASS_LD);
+    if ( !(isFunctor(chp->key) &&
+	   chp->cref && chp->cref->d.key == chp->key &&
+	   cref->d.key == chp->key) )
+      return cref;
+    /* else duplicate functor; see whether we can create a deep index */
+    /* TBD: Avoid trying this every goal */
   }
 
   if ( !LD->gen_reload &&
@@ -447,24 +455,24 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
     if ( (ci=hashDefinition(clist, &hints, ctx)) )
     { int hi;
 
-      ctx->chp->key = indexKeyFromArgv(ci, argv PASS_LD);
-      assert(ctx->chp->key);
-      hi = hashIndex(ctx->chp->key, ci->buckets);
-      ctx->chp->cref = ci->entries[hi].head;
+      chp->key = indexKeyFromArgv(ci, argv PASS_LD);
+      assert(chp->key);
+      hi = hashIndex(chp->key, ci->buckets);
+      chp->cref = ci->entries[hi].head;
       return nextClauseFromBucket(ci, argv, ctx PASS_LD);
     }
   }
 
-  if ( ctx->chp->key )
-  { ctx->chp->cref = clist->first_clause;
-    return nextClauseArg1(ctx->chp, ctx->generation PASS_LD);
+  if ( chp->key )
+  { chp->cref = clist->first_clause;
+    return nextClauseArg1(chp, ctx->generation PASS_LD);
   }
 
 simple:
   for(cref = clist->first_clause; cref; cref = cref->next)
   { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
-    { ctx->chp->key = 0;
-      setClauseChoice(ctx->chp, cref->next, ctx->generation PASS_LD);
+    { chp->key = 0;
+      setClauseChoice(chp, cref->next, ctx->generation PASS_LD);
       break;
     }
   }
