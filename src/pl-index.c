@@ -2424,7 +2424,7 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
 
     if ( !clist->args[arg].assessed )
     { ia[0] = arg+1;
-      a = alloc_assessment(&aset, ia);
+      alloc_assessment(&aset, ia);
     }
   }
 
