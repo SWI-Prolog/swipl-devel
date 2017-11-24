@@ -440,11 +440,10 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   { chp->cref = clist->first_clause;
 
     cref = nextClauseArg1(chp, ctx->generation PASS_LD);
-    if ( !(//isFunctor(chp->key) &&
-	   chp->cref && chp->cref->d.key == chp->key &&
+    if ( !(chp->cref && chp->cref->d.key == chp->key &&
 	   cref->d.key == chp->key) )
       return cref;
-    /* else duplicate functor; see whether we can create a deep index */
+    /* else duplicate; see whether we can create a deep index */
     /* TBD: Avoid trying this every goal */
   }
 
