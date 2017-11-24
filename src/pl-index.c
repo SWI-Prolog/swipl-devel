@@ -187,11 +187,14 @@ nextClauseArg1(ClauseChoice chp, gen_t generation ARG_LD)
       int maxsearch = MAX_LOOKAHEAD;
 
       for( cref = cref->next; cref; cref = cref->next )
-      { if ( ((!cref->d.key || key == cref->d.key) &&
-	      visibleClauseCNT(cref->value.clause, generation)) ||
-	     --maxsearch == 0 )
+      { if ( (!cref->d.key || key == cref->d.key) )
+	{ if ( visibleClauseCNT(cref->value.clause, generation) )
+	  { chp->cref = cref;
+	    return result;
+	  }
+	}
+	if ( --maxsearch == 0 )
 	{ setClauseChoice(chp, cref, generation PASS_LD);
-
 	  return result;
 	}
       }
