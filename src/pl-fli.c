@@ -110,15 +110,15 @@ word
 linkVal__LD(Word p ARG_LD)
 { word w = *p;
 
-  if ( needsRef(w) )
-    return makeRef(p);
-
   while( isRef(w) )
   { p = unRef(w);
     if ( needsRef(*p) )
       return w;
     w = *p;
   }
+
+  if ( unlikely(needsRef(w)) )
+    return makeRef(p);
 
   DEBUG(CHK_SECURE, assert(w != ATOM_garbage_collected));
 
