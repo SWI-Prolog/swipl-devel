@@ -272,7 +272,7 @@ resetProcedure(Procedure proc, bool isnew)
   def->impl.clauses.number_of_clauses = 0;
 
   if ( isnew )
-  { deleteIndexes(def, TRUE);
+  { deleteIndexes(&def->impl.clauses, TRUE);
     freeCodesDefinition(def, FALSE);
   } else
     freeCodesDefinition(def, TRUE);	/* carefully sets to S_VIRGIN */

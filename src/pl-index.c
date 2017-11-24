@@ -101,6 +101,7 @@ static void	insertIntoSparseList(ClauseRef cref,
 static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 				      IndexContext ctx ARG_LD);
 static Code	skipToTerm(Clause clause, const iarg_t *position);
+static void	unalloc_index_array(void *p);
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -596,11 +597,18 @@ freeClauseListRef(ClauseRef cref)
 { ClauseList cl = &cref->value.clauses;
   ClauseRef cr, next;
 
+  deleteIndexes(cl, TRUE);
+
   for(cr=cl->first_clause; cr; cr=next)
   { next = cr->next;
     lingerClauseRef(cr);
   }
 
+  if ( cl->args )
+  { assert(isFunctor(cref->d.key));
+
+    freeHeap(cl->args, arityFunctor(cref->d.key)*sizeof(*cl->args));
+  }
   freeHeap(cref, SIZEOF_CREF_LIST);
 }
 
@@ -1326,12 +1334,12 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 
 
 void
-deleteIndexes(Definition def, int isnew)
+deleteIndexes(ClauseList clist, int isnew)
 { ClauseIndex *cip;
 
   assert(isnew);			/* TBD for non-new */
 
-  if ( (cip=def->impl.clauses.clause_indexes) )
+  if ( (cip=clist->clause_indexes) )
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
@@ -1341,7 +1349,8 @@ deleteIndexes(Definition def, int isnew)
       unallocClauseIndexTable(ci);
     }
 
-    def->impl.clauses.clause_indexes = NULL;
+    unalloc_index_array(cip);
+    clist->clause_indexes = NULL;
   }
 }
 
