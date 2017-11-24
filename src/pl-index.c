@@ -405,9 +405,9 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   hash_hints hints;
   ClauseChoice chp = ctx->chp;
 
-  if ( argc == 0 )
+  if ( unlikely(argc == 0) )
     goto simple;			/* TBD: alt supervisor */
-  if ( argc > MAXINDEXARG )
+  if ( unlikely(argc > MAXINDEXARG) )
     argc = MAXINDEXARG;
 
   if ( (cip=clist->clause_indexes) )
@@ -458,7 +458,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
     }
   }
 
-  if ( clist->number_of_clauses == 0 )
+  if ( unlikely(clist->number_of_clauses == 0) )
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
