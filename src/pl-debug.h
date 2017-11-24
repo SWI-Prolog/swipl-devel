@@ -158,6 +158,7 @@
 
 #define MSG_JIT			 180
 #define MSG_JIT_DELINDEX	 181
+#define MSG_JIT_POOR		 182
 
 #define MSG_RECONSULT		 190
 #define MSG_RECONSULT_PRED	 191
