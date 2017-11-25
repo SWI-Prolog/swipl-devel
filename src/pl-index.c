@@ -621,6 +621,7 @@ newClauseIndexTable(unsigned short *hap, hash_hints *hints, IndexContext ctx)
   copytpos(ci->position, ctx->position);
 
   memset(ci->entries, 0, bytes);
+  ATOMIC_INC(&GD->statistics.indexes.created);
 
   return ci;
 }
@@ -664,6 +665,7 @@ unallocClauseIndexTableEntries(ClauseIndex ci)
     }
   }
 
+  ATOMIC_INC(&GD->statistics.indexes.destroyed);
   freeHeap(ci->entries, ci->buckets * sizeof(struct clause_bucket));
 }
 

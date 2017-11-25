@@ -141,6 +141,10 @@ struct PL_global_data
     size_t	codes;			/* No. of VM codes generated */
     double	user_cputime;		/* User CPU time (whole process) */
     double	system_cputime;		/* Kernel CPU time (whole process) */
+    struct
+    { int	created;		/* # created hash tables */
+      int	destroyed;		/* # destroyed hash tables */
+    } indexes;
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */

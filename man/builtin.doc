@@ -9329,6 +9329,8 @@ shift_time	& Time spent in stack-shifts \\
 stack		& Total memory in use for stacks in all threads \\
 predicates	& Total number of predicates.  This includes predicates
 		  that are undefined or not yet resolved. \\
+indexes_created & Number of clause index tables creates. \\
+indexes_destroyed & Number of clause index tables destroyed. \\
 process_epoch	& Time stamp when Prolog was started \\
 process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
 thread_cputime  & MT-version: Seconds CPU time used by finished threads.
