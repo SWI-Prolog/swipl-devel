@@ -2565,23 +2565,7 @@ unify_clause_index(term_t t, ClauseIndex ci)
        !(tmp =PL_new_term_ref()) )
     return FALSE;
 
-  if ( ci->position[0] != END_INDEX_POS )
-  { iarg_t *ap = ci->position;
-
-    while(*ap != END_INDEX_POS)
-      ap++;
-    PL_put_nil(where);
-    for(--ap; ap >= ci->position; ap--)
-    { if ( !PL_put_integer(tmp, (*ap)+1) ||
-	   !PL_cons_list(where, tmp, where) )
-	return FALSE;
-    }
-    if ( !PL_put_integer(tmp, ci->args[0]) ||
-	 !PL_cons_list(where, tmp, where) )
-      return FALSE;
-    if ( !PL_cons_functor(where, FUNCTOR_deep1, where) )
-      return FALSE;
-  } else if ( ci->args[1] )
+  if ( ci->args[1] )
   { int i;
 
     PL_put_nil(where);
@@ -2598,6 +2582,26 @@ unify_clause_index(term_t t, ClauseIndex ci)
   } else
   { if ( !PL_put_integer(where, ci->args[0]) ||
 	 !PL_cons_functor(where, FUNCTOR_single1, where) )
+      return FALSE;
+  }
+
+  if ( ci->position[0] != END_INDEX_POS )
+  { iarg_t *ap = ci->position;
+    term_t nil;
+
+    if ( !(nil=PL_new_term_ref()) ||
+	 !PL_put_nil(nil) ||
+	 !PL_cons_functor(where, FUNCTOR_dot2, where, nil) )
+      return FALSE;
+
+    while(*ap != END_INDEX_POS)
+      ap++;
+    for(--ap; ap >= ci->position; ap--)
+    { if ( !PL_put_integer(tmp, (*ap)+1) ||
+	   !PL_cons_list(where, tmp, where) )
+	return FALSE;
+    }
+    if ( !PL_cons_functor(where, FUNCTOR_deep1, where) )
       return FALSE;
   }
 
@@ -2633,6 +2637,9 @@ add_deep_indexes(ClauseIndex ci, term_t head, term_t tail ARG_LD)
 
 	    if ( !PL_unify_list(tail, head, tail) ||
 		 !unify_clause_index(head, ci) )
+	      return FALSE;
+	    if ( ci->is_list &&
+		 !add_deep_indexes(ci, head, tail PASS_LD) )
 	      return FALSE;
 	  }
 	}
