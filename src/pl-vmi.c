@@ -2727,17 +2727,23 @@ this supervisor (see resetProcedure()). The task of this is to
 
 VMI(S_VIRGIN, 0, 0, ())
 { lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-  SAVE_REGISTERS(qid);
-  DEF = getProcDefinedDefinition(DEF PASS_LD);
-  LOAD_REGISTERS(qid);
 
-  if ( FR->predicate != DEF )		/* auto imported/loaded */
-  { FR->predicate = DEF;
+  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+  { SAVE_REGISTERS(qid);
+    DEF = getProcDefinedDefinition(DEF PASS_LD);
+    LOAD_REGISTERS(qid);
+
+    FR->predicate = DEF;
 #ifdef O_PROFILE
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
 #endif
     goto retry_continue;
+#ifdef O_PLMT
+  } else if ( true(DEF, P_THREAD_LOCAL) )
+  { DEF = getProcDefinition__LD(DEF PASS_LD);
+    FR->predicate = DEF;
+#endif
   }
 
   if ( createSupervisor(DEF) )
