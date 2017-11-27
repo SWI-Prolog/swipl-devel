@@ -339,7 +339,7 @@ print_val(word val, char *buf)
   { const char *s = stringAtom(val);
     if ( strlen(s) > 10 )
     { strncpy(o, s, 10);
-      strcat(o, "...");
+      strcpy(o+10, "...");
     } else
     { strcpy(o, s);
     }
