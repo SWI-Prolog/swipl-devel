@@ -2730,7 +2730,7 @@ ERROR: is/2: Type error: `expression' expected, found
 
 \section{Just-in-time clause indexing}		\label{sec:jitindex}
 
-\index{jitindex}%
+\index{jitindex}\index{indexing,jiti}%
 SWI-Prolog provides `just-in-time' indexing over multiple
 arguments.\footnote{JIT indexing was added in version 5.11.29 (Oct.
 2011).} `Just-in-time' means that clause indexes are not built by the
@@ -2758,7 +2758,9 @@ The principal clause list maintains a \jargon{key} for the first
 argument. An indexing key is either a constant or a functor (name/arity
 reference). Calls with an instantiated first argument and less than
 10 clauses perform a linear scan for a possible matching clause using
-this index key.
+this index key.  If the result is deterministic it is used.  Otherwise
+the system looks for better indexes.\footnote{Up to 7.7.2 this result
+was used also when non-deterministic.}.
 
     \item [Hash lookup]
 If none of the above applies, the system considers the available hash
@@ -2768,7 +2770,16 @@ assesses the clauses for all instantiated arguments and selects the best
 candidate for creating a new hash table. If there is no single argument
 that provides an acceptable hash quality it will search for a
 combination of arguments.\footnote{The last step was added in SWI-Prolog
-7.5.8.}
+7.5.8.}  Searching for index candidates is only performed on the first
+254 arguments.
+
+If a single-argument index contains multiple compound terms with the
+same name and arity and at least one non-variable argument, a
+\jargon{list index} is created. A subsequent query where this argument
+is bound to a compound causes jiti indexing to be applied
+\jargon{recursively} on the arguments of the term.  This is called
+\jargon{deep indexing}.\footnote{Deep indexing was added in version
+7.7.4.}  See also \secref{deep-indexing}
 
 Clauses that have a variable at an otherwise indexable argument must be
 linked into all hash buckets. Currently, predicates that have more than
@@ -2795,22 +2806,83 @@ See garbage_collect_clauses/0 for details.
 The library \pllib{prolog_jiti} provides jiti_list/0,1 to list the
 characteristics of all or some of the created hash tables.
 
+\paragraph{Dynamic predicates} are indexed using the same rules as
+static predicates, except that the \jargon{special purpose} schemes are
+never applied. In addition, the JITI index is discarded if the number of
+clauses has doubled since the predicate was last assessed or shrinks
+below one fourth. A subsequent call reassesses the statistics of the
+dynamic predicate and, when applicable, creates a new index.
+
+
+\subsection{Deep indexing}
+\label{sec:deep-indexing}
+
+\index{indexing,deep}%
+As introduced in \secref{jitindex}, \jargon{deep indexing} creates hash
+tables distinguish clauses that share a compound with the same name and
+arity. Deep indexes allow for efficient lookup of arbitrary terms.
+Without it is advised to \jargon{flatten} the term, i.e., turn
+\term{F}{X} into two arguments for the fact, one argument denoting the
+functor \arg{F} and the second the argument {X}. This works fine as long
+as the arity of the each of the terms is the same. Alternatively we can
+use term_hash/2 or term_hash/4 to add a column holding the hash of the
+term. That approach can deal with arbitrary arities, but requires us to
+know that the term is ground (term_hash/2) or up to which depth we get
+sufficient selectivity (term_hash/4).
+
+Deep indexing does not require this knowledge and leads to efficient
+lookup regardless of the instantiation of the query and term.  The
+current version does come with some limitations:
+
+\begin{itemize}
+    \item The decision which index to use is taken independently
+    at each level.  Future versions may be smarter on this.
+    \item Deep indexing only applies to a \emph{single argument}
+    indexes (on any argument).
+    \item Currently, the depth of indexing is limited to 7 levels.
+\end{itemize}
+
+\index{indexing,DCG}\index{DCG,indexing}%
+Note that, when compiling DCGs (see \secref{DCG}) and the first body
+term is a \jargon{literal}, it is included into the clause head. See
+for example the grammar and its plain Prolog representation below.
+
+\begin{code}
+det(det(a), sg)  --> "a".
+det(det(an), pl) --> "an".
+det(det(the), _) --> "the".
+\end{code}
+
+\begin{code}
+?- listing(det).
+det(det(a), sg, [97|A], A).
+det(det(an), pl, [97, 110|A], A).
+det(det(the), _, [116, 104, 101|A], A).
+\end{code}
+
+Deep argument indexing will create indexes for the 3rd list argument,
+providing speedup and making clause selection deterministic if all rules
+start with a literal and all literals are unique in the first 6
+elements. Note that deep index creation stops as soon as a determistic
+choice can be made or there are no two clauses that have the same
+name/arity combination.
 
 \subsection{Future directions}
 \label{sec:indexfut}
 
 \begin{itemize}
     \item
-The current indexing system is largely prepared for secondary indexes.
-This implies that if there are many clauses that match a given key, the
-system could (JIT) create a secondary index. This secondary index could
-exploit another argument or, if the key denotes a functor, an argument
-inside the compound term.
-
-    \item
 The `special cases' can be extended.  This is notably attractive for
 static predicates with a relatively small number of clauses where a
 hash lookup is too costly.
+
+    \item
+Create an efficient decision diagram for selecting between low numbers
+of static clauses.
+
+    \item
+Implement a better judgements for selecting between deep and plain
+indexes.
 \end{itemize}
 
 \subsection{Indexing and portability}

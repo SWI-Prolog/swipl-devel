@@ -3371,15 +3371,34 @@ that encloses the generation of the current goal are considered visible.
 \subsection{Indexing databases}			\label{sec:hashterm}
 
 \index{indexing,term-hashes}%
+
 The indexing capabilities of SWI-Prolog are described in
 \secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
-applicable argument, but only on one argument, and does not index
-on arguments of compound terms. The predicates below provide building
-blocks to circumvent the limitations of the current indexing system.
+applicable argument, pairs of arguments and indexes on the arguments of
+compound terms when applicable. Extended JIT indexing is not widely
+supported amoung Prolog implementations. Programs that aim at
+portability should consider using term_hash/2 and term_hash/4 to design
+their database such that indexing on constant or functor (name/arity
+reference) on the first argument is sufficient. In some cases, using the
+predicates below to add one or more additional columns (arguments) to a
+database predicate may improve performance. The overall design of code
+using these predicates is given below. Note that as term_hash/2 leaves
+the hash unbound if \arg{Term} is not ground. This causes the lookup to
+be fast if \arg{Term} is ground and correct (but slow) otherwise.
 
-Programs that aim at portability should consider using term_hash/2 and
-term_hash/4 to design their database such that indexing on constant or
-functor (name/arity reference) on the first argument is sufficient.
+\begin{code}
+:- dynamic
+    x/2.
+
+assert_x(Term) :-
+    term_hash(Term, Hash),
+    assertz(x(Hash, Term)).
+
+x(Term) :-
+    term_hash(Term, Hash),
+    x(Hash, Term).
+\end{code}
+
 
 \begin{description}
     \predicate[det]{term_hash}{2}{+Term, -HashKey}
