@@ -1739,6 +1739,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case C_LCUT:
       case C_SOFTCUT:
       case C_LCUTIFTHEN:
+      case C_FASTCUT:
 	mark_choice_mark(state, PC[0]);
         break;
 					/* variable access */
