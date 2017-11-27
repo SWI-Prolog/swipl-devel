@@ -1,4 +1,5 @@
 \libdoc{tabling}{Tabled execution (SLG)}
+\label{sec:tabling}
 
 \index{SLG,resolution}%
 The library \pllib{tabling} provides support for \jargon{Tabled
