@@ -2728,7 +2728,7 @@ this supervisor (see resetProcedure()). The task of this is to
 VMI(S_VIRGIN, 0, 0, ())
 { lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
-  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any && false(DEF, PROC_DEFINED) )
   { SAVE_REGISTERS(qid);
     DEF = getProcDefinedDefinition(DEF PASS_LD);
     LOAD_REGISTERS(qid);
