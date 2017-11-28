@@ -3092,26 +3092,11 @@ to give the compiler a hint to put ARGP not into a register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A_ENTER: Ensure the alignment of ARGP   allows  for efficient pushing of
-the number structure. We must  check   for  availaible  space to support
-bindConst() (wakeup and trail) because the  resulting value may possibly
-not be shifted. See is/2 in pl-arith.c for details.
+A_ENTER: Prepare for arithmetic operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(A_ENTER, 0, 0, ())
-{ if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    SAVE_REGISTERS(qid);
-    rc = ensureGlobalSpace(0, ALLOW_GC);
-    LOAD_REGISTERS(qid);
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
-  }
-
-  AR_BEGIN();
+{ AR_BEGIN();
   NEXT_INSTRUCTION;
 }
 

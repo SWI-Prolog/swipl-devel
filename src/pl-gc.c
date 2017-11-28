@@ -3980,6 +3980,8 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
+  assert(LD->fast_condition == NULL);
+
 #ifdef O_MAINTENANCE
   save_backtrace("GC");
 #endif
