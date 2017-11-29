@@ -721,8 +721,11 @@ PL_EXPORT(char *)	PL_cwd(char *buf, size_t buflen);
 		 *    QUINTUS/SICSTUS WRAPPER	*
 		 *******************************/
 
+PL_EXPORT(int)		PL_cvt_i_char(term_t p, char *c);
+PL_EXPORT(int)		PL_cvt_i_short(term_t p, short *s);
 PL_EXPORT(int)		PL_cvt_i_int(term_t p, int *c);
 PL_EXPORT(int)		PL_cvt_i_long(term_t p, long *c);
+PL_EXPORT(int)		PL_cvt_i_int64(term_t p, int64_t *c);
 PL_EXPORT(int)		PL_cvt_i_size_t(term_t p, size_t *c);
 PL_EXPORT(int)		PL_cvt_i_float(term_t p, double *c);
 PL_EXPORT(int)		PL_cvt_i_single(term_t p, float *c);

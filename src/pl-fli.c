@@ -818,6 +818,52 @@ PL_cvt_set_encoding(int enc)
 
 #define REP_SP (sp_encoding)
 
+#ifndef CHAR_MIN
+#define CHAR_MIN -128
+#define CHAR_MAX 127
+#endif
+
+#ifndef SHORT_MIN
+#define SHORT_MIN -32768
+#define SHORT_MAX 32767
+#endif
+
+bool
+PL_cvt_i_char(term_t p, char *c)
+{ GET_LD
+  int i;
+
+  if ( PL_get_integer(p, &i) &&
+       i >= CHAR_MIN && i <= CHAR_MAX )
+  { *c = (char)i;
+    return TRUE;
+  }
+
+  if ( PL_is_integer(p) )
+    return PL_representation_error("char");
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
+}
+
+
+bool
+PL_cvt_i_short(term_t p, short *s)
+{ GET_LD
+  int i;
+
+  if ( PL_get_integer(p, &i) &&
+       i >= SHORT_MIN && i <= SHORT_MAX )
+  { *s = (short)i;
+    return TRUE;
+  }
+
+  if ( PL_is_integer(p) )
+    return PL_representation_error("short");
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
+}
+
+
 bool
 PL_cvt_i_int(term_t p, int *c)
 { return PL_get_integer_ex(p, c);
@@ -829,6 +875,10 @@ PL_cvt_i_long(term_t p, long *c)
 { return PL_get_long_ex(p, c);
 }
 
+bool
+PL_cvt_i_int64(term_t p, int64_t *c)
+{ return PL_get_int64_ex(p, c);
+}
 
 bool
 PL_cvt_i_size_t(term_t p, size_t *c)
