@@ -105,7 +105,10 @@ atom_summary(atom_t name, unsigned int maxlen)
 { PL_chars_t txt;
 
   if ( !get_atom_text(name, &txt) )
-    return NULL;
+  { if ( isNil(name) )
+      return "[]";
+    return "<blob>";
+  }
 
   return text_summary(&txt, 0, maxlen);
 }

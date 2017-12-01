@@ -268,7 +268,8 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	  ctx->position[ctx->depth]   = END_INDEX_POS;
 
 	  DEBUG(MSG_INDEX_DEEP,
-		Sdprintf("Recursive index for %s\n", keyName(cref->d.key)));
+		Sdprintf("Recursive index for %s at level %d\n",
+			 keyName(cref->d.key), ctx->depth));
 	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
 	}
 
