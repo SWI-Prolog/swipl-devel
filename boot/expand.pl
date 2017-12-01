@@ -110,7 +110,7 @@ expand_term(Term, Pos0, Expanded, Pos) :-
     b_setval('$term', Term),
     '$def_modules'([term_expansion/4,term_expansion/2], MList),
     call_term_expansion(MList, Term, Pos0, Term1, Pos1),
-    expand_term_2(Term1, Pos1, Term2, Pos),
+    expand_terms(expand_term_2, Term1, Pos1, Term2, Pos),
     rename(Term2, Expanded),
     b_setval('$term', []).
 
