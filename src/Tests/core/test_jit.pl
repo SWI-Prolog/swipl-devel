@@ -173,4 +173,17 @@ test_index_2(Convert) :-
 	       )),
 	assertion(has_hashes(d(_,_), [2])).
 
+p1(a(b(c(d(e(f(g(1)))))))).
+p1(a(b(c(d(e(f(g(2)))))))).
+
+p2(a(b(c(d(e(f(g(h(1))))))))).
+p2(a(b(c(d(e(f(g(h(2))))))))).
+
+test(depth) :-
+	p1(a(b(c(d(e(f(g(1)))))))),
+	p1(a(b(c(d(e(f(g(2)))))))).
+test(depth_exceeded, nondet) :-
+	p2(a(b(c(d(e(f(g(h(1))))))))),
+	p2(a(b(c(d(e(f(g(h(2))))))))).
+
 :- end_tests(jit).

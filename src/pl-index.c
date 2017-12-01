@@ -231,6 +231,12 @@ this functor, in which case we can use   this or we don't. In the latter
 case we must still perform the traditional   search as clauses without a
 key may match.
 
+(*) We gave up indexed search due to  exceeding depth. We should set key
+to  0  to  avoid  using  the    first   argument  key  in  nextClause().
+Alternatively we'd have to  reset  the   argv  to  the  appropriate deep
+argument inside nextClause, but  unfortunately  we   do  not  know which
+argument we are processing.
+
 TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -273,6 +279,7 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
 	}
 
+	ctx->chp->key = 0;		/* See (*) */
 	for(cr=cl->first_clause; cr; cr=cr->next)
 	{ if ( visibleClauseCNT(cr->value.clause, ctx->generation) )
 	  { setClauseChoice(ctx->chp, cr->next, ctx->generation PASS_LD);
