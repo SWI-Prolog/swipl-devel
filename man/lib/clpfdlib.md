@@ -385,7 +385,8 @@ Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
 ==
 
 In this concrete case, the constraint solver is strong enough to find
-the unique solution without any search.
+the unique solution without any search. For the general case, see
+[search](<#clpfd-search>).
 
 
 ## Residual goals				{#clpfd-residual-goals}
