@@ -446,10 +446,9 @@ own labeling strategies.
 Using CLP(FD) constraints to solve combinatorial tasks typically
 consists of two phases:
 
-    1. First, all relevant constraints are stated.
-    2. Second, if the domain of each involved variable is _finite_,
-       then _enumeration predicates_ can be used to search for
-       concrete solutions.
+    1. **Modeling**. In this phase, all relevant constraints are stated.
+    2. **Search**. In this phase, _enumeration predicates_ are used
+       to search for concrete solutions.
 
 It is good practice to keep the modeling part, via a dedicated
 predicate called the *core relation*, separate from the actual
