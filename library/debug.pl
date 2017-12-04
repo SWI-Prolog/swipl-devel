@@ -123,9 +123,9 @@ debugging(Topic, Bool) :-
 %   redirects debug information on this topic to the given output.
 
 debug(Topic) :-
-    debug(Topic, true).
+    with_mutex(prolog_debug, debug(Topic, true)).
 nodebug(Topic) :-
-    debug(Topic, false).
+    with_mutex(prolog_debug, debug(Topic, false)).
 
 debug(Spec, Val) :-
     debug_target(Spec, Topic, Out),
