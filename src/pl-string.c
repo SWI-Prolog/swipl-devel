@@ -503,9 +503,9 @@ PRED_IMPL("open_string", 2, open_string, 0)
       if ( PL_unify_stream(A2, s) )
 	return TRUE;
       Sclose(s);
+    } else
+    { PL_free_text(&text);
     }
-
-    PL_free_text(&text);
   }
 
   return FALSE;
