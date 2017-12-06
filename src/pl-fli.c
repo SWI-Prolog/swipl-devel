@@ -832,11 +832,18 @@ bool
 PL_cvt_i_char(term_t p, char *c)
 { GET_LD
   int i;
+  PL_chars_t txt;
 
   if ( PL_get_integer(p, &i) &&
        i >= CHAR_MIN && i <= CHAR_MAX )
   { *c = (char)i;
     return TRUE;
+  } else if ( PL_get_text(p, &txt, CVT_ATOM|CVT_STRING|CVT_LIST) )
+  { if ( txt.length == 1 && txt.encoding == ENC_ISO_LATIN_1 )
+    { *c = txt.text.t[0];
+      return TRUE;			/* can never be allocated */
+    }
+    PL_free_text(&txt);
   }
 
   if ( PL_is_integer(p) )
