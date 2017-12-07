@@ -1523,6 +1523,7 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
     *i = (int)val;
     succeed;
   }
+#if SIZEOF_VOIDP < 8
   if ( isBignum(w) )
   { int64_t val = valBignum(w);
 
@@ -1532,6 +1533,7 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
     *i = (int)val;
     succeed;
   }
+#endif
   if ( isFloat(w) )
   { double f = valFloat(w);
     int l;
