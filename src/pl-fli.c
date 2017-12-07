@@ -1534,6 +1534,7 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
     succeed;
   }
 #endif
+#ifndef O_GMP
   if ( isFloat(w) )
   { double f = valFloat(w);
     int l;
@@ -1549,6 +1550,7 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
       succeed;
     }
   }
+#endif
   fail;
 }
 
