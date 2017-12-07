@@ -94,6 +94,7 @@ Prolog int) is used by the garbage collector to update the stack frames.
 	       return raiseStackOverflow(GLOBAL_OVERFLOW); } while(0)
 
 static int	unify_int64_ex__LD(term_t t, int64_t i, int ex ARG_LD);
+static int	PL_get_uint__LD(term_t t, unsigned int *i ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deduce the value to store a copy of the  contents of p. This is a *very*
@@ -899,6 +900,18 @@ PL_cvt_i_int(term_t p, int *c)
 { return PL_get_integer_ex(p, c);
 }
 
+bool
+PL_cvt_i_uint(term_t t, unsigned int *c)
+{ GET_LD
+
+  if ( PL_get_uint__LD(t, c PASS_LD) )
+    return TRUE;
+
+  if ( PL_is_integer(t) )
+    return PL_representation_error("uint");
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
 
 bool
 PL_cvt_i_long(term_t p, long *c)
@@ -906,8 +919,24 @@ PL_cvt_i_long(term_t p, long *c)
 }
 
 bool
+PL_cvt_i_ulong(term_t p, unsigned long *c)
+{
+#if SIZEOF_LONG == 8
+  return PL_cvt_i_uint64(p, c);
+#else
+  return PL_cvt_i_uint(p, c);
+#endif
+}
+
+bool
 PL_cvt_i_int64(term_t p, int64_t *c)
 { return PL_get_int64_ex(p, c);
+}
+
+bool
+PL_cvt_i_uint64(term_t p, uint64_t *c)
+{ GET_LD
+  return PL_get_uint64_ex__LD(p, c PASS_LD);
 }
 
 bool
@@ -1560,6 +1589,50 @@ PL_get_integer(term_t t, int *i)
   return PL_get_integer__LD(t, i PASS_LD);
 }
 #define PL_get_integer(t, i) PL_get_integer__LD(t, i PASS_LD)
+
+
+static int
+PL_get_uint__LD(term_t t, unsigned int *i ARG_LD)
+{ word w = valHandle(t);
+
+  if ( isTaggedInt(w) )
+  { intptr_t val = valInt(w);
+
+    if ( val < 0 || val > UINT_MAX )
+      fail;
+    *i = (unsigned int)val;
+    succeed;
+  }
+#if SIZEOF_VOIDP < 8
+  if ( isBignum(w) )
+  { int64_t val = valBignum(w);
+
+    if ( val < 0 || val > UINT_MAX )
+      fail;
+
+    *i = (unsigned int)val;
+    succeed;
+  }
+#endif
+#ifndef O_GMP
+  if ( isFloat(w) )
+  { double f = valFloat(w);
+    unsigned int l;
+
+#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
+    if ( f > (double)UINT_MAX || f < 0.0 )
+      fail;
+#endif
+
+    l = (unsigned int)f;
+    if ( (double)l == f )
+    { *i = l;
+      succeed;
+    }
+  }
+#endif
+  fail;
+}
 
 
 int
