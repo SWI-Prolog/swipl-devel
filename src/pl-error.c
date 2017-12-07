@@ -1023,7 +1023,9 @@ PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
     }
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    ATOM_not_less_than_zero, t);
-  } if ( PL_get_number(t, &n) )
+  }
+
+  if ( PL_get_number(t, &n) )
   { switch(n.type)
     { case V_INTEGER:
 	if ( n.value.i >= 0 )
@@ -1056,6 +1058,63 @@ PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
       }
 #else
       return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+#endif
+      default:
+	break;
+    }
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
+
+int
+PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
+{ number n;
+  Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isTaggedInt(*p) )
+  { intptr_t v = valInt(*p);
+
+    if ( v >= 0 )
+    { *i = v;
+      return TRUE;
+    }
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, t);
+  }
+
+  if ( PL_get_number(t, &n) )
+  { switch(n.type)
+    { case V_INTEGER:
+	if ( n.value.i >= 0 )
+	{ *i = n.value.i;
+	  return TRUE;
+	} else
+	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, t);
+	}
+#if SIZEOF_VOIDP == 8 && defined(O_GMP)
+      case V_MPZ:
+      { uint64_t v;
+
+	switch(mpz_to_uint64(n.value.mpz, &v))
+	{ case 0:
+	    *i = v;
+	    return TRUE;
+	  case -1:
+	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			    ATOM_not_less_than_zero, t);
+	  case 1:
+	    return PL_representation_error("uint64_t");
+	  default:
+	    assert(0);
+	    return FALSE;
+	}
+      }
+#else
+      return PL_representation_error("uint64_t");
 #endif
       default:
 	break;
