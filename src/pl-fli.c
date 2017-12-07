@@ -818,24 +818,27 @@ PL_cvt_set_encoding(int enc)
 
 #define REP_SP (sp_encoding)
 
-#ifndef CHAR_MIN
-#define CHAR_MIN -128
-#define CHAR_MAX 127
+#ifndef SCHAR_MIN
+#define SCHAR_MIN -128
+#define SCHAR_MAX 127
+#endif
+#ifndef UCHAR_MAX
+#define UCHAR_MAX 255
 #endif
 
 #ifndef SHORT_MIN
 #define SHORT_MIN -32768
 #define SHORT_MAX 32767
+#define USHORT_MAX (SHORT_MAX*2+1)
 #endif
 
-bool
-PL_cvt_i_char(term_t p, char *c)
+static bool
+_PL_cvt_i_char(term_t p, char *c, int mn, int mx)
 { GET_LD
   int i;
   PL_chars_t txt;
 
-  if ( PL_get_integer(p, &i) &&
-       i >= CHAR_MIN && i <= CHAR_MAX )
+  if ( PL_get_integer(p, &i) && i >= mn && i <= mx )
   { *c = (char)i;
     return TRUE;
   } else if ( PL_get_text(p, &txt, CVT_ATOM|CVT_STRING|CVT_LIST) )
@@ -847,29 +850,49 @@ PL_cvt_i_char(term_t p, char *c)
   }
 
   if ( PL_is_integer(p) )
-    return PL_representation_error("char");
+    return PL_representation_error(mn < 0 ? "char" : "uchar");
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
 }
 
 
 bool
-PL_cvt_i_short(term_t p, short *s)
+PL_cvt_i_char(term_t p, char *c)
+{ return _PL_cvt_i_char(p, c, SCHAR_MIN, SCHAR_MAX);
+}
+
+bool
+PL_cvt_i_uchar(term_t p, unsigned char *c)
+{ return _PL_cvt_i_char(p, (char *)c, 0, UCHAR_MAX);
+}
+
+
+static bool
+_PL_cvt_i_short(term_t p, short *s, int mn, int mx)
 { GET_LD
   int i;
 
   if ( PL_get_integer(p, &i) &&
-       i >= SHORT_MIN && i <= SHORT_MAX )
+       i >= mn && i <= mx )
   { *s = (short)i;
     return TRUE;
   }
 
   if ( PL_is_integer(p) )
-    return PL_representation_error("short");
+    return PL_representation_error(mn < 0 ? "short" : "ushort");
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
 }
 
+bool
+PL_cvt_i_short(term_t p, short *s)
+{ return _PL_cvt_i_short(p, s, SHORT_MIN, SHORT_MAX);
+}
+
+bool
+PL_cvt_i_ushort(term_t p, unsigned short *s)
+{ return _PL_cvt_i_short(p, (short *)s, 0, USHORT_MAX);
+}
 
 bool
 PL_cvt_i_int(term_t p, int *c)
