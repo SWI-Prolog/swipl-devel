@@ -98,7 +98,7 @@ Supported types:
         | string        | atom,string   | char *                        |
         | atom          | atom          | atom identifier (type atomic) |
 
-*NOTE*  This modules requires a correctly functioning plld and
+*NOTE*  This modules requires a correctly functioning swipl-ld and
         load_foreign_library/1 on your system.  If this isn't the
         case use make_foreign_wrapper_file/[1,2] to generate a
         wrapper and use static embedding.
