@@ -6687,7 +6687,8 @@ pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
       outOfCore();
 
     memset(newblock, 0, bs*sizeof(definition_ref));
-    refs->blocks[idx] = newblock-bs;
+    if ( !COMPARE_AND_SWAP(&refs->blocks[idx], NULL, newblock-bs) )
+      PL_free(newblock);
   }
 
   enterDefinition(def);			/* probably not needed in the end */
