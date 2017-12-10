@@ -6578,6 +6578,15 @@ pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
   dref->predicate  = def;
   dref->generation = gen;
 
+  if ( GD->clauses.cgc_active )
+  { DirtyDefInfo ddi;
+
+    if ( (ddi=lookupHTable(GD->procedures.dirty, def)) )
+    { if ( gen < ddi->oldest_generation )
+	ddi->oldest_generation = gen;
+    }
+  }
+
   refs->top = top;
 
   return TRUE;
