@@ -1521,7 +1521,7 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
 
     ci = newClauseIndexTable(hints->args, hints, ctx);
 
-    acquire_def(ctx->predicate);
+    assert(LD->thread.info->access.predicate == ctx->predicate);
     first = clist->first_clause;
     last  = clist->last_clause;
 
@@ -1529,7 +1529,6 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
     { if ( false(cref->value.clause, CL_ERASED) )
 	addClauseToIndex(ci, cref->value.clause, CL_END);
     }
-    release_def(ctx->predicate);
 
     LOCKDEF(ctx->predicate);
     if ( first == clist->first_clause &&
