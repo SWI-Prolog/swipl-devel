@@ -1349,7 +1349,7 @@ hashDefinition(Definition def, hash_hints *hints)
 
     ci = newClauseIndexTable(hints->args, hints);
 
-    acquire_def(def);
+    assert(LD->thread.info->access.predicate == def);
     first = def->impl.clauses.first_clause;
     last  = def->impl.clauses.last_clause;
 
@@ -1357,7 +1357,6 @@ hashDefinition(Definition def, hash_hints *hints)
     { if ( false(cref->value.clause, CL_ERASED) )
 	addClauseToIndex(ci, cref->value.clause, CL_END);
     }
-    release_def(def);
 
     LOCKDEF(def);
     if ( first == def->impl.clauses.first_clause &&
