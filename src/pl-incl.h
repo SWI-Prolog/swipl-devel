@@ -996,8 +996,6 @@ typedef uint64_t lgen_t;
 	do { (f)->generation = (gen); } while(0)
 #endif
 #ifdef HAVE___SYNC_ADD_AND_FETCH_8
-#define global_generation() (GD->_generation)
-#define next_global_generation() ATOMIC_INC(&GD->_generation)
 typedef uint64_t ggen_t;
 #else
 #define ATOMIC_GENERATION_HACK 1

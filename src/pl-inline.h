@@ -488,6 +488,19 @@ next_global_generation(void)
 
   return (gen_t)u<<32|l;
 }
+
+#else /*ATOMIC_GENERATION_HACK*/
+
+static inline gen_t
+global_generation(void)
+{ return GD->_generation;
+}
+
+static inline gen_t
+next_global_generation(void)
+{ return ATOMIC_INC(&GD->_generation);
+}
+
 #endif /*ATOMIC_GENERATION_HACK*/
 
 static inline int WUNUSED
