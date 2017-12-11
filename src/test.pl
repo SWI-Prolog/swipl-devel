@@ -2196,7 +2196,8 @@ popen(pwd-1) :-
 popen(cat-1) :-
 	(   current_prolog_flag(windows, true)
 	->  true		% there is *no* cmd.exe command like cat!?
-	;   File = 'pltest.txt',
+	;   current_prolog_flag(pid, Pid),
+	    format(atom(File), 'pltest-~w.txt', [Pid]),
 	    Text = 'Hello World',
 	    Cmd = cat,
 	    atomic_list_concat([Cmd, ' > ', File], Command),
@@ -2345,8 +2346,9 @@ file(cwd-1) :-
 	exists_directory(CWD),
 	same_file(CWD, '.').
 file(absfile-2) :-			% canonicaliseDir() caching issues
-	X = 'pl-test-x',
-	Y = 'pl-test-y',
+	current_prolog_flag(pid, Pid),
+	atom_concat('pl-test-x-', Pid, X),
+	atom_concat('pl-test-y-', Pid, Y),
 	atom_concat(X, '/file', XF),
 	atom_concat(Y, '/file', YF),
 	make_directory(X),
@@ -2376,8 +2378,13 @@ touch(File) :-
 		 *	UNICODE FILENAMES	*
 		 *******************************/
 
+unicode_file_name(Name) :-
+	current_prolog_flag(pid, Pid),
+	atom_codes(Name0, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	atomic_list_concat([Name0, -, Pid], Name).
+
 unicode_file(mkdir-1) :-			% create Cyrillic directory
-	atom_codes(Dir, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	unicode_file_name(Dir),
 	catch(delete_directory(Dir), _, true),
 	make_directory(Dir),
 	exists_directory(Dir),
@@ -2387,7 +2394,7 @@ unicode_file(mkdir-1) :-			% create Cyrillic directory
 	same_file(O2, Dir),
 	delete_directory(Dir).
 unicode_file(file-1) :-				% create Cyrillic file
-	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	unicode_file_name(File),
 	Term = hello(world),
 	catch(delete_file(File), _, true),
 	open(File, write, Out),
@@ -2400,7 +2407,7 @@ unicode_file(file-1) :-				% create Cyrillic file
 	Read =@= Term,
 	delete_file(File).
 unicode_file(absfile-1) :-
-	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	unicode_file_name(File),
 	absolute_file_name(File, Path),
 	file_directory_name(Path, Dir),
 	same_file(Dir, '.'),
@@ -2480,24 +2487,28 @@ wctype(code_type-6) :-
 		 *	      CONSULT		*
 		 *******************************/
 
-mk_include :-
-	open('test_included.pl', write, Out1),
+mk_include(Include, Included) :-
+	current_prolog_flag(pid, Pid),
+	format(atom(Included), 'test_included_~w.pl', [Pid]),
+	format(atom(Include), 'test_include_~w.pl', [Pid]),
+	file_name_extension(Base, pl, Included),
+	open(Included, write, Out1),
 	format(Out1, ':- dynamic foo/1.\n', []),
 	close(Out1),
 
-	open('test_include.pl', write, Out2),
-	format(Out2, ':- include(test_included).\n', []),
+	open(Include, write, Out2),
+	format(Out2, ':- include(~w).\n', [Base]),
 	format(Out2, 'foo(a).\n', []),
 	close(Out2).
 
 load_program(include-1) :-
-	mk_include,
+	mk_include(Include, Included),
 	abolish(foo, 1),
-	load_files(test_include, [silent(true)]),
+	load_files(Include, [silent(true)]),
 	assert(foo(b)),
 	findall(X, retract(foo(X)), [a,b]),
-	delete_file('test_included.pl'),
-	delete_file('test_include.pl').
+	delete_file(Included),
+	delete_file(Include).
 
 
 		 /*******************************
