@@ -985,14 +985,14 @@ typedef struct lgen_t
 
 #define generationFrame(f) \
 	((gen_t)(f)->generation.gen_u<<32 | (gen_t)(f)->generation.gen_l)
-#define setGenerationFrame(f, gen) \
+#define setGenerationFrameVal(f, gen) \
 	do { (f)->generation.gen_u = (uint32_t)(gen>>32); \
 	     (f)->generation.gen_l = (uint32_t)(gen); \
 	   } while(0)
 #else
 typedef uint64_t lgen_t;
 #define generationFrame(f)	((f)->generation)
-#define setGenerationFrame(f, gen) \
+#define setGenerationFrameVal(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
 #ifdef HAVE___SYNC_ADD_AND_FETCH_8
@@ -1005,11 +1005,11 @@ typedef struct ggen_t
 } ggen_t;
 #endif /*HAVE___SYNC_ADD_AND_FETCH_8*/
 #else /*O_LOGICAL_UPDATE*/
-#define global_generation()	(0)
+#define global_generation()	 (0)
 #define next_global_generation() (0)
-#define generationFrame(f)	(0)
-#define setGenerationFrame(f)	(void)0
 #endif /*O_LOGICAL_UPDATE*/
+
+#define setGenerationFrame(fr) setGenerationFrame__LD((fr) PASS_LD)
 
 #define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS|FR_CLEANUP
 #define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CONTEXT)
@@ -1023,8 +1023,6 @@ typedef struct ggen_t
 #define setFramePredicate(fr, def) \
 	do \
 	{ (fr)->predicate = (def); \
-	  if ( unlikely(GD->clauses.cgc_active) ) \
-	    cgcActivatePredicate__LD(def, global_generation() PASS_LD); \
 	} while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

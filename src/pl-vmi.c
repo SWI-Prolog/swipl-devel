@@ -1670,7 +1670,7 @@ procedure and deallocate our temporary version if threading is not used.
 
 depart_continue:
 retry_continue:
-  setGenerationFrame(FR, global_generation());
+  setGenerationFrame(FR);
 #ifdef O_PROFILE
   FR->prof_node = NULL;
 #endif
@@ -1695,7 +1695,7 @@ retry_continue:
       LOAD_REGISTERS(qid);
       if ( FR->predicate != DEF )		/* auto imported/loaded */
       { setFramePredicate(FR, DEF);
-	setGenerationFrame(FR, global_generation());
+	setGenerationFrame(FR);
       }
       SAVE_REGISTERS(qid);
       handleSignals(PASS_LD1);
@@ -1754,7 +1754,7 @@ retry_continue:
       LOAD_REGISTERS(qid);
       if ( FR->predicate != DEF )		/* auto imported/loaded */
       { setFramePredicate(FR, DEF);
-	setGenerationFrame(FR, global_generation());
+	setGenerationFrame(FR);
 #ifdef O_PROFILE
         if ( FR->prof_node )
 	  profSetHandle(FR->prof_node, DEF);
@@ -2735,7 +2735,7 @@ VMI(S_VIRGIN, 0, 0, ())
     LOAD_REGISTERS(qid);
 
     setFramePredicate(FR, DEF);
-    setGenerationFrame(NFR, global_generation());
+    setGenerationFrame(NFR);
 #ifdef O_PROFILE
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
@@ -2745,7 +2745,7 @@ VMI(S_VIRGIN, 0, 0, ())
   } else if ( true(DEF, P_THREAD_LOCAL) )
   { DEF = getProcDefinition__LD(DEF PASS_LD);
     setFramePredicate(FR, DEF);
-    setGenerationFrame(NFR, global_generation());
+    setGenerationFrame(NFR);
 #endif
   }
 
@@ -2891,7 +2891,7 @@ S_THREAD_LOCAL: Get thread-local definition
 VMI(S_THREAD_LOCAL, 0, 0, ())
 { DEF = getProcDefinition__LD(DEF PASS_LD);
   setFramePredicate(FR, DEF);
-  setGenerationFrame(FR, global_generation());
+  setGenerationFrame(FR);
 
   assert(DEF->codes);
   PC = DEF->codes;
@@ -4797,7 +4797,7 @@ undefined predicate for call/N.
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = ~(gen_t)0;
       cl->generation.created = global_generation();
-      setGenerationFrame(NFR, global_generation());
+      setGenerationFrame(NFR);
 #endif
       PC = cl->codes;
 
@@ -4922,7 +4922,7 @@ mcall_cont:
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     setFramePredicate(NFR, DEF);	/* TBD */
-    setGenerationFrame(NFR, global_generation());
+    setGenerationFrame(NFR);
     NFR->programPointer = PC;		/* save PC in child */
     NFR->clause         = NULL;
 #ifdef O_PROFILE

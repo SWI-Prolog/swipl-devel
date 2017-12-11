@@ -503,6 +503,32 @@ next_global_generation(void)
 
 #endif /*ATOMIC_GENERATION_HACK*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We must ensure that cleanDefinition() does   not remove clauses that are
+valid   for   the   generation   in   the   frame.   This   means   that
+pl_garbage_collect_clauses() must either pick  up   the  generation from
+this frame using markPredicatesInEnvironments() or  the start generation
+of pl_garbage_collect_clauses() is older than  what   is  stored in this
+frame.  This  loop  ensure  that  if    CGC  has  been  running  between
+global_generation()  and  storing  the  generation  in  our  frame,  our
+generation is updated and thus no harm is done.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+setGenerationFrame__LD(LocalFrame fr ARG_LD)
+{
+#ifdef O_LOGICAL_UPDATE
+  gen_t gen;
+
+  do
+  { setGenerationFrameVal(fr, global_generation());
+  } while((gen=generationFrame(fr)) != global_generation());
+
+  if ( unlikely(GD->clauses.cgc_active) )
+    cgcActivatePredicate__LD(fr->predicate, gen PASS_LD);
+#endif
+}
+
 static inline int WUNUSED
 callEventHook(pl_event_type ev, ...)
 {

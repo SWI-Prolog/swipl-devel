@@ -2565,7 +2565,7 @@ PRED_IMPL("retract", 1, retract,
 	  PL_close_foreign_frame(fid);
 	  ForeignRedoPtr(ctx);
 	} else
-	{ setGenerationFrame(environment_frame, global_generation());
+	{ setGenerationFrame(environment_frame);
 	}
       }
 
