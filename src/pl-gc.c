@@ -5233,7 +5233,31 @@ markAtomsOnStacks(PL_local_data_t *ld)
 #endif /*O_ATOMGC*/
 
 #ifdef O_CLAUSEGC
-/* - - - q- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+set_min_generation(DirtyDefInfo ddi, gen_t gen)
+{
+#ifdef O_PLMT
+#ifdef HAVE___SYNC_ADD_AND_FETCH_8
+  for(;;)
+  { gen_t old = ddi->oldest_generation;
+
+    if ( gen >= old  ||
+	 COMPARE_AND_SWAP(&ddi->oldest_generation, old, gen) )
+      return;
+  }
+#else
+  PL_LOCK(L_CGCGEN);
+  if ( gen < ddi->oldest_generation )
+    ddi->oldest_generation = gen;
+  PL_UNLOCK(L_CGCGEN);
+#endif
+#else
+  if ( gen < ddi->oldest_generation )
+    ddi->oldest_generation = gen;
+#endif
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the latest generation at which a predicate is being used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -5279,7 +5303,7 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
       { gen_t gen = generationFrame(fr);
 
 	if ( gen < ddi->oldest_generation )
-	  ddi->oldest_generation = gen;
+	  set_min_generation(ddi, gen);
       }
     }
   }

@@ -294,7 +294,8 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_LOCALE"),
   COUNT_MUTEX_INITIALIZER("L_SORTR"),
   COUNT_MUTEX_INITIALIZER("L_UMUTEX"),
-  COUNT_MUTEX_INITIALIZER("L_INIT_ATOMS")
+  COUNT_MUTEX_INITIALIZER("L_INIT_ATOMS"),
+  COUNT_MUTEX_INITIALIZER("L_CGCGEN")
 #ifdef __WINDOWS__
 , COUNT_MUTEX_INITIALIZER("L_DDE")
 , COUNT_MUTEX_INITIALIZER("L_CSTACK")
@@ -6676,7 +6677,7 @@ cgcActivatePredicate__LD(Definition def, gen_t gen ARG_LD)
 
   if ( (ddi=lookupHTable(GD->procedures.dirty, def)) )
   { if ( gen < ddi->oldest_generation )
-      ddi->oldest_generation = gen;
+      set_min_generation(ddi, gen);
   }
 }
 
