@@ -1463,6 +1463,11 @@ cleanDefinition() keep track of this, but  in the meanwhile the previous
 may change due to an assert. Now that we are in the locked region we can
 search for the real previous, using   the  one from cleanDefinition() as
 the likely candidate.
+
+The `ddi->oldest_generation` contains the latest  marked generation that
+was found or GEN_MAX  if  the  predicate   is  not  active.  The `start`
+generation contains the generation when pl_garbage_collect_clauses() was
+started.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int	mustCleanDefinition(const Definition def);
