@@ -201,18 +201,13 @@ linger(linger_list** list, void (*unalloc)(void *), void *object)
 }
 
 void
-free_lingering(linger_list **list)
-{ linger_list *c, *n;
+free_lingering(linger_list *list)
+{ linger_list *n;
 
-  do
-  { if ( !(c = *list) )
-      return;
-  } while( !COMPARE_AND_SWAP(list, c, NULL) );
-
-  for(; c; c=n)
-  { n = c->next;
-    (*c->unalloc)(c->object);
-    freeHeap(c, sizeof(*c));
+  for(; list; list=n)
+  { n = list->next;
+    (*list->unalloc)(list->object);
+    freeHeap(list, sizeof(*list));
   }
 }
 

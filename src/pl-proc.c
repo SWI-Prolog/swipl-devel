@@ -1433,6 +1433,21 @@ announceErasedClause(Clause clause)
 }
 
 
+static void
+freeLingeringDefinition(Definition def, DirtyDefInfo ddi)
+{ linger_list *c;
+
+  do
+  { if ( !(c=def->lingering) )
+      return;
+    if ( ddi->oldest_generation != GEN_MAX )
+      return;
+  } while( !COMPARE_AND_SWAP(&def->lingering, c, NULL) );
+
+  free_lingering(c);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 cleanDefinition()
     This function has two tasks. If the predicate needs to be rehashed,
@@ -1470,9 +1485,10 @@ find_prev(Definition def, ClauseRef prev, ClauseRef cref)
 
 
 static size_t
-cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
+cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
 { GET_LD
   size_t removed = 0;
+  gen_t marked = ddi->oldest_generation;
   gen_t active = start < marked ? start : marked;
 
   DEBUG(CHK_SECURE, checkDefinition(def));
@@ -1519,8 +1535,7 @@ cleanDefinition(Definition def, gen_t marked, gen_t start, int *rcp)
       cleanClauseIndexes(def, &def->impl.clauses, active);
       UNLOCKDEF(def);
     }
-    if ( marked == GEN_MAX && def->lingering )
-      free_lingering(&def->lingering);
+    freeLingeringDefinition(def, ddi);
     release_def(def);
 
     DEBUG(CHK_SECURE, checkDefinition(def));
@@ -2089,9 +2104,7 @@ pl_garbage_collect_clauses(void)
 
 		if ( false(def, P_FOREIGN) &&
 		     def->impl.clauses.erased_clauses > 0 )
-		{ size_t del = cleanDefinition(def,
-					       ddi->oldest_generation,
-					       start_gen, &rc);
+		{ size_t del = cleanDefinition(def, ddi, start_gen, &rc);
 
 		  removed += del;
 		  DEBUG(MSG_CGC_PRED,

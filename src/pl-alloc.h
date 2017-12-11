@@ -81,7 +81,7 @@ typedef struct linger_list
 } linger_list;
 
 COMMON(void)	linger(linger_list** list, void (*unalloc)(void *), void *object);
-COMMON(void)	free_lingering(linger_list **list);
+COMMON(void)	free_lingering(linger_list *list);
 
 
 		 /*******************************
