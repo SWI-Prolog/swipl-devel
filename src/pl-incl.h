@@ -1022,6 +1022,13 @@ typedef struct ggen_t
 	  (next)->flags = ((fr)->flags) & ~FR_CLEAR_FLAGS; \
 	} while(0)
 
+#define setFramePredicate(fr, def) \
+	do \
+	{ (fr)->predicate = (def); \
+	  if ( unlikely(GD->clauses.cgc_active) ) \
+	    cgcActivatePredicate__LD(def, global_generation() PASS_LD); \
+	} while(0)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Predicate reference counting. The aim  of   this  mechanism  is to avoid
 modifying the predicate structure while  it   has  choicepoints  or (MT)
