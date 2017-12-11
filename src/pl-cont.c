@@ -474,7 +474,7 @@ retry:
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif
-    setGenerationFrame(fr, global_generation());
+    setGenerationFrame(fr);
     enterDefinition(fr->predicate);
     environment_frame = fr;
 
