@@ -1754,6 +1754,7 @@ retry_continue:
       LOAD_REGISTERS(qid);
       if ( FR->predicate != DEF )		/* auto imported/loaded */
       { setFramePredicate(FR, DEF);
+	setGenerationFrame(FR, global_generation());
 #ifdef O_PROFILE
         if ( FR->prof_node )
 	  profSetHandle(FR->prof_node, DEF);
@@ -2734,6 +2735,7 @@ VMI(S_VIRGIN, 0, 0, ())
     LOAD_REGISTERS(qid);
 
     setFramePredicate(FR, DEF);
+    setGenerationFrame(NFR, global_generation());
 #ifdef O_PROFILE
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
@@ -2743,6 +2745,7 @@ VMI(S_VIRGIN, 0, 0, ())
   } else if ( true(DEF, P_THREAD_LOCAL) )
   { DEF = getProcDefinition__LD(DEF PASS_LD);
     setFramePredicate(FR, DEF);
+    setGenerationFrame(NFR, global_generation());
 #endif
   }
 
@@ -2888,6 +2891,7 @@ S_THREAD_LOCAL: Get thread-local definition
 VMI(S_THREAD_LOCAL, 0, 0, ())
 { DEF = getProcDefinition__LD(DEF PASS_LD);
   setFramePredicate(FR, DEF);
+  setGenerationFrame(FR, global_generation());
 
   assert(DEF->codes);
   PC = DEF->codes;
@@ -4918,6 +4922,7 @@ mcall_cont:
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     setFramePredicate(NFR, DEF);	/* TBD */
+    setGenerationFrame(NFR, global_generation());
     NFR->programPointer = PC;		/* save PC in child */
     NFR->clause         = NULL;
 #ifdef O_PROFILE
