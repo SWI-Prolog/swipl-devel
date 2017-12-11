@@ -2141,28 +2141,33 @@ os(setenv-1) :-
 		 *******************************/
 
 io(tell-1) :-
-	tell(test_x),
+	current_prolog_flag(pid, P),
+	atom_concat(test_x_, P, TestX),
+	atom_concat(test_y_, P, TestY),
+	tell(TestX),
 	format('~q.~n', [a]),
-	tell(test_y),
+	tell(TestY),
 	format('~q.~n', [b]),
-	tell(test_x),
+	tell(TestX),
 	format('~q.~n', [c]),
 	told,
-	tell(test_y),
+	tell(TestY),
 	told,
-	read_file_to_terms(test_x, [a,c], []),
-	read_file_to_terms(test_y, [b], []),
-	delete_file(test_x),
-	delete_file(test_y),
-	\+ stream_property(_, file_name(test_x)),
-	\+ stream_property(_, file_name(test_y)).
+	read_file_to_terms(TestX, [a,c], []),
+	read_file_to_terms(TestY, [b], []),
+	delete_file(TestX),
+	delete_file(TestY),
+	\+ stream_property(_, file_name(TestX)),
+	\+ stream_property(_, file_name(TestY)).
 
 io(tell-2) :-
+	current_prolog_flag(pid, P),
+	atom_concat(test_y_, P, TestY),
 	current_output(OrgOut),
 	open_null_stream(Out),
 	set_output(Out),
 	write(Out, x),
-	telling(Old), tell(test_y),
+	telling(Old), tell(TestY),
 	format('~q.~n', [b]),
 	told, tell(Old),
 	write(Out, y),
@@ -2170,8 +2175,8 @@ io(tell-2) :-
 	character_count(Out, 2),
 	close(Out),
 	set_output(OrgOut),
-	read_file_to_terms(test_y, [b], []),
-	delete_file(test_y).
+	read_file_to_terms(TestY, [b], []),
+	delete_file(TestY).
 
 
 		 /*******************************
