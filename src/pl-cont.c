@@ -468,7 +468,7 @@ retry:
     fr->programPointer = pcret;
     fr->parent         = pfr;
     fr->clause         = cref;
-    fr->predicate      = cl->predicate;
+    setFramePredicate(fr, cl->predicate);
     fr->context	       = fr->predicate->module;
     setNextFrameFlags(fr, pfr);
 #ifdef O_PROFILE

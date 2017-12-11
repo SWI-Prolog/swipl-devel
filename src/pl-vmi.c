@@ -1650,7 +1650,7 @@ possible to be able to call-back to Prolog.
 procedure and deallocate our temporary version if threading is not used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   NFR->parent         = FR;
-  NFR->predicate      = DEF;		/* TBD */
+  setFramePredicate(NFR, DEF);		/* TBD */
   NFR->programPointer = PC;		/* save PC in child */
   NFR->clause         = NULL;		/* for save atom-gc */
   environment_frame = FR = NFR;		/* open the frame */
@@ -1694,7 +1694,7 @@ retry_continue:
       DEF = getProcDefinedDefinition(DEF PASS_LD); /* see (*) above */
       LOAD_REGISTERS(qid);
       if ( FR->predicate != DEF )		/* auto imported/loaded */
-      { FR->predicate = DEF;
+      { setFramePredicate(FR, DEF);
 	setGenerationFrame(FR, global_generation());
       }
       SAVE_REGISTERS(qid);
@@ -1753,7 +1753,7 @@ retry_continue:
       DEF = getProcDefinedDefinition(DEF PASS_LD);
       LOAD_REGISTERS(qid);
       if ( FR->predicate != DEF )		/* auto imported/loaded */
-      { FR->predicate = DEF;
+      { setFramePredicate(FR, DEF);
 #ifdef O_PROFILE
         if ( FR->prof_node )
 	  profSetHandle(FR->prof_node, DEF);
@@ -1831,7 +1831,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     if ( true(DEF, HIDE_CHILDS) )
       set(FR, FR_HIDE_CHILDS);
 
-    FR->predicate = DEF;
+    setFramePredicate(FR, DEF);
     copyFrameArguments(lTop, FR, DEF->functor->arity PASS_LD);
 
     END_PROF();
@@ -2733,7 +2733,7 @@ VMI(S_VIRGIN, 0, 0, ())
     DEF = getProcDefinedDefinition(DEF PASS_LD);
     LOAD_REGISTERS(qid);
 
-    FR->predicate = DEF;
+    setFramePredicate(FR, DEF);
 #ifdef O_PROFILE
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
@@ -2742,7 +2742,7 @@ VMI(S_VIRGIN, 0, 0, ())
 #ifdef O_PLMT
   } else if ( true(DEF, P_THREAD_LOCAL) )
   { DEF = getProcDefinition__LD(DEF PASS_LD);
-    FR->predicate = DEF;
+    setFramePredicate(FR, DEF);
 #endif
   }
 
@@ -2886,7 +2886,8 @@ S_THREAD_LOCAL: Get thread-local definition
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_THREAD_LOCAL, 0, 0, ())
-{ FR->predicate = DEF = getProcDefinition__LD(DEF PASS_LD);
+{ DEF = getProcDefinition__LD(DEF PASS_LD);
+  setFramePredicate(FR, DEF);
 
   assert(DEF->codes);
   PC = DEF->codes;
@@ -4916,7 +4917,7 @@ mcall_cont:
   if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
-    NFR->predicate      = DEF;		/* TBD */
+    setFramePredicate(NFR, DEF);	/* TBD */
     NFR->programPointer = PC;		/* save PC in child */
     NFR->clause         = NULL;
 #ifdef O_PROFILE

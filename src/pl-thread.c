@@ -6640,6 +6640,7 @@ pl_functor_table_in_use(FunctorTable functor_table)
 		 *******************************/
 
 #ifdef O_PLMT
+
 static void
 init_predicate_references(PL_local_data_t *ld)
 { definition_refs *refs = &ld->predicate_references;
@@ -6669,6 +6670,16 @@ free_predicate_references(PL_local_data_t *ld)
 }
 #endif /*O_PLMT*/
 
+void
+cgcActivatePredicate__LD(Definition def, gen_t gen ARG_LD)
+{ DirtyDefInfo ddi;
+
+  if ( (ddi=lookupHTable(GD->procedures.dirty, def)) )
+  { if ( gen < ddi->oldest_generation )
+      ddi->oldest_generation = gen;
+  }
+}
+
 int
 pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
 { definition_refs *refs = &LD->predicate_references;
@@ -6697,13 +6708,7 @@ pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
   dref->generation = gen;
 
   if ( GD->clauses.cgc_active )
-  { DirtyDefInfo ddi;
-
-    if ( (ddi=lookupHTable(GD->procedures.dirty, def)) )
-    { if ( gen < ddi->oldest_generation )
-	ddi->oldest_generation = gen;
-    }
-  }
+    cgcActivatePredicate__LD(def, gen PASS_LD);
 
   refs->top = top;
 
