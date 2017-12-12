@@ -86,8 +86,15 @@ no_new_queues(G) :-
 	(   I == 1
 	->  true
 	;   format(user_error,
-		   '~NRequired ~D retrys before all queues were GCed~n', [])
+		   '~N~p: Required ~D retrys before all queues were GCed~n',
+		   [G, I])
 	).
+no_new_queues(G) :-
+	format(user_error,
+	       '~NWARNING: ~p: Did not reclaim queues in 10 runs.~n\c
+	        This can be bad luck and is thus not considered a \c
+		test failure.~n',
+	       [G]).
 
 create_and_destroy :-
 	message_queue_create(Q),
