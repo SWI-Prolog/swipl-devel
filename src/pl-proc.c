@@ -2568,8 +2568,10 @@ PRED_IMPL("retract", 1, retract,
 	}
       }
 
-      PL_rewind_foreign_frame(fid);
+      if ( PL_exception(0) )
+	break;
 
+      PL_rewind_foreign_frame(fid);
       cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
     }
 
