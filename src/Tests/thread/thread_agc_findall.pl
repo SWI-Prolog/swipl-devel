@@ -64,7 +64,7 @@ create_test(Count, I, Id) :-
 	thread_create(test_find(Prefix, Count), Id, []).
 
 prefix(N, Prefix) :-
-	A is 0'A+N,
+	A is 0'A+N//2,
 	atom_codes(Prefix, [A,A,A]).
 
 test_find(Prefix, N) :-
