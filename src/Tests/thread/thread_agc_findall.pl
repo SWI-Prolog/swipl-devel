@@ -56,8 +56,7 @@ thread_agc_findall(Threads, Count) :-
 test(Threads, Count) :-
 	numlist(1, Threads, Is),
 	maplist(create_test(Count), Is, Ids),
-	maplist(thread_join, Ids, States),
-	maplist(==(true), States).
+	maplist(thread_join, Ids).
 
 create_test(Count, I, Id) :-
 	prefix(I, Prefix),
