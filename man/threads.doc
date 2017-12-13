@@ -174,7 +174,7 @@ data from their stacks.
 Get the Prolog thread identifier of the running thread.  If the thread
 has an alias, the alias name is returned.
 
-    \predicate{thread_join}{2}{+Id}
+    \predicate{thread_join}{1}{+Id}
 Calls thread_join/2 and succeeds if thread \arg{Id} terminated with
 success. Otherwise the exception
 \term{error}{\term{thread_error}{Status}, _} is raised.
