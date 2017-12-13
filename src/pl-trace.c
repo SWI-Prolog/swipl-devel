@@ -492,15 +492,15 @@ again:
     if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
-      { Sfprintf(Sdout, "EOF: exit\n");
-	exitFromDebugger(0);
+      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
+	exitFromDebugger(4);
       }
     } else
     { int c = getSingleChar(Sdin, FALSE);
 
       if ( c == EOF )
-      { Sfprintf(Sdout, "EOF: exit\n");
-	exitFromDebugger(0);
+      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
+	exitFromDebugger(4);
       }
       buf[0] = c;
       buf[1] = EOS;
@@ -689,8 +689,8 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
     case '\04': FeedBack("EOF: ");
-    case 'e':	FeedBack("exit\n");
-		exitFromDebugger(0);
+    case 'e':	FeedBack("exit (status 4)\n");
+		exitFromDebugger(4);
     case 'f':	FeedBack("fail\n");
 		return ACTION_FAIL;
     case 'i':	if (port & (CALL_PORT|REDO_PORT|FAIL_PORT))
@@ -1706,8 +1706,8 @@ again:
 		break;
     case 04:
     case EOF:	Sfprintf(Sdout, "EOF: ");
-    case 'e':	Sfprintf(Sdout, "exit\n");
-		exitFromDebugger(0);
+    case 'e':	Sfprintf(Sdout, "exit (status 4)\n");
+		exitFromDebugger(4);
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfprintf(Sdout, "goals\n");

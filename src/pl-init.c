@@ -1474,7 +1474,7 @@ action:
 
   switch(getSingleChar(Sinput, FALSE))
   { case EOF:
-      Sfprintf(Serror, "EOF: exit\n");
+      Sfprintf(Serror, "EOF: exit (status 3)\n");
     case 'e':
       PL_halt(3);
       break;
