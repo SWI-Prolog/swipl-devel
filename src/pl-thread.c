@@ -395,7 +395,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
     lc = (cm == &_PL_mutexes[L_MUTEX] ? 1 : 0);
 
     if ( cm->lock_count > lc )
-      Sdprintf(" LOCKS: %d\n", cm->count - lc);
+      Sdprintf(" LOCKS: %d\n", cm->lock_count - lc);
     else
       Sdprintf("\n");
   }
