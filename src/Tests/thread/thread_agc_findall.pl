@@ -77,8 +77,14 @@ gen_atom(High, Prefix, Atom) :-
 check_atoms([], I, N, _Prefix) :-
 	assertion(I=:=N+1).
 check_atoms([H|T], I, N, Prefix) :-
-	atom_concat(Prefix, Rest, H),
-	atom_number(Rest, Num),
-	assertion(I == Num),
-	I2 is I + 1,
-	check_atoms(T, I2, N, Prefix).
+	(   atom_concat(Prefix, Rest, H)
+	->  (   atom_number(Rest, Num)
+	    ->	assertion(I == Num),
+		I2 is I + 1,
+		check_atoms(T, I2, N, Prefix)
+	    ;	format(user_error, 'Oops, ~q: invalid~n', [H]),
+		fail
+	    )
+	;   format(user_error, 'Oops, ~q has no prefix ~q~n', [H,Prefix]),
+	    fail
+	).
