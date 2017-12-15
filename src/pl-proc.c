@@ -1401,11 +1401,27 @@ unallocClause(Clause c)
 }
 
 
+#ifdef O_DEBUG_ATOMGC
+void
+unregister_atom_clause(atom_t a)
+{ PL_unregister_atom(a);
+}
+
+void
+register_atom_clause(atom_t a)
+{ PL_register_atom(a);
+}
+#endif
+
 void
 freeClause(Clause c)
 {
 #ifdef O_ATOMGC
+#ifdef O_DEBUG_ATOMGC
+  forAtomsInClause(c, unregister_atom_clause);
+#else
   forAtomsInClause(c, PL_unregister_atom);
+#endif
 #endif
 
   if ( true(c, DBREF_CLAUSE) )		/* will be freed from symbol */
@@ -3326,7 +3342,11 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
       if ( def->module != copy_def->module )
 	remoduleClause(copy, def->module, copy_def->module);
 #ifdef O_ATOMGC
+#ifdef O_DEBUG_ATOMGC
+      forAtomsInClause(copy, register_atom_clause);
+#else
       forAtomsInClause(copy, PL_register_atom);
+#endif
 #endif
       assertProcedure(to, copy, CL_END PASS_LD);
     }

@@ -1161,11 +1161,8 @@ typedef struct atom_table
 	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 #define PL_unregister_atom(a) \
 	_PL_debug_unregister_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
-#undef atomValue
-#define atomValue(a) _PL_debug_atom_value(a)
-extern Atom _PL_debug_atom_value(atom_t a);
 #endif
-#else
+#else /*!O_ATOMGC*/
 #define PL_register_atom(a)
 #define PL_unregister_atom(a)
 #endif
