@@ -399,6 +399,32 @@ to the main thread.
 #undef LD
 #define LD LOCAL_LD
 
+static int
+is_fatal_signal(int sig)
+{ switch(sig)
+  {
+#ifdef SIGFPE
+    case SIGFPE:
+#endif
+#ifdef SIGSEGV
+    case SIGSEGV:
+#if defined(SIGBUS) && SIGBUS != SIGSEGV
+    case SIGBUS:
+#endif
+#endif
+#ifdef SIGILL
+    case SIGILL:
+#endif
+#ifdef SIGSYS
+    case SIGSYS:
+#endif
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 void
 dispatch_signal(int sig, int sync)
 { GET_LD
@@ -436,15 +462,8 @@ dispatch_signal(int sig, int sync)
   saved_current_signal = LD->signal.current;
   saved_sync = LD->signal.is_sync;
 
-  switch(sig)
-  { case SIGFPE:
-    case SIGSEGV:
-#if defined(SIGBUS) && SIGBUS != SIGSEGV
-    case SIGBUS:
-#endif
-      if ( sig == LD->signal.current )
-	sysError("Recursively received fatal signal %d", sig);
-  }
+  if ( is_fatal_signal(sig) && sig == LD->signal.current )
+    sysError("Recursively received fatal signal %d", sig);
 
   if ( gc_status.active && sig < SIG_PROLOG_OFFSET )
   { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
@@ -530,6 +549,13 @@ dispatch_signal(int sig, int sync)
   else
     PL_discard_foreign_frame(fid);
   lTop = (LocalFrame)valTermRef(lTopSave);
+
+					/* we cannot return.  First try */
+					/* longjmp.  If that fails, crash */
+  if ( is_fatal_signal(sig) )
+  { PL_rethrow();
+    sigCrashHandler(sig);
+  }
 
   if ( !sync )
     unblockGC(0 PASS_LD);

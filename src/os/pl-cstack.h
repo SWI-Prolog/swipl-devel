@@ -41,5 +41,6 @@ COMMON(void)	btrace_destroy(struct btrace *bt);
 COMMON(void)	print_backtrace(int last);		/* 1..SAVE_TRACES */
 COMMON(void)	print_backtrace_named(const char *why);
 COMMON(void)	initBackTrace(void);
+COMMON(void)	sigCrashHandler(int sig);
 
 #endif /*PL_CSTACK_H_INCLUDED*/

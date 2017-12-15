@@ -472,52 +472,23 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 #define ctime_r(timep, buf) strcpy(buf, ctime(timep))
 #endif
 
-static void
-crashHandler(int sig)
-{ int tid;
-  atom_t alias;
-  const pl_wchar_t *name = L"";
-  time_t now = time(NULL);
-  char tbuf[48];
-
-  signal(sig, SIG_DFL);
-  tid = PL_thread_self();
-  ctime_r(&now, tbuf);
-  tbuf[24] = '\0';
-
-  if ( PL_get_thread_alias(tid, &alias) )
-    name = PL_atom_wchars(alias, NULL);
-
-  Sdprintf("\nSWI-Prolog [thread %d (%Ws) at %s]: "
-	   "received fatal signal %d (%s)\n",
-	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
-  print_c_backtrace("crash");
-  run_on_halt(&GD->os.exit_hooks, 4);
-
-#if defined(HAVE_KILL) && defined(HAVE_GETPID)
-  kill(getpid(), sig);
-#else
-  abort();
-#endif
-}
-
 void
 initBackTrace(void)
 {
 #ifdef SIGSEGV
-  PL_signal(SIGSEGV, crashHandler);
+  PL_signal(SIGSEGV, sigCrashHandler);
 #endif
 #ifdef SIGILL
-  PL_signal(SIGILL, crashHandler);
+  PL_signal(SIGILL, sigCrashHandler);
 #endif
 #if defined(SIGBUS) && SIGBUS != SIGSEGV
-  PL_signal(SIGBUS, crashHandler);
+  PL_signal(SIGBUS, sigCrashHandler);
 #endif
 #ifdef SIGFPE
-  PL_signal(SIGFPE, crashHandler);
+  PL_signal(SIGFPE, sigCrashHandler);
 #endif
 #ifdef SIGSYS
-  PL_signal(SIGSYS, crashHandler);
+  PL_signal(SIGSYS, sigCrashHandler);
 #endif
 }
 
@@ -906,6 +877,35 @@ print_c_backtrace(const char *why)
   bstore_print_backtrace_named(bt, why);
   if ( bt && !bt->shared )
     btrace_destroy(bt);
+}
+
+void
+sigCrashHandler(int sig)
+{ int tid;
+  atom_t alias;
+  const pl_wchar_t *name = L"";
+  time_t now = time(NULL);
+  char tbuf[48];
+
+  signal(sig, SIG_DFL);
+  tid = PL_thread_self();
+  ctime_r(&now, tbuf);
+  tbuf[24] = '\0';
+
+  if ( PL_get_thread_alias(tid, &alias) )
+    name = PL_atom_wchars(alias, NULL);
+
+  Sdprintf("\nSWI-Prolog [thread %d (%Ws) at %s]: "
+	   "received fatal signal %d (%s)\n",
+	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
+  print_c_backtrace("crash");
+  run_on_halt(&GD->os.exit_hooks, 4);
+
+#if defined(HAVE_KILL) && defined(HAVE_GETPID)
+  kill(getpid(), sig);
+#else
+  abort();
+#endif
 }
 
 #endif /*BTRACE_DONE*/
