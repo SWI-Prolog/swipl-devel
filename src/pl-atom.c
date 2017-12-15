@@ -198,6 +198,12 @@ Note that threads can mark their atoms and continue execution because:
 
 static int	rehashAtoms(void);
 static void	considerAGC(void);
+static unsigned int register_atom(volatile Atom p);
+static unsigned int unregister_atom(volatile Atom p);
+#ifdef O_DEBUG_ATOMGC
+static int	tracking(const Atom a);
+IOSTREAM *atomLogFd;
+#endif
 
 static inline int
 bump_atom_references(Atom a, unsigned int ref)
@@ -549,6 +555,11 @@ redo:
 	     !likely(bump_atom_references(a, ref)) )
 	  break;			/* atom was just GCed.  Re-create */
 #endif
+#ifdef O_DEBUG_ATOMGC
+        if ( atomLogFd && tracking(a) )
+          Sfprintf(atomLogFd, "Lookup `%s' at (#%d)\n",
+		   a->name, indexAtom(a->atom));
+#endif
         *new = FALSE;
 	release_atom_table();
 	release_atom_bucket();
@@ -614,6 +625,11 @@ redo:
   a->references = 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE;
 #endif
 
+#ifdef O_DEBUG_ATOMGC
+  if ( atomLogFd && tracking(a) )
+    Sfprintf(atomLogFd, "Created `%s' at (#%d)\n",
+	     a->name, indexAtom(a->atom));
+#endif
   *new = TRUE;
   if ( type->acquire )
     (*type->acquire)(a->atom);
@@ -643,63 +659,50 @@ lookupAtom(const char *s, size_t length)
 #ifdef O_ATOMGC
 
 #ifdef O_DEBUG_ATOMGC
-static char *tracking;
-IOSTREAM *atomLogFd;
+static char *t_tracking;
+
+static int
+tracking(const Atom a)
+{ return /*a->type == &text_atom && */
+         strprefix(a->name, t_tracking);
+}
+
 
 void
 _PL_debug_register_atom(atom_t a,
 			const char *file, int line, const char *func)
-{ int i = indexAtom(a);
-  int mx = entriesBuffer(&atom_array, Atom);
-  Atom atom;
+{ size_t i  = indexAtom(a);
+  size_t mx = GD->atoms.highest;
 
   assert(i>=0 && i<mx);
-  atom = fetchBuffer(&atom_array, i, Atom);
+  if ( i >= GD->atoms.builtin )
+  { Atom atom = fetchAtomArray(i);
+    unsigned int refs;
 
-  atom->references++;
-  if ( atomLogFd && strprefix(atom->name, tracking) )
-    Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%d)\n",
-	     file, line, func, atom->references, atom->name, i);
+    refs = register_atom(atom);
+    if ( atomLogFd && tracking(atom) )
+      Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%d)\n",
+	       file, line, func, refs, atom->name, i);
+  }
 }
 
 
 void
 _PL_debug_unregister_atom(atom_t a,
 			  const char *file, int line, const char *func)
-{ int i = indexAtom(a);
-  int mx = entriesBuffer(&atom_array, Atom);
-  Atom atom;
+{ size_t i  = indexAtom(a);
+  size_t mx = GD->atoms.highest;
 
   assert(i>=0 && i<mx);
-  atom = fetchBuffer(&atom_array, i, Atom);
+  if ( i >= GD->atoms.builtin )
+  { Atom atom = fetchAtomArray(i);
+    unsigned int refs;
 
-  assert(atom->references >= 1);
-  atom->references--;
-  if ( atomLogFd && strprefix(atom->name, tracking) )
-    Sfprintf(atomLogFd, "%s:%d: %s(): -- (%d) for `%s' (#%d)\n",
-	     file, line, func, atom->references, atom->name, i);
-}
-
-
-Atom
-_PL_debug_atom_value(atom_t a)
-{ GET_LD
-  int i = indexAtom(a);
-  Atom atom = fetchBuffer(&atom_array, i, Atom);
-
-  if ( !atom )
-  { char buf[32];
-
-    Sdprintf("*** No atom at index (#%d) ***", i);
-    trap_gdb();
-
-    atom = allocHeapOrHalt(sizeof(*atom));
-    Ssprintf(buf, "***(#%d)***", i);
-    atom->name = store_string(buf);
-    atom->length = strlen(atom->name);
+    refs = unregister_atom(atom);
+    if ( atomLogFd && tracking(atom) )
+      Sfprintf(atomLogFd, "%s:%d: %s(): -- (%d) for `%s' (#%d)\n",
+	       file, line, func, refs, atom->name, i);
   }
-
-  return atom;
 }
 
 
@@ -707,20 +710,21 @@ word
 pl_track_atom(term_t which, term_t stream)
 { char *s;
 
-  if ( tracking )
-    remove_string(tracking);
-  tracking = NULL;
+  if ( t_tracking )
+    remove_string(t_tracking);
+  t_tracking = NULL;
   atomLogFd = NULL;
 
   if ( PL_get_nil(stream) )
     succeed;
 
-  if ( !PL_get_chars(which, &s, CVT_LIST) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, which);
-  if ( !PL_get_stream_handle(stream, &atomLogFd) )
-    fail;
+  if ( !PL_get_chars(which, &s, CVT_LIST|CVT_STRING|CVT_EXCEPTION) ||
+       !PL_get_stream_handle(stream, &atomLogFd) )
+    return FALSE;
 
-  tracking = store_string(s);
+  PL_release_stream(atomLogFd);
+
+  t_tracking = store_string(s);
 
   succeed;
 }
@@ -758,7 +762,7 @@ markAtom(atom_t a)
   if ( ATOM_IS_VALID(ap->references) && !ATOM_IS_MARKED(ap->references) )
   {
 #ifdef O_DEBUG_ATOMGC
-    if ( atomLogFd )
+    if ( atomLogFd && tracking(ap) )
       Sfprintf(atomLogFd, "Marked `%s' at (#%d)\n", ap->name, i);
 #endif
     ATOMIC_OR(&ap->references, ATOM_MARKED_REFERENCE);
@@ -808,10 +812,7 @@ maybe_free_atom_tables(void)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-destroyAtom()  actually  discards  an  atom.  The  code  marked  (*)  is
-sometimes inserted to debug atom-gc. The   trick  is to create xxxx<...>
-atoms that should *not* be subject to AGC.   If we find one collected we
-know we trapped a bug.
+destroyAtom()  actually  discards  an  atom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define ATOM_NAME_MUST_FREE 0x1
@@ -844,7 +845,7 @@ invalidateAtom(Atom a, unsigned int ref)
   a->references = ATOM_DESTROY_REFERENCE;
 
 #ifdef O_DEBUG_ATOMGC
-  if ( atomLogFd )
+  if ( atomLogFd && tracking(a) )
     Sfprintf(atomLogFd, "Invalidated `%s'\n", a->name);
 #endif
 
@@ -906,15 +907,9 @@ destroyAtom(Atom a, Atom **buckets)
     buckets++;
   }
 
-#if 0
-  if ( strncmp(a->name, "xxxx", 4) == 0 )	/* (*) see above */
-  { Sdprintf("Deleting %s\n", a->name);
-    assert(0);
-  }
-#endif
-
 #ifdef O_DEBUG_ATOMGC
-  if ( atomLogFd )
+  /* tracking() always returns FALSE as the type is lost */
+  if ( atomLogFd && tracking(a) )
     Sfprintf(atomLogFd, "Deleted `%s'\n", a->name);
 #endif
 
@@ -1106,7 +1101,7 @@ operations. This should be safe because:
     - When we unregister an atom, it must have at least one reference.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static unsigned int
 register_atom(volatile Atom p)
 { for(;;)
   { unsigned int ref  = p->references;
@@ -1116,10 +1111,10 @@ register_atom(volatile Atom p)
     { if ( COMPARE_AND_SWAP(&p->references, ref, nref) )
       { if ( ATOM_REF_COUNT(nref) == 1 )
 	  ATOMIC_DEC(&GD->atoms.unregistered);
-	return;
+	return nref;
       }
     } else
-    { return;
+    { return ref;
     }
   }
 }
@@ -1191,57 +1186,67 @@ unregistering  in  LD->atoms.unregistered  and  mark    this  atom  from
 markAtomsOnStacks().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static unsigned int
+unregister_atom(volatile Atom p)
+{ unsigned int refs;
+
+  if ( !ATOM_IS_VALID(p->references) )
+  { Sdprintf("OOPS: PL_unregister_atom('%s'): invalid atom\n", p->name);
+    trap_gdb();
+  }
+
+  if ( unlikely(ATOM_REF_COUNT(p->references+1) == 0) )
+    return ATOM_REF_COUNT(~(unsigned int)0);
+
+  if ( GD->atoms.gc_active )
+  { unsigned int oldref, newref;
+
+    do
+    { oldref = p->references;
+      newref = oldref - 1;
+
+      if ( ATOM_REF_COUNT(newref) == 0 )
+	newref |= ATOM_MARKED_REFERENCE;
+    } while( !COMPARE_AND_SWAP(&p->references, oldref, newref) );
+    refs = ATOM_REF_COUNT(newref);
+  } else
+  { GET_LD
+
+    if ( HAS_LD )
+      LD->atoms.unregistering = p->atom;
+    if ( (refs=ATOM_REF_COUNT(ATOMIC_DEC(&p->references))) == 0 )
+      ATOMIC_INC(&GD->atoms.unregistered);
+  }
+
+  if ( refs == ATOM_REF_COUNT((unsigned int)-1) )
+  { char fmt[100];
+    char *enc;
+    char *buf = NULL;
+
+    strcpy(fmt, "OOPS: PL_unregister_atom('%Ls'): -1 references\n");
+    enc = strchr(fmt, '%')+1;
+
+    Sdprintf(fmt, dbgAtomName(p, enc, &buf));
+    if ( buf )
+      PL_free(buf);
+    trap_gdb();
+  }
+
+  return refs;
+}
+
+
 void
 PL_unregister_atom(atom_t a)
 {
 #ifdef O_ATOMGC
   size_t index = indexAtom(a);
-  unsigned int refs;
 
   if ( index >= GD->atoms.builtin )
   { Atom p;
 
     p = fetchAtomArray(index);
-    if ( !ATOM_IS_VALID(p->references) )
-    { Sdprintf("OOPS: PL_unregister_atom('%s'): invalid atom\n", p->name);
-      trap_gdb();
-    }
-
-    if ( unlikely(ATOM_REF_COUNT(p->references+1) == 0) )
-      return;
-
-    if ( GD->atoms.gc_active )
-    { unsigned int oldref, newref;
-
-      do
-      { oldref = p->references;
-	newref = oldref - 1;
-
-	if ( ATOM_REF_COUNT(newref) == 0 )
-	  newref |= ATOM_MARKED_REFERENCE;
-      } while( !COMPARE_AND_SWAP(&p->references, oldref, newref) );
-      refs = ATOM_REF_COUNT(newref);
-    } else
-    { GET_LD
-
-      if ( HAS_LD )
-	LD->atoms.unregistering = a;
-      if ( (refs=ATOM_REF_COUNT(ATOMIC_DEC(&p->references))) == 0 )
-	ATOMIC_INC(&GD->atoms.unregistered);
-    }
-    if ( refs == ATOM_REF_COUNT((unsigned int)-1) )
-    { char fmt[100];
-      char *enc;
-      char *buf = NULL;
-
-      strcpy(fmt, "OOPS: PL_unregister_atom('%Ls'): -1 references\n");
-      enc = strchr(fmt, '%')+1;
-
-      Sdprintf(fmt, dbgAtomName(p, enc, &buf));
-      if ( buf )
-	PL_free(buf);
-      trap_gdb();
-    }
+    unregister_atom(p);
   }
 #endif
 }
