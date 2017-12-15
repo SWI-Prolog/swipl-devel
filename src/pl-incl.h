@@ -1157,6 +1157,7 @@ typedef struct atom_table
 #define ATOM_TYPE_INVALID	((PL_blob_t*)0x007)
 
 #ifdef O_DEBUG_ATOMGC
+extern IOSTREAM *atomLogFd;
 #define PL_register_atom(a) \
 	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 #define PL_unregister_atom(a) \

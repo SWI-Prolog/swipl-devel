@@ -5159,25 +5159,15 @@ checkStacks(), a simple routine for  checking stack-consistency that has
 to walk along all reachable data as well.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG_ATOMGC
-extern IOSTREAM * atomLogFd;		/* for error messages */
-
-static intptr_t
-loffset(void *p)
-{ GET_LD
-  if ( p == NULL )
-    return 0;
-
-  assert((intptr_t)p % sizeof(word) == 0);
-  return (Word)p-(Word)lBase;
-}
-#endif
-
 static void
 markAtomsOnGlobalStack(PL_local_data_t *ld)
 { Word gbase = ld->stacks.global.base;
   Word gtop  = ld->stacks.global.top;
   Word current;
+
+#ifdef O_DEBUG_ATOMGC
+  if ( atomLogFd ) Sfprintf(atomLogFd, "Mark global %p..%p\n", gbase, gtop);
+#endif
 
   for(current = gbase; current < gtop; current += (offset_cell(current)+1) )
   { if ( isAtom(*current) )
@@ -5220,6 +5210,9 @@ markAtomsOnStacks(PL_local_data_t *ld)
   DEBUG(MSG_AGC, save_backtrace("AGC"));
 #ifdef O_MAINTENANCE
   save_backtrace("AGC");
+#endif
+#ifdef O_DEBUG_ATOMGC
+  if ( atomLogFd ) Sfprintf(atomLogFd, "Mark atoms.unregistering\n");
 #endif
   markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
   markAtomsOnGlobalStack(ld);
