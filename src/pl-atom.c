@@ -202,7 +202,7 @@ static unsigned int register_atom(volatile Atom p);
 static unsigned int unregister_atom(volatile Atom p);
 #ifdef O_DEBUG_ATOMGC
 static int	tracking(const Atom a);
-IOSTREAM *atomLogFd;
+IOSTREAM *atomLogFd = 0;
 #endif
 
 static inline int
@@ -1209,11 +1209,22 @@ unregister_atom(volatile Atom p)
 	newref |= ATOM_MARKED_REFERENCE;
     } while( !COMPARE_AND_SWAP(&p->references, oldref, newref) );
     refs = ATOM_REF_COUNT(newref);
+#ifdef O_DEBUG_ATOMGC
+    if ( refs == 0 && atomLogFd && tracking(p) )
+      Sfprintf(atomLogFd, "Marked '%s' at (#%d) (unregistered)\n",
+	       p->name, indexAtom(p->atom));
+#endif
   } else
   { GET_LD
 
     if ( HAS_LD )
-      LD->atoms.unregistering = p->atom;
+    { LD->atoms.unregistering = p->atom;
+#ifdef O_DEBUG_ATOMGC
+    if ( atomLogFd && tracking(p) )
+      Sfprintf(atomLogFd, "Set atoms.unregistering for '%s' at (#%d)\n",
+	       p->name, indexAtom(p->atom));
+#endif
+    }
     if ( (refs=ATOM_REF_COUNT(ATOMIC_DEC(&p->references))) == 0 )
       ATOMIC_INC(&GD->atoms.unregistered);
   }
