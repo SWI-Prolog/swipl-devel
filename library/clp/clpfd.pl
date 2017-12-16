@@ -1,3 +1,5 @@
+:- encoding(utf8).
+
 /*  Part of SWI-Prolog
 
     Author:        Markus Triska
