@@ -782,6 +782,7 @@ rec_error(CompileInfo info)
     }
     default:
       assert(0);
+      return FALSE;
   }
 }
 
