@@ -2111,29 +2111,6 @@ Svprintf(const char *fm, va_list args)
 #define A_LEFT	0			/* left-aligned field */
 #define A_RIGHT 1			/* right-aligned field */
 
-#ifdef __WINDOWS__
-/* This is a copy from src/pl-nt.c, copied here to avoid dependency
-   of pl-stream.c on SWI-Prolog internals.
-*/
-
-static int
-ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
-{ va_list ap;
-  int ret;
-
-  va_start(ap, fmt);
-  ret = _vsnprintf(buffer, count-1, fmt, ap);
-  va_end(ap);
-
-  if ( ret < 0 || ret == count )
-  { ret = (int)count;
-    buffer[count-1] = '\0';
-  }
-
-  return ret;
-}
-#endif
-
 #define SNPRINTF3(fm, a1) \
 	{ size_t __r; \
 	  assert(fs == fbuf); \
