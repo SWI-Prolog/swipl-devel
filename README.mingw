@@ -50,33 +50,10 @@
 #
 # UBUNTU PACKAGES
 #
-# Tested on Ubuntu 12.04 on AMD64. Installing   wine  in this version is
-# broken, but can be get  te  work   using  the  following  commands. In
-# particular WINE-GECKO MUST BE INSTALLED FIRST.
+# Tested on Ubuntu 17.10 on AMD64.
 #
-#   - Remove all wine and wingw packages
-#   - apt-get install wine-gecko1.5
-#   - apt-get install wine
+#   - apt-get install wine-stable wine-binfmt
 #   - apt-get install mingw-w64
-#
-# If you cannot run Win64 executables with   your  wine, .wine is out of
-# date. The only working advice I found   sofar is to (re)move .wine and
-# start wine to create a fresh installation.
-#
-# Linux must be configured such that Windows  .exe files can be executed
-# directly    without    explicit    invocation      of     wine.    See
-# https://www.kernel.org/doc/Documentation/binfmt_misc.txt
-#
-# Updated for Ubuntu 14.04. This  version   ships  with MinGW 4.8, which
-# provides winpthread. If you upgrade, you  must remove pthreads-w32 and
-# recompile the prerequisites to depend on MinGW's native pthreads:
-#
-#   - Remove pthreads-w32 and all traces from $install/bin, $install/lib
-#     and $install/include
-#   - Copy the new libgcc_s_sjlj-1.dll and libwinpthread-1.dll from the
-#     GCC installation to $install/bin
-#   - Run clean_prerequisites (function in this script)
-#   - Run build_prerequisites (function in this script)
 
 TARGETHOST="$1"
 MAKE="make -j 4"
