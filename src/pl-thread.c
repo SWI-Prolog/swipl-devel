@@ -39,13 +39,10 @@
 					/* compile clean with glibc.  Can */
 					/* this do any harm? */
 
-#if defined(__MINGW32__)
+#if __MINGW32__
 #define __try
 #define __except(_) if (0)
 #define __finally
-#endif
-
-#ifdef __MINGW32__
 #include <winsock2.h>
 #include <windows.h>
 #include <errno.h>			/* must be before pl-incl.h */
@@ -57,6 +54,11 @@
 #include "pl-prof.h"
 #include <stdio.h>
 #include <math.h>
+
+#if __MINGW32__				/* this is a stub.  Should be detected */
+#undef HAVE_PTHREAD_SETNAME_NP		/* in configure.ac */
+#endif
+
 #ifdef O_PLMT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
