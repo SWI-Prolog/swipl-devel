@@ -5215,8 +5215,8 @@ markAtomsOnStacks(PL_local_data_t *ld)
   if ( atomLogFd ) Sfprintf(atomLogFd, "Mark atoms.unregistering\n");
 #endif
   markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
-  markAtomsOnGlobalStack(ld);
   markAtomsOnLocalStack(ld);
+  markAtomsOnGlobalStack(ld);
   markAtomsFindall(ld);
 #ifdef O_PLMT
   markAtomsThreadMessageQueue(ld);
