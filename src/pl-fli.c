@@ -924,7 +924,7 @@ PL_cvt_i_ulong(term_t p, unsigned long *c)
 #if SIZEOF_LONG == 8
   return PL_cvt_i_uint64(p, c);
 #else
-  return PL_cvt_i_uint(p, c);
+  return PL_cvt_i_uint(p, (unsigned int*)c);
 #endif
 }
 
