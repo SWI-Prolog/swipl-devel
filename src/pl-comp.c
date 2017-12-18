@@ -5596,7 +5596,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	return FALSE;
 
       chp = NULL;
-      pushPredicateAccess(def, generationFrame(environment_frame));
+      setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
       break;
     }
     case FRG_REDO:
@@ -5695,7 +5695,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   Definition def;
   Cref cr;
 #ifdef O_LOGICAL_UPDATE
-  gen_t generation = generationFrame(environment_frame);
+  gen_t generation;
 #endif
 
   if ( ForeignControl(h) == FRG_CUTTED )
@@ -5717,6 +5717,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 	fail;				/* I do not belong to a predicate */
 
       def = clause->predicate;
+      generation = pushPredicateAccess(def);
       acquire_def(def);
       for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
       { if ( cref->value.clause == clause )
@@ -5726,12 +5727,14 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 		   );
 
 	  release_def(def);
+	  popPredicateAccess(def);
 	  return rc;
 	}
 	if ( visibleClauseCNT(cref->value.clause, generation) )
 	  i++;
       }
       release_def(def);
+      popPredicateAccess(def);
     }
 
     fail;
@@ -5745,6 +5748,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
 
     def = getProcDefinition(proc);
+    generation = pushPredicateAccess(def);
     acquire_def(def);
     cref = def->impl.clauses.first_clause;
     while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
@@ -5752,7 +5756,9 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     release_def(def);
 
     if ( !cref )
+    { popPredicateAccess(def);
       return FALSE;
+    }
 
     if ( PL_get_integer(n, &i) )	/* proc and n specified */
     { i--;				/* 0-based */
@@ -5766,6 +5772,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 	i--;
       }
       release_def(def);
+      popPredicateAccess(def);
       if ( i == 0 && cref )
 	return PL_unify_clref(ref, cref->value.clause);
       return FALSE;
@@ -5774,7 +5781,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     cr = allocForeignState(sizeof(*cr));
     cr->clause = cref;
     cr->index  = 1;
-    pushPredicateAccess(def, generation);
+    setGenerationFrameVal(environment_frame, generation);
   } else
   { cr = ForeignContextPtr(h);
     def = cr->clause->value.clause->predicate;

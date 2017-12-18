@@ -2536,7 +2536,7 @@ PRED_IMPL("retract", 1, retract,
       }
 
       enterDefinition(def);			/* reference the predicate */
-      pushPredicateAccess(def, generationFrame(environment_frame));
+      setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
       cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
       if ( !cref )
       { popPredicateAccess(def);
@@ -2556,8 +2556,6 @@ PRED_IMPL("retract", 1, retract,
     { free_retract_context(ctx PASS_LD);
       return FALSE;
     }
-
-    /* ctx->cref is the first candidate; next is the next one */
 
     while( cref )
     { if ( decompile(cref->value.clause, cl, 0) )
@@ -2657,7 +2655,7 @@ pl_retractall(term_t head)
 
   startCritical;
   enterDefinition(def);
-  pushPredicateAccess(def, generationFrame(environment_frame));
+  setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
   fid = PL_open_foreign_frame();
 
   DEBUG(CHK_SECURE, checkDefinition(def));
