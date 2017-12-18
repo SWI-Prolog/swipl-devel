@@ -2536,15 +2536,12 @@ PRED_IMPL("retract", 1, retract,
 	fail;				/* no clauses */
       }
 
-      startCritical;
       enterDefinition(def);			/* reference the predicate */
       pushPredicateAccess(def, generationFrame(environment_frame));
       cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
       if ( !cref )
       { popPredicateAccess(def);
 	leaveDefinition(def);
-	if ( !endCritical )
-	  fail;
 	fail;
       }
 
@@ -2554,12 +2551,10 @@ PRED_IMPL("retract", 1, retract,
     } else
     { ctx  = CTX_PTR;
       cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
-      startCritical;
     }
 
     if ( !(fid = PL_open_foreign_frame()) )
     { free_retract_context(ctx PASS_LD);
-      endCritical;
       return FALSE;
     }
 
@@ -2569,14 +2564,7 @@ PRED_IMPL("retract", 1, retract,
     { if ( decompile(cref->value.clause, cl, 0) )
       { if ( retractClauseDefinition(ctx->def, cref->value.clause) ||
 	     CTX_CNTRL != FRG_FIRST_CALL )
-	{ if ( !endCritical )
-	  { free_retract_context(ctx PASS_LD);
-	    PL_close_foreign_frame(fid);
-
-	    return FALSE;
-	  }
-
-	  if ( !ctx->chp.cref )		/* deterministic last one */
+	{ if ( !ctx->chp.cref )		/* deterministic last one */
 	  { free_retract_context(ctx PASS_LD);
 	    PL_close_foreign_frame(fid);
 	    return TRUE;
@@ -2601,7 +2589,6 @@ PRED_IMPL("retract", 1, retract,
 
     PL_close_foreign_frame(fid);
     free_retract_context(ctx PASS_LD);
-    endCritical;
     return FALSE;
   }
 }
