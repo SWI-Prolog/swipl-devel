@@ -1397,6 +1397,13 @@ void
 unallocClause(Clause c)
 { ATOMIC_SUB(&GD->statistics.codes, c->code_size);
   ATOMIC_DEC(&GD->statistics.clauses);
+
+#ifdef ALLOC_DEBUG
+#define ALLOC_FREE_MAGIC 0xFB
+  size_t size = sizeofClause(c->code_size);
+  memset(c, ALLOC_FREE_MAGIC, size);
+#endif
+
   PL_free(c);
 }
 
