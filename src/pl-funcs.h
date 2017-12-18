@@ -503,7 +503,6 @@ COMMON(void)		unallocClause(Clause c);
 COMMON(void)		freeClause(Clause c);
 COMMON(void)		lingerClauseRef(ClauseRef c);
 COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
-COMMON(void)		gcClauseRefs(void);
 COMMON(size_t)		removeClausesPredicate(Definition def,
 					       int sfindex, int fromfile);
 COMMON(void)		reconsultFinalizePredicate(sf_reload *rl, Definition def,
