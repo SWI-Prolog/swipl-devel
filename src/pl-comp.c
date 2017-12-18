@@ -5785,6 +5785,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   } else
   { cr = ForeignContextPtr(h);
     def = cr->clause->value.clause->predicate;
+    generation = generationFrame(environment_frame);
   }
 
   PL_unify_integer(n, cr->index);
