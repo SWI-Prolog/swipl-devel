@@ -72,7 +72,7 @@ test_saved_states :-
 	\+ enough_files, !,
 	format(user_error,
 	       'Skipped saved state files because the system does\n\c
-	        not offer us enough file open files~n', []).
+	        not offer us enough open files~n', []).
 test_saved_states :-
 	run_tests([ saved_state
 		  ]).
@@ -117,7 +117,9 @@ enough_files :-
 
 state_output(State) :-
 	working_directory(Dir, Dir),
-	directory_file_path(Dir, 'test_state.exe', State).
+	current_prolog_flag(pid, Pid),
+	format(atom(File), 'test_state_~w.exe', [Pid]),
+	directory_file_path(Dir, File, State).
 
 me(MeSH) :-
 	absolute_file_name('swipl.sh', MeSH,
