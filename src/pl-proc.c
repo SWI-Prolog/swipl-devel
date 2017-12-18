@@ -1088,7 +1088,7 @@ lingerClauseRef(ClauseRef cref)
 
 static int activePredicate(const Definition *defs, const Definition def);
 
-void
+static void
 gcClauseRefs(void)
 { ClauseRef cref;
 
