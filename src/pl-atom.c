@@ -608,9 +608,9 @@ redo:
 
   if ( true(type, PL_BLOB_UNIQUE) )
   { a->next = table[v];
-    if ( !( COMPARE_AND_SWAP(&table[v], head, a) &&
-	    !GD->atoms.rehashing &&	/* See (**) above */
-            table == GD->atoms.table->table ) )
+    if ( !( !GD->atoms.rehashing &&	/* See (**) above */
+            COMPARE_AND_SWAP(&table[v], head, a) &&
+	    table == GD->atoms.table->table ) )
     { if ( false(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
       a->type = ATOM_TYPE_INVALID;
