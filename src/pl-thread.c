@@ -6565,8 +6565,9 @@ cgcActivatePredicate__LD(Definition def, gen_t gen ARG_LD)
   }
 }
 
-int
-pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
+
+gen_t
+pushPredicateAccess__LD(Definition def ARG_LD)
 { definition_refs *refs = &LD->predicate_references;
   definition_ref *dref;
   size_t top = refs->top+1;
@@ -6590,14 +6591,15 @@ pushPredicateAccess__LD(Definition def, gen_t gen ARG_LD)
   enterDefinition(def);			/* probably not needed in the end */
   dref = &refs->blocks[idx][top];
   dref->predicate  = def;
-  dref->generation = gen;
-
-  if ( GD->clauses.cgc_active )
-    cgcActivatePredicate__LD(def, gen PASS_LD);
+  do
+  { dref->generation = global_generation();
+    if ( unlikely(GD->clauses.cgc_active) )
+      cgcActivatePredicate__LD(def, dref->generation PASS_LD);
+  } while ( dref->generation != global_generation() );
 
   refs->top = top;
 
-  return TRUE;
+  return dref->generation;
 }
 
 

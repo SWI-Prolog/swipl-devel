@@ -896,8 +896,7 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
     if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
     { set(reload, P_NO_CLAUSES);
     } else if ( isRedefinedProcedure(proc, global_generation()) )
-    { reload->generation = global_generation();
-      pushPredicateAccess(def, reload->generation);
+    { reload->generation = pushPredicateAccess(def);
       acquire_def(def);
       reload->current_clause = find_clause(def->impl.clauses.first_clause,
 					   reload->generation);
