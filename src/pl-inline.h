@@ -521,10 +521,11 @@ setGenerationFrame__LD(LocalFrame fr ARG_LD)
   gen_t gen;
 
   do
-  { setGenerationFrameVal(fr, global_generation());
+  { gen = global_generation();
+    setGenerationFrameVal(fr, gen);
     if ( unlikely(GD->clauses.cgc_active) )
       cgcActivatePredicate__LD(fr->predicate, gen PASS_LD);
-  } while((gen=generationFrame(fr)) != global_generation());
+  } while(gen != global_generation());
 #endif
 }
 
