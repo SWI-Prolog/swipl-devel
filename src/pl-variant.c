@@ -85,11 +85,8 @@ init_agenda(argPairs *a)
 
 
 static inline bool
-push_args(argPairs *a, Word left, Word right, int arity)  /* plural */
-{ if ( !pushSegStack(&a->stack, a->work, aWork) )
-    return FALSE;
-
-  a->work.left  = left;
+push_start_args(argPairs *a, Word left, Word right, int arity)  /* plural */
+{ a->work.left  = left;
   a->work.right = right;
   a->work.arg   = 0;
   a->work.arity = arity;
@@ -98,21 +95,26 @@ push_args(argPairs *a, Word left, Word right, int arity)  /* plural */
 }
 
 static inline bool
-next_arg(argPairs *a, Word *lp, Word *rp)   /* singular (not plural !) */
-{ if ( emptySegStack(&a->stack) )
+push_args(argPairs *a, Word left, Word right, int arity)  /* plural */
+{ if ( !pushSegStack(&a->stack, a->work, aWork) )
     return FALSE;
+
+  return push_start_args(a, left, right, arity);
+}
+
+static inline bool
+next_arg(argPairs *a, Word *lp, Word *rp)   /* singular (not plural !) */
+{ while( a->work.arg >= a->work.arity)
+  { if ( !popSegStack(&a->stack, &a->work, aWork) )
+      return FALSE;
+  }
 
   *lp = a->work.left;
   *rp = a->work.right;
 
-  a->work.arg++ ;
-  a->work.left++ ;
-  a->work.right++ ;
-
-  if ( a->work.arg >= a->work.arity )
-  { if ( !popSegStack(&a->stack, &a->work, aWork) )
-      return FALSE;
-  }
+  a->work.arg++;
+  a->work.left++;
+  a->work.right++;
 
   return TRUE;
 }
@@ -471,7 +473,7 @@ again:
   init_agenda(&agenda);
 
   if ( (add_node_buffer(VARIANT_BUFFER, &new) >= 0) &&
-       (push_args(&agenda, p1, p2, 1) >=0) )
+       (push_start_args(&agenda, p1, p2, 1) >=0) )
     rval = variant(&agenda, VARIANT_BUFFER PASS_LD);
   else
     rval = MEMORY_OVERFLOW;
