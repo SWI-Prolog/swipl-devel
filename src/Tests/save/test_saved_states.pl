@@ -114,16 +114,24 @@ enough_files :-
 	debug(save(max_files), 'No info on max open files; assuming ok', []).
 :- endif.
 
-%%	state_output(-FileName)
+%%	state_output(+Id, -FileName)
 %
 %	Name of the file we use for temporary output of the state.
 
-state_output(State) :-
+state_output(Id, State) :-
 	working_directory(Dir, Dir),
 	current_prolog_flag(pid, Pid),
-	format(atom(File), 'test_state_~w.exe', [Pid]),
+	format(atom(File), 'test_state_~w_~w.exe', [Id, Pid]),
 	directory_file_path(Dir, File, State).
 
+me(Exe) :-
+	current_prolog_flag(executable, WinExeOS),
+	prolog_to_os_filename(WinExe, WinExeOS),
+	file_base_name(WinExe, WinFile),
+	downcase_atom(WinFile, 'swipl-win.exe'), !,
+	file_directory_name(WinExe, WinDir),
+	atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
+	prolog_to_os_filename(PlExe, Exe).
 me(MeSH) :-
 	absolute_file_name('swipl.sh', MeSH,
 			   [ access(execute),
@@ -131,6 +139,22 @@ me(MeSH) :-
 			   ]), !.
 me(Exe) :-
 	current_prolog_flag(executable, Exe).
+
+:- dynamic
+	win_path_set/0.
+
+set_windows_path :-
+	\+ win_path_set,
+	current_prolog_flag(windows, true), !,
+	current_prolog_flag(executable, WinExeOS),
+	prolog_to_os_filename(WinExe, WinExeOS),
+	file_directory_name(WinExe, PlWinDir),
+	prolog_to_os_filename(PlWinDir, WinDir),
+	getenv('PATH', Path0),
+	atomic_list_concat([WinDir, Path0], ';', Path),
+	setenv('PATH', Path),
+	asserta(win_path_set).
+set_windows_path.
 
 create_state(File, Output, Args) :-
 	me(Me),
@@ -148,6 +172,7 @@ create_state(File, Output, Args) :-
 
 run_state(Exe, Args, Result) :-
 	debug(save, 'Running state ~q ~q', [Exe, Args]),
+	set_windows_path,
 	process_create(Exe, Args,
 		       [ stdout(pipe(Out)),
 			 stderr(pipe(Err))
@@ -195,21 +220,21 @@ no_error(Codes) :-
 :- begin_tests(saved_state, [sto(rational_trees)]).
 
 test(true, Result == [true]) :-
-	state_output(Exe),
+	state_output(1, Exe),
 	call_cleanup(
 	    ( create_state('input/plain.pl', Exe, ['-g', echo_true]),
 	      run_state(Exe, [], Result)
 	    ),
 	    remove_state(Exe)).
 test(argv, Result == [[aap,noot,mies]]) :-
-	state_output(Exe),
+	state_output(2, Exe),
 	call_cleanup(
 	    ( create_state('input/plain.pl', Exe, ['-g', echo_argv]),
 	      run_state(Exe, [aap, noot, mies], Result)
 	    ),
 	    remove_state(Exe)).
 test(true, Result == [true]) :-
-	state_output(Exe),
+	state_output(3, Exe),
 	call_cleanup(
 	    ( create_state('input/data.pl', Exe, ['-g', test]),
 	      run_state(Exe, [], Result)
