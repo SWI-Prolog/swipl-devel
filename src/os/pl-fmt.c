@@ -315,7 +315,6 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
     PL_put_term(argv, args);
   }
 
-  startCritical;
   switch(fmt.storage)			/* format can do call-back! */
   { case PL_CHARS_RING:
     case PL_CHARS_STACK:
@@ -325,10 +324,10 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
       break;
   }
 
+  Slock(out);
   rval = do_format(out, &fmt, argc, argv, m);
+  Sunlock(out);
   PL_free_text(&fmt);
-  if ( !endCritical )
-    return FALSE;
 
   return rval;
 }
@@ -387,8 +386,6 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
   int tab_stop = 0;			/* padded tab stop */
   unsigned int here = 0;
   int rc = TRUE;
-
-  Slock(fd);				/* buffer locally */
 
   state.out = fd;
   state.pending_rubber = 0;
@@ -871,8 +868,6 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
     emit_rubber(&state);
 
 out:
-  Sunlock(fd);
-
   return rc;
 }
 
