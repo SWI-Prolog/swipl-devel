@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2014, University of Amsterdam
+    Copyright (c)  2017, University of Amsterdam
                          VU University Amsterdam
     All rights reserved.
 
@@ -76,5 +76,15 @@ test(nsols_commit, Lists == [ [ [1,2,3,4,5],
 		  !
 		),
 		Lists).
+test(agc, Xs == [ aaaa100001,aaaa100002,aaaa100003,aaaa100004,
+		  aaaa100005,aaaa100006,aaaa100007,aaaa100008,
+		  aaaa100009,aaaa100010
+		]) :-
+	offset(10 000, findnsols(10, X, gen_atom(X), Xs)),
+	!.
+
+gen_atom(A) :-
+	between(1, infinite, X),
+	atom_concat(aaaa, X, A).
 
 :- end_tests(bags).
