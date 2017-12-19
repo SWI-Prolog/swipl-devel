@@ -42,11 +42,14 @@
    asserta(user:file_search_path(library, ClibDir)),
    asserta(user:file_search_path(foreign, ClibDir)).
 
-:- if(absolute_file_name(foreign(process), _,
-			 [ file_type(executable),
-			   file_errors(fail),
-			   access(read)
-			 ])).
+has_foreign_lib(Lib) :-
+    absolute_file_name(foreign(Lib), _,
+		       [ file_type(executable),
+			 file_errors(fail),
+			 access(read)
+		       ]).
+
+:- if(has_foreign_lib(process)).
 
 :- use_module(library(plunit)).
 :- use_module(library(lists)).
@@ -54,7 +57,7 @@
 :- use_module(library(filesex)).
 :- use_module(library(readutil)).
 :- use_module(library(debug)).
-:- if(exists_source(library(rlimit))).
+:- if(has_foreign_lib(rlimit)).
 :- use_module(library(rlimit)).
 :- endif.
 
