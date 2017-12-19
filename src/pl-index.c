@@ -560,10 +560,11 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
   } else
   { cref = nextClauseArg1(chp, generation PASS_LD);
   }
-  DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
-			   visibleClause(chp->cref->value.clause,
-					 generationFrame(fr))));
   release_def();
+
+  DEBUG(CHK_SECURE,
+	assert(!cref || !chp->cref ||
+	       chp->cref->value.clause->generation.erased > generation));
 
   return cref;
 }
