@@ -1696,6 +1696,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
 
       if ( ATOM_IS_VALID(refs) && btype &&
 	   (!type_name || type_name == btype->atom_name) &&
+	   atom->atom != ATOM_garbage_collected &&
 	   bump_atom_references(atom, refs) )
       { DEBUG(CHK_SECURE,	/* avoid trap through linkVal__LD() check */
 	      if ( atom->atom == ATOM_garbage_collected )
