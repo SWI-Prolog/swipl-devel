@@ -470,13 +470,16 @@ dispatch_signal(int sig, int sync)
 	       sig, signal_name(sig), gc_status.collections);
   }
 
-  if ( LD->critical || (true(sh, PLSIG_SYNC) && !sync) )
+  if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync)) &&
+       !is_fatal_signal(sig) )
   { PL_raise(sig);			/* wait for better times! */
     return;
   }
 
   if ( !(fid = PL_open_signal_foreign_frame(sync)) )
-  { PL_raise(sig);			/* no space; wait */
+  { if ( is_fatal_signal(sig) )
+      sigCrashHandler(sig);		/* should not return */
+    PL_raise(sig);			/* no space; wait */
     return;
   }
 
