@@ -3392,9 +3392,10 @@ checkDefinition(Definition def)
   unsigned int nc, indexed = 0;
   ClauseRef cref;
   unsigned int erased = 0;
+  Definition old;
 
 						/* check basic clause list */
-  acquire_def(def);
+  acquire_def2(def, old);
   for(nc=0, cref = def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause clause = cref->value.clause;
 
@@ -3406,7 +3407,7 @@ checkDefinition(Definition def)
     { erased++;
     }
   }
-  release_def(def);
+  release_def2(def, old);
 
   assert(nc == def->impl.clauses.number_of_clauses);
   assert(erased == def->impl.clauses.erased_clauses);
