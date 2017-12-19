@@ -306,7 +306,9 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       bag = current_bag(PASS_LD1);
+      simpleMutexLock(&LD->bags.mutex);
       clear_mem_pool(&bag->records);
+      simpleMutexUnlock(&LD->bags.mutex);
       bag->suspended_solutions += bag->solutions;
       bag->solutions = 0;
       bag->gsize = 0;
