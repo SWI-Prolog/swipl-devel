@@ -1808,8 +1808,9 @@ checkClauseIndexes(Definition def)
       for(i=0,cb=ci->entries; i<ci->buckets; i++,cb++)
       { ClauseRef cref;
 	unsigned int dirty = 0;
+	Definition old;
 
-	acquire_def(def);
+	acquire_def2(def, old);
 	for(cref=cb->head; cref; cref=cref->next)
 	{ if ( cref->d.key )
 	    ci_size++;
@@ -1837,7 +1838,7 @@ checkClauseIndexes(Definition def)
 	      dirty++;
 	  }
 	}
-	release_def(def);
+	release_def2(def, old);
 
 	assert(cb->dirty == dirty);
 	if ( cb->dirty )

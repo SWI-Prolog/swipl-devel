@@ -1478,6 +1478,13 @@ struct clause_choice
 	     LD->thread.info->access.predicate = def; } while(0)
 #define release_def(def) \
 	do { LD->thread.info->access.predicate = NULL; } while(0)
+#define acquire_def2(def, store) \
+	do { store = LD->thread.info->access.predicate; \
+	     DEBUG(CHK_SECURE, assert(!store || store == def)); \
+	     LD->thread.info->access.predicate = def; } while(0)
+#define release_def2(def, store) \
+	do { LD->thread.info->access.predicate = store; } while(0)
+
 #else
 #define acquire_def(def) (void)0
 #define release_def(def) (void)0
