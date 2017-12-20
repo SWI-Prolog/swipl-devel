@@ -111,7 +111,7 @@ add_nb_set(Key, Set, New) :-
 %   the cycles. This means that  this   library  is rather slow when
 %   cyclic terms are involved.
 
-:- if(catch((A = f(A), variant_hash(A,_)), error(type_error(_,_),_), fail)).
+:- if(catch((A = f(A), variant_hash(A,_)), _, fail)).
 hash_key(Term, BCount, Key) :-
     variant_hash(Term, IntHash),
     Key is (IntHash mod BCount)+1.
