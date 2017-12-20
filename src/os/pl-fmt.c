@@ -73,12 +73,9 @@ typedef struct
 			  { FMT_ERROR("not enough arguments"); \
 			  } \
 			}
-#define FMT_ERROR(fmt)	return (void)Sunlock(fd), \
-			  PL_error(NULL, 0, NULL, ERR_FORMAT, fmt)
-#define FMT_ARG(c, a)	return (void)Sunlock(fd), \
-			       PL_error(NULL, 0, NULL, \
-					ERR_FORMAT_ARG, c, a)
-#define FMT_EXEPTION()	return (void)Sunlock(fd), FALSE
+#define FMT_ERROR(fmt)	return PL_error(NULL, 0, NULL, ERR_FORMAT, fmt)
+#define FMT_ARG(c, a)	return PL_error(NULL, 0, NULL, ERR_FORMAT_ARG, c, a)
+#define FMT_EXEPTION()	return FALSE
 
 
 static PL_locale prolog_locale =
@@ -607,7 +604,6 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    { term_t r = PL_new_term_ref();
 
 		      PL_put_integer(r, arg);
-		      Sunlock(fd);
 		      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 				      ATOM_radix, r);
 		    }
@@ -844,7 +840,6 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      default:
 	      { term_t ex = PL_new_term_ref();
 
-		Sunlock(fd);
 		PL_put_atom(ex, codeToAtom(c));
 		return PL_error("format", 2, NULL, ERR_EXISTENCE,
 				PL_new_atom("format_character"),
