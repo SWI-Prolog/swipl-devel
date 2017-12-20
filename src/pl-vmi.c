@@ -2735,7 +2735,7 @@ VMI(S_VIRGIN, 0, 0, ())
     LOAD_REGISTERS(qid);
 
     setFramePredicate(FR, DEF);
-    setGenerationFrame(NFR);
+    setGenerationFrame(FR);
 #ifdef O_PROFILE
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
@@ -2745,7 +2745,7 @@ VMI(S_VIRGIN, 0, 0, ())
   } else if ( true(DEF, P_THREAD_LOCAL) )
   { DEF = getProcDefinition__LD(DEF PASS_LD);
     setFramePredicate(FR, DEF);
-    setGenerationFrame(NFR);
+    setGenerationFrame(FR);
 #endif
   }
 
