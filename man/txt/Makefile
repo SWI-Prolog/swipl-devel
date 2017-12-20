@@ -3,7 +3,7 @@ DOCFONT=$(TEXMF)/fonts/tfm/doc
 DOCTEX=$(TEXMF)/tex/latex/doc
 
 install: install-fonts install-tex rehash
-	
+
 install-tex:
 	if [ ! -d $(DOCTEX) ]; then mkdir $(DOCTEX); fi
 	cp txt.sty rfc.sty i-d.sty $(DOCTEX)
@@ -15,4 +15,4 @@ install-fonts:
 	(cd $(DOCFONT) && ln doc.tfm docul.tfm)
 
 rehash:
-	texconfig rehash
+	texhash
