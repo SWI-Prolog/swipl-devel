@@ -1731,7 +1731,7 @@ gc(agc-2) :-		% not if concurrent: this is too simple.  There
 	    statistics(agc, AGC0),
 	    statistics(agc_gained, Gained0),
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
-	    (	between(1, 6, X),
+	    (	between(1, 8, X),
 		(   statistics(agc, AGC1),
 		    AGC is AGC1 - AGC0,
 		    AGC > 5,
@@ -1744,6 +1744,11 @@ gc(agc-2) :-		% not if concurrent: this is too simple.  There
 		    fail
 		)
 	    ->	true
+	    ;	statistics(agc_gained, Gained1),
+		Gained is Gained1 - Gained0,
+		format(user_error,
+		       '~NWarning: gc(agc-2): reclaimed only ~D atoms~n',
+		       [Gained])
 	    )
 	;   true			% no atom-gc
 	).
