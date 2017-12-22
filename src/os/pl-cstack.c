@@ -901,7 +901,9 @@ sigCrashHandler(int sig)
   print_c_backtrace("crash");
   run_on_halt(&GD->os.exit_hooks, 4);
 
-#if defined(HAVE_KILL) && defined(HAVE_GETPID)
+#ifdef O_PLMT
+  pthread_kill(pthread_self(), sig);
+#elif defined(HAVE_KILL) && defined(HAVE_GETPID)
   kill(getpid(), sig);
 #else
   abort();
