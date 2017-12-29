@@ -54,18 +54,19 @@ typedef enum
   LDATA_ANSWERED
 } ldata_status_t;
 
-#define THREAD_STATUS_INVALID(s) ((s) == PL_THREAD_UNUSED || \
-				  (s) == PL_THREAD_RESERVED)
+#define THREAD_STATUS_INVALID(s) ((int)(s) < (int)PL_THREAD_RUNNING)
 
 typedef enum
 { PL_THREAD_UNUSED = 0,			/* no thread on this slot */
+  PL_THREAD_RESERVED,			/* allocated but not yet created */
+  PL_THREAD_JOINED,			/* just joined */
+					/* normal states */
   PL_THREAD_RUNNING,			/* a normally running one */
   PL_THREAD_EXITED,			/* died with thread_exit/1 */
   PL_THREAD_SUCCEEDED,			/* finished with Yes */
   PL_THREAD_FAILED,			/* finished with No */
   PL_THREAD_EXCEPTION,			/* finished with exception */
   PL_THREAD_NOMEM,			/* couldn't start due no-memory */
-  PL_THREAD_RESERVED,			/* allocated but not yet created */
   PL_THREAD_CREATED,			/* just created */
 } thread_status;
 
