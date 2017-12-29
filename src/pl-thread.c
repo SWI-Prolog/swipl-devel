@@ -2131,10 +2131,11 @@ unify_engine_status(term_t status, PL_thread_info_t *info ARG_LD)
 
 
 static int
-unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
+unify_thread_status(term_t status, PL_thread_info_t *info,
+		    thread_status stat, int lock)
 { GET_LD
 
-  switch(info->status)
+  switch(stat)
   { case PL_THREAD_CREATED:
     case PL_THREAD_RUNNING:
     { int rc = FALSE;
@@ -2309,6 +2310,7 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
   void *r;
   word rval;
   int rc;
+  thread_status status;
 
   term_t thread = A1;
   term_t retcode = A2;
@@ -2340,9 +2342,15 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 		      ERR_SYSCALL, "pthread_join");
   }
 
-  rval = unify_thread_status(retcode, info, FALSE);
+  status = info->status;
+  if ( COMPARE_AND_SWAP(&info->status, status, PL_THREAD_JOINED) )
+  { rval = unify_thread_status(retcode, info, status, FALSE);
 
-  free_thread_info(info);
+    free_thread_info(info);
+  } else
+  { rval = PL_error(NULL, 0, "already joined",
+		    ERR_EXISTENCE, ATOM_thread, thread);
+  }
 
   return rval;
 }
@@ -2433,7 +2441,7 @@ static int
 thread_status_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 { IGNORE_LD
 
-  return unify_thread_status(prop, info, TRUE);
+  return unify_thread_status(prop, info, info->status, TRUE);
 }
 
 static int
