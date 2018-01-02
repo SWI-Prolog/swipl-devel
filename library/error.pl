@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2016, University of Amsterdam
+    Copyright (c)  2006-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -37,6 +37,7 @@
           [ type_error/2,               % +Type, +Term
             domain_error/2,             % +Domain, +Term
             existence_error/2,          % +Type, +Term
+            existence_error/3,          % +Type, +Term, +Set
             permission_error/3,         % +Action, +Type, +Term
             instantiation_error/1,      % +Term
             uninstantiation_error/1,    % +Term
@@ -110,6 +111,17 @@ domain_error(Type, Term) :-
 
 existence_error(Type, Term) :-
     throw(error(existence_error(Type, Term), _)).
+
+%!  existence_error(+Type, +Term, +Set).
+%
+%   Term is of the correct type  and   correct  domain,  but there is no
+%   existing (external) resource that  is  represented   by  it  in  the
+%   provided set.
+%
+%   @compat This error is not in ISO.
+
+existence_error(Type, Term, Set) :-
+    throw(error(existence_error(Type, Term, Set), _)).
 
 %!  permission_error(+Action, +Type, +Term).
 %
