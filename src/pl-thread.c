@@ -2343,7 +2343,8 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
   }
 
   status = info->status;
-  if ( COMPARE_AND_SWAP(&info->status, status, PL_THREAD_JOINED) )
+  if ( !THREAD_STATUS_INVALID(status) &&
+       COMPARE_AND_SWAP(&info->status, status, PL_THREAD_JOINED) )
   { rval = unify_thread_status(retcode, info, status, FALSE);
 
     free_thread_info(info);
