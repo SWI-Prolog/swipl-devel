@@ -43,7 +43,7 @@ Welcome to SWI-Prolog ...
 \end{code}
 
 After this point, Unix and Windows users unite, so if you are using
-Unix please continue at \secref{execquery}.
+Unix please continue at \secref{consultuser}.
 
 \subsubsection{Starting SWI-Prolog on Windows}
 \label{sec:startwin}
