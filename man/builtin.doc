@@ -9500,6 +9500,15 @@ amount is reported and specified in `cells'. A cell is 4 bytes in the
 32-bit version and 8 bytes on the 64-bit version. See
 \prologflag{address_bits}. See also trim_stacks/0 and debug/0.
 
+    \termitem{low}{+Cells}
+\nodescription
+    \termitem{factor}{+Number}
+These two figures determine whether, if the stacks are low, a stack
+\jargon{shift} (expansion) or garbage collection is performed. This
+depends on these two parameters, the current stack usage and the amount
+of stack used after the last garbage collection.  A garbage collection
+is started if $used > factor \times lastused + low$.
+
     \termitem{spare}{+Cells}
 All stacks trigger overflow before actually reaching the limit, so the
 resulting error can be handled gracefully. The spare stack is used for

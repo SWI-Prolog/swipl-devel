@@ -1317,6 +1317,8 @@ stack_name(trail).
 stack_property(limit).
 stack_property(spare).
 stack_property(min_free).
+stack_property(low).
+stack_property(factor).
 
 
                  /*******************************
