@@ -44,15 +44,17 @@ system:'$gc' :-
 
 gc_loop :-
     repeat,
-    '$thread_sigwait'(Signal),
-    (   Signal == 'prolog:abort'
+    '$gc_wait'(Action),
+    (   Action == abort
     ->  true
-    ;   process(Signal)
-    ->  fail
-    ;   print_message(warning, gc(ignored(Signal)))
+    ;   process(Action)
+    ->  '$gc_clear'(Action),
+        fail
+    ;   print_message(warning, gc(ignored(Action))),
+        fail
     ).
 
-process('prolog:atom_gc') :-
+process(garbage_collect_atoms) :-
     garbage_collect_atoms.
-process('prolog:clause_gc') :-
+process(garbage_collect_clauses) :-
     garbage_collect_clauses.

@@ -47,6 +47,10 @@
 #define SIG_ALERT  SIGUSR2
 #endif
 
+#define GCREQUEST_AGC   0x01		/* GD->thread.gc.requests */
+#define GCREQUEST_CGC   0x02
+#define GCREQUEST_ABORT 0x04
+
 typedef enum
 { LDATA_IDLE = 0,
   LDATA_SIGNALLED,

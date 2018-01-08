@@ -60,10 +60,7 @@ agc :-
            atom_concat(Prefix, I, _)).
 
 kill_gc :-
-    (   catch(thread_signal(gc, abort),
-              error(existence_error(thread, gc),_),
-              ( print_message(warning, test_gc_thread_startup(not_created)),
-                fail))
+    (   '$gc_stop'
     ->  thread_join(gc, _)
     ;   true
     ).
