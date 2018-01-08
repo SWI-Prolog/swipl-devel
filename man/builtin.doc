@@ -2781,6 +2781,11 @@ signals are \const{default}. The following signals throw an exception:
 Enumerate the currently defined signal handling.  \arg{Name} is the
 signal name, \arg{Id} is the numerical identifier and \arg{Handler}
 is the currently defined handler (see on_signal/3).
+
+    \predicate{prolog_alert_signal}{2}{?Old, +New}
+Query or set the signal used to unblock blocking system calls on Unix
+systems and process pending Prolog signals. The default is
+\const{SIGUSR2}. See also \cmdlineoption{--sigalert}.
 \end{description}
 
 
