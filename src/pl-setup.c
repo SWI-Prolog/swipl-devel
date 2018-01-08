@@ -443,10 +443,16 @@ dispatch_signal(int sig, int sync)
   }
 
   DEBUG(MSG_SIGNAL,
-	Sdprintf("Got signal %d in thread %d (=%d) %s\n",
-		 sig, LD->thread.info->pl_tid,
-		 pthread_self(),
-		 sync ? " (sync)" : " (async)"));
+	{ const pl_wchar_t *name = L"";
+	  int tid = LD->thread.info->pl_tid;
+	  atom_t alias;
+
+	  if ( PL_get_thread_alias(tid, &alias) )
+	    name = PL_atom_wchars(alias, NULL);
+	  Sdprintf("Got signal %d in thread %d (%Ws) %s\n",
+		   sig, tid, name,
+		   sync ? " (sync)" : " (async)");
+	});
 #else
   DEBUG(MSG_SIGNAL,
 	Sdprintf("Got signal %d %s\n",
