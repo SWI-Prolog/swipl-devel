@@ -1522,7 +1522,9 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
 
     ci = newClauseIndexTable(hints->args, hints, ctx);
 
+#ifdef O_PLMT
     assert(LD->thread.info->access.predicate == ctx->predicate);
+#endif
     first = clist->first_clause;
     last  = clist->last_clause;
 
