@@ -1197,35 +1197,6 @@ content is first wiped and gradually rebuilt, while other threads see
 an \jargon{atomic} update from the old file content to the
 new.\footnote{This feature was implemented by Keri Harris.}
 
-\begin{description}
-    \predicate{garbage_collect_clauses}{0}{}
-Reclaim retracted clauses. During normal operation, retracting a clause
-implies setting the \jargon{erased generation} to the current
-\jargon{generation} of the database and increment the generation.
-Keeping the clause around is both needed to realise the \jargon{logical
-update view} and deal with the fact that other threads may be executing
-the clause. Both static and dynamic code is processed this
-way.\footnote{Up to version 7.3.11, dynamic code was handled using
-\jargon{reference counts}.}.
-
-The clause garbage collector (CGC) scans the environment stacks of all
-threads for referenced dirty predicates and at which generation this
-reference accesses the predicate. It then removes the references for
-clauses that have been retracted before the oldest access generation
-from the clause list as well as the secondary clauses indexes of the
-predicate. If the clause list is not being scanned, the clause
-references and ultimately the clause itself is reclaimed.
-
-The clause garbage collector is called under three conditions, (1) after
-\jargon{reloading} a source file, (2) if the memory occupied by
-retracted but not yet reclaimed clauses exceeds 12.5\% of the program
-store, or (3) if skipping dead clauses in the clause lists becomes too
-costly. The cost of clause garbage collection is proportional with the
-total size of the local stack of all threads (the scanning phase) and
-the number of clauses in all `dirty' predicates (the reclaiming phase).
-\end{description}
-
-
 \subsubsection{Compilation of mutually dependent code} \label{sec:depload}
 
 Large programs are generally split into multiple files. If file $A$
@@ -9422,6 +9393,40 @@ actual collection is delayed until there are no threads performing
 normal garbage collection. In this case garbage_collect_atoms/0 returns
 immediately. Note that there is no guarantee it will \emph{ever}
 happen, as there may always be threads performing garbage collection.
+
+    \predicate{garbage_collect_clauses}{0}{}
+Reclaim retracted clauses. During normal operation, retracting a clause
+implies setting the \jargon{erased generation} to the current
+\jargon{generation} of the database and increment the generation.
+Keeping the clause around is both needed to realise the \jargon{logical
+update view} and deal with the fact that other threads may be executing
+the clause. Both static and dynamic code is processed this
+way.\footnote{Up to version 7.3.11, dynamic code was handled using
+\jargon{reference counts}.}.
+
+The clause garbage collector (CGC) scans the environment stacks of all
+threads for referenced dirty predicates and at which generation this
+reference accesses the predicate. It then removes the references for
+clauses that have been retracted before the oldest access generation
+from the clause list as well as the secondary clauses indexes of the
+predicate. If the clause list is not being scanned, the clause
+references and ultimately the clause itself is reclaimed.
+
+The clause garbage collector is called under three conditions, (1) after
+\jargon{reloading} a source file, (2) if the memory occupied by
+retracted but not yet reclaimed clauses exceeds 12.5\% of the program
+store, or (3) if skipping dead clauses in the clause lists becomes too
+costly. The cost of clause garbage collection is proportional with the
+total size of the local stack of all threads (the scanning phase) and
+the number of clauses in all `dirty' predicates (the reclaiming phase).
+
+    \predicate{set_prolog_gc_thread}{+Status}
+Control whether or not atom and clause garbage collection are executed
+in a dedicated thread. The default is \const{true}. Values for
+\arg{Status} are \const{true}, \const{false} and \const{stop}. The
+latter stops the \const{gc} thread but allows is to be recreated lazily.
+This is use by e.g., fork/1 to avoid forking a multi-threaded
+application.  See also \prologflag{gc_thread}.
 
     \predicate{trim_stacks}{0}{}
 Release stack memory resources that are not in use at this moment,

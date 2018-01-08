@@ -81,7 +81,8 @@
             term_string/3,                      % ?Term, ?String, +Options
             nb_setval/2,                        % +Var, +Value
             thread_create/2,                    % :Goal, -Id
-            thread_join/1                       % +Id
+            thread_join/1,                      % +Id
+            set_prolog_gc_thread/1		% +Status
           ]).
 
                 /********************************
@@ -1397,3 +1398,47 @@ thread_join(Id) :-
     ->  true
     ;   throw(error(thread_error(Status), _))
     ).
+
+%!  set_prolog_gc_thread(+Status)
+%
+%   Control the GC thread.  Status is one of
+%
+%     - false
+%     Disable the separate GC thread, running atom and clause
+%     garbage collection in the triggering thread.
+%     - true
+%     Enable the separate GC thread.  All implicit atom and clause
+%     garbage collection is executed by the thread `gc`.
+%     - stop
+%     Stop the `gc` thread it it is running.  The thread is recreated
+%     on the next implicit atom or clause garbage collection.  Used
+%     by fork/1 to avoid forking a multi-threaded application.
+
+set_prolog_gc_thread(Status) :-
+    var(Status),
+    !,
+    '$instantiation_error'(Status).
+:- if(current_prolog_flag(threads,true)).
+set_prolog_gc_thread(false) :-
+    !,
+    set_prolog_flag(gc_thread, false),
+    (   '$gc_stop'
+    ->  thread_join(gc)
+    ;   true
+    ).
+set_prolog_gc_thread(true) :-
+    !,
+    set_prolog_flag(gc_thread, true).
+set_prolog_gc_thread(stop) :-
+    !,
+    (   '$gc_stop'
+    ->  thread_join(gc)
+    ;   true
+    ).
+:- else.
+set_prolog_gc_thread(false) :- !.
+set_prolog_gc_thread(true) :- !.
+set_prolog_gc_thread(stop) :- !.
+:- endif.
+set_prolog_gc_thread(Status) :-
+    '$domain_error'(gc_thread, Status).

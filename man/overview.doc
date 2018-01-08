@@ -379,9 +379,7 @@ desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for
 details.  Note that the handler to unblock system calls is still
 installed. This can be prevented using \exam{--sigalert=0} additionally.
-See \cmdlineoption{--sigalert}. This flag also sets
-\prologflag{gc_thread} to \const{false} as synchronization with the
-garbage collect thread is based on signals.
+See \cmdlineoption{--sigalert}.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
@@ -1480,13 +1478,14 @@ If true (default), the garbage collector is active.  If false, neither
 garbage collection, nor stack shifts will take place, even not on
 explicit request.  May be changed.
 
-    \prologflagitem{rc_thread}{bool}{rw}
+    \prologflagitem{gc_thread}{bool}{r}
 If \const{true} (default if threading is enabled), atom and
 clause garbage collection are executed in a seperate thread with the
 \jargon{alias} \const{gc}.  Otherwise the thread the detect sufficient
 garbage executes the garbage collector. As running these global
 collectors may take relatively using a seperate thread improves
-real time behaviour.
+real time behaviour.  The \const{gc} thread can be controlled using
+set_prolog_gc_thread/1.
 
     \prologflagitem{generate_debug_info}{bool}{rw}
 If \const{true} (default) generate code that can be debugged using

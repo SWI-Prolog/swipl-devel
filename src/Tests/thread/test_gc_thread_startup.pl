@@ -47,7 +47,7 @@ test_gc_thread_startup :-
            (run(4), put_char(user_error, .))).
 
 run(N) :-
-    kill_gc,
+    set_prolog_gc_thread(stop),
     length(Threads, N),
     maplist(thread_create(agc), Threads),
     maplist(thread_join, Threads).
@@ -58,12 +58,6 @@ agc :-
     atom_concat(a, ID, Prefix),
     forall(between(1, 10000, I),
            atom_concat(Prefix, I, _)).
-
-kill_gc :-
-    (   '$gc_stop'
-    ->  thread_join(gc, _)
-    ;   true
-    ).
 
 :- multifile
     prolog:message//1.
