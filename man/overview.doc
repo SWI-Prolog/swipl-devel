@@ -395,7 +395,8 @@ to make thread_signal/2, and derived Prolog signal handling act
 immediately when the target thread is blocked on an interruptable
 system call (e.g., sleep/1, read/write to most devices).  The default is
 to use \const{SIGUSR2}.  If \arg{NUM} is 0 (zero), this handler is not
-installed.
+installed.  See prolog_alert_signal/2 to query or modify this value at
+runtime.
 
     \cmdlineoptionitem{-tty}{}
 Unix only.  Switches controlling the terminal for allowing

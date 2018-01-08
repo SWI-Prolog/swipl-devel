@@ -1097,6 +1097,45 @@ handleSignals(ARG1_LD)
 }
 
 
+#ifdef SIG_ALERT
+static
+PRED_IMPL("prolog_alert_signal", 2, prolog_alert_signal, 0)
+{ PRED_LD
+  const char *sname = signal_name(GD->signals.sig_alert);
+  int rc;
+
+  if ( strcmp(sname, "unknown") == 0 )
+    rc = PL_unify_integer(A1, GD->signals.sig_alert);
+  else
+    rc = PL_unify_atom_chars(A1, sname);
+
+  if ( rc )
+  { if ( PL_compare(A1,A2) == CMP_EQUAL )
+    { return TRUE;
+    } else
+    { int new;
+
+      if ( (PL_get_integer(A2, &new) && new == 0) ||
+	   PL_get_signum_ex(A2, &new) )
+      { if ( GD->signals.sig_alert )
+	{ unprepareSignal(GD->signals.sig_alert);
+	  GD->signals.sig_alert = 0;
+	}
+	if ( new )
+	{ GD->signals.sig_alert = new;
+	  PL_signal(GD->signals.sig_alert|PL_SIGNOFRAME, alert_handler);
+	}
+
+	return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+#endif
+
+
 int
 endCritical__LD(ARG1_LD)
 { if ( exception_term )
@@ -1792,7 +1831,10 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 		 *******************************/
 
 BeginPredDefs(setup)
-  PRED_DEF("$set_prolog_stack", 4, set_prolog_stack, 0)
-  PRED_DEF("$on_signal", 4, on_signal, 0)
-  PRED_DEF("trim_stacks", 0, trim_stacks, 0)
+  PRED_DEF("$set_prolog_stack",	  4, set_prolog_stack,	  0)
+  PRED_DEF("$on_signal",	  4, on_signal,		  0)
+  PRED_DEF("trim_stacks",	  0, trim_stacks,	  0)
+#ifdef SIG_ALERT
+  PRED_DEF("prolog_alert_signal", 2, prolog_alert_signal, 0)
+#endif
 EndPredDefs
