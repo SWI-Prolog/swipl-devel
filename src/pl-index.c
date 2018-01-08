@@ -1350,7 +1350,9 @@ hashDefinition(Definition def, hash_hints *hints)
 
     ci = newClauseIndexTable(hints->args, hints);
 
+#ifdef O_PLMT
     assert(LD->thread.info->access.predicate == def);
+#endif
     first = def->impl.clauses.first_clause;
     last  = def->impl.clauses.last_clause;
 
