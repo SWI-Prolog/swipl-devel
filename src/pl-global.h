@@ -344,6 +344,12 @@ struct PL_global_data
     int			highest_allocated; /* Highest with info struct */
     int			thread_max;	/* Size of threads array */
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
+    struct
+    { pthread_mutex_t	mutex;
+      pthread_cond_t	cond;
+      unsigned int	requests;
+      unsigned int	initialized;	/* mutex and condvar are initialized */
+    } gc;
   } thread;
 #endif /*O_PLMT*/
 

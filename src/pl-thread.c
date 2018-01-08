@@ -5525,6 +5525,8 @@ PL_destroy_engine(PL_engine_t e)
 static int GC_id = 0;
 static int GC_starting = 0;
 
+static int cancelGCThread(int tid);
+
 static void *
 GCmain(void *closure)
 { PL_thread_attr_t attrs = {0};
@@ -5550,6 +5552,7 @@ GCmain(void *closure)
       pred = PL_predicate("$gc", 0, "system");
 
     GC_id = PL_thread_self();
+    info->cancel = cancelGCThread;
     rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
     GC_id = 0;
 
@@ -5571,6 +5574,12 @@ GCthread(void)
       pthread_t thr;
       int rc;
 
+      if ( !GD->thread.gc.initialized )
+      { pthread_mutex_init(&GD->thread.gc.mutex, NULL);
+	pthread_cond_init(&GD->thread.gc.cond, NULL);
+	GD->thread.gc.initialized = TRUE;
+      }
+
       pthread_attr_init(&attr);
       rc = pthread_create(&thr, &attr, GCmain, NULL);
       pthread_attr_destroy(&attr);
@@ -5583,6 +5592,35 @@ GCthread(void)
 }
 
 
+static int
+gc_sig_request(int sig)
+{ switch(sig)
+  { case SIG_ATOM_GC:
+      return GCREQUEST_AGC;
+    case SIG_CLAUSE_GC:
+      return GCREQUEST_CGC;
+    case SIG_PLABORT:
+      return GCREQUEST_ABORT;
+    default:
+      assert(0);
+      return 0;
+  }
+}
+
+
+static int
+signalGCThreadCond(int tid, int sig)
+{ (void)tid;
+
+  pthread_mutex_lock(&GD->thread.gc.mutex);
+  GD->thread.gc.requests |= gc_sig_request(sig);
+  pthread_cond_signal(&GD->thread.gc.cond);
+  pthread_mutex_unlock(&GD->thread.gc.mutex);
+
+  return TRUE;
+}
+
+
 int
 signalGCThread(int sig)
 { GET_LD
@@ -5591,30 +5629,103 @@ signalGCThread(int sig)
   if ( truePrologFlag(PLFLAG_GCTHREAD) &&
        !GD->bootsession &&
        (tid = GCthread()) > 0 &&
-       PL_thread_raise(tid, sig) )
+       signalGCThreadCond(tid, sig) )
     return TRUE;
 
   return raiseSignal(LD, sig);
 }
 
 
-int
-isSignalledGCThread(int sig ARG_LD)
+static int
+gc_running(void)
 { int tid;
   PL_thread_info_t *info;
-  int rc;
 
   if ( (tid=GC_id) > 0 && (info = GD->thread.threads[tid]) &&
        info->status == PL_THREAD_RUNNING )
-  { PL_local_data_t *ld = acquire_ldata(info);
+    return tid;
 
-    rc = PL_pending__LD(sig, ld);
-    release_ldata(ld);
+  return 0;
+}
+
+
+int
+isSignalledGCThread(int sig ARG_LD)
+{ if ( gc_running() )
+  { return (GD->thread.gc.requests & gc_sig_request(sig)) != 0;
   } else
-  { rc = PL_pending(sig);
+  { return PL_pending(sig);
+  }
+}
+
+
+static
+PRED_IMPL("$gc_wait", 1, gc_wait, 0)
+{ PRED_LD
+
+  for(;;)
+  { unsigned int req;
+    atom_t action;
+
+    pthread_mutex_lock(&GD->thread.gc.mutex);
+    pthread_cond_wait(&GD->thread.gc.cond, &GD->thread.gc.mutex);
+    req = GD->thread.gc.requests;
+    pthread_mutex_unlock(&GD->thread.gc.mutex);
+
+    if ( (req&GCREQUEST_ABORT) )
+      action = ATOM_abort;
+    else if ( (req&GCREQUEST_AGC) )
+      action = ATOM_garbage_collect_atoms;
+    else if ( (req&GCREQUEST_CGC) )
+      action = ATOM_garbage_collect_clauses;
+    else
+      continue;
+
+    return PL_unify_atom(A1, action);
+  }
+}
+
+
+static
+PRED_IMPL("$gc_clear", 1, gc_clear, 0)
+{ PRED_LD
+  atom_t action;
+
+  if ( PL_get_atom_ex(A1, &action) )
+  { unsigned int mask;
+
+    if ( action == ATOM_garbage_collect_atoms )
+      mask = GCREQUEST_AGC;
+    else if ( action == ATOM_garbage_collect_clauses )
+      mask = GCREQUEST_CGC;
+    else
+      return PL_domain_error("action", A1);
+
+    pthread_mutex_lock(&GD->thread.gc.mutex);
+    GD->thread.gc.requests &= ~mask;
+    pthread_mutex_unlock(&GD->thread.gc.mutex);
+
+    return TRUE;
   }
 
-  return rc;
+  return FALSE;
+}
+
+
+static int
+cancelGCThread(int tid)
+{ signalGCThreadCond(tid, SIG_PLABORT);
+  return TRUE;
+}
+
+static
+PRED_IMPL("$gc_stop", 0, gc_stop, 0)
+{ int tid;
+
+  if ( (tid=gc_running()) )
+    return cancelGCThread(tid);
+
+  return FALSE;
 }
 
 
@@ -6880,5 +6991,8 @@ BeginPredDefs(thread)
   PRED_DEF("mutex_statistics",	     0,	mutex_statistics,      0)
 
   PRED_DEF("$thread_local_clause_count", 3, thread_local_clause_count, 0)
+  PRED_DEF("$gc_wait",               1, gc_wait,               0)
+  PRED_DEF("$gc_clear",              1, gc_clear,              0)
+  PRED_DEF("$gc_stop",               0, gc_stop,               0)
 #endif
 EndPredDefs
