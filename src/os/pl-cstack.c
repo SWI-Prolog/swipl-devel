@@ -899,13 +899,30 @@ sigCrashHandler(int sig)
 	   "received fatal signal %d (%s)\n",
 	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
   print_c_backtrace("crash");
-  run_on_halt(&GD->os.exit_hooks, 4);
+  Sdprintf("Running on_halt hooks with status %d\n", 128+sig);
+  run_on_halt(&GD->os.exit_hooks, 128+sig);
 
-#ifdef O_PLMT
-  pthread_kill(pthread_self(), sig);
-#elif defined(HAVE_KILL) && defined(HAVE_GETPID)
-  kill(getpid(), sig);
-#else
+#ifdef HAVE_KILL
+{ int pid;
+# ifdef O_PLMT
+#  ifdef HAVE_GETTID_SYSCALL
+#   ifdef HAVE_SYS_SYSCALL_H
+#    include <sys/syscall.h>
+#   endif
+  pid = syscall(__NR_gettid);
+#  elif defined(HAVE_GETTID_MACRO)
+  pid = gettid();
+#  else
+  pid = getpid();
+#  endif
+# else /*O_PLMT*/
+  pid = getpid();
+# endif
+  Sdprintf("Killing %d with default signal handlers\n", pid);
+  kill(pid, sig);
+}
+#else /*HAVE_KILL*/
+  Sdprintf("Aborting\n");
   abort();
 #endif
 }
