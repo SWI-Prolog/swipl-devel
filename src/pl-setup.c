@@ -559,15 +559,18 @@ dispatch_signal(int sig, int sync)
     PL_discard_foreign_frame(fid);
   lTop = (LocalFrame)valTermRef(lTopSave);
 
+  if ( !sync )
+    unblockGC(0 PASS_LD);
+
 					/* we cannot return.  First try */
 					/* longjmp.  If that fails, crash */
   if ( is_fatal_signal(sig) )
-  { PL_rethrow();
-    sigCrashHandler(sig);
+  { if ( exception_term )
+    { PL_rethrow();
+      sigCrashHandler(sig);
+    }
+    exit(4);
   }
-
-  if ( !sync )
-    unblockGC(0 PASS_LD);
 }
 
 
