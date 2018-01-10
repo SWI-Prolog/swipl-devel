@@ -93,7 +93,7 @@ typedef struct _PL_thread_info_t
   size_t	    global_size;
   size_t	    trail_size;
   size_t	    stack_size;		/* system (C-) stack */
-  int		    (*cancel)(int id);	/* cancel function */
+  rc_cancel	    (*cancel)(int id);	/* cancel function */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
   unsigned	    detached      : 1;	/* detached thread */
   unsigned	    debug         : 1;	/* thread can be debugged */
