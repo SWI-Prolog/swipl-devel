@@ -1088,13 +1088,19 @@ PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 #define PL_THREAD_NO_DEBUG	0x01	/* Start thread in nodebug mode */
 #define PL_THREAD_NOT_DETACHED	0x02	/* Allow Prolog to join */
 
+typedef enum
+{ PL_THREAD_CANCEL_FAILED = FALSE,	/* failed to cancel; try abort */
+  PL_THREAD_CANCEL_JOINED = TRUE,	/* cancelled and joined */
+  PL_THREAD_CANCEL_MUST_JOIN		/* cancelled, must join */
+} rc_cancel;
+
 typedef struct
 { long	    local_size;			/* Stack sizes (Kbytes) */
   long	    global_size;
   long	    trail_size;
   long	    argument_size;
   char *    alias;			/* alias name */
-  int	  (*cancel)(int id);		/* cancel function */
+  rc_cancel (*cancel)(int id);		/* cancel function */
   intptr_t  flags;			/* PL_THREAD_* flags */
   void *    reserved[4];		/* reserved for extensions */
 } PL_thread_attr_t;

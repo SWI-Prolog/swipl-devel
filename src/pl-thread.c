@@ -924,8 +924,15 @@ exitPrologThreads(void)
 	  { info->thread_data->exit_requested = TRUE;
 
 	    if ( info->cancel )
-	    { if ( (*info->cancel)(i) == TRUE )
-		break;			/* done so */
+	    { switch( (*info->cancel)(i) )
+	      { case PL_THREAD_CANCEL_FAILED:
+		  break;
+	        case PL_THREAD_CANCEL_MUST_JOIN:
+		  canceled++;
+		  /*FALLTHROUGH*/
+	        case PL_THREAD_CANCEL_JOINED:
+		  continue;
+	      }
 	    }
 
 	    if ( PL_thread_raise(i, SIG_PLABORT) )
@@ -5408,7 +5415,7 @@ PL_destroy_engine(PL_engine_t e)
 static int GC_id = 0;
 static int GC_starting = 0;
 
-static int cancelGCThread(int tid);
+static rc_cancel cancelGCThread(int tid);
 
 static void *
 GCmain(void *closure)
@@ -5595,10 +5602,10 @@ PRED_IMPL("$gc_clear", 1, gc_clear, 0)
 }
 
 
-static int
+static rc_cancel
 cancelGCThread(int tid)
 { signalGCThreadCond(tid, SIG_PLABORT);
-  return TRUE;
+  return PL_THREAD_CANCEL_MUST_JOIN;
 }
 
 static
@@ -5606,7 +5613,7 @@ PRED_IMPL("$gc_stop", 0, gc_stop, 0)
 { int tid;
 
   if ( (tid=gc_running()) )
-    return cancelGCThread(tid);
+    return cancelGCThread(tid) != PL_THREAD_CANCEL_FAILED;
 
   return FALSE;
 }
