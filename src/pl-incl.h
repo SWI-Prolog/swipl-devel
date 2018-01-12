@@ -986,9 +986,9 @@ typedef struct lgen_t
 #define generationFrame(f) \
 	((gen_t)(f)->generation.gen_u<<32 | (gen_t)(f)->generation.gen_l)
 #define setGenerationFrameVal(f, g) \
-	do { gen_t gen = g; \
-	     (f)->generation.gen_u = (uint32_t)(gen>>32); \
-	     (f)->generation.gen_l = (uint32_t)(gen); \
+	do { gen_t __gen = (g); \
+	     (f)->generation.gen_u = (uint32_t)(__gen>>32); \
+	     (f)->generation.gen_l = (uint32_t)(__gen); \
 	   } while(0)
 #else
 typedef uint64_t lgen_t;
