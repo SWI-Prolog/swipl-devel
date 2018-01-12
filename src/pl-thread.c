@@ -5675,8 +5675,9 @@ PRED_IMPL("$gc_wait", 1, gc_wait, 0)
     atom_t action;
 
     pthread_mutex_lock(&GD->thread.gc.mutex);
-    pthread_cond_wait(&GD->thread.gc.cond, &GD->thread.gc.mutex);
     req = GD->thread.gc.requests;
+    if ( !req )
+      pthread_cond_wait(&GD->thread.gc.cond, &GD->thread.gc.mutex);
     pthread_mutex_unlock(&GD->thread.gc.mutex);
 
     if ( (req&GCREQUEST_ABORT) )
