@@ -1020,6 +1020,20 @@ typed_char(RlcData b, int chr)
 		 *	 WINDOW PROCEDURE	*
 		 *******************************/
 
+#undef MAKEPOINTS
+
+static inline POINTS
+MAKEPOINTS(LPARAM lParam)
+{ union
+  { LPARAM p;
+    POINTS pt;
+  } u;
+
+  u.p = lParam;
+  return u.pt;
+}
+
+
 static void
 rlc_destroy(RlcData b)
 { if ( b && b->window )

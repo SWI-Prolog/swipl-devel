@@ -1024,7 +1024,11 @@ static
 PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0)
 { GET_LD
   DWORD type;
-  BYTE  data[MAXREGSTRLEN];
+  union
+  { BYTE bytes[MAXREGSTRLEN];
+    wchar_t wchars[MAXREGSTRLEN/sizeof(wchar_t)];
+    DWORD dword;
+  } data;
   DWORD len = sizeof(data);
   size_t klen, namlen;
   wchar_t *k, *name;
@@ -1041,15 +1045,16 @@ PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0)
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, PL_new_atom("key"), Key);
 
   DEBUG(9, Sdprintf("key = %p, name = %s\n", key, name));
-  if ( RegQueryValueExW(key, name, NULL, &type, data, &len) == ERROR_SUCCESS )
+  if ( RegQueryValueExW(key, name, NULL, &type, data.bytes, &len)
+							== ERROR_SUCCESS )
   { RegCloseKey(key);
 
     switch(type)
     { case REG_SZ:
 	return PL_unify_wchars(Value, PL_ATOM,
-			       len/sizeof(wchar_t)-1, (wchar_t*)data);
+			       len/sizeof(wchar_t)-1, data.wchars);
       case REG_DWORD:
-	return PL_unify_integer(Value, *((DWORD *)data));
+	return PL_unify_integer(Value, data.dword);
       default:
 	warning("get_registry_value/2: Unknown registery-type: %d", type);
         fail;
@@ -1081,15 +1086,18 @@ static struct regdef
 static void
 setStacksFromKey(HKEY key)
 { DWORD type;
-  BYTE  data[128];
+  union
+  { BYTE bytes[128];
+    DWORD dword;
+  } data;
   DWORD len = sizeof(data);
   const struct regdef *rd;
 
   for(rd = regdefs; rd->name; rd++)
-  { if ( RegQueryValueEx(key, rd->name, NULL, &type, data, &len) ==
+  { if ( RegQueryValueEx(key, rd->name, NULL, &type, data.bytes, &len) ==
 							ERROR_SUCCESS &&
 	 type == REG_DWORD )
-    { DWORD v = *((DWORD *)data);
+    { DWORD v = data.dword;
 
       *rd->address = (int)v;
     }
