@@ -48,6 +48,10 @@
 #include <errno.h>			/* must be before pl-incl.h */
 #endif
 
+#if defined(sun) || defined(__sun)
+#define _POSIX_PTHREAD_SEMANTICS 1	/* get POSIX sigwait */
+#endif
+
 #include "pl-incl.h"
 #include "pl-tabling.h"
 #include "os/pl-cstack.h"
