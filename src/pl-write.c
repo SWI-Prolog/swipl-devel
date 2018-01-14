@@ -973,7 +973,7 @@ format_special_float(double f, char *buf)
       return writeNaN(f, buf);
     case FP_NINF:
     case FP_PINF:
-      return writeINF(n, buf);
+      return writeINF(f, buf);
     case FP_NDENORM:		/* pos/neg denormalized non-zero */
     case FP_PDENORM:
     case FP_NNORM:			/* pos/neg normalized non-zero */
