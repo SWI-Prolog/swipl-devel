@@ -387,7 +387,7 @@ $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi$(EXEEXT_FOR_BUILD)
 		@touch $@
 
 mkvmi$(EXEEXT_FOR_BUILD):	mkvmi.c
-		$(CC_FOR_BUILD) -g -O2 -o $@ $(srcdir)/mkvmi.c
+		$(CC_FOR_BUILD) -o $@ $(srcdir)/mkvmi.c
 
 
 ifdef RLPREFIX
