@@ -583,9 +583,11 @@ ieclipse:	idirs
 		done
 
 iifprolog:	idirs
+ifneq ($(IFPROLOG),)
 		for f in $(IFPROLOG); do \
 			$(INSTALL_DATA) ../library/dialect/ifprolog/$$f $(DESTDIR)$(PLBASE)/library/dialect/ifprolog; \
 		done
+endif
 
 ihprolog:	idirs
 		for f in $(HPROLOG); do \
