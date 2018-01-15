@@ -4580,6 +4580,12 @@ again:
     assert(LD->exception.throw_environment == &throw_env);
     LD->exception.throw_environment = throw_env.parent;
 
+    DEBUG(MSG_THROW,
+	  { Sdprintf("Leaving exception after callback: ");
+	    PL_write_term(Serror, QF->exception, 1200, 0);
+	    Sdprintf("\n");
+	  });
+
     return (QF->flags & PL_Q_EXT_STATUS) ? PL_S_EXCEPTION : FALSE;
   }
 }
