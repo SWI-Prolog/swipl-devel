@@ -403,6 +403,7 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
                       TB),
     option(subterm_positions(TermPos), Options, _),
     findall(Op, xref_op(SourceId, Op), Ops),
+    debug(colour, 'Ops from ~p: ~p', [SourceId, Ops]),
     findall(Opt, xref_flag_option(SourceId, Opt), Opts),
     character_count(Stream, Start),
     (   source_module(TB, Module)
