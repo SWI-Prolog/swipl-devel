@@ -256,7 +256,8 @@ colour_item(Class, TB, Pos) :-
 safe_push_op(P, T, N0, State) :-
     colour_state_module(State, CM),
     strip_module(CM:N0, M, N),
-    (   is_list(N)
+    (   is_list(N),
+        N \== []                                % define list as operator
     ->  acyclic_term(N),
         forall(member(Name, N),
                safe_push_op(P, T, M:Name, State))
