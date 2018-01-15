@@ -151,6 +151,7 @@ else
 fi
 rm -f conftest.unique
 
+AC_PROG_FGREP
 AC_PROG_CC
 AC_PROG_CXX		dnl used for packages
 LDEXE="$CC"
