@@ -412,23 +412,35 @@ xref_input_stream(Stream) :-
 %   them to be undone by pop_operators/0.
 
 xref_push_op(Src, P, T, N0) :-
-    (   N0 = _:_
-    ->  N = N0
-    ;   '$current_source_module'(M),
-        N = M:N0
-    ),
-    valid_op(op(P,T,N)),
-    push_op(P, T, N),
-    assert_op(Src, op(P,T,N)),
-    debug(xref(op), ':- ~w.', [op(P,T,N)]).
+    '$current_source_module'(M0),
+    strip_module(M0:N0, M, N),
+    (   is_list(N),
+        N \== []
+    ->  maplist(push_op(Src, P, T, M), N)
+    ;   push_op(Src, P, T, M, N)
+    ).
+
+push_op(Src, P, T, M0, N0) :-
+    strip_module(M0:N0, M, N),
+    Name = M:N,
+    valid_op(op(P,T,Name)),
+    push_op(P, T, Name),
+    assert_op(Src, op(P,T,Name)),
+    debug(xref(op), ':- ~w.', [op(P,T,Name)]).
 
 valid_op(op(P,T,M:N)) :-
     atom(M),
-    atom(N),
+    valid_op_name(N),
     integer(P),
     between(0, 1200, P),
     atom(T),
     op_type(T).
+
+valid_op_name(N) :-
+    atom(N),
+    !.
+valid_op_name(N) :-
+    N == [].
 
 op_type(xf).
 op_type(yf).
@@ -2282,12 +2294,14 @@ assert_xmodule_callable([PI|T], M, Src, From) :-
 %
 %   @param Op       Ground term op(Priority, Type, Name).
 
-assert_op(Src, op(P,T,_:N)) :-
-    (   xop(Src, op(P,T,N))
+assert_op(Src, op(P,T,M:N)) :-
+    (   '$current_source_module'(M)
+    ->  Name = N
+    ;   Name = M:N
+    ),
+    (   xop(Src, op(P,T,Name))
     ->  true
-    ;   valid_op(op(P,T,N))
-    ->  assert(xop(Src, op(P,T,N)))
-    ;   true
+    ;   assert(xop(Src, op(P,T,Name)))
     ).
 
 %!  assert_module(+Src, +Module)
