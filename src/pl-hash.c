@@ -20,6 +20,8 @@ big-endian machines, as it produces different   hashes, depending on the
 alignment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define MIX(h,k,m) { k *= m; k ^= k >> r; k *= m; h *= m; h ^= k; }
+
 #if WORDS_BIGENDIAN
 
 unsigned int
@@ -37,12 +39,7 @@ MurmurHashAligned2(const void * key, size_t len, unsigned int seed)
     k |= data[2] << 16;
     k |= data[3] << 24;
 
-    k *= m;
-    k ^= k >> r;
-    k *= m;
-
-    h *= m;
-    h ^= k;
+    MIX(h,k,m);
 
     data += 4;
     len -= 4;
@@ -63,8 +60,6 @@ MurmurHashAligned2(const void * key, size_t len, unsigned int seed)
 }
 
 #else /*WORDS_BIGENDIAN*/
-
-#define MIX(h,k,m) { k *= m; k ^= k >> r; k *= m; h *= m; h ^= k; }
 
 unsigned int
 MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
