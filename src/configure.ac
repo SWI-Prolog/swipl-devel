@@ -623,6 +623,8 @@ case "$PLARCH" in
 	    SO_pic="-Kpic"
 	    SO_PIC="-KPIC"
 	fi
+	AC_DEFINE(_POSIX_PTHREAD_SEMANTICS, 1,
+		  [Define on Solaris for compatible sigwait() and ctime_r()])
 	;;
   *hpux*)
 	SO_EXT="sl"
