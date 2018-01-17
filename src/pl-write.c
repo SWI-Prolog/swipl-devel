@@ -411,7 +411,7 @@ needSpace(int c, IOSTREAM *s)
   if ( s->lastc == EOF )
     return FALSE;
 
-  if ( (s->lastc&C_PREFIX_SIGN) && (isDigit(c) || isSymbolW(c)) )
+  if ( (s->lastc&C_PREFIX_SIGN) && (isDigit(c) || f_is_prolog_symbol(c)) )
     return TRUE;
   if ( (s->lastc&C_PREFIX_OP) && ( c == '(' || c == '{' ) )
     return TRUE;				/* avoid op(...) */
@@ -420,8 +420,9 @@ needSpace(int c, IOSTREAM *s)
 
   s->lastc &= ~C_MASK;
 
-  if ( ((isAlphaW(s->lastc) && isAlphaW(c)) ||
-	(isSymbolW(s->lastc) && isSymbolW(c)) ||
+  if ( ((f_is_prolog_identifier_continue(s->lastc) &&
+	 f_is_prolog_identifier_continue(c)) ||
+	(f_is_prolog_symbol(s->lastc) && f_is_prolog_symbol(c)) ||
 	(c == '(' && !isPunctW(s->lastc)) ||
 	(c == '\'' && (isDigit(s->lastc))) ||
 	(isquote(c) && s->lastc == c)
