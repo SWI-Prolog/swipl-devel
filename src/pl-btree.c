@@ -103,7 +103,7 @@ PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
     if ( !isTerm(*n) )
     { nomatch:
 
-      if ( unify_ptrs(t, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+      if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	   PL_unify_atom(A5, arg == lp ? ATOM_smaller : ATOM_larger ) )
 	return TRUE;
       return FALSE;
