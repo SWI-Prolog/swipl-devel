@@ -4342,8 +4342,21 @@ void
 PL_clear_foreign_exception(LocalFrame fr)
 { term_t ex = PL_exception(0);
 
+#ifdef O_PLMT
+{ int tid = PL_thread_self();
+  atom_t alias;
+  const pl_wchar_t *name = L"";
+
+  if ( PL_get_thread_alias(tid, &alias) )
+    name = PL_atom_wchars(alias, NULL);
+
+  Sdprintf("Thread %d (%Ws): foreign predicate %s did not clear exception: \n\t",
+	   tid, name, predicateName(fr->predicate));
+}
+#else
   Sdprintf("Foreign predicate %s did not clear exception: ",
 	   predicateName(fr->predicate));
+#endif
   PL_write_term(Serror, ex, 1200, 0);
   Sdprintf("\n");
 
