@@ -755,21 +755,21 @@ goal_expansion(send_super(R, Msg), send_class(R, _, Msg), P, P).
 goal_expansion(get_super(R, Msg, V), get_class(R, _, Msg, V), P, P).
 goal_expansion(SendSuperN, send_class(R, _, Msg), P, P) :-
     compound(SendSuperN),
-    SendSuperN =.. [send_super, R, Sel | Args],
+    compound_name_arguments(SendSuperN, send_super, [R,Sel|Args]),
     Msg =.. [Sel|Args].
 goal_expansion(SendN, send(R, Msg), P, P) :-
     compound(SendN),
-    SendN =.. [send, R, Sel | Args],
+    compound_name_arguments(SendN, send, [R,Sel|Args]),
     atom(Sel), Args \== [],
     Msg =.. [Sel|Args].
 goal_expansion(GetSuperN, get_class(R, _, Msg, Answer), P, P) :-
     compound(GetSuperN),
-    GetSuperN =.. [get_super, R, Sel | AllArgs],
+    compound_name_arguments(GetSuperN, get_super, [R,Sel|AllArgs]),
     append(Args, [Answer], AllArgs),
     Msg =.. [Sel|Args].
 goal_expansion(GetN, get(R, Msg, Answer), P, P) :-
     compound(GetN),
-    GetN =.. [get, R, Sel | AllArgs],
+    compound_name_arguments(GetN, get, [R,Sel|AllArgs]),
     append(Args, [Answer], AllArgs),
     atom(Sel), Args \== [],
     Msg =.. [Sel|Args].

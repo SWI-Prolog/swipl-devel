@@ -353,12 +353,12 @@ prolog_clause:unify_goal(Maplist, Expanded, _Module, Pos0, Pos) :-
 
 is_maplist(Goal) :-
     compound(Goal),
-    functor(Goal, maplist, A),
+    compound_name_arity(Goal, maplist, A),
     A >= 2.
 
 maplist_expansion(Expanded) :-
     compound(Expanded),
-    functor(Expanded, Name, _),
+    compound_name_arity(Expanded, Name, _),
     sub_atom(Name, 0, _, _, '__aux_maplist/').
 
 
