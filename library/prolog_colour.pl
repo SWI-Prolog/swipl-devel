@@ -148,22 +148,32 @@ colourise_stream(Fd, TB) :-
         Term == end_of_file,
     !.
 
-save_settings(TB, state(Style, Flags, OSM)) :-
+save_settings(TB, state(Style, Flags, OSM, Xref)) :-
     (   source_module(TB, SM)
     ->  true
     ;   SM = prolog_colour_ops
     ),
+    set_xref(Xref, true),
     '$set_source_module'(OSM, SM),
     colour_state_module(TB, SM),
     push_operators([]),
     syntax_flags(Flags),
     '$style_check'(Style, Style).
 
-restore_settings(state(Style, Flags, OSM)) :-
+restore_settings(state(Style, Flags, OSM, Xref)) :-
     restore_syntax_flags(Flags),
     '$style_check'(_, Style),
     pop_operators,
-    '$set_source_module'(OSM).
+    '$set_source_module'(OSM),
+    set_xref(_, Xref).
+
+set_xref(Old, New) :-
+    current_prolog_flag(xref, Old),
+    !,
+    set_prolog_flag(xref, New).
+set_xref(false, New) :-
+    set_prolog_flag(xref, New).
+
 
 syntax_flags(Pairs) :-
     findall(set_prolog_flag(Flag, Value),
