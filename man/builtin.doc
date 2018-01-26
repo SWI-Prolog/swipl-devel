@@ -9420,7 +9420,7 @@ costly. The cost of clause garbage collection is proportional with the
 total size of the local stack of all threads (the scanning phase) and
 the number of clauses in all `dirty' predicates (the reclaiming phase).
 
-    \predicate{set_prolog_gc_thread}{+Status}
+    \predicate{set_prolog_gc_thread}{1}{+Status}
 Control whether or not atom and clause garbage collection are executed
 in a dedicated thread. The default is \const{true}. Values for
 \arg{Status} are \const{true}, \const{false} and \const{stop}. The
