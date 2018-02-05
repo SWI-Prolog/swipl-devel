@@ -78,7 +78,7 @@ expand_maplist(Callable0, Lists, Goal) :-
     length(Lists, N),
     expand_closure_no_fail(Callable0, N, Callable1),
     (   Callable1 = _:_
-    ->  strip_module(Callable0, M, Callable),
+    ->  strip_module(Callable1, M, Callable),
         NextGoal = M:NextCall,
         QPred = M:Pred
     ;   Callable = Callable1,
