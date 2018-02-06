@@ -216,13 +216,10 @@ pigeon(I, J, Rows, Cs) :-
         length(Rows, I), length(Row, J),
         maplist(same_length(Row), Rows),
         transpose(Rows, TRows),
-        phrase((all_card1(Rows),all_max1(TRows)), Cs).
+        phrase((all_cards(Rows,[1]),all_cards(TRows,[0,1])), Cs).
 
-all_card1([]) --> [].
-all_card1([Ls|Lss]) --> [card([1],Ls)], all_card1(Lss).
-
-all_max1([]) --> [].
-all_max1([Ls|Lss]) --> [card([0,1],Ls)], all_max1(Lss).
+all_cards([], _) --> [].
+all_cards([Ls|Lss], Cs) --> [card(Cs,Ls)], all_cards(Lss, Cs).
 ==
 
 Example queries:
