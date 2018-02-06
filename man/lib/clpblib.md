@@ -233,6 +233,7 @@ false.
    maplist(portray_clause, Rows).
 [0, 0, 1].
 [0, 1, 0].
+etc.
 ==
 
 ## Example: Boolean circuit  {#clpb-circuit}
