@@ -4426,10 +4426,15 @@ stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( (s->flags & SIO_NBUF) )
+{ int size;
+
+  if ( (s->flags & SIO_NBUF) )
     return FALSE;
 
-  return PL_unify_integer(prop, s->bufsize);
+  if ( (size = s->bufsize) == 0 )
+    size = SIO_BUFSIZE;
+
+  return PL_unify_integer(prop, size);
 }
 
 
