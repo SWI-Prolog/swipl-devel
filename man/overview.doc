@@ -1603,15 +1603,22 @@ the
 \href{https://en.wikipedia.org/wiki/Spectre_(security_vulnerability)}{Spectre}
 timing-based security vulnerability. Spectre based attacks can extract
 information from memory owned by the process that should remain
-invisible such password or the private certificate of a web server. To
-do so, the attacker must be able to execute arbitrary code in the
-process. A good example of a vulnerable application is
-\href{https://swish.swi-prolog.org}{SWISH}.  SWISH allows users to run
-arbitrary Prolog code while the swish server must respect the privacy of
-other users as well as its HTTPS certificate, cookies and passwords.
+invisible, such as passwords or the private key of a web server. The
+attacks work by causing speculative access to sensitive data, and
+leaking the data via side-channels such as differences in the duration
+of successive instructions. An example of a potentially vulnerable
+application is \href{https://swish.swi-prolog.org}{SWISH}. SWISH
+allows users to run Prolog code while the swish server must protect
+the privacy of other users as well as its HTTPS private keys, cookies
+and passwords.
 
-Currently enabling this flag reduces the resolution of get_time/1 and
+Currently, enabling this flag reduces the resolution of get_time/1 and
 statistics/2 CPU time to $20\mu{}s$.
+
+\textbf{WARNING}: Although a coarser timer makes a successful attack
+of this type harder, it does not reliably prevent such attacks in
+general. Full mitigation may require compiler support to disable
+speculative access to sensitive data.
 
     \prologflagitem{occurs_check}{atom}{rw}
 This flag controls unification that creates an infinite tree (also
