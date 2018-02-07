@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -652,8 +652,8 @@ PL_promote_text(PL_chars_t *text)
 }
 
 
-int
-PL_demote_text(PL_chars_t *text)
+static int
+PL_demote_text(PL_chars_t *text, int flags)
 { if ( text->encoding != ENC_ISO_LATIN_1 )
   { if ( text->storage == PL_CHARS_MALLOC )
     { char *new = PL_malloc(sizeof(char)*(text->length+1));
@@ -664,6 +664,10 @@ PL_demote_text(PL_chars_t *text)
       while(s<e)
       { if ( *s > 0xff )
 	{ PL_free(new);
+	reperr:
+	  if ( (flags&CVT_EXCEPTION) )
+	    PL_error(NULL, 0, "cannot represent text as ISO latin 1",
+		     ERR_REPRESENTATION, ATOM_encoding);
 	  return FALSE;
 	}
 	*t++ = *s++ & 0xff;
@@ -683,7 +687,7 @@ PL_demote_text(PL_chars_t *text)
       memcpy(buf, text->buf, text->length*sizeof(pl_wchar_t));
       while(f<e)
       { if ( *f > 0xff )
-	  return FALSE;
+	  goto reperr;
 	*t++ = *f++ & 0xff;
       }
       *t = EOS;
@@ -696,7 +700,7 @@ PL_demote_text(PL_chars_t *text)
       for( ; s<e; s++)
       { if ( *s > 0xff )
 	{ unfindBuffer(BUF_RING);
-	  return FALSE;
+	  goto reperr;
 	}
 	addBuffer(b, *s&0xff, char);
       }
@@ -806,7 +810,7 @@ PL_mb_text(PL_chars_t *text, int flags)
       }
       case ENC_WCHAR:
       { if ( target == ENC_ISO_LATIN_1 )
-	{ return PL_demote_text(text);
+	{ return PL_demote_text(text, flags);
 	} else
 	{ const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
 	  const pl_wchar_t *e = &w[text->length];
@@ -903,7 +907,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	    return TRUE;
 	}
 
-	return PL_demote_text(text);
+	return PL_demote_text(text, 0);
       }
       case ENC_UNICODE_LE:		/* assume text->length is in bytes */
       case ENC_UNICODE_BE:
