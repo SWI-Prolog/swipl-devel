@@ -1597,6 +1597,22 @@ the flag \prologflag{bounded} and \secref{artypes}.
     \prologflagitem{min_tagged_integer}{integer}{r}
 Start of the tagged-integer value range.
 
+    \prologflagitem{mitigate_spectre}{bool}{rw}
+When \const{true} (default \const{false}), enforce mitigation against
+the
+\href{https://en.wikipedia.org/wiki/Spectre_(security_vulnerability)}{Spectre}
+timing-based security vulnerability. Spectre based attacks can extract
+information from memory owned by the process that should remain
+invisible such password or the private certificate of a web server. To
+do so, the attacker must be able to execute arbitrary code in the
+process. A good example of a vulnerable application is
+\href{https://swish.swi-prolog.org}{SWISH}.  SWISH allows users to run
+arbitrary Prolog code while the swish server must respect the privacy of
+other users as well as its HTTPS certificate, cookies and passwords.
+
+Currently enabling this flag reduces the resolution of get_time/1 and
+statistics/2 CPU time to $20\mu{}s$.
+
     \prologflagitem{occurs_check}{atom}{rw}
 This flag controls unification that creates an infinite tree (also
 called \jargon{cyclic term}) and can have three values. Using

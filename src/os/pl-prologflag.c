@@ -1430,6 +1430,9 @@ initPrologFlags(void)
 #endif
   setPrologFlag("error_ambiguous_stream_pair", FT_BOOL, FALSE,
 		PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR);
+#ifdef O_MITIGATE_SPECTRE
+  setPrologFlag("mitigate_spectre", FT_BOOL, FALSE, PLFLAG_MITIGATE_SPECTRE);
+#endif
 
   setTZPrologFlag();
   setOSPrologFlags();

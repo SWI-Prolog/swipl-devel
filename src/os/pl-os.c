@@ -202,6 +202,24 @@ static char errmsg[64];
 		*    PROCESS CHARACTERISTICS    *
 		*********************************/
 
+#ifdef O_MITIGATE_SPECTRE
+static inline double
+clock_jitter(double t)
+{ GET_LD
+
+  if ( unlikely(truePrologFlag(PLFLAG_MITIGATE_SPECTRE)) )
+  { double i;
+
+    modf(t*50000.0, &i);
+    t = i/50000.0;
+  }
+
+  return t;
+}
+#else
+#define clock_jitter(t) (t)
+#endif
+
 #ifdef HAVE_CLOCK_GETTIME
 #define timespec_to_double(ts) \
 	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
@@ -243,7 +261,7 @@ CpuTime(cputime_kind which)
   (void)which;
 
   if ( clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts) == 0 )
-    return timespec_to_double(ts);
+    return clock_jitter(timespec_to_double(ts));
   return 0.0;
 #endif
 
@@ -272,7 +290,7 @@ CpuTime(cputime_kind which)
   if ( isnan(used) )			/* very dubious, but this */
     used = 0.0;				/* happens when running under GDB */
 
-  return used;
+  return clock_jitter(used);
 #endif
 
 #if !defined(CPU_TIME_DONE)
@@ -312,7 +330,7 @@ WallTime(void)
 #endif
 #endif
 
-  return stime;
+  return clock_jitter(stime);
 }
 
 		 /*******************************

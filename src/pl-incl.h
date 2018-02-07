@@ -140,6 +140,8 @@ handy for it someone wants to add a data type to the system.
       Provide locale support on streams.
   O_GMP
       Use GNU gmp library for infinite precision arthmetic
+  O_MITIGATE_SPECTRE
+      Reduce spectre security risc.  Currently reduces timer resolution.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -166,6 +168,7 @@ handy for it someone wants to add a data type to the system.
 #define O_CALL_RESIDUE		1
 #define O_GVAR			1
 #define O_CYCLIC		1
+#define O_MITIGATE_SPECTRE	1
 
 #if defined(O_PLMT)
 #if defined(O_SIGPROF_PROFILE) || defined(__WINDOWS__)
@@ -2296,6 +2299,7 @@ typedef struct debuginfo
 #define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
 #define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x04000000
 #define PLFLAG_GCTHREAD		    0x08000000 /* Do atom/clause GC in a thread */
+#define PLFLAG_MITIGATE_SPECTRE	    0x10000000 /* Mitigate spectre attacks */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */
