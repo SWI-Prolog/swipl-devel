@@ -52,9 +52,9 @@
 	    float//1,			% [+-]?[0-9]+(.[0-9]*)?(e[+-]?[0-9]+)? --> float
 	    number//1,			% integer | float
 					% Hexadecimal numbers
-	    xdigits//1,			% [0-9a-f]* --> 0-15*
-	    xdigit//1,			% [0-9a-f] --> 0-15
-	    xinteger//1,		% [0-9a-f]+ --> integer
+	    xdigits//1,			% [0-9A-Fa-f]* --> 0-15*
+	    xdigit//1,			% [0-9A-Fa-f] --> 0-15
+	    xinteger//1,		% [0-9A-Fa-f]+ --> integer
 
 	    prolog_var_name//1,		% Read a Prolog variable name
 
@@ -341,7 +341,8 @@ exp --> "E".
 %%	xinteger(-Integer)// is semidet.
 %
 %	Generate or extract an integer from   a  sequence of hexadecimal
-%	digits.
+%	digits. Hexadecimal characters include both  uppercase (A-F) and
+%	lowercase (a-f) letters.
 
 xinteger(Val, Head, Tail) :-
 	integer(Val),
@@ -355,7 +356,8 @@ xinteger(Val) -->
 %%	xdigit(-Weight)// is semidet.
 %
 %	True if the next code is a  hexdecimal digit with Weight. Weight
-%	is between 0 and 15.
+%	is  between  0  and  15.  Hexadecimal  characters  include  both
+%	uppercase (A-F) and lowercase (a-f) letters.
 
 xdigit(D) -->
 	[C],
@@ -364,8 +366,9 @@ xdigit(D) -->
 
 %%	xdigits(-WeightList)// is det.
 %
-%	List of weights of a sequence of hexadecimal codes.  WeightList
-%	may be empty.
+%	List of weights of a sequence   of hexadecimal codes. WeightList
+%	may be empty. Hexadecimal  characters   include  both  uppercase
+%	(A-F) and lowercase (a-f) letters.
 
 xdigits([D0|D]) -->
 	xdigit(D0), !,
