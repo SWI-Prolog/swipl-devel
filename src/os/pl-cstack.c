@@ -468,10 +468,6 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 
 #ifdef BTRACE_DONE
 
-#ifndef HAVE_CTIME_R
-#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
-#endif
-
 void
 initBackTrace(void)
 {
@@ -861,6 +857,10 @@ initBackTrace(void)
 		 /*******************************
 		 *	     SHARED		*
 		 *******************************/
+
+#ifndef HAVE_CTIME_R
+#define ctime_r(timep, buf) strcpy(buf, ctime(timep))
+#endif
 
 #ifdef BTRACE_DONE
 
