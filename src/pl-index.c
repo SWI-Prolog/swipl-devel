@@ -413,6 +413,8 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   hash_hints hints;
   ClauseChoice chp = ctx->chp;
 
+#define STATIC_RELOADING() (LD->gen_reload && false(ctx->predicate, P_DYNAMIC))
+
   if ( unlikely(argc == 0) )
     goto simple;			/* TBD: alt supervisor */
   if ( unlikely(argc > MAXINDEXARG) )
@@ -440,7 +442,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 
       if ( clist->number_of_clauses > 10 &&
 	   (float)clist->number_of_clauses/best_index->speedup > 10 &&
-	   !LD->gen_reload )
+	   !STATIC_RELOADING() )
       { DEBUG(MSG_JIT_POOR,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL),
@@ -470,7 +472,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
-       (clist->number_of_clauses <= 10 || LD->gen_reload) )
+       (clist->number_of_clauses <= 10 || STATIC_RELOADING()) )
   { chp->cref = clist->first_clause;
 
     cref = nextClauseArg1(chp, ctx->generation PASS_LD);
@@ -482,7 +484,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
     /* TBD: Avoid trying this every goal */
   }
 
-  if ( !LD->gen_reload &&
+  if ( !STATIC_RELOADING() &&
        bestHash(argv, argc, clist, 0.0, &hints, ctx PASS_LD) )
   { ClauseIndex ci;
 
