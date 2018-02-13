@@ -329,6 +329,8 @@ first_clause_guarded(Word argv, LocalFrame fr,
   hash_hints hints;
   gen_t generation = generationFrame(fr);
 
+#define STATIC_RELOADING() (LD->gen_reload && false(def, P_DYNAMIC))
+
   if ( def->functor->arity == 0 )
     goto simple;			/* TBD: alt supervisor */
 
@@ -354,7 +356,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
 
       if ( def->impl.clauses.number_of_clauses > 10 &&
 	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 &&
-	   !LD->gen_reload )
+	   !STATIC_RELOADING() )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
 		       iargsName(best_index->args, NULL), predicateName(def)));
@@ -389,7 +391,7 @@ first_clause_guarded(Word argv, LocalFrame fr,
     return nextClauseArg1(chp, generation PASS_LD);
   }
 
-  if ( !LD->gen_reload && bestHash(argv, def, NULL, &hints PASS_LD) )
+  if ( !STATIC_RELOADING() && bestHash(argv, def, NULL, &hints PASS_LD) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(def, &hints)) )
