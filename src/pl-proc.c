@@ -2819,13 +2819,14 @@ attribute_mask(atom_t key)
 }
 
 
-int
+static size_t
 num_visible_clauses(Definition def, atom_t key)
 { GET_LD;
 
   if ( LD->gen_reload != GEN_INVALID )
   { ClauseRef c;
-    int num_clauses = 0;
+    size_t num_clauses = 0;
+
     acquire_def(def);
     for(c = def->impl.clauses.first_clause; c; c = c->next)
     { Clause cl = c->value.clause;
@@ -2914,7 +2915,7 @@ pl_get_predicate_attribute(term_t pred,
   } else if ( key == ATOM_foreign )
   { return PL_unify_integer(value, true(def, P_FOREIGN) ? 1 : 0);
   } else if ( key == ATOM_number_of_clauses )
-  { int num_clauses;
+  { size_t num_clauses;
     if ( def->flags & P_FOREIGN )
       fail;
 
@@ -2922,10 +2923,12 @@ pl_get_predicate_attribute(term_t pred,
     num_clauses = num_visible_clauses(def, key);
     if ( num_clauses == 0 && false(def, P_DYNAMIC) )
       fail;
-
-    return PL_unify_integer(value, num_clauses);
+    return PL_unify_int64(value, num_clauses);
   } else if ( key == ATOM_last_modified_generation )
-  { return PL_unify_int64(value, def->last_modified);
+  { if ( def->flags & P_FOREIGN )
+      fail;
+    def = getProcDefinition(proc);
+    return PL_unify_int64(value, def->last_modified);
   } else if ( key == ATOM_number_of_rules )
   { if ( def->flags & P_FOREIGN )
       fail;
