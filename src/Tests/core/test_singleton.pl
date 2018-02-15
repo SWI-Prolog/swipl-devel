@@ -41,7 +41,11 @@
 :- use_module(library(pairs)).
 :- use_module(library(lists)).
 :- use_module(library(varnumbers)).
-:- if(exists_source(library(memfile))).
+:- if((exists_source(library(memfile)),
+       absolute_file_name(foreign(memfile), _,
+			  [ file_type(executable),
+			    access(read)
+			  ]))).
 :- use_module(library(memfile)).
 ok(true).
 :- else.
@@ -56,7 +60,7 @@ test_singleton :-
 	ok(true), !,
 	test_singleton(3).
 test_singleton :-
-	format(user_error, 'Test requires library(memfile)~n', []).
+	format(user_error, '~NTest requires library(memfile)~n', []).
 
 t(v(V), V, 1).
 t(true, _, 1).
