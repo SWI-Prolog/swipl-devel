@@ -737,12 +737,6 @@ COMMON(void)		PlMessage(const char *buf, ...);
 COMMON(word)		pl_window_title(term_t old, term_t new);
 COMMON(word)		pl_win_exec(term_t command, term_t show);
 COMMON(foreign_t)	pl_win_module_file(term_t module, term_t file);
-#ifdef EMULATE_DLOPEN
-COMMON(void *)		dlopen(const char *file, int flags);
-COMMON(const)  char *	dlerror(void);
-COMMON(void *)		dlsym(void *handle, char *symbol);
-COMMON(int)		dlclose(void *handle);
-#endif /*EMULATE_DLOPEN*/
 COMMON(int)		ms_snprintf(char *buffer, size_t count,
 				    const char *fmt, ...);
 COMMON(void)		getDefaultsFromRegistry(void);
