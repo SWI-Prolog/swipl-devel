@@ -84,6 +84,7 @@ ARCHIVE_VERSION=3.2.1
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
 PCRE_VERSION=8.40
+FFI_VERSION=3.2.1
 PLDIR=pl-devel
 
 # installation prefix.  This path should not have spaces in one of the
@@ -451,6 +452,26 @@ build_libuuid()
   )
 }
 
+################################
+# Download and install libffi
+
+download_libffi()
+{ FFI_FILE=libffi-$FFI_VERSION.tar.gz
+  [ -f $FFI_FILE ] || \
+  curl ftp://sourceware.org/pub/libffi/$FFI_FILE > $FFI_FILE
+  tar zxvf $FFI_FILE
+}
+
+build_libffi()
+{ ( cd libffi-$FFI_VERSION
+    ./configure --host=$CROSS --prefix=$install
+    make
+    make install
+    # Bit strange location for the headers
+    cp $install/lib/libffi-$FFI_VERSION/include/*.h $install/include
+  )
+}
+
 
 ###########################
 # Do the whole lot for all prerequisites
@@ -463,6 +484,7 @@ clean_prerequisites()
   ( cd zlib-$ZLIB_VERSION && make distclean )
   ( cd libarchive-$ARCHIVE_VERSION && make distclean )
   ( cd uuid-$UUID_VERSION && make distclean )
+  ( cd ffi-$FFI_VERSION && make distclean )
   if [ -d pthreads-w32-$PTHREADS_VERSION ]; then
     ( cd pthreads-w32-$PTHREADS_VERSION && make distclean )
   fi
@@ -481,6 +503,7 @@ download_prerequisites()
   download_libuuid
   download_libdb
   download_libpcre
+  download_libffi
 }
 
 build_prerequisites()
@@ -495,6 +518,7 @@ build_prerequisites()
   build_libuuid
   build_libdb
   build_libpcre
+  build_libffi
 }
 
 ###########################
