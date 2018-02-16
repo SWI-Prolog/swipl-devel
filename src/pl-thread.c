@@ -5468,6 +5468,8 @@ GCthread(void)
       { pthread_mutex_init(&GD->thread.gc.mutex, NULL);
 	pthread_cond_init(&GD->thread.gc.cond, NULL);
 	GD->thread.gc.initialized = TRUE;
+      } else
+      { GD->thread.gc.requests = 0;
       }
 
       pthread_attr_init(&attr);
