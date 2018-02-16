@@ -3,7 +3,7 @@
     Author:        Alex Dörfler
     E-mail:        axeld@pinc-software.de
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2014, University of Amsterdam
+    Copyright (c)  2002-2018, University of Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,7 @@ interface.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void *
-dlopen(const char *file, int flags)
+PL_dlopen(const char *file, int flags)
 { image_id image = load_add_on(file);
 
   if ( image < B_OK )
@@ -68,13 +68,13 @@ dlopen(const char *file, int flags)
 
 
 const char *
-dlerror()
+PL_dlerror()
 { return strerror(LD->os.dl_error);
 }
 
 
 void *
-dlsym(void *handle, char *symbol)
+PL_dlsym(void *handle, char *symbol)
 { void *address;
 
   LD->os.dl_error = get_image_symbol((image_id)handle,
@@ -89,7 +89,7 @@ dlsym(void *handle, char *symbol)
 
 
 int
-dlclose(void *handle)
+PL_dlclose(void *handle)
 { return unload_add_on((image_id)handle);
 }
 

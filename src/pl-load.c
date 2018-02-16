@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -137,6 +137,30 @@ DlEntry dl_tail;			/* end of this chain */
 #define DL_NOW	  0x1
 #define DL_GLOBAL 0x2
 
+#ifndef EMULATE_DLOPEN
+void *
+PL_dlopen(const char *file, int flags)
+{ return dlopen(file, flags);
+}
+
+const char *
+PL_dlerror(void)
+{ return dlerror();
+}
+
+void *
+PL_dlsym(void *handle, char *symbol)
+{ return dlsym(handle, symbol);
+}
+
+int
+PL_dlclose(void *handle)
+{ return dlclose(handle);
+}
+
+#endif /*EMULATE_DLOPEN*/
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 under_valgrind()
 
@@ -192,9 +216,9 @@ PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
   if ( !PL_get_atom_ex(file, &afile) ||
        !PL_get_file_name(file, &fn, 0) )
     fail;
-  if ( !(dlhandle = dlopen(fn, dlflags)) )
+  if ( !(dlhandle = PL_dlopen(fn, dlflags)) )
     return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
-		    ATOM_open, dlerror());
+		    ATOM_open, PL_dlerror());
 
   e = allocHeapOrHalt(sizeof(struct dl_entry));
 
@@ -244,7 +268,7 @@ PRED_IMPL("close_shared_object", 1, close_shared_object, 0)
 
   if ( e && e->dlhandle)
   { if ( !under_valgrind() )
-      dlclose(e->dlhandle);
+      PL_dlclose(e->dlhandle);
     e->dlhandle = NULL;
 
     succeed;
@@ -272,7 +296,7 @@ PRED_IMPL("call_shared_object_function", 2, call_shared_object_function,
     fail;
 
 #ifdef LD_SYMBOL_PREFIX			/* first try plain anyway */
-  if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )
+  if ( !(ef = (dl_funcptr) PL_dlsym(e->dlhandle, fname)) )
   { char symname[MAXSYMBOLLEN+1];
 
     if ( strlen(fname)+strlen(LD_SYMBOL_PREFIX) > MAXSYMBOLLEN )
@@ -286,7 +310,7 @@ PRED_IMPL("call_shared_object_function", 2, call_shared_object_function,
     ef = (dl_funcptr) dlsym(e->dlhandle, symname);
   }
 #else
-  ef = (dl_funcptr) dlsym(e->dlhandle, fname);
+  ef = (dl_funcptr) PL_dlsym(e->dlhandle, fname);
 #endif
   if ( ef )
   { (*ef)();
@@ -310,7 +334,7 @@ cleanupForeign(void)
 
     if ( e->dlhandle )
     { if ( !under_valgrind() )
-	dlclose(e->dlhandle);
+	PL_dlclose(e->dlhandle);
     }
 
     freeHeap(e, sizeof(*e));

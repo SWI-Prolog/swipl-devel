@@ -937,6 +937,16 @@ PL_EXPORT(void)		PL_cleanup_fork();
 PL_EXPORT(int)		PL_halt(int status);
 
 		 /*******************************
+		 *	  DYNAMIC LINKING	*
+		 *******************************/
+
+PL_EXPORT(void *)	PL_dlopen(const char *file, int flags);
+PL_EXPORT(const char *) PL_dlerror(void);
+PL_EXPORT(void *)	PL_dlsym(void *handle, char *symbol);
+PL_EXPORT(int)		PL_dlclose(void *handle);
+
+
+		 /*******************************
 		 *      INPUT/PROMPT/ETC	*
 		 *******************************/
 

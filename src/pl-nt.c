@@ -732,7 +732,7 @@ is_windows_abs_path(const wchar_t *path)
 }
 
 void *
-dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
+PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
 { HINSTANCE h;
   DWORD llflags = 0;
   size_t len = utf8_strlen(file, strlen(file));
@@ -762,13 +762,13 @@ dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
 
 
 const char *
-dlerror(void)
+PL_dlerror(void)
 { return dlmsg;
 }
 
 
 void *
-dlsym(void *handle, char *symbol)
+PL_dlsym(void *handle, char *symbol)
 { void *addr = GetProcAddress(handle, symbol);
 
   if ( addr )
@@ -782,7 +782,7 @@ dlsym(void *handle, char *symbol)
 
 
 int
-dlclose(void *handle)
+PL_dlclose(void *handle)
 { FreeLibrary(handle);
 
   return 0;
