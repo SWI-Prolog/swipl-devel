@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@metalevel.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2014-2016 Markus Triska
+    Copyright (C): 2014-2018 Markus Triska
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -119,7 +119,9 @@ where _Expr_ again denotes a Boolean expression.
 
 The Boolean expression card(Is,Exprs) is true iff the number of true
 expressions in the list `Exprs` is a member of the list `Is` of
-integers and integer ranges of the form `From-To`.
+integers and integer ranges of the form `From-To`. For example, to
+state that precisely two of the three variables `X`, `Y` and `Z` are
+`true`, you can use `sat(card([2],[X,Y,Z]))`.
 
 `+(Exprs)` and `*(Exprs)` denote, respectively, the disjunction and
 conjunction of all elements in the list `Exprs` of Boolean
