@@ -111,9 +111,9 @@ A _Boolean expression_ is one of:
     | _Expr_ >= _Expr_   | greater or equal                     |
     | _Expr_ < _Expr_    | less than                            |
     | _Expr_ > _Expr_    | greater than                         |
-    | card(Is,Exprs)     | _see below_                          |
-    | `+(Exprs)`         | _see below_                          |
-    | `*(Exprs)`         | _see below_                          |
+    | card(Is,Exprs)     | cardinality constraint (_see below_) |
+    | `+(Exprs)`         | n-fold disjunction (_see below_)     |
+    | `*(Exprs)`         | n-fold conjunction (_see below_)     |
 
 where _Expr_ again denotes a Boolean expression.
 
