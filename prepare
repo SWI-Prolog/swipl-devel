@@ -14,276 +14,505 @@
 #
 # On Windows installations, this script may be run from the MsysGit bash
 # shell to initialise the submodules and download the documentation.
+#
+# 2018-02-18: Rewritten for legibility and to reorganize really
+#             bizarre stuff that looks like an accumulation of
+#             historical "quick fixes".
+#             Script has been checked with https://www.shellcheck.net/
 
-# default submodules to pull.  Use --all to get all registered submodule
-# You can also create a file modules in this directory, listing the
-# desired modules one-per-line
+set -o nounset
 
-COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
-COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
-COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
-COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
-COREMODULES+=" packages/zlib packages/tipc packages/table"
-COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
-COREMODULES+=" packages/utf8proc packages/archive packages/swipl-win"
-COREMODULES+=" packages/pengines packages/cql packages/bdb"
-COREMODULES+=" packages/readline packages/libedit packages/pcre"
-COREMODULES+=" packages/yaml"
+# ---
+# Do not be root (Comment out if being root is acceptable to you)
+# ---
 
-version="`cat VERSION`"
-servers="http://www.swi-prolog.org http://eu.swi-prolog.org"
-serverpath="/download"
-yes=ask
-man=auto
-tar=tar
+if [[ $UID == 0 ]]; then
+   echo "You are root -- exiting!" >&2
+   exit 1
+fi
+
+# ---
+# Make sure we are indeed in the correct directory, i.e. the directory
+# of the "prepare" script!
+# ---
+
+target=$(dirname "$0")
+cd "$target" || exit 1
+echo "Working in directory '$(pwd)'" >&2
+
+# ---
+# Specialities
+# ---
+
 # This is required by OpenBSD
 export AUTOCONF_VERSION=2.69
 
-# avoid surprises and printing paths.
+# avoid surprises and printing paths (CDPATH is the base directory for 'cd')
 unset CDPATH
 
-maxyes=100
+# ---
+# Array of default git submodules. The command line argument "--all" can be
+# used to build really all available submodules, not only those listed here.
+# The following modules exist, but are not listed:
+# debian, packages/jasmine, packages/ltx2htm, packages/space
+# ---
 
-usage()
-{
+coremodules=(
+ archive
+ bdb bench
+ chr clib clpqr cpp cql
+ http
+ inclpr
+ jpl
+ libedit
+ nlp
+ odbc
+ pcre PDT pengines pldoc plunit protobufs
+ RDF readline
+ semweb sgml ssl swipl-win
+ table tipc
+ utf8proc
+ windows
+ xpce
+ yaml
+ zlib
+)
+
+# Prepend all of the modules except "bench" with "packages/"
+
+_prepend() {
+   local i
+   local cm
+   for i in "${!coremodules[@]}"; do
+      cm=${coremodules[$i]}
+      if [[ "$cm" != bench ]]; then
+         coremodules[$i]="packages/$cm"
+      fi
+      ((i++))
+   done
+}
+
+_prepend
+
+# ---
+# Download manuals ("doc") from here
+# ---
+
+docurls=(
+  http://www.swi-prolog.org/download/generated
+  http://eu.swi-prolog.org/download/generated
+)
+
+docurls_txt="${docurls[*]}" # back up string for "usage()"
+
+# ---
+# Get the VERSION from a file in the current directory
+# ---
+
+if [[ ! -f VERSION ]]; then
+   echo "File 'VERSION' does not exist -- exiting" >&2
+   exit 1
+fi
+
+version=$(< VERSION)
+version=$(echo $version) # get rid of whitespace; don't quote!
+
+echo "Got version from file VERSION: '$version'" >&2
+
+# ---
+# Check whether MinGW environment, setting "mingw" to nonzero if so
+# ---
+
+_mingw() {
+   case $(uname) in
+   MINGW*)
+      return 0
+      ;;
+   *)
+      return 1
+      ;;
+   esac
+}
+
+mingw=
+if _mingw; then
+   mingw=MARK
+fi
+
+# ---
+# Helper functions.
+# ---
+
+# Ask the user for confirmation, or autoconfirm if $yes is nonempty
+
+yes=         # autoconfirmation is on if nonempty (set from cmdline args)
+maxyes=100   # countdown yes entries to 0, then exit (safety valve)
+
+confirm() {
+   local msg="$1"
+   local answer
+   if [[ -n $yes ]]; then
+      # safety valve to get out of infinite automatical confirmations
+      ((maxyes--))
+      if [[ $maxyes -lt 0 ]]; then
+         echo "ERROR: Automatically confirmed too many times; aborting!" >&2
+         exit 1 # for this to work, don't call confirm in subshell
+      fi
+      # autoconfirm!
+      return 0
+   else
+      # ask user
+      local maxtry=10
+      while [[ $maxtry -gt 0 ]]; do
+         echo "$msg [Y/N]"
+         read -r answer
+         answer=${answer^^} # upperase
+         case "$answer" in
+            YES|Y)  return 0
+                    ;;
+            NO|N)   return 1
+                    ;;
+            *)      ((maxtry--))
+                    ;;
+         esac
+         echo "Please answer yes or no"
+      done
+      echo "ERROR: tried too many times to get YES/NO answer from user; aborting!" >&2
+      exit 1 # for this to work, don't call confirm in subshell
+   fi
+}
+
+# Print usage
+
+usage() {
+   local prog=$(basename "$0")
 cat << _EOM_
-Usage: $0 [--yes] [--all] [--man] [--server=URL]
-
-  - Use "--server=http://us.swi-prolog.org" if www.swi-prolog.org is down
+Usage: $prog [--yes] [--all] [--man] [--server=URL]
+  --yes: Answer yes to interactive questions
+  --all: Compile really all modules
+  --man: Download manual from default URLs.
+         The default URL list is: $docurls_txt
+  --server=URL: Use (single) URL to download manuals instead.
+         e.g.  --server=http://us.swi-prolog.org/download
+         if default servers are down.
 _EOM_
   exit 1
 }
 
-while [ ! -z "$1" ]; do
-  case "$1" in
+# ---
+# Define a message in a readable way using a "here" document
+# ---
+
+read -r -d '' msg_mingw << _EOM_
+Detected MinGW but could not find GNU autoconf.
+
+  - If you wish to use MinGW for building SWI-Prolog, please install
+    autoconf and re-run this script.
+  - If you plan to use Microsoft MSVC for building SWI-Prolog, GNU
+    autoconf is not required and you may proceed with building.
+_EOM_
+
+# ---
+# Check that needed executables exist
+# (There used to be a 'findexe' function which does nothing else than run 'which';
+#  let's use 'which' instead)
+# ---
+
+tar=            # will take up the name of the "tar" tool
+
+_findtools() {
+
+   # Some systems may call GNU tar "gtar" (HP-UX?)
+   # On Linux "gtar" is just a symlink to "tar".
+
+   local tarpath=$(which gtar 2>/dev/null)
+
+   if [[ ( $? != 0 ) && ( ! -L "$tarpath" ) ]]; then
+      tar=gtar
+   else
+      tar=tar
+   fi
+
+   local sthmissing=  # if set to nonempty, exit as something is missing
+   local cmd
+
+   # We need "curl" "autoconf" and "tar"
+   # If we are using MinGW but there is no autoconf, assume the
+   # user wants to use Microsoft MSVC and proceed anyway.
+
+   for cmd in curl autoconf "$tar"; do
+      if ! which "$cmd" 2>/dev/null 1>/dev/null; then
+         local m
+         if [[ ( $cmd == autoconf ) && ( -n $mingw ) ]]; then
+            echo "$msg_mingw"
+            if ! confirm "Do you want to proceed w/o autoconf?"; then
+               sthmissing=MARK
+            fi
+         else
+            echo "There is no '$cmd' - please install it!" >&2
+            sthmissing=MARK
+         fi
+      fi
+   done
+
+   if [[ -n $sthmissing ]]; then
+      echo "Some tool is missing -- exiting" >&2
+      exit 1
+   fi
+}
+
+_findtools
+
+# ---
+# Argument processing
+# ---
+
+getdocs=     # if unset: don't download; if set: download manuals
+allmods=     # if unset: only the git submodules in "coremodules"; if set: all git submodules present
+
+for arg in "$@"; do
+   case "$arg" in
     --yes)
-	yes=yes
-	shift
-	;;
+        yes=MARK
+        ;;
     --all)
-	COREMODULES=
-	shift
-	;;
+        allmods=MARK
+        ;;
     --man)
-	man=download
-	shift
-	;;
+        getdocs=MARK
+        ;;
     --server=*)
-	server=$(echo $1 | sed 's/--server=//')
-	shift
-	;;
+        # replace "docurls" by the option to "server"
+        newurl=${arg/#--server=}
+        docurls=( "$newurl" )
+    ;;
     *)
-	usage
-	;;
-  esac
+    usage
+    ;;
+   esac
 done
 
-findexe()
-{ oldifs="$IFS"
-  IFS=:
-  for d in $PATH; do
-    if [ -x $d/$1 ]; then
-       IFS="$oldifs"
-       return 0
-    fi
-  done
-  IFS="$oldifs"
-  return 1
+# echo yes=$yes, getdocs=$getdocs, docurls=${docurls[@]}, allmods=$allmods
+
+################################################################
+# Git submodule processing
+################################################################
+# See: https://git-scm.com/book/en/v2/Git-Tools-Submodules
+# "Submodules allow you to keep a Git repository as a subdirectory of another
+#  Git repository. This lets you clone another repository into your project
+#  and keep your commits separate."
+
+# ---
+# Update the remote repository configuration of those submodules that
+# already have an URL entry in ".git/config". Info for that is taken
+# from ".gitmodules".
+# (This may be needed in case the remote repo for a submodule changes?)
+# ---
+
+if grep 'url *= .*/packages/' .git/config >/dev/null 2>&1; then
+   echo "Updating git submodule references ..." >&2
+   git submodule sync
+   echo "ok" >&2
+fi
+
+# ---
+# Initialize non-initialized submodules (those prefixed with '-' in "git submodule status" output)
+# ---
+
+_init_submodules() {
+   local nothere
+   local m
+   if [[ -n $allmods ]]; then
+      nothere=$(git submodule status | awk '/^[-]/ {print $2}')
+   else
+      nothere=$(git submodule status "${coremodules[@]}" | awk '/^[-]/ {print $2}')
+   fi
+   if [[ -n $nothere ]]; then
+      echo "The following submodules are not yet initialised"
+      for m in $nothere; do
+         echo "   $m"
+      done
+      if confirm "Do you want me to run git submodule update --init?"; then
+         # Initialze the submodule, using the setting as stored in .gitmodules
+         # don't quote nothere!
+         git submodule update --init $nothere
+      fi
+   fi
 }
 
+_init_submodules
 
-confirm()
-{ if [ "$yes" = yes ]; then
-    maxyes=$(($maxyes-1))
-    if [ "$maxyes" = 0 ]; then
-      echo "ERROR: confirmed too many times; aborting"
-      exit 1
-    fi
-    return 0
-  fi
+# ---
+# Update out-of-date submodules (those prefixed with '+' in "git submodule status" output)
+# ---
 
-  maxtry=10
-
-  while true; do
-    printf "$1"
-    read answer
-    case "$answer" in
-          y*)   return 0
-                ;;
-          n*)   return 1
-                ;;
-          *)    maxtry=$(($maxtry-1))
-	        if [ "$maxtry" = 0 ]; then
-		  echo "ERROR: tried too many times; aborting"
-                  exit 1
-		fi
-                echo "Please answer yes or no"
-                ;;
-    esac
-  done
+_update_submodules() {
+   local outofdate
+   local m
+   if [[ -n $allmods ]]; then
+      outofdate=$(git submodule status | awk '/^[+]/ {print $2}')
+   else
+      outofdate=$(git submodule status "${coremodules[@]}" | awk '/^[+]/ {print $2}')
+   fi
+   if [[ -z $outofdate ]]; then
+      echo "All submodules are up-to-date"
+   else
+      echo "The following submodules are not up-to-date"
+      for m in $outofdate; do
+         echo "   $m"
+      done
+      if confirm "Do you want me to run git submodule update?"; then
+         git submodule update $outofdate
+      fi
+   fi
 }
 
+_update_submodules
 
-################################################################
-# Fix programs
-################################################################
-
-if findexe gtar; then tar=gtar; fi;
-
-################################################################
-# Sub-modules
-################################################################
-
-if grep 'url *= .*/packages/' .git/config 2>&1 >/dev/null; then
-  printf "Updating git submodule references ..."
-  git submodule sync
-  echo "ok"
-fi
-
-nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
-if [ ! -z "$nothere" ]; then
-  echo "The following submodules are not yet initialised"
-  for m in $nothere; do
-    echo "   $m"
-  done
-  if confirm "Do you want me to run git submodule update --init? "; then
-    git submodule update --init $nothere
-  fi
-fi
-
-outofdate=`git submodule | awk '/^[+]/ {print $2}'`
-if [ -z "$outofdate" ]; then
-  echo "All submodules are up-to-date"
-else
-  echo "The following submodules are not up-to-date"
-  for m in $outofdate; do
-    echo "   $m"
-  done
-  if confirm "Do you want me to run git submodule update? "; then
-    git submodule update $outofdate
-  fi
-fi
-
+# At this point, submodules should be ready!
+# And nothing prefixed with "U" (merge conflict) either; we don't check that yet.
 
 ################################################################
 # Documentation check and download
 ################################################################
 
-download_docs()
-{ doc=swipl-doc-$version.tar.gz
+dochintfile=.doc-action # A file that remembers what to do for next time
 
-  if ! findexe curl; then
-    echo "ERROR: downloading documentation requires the curl program"
-    echo "ERROR: Please install curl and re-run this script"
-    exit 1
-  fi
+docstate=      # A global variable to describe state of documentation
+               # One of: absent, out-of-date, ok
+docversion=    # A global variable to describe version of documentation
+               # Should be equal to SWIPL version in "$version"
+dochint=       # Dog what do: One of (nothing), download, ask, warn
 
-  for server in $servers; do
-    serverurl="$server$serverpath"
-    printf "Downloading documentation for SWI-Prolog $version from $server ..."
-    if curl -f $serverurl/generated/$doc > $doc; then
-      ls -l $doc
-      printf "Unpacking $doc ..."
-      rm -f man/Manual/*.html man/Manual/*.gif
-      if $tar zxf $doc; then
-	 rm $doc
-	 echo "ok"
+_get_doc_hint_from_user() {
+cat << _EOM_
+Could not find documentation.  What do you want to do?
+
+    1) Download and unpack documentation
+       and do this again automatically next time.
+    2) Download and unpack documentation
+       and ask next time.
+    3) Warn only.
+
+_EOM_
+   /bin/rm "$dochintfile" 2>/dev/null
+   while [[ ! -f "$dochintfile" ]]; do
+      local answer
+      if [[ -n $yes ]]; then
+         answer=2
       else
-	 rm $doc
-	 echo "Unpack failed."
+         printf "Option? "
+         read -r answer
       fi
-      eval_doc
-      break
-    else
-      echo "Failed to download documentation from $serverurl/generated/$doc"
-      rm -f $doc
-    fi
-  done
+      case "$answer" in
+         1) echo download > "$dochintfile"
+            ;;
+         2) echo ask > "$dochintfile"
+            ;;
+         3) echo warn > "$dochintfile"
+            ;;
+      esac
+   done
 }
 
-eval_doc()
-{ doc=unknown
-  if [ ! -r man/Manual/index.html ]; then
-    doc=absent
-  else
-    if [ -f doc-version ]; then
-      docversion="`cat doc-version`"
-      if [ "$docversion" != $version ]; then
-	doc=out-of-date
+_check_existing_docs() {
+   if [[ ! -r "man/Manual/index.html" ]]; then
+      docstate=absent
+   else
+      if [[ -f doc-version ]]; then
+         docversion=$(< doc-version)
+         docversion=$(echo $docversion) # get rid of whitespace, don't quote
+         if [[ "$docversion" != "$version" ]]; then
+        docstate=out-of-date
+         else
+        docstate=ok
+         fi
       else
-	doc=ok
+         docstate=build
       fi
-    else
-      doc=build
-    fi
   fi
 }
 
-if [ "$man" = download ]; then
-  doc=out-of-date
-else
-  eval_doc
+_download_docs() {
+   local url=$1
+   local doc="swipl-doc-$version.tar.gz"
+   echo "Downloading documentation '$doc' from $url ..."
+   if curl -f "$url/$doc" > "$doc"; then
+      ls -l "$doc"
+      echo "Unpacking '$doc' ..."
+      /bin/rm man/Manual/*.html
+      /bin/rm man/Manual/*.gif
+      if "$tar" zxf "$doc"; then
+         echo "Unpack succeeded."
+      else
+         echo "Unpack failed."
+      fi
+      /bin/rm "$doc"
+   else
+      echo "Failed to download documentation"
+      /bin/rm -f "$doc"
+   fi
+}
+
+_update_docs() {
+   local url=xxx
+   local idx=0
+   while [[ $docstate != 'ok' && -n "$url" ]]; do
+      url=${docurls[$idx]:-''}
+      ((idx++))
+      if [[ -n $url ]]; then
+         if [[ -n $getdocs ]]; then
+            dochint=download  # short-circuit if manual requested
+         elif [[ -z $dochint ]]; then
+            _get_doc_hint_from_user
+            dochint=$(< "$dochintfile")
+         fi
+         case "$dochint" in
+         download)
+            _download_docs "$url"
+            ;;
+         ask)
+        if confirm "Download documentation from $url?"; then
+           _download_docs "$url"
+            fi
+            ;;
+         warn)
+            echo "Skipping download of documentation from $url"
+            ;;
+         *)
+            echo "Program error, unhandled case" >&2
+            ;;
+         esac
+         _check_existing_docs
+      fi
+   done
+}
+
+# There may be a doc hint
+
+if [[ -f "$dochintfile" ]]; then
+   dochint=$(< "$dochintfile")
 fi
 
-done=false
-while [ "$done" = false ]; do
-  case "$doc" in
-    absent|out-of-date)
-      if [ "$yes" = yes -o "$man" = download ]; then
-        download_docs
-      elif [ -f .doc-action ]; then
-	done=true
-	case "`cat .doc-action`" in
-	  download)
-	    download_docs
-	    ;;
-	  ask)
-	    if confirm "Download documentation for $version from $server? "; then
-		download_docs
-	    fi
-	    ;;
-	  warn)
-	    ;;
-	esac
-      else
-	echo ""
-	echo "Could not find documentation.  What do you want to do?"
-	echo ""
-	echo "    1) Download and unpack documentation from $server"
-	echo "       and do this again automatically next time"
-	echo "    2) Download and unpack documentation from $server"
-	echo "       and ask next time"
-	echo "    3) Warn only"
-	echo ""
-	printf "Option? "
-	read answer
-	case "$answer" in
-	  1) echo download > .doc-action
-	     download_docs
-	     done=true
-	     ;;
-	  2) echo ask > .doc-action
-	     download_docs
-	     done=true
-	     ;;
-	  3) echo warn > .doc-action
-	     done=true
-	     ;;
-	  *) goto doc_again
-	     ;;
-	esac
-      fi
-      ;;
-    *)
-      done=true
-      ;;
-  esac
-done
+if [[ -n $getdocs ]]; then
+   docstate=out-of-date    # force download
+else
+   _check_existing_docs    # just check what's there
+fi
 
-case "$doc" in
+echo "Documentation version: $docversion"
+echo "Documentation state:   $docstate"
+echo "Documentation URLS:    ${docurls[*]}"
+echo "Force download docs:   $getdocs"
+echo "Doc hint:              $dochint"
+echo "Yes action:            $yes"
+
+_update_docs
+
+case "$docstate" in
   absent)
     cat << _EOM_
-WARNING: Cannot find documentation in man/Manual.  See README.git
+WARNING: Cannot find documentation in man/Manual. See README.git
 WARNING: and README.doc for further information.
 _EOM_
     ;;
@@ -298,103 +527,92 @@ esac
 # Configuration
 ################################################################
 
-confdir()
-{ if grep AC_INIT configure.ac 2>&1 >/dev/null; then
-    for dep in "$2/ac_swi_c.m4" "$2/ac_swi_noc.m4" "aclocal.m4"; do
-      if [ -f configure -a -f "$dep" -a "$dep" -nt configure ]; then
-        rm configure;
-      fi
-    done
-    if [ -d ac -a -f configure ]; then
-      for dep in ac/*.m4; do
-	if [ -f configure -a -f "$dep" -a "$dep" -nt configure ]; then
-          rm configure;
-        fi
+_confdir() {
+   if grep AC_INIT configure.ac >/dev/null 2>&1; then
+      for dep in "$2/ac_swi_c.m4" "$2/ac_swi_noc.m4" "aclocal.m4"; do
+         if [ -f configure ] && [ -f "$dep" ] && [ "$dep" -nt configure ]; then
+            rm configure
+         fi
       done
-    fi
-    if [ -f configure -a ! configure.ac -nt configure ]; then
-      return
-    fi
-    printf "Generating configure in $1 ... "
-    if grep AC_CONFIG_HEADER configure.ac 2>&1 >/dev/null; then
-      autoheader
-    fi
-    autoconf
-    echo done
-  fi
+      if [ -d ac ] && [ -f configure ]; then
+         for dep in ac/*.m4; do
+            if [ -f configure ] && [ -f "$dep" ] && [ "$dep" -nt configure ]; then
+               rm configure
+            fi
+         done
+      fi
+      if [ -f configure ] && [ ! configure.ac -nt configure ]; then
+         return
+      fi
+      echo "Generating configure in $1 ... "
+      if grep AC_CONFIG_HEADER configure.ac >/dev/null 2>&1; then
+         autoheader
+      fi
+      autoconf
+      echo "done"
+   fi
 }
 
-
-is_mingw()
-{ case `uname` in
-    MINGW*)
-       return 0
-       ;;
-    *)
-       return 1
-       ;;
-  esac
+_mingw_gettarget() {
+   while true; do
+      echo "$1"
+      read -r answer
+      case "$answer" in
+      [xX]64)
+         echo "X64"
+         return 0
+         ;;
+      [xX]86)
+         echo "X86"
+         return 0;
+         ;;
+      *)
+         echo "Please answer X64 (for 64-bits) or X86 (for 32-bits)"
+         ;;
+      esac
+   done
 }
 
+# ---
+# Use autoconf if you can
+# ---
 
-if findexe autoconf; then
-  for f in ./src/configure.ac $(find packages -name configure.ac); do
-    pkgdir="$(cd packages && pwd)"
-    d=`dirname $f`
-    (cd $d && confdir $d $pkgdir)
-  done
-  echo "Your kit is prepared."
-  echo "Please consult INSTALL for further instructions."
-else
-  if is_mingw; then
-    cat << _EOM_
-Detected MinGW but could not find GNU autoconf.
-
-  - If you wish to use MinGW for building SWI-Prolog, please install
-    autoconf and re-run this script.
-  - If you plan to use Microsoft MSVC for building SWI-Prolog, GNU
-    autoconf is not required and you may proceed with building.
-_EOM_
-  else
-    echo 'WARNING: Cannot find GNU autoconf in $PATH.'
-    echo 'WARNING: configure scripts cannot be created.'
-    echo 'WARNING: Please install autoconf and re-run this script.'
-  fi
+if which autoconf 2>/dev/null 1>/dev/null; then
+   for f in ./src/configure.ac $(find packages -name configure.ac); do
+      pkgdir="$(cd packages && pwd)"
+      d=$(dirname "$f")
+      (cd "$d" && _confdir "$d" "$pkgdir")
+   done
+   echo "Your kit is prepared."
+   echo "Please consult INSTALL for further instructions."
+   exit 0
 fi
 
-gettarget()
-{ while true; do
-    printf "$1"
-    read answer
-    case "$answer" in
-          [xX]64)
-		echo "X64"
-		return 0
-                ;;
-	  [xX]86)
-		echo "X86"
-		return 0;
-                ;;
-          *)
-                echo "Please answer X64 (for 64-bits) or X86 (for 32-bits)"
-                ;;
-    esac
-  done
-}
+# ---
+# if autoconf is missing and we are in mingw, the user may want to use Microsoft Compiler
+# (the code below is weird, is it really correct?)
+# ---
 
-if is_mingw; then
-  if [ -d "X64/lib" ]; then
-    echo
-    echo "Found prerequisites for X64 (64-bit) version"
-  elif [ -d "X86/lib" ]; then
-    echo
-    echo "Found prerequisites for X86 (32-bit) version"
-  else
-    target=`gettarget "What is your target OS (x64 or X86)? "`
-    if [ ! -z "$target" ]; then
-      echo "Running git submodule init $target ..."
-      git submodule init $target
-      echo "ok"
-    fi
-  fi
+if [[ -n "$mingw" ]]; then
+   echo "Assuming you will be using the Microsoft compiler (mingw = $mingw)"
+   if [[ -d "X64/lib" ]]; then
+      echo
+      echo "Found prerequisites for X64 (64-bit) version"
+   elif [[ -d "X86/lib" ]]; then
+      echo
+      echo "Found prerequisites for X86 (32-bit) version"
+   else
+      target=$(_mingw_gettarget "What is your target OS (x64 or X86)? ")
+      if [[ -n "$target" ]]; then
+         echo "Running git submodule init $target ..."
+         git submodule init "$target"
+         echo "ok"
+      fi
+   fi
+   exit 0
 fi
+
+echo "No autoconf found. Stopping here!"
+
+exit 1
+
