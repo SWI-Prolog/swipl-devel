@@ -1564,6 +1564,7 @@ resumeAfterException(int clear, Stack outofstack)
   }
 
   LD->exception.processing = FALSE;
+  LD->outofstack = NULL;
 }
 
 
