@@ -67,7 +67,7 @@
 #define ISDEADCI(ci) ((ci) == DEAD_INDEX)
 
 typedef struct hash_hints
-{ unsigned short args[MAX_MULTI_INDEX];	/* Hash these arguments */
+{ iarg_t	args[MAX_MULTI_INDEX];	/* Hash these arguments */
   float		speedup;		/* Expected speedup */
   unsigned int	ln_buckets;		/* Lg2 of #buckets to use */
   unsigned	list : 1;		/* Use a list per key */
@@ -371,7 +371,7 @@ indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
 
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
 static char *
-iargsName(const unsigned short args[MAX_MULTI_INDEX], char *buf)
+iargsName(const iarg_t args[MAX_MULTI_INDEX], char *buf)
 { static char sbuf[64];
   char *s;
   int i;
@@ -577,15 +577,15 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
 		 *******************************/
 
 static int
-cmp_ushort(const void *p1, const void *p2)
-{ const unsigned short *u1 = p1;
-  const unsigned short *u2 = p2;
+cmp_iarg(const void *p1, const void *p2)
+{ const iarg_t *u1 = p1;
+  const iarg_t *u2 = p2;
 
   return *u1 < *u2 ? -1 : *u1 > *u2 ? 1 : 0;
 }
 
 static void
-canonicalHap(unsigned short *hap)
+canonicalHap(iarg_t *hap)
 { int i;
 
   for(i=0; i<MAX_MULTI_INDEX; i++)
@@ -598,7 +598,7 @@ canonicalHap(unsigned short *hap)
     }
   }
 
-  qsort(hap, i, sizeof(*hap), cmp_ushort);
+  qsort(hap, i, sizeof(*hap), cmp_iarg);
 }
 
 
@@ -613,7 +613,7 @@ copytpos(iarg_t *to, const iarg_t *from)
 
 
 static ClauseIndex
-newClauseIndexTable(unsigned short *hap, hash_hints *hints, IndexContext ctx)
+newClauseIndexTable(iarg_t *hap, hash_hints *hints, IndexContext ctx)
 { ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   unsigned int buckets;
   size_t bytes;
@@ -1962,7 +1962,7 @@ typedef struct key_asm
 } key_asm;
 
 typedef struct hash_assessment
-{ unsigned short args[MAX_MULTI_INDEX]; /* arg for which to assess */
+{ iarg_t	args[MAX_MULTI_INDEX]; /* arg for which to assess */
   size_t	allocated;		/* allocated size of array */
   size_t	size;			/* keys in array */
   size_t	var_count;		/* # non-indexable cases */
@@ -1997,7 +1997,7 @@ free_assessment_set(assessment_set *as)
 }
 
 static hash_assessment *			/* TBD: resource error */
-alloc_assessment(assessment_set *as, unsigned short *ia)
+alloc_assessment(assessment_set *as, iarg_t *ia)
 { hash_assessment *a;
 
   if ( as->count >= as->allocated )
@@ -2024,8 +2024,8 @@ alloc_assessment(assessment_set *as, unsigned short *ia)
 static int
 best_hash_assessment(const void *p1, const void *p2, void *ctx)
 { ClauseList clist = ctx;
-  const unsigned short *a1 = p1;
-  const unsigned short *a2 = p2;
+  const iarg_t *a1 = p1;
+  const iarg_t *a2 = p2;
   const arg_info *i1 = &clist->args[*a1];
   const arg_info *i2 = &clist->args[*a2];
 
@@ -2036,7 +2036,7 @@ best_hash_assessment(const void *p1, const void *p2, void *ctx)
 
 static void
 sort_assessments(ClauseList clist,
-		 unsigned short *instantiated, int ninstantiated)
+		 iarg_t *instantiated, int ninstantiated)
 { sort_r(instantiated, ninstantiated, sizeof(*instantiated),
 	 best_hash_assessment, clist);
 }
@@ -2265,7 +2265,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
   int i;
   bit_vector *ai = alloca(sizeof_bitvector(arity));
   int ac = 0;
-  int kp[MAXINDEXARG+1];				/* key-arg positions */
+  int kp[MAXINDEXARG+1];			/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
   word keys[MAXINDEXARG];
@@ -2391,8 +2391,8 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
   hash_assessment *a;
   int best = -1;
   float best_speedup = 0.0;
-  unsigned short ia[MAX_MULTI_INDEX] = {0};
-  unsigned short *instantiated;
+  iarg_t ia[MAX_MULTI_INDEX] = {0};
+  iarg_t *instantiated;
   int ninstantiated = 0;
 
   instantiated = alloca(ac*sizeof(*instantiated));

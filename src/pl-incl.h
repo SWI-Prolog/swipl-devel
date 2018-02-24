@@ -1374,7 +1374,7 @@ struct clause_index
   unsigned int	 resize_above;		/* consider resize > #clauses */
   unsigned int	 resize_below;		/* consider resize < #clauses */
   unsigned int	 dirty;			/* # chains that are dirty */
-  unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
+  iarg_t	 args[MAX_MULTI_INDEX];	/* Indexed arguments */
   unsigned	 is_list : 1;		/* Index with lists */
   iarg_t	 position[MAXINDEXDEPTH+1]; /* Deep index position */
   float		 speedup;		/* Estimated speedup */
