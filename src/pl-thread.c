@@ -835,6 +835,8 @@ initPrologThreads(void)
 
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
+    pthread_mutex_init(&GD->thread.index.mutex, NULL);
+    pthread_cond_init(&GD->thread.index.cond, NULL);
     initMutexes();
     link_mutexes();
     threads_ready = TRUE;

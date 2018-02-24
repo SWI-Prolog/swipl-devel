@@ -350,6 +350,10 @@ struct PL_global_data
       unsigned int	requests;
       unsigned int	initialized;	/* mutex and condvar are initialized */
     } gc;
+    struct
+    { pthread_mutex_t	mutex;
+      pthread_cond_t	cond;
+    } index;
   } thread;
 #endif /*O_PLMT*/
 

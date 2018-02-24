@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -102,7 +102,8 @@ static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 				      IndexContext ctx ARG_LD);
 static Code	skipToTerm(Clause clause, const iarg_t *position);
 static void	unalloc_index_array(void *p);
-
+static void	wait_for_index(const ClauseIndex ci);
+static void	completed_index(ClauseIndex ci);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -420,6 +421,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   if ( unlikely(argc > MAXINDEXARG) )
     argc = MAXINDEXARG;
 
+retry:
   if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index = NULL;
 
@@ -448,10 +450,12 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 		       iargsName(best_index->args, NULL),
 		       predicateName(ctx->predicate)));
 
-	if ( bestHash(argv, argc, clist, best_index->speedup, &hints, ctx PASS_LD) )
+	if ( bestHash(argv, argc, clist, best_index->speedup,
+		      &hints, ctx PASS_LD) )
 	{ ClauseIndex ci;
 
-	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
+	  DEBUG(MSG_JIT, Sdprintf("[%d] Found better at args %s\n",
+				  PL_thread_self(),
 				  iargsName(hints.args, NULL)));
 
 	  if ( (ci=hashDefinition(clist, &hints, ctx)) )
@@ -460,6 +464,11 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 	    best_index = ci;
 	  }
 	}
+      }
+
+      if ( best_index->incomplete )
+      { wait_for_index(best_index);
+	goto retry;
       }
 
       hi = hashIndex(chp->key, best_index->buckets);
@@ -621,14 +630,13 @@ newClauseIndexTable(iarg_t *hap, hash_hints *hints, IndexContext ctx)
   buckets = 2<<hints->ln_buckets;
   bytes = sizeof(struct clause_bucket) * buckets;
 
-  canonicalHap(hap);
-
   memset(ci, 0, sizeof(*ci));
   memcpy(ci->args, hap, sizeof(ci->args));
-  ci->buckets = buckets;
-  ci->is_list = hints->list;
-  ci->speedup = hints->speedup;
-  ci->entries = allocHeapOrHalt(bytes);
+  ci->buckets	 = buckets;
+  ci->is_list	 = hints->list;
+  ci->incomplete = TRUE;
+  ci->speedup	 = hints->speedup;
+  ci->entries	 = allocHeapOrHalt(bytes);
   copytpos(ci->position, ctx->position);
 
   memset(ci->entries, 0, bytes);
@@ -736,6 +744,9 @@ addClauseToListIndexes(Definition def, ClauseList cl, Clause clause,
 
       if ( ISDEADCI(ci) )
 	continue;
+
+      while ( ci->incomplete )
+	wait_for_index(ci);
 
       if ( ci->size >= ci->resize_above )
 	deleteIndexP(def, cl, cip);
@@ -1362,6 +1373,9 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
       if ( ISDEADCI(ci) )
 	continue;
 
+      while( ci->incomplete )
+	wait_for_index(ci);
+
       if ( true(def, P_DYNAMIC) )
       { if ( def->impl.clauses.number_of_clauses < ci->resize_below )
 	{ DEBUG(MSG_JIT_DELINDEX,
@@ -1500,6 +1514,37 @@ delClauseFromIndex(Definition def, Clause cl)
 }
 
 
+static void
+wait_for_index(const ClauseIndex ci)
+{ DEBUG(MSG_JIT, Sdprintf("[%d] waiting for index %p ...\n",
+			  PL_thread_self(), ci));
+#ifdef O_PLMT
+  pthread_mutex_lock(&GD->thread.index.mutex);
+  if ( ci->incomplete )
+    pthread_cond_wait(&GD->thread.index.cond, &GD->thread.index.mutex);
+  pthread_mutex_unlock(&GD->thread.index.mutex);
+  DEBUG(MSG_JIT, Sdprintf("[%d] index %p %sready\n",
+			  PL_thread_self(), ci, ci->incomplete ? "not " : ""));
+#endif
+}
+
+
+static void
+completed_index(ClauseIndex ci)
+{
+#ifdef O_PLMT
+  pthread_mutex_lock(&GD->thread.index.mutex);
+  ci->incomplete = FALSE;
+  pthread_cond_broadcast(&GD->thread.index.cond);
+  pthread_mutex_unlock(&GD->thread.index.mutex);
+  DEBUG(MSG_JIT, Sdprintf("[%d] index %p completed\n",
+			  PL_thread_self(), ci));
+#else
+  ci->incomplete = FALSE;
+#endif
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a hash-index on def  for  arg.   We  compute  the  hash unlocked,
 checking at the end that nobody  messed   with  the clause list. If that
@@ -1514,38 +1559,18 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
   ClauseIndex ci;
   ClauseIndex *cip;
 
-  DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %s, %d) (%s)\n",
+  DEBUG(MSG_JIT, Sdprintf("[%d] hashDefinition(%s, %s, %d) (%s)\n",
+			  PL_thread_self(),
 			  predicateName(ctx->predicate),
 			  iargsName(hints->args, NULL), 2<<hints->ln_buckets,
 			  hints->list ? "lists" : "clauses"));
 
-  for(;;)				/* retry if predicate changed */
-  { ClauseRef first, last;
-
-    ci = newClauseIndexTable(hints->args, hints, ctx);
-
 #ifdef O_PLMT
-    assert(LD->thread.info->access.predicate == ctx->predicate);
+  assert(LD->thread.info->access.predicate == ctx->predicate);
 #endif
-    first = clist->first_clause;
-    last  = clist->last_clause;
 
-    for(cref = first; cref; cref = cref->next)
-    { if ( false(cref->value.clause, CL_ERASED) )
-	addClauseToIndex(ci, cref->value.clause, CL_END);
-    }
-
-    LOCKDEF(ctx->predicate);
-    if ( first == clist->first_clause &&
-	 last  == clist->last_clause )
-      break;				/* no change.  We are ok */
-    UNLOCKDEF(ctx->predicate);
-    unallocClauseIndexTable(ci);
-  }
-
-  ci->resize_above = ci->size*2;
-  ci->resize_below = ci->size/4;
-
+  canonicalHap(hints->args);
+  LOCKDEF(ctx->predicate);
   if ( (cip=clist->clause_indexes) )
   { for(; *cip; cip++)
     { ClauseIndex cio = *cip;
@@ -1553,17 +1578,26 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
       if ( ISDEADCI(cio) )
 	continue;
 
-      if ( memcmp(cio->args, hints->args, sizeof(ci->args)) == 0 )
-      { replaceIndex(ctx->predicate, clist, cip, ci);
-	goto out;
+      if ( memcmp(cio->args, hints->args, sizeof(cio->args)) == 0 )
+      { UNLOCKDEF(ctx->predicate);
+	DEBUG(MSG_JIT, Sdprintf("[%d] already created\n", PL_thread_self()));
+	return cio;
       }
     }
   }
-
+  ci = newClauseIndexTable(hints->args, hints, ctx);
   insertIndex(ctx->predicate, clist, ci);
-
-out:
   UNLOCKDEF(ctx->predicate);
+
+  for(cref = clist->first_clause; cref; cref = cref->next)
+  { if ( false(cref->value.clause, CL_ERASED) )
+      addClauseToIndex(ci, cref->value.clause, CL_END);
+  }
+
+  ci->resize_above = ci->size*2;
+  ci->resize_below = ci->size/4;
+
+  completed_index(ci);
 
   return ci;
 }
@@ -1688,7 +1722,7 @@ replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
 { ClauseIndex old = *cip;
 
   *cip = ci;
-  DEBUG(MSG_JIT, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
+  DEBUG(MSG_JIT, Sdprintf("[%d] replaceIndex(%s) %p-->%p\n",
 			  PL_thread_self(),
 			  predicateName(def),
 			  old, ci));
