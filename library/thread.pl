@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2017, University of Amsterdam
+    Copyright (c)  2007-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -143,7 +143,7 @@ following consequences:
 
 concurrent(1, M:List, _) :-
     !,
-    maplist(M:call, List).
+    maplist(once_in_module(M), List).
 concurrent(N, M:List, Options) :-
     must_be(positive_integer, N),
     must_be(list(callable), List),
@@ -167,6 +167,9 @@ concurrent(N, M:List, Options) :-
     ;   Result = exception(Error)
     ->  throw(Error)
     ).
+
+once_in_module(M, Goal) :-
+    call(M:Goal), !.
 
 %!  submit_goals(+List, +Id0, +Module, +Queue, -Vars) is det.
 %
@@ -278,20 +281,21 @@ join_all([Id|T]) :-
                  *             MAPLIST          *
                  *******************************/
 
-%!  concurrent_maplist(:Goal, +List).
-%!  concurrent_maplist(:Goal, +List1, +List2).
-%!  concurrent_maplist(:Goal, +List1, +List2, +List3).
+%!  concurrent_maplist(:Goal, +List) is semidet.
+%!  concurrent_maplist(:Goal, +List1, +List2) is semidet.
+%!  concurrent_maplist(:Goal, +List1, +List2, +List3) is semidet.
 %
-%   Concurrent   version   of   maplist/2.   This   predicate   uses
-%   concurrent/3, using multiple _worker_  threads.   The  number of
-%   threads is the minimum of the  list   length  and  the number of
-%   cores available. The number of  cores   is  determined using the
-%   prolog flag =cpu_count=. If this flag is absent or 1 or List has
-%   less  than  two  elements,  this   predicate  simply  calls  the
-%   corresponding maplist/N version.
+%   Concurrent version of maplist/2. This   predicate uses concurrent/3,
+%   using multiple _worker_ threads.  The  number   of  threads  is  the
+%   minimum of the list length and the   number  of cores available. The
+%   number of cores is determined using  the prolog flag =cpu_count=. If
+%   this flag is absent or 1 or List   has  less than two elements, this
+%   predicate calls the corresponding maplist/N  version using a wrapper
+%   based on once/1. Note that all goals   are executed as if wrapped in
+%   once/1 and therefore these predicates are _semidet_.
 %
-%   Note that the the overhead of this predicate is considerable and
-%   therefore Goal must be fairly  expensive   before  one reaches a
+%   Note that the the overhead  of   this  predicate is considerable and
+%   therefore Goal must  be  fairly  expensive   before  one  reaches  a
 %   speedup.
 
 concurrent_maplist(Goal, List) :-
@@ -299,8 +303,11 @@ concurrent_maplist(Goal, List) :-
     !,
     maplist(ml_goal(Goal), List, Goals),
     concurrent(WorkerCount, Goals, []).
-concurrent_maplist(Goal, List) :-
-    maplist(Goal, List).
+concurrent_maplist(M:Goal, List) :-
+    maplist(once_in_module(M, Goal), List).
+
+once_in_module(M, Goal, Arg) :-
+    call(M:Goal, Arg), !.
 
 ml_goal(Goal, Elem, call(Goal, Elem)).
 
@@ -310,8 +317,11 @@ concurrent_maplist(Goal, List1, List2) :-
     !,
     maplist(ml_goal(Goal), List1, List2, Goals),
     concurrent(WorkerCount, Goals, []).
-concurrent_maplist(Goal, List1, List2) :-
-    maplist(Goal, List1, List2).
+concurrent_maplist(M:Goal, List1, List2) :-
+    maplist(once_in_module(M, Goal), List1, List2).
+
+once_in_module(M, Goal, Arg1, Arg2) :-
+    call(M:Goal, Arg1, Arg2), !.
 
 ml_goal(Goal, Elem1, Elem2, call(Goal, Elem1, Elem2)).
 
@@ -321,8 +331,11 @@ concurrent_maplist(Goal, List1, List2, List3) :-
     !,
     maplist(ml_goal(Goal), List1, List2, List3, Goals),
     concurrent(WorkerCount, Goals, []).
-concurrent_maplist(Goal, List1, List2, List3) :-
-    maplist(Goal, List1, List2, List3).
+concurrent_maplist(M:Goal, List1, List2, List3) :-
+    maplist(once_in_module(M, Goal), List1, List2, List3).
+
+once_in_module(M, Goal, Arg1, Arg2, Arg3) :-
+    call(M:Goal, Arg1, Arg2, Arg3), !.
 
 ml_goal(Goal, Elem1, Elem2, Elem3, call(Goal, Elem1, Elem2, Elem3)).
 
