@@ -4864,18 +4864,18 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   word key=0;
 #endif
 
+  if ( !(l || g || t) )
+    return TRUE;			/* not a real request */
+
+  if ( LD->shift_status.blocked )
+    return FALSE;
+
   if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize))<0 ||
        (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize))<0 ||
        (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize))<0 )
   { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Reached stack-limit\n"));
     return rc;
   }
-
-  if ( !(l || g || t) )
-    return TRUE;			/* not a real request */
-
-  if ( LD->shift_status.blocked )
-    return FALSE;
 
   enterGC(PASS_LD1);			/* atom-gc synchronisation */
   blockSignals(&mask);
