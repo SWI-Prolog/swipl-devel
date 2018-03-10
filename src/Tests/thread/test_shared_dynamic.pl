@@ -48,7 +48,8 @@ test_shared_dynamic(Sessions, N) :-
 	retractall(failed(_)),
 	length(Producers, Sessions),
 	length(Consumers, Sessions),
-	maplist(create_producer(N), Producers, Queues),
+	numlist(1, Sessions, Offsets),
+	maplist(create_producer(N, Sessions), Offsets, Producers, Queues),
 	maplist(create_consumer, Queues, Consumers),
 	maplist(thread_join, Producers, PStats),
 	maplist(thread_join, Consumers, CStats),
@@ -57,12 +58,13 @@ test_shared_dynamic(Sessions, N) :-
 	maplist(==(true), CStats),
 	\+ failed(_).
 
-create_producer(N, Id, Queue) :-
+create_producer(N, Incr, Offset, Id, Queue) :-
 	message_queue_create(Queue),
-	thread_create(producer(Queue, N), Id, []).
+	thread_create(producer(Queue, N, Incr, Offset), Id, []).
 
-producer(Queue, N) :-
-	(   between(1, N, X),
+producer(Queue, N, Incr, Offset) :-
+	(   between(1, N, X0),
+	    X is Offset+X0*Incr,
 	    assert(foo(X)),
 	    thread_send_message(Queue, X),
 	    fail
