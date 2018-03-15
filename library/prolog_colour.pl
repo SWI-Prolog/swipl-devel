@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -637,7 +637,7 @@ colourise_clause_head(M:Head, TB, QHeadPos) :-
     QHeadPos = term_position(_,_,QF,QT,[MPos,HeadPos]),
     head_colours(M:Head, meta-[_, ClassSpec-ArgSpecs]),
     !,
-    colour_item(module(M), TB, MPos),
+    colourise_module(M, TB, MPos),
     colour_item(functor, TB, QF-QT),
     functor_position(HeadPos, FPos, ArgPos),
     (   ClassSpec == classify
@@ -712,6 +712,14 @@ functor_position(dict_position(_,_,FF,FT,KVPos), FF-FT, KVPos) :- !.
 functor_position(brace_term_position(F,T,Arg), F-T, [Arg]) :- !.
 functor_position(Pos, Pos, []).
 
+colourise_module(Term, TB, Pos) :-
+    (   var(Term)
+    ;   atom(Term)
+    ),
+    !,
+    colour_item(module(Term), TB, Pos).
+colourise_module(_, TB, Pos) :-
+    colour_item(type_error(module), TB, Pos).
 
 %!  colourise_directive(+Body, +TB, +Pos)
 %
@@ -968,7 +976,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 colourise_goal(Module:Goal, _Origin, TB, QGoalPos) :-
     QGoalPos = term_position(_,_,QF,QT,[PM,PG]),
     !,
-    colour_item(module(Module), TB, PM),
+    colourise_module(Module, TB, PM),
     colour_item(functor, TB, QF-QT),
     (   PG = term_position(_,_,FF,FT,_)
     ->  FP = FF-FT
@@ -1150,7 +1158,7 @@ colourise_db((Head:-_Body), TB, term_position(_,_,_,_,[HP,_])) :-
     colourise_db(Head, TB, HP).
 colourise_db(Module:Head, TB, term_position(_,_,QF,QT,[MP,HP])) :-
     !,
-    colour_item(module(Module), TB, MP),
+    colourise_module(Module, TB, MP),
     colour_item(functor, TB, QF-QT),
     (   atom(Module),
         colour_state_source_id(TB, SourceId),
@@ -1196,7 +1204,7 @@ strip_option_module_qualifier(Goal, Module, Arg, TB,
     predicate_property(Module:Goal, meta_predicate(Head)),
     arg(Arg, Head, :),
     !,
-    colour_item(module(M), TB, MP).
+    colourise_module(M, TB, MP).
 strip_option_module_qualifier(_, _, _, _,
                               Options, Pos, Options, Pos).
 
@@ -1261,7 +1269,7 @@ colourise_files(List, TB, list_position(F,T,Elms,_), Why) :-
     colourise_file_list(List, TB, Elms, Why).
 colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP]), Why) :-
     !,
-    colour_item(module(M), TB, MP),
+    colourise_module(M, TB, MP),
     colourise_files(Spec, TB, SP, Why).
 colourise_files(Var, TB, P, _) :-
     var(Var),
@@ -1623,7 +1631,7 @@ colourise_declaration(Module:PI, TB,
                       term_position(_,_,QF,QT,[PM,PG])) :-
     atom(Module), pi_to_term(PI, Goal),
     !,
-    colour_item(module(M), TB, PM),
+    colourise_module(M, TB, PM),
     colour_item(functor, TB, QF-QT),
     colour_item(predicate_indicator(extern(M), Goal), TB, PG),
     PG = term_position(_,_,FF,FT,[NamePos,ArityPos]),
@@ -1660,7 +1668,7 @@ colourise_meta_declaration(M:Head, Extra, TB,
                                            term_position(_,_,FF,FT,ArgPos)
                                          ])) :-
     !,
-    colour_item(module(M), TB, MP),
+    colourise_module(M, TB, MP),
     colour_item(functor, TB, QF-QT),
     colour_item(goal(extern(M),Head), TB, FF-FT),
     Head =.. [_|Args],
@@ -1728,7 +1736,7 @@ colour_op_name(Name, TB, Pos) :-
     colour_item(identifier, TB, Pos).
 colour_op_name(Module:Name, TB, term_position(_F,_T,QF,QT,[MP,NP])) :-
     !,
-    colour_item(module(Module), TB, MP),
+    colourise_module(Module, TB, MP),
     colour_item(functor, TB, QF-QT),
     colour_op_name(Name, TB, NP).
 colour_op_name(List, TB, list_position(F,T,Elems,none)) :-
@@ -1831,7 +1839,7 @@ goal_classification(TB, Goal, _, How) :-
     How \= public(_),
     !.
 goal_classification(_TB, Goal, _, Class) :-
-    goal_classification(Goal, Class),
+    call_goal_classification(Goal, Class),
     !.
 goal_classification(TB, Goal, _, How) :-
     colour_state_module(TB, Module),
@@ -1845,6 +1853,10 @@ goal_classification(_TB, _Goal, _, undefined).
 %!  goal_classification(+Goal, -Class)
 %
 %   Multifile hookable classification for non-local goals.
+
+call_goal_classification(Goal, Class) :-
+    catch(goal_classification(Goal, Class), _,
+          Class = type_error(callable)).
 
 goal_classification(Goal, built_in) :-
     built_in_predicate(Goal),
