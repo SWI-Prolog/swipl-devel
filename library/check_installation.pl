@@ -113,6 +113,7 @@ component(library(unicode), _{}).
 component(library(uri), _{}).
 component(library(uuid), _{}).
 component(library(zlib), _{}).
+component(library(yaml), _{}).
 
 issue_base('http://www.swi-prolog.org/build/issues/').
 
