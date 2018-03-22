@@ -118,26 +118,6 @@ version=$(< VERSION)
 version=$(echo $version) # get rid of whitespace; don't quote!
 
 # ---
-# Check whether MinGW environment, setting "mingw" to nonzero if so
-# ---
-
-_mingw() {
-   case $(uname) in
-   MINGW*)
-      return 0
-      ;;
-   *)
-      return 1
-      ;;
-   esac
-}
-
-mingw=
-if _mingw; then
-   mingw=MARK
-fi
-
-# ---
 # Helper functions.
 # ---
 
@@ -198,19 +178,6 @@ _EOM_
 }
 
 # ---
-# Define a message in a readable way using a "here" document
-# ---
-
-read -r -d '' msg_mingw << _EOM_
-Detected MinGW but could not find GNU autoconf.
-
-  - If you wish to use MinGW for building SWI-Prolog, please install
-    autoconf and re-run this script.
-  - If you plan to use Microsoft MSVC for building SWI-Prolog, GNU
-    autoconf is not required and you may proceed with building.
-_EOM_
-
-# ---
 # Check that needed executables exist
 # (There used to be a 'findexe' function which does nothing else than run 'which';
 #  let's use 'which' instead)
@@ -241,15 +208,8 @@ _findtools() {
    for cmd in curl autoconf "$tar"; do
       if ! which "$cmd" 2>/dev/null 1>/dev/null; then
          local m
-         if [[ ( $cmd == autoconf ) && ( -n $mingw ) ]]; then
-            echo "$msg_mingw"
-            if ! confirm "Do you want to proceed w/o autoconf?"; then
-               sthmissing=MARK
-            fi
-         else
-            echo "There is no '$cmd' - please install it!" >&2
-            sthmissing=MARK
-         fi
+	 echo "There is no '$cmd' - please install it!" >&2
+         sthmissing=MARK
       fi
    done
 
@@ -544,26 +504,6 @@ _confdir() {
    fi
 }
 
-_mingw_gettarget() {
-   while true; do
-      echo "$1"
-      read -r answer
-      case "$answer" in
-      [xX]64)
-         echo "X64"
-         return 0
-         ;;
-      [xX]86)
-         echo "X86"
-         return 0;
-         ;;
-      *)
-         echo "Please answer X64 (for 64-bits) or X86 (for 32-bits)"
-         ;;
-      esac
-   done
-}
-
 # ---
 # Use autoconf if you can
 # ---
@@ -577,33 +517,10 @@ if which autoconf 2>/dev/null 1>/dev/null; then
    echo "Your kit is prepared."
    echo "Please consult INSTALL for further instructions."
    exit 0
+else
+   echo "No autoconf found. Stopping here!"
+   exit 1
 fi
 
-# ---
-# if autoconf is missing and we are in mingw, the user may want to use Microsoft Compiler
-# (the code below is weird, is it really correct?)
-# ---
 
-if [[ -n "$mingw" ]]; then
-   echo "Assuming you will be using the Microsoft compiler (mingw = $mingw)"
-   if [[ -d "X64/lib" ]]; then
-      echo
-      echo "Found prerequisites for X64 (64-bit) version"
-   elif [[ -d "X86/lib" ]]; then
-      echo
-      echo "Found prerequisites for X86 (32-bit) version"
-   else
-      target=$(_mingw_gettarget "What is your target OS (x64 or X86)? ")
-      if [[ -n "$target" ]]; then
-         echo "Running git submodule init $target ..."
-         git submodule init "$target"
-         echo "ok"
-      fi
-   fi
-   exit 0
-fi
-
-echo "No autoconf found. Stopping here!"
-
-exit 1
 
