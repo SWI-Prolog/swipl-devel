@@ -117,8 +117,6 @@ fi
 version=$(< VERSION)
 version=$(echo $version) # get rid of whitespace; don't quote!
 
-echo "Got version from file VERSION: '$version'" >&2
-
 # ---
 # Check whether MinGW environment, setting "mingw" to nonzero if so
 # ---
@@ -499,13 +497,6 @@ if [[ -n $getdocs ]]; then
 else
    _check_existing_docs    # just check what's there
 fi
-
-echo "Documentation version: $docversion"
-echo "Documentation state:   $docstate"
-echo "Documentation URLS:    ${docurls[*]}"
-echo "Force download docs:   $getdocs"
-echo "Doc hint:              $dochint"
-echo "Yes action:            $yes"
 
 _update_docs
 
