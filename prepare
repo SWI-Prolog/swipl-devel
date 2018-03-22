@@ -28,6 +28,7 @@ COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
 COREMODULES+=" packages/utf8proc packages/archive packages/swipl-win"
 COREMODULES+=" packages/pengines packages/cql packages/bdb"
 COREMODULES+=" packages/readline packages/libedit packages/pcre"
+COREMODULES+=" packages/yaml"
 
 version="`cat VERSION`"
 servers="http://www.swi-prolog.org http://eu.swi-prolog.org"

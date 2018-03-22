@@ -56,5 +56,7 @@ packages/libedit/config.h.in
 packages/libedit/configure
 packages/pcre/config.h.in
 packages/pcre/configure
+packages/yaml/config.h.in
+packages/yaml/configure
 src/config.h.in
 src/configure

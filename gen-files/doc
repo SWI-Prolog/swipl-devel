@@ -25,6 +25,7 @@
 ./packages/archive/archive.pdf
 ./packages/cql/cql.pdf
 ./packages/pcre/pcre.pdf
+./packages/yaml/yaml.pdf
 ./packages/bdb/bdb4pl.html
 ./packages/cpp/pl2cpp.html
 ./packages/nlp/nlp.html
@@ -56,3 +57,4 @@
 ./packages/readline/readline.html
 ./packages/libedit/libedit.html
 ./packages/pcre/pcre.html
+./packages/yaml/yaml.html

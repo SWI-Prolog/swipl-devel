@@ -55,7 +55,7 @@ delpkg()
 
 
 if [ -z "$PKG" ]; then
-  PKG="clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib protobufs windows PDT libedit readline utf8proc archive pengines cql bdb pcre"
+  PKG="clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib protobufs windows PDT libedit readline utf8proc archive pengines cql bdb pcre yaml"
 fi
 
 if [ ! -z "$EXTRA_PKGS" ]; then
