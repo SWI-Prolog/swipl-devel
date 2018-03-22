@@ -142,9 +142,9 @@ confirm() {
       # ask user
       local maxtry=10
       while [[ $maxtry -gt 0 ]]; do
-         echo "$msg [Y/N]"
+         printf "%s" "$msg [Y/N] "
          read -r answer
-         answer=${answer^^} # upperase
+         answer=${answer^^} # uppercase
          case "$answer" in
             YES|Y)  return 0
                     ;;
