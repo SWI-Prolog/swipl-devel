@@ -109,3 +109,6 @@
 [submodule "packages/pcre"]
 	path = packages/pcre
 	url = ../packages-pcre.git
+[submodule "packages/yaml"]
+	path = packages/yaml
+	url = ../packages-yaml.git
