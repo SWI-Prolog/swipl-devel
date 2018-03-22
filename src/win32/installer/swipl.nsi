@@ -300,6 +300,7 @@ Section "Base system (required)"
 !endif
   File ${SWIPL}\bin\libarchive-13.dll
   File ${SWIPL}\bin\libpcre-1.dll
+  File ${SWIPL}\bin\libyaml-0-2.dll
   File /nonfatal ${SWIPL}\bin\libdwarf.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
   File /nonfatal ${SWIPL}\bin\libgcc_s_seh-1.dll
@@ -827,6 +828,16 @@ Section "Regular expression library (libpcre)"
   File ${SWIPL}\bin\pcre4pl.dll
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\pcre.html
+SectionEnd
+
+Section "YAML library"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File ${SWIPL}\library\yaml.pl
+  SetOutPath $INSTDIR\bin
+  File ${SWIPL}\bin\yaml4pl.dll
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\yaml.html
 SectionEnd
 
 Section "ZLIB package"
