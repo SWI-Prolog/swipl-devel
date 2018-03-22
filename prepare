@@ -307,11 +307,9 @@ _init_submodules
 _update_submodules() {
    local outofdate
    local m
-   if [[ -n $allmods ]]; then
-      outofdate=$(git submodule status | awk '/^[+]/ {print $2}')
-   else
-      outofdate=$(git submodule status "${coremodules[@]}" | awk '/^[+]/ {print $2}')
-   fi
+
+   outofdate=$(git submodule status | awk '/^[+]/ {print $2}')
+
    if [[ -z $outofdate ]]; then
       echo "All submodules are up-to-date"
    else
