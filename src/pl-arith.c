@@ -668,8 +668,8 @@ This new implementation avoids using the C-stack   to be able to process
 more deeply nested terms and to be able  to recover in the unlikely case
 that terms are still too deeply nested.
 
-If finds a term, it starts processing at the last argument, working back
-to the start. It it finds  the   functor  itself it evaluates the pushed
+If it finds a term, it starts processing at the last argument, working back
+to the start. If it finds  the   functor  itself, it evaluates the pushed
 arguments. Using this technique we push as  few as possible arguments on
 terms that are nested on the left (as   in (1+2)+3, while we only push a
 single pointer for each recursion level in the evaluable term.

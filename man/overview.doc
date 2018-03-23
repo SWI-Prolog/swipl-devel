@@ -533,8 +533,8 @@ can be a complex term. In this case quotes are normally needed to
 protect it from being expanded by the shell. A safe way to run a goal
 non-interactively is below. If \nopredref{go/0} succeeds
 \argoption{-g}{halt} causes the process to stop with exit code 0. If it
-fails, the exit code is 1 and it it raises an exception the exit code is
-2.
+fails, the exit code is 1; and if it raises an exception, the exit code
+is 2.
 
 \begin{code}
 % swipl <options> -g go -g halt

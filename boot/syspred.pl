@@ -1410,7 +1410,7 @@ thread_join(Id) :-
 %     Enable the separate GC thread.  All implicit atom and clause
 %     garbage collection is executed by the thread `gc`.
 %     - stop
-%     Stop the `gc` thread it it is running.  The thread is recreated
+%     Stop the `gc` thread if it is running.  The thread is recreated
 %     on the next implicit atom or clause garbage collection.  Used
 %     by fork/1 to avoid forking a multi-threaded application.
 

@@ -872,8 +872,8 @@ could enhance on this by introducing  a   `melt-bar'  set  to the lowest
 location which we assigned using nb_setarg/3.   If backtracking takes us
 before  that  point  we  safely  know  there  are  no  terms  left  with
 nb_setarg/3  assignments.  As  the  merged   backtrackable  global  vars
-implementation also causes freezing of the  stacks it it uncertain there
-is much to gain with this approach.
+implementation also causes freezing of the stacks, it is uncertain
+whether there is much to gain with this approach.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static fid_t
