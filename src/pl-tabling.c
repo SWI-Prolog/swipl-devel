@@ -557,7 +557,7 @@ get_trie_node(term_t t, trie_node **np)
 
 /** '$tbl_new_worklist'(-Worklist, +Trie) is det.
  *
- * Create a new worklist for Trie add add it it the global worklist
+ * Create a new worklist for Trie add add it to the global worklist
  * set.
  */
 
