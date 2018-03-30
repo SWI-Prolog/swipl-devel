@@ -169,8 +169,12 @@ test(make_dynamic, [true, cleanup(abolish(Name, 1))]) :-
 
 :- end_tests(dynamic).
 
+test_protected_code :-
+	current_prolog_flag(protect_static_code, false),
+	\+ set_prolog_flag(coverage_analysis, true).
+
 :- begin_tests(protect, [ setup(set_prolog_flag(protect_static_code, true)),
-			  setup(set_prolog_flag(protect_static_code, false))
+			  condition(test_protected_code)
 			]).
 
 p1.
