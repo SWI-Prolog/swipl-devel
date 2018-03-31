@@ -102,18 +102,18 @@ Users requiring more support should ensure access to knowledgeable developers.
 Various free and commercial systems have better performance. But,
 `standard' Prolog benchmarks disregard many factors that are often
 critical to the performance of large applications. SWI-Prolog is not
-good at fast calling of simple predicates and if-then-else selection
-based on simple built-in tests, but it is fast with dynamic code,
-meta-calling and predicates that contain large numbers of clauses. Many
-of SWI-Prolog's built-in predicates are written in C and have excellent
-performance.
+good at fast calling of simple predicates, but it is fast with dynamic
+code, meta-calling and predicates that contain large numbers of clauses
+or require more advanced clauses indexing. Many of SWI-Prolog's built-in
+predicates are written in C and have excellent performance.
 
     \item [You need features not offered by SWI-Prolog]
-Although SWI-Prolog has many features, it also lacks some important
-features.  The most well known is probably \jargon{tabling}
-\cite{oai:CiteSeerPSU:36493}.  If you require additional features
-and you have resources, be it financial or expertise, please
-contact the developers.
+Todays SWI-Prolog supports most features available from other Prolog
+systems. Still, there are features that are not or poorly supported.
+Examples are tabling which, although provided, is rather slow and does
+not support e.g., \jargon{incremental tabling} and \jargon{well formed
+semantics}. If you require additional features and you have resources,
+be it financial or expertise, please contact the developers.
 \end{itemlist}
 
 On the other hand, SWI-Prolog offers some facilities that are widely
@@ -127,7 +127,7 @@ key strokes.  The system automatically recompiles modified parts of the
 source code using the make/0 command.  The system can be instructed to
 open an arbitrary editor on the right file and line based on its source
 database. It ships with various graphical tools and can be combined with the
-SWI-Prolog editor, PDT (Eclipse plugin for Prolog) or GNU-Emacs.
+SWI-Prolog editor, PDT (Eclipse plugin for Prolog), VScode or GNU-Emacs.
 
     \item [Fast compiler]
 Even very large applications can be loaded in seconds on most machines.
@@ -167,7 +167,7 @@ key enabling factor for deploying Prolog in server applications.
     \item [Interfaces]
 SWI-Prolog ships with many extension packages that provide robust
 interfaces to processes, encryption, TCP/IP, TIPC, ODBC, SGML/XML/HTML,
-RDF, HTTP, graphics and much more.
+RDF, JSON, YAML, HTTP, graphics and much more.
 \end{itemlist}
 
 
