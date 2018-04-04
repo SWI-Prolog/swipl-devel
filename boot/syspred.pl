@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -74,6 +74,7 @@
             set_prolog_stack/2,
             prolog_stack_property/2,
             absolute_file_name/2,
+            tmp_file_stream/3,                  % +Enc, -File, -Stream
             require/1,
             call_with_depth_limit/3,            % :Goal, +Limit, -Result
             call_with_inference_limit/3,        % :Goal, +Limit, -Result
@@ -1276,6 +1277,19 @@ absolute_file_name(Term, Abs) :-
     '$chk_file'(Term, [''], [], true, File),
     !,
     '$absolute_file_name'(File, Abs).
+
+%!  tmp_file_stream(-File, -Stream, +Encoding) is det.
+%!  tmp_file_stream(+Encoding, -File, -Stream) is det.
+
+tmp_file_stream(Enc, File, Stream) :-
+    atom(Enc), var(File), var(Stream),
+    !,
+    '$tmp_file_stream'('', Enc, File, Stream).
+tmp_file_stream(File, Stream, Options) :-
+    current_prolog_flag(encoding, DefEnc),
+    '$option'(encoding(Enc), Options, DefEnc),
+    '$option'(extension(Ext), Options, ''),
+    '$tmp_file_stream'(Ext, Enc, File, Stream).
 
 
                 /********************************

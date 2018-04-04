@@ -558,12 +558,13 @@ available to the Prolog user based on these functions.  These  functions
 are  in  this  module as non-UNIX OS probably don't have getpid() or put
 temporaries on /tmp.
 
-    atom_t TemporaryFile(const char *id, int *fdp)
+    atom_t TemporaryFile(const char *id, const char *ext, int *fdp)
 
     The return value of this call is an atom,  whose  string  represents
     the  path  name of a unique file that can be used as temporary file.
     `id' is a char * that can be used to make it easier to identify  the
-    file as a specific kind of SWI-Prolog intermediate file.
+    file as a specific kind of SWI-Prolog intermediate file.  `ext`
+    provides the optional extension.
 
     void RemoveTemporaryFiles()
 
@@ -609,7 +610,7 @@ free_tmp_symbol(void *name, void *value)
 #endif
 
 atom_t
-TemporaryFile(const char *id, int *fdp)
+TemporaryFile(const char *id, const char *ext, int *fdp)
 { char temp[MAXPATHLEN];
   static char *tmpdir = NULL;
   atom_t tname;
@@ -657,10 +658,13 @@ TemporaryFile(const char *id, int *fdp)
 retry:
 #ifdef __unix__
 { static int MTOK_temp_counter = 0;
-  const char *sep = id[0] ? "_" : "";
+  const char *sep  = id[0]  ? "_" : "";
+  const char *esep = ext[0] ? "." : "";
 
-  if ( Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d_%d",
-		 tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++) < 0 )
+  if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d_%d%s%s",
+		 tmpdir, id, sep, (int) getpid(),
+		 MTOK_temp_counter++,
+		 esep, ext) < 0 )
   { errno = ENAMETOOLONG;
     return NULL_ATOM;
   }
@@ -679,10 +683,11 @@ retry:
   { if ( !PrologPath(tmp, temp, sizeof(temp)) )
       return NULL_ATOM;
   } else
-  { const char *sep = id[0] ? "_" : "";
+  { const char *sep  = id[0] ? "_" : "";
+    const char *esep = ext[0] ? "." : "";
 
-    if ( Ssnprintf(temp, sizeof(temp), "%s/pl_%s%s%d",
-		   tmpdir, id, sep, temp_counter++) < 0 )
+    if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d%s%s",
+		   tmpdir, id, sep, temp_counter++, esep, ext) < 0 )
     { errno = ENAMETOOLONG;
       return NULL_ATOM;
     }

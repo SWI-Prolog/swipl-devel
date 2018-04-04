@@ -398,7 +398,8 @@ COMMON(int)		IsAbsolutePath(const char *spec);
 COMMON(char *)		BaseName(const char *f);
 COMMON(char *)		DirName(const char *f, char *buf);
 COMMON(bool)		ChDir(const char *path);
-COMMON(atom_t)		TemporaryFile(const char *id, int *fdp);
+COMMON(atom_t)		TemporaryFile(const char *id,
+				      const char *ext, int *fdp);
 COMMON(int)		DeleteTemporaryFile(atom_t name);
 COMMON(int)		hasConsole(void);
 COMMON(struct tm *)	PL_localtime_r(const time_t *t, struct tm *r);

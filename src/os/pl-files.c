@@ -829,26 +829,28 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
   if ( !PL_get_chars(base, &n, CVT_ALL|CVT_EXCEPTION) )
     return FALSE;
 
-  if ( (fn=TemporaryFile(n, NULL)) )
+  if ( (fn=TemporaryFile(n, "", NULL)) )
     return PL_unify_atom(name, fn);
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_create, ATOM_temporary_file, A1);
 }
 
-/** tmp_file_stream(+Mode, -File, -Stream)
+/** tmp_file_stream(+Ext, +Encoding, -File, -Stream)
 */
 
 static
-PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
+PRED_IMPL("$tmp_file_stream", 4, tmp_file_stream, 0)
 { PRED_LD
   atom_t fn;
   int fd;
   IOENC enc;
   atom_t encoding;
   const char *mode;
+  char *ext;
 
-  if ( !PL_get_atom_ex(A1, &encoding) )
+  if ( !PL_get_chars(A1, &ext, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) ||
+       !PL_get_atom_ex(A2, &encoding) )
     return FALSE;
   if ( (enc = atom_to_encoding(encoding)) == ENC_UNKNOWN )
   { if ( encoding == ATOM_binary )
@@ -861,17 +863,17 @@ PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
   { mode = "w";
   }
 
-  if ( (fn=TemporaryFile("", &fd)) )
+  if ( (fn=TemporaryFile("", ext, &fd)) )
   { IOSTREAM *s;
 
-    if ( !PL_unify_atom(A2, fn) )
+    if ( !PL_unify_atom(A3, fn) )
     { close(fd);
       return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 2, A2);
     }
 
     s = Sfdopen(fd, mode);
     Ssetenc(s, enc, NULL);
-    return PL_unify_stream(A3, s);
+    return PL_unify_stream(A4, s);
   } else
   { return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_create, ATOM_temporary_file, A2);
@@ -1165,7 +1167,7 @@ BeginPredDefs(files)
   PRED_DEF("exists_file", 1, exists_file, 0)
   PRED_DEF("exists_directory", 1, exists_directory, 0)
   PRED_DEF("tmp_file", 2, tmp_file, 0)
-  PRED_DEF("tmp_file_stream", 3, tmp_file_stream, 0)
+  PRED_DEF("$tmp_file_stream", 4, tmp_file_stream, 0)
   PRED_DEF("delete_file", 1, delete_file, 0)
   PRED_DEF("delete_directory", 1, delete_directory, 0)
   PRED_DEF("make_directory", 1, make_directory, 0)
