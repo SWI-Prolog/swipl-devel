@@ -6784,8 +6784,6 @@ init_predicate_references(PL_local_data_t *ld)
   refs->blocks[0] = refs->preallocated - 1;
   refs->blocks[1] = refs->preallocated - 1;
   refs->blocks[2] = refs->preallocated - 1;
-
-  simpleMutexInit(&ld->clauses.local_shift_mutex);
 }
 
 static void
@@ -6800,8 +6798,6 @@ free_predicate_references(PL_local_data_t *ld)
     if ( d0 )
       freeHeap(d0+bs, bs*sizeof(definition_ref));
   }
-
-  simpleMutexDelete(&ld->clauses.local_shift_mutex);
 }
 #endif /*O_PLMT*/
 

@@ -652,9 +652,6 @@ struct PL_local_data
   struct
   { size_t	erased_skipped;		/* # erased clauses skipped */
     int64_t	cgc_inferences;		/* Inferences at last cgc consider */
-#ifdef O_PLMT
-    simpleMutex local_shift_mutex;	/* protect local shifts */
-#endif
   } clauses;
 
   struct

@@ -4932,10 +4932,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       }
     }
 
-#ifdef O_PLMT
-    simpleMutexLock(&LD->clauses.local_shift_mutex);
-#endif
-
     if ( g || l )
     { size_t ogsize, olsize;
       void *nw;
@@ -4999,10 +4995,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.local.max  = addPointer(LD->stacks.local.base,  lsize);
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
-
-#ifdef O_PLMT
-    simpleMutexUnlock(&LD->clauses.local_shift_mutex);
-#endif
 
     time = ThreadCPUTime(LD, CPU_USER) - time0;
     LD->shift_status.time += time;
@@ -5289,9 +5281,6 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 { GET_LD
   Word lbase, lend, current;
 
-#ifdef O_PLMT
-  simpleMutexLock(&ld->clauses.local_shift_mutex);
-#endif
   lbase = (Word)ld->stacks.local.base;
   lend  = (Word)ld->stacks.local.top;		/* see (*) */
   for(current = lbase; current < lend; current++ )
@@ -5310,9 +5299,6 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
       }
     }
   }
-#ifdef O_PLMT
-  simpleMutexUnlock(&ld->clauses.local_shift_mutex);
-#endif
 
   ld->clauses.erased_skipped = 0;
   markAccessedPredicates(ld);
