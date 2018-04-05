@@ -1519,7 +1519,10 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
   gen_t marked = ddi->oldest_generation;
   gen_t active = start < marked ? start : marked;
 
-  DEBUG(CHK_SECURE, checkDefinition(def));
+  DEBUG(CHK_SECURE,
+	LOCKDEF(def);
+	checkDefinition(def);
+        UNLOCKDEF(def));
 
   if ( mustCleanDefinition(def) )
   { ClauseRef cref, prev = NULL;
@@ -1566,7 +1569,10 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
     freeLingeringDefinition(def, ddi);
     release_def(def);
 
-    DEBUG(CHK_SECURE, checkDefinition(def));
+    DEBUG(CHK_SECURE,
+	  LOCKDEF(def);
+	  checkDefinition(def);
+	  UNLOCKDEF(def));
 
     DEBUG(MSG_PROC,
 	  Sdprintf("cleanDefinition(%s): removed %d, left %d, erased %d\n",
@@ -2115,7 +2121,10 @@ pl_garbage_collect_clauses(void)
 		Definition def = n;
 #endif
 
-		DEBUG(CHK_SECURE, checkDefinition(def));
+		DEBUG(CHK_SECURE,
+		      LOCKDEF(def);
+		      checkDefinition(def);
+		      UNLOCKDEF(def));
 		ddi->oldest_generation = GEN_MAX; /* see (*) */
 	      });
 
