@@ -39,7 +39,7 @@
 #include "pl-incl.h"
 
 #ifndef VERSIONMADEBY
-# define VERSIONMADEBY   (0x0) /* platform depedent */
+# define VERSIONMADEBY   (0x0) /* platform dependent */
 #endif
 
 		 /*******************************
@@ -335,12 +335,28 @@ IOFUNCTIONS Szipfunctions =
 /** zip_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
 */
 
+static const opt_spec zip_new_file_options[] =
+{ { ATOM_extra,		    OPT_STRING },
+  { ATOM_comment,	    OPT_STRING },
+  { NULL_ATOM,		    0 }
+};
+
+
 static
 PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
 { //PRED_LD
   zipper *z;
   char *fname;
   int flags = (CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8);
+  char *extra = NULL;
+  char *comment = NULL;
+  int extralen = 0;
+
+  if ( !scan_options(A4, 0, ATOM_zip_options, zip_new_file_options,
+		     &extra, &comment) )
+    return FALSE;
+  if ( extra )
+    extralen = strlen(extra);
 
   if ( get_zipper(A1, &z) &&
        PL_get_chars(A2, &fname, flags))
@@ -349,8 +365,9 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
 
     rc = zipOpenNewFileInZip4_64(z->writer, fname,
 				 &zipfi,
-				 NULL, 0, NULL, 0, /* extrafield local/global */
-				 NULL,		/* comment */
+				 extra, extralen,
+				 NULL, 0,	/* extrafield global */
+				 comment,	/* comment */
 				 Z_DEFLATED,	/* method */
 				 6,		/* level */
 				 FALSE,		/* raw */
