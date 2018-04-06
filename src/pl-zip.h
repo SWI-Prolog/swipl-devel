@@ -52,5 +52,7 @@ typedef struct zipper
 #define RC_RDWR		(RC_RDONLY|RC_WRONLY)
 
 COMMON(zipper *)	zip_open_archive(const char *file, int flags);
+COMMON(IOSTREAM *)	SopenZIP(zipper *z, const char *name,
+				 const char *rcclass, int flags);
 
 #endif /*H_PLZIP_INCLUDED*/

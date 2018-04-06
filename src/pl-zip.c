@@ -517,6 +517,38 @@ zip_open_archive(const char *file, int flags)
 }
 
 
+IOSTREAM *
+SopenZIP(zipper *z, const char *name, const char *rcclass, int flags)
+{ if ( z->reader )
+  { if ( unzLocateFile(z->reader, name, TRUE) == UNZ_OK )
+      return Snew(z, SIO_INPUT, &Szipfunctions);
+  } else
+  { int rc;
+    zip_fileinfo zipfi = {0};
+
+    rc = zipOpenNewFileInZip4_64(z->writer, name,
+				 &zipfi,
+				 rcclass, strlen(rcclass),
+				 NULL, 0,	/* extrafield global */
+				 NULL,		/* comment */
+				 Z_DEFLATED,	/* method */
+				 6,		/* level */
+				 FALSE,		/* raw */
+				 -MAX_WBITS,	/* windowBits */
+				 DEF_MEM_LEVEL,	/* memLevel */
+				 Z_DEFAULT_STRATEGY, /* strategy */
+				 NULL,		/* password */
+				 0,		/* crc */
+				 VERSIONMADEBY,	/* versionMadeBy */
+				 0,		/* flagBase */
+				 FALSE);	/* zip64 */
+    if ( rc == 0 )
+      return Snew(z, SIO_OUTPUT, &Szipfunctions);
+  }
+
+  return NULL;
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
