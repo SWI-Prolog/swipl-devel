@@ -38,13 +38,16 @@
 #include "minizip/unzip.h"
 #include "pl-incl.h"
 
+#ifndef VERSIONMADEBY
+# define VERSIONMADEBY   (0x0) /* platform depedent */
+#endif
 
 		 /*******************************
 		 *  ACCESS ARCHIVES AS STREAMS  *
 		 *******************************/
 
 static voidpf
-zopen64_file(voidpf opaque, const char* filename, int mode)
+zopen64_file(voidpf opaque, const void* filename, int mode)
 { char modes[4];
   char *m = modes;
 
@@ -64,7 +67,7 @@ zread_file(voidpf opaque, voidpf stream, void* buf, uLong size)
 }
 
 static uLong
-zwrite_file(voidpf opaque, voidpf stream, void* buf, uLong size)
+zwrite_file(voidpf opaque, voidpf stream, const void* buf, uLong size)
 { return Sfwrite(buf, 1, size, stream);
 }
 
@@ -257,10 +260,98 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
 }
 
 		 /*******************************
+		 *	  ENTRY STREAMS		*
+		 *******************************/
+
+static ssize_t
+Sread_zip_entry(void *handle, char *buf, size_t size)
+{ zipper *z = handle;
+
+  (void)z;
+
+  return -1;
+}
+
+static ssize_t
+Swrite_zip_entry(void *handle, char *buf, size_t size)
+{ zipper *z = handle;
+
+  assert(z->writer);
+  return zipWriteInFileInZip(z->writer, buf, size);
+}
+
+static int
+Sclose_zip_entry(void *handle)
+{ zipper *z = handle;
+
+  if ( z->writer )
+    return zipCloseFileInZip(z->writer);
+
+  return -1;
+}
+
+IOFUNCTIONS Szipfunctions =
+{ Sread_zip_entry,
+  Swrite_zip_entry,
+  NULL,						/* seek */
+  Sclose_zip_entry,
+  NULL,						/* control */
+  NULL						/* seek64 */
+};
+
+
+		 /*******************************
+		 *	  HANDLE ENTRIES	*
+		 *******************************/
+
+/** zip_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
+*/
+
+static
+PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
+{ //PRED_LD
+  zipper *z;
+  char *fname;
+  int flags = (CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8);
+
+  if ( get_zipper(A1, &z) &&
+       PL_get_chars(A2, &fname, flags))
+  { int rc;
+    zip_fileinfo zipfi = {0};
+
+    rc = zipOpenNewFileInZip4_64(z->writer, fname,
+				 &zipfi,
+				 NULL, 0, NULL, 0, /* extrafied local/global */
+				 NULL,		/* comment */
+				 Z_DEFLATED,	/* method */
+				 6,		/* level */
+				 FALSE,		/* raw */
+				 -MAX_WBITS,	/* windowBits */
+				 DEF_MEM_LEVEL,	/* memLevel */
+				 Z_DEFAULT_STRATEGY, /* strategy */
+				 NULL,		/* password */
+				 0,		/* crc */
+				 VERSIONMADEBY,	/* versionMadeBy */
+				 0,		/* flagBase */
+				 FALSE);	/* zip64 */
+    if ( rc == 0 )
+    { IOSTREAM *s = Snew(z, SIO_OUTPUT, &Szipfunctions);
+
+      if ( s )
+	return PL_unify_stream(A3, s);
+    }
+  }
+
+  return FALSE;
+}
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(zip)
-  PRED_DEF("zip_open",  4, zip_open,  0)
-  PRED_DEF("zip_close", 2, zip_close, 0)
+  PRED_DEF("zip_open",			4, zip_open,		     0)
+  PRED_DEF("zip_close",			2, zip_close,		     0)
+  PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)
 EndPredDefs
