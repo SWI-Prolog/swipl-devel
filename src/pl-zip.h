@@ -43,6 +43,7 @@
 typedef struct zipper
 { zipFile writer;
   unzFile reader;
+  const char *path;
 } zipper;
 
 #define RC_RDONLY	0x01
@@ -51,8 +52,22 @@ typedef struct zipper
 #define RC_TRUNC	0x08
 #define RC_RDWR		(RC_RDONLY|RC_WRONLY)
 
+extern int rc_errno;
+
 COMMON(zipper *)	zip_open_archive(const char *file, int flags);
+COMMON(zipper *)	rc_open_archive_mem(const unsigned char *mem,
+					    size_t mem_size, int flags);
+
+COMMON(int)		zip_close_archive(zipper *z);
 COMMON(IOSTREAM *)	SopenZIP(zipper *z, const char *name,
 				 const char *rcclass, int flags);
+COMMON(char *)		rc_strerror(int);
+
+/* Allow using in existing system */
+
+typedef zipper* RcArchive;
+#define rc_open_archive zip_open_archive
+#define rc_close_archive zip_close_archive
+#define SopenRC SopenZIP
 
 #endif /*H_PLZIP_INCLUDED*/

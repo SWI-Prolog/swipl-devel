@@ -40,8 +40,8 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 /* #define O_DEBUG 1 */
 
-#include "rc/rc.h"
 #include "pl-incl.h"
+#include "pl-zip.h"
 #include "pl-prof.h"
 #include "os/pl-ctype.h"
 #include <errno.h>
@@ -906,7 +906,7 @@ PL_initialise(int argc, char **argv)
     if ( !compileFileList(s, argc, argv) )
     { PL_halt(1);
     }
-    if ( Sclose(s) != 0 || !rc_save_archive(GD->resourceDB, NULL) )
+    if ( Sclose(s) != 0 || rc_close_archive(GD->resourceDB) != 0 )
     {
 #ifdef __WINDOWS__
       PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));

@@ -41,6 +41,14 @@
 # define VERSIONMADEBY   (0x0) /* platform dependent */
 #endif
 
+int rc_errno;
+
+char *
+rc_strerror(int eno)
+{ return "Unknown resource error";
+}
+
+
 		 /*******************************
 		 *  ACCESS ARCHIVES AS STREAMS  *
 		 *******************************/
@@ -120,19 +128,33 @@ acquire_zipper(atom_t aref)
 }
 
 static int
+close_zipper(zipper *z)
+{ zipFile zf;
+  unzFile uzf;
+  int rc = 0;
+  const char *s;
+
+  if ( (zf=z->writer) )
+  { z->writer = NULL;
+    rc = zipClose(zf, NULL);
+  } else if ( (uzf=z->reader) )
+  { z->reader = NULL;
+    rc = unzClose(uzf);
+  }
+  if ( (s=z->path) )
+  { z->path = NULL;
+    free((void*)s);
+  }
+  free(z);
+
+  return rc;
+}
+
+static int
 release_zipper(atom_t aref)
 { zipper *ref = PL_blob_data(aref, NULL, NULL);
-  zipFile zf;
-  unzFile uzf;
 
-  if ( (zf=ref->writer) )
-  { ref->writer = NULL;
-    zipClose(zf, NULL);
-  } else if ( (uzf=ref->reader) )
-  { ref->reader = NULL;
-    unzClose(uzf);
-  }
-  free(ref);
+  close_zipper(ref);
 
   return TRUE;
 }
@@ -248,24 +270,10 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
 
   if ( get_zipper(A1, &z) &&
        (PL_is_variable(A2) || PL_get_chars(A2, &comment, flags)) )
-  { zipFile zf;
-    unzFile uzf;
-
-    if ( (zf=z->writer) )
-    { z->writer = NULL;
-
-      if ( zipClose(zf, comment) == 0 )
-	return TRUE;
-      else
-	return PL_warning("zip_close/2 failed");
-    } else if ( (uzf=z->reader) )
-    { z->reader = NULL;
-
-      if ( unzClose(uzf)  == 0 )
-	return TRUE;
-      else
-	return PL_warning("zip_close/2 failed");
-    }
+  { if ( close_zipper(z) == 0 )
+      return TRUE;
+    else
+      return PL_warning("zip_close/2 failed");
   }
 
   return FALSE;
@@ -511,11 +519,22 @@ zip_open_archive(const char *file, int flags)
   }
 
   if ( (r = malloc(sizeof(*r))) )
-    memcpy(r, &z, sizeof(*r));
+  { memcpy(r, &z, sizeof(*r));
+    r->path = strdup(file);
+  }
 
   return r;
 }
 
+zipper *
+rc_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
+{ assert(0);
+}
+
+int
+zip_close_archive(zipper *z)
+{ return close_zipper(z);
+}
 
 IOSTREAM *
 SopenZIP(zipper *z, const char *name, const char *rcclass, int flags)

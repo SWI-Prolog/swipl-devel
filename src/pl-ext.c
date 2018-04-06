@@ -112,14 +112,6 @@ static const PL_extension foreigns[] = {
 
   FRG("!",			0, pl_metacut,		      ISO),
 
-  FRG("$rc_handle",		1, pl_rc_handle,		0),
-  FRG("$rc_members",		2, pl_rc_members,		0),
-  FRG("$rc_open",		5, pl_rc_open,			0),
-  FRG("$rc_open_archive",	2, pl_rc_open_archive,		0),
-  FRG("$rc_close_archive",	1, pl_rc_close_archive,		0),
-  FRG("$rc_save_archive",	2, pl_rc_save_archive,		0),
-  FRG("$rc_append_file",	5, pl_rc_append_file,		0),
-
   FRG("abolish",		1, pl_abolish1,		     META|ISO),
   FRG("abolish",		2, pl_abolish,		     META),
   FRG("nth_clause",		3, pl_nth_clause,       NDET|META|CREF),

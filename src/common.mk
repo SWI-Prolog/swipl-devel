@@ -10,7 +10,7 @@ OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-file.o os/pl-files.o \
 	os/pl-tai.o os/pl-locale.o
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
-	pl-comp.o pl-rc.o pl-zip.o pl-dwim.o pl-ext.o pl-flag.o \
+	pl-comp.o pl-zip.o pl-dwim.o pl-ext.o pl-flag.o \
 	pl-funct.o pl-gc.o pl-privitf.o pl-list.o pl-string.o \
 	pl-load.o pl-modul.o pl-op.o pl-prims.o pl-pro.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-setup.o \

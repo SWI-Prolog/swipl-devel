@@ -139,13 +139,13 @@ LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(INSTALL_PLARCH)/$(SHARED)
 
 OBJ+=	$(OSOBJ)
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
-RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
+RCOBJ=
 TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
 	libtai/leapsecs_add.o libtai/caldate_fmjd.o libtai/caldate_mjd.o \
 	libtai/leapsecs_init.o libtai/leapsecs_read.o libtai/tai_pack.o \
 	libtai/tai_unpack.o
 LIBOBJ= $(RCOBJ) $(TAIOBJ)
-DEPLIBS=uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS)
+DEPLIBS=uxnt-lib plterm-lib tai-lib $(MKLIBS)
 
 PLOBJ=	pl-main.o
 
@@ -294,8 +294,6 @@ plterm-lib:
 plwin:
 endif
 
-rc-lib:		$(RCOBJ)
-		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
 tai-lib:	$(TAIOBJ)
 		@(cd libtai && $(MAKE) COFLAGS="$(COFLAGS)")
 
