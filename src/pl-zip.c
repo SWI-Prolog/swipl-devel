@@ -276,8 +276,13 @@ static ssize_t
 Swrite_zip_entry(void *handle, char *buf, size_t size)
 { zipper *z = handle;
 
-  assert(z->writer);
-  return zipWriteInFileInZip(z->writer, buf, size);
+  if ( z->writer )
+  { ssize_t rc = zipWriteInFileInZip(z->writer, buf, size);
+    return rc == 0 ? size : -1;
+  } else
+  { errno = EPERM;
+    return -1;
+  }
 }
 
 static int
