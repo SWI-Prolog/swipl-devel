@@ -396,6 +396,7 @@ DECL_PLIST(cont);
 DECL_PLIST(trie);
 DECL_PLIST(tabling);
 DECL_PLIST(mutex);
+DECL_PLIST(zip);
 
 void
 initBuildIns(void)
@@ -461,6 +462,7 @@ initBuildIns(void)
   REG_PLIST(trie);
   REG_PLIST(tabling);
   REG_PLIST(mutex);
+  REG_PLIST(zip);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \

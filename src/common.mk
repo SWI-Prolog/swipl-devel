@@ -10,7 +10,7 @@ OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-file.o os/pl-files.o \
 	os/pl-tai.o os/pl-locale.o
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
-	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \
+	pl-comp.o pl-rc.o pl-zip.o pl-dwim.o pl-ext.o pl-flag.o \
 	pl-funct.o pl-gc.o pl-privitf.o pl-list.o pl-string.o \
 	pl-load.o pl-modul.o pl-op.o pl-prims.o pl-pro.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-setup.o \
@@ -21,7 +21,8 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
 	pl-dbref.o pl-termhash.o pl-variant.o pl-assert.o \
 	pl-copyterm.o pl-debug.o pl-cont.o pl-ressymbol.o pl-dict.o \
-	pl-trie.o pl-indirect.o pl-tabling.o pl-rsort.o pl-mutex.o
+	pl-trie.o pl-indirect.o pl-tabling.o pl-rsort.o pl-mutex.o \
+	minizip/zip.o minizip/unzip.o minizip/ioapi.o
 
 # Prolog library
 
