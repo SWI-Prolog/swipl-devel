@@ -34,9 +34,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "minizip/zip.h"
-#include "minizip/unzip.h"
 #include "pl-incl.h"
+#include "pl-zip.h"
 
 #ifndef VERSIONMADEBY
 # define VERSIONMADEBY   (0x0) /* platform dependent */
@@ -105,11 +104,6 @@ static zlib_filefunc64_def zfile_functions =
 		 /*******************************
 		 *	   ARCHIVE BLOB		*
 		 *******************************/
-
-typedef struct zipper
-{ zipFile writer;
-  unzFile reader;
-} zipper;
 
 static int
 write_zipper(IOSTREAM *s, atom_t aref, int flags)
@@ -498,6 +492,30 @@ PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
 
   return FALSE;
 }
+
+		 /*******************************
+		 *	 ARCHIVE EMULATION	*
+		 *******************************/
+
+zipper *
+zip_open_archive(const char *file, int flags)
+{ zipper z = {0};
+  zipper *r;
+
+  if ( (flags&RC_RDONLY) )
+  { if ( !(z.reader = unzOpen2_64(file, &zfile_functions)) )
+      return NULL;
+  } else
+  { if ( !(z.writer = zipOpen2_64(file, FALSE, NULL, &zfile_functions)) )
+      return NULL;
+  }
+
+  if ( (r = malloc(sizeof(*r))) )
+    memcpy(r, &z, sizeof(*r));
+
+  return r;
+}
+
 
 
 		 /*******************************
