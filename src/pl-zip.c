@@ -450,22 +450,32 @@ PRED_IMPL("zip_open_current", 2, zip_open_current, 0)
 }
 
 static
-PRED_IMPL("zip_file_info", 3, zip_file_info, 0)
-{ zipper *z;
+PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
+{ PRED_LD
+  zipper *z;
 
   if ( get_zipper(A1, &z) )
-  { unz_file_info64 pfile_info;
+  { unz_file_info64 info;
     char fname[MAXPATHLEN];
+    char extra[1024];
+    char comment[1024];
 
     if ( !z->reader )
       return PL_warning("Not open for reading");
 
+    extra[0] = comment[0] = EOS;
+
     if ( unzGetCurrentFileInfo64(z->reader,
-				 &pfile_info,
+				 &info,
 				 fname, sizeof(fname),
-				 NULL, 0,
-				 NULL, 0) == UNZ_OK )
-    { return PL_unify_chars(A2, PL_ATOM|REP_UTF8, (size_t)-1, fname);
+				 extra, sizeof(extra),
+				 comment, sizeof(comment)) == UNZ_OK )
+    { return ( PL_unify_chars(A2, PL_ATOM|REP_UTF8, (size_t)-1, fname) &&
+	       PL_unify_term(A3, PL_FUNCTOR_CHARS, "info", 4,
+			       PL_INT64, (int64_t)info.compressed_size,
+			       PL_INT64, (int64_t)info.uncompressed_size,
+			       PL_UTF8_CHARS, extra,
+			       PL_UTF8_STRING, comment) );
     }
   }
 
@@ -483,5 +493,5 @@ BeginPredDefs(zip)
   PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)
   PRED_DEF("zip_goto",			2, zip_goto,		     0)
   PRED_DEF("zip_open_current",          2, zip_open_current,         0)
-  PRED_DEF("zip_file_info",             3, zip_file_info,            0)
+  PRED_DEF("zip_file_info_",            3, zip_file_info,            0)
 EndPredDefs
