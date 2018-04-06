@@ -108,6 +108,7 @@ static zlib_filefunc64_def zfile_functions =
 
 typedef struct zipper
 { zipFile writer;
+  unzFile reader;
 } zipper;
 
 static int
@@ -128,10 +129,14 @@ static int
 release_zipper(atom_t aref)
 { zipper *ref = PL_blob_data(aref, NULL, NULL);
   zipFile zf;
+  unzFile uzf;
 
   if ( (zf=ref->writer) )
   { ref->writer = NULL;
     zipClose(zf, NULL);
+  } else if ( (uzf=ref->reader) )
+  { ref->reader = NULL;
+    unzClose(uzf);
   }
   free(ref);
 
@@ -215,6 +220,7 @@ PRED_IMPL("zip_open", 4, zip_open, 0)
 
   if ( !(z=malloc(sizeof(*z))) )
     return PL_resource_error("memory");
+  memset(z, 0, sizeof(*z));
 
   if ( mode == ATOM_write || mode == ATOM_append )
   { if ( (z->writer=zipOpen2_64(fname, mode == ATOM_append,
@@ -225,7 +231,11 @@ PRED_IMPL("zip_open", 4, zip_open, 0)
     { goto error;
     }
   } else
-  { assert(0);
+  { if ( (z->reader=unzOpen2_64(fname, &zfile_functions)) )
+    { return unify_zipper(A3, z);
+    } else
+    { goto error;
+    }
   }
 
 error:
@@ -245,11 +255,19 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
   if ( get_zipper(A1, &z) &&
        (PL_is_variable(A2) || PL_get_chars(A2, &comment, flags)) )
   { zipFile zf;
+    unzFile uzf;
 
     if ( (zf=z->writer) )
     { z->writer = NULL;
 
       if ( zipClose(zf, comment) == 0 )
+	return TRUE;
+      else
+	return PL_warning("zip_close/2 failed");
+    } else if ( (uzf=z->reader) )
+    { z->reader = NULL;
+
+      if ( unzClose(uzf)  == 0 )
 	return TRUE;
       else
 	return PL_warning("zip_close/2 failed");
@@ -267,9 +285,12 @@ static ssize_t
 Sread_zip_entry(void *handle, char *buf, size_t size)
 { zipper *z = handle;
 
-  (void)z;
-
-  return -1;
+  if ( z->reader )
+  { return unzReadCurrentFile(z->reader, buf, size);
+  } else
+  { errno = EPERM;
+    return -1;
+  }
 }
 
 static ssize_t
@@ -291,6 +312,8 @@ Sclose_zip_entry(void *handle)
 
   if ( z->writer )
     return zipCloseFileInZip(z->writer);
+  else if ( z->reader )
+    return unzCloseCurrentFile(z->reader);
 
   return -1;
 }
@@ -326,7 +349,7 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
 
     rc = zipOpenNewFileInZip4_64(z->writer, fname,
 				 &zipfi,
-				 NULL, 0, NULL, 0, /* extrafied local/global */
+				 NULL, 0, NULL, 0, /* extrafield local/global */
 				 NULL,		/* comment */
 				 Z_DEFLATED,	/* method */
 				 6,		/* level */
@@ -350,6 +373,105 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
   return FALSE;
 }
 
+/** zip_goto(+Zipper, +File) is det.
+ *
+ * File is one of `first`, `next` or file(Name)
+ */
+
+static
+PRED_IMPL("zip_goto", 2, zip_goto, 0)
+{ PRED_LD
+  zipper *z;
+
+  if ( get_zipper(A1, &z) )
+  { atom_t a;
+
+    if ( PL_get_atom(A2, &a) )
+    { int rc;
+
+      if ( a == ATOM_first )
+	rc = unzGoToFirstFile(z->reader);
+      else if (	a == ATOM_next )
+	rc = unzGoToNextFile(z->reader);
+      else
+	return PL_domain_error("zip_goto", A2);
+
+      if ( rc == UNZ_OK )
+	return TRUE;
+      if ( rc == UNZ_END_OF_LIST_OF_FILE )
+	return FALSE;
+      assert(0);
+    } else if ( PL_is_functor(A2, FUNCTOR_file1) )
+    { term_t arg = PL_new_term_ref();
+      char *fname;
+      int flags = (CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8);
+
+      if ( PL_get_arg(1, A2, arg) &&
+	   PL_get_chars(arg, &fname, flags) )
+      { switch(unzLocateFile(z->reader, fname, TRUE))
+	{ case UNZ_OK:
+	    return TRUE;
+	  default:
+	    return PL_existence_error("zip_entry", arg);
+	}
+      }
+    } else
+    { return PL_type_error("zip_goto", A2);
+    }
+  }
+
+  return FALSE;
+}
+
+/** zip_open_current(+Zipper, -Stream) is det.
+ *
+ *  Open the current file as an input stream
+ */
+
+static
+PRED_IMPL("zip_open_current", 2, zip_open_current, 0)
+{ zipper *z;
+
+  if ( get_zipper(A1, &z) )
+  { if ( !z->reader )
+      return PL_warning("Not open for reading");
+    if ( unzOpenCurrentFile(z->reader) == UNZ_OK )
+    { IOSTREAM *s = Snew(z, SIO_INPUT|SIO_RECORDPOS, &Szipfunctions);
+
+      if ( s )
+	return PL_unify_stream(A2, s);
+
+      return PL_resource_error("memory");
+    }
+    PL_warning("Failed to open current");
+  }
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("zip_file_info", 3, zip_file_info, 0)
+{ zipper *z;
+
+  if ( get_zipper(A1, &z) )
+  { unz_file_info64 pfile_info;
+    char fname[MAXPATHLEN];
+
+    if ( !z->reader )
+      return PL_warning("Not open for reading");
+
+    if ( unzGetCurrentFileInfo64(z->reader,
+				 &pfile_info,
+				 fname, sizeof(fname),
+				 NULL, 0,
+				 NULL, 0) == UNZ_OK )
+    { return PL_unify_chars(A2, PL_ATOM|REP_UTF8, (size_t)-1, fname);
+    }
+  }
+
+  return FALSE;
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -359,4 +481,7 @@ BeginPredDefs(zip)
   PRED_DEF("zip_open",			4, zip_open,		     0)
   PRED_DEF("zip_close",			2, zip_close,		     0)
   PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)
+  PRED_DEF("zip_goto",			2, zip_goto,		     0)
+  PRED_DEF("zip_open_current",          2, zip_open_current,         0)
+  PRED_DEF("zip_file_info",             3, zip_file_info,            0)
 EndPredDefs
