@@ -111,7 +111,7 @@ get_optval(optvalue valp, const opt_spec *spec, term_t val ARG_LD)
     case OPT_STRING:
     { char *str;
 
-      if ( !PL_get_chars(val, &str, CVT_ALL|CVT_EXCEPTION) ) /* copy? */
+      if ( !PL_get_chars(val, &str, CVT_ALL|REP_UTF8|BUF_RING|CVT_EXCEPTION) )
 	return FALSE;
       *valp.s = str;
 
