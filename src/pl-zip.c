@@ -203,7 +203,7 @@ PRED_IMPL("zip_open", 4, zip_open, 0)
   if ( mode == ATOM_read )
     fflags |= PL_FILE_EXIST;
   else if ( mode == ATOM_write || mode == ATOM_append )
-    fflags |= PL_FILE_WRITE;
+    (void)0;
   else
     return PL_domain_error("file_mode", A2);
 
