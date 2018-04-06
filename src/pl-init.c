@@ -902,11 +902,14 @@ PL_initialise(int argc, char **argv)
   if ( GD->bootsession )
   { IOSTREAM *s = SopenRC(GD->resourceDB, "$state", "$prolog", RC_WRONLY);
     char *rcpathcopy = store_string(rcpath); /* rcpath is destroyed on close */
+    RcArchive rca = GD->resourceDB;
 
     if ( !compileFileList(s, argc, argv) )
     { PL_halt(1);
     }
-    if ( Sclose(s) != 0 || rc_close_archive(GD->resourceDB) != 0 )
+
+    GD->resourceDB = NULL;
+    if ( Sclose(s) != 0 || rc_close_archive(rca) != 0 )
     {
 #ifdef __WINDOWS__
       PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));
