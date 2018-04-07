@@ -547,7 +547,8 @@ SopenZIP(zipper *z, const char *name, const char *rcclass, int flags)
 
     rc = zipOpenNewFileInZip4_64(z->writer, name,
 				 &zipfi,
-				 rcclass, strlen(rcclass),
+//				 rcclass, strlen(rcclass),
+				 NULL, 0,	/* extrafield local */
 				 NULL, 0,	/* extrafield global */
 				 NULL,		/* comment */
 				 Z_DEFLATED,	/* method */
