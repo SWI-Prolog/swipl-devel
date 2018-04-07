@@ -96,7 +96,11 @@ struct PL_global_data
   int		bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
   struct bit_vector *debug_topics;	/* debug topics enabled */
-  void *	resourceDB;		/* program resource database */
+
+  struct
+  { void *	DB;			/* program resource database */
+    atom_t	handle;			/* Symbol for DB */
+  } resources;
 
 #ifdef HAVE_SIGNAL
   struct

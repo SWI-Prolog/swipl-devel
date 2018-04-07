@@ -521,8 +521,8 @@ initDefaultOptions(void)
     opt_append(&GD->options.goals, systemDefaults.goal);
 
 
-  if ( !GD->bootsession && GD->resourceDB )
-  { IOSTREAM *op = SopenRC(GD->resourceDB, "$options", "$prolog", RC_RDONLY);
+  if ( !GD->bootsession && GD->resources.DB )
+  { IOSTREAM *op = SopenRC(GD->resources.DB, "$options", "$prolog", RC_RDONLY);
 
     if ( op )
     { tmp_buffer name;
@@ -834,19 +834,19 @@ PL_initialise(int argc, char **argv)
     setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
-  if ( !GD->resourceDB )
-  { if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
+  if ( !GD->resources.DB )
+  { if (    (GD->resources.DB = rc_open_archive(GD->paths.executable, RC_RDONLY))
 #ifdef __WINDOWS__
-         || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
+         || (GD->resources.DB = rc_open_archive(GD->paths.module, RC_RDONLY))
 #endif
        )
-    { rcpath = ((RcArchive)GD->resourceDB)->path;
+    { rcpath = ((RcArchive)GD->resources.DB)->path;
     }
   }
-  if ( GD->resourceDB )
+  if ( GD->resources.DB )
     initDefaultOptions();
 
-  if ( !GD->resourceDB ||
+  if ( !GD->resources.DB ||
        !streq(GD->options.saveclass, "runtime") )
   { int done;
     argc--; argv++;
@@ -866,11 +866,11 @@ PL_initialise(int argc, char **argv)
 
     DEBUG(MSG_INITIALISE, if (GD->bootsession) Sdprintf("Boot session\n"););
 
-    if ( !GD->resourceDB )
-    { if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
+    if ( !GD->resources.DB )
+    { if ( !(GD->resources.DB = openResourceDB(argc, argv)) )
       { fatalError("Could not find system resources");
       }
-      rcpath = ((RcArchive)GD->resourceDB)->path;
+      rcpath = ((RcArchive)GD->resources.DB)->path;
 
       initDefaultOptions();
     }
@@ -900,15 +900,15 @@ PL_initialise(int argc, char **argv)
   setAccessLevel(ACCESS_LEVEL_SYSTEM);
 
   if ( GD->bootsession )
-  { IOSTREAM *s = SopenRC(GD->resourceDB, "$state", "$prolog", RC_WRONLY);
+  { IOSTREAM *s = SopenRC(GD->resources.DB, "$state", "$prolog", RC_WRONLY);
     char *rcpathcopy = store_string(rcpath); /* rcpath is destroyed on close */
-    RcArchive rca = GD->resourceDB;
+    RcArchive rca = GD->resources.DB;
 
     if ( !compileFileList(s, argc, argv) )
     { PL_halt(1);
     }
 
-    GD->resourceDB = NULL;
+    GD->resources.DB = NULL;
     if ( Sclose(s) != 0 || rc_close_archive(rca) != 0 )
     {
 #ifdef __WINDOWS__
@@ -928,7 +928,7 @@ PL_initialise(int argc, char **argv)
 #endif
     PL_halt(0);
   } else
-  { IOSTREAM *statefd = SopenRC(GD->resourceDB, "$state", "$prolog", RC_RDONLY);
+  { IOSTREAM *statefd = SopenRC(GD->resources.DB, "$state", "$prolog", RC_RDONLY);
 
     if ( statefd )
     { GD->bootsession = TRUE;
@@ -967,7 +967,7 @@ PL_initialise(int argc, char **argv)
 
 int
 PL_set_resource_db_mem(const unsigned char *data, size_t size)
-{ if ( (GD->resourceDB = rc_open_archive_mem(data, size, RC_RDONLY)) )
+{ if ( (GD->resources.DB = rc_open_archive_mem(data, size, RC_RDONLY)) )
     return TRUE;
 
   return FALSE;
@@ -1314,9 +1314,9 @@ emergency:
 
   RemoveTemporaryFiles();
 
-  if ( GD->resourceDB )
-  { rc_close_archive(GD->resourceDB);
-    GD->resourceDB = NULL;
+  if ( GD->resources.DB )
+  { rc_close_archive(GD->resources.DB);
+    GD->resources.DB = NULL;
   }
 
   cleanupSignals();

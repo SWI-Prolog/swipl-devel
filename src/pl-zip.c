@@ -501,6 +501,20 @@ PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
   return FALSE;
 }
 
+static
+PRED_IMPL("$rc_handle", 1, rc_handle, 0)
+{ PRED_LD
+
+  if ( !GD->resources.handle )
+  { return ( GD->resources.DB &&
+	     unify_zipper(A1, GD->resources.DB) &&
+	     PL_get_atom(A1, &GD->resources.handle) );
+  } else
+  { return PL_unify_atom(A1, GD->resources.handle);
+  }
+}
+
+
 		 /*******************************
 		 *	 ARCHIVE EMULATION	*
 		 *******************************/
@@ -581,4 +595,5 @@ BeginPredDefs(zip)
   PRED_DEF("zip_goto",			2, zip_goto,		     0)
   PRED_DEF("zip_open_current",          2, zip_open_current,         0)
   PRED_DEF("zip_file_info_",            3, zip_file_info,            0)
+  PRED_DEF("$rc_handle",		1, rc_handle,		     0)
 EndPredDefs
