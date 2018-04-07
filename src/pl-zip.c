@@ -539,7 +539,8 @@ zip_close_archive(zipper *z)
 IOSTREAM *
 SopenZIP(zipper *z, const char *name, const char *rcclass, int flags)
 { if ( z->reader )
-  { if ( unzLocateFile(z->reader, name, TRUE) == UNZ_OK )
+  { if ( unzLocateFile(z->reader, name, TRUE) == UNZ_OK &&
+	 unzOpenCurrentFile(z->reader) == UNZ_OK )
       return Snew(z, SIO_INPUT, &Szipfunctions);
   } else
   { int rc;
@@ -547,8 +548,7 @@ SopenZIP(zipper *z, const char *name, const char *rcclass, int flags)
 
     rc = zipOpenNewFileInZip4_64(z->writer, name,
 				 &zipfi,
-//				 rcclass, strlen(rcclass),
-				 NULL, 0,	/* extrafield local */
+				 rcclass, strlen(rcclass),
 				 NULL, 0,	/* extrafield global */
 				 NULL,		/* comment */
 				 Z_DEFLATED,	/* method */
