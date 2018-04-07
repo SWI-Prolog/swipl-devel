@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2016, University of Amsterdam
+    Copyright (c)  1995-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -98,14 +98,14 @@ qsave_program(FileBase, Options0) :-
     ->  delete_file(File)
     ;   true
     ),
-    '$rc_open_archive'(File, RC),
+    zip_open(File, write, RC, []),
     make_header(RC, SaveClass, Options),
     save_options(RC, SaveClass,
                  [ init_file(InitFile)
                  | Options
                  ]),
     save_resources(RC, SaveClass),
-    '$rc_open'(RC, '$state', '$prolog', write, StateFd),
+    zip_open_new_file_in_zip(RC, '$state', StateFd, [extra('$prolog')]),
     '$open_wic'(StateFd),
     setup_call_cleanup(
         ( current_prolog_flag(access_level, OldLevel),
@@ -124,7 +124,7 @@ qsave_program(FileBase, Options0) :-
     '$close_wic',
     close(StateFd),
     save_foreign_libraries(RC, Options),
-    '$rc_close_archive'(RC),
+    zip_close(RC, "SWI-Prolog saved state"),
     '$mark_executable'(File),
     close_map.
 
@@ -147,6 +147,9 @@ default_init_file(_,       InitFile) :-
                  *           HEADER             *
                  *******************************/
 
+make_header(_RC, _, _Options) :-
+    format(user_error, 'Skipping header~n', []),
+    !.
 make_header(RC, _, Options) :-
     option(emulator(OptVal), Options),
     !,
