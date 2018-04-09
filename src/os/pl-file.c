@@ -1609,8 +1609,8 @@ Sgetcode_intr(IOSTREAM *s, int signals)
   s->newline = SIO_NL_POSIX;		/* avoid blocking \r */
 #endif
   do
-  { Sclearerr(s);
-    c = Sgetcode(s);
+  { c = Sgetcode(s);
+    Sclearerr(s);
   } while ( c == -1 &&
 	    errno == EINTR &&
 	    (!signals || PL_handle_signals() >= 0)
