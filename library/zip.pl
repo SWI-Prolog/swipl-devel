@@ -34,6 +34,7 @@
 
 :- module(zip,
           [ zip_open/4,                         % +File, +Mode, -Zipper, +Options
+            zip_members/2,                      % +Zipper, -Entries
             zip_file_info/3                     % +Zipper, -Name, -Attrs
           ]).
 :- use_module(library(error)).
@@ -44,6 +45,25 @@ zip_open(File, Mode, Zipper, Options) :-
     must_be(oneof([read,write]), Mode),
     open(File, Mode, Stream, [type(binary)]),
     zip_open_stream(Stream, Zipper, Options).
+
+%!  zip_members(+Zipper, -Members:list(atom)) is det.
+%
+%   True when Members is the list of file names in the Zipper.
+
+zip_members(Zipper, Members) :-
+    setup_call_cleanup(
+        zip_lock(Zipper),
+        ( zip_goto(Zipper, first),
+          zip_members_(Zipper, Members)
+        ),
+        zip_unlock(Zipper)).
+
+zip_members_(Zipper, [Name|T]) :-
+    zip_file_info(Zipper, Name, _Attrs),
+    (   zip_goto(Zipper, next)
+    ->  zip_members_(Zipper, T)
+    ;   T = []
+    ).
 
 %!  zip_file_info(+Zipper, -Name, -Attrs) is det.
 %

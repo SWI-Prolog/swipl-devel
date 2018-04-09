@@ -309,6 +309,33 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
   return FALSE;
 }
 
+/** zip_lock(+Zipper)
+*/
+
+static
+PRED_IMPL("zip_lock", 1, zip_lock, 0)
+{ zipper *z;
+
+  if ( get_zipper(A1, &z) )
+  { recursiveMutexLock(&z->lock);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("zip_unlock", 1, zip_unlock, 0)
+{ zipper *z;
+
+  if ( get_zipper(A1, &z) )
+  { recursiveMutexUnlock(&z->lock);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 		 /*******************************
 		 *	  ENTRY STREAMS		*
 		 *******************************/
@@ -622,6 +649,8 @@ SopenZIP(zipper *z, const char *name, int flags)
 BeginPredDefs(zip)
   PRED_DEF("zip_open_stream",		3, zip_open_stream,	     0)
   PRED_DEF("zip_close",			2, zip_close,		     0)
+  PRED_DEF("zip_lock",		        1, zip_lock,		     0)
+  PRED_DEF("zip_unlock",	        1, zip_unlock,		     0)
   PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)
   PRED_DEF("zip_goto",			2, zip_goto,		     0)
   PRED_DEF("zip_open_current",          2, zip_open_current,         0)

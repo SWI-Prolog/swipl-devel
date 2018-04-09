@@ -302,7 +302,7 @@ save_resource(_, Name, FileSpec) :-
 
 copy_resources(ToRC) :-
     '$rc_handle'(FromRC),
-    '$rc_members'(FromRC, List),
+    zip_members(FromRC, List),
     (   member(Name, List),
         \+ declared_resource(Name, _),
         \+ reserved_resource(Name),
@@ -786,16 +786,6 @@ check_options(Opt) :-
             close(Out)),
         close(In)).
 
-'$rc_members'(Zipper, Members) :-
-    zip_goto(Zipper, first),
-    zip_members(Zipper, Members).
-
-zip_members(Zipper, [Name|T]) :-
-    zip_file_info(Zipper, Name, _Attrs),
-    (   zip_goto(Zipper, next)
-    ->  zip_members(Zipper, T)
-    ;   T = []
-    ).
 
                  /*******************************
                  *            MESSAGES          *
