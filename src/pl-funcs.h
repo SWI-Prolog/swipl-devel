@@ -745,21 +745,6 @@ COMMON(int)		ms_snprintf(char *buffer, size_t count,
 COMMON(void)		getDefaultsFromRegistry(void);
 COMMON(const char*)	WinError(void);
 
-/* pl-rc.c */
-COMMON(IOSTREAM *)       SopenRC(void *rca,
-			const char *name, const char *rcclass, int flags);
-COMMON(foreign_t)	pl_rc_handle(term_t h);
-COMMON(foreign_t)        pl_rc_open(term_t rc_h,
-			   term_t name, term_t class,
-			   term_t rw, term_t handle);
-COMMON(foreign_t)        pl_rc_open_archive(term_t file, term_t handle);
-COMMON(foreign_t)        pl_rc_close_archive(term_t rc_h);
-COMMON(foreign_t)        pl_rc_save_archive(term_t rc_h, term_t to);
-COMMON(foreign_t)        pl_rc_append_file(term_t rc_h,
-				  term_t name, term_t class, term_t encoding,
-				  term_t file);
-COMMON(foreign_t)	pl_rc_members(term_t rc_h, term_t members);
-
 /* pl-xterm.c */
 
 COMMON(foreign_t)	pl_open_xterm(term_t title,

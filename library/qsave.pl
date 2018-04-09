@@ -105,7 +105,7 @@ qsave_program(FileBase, Options0) :-
                  | Options
                  ]),
     save_resources(RC, SaveClass),
-    zip_open_new_file_in_zip(RC, '$state', StateFd, [extra('$prolog')]),
+    zip_open_new_file_in_zip(RC, '$prolog/state.qlf', StateFd, []),
     '$open_wic'(StateFd),
     setup_call_cleanup(
         ( current_prolog_flag(access_level, OldLevel),
@@ -262,10 +262,12 @@ save_resources(_RC, development) :- !.
 save_resources(RC, _SaveClass) :-
     feedback('~nRESOURCES~n~n', []),
     copy_resources(RC),
-    (   current_predicate(_, M:resource(_,_,_)),
-        forall(M:resource(Name, Class, FileSpec),
+    (   member(Goal, [resource(Name,FileSpec), resource(Name,_,FileSpec)]),
+        forall((   current_predicate(_, M:Goal),
+                   call(M:Goal)
+               ),
                (   mkrcname(M, Name, RcName),
-                   save_resource(RC, RcName, Class, FileSpec)
+                   save_resource(RC, RcName, FileSpec)
                )),
         fail
     ;   true
@@ -275,32 +277,32 @@ mkrcname(user, Name, Name) :- !.
 mkrcname(M, Name, RcName) :-
     atomic_list_concat([M, :, Name], RcName).
 
-save_resource(RC, Name, Class, FileSpec) :-
+save_resource(RC, Name, FileSpec) :-
     absolute_file_name(FileSpec,
                        [ access(read),
                          file_errors(fail)
                        ], File),
     !,
-    feedback('~t~8|~w~t~32|~w~t~48|~w~n',
-             [Name, Class, File]),
-    '$rc_append_file'(RC, Name, Class, none, File).
-save_resource(RC, Name, Class, _) :-
+    feedback('~t~8|~w~t~32|~w~n',
+             [Name, File]),
+    '$rc_append_file'(RC, Name, File).
+save_resource(RC, Name, _) :-
     '$rc_handle'(SystemRC),
-    copy_resource(SystemRC, RC, Name, Class),
+    copy_resource(SystemRC, RC, Name),
     !.
-save_resource(_, Name, Class, FileSpec) :-
+save_resource(_, Name, FileSpec) :-
     print_message(warning,
                   error(existence_error(resource,
-                                        resource(Name, Class, FileSpec)),
+                                        resource(Name, FileSpec)),
                         _)).
 
 copy_resources(ToRC) :-
     '$rc_handle'(FromRC),
     '$rc_members'(FromRC, List),
-    (   member(rc(Name, Class), List),
+    (   member(Name, List),
         \+ user:resource(Name, Class, _),
         \+ reserved_resource(Name, Class),
-        copy_resource(FromRC, ToRC, Name, Class),
+        copy_resource(FromRC, ToRC, Name),
         fail
     ;   true
     ).
@@ -309,13 +311,13 @@ reserved_resource('$header',    '$rc').
 reserved_resource('$state',     '$prolog').
 reserved_resource('$options',   '$prolog').
 
-copy_resource(FromRC, ToRC, Name, Class) :-
+copy_resource(FromRC, ToRC, Name) :-
     setup_call_cleanup(
-        '$rc_open'(FromRC, Name, Class, read,  FdIn),
+        '$rc_open'(FromRC, Name, read, FdIn),
         setup_call_cleanup(
-            '$rc_open'(ToRC,   Name, Class, write, FdOut),
-            ( feedback('~t~8|~w~t~24|~w~t~40|~w~n',
-                       [Name, Class, '<Copied from running state>']),
+            '$rc_open'(ToRC, Name, write, FdOut),
+            ( feedback('~t~8|~w~t~24|~w~n',
+                       [Name, '<Copied from running state>']),
               copy_stream_data(FdIn, FdOut)
             ),
             close(FdOut)),
@@ -760,12 +762,24 @@ check_options(Opt) :-
     throw(error(domain_error(list, Opt), _)).
 
 
+		 /*******************************
+		 *            EMULATION		*
+		 *******************************/
+
+'$rc_open'(Zipper, Name, read, Stream) :-
+    !,
+    zip_goto(Zipper, file(Name)),
+    zip_open_current(Zipper, Stream).
+'$rc_open'(Zipper, Name, write, Stream) :-
+    zip_open_new_file_in_zip(Zipper, Name, Stream, []).
+
+
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
 
 :- multifile prolog:message/3.
 
-prolog:message(no_resource(Name, Class, File)) -->
-    [ 'Could not find resource ~w/~w on ~w or system resources'-
-      [Name, Class, File] ].
+prolog:message(no_resource(Name, File)) -->
+    [ 'Could not find resource ~w on ~w or system resources'-
+      [Name, File] ].

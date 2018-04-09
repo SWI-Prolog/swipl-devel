@@ -522,7 +522,7 @@ initDefaultOptions(void)
 
 
   if ( !GD->bootsession && GD->resources.DB )
-  { IOSTREAM *op = SopenRC(GD->resources.DB, "$options", "$prolog", RC_RDONLY);
+  { IOSTREAM *op = SopenZIP(GD->resources.DB, "$prolog/options.txt", RC_RDONLY);
 
     if ( op )
     { tmp_buffer name;
@@ -900,7 +900,7 @@ PL_initialise(int argc, char **argv)
   setAccessLevel(ACCESS_LEVEL_SYSTEM);
 
   if ( GD->bootsession )
-  { IOSTREAM *s = SopenRC(GD->resources.DB, "$state", "$prolog", RC_WRONLY);
+  { IOSTREAM *s = SopenZIP(GD->resources.DB, "$prolog/state.qlf", RC_WRONLY);
     char *rcpathcopy = store_string(rcpath); /* rcpath is destroyed on close */
     RcArchive rca = GD->resources.DB;
 
@@ -928,7 +928,7 @@ PL_initialise(int argc, char **argv)
 #endif
     PL_halt(0);
   } else
-  { IOSTREAM *statefd = SopenRC(GD->resources.DB, "$state", "$prolog", RC_RDONLY);
+  { IOSTREAM *statefd = SopenZIP(GD->resources.DB, "$prolog/state.qlf", RC_RDONLY);
 
     if ( statefd )
     { GD->bootsession = TRUE;
