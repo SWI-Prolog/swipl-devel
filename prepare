@@ -170,7 +170,7 @@ Usage: $prog [--yes] [--all] [--man] [--server=URL]
   --man: Download manual from default URLs.
          The default URL list is: $docurls_txt
   --server=URL: Use (single) URL to download manuals instead.
-         e.g.  --server=http://us.swi-prolog.org/download
+         e.g.  --server=http://us.swi-prolog.org
          if default servers are down.
 _EOM_
   exit 1
@@ -241,7 +241,7 @@ for arg in "$@"; do
     --server=*)
         # replace "docurls" by the option to "server"
         newurl=${arg/#--server=}
-        docurls=( "$newurl" )
+        docurls=( "$newurl/download/generated" )
     ;;
     *)
     usage
@@ -391,7 +391,7 @@ _check_existing_docs() {
 _download_docs() {
    local url=$1
    local doc="swipl-doc-$version.tar.gz"
-   echo "Downloading documentation '$doc' from $url ..."
+   echo "Downloading documentation from $url/$doc ..."
    if curl -f "$url/$doc" > "$doc"; then
       ls -l "$doc"
       echo "Unpacking '$doc' ..."
