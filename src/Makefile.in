@@ -195,9 +195,9 @@ prof:
 	$(MAKE) profclean
 
 .c.o:
-	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+	$(CC) -c -I. -I$(srcdir) $(CFLAGS) $< @COUTOPT@
 .c.i:
-	$(CC) -E -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+	$(CC) -E -I. -I$(srcdir) $(CFLAGS) $< @COUTOPT@
 
 .PHONY:	system startup headers starticlib sharedlib index banner
 
@@ -279,7 +279,7 @@ swipl-res.o:	$(srcdir)/swipl.rc $(srcdir)/swipl.ico
 		$(WINDRES) -o $@ $<
 
 pl-ntmain.o:	pl-ntmain.c
-	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
+	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/os $(CFLAGS) $< -o $@
 
 $(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o $(DEPLIBS) $(OSLIB)
 	$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) \
@@ -390,7 +390,7 @@ mkvmi$(EXEEXT_FOR_BUILD):	mkvmi.c
 
 ifdef RLPREFIX
 os/pl-rl.o:	os/pl-rl.c
-		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) $(CFLAGS) $< @COUTOPT@
 endif
 
 $(srcdir)/pl-funct.ih $(srcdir)/pl-atom.ih: $(srcdir)/.defatom-sentinel
@@ -407,7 +407,7 @@ swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-
 
 .PHONY: tags
 tags:
-		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
+		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] minizip/*.[ch])
 
 cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
@@ -440,12 +440,12 @@ dv-install-common:	install-arch install-libs html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
-		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
+		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT); do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-arch:	idirs iruntime
-		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) rc/swipl-rc$(EXEEXT); do \
+		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT); do \
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH); \
 		done
 
@@ -634,13 +634,11 @@ install-man:
 		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
 		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir); fi
 		-$(INSTALL_DATA) swipl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
-		-$(INSTALL_DATA) $(srcdir)/swipl-rc.1 $(DESTDIR)$(smandir)/swipl-rc.$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(smandir)/swipl-ld.$(mansec)
 
 install-lman:
 		if [ ! -d $(DESTDIR)$(plmandir) ]; then $(MKDIR) $(DESTDIR)$(plmandir); fi
 		$(INSTALL_DATA) swipl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
-		$(INSTALL_DATA) $(srcdir)/swipl-rc.1 $(DESTDIR)$(plmandir)/swipl-rc.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(plmandir)/swipl-ld.$(mansec)
 
 install-readme:	idirs
@@ -687,7 +685,6 @@ export: install-lman
 	../scripts/make-export $(DESTDIR)$(PLBASE)
 	$(INSTALL_SCRIPT) ../scripts/swipl.sh $(DESTDIR)$(PLBASE)/bin/swipl
 	$(INSTALL_SCRIPT) ../scripts/swipl-ld.sh $(DESTDIR)$(PLBASE)/bin/swipl-ld
-	$(INSTALL_SCRIPT) ../scripts/swipl-rc.sh $(DESTDIR)$(PLBASE)/bin/swipl-rc
 	$(INSTALL_DATA) ../scripts/README.LinuxBin $(DESTDIR)$(PLBASE)/README$(TXTEXT)
 
 #
@@ -697,18 +694,18 @@ export: install-lman
 clean:
 		[ ! -f os/windows/Makefile ] || $(MAKE) -C os/windows $@
 		[ ! -f win32/console/Makefile ] || $(MAKE) -C win32/console $@
-		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
+		[ ! -f minizip/Makefile ] || $(MAKE) -C minizip $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.o $(ALLOBJ) os/*.o a.out core *~ #* parms.h
 		rm -rf *.dSYM
 
 profclean:
-		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
+		[ ! -f minizip/Makefile ] || $(MAKE) -C minizip $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.gcda
 
 distclean:	clean profclean
-		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
+		[ ! -f minizip/Makefile ] || $(MAKE) -C minizip $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		[ ! -f ../man/Makefile ] || $(MAKE) -C ../man $@
 		(cd ../src && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih .defatom-sentinel)
