@@ -773,7 +773,7 @@ check_options(Opt) :-
 '$rc_open'(Zipper, Name, read, Stream) :-
     !,
     zip_goto(Zipper, file(Name)),
-    zip_open_current(Zipper, Stream).
+    zip_open_current(Zipper, Stream, [type(binary)]).
 '$rc_open'(Zipper, Name, write, Stream) :-
     zip_open_new_file_in_zip(Zipper, Name, Stream, []).
 

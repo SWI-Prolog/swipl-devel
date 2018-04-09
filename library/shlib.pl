@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2016, University of Amsterdam
+    Copyright (c)  1995-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -137,15 +138,18 @@ predicate defined in C.
 %   file and Delete is unified with =true=.
 
 find_library(Spec, TmpFile, true) :-
-    '$rc_handle'(RC),
+    '$rc_handle'(Zipper),
     term_to_atom(Spec, Name),
     setup_call_cleanup(
-        '$rc_open'(RC, Name, shared, read, In),
+        zip_lock(Zipper),
         setup_call_cleanup(
-            tmp_file_stream(binary, TmpFile, Out),
-            copy_stream_data(In, Out),
-            close(Out)),
-        close(In)),
+            open_foreign_in_resources(Zipper, Name, In),
+            setup_call_cleanup(
+                tmp_file_stream(binary, TmpFile, Out),
+                copy_stream_data(In, Out),
+                close(Out)),
+            close(In)),
+        zip_unlock(Zipper)),
     !.
 find_library(Spec, Lib, false) :-
     absolute_file_name(Spec, Lib,
@@ -162,6 +166,12 @@ find_library(foreign(Spec), Spec, false) :-
     !.                  % use machines finding schema
 find_library(Spec, _, _) :-
     throw(error(existence_error(source_sink, Spec), _)).
+
+open_foreign_in_resources(Zipper, Name, Stream) :-
+    catch(zip_goto(Zipper, file(Name)),
+          error(existence_error(_,_), _),
+          fail),
+    zip_open_current(Zipper, Stream, [type(binary)]).
 
 base(Path, Base) :-
     atomic(Path),
