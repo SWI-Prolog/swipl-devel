@@ -694,18 +694,15 @@ export: install-lman
 clean:
 		[ ! -f os/windows/Makefile ] || $(MAKE) -C os/windows $@
 		[ ! -f win32/console/Makefile ] || $(MAKE) -C win32/console $@
-		[ ! -f minizip/Makefile ] || $(MAKE) -C minizip $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.o $(ALLOBJ) os/*.o a.out core *~ #* parms.h
 		rm -rf *.dSYM
 
 profclean:
-		[ ! -f minizip/Makefile ] || $(MAKE) -C minizip $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.gcda
 
 distclean:	clean profclean
-		[ ! -f minizip/Makefile ] || $(MAKE) -C minizip $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		[ ! -f ../man/Makefile ] || $(MAKE) -C ../man $@
 		(cd ../src && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih .defatom-sentinel)
