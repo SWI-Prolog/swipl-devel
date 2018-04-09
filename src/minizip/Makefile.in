@@ -1,0 +1,44 @@
+################################################################
+# Makefile for the SWI-Prolog resource database
+#
+# Author: Jan Wielemaker
+# E-mail: J.Wielemaker@vu.nl
+#
+# Copying: Simplified BSD
+#
+# Copyright (c) 1996-2018, VU University Amsterdam
+#			   CWI, Amsterdam
+# ###############################################################
+
+srcdir=@srcdir@
+@VPATH@ @srcdir@
+
+CC=@CC@
+EXEEXT = @EXEEXT@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CIFLAGS=@CIFLAGS@
+CMFLAGS=@CMFLAGS@
+CPFLAGS=
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
+
+ZIPOBJS=zip.o unzip.o ioapi.o
+
+all:	$(ZIPOBJS)
+
+.c.o:
+	$(CC) -c -I.. $(CFLAGS) $< @COUTOPT@
+
+################################################################
+# Cleanup
+################################################################
+
+clean:
+	rm -f *% *~ $(ZIPOBJS)
+
+profclean:
+	rm -f *.gcda
+
+distclean: clean profclean
+	rm -f Makefile
+

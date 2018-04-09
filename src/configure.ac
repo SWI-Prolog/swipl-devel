@@ -1016,6 +1016,12 @@ _EOP_
   fi
   rm -rf conftest.*
 
+AC_CHECK_HEADERS(zlib.h zutil.h)
+AC_CHECK_LIB(z, zlibVersion,
+	     LIBS="$LIBS -lz"
+	     ZLIB=yes,
+	     ZLIB=no)
+
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
 AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
@@ -2010,7 +2016,7 @@ echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-OutputFiles="Makefile rc/Makefile libtai/Makefile ../man/Makefile ../man/correctindex swipl.1 swipl.sh swipl.pc"
+OutputFiles="Makefile minizip/Makefile libtai/Makefile ../man/Makefile ../man/correctindex swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
     i386-win32|x64-win64)
