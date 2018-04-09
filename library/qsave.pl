@@ -262,16 +262,16 @@ save_resources(_RC, development) :- !.
 save_resources(RC, _SaveClass) :-
     feedback('~nRESOURCES~n~n', []),
     copy_resources(RC),
-    (   member(Goal, [resource(Name,FileSpec), resource(Name,_,FileSpec)]),
-        forall((   current_predicate(_, M:Goal),
-                   call(M:Goal)
-               ),
-               (   mkrcname(M, Name, RcName),
-                   save_resource(RC, RcName, FileSpec)
-               )),
-        fail
-    ;   true
-    ).
+    forall(declared_resource(Name, FileSpec),
+           save_resource(RC, Name, FileSpec)).
+
+declared_resource(RcName, FileSpec) :-
+    member(Goal, [ resource(Name,FileSpec),
+                   resource(Name,_,FileSpec)
+                 ]),
+    current_predicate(_, M:Goal),
+    call(M:Goal),
+    mkrcname(M, Name, RcName).
 
 mkrcname(user, Name, Name) :- !.
 mkrcname(M, Name, RcName) :-
@@ -300,16 +300,16 @@ copy_resources(ToRC) :-
     '$rc_handle'(FromRC),
     '$rc_members'(FromRC, List),
     (   member(Name, List),
-        \+ user:resource(Name, Class, _),
-        \+ reserved_resource(Name, Class),
+        \+ declared_resource(Name, _),
+        \+ reserved_resource(Name),
         copy_resource(FromRC, ToRC, Name),
         fail
     ;   true
     ).
 
-reserved_resource('$header',    '$rc').
-reserved_resource('$state',     '$prolog').
-reserved_resource('$options',   '$prolog').
+reserved_resource('$header').
+reserved_resource('$prolog/state').
+reserved_resource('$prolog/options.txt').
 
 copy_resource(FromRC, ToRC, Name) :-
     setup_call_cleanup(
@@ -772,6 +772,15 @@ check_options(Opt) :-
     zip_open_current(Zipper, Stream).
 '$rc_open'(Zipper, Name, write, Stream) :-
     zip_open_new_file_in_zip(Zipper, Name, Stream, []).
+
+'$rc_append_file'(Zipper, Name, File) :-
+    setup_call_cleanup(
+        open(File, read, In, [type(binary)]),
+        setup_call_cleanup(
+            zip_open_new_file_in_zip(Zipper, Name, Out, []),
+            copy_stream_data(In, Out),
+            close(Out)),
+        close(In)).
 
 
                  /*******************************
