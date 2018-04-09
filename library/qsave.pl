@@ -215,7 +215,7 @@ doption(home).
 %   fine to avoid a save-script loading itself.
 
 save_options(RC, SaveClass, Options) :-
-    '$rc_open'(RC, '$options', '$prolog', write, Fd),
+    '$rc_open'(RC, '$prolog/options.txt', write, Fd),
     (   doption(OptionName),
             '$cmd_option_val'(OptionName, OptionVal0),
             save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
@@ -307,8 +307,8 @@ copy_resources(ToRC) :-
     ;   true
     ).
 
-reserved_resource('$header').
-reserved_resource('$prolog/state').
+reserved_resource('$prolog/header.sh').
+reserved_resource('$prolog/state.qlf').
 reserved_resource('$prolog/options.txt').
 
 copy_resource(FromRC, ToRC, Name) :-
@@ -782,6 +782,16 @@ check_options(Opt) :-
             close(Out)),
         close(In)).
 
+'$rc_members'(Zipper, Members) :-
+    zip_goto(Zipper, first),
+    zip_members(Zipper, Members).
+
+zip_members(Zipper, [Name|T]) :-
+    zip_file_info(Zipper, Name, _Attrs),
+    (   zip_goto(Zipper, next)
+    ->  zip_members(Zipper, T)
+    ;   T = []
+    ).
 
                  /*******************************
                  *            MESSAGES          *
