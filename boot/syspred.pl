@@ -83,8 +83,7 @@
             nb_setval/2,                        % +Var, +Value
             thread_create/2,                    % :Goal, -Id
             thread_join/1,                      % +Id
-            set_prolog_gc_thread/1,		% +Status
-            zip_file_info/3                     % +Zipper, -Name, -Attrs
+            set_prolog_gc_thread/1		% +Status
           ]).
 
                 /********************************
@@ -1457,20 +1456,3 @@ set_prolog_gc_thread(stop) :- !.
 :- endif.
 set_prolog_gc_thread(Status) :-
     '$domain_error'(gc_thread, Status).
-
-%!  zip_file_info(+Zipper, -Name, -Attrs) is det.
-%
-%   Obtain information about the current zip entry.
-
-zip_file_info(Zipper, Name, Attrs) :-
-    zip_file_info_(Zipper, Name,
-                   info(CompressedSize, UnCompressedSize, Extra, Comment)),
-    Attrs0 = zip{compressed_size:CompressedSize,
-                 uncompressed_size:UnCompressedSize},
-    zip_attr(Extra, extra, Attrs0, Attrs1),
-    zip_attr(Comment, comment, Attrs1, Attrs).
-
-zip_attr("", _, Attrs, Attrs) :- !.
-zip_attr('', _, Attrs, Attrs) :- !.
-zip_attr(Value, Name, Attrs0, Attrs) :-
-    put_dict(Name, Attrs0, Value, Attrs).
