@@ -499,20 +499,42 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
   return FALSE;
 }
 
-/** zip_open_current(+Zipper, -Stream) is det.
+/** zip_open_current(+Zipper, -Stream, +Options) is det.
  *
  *  Open the current file as an input stream
  */
 
+static const opt_spec zipopen3_options[] =
+{ { ATOM_type,		 OPT_ATOM },
+  { ATOM_encoding,	 OPT_ATOM },
+  { NULL_ATOM,	         0 }
+};
+
 static
-PRED_IMPL("zip_open_current", 2, zip_open_current, 0)
-{ zipper *z;
+PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
+{ PRED_LD
+  zipper *z;
+  atom_t type     = ATOM_text;
+  atom_t encoding = NULL_ATOM;
+  int flags       = SIO_INPUT|SIO_RECORDPOS;
+
+  if ( !scan_options(A3, 0, ATOM_stream_option, zipopen3_options,
+		     &type, &encoding) )
+    return FALSE;
+
+  if ( type == ATOM_text )
+  { flags |= SIO_TEXT;
+  } else if ( type != ATOM_binary )
+  { term_t t = PL_new_term_ref();
+    PL_put_atom(t, type);
+    return PL_domain_error("type", t);
+  }
 
   if ( get_zipper(A1, &z) )
   { if ( !z->reader )
       return PL_warning("Not open for reading");
     if ( unzOpenCurrentFile(z->reader) == UNZ_OK )
-    { IOSTREAM *s = Snew(z, SIO_INPUT|SIO_RECORDPOS, &Szipfunctions);
+    { IOSTREAM *s = Snew(z, flags, &Szipfunctions);
 
       if ( s )
 	return PL_unify_stream(A2, s);
@@ -653,7 +675,7 @@ BeginPredDefs(zip)
   PRED_DEF("zip_unlock",	        1, zip_unlock,		     0)
   PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)
   PRED_DEF("zip_goto",			2, zip_goto,		     0)
-  PRED_DEF("zip_open_current",          2, zip_open_current,         0)
+  PRED_DEF("zip_open_current",          3, zip_open_current,         0)
   PRED_DEF("zip_file_info_",            3, zip_file_info,            0)
   PRED_DEF("$rc_handle",		1, rc_handle,		     0)
 EndPredDefs
