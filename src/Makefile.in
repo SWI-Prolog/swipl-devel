@@ -164,7 +164,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
-builddirs=../lib ../lib/$(PLARCH) os
+builddirs=../lib ../lib/$(PLARCH) os minizip
 
 # For reproducible builds
 DATE_FMT = "%b %e %Y"
