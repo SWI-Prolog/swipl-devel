@@ -98,8 +98,9 @@ qsave_program(FileBase, Options0) :-
     ->  delete_file(File)
     ;   true
     ),
-    zip_open(File, write, RC, []),
-    make_header(RC, SaveClass, Options),
+    open(File, write, StateOut, [type(binary)]),
+    make_header(StateOut, SaveClass, Options),
+    zip_open_stream(StateOut, RC, []),
     save_options(RC, SaveClass,
                  [ init_file(InitFile)
                  | Options
@@ -147,15 +148,17 @@ default_init_file(_,       InitFile) :-
                  *           HEADER             *
                  *******************************/
 
-make_header(_RC, _, _Options) :-
-    format(user_error, 'Skipping header~n', []),
-    !.
-make_header(RC, _, Options) :-
+%!  make_header(+Out:stream, +SaveClass, +Options) is det.
+
+make_header(Out, _, Options) :-
     option(emulator(OptVal), Options),
     !,
     absolute_file_name(OptVal, [access(read)], Emulator),
-    '$rc_append_file'(RC, '$header', '$rc', none, Emulator).
-make_header(RC, _, Options) :-
+    setup_call_cleanup(
+        open(Emulator, read, In, [type(binary)]),
+        copy_stream_data(In, Out),
+        close(In)).
+make_header(Out, _, Options) :-
     (   current_prolog_flag(windows, true)
     ->  DefStandAlone = true
     ;   DefStandAlone = false
@@ -163,20 +166,21 @@ make_header(RC, _, Options) :-
     option(stand_alone(true), Options, DefStandAlone),
     !,
     current_prolog_flag(executable, Executable),
-    '$rc_append_file'(RC, '$header', '$rc', none, Executable).
-make_header(RC, SaveClass, _Options) :-
+    setup_call_cleanup(
+        open(Executable, read, In, [type(binary)]),
+        copy_stream_data(In, Out),
+        close(In)).
+make_header(Out, SaveClass, _Options) :-
     current_prolog_flag(unix, true),
     !,
     current_prolog_flag(executable, Executable),
-    '$rc_open'(RC, '$header', '$rc', write, Fd),
-    format(Fd, '#!/bin/sh~n', []),
-    format(Fd, '# SWI-Prolog saved state~n', []),
+    format(Out, '#!/bin/sh~n', []),
+    format(Out, '# SWI-Prolog saved state~n', []),
     (   SaveClass == runtime
     ->  ArgSep = ' -- '
     ;   ArgSep = ' '
     ),
-    format(Fd, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Executable, ArgSep]),
-    close(Fd).
+    format(Out, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Executable, ArgSep]).
 make_header(_, _, _).
 
 
