@@ -109,6 +109,37 @@ static zlib_filefunc64_def zfile_functions =
   NULL						/* opaque */
 };
 
+
+static voidpf
+zopen64_stream(voidpf opaque, const void* stream, int mode)
+{ return (voidpf)stream;
+}
+
+
+static int
+zclose_stream(voidpf opaque, voidpf stream)
+{ IOSTREAM *s = stream;
+  int rc;
+
+  rc = Sflush(s);
+  PL_release_stream(s);
+
+  return rc;
+}
+
+
+static zlib_filefunc64_def zstream_functions =
+{ zopen64_stream,
+  zread_file,
+  zwrite_file,
+  ztell64_file,
+  zseek64_file,
+  zclose_stream,
+  zerror_file,
+  NULL						/* opaque */
+};
+
+
 		 /*******************************
 		 *	   ARCHIVE BLOB		*
 		 *******************************/
@@ -133,6 +164,7 @@ close_zipper(zipper *z)
   unzFile uzf;
   int rc = 0;
   const char *s;
+  IOSTREAM *stream;
 
   if ( (zf=z->writer) )
   { z->writer = NULL;
@@ -145,6 +177,13 @@ close_zipper(zipper *z)
   { z->path = NULL;
     free((void*)s);
   }
+  if ( (stream=z->stream) )
+  { z->stream = NULL;
+    Sclose(z->stream);
+  }
+
+  recursiveMutexDelete(&z->lock);
+
   free(z);
 
   return rc;
@@ -211,50 +250,41 @@ get_zipper(term_t t, zipper **zipper)
 		 *     OPEN CLOSE ARCHIVES	*
 		 *******************************/
 
-/** zip_open(+File, +Mode, -Zip, +Options)
+/** zip_open_stream(+Stream, -Zipper, +Options)
 */
 
 static
-PRED_IMPL("zip_open", 4, zip_open, 0)
-{ PRED_LD
-  char *fname;
-  atom_t mode;
-  int fflags = PL_FILE_OSPATH;
-  zipper *z;
+PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
+{ zipper *z = NULL;
+  IOSTREAM *stream = NULL;
 
-  if ( !PL_get_atom_ex(A2, &mode) )
-    return FALSE;
-  if ( mode == ATOM_read )
-    fflags |= PL_FILE_EXIST;
-  else if ( mode == ATOM_write || mode == ATOM_append )
-    (void)0;
-  else
-    return PL_domain_error("file_mode", A2);
-
-  if ( !PL_get_file_name(A1, &fname, fflags) )
+  if ( !PL_get_stream(A1, &stream, 0) )
     return FALSE;
 
   if ( !(z=malloc(sizeof(*z))) )
     return PL_resource_error("memory");
   memset(z, 0, sizeof(*z));
+  recursiveMutexInit(&z->lock);
 
-  if ( mode == ATOM_write || mode == ATOM_append )
-  { if ( (z->writer=zipOpen2_64(fname, mode == ATOM_append,
+  if ( (stream->flags&SIO_OUTPUT) )
+  { if ( (z->writer=zipOpen2_64(stream, FALSE,
 				NULL,
-				&zfile_functions)) )
-    { return unify_zipper(A3, z);
+				&zstream_functions)) )
+    { return unify_zipper(A2, z);
     } else
     { goto error;
     }
   } else
-  { if ( (z->reader=unzOpen2_64(fname, &zfile_functions)) )
-    { return unify_zipper(A3, z);
+  { if ( (z->reader=unzOpen2_64(stream, &zstream_functions)) )
+    { return unify_zipper(A2, z);
     } else
     { goto error;
     }
   }
 
 error:
+  if ( stream ) PL_release_stream(stream);
+  if ( z ) free(z);
   return PL_warning("zip_open/4 failed");
 }
 
@@ -534,6 +564,7 @@ zip_open_archive(const char *file, int flags)
 
   if ( (r = malloc(sizeof(*r))) )
   { memcpy(r, &z, sizeof(*r));
+    recursiveMutexInit(&r->lock);
     r->path = strdup(file);
   }
 
@@ -589,7 +620,7 @@ SopenZIP(zipper *z, const char *name, int flags)
 		 *******************************/
 
 BeginPredDefs(zip)
-  PRED_DEF("zip_open",			4, zip_open,		     0)
+  PRED_DEF("zip_open_stream",		3, zip_open_stream,	     0)
   PRED_DEF("zip_close",			2, zip_close,		     0)
   PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)
   PRED_DEF("zip_goto",			2, zip_goto,		     0)

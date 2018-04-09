@@ -41,9 +41,11 @@
 #include "minizip/unzip.h"
 
 typedef struct zipper
-{ zipFile writer;
-  unzFile reader;
-  const char *path;
+{ zipFile	 writer;
+  unzFile	 reader;
+  const char    *path;
+  IOSTREAM      *stream;
+  recursiveMutex lock;
 } zipper;
 
 #define RC_RDONLY	0x01
