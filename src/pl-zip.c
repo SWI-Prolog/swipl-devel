@@ -507,6 +507,7 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
 static const opt_spec zipopen3_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_encoding,	 OPT_ATOM },
+  { ATOM_bom,		 OPT_BOOL },
   { NULL_ATOM,	         0 }
 };
 
@@ -516,11 +517,17 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
   zipper *z;
   atom_t type     = ATOM_text;
   atom_t encoding = NULL_ATOM;
+  int	 bom      = -1;
   int flags       = SIO_INPUT|SIO_RECORDPOS;
+  IOENC enc;
 
   if ( !scan_options(A3, 0, ATOM_stream_option, zipopen3_options,
-		     &type, &encoding) )
+		     &type, &encoding, &bom) )
     return FALSE;
+  if ( !stream_encoding_options(type, encoding, &bom, &enc) )
+    return FALSE;
+  if ( bom == -1 )
+    bom = TRUE;
 
   if ( type == ATOM_text )
   { flags |= SIO_TEXT;
@@ -537,7 +544,13 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
     { IOSTREAM *s = Snew(z, flags, &Szipfunctions);
 
       if ( s )
+      { s->encoding = enc;
+
+	if ( bom && ScheckBOM(s) < 0 )
+	  return PL_release_stream(PL_acquire_stream(s));
+
 	return PL_unify_stream(A2, s);
+      }
 
       return PL_resource_error("memory");
     }

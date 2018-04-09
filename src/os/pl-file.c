@@ -3486,6 +3486,45 @@ static const opt_spec open4_options[] =
 };
 
 
+int
+stream_encoding_options(atom_t type, atom_t encoding, int *bom, IOENC *enc)
+{ GET_LD
+
+  if ( encoding != NULL_ATOM )
+  { *enc = atom_to_encoding(encoding);
+
+    if ( *enc == ENC_UNKNOWN )
+      return bad_encoding(NULL, encoding);
+    if ( type == ATOM_binary && *enc != ENC_OCTET )
+      return bad_encoding("type(binary) implies encoding(octet)", encoding);
+
+    switch(*enc)			/* explicitely specified: do not */
+    { case ENC_OCTET:			/* switch to Unicode.  For implicit */
+      case ENC_ASCII:			/* and unicode types we must detect */
+      case ENC_ISO_LATIN_1:		/* and skip the BOM */
+      case ENC_WCHAR:
+	*bom = FALSE;
+        break;
+      default:
+	;
+    }
+  } else if ( type == ATOM_binary )
+  { *enc = ENC_OCTET;
+    bom = FALSE;
+  } else if ( type == ATOM_text )
+  { *enc = LD->encoding;
+  } else
+  { term_t ex;
+
+    return ( (ex = PL_new_term_ref()) &&
+	     PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_type1, PL_ATOM, type) &&
+	     PL_domain_error("stream_option", ex)
+	   );
+  }
+
+  return TRUE;
+}
+
 /* MT: openStream() must be called unlocked */
 
 IOSTREAM *
@@ -3577,41 +3616,8 @@ openStream(term_t file, term_t mode, term_t options)
     *h++ = ((mode >> 0) & 07) + '0';
   }
 
-					/* ENCODING */
-  if ( encoding != NULL_ATOM )
-  { enc = atom_to_encoding(encoding);
-    if ( enc == ENC_UNKNOWN )
-    { bad_encoding(NULL, encoding);
-      return NULL;
-    }
-    if ( type == ATOM_binary && enc != ENC_OCTET )
-    { bad_encoding("type(binary) implies encoding(octet)", encoding);
-      return NULL;
-    }
-    switch(enc)				/* explicitely specified: do not */
-    { case ENC_OCTET:			/* switch to Unicode.  For implicit */
-      case ENC_ASCII:			/* and unicode types we must detect */
-      case ENC_ISO_LATIN_1:		/* and skip the BOM */
-      case ENC_WCHAR:
-	bom = FALSE;
-        break;
-      default:
-	;
-    }
-  } else if ( type == ATOM_binary )
-  { enc = ENC_OCTET;
-    bom = FALSE;
-  } else if ( type == ATOM_text )
-  { enc = LD->encoding;
-  } else
-  { term_t ex;
-
-    if ( (ex = PL_new_term_ref()) &&
-	 PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_type1, PL_ATOM, type) )
-      PL_domain_error("stream_option", ex);
-
+  if ( !stream_encoding_options(type, encoding, &bom, &enc) )
     return NULL;
-  }
 
   if ( bom == -1 )
     bom = (mname == ATOM_read ? TRUE : FALSE);

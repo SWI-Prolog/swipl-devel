@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2013, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -88,5 +89,7 @@ COMMON(int)		closeOutputRedirect(redir_context *ctx);
 COMMON(void)		discardOutputRedirect(redir_context *ctx);
 COMMON(int)		push_input_context(atom_t type);
 COMMON(int)		pop_input_context(void);
+COMMON(int)		stream_encoding_options(atom_t type, atom_t encoding,
+						int *bom, IOENC *enc);
 
 #endif /*PL_FILE_H_INCLUDED*/

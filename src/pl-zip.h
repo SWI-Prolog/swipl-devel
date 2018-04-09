@@ -40,11 +40,18 @@
 #include "minizip/zip.h"
 #include "minizip/unzip.h"
 
+typedef enum zipper_state
+{ ZIP_IDLE = 0,
+  ZIP_SCAN,					/* goto executing */
+  ZIP_ENTRY					/* Entry open */
+} zipper_state;
+
 typedef struct zipper
 { zipFile	 writer;
   unzFile	 reader;
   const char    *path;
   IOSTREAM      *stream;
+  zipper_state	 state;
   recursiveMutex lock;
 } zipper;
 
