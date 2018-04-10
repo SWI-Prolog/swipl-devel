@@ -546,12 +546,29 @@ IOFUNCTIONS Szipfunctions =
 		 *	  HANDLE ENTRIES	*
 		 *******************************/
 
+static void
+zset_time(zip_fileinfo *info, double t)
+{ struct tm rb, *r;
+  tm_zip *tmzip = &info->tmz_date;
+  time_t itime = t;
+
+  r = PL_localtime_r(&itime, &rb);
+  tmzip->tm_sec  = r->tm_sec;
+  tmzip->tm_min  = r->tm_min;
+  tmzip->tm_hour = r->tm_hour;
+  tmzip->tm_mday = r->tm_mday;
+  tmzip->tm_mon  = r->tm_mon ;
+  tmzip->tm_year = r->tm_year;
+}
+
+
 /** zip_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
 */
 
 static const opt_spec zip_new_file_options[] =
 { { ATOM_extra,		    OPT_STRING },
   { ATOM_comment,	    OPT_STRING },
+  { ATOM_time,		    OPT_DOUBLE },
   { NULL_ATOM,		    0 }
 };
 
@@ -565,9 +582,10 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
   char *extra = NULL;
   char *comment = NULL;
   int extralen = 0;
+  double ftime = (double)time(NULL);
 
   if ( !scan_options(A4, 0, ATOM_zip_options, zip_new_file_options,
-		     &extra, &comment) )
+		     &extra, &comment, &ftime) )
     return FALSE;
   if ( extra )
     extralen = strlen(extra);
@@ -578,6 +596,7 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
   { int rc;
     zip_fileinfo zipfi = {0};
 
+    zset_time(&zipfi, ftime);
     rc = zipOpenNewFileInZip4_64(z->writer, fname,
 				 &zipfi,
 				 extra, extralen,
@@ -833,6 +852,7 @@ SopenZIP(zipper *z, const char *name, int flags)
     if ( !zacquire(z, ZIP_WRITE_ENTRY, "new_file") )
       return NULL;
 
+    zset_time(&zipfi, (double)time(NULL));
     rc = zipOpenNewFileInZip4_64(z->writer, name,
 				 &zipfi,
 				 NULL, 0,	/* extrafield local */
