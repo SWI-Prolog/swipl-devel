@@ -34,8 +34,8 @@
 
 :- module(zip,
           [ zip_open/4,                         % +File, +Mode, -Zipper, +Options
-            zip_members/2,                      % +Zipper, -Entries
-            zip_file_info/3                     % +Zipper, -Name, -Attrs
+            zipper_members/2,                   % +Zipper, -Entries
+            zipper_file_info/3                  % +Zipper, -Name, -Attrs
           ]).
 :- use_module(library(error)).
 
@@ -50,7 +50,7 @@ zip_open(File, Mode, Zipper, Options) :-
 %
 %   True when Members is the list of file names in the Zipper.
 
-zip_members(Zipper, Members) :-
+zipper_members(Zipper, Members) :-
     setup_call_cleanup(
         zip_lock(Zipper),
         ( zip_goto(Zipper, first),
@@ -59,17 +59,17 @@ zip_members(Zipper, Members) :-
         zip_unlock(Zipper)).
 
 zip_members_(Zipper, [Name|T]) :-
-    zip_file_info(Zipper, Name, _Attrs),
+    zip_file_info_(Zipper, Name, _Attrs),
     (   zip_goto(Zipper, next)
     ->  zip_members_(Zipper, T)
     ;   T = []
     ).
 
-%!  zip_file_info(+Zipper, -Name, -Attrs) is det.
+%!  zipper_file_info(+Zipper, -Name, -Attrs) is det.
 %
 %   Obtain information about the current zip entry.
 
-zip_file_info(Zipper, Name, Attrs) :-
+zipper_file_info(Zipper, Name, Attrs) :-
     zip_file_info_(Zipper, Name,
                    info(CompressedSize, UnCompressedSize, Extra, Comment)),
     Attrs0 = zip{compressed_size:CompressedSize,

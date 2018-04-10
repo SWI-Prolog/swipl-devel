@@ -302,7 +302,7 @@ save_resource(_, Name, FileSpec) :-
 
 copy_resources(ToRC) :-
     '$rc_handle'(FromRC),
-    zip_members(FromRC, List),
+    zipper_members(FromRC, List),
     (   member(Name, List),
         \+ declared_resource(Name, _),
         \+ reserved_resource(Name),
