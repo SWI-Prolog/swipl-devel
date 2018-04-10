@@ -5389,15 +5389,19 @@ static
 PRED_IMPL("$size_stream", 2, size_stream, 0)
 { GET_LD
   IOSTREAM *s;
-  int rval;
+  int64_t sz;
 
   if ( !PL_get_stream_handle(A1, &s) )
     return FALSE;
+  sz = Ssize(s);
+  if ( !PL_release_stream(s) )
+    return FALSE;
 
-  rval = PL_unify_int64(A2, Ssize(s));
-  PL_release_stream(s);
+  if ( sz >= 0 )
+    return PL_unify_int64(A2, sz);
 
-  return rval;
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  ATOM_reposition, ATOM_stream, A1);
 }
 
 
