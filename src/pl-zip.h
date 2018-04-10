@@ -46,13 +46,20 @@ typedef enum zipper_state
   ZIP_ENTRY					/* Entry open */
 } zipper_state;
 
+/* flags */
+#define ZIP_RELEASE_ON_CLOSE 0x0001
+
 typedef struct zipper
-{ zipFile	 writer;
-  unzFile	 reader;
+{ atom_t	 symbol;			/* <zipper>(address) blob */
+  zipFile	 writer;			/* zip.h zipper */
+  unzFile	 reader;			/* unzip.h unzipper */
   const char    *path;
   IOSTREAM      *stream;
   zipper_state	 state;
-  recursiveMutex lock;
+  unsigned int	 flags;
+  int		 owner;				/* owning thread id */
+  int		 lock_count;			/* times locked */
+  simpleMutex    lock;				/* basic lock */
 } zipper;
 
 #define RC_RDONLY	0x01

@@ -41,6 +41,8 @@
 # define VERSIONMADEBY   (0x0) /* platform dependent */
 #endif
 
+static int  unify_zipper(term_t t, zipper *zipper);
+
 int rc_errno;
 
 char *
@@ -48,6 +50,65 @@ rc_strerror(int eno)
 { return "Unknown resource error";
 }
 
+		 /*******************************
+		 *	     LOCKING		*
+		 *******************************/
+
+static int
+zlock(zipper *z)
+{ int tid = PL_thread_self();
+
+  if ( z->owner != tid )
+  { simpleMutexLock(&z->lock);
+    z->owner = tid;
+    z->lock_count = 1;
+  } else
+  { z->lock_count++;
+  }
+
+  return TRUE;
+}
+
+static int
+zunlock(zipper *z)
+{ int tid = PL_thread_self();
+
+  if ( z->owner == tid )
+  { if ( z->lock_count == 0 )
+    { term_t t;
+
+    error:
+    { GET_LD
+      return ( (t=PL_new_term_ref()) &&
+	       unify_zipper(t, z) &&
+	       PL_permission_error("unlock", "zipper", t)
+	     );
+    }
+    }
+    if ( --z->lock_count == 0 )
+    { z->owner = 0;
+      simpleMutexUnlock(&z->lock);
+    }
+  } else
+  { goto error;
+  }
+
+  return TRUE;
+}
+
+static int
+zacquire(zipper *z, zipper_state state)
+{ z->state = state;
+
+  return TRUE;
+}
+
+static int
+zrelease(zipper *z)
+{ z->state = ZIP_IDLE;
+
+  return TRUE;
+}
 
 		 /*******************************
 		 *  ACCESS ARCHIVES AS STREAMS  *
@@ -155,7 +216,8 @@ write_zipper(IOSTREAM *s, atom_t aref, int flags)
 static void
 acquire_zipper(atom_t aref)
 { zipper *ref = PL_blob_data(aref, NULL, NULL);
-  (void)ref;
+
+  ref->symbol = aref;
 }
 
 static int
@@ -182,7 +244,7 @@ close_zipper(zipper *z)
     Sclose(z->stream);
   }
 
-  recursiveMutexDelete(&z->lock);
+  simpleMutexDelete(&z->lock);
 
   free(z);
 
@@ -228,7 +290,12 @@ static PL_blob_t zipper_blob =
 
 static int
 unify_zipper(term_t t, zipper *zipper)
-{ return PL_unify_blob(t, zipper, sizeof(*zipper), &zipper_blob);
+{ GET_LD
+
+  if ( zipper->symbol )
+    return PL_unify_atom(t, zipper->symbol);
+  else
+    return PL_unify_blob(t, zipper, sizeof(*zipper), &zipper_blob);
 }
 
 static int
@@ -264,7 +331,7 @@ PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
   if ( !(z=malloc(sizeof(*z))) )
     return PL_resource_error("memory");
   memset(z, 0, sizeof(*z));
-  recursiveMutexInit(&z->lock);
+  simpleMutexInit(&z->lock);
 
   if ( (stream->flags&SIO_OUTPUT) )
   { if ( (z->writer=zipOpen2_64(stream, FALSE,
@@ -317,8 +384,7 @@ PRED_IMPL("zip_lock", 1, zip_lock, 0)
 { zipper *z;
 
   if ( get_zipper(A1, &z) )
-  { recursiveMutexLock(&z->lock);
-    return TRUE;
+  { return zlock(z);
   }
 
   return FALSE;
@@ -329,8 +395,7 @@ PRED_IMPL("zip_unlock", 1, zip_unlock, 0)
 { zipper *z;
 
   if ( get_zipper(A1, &z) )
-  { recursiveMutexUnlock(&z->lock);
-    return TRUE;
+  { return zunlock(z);
   }
 
   return FALSE;
@@ -373,6 +438,11 @@ Sclose_zip_entry(void *handle)
     return zipCloseFileInZip(z->writer);
   else if ( z->reader )
     return unzCloseCurrentFile(z->reader);
+
+  if ( true(z, ZIP_RELEASE_ON_CLOSE) )
+    zrelease(z);
+  else
+    z->state = ZIP_IDLE;
 
   return -1;
 }
@@ -462,6 +532,9 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
   if ( get_zipper(A1, &z) )
   { atom_t a;
 
+    if ( !zacquire(z, ZIP_SCAN) )
+      return FALSE;
+
     if ( PL_get_atom(A2, &a) )
     { int rc;
 
@@ -508,6 +581,7 @@ static const opt_spec zipopen3_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
+  { ATOM_release,	 OPT_BOOL },
   { NULL_ATOM,	         0 }
 };
 
@@ -518,11 +592,12 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
   atom_t type     = ATOM_text;
   atom_t encoding = NULL_ATOM;
   int	 bom      = -1;
+  int    release  = FALSE;
   int flags       = SIO_INPUT|SIO_RECORDPOS;
   IOENC enc;
 
   if ( !scan_options(A3, 0, ATOM_stream_option, zipopen3_options,
-		     &type, &encoding, &bom) )
+		     &type, &encoding, &bom, &release) )
     return FALSE;
   if ( !stream_encoding_options(type, encoding, &bom, &enc) )
     return FALSE;
@@ -540,6 +615,12 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
   if ( get_zipper(A1, &z) )
   { if ( !z->reader )
       return PL_warning("Not open for reading");
+
+    if ( !zacquire(z, ZIP_ENTRY) )
+      return FALSE;
+
+    if ( release )
+      set(z, ZIP_RELEASE_ON_CLOSE);
     if ( unzOpenCurrentFile(z->reader) == UNZ_OK )
     { IOSTREAM *s = Snew(z, flags, &Szipfunctions);
 
@@ -626,7 +707,7 @@ zip_open_archive(const char *file, int flags)
 
   if ( (r = malloc(sizeof(*r))) )
   { memcpy(r, &z, sizeof(*r));
-    recursiveMutexInit(&r->lock);
+    simpleMutexInit(&r->lock);
     r->path = strdup(file);
   }
 
