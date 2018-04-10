@@ -43,7 +43,8 @@
 typedef enum zipper_state
 { ZIP_IDLE = 0,
   ZIP_SCAN,					/* goto executing */
-  ZIP_ENTRY					/* Entry open */
+  ZIP_ENTRY,					/* Entry open */
+  ZIP_END = -1					/* end of list */
 } zipper_state;
 
 /* flags */

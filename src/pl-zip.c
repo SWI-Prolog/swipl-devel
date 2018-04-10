@@ -117,9 +117,38 @@ zunlock(zipper *z)
   return TRUE;
 }
 
+typedef struct valid_transition
+{ zipper_state from;
+  zipper_state to;
+} valid_transition;
+
+static const valid_transition valid_transitions[] =
+{ { ZIP_IDLE, ZIP_SCAN  },
+  { ZIP_SCAN, ZIP_ENTRY },
+  { ZIP_END,  ZIP_END   }
+};
+
 static int
-zacquire(zipper *z, zipper_state state)
-{ zown(z);
+zacquire(zipper *z, zipper_state state, const char *action)
+{ const valid_transition *tr;
+
+  zown(z);
+  for(tr = valid_transitions; tr->from != ZIP_END; tr++)
+  { if ( tr->from == z->state &&
+	 tr->to   == state )
+      goto ok;
+  }
+
+  { GET_LD
+    term_t t;
+
+    return ( (t=PL_new_term_ref()) &&
+	     unify_zipper(t, z) &&
+	     PL_permission_error(action, "zipper", t)
+	   );
+  }
+
+ok:
   z->state = state;
 
   return TRUE;
@@ -555,7 +584,7 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
   if ( get_zipper(A1, &z) )
   { atom_t a;
 
-    if ( !zacquire(z, ZIP_SCAN) )
+    if ( !zacquire(z, ZIP_SCAN, "goto") )
       return FALSE;
 
     if ( PL_get_atom(A2, &a) )
@@ -639,7 +668,7 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
   { if ( !z->reader )
       return PL_warning("Not open for reading");
 
-    if ( !zacquire(z, ZIP_ENTRY) )
+    if ( !zacquire(z, ZIP_ENTRY, "open_current") )
       return FALSE;
 
     if ( release )
