@@ -502,12 +502,42 @@ Sclose_zip_entry(void *handle)
   return rc;
 }
 
+static int
+Scontrol_zip_entry(void *handle, int action, void *arg)
+{ zipper *z = handle;
+
+  switch(action)
+  { case SIO_GETSIZE:
+    { if ( z->reader )
+      { unz_file_info64 info;
+
+	if ( unzGetCurrentFileInfo64(z->reader,
+				     &info,
+				     NULL, 0,
+				     NULL, 0,
+				     NULL, 0) == UNZ_OK )
+	{ int64_t *rval = arg;
+	  *rval = info.uncompressed_size;
+	  return 0;
+	}
+	Sdprintf("Failed to get size\n");
+      }
+      return -1;
+    }
+    case SIO_FLUSHOUTPUT:
+    case SIO_SETENCODING:
+      return 0;
+    default:
+      return -1;
+  }
+}
+
 IOFUNCTIONS Szipfunctions =
 { Sread_zip_entry,
   Swrite_zip_entry,
   NULL,						/* seek */
   Sclose_zip_entry,
-  NULL,						/* control */
+  Scontrol_zip_entry,				/* control */
   NULL						/* seek64 */
 };
 
