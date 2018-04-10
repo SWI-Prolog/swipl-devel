@@ -123,10 +123,11 @@ typedef struct valid_transition
 } valid_transition;
 
 static const valid_transition valid_transitions[] =
-{ { ZIP_IDLE, ZIP_SCAN  },
-  { ZIP_SCAN, ZIP_SCAN  },
-  { ZIP_SCAN, ZIP_ENTRY },
-  { ZIP_END,  ZIP_END   }
+{ { ZIP_IDLE, ZIP_SCAN        },
+  { ZIP_SCAN, ZIP_SCAN        },
+  { ZIP_SCAN, ZIP_READ_ENTRY  },
+  { ZIP_IDLE, ZIP_WRITE_ENTRY },
+  { ZIP_END,  ZIP_END         }
 };
 
 static int
@@ -486,18 +487,19 @@ Swrite_zip_entry(void *handle, char *buf, size_t size)
 static int
 Sclose_zip_entry(void *handle)
 { zipper *z = handle;
+  int rc = -1;
 
   if ( z->writer )
-    return zipCloseFileInZip(z->writer);
+    rc = zipCloseFileInZip(z->writer);
   else if ( z->reader )
-    return unzCloseCurrentFile(z->reader);
+    rc = unzCloseCurrentFile(z->reader);
 
   if ( true(z, ZIP_RELEASE_ON_CLOSE) )
     zrelease(z);
   else
     z->state = ZIP_IDLE;
 
-  return -1;
+  return rc;
 }
 
 IOFUNCTIONS Szipfunctions =
@@ -541,7 +543,8 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
     extralen = strlen(extra);
 
   if ( get_zipper(A1, &z) &&
-       PL_get_chars(A2, &fname, flags))
+       PL_get_chars(A2, &fname, flags) &&
+       zacquire(z, ZIP_WRITE_ENTRY, "new_file") )
   { int rc;
     zip_fileinfo zipfi = {0};
 
@@ -561,11 +564,14 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
 				 VERSIONMADEBY,	/* versionMadeBy */
 				 0,		/* flagBase */
 				 FALSE);	/* zip64 */
+
     if ( rc == 0 )
     { IOSTREAM *s = Snew(z, SIO_OUTPUT, &Szipfunctions);
 
       if ( s )
+      { set(z, ZIP_RELEASE_ON_CLOSE);
 	return PL_unify_stream(A3, s);
+      }
     }
   }
 
@@ -601,7 +607,9 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
       if ( rc == UNZ_OK )
 	return TRUE;
       if ( rc == UNZ_END_OF_LIST_OF_FILE )
+      { zrelease(z);
 	return FALSE;
+      }
       assert(0);
     } else if ( PL_is_functor(A2, FUNCTOR_file1) )
     { term_t arg = PL_new_term_ref();
@@ -614,6 +622,7 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
 	{ case UNZ_OK:
 	    return TRUE;
 	  default:
+	    zrelease(z);
 	    return PL_existence_error("zip_entry", arg);
 	}
       }
@@ -669,7 +678,7 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
   { if ( !z->reader )
       return PL_warning("Not open for reading");
 
-    if ( !zacquire(z, ZIP_ENTRY, "open_current") )
+    if ( !zacquire(z, ZIP_READ_ENTRY, "open_current") )
       return FALSE;
 
     if ( release )
@@ -780,12 +789,19 @@ zip_close_archive(zipper *z)
 IOSTREAM *
 SopenZIP(zipper *z, const char *name, int flags)
 { if ( z->reader )
-  { if ( unzLocateFile(z->reader, name, TRUE) == UNZ_OK &&
+  { if ( zacquire(z, ZIP_SCAN, "goto") &&
+	 unzLocateFile(z->reader, name, TRUE) == UNZ_OK &&
+	 zacquire(z, ZIP_READ_ENTRY, "open_current") &&
 	 unzOpenCurrentFile(z->reader) == UNZ_OK )
+    { set(z, ZIP_RELEASE_ON_CLOSE);
       return Snew(z, SIO_INPUT, &Szipfunctions);
+    }
   } else
   { int rc;
     zip_fileinfo zipfi = {0};
+
+    if ( !zacquire(z, ZIP_WRITE_ENTRY, "new_file") )
+      return NULL;
 
     rc = zipOpenNewFileInZip4_64(z->writer, name,
 				 &zipfi,
@@ -804,7 +820,9 @@ SopenZIP(zipper *z, const char *name, int flags)
 				 0,		/* flagBase */
 				 FALSE);	/* zip64 */
     if ( rc == 0 )
+    { set(z, ZIP_RELEASE_ON_CLOSE);
       return Snew(z, SIO_OUTPUT, &Szipfunctions);
+    }
   }
 
   return NULL;
