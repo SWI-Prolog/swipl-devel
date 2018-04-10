@@ -562,6 +562,22 @@ zset_time(zip_fileinfo *info, double t)
 }
 
 
+static double
+zget_time(const unz_file_info64 *info)
+{ const tm_unz *tmzip = &info->tmu_date;
+  struct tm tm = {0};
+
+  tm.tm_sec   = tmzip->tm_sec;
+  tm.tm_min   = tmzip->tm_min;
+  tm.tm_hour  = tmzip->tm_hour;
+  tm.tm_mday  = tmzip->tm_mday;
+  tm.tm_mon   = tmzip->tm_mon ;
+  tm.tm_year  = tmzip->tm_year - 1900;
+  tm.tm_isdst = -1;
+
+  return (double)mktime(&tm);
+}
+
 /** zip_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
 */
 
@@ -774,11 +790,12 @@ PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
 				 extra, sizeof(extra),
 				 comment, sizeof(comment)) == UNZ_OK )
     { return ( PL_unify_chars(A2, PL_ATOM|REP_UTF8, (size_t)-1, fname) &&
-	       PL_unify_term(A3, PL_FUNCTOR_CHARS, "info", 4,
+	       PL_unify_term(A3, PL_FUNCTOR_CHARS, "info", 5,
 			       PL_INT64, (int64_t)info.compressed_size,
 			       PL_INT64, (int64_t)info.uncompressed_size,
 			       PL_UTF8_CHARS, extra,
-			       PL_UTF8_STRING, comment) );
+			       PL_UTF8_STRING, comment,
+			       PL_DOUBLE, zget_time(&info)) );
     }
   }
 

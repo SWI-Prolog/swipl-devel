@@ -79,11 +79,14 @@ zip_members_(Zipper, [Name|T]) :-
 
 zipper_file_info(Zipper, Name, Attrs) :-
     zip_file_info_(Zipper, Name,
-                   info(CompressedSize, UnCompressedSize, Extra, Comment)),
+                   info(CompressedSize, UnCompressedSize,
+                        Extra, Comment,
+                        Time)),
     Attrs0 = zip{compressed_size:CompressedSize,
                  uncompressed_size:UnCompressedSize},
-    zip_attr(Extra, extra, Attrs0, Attrs1),
-    zip_attr(Comment, comment, Attrs1, Attrs).
+    zip_attr(Extra,   extra,   Attrs0, Attrs1),
+    zip_attr(Comment, comment, Attrs1, Attrs2),
+    zip_attr(Time,    time,    Attrs2, Attrs).
 
 zip_attr("", _, Attrs, Attrs) :- !.
 zip_attr('', _, Attrs, Attrs) :- !.
