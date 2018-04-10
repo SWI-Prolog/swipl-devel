@@ -34,6 +34,7 @@
 
 :- module(zip,
           [ zip_open/4,                         % +File, +Mode, -Zipper, +Options
+            zip_close/1,                        % +Zipper
             zipper_members/2,                   % +Zipper, -Entries
             zipper_file_info/3                  % +Zipper, -Name, -Attrs
           ]).
@@ -45,6 +46,13 @@ zip_open(File, Mode, Zipper, Options) :-
     must_be(oneof([read,write]), Mode),
     open(File, Mode, Stream, [type(binary)]),
     zip_open_stream(Stream, Zipper, Options).
+
+%!  zip_close(+Zipper) is det.
+%
+%   Close a zipper.
+
+zip_close(Zipper) :-
+    zip_close(Zipper, _).
 
 %!  zip_members(+Zipper, -Members:list(atom)) is det.
 %
