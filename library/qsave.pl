@@ -668,7 +668,7 @@ save_foreign_libraries(RC, Options) :-
     forall(current_foreign_library(FileSpec, _Predicates),
            ( find_foreign_library(FileSpec, File),
              term_to_atom(FileSpec, Name),
-             '$rc_append_file'(RC, Name, shared, none, File)
+             '$rc_append_file'(RC, Name, File)
            )).
 save_foreign_libraries(_, _).
 
