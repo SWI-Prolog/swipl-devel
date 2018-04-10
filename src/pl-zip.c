@@ -124,6 +124,7 @@ typedef struct valid_transition
 
 static const valid_transition valid_transitions[] =
 { { ZIP_IDLE, ZIP_SCAN  },
+  { ZIP_SCAN, ZIP_SCAN  },
   { ZIP_SCAN, ZIP_ENTRY },
   { ZIP_END,  ZIP_END   }
 };
@@ -644,7 +645,7 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
   atom_t type     = ATOM_text;
   atom_t encoding = NULL_ATOM;
   int	 bom      = -1;
-  int    release  = FALSE;
+  int    release  = TRUE;
   int flags       = SIO_INPUT|SIO_RECORDPOS;
   IOENC enc;
 
