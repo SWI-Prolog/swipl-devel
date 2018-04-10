@@ -4586,25 +4586,23 @@ PL_open_resource(Module m,
   static predicate_t MTOK_pred;
   term_t t0;
 
+  (void)rc_class;
+
   if ( !m )
     m = MODULE_user;
-
   if ( !MTOK_pred )
-    MTOK_pred = PL_predicate("open_resource", 4, "system");
+    MTOK_pred = PL_predicate("c_open_resource", 3, "$rc");
 
   if ( !(fid = PL_open_foreign_frame()) )
   { errno = ENOENT;
     return s;
   }
-  t0 = PL_new_term_refs(4);
+  t0 = PL_new_term_refs(3);
   PL_put_atom_chars(t0+0, name);
-
-  if ( rc_class )
-    PL_put_atom_chars(t0+1, rc_class);
-  PL_put_atom_chars(t0+2, mode[0] == 'r' ? "read" : "write");
+  PL_put_atom_chars(t0+1, mode);
 
   if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) ||
-       !PL_get_stream_handle(t0+3, &s) )
+       !PL_get_stream_handle(t0+2, &s) )
     errno = ENOENT;
 
   PL_discard_foreign_frame(fid);

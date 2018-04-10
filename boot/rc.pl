@@ -42,7 +42,7 @@
 :- meta_predicate
     open_resource(:, -),
     open_resource(:, -, +),
-    current_resource(:, ?, ?).
+    current_resource(:, ?).
 
 :- dynamic
     user:resource/2,
@@ -92,3 +92,28 @@ current_resource(M:Name, File) :-
     ;   current_predicate(M:resource/3),
         M:resource(Name, _Class, File)
     ).
+
+%!  c_open_resource(:Name, +Mode, -Stream)
+%
+%   Callback for PL_open_resource().
+
+:- public c_open_resource/3.
+:- meta_predicate c_open_resource(:, +, -).
+
+c_open_resource(Name, Mode, Stream) :-
+    atom_chars(Mode, Chars),
+    (   Chars = [r|MChars]
+    ->  mode_options(MChars, Options),
+        open_resource(Name, Stream, Options)
+    ;   '$domain_error'(open_resource_mode, Mode)
+    ).
+
+mode_options([], []).
+mode_options([t|Chars], [type(text)|T]) :-
+    !,
+    mode_options(Chars, T).
+mode_options([b|Chars], [type(binary)|T]) :-
+    !,
+    mode_options(Chars, T).
+mode_options([_|Chars], T) :-
+    mode_options(Chars, T).
