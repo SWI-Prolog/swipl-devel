@@ -54,6 +54,27 @@ rc_strerror(int eno)
 		 *	     LOCKING		*
 		 *******************************/
 
+static void
+zown(zipper *z)
+{ int tid = PL_thread_self();
+
+  if ( z->owner != tid )
+  { simpleMutexLock(&z->lock);
+    z->owner = tid;
+  }
+}
+
+static void
+zdisown(zipper *z)
+{ int tid = PL_thread_self();
+
+  assert(z->owner == tid);
+  if ( z->lock_count == 0 )
+  { z->owner = 0;
+    simpleMutexUnlock(&z->lock);
+  }
+}
+
 static int
 zlock(zipper *z)
 { int tid = PL_thread_self();
@@ -98,7 +119,8 @@ zunlock(zipper *z)
 
 static int
 zacquire(zipper *z, zipper_state state)
-{ z->state = state;
+{ zown(z);
+  z->state = state;
 
   return TRUE;
 }
@@ -106,6 +128,7 @@ zacquire(zipper *z, zipper_state state)
 static int
 zrelease(zipper *z)
 { z->state = ZIP_IDLE;
+  zdisown(z);
 
   return TRUE;
 }
