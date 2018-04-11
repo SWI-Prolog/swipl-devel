@@ -35,12 +35,24 @@
 :- module(zip,
           [ zip_open/4,                         % +File, +Mode, -Zipper, +Options
             zip_close/1,                        % +Zipper
+            zip_close/2,                        % +Zipper, +Comment
+            zip_open_new_file_in_zip/4,         % +Zipper, +File, -Stream, +Options
+            zip_open_current/3,                 % +Zipper, -Stream, +Options
             zipper_members/2,                   % +Zipper, -Entries
             zipper_file_info/3                  % +Zipper, -Name, -Attrs
           ]).
 :- use_module(library(error)).
 
+/** <module> Access resource ZIP archives
+
+This library provides access to ZIP files. ZIP files are used to store
+SWI-Prolog _resources_.
+*/
+
 %!  zip_open(+File, +Mode, -Zipper, +Options) is det.
+%
+%   Create a Zipper, providing access to File.  Mode is one of `read` or
+%   `write`. The Options list is currently ignored.
 
 zip_open(File, Mode, Zipper, Options) :-
     must_be(oneof([read,write]), Mode),
@@ -48,8 +60,10 @@ zip_open(File, Mode, Zipper, Options) :-
     zip_open_stream(Stream, Zipper, Options).
 
 %!  zip_close(+Zipper) is det.
+%!  zip_close(+Zipper, +Comment) is det.
 %
-%   Close a zipper.
+%   Close a zipper. The zip_close/2 variant  sets the global comment for
+%   the zip file if it was opened in write mode.
 
 zip_close(Zipper) :-
     zip_close(Zipper, _).
