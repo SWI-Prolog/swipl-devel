@@ -23,10 +23,8 @@ chapter, together with the installed development system and disable
 qsave_program/2. This allows creating the application as a single file,
 while avoiding most of the complications associated with saved states.
 This mechanism is particuarly suitable for in-house and cloud
-deployment. It provides some protection against inspecting the source as
-layout, variable names and comments are not available from the state.
-Prolog code without meaningful variable names and comments is generally
-hard to follow.
+deployment. It provides some protection against inspecting the source.
+See \secref{protect-code} for details.
 
 The final solution is to make sure all required resources are present in
 the saved state. In this case the state may be added to the
@@ -373,7 +371,6 @@ thus immediately affecting the running environment, while the runtime
 system quickly accesses the system resources.
 \end{description}
 
-
 \subsection{Managing resource files}
 \label{sec:swiplrc}
 
@@ -382,6 +379,83 @@ creates and accesses its resource files using the
 \href{http://www.winimage.com/zLibDll/minizip.html}{minizip} project.
 The resource files may be examined and modified using any tool that can
 process zip files.
+
+\section{Debugging and updating deployed systems}
+\label{sec:debug-deployed-systems}
+
+SWI-Prolog provides several facilities to debug and update running
+(server) applications.  The core to these facilities are:
+
+\begin{itemize}
+    \item Hot-swap recompilation (\secref{loadrunningcode} and the library
+\pllib{hotswap}) allow, with some limitation, making modifications to
+running services. This includes adding debugging and logging statements.
+
+    \item To make this useful some form of interaction is required. This
+can be implemented using signal handlers (Unix), specific HTTP services,
+generic HTTP services (e.g., \href{https://swish.swi-prolog.org}{SWISH})
+or networked interaction using the library \pllib{prolog_server} that
+allow interaction using netcat (\program{nc}) or \program{telnet}.
+\end{itemize}
+
+
+\section{Protecting your code}
+\label{sec:protect-code}
+
+Prolog in general, but SWI-Prolog in particular is an transparent
+environment. Prolog's ``code is data'' point of view makes this natural
+as it simplifies development and debugging.  Some users though want or
+need to protect their code against copying or reverse engineering.
+
+There are three ways to distribute code: as source, as \fileext{qlf}
+file and in a saved state.  Both QLF files and saved states contain the
+code as \jargon{virtual machine code}. QLF files capture the predicates
+and directives, while saved state capture the current state of the
+program. From the viewpoint of protecting code there is no significant
+difference.
+
+There are two aspects to protection. One is to make sure the attacker
+has no access to the code in any format and the other is to provide
+access to a non-human-readable version of the code. The second approach
+is known as code obfuscation. Code obfuscation typically remove layout
+and comments and rename all internal identifiers. If an attacker gets
+access to the SWI-Prolog virtual machine code this can be
+\jargon{decompiled}. The decompiled code does not include layout
+information variable names and comments. Other identifiers, notably
+predicate and module names are maintained. This provides some protection
+against understanding the source as Prolog code without meaningful
+variable names and comments is generally hard to follow.
+
+For further protecting the code, there are several scenarios.
+
+\begin{itemize}
+    \item If the user has unrestricted access to the file system on
+which the application is installed the user can always
+access the state or QLF file. This data can be loaded into a
+compatible emulator and be \jargon{decompiled}.
+
+    \item If the user can run arbitrary Prolog code or shell commands
+the state can be protected by embedding it as a string in the
+executable deny read access to the executable.  This requires a
+small C~program that includes the string and uses
+PL_set_resource_db_mem() to register the string as the resource
+database.  See PL_set_resource_db_mem() for details.  This protection
+should be combined with the \prologflag{protect_static_code} described
+below.
+
+    \item Some extra protection can be provided using the Prolog
+flag \prologflag{protect_static_code}, which disables decompilation of
+\jargon{static} predicates. Note that most Prolog implementations cannot
+decompile static code. Various SWI-Prolog tools depend on this
+ability though. Examples are list_undefined/0, autoload/0,
+show_coverage/1, etc.
+\end{itemize}
+
+Future versions may provide predicate name obfuscation for saved states
+and/or exploit the encryption facility of ZIP archives. Please contact
+the developers if you want to help with code or financial resources to
+make this happen.
+
 
 \section{Finding Application files}	\label{sec:findappfile}
 
