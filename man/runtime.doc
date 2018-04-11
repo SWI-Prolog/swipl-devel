@@ -38,12 +38,16 @@ creates a truely single file executable.
 \section{Understanding saved states}
 \label{sec:saved-states}
 
-A SWI-Prolog \jargon{saved state} is the \jargon{resource archive}, that
-contains the compiled program in a machine-independent format, startup
-options optionally shared objects/DLLs and possibly user-defined
-\jargon{resources}. As of version 7.7.3, the resource archive format is
-ZIP. A resource file is normally \textbf{created} using the commandline
-option \cmdlineoption{-c}:
+A SWI-Prolog \jargon{saved state} is a \jargon{resource archive} that
+contains the compiled program in a machine-independent
+format,\footnote{Although the compiled code is independent from the CPU
+and operating system, 32-bit compiled code does not run on the 64-bit
+emulator, nor the other way around. Conditionally compiled code (see
+if/1) may also reduce platform independence.} startup options optionally
+shared objects/DLLs and possibly user-defined \jargon{resources}. As of
+version 7.7.3, the resource archive format is ZIP. A resource file is
+normally \textbf{created} using the commandline option
+\cmdlineoption{-c}:
 
 \begin{code}
 swipl -o mystate option ... -c file.pl ...
@@ -63,9 +67,9 @@ swipl -x mystate app-arg ...
 Saved states may have an arbitrary payload at the \emph{start}. This
 allows combining a (shell) script or the emulator with the state to turn
 the state into a single file executable. By default a state starts with
-a shell script (Unix) or the emulator (Windows)\footnote{As the default
+a shell script (Unix) or the emulator (Windows).\footnote{As the default
 emulator is a short program while the true emulator is in a DLL this
-keeps the state short.}. The options \term{emulator}{File} and
+keeps the state short.} The options \term{emulator}{File} and
 \term{stand_alone}{Bool} control what is added at the start of the
 state.
 
@@ -80,14 +84,19 @@ states are commonly created from the commandline using the
 swipl -o mystate --foreign=save -c load.pl
 \end{code}
 
+The description of qsave_program/2 provides background information and
+the options available to control saved state creation.
+
 \begin{description}
     \predicate{qsave_program}{2}{+File, +Options}
-Saves the current state of the program to the file \arg{File}.  The
-result is a resource archive containing a saved state that expresses
-all Prolog data from the running program and all user-defined resources.
-Depending on the \const{stand_alone} option, the resource is headed by
-the emulator, a Unix shell script or nothing.  \arg{Options} is a list
-of additional options:
+Saves the current state of the program to the file \arg{File}. The
+result is a resource archive \arg{File} containing expresses all Prolog
+data from the running program, all user-defined resources (see
+resource/2 and open_resource/2) and optionally all shared objects/DLLs
+required by the program for the current architecture. Depending on the
+\const{stand_alone} option, the resource is headed by the emulator, a
+Unix shell script or nothing. \arg{Options} is a list of additional
+options:
 
     \begin{description}
 	\termitem{local}{+KBytes}
@@ -107,7 +116,7 @@ Default initialization file for the new executable. See
 If \const{runtime}, only read resources from the state (default). If
 \const{kernel}, lock all predicates as system predicates. If
 \const{development}, save the predicates in their current state and keep
-reading resources from their source (if present). See also resource/3.
+reading resources from their source (if present). See also resource/2.
 	\termitem{autoload}{+Boolean}
 If \const{true} (default), run autoload/0 first.
 	\termitem{map}{+File}
@@ -117,10 +126,10 @@ One of \const{save} (default) to save the current operator table
 or \const{standard} to use the initial table of the emulator.
 	\termitem{stand_alone}{+Boolean}
 If \const{true}, the emulator is the first part of the state. If the
-emulator is started it will test whether a boot file (state) is attached
-to the emulator itself and load this state. Provided the application has
+emulator is started it tests whether a saved state is attached
+to itself and load this state. Provided the application has
 all libraries loaded, the resulting executable is completely independent
-of the runtime environment or location where it was built. See also
+from the runtime environment or location where it was built. See also
 \secref{cmdlinecomp}.
 	\termitem{emulator}{+File}
 File to use for the emulator.  Default is the running Prolog image.
@@ -196,7 +205,7 @@ the current session from being saved in the state file.
 \end{description}
 
 
-\section{Limitations of qsave_program}
+\subsection{Limitations of qsave_program}
 \label{sec:qsavelimits}
 
 There are three areas that require special attention when using
@@ -228,7 +237,7 @@ to do so result in a warning.
 \end{itemize}
 
 
-\section{Runtimes and Foreign Code}	\label{sec:qsaveforeign}
+\subsection{Runtimes and Foreign Code}	\label{sec:qsaveforeign}
 \label{sec:qforeign}
 
 Many applications use packages that include foreign language components
@@ -369,32 +378,15 @@ system quickly accesses the system resources.
 \label{sec:swiplrc}
 
 As of version 7.7.13, SWI-Prolog resource files are zip(1) files. Prolog
-creates and accesses its resource files using the \HREF{minizip}{}
-project. The resource files may be examined and modified using any tool
-that can process zip files.
+creates and accesses its resource files using the
+\href{http://www.winimage.com/zLibDll/minizip.html}{minizip} project.
+The resource files may be examined and modified using any tool that can
+process zip files.
 
 \section{Finding Application files}	\label{sec:findappfile}
 
 If your application uses files that are not part of the saved program
 such as database files, configuration files, etc., the runtime version
 has to be able to locate these files. The file_search_path/2 mechanism
-in combination with the \cmdlineoption{-p}{alias} command line argument
-provides a flexible mechanism for locating runtime files.
-
-\subsection{Specifying a file search path from the command line}
-\label{sec:runtime-file-search-path}
-
-Suppose the system administrator has installed the SWI-Prolog runtime
-environment in \file{/usr/local/lib/rt-pl-3.2.0}. A user wants to
-install \file{gnat}, but \file{gnat} will look for its configuration in
-\file{/usr/local/lib/rt-pl-3.2.0/gnat} where the user cannot write.
-
-The user decides to install the \file{gnat} runtime files in
-\file{/users/bob/lib/gnat}.  For one-time usage, the user may decide
-to start \file{gnat} using the command:
-
-\begin{code}
-% gnat -p gnatdir=/users/bob/lib/gnat
-\end{code}
-
-% do not remove
+in combination with the \cmdlineoption{-p} \arg{alias} command line
+argument provides a flexible mechanism for locating runtime files.
