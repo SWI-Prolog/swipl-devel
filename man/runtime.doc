@@ -1,26 +1,84 @@
-\chapter{Generating Runtime Applications}	\label{sec:runtime}
+\chapter{Deploying applications}	\label{sec:runtime}
 
 This chapter describes the features of SWI-Prolog for delivering
-applications that can run without the development version of the
-system installed.
+applications using \jargon{saved states}.
 
-A SWI-Prolog runtime executable is a file consisting of two parts.  The
-first part is the \jargon{emulator}, which is machine-dependent. The
-second part is the \jargon{resource archive}, which contains the
-compiled program in a machine-independent format, startup options
-and possibly user-defined \jargon{resources}; see resource/3 and
-open_resource/3.
+\section{Deployment options}
+\label{sec:deployment-options}
 
-These two parts can be connected in various ways. The most
-common way for distributed runtime applications is to \emph{concatenate}
-the two parts. This can be achieved using external commands (Unix:
-\program{cat}, Windows: \program{copy}), or using the
-\const{stand_alone} option to qsave_program/2. The second option is to
-attach a startup script in front of the resource that starts the
-emulator with the proper options. This is the default under Unix.
-Finally, an emulator can be told to use a specified resource file
-using the \cmdlineoption{-x}{} command line switch.
+There are several ways to make a Prolog application available to your
+users. By far the easiest way is to require the user to install
+SWI-Prolog and deliver the application as a directory holding source
+files, other resources the application may need and a \jargon{Prolog
+Script} file that provides the executable. See \secref{plscript}. The
+two-step installation may be slightly less convenient for the end user,
+but enables the end-user to conveneintly run your program on a different
+operating system or architecture. This mechanism is obviously not
+suitable if you want to keep the source of your program secret.
 
+Another solution is to use \jargon{saved states}, the main topic of this
+chapter, together with the installed development system and disable
+\jargon{autoloading} requirements into the state using
+\cmdlineoption{--autoload=false} or the \term{autoload}{false} option of
+qsave_program/2. This allows creating the application as a single file,
+while avoiding most of the complications associated with saved states.
+This mechanism is particuarly suitable for in-house and cloud
+deployment. It provides some protection against inspecting the source as
+layout, variable names and comments are not available from the state.
+Prolog code without meaningful variable names and comments is generally
+hard to follow.
+
+The final solution is to make sure all required resources are present in
+the saved state. In this case the state may be added to the
+\jargon{emulator} and the application consists of the emulator with
+state and the shared objects/DLLs required to make the emulator work. If
+the emulator can be statically linked for the target platform this
+creates a truely single file executable.
+
+\section{Understanding saved states}
+\label{sec:saved-states}
+
+A SWI-Prolog \jargon{saved state} is the \jargon{resource archive}, that
+contains the compiled program in a machine-independent format, startup
+options optionally shared objects/DLLs and possibly user-defined
+\jargon{resources}. As of version 7.7.3, the resource archive format is
+ZIP. A resource file is normally \textbf{created} using the commandline
+option \cmdlineoption{-c}:
+
+\begin{code}
+swipl -o mystate option ... -c file.pl ...
+\end{code}
+
+The above causes SWI-Prolog to load the given Prolog files and call
+qsave_program/2 using options created from the \textit{option \ldots} in
+the command above.
+
+A saved state may be \textbf{executed} in several ways. The basic
+mechanism is to use the \cmdlineoption{-x}:
+
+\begin{code}
+swipl -x mystate app-arg ...
+\end{code}
+
+Saved states may have an arbitrary payload at the \emph{start}. This
+allows combining a (shell) script or the emulator with the state to turn
+the state into a single file executable. By default a state starts with
+a shell script (Unix) or the emulator (Windows)\footnote{As the default
+emulator is a short program while the true emulator is in a DLL this
+keeps the state short.}. The options \term{emulator}{File} and
+\term{stand_alone}{Bool} control what is added at the start of the
+state.
+
+\subsection{Creating a saved state}
+\label{sec:create-saved-state}
+
+The predicates in this section support creating a saved state. Note that
+states are commonly created from the commandline using the
+\cmdlineoption{-c}, for example:
+
+\begin{code}
+swipl -o mystate --foreign=save -c load.pl
+\end{code}
 
 \begin{description}
     \predicate{qsave_program}{2}{+File, +Options}
@@ -138,7 +196,8 @@ the current session from being saved in the state file.
 \end{description}
 
 
-\section{Limitations of qsave_program}	\label{sec:qsavelimits}
+\section{Limitations of qsave_program}
+\label{sec:qsavelimits}
 
 There are three areas that require special attention when using
 qsave_program/[1,2].
@@ -151,82 +210,56 @@ foreign context. See \secref{qforeign} for details.
 
     \item
 If the program uses directives (\exam{:- goal.} lines) that perform
-other actions than setting predicate attributes (dynamic, volatile,
-etc.) or loading files (consult, etc.), the directive may need to be
-prefixed with initialization/1.
+other actions than setting predicate attributes (dynamic/1, volatile/1,
+etc.) or loading files (use_module/1, etc.). Goals that need to be
+executed when the state is started must use initialization/1 (ISO
+standard) or initialization/2 (SWI extension that provides more control
+over when the goal is executed). For example, initialization/2 can be
+used to start the application:
+
+\begin{code}
+:- initialization(go, main).
+\end{code}
 
     \item
-Database references as returned by clause/3, recorded/3, etc.,
-are not preserved and may thus not be part of the database when saved.
+Database references as returned by clause/3, recorded/3, etc., are not
+preserved and may thus not be part of the database when saved. Attempts
+to do so result in a warning.
 \end{itemize}
 
 
 \section{Runtimes and Foreign Code}	\label{sec:qsaveforeign}
-
 \label{sec:qforeign}
-Some applications may need to use the foreign language interface.
-Object code is by definition machine-dependent and thus cannot be
-part of the saved program file.
 
-To complicate the matter even further there are various ways of
-loading foreign code:
-
-\begin{itemlist}
-    \item [Using the library(shlib) predicates]
-This is the preferred way of dealing with foreign code. It loads quickly
-and ensures an acceptable level of independence between the versions of
-the emulator and the foreign code loaded.  It works on Unix machines
-supporting shared libraries and library functions to load them.  Most
-modern Unixes, as well as Win32 (Windows 95/NT), satisfy this constraint.
-    \item [Static linking]
-This mechanism works on all machines, but generally requires the same
-C compiler and linker to be used for the external code as is used to
-build SWI-Prolog itself.
-\end{itemlist}
-
-To make a runtime executable that can run on multiple platforms one
-must make runtime checks to find the correct way of linking.  Suppose
-we have a source file \file{myextension.c} defining the installation
-function install().
-
-If this file is compiled into a shared library, load_foreign_library/1
-will load this library and call the installation function to initialise
-the foreign code. If it is loaded as a static extension, define
-install() as the predicate \nopredref{install}{0}:
+Many applications use packages that include foreign language components
+compiled to shared objects or DLLs. This code is normally loaded using
+use_foreign_library/1 and the \const{foreign} file search path.  Below
+is an example from the \file{socket} library.
 
 \begin{code}
-static foreign_t
-pl_install()
-{ install();
-
-  PL_succeed;
-}
-
-PL_extension PL_extensions [] =
-{
-/*{ "name",     arity,  function,       PL_FA_<flags> },*/
-
-  { "install",  0,      pl_install,     0 },
-  { NULL,       0,      NULL,           0 } /* terminating line */
-};
+:- use_foreign_library(foreign(socket)).
 \end{code}
 
-Now, use the following Prolog code to load the foreign library:
+There are two options to handle shared objects in runtime applications.
+The first is to use the \term{foreign}{save} option of qsave_program/2
+or the \cmdlineoption{--foreign=save} commandline option. This causes
+the dependent shared objects to be included into the resource archive.
+The use_foreign_library/1 directive first attempts to find the foreign
+file in the resource archive. Alternatively, the shared objects may be
+placed in a directory that is distributed with the application. In this
+cases the file search path \const{foreign} must be setup to point at
+this directory. For example, we can place the shared objects in the same
+directory as the executable using the definition below. This may be
+refined further by adding subdirectories depending on the architecture
+as available from the Prolog flag \prologflag{arch}.
 
 \begin{code}
-load_foreign_extensions :-
-        current_predicate(install, install), !, % static loaded
-        install.
-load_foreign_extensions :-                      % shared library
-        load_foreign_library(foreign(myextension)).
+:- multifile user:file_search_path/2.
 
-:- initialization load_foreign_extensions.
+user:file_search_path(foreign, Dir) :-
+    current_prolog_flag(executable, Exe),
+    file_directory_name(Exe, Dir).
 \end{code}
-
-The path alias \const{foreign} is defined by file_search_path/2.  By
-default it searches the directories \file{<home>/lib/<arch>} and
-\file{<home>/lib}.  The application can specify additional rules for
-file_search_path/2.
 
 
 \section{Using program resources}	\label{sec:useresource}
@@ -235,9 +268,9 @@ A \jargon{resource} is very similar to a file.  Resources, however, can
 be represented in two different formats: on files, as well as part of
 the resource \jargon{archive} of a saved state (see qsave_program/2).
 
-A resource has a \jargon{name} and a \jargon{class}. The \jargon{source}
-data of the resource is a file. Resources are declared by declaring the
-predicate resource/3. They are accessed using the predicate
+A resource has a \jargon{name}. The \jargon{source} data of the resource
+is a file. Resources are declared by adding clauses to the predicate
+resource/3. They are accessed using the predicate open_resource/2 and
 open_resource/3.
 
 Before going into details, let us start with an example.  Short texts
@@ -252,50 +285,47 @@ runtime executable.
 resource(help, text, 'help.txt').
 
 help :-
+    setup_call_cleanup(
 	open_resource(help, text, In),
-	call_cleanup(copy_stream_data(In, user_output),
-		     close(In)).
+	copy_stream_data(In, user_output),
+	close(In)).
 \end{code}
 
-The predicate help/0 opens the resource as a Prolog stream.  If we are
-executing this from the development environment, this will actually
-return a stream to the file \file{help.txt} itself. When executed from
-the saved state, the stream will actually be a stream opened on the
-program resource file, taking care of the offset and length of the
-resource.
+The predicate help/0 opens the resource as a Prolog stream. If we are
+executing this from the development environment, this returns a stream
+to the file \file{help.txt} itself. When executed from the saved state,
+the stream is a stream opened on the program resource archive.
 
 \subsection{Resource manipulation predicates}
 \label{sec:runtime-predicates}
 
 \begin{description}
-    \predicate{resource}{3}{+Name, +Class, +FileSpec}
+    \predicate{resource}{2}{:Name, +FileSpec}
 This predicate is defined as a dynamic predicate in the module
 \const{user}. Clauses for it may be defined in any module, including the
 user module. \arg{Name} is the name of the resource (an atom). A
 resource name may contain any character, except for \$ and :, which are
-reserved for internal usage by the resource library. \arg{Class}
-describes the kind of object stored in the resource. In the
-current implementation, it is just an atom. \arg{FileSpec} is a file
-specification that may exploit file_search_path/2 (see
+reserved for internal usage by the resource library. \arg{FileSpec} is a
+file specification that may exploit file_search_path/2 (see
 absolute_file_name/2).
 
-Normally, resources are defined as unit clauses (facts), but the
+Often, resources are defined as unit clauses (facts), but the
 definition of this predicate also allows for rules. For proper
 generation of the saved state, it must be possible to enumerate the
 available resources by calling this predicate with all its arguments
 unbound.
 
-Dynamic rules are useful to turn all files in a certain directory
+Dynamic rules can be used to turn all files in a certain directory
 into resources, without specifying a resource for each file.  For
 example, assume the file_search_path/2 \const{icons} refers to the
 resource directory containing icon files.  The following definition
 makes all these images available as resources:
 
 \begin{code}
-resource(Name, image, icons(XpmName)) :-
+resource(Name, icons(XpmName)) :-
 	atom(Name), !,
 	file_name_extension(Name, xpm, XpmName).
-resource(Name, image, XpmFile) :-
+resource(Name, XpmFile) :-
 	var(Name),
 	absolute_file_name(icons(.), [type(directory)], Dir)
 	concat(Dir, '/*.xpm', Pattern),
@@ -303,14 +333,26 @@ resource(Name, image, XpmFile) :-
 	member(XpmFile, XpmFiles).
 \end{code}
 
-    \predicate{open_resource}{3}{+Name, ?Class, -Stream}
-Opens the resource specified by \arg{Name} and \arg{Class}.  If the
-latter is a variable, it will be unified to the class of the first
-resource found that has the specified \arg{Name}.  If successful,
-\arg{Stream} becomes a handle to a binary input stream, providing
-access to the content of the resource.
+    \predicate{open_resource}{2}{+Name, -Stream}
+\nodescription
+    \predicate{open_resource}{3}{+Name, -Stream, +Options}
+Opens the resource specified by \arg{Name}. If successful, \arg{Stream}
+is unified with an input stream that provides access to the resource.
+The stream can be tuned using the \arg{Options}, which is a subset of
+the options provided by open/4.
 
-The predicate open_resource/3 first checks resource/3.  When successful
+    \begin{description}
+    \termitem{type}{Type}
+    \nodescription
+    \termitem{encoding}{Encoding}
+    \nodescription
+    \termitem{bom}{Bool}
+Options that determine the binary/text type, encoding for text streams
+and whether or not the content should be checked for a BOM marker.  The
+options have the same meaning as the corresponding options for open/4.
+    \end{description}
+
+The predicate open_resource/3 first checks resource/2.  When successful
 it will open the returned resource source file.  Otherwise it will look
 in the program's resource database.  When creating a saved state, the
 system normally saves the resource contents into the resource archive,
@@ -323,38 +365,13 @@ system quickly accesses the system resources.
 \end{description}
 
 
-\subsection{The \program{swipl-rc} program}
+\subsection{Managing resource files}
 \label{sec:swiplrc}
 
-The utility program \program{swipl-rc} can be used to examine and manipulate
-the contents of a SWI-Prolog resource file.  The options are inspired by
-the Unix \program{ar} program.  The basic command is:
-
-\begin{code}
-% swipl-rc option resource-file member ...
-\end{code}
-
-The options are described below.
-
-\begin{description}
-    \cmdlineoptionitem{l}{}
-List contents of the archive.
-    \cmdlineoptionitem{x}{}
-Extract named (or all) members of the archive into the current
-directory.
-    \cmdlineoptionitem{a}{}
-Add files to the archive. If the archive already contains a member with
-the same name, the contents are replaced. Anywhere in the sequence of
-members, the options \longoption{class}{class} and
-\longoption{encoding}{encoding} may appear. They affect the class and
-encoding of subsequent files. The initial class is \const{data} and
-encoding \const{none}.
-    \cmdlineoptionitem{d}{}
-Delete named members from the archive.
-\end{description}
-
-This command is also described in the \manref{pl}{1} Unix manual page.
-
+As of version 7.7.13, SWI-Prolog resource files are zip(1) files. Prolog
+creates and accesses its resource files using the \HREF{minizip}{}
+project. The resource files may be examined and modified using any tool
+that can process zip files.
 
 \section{Finding Application files}	\label{sec:findappfile}
 
@@ -362,31 +379,7 @@ If your application uses files that are not part of the saved program
 such as database files, configuration files, etc., the runtime version
 has to be able to locate these files. The file_search_path/2 mechanism
 in combination with the \cmdlineoption{-p}{alias} command line argument
-is the preferred way to locate runtime files. The first step is to
-define an alias for the top-level directory of your application. We will
-call this directory \file{gnatdir} in our examples.
-
-A good place for storing data associated with SWI-Prolog runtime systems
-is below the emulator's home directory. \const{swi} is a predefined
-alias for this directory. The following is a useful default definition
-for the search path.
-
-\begin{code}
-user:file_search_path(gnatdir, swi(gnat)).
-\end{code}
-
-The application should locate all files using absolute_file_name.
-Suppose \file{gnatdir} contains a file {\tt config.pl} to define the local
-configuration.  Then use the code below to load this file:
-
-\begin{code}
-configure_gnat :-
-   (   absolute_file_name(gnatdir('config.pl'), ConfigFile)
-   ->  consult(ConfigFile)
-   ;   format(user_error, 'gnat: Cannot locate config.pl~n'),
-       halt(1)
-   ).
-\end{code}
+provides a flexible mechanism for locating runtime files.
 
 \subsection{Specifying a file search path from the command line}
 \label{sec:runtime-file-search-path}
