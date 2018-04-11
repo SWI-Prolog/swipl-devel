@@ -219,7 +219,7 @@ doption(home).
 %   fine to avoid a save-script loading itself.
 
 save_options(RC, SaveClass, Options) :-
-    '$rc_open'(RC, '$prolog/options.txt', write, Fd),
+    zip_open_new_file_in_zip(RC, '$prolog/options.txt', Fd, []),
     (   doption(OptionName),
             '$cmd_option_val'(OptionName, OptionVal0),
             save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
@@ -289,7 +289,7 @@ save_resource(RC, Name, FileSpec) :-
     !,
     feedback('~t~8|~w~t~32|~w~n',
              [Name, File]),
-    '$rc_append_file'(RC, Name, File).
+    zipper_append_file(RC, Name, File, []).
 save_resource(RC, Name, _) :-
     '$rc_handle'(SystemRC),
     copy_resource(SystemRC, RC, Name),
@@ -316,10 +316,16 @@ reserved_resource('$prolog/state.qlf').
 reserved_resource('$prolog/options.txt').
 
 copy_resource(FromRC, ToRC, Name) :-
+    zip_goto(FromRC, file(Name)),
+    zipper_file_info(FromRC, _Name, Attrs),
+    get_dict(time, Attrs, Time),
     setup_call_cleanup(
-        '$rc_open'(FromRC, Name, read, FdIn),
+        zip_open_current(FromRC, FdIn,
+                         [ type(binary),
+                           time(Time)
+                         ]),
         setup_call_cleanup(
-            '$rc_open'(ToRC, Name, write, FdOut),
+            zip_open_new_file_in_zip(ToRC, Name, FdOut, []),
             ( feedback('~t~8|~w~t~24|~w~n',
                        [Name, '<Copied from running state>']),
               copy_stream_data(FdIn, FdOut)
@@ -666,13 +672,13 @@ save_foreign_libraries(RC, Options) :-
     !,
     feedback('~nFOREIGN LIBRARIES~n', []),
     forall(current_foreign_library(FileSpec, _Predicates),
-           ( find_foreign_library(FileSpec, File),
+           ( find_foreign_library(FileSpec, File, Time),
              term_to_atom(FileSpec, Name),
-             '$rc_append_file'(RC, Name, File)
+             zipper_append_file(RC, Name, File, [time(Time)])
            )).
 save_foreign_libraries(_, _).
 
-%!  find_foreign_library(+FileSpec, -File) is det.
+%!  find_foreign_library(+FileSpec, -File, -Time) is det.
 %
 %   Find the shared object specified by   FileSpec.  If posible, the
 %   shared object is stripped to reduce   its size. This is achieved
@@ -681,13 +687,14 @@ save_foreign_libraries(_, _).
 %
 %   @bug    Should perform OS search on failure
 
-find_foreign_library(FileSpec, SharedObject) :-
+find_foreign_library(FileSpec, SharedObject, Time) :-
     absolute_file_name(FileSpec,
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
                        ], File),
     !,
+    time_file(File, Time),
     (   absolute_file_name(path(strip), Strip,
                            [ access(execute),
                              file_errors(fail)
@@ -766,22 +773,20 @@ check_options(Opt) :-
     throw(error(domain_error(list, Opt), _)).
 
 
-		 /*******************************
-		 *            EMULATION		*
-		 *******************************/
+%!  zipper_append_file(+Zipper, +Name, +File, +Options) is det.
+%
+%   Append the content of File under Name to the open Zipper.
 
-'$rc_open'(Zipper, Name, read, Stream) :-
-    !,
-    zip_goto(Zipper, file(Name)),
-    zip_open_current(Zipper, Stream, [type(binary)]).
-'$rc_open'(Zipper, Name, write, Stream) :-
-    zip_open_new_file_in_zip(Zipper, Name, Stream, []).
-
-'$rc_append_file'(Zipper, Name, File) :-
+zipper_append_file(Zipper, Name, File, Options) :-
+    (   option(time(_), Options)
+    ->  Options1 = Options
+    ;   time_file(File, Stamp),
+        Options1 = [time(Stamp)|Options]
+    ),
     setup_call_cleanup(
         open(File, read, In, [type(binary)]),
         setup_call_cleanup(
-            zip_open_new_file_in_zip(Zipper, Name, Out, []),
+            zip_open_new_file_in_zip(Zipper, Name, Out, Options1),
             copy_stream_data(In, Out),
             close(Out)),
         close(In)).
