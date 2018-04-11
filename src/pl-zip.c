@@ -807,9 +807,14 @@ PRED_IMPL("$rc_handle", 1, rc_handle, 0)
 { PRED_LD
 
   if ( !GD->resources.handle )
-  { return ( GD->resources.DB &&
-	     unify_zipper(A1, GD->resources.DB) &&
-	     PL_get_atom(A1, &GD->resources.handle) );
+  { if ( GD->resources.DB &&
+	 unify_zipper(A1, GD->resources.DB) &&
+	 PL_get_atom(A1, &GD->resources.handle) )
+    { PL_register_atom(GD->resources.handle);
+      return TRUE;
+    }
+
+    return FALSE;
   } else
   { return PL_unify_atom(A1, GD->resources.handle);
   }
