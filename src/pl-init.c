@@ -727,9 +727,9 @@ Find the resource database.
 #endif
 #endif
 
-RcArchive
+zipper *
 openResourceDB(int argc, char **argv)
-{ RcArchive rc;
+{ zipper *rc;
   char *xfile = NULL;
   int flags = (GD->bootsession ? RC_WRONLY|RC_CREATE|RC_TRUNC : RC_RDONLY);
   char tmp[MAXPATHLEN];
@@ -740,10 +740,10 @@ openResourceDB(int argc, char **argv)
 #ifdef __WINDOWS__
     if ( GD->paths.module &&
 	 !streq(GD->paths.module, GD->paths.executable) &&
-	 (rc = rc_open_archive(GD->paths.module, flags)) )
+	 (rc = zip_open_archive(GD->paths.module, flags)) )
       return rc;
 #endif
-    if ( (rc = rc_open_archive(GD->paths.executable, flags)) )
+    if ( (rc = zip_open_archive(GD->paths.executable, flags)) )
       return rc;
   }
 
@@ -766,7 +766,7 @@ openResourceDB(int argc, char **argv)
   }
 
   if ( xfile )
-  { if ( !(rc = rc_open_archive(xfile, flags)) )
+  { if ( !(rc = zip_open_archive(xfile, flags)) )
       fatalError("Could not open resource database \"%s\": %s",
 		 xfile, OsError());
 
@@ -776,7 +776,7 @@ openResourceDB(int argc, char **argv)
   strcpy(tmp, GD->paths.executable);
   replace_extension(tmp, "prc");
 
-  if ( (rc=rc_open_archive(tmp, flags)) )
+  if ( (rc=zip_open_archive(tmp, flags)) )
     return rc;
 
   if ( systemDefaults.home )
@@ -785,7 +785,7 @@ openResourceDB(int argc, char **argv)
       strcat(tmp, "/");
       strcat(tmp, BOOTFILE);
 
-      return rc_open_archive(tmp, flags);
+      return zip_open_archive(tmp, flags);
     } else
       errno = ENAMETOOLONG;
   }
@@ -835,12 +835,12 @@ PL_initialise(int argc, char **argv)
 #endif
 
   if ( !GD->resources.DB )
-  { if (    (GD->resources.DB = rc_open_archive(GD->paths.executable, RC_RDONLY))
+  { if (    (GD->resources.DB = zip_open_archive(GD->paths.executable, RC_RDONLY))
 #ifdef __WINDOWS__
-         || (GD->resources.DB = rc_open_archive(GD->paths.module, RC_RDONLY))
+         || (GD->resources.DB = zip_open_archive(GD->paths.module, RC_RDONLY))
 #endif
        )
-    { rcpath = ((RcArchive)GD->resources.DB)->path;
+    { rcpath = ((zipper *)GD->resources.DB)->path;
     }
   }
   if ( GD->resources.DB )
@@ -870,7 +870,7 @@ PL_initialise(int argc, char **argv)
     { if ( !(GD->resources.DB = openResourceDB(argc, argv)) )
       { fatalError("Could not find system resources");
       }
-      rcpath = ((RcArchive)GD->resources.DB)->path;
+      rcpath = ((zipper *)GD->resources.DB)->path;
 
       initDefaultOptions();
     }
@@ -902,14 +902,14 @@ PL_initialise(int argc, char **argv)
   if ( GD->bootsession )
   { IOSTREAM *s = SopenZIP(GD->resources.DB, "$prolog/state.qlf", RC_WRONLY);
     char *rcpathcopy = store_string(rcpath); /* rcpath is destroyed on close */
-    RcArchive rca = GD->resources.DB;
+    zipper *rca = GD->resources.DB;
 
     if ( !compileFileList(s, argc, argv) )
     { PL_halt(1);
     }
 
     GD->resources.DB = NULL;
-    if ( Sclose(s) != 0 || rc_close_archive(rca) != 0 )
+    if ( Sclose(s) != 0 || zip_close_archive(rca) != 0 )
     {
 #ifdef __WINDOWS__
       PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));
@@ -967,7 +967,7 @@ PL_initialise(int argc, char **argv)
 
 int
 PL_set_resource_db_mem(const unsigned char *data, size_t size)
-{ if ( (GD->resources.DB = rc_open_archive_mem(data, size, RC_RDONLY)) )
+{ if ( (GD->resources.DB = zip_open_archive_mem(data, size, RC_RDONLY)) )
     return TRUE;
 
   return FALSE;
@@ -1315,7 +1315,7 @@ emergency:
   RemoveTemporaryFiles();
 
   if ( GD->resources.DB )
-  { rc_close_archive(GD->resources.DB);
+  { zip_close_archive(GD->resources.DB);
     GD->resources.DB = NULL;
   }
 

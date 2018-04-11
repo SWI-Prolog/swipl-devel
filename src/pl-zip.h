@@ -73,17 +73,11 @@ typedef struct zipper
 extern int rc_errno;
 
 COMMON(zipper *)	zip_open_archive(const char *file, int flags);
-COMMON(zipper *)	rc_open_archive_mem(const unsigned char *mem,
-					    size_t mem_size, int flags);
+COMMON(zipper *)	zip_open_archive_mem(const unsigned char *mem,
+					     size_t mem_size, int flags);
 
 COMMON(int)		zip_close_archive(zipper *z);
 COMMON(IOSTREAM *)	SopenZIP(zipper *z, const char *name, int flags);
 COMMON(char *)		rc_strerror(int);
-
-/* Allow using in existing system */
-
-typedef zipper* RcArchive;
-#define rc_open_archive zip_open_archive
-#define rc_close_archive zip_close_archive
 
 #endif /*H_PLZIP_INCLUDED*/

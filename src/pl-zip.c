@@ -843,7 +843,7 @@ zip_open_archive(const char *file, int flags)
 }
 
 zipper *
-rc_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
+zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
 { assert(0);
 }
 
