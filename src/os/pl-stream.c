@@ -3634,7 +3634,7 @@ Sopenmem(char **buffer, size_t *sizep, const char* mode)
     Mode is "r" or "w".  The mode "rF" calls PL_free(*buffer) at when
     closed.
 
-Note: Its is NOT allows to access   streams  created with this call from
+Note: Its is NOT allowed to access   streams created with this call from
 multiple threads. This is ok for all   usage inside Prolog itself (often
 through tellString()/toldString(). This call is   intented  to use write
 and other output predicates to create strings.
