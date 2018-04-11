@@ -37,7 +37,6 @@ PL=pl
 PLCON=$(PLHOME)\bin\swipl.exe
 PLWIN=$(PLHOME)\bin\swipl-win.exe
 PLLD=$(PLHOME)\bin\swipl-ld.exe
-PLRC=$(PLHOME)\bin\swipl-rc.exe
 PLDLL=$(PLHOME)\bin\swipl.dll
 TERMDLL=$(PLHOME)\bin\plterm.dll
 OUTDIRS=$(PLHOME)\bin $(PLHOME)\lib $(PLHOME)\include
@@ -115,7 +114,7 @@ $(PLWIN):	$(PLLIB) pl-ntmain.obj swipl.res
 swipl.res:	swipl.rc swipl.ico
 		$(RSC) /fo$@ swipl.rc
 
-$(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PLCON)
+$(STARTUPPATH):	$(PLINIT) $(PLCON)
 		$(PLCON) -O -o $(STARTUPPATH) -b $(PLINIT)
 
 $(OUTDIRS):
@@ -193,7 +192,6 @@ embed-manifests::
 
 install-arch:	idirs iprog
 		$(INSTALL_PROGRAM) $(PLLD)  "$(BINDIR)"
-		$(INSTALL_PROGRAM) $(PLRC)  "$(BINDIR)"
 		$(INSTALL_DATA) $(PLLIB) "$(LIBDIR)"
 		$(INSTALL_DATA) $(TERMLIB) "$(LIBDIR)"
 

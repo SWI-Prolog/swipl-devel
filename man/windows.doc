@@ -374,7 +374,6 @@ probably be synchronised in the future.
 \hline
 \verb$bin\swipl-ld.exe$	& Linker front-end to make single-file mixed
 			  Prolog/C/C++ executables. \\
-\verb$bin\swipl-rc.exe$	& Manipulate Prolog resource files. \\
 \hline
 \multicolumn{2}{|c|}{Important directories} \\
 \hline

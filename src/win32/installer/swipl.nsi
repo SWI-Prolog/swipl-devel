@@ -599,7 +599,6 @@ Section "C/C++ Interface"
   File /r ${SWIPL}\include
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\swipl-ld.exe
-  File ${SWIPL}\bin\swipl-rc.exe
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\pl2cpp.html
 SectionEnd
