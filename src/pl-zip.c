@@ -844,13 +844,28 @@ zip_open_archive(const char *file, int flags)
 
 zipper *
 zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
-{ assert(0);
+{ zipper z = {0};
+  zipper *r;
+  IOSTREAM *s = Sopenmem((char**)&mem, &mem_size, "r");
+
+  assert((flags&RC_RDONLY));
+  if ( !(z.reader = unzOpen2_64(s, &zstream_functions)) )
+    return NULL;
+
+  if ( (r = malloc(sizeof(*r))) )
+  { memcpy(r, &z, sizeof(*r));
+    simpleMutexInit(&r->lock);
+    r->stream = s;
+  }
+
+  return r;
 }
 
 int
 zip_close_archive(zipper *z)
 { return close_zipper(z);
 }
+
 
 IOSTREAM *
 SopenZIP(zipper *z, const char *name, int flags)
