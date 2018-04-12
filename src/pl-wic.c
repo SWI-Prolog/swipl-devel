@@ -3087,6 +3087,13 @@ get_id(term_t t, word *id)
   return TRUE;
 }
 
+/** '$map_id'(+IdFrom, +IdTo) is det.
+
+Add a mapping between an identifier when saving a state.
+@arg IdFrom, IdTo are either atoms or compound terms.  In the
+latter case the functor is mapped.
+*/
+
 static
 PRED_IMPL("$map_id", 2, map_id, 0)
 { PRED_LD
@@ -3120,6 +3127,24 @@ PRED_IMPL("$map_id", 2, map_id, 0)
   } else {
     return PL_permission_error("map", "identifier", A1);
   }
+}
+
+static
+PRED_IMPL("$unmap_id", 1, unmap_id, 0)
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { word id_from;
+
+    if ( !get_id(A1, &id_from) )
+      return FALSE;
+
+    if ( state->idMap )
+      deleteHTable(state->idMap, (void*)id_from);
+  }
+
+  return TRUE;
 }
 
 
@@ -3448,5 +3473,6 @@ BeginPredDefs(wic)
   PRED_DEF("$open_wic",		    1, open_wic,	     0)
   PRED_DEF("$close_wic",	    0, close_wic,	     0)
   PRED_DEF("$map_id",               2, map_id,		     0)
+  PRED_DEF("$unmap_id",             1, unmap_id,             0)
   PRED_DEF("$import_wic",	    3, import_wic,	     0)
 EndPredDefs
