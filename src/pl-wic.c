@@ -1949,9 +1949,14 @@ static void
 saveXRFunctor(wic_state *state, functor_t f ARG_LD)
 { IOSTREAM *fd = state->wicFd;
   FunctorDef fdef;
+  functor_t mapped;
 
   if ( savedXRConstant(state, f) )
     return;
+
+  if ( state->idMap &&
+       (mapped = (functor_t)lookupHTable(state->idMap, (void*)f)) )
+    f = mapped;
 
   fdef = valueFunctor(f);
 
@@ -3093,6 +3098,10 @@ PRED_IMPL("$map_id", 2, map_id, 0)
     if ( !get_id(A1, &id_from) ||
 	 !get_id(A2, &id_to) )
       return FALSE;
+
+    if ( (isAtom(id_from)    && !isAtom(id_to)) ||
+	 (isFunctor(id_from) && !isFunctor(id_to)) )
+      return PL_permission_error("map", "identifier", A1);
 
     if ( !state->idMap )
     { state->idMap = newHTable(256);
