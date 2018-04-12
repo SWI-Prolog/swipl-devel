@@ -3376,6 +3376,7 @@ saved state.
 '$compile_option_type'(map,         atom).
 '$compile_option_type'(op,          atom).
 '$compile_option_type'(stand_alone, atom).
+'$compile_option_type'(obfuscate,   atom).
 '$compile_option_type'(toplevel,    callable).
 '$compile_option_type'(foreign,     atom).
 '$compile_option_type'(trail,       integer).

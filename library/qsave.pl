@@ -86,6 +86,7 @@ qsave_program(File) :-
 qsave_program(FileBase, Options0) :-
     meta_options(is_meta, Options0, Options),
     check_options(Options),
+    writeln(Options),
     exe_file(FileBase, File),
     option(class(SaveClass),    Options, runtime),
     option(init_file(InitFile), Options, DefInit),
@@ -107,12 +108,13 @@ qsave_program(FileBase, Options0) :-
                  ]),
     save_resources(RC, SaveClass),
     zip_open_new_file_in_zip(RC, '$prolog/state.qlf', StateFd, []),
-    '$open_wic'(StateFd),
     setup_call_cleanup(
         ( current_prolog_flag(access_level, OldLevel),
-          set_prolog_flag(access_level, system) % generate system modules
+          set_prolog_flag(access_level, system), % generate system modules
+          '$open_wic'(StateFd)
         ),
-        ( save_modules(SaveClass),
+        ( create_mapping(Options),
+          save_modules(SaveClass),
           save_records,
           save_flags,
           save_prompt,
@@ -121,8 +123,9 @@ qsave_program(FileBase, Options0) :-
           save_operators(Options),
           save_format_predicates
         ),
-        set_prolog_flag(access_level, OldLevel)),
-    '$close_wic',
+        ( '$close_wic',
+          set_prolog_flag(access_level, OldLevel)
+        )),
     close(StateFd),
     save_foreign_libraries(RC, Options),
     zip_close(RC, "SWI-Prolog saved state"),
@@ -332,6 +335,27 @@ copy_resource(FromRC, ToRC, Name) :-
             ),
             close(FdOut)),
         close(FdIn)).
+
+
+		 /*******************************
+		 *           OBFUSCATE		*
+		 *******************************/
+
+%!  create_mapping(+Options) is det.
+%
+%   Call hook to obfuscate symbols.
+
+:- multifile prolog:obfuscate_identifiers/1.
+
+create_mapping(Options) :-
+    option(obfuscate(true), Options),
+    !,
+    (   catch(prolog:obfuscate_identifiers(Options), E,
+              print_message(error, E))
+    ->  true
+    ;   print_message(warning, failed(obfuscate_identifiers))
+    ).
+create_mapping(_).
 
 
                  /*******************************
@@ -748,6 +772,7 @@ option_type(goal,        callable).
 option_type(toplevel,    callable).
 option_type(init_file,   atom).
 option_type(emulator,    ground).
+option_type(obfuscate,   boolean).
 
 check_options([]) :- !.
 check_options([Var|_]) :-
