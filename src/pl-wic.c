@@ -1666,7 +1666,9 @@ putAtom(wic_state *state, atom_t w)
 
   if ( state->idMap &&
        (mapped = (atom_t)lookupHTable(state->idMap, (void*)w)) )
+  { assert(isAtom(mapped));
     w = mapped;
+  }
 
   if ( !text_blob )
     text_blob = PL_find_blob_type("text");
@@ -3131,6 +3133,10 @@ PRED_IMPL("$map_id", 2, map_id, 0)
 	return PL_permission_error("map", "identifier", A1);
     } else
     { addNewHTable(state->idMap, id_from, id_to);
+      if ( isAtom((word)id_from) )
+      { PL_register_atom((atom_t)id_from);
+	PL_register_atom((atom_t)id_to);
+      }
       return TRUE;
     }
   } else {
