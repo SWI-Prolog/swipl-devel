@@ -3071,15 +3071,24 @@ freeMapping(void *name, void *value)
 }
 
 static int
-get_id(term_t t, word *id)
+get_id(term_t t, void **id)
 { GET_LD
   atom_t a;
   functor_t f;
 
   if ( PL_get_atom(t, &a) )
-  { *id = a;
+  { *id = (void *)a;
   } else if ( PL_get_functor(t, &f) )
-  { *id = f;
+  { if ( f == FUNCTOR_colon2 )
+    { Procedure proc;
+
+      if ( get_procedure(t, &proc, 0, GP_FINDHERE|GP_EXISTENCE_ERROR) )
+      { *id = (void *)proc->definition;
+      } else
+      { return FALSE;
+      }
+    }
+    *id = (void *)f;
   } else
   { return PL_type_error("identifier", t);
   }
@@ -3100,14 +3109,14 @@ PRED_IMPL("$map_id", 2, map_id, 0)
   wic_state *state;
 
   if ( (state=LD->qlf.current_state) )
-  { word id_from, id_to, old;
+  { void *id_from, *id_to, *old;
 
     if ( !get_id(A1, &id_from) ||
 	 !get_id(A2, &id_to) )
       return FALSE;
 
-    if ( (isAtom(id_from)    && !isAtom(id_to)) ||
-	 (isFunctor(id_from) && !isFunctor(id_to)) )
+    if ( (isAtom((word)id_from)    && !isAtom((word)id_to)) ||
+	 (isFunctor((word)id_from) && !isFunctor((word)id_to)) )
       return PL_permission_error("map", "identifier", A1);
 
     if ( !state->idMap )
@@ -3115,13 +3124,13 @@ PRED_IMPL("$map_id", 2, map_id, 0)
       state->idMap->free_symbol = freeMapping;
     }
 
-    if ( (old=(word)lookupHTable(state->idMap, (void*)id_from)) )
+    if ( (old=lookupHTable(state->idMap, id_from)) )
     { if ( old == id_to )
 	return TRUE;
       else
 	return PL_permission_error("map", "identifier", A1);
     } else
-    { addNewHTable(state->idMap, (void *)id_from, (void *)id_to);
+    { addNewHTable(state->idMap, id_from, id_to);
       return TRUE;
     }
   } else {
@@ -3135,13 +3144,13 @@ PRED_IMPL("$unmap_id", 1, unmap_id, 0)
   wic_state *state;
 
   if ( (state=LD->qlf.current_state) )
-  { word id_from;
+  { void *id_from;
 
     if ( !get_id(A1, &id_from) )
       return FALSE;
 
     if ( state->idMap )
-      deleteHTable(state->idMap, (void*)id_from);
+      deleteHTable(state->idMap, id_from);
   }
 
   return TRUE;
