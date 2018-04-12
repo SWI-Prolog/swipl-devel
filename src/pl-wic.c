@@ -232,6 +232,7 @@ typedef struct wic_state
   Definition currentPred;		/* current procedure */
   SourceFile currentSource;		/* current source file */
 
+  Table idMap;				/* mapped identifiers */
   Table	savedXRTable;			/* saved XR entries */
   intptr_t savedXRTableId;		/* next id to hand out */
 
@@ -1657,13 +1658,20 @@ putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 
 static void
 putAtom(wic_state *state, atom_t w)
-{ IOSTREAM *fd = state->wicFd;
-  Atom a = atomValue(w);
+{ GET_LD
+  IOSTREAM *fd = state->wicFd;
+  atom_t mapped;
+  Atom a;
   static PL_blob_t *text_blob;
+
+  if ( state->idMap &&
+       (mapped = (atom_t)lookupHTable(state->idMap, (void*)w)) )
+    w = mapped;
 
   if ( !text_blob )
     text_blob = PL_find_blob_type("text");
 
+  a = atomValue(w);
   if ( a->type != text_blob )
   { Sputc(XR_BLOB, fd);
     saveXRBlobType(state, a->type);
@@ -1780,6 +1788,10 @@ void
 destroyXR(wic_state *state)
 { destroyHTable(state->savedXRTable);
   state->savedXRTable = NULL;
+  if ( state->idMap )
+  { destroyHTable(state->idMap);
+    state->idMap = NULL;
+  }
 }
 
 
@@ -3044,6 +3056,63 @@ PRED_IMPL("$close_wic", 0, close_wic, 0)
   fail;
 }
 
+static void
+freeMapping(void *name, void *value)
+{ word id_from = (word)name;
+  word id_to   = (word)value;
+
+  if ( isAtom(id_from) ) PL_unregister_atom(id_from);
+  if ( isAtom(id_to) )   PL_unregister_atom(id_to);
+}
+
+static int
+get_id(term_t t, word *id)
+{ GET_LD
+  atom_t a;
+  functor_t f;
+
+  if ( PL_get_atom(t, &a) )
+  { *id = a;
+  } else if ( PL_get_functor(t, &f) )
+  { *id = f;
+  } else
+  { return PL_type_error("identifier", t);
+  }
+
+  return TRUE;
+}
+
+static
+PRED_IMPL("$map_id", 2, map_id, 0)
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { word id_from, id_to, old;
+
+    if ( !get_id(A1, &id_from) ||
+	 !get_id(A2, &id_to) )
+      return FALSE;
+
+    if ( !state->idMap )
+    { state->idMap = newHTable(256);
+      state->idMap->free_symbol = freeMapping;
+    }
+
+    if ( (old=(word)lookupHTable(state->idMap, (void*)id_from)) )
+    { if ( old == id_to )
+	return TRUE;
+      else
+	return PL_permission_error("map", "identifier", A1);
+    } else
+    { addNewHTable(state->idMap, (void *)id_from, (void *)id_to);
+      return TRUE;
+    }
+  } else {
+    return PL_permission_error("map", "identifier", A1);
+  }
+}
+
 
 static
 PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
@@ -3369,5 +3438,6 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_assert_clause",    2, qlf_assert_clause,    0)
   PRED_DEF("$open_wic",		    1, open_wic,	     0)
   PRED_DEF("$close_wic",	    0, close_wic,	     0)
+  PRED_DEF("$map_id",               2, map_id,		     0)
   PRED_DEF("$import_wic",	    3, import_wic,	     0)
 EndPredDefs
