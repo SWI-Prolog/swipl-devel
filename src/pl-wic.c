@@ -1153,6 +1153,10 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  ats = codeTable[op].argtype;
 	  DEBUG(MSG_QLF_VMI,
 		Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
+	  if ( op == I_CONTEXT )
+	  { set(clause, CL_BODY_CONTEXT);
+	    set(def, P_MFCONTEXT);
+	  }
 	  *bp++ = encode(op);
 	  DEBUG(0,
 		{ const char ca1_float[2] = {CA1_FLOAT};
