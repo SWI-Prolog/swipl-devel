@@ -240,6 +240,7 @@ typedef struct wic_state
   SourceMark source_mark_tail;
   int	     has_source_marks;
 
+  int	     obfuscate;			/* Obfuscate source */
   int	     load_nesting;		/* Nesting level of loadPart() */
   qlf_state *load_state;		/* current load-state */
 
@@ -2091,9 +2092,15 @@ saveWicClause(wic_state *state, Clause clause)
 
   Sputc('C', fd);
   putNum(clause->code_size, fd);
-  putNum(clause->line_no, fd);
-  saveXRSourceFile(state, indexToSourceFile(clause->owner_no) PASS_LD);
-  saveXRSourceFile(state, indexToSourceFile(clause->source_no) PASS_LD);
+  putNum(state->obfuscate ? 0 : clause->line_no, fd);
+  saveXRSourceFile(state,
+		   state->obfuscate ? NULL
+				    : indexToSourceFile(clause->owner_no)
+		   PASS_LD);
+  saveXRSourceFile(state,
+		   state->obfuscate ? NULL
+				    : indexToSourceFile(clause->source_no)
+		   PASS_LD);
   putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
   putNum(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
@@ -3024,15 +3031,27 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 Write a header for a QLF-stream
 */
 
+static const opt_spec open_wic_options[] =
+{ { ATOM_obfuscate,	    OPT_BOOL },
+  { NULL_ATOM,		    0 }
+};
+
+
 static
-PRED_IMPL("$open_wic", 1, open_wic, 0)
+PRED_IMPL("$open_wic", 2, open_wic, 0)
 { GET_LD
   IOSTREAM *fd;
+  int obfuscate = FALSE;
+
+  if ( !scan_options(A2, 0, ATOM_state_option, open_wic_options,
+		     &obfuscate) )
+    fail;
 
   if ( PL_get_stream_handle(A1, &fd) )
   { wic_state *state = allocHeapOrHalt(sizeof(*state));
 
     memset(state, 0, sizeof(*state));
+    state->obfuscate = obfuscate;
     state->wicFd = fd;
     writeWicHeader(state);
     state->parent = LD->qlf.current_state;
@@ -3485,7 +3504,7 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_open",		    1, qlf_open,	     0)
   PRED_DEF("$qlf_close",	    0, qlf_close,	     0)
   PRED_DEF("$qlf_assert_clause",    2, qlf_assert_clause,    0)
-  PRED_DEF("$open_wic",		    1, open_wic,	     0)
+  PRED_DEF("$open_wic",		    2, open_wic,	     0)
   PRED_DEF("$close_wic",	    0, close_wic,	     0)
   PRED_DEF("$map_id",               2, map_id,		     0)
   PRED_DEF("$unmap_id",             1, unmap_id,             0)

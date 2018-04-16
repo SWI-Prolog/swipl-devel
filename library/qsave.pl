@@ -110,7 +110,7 @@ qsave_program(FileBase, Options0) :-
     setup_call_cleanup(
         ( current_prolog_flag(access_level, OldLevel),
           set_prolog_flag(access_level, system), % generate system modules
-          '$open_wic'(StateFd)
+          '$open_wic'(StateFd, Options)
         ),
         ( create_mapping(Options),
           save_modules(SaveClass),
