@@ -119,6 +119,7 @@ qsave_program(FileBase, Options0) :-
     option(class(SaveClass),    Options, runtime),
     option(init_file(InitFile), Options, DefInit),
     default_init_file(SaveClass, DefInit),
+    prepare_entry_points(Options),
     save_autoload(Options),
     open_map(Options),
     create_prolog_flag(saved_program, true, []),
@@ -411,6 +412,34 @@ save_modules(SaveClass) :-
 special_module(system).
 special_module(user).
 
+
+%!  prepare_entry_points(+Options)
+%
+%   Prepare  the  --goal=Goal  and  --toplevel=Goal  options.  Preparing
+%   implies autoloading the definition and declaring it _public_ such at
+%   it doesn't get obfuscated.
+
+prepare_entry_points(Options) :-
+    define_init_goal(Options),
+    define_toplevel_goal(Options).
+
+define_init_goal(Options) :-
+    option(goal(Goal), Options),
+    !,
+    entry_point(Goal).
+define_init_goal(_).
+
+define_toplevel_goal(Options) :-
+    option(toplevel(Goal), Options),
+    !,
+    entry_point(Goal).
+define_toplevel_goal(_).
+
+entry_point(Goal) :-
+    goal_pi(Goal, PI),
+    public(PI),
+    define_predicate(Goal).
+
 define_predicate(Head) :-
     '$define_predicate'(Head),
     !.   % autoloader
@@ -419,26 +448,27 @@ define_predicate(Head) :-
     functor(Term, Name, Arity),
     throw(error(existence_error(procedure, Name/Arity), _)).
 
+goal_pi(M:G, QPI) :-
+    !,
+    strip_module(M:G, Module, Goal),
+    functor(Goal, Name, Arity),
+    QPI = Module:Name/Arity.
+goal_pi(Goal, Name/Arity) :-
+    functor(Goal, Name, Arity).
+
 
                  /*******************************
                  *            AUTOLOAD          *
                  *******************************/
 
-define_init_goal(Options) :-
-    option(goal(Goal), Options),
-    !,
-    define_predicate(Goal).
-define_init_goal(_).
-
-define_toplevel_goal(Options) :-
-    option(toplevel(Goal), Options),
-    !,
-    define_predicate(Goal).
-define_toplevel_goal(_).
+%!  save_autoload(+Options) is det.
+%
+%   Resolve all autoload dependencies.
+%
+%   @error existence_error(procedures, List) if undefined(true) is
+%   in Options and there are undefined predicates.
 
 save_autoload(Options) :-
-    define_init_goal(Options),
-    define_toplevel_goal(Options),
     option(autoload(true),  Options, true),
     !,
     autoload(Options).
