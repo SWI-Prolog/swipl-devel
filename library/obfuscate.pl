@@ -34,13 +34,27 @@
 
 :- module(obfuscate, []).
 
+/** <module> Code obfuscating
+
+This       module       provides       an       implementation       for
+prolog:obfuscate_identifiers/1, a hook into   library(qsave) that allows
+mapping atoms to other atoms while creating a saved state.
+
+This implementation is conservative: atoms are  only renamed if they are
+used once.
+*/
+
 :- dynamic
     nomap/1.
 
 prolog:obfuscate_identifiers(_) :-
-    flag('$obfuscate_id', _, 1),
+    print_message(informational, obfuscate(start)),
+    flag('$obfuscate_id', Old, 1),
     forall(module_property(M, class(user)),
-           obfuscate_module(M)).
+           obfuscate_module(M)),
+    flag('$obfuscate_id', End, Old),
+    Obfuscated is End-Old,
+    print_message(informational, obfuscate(done(Obfuscated))).
 
 obfuscate_module(M) :-
     forall(private_predicate(M:P),
@@ -50,18 +64,39 @@ private_predicate(M:Head) :-
     current_predicate(M:Name/Arity),
     functor(Head, Name, Arity),
     \+ predicate_property(M:Head, imported_from(_)),
-    \+ predicate_property(M:Head, exported),
+%   \+ predicate_property(M:Head, exported),
     \+ predicate_property(M:Head, foreign),
     \+ predicate_property(M:Head, public).
 
 obfuscate_predicate(_M:P) :-
     functor(P, Name, _Arity),
+    '$atom_references'(Name, 1),
+    !,
     flag('$obfuscate_id', Id, Id+1),
     atom_concat('$P$', Id, Name2),
     (   nomap(Name)
     ->  true
     ;   catch('$map_id'(Name, Name2), _, fail)
-    ->  format('~q --> ~q~n', [Name, Name2])
+    ->  print_message(silent, obfuscate(map(Name, Name2)))
     ;   '$unmap_id'(Name),
         asserta(nomap(Name))
     ).
+obfuscate_predicate(_).
+
+
+		 /*******************************
+		 *            MESSAGES		*
+		 *******************************/
+
+:- multifile
+    prolog:message//1.
+
+prolog:message(obfuscate(Msg)) -->
+    message(Msg).
+
+message(start) -->
+    [ 'Obfuscating predicates names (conservative) ...'-[] ].
+message(done(Count)) -->
+    [ 'Obfuscated ~D predicate names'-[Count] ].
+message(map(From, To)) -->
+    [ 'Obfuscating ~q as ~q'-[From, To] ].
