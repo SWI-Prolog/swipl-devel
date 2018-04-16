@@ -135,26 +135,7 @@ qsave_program(FileBase, Options0) :-
                  | Options
                  ]),
     save_resources(RC, SaveClass),
-    zip_open_new_file_in_zip(RC, '$prolog/state.qlf', StateFd, []),
-    setup_call_cleanup(
-        ( current_prolog_flag(access_level, OldLevel),
-          set_prolog_flag(access_level, system), % generate system modules
-          '$open_wic'(StateFd, Options)
-        ),
-        ( create_mapping(Options),
-          save_modules(SaveClass),
-          save_records,
-          save_flags,
-          save_prompt,
-          save_imports,
-          save_prolog_flags,
-          save_operators(Options),
-          save_format_predicates
-        ),
-        ( '$close_wic',
-          set_prolog_flag(access_level, OldLevel)
-        )),
-    close(StateFd),
+    save_program(RC, SaveClass, Options),
     save_foreign_libraries(RC, Options),
     zip_close(RC, "SWI-Prolog saved state"),
     '$mark_executable'(File),
@@ -389,6 +370,32 @@ create_mapping(Options) :-
     ;   print_message(warning, failed(obfuscate_identifiers))
     ).
 create_mapping(_).
+
+%!  save_program(+Zipper, +SaveClass, +Options) is det.
+%
+%   Save the program itself as virtual machine code to Zipper.
+
+save_program(RC, SaveClass, Options) :-
+    zip_open_new_file_in_zip(RC, '$prolog/state.qlf', StateFd, []),
+    setup_call_cleanup(
+        ( current_prolog_flag(access_level, OldLevel),
+          set_prolog_flag(access_level, system), % generate system modules
+          '$open_wic'(StateFd, Options)
+        ),
+        ( create_mapping(Options),
+          save_modules(SaveClass),
+          save_records,
+          save_flags,
+          save_prompt,
+          save_imports,
+          save_prolog_flags,
+          save_operators(Options),
+          save_format_predicates
+        ),
+        ( '$close_wic',
+          set_prolog_flag(access_level, OldLevel)
+        )),
+    close(StateFd).
 
 
                  /*******************************
