@@ -86,7 +86,6 @@ qsave_program(File) :-
 qsave_program(FileBase, Options0) :-
     meta_options(is_meta, Options0, Options),
     check_options(Options),
-    writeln(Options),
     exe_file(FileBase, File),
     option(class(SaveClass),    Options, runtime),
     option(init_file(InitFile), Options, DefInit),
@@ -350,6 +349,11 @@ copy_resource(FromRC, ToRC, Name) :-
 create_mapping(Options) :-
     option(obfuscate(true), Options),
     !,
+    (   predicate_property(prolog:obfuscate_identifiers(_), number_of_clauses(N)),
+        N > 0
+    ->  true
+    ;   use_module(library(obfuscate))
+    ),
     (   catch(prolog:obfuscate_identifiers(Options), E,
               print_message(error, E))
     ->  true
