@@ -40,8 +40,21 @@ This       module       provides       an       implementation       for
 prolog:obfuscate_identifiers/1, a hook into   library(qsave) that allows
 mapping atoms to other atoms while creating a saved state.
 
-This implementation is conservative: atoms are  only renamed if they are
-used once.
+This library is  used  by  qsave_program/2   and  the  `-c`  option. The
+following is good way to create a binary  version of your code that runs
+on a machine with the same version of SWI-Prolog installed.
+
+    swipl -o myprog -O --autoload=false --obfuscate=true -c load.pl
+
+This implementation is overly conservative: atoms   are  only renamed if
+they are used once. This is  verified   by  checking  the atom reference
+count. If this is `1`, the  atom  is   _only_  used  in the functor that
+defines the predicate.
+
+@tbd Using the current obfuscation scheme we  must verify that all usage
+of an atom refers to a predicate   name. Right now, declarations such as
+=|:- dynamic p/1.|= ensure `p` is used in   `p/1`  and p(_) and thus has
+two references.
 */
 
 :- dynamic
