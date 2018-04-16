@@ -54,21 +54,50 @@ also used by the commandline sequence below.
 :- meta_predicate
     qsave_program(+, :).
 
-:- predicate_options(qsave_program/2, 2,
-                     [ local(integer),
-                       global(integer),
-                       trail(integer),
-                       goal(callable),
-                       toplevel(callable),
-                       init_file(atom),
-                       class(oneof([runtime,kernel,development])),
-                       autoload(boolean),
-                       map(atom),
-                       op(oneof([save,standard])),
-                       stand_alone(boolean),
-                       foreign(oneof([save,no_save])),
-                       emulator(atom)
-                     ]).
+:- public save_option/3.                        % used by '$compile_wic'/0
+
+save_option(local,       integer,
+            "Local stack limit (Kb)").
+save_option(global,      integer,
+            "Global stack limit (Kb)").
+save_option(trail,       integer,
+            "Trail stack limit (Kb)").
+save_option(goal,        callable,
+            "Main initialization goal").
+save_option(toplevel,    callable,
+            "Toplevel goal").
+save_option(init_file,   atom,
+            "Application init file").
+save_option(class,       oneof([runtime,kernel,development]),
+            "Development state").
+save_option(op,          oneof([save,standard]),
+            "Save operators").
+save_option(autoload,    boolean,
+            "Resolve autoloadable predicates").
+save_option(map,         atom,
+            "File to report content of the state").
+save_option(stand_alone, boolean,
+            "Add emulator at start").
+save_option(emulator,    ground,
+            "Emulator to use").
+save_option(foreign,     oneof([save,no_save]),
+            "Include foreign code in state").
+save_option(obfuscate,   boolean,
+            "Obfuscate identifiers").
+save_option(verbose,     boolean,
+            "Be more verbose about the state creation").
+save_option(undefined,   oneof([ignore,error]),
+            "How to handle undefined predicates").
+
+term_expansion(save_pred_options,
+               (:- predicate_options(qsave_program/2, 2, Options))) :-
+    findall(O,
+            ( save_option(Name, Type, _),
+              O =.. [Name,Type]
+            ),
+            Options).
+
+save_pred_options.
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -761,23 +790,6 @@ feedback(Fmt, Args) :-
 feedback(_, _).
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Option checking and exception generation.  This should be in a library!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-option_type(Name,        integer) :- min_stack(Name, _MinValue).
-option_type(class,       oneof([runtime,kernel,development])).
-option_type(autoload,    boolean).
-option_type(map,         atom).
-option_type(op,          oneof([save, standard])).
-option_type(stand_alone, boolean).
-option_type(foreign,     oneof([save, no_save])).
-option_type(goal,        callable).
-option_type(toplevel,    callable).
-option_type(init_file,   atom).
-option_type(emulator,    ground).
-option_type(obfuscate,   boolean).
-
 check_options([]) :- !.
 check_options([Var|_]) :-
     var(Var),
@@ -785,7 +797,7 @@ check_options([Var|_]) :-
     throw(error(domain_error(save_options, Var), _)).
 check_options([Name=Value|T]) :-
     !,
-    (   option_type(Name, Type)
+    (   save_option(Name, Type, _Comment)
     ->  (   must_be(Type, Value)
         ->  check_options(T)
         ;   throw(error(domain_error(Type, Value), _))

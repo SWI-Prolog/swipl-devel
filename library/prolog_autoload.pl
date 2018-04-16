@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2012, VU University Amsterdam
+    Copyright (c)  2011-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -66,11 +67,10 @@ analysis becomes harder because the program may be incomplete.
 This  library  provides  autoload/0  and   autoload/1  to  autoload  all
 predicates that are referenced by the program. Now, this is not possible
 in Prolog because the language allows   for constructing arbitrary goals
-and runtime and calling them (e.g.,  read(X),   call(X)).
+and runtime and calling them (e.g., read(X), call(X)).
 
-The classical version relied on  the predicate_property =undefined=. The
-current version relies on code analysis of the bodies of all clauses and
-all initialization goals.
+The implementation relies on code analysis of  the bodies of all clauses
+and all initialization goals.
 */
 
 :- thread_local
@@ -82,7 +82,7 @@ all initialization goals.
 %   Force all necessary autoloading to be done _now_.  Options:
 %
 %       * verbose(+Boolean)
-%       If =true=, report on the files loaded.
+%       If `true` (default `false`), report on the files loaded.
 %       * undefined(+Action)
 %       Action defines what happens if the analysis finds a
 %       definitely undefined predicate.  One of =ignore= or
@@ -119,7 +119,7 @@ autoload(Iteration0, Iterations, Options) :-
     ).
 
 information_level(Level, Options) :-
-    (   option(verbose(true), Options, true)
+    (   option(verbose(true), Options)
     ->  Level = informational
     ;   Level = silent
     ).
@@ -134,7 +134,7 @@ information_level(Level, Options) :-
 %          using the autoloader.
 
 autoload_step(NewFiles, NewPreds, Options) :-
-    option(verbose(Verbose), Options, true),
+    option(verbose(Verbose), Options, false),
     aggregate_all(count, source_file(_), OldFileCount),
     setup_call_cleanup(
         ( current_prolog_flag(autoload, OldAutoLoad),
@@ -178,7 +178,7 @@ autoloaded(_, _) :-
 prolog:message(autoload(reiterate(Iteration, NewFiles, NewPreds, Time))) -->
     [ 'Autoloader: iteration ~D resolved ~D predicates \c
           and loaded ~D files in ~3f seconds.  Restarting ...'-
-      [Iteration, NewFiles, NewPreds, Time]
+      [Iteration, NewPreds, NewFiles, Time]
     ].
 prolog:message(autoload(completed(Iterations, Time, NewFiles))) -->
     [ 'Autoloader: loaded ~D files in ~D iterations in ~3f seconds'-

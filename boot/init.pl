@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -3333,6 +3334,7 @@ saved state.
 :- public '$compile_wic'/0.
 
 '$compile_wic' :-
+    use_module(user:library(qsave), [qsave_program/2]),
     current_prolog_flag(os_argv, Argv),
     '$get_files_argv'(Argv, Files),
     '$translate_options'(Argv, Options),
@@ -3352,8 +3354,7 @@ saved state.
     '$split'(Rest, [=], Head, Tail),
     !,
     atom_chars(Name, Head),
-    '$compile_option_type'(Name, Type),
-    '$convert_option_value'(Type, Tail, Value),
+    '$translate_option'(Name, Tail, Value),
     Opt =.. [Name, Value],
     '$translate_options'(T0, T).
 '$translate_options'([_|T0], T) :-
@@ -3365,29 +3366,26 @@ saved state.
 '$split'([H|T0], Split, [H|T], Tail) :-
     '$split'(T0, Split, T, Tail).
 
-'$compile_option_type'(argument,    integer).
-'$compile_option_type'(autoload,    atom).
-'$compile_option_type'(class,       atom).
-'$compile_option_type'(emulator,    atom).
-'$compile_option_type'(global,      integer).
-'$compile_option_type'(goal,        callable).
-'$compile_option_type'(init_file,   atom).
-'$compile_option_type'(local,       integer).
-'$compile_option_type'(map,         atom).
-'$compile_option_type'(op,          atom).
-'$compile_option_type'(stand_alone, atom).
-'$compile_option_type'(obfuscate,   atom).
-'$compile_option_type'(toplevel,    callable).
-'$compile_option_type'(foreign,     atom).
-'$compile_option_type'(trail,       integer).
+'$translate_option'(Name, Chars, Value) :-
+    qsave:save_option(Name, Type, _),
+    !,
+    '$convert_option_value'(Type, Chars, Value).
+'$translate_option'(Name, _Chars, _Value) :-
+    '$domain_error'(save_option, Name).
 
 '$convert_option_value'(integer, Chars, Value) :-
     number_chars(Value, Chars).
-'$convert_option_value'(atom, Chars, Value) :-
-    atom_chars(Value, Chars).
 '$convert_option_value'(callable, Chars, Value) :-
     atom_chars(Atom, Chars),
     term_to_atom(Value, Atom).
+'$convert_option_value'(atom, Chars, Value) :-
+    atom_chars(Value, Chars).
+'$convert_option_value'(boolean, Chars, Value) :-
+    atom_chars(Value, Chars).
+'$convert_option_value'(oneof(_), Chars, Value) :-
+    atom_chars(Value, Chars).
+'$convert_option_value'(ground, Chars, Value) :-
+    atom_chars(Value, Chars).
 
 
                  /*******************************
