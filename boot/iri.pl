@@ -3,8 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
-                              VU University Amsterdam
+    Copyright (c)  2018, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,43 +32,33 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-% Load the rest of the system as modules, so we can write a bit more
-% readable code.  First we need to load term-expansion, etc. because
-% this gives us DCGs.  Then we need to replace the dummy clauses for
-% '$expand_term'/4 and '$expand_goal'/2 with links to the real thing.
+:- module('$iri',
+          [ register_iri_scheme/3               % +Scheme, :Handler, +Options
+          ]).
 
-:- consult([ gc,
-             expand,
-             dcg
-           ]).
+:- meta_predicate
+    register_iri_scheme(+, 3).
 
-:- abolish('$expand_goal'/2),
-   asserta(('$expand_goal'(In, Out) :- expand_goal(In, Out))),
-   abolish('$expand_term'/4),
-   asserta(('$expand_term'(In, P0, Out, P) :- expand_term(In, P0, Out, P))),
-   compile_predicates(['$expand_goal'/2, '$expand_term'/4]),
-   '$set_predicate_attribute'(system:'$expand_goal'(_,_), system, true),
-   '$set_predicate_attribute'(system:'$expand_term'(_,_,_,_), system, true),
-   '$set_predicate_attribute'(system:'$expand_goal'(_,_), hide_childs, true),
-   '$set_predicate_attribute'(system:'$expand_term'(_,_,_,_), hide_childs, true).
+:- multifile
+    iri_scheme_handler/2.
 
-:- consult([ license,                   % requires DCG
-             syspred,
-             messages,
-             toplevel,
-             attvar,
-             bags,
-             apply,
-             history,
-             dwim,
-             parms,
-             autoload,
-             iri,
-             qlf,
-             rc,
-             predopts,
-             packs,
-             dicts,
-             engines,
-             user:topvars
-           ]).
+%!  'iri_hook'(+Scheme, +Value, +Action, -Result) is semidet.
+
+:- public iri_hook/4.
+iri_hook(Scheme, IRI, Action, Result) :-
+    iri_scheme_handler(Scheme, Handler),
+    !,
+    call(Handler, Action, IRI, Result).
+iri_hook(Scheme, _, _, _) :-
+    '$existence_error'(iri_scheme, Scheme).
+
+%!  register_iri_scheme(+Scheme, :Handler, +Options) is det.
+
+register_iri_scheme(Scheme, Handler, _Options) :-
+    throw(error(context_error(nodirective,
+                              register_iri_scheme(Scheme, Handler)), _)).
+
+system:term_expansion((:- register_iri_scheme(Scheme, Handler, _)),
+                      '$iri':iri_scheme_handler(Scheme, Module:Closure)) :-
+    prolog_load_context(module, M),
+    strip_module(M:Handler, Module, Closure).

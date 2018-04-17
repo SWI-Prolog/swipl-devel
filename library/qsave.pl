@@ -101,8 +101,12 @@ save_pred_options.
 
 :- set_prolog_flag(generate_debug_info, false).
 
-:- dynamic verbose/1.
-:- volatile verbose/1.                  % contains a stream-handle
+:- dynamic
+    verbose/1,
+    saved_resource_file/1.
+:- volatile
+    verbose/1,                  % contains a stream-handle
+    saved_resource_file/1.
 
 %!  qsave_program(+File) is det.
 %!  qsave_program(+File, :Options) is det.
@@ -140,7 +144,11 @@ qsave_program(FileBase, Options0) :-
     save_foreign_libraries(RC, Options),
     zip_close(RC, [comment("SWI-Prolog saved state")]),
     '$mark_executable'(File),
-    close_map.
+    close_map,
+    cleanup.
+
+cleanup :-
+    retractall(saved_resource_file(_)).
 
 is_meta(goal).
 is_meta(toplevel).
@@ -303,6 +311,21 @@ save_resource(RC, Name, FileSpec) :-
     feedback('~t~8|~w~t~32|~w~n',
              [Name, File]),
     zipper_append_file(RC, Name, File, []).
+save_resource(RC, Name, FileSpec) :-
+    findall(Dir,
+            absolute_file_name(FileSpec, Dir,
+                               [ access(read),
+                                 file_type(directory),
+                                 file_errors(fail),
+                                 solutions(all)
+                               ]),
+            Dirs),
+    Dirs \== [],
+    !,
+    forall(member(Dir, Dirs),
+           ( feedback('~t~8|~w~t~32|~w~n',
+                      [Name, Dir]),
+             zipper_append_directory(RC, Name, Dir, []))).
 save_resource(RC, Name, _) :-
     '$rc_handle'(SystemRC),
     copy_resource(SystemRC, RC, Name),
@@ -858,6 +881,9 @@ check_options(Opt) :-
 %
 %   Append the content of File under Name to the open Zipper.
 
+zipper_append_file(_, Name, _, _) :-
+    saved_resource_file(Name),
+    !.
 zipper_append_file(Zipper, Name, File, Options) :-
     (   option(time(_), Options)
     ->  Options1 = Options
@@ -870,7 +896,32 @@ zipper_append_file(Zipper, Name, File, Options) :-
             zipper_open_new_file_in_zip(Zipper, Name, Out, Options1),
             copy_stream_data(In, Out),
             close(Out)),
-        close(In)).
+        close(In)),
+    assertz(saved_resource_file(Name)).
+
+
+%!  zipper_append_directory(+Zipper, +Name, +Dir, +Options) is det.
+%
+%   Append the content of Dir below Name in the resource archive
+
+zipper_append_directory(Zipper, Name, Dir, Options) :-
+    exists_directory(Dir),
+    !,
+    directory_files(Dir, Members),
+    forall(member(M, Members),
+           (   reserved(M)
+           ->  true
+           ;   atomic_list_concat([Dir,M], /, Entry),
+               atomic_list_concat([Name,M], /, Store),
+               catch(zipper_append_directory(Zipper, Store, Entry, Options),
+                     E,
+                     print_message(warning, E))
+           )).
+zipper_append_directory(Zipper, Name, File, Options) :-
+    zipper_append_file(Zipper, Name, File, Options).
+
+reserved(.).
+reserved(..).
 
 
                  /*******************************

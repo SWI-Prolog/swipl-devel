@@ -1263,7 +1263,7 @@ format(Fmt) :-
                  *            FILES             *
                  *******************************/
 
-%       absolute_file_name(+Term, -AbsoluteFile)
+%!  absolute_file_name(+Term, -AbsoluteFile)
 
 absolute_file_name(Name, Abs) :-
     atomic(Name),

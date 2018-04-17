@@ -995,6 +995,7 @@ F not_provable		1
 F not_strict_equal	2
 F number		1
 F occurs_check		2
+F open			2
 F or			1
 F output		0
 F parentheses_term_position 3

@@ -643,6 +643,12 @@ PRED_IMPL("time_file", 2, time_file, 0)
 
   if ( PL_get_file_name(A1, &fn, 0) )
   { double time;
+    int sl;
+
+    if ( (sl=file_name_is_iri(fn)) )
+    { return ( iri_hook(fn, IRI_TIME, &time) &&
+	       PL_unify_float(A2, time) );
+    }
 
     if ( LastModifiedFile(fn, &time) )
       return PL_unify_float(A2, time);
@@ -680,6 +686,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
   char *n;
   int md;
   atom_t m;
+  int sl;
 
   term_t name = A1;
   term_t mode = A2;
@@ -702,6 +709,15 @@ PRED_IMPL("access_file", 2, access_file, 0)
     md = ACCESS_EXIST;
   else
     return PL_error("access_file", 2, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
+
+  if ( (sl=file_name_is_iri(n)) )
+  { int rc;
+
+    if ( !iri_hook(n, IRI_ACCESS, md, &rc) )
+      return FALSE;
+
+    return rc;
+  }
 
   if ( AccessFile(n, md) )
     return TRUE;
@@ -773,7 +789,7 @@ PRED_IMPL("is_absolute_file_name", 1, is_absolute_file_name, 0)
 { char *n;
 
   if ( PL_get_file_name(A1, &n, 0) &&
-       IsAbsolutePath(n) )
+       (IsAbsolutePath(n) || file_name_is_iri(n)) )
     return TRUE;
 
   return FALSE;
@@ -985,9 +1001,12 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
   term_t name = A1;
   term_t expanded = A2;
 
-  if ( PL_get_file_name(name, &n, 0) &&
-       (n = AbsoluteFile(n, tmp)) )
-    return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
+  if ( PL_get_file_name(name, &n, 0) )
+  { if ( file_name_is_iri(n) )
+      return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
+    else if ( (n = AbsoluteFile(n, tmp)) )
+      return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
+  }
 
   return FALSE;
 }

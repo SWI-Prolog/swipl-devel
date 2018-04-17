@@ -3463,6 +3463,136 @@ fn_to_atom(const char *fn)
 }
 
 
+		 /*******************************
+		 *	     IRI HOOKS		*
+		 *******************************/
+
+int
+file_name_is_iri(const char *path)
+{ const char *s;
+
+  for(s=path; *s >= 'a' && *s <= 'z'; )
+    s++;
+  if ( s > path && s[0] == ':' && s[1] == '/' && s[2] == '/' )
+    return s-path;
+
+  return 0;
+}
+
+
+static int
+call_iri_hook(term_t argv, iri_op op, va_list args)
+{ GET_LD
+  static predicate_t pred = NULL;
+
+  if ( !pred )
+    pred = PL_predicate("iri_hook", 4, "$iri");
+
+  if ( !hasClausesDefinition(pred->definition) )
+  { sysError("IRI scheme handler not yet installed");
+    return FALSE;
+  }
+
+  switch(op)
+  { case IRI_OPEN:
+    { atom_t mode    = va_arg(args, atom_t);
+      term_t options = va_arg(args, term_t);
+
+      if ( !options )
+      { options = PL_new_term_ref();
+	PL_put_nil(options);
+      }
+
+      if ( !PL_unify_term(argv+2,
+			  PL_FUNCTOR, FUNCTOR_open2,
+			    PL_ATOM, mode,
+			    PL_TERM, options) )
+	return FALSE;
+      break;
+    }
+    case IRI_ACCESS:
+    { int md = va_arg(args, int);
+      atom_t mode;
+
+      switch(md)
+      { case ACCESS_WRITE:   mode = ATOM_write;   break;
+	case ACCESS_READ:    mode = ATOM_read;    break;
+	case ACCESS_EXECUTE: mode = ATOM_execute; break;
+	case ACCESS_EXIST:   mode = ATOM_exist;	  break;
+        default: assert(0);
+      }
+      if ( !PL_unify_term(argv+2,
+			  PL_FUNCTOR, FUNCTOR_access1,
+			    PL_ATOM, mode) )
+	return FALSE;
+      break;
+    }
+    case IRI_TIME:
+      if ( !PL_put_atom(argv+2, ATOM_time) )
+	return FALSE;
+      break;
+    default:
+      assert(0);
+  }
+
+  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, argv) )
+  { switch(op)
+    { case IRI_OPEN:
+      {	IOSTREAM **vp = va_arg(args, IOSTREAM**);
+	return PL_get_stream(argv+3, vp, (SIO_INPUT|SIO_OUTPUT));
+      }
+      case IRI_ACCESS:
+      { int *vp = va_arg(args, int*);
+	return PL_get_bool_ex(argv+3, vp);
+      }
+      case IRI_TIME:
+      { double *vp = va_arg(args, double*);
+	return PL_get_float_ex(argv+3, vp);
+      }
+      default:
+	assert(0);
+    }
+  } else
+  { return FALSE;
+  }
+}
+
+
+static int
+iri_hook_va(const char *url, iri_op op, va_list args)
+{ GET_LD
+  fid_t fid;
+  const char *escheme = strchr(url, ':');
+
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t argv;
+    int rc;
+
+    rc = ( (argv = PL_new_term_refs(4)) &&
+	   PL_put_atom_nchars(argv+0, escheme-url, url) &&
+	   PL_unify_chars(argv+1, PL_STRING|REP_FN, (size_t)-1, url) &&
+	   call_iri_hook(argv, op, args) );
+
+    PL_close_foreign_frame(fid);
+
+    return rc;
+  }
+
+  return FALSE;
+}
+
+int
+iri_hook(const char *url, iri_op op, ...)
+{ int rc;
+  va_list args;
+
+  va_start(args, op);
+  rc = iri_hook_va(url, op, args);
+  va_end(args);
+
+  return rc;
+}
+
 		/********************************
 		*       STREAM BASED I/O        *
 		*********************************/
@@ -3564,7 +3694,7 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
 					/* MODE */
-  if ( PL_get_atom(mode, &mname) )
+  if ( PL_get_atom_ex(mode, &mname) )
   { if ( mname == ATOM_write )
     { *h++ = 'w';
     } else if ( mname == ATOM_append )
@@ -3578,8 +3708,7 @@ openStream(term_t file, term_t mode, term_t options)
       return NULL;
     }
   } else
-  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, mode);
-    return NULL;
+  { return NULL;
   }
   if ( create )
   { term_t tail = PL_copy_term_ref(create);
@@ -3678,9 +3807,20 @@ openStream(term_t file, term_t mode, term_t options)
   } else
 #endif /*HAVE_POPEN*/
   if ( PL_get_file_name(file, &path, 0) )
-  { if ( !(s = Sopen_file(path, how)) )
-    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	       ATOM_open, ATOM_source_sink, file);
+  { int sl;
+
+    if ( (sl=file_name_is_iri(path)) )
+    { if ( !iri_hook(path, IRI_OPEN, mname, options, &s) )
+	goto error;
+    } else
+    { s = Sopen_file(path, how);
+    }
+
+    if ( s == NULL )
+    { error:
+      if ( !PL_exception(0) )
+	PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		 ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
     setFileNameStream_unlocked(s, fn_to_atom(path));

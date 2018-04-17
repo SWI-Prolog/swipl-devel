@@ -120,3 +120,68 @@ mode_options([b|Chars], [type(binary)|T]) :-
     mode_options(Chars, T).
 mode_options([_|Chars], T) :-
     mode_options(Chars, T).
+
+
+		 /*******************************
+		 *      RESOURCES AS FILES	*
+		 *******************************/
+
+:- register_iri_scheme(res, res_iri_hook, []).
+:- meta_predicate with_zipper(+, 0).
+
+res_iri_hook(open(Mode,Options), IRI, Stream) :-
+    (   Mode == read
+    ->  resource_and_entry(IRI, Zipper, Entry),
+        zipper_goto(Zipper, file(Entry)),
+        zipper_open_current(Zipper, Stream, Options)
+    ;   '$permission_error'(open, source_sink, IRI)
+    ).
+res_iri_hook(access(Mode), IRI, True) :-
+    resource_and_entry(IRI, Zipper, Entry),
+    (   read_mode(Mode),
+        catch(with_zipper(Zipper,
+                          zipper_goto(Zipper, file(Entry))),
+              error(existence_error(_, _), _),
+              fail)
+    ->  True = true
+    ;   True = false
+    ).
+res_iri_hook(time, IRI, Time) :-
+    resource_and_entry(IRI, Zipper, Entry),
+    catch(( zipper_goto(Zipper, file(Entry)),
+            zipper_file_property(Zipper, time, Time)
+          ),
+          error(existence_error(_, _), Context),
+          throw(error(existence_error(source_sink, IRI), Context))).
+res_iri_hook(size, IRI, Size) :-
+    resource_and_entry(IRI, Zipper, Entry),
+    catch(( zipper_goto(Zipper, file(Entry)),
+            zipper_file_property(Zipper, size, Size)
+          ),
+          error(existence_error(_, _), Context),
+          throw(error(existence_error(source_sink, IRI), Context))).
+
+read_mode(read).
+read_mode(exists).
+
+resource_and_entry(IRI, Zipper, Entry) :-
+    string_concat("res://", Entry, IRI),
+    '$rc_handle'(Zipper).
+
+%!  with_zipper(+Zipper, :Goal)
+
+with_zipper(Zipper, Goal) :-
+    setup_call_cleanup(
+        zip_lock(Zipper),
+        Goal,
+        zip_unlock(Zipper)).
+
+%!  zipper_file_property(+Zipper, +Prop, -Value)
+
+zipper_file_property(Zipper, Prop, Value) :-
+    zip_file_info_(Zipper, _Name, Info),
+    zip_prop_arg(Prop, Arg),
+    arg(Arg, Info, Value).
+
+zip_prop_arg(size, 2).
+zip_prop_arg(time, 5).

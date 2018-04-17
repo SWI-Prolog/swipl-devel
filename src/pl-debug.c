@@ -3,8 +3,9 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -167,6 +168,9 @@ const debug_topic debug_topics[] =
 
   DEBUG_TOPIC(MSG_TRIE_PUT_TERM),
   DEBUG_TOPIC(MSG_TRIE_GC),
+
+  DEBUG_TOPIC(MSG_ZIP),
+  DEBUG_TOPIC(MSG_ZIP_STATE),
 
   DEBUG_TOPIC(MSG_TABLING_WORK),
 

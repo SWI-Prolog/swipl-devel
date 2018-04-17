@@ -150,6 +150,8 @@ zacquire(zipper *z,
   { GET_LD
     term_t t;
 
+    DEBUG(MSG_ZIP_STATE, Sdprintf("State %d to %d\n", z->state, state));
+
     return ( (t=PL_new_term_ref()) &&
 	     unify_zipper(t, z) &&
 	     PL_permission_error(action, "zipper", t)
