@@ -45,6 +45,7 @@ typedef enum zipper_state
   ZIP_SCAN,					/* goto executing */
   ZIP_READ_ENTRY,				/* Entry open for reading */
   ZIP_WRITE_ENTRY,				/* Entry open for writing */
+  ZIP_CLOSE,					/* Close called */
   ZIP_END = -1					/* end of list */
 } zipper_state;
 

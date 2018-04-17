@@ -123,15 +123,21 @@ typedef struct valid_transition
 } valid_transition;
 
 static const valid_transition valid_transitions[] =
-{ { ZIP_IDLE, ZIP_SCAN        },
-  { ZIP_SCAN, ZIP_SCAN        },
-  { ZIP_SCAN, ZIP_READ_ENTRY  },
-  { ZIP_IDLE, ZIP_WRITE_ENTRY },
-  { ZIP_END,  ZIP_END         }
+{
+  { ZIP_IDLE,	    ZIP_SCAN        },
+  { ZIP_SCAN,	    ZIP_SCAN        },
+  { ZIP_SCAN,	    ZIP_READ_ENTRY  },
+  { ZIP_IDLE,	    ZIP_WRITE_ENTRY },
+  { ZIP_IDLE,	    ZIP_CLOSE	    },
+  { ZIP_SCAN,	    ZIP_CLOSE	    },
+  { ZIP_READ_ENTRY, ZIP_CLOSE	    },
+  { ZIP_END,	    ZIP_END         }
 };
 
 static int
-zacquire(zipper *z, zipper_state state, const char *action)
+zacquire(zipper *z,
+	 zipper_state state, zipper_state *prev_state,
+	 const char *action)
 { const valid_transition *tr;
 
   zown(z);
@@ -151,6 +157,8 @@ zacquire(zipper *z, zipper_state state, const char *action)
   }
 
 ok:
+  if ( prev_state )
+    *prev_state = z->state;
   z->state = state;
 
   return TRUE;
@@ -418,10 +426,14 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
   char *comment = NULL;
   zipper *z;
   int flags = (CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8);
+  zipper_state prev_state = ZIP_END;
 
   if ( get_zipper(A1, &z) &&
-       (PL_is_variable(A2) || PL_get_chars(A2, &comment, flags)) )
-  { if ( close_zipper(z) == 0 )
+       (PL_is_variable(A2) || PL_get_chars(A2, &comment, flags)) &&
+       zacquire(z, ZIP_CLOSE, &prev_state, "close") )
+  { if ( prev_state == ZIP_READ_ENTRY )
+      return TRUE;				/* delay */
+    if ( close_zipper(z) == 0 )
       return TRUE;
     else
       return PL_warning("zip_close/2 failed");
@@ -494,10 +506,14 @@ Sclose_zip_entry(void *handle)
   else if ( z->reader )
     rc = unzCloseCurrentFile(z->reader);
 
-  if ( true(z, ZIP_RELEASE_ON_CLOSE) )
-    zrelease(z);
-  else
-    z->state = ZIP_IDLE;
+  if ( z->state == ZIP_CLOSE )
+  { zrelease(z);
+    close_zipper(z);
+  } else if ( true(z, ZIP_RELEASE_ON_CLOSE) )
+  { zrelease(z);
+  } else
+  { z->state = ZIP_IDLE;
+  }
 
   return rc;
 }
@@ -608,7 +624,7 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
 
   if ( get_zipper(A1, &z) &&
        PL_get_chars(A2, &fname, flags) &&
-       zacquire(z, ZIP_WRITE_ENTRY, "new_file") )
+       zacquire(z, ZIP_WRITE_ENTRY, NULL, "new_file") )
   { int rc;
     zip_fileinfo zipfi = {0};
 
@@ -656,7 +672,7 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
   if ( get_zipper(A1, &z) )
   { atom_t a;
 
-    if ( !zacquire(z, ZIP_SCAN, "goto") )
+    if ( !zacquire(z, ZIP_SCAN, NULL, "goto") )
       return FALSE;
 
     if ( PL_get_atom(A2, &a) )
@@ -743,7 +759,7 @@ PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
   { if ( !z->reader )
       return PL_warning("Not open for reading");
 
-    if ( !zacquire(z, ZIP_READ_ENTRY, "open_current") )
+    if ( !zacquire(z, ZIP_READ_ENTRY, NULL, "open_current") )
       return FALSE;
 
     if ( release )
@@ -875,9 +891,9 @@ zip_close_archive(zipper *z)
 IOSTREAM *
 SopenZIP(zipper *z, const char *name, int flags)
 { if ( z->reader )
-  { if ( zacquire(z, ZIP_SCAN, "goto") &&
+  { if ( zacquire(z, ZIP_SCAN, NULL, "goto") &&
 	 unzLocateFile(z->reader, name, TRUE) == UNZ_OK &&
-	 zacquire(z, ZIP_READ_ENTRY, "open_current") &&
+	 zacquire(z, ZIP_READ_ENTRY, NULL, "open_current") &&
 	 unzOpenCurrentFile(z->reader) == UNZ_OK )
     { set(z, ZIP_RELEASE_ON_CLOSE);
       return Snew(z, SIO_INPUT, &Szipfunctions);
@@ -886,7 +902,7 @@ SopenZIP(zipper *z, const char *name, int flags)
   { int rc;
     zip_fileinfo zipfi = {0};
 
-    if ( !zacquire(z, ZIP_WRITE_ENTRY, "new_file") )
+    if ( !zacquire(z, ZIP_WRITE_ENTRY, NULL, "new_file") )
       return NULL;
 
     zset_time(&zipfi, (double)time(NULL));
