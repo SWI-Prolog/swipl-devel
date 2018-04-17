@@ -436,9 +436,12 @@ define_toplevel_goal(Options) :-
 define_toplevel_goal(_).
 
 entry_point(Goal) :-
-    goal_pi(Goal, PI),
-    public(PI),
-    define_predicate(Goal).
+    define_predicate(Goal),
+    (   \+ predicate_property(Goal, built_in)
+    ->  goal_pi(Goal, PI),
+        public(PI)
+    ;   true
+    ).
 
 define_predicate(Head) :-
     '$define_predicate'(Head),
