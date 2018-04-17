@@ -141,6 +141,18 @@ resource to a temporary file and loads it.  If possible (Unix), the
 temporary object is deleted immediately after opening.\footnote{This
 option is experimental and currently disabled by default.  It will
 become the default if it proves robust.}
+	\termitem{undefined}{+Value}
+Defines what happens if an undefined predicate is found during the
+code analysis.  Values are \const{ignore} (default) or \const{error}.
+In the latter case creating the state is aborted with a message that
+indicates the undefines predicates and from where they are called.
+	\termitem{obfuscate}{+Boolean}
+If \const{true} (default \const{false}), replace predicate names
+with generated symbols to make the code harder to assess for
+reverse engineering.  See \secref{obfuscate}.
+	\termitem{verbose}{+Boolean}
+If \const{true} (default \const{false}), report progress and status,
+notably regarding auto loading.
     \end{description}
 
     \predicate{qsave_program}{1}{+File}
@@ -451,11 +463,24 @@ ability though. Examples are list_undefined/0, autoload/0,
 show_coverage/1, etc.
 \end{itemize}
 
-Future versions may provide predicate name obfuscation for saved states
-and/or exploit the encryption facility of ZIP archives. Please contact
-the developers if you want to help with code or financial resources to
-make this happen.
+\subsection{Obfuscating code in saved states}
+\label{sec:obfuscate}
 
+If the option \term{obfuscate}{true} is used with qsave_program/2,
+certain atoms in the saved state are renamed. The renaming is performed
+by library \pllib{obfuscate}. The current implementation is rather
+conservative, renaming atoms that are used only to define the functor
+that names a predicate. This is a safe operation, provided the
+application does not create new references to renamed predicates by
+reading additional source code or constructing the atom that names the
+predicate dynamically in some other way such as using atom_concat/3.
+Predicates that are called this way must be declared using public/1.
+
+Note that more aggressive renaming is possible, but this requires more
+detailed analysis of the various roles played by some atom.  Helpful
+and descriptive predicate names tend to be unique and are thus subject
+to this transformation.  More general names tend to collide with other
+roles of the same atom and thus prevent renaming.
 
 \section{Finding Application files}	\label{sec:findappfile}
 
