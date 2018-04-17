@@ -608,7 +608,7 @@ zget_time(const unz_file_info64 *info)
   return (double)mktime(&tm);
 }
 
-/** zip_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
+/** zipper_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
 */
 
 static const opt_spec zip_new_file_options[] =
@@ -620,7 +620,7 @@ static const opt_spec zip_new_file_options[] =
 
 
 static
-PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
+PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
 { //PRED_LD
   zipper *z;
   char *fname;
@@ -673,13 +673,13 @@ PRED_IMPL("zip_open_new_file_in_zip", 4, zip_open_new_file_in_zip, 0)
   return FALSE;
 }
 
-/** zip_goto(+Zipper, +File) is det.
+/** zipper_goto(+Zipper, +File) is det.
  *
  * File is one of `first`, `next` or file(Name)
  */
 
 static
-PRED_IMPL("zip_goto", 2, zip_goto, 0)
+PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
 { PRED_LD
   zipper *z;
 
@@ -697,7 +697,7 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
       else if (	a == ATOM_next )
 	rc = unzGoToNextFile(z->reader);
       else
-	return PL_domain_error("zip_goto", A2);
+	return PL_domain_error("zipper_goto", A2);
 
       if ( rc == UNZ_OK )
 	return TRUE;
@@ -722,7 +722,7 @@ PRED_IMPL("zip_goto", 2, zip_goto, 0)
 	}
       }
     } else
-    { return PL_type_error("zip_goto", A2);
+    { return PL_type_error("zipper_goto", A2);
     }
   }
 
@@ -743,7 +743,7 @@ static const opt_spec zipopen3_options[] =
 };
 
 static
-PRED_IMPL("zip_open_current", 3, zip_open_current, 0)
+PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
 { PRED_LD
   zipper *z;
   atom_t type     = ATOM_text;
@@ -952,13 +952,13 @@ SopenZIP(zipper *z, const char *name, int flags)
 		 *******************************/
 
 BeginPredDefs(zip)
-  PRED_DEF("zip_open_stream",		3, zip_open_stream,	     0)
-  PRED_DEF("zip_close_",		2, zip_close,		     0)
-  PRED_DEF("zip_lock",		        1, zip_lock,		     0)
-  PRED_DEF("zip_unlock",	        1, zip_unlock,		     0)
-  PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)
-  PRED_DEF("zip_goto",			2, zip_goto,		     0)
-  PRED_DEF("zip_open_current",          3, zip_open_current,         0)
-  PRED_DEF("zip_file_info_",            3, zip_file_info,            0)
-  PRED_DEF("$rc_handle",		1, rc_handle,		     0)
+  PRED_DEF("zip_open_stream",		  3, zip_open_stream,	          0)
+  PRED_DEF("zip_close_",		  2, zip_close,		          0)
+  PRED_DEF("zip_lock",		          1, zip_lock,		          0)
+  PRED_DEF("zip_unlock",	          1, zip_unlock,		  0)
+  PRED_DEF("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
+  PRED_DEF("zipper_goto",		  2, zipper_goto,		  0)
+  PRED_DEF("zipper_open_current",         3, zipper_open_current,         0)
+  PRED_DEF("zip_file_info_",		  3, zip_file_info,               0)
+  PRED_DEF("$rc_handle",		  1, rc_handle,		          0)
 EndPredDefs

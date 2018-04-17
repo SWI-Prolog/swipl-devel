@@ -33,21 +33,43 @@
 */
 
 :- module(zip,
-          [ zip_open/4,                         % +File, +Mode, -Zipper, +Options
-            zip_close/1,                        % +Zipper
-            zip_close/2,                        % +Zipper, +Comment
-            zip_open_new_file_in_zip/4,         % +Zipper, +File, -Stream, +Options
-            zip_open_current/3,                 % +Zipper, -Stream, +Options
-            zipper_members/2,                   % +Zipper, -Entries
-            zipper_file_info/3                  % +Zipper, -Name, -Attrs
+          [ zip_open/4,                    % +File, +Mode, -Zipper, +Options
+            zip_close/1,                   % +Zipper
+            zip_close/2,                   % +Zipper, +Comment
+                                           % Entry predicates
+            with_zipper/2,                 % +Zipper, :Goal
+            zipper_open_new_file_in_zip/4, % +Zipper, +File, -Stream, +Options
+            zipper_goto/2,                 % +Zipper, +Where
+            zipper_open_current/3,         % +Zipper, -Stream, +Options
+            zipper_members/2,              % +Zipper, -Entries
+            zipper_file_info/3             % +Zipper, -Name, -Attrs
           ]).
 :- use_module(library(error)).
 :- use_module(library(option)).
 
+:- meta_predicate
+    with_zipper(+, 0).
+
 /** <module> Access resource ZIP archives
 
-This library provides access to ZIP files. ZIP files are used to store
-SWI-Prolog _resources_.
+This library provides access to ZIP files.   ZIP files are used to store
+SWI-Prolog _resources_. Ths library provides more  high level access and
+documentation in addition to the low level   access provided as built in
+as it is needed to bootstrap SWI-Prolog.
+
+Access to a zip file is provided by  means of a _zipper_ object. This is
+a _blob_ that is subject to atom garbage collection. Collecting a zipper
+closes the underlying OS access.
+
+A zipper is a  stateful  object.   We  recognise  the  following states:
+_idle_, _scan_, _read_entry_, _write_entry_ and   _close_. The interface
+raise  a  _permission_error_  when  trying  to  make  an  illegal  state
+transition.
+
+Being stateful, a zipper cannot  be   used  simultaneously from multiple
+threads. The zipper becomes _owned_ by a   thread  when moving to _scan_
+using zipper_goto/2. It is released after zipper_open_current/3 followed
+by closing the stream.
 */
 
 %!  zip_open(+File, +Mode, -Zipper, +Options) is det.
@@ -75,28 +97,81 @@ zip_close(Zipper, Options) :-
     option(comment(Comment), Options, _),
     zip_close_(Zipper, Comment).
 
+%!  zipper_goto(+Zipper, +Where) is semidet.
+%
+%   Seek Zipper to a specified entry.  Where is one of
+%
+%     - first
+%     Go to the first entry.  Fails if the zip is empty.
+%     - next
+%     Go to the next entry.  Fails if there is no next entry.
+%     - file(Name)
+%     Go to the entry with the specified name.
+%
+%   @error existence_error(zip_entry, Name) on file(Name)
+%   if no matching entry is found.
+
+%!  zipper_open_current(+Zipper, -Stream, +Options) is det.
+%
+%   Open the current entry as an  input   stream.  Before  this call the
+%   caller must use zipper_goto/2 to position to archive.  Options:
+%
+%     - type(+Type)
+%     - encoding(+Encoding)
+%     - bom(+Boolean)
+%     Determine type and encoding of the stream.  The semantics
+%     is the same as for open/4.
+%     - release(+Boolean)
+%     If `true` (default), release te archive for access by other
+%     threads after the entry is closed.
+%
+%   It is allowed to call zip_close/1   immediately  after this call, in
+%   which case the archive is closed when the entry is closed.
+
+%!  with_zipper(+Zipper, :Goal)
+%
+%   Run Goal while holding ownership over Zipper.
+
+with_zipper(Zipper, Goal) :-
+    setup_call_cleanup(
+        zip_lock(Zipper),
+        Goal,
+        zip_unlock(Zipper)).
+
 %!  zip_members(+Zipper, -Members:list(atom)) is det.
 %
 %   True when Members is the list of file names in the Zipper.
 
 zipper_members(Zipper, Members) :-
-    setup_call_cleanup(
-        zip_lock(Zipper),
-        ( zip_goto(Zipper, first),
-          zip_members_(Zipper, Members)
-        ),
-        zip_unlock(Zipper)).
+    with_zipper(Zipper,
+                ( zipper_goto(Zipper, first),
+                  zip_members_(Zipper, Members)
+                )).
 
 zip_members_(Zipper, [Name|T]) :-
     zip_file_info_(Zipper, Name, _Attrs),
-    (   zip_goto(Zipper, next)
+    (   zipper_goto(Zipper, next)
     ->  zip_members_(Zipper, T)
     ;   T = []
     ).
 
 %!  zipper_file_info(+Zipper, -Name, -Attrs) is det.
 %
-%   Obtain information about the current zip entry.
+%   Obtain information about the current  zip   entry.  Name  is an atom
+%   representing the name of the entry. Attrs is a dict holding:
+%
+%     - compressed_size:Bytes
+%     Size in the archive
+%     - uncompressed_size:Bytes
+%     Bytes after decompression
+%     - time:Stamp
+%     Numeric time stamp in Prolog native format (float
+%     expressing seconds since Jan 1, 1970).  Note that
+%     the resolution of time in zip archives is one
+%     second.
+%     - extra:Extra
+%     - comment:Extra
+%     Optional additional fields.
 
 zipper_file_info(Zipper, Name, Attrs) :-
     zip_file_info_(Zipper, Name,

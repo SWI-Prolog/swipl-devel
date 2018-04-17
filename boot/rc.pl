@@ -69,8 +69,11 @@ open_resource(Module:RcName, Stream, Options) :-
         open(File, read, Stream, Options)
     ;   '$rc_handle'(Zipper),
         tag_rc_name(Module, RcName, TaggedName),
-        zip_goto(Zipper, file(TaggedName))
-    ->  zip_open_current(Zipper, Stream, Options)
+        zipper_goto(Zipper, file(TaggedName))
+    ->  zipper_open_current(Zipper, Stream,
+                            [ release(true)
+                            | Options
+                            ])
     ).
 open_resource(Name, _Class, Stream) :-
     open_resource(Name, Stream).

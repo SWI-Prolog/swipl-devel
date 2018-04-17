@@ -232,7 +232,7 @@ doption(home).
 %   fine to avoid a save-script loading itself.
 
 save_options(RC, SaveClass, Options) :-
-    zip_open_new_file_in_zip(RC, '$prolog/options.txt', Fd, []),
+    zipper_open_new_file_in_zip(RC, '$prolog/options.txt', Fd, []),
     (   doption(OptionName),
             '$cmd_option_val'(OptionName, OptionVal0),
             save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
@@ -329,16 +329,16 @@ reserved_resource('$prolog/state.qlf').
 reserved_resource('$prolog/options.txt').
 
 copy_resource(FromRC, ToRC, Name) :-
-    zip_goto(FromRC, file(Name)),
+    zipper_goto(FromRC, file(Name)),
     zipper_file_info(FromRC, _Name, Attrs),
     get_dict(time, Attrs, Time),
     setup_call_cleanup(
-        zip_open_current(FromRC, FdIn,
-                         [ type(binary),
-                           time(Time)
-                         ]),
+        zipper_open_current(FromRC, FdIn,
+                            [ type(binary),
+                              time(Time)
+                            ]),
         setup_call_cleanup(
-            zip_open_new_file_in_zip(ToRC, Name, FdOut, []),
+            zipper_open_new_file_in_zip(ToRC, Name, FdOut, []),
             ( feedback('~t~8|~w~t~24|~w~n',
                        [Name, '<Copied from running state>']),
               copy_stream_data(FdIn, FdOut)
@@ -377,7 +377,7 @@ create_mapping(_).
 %   Save the program itself as virtual machine code to Zipper.
 
 save_program(RC, SaveClass, Options) :-
-    zip_open_new_file_in_zip(RC, '$prolog/state.qlf', StateFd, []),
+    zipper_open_new_file_in_zip(RC, '$prolog/state.qlf', StateFd, []),
     setup_call_cleanup(
         ( current_prolog_flag(access_level, OldLevel),
           set_prolog_flag(access_level, system), % generate system modules
@@ -867,7 +867,7 @@ zipper_append_file(Zipper, Name, File, Options) :-
     setup_call_cleanup(
         open(File, read, In, [type(binary)]),
         setup_call_cleanup(
-            zip_open_new_file_in_zip(Zipper, Name, Out, Options1),
+            zipper_open_new_file_in_zip(Zipper, Name, Out, Options1),
             copy_stream_data(In, Out),
             close(Out)),
         close(In)).

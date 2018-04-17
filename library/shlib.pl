@@ -168,10 +168,13 @@ find_library(Spec, _, _) :-
     throw(error(existence_error(source_sink, Spec), _)).
 
 open_foreign_in_resources(Zipper, Name, Stream) :-
-    catch(zip_goto(Zipper, file(Name)),
+    catch(zipper_goto(Zipper, file(Name)),
           error(existence_error(_,_), _),
           fail),
-    zip_open_current(Zipper, Stream, [type(binary)]).
+    zipper_open_current(Zipper, Stream,
+                        [ type(binary),
+                          release(true)
+                        ]).
 
 base(Path, Base) :-
     atomic(Path),
