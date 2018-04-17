@@ -42,6 +42,7 @@
             zipper_file_info/3                  % +Zipper, -Name, -Attrs
           ]).
 :- use_module(library(error)).
+:- use_module(library(option)).
 
 /** <module> Access resource ZIP archives
 
@@ -60,13 +61,19 @@ zip_open(File, Mode, Zipper, _Options) :-
     zip_open_stream(Stream, Zipper, [close_parent(true)]).
 
 %!  zip_close(+Zipper) is det.
-%!  zip_close(+Zipper, +Comment) is det.
+%!  zip_close(+Zipper, +Options) is det.
 %
-%   Close a zipper. The zip_close/2 variant  sets the global comment for
-%   the zip file if it was opened in write mode.
+%   Close a zipper. Options processed:
+%
+%     - comment(+Comment)
+%     If the zipper is open for writing, set the global comment
+%     for the zip file.
 
 zip_close(Zipper) :-
-    zip_close(Zipper, _).
+    zip_close_(Zipper, _).
+zip_close(Zipper, Options) :-
+    option(comment(Comment), Options, _),
+    zip_close_(Zipper, Comment).
 
 %!  zip_members(+Zipper, -Members:list(atom)) is det.
 %

@@ -953,7 +953,7 @@ SopenZIP(zipper *z, const char *name, int flags)
 
 BeginPredDefs(zip)
   PRED_DEF("zip_open_stream",		3, zip_open_stream,	     0)
-  PRED_DEF("zip_close",			2, zip_close,		     0)
+  PRED_DEF("zip_close_",		2, zip_close,		     0)
   PRED_DEF("zip_lock",		        1, zip_lock,		     0)
   PRED_DEF("zip_unlock",	        1, zip_unlock,		     0)
   PRED_DEF("zip_open_new_file_in_zip",	4, zip_open_new_file_in_zip, 0)

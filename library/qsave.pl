@@ -138,7 +138,7 @@ qsave_program(FileBase, Options0) :-
     save_resources(RC, SaveClass),
     save_program(RC, SaveClass, Options),
     save_foreign_libraries(RC, Options),
-    zip_close(RC, "SWI-Prolog saved state"),
+    zip_close(RC, [comment("SWI-Prolog saved state")]),
     '$mark_executable'(File),
     close_map.
 
