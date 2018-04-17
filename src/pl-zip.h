@@ -50,7 +50,8 @@ typedef enum zipper_state
 } zipper_state;
 
 /* flags */
-#define ZIP_RELEASE_ON_CLOSE 0x0001
+#define ZIP_RELEASE_ON_CLOSE		0x0001
+#define ZIP_CLOSE_STREAM_ON_CLOSE	0x0002
 
 typedef struct zipper
 { atom_t	 symbol;			/* <zipper>(address) blob */

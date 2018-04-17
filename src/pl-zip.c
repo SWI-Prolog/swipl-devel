@@ -303,7 +303,8 @@ close_zipper(zipper *z)
   }
   if ( (stream=z->stream) )
   { z->stream = NULL;
-    Sclose(z->stream);
+    if ( true(z, ZIP_CLOSE_STREAM_ON_CLOSE) )
+      Sclose(stream);
   }
 
   simpleMutexDelete(&z->lock);
@@ -382,10 +383,20 @@ get_zipper(term_t t, zipper **zipper)
 /** zip_open_stream(+Stream, -Zipper, +Options)
 */
 
+static const opt_spec zip_open_stream_options[] =
+{ { ATOM_close_parent,	    OPT_BOOL },
+  { NULL_ATOM,		    0 }
+};
+
 static
 PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
 { zipper *z = NULL;
   IOSTREAM *stream = NULL;
+  int close_parent = FALSE;
+
+  if ( !scan_options(A3, 0, ATOM_zip_options, zip_open_stream_options,
+		     &close_parent) )
+    return FALSE;
 
   if ( !PL_get_stream(A1, &stream, 0) )
     return FALSE;
@@ -393,6 +404,9 @@ PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
   if ( !(z=malloc(sizeof(*z))) )
     return PL_resource_error("memory");
   memset(z, 0, sizeof(*z));
+  if ( close_parent )
+    set(z, ZIP_CLOSE_STREAM_ON_CLOSE);
+  z->stream = stream;
   simpleMutexInit(&z->lock);
 
   if ( (stream->flags&SIO_OUTPUT) )
@@ -433,7 +447,7 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
        zacquire(z, ZIP_CLOSE, &prev_state, "close") )
   { if ( prev_state == ZIP_READ_ENTRY )
       return TRUE;				/* delay */
-    if ( close_zipper(z) == 0 )
+    else if ( close_zipper(z) == 0 )
       return TRUE;
     else
       return PL_warning("zip_close/2 failed");
@@ -875,6 +889,7 @@ zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
 
   if ( (r = malloc(sizeof(*r))) )
   { memcpy(r, &z, sizeof(*r));
+    set(r, ZIP_CLOSE_STREAM_ON_CLOSE);
     simpleMutexInit(&r->lock);
     r->stream = s;
   }

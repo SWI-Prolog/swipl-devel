@@ -54,10 +54,10 @@ SWI-Prolog _resources_.
 %   Create a Zipper, providing access to File.  Mode is one of `read` or
 %   `write`. The Options list is currently ignored.
 
-zip_open(File, Mode, Zipper, Options) :-
+zip_open(File, Mode, Zipper, _Options) :-
     must_be(oneof([read,write]), Mode),
     open(File, Mode, Stream, [type(binary)]),
-    zip_open_stream(Stream, Zipper, Options).
+    zip_open_stream(Stream, Zipper, [close_parent(true)]).
 
 %!  zip_close(+Zipper) is det.
 %!  zip_close(+Zipper, +Comment) is det.
