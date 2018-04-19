@@ -36,6 +36,15 @@
 
 #include "pl-incl.h"
 #include "pl-zip.h"
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
 
 #ifndef VERSIONMADEBY
 # define VERSIONMADEBY   (0x0) /* platform dependent */
@@ -123,8 +132,7 @@ typedef struct valid_transition
 } valid_transition;
 
 static const valid_transition valid_transitions[] =
-{
-  { ZIP_IDLE,	    ZIP_SCAN        },
+{ { ZIP_IDLE,	    ZIP_SCAN        },
   { ZIP_SCAN,	    ZIP_SCAN        },
   { ZIP_SCAN,	    ZIP_READ_ENTRY  },
   { ZIP_IDLE,	    ZIP_WRITE_ENTRY },
@@ -231,7 +239,7 @@ static zlib_filefunc64_def zfile_functions =
   zseek64_file,
   zclose_file,
   zerror_file,
-  NULL						/* opaque */
+  NULL					/* opaque */
 };
 
 
@@ -264,6 +272,118 @@ static zlib_filefunc64_def zstream_functions =
   NULL						/* opaque */
 };
 
+		 /*******************************
+		 *	  MEMORY REGION		*
+		 *******************************/
+
+typedef struct mem_stream
+{ const char *start;				/* Start of the region */
+  const char *end;				/* End of the region */
+  const char *here;				/* Current file pointer */
+} mem_stream;
+
+
+static voidpf
+zopen64_mem(voidpf opaque, const void *stream, int mode)
+{ mem_stream *mem = (mem_stream*)stream;
+
+  assert(!(mode&ZLIB_FILEFUNC_MODE_CREATE));
+  mem->here = mem->start;
+
+  return (voidpf) mem;
+}
+
+static uLong
+zread_mem(voidpf opaque, voidpf stream, void* buf, uLong size)
+{ mem_stream *mem = stream;
+  uLong copy;
+
+  if ( mem->here + size > mem->end )
+    copy = mem->end - mem->here;
+  else
+    copy = size;
+
+  memcpy(buf, mem->here, copy);
+  mem->here += copy;
+
+  return copy;
+}
+
+static uLong
+zwrite_mem(voidpf opaque, voidpf stream, const void* buf, uLong size)
+{ return -1;
+}
+
+static ZPOS64_T
+ztell64_mem(voidpf opaque, voidpf stream)
+{ mem_stream *mem = stream;
+
+  return mem->here - mem->start;
+}
+
+static long
+zseek64_mem(voidpf opaque, voidpf stream, ZPOS64_T offset, int origin)
+{ mem_stream *mem = stream;
+  const char *p;
+
+  switch(origin)
+  { case SEEK_SET: p = mem->start + offset; break;
+    case SEEK_CUR: p = mem->here + offset;  break;
+    case SEEK_END: p = mem->end - offset;   break;
+    default:	   errno = EINVAL;
+		   return -1;
+  }
+
+  if ( p < mem->start )
+  { errno = EINVAL;
+    return -1;
+  } else if ( p > mem->end )
+  { p = mem->end;
+  }
+
+  mem->here = p;
+
+  return 0;
+}
+
+static int
+zclose_mem(voidpf opaque, voidpf stream)
+{ mem_stream *mem = stream;
+
+  free(mem);
+  return 0;
+}
+
+static int
+zerror_mem(voidpf opaque, voidpf stream)
+{ return 0;
+}
+
+static voidpf
+zclone_mem(voidpf opaque, voidpf stream)
+{ mem_stream *mem = stream;
+  mem_stream *clone;
+
+  if ( (clone=malloc(sizeof(*clone))) )
+  { *clone = *mem;
+  }
+
+  return clone;
+}
+
+static zlib_filefunc64_def zmem_functions =
+{ zopen64_mem,
+  zread_mem,
+  zwrite_mem,
+  ztell64_mem,
+  zseek64_mem,
+  zclose_mem,
+  zerror_mem,
+  NULL,					/* opaque */
+  zclone_mem
+};
+
+
 
 		 /*******************************
 		 *	   ARCHIVE BLOB		*
@@ -289,8 +409,6 @@ close_zipper(zipper *z)
 { zipFile zf;
   unzFile uzf;
   int rc = 0;
-  const char *s;
-  IOSTREAM *stream;
 
   if ( (zf=z->writer) )
   { z->writer = NULL;
@@ -299,16 +417,21 @@ close_zipper(zipper *z)
   { z->reader = NULL;
     rc = unzClose(uzf);
   }
-  if ( (s=z->path) )
-  { z->path = NULL;
-    free((void*)s);
+  if ( z->path )
+  { free((char*)z->path);
+    z->path = NULL;
   }
-  if ( (stream=z->stream) )
-  { z->stream = NULL;
-    if ( true(z, ZIP_CLOSE_STREAM_ON_CLOSE) )
-      Sclose(stream);
+  if ( z->input.any )
+  { switch(z->input_type)
+    { case ZIP_STREAM:
+	if ( true(z, ZIP_CLOSE_STREAM_ON_CLOSE) )
+	  Sclose(z->input.stream);
+        break;
+      default:
+	break;
+    }
+    z->input.any = NULL;
   }
-
   simpleMutexDelete(&z->lock);
 
   free(z);
@@ -408,7 +531,9 @@ PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
   memset(z, 0, sizeof(*z));
   if ( close_parent )
     set(z, ZIP_CLOSE_STREAM_ON_CLOSE);
-  z->stream = stream;
+  z->input_type = ZIP_STREAM;
+  z->input.stream = stream;
+  z->path = strdup("<stream>");
   simpleMutexInit(&z->lock);
 
   if ( (stream->flags&SIO_OUTPUT) )
@@ -431,6 +556,36 @@ error:
   if ( stream ) PL_release_stream(stream);
   if ( z ) free(z);
   return PL_warning("zip_open/4 failed");
+}
+
+/** zip_clone(+Zipper, -Clone)
+*/
+
+static
+PRED_IMPL("zip_clone", 2, zip_clone, 0)
+{ //PRED_LD
+  zipper *z;
+
+  if ( get_zipper(A1, &z) )
+  { zipper *clone;
+
+    if ( !z->reader || z->input_type != ZIP_MEMORY )
+      return PL_permission_error("clone", "zipper", A1);
+
+    if ( !(clone=malloc(sizeof(*clone))) )
+      return PL_resource_error("memory");
+
+    *clone = *z;
+    clone->symbol     = 0;
+    clone->owner      = 0;
+    clone->lock_count = 0;
+    simpleMutexInit(&z->lock);
+    clone->reader     = unzClone(clone->reader);
+
+    return unify_zipper(A2, clone);
+  }
+
+  return FALSE;
 }
 
 /** zip_close(+Zipper, +Comment)
@@ -852,29 +1007,167 @@ PRED_IMPL("$rc_handle", 1, rc_handle, 0)
   }
 }
 
+		 /*******************************
+		 *	      MAPPING		*
+		 *******************************/
+
+typedef struct mapped_file
+{ char *start;
+  char *end;
+#ifdef __WINDOWS__
+  WIN_HANDLE	hfile;			/* handle to the file */
+  WIN_HANDLE	hmap;			/* handle to the map */
+#endif
+} mapped_file;
+
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *)-1)
+#endif
+
+static mapped_file *
+map_file(const char *name)
+{ mapped_file *mf;
+
+  if ( !(mf=malloc(sizeof(*mf))) )
+    return NULL;
+  memset(mf, 0, sizeof(*mf));
+
+#ifdef HAVE_MMAP
+  int fd;
+
+  mf->start = MAP_FAILED;
+  if ( (fd = open(name, O_RDONLY)) >= 0 )
+  { struct stat buf;
+
+    if ( fstat(fd, &buf) == 0 )
+    { mf->start = mmap(NULL,
+		       buf.st_size,
+		       PROT_READ,
+		       MAP_SHARED,
+		       fd,
+		       0);
+      mf->end = mf->start + buf.st_size;
+    }
+
+    close(fd);
+  }
+
+  if ( mf->start == MAP_FAILED )
+  { free(mf);
+    return NULL;
+  }
+
+  return mf;
+#else /*HAVE_MMAP*/
+#ifdef __WINDOWS__
+  DWORD fsize;
+  wchar_t buf[PATH_MAX];
+
+  if ( !_xos_os_filenameW(name, buf, PATH_MAX) )
+    goto errio;
+  mf->hfile = CreateFileW(buf,
+			  GENERIC_READ,
+			  FILE_SHARE_READ,
+			  NULL,
+			  OPEN_EXISTING,
+			  FILE_ATTRIBUTE_NORMAL,
+			  NULL);
+  if ( !mf->hfile )
+    goto errio;
+
+  if ( (fsize = GetFileSize(mf->hfile, NULL)) == (DWORD)~0L )
+    goto errio;
+
+  mf->hmap = CreateFileMapping(rca->hfile,
+			       NULL,
+			       PAGE_READONLY,
+			       0L,
+			       (DWORD)fsize, /* WIN64: Truncated! */
+			       NULL);
+  if ( !mf->hmap )
+    goto errio;
+
+  mf->start = MapViewOfFile(mf->hmap,
+			    FILE_MAP_READ,
+			    0L, 0L, /* offset */
+			    0L);	/* size (0=all) */
+
+  if ( !mf->map_start )
+    goto errio;
+
+  mf->end = mf->start + fsize;
+  return mf;
+
+errio:
+  if ( mf->hmap )
+    CloseHandle(mf->hmap);
+  if ( mf->hfile )
+    CloseHandle(mf->hfile);
+  mf->map_start = NULL;
+  mf->hfile     = NULL;
+  mf->hmap      = NULL;
+  return NULL;
+#endif  /*__WINDOWS__*/
+#endif /*HAVE_MMAP*/
+}
+
+static void
+unmap_file(mapped_file *mf)
+{
+#ifdef HAVE_MMAP
+  if ( mf->start )
+    munmap(mf->start, mf->end - mf->start);
+#endif
+#ifdef __WINDOWS__
+  if ( mf->map_start )
+    UnmapViewOfFile(mf->map_start);
+  if ( mf->hmap )
+    CloseHandle(mf->hmap);
+  if ( mf->hfile )
+    CloseHandle(mf->hfile);
+#endif
+
+  free(mf);
+}
 
 		 /*******************************
 		 *	 ARCHIVE EMULATION	*
 		 *******************************/
 
+/* TBD: get rid of the mapped_file on close
+*/
+
 zipper *
 zip_open_archive(const char *file, int flags)
 { zipper z = {0};
-  zipper *r;
+  zipper *r = NULL;
 
   if ( (flags&RC_RDONLY) )
-  { if ( !(z.reader = unzOpen2_64(file, &zfile_functions)) )
-      return NULL;
+  { mapped_file *mf;
+
+    DEBUG(MSG_ZIP, Sdprintf("Opening %s using file mapping\n", file));
+
+    if ( (mf=map_file(file)) )
+    { if ( !(r=zip_open_archive_mem((const unsigned char *)mf->start,
+				    mf->end-mf->start, flags)) )
+	unmap_file(mf);
+    }
   } else
-  { if ( !(z.writer = zipOpen2_64(file, FALSE, NULL, &zfile_functions)) )
+  { DEBUG(MSG_ZIP, Sdprintf("Opening %s as stream\n", file));
+
+    if ( !(z.writer = zipOpen2_64(file, FALSE, NULL, &zfile_functions)) )
       return NULL;
+
+    if ( (r = malloc(sizeof(*r))) )
+    { memcpy(r, &z, sizeof(*r));
+      simpleMutexInit(&r->lock);
+      r->input_type = ZIP_FILE;
+      r->input.any  = NULL;
+    }
   }
 
-  if ( (r = malloc(sizeof(*r))) )
-  { memcpy(r, &z, sizeof(*r));
-    simpleMutexInit(&r->lock);
+  if ( r )
     r->path = strdup(file);
-  }
 
   return r;
 }
@@ -883,17 +1176,24 @@ zipper *
 zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
 { zipper z = {0};
   zipper *r;
-  IOSTREAM *s = Sopenmem((char**)&mem, &mem_size, "r");
+  mem_stream *mems;
 
   assert((flags&RC_RDONLY));
-  if ( !(z.reader = unzOpen2_64(s, &zstream_functions)) )
+
+  if ( !(mems = malloc(sizeof(*mem))) )
+    return NULL;
+  mems->start = (const char*)mem;
+  mems->end   = mems->start+mem_size;
+
+  if ( !(z.reader = unzOpen2_64(mems, &zmem_functions)) )
     return NULL;
 
   if ( (r = malloc(sizeof(*r))) )
   { memcpy(r, &z, sizeof(*r));
     set(r, ZIP_CLOSE_STREAM_ON_CLOSE);
     simpleMutexInit(&r->lock);
-    r->stream = s;
+    r->input_type   = ZIP_MEMORY;
+    r->input.memory = mems;
   }
 
   return r;
@@ -948,6 +1248,12 @@ SopenZIP(zipper *z, const char *name, int flags)
   return NULL;
 }
 
+const char *
+zipper_file(const zipper *z)
+{ return z->path;
+}
+
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -955,6 +1261,7 @@ SopenZIP(zipper *z, const char *name, int flags)
 
 BeginPredDefs(zip)
   PRED_DEF("zip_open_stream",		  3, zip_open_stream,	          0)
+  PRED_DEF("zip_clone",		          2, zip_clone,	                  0)
   PRED_DEF("zip_close_",		  2, zip_close,		          0)
   PRED_DEF("zip_lock",		          1, zip_lock,		          0)
   PRED_DEF("zip_unlock",	          1, zip_unlock,		  0)

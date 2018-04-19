@@ -49,6 +49,12 @@ typedef enum zipper_state
   ZIP_END = -1					/* end of list */
 } zipper_state;
 
+typedef enum zipper_input
+{ ZIP_FILE,
+  ZIP_STREAM,
+  ZIP_MEMORY
+} zipper_input;
+
 /* flags */
 #define ZIP_RELEASE_ON_CLOSE		0x0001
 #define ZIP_CLOSE_STREAM_ON_CLOSE	0x0002
@@ -57,8 +63,13 @@ typedef struct zipper
 { atom_t	 symbol;			/* <zipper>(address) blob */
   zipFile	 writer;			/* zip.h zipper */
   unzFile	 reader;			/* unzip.h unzipper */
+  union
+  { IOSTREAM   *stream;
+    struct mem_stream *memory;
+    void       *any;
+  } input;
   const char    *path;
-  IOSTREAM      *stream;
+  zipper_input	 input_type;
   zipper_state	 state;
   unsigned int	 flags;
   int		 owner;				/* owning thread id */
@@ -81,5 +92,6 @@ COMMON(zipper *)	zip_open_archive_mem(const unsigned char *mem,
 COMMON(int)		zip_close_archive(zipper *z);
 COMMON(IOSTREAM *)	SopenZIP(zipper *z, const char *name, int flags);
 COMMON(char *)		rc_strerror(int);
+COMMON(const char *)    zipper_file(const zipper *z);
 
 #endif /*H_PLZIP_INCLUDED*/

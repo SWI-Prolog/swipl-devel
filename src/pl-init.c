@@ -835,13 +835,12 @@ PL_initialise(int argc, char **argv)
 #endif
 
   if ( !GD->resources.DB )
-  { if (    (GD->resources.DB = zip_open_archive(GD->paths.executable, RC_RDONLY))
+  { if ( (GD->resources.DB = zip_open_archive(GD->paths.executable, RC_RDONLY)) )
+      rcpath = GD->paths.executable;
 #ifdef __WINDOWS__
-         || (GD->resources.DB = zip_open_archive(GD->paths.module, RC_RDONLY))
+    else if ( (GD->resources.DB = zip_open_archive(GD->paths.module, RC_RDONLY)) )
+      rcpath = GD->paths.module;
 #endif
-       )
-    { rcpath = ((zipper *)GD->resources.DB)->path;
-    }
   }
   if ( GD->resources.DB )
     initDefaultOptions();
@@ -870,7 +869,7 @@ PL_initialise(int argc, char **argv)
     { if ( !(GD->resources.DB = openResourceDB(argc, argv)) )
       { fatalError("Could not find system resources");
       }
-      rcpath = ((zipper *)GD->resources.DB)->path;
+      rcpath = zipper_file(GD->resources.DB);
 
       initDefaultOptions();
     }

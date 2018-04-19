@@ -164,9 +164,10 @@ res_iri_hook(size, IRI, Size) :-
 read_mode(read).
 read_mode(exists).
 
-resource_and_entry(IRI, Zipper, Entry) :-
+resource_and_entry(IRI, Clone, Entry) :-
     string_concat("res://", Entry, IRI),
-    '$rc_handle'(Zipper).
+    '$rc_handle'(Zipper),
+    zip_clone(Zipper, Clone).
 
 %!  with_zipper(+Zipper, :Goal)
 
