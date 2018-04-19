@@ -198,6 +198,31 @@ typedef struct
 #endif
 
 /* ===========================================================================
+     Clone an unzFile
+*/
+
+extern unzFile ZEXPORT unzClone (const unzFile file)
+{
+    unz64_s *s, *c;
+    if (file==NULL)
+        return NULL; //UNZ_PARAMERROR;
+    s=(unz64_s*)file;
+
+    if (s->pfile_in_zip_read!=NULL)
+        return NULL; //UNZ_PARAMERROR;
+    if (s->z_filefunc.zfile_func64.zclone_file==NULL)
+        return NULL; //UNZ_PARAMERROR;
+    c=(unz64_s*)ALLOC(sizeof(unz64_s));
+    if( c != NULL)
+    {
+        *c=*s;
+	c->filestream = ZCLONE64(c->z_filefunc, c->filestream);
+    }
+    return (unzFile)c;
+}
+
+
+/* ===========================================================================
      Read a byte from a gz_stream; update next_in and avail_in. Return EOF
    for end of file.
    IN assertion: the stream s has been successfully opened for reading.

@@ -195,6 +195,13 @@ extern unzFile ZEXPORT unzOpen2_64 OF((const void *path,
       for read/write the zip file (see ioapi.h)
 */
 
+extern unzFile ZEXPORT unzClone OF((const unzFile file));
+/*
+  Clone a ZipFile opened with unzOpen.
+  The clone provides independent access that can be used for nested
+  reading or concurrent access. */
+
+
 extern int ZEXPORT unzClose OF((unzFile file));
 /*
   Close a ZipFile opened with unzOpen.
