@@ -2735,13 +2735,13 @@ load_files(Module:Files, Options) :-
     Ok = Ok0.
 
 '$rdef_response'(Char, true) :-
-    memberchk(Char, "yY"),
+    memberchk(Char, `yY`),
     format(user_error, 'yes~n', []).
 '$rdef_response'(Char, false) :-
-    memberchk(Char, "nN"),
+    memberchk(Char, `nN`),
     format(user_error, 'no~n', []).
 '$rdef_response'(Char, _) :-
-    memberchk(Char, "a"),
+    memberchk(Char, `a`),
     format(user_error, 'abort~n', []),
     abort.
 '$rdef_response'(_, _) :-
