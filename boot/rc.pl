@@ -150,14 +150,14 @@ res_iri_hook(access(Mode), IRI, True) :-
 res_iri_hook(time, IRI, Time) :-
     resource_and_entry(IRI, Zipper, Entry),
     catch(( zipper_goto(Zipper, file(Entry)),
-            zipper_file_property(Zipper, time, Time)
+            zipper_file_property(Zipper, _, time, Time)
           ),
           error(existence_error(_, _), Context),
           throw(error(existence_error(source_sink, IRI), Context))).
 res_iri_hook(size, IRI, Size) :-
     resource_and_entry(IRI, Zipper, Entry),
     catch(( zipper_goto(Zipper, file(Entry)),
-            zipper_file_property(Zipper, size, Size)
+            zipper_file_property(Zipper, _,size, Size)
           ),
           error(existence_error(_, _), Context),
           throw(error(existence_error(source_sink, IRI), Context))).
@@ -197,6 +197,42 @@ resource_and_entry(IRI, Clone, Entry) :-
     '$rc_handle'(Zipper),
     zip_clone(Zipper, Clone).
 
+:- dynamic rc_index_db/2, rc_index_done/0.
+:- volatile rc_index_db/2, rc_index_done/0.
+
+%!  rc_index(+Entry, -Offset)
+
+rc_index(Entry, Offset) :-
+    rc_index_done,
+    !,
+    rc_index_db(Entry, Offset).
+rc_index(Entry, Offset) :-
+    with_mutex('$rc', index_rc),
+    !,
+    rc_index_db(Entry, Offset).
+
+index_rc :-
+    rc_index_done,
+    !.
+index_rc :-
+    '$rc_handle'(Zipper),
+    setup_call_cleanup(
+        zip_clone(Zipper, Clone),
+        ( zipper_goto(Clone, first),
+          index_rc(Clone)
+        ),
+        zip_close(Clone)),
+    asserta(rc_index_done).
+
+index_rc(Zipper) :-
+    zipper_file_property(Zipper, Name, offset, Offset),
+    assertz(rc_index_db(Name, Offset)),
+    (   zipper_goto(Zipper, next)
+    ->  index_rc(Zipper)
+    ;   true
+    ).
+
+
 %!  with_zipper(+Zipper, :Goal)
 
 with_zipper(Zipper, Goal) :-
@@ -205,12 +241,13 @@ with_zipper(Zipper, Goal) :-
         Goal,
         zip_unlock(Zipper)).
 
-%!  zipper_file_property(+Zipper, +Prop, -Value)
+%!  zipper_file_property(+Zipper, -Name, +Prop, -Value)
 
-zipper_file_property(Zipper, Prop, Value) :-
-    zip_file_info_(Zipper, _Name, Info),
+zipper_file_property(Zipper, Name, Prop, Value) :-
+    zip_file_info_(Zipper, Name, Info),
     zip_prop_arg(Prop, Arg),
     arg(Arg, Info, Value).
 
-zip_prop_arg(size, 2).
-zip_prop_arg(time, 5).
+zip_prop_arg(size,   2).
+zip_prop_arg(time,   5).
+zip_prop_arg(offset, 6).
