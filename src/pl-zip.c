@@ -772,13 +772,15 @@ static const opt_spec zip_new_file_options[] =
 { { ATOM_extra,		    OPT_STRING },
   { ATOM_comment,	    OPT_STRING },
   { ATOM_time,		    OPT_DOUBLE },
-  { NULL_ATOM,		    0 }
+  { ATOM_method,	    OPT_ATOM   },
+  { ATOM_level,		    OPT_INT    },
+  { NULL_ATOM,		    0          }
 };
 
 
 static
 PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
-{ //PRED_LD
+{ PRED_LD
   zipper *z;
   char *fname;
   int flags = (CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8);
@@ -786,12 +788,34 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   char *comment = NULL;
   int extralen = 0;
   double ftime = (double)time(NULL);
+  int level = 6;
+  atom_t method = ATOM_deflated;
+  int imethod;
 
   if ( !scan_options(A4, 0, ATOM_zip_options, zip_new_file_options,
-		     &extra, &comment, &ftime) )
+		     &extra, &comment, &ftime, &method, &level) )
     return FALSE;
+
   if ( extra )
     extralen = strlen(extra);
+
+  if ( level < 1 || level > 9 )
+  { term_t ex;
+    return ( (ex=PL_new_term_ref()) &&
+	     PL_put_integer(ex, level) &&
+	     PL_domain_error("zip_level", ex) );
+  }
+
+  if ( method == ATOM_deflated )
+    imethod = Z_DEFLATED;
+  else if ( method == ATOM_store )
+    imethod = 0;
+  else
+  { term_t ex;
+    return ( (ex=PL_new_term_ref()) &&
+	     PL_put_atom(ex, method) &&
+	     PL_domain_error("zip_method", ex) );
+  }
 
   if ( get_zipper(A1, &z) &&
        PL_get_chars(A2, &fname, flags) &&
@@ -805,8 +829,8 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
 				 extra, extralen,
 				 NULL, 0,	/* extrafield global */
 				 comment,	/* comment */
-				 Z_DEFLATED,	/* method */
-				 6,		/* level */
+				 imethod,	/* method */
+				 level,		/* level */
 				 FALSE,		/* raw */
 				 -MAX_WBITS,	/* windowBits */
 				 DEF_MEM_LEVEL,	/* memLevel */
