@@ -404,6 +404,10 @@ acquire_zipper(atom_t aref)
   ref->symbol = aref;
 }
 
+/* close_zipper() may be called twice: one time explitly and one time
+   due to atom-GC.
+*/
+
 static int
 close_zipper(zipper *z)
 { zipFile zf;
@@ -432,18 +436,17 @@ close_zipper(zipper *z)
     }
     z->input.any = NULL;
   }
-  simpleMutexDelete(&z->lock);
-
-  free(z);
 
   return rc;
 }
 
 static int
 release_zipper(atom_t aref)
-{ zipper *ref = PL_blob_data(aref, NULL, NULL);
+{ zipper *z = PL_blob_data(aref, NULL, NULL);
 
-  close_zipper(ref);
+  close_zipper(z);
+  simpleMutexDelete(&z->lock);
+  free(z);
 
   return TRUE;
 }
@@ -580,6 +583,8 @@ PRED_IMPL("zip_clone", 2, zip_clone, 0)
     clone->owner      = 0;
     clone->lock_count = 0;
     simpleMutexInit(&z->lock);
+    if ( clone->path )
+      clone->path = strdup(clone->path);
     clone->reader     = unzClone(clone->reader);
 
     return unify_zipper(A2, clone);
@@ -866,6 +871,9 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
 
   if ( get_zipper(A1, &z) )
   { atom_t a;
+
+    if ( !z->reader )
+      return PL_warning("Not open for reading");
 
     if ( !zacquire(z, ZIP_SCAN, NULL, "goto") )
       return FALSE;
@@ -1222,7 +1230,7 @@ zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
 
   assert((flags&RC_RDONLY));
 
-  if ( !(mems = malloc(sizeof(*mem))) )
+  if ( !(mems = malloc(sizeof(*mems))) )
     return NULL;
   mems->start = (const char*)mem;
   mems->end   = mems->start+mem_size;
