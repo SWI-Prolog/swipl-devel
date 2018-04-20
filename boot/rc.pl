@@ -137,8 +137,9 @@ res_iri_hook(open(Mode,Options), IRI, Stream) :-
     ;   '$permission_error'(open, source_sink, IRI)
     ).
 res_iri_hook(access(Mode), IRI, True) :-
-    resource_and_entry(IRI, Zipper, Entry),
+    resource_and_entry(IRI, Zipper, Entry0),
     (   read_mode(Mode),
+        entry_name(Mode, Entry0, Entry),
         catch(with_zipper(Zipper,
                           zipper_goto(Zipper, file(Entry))),
               error(existence_error(_, _), _),
@@ -165,6 +166,13 @@ read_mode(read).
 read_mode(exists).
 read_mode(file).
 read_mode(directory).
+
+entry_name(directory, Entry0, Entry) :-
+    \+ sub_atom(Entry0, _, _, 0, /),
+    !,
+    atom_concat(Entry0, /, Entry).
+entry_name(_, Entry, Entry).
+
 
 %!  access_ok(+Access, +Entry, -Ok) is det.
 %

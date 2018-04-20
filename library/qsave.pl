@@ -902,6 +902,20 @@ zipper_append_file(Zipper, Name, File, Options) :-
         close(In)),
     assertz(saved_resource_file(Name)).
 
+zipper_add_directory(Zipper, Name, Dir, Options) :-
+    time_file(Dir, Stamp),
+    atom_concat(Name, /, DirName),
+    (   saved_resource_file(DirName)
+    ->  true
+    ;   setup_call_cleanup(
+            zipper_open_new_file_in_zip(Zipper, DirName, Out,
+                                        [ method(store),
+                                          time(Stamp)
+                                        | Options
+                                        ]),
+            true,
+            close(Out))
+    ).
 
 %!  zipper_append_directory(+Zipper, +Name, +Dir, +Options) is det.
 %
@@ -910,6 +924,7 @@ zipper_append_file(Zipper, Name, File, Options) :-
 zipper_append_directory(Zipper, Name, Dir, Options) :-
     exists_directory(Dir),
     !,
+    zipper_add_directory(Zipper, Name, Dir, Options),
     directory_files(Dir, Members),
     forall(member(M, Members),
            (   reserved(M)
