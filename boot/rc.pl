@@ -131,36 +131,29 @@ mode_options([_|Chars], T) :-
 
 res_iri_hook(open(Mode,Options), IRI, Stream) :-
     (   Mode == read
-    ->  resource_and_entry(IRI, Zipper, Entry),
-        zipper_goto(Zipper, file(Entry)),
-        zipper_open_current(Zipper, Stream, Options)
+    ->  setup_call_cleanup(
+            iri_zipper(IRI, Zipper),
+            zipper_open_current(Zipper, Stream, Options),
+            zip_close_(Zipper, _))
     ;   '$permission_error'(open, source_sink, IRI)
     ).
-res_iri_hook(access(Mode), IRI, True) :-
-    resource_and_entry(IRI, Zipper, Entry0),
+res_iri_hook(access(Mode), IRI0, True) :-
     (   read_mode(Mode),
-        entry_name(Mode, Entry0, Entry),
-        catch(with_zipper(Zipper,
-                          zipper_goto(Zipper, file(Entry))),
-              error(existence_error(_, _), _),
-              fail)
-    ->  access_ok(Mode, Entry, True)
+        entry_name(Mode, IRI0, IRI),
+        iri_offset(IRI, _Offset)
+    ->  access_ok(Mode, IRI, True)
     ;   True = false
     ).
 res_iri_hook(time, IRI, Time) :-
-    resource_and_entry(IRI, Zipper, Entry),
-    catch(( zipper_goto(Zipper, file(Entry)),
-            zipper_file_property(Zipper, _, time, Time)
-          ),
-          error(existence_error(_, _), Context),
-          throw(error(existence_error(source_sink, IRI), Context))).
+    setup_call_cleanup(
+            iri_zipper_ex(IRI, Zipper),
+            zipper_file_property(Zipper, _, time, Time),
+            zip_close_(Zipper, _)).
 res_iri_hook(size, IRI, Size) :-
-    resource_and_entry(IRI, Zipper, Entry),
-    catch(( zipper_goto(Zipper, file(Entry)),
-            zipper_file_property(Zipper, _,size, Size)
-          ),
-          error(existence_error(_, _), Context),
-          throw(error(existence_error(source_sink, IRI), Context))).
+    setup_call_cleanup(
+            iri_zipper_ex(IRI, Zipper),
+            zipper_file_property(Zipper, _, size, Size),
+            zip_close_(Zipper, _)).
 
 read_mode(read).
 read_mode(exists).
@@ -170,7 +163,7 @@ read_mode(directory).
 entry_name(directory, Entry0, Entry) :-
     \+ sub_atom(Entry0, _, _, 0, /),
     !,
-    atom_concat(Entry0, /, Entry).
+    string_concat(Entry0, /, Entry).
 entry_name(_, Entry, Entry).
 
 
@@ -192,21 +185,35 @@ access_ok(file, Entry, True) :-
     ).
 access_ok(_, _, true).
 
-resource_and_entry(IRI, Clone, Entry) :-
-    string_concat("res://", Entry, IRI),
+%!  iri_zipper(+IRI, -Zipper) is semidet.
+%!  iri_zipper_ex(+IRI, -Zipper) is det.
+%
+%   Find and position a zipper for IRI. Fails if this cannot be found.
+
+iri_zipper(IRI, Clone) :-
+    iri_offset(IRI, Offset),
     '$rc_handle'(Zipper),
-    zip_clone(Zipper, Clone).
+    zip_clone(Zipper, Clone),
+    zipper_goto(Clone, offset(Offset)).
+
+iri_zipper_ex(IRI, Zipper) :-
+    iri_zipper(IRI, Zipper),
+    !.
+iri_zipper_ex(IRI, _Zipper) :-
+    '$existence_error'(source_sink, IRI).
+
+%!  iri_offset(+IRI, -Offset) is semidet.
+%
+%   True when Offset is the zipper offset where we can find IRI.
 
 :- dynamic rc_index_db/2, rc_index_done/0.
 :- volatile rc_index_db/2, rc_index_done/0.
 
-%!  rc_index(+Entry, -Offset)
-
-rc_index(Entry, Offset) :-
+iri_offset(Entry, Offset) :-
     rc_index_done,
     !,
     rc_index_db(Entry, Offset).
-rc_index(Entry, Offset) :-
+iri_offset(Entry, Offset) :-
     with_mutex('$rc', index_rc),
     !,
     rc_index_db(Entry, Offset).
@@ -221,12 +228,13 @@ index_rc :-
         ( zipper_goto(Clone, first),
           index_rc(Clone)
         ),
-        zip_close(Clone)),
+        zip_close_(Clone, _)),
     asserta(rc_index_done).
 
 index_rc(Zipper) :-
     zipper_file_property(Zipper, Name, offset, Offset),
-    assertz(rc_index_db(Name, Offset)),
+    string_concat('res://', Name, IRI),
+    assertz(rc_index_db(IRI, Offset)),
     (   zipper_goto(Zipper, next)
     ->  index_rc(Zipper)
     ;   true
