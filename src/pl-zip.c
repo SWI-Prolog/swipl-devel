@@ -878,8 +878,23 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
 	    return PL_existence_error("zip_entry", arg);
 	}
       }
+    } else if ( PL_is_functor(A2, FUNCTOR_offset1) )
+    { term_t arg = PL_new_term_ref();
+      int64_t offset;
+
+      if ( PL_get_arg(1, A2, arg) &&
+	   PL_get_int64_ex(arg, &offset) )
+      { switch(unzSetOffset64(z->reader, offset))
+	{ case UNZ_OK:
+	    return TRUE;
+	  default:
+	    zrelease(z);
+	    return PL_existence_error("zip_entry", arg);
+	}
+      }
     } else
-    { return PL_type_error("zipper_goto", A2);
+    { zrelease(z);
+      return PL_type_error("zipper_goto", A2);
     }
   }
 
@@ -976,13 +991,16 @@ PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
 				 fname, sizeof(fname),
 				 extra, sizeof(extra),
 				 comment, sizeof(comment)) == UNZ_OK )
-    { return ( PL_unify_chars(A2, PL_ATOM|REP_UTF8, (size_t)-1, fname) &&
-	       PL_unify_term(A3, PL_FUNCTOR_CHARS, "info", 5,
+    { ZPOS64_T offset = unzGetOffset64(z->reader);
+
+      return ( PL_unify_chars(A2, PL_ATOM|REP_UTF8, (size_t)-1, fname) &&
+	       PL_unify_term(A3, PL_FUNCTOR_CHARS, "info", 6,
 			       PL_INT64, (int64_t)info.compressed_size,
 			       PL_INT64, (int64_t)info.uncompressed_size,
 			       PL_UTF8_CHARS, extra,
 			       PL_UTF8_STRING, comment,
-			       PL_DOUBLE, zget_time(&info)) );
+			       PL_DOUBLE, zget_time(&info),
+			       PL_INT64, offset) );
     }
   }
 

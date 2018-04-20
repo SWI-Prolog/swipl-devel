@@ -496,6 +496,7 @@ A obfuscate		"obfuscate"
 A occurs_check		"occurs_check"
 A octet		        "octet"
 A off			"off"
+A offset		"offset"
 A on			"on"
 A open			"open"
 A operator		"operator"
@@ -995,6 +996,7 @@ F not_provable		1
 F not_strict_equal	2
 F number		1
 F occurs_check		2
+F offset		1
 F open			2
 F or			1
 F output		0

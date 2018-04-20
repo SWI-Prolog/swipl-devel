@@ -172,14 +172,18 @@ zip_members_(Zipper, [Name|T]) :-
 %     - extra:Extra
 %     - comment:Extra
 %     Optional additional fields.
+%     - offset:Offset
+%     Direct pointer to this entry.  May be used with zip_goto/2.
 
 zipper_file_info(Zipper, Name, Attrs) :-
     zip_file_info_(Zipper, Name,
                    info(CompressedSize, UnCompressedSize,
                         Extra, Comment,
-                        Time)),
+                        Time, Offset)),
     Attrs0 = zip{compressed_size:CompressedSize,
-                 uncompressed_size:UnCompressedSize},
+                 uncompressed_size:UnCompressedSize,
+                 offset:Offset
+                },
     zip_attr(Extra,   extra,   Attrs0, Attrs1),
     zip_attr(Comment, comment, Attrs1, Attrs2),
     zip_attr(Time,    time,    Attrs2, Attrs).
