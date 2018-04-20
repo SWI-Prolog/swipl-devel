@@ -735,9 +735,9 @@ PRED_IMPL("read_link", 3, read_link, 0)
     return FALSE;
 
   if ( (l = ReadLink(n, buf)) &&
-       PL_unify_atom_chars(link, l) &&
+       PL_unify_chars(link, PL_ATOM|REP_FN, (size_t)-1, l) &&
        (t = DeRefLink(n, buf)) &&
-       PL_unify_atom_chars(to, t) )
+       PL_unify_chars(to, PL_ATOM|REP_FN, (size_t)-1, t) )
     return TRUE;
 
   return FALSE;
