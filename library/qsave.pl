@@ -884,6 +884,9 @@ check_options(Opt) :-
 zipper_append_file(_, Name, _, _) :-
     saved_resource_file(Name),
     !.
+zipper_append_file(_, _, File, _) :-
+    source_file(File),
+    !.
 zipper_append_file(Zipper, Name, File, Options) :-
     (   option(time(_), Options)
     ->  Options1 = Options
