@@ -727,25 +727,13 @@ Find the resource database.
 #endif
 #endif
 
-zipper *
+static zipper *
 openResourceDB(int argc, char **argv)
 { zipper *rc;
   char *xfile = NULL;
   int flags = (GD->bootsession ? RC_WRONLY|RC_CREATE|RC_TRUNC : RC_RDONLY);
   char tmp[MAXPATHLEN];
   int n;
-
-  if ( !GD->bootsession )
-  {
-#ifdef __WINDOWS__
-    if ( GD->paths.module &&
-	 !streq(GD->paths.module, GD->paths.executable) &&
-	 (rc = zip_open_archive(GD->paths.module, flags)) )
-      return rc;
-#endif
-    if ( (rc = zip_open_archive(GD->paths.executable, flags)) )
-      return rc;
-  }
 
   for(n=0; n<argc-1; n++)
   { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
@@ -838,7 +826,8 @@ PL_initialise(int argc, char **argv)
   { if ( (GD->resources.DB = zip_open_archive(GD->paths.executable, RC_RDONLY)) )
       rcpath = GD->paths.executable;
 #ifdef __WINDOWS__
-    else if ( (GD->resources.DB = zip_open_archive(GD->paths.module, RC_RDONLY)) )
+    else if ( !streq(GD->paths.module, GD->paths.executable) &&
+	      (GD->resources.DB = zip_open_archive(GD->paths.module, RC_RDONLY)) )
       rcpath = GD->paths.module;
 #endif
   }

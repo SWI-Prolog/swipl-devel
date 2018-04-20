@@ -1987,7 +1987,7 @@ load_files(Module:Files, Options) :-
     '$mt_load_file'(File, FullFile, Module, Options).
 
 
-%!  '$already_loaded'(+File, +FulleFile, +Module, +Options) is det.
+%!  '$already_loaded'(+File, +FullFile, +Module, +Options) is det.
 %
 %   Called if File is already loaded. If  this is a module-file, the
 %   module must be imported into the context  Module. If it is not a
