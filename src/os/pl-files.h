@@ -35,10 +35,12 @@
 #ifndef PL_FILES_H_INCLUDED
 #define PL_FILES_H_INCLUDED
 
-#define ACCESS_EXIST	0		/* AccessFile() modes */
-#define ACCESS_EXECUTE	1
-#define ACCESS_READ	2
-#define ACCESS_WRITE	4
+#define ACCESS_EXIST	 0x0000		/* AccessFile() modes */
+#define ACCESS_EXECUTE	 0x0001
+#define ACCESS_READ	 0x0002
+#define ACCESS_WRITE	 0x0004
+#define ACCESS_FILE	 0x0008		/* IRI extensions */
+#define ACCESS_DIRECTORY 0x0010
 
 COMMON(int)		LastModifiedFile(const char *f, double *t);
 COMMON(int)		RemoveFile(const char *path);

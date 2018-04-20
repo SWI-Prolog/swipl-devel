@@ -163,6 +163,7 @@ res_iri_hook(size, IRI, Size) :-
 
 read_mode(read).
 read_mode(exists).
+read_mode(file).
 
 resource_and_entry(IRI, Clone, Entry) :-
     string_concat("res://", Entry, IRI),

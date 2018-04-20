@@ -668,6 +668,12 @@ PRED_IMPL("size_file", 2, size_file, 0)
 
   if ( PL_get_file_name(A1, &n, 0) )
   { int64_t size;
+    int sl;
+
+    if ( (sl=file_name_is_iri(n)) )
+    { return ( iri_hook(n, IRI_SIZE, &size) &&
+	       PL_unify_int64(A2, size) );
+    }
 
     if ( (size = SizeFile(n)) < 0 )
       return PL_error("size_file", 2, OsError(), ERR_FILE_OPERATION,
@@ -765,9 +771,19 @@ PRED_IMPL("read_link", 3, read_link, 0)
 static
 PRED_IMPL("exists_file", 1, exists_file, 0)
 { char *n;
+  int sl;
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
+
+  if ( (sl=file_name_is_iri(n)) )
+  { int rc;
+
+    if ( !iri_hook(n, IRI_ACCESS, ACCESS_FILE, &rc) )
+      return FALSE;
+
+    return rc;
+  }
 
   return ExistsFile(n);
 }
@@ -776,9 +792,19 @@ PRED_IMPL("exists_file", 1, exists_file, 0)
 static
 PRED_IMPL("exists_directory", 1, exists_directory, 0)
 { char *n;
+  int sl;
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
+
+  if ( (sl=file_name_is_iri(n)) )
+  { int rc;
+
+    if ( !iri_hook(n, IRI_ACCESS, ACCESS_DIRECTORY, &rc) )
+      return FALSE;
+
+    return rc;
+  }
 
   return ExistsDirectory(n);
 }

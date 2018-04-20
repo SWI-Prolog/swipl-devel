@@ -3515,10 +3515,12 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
       atom_t mode;
 
       switch(md)
-      { case ACCESS_WRITE:   mode = ATOM_write;   break;
-	case ACCESS_READ:    mode = ATOM_read;    break;
-	case ACCESS_EXECUTE: mode = ATOM_execute; break;
-	case ACCESS_EXIST:   mode = ATOM_exist;	  break;
+      { case ACCESS_WRITE:     mode = ATOM_write;     break;
+	case ACCESS_READ:      mode = ATOM_read;      break;
+	case ACCESS_EXECUTE:   mode = ATOM_execute;   break;
+	case ACCESS_EXIST:     mode = ATOM_exist;     break;
+	case ACCESS_FILE:      mode = ATOM_file;      break;
+	case ACCESS_DIRECTORY: mode = ATOM_directory; break;
         default: assert(0);
       }
       if ( !PL_unify_term(argv+2,
@@ -3529,6 +3531,10 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
     }
     case IRI_TIME:
       if ( !PL_put_atom(argv+2, ATOM_time) )
+	return FALSE;
+      break;
+    case IRI_SIZE:
+      if ( !PL_put_atom(argv+2, ATOM_size) )
 	return FALSE;
       break;
     default:
@@ -3548,6 +3554,10 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
       case IRI_TIME:
       { double *vp = va_arg(args, double*);
 	return PL_get_float_ex(argv+3, vp);
+      }
+      case IRI_SIZE:
+      { int64_t *vp = va_arg(args, int64_t*);
+	return PL_get_int64_ex(argv+3, vp);
       }
       default:
 	assert(0);
