@@ -143,7 +143,7 @@ res_iri_hook(access(Mode), IRI, True) :-
                           zipper_goto(Zipper, file(Entry))),
               error(existence_error(_, _), _),
               fail)
-    ->  True = true
+    ->  access_ok(Mode, Entry, True)
     ;   True = false
     ).
 res_iri_hook(time, IRI, Time) :-
@@ -164,6 +164,25 @@ res_iri_hook(size, IRI, Size) :-
 read_mode(read).
 read_mode(exists).
 read_mode(file).
+read_mode(directory).
+
+%!  access_ok(+Access, +Entry, -Ok) is det.
+%
+%   This assumes directories are added with a trailing /
+
+access_ok(directory, Entry, True) :-
+    !,
+    (   sub_atom(Entry, _, _, 0, /)
+    ->  True = true
+    ;   True = false
+    ).
+access_ok(file, Entry, True) :-
+    !,
+    (   sub_atom(Entry, _, _, 0, /)
+    ->  True = false
+    ;   True = true
+    ).
+access_ok(_, _, true).
 
 resource_and_entry(IRI, Clone, Entry) :-
     string_concat("res://", Entry, IRI),
