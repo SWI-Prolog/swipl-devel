@@ -874,8 +874,11 @@ expand_file_search_path(Spec, Expanded) :-
 '$expand_file_search_path'(Spec, Path, _, _) :-
     '$segments_to_atom'(Spec, Path).
 
+'$make_path'(Dir, '.', Path) :-
+    !,
+    Path = Dir.
 '$make_path'(Dir, File, Path) :-
-    atom_concat(_, /, Dir),
+    sub_atom(Dir, _, _, 0, /),
     !,
     atom_concat(Dir, File, Path).
 '$make_path'(Dir, File, Path) :-
