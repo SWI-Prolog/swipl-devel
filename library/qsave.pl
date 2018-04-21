@@ -140,6 +140,7 @@ qsave_program(FileBase, Options0) :-
                  | Options
                  ]),
     save_resources(RC, SaveClass),
+    lock_files(SaveClass),
     save_program(RC, SaveClass, Options),
     save_foreign_libraries(RC, Options),
     zip_close(RC, [comment("SWI-Prolog saved state")]),
@@ -394,6 +395,19 @@ create_mapping(Options) :-
     ;   print_message(warning, failed(obfuscate_identifiers))
     ).
 create_mapping(_).
+
+%!  lock_files(+SaveClass) is det.
+%
+%   When saving as `runtime`, lock all files  such that when running the
+%   program the system stops checking existence and modification time on
+%   the filesystem.
+%
+%   @tbd `system` is a poor name.  Maybe use `resource`?
+
+lock_files(runtime) :-
+    !,
+    '$make_system_source_files'.
+lock_files(_).
 
 %!  save_program(+Zipper, +SaveClass, +Options) is det.
 %

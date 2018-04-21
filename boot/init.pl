@@ -1983,7 +1983,7 @@ load_files(Module:Files, Options) :-
     '$run_initialization'(File, Action, Options).
 '$load_file'(File, Module, Options) :-
     '$resolved_source_path'(File, FullFile),
-    (   '$source_file_property'(FullFile, locked, true)
+    (   '$source_file_property'(FullFile, system, true)
     ;   '$option'(if(If), Options, true),
         '$noload'(If, FullFile, Options)
     ),
