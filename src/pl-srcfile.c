@@ -257,9 +257,8 @@ lookupSourceFile_unlocked(atom_t name, int create)
     GD->files.no_hole_before = 1;
   }
 
-  if ( (file=lookupHTable(GD->files.table, (void*)name)) )
-  { ;
-  } else if ( create )
+  if ( !(file=lookupHTable(GD->files.table, (void*)name)) &&
+       create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
     file->name = name;
@@ -272,8 +271,6 @@ lookupSourceFile_unlocked(atom_t name, int create)
     registerSourceFile(file);
 
     addNewHTable(GD->files.table, (void*)name, file);
-  } else
-  { file = NULL;
   }
 
   return file;
