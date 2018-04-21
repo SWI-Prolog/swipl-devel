@@ -1154,7 +1154,9 @@ canonicaliseFileName(char *path)
 #endif
 
   if ( (sl=file_name_is_iri(in)) )
-    in += (sl+3);
+  { in += (sl+3);
+    out = start = in;
+  }
 
 #ifdef O_HASSHARES			/* //host/ */
   if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
