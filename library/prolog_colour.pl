@@ -2058,7 +2058,8 @@ pce_functor(get_super).
 
 head_colours(file_search_path(_,_), hook-[identifier,classify]).
 head_colours(library_directory(_),  hook-[file]).
-head_colours(resource(_,_,_),       hook-[identifier,classify,file]).
+head_colours(resource(_,_),         hook-[identifier,file]).
+head_colours(resource(_,_,_),       hook-[identifier,file,classify]).
 
 head_colours(Var, _) :-
     var(Var),

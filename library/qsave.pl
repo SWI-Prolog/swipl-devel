@@ -288,22 +288,54 @@ save_resources(_RC, development) :- !.
 save_resources(RC, _SaveClass) :-
     feedback('~nRESOURCES~n~n', []),
     copy_resources(RC),
-    forall(declared_resource(Name, FileSpec),
-           save_resource(RC, Name, FileSpec)).
+    forall(declared_resource(Name, FileSpec, Options),
+           save_resource(RC, Name, FileSpec, Options)).
 
-declared_resource(RcName, FileSpec) :-
-    member(Goal, [ resource(Name,FileSpec),
-                   resource(Name,_,FileSpec)
-                 ]),
-    current_predicate(_, M:Goal),
-    call(M:Goal),
+declared_resource(RcName, FileSpec, []) :-
+    current_predicate(_, M:resource(_,_)),
+    M:resource(Name, FileSpec),
+    mkrcname(M, Name, RcName).
+declared_resource(RcName, FileSpec, Options) :-
+    current_predicate(_, M:resource(_,_,_)),
+    M:resource(Name, A2, A3),
+    (   is_list(A3)
+    ->  FileSpec = A2,
+        Options = A3
+    ;   FileSpec = A3
+    ),
     mkrcname(M, Name, RcName).
 
-mkrcname(user, Name, Name) :- !.
-mkrcname(M, Name, RcName) :-
+%!  mkrcname(+Module, +NameSpec, -Name)
+%
+%   Turn a resource name term into a resource name atom.
+
+mkrcname(user, Name0, Name) :-
+    !,
+    path_segments_to_atom(Name0, Name).
+mkrcname(M, Name0, RcName) :-
+    path_segments_to_atom(Name0, Name),
     atomic_list_concat([M, :, Name], RcName).
 
-save_resource(RC, Name, FileSpec) :-
+path_segments_to_atom(Name0, Name) :-
+    phrase(segments_to_atom(Name0), Atoms),
+    atomic_list_concat(Atoms, /, Name).
+
+segments_to_atom(Var) -->
+    { var(Var), !,
+      instantiation_error(Var)
+    }.
+segments_to_atom(A/B) -->
+    !,
+    segments_to_atom(A),
+    segments_to_atom(B).
+segments_to_atom(A) -->
+    [A].
+
+%!  save_resource(+Zipper, +Name, +FileSpec, +Options) is det.
+%
+%   Add the content represented by FileSpec to Zipper under Name.
+
+save_resource(RC, Name, FileSpec, _Options) :-
     absolute_file_name(FileSpec,
                        [ access(read),
                          file_errors(fail)
@@ -312,7 +344,7 @@ save_resource(RC, Name, FileSpec) :-
     feedback('~t~8|~w~t~32|~w~n',
              [Name, File]),
     zipper_append_file(RC, Name, File, []).
-save_resource(RC, Name, FileSpec) :-
+save_resource(RC, Name, FileSpec, Options) :-
     findall(Dir,
             absolute_file_name(FileSpec, Dir,
                                [ access(read),
@@ -326,12 +358,12 @@ save_resource(RC, Name, FileSpec) :-
     forall(member(Dir, Dirs),
            ( feedback('~t~8|~w~t~32|~w~n',
                       [Name, Dir]),
-             zipper_append_directory(RC, Name, Dir, []))).
-save_resource(RC, Name, _) :-
+             zipper_append_directory(RC, Name, Dir, Options))).
+save_resource(RC, Name, _, _Options) :-
     '$rc_handle'(SystemRC),
     copy_resource(SystemRC, RC, Name),
     !.
-save_resource(_, Name, FileSpec) :-
+save_resource(_, Name, FileSpec, _Options) :-
     print_message(warning,
                   error(existence_error(resource,
                                         resource(Name, FileSpec)),
@@ -341,14 +373,13 @@ copy_resources(ToRC) :-
     '$rc_handle'(FromRC),
     zipper_members(FromRC, List),
     (   member(Name, List),
-        \+ declared_resource(Name, _),
+        \+ declared_resource(Name, _, _),
         \+ reserved_resource(Name),
         copy_resource(FromRC, ToRC, Name),
         fail
     ;   true
     ).
 
-reserved_resource('$prolog/header.sh').
 reserved_resource('$prolog/state.qlf').
 reserved_resource('$prolog/options.txt').
 
@@ -933,7 +964,15 @@ zipper_add_directory(Zipper, Name, Dir, Options) :-
 
 %!  zipper_append_directory(+Zipper, +Name, +Dir, +Options) is det.
 %
-%   Append the content of Dir below Name in the resource archive
+%   Append the content of  Dir  below   Name  in  the  resource archive.
+%   Options:
+%
+%     - ignore(+Patterns)
+%     Ignore entries that match an element from Patterns using
+%     wildcard_match/2.
+%
+%   @tbd Process .gitignore.  There also seem to exists other
+%   standards for this.
 
 zipper_append_directory(Zipper, Name, Dir, Options) :-
     exists_directory(Dir),
@@ -942,6 +981,8 @@ zipper_append_directory(Zipper, Name, Dir, Options) :-
     directory_files(Dir, Members),
     forall(member(M, Members),
            (   reserved(M)
+           ->  true
+           ;   ignored(M, Options)
            ->  true
            ;   atomic_list_concat([Dir,M], /, Entry),
                atomic_list_concat([Name,M], /, Store),
@@ -954,6 +995,15 @@ zipper_append_directory(Zipper, Name, File, Options) :-
 
 reserved(.).
 reserved(..).
+
+ignored(File, Options) :-
+    option(ignore(Patterns), Options),
+    (   is_list(Patterns)
+    ->  member(Pattern, Patterns)
+    ;   Pattern = Patterns
+    ),
+    wildcard_match(Pattern, File),
+    !.
 
 
                  /*******************************
