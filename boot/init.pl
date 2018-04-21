@@ -1996,8 +1996,8 @@ load_files(Module:Files, Options) :-
                        ],
                        FullFile),
     '$register_resolved_source_path'(File, FullFile),
-    '$register_resource_file'(FullFile),
-    '$mt_load_file'(File, FullFile, Module, Options).
+    '$mt_load_file'(File, FullFile, Module, Options),
+    '$register_resource_file'(FullFile).
 
 '$register_resolved_source_path'(File, FullFile) :-
     '$resolved_source_path'(File, FullFile),
