@@ -151,13 +151,14 @@ find_library(Spec, TmpFile, true) :-
             close(In)),
         zip_unlock(Zipper)),
     !.
-find_library(Spec, Lib, false) :-
-    absolute_file_name(Spec, Lib,
+find_library(Spec, Lib, Copy) :-
+    absolute_file_name(Spec, Lib0,
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
                        ]),
-    !.
+    !,
+    lib_to_file(Lib0, Lib, Copy).
 find_library(Spec, Spec, false) :-
     atom(Spec),
     !.                  % use machines finding schema
@@ -166,6 +167,36 @@ find_library(foreign(Spec), Spec, false) :-
     !.                  % use machines finding schema
 find_library(Spec, _, _) :-
     throw(error(existence_error(source_sink, Spec), _)).
+
+%!  lib_to_file(+Lib0, -Lib, -Copy) is det.
+%
+%   If Lib0 is not a regular file  we   need  to  copy it to a temporary
+%   regular file because dlopen()  and   Windows  LoadLibrary() expect a
+%   file name. On some systems this can   be  avoided. Roughly using two
+%   approaches (after discussion with Peter Ludemann):
+%
+%     - On FreeBSD there is shm_open() to create an anonymous file in
+%       memory and than fdlopen() to link this.
+%     - In general, we could redefine the system calls open(), etc. to
+%       make dlopen() work on non-files.  This is highly non-portably
+%       though.
+%     - We can mount the resource zip using e.g., `fuse-zip` on Linux.
+%       This however fails if we include the resources as a string in
+%       the executable.
+%
+%   @see https://github.com/fancycode/MemoryModule for Windows
+
+lib_to_file(Res, TmpFile, true) :-
+    sub_atom(Res, 0, _, _, 'res://'),
+    !,
+    setup_call_cleanup(
+        open(Res, read, In, [type(binary)]),
+        setup_call_cleanup(
+            tmp_file_stream(binary, TmpFile, Out),
+            copy_stream_data(In, Out),
+            close(Out)),
+        close(In)).
+lib_to_file(Lib, Lib, false).
 
 open_foreign_in_resources(Zipper, Name, Stream) :-
     catch(zipper_goto(Zipper, file(Name)),
