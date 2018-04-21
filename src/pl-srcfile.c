@@ -603,6 +603,8 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
     return PL_unify_bool(A3, sf ? sf->reload != NULL : 0);
   if ( property == ATOM_number_of_clauses )
     return PL_unify_integer(A3, sf ? sf->number_of_clauses : 0);
+  if ( property == ATOM_locked )
+    return PL_unify_bool(A3, sf ? sf->system : FALSE);
 
   return PL_domain_error("source_file_property", A2);
 }

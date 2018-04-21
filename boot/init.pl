@@ -1968,6 +1968,9 @@ load_files(Module:Files, Options) :-
 %       * User hooks based on prolog_load_file/2
 %       * The file is already loaded.
 
+:- dynamic
+    '$resolved_source_path'/2.                  % ?Spec, ?Path
+
 '$load_file'(File, Module, Options) :-
     \+ memberchk(stream(_), Options),
     user:prolog_load_file(Module:File, Options),
@@ -1979,13 +1982,30 @@ load_files(Module:Files, Options) :-
     '$qdo_load_file'(File, File, Module, Action, Options),
     '$run_initialization'(File, Action, Options).
 '$load_file'(File, Module, Options) :-
+    '$resolved_source_path'(File, FullFile),
+    (   '$source_file_property'(FullFile, locked, true)
+    ;   '$option'(if(If), Options, true),
+        '$noload'(If, FullFile, Options)
+    ),
+    !,
+    '$already_loaded'(File, FullFile, Module, Options).
+'$load_file'(File, Module, Options) :-
     absolute_file_name(File,
                        [ file_type(prolog),
                          access(read)
                        ],
                        FullFile),
+    '$register_resolved_source_path'(File, FullFile),
     '$mt_load_file'(File, FullFile, Module, Options).
 
+'$register_resolved_source_path'(File, FullFile) :-
+    '$resolved_source_path'(File, FullFile),
+    !.
+'$register_resolved_source_path'(File, FullFile) :-
+    compound(File),
+    !,
+    asserta('$resolved_source_path'(File, FullFile)).
+'$register_resolved_source_path'(_, _).
 
 %!  '$already_loaded'(+File, +FullFile, +Module, +Options) is det.
 %

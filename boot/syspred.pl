@@ -627,9 +627,12 @@ prolog_load_context(reloading, true) :-
 %
 %   Remove all traces of loading file.
 
+:- dynamic system:'$resolved_source_path'/2.
+
 unload_file(File) :-
     (   canonical_source_file(File, Path)
-    ->  '$unload_file'(Path)
+    ->  '$unload_file'(Path),
+        retractall(system:'$resolved_source_path'(_, Path))
     ;   true
     ).
 
