@@ -673,6 +673,11 @@ File modification time when \arg{File} was loaded.  This is used by
 make/0 to find files whose modification time is different from when
 it was loaded.
 
+	\termitem{source}{Source}
+One of \const{file} if the source was loaded from a file,
+\const{resource} if the source was loaded from a resource or
+\const{state} if the file was included in the saved state.
+
 	\termitem{module}{Module}
 \arg{File} is a module file that declares the module \arg{Module}.
 

@@ -519,6 +519,13 @@ source_file_property(File, P) :-
 
 property_source_file(modified(Time), File) :-
     '$time_source_file'(File, Time, user).
+property_source_file(source(Source), File) :-
+    (   '$source_file_property'(File, from_state, true)
+    ->  Source = state
+    ;   '$source_file_property'(File, resource, true)
+    ->  Source = resource
+    ;   Source = file
+    ).
 property_source_file(module(M), File) :-
     (   nonvar(M)
     ->  '$current_module'(M, File)

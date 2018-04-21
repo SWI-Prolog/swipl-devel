@@ -437,8 +437,9 @@ create_mapping(_).
 
 lock_files(runtime) :-
     !,
-    '$make_system_source_files'.
-lock_files(_).
+    '$set_source_files'(system).                % implies from_state
+lock_files(_) :-
+    '$set_source_files'(from_state).
 
 %!  save_program(+Zipper, +SaveClass, +Options) is det.
 %

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,7 +40,7 @@
             delete_breakpoint/1,        % +Id
             breakpoint_property/2       % ?Id, ?Property
           ]).
-:- use_module(prolog_clause).
+:- use_module(library(prolog_clause)).
 :- use_module(library(debug)).
 :- use_module(library(error)).
 

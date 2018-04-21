@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2017, VU University Amsterdam
+    Copyright (c)  2014-2018, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -261,13 +262,14 @@ lookupSourceFile_unlocked(atom_t name, int create)
        create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
-    file->name = name;
-    file->system = GD->bootsession;
+    file->name     = name;
+    file->system   = GD->bootsession;
+    file->resource = GD->bootsession;
 #ifdef O_PLMT
-    file->mutex = allocSimpleMutex(PL_atom_chars(name));
+    file->mutex    = allocSimpleMutex(PL_atom_chars(name));
 #endif
+    file->magic    = SF_MAGIC;
     PL_register_atom(file->name);
-    file->magic = SF_MAGIC;
     registerSourceFile(file);
 
     addNewHTable(GD->files.table, (void*)name, file);
@@ -456,24 +458,6 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 }
 
 
-static
-PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
-{ int i, n;
-
-  PL_LOCK(L_SRCFILE);
-  n = highSourceFileIndex();
-  for(i=1; i<n; i++)
-  { SourceFile f = indexToSourceFile(i);
-
-    if ( f )
-      f->system = TRUE;
-  }
-  PL_UNLOCK(L_SRCFILE);
-
-  return TRUE;
-}
-
-
 /** '$source_file'(:Head, -File) is semidet.
 */
 
@@ -600,8 +584,10 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
     return PL_unify_bool(A3, sf ? sf->reload != NULL : 0);
   if ( property == ATOM_number_of_clauses )
     return PL_unify_integer(A3, sf ? sf->number_of_clauses : 0);
-  if ( property == ATOM_system )
-    return PL_unify_bool(A3, sf ? sf->system : FALSE);
+  if ( property == ATOM_resource )
+    return PL_unify_bool(A3, sf ? sf->resource : FALSE);
+  if ( property == ATOM_from_state )
+    return PL_unify_bool(A3, sf ? sf->from_state : FALSE);
 
   return PL_domain_error("source_file_property", A2);
 }
@@ -617,11 +603,11 @@ PRED_IMPL("$set_source_file", 3, set_source_file, 0)
     return FALSE;
 
   if ( (sf = lookupSourceFile(filename, FALSE)) )
-  { if ( property == ATOM_system )
+  { if ( property == ATOM_resource )
     { int v;
 
       if ( PL_get_bool_ex(A3, &v) )
-      { sf->system = v;
+      { sf->resource = v;
 	return TRUE;
       }
       return FALSE;
@@ -630,6 +616,34 @@ PRED_IMPL("$set_source_file", 3, set_source_file, 0)
   } else
     return PL_existence_error("source_file", A1);
 
+}
+
+static
+PRED_IMPL("$set_source_files", 1, set_source_files, 0)
+{ PRED_LD
+  atom_t prop;
+
+  if ( !PL_get_atom_ex(A1, &prop) )
+    return FALSE;
+  if ( prop == ATOM_system || prop == ATOM_from_state )
+  { int i, n;
+
+    PL_LOCK(L_SRCFILE);
+    n = highSourceFileIndex();
+    for(i=1; i<n; i++)
+    { SourceFile f = indexToSourceFile(i);
+
+      if ( f )
+      { if ( prop == ATOM_system )
+	  f->system = TRUE;
+	f->from_state = TRUE;
+      }
+    }
+    PL_UNLOCK(L_SRCFILE);
+
+    return TRUE;
+  } else
+    return PL_domain_error("source_property", A1);
 }
 
 
@@ -1647,7 +1661,7 @@ BeginPredDefs(srcfile)
   PRED_DEF("$unload_file",		1, unload_file,		     0)
   PRED_DEF("$start_consult",		2, start_consult,	     0)
   PRED_DEF("$end_consult",		1, end_consult,		     0)
-  PRED_DEF("$make_system_source_files",	0, make_system_source_files, 0)
+  PRED_DEF("$set_source_files",	        1, set_source_files,	     0)
   PRED_DEF("$flush_predicate",		1, flush_predicate,          0)
   PRED_DEF("$flushed_predicate",	1, flushed_predicate,	     0)
 EndPredDefs

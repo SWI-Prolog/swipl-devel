@@ -1986,7 +1986,8 @@ load_files(Module:Files, Options) :-
     '$run_initialization'(File, Action, Options).
 '$load_file'(File, Module, Options) :-
     '$resolved_source_path'(File, FullFile),
-    (   '$source_file_property'(FullFile, system, true)
+    (   '$source_file_property'(FullFile, from_state, true)
+    ;   '$source_file_property'(FullFile, resource, true)
     ;   '$option'(if(If), Options, true),
         '$noload'(If, FullFile, Options)
     ),
@@ -2018,7 +2019,7 @@ load_files(Module:Files, Options) :-
 
 '$register_resource_file'(FullFile) :-
     (   sub_atom(FullFile, 0, _, _, 'res://')
-    ->  '$set_source_file'(FullFile, system, true)
+    ->  '$set_source_file'(FullFile, resource, true)
     ;   true
     ).
 
