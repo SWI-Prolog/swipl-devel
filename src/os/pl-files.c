@@ -1028,9 +1028,7 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
   term_t expanded = A2;
 
   if ( PL_get_file_name(name, &n, 0) )
-  { if ( file_name_is_iri(n) )
-      return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
-    else if ( (n = AbsoluteFile(n, tmp)) )
+  { if ( (n = AbsoluteFile(n, tmp)) )
       return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
   }
 
