@@ -1133,6 +1133,7 @@ char *
 canonicaliseFileName(char *path)
 { char *out = path, *in = path, *start = path;
   tmp_buffer saveb;
+  int sl;
 
 #ifdef O_HASDRIVES			/* C: */
   if ( in[1] == ':' && isLetter(in[0]) )
@@ -1151,6 +1152,9 @@ canonicaliseFileName(char *path)
   }
 #endif
 #endif
+
+  if ( (sl=file_name_is_iri(in)) )
+    in += (sl+3);
 
 #ifdef O_HASSHARES			/* //host/ */
   if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
@@ -1492,6 +1496,8 @@ IsAbsolutePath(const char *p)				/* /d:/ */
        (p[0] == '\\' && p[1] == '\\') )	/* \\host\share */
     succeed;
 #endif
+  if ( file_name_is_iri(p) )
+    succeed;
 
   fail;
 }
@@ -1529,7 +1535,8 @@ GetCurrentDriveLetter()
 
 int
 IsAbsolutePath(const char *p)
-{ return p[0] == '/';
+{ return ( p[0] == '/' ||
+	   file_name_is_iri(p) );
 }
 
 #endif /*O_HASDRIVES*/
