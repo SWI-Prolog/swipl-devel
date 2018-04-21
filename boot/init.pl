@@ -1996,6 +1996,7 @@ load_files(Module:Files, Options) :-
                        ],
                        FullFile),
     '$register_resolved_source_path'(File, FullFile),
+    '$register_resource_file'(FullFile),
     '$mt_load_file'(File, FullFile, Module, Options).
 
 '$register_resolved_source_path'(File, FullFile) :-
@@ -2006,6 +2007,17 @@ load_files(Module:Files, Options) :-
     !,
     asserta('$resolved_source_path'(File, FullFile)).
 '$register_resolved_source_path'(_, _).
+
+%!  '$register_resource_file'(+FullFile) is det.
+%
+%   If we load a file from a resource we   lock  it, so we never have to
+%   check the modification again.
+
+'$register_resource_file'(FullFile) :-
+    (   sub_atom(FullFile, 0, _, _, 'res://')
+    ->  '$set_source_file'(FullFile, system, true)
+    ;   true
+    ).
 
 %!  '$already_loaded'(+File, +FullFile, +Module, +Options) is det.
 %

@@ -606,6 +606,32 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
   return PL_domain_error("source_file_property", A2);
 }
 
+static
+PRED_IMPL("$set_source_file", 3, set_source_file, 0)
+{ PRED_LD
+  atom_t filename, property;
+  SourceFile sf;
+
+  if ( !PL_get_atom_ex(A1, &filename) ||
+       !PL_get_atom_ex(A2, &property) )
+    return FALSE;
+
+  if ( (sf = lookupSourceFile(filename, FALSE)) )
+  { if ( property == ATOM_system )
+    { int v;
+
+      if ( PL_get_bool_ex(A3, &v) )
+      { sf->system = v;
+	return TRUE;
+      }
+      return FALSE;
+    } else
+      return PL_domain_error("source_file_property", A2);
+  } else
+    return PL_existence_error("source_file", A1);
+
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unloadFile(SourceFile sf)
@@ -1616,6 +1642,7 @@ BeginPredDefs(srcfile)
   PRED_DEF("$source_file_predicates",	2, source_file_predicates,   0)
   PRED_DEF("$time_source_file",		3, time_source_file,    PL_FA_NONDET)
   PRED_DEF("$source_file_property",	3, source_file_property,     0)
+  PRED_DEF("$set_source_file",          3, set_source_file,          0)
   PRED_DEF("$clause_from_source",	4, clause_from_source,	     0)
   PRED_DEF("$unload_file",		1, unload_file,		     0)
   PRED_DEF("$start_consult",		2, start_consult,	     0)
