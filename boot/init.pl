@@ -2395,9 +2395,10 @@ load_files(Module:Files, Options) :-
     !,
     Modified = Stamp.
 '$modified_id'(Id, Modified, _) :-
-    exists_file(Id),
-    !,
-    time_file(Id, Modified).
+    catch(time_file(Id, Modified),
+          error(existence_error(source_sink, Id), _),
+          fail),
+    !.
 '$modified_id'(_, 0.0, _).
 
 
