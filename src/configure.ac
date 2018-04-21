@@ -93,7 +93,7 @@ PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
 DEFSTARTUP=.swiplrc
 
-AC_ARG_ENABLE(mt, [  --disable-mt                Disable multi-threading],
+AC_ARG_ENABLE(mt, [  --disable-mt            Disable multi-threading],
              [case "$enableval" in
                   yes) MT=yes
                        ;;
@@ -257,7 +257,7 @@ AC_ARG_ENABLE(dmalloc, [  --enable-dmalloc	  Enable DMALLOC debugging],
 AC_ARG_ENABLE(useprofile, [  --enable-useprofile	  GCC: recompile with profile],
 	      useprofile="$enableval",
 	      useprofile=no)
-AC_ARG_ENABLE(libdirversion, [  --disable-libdirversion	Do not version installation dir],
+AC_ARG_ENABLE(libdirversion, [  --disable-libdirversion Do not version installation dir],
 	      libdirversion="$enableval",
 	      libdirversion=yes)
 
