@@ -215,14 +215,18 @@ banner:
 		@echo "Home (libraries) in $(PLBASE)"
 		@echo "****************"
 
-
 # $(CHRPATH) -c changes ELF DT_RPATH into DT_RUNPATH.  The latter can
 # be overruled using LD_LIBRARY_PATH, which is what we need to be able
 # to run our local copy of SWI-Prolog.
 
+ifeq (@ONEFILE@,yes)
+$(PL)$(EXEEXT):	$(DEPLIBS) $(PLOBJ) $(OSLIB) $(OBJ) $(LIBOBJ) $(XOBJ)
+		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(OBJ) $(LIBOBJ) $(XOBJ) $(PLOBJ) $(LNLIBS) $(OSLIB) $(DBGLIBS) $(LIBS)
+else
 $(PL)$(EXEEXT):	$(DEPLIBS) $(PLOBJ) $(OSLIB)
 		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB) $(DBGLIBS)
 		$(CHRPATH) -c $@ || true
+endif
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
 		rm -f $(STARTUPPATH)

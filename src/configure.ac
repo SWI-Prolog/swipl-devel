@@ -58,12 +58,13 @@ AC_SUBST(MINGW)
 AC_SUBST(MINGWPTHREAD)
 AC_SUBST(WINDRES)
 AC_SUBST(WINE)
-AC_SUBST(MSLIBEXE)			dnl how to call lib.exe
+AC_SUBST(MSLIBEXE)		dnl how to call lib.exe
 AC_SUBST(WINEPATHEXE)
 AC_SUBST(HOST_TOOLCHAIN_FLAG)
 AC_SUBST(HOST_OS_FLAG)
 AC_SUBST(DEFSTARTUP)
 AC_SUBST(EXEFORMAT)
+AC_SUBST(ONEFILE)
 
 if test -z "$CIFLAGS"; then
     CIFLAGS="$CPPFLAGS"
@@ -226,6 +227,14 @@ AC_ARG_ENABLE(static, [  --disable-static	  Do not install static library],
 		   *)   ;;
 	       esac],
                MKSTATIC=yes)
+
+AC_ARG_ENABLE(onefile, [  --enable-onefile	  Include libswipl.so in swipl],
+	      [case "$enableval" in
+		   yes) ONEFILE=yes
+			;;
+		   *)   ONEFILE=no
+			;;
+	       esac])
 
 AC_ARG_WITH(gpl, [  --without-gpl		  Disable GPL components],
 	      INCLUDE_GPL="$withval",

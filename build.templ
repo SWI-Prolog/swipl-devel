@@ -181,11 +181,18 @@ export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 # It is not needed on this platform  and Linux shared object model costs
 # a CPU register. Given the limited number   of CPU registers on the x86
 # platform, this results in a performance degradation of about 10%.
+#
+# --enable-onefile
+# Statically link libswipl.so into swipl. This   allows for saved states
+# to rely only on basic OS libraries.   This  only works without loss of
+# functionality (i.e., the ability to load   foreign  extensions) on ELF
+# based systems.
 
 # EXTRACFG+=" --link"
 # EXTRACFG+=" --enable-useprofile"
 # EXTRACFG+=" --disable-libdirversion"
 # EXTRACFG+=" --enable-shared"
+# EXTRACFG+=" --enable-onefile"
 export EXTRACFG
 
 # One possiblity to make relocatable executables   on  Linux is by using
