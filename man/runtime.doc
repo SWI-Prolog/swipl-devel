@@ -111,8 +111,7 @@ Top-level goal for the new executable (see \cmdlineoption{-t}).
 Default initialization file for the new executable. See
 \cmdlineoption{-f}.
 	\termitem{class}{+Class}
-If \const{runtime}, only read resources from the state (default). If
-\const{kernel}, lock all predicates as system predicates. If
+If \const{runtime} (default), only read resources from the state.  If
 \const{development}, save the predicates in their current state and keep
 reading resources from their source (if present). See also resource/2.
 	\termitem{autoload}{+Boolean}
