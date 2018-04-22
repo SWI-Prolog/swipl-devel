@@ -2012,6 +2012,15 @@ load_files(Module:Files, Options) :-
     asserta('$resolved_source_path'(File, FullFile)).
 '$register_resolved_source_path'(_, _).
 
+%!  '$translated_source'(+Old, +New) is det.
+%
+%   Called from loading a QLF state when source files are being renamed.
+
+:- public '$translated_source'/2.
+'$translated_source'(Old, New) :-
+    forall(retract('$resolved_source_path'(File, Old)),
+           assertz('$resolved_source_path'(File, New))).
+
 %!  '$register_resource_file'(+FullFile) is det.
 %
 %   If we load a file from a resource we   lock  it, so we never have to

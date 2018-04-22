@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -215,11 +216,18 @@ typedef struct xr_table
 } xr_table, *XrTable;
 
 
+typedef struct path_translated
+{ struct path_translated *next;
+  atom_t from;
+  atom_t to;
+} path_translated;
+
 typedef struct qlf_state
 { char *save_dir;			/* Directory saved */
   char *load_dir;			/* Directory loading */
   int   saved_version;			/* Version saved */
   int	has_moved;			/* Paths must be translated */
+  path_translated *translated;		/* Translated paths */
   struct qlf_state *previous;		/* previous saved state (reentrance) */
 } qlf_state;
 
@@ -1350,7 +1358,18 @@ qlfFixSourcePath(wic_state *state, const char *raw)
   }
 
   if ( (canonical=canonicalisePath(buf)) )
-  { return PL_new_atom(canonical);
+  { atom_t translated = PL_new_atom(canonical);
+
+    if ( !strcmp(raw, canonical) )
+    { path_translated *tr = PL_malloc(sizeof(*tr));
+
+      tr->from = PL_new_atom(raw);
+      tr->to   = translated;
+      tr->next = state->load_state->translated;
+      state->load_state->translated = tr;
+    }
+
+    return translated;
   } else
   { fatalError("Path name too long: %s", buf);
     return NULL_ATOM;
@@ -1383,13 +1402,13 @@ qlfLoadSource(wic_state *state)
 	  Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
 
   state->currentSource = lookupSourceFile(fname, TRUE);
+  PL_unregister_atom(fname);		/* locked with sourceFile */
   state->currentSource->mtime = time;
   state->currentSource->system = issys;
   if ( GD->bootsession )		/* (**) */
     state->currentSource->count++;
   else
     startConsult(state->currentSource);
-  PL_unregister_atom(fname);		/* locked with sourceFile */
 
   succeed;
 }
@@ -2655,8 +2674,36 @@ popPathTranslation(wic_state *state)
     state->load_state = old->previous;
 
     if ( old->has_moved )
-    { remove_string(old->load_dir);
+    { path_translated *tr;
+
+      remove_string(old->load_dir);
       remove_string(old->save_dir);
+
+      if ( (tr=old->translated) )
+      { GET_LD
+        path_translated *n;
+	static predicate_t pred = NULL;
+	fid_t fid = PL_open_foreign_frame();
+	term_t av = PL_new_term_refs(2);
+
+	if ( !pred )
+	  pred = PL_predicate("$translated_source", 2, "system");
+
+	for(; tr; tr=n)
+	{ n = tr->next;
+
+	  PL_put_atom(av+0, tr->from);
+	  PL_put_atom(av+1, tr->to);
+	  PL_unregister_atom(tr->from);
+
+	  if ( !PL_call_predicate(NULL, PL_Q_NORMAL, pred, av) )
+	    Sdprintf("$translated_source/2 failed~n");
+
+	  PL_free(tr);
+	}
+
+	PL_discard_foreign_frame(fid);
+      }
     }
     freeHeap(old, sizeof(*old));
   }
