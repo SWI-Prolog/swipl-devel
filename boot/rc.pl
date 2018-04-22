@@ -140,7 +140,8 @@ res_iri_hook(open(Mode,Options), IRI, Stream) :-
 res_iri_hook(access(Mode), IRI0, True) :-
     (   read_mode(Mode),
         entry_name(Mode, IRI0, IRI),
-        iri_offset(IRI, _Offset)
+        '$absolute_file_name'(IRI, Canonical),
+        iri_offset(Canonical, _Offset)
     ->  access_ok(Mode, IRI, True)
     ;   True = false
     ).
@@ -191,7 +192,8 @@ access_ok(_, _, true).
 %   Find and position a zipper for IRI. Fails if this cannot be found.
 
 iri_zipper(IRI, Clone) :-
-    iri_offset(IRI, Offset),
+    '$absolute_file_name'(IRI, Canonical),
+    iri_offset(Canonical, Offset),
     '$rc_handle'(Zipper),
     zip_clone(Zipper, Clone),
     zipper_goto(Clone, offset(Offset)).
@@ -233,7 +235,7 @@ index_rc :-
 
 index_rc(Zipper) :-
     zipper_file_property(Zipper, Name, offset, Offset),
-    string_concat('res://', Name, IRI),
+    atom_concat('res://', Name, IRI),
     assertz(rc_index_db(IRI, Offset)),
     (   zipper_goto(Zipper, next)
     ->  index_rc(Zipper)
