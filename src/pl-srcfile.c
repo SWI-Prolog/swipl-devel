@@ -262,9 +262,12 @@ lookupSourceFile_unlocked(atom_t name, int create)
        create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
-    file->name     = name;
-    file->system   = GD->bootsession;
-    file->resource = GD->bootsession;
+    Sdprintf("%s: %d\n", PL_atom_chars(name), GD->bootsession);
+
+    file->name       = name;
+    file->system     = GD->bootsession;
+    file->from_state = GD->bootsession;
+    file->resource   = GD->bootsession;
 #ifdef O_PLMT
     file->mutex    = allocSimpleMutex(PL_atom_chars(name));
 #endif
