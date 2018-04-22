@@ -262,7 +262,6 @@ lookupSourceFile_unlocked(atom_t name, int create)
        create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
-    Sdprintf("%s: %d\n", PL_atom_chars(name), GD->bootsession);
 
     file->name       = name;
     file->system     = GD->bootsession;
