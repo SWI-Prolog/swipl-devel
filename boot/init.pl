@@ -2442,7 +2442,7 @@ load_files(Module:Files, Options) :-
     Modified = Stamp.
 '$modified_id'(Id, Modified, _) :-
     catch(time_file(Id, Modified),
-          error(existence_error(source_sink, Id), _),
+          error(_, _),
           fail),
     !.
 '$modified_id'(_, 0.0, _).
