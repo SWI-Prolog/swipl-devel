@@ -825,9 +825,16 @@ is executed while loading the program text:
 program text in which the directive appears. This is the same as
 initialization/1.
 
-    \termitem{restore}{}
+    \termitem{prepare_state}{}
+Execute \arg{Goal} as part of qsave_program/2.  This hook can be
+used for example to eagerly execute initialization that is normally
+done lazily on first usage.
+
+    \termitem{restore_state}{}
 Do not execute \arg{Goal} while loading the program, but \emph{only}
-when restoring a saved state.
+when restoring a saved state.\footnote{Used to be called
+\const{restore}. \const{restore} is still accepted for backward
+compatibility.}
 
     \termitem{program}{}
 Execute \arg{Goal} once after executing the \cmdlineoption{-g} goals

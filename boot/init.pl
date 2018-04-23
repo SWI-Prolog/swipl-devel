@@ -472,10 +472,19 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 %       * now
 %       Execute immediately
 %       * after_load
-%       Execute after loading the file in which it appears
-%       * restore
+%       Execute after loading the file in which it appears.  This
+%       is initialization/1.
+%       * restore_state
 %       Do not execute immediately, but only when restoring the
 %       state.  Not allowed in a sandboxed environment.
+%       * prepare_state
+%       Called before saving a state.  Can be used to clean the
+%       environment (see also volatile/1) or eagerly execute
+%       goals that are normally executed lazily.
+%       * program
+%       Works as =|-g goal|= goals.
+%       * main
+%       Starts the application.  Only last declaration is used.
 %
 %   Note that all goals are executed when a program is restored.
 
@@ -484,6 +493,8 @@ initialization(Goal, When) :-
                      [ now,
                        after_load,
                        restore,
+                       restore_state,
+                       prepare_state,
                        program,
                        main
                      ]), When),
@@ -500,9 +511,16 @@ initialization(Goal, When) :-
                                   initialization(Goal, after_load)),
                     _))
     ).
-'$initialization'(restore, Goal, _Source, Ctx) :-
+'$initialization'(restore, Goal, Source, Ctx) :- % deprecated
+    '$initialization'(restore_state, Goal, Source, Ctx).
+'$initialization'(restore_state, Goal, _Source, Ctx) :-
     (   \+ current_prolog_flag(sandboxed_load, true)
     ->  '$compile_init_goal'(-, Goal, Ctx)
+    ;   '$permission_error'(register, initialization(restore), Goal)
+    ).
+'$initialization'(prepare_state, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
+    ->  '$compile_init_goal'(when(prepare_state), Goal, Ctx)
     ;   '$permission_error'(register, initialization(restore), Goal)
     ).
 '$initialization'(program, Goal, _Source, Ctx) :-

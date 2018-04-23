@@ -126,6 +126,7 @@ qsave_program(FileBase, Options0) :-
     prepare_entry_points(Options),
     save_autoload(Options),
     open_map(Options),
+    prepare_state(Options),
     create_prolog_flag(saved_program, true, []),
     create_prolog_flag(saved_program_class, SaveClass, []),
     (   exists_file(File)
@@ -527,6 +528,24 @@ goal_pi(M:G, QPI) :-
     QPI = Module:Name/Arity.
 goal_pi(Goal, Name/Arity) :-
     functor(Goal, Name, Arity).
+
+%!  prepare_state(+Options) is det.
+%
+%   Prepare the executable by  running   the  `prepare_state` registered
+%   initialization hooks.
+
+prepare_state(_) :-
+    forall('$init_goal'(when(prepare_state), Goal, Ctx),
+           run_initialize(Goal, Ctx)).
+
+run_initialize(Goal, Ctx) :-
+    (   catch(Goal, E, true),
+        (   var(E)
+        ->  true
+        ;   throw(error(initialization_error(E, Goal, Ctx), _))
+        )
+    ;   throw(error(initialization_error(failed, Goal, Ctx), _))
+    ).
 
 
                  /*******************************
