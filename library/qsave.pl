@@ -967,8 +967,16 @@ zipper_append_file(Zipper, Name, File, Options) :-
         close(In)),
     assertz(saved_resource_file(Name)).
 
+%!  zipper_add_directory(+Zipper, +Name, +Dir, +Options) is det.
+%
+%   Add a directory entry. Dir  is  only   used  if  there  is no option
+%   time(Stamp).
+
 zipper_add_directory(Zipper, Name, Dir, Options) :-
-    time_file(Dir, Stamp),
+    (   option(time(Stamp), Options)
+    ->  true
+    ;   time_file(Dir, Stamp)
+    ),
     atom_concat(Name, /, DirName),
     (   saved_resource_file(DirName)
     ->  true
@@ -979,15 +987,41 @@ zipper_add_directory(Zipper, Name, Dir, Options) :-
                                         | Options
                                         ]),
             true,
-            close(Out))
+            close(Out)),
+        assertz(saved_resource_file(DirName))
     ).
+
+add_parent_dirs(Zipper, Name, Dir, Options) :-
+    (   option(time(Stamp), Options)
+    ->  true
+    ;   time_file(Dir, Stamp)
+    ),
+    file_directory_name(Name, Parent),
+    (   Parent \== Name
+    ->  add_parent_dirs(Zipper, Parent, [time(Stamp)|Options])
+    ;   true
+    ).
+
+add_parent_dirs(_, '.', _) :-
+    !.
+add_parent_dirs(Zipper, Name, Options) :-
+    zipper_add_directory(Zipper, Name, _, Options),
+    file_directory_name(Name, Parent),
+    (   Parent \== Name
+    ->  add_parent_dirs(Zipper, Parent, Options)
+    ;   true
+    ).
+
 
 %!  zipper_append_directory(+Zipper, +Name, +Dir, +Options) is det.
 %
 %   Append the content of  Dir  below   Name  in  the  resource archive.
 %   Options:
 %
-%     - ignore(+Patterns)
+%     - include(+Patterns)
+%     Only add entries that match an element from Patterns using
+%     wildcard_match/2.
+%     - exclude(+Patterns)
 %     Ignore entries that match an element from Patterns using
 %     wildcard_match/2.
 %
@@ -997,6 +1031,7 @@ zipper_add_directory(Zipper, Name, Dir, Options) :-
 zipper_append_directory(Zipper, Name, Dir, Options) :-
     exists_directory(Dir),
     !,
+    add_parent_dirs(Zipper, Name, Dir, Options),
     zipper_add_directory(Zipper, Name, Dir, Options),
     directory_files(Dir, Members),
     forall(member(M, Members),
@@ -1016,8 +1051,22 @@ zipper_append_directory(Zipper, Name, File, Options) :-
 reserved(.).
 reserved(..).
 
+%!  ignored(+File, +Options) is semidet.
+%
+%   Ignore File if there is an  include(Patterns) option that does *not*
+%   match File or an exclude(Patterns) that does match File.
+
 ignored(File, Options) :-
-    option(ignore(Patterns), Options),
+    option(include(Patterns), Options),
+    \+ ( (   is_list(Patterns)
+         ->  member(Pattern, Patterns)
+         ;   Pattern = Patterns
+         ),
+         wildcard_match(Pattern, File)
+       ),
+    !.
+ignored(File, Options) :-
+    option(exclude(Patterns), Options),
     (   is_list(Patterns)
     ->  member(Pattern, Patterns)
     ;   Pattern = Patterns
