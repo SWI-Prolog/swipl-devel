@@ -126,6 +126,13 @@ predicate defined in C.
    ;   print_message(warning, shlib(not_supported)) % error?
    ).
 
+% The flag `res_keep_foreign` prevents deleting  temporary files created
+% to load shared objects when set  to   `true`.  This  may be needed for
+% debugging purposes.
+
+:- create_prolog_flag(res_keep_foreign, false,
+                      [ keep(true) ]).
+
 
                  /*******************************
                  *           DISPATCHING        *
@@ -301,6 +308,8 @@ load_foreign_library(LibFile, _, _) :-
     ).
 
 delete_foreign_lib(true, Path) :-
+    \+ current_prolog_flag(res_keep_foreign, true),
+    !,
     catch(delete_file(Path), _, true).
 delete_foreign_lib(_, _).
 
