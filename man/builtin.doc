@@ -3978,6 +3978,13 @@ be read from \arg{Stream}. On Unix systems, \arg{Command} is handed to
 popen() which hands it to the Unix shell. On Windows, \arg{Command} is
 executed directly. See also process_create/3 from \pllib{process}.
 
+If \arg{SrcDest} is an \jargon{IRI}, i.e., starts with
+<scheme>\verb$://$, where <scheme> is a non-empty sequence of lowercase
+ASCII letters open/3,4 calls hooks registered by register_iri_scheme/3.
+Currently the only predefined IRI scheme is \const{res}, providing
+access to the \jargon{resource database}. See
+\secref{program-resources}.
+
 The following \arg{Options} are recognised by open/4:
 
 \begin{description}
@@ -4602,6 +4609,51 @@ Get the current input stream.  Useful for getting access to the status
 predicates associated with streams.
     \predicate[ISO]{current_output}{1}{-Stream}
 Get the current output stream.
+\end{description}
+
+\subsection{Adding IRI schemas}
+\label{sec:iri-schema}
+
+The file handling predicates may be \jargon{hooked} to deal with
+\jargon{IRIs}. An IRI starts with <scheme>\verb$://$, where <scheme> is
+a non-empty sequence of lowercase ASCII letters. After detecting the
+scheme the file manipulation predicates call a hook that is registered
+using register_iri_scheme/3.
+
+Hooking the file operations using extensible IRI schemas allows us to
+place any resource that is accessed through Prolog I/O predicates on
+arbitrary devices such as web servers or the ZIP archive used to store
+program resources (see \secref{saved-states}). This is typically
+combined with file_search_path/2 declarations to switch between
+accessing a set of resources from local files, from the program
+resource database, from a web-server, etc.
+
+
+\begin{description}
+    \predicate{register_iri_scheme}{3}{}{+Scheme, :Hook, +Options}
+Register \arg{Hook} to be called by all file handling predicates
+if a name that starts with \arg{Scheme}:// is encountered.  The
+\arg{Hook} is called by call/4 using the \jargon{operation}, the
+\arg{IRI} and a term that receives the \textit{result} of the
+operation.  The following operations are defined:
+
+\begin{description}
+    \termitem{open}{Mode,Options}
+Called by open/3,4.  The result argument must be unified with
+a stream.
+
+    \termitem{access}{Mode}
+Called by access_file/2, exists_file/1 (\arg{Mode} is \const{file}) and
+exists_directory/1 (\arg{Mode} is \const{directory}). The result
+argument must be unified with a boolean.
+
+    \termitem{time}{}
+Called by time_file/2.  The result must be unified with a time stamp.
+
+    \termitem{size}{}
+Called by size_file/2.  The result must be unified with an integer
+representing the size in bytes.
+\end{description}
 \end{description}
 
 

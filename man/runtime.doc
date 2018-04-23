@@ -43,7 +43,7 @@ and operating system, 32-bit compiled code does not run on the 64-bit
 emulator, nor the other way around. Conditionally compiled code (see
 if/1) may also reduce platform independence.} startup options optionally
 shared objects/DLLs and possibly user-defined \jargon{resources}. As of
-version 7.7.3, the resource archive format is ZIP. A resource file is
+version 7.7.13, the resource archive format is ZIP. A resource file is
 normally \textbf{created} using the commandline option
 \cmdlineoption{-c}:
 
@@ -280,90 +280,89 @@ user:file_search_path(foreign, Dir) :-
 \end{code}
 
 
+\section{State initialization}
+\label{sec:state-initialization}
+
+The initialization/1 and initialization/2 directive may be used to
+register goals to be executed at various points in the life cycle of
+an executable.
+
+
 \section{Using program resources}	\label{sec:useresource}
 
-A \jargon{resource} is very similar to a file.  Resources, however, can
-be represented in two different formats: on files, as well as part of
-the resource \jargon{archive} of a saved state (see qsave_program/2).
+A \jargon{resource} is similar to a file. Resources, however, can be
+represented in two different formats: on files, as well as part of the
+resource \jargon{archive} of a saved state (see qsave_program/2) that
+acts as a \jarjon{virtual file system} for the SWI-Prolog I/O predicates
+(see open/3,4, register_iri_scheme/3).
 
 A resource has a \jargon{name}. The \jargon{source} data of the resource
 is a file. Resources are declared by adding clauses to the predicate
-resource/3. They are accessed using the predicate open_resource/2 and
-open_resource/3.
+resource/2 or resource/3.  Resources can be accessed from Prolog as
+files that start with \verb$res://$ or they can be opened using
+open_resource/2,3.
 
-Before going into details, let us start with an example.  Short texts
-can easily be expressed in Prolog source code, but long texts are
-cumbersome.  Assume our application defines a command `help' that
-prints a helptext to the screen.  We put the content of the helptext
-into a file called \file{help.txt}.  The following code implements
-our help command such that \file{help.txt} is incorporated into the
-runtime executable.
+\subsection{Resources as files}
+\label{sec:res-files}
 
-\begin{code}
-resource(help, text, 'help.txt').
+As of SWI-Prolog 7.7.13, resources that are compiled into the program
+can be accessed using the normal file handling predicates. Currently the
+following predicates transparently handle resources as read-only files:
 
-help :-
-    setup_call_cleanup(
-	open_resource(help, text, In),
-	copy_stream_data(In, user_output),
-	close(In)).
-\end{code}
+\begin{itemize}
+    \item open/3,4
+    \item access_file/2
+    \item exists_file/1
+    \item exists_directory/2
+    \item time_file/2
+    \item size_file/2
+\end{itemize}
 
-The predicate help/0 opens the resource as a Prolog stream. If we are
-executing this from the development environment, this returns a stream
-to the file \file{help.txt} itself. When executed from the saved state,
-the stream is a stream opened on the program resource archive.
+In addition, open_shared_object/3, underlying use_foreign_library/1
+handles \jargon{shared objects} or DLLs by copying them to a temporary
+file and opening this file. If the OS allows for it, the copied file is
+deleted immediately, otherwise it is deleted on program termination.
 
-\subsection{Resource manipulation predicates}
-\label{sec:runtime-predicates}
+With the ability to open resources as if they were files we can use them
+for many tasks without changing the source code as required when using
+open_resource/2.  Below we describe a typical scenario.
 
-\begin{description}
-    \predicate{resource}{2}{:Name, +FileSpec}
-This predicate is defined as a dynamic predicate in the module
-\const{user}. Clauses for it may be defined in any module, including the
-user module. \arg{Name} is the name of the resource (an atom). A
-resource name may contain any character, except for \$ and :, which are
-reserved for internal usage by the resource library. \arg{FileSpec} is a
-file specification that may exploit file_search_path/2 (see
-absolute_file_name/2).
+\begin{itemize}
+    \item Related resources are placed in one or more directories.
+    Consider a web application where we have several directories
+    holding icons.  Add clauses to file_search_path/2 that makes
+    all icons accessible using the term \term{icon}{file}.
 
-Often, resources are defined as unit clauses (facts), but the
-definition of this predicate also allows for rules. For proper
-generation of the saved state, it must be possible to enumerate the
-available resources by calling this predicate with all its arguments
-unbound.
-
-Dynamic rules can be used to turn all files in a certain directory
-into resources, without specifying a resource for each file.  For
-example, assume the file_search_path/2 \const{icons} refers to the
-resource directory containing icon files.  The following definition
-makes all these images available as resources:
+    \item Add a clause as below before creating the state. This
+    causes all icons to be become available as
+    \verb$res://app/icon/$\arg{file}.
 
 \begin{code}
-resource(Name, icons(XpmName)) :-
-	atom(Name), !,
-	file_name_extension(Name, xpm, XpmName).
-resource(Name, XpmFile) :-
-	var(Name),
-	absolute_file_name(icons(.), [type(directory)], Dir)
-	concat(Dir, '/*.xpm', Pattern),
-	expand_file_name(Pattern, XpmFiles),
-	member(XpmFile, XpmFiles).
+resource(app/icon, icon(.)).
 \end{code}
 
-    \predicate{resource}{3}{:Name, +FileSpec, +Options}
-As resource/2, but additionally provide the following options:
+    \item Add a clause to file_search_path/2 that make the icons
+    available from the resource data.  For example using the
+    code below.
+
+\begin{code}
+:- asserta(user:file_search_path(icon, 'res://app/icon').
+\end{code}
+\end{itemize}
+
+
+\subsection{Access resources using open_resource}
+\label{sec:res-resources}
+
+Before the system has the ability to open resources as files resources
+were opened using the predicates open_resource/2 or open_resource/3.
+These predicates provide somewhat better dynamic control over resources
+depending on whether the code is running from files or from a saved
+state.  The main disadvantage is that having a seperate open call
+requires rewriting code to make it work with resources rather than
+files.
 
 \begin{description}
-    \termitem{include}{+Patterns}
-Only include a file from a directory if it matches at least one of the
-members of \arg{Patterns}.
-    \termitem{exclude}{+Patterns}
-Excludes a file from a directory if it matches at least one of the
-members of \arg{Patterns}.
-\end{description}
-
-
     \predicate{open_resource}{2}{+Name, -Stream}
 \nodescription
     \predicate{open_resource}{3}{+Name, -Stream, +Options}
@@ -393,6 +392,47 @@ This way, the development environment uses the files (and modifications)
 to the resource/3 declarations and/or files containing resource info,
 thus immediately affecting the running environment, while the runtime
 system quickly accesses the system resources.
+\end{description}
+
+
+\subsection{Declaring resources}
+\label{sec:res-declare}
+
+\begin{description}
+    \predicate{resource}{2}{:Name, +FileSpec}
+\nodescription
+    \predicate{resource}{3}{:Name, +FileSpec, +Options}
+These predicates are defined as dynamic predicates in the module
+\const{user}. Clauses for them may be defined in any module, including
+the user module. \arg{Name} is the name of the resource (an atom). A
+resource name may contain any character, except for \$ and :, which are
+reserved for internal usage by the resource library. \arg{FileSpec} is a
+file specification that may exploit file_search_path/2 (see
+absolute_file_name/2).
+
+Often, resources are defined as unit clauses (facts), but the
+definition of this predicate also allows for rules. For proper
+generation of the saved state, it must be possible to enumerate the
+available resources by calling this predicate with all its arguments
+unbound.
+
+If \arg{FileSpec} points at a directory, the content of the directory is
+recursively added below \arg{Name}. If \arg{FileSpec} a term of the form
+\term{Alias}{Name}, all directories that match this specification are
+enumerated and their content is added to the resource database. If an
+file appears in multiple results of this search path only the first file
+is added.  Note that this is consistent with the normal behaviour where
+absolute_file_name/3 returns the first match.  The \arg{Options} can
+be used to control what is saved from a directory.
+
+\begin{description}
+    \termitem{include}{+Patterns}
+Only include a file from a directory if it matches at least one of the
+members of \arg{Patterns}.
+    \termitem{exclude}{+Patterns}
+Excludes a file from a directory if it matches at least one of the
+members of \arg{Patterns}.
+\end{description}
 \end{description}
 
 \subsection{Managing resource files}
