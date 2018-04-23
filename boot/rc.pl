@@ -139,10 +139,10 @@ res_iri_hook(open(Mode,Options), IRI, Stream) :-
     ).
 res_iri_hook(access(Mode), IRI0, True) :-
     (   read_mode(Mode),
-        entry_name(Mode, IRI0, IRI),
-        '$absolute_file_name'(IRI, Canonical),
+        '$absolute_file_name'(IRI0, Canonical0),
+        entry_name(Canonical0, Canonical),
         iri_offset(Canonical, _Offset)
-    ->  access_ok(Mode, IRI, True)
+    ->  access_ok(Mode, Canonical, True)
     ;   True = false
     ).
 res_iri_hook(time, IRI, Time) :-
@@ -161,11 +161,10 @@ read_mode(exists).
 read_mode(file).
 read_mode(directory).
 
-entry_name(directory, Entry0, Entry) :-
+entry_name(Entry, Entry).
+entry_name(Entry0, Entry) :-
     \+ sub_atom(Entry0, _, _, 0, /),
-    !,
-    string_concat(Entry0, /, Entry).
-entry_name(_, Entry, Entry).
+    atom_concat(Entry0, /, Entry).
 
 
 %!  access_ok(+Access, +Entry, -Ok) is det.
