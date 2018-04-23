@@ -609,7 +609,8 @@ initialization(Goal, When) :-
 
 '$clear_source_admin'(File) :-
     retractall('$init_goal'(_, _, File:_)),
-    retractall('$load_context_module'(File, _, _)).
+    retractall('$load_context_module'(File, _, _)),
+    retractall('$resolved_source_path'(_, File)).
 
 
                  /*******************************
