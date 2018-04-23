@@ -571,6 +571,7 @@ suggest predicates from a keyword.
 \predicatesummary{reset_gensym}{1}{Reset a gensym key}
 \predicatesummary{reset_gensym}{0}{Reset all gensym keys}
 \predicatesummary{reset_profiler}{0}{Clear statistics obtained by the profiler}
+\predicatesummary{resource}{2}{Declare a program resource}
 \predicatesummary{resource}{3}{Declare a program resource}
 \predicatesummary{retract}{1}{Remove clause from the database}
 \predicatesummary{retractall}{1}{Remove unifying clauses from the database}

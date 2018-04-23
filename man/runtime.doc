@@ -351,6 +351,19 @@ resource(Name, XpmFile) :-
 	member(XpmFile, XpmFiles).
 \end{code}
 
+    \predicate{resource}{3}{:Name, +FileSpec, +Options}
+As resource/2, but additionally provide the following options:
+
+\begin{description}
+    \termitem{include}{+Patterns}
+Only include a file from a directory if it matches at least one of the
+members of \arg{Patterns}.
+    \termitem{exclude}{+Patterns}
+Excludes a file from a directory if it matches at least one of the
+members of \arg{Patterns}.
+\end{description}
+
+
     \predicate{open_resource}{2}{+Name, -Stream}
 \nodescription
     \predicate{open_resource}{3}{+Name, -Stream, +Options}
