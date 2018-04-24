@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1684,21 +1684,30 @@ BaseName(const char *f)
 char *
 DirName(const char *f, char *dir)
 { if ( f )
-  { const char *base, *p;
+  { char *e = (char*)f+strlen(f);
 
-    for(base = p = f; *p; p++)
-    { if ( *p == '/' )
-	base = p;
-    }
-    if ( base == f )
-    { if ( *f == '/' )
-	strcpy(dir, "/");
-      else
-	strcpy(dir, ".");
+    if ( e == f )
+    { strcpy(dir, ".");
     } else
-    { if ( dir != f )			/* otherwise it is in-place */
-	strncpy(dir, f, base-f);
-      dir[base-f] = EOS;
+    { while(e>f && e[-1] == '/')
+	e--;
+      while(e>f && e[-1] != '/')
+	e--;
+      while(e>f && e[-1] == '/')
+	e--;
+
+      if ( e == f )
+      { if ( *f == '/' )
+	  strcpy(dir, "/");
+	else
+	  strcpy(dir, ".");
+      } else
+      { if ( dir != f )			/* otherwise it is in-place */
+	{ strncpy(dir, f, e-f);
+	  dir[e-f] = EOS;
+	} else
+	  e[0] = EOS;
+      }
     }
 
     return dir;
