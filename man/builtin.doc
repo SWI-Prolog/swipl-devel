@@ -8704,13 +8704,14 @@ imply the user has read and/or write permission for the file.  This
 is the same as \term{access_file}{File, exist}.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
-Extracts the directory part of \arg{File}. The returned \arg{Directory}
-name does not end in \const{/}. There are two special cases. The
-directory name of \const{/} is \const{/} itself, and the directory name
-is \const{.} if \arg{File} does not contain any \const{/} characters. If
-the \arg{File} argument ends with a \const{/}, e.g., \exam{'/hello/'},
-it is not a valid file name. In this case the final \const{/} is removed
-from \arg{File}, e.g., \exam{'/hello'}.
+Extracts the directory part of \arg{File}. This predicate removes the
+longest match for the regular expression \verb|/*[^/]*/*$|. If the
+result is empty it binds \arg{Directory} to \const{/} if the first
+character of \arg{File} is \const{/} and \const{.} otherwise. The
+behaviour is consistent with the POSIX \program{dirname}
+program.\footnote{Before SWI-Prolog 7.7.13 trailing \const{/} where
+\emph{not} removed, translation \exam{/a/b/} into \exam{/a/b}. Volker
+Wysk pointed at this incorrect behaviour.}
 
 See also directory_file_path/3 from \pllib{filesex}. The system ensures
 that for every valid \arg{Path} using the Prolog (POSIX) directory
@@ -8727,12 +8728,15 @@ also prolog_to_os_filename/2.
 	same_file(Path, Path2).
 \end{code}
 
-    \predicate{file_base_name}{2}{+File, -BaseName}
-Extracts the filename part from a path specification. If \arg{File} does
-not contain any directory separators, \arg{File} is returned in
-\arg{BaseName}. See also file_directory_name/2. If the \arg{File}
-arguments ends with a \const{/}, e.g., \exam{'/hello/'}, \arg{BaseName}
-is unified with the empty atom (\const{''}).
+    \predicate{file_base_name}{2}{+Path, -File}
+Extracts the file name part from a path. Similar to
+file_directory_name/2 the extraction is based on the regex
+\verb|/*([^/]*)/*$|, now capturing the non-\const{/} segment. If the
+segment is empty it unifies \arg{File} with \const{/} if \arg{Path}
+starts with \const{/} and the empty atom (\verb$''$) otherwise. The
+behaviour is consistent with the POSIX \program{basename}
+program.\footnote{Before SWI-Prolog 7.7.13, if arg{Path} ended with
+a \const{/} \arg{File} was unified with the empty atom.}
 
     \predicate{same_file}{2}{+File1, +File2}
 True if both filenames refer to the same physical file. That is, if
