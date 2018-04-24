@@ -127,7 +127,12 @@ mode_options([_|Chars], T) :-
 		 *******************************/
 
 :- register_iri_scheme(res, res_iri_hook, []).
-:- meta_predicate with_zipper(+, 0).
+
+%!  res_iri_hook(+Action, +IRI, -Stream) is det.
+%
+%   Define the =|res://|= IRI scheme, binding   to  the central resource
+%   DB. For speed, the  first  call   calls  index_rc/0  that  creates a
+%   predicate associating IRIs to offsets in the central resource ZIP.
 
 res_iri_hook(open(Mode,Options), IRI, Stream) :-
     (   Mode == read
@@ -241,14 +246,6 @@ index_rc(Zipper) :-
     ;   true
     ).
 
-
-%!  with_zipper(+Zipper, :Goal)
-
-with_zipper(Zipper, Goal) :-
-    setup_call_cleanup(
-        zip_lock(Zipper),
-        Goal,
-        zip_unlock(Zipper)).
 
 %!  zipper_file_property(+Zipper, -Name, +Prop, -Value)
 
