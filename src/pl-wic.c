@@ -2607,6 +2607,11 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
   state->load_state = new;
 
   abssavename = getString(fd, NULL);
+  if ( strlen(abssavename)+1 > MAXPATHLEN )
+    fatalError("File name too long: %s", abssavename);
+  if ( strlen(absloadname)+1 > MAXPATHLEN )
+    fatalError("File name too long: %s", absloadname);
+
   if ( absloadname && !streq(absloadname, abssavename) )
   { char load[MAXPATHLEN];
     char save[MAXPATHLEN];

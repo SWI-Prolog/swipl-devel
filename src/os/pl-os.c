@@ -1681,9 +1681,12 @@ BaseName(const char *f, char *base)
 
       if ( e == end && *e == '/' )
       { strcpy(base, "/");
-      } else
+      } else if ( end-e+1 <= MAXPATHLEN )
       { strncpy(base, e, end-e);
 	base[end-e] = EOS;
+      } else
+      { errno = ENAMETOOLONG;
+	return NULL;
       }
     }
 
@@ -1716,8 +1719,13 @@ DirName(const char *f, char *dir)
 	  strcpy(dir, ".");
       } else
       { if ( dir != f )			/* otherwise it is in-place */
-	{ strncpy(dir, f, e-f);
-	  dir[e-f] = EOS;
+	{ if ( e-f+1 <= MAXPATHLEN )
+	  { strncpy(dir, f, e-f);
+	    dir[e-f] = EOS;
+	  } else
+	  { errno = ENAMETOOLONG;
+	    return NULL;
+	  }
 	} else
 	  e[0] = EOS;
       }

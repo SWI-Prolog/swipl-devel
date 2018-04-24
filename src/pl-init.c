@@ -190,13 +190,13 @@ findHome(const char *symbols, int argc, const char **argv)
   { char buf[MAXPATHLEN];
     char parent[MAXPATHLEN];
     IOSTREAM *fd;
-    char *abshome;
+    char *pparent;
 
-    if ( !(abshome=AbsoluteFile(home, buf)) )
+    if ( !(pparent=DirName(DirName(AbsoluteFile(home,parent),parent),parent)) ||
+	 strlen(PLHOMEFILE) + 1 + strlen(pparent) + 1 > sizeof(parent) )
       fatalError("File name too long: %s", home);
 
-    strcpy(parent, DirName(DirName(abshome, buf), buf));
-    Ssnprintf(buf, sizeof(buf), "%s/" PLHOMEFILE, parent);
+    Ssnprintf(buf, sizeof(buf), "%s/" PLHOMEFILE, pparent);
 
     if ( (fd = Sopen_file(buf, "r")) )
     { if ( Sfgets(buf, sizeof(buf), fd) )
@@ -1020,9 +1020,8 @@ usage(void)
   const cline *lp = lines;
   char *prog;
 
-  if ( GD->cmdline.os_argc > 0 )
-    prog = BaseName(GD->cmdline.os_argv[0], tmp);
-  else
+  if ( (GD->cmdline.os_argc <= 0 ||
+       (prog = BaseName(GD->cmdline.os_argv[0], tmp))) )
     prog = "swipl";
 
   for(lp = lines; *lp; lp++)
@@ -1052,7 +1051,7 @@ version(void)
 
 
 static int
-arch()
+arch(void)
 { Sprintf("%s\n", PLARCH);
 
   return TRUE;

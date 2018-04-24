@@ -708,8 +708,10 @@ PRED_IMPL("access_file", 2, access_file, 0)
 
   if ( md == ACCESS_WRITE && !AccessFile(n, ACCESS_EXIST) )
   { char tmp[MAXPATHLEN];
-    char *dir = DirName(n, tmp);
+    char *dir;
 
+    if ( !(dir = DirName(n, tmp)) )
+      return PL_representation_error("max_path_length");
     if ( dir[0] )
     { if ( !ExistsDirectory(dir) )
 	return FALSE;
@@ -792,25 +794,31 @@ PRED_IMPL("same_file", 2, same_file, 0)
 
 static
 PRED_IMPL("file_base_name", 2, file_base_name, 0)
-{ char *n;
+{ char *n, *b;
   char tmp[MAXPATHLEN];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
 
-  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n, tmp));
+  if ( (b=BaseName(n, tmp)) )
+    return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, b);
+  else
+    return PL_representation_error("max_path_length");
 }
 
 
 static
 PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
-{ char *n;
+{ char *n, *d;
   char tmp[MAXPATHLEN];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
 
-  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, DirName(n, tmp));
+  if ( (d=DirName(n, tmp)) )
+    return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, d);
+  else
+    return PL_representation_error("max_path_length");
 }
 
 
