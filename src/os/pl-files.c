@@ -793,11 +793,12 @@ PRED_IMPL("same_file", 2, same_file, 0)
 static
 PRED_IMPL("file_base_name", 2, file_base_name, 0)
 { char *n;
+  char tmp[MAXPATHLEN];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
 
-  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n));
+  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n, tmp));
 }
 
 

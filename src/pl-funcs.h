@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam,
-                              VU University Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam,
+                              VU University Amsterdam,
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -395,7 +396,7 @@ COMMON(char *)		expandVars(const char *pattern, char *expanded, int len);
 COMMON(char *)		getwd(char *buf);
 COMMON(char *)		AbsoluteFile(const char *spec, char *path);
 COMMON(int)		IsAbsolutePath(const char *spec);
-COMMON(char *)		BaseName(const char *f);
+COMMON(char *)		BaseName(const char *f, char *buf);
 COMMON(char *)		DirName(const char *f, char *buf);
 COMMON(bool)		ChDir(const char *path);
 COMMON(atom_t)		TemporaryFile(const char *id,

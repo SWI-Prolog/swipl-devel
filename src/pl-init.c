@@ -258,7 +258,7 @@ basename of the running program, taking all the leading alnum characters.
 static char *
 defaultSystemInitFile(const char *a0)
 { char plp[MAXPATHLEN];
-  char *base = BaseName(PrologPath(a0, plp, sizeof(plp)));
+  char *base = BaseName(PrologPath(a0, plp, sizeof(plp)), plp);
 
   if ( base )
   { char buf[256];
@@ -978,7 +978,9 @@ typedef const char *cline;
 
 static int
 usage(void)
-{ static const cline lines[] = {
+{ char tmp[MAXPATHLEN];
+
+  static const cline lines[] = {
     "%s: Usage:\n",
     "    1) %s --help     Display this message (also -h)\n",
     "    2) %s --version  Display version information (also -v)\n",
@@ -1019,7 +1021,7 @@ usage(void)
   char *prog;
 
   if ( GD->cmdline.os_argc > 0 )
-    prog = BaseName(GD->cmdline.os_argv[0]);
+    prog = BaseName(GD->cmdline.os_argv[0], tmp);
   else
     prog = "swipl";
 

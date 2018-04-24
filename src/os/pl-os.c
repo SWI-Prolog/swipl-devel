@@ -864,7 +864,7 @@ OsPath(const char *p, char *buf)
     This  function  is  based  on  a  similar  (primitive)  function  in
     Edinburgh C-Prolog.
 
-    char *BaseName(path)
+    char *BaseName(path, char *base)
 	 char *path;
 
     Return the basic file name for a file having path `path'.
@@ -1665,7 +1665,7 @@ PL_cwd(char *cwd, size_t cwdlen)
 
 
 char *
-BaseName(const char *f)
+BaseName(const char *f, char *dir)
 { if ( f )
   { const char *base;
 
@@ -2477,9 +2477,11 @@ System(char *cmd)
   if ( (pid = fork()) == -1 )
   { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
-  { Setenv("PROLOGCHILD", "yes");
+  { char tmp[MAXPATHLEN];
+
+    Setenv("PROLOGCHILD", "yes");
     PL_cleanup_fork();
-    execl(shell, BaseName(shell), "-c", cmd, (char *)0);
+    execl(shell, BaseName(shell, tmp), "-c", cmd, (char *)0);
     fatalError("Failed to execute %s: %s", shell, OsError());
     fail;
     /*NOTREACHED*/
