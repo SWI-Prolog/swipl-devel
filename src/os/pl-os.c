@@ -1665,16 +1665,29 @@ PL_cwd(char *cwd, size_t cwdlen)
 
 
 char *
-BaseName(const char *f, char *dir)
+BaseName(const char *f, char *base)
 { if ( f )
-  { const char *base;
+  { char *e = (char*)f+strlen(f);
+    char *end;
 
-    for(base = f; *f; f++)
-    { if (*f == '/')
-	base = f+1;
+    if ( e == f )
+    { base[0] = EOS;
+    } else
+    { while(e>f && e[-1] == '/')
+	e--;
+      end = e;
+      while(e>f && e[-1] != '/')
+	e--;
+
+      if ( e == end && *e == '/' )
+      { strcpy(base, "/");
+      } else
+      { strncpy(base, e, end-e);
+	base[end-e] = EOS;
+      }
     }
 
-    return (char *)base;
+    return base;
   }
 
   return NULL;
