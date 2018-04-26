@@ -833,6 +833,12 @@ property_predicate(implementation_module(IM), M:Head) :-
     ->  IM = LoadModule
     ;   M = IM
     ).
+property_predicate(iso, _:Head) :-
+    callable(Head),
+    !,
+    goal_name_arity(Head, Name, Arity),
+    current_predicate(system:Name/Arity),
+    '$predicate_property'(iso, system:Head).
 property_predicate(Property, Pred) :-
     define_or_generate(Pred),
     '$predicate_property'(Property, Pred).
