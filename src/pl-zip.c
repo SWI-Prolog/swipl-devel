@@ -34,6 +34,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
+
 #include "pl-incl.h"
 #include "pl-zip.h"
 #include <fcntl.h>
@@ -44,6 +46,21 @@
 #endif
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
+#endif
+
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
+#ifdef __WINDOWS__
+#include <windows.h>
 #endif
 
 #ifndef VERSIONMADEBY
@@ -1066,8 +1083,8 @@ typedef struct mapped_file
 { char *start;
   char *end;
 #ifdef __WINDOWS__
-  WIN_HANDLE	hfile;			/* handle to the file */
-  WIN_HANDLE	hmap;			/* handle to the map */
+  HANDLE hfile;					/* handle to the file */
+  HANDLE hmap;					/* handle to the map */
 #endif
 } mapped_file;
 
@@ -1129,7 +1146,7 @@ map_file(const char *name)
   if ( (fsize = GetFileSize(mf->hfile, NULL)) == (DWORD)~0L )
     goto errio;
 
-  mf->hmap = CreateFileMapping(rca->hfile,
+  mf->hmap = CreateFileMapping(mf->hfile,
 			       NULL,
 			       PAGE_READONLY,
 			       0L,
@@ -1143,7 +1160,7 @@ map_file(const char *name)
 			    0L, 0L, /* offset */
 			    0L);	/* size (0=all) */
 
-  if ( !mf->map_start )
+  if ( !mf->start )
     goto errio;
 
   mf->end = mf->start + fsize;
@@ -1154,9 +1171,9 @@ errio:
     CloseHandle(mf->hmap);
   if ( mf->hfile )
     CloseHandle(mf->hfile);
-  mf->map_start = NULL;
-  mf->hfile     = NULL;
-  mf->hmap      = NULL;
+  mf->start = NULL;
+  mf->hfile = NULL;
+  mf->hmap  = NULL;
   return NULL;
 #endif  /*__WINDOWS__*/
 #endif /*HAVE_MMAP*/
@@ -1170,8 +1187,8 @@ unmap_file(mapped_file *mf)
     munmap(mf->start, mf->end - mf->start);
 #endif
 #ifdef __WINDOWS__
-  if ( mf->map_start )
-    UnmapViewOfFile(mf->map_start);
+  if ( mf->start )
+    UnmapViewOfFile(mf->start);
   if ( mf->hmap )
     CloseHandle(mf->hmap);
   if ( mf->hfile )

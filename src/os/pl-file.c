@@ -3521,7 +3521,7 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
 	case ACCESS_EXIST:     mode = ATOM_exist;     break;
 	case ACCESS_FILE:      mode = ATOM_file;      break;
 	case ACCESS_DIRECTORY: mode = ATOM_directory; break;
-        default: assert(0);
+        default: assert(0); return FALSE;
       }
       if ( !PL_unify_term(argv+2,
 			  PL_FUNCTOR, FUNCTOR_access1,
@@ -3539,6 +3539,7 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
       break;
     default:
       assert(0);
+      return FALSE;
   }
 
   if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, argv) )
@@ -3561,6 +3562,7 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
       }
       default:
 	assert(0);
+        return FALSE;
     }
   } else
   { return FALSE;
