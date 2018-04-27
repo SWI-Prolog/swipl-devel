@@ -353,6 +353,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\tabling.pl
   File ${SWIPL}\library\lazy_lists.pl
   File ${SWIPL}\library\prolog_jiti.pl
+  File ${SWIPL}\library\zip.pl
 
 ; COMPATIBILITY
   File ${SWIPL}\library\backcomp.pl
