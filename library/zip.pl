@@ -108,8 +108,6 @@ zip_close(Zipper, Options) :-
 %     - file(Name)
 %     Go to the entry with the specified name.
 %
-%   @error existence_error(zip_entry, Name) on file(Name)
-%   if no matching entry is found.
 
 %!  zipper_open_current(+Zipper, -Stream, +Options) is det.
 %

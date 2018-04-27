@@ -74,6 +74,7 @@ open_resource(Module:RcName, Stream, Options) :-
                             [ release(true)
                             | Options
                             ])
+    ;   '$existence_error'(resource, Module:RcName)
     ).
 open_resource(Name, _Class, Stream) :-
     open_resource(Name, Stream).

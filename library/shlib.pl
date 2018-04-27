@@ -206,9 +206,7 @@ lib_to_file(Res, TmpFile, true) :-
 lib_to_file(Lib, Lib, false).
 
 open_foreign_in_resources(Zipper, Name, Stream) :-
-    catch(zipper_goto(Zipper, file(Name)),
-          error(existence_error(_,_), _),
-          fail),
+    zipper_goto(Zipper, file(Name)),
     zipper_open_current(Zipper, Stream,
                         [ type(binary),
                           release(true)

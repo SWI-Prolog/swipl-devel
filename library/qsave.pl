@@ -385,7 +385,10 @@ reserved_resource('$prolog/state.qlf').
 reserved_resource('$prolog/options.txt').
 
 copy_resource(FromRC, ToRC, Name) :-
-    zipper_goto(FromRC, file(Name)),
+    (   zipper_goto(FromRC, file(Name))
+    ->  true
+    ;   existence_error(resource, Name)
+    ),
     zipper_file_info(FromRC, _Name, Attrs),
     get_dict(time, Attrs, Time),
     setup_call_cleanup(

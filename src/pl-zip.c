@@ -905,10 +905,11 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
       { switch(unzLocateFile(z->reader, fname, TRUE))
 	{ case UNZ_OK:
 	    return TRUE;
-	  default:
+	  case UNZ_END_OF_LIST_OF_FILE:
 	    zrelease(z);
-	    return PL_existence_error("zip_entry", arg);
+	    return FALSE;
 	}
+	assert(0);
       }
     } else if ( PL_is_functor(A2, FUNCTOR_offset1) )
     { term_t arg = PL_new_term_ref();
