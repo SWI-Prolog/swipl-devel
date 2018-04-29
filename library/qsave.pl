@@ -510,7 +510,8 @@ define_toplevel_goal(_).
 
 entry_point(Goal) :-
     define_predicate(Goal),
-    (   \+ predicate_property(Goal, built_in)
+    (   \+ predicate_property(Goal, built_in),
+        \+ predicate_property(Goal, imported_from(_))
     ->  goal_pi(Goal, PI),
         public(PI)
     ;   true
