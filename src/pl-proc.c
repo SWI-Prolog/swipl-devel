@@ -2667,7 +2667,10 @@ pl_retractall(term_t head)
   setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
   fid = PL_open_foreign_frame();
 
-  DEBUG(CHK_SECURE, checkDefinition(def));
+  DEBUG(CHK_SECURE,
+	LOCKDEF(def);
+	checkDefinition(def);
+        UNLOCKDEF(def));
   if ( allvars )
   { gen_t gen = generationFrame(environment_frame);
 
@@ -2710,6 +2713,11 @@ pl_retractall(term_t head)
   }
   popPredicateAccess(def);
   leaveDefinition(def);
+  DEBUG(CHK_SECURE,
+	LOCKDEF(def);
+	checkDefinition(def);
+	UNLOCKDEF(def));
+
   return endCritical;
 }
 
