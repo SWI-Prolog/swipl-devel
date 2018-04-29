@@ -142,7 +142,7 @@ confirm() {
       # ask user
       local maxtry=10
       while [[ $maxtry -gt 0 ]]; do
-         printf "%s" "$msg [Y/N] "
+         printf "%s" "$msg [Y/n] "
          read -r answer
          case "$answer" in
             YES|yes|Y|y) return 0
