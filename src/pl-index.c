@@ -671,6 +671,18 @@ freeClauseListRef(ClauseRef cref)
 
 
 static void
+vfree_clause_list_ref(void *cref)
+{ freeClauseListRef(cref);
+}
+
+
+static void
+lingerClauseListRef(Definition def, ClauseRef cref)
+{ linger(&def->lingering, vfree_clause_list_ref, cref);
+}
+
+
+static void
 unallocClauseIndexTableEntries(ClauseIndex ci)
 { ClauseBucket cb;
   int i;
@@ -1086,7 +1098,7 @@ gcClauseBucket(Definition def, ClauseBucket ch,
 	}
 
 	if ( is_list )
-	  freeClauseListRef(c);
+	  lingerClauseListRef(def, c);
 	else
 	  lingerClauseRef(c);
 
