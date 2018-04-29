@@ -1846,6 +1846,8 @@ checkClauseIndexes(Definition def)
 
       if ( ISDEADCI(ci) )
 	continue;
+      if ( ci->incomplete )		/* building async; stats may be wrong */
+	continue;
 
       for(i=0,cb=ci->entries; i<ci->buckets; i++,cb++)
       { ClauseRef cref;
