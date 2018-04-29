@@ -506,6 +506,7 @@ initialise_prolog :-
     attach_packs,
     '$cmd_option_val'(init_file, OsFile),
     prolog_to_os_filename(File, OsFile),
+    setup_colors,
     '$load_init_file'(File),
     '$load_script_file',
     load_associated_files(Files),
@@ -618,14 +619,14 @@ setup_backtrace :-
 %   Setup  interactive  usage  by  enabling    colored   output.
 
 setup_colors :-
-    (   stream_property(user_input, tty(true)),
+    catch((stream_property(user_input, tty(true)),
         stream_property(user_error, tty(true)),
         stream_property(user_output, tty(true)),
         \+ current_prolog_flag(color_term, false),
         load_setup_file(user:library(ansi_term))
     ->  true
     ;   true
-    ).
+    ), E, print_message(warning, E)).
 
 %!  setup_history
 %
@@ -724,7 +725,6 @@ setup_interactive :-
 setup_interactive :-
     asserta(setup_done),
     catch(setup_backtrace, E, print_message(warning, E)),
-    catch(setup_colors,    E, print_message(warning, E)),
     catch(setup_readline,  E, print_message(warning, E)),
     catch(setup_history,   E, print_message(warning, E)).
 
