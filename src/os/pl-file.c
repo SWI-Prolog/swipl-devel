@@ -3473,7 +3473,8 @@ file_name_is_iri(const char *path)
 
   for(s=path; *s >= 'a' && *s <= 'z'; )
     s++;
-  if ( s > path && s[0] == ':' && s[1] == '/' && s[2] == '/' )
+  if ( s >= path+2 &&				/* >= two letter scheme */
+       s[0] == ':' && s[1] == '/' && s[2] == '/' )
     return s-path;
 
   return 0;
