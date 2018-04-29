@@ -1691,7 +1691,7 @@ BaseName(const char *f, char *base)
       if ( e == end && *e == '/' )
       { strcpy(base, "/");
       } else if ( end-e+1 <= MAXPATHLEN )
-      { strncpy(base, e, end-e);
+      { memmove(base, e, end-e);		/* may overlap */
 	base[end-e] = EOS;
       } else
       { errno = ENAMETOOLONG;
