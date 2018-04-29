@@ -446,7 +446,7 @@ search_info(download(_)).
 %     * Archive file name
 %     * HTTP URL of an archive file name.  This URL may contain a
 %       star (*) for the version.  In this case pack_install asks
-%       for the deirectory content and selects the latest version.
+%       for the directory content and selects the latest version.
 %     * GIT URL (not well supported yet)
 %     * A local directory name given as =|file://|= URL.
 %     * A package name.  This queries the package repository
@@ -485,6 +485,7 @@ pack_default_options(_Spec, Pack, OptsIn, Options) :-
     ).
 pack_default_options(Archive, Pack, _, Options) :-      % Install from archive
     must_be(atom, Archive),
+    \+ uri_is_global(Archive),
     expand_file_name(Archive, [File]),
     exists_file(File),
     !,
