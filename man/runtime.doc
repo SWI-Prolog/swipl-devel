@@ -293,7 +293,7 @@ an executable.
 A \jargon{resource} is similar to a file. Resources, however, can be
 represented in two different formats: on files, as well as part of the
 resource \jargon{archive} of a saved state (see qsave_program/2) that
-acts as a \jarjon{virtual file system} for the SWI-Prolog I/O predicates
+acts as a \jargon{virtual file system} for the SWI-Prolog I/O predicates
 (see open/3,4, register_iri_scheme/3).
 
 A resource has a \jargon{name}. The \jargon{source} data of the resource
