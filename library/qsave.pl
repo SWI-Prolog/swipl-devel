@@ -226,7 +226,6 @@ convert_option(toplevel, Callable, Callable, "~q") :- !.
 convert_option(_, Value, Value, "~w").
 
 doption(Name) :- min_stack(Name, _).
-doption(toplevel).
 doption(init_file).
 doption(system_init_file).
 doption(class).
@@ -274,11 +273,29 @@ save_option_value(_,       _,     Value, Value).
 save_init_goals(Out, Options) :-
     option(goal(Goal), Options),
     !,
-    format(Out, 'goal=~q~n', [Goal]).
-save_init_goals(Out, _) :-
+    format(Out, 'goal=~q~n', [Goal]),
+    save_toplevel_goal(Out, halt, Options).
+save_init_goals(Out, Options) :-
     '$cmd_option_val'(goals, Goals),
     forall(member(Goal, Goals),
-           format(Out, 'goal=~w~n', [Goal])).
+           format(Out, 'goal=~w~n', [Goal])),
+    (   Goals == []
+    ->  DefToplevel = default
+    ;   DefToplevel = halt
+    ),
+    save_toplevel_goal(Out, DefToplevel, Options).
+
+save_toplevel_goal(Out, _Default, Options) :-
+    option(toplevel(Goal), Options),
+    !,
+    format(Out, 'toplevel=~q~n', [Goal]).
+save_toplevel_goal(Out, _Default, _Options) :-
+    '$cmd_option_val'(toplevel, Toplevel),
+    Toplevel \== default,
+    !,
+    format(Out, 'toplevel=~w~n', [Toplevel]).
+save_toplevel_goal(Out, Default, _Options) :-
+    format(Out, 'toplevel=~q~n', [Default]).
 
 
                  /*******************************
