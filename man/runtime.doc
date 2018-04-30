@@ -12,26 +12,28 @@ SWI-Prolog and deliver the application as a directory holding source
 files, other resources the application may need and a \jargon{Prolog
 Script} file that provides the executable. See \secref{plscript}. The
 two-step installation may be slightly less convenient for the end user,
-but enables the end-user to conveneintly run your program on a different
+but enables the end-user to conveniently run your program on a different
 operating system or architecture. This mechanism is obviously not
 suitable if you want to keep the source of your program secret.
 
 Another solution is to use \jargon{saved states}, the main topic of this
 chapter, together with the installed development system and disable
 \jargon{autoloading} requirements into the state using
-\cmdlineoption{--autoload=false} or the \term{autoload}{false} option of
+\cmdlineoption{--no-autoload} or the \term{autoload}{false} option of
 qsave_program/2. This allows creating the application as a single file,
-while avoiding most of the complications associated with saved states.
-This mechanism is particuarly suitable for in-house and cloud
-deployment. It provides some protection against inspecting the source.
-See \secref{protect-code} for details.
+while avoiding the need to ensure that the state is self-contained. For
+large programs this technique typically reduces startup time by an order
+of magnitude. This mechanism is particuarly suitable for in-house and
+cloud deployment. It provides some protection against inspecting the
+source. See \secref{protect-code} for details.
 
 The final solution is to make sure all required resources are present in
 the saved state. In this case the state may be added to the
 \jargon{emulator} and the application consists of the emulator with
 state and the shared objects/DLLs required to make the emulator work. If
 the emulator can be statically linked for the target platform this
-creates a truely single file executable.
+creates a single file executable that does not require SWI-Prolog
+installed on the target computer.
 
 \section{Understanding saved states}
 \label{sec:saved-states}
@@ -41,11 +43,11 @@ contains the compiled program in a machine-independent
 format,\footnote{Although the compiled code is independent from the CPU
 and operating system, 32-bit compiled code does not run on the 64-bit
 emulator, nor the other way around. Conditionally compiled code (see
-if/1) may also reduce platform independence.} startup options optionally
-shared objects/DLLs and possibly user-defined \jargon{resources}. As of
-version 7.7.13, the resource archive format is ZIP. A resource file is
-normally \textbf{created} using the commandline option
-\cmdlineoption{-c}:
+if/1) may also reduce platform independence.} startup options,
+optionally shared objects/DLLs and optionally additional
+\jargon{resource} files. As of version 7.7.13, the resource archive
+format is ZIP. A resource file is normally \textbf{created} using the
+commandline option \cmdlineoption{-c}:
 
 \begin{code}
 swipl -o mystate option ... -c file.pl ...
@@ -69,7 +71,9 @@ a shell script (Unix) or the emulator (Windows).\footnote{As the default
 emulator is a short program while the true emulator is in a DLL this
 keeps the state short.} The options \term{emulator}{File} and
 \term{stand_alone}{Bool} control what is added at the start of the
-state.
+state. Finally, C/C++ programs that embed Prolog may use a static C
+string that embeds the state into the executable. See
+PL_set_resource_db_mem().
 
 \subsection{Creating a saved state}
 \label{sec:create-saved-state}
@@ -88,7 +92,7 @@ by argv_options/3, except that the transformation is guided by the
 option type. This implies that integer and callable options need to have
 valid syntax and boolean options may be abbreviated to simply
 \exam{--autoload} or \exam{--no-autoload} as shorthands for
-\exam{--autoload=true} and exam{--autoload=false}.
+\exam{--autoload=true} and \exam{--autoload=false}.
 
 
 \begin{description}
@@ -141,16 +145,21 @@ from the runtime environment or location where it was built. See also
 \secref{cmdlinecomp}.
 	\termitem{emulator}{+File}
 File to use for the emulator.  Default is the running Prolog image.
+
 	\termitem{foreign}{+Action}
 If \const{save}, include shared objects (DLLs) into the saved state. See
 current_foreign_library/2. If the program \program{strip} is available,
 this is first used to reduce the size of the shared object. If a state
 is started, use_foreign_library/1 first tries to locate the foreign
-resource in the executable. When found it copies the content of the
-resource to a temporary file and loads it.  If possible (Unix), the
+resource in the resource database. When found it copies the content of
+the resource to a temporary file and loads it. If possible (Unix), the
 temporary object is deleted immediately after opening.\footnote{This
-option is experimental and currently disabled by default.  It will
-become the default if it proves robust.}
+option is experimental and currently disabled by default. It will become
+the default if it proves robust.}\footnote{Creating a temporary file is
+the most portable way to load a shared object from a zip file but
+requires write access to the file system.  Future versions may provide
+shortcuts for specific platforms that bypass the file system.}
+
 	\termitem{undefined}{+Value}
 Defines what happens if an undefined predicate is found during the
 code analysis.  Values are \const{ignore} (default) or \const{error}.
@@ -251,9 +260,20 @@ used to start the application:
 \end{code}
 
     \item
-Database references as returned by clause/3, recorded/3, etc., are not
-preserved and may thus not be part of the database when saved. Attempts
-to do so result in a warning.
+\jargon{Blobs} used as references to the database (see clause/3,
+recorded/3), streams, threads, etc.\ can not be saved. This implies that
+(dynamic) clauses may not contain such references at the moment the
+qsave_program/2 is called.  Note that the required foreign context
+(stream, etc.) cannot be present in the state anyway, making it
+pointless to save such references.  An attempt to save such objects
+results in a warning.
+
+The volatile/1 directive may be used to prevent saving the clauses of
+predicates that hold such references. The saved program must
+reinitialise such references using the normal program initialization
+techniques: use initialization/1,2 directives, explicitly create them
+by the entry point or make the various components recreate the context
+lazily when required.
 \end{itemize}
 
 
@@ -295,23 +315,47 @@ user:file_search_path(foreign, Dir) :-
 \label{sec:state-initialization}
 
 The initialization/1 and initialization/2 directive may be used to
-register goals to be executed at various points in the life cycle of
-an executable.
+register goals to be executed at various points in the life cycle of an
+executable. Alternatively, one may consider \jargon{lazy
+initialization} which typically follows the pattern below.  Single
+threaded code can avoid using with_mutex/2.
+
+\begin{code}
+:- dynamic x_done/0.
+:- volatile x_done/0.
+
+x(X) :-
+    x_done,
+    !,
+    use_x(X).
+x(X) :-
+    with_mutex(x, create_x),
+    use_x(X).
+
+create_x :-
+    x_done,
+    !.
+create_x :-
+    <create x>
+    asserta(x_done).
+\end{code}
 
 
-\section{Using program resources}	\label{sec:useresource}
+
+\section{Using program resources}
+\label{sec:program-resources}
 
 A \jargon{resource} is similar to a file. Resources, however, can be
 represented in two different formats: on files, as well as part of the
 resource \jargon{archive} of a saved state (see qsave_program/2) that
 acts as a \jargon{virtual file system} for the SWI-Prolog I/O predicates
-(see open/3,4, register_iri_scheme/3).
+(see open/4, register_iri_scheme/3).
 
-A resource has a \jargon{name}. The \jargon{source} data of the resource
+A resource has a \jargon{name}. The \jargon{source} data of a resource
 is a file. Resources are declared by adding clauses to the predicate
 resource/2 or resource/3.  Resources can be accessed from Prolog as
 files that start with \verb$res://$ or they can be opened using
-open_resource/2,3.
+open_resource/3.
 
 \subsection{Resources as files}
 \label{sec:res-files}
@@ -320,14 +364,14 @@ As of SWI-Prolog 7.7.13, resources that are compiled into the program
 can be accessed using the normal file handling predicates. Currently the
 following predicates transparently handle resources as read-only files:
 
-\begin{itemize}
-    \item open/3,4
+\begin{shortlist}
+    \item open/3, open/4
     \item access_file/2
     \item exists_file/1
     \item exists_directory/2
     \item time_file/2
     \item size_file/2
-\end{itemize}
+\end{shortlist}
 
 In addition, open_shared_object/3, underlying use_foreign_library/1
 handles \jargon{shared objects} or DLLs by copying them to a temporary
@@ -365,7 +409,7 @@ resource(app/icon, icon(.)).
 \subsection{Access resources using open_resource}
 \label{sec:res-resources}
 
-Before the system has the ability to open resources as files resources
+Before the system had the ability to open resources as files, resources
 were opened using the predicates open_resource/2 or open_resource/3.
 These predicates provide somewhat better dynamic control over resources
 depending on whether the code is running from files or from a saved
