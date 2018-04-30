@@ -248,7 +248,7 @@ indicates the portability.
     \termitem{+}{}
     \termitem{index}{}
 A variable (XSB), the atom \const{index} (YAP) or a \const{+}
-(B-Prolog) declare that the argument is tabled normally.
+(B-Prolog, YAP) declare that the argument is tabled normally.
 
     \termitem{lattice}{PI}
 \arg{PI} must be the predicate indicator of a predicate with arity~3.
@@ -266,8 +266,8 @@ omitted, resulting in \verb$po(<)$.
     \termitem{-}{}
 \nodescription
     \termitem{first}{}
-The atom \const{-} (B-Prolog) and \const{first} (YAP) declare to keep
-the first answer for this argument.
+The atom \const{-} (B-Prolog, YAP) and \const{first} (YAP) declare to
+keep the first answer for this argument.
 
     \termitem{last}{}
 The atom \const{last} (YAP) declares to keep the last answer.
