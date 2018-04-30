@@ -82,8 +82,14 @@ states are commonly created from the commandline using the
 swipl -o mystate --foreign=save -c load.pl
 \end{code}
 
-The description of qsave_program/2 provides background information and
-the options available to control saved state creation.
+Long (\const{--}) options are translated into options for
+qsave_program/2. This transformation uses the same conventions as used
+by argv_options/3, except that the transformation is guided by the
+option type. This implies that integer and callable options need to have
+valid syntax and boolean options may be abbreviated to simply
+\exam{--autoload} or \exam{--no-autoload} as shorthands for
+\exam{--autoload=true} and exam{--autoload=false}.
+
 
 \begin{description}
     \predicate{qsave_program}{2}{+File, +Options}
@@ -106,14 +112,19 @@ Limit for the trail stack.  See \secref{stacksizes}.
 	\termitem{goal}{:Callable}
 Initialization goal for the new executable (see \cmdlineoption{-g}).
 	\termitem{toplevel}{:Callable}
-Top-level goal for the new executable (see \cmdlineoption{-t}).
+Top-level goal for the new executable (see \cmdlineoption{-t}).  Similar
+to initialization/2 using \const{main}, the default toplevel is to enter
+the Prolog interactie shell unless a goal has been specified using
+\term{goal}{Callable}.
 	\termitem{init_file}{+Atom}
 Default initialization file for the new executable. See
 \cmdlineoption{-f}.
 	\termitem{class}{+Class}
-If \const{runtime} (default), only read resources from the state.  If
+If \const{runtime} (default), read resources from the state and
+disconnect the code loaded into the state from the original source.  If
 \const{development}, save the predicates in their current state and keep
-reading resources from their source (if present). See also resource/2.
+reading resources from their source (if present). See also
+open_resource/3.
 	\termitem{autoload}{+Boolean}
 If \const{true} (default), run autoload/0 first.
 	\termitem{map}{+File}
