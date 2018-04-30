@@ -265,7 +265,7 @@ omitted, resulting in \verb$po(<)$.
 
     \termitem{-}{}
 \nodescription
-    \termitem{first}
+    \termitem{first}{}
 The atom \const{-} (B-Prolog) and \const{first} (YAP) declare to keep
 the first answer for this argument.
 
