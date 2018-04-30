@@ -3387,7 +3387,7 @@ compile_aux_clauses(Clauses) :-
 
 
                 /********************************
-                *     WIC CODE COMPILER         *
+                *     SAVED STATE GENERATION    *
                 *********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3414,43 +3414,49 @@ saved state.
     '$get_files_argv'(Rest, Files).
 
 '$translate_options'([], []).
-'$translate_options'([O|T0], [Opt|T]) :-
-    atom_chars(O, [-,-|Rest]),
-    '$split'(Rest, [=], Head, Tail),
+'$translate_options'([O|T0], [Option|T]) :-
+    string_concat("--", Opt, O),
+    split_string(Opt, "=", "", [NameS|Rest]),
+    atom_string(Name, NameS),
+    '$translate_option'(Name, Rest, Value),
     !,
-    atom_chars(Name, Head),
-    '$translate_option'(Name, Tail, Value),
-    Opt =.. [Name, Value],
+    Option =.. [Name, Value],
     '$translate_options'(T0, T).
 '$translate_options'([_|T0], T) :-
     '$translate_options'(T0, T).
 
-'$split'(List, Split, [], Tail) :-
-    '$append'(Split, Tail, List),
-    !.
-'$split'([H|T0], Split, [H|T], Tail) :-
-    '$split'(T0, Split, T, Tail).
+%!  '$translate_option'(+Name, +ValueStrings, -Value) is semidet.
 
-'$translate_option'(Name, Chars, Value) :-
+'$translate_option'(Name, [], true) :-
+    qsave:save_option(Name, boolean, _),
+    !.
+'$translate_option'(NoName, [], false) :-
+    atom_concat('no-', Name, NoName),
+    qsave:save_option(Name, boolean, _),
+    !.
+'$translate_option'(Name, ValueStrings, Value) :-
     qsave:save_option(Name, Type, _),
     !,
-    '$convert_option_value'(Type, Chars, Value).
+    atomics_to_string(ValueStrings, "=", ValueString),
+    '$convert_option_value'(Type, ValueString, Value).
 '$translate_option'(Name, _Chars, _Value) :-
-    '$domain_error'(save_option, Name).
+    '$existence_error'(save_option, Name).
 
-'$convert_option_value'(integer, Chars, Value) :-
-    number_chars(Value, Chars).
-'$convert_option_value'(callable, Chars, Value) :-
-    atom_chars(Atom, Chars),
-    term_to_atom(Value, Atom).
-'$convert_option_value'(atom, Chars, Value) :-
-    atom_chars(Value, Chars).
-'$convert_option_value'(boolean, Chars, Value) :-
-    atom_chars(Value, Chars).
-'$convert_option_value'(oneof(_), Chars, Value) :-
-    atom_chars(Value, Chars).
-'$convert_option_value'(ground, Chars, Value) :-
-    atom_chars(Value, Chars).
+'$convert_option_value'(integer, String, Value) :-
+    (   number_string(Value, String)
+    ->  true
+    ;   '$domain_error'(integer, String)
+    ).
+'$convert_option_value'(callable, String, Value) :-
+    term_string(Value, String).
+'$convert_option_value'(atom, String, Value) :-
+    atom_string(Value, String).
+'$convert_option_value'(boolean, String, Value) :-
+    atom_string(Value, String).
+'$convert_option_value'(oneof(_), String, Value) :-
+    atom_string(Value, String).
+'$convert_option_value'(ground, String, Value) :-
+    atom_string(Value, String).
 
 
                  /*******************************
