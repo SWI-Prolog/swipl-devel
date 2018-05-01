@@ -526,21 +526,28 @@ zigzag_decode(uint64_t n)
 
 static int64_t
 getInt64(IOSTREAM *fd)
-{ uint64_t v = 0;
-  int shift = 0;
+{ int c = Qgetc(fd);
 
-  for(;;)
-  { int	c = Qgetc(fd);
+  if ( c&0x80 )
+  { DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(c&0x7f)));
+    return zigzag_decode(c&0x7f);
+  } else
+  { uint64_t v = c&0x7f;
+    int shift = 7;
 
-    if ( c&0x80 )
-    { uint64_t l = (c&0x7f);
-      v |= l<<shift;
-      DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(v)));
-      return zigzag_decode(v);
-    } else
-    { uint64_t b = c;
-      v |= b<<shift;
-      shift += 7;
+    for(;;)
+    { c = Qgetc(fd);
+
+      if ( c&0x80 )
+      { uint64_t l = (c&0x7f);
+	v |= l<<shift;
+	DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(v)));
+	return zigzag_decode(v);
+      } else
+      { uint64_t b = c;
+	v |= b<<shift;
+	shift += 7;
+      }
     }
   }
 }
@@ -564,21 +571,28 @@ getInt(IOSTREAM *fd)
 
 static unsigned int
 getUInt(IOSTREAM *fd)
-{ unsigned int v = 0;
-  int shift = 0;
+{ unsigned int c = Qgetc(fd);
 
-  for(;;)
-  { int	c = Qgetc(fd);
+  if ( c&0x80 )
+  { DEBUG(MSG_QLF_INTEGER, Sdprintf("%d\n", c&0x7f));
+    return c&0x7f;
+  } else
+  { unsigned int v = c&0x7f;
+    int shift = 7;
 
-    if ( c&0x80 )
-    { unsigned int l = (c&0x7f);
-      v |= l<<shift;
-      DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(v)));
-      return v;
-    } else
-    { unsigned int b = c;
-      v |= b<<shift;
-      shift += 7;
+    for(;;)
+    { c = Qgetc(fd);
+
+      if ( c&0x80 )
+      { unsigned int l = (c&0x7f);
+	v |= l<<shift;
+	DEBUG(MSG_QLF_INTEGER, Sdprintf("%d\n", v));
+	return v;
+      } else
+      { unsigned int b = c;
+	v |= b<<shift;
+	shift += 7;
+      }
     }
   }
 }
