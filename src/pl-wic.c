@@ -562,6 +562,28 @@ getInt(IOSTREAM *fd)
 }
 
 
+static unsigned int
+getUInt(IOSTREAM *fd)
+{ unsigned int v = 0;
+  int shift = 0;
+
+  for(;;)
+  { int	c = Qgetc(fd);
+
+    if ( c&0x80 )
+    { unsigned int l = (c&0x7f);
+      v |= l<<shift;
+      DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(v)));
+      return v;
+    } else
+    { unsigned int b = c;
+      v |= b<<shift;
+      shift += 7;
+    }
+  }
+}
+
+
 #ifdef WORDS_BIGENDIAN
 static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
 #else
@@ -1144,7 +1166,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	ep = bp + clause->code_size;
 
 	while( bp < ep )
-	{ code op = getInt(fd);
+	{ code op = getUInt(fd);
 	  const char *ats;
 	  int n = 0;
 
@@ -1722,6 +1744,18 @@ putInt64(int64_t n, IOSTREAM *fd)
 
 
 static void
+putUInt(unsigned int i, IOSTREAM *fd)
+{ do
+  { int b = i&0x7f;
+
+    i >>= 7;
+    if ( !i )
+      b |= 0x80;
+    Sputc(b, fd);
+  } while ( i );
+}
+
+static void
 putFloat(double f, IOSTREAM *fd)
 { unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
@@ -2088,11 +2122,11 @@ saveWicClause(wic_state *state, Clause clause)
   ep = bp + clause->code_size;
 
   while( bp < ep )
-  { code op = decode(*bp++);
+  { unsigned int op = decode(*bp++);
     const char *ats = codeTable[op].argtype;
     int n;
 
-    putInt64(op, fd);
+    putUInt(op, fd);
     DEBUG(MSG_QLF_VMI, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
     for(n=0; ats[n]; n++)
     { switch(ats[n])
