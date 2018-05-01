@@ -256,7 +256,6 @@ typedef struct wic_state
 static char *	getString(IOSTREAM *, size_t *len);
 static int64_t	getInt64(IOSTREAM *);
 static int	getInt32(IOSTREAM *s);
-static long	getLong(IOSTREAM *);
 static int	getInt(IOSTREAM *);
 static double	getFloat(IOSTREAM *);
 static bool	loadWicFd(wic_state *state);
@@ -550,14 +549,6 @@ getInt64(IOSTREAM *fd)
       }
     }
   }
-}
-
-
-static long
-getLong(IOSTREAM *fd)
-{ int64_t val = getInt64(fd);
-
-  return (long)val;
 }
 
 
@@ -1095,7 +1086,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 
 static void
 loadPredicateFlags(wic_state *state, Definition def, int skip)
-{ int flags = getInt(state->wicFd);
+{ unsigned int flags = getUInt(state->wicFd);
 
   if ( !skip )
   { unsigned long lflags = 0L;
@@ -1146,14 +1137,14 @@ loadPredicate(wic_state *state, int skip ARG_LD)
       }
       case 'C':
       { Code bp, ep;
-	int ncodes = getInt(fd);
+	unsigned int ncodes = getUInt(fd);
 	int has_dicts = 0;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
 	clause->references = 0;
-	clause->code_size = (unsigned int) ncodes;
-	clause->line_no = (unsigned short) getInt(fd);
+	clause->code_size  = (code) ncodes;
+	clause->line_no    = getUInt(fd);
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
@@ -1169,9 +1160,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	clearFlags(clause);
-	clause->prolog_vars = (unsigned short) getInt(fd);
-	clause->variables   = (unsigned short) getInt(fd);
-	if ( getLong(fd) == 0 )		/* 0: fact */
+	clause->prolog_vars = (unsigned short) getUInt(fd);
+	clause->variables   = (unsigned short) getUInt(fd);
+	if ( getUInt(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->predicate = def;
 	GD->statistics.codes += clause->code_size;
@@ -2118,8 +2109,8 @@ saveWicClause(wic_state *state, Clause clause)
   Code bp, ep;
 
   Sputc('C', fd);
-  putInt64(clause->code_size, fd);
-  putInt64(state->obfuscate ? 0 : clause->line_no, fd);
+  putUInt(clause->code_size, fd);
+  putUInt(state->obfuscate ? 0 : clause->line_no, fd);
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->owner_no)
@@ -2128,9 +2119,9 @@ saveWicClause(wic_state *state, Clause clause)
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->source_no)
 		   PASS_LD);
-  putInt64(clause->prolog_vars, fd);
-  putInt64(clause->variables, fd);
-  putInt64(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
+  putUInt(clause->prolog_vars, fd);
+  putUInt(clause->variables, fd);
+  putUInt(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;
@@ -2246,9 +2237,9 @@ closePredicateWic(wic_state *state)
 }
 
 
-static int
+static unsigned int
 predicateFlags(Definition def, atom_t sclass)
-{ int flags = 0;
+{ unsigned int flags = 0;
 
   if ( sclass == ATOM_kernel )
   { if ( true(def, P_LOCKED) && false(def, HIDE_CHILDS) )
@@ -2269,7 +2260,7 @@ static void
 openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
 { if ( def != state->currentPred)
   { IOSTREAM *fd = state->wicFd;
-    int mode = predicateFlags(def, sclass);
+    unsigned int mode = predicateFlags(def, sclass);
 
     closePredicateWic(state);
     state->currentPred = def;
@@ -2282,7 +2273,7 @@ openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
     }
 
     saveXRFunctor(state, def->functor->functor PASS_LD);
-    putInt64(mode, fd);
+    putUInt(mode, fd);
   }
 }
 
