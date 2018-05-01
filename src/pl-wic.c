@@ -405,7 +405,7 @@ getString(IOSTREAM *fd, size_t *length)
   }
 
   for( i=0, s = LD->qlf.getstr_buffer; i<len; i++ )
-  { int c = Sgetc(fd);
+  { int c = Qgetc(fd);
 
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
@@ -466,7 +466,7 @@ getAtom(IOSTREAM *fd, PL_blob_t *type)
     tmp = allocHeapOrHalt(len);
 
   for(s=tmp, i=0; i<len; i++)
-  { int c = Sgetc(fd);
+  { int c = Qgetc(fd);
 
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
@@ -987,7 +987,7 @@ loadWicFd(wic_state *state)
   state->load_state->saved_version = saved_version;
 
   for(;;)
-  { c = Sgetc(fd);
+  { c = Qgetc(fd);
 
     switch( c )
     { case EOF:
@@ -1139,7 +1139,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   loadPredicateFlags(state, def, skip);
 
   for(;;)
-  { switch(Sgetc(fd) )
+  { switch(Qgetc(fd) )
     { case 'X':
       { DEBUG(MSG_QLF_PREDICATE, Sdprintf("ok\n"));
 	succeed;
@@ -1273,7 +1273,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		bp += lw;
 		*bp++ = 0L;
 		while(--l >= 0)
-		  *s++ = Sgetc(fd);
+		  *s++ = Qgetc(fd);
 		break;
 	      }
 	      case CA1_MPZ:
@@ -1292,7 +1292,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		bp       += wsz;
 
 		while(--l >= 0)
-		  *s++ = Sgetc(fd);
+		  *s++ = Qgetc(fd);
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
 	      }
