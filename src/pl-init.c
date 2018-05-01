@@ -132,7 +132,7 @@ longopt(const char *opt, int argc, const char **argv)
 }
 
 
-const char *
+static const char *
 is_longopt(const char *optstring, const char *name)
 { size_t len = strlen(name);
 
@@ -144,6 +144,48 @@ is_longopt(const char *optstring, const char *name)
   }
 
   return NULL;
+}
+
+
+static int
+is_bool_opt(const char *opt, const char *name, int *val)
+{ const char *optval;
+
+  if ( (optval=is_longopt(opt,name)) )
+  { if ( *optval == EOS ||
+	 strcasecmp(optval, "true") == 0 ||
+	 strcasecmp(optval, "yes") == 0 ||
+	 strcasecmp(optval, "y") == 0 )
+    { *val = TRUE;
+      return TRUE;
+    }
+    if ( strcasecmp(optval, "false") == 0 ||
+	 strcasecmp(optval, "no") == 0 ||
+	 strcasecmp(optval, "n") == 0 )
+    { *val = FALSE;
+      return TRUE;
+    }
+
+    return -1;
+  } else if ( strncmp(opt, "no-", 3) == 0 &&
+	      (optval=is_longopt(opt+3,name)) )
+  { if ( *optval == EOS )
+    { *val = FALSE;
+      return TRUE;
+    }
+
+    return -1;
+  } else if ( strncmp(opt, "no", 2) == 0 &&
+	      (optval=is_longopt(opt+2,name)) )
+  { if ( *optval == EOS )
+    { *val = FALSE;
+      return TRUE;
+    }
+
+    return -1;
+  }
+
+  return FALSE;
 }
 
 
@@ -563,16 +605,10 @@ setTraditional(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Does the commandline option parsing.  Actually   we  should  use the GNU
-getopt package and deal nicely with intptr_t   arguments  as well as shorts,
+getopt package and deal nicely with long   arguments  as well as shorts,
 but these options are  too  widely  used   as  they  are  to change them
 overnight. Returns -1 on error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-isoption(const char *av, const char *opt)
-{ return (streq(av, opt) || (av[0] == '-' && streq(av+1, opt)));
-}
-
 
 static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
@@ -585,38 +621,47 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	    Sdprintf("%s ", argv[i]);
 	});
 
-  for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
+  for( ; argc > 0 && argv[0][0] == '-'; argc--, argv++ )
   { char *s = &argv[0][1];
 
-    if ( streq(s, "-" ) )		/* swipl <plargs> -- <app-args> */
-    { break;
-    }
-
-    if ( streq(s, "tty") )	/* +/-tty */
-    { if ( s[-1] == '+' )
-	setPrologFlagMask(PLFLAG_TTY_CONTROL);
-      else
-	clearPrologFlagMask(PLFLAG_TTY_CONTROL);
-
-      continue;
-    } else if ( isoption(s, "nosignals") )
-    { clearPrologFlagMask(PLFLAG_SIGNALS);
-      clearPrologFlagMask(PLFLAG_GCTHREAD);
-      continue;
-    } else if ( isoption(s, "nodebug") )
-    { clearPrologFlagMask(PLFLAG_DEBUGINFO);
-      continue;
-    } else if ( streq(s, "-quiet") )
-    { GD->options.silent = TRUE;
-      continue;
-    }
-
-    if ( *s == '-' )
+    if ( *s == '-' )			/* long options */
     { const char *optval;
+      int rc, b;
 
       s++;
+      if ( s[0] == EOS )		/* swipl <plargs> -- <app-args>  */
+	break;
 
-      if ( (optval=is_longopt(s, "pldoc")) )
+
+      if ( (rc=is_bool_opt(s, "quiet", &b)) )
+      { if ( rc == TRUE )
+	{ if ( b )
+	    GD->options.silent = TRUE;
+	} else
+	  return -1;
+      } else if ( (rc=is_bool_opt(s, "debug", &b)) )
+      { if ( rc == TRUE )
+	{ if ( !b )
+	    clearPrologFlagMask(PLFLAG_DEBUGINFO);
+	} else
+	  return -1;
+      } else if ( (rc=is_bool_opt(s, "signals", &b)) )
+      { if ( rc == TRUE )
+	{ if ( !b )
+	  { clearPrologFlagMask(PLFLAG_SIGNALS);
+	    clearPrologFlagMask(PLFLAG_GCTHREAD);
+	  }
+	} else
+	  return -1;
+      } else if ( (rc=is_bool_opt(s, "tty", &b)) )
+      { if ( rc == TRUE )
+	{ if ( b )
+	    setPrologFlagMask(PLFLAG_TTY_CONTROL);
+	  else
+	    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
+	} else
+	  return -1;
+      } else if ( (optval=is_longopt(s, "pldoc")) )
       { GD->options.pldoc_server = store_string(optval);
       } else if ( is_longopt(s, "home") )
       { /* already handled */
@@ -991,29 +1036,32 @@ usage(void)
     "    7) %s [options] [-o output] -b bootfile -c prolog-file ...\n",
     "\n",
     "Options:\n",
-    "    -x state         Start from state (must be first)\n",
-    "    -[LGT]size[KMG]  Specify {Local,Global,Trail} limits\n",
-    "    -t toplevel      Toplevel goal\n",
-    "    -g goal          Initialisation goal\n",
-    "    -f file          User initialisation file\n",
-    "    -F file          System initialisation file\n",
-    "    -l file          Script source file\n",
-    "    -s file          Script source file\n",
-    "    -p alias=path    Define file search path 'alias'\n",
-    "    [+/-]tty         Allow tty control\n",
-    "    -O               Optimised compilation\n",
-    "    --nosignals      Do not modify any signal handling\n",
-    "    --nodebug        Omit generation of debug info\n",
-    "    --quiet          Quiet operation (also -q)\n",
-    "    --traditional    Disable extensions of version 7\n",
-    "    --home=DIR       Use DIR as SWI-Prolog home\n",
-    "    --pldoc[=port]   Start PlDoc server [at port]\n",
+    "    -x state          Start from state (must be first)\n",
+    "    -[LGT]size[KMG]   Specify {Local,Global,Trail} limits\n",
+    "    -t toplevel       Toplevel goal\n",
+    "    -g goal           Initialisation goal\n",
+    "    -f file           User initialisation file\n",
+    "    -F file           System initialisation file\n",
+    "    -l file           Script source file\n",
+    "    -s file           Script source file\n",
+    "    -p alias=path     Define file search path 'alias'\n",
+    "    -O                Optimised compilation\n",
+    "    --tty[=bool]      (Dis)allow tty control\n",
+    "    --signals[=bool]  Do (not) modify signal handling\n",
+    "    --debug[=bool]    Do (not) generate debug info\n",
+    "    --quiet[=bool]    Do (not) suppress informational messages (also -q)\n",
+    "    --traditional     Disable extensions of version 7\n",
+    "    --home=DIR        Use DIR as SWI-Prolog home\n",
+    "    --pldoc[=port]    Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
-    "    --win_app	  Behave as Windows application\n",
+    "    --win_app	   Behave as Windows application\n",
 #endif
 #ifdef O_DEBUG
-    "    -d level|topic   Enable maintenance debugging\n",
+    "    -d level|topic    Enable maintenance debugging\n",
 #endif
+    "\n",
+    "Boolean options may be written as --name=bool, --name, --no-name ",
+    "or --noname\n",
     NULL
   };
   const cline *lp = lines;
