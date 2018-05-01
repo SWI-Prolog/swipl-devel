@@ -163,20 +163,16 @@ Below is an informal description of the format of a `.qlf' file:
 <word>		::=	<4 byte entity>
 <include>	::=	<owner> <parent> <line> <file> <time>
 
-Numbers are stored in  a  packed  format  to  reduce  the  size  of  the
-intermediate  code  file  as  99%  of  them  is  normally  small, but in
-principle not limited (virtual  machine  codes,  arities,  table  sizes,
-etc).   The  upper  two  bits  of  the  first byte contain the number of
-additional bytes.  the bytes represent the number `most-significant part
-first'.  See the functions putNum() and getNum()  for  details.   Before
-you  don't  agree  to  this  schema,  you  should  remember it makes the
-intermediate code files about 30% smaller  and  avoids  the  differences
-between  16  and  32  bits  machines (arities on 16 bits machines are 16
-bits) as well as machines with different byte order.
+Integers are stored in  a  packed  format   to  reduce  the  size of the
+intermediate code file as  99%  of  them   is  normally  small,  but  in
+principle not limited (virtual  machine   codes,  arities,  table sizes,
+etc). We use the "zigzag" encoding to   deal  with negative integers and
+write the positive value in chunks  of   7  bits, least significant bits
+first. The last byte has its 0x80 mask set.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 65			/* load all versions later >= X */
-#define VERSION     65			/* save version number */
+#define LOADVERSION 66			/* load all versions later >= X */
+#define VERSION     66			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF		0		/* reference to previous */
@@ -268,7 +264,7 @@ static bool	loadPredicate(wic_state *state, int skip ARG_LD);
 static bool	loadImport(wic_state *state, int skip ARG_LD);
 static void	saveXRBlobType(wic_state *state, PL_blob_t *type);
 static void	putString(const char *, size_t len, IOSTREAM *);
-static void	putNum(int64_t, IOSTREAM *);
+static void	putInt64(int64_t, IOSTREAM *);
 static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(wic_state *state, Clause cl);
 static void	closePredicateWic(wic_state *state);
@@ -516,50 +512,37 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 }
 
 
+static inline uint64_t
+zigzag_encode(int64_t n)
+{ return (n << 1) ^ (n >> 63);
+}
+
+
+static inline int64_t
+zigzag_decode(uint64_t n)
+{ return (n >> 1) ^ -(n&1);
+}
+
+
 static int64_t
 getInt64(IOSTREAM *fd)
-{ int64_t first;
-  int bytes, shift, b;
+{ uint64_t v = 0;
+  int shift = 0;
 
-  DEBUG(MSG_QLF_INTEGER, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
+  for(;;)
+  { int	c = Qgetc(fd);
 
-  first = Qgetc(fd);
-  if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
-  { first <<= (INT64BITSIZE-6);
-    first >>= (INT64BITSIZE-6);
-
-    DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
-    return first;
-  }
-
-  bytes = (int) ((first >> 6) & 0x3);
-  first &= 0x3f;
-
-  if ( bytes <= 2 )
-  { for( b = 0; b < bytes; b++ )
-    { first <<= 8;
-      first |= Qgetc(fd) & 0xff;
+    if ( c&0x80 )
+    { uint64_t l = (c&0x7f);
+      v |= l<<shift;
+      DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(v)));
+      return zigzag_decode(v);
+    } else
+    { uint64_t b = c;
+      v |= b<<shift;
+      shift += 7;
     }
-
-    shift = (sizeof(first)-1-bytes)*8 + 2;
-  } else
-  { int m;
-
-    bytes = (int)first;
-    first = (int64_t)0;
-
-    for(m=0; m<bytes; m++)
-    { first <<= 8;
-      first |= Qgetc(fd) & 0xff;
-    }
-    shift = (sizeof(first)-bytes)*8;
   }
-
-  first <<= shift;
-  first >>= shift;
-
-  DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
-  return first;
 }
 
 
@@ -1663,7 +1646,7 @@ putString(const char *s, size_t len, IOSTREAM *fd)
     len = strlen(s);
   e = &s[len];
 
-  putNum(len, fd);
+  putInt64(len, fd);
   while(s<e)
   { Sputc(*s, fd);
     s++;
@@ -1680,7 +1663,7 @@ putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
     len = wcslen(s);
   e = &s[len];
 
-  putNum(len, fd);
+  putInt64(len, fd);
   fd->encoding = ENC_UTF8;
   while(s<e)
   { Sputcode(*s, fd);
@@ -1723,55 +1706,18 @@ putAtom(wic_state *state, atom_t w)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Number encoding:
-
-First byte:  bits 8&7  bits 1-6 (low order)
-
-		0	6-bits signed value
-		1      14-bits signed value
-		2      22-bits signed value
-		3      number of bytes following
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static void
-putNum(int64_t n, IOSTREAM *fd)
-{ int m;
-  int64_t absn = (n >= 0 ? n : -n);
+putInt64(int64_t n, IOSTREAM *fd)
+{ uint64_t i = zigzag_encode(n);
 
-  DEBUG(MSG_QLF_INTEGER, Sdprintf("0x%x at %ld\n", (uintptr_t)n, Stell(fd)));
+  do
+  { int b = i&0x7f;
 
-  if ( n != PLMININT )
-  { if ( absn < (1L << 5) )
-    { Sputc((int)(n & 0x3f), fd);
-      return;
-    } else if ( absn < (1L << 13) )
-    { Sputc((int)(((n >> 8) & 0x3f) | (1 << 6)), fd);
-      Sputc((int)(n & 0xff), fd);
-      return;
-    } else if ( absn < (1L << 21) )
-    { Sputc((int)(((n >> 16) & 0x3f) | (2 << 6)), fd);
-      Sputc((int)((n >> 8) & 0xff), fd);
-      Sputc((int)(n & 0xff), fd);
-      return;
-    }
-  }
-
-  for(m = sizeof(n); ; m--)
-  { int b = (int)(absn >> (((m-1)*8)-1)) & 0x1ff;
-
-    if ( b == 0 )
-      continue;
-    break;
-  }
-
-  Sputc(m | (3 << 6), fd);
-
-  for( ; m > 0; m--)
-  { int b = (int)(n >> ((m-1)*8)) & 0xff;
-
+    i >>= 7;
+    if ( !i )
+      b |= 0x80;
     Sputc(b, fd);
-  }
+  } while ( i );
 }
 
 
@@ -1851,7 +1797,7 @@ savedXR(wic_state *state, void *xr)
 
   if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )
   { Sputc(XR_REF, fd);
-    putNum(id, fd);
+    putInt64(id, fd);
 
     succeed;
   } else
@@ -1898,11 +1844,11 @@ saveXR__LD(wic_state *state, word xr ARG_LD)
 
   if ( isTaggedInt(xr) )		/* TBD: switch */
   { Sputc(XR_INT, fd);
-    putNum(valInt(xr), fd);
+    putInt64(valInt(xr), fd);
     return;
   } else if ( isBignum(xr) )
   { Sputc(XR_INT, fd);
-    putNum(valBignum(xr), fd);
+    putInt64(valBignum(xr), fd);
     return;
   } else if ( isFloat(xr) )
   { Sputc(XR_FLOAT, fd);
@@ -2001,7 +1947,7 @@ saveXRFunctor(wic_state *state, functor_t f ARG_LD)
 		 state->savedXRTableId, stringAtom(fdef->name), fdef->arity));
   Sputc(XR_FUNCTOR, fd);
   saveXR(state, fdef->name);
-  putNum(fdef->arity, fd);
+  putInt64(fdef->arity, fd);
 }
 
 
@@ -2055,7 +2001,7 @@ do_save_qlf_term(wic_state *state, Word t ARG_LD)
     { int id = (int)valInt(argTerm(*t, 0));
 
       Sputc('v', fd);
-      putNum(id, fd);
+      putInt64(id, fd);
     } else
     { Word q = argTermP(*t, 0);
       int n, arity = arityFunctor(f);
@@ -2092,7 +2038,7 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
   options.numbered_check = TRUE;	/* otherwise may be wrong */
 
   if ( (nvars = numberVars(t, &options, 0 PASS_LD)) != NV_ERROR )
-  { putNum(nvars, fd);
+  { putInt64(nvars, fd);
     do_save_qlf_term(state, valTermRef(t) PASS_LD);	/* TBD */
     DEBUG(MSG_QLF_TERM, Sdprintf("to %d\n", Stell(fd)));
   } else
@@ -2124,8 +2070,8 @@ saveWicClause(wic_state *state, Clause clause)
   Code bp, ep;
 
   Sputc('C', fd);
-  putNum(clause->code_size, fd);
-  putNum(state->obfuscate ? 0 : clause->line_no, fd);
+  putInt64(clause->code_size, fd);
+  putInt64(state->obfuscate ? 0 : clause->line_no, fd);
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->owner_no)
@@ -2134,9 +2080,9 @@ saveWicClause(wic_state *state, Clause clause)
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->source_no)
 		   PASS_LD);
-  putNum(clause->prolog_vars, fd);
-  putNum(clause->variables, fd);
-  putNum(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
+  putInt64(clause->prolog_vars, fd);
+  putInt64(clause->variables, fd);
+  putInt64(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;
@@ -2146,7 +2092,7 @@ saveWicClause(wic_state *state, Clause clause)
     const char *ats = codeTable[op].argtype;
     int n;
 
-    putNum(op, fd);
+    putInt64(op, fd);
     DEBUG(MSG_QLF_VMI, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
     for(n=0; ats[n]; n++)
     { switch(ats[n])
@@ -2180,7 +2126,7 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_VAR:
 	case CA1_FVAR:
 	case CA1_CHP:
-	{ putNum(*bp++, fd);
+	{ putInt64(*bp++, fd);
 	  break;
 	}
 	case CA1_INT64:
@@ -2188,7 +2134,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  Word p = (Word)&val;
 
 	  cpInt64Data(p, bp);
-	  putNum(val, fd);
+	  putInt64(val, fd);
 	  break;
 	}
 	case CA1_FLOAT:
@@ -2208,7 +2154,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  size_t l = wn*sizeof(word) - padHdr(m);
 	  bp += wn;
 
-	  putNum(l, fd);
+	  putInt64(l, fd);
 	  while(l-- > 0)
 	    Sputc(*s++&0xff, fd);
 	  break;
@@ -2223,7 +2169,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  bp += wn;
 
 	  DEBUG(MSG_QLF_VMI, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
-	  putNum(mpsize, fd);
+	  putInt64(mpsize, fd);
 	  while(--l >= 0)
 	    Sputc(*s++&0xff, fd);
 	  DEBUG(MSG_QLF_VMI, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
@@ -2288,7 +2234,7 @@ openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
     }
 
     saveXRFunctor(state, def->functor->functor PASS_LD);
-    putNum(mode, fd);
+    putInt64(mode, fd);
   }
 }
 
@@ -2308,9 +2254,9 @@ writeWicHeader(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
   putMagic(saveMagic, fd);
-  putNum(VERSION, fd);
-  putNum(VM_SIGNATURE, fd);
-  putNum(sizeof(word)*8, fd);	/* bits-per-word */
+  putInt64(VERSION, fd);
+  putInt64(VM_SIGNATURE, fd);
+  putInt64(sizeof(word)*8, fd);	/* bits-per-word */
   if ( systemDefaults.home )
     putString(systemDefaults.home, STR_NOLEN, fd);
   else
@@ -2369,7 +2315,7 @@ addDirectiveWic(wic_state *state, term_t term ARG_LD)
 
   closePredicateWic(state);
   Sputc('D', fd);
-  putNum(source_line_no, fd);
+  putInt64(source_line_no, fd);
 
   return saveQlfTerm(state, term PASS_LD);
 }
@@ -2384,7 +2330,7 @@ importWic(wic_state *state, Procedure proc, atom_t strength ARG_LD)
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc PASS_LD);
-  putNum(flags, state->wicFd);
+  putInt64(flags, state->wicFd);
 
   succeed;
 }
@@ -2578,9 +2524,9 @@ qlfOpen(term_t file)
   initSourceMarks(state);
 
   putMagic(qlfMagic, state->wicFd);
-  putNum(VERSION, state->wicFd);
-  putNum(VM_SIGNATURE, state->wicFd);
-  putNum(sizeof(word)*8, state->wicFd);
+  putInt64(VERSION, state->wicFd);
+  putInt64(VM_SIGNATURE, state->wicFd);
+  putInt64(sizeof(word)*8, state->wicFd);
 
   putString(absname, STR_NOLEN, state->wicFd);
 
@@ -2824,7 +2770,7 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
 
   if ( m->file )
   { qlfSaveSource(state, m->file);
-    putNum(m->line_no, fd);
+    putInt64(m->line_no, fd);
   } else
   { Sputc('-', fd);
   }
@@ -2984,7 +2930,7 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
     Sputc('I', fd);
     saveXR(state, owner);
     saveXR(state, pn);
-    putNum(line, fd);
+    putInt64(line, fd);
     saveXR(state, fn);
     putFloat(time, fd);
 
@@ -3537,7 +3483,7 @@ qlfCleanup(void)
 
 void
 wicPutNum(int64_t n, IOSTREAM *fd)
-{ putNum(n, fd);
+{ putInt64(n, fd);
 }
 
 
