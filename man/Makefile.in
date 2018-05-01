@@ -53,14 +53,13 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
 		lib/solutionsequences.tex lib/iostream.tex \
 		lib/persistency.tex lib/yall.tex lib/error.tex \
-		lib/tabling.tex lib/tablinglib.tex \
 		lib/simplex.tex lib/simplexlib.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex engines.tex \
 		$(LIBFILES) \
 		profile.tex attvar.tex chr.tex xref.tex bit64.tex \
-		dialect.tex extensions.tex
+		dialect.tex extensions.tex tabling.tex
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:
@@ -229,8 +228,6 @@ lib/predopts.tex: lib/predopts.txt ../library/predicate_options.pl
 		$(LIBTOTEX) --lib=predicate_options lib/predopts.txt
 lib/quasiquotations.tex: ../library/quasi_quotations.pl
 		$(LIBTOTEX) 'library(quasi_quotations)'
-lib/tablinglib.tex: lib/tablinglib.md ../library/tabling.pl
-		$(LIBTOTEX) --lib=tabling lib/tablinglib.md
 lib/solutionsequences.tex: ../library/solution_sequences.pl
 		$(LIBTOTEX) 'library(solution_sequences)'
 lib/iostream.tex: ../library/iostream.pl

@@ -179,6 +179,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
+\predicatesummary{current_table}{2}{Find answer table for a variant}
 \predicatesummary{current_trie}{1}{Enumerate known tries}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{day_of_the_week}{2}{Determine ordinal-day from date}

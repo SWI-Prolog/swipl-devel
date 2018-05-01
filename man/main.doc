@@ -234,6 +234,7 @@ California, 94041, USA.
 \include{builtin}
 \include{extensions}
 \include{module}
+\include{tabling}
 \include{attvar}
 \include{chr}
 \include{threads}

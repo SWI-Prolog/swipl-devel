@@ -1,10 +1,10 @@
-\libdoc{tabling}{Tabled execution (SLG)}
+\chapter{Tabled execution (SLG resolution)}
 \label{sec:tabling}
 
 \index{SLG,resolution}%
-The library \pllib{tabling} provides support for \jargon{Tabled
-execution} of one or more Prolog predicates, also called \jargon{SLG
-resolution}.  Tabling a predicate provides two properties:
+This chapter describes SWI-Prolog's support for \jargon{Tabled
+execution} for one or more Prolog predicates, also called \jargon{SLG
+resolution}. Tabling a predicate provides two properties:
 
 \begin{enumerate}
     \item
@@ -36,7 +36,7 @@ oriented} resolution strategy for such problems and is enabled simply by
 adding a table/1 directive to the program.
 
 
-\subsubsection{Example 1: using tabling for memoizing}
+\section{Example 1: using tabling for memoizing}
 \label{sec:tabling-memoize}
 
 As a first classical example we use tabling for \emph{memoizing}
@@ -123,7 +123,7 @@ fib(F0, F1, I, N, F) :-
 \end{code}
 
 
-\subsubsection{Example 2: avoiding non-termination}
+\section{Example 2: avoiding non-termination}
 \label{sec:tabling-non-termination}
 
 SLD resolution easily results in an infinite loop due to \jargon{left
@@ -187,7 +187,7 @@ memory (the list of already visited cities and the still open choices)
 and does not need to deal with maintaining consistency between the
 tables and ground facts.
 
-\subsubsection{Mode directed tabling}
+\section{Mode directed tabling}
 \label{sec:tabling-mode-directed}
 
 \index{answer subsumption,tabling}%
@@ -286,10 +286,45 @@ that in SWI-Prolog the standard order of terms orders numbers by value.
 The atom \const{sum} (YAP) declares to sum numeric answers.
 \end{description}
 
+\section{Tabling predicate reference}
+\label{sec:tabling-preds}
 
-\input{tablinglib.tex}
+\begin{description}
+    \directive{table}{1}{+PredicateIndicators}
+Prepare the given \arg{PredicateIndicators} for tabling. The example
+below prepares the predicate edge/2 and the non-terminal statement//1
+for tabled execution.
 
-\subsubsection{About the tabling implementation}
+\begin{code}
+:- table edge/2, statement//1.
+\end{code}
+
+In addition to using \jargon{predicate indicators}, a predicate can be
+declared for \jargon{mode directed tabling} using a term where each
+argument declares the intended mode. For example:
+
+\begin{code}
+:- table connection(_,_,min).
+\end{code}
+
+\jargon{Mode directed tabling} is discussed in the general introduction
+section of \chapref{tabling}.
+
+    \predicate{current_table}{2}{:Variant, -Trie}
+True when \arg{Trie} is the answer table for \arg{Variant}.
+
+    \predicate{abolish_all_tables}{0}{}
+Remove all tables. This is normally used to free up the space or
+recompute the result after predicates on which the result for some
+tabled predicates depend. Raises a permission_error when tabling is in
+progress.
+
+    \predicate{abolish_table_subgoals}{1}{:Subgoal}
+Abolish all tables that unify with \arg{SubGoal}.
+\end{description}
+
+
+\section{About the tabling implementation}
 \label{sec:tabling-about}
 
 The SWI-Prolog implementation uses \jargon{Delimited continuations} (see
