@@ -318,11 +318,21 @@ static void
 popXrIdTable(wic_state *state)
 { int i;
   XrTable t = state->XR;
+  size_t id = 0;
 
   state->XR = t->previous;		/* pop the stack */
 
   for(i=0; i<t->tablesize; i++)		/* destroy obsolete table */
+  { int j;
+
+    for(j=0; j<SUBENTRIES && id <= t->id; j++, id++)
+    { word w = t->table[i][j];
+
+      if ( isAtom(w) )
+	PL_unregister_atom(w);
+    }
     freeHeap(t->table[i], ALLOCSIZE);
+  }
 
   freeHeap(t, sizeof(*t));
 }
