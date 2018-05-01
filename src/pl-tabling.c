@@ -690,7 +690,7 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
 	term_t av;
 
 	if ( !PRED_update4 )
-	  PRED_update4 = PL_predicate("update", 4, "tabling");
+	  PRED_update4 = PL_predicate("update", 4, "$tabling");
 
 	if ( !((av=PL_new_term_refs(4)) &&
 	       PL_put_term(av+0, A4) &&

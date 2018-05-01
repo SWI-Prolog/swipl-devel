@@ -3481,38 +3481,48 @@ saved state.
 '$instantiation_error'(_Var) :-
     throw(error(instantiation_error, _)).
 
-'$must_be'(list, X) :-
+'$uninstantiation_error'(NonVar) :-
+    throw(error(uninstantiation_error(NonVar), _)).
+
+'$must_be'(list, X) :- !,
     '$skip_list'(_, X, Tail),
     (   Tail == []
     ->  true
     ;   '$type_error'(list, Tail)
     ).
-'$must_be'(options, X) :-
+'$must_be'(options, X) :- !,
     (   '$is_options'(X)
     ->  true
     ;   '$type_error'(options, X)
     ).
-'$must_be'(atom, X) :-
+'$must_be'(atom, X) :- !,
     (   atom(X)
     ->  true
     ;   '$type_error'(atom, X)
     ).
-'$must_be'(callable, X) :-
+'$must_be'(integer, X) :- !,
+    (   integer(X)
+    ->  true
+    ;   '$type_error'(integer, X)
+    ).
+'$must_be'(callable, X) :- !,
     (   callable(X)
     ->  true
     ;   '$type_error'(callable, X)
     ).
-'$must_be'(oneof(Type, Domain, List), X) :-
+'$must_be'(oneof(Type, Domain, List), X) :- !,
     '$must_be'(Type, X),
     (   memberchk(X, List)
     ->  true
     ;   '$domain_error'(Domain, X)
     ).
-'$must_be'(boolean, X) :-
+'$must_be'(boolean, X) :- !,
     (   (X == true ; X == false)
     ->  true
     ;   '$type_error'(boolean, X)
     ).
+% Use for debugging
+%'$must_be'(Type, _X) :- format('Unknown $must_be type: ~q~n', [Type]).
 
 
                 /********************************

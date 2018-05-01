@@ -710,6 +710,8 @@ stack_name(global).
 stack_name(local).
 stack_name(trail).
 
+safe_primitive('$tabling':abolish_all_tables).
+
 
 % use_module/1.  We only allow for .pl files that are loaded from
 % relative paths that do not contain /../
@@ -821,6 +823,14 @@ safe_meta('$dcg':call_dcg(NT,Xs0,Xs), [Goal]) :-
     expand_nt(NT,Xs0,Xs,Goal).
 safe_meta('$dcg':call_dcg(NT,Xs0), [Goal]) :-
     expand_nt(NT,Xs0,[],Goal).
+safe_meta('$tabling':abolish_table_subgoals(V), []) :-
+    \+ qualified(V).
+safe_meta('$tabling':current_table(V, _), []) :-
+    \+ qualified(V).
+
+qualified(V) :-
+    nonvar(V),
+    V = _:_.
 
 %!  attr_hook_predicates(+Hooks0, +Module, -Hooks) is det.
 %
@@ -971,7 +981,7 @@ safe_meta(call(3,*,*,*)).
 safe_meta(call(4,*,*,*,*)).
 safe_meta(call(5,*,*,*,*,*)).
 safe_meta(call(6,*,*,*,*,*,*)).
-
+safe_meta('$tabling':start_tabling(*,0)).
 
 %!  safe_output(+Output)
 %
@@ -1082,6 +1092,7 @@ safe_pattr(discontiguous(_)).
 safe_pattr(multifile(_)).
 safe_pattr(public(_)).
 safe_pattr(meta_predicate(_)).
+safe_pattr(table(_)).
 
 safe_pattr(Var, _) :-
     var(Var),

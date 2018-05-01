@@ -34,19 +34,15 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(tabling,
+:- module('$tabling',
           [ (table)/1,                  % +PI ...
 
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
             abolish_table_subgoals/1,   % :Subgoal
 
-            start_tabling/2,            % +Wrapper, :Worker.
-
-            op(1150, fx, table)
+            start_tabling/2             % +Wrapper, :Worker.
           ]).
-:- use_module(library(error)).
-:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
     start_tabling(+, 0),
@@ -271,7 +267,7 @@ current_table(M:Variant, Trie) :-
 wrappers(Var) -->
     { var(Var),
       !,
-      instantiation_error(Var)
+      '$instantiation_error'(Var)
     }.
 wrappers((A,B)) -->
     !,
@@ -322,7 +318,7 @@ wrappers(ModeDirectedSpec) -->
     | UpdateClauses
     ].
 wrappers(TableSpec) -->
-    { type_error(table_desclaration, TableSpec)
+    { '$type_error'(table_desclaration, TableSpec)
     }.
 
 %!  mode_check(+Moded, -TestCode)
@@ -333,11 +329,11 @@ wrappers(TableSpec) -->
 mode_check(Moded, Check) :-
     var(Moded),
     !,
-    Check = (var(Moded)->true;uninstantiation_error(Moded)).
+    Check = (var(Moded)->true;'$uninstantiation_error'(Moded)).
 mode_check(Moded, true) :-
     '$tbl_trienode'(Moded),
     !.
-mode_check(Moded, (Test->true;tabling:instantiated_moded_arg(Vars))) :-
+mode_check(Moded, (Test->true;'$tabling':instantiated_moded_arg(Vars))) :-
     Moded =.. [s|Vars],
     var_check(Vars, Test).
 
@@ -352,9 +348,9 @@ var_check([H|T], Test) :-
     instantiated_moded_arg/1.
 
 instantiated_moded_arg(Vars) :-
-    member(V, Vars),
+    '$member'(V, Vars),
     \+ var(V),
-    uninstantiation_error(V).
+    '$uninstantiation_error'(V).
 
 
 %!  extract_modes(+ModeSpec, +Head, -Variant, -Modes, -ModedAnswer) is det.
@@ -427,55 +423,55 @@ update_body([P|TM], [A0|Args0], [A1|Args1], [A2|Args2], Body0, Body) :-
 update_goal(Var, _,_,_, _) :-
     var(Var),
     !,
-    instantiation_error(Var).
+    '$instantiation_error'(Var).
 update_goal(lattice(M:PI), S0,S1,S2, M:Goal) :-
     !,
-    must_be(atom, M),
+    '$must_be'(atom, M),
     update_goal(lattice(PI), S0,S1,S2, Goal).
 update_goal(lattice(Name/Arity), S0,S1,S2, Goal) :-
     !,
-    must_be(oneof([3]), Arity),
-    must_be(atom, Name),
+    '$must_be'(oneof(integer, lattice_arity, [3]), Arity),
+    '$must_be'(atom, Name),
     Goal =.. [Name,S0,S1,S2].
 update_goal(lattice(Name), S0,S1,S2, Goal) :-
     !,
-    must_be(atom, Name),
+    '$must_be'(atom, Name),
     update_goal(lattice(Name/3), S0,S1,S2, Goal).
 update_goal(po(Name/Arity), S0,S1,S2, Goal) :-
     !,
-    must_be(oneof([2]), Arity),
-    must_be(atom, Name),
+    '$must_be'(oneof(integer, po_arity, [2]), Arity),
+    '$must_be'(atom, Name),
     Call =.. [Name, S0, S1],
     Goal = (Call -> S2 = S0 ; S2 = S1).
 update_goal(po(M:Name/Arity), S0,S1,S2, Goal) :-
     !,
-    must_be(atom, M),
-    must_be(oneof([2]), Arity),
-    must_be(atom, Name),
+    '$must_be'(atom, M),
+    '$must_be'(oneof(integer, po_arity, [2]), Arity),
+    '$must_be'(atom, Name),
     Call =.. [Name, S0, S1],
     Goal = (M:Call -> S2 = S0 ; S2 = S1).
 update_goal(po(M:Name), S0,S1,S2, Goal) :-
     !,
-    must_be(atom, M),
-    must_be(atom, Name),
+    '$must_be'(atom, M),
+    '$must_be'(atom, Name),
     update_goal(po(M:Name/2), S0,S1,S2, Goal).
 update_goal(po(Name), S0,S1,S2, Goal) :-
     !,
-    must_be(atom, Name),
+    '$must_be'(atom, Name),
     update_goal(po(Name/2), S0,S1,S2, Goal).
 update_goal(Alias, S0,S1,S2, Goal) :-
     update_alias(Alias, Update),
     !,
     update_goal(Update, S0,S1,S2, Goal).
 update_goal(Mode, _,_,_, _) :-
-    domain_error(tabled_mode, Mode).
+    '$domain_error'(tabled_mode, Mode).
 
-update_alias(first, lattice(tabling:first/3)).
-update_alias(-,     lattice(tabling:first/3)).
-update_alias(last,  lattice(tabling:last/3)).
-update_alias(min,   lattice(tabling:min/3)).
-update_alias(max,   lattice(tabling:max/3)).
-update_alias(sum,   lattice(tabling:sum/3)).
+update_alias(first, lattice('$tabling':first/3)).
+update_alias(-,     lattice('$tabling':first/3)).
+update_alias(last,  lattice('$tabling':last/3)).
+update_alias(min,   lattice('$tabling':min/3)).
+update_alias(max,   lattice('$tabling':max/3)).
+update_alias(sum,   lattice('$tabling':sum/3)).
 
 mkconj(true, G,  G) :- !.
 mkconj(G1,   G2, (G1,G2)).
@@ -534,46 +530,3 @@ system:term_expansion((:- table(Preds)),
                       | Clauses
                       ]) :-
     phrase(wrappers(Preds), Clauses).
-
-
-                 /*******************************
-                 *           SANDBOX            *
-                 *******************************/
-
-:- multifile
-    sandbox:safe_directive/1,
-    sandbox:safe_primitive/1,
-    sandbox:safe_meta/2.
-
-%!  sandbox:safe_directive(+Directive) is semidet.
-%
-%   Allow tabling directives that affect locally defined predicates.
-
-sandbox:safe_directive(Dir) :-
-    ground(Dir),
-    local_tabling_dir(Dir).
-
-local_tabling_dir(table(Preds)) :-
-    local_preds(Preds).
-
-local_preds((A,B)) :-
-    !,
-    local_preds(A),
-    local_preds(B).
-
-local_preds(Name/Arity) :-
-    atom(Name), integer(Arity).
-local_preds(Name//Arity) :-
-    atom(Name), integer(Arity).
-
-sandbox:safe_meta_predicate(tabling:start_tabling/2).
-
-sandbox:safe_primitive(tabling:abolish_all_tables).
-sandbox:safe_meta(tabling:abolish_table_subgoals(V), []) :-
-    \+ qualified(V).
-sandbox:safe_meta(tabling:current_table(V, _), []) :-
-    \+ qualified(V).
-
-qualified(V) :-
-    nonvar(V),
-    V = _:_.
