@@ -3,7 +3,9 @@
     Author:        Benoit Desouter <Benoit.Desouter@UGent.be>
                    Jan Wielemaker (SWI-Prolog port)
                    Fabrizio Riguzzi (mode directed tabling)
-    Copyright (c)  2016, Benoit Desouter, Jan Wielemaker, Fabrizio Riguzzi
+    Copyright (c) 2016-2018, Benoit Desouter,
+                             Jan Wielemaker,
+                             Fabrizio Riguzzi
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -58,7 +60,7 @@ characteristics if the _SLG WAM_. The   required  suspension is realised
 using _delimited continuations_ implemented by  reset/3 and shift/1. The
 table space and work lists are part of the SWI-Prolog core.
 
-@author Benoit Desouter
+@author Benoit Desouter, Jan Wielemaker and Fabrizio Riguzzi
 */
 
 %!  table(+PredicateIndicators)
@@ -307,18 +309,52 @@ wrappers(ModeDirectedSpec) -->
       WrappedHead =.. [WrapName|Args],
       extract_modes(ModeDirectedSpec, Head, Variant, Modes, Moded),
       updater_clauses(Modes, Head, UpdateClauses),
-      prolog_load_context(module, Module)
+      prolog_load_context(module, Module),
+      mode_check(Moded, ModeTest),
+      (   ModeTest == true
+      ->  WrapClause = (Head :- start_tabling(Module:Head, WrappedHead))
+      ;   WrapClause = (Head :- ModeTest, start_tabling(Module:Head, WrappedHead))
+      )
     },
     [ '$tabled'(Head),
       '$table_mode'(Head, Variant, Moded),
-      (   Head :-
-             start_tabling(Module:Head, WrappedHead)
-      )
+      WrapClause
     | UpdateClauses
     ].
 wrappers(TableSpec) -->
     { type_error(table_desclaration, TableSpec)
     }.
+
+%!  mode_check(+Moded, -TestCode)
+%
+%   Enforce the output arguments of a  mode-directed tabled predicate to
+%   be unbound.
+
+mode_check(Moded, Check) :-
+    var(Moded),
+    !,
+    Check = (var(Moded)->true;uninstantiation_error(Moded)).
+mode_check(Moded, true) :-
+    '$tbl_trienode'(Moded),
+    !.
+mode_check(Moded, (Test->true;tabling:instantiated_moded_arg(Vars))) :-
+    Moded =.. [s|Vars],
+    var_check(Vars, Test).
+
+var_check([H|T], Test) :-
+    (   T == []
+    ->  Test = var(H)
+    ;   Test = (var(H),Rest),
+        var_check(T, Rest)
+    ).
+
+:- public
+    instantiated_moded_arg/1.
+
+instantiated_moded_arg(Vars) :-
+    member(V, Vars),
+    \+ var(V),
+    uninstantiation_error(V).
 
 
 %!  extract_modes(+ModeSpec, +Head, -Variant, -Modes, -ModedAnswer) is det.
