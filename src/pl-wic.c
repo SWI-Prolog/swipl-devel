@@ -335,7 +335,7 @@ popXrIdTable(wic_state *state)
 
 
 static word
-lookupXrId(wic_state *state, intptr_t id)
+lookupXrId(wic_state *state, unsigned int id)
 { XrTable t = state->XR;
   Word array = t->table[id/SUBENTRIES];
   word value;
@@ -646,7 +646,7 @@ loadXRc(wic_state *state, int c ARG_LD)
 
   switch( c )
   { case XR_REF:
-    { intptr_t xr  = getLong(fd);
+    { unsigned int xr = getUInt(fd);
       DEBUG(MSG_QLF_XR, Sdprintf("Reuse XR(%d)\n", (long)xr));
       word val = lookupXrId(state, xr);
 
@@ -1827,16 +1827,16 @@ static int
 savedXR(wic_state *state, void *xr)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
-  intptr_t id;
+  unsigned int id;
 
   if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )
   { Sputc(XR_REF, fd);
-    putInt64(id, fd);
+    putUInt(id, fd);
 
     succeed;
   } else
   { id = ++state->savedXRTableId;
-    addNewHTable(state->savedXRTable, xr, (void *)id);
+    addNewHTable(state->savedXRTable, xr, (void *)(intptr_t)id);
   }
 
   fail;
