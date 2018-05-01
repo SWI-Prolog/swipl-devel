@@ -611,18 +611,20 @@ overnight. Returns -1 on error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-parseCommandLineOptions(int argc0, char **argv, int *compile)
+parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 { GET_LD
-  int argc = argc0;
+  int argc;
+  char **argv;
+  int argcleft = 0;
 
   DEBUG(MSG_INITIALISE,
 	{ Sdprintf("parseCommandLineOptions");
-	  for(int i=0; i<argc; i++)
+	  for(int i=0; i<argc0; i++)
 	    Sdprintf("%s ", argv[i]);
 	});
 
-  for( ; argc > 0 && argv[0][0] == '-'; argc--, argv++ )
-  { char *s = &argv[0][1];
+  for(argc=argc0,argv=argv0; argc > 0 && argv[0][0] == '-'; argc--, argv++ )
+  { const char *s = &argv[0][1];
 
     if ( *s == '-' )			/* long options */
     { const char *optval;
@@ -631,7 +633,6 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
       s++;
       if ( s[0] == EOS )		/* swipl <plargs> -- <app-args>  */
 	break;
-
 
       if ( (rc=is_bool_opt(s, "quiet", &b)) )
       { if ( rc == TRUE )
@@ -681,12 +682,17 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	  return -1;
       }
 
-      continue;				/* don't handle --long=value */
+      if ( compile )
+      { continue;			/* do not handle --long=value */
+      } else
+      { argvleft[argcleft++] = argv[0];
+	continue;
+      }
     }
 
     while(*s)
     { switch(*s)
-      { case 'd':	if (argc > 1)
+      { case 'd':	if ( argc > 1 )
 			{ prolog_debug_from_string(argv[1], TRUE);
 			  argc--, argv++;
 			} else
@@ -710,10 +716,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			break;
 	case 't':	optionString(GD->options.topLevel);
 			break;
-	case 'c':	*compile = TRUE;
-			break;
-	case 'b':	GD->bootsession = TRUE;
-			break;
+	case 'c':
+	case 'b':	break;			/* already processed */
 	case 'q':	GD->options.silent = TRUE;
 			break;
 	case 'L':
@@ -738,13 +742,22 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	      goto next;
 	  }
 	}
+        default:
+	{ if ( s == &argv[0][1] )
+	    argvleft[argcleft++] = argv[0];
+	  else
+	    return -1;
+	}
       }
       s++;
     }
     next:;
   }
 
-  return argc0-argc;
+  for(; argc>0; argc--, argv++)
+    argvleft[argcleft++] = argv[0];
+
+  return argcleft;
 }
 
 
@@ -894,6 +907,7 @@ PL_initialise(int argc, char **argv)
        !streq(GD->options.saveclass, "runtime") )
   { int done;
     argc--; argv++;
+    char **argvleft;
 
     if ( argc == 1 && giveVersionInfo(argv[0]) ) /* -help, -v, etc */
     { exit(0);
@@ -904,6 +918,10 @@ PL_initialise(int argc, char **argv)
 	break;
       if ( streq(argv[n], "-b" ) )	/* -b: boot compilation */
       { GD->bootsession = TRUE;
+	break;
+      }
+      if ( streq(argv[n], "-c" ) )	/* -c: compilation */
+      { compile = TRUE;
 	break;
       }
     }
@@ -919,12 +937,13 @@ PL_initialise(int argc, char **argv)
       initDefaultOptions();
     }
 
-    if ( (done = parseCommandLineOptions(argc, argv, &compile)) < 0 )
+    argvleft = PL_malloc(argc*sizeof(*argvleft));
+    if ( (done = parseCommandLineOptions(argc, argv, argvleft, compile)) < 0 )
     { usage();
       fail;
     }
-    argc -= done;
-    argv += done;
+    argc = done;
+    argv = argvleft;
   }
 
   GD->cmdline.appl_argc = argc;
