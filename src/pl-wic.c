@@ -381,12 +381,27 @@ qlfLoadError_ctx(wic_state *state, char *file, int line)
 
 #define qlfLoadError(state) qlfLoadError_ctx(state, __FILE__, __LINE__)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Load a string from the input stream.   There are two cases: 0-terminated
+short strings (files, etc) have  length  set   to  NULL  and the general
+Prolog string case has length pointing to  a pointer. The latter is used
+only for saved (directive) terms and the   result  is thus pushed to the
+global stack.
+
+Returns NULL if the string is too large.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
 getString(IOSTREAM *fd, size_t *length)
 { GET_LD
   char *s;
   size_t len = (size_t)getInt64(fd);
   size_t i;
+
+  if ( !length && len > MAXPATHLEN )
+    return NULL;
+  if ( length && len > limitStack(global) )
+    return NULL;
 
   if ( LD->qlf.getstr_buffer_size < len+1 )
   { size_t size = ((len+1+1023)/1024)*1024;
@@ -406,7 +421,7 @@ getString(IOSTREAM *fd, size_t *length)
   { int c = Qgetc(fd);
 
     if ( c == EOF )
-      fatalError("Unexpected EOF on intermediate code file at offset %d",
+      fatalError("Unexpected EOF on QLF file at offset %d",
 		 Stell(fd));
 
     *s++ = c;
@@ -488,7 +503,10 @@ getAtom(IOSTREAM *fd, PL_blob_t *type)
 
 static PL_blob_t *
 getBlobType(IOSTREAM *fd)
-{ const char *name = getString(fd, NULL);
+{ const char *name;
+
+  if ( !(name = getString(fd, NULL)) )
+    fatalError("Invalid blob type in QLF");
 
   return PL_find_blob_type(name);
 }
@@ -741,9 +759,12 @@ loadXRc(wic_state *state, int c ARG_LD)
     { char *s;
       size_t len;
 
-      s = getString(fd, &len);
-
-      return globalString(len, s);
+      if ( (s = getString(fd, &len)) )
+      { return globalString(len, s);
+      } else
+      { raiseStackOverflow(GLOBAL_OVERFLOW);
+	return 0;
+      }
     }
     case XR_STRING_UTF8:
     { pl_wchar_t *w;
@@ -987,8 +1008,14 @@ loadWicFd(wic_state *state)
       case 'W':
 	{ char *name = store_string(getString(fd, NULL) );
 
-	  loadWicFile(name);
-	  continue;
+	  if ( (name=getString(fd, NULL)) )
+	  { name = store_string(name);
+	    loadWicFile(name);
+	    continue;
+	  } else
+	  { fatalError("Invalid QLF: bad string");
+	    return FALSE;
+	  }
 	}
       case 'X':
         break;
@@ -1414,6 +1441,10 @@ qlfLoadSource(wic_state *state)
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
+  if ( !str )
+  { fatalError("Invalid QLF: illegal string");
+    return FALSE;
+  }
   fname = qlfFixSourcePath(state, str);
 
   DEBUG(MSG_QLF_PATH,
@@ -2519,6 +2550,9 @@ out:
 }
 
 
+/** '$qlf_info'(+File, -CurrentVersion, -FileVersion, -WordSize, -Files)
+*/
+
 static
 PRED_IMPL("$qlf_info", 5, qlf_info, 0)
 { PRED_LD
@@ -2619,7 +2653,8 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
   new->previous = state->load_state;
   state->load_state = new;
 
-  abssavename = getString(fd, NULL);
+  if ( !(abssavename = getString(fd, NULL)) )
+    fatalError("Invalid QLF: bad string");
   if ( strlen(abssavename)+1 > MAXPATHLEN )
     fatalError("File name too long: %s", abssavename);
   if ( strlen(absloadname)+1 > MAXPATHLEN )
