@@ -680,7 +680,7 @@ COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
 COMMON(const char *)	string_summary(word name, unsigned int maxlen);
 
 /* pl-wic.c */
-COMMON(bool)		loadWicFromStream(IOSTREAM *fd);
+COMMON(bool)		loadWicFromStream(const char *rcpath, IOSTREAM *fd);
 COMMON(bool)		compileFileList(IOSTREAM *out, int argc, char **argv);
 COMMON(void)		qlfCleanup(void);
 

@@ -996,7 +996,7 @@ PL_initialise(int argc, char **argv)
 
     if ( statefd )
     { GD->bootsession = TRUE;
-      if ( !loadWicFromStream(statefd) )
+      if ( !loadWicFromStream(rcpath, statefd) )
 	return FALSE;
       GD->bootsession = FALSE;
 

@@ -923,18 +923,18 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Load intermediate code state from the   specified  stream. This function
-loads the initial saved state, either  boot32.prc, the state attached to
-the executable or the argument of pl -x <state>.
+Load intermediate code state from the  specified stream. rcpath contains
+the ZIP file name.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-loadWicFromStream(IOSTREAM *fd)
+loadWicFromStream(const char *rcpath, IOSTREAM *fd)
 { wic_state state;
   int rval;
 
   memset(&state, 0, sizeof(state));
   state.wicFd = fd;
+  state.wicFile = (char*)rcpath;
 
   pushXrIdTable(&state);
   rval = loadWicFd(&state);
@@ -954,7 +954,7 @@ loadWicFile(const char *file)
     return FALSE;
   }
 
-  rval = loadWicFromStream(fd);
+  rval = loadWicFromStream(file, fd);
   Sclose(fd);
 
   return rval;
@@ -968,9 +968,7 @@ loadWicFd(wic_state *state)
 
   if ( !qlfIsCompatible(state, saveMagic) ||
        !pushPathTranslation(state, systemDefaults.home, PATH_ISDIR) )
-  { fatalError("Cannot read Prolog state %s", state->wicFile);
     return FALSE;
-  }
 
   for(;;)
   { int c = Qgetc(fd);
@@ -2439,28 +2437,38 @@ writeSourceMarks(wic_state *state)
 
 static int
 qlfError(wic_state *state, const char *error, ...)
-{ GET_LD
-  term_t ex, fn;
-  va_list args;
-  int rc;
+{ va_list args;
   char message[LINESIZ];
+  int rc;
+  const char *file = state->wicFile;
+
+  if ( !file )
+    file = "<unknown>";
 
   va_start(args, error);
-
   Svsnprintf(message, sizeof(message), error, args);
-
-  rc = ( (ex=PL_new_term_ref()) &&
-	 (fn=PL_new_term_ref()) &&
-	 PL_unify_chars(fn, PL_ATOM|REP_FN, (size_t)-1, state->wicFile) &&
-	 PL_unify_term(ex,
-		       PL_FUNCTOR, FUNCTOR_error2,
-			 PL_FUNCTOR_CHARS, "qlf_format_error", 2,
-			   PL_TERM, fn,
-			   PL_CHARS, message,
-			 PL_VARIABLE) &&
-	 PL_raise_exception(ex) );
-
   va_end(args);
+
+  if ( GD->bootsession )
+  { fatalError("%s: %s", file, message);
+    rc = FALSE;				/* keep compiler happy */
+    exit(1);
+  } else
+  { GET_LD
+    term_t ex, fn;
+
+    rc = ( (ex=PL_new_term_ref()) &&
+	   (fn=PL_new_term_ref()) &&
+	   PL_unify_chars(fn, PL_ATOM|REP_FN, (size_t)-1, file) &&
+	   PL_unify_term(ex,
+			 PL_FUNCTOR, FUNCTOR_error2,
+			   PL_FUNCTOR_CHARS, "qlf_format_error", 2,
+			     PL_TERM, fn,
+			     PL_CHARS, message,
+			   PL_VARIABLE) &&
+	   PL_raise_exception(ex) );
+  }
+
   return rc;
 }
 
