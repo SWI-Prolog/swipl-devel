@@ -1898,14 +1898,6 @@ load_files(Module:Files, Options) :-
     Modified @=< LoadTime,
     !.
 
-%!  '$valid_qlf_file'(+Path, -FullFile) is det.
-%
-%   True when Path is a valid  QLF   file  created from FullFile. Raises
-%   various errors if Path is not a valid QLF file.
-
-'$valid_qlf_file'(Path, FullFile) :-
-    '$qlf_sources'(Path, [FullFile|_]).
-
 %!  '$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
 %
 %   Determine how to load the source. LoadFile is the file to be loaded,
@@ -1930,45 +1922,51 @@ load_files(Module:Files, Options) :-
     '$spec_extension'(Spec, Ext),       % user explicitly specified
     user:prolog_file_type(Ext, prolog),
     !.
-'$qlf_file'(Spec, FullFile, QlfFile, Mode, Options) :-
+'$qlf_file'(Spec, FullFile, LoadFile, Mode, Options) :-
     '$compilation_mode'(database),
     file_name_extension(Base, PlExt, FullFile),
     user:prolog_file_type(PlExt, prolog),
     user:prolog_file_type(QlfExt, qlf),
     file_name_extension(Base, QlfExt, QlfFile),
     (   access_file(QlfFile, read),
-        (   '$qlf_up_to_date'(Spec, FullFile, QlfFile)
-        ->  Mode = qload
-        ;   access_file(QlfFile, write)
-        ->  Mode = qcompile
+        (   '$qlf_out_of_date'(FullFile, QlfFile, Why)
+        ->  (   access_file(QlfFile, write)
+            ->  print_message(informational,
+                              qlf(recompile(Spec, FullFile, QlfFile, Why))),
+                Mode = qcompile
+            ;   print_message(warning,
+                              qlf(can_not_recompile(Spec, QlfFile, Why))),
+                Mode = compile
+            ),
+            LoadFile = FullFile
+        ;   Mode = qload,
+            LoadFile = QlfFile
         )
     ->  !
     ;   '$qlf_auto'(FullFile, QlfFile, Options)
-    ->  !, Mode = qcompile
+    ->  !, Mode = qcompile,
+        LoadFile = FullFile
     ).
 '$qlf_file'(_, FullFile, FullFile, compile, _).
 
 
-%!  '$qlf_up_to_date'(+Spec, +PlFile, +QlfFile) is semidet.
+%!  '$qlf_out_of_date'(+PlFile, +QlfFile, -Why) is semidet.
 %
-%   True if the QlfFile file is considered up-to-date. This implies that
-%   either the PlFile is not accessible or that the QlfFile is not older
-%   than the PlFile.
+%   True if the  QlfFile  file  is   out-of-date  because  of  Why. This
+%   predicate is the negation such that we can return the reason.
 
-'$qlf_up_to_date'(Spec, PlFile, QlfFile) :-
+'$qlf_out_of_date'(PlFile, QlfFile, Why) :-
     (   access_file(PlFile, read)
     ->  time_file(PlFile, PlTime),
         time_file(QlfFile, QlfTime),
-        (   QlfTime < PlTime
-        ->  print_message(informational,
-                          qlf(recompile(Spec, PlFile, QlfTime, old))),
-            fail
-        ;   catch('$qlf_sources'(QlfFile, _Files), E,
-                  ( print_message(informational,
-                                  qlf(recompile(Spec, PlFile, QlfFile, E))),
-                    fail))
+        (   PlTime > QlfTime
+        ->  Why = old                   % PlFile is newer
+        ;   catch('$qlf_sources'(QlfFile, _Files), Error, true),
+            nonvar(Error)               % QlfFile is incompatible
+        ->  Why = Error
+        ;   fail                        % QlfFile is up-to-date and ok
         )
-    ;   true
+    ;   fail                            % can not read .pl; try .qlf
     ).
 
 %!  '$qlf_auto'(+PlFile, +QlfFile, +Options) is semidet.

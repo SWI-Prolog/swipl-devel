@@ -658,11 +658,9 @@ prolog_message(qlf(removed_after_error(File))) -->
 prolog_message(qlf(recompile(Spec,_Pl,_Qlf,Reason))) -->
     [ '~p: recompiling QLF file'-[Spec] ],
     qlf_recompile_reason(Reason).
-prolog_message(qlf(retry(Spec, Path, Error))) -->
-    [ '~p: cannot read QLF file "~w"'-[Spec, Path], nl ],
-    translate_message(Error),
-    [ nl,
-      'Retrying from source ...'-[]
+prolog_message(qlf(can_not_recompile(Spec,QlfFile,_Reason))) -->
+    [ '~p: can not recompile "~w" (access denied)'-[Spec, QlfFile], nl,
+      '\tLoading from source'-[]
     ].
 prolog_message(redefine_module(Module, OldFile, File)) -->
     [ 'Module "~q" already loaded from ~w.'-[Module, OldFile], nl,
