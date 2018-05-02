@@ -690,6 +690,12 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
       }
     }
 
+    if ( streq(s, "tty") )
+    { Sdprintf("Warning: `-tty` is deprecated.  Please use `--no-tty`\n");
+      clearPrologFlagMask(PLFLAG_TTY_CONTROL);
+      continue;
+    }
+
     while(*s)
     { switch(*s)
       { case 'd':	if ( argc > 1 )
