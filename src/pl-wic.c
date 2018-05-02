@@ -295,7 +295,6 @@ static void
 pushXrIdTable(wic_state *state)
 { XrTable t = allocHeapOrHalt(sizeof(*t));
 
-  DEBUG(CHK_SECURE, memset(t->table, 0xbf, XR_ARRAYS*sizeof(Word)));
   memset(t, 0, sizeof(*t));
   t->id = 0;
   t->blocks[0] = t->preallocated - 1;
