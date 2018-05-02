@@ -823,9 +823,10 @@ openResourceDB(int argc, char **argv)
   }
 
   if ( xfile )
-  { if ( !(rc = zip_open_archive(xfile, flags)) )
+  { errno = 0;
+    if ( !(rc = zip_open_archive(xfile, flags)) )
       fatalError("Could not open resource database \"%s\": %s",
-		 xfile, OsError());
+		 xfile, errno ? OsError() : "not a ZIP file");
 
     return rc;
   }
@@ -1001,8 +1002,8 @@ PL_initialise(int argc, char **argv)
 
       Sclose(statefd);
     } else
-    { fatalError("Resource database \"%s\" does not contain a saved state",
-		 rcpath);
+    { fatalError("Resource database \"%s\" does not contain "
+		 "\"$prolog/state.qlf\"", rcpath);
     }
   }
 

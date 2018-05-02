@@ -328,7 +328,8 @@ zread_mem(voidpf opaque, voidpf stream, void* buf, uLong size)
 
 static uLong
 zwrite_mem(voidpf opaque, voidpf stream, const void* buf, uLong size)
-{ return -1;
+{ errno = EACCES;
+  return -1;
 }
 
 static ZPOS64_T
