@@ -941,7 +941,6 @@ test(ex17) :-
 
 :- begin_tests(tabling_clpdf, [cleanup(abolish_all_tables)]).
 
-:- use_module(library(tabling)).
 :- table fib/2.
 :- use_module(library(clpfd)).
 
@@ -995,7 +994,6 @@ test(tabling_eruption, P =:= 0.6288) :-
 
 :- begin_tests(tabling_sneezing, [cleanup(abolish_all_tables)]).
 
-:- use_module(library(tabling)).
 :- table
     sneezing(_,lattice(prob_sum)),
     flu(_,lattice(prob_sum)),
@@ -1022,7 +1020,6 @@ test(tabling_sneezing, P =:= 0.1352000000000001) :-
 :- end_tests(tabling_sneezing).
 
 :- begin_tests(tabling_yappath, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 
 :- table
     path(index, index, first).
@@ -1043,7 +1040,6 @@ test(yappath, set(t(X,Y,L) == [t(a,a,2),t(a,b,1),t(b,a,1),t(b,b,2)])) :-
 :- end_tests(tabling_yappath).
 
 :- begin_tests(tabling_minpath, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 :- table connection(_,_,min).
 
 connection(X, Y,1) :-
@@ -1065,7 +1061,6 @@ test(tabling_minpath, N =:= 1) :-
 :- end_tests(tabling_minpath).
 
 :- begin_tests(tabling_train, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 :- table train(_,_,lattice(shortest/3)).
 
 train(X, Y, [X,Y]) :-
@@ -1095,7 +1090,6 @@ test(tabling_train, P == ['Amsterdam','Leiden']) :-
 :- end_tests(tabling_train).
 
 :- begin_tests(moded_tabling_path, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 :- table
     path(_,_,lattice(or/3)),
     edge(_,_,lattice(or/3)).
