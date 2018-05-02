@@ -2457,6 +2457,38 @@ writeSourceMarks(wic_state *state)
   return 0;
 }
 
+/* Raise an error of the format
+
+	error(qlf_format_error(File, Message), _)
+*/
+
+static int
+qlfError(wic_state *state, const char *error, ...)
+{ GET_LD
+  term_t ex, fn;
+  va_list args;
+  int rc;
+  char message[LINESIZ];
+
+  va_start(args, error);
+
+  Svsnprintf(message, sizeof(message), error, args);
+
+  rc = ( (ex=PL_new_term_ref()) &&
+	 (fn=PL_new_term_ref()) &&
+	 PL_unify_chars(fn, PL_ATOM|REP_FN, (size_t)-1, state->wicFile) &&
+	 PL_unify_term(ex,
+		       PL_FUNCTOR, FUNCTOR_error2,
+			 PL_FUNCTOR_CHARS, "qlf_format_error", 2,
+			   PL_TERM, fn,
+			   PL_CHARS, message,
+			 PL_VARIABLE) &&
+	 PL_raise_exception(ex) );
+
+  va_end(args);
+  return rc;
+}
+
 
 static int
 qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
@@ -2465,11 +2497,10 @@ qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
   term_t head = PL_new_term_ref();
   atom_t fname;
 
-  assert((long)offset >= 0);
   if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
-    return warning("%s: seek failed: %s", state->wicFile, OsError());
+    return qlfError(state, "seek to %zd failed: %s", offset, OsError());
   if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
-    return warning("QLF format error");
+    return qlfError(state, "invalid string (offset %zd)", offset);
   fname = qlfFixSourcePath(state, str);
 
   return PL_unify_list(list, head, list) &&
@@ -2479,19 +2510,23 @@ qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
 
 static word
 qlfInfo(const char *file,
-	term_t cversion, term_t version, term_t wsize,
+	term_t cversion, term_t fversion,
+	term_t csig, term_t fsig,
+	term_t wsize,
 	term_t files0 ARG_LD)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
   size_t *qlfstart = NULL;
-  word rval = TRUE;
+  word rval = FALSE;
   term_t files = PL_copy_term_ref(files0);
   int saved_wsize;
   int vm_signature;
   wic_state state;
 
-  TRY(PL_unify_integer(cversion, VERSION));
+  if ( !PL_unify_integer(cversion, VERSION) ||
+       !PL_unify_integer(csig, (int)VM_SIGNATURE) )
+    return FALSE;
 
   memset(&state, 0, sizeof(state));
   state.wicFile = (char*)file;
@@ -2505,25 +2540,42 @@ qlfInfo(const char *file,
   }
   state.wicFd = s;
 
-  if ( !(lversion = qlfVersion(&state)) )
-  { Sclose(s);
-    fail;
-  }
-  TRY(PL_unify_integer(version, lversion));
+  if ( !(lversion = qlfVersion(&state)) ||
+       !PL_unify_integer(fversion, lversion) )
+    goto out;
 
   vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
-  (void)vm_signature;
   saved_wsize = getInt(s);		/* word-size of file */
-  TRY(PL_unify_integer(wsize, saved_wsize));
+
+  if ( !(saved_wsize == 32 || saved_wsize == 64) )
+  { qlfError(&state, "invalid word size (%d)", saved_wsize);
+    goto out;
+  }
+
+  if ( !PL_unify_integer(wsize, saved_wsize) ||
+       !PL_unify_integer(fsig, vm_signature) )
+    goto out;
 
   pushPathTranslation(&state, file, 0);
 
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
-    return warning("qlf_info/4: seek failed: %s", OsError());
-  nqlf = (int)getInt32(s);
+  { qlfError(&state, "seek to index failed: %s", OsError());
+    goto out;
+  }
+  if ( (nqlf = getInt32(s)) < 0 )
+  { qlfError(&state, "invalid number of files (%d)", nqlf);
+    goto out;
+  }
+  if ( Sseek(s, -4 * (nqlf+1), SIO_SEEK_END) < 0 )
+  { qlfError(&state, "seek to files failed: %s", OsError());
+    goto out;
+  }
+
   DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (size_t*)allocHeapOrHalt(sizeof(size_t) * nqlf);
-  Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
+  if ( !(qlfstart = malloc(sizeof(size_t)*nqlf)) )
+  { PL_no_memory();
+    goto out;
+  }
   for(i=0; i<nqlf; i++)
   { qlfstart[i] = (size_t)getInt32(s);
     DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
@@ -2532,17 +2584,15 @@ qlfInfo(const char *file,
 
   for(i=0; i<nqlf; i++)
   { if ( !qlfSourceInfo(&state, qlfstart[i], files PASS_LD) )
-    { rval = FALSE;
       goto out;
-    }
   }
 
   rval = PL_unify_nil(files);
-  popPathTranslation(&state);
 
 out:
+  popPathTranslation(&state);
   if ( qlfstart )
-    freeHeap(qlfstart, sizeof(*qlfstart) * nqlf);
+    free(qlfstart);
   if ( s )
     Sclose(s);
 
@@ -2550,18 +2600,31 @@ out:
 }
 
 
-/** '$qlf_info'(+File, -CurrentVersion, -FileVersion, -WordSize, -Files)
+/** '$qlf_info'(+File,
+		-CurrentVersion, -FileVersion,
+		-CurrentSignature, -FileSignature,
+		-WordSize,
+		-Files)
+
+Provide information about a QLF file.
+
+@arg CurrentVersion is the current save version
+@arg FileVersion is the version of the file
+@arg CurrentSignature is the current VM signature
+@arg FileSignature is the signature of the file
+@arg WordSize is the word size used to create the file (32 or 64)
+@arg Files is a list of atoms representing the files used to create the QLF
 */
 
 static
-PRED_IMPL("$qlf_info", 5, qlf_info, 0)
+PRED_IMPL("$qlf_info", 7, qlf_info, 0)
 { PRED_LD
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5 PASS_LD);
+  return qlfInfo(name, A2, A3, A4, A5, A6, A7 PASS_LD);
 }
 
 
@@ -3577,7 +3640,7 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info",		    5, qlf_info,	     0)
+  PRED_DEF("$qlf_info",		    7, qlf_info,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
   PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)

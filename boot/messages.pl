@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2017, University of Amsterdam
+    Copyright (c)  1997-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -389,6 +389,8 @@ swi_message(initialization_error(failed, Goal, File:Line)) -->
 swi_message(initialization_error(Error, Goal, File:Line)) -->
     [ '~w:~w: ~p '-[File, Line, Goal] ],
     translate_message(Error).
+swi_message(qlf_format_error(File, Message)) -->
+    [ '~w: Invalid QLF file: ~w'-[File, Message] ].
 
 cond_location(File:Line) -->
     { file_base_name(File, Base) },
