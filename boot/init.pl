@@ -1908,27 +1908,36 @@ load_files(Module:Files, Options) :-
 
 %!  '$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
 %
-%   Return the QLF file if it exists.  Might check for modification
-%   time, version, etc.
+%   Determine how to load the source. LoadFile is the file to be loaded,
+%   Mode is how to load it. Mode is one of
 %
-%   If the user-specification specified a prolog file, do not
-%   replace this with a .qlf file.
+%     - compile
+%     Normal source compilation
+%     - qcompile
+%     Compile from source, creating a QLF file in the process
+%     - qload
+%     Load from QLF file.
+%     - stream
+%     Load from a stream.  Content can be a source or QLF file.
+%
+%   @arg Spec is the original search specification
+%   @arg PlFile is the resolved absolute path to the Prolog file.
 
 '$qlf_file'(Spec, _, Spec, stream, Options) :-
-    '$option'(stream(_), Options),
+    '$option'(stream(_), Options),      % stream: no choice
     !.
 '$qlf_file'(Spec, FullFile, FullFile, compile, _) :-
-    '$spec_extension'(Spec, Ext),
+    '$spec_extension'(Spec, Ext),       % user explicitly specified
     user:prolog_file_type(Ext, prolog),
     !.
-'$qlf_file'(_, FullFile, QlfFile, Mode, Options) :-
+'$qlf_file'(Spec, FullFile, QlfFile, Mode, Options) :-
     '$compilation_mode'(database),
     file_name_extension(Base, PlExt, FullFile),
     user:prolog_file_type(PlExt, prolog),
     user:prolog_file_type(QlfExt, qlf),
     file_name_extension(Base, QlfExt, QlfFile),
     (   access_file(QlfFile, read),
-        (   '$qlf_up_to_date'(FullFile, QlfFile)
+        (   '$qlf_up_to_date'(Spec, FullFile, QlfFile)
         ->  Mode = qload
         ;   access_file(QlfFile, write)
         ->  Mode = qcompile
@@ -1940,17 +1949,25 @@ load_files(Module:Files, Options) :-
 '$qlf_file'(_, FullFile, FullFile, compile, _).
 
 
-%!  '$qlf_up_to_date'(+PlFile, +QlfFile) is semidet.
+%!  '$qlf_up_to_date'(+Spec, +PlFile, +QlfFile) is semidet.
 %
-%   True if the QlfFile file is  considered up-to-date. This implies
-%   that either the PlFile does not exist or that the QlfFile is not
-%   older than the PlFile.
+%   True if the QlfFile file is considered up-to-date. This implies that
+%   either the PlFile is not accessible or that the QlfFile is not older
+%   than the PlFile.
 
-'$qlf_up_to_date'(PlFile, QlfFile) :-
-    (   exists_file(PlFile)
+'$qlf_up_to_date'(Spec, PlFile, QlfFile) :-
+    (   access_file(PlFile, read)
     ->  time_file(PlFile, PlTime),
         time_file(QlfFile, QlfTime),
-        QlfTime >= PlTime
+        (   QlfTime < PlTime
+        ->  print_message(informational,
+                          qlf(recompile(Spec, PlFile, QlfTime, old))),
+            fail
+        ;   catch('$qlf_sources'(QlfFile, _Files), E,
+                  ( print_message(informational,
+                                  qlf(recompile(Spec, PlFile, QlfFile, E))),
+                    fail))
+        )
     ;   true
     ).
 
@@ -2021,25 +2038,13 @@ load_files(Module:Files, Options) :-
     !,
     '$already_loaded'(File, FullFile, Module, Options).
 '$load_file'(File, Module, Options) :-
-    absolute_file_name(File, Path,
+    absolute_file_name(File, FullFile,
                        [ file_type(prolog),
-                         access(read),
-                         solutions(all)
+                         access(read)
                        ]),
-    (   '$is_source'(Path)
-    ->  FullFile = Path
-    ;   catch('$valid_qlf_file'(Path, FullFile), E,
-              print_message(warning, qlf(retry(File, Path, E)))),
-        fail
-    ),
-    !,
     '$register_resolved_source_path'(File, FullFile),
     '$mt_load_file'(File, FullFile, Module, Options),
     '$register_resource_file'(FullFile).
-
-'$is_source'(Path) :-
-    file_name_extension(_, Ext, Path),
-    \+ user:prolog_file_type(Ext, qlf).
 
 '$register_resolved_source_path'(File, FullFile) :-
     '$resolved_source_path'(File, FullFile),

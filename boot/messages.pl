@@ -655,6 +655,9 @@ prolog_message(minus_in_identifier) -->
     ].
 prolog_message(qlf(removed_after_error(File))) -->
     [ 'Removed incomplete QLF file ~w'-[File] ].
+prolog_message(qlf(recompile(Spec,_Pl,_Qlf,Reason))) -->
+    [ '~p: recompiling QLF file'-[Spec] ],
+    qlf_recompile_reason(Reason).
 prolog_message(qlf(retry(Spec, Path, Error))) -->
     [ '~p: cannot read QLF file "~w"'-[Spec, Path], nl ],
     translate_message(Error),
@@ -739,6 +742,12 @@ pi_head(Module:Name/Arity, Module:Head) :-
 pi_head(Name/Arity, user:Head) :-
     atom(Name), integer(Arity),
     functor(Head, Name, Arity).
+
+qlf_recompile_reason(old) -->
+    !,
+    [ ' (out of date)'-[] ].
+qlf_recompile_reason(_) -->
+    [ ' (incompatible with current Prolog version)'-[] ].
 
 prolog_message(file_search(cache(Spec, _Cond), Path)) -->
     [ 'File search: ~p --> ~p (cache)'-[Spec, Path] ].
