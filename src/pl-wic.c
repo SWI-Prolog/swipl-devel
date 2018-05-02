@@ -203,12 +203,12 @@ typedef struct source_mark
 } source_mark, *SourceMark;
 
 
-#define XR_ARRAYS 16000
+#define XR_BLOCKS 32
 typedef struct xr_table
-{ int		id;			/* next id to give out */
-  int		tablesize;		/* # sub-arrays */
+{ unsigned int	id;			/* next id to give out */
   struct xr_table* previous;		/* stack */
-  Word	        table[XR_ARRAYS];	/* main table */
+  Word	        blocks[XR_BLOCKS];	/* main table */
+  word		preallocated[7];
 } xr_table, *XrTable;
 
 
@@ -285,24 +285,21 @@ static void	popPathTranslation(wic_state *state);
 		 *     LOADED XR ID HANDLING	*
 		 *******************************/
 
-#define loadedXRTableId		(loadedXrs->id)
-
-#define SUBENTRIES (8000)
-#define ALLOCSIZE  (SUBENTRIES*sizeof(word))
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-XR reference handling during loading. This   is  arranged as an array-of
-arrays. The main array has size  XR_ARRAYS. Each subarray has SUBENTRIES
-constants, allowing for a total of 96M constants per QLF file or state.
+XR reference handling during loading. This   uses  a dynamic array using
+doubling sub arrays as also used for atoms, functors, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 pushXrIdTable(wic_state *state)
-{ XrTable t = allocHeapOrHalt(sizeof(struct xr_table));
+{ XrTable t = allocHeapOrHalt(sizeof(*t));
 
   DEBUG(CHK_SECURE, memset(t->table, 0xbf, XR_ARRAYS*sizeof(Word)));
-  t->tablesize = 0;
+  memset(t, 0, sizeof(*t));
   t->id = 0;
+  t->blocks[0] = t->preallocated - 1;
+  t->blocks[1] = t->preallocated - 1;
+  t->blocks[2] = t->preallocated - 1;
 
   t->previous = state->XR;
   state->XR = t;
@@ -311,22 +308,30 @@ pushXrIdTable(wic_state *state)
 
 static void
 popXrIdTable(wic_state *state)
-{ int i;
-  XrTable t = state->XR;
-  size_t id = 0;
+{ XrTable t = state->XR;
+  unsigned int id, idx;
 
   state->XR = t->previous;		/* pop the stack */
 
-  for(i=0; i<t->tablesize; i++)		/* destroy obsolete table */
-  { int j;
+  for(id=0; id < 7; id++)
+  { word w = t->preallocated[id];
 
-    for(j=0; j<SUBENTRIES && id <= t->id; j++, id++)
-    { word w = t->table[i][j];
+    if ( isAtom(w) )
+      PL_unregister_atom(w);
+  }
+  for(idx = 3; idx < XR_BLOCKS && t->blocks[idx]; idx++)
+  { size_t bs = (size_t)1<<idx;
+    Word p = t->blocks[idx]+bs;
+    size_t i;
+
+    for(i=0; i<bs && id < t->id; i++, id++)
+    { word w = p[i];
 
       if ( isAtom(w) )
 	PL_unregister_atom(w);
     }
-    freeHeap(t->table[i], ALLOCSIZE);
+
+    freeHeap(p, bs*sizeof(word));
   }
 
   freeHeap(t, sizeof(*t));
@@ -336,33 +341,27 @@ popXrIdTable(wic_state *state)
 static word
 lookupXrId(wic_state *state, unsigned int id)
 { XrTable t = state->XR;
-  Word array = t->table[id/SUBENTRIES];
-  word value;
+  unsigned int idx = MSB(id);
 
-  DEBUG(CHK_SECURE, assert(array));
-  value = array[id%SUBENTRIES];
-
-  return value;
+  DEBUG(CHK_SECURE, assert(t->blocks[idx]));
+  return t->blocks[idx][id];
 }
 
 
 static void
-storeXrId(wic_state *state, long id, word value)
+storeXrId(wic_state *state, unsigned int id, word value)
 { XrTable t = state->XR;
-  long i = id/SUBENTRIES;
+  unsigned int idx = MSB(id);
 
-  while ( i >= t->tablesize )
-  { if ( t->tablesize < XR_ARRAYS-1 )
-    { Word a = allocHeapOrHalt(ALLOCSIZE);
+  if ( !t->blocks[idx] )
+  { size_t bs = (size_t)1<<idx;
+    Word newblock;
 
-      DEBUG(CHK_SECURE, memset(a, 0xbf, ALLOCSIZE));
-      t->table[t->tablesize++] = a;
-    } else
-    { fatalError("Too many constants in QLF file");
-    }
+    newblock = allocHeapOrHalt(bs*sizeof(word));
+    t->blocks[idx] = newblock-bs;
   }
 
-  t->table[i][id%SUBENTRIES] = value;
+  t->blocks[idx][id] = value;
 }
 
 
