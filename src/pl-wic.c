@@ -221,7 +221,6 @@ typedef struct path_translated
 typedef struct qlf_state
 { char *save_dir;			/* Directory saved */
   char *load_dir;			/* Directory loading */
-  int   saved_version;			/* Version saved */
   int	has_moved;			/* Paths must be translated */
   path_translated *translated;		/* Translated paths */
   struct qlf_state *previous;		/* previous saved state (reentrance) */
@@ -244,6 +243,7 @@ typedef struct wic_state
   SourceMark source_mark_tail;
   int	     has_source_marks;
 
+  int        saved_version;		/* Version saved */
   int	     obfuscate;			/* Obfuscate source */
   int	     load_nesting;		/* Nesting level of loadPart() */
   qlf_state *load_state;		/* current load-state */
@@ -272,10 +272,11 @@ static atom_t   getBlob(wic_state *state ARG_LD);
 static bool	loadStatement(wic_state *state, int c, int skip ARG_LD);
 static bool	loadPart(wic_state *state, Module *module, int skip ARG_LD);
 static bool	loadInModule(wic_state *state, int skip ARG_LD);
-static int	qlfVersion(wic_state *state, int *vp);
+static int	qlfVersion(wic_state *state, const char *magic, int *vp);
 static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
 static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
 static void	popPathTranslation(wic_state *state);
+static int	qlfIsCompatible(wic_state *state, const char *magic);
 
 #undef LD
 #define LD LOCAL_LD
@@ -961,46 +962,19 @@ loadWicFile(const char *file)
 }
 
 
-#define QLF_MAX_HEADER_LINES 100
-
 static bool
 loadWicFd(wic_state *state)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
-  char *s;
-  Char c;
-  char mbuf[100];
-  int saved_wsize;
-  int saved_version;
-  int vm_signature;
 
-  s = getMagicString(fd, mbuf, sizeof(mbuf));
-  if ( !s || !streq(s, saveMagic) )
-  { fatalError("Not a SWI-Prolog saved state");
-    fail;				/* NOTREACHED */
-  }
-
-  if ( (saved_version=getInt(fd)) < LOADVERSION )
-  { fatalError("Saved state has incompatible save version");
-    fail;
-  }
-  if ( (vm_signature=getInt(fd)) != (int)VM_SIGNATURE )
-  { fatalError("Saved state has incompatible VM signature");
-    fail;
-  }
-
-  saved_wsize = getInt(fd);
-  if ( saved_wsize != sizeof(word)*8 )
-  { fatalError("Saved state has incompatible (%d) word-length", saved_wsize);
-    fail;
-  }
-					/* fix paths for changed home */
-  if ( !pushPathTranslation(state, systemDefaults.home, PATH_ISDIR) )
+  if ( !qlfIsCompatible(state, saveMagic) ||
+       !pushPathTranslation(state, systemDefaults.home, PATH_ISDIR) )
+  { fatalError("Cannot read Prolog state %s", state->wicFile);
     return FALSE;
-  state->load_state->saved_version = saved_version;
+  }
 
   for(;;)
-  { c = Qgetc(fd);
+  { int c = Qgetc(fd);
 
     switch( c )
     { case EOF:
@@ -2522,14 +2496,7 @@ qlfInfo(const char *file,
   size_t *qlfstart = NULL;
   word rval = FALSE;
   term_t files = PL_copy_term_ref(files0);
-  int saved_wsize;
-  int vm_signature;
   wic_state state;
-
-  if ( !PL_unify_integer(cversion, VERSION) ||
-       !PL_unify_integer(minload, LOADVERSION) ||
-       !PL_unify_integer(csig, (int)VM_SIGNATURE) )
-    return FALSE;
 
   memset(&state, 0, sizeof(state));
   state.wicFile = (char*)file;
@@ -2543,21 +2510,34 @@ qlfInfo(const char *file,
   }
   state.wicFd = s;
 
-  if ( !qlfVersion(&state, &lversion) ||
-       !PL_unify_integer(fversion, lversion) )
-    goto out;
+  if ( cversion )
+  { int vm_signature;
+    int saved_wsize;
 
-  vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
-  saved_wsize = getInt(s);		/* word-size of file */
+    if ( !PL_unify_integer(cversion, VERSION) ||
+	 !PL_unify_integer(minload, LOADVERSION) ||
+	 !PL_unify_integer(csig, (int)VM_SIGNATURE) )
+      goto out;
 
-  if ( !(saved_wsize == 32 || saved_wsize == 64) )
-  { qlfError(&state, "invalid word size (%d)", saved_wsize);
-    goto out;
+    if ( !qlfVersion(&state, qlfMagic, &lversion) ||
+	 !PL_unify_integer(fversion, lversion) )
+      goto out;
+
+    vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
+    saved_wsize = getInt(s);		/* word-size of file */
+
+    if ( !(saved_wsize == 32 || saved_wsize == 64) )
+    { qlfError(&state, "invalid word size (%d)", saved_wsize);
+      goto out;
+    }
+
+    if ( !PL_unify_integer(wsize, saved_wsize) ||
+	 !PL_unify_integer(fsig, vm_signature) )
+      goto out;
+  } else
+  { if ( !qlfIsCompatible(&state, qlfMagic) )
+      goto out;
   }
-
-  if ( !PL_unify_integer(wsize, saved_wsize) ||
-       !PL_unify_integer(fsig, vm_signature) )
-    goto out;
 
   if ( !pushPathTranslation(&state, file, 0) )
     goto out;
@@ -2632,6 +2612,17 @@ PRED_IMPL("$qlf_info", 8, qlf_info, 0)
 }
 
 
+static
+PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
+{ PRED_LD
+  char *name;
+
+  if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
+    fail;
+
+  return qlfInfo(name, 0, 0, 0, 0, 0, 0, A2 PASS_LD);
+}
+
 
 		 /*******************************
 		 *	NEW MODULE SUPPORT	*
@@ -2695,14 +2686,14 @@ qlfClose(wic_state *state ARG_LD)
 
 
 static int
-qlfVersion(wic_state *state, int *vp)
+qlfVersion(wic_state *state, const char *exp_magic, int *vp)
 { IOSTREAM *s = state->wicFd;
   char mbuf[100];
   char *magic;
 
   if ( !(magic = getMagicString(s, mbuf, sizeof(mbuf))) ||
-       !streq(magic, qlfMagic) )
-    return qlfError(state, "Not a QLF file");
+       !streq(magic, exp_magic) )
+    return qlfError(state, "Not a %s", exp_magic);
 
   *vp = getInt(s);
 
@@ -2804,15 +2795,39 @@ popPathTranslation(wic_state *state)
   }
 }
 
+static int
+qlfIsCompatible(wic_state *state, const char *magic)
+{ int lversion;
+  int vm_signature;
+  int saved_wsize;
+
+  if ( !qlfVersion(state, magic, &lversion) )
+    return FALSE;
+  if ( lversion < LOADVERSION )
+    return qlfError(state, "incompatible version (file: %d, Prolog: %d)",
+		    lversion, VERSION);
+  state->saved_version = lversion;
+
+  vm_signature = getInt(state->wicFd);
+  if ( vm_signature != (int)VM_SIGNATURE )
+    return qlfError(state, "incompatible VM-signature (file: 0x%x; Prolog: 0x%x)",
+		    (unsigned int)vm_signature, (unsigned int)VM_SIGNATURE);
+
+  saved_wsize = getInt(state->wicFd);
+  if ( saved_wsize != sizeof(word)*8 )
+    return qlfError(state, "incompatible word size (file: %d, Prolog: %d)",
+		    saved_wsize, (int)sizeof(word)*8);
+
+  return TRUE;
+}
+
+
 static bool
 qlfLoad(wic_state *state, Module *module ARG_LD)
 { IOSTREAM *fd = state->wicFd;
   bool rval;
-  int lversion;
   const char *absloadname;
   char tmp[MAXPATHLEN];
-  int saved_wsize;
-  int vm_signature;
   atom_t file;
 
   if ( (file = fileNameStream(fd)) )
@@ -2832,25 +2847,11 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
   { absloadname = NULL;
   }
 
-  if ( !qlfVersion(state, &lversion) )
+  if ( !qlfIsCompatible(state, qlfMagic) )
     return FALSE;
-  if ( lversion < LOADVERSION )
-    return qlfError(state, "incompatible version (file: %d, Prolog: %d)",
-		    lversion, VERSION);
-
-  vm_signature = getInt(fd);
-  if ( vm_signature != (int)VM_SIGNATURE )
-    return qlfError(state, "incompatible VM-signature (file: 0x%x; Prolog: 0x%x)",
-		    (unsigned int)vm_signature, (unsigned int)VM_SIGNATURE);
-
-  saved_wsize = getInt(fd);
-  if ( saved_wsize != sizeof(word)*8 )
-    return qlfError(state, "incompatible word size (file: %d, Prolog: %d)",
-		    saved_wsize, (int)sizeof(word)*8);
 
   if ( !pushPathTranslation(state, absloadname, 0) )
     return FALSE;
-  state->load_state->saved_version = lversion;
 
   pushXrIdTable(state);
   for(;;)
@@ -3629,6 +3630,7 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 
 BeginPredDefs(wic)
   PRED_DEF("$qlf_info",		    8, qlf_info,	     0)
+  PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
   PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)

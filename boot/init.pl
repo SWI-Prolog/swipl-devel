@@ -1898,6 +1898,14 @@ load_files(Module:Files, Options) :-
     Modified @=< LoadTime,
     !.
 
+%!  '$valid_qlf_file'(+Path, -FullFile) is det.
+%
+%   True when Path is a valid  QLF   file  created from FullFile. Raises
+%   various errors if Path is not a valid QLF file.
+
+'$valid_qlf_file'(Path, FullFile) :-
+    '$qlf_sources'(Path, [FullFile|_]).
+
 %!  '$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
 %
 %   Return the QLF file if it exists.  Might check for modification
@@ -2013,14 +2021,25 @@ load_files(Module:Files, Options) :-
     !,
     '$already_loaded'(File, FullFile, Module, Options).
 '$load_file'(File, Module, Options) :-
-    absolute_file_name(File,
+    absolute_file_name(File, Path,
                        [ file_type(prolog),
-                         access(read)
-                       ],
-                       FullFile),
+                         access(read),
+                         solutions(all)
+                       ]),
+    (   '$is_source'(Path)
+    ->  FullFile = Path
+    ;   catch('$valid_qlf_file'(Path, FullFile), E,
+              print_message(warning, qlf(retry(File, Path, E)))),
+        fail
+    ),
+    !,
     '$register_resolved_source_path'(File, FullFile),
     '$mt_load_file'(File, FullFile, Module, Options),
     '$register_resource_file'(FullFile).
+
+'$is_source'(Path) :-
+    file_name_extension(_, Ext, Path),
+    \+ user:prolog_file_type(Ext, qlf).
 
 '$register_resolved_source_path'(File, FullFile) :-
     '$resolved_source_path'(File, FullFile),
@@ -2217,8 +2236,11 @@ load_files(Module:Files, Options) :-
     ->  true
     ;   Input == source,
         file_name_extension(_, Ext, Absolute),
-        (   user:prolog_file_type(Ext, qlf)
-        ->  '$qload_file'(Absolute, Module, Action, LM, Options)
+        (   user:prolog_file_type(Ext, qlf),
+            catch('$qload_file'(Absolute, Module, Action, LM, Options),
+                  E,
+                  print_message(warning, E))
+        ->  true
         ;   '$consult_file'(Absolute, Module, Action, LM, Options)
         )
     ->  true

@@ -655,6 +655,12 @@ prolog_message(minus_in_identifier) -->
     ].
 prolog_message(qlf(removed_after_error(File))) -->
     [ 'Removed incomplete QLF file ~w'-[File] ].
+prolog_message(qlf(retry(Spec, Path, Error))) -->
+    [ '~p: cannot read QLF file "~w"'-[Spec, Path], nl ],
+    translate_message(Error),
+    [ nl,
+      'Retrying from source ...'-[]
+    ].
 prolog_message(redefine_module(Module, OldFile, File)) -->
     [ 'Module "~q" already loaded from ~w.'-[Module, OldFile], nl,
       'Wipe and reload from ~w? '-[File], flush
