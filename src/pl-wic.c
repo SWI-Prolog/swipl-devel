@@ -272,7 +272,7 @@ static atom_t   getBlob(wic_state *state ARG_LD);
 static bool	loadStatement(wic_state *state, int c, int skip ARG_LD);
 static bool	loadPart(wic_state *state, Module *module, int skip ARG_LD);
 static bool	loadInModule(wic_state *state, int skip ARG_LD);
-static int	qlfVersion(wic_state *state);
+static int	qlfVersion(wic_state *state, int *vp);
 static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
 static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
 static void	popPathTranslation(wic_state *state);
@@ -438,7 +438,7 @@ getString(IOSTREAM *fd, size_t *length)
 pl_wchar_t *
 wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 		 pl_wchar_t *buf, size_t bufsize)
-{ size_t i, len = (size_t)wicGetNum(fd);
+{ size_t i, len = (size_t)getInt64(fd);
   IOENC oenc = fd->encoding;
   pl_wchar_t *tmp, *o;
 
@@ -518,8 +518,9 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
   int c;
 
   for( s = buf; --maxlen >= 0 && (*s = (c = Sgetc(fd))); s++ )
-    if ( c == EOF )
+  { if ( c == EOF )
       return NULL;
+  }
 
   if ( maxlen > 0 )
     return buf;
@@ -994,7 +995,8 @@ loadWicFd(wic_state *state)
     fail;
   }
 					/* fix paths for changed home */
-  pushPathTranslation(state, systemDefaults.home, PATH_ISDIR);
+  if ( !pushPathTranslation(state, systemDefaults.home, PATH_ISDIR) )
+    return FALSE;
   state->load_state->saved_version = saved_version;
 
   for(;;)
@@ -2510,7 +2512,7 @@ qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
 
 static word
 qlfInfo(const char *file,
-	term_t cversion, term_t fversion,
+	term_t cversion, term_t minload, term_t fversion,
 	term_t csig, term_t fsig,
 	term_t wsize,
 	term_t files0 ARG_LD)
@@ -2525,6 +2527,7 @@ qlfInfo(const char *file,
   wic_state state;
 
   if ( !PL_unify_integer(cversion, VERSION) ||
+       !PL_unify_integer(minload, LOADVERSION) ||
        !PL_unify_integer(csig, (int)VM_SIGNATURE) )
     return FALSE;
 
@@ -2540,7 +2543,7 @@ qlfInfo(const char *file,
   }
   state.wicFd = s;
 
-  if ( !(lversion = qlfVersion(&state)) ||
+  if ( !qlfVersion(&state, &lversion) ||
        !PL_unify_integer(fversion, lversion) )
     goto out;
 
@@ -2556,7 +2559,8 @@ qlfInfo(const char *file,
        !PL_unify_integer(fsig, vm_signature) )
     goto out;
 
-  pushPathTranslation(&state, file, 0);
+  if ( !pushPathTranslation(&state, file, 0) )
+    goto out;
 
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
   { qlfError(&state, "seek to index failed: %s", OsError());
@@ -2601,7 +2605,7 @@ out:
 
 
 /** '$qlf_info'(+File,
-		-CurrentVersion, -FileVersion,
+		-CurrentVersion, -MinLOadVersion, -FileVersion,
 		-CurrentSignature, -FileSignature,
 		-WordSize,
 		-Files)
@@ -2617,14 +2621,14 @@ Provide information about a QLF file.
 */
 
 static
-PRED_IMPL("$qlf_info", 7, qlf_info, 0)
+PRED_IMPL("$qlf_info", 8, qlf_info, 0)
 { PRED_LD
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, A7 PASS_LD);
+  return qlfInfo(name, A2, A3, A4, A5, A6, A7, A8 PASS_LD);
 }
 
 
@@ -2691,18 +2695,18 @@ qlfClose(wic_state *state ARG_LD)
 
 
 static int
-qlfVersion(wic_state *state)
+qlfVersion(wic_state *state, int *vp)
 { IOSTREAM *s = state->wicFd;
   char mbuf[100];
   char *magic;
 
   if ( !(magic = getMagicString(s, mbuf, sizeof(mbuf))) ||
        !streq(magic, qlfMagic) )
-  { Sclose(s);
-    return warning("%s: not a SWI-Prolog .qlf file", state->wicFile);
-  }
+    return qlfError(state, "Not a QLF file");
 
-  return getInt(s);
+  *vp = getInt(s);
+
+  return TRUE;
 }
 
 
@@ -2717,11 +2721,10 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
   state->load_state = new;
 
   if ( !(abssavename = getString(fd, NULL)) )
-    fatalError("Invalid QLF: bad string");
-  if ( strlen(abssavename)+1 > MAXPATHLEN )
-    fatalError("File name too long: %s", abssavename);
-  if ( strlen(absloadname)+1 > MAXPATHLEN )
-    fatalError("File name too long: %s", absloadname);
+    return qlfError(state, "bad string");
+  if ( strlen(abssavename)+1 > MAXPATHLEN ||
+       strlen(absloadname)+1 > MAXPATHLEN )
+    return PL_representation_error("max_path_length");
 
   if ( absloadname && !streq(absloadname, abssavename) )
   { char load[MAXPATHLEN];
@@ -2754,7 +2757,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 		   state->load_state->load_dir));
   }
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -2829,28 +2832,24 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
   { absloadname = NULL;
   }
 
-  if ( !(lversion = qlfVersion(state)) || lversion < LOADVERSION )
-  { if ( lversion )
-      warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
-	      state->wicFile, lversion, VERSION);
-    fail;
-  }
+  if ( !qlfVersion(state, &lversion) )
+    return FALSE;
+  if ( lversion < LOADVERSION )
+    return qlfError(state, "incompatible version (file: %d, Prolog: %d)",
+		    lversion, VERSION);
+
   vm_signature = getInt(fd);
   if ( vm_signature != (int)VM_SIGNATURE )
-  { warning("QLF file %s has incompatible VM-signature (0x%x; expected 0x%x)",
-	    stringAtom(file),
-	    (unsigned int)vm_signature,
-	    (unsigned int)VM_SIGNATURE);
-    fail;
-  }
+    return qlfError(state, "incompatible VM-signature (file: 0x%x; Prolog: 0x%x)",
+		    (unsigned int)vm_signature, (unsigned int)VM_SIGNATURE);
+
   saved_wsize = getInt(fd);
   if ( saved_wsize != sizeof(word)*8 )
-  { warning("QLF file %s has incompatible (%d) word-length",
-	    stringAtom(file), (int)saved_wsize);
-    fail;
-  }
+    return qlfError(state, "incompatible word size (file: %d, Prolog: %d)",
+		    saved_wsize, (int)sizeof(word)*8);
 
-  pushPathTranslation(state, absloadname, 0);
+  if ( !pushPathTranslation(state, absloadname, 0) )
+    return FALSE;
   state->load_state->saved_version = lversion;
 
   pushXrIdTable(state);
@@ -3158,6 +3157,7 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 
   if ( state.wicFile )
     remove_string(state.wicFile);
+  PL_release_stream(fd);
 
   if ( rval )
   { if ( m )
@@ -3618,18 +3618,6 @@ qlfCleanup(void)
 		 *******************************/
 
 void
-wicPutNum(int64_t n, IOSTREAM *fd)
-{ putInt64(n, fd);
-}
-
-
-int64_t
-wicGetNum(IOSTREAM *fd)
-{ return getInt64(fd);
-}
-
-
-void
 wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 { putStringW(w, len, fd);
 }
@@ -3640,7 +3628,7 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info",		    7, qlf_info,	     0)
+  PRED_DEF("$qlf_info",		    8, qlf_info,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
   PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)

@@ -684,8 +684,6 @@ COMMON(bool)		loadWicFromStream(IOSTREAM *fd);
 COMMON(bool)		compileFileList(IOSTREAM *out, int argc, char **argv);
 COMMON(void)		qlfCleanup(void);
 
-COMMON(void)		wicPutNum(int64_t n, IOSTREAM *fd);
-COMMON(int64_t)		wicGetNum(IOSTREAM *fd);
 COMMON(void)		wicPutStringW(const pl_wchar_t *w, size_t len,
 				      IOSTREAM *fd);
 COMMON(pl_wchar_t*)	wicGetStringUTF8(IOSTREAM *fd, size_t *length,
