@@ -302,6 +302,7 @@ last_modified(Source, Modified) :-
     !.
 last_modified(Source, Modified) :-
     atom(Source),
+    \+ uri_is_global(Source),
     exists_file(Source),
     time_file(Source, Modified).
 
