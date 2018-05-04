@@ -4277,6 +4277,7 @@ ensureGlobalSpace(size_t cells, int flags)
   if ( flags )
   { size_t gmin;
     size_t tmin;
+    int rc;
 
     if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
     { if ( garbageCollect() == FALSE )
@@ -4298,8 +4299,8 @@ ensureGlobalSpace(size_t cells, int flags)
     else
       tmin = 0;
 
-    if ( growStacks(0, gmin, tmin) == FALSE )
-      return FALSE;
+    if ( (rc=growStacks(0, gmin, tmin)) != TRUE )
+      return rc;
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
   }
