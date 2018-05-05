@@ -1820,14 +1820,13 @@ trace_if_space(void)
 { GET_LD
   int trace;
 
-#define minFreeStack(name, size) \
-	(roomStack(name) > size*(int)sizeof(void*))
-
-  if ( minFreeStack(local,  50000) &&
-       minFreeStack(global, 50000) &&
-       minFreeStack(trail,  20000) )
+  if ( usedStack(local) +
+       usedStack(global) +
+       usedStack(trail) +
+       100000*sizeof(void*) < LD->stacks.limit )
   { trace = TRUE;
     tracemode(trace, NULL);
+
   } else
     trace = FALSE;
 

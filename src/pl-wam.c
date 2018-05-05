@@ -1573,13 +1573,14 @@ exceptionUnwindGC(Stack outofstack)
 { if ( outofstack && outofstack->gc )
   { GET_LD
 
-    outofstack->gced_size = 0;
+    LD->stacks.global.gced_size = 0;
+    LD->stacks.trail.gced_size = 0;
     LD->trim_stack_requested = TRUE;
-    if ( considerGarbageCollect(outofstack) )
+    if ( considerGarbageCollect(NULL) )
     { garbageCollect();
-      if ( roomStackP(outofstack) < outofstack->def_spare )
-	enableSpareStack(outofstack);
-    }
+      enableSpareStacks();
+    } else
+      Sdprintf("No GC?\n");
   }
 }
 
