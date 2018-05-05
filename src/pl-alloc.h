@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2017, VU University Amsterdam
+    Copyright (c)  2012-2018, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -95,6 +96,7 @@ COMMON(void *)		allocHeapOrHalt(size_t n);
 COMMON(void)		freeHeap(void *mem, size_t n);
 #endif /*DMALLOC*/
 COMMON(int)		enableSpareStack(Stack s);
+COMMON(void)		enableSpareStacks(void);
 COMMON(int)		outOfStack(void *stack, stack_overflow_action how);
 COMMON(int)		raiseStackOverflow(int which);
 COMMON(void)		outOfCore(void) NORETURN;

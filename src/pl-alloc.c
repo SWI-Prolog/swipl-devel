@@ -217,7 +217,7 @@ free_lingering(linger_list *list)
 
 int
 enableSpareStack(Stack s)
-{ if ( s->spare )
+{ if ( s->spare && roomStackP(s) < s->def_spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
     return TRUE;
@@ -226,6 +226,15 @@ enableSpareStack(Stack s)
   return FALSE;
 }
 
+
+void
+enableSpareStacks(void)
+{ GET_LD
+
+  enableSpareStack((Stack)&LD->stacks.local);
+  enableSpareStack((Stack)&LD->stacks.global);
+  enableSpareStack((Stack)&LD->stacks.trail);
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*)  outOfStack(stack,  how)  is  called  to   raise  a  stack  overflow
@@ -271,7 +280,7 @@ outOfStack(void *stack, stack_overflow_action how)
     print_backtrace_named("exception");
   }
 
-  enableSpareStack(s);
+  enableSpareStacks();
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
   LD->outofstack = stack;

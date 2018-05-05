@@ -4294,7 +4294,9 @@ PL_raise_exception(term_t exception)
     except_class cn = classify_exception(exception);
 
     if ( cn >= co )
-    { setVar(*valTermRef(exception_bin));
+    { if ( cn == EXCEPT_RESOURCE )
+	enableSpareStacks();
+      setVar(*valTermRef(exception_bin));
       copy_exception(exception, exception_bin PASS_LD);
       if ( !PL_is_atom(exception_bin) )
 	freezeGlobal(PASS_LD1);
