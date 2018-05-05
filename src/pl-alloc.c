@@ -302,7 +302,8 @@ outOfStack(void *stack, stack_overflow_action how)
 	*valTermRef(LD->exception.bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	freezeGlobal(PASS_LD1);
       } else
-      { Sdprintf("Out of %s-stack.  No room for exception term.  Aborting.\n", s->name);
+      { Sdprintf("ERROR: Out of global-stack.\n"
+		 "ERROR: No room for exception term.  Aborting.\n");
 	*valTermRef(LD->exception.bin) = ATOM_aborted;
       }
       exception_term = exception_bin;
@@ -331,6 +332,7 @@ raiseStackOverflow(int overflow)
   { case LOCAL_OVERFLOW:    s = (Stack)&LD->stacks.local;    break;
     case GLOBAL_OVERFLOW:   s = (Stack)&LD->stacks.global;   break;
     case TRAIL_OVERFLOW:    s = (Stack)&LD->stacks.trail;    break;
+    case STACK_OVERFLOW:    s = &GD->combined_stack;         break;
     case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
     case MEMORY_OVERFLOW:
       return PL_error(NULL, 0, NULL, ERR_NOMEM);

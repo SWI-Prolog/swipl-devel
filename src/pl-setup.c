@@ -95,6 +95,10 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.stackLimit) )
     outOfCore();
+  GD->combined_stack.name	 = "stack";
+  GD->combined_stack.gc		 = TRUE;
+  GD->combined_stack.overflow_id = STACK_OVERFLOW;
+
   initPrologLocalData(PASS_LD1);
   LD->tabling.node_pool.limit = GD->options.tableSpace;
 

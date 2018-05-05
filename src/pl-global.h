@@ -367,6 +367,8 @@ struct PL_global_data
     PL_locale	       *default_locale;	/* System wide default */
   } locale;
 #endif
+
+  struct stack		combined_stack; /* ID for combined stack */
 };
 
 

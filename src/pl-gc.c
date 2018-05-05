@@ -3444,7 +3444,7 @@ considerGarbageCollect(Stack s)
   { if ( PL_pending(SIG_GC) )
       return TRUE;
 
-    if ( s == NULL )
+    if ( s == NULL || s == &GD->combined_stack )
     { return (considerGarbageCollect((Stack)&LD->stacks.global) ||
 	      considerGarbageCollect((Stack)&LD->stacks.trail));
     } else

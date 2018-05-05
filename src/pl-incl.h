@@ -1964,8 +1964,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 struct stack STACK(caddress);		/* Anonymous stack */
 
-#define N_STACKS (4)
-
 typedef struct
 { size_t limit;				/* Total stack limit */
   struct STACK(LocalFrame) local;	/* local (environment) stack */
