@@ -4835,6 +4835,12 @@ new_stack_size(Stack s, size_t request, size_t *newsize)
 }
 
 
+static size_t
+needStack(Stack s ARG_LD)
+{ return usedStackP(s) + s->min_free + s->def_spare;
+}
+
+
 static int
 grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 { sigset_t mask;
@@ -4858,9 +4864,27 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { return rc;
   } else
   { if ( tsize + gsize + lsize > LD->stacks.limit )
-    { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Reached stack-limit\n"));
-      Sdprintf("Got stack overflow; TBD: last balance\n");
-      return STACK_OVERFLOW;
+    { size_t ulocal  = needStack((Stack)&LD->stacks.trail PASS_LD)  + l;
+      size_t uglobal = needStack((Stack)&LD->stacks.global PASS_LD) + g;
+      size_t utrail  = needStack((Stack)&LD->stacks.local PASS_LD)  + t;
+      size_t need    = ulocal + utrail + uglobal;
+      size_t space;
+
+      DEBUG(MSG_STACK_OVERFLOW,
+	    Sdprintf("Reached stack-limit; need %zd; limit = %zd\n",
+		     need, LD->stacks.limit));
+
+      if ( LD->stacks.limit > need &&
+	   (space=LD->stacks.limit - need) > LD->stacks.limit/4	)
+      { gsize = uglobal + uglobal * space/need;
+	tsize = utrail  + utrail  * space/need;
+	lsize = ulocal  + ulocal  * space/need;
+	DEBUG(MSG_STACK_OVERFLOW, Sdprintf(" --> l:g:t = %zd:%zd+%zd\n",
+					   lsize, gsize, tsize));
+      } else
+      { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Got stack overflow;\n"));
+	return STACK_OVERFLOW;
+      }
     }
   }
 
