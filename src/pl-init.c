@@ -342,7 +342,6 @@ memarea_limit(const char *s)
   { switch((int)*q)
     { case 'k':
       case 'K':
-      case EOS:
 	return (size_t)n.value.i K;
       case 'm':
       case 'M':

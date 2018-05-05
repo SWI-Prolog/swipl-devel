@@ -479,42 +479,32 @@ flag \prologflag{argv} for obtaining the command line arguments.
 \subsection{Controlling the stack sizes}
 \label{sec:stacksizes}
 
-The default limit for the Prolog stacks is 128~MB on 32-bit and 256~MB on
-64-bit hardware. The 128~MB limit on 32-bit systems is the highest
-possible value and the command line options can thus only be used to
-lower the limit. On 64-bit systems, the limit can both be reduced and
-enlarged. See \secref{limits}. Below are two examples, the first
-reducing the local stack limit to catch unbounded recursion quickly and
-the second using a big (32~GB) global limit, which is only possible on
-64-bit hardware. Note that setting the limit using the command line only
-sets a \emph{soft} limit. Stack parameters can be changed (both reduced
-and enlarged) at any time using the predicate set_prolog_stack/2.
+As of version 7.7.14 the stacks are no longer limited individually.
+Instead, only the combined size is limited. Note that 32~bit systems
+still pose a 128Mb limit. See \secref{memlimit}. The combined limit is
+by deault 1Gb on 64~bit machines and 512Mb on 32~bit machines.
+
+For example, to limit the stacks to 32Gb use the command below. Note
+that the stack limits apply \emph{per thread}. Individual threads may be
+controlled using the \term{stack}{+Bytes} option of thread_create.  Any
+thread can call set_prolog_stack/2 to adjust the stack limit.
 
 \begin{code}
-$ swipl -L8m
-$ swipl -G32g
+$ swipl -S32g
 \end{code}
 
 \begin{description}
-    \cmdlineoptionitem*{-G}{size[kmg]}
-Limit for the global stack (sometimes also called \jargon{term stack} or
-\jargon{heap}).  This is where compound terms and large numbers live.
+    \cmdlineoptionitem*{-S}{size[bkmg]}
+Limit the combined size of the Prolog stacks to the indicated size.
+The suffix specifies the value as \textit{bytes}, \textit{Kbytes},
+\textit{Mbytes} or \textit{Gbytes}.
 
-    \cmdlineoptionitem*{-L}{size[kmg]}
-Limit for the local stack (sometimes also called
-\jargon{environment stack}). This is where environments and
-choice points live.
-
-    \cmdlineoptionitem*{-T}{size[kmg]}
-Limit for the trail stack.  This is where we keep track of assignments,
-so we can rollback on backtracking or exceptions.
-
-    \cmdlineoptionitem*{-M}{size[kmg]}
+    \cmdlineoptionitem*{-M}{size[bkmg]}
 Limit for the \arg{table space}. This is where tries holding
 memoized\footnote{The letter M is used because the T was already in
 use. It is a memnonic for \textbf{M}emoizing.} answers for
-\jargon{tabling} are stored. The default is 1Gb on 64-bit machines and
-512Mb on 32-bit machines. See the Prolog flag
+\jargon{tabling} are stored. The default is 1Gb on 64~bit machines and
+512Mb on 32~bit machines. See the Prolog flag
 \prologflag{table_space}
 \end{description}
 

@@ -148,44 +148,26 @@ if Prolog was compiled for multi-threading and
 otherwise.
 .RE
 .TP
-.BI \-G size [kmg]
-Sets the global stack size to
-.I size.
-The default is 128 Mbytes (64-bit machines: 256 Mbytes). The global
-stack is used to store compound terms, floating point numbers, big
-integers and strings. See also the
-.B \-L
-option.
+.BI \-S size [bkmg]
+Sets the combined stack limit to
+.IR size " bytes."
+The suffix is case insensitive and defines the unit as
+.IR b " (bytes),"
+.IR k " (Kbytes),"
+.IR m " (Mbytes) or "
+.IR g " (Gbytes)."
 .TP
-.BI \-L size [kmg]
-Sets the local stack size to
-.I size.
-The default unit is Kbytes. The local stack is used to store environment
-frames, choicepoints and foreign-language term-references. SWI-Prolog
-performs last-call optimisation to minimize the local stack
-requirements. If the argument ends in
-.B m ,
-the argument is interpreted in Mbytes. A
-.B g
-suffix is interpreted in Gbytes (64-bit machines only). This flag sets
-the maximum value to which the stack is allowed to grow (default 128
-Mbytes for the 32-bit version and 256 Mbytes for the 64-bit version). A
-maximum is useful to prevent buggy programs from claiming all the memory
-resources.
-.B \-L0
-sets the limit to the highest possible value.
+.BI \-M size [bkmg]
+Sets the table space limit to
+.IR size " bytes."
+The suffixes are the same as for the
+.B -S
+option.
 .TP
 .BI \-O
 Optimised compilation. See
 .B set_prolog_flag/3
 in the SWI-Prolog Reference Manual.
-.TP
-.BI \-T size [kmg]
-Sets the trail stack size to
-.I size
-K bytes. The default is 128 Mbytes (64-bit machines: 256 Mbytes). See
-.B \-L
-for more details.
 .TP
 .BI \-b " initfile ... " -c " file ..."
 Boot compilation.
