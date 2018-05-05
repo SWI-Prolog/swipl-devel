@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -689,7 +690,7 @@ dict_human_bytes(Key, Dict, String) :-
 human_bytes(Bytes, String) :-
     Bytes < 20_000,
     !,
-    format(string(String), '~D b', [Bytes]).
+    format(string(String), '~D  b', [Bytes]).
 human_bytes(Bytes, String) :-
     Bytes < 20_000_000,
     !,

@@ -722,12 +722,8 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	case 'b':	break;			/* already processed */
 	case 'q':	GD->options.silent = TRUE;
 			break;
-	case 'L':
-	case 'G':
-	case 'T':
+	case 'S':
 	case 'M':
-	case 'A':
-	case 'H':
         { size_t size = memarea_limit(&s[1]);
 
 	  if ( size == MEMAREA_INVALID_SIZE )
@@ -736,10 +732,6 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  switch(*s)
 	  { case 'S':	GD->options.stackLimit = size; goto next;
 	    case 'M':	GD->options.tableSpace = size; goto next;
-	    case 'H':
-	    case 'A':
-	      Sdprintf("%% Warning: -%csize is no longer supported\n", *s);
-	      goto next;
 	  }
 	}
         default:
