@@ -1677,6 +1677,38 @@ freePrologLocalData(PL_local_data_t *ld)
 		 *	     PREDICATES		*
 		 *******************************/
 
+int
+set_stack_limit(size_t limit)
+{ GET_LD
+
+  if ( limit < LD->stacks.limit &&
+       limit < sizeStack(local) +
+               sizeStack(global) +
+               sizeStack(trail) )
+  { garbageCollect();
+    trimStacks(TRUE PASS_LD);
+
+    if ( limit < sizeStack(local) +
+	         sizeStack(global) +
+	         sizeStack(trail) )
+    { term_t ex;
+
+
+      return ( (ex=PL_new_term_ref()) &&
+	       PL_put_int64(ex, limit) &&
+	       PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			ATOM_limit, ATOM_stacks, ex)
+	     );
+    }
+  }
+
+  LD->stacks.limit = limit;
+  setPrologFlag("stack_limit", FT_INTEGER, limit);
+
+  return TRUE;
+}
+
+
 static
 PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 { PRED_LD
@@ -1711,28 +1743,10 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
     if ( k == ATOM_limit )
     { size_t newlimit;
 
-      if ( PL_unify_int64(old, LD->stacks.limit) &&
-	   PL_get_size_ex(value, &newlimit) )
-      { if ( newlimit < LD->stacks.limit &&
-	     newlimit < sizeStack(local) +
-			sizeStack(global) +
-			sizeStack(trail) )
-	{ garbageCollect();
-	  trimStacks(TRUE PASS_LD);
-
-	  if ( newlimit < sizeStack(local) +
-			  sizeStack(global) +
-			  sizeStack(trail) )
-	    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-			    ATOM_limit, ATOM_stacks, value);
-	}
-
-	LD->stacks.limit = newlimit;
-
-	return TRUE;
-      }
-
-      return FALSE;
+      return ( PL_unify_int64(old, LD->stacks.limit) &&
+	       PL_get_size_ex(value, &newlimit) &&
+	       set_stack_limit(newlimit)
+	     );
     }
     if ( k == ATOM_spare )
     { size_t spare = stack->def_spare/sizeof(word);

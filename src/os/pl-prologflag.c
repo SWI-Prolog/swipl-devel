@@ -809,14 +809,21 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
       if ( !PL_get_int64_ex(value, &i) )
 	return FALSE;
-      f->value.i = i;
+      if ( i != f->value.i )
+      {
 #ifdef O_ATOMGC
-      if ( k == ATOM_agc_margin )
-	GD->atoms.margin = (size_t)i;
-      else
+        if ( k == ATOM_agc_margin )
+	  GD->atoms.margin = (size_t)i;
+        else
 #endif
-      if ( k == ATOM_table_space )
-	LD->tabling.node_pool.limit = (size_t)i;
+	if ( k == ATOM_table_space )
+	  LD->tabling.node_pool.limit = (size_t)i;
+	else if ( k == ATOM_stack_limit )
+	{ if ( ! set_stack_limit((size_t)i) )
+	    return FALSE;
+	}
+      }
+      f->value.i = i;
       break;
     }
     case FT_FLOAT:
@@ -1317,6 +1324,7 @@ initPrologFlags(void)
   setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
 #endif
   setPrologFlag("table_space", FT_INTEGER, LD->tabling.node_pool.limit);
+  setPrologFlag("stack_limit", FT_INTEGER, LD->stacks.limit);
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   setPrologFlag("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
