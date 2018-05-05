@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam,
+    Copyright (c)  1985-2018, University of Amsterdam,
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -2057,6 +2058,7 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define overflowCode(n) \
 	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
 					      : TRAIL_OVERFLOW )
+#define GLOBAL_TRAIL_RATIO (6)
 
 
 		 /*******************************

@@ -9579,10 +9579,14 @@ Current settings can be retrieved with prolog_stack_property/2.
 
 \begin{description}
     \termitem{limit}{+Bytes}
-Set the limit to which the stack is allowed to grow.  If the specified
-value is lower than the current usage a \const{permission_error} is raised.  If
-the limit is larger than supported, the system silently reduces the
-requested limit to the system limit.
+
+Set the limit to which the stack is allowed to grow. If the specified
+value is lower than the current usage a \const{permission_error} is
+raised. If the limit is larger than supported, the system silently
+reduces the requested limit to the system limit.  Setting the global
+stack limit also raises the trail stack limit if the current limit is
+smaller than 1/6th of the new global limit.  See also
+\cmdlineoption{-G} and \secref{memlimit}.
 
     \termitem{min_free}{+Cells}
 Minimum amount of free space after trimming or shifting the stack.

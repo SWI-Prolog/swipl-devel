@@ -1320,6 +1320,8 @@ initPrologStacks(size_t local, size_t global, size_t trail)
 
   enforce_limit(&local,	   maxarea,  "local");
   enforce_limit(&global,   maxarea,  "global");
+  if ( trail < global/GLOBAL_TRAIL_RATIO )
+    trail = global/GLOBAL_TRAIL_RATIO;	/* see tight() */
   enforce_limit(&trail,	   maxarea,  "trail");
 
   if ( !allocStacks(local, global, trail) )
@@ -1742,6 +1744,36 @@ freePrologLocalData(PL_local_data_t *ld)
 		 *	     PREDICATES		*
 		 *******************************/
 
+static int
+set_stack_limit(Stack stack, size_t limit)
+{ GET_LD
+
+  if ( limit < (size_t)sizeStackP(stack)+stack->min_free )
+  { if ( stack->gc )
+    { garbageCollect();
+      trimStacks(TRUE PASS_LD);
+    }
+
+    if ( limit < (size_t)sizeStackP(stack)+stack->min_free )
+    { term_t ex;
+
+      return ( (ex = PL_new_term_ref()) &&
+	       PL_put_atom_chars(ex, stack->name) &&
+	       PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			ATOM_limit, ATOM_stack, ex)
+	     );
+    }
+  }
+
+  limit += stack->spare;
+  if ( limit > MAXTAGGEDPTR+1 )
+    limit = MAXTAGGEDPTR+1;
+
+  stack->size_limit = limit;
+  return TRUE;
+}
+
+
 static
 PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 { PRED_LD
@@ -1777,23 +1809,12 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
     { size_t newlimit;
 
       if ( PL_unify_int64(old, stack->size_limit) &&
-	   PL_get_size_ex(value, &newlimit) )
-      { if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
-	{ if ( stack->gc )
-	  { garbageCollect();
-	    trimStacks(TRUE PASS_LD);
-	  }
-
-	  if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
-	    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-			    ATOM_limit, ATOM_stack, name);
-	}
-
-	newlimit += stack->spare;
-	if ( newlimit > MAXTAGGEDPTR+1 )
-	  newlimit = MAXTAGGEDPTR+1;
-
-	stack->size_limit = newlimit;
+	   PL_get_size_ex(value, &newlimit) &&
+	   set_stack_limit(stack, newlimit) )
+      { if ( stack == (Stack)&LD->stacks.global &&
+	     limitStack(trail) < stack->size_limit/GLOBAL_TRAIL_RATIO )
+	  return set_stack_limit((Stack)&LD->stacks.trail,
+				 stack->size_limit/GLOBAL_TRAIL_RATIO);
 	return TRUE;
       }
 

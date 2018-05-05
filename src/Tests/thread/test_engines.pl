@@ -34,7 +34,7 @@ test(lsize, TheLimit =:= 1000*1024) :-
 	engine_destroy(E).
 test(tsize, TheLimit =:= 1000*1024) :-
 	engine_create(Limit, statistics(traillimit, Limit), E,
-		      [ trail(1000) ]),
+		      [ trail(1000), global(4000) ]), % trail >= 1/6th global
 	engine_next(E, TheLimit),
 	engine_destroy(E).
 test(findall, L == [1,2,3,4,5]) :-

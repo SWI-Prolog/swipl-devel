@@ -5106,7 +5106,7 @@ tight(Stack s ARG_LD)
   size_t spare_gap = s->def_spare - s->spare;
 
   if ( s == (Stack)&LD->stacks.trail )	/* See (*) */
-  { min_room += sizeStack(global)/6;
+  { min_room += sizeStack(global)/GLOBAL_TRAIL_RATIO;
     DEBUG(MSG_GC_SCHEDULE, Sdprintf("Trail min_room = %ld\n", min_room));
   }
 

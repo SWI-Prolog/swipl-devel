@@ -3079,26 +3079,25 @@ character is immediately followed by a number and optionally by a
 is interpreted in Kbytes (1024~bytes); with \const{m}, the value is
 interpreted in Mbytes ($1024 \times 1024$ bytes).
 
-The PrologScript facility described in \secref{plscript} provides a
-mechanism for specifying options with the load file.  On Windows the
-default stack sizes are controlled using the Windows \idx{registry}
-on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
-names \const{localSize}, \const{globalSize} and \const{trailSize}.  The
-value is a \const{DWORD} expressing the default stack size in Kbytes.
-A GUI for modifying these values is provided using the XPCE package.
-To use this, start the XPCE manual tools using \libpredref{manpce}{0},
-after which you find \textit{Preferences} in the \textit{File} menu.
+On Windows the default stack sizes are controlled using the Windows
+\idx{registry} on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$
+using the names \const{localSize}, \const{globalSize} and
+\const{trailSize}. The value is a \const{DWORD} expressing the default
+stack size in Kbytes. A GUI for modifying these values is provided using
+the XPCE package. To use this, start the XPCE manual tools using
+\libpredref{manpce}{0}, after which you find \textit{Preferences} in the
+\textit{File} menu.
 
 Considering portability, applications that need to modify the default
 limits are advised to do so using set_prolog_stack/2.
 
 \begin{table}
 \begin{center}
-\begin{tabular}{|c|c|l|p{5cm}|}
+\begin{tabular}{|c|l|p{5cm}|}
 \hline
-Option & Default & Area name & Description \\
+Option & Area name & Description \\
 \hline
-\cmdlineoption{-L} & 128M & \bf local stack & The local stack is used to store
+\cmdlineoption{-L} & \bf local stack & The local stack is used to store
                        the execution environments of procedure
                        invocations. The space for an environment is
                        reclaimed when it fails, exits without leaving
@@ -3106,17 +3105,26 @@ Option & Default & Area name & Description \\
                        the !/0 predicate or no choice points have
                        been created since the invocation and the last
                        subclause is started (last call optimisation). \\
-\cmdlineoption{-G} & 128M & \bf global stack & The global stack is used
+\cmdlineoption{-G} & \bf global stack & The global stack is used
                        to store terms created during Prolog's
                        execution. Terms on this stack will be reclaimed
                        by backtracking to a point before the term
                        was created or by garbage collection (provided the
                        term is no longer referenced). \\
-\cmdlineoption{-T} & 128M & \bf trail stack & The trail stack is used to store
+\cmdlineoption{-T} & \bf trail stack & The trail stack is used to store
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
-                       determines they are no longer needed. \\
+                       determines they are no longer needed.
+
+		       As the trail and global stacks are garbage
+		       collected together, a small trail can cause
+		       an excessive amount of garbage collections.
+		       To avoid this, the trail is automatically
+		       resized to be at least 1/6th of the size of
+		       the global stack.  This relation is enforced
+		       by the \cmdlineoption{-G} and set_prolog_stack/2
+		       when setting the global limit. \\
 \hline
 \end{tabular}
 \end{center}
