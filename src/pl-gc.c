@@ -4726,8 +4726,10 @@ combined size should come from a fixed maximum.
 
 #undef K
 #undef MB
-#define K * 1024
+#undef GB
+#define  K * 1024
 #define MB * (1024L * 1024L)
+#define GB * (1024L * 1024L * 1024L)
 
 size_t
 nextStackSizeAbove(size_t n)
@@ -4766,20 +4768,9 @@ nextStackSizeAbove(size_t n)
   }
 #endif
 
-  if ( n < 4 MB )
-  { size = 8192;
-    while ( size <= n )
-      size *= 2;
-  } else
-  { size = 4 MB;
-
-    while ( size <= n )
-    { if ( (size + size/2) > n )
-	return size + size/2;
-
-      size *= 2;
-    }
-  }
+  size = (size_t)4 << MSB(n);
+  if ( size < SMALLSTACK )
+    size = SMALLSTACK;
 					/* enforce real limit */
   if ( size > (size_t)(MAXTAGGEDPTR+1) )
     size = (size_t)(MAXTAGGEDPTR+1);
@@ -4804,18 +4795,12 @@ nextStackSize(Stack s, size_t minfree)
     if ( size > (size_t)sizeStackP(s) )
       size = sizeStackP(s);
   } else
-  { if ( s->top > s->max )
-      minfree += (char*)s->top - (char*)s->max;
+  { size_t needed = sizeStackP(s) + minfree + s->min_free + s->def_spare;
 
-    size = nextStackSizeAbove(sizeStackP(s) +
-			      minfree + s->min_free + s->def_spare);
+    if ( s->top > s->max )
+      needed += (char*)s->top - (char*)s->max;
 
-    if ( size >= s->size_limit + s->size_limit/2 )
-    { if ( minfree == 1 && roomStackP(s) > (ssize_t)minfree )
-	size = sizeStackP(s);		/* tight-stack request */
-      else
-	size = 0;			/* passed limit */
-    }
+    size = nextStackSizeAbove(needed);
   }
 
   return size;
@@ -4833,17 +4818,13 @@ current usage and the minimum free stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-new_stack_size(Stack s, size_t *request, size_t *newsize)
-{ if ( *request )
+new_stack_size(Stack s, size_t request, size_t *newsize)
+{ if ( request )
   { size_t new;
 
-    if ( !(new = nextStackSize(s, *request)) )
+    if ( !(new = nextStackSize(s, request)) )
       return s->overflow_id;
     *newsize = new;
-    if ( new == sizeStackP(s) )
-    { *request = 0;
-      return FALSE;			/* no change */
-    }
 
     return TRUE;
   } else
@@ -4871,12 +4852,22 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   if ( LD->shift_status.blocked )
     return FALSE;
 
-  if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize))<0 ||
-       (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize))<0 ||
-       (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize))<0 )
-  { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Reached stack-limit\n"));
-    return rc;
+  if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  t, &tsize))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.global, g, &gsize))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.local,  l, &lsize))<0 )
+  { return rc;
+  } else
+  { if ( tsize + gsize + lsize > LD->stacks.limit )
+    { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Reached stack-limit\n"));
+      Sdprintf("Got stack overflow; TBD: last balance\n");
+      return STACK_OVERFLOW;
+    }
   }
+
+  if ( sizeStack(global) == gsize &&
+       sizeStack(trail)  == tsize &&
+       sizeStack(local)  == lsize )
+    return TRUE;
 
   enterGC(PASS_LD1);			/* atom-gc synchronisation */
   blockSignals(&mask);
@@ -5114,7 +5105,7 @@ tight(Stack s ARG_LD)
     min_room = s->min_free;
 
   if ( (size_t)roomStackP(s) < min_room + spare_gap )
-    return 1;
+    return GROW_TIGHT;
 
   return 0;
 }

@@ -1439,7 +1439,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	GET_LD
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
-	if ( (msb/sizeof(char)) > (uint64_t)limitStack(global) )
+	if ( (msb/sizeof(char)) > (uint64_t)globalStackLimit() )
 	{ mpz_clear(r->value.mpz);
 	  return int_too_big();
 	}
@@ -1762,7 +1762,7 @@ ar_pow(Number n1, Number n2, Number r)
     }
 
     if ( !( mul64(op1_bytes, exp, &r_bytes) &&
-	    r_bytes < (int64_t)limitStack(global)
+	    r_bytes < (int64_t)globalStackLimit()
 	  ) )
       return int_too_big();
   }

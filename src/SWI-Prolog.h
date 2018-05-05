@@ -1105,10 +1105,8 @@ typedef enum
 } rc_cancel;
 
 typedef struct
-{ long	    local_size;			/* Stack sizes (Kbytes) */
-  long	    global_size;
-  long	    trail_size;
-  long	    argument_size;
+{ size_t    stack_limit;		/* Total stack limit (bytes) */
+  size_t    table_space;		/* Total tabling space limit (bytes) */
   char *    alias;			/* alias name */
   rc_cancel (*cancel)(int id);		/* cancel function */
   intptr_t  flags;			/* PL_THREAD_* flags */

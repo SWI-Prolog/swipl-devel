@@ -5109,8 +5109,8 @@ CStackSize(PL_local_data_t *ld)
 {
 #ifdef O_PLMT
   if ( ld->thread.info->pl_tid != 1 )
-  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->stack_size));
-    return ld->thread.info->stack_size;
+  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->c_stack_size));
+    return ld->thread.info->c_stack_size;
   }
 #endif
 #ifdef HAVE_GETRLIMIT
@@ -5173,15 +5173,15 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     vn = 2;
   } else if ( key == ATOM_global_stack )
   { v[0] = usedStack(global);
-    v[1] = limitStack(global) - v[0];
+    v[1] = roomStack(global);
     vn = 2;
   } else if ( key == ATOM_local_stack )
   { v[0] = usedStack(local);
-    v[1] = limitStack(local) - v[0];
+    v[1] = roomStack(local);
     vn = 2;
   } else if ( key == ATOM_trail )
   { v[0] = usedStack(trail);
-    v[1] = limitStack(trail) - v[0];
+    v[1] = roomStack(trail);
     vn = 2;
   } else if ( key == ATOM_program )
   { v[0] = heapUsed();
@@ -5257,21 +5257,19 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   else if (key == ATOM_localused)
     v->value.i = usedStack(local);
   else if (key == ATOM_locallimit)
-    v->value.i = limitStack(local);
+    v->value.i = MAXTAGGEDPTR+1;
   else if (key == ATOM_trail)				/* trail */
     v->value.i = sizeStack(trail);
   else if (key == ATOM_trailused)
     v->value.i = usedStack(trail);
   else if (key == ATOM_traillimit)
-    v->value.i = limitStack(trail);
+    v->value.i = MAXTAGGEDPTR+1;
   else if (key == ATOM_global)				/* global */
     v->value.i = sizeStack(global);
   else if (key == ATOM_globalused )
     v->value.i = usedStack(global);
   else if (key == ATOM_globallimit)
-    v->value.i = limitStack(global);
-  else if (key == ATOM_argumentlimit)
-    v->value.i = limitStack(argument);
+    v->value.i = MAXTAGGEDPTR+1;
   else if (key == ATOM_c_stack)
     v->value.i = CStackSize(LD);
   else if (key == ATOM_atoms)				/* atoms */
@@ -5464,9 +5462,7 @@ typedef struct
 #define CMDOPT_LIST   3
 
 static const optdef optdefs[] =
-{ { "local",		CMDOPT_SIZE_T,	&GD->options.localSize },
-  { "global",		CMDOPT_SIZE_T,	&GD->options.globalSize },
-  { "trail",		CMDOPT_SIZE_T,	&GD->options.trailSize },
+{ { "stack",		CMDOPT_SIZE_T,	&GD->options.stackLimit },
 
   { "goals",		CMDOPT_LIST,	&GD->options.goals },
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },

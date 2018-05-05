@@ -400,7 +400,7 @@ getString(IOSTREAM *fd, size_t *length)
 
   if ( !length && len > MAXPATHLEN )
     return NULL;
-  if ( length && len > limitStack(global) )
+  if ( length && len > globalStackLimit() )
     return NULL;
 
   if ( LD->qlf.getstr_buffer_size < len+1 )

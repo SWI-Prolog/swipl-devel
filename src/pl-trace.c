@@ -1821,7 +1821,7 @@ trace_if_space(void)
   int trace;
 
 #define minFreeStack(name, size) \
-	(spaceStack(name) > size*(int)sizeof(void*))
+	(roomStack(name) > size*(int)sizeof(void*))
 
   if ( minFreeStack(local,  50000) &&
        minFreeStack(global, 50000) &&

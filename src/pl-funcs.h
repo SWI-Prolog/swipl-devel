@@ -614,9 +614,7 @@ COMMON(void)		resetSignals(void);
 COMMON(void)		cleanupSignals(void);
 COMMON(int)		handleSignals(ARG1_LD);
 
-COMMON(int)		initPrologStacks(size_t local,
-					 size_t global,
-					 size_t trail);
+COMMON(int)		initPrologStacks(size_t limit);
 COMMON(void)		initPrologLocalData(ARG1_LD);
 COMMON(void)		deallocateStacks(void);
 COMMON(bool)		restoreStack(Stack s);

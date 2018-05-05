@@ -62,7 +62,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int allocStacks(size_t local, size_t global, size_t trail);
+static int allocStacks(void);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
@@ -93,10 +93,8 @@ setupProlog(void)
   initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
-  if ( !initPrologStacks(GD->options.localSize,
-			 GD->options.globalSize,
-			 GD->options.trailSize) )
-    fatalError("Not enough address space to allocate Prolog stacks");
+  if ( !initPrologStacks(GD->options.stackLimit) )
+    outOfCore();
   initPrologLocalData(PASS_LD1);
   LD->tabling.node_pool.limit = GD->options.tableSpace;
 
@@ -1285,47 +1283,19 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 		 *	       STACKS		*
 		 *******************************/
 
-static void
-enforce_limit(size_t *size, size_t maxarea, const char *name)
-{ if ( *size == 0 )
-  { *size = maxarea;
-  } else if ( *size > (size_t)(MAXTAGGEDPTR+1) )
-  { if ( *size != (size_t)-1 )		/* user demanded maximum */
-      Sdprintf("WARNING: Maximum stack size for %s stack is %lld MB\n",
-	       name, (int64_t)((MAXTAGGEDPTR+1) / (1 MB)));
-    *size = MAXTAGGEDPTR+1;
-  }
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 initPrologStacks() creates the stacks for the calling thread. It is used
 both at system startup to create the stack   for the main thread as from
 pl-thread.c to create stacks for Prolog threads.
-
-allocStacks() does the  real  work   and  has  several  implementations,
-depending on the OS features.
-
-Requested stack sizes are in bytes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-initPrologStacks(size_t local, size_t global, size_t trail)
+initPrologStacks(size_t limit)
 { GET_LD
-  size_t maxarea;
 
-  maxarea = MAXTAGGEDPTR+1;		/* MAXTAGGEDPTR = 0x..fff.. */
-  if ( maxarea > 1024 MB )		/* 64-bit machines */
-    maxarea = 1024 MB;
-
-  enforce_limit(&local,	   maxarea,  "local");
-  enforce_limit(&global,   maxarea,  "global");
-  if ( trail < global/GLOBAL_TRAIL_RATIO )
-    trail = global/GLOBAL_TRAIL_RATIO;	/* see tight() */
-  enforce_limit(&trail,	   maxarea,  "trail");
-
-  if ( !allocStacks(local, global, trail) )
-    fail;
+  LD->stacks.limit = limit;
+  if ( !allocStacks() )
+    return FALSE;
 
   LD->stacks.local.overflow_id    = LOCAL_OVERFLOW;
   LD->stacks.global.overflow_id   = GLOBAL_OVERFLOW;
@@ -1347,7 +1317,7 @@ initPrologStacks(size_t local, size_t global, size_t trail)
   DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
 		    base_addresses[STG_TRAIL]));
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1413,16 +1383,14 @@ init_stack() initializes the stack straucture. Params:
 
   - name is the name of the stack (for diagnostic purposes)
   - size is the allocated size
-  - limit is the maximum to which the stack is allowed to grow
   - spare is the amount of spare stack we reserve
   - gc indicates whether gc can collect data on the stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare, int gc)
+init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
 { s->name	= name;
   s->top	= s->base;
-  s->size_limit	= limit;
   s->spare      = spare;
   s->def_spare  = spare;
   s->min_free   = 256*sizeof(word);
@@ -1434,21 +1402,16 @@ init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare, int gc)
 
 
 static int
-allocStacks(size_t local, size_t global, size_t trail)
+allocStacks(void)
 { GET_LD
-  size_t minglobal   = 8*SIZEOF_VOIDP K;
-  size_t minlocal    = 4*SIZEOF_VOIDP K;
-  size_t mintrail    = 4*SIZEOF_VOIDP K;
-  size_t minargument = 1*SIZEOF_VOIDP K;
-  size_t argument    = 1 K K;		/* not really used */
+  size_t minglobal = 8*SIZEOF_VOIDP K;
+  size_t minlocal  = 4*SIZEOF_VOIDP K;
+  size_t mintrail  = 4*SIZEOF_VOIDP K;
+  size_t minarg    = 1*SIZEOF_VOIDP K;
 
   size_t itrail  = nextStackSizeAbove(mintrail-1);
   size_t iglobal = nextStackSizeAbove(minglobal-1);
   size_t ilocal  = nextStackSizeAbove(minlocal-1);
-
-  local    = max(local,    minlocal);
-  global   = max(global,   minglobal);
-  trail    = max(trail,    mintrail);
 
   gBase = NULL;
   tBase = NULL;
@@ -1456,29 +1419,29 @@ allocStacks(size_t local, size_t global, size_t trail)
 
   gBase = (Word)       stack_malloc(iglobal + ilocal);
   tBase = (TrailEntry) stack_malloc(itrail);
-  aBase = (Word *)     stack_malloc(minargument);
+  aBase = (Word *)     stack_malloc(minarg);
 
   if ( !gBase || !tBase || !aBase )
   { if ( gBase )
       *gBase++ = MARK_MASK;		/* compensate for freeStacks */
     freeStacks(PASS_LD1);
-    fail;
+    return FALSE;
   }
 
   lBase = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global, 512*SIZEOF_VOIDP, TRUE);
+	     "global",   iglobal, 512*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,  512*SIZEOF_VOIDP, FALSE);
+	     "local",    ilocal,  512*SIZEOF_VOIDP, FALSE);
   init_stack((Stack)&LD->stacks.trail,
-	     "trail",    itrail,  trail,  256*SIZEOF_VOIDP, TRUE);
+	     "trail",    itrail,  256*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.argument,
-	     "argument", minargument, argument, 0, FALSE);
+	     "argument", minarg,  0,                FALSE);
 
   LD->stacks.local.min_free = LOCAL_MARGIN;
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1744,36 +1707,6 @@ freePrologLocalData(PL_local_data_t *ld)
 		 *	     PREDICATES		*
 		 *******************************/
 
-static int
-set_stack_limit(Stack stack, size_t limit)
-{ GET_LD
-
-  if ( limit < (size_t)sizeStackP(stack)+stack->min_free )
-  { if ( stack->gc )
-    { garbageCollect();
-      trimStacks(TRUE PASS_LD);
-    }
-
-    if ( limit < (size_t)sizeStackP(stack)+stack->min_free )
-    { term_t ex;
-
-      return ( (ex = PL_new_term_ref()) &&
-	       PL_put_atom_chars(ex, stack->name) &&
-	       PL_error(NULL, 0, NULL, ERR_PERMISSION,
-			ATOM_limit, ATOM_stack, ex)
-	     );
-    }
-  }
-
-  limit += stack->spare;
-  if ( limit > MAXTAGGEDPTR+1 )
-    limit = MAXTAGGEDPTR+1;
-
-  stack->size_limit = limit;
-  return TRUE;
-}
-
-
 static
 PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 { PRED_LD
@@ -1808,13 +1741,24 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
     if ( k == ATOM_limit )
     { size_t newlimit;
 
-      if ( PL_unify_int64(old, stack->size_limit) &&
-	   PL_get_size_ex(value, &newlimit) &&
-	   set_stack_limit(stack, newlimit) )
-      { if ( stack == (Stack)&LD->stacks.global &&
-	     limitStack(trail) < stack->size_limit/GLOBAL_TRAIL_RATIO )
-	  return set_stack_limit((Stack)&LD->stacks.trail,
-				 stack->size_limit/GLOBAL_TRAIL_RATIO);
+      if ( PL_unify_int64(old, LD->stacks.limit) &&
+	   PL_get_size_ex(value, &newlimit) )
+      { if ( newlimit < LD->stacks.limit &&
+	     newlimit < sizeStack(local) +
+			sizeStack(global) +
+			sizeStack(trail) )
+	{ garbageCollect();
+	  trimStacks(TRUE PASS_LD);
+
+	  if ( newlimit < sizeStack(local) +
+			  sizeStack(global) +
+			  sizeStack(trail) )
+	    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			    ATOM_limit, ATOM_stacks, value);
+	}
+
+	LD->stacks.limit = newlimit;
+
 	return TRUE;
       }
 

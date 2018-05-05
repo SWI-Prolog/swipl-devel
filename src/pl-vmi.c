@@ -4471,9 +4471,9 @@ again:
 	LOAD_REGISTERS(qid);
 
 	DEBUG(1, Sdprintf("g+l+t free = %ld+%ld+%ld\n",
-			  spaceStack(global),
-			  spaceStack(local),
-			  spaceStack(trail)));
+			  roomStack(global),
+			  roomStack(local),
+			  roomStack(trail)));
 
 	if ( trace_if_space() )
 	{ int rc;

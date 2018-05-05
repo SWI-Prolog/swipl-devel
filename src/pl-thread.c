@@ -517,13 +517,10 @@ initialise_thread(PL_thread_info_t *info)
 
   TLD_set_LD(info->thread_data);
 
-  if ( !info->local_size    ) info->local_size    = GD->options.localSize;
-  if ( !info->global_size   ) info->global_size   = GD->options.globalSize;
-  if ( !info->trail_size    ) info->trail_size    = GD->options.trailSize;
+  if ( !info->stack_limit ) info->stack_limit = GD->options.stackLimit;
+  if ( !info->table_space ) info->table_space = GD->options.tableSpace;
 
-  if ( !initPrologStacks(info->local_size,
-			 info->global_size,
-			 info->trail_size) )
+  if ( !initPrologStacks(info->stack_limit) )
   { info->status = PL_THREAD_NOMEM;
     return FALSE;
   }
@@ -1662,10 +1659,7 @@ set_os_thread_name(atom_t alias)
 
 
 static const opt_spec make_thread_options[] =
-{ { ATOM_local,		OPT_SIZE|OPT_INF },
-  { ATOM_global,	OPT_SIZE|OPT_INF },
-  { ATOM_trail,	        OPT_SIZE|OPT_INF },
-  { ATOM_alias,		OPT_ATOM },
+{ { ATOM_alias,		OPT_ATOM },
   { ATOM_debug,		OPT_BOOL },
   { ATOM_detached,	OPT_BOOL },
   { ATOM_stack,		OPT_SIZE },
@@ -1675,25 +1669,6 @@ static const opt_spec make_thread_options[] =
   { ATOM_affinity,	OPT_TERM },
   { NULL_ATOM,		0 }
 };
-
-
-static int
-mk_kbytes(size_t *sz, atom_t name ARG_LD)
-{ if ( *sz != (size_t)-1 )
-  { size_t s = *sz * 1024;
-
-    if ( s/1024 != *sz )
-    { term_t t = PL_new_term_ref();
-
-      return ( PL_put_int64(t, *sz) &&	/* TBD: size_t is unsigned! */
-	       PL_error(NULL, 0, NULL, ERR_DOMAIN, name, t) );
-    }
-
-    *sz = s;
-  }
-
-  return TRUE;
-}
 
 
 static void
@@ -1930,6 +1905,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
   size_t stack = 0;
+  size_t c_stack = 0;
   term_t inherit_from = 0;
   term_t at_exit = 0;
   term_t affinity = 0;
@@ -1953,14 +1929,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   if ( !scan_options(options, 0, /*OPT_ALL,*/
 		     ATOM_thread_option, make_thread_options,
-		     &info->local_size,
-		     &info->global_size,
-		     &info->trail_size,
 		     &alias,
 		     &debug,
 		     &detached,
 		     &stack,		/* stack */
-		     &stack,		/* c_stack */
+		     &c_stack,		/* c_stack */
 		     &at_exit,
 		     &inherit_from,
 		     &affinity) )
@@ -1993,14 +1966,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
-  if ( !mk_kbytes(&info->local_size,  ATOM_local   PASS_LD) ||
-       !mk_kbytes(&info->global_size, ATOM_global  PASS_LD) ||
-       !mk_kbytes(&info->trail_size,  ATOM_trail   PASS_LD) ||
-       !mk_kbytes(&stack,             ATOM_c_stack PASS_LD) )
-  { free_thread_info(info);
-    return FALSE;
-  }
-
+  info->stack_limit = stack;
   th = create_thread_handle(info);
   if ( alias )
   { if ( !aliasThread(info->pl_tid, ATOM_thread, alias) )
@@ -2042,13 +2008,13 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 					/* What is an infinite stack!? */
     }
 #endif
-    if ( stack )
-    { stack = round_pages(stack);
+    if ( c_stack )
+    { stack = round_pages(c_stack);
       func = "pthread_attr_setstacksize";
-      rc = pthread_attr_setstacksize(&attr, stack);
-      info->stack_size = stack;
+      rc = pthread_attr_setstacksize(&attr, c_stack);
+      info->c_stack_size = c_stack;
     } else
-    { pthread_attr_getstacksize(&attr, &info->stack_size);
+    { pthread_attr_getstacksize(&attr, &info->c_stack_size);
     }
   }
   if ( rc == 0 )
@@ -3170,9 +3136,7 @@ get_interactor(term_t t, thread_handle **thp, int warn ARG_LD)
 */
 
 static const opt_spec make_engine_options[] =
-{ { ATOM_local,		OPT_SIZE|OPT_INF },
-  { ATOM_global,	OPT_SIZE|OPT_INF },
-  { ATOM_trail,	        OPT_SIZE|OPT_INF },
+{ { ATOM_stack,		OPT_SIZE|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_inherit_from,	OPT_TERM },
   { NULL_ATOM,		0 }
@@ -3184,28 +3148,19 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 { PRED_LD
   PL_engine_t new;
   PL_thread_attr_t attrs;
-  size_t lsize	      =	0;
-  size_t gsize	      =	0;
-  size_t tsize	      =	0;
+  size_t stack	      =	0;
   atom_t alias	      =	NULL_ATOM;
   term_t inherit_from =	0;
 
   memset(&attrs, 0, sizeof(attrs));
   if ( !scan_options(A3, 0,
 		     ATOM_engine_option, make_engine_options,
-		     &lsize,
-		     &gsize,
-		     &tsize,
+		     &stack,
 		     &alias,
-		     &inherit_from) ||
-       !mk_kbytes(&lsize, ATOM_local  PASS_LD) ||
-       !mk_kbytes(&gsize, ATOM_global PASS_LD) ||
-       !mk_kbytes(&tsize, ATOM_trail  PASS_LD) )
+		     &inherit_from) )
     return FALSE;
 
-  if ( lsize ) attrs.local_size  = lsize/1024;
-  if ( gsize ) attrs.global_size = gsize/1024;
-  if ( tsize ) attrs.trail_size  = tsize/1024;
+  if ( stack ) attrs.stack_limit = stack;
 
   if ( (new = PL_create_engine(&attrs)) )
   { PL_engine_t me;
@@ -5337,12 +5292,8 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew = info->thread_data;
 
   if ( attr )
-  { if ( attr->local_size )
-      info->local_size = attr->local_size * 1024;
-    if ( attr->global_size )
-      info->global_size = attr->global_size * 1024;
-    if ( attr->trail_size )
-      info->trail_size = attr->trail_size * 1024;
+  { if ( attr->stack_limit )
+      info->stack_limit = attr->stack_limit;
 
     info->cancel = attr->cancel;
   }

@@ -332,7 +332,7 @@ defaultSystemInitFile(const char *a0)
 
 #define MEMAREA_INVALID_SIZE (uintptr_t)(~0L)
 
-static uintptr_t
+static size_t
 memarea_limit(const char *s)
 { number n;
   unsigned char *q;
@@ -343,16 +343,16 @@ memarea_limit(const char *s)
     { case 'k':
       case 'K':
       case EOS:
-	return (intptr_t)n.value.i K;
+	return (size_t)n.value.i K;
       case 'm':
       case 'M':
-	return (intptr_t)n.value.i K K;
+	return (size_t)n.value.i K K;
       case 'g':
       case 'G':
-	return (intptr_t)n.value.i K K K;
+	return (size_t)n.value.i K K K;
       case 'b':
       case 'B':
-	return (intptr_t)n.value.i;
+	return (size_t)n.value.i;
     }
   }
 
@@ -481,10 +481,8 @@ initDefaults(void)
 { GET_LD
 
   systemDefaults.arch	     = PLARCH;
-  systemDefaults.local       = DEFLOCAL;
-  systemDefaults.global      = DEFGLOBAL;
-  systemDefaults.trail       = DEFTRAIL;
-  systemDefaults.table       = DEFTABLE;
+  systemDefaults.stack_limit = DEFSTACKLIMIT;
+  systemDefaults.table_space = DEFTABLE;
   systemDefaults.goal	     = NULL;
   systemDefaults.toplevel    = "default";
   systemDefaults.notty       = NOTTYCONTROL;
@@ -561,10 +559,8 @@ do_value:
 static void
 initDefaultOptions(void)
 { GD->options.compileOut    = store_string("a.out");
-  GD->options.localSize     = systemDefaults.local    K;
-  GD->options.globalSize    = systemDefaults.global   K;
-  GD->options.trailSize     = systemDefaults.trail    K;
-  GD->options.tableSpace    = systemDefaults.table    K;
+  GD->options.stackLimit    = systemDefaults.stack_limit;
+  GD->options.tableSpace    = systemDefaults.table_space;
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
   GD->options.scriptFiles   = NULL;
@@ -732,16 +728,14 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	case 'M':
 	case 'A':
 	case 'H':
-        { uintptr_t size = memarea_limit(&s[1]);
+        { size_t size = memarea_limit(&s[1]);
 
 	  if ( size == MEMAREA_INVALID_SIZE )
 	    return -1;
 
 	  switch(*s)
-	  { case 'L':	GD->options.localSize    = size; goto next;
-	    case 'G':	GD->options.globalSize   = size; goto next;
-	    case 'T':	GD->options.trailSize    = size; goto next;
-	    case 'M':	GD->options.tableSpace   = size; goto next;
+	  { case 'S':	GD->options.stackLimit = size; goto next;
+	    case 'M':	GD->options.tableSpace = size; goto next;
 	    case 'H':
 	    case 'A':
 	      Sdprintf("%% Warning: -%csize is no longer supported\n", *s);

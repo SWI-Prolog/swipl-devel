@@ -76,7 +76,7 @@ gmp_too_big()
   return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
 }
 
-#define TOO_BIG_GMP(n) ((n) > 1000 && (n) > (size_t)limitStack(global))
+#define TOO_BIG_GMP(n) ((n) > 1000 && (n) > (size_t)globalStackLimit())
 
 static void *
 mp_alloc(size_t bytes)

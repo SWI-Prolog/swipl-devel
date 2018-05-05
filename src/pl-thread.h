@@ -89,10 +89,9 @@ typedef struct
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  size_t	    local_size;		/* Stack sizes */
-  size_t	    global_size;
-  size_t	    trail_size;
-  size_t	    stack_size;		/* system (C-) stack */
+  size_t	    stack_limit;	/* Stack sizes */
+  size_t	    table_space;	/* Max size for local tables */
+  size_t	    c_stack_size;	/* system (C-) stack */
   rc_cancel	    (*cancel)(int id);	/* cancel function */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
   unsigned	    detached      : 1;	/* detached thread */

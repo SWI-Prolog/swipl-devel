@@ -1950,7 +1950,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
 	  type		max;		/* allocated maximum */		    \
-	  size_t	size_limit;	/* Max size the stack can grow to */\
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
 	  size_t	spare;		/* Current reserved area */	    \
@@ -1968,7 +1967,8 @@ struct stack STACK(caddress);		/* Anonymous stack */
 #define N_STACKS (4)
 
 typedef struct
-{ struct STACK(LocalFrame) local;	/* local (environment) stack */
+{ size_t limit;				/* Total stack limit */
+  struct STACK(LocalFrame) local;	/* local (environment) stack */
   struct STACK(Word)	   global;	/* local (environment) stack */
   struct STACK(TrailEntry) trail;	/* trail stack */
   struct STACK(Word *)	   argument;	/* argument stack */
@@ -2008,23 +2008,27 @@ typedef struct
 #define sizeStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->base))
 #define roomStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->top))
 #define spaceStackP(s) (limitStackP(s)-usedStackP(s))
-#define limitStackP(s) ((intptr_t)((s)->size_limit))
 #define narrowStackP(s) (roomStackP(s) < (intptr_t)(s)->minfree)
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
 #define roomStack(name) roomStackP(&LD->stacks.name)
 #define spaceStack(name) spaceStackP(&LD->stacks.name)
-#define limitStack(name) limitStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
 
-#define GROW_TRIM ((size_t)-1)
+#define globalStackLimit() (LD->stacks.limit > (MAXTAGGEDPTR+1) ? \
+					       (MAXTAGGEDPTR+1) : \
+					       LD->stacks.limit)
+
+#define GROW_TRIM  ((size_t)-1)
+#define GROW_TIGHT ((size_t)1)
 
 #define	LOCAL_OVERFLOW	  (-1)
 #define	GLOBAL_OVERFLOW	  (-2)
 #define	TRAIL_OVERFLOW	  (-3)
 #define	ARGUMENT_OVERFLOW (-4)
-#define	MEMORY_OVERFLOW   (-5)		/* out of malloc()-heap */
+#define STACK_OVERFLOW    (-5)		/* total stack limit overflow */
+#define	MEMORY_OVERFLOW   (-6)		/* out of malloc()-heap */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */
