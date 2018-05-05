@@ -4879,6 +4879,11 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       { gsize = uglobal + uglobal * space/need;
 	tsize = utrail  + utrail  * space/need;
 	lsize = ulocal  + ulocal  * space/need;
+
+	gsize = ROUND(gsize, 4096);
+	tsize = ROUND(tsize, 4096);
+	lsize = ROUND(lsize, 4096);
+
 	DEBUG(MSG_STACK_OVERFLOW, Sdprintf(" --> l:g:t = %zd:%zd:%zd\n",
 					   lsize, gsize, tsize));
       } else
@@ -4888,9 +4893,11 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     }
   }
 
-  if ( sizeStack(global) == gsize &&
-       sizeStack(trail)  == tsize &&
-       sizeStack(local)  == lsize )
+  l = (sizeStack(local)  != lsize);
+  g = (sizeStack(global) != gsize);
+  t = (sizeStack(trail)  != tsize);
+
+  if ( !(l || g || t) )
     return TRUE;
 
   enterGC(PASS_LD1);			/* atom-gc synchronisation */
@@ -4910,6 +4917,8 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LocalFrame lb = lBase;
     double time, time0 = ThreadCPUTime(LD, CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+
+    DEBUG(MSG_SHIFT, verbose = TRUE);
 
     if ( verbose )
     { const char *prefix;
