@@ -4977,13 +4977,20 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 	gb = nw;
 	lb = addPointer(gb, gsize);
-	if ( gsize > ogsize )
-	  memmove(lb, addPointer(gb, ogsize), olsize);
-      } else
+	if ( gsize > ogsize ) {
+	  size_t copy = olsize;
+
+	  if ( lsize < olsize ) copy = lsize;
+	  memmove(lb, addPointer(gb, ogsize), copy);
+	}
+      } else				/* realloc failed; restore */
       { if ( g )
 	  fatal = (Stack)&LD->stacks.global;
 	else
 	  fatal = (Stack)&LD->stacks.local;
+
+	if ( gsize < ogsize )
+	  memmove(lb, addPointer(gb, gsize), olsize);
 
 	gsize = sizeStack(global);
 	lsize = sizeStack(local);
