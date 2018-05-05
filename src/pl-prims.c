@@ -5252,24 +5252,20 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = LD->statistics.inferences;
   else if (key == ATOM_stack)
     v->value.i = GD->statistics.stack_space;
+  else if (key == ATOM_stack_limit)
+    v->value.i = LD->stacks.limit;
   else if (key == ATOM_local)				/* local stack */
     v->value.i = sizeStack(local);
   else if (key == ATOM_localused)
     v->value.i = usedStack(local);
-  else if (key == ATOM_locallimit)
-    v->value.i = MAXTAGGEDPTR+1;
   else if (key == ATOM_trail)				/* trail */
     v->value.i = sizeStack(trail);
   else if (key == ATOM_trailused)
     v->value.i = usedStack(trail);
-  else if (key == ATOM_traillimit)
-    v->value.i = MAXTAGGEDPTR+1;
   else if (key == ATOM_global)				/* global */
     v->value.i = sizeStack(global);
   else if (key == ATOM_globalused )
     v->value.i = usedStack(global);
-  else if (key == ATOM_globallimit)
-    v->value.i = MAXTAGGEDPTR+1;
   else if (key == ATOM_c_stack)
     v->value.i = CStackSize(LD);
   else if (key == ATOM_atoms)				/* atoms */
