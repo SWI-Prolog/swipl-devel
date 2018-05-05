@@ -5077,6 +5077,14 @@ reenable_spare_stack(void *ptr, int prev)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that the trail can have  references   to  unused  stack. We set the
+references to point to a  dummy  variable,   so  no  harm  will be done.
+Setting  it  to  NULL  would  require  a    test  in  Undo(),  which  is
+time-critical. trim_stacks normally isn't. This precaution is explicitly
+required for the trimStacks() that result from a stack-overflow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 growStacks(size_t l, size_t g, size_t t)
 { GET_LD
