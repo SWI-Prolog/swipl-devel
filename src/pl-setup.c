@@ -1572,39 +1572,20 @@ gcPolicy(Stack s, int policy)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-trimStacks() reclaims all unused space on the stack. Note that the trail
-can have references to unused stack. We set the references to point to a
-dummy variable, so no harm  will  be   done.  Setting  it  to NULL would
-require a test in Undo(), which   is time-critical. trim_stacks normally
-isn't. This precaution is explicitly required  for the trimStacks() that
-result from a stack-overflow.
+trimStacks() reclaims all unused space on the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 trimStacks(int resize ARG_LD)
-{ int scantrail;
-
-  LD->trim_stack_requested = FALSE;
+{ LD->trim_stack_requested = FALSE;
 
   if ( resize )
-  { LocalFrame olb = lBase;
-    LocalFrame olm = lMax;
-    Word ogb = gBase;
-    Word ogm = gMax;
-
-    growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
-
-    if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
-      scantrail = TRUE;
-    else
-      scantrail = FALSE;
+  { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
   } else
   { trim_stack((Stack) &LD->stacks.local);
     trim_stack((Stack) &LD->stacks.global);
     trim_stack((Stack) &LD->stacks.trail);
     trim_stack((Stack) &LD->stacks.argument);
-
-    scantrail = FALSE;
   }
 
 #ifdef SECURE_GC
@@ -1616,21 +1597,6 @@ trimStacks(int resize ARG_LD)
       *p = 0xbfbfbfbf;
   }
 #endif
-
-  if ( scantrail )
-  { TrailEntry te;
-
-    for(te = tTop; --te >= tBase; )
-    { Word p = te->address;
-
-      if ( isTrailVal(p) )
-	continue;
-
-      if ( !onStack(local, p) && !onStack(global, p) )
-      { te->address = valTermRef(LD->trim.dummy);
-      }
-    }
-  }
 
   DEBUG(CHK_SECURE,
 	{ scan_global(FALSE);

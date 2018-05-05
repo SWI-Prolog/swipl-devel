@@ -4864,9 +4864,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { return rc;
   } else
   { if ( tsize + gsize + lsize > LD->stacks.limit )
-    { size_t ulocal  = needStack((Stack)&LD->stacks.trail PASS_LD)  + l;
+    { size_t ulocal  = needStack((Stack)&LD->stacks.local PASS_LD)  + l;
       size_t uglobal = needStack((Stack)&LD->stacks.global PASS_LD) + g;
-      size_t utrail  = needStack((Stack)&LD->stacks.local PASS_LD)  + t;
+      size_t utrail  = needStack((Stack)&LD->stacks.trail PASS_LD)  + t;
       size_t need    = ulocal + utrail + uglobal;
       size_t space;
 
@@ -4879,7 +4879,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       { gsize = uglobal + uglobal * space/need;
 	tsize = utrail  + utrail  * space/need;
 	lsize = ulocal  + ulocal  * space/need;
-	DEBUG(MSG_STACK_OVERFLOW, Sdprintf(" --> l:g:t = %zd:%zd+%zd\n",
+	DEBUG(MSG_STACK_OVERFLOW, Sdprintf(" --> l:g:t = %zd:%zd:%zd\n",
 					   lsize, gsize, tsize));
       } else
       { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Got stack overflow;\n"));
@@ -5082,6 +5082,10 @@ growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
   int sl, sg, st;
+  LocalFrame olb = lBase;
+  LocalFrame olm = lMax;
+  Word ogb = gBase;
+  Word ogm = gMax;
 
 #ifdef O_MAINTENANCE
   save_backtrace("SHIFT");
@@ -5098,6 +5102,21 @@ growStacks(size_t l, size_t g, size_t t)
   reenable_spare_stack(&LD->stacks.trail,  st);
   reenable_spare_stack(&LD->stacks.global, sg);
   reenable_spare_stack(&LD->stacks.local,  sl);
+
+  if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
+  { TrailEntry te;
+
+    for(te = tTop; --te >= tBase; )
+    { Word p = te->address;
+
+      if ( isTrailVal(p) )
+	continue;
+
+      if ( !onStack(local, p) && !onStack(global, p) )
+      { te->address = valTermRef(LD->trim.dummy);
+      }
+    }
+  }
 
   return rc;
 }
