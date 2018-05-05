@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2014, VU University, Amsterdam
+    Copyright (c)  2010-2018, VU University, Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,6 +35,7 @@
 
 :- module(test_resource_error, [test_resource_error/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test Resource overflows
 
@@ -46,15 +48,13 @@ test_resource_error :-
 	run_tests([ resource_error
 		  ]).
 
-small_stacks(limits(LLimit, GLimit)) :-
-	prolog_stack_property(local, limit(LLimit)),
-	prolog_stack_property(global, limit(GLimit)),
-	set_prolog_stack(local, limit(1*1024*1024)),
-	set_prolog_stack(global, limit(1*1024*1024)).
+small_stacks(limit(Limit)) :-
+	current_prolog_flag(stack_limit, Limit),
+	set_prolog_flag(stack_limit, 1_000_000).
 
-restore_stacks(limits(LLimit, GLimit)) :-
-	set_prolog_stack(local, limit(LLimit)),
-	set_prolog_stack(global, limit(GLimit)).
+restore_stacks(limit(Limit)) :-
+	writeln(Limit),
+	set_prolog_flag(stack_limit, Limit).
 
 
 :- begin_tests(resource_error,
@@ -95,22 +95,22 @@ link_clause(N, (X=X, G)) :-
         link_clause(N2, G).
 
 
-test(local, throws(error(resource_error(stack), local))) :-
+test(local, throws(error(resource_error(stack), _))) :-
 	local_overflow.
-test(global, throws(error(resource_error(stack), global))) :-
+test(global, throws(error(resource_error(stack), _))) :-
 	global_overflow(0).
-test(string, throws(error(resource_error(stack), global))) :-
+test(string, throws(error(resource_error(stack), _))) :-
 	catch(string_overflow(_), E1, true),
-	E1 = error(resource_error(stack), global),
+	assertion(E1 = error(resource_error(stack), _)),
 	string_overflow(_).
-test(string, throws(error(resource_error(stack), global))) :-
+test(string, throws(error(resource_error(stack), _))) :-
 	catch(string_overflow(_), E1, true),
-	E1 = error(resource_error(stack), global),
+	assertion(E1 = error(resource_error(stack), _)),
 	global_overflow(_).
-test(length, throws(error(resource_error(stack), global))) :-
+test(length, throws(error(resource_error(stack), _))) :-
 	length(L, 10000000),
 	is_list(L).			% avoid GC
-test(tight_stacks, throws(error(resource_error(stack), global))) :-
+test(tight_stacks, throws(error(resource_error(stack), _))) :-
 	between(1, 20, X),
 	trim_stacks,
 	Len is 1<<X,
