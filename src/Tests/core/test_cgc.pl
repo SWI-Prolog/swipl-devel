@@ -58,7 +58,7 @@ join(Id) :-
 	assertion(Status == true).
 
 count_thread(N, Id) :-
-	thread_create(count(N), Id, [ local(2000) ]).
+	thread_create(count(N), Id, [ stack(2_000_000) ]).
 
 count(N) :-
 	between(1, N, _),
