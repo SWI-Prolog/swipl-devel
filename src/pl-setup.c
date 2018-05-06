@@ -1704,7 +1704,6 @@ set_stack_limit(size_t limit)
   }
 
   LD->stacks.limit = limit;
-  setPrologFlag("stack_limit", FT_INTEGER, limit);
 
   return TRUE;
 }

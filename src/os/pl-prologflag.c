@@ -809,21 +809,19 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
       if ( !PL_get_int64_ex(value, &i) )
 	return FALSE;
-      if ( i != f->value.i )
-      {
-#ifdef O_ATOMGC
-        if ( k == ATOM_agc_margin )
-	  GD->atoms.margin = (size_t)i;
-        else
-#endif
-	if ( k == ATOM_table_space )
-	  LD->tabling.node_pool.limit = (size_t)i;
-	else if ( k == ATOM_stack_limit )
-	{ if ( ! set_stack_limit((size_t)i) )
-	    return FALSE;
-	}
-      }
       f->value.i = i;
+
+#ifdef O_ATOMGC
+      if ( k == ATOM_agc_margin )
+	GD->atoms.margin = (size_t)i;
+      else
+#endif
+      if ( k == ATOM_table_space )
+	LD->tabling.node_pool.limit = (size_t)i;
+      else if ( k == ATOM_stack_limit )
+      { if ( !set_stack_limit((size_t)i) )
+	  return FALSE;
+      }
       break;
     }
     case FT_FLOAT:
@@ -1052,6 +1050,8 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
     return FALSE;
   } else if ( key == ATOM_access_level )
   { return PL_unify_atom(val, accessLevel());
+  } else if ( key == ATOM_stack_limit )
+  { return PL_unify_int64(val, LD->stacks.limit);
   }
 
   switch(f->flags & FT_MASK)
