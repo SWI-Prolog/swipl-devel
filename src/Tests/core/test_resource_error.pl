@@ -53,7 +53,6 @@ small_stacks(limit(Limit)) :-
 	set_prolog_flag(stack_limit, 1_000_000).
 
 restore_stacks(limit(Limit)) :-
-	writeln(Limit),
 	set_prolog_flag(stack_limit, Limit).
 
 

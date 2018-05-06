@@ -1537,8 +1537,11 @@ foreignWakeup(term_t ex ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Called at the end of handling an exception. We cannot do GC, however, we
 can request it, after it will be executed   at the start of the recovery
-handler. If no GC is needed, we call trimStacks() to re-enable the spare
-stack-space if applicable.
+handler. If no GC is needed the is enoush space so, we call trimStacks()
+to re-enable the spare stack-space if applicable.
+
+TBD: In these modern days we can  probably   do  GC. Still, if it is not
+needed why would we?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -1553,8 +1556,8 @@ resumeAfterException(int clear, Stack outofstack)
     setVar(*valTermRef(LD->exception.pending));
   }
 
-  if ( outofstack && outofstack->gc )
-    outofstack->gced_size = 0;
+  LD->stacks.global.gced_size = 0;
+  LD->stacks.trail.gced_size  = 0;
 
   if ( !considerGarbageCollect((Stack)NULL) )
   { trimStacks((outofstack != NULL) PASS_LD);

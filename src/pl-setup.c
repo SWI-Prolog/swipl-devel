@@ -1582,7 +1582,8 @@ trimStacks(int resize ARG_LD)
   if ( resize )
   { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
   } else
-  { trim_stack((Stack) &LD->stacks.local);
+  { DEBUG(MSG_SPARE_STACK, Sdprintf("Reclaiming spare stacks\n"));
+    trim_stack((Stack) &LD->stacks.local);
     trim_stack((Stack) &LD->stacks.global);
     trim_stack((Stack) &LD->stacks.trail);
     trim_stack((Stack) &LD->stacks.argument);
