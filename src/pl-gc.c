@@ -4768,7 +4768,7 @@ nextStackSizeAbove(size_t n)
   }
 #endif
 
-  size = (size_t)4 << MSB(n);
+  size = (size_t)2 << MSB(n);
   if ( size < SMALLSTACK )
     size = SMALLSTACK;
 					/* enforce real limit */
