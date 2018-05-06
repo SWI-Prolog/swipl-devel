@@ -46,12 +46,12 @@
 %	parts of this process.
 
 test_clause_gc :-
-	setup_call_cleanup(( prolog_stack_property(global, limit(GLimit)),
-			     set_prolog_stack(global, limit(2*1024*1024)),
+	setup_call_cleanup(( current_prolog_flag(stack_limit, SavedLimit),
+			     set_prolog_flag(stack_limit, 2_000_000),
 			     gspace(Cells),
 			     MaxLen is max(20000, (Cells//2)//3)),
 			   test_clause_gc(MaxLen),
-			   set_prolog_stack(global, limit(GLimit))).
+			   set_prolog_flag(stack_limit, SavedLimit)).
 
 test_clause_gc(N) :-
 	run(N, L),
@@ -96,7 +96,7 @@ a(_,_).
 		 *******************************/
 
 gspace(Cells) :-
-        statistics(globallimit, Limit),
+	current_prolog_flag(stack_limit, Limit),
         statistics(globalused, Used),
 	current_prolog_flag(address_bits, Wlen),
         Cells is (Limit-Used)//(Wlen//8).
