@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2014, VU University Amsterdam
+    Copyright (c)  2013-2018, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@
 % otherwise optimised clauses are not loaded (already set in suite)
 %:- set_test_options([load(always)]).
 %:- debug(break_hook).
+%:- debug(break_hook(progress)).
 
 test_d_break :-
 	run_tests([ d_break
@@ -226,12 +228,16 @@ set_action(Action) :-
 %	Run t_break/1 test set for all clauses that match Head.
 
 run(Head) :-
+	garbage_collect,
+	trim_stacks,
+%	statistics,
 	forall(clause(t_break(Head), _),
 	       (   trim_stacks,
 		   catch(t_break(Head), E, true)
 	       ->  (   var(E)
 		   ->  true
-		   ;   debug(break_hook, 'Error: ~q', [E])
+		   ;   debug(break_hook, 'Error: ~q', [E]),
+		       garbage_collect
 		   )
 	       ;   (   action(Action)
 		   ->  true
@@ -254,10 +260,10 @@ prolog:break_hook(Clause, PC, FR, BFR, What, continue) :-
 	stress(hook).
 
 
-gshift :- shift(global_shifts).
-tshift :- shift(trail_shifts).
+gshift :- shift_stack(global_shifts).
+tshift :- shift_stack(trail_shifts).
 
-shift(Stat) :-
+shift_stack(Stat) :-
         statistics(Stat, S0),
 	shift(S0, Stat, X),
         shift_a(X).			% ensure term is used.
