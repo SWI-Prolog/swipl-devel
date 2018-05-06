@@ -675,6 +675,20 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  GD->signals.sig_alert = sig;
 	else
 	  return -1;
+      } else if ( (optval=is_longopt(s, "stack_limit")) )
+      { size_t size = memarea_limit(optval);
+
+	if ( size == MEMAREA_INVALID_SIZE )
+	  return -1;
+
+	GD->options.stackLimit = size;
+      } else if ( (optval=is_longopt(s, "table_space")) )
+      { size_t size = memarea_limit(optval);
+
+	if ( size == MEMAREA_INVALID_SIZE )
+	  return -1;
+
+	GD->options.tableSpace = size;
       }
 
       if ( compile )
@@ -721,28 +735,17 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	case 'b':	break;			/* already processed */
 	case 'q':	GD->options.silent = TRUE;
 			break;
-	case 'S':
-	case 'M':
-        { size_t size = memarea_limit(&s[1]);
-
-	  if ( size == MEMAREA_INVALID_SIZE )
-	    return -1;
-
-	  switch(*s)
-	  { case 'S':	GD->options.stackLimit = size; goto next;
-	    case 'M':	GD->options.tableSpace = size; goto next;
-	  }
-	}
         default:
 	{ if ( s == &argv[0][1] )
-	    argvleft[argcleft++] = argv[0];
-	  else
+	  { argvleft[argcleft++] = argv[0];
+	    goto next;
+	  } else
 	    return -1;
 	}
       }
       s++;
     }
-    next:;
+  next:;
   }
 
   for(; argc>0; argc--, argv++)
@@ -1037,38 +1040,38 @@ usage(void)
 
   static const cline lines[] = {
     "%s: Usage:\n",
-    "    1) %s --help     Display this message (also -h)\n",
-    "    2) %s --version  Display version information (also -v)\n",
-    "    3) %s --arch     Display architecture\n",
-    "    4) %s --dump-runtime-variables[=format]\n"
-    "                     Dump link info in sh(1) format\n",
-    "    5) %s [options] prolog-file ... [-- arg ...]\n",
-    "    6) %s [options] [-o output] -c prolog-file ...\n",
-    "    7) %s [options] [-o output] -b bootfile -c prolog-file ...\n",
+    "    1) %s [options] prolog-file ... [-- arg ...]\n",
+    "    2) %s [options] [-o executable] -c prolog-file ...\n",
+    "    3) %s --help     Display this message (also -h)\n",
+    "    4) %s --version  Display version information (also -v)\n",
+    "    4) %s --arch     Display architecture\n",
+    "    6) %s --dump-runtime-variables[=format]\n"
+    "                        Dump link info in sh(1) format\n",
     "\n",
     "Options:\n",
-    "    -x state          Start from state (must be first)\n",
-    "    -[LGT]size[KMG]   Specify {Local,Global,Trail} limits\n",
-    "    -t toplevel       Toplevel goal\n",
-    "    -g goal           Initialisation goal\n",
-    "    -f file           User initialisation file\n",
-    "    -F file           System initialisation file\n",
-    "    -l file           Script source file\n",
-    "    -s file           Script source file\n",
-    "    -p alias=path     Define file search path 'alias'\n",
-    "    -O                Optimised compilation\n",
-    "    --tty[=bool]      (Dis)allow tty control\n",
-    "    --signals[=bool]  Do (not) modify signal handling\n",
-    "    --debug[=bool]    Do (not) generate debug info\n",
-    "    --quiet[=bool]    Do (not) suppress informational messages (also -q)\n",
-    "    --traditional     Disable extensions of version 7\n",
-    "    --home=DIR        Use DIR as SWI-Prolog home\n",
-    "    --pldoc[=port]    Start PlDoc server [at port]\n",
+    "    -x state                 Start from state (must be first)\n",
+    "    -g goal                  Run goal (may be repeated)\n",
+    "    -t toplevel              Toplevel goal\n",
+    "    -f file                  User initialisation file\n",
+    "    -F file                  Site initialisation file\n",
+    "    -l file                  Script source file\n",
+    "    -s file                  Script source file\n",
+    "    -p alias=path            Define file search path 'alias'\n",
+    "    -O                       Optimised compilation\n",
+    "    --tty[=bool]             (Dis)allow tty control\n",
+    "    --signals[=bool]         Do (not) modify signal handling\n",
+    "    --debug[=bool]           Do (not) generate debug info\n",
+    "    --quiet[=bool] (-q)      Do (not) suppress informational messages\n",
+    "    --traditional            Disable extensions of version 7\n",
+    "    --home=DIR               Use DIR as SWI-Prolog home\n",
+    "    --stack_limit=size[BKMG] Specify maximum size of Prolog stacks\n",
+    "    --table_space=size[BKMG] Specify maximum size of SLG tables\n",
+    "    --pldoc[=port]           Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
-    "    --win_app	   Behave as Windows application\n",
+    "    --win_app	          Behave as Windows application\n",
 #endif
 #ifdef O_DEBUG
-    "    -d level|topic    Enable maintenance debugging\n",
+    "    -d topic,topic,...       Enable maintenance debugging\n",
 #endif
     "\n",
     "Boolean options may be written as --name=bool, --name, --no-name ",
@@ -1192,24 +1195,21 @@ runtime_vars(int format)
 
 static int
 giveVersionInfo(const char *a)
-{ if ( *a != '-' )
+{ if ( a[0] != '-' || a[1] != '-' )
     return FALSE;
 
-  if ( streq(a, "-help") || streq(a, "--help") || streq(a, "-h") )
+  if ( streq(a, "--help") )
     return usage();
-  if ( streq(a, "-arch") || streq(a, "--arch") )
+  if ( streq(a, "--arch") )
     return arch();
-  if ( streq(a, "--version") || streq(a, "-v") )
+  if ( streq(a, "--version") )
     return version();
 
-  if ( a[1] == '-' )			/* allow for --name versions */
-    a++;
-
-  if ( streq(a, "-dump-runtime-variables") )
+  if ( streq(a, "--dump-runtime-variables") )
     return runtime_vars(FMT_SH);
-  if ( streq(a, "-dump-runtime-variables=sh") )
+  if ( streq(a, "--dump-runtime-variables=sh") )
     return runtime_vars(FMT_SH);
-  if ( streq(a, "-dump-runtime-variables=cmd") )
+  if ( streq(a, "--dump-runtime-variables=cmd") )
     return runtime_vars(FMT_CMD);
 
   return FALSE;
