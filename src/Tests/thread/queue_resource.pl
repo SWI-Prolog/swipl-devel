@@ -63,6 +63,6 @@ queue_resource :-
 	).
 
 client(Main) :-
-	statistics(globallimit, Limit),
+	current_prolog_flag(stack_limit, Limit),
 	thread_send_message(Main, ready(Limit)),
 	thread_get_message(_Msg).
