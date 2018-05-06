@@ -49,7 +49,7 @@
 
 queue_resource :-
 	thread_self(Me),
-	thread_create(client(Me), Id, [ global(100) ]),
+	thread_create(client(Me), Id, [ stack(100_000) ]),
 	thread_get_message(ready(Limit)),
 	Length is (Limit+10000)//12,
 	numlist(1, Length, L),
