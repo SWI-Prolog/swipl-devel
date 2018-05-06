@@ -211,16 +211,14 @@ make_header(_, _, _).
                  *           OPTIONS            *
                  *******************************/
 
-min_stack(local,    32).
-min_stack(global,   16).
-min_stack(trail,    16).
+min_stack(stack,    100_000).
 
 convert_option(Stack, Val, NewVal, "~w") :-     % stack-sizes are in K-bytes
     min_stack(Stack, Min),
     !,
     (   Val == 0
     ->  NewVal = Val
-    ;   NewVal is max(Min, Val*1024)
+    ;   NewVal is max(Min, Val)
     ).
 convert_option(toplevel, Callable, Callable, "~q") :- !.
 convert_option(_, Value, Value, "~w").
