@@ -1743,6 +1743,13 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
     if ( k == ATOM_limit )
     { size_t newlimit;
 
+      if ( !printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "deprecated", 1,
+			   PL_FUNCTOR_CHARS, "set_prolog_stack", 2,
+			     PL_TERM, A1,
+			     PL_ATOM, ATOM_limit) )
+	return FALSE;
+
       return ( PL_unify_int64(old, LD->stacks.limit) &&
 	       PL_get_size_ex(value, &newlimit) &&
 	       set_stack_limit(newlimit)

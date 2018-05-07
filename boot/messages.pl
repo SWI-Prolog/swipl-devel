@@ -571,6 +571,8 @@ prolog_message(unknown_in_module_user) -->
       'Please use :- dynamic or limit usage of unknown to a module.', nl,
       'See http://www.swi-prolog.org/howto/database.html'
     ].
+prolog_message(deprecated(What)) -->
+    deprecated(What).
 
 
                  /*******************************
@@ -1362,6 +1364,16 @@ env(Name) -->
 env(Name) -->
     [ '$~w'-[Name] ].
 
+		 /*******************************
+		 *          DEPRECATED		*
+		 *******************************/
+
+deprecated(set_prolog_stack(_Stack,limit)) -->
+    [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
+      'See http://www.swi-prolog.org/changes/stack-limit.html'
+    ].
+
+
                  /*******************************
                  *      PRINTING MESSAGES       *
                  *******************************/
@@ -1624,6 +1636,7 @@ append_args(Args0, Args1, Args) :-
 
 print_once(compatibility(_), _).
 print_once(null_byte_in_path(_), _).
+print_once(deprecated(_), _).
 
 %!  must_print(+Level, +Message)
 %
