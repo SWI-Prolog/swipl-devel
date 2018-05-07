@@ -254,6 +254,15 @@ resource exceptions near the bottom. That would   also avoid the need to
 freeze the global stack. One  problem  is   that  the  user  migh keep a
 reference to this reserved exception term,  which makes it impossible to
 reuse.
+
+Out of stack exception context:
+  - Stack sizes (Local, Global, Trail)
+  - Goal stack depth
+  - Ratio choice points/stack frames?
+  - Is there unbound recursion?
+  - Ratio global data reachable through environments and
+    choice points (requires running GC)
+  - Global storage only reachable through choice points
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
