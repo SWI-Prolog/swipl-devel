@@ -3164,7 +3164,10 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 		     &inherit_from) )
     return FALSE;
 
-  if ( stack ) attrs.stack_limit = stack;
+  if ( stack )
+    attrs.stack_limit = stack;
+  else
+    attrs.stack_limit = LD->stacks.limit;
 
   if ( (new = PL_create_engine(&attrs)) )
   { PL_engine_t me;

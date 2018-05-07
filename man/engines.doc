@@ -308,12 +308,9 @@ options.  See thread_create/3 for details.
     Give the engine a name.  \arg{Name} must be an atom.  If this
     option is provided, \arg{Engine} is unified with \arg{Name}.
     The name space for engines is shared with threads and mutexes.
-        \termitem{global}{KBytes}
-    Set the limit for the global stack in KBytes.
-        \termitem{local}{KBytes}
-    Set the limit for the local stack in KBytes.
-        \termitem{trail}{KBytes}
-    Set the limit for the trail stack in KBytes.
+        \termitem{stack}{+Bytes}
+Set the stack limit for the engine.  The default is inherited from
+the calling thread.
     \end{description}
 The \arg{Engine} argument of engine_create/3 may be instantiated to an
 atom, creating an engine with the given alias.
