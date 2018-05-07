@@ -243,7 +243,7 @@ compare_dict_entry(const void *a, const void *b, void *arg)
 }
 
 
-static int
+int
 dict_order(Word dict, int ex ARG_LD)
 { Functor data = (Functor)dict;
   int arity = arityFunctor(data->definition);

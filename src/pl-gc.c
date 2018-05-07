@@ -4305,14 +4305,6 @@ ensureGlobalSpace(size_t cells, int flags)
       return TRUE;
   }
 
-/*
-  enableSpareStack((Stack)&LD->stacks.global);
-  enableSpareStack((Stack)&LD->stacks.trail);
-
-  if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
-    return TRUE; //PL_raise(SIG_GC);
-*/
-
   if ( gTop+cells > gMax )
     return GLOBAL_OVERFLOW;
   else

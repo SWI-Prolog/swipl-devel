@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#include "pl-dict.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -238,6 +240,40 @@ enableSpareStacks(void)
   enableSpareStack((Stack)&LD->stacks.trail);
 }
 
+
+static word
+push_overflow_context(Stack stack, int extra)
+{ GET_LD
+  int keys = 4;
+
+  if ( gTop+2*keys+extra < gMax )
+  { Word p = gTop;
+    Word dict = p;
+
+    *p++ = dict_functor(1);
+    *p++ = ATOM_stack_overflow;			/* dict tag */
+    *p++ = consInt(usedStack(local));
+    *p++ = ATOM_localused;
+    *p++ = consInt(usedStack(global));
+    *p++ = ATOM_globalused;
+    *p++ = consInt(usedStack(trail));
+    *p++ = ATOM_trailused;
+    if ( environment_frame )
+    { *p++ = consUInt(environment_frame->level);
+      *p++ = ATOM_depth;
+    }
+
+    *dict = dict_functor((p-dict-2)/2);		/* final functor */
+
+    gTop = p;
+    dict_order(dict, FALSE PASS_LD);
+
+    return consPtr(dict, STG_GLOBAL|TAG_COMPOUND);
+  } else
+    return PL_new_atom(stack->name); /* The stack names are built-in atoms */
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*)  outOfStack(stack,  how)  is  called  to   raise  a  stack  overflow
 exception. This can happen from two  placed:   the  VM and foreign code.
@@ -299,16 +335,17 @@ outOfStack(void *stack, stack_overflow_action how)
   switch(how)
   { case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { if ( gTop+5 < gMax )
+    { word ctx = push_overflow_context(s, 5);
+
+      if ( gTop+5 < gMax )
       { Word p = gTop;
 
 	p[0] = FUNCTOR_error2;			/* see (*) above */
 	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
-	p[2] = PL_new_atom(s->name);
+	p[2] = ctx;
 	p[3] = FUNCTOR_resource_error1;
 	p[4] = ATOM_stack;
 	gTop += 5;
-	PL_unregister_atom(p[2]);
 
 	*valTermRef(LD->exception.bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	freezeGlobal(PASS_LD1);
