@@ -9566,34 +9566,18 @@ resources after every user query.
 
     \predicate{set_prolog_stack}{2}{+Stack, +KeyValue}
 Set a parameter for one of the Prolog runtime stacks. \arg{Stack} is one
-of \const{local}, \const{global}, \const{trail} or \const{argument}. The
-table below describes the \arg{Key}(\arg{Value}) pairs.  \arg{Value} can
-be an arithmetic integer expression.  For example, to specify a 2~GB limit for
-the global stack, one can use:
-
-\begin{code}
-?- set_prolog_stack(global, limit(2*10**9)).
-\end{code}
+of \const{local}, \const{global} or \const{trail}. The table below
+describes the \arg{Key}(\arg{Value}) pairs.
 
 Current settings can be retrieved with prolog_stack_property/2.
 
 \begin{description}
-    \termitem{limit}{+Bytes}
-
-Set the limit to which the stack is allowed to grow. If the specified
-value is lower than the current usage a \const{permission_error} is
-raised. If the limit is larger than supported, the system silently
-reduces the requested limit to the system limit.  Setting the global
-stack limit also raises the trail stack limit if the current limit is
-smaller than 1/6th of the new global limit.  See also
-\cmdlineoption{-G} and \secref{memlimit}.
-
     \termitem{min_free}{+Cells}
 Minimum amount of free space after trimming or shifting the stack.
 Setting this value higher can reduce the number of garbage collections
-and stack-shifts at the cost of higher memory usage. The spare stack
-amount is reported and specified in `cells'. A cell is 4 bytes in the
-32-bit version and 8 bytes on the 64-bit version. See
+and stack-shifts at the cost of higher memory usage. The
+amount is reported and specified in \jargon{cells}. A cell is 4 bytes
+in the 32-bit version and 8 bytes on the 64-bit version. See
 \prologflag{address_bits}. See also trim_stacks/0 and debug/0.
 
     \termitem{low}{+Cells}
