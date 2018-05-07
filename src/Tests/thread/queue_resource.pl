@@ -55,7 +55,7 @@ queue_resource :-
 	numlist(1, Length, L),
 	thread_send_message(Id, L),
 	thread_join(Id, Status),
-	(   Status == exception(error(resource_error(stack), global))
+	(   subsumes_term(exception(error(resource_error(stack), _)), Status)
 	->  true
 	;   format(user_error,
 		   'ERROR: queue_resource/0: wrong status: ~p~n', [Status]),

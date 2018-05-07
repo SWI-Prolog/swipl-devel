@@ -119,7 +119,7 @@ test(tight_stacks, throws(error(resource_error(stack), _))) :-
 test(cleanup_handler, [setup((thread_create(big_clause(500000), Id,
 					    [stack(1_000_000_000)]),
                               thread_join(Id, true))),
-                       throws(error(resource_error(stack), local)),
+                       throws(error(resource_error(stack), _)),
                        cleanup(retractall(tmp))]) :-
 	setup_call_cleanup(true, tmp, true).
 :- end_tests(resource_error).
