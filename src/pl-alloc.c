@@ -241,10 +241,47 @@ enableSpareStacks(void)
 }
 
 
+static intptr_t
+env_frames(LocalFrame fr)
+{ intptr_t count = 0;
+
+  while(fr)
+  { count++;
+    fr = parentFrame(fr);
+  }
+
+  return count;
+}
+
+
+static intptr_t
+choice_points(Choice chp)
+{ GET_LD
+
+  intptr_t count = 0;
+  QueryFrame qfr = LD->query;
+
+  while( chp )
+  { count++;
+
+    if ( chp->parent )
+    { chp = chp->parent;
+    } else if ( qfr )
+    { assert(qfr->magic == QID_MAGIC);
+      chp = qfr->saved_bfr;
+      qfr = qfr->parent;
+    }
+  }
+
+  return count;
+}
+
+
+
 static word
 push_overflow_context(Stack stack, int extra)
 { GET_LD
-  int keys = 4;
+  int keys = 6;
 
   if ( gTop+2*keys+extra < gMax )
   { Word p = gTop;
@@ -262,6 +299,10 @@ push_overflow_context(Stack stack, int extra)
     { *p++ = consUInt(environment_frame->level);
       *p++ = ATOM_depth;
     }
+    *p++ = consInt(env_frames(environment_frame));
+    *p++ = ATOM_environments;
+    *p++ = consInt(choice_points(BFR));
+    *p++ = ATOM_choicepoints;
 
     *dict = dict_functor((p-dict-2)/2);		/* final functor */
 
