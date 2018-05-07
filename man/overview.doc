@@ -1747,6 +1747,10 @@ flag is \const{false} if the hosting OS does not support signal handling
 or the command line option \cmdlineoption{-nosignals} is active.  See
 \secref{sigembedded} for details.
 
+    \prologflagitem{stack_limit}{int}{rw}
+Limits the combined sizes of the Prolog stacks for the current thread.
+See alse \cmdlineoption{--stack} and \secref{memlimit}.
+
     \prologflagitem{stream_type_check}{atom}{rw}
 Defines whether and how strictly the system validates that byte I/O
 should not be applied to text streams and text I/O should not be applied
