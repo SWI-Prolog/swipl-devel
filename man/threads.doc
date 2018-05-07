@@ -81,7 +81,7 @@ the platform.
     \termitem{affinity}{+CpuSet}
 Specify that the thread should only on any of the listed CPUs (cores).
 \arg{CpuSet} is a list of integers between 0 (zero) and the known number
-of CPUs (see \prologflag{cpu_count}). In \arg{CpuSet} is empty a
+of CPUs (see \prologflag{cpu_count}). If \arg{CpuSet} is empty a
 \const{domain_error} is raised. Referring to CPUs equal to or higher
 than the known number of CPUs returns a \const{existence_error}.
 
@@ -141,28 +141,17 @@ inherited:
         \item The default encoding (see \prologflag{encoding})
         \item The default locale (see setlocale/1)
         \item All prolog flags
-	\item The limits of Prolog stacks (see set_prolog_stack/2)
+	\item The stack limit (see Prolog flag \prologflag{stack_limit}).
     \end{itemize}
 
-    \termitem{global}{K-Bytes}
-Set the limit to which the global stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-G} command line option.
-
-    \termitem{local}{K-Bytes}
-Set the limit to which the local stack of this thread may grow.  If
-omitted, the limit of the calling thread is used.  See also the
-\cmdlineoption{-L} command line option.
+    \termitem{stack}{Bytes}
+Set the size limit for the Prolog stacks. See the Prolog flag
+\prologflag{stack_limit}.  The default is inherited from the calling
+thread or the thread specified using \term{{inherit_from}{ThreadId}.
 
     \termitem{c_stack}{K-Bytes}
-Set the limit to which the system stack of this thread may grow.  The
-default, minimum and maximum values are system-dependent.\footnote{Older
-versions used \const{stack}.  This is still accepted as a synonym.}
-
-    \termitem{trail}{K-Bytes}
-Set the limit to which the trail stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-T} command line option.
+Set the limit to which the C~stack of this thread may grow.  The
+default, minimum and maximum values are system-dependent.
 \end{description}
 
 The \arg{Goal} argument is \emph{copied} to the new Prolog engine.

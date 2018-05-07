@@ -1966,7 +1966,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
-  info->stack_limit = stack;
+  if ( stack )
+    info->stack_limit = stack;
+  else
+    info->stack_limit = ldold->stacks.limit;
+
   th = create_thread_handle(info);
   if ( alias )
   { if ( !aliasThread(info->pl_tid, ATOM_thread, alias) )
