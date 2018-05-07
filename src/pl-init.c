@@ -689,14 +689,11 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  return -1;
 
 	GD->options.tableSpace = size;
+      } else if ( !compile )
+      { argvleft[argcleft++] = argv[0];
       }
 
-      if ( compile )
-      { continue;			/* do not handle --long=value */
-      } else
-      { argvleft[argcleft++] = argv[0];
-	continue;
-      }
+      continue;
     }
 
     if ( streq(s, "tty") )
