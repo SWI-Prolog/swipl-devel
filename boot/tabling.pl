@@ -366,7 +366,9 @@ extract_modes(ModeSpec, Head, Variant, Modes, ModedAnswer) :-
     compound_name_arguments(ModeSpec, Name, ModeSpecArgs),
     compound_name_arguments(Head, Name, HeadArgs),
     separate_args(ModeSpecArgs, HeadArgs, VariantArgs, Modes, ModedArgs),
-    Variant =.. [Name|VariantArgs],
+    length(ModedArgs, Count),
+    atomic_list_concat([$,Name,$,Count], VName),
+    Variant =.. [VName|VariantArgs],
     (   ModedArgs == []
     ->  '$tbl_trienode'(ModedAnswer)
     ;   ModedArgs = [ModedAnswer]
