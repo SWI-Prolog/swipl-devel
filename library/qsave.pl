@@ -56,12 +56,8 @@ also used by the commandline sequence below.
 
 :- public save_option/3.                        % used by '$compile_wic'/0
 
-save_option(local,       integer,
-            "Local stack limit (Kb)").
-save_option(global,      integer,
-            "Global stack limit (Kb)").
-save_option(trail,       integer,
-            "Trail stack limit (Kb)").
+save_option(stack,       integer,
+            "Stack limit (bytes)").
 save_option(goal,        callable,
             "Main initialization goal").
 save_option(toplevel,    callable,
