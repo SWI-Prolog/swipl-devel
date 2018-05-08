@@ -3055,35 +3055,26 @@ open/4.
 
 \subsection{Limits on memory areas}		\label{sec:memlimit}
 
-SWI-Prolog has a number of memory areas which are only enlarged to a
-certain limit. The internal data representation limits the local,
-global and trail stack to 128~MB on 32-bit processors, or more
-generally to $\pow{2}{\mbox{bits-per-pointer} - 5}$ bytes. Considering
-that almost all modern hardware can deal with this amount of memory with
-ease, the default limits are set to their maximum on 32-bit hardware.
-The representation limits can easily exceed physical memory on 64-bit
-hardware. The default limits on 64-bit hardware are double that of 32-bit
-hardware, which allows for storing the same amount of (Prolog) data.
+The SWI-Prolog engine uses three \jargon{stacks} the \jargon{local
+stack} (also called \jargon{environment stack}) stores the environment
+frames used to call predicates as well as choice points. The
+\jargon{global stack} (also called \jargon{heap}) contains terms,
+floats, strings and large integers. Finally, the \jargon{trail stack}
+records variable bindings and assignments to support
+\jargon{backtracking}. The internal data representation limits these
+stacks to 128~MB (each) on 32-bit processors. More generally to
+$\pow{2}{\mbox{bits-per-pointer} - 5}$ bytes, which implies they are
+virtually unlimited on 64-bit machines.
 
-The limits can be changed from the command line as well as at runtime
-using set_prolog_stack/2. The table below shows these areas. The first
-column gives the option name to modify the size of the area. The option
-character is immediately followed by a number and optionally by a
-\const{k} or \const{m}. With \const{k} or no unit indicator, the value
-is interpreted in Kbytes (1024~bytes); with \const{m}, the value is
-interpreted in Mbytes ($1024 \times 1024$ bytes).
-
-On Windows the default stack sizes are controlled using the Windows
-\idx{registry} on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$
-using the names \const{localSize}, \const{globalSize} and
-\const{trailSize}. The value is a \const{DWORD} expressing the default
-stack size in Kbytes. A GUI for modifying these values is provided using
-the XPCE package. To use this, start the XPCE manual tools using
-\libpredref{manpce}{0}, after which you find \textit{Preferences} in the
-\textit{File} menu.
+As of version 7.7.14, the stacks are restricted by the writeable flag
+\prologflag{stack_limit} or the command line option
+\cmdlineoption{--stack}. This flag limits the combined size of the three
+stacks per thread. The default limit is currently 512~Mbytes on 32-bit
+machines, which imposes no real limit and 1~Gbytes on 64-bit machines.
 
 Considering portability, applications that need to modify the default
-limits are advised to do so using set_prolog_stack/2.
+limits are advised to do so using the Prolog flag
+\prologflag{stack_limit}.
 
 \begin{table}
 \begin{center}
@@ -3116,9 +3107,7 @@ Option & Area name & Description \\
 		       an excessive amount of garbage collections.
 		       To avoid this, the trail is automatically
 		       resized to be at least 1/6th of the size of
-		       the global stack.  This relation is enforced
-		       by the \cmdlineoption{-G} and set_prolog_stack/2
-		       when setting the global limit. \\
+		       the global stack.  \\
 \hline
 \end{tabular}
 \end{center}
