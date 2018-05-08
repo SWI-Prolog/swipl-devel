@@ -65,7 +65,7 @@ test_overflow(Goal) :-
 		 test_overflow(overflow(Goal), GSize))).
 
 test_overflow(Goal, Size) :-
-	thread_create(Goal, Id, [stack(Size)]),
+	thread_create(Goal, Id, [stack_limit(Size)]),
 	thread_join(Id, Result),
 	assertion(subsumes_term(exception(error(resource_error(_),_)), Result)).
 

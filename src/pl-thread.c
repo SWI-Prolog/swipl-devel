@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2017, University of Amsterdam,
+    Copyright (c)  1999-2018, University of Amsterdam,
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1662,7 +1663,7 @@ static const opt_spec make_thread_options[] =
 { { ATOM_alias,		OPT_ATOM },
   { ATOM_debug,		OPT_BOOL },
   { ATOM_detached,	OPT_BOOL },
-  { ATOM_stack,		OPT_SIZE },
+  { ATOM_stack_limit,	OPT_SIZE },
   { ATOM_c_stack,	OPT_SIZE },
   { ATOM_at_exit,	OPT_TERM },
   { ATOM_inherit_from,	OPT_TERM },
@@ -3140,7 +3141,7 @@ get_interactor(term_t t, thread_handle **thp, int warn ARG_LD)
 */
 
 static const opt_spec make_engine_options[] =
-{ { ATOM_stack,		OPT_SIZE|OPT_INF },
+{ { ATOM_stack_limit,	OPT_SIZE|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_inherit_from,	OPT_TERM },
   { NULL_ATOM,		0 }

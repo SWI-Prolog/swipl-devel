@@ -144,7 +144,7 @@ inherited:
 	\item The stack limit (see Prolog flag \prologflag{stack_limit}).
     \end{itemize}
 
-    \termitem{stack}{Bytes}
+    \termitem{stack_limit}{Bytes}
 Set the size limit for the Prolog stacks. See the Prolog flag
 \prologflag{stack_limit}.  The default is inherited from the calling
 thread or the thread specified using \term{{inherit_from}{ThreadId}.

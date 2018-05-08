@@ -117,7 +117,7 @@ test(tight_stacks, throws(error(resource_error(stack), _))) :-
 	numbervars(List, 0, _),
 	fail.
 test(cleanup_handler, [setup((thread_create(big_clause(500000), Id,
-					    [stack(1_000_000_000)]),
+					    [stack_limit(1_000_000_000)]),
                               thread_join(Id, true))),
                        throws(error(resource_error(stack), _)),
                        cleanup(retractall(tmp))]) :-

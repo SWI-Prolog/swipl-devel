@@ -24,7 +24,7 @@ test(rdef_alias, error(permission_error(create,engine,ename))) :-
 		     engine_destroy(E)).
 test(stack_limit, TheLimit =:= 1_000_000) :-
 	engine_create(Limit, current_prolog_flag(stack_limit, Limit), E,
-		      [ stack(1_000_000) ]),
+		      [ stack_limit(1_000_000) ]),
 	engine_next(E, TheLimit),
 	engine_destroy(E).
 test(findall, L == [1,2,3,4,5]) :-

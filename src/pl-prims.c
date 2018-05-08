@@ -5458,7 +5458,7 @@ typedef struct
 #define CMDOPT_LIST   3
 
 static const optdef optdefs[] =
-{ { "stack",		CMDOPT_SIZE_T,	&GD->options.stackLimit },
+{ { "stack_limit",	CMDOPT_SIZE_T,	&GD->options.stackLimit },
 
   { "goals",		CMDOPT_LIST,	&GD->options.goals },
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },

@@ -169,7 +169,7 @@
 		       debug(boolean),
 		       inherit_from(any),
 		       detached(boolean),
-                       stack(nonneg),
+                       stack_limit(nonneg),
 		       c_stack(nonneg)
 		     ]).
 :- predicate_options(system:message_queue_create/2, 2,

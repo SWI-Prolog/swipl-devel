@@ -486,8 +486,8 @@ by deault 1Gb on 64~bit machines and 512Mb on 32~bit machines.
 
 For example, to limit the stacks to 32Gb use the command below. Note
 that the stack limits apply \emph{per thread}. Individual threads may be
-controlled using the \term{stack}{+Bytes} option of thread_create.  Any
-thread can call set_prolog_stack/2 to adjust the stack limit.
+controlled using the \term{stack_limit}{+Bytes} option of thread_create.
+Any thread can call set_prolog_stack/2 to adjust the stack limit.
 
 \begin{code}
 $ swipl -S32g
@@ -3068,9 +3068,10 @@ virtually unlimited on 64-bit machines.
 
 As of version 7.7.14, the stacks are restricted by the writeable flag
 \prologflag{stack_limit} or the command line option
-\cmdlineoption{--stack}. This flag limits the combined size of the three
-stacks per thread. The default limit is currently 512~Mbytes on 32-bit
-machines, which imposes no real limit and 1~Gbytes on 64-bit machines.
+\cmdlineoption{--stack_limit}. This flag limits the combined size of the
+three stacks per thread. The default limit is currently 512~Mbytes on
+32-bit machines, which imposes no additional limit considering the
+128~Mbytes hard limit on 32-bit and 1~Gbytes on 64-bit machines.
 
 Considering portability, applications that need to modify the default
 limits are advised to do so using the Prolog flag

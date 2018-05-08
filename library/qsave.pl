@@ -56,7 +56,7 @@ also used by the commandline sequence below.
 
 :- public save_option/3.                        % used by '$compile_wic'/0
 
-save_option(stack,       integer,
+save_option(stack_limit, integer,
             "Stack limit (bytes)").
 save_option(goal,        callable,
             "Main initialization goal").
@@ -207,7 +207,7 @@ make_header(_, _, _).
                  *           OPTIONS            *
                  *******************************/
 
-min_stack(stack,    100_000).
+min_stack(stack_limit, 100_000).
 
 convert_option(Stack, Val, NewVal, "~w") :-     % stack-sizes are in K-bytes
     min_stack(Stack, Min),
