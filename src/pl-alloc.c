@@ -277,11 +277,73 @@ choice_points(Choice chp)
 }
 
 
+#define MAX_CYCLE    20
+#define MAX_PRE_LOOP 20
+
+typedef struct cycle_entry
+{ LocalFrame frame;
+} cycle_entry;
+
+static int
+is_variant_frame(LocalFrame fr1, LocalFrame fr2 ARG_LD)
+{ if ( fr1->predicate == fr2->predicate )
+  { size_t arity = fr1->predicate->functor->arity;
+    size_t i;
+
+    for(i=0; i<arity; i++)
+    { if ( !is_variant_ptr(argFrameP(fr1, i), argFrameP(fr2, i) PASS_LD) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
+in_cycle(LocalFrame fr0, cycle_entry ce[MAX_CYCLE] ARG_LD)
+{ int i;
+  LocalFrame fr;
+
+  ce[0].frame = fr0;
+
+  for(fr=parentFrame(fr0), i=1; fr && i<MAX_CYCLE; i++, fr = parentFrame(fr))
+  { if ( is_variant_frame(fr, fr0 PASS_LD) )
+      return i;
+    ce[i].frame = fr;
+  }
+
+  return 0;
+}
+
+static int
+find_non_terminating_recursion(LocalFrame fr, cycle_entry ce[MAX_CYCLE] ARG_LD)
+{ int max_pre_loop = MAX_PRE_LOOP;
+
+  for(; fr && max_pre_loop; fr = parentFrame(fr), max_pre_loop--)
+  { int len;
+
+    if ( (len=in_cycle(fr, ce PASS_LD)) )
+      return len;
+  }
+
+  return 0;
+}
 
 static word
 push_overflow_context(Stack stack, int extra)
 { GET_LD
   int keys = 6;
+
+  if ( roomStack(local)	< LD->stacks.local.def_spare + LOCAL_MARGIN )
+  { cycle_entry ce[MAX_CYCLE];
+    int depth;
+
+    if ( (depth=find_non_terminating_recursion(environment_frame, ce PASS_LD)) )
+      Sdprintf("Found cycle of depth %d\n", depth);
+  }
 
   if ( gTop+2*keys+extra < gMax )
   { Word p = gTop;
