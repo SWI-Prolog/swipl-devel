@@ -787,5 +787,8 @@ COMMON(Code)	push_continuation(term_t cont, LocalFrame pfr, Code pcret
 				  ARG_LD);
 COMMON(Code)	shift(term_t ball ARG_LD);
 
+/* pl-variant.c */
+COMMON(int)	is_variant_ptr(Word p1, Word p2 ARG_LD);
+
 /* pl-version.h */
 COMMON(void)	setGITVersion(void);

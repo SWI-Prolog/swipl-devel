@@ -419,16 +419,13 @@ variant(argPairs *agenda, Buffer buf ARG_LD)
 }
 
 
-static
-PRED_IMPL("=@=", 2, variant, 0)
-{ PRED_LD
-  argPairs agenda;
+int
+is_variant_ptr(Word p1, Word p2 ARG_LD)
+{ argPairs agenda;
   tmp_buffer buf;
   Buffer VARIANT_BUFFER = (Buffer)&buf;
   bool rval;
   node *r;
-  Word p1 = valTermRef(A1);
-  Word p2 = valTermRef(A2);
   node new = {NULL, 0, 0, 0};   /* dummy node as 0-th element*/
 
   deRef(p1);
@@ -496,10 +493,18 @@ again:
   return PL_error(NULL, 0, NULL, ERR_NOMEM);
 }
 
+static
+PRED_IMPL("=@=", 2, variant, 0)
+{ PRED_LD
+
+  return is_variant_ptr(valTermRef(A1), valTermRef(A2) PASS_LD);
+}
 
 static
 PRED_IMPL("\\=@=", 2, not_variant, 0)
-{ return pl_variant2_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
+{ PRED_LD
+
+  return !is_variant_ptr(valTermRef(A1), valTermRef(A2) PASS_LD);
 }
 
 		 /*******************************
