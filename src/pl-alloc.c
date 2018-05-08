@@ -289,11 +289,11 @@ push_overflow_context(Stack stack, int extra)
 
     *p++ = dict_functor(1);
     *p++ = ATOM_stack_overflow;			/* dict tag */
-    *p++ = consInt(usedStack(local));
-    *p++ = ATOM_localused;
-    *p++ = consInt(usedStack(global));
+    *p++ = consInt(usedStack(local)/1024);	/* K-bytes to avoid small int */
+    *p++ = ATOM_localused;			/* overflow */
+    *p++ = consInt(usedStack(global)/1024);
     *p++ = ATOM_globalused;
-    *p++ = consInt(usedStack(trail));
+    *p++ = consInt(usedStack(trail)/1024);
     *p++ = ATOM_trailused;
     if ( environment_frame )
     { *p++ = consUInt(environment_frame->level);
