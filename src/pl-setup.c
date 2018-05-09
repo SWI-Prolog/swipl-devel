@@ -1437,7 +1437,7 @@ allocStacks(void)
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, 512*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  512*SIZEOF_VOIDP, FALSE);
+	     "local",    ilocal,  512*SIZEOF_VOIDP + LOCAL_MARGIN, FALSE);
   init_stack((Stack)&LD->stacks.trail,
 	     "trail",    itrail,  256*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.argument,
