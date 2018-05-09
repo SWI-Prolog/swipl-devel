@@ -277,8 +277,9 @@ choice_points(Choice chp)
 }
 
 
-#define MAX_CYCLE    20
-#define MAX_PRE_LOOP 20
+#define MAX_CYCLE     20
+#define MAX_PRE_LOOP  20
+#define MIN_REPEAT   100
 
 typedef struct cycle_entry
 { LocalFrame frame;
@@ -303,47 +304,190 @@ is_variant_frame(LocalFrame fr1, LocalFrame fr2 ARG_LD)
 
 
 static int
-in_cycle(LocalFrame fr0, cycle_entry ce[MAX_CYCLE] ARG_LD)
-{ int i;
+non_terminating_recursion(LocalFrame fr0,
+			  cycle_entry ce[MAX_CYCLE],
+			  int *is_cycle
+			  ARG_LD)
+{ int depth, mindepth = 1, repeat;
   LocalFrame fr;
 
   ce[0].frame = fr0;
 
-  for(fr=parentFrame(fr0), i=1; fr && i<MAX_CYCLE; i++, fr = parentFrame(fr))
-  { if ( is_variant_frame(fr, fr0 PASS_LD) )
-      return i;
-    ce[i].frame = fr;
+again:
+  for( fr=parentFrame(fr0), depth=1;
+       fr && depth<MAX_CYCLE;
+       depth++, fr = parentFrame(fr) )
+  { if ( fr->predicate == fr0->predicate && depth >= mindepth )
+      break;
+    ce[depth].frame = fr;
   }
+
+  if ( depth >= MAX_CYCLE )
+    return 0;
+
+  *is_cycle = is_variant_frame(fr0, fr PASS_LD);
+
+  for(repeat=MIN_REPEAT; fr && --repeat > 0; )
+  { int i;
+
+    for(i=0; fr && i<depth; i++, fr = parentFrame(fr))
+    { if ( fr->predicate != ce[i].frame->predicate )
+      { mindepth = depth+1;
+	if ( mindepth > MAX_CYCLE )
+	  return 0;
+	Sdprintf("Cycle not repeated at %d\n", i);
+	goto again;
+      }
+    }
+  }
+
+  if ( repeat == 0 )
+    return depth;
 
   return 0;
 }
 
 static int
-find_non_terminating_recursion(LocalFrame fr, cycle_entry ce[MAX_CYCLE] ARG_LD)
+find_non_terminating_recursion(LocalFrame fr, cycle_entry ce[MAX_CYCLE],
+			       int *is_cycle ARG_LD)
 { int max_pre_loop = MAX_PRE_LOOP;
 
   for(; fr && max_pre_loop; fr = parentFrame(fr), max_pre_loop--)
   { int len;
 
-    if ( (len=in_cycle(fr, ce PASS_LD)) )
+    if ( (len=non_terminating_recursion(fr, ce, is_cycle PASS_LD)) )
       return len;
   }
 
   return 0;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Push a goal to the stack. This   code uses low-level primitives to avoid
+stack shifts. The goal is a term `Module:Head`, where each Head argument
+is a primitive (var, atom, number, string), a term `[Length]` for a list
+of length Length, a term `[cyclic_term]` if the list is cyclic otherwise
+a term `Name/Arity` to indicate the principal functor.
+
+Returns `0` if there is no enough space to store this term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static size_t
+size_frame_term(LocalFrame fr)
+{ GET_LD
+  size_t arity = fr->predicate->functor->arity;
+  size_t size = 4 + 3 + arity+1;
+  size_t i;
+
+  for(i=0; i<arity; i++)
+  { Word p = argFrameP(fr, i);
+    deRef(p);
+
+    if ( isTerm(*p) )
+      size += 3;				/* one of f/n, [Len] or [c] */
+  }
+
+  return size;
+}
+
+
+static word
+push_goal(LocalFrame fr)
+{ GET_LD
+  size_t arity = fr->predicate->functor->arity;
+  size_t i;
+  Word p = gTop;
+  word r = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+
+  p[0] = FUNCTOR_frame3;
+  p[1] = consInt(fr->level);
+  p[2] = consPtr(&p[4], STG_GLOBAL|TAG_COMPOUND);
+  p[3] = ATOM_nil;				/* reserved */
+  p += 4;
+
+  p[0] = FUNCTOR_colon2;
+  p[1] = fr->predicate->module->name;
+  if ( arity > 0 )
+  { Word ad;					/* argument descriptions */
+
+    p[2] = consPtr(&p[3], STG_GLOBAL|TAG_COMPOUND);
+    p += 3;
+    p[0] = fr->predicate->functor->functor;
+    p++;
+    ad = p+arity;
+    for(i=0; i<arity; i++)
+    { Word a = argFrameP(fr, i);
+
+      deRef(a);
+      if ( isTerm(*a) )
+      { *p++ = consPtr(ad, STG_GLOBAL|TAG_COMPOUND);
+
+	if ( isList(*a) )
+	{ Word tail;
+	  intptr_t len = skip_list(a, &tail PASS_LD);
+
+	  *ad++ = FUNCTOR_dot2;
+	  if ( isList(*tail) )
+	    *ad++ = consInt(len);
+	  else
+	    *ad++ = ATOM_cyclic_term;
+	  *ad++ = ATOM_nil;
+	} else
+	{ FunctorDef f = valueFunctor(functorTerm(*a));
+
+	  *ad++ = FUNCTOR_divide2;
+	  *ad++ = f->name;
+	  *ad++ = consInt(f->arity);
+	}
+      } else
+      { *p++ = *a;
+      }
+    }
+    gTop = ad;
+  } else
+  { p[2] = fr->predicate->functor->name;
+    gTop = &p[3];
+  }
+
+  return r;
+}
+
+
+static word
+push_cycle(cycle_entry ce[MAX_CYCLE], int depth)
+{ GET_LD
+  size_t size = depth*3;
+  int i;
+
+  for(i=0; i<depth; i++)
+  { size += size_frame_term(ce[i].frame);
+  }
+
+  if ( gTop+size < gMax )
+  { Word p  = gTop;
+    word r  = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+
+    gTop = p+depth*3;
+    for(i=0; i<depth; i++, p+=3)
+    { p[0] = FUNCTOR_dot2;
+      p[1] = push_goal(ce[i].frame);
+      if ( i+1 < depth )
+	p[2] = consPtr(&p[3], STG_GLOBAL|TAG_COMPOUND);
+      else
+	p[2] = ATOM_nil;
+    }
+
+    return r;
+  } else
+    return 0;
+}
+
+
 static word
 push_overflow_context(Stack stack, int extra)
 { GET_LD
   int keys = 6;
-
-  if ( roomStack(local)	< LD->stacks.local.def_spare + LOCAL_MARGIN )
-  { cycle_entry ce[MAX_CYCLE];
-    int depth;
-
-    if ( (depth=find_non_terminating_recursion(environment_frame, ce PASS_LD)) )
-      Sdprintf("Found cycle of depth %d\n", depth);
-  }
 
   if ( gTop+2*keys+extra < gMax )
   { Word p = gTop;
@@ -365,10 +509,31 @@ push_overflow_context(Stack stack, int extra)
     *p++ = ATOM_environments;
     *p++ = consInt(choice_points(BFR));
     *p++ = ATOM_choicepoints;
+    gTop = p;
+
+    if ( roomStack(local) < LD->stacks.local.def_spare + LOCAL_MARGIN )
+    { cycle_entry ce[MAX_CYCLE];
+      int depth, is_cycle;
+
+      if ( (depth=find_non_terminating_recursion(environment_frame, ce,
+						 &is_cycle PASS_LD)) )
+      { word cycle;
+
+	Sdprintf("Found %s of depth %d\n",
+		 is_cycle ? "cycle" : "non-terminating recursion", depth);
+
+	gTop = p+2;
+	if ( (cycle = push_cycle(ce, depth)) )
+	{ *p++ = cycle;
+	  *p++ = is_cycle ? ATOM_cycle : ATOM_non_terminating;
+	} else
+	{ gTop = p;
+	}
+      }
+    }
 
     *dict = dict_functor((p-dict-2)/2);		/* final functor */
 
-    gTop = p;
     dict_order(dict, FALSE PASS_LD);
 
     return consPtr(dict, STG_GLOBAL|TAG_COMPOUND);
