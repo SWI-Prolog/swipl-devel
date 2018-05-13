@@ -363,6 +363,19 @@ find_non_terminating_recursion(LocalFrame fr, cycle_entry ce[MAX_CYCLE],
 }
 
 
+static int
+top_of_stack(LocalFrame fr, cycle_entry ce[MAX_CYCLE], int maxdepth ARG_LD)
+{ int depth;
+
+  for(depth = 0; fr && depth < maxdepth; fr = parentFrame(fr), depth++)
+  { ce[depth].frame = fr;
+  }
+
+  return depth;
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Push a goal to the stack. This   code uses low-level primitives to avoid
 stack shifts. The goal is a term `Module:Head`, where each Head argument
@@ -484,6 +497,24 @@ push_cycle(cycle_entry ce[MAX_CYCLE], int depth)
 }
 
 
+static void
+push_stack(cycle_entry ce[MAX_CYCLE], int depth, atom_t name, Word *pp ARG_LD)
+{ word w;
+  Word p = *pp;
+
+  gTop = p+2;
+  if ( (w=push_cycle(ce, depth)) )
+  { *p++ = w;
+    *p++ = name;
+  } else
+  { gTop = p;
+  }
+
+  *pp = p;
+}
+
+
+
 static word
 push_overflow_context(Stack stack, int extra)
 { GET_LD
@@ -492,6 +523,8 @@ push_overflow_context(Stack stack, int extra)
   if ( gTop+2*keys+extra < gMax )
   { Word p = gTop;
     Word dict = p;
+    cycle_entry ce[MAX_CYCLE];
+    int depth;
 
     *p++ = dict_functor(1);
     *p++ = ATOM_stack_overflow;			/* dict tag */
@@ -512,25 +545,17 @@ push_overflow_context(Stack stack, int extra)
     gTop = p;
 
     if ( roomStack(local) < LD->stacks.local.def_spare + LOCAL_MARGIN )
-    { cycle_entry ce[MAX_CYCLE];
-      int depth, is_cycle;
+    { int is_cycle;
 
       if ( (depth=find_non_terminating_recursion(environment_frame, ce,
 						 &is_cycle PASS_LD)) )
-      { word cycle;
-
-	DEBUG(MSG_STACK_OVERFLOW,
-	      Sdprintf("Found %s of depth %d\n",
-		       is_cycle ? "cycle" : "non-terminating recursion", depth));
-
-	gTop = p+2;
-	if ( (cycle = push_cycle(ce, depth)) )
-	{ *p++ = cycle;
-	  *p++ = is_cycle ? ATOM_cycle : ATOM_non_terminating;
-	} else
-	{ gTop = p;
-	}
+      { push_stack(ce, depth, is_cycle ? ATOM_cycle : ATOM_non_terminating,
+		   &p PASS_LD);
+      } else if ( (depth=top_of_stack(environment_frame, ce, 5 PASS_LD)) )
+      { push_stack(ce, depth, ATOM_stack, &p PASS_LD);
       }
+    } else if ( (depth=top_of_stack(environment_frame, ce, 5 PASS_LD)) )
+    { push_stack(ce, depth, ATOM_stack, &p PASS_LD);
     }
 
     *dict = dict_functor((p-dict-2)/2);		/* final functor */

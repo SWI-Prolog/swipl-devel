@@ -85,8 +85,8 @@ translate_message2(Term) -->
     prolog:message(Term).
 translate_message2(Term) -->
     prolog_message(Term).
-translate_message2(error(resource_error(stack), Name)) -->
-    [ 'Out of ~w stack'-[Name] ].
+translate_message2(error(resource_error(stack), Context)) -->
+    out_of_stack(Context).
 translate_message2(error(resource_error(Missing), _)) -->
     [ 'Not enough resources: ~w'-[Missing] ].
 translate_message2(error(ISO, SWI)) -->
@@ -798,6 +798,85 @@ prolog_message(cgc(done(CollectedClauses, _CollectedBytes,
       [CollectedClauses, Time, RemainingBytes]
     ].
 
+		 /*******************************
+		 *        STACK OVERFLOW	*
+		 *******************************/
+
+out_of_stack(Context) -->
+    { human_stack_size(Context.localused,  Local),
+      human_stack_size(Context.globalused, Global),
+      human_stack_size(Context.trailused,  Trail),
+      current_prolog_flag(stack_limit, LimitBytes),
+      LimitK is LimitBytes//1024,
+      human_stack_size(LimitK, Limit)
+    },
+    [ 'Stack limit (~s) exceeded'-[Limit], nl,
+      '  Stack sizes: local: ~s, global: ~s, trail: ~s'-
+      [ Local, Global, Trail ],
+      nl
+    ],
+    overflow_reason(Context, Resolve),
+    resolve_overflow(Resolve).
+
+human_stack_size(Size, String) :-
+    Size < 100,
+    format(string(String), '~dKb', [Size]).
+human_stack_size(Size, String) :-
+    Size < 100 000,
+    Value is Size / 1024,
+    format(string(String), '~1fMb', [Value]).
+human_stack_size(Size, String) :-
+    Value is Size / (1024*1024),
+    format(string(String), '~1fGb', [Value]).
+
+overflow_reason(Context, fix) -->
+    { is_out_of_local(Context) },
+    (   show_non_termination(Context)
+    ;   show_nondeterminism(Context)
+    ),
+    !.
+overflow_reason(Context, enlarge) -->
+    { Stack = Context.get(stack) },
+    !,
+    [ '  In:'-[], nl ],
+    stack(Stack).
+overflow_reason(_Context, enlarge) -->
+    [ '  Insufficient global stack'-[] ].
+
+is_out_of_local(Context) :-
+    Context.localused > Context.globalused.
+
+show_non_termination(Context) -->
+    (   { Stack = Context.get(cycle) }
+    ->  [ '  Probable infinite recursion (cycle):'-[], nl ]
+    ;   { Stack = Context.get(non_terminating) }
+    ->  [ '  Probable non-terminating recursion:'-[], nl ]
+    ;   { Stack = Context.get(stack) }
+    ->  [ '  In:'-[], nl ]
+    ),
+    stack(Stack).
+
+stack([]) --> [].
+stack([frame(Depth, M:Goal, _)|T]) -->
+    [ '    [~D] ~q:~p'-[Depth, M, Goal], nl ],
+    stack(T).
+
+show_nondeterminism(Context) -->
+    { LCO is (100*(Context.depth - Context.environments))/Context.depth
+    },
+    [ '  Stack depth: ~D, last-call-optimized: ~0f%'- [Context.depth, LCO]
+    ].
+
+resolve_overflow(fix) -->
+    [].
+resolve_overflow(enlarge) -->
+    { current_prolog_flag(stack_limit, LimitBytes),
+      NewLimit is LimitBytes * 2
+    },
+    [ nl,
+      'Use the --stack_limit=size[KMG] command line option or'-[], nl,
+      '?- set_prolog_flag(stack_limit, ~I). to double the limit.'-[NewLimit]
+    ].
 
 
                  /*******************************
