@@ -322,7 +322,7 @@ again:
     ce[depth].frame = fr;
   }
 
-  if ( depth >= MAX_CYCLE )
+  if ( !fr || depth >= MAX_CYCLE )
     return 0;
 
   *is_cycle = is_variant_frame(fr0, fr PASS_LD);
