@@ -161,11 +161,17 @@ balance(>,>).
 %
 %   @see get_assoc/3.
 
-gen_assoc(Key, t(_,_,_,L,_), Val) :-
-    gen_assoc(Key, L, Val).
-gen_assoc(Key, t(Key,Val,_,_,_), Val).
-gen_assoc(Key, t(_,_,_,_,R), Val) :-
-    gen_assoc(Key, R, Val).
+gen_assoc(Key, Assoc, Value) :-
+    (   ground(Key)
+    ->  get_assoc(Key, Assoc, Value)
+    ;   gen_assoc_(Key, Assoc, Value)
+    ).
+
+gen_assoc_(Key, t(_,_,_,L,_), Val) :-
+    gen_assoc_(Key, L, Val).
+gen_assoc_(Key, t(Key,Val,_,_,_), Val).
+gen_assoc_(Key, t(_,_,_,_,R), Val) :-
+    gen_assoc_(Key, R, Val).
 
 
 %!  get_assoc(+Key, +Assoc, -Value) is semidet.
