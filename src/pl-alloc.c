@@ -519,8 +519,9 @@ push_overflow_context(Stack stack, int extra)
 						 &is_cycle PASS_LD)) )
       { word cycle;
 
-	Sdprintf("Found %s of depth %d\n",
-		 is_cycle ? "cycle" : "non-terminating recursion", depth);
+	DEBUG(MSG_STACK_OVERFLOW,
+	      Sdprintf("Found %s of depth %d\n",
+		       is_cycle ? "cycle" : "non-terminating recursion", depth));
 
 	gTop = p+2;
 	if ( (cycle = push_cycle(ce, depth)) )
