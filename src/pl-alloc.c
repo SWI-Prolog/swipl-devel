@@ -278,6 +278,7 @@ choice_points(Choice chp)
 
 
 #define MAX_CYCLE     20
+#define CYCLE_CTX      1
 #define MAX_PRE_LOOP  20
 #define MIN_REPEAT   100
 
@@ -309,7 +310,7 @@ non_terminating_recursion(LocalFrame fr0,
 			  int *is_cycle
 			  ARG_LD)
 { int depth, mindepth = 1, repeat;
-  LocalFrame fr;
+  LocalFrame fr, ctx;
 
   ce[0].frame = fr0;
 
@@ -326,6 +327,7 @@ again:
     return 0;
 
   *is_cycle = is_variant_frame(fr0, fr PASS_LD);
+  ctx = fr;
 
   for(repeat=MIN_REPEAT; fr && --repeat > 0; )
   { int i;
@@ -335,14 +337,20 @@ again:
       { mindepth = depth+1;
 	if ( mindepth > MAX_CYCLE )
 	  return 0;
-	Sdprintf("Cycle not repeated at %d\n", i);
+	// Sdprintf("Cycle not repeated at %d\n", i);
 	goto again;
       }
     }
   }
 
   if ( repeat == 0 )
+  { int nctx = CYCLE_CTX;
+
+    for(fr=ctx; fr && nctx-- > 0; fr = parentFrame(fr))
+      ce[depth++].frame = fr;
+
     return depth;
+  }
 
   return 0;
 }
@@ -523,7 +531,7 @@ push_overflow_context(Stack stack, int extra)
   if ( gTop+2*keys+extra < gMax )
   { Word p = gTop;
     Word dict = p;
-    cycle_entry ce[MAX_CYCLE];
+    cycle_entry ce[MAX_CYCLE+CYCLE_CTX];
     int depth;
 
     *p++ = dict_functor(1);
