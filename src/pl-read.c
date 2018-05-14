@@ -3404,7 +3404,8 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
   }
 
   e->pri  = op->op_pri;
-  e->tpos = opPos(op, e PASS_LD);
+  if ( op->tpos && !(e->tpos = opPos(op, e PASS_LD)) )
+    return FALSE;
 
   _PL_rd->op.out_queue.top = (char*)(e+1);
 
