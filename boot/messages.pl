@@ -808,12 +808,13 @@ out_of_stack(Context) -->
       human_stack_size(Context.trailused,  Trail),
       current_prolog_flag(stack_limit, LimitBytes),
       LimitK is LimitBytes//1024,
-      human_stack_size(LimitK, Limit)
+      human_stack_size(LimitK, Limit),
+      LCO is (100*(Context.depth - Context.environments))/Context.depth
     },
     [ 'Stack limit (~s) exceeded'-[Limit], nl,
-      '  Stack sizes: local: ~s, global: ~s, trail: ~s'-
-      [ Local, Global, Trail ],
-      nl
+      '  Stack sizes: local: ~s, global: ~s, trail: ~s'-[Local,Global,Trail], nl,
+      '  Stack depth: ~D, last-call: ~0f%, Choice points: ~D'-
+         [Context.depth, LCO, Context.choicepoints], nl
     ],
     overflow_reason(Context, Resolve),
     resolve_overflow(Resolve).
@@ -830,10 +831,7 @@ human_stack_size(Size, String) :-
     format(string(String), '~1fGb', [Value]).
 
 overflow_reason(Context, fix) -->
-    { is_out_of_local(Context) },
-    (   show_non_termination(Context)
-    ;   show_nondeterminism(Context)
-    ),
+    show_non_termination(Context),
     !.
 overflow_reason(Context, enlarge) -->
     { Stack = Context.get(stack) },
@@ -843,29 +841,66 @@ overflow_reason(Context, enlarge) -->
 overflow_reason(_Context, enlarge) -->
     [ '  Insufficient global stack'-[] ].
 
-is_out_of_local(Context) :-
-    Context.localused > Context.globalused.
-
 show_non_termination(Context) -->
     (   { Stack = Context.get(cycle) }
     ->  [ '  Probable infinite recursion (cycle):'-[], nl ]
     ;   { Stack = Context.get(non_terminating) }
-    ->  [ '  Probable non-terminating recursion:'-[], nl ]
-    ;   { Stack = Context.get(stack) }
-    ->  [ '  In:'-[], nl ]
+    ->  [ '  Possible non-terminating recursion:'-[], nl ]
     ),
     stack(Stack).
 
 stack([]) --> [].
 stack([frame(Depth, M:Goal, _)|T]) -->
-    [ '    [~D] ~q:~p'-[Depth, M, Goal], nl ],
+    [ '    [~D] ~q:'-[Depth, M] ],
+    stack_goal(Goal),
+    [ nl ],
     stack(T).
 
-show_nondeterminism(Context) -->
-    { LCO is (100*(Context.depth - Context.environments))/Context.depth
+stack_goal(Goal) -->
+    { compound(Goal),
+      !,
+      compound_name_arity(Goal, Name, Arity)
     },
-    [ '  Stack depth: ~D, last-call-optimized: ~0f%'- [Context.depth, LCO]
-    ].
+    [ '~q('-[Name] ],
+    stack_goal_args(1, Arity, Goal),
+    [ ')'-[] ].
+stack_goal(Goal) -->
+    [ '~q'-[Goal] ].
+
+stack_goal_args(I, Arity, Goal) -->
+    { I =< Arity,
+      !,
+      arg(I, Goal, A),
+      I2 is I + 1
+    },
+    stack_goal_arg(A),
+    (   { I2 =< Arity }
+    ->  [ ', '-[] ],
+        stack_goal_args(I2, Arity, Goal)
+    ;   []
+    ).
+stack_goal_args(_, _, _) -->
+    [].
+
+stack_goal_arg(A) -->
+    { nonvar(A),
+      A = [Len|T],
+      !
+    },
+    (   {Len == cyclic_term}
+    ->  [ '[cyclic list]'-[] ]
+    ;   {T == []}
+    ->  [ '[length:~D]'-[Len] ]
+    ;   [ '[length:~D|~p]'-[Len, T] ]
+    ).
+stack_goal_arg(A) -->
+    { nonvar(A),
+      A = _/_,
+      !
+    },
+    [ '<compound ~p>', [A] ].
+stack_goal_arg(A) -->
+    [ '~p'-[A] ].
 
 resolve_overflow(fix) -->
     [].

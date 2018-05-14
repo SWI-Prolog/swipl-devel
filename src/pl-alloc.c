@@ -449,11 +449,14 @@ push_goal(LocalFrame fr)
 	  intptr_t len = skip_list(a, &tail PASS_LD);
 
 	  *ad++ = FUNCTOR_dot2;
+	  deRef(tail);
 	  if ( isList(*tail) )
-	    *ad++ = consInt(len);
-	  else
-	    *ad++ = ATOM_cyclic_term;
-	  *ad++ = ATOM_nil;
+	  { *ad++ = ATOM_cyclic_term;
+	    *ad++ = ATOM_nil;
+	  } else
+	  { *ad++ = consInt(len);
+	    *ad++ = *tail;
+	  }
 	} else
 	{ FunctorDef f = valueFunctor(functorTerm(*a));
 
