@@ -1572,19 +1572,15 @@ resumeAfterException(int clear, Stack outofstack)
 
 
 static void
-exceptionUnwindGC(Stack outofstack)
-{ if ( outofstack && outofstack->gc )
-  { GET_LD
+exceptionUnwindGC(void)
+{ GET_LD
 
-    LD->stacks.global.gced_size = 0;
-    LD->stacks.trail.gced_size = 0;
-    LD->trim_stack_requested = TRUE;
-    if ( considerGarbageCollect(NULL) )
-    { garbageCollect();
-      enableSpareStacks();
-    } else
-    { enableSpareStacks();
-    }
+  LD->stacks.global.gced_size = 0;
+  LD->stacks.trail.gced_size = 0;
+  LD->trim_stack_requested = TRUE;
+  if ( considerGarbageCollect(NULL) )
+  { garbageCollect();
+    enableSpareStacks();
   }
 }
 

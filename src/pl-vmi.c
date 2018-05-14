@@ -4327,7 +4327,7 @@ again:
   { int rc;
 
     SAVE_REGISTERS(qid);
-    exceptionUnwindGC(outofstack);
+    exceptionUnwindGC();
     LOAD_REGISTERS(qid);
     SAVE_REGISTERS(qid);
     rc = exception_hook(qid, consTermRef(FR), catchfr_ref PASS_LD);
@@ -4452,7 +4452,7 @@ again:
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
-	exceptionUnwindGC(outofstack);
+	exceptionUnwindGC();
 	LOAD_REGISTERS(qid);
 	discardFrame(FR PASS_LD);
 	SAVE_REGISTERS(qid);
@@ -4467,13 +4467,14 @@ again:
 
       if ( start_tracer )		/* See (*) */
       {	SAVE_REGISTERS(qid);
-	exceptionUnwindGC(outofstack);
+	exceptionUnwindGC();
 	LOAD_REGISTERS(qid);
 
-	DEBUG(1, Sdprintf("g+l+t free = %ld+%ld+%ld\n",
-			  roomStack(global),
-			  roomStack(local),
-			  roomStack(trail)));
+	DEBUG(MSG_STACK_OVERFLOW,
+	      Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
+		       usedStack(global),
+		       usedStack(local),
+		       usedStack(trail)));
 
 	if ( trace_if_space() )
 	{ int rc;
@@ -4487,6 +4488,13 @@ again:
 	  LOAD_REGISTERS(qid);
 	}
       }
+    }
+
+    if ( start_tracer )
+    { Sdprintf("Failed to print resource exception due to lack of space\n");
+      SAVE_REGISTERS(qid);
+      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+      LOAD_REGISTERS(qid);
     }
   } else
 #endif /*O_DEBUGGER*/
@@ -4508,7 +4516,7 @@ again:
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
-	exceptionUnwindGC(outofstack);
+	exceptionUnwindGC();
 	LOAD_REGISTERS(qid);
 	SAVE_REGISTERS(qid);
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
