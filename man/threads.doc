@@ -147,7 +147,7 @@ inherited:
     \termitem{stack_limit}{Bytes}
 Set the size limit for the Prolog stacks. See the Prolog flag
 \prologflag{stack_limit}.  The default is inherited from the calling
-thread or the thread specified using \term{{inherit_from}{ThreadId}.
+thread or the thread specified using \term{inherit_from}{ThreadId}.
 
     \termitem{c_stack}{K-Bytes}
 Set the limit to which the C~stack of this thread may grow.  The
