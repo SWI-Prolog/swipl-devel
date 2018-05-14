@@ -1535,6 +1535,8 @@ trim_stack(Stack s)
   { ssize_t reduce = s->def_spare - s->spare;
     ssize_t room = roomStackP(s);
 
+    DEBUG(MSG_SPARE_STACK, Sdprintf("Reset spare for %s (%zd->%zd)\n",
+				    s->name, s->spare, s->def_spare));
     if ( room > 0 && room < reduce )
     { DEBUG(MSG_SPARE_STACK,
 	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
@@ -1582,11 +1584,9 @@ trimStacks(int resize ARG_LD)
   if ( resize )
   { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
   } else
-  { DEBUG(MSG_SPARE_STACK, Sdprintf("Reclaiming spare stacks\n"));
-    trim_stack((Stack) &LD->stacks.local);
+  { trim_stack((Stack) &LD->stacks.local);
     trim_stack((Stack) &LD->stacks.global);
     trim_stack((Stack) &LD->stacks.trail);
-    trim_stack((Stack) &LD->stacks.argument);
   }
 
 #ifdef SECURE_GC

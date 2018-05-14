@@ -5053,7 +5053,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 }
 
 
-static int
+static void
 include_spare_stack(void *ptr, size_t *request)
 { Stack s = ptr;
 
@@ -5063,24 +5063,15 @@ include_spare_stack(void *ptr, size_t *request)
   if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
-
-    return TRUE;
-  } else
-  { return FALSE;
   }
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Returns one of TRUE:  Stacks  are   resized;  FALSE:  stack-shifting  is
-blocked or *_OVERFLOW
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static void
-reenable_spare_stack(void *ptr, int prev)
+reenable_spare_stack(void *ptr)
 { Stack s = ptr;
 
-  if ( prev || roomStackP(s) >= s->min_free + s->def_spare )
+  if ( roomStackP(s) >=	s->def_spare )
     trim_stack(s);
 }
 
@@ -5097,7 +5088,6 @@ int
 growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
-  int sl, sg, st;
   LocalFrame olb = lBase;
   LocalFrame olm = lMax;
   Word ogb = gBase;
@@ -5107,17 +5097,17 @@ growStacks(size_t l, size_t g, size_t t)
   save_backtrace("SHIFT");
 #endif
 
-  sl = include_spare_stack(&LD->stacks.local,  &l);
-  sg = include_spare_stack(&LD->stacks.global, &g);
-  st = include_spare_stack(&LD->stacks.trail,  &t);
+  include_spare_stack(&LD->stacks.local,  &l);
+  include_spare_stack(&LD->stacks.global, &g);
+  include_spare_stack(&LD->stacks.trail,  &t);
 
   gBase--; gMax++; tMax++;
   rc = grow_stacks(l, g, t PASS_LD);
   gBase++; gMax--; tMax--;
 
-  reenable_spare_stack(&LD->stacks.trail,  st);
-  reenable_spare_stack(&LD->stacks.global, sg);
-  reenable_spare_stack(&LD->stacks.local,  sl);
+  reenable_spare_stack(&LD->stacks.trail);
+  reenable_spare_stack(&LD->stacks.global);
+  reenable_spare_stack(&LD->stacks.local);
 
   if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
   { TrailEntry te;
