@@ -302,9 +302,17 @@ last_modified(Source, Modified) :-
     !.
 last_modified(Source, Modified) :-
     atom(Source),
-    \+ uri_is_global(Source),
+    \+ is_global_url(Source),
     exists_file(Source),
     time_file(Source, Modified).
+
+is_global_url(File) :-
+    sub_atom(File, B, _, _, '://'),
+    !,
+    B > 1,
+    sub_atom(File, 0, B, _, Scheme),
+    atom_codes(Scheme, Codes),
+    maplist(between(0'a, 0'z), Codes).
 
 xref_setup(Src, In, Options, state(In, Dialect, Xref, [SRef|HRefs])) :-
     maplist(assert_option(Src), Options),
