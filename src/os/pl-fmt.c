@@ -1590,6 +1590,10 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  return NULL;
 	}
 	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
+#ifdef __WINDOWS__
+        if ( written < 0 )	/* pre-C99 Windows snprintf() returns -1 */
+	  written = size*2;
+#endif
       }
 
 #ifdef __WINDOWS__
