@@ -898,7 +898,7 @@ stack_goal_arg(A) -->
       A = _/_,
       !
     },
-    [ '<compound ~p>', [A] ].
+    [ '<compound ~p>'-[A] ].
 stack_goal_arg(A) -->
     [ '~p'-[A] ].
 
