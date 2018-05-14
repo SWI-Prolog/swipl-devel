@@ -1583,7 +1583,8 @@ exceptionUnwindGC(Stack outofstack)
     { garbageCollect();
       enableSpareStacks();
     } else
-      Sdprintf("No GC?\n");
+    { enableSpareStacks();
+    }
   }
 }
 
