@@ -233,6 +233,10 @@ format_test(intr-1) :-
 format_test(intR-1) :-
 	format(atom(X), '~16R', [1000]),
 	X == '3E8'.
+format_test(large_float-1) :-
+	format(atom(X), '~6f', [1e100]),
+	atom_length(X, Len),
+	Len == 108.			% 1 with 100 0s + ".000000" = 108.
 format_test(oncodes-1) :-
 	format(codes(C), 'hello ~w', [world]),
 	atom_codes('hello world', C).
