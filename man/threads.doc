@@ -968,12 +968,12 @@ Creates a new Prolog engine in the calling thread. If the calling thread
 already has an engine the reference count of the engine is incremented.
 The \arg{attr} argument can be \const{NULL} to create a thread with
 default attributes.  Otherwise it is a pointer to a structure with
-the definition below.  For any field with value `0', the default is
-used.  The \const{cancel} field may be filled with a pointer to a
-function that is called when PL_cleanup() terminates the running
-Prolog engines. If this function is not present or returns \const{FALSE}
-pthread_cancel() is used.  The \const{flags} field defines the following
-flags:
+the definition below.\footnote{The structure layout changed in version
+7.7.14.} For any field with value `0', the default is used. The
+\const{cancel} field may be filled with a pointer to a function that is
+called when PL_cleanup() terminates the running Prolog engines. If this
+function is not present or returns \const{FALSE} pthread_cancel() is
+used. The \const{flags} field defines the following flags:
 
 \begin{description}
     \termitem{PL_THREAD_NO_DEBUG}{}
@@ -983,13 +983,11 @@ By default, the debug status is inherited from the main thread.
 
 \begin{code}
 typedef struct
-{ unsigned long	    local_size;	   /* Stack sizes (Kbytes) */
-  unsigned long	    global_size;
-  unsigned long	    trail_size;
-  unsigned long	    argument_size;
-  char *	    alias;	   /* alias name */
-  int		   (*cancel)(int thread);
-  intptr_t	    flags;
+{ size_t    stack_limit;		/* Total stack limit (bytes) */
+  size_t    table_space;		/* Total tabling space limit (bytes) */
+  char *    alias;		        /* alias name */
+  int	    (*cancel)(int thread);
+  intptr_t  flags;
 } PL_thread_attr_t;
 \end{code}
 
