@@ -487,19 +487,21 @@ by deault 1Gb on 64~bit machines and 512Mb on 32~bit machines.
 For example, to limit the stacks to 32Gb use the command below. Note
 that the stack limits apply \emph{per thread}. Individual threads may be
 controlled using the \term{stack_limit}{+Bytes} option of thread_create.
-Any thread can call set_prolog_stack/2 to adjust the stack limit.
+Any thread can call \term{set_prolog_flag}{stack_limit, Limit} (see
+\prologflag{stack_limit}) to adjust the stack limit. This limit is
+inherited by threads created from this thread.
 
 \begin{code}
-$ swipl -S32g
+$ swipl --stack_limit=32g
 \end{code}
 
 \begin{description}
-    \cmdlineoptionitem*{-S}{size[bkmg]}
+    \cmdlineoptionitem*{--stack_limit}{size[bkmg]}
 Limit the combined size of the Prolog stacks to the indicated size.
 The suffix specifies the value as \textit{bytes}, \textit{Kbytes},
 \textit{Mbytes} or \textit{Gbytes}.
 
-    \cmdlineoptionitem*{-M}{size[bkmg]}
+    \cmdlineoptionitem*{-table_space}{size[bkmg]}
 Limit for the \arg{table space}. This is where tries holding
 memoized\footnote{The letter M is used because the T was already in
 use. It is a memnonic for \textbf{M}emoizing.} answers for
