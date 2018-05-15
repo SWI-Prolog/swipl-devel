@@ -4445,6 +4445,8 @@ again:
       }
 
       l_top = argFrameP(FR, FR->predicate->functor->arity);
+      if ( FR->predicate == PROCEDURE_dcall1->definition )
+        FR->clause = NULL;	/* clause is above me, but no longer needed */
       if ( l_top < (void*)(BFR+1) )
         l_top = (void*)(BFR+1);
       lTop = l_top;
