@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2016, University of Amsterdam
+    Copyright (c)  2005-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,8 @@
 
 :- module(prolog_clause,
           [ clause_info/4,              % +ClauseRef, -File, -TermPos, -VarNames
+            clause_info/5,              % +ClauseRef, -File, -TermPos, -VarNames,
+                                        % +Options
             initialization_layout/4,    % +SourceLoc, +Goal, -Term, -TermPos
             predicate_name/2,           % +Head, -Name
             clause_name/2               % +ClauseRef, -Name
@@ -107,6 +110,8 @@ clause_info(ClauseRef, File, TermPos, NameOffset, Options) :-
     clause_property(ClauseRef, file(File)),
     File \== user,                  % loaded using ?- [user].
     '$clause'(Head0, Body, ClauseRef, VarOffset),
+    option(head(Head0), Options, _),
+    option(body(Body), Options, _),
     (   module_property(Module, file(File))
     ->  true
     ;   strip_module(user:Head0, Module, _)

@@ -301,12 +301,34 @@ write_declarations([H|T], Module) :-
 
 list_clauses(Pred, Source) :-
     strip_module(Pred, Module, Head),
-    (   clause(Pred, Body),
+    (   clause(Pred, Body, Ref),
+        (   catch(clause_info(Ref, _, _, _,
+                              [ head(QHead),
+                                body(Body),
+                                variable_names(Bindings)
+                              ]),
+                  _, true)
+        ->  unify_head(Module, Head, QHead),
+            bind_vars(Bindings)
+        ;   true
+        ),
         write_module(Module, Source, Head),
         portray_clause((Head:-Body)),
         fail
     ;   true
     ).
+
+unify_head(Module, Head, Module:Head) :-
+    !.
+unify_head(_, Head, Head) :-
+    !.
+unify_head(_, _, _).
+
+bind_vars([]) :-
+    !.
+bind_vars([Name = Var|T]) :-
+    Var = '$VAR'(Name),
+    bind_vars(T).
 
 write_module(Module, Context, Head) :-
     hide_module(Module, Context, Head),
