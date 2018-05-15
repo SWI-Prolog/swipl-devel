@@ -1512,10 +1512,16 @@ find_prev(Definition def, ClauseRef prev, ClauseRef cref)
 
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) This used to be acquire_def(def),  but announceErasedClause may call
+Prolog, leading to nested acquired definition. This is not needed anyway
+as the acquired definition is only  used   by  clause  GC, we are inside
+clause GC and clause GC calls cannot run in parallel.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static size_t
 cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
-{ GET_LD
-  size_t removed = 0;
+{ size_t removed = 0;
   gen_t marked = ddi->oldest_generation;
   gen_t active = start < marked ? start : marked;
 
@@ -1530,7 +1536,7 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
     int left = 0;
 #endif
 
-    acquire_def(def);
+    assert(GD->clauses.cgc_active);		/* See (*) */
     for(cref = def->impl.clauses.first_clause;
 	cref && def->impl.clauses.erased_clauses;
 	cref=cref->next)
@@ -1567,7 +1573,6 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
       UNLOCKDEF(def);
     }
     freeLingeringDefinition(def, ddi);
-    release_def(def);
 
     DEBUG(CHK_SECURE,
 	  LOCKDEF(def);
