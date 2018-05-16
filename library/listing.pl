@@ -46,6 +46,9 @@
 :- use_module(library(settings)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- use_module(library(debug)).
+:- use_module(library(ansi_term)).
+:- use_module(library(prolog_clause)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
@@ -97,6 +100,8 @@ be changed using set_setting/2.
            'Place cuts (!) on the same line').
 :- setting(listing:line_width, nonneg, 78,
            'Width of a line.  0 is infinite').
+:- setting(listing:comment_ansi_attributes, list, [fg(green)],
+           'ansi_format/3 attributes to print comments').
 
 
 %!  listing
@@ -160,20 +165,39 @@ list_module(Module, Options) :-
 %      expansion is not reversible or the term cannot be read due to
 %      different operator declarations.  In that case variable names
 %      are generated.
+%
+%      - source(+Bool)
+%      If `true` (default `false`), extract the lines from the source
+%      files that produced the clauses, i.e., list the original source
+%      text rather than the _decompiled_ clauses. Each set of contiguous
+%      clauses is preceded by a comment that indicates the file and
+%      line of origin.  Clauses that cannot be related to source code
+%      are decompiled where the comment indicates the decompiled state.
+%      This is notably practical for collecting the state of _multifile_
+%      predicates.  For example:
+%
+%         ```
+%         ?- listing(file_search_path, [source(true)]).
+%         ```
 
 listing(Spec) :-
     listing(Spec, []).
 
-listing(M:Spec, Options) :-
+listing(Spec, Options) :-
+    call_cleanup(
+        listing_(Spec, Options),
+        close_sources).
+
+listing_(M:Spec, Options) :-
     var(Spec),
     !,
     list_module(M, Options).
-listing(M:List, Options) :-
+listing_(M:List, Options) :-
     is_list(List),
     !,
     forall(member(Spec, List),
-           listing(M:Spec, Options)).
-listing(X, Options) :-
+           listing_(M:Spec, Options)).
+listing_(X, Options) :-
     (   prolog:locate_clauses(X, ClauseRefs)
     ->  strip_module(X, Context, _),
         list_clauserefs(ClauseRefs, Context, Options)
@@ -239,12 +263,12 @@ list_predicate(Pred, Context, _) :-
     predicate_property(Pred, undefined),
     !,
     decl_term(Pred, Context, Decl),
-    format('%   Undefined: ~q~n', [Decl]).
+    comment('%   Undefined: ~q~n', [Decl]).
 list_predicate(Pred, Context, _) :-
     predicate_property(Pred, foreign),
     !,
     decl_term(Pred, Context, Decl),
-    format('%   Foreign: ~q~n', [Decl]).
+    comment('%   Foreign: ~q~n', [Decl]).
 list_predicate(Pred, Context, Options) :-
     notify_changed(Pred, Context),
     list_declarations(Pred, Context),
@@ -324,6 +348,25 @@ list_clauses(Pred, Source, Options) :-
     forall(clause(Pred, Body, Ref),
            list_clause(Module:Head, Body, Ref, Source, Options)).
 
+list_clause(_Head, _Body, Ref, _Source, Options) :-
+    option(source(true), Options),
+    (   clause_property(Ref, file(File)),
+        clause_property(Ref, line_count(Line)),
+        catch(source_clause_string(File, Line, String, Repositioned),
+              _, fail),
+        debug(listing(source), 'Read ~w:~d: "~s"~n', [File, Line, String])
+    ->  !,
+        (   Repositioned == true
+        ->  comment('% From ~w:~d~n', [ File, Line ])
+        ;   true
+        ),
+        writeln(String)
+    ;   decompiled
+    ->  fail
+    ;   asserta(decompiled),
+        comment('% From database (decompiled)~n', []),
+        fail                                    % try next clause
+    ).
 list_clause(Module:Head, Body, Ref, Source, Options) :-
     restore_variable_names(Module, Head, Body, Ref, Options),
     write_module(Module, Source, Head),
@@ -377,9 +420,103 @@ notify_changed(Pred, Context) :-
     \+ predicate_property(Head, (dynamic)),
     !,
     decl_term(Pred, Context, Decl),
-    format('%   NOTE: system definition has been overruled for ~q~n',
-           [Decl]).
+    comment('%   NOTE: system definition has been overruled for ~q~n',
+            [Decl]).
 notify_changed(_, _).
+
+%!  source_clause_string(+File, +Line, -String, -Repositioned)
+%
+%   True when String is the source text for a clause starting at Line in
+%   File.
+
+source_clause_string(File, Line, String, Repositioned) :-
+    open_source(File, Line, Stream, Repositioned),
+    stream_property(Stream, position(Start)),
+    '$raw_read'(Stream, _TextWithoutComments),
+    stream_property(Stream, position(End)),
+    stream_position_data(char_count, Start, StartChar),
+    stream_position_data(char_count, End, EndChar),
+    Length is EndChar - StartChar,
+    set_stream_position(Stream, Start),
+    read_string(Stream, Length, String),
+    skip_blanks_and_comments(Stream, blank).
+
+skip_blanks_and_comments(Stream, _) :-
+    at_end_of_stream(Stream),
+    !.
+skip_blanks_and_comments(Stream, State0) :-
+    peek_string(Stream, 80, String),
+    string_chars(String, Chars),
+    phrase(blanks_and_comments(State0, State), Chars, Rest),
+    (   Rest == []
+    ->  read_string(Stream, 80, _),
+        skip_blanks_and_comments(Stream, State)
+    ;   length(Chars, All),
+        length(Rest, RLen),
+        Skip is All-RLen,
+        read_string(Stream, Skip, _)
+    ).
+
+blanks_and_comments(State0, State) -->
+    [C],
+    { transition(C, State0, State1) },
+    !,
+    blanks_and_comments(State1, State).
+blanks_and_comments(State, State) -->
+    [].
+
+transition(C, blank, blank) :-
+    char_type(C, space).
+transition('%', blank, line_comment).
+transition('\n', line_comment, blank).
+transition(_, line_comment, line_comment).
+transition('/', blank, comment_0).
+transition('/', comment(N), comment(N,/)).
+transition('*', comment(N,/), comment(N1)) :-
+    N1 is N + 1.
+transition('*', comment_0, comment(1)).
+transition('*', comment(N), comment(N,*)).
+transition('/', comment(N,*), State) :-
+    (   N == 1
+    ->  State = blank
+    ;   N2 is N - 1,
+        State = comment(N2)
+    ).
+
+
+open_source(File, Line, Stream, Repositioned) :-
+    source_stream(File, Stream, Pos0, Repositioned),
+    line_count(Stream, Line0),
+    (   Line >= Line0
+    ->  Skip is Line - Line0
+    ;   set_stream_position(Stream, Pos0),
+        Skip is Line - 1
+    ),
+    debug(listing(source), '~w: skip ~d to ~d', [File, Line0, Line]),
+    (   Skip =\= 0
+    ->  Repositioned = true
+    ;   true
+    ),
+    forall(between(1, Skip, _),
+           skip(Stream, 0'\n)).
+
+:- thread_local
+    opened_source/3,
+    decompiled/0.
+
+source_stream(File, Stream, Pos0, _) :-
+    opened_source(File, Stream, Pos0),
+    !.
+source_stream(File, Stream, Pos0, true) :-
+    open(File, read, Stream),
+    stream_property(Stream, position(Pos0)),
+    asserta(opened_source(File, Stream, Pos0)).
+
+close_sources :-
+    retractall(decompiled),
+    forall(retract(opened_source(_,Stream,_)),
+           close(Stream)).
+
 
 %!  portray_clause(+Clause) is det.
 %!  portray_clause(+Out:stream, +Clause) is det.
@@ -922,3 +1059,17 @@ not_qualified(Var) :-
     !.
 not_qualified(_:_) :- !, fail.
 not_qualified(_).
+
+
+%!  comment(+Format, +Args)
+%
+%   Emit a comment.
+
+comment(Format, Args) :-
+    stream_property(current_output, tty(true)),
+    setting(listing:comment_ansi_attributes, Attributes),
+    Attributes \== [],
+    !,
+    ansi_format(Attributes, Format, Args).
+comment(Format, Args) :-
+    format(Format, Args).
