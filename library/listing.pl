@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2016, University of Amsterdam
+    Copyright (c)  2001-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,8 @@
 
 :- module(prolog_listing,
         [ listing/0,
-          listing/1,
+          listing/1,			% :Spec
+          listing/2,                    % :Spec, +Options
           portray_clause/1,             % +Clause
           portray_clause/2,             % +Stream, +Clause
           portray_clause/3              % +Stream, +Clause, +Options
@@ -50,6 +52,7 @@
     listing/0.
 :- meta_predicate
     listing(:),
+    listing(:, +),
     portray_clause(+,+,:).
 
 :- predicate_options(portray_clause/3, 3, [pass_to(system:write_term/3, 3)]).
@@ -99,17 +102,18 @@ be changed using set_setting/2.
 %
 %   Lists all predicates defined  in   the  calling module. Imported
 %   predicates are not listed. To  list   the  content of the module
-%   =mymodule=, use:
+%   `mymodule`, use one of the calls below.
 %
-%     ==
+%     ```
 %     ?- mymodule:listing.
-%     ==
+%     ?- listing(mymodule:_).
+%     ```
 
 listing :-
     context_module(Context),
-    list_module(Context).
+    list_module(Context, []).
 
-list_module(Module) :-
+list_module(Module, Options) :-
     (   current_predicate(_, Module:Pred),
         \+ predicate_property(Module:Pred, imported_from(_)),
         strip_module(Pred, _Module, Head),
@@ -121,13 +125,14 @@ list_module(Module) :-
         ;   true
         ),
         nl,
-        list_predicate(Module:Head, Module),
+        list_predicate(Module:Head, Module, Options),
         fail
     ;   true
     ).
 
 
-%!  listing(:What)
+%!  listing(:What) is det.
+%!  listing(:What, +Options) is det.
 %
 %   List matching clauses. What is either a plain specification or a
 %   list of specifications. Plain specifications are:
@@ -142,45 +147,59 @@ list_module(Module) :-
 %
 %       ==
 %       ?- listing(append([], _, _)).
-%       lists:append([], A, A).
+%       lists:append([], L, L).
 %       ==
+%
+%    The following options are defined:
+%
+%      - variable_names(+How)
+%      One of `source` (default) or `generated`.  If `source`, for each
+%      clause that is associated to a source location the system tries
+%      to restore the original variable names.  This may fail if macro
+%      expansion is not reversible or the term cannot be read due to
+%      different operator declarations.  In that case variable names
+%      are generated.
 
-listing(M:Spec) :-
+listing(Spec) :-
+    listing(Spec, []).
+
+listing(M:Spec, Options) :-
     var(Spec),
     !,
-    list_module(M).
-listing(M:List) :-
+    list_module(M, Options).
+listing(M:List, Options) :-
     is_list(List),
     !,
     forall(member(Spec, List),
-           listing(M:Spec)).
-listing(X) :-
+           listing(M:Spec, Options)).
+listing(X, Options) :-
     (   prolog:locate_clauses(X, ClauseRefs)
-    ->  list_clauserefs(ClauseRefs)
+    ->  strip_module(X, Context, _),
+        list_clauserefs(ClauseRefs, Context, Options)
     ;   '$find_predicate'(X, Preds),
-        list_predicates(Preds, X)
+        list_predicates(Preds, X, Options)
     ).
 
-list_clauserefs([]) :- !.
-list_clauserefs([H|T]) :-
+list_clauserefs([], _, _) :- !.
+list_clauserefs([H|T], Context, Options) :-
     !,
-    list_clauserefs(H),
-    list_clauserefs(T).
-list_clauserefs(Ref) :-
-    clause(Head, Body, Ref),
-    portray_clause((Head :- Body)).
+    list_clauserefs(H, Context, Options),
+    list_clauserefs(T, Context, Options).
+list_clauserefs(Ref, Context, Options) :-
+    @(clause(Head, Body, Ref), Context),
+    list_clause(Head, Body, Ref, Context, Options).
 
-%!  list_predicates(:Preds:list(pi), :Spec) is det.
+%!  list_predicates(:Preds:list(pi), :Spec, +Options) is det.
 
-list_predicates(PIs, Context:X) :-
+list_predicates(PIs, Context:X, Options) :-
     member(PI, PIs),
     pi_to_head(PI, Pred),
     unify_args(Pred, X),
     list_define(Pred, DefPred),
-    list_predicate(DefPred, Context),
+    list_predicate(DefPred, Context, Options),
     nl,
     fail.
-list_predicates(_, _).
+list_predicates(_, _, _).
 
 list_define(Head, LoadModule:Head) :-
     compound(Head),
@@ -215,20 +234,20 @@ unify_args(X, X) :- !.
 unify_args(_:X, X) :- !.
 unify_args(_, _).
 
-list_predicate(Pred, Context) :-
+list_predicate(Pred, Context, _) :-
     predicate_property(Pred, undefined),
     !,
     decl_term(Pred, Context, Decl),
     format('%   Undefined: ~q~n', [Decl]).
-list_predicate(Pred, Context) :-
+list_predicate(Pred, Context, _) :-
     predicate_property(Pred, foreign),
     !,
     decl_term(Pred, Context, Decl),
     format('%   Foreign: ~q~n', [Decl]).
-list_predicate(Pred, Context) :-
+list_predicate(Pred, Context, Options) :-
     notify_changed(Pred, Context),
     list_declarations(Pred, Context),
-    list_clauses(Pred, Context).
+    list_clauses(Pred, Context, Options).
 
 decl_term(Pred, Context, Decl) :-
     strip_module(Pred, Module, Head),
@@ -299,24 +318,33 @@ write_declarations([H|T], Module) :-
     format(':- ~q.~n', [H]),
     write_declarations(T, Module).
 
-list_clauses(Pred, Source) :-
+list_clauses(Pred, Source, Options) :-
     strip_module(Pred, Module, Head),
-    (   clause(Pred, Body, Ref),
-        (   catch(clause_info(Ref, _, _, _,
-                              [ head(QHead),
-                                body(Body),
-                                variable_names(Bindings)
-                              ]),
-                  _, true)
-        ->  unify_head(Module, Head, QHead),
-            bind_vars(Bindings)
-        ;   true
-        ),
-        write_module(Module, Source, Head),
-        portray_clause((Head:-Body)),
-        fail
-    ;   true
-    ).
+    forall(clause(Pred, Body, Ref),
+           list_clause(Module:Head, Body, Ref, Source, Options)).
+
+list_clause(Module:Head, Body, Ref, Source, Options) :-
+    restore_variable_names(Module, Head, Body, Ref, Options),
+    write_module(Module, Source, Head),
+    portray_clause((Head:-Body)).
+
+%!  restore_variable_names(+Module, +Head, +Body, +Ref, +Options) is det.
+%
+%   Try to restore the variable names  from   the  source  if the option
+%   variable_names(source) is true.
+
+restore_variable_names(Module, Head, Body, Ref, Options) :-
+    option(variable_names(source), Options, source),
+    catch(clause_info(Ref, _, _, _,
+                      [ head(QHead),
+                        body(Body),
+                        variable_names(Bindings)
+                      ]),
+          _, true),
+    unify_head(Module, Head, QHead),
+    !,
+    bind_vars(Bindings).
+restore_variable_names(_,_,_,_,_).
 
 unify_head(Module, Head, Module:Head) :-
     !.
