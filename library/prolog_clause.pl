@@ -61,7 +61,9 @@
     open_source/2.                  % +Input, -Stream
 
 :- predicate_options(prolog_clause:clause_info/5, 5,
-                     [ variable_names(-list)
+                     [ head(-any),
+                       body(-any),
+                       variable_names(-list)
                      ]).
 
 /** <module> Get detailed source-information about a clause
