@@ -67,6 +67,7 @@ a human readable format.
 
     * listing/0 lists a module.
     * listing/1 lists a predicate or matching clause
+    * listing/2 lists a predicate or matching clause with options
     * portray_clause/2 pretty-prints a clause-term
 
 Layout can be customized using library(settings). The effective settings
@@ -78,8 +79,8 @@ be changed using set_setting/2.
     ========================================================================
     Name                      Value (*=modified) Comment
     ========================================================================
-    listing:body_indentation  8              Indentation used goals in the body
-    listing:tab_distance      8              Distance between tab-stops.
+    listing:body_indentation  4              Indentation used goals in the body
+    listing:tab_distance      0              Distance between tab-stops.
     ...
     ==
 
@@ -88,11 +89,11 @@ be changed using set_setting/2.
 @tbd    Provide persistent user customization
 */
 
-:- setting(listing:body_indentation, nonneg, 8,
+:- setting(listing:body_indentation, nonneg, 4,
            'Indentation used goals in the body').
-:- setting(listing:tab_distance, nonneg, 8,
+:- setting(listing:tab_distance, nonneg, 0,
            'Distance between tab-stops.  0 uses only spaces').
-:- setting(listing:cut_on_same_line, boolean, true,
+:- setting(listing:cut_on_same_line, boolean, false,
            'Place cuts (!) on the same line').
 :- setting(listing:line_width, nonneg, 78,
            'Width of a line.  0 is infinite').
