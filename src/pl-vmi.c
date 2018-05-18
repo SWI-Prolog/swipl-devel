@@ -4444,12 +4444,28 @@ again:
 	setVar(*valTermRef(LD->exception.pending));
       }
 
+					/* discard as much as we can from the local stack */
       l_top = argFrameP(FR, FR->predicate->functor->arity);
-      if ( FR->predicate == PROCEDURE_dcall1->definition )
-        FR->clause = NULL;	/* clause is above me, but no longer needed */
+      FR->clause = NULL;		/* We do not care about the arguments */
+      DEBUG(MSG_UNWIND_EXCEPTION,
+	    Sdprintf("l_top above [%d] %s: %p\n",
+		     (int)FR->level, predicateName(FR->predicate), l_top));
       if ( l_top < (void*)(BFR+1) )
+      { DEBUG(MSG_UNWIND_EXCEPTION,
+	      Sdprintf("Include choice points: %p -> %p\n", l_top, (void*)(BFR+1)));
         l_top = (void*)(BFR+1);
+      }
       lTop = l_top;
+
+      while(fli_context > (FliFrame)lTop)
+        fli_context = fli_context->parent;
+
+      DEBUG(CHK_SECURE,
+	    { SAVE_REGISTERS(qid);
+	      memset(lTop, 0xfb, lMax-lTop);
+	      checkStacks(NULL);
+	      LOAD_REGISTERS(qid)
+	    });
 
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
