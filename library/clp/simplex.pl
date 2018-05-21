@@ -1569,7 +1569,7 @@ prolog:message(simplex(bounded)) -->
 
 warn_if_bounded_arithmetic :-
         (   current_prolog_flag(bounded, true) ->
-            print_message(warning, simlpex(bounded))
+            print_message(warning, simplex(bounded))
         ;   true
         ).
 
