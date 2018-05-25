@@ -4858,13 +4858,14 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { if ( tsize + gsize + lsize > LD->stacks.limit )
     { size_t ulocal  = needStack((Stack)&LD->stacks.local PASS_LD)  + l;
       size_t uglobal = needStack((Stack)&LD->stacks.global PASS_LD) + g;
-      size_t utrail  = needStack((Stack)&LD->stacks.trail PASS_LD)  + t;
+      size_t utrail  = needStack((Stack)&LD->stacks.trail PASS_LD)  + t +
+		       uglobal/GLOBAL_TRAIL_RATIO;
       size_t need    = ulocal + utrail + uglobal;
       size_t space;
 
       DEBUG(MSG_STACK_OVERFLOW,
-	    Sdprintf("Reached stack-limit; need %zd; limit = %zd\n",
-		     need, LD->stacks.limit));
+	    Sdprintf("Reached stack-limit; need (l+g+t) %zd+%zd+%zd=%zd; limit = %zd\n",
+		     ulocal, uglobal, utrail, need, LD->stacks.limit));
 
       if ( LD->stacks.limit > need &&
 	   (space=LD->stacks.limit - need) > LD->stacks.limit/4	)
