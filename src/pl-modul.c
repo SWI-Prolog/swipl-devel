@@ -52,6 +52,7 @@ modules import from `user' (and indirect from `system').
 
 static int	addSuperModule_no_lock(Module m, Module s, int where);
 static void	unallocModule(Module m);
+static void	unlinkSourceFilesModule(Module m);
 
 static void
 unallocProcedureSymbol(void *name, void *value)
@@ -139,6 +140,49 @@ lookupModule__LD(atom_t name ARG_LD)
 Module
 isCurrentModule__LD(atom_t name ARG_LD)
 { return lookupHTable(GD->tables.modules, (void*)name);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+acquireModule()/releaseModule() must be used for   module  pointers that
+may refer to a temporary module from a  thread that is not the temporary
+module thread ifself. These functions  cooperate with destroyModule() to
+ensure the module is not destroyed prematurely.
+
+Currently this is used for the following.   Ultimately we need module GC
+or  more  comprehensive  usage  of  this  interface  to  safely  support
+temporary modules.
+
+    - current_op/3 to facilitate using the Pengine operators for
+      rendering results.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Module
+acquireModule__LD(atom_t name ARG_LD)
+{ Module m;
+
+  PL_LOCK(L_MODULE);
+  m = lookupHTable(GD->tables.modules, (void*)name);
+  if ( m && m->class == ATOM_temporary )
+    m->references++;
+  PL_UNLOCK(L_MODULE);
+
+  return m;
+}
+
+void
+releaseModule(Module m)
+{ if ( m->class == ATOM_temporary )
+  { PL_LOCK(L_MODULE);
+    if ( --m->references == 0 &&
+	 true(m, M_DESTROYED) )
+    { unlinkSourceFilesModule(m);
+      GD->statistics.modules--;
+      PL_unregister_atom(m->name);
+      unallocModule(m);
+    }
+    PL_UNLOCK(L_MODULE);
+  }
 }
 
 
@@ -255,12 +299,19 @@ unlinkSourceFilesModule(Module m)
 
 static int
 destroyModule(Module m)
-{ deleteHTable(GD->tables.modules, (void*)m->name);
-  PL_unregister_atom(m->name);
-  unlinkSourceFilesModule(m);
-  GD->statistics.modules--;
-  unallocModule(m);
+{ GET_LD
+  if ( !(m->class != ATOM_temporary ||
+	 m->references > 0) )
+    Sdprintf("Module %s: class %s; refs %d\n",
+	     PL_atom_chars(m->name), PL_atom_chars(m->class), m->references);
 
+  PL_LOCK(L_MODULE);
+  if ( deleteHTable(GD->tables.modules, (void*)m->name) == m )
+    set(m, M_DESTROYED);
+  assert(!lookupHTable(GD->tables.modules, (void*)m->name));
+  PL_UNLOCK(L_MODULE);
+
+  releaseModule(m);
   return TRUE;
 }
 
@@ -471,16 +522,11 @@ setSuperModule(Module m, Module s)
 }
 
 
-static
-PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
-{ PRED_LD
-  Module m = MODULE_parse;
-  term_t prop = PL_new_term_ref();
-  atom_t pname;
+static int
+set_module(Module m, term_t prop ARG_LD)
+{ atom_t pname;
   size_t arity;
 
-  if ( !PL_strip_module(A1, &m, prop) )
-    return FALSE;
   if ( PL_get_name_arity(prop, &pname, &arity) && arity == 1 )
   { term_t arg = PL_new_term_ref();
 
@@ -488,16 +534,11 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 
     if ( pname == ATOM_base )
     { atom_t mname;
-      Module super;
-      int rc;
 
       if ( !PL_get_atom_ex(arg, &mname) )
 	return FALSE;
-      super = lookupModule(mname);
-      PL_LOCK(L_MODULE);
-      rc = setSuperModule(m, super);
-      PL_UNLOCK(L_MODULE);
-      return rc;
+
+      return setSuperModule(m, _lookupModule(mname PASS_LD));
     } else if ( pname == ATOM_class )
     { atom_t class;
 
@@ -538,6 +579,28 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
     }
   } else
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_module_property, prop);
+}
+
+
+static
+PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Module m;
+  term_t prop = PL_new_term_ref();
+  atom_t mname = 0;
+  Word p;
+  int rc;
+
+  if ( !(p=stripModuleName(valTermRef(A1), &mname PASS_LD)) )
+    return FALSE;
+  *valTermRef(prop) = linkVal(p);
+
+  PL_LOCK(L_MODULE);
+  m = mname ? _lookupModule(mname PASS_LD) : MODULE_parse;
+  rc = set_module(m, prop PASS_LD);
+  PL_UNLOCK(L_MODULE);
+
+  return rc;
 }
 
 
@@ -1576,12 +1639,15 @@ PRED_IMPL("$destroy_module", 1, destroy_module, 0)
   if ( PL_get_atom_ex(A1, &name) )
   { Module m;
 
-    if ( (m=isCurrentModule(name)) )
+    if ( (m=acquireModule(name)) )
     { if ( m->class == ATOM_temporary )
-	return destroyModule(m);
-      return PL_error(NULL, 0,
-		      "module is not temporary",
-		      ERR_PERMISSION, ATOM_destroy, ATOM_module, A1);
+      { return destroyModule(m);
+      } else
+      { releaseModule(m);
+	return PL_error(NULL, 0,
+			"module is not temporary",
+			ERR_PERMISSION, ATOM_destroy, ATOM_module, A1);
+      }
     }
 
     return TRUE;				/* non-existing */

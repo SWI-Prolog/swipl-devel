@@ -581,7 +581,9 @@ get_op_module(term_t a3, term_t name, Module *m ARG_LD)
     return FALSE;
   *valTermRef(name) = linkVal(p);
 
-  if ( mname && !(*m=isCurrentModule(mname)) )
+  if ( *m && (*m)->name == mname )
+    return TRUE;
+  if ( mname && !(*m=acquireModule(mname)) )
     *m = MODULE_user;
 
   return TRUE;
@@ -592,8 +594,10 @@ static
 PRED_IMPL("current_op", 3, current_op,
 	  PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
 { PRED_LD
-  Module m = MODULE_parse;
+  Module mp = MODULE_parse;
+  Module m  = mp;
   term_t name = A3;
+  word rc;
 
   if ( CTX_CNTRL != FRG_CUTTED )
   { if ( !(name = PL_new_term_ref()) ||
@@ -601,7 +605,11 @@ PRED_IMPL("current_op", 3, current_op,
       return FALSE;
   }
 
-  return current_op(m, TRUE, A1, A2, name, PL__ctx PASS_LD);
+  rc = current_op(m, TRUE, A1, A2, name, PL__ctx PASS_LD);
+  if ( m != mp )
+    releaseModule(m);
+
+  return rc;
 }
 
 /** '$local_op'(?Precedence, ?Type, ?Name) is nondet.

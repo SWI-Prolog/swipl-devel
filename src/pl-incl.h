@@ -902,6 +902,7 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_ERROR		(0x0400) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 #define M_VARPREFIX		(0x0800)
+#define M_DESTROYED		(0x1000)
 
 /* Flags on functors */
 
@@ -1721,7 +1722,7 @@ struct module
   size_t	code_size;	/* #Bytes used for its procedures */
   size_t	code_limit;	/* Limit for code_size */
 #ifdef O_PLMT
-  counting_mutex *mutex;	/* Mutex to guard procedures */
+  counting_mutex *mutex;	/* Mutex to guard module modifications */
 #endif
 #ifdef O_PROLOG_HOOK
   Procedure	hook;		/* Hooked module */
@@ -1729,6 +1730,7 @@ struct module
   int		level;		/* Distance to root (root=0) */
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
+  int		references;	/* see acquireModule() */
   gen_t		last_modified;	/* Generation I was last modified */
 };
 

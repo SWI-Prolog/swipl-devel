@@ -174,6 +174,8 @@
 #define MSG_ZIP			 250
 #define MSG_ZIP_STATE		 251
 
+#define MSG_MODULE_REF		 260
+
 #define MSG_TABLING_WORK	 300
 
 #define CHK_SECURE              1000
