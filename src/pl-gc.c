@@ -3940,9 +3940,11 @@ gcEnsureSpace(vm_state *state ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-garbageCollect()  returns  one  of  TRUE    (ok),   FALSE  (blocked)  or
-LOCAL_OVERFLOW if the local stack  cannot accomodate the term-references
-for saving ARGP and global variables.
+garbageCollect() returns one of TRUE (ok),   FALSE (blocked or exception
+in printMessage()) or *_OVERFLOW if the   local  stack cannot accomodate
+the term-references for saving ARGP and   global variables or the stacks
+remain too tight after running GC and  the stacks cannot be extended due
+to the stack_limit.
 
 (*) We call trimStacks()  to  reactivate   the  `spare  stacks'  and, if
 LD->trim_stack_requested is TRUE, to shrink the  stacks (this happens at
@@ -4128,21 +4130,20 @@ garbageCollect(void)
 #endif
   leaveGC(PASS_LD1);
 
-  if ( verbose )
-    rc = printMessage(ATOM_informational,
-		      PL_FUNCTOR_CHARS, "gc", 1,
-		        PL_FUNCTOR_CHARS, "done", 7,
-		          PL_INTPTR, ggar,
-		          PL_INTPTR, tgar,
-		          PL_DOUBLE, (double)t,
-		          PL_INTPTR, usedStack(global),
-		          PL_INTPTR, usedStack(trail),
-		          PL_INTPTR, roomStack(global),
-		          PL_INTPTR, roomStack(trail));
+  if ( verbose &&
+       !printMessage(ATOM_informational,
+		     PL_FUNCTOR_CHARS, "gc", 1,
+		       PL_FUNCTOR_CHARS, "done", 7,
+		         PL_INTPTR, ggar,
+		         PL_INTPTR, tgar,
+		         PL_DOUBLE, (double)t,
+		         PL_INTPTR, usedStack(global),
+		         PL_INTPTR, usedStack(trail),
+		         PL_INTPTR, roomStack(global),
+		         PL_INTPTR, roomStack(trail)) )
+    return FALSE;
 
-  rc = shiftTightStacks() && rc;
-
-  return rc;
+  return shiftTightStacks();
 }
 
 word
@@ -4280,8 +4281,8 @@ ensureGlobalSpace(size_t cells, int flags)
     int rc;
 
     if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
-    { if ( garbageCollect() == FALSE )
-	return FALSE;
+    { if ( (rc=garbageCollect()) != TRUE )
+	return rc;
 
       if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
 	return TRUE;
@@ -5160,6 +5161,10 @@ tight(Stack s ARG_LD)
   return 0;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return TRUE on success or *_OVERFLOW when out of space.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 shiftTightStacks(void)
