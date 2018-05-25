@@ -4534,9 +4534,6 @@ again:
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
-	exceptionUnwindGC();
-	LOAD_REGISTERS(qid);
-	SAVE_REGISTERS(qid);
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
       }
