@@ -4470,7 +4470,6 @@ again:
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
-	exceptionUnwindGC();
 	LOAD_REGISTERS(qid);
 	discardFrame(FR PASS_LD);
 	SAVE_REGISTERS(qid);
