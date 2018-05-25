@@ -529,7 +529,7 @@ push_stack(cycle_entry ce[MAX_CYCLE], int depth, atom_t name, Word *pp ARG_LD)
 static word
 push_overflow_context(Stack stack, int extra)
 { GET_LD
-  int keys = 6;
+  int keys = 7;
 
   if ( gTop+2*keys+extra < gMax )
   { Word p = gTop;
@@ -539,8 +539,10 @@ push_overflow_context(Stack stack, int extra)
 
     *p++ = dict_functor(1);
     *p++ = ATOM_stack_overflow;			/* dict tag */
+    *p++ = consInt(LD->stacks.limit/1024);
+    *p++ = ATOM_stack_limit;			/* overflow */
     *p++ = consInt(usedStack(local)/1024);	/* K-bytes to avoid small int */
-    *p++ = ATOM_localused;			/* overflow */
+    *p++ = ATOM_localused;
     *p++ = consInt(usedStack(global)/1024);
     *p++ = ATOM_globalused;
     *p++ = consInt(usedStack(trail)/1024);

@@ -803,12 +803,10 @@ prolog_message(cgc(done(CollectedClauses, _CollectedBytes,
 		 *******************************/
 
 out_of_stack(Context) -->
-    { human_stack_size(Context.localused,  Local),
-      human_stack_size(Context.globalused, Global),
-      human_stack_size(Context.trailused,  Trail),
-      current_prolog_flag(stack_limit, LimitBytes),
-      LimitK is LimitBytes//1024,
-      human_stack_size(LimitK, Limit),
+    { human_stack_size(Context.localused,   Local),
+      human_stack_size(Context.globalused,  Global),
+      human_stack_size(Context.trailused,   Trail),
+      human_stack_size(Context.stack_limit, Limit),
       LCO is (100*(Context.depth - Context.environments))/Context.depth
     },
     [ 'Stack limit (~s) exceeded'-[Limit], nl,
