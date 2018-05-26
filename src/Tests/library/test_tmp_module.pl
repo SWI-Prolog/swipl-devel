@@ -39,15 +39,27 @@
 	  ]).
 :- use_module(library(modules)).
 :- use_module(library(thread)).
+:- use_module(library(plunit)).
 
-%%	test_tmp_module
+test_tmp_module :-
+	run_tests([ tmp_module
+		  ]).
+
+:- begin_tests(tmp_module).
+
+test(nqueens) :-
+	test_tmp_module(100).
+test(current_op) :-
+	forall(between(1, 100, _),
+	       test_op).
+
+:- end_tests(tmp_module).
+
+%%	test_tmp_module(+Concurrent)
 %
 %	Test  concurrent  loading  of  nqueens   in  multiple  temporary
 %	modules. This test was first of all  designed to test for memory
 %	leaks.
-
-test_tmp_module :-
-	test_tmp_module(100).
 
 test_tmp_module(N) :-
 	length(L, N),
@@ -78,3 +90,18 @@ tmp_queens(S) :-
 tmp_queen_list(L) :-
 	findnsols(10, S, tmp_queens(S), L), !.
 
+%!	test_op
+%
+%	Test current_op/3 on a disappearing temporary module.
+
+test_op :-
+    A is random(1000000),
+    atom_concat('tmp-', A, M),
+    thread_create(in_temporary_module(M, true, sleep(0.001)), Id),
+    get_time(Now),
+    repeat,
+       ignore(current_op(_, _, M:v)),
+       get_time(T),
+       T - Now > 0.002,
+       !,
+    thread_join(Id).
