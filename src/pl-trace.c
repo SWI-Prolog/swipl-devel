@@ -2594,6 +2594,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
       break;
     }
     case PLEV_BREAK:
+    case PLEV_BREAK_EXISTS:
     case PLEV_NOBREAK:
     { Clause clause = va_arg(args, Clause);
       int offset = va_arg(args, int);
@@ -2605,8 +2606,9 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
 			   PL_FUNCTOR, FUNCTOR_break3,
 			     PL_TERM, cref,
 			     PL_INT, offset,
-			     PL_ATOM, ev == PLEV_BREAK ? ATOM_true
-						       : ATOM_false)
+			     PL_ATOM, ev == PLEV_BREAK   ? ATOM_true :
+				      ev == PLEV_NOBREAK ? ATOM_false
+							 : ATOM_exist)
 	   );
       break;
     }

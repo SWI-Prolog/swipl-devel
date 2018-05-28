@@ -6945,7 +6945,11 @@ matching_unify_break(Clause clause, int offset, code op)
 }
 
 
-static bool				/* must hold L_BREAK */
+#define BRK_NOTSET 0
+#define BRK_SET    1
+#define BRK_EXISTS 2
+
+static int				/* must hold L_BREAK */
 setBreak(Clause clause, int offset)	/* offset is already verified */
 { int second_bp = FALSE;
   Code PC;
@@ -6958,6 +6962,9 @@ set_second:
 
   if ( !breakTable )
     breakTable = newHTable(16);
+
+  if ( dop == D_BREAK )
+    return BRK_EXISTS;
 
   if ( (codeTable[dop].flags & VIF_BREAK) || second_bp )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
@@ -6975,7 +6982,7 @@ set_second:
       goto set_second;
     }
 
-    return TRUE;
+    return BRK_SET;
   } else
   { return not_breakable(ATOM_set, clause, offset);
   }
@@ -7088,7 +7095,8 @@ instruction with D_BREAK.
 
 static
 PRED_IMPL("$break_at", 3, break_at, 0)
-{ Clause clause = NULL;
+{ PRED_LD
+  Clause clause = NULL;
   int offset, doit, rc;
 
   if ( (PL_get_clref(A1, &clause) != TRUE) ||
@@ -7106,7 +7114,17 @@ PRED_IMPL("$break_at", 3, break_at, 0)
   PL_UNLOCK(L_BREAK);
 
   if ( rc )
-    return callEventHook(doit ? PLEV_BREAK : PLEV_NOBREAK, clause, offset);
+  { pl_event_type et;
+
+    if ( doit )
+      et = (rc == BRK_SET ? PLEV_BREAK : PLEV_BREAK_EXISTS);
+    else
+      et = PLEV_NOBREAK;
+
+    startCritical;			/* Call event handler sig_atomic */
+    rc = callEventHook(et, clause, offset);
+    rc = endCritical && rc;
+  }
 
   return rc;
 }

@@ -1914,6 +1914,7 @@ typedef enum pl_event_type
   PLEV_TRACING,				/* changed tracing mode */
   PLEV_SPY,				/* changed spypoint */
   PLEV_BREAK,				/* a break-point was set */
+  PLEV_BREAK_EXISTS,			/* existing breakpoint */
   PLEV_NOBREAK,				/* a break-point was cleared */
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
   PL_EV_THREADFINISHED			/* A thread has finished */

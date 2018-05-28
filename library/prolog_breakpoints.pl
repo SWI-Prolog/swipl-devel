@@ -67,26 +67,24 @@ other hooks the opportunity to react.
 %!  set_breakpoint(+File, +Line, +Char, -Id) is det.
 %!  set_breakpoint(+Owner, +File, +Line, +Char, -Id) is det.
 %
-%   Put a breakpoint at the  indicated   source-location.  File is a
-%   current sourcefile (as reported by   source_file/1). Line is the
-%   1-based line in which Char  is.  Char   is  the  position of the
-%   break.
+%   Put a breakpoint at the indicated source-location. File is a current
+%   sourcefile (as reported by source_file/1). Line  is the 1-based line
+%   in which Char is. Char is the position of the break.
 %
-%   First, '$clause_from_source'/4 uses the SWI-Prolog clause-source
-%   information to find  the  last   clause  starting  before  Line.
-%   '$break_pc' generated (on backtracking),  a   list  of  possible
+%   First, '$clause_from_source'/4 uses  the   SWI-Prolog  clause-source
+%   information  to  find  the  last    clause   starting  before  Line.
+%   '$break_pc'  generated  (on  backtracking),  a    list  of  possible
 %   break-points.
 %
-%   Note that in addition to  setting   the  break-point, the system
-%   must be in debug mode. With threading enabled, there are various
-%   different ways this may  be  done.   See  debug/0,  tdebug/0 and
-%   tdebug/1. Therefore, this predicate  does   *not*  enable  debug
-%   mode.
+%   Note that in addition to setting the break-point, the system must be
+%   in debug mode for the  breakpoint   to  take  effect. With threading
+%   enabled, there are various different  ways   this  may  be done. See
+%   debug/0, tdebug/0 and tdebug/1. Therefore, this predicate does *not*
+%   enable debug mode.
 %
-%   @arg  Owner  denotes  the   file    that   _owns_   the  clause.
-%   set_breakpoint/5 is used to set breakpoints  in an included file
-%   in   the   context    of    the     Owner    main    file.   See
-%   source_file_property/2.
+%   @arg Owner denotes the file that _owns_ the clause. set_breakpoint/5
+%   is used to set breakpoints in an included file in the context of the
+%   Owner main file. See source_file_property/2.
 
 set_breakpoint(File, Line, Char, Id) :-
     set_breakpoint(File, File, Line, Char, Id).
@@ -107,12 +105,8 @@ set_breakpoint(Owner, File, Line, Char, Id) :-
         '$break_pc'(ClauseRef, PC, _), !
     ),
     debug(break, 'Break at clause ~w, PC=~w', [ClauseRef, PC]),
-    with_mutex('$break', next_break_id(Id)),
-    Location = file_position(File, Line, Char),
-    asserta(known_breakpoint(ClauseRef, PC, Location, Id), Ref),
-    catch('$break_at'(ClauseRef, PC, true), E,
-          (erase(Ref), throw(E))).
-
+    '$break_at'(ClauseRef, PC, true),
+    known_breakpoint(ClauseRef, PC, _Location, Id).
 
 range(_,  Pos, _, _) :-
     var(Pos), !, fail.
@@ -124,7 +118,7 @@ range([H|T], term_position(_, _, _, _, PosL), A, Z) :-
     range(T, Pos, A, Z).
 
 :- dynamic
-    known_breakpoint/4,             %
+    known_breakpoint/4,             % ClauseRef, PC, Location, Id
     break_id/1.
 
 next_break_id(Id) :-
@@ -220,10 +214,10 @@ stream_line(In, Index, Line0, Line) :-
 user:prolog_event_hook(break(ClauseRef, PC, Set)) :-
     break(Set, ClauseRef, PC).
 
-break(true, ClauseRef, PC) :-
+break(exist, ClauseRef, PC) :-
     known_breakpoint(ClauseRef, PC, _Location, Id),
     !,
-    print_message(informational, breakpoint(set, Id)).
+    print_message(informational, breakpoint(exist, Id)).
 break(true, ClauseRef, PC) :-
     !,
     debug(break, 'Trap in Clause ~p, PC ~d', [ClauseRef, PC]),
@@ -274,6 +268,8 @@ prolog:message(breakpoint(SetClear, Id)) -->
 
 setclear(set) -->
     ['Breakpoint '].
+setclear(exist) -->
+    ['Existing breakpoint '].
 setclear(delete) -->
     ['Deleted breakpoint '].
 
