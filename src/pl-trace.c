@@ -2555,9 +2555,10 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     }
     case PLEV_ERASED_CLAUSE:
     { Clause cl = va_arg(args, Clause);		/* object erased */
-      term_t dbref = PL_new_term_ref();
+      term_t dbref;
 
-      rc = (  PL_unify_clref(dbref, cl) &&
+      rc = (  (dbref = PL_new_term_ref()) &&
+	      PL_unify_clref(dbref, cl) &&
 	      PL_unify_term(arg,
 			    PL_FUNCTOR, FUNCTOR_erased1,
 			      PL_TERM, dbref)
@@ -2566,9 +2567,10 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     }
     case PLEV_ERASED_RECORD:
     { RecordRef r = va_arg(args, RecordRef);	/* object erased */
-      term_t dbref = PL_new_term_ref();
+      term_t dbref;
 
-      rc = (  PL_unify_recref(dbref, r) &&
+      rc = (  (dbref = PL_new_term_ref()) &&
+	      PL_unify_recref(dbref, r) &&
 	      PL_unify_term(arg,
 			    PL_FUNCTOR, FUNCTOR_erased1,
 			      PL_TERM, dbref)
@@ -2595,10 +2597,10 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     case PLEV_NOBREAK:
     { Clause clause = va_arg(args, Clause);
       int offset = va_arg(args, int);
-      term_t cref = PL_new_term_ref();
+      term_t cref;
 
-
-      rc = ( PL_unify_clref(cref, clause) &&
+      rc = ( (cref = PL_new_term_ref()) &&
+	     PL_unify_clref(cref, clause) &&
 	     PL_unify_term(arg,
 			   PL_FUNCTOR, FUNCTOR_break3,
 			     PL_TERM, cref,
@@ -2612,10 +2614,12 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     { LocalFrame fr = va_arg(args, LocalFrame);
       term_t ref = PL_new_term_ref();
 
-      PL_put_frame(ref, fr);
-      rc = PL_unify_term(arg,
-			 PL_FUNCTOR, FUNCTOR_frame_finished1,
-			   PL_TERM, ref);
+      rc = ( (ref = PL_new_term_ref()) &&
+	     (PL_put_frame(ref, fr),TRUE) &&
+	     PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_frame_finished1,
+			     PL_TERM, ref)
+	   );
       break;
     }
 #ifdef O_PLMT
