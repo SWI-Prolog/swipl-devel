@@ -226,6 +226,8 @@ read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 %     prolog_clause:open_source(File, Stream)
 %     ==
 
+:- public try_open_source/2.            % used by library(prolog_breakpoints).
+
 try_open_source(File, In) :-
     open_source(File, In),
     !.

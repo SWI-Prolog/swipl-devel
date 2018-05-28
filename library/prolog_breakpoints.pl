@@ -97,15 +97,18 @@ set_breakpoint(Owner, File, Line, Char, Id) :-
         debug(break, 'Clause ~p, PC=~p NextPC=~p', [ClauseRef, PC, NextPC]),
         '$clause_term_position'(ClauseRef, NextPC, List),
         debug(break, 'Location = ~w', [List]),
-        range(List, TermPos, _0A, Z),
-        debug(break, 'Term from ~w-~w', [_0A, Z]),
-        Z >= Char, !
-    ;   format('Failed to unify clause ~p, using first break',
-               [ClauseRef]),
-        '$break_pc'(ClauseRef, PC, _), !
+        range(List, TermPos, A, Z),
+        debug(break, 'Term from ~w-~w', [A, Z]),
+        Z >= Char, !,
+        Len is Z - A,
+        b_setval('$breakpoint', file_location(File, Line, A, Len))
+    ;   print_message(warning, breakpoint(no_source(ClauseRef, File, Line))),
+        '$break_pc'(ClauseRef, PC, _), !,
+        nb_delete('$breakpoint')
     ),
     debug(break, 'Break at clause ~w, PC=~w', [ClauseRef, PC]),
     '$break_at'(ClauseRef, PC, true),
+    nb_delete('$breakpoint'),
     known_breakpoint(ClauseRef, PC, _Location, Id).
 
 range(_,  Pos, _, _) :-
@@ -168,15 +171,16 @@ breakpoint_property(Id, line_count(Line)) :-
     known_breakpoint(_,_,Location,Id),
     location_line(Location, Line).
 breakpoint_property(Id, character_range(Start, Len)) :-
-    known_breakpoint(ClauseRef,PC,_,Id),
-    (   known_breakpoint(_,_,file_character_range(Start,Len),Id)
+    known_breakpoint(ClauseRef,PC,Location,Id),
+    (   Location = file_location(_File, _Line, Start, Len)
+    ->  true
     ;   break_location(ClauseRef, PC, _File, Start-End),
         Len is End+1-Start
     ).
 breakpoint_property(Id, clause(Reference)) :-
     known_breakpoint(Reference,_,_,Id).
 
-location_line(file_position(_File, Line, _Char), Line).
+location_line(file_location(_File, Line, _Start, _Len), Line).
 location_line(file_character_range(File, Start, _Len), Line) :-
     file_line(File, Start, Line).
 location_line(file_line(_File, Line), Line).
@@ -189,7 +193,7 @@ location_line(file_line(_File, Line), Line).
 
 file_line(File, Start, Line) :-
     setup_call_cleanup(
-        open(File, read, In),
+        prolog_clause:try_open_source(File, In),
         stream_line(In, Start, 1, Line),
         close(In)).
 
@@ -222,7 +226,9 @@ break(true, ClauseRef, PC) :-
     !,
     debug(break, 'Trap in Clause ~p, PC ~d', [ClauseRef, PC]),
     with_mutex('$break', next_break_id(Id)),
-    (   break_location(ClauseRef, PC, File, A-Z)
+    (   nb_current('$breakpoint', Location)
+    ->  true
+    ;   break_location(ClauseRef, PC, File, A-Z)
     ->  Len is Z+1-A,
         Location = file_character_range(File, A, Len)
     ;   clause_property(ClauseRef, file(File)),
@@ -262,6 +268,10 @@ break_location(ClauseRef, PC, File, A-Z) :-
 :- multifile
     prolog:message/3.
 
+prolog:message(breakpoint(no_source(ClauseRef, _File, Line))) -->
+    [ 'Failed to find line ~d in body of clause ~p.  Breaking at start of body.'-
+      [Line, ClauseRef]
+    ].
 prolog:message(breakpoint(SetClear, Id)) -->
     setclear(SetClear),
     breakpoint(Id).
