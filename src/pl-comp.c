@@ -6992,14 +6992,16 @@ clearBreak(Clause clause, int offset)
 clear_second:
   PC = PC0 = clause->codes + offset;
   if ( !breakTable || !(bp = lookupHTable(breakTable, PC)) )
-  { term_t brk;
+  { term_t brk, cl;
 
     if ( second_bp )
       return TRUE;
     if ( (brk=PL_new_term_ref()) &&
+	 (cl=PL_new_term_ref()) &&
+	 PL_unify_clref(cl, clause) &&
 	 PL_unify_term(brk,
 		       PL_FUNCTOR, FUNCTOR_break2,
-		         PL_POINTER, clause,
+		         PL_TERM, cl,
 		         PL_INT, offset) )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_break, brk);
     else
