@@ -938,6 +938,45 @@ sigCrashHandler(int sig)
 
 #endif /*BTRACE_DONE*/
 
+		 /*******************************
+		 *	PROLOG CONNECTION	*
+		 *******************************/
+
+#if defined(O_DEBUG) && defined(BTRACE_DONE)
+#define BTRACE_PREDS 1
+
+static
+PRED_IMPL("c_backtrace_clear", 0, c_backtrace_clear, 0)
+{ PRED_LD
+
+  if ( LD->btrace_store )
+  { btrace_destroy(LD->btrace_store);
+    LD->btrace_store = NULL;
+  }
+
+  return TRUE;
+}
+
+static
+PRED_IMPL("c_backtrace_print", 1, c_backtrace_print, 0)
+{ char *s;
+
+  if ( PL_get_chars(A1, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+  { print_backtrace_named(s);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+#endif
+
+BeginPredDefs(cbtrace)
+#ifdef BTRACE_PREDS
+  PRED_DEF("c_backtrace_clear", 0, c_backtrace_clear, 0)
+  PRED_DEF("c_backtrace_print", 1, c_backtrace_print, 0)
+#endif
+EndPredDefs
 
 	         /*******************************
 		 *   FALLBACK IMPLEMENTATION	*
