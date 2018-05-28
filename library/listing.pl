@@ -124,7 +124,7 @@ list_module(Module, Options) :-
         \+ predicate_property(Module:Pred, imported_from(_)),
         strip_module(Pred, _Module, Head),
         functor(Head, Name, _Arity),
-        (   (   predicate_property(Pred, built_in)
+        (   (   predicate_property(Module:Pred, built_in)
             ;   sub_atom(Name, 0, _, _, $)
             )
         ->  current_prolog_flag(access_level, system)
