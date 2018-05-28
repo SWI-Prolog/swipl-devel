@@ -4594,9 +4594,14 @@ again:
     QF->foreign_frame = PL_open_foreign_frame();
     QF->exception = PL_copy_term_ref(exception_term);
 
+    SAVE_REGISTERS(qid);
     resumeAfterException(false(QF, PL_Q_PASS_EXCEPTION), outofstack);
+    LOAD_REGISTERS(qid);
     if ( PL_pending(SIG_GC) )
+    { SAVE_REGISTERS(qid);
       garbageCollect();
+      LOAD_REGISTERS(qid);
+    }
     QF = QueryFromQid(qid);		/* may be shifted: recompute */
 
     assert(LD->exception.throw_environment == &throw_env);
