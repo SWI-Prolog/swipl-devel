@@ -4356,6 +4356,7 @@ again:
 
     SAVE_REGISTERS(qid);
     rc = isCaughtInOuterQuery(qid, exception_term PASS_LD);
+    DEBUG(MSG_THROW, Sdprintf("Caught in outer: %s\n", rc ? "YES" : "NO"));
     LOAD_REGISTERS(qid);
 
     if ( !rc )					/* uncaught exception */
