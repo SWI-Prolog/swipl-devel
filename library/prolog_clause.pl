@@ -203,7 +203,7 @@ read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
         '$pop_input_context').
 
 read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
-    catch(try_open_source(File, In), _, fail),
+    catch(try_open_source(File, In), error(_,_), fail),
     set_stream(In, newline(detect)),
     call_cleanup(
         read_source_term_at_location(
