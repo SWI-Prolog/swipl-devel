@@ -215,13 +215,18 @@ stream_line(In, Index, Line0, Line) :-
                  *            FEEDBACK          *
                  *******************************/
 
+%!  user:prolog_event_hook(+Break)
+%
+%   Handle callEventHook() from '$break_at'/3. This  hook is called with
+%   signal handling disabled, i.e., as an _atomic_ action.
+
 user:prolog_event_hook(break(ClauseRef, PC, Set)) :-
     break(Set, ClauseRef, PC).
 
 break(exist, ClauseRef, PC) :-
     known_breakpoint(ClauseRef, PC, _Location, Id),
     !,
-    print_message(informational, breakpoint(exist, Id)).
+    break_message(breakpoint(exist, Id)).
 break(true, ClauseRef, PC) :-
     !,
     debug(break, 'Trap in Clause ~p, PC ~d', [ClauseRef, PC]),
@@ -237,12 +242,18 @@ break(true, ClauseRef, PC) :-
     ;   Location = unknown
     ),
     asserta(known_breakpoint(ClauseRef, PC, Location, Id)),
-    print_message(informational, breakpoint(set, Id)).
+    break_message(breakpoint(set, Id)).
 break(false, ClauseRef, PC) :-
     debug(break, 'Remove breakpoint from ~p, PC ~d', [ClauseRef, PC]),
     clause(known_breakpoint(ClauseRef, PC, _Location, Id), true, Ref),
-    call_cleanup(print_message(informational, breakpoint(delete, Id)),
-                 erase(Ref)).
+    call_cleanup(break_message(breakpoint(delete, Id)), erase(Ref)).
+break(gc, ClauseRef, PC) :-
+    debug(break, 'Remove breakpoint from ~p, PC ~d (due to CGC)',
+          [ClauseRef, PC]),
+    retractall(known_breakpoint(ClauseRef, PC, _Location, _Id)).
+
+break_message(Message) :-
+    print_message(informational, Message).
 
 %!  break_location(+ClauseRef, +PC, -File, -AZ) is det.
 %

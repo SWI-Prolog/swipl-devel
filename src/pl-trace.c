@@ -2430,8 +2430,10 @@ delayEvent(pl_event_type ev, va_list args)
     dev.type = ev;
 
     switch(ev)
-    { case PLEV_BREAK:
+    { case PLEV_BREAK_EXISTS:
+      case PLEV_BREAK:
       case PLEV_NOBREAK:
+      case PLEV_GCNOBREAK:
 	dev.value.pc.clause = va_arg(args, Clause);
 	dev.value.pc.offset = va_arg(args, int);
 	break;
@@ -2486,8 +2488,10 @@ sendDelayedEvents(int noerror)
     for(; count-- > 0; dev++)
     { if ( noerror )
       { switch(dev->type)
-	{ case PLEV_BREAK:
+	{ case PLEV_BREAK_EXISTS:
+	  case PLEV_BREAK:
 	  case PLEV_NOBREAK:
+	  case PLEV_GCNOBREAK:
 	    noerror = callEventHook(dev->type,
 				    dev->value.pc.clause, dev->value.pc.offset);
 	    sent++;
@@ -2596,6 +2600,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     case PLEV_BREAK:
     case PLEV_BREAK_EXISTS:
     case PLEV_NOBREAK:
+    case PLEV_GCNOBREAK:
     { Clause clause = va_arg(args, Clause);
       int offset = va_arg(args, int);
       term_t cref;
@@ -2606,9 +2611,10 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
 			   PL_FUNCTOR, FUNCTOR_break3,
 			     PL_TERM, cref,
 			     PL_INT, offset,
-			     PL_ATOM, ev == PLEV_BREAK   ? ATOM_true :
-				      ev == PLEV_NOBREAK ? ATOM_false
-							 : ATOM_exist)
+			     PL_ATOM, ev == PLEV_BREAK     ? ATOM_true :
+				      ev == PLEV_NOBREAK   ? ATOM_false :
+				      ev == PLEV_GCNOBREAK ? ATOM_gc :
+							     ATOM_exist)
 	   );
       break;
     }

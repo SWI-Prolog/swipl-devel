@@ -1916,6 +1916,7 @@ typedef enum pl_event_type
   PLEV_BREAK,				/* a break-point was set */
   PLEV_BREAK_EXISTS,			/* existing breakpoint */
   PLEV_NOBREAK,				/* a break-point was cleared */
+  PLEV_GCNOBREAK,			/* cleared due to clause GC */
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
   PL_EV_THREADFINISHED			/* A thread has finished */
 } pl_event_type;

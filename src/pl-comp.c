@@ -7042,7 +7042,7 @@ clearBreakPointsClause(Clause clause)
 		if ( bp->clause == clause )
 		{ int offset = bp->offset;
 		  clearBreak(clause, bp->offset);
-		  rc = callEventHook(PLEV_NOBREAK, clause, offset) && rc;
+		  rc = callEventHook(PLEV_GCNOBREAK, clause, offset) && rc;
 		}
 	      })
     PL_UNLOCK(L_BREAK);
