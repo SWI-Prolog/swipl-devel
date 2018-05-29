@@ -91,6 +91,17 @@ make_no_trace :-
         list_void_declarations
     ).
 
+%!  modified_file(-File) is nondet.
+%
+%   True when File is modified after it has been loaded.
+%
+%   (*) A file is considered modified if   the  modification time of the
+%   file is at least 1ms later that when  it was loaded. The 1ms relaxed
+%   matching is used to compensate for   inconsistent float handling and
+%   possible timing jitter.
+%
+%   @see https://github.com/SWI-Prolog/swipl-devel/issues/303
+
 modified_file(File) :-
     source_file_property(Source, modified(Time)),
     \+ source_file_property(Source, included_in(_,_)),
@@ -101,11 +112,11 @@ modified_file(File) :-
         LoadTime = Time
     ),
     (   catch(time_file(File, Modified), _, fail),
-        Modified > LoadTime
+        Modified - LoadTime > 0.001             % (*)
     ->  true
     ;   source_file_property(Source, includes(Included, IncLoadTime)),
         catch(time_file(Included, Modified), _, fail),
-        Modified > IncLoadTime
+        Modified - IncLoadTime > 0.001          % (*)
     ->  true
     ).
 
