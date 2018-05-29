@@ -1,6 +1,6 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jeffrey Rosenwald
+    Author:        Jeffrey Rosenwald, Jan Wielemaker
     E-mail:        jeffrose@acm.org
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2009-2018, Jeffrey Rosenwald
@@ -245,6 +245,8 @@ paxos_set(Term, Options) :-
     paxos_message(changed(Term), -, Changed),
     broadcast(Changed),
     !.
+paxos_set(Term, _) :-
+    throw(error(paxos_error(set, Term), _)).
 
 apply_default(Var, Setting) :-
     var(Var),
@@ -345,6 +347,6 @@ basic_paxos_on_change(Owner, Term, Goal) :-
 paxos_message(Paxos, TMO, Message) :-
     paxos_message_hook(paxos(Paxos), TMO, Message),
     !.
-paxos_message(Paxos, -, tipc_cluster(paxos(Paxos))) :-
-    !.
-paxos_message(Paxos, TMO, tipc_cluster(paxos(Paxos), TMO)).
+paxos_message(Paxos, TMO, Message) :-
+    throw(error(mode_error(det, fail,
+                           paxos:paxos_message_hook(Paxos, TMO, Message)), _)).
