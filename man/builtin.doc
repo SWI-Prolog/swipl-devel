@@ -4767,13 +4767,18 @@ input.}
 \begin{description}
     \predicate[det]{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
 Wait for input on one of the streams in \arg{ListOfStreams} and return a
-list of streams on which input is available in \arg{ReadyList}.
-wait_for_input/3 waits for at most \arg{TimeOut} seconds. \arg{TimeOut}
+list of streams on which input is available in \arg{ReadyList}. Each
+element of \arg{ListOfStreams} is either a stream or an integer.
+Integers are consider waitable OS handles. This can be used to wait
+(also) wait for handles that are not associated with Prolog streams such
+as UDP sockets. See tcp_sockopt/2.
+
+This predicate waits for at most \arg{TimeOut} seconds. \arg{TimeOut}
 may be specified as a floating point number to specify fractions of a
-second. If \arg{TimeOut} equals \const{infinite}, wait_for_input/3
-waits indefinitely.  If \arg{Timeout} is 0 or 0.0 this predicate returns
-without waiting.\footnote{Prior to 7.3.23, the integer value `0' was
-the same as \const{infinite}.}
+second. If \arg{TimeOut} equals \const{infinite}, wait_for_input/3 waits
+indefinitely. If \arg{Timeout} is 0 or 0.0 this predicate returns
+without waiting.\footnote{Prior to 7.3.23, the integer value `0' was the
+same as \const{infinite}.}
 
 This predicate can be used to implement timeout while reading and to
 handle input from multiple sources and is typically used to wait for

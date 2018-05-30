@@ -2377,26 +2377,32 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   { IOSTREAM *s;
     SOCKET fd;
     fdentry *e;
+    int ifd;
 
-    if ( !PL_get_stream(head, &s, SIO_INPUT) )
-      goto out;
+    if ( PL_get_integer(head, &ifd) )
+    { fd = ifd;
+    } else
+    { if ( !PL_get_stream(head, &s, SIO_INPUT) )
+	goto out;
 
-    if ( (fd = Swinsock(s)) == INVALID_SOCKET )
-    { releaseStream(s);
-      PL_domain_error("waitable_stream", head);
-      goto out;
-    }
-				/* check for input in buffer */
-    if ( Spending(s) > 0 )
-    { if ( !PL_unify_list(available, ahead, available) ||
-	   !PL_unify(ahead, head) )
+      if ( (fd = Swinsock(s)) == INVALID_SOCKET )
       { releaseStream(s);
+	PL_domain_error("waitable_stream", head);
 	goto out;
       }
-      from_buffer++;
+				/* check for input in buffer */
+      if ( Spending(s) > 0 )
+      { if ( !PL_unify_list(available, ahead, available) ||
+	     !PL_unify(ahead, head) )
+	{ releaseStream(s);
+	  goto out;
+	}
+	from_buffer++;
+      }
+
+      releaseStream(s);			/* dubious, but what else? */
     }
 
-    releaseStream(s);			/* dubious, but what else? */
     e	      = &map[nfds];
     e->fd     = fd;
     e->stream = PL_copy_term_ref(head);
