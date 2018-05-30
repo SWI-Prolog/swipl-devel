@@ -382,6 +382,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\operators.pl
   File ${SWIPL}\library\heaps.pl
   File ${SWIPL}\library\broadcast.pl
+  File ${SWIPL}\library\paxos.pl
   File ${SWIPL}\library\error.pl
   File ${SWIPL}\library\pairs.pl
   File ${SWIPL}\library\record.pl
