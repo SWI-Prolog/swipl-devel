@@ -751,6 +751,12 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 static void	fix_discontiguous(p_reload *r);
 static void	fix_metapredicate(p_reload *r);
 
+#ifdef O_PLMT
+#define GEN_RELOAD (GEN_MAX-PL_thread_self())
+#else
+#define GEN_RELOAD (GEN_MAX-1)
+#endif
+
 static int
 startReconsultFile(SourceFile sf)
 { GET_LD
@@ -763,7 +769,7 @@ startReconsultFile(SourceFile sf)
 
     memset(r, 0, sizeof(*r));
     r->procedures        = newHTable(16);
-    r->reload_gen        = GEN_MAX-PL_thread_self();
+    r->reload_gen        = GEN_RELOAD;
     r->pred_access_count = popNPredicateAccess(0);
     sf->reload = r;
 
