@@ -449,7 +449,14 @@ releaseStream(IOSTREAM *s)
 
 #else /*O_PLMT*/
 
-#define getStream(s)	(s)
+static inline IOSTREAM *
+getStream(IOSTREAM *s)
+{ if ( s && s->magic == SIO_MAGIC )
+    return s;
+
+  return NULL;
+}
+
 #define tryGetStream(s) (s)
 #define releaseStream(s)
 
