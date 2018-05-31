@@ -1495,6 +1495,8 @@ struct clause_choice
 #else
 #define acquire_def(def) (void)0
 #define release_def(def) (void)0
+#define acquire_def2(def,store) (void)store
+#define release_def2(def,store) (void)store
 #endif
 
 struct choice

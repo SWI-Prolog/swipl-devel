@@ -74,7 +74,9 @@ typedef struct zipper
   unsigned int	 flags;
   int		 owner;				/* owning thread id */
   int		 lock_count;			/* times locked */
+#ifdef O_PLMT
   simpleMutex    lock;				/* basic lock */
+#endif
 } zipper;
 
 #define RC_RDONLY	0x01

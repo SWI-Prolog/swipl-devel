@@ -41,6 +41,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -463,7 +464,9 @@ release_zipper(atom_t aref)
 { zipper *z = PL_blob_data(aref, NULL, NULL);
 
   close_zipper(z);
+#ifdef O_PLMT
   simpleMutexDelete(&z->lock);
+#endif
   free(z);
 
   return TRUE;
@@ -555,7 +558,9 @@ PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
   z->input_type = ZIP_STREAM;
   z->input.stream = stream;
   z->path = strdup("<stream>");
+#ifdef O_PLMT
   simpleMutexInit(&z->lock);
+#endif
 
   if ( (stream->flags&SIO_OUTPUT) )
   { if ( (z->writer=zipOpen2_64(stream, FALSE,
@@ -600,7 +605,9 @@ PRED_IMPL("zip_clone", 2, zip_clone, 0)
     clone->symbol     = 0;
     clone->owner      = 0;
     clone->lock_count = 0;
+#ifdef O_PLMT
     simpleMutexInit(&z->lock);
+#endif
     if ( clone->path )
       clone->path = strdup(clone->path);
     clone->reader     = unzClone(clone->reader);
@@ -1229,7 +1236,9 @@ zip_open_archive(const char *file, int flags)
 
     if ( (r = malloc(sizeof(*r))) )
     { memcpy(r, &z, sizeof(*r));
+#ifdef O_PLMT
       simpleMutexInit(&r->lock);
+#endif
       r->input_type = ZIP_FILE;
       r->input.any  = NULL;
     }
@@ -1260,7 +1269,9 @@ zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
   if ( (r = malloc(sizeof(*r))) )
   { memcpy(r, &z, sizeof(*r));
     set(r, ZIP_CLOSE_STREAM_ON_CLOSE);
+#ifdef O_PLMT
     simpleMutexInit(&r->lock);
+#endif
     r->input_type   = ZIP_MEMORY;
     r->input.memory = mems;
   }
