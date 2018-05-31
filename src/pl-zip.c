@@ -1087,6 +1087,9 @@ PRED_IMPL("$rc_handle", 1, rc_handle, 0)
 		 *	      MAPPING		*
 		 *******************************/
 
+#if defined(HAVE_MMAP) || defined(__WINDOWS__)
+#define HAVE_FILE_MAPPING 1
+
 typedef struct mapped_file
 { char *start;
   char *end;
@@ -1206,6 +1209,8 @@ unmap_file(mapped_file *mf)
   free(mf);
 }
 
+#endif /*HAVE_FILE_MAPPING*/
+
 		 /*******************************
 		 *	 ARCHIVE EMULATION	*
 		 *******************************/
@@ -1219,15 +1224,32 @@ zip_open_archive(const char *file, int flags)
   zipper *r = NULL;
 
   if ( (flags&RC_RDONLY) )
-  { mapped_file *mf;
+  {
+#ifdef HAVE_FILE_MAPPING
+    mapped_file *mf;
 
     DEBUG(MSG_ZIP, Sdprintf("Opening %s using file mapping\n", file));
 
-    if ( (mf=map_file(file)) )
+environments    if ( (mf=map_file(file)) )
     { if ( !(r=zip_open_archive_mem((const unsigned char *)mf->start,
 				    mf->end-mf->start, flags)) )
 	unmap_file(mf);
     }
+#else
+    DEBUG(MSG_ZIP, Sdprintf("Opening %s as stream\n", file));
+
+    if ( !(z.reader = unzOpen2_64(file, &zfile_functions)) )
+      return NULL;
+
+    if ( (r = malloc(sizeof(*r))) )
+    { memcpy(r, &z, sizeof(*r));
+#ifdef O_PLMT
+      simpleMutexInit(&r->lock);
+#endif
+      r->input_type = ZIP_FILE;
+      r->input.any  = NULL;
+    }
+#endif
   } else
   { DEBUG(MSG_ZIP, Sdprintf("Opening %s as stream\n", file));
 
