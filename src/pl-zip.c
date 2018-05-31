@@ -1230,7 +1230,7 @@ zip_open_archive(const char *file, int flags)
 
     DEBUG(MSG_ZIP, Sdprintf("Opening %s using file mapping\n", file));
 
-environments    if ( (mf=map_file(file)) )
+    if ( (mf=map_file(file)) )
     { if ( !(r=zip_open_archive_mem((const unsigned char *)mf->start,
 				    mf->end-mf->start, flags)) )
 	unmap_file(mf);
