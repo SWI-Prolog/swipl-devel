@@ -49,7 +49,7 @@ test_tmp_module :-
 
 test(nqueens) :-
 	test_tmp_module(100).
-test(current_op) :-
+test(current_op, condition(current_prolog_flag(threads,true))) :-
 	forall(between(1, 100, _),
 	       test_op).
 

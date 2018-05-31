@@ -116,7 +116,8 @@ test(tight_stacks, throws(error(resource_error(stack), _))) :-
 	length(List, Len),
 	numbervars(List, 0, _),
 	fail.
-test(cleanup_handler, [setup((thread_create(big_clause(500000), Id,
+test(cleanup_handler, [condition(current_prolog_flag(threads,true)),
+		       setup((thread_create(big_clause(500000), Id,
 					    [stack_limit(1_000_000_000)]),
                               thread_join(Id, true))),
                        throws(error(resource_error(stack), _)),

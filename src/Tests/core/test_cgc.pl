@@ -97,7 +97,9 @@ lshift(S0) :-
 lshift(_).
 
 
-:- begin_tests(cgc, [sto(rational_trees)]).
+:- begin_tests(cgc, [ sto(rational_trees),
+		      condition(current_prolog_flag(threads, true))
+		    ]).
 
 test(shift_cgc) :-
 	shift_cgc(4, 4).

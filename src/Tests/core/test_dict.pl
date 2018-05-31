@@ -330,7 +330,7 @@ test(no_dict, error(type_error(dict, "hello"))) :-
 :- end_tests(dict_dot3).
 
 
-:- begin_tests(dict_overflow).
+:- begin_tests(dict_overflow, [condition(current_prolog_flag(threads,true))]).
 
 test(put, true) :-
 	test_overflow(put_dict([a(1)], [b(2),c(3),d(4)], _)).

@@ -132,7 +132,7 @@ test(del_dynamic) :-				% dynamic remains
 	reload(del_dynamic, 1),
 	reload(del_dynamic, 2),
 	assertion(predicate_property(del_dynamic:p(_), dynamic)).
-test(add_thread_local) :-
+test(add_thread_local, [condition(current_prolog_flag(threads,true))]) :-
 	reload(add_thread_local, 1),
 	collect_messages(reload(add_thread_local, 2),
 			 Messages),

@@ -102,7 +102,8 @@ test(update_view, L == [ant,bee]) :-
 	    fail
 	;   findall(I, retract(icopy(I)), L)
 	).
-test(concurrent, Sum == ConcurrentSum) :-
+test(concurrent, [condition(current_prolog_flag(threads,true)),
+		  Sum == ConcurrentSum]) :-
 	N = 10000,
 	numlist(0, N, List),
 	sum_list(List, Sum),
