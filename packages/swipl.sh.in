@@ -18,7 +18,7 @@ SWIPL_BOOT_FILE=$bdir/swipl.prc
 export SWIPL_BOOT_FILE
 
 if [ "@WINEPATHEXE@" != ":" ]; then
-  lib="$(@WINEPATHEXE@ -w $lib)"
+  ldir="$(@WINEPATHEXE@ -w $ldir)"
   sep=";"
 fi
 
