@@ -430,8 +430,7 @@ setOSPrologFlags(void)
 
 uintptr_t
 UsedMemory(void)
-{ GET_LD
-
+{
 #if defined(HAVE_GETRUSAGE) && defined(HAVE_RU_IDRSS)
   struct rusage usage;
 
@@ -441,9 +440,7 @@ UsedMemory(void)
   }
 #endif
 
-  return (usedStack(global) +
-	  usedStack(local) +
-	  usedStack(trail));
+  return 0;
 }
 
 

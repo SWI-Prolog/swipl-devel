@@ -9448,8 +9448,10 @@ real_time	& [ Wall time, Wall time since last ]
 walltime	& [ Wall time since start, Wall time since last]
 		  (milliseconds, SICStus compatibility) \\
 memory		& [ Total unshared data, free memory ]
-		  (Uses getrusage() if available, otherwise incomplete own
-		  statistics.) \\
+		  (Used is based on \const{ru_idrss} from getrusage().
+		   Free is based on \const{RLIMIT_DATA} from
+		   getrlimit(). Both are reported as zero if the OS
+		   lacks support.) \\
 stacks		& [ global use, local use ] \\
 program		& [ heap, 0 ] \\
 global_stack	& [ global use, global free ] \\
