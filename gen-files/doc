@@ -19,7 +19,6 @@
 ./packages/plunit/plunit.pdf
 ./packages/semweb/semweb.pdf
 ./packages/cppproxy/cppproxy.pdf
-./packages/space/space.pdf
 ./packages/PDT/pdt.pdf
 ./packages/utf8proc/utf8proc.pdf
 ./packages/archive/archive.pdf
@@ -43,7 +42,6 @@
 ./packages/plunit/plunit.html
 ./packages/semweb/semweb.html
 ./packages/cppproxy/cppproxy.html
-./packages/space/space.html
 ./packages/protobufs/protobufs.html
 ./packages/PDT/pdt.html
 ./packages/utf8proc/utf8proc.html

@@ -36,8 +36,6 @@ packages/xpce/src/config.h.in
 packages/xpce/src/configure
 packages/zlib/config.h.in
 packages/zlib/configure
-packages/space/config.h.in
-packages/space/configure
 packages/protobufs/config.h.in
 packages/protobufs/configure
 packages/PDT/config.h.in
