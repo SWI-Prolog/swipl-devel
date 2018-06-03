@@ -1012,8 +1012,9 @@ dnl ================================================================
 
 AC_MSG_CHECKING(for cc -c -o)
   cat > conftest.c << _EOP_
-main()
-{ exit(0);
+int
+hello(int n)
+{ return n*2;
 }
 _EOP_
   if ${CC-cc} $CFLAGS -c conftest.c -o conftest.o 1>&5 2>&5 && test -r conftest.o; then
