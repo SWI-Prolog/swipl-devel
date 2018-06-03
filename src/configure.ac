@@ -65,6 +65,8 @@ AC_SUBST(HOST_OS_FLAG)
 AC_SUBST(DEFSTARTUP)
 AC_SUBST(EXEFORMAT)
 AC_SUBST(ONEFILE)
+AC_SUBST(DEVPL)
+AC_SUBST(CROSSRUNNER)
 
 if test -z "$CIFLAGS"; then
     CIFLAGS="$CPPFLAGS"
@@ -92,7 +94,9 @@ PLLIB=libswipl.a
 MKLIBS=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
+DEVPL=./swipl.sh
 DEFSTARTUP=.swiplrc
+CROSSRUNNER=""
 
 AC_ARG_ENABLE(mt, [  --disable-mt            Disable multi-threading],
              [case "$enableval" in
@@ -753,6 +757,8 @@ case "$PLARCH" in
 	CHRPATH=:
 	EXEEXT=.bc		dnl LVMM byte code.  Will be compiled to .js using emcc
 	WASM=true
+	DEVPL=swipl.js
+	CROSSRUNNER=node
 	;;
   *)
 	;;

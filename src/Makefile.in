@@ -130,7 +130,8 @@ SONAMEOPT=@SONAMEOPT@
 LIBRARYDIR=${PLBASE}/library
 PLCUSTOM=${PLBASE}/customize
 MKLIBS=@MKLIBS@
-DEVPL=./swipl.sh
+DEVPL=@DEVPL@
+CROSSRUNNER=@CROSSRUNNER@
 
 include $(srcdir)/common.mk
 
@@ -228,9 +229,13 @@ $(PL)$(EXEEXT):	$(DEPLIBS) $(PLOBJ) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 endif
 
-$(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
+# Emscripten .js generation for node to create the boot file
+swipl.js:	swipl.bc
+		$(CC) swipl.bc -s NODERAWFS=1 -o swipl.html
+
+$(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT) $(DEVPL)
 		rm -f $(STARTUPPATH)
-		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
+		$(CROSSRUNNER) $(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
 		ls -l $(STARTUPPATH)
 
 .PHONY: dirs
@@ -302,7 +307,7 @@ tai-lib:	$(TAIOBJ)
 		@(cd libtai && $(MAKE) COFLAGS="$(COFLAGS)")
 
 ../library/INDEX.pl:	../library ../library/[a-z]*.pl $(DEVPL) $(STARTUPPATH)
-		$(DEVPL) -x $(STARTUPPATH) \
+		$(CROSSRUNNER) $(DEVPL) -x $(STARTUPPATH) \
 			-f none -F none \
 			-g make_library_index\(\'../library\'\) \
 			-t halt
