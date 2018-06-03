@@ -978,35 +978,24 @@ AC_MSG_RESULT(assuming no))
 
 fi	dnl End of MT configuration
 
-
 AC_CHECK_LIB(m, main)
-AC_CHECK_LIB(ncursesw, main)
-if test ! "$ac_cv_lib_ncursesw_main" = "yes"; then
-  AC_CHECK_LIB(ncurses, main)
-  if test ! "$ac_cv_lib_ncurses_main" = "yes"; then
-    AC_CHECK_LIB(curses, main)
-    if test ! "$ac_cv_lib_curses_main" = "yes"; then
-      AC_CHECK_LIB(termcap, main)
-      if test "$ac_cv_lib_termcap_main" = "yes"; then
-	AC_MSG_CHECKING("whether -ltermcap needs -lucb")
-	AC_TRY_LINK([],
-		    [ tgetent();
-		    ],
-		    AC_MSG_RESULT(no)
-		    true,
-		    AC_MSG_RESULT(maybe ...)
-		    checkucb=yes)
-      fi
+dnl -lucb is for Solaris and needed for libtermcap, possibly on some
+dnl old versions.
+if test -d /usr/ucblib; then
+  AC_CHECK_LIB(ucb, rindex)
+fi
+AC_CHECK_LIB(ncursesw, tgetent)
+if test ! "$ac_cv_lib_ncursesw_tgetent" = "yes"; then
+  AC_CHECK_LIB(ncurses, tgetent)
+  if test ! "$ac_cv_lib_ncurses_tgetent" = "yes"; then
+    AC_CHECK_LIB(curses, tgetent)
+    if test ! "$ac_cv_lib_curses_tgetent" = "yes"; then
+      AC_CHECK_LIB(termcap, tgetent)
     fi
   fi
 fi
 
 AC_CHECK_HEADERS(term.h ncurses/term.h curses.h ncurses/curses.h)
-
-if test "$checkucb" = "yes"; then
-    AC_CHECK_LIB(ucb, rindex)
-fi
-
 
 dnl ================================================================
 
