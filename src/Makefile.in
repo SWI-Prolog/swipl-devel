@@ -403,7 +403,7 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 		@touch $@
 
 defatom:	defatom.c
-		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
+		$(CC_FOR_BUILD) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih $(OSLIB)
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
