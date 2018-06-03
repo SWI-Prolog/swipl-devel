@@ -156,7 +156,11 @@ AC_PROG_FGREP
 AC_PROG_CC
 AC_PROG_CXX		dnl used for packages
 LDEXE="$CC"
-AC_CANONICAL_HOST
+if test "x$EMMAKEN_JUST_CONFIGURE" = x1; then
+  host=wasm-emscripten
+else
+  AC_CANONICAL_HOST
+fi
 changequote(,)dnl
 if test "x$PLARCH" = "x"; then
   case "$host" in
@@ -458,7 +462,10 @@ case "$PLARCH" in
     *-win32|*-win64)
         HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MINGW
         HOST_OS_FLAG=-DHOST_OS_WINDOWS
-       ;;
+	;;
+    *wasm*)
+	ax_cv_c_float_words_bigendian=no
+	;;
 esac
 
 AC_C_INLINE
@@ -741,6 +748,11 @@ case "$PLARCH" in
                     [AC_MSG_RESULT(no)])
         LDFLAGS="$oldflags"
 	MINGW=true
+	;;
+  *wasm*)
+	CHRPATH=:
+	EXEEXT=.bc		dnl LVMM byte code.  Will be compiled to .js using emcc
+	WASM=true
 	;;
   *)
 	;;
