@@ -35,11 +35,14 @@
 
 :- module(paxos,
           [ paxos_get/1,         % ?Term
-            paxos_get/2,         % ?Term, +Options
+            paxos_get/2,         % +Key, -Value
+            paxos_get/3,         % +Key, -Value, +Options
             paxos_set/1,         % ?Term
-            paxos_set/2,         % ?Term, +Options
+            paxos_set/2,         % +Key, +Value
+            paxos_set/3,         % +Key, +Value, +Options
             paxos_replicate/1,   % ?Term
-            paxos_on_change/2    % ?Term, +Goal
+            paxos_on_change/2,   % ?Term, +Goal
+            paxos_on_change/3    % ?Key, ?Value, +Goal
           ]).
 :- use_module(library(broadcast)).
 :- use_module(library(debug)).
@@ -121,7 +124,8 @@ identical for all attentive members of the quorum.|_
 
 :- meta_predicate
     paxos_on_change(?, 0),
-    basic_paxos_on_change(+, +, 0).
+    paxos_on_change(?, ?, 0),
+    basic_paxos_on_change(+, ?, ?, 0).
 
 :- multifile
     paxos_message_hook/3.                       % +PaxOS, +TimeOut, -Message
@@ -156,38 +160,42 @@ paxos_initialize :-
     !.
 paxos_initialize :-
     listen(paxos, paxos(X), paxos_message(X)),
-    basic_paxos_on_change(paxos, Term, paxos_audit(Term)).
+    basic_paxos_on_change(paxos, Key, Value, paxos_audit(Key, Value)).
 %
 % The Paxos state machine is memoryless. The state is managed by a
 % coordinator.
 %
-paxos_audit(Term) :-
-    (   paxos_get(Term)
+paxos_audit(Key, Value) :-
+    (   paxos_get(Key, Value)
     ->  true
-    ;   paxos_set(Term)
+    ;   paxos_set(Key, Value)
     ).
 
-paxos_message(prepare(K-Term)) :-
-    (   recorded(Term, paxons_ledger(K, _Term))
+:- dynamic
+    paxons_ledger/3.
+
+paxos_message(prepare(Key,K,Value)) :-
+    (   paxons_ledger(Key, K, _)
     ->  true
     ;   K = 0,
-        recorda(Term, paxons_ledger(K, Term))
+        asserta(paxons_ledger(Key, K, Value))
     ),
-    debug(paxos, 'Prepared ~p@~d', [Term, K]).
-paxos_message(accept(K-Term, KA)) :-
-    (   recorded(Term, paxons_ledger(K1, _Term), Ref),
+    debug(paxos, 'Prepared ~p-~p@~d', [Key,Value,K]).
+paxos_message(accept(Key,K,KA,Value)) :-
+    debug(paxos, 'Accept ~p-~p@~p?', [Key, Value, K]),
+    (   clause(paxons_ledger(Key, K1, _Value), true, Ref),
         K > K1
-    ->  recorda(Term, paxons_ledger(K, Term)),
+    ->  asserta(paxons_ledger(Key, K, Value)),
         erase(Ref),
         KA = K,
-        debug(paxos, 'Accepted ~p@~d', [Term, K])
+        debug(paxos, 'Accepted ~p-~p@~d', [Key,Value,K])
     ;   KA = nack,
-        debug(paxos, 'Rejected ~p@~d', [Term, K])
+        debug(paxos, 'Rejected ~p@~d', [Key, K])
     ).
-paxos_message(retrieve(K-Term)) :-
-    debug(paxos, 'Retrieving ~p', [Term]),
-    recorded(Term, paxons_ledger(K, Term)),
-    debug(paxos, 'Retrieved ~p@~d', [Term,K]),
+paxos_message(retrieve(Key,K,Value)) :-
+    debug(paxos, 'Retrieving ~p', [Key]),
+    paxons_ledger(Key,K,Value),
+    debug(paxos, 'Retrieved ~p-~p@~d', [Key,Value,K]),
     !.
 
 %%  paxos_set(?Term) is semidet.
@@ -220,33 +228,33 @@ paxos_message(retrieve(K-Term)) :-
 %   @arg Term is a compound  that   may  have  unbound variables.
 
 paxos_set(Term) :-
-    paxos_set(Term, []).
+    key(Term, Key),
+    paxos_set(Key, Term, []).
 
-paxos_set(Term, Retries) :-
-    integer(Retries),                           % backward compatibility
-    !,
-    paxos_set(Term, [retry(Retries)]).
-paxos_set(Term, Options) :-
-    must_be(compound, Term),
+paxos_set(Key, Value) :-
+    paxos_set(Key, Value, []).
+
+paxos_set(Key, Value, Options) :-
+    must_be(ground, Key-Value),
     paxos_initialize,
     option(retry(Retries), Options, Retries),
     option(timeout(TMO), Options, TMO),
     apply_default(Retries, max_sets),
     apply_default(TMO, response_timeout),
-    paxos_message(prepare(R-Term), TMO, Prepare),
+    paxos_message(prepare(Key,R,Value), TMO, Prepare),
     between(0, Retries, _),
     findall(R, broadcast_request(Prepare), Rs),
     debug(paxos, 'Prepare: ~p', [Rs]),
     max_list(Rs, K),
     succ(K, K1),
-    paxos_message(accept(K1-Term, R), TMO, Accept),
+    paxos_message(accept(Key,K1,R,Value), TMO, Accept),
     findall(R, broadcast_request(Accept), R1s),
     c_element(R1s, K, K1),
-    paxos_message(changed(Term), -, Changed),
+    paxos_message(changed(Key,Value), -, Changed),
     broadcast(Changed),
     !.
-paxos_set(Term, _) :-
-    throw(error(paxos_error(set, Term), _)).
+paxos_set(Key, Value, _) :-
+    throw(error(paxos_error(set(Key, Value)), _)).
 
 apply_default(Var, Setting) :-
     var(Var),
@@ -278,23 +286,38 @@ apply_default(_, _).
 %   those provided in the ledger entry.
 
 paxos_get(Term) :-
-    paxos_get(Term, []).
+    key(Term, Key),
+    paxos_get(Key, Term, []).
+paxos_get(Key, Value) :-
+    paxos_get(Key, Value, []).
 
-paxos_get(Term, _) :-
-    recorded(Term, paxons_ledger(_K, Term)),
+paxos_get(Key, Value, _) :-
+    paxons_ledger(Key, _Line, Value),
     !.
-paxos_get(Term, Options) :-
+paxos_get(Key, Value, Options) :-
     paxos_initialize,
     option(retry(Retries), Options, Retries),
     option(timeout(TMO), Options, TMO),
     apply_default(Retries, max_gets),
     apply_default(TMO, response_timeout),
-    paxos_message(retrieve(K-Term), TMO, Retrieve),
+    Msg = Line-Value,
+    paxos_message(retrieve(Key,Line,Value), TMO, Retrieve),
     between(0, Retries, _),
-    findall(K-Term, broadcast_request(Retrieve), Terms),
-    c_element(Terms, no, K-Term),
-    paxos_set(Term),
+    findall(Msg, broadcast_request(Retrieve), Terms),
+    c_element(Terms, no, Msg),
+    paxos_set(Key, Value),
     !.
+
+%!  key(+Term, -Key) is det.
+%
+%   Compatibility to allow for paxos_get(p(a1,a2,...)).
+
+key(Compound, '$c'(Name,Arity)) :-
+    compound(Compound), !,
+    compound_name_arity(Compound, Name, Arity).
+key(Compound, _) :-
+    must_be(compound, Compound).
+
 
 %!  paxos_replicate(?Term) is det.
 %
@@ -308,12 +331,13 @@ paxos_replicate(X) :-
     when(ground(X), paxos_set(X)).
 
 %!  paxos_on_change(?Term, :Goal) is det.
+%!  paxos_on_change(?Key, ?Value, :Goal) is det.
 %
-%   executes    the    specified     Goal      when     Term    changes.
-%   paxos_on_change/2 listens for paxos_changed/1 notifications for
-%   Term, which are emitted as the result of successful paxos_set/1
-%   transactions. When one is received for   Term, then Goal is executed
-%   in a separate thread of execution.
+%   executes the specified Goal  when   Key  changes.  paxos_on_change/2
+%   listens for paxos(changed(Key,Value) notifications   for  Key, which
+%   are emitted as the result   of  successful paxos_set/3 transactions.
+%   When one is received for Key, then   Goal  is executed in a separate
+%   thread of execution.
 %
 %   @arg Term is a compound, identical to that used for
 %   paxos_get/1.
@@ -323,17 +347,20 @@ paxos_replicate(X) :-
 %       discontinued.
 
 paxos_on_change(Term, Goal) :-
-    must_be(compound, Term),
+    key(Term, Key),
+    paxos_on_change(Key, Term, Goal).
+
+paxos_on_change(Key, Value, Goal) :-
     Goal = _:Plain,
     (   Plain == ignore
-    ->  unlisten(paxos_user, paxos(changed(Term)))
-    ;   basic_paxos_on_change(paxos_user, Term, Goal)
+    ->  unlisten(paxos_user, paxos(changed(Key,Value)))
+    ;   basic_paxos_on_change(paxos_user, Key, Value, Goal)
     ).
 
-basic_paxos_on_change(Owner, Term, Goal) :-
+basic_paxos_on_change(Owner, Key, Value, Goal) :-
     must_be(callable, Goal),
     paxos_initialize,
-    listen(Owner, paxos(changed(Term)),
+    listen(Owner, paxos(changed(Key,Value)),
            thread_create(Goal, _, [detached(true)])).
 
 %!  paxos_message(+PaxOS, +TimeOut, -BroadcastMessage) is det.
