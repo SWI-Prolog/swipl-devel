@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2017, VU University Amsterdam
+    Copyright (c)  2009-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -51,6 +52,7 @@
 :- use_module(library(pure_input)).
 :- use_module(library(debug)).
 :- use_module(library(option)).
+:- use_module(library(apply)).
 
 /** <module> Process CSV (Comma-Separated Values) data
 
@@ -453,22 +455,25 @@ csv_write_file(File, Data) :-
 csv_write_file(File, Data, Options) :-
     must_be(list, Data),
     default_separator(File, Options, Options1),
-    make_csv_options(Options1, Record, RestOptions),
-    phrase(emit_csv(Data, Record), String),
+    make_csv_options(Options1, OptionsRecord, RestOptions),
     setup_call_cleanup(
         open(File, write, Out, RestOptions),
-        format(Out, '~s', [String]),
+        maplist(csv_write_row(Out, OptionsRecord), Data),
         close(Out)).
 
+csv_write_row(Out, OptionsRecord, Row) :-
+    phrase(emit_row(Row, OptionsRecord), String),
+    format(Out, '~s', [String]).
 
 emit_csv([], _) --> [].
 emit_csv([H|T], Options) -->
-    emit_row(H, Options), "\r\n",   % RFC 4180 demands \r\n
+    emit_row(H, Options),
     emit_csv(T, Options).
 
 emit_row(Row, Options) -->
     { Row =.. [_|Fields] },
-    emit_fields(Fields, Options).
+    emit_fields(Fields, Options),
+    "\r\n".                                     % RFC 4180 demands \r\n
 
 emit_fields([H|T], Options) -->
     emit_field(H, Options),
@@ -541,6 +546,5 @@ emit_codes([H|T]) --> [H], emit_codes(T).
 
 csv_write_stream(Stream, Data, Options) :-
     must_be(list, Data),
-    make_csv_options(Options, Record, _),
-    phrase(emit_csv(Data, Record), String),
-    format(Stream, '~s', [String]).
+    make_csv_options(Options, OptionsRecord, _),
+    maplist(csv_write_row(Stream, OptionsRecord), Data).
