@@ -171,30 +171,24 @@ paxos_audit(Key, Value) :-
     ;   paxos_set(Key, Value)
     ).
 
-:- dynamic
-    paxons_ledger/3.
-
 paxos_message(prepare(Key,K,Value)) :-
-    (   paxons_ledger(Key, K, _)
+    (   ledger(Key, K, _)
     ->  true
     ;   K = 0,
-        asserta(paxons_ledger(Key, K, Value))
+        ledger_create(Key, K, Value)
     ),
     debug(paxos, 'Prepared ~p-~p@~d', [Key,Value,K]).
 paxos_message(accept(Key,K,KA,Value)) :-
     debug(paxos, 'Accept ~p-~p@~p?', [Key, Value, K]),
-    (   clause(paxons_ledger(Key, K1, _Value), true, Ref),
-        K > K1
-    ->  asserta(paxons_ledger(Key, K, Value)),
-        erase(Ref),
-        KA = K,
-        debug(paxos, 'Accepted ~p-~p@~d', [Key,Value,K])
-    ;   KA = nack,
-        debug(paxos, 'Rejected ~p@~d', [Key, K])
+    (   ledger_update(Key, K, Value)
+    ->  debug(paxos, 'Accepted ~p-~p@~d', [Key,Value,K]),
+        KA = K
+    ;   debug(paxos, 'Rejected ~p@~d', [Key, K]),
+        KA = nack
     ).
 paxos_message(retrieve(Key,K,Value)) :-
     debug(paxos, 'Retrieving ~p', [Key]),
-    paxons_ledger(Key,K,Value),
+    ledger(Key,K,Value),
     debug(paxos, 'Retrieved ~p-~p@~d', [Key,Value,K]),
     !.
 
@@ -304,7 +298,7 @@ paxos_get(Key, Value) :-
     paxos_get(Key, Value, []).
 
 paxos_get(Key, Value, _) :-
-    paxons_ledger(Key, _Line, Value),
+    ledger(Key, _Line, Value),
     !.
 paxos_get(Key, Value, Options) :-
     paxos_initialize,
@@ -378,6 +372,10 @@ basic_paxos_on_change(Owner, Key, Value, Goal) :-
     listen(Owner, paxos(changed(Key,Value)),
            thread_create(Goal, _, [detached(true)])).
 
+		 /*******************************
+		 *    HOOK BROADCAST MESSAGES	*
+		 *******************************/
+
 %!  paxos_message(+PaxOS, +TimeOut, -BroadcastMessage) is det.
 %
 %   Transform a basic PaxOS message in   a  message for the broadcasting
@@ -392,3 +390,35 @@ paxos_message(Paxos, TMO, Message) :-
 paxos_message(Paxos, TMO, Message) :-
     throw(error(mode_error(det, fail,
                            paxos:paxos_message_hook(Paxos, TMO, Message)), _)).
+
+
+		 /*******************************
+		 *         HOOK STORAGE		*
+		 *******************************/
+
+:- dynamic
+    paxons_ledger/3.
+
+%!  ledger(+Key, -Gen, -Value) is semidet.
+%
+%   True if the ledger has Value associated with Key at generation Gen.
+
+ledger(Key, Gen, Value) :-
+    paxons_ledger(Key, Gen, Value).
+
+%!  ledger_create(+Key, +Gen, +Value) is det.
+%
+%   Create a new Key-Value pair at generation Gen.
+
+ledger_create(Key, Gen, Value) :-
+    asserta(paxons_ledger(Key, Gen, Value)).
+
+%!  ledger_update(+Key, +Gen, +Value) is semidet.
+%
+%   Update Key to Value if the current generation is older than Gen.
+
+ledger_update(Key, Gen, Value) :-
+    clause(paxons_ledger(Key, Gen0, _Value), true, Ref),
+    Gen > Gen0,
+    asserta(paxons_ledger(Key, Gen, Value)),
+    erase(Ref).
