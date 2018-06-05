@@ -3666,7 +3666,7 @@ stream_encoding_options(atom_t type, atom_t encoding, int *bom, IOENC *enc)
     }
   } else if ( type == ATOM_binary )
   { *enc = ENC_OCTET;
-    bom = FALSE;
+    *bom = FALSE;
   } else if ( type == ATOM_text )
   { *enc = LD->encoding;
   } else
