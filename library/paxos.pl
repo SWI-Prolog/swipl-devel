@@ -198,22 +198,28 @@ paxos_message(retrieve(Key,K,Value)) :-
     debug(paxos, 'Retrieved ~p-~p@~d', [Key,Value,K]),
     !.
 
-%%  paxos_set(?Term) is semidet.
-%%  paxos_set(?Term, +Options) is semidet.
+%%  paxos_set(+Term) is semidet.
 %
-%   negotiates to have Term recorded  in  the   ledger  for  each of the
+%   Equivalent to paxos_key(Term,Key), pasox_set(Key,Term).   I.e., Term
+%   is a ground compound term and its   key is the name/arity pair. This
+%   version provides compatibility with older versions of this library.
+
+%%  paxos_set(+Key, +Value) is semidet.
+%%  paxos_set(+Key, +Value, +Options) is semidet.
+%
+%   negotiates to have Key-Value recorded in the  ledger for each of the
 %   quorum's members. This predicate succeeds  if the quorum unanimously
 %   accepts the proposed term. If no such   entry  exists in the Paxon's
-%   ledger, then one is silently   created.  paxos_set/1 will retry
-%   the transaction several times (default:  20) before failing. Failure
-%   is rare and is usually the result  of   a  collision  of two or more
-%   writers writing to the same term  at   precisely  the  same time. On
-%   failure, it may be useful to wait   some  random period of time, and
-%   then retry the transaction. By  specifying   a  retry count of zero,
-%   paxos_set/2 will succeed iff the first ballot succeeds.
+%   ledger, then one is silently  created.   paxos_set/1  will retry the
+%   transaction several times (default: 20)   before failing. Failure is
+%   rare and is usually the result of a collision of two or more writers
+%   writing to the same term at precisely  the same time. On failure, it
+%   may be useful to wait some random period of time, and then retry the
+%   transaction. By specifying a retry count   of zero, paxos_set/2 will
+%   succeed iff the first ballot succeeds.
 %
-%   On  success,  paxos_set/1  will   also    broadcast   the  term
-%   =|paxos_changed(Term)|=, to the quorum.
+%   On   success,   paxos_set/1   will   also     broadcast   the   term
+%   paxos(changed(Key,Value), to the quorum.
 %
 %   Options processed:
 %
@@ -228,7 +234,7 @@ paxos_message(retrieve(Key,K,Value)) :-
 %   @arg Term is a compound  that   may  have  unbound variables.
 
 paxos_set(Term) :-
-    key(Term, Key),
+    paxos_key(Term, Key),
     paxos_set(Key, Term, []).
 
 paxos_set(Key, Value) :-
@@ -263,7 +269,13 @@ apply_default(Var, Setting) :-
 apply_default(_, _).
 
 %!  paxos_get(?Term) is semidet.
-%!  paxos_get(?Term, +Options) is semidet.
+%
+%   Equivalent to paxos_key(Term,Key), pasox_get(Key,Term).   I.e., Term
+%   is a compound term and its key  is the name/arity pair. This version
+%   provides compatibility with older versions of this library.
+
+%!  paxos_get(+Key, +Value) is semidet.
+%!  paxos_get(+Key, +Value, +Options) is semidet.
 %
 %   unifies Term with the entry retrieved from the Paxon's ledger. If no
 %   such entry exists in the member's local   cache,  then the quorum is
@@ -286,7 +298,7 @@ apply_default(_, _).
 %   those provided in the ledger entry.
 
 paxos_get(Term) :-
-    key(Term, Key),
+    paxos_key(Term, Key),
     paxos_get(Key, Term, []).
 paxos_get(Key, Value) :-
     paxos_get(Key, Value, []).
@@ -308,14 +320,17 @@ paxos_get(Key, Value, Options) :-
     paxos_set(Key, Value),
     !.
 
-%!  key(+Term, -Key) is det.
+%!  paxos_key(+Term, -Key) is det.
 %
-%   Compatibility to allow for paxos_get(p(a1,a2,...)).
+%   Compatibility to allow for paxos_get/1, paxos_set/1, etc. The key of
+%   a compound term is a term `'$c'(Name,Arity)`.   Note  that we do not
+%   use `Name/Arity` and `X/Y` is  naturally   used  to organize keys as
+%   hierachical _paths_.
 
-key(Compound, '$c'(Name,Arity)) :-
+paxos_key(Compound, '$c'(Name,Arity)) :-
     compound(Compound), !,
     compound_name_arity(Compound, Name, Arity).
-key(Compound, _) :-
+paxos_key(Compound, _) :-
     must_be(compound, Compound).
 
 
@@ -347,7 +362,7 @@ paxos_replicate(X) :-
 %       discontinued.
 
 paxos_on_change(Term, Goal) :-
-    key(Term, Key),
+    paxos_key(Term, Key),
     paxos_on_change(Key, Term, Goal).
 
 paxos_on_change(Key, Value, Goal) :-
