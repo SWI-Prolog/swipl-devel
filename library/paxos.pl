@@ -103,8 +103,8 @@ Paxos is a three-phase protocol:
 
    3: Finally, the coordinator concludes the successful negotiation by
    broadcasting the agreement to the quorum in the form of a
-   =|paxos_changed(Term)|= event. This is the only event that should be
-   of interest to user programs.
+   paxos(changed(Key,Value) event. This is the only event that
+   should be of interest to user programs.
 
 For practical reasons, we rely  on   the  partially synchronous behavior
 (e.g. limited upper time bound for  replies) of broadcast_request/1 over
@@ -243,15 +243,16 @@ paxos_set(Key, Value, Options) :-
     apply_default(TMO, response_timeout),
     paxos_message(prepare(Key,R,Value), TMO, Prepare),
     between(0, Retries, _),
-    findall(R, broadcast_request(Prepare), Rs),
-    debug(paxos, 'Prepare: ~p', [Rs]),
-    max_list(Rs, K),
-    succ(K, K1),
-    paxos_message(accept(Key,K1,R,Value), TMO, Accept),
-    findall(R, broadcast_request(Accept), R1s),
-    c_element(R1s, K, K1),
-    paxos_message(changed(Key,Value), -, Changed),
-    broadcast(Changed),
+      findall(R, broadcast_request(Prepare), Rs),
+      debug(paxos, 'Prepare: ~p', [Rs]),
+      max_list(Rs, K),
+      succ(K, K1),
+      paxos_message(accept(Key,K1,R,Value), TMO, Accept),
+      findall(R, broadcast_request(Accept), R1s),
+      c_element(R1s, K, K1),
+      broadcast(paxos(log(Key,Value,K1))),
+      paxos_message(changed(Key,Value), -, Changed),
+      broadcast(Changed),
     !.
 paxos_set(Key, Value, _) :-
     throw(error(paxos_error(set(Key, Value)), _)).
