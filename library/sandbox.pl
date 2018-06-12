@@ -905,7 +905,7 @@ safe_meta_call(Goal, _, Called) :-
     safe_meta_predicate(M:Name/Arity),
     predicate_property(Goal, meta_predicate(Spec)),
     !,
-    findall(C, called(Spec, Plain, C), Called).
+    called(Spec, Plain, Called).
 safe_meta_call(M:Goal, _, Called) :-
     !,
     generic_goal(Goal, Gen),
