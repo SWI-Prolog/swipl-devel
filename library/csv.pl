@@ -475,6 +475,8 @@ emit_row(Row, Options) -->
     emit_fields(Fields, Options),
     "\r\n".                                     % RFC 4180 demands \r\n
 
+emit_fields([], _) -->
+    "".
 emit_fields([H|T], Options) -->
     emit_field(H, Options),
     (   { T == [] }
