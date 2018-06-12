@@ -188,7 +188,8 @@ safe(G, M, Parents, Safe0, Safe) :-
     predicate_property(G, iso),
     safe_meta_call(G, M, Called),
     !,
-    safe_list(Called, M, Parents, Safe0, Safe).
+    add_iso_parent(G, Parents, Parents1),
+    safe_list(Called, M, Parents1, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
     (   predicate_property(M:G, imported_from(M2))
     ->  true
@@ -254,6 +255,17 @@ known_module(M:_, _) :-
 known_module(M:G, Parents) :-
     throw(error(permission_error(call, sandboxed, M:G),
                 sandbox(M:G, Parents))).
+
+add_iso_parent(G, Parents, Parents) :-
+    is_control(G),
+    !.
+add_iso_parent(G, Parents, [G|Parents]).
+
+is_control((_,_)).
+is_control((_;_)).
+is_control((_->_)).
+is_control((_*->_)).
+is_control(\+(_)).
 
 
 %!  safe_bodies(+Bodies, +Module, +Parents, +Safe0, -Safe)
@@ -898,17 +910,29 @@ safe_meta_call(M:Goal, _, Called) :-
     !,
     generic_goal(Goal, Gen),
     safe_meta(M:Gen),
-    findall(C, called(Gen, Goal, C), Called).
+    called(Gen, Goal, Called).
 safe_meta_call(Goal, _, Called) :-
     generic_goal(Goal, Gen),
     safe_meta(Gen),
-    findall(C, called(Gen, Goal, C), Called).
+    called(Gen, Goal, Called).
 
 called(Gen, Goal, Called) :-
+    compound_name_arity(Goal, _, Arity),
+    called(1, Arity, Gen, Goal, Called).
+
+called(I, Arity, Gen, Goal, Called) :-
+    I =< Arity,
+    !,
     arg(I, Gen, Spec),
-    calling_meta_spec(Spec),
-    arg(I, Goal, Called0),
-    extend(Spec, Called0, Called).
+    (   calling_meta_spec(Spec)
+    ->  arg(I, Goal, Called0),
+        extend(Spec, Called0, G),
+        Called = [G|Rest]
+    ;   Called = Rest
+    ),
+    I2 is I+1,
+    called(I2, Arity, Gen, Goal, Rest).
+called(_, _, _, _, []).
 
 generic_goal(G, Gen) :-
     functor(G, Name, Arity),
@@ -1205,6 +1229,19 @@ prolog:sandbox_allowed_goal(G) :-
     prolog:message//1,
     prolog:message_context//1,
     prolog:error_message//1.
+
+prolog:message(error(instantiation_error, Context)) -->
+    { nonvar(Context),
+      Context = sandbox(_Goal,Parents),
+      numbervars(Context, 1, _)
+    },
+    [ 'Sandbox restriction!'-[], nl,
+      'Could not derive which predicate may be called from'-[]
+    ],
+    (   { Parents == [] }
+    ->  [ 'Search space too large'-[] ]
+    ;   callers(Parents, 10)
+    ).
 
 prolog:message_context(sandbox(_G, [])) --> !.
 prolog:message_context(sandbox(_G, Parents)) -->
