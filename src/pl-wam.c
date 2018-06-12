@@ -2898,11 +2898,14 @@ retry:					MARK(RETRY);
 
 do_retry:
   if ( rframe0 != rframe )
-    Sdprintf("[No retry-information for requested frame]\n");
+  { DEBUG(MSG_TRACE,
+	  Sdprintf("[No retry-information for requested frame]\n"));
+  }
 
-  Sdprintf("[Retrying frame %d running %s]\n",
-	   (Word)rframe - (Word)lBase,
-	   predicateName(rframe->predicate));
+  DEBUG(MSG_TRACE,
+	Sdprintf("[Retrying frame %d running %s]\n",
+		 (Word)rframe - (Word)lBase,
+		 predicateName(rframe->predicate)));
 
   discardChoicesAfter(rframe, FINISH_CUT PASS_LD);
   rframe->clause = NULL;
