@@ -403,12 +403,12 @@ os/pl-rl.o:	os/pl-rl.c
 endif
 
 $(srcdir)/pl-funct.ih $(srcdir)/pl-atom.ih: $(srcdir)/.defatom-sentinel
-$(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
-		./defatom "$(srcdir)"
+$(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom$(EXEEXT_FOR_BUILD)
+		./defatom$(EXEEXT_FOR_BUILD) "$(srcdir)"
 		@touch $@
 
-defatom:	defatom.c
-		$(CC_FOR_BUILD) $(CFLAGS) -o $@ $(srcdir)/defatom.c
+defatom$(EXEEXT_FOR_BUILD):	defatom.c
+		$(CC_FOR_BUILD) -o $@ $(srcdir)/defatom.c
 
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih $(OSLIB)
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
@@ -716,7 +716,7 @@ distclean:	clean profclean
 		[ ! -f ../man/Makefile ] || $(MAKE) -C ../man $@
 		(cd ../src && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih .defatom-sentinel)
 		(cd ../src && rm -f pl-codetable.c pl-vmi.h pl-jumptable.ic .vmi-sentinel)
-		rm -f defatom mkvmi
+		rm -f defatom$(EXEEXT_FOR_BUILD) mkvmi$(EXEEXT_FOR_BUILD)
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h version.h
