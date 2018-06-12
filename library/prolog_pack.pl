@@ -2164,7 +2164,7 @@ relay([H|T], Outputs0, Outputs) :-
     ).
 
 relay(error,  Codes) :-
-    set_prolog_flag(thread_message_prefix, false),
+    set_prolog_flag(message_context, []),
     print_error(Codes, []).
 relay(output, Codes) :-
     print_output(Codes, []).

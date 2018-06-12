@@ -1582,6 +1582,14 @@ Maximum integer value represented as a `tagged' value.  Tagged integers
 require one word storage.  Larger integers are represented as `indirect data'
 and require significantly more space.
 
+    \prologflagitem{message_context}{list(atom)}{rw}
+Context information to add to messages of the levels \const{error} and
+\const{warning}.  The list may contain the elements \const{thread} to
+add the thread that generates the message to the message, \const{time}
+or \term{time}{Format} to add a time stamp.  The default time format
+is \verb$%T.%3f$. The default is \exam{[thread]}. See also format_time/3
+and print_message/2.
+
     \prologflagitem{min_integer}{integer}{r}
 Minimum integer value if integers are \emph{bounded}.  See also
 the flag \prologflag{bounded} and \secref{artypes}.

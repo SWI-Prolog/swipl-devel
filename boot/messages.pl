@@ -51,6 +51,8 @@
 :- public
     translate_message//1.
 
+:- create_prolog_flag(message_context, [thread], []).
+
 %!  translate_message(+Term)// is det.
 %
 %   Translate a message Term into message lines. The produced lines
@@ -1582,26 +1584,44 @@ msg_property(error,   wait(0.1)) :- !.
 
 msg_prefix(debug(_),      '~N% ').
 msg_prefix(warning,           Prefix) :-
-    (   thread_message_id(Id)
-    ->  Prefix = '~NWarning: [Thread ~w] '-Id
-    ;   Prefix = '~NWarning: '
-    ).
+    msg_context('~NWarning: ', Prefix).
 msg_prefix(error,             Prefix) :-
-    (   thread_message_id(Id)
-    ->  Prefix = '~NERROR: [Thread ~w] '-Id
-    ;   Prefix = '~NERROR: '
-    ).
+    msg_context('~NERROR: ', Prefix).
 msg_prefix(informational, '~N% ').
 msg_prefix(information,   '~N% ').
 
-thread_message_id(Id) :-
+msg_context(Prefix0, Prefix) :-
+    current_prolog_flag(message_context, Context),
+    msg_time_context(Prefix0, Context, Prefix1),
+    msg_thread_context(Prefix1, Context, Prefix).
+
+msg_time_context(Prefix0, Context, Prefix1) :-
+    memberchk(time, Context),
+    !,
+    get_time(Now),
+    format_time(string(S), '%T.%3f ', Now),
+    string_concat(Prefix0, S, Prefix1).
+msg_time_context(Prefix0, Context, Prefix1) :-
+    memberchk(time(Format), Context),
+    !,
+    get_time(Now),
+    format_time(string(S), Format, Now),
+    atomics_to_string([Prefix0, S, ' '], Prefix1).
+msg_time_context(Prefix, _, Prefix).
+
+
+msg_thread_context(Prefix1, Context, Prefix) :-
     thread_self(Id0),
     Id0 \== main,
-    \+ current_prolog_flag(thread_message_prefix, false),
+    memberchk(thread, Context),
+    !,
     (   atom(Id0)
     ->  Id = Id0
     ;   thread_property(Id0, id(Id))
-    ).
+    ),
+    string_concat(Prefix1, '[Thread ~w] ', Prefix2),
+    Prefix = Prefix2-[Id].
+msg_thread_context(Prefix, _Context, Prefix).
 
 %!  print_message_lines(+Stream, +PrefixOrKind, +Lines)
 %
