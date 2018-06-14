@@ -2505,7 +2505,7 @@ SWI-Prolog mailinglist.
 \subsubsection{NaN and Infinity floats and their syntax}
 \label{sec:floatsyntax}
 
-SWI-Prolog supports reading an printing `special' floating point values
+SWI-Prolog supports reading and printing `special' floating point values
 according to
 \href{http://eclipseclp.org/Specs/core_update_float.html}{Proposal for
 Prolog Standard core update wrt floating point arithmetic} by Joachim
