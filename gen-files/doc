@@ -56,3 +56,4 @@
 ./packages/libedit/libedit.html
 ./packages/pcre/pcre.html
 ./packages/yaml/yaml.html
+./packages/paxos/paxos.html
