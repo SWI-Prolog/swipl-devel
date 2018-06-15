@@ -309,6 +309,9 @@ number(N, Head, Tail) :-
 	number(N), !,
 	format(codes(Head, Tail), '~w', N).
 number(N) -->
+	{ var(N)
+	},
+	!,
 	int_codes(I),
 	(   dot,
 	    digit(DF0),
@@ -324,6 +327,8 @@ number(N) -->
 	{ append([I, F, E], Codes),
 	  number_codes(N, Codes)
 	}.
+number(N) -->
+	{ type_error(number, N) }.
 
 sign(0'-) --> "-".
 sign(0'+) --> "+".
