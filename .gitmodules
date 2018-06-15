@@ -112,3 +112,6 @@
 [submodule "packages/yaml"]
 	path = packages/yaml
 	url = ../packages-yaml.git
+[submodule "packages/paxos"]
+	path = packages/paxos
+	url = ../packages-paxos.git
