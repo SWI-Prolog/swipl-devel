@@ -703,17 +703,13 @@ collect(Src, File, In, Options) :-
                   ]),
               E, report_syntax_error(E, Src, [])),
         update_condition(Term),
-        (   is_list(Expanded)
-        ->  member(T, Expanded)
-        ;   T = Expanded
-        ),
         stream_position_data(line_count, TermPos, Line),
         setup_call_cleanup(
             asserta(source_line(SrcSpec), Ref),
-            catch(process(T, Comments, TermPos, Src),
+            catch(process(Expanded, Comments, TermPos, Src, EOF),
                   E, print_message(error, E)),
             erase(Ref)),
-        T == end_of_file,
+        EOF == true,
     !.
 
 report_syntax_error(E, _, _) :-
@@ -781,11 +777,33 @@ list_to_conj([H|T], (H,C)) :-
                  *           PROCESS            *
                  *******************************/
 
-%!  process(+Term, +Comments, +TermPos, +Src) is det.
+%!  process(+Expanded, +Comments, +TermPos, +Src, -EOF) is det.
+%
+%   Process a source term that has  been   subject  to term expansion as
+%   well as its optional leading structured comments.
+%
+%   @arg TermPos is the term position that describes the start of the
+%   term.  We need this to find _leading_ comments.
+%   @arg EOF is unified with a boolean to indicate whether or not
+%   processing was stopped because `end_of_file` was processed.
 
-process(Term, Comments, TermPos, Src) :-
+process(Expanded, Comments, TermPos, Src, EOF) :-
+    is_list(Expanded),                          % term_expansion into list.
+    !,
+    (   member(Term, Expanded),
+        process(Term, Src),
+        Term == end_of_file
+    ->  EOF = true
+    ;   EOF = false
+    ),
+    xref_comments(Comments, TermPos, Src).
+process(end_of_file, _, _, _, true) :-
+    !.
+process(Term, Comments, TermPos, Src, false) :-
     process(Term, Src),
     xref_comments(Comments, TermPos, Src).
+
+%!  process(+Term, +Src) is det.
 
 process(Var, _) :-
     var(Var),
