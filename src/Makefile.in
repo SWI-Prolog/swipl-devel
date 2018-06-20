@@ -109,6 +109,11 @@ EXPORTS=$(INCLUDEDIR)/SWI-Exports
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STARTUPPATH=$(PL).prc
+ifeq (@WASM@,true)
+STARTUPPATH_OUT=/swipl-devel/src/$(PL).prc
+else
+STARTUPPATH_OUT=$(STARTUPPATH)
+endif
 RUNTIMEDIR=../lib/$(PLARCH)
 PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
@@ -153,6 +158,11 @@ PLOBJ=	pl-main.o
 ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 
 PLINIT=	$(PB)/init.pl
+ifeq (@WASM@,true)
+PLINIT_IN= /swipl-devel/boot/init.pl
+else
+PLINIT_IN= $(PLINIT)
+endif
 ifeq ($(MINGW),true)
 PLSRC+= ../boot/menu.pl
 PLOSLIBS=dde.pl progman.pl
@@ -235,7 +245,7 @@ swipl.js:	swipl.bc
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT) $(DEVPL)
 		rm -f $(STARTUPPATH)
-		$(CROSSRUNNER) $(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
+		$(CROSSRUNNER) $(DEVPL) -O -o $(STARTUPPATH_OUT) -b $(PLINIT_IN)
 		ls -l $(STARTUPPATH)
 
 .PHONY: dirs
