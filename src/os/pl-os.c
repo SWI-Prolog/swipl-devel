@@ -2653,16 +2653,15 @@ findExecutable(const char *av0, char *buffer, size_t buflen)
   if ( file )
   { int n, fd;
     char buf[MAXPATHLEN];
-
 					/* Fails if mode is x-only, but */
 					/* then it can't be a script! */
     if ( (fd = open(file, O_RDONLY)) < 0 )
       return strcpy(buffer, file);
+    n = read(fd, buf, sizeof(buf)-1);
+    close(fd);
 
-    if ( (n=read(fd, buf, sizeof(buf)-1)) > 0 )
-    { close(fd);
-
-      buf[n] = EOS;
+    if ( n > 0 )
+    { buf[n] = EOS;
       if ( strncmp(buf, "#!", 2) == 0 )
       { char *s = &buf[2], *q;
 	while(*s && isBlank(*s))
@@ -2674,8 +2673,6 @@ findExecutable(const char *av0, char *buffer, size_t buflen)
 	return strcpy(buffer, s);
       }
     }
-
-    close(fd);
   }
 #endif /*__unix__*/
 
