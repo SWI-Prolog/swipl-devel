@@ -193,9 +193,15 @@ OPTIMISE=@OPTIMISE@
 PROFILE_SRC=../bench/run.pl
 PROFILE_GOAL=run(0.5)
 
+ifeq (@WASM@, true)
+NOPROF_TARGETS=system headers plwin startup
+else
+NOPROF_TARGETS=system headers plwin startup index
+endif
+
 all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT)
 
-noprof:	system headers plwin startup index
+noprof:	$(NOPROF_TARGETS)
 prof:
 	$(MAKE) clean profclean
 	$(MAKE) CPFLAGS=-fprofile-generate noprof
