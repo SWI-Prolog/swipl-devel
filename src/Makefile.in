@@ -194,7 +194,7 @@ PROFILE_SRC=../bench/run.pl
 PROFILE_GOAL=run(0.5)
 
 ifeq (@WASM@, true)
-NOPROF_TARGETS=system headers plwin startup
+NOPROF_TARGETS=system headers plwin startup swipl-web.js
 else
 NOPROF_TARGETS=system headers plwin startup index
 endif
@@ -248,6 +248,12 @@ endif
 # Emscripten .js generation for node to create the boot file
 swipl.js:	swipl.bc
 		$(CC) swipl.bc -o swipl.js -s NO_EXIT_RUNTIME=0 --pre-js wasm/boot_pre.js
+
+swipl-web.js:	swipl.bc $(STARTUPPATH)
+		mkdir -p wasm-preload/library
+		cp $(STARTUPPATH) wasm-preload
+		cp -r ../library/* wasm-preload/library
+		$(CC) -s WASM=1 -s BINARYEN_METHOD='native-wasm' -s NO_EXIT_RUNTIME=0 swipl.bc -o swipl-web.js --preload-file wasm-preload
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT) $(DEVPL)
 		rm -f $(STARTUPPATH)
