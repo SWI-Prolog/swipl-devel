@@ -231,7 +231,7 @@ endif
 
 # Emscripten .js generation for node to create the boot file
 swipl.js:	swipl.bc
-		$(CC) swipl.bc -s NODERAWFS=1 -o swipl.html
+		$(CC) swipl.bc -o swipl.js -s NO_EXIT_RUNTIME=1 --pre-js wasm/boot_pre.js
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT) $(DEVPL)
 		rm -f $(STARTUPPATH)
