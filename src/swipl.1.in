@@ -167,7 +167,7 @@ option.
 .TP
 .BI \-O
 Optimised compilation. See
-.B set_prolog_flag/3
+.B set_prolog_flag/2
 in the SWI-Prolog Reference Manual.
 .TP
 .BI \-b " initfile ... " -c " file ..."
