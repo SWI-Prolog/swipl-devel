@@ -256,7 +256,7 @@ swipl-web.js:	swipl.bc $(STARTUPPATH)
 		$(CC) $(COFLAGS) -s WASM=1 -s BINARYEN_METHOD='native-wasm' \
 			-s NO_EXIT_RUNTIME=0 \
 			-s EXPORTED_FUNCTIONS=@wasm/exports.json \
-			-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall","cwrap","intArrayFromString","allocate","setValue"]' \
+			-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall","cwrap","intArrayFromString","allocate","setValue","ALLOC_NORMAL"]' \
 			swipl.bc -o swipl-web.js --preload-file wasm-preload
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT) $(DEVPL)
