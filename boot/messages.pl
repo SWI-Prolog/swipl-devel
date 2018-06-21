@@ -1493,9 +1493,11 @@ deprecated(set_prolog_stack(_Stack,limit)) -->
                  *******************************/
 
 :- multifile
-    user:message_hook/3.
+    user:message_hook/3,
+    prolog:message_prefix_hook/2.
 :- dynamic
-    user:message_hook/3.
+    user:message_hook/3,
+    prolog:message_prefix_hook/2.
 :- thread_local
     user:thread_message_hook/3.
 
@@ -1590,38 +1592,53 @@ msg_prefix(error,             Prefix) :-
 msg_prefix(informational, '~N% ').
 msg_prefix(information,   '~N% ').
 
+%!  msg_context(+Prefix0, -Prefix) is det.
+%
+%   Add contextual information to a message.   This uses the Prolog flag
+%   `message_context`. Recognised context terms are:
+%
+%     - time
+%     - time(Format)
+%     - thread
+%
+%   In addition, the hook prolog:message_prefix_hook/2   is  called that
+%   allows for additional context information.
+
 msg_context(Prefix0, Prefix) :-
     current_prolog_flag(message_context, Context),
-    msg_time_context(Prefix0, Context, Prefix1),
-    msg_thread_context(Prefix1, Context, Prefix).
-
-msg_time_context(Prefix0, Context, Prefix1) :-
-    memberchk(time, Context),
+    is_list(Context),
     !,
+    add_message_context(Context, Prefix0, Prefix).
+msg_context(Prefix, Prefix).
+
+add_message_context([], Prefix, Prefix).
+add_message_context([H|T], Prefix0, Prefix) :-
+    (   add_message_context1(H, Prefix0, Prefix1)
+    ->  true
+    ;   Prefix1 = Prefix0
+    ),
+    add_message_context(T, Prefix1, Prefix).
+
+add_message_context1(Context, Prefix0, Prefix) :-
+    prolog:message_prefix_hook(Context, Extra),
+    atomics_to_string([Prefix0, Extra, ' '], Prefix).
+add_message_context1(time, Prefix0, Prefix) :-
     get_time(Now),
     format_time(string(S), '%T.%3f ', Now),
-    string_concat(Prefix0, S, Prefix1).
-msg_time_context(Prefix0, Context, Prefix1) :-
-    memberchk(time(Format), Context),
-    !,
+    string_concat(Prefix0, S, Prefix).
+add_message_context1(time(Format), Prefix0, Prefix) :-
     get_time(Now),
     format_time(string(S), Format, Now),
-    atomics_to_string([Prefix0, S, ' '], Prefix1).
-msg_time_context(Prefix, _, Prefix).
-
-
-msg_thread_context(Prefix1, Context, Prefix) :-
+    atomics_to_string([Prefix0, S, ' '], Prefix).
+add_message_context1(thread, Prefix0, Prefix) :-
     thread_self(Id0),
     Id0 \== main,
-    memberchk(thread, Context),
     !,
     (   atom(Id0)
     ->  Id = Id0
     ;   thread_property(Id0, id(Id))
     ),
-    string_concat(Prefix1, '[Thread ~w] ', Prefix2),
-    Prefix = Prefix2-[Id].
-msg_thread_context(Prefix, _Context, Prefix).
+    format(string(Prefix), '~w[Thread ~w] ', [Prefix0, Id]).
 
 %!  print_message_lines(+Stream, +PrefixOrKind, +Lines)
 %

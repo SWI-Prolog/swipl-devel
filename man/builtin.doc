@@ -2626,6 +2626,12 @@ This hook is called to print the individual elements of a message from
 print_message_lines/3. This hook is used by e.g., library
 \pllib{ansi_term} to colour messages on ANSI-capable terminals.
 
+    \predicate{prolog:message_prefix_hook}{2}{+ContextTerm, -Prefix}
+This hook is called to add context to the message prefix.
+\arg{ContextTerm} is a member of the list provided by the
+\prologflag{message_context}. \arg{Prefix} must be unified with an
+atomic value that is added to the message prefix.
+
     \predicate{message_to_string}{2}{+Term, -String}
 Translates a message term into a string object (see \secref{strings}).
 
