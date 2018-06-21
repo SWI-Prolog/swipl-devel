@@ -364,6 +364,10 @@ directive.
 If this option is not present, it uses the value of the Prolog
 flag \prologflag{qcompile} as default.
 
+    \termitem{optimise}{+Boolean}
+Explicitly set the optimization for compiling this module.  See
+\prologflag{optimise}.
+
     \termitem{redefine_module}{+Action}
 Defines what to do if a file is loaded that provides a module that is
 already loaded from another file. \arg{Action} is one of \const{false}

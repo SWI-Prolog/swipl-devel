@@ -2212,10 +2212,11 @@ load_files(Module:Files, Options) :-
     '$source_file_property'(Absolute, number_of_clauses, OldClauses),
     statistics(cputime, OldTime),
 
+    '$save_file_scoped_flags'(ScopedFlags),
     '$set_sandboxed_load'(Options, OldSandBoxed),
     '$set_verbose_load'(Options, OldVerbose),
+    '$set_optimise_load'(Options),
     '$update_autoload_level'(Options, OldAutoLevel),
-    '$save_file_scoped_flags'(ScopedFlags),
     set_prolog_flag(xref, false),
 
     '$compilation_level'(Level),
@@ -2362,6 +2363,12 @@ load_files(Module:Files, Options) :-
     !.
 '$ensure_loaded_library_sandbox' :-
     load_files(library(sandbox), [if(not_loaded), silent(true)]).
+
+'$set_optimise_load'(Options) :-
+    (   '$option'(optimise(Optimise), Options)
+    ->  set_prolog_flag(optimise, Optimise)
+    ;   true
+    ).
 
 
 %!  '$update_autoload_level'(+Options, -OldLevel)

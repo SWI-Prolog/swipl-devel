@@ -130,6 +130,7 @@
                        check_script(boolean),
 		       must_be_module(boolean),
 		       qcompile(oneof([never,auto,large,part])),
+                       optimise(boolean),
 		       redefine_module(oneof([false,true,ask])),
 		       reexport(boolean),
 		       sandboxed(boolean),
