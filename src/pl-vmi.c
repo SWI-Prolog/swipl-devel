@@ -2740,7 +2740,8 @@ VMI(S_VIRGIN, 0, 0, ())
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
 #endif
-    goto retry_continue;
+    if ( DEF->impl.any.defined )
+      goto retry_continue;
 #ifdef O_PLMT
   } else if ( true(DEF, P_THREAD_LOCAL) )
   { DEF = getProcDefinition__LD(DEF PASS_LD);
@@ -2816,6 +2817,8 @@ VMI(S_UNDEF, 0, 0, ())
     }
     case UNKNOWN_FAIL:
     default:
+      if ( debugstatus.debugging )
+	newChoice(CHP_DEBUG, FR PASS_LD);
       FRAME_FAILED;
   }
 }
