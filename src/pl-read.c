@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -154,6 +154,19 @@ atom_is_named_var(atom_t name)		/* see warn_singleton() */
 
   return -1;
 }
+
+
+static
+PRED_IMPL("$is_named_var", 1, is_named_var, 0)
+{ PRED_LD
+  atom_t name;
+
+  if ( PL_get_atom_ex(A1, &name) )
+    return atom_is_named_var(name) == 1;
+
+  return FALSE;
+}
+
 
 
 		 /*******************************
@@ -1634,6 +1647,12 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 
 
 static int
+is_singleton_name(const char *name)
+{ return name[0] == '_' && name[1];
+}
+
+
+static int
 warn_multiton(const char *name)
 { if ( !warn_singleton(name) )
   { if ( name[0] == '_' && name[1] )
@@ -1660,14 +1679,16 @@ warn_multiton(const char *name)
    in any of the terms.
 */
 
-#define IS_SINGLETON 0
-#define IS_MULTITON  1
+#define IS_SINGLETON    0
+#define LIST_SINGLETONS 1
+#define IS_MULTITON     2
 
 static int
 is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 { if ( var->times == 1 )
-  { if ( (type == IS_SINGLETON && warn_singleton(var->name)) ||
-	 (type == IS_MULTITON  && warn_multiton(var->name)) )
+  { if ( (type == IS_SINGLETON    && warn_singleton(var->name)) ||
+	 (type == LIST_SINGLETONS && is_singleton_name(var->name)) ||
+	 (type == IS_MULTITON     && warn_multiton(var->name)) )
     {
 #ifdef O_QUASIQUOTATIONS
       if ( _PL_rd->qq )
@@ -1689,6 +1710,8 @@ is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 
   if ( type == IS_SINGLETON )
     return var->times == 1 && warn_singleton(var->name);
+  else if ( type == LIST_SINGLETONS )
+    return var->times == 1 && is_singleton_name(var->name);
   else
     return var->times  > 1 && warn_multiton(var->name);
 }
@@ -1701,7 +1724,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
     term_t head = PL_new_term_ref();
 
     for_vars(var,
-	     if ( is_singleton(var, IS_SINGLETON, _PL_rd PASS_LD) )
+	     if ( is_singleton(var, LIST_SINGLETONS, _PL_rd PASS_LD) )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
 				    PL_FUNCTOR,    FUNCTOR_equals2,
@@ -5269,6 +5292,7 @@ BeginPredDefs(read)
   PRED_DEF("term_to_atom",	  2, term_to_atom,	  0)
   PRED_DEF("term_string",	  2, term_string,	  0)
   PRED_DEF("$code_class",	  2, code_class,	  0)
+  PRED_DEF("$is_named_var",       1, is_named_var,        0)
 #ifdef O_QUASIQUOTATIONS
   PRED_DEF("$qq_open",            2, qq_open,             0)
 #endif

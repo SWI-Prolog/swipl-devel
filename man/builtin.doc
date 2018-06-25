@@ -5475,10 +5475,16 @@ intended to support tools that manipulate Prolog source text.
 
     \termitem{singletons}{Vars}
 As \const{variable_names}, but only reports the variables occurring only
-once in the \arg{Term} read. Variables starting with an underscore
-(`\chr{_}') are not included in this list. (ISO).  If \arg{Vars} is the
-constant \const{warning}, singleton variables are reported using
-print_message/2. The variables appear in the order they have been read.
+once in the \arg{Term} read (ISO). If \arg{Vars} is the constant
+\const{warning}, singleton variables are reported using print_message/2.
+The variables appear in the order they have been read. The latter option
+provides backward compatibility and is used to read terms from source
+files. Not all singleton variables are reported as a warning.  See
+\secref{singleton} for the rules that apply for warning about a
+singleton variable.\footnote{As of version 7.7.17, \emph{all} variables
+starting with an underscore except for the the truely anonymous variable
+are returned in \arg{Vars}. Older versions only reported those that
+would have been reported if \const{warning} is used.}
 
     \termitem{syntax_errors}{Atom}
 If \const{error} (default), throw an exception on a syntax error. Other

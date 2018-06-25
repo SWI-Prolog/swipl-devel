@@ -130,13 +130,14 @@ colourise_stream(Fd, TB) :-
         character_count(Fd, Start),
         catch(read_term(Fd, Term,
                         [ subterm_positions(TermPos),
-                          singletons(Singletons),
+                          singletons(Singletons0),
                           module(SM),
                           comments(Comments)
                         ]),
               E,
               read_error(E, TB, Start, Fd)),
         fix_operators(Term, SM, TB),
+        warnable_singletons(Singletons0, Singletons),
         colour_state_singletons(TB, Singletons),
         (   colourise_term(Term, TB, TermPos, Comments)
         ->  true
@@ -247,6 +248,19 @@ syntax_error(error(syntax_error(Id), file(_S, _Line, _LinePos, CharNo)),
              Id, CharNo).
 syntax_error(error(syntax_error(Id), string(_Text, CharNo)),
              Id, CharNo).
+
+%!  warnable_singletons(+Singletons, -Warn) is det.
+%
+%   Warn is the subset of the singletons that we warn about.
+
+warnable_singletons([], []).
+warnable_singletons([H|T0], List) :-
+    H = (Name=_Var),
+    (   '$is_named_var'(Name)
+    ->  List = [H|T]
+    ;   List = T
+    ),
+    warnable_singletons(T0, T).
 
 %!  colour_item(+Class, +TB, +Pos) is det.
 
@@ -376,13 +390,14 @@ colourise_query(QueryString, TB) :-
     string_length(QueryString, End),
     (   catch(term_string(Query, QueryString,
                           [ subterm_positions(TermPos),
-                            singletons(Singletons),
+                            singletons(Singletons0),
                             module(SM),
                             comments(Comments)
                           ]),
               E,
               read_error(E, TB, 0, End))
-    ->  colour_state_singletons(TB, Singletons),
+    ->  warnable_singletons(Singletons0, Singletons),
+        colour_state_singletons(TB, Singletons),
         colourise_comments(Comments, TB),
         (   Query == end_of_file
         ->  true
@@ -426,12 +441,13 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
           operators(Ops),
           error(Error),
           subterm_positions(TermPos),
-          singletons(Singletons),
+          singletons(Singletons0),
           comments(Comments)
         | Opts
         ]),
     (   var(Error)
-    ->  colour_state_singletons(TB, Singletons),
+    ->  warnable_singletons(Singletons0, Singletons),
+        colour_state_singletons(TB, Singletons),
         colour_item(range, TB, TermPos),            % Call to allow clearing
         colourise_term(Term, TB, TermPos, Comments)
     ;   character_count(Stream, End),
