@@ -41,11 +41,13 @@
             abolish_all_tables/0,
             abolish_table_subgoals/1,   % :Subgoal
 
-            start_tabling/2             % +Wrapper, :Worker.
+            start_tabling/2,            % +Wrapper, :Worker
+            start_tabling/4             % +Wrapper, :Worker, :Variant, ?ModeArgs
           ]).
 
 :- meta_predicate
     start_tabling(+, 0),
+    start_tabling(+, 0, 0, ?),
     current_table(:, -),
     abolish_table_subgoals(:).
 
@@ -83,7 +85,7 @@ table space and work lists are part of the SWI-Prolog core.
 table(PIList) :-
     throw(error(context_error(nodirective, table(PIList)), _)).
 
-%!  start_tabling(+Variant, +Implementation)
+%!  start_tabling(:Wrapper, :Implementation)
 %
 %   Execute Implementation using tabling. This  predicate should not
 %   be called directly. The table/1 directive  causes a predicate to
@@ -94,80 +96,128 @@ table(PIList) :-
 %           from future versions.
 
 start_tabling(Wrapper, Worker) :-
-    get_wrapper_no_mode_args(Wrapper, WrapperNoModes, ModeArgs),
+    '$tbl_variant_table'(Wrapper, Trie, Status),
+    (   Status == complete
+    ->  trie_gen(Trie, Wrapper, _)
+    ;   (   '$tbl_create_component'
+        ->  catch(run_leader(Wrapper, Worker, Trie),
+                  E, true),
+            (   var(E)
+            ->  trie_gen(Trie, Wrapper, _)
+            ;   '$tbl_table_discard_all',
+                throw(E)
+            )
+        ;   run_follower(Status, Wrapper, Worker, Trie)
+        )
+    ).
+
+run_leader(Wrapper, Worker, Trie) :-
+    activate(Wrapper, Worker, Trie, _Worklist),
+    completion,
+    '$tbl_completed_component'.
+
+run_follower(fresh, Wrapper, Worker, Trie) :-
+    !,
+    activate(Wrapper, Worker, Trie, Worklist),
+    shift(call_info(Wrapper, Worklist)).
+run_follower(Worklist, Wrapper, _Worker, _Trie) :-
+    shift(call_info(Wrapper, Worklist)).
+
+activate(Wrapper, Worker, Trie, WorkList) :-
+    '$tbl_new_worklist'(WorkList, Trie),
+    (   delim(Wrapper, Worker, WorkList),
+        fail
+    ;   true
+    ).
+
+
+%!  start_tabling(:Wrapper, :Implementation, +Variant, +ModeArgs)
+%
+%   As start_tabling/2, but in addition separates the data stored in the
+%   answer trie in the Variant and ModeArgs.
+
+start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     '$tbl_variant_table'(WrapperNoModes, Trie, Status),
     (   Status == complete
     ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
-    ;   (   '$tbl_scheduling_component'(false, true)
-        ->  catch(run_leader(Wrapper, WrapperNoModes, Worker, Trie),
+    ;   (   Status == fresh
+        ->  '$tbl_create_subcomponent',
+            catch(run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie),
                   E, true),
             (   var(E)
             ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
             ;   '$tbl_table_discard_all',
                 throw(E)
             )
-        ;   run_follower(Status, Wrapper, WrapperNoModes, Worker, Trie)
+        ;   % = run_follower, but never fresh and Status is a worklist
+            shift(call_info(Wrapper, Status))
         )
     ).
 
 get_wrapper_no_mode_args(M:Wrapper, M:WrapperNoModes, ModeArgs) :-
     M:'$table_mode'(Wrapper, WrapperNoModes, ModeArgs).
 
-run_follower(fresh, Wrapper, WrapperNoModes, Worker, Trie) :-
-    !,
-    activate(Wrapper, WrapperNoModes, Worker, Trie, Worklist),
-    shift(call_info(Wrapper, Worklist)).
-run_follower(Worklist, Wrapper, _WrapperNoModes, _Worker, _Trie) :-
-    shift(call_info(Wrapper, Worklist)).
-
-run_leader(Wrapper, WrapperNoModes, Worker, Trie) :-
-    activate(Wrapper, WrapperNoModes, Worker, Trie, _Worklist),
+run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie) :-
+    activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, _Worklist),
     completion,
-    '$tbl_scheduling_component'(_, false).
+    '$tbl_completed_component'.
 
-activate(Wrapper, WrapperNoModes, Worker, Trie, WorkList) :-
+activate(Wrapper, WrapperNoModes, _ModeArgs, Worker, Trie, WorkList) :-
     '$tbl_new_worklist'(WorkList, Trie),
     (   delim(Wrapper, WrapperNoModes, Worker, WorkList),
         fail
     ;   true
     ).
 
-%!  delim(+Wrapper, +Worker, +WorkList).
-%!  delim(+Wrapper, +WrapperNoModes, +Worker, +WorkList).
+%!  delim(+Wrapper, +Worker, +WorkList)
 %
-%   Call/resume Worker
+%   Call/resume Worker for non-mode directed tabled predicates.
 
 delim(Wrapper, Worker, WorkList) :-
-    reset(Worker, SourceCall, Continuation),
+    reset(work_and_add_answer(Worker, Wrapper, WorkList),
+          SourceCall, Continuation),
     add_answer_or_suspend(Continuation, Wrapper,
                           WorkList, SourceCall).
 
-add_answer_or_suspend(0, Wrapper, WorkList, _) :-
-    !,
+work_and_add_answer(Worker, Wrapper, WorkList) :-
+    call(Worker),
     '$tbl_wkl_add_answer'(WorkList, Wrapper).
+
+
+add_answer_or_suspend(0, _Wrapper, _WorkList, _) :-
+    !.
 add_answer_or_suspend(Continuation, Wrapper, WorkList,
                       call_info(SrcWrapper, SourceWL)) :-
     '$tbl_wkl_add_suspension'(
         SourceWL,
         dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
 
+%!  delim(+Wrapper, +WrapperNoModes, +Worker, +WorkList).
+%
+%   Call/resume Worker for mode directed tabled predicates.
+
 delim(Wrapper, WrapperNoModes, Worker, WorkList) :-
-    reset(Worker, SourceCall, Continuation),
+    reset(work_and_add_moded_answer(Worker, Wrapper, WrapperNoModes, WorkList),
+          SourceCall, Continuation),
     add_answer_or_suspend(Continuation, Wrapper, WrapperNoModes,
                           WorkList, SourceCall).
 
-add_answer_or_suspend(0, Wrapper, WrapperNoModes, WorkList, _) :-
-    !,
+work_and_add_moded_answer(Worker, Wrapper, WrapperNoModes, WorkList) :-
+    call(Worker),
     get_wrapper_no_mode_args(Wrapper, _, ModeArgs),
     '$tbl_wkl_mode_add_answer'(WorkList, WrapperNoModes,
                                ModeArgs, Wrapper).
+
+add_answer_or_suspend(0, _Wrapper, _WrapperNoModes, _WorkList, _) :-
+    !.
 add_answer_or_suspend(Continuation, Wrapper, _WrapperNoModes, WorkList,
                       call_info(SrcWrapper, SourceWL)) :-
     '$tbl_wkl_add_suspension'(
         SourceWL,
         dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
 
-%!  update(+Wrapper, +A1, +A2, -A3) is det.
+
+%!  update(+Wrapper, +A1, +A2, -A3) is semidet.
 %
 %   Update the aggregated value for  an   answer.  Wrapper is the tabled
 %   goal, A1 is the aggregated value so far, A2 is the new answer and A3
@@ -309,7 +359,9 @@ wrappers(ModeDirectedSpec) -->
       mode_check(Moded, ModeTest),
       (   ModeTest == true
       ->  WrapClause = (Head :- start_tabling(Module:Head, WrappedHead))
-      ;   WrapClause = (Head :- ModeTest, start_tabling(Module:Head, WrappedHead))
+      ;   WrapClause = (Head :- ModeTest,
+                            start_tabling(Module:Head, WrappedHead,
+                                          Module:Variant, Moded))
       )
     },
     [ '$tabled'(Head),
