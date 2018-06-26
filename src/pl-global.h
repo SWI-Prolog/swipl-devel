@@ -554,9 +554,8 @@ struct PL_local_data
 #endif
 
   struct
-  { struct worklist_set *worklist;		/* Worklist of current query */
-    struct worklist_set *created_worklists;	/* Worklists created */
-    struct trie      *variant_table;	/* Variant --> table */
+  { struct tbl_component *component;    /* active component */
+    struct trie *variant_table;		/* Variant --> table */
     trie_allocation_pool node_pool;	/* Node allocation pool for tries */
     int	has_scheduling_component;	/* A leader was created */
   } tabling;

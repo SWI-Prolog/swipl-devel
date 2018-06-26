@@ -49,8 +49,20 @@ static void	print_worklist(const char *prefix, worklist *wl);
 
 
 static worklist_set *
-thread_worklist(worklist_set **wlp)
-{ if ( *wlp == NULL )
+thread_worklist(PL_local_data_t *ld, int global)
+{ worklist_set **wlp;
+
+  if ( !ld->tabling.component )
+  { ld->tabling.component = PL_malloc(sizeof(*ld->tabling.component));
+    memset(ld->tabling.component, 0, sizeof(*ld->tabling.component));
+  }
+
+  if ( global )
+    wlp = &ld->tabling.component->worklist;
+  else
+    wlp = &ld->tabling.component->created_worklists;
+
+  if ( *wlp == NULL )
   { worklist_set *wl = PL_malloc(sizeof(*wl));
     initBuffer(&wl->members);
     *wlp = wl;
@@ -61,12 +73,12 @@ thread_worklist(worklist_set **wlp)
 
 static worklist_set *
 global_worklist(PL_local_data_t *ld)
-{ return thread_worklist(&ld->tabling.worklist);
+{ return thread_worklist(ld, TRUE);
 }
 
 static worklist_set *
 newly_created_worklist(PL_local_data_t *ld)
-{ return thread_worklist(&ld->tabling.created_worklists);
+{ return thread_worklist(ld, FALSE);
 }
 
 		 /*******************************
@@ -99,23 +111,27 @@ pop_worklist(PL_local_data_t *ld)
 
 static void
 reset_global_worklist(PL_local_data_t *ld)
-{ worklist_set *wls;
+{ tbl_component *c;
 
-  if ( (wls = ld->tabling.worklist) )
-  { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
-    size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
+  if ( (c=ld->tabling.component) )
+  { worklist_set *wls;
 
-    ld->tabling.worklist = NULL;
+    if ( (wls = c->worklist) )
+    { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
+      size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
 
-    for(i=0; i<nwpl; i++)
-    { worklist *wl = wlp[i];
+      c->worklist = NULL;
 
-      free_worklist(wl);
+      for(i=0; i<nwpl; i++)
+      { worklist *wl = wlp[i];
+
+	free_worklist(wl);
+      }
+
+      discardBuffer(&wls->members);
+      initBuffer(&wls->members);
+      PL_free(wls);
     }
-
-    discardBuffer(&wls->members);
-    initBuffer(&wls->members);
-    PL_free(wls);
   }
 }
 
@@ -129,13 +145,17 @@ add_newly_created_worklist(worklist *wl ARG_LD)
 
 static void
 reset_newly_created_worklists(PL_local_data_t *ld)
-{ worklist_set *wls;
+{ tbl_component *c;
 
-  if ( (wls = ld->tabling.created_worklists) )
-  { ld->tabling.created_worklists = NULL;
-    discardBuffer(&wls->members);
-    initBuffer(&wls->members);
-    PL_free(wls);
+  if ( (c=ld->tabling.component) )
+  { worklist_set *wls;
+
+    if ( (wls = c->created_worklists) )
+    { c->created_worklists = NULL;
+      discardBuffer(&wls->members);
+      initBuffer(&wls->members);	/* TBD: Why!? */
+      PL_free(wls);
+    }
   }
 }
 
@@ -1047,12 +1067,53 @@ PRED_IMPL("$tbl_table_discard_all", 0, tbl_table_discard_all, 0)
 
 
 static
-PRED_IMPL("$tbl_scheduling_component", 2, tbl_scheduling_component, 0)
+PRED_IMPL("$tbl_create_component", 0, tbl_create_component, 0)
 { PRED_LD
 
-  return ( PL_unify_bool(A1, LD->tabling.has_scheduling_component) &&
-	   PL_get_bool_ex(A2, &LD->tabling.has_scheduling_component) );
+  if ( !LD->tabling.has_scheduling_component )
+  { LD->tabling.has_scheduling_component = TRUE;
+    return TRUE;
+  }
+
+  return FALSE;
 }
+
+
+static
+PRED_IMPL("$tbl_create_subcomponent", 0, tbl_create_subcomponent, 0)
+{ PRED_LD
+  tbl_component *c;
+
+						/* no component; create main */
+  if ( !LD->tabling.has_scheduling_component )
+  { LD->tabling.has_scheduling_component = TRUE;
+    return TRUE;
+  }
+						/* existing: create sub */
+  c = PL_malloc(sizeof(*c));
+  memset(c, 0, sizeof(*c));
+  c->parent = LD->tabling.component;
+  LD->tabling.component = c;
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("$tbl_completed_component", 0, tbl_completed_component, 0)
+{ PRED_LD
+  tbl_component *c;
+
+  if ( (c=LD->tabling.component) && c->parent )
+  { LD->tabling.component = c->parent;
+    PL_free(c);
+  } else
+  { LD->tabling.has_scheduling_component = FALSE;
+  }
+
+  return TRUE;
+}
+
 
 
 /** '$tbl_abolish_all_tables' is det.
@@ -1105,9 +1166,10 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_table_status",		2, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_complete_all",	0, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_table_discard_all",    0, tbl_table_discard_all,    0)
-  PRED_DEF("$tbl_scheduling_component",	2, tbl_scheduling_component, 0)
+  PRED_DEF("$tbl_create_component",	0, tbl_create_component,     0)
+  PRED_DEF("$tbl_create_subcomponent",  0, tbl_create_subcomponent,  0)
+  PRED_DEF("$tbl_completed_component",  0, tbl_completed_component,  0)
   PRED_DEF("$tbl_abolish_all_tables",   0, tbl_abolish_all_tables,   0)
   PRED_DEF("$tbl_destroy_table",        1, tbl_destroy_table,        0)
   PRED_DEF("$tbl_trienode",             1, tbl_trienode,             0)
-
 EndPredDefs
