@@ -177,6 +177,7 @@
 #define MSG_MODULE_REF		 260
 
 #define MSG_TABLING_WORK	 300
+#define MSG_TABLING_MODED	 301
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001

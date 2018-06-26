@@ -683,6 +683,10 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
     int rc;
 
     kp = valTermRef(A2);
+    DEBUG(MSG_TABLING_MODED,
+	  { PL_write_term(Serror, A2, 1200, 0);
+	    Sdprintf(": ");
+	  });
 
     if ( (rc=trie_lookup(wl->table, &node, kp, TRUE PASS_LD)) == TRUE )
     { if ( node->value )
@@ -698,19 +702,31 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
 	       PL_put_term(av+2, A3) &&
 	       PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_update4, av) &&
 	       set_trie_value(node, av+3 PASS_LD)) )
+	{ DEBUG(MSG_TABLING_MODED, Sdprintf("No change!\n"));
 	  return FALSE;
+	}
 
+	DEBUG(MSG_TABLING_MODED,
+	      { Sdprintf("Updated answer to: ");
+		PL_write_term(Serror, av+3, 1200, PL_WRT_NEWLINE);
+	      });
 	return wkl_add_answer(wl, node PASS_LD);
       } else
       { if ( !set_trie_value(node, A3 PASS_LD) )
 	  return FALSE;
+
+	DEBUG(MSG_TABLING_MODED,
+	      { Sdprintf("Set first answer: ");
+		PL_write_term(Serror, A3, 1200, PL_WRT_NEWLINE);
+	      });
+	return wkl_add_answer(wl, node PASS_LD);
       }
-      return wkl_add_answer(wl, node PASS_LD);
     }
 
     return trie_error(rc, A2);
   }
 
+  Sdprintf("Could not get worklist\n");
   return FALSE;
 }
 
