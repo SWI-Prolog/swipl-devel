@@ -1647,12 +1647,6 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 
 
 static int
-is_singleton_name(const char *name)
-{ return name[0] == '_' && name[1];
-}
-
-
-static int
 warn_multiton(const char *name)
 { if ( !warn_singleton(name) )
   { if ( name[0] == '_' && name[1] )
@@ -1687,7 +1681,7 @@ static int
 is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 { if ( var->times == 1 )
   { if ( (type == IS_SINGLETON    && warn_singleton(var->name)) ||
-	 (type == LIST_SINGLETONS && is_singleton_name(var->name)) ||
+	 (type == LIST_SINGLETONS) ||
 	 (type == IS_MULTITON     && warn_multiton(var->name)) )
     {
 #ifdef O_QUASIQUOTATIONS
@@ -1711,7 +1705,7 @@ is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
   if ( type == IS_SINGLETON )
     return var->times == 1 && warn_singleton(var->name);
   else if ( type == LIST_SINGLETONS )
-    return var->times == 1 && is_singleton_name(var->name);
+    return var->times == 1;
   else
     return var->times  > 1 && warn_multiton(var->name);
 }
