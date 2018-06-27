@@ -1823,6 +1823,58 @@ setCloseOnExec(IOSTREAM *s, int val)
   return TRUE;
 }
 
+
+static int
+set_eof_action(IOSTREAM *s, atom_t action)
+{ if ( action == ATOM_eof_code )
+  { s->flags &= ~(SIO_NOFEOF|SIO_FEOF2ERR);
+  } else if ( action == ATOM_reset )
+  { s->flags &= ~SIO_FEOF2ERR;
+    s->flags |= SIO_NOFEOF;
+  } else if ( action == ATOM_error )
+  { s->flags &= ~SIO_NOFEOF;
+    s->flags |= SIO_FEOF2ERR;
+  } else
+  { GET_LD
+    term_t t;
+
+    return ((t=PL_new_term_ref()) &&
+	    PL_put_atom(t, action) &&
+	    PL_domain_error("eof_action", t));
+  }
+
+  return TRUE;
+}
+
+
+static int
+set_buffering(IOSTREAM *s, atom_t b)
+{
+#define SIO_ABUF (SIO_FBUF|SIO_LBUF|SIO_NBUF)
+
+  if ( b == ATOM_full )
+  { s->flags &= ~SIO_ABUF;
+    s->flags |= SIO_FBUF;
+  } else if ( b == ATOM_line )
+  { s->flags &= ~SIO_ABUF;
+    s->flags |= SIO_LBUF;
+  } else if ( b == ATOM_false )
+  { Sflush(s);
+    s->flags &= ~SIO_ABUF;
+    s->flags |= SIO_NBUF;
+  } else
+  { GET_LD
+    term_t t;
+
+    return ((t=PL_new_term_ref()) &&
+	    PL_put_atom(t, b) &&
+	    PL_domain_error("buffer", t));
+  }
+
+  return TRUE;
+}
+
+
 /* returns TRUE: ok, FALSE: error, -1: not available
 */
 
@@ -1849,24 +1901,9 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
   } else if ( aname == ATOM_buffer ) /* buffer(Buffering) */
   { atom_t b;
 
-#define SIO_ABUF (SIO_FBUF|SIO_LBUF|SIO_NBUF)
     if ( !PL_get_atom_ex(a, &b) )
       return FALSE;
-    if ( b == ATOM_full )
-    { s->flags &= ~SIO_ABUF;
-      s->flags |= SIO_FBUF;
-    } else if ( b == ATOM_line )
-    { s->flags &= ~SIO_ABUF;
-      s->flags |= SIO_LBUF;
-    } else if ( b == ATOM_false )
-    { Sflush(s);
-      s->flags &= ~SIO_ABUF;
-      s->flags |= SIO_NBUF;
-    } else
-    { return PL_error("set_stream", 2, NULL, ERR_DOMAIN,
-		      ATOM_buffer, a);
-    }
-    return TRUE;
+    return set_buffering(s, b);
   } else if ( aname == ATOM_buffer_size )
   { int size;
 
@@ -1881,21 +1918,8 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     if ( !PL_get_atom_ex(a, &action) )
       return FALSE;
-    if ( action == ATOM_eof_code )
-    { s->flags &= ~(SIO_NOFEOF|SIO_FEOF2ERR);
-    } else if ( action == ATOM_reset )
-    { s->flags &= ~SIO_FEOF2ERR;
-      s->flags |= SIO_NOFEOF;
-    } else if ( action == ATOM_error )
-    { s->flags &= ~SIO_NOFEOF;
-      s->flags |= SIO_FEOF2ERR;
-    } else
-    { PL_error("set_stream", 2, NULL, ERR_DOMAIN,
-	       ATOM_eof_action, a);
-      return FALSE;
-    }
 
-    return TRUE;
+    return set_eof_action(s, action);
   } else if ( aname == ATOM_type ) /* type(Type) */
   { atom_t type;
 
@@ -3865,31 +3889,15 @@ openStream(term_t file, term_t mode, term_t options)
     s->flags |= SIO_NOCLOSE;
 
   if ( how[0] == 'r' )
-  { if ( eof_action != ATOM_eof_code )
-    { if ( eof_action == ATOM_reset )
-	s->flags |= SIO_NOFEOF;
-      else if ( eof_action == ATOM_error )
-	s->flags |= SIO_FEOF2ERR;
-      else
-      { term_t ex = PL_new_term_ref();
-	PL_put_atom(ex, eof_action);
-	PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_eof_action, ex);
-	return NULL;
-      }
+  { if ( !set_eof_action(s, eof_action) )
+    { Sclose(s);
+      return NULL;
     }
   } else
-  { if ( buffer != ATOM_full )
-    { s->flags &= ~SIO_FBUF;
-      if ( buffer == ATOM_line )
-	s->flags |= SIO_LBUF;
-      else if ( buffer == ATOM_false )
-	s->flags |= SIO_NBUF;
-      else
-      { term_t ex = PL_new_term_ref();
-	PL_put_atom(ex, buffer);
-	PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_buffer, ex);
-	return NULL;
-      }
+  { if ( buffer != ATOM_full &&
+	 !set_buffering(s, buffer) )
+    { Sclose(s);
+      return NULL;
     }
   }
 
@@ -3907,6 +3915,7 @@ openStream(term_t file, term_t mode, term_t options)
       { bom_error:
 
 	streamStatus(getStream(s));
+	Sclose(s);
 	return NULL;
       }
     } else
