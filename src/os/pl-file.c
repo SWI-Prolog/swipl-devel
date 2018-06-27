@@ -1101,6 +1101,7 @@ reportStreamError(IOSTREAM *s)
 	s->exception = NULL;
 	if ( rc )
 	  rc = PL_raise_exception(ex);
+	Sclearerr(s);
 	PL_close_foreign_frame(fid);
 	return rc;
       }
@@ -1120,6 +1121,7 @@ reportStreamError(IOSTREAM *s)
       { if ( (s->flags & SIO_TIMEOUT) )
 	{ PL_error(NULL, 0, NULL, ERR_TIMEOUT,
 		   ATOM_write, stream);
+	  Sclearerr(s);
 	  return FALSE;
 	} else
 	  op = ATOM_write;
@@ -1134,9 +1136,7 @@ reportStreamError(IOSTREAM *s)
       }
 
       PL_error(NULL, 0, msg, ERR_STREAM_OP, op, stream);
-
-      if ( (s->flags & SIO_CLEARERR) )
-	Sseterr(s, 0, NULL);
+      Sclearerr(s);
 
       return FALSE;
     } else

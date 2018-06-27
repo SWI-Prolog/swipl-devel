@@ -439,7 +439,6 @@ S__wait(IOSTREAM *s)
     if ( rc < 0 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
       { Sset_exception(s, PL_exception(0));
-	s->flags |= SIO_CLEARERR;
 	errno = EPLEXCEPTION;
 	return -1;
       }
@@ -524,7 +523,6 @@ S__flushbuf(IOSTREAM *s)
     { if ( errno == EINTR )
       { if ( PL_handle_signals() < 0 )
 	{ Sset_exception(s, PL_exception(0));
-	  s->flags |= SIO_CLEARERR;
 	  errno = EPLEXCEPTION;
 	} else
 	  goto retry;
@@ -860,7 +858,7 @@ reperror(int c, IOSTREAM *s)
     return c;
   }
 
-  Sseterr(s, SIO_FERR|SIO_CLEARERR, "Encoding cannot represent character");
+  Sseterr(s, SIO_FERR, "Encoding cannot represent character");
   return -1;
 }
 
@@ -1548,7 +1546,7 @@ Sfpasteof(IOSTREAM *s)
 
 
 #define SIO_ERROR_FLAGS (SIO_FEOF|SIO_WARN|SIO_FERR| \
-			 SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR)
+			 SIO_FEOF2|SIO_TIMEOUT)
 
 void
 Sclearerr(IOSTREAM *s)
@@ -1568,7 +1566,7 @@ Sclearerr(IOSTREAM *s)
 int
 Sseterr(IOSTREAM *s, int flags, const char *message)
 { for(; s && s->magic == SIO_MAGIC; s = s->upstream )
-  { s->flags = (s->flags & ~(SIO_WARN|SIO_FERR|SIO_CLEARERR)) | flags;
+  { s->flags = (s->flags & ~(SIO_WARN|SIO_FERR)) | flags;
 
     if ( s->message )
     { free(s->message);
