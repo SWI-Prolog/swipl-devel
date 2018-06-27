@@ -2098,7 +2098,7 @@ Hook into print_message/2 to alter the way system messages are printed
 Hook into print_message/2 that defines prefix, output stream, color,
 etc.
     \item [message_prefix_hook/2]
-ok into print_message/2 to add additional prefixes to the message such
+Hook into print_message/2 to add additional prefixes to the message such
 as the time and thread.
     \item [library_directory/1]
 Hook into absolute_file_name/3 to define new library directories
