@@ -387,7 +387,8 @@ restore_variable_names(Module, Head, Body, Ref, Options) :-
           _, true),
     unify_head(Module, Head, QHead),
     !,
-    bind_vars(Bindings).
+    bind_vars(Bindings),
+    name_other_vars((Head:-Body), Bindings).
 restore_variable_names(_,_,_,_,_).
 
 unify_head(Module, Head, Module:Head) :-
@@ -401,6 +402,39 @@ bind_vars([]) :-
 bind_vars([Name = Var|T]) :-
     Var = '$VAR'(Name),
     bind_vars(T).
+
+%!  name_other_vars(+Term, +Bindings) is det.
+%
+%   Give a '$VAR'(N) name to all   remaining variables in Term, avoiding
+%   clashes with the given variable names.
+
+name_other_vars(Term, Bindings) :-
+    term_singletons(Term, Singletons),
+    bind_singletons(Singletons),
+    term_variables(Term, Vars),
+    name_vars(Vars, 0, Bindings).
+
+bind_singletons([]).
+bind_singletons(['$VAR'('_')|T]) :-
+    bind_singletons(T).
+
+name_vars([], _, _).
+name_vars([H|T], N, Bindings) :-
+    between(N, infinite, N2),
+    var_name(N2, Name),
+    \+ memberchk(Name=_, Bindings),
+    !,
+    H = '$VAR'(N2),
+    N3 is N2 + 1,
+    name_vars(T, N3, Bindings).
+
+var_name(I, Name) :-               % must be kept in sync with writeNumberVar()
+    L is (I mod 26)+0'A,
+    N is I // 26,
+    (   N == 0
+    ->  char_code(Name, L)
+    ;   format(atom(Name), '~c~d', [L, N])
+    ).
 
 write_module(Module, Context, Head) :-
     hide_module(Module, Context, Head),
