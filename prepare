@@ -75,6 +75,7 @@ coremodules=(
  windows
  xpce
  yaml
+ paxos
  zlib
 )
 
