@@ -5937,7 +5937,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	    case CA1_MODULE:
 	    { Module xr = (Module)PC[an];
 
-	      if ( PL_unify_atom(term, xr->name) )
+	      if ( xr && PL_unify_atom(term, xr->name) )
 		succeed;
 	    }
 	  }

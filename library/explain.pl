@@ -160,8 +160,13 @@ explain(Term, Explanation) :-
 %   predicates are considered `known' for this purpose, so we can
 %   provide referenced messages on them.
 
-known_predicate(Pred) :-
-    current_predicate(_, Pred),
+known_predicate(M:Head) :-
+    var(M),
+    current_predicate(_, M2:Head),
+    (   predicate_property(M2:Head, imported_from(M))
+    ->  true
+    ;   M = M2
+    ),
     !.
 known_predicate(Pred) :-
     predicate_property(Pred, undefined).
