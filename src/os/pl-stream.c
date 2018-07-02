@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -719,14 +720,6 @@ update_linepos(IOSTREAM *s, int c)
 
 
 int
-S__fcheckpasteeof(IOSTREAM *s, int c)
-{ S__checkpasteeof(s, c);
-
-  return c;
-}
-
-
-int
 S__fupdatefilepos_getc(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
@@ -748,7 +741,6 @@ S__updatefilepos(IOSTREAM *s, int c)
   { update_linepos(s, c);
     p->charno++;
   }
-  S__checkpasteeof(s,c);
 
   return c;
 }
@@ -1348,7 +1340,7 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
   { int c = S__fillbuf(s);
 
     if ( c < 0 )
-    { if ( (s->flags & SIO_FEOF) )
+    { if ( (s->flags & SIO_FEOF) && Sfpasteof(s) != TRUE )
 	return 0;
       return c;
     }

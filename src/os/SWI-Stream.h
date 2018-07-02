@@ -284,12 +284,9 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #define Sgetchar()	Sgetc(Sinput)
 #define Sputchar(c)	Sputc((c), Soutput)
 
-#define S__checkpasteeof(s,c) \
-	if ( (c)==-1 && (s)->flags & (SIO_FEOF|SIO_FERR) ) \
-	  ((s)->flags |= SIO_FEOF2)
 #define S__updatefilepos_getc(s, c) \
 	((s)->position ? S__fupdatefilepos_getc((s), (c)) \
-		       : S__fcheckpasteeof((s), (c)))
+		       : (c))
 
 #define Snpgetc(s) ((s)->bufp < (s)->limitp ? (int)(*(s)->bufp++)&0xff \
 					    : S__fillbuf(s))
@@ -373,7 +370,6 @@ PL_EXPORT(void)		SinitStreams();
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
-PL_EXPORT(int)		S__fcheckpasteeof(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
 PL_EXPORT(int)		Sset_timeout(IOSTREAM *s, int tmo);
 PL_EXPORT(int)		Sunit_size(IOSTREAM *s);

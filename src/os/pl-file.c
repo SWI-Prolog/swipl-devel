@@ -2676,8 +2676,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
     if ( n < 0 )			/* should not happen */
       return streamStatus(s);
     if ( n == 0 )			/* end-of-file */
-    { S__fcheckpasteeof(s, -1);
-      return ( PL_unify(list, tail) &&
+    { return ( PL_unify(list, tail) &&
 	       PL_unify_nil(list) );
     }
     if ( s->position )
