@@ -5295,7 +5295,7 @@ PRED_IMPL("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
 
 /** fill_buffer(+Stream)
  *
- *   Fill the buffer of Stream.
+ *  Fill the buffer of Stream.
  */
 
 static
@@ -5311,10 +5311,12 @@ PRED_IMPL("fill_buffer", 1, fill_buffer, 0)
 	       PL_permission_error("fill_buffer", "stream", stream) );
     }
 
-    if ( S__fillbuf(s) < 0 )
-      return PL_release_stream(s);
+    if ( !(s->flags & SIO_FEOF) )
+    { if ( S__fillbuf(s) < 0 )
+	return PL_release_stream(s);
 
-    s->bufp--;
+      s->bufp--;
+    }
     return PL_release_stream(s);
   }
 
