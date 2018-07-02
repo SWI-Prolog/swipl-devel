@@ -1443,8 +1443,7 @@ ScheckBOM(IOSTREAM *s)
       return 0;
 
     if ( S__fillbuf(s) == -1 )
-    { if ( s->limitp - s->bufp > 0 )
-	s->flags &= ~SIO_FEOF;
+    { s->flags &= ~SIO_FEOF;
       return 0;				/* empty stream */
     }
     s->bufp--;
