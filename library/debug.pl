@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2016, University of Amsterdam
+    Copyright (c)  2002-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -60,10 +61,7 @@
 %:- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic
-    debugging/3,                    % Topic, Enabled, To
-    debug_context/1.
-
-debug_context(thread).
+    debugging/3.                    % Topic, Enabled, To
 
 /** <module> Print debug messages and test assertions
 
@@ -198,30 +196,24 @@ list_debug_topics :-
 
 %!  debug_message_context(+What) is det.
 %
-%   Specify additional context for debug messages.   What  is one of
-%   +Context or -Context, and Context is  one of =thread=, =time= or
-%   time(Format),  where  Format  is    a  format specification  for
-%   format_time/3 (default is =|%T.%3f|=).  Initially, debug/3 shows
-%   only thread information.
+%   Specify additional context for debug messages.
+%
+%   @deprecated New code should use   the Prolog flag `message_context`.
+%   This predicates adds or deletes topics from this list.
 
 debug_message_context(+Topic) :-
-    !,
-    valid_topic(Topic, Del, Add),
-    retractall(debug_context(Del)),
-    assert(debug_context(Add)).
+    current_prolog_flag(message_context, List),
+    (   memberchk(Topic, List)
+    ->  true
+    ;   append(List, [Topic], List2),
+        set_prolog_flag(message_context, List2)
+    ).
 debug_message_context(-Topic) :-
-    !,
-    valid_topic(Topic, Del, _),
-    retractall(debug_context(Del)).
-debug_message_context(Term) :-
-    type_error(debug_message_context, Term).
-
-valid_topic(thread, thread, thread) :- !.
-valid_topic(time, time(_), time('%T.%3f')) :- !.
-valid_topic(time(Format), time(_), time(Format)) :- !.
-valid_topic(X, _, _) :-
-    domain_error(debug_message_context, X).
-
+    current_prolog_flag(message_context, List),
+    (   selectchk(Topic, List, Rest)
+    ->  set_prolog_flag(message_context, Rest)
+    ;   true
+    ).
 
 %!  debug(+Topic, +Format, :Args) is det.
 %
@@ -393,40 +385,10 @@ system:goal_expansion(assume(_), true) :-
 prolog:message(assertion_failed(_, G)) -->
     [ 'Assertion failed: ~q'-[G] ].
 prolog:message(debug(Fmt, Args)) -->
-    show_thread_context,
-    show_time_context,
     [ Fmt-Args ].
 prolog:message(debug_no_topic(Topic)) -->
     [ '~q: no matching debug topic (yet)'-[Topic] ].
 
-show_thread_context -->
-    { debug_context(thread),
-      thread_self(Me),
-      report_as(Me, Name)
-    },
-    [ '[Thread ~w] '-[Name] ].
-show_thread_context -->
-    [].
-
-report_as(main, _) :-
-    !,
-    fail.
-report_as(Alias, Alias) :-
-    atom(Alias),
-    !.
-report_as(Handle, Id) :-
-    catch(thread_property(Handle, id(Id)), _, fail),
-    !.
-report_as(Thread, Thread).
-
-show_time_context -->
-    { debug_context(time(Format)),
-      get_time(Now),
-      format_time(string(S), Format, Now)
-    },
-    [ '[~w] '-[S] ].
-show_time_context -->
-    [].
 
                  /*******************************
                  *             HOOKS            *

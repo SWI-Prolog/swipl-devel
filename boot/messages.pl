@@ -1584,10 +1584,11 @@ msg_property(warning,
                              '~NWarning: ~w:~d:'-[File,Line], '~N\t')) :- !.
 msg_property(error,   wait(0.1)) :- !.
 
-msg_prefix(debug(_),      '~N% ').
-msg_prefix(warning,           Prefix) :-
+msg_prefix(debug(_), Prefix) :-
+    msg_context('~N% ', Prefix).
+msg_prefix(warning, Prefix) :-
     msg_context('~NWarning: ', Prefix).
-msg_prefix(error,             Prefix) :-
+msg_prefix(error, Prefix) :-
     msg_context('~NERROR: ', Prefix).
 msg_prefix(informational, '~N% ').
 msg_prefix(information,   '~N% ').
