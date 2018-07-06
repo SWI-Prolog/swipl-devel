@@ -78,6 +78,7 @@ typedef struct worklist
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
 
+  tbl_component*component;		/* component I belong to */
   trie	       *table;			/* table I belong to */
 } worklist;
 

@@ -532,7 +532,11 @@ unify_table_status(term_t t, trie *trie ARG_LD)
 { worklist *wl = trie->data.worklist;
 
   if ( WL_IS_WORKLIST(wl) )
+  { if ( wl->component != LD->tabling.component )
+      return FALSE;			/* parent component is running */
+					/* a variant of me */
     return PL_unify_pointer(t, wl);
+  }
   if ( !wl )
     return PL_unify_atom(t, ATOM_fresh);
   if ( wl == WL_COMPLETE )
@@ -591,6 +595,7 @@ PRED_IMPL("$tbl_new_worklist", 2, tbl_new_worklist, 0)
 
     add_global_worklist(wl PASS_LD);
     add_newly_created_worklist(wl PASS_LD);
+    wl->component = LD->tabling.component;
     return PL_unify_pointer(A1, wl);
   }
 
