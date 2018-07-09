@@ -47,7 +47,7 @@
 
 :- meta_predicate
     start_tabling(+, 0),
-    start_tabling(+, 0, 0, ?),
+    start_tabling(+, 0, +, ?),
     current_table(:, -),
     abolish_table_subgoals(:).
 
