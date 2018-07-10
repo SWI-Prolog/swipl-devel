@@ -3249,13 +3249,17 @@ seed_random(ARG1_LD)
 { if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
        !seed_from_dev("/dev/random" PASS_LD) &&
        !seed_from_crypt_context(PASS_LD1) )
-  { double t[1] = { WallTime() };
+  { union
+    { double t;
+      unsigned long l[sizeof(double)/sizeof(long)];
+    } u;
     unsigned long key = 0;
-    unsigned long *p = (unsigned long*)t;
-    unsigned long *e = (unsigned long*)&t[1];
+    int i;
 
-    for(; p<e; p++)
-      key ^= *p;
+    u.t = WallTime();
+
+    for(i=0; i<sizeof(double)/sizeof(long); i++)
+      key ^= u.l[i];
 
     LD->gmp.persistent++;
     gmp_randseed_ui(LD->arith.random.state, key);
