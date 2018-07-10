@@ -1079,7 +1079,7 @@ handleSignals(ARG1_LD)
   for(i=0; i<2; i++)
   { while( LD->signal.pending[i] )
     { int sig = 1+32*i;
-      int mask = 1;
+      unsigned mask = 1;
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )

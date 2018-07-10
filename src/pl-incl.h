@@ -2357,7 +2357,7 @@ typedef enum
 #endif
 
 #ifdef O_INFERENCE_LIMIT
-#define INFERENCE_NO_LIMIT (~((int64_t)1<<63)) /* Highest value */
+#define INFERENCE_NO_LIMIT 0x7fffffffffffffffLL /* Highest value */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

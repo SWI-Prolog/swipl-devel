@@ -91,8 +91,12 @@ lookupProcedure(functor_t f, Module m)
   def->functor = valueFunctor(f);
   def->module  = m;
   def->shared  = 1;
-  def->impl.any.args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
-  memset(def->impl.any.args, 0, sizeof(arg_info)*def->functor->arity);
+  if ( def->functor->arity > 0 )
+  { def->impl.any.args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
+    memset(def->impl.any.args, 0, sizeof(arg_info)*def->functor->arity);
+  } else
+  { def->impl.any.args = NULL;
+  }
   resetProcedure(proc, TRUE);
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));

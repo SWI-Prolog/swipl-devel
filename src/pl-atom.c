@@ -513,7 +513,7 @@ is activated.
 static int
 same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
 { if ( false(type, PL_BLOB_NOCOPY) )
-    return memcmp(s, a->name, length) == 0;
+    return length == 0 || memcmp(s, a->name, length) == 0;
   else
     return s == a->name;
 }

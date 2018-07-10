@@ -231,7 +231,8 @@ S__setbuf(IOSTREAM *s, char *buffer, size_t size)
       }
     }
 
-    memcpy(newbuf, s->bufp, copy);
+    if ( copy > 0 )
+      memcpy(newbuf, s->bufp, copy);
     S__removebuf(s);
     s->unbuffer = newunbuf;
     s->bufp = s->buffer = newbuf;

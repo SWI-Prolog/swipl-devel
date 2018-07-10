@@ -873,8 +873,8 @@ VOID_RETURN sha1_end(unsigned char hval[], sha1_ctx ctx[1])
     /* a single 1 bit and as many zero bits as necessary. Note that */
     /* we can always add the first padding byte here because the    */
     /* buffer always has at least one empty slot                    */
-    ctx->wbuf[i >> 2] &= 0xffffff80 << 8 * (~i & 3);
-    ctx->wbuf[i >> 2] |= 0x00000080 << 8 * (~i & 3);
+    ctx->wbuf[i >> 2] &= 0xffffff80U << 8 * (~i & 3);
+    ctx->wbuf[i >> 2] |= 0x00000080U << 8 * (~i & 3);
 
     /* we need 9 or more empty positions, one for the padding byte  */
     /* (above) and eight for the length count. If there is not      */
