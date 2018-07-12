@@ -1828,6 +1828,22 @@ add information about the current position of the input stream.
 \end{description}
 
 
+\subsection{Serializing and deserializing Prolog terms}
+\label{sec:foreign-serialize}
+
+\begin{description}
+    \cfunction{int}{PL_put_term_from_chars}{term_t t, int flags,
+					    size_t len, const char *s}
+Parse the text from the C-string \arg{s} holding \arg{len} bytes and
+put the resulting term in \arg{t}.  \arg{len} can be \exam{(size_t)-1},
+assuming a 0-terminated string.  The \arg{flags} argument controls the
+encoding and is currently one of \const{REP_UTF8} (string is UTF8
+encoded), \const{REP_MB} (string is encoded in the current locale)
+or 0 (string is encoded in ISO latin 1).  The string may, but is
+not required, to be closed by a full stop (.).
+\end{description}
+
+
 \subsection{BLOBS: Using atoms to store arbitrary binary data}
 \label{sec:blob}
 
