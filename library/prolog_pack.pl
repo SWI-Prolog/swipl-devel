@@ -2540,16 +2540,16 @@ message(inquiry_ok(Reply, File)) -->
                                                 % support predicates
 unsatisfied([]) --> [].
 unsatisfied([Needed-[By]|T]) -->
-    [ '\t`~q\', needed by package `~w\''-[Needed, By] ],
+    [ '  - "~w" is needed by package "~w"'-[Needed, By], nl ],
     unsatisfied(T).
 unsatisfied([Needed-By|T]) -->
-    [ '\t`~q\', needed by packages'-[Needed], nl ],
+    [ '  - "~w" is needed by the following packages:'-[Needed], nl ],
     pack_list(By),
     unsatisfied(T).
 
 pack_list([]) --> [].
 pack_list([H|T]) -->
-    [ '\t\tPackage `~w\''-[H], nl ],
+    [ '    - Package "~w"'-[H], nl ],
     pack_list(T).
 
 process_lines([]) --> [].
