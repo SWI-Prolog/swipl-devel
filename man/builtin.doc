@@ -9629,6 +9629,9 @@ True if \arg{KeyValue} is a current property of \arg{Stack}.  See
 set_prolog_stack/2 for defined properties.
 \end{description}
 
+The total space limit for all stacks is controlled using the prolog
+flag \prologflag{stack_limit}.
+
 
 \section{Windows DDE interface}          \label{sec:DDE}
 
