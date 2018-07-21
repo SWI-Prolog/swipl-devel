@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# This script publishes a SWI-Prolog pack  if   the  pack is hosted as a
+# GitHub repository. Simply run this script  from the pack top directory
+# after  committing  all  relevant  changes.  The  script  performs  the
+# following actions:
+#
+#   - Establish the pack from pack.pl
+#   - Establish the pack name from the name of the current directory
+#   - Get the github account from $GITHUBUSER or the edited script
+#   - Tag the repo using a version tag (V<version>).  The tag is
+#     signed, meaning you need to set up GPG for signing git objects.
+#   - Push the latest version and the tag
+#   - Install the pack using SWI-Prolog as `swipl`, making it publically
+#     visible.
+
+GITHUBUSER=${GITHUBUSER:unknown}
+
+if [ "$GITHUBUSER" = unknown ]; then
+  echo 'Please set $GITHUBUSER or edit this script to set the github account'
+  exit 1
+fi
+
+version=`grep ^version pack.pl | sed "s/version('\(.*\)')./\1/"`
+pack=$(basename $(pwd))
+
+confirm ()
+{ if [ "$yes" = yes ]; then
+    return 0
+  fi
+
+  while true; do
+    printf "$1"
+    read answer
+    case "$answer" in
+          y*)   return 0
+                ;;
+          n*)   return 1
+                ;;
+          *)
+                echo "Please answer yes or no"
+                ;;
+    esac
+  done
+}
+
+if ! confirm "Package and upload $pack, version $version? (y/n) "; then
+  exit 1
+fi
+
+if confirm "Tag repository with V$version? (y/n) "; then
+  git tag -s V$version -m "Pack release tag for $version"
+  git push --tags
+fi
+
+githuburl="https://github.com/$GITHUBUSER/$pack/archive/V$version.zip"
+
+if confirm "Install from $githuburl? "; then
+swipl << _EOF_
+catch(pack_remove($pack), _, true).
+pack_install('$githuburl', [interactive(false)]).
+_EOF_
+fi
