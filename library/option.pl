@@ -193,11 +193,11 @@ select_option(Option, Options, RestOptions, Default) :-
     !,
     functor(Option, Name, 1),
     (   get_dict(Name, Options, Val)
-    ->  true
-    ;   Val = Default
+    ->  del_dict(Name, Options, _, RestOptions)
+    ;   Val = Default,
+        RestOptions = Options
     ),
-    arg(1, Option, Val),
-    del_dict(Name, Options, _, RestOptions).
+    arg(1, Option, Val).
 select_option(Option, Options, RestOptions, Default) :-
     functor(Option, Name, Arity),
     functor(GenOpt, Name, Arity),
