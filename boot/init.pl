@@ -3082,7 +3082,7 @@ load_files(Module:Files, Options) :-
     export(Module:PI).
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
-    catch(( op(Pri, Assoc, Module:Name),
+    catch(( '$execute_directive'(op(Pri, Assoc, Module:Name), File),
             '$export_op'(Pri, Assoc, Name, Module, File)
           ),
           E, '$print_message'(error, E)),
