@@ -470,6 +470,7 @@ case "$PLARCH" in
 	;;
     *wasm*)
 	ax_cv_c_float_words_bigendian=no
+	ac_cv_func_mmap=no
 	;;
 esac
 
