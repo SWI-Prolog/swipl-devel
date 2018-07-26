@@ -106,7 +106,8 @@ into the core Prolog library to support the Prolog package manager.
                      [ pass_to(git_process_output/3, 3)
                      ]).
 :- predicate_options(git_shortlog/3, 3,
-                     [ limit(nonneg),
+                     [ revisions(atom),
+                       limit(nonneg),
                        path(atom)
                      ]).
 :- predicate_options(git_show/4, 4,
@@ -669,6 +670,8 @@ skip_rest(_,_).
 %
 %       * limit(+Count)
 %       Maximum number of commits to show (default is 10)
+%       * revisions(+Revisions)
+%       Git revision specification
 %       * path(+Path)
 %       Only show commits that affect Path.  Path is the path of
 %       a checked out file.
@@ -688,7 +691,11 @@ skip_rest(_,_).
             ref_names:list).
 
 git_shortlog(Dir, ShortLog, Options) :-
-    option(limit(Limit), Options, 10),
+    (   option(revisions(Range), Options)
+    ->  RangeSpec = [Range]
+    ;   option(limit(Limit), Options, 10),
+        RangeSpec = ['-n', Limit]
+    ),
     (   option(git_path(Path), Options)
     ->  Extra = ['--', Path]
     ;   option(path(Path), Options)
@@ -697,9 +704,8 @@ git_shortlog(Dir, ShortLog, Options) :-
     ;   Extra = []
     ),
     git_format_string(git_log, Fields, Format),
-    git_process_output([ log, '-n', Limit, Format
-                       | Extra
-                       ],
+    append([[log, Format], RangeSpec, Extra], GitArgv),
+    git_process_output(GitArgv,
                        read_git_formatted(git_log, Fields, ShortLog),
                        [directory(Dir)]).
 
