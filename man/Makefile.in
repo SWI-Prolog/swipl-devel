@@ -53,7 +53,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
 		lib/solutionsequences.tex lib/iostream.tex \
 		lib/persistency.tex lib/yall.tex lib/error.tex \
-		lib/simplex.tex lib/simplexlib.tex
+		lib/simplex.tex lib/simplexlib.tex lib/dicts.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex engines.tex \
@@ -180,6 +180,8 @@ lib/shlib.tex:	../library/shlib.pl
 		$(LIBTOTEX) --subsection 'library(shlib)'
 lib/apply.tex:	../library/apply.pl
 		$(LIBTOTEX) 'library(apply)'
+lib/dicts.tex:	../library/dicts.pl
+		$(LIBTOTEX) 'library(dicts)'
 lib/assoclib.tex: lib/assoclib.md ../library/assoc.pl
 		$(LIBTOTEX) --lib=assoc --module=assoc lib/assoclib.md
 lib/error.tex:	../library/error.pl

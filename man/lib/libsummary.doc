@@ -72,6 +72,9 @@
 \libsummary{debug}
 \input{summaries.d/debug.tex}
 
+\libsummary{dicts}
+\input{summaries.d/dicts.tex}
+
 \libsummary{error}
 \input{summaries.d/error.tex}
 

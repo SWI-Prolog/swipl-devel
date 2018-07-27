@@ -37,6 +37,7 @@ documented at all.
 \input{clpqr}
 \input{csv}
 \input{debug}
+\input{dicts}
 \input{error}
 \input{gensym}
 \input{iostream}
