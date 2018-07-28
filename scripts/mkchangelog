@@ -14,9 +14,23 @@ moduleoptions=
 
 export wiki level
 
+help()
+{  echo "Usage: `basename $0` option ... [version][..version] [path ...]"
+   echo "Options:"
+   echo "    --footer"
+   echo "    --nodate"
+   echo "    --nomodules"
+   echo "    --dir=<dir>"
+}
+
+
 done=false
 while [ $done = false ]; do
     case "$1" in
+        --help)
+		help
+		exit 0
+		;;
 	--footer)
 		footer=true
 		shift
@@ -51,13 +65,7 @@ done
 tag="$1"
 
 if [ -z "$tag" ]; then
-   echo "Usage: `basename $0` option ... [version][..version] [path ...]"
-   echo "Options:"
-   echo "    --footer"
-   echo "    --nodate"
-   echo "    --nomodules"
-   echo "    --dir=<dir>"
-   exit 1
+   tag=$(cat VERSION)
 fi
 
 # Ensure case-sensitive matching
