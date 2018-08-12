@@ -79,11 +79,11 @@ the platform.
 
 \begin{description}
     \termitem{affinity}{+CpuSet}
-Specify that the thread should only on any of the listed CPUs (cores).
+Specify that the thread should only run on the specified CPUs (cores).
 \arg{CpuSet} is a list of integers between 0 (zero) and the known number
 of CPUs (see \prologflag{cpu_count}). If \arg{CpuSet} is empty a
 \const{domain_error} is raised. Referring to CPUs equal to or higher
-than the known number of CPUs returns a \const{existence_error}.
+than the known number of CPUs returns an \const{existence_error}.
 
 This option is currently implemented for systems that provide
 pthread_attr_setaffinity_np(). The option is silently ignored on other
