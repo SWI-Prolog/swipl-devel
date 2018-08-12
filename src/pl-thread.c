@@ -105,7 +105,7 @@ APPROACH
 
 #include <errno.h>
 #if defined(__linux__)
-#include <linux/unistd.h>
+#include <syscall.h>
 #ifdef HAVE_GETTID_MACRO
 _syscall0(pid_t,gettid)
 #endif
