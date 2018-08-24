@@ -723,31 +723,47 @@ Note that variables may be set by executing \predref{=}{2}:
 X = statistics.
 
 7 ?- $X.
-28.00 seconds cpu time for 183,128 inferences
-4,016 atoms, 1,904 functors, 2,042 predicates, 52 modules
-55,915 byte codes; 11,239 external references
-
-                      Limit    Allocated       In use
-Heap         :                                624,820 Bytes
-Local  stack :    2,048,000        8,192          404 Bytes
-Global stack :    4,096,000       16,384          968 Bytes
-Trail  stack :    4,096,000        8,192          432 Bytes
+% Started at Fri Aug 24 16:42:53 2018
+% 0.118 seconds cpu time for 456,902 inferences
+% 7,574 atoms, 4,058 functors, 2,912 predicates, 56 modules, 109,791 VM-codes
+%
+%                     Limit   Allocated      In use
+% Local  stack:           -       20 Kb    1,888  b
+% Global stack:           -       60 Kb       36 Kb
+% Trail  stack:           -       30 Kb    4,112  b
+%        Total:    1,024 Mb      110 Kb       42 Kb
+%
+% 3 garbage collections gained 178,400 bytes in 0.000 seconds.
+% 2 clause garbage collections gained 134 clauses in 0.000 seconds.
+% Stack shifts: 2 local, 2 global, 2 trail in 0.000 seconds
+% 2 threads, 0 finished threads used 0.000 seconds
 true.
 \end{code}
 
 \section{Overview of the Debugger}		\label{sec:debugoverview}
 
-SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
-\cite{Byrd:80,Clocksin:87} with two additional ports. The optional
-\arg{unify} port allows the user to inspect the result after unification
-of the head. The \arg{exception} port shows exceptions raised by throw/1
-or one of the built-in predicates. See \secref{exception}.
+SWI-Prolog has a traditional commandline debugger.  It also provides
+programmatic access to the debugger.  This facility is used to provide
+a graphical debugger as well as remote debugging in the web interface
+provided by \href{https://swish.swi-prolog.org}{SWISH}.
 
-The standard ports are called \const{call}, \const{exit}, \const{redo},
-\const{fail} and \const{unify}. The tracer is started by the trace/0
-command, when a spy point is reached and the system is in debugging mode
-(see spy/1 and debug/0), or when an exception is raised that is not
-caught.
+SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
+\cite{Byrd:80,Clocksin:87} with two additional ports. The standard ports
+are called \const{call}, \const{exit}, \const{redo}, and \const{fail}.
+The additional \arg{unify} port allows the user to inspect the result
+after unification of the head. The additional \arg{exception} port shows
+exceptions raised by throw/1 or one of the built-in predicates. See
+\secref{exception}.
+
+The tracer is started by the trace/0 command. If the system is in debug
+mode (see debug/0) the trace is started, after reaching a \jargon{spy
+point} set using spy/1 or \jargon{break point} set using
+set_breakpoint/4. The debugger is also started if an
+\term{error}{Formal, Extended} exception is raised that is not caught.
+
+If the native graphics plugin (XPCE) is available, the commands gtrace/0
+and gspy/1 activate the graphical debugger while tdebug/0 and tspy/1
+allow debugging of arbitrary threads.
 
 The interactive top-level goal trace/0 means ``trace the next query''.
 The tracer shows the port, displaying the port name, the current depth
