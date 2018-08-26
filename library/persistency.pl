@@ -573,8 +573,10 @@ set_dirty(Module, Count) :-
 %     Database was re-written, deleting all retractall
 %     statements.  This is the same as gc(50).
 %     * gc(Percentage)
-%     GC DB if the number of deleted terms is the given
+%     GC DB if the number of deleted terms is greater than the given
 %     percentage of the total number of terms.
+%     * gc(always)
+%     GC DB without checking the percentage.
 %     * close
 %     Database stream was closed
 %     * detach
