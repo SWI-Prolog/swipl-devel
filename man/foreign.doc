@@ -721,7 +721,7 @@ dicts.
 \const{PL_FLOAT}     & A floating point number \\
 \const{PL_TERM}      & A compound term \\
 \const{PL_LIST_PAIR} & A list cell (\verb$[H|T]$) \\
-\const{PL_DICT}	     & A dict (see \secref{dicts})) \\
+\const{PL_DICT}	     & A dict (see \secref{bidicts})) \\
 \hline
 \end{tabular}
 \end{description}

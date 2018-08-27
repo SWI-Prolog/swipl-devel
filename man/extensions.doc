@@ -627,10 +627,10 @@ Y = 1790400.0'J'.
 
 As of SWI-Prolog version~7, the system supports compound terms that have
 no arguments. This implies that e.g., \exam{name()} is valid syntax.
-This extension aims at functions on dicts (see \secref{dicts}) as well as
-the implementation of domain specific languages (DSLs). To minimise the
-consequences, the classic predicates functor/3 and \predref{=..}{2} have
-not been modified. The predicates compound_name_arity/3 and
+This extension aims at functions on dicts (see \secref{bidicts}) as well
+as the implementation of domain specific languages (DSLs). To minimise
+the consequences, the classic predicates functor/3 and \predref{=..}{2}
+have not been modified. The predicates compound_name_arity/3 and
 compound_name_arguments/3 have been added. These predicates operate only
 on compound terms and behave consistently for compounds with zero
 arguments. Code that \jargon{generalises} a term using the sequence
@@ -724,7 +724,7 @@ Below is an example that illustrates the representation of a typical
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Dicts: structures with named arguments}
-\label{sec:dicts}
+\label{sec:bidicts}
 
 SWI-Prolog version~7 introduces dicts as an abstract object with a
 concrete modern syntax and functional notation for accessing members and

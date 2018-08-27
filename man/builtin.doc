@@ -5535,21 +5535,22 @@ with the term position of the tail, otherwise with the atom \const{none}.
 	\termitem{dict_position}{\arg{From}, \arg{To},
 				 \arg{TagFrom}, \arg{TagTo},
 				 \arg{KeyValuePosList}}
-    Used for a dict (see \secref{dicts}).  The position of the key-value
-    pairs is described by \arg{KeyValuePosList}, which is a list of
-    \functor{key_value_position}{7} terms.  The \functor{key_value_position}{7}
-    terms appear in the order of the input. Because maps to not preserve
-    ordering, the key is provided in the position description.
+    Used for a dict (see \secref{bidicts}). The position of the
+    key-value pairs is described by \arg{KeyValuePosList}, which is a
+    list of \functor{key_value_position}{7} terms. The
+    \functor{key_value_position}{7} terms appear in the order of the
+    input. Because maps to not preserve ordering, the key is provided in
+    the position description.
 
 	\termitem{key_value_position}{\arg{From}, \arg{To},
 				      \arg{SepFrom}, \arg{SepTo},
 				      \arg{Key},
 				      \arg{KeyPos}, \arg{ValuePos}}
-    Used for key-value pairs in a map (see \secref{dicts}). It is similar
-    to the \functor{term_position}{5} that would be created, except
-    that the key and value positions do not need an intermediate list
-    and the key is provided in \arg{Key} to enable synchronisation of
-    the file position data with the data structure.
+    Used for key-value pairs in a map (see \secref{bidicts}). It is
+    similar to the \functor{term_position}{5} that would be created,
+    except that the key and value positions do not need an intermediate
+    list and the key is provided in \arg{Key} to enable synchronisation
+    of the file position data with the data structure.
 
 	\termitem{parentheses_term_position}{\arg{From}, \arg{To},
 					     \arg{ContentPos}}
@@ -7352,12 +7353,12 @@ extends this predicate to deal with dicts.}
 If \arg{Key} is the integer zero (0), the entire term is used to compare
 two elements. Using \arg{Key}=0 can be used to sort arbitrary Prolog
 terms. Other values for \arg{Key} can only be used with compound terms
-or dicts (see \secref{dicts}). An integer key extracts the \arg{Key}-th
-argument from a compound term. An integer or atom key extracts the value
-from a dict that is associated with the given key.  A type_error is
-raised if the list element is of the wrong type and an existence_error
-is raised if the compound has not enough argument or the dict does not
-contain the requested key.
+or dicts (see \secref{bidicts}). An integer key extracts the
+\arg{Key}-th argument from a compound term. An integer or atom key
+extracts the value from a dict that is associated with the given key. A
+type_error is raised if the list element is of the wrong type and an
+existence_error is raised if the compound has not enough argument or the
+dict does not contain the requested key.
 
 Deeper nested elements of structures can be selected by using a list
 of keys for the \arg{Key} argument.
