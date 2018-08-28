@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2017, University of Amsterdam
+    Copyright (c)  2006-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -229,6 +229,7 @@ resource_error(Culprit) :-
 %   | stream | A stream name or valid stream handle; see is_stream/1 |
 %   | symbol | Same as `atom` |
 %   | text | One of =atom=, =string=, =chars= or =codes= |
+%   | type | Term is a valid type specification |
 %
 %   Note: The Windows version can only represent Unicode code points
 %   up to 2^16-1. Higher values cause a representation error on most
@@ -373,6 +374,7 @@ has_type(stream, X)       :- is_stream(X).
 has_type(encoding, X)     :- current_encoding(X).
 has_type(dict, X)         :- is_dict(X).
 has_type(list(Type), X)   :- is_list(X), element_types(X, Type).
+has_type(type, Type)      :- ground(Type), current_type(Type,_,_).
 
 text(X) :-
     (   atom(X)
