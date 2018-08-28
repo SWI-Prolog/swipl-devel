@@ -732,7 +732,7 @@ numberError(strnumstat rc, ReadData _PL_rd)
 
 
 static int
-singletonWarning(const char *which, const char **vars, int nvars)
+singletonWarning(term_t term, const char *which, const char **vars, int nvars)
 { GET_LD
   fid_t fid;
 
@@ -750,7 +750,8 @@ singletonWarning(const char *which, const char **vars, int nvars)
     rc = ( rc &&
 	   PL_unify_nil(a) &&
 	   printMessage(ATOM_warning,
-			PL_FUNCTOR_CHARS, which, 1,
+			PL_FUNCTOR_CHARS, which, 2,
+			  PL_TERM, term,
 			  PL_TERM, l) );
 
     PL_discard_foreign_frame(fid);
@@ -1712,7 +1713,7 @@ is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 
 
 static bool				/* TBD: new schema */
-check_singletons(ReadData _PL_rd ARG_LD)
+check_singletons(term_t term, ReadData _PL_rd ARG_LD)
 { if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
   { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
@@ -1740,7 +1741,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	     });
 
     if ( i > 0 )
-    { if ( !singletonWarning("singletons", singletons, i) )
+    { if ( !singletonWarning(term, "singletons", singletons, i) )
 	return FALSE;
     }
 
@@ -1753,7 +1754,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	       });
 
       if ( i > 0 )
-      { if ( !singletonWarning("multitons", singletons, i) )
+      { if ( !singletonWarning(term, "multitons", singletons, i) )
 	  return FALSE;
       }
     }
@@ -4555,7 +4556,7 @@ read_term(term_t term, ReadData rd ARG_LD)
 #endif
   if ( rd->variables && !(rc=bind_variables(rd PASS_LD)) )
     goto out;
-  if ( rd->singles && !(rc=check_singletons(rd PASS_LD)) )
+  if ( rd->singles && !(rc=check_singletons(term, rd PASS_LD)) )
     goto out;
 
   rc = TRUE;
