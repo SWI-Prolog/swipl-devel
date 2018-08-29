@@ -53,7 +53,7 @@ test(singletons, Names == ['_a','_A','_0','A']) :-
 		    [ singletons(Singletons)
 		    ]),
 	maplist(arg(1), Singletons, Names).
-test(warn_singletons, Messages == [singletons(['_a','A'])]) :-
+test(warn_singletons, Messages =@= [singletons(a(_,_,_,_,_), ['_a','A'])]) :-
 	catch_messages(_,
 		       term_string(_, "a(_,_a,_A,_0,A)",
 				   [ singletons(warning)
