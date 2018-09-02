@@ -41,6 +41,16 @@
 #endif
 
 
+#ifndef NOCRYPT
+#ifndef z_crc_t
+#ifdef Z_U4
+typedef Z_U4 z_crc_t;
+#else
+typedef unsigned long z_crc_t;
+#endif
+#endif
+#endif
+
 #ifndef local
 #  define local static
 #endif
