@@ -27,13 +27,6 @@
    Encryption is not supported.
 */
 
-#if ZLIB_VERNUM < 0x1270
-#ifdef Z_U4
-typedef Z_U4 z_crc_t;
-#else
-typedef unsigned long z_crc_t;
-#endif
-#endif
 #define CRC32(c, b) ((*(pcrc_32_tab+(((int)(c) ^ (b)) & 0xff))) ^ ((c) >> 8))
 
 /***********************************************************************
