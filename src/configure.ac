@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(pl-wam.c)
-AC_PREREQ([2.66])
+AC_PREREQ([2.63])
 
 AC_CONFIG_HEADER(config.h)
 
