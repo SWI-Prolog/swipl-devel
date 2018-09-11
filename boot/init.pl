@@ -190,7 +190,7 @@ public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
     once(0),
     ignore(0),
     catch(0,?,0),
-    reset(0,-,?),
+    reset(0,?,-),
     setup_call_cleanup(0,0,0),
     setup_call_catcher_cleanup(0,0,?,0),
     call_cleanup(0,0),
