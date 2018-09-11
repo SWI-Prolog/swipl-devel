@@ -1459,7 +1459,7 @@ any case modification or case insensitive matching.  This is the
 default on Unix systems.
     \termitem{case_preserving}{}
 The filesystem is case insensitive, but it preserves the case with
-which the user jas created a file.  This is the default on Windows
+which the user has created a file.  This is the default on Windows
 systems.
     \termitem{case_insensitive}{}
 The filesystem doesn't store or match case.  In this scenario Prolog
