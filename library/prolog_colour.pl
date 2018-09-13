@@ -1091,10 +1091,12 @@ colourise_meta_args(N, Goal, Module, MetaArgs, TB, [P0|PT]) :-
     colourise_meta_args(NN, Goal, Module, MetaArgs, TB, PT).
 
 colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
+    nonvar(Arg),
     expand_meta(MetaSpec, Arg, Expanded),
     !,
     colourise_goal(Expanded, [], TB, Pos). % TBD: recursion
 colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
+    nonvar(Arg),
     MetaSpec == //,
     !,
     colourise_dcg_goals(Arg, //, TB, Pos).
