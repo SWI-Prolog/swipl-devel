@@ -791,6 +791,8 @@ startReconsultFile(SourceFile sf)
 	    continue;
 	  if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
 	    continue;
+	  if ( true(def, P_DYNAMIC) && cl->owner_no == 0 )
+	    continue;
 
 	  cl->generation.erased = r->reload_gen;
 	}
