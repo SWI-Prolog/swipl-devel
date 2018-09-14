@@ -1377,6 +1377,8 @@ retractClauseDefinition(Definition def, Clause clause)
   deleteActiveClauseFromIndexes(def, clause); /* just updates "dirtyness" */
   def->impl.clauses.number_of_clauses--;
   def->impl.clauses.erased_clauses++;
+  if ( false(clause, UNIT_CLAUSE) )
+    def->impl.clauses.number_of_rules--;
 #ifdef O_LOGICAL_UPDATE
   clause->generation.erased = next_global_generation();
   setLastModifiedPredicate(def, clause->generation.erased);
