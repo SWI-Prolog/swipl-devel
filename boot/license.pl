@@ -354,7 +354,7 @@ license_title(License) -->
     ->  true
     ;   C = License
     },
-    [ '  The following modules are covered by the "~w" license'-[C] ].
+    [ '  The following components are covered by the "~w" license'-[C] ].
 
 license_url(License) -->
     { license(License, _, Att),
