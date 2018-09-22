@@ -44,7 +44,8 @@
 :- if((exists_source(library(memfile)),
        absolute_file_name(foreign(memfile), _,
 			  [ file_type(executable),
-			    access(read)
+			    access(read),
+			    file_errors(fail)
 			  ]))).
 :- use_module(library(memfile)).
 ok(true).
