@@ -34,6 +34,7 @@ Prolog related material.
 \tableofcontents
 
 \section{Introduction -- MacPorts}
+\label{sec:macosx-intro}
 
 SWI-Prolog is by origin an Unix application, and not a native Macintosh
 application.  It has been brought to the Mac using the
@@ -42,11 +43,13 @@ application.  It has been brought to the Mac using the
 for its graphical capabilities.
 
 \section{Installation}
+\label{sec:macosx-install}
 
 XQuartz should be installed prior to SWI-Prolog installation. The
 installer can be downloaded from the XQuartz web site.
 
 \subsection{Using MacPorts}
+\label{sec:macosx-using}
 
 Users of the MacPorts system can install the system just like any port
 using the command below. In addition to the port named
@@ -63,12 +66,14 @@ The swi-prolog port depends on \const{readline}, \const{ncurses},
 \const{expat}, and \const{jpeg}.
 
 \subsection{From the installer}
+\label{sec:macosx-installer}
 
 Opening and installing the meta installer installs the required ports
 from the MacPorts system.  The programs are installed in the directory
 \file{/opt/local/bin}.  The main executable is named \file{swipl}.
 
 \section{Running SWI-Prolog}
+\label{sec:macosx-running}
 
 Not being a Macintosh Application, SWI-Prolog must be started from a
 terminal window. This can either be an X11 \program{xterm} or
@@ -110,6 +115,7 @@ XPCE can now be started using the command below.
 
 
 \subsection{Loading a program}
+\label{sec:macosx-loading}
 
 Prolog source files can be loaded by specifying their filename between
 \verb$[]$.  In addition to a plain filename, files may be searched on
@@ -126,6 +132,7 @@ quotes right and terminate the command with a full-stop (\chr{.}).
 \end{code}
 
 \subsection{Executing a query}			\label{sec:execquery}
+\label{sec:macosx-query}
 
 After loading a program, one can ask Prolog queries about the program.
 The query below asks Prolog what food `sam' likes. The system responds
@@ -156,6 +163,7 @@ No
 
 
 \subsection{Editing Prolog programs}		\label{sec:edit}
+\label{sec:macosx-edit}
 
 There are three options for editing. One is to run an editor of choice
 in a separate window and use the below described make/0 command to
@@ -174,6 +182,7 @@ personalisation file.
 
 
 \subsection{Some useful commands}
+\label{sec:macosx-commands}
 
 This section provides a very brief overview of important or
 commonly used SWI-Prolog predicates to control the environment.
@@ -242,6 +251,7 @@ C interface function.
 
 
 \section{Using SWI-Prolog with C/C++}
+\label{sec:macosx-cpp}
 
 To use SWI-Prolog with C or C++ code you must install Apples Xcode
 environment, providing \program{gcc}. If all paths are properly
@@ -250,6 +260,7 @@ described in the manual.
 
 
 \section{Known problems}
+\label{sec:macosx-issues}
 
 \begin{itemlist}
     \item [XPCE and the meta-key]
@@ -287,8 +298,10 @@ command \program{sudo /usr/x11r6/bin/ fc-cache}.
 
 
 \section{The SWI-Prolog community and foundation}
+\label{sec:macosx-intro}
 
 \subsection{Web-site and mailing lists}
+\label{sec:macosx-mailinglist}
 
 The SWI-Prolog web-site is located at \url{http://www.swi-prolog.org/}.
 Part of the web is powered by \href{http://twiki.org/}{TWiki}, a
@@ -300,6 +313,7 @@ bugtracking system, for reporting bugs and tracking issues.
 
 
 \subsection{About license conditions}
+\label{sec:macosx-license}
 
 The SWI-Prolog license allows it to be used in a wide variety of
 environments, including closed-source commercial applications. In
@@ -327,6 +341,7 @@ C-compiler runtime library.
 
 
 \subsection{Supporting SWI-Prolog}
+\label{sec:macosx-support}
 
 There are several ways to support SWI-Prolog:
 
