@@ -11,7 +11,6 @@ set(CMAKE_MODULE_PATH
 include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
-include(Windows)
 
 # Arity is of size_t.  This should now be the case for all packages
 set(PL_ARITY_AS_SIZE 1)

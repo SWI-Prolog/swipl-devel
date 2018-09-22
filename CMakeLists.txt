@@ -3,6 +3,7 @@ project(SWI-Prolog)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(Version)
+include(Ports)
 include(Locations)
 include(QLF)
 
@@ -17,19 +18,6 @@ set(CMAKE_C_FLAGS_RELEASE "-O2")
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
        ON)
-
-# Prefer MacPort packages
-if(APPLE)
-  message("-- Using Macports packages from /opt/local and /usr/local")
-  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
-      /opt/local/lib /usr/local/lib)
-  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
-      /opt/local/include /usr/local/include)
-elseif(MINGW_ROOT)
-  message("-- Using MinGW packages from ${MINGW_ROOT}")
-  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${MINGW_ROOT}/lib)
-  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${MINGW_ROOT}/include)
-endif()
 
 # Installation locations
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
