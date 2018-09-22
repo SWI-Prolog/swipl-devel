@@ -2321,7 +2321,7 @@ pointer to the new environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 forwards char	**growEnviron(char**, int);
-forwards char	*matchName(char *, char *);
+forwards char	*matchName(const char *, const char *);
 forwards void	setEntry(char **, char *, char *);
 
 static char **
@@ -2378,9 +2378,9 @@ matchName(const char *e, const char *name)
     e++, name++;
 
   if ( (*e == '=' || *e == EOS) && *name == EOS )
-    return (*e == '=' ? e+1 : e);
+    return (char *)(*e == '=' ? e+1 : e);
 
-  return (char *) NULL;
+  return (char *)NULL;
 }
 
 
