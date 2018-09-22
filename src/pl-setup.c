@@ -618,11 +618,6 @@ set_sighandler(int sig, handler_t func)
 #endif
 }
 
-#ifdef HAVE_SIGINFO_H
-#include <siginfo.h>
-#endif
-
-
 static SigHandler
 prepareSignal(int sig)
 { SigHandler sh = &GD->signals.handlers[sig-1];

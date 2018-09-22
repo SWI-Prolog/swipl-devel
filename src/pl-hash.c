@@ -6,10 +6,10 @@
 */
 
 #ifdef NO_SWIPL
-#define uintptr_t long
+#include <stdint.h>
 #define DEBUG(l,g) (void)0
 #else
-#include <pl-incl.h>
+#include "pl-incl.h"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
