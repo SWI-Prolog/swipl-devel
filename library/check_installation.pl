@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2017, VU University Amsterdam
+    Copyright (c)  2014-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -93,6 +94,7 @@ component(library(pcre), _{features:pcre_features}).
 component(library(pdt_console), _{}).
 component(library(porter_stem), _{}).
 component(library(process), _{}).
+component(library(protobufs), _{}).
 component(library(editline), _{os:unix}).
 component(library(readline), _{os:unix}).
 component(library(readutil), _{}).
@@ -105,6 +107,7 @@ component(library(sha), _{}).
 component(library(snowball), _{}).
 component(library(socket), _{}).
 component(library(ssl), _{}).
+component(library(crypto), _{}).
 component(library(syslog), _{os:unix}).
 component(library(table), _{}).
 component(library(time), _{}).
