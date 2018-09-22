@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2017, University of Amsterdam
+    Copyright (c)  1996-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,7 +37,9 @@
 %:- set_prolog_flag(optimise, true).
 :- set_prolog_flag(optimise_debug, false).
 %:- set_prolog_flag(trace_gc, true).
-:- asserta(user:file_search_path(library, '../packages/plunit')).
+:- prolog_load_context(directory, Dir),
+   atom_concat(Dir, '/../packages/plunit', PlUnitDir),
+   asserta(user:file_search_path(library, PlUnitDir)).
 :- [library(plunit)].
 :- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
 
