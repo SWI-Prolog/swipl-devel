@@ -55,23 +55,27 @@ libtotex(Lib, Out, Options) :-
 ensure_doc_loaded(File) :-
 	(   doc_file_has_comments(File)
 	->  true
-	;   load_files(user:File, [if(true)]),
+	;   xref_source(File, [comments(store)]),
 	    (	doc_file_has_comments(File)
 	    ->	true
 	    ;	format(user_error, 'WARNING: no comments for ~w~n', [File])
 	    )
-	    %xref_source(File, [comments(store)])
 	).
 
 libtotex(Options, TxtFile) :-
 	file_name_extension(Base, Ext, TxtFile),
 	markdown_ext(Ext), !,
-        file_name_extension(Base, tex, TexFile),
-	file_directory_name(TexFile, Dir),
-	file_base_name(TexFile, TeXLocalFile),
+        file_name_extension(Base, tex, AbsTeXFile),
+	file_directory_name(AbsTeXFile, Dir0),
+	file_base_name(AbsTeXFile, TeXLocalFile),
+	option(outdir(Dir), Options, Dir0),
+	atomic_list_concat([Dir, /, TeXLocalFile], TeXFile),
 	atomic_list_concat([Dir, '/summaries.d'], SummaryDir),
 	atomic_list_concat([SummaryDir, /, TeXLocalFile], SummaryTeXFile),
-	doc_latex(TxtFile, TexFile,
+	find_markdown_file(TxtFile, MarkDown, Options),
+	ensure_dir(Dir),
+	ensure_dir(SummaryDir),
+	doc_latex(MarkDown, TeXFile,
 		  [ stand_alone(false),
 		    summary(SummaryTeXFile)
 		  | Options
@@ -91,6 +95,7 @@ libtotex(Options, LibAtom) :-
 	atomic_list_concat([Dir, /, TeXLocalFile], TeXFile),
 	atomic_list_concat([Dir, '/summaries.d'], SummaryDir),
 	atomic_list_concat([SummaryDir, /, TeXLocalFile], SummaryTeXFile),
+	ensure_dir(Dir),
 	ensure_dir(SummaryDir),
 	libtotex(File, TeXFile,
 		 [ summary(SummaryTeXFile)
@@ -117,6 +122,15 @@ load_prolog([load(File)|T0], T) :- !,
 load_prolog([H|T0], [H|T]) :-
 	load_prolog(T0, T).
 
+find_markdown_file(Spec, File, _Options) :-
+	exists_file(Spec), !,
+	File = Spec.
+find_markdown_file(Spec, File, Options) :-
+	option(source(Dir), Options),
+	atomic_list_concat([Dir,/,Spec], File),
+	exists_file(File).
+find_markdown_file(Spec, _File, _Options) :-
+	existence_error(markdown_file, Spec).
 
 main(Argv) :-
 	partition(is_option, Argv, OptArgs, Files),
@@ -141,4 +155,6 @@ to_option(Opt, load(File)) :-
 	atom_to_term(Atom, File, _).
 to_option(Opt, load(library(File))) :-
 	atom_concat('--lib=', File, Opt).
+to_option(Opt, source(Source)) :-
+	atom_concat('--source=', Source, Opt).
 
