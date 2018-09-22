@@ -963,13 +963,6 @@ intern_value(term_t value ARG_LD)
 
 
 static inline void
-acquire_value(word value)
-{ if ( isAtom(value) )
-    PL_register_atom(value);
-}
-
-
-static inline void
 release_value(word value)
 { if ( isAtom(value) )
     PL_unregister_atom(value);

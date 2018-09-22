@@ -851,8 +851,9 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
        PL_get_chars(A2, &fname, flags) &&
        zacquire(z, ZIP_WRITE_ENTRY, NULL, "new_file") )
   { int rc;
-    zip_fileinfo zipfi = {0};
+    zip_fileinfo zipfi;
 
+    memset(&zipfi, 0, sizeof(zipfi));
     zset_time(&zipfi, ftime);
     rc = zipOpenNewFileInZip4_64(z->writer, fname,
 				 &zipfi,
@@ -1319,8 +1320,9 @@ SopenZIP(zipper *z, const char *name, int flags)
     }
   } else
   { int rc;
-    zip_fileinfo zipfi = {0};
+    zip_fileinfo zipfi;
 
+    memset(&zipfi, 0, sizeof(zipfi));
     if ( !zacquire(z, ZIP_WRITE_ENTRY, NULL, "new_file") )
       return NULL;
 

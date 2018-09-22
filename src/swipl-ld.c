@@ -146,6 +146,9 @@
 #ifndef PROG_LD
 #define PROG_LD C_CC
 #endif
+#ifndef SO_LD
+#define SO_LD PROG_LD
+#endif
 
 #define EXT_OBJ "o"
 #define OPT_DEBUG "-g"

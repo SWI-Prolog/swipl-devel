@@ -780,7 +780,7 @@ PL_check_data(term_t data)
    MacOS Lion.  Called from pl-vmi.c in I_EXITCLEANUP.
 */
 
-#ifdef __llvm__
+#if defined(__llvm__) && defined(VMCODE_IS_ADDRESS)
 int
 llvm_dummy(void)
 { return 0;
