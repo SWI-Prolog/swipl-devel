@@ -1,5 +1,3 @@
-#!@PERL@ -pi
-
 s/\\penalty \\\@M \\ /\\verb\$~\$/g;
 s/\\unhbox.*\\leftarrow.*\\ninit /\\get{/g;
 s/\\unhbox.*\\rightarrow.*\\ninit /\\send{/g;
