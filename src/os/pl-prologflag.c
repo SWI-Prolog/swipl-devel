@@ -1284,6 +1284,9 @@ initPrologFlags(void)
   setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
 #if __WINDOWS__
   setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
+  const char *wine_version;
+  if ( (wine_version=PL_w32_running_under_wine()) )
+    setPrologFlag("wine_version", FT_ATOM|FF_READONLY, wine_version, 0);
 #endif
 #if O_XOS
   setPrologFlag("win_file_access_check", FT_ATOM,

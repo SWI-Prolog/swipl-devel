@@ -1118,6 +1118,23 @@ getDefaultsFromRegistry(void)
   }
 }
 
+
+const char *
+PL_w32_running_under_wine(void)
+{ static const char * (CDECL *pwine_get_version)(void);
+  HMODULE hntdll = GetModuleHandle("ntdll.dll");
+
+  if ( !hntdll )
+  { return NULL;
+  }
+
+  if ( (pwine_get_version = (void *)GetProcAddress(hntdll, "wine_get_version")) )
+    return pwine_get_version();
+
+  return NULL;
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
