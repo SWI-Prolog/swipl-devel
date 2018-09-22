@@ -793,6 +793,8 @@ openResourceDB(int argc, char **argv)
   char *xfile = NULL;
   int flags = (GD->bootsession ? RC_WRONLY|RC_CREATE|RC_TRUNC : RC_RDONLY);
   char tmp[MAXPATHLEN];
+  char plp[MAXPATHLEN];
+  char *exe, *exedir;
   int n;
 
   for(n=0; n<argc-1; n++)
@@ -827,6 +829,13 @@ openResourceDB(int argc, char **argv)
 
   if ( (rc=zip_open_archive(tmp, flags)) )
     return rc;
+  if ( (exe = PrologPath(tmp, plp, sizeof(plp))) &&
+       (exedir = DirName(exe, plp)) &&
+       strlen(exedir)+strlen("/swipl.prc")+1 < MAXPATHLEN )
+  { strcat(exedir, "/swipl.prc");
+    if ( (rc=zip_open_archive(exedir, flags)) )
+      return rc;
+  }
 
   if ( systemDefaults.home )
   { if ( strlen(systemDefaults.home)+1+strlen(BOOTFILE) < MAXPATHLEN )
