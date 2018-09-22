@@ -400,11 +400,11 @@ pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
 pl-text.o:	$(srcdir)/pl-codelist.h
-pl-codetable.o: $(srcdir)/pl-codetable.c
+pl-codetable.o: $(srcdir)/pl-codetable.ic
 os/pl-dtoa.o:	$(srcdir)/os/dtoa.c
 os/pl-file.o:	$(srcdir)/os/pl-stream.h
 os/pl-stream.o:	$(srcdir)/os/pl-stream.h
-$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
+$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.ic: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi$(EXEEXT_FOR_BUILD)
 		./mkvmi$(EXEEXT_FOR_BUILD) "$(srcdir)"
 		@touch $@
@@ -731,7 +731,7 @@ distclean:	clean profclean
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		[ ! -f ../man/Makefile ] || $(MAKE) -C ../man $@
 		(cd ../src && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih .defatom-sentinel)
-		(cd ../src && rm -f pl-codetable.c pl-vmi.h pl-jumptable.ic .vmi-sentinel)
+		(cd ../src && rm -f pl-codetable.ic pl-vmi.h pl-jumptable.ic .vmi-sentinel)
 		rm -f defatom$(EXEEXT_FOR_BUILD) mkvmi$(EXEEXT_FOR_BUILD)
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
