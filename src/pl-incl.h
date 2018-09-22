@@ -73,10 +73,12 @@
 #define C_STATICLIBS ""
 #define C_CC	     "gcc"
 #define C_CFLAGS     ""
-#define C_PLLIB	     "-lswipl"
+#define C_PLLIB	     "-lswipl"		/* Or "libswipl.lib"? */
+#define C_LIBPLSO    "-lswipl"
 #define C_LDFLAGS    ""
-#endif
+#else
 #include <parms.h>			/* pick from the working dir */
+#endif
 #endif
 
 #define PL_KERNEL		1
