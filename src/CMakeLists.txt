@@ -125,7 +125,7 @@ set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     engines.pl iri.pl tabling.pl)
 prepend(SWIPL_BOOT_FILES ${SWIPL_BOOT_ROOT} ${SWIPL_DATA_boot})
 
-set(SWIPL_DATA_library helpidx.pl help.pl explain.pl sort.pl
+set(SWIPL_DATA_library help.pl explain.pl sort.pl
     qsave.pl shlib.pl statistics.pl system.pl error.pl
     backcomp.pl gensym.pl listing.pl debug.pl vm.pl
     quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl
