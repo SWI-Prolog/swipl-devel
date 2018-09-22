@@ -4164,6 +4164,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 VMI(I_EXITCLEANUP, 0, 0, ())
 {
 #if defined(__llvm__) && defined(VMCODE_IS_ADDRESS) /* (*) */
+  extern void llvm_dummy(void);
   llvm_dummy();
 #endif
 
