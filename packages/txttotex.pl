@@ -49,4 +49,5 @@ main(Files) :-
 txttotex(File) :-
     file_name_extension(Base, _, File),
     file_name_extension(Base, tex, TexFile),
-    doc_latex(File, TexFile, [stand_alone(false)]).
+    file_base_name(TexFile, PlainTexFile),
+    doc_latex(File, PlainTexFile, [stand_alone(false)]).
