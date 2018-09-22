@@ -50,7 +50,7 @@
 \input{summaries.d/clpblib.tex}
 
 \libsummary{clpfd}
-\input{summaries.d/clpfd.tex}
+\input{summaries.d/clpfdlib.tex}
 
 \libsummary{clpqr}
 
