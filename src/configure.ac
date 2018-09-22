@@ -1644,21 +1644,6 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM(
      [ AC_MSG_RESULT(no)
      ])
 
-if test "$ac_cv_func_getrlimit" = "yes"; then
-AC_MSG_CHECKING("type rlim_t")
-AC_TRY_COMPILE(
-[
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-],
-[ rlim_t datasize;
-], AC_DEFINE(HAVE_RLIM_T, 1,
-	     [Define if the type rlim_t is defined by <sys/resource.h>])
-   AC_MSG_RESULT(yes),
-   AC_MSG_RESULT(no))
-fi
-
 if test "$ac_cv_func_getrusage" = "yes"; then
 AC_MSG_CHECKING("ru_idrss in struct rusage")
 AC_TRY_COMPILE(
@@ -1720,16 +1705,6 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 fi
 
-
-AC_MSG_CHECKING("for type uchar")
-AC_TRY_COMPILE(
-[
-#include <sys/types.h>
-typedef unsigned char uchar;
-],
-[;], AC_DEFINE(NEED_UCHAR, 1, Define if uchar is not defined in <sys/types.h>)
-     AC_MSG_RESULT("need typedef uchar"),
-     AC_MSG_RESULT("uchar predefined"))
 
 AC_MSG_CHECKING("whether we need extern int errno")
 AC_TRY_COMPILE(
@@ -1873,17 +1848,6 @@ AC_TRY_COMPILE(
 	     [Define if wait() uses union wait]),
    AC_MSG_RESULT(no))
 
-AC_MSG_CHECKING("for tagged lvalues")
-AC_TRY_COMPILE(
-[
-],
-[ int x;
-  *(char *)&x = 'a';
-  exit(0);
-], AC_DEFINE(TAGGED_LVALUE, 1, [Define if (type)var = value is allowed])
-   AC_MSG_RESULT(yes),
-   AC_MSG_RESULT(no))
-
 AC_MSG_CHECKING("for label addresses")
 AC_TRY_COMPILE(
 [
@@ -1984,33 +1948,6 @@ if test "$ac_cv_func_mmap" = "yes"; then
 rm -f conftest.dummy
 fi
 
-
-dnl ****************************************************************
-dnl Are our signal handler is POSIX.1b?
-dnl ****************************************************************
-
-AC_CHECK_HEADERS(siginfo.h)
-
-AC_MSG_CHECKING("for SA_SIGINFO");
-AC_TRY_COMPILE(
-[ #include <signal.h>
-  #ifdef HAVE_SIGINFO_H
-  #include <siginfo.h>
-  #endif
-  extern void handler(int sig, siginfo_t *info, void *);
-],
-[ struct sigaction act;
-
-  act.sa_sigaction = handler;
-  act.sa_flags = SA_SIGINFO;
-
-  sigaction(SIGSEGV, (void *)0, &act);
-], AC_DEFINE(HAVE_SIGINFO, 1,
-	     [Define if signal handler is compliant to POSIX.1b])
-   AC_MSG_RESULT(yes),
-   AC_MSG_RESULT(no))
-
-
 dnl ================================================================
 dnl LNLIBS is the set of libraries you need for linking with the SWI-Prolog
 dnl kernel.  If this kernel is a shared object, this is typically empty.
@@ -2035,7 +1972,7 @@ echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-OutputFiles="Makefile libtai/Makefile ../man/Makefile ../man/correctindex swipl.1 swipl.sh swipl.pc"
+OutputFiles="Makefile libtai/Makefile ../man/Makefile swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
     i386-win32|x64-win64)
