@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2011, University of Amsterdam
+    Copyright (c)  2008-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,10 @@
 #include <unistd.h>
 #endif
 
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+
 #define NO_SWIPL 1
 #include "pl-hash.c"
 
@@ -53,7 +58,7 @@ pl-vmi.c.
 const char *program;
 int verbose = 0;
 const char *vmi_file    = "pl-vmi.c";
-const char *ctable_file = "pl-codetable.c";
+const char *ctable_file = "pl-codetable.ic";
 const char *jump_table  = "pl-jumptable.ic";
 const char *vmi_hdr	= "pl-vmi.h";
 
@@ -370,6 +375,7 @@ emit_code_defs(const char *to)
 int
 main(int argc, char **argv)
 { program = argv[0];
+  char buf[MAXPATHLEN];
 
   argc--;
   argv++;
@@ -381,13 +387,12 @@ main(int argc, char **argv)
   }
 
   if ( argc == 1 )
-  { if ( chdir(argv[0]) )
-    { fprintf(stderr, "%s: Could not chdir to %s\n", argv[0], argv[0]);
-      exit(1);
-    }
-  }
+    snprintf(buf, sizeof(buf), "%s/%s", argv[0], vmi_file);
+  else
+    snprintf(buf, sizeof(buf), "%s", vmi_file);
 
-  load_vmis(vmi_file);
+
+  load_vmis(buf);
   if ( verbose )
     fprintf(stderr, "Found %d VMs\n", vmi_count);
 
