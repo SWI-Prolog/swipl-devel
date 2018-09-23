@@ -48,6 +48,7 @@ test_call :-
 		    apply,
 		    callN,
 		    cross_module_call,
+		    at2,
 		    snip,
 		    no_autoload,
 		    setup_call_cleanup,
@@ -163,6 +164,30 @@ test(c_cm2, X == test_call) :-
 
 :- end_tests(cross_module_call).
 
+
+:- begin_tests(at2).
+
+:- op(900, xfx, @).
+
+:- meta_predicate at2_m1:p1(:).
+at2_m1:p1(M:M).
+
+test(context, C == at_m2) :-
+	at2_m1:p1(C)@at_m2.
+test(var, error(instantiation_error)) :-
+	call(_Goal@_Module).
+test(var, error(instantiation_error)) :-
+	call(at2_m1:p1(_C)@_Module).
+test(var, C == at_m2) :-
+	call(( M = at_m2,
+	       at2_m1:p1(C)@M)).
+test(var,  error(instantiation_error)) :-
+	call(( M = at_m2,
+	       _:p1(_C)@M)).
+test(var, error(instantiation_error)) :-
+	call(_Goal@at_m2).
+
+:- end_tests(at2).
 
 :- begin_tests(snip).
 

@@ -4788,7 +4788,8 @@ undefined predicate for call/N.
     fd = valueFunctor(functor);
     if ( !isCallableAtom(fd->name) )
       goto call_type_error;
-    if ( false(fd, CONTROL_F) && !(fd->name == ATOM_call && fd->arity > 8) )
+    if ( false(fd, CONTROL_F) &&
+	 !(fd->name == ATOM_call && fd->arity > 8) )
     { args    = argTermP(goal, 0);
       arity   = (int)fd->arity;
     } else if ( true(FR, FR_INRESET) )
@@ -4803,6 +4804,10 @@ undefined predicate for call/N.
     } else
     { Clause cl;
       int rc;
+
+      if ( fd->functor == FUNCTOR_xpceref2 &&
+	   !checkCallAtContextInstantiation(a PASS_LD) )
+	THROW_EXCEPTION;
 
       lTop = NFR;
       setNextFrameFlags(NFR, FR);

@@ -1481,6 +1481,42 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Verify that p is  of  the   shape  @(Goal,Module)  that  is sufficiently
+instantiated to avoid teh compiler to generate a meta-call for it. Other
+errors will find their way to the user in other ways.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+checkCallAtContextInstantiation(Word p ARG_LD)
+{ Word g, m;
+  atom_t pm;
+
+  deRef(p);
+
+  m = argTermP(*p, 1);
+  deRef(m);
+  if ( canBind(*m) )
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  g = argTermP(*p, 0);
+  deRef(g);
+  if ( !(g=stripModuleName(g, &pm PASS_LD)) )
+    return FALSE;
+  if ( hasFunctor(*g, FUNCTOR_colon2) )
+  { m = argTermP(*g, 0);
+    deRef(m);
+    if ( canBind(*m) )
+      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    g = argTermP(*g, 1);
+    deRef(g);
+  }
+  if ( canBind(*g) )
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 foreignWakeup() calls delayed goals while executing a foreign procedure.
 Note that the  choicepoints  of  the   awoken  code  are  destroyed  and
 therefore this code can only be used in places introducing an (implicit)
