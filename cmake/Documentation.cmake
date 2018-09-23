@@ -1,5 +1,5 @@
 set(DOC_OPTIONS --quiet)
-set(TEX_CLEAN_EXTENSIONS aux bbl blg idx ilg ind log out toc)
+set(TEX_CLEAN_EXTENSIONS aux blg idx ilg ind log out toc)
 
 # tex_byproducts(base var)
 # Fill var with a list of all LaTeX byproducts when emitting ${base}
