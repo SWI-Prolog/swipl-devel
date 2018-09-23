@@ -10,10 +10,7 @@ include(QLF)
 set_install_prefix()
 message("-- Using install prefix \"${CMAKE_INSTALL_PREFIX}\"")
 
-# Default build target
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -gdwarf-2 -g3")
-set(CMAKE_C_FLAGS_RELEASE "-O2")
+include(BuildType)
 
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
