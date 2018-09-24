@@ -307,7 +307,11 @@ destroyModule(Module m)
   PL_LOCK(L_MODULE);
   if ( deleteHTable(GD->tables.modules, (void*)m->name) == m )
     set(m, M_DESTROYED);
-  assert(!lookupHTable(GD->tables.modules, (void*)m->name));
+#ifndef NDEBUG
+  { GET_LD
+    assert(!lookupHTable(GD->tables.modules, (void*)m->name));
+  }
+#endif
   PL_UNLOCK(L_MODULE);
 
   releaseModule(m);
