@@ -299,8 +299,7 @@ unlinkSourceFilesModule(Module m)
 
 static int
 destroyModule(Module m)
-{ GET_LD
-  if ( !(m->class != ATOM_temporary ||
+{ if ( !(m->class != ATOM_temporary ||
 	 m->references > 0) )
     Sdprintf("Module %s: class %s; refs %d\n",
 	     PL_atom_chars(m->name), PL_atom_chars(m->class), m->references);
@@ -1602,6 +1601,7 @@ retry:
     if ( old != nproc )
     { int shared = unshareDefinition(proc->definition);
       assert(shared > 0);
+      (void)shared;
       freeHeap(nproc, sizeof(*nproc));
       goto retry;
     }

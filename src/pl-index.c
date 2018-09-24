@@ -1569,8 +1569,7 @@ the new index to the indexes of the predicate.
 
 static ClauseIndex
 hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
-{ GET_LD
-  ClauseRef cref;
+{ ClauseRef cref;
   ClauseIndex ci;
   ClauseIndex *cip;
 
@@ -1580,8 +1579,10 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
 			  iargsName(hints->args, NULL), 2<<hints->ln_buckets,
 			  hints->list ? "lists" : "clauses"));
 
-#ifdef O_PLMT
+#if defined(O_PLMT) && !defined(NDEBUG)
+{ GET_LD
   assert(LD->thread.info->access.predicate == ctx->predicate);
+}
 #endif
 
   canonicalHap(hints->args);

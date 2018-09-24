@@ -1488,6 +1488,7 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	    name = ATOM_dict;
 	    break;
 	  default:
+	    name = 0;
 	    assert(0);
 	}
 
@@ -1857,6 +1858,7 @@ PL_recorded_external(const char *rec, term_t t)
 	  fetchAtomW(&b, &a);
 	  break;
 	default:
+	  a = 0;
 	  assert(0);
       }
       rc = PL_put_atom(t, a);

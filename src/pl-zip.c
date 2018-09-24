@@ -93,9 +93,12 @@ zown(zipper *z)
 
 static void
 zdisown(zipper *z)
-{ int tid = PL_thread_self();
-
+{
+#ifndef NDEBUG
+  int tid = PL_thread_self();
   assert(z->owner == tid);
+#endif
+
   if ( z->lock_count == 0 )
   { z->owner = 0;
     simpleMutexUnlock(&z->lock);

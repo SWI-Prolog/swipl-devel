@@ -524,7 +524,10 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
 void
 freeVarDefs(PL_local_data_t *ld)
 { if ( ld->comp.vardefs )
-  { GET_LD
+  {
+#ifndef NDEBUG
+    GET_LD
+#endif
     VarDef *vardefs = ld->comp.vardefs;
     int i, count=ld->comp.nvardefs;
 

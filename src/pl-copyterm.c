@@ -373,7 +373,7 @@ exitCyclicCopy(int flags ARG_LD)
       { *p = *p2 | MARK_MASK;		/* cyclic terms */
       }
     } else
-    { Word old;
+    { Word old = NULL;			/* Silence compiler */
 
       popSegStack(&LD->cycle.lstack, &old, Word);
 

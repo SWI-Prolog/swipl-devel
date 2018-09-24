@@ -675,6 +675,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
       break;
     }
     default:
+      rc = FALSE;
       assert(0);
   }
   va_end(args);

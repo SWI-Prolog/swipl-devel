@@ -432,6 +432,7 @@ void
 shareDefinition(Definition def)
 { int shared = ATOMIC_INC(&def->shared);
   assert(shared > 0);
+  (void)shared;
 }
 
 

@@ -1394,7 +1394,10 @@ put_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
 			gstate->trie,
 			gstate->tail->gsize,
 			gstate->tail->nvars+1 PASS_LD) )
-  { Word gok = gTop + gstate->tail->gsize;
+  {
+#ifndef NDEBUG
+    Word gok = gTop + gstate->tail->gsize;
+#endif
 
     for( ch = gstate->head; ch; ch = ch->next )
     { if ( !eval_key(&bstate, ch->key PASS_LD) )

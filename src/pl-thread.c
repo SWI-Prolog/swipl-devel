@@ -3267,11 +3267,14 @@ answer was deterministic.
 
 static void
 done_interactor(thread_handle *th)
-{ GET_LD
+{
+#ifndef NDEBUG
+  GET_LD
   PL_engine_t e = th->info->thread_data;
-
   assert(e->thread.info->open_count == 1);
   assert(e == LD);
+#endif
+
   set(th, TH_INTERACTOR_DONE);
   PL_thread_destroy_engine();
   ATOMIC_INC(&GD->statistics.engines_finished);
