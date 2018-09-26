@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam,
+                              VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,7 +37,9 @@
           [ explain/1,
             explain/2
           ]).
+:- if(exists_source(library(helpidx))).
 :- use_module(library(helpidx)).
+:- endif.
 :- use_module(library(lists)).
 :- use_module(library(apply)).
 
@@ -270,12 +273,14 @@ explain_predicate(Pred, Explanation) :-
         flatten([U0, U1, U2, U3], Utters),
         combine_utterances(Utters, Explanation)
     ).
+:- if(current_predicate(predicate/5)).
 explain_predicate(Pred, Explanation) :-
     predicate_property(Pred, built_in),
     Pred = _Module:Head,
     functor(Head, Name, Arity),
     predicate(Name, Arity, Summary, _, _),
     utter(Explanation, '~t~8|Summary: ``~w''''', [Summary]).
+:- endif.
 explain_predicate(Pred, Explanation) :-
     referenced(Pred, Explanation).
 
