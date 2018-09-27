@@ -845,6 +845,7 @@ name_rest([]) --> [].
 name_rest([C|Cs]) --> [C], {name_char(C)}, name_rest(Cs).
 name_1st(C) :- char_type(C, alpha).
 name_char(C) :- char_type(C, alpha).
+name_char( 0'_ ). 
 name_char( 0'- ). %}}}
 
 
