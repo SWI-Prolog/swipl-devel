@@ -1542,7 +1542,7 @@ print_system_message(Term, Kind, Lines) :-
     Term \= error(syntax_error(_), _),
     msg_property(Kind, location_prefix(File:Line, LocPrefix, LinePrefix)),
     !,
-    insert_prefix(Lines, LinePrefix, PrefixLines),
+    insert_prefix(Lines, LinePrefix, Ctx, PrefixLines),
     '$append'([ begin(Kind, Ctx),
                 LocPrefix,
                 nl
@@ -1649,7 +1649,7 @@ add_message_context1(thread, Prefix0, Prefix) :-
 print_message_lines(Stream, kind(Kind), Lines) :-
     !,
     msg_property(Kind, prefix(Prefix)),
-    insert_prefix(Lines, Prefix, PrefixLines),
+    insert_prefix(Lines, Prefix, Ctx, PrefixLines),
     '$append'([ begin(Kind, Ctx)
               | PrefixLines
               ],
@@ -1658,25 +1658,29 @@ print_message_lines(Stream, kind(Kind), Lines) :-
               AllLines),
     print_message_lines(Stream, AllLines).
 print_message_lines(Stream, Prefix, Lines) :-
-    insert_prefix(Lines, Prefix, PrefixLines),
+    insert_prefix(Lines, Prefix, _, PrefixLines),
     print_message_lines(Stream, PrefixLines).
 
-%!  insert_prefix(+Lines, +Prefix, -PrefixedLines)
+%!  insert_prefix(+Lines, +Prefix, +Ctx, -PrefixedLines)
 
-insert_prefix([at_same_line|Lines0], Prefix, Lines) :-
+insert_prefix([at_same_line|Lines0], Prefix, Ctx, Lines) :-
     !,
-    prefix_nl(Lines0, Prefix, Lines).
-insert_prefix(Lines0, Prefix, [prefix(Prefix)|Lines]) :-
-    prefix_nl(Lines0, Prefix, Lines).
+    prefix_nl(Lines0, Prefix, Ctx, Lines).
+insert_prefix(Lines0, Prefix, Ctx, [prefix(Prefix)|Lines]) :-
+    prefix_nl(Lines0, Prefix, Ctx, Lines).
 
-prefix_nl([], _, [nl]).
-prefix_nl([nl], _, [nl]) :- !.
-prefix_nl([flush], _, [flush]) :- !.
-prefix_nl([nl|T0], Prefix, [nl, prefix(Prefix)|T]) :-
+prefix_nl([], _, _, [nl]).
+prefix_nl([nl], _, _, [nl]) :- !.
+prefix_nl([flush], _, _, [flush]) :- !.
+prefix_nl([nl|T0], Prefix, Ctx, [nl, prefix(Prefix)|T]) :-
     !,
-    prefix_nl(T0, Prefix, T).
-prefix_nl([H|T0], Prefix, [H|T]) :-
-    prefix_nl(T0, Prefix, T).
+    prefix_nl(T0, Prefix, Ctx, T).
+prefix_nl([ansi(Attrs,Fmt,Args)|T0], Prefix, Ctx,
+          [ansi(Attrs,Fmt,Args,Ctx)|T]) :-
+    !,
+    prefix_nl(T0, Prefix, Ctx, T).
+prefix_nl([H|T0], Prefix, Ctx, [H|T]) :-
+    prefix_nl(T0, Prefix, Ctx, T).
 
 %!  print_message_lines(+Stream, +Lines)
 
@@ -1712,6 +1716,9 @@ line_element(S, Fmt-Args) :-
     !,
     format(S, Fmt, Args).
 line_element(S, ansi(_, Fmt, Args)) :-
+    !,
+    format(S, Fmt, Args).
+line_element(S, ansi(_, Fmt, Args, _Ctx)) :-
     !,
     format(S, Fmt, Args).
 line_element(_, begin(_Level, _Ctx)) :- !.

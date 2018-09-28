@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2013, VU University Amsterdam
+    Copyright (c)  2010-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -229,6 +230,13 @@ ansi_color(default, 9).
 
 prolog:message_line_element(S, ansi(Attr, Fmt, Args)) :-
     ansi_format(S, Attr, Fmt, Args).
+prolog:message_line_element(S, ansi(Attr, Fmt, Args, Ctx)) :-
+    ansi_format(S, Attr, Fmt, Args),
+    (   nonvar(Ctx),
+        Ctx = ansi(_, RI-RA)
+    ->  keep_line_pos(S, format(S, RI, RA))
+    ;   true
+    ).
 prolog:message_line_element(S, begin(Level, Ctx)) :-
     level_attrs(Level, Attr),
     stream_property(S, tty(true)),
@@ -240,10 +248,10 @@ prolog:message_line_element(S, begin(Level, Ctx)) :-
     ;   sgr_code(Attr, Code)
     ),
     keep_line_pos(S, format(S, '\e[~wm', [Code])),
-    Ctx = ansi('\e[0m').
+    Ctx = ansi('\e[0m', '\e[0m\e[~wm'-[Code]).
 prolog:message_line_element(S, end(Ctx)) :-
     nonvar(Ctx),
-    Ctx = ansi(Reset),
+    Ctx = ansi(Reset, _),
     keep_line_pos(S, write(S, Reset)).
 
 level_attrs(Level,         Attrs) :-
