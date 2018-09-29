@@ -147,6 +147,8 @@ function(pkg_doc pkg)
   doc2tex(${pkg}.doc)
 
   tex_byproducts(${pkg} byproducts)
+  SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
+			   "${byproducts}")
 
   prepend(texdeps ${CMAKE_CURRENT_BINARY_DIR}/ ${pkg}.tex ${texfiles} ${cpfiles})
 
@@ -154,7 +156,6 @@ function(pkg_doc pkg)
       OUTPUT ${pkg}.pdf
       COMMAND ${RUNTEX} --pdf ${pkg}
       DEPENDS ${texdeps}
-      BYPRODUCTS ${byproducts}
       COMMENT "Generating ${pkg}.pdf")
 
   add_custom_target(

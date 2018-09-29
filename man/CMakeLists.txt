@@ -180,10 +180,15 @@ add_custom_command(
 
 # Collect all input files
 prepend(TEXFILES ${CMAKE_CURRENT_BINARY_DIR}/ ${DOC}.tex ${DOC_CORE} ${TEX_LIB})
-# Collect by products
+
+# Collect LaTeX aux files
 string(REPLACE ".tex" ".aux" AUX_FILES "${DOC_CORE}")
 tex_byproducts(${DOC} TEX_BYPRODUCTS)
+set(CLEAN_FILES ${AUX_FILES} ${TEX_BYPRODUCTS})
+SET_DIRECTORY_PROPERTIES(PROPERTIES
+			 ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
 
+# Demand copied files (figures, etc)
 set(cpfiles)
 copy_figures(${FIGS})
 
@@ -192,7 +197,6 @@ add_custom_command(
     OUTPUT  ${DOC}.pdf ${DOC}.bbl
     COMMAND env TEXINPUTS=lib:$$TEXINPUTS ${RUNTEX} --pdf ${DOC}
     DEPENDS ${TEXFILES} ${BIBTEX_DATA} ${cpfiles}
-    BYPRODUCTS ${TEX_BYPRODUCTS} ${AUX_FILES}
     COMMENT "Generating ${DOC}.pdf")
 
 # Create the HTML manual
