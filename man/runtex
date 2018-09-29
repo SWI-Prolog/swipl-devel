@@ -188,7 +188,7 @@ while [ $cont != "no" ]; do
 	rm -f $doc.bbl$$
     fi
     if [ `basename $tex` = pdflatex -a -r $appbase/Makefile.pdf ]; then
-        make -f $appbase/Makefile.pdf
+        make --quiet -f $appbase/Makefile.pdf
     fi
     rm -f $doc.log
     if [ $quiet == true ]; then
