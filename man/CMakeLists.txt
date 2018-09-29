@@ -37,6 +37,7 @@ foreach(f ${PLDOC_LIB})
   endif()
 endforeach()
 
+set(FIGS broadcast by-sa profnode swipl xrefchatdep xrefchatfile)
 
 # Main files
 set(DOC_CORE intro.tex overview.tex builtin.tex module.tex
@@ -46,6 +47,26 @@ set(DOC_CORE intro.tex overview.tex builtin.tex module.tex
     tabling.tex)
 
 set(STYFILES html.sty txt.sty)
+
+function(copy_file file)
+  add_custom_command(
+      OUTPUT ${file}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+              ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${file})
+  set(cpfiles ${cpfiles} ${file} PARENT_SCOPE)
+endfunction()
+
+function(copy_figures)
+  foreach(f ${ARGN})
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/figs/${f}.pdf)
+    copy_file(figs/${f}.pdf)
+  endif()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/figs/${f}.png)
+    copy_file(figs/${f}.png)
+  endif()
+  endforeach()
+  set(cpfiles ${cpfiles} ${file} PARENT_SCOPE)
+endfunction()
 
 function(doc2tex)
   foreach(f ${ARGN})
@@ -163,11 +184,14 @@ prepend(TEXFILES ${CMAKE_CURRENT_BINARY_DIR}/ ${DOC}.tex ${DOC_CORE} ${TEX_LIB})
 string(REPLACE ".tex" ".aux" AUX_FILES "${DOC_CORE}")
 tex_byproducts(${DOC} TEX_BYPRODUCTS)
 
+set(cpfiles)
+copy_figures(${FIGS})
+
 # Build SWI-Prolog-<version>.pdf
 add_custom_command(
     OUTPUT  ${DOC}.pdf ${DOC}.bbl
     COMMAND env TEXINPUTS=lib:$$TEXINPUTS ${RUNTEX} --pdf ${DOC}
-    DEPENDS ${TEXFILES} ${BIBTEX_DATA}
+    DEPENDS ${TEXFILES} ${BIBTEX_DATA} ${cpfiles}
     BYPRODUCTS ${TEX_BYPRODUCTS} ${AUX_FILES}
     COMMENT "Generating ${DOC}.pdf")
 
@@ -178,7 +202,7 @@ add_custom_command(
     COMMAND echo ${LATEX2HTML} ${DOC}
     COMMAND env TEXINPUTS=lib:: ${LATEX2HTML} ${DOC}
     COMMAND touch manual.html
-    DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl)
+    DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles})
 
 doc2tex(windows.tex)
 add_custom_command(
