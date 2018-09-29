@@ -283,7 +283,7 @@ engine_destroy/1 explicitly if you are not interested in further
 answers.
 
 Engines that are expected to be left in inactive state for a prelonged
-time can be minimized by calling garbage_collect/0 and trimm_stacks/0
+time can be minimized by calling garbage_collect/0 and trim_stacks/0
 (in that order) before calling engine_yield/1 or succeeding.
 
 

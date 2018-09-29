@@ -368,7 +368,7 @@ following predicates transparently handle resources as read-only files:
     \item open/3, open/4
     \item access_file/2
     \item exists_file/1
-    \item exists_directory/2
+    \item exists_directory/1
     \item time_file/2
     \item size_file/2
 \end{shortlist}

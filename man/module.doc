@@ -226,8 +226,8 @@ distinguishes the values 0..9 and \chr{:}, which denote module-sensitive
 arguments, from \chr{+}, \chr{-} and \chr{?}, which denote
 \jargon{modes}. The values 0..9 are used by the
 \jargon{cross-referencer} and syntax highlighting. Note that the
-helper predicate maplist_/3 does not need to be declared as a
-meta-predicate because the maplist/3 wrapper already ensures that
+helper predicate \nopredref{maplist_}{3} does not need to be declared as
+a meta-predicate because the maplist/3 wrapper already ensures that
 \arg{Goal} is qualified as <module>:\arg{Goal}. See the description of
 meta_predicate/1 for details.
 
@@ -643,9 +643,10 @@ default, the context module is the definition module of the predicate
 running the goal. For transparent predicates, however, this is the
 context module of the goal inherited from the parent goal. Below, we
 implement maplist/3 using the transparent mechanism. The code of
-maplist/3 and maplist_/3 is the same as in \secref{metapred}, but now we
-must declare both the main predicate and the helper as transparent to avoid
-changing the context module when calling the helper.
+maplist/3 and \nopredref{maplist_}{3} is the same as in
+\secref{metapred}, but now we must declare both the main predicate and
+the helper as transparent to avoid changing the context module when
+calling the helper.
 
 \begin{code}
 :- module(maplist, maplist/3).
@@ -670,9 +671,9 @@ counts the number of unique atoms returned as bindings for a variable.
 It works as expected.  If we use the directive
 \exam{:- module_transparent count_atom_results/3.} instead,
 atom_result/2 is called wrongly in the module \emph{calling}
-count_atom_results/3. This can be solved using strip_module/3 to
-create a qualified goal and a non-transparent helper predicate that is
-defined in the same module.
+\nopredref{count_atom_results}{3}. This can be solved using
+strip_module/3 to create a qualified goal and a non-transparent helper
+predicate that is defined in the same module.
 
 \begin{code}
 :- module(count_atom_results,

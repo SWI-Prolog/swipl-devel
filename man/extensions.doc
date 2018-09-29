@@ -676,9 +676,9 @@ Pi = 3.141592653589793.
 
 Note that the \emph{cannonical} representation of predicate heads and
 functions without arguments is an atom. Thus, \term{clause}{go(), Body}
-returns the clauses for go/0, but \term{clause}{-Head, -Body, +Ref}
-unifies \arg{Head} with an atom if the clause specified by \arg{Ref} is
-part of a predicate with zero arguments.
+returns the clauses for \nopredref{go}{0}, but \term{clause}{-Head,
+-Body, +Ref} unifies \arg{Head} with an atom if the clause specified by
+\arg{Ref} is part of a predicate with zero arguments.
 
 
 \subsection{Block operators}
@@ -959,6 +959,11 @@ notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
 Fails silently if Key does not appear in Dict.  This is different from
 the behavior of the functional `.`-notation, which throws an existence
 error in that case.
+
+    \predicate{get_dict_ex}{3}{?Key, +Dict, -Value}
+As get_dict/3, but throws an existence exception if \arg{Key} cannot be
+found in dict.  This is used when evaluating \arg{Dict}.\arg{Key} as a
+function.
 
     \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, +NewValue}
 Create a new dict after updating the value for \arg{Key}.  Fails if

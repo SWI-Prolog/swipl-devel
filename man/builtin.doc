@@ -862,7 +862,7 @@ application to start the normal interactive toplevel after completing
 \secref{plscript}.
 \end{description}
 
-    \predicate[det]{initialization}{0}{}
+    \predicate[det]{initialize}{0}{}
 Run all initialization goals registered using
 \term{initialization}{Goal, program}. Raises an error
 \term{initialization_error}{Reason, Goal, File:Line} if \arg{Goal}

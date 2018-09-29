@@ -307,6 +307,7 @@ suggest predicates from a keyword.
 \predicatesummary{get_code}{1}{Read next character (ISO)}
 \predicatesummary{get_code}{2}{Read next character from a stream (ISO)}
 \predicatesummary{get_dict}{3}{Get the value associated to a key from a dict}
+\predicatesummary{get_dict_ex}{3}{Get the value associated to a key from a dict}
 \predicatesummary{get_dict}{5}{Replace existing value in a dict}
 \predicatesummary{get_flag}{2}{Get value of a flag}
 \predicatesummary{get_single_char}{1}{Read next character from the terminal}
