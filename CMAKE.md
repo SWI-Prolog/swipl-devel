@@ -68,5 +68,9 @@ cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake ..
     - We will no longer do the LaTeX --> plain text route, but instead
       either display from the HTML on the terminal or create a plain text
       document from HTML at build time.
+    - Currently requires `make install`, `make doc`, i.e., system needs
+      to be installed before compiling the documentation.
+    - By default we can only build the HTML as we need no dependencies
+      for that.
   - Create installers
   - Install pkg-config files
