@@ -1,5 +1,3 @@
-./library/MANUAL
-./library/helpidx.pl
 ./man/Manual/
 ./man/windows.html
 ./man/macosx/macosx.html
