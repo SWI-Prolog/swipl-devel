@@ -78,7 +78,6 @@ install` in `packages/ltx2htm` install `latex2html` in your `$HOME/bin`
 
 Targets:
 
-	make online	- Generate the library/MANUAL file and index
 	make pdf	- Generate SWI-Prolog-<version>.pdf
 	make html	- Generate the HTML version in Manual/
 	make clean	- Remove generated intermediate files

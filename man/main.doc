@@ -116,10 +116,10 @@ built-in predicates.
 This manual is written and maintained using \LaTeX{}. The \LaTeX{}
 source is included in the source distribution of SWI-Prolog. The manual
 is converted into HTML using a converter distributed with the SWI-Prolog
-sources. From the same source we generate the plain-text version and
-index used by the online help system (located in the file \file{MANUAL}
-in the library directory) as well as the PDF version. Sources, binaries
-and documentation can be downloaded from the \href{http://www.swi-prolog.org/Download.html}{SWI-Prolog download page}.
+sources. From the same source we generate the PDF version. Sources,
+binaries and documentation can be downloaded from the
+\href{http://www.swi-prolog.org/Download.html}{SWI-Prolog download
+page}.
 
 
 The SWI-Prolog project {\bf home page} is
