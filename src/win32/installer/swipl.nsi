@@ -469,9 +469,13 @@ Section "Documentation and Help-system"
   SectionIn 1 3
   SetOutPath $INSTDIR
   SetOutPath $INSTDIR\library
-  File ${SWIPL}\library\MANUAL
-  File ${SWIPL}\library\helpidx.pl
   File ${SWIPL}\library\help.pl
+; LYNX
+  SetOutPath $INSTDIR\library\lynx
+  File ${SWIPL}\library\lynx\format.pl
+  File ${SWIPL}\library\lynx\html_style.pl
+  File ${SWIPL}\library\lynx\html_text.pl
+  File ${SWIPL}\library\lynx\pldoc_style.pl
 SectionEnd
 
 Section "PDT support files"

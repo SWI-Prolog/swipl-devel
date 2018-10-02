@@ -510,7 +510,7 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
 		demo customize \
 		include include/sicstus include/Yap \
 		library \
-		library/clp library/unicode library/dcg \
+		library/clp library/unicode library/dcg library/lynx \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/sicstus \
 		library/dialect/eclipse \
@@ -553,7 +553,7 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iiso ieclipse iunicode \
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iiso ieclipse iunicode ilynx \
 	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
 
 idirs:
@@ -569,7 +569,7 @@ idirs:
 iboot:		idirs
 		for f in $(PLINIT) $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
-ilib:		idirs iclp idcg idialect iunicode
+ilib:		idirs iclp idcg idialect iunicode ilynx
 		for f in $(PLLIBS) $(PLOSLIBS); do \
 			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
@@ -582,6 +582,11 @@ iclp:		idirs
 idcg:		idirs
 		for f in $(DCG); do \
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
+		done
+
+ilynx:		idirs
+		for f in $(LYNX); do \
+			$(INSTALL_DATA) ../library/lynx/$$f $(DESTDIR)$(PLBASE)/library/lynx; \
 		done
 
 idialect:	idirs iswi iyap iiso isicstus iifprolog ihprolog ieclipse

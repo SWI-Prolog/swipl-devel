@@ -11,7 +11,6 @@
 #	* Installed programs
 #		- latex (teTeX)
 #		- latex2html from the html subdirectory of Prolog
-#		- gcc (for ccp as well as building modified dvi2tty)
 #	* The PlDoc generated manuals need to installed system as
 #	  $(PUBLICPL)
 #
@@ -22,16 +21,12 @@ PL=		../@BUILDDIR@/swipl.sh
 VERSION=	$(shell cat ../VERSION)
 
 CP=		cp
-DVITOTTY=	./dvi2tty
-DVITOTTY-HOME=	txt/dvi2tty
 INDEX=		makeindex
 LATEX=		latex
 PDFTEX=		pdflatex
 DOC=		SWI-Prolog-$(VERSION)
 BOOK=		SWI-Prolog-book-$(VERSION)
 PDF=		$(DOC).pdf
-ONLINE=		../library/MANUAL
-ONLINE_INDEX=	../library/helpidx.pl
 UPLOAD_DEST=	ec:/home/swipl/web/download
 
 WWWMAN=		~www/SWI-Prolog/Manual
@@ -60,15 +55,14 @@ TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		$(LIBFILES) \
 		profile.tex attvar.tex chr.tex xref.tex bit64.tex \
 		dialect.tex extensions.tex tabling.tex
-STYFILES=	html.sty txt.sty
+STYFILES=	html.sty
 
 .SUFFIXES:
 .SUFFIXES: .doc .tex
 
 help:
 		@echo
-		@echo '"make all"       creates online, PDF and HTML'
-		@echo '"make online"    creates the help/1 database'
+		@echo '"make all"       creates PDF and HTML manual'
 		@echo '"make html"      create HTML verstion'
 		@echo '"make pdf"       makes $(PDF)'
 		@echo
@@ -79,7 +73,6 @@ help:
 all:
 		$(MAKE) pdf
 		$(MAKE) clean
-		$(MAKE) online
 		$(MAKE) clean
 		$(MAKE) html
 		$(MAKE) clean
@@ -92,19 +85,12 @@ html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
 pdf:		$(PDF)
 book:		$(BOOK).pdf
 
-online:		$(ONLINE) online_index
-online_index:	$(ONLINE_INDEX)
-
-dvi2tty:	$(DVI2TTY)
-txt.sty:	txt/txt.sty
-		cp txt/txt.sty $@
 html.sty:	../packages/ltx2htm/html.sty
 		cp $< $@
 
 clean:
 		rm -f *~ *% tmp.* *.aux *.idx *.ind *.log *.toc *.ilg
 		rm -f lib/*~ lib/*.aux
-		rm -f online.*
 
 distclean:	clean
 		rm -f *.tex lib/*.tex
@@ -136,34 +122,13 @@ $(BOOK).bbl:	biblio.doc
 htmldoc.bbl:	biblio.doc
 		cp  biblio.doc $@
 
-online.bbl:	biblio.doc
-		cp  biblio.doc $@
-
 $(DOC).idx:	$(TEXFILES)
 		$(LATEX) $(DOC)
 
-$(ONLINE):	online.dvi $(DVITOTTY)
-		$(DVITOTTY) -w100 online | \
-		cat -s | \
-		sed 's/\(.\)_/_\1/g' > $(ONLINE)
-
-online.dvi:	online.tex $(TEXFILES) online.bbl
-		env TEXINPUTS=lib:$$TEXINPUTS ./runtex online
-
-online.doc:	main.doc
-		$(PL) select.pl ONLINE main.doc > online.doc
 $(DOC).doc:	main.doc
 		$(PL) select.pl PDF main.doc > $(DOC).doc
 $(BOOK).doc:	main.doc
 		$(PL) select.pl BOOK main.doc > $(BOOK).doc
-
-$(ONLINE_INDEX):	$(ONLINE)
-		MANUAL=$(ONLINE); INDEX=$(ONLINE_INDEX); export MANUAL INDEX; \
-		$(PL) -f none -g '[plindex],online_index' -t halt.
-
-$(DVITOTTY):
-		$(MAKE) -C$(DVITOTTY-HOME) dvi2tty
-		$(CP) $(DVITOTTY-HOME)/dvi2tty ./$(DVITOTTY)
 
 # Upload to website
 

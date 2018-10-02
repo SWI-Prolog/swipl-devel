@@ -114,7 +114,7 @@ set(SWIPL_DATA_DIRS
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/iso
     library/dialect/yap
-    library/unicode
+    library/unicode library/lynx
     demo)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
@@ -150,6 +150,9 @@ if(WIN32)
   set(SWIPL_DATA_library ${SWIPL_DATA_library}
       dde.pl win_menu.pl)
 endif()
+
+set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
+    pldoc_style.pl)
 
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     simplex.pl clpfd.pl clpb.pl)

@@ -60,6 +60,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl clpb.pl
 DCG=	basics.pl
+LYNX=	format.pl html_style.pl html_text.pl pldoc_style.pl
 
 # Dialect library files
 
