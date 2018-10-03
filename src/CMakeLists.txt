@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(swipl)
 
-option(BUILD_SHARED_LIBS
-       "Do (not) build shared libraries"
-       ON)
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
        ON)
+# FIXME: Should become an option, but for now we only support building Prolog
+# as shared object
+set(BUILD_SHARED_LIBS ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 

@@ -13,6 +13,7 @@ function(set_install_prefix)
     else()
       string(REGEX REPLACE "/\@builddir\@" "" install_prefix ${prefix})
     endif()
-    set(CMAKE_INSTALL_PREFIX ${install_prefix} PARENT_SCOPE)
+    set(CMAKE_INSTALL_PREFIX ${install_prefix}
+	CACHE STRING "Installation prefix" FORCE)
   endif()
 endfunction()

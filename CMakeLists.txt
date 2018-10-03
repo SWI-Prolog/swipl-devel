@@ -7,10 +7,13 @@ include(Ports)
 include(Locations)
 include(QLF)
 
-set_install_prefix()
-message("-- Using install prefix \"${CMAKE_INSTALL_PREFIX}\"")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set_install_prefix()
+  message("-- Using install prefix \"${CMAKE_INSTALL_PREFIX}\"")
+endif()
 
 include(BuildType)
+include(PackageSelection)
 
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
@@ -41,39 +44,6 @@ if(MSVC)
 else()
   add_compile_options(-Wall)
 endif()
-
-set(SWIPL_PACKAGE_LIST
-    archive
-    bdb
-    chr
-    clib
-    clpqr
-    cpp
-    cql
-    http
-    inclpr
-    jpl
-    ltx2htm
-    nlp
-    odbc
-    paxos
-    pcre
-    PDT
-    pengines
-    pldoc
-    plunit
-    protobufs
-    RDF
-    semweb
-    sgml
-    ssl
-    table
-    tipc
-    utf8proc
-    xpce
-    yaml
-    zlib
-)
 
 if(UNIX)
   set(SWIPL_PACKAGE_LIST ${SWIPL_PACKAGE_LIST}
