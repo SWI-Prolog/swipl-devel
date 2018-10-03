@@ -19,6 +19,9 @@ option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
        ON)
 
+# Verbosity
+set(CMAKE_INSTALL_MESSAGE NEVER)
+
 # Installation locations
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
        SWIPL_ARCH)
