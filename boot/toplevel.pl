@@ -496,12 +496,12 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
+    '$load_system_init_file',
     set_toplevel,
     associated_files(Files),
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
-    '$load_system_init_file',
     start_pldoc,
     attach_packs,
     '$cmd_option_val'(init_file, OsFile),
