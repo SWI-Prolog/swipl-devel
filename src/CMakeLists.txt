@@ -4,6 +4,9 @@ project(swipl)
 option(BUILD_SHARED_LIBS
        "Do (not) build shared libraries"
        ON)
+option(MULTI_THREADED
+       "Enable multiple Prolog threads"
+       ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 
@@ -19,7 +22,9 @@ include(CheckTypeSize)
 include(AlignOf)
 include(CheckStructHasMember)
 
+if(MULTI_THREADED)
 find_package(Threads)
+endif()
 find_package(ZLIB)
 find_package(GMP)
 if(UNIX)
@@ -30,6 +35,7 @@ include(Config)
 include(GCCBuiltins)
 include(TestSignalType)
 include(TestSCNProcessors)
+include(TestHeaderTime)
 
 # FIXME: Is this still needed?
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
