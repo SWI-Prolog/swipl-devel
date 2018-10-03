@@ -26,6 +26,7 @@ set(SWIPL_PACKAGE_LIST_BASIC
     http
     ltx2htm
     nlp
+    paxos
     pcre
     PDT
     pengines
