@@ -339,21 +339,21 @@ install(CODE "MESSAGE(\"Installing the library.\")")
 foreach(d ${SWIPL_DATA_DIRS})
     string(REGEX REPLACE "/" "_" filevar ${d})
     prepend(files ${SWIPL_ROOT}/${d} ${SWIPL_DATA_${filevar}})
-    install(FILES ${files}
-	    DESTINATION ${SWIPL_INSTALL_PREFIX}/${d})
+    install_src(FILES ${files}
+		DESTINATION ${SWIPL_INSTALL_PREFIX}/${d})
 endforeach()
 install(FILES ${PL_LIB_INDEX}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/library)
-install(FILES
-	${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
-	${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
-	DESTINATION ${SWIPL_INSTALL_INCLUDE})
-install(FILES
-	${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
-	DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
-install(FILES
-	${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
-	DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
+install_src(FILES
+	    ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
+	    ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
+	    DESTINATION ${SWIPL_INSTALL_INCLUDE})
+install_src(FILES
+	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
+	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
+install_src(FILES
+	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
+	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 	RENAME "swipl.home")
@@ -368,7 +368,8 @@ install(TARGETS swipl-win
 )
 prepend(WIN32_DLL_FILES ${CMAKE_CURRENT_BINARY_DIR}/ ${WIN32_DLLS})
 install(FILES ${WIN32_DLL_FILES} DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
-install(FILES swipl.ico DESTINATION ${SWIPL_INSTALL_PREFIX})
+install_src(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.ico
+	    DESTINATION ${SWIPL_INSTALL_PREFIX})
 
 else(WIN32)
 

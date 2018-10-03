@@ -101,8 +101,8 @@ function(swipl_plugin name)
 	    LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
   endif()
 
-  install(FILES ${pl_libs}
-	  DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
+  install_src(FILES ${pl_libs}
+	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
 endfunction(swipl_plugin)
 
 # install_dll(file ...)
@@ -184,10 +184,10 @@ function(swipl_examples)
   endif()
 
   if(files)
-    install(FILES ${files} DESTINATION ${extdest})
+    install_src(FILES ${files} DESTINATION ${extdest})
   endif()
   if(dirs)
-    install(DIRECTORY ${dirs} DESTINATION ${extdest})
+    install_src(DIRECTORY ${dirs} DESTINATION ${extdest})
   endif()
 endfunction()
 
