@@ -62,4 +62,6 @@ function(add_package_sets)
 endfunction()
 
 set(SWIPL_PACKAGE_LIST)
-add_package_sets(BASIC ODBC JAVA X)
+if(SWIPL_PACKAGES)
+  add_package_sets(BASIC ODBC JAVA X)
+endif()

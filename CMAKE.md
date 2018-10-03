@@ -26,6 +26,23 @@ using e.g.,
     cmake -DCMAKE_BUILD_TYPE=Debug
     cmake -DCMAKE_BUILD_TYPE=Release
 
+## Customizing SWI-Prolog
+
+By default the system configures all   features. Several cmake _options_
+allow for restricting the system.
+
+  | `-DMULTI_THREADED=OFF`       | Drop support for Prolog threads  |
+  | `-DUSE_GMP=OFF`              | Drop bignum and rational numbers |
+  | `-DSWIPL_PACKAGES=OFF`       | Only build the core system       |
+  | `-DSWIPL_PACKAGES_BASIC=OFF` | Drop all basic packages          |
+  | `-DSWIPL_PACKAGES_ODBC=OFF`  | Drop ODBC and CQL packages       |
+  | `-DSWIPL_PACKAGES_JAVA=OFF`  | Drop JPL Java interface          |
+  | `-DSWIPL_PACKAGES_X=OFF`     | Drop graphics (xpce)             |
+
+Note that packages for  which  the   prerequisites  cannot  be found are
+dropped automatically, as are packages  for   which  the sources are not
+installed.
+
 ## Cross build
 
 Cross building for Windows using (Ubuntu)   linux. Use `README.mingw` to

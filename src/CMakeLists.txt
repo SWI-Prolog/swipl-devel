@@ -4,6 +4,10 @@ project(swipl)
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
        ON)
+option(USE_GMP
+       "Use GNU MP Bignum library (GPL)"
+       ON)
+
 # FIXME: Should become an option, but for now we only support building Prolog
 # as shared object
 set(BUILD_SHARED_LIBS ON)
@@ -26,7 +30,9 @@ if(MULTI_THREADED)
 find_package(Threads)
 endif()
 find_package(ZLIB)
+if(USE_GMP)
 find_package(GMP)
+endif()
 if(UNIX)
 find_package(Curses)
 endif(UNIX)
