@@ -202,7 +202,7 @@ if(NOT SWIPL_PATH_SEP)
 endif()
 
 function(test_lib name)
-  set(test_source "test_${name}.pl")
+  set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/test_${name}.pl")
   set(test_goal   "test_${name}")
   set(mode)
   set(packages)
@@ -231,8 +231,7 @@ function(test_lib name)
 			 -p "library=${plibrary}"
 			 -f none -s ${test_source}
 			 -g "${test_goal}"
-			 -t halt
-	   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+			 -t halt)
 endfunction(test_lib)
 
 # test_libs(name ...
