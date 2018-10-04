@@ -1,5 +1,11 @@
 #!/bin/sh
 
+if [ ! -z "$1" ]; then
+  dir="$1"
+else
+  dir=.
+fi
+
 cat >> version.h.new <<_EOM_
 /*  Generated file that contains the version identifier from
     the "git describe" command.
@@ -10,10 +16,12 @@ cat >> version.h.new <<_EOM_
 _EOM_
 
 gitversion=''
-if v=`git describe --match 'V*' 2>/dev/null`; then
+if v=$(git -C $dir describe --match 'V*' 2>/dev/null); then
     if [ ! -z $v ]; then
-	gitversion=`echo $v | sed 's/^V//'`
-	if [ `git diff | wc -c` != 0 ]; then gitversion="$gitversion-DIRTY"; fi
+	gitversion=$(echo $v | sed 's/^V//')
+	if [ $(git -C $dir diff | wc -c) != 0 ]; then
+	  gitversion="$gitversion-DIRTY";
+	fi
 	echo "#define GIT_VERSION "'"'$gitversion'"' >> version.h.new
     fi
 fi

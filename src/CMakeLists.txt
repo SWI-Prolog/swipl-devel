@@ -221,8 +221,7 @@ add_custom_target(
 set(USE_GIT_VERSION_H 1)
 add_custom_target(
     version.h
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mkversion.sh
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mkversion.sh ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Updating (git) version"
 )
 
