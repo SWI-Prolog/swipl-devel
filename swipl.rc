@@ -87,6 +87,7 @@ swipl_package(Pkg, PkgSrcDir, PkgBinDir) :-
     cmake_source_directory(CMakeSrcDir),
     cmake_binary_directory(CMakeBinDir),
     atomic_list_concat([CMakeBinDir, packages], /, PkgRoot),
+    exists_directory(PkgRoot),
     directory_files(PkgRoot, Candidates),
     member(Pkg, Candidates),
     atomic_list_concat([CMakeSrcDir, packages, Pkg], /, PkgSrcDir),
