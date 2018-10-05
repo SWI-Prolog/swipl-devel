@@ -984,13 +984,12 @@ PL_initialise(int argc, char **argv)
 #endif
       PL_halt(1);
     }
-#ifdef __WINDOWS__
-    PlMessage("Boot compilation has created %s", rcpathcopy);
-#else
-    Sfprintf(Serror,
-	     "Boot compilation has created %s\n", rcpathcopy);
-#endif
-    PL_halt(0);
+
+    predicate_t boot_message2 = PL_predicate("$boot_message", 2, "system");
+    term_t av = PL_new_term_refs(2);
+    PL_halt((PL_put_string_chars(av+0, "Boot compilation has created ~w~n") &&
+	     PL_put_string_chars(av+1, rcpathcopy) &&
+	     PL_call_predicate(NULL, PL_Q_NODEBUG, boot_message2, av)) ? 0 : 1);
   } else
   { IOSTREAM *statefd = SopenZIP(GD->resources.DB, "$prolog/state.qlf", RC_RDONLY);
 

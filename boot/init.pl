@@ -49,13 +49,21 @@ will use the C defined write predicate  to  print  goals  and  does  not
 attempt to call the Prolog defined trace interceptor.
 */
 
-'$:-'(format('Loading boot file ...~n', [])).
-
                 /********************************
                 *    LOAD INTO MODULE SYSTEM    *
                 ********************************/
 
 :- '$set_source_module'(system).
+
+'$boot_message'(_Format, _Args) :-
+    current_prolog_flag(verbose, silent),
+    !.
+'$boot_message'(Format, Args) :-
+    format(Format, Args),
+    !.
+
+'$:-'('$boot_message'('Loading boot file ...~n', [])).
+
 
                 /********************************
                 *          DIRECTIVES           *
@@ -3830,7 +3838,7 @@ cancel_halt(Reason) :-
     ;   true
     ).
 
-'$:-'((format('Loading Prolog startup files~n', []),
+'$:-'(('$boot_message'('Loading Prolog startup files~n', []),
        source_location(File, _Line),
        file_directory_name(File, Dir),
        atom_concat(Dir, '/load.pl', LoadFile),
@@ -3840,7 +3848,7 @@ cancel_halt(Reason) :-
            '$load_wic_files'(system:[MenuFile])
        ;   true
        ),
-       format('SWI-Prolog boot files loaded~n', []),
+       '$boot_message'('SWI-Prolog boot files loaded~n', []),
        '$compilation_mode'(OldC, wic),
        '$execute_directive'('$set_source_module'(user), []),
        '$set_compilation_mode'(OldC)
