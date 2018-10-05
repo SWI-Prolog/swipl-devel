@@ -218,10 +218,11 @@ with_pager(Goal) :-
     call(Goal).
 
 pager_ok(Path) :-
+    stream_property(current_output, tty(true)),
+    \+ current_prolog_flag(emacs_inferior_process, true),
     distinct((   getenv('PAGER', Pager)
              ;   Pager = less
              )),
-    stream_property(current_output, tty(true)),
     absolute_file_name(path(Pager), Path,
                        [ access(execute),
                          file_errors(fail)
