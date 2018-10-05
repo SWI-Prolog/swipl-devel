@@ -62,8 +62,15 @@ add_subdirectory(src)
 
 # build the documentation
 add_custom_target(
+    doc.html
+    COMMENT "Build HTML documentation")
+add_custom_target(
+    doc.pdf
+    COMMENT "Build PDF documentation")
+add_custom_target(
     doc
     COMMENT "Build the documentation")
+add_dependencies(doc doc.pdf doc.html)
 add_subdirectory(man)
 
 # Add the packages

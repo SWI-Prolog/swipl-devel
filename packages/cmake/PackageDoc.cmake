@@ -172,14 +172,13 @@ function(pkg_doc pkg)
       DEPENDS ${pkg}.html)
 
   add_dependencies(doc ${pkg}.doc.pdf ${pkg}.doc.html)
+  add_dependencies(doc.pdf  ${pkg}.doc.pdf)
+  add_dependencies(doc.html ${pkg}.doc.html)
 
   if(INSTALL_DOCUMENTATION)
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${pkg}.html)
-      install(FILES ${pkg}.html
-	      DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages/)
-    else()
-      install(FILES ${pkg}.html
-	      DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages/)
-    endif()
+    install(FILES ${pkg}.html
+	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages
+	    COMPONENT documentation
+	    OPTIONAL)
   endif()
 endfunction()
