@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2016, VU University Amsterdam
+    Copyright (c)  2014-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,9 +34,12 @@
 */
 
 :- module(prolog_install,
-          [ qcompile_libraries/0
+          [ qcompile_libraries/0,
+            cmake_qcompile/0,
+            cmake_qcompile/2                    % +File, +Deps
           ]).
 :- use_module(library(make)).
+:- use_module(library(lists)).
 
 /** <module> Installation support predicates
 
@@ -90,6 +94,42 @@ qcompile_libs :-
            ;   print_message(informational, qcompile(no(Module)))
            )).
 
+		 /*******************************
+		 *               C		*
+		 *******************************/
+
+%!  cmake_qcompile(+File, +Deps) is det.
+%
+%   Qcompile on behalf of CMAKE installation.  File   is  the file to be
+%   qcompiled. Deps is the dependencies as   CMAKE  believes to be true.
+%   Reports on inconsistent depedencies
+
+cmake_qcompile :-
+    current_prolog_flag(argv, ['--compile', File, '--qlfdeps' | Deps]),
+    cmake_qcompile(File, Deps).
+
+cmake_qcompile(File, Deps) :-
+    qcompile(File),
+    file_name_extension(File, qlf, QlfFile),
+    '$qlf_info'(QlfFile,
+                _CurrentVersion, _MinLOadVersion, _FileVersion,
+                _CurrentSignature, _FileSignature,
+                _WordSize,
+                Files),
+    maplist(absolute_file_name, Deps, Canonical),
+    subtract(Files, Canonical, Missing),
+    subtract(Canonical, Files, Extra),
+    (   Missing == []
+    ->  true
+    ;   print_message(warning, qcompile(missing, File, Missing))
+    ),
+    (   Extra == []
+    ->  true
+    ;   print_message(warning, qcompile(extra, File, Extra))
+    ).
+
+
+
 
                  /*******************************
                  *            MESSAGES          *
@@ -103,3 +143,15 @@ prolog:message(qcompile(library(Lib))) -->
     [ nl, '~*c'-[64, 0'*], nl ],
     [ 'Qcompile library ~q'-[Lib], nl ],
     [ '~*c'-[64, 0'*] ].
+prolog:message(qcompile(missing, File, Dependencies)) -->
+    [ 'The following dependencies for ~p are not listed'-[File] ],
+    deps(Dependencies).
+prolog:message(qcompile(extra, File, Dependencies)) -->
+    [ 'The following dependencies for ~p are not needed'-[File] ],
+    deps(Dependencies).
+
+deps([]) -->
+    [].
+deps([H|T]) -->
+    [ nl, '  ~p'-[H] ],
+    deps(T).
