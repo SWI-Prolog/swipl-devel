@@ -195,7 +195,7 @@ foreach(d ${SWIPL_DATA_INDEXED_DIRS})
     prepend(files ${SWIPL_ROOT}/${d} ${SWIPL_DATA_${filevar}})
     set(PL_LIB_FILES_ALL ${PL_LIB_FILES_ALL} ${files})
 endforeach()
-set(PL_LIB_INDEX ${SWIPL_LIBRARY_ROOT}/INDEX.pl)
+set(PL_LIB_INDEX ${SWIPL_BUILD_LIBRARY}/INDEX.pl)
 
 ################
 # Custom targets and commands
@@ -220,21 +220,22 @@ add_custom_target(
 
 set(USE_GIT_VERSION_H 1)
 add_custom_target(
-    version.h
+    git-version
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mkversion.sh ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Updating (git) version"
+    COMMENT "Checking (git) version"
 )
 
 add_custom_command(
     OUTPUT  swipl.prc
-    COMMAND swipl -O -b ${SWIPL_BOOT_ROOT}/init.pl
+    COMMAND swipl -q -O -b ${SWIPL_BOOT_ROOT}/init.pl
     DEPENDS swipl ${SWIPL_BOOT_FILES}
 )
 
 add_custom_command(
     OUTPUT  ${PL_LIB_INDEX}
-    COMMAND swipl -f none -g "\"make_library_index('${SWIPL_LIBRARY_ROOT}')\"" -t halt
-    DEPENDS swipl.prc ${PL_LIB_FILES_ALL}
+    COMMAND swipl -f none --nopce -q
+            -g "\"make_library_index(swi(library))\"" -t halt
+    DEPENDS swipl.prc prolog_home
 )
 
 add_custom_target(prolog_products ALL
@@ -244,10 +245,8 @@ add_custom_target(prolog_products ALL
 configure_file(config.h.cmake config.h)
 
 # Set swipl.home above binaries to a relative path to the root
-file(RELATIVE_PATH SWIPL_HOME_RELATIVE
-     ${CMAKE_CURRENT_BINARY_DIR}/.. ${SWIPL_ROOT}/X)
-get_filename_component(SWIPL_HOME_RELATIVE ${SWIPL_HOME_RELATIVE} DIRECTORY)
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/../swipl.home" "${SWIPL_HOME_RELATIVE}\n")
+file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
+symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl.rc)
 # Final swipl.home for installed system
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dot.txt" ".\n")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt" "..\n")
@@ -285,7 +284,7 @@ target_c_stack(swipl 4000000)
 
 # build the library
 add_library(libswipl ${LIBSWIPL_SRC} ${HDR_CORE})
-add_dependencies(libswipl version.h vmi-metadata core-constants)
+add_dependencies(libswipl git-version vmi-metadata core-constants)
 set_target_properties(libswipl PROPERTIES
 		      OUTPUT_NAME swipl
 		      MACOSX_RPATH TRUE
@@ -334,7 +333,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.prc
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 	RENAME ${SWIPL_BOOT_FILE}
 )
-install(CODE "MESSAGE(\"Installing the library.\")")
 foreach(d ${SWIPL_DATA_DIRS})
     string(REGEX REPLACE "/" "_" filevar ${d})
     prepend(files ${SWIPL_ROOT}/${d} ${SWIPL_DATA_${filevar}})
@@ -377,9 +375,3 @@ install(DIRECTORY DESTINATION bin)
 ilink(${SWIPL_INSTALL_ARCH_EXE}/swipl
       ${CMAKE_INSTALL_PREFIX}/bin/swipl)
 endif(WIN32)
-
-# Final update of library indexes
-
-run_installed_swipl(
-	make
-	COMMENT "-- Updating library indexes")

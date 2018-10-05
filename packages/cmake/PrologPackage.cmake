@@ -66,6 +66,7 @@ endif()
 # swipl_plugin(name
 #	       [C_SOURCES file ...]
 #	       [C_LIBS lib ...]
+#	       [PL_GENERATED_LIBRARIES ...]
 #	       [PL_LIB_SUBDIR subdir]
 #	       [PL_LIBS file ...])
 
@@ -74,6 +75,7 @@ function(swipl_plugin name)
   set(c_sources)
   set(c_libs)
   set(pl_libs)
+  set(pl_genlibs)
   set(pl_lib_subdir)
 
   set(mode)
@@ -85,6 +87,8 @@ function(swipl_plugin name)
       set(mode c_libs)
     elseif(arg STREQUAL "PL_LIBS")
       set(mode pl_libs)
+    elseif(arg STREQUAL "PL_GENERATED_LIBRARIES")
+      set(mode pl_genlibs)
     elseif(arg STREQUAL "PL_LIB_SUBDIR")
       set(mode pl_lib_subdir)
     else()
@@ -101,8 +105,15 @@ function(swipl_plugin name)
 	    LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
   endif()
 
-  install_src(FILES ${pl_libs}
-	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
+  if(pl_libs)
+    install_src(FILES ${pl_libs}
+		DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
+  endif()
+  if(pl_genlibs)
+    prepend(pl_genlibs ${CMAKE_CURRENT_BINARY_DIR}/ ${pl_genlibs})
+    install(FILES ${pl_genlibs}
+            DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
+  endif()
 endfunction(swipl_plugin)
 
 # install_dll(file ...)

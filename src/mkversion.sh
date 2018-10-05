@@ -29,7 +29,7 @@ fi
 if [ ! -r version.h ]; then
     mv version.h.new version.h
 elif cmp version.h version.h.new >/dev/null; then
-    echo "No GIT version change"
+#   echo "No GIT version change"
     rm version.h.new
 else
     echo "Updated GIT version"

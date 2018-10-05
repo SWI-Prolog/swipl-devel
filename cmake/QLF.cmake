@@ -1,6 +1,76 @@
 # compile_qlf spec ...
 
-# run_installed_swipl(command
+# add_swipl_target(name
+#		   OUTPUT output
+#                  COMMAND command
+#	           [OPTIONS ...]
+#	           [SCRIPT ...]
+#	           [QUIET]
+#	           [COMMENT comment]
+#		   [DEPENDS ...])
+#
+# Add a custom target that runs Prolog to create output in the locally created
+# Prolog home ${SWIPL_BUILD_HOME}.  The created product is added to the installation
+# target at the same location.
+#
+# Variables:
+#   - ${SWIPL_COMMAND_DEPENDS} is added to the dependencies
+
+function(add_swipl_target name)
+  set(options -f none -t halt)
+  cmake_parse_arguments(
+      my "QUIET" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS" ${ARGN})
+
+  if(my_QUIET)
+    set(options ${options} -q)
+  endif()
+
+  if(NOT my_COMMENT)
+    set(my_COMMENT "-- swipl -g ${my_COMMAND}")
+  endif()
+
+  foreach(s ${my_SCRIPT})
+    set(options ${options} -s ${s})
+  endforeach()
+
+  add_custom_command(
+      OUTPUT ${my_OUTPUT}
+      COMMAND swipl ${options} -g "\"${my_COMMAND}\"" -- ${my_OPTIONS}
+      COMMENT "${my_COMMENT}"
+      DEPENDS prolog_products prolog_home
+              ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}")
+  add_custom_target(
+      ${name} ALL
+      DEPENDS ${my_OUTPUT})
+
+  string(REPLACE "${SWIPL_BUILD_HOME}" "" rel "${my_OUTPUT}")
+  get_filename_component(rel ${rel} DIRECTORY)
+  install(FILES ${my_OUTPUT}
+	  DESTINATION ${SWIPL_INSTALL_PREFIX}/${rel})
+endfunction()
+
+# add_qcompile_target(
+#     target
+#     [SOURCES ...]
+#     [DEPENDS ...]
+
+function(add_qcompile_target target)
+  cmake_parse_arguments(my "" "" "SOURCES;DEPENDS" ${ARGN})
+
+  prepend(src ${SWIPL_QLF_BASE}/ ${my_SOURCES})
+  set(src ${src} ${SWIPL_QLF_BASE}/${target}.pl)
+  string(REPLACE "/" "-" tname "${target}")
+
+  add_swipl_target(
+      qlf-${tname}
+      OUTPUT ${SWIPL_QLF_BASE}/${target}.qlf
+      COMMAND cmake_qcompile
+      OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --qlfdeps ${src}
+      COMMENT "QLF compiling ${target}.qlf"
+      DEPENDS ${src} ${my_DEPENDS})
+endfunction()
+
+# run_installeda_swipl(command
 #		      [QUIET]
 #		      [SCRIPT script ...]
 #		      [PACKAGES pkg ...]
