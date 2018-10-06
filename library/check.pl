@@ -164,6 +164,7 @@ compiled(system:'$cut'/0).
 compiled(system:'$reset'/0).
 compiled(system:'$call_continuation'/1).
 compiled(system:'$shift'/1).
+compiled('$engines':'$yield'/0).
 
 goal_pi(M:Head, M:Name/Arity) :-
     functor(Head, Name, Arity).

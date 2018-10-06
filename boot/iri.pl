@@ -37,7 +37,7 @@
           ]).
 
 :- meta_predicate
-    register_iri_scheme(+, 3).
+    register_iri_scheme(+, 3, +).
 
 :- multifile
     iri_scheme_handler/2.
