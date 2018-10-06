@@ -73,22 +73,27 @@ cd win32
 cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake ..
 ```
 
+## Development
+
+When building SWI-Prolog using cmake a  complete installation is created
+in the cmake _build_ directory. If possible,   the files from the source
+tree that do not need modification are   created  as _symbolic links_ to
+the real sources. This  implies  that  `src/swipl`   can  be  used  as a
+complete development environment and library   and system predicates can
+be edited using edit/1 and friends.
+
+
 ## Issues
 
-  - Build the library INDEX.pl somehow in the build directory.
-    - Can be dome if we create a shadow Prolog home in the build dir
-      - This is rather expensive though
-      - Alternatively we need a make_library_directory/1 alternative
-        that is passed a list of files that will be in the library
-	and create the INDEX.pl in the build tree.  In addition we
-	need something that loads the INDEX.pl from an alternative
-	location.
-  - Install the Prolog files as links to the sources for development.
-    - Better: create a shadow Prolog home in the build dir using links.
   - Build documention
-    - Currently requires `make install`, `make doc`, i.e., system needs
-      to be installed before compiling the documentation.
-    - By default we can only build the HTML as we need no dependencies
-      for that.
+    - When including HTML is selected, build this during the concurrent
+      build.
+      - Docs must be build after (most of) the systems.  How to organise
+        the dependencies?
+	- Add a single toplevel target for each package (without docs)
+	- Add a list of depenencies between targets
+    - See whether we can eliminate Perl dependency (doc2tex)
+    - See why the PlDoc conversion steps are slow.  Possibly this is
+      mostly the PlDoc startup time?
   - Create installers
   - Install pkg-config files
