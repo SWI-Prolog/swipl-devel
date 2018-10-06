@@ -1936,7 +1936,7 @@ $> 0$ otherwise.
     \cfunction{int}{write}{IOSTREAM *s, atom_t a, int flags}
 Write the content of the blob \arg{a} to the stream \arg{s}
 respecting the \arg{flags}.  The \arg{flags} are a bitwise
-\em{or} of zero or more of the \const{PL_WRT_*} flags defined in
+\emph{or} of zero or more of the \const{PL_WRT_*} flags defined in
 \file{SWI-Prolog.h}. This prototype is available if the
 undocumented \file{SWI-Stream.h} is included \emph{before}
 \file{SWI-Prolog.h}.
