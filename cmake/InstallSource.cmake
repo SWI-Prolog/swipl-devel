@@ -24,18 +24,30 @@ function(symlink from to)
 		  WORKING_DIRECTORY ${LNTDIR})
 endfunction()
 
+function(create_directory dir)
+  set(done)
+  get_property(done GLOBAL PROPERTY CREATE_DIRECTORY_STATE)
+  list(FIND done ${dir} index)
+  if(index LESS 0)
+    add_custom_command(
+	OUTPUT ${LNTDIR}/.created
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
+	COMMAND ${CMAKE_COMMAND} -E touch ${dir}/.created)
+    list(APPEND	done ${dir})
+    set_property(GLOBAL PROPERTY CREATE_DIRECTORY_STATE "${done}")
+  endif()
+endfunction()
+
 function(add_symlink_command from to)
   get_filename_component(LNTDIR ${to} DIRECTORY)
   get_filename_component(LNTNAME ${to} NAME)
   file(RELATIVE_PATH LNLNK ${LNTDIR} ${from})
-  add_custom_command(
-      OUTPUT ${LNTDIR}
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${LNTDIR})
+  create_directory(${LNTDIR})
   add_custom_command(
       OUTPUT ${to}
       COMMAND ${CMAKE_COMMAND} -E create_symlink ${LNLNK} ./${LNTNAME}
       WORKING_DIRECTORY ${LNTDIR}
-      DEPENDS ${LNTDIR})
+      DEPENDS ${LNTDIR}/.created)
 endfunction()
 
 function(install_in_home)
