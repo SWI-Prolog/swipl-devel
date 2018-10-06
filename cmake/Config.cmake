@@ -220,14 +220,38 @@ check_function_exists(pthread_attr_setstacksize HAVE_PTHREAD_ATTR_SETSTACKSIZE)
 check_function_exists(sched_setaffinity HAVE_SCHED_SETAFFINITY)
 check_function_exists(sema_init HAVE_SEMA_INIT)
 check_function_exists(sem_init HAVE_SEM_INIT)
+
 include(TestRecursiveMutex)
+
 if(HAVE_PTHREAD_SETNAME_NP)
 check_c_source_compiles(
-    "#include <pthread.h>\nint main() { pthread_setname_np(0, \"myname\"); return 0;}"
+    "#include <pthread.h>\nint main()
+     { pthread_setname_np(0, \"myname\"); return 0;
+     }"
     HAVE_PTHREAD_SETNAME_NP_WITH_TID)
 if(NOT HAVE_PTHREAD_SETNAME_NP_WITH_TID)
   set(HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1)
 endif()
+
+check_c_source_compiles(
+    "#include <sys/types.h>
+     #include <linux/unistd.h>
+     int main()
+     { _syscall0(pid_t,gettid);
+       return 0;
+     }"
+    HAVE_GETTID_MACRO)
+if(NOT HAVE_GETTID_MACRO)
+  check_c_source_compiles(
+      "#include <unistd.h>
+       #include <sys/syscall.h>
+       int main()
+       { syscall(__NR_gettid);
+	 return 0;
+       }"
+      HAVE_GETTID_SYSCALL)
+endif()
+
 endif(HAVE_PTHREAD_SETNAME_NP)
 endif(CMAKE_USE_PTHREADS_INIT)
 # Windows
