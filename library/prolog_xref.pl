@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2017, University of Amsterdam
+    Copyright (c)  2006-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,6 +81,7 @@
 :- use_module(library(pldoc), []).      % Must be loaded before doc_process
 :- use_module(library(pldoc/doc_process)).
 :- endif.
+:- use_module(library(solution_sequences)).
 
 :- predicate_options(xref_source/2, 2,
                      [ silent(boolean),
