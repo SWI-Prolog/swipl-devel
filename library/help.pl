@@ -53,8 +53,42 @@
 :- use_module(library(lynx/html_text)).
 :- use_module(library(lynx/pldoc_style)).
 
+/** <module> Text based manual
+
+This module provides help/1 and apropos/1 that   give help on a topic or
+searches the manual for relevant topics.
+
+## Controlling the output
+
+By default the result of  help/1  is   sent  through  a  _pager_ such as
+`less`. Tis behaviour is controlled by the following:
+
+  - The Prolog flag `help_pager`, which can be set to one of the
+    following values:
+
+    - false
+    Never use a pager.
+    - default
+    Use default behaviour.  This tries to determine whether Prolog
+    is running interactively in an environment that allows for
+    a pager.  If so it examines the environment variable =PAGER=
+    or otherwise tries to find the `less` program.
+    - Callable
+    A Callable term is interpreted as program_name(Arg, ...).  For
+    example, `less('-r')` would be the default.  Note that the
+    program name can be an absolute path if single quotes are
+    used.
+*/
+
 :- meta_predicate
     with_pager(0).
+
+% one of `default`, `false`, an executable or executable(options), e.g.
+% less('-r').
+:- create_prolog_flag(help_pager, default,
+                      [ type(term),
+                        keep(true)
+                      ]).
 
 %!  help is det.
 %!  help(+What) is det.
@@ -81,8 +115,9 @@
 %   when successful, display the results headed   by  a warning that the
 %   matches are based on fuzzy matching.
 %
-%   If possible, the results are sent  through a _pager_. Currently this
-%   only support the `less` pager.
+%   If possible, the results are sent  through   a  _pager_  such as the
+%   `less` program. This behaviour is  controlled   by  the  Prolog flag
+%   `help_pager`. See section level documentation.
 %
 %   @see apropos/1 for searching the manual names and summaries.
 
@@ -141,8 +176,19 @@ man_pages([H|T], Options) -->
     man_pages(T, Options).
 
 page_width(Width) :-
-    tty_size(_H,W),
+    tty_width(W),
     Width is min(100,max(50,W)).
+
+%!  tty_width(-Width) is det.
+%
+%   Return the believed width of the terminal.   If we do not know Width
+%   is bound to 80.
+
+tty_width(W) :-
+    \+ running_under_emacs,
+    catch(tty_size(_, W), _, fail),
+    !.
+tty_width(80).
 
 help_objects_how(Spec, Objects, exact) :-
     help_objects(Spec, exact, Objects),
@@ -200,12 +246,12 @@ match_name(dwim,  Name, Fuzzy) :-
 %   found we simply dump the output to the current output.
 
 with_pager(Goal) :-
-    pager_ok(Pager),
+    pager_ok(Pager, Options),
     !,
     Catch = error(io_error(_,_), _),
     current_output(OldIn),
     setup_call_cleanup(
-        process_create(Pager, ['-r'],
+        process_create(Pager, Options,
                        [stdin(pipe(In))]),
         ( set_stream(In, tty(true)),
           set_output(In),
@@ -217,16 +263,56 @@ with_pager(Goal) :-
 with_pager(Goal) :-
     call(Goal).
 
-pager_ok(Path) :-
+pager_ok(_Path, _Options) :-
+    current_prolog_flag(help_pager, false),
+    !,
+    fail.
+pager_ok(Path, Options) :-
+    current_prolog_flag(help_pager, default),
+    !,
     stream_property(current_output, tty(true)),
-    \+ current_prolog_flag(emacs_inferior_process, true),
-    distinct((   getenv('PAGER', Pager)
-             ;   Pager = less
-             )),
+    \+ running_under_emacs,
+    (   distinct((   getenv('PAGER', Pager)
+                 ;   Pager = less
+                 )),
+        absolute_file_name(path(Pager), Path,
+                           [ access(execute),
+                             file_errors(fail)
+                           ])
+    ->  pager_options(Path, Options)
+    ).
+pager_ok(Path, Options) :-
+    current_prolog_flag(help_pager, Term),
+    callable(Term),
+    compound_name_arguments(Term, Pager, Options),
     absolute_file_name(path(Pager), Path,
-                       [ access(execute),
-                         file_errors(fail)
-                       ]),
+                           [ access(execute),
+                             file_errors(fail)
+                           ]).
+
+pager_options(Path, Options) :-
+    file_base_name(Path, File),
+    file_name_extension(Base, _, File),
+    downcase_atom(Base, Id),
+    pager_default_options(Id, Options).
+
+pager_default_options(less, ['-r']).
+
+
+%!  running_under_emacs
+%
+%   True when we believe to be running  in Emacs. Unfortunately there is
+%   no easy unambiguous way to tell.
+
+running_under_emacs :-
+    current_prolog_flag(emacs_inferior_process, true),
+    !.
+running_under_emacs :-
+    getenv('TERM', dumb),
+    !.
+running_under_emacs :-
+    prompt(P,P),
+    sub_atom(P, _, _, _, '$@'),
     !.
 
 
@@ -403,7 +489,7 @@ prolog:message(help(not_found(What))) -->
 prolog:message(help(no_apropos_match(Query))) -->
     [ 'No matches for ~p'-[Query] ].
 prolog:message(help(apropos_matches(Pairs, Total))) -->
-    { tty_size(_H,W),
+    { tty_width(W),
       Width is max(30,W),
       length(Pairs, Count)
     },
