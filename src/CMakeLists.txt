@@ -131,7 +131,7 @@ set(SWIPL_DATA_DIRS
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
-    parms.pl autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl
+    parms.pl autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
     engines.pl iri.pl tabling.pl)
 prepend(SWIPL_BOOT_FILES ${SWIPL_BOOT_ROOT} ${SWIPL_DATA_boot})
 
