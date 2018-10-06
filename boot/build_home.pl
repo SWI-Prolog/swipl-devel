@@ -125,3 +125,14 @@ add_package_path(PkgBinDir) :-
 
 :- forall(swipl_package(Pkg, PkgBinDir),
           add_package(Pkg, PkgBinDir)).
+
+
+		 /*******************************
+		 *        DOCUMENTATION		*
+		 *******************************/
+
+user:file_search_path(swi_man_manual, ManDir) :-
+    cmake_binary_directory(BinDir),
+    atomic_list_concat([BinDir, 'man/Manual'], /, ManDir).
+user:file_search_path(swi_man_packages, BinDir) :-
+    swipl_package(_, BinDir).
