@@ -1,12 +1,11 @@
 include(Documentation)
 
-set(SWIPL      ${CMAKE_INSTALL_PREFIX}/bin/swipl)
 set(LATEX2HTML ${CMAKE_INSTALL_PREFIX}/lib/swipl/bin/latex2html ${DOC_OPTIONS})
 set(DOC2TEX    ${SWIPL_ROOT}/man/doc2tex)
 set(RUNTEX     ${SWIPL_ROOT}/man/runtex ${DOC_OPTIONS})
-set(PLTOTEX    ${SWIPL} ${SWIPL_ROOT}/packages/pltotex.pl --)
-set(TXTTOTEX   ${SWIPL} ${SWIPL_ROOT}/packages/txttotex.pl --)
-set(LIBTOTEX   ${SWIPL} ${SWIPL_ROOT}/man/libtotex.pl --)
+set(PLTOTEX    ${SWIPL_ROOT}/packages/pltotex.pl --)
+set(TXTTOTEX   ${SWIPL_ROOT}/packages/txttotex.pl --)
+set(LIBTOTEX   ${SWIPL_ROOT}/man/libtotex.pl --)
 
 function(doc2tex file)
   string(REPLACE ".doc" ".tex" tex ${file})
@@ -21,7 +20,7 @@ function(txt2tex file)
   string(REPLACE ".txt" ".tex" tex ${file})
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND ${TXTTOTEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file}
+      COMMAND swipl ${TXTTOTEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file}
       DEPENDS ${file})
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
@@ -73,7 +72,7 @@ function(pldoc file)
   get_filename_component(base ${file} NAME_WE)
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND ${PLTOTEX} --out=${tex} ${seclevel} ${options} ${lib}
+      COMMAND swipl ${PLTOTEX} --out=${tex} ${seclevel} ${options} ${lib}
       DEPENDS ${file})
 
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)

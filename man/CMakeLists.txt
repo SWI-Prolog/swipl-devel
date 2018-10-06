@@ -3,11 +3,10 @@ project(swipl-doc-core)
 
 include(Documentation)
 
-set(SWIPL      ${CMAKE_INSTALL_PREFIX}/bin/swipl)
 set(LATEX2HTML ${CMAKE_INSTALL_PREFIX}/lib/swipl/bin/latex2html ${DOC_OPTIONS})
 set(DOC2TEX    ${CMAKE_CURRENT_SOURCE_DIR}/doc2tex)
 set(RUNTEX     ${CMAKE_CURRENT_SOURCE_DIR}/runtex ${DOC_OPTIONS})
-set(LIBTOTEX   ${SWIPL} ${CMAKE_CURRENT_SOURCE_DIR}/libtotex.pl --)
+set(LIBTOTEX   ${CMAKE_CURRENT_SOURCE_DIR}/libtotex.pl --)
 
 set(DOC SWI-Prolog-${SWIPL_VERSION_STRING})
 
@@ -118,7 +117,7 @@ function(pldoc tex input)
 
     add_custom_command(
 	OUTPUT  ${tex}
-	COMMAND ${LIBTOTEX} ${options} "'${input}'"
+	COMMAND swipl ${LIBTOTEX} ${options} "'${input}'"
 	DEPENDS ${depends}
 	BYPRODUCTS ${byproducts})
 endfunction()
@@ -162,8 +161,8 @@ doc2tex(${DOC_LIB})
 
 add_custom_command(
     OUTPUT  ${DOC}.doc
-    COMMAND ${SWIPL} ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
-                     ${CMAKE_CURRENT_SOURCE_DIR}/main.doc > ${DOC}.doc
+    COMMAND swipl ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
+                  ${CMAKE_CURRENT_SOURCE_DIR}/main.doc > ${DOC}.doc
     DEPENDS main.doc select.pl)
 add_custom_command(
     OUTPUT  ${DOC}.tex
@@ -250,11 +249,6 @@ add_dependencies(doc core.doc.pdf core.doc.html)
 # Installation
 
 if(INSTALL_DOCUMENTATION)
-  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Manual)
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Manual
-	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
-  else()
-    install(DIRECTORY Manual
-	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
-  endif()
+  install(DIRECTORY Manual
+	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
 endif()
