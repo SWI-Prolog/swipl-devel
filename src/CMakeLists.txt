@@ -133,7 +133,7 @@ set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
     parms.pl autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
     engines.pl iri.pl tabling.pl)
-prepend(SWIPL_BOOT_FILES ${SWIPL_BOOT_ROOT} ${SWIPL_DATA_boot})
+prepend(SWIPL_BOOT_FILES ${SWIPL_BUILD_HOME}/boot/ ${SWIPL_DATA_boot})
 
 set(SWIPL_DATA_library help.pl explain.pl sort.pl
     qsave.pl shlib.pl statistics.pl system.pl error.pl
@@ -227,7 +227,7 @@ add_custom_target(
 
 add_custom_command(
     OUTPUT  swipl.prc
-    COMMAND swipl -q -O -b ${SWIPL_BOOT_ROOT}/init.pl
+    COMMAND swipl -q -O -b ${SWIPL_BUILD_HOME}/boot/init.pl
     DEPENDS swipl ${SWIPL_BOOT_FILES}
 )
 
