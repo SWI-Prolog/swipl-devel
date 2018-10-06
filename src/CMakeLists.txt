@@ -239,7 +239,7 @@ add_custom_command(
 )
 
 add_custom_target(prolog_products ALL
-    DEPENDS swipl.prc ${PL_LIB_INDEX}
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/swipl.prc ${PL_LIB_INDEX}
 )
 
 configure_file(config.h.cmake config.h)
