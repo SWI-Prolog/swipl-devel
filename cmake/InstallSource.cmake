@@ -29,10 +29,13 @@ function(add_symlink_command from to)
   get_filename_component(LNTNAME ${to} NAME)
   file(RELATIVE_PATH LNLNK ${LNTDIR} ${from})
   add_custom_command(
+      OUTPUT ${LNTDIR}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${LNTDIR})
+  add_custom_command(
       OUTPUT ${to}
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${LNTDIR}
       COMMAND ${CMAKE_COMMAND} -E create_symlink ${LNLNK} ./${LNTNAME}
-      WORKING_DIRECTORY ${LNTDIR})
+      WORKING_DIRECTORY ${LNTDIR}
+      DEPENDS ${LNTDIR})
 endfunction()
 
 function(install_in_home)
