@@ -975,7 +975,8 @@ absolute_file_name(Spec, Path, Options) :-
         ->  !       % also kill choice point of expand_file_name/2
         ;   (   FileErrors == fail
             ->  fail
-            ;   findall(P,
+            ;   '$current_module'('$bags', _File),
+                findall(P,
                         '$chk_file'(Spec1, Extensions, [access(exist)],
                                     false, P),
                         Candidates),
@@ -1865,7 +1866,7 @@ load_files(Module:Files, Options) :-
 '$load_file_list'([], _, _).
 '$load_file_list'([File|Rest], Module, Options) :-
     catch('$load_one_file'(File, Module, Options), E,
-          print_message(error, E)),
+          '$print_message'(error, E)),
     '$load_file_list'(Rest, Module, Options).
 
 
@@ -2256,7 +2257,7 @@ load_files(Module:Files, Options) :-
         ;   '$consult_file'(Absolute, Module, Action, LM, Options)
         )
     ->  true
-    ;   print_message(error, load_file(failed(File))),
+    ;   '$print_message'(error, load_file(failed(File))),
         fail
     ),
 
@@ -3145,7 +3146,7 @@ load_files(Module:Files, Options) :-
     ->  true
     ;   catch(Module:Goal, Term, '$exception_in_directive'(Term))
     ->  true
-    ;   print_message(warning, goal_failed(directive, Module:Goal)),
+    ;   '$print_message'(warning, goal_failed(directive, Module:Goal)),
         fail
     ).
 '$execute_directive_3'(_).
@@ -3180,7 +3181,7 @@ load_files(Module:Files, Options) :-
     fail.
 
 '$exception_in_directive'(Term) :-
-    print_message(error, Term),
+    '$print_message'(error, Term),
     fail.
 
 %       This predicate deals with the very odd ISO requirement to allow
