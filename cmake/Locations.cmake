@@ -17,3 +17,8 @@ function(set_install_prefix)
 	CACHE STRING "Installation prefix" FORCE)
   endif()
 endfunction()
+
+# Set well-known locations. Should be merged as  they are now at various
+# places.
+
+set(SWIPL_ROOT ${CMAKE_SOURCE_DIR})

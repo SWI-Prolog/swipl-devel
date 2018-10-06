@@ -69,9 +69,10 @@
 \newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}
 #else
 \newcommand{\versionshort}{\vmajor.\vminor}
+\newcommand{\versionlong}{\vmajor.\vminor-\vpatch, \vmonth~\vyear}
 \ifthenelse{\equal{}{\vtag}}{%
-  \newcommand{\versionlong}{\vmajor.\vminor-\vpatch, \vmonth~\vyear}}{%
-  \newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}}
+  \renewcommand{\versionlong}{\vmajor.\vminor-\vpatch, \vmonth~\vyear}}{%
+  \renewcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}}
 #endif
 \renewcommand{\arabicday}{\versionshort}
 

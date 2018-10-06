@@ -1,0 +1,129 @@
+\begin{thebibliography}{Kernighan \& Ritchie, 1978}
+
+\bibitem[Bowen {\em et al.}, 1983]{Bowen:83}
+D.~L. Bowen, L.~M. Byrd, and WF. Clocksin.
+\newblock A portable {Prolog} compiler.
+\newblock In L.~M. Pereira, editor, {\em Proceedings of the Logic Programming
+  Workshop 1983}, Lisabon, Portugal, 1983. Universidade nova de Lisboa.
+
+\bibitem[Bratko, 1986]{Bratko:86}
+I.~Bratko.
+\newblock {\em Prolog Programming for Artificial Intelligence}.
+\newblock Addison-Wesley, Reading, Massachusetts, 1986.
+
+\bibitem[Butenhof, 1997]{Butenhof:1997:PPT}
+David~R. Butenhof.
+\newblock {\em Programming with {POSIX} threads}.
+\newblock Ad{\-d}i{\-s}on-Wes{\-l}ey, Reading, MA, USA, 1997.
+
+\bibitem[Byrd, 1980]{Byrd:80}
+L.~Byrd.
+\newblock Understanding the control flow of {Prolog} programs.
+\newblock {\em Logic Programming Workshop}, 1980.
+
+\bibitem[Clocksin \& Melish, 1987]{Clocksin:87}
+W.~F. Clocksin and C.~S. Melish.
+\newblock {\em Programming in Prolog}.
+\newblock Springer-Verlag, New York, {T}hird, {R}evised and {E}xtended edition,
+  1987.
+
+\bibitem[Demoen, 2002]{Demoen:CW350}
+Bart Demoen.
+\newblock {D}ynamic attributes, their h{P}rolog implementation, and a first
+  evaluation.
+\newblock Report CW 350, Department of Computer Science, K.U.Leuven, Leuven,
+  Belgium, oct 2002.
+\newblock URL =
+  http://www.cs.kuleuven.ac.be/publicaties/rapporten/cw/CW350.abs.html.
+
+\bibitem[Desouter {\em et al.}, 2015]{DBLP:journals/tplp/DesouterDS15}
+Benoit Desouter, Marko van Dooren, and Tom Schrijvers.
+\newblock Tabling as a library with delimited control.
+\newblock {\em {TPLP}}, 15(4-5):419--433, 2015.
+
+\bibitem[Fr\"uhwirth, ]{chrSite}
+T.~Fr\"uhwirth.
+\newblock {Thom Fruehwirth's} constraint handling rules website.
+\newblock http://www.constraint-handling-rules.org.
+
+\bibitem[Fr\"uhwirth, 2009]{Freuhwirth:2009}
+T.~Fr\"uhwirth.
+\newblock {\em {Constraint Handling Rules}}.
+\newblock Cambridge University Press, 2009.
+
+\bibitem[Graham {\em et al.}, 1982]{graham82gprof}
+Susan~L. Graham, Peter~B. Kessler, and Marshall~K. McKusick.
+\newblock gprof: a call graph execution profiler.
+\newblock In {\em {SIGPLAN} Symposium on Compiler Construction}, pages
+  120--126, 1982.
+
+\bibitem[Hodgson, 1998]{stdprolog:98}
+Jonathan Hodgson.
+\newblock validation suite for conformance with part 1 of the standard, 1998,
+  \url{http://www.sju.edu/~jhodgson/pub/suite.tar.gz}.
+
+\bibitem[Holzbaur, 1992]{holzbaur:1992}
+Christian Holzbaur.
+\newblock Metastructures versus attributed variables in the context of
+  extensible unification.
+\newblock In {\em PLILP}, volume 631, pages 260--268. Springer-Verlag, 1992.
+\newblock LNCS 631.
+
+\bibitem[Kernighan \& Ritchie, 1978]{Kernighan:78}
+B.~W. Kernighan and D.~M. Ritchie.
+\newblock {\em The {C} Programming Language}.
+\newblock Prentice-Hall, Englewood Cliffs, New Jersey, 1978.
+
+\bibitem[Neumerkel, 1993]{Neumerkel:93}
+Ulrich Neumerkel.
+\newblock The binary {WAM}, a simplified {Prolog} engine.
+\newblock Technical report, {Technische Universit\"at Wien}, 1993.
+\newblock http://www.complang.tuwien.ac.at/ulrich/papers/PDF/binwam-nov93.pdf.
+
+\bibitem[O'Keefe, 1990]{Keefe:90}
+R.~A. O'Keefe.
+\newblock {\em The Craft of Prolog}.
+\newblock MIT Press, Massachussetts, 1990.
+
+\bibitem[Pereira, 1986]{CPROLOG:manual}
+F.~Pereira.
+\newblock {\em {C-Prolog} User's Manual}.
+\newblock EdCaad, University of Edinburgh, 1986.
+
+\bibitem[Qui, 1997]{QUINTUS:manual}
+AI International ltd., Berkhamsted, UK.
+\newblock {\em {Quintus} {Prolog}, User Guide and Reference Manual}, 1997.
+
+\bibitem[Schimpf, 2002]{logicalloops:2002}
+Joachim Schimpf.
+\newblock Logical loops.
+\newblock In PeterJ. Stuckey, editor, {\em Logic Programming}, volume 2401 of
+  {\em Lecture Notes in Computer Science}, pages 224--238. Springer Berlin
+  Heidelberg, 2002.
+
+\bibitem[Schrijvers {\em et al.}, 2013]{DBLP:journals/tplp/SchrijversDDW13}
+Tom Schrijvers, Bart Demoen, Benoit Desouter, and Jan Wielemaker.
+\newblock Delimited continuations for prolog.
+\newblock {\em {TPLP}}, 13(4-5):533--546, 2013.
+
+\bibitem[Sterling \& Shapiro, 1986]{Sterling:86}
+L.~Sterling and E.~Shapiro.
+\newblock {\em The Art of Prolog}.
+\newblock MIT Press, Cambridge, Massachusetts, 1986.
+
+\bibitem[Tarau, 2011]{DBLP:conf/coordination/Tarau11}
+Paul Tarau.
+\newblock Coordination and concurrency in multi-engine prolog.
+\newblock In Wolfgang~De Meuter and Gruia{-}Catalin Roman, editors, {\em
+  Coordination Models and Languages - 13th International Conference,
+  {COORDINATION} 2011, Reykjavik, Iceland, June 6-9, 2011. Proceedings}, volume
+  6721 of {\em Lecture Notes in Computer Science}, pages 157--171. Springer,
+  2011.
+
+\bibitem[Triska, 2016]{clpb:Triska2016}
+Markus Triska.
+\newblock The {Boolean} constraint solver of {SWI-Prolog}: System description.
+\newblock In {\em FLOPS}, volume 9613 of {\em LNCS}, pages 45--61, 2016.
+\newblock https://www.metalevel.at/swiclpb.pdf.
+
+\end{thebibliography}

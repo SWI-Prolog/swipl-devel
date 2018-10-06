@@ -19,6 +19,9 @@ include(PackageSelection)
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
        ON)
+option(BUILD_PDF_DOCUMENTATION
+       "Build the PDF manuals from source"
+       OFF)
 
 # Verbosity
 set(CMAKE_INSTALL_MESSAGE NEVER)
@@ -60,18 +63,26 @@ enable_testing()
 # Add the core Prolog system
 add_subdirectory(src)
 
-# build the documentation
-add_custom_target(
-    doc.html
-    COMMENT "Build HTML documentation")
-add_custom_target(
-    doc.pdf
-    COMMENT "Build PDF documentation")
-add_custom_target(
-    doc
-    COMMENT "Build the documentation")
-add_dependencies(doc doc.pdf doc.html)
-add_subdirectory(man)
+if(INSTALL_DOCUMENTATION)
+  add_custom_target(
+      doc
+      COMMENT "Build the documentation")
+
+  add_custom_target(
+      doc.html
+      COMMENT "Build HTML documentation")
+
+  add_dependencies(doc doc.html)
+
+  if(BUILD_PDF_DOCUMENTATION)
+    add_custom_target(
+	doc.pdf
+	COMMENT "Build PDF documentation")
+    add_dependencies(doc doc.pdf doc.html)
+  endif()
+
+  add_subdirectory(man)
+endif(INSTALL_DOCUMENTATION)
 
 # Add the packages
 foreach(package ${SWIPL_PACKAGE_LIST})

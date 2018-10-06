@@ -1,12 +1,5 @@
 include(Documentation)
 
-set(LATEX2HTML ${CMAKE_INSTALL_PREFIX}/lib/swipl/bin/latex2html ${DOC_OPTIONS})
-set(DOC2TEX    ${SWIPL_ROOT}/man/doc2tex)
-set(RUNTEX     ${SWIPL_ROOT}/man/runtex ${DOC_OPTIONS})
-set(PLTOTEX    ${SWIPL_ROOT}/packages/pltotex.pl --)
-set(TXTTOTEX   ${SWIPL_ROOT}/packages/txttotex.pl --)
-set(LIBTOTEX   ${SWIPL_ROOT}/man/libtotex.pl --)
-
 function(doc2tex file)
   string(REPLACE ".doc" ".tex" tex ${file})
   add_custom_command(
@@ -99,6 +92,7 @@ function(pkg_doc pkg)
   set(src)
   set(seclevel)
   set(libsubdir)
+  set(bbl)
 
   foreach(arg ${ARGN})
     if(arg STREQUAL "SOURCES")
@@ -134,7 +128,10 @@ function(pkg_doc pkg)
         doc2tex(${arg})
       elseif(arg MATCHES "\\.txt")
         txt2tex(${arg})
-      elseif(arg MATCHES "\\.(gif|pdf|eps|bib)")
+      elseif(arg MATCHES "\\.bib")
+        set(bbl ${pkg}.bbl)
+        copy_file(${arg})
+      elseif(arg MATCHES "\\.(gif|png|pdf|eps)")
         copy_file(${arg})
       elseif(arg MATCHES "\\.tex")
         set(texfiles ${texfiles} ${arg})
@@ -151,33 +148,40 @@ function(pkg_doc pkg)
 
   prepend(texdeps ${CMAKE_CURRENT_BINARY_DIR}/ ${pkg}.tex ${texfiles} ${cpfiles})
 
-  add_custom_command(
-      OUTPUT ${pkg}.pdf
-      COMMAND ${RUNTEX} --pdf ${pkg}
-      DEPENDS ${texdeps}
-      COMMENT "Generating ${pkg}.pdf")
-
-  add_custom_target(
-      ${pkg}.doc.pdf
-      DEPENDS ${pkg}.pdf)
-
-  add_custom_command(
-      OUTPUT ${pkg}.html
-      COMMAND ${LATEX2HTML} ${pkg}
-      DEPENDS ${texdeps})
-
-  add_custom_target(
-      ${pkg}.doc.html
-      DEPENDS ${pkg}.html)
-
-  add_dependencies(doc ${pkg}.doc.pdf ${pkg}.doc.html)
-  add_dependencies(doc.pdf  ${pkg}.doc.pdf)
-  add_dependencies(doc.html ${pkg}.doc.html)
-
   if(INSTALL_DOCUMENTATION)
+    if(BUILD_PDF_DOCUMENTATION)
+      add_custom_command(
+	  OUTPUT ${pkg}.pdf ${bbl}
+	  COMMAND ${RUNTEX} --pdf ${pkg}
+	  DEPENDS ${texdeps}
+	  COMMENT "Generating ${pkg}.pdf")
+
+      add_custom_target(
+	  ${pkg}.doc.pdf
+	  DEPENDS ${pkg}.pdf)
+      add_dependencies(doc.pdf  ${pkg}.doc.pdf)
+    elseif(bbl)
+      add_custom_command(
+	  OUTPUT ${bbl}
+	  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		  ${CMAKE_CURRENT_SOURCE_DIR}/gen/${bbl} ${bbl}
+	  COMMENT "Copying pre-build LaTeX .bbl file")
+    endif(BUILD_PDF_DOCUMENTATION)
+
+    add_custom_command(
+	OUTPUT ${pkg}.html
+	COMMAND swipl ${LATEX2HTML} ${pkg}
+	DEPENDS pkg-ltx2htm ${texdeps} ${bbl})
+
+    add_custom_target(
+	${pkg}.doc.html
+	DEPENDS ${pkg}.html)
+
+    add_dependencies(doc.html ${pkg}.doc.html)
+
     install(FILES ${pkg}.html
 	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages
 	    COMPONENT documentation
 	    OPTIONAL)
-  endif()
+  endif(INSTALL_DOCUMENTATION)
 endfunction()

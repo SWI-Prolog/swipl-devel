@@ -282,4 +282,15 @@ function(has_package name var)
   endif()
 endfunction()
 
+# define_package(name
+#		 [PLUGINS ...])
+
+function(define_package name)
+  cmake_parse_arguments(my "" "" "PLUGINS" ${ARGN})
+  add_custom_target(pkg-${name})
+  foreach(p ${my_PLUGINS})
+    add_dependencies(pkg-${name} plugin_${p})
+  endforeach()
+endfunction()
+
 include(PackageDoc)

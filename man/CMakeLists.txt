@@ -3,11 +3,6 @@ project(swipl-doc-core)
 
 include(Documentation)
 
-set(LATEX2HTML ${CMAKE_INSTALL_PREFIX}/lib/swipl/bin/latex2html ${DOC_OPTIONS})
-set(DOC2TEX    ${CMAKE_CURRENT_SOURCE_DIR}/doc2tex)
-set(RUNTEX     ${CMAKE_CURRENT_SOURCE_DIR}/runtex ${DOC_OPTIONS})
-set(LIBTOTEX   ${CMAKE_CURRENT_SOURCE_DIR}/libtotex.pl --)
-
 set(DOC SWI-Prolog-${SWIPL_VERSION_STRING})
 
 # Libraries documented in .doc files
@@ -191,64 +186,77 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES
 set(cpfiles)
 copy_figures(${FIGS})
 
-# Build SWI-Prolog-<version>.pdf
+if(BUILD_PDF_DOCUMENTATION)
 add_custom_command(
     OUTPUT  ${DOC}.pdf ${DOC}.bbl
     COMMAND env TEXINPUTS=lib:$$TEXINPUTS ${RUNTEX} --pdf ${DOC}
     DEPENDS ${TEXFILES} ${BIBTEX_DATA} ${cpfiles}
     COMMENT "Generating ${DOC}.pdf")
+else()
+add_custom_command(
+    OUTPUT  ${DOC}.bbl
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/gen/swipl.bbl ${DOC}.bbl
+    COMMENT "Copying pre-build LaTeX .bbl file")
+endif()
 
 # Create the HTML manual
 add_custom_command(
     OUTPUT manual.html
     COMMAND rm -f Manual/*.html Manual/*.gif
-    COMMAND echo ${LATEX2HTML} ${DOC}
-    COMMAND env TEXINPUTS=lib:: ${LATEX2HTML} ${DOC}
+    COMMAND swipl ${LATEX2HTML} --texinputs=lib:: ${DOC}
     COMMAND touch manual.html
-    DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles})
-
-doc2tex(windows.tex)
-add_custom_command(
-    OUTPUT windows.html
-    COMMAND ${LATEX2HTML} windows
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex)
-
-add_custom_command(
-    OUTPUT  macosx/macosx.tex
-    COMMAND ${CMAKE_COMMAND} -E make_directory macosx
-    COMMAND ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
-                       > macosx/macosx.tex
-    DEPENDS macosx/macosx.doc)
-
-add_custom_command(
-    OUTPUT  macosx/macosx.html
-    COMMAND ${LATEX2HTML} macosx
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx)
+    COMMENT "Generating HTML documentation for core system"
+    DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles}
+	    pkg-ltx2htm)
 
 ################
-# Targets
+# Windows and MacOS platform guides
 
-add_custom_target(
-    core.doc.html
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manual.html)
-add_custom_target(
-    core.doc.pdf
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.pdf)
-add_custom_target(
-    core.doc.windows.html
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.html)
-add_custom_target(
-    core.doc.macosx.html
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.html)
+if(WIN32)
+  doc2tex(windows.tex)
+  add_custom_command(
+      OUTPUT windows.html
+      COMMAND ${LATEX2HTML} windows
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex)
 
-# Add to the toplevel `doc` target
-add_dependencies(doc core.doc.pdf core.doc.html)
+  add_custom_target(
+      core.doc.windows.html
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.html)
+endif()
 
-################
-# Installation
+if(APPLE)
+  add_custom_command(
+      OUTPUT  macosx/macosx.tex
+      COMMAND ${CMAKE_COMMAND} -E make_directory macosx
+      COMMAND ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
+			 > macosx/macosx.tex
+      DEPENDS macosx/macosx.doc)
+
+  add_custom_command(
+      OUTPUT  macosx/macosx.html
+      COMMAND ${LATEX2HTML} macosx
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx)
+
+  add_custom_target(
+      core.doc.macosx.html
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.html)
+endif()
 
 if(INSTALL_DOCUMENTATION)
+  add_custom_target(
+      core.doc.html
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manual.html)
+  add_dependencies(doc.html core.doc.html)
+
+  if(BUILD_PDF_DOCUMENTATION)
+    add_custom_target(
+	core.doc.pdf
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.pdf)
+    add_dependencies(doc.pdf core.doc.pdf)
+  endif()
+
   install(DIRECTORY Manual
 	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
-endif()
+endif(INSTALL_DOCUMENTATION)
