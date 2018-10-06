@@ -50,7 +50,7 @@ function(add_symlink_command from to)
       DEPENDS ${LNTDIR}/.created)
 endfunction()
 
-function(install_in_home)
+function(install_in_home name)
   cmake_parse_arguments(my "" "RENAME;DESTINATION" "FILES" ${ARGN})
   if(my_DESTINATION AND my_FILES)
     string(REPLACE
@@ -76,15 +76,14 @@ function(install_in_home)
       set(deps ${deps} ${buildhome}/${base})
     endforeach()
 
-    string(SHA1 tname "$my_DESTINATION:${my_FILES}")
     add_custom_target(
-	${tname} ALL
+	${name} ALL
 	DEPENDS ${deps})
-    add_dependencies(prolog_home ${tname})
+    add_dependencies(prolog_home ${name})
   endif()
 endfunction()
 
-function(install_src)
-  install_in_home(${ARGN})
+function(install_src name)
+  install_in_home(${name} ${ARGN})
   install(${ARGN})
 endfunction()

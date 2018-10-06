@@ -106,7 +106,8 @@ function(swipl_plugin name)
   endif()
 
   if(pl_libs)
-    install_src(FILES ${pl_libs}
+    install_src(plugin_${name}_pl_libs
+		FILES ${pl_libs}
 		DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
   endif()
   if(pl_genlibs)
@@ -172,6 +173,7 @@ function(swipl_examples)
   set(files)
   set(dirs)
   set(subdir)
+  set(subdir_)
 
   foreach(arg ${ARGN})
     if(arg STREQUAL "SUBDIR")
@@ -192,13 +194,18 @@ function(swipl_examples)
   set(extdest ${SWIPL_INSTALL_PREFIX}/doc/packages/examples/${SWIPL_PKG})
   if(subdir)
     set(extdest ${extdest}/${subdir})
+    set(subdir_ ${subdir}_)
   endif()
 
+  get_filename_component(pkg ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+
   if(files)
-    install_src(FILES ${files} DESTINATION ${extdest})
+    install_src(plugin_${pkg}_${subdir_}example_files
+		FILES ${files} DESTINATION ${extdest})
   endif()
   if(dirs)
-    install_src(DIRECTORY ${dirs} DESTINATION ${extdest})
+    install_src(plugin_${pkg}_${subdir_}example_dirs
+		DIRECTORY ${dirs} DESTINATION ${extdest})
   endif()
 endfunction()
 
