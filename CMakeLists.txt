@@ -71,7 +71,7 @@ add_subdirectory(src)
 
 if(INSTALL_DOCUMENTATION)
   add_custom_target(
-      doc
+      doc ALL
       COMMENT "Build the documentation")
 
   add_custom_target(
