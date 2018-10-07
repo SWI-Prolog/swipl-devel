@@ -89,7 +89,7 @@ doc2tex(${DOC_CORE})
 
 function(pldoc tex input)
     set(options --source=${CMAKE_CURRENT_SOURCE_DIR})
-    set(depends)
+    set(depends prolog_home prolog_products pldoc)
     set(byproducts)
 
     if(input MATCHES "^library")
@@ -190,7 +190,7 @@ if(BUILD_PDF_DOCUMENTATION)
 add_custom_command(
     OUTPUT  ${DOC}.pdf ${DOC}.bbl
     COMMAND env TEXINPUTS=lib:$$TEXINPUTS ${RUNTEX} --pdf ${DOC}
-    DEPENDS ${TEXFILES} ${BIBTEX_DATA} ${cpfiles}
+    DEPENDS ${TEXFILES} ${BIBTEX_DATA} ${cpfiles} prolog_home
     COMMENT "Generating ${DOC}.pdf")
 else()
 add_custom_command(
@@ -208,7 +208,7 @@ add_custom_command(
     COMMAND touch manual.html
     COMMENT "Generating HTML documentation for core system"
     DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles}
-	    latex2html)
+	    prolog_products latex2html)
 
 ################
 # Windows and MacOS platform guides
