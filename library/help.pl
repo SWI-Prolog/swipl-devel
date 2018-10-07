@@ -311,8 +311,8 @@ running_under_emacs :-
     getenv('TERM', dumb),
     !.
 running_under_emacs :-
-    prompt(P,P),
-    sub_atom(P, _, _, _, '$@'),
+    current_prolog_flag(toplevel_prompt, P),
+    sub_atom(P, _, _, _, 'ediprolog'),
     !.
 
 
