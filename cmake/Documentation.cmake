@@ -2,12 +2,11 @@ set(DOC_OPTIONS --quiet)
 set(TEX_CLEAN_EXTENSIONS aux blg idx ilg ind log out toc)
 
 # Conversion programs from various formats to LaTeX
+set(RUNTEX     ${SWIPL_ROOT}/man/runtex ${DOC_OPTIONS})
 set(LATEX2HTML ${SWIPL_BUILD_LIBRARY}/latex2html/latex2html.pl -- ${DOC_OPTIONS})
 set(DOC2TEX    ${SWIPL_ROOT}/man/doc2tex)
-set(RUNTEX     ${SWIPL_ROOT}/man/runtex ${DOC_OPTIONS})
-set(PLTOTEX    ${SWIPL_ROOT}/packages/pltotex.pl --)
+set(PLDOC2TEX  ${SWIPL_ROOT}/man/pldoc2tex.pl --)
 set(TXTTOTEX   ${SWIPL_ROOT}/packages/txttotex.pl --)
-set(LIBTOTEX   ${SWIPL_ROOT}/man/libtotex.pl --)
 
 # tex_byproducts(base var)
 # Fill var with a list of all LaTeX byproducts when emitting ${base}

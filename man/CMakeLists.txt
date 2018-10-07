@@ -88,7 +88,10 @@ doc2tex(${DOC_CORE})
 #	[DEPENDS ...]
 
 function(pldoc tex input)
-    set(options --source=${CMAKE_CURRENT_SOURCE_DIR})
+    set(options
+	--source=${CMAKE_CURRENT_SOURCE_DIR}
+	--summaries
+        --outdir=lib)
     set(depends prolog_home prolog_products pldoc)
     set(byproducts)
 
@@ -112,7 +115,7 @@ function(pldoc tex input)
 
     add_custom_command(
 	OUTPUT  ${tex}
-	COMMAND swipl ${LIBTOTEX} ${options} "'${input}'"
+	COMMAND swipl ${PLDOC2TEX} ${options} "'${input}'"
 	DEPENDS ${depends}
 	BYPRODUCTS ${byproducts})
 endfunction()

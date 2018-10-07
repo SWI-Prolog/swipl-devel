@@ -65,7 +65,7 @@ function(pldoc file)
   get_filename_component(base ${file} NAME_WE)
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND swipl ${PLTOTEX} --out=${tex} ${seclevel} ${options} ${lib}
+      COMMAND swipl ${PLDOC2TEX} --out=${tex} ${seclevel} ${options} ${lib}
       DEPENDS prolog_products pldoc ${file})
 
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
