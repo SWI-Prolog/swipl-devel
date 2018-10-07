@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(swipl)
 
-option(MULTI_THREADED
-       "Enable multiple Prolog threads"
-       ON)
-option(USE_GMP
-       "Use GNU MP Bignum library (GPL)"
-       ON)
-
 # FIXME: Should become an option, but for now we only support building Prolog
 # as shared object
 set(BUILD_SHARED_LIBS ON)

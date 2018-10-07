@@ -1,4 +1,8 @@
 # Include in all Prolog packages
+#
+# This CMAKE file is used to make   handling  the packages as uniform as
+# possible such that we can perform   all  global package reorganization
+# centrally.
 
 # Get cmake files from this package, the package infrastructure and
 # SWI-Prolog overall
@@ -14,24 +18,11 @@ include(CheckSymbolExists)
 
 # Arity is of size_t.  This should now be the case for all packages
 set(PL_ARITY_AS_SIZE 1)
-
-if(NOT SWIPL_ROOT)
-  get_filename_component(SWIPL_ROOT ../.. ABSOLUTE)
-endif()
-if(NOT SWIPL_INSTALL_DIR)
-  set(SWIPL_INSTALL_DIR swipl)
-endif()
-if(NOT SWIPL_INSTALL_PREFIX)
-  set(SWIPL_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/lib/${SWIPL_INSTALL_DIR})
-endif()
-if(NOT SWIPL_ARCH)
-  string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
-	 SWIPL_ARCH)
-endif()
-if(NOT DEFINED O_PLMT)
+if(MULTI_THREADED)
   set(O_PLMT 1)
-  set(_REENTRANT 1)
+  set(_REENTRANT 1)			# FIXME: packages should use O_PLMT
 endif()
+
 string(REGEX REPLACE "^.*-" "" SWIPL_PKG ${PROJECT_NAME})
 
 # get SWI-Prolog.h and SWI-Stream.h
@@ -43,36 +34,39 @@ if(WIN32)
 endif()
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 
+# On ELF systems there is no need for   the  modules to link against the
+# core system. Dropping this has two advantages: the result is easier to
+# relocate and building  the  packages  can   for  a  large  part happen
+# concurrently with the main system.
+
 if(CMAKE_EXECUTABLE_FORMAT STREQUAL "ELF")
   set(SWIPL_LIBRARIES "")
 else()
   set(SWIPL_LIBRARIES libswipl)
 endif()
 
-if(NOT SWIPL_INSTALL_MODULES)
-  if(WIN32)
-    set(SWIPL_INSTALL_MODULES ${SWIPL_INSTALL_PREFIX}/bin)
-  else()
-    set(SWIPL_INSTALL_MODULES ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
-  endif()
-endif()
-if(NOT SWIPL_INSTALL_LIBRARY)
-  set(SWIPL_INSTALL_LIBRARY ${SWIPL_INSTALL_PREFIX}/library)
-endif()
-if(NOT SWIPL_INSTALL_INCLUDE)
-  set(SWIPL_INSTALL_INCLUDE ${SWIPL_INSTALL_PREFIX}/include)
-endif()
-
 # swipl_plugin(name
+#	       [MODULE name]
 #	       [C_SOURCES file ...]
 #	       [C_LIBS lib ...]
 #	       [C_INCLUDE_DIR dir ...]
 #	       [PL_GENERATED_LIBRARIES ...]
 #	       {[PL_LIB_SUBDIR subdir]
 #	           [PL_LIBS file ...])}*
+#
+# Define a plugin. A  plugin  consists   optionally  of  a shared object
+# (module) and a number of Prolog sources  that must be installed in the
+# library or a subdirectory thereof. It   creates  a target ${name} that
+# creates the shared object, make sure  the Prolog sources are installed
+# in our shadow home and the `install` target is extended to install the
+# module and Prolog files.
+#
+# A SWI-Prolog package (directory under `packages`) may provide multiple
+# plugins.
 
 function(swipl_plugin name)
   set(target ${name})
+  set(v_module ${name})
   set(v_c_sources)
   set(v_c_libs)
   set(v_c_include_dirs)
@@ -85,7 +79,9 @@ function(swipl_plugin name)
   set(mode)
 
   foreach(arg ${ARGN})
-    if(arg STREQUAL "C_SOURCES")
+    if(arg STREQUAL "MODULE")
+      set(mode module)
+    elseif(arg STREQUAL "C_SOURCES")
       set(mode c_sources)
     elseif(arg STREQUAL "C_LIBS")
       set(mode c_libs)
@@ -122,16 +118,18 @@ function(swipl_plugin name)
       set(mode pl_files)
     elseif(mode STREQUAL "pl_files")
       set(${subdir_var} ${${subdir_var}} ${arg})
+    elseif(mode STREQUAL "module")
+      set(v_module ${arg})
     else()
       set(v_${mode} ${v_${mode}} ${arg})
     endif()
   endforeach()
 
   if(v_c_sources)
-    set(foreign_target "plugin_${name}")
+    set(foreign_target "plugin_${v_module}")
     add_library(${foreign_target} MODULE ${v_c_sources})
     set_target_properties(${foreign_target} PROPERTIES
-			  OUTPUT_NAME ${name} PREFIX "")
+			  OUTPUT_NAME ${v_module} PREFIX "")
     target_compile_options(${foreign_target} PRIVATE -D__SWI_PROLOG__)
     target_link_libraries(${foreign_target} ${v_c_libs} ${SWIPL_LIBRARIES})
     if(v_c_include_dirs)
@@ -327,27 +325,19 @@ function(test_libs)
   endforeach()
 endfunction(test_libs)
 
-# has_package(var name)
-# Set var to ON if the package name is included in the targets
+# has_package(name var)
+#
+# Set var to ON if the package  name   is  included in the targets. Note
+# that as of cmake 3.3. we can use if("string" IN_LIST list).
 
 function(has_package name var)
   list(FIND SWIPL_PACKAGE_LIST ${name} index)
   if ( ${index} GREATER -1 )
-    set(var ON)
+    set(var ON PARENT_SCOPE)
   else()
-    set(var OFF)
+    set(var OFF PARENT_SCOPE)
   endif()
 endfunction()
 
-# define_package(name
-#		 [PLUGINS ...])
-
-function(define_package name)
-  cmake_parse_arguments(my "" "" "PLUGINS" ${ARGN})
-  add_custom_target(pkg-${name})
-  foreach(p ${my_PLUGINS})
-    add_dependencies(pkg-${name} plugin_${p})
-  endforeach()
-endfunction()
-
+# Documentation support
 include(PackageDoc)

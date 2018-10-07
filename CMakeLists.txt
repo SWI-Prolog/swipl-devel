@@ -16,6 +16,12 @@ endif()
 include(BuildType)
 include(PackageSelection)
 
+option(MULTI_THREADED
+       "Enable multiple Prolog threads"
+       ON)
+option(USE_GMP
+       "Use GNU MP Bignum library (GPL)"
+       ON)
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
        ON)
