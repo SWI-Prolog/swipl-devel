@@ -42,6 +42,16 @@ set(DOC_CORE intro.tex overview.tex builtin.tex module.tex
 
 set(STYFILES html.sty txt.sty)
 
+add_custom_command(
+    OUTPUT ${PLDOC2TEX_STATE}
+    COMMAND swipl -o ${PLDOC2TEX_STATE} --class=development
+	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
+    DEPENDS pldoc2tex.pl swipl pldoc prolog_products)
+
+add_custom_target(
+    pldoc2tex_state
+    DEPENDS ${PLDOC2TEX_STATE})
+
 function(copy_file file)
   add_custom_command(
       OUTPUT ${file}
@@ -92,7 +102,7 @@ function(pldoc tex input)
 	--source=${CMAKE_CURRENT_SOURCE_DIR}
 	--summaries
         --outdir=lib)
-    set(depends prolog_home prolog_products pldoc)
+    set(depends ${PLDOC2TEX_DEPENDS})
     set(byproducts)
 
     if(input MATCHES "^library")

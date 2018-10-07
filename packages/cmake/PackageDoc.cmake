@@ -14,7 +14,7 @@ function(txt2tex file)
   add_custom_command(
       OUTPUT ${tex}
       COMMAND swipl ${PLDOC2TEX} --outdir=. ${CMAKE_CURRENT_SOURCE_DIR}/${file}
-      DEPENDS prolog_products pldoc ${file})
+      DEPENDS ${PLDOC2TEX_DEPENDS} ${file})
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
 
@@ -66,7 +66,7 @@ function(pldoc file)
   add_custom_command(
       OUTPUT ${tex}
       COMMAND swipl ${PLDOC2TEX} --out=${tex} ${seclevel} ${options} ${lib}
-      DEPENDS prolog_products pldoc ${file})
+      DEPENDS ${PLDOC2TEX_DEPENDS} ${file})
 
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()

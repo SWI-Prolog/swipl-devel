@@ -213,5 +213,9 @@ to_option(Arg, Option) :-
     Option =.. [Opt,true].
 
 process_file(Options, File) :-
+    (   option(trace(true), Options)
+    ->  trace
+    ;   true
+    ),
     pltotex(File, Options).
 
