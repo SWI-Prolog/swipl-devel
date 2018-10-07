@@ -208,7 +208,7 @@ add_custom_command(
     COMMAND touch manual.html
     COMMENT "Generating HTML documentation for core system"
     DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles}
-	    pkg-ltx2htm)
+	    latex2html)
 
 ################
 # Windows and MacOS platform guides

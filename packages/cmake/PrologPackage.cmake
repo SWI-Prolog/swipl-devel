@@ -66,17 +66,21 @@ endif()
 # swipl_plugin(name
 #	       [C_SOURCES file ...]
 #	       [C_LIBS lib ...]
+#	       [C_INCLUDE_DIR dir ...]
 #	       [PL_GENERATED_LIBRARIES ...]
-#	       [PL_LIB_SUBDIR subdir]
-#	       [PL_LIBS file ...])
+#	       {[PL_LIB_SUBDIR subdir]
+#	           [PL_LIBS file ...])}*
 
 function(swipl_plugin name)
-  set(target "plugin_${name}")
-  set(c_sources)
-  set(c_libs)
-  set(pl_libs)
-  set(pl_genlibs)
-  set(pl_lib_subdir)
+  set(target ${name})
+  set(v_c_sources)
+  set(v_c_libs)
+  set(v_c_include_dirs)
+  set(v_pl_subdir)			# current subdir
+  set(v_pl_subdirs)			# list of subdirs
+  set(v_pl_gensubdirs)			# list of subdirs (generated files)
+
+  add_custom_target(${target})
 
   set(mode)
 
@@ -85,36 +89,82 @@ function(swipl_plugin name)
       set(mode c_sources)
     elseif(arg STREQUAL "C_LIBS")
       set(mode c_libs)
-    elseif(arg STREQUAL "PL_LIBS")
-      set(mode pl_libs)
-    elseif(arg STREQUAL "PL_GENERATED_LIBRARIES")
-      set(mode pl_genlibs)
+    elseif(arg STREQUAL "C_INCLUDE_DIR")
+      set(mode c_include_dirs)
     elseif(arg STREQUAL "PL_LIB_SUBDIR")
       set(mode pl_lib_subdir)
+    elseif(mode STREQUAL "pl_lib_subdir")
+      set(v_pl_subdir ${arg})
+      set(mode after_subdir)
+    elseif(mode STREQUAL after_subdir)
+      if(arg STREQUAL "PL_LIBS")
+	set(v_pl_subdirs ${v_pl_subdirs} "@${v_pl_subdir}")
+	string(REPLACE "/" "_" subdir_var "v_pl_subdir_${v_pl_subdir}")
+	set(${subdir_var})
+      elseif(arg STREQUAL "PL_GENERATED_LIBRARIES")
+	set(v_pl_gensubdirs ${v_pl_gensubdirs} "@${v_pl_subdir}")
+	string(REPLACE "/" "_" subdir_var "v_pl_gensubdir_${v_pl_subdir}")
+	set(${subdir_var})
+      else()
+        message(FATAL_ERROR "PL_LIB_SUBDIR must be followed by \
+	                     PL_LIBS or PL_GENERATED_LIBRARIES")
+      endif()
+      set(mode pl_files)
+    elseif(arg STREQUAL "PL_LIBS")
+      set(v_pl_subdirs ${v_pl_subdirs} "@${v_pl_subdir}")
+      string(REPLACE "/" "_" subdir_var "v_pl_subdir_${v_pl_subdir}")
+      set(${subdir_var})
+      set(mode pl_files)
+    elseif(arg STREQUAL "PL_GENERATED_LIBRARIES")
+      set(v_pl_gensubdirs ${v_pl_gensubdirs} "@${v_pl_subdir}")
+      string(REPLACE "/" "_" subdir_var "v_pl_gensubdir_${v_pl_subdir}")
+      set(${subdir_var})
+      set(mode pl_files)
+    elseif(mode STREQUAL "pl_files")
+      set(${subdir_var} ${${subdir_var}} ${arg})
     else()
-      set(${mode} ${${mode}} ${arg})
+      set(v_${mode} ${v_${mode}} ${arg})
     endif()
   endforeach()
 
-  if(c_sources)
-    add_library(${target} MODULE ${c_sources})
-    set_target_properties(${target} PROPERTIES OUTPUT_NAME ${name} PREFIX "")
-    target_link_libraries(${target} ${c_libs} ${SWIPL_LIBRARIES})
+  if(v_c_sources)
+    set(foreign_target "plugin_${name}")
+    add_library(${foreign_target} MODULE ${v_c_sources})
+    set_target_properties(${foreign_target} PROPERTIES
+			  OUTPUT_NAME ${name} PREFIX "")
+    target_compile_options(${foreign_target} PRIVATE -D__SWI_PROLOG__)
+    target_link_libraries(${foreign_target} ${v_c_libs} ${SWIPL_LIBRARIES})
+    if(v_c_include_dirs)
+      target_include_directories(${foreign_target} BEFORE PRIVATE
+				 ${v_c_include_dirs})
+    endif()
+    add_dependencies(${target} ${foreign_target})
 
-    install(TARGETS ${target}
+    install(TARGETS ${foreign_target}
 	    LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
   endif()
 
-  if(pl_libs)
-    install_src(plugin_${name}_pl_libs
-		FILES ${pl_libs}
-		DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
-  endif()
-  if(pl_genlibs)
-    prepend(pl_genlibs ${CMAKE_CURRENT_BINARY_DIR}/ ${pl_genlibs})
-    install(FILES ${pl_genlibs}
-            DESTINATION ${SWIPL_INSTALL_LIBRARY}/${pl_lib_subdir})
-  endif()
+  foreach(sd ${v_pl_subdirs})
+    string(REPLACE "@" "" sd "${sd}")
+    string(REPLACE "/" "_" subdir_var "v_pl_subdir_${sd}")
+    if(${subdir_var})
+      string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
+      install_src(${src_target}
+		  FILES ${${subdir_var}}
+		  DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
+      add_dependencies(${target} ${src_target})
+    endif()
+  endforeach()
+
+  foreach(sd ${v_pl_gensubdirs})
+    string(REPLACE "@" "" sd "${sd}")
+    string(REPLACE "/" "_" subdir_var "v_pl_gensubdir_${sd}")
+    if(${subdir_var})
+      string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
+      install(FILES ${${subdir_var}}
+	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
+    endif()
+  endforeach()
 endfunction(swipl_plugin)
 
 # install_dll(file ...)

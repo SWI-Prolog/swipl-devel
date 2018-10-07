@@ -171,7 +171,7 @@ function(pkg_doc pkg)
     add_custom_command(
 	OUTPUT ${pkg}.html
 	COMMAND swipl ${LATEX2HTML} ${pkg}
-	DEPENDS pkg-ltx2htm ${texdeps} ${bbl})
+	DEPENDS latex2html ${texdeps} ${bbl})
 
     add_custom_target(
 	${pkg}.doc.html
