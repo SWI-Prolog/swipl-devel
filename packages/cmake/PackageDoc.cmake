@@ -14,7 +14,7 @@ function(txt2tex file)
   add_custom_command(
       OUTPUT ${tex}
       COMMAND swipl ${TXTTOTEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file}
-      DEPENDS ${file})
+      DEPENDS prolog_products pldoc ${file})
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
 
@@ -66,7 +66,7 @@ function(pldoc file)
   add_custom_command(
       OUTPUT ${tex}
       COMMAND swipl ${PLTOTEX} --out=${tex} ${seclevel} ${options} ${lib}
-      DEPENDS ${file})
+      DEPENDS prolog_products pldoc ${file})
 
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
@@ -93,9 +93,12 @@ function(pkg_doc pkg)
   set(seclevel)
   set(libsubdir)
   set(bbl)
+  set(depends)
 
   foreach(arg ${ARGN})
-    if(arg STREQUAL "SOURCES")
+    if(arg STREQUAL "DEPENDS")
+      set(mode m_depends)
+    elseif(arg STREQUAL "SOURCES")
       flush_src()
       set(mode sources)
     elseif(arg STREQUAL "SOURCE")
@@ -121,6 +124,8 @@ function(pkg_doc pkg)
     elseif(mode STREQUAL "lbsubdir")
       set(libsubdir ${arg})
       set(mode)
+    elseif(mode STREQUAL "m_depends")
+      set(depends ${depends} ${arg})
     else()
       if(arg MATCHES "\\.(pl|md)")
         pldoc(${arg})
@@ -148,12 +153,16 @@ function(pkg_doc pkg)
 
   prepend(texdeps ${CMAKE_CURRENT_BINARY_DIR}/ ${pkg}.tex ${texfiles} ${cpfiles})
 
+  if(NOT depends)
+    set(depends ${pkg})
+  endif()
+
   if(INSTALL_DOCUMENTATION)
     if(BUILD_PDF_DOCUMENTATION)
       add_custom_command(
 	  OUTPUT ${pkg}.pdf ${bbl}
 	  COMMAND ${RUNTEX} --pdf ${pkg}
-	  DEPENDS ${texdeps}
+	  DEPENDS ${texdeps} ${depends}
 	  COMMENT "Generating ${pkg}.pdf")
 
       add_custom_target(
@@ -171,7 +180,7 @@ function(pkg_doc pkg)
     add_custom_command(
 	OUTPUT ${pkg}.html
 	COMMAND swipl ${LATEX2HTML} ${pkg}
-	DEPENDS latex2html ${texdeps} ${bbl})
+	DEPENDS latex2html prolog_products ${texdeps} ${bbl} ${depends})
 
     add_custom_target(
 	${pkg}.doc.html
