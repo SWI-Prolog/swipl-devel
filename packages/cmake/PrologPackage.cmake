@@ -158,8 +158,9 @@ function(swipl_plugin name)
     string(REPLACE "@" "" sd "${sd}")
     string(REPLACE "/" "_" subdir_var "v_pl_gensubdir_${sd}")
     if(${subdir_var})
+      prepend(_genlibs ${CMAKE_CURRENT_BINARY_DIR}/ ${${subdir_var}})
       string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
-      install(FILES ${${subdir_var}}
+      install(FILES ${_genlibs}
 	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
     endif()
   endforeach()
