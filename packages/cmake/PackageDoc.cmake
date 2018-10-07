@@ -13,7 +13,7 @@ function(txt2tex file)
   string(REPLACE ".txt" ".tex" tex ${file})
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND swipl ${TXTTOTEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file}
+      COMMAND swipl ${PLDOC2TEX} --outdir=. ${CMAKE_CURRENT_SOURCE_DIR}/${file}
       DEPENDS prolog_products pldoc ${file})
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
