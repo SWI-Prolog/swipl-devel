@@ -92,3 +92,4 @@ be edited using edit/1 and friends.
     - Split core tests in many small tests.
   - Create installers
   - Install pkg-config files
+  - Provide a FindSWIPL.cmake?
