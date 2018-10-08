@@ -44,6 +44,8 @@
 :- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
 
 :- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(error)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog test file.  A test is a clause of the form:
@@ -58,8 +60,15 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- format(user_error,
-	  'SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
+:- multifile prolog:message//1.
+prolog:message(test(main_suite)) -->
+	[ 'SWI-Prolog test suite.'-[], nl,
+	  'To run all tests run ?- test.'-[], nl, nl
+	].
+prolog:message(test(empty_dir(Dir))) -->
+	[ 'No tests in directory ~p'-[Dir] ].
+
+:- print_message(informational, test(main_suite)).
 
 % Required to get this always running regardless of user LANG setting.
 % Without this the tests won't run on machines with -for example- LANG=ja
@@ -2648,14 +2657,19 @@ run_test_scripts(Directory) :-
 	    atomic_list_concat([ScriptDir, /, Directory], Dir),
 	    exists_directory(Dir)
 	->  true
-	;   Dir = Directory
+	;   exists_directory(Directory)
+	->  Dir = Directory
+	;   existence_error(directory, Directory)
 	),
 	atom_concat(Dir, '/*.pl', Pattern),
 	expand_file_name(Pattern, Files),
 	file_base_name(Dir, BaseDir),
-	format(user_error, '~NRunning scripts from ~w ', [BaseDir]),
-	run_scripts(Files),
-	format(user_error, ' done~n', []).
+	(   Files == []
+	->  print_message(warning, test(empty_dir(Dir)))
+	;   format(user_error, '~NRunning scripts from ~w ', [BaseDir]),
+	    run_scripts(Files),
+	    format(user_error, ' done~n', [])
+	).
 
 run_scripts([]).
 run_scripts([H|T]) :-
@@ -2787,20 +2801,47 @@ testdir('Tests/save').
 	failed/1,
 	blocked/2.
 
+:- initialization(test, main).
+
 test :-
+	current_prolog_flag(argv, Argv),
+	argv_options(Argv, Files, Options),
+	test(Files, Options).
+
+test(_, Options) :-
+	option(list_test_dirs(true), Options),
+	!,
+	forall(testdir(Dir),
+	       ( atom_concat('Tests/', Id, Dir),
+		 writeln(Id))).
+test(Files, Options) :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
-	forall(testset(Set), runtest(Set)),
-	scripts,
+	(   option(core(false), Options)
+	->  true
+	;   forall(testset(Set), runtest(Set))
+	),
+	scripts(Files, Options),
 	garbage_collect,
 	garbage_collect_atoms,
 	trim_stacks,
-	statistics,
+	(   current_prolog_flag(verbose, silent)
+	->  true
+	;   statistics
+	),
 	report_blocked,
 	report_failed.
 
-scripts :-
+scripts(_Files, Options) :-
+	option(subdirs(false), Options),
+	!.
+scripts([], _Options) :-
 	forall(testdir(Dir), run_test_scripts(Dir)).
+scripts(Dirs, _Options) :-
+	forall(member(Dir, Dirs),
+	       (   atom_concat('Tests/', Dir, TestDir),
+		   run_test_scripts(TestDir)
+	       )).
 
 
 report_blocked :-
@@ -2954,3 +2995,4 @@ hidden_module(user) :- !.
 hidden_module(system) :- !.
 hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
+
