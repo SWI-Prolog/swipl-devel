@@ -145,6 +145,11 @@ function(pkg_doc pkg)
   endforeach()
   flush_src()
 
+  # Some packages rely on man/pl.bib rather than a local bibliography
+  if(NOT bbl AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/gen/${pkg}.bbl)
+    set(bbl ${pkg}.bbl)
+  endif()
+
   doc2tex(${pkg}.doc)
 
   tex_byproducts(${pkg} byproducts)
