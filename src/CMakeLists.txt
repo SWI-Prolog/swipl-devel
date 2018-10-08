@@ -317,7 +317,7 @@ add_test(NAME core:basic
 	 COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
 foreach(test ${SWIPL_TEST_DIRS})
   add_test(NAME core:${test}
-	   COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl ${test})
+	   COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
 # Populate parms.h, making the compilation environment known to Prolog
