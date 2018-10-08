@@ -301,14 +301,24 @@ if(WIN32)
 include(WindowsTargets)
 endif()
 
-# testing (traditional)
+################
+# Testing
+
 add_custom_target(check
-    COMMAND swipl -q -g test -t halt ${CMAKE_CURRENT_SOURCE_DIR}/test.pl
-)
-# For ctest
-# FIXME: split the core tests such that ctest shows progress.
-add_test(NAME core
-	 COMMAND swipl -q -g test -t halt ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
+    COMMAND swipl -q -g test -t halt ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
+
+set(SWIPL_TEST_DIRS unprotected core attvar library charset eclipse clp
+    GC save)
+if(MULTI_THREADED)
+  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread)
+endif()
+
+add_test(NAME core:basic
+	 COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
+foreach(test ${SWIPL_TEST_DIRS})
+  add_test(NAME core:${test}
+	   COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl ${test})
+endforeach()
 
 # Populate parms.h, making the compilation environment known to Prolog
 include(Params)
