@@ -733,9 +733,11 @@ setup_interactive :-
 %   Toplevel called when invoked with -c option.
 
 '$compile' :-
+    '$load_system_init_file',
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
+    attach_packs,
     catch('$compile_wic', E, (print_message(error, E), halt(1))).
 
 
