@@ -31,13 +31,14 @@ using e.g.,
 By default the system configures all   features. Several cmake _options_
 allow for restricting the system.
 
-  | `-DMULTI_THREADED=OFF`       | Drop support for Prolog threads  |
-  | `-DUSE_GMP=OFF`              | Drop bignum and rational numbers |
-  | `-DSWIPL_PACKAGES=OFF`       | Only build the core system       |
-  | `-DSWIPL_PACKAGES_BASIC=OFF` | Drop all basic packages          |
-  | `-DSWIPL_PACKAGES_ODBC=OFF`  | Drop ODBC and CQL packages       |
-  | `-DSWIPL_PACKAGES_JAVA=OFF`  | Drop JPL Java interface          |
-  | `-DSWIPL_PACKAGES_X=OFF`     | Drop graphics (xpce)             |
+  | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads  |
+  | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers |
+  | `-DSWIPL_PACKAGES=OFF`        | Only build the core system       |
+  | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages          |
+  | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages       |
+  | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface          |
+  | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)             |
+  | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs    |
 
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
@@ -86,14 +87,8 @@ be edited using edit/1 and friends.
 ## Issues
 
   - Build documention
-    - When including HTML is selected, build this during the concurrent
-      build.
-      - Docs must be build after (most of) the systems.  How to organise
-        the dependencies?
-	- Add a single toplevel target for each package (without docs)
-	- Add a list of depenencies between targets
     - See whether we can eliminate Perl dependency (doc2tex)
-    - See why the PlDoc conversion steps are slow.  Possibly this is
-      mostly the PlDoc startup time?
+  - Test handling
+    - Split core tests in many small tests.
   - Create installers
   - Install pkg-config files
