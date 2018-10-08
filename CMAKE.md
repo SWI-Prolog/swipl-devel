@@ -84,6 +84,31 @@ complete development environment and library   and system predicates can
 be edited using edit/1 and friends.
 
 
+### Testing
+
+Tests are registered for use with `ctest`.  To run all tests, simply run
+this in the build directory:
+
+    % ctest
+
+Note that there seem to be  few   tests.  This is misleading. Each ctest
+test loads a Prolog file that  may  run   hundreds  of  tests. If a test
+fails,  run  the  command  below  to    get  details.  Tests  are  named
+_package_:_name_, so `ctest -V -R clib:` runs   the tests for the `clib`
+package.
+
+    % ctest -V -R name
+
+Note that all tests can be executed   interactively  by loading the test
+file and calling the entry point  as   illustrated.  The  entry point is
+always the base  name  of  the   file  (without  directory  and  without
+extension).
+
+    % src/swipl ../src/Tests/core/test_arith.pl
+    ?- test_arith.
+    % PL-Unit: div ... done
+    ...
+
 ## Issues
 
   - Build documention
@@ -93,3 +118,7 @@ be edited using edit/1 and friends.
   - Create installers
   - Install pkg-config files
   - Provide a FindSWIPL.cmake?
+  - JPL
+    - Test Java part of the tests
+    - Update jpl_config_dylib/0 to deal with modified files
+      and linking strategy used by cmake.
