@@ -382,22 +382,42 @@ library_index_out_of_date(Index, Files) :-
 
 do_make_library_index(Index, Dir, Files) :-
     ensure_slash(Dir, DirS),
+    build_index(Index, Build),
+    BuildError = error(BuildFormal, _),
     catch(setup_call_cleanup(
-              open(Index, write, Fd),
+              open(Build, write, Fd),
               ( print_message(informational, make(library_index(Dir))),
                 index_header(Fd),
                 index_files(Files, DirS, Fd)
               ),
               close(Fd)),
-          E, index_error(E)).
+          BuildError, index_error(BuildError)),
+    (   var(BuildFormal)
+    ->  InstallError = error(_,_),
+        catch(rename_file(Build, Index),
+              InstallError, index_install_error(InstallError, Build))
+    ;   true
+    ).
+
+build_index(Index, Build) :-
+    file_directory_name(Index, Dir),
+    current_prolog_flag(pid, Pid),
+    format(atom(Build), '~w/.index_~d', [Dir,Pid]).
 
 index_error(E) :-
     silent,
-    E = error(permission_error(open, source_sink, _)),
+    E = error(permission_error(open, source_sink, _), _),
     !.
 index_error(E) :-
-    print_message(error, E).
+    print_message(warning, E).
 
+index_install_error(E, File) :-
+    catch(delete_file(File), _, true),
+    (   silent,
+        E = error(permission_error(_,_,_), _)
+    ->  true
+    ;   print_message(warning, E)
+    ).
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-
