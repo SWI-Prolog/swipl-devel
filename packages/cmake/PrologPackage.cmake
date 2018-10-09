@@ -269,31 +269,24 @@ if(NOT SWIPL_PATH_SEP)
 endif()
 
 function(test_lib name)
+  cmake_parse_arguments(my "PARENT_LIB" "NAME" "PACKAGES" ${ARGN})
+  set(test_goal "test_${name}")
   set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/test_${name}.pl")
-  set(test_goal   "test_${name}")
-  set(mode)
-  set(packages)
-  set(pforeign ${CMAKE_CURRENT_BINARY_DIR})
-  set(plibrary ".")
 
-  foreach(arg ${ARGN})
-    if(arg STREQUAL "PACKAGES")
-      set(mode "packages")
-    elseif(arg STREQUAL "PARENT_LIB")
-      set(plibrary "${plibrary}${sep}..")
-    else()
-      set(${mode} ${${mode}} ${arg})
-    endif()
-  endforeach()
+  if(my_NAME)
+    set(test_name ${my_NAME})
+  else()
+    set(test_name ${name})
+  endif()
 
-  foreach(pkg ${packages})
+  foreach(pkg ${my_PACKAGES})
     get_filename_component(src ${CMAKE_CURRENT_SOURCE_DIR}/../${pkg} ABSOLUTE)
     get_filename_component(bin ${CMAKE_CURRENT_BINARY_DIR}/../${pkg} ABSOLUTE)
     set(plibrary "${plibrary}${SWIPL_PATH_SEP}${src}")
     set(pforeign "${pforeign}${SWIPL_PATH_SEP}${bin}")
   endforeach()
 
-  add_test(NAME "${SWIPL_PKG}:${name}"
+  add_test(NAME "${SWIPL_PKG}:${test_name}"
 	   COMMAND swipl -p "foreign=${pforeign}"
 			 -p "library=${plibrary}"
 			 -f none -s ${test_source}
