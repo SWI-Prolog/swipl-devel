@@ -58,10 +58,8 @@
 This module provides help/1 and apropos/1 that   give help on a topic or
 searches the manual for relevant topics.
 
-## Controlling the output
-
 By default the result of  help/1  is   sent  through  a  _pager_ such as
-`less`. Tis behaviour is controlled by the following:
+`less`. This behaviour is controlled by the following:
 
   - The Prolog flag `help_pager`, which can be set to one of the
     following values:
@@ -98,7 +96,10 @@ By default the result of  help/1  is   sent  through  a  _pager_ such as
 %
 %     - Atom
 %       This ambiguous form is most commonly used and shows all
-%       matching documents.
+%       matching documents.  For example:
+%
+%           ?- help(append).
+%
 %     - Name/Arity
 %       Give help on predicates with matching Name/Arity.  Arity may
 %       be unbound.

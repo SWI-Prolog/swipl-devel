@@ -19,7 +19,7 @@ set(PLDOC_LIB check.tex url.tex debug.tex lists.tex
     charsio.tex shlib.tex csv.tex optparse.tex clpblib.tex predopts.tex
     random.tex varnumbers.tex quasiquotations.tex solutionsequences.tex
     iostream.tex persistency.tex yall.tex error.tex simplexlib.tex
-    dicts.tex)
+    dicts.tex help.tex explain.tex)
 prepend(PLDOC_LIB lib/ ${PLDOC_LIB})
 
 set(TEX_LIB ${DOC_LIB} ${PLDOC_LIB})
@@ -147,6 +147,8 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(prolog_pack --section)
+libdoc(help --subsection)
+libdoc(explain --subsection)
 pldoc(lib/assoclib.tex lib/assoclib.md
       OPTIONS --lib=assoc --module=assoc
       DEPENDS lib/assoclib.md ../library/assoc.pl)

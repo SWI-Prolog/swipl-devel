@@ -48,7 +48,8 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/varnumbers.tex lib/quasiquotations.tex \
 		lib/solutionsequences.tex lib/iostream.tex \
 		lib/persistency.tex lib/yall.tex lib/error.tex \
-		lib/simplex.tex lib/simplexlib.tex lib/dicts.tex
+		lib/simplex.tex lib/simplexlib.tex lib/dicts.tex \
+		lib/help.tex lib/explain.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex engines.tex \
@@ -150,6 +151,10 @@ lib/assoclib.tex: lib/assoclib.md ../library/assoc.pl
 		$(LIBTOTEX) --lib=assoc --module=assoc lib/assoclib.md
 lib/error.tex:	../library/error.pl
 		$(LIBTOTEX) 'library(error)'
+lib/help.tex:	../library/help.pl
+		$(LIBTOTEX) --subsection 'library(help)'
+lib/explain.tex: ../library/explain.pl
+		$(LIBTOTEX) --subsection 'library(explain)'
 lib/clpblib.tex: lib/clpblib.md ../library/clp/clpb.pl
 		$(LIBTOTEX) --lib=clpb --module=clpb lib/clpblib.md
 lib/clpfdlib.tex: lib/clpfdlib.md ../library/clp/clpfd.pl

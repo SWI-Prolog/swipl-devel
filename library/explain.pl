@@ -66,7 +66,10 @@ cross-referencer.
 
 %!  explain(@Term) is det
 %
-%   Write all information known about Term to the current output.
+%   Give an explanation on Term. The  argument   may  be any Prolog data
+%   object. If the argument is an atom,  a term of the form `Name/Arity`
+%   or a term of the form   `Module:Name/Arity`, explain/1 describes the
+%   predicate as well as possible references to it. See also gxref/0.
 
 explain(Item) :-
     explain(Item, Explanation),
@@ -80,7 +83,7 @@ explain(_).
 
 %!  explain(@Term, -Explanation) is nondet.
 %
-%   Explanation describes information about Term.
+%   True when Explanation is an explanation of Term.
 
 explain(Var, Explanation) :-
     var(Var),

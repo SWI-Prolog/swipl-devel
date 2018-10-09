@@ -594,69 +594,10 @@ There are several alternatives though:
 \end{shortlist}
 
 
-\section{Online Help}				\label{sec:help}
+\section{Online Help}				\label{sec:online-help}
 
-SWI-Prolog provides an online help system that covers this manual. If
-the XPCE graphics system is available, online help opens a graphical
-window. Otherwise the documentation is shown in the Prolog console. The
-help system is controlled by the predicates below. Note that this
-help system only covers the core SWI-Prolog manual. The
-website\footnote{\url{http://www.swi-prolog.org}} provides an integrated
-manual that covers the core system as well as all standard extension
-packages. It is possible to install the SWI-Prolog website locally by
-cloning the website repository
-\url{git://www.swi-prolog.org/home/pl/git/plweb.git} and following the
-instructions in the \file{README} file.
-
-\begin{description}
-    \predicate{help}{0}{}
-Equivalent to \exam{help(help/1)}.
-
-    \predicate{help}{1}{+What}
-Show specified part of the manual.  \arg{What} is one of:
-\begin{center}\begin{tabular}{lp{3.5in}}
-<Name>/<Arity>  & Give help on specified predicate \\
-<Name>          & Give help on named predicate with any arity
-                  or C interface function with that name \\
-<Section>       & Display specified section. Section numbers are
-                  dash-separated numbers: \exam{2-3} refers to
-                  section 2.3 of the manual.  Section numbers are
-                  obtained using apropos/1.
-\end{tabular}\end{center}
-
-Examples:
-\begin{center}\begin{tabular}{lp{3.5in}}
-\exam{?- help(assert).}    & Give help on predicate assert \\
-\exam{?- help(3-4).}       & Display section 3.4 of the manual \\
-\exam{?- help('PL_retry').}& Give help on interface function PL_retry() \\
-\end{tabular}\end{center}
-
-See also apropos/1 and the SWI-Prolog home page at
-\url{http://www.swi-prolog.org}, which provides a FAQ, an HTML version
-of the manual for online browsing, and HTML and PDF versions for downloading.
-
-    \predicate{apropos}{1}{+Pattern}
-Display all predicates, functions and sections that have {\em
-Pattern} in their name or summary description.  Lowercase letters in
-\arg{Pattern} also match a corresponding uppercase letter. Example:
-\begin{center}\begin{tabular}{lp{\linewidth-3in}}
-\exam{?- apropos(file).}   & Display predicates, functions and sections
-                            that have `file' (or `File', etc.) in their
-                            summary description. \\
-\end{tabular}\end{center}
-
-    \predicate{explain}{1}{+ToExplain}
-Give an explanation on the given `object'. The argument may be any
-Prolog data object. If the argument is an atom, a term of the form
-\arg{Name/Arity} or a term of the form {\em Module:Name/Arity},
-explain/1 describes the predicate as well as possible references to it.
-See also gxref/0.
-
-    \predicate{explain}{2}{+ToExplain, -Explanation}
-Unify \arg{Explanation} with an explanation for \arg{ToExplain}.
-Backtracking yields further explanations.
-\end{description}
-
+\input{lib/help.tex}
+\input{lib/explain.tex}
 
 \section{Command line history}			\label{sec:history}
 

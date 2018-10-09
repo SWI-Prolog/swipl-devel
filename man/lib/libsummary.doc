@@ -78,6 +78,12 @@
 \libsummary{error}
 \input{summaries.d/error.tex}
 
+\libsummary{explain}
+\input{summaries.d/explain.tex}
+
+\libsummary{help}
+\input{summaries.d/help.tex}
+
 \libsummary{iostream}
 \libsummary{summaries.d/iostream/tex}
 
