@@ -12,25 +12,6 @@ set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex gensym.tex
     ugraphs.tex wwwbrowser.tex)
 prepend(DOC_LIB lib/ ${DOC_LIB})
 
-# Libraries documented using PlDoc
-set(PLDOC_LIB check.tex url.tex debug.tex lists.tex
-    prologpack.tex assoclib.tex ordsets.tex clpfdlib.tex pairs.tex
-    option.tex main.tex apply.tex aggregate.tex threadpool.tex pureinput.tex
-    charsio.tex shlib.tex csv.tex optparse.tex clpblib.tex predopts.tex
-    random.tex varnumbers.tex quasiquotations.tex solutionsequences.tex
-    iostream.tex persistency.tex yall.tex error.tex simplexlib.tex
-    dicts.tex help.tex explain.tex)
-prepend(PLDOC_LIB lib/ ${PLDOC_LIB})
-
-set(TEX_LIB ${DOC_LIB} ${PLDOC_LIB})
-
-foreach(f ${PLDOC_LIB})
-  string(REGEX REPLACE "\\.tex" ".doc" docin ${f})
-  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${docin})
-    message("WARNING: DOC file for ${f}")
-  endif()
-endforeach()
-
 set(FIGS broadcast by-sa profnode swipl xrefchatdep xrefchatfile)
 
 # Main files
@@ -97,6 +78,8 @@ doc2tex(${DOC_CORE})
 #	[OPTIONS ...]
 #	[DEPENDS ...]
 
+set(PLDOC_LIB)
+
 function(pldoc tex input)
     set(options
 	--source=${CMAKE_CURRENT_SOURCE_DIR}
@@ -104,6 +87,8 @@ function(pldoc tex input)
         --outdir=lib)
     set(depends ${PLDOC2TEX_DEPENDS})
     set(byproducts)
+
+    set(PLDOC_LIB ${PLDOC_LIB} ${tex} PARENT_SCOPE)
 
     if(input MATCHES "^library")
       string(REGEX REPLACE "library\\((.*)\\)" "\\1" base ${input})
@@ -141,6 +126,8 @@ function(libsdoc)
   endforeach()
 endfunction()
 
+# Specify how to generate tex files from PlDoc
+# Note: all files must be in
 libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         thread_pool charsio debug csv lists main check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall)
@@ -165,6 +152,15 @@ pldoc(lib/predopts.tex lib/predopts.txt
       OPTIONS --lib=predicate_options
       DEPENDS lib/predopts.txt ../library/predicate_options.pl)
 
+# Check that we do not have both a .doc file and extract from the
+# Prolog source
+foreach(f ${PLDOC_LIB})
+  string(REGEX REPLACE "\\.tex" ".doc" docin ${f})
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${docin})
+    message("WARNING: DOC file for ${f}")
+  endif()
+endforeach()
+
 doc2tex(${DOC_LIB})
 
 # Create SWI-Prolog-<version>.tex
@@ -188,7 +184,9 @@ add_custom_command(
     DEPENDS pl.bib)
 
 # Collect all input files
-prepend(TEXFILES ${CMAKE_CURRENT_BINARY_DIR}/ ${DOC}.tex ${DOC_CORE} ${TEX_LIB})
+
+prepend(TEXFILES ${CMAKE_CURRENT_BINARY_DIR}/
+	${DOC}.tex ${DOC_CORE} ${DOC_LIB} ${PLDOC_LIB})
 
 # Collect LaTeX aux files
 string(REPLACE ".tex" ".aux" AUX_FILES "${DOC_CORE}")
