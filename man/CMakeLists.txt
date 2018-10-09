@@ -118,12 +118,14 @@ endfunction()
 function(libdoc lib)
   string(REGEX REPLACE "_" "" texf ${lib})
   pldoc(lib/${texf}.tex "library(${lib})" ${ARGN})
+  set(PLDOC_LIB ${PLDOC_LIB} PARENT_SCOPE)
 endfunction()
 
 function(libsdoc)
   foreach(lib ${ARGN})
     libdoc(${lib})
   endforeach()
+  set(PLDOC_LIB ${PLDOC_LIB} PARENT_SCOPE)
 endfunction()
 
 # Specify how to generate tex files from PlDoc
