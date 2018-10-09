@@ -37,7 +37,9 @@
           [ explain/1,
             explain/2
           ]).
-:- if(exists_source(library(helpidx))).
+:- if(exists_source(library(pldoc/man_index))).
+:- use_module(library(pldoc/man_index)).
+:- elif(exists_source(library(helpidx))).
 :- use_module(library(helpidx)).
 :- endif.
 :- use_module(library(lists)).
@@ -276,7 +278,16 @@ explain_predicate(Pred, Explanation) :-
         flatten([U0, U1, U2, U3], Utters),
         combine_utterances(Utters, Explanation)
     ).
-:- if(current_predicate(predicate/5)).
+:- if(current_predicate(man_object_property/2)).
+explain_predicate(Pred, Explanation) :-
+    Pred = _Module:Head,
+    functor(Head, Name, Arity),
+    man_object_property(Name/Arity, summary(Summary)),
+    source_file(Pred, File),
+    current_prolog_flag(home, Home),
+    sub_atom(File, 0, _, _, Home),
+    utter(Explanation, '~t~8|Summary: ``~w''''', [Summary]).
+:- elif(current_predicate(predicate/5)).
 explain_predicate(Pred, Explanation) :-
     predicate_property(Pred, built_in),
     Pred = _Module:Head,
