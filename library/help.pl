@@ -39,6 +39,7 @@
           ]).
 :- use_module(library(pldoc)).
 :- use_module(library(pldoc/doc_man)).
+:- use_module(library(pldoc/man_index)).
 :- use_module(library(http/html_write)).
 :- use_module(library(sgml)).
 :- use_module(library(isub)).
