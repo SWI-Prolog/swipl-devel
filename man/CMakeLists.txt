@@ -270,6 +270,6 @@ if(INSTALL_DOCUMENTATION)
     add_dependencies(doc.pdf core.doc.pdf)
   endif()
 
-  install(DIRECTORY Manual
+  install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Manual
 	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
 endif(INSTALL_DOCUMENTATION)
