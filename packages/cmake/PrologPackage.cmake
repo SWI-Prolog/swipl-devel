@@ -327,10 +327,10 @@ endfunction(test_libs)
 
 function(has_package name var)
   list(FIND SWIPL_PACKAGE_LIST ${name} index)
-  if ( ${index} GREATER -1 )
-    set(var ON PARENT_SCOPE)
+  if ( index GREATER -1 )
+    set(${var} ON PARENT_SCOPE)
   else()
-    set(var OFF PARENT_SCOPE)
+    set(${var} OFF PARENT_SCOPE)
   endif()
 endfunction()
 
