@@ -288,7 +288,7 @@ target_include_directories(libswipl BEFORE PRIVATE
 			   ${CMAKE_CURRENT_SOURCE_DIR}
 			   ${ZLIB_INCLUDE_DIRS}
 			   ${LIBSWIPL_INCLUDES})
-target_link_libraries(libswipl ${LIBSWIPL_LIBRARIES})
+target_link_libraries(libswipl PRIVATE ${LIBSWIPL_LIBRARIES})
 
 add_executable(swipl-ld ${SRC_SWIPL_LD})
 target_include_directories(swipl-ld BEFORE PRIVATE
