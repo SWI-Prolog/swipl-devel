@@ -65,7 +65,7 @@ MKINDEX=$(PL) -f none -g make -t halt
 MKPKGINDEX=$(PL) -C "$(DESTDIR)$(PLBASE)/library/$(PACKAGE)" -f none -F none -g 'make_library_index(.),halt' -t 'halt(1)'
 
 PUBLICPL=swipl
-PLTOTEX=$(PUBLICPL) ../pltotex.pl --
+PLTOTEX=$(PUBLICPL) ../../man/pldoc2tex.pl -- --outdir=.
 
 .txt.tex:
-	$(PUBLICPL) ../txttotex.pl -- $*.txt
+	$(PLTOTEX) $*.txt

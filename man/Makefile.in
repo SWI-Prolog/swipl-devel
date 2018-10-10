@@ -33,7 +33,7 @@ PDF=		$(DOC).pdf
 UPLOAD_DEST=	ec:/home/swipl/web/download
 
 LATEX2HTML=	$(PUBLICPL) $(PLBASE)/library/latex2html/latex2html.pl -- \
-		--texinputs=lib::
+		--texinputs=lib:: --quiet
 
 WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
@@ -222,7 +222,7 @@ lib/yall.tex: ../library/yall.pl
 windows.pdf:	windows.tex
 		./runtex --pdf windows
 windows.html:	windows.tex
-		latex2html windows
+		$(LATEX2HTML) windows
 
 ################################################################
 # MacOsX readme
@@ -233,6 +233,6 @@ macosx::	macosx/macosx.pdf macosx/macosx.html
 macosx/macosx.pdf:	macosx/macosx.tex
 		./runtex --pdf macosx/macosx
 macosx/macosx.html:	macosx/macosx.tex
-		(cd macosx && latex2html macosx)
+		(cd macosx && $(LATEX2HTML) macosx)
 
 # EOF #

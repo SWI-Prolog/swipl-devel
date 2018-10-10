@@ -29,6 +29,9 @@ INSTALL_SCRIPT=@INSTALL_SCRIPT@
 LATEX=latex
 RUNTEX=../../man/runtex
 DOC2TEX=../../man/doc2tex
+LATEX2HTML=	$(PUBLICPL) $(PLBASE)/library/latex2html/latex2html.pl -- \
+		--texinputs=lib:: --quiet
+
 TEX=$(DOC).tex $(SUBTEX)
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
@@ -48,7 +51,7 @@ html::
 endif
 
 $(HTML):	$(TEX)
-		latex2html $(DOC)
+		$(LATEX2HTML) $(DOC)
 
 $(PDF):		$(TEX)
 		../../man/runtex --pdf $(DOC)
