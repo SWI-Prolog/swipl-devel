@@ -101,6 +101,7 @@ add_package(xpce, PkgBinDir) :-
     use_module(PceLinkFile).
 add_package(chr, PkgBinDir) :-
     assertz(user:file_search_path(chr, PkgBinDir)),
+    assertz(user:file_search_path(chr, library(chr))),
     assertz(user:file_search_path(library, PkgBinDir)).
 add_package(jpl, PkgBinDir) :-
     add_package_path(PkgBinDir),
