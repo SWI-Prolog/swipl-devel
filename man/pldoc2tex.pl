@@ -48,8 +48,7 @@
 :- initialization(main, main).
 
 pltotex(File, Options) :-
-    wiki_extension(Ext),
-    file_name_extension(_, Ext, File),
+    markdown_file(File),
     !,
     preload(Options),
     tex_file(File, Out, Options),
@@ -95,8 +94,13 @@ ensure_doc_loaded(File) :-
         )
     ).
 
-wiki_extension(txt).
-wiki_extension(md).
+markdown_file(File) :-
+    markdown_extension(Ext),
+    file_name_extension(_, Ext, File),
+    !.
+
+markdown_extension(txt).
+markdown_extension(md).
 
 %!  find_markdown_file(+Spec, -File, +Options) is det.
 %
@@ -215,6 +219,8 @@ to_option(Arg, Option) :-
 process_file(Options, File) :-
     (   option(trace(true), Options)
     ->  trace
+    ;   option(gtrace(true), Options)
+    ->  gtrace
     ;   true
     ),
     pltotex(File, Options).
