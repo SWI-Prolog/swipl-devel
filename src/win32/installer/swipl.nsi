@@ -757,7 +757,6 @@ Section "RDF and Semantic Web Library"
   File ${SWIPL}\library\rdf_parser.pl
   File ${SWIPL}\library\rdf_triple.pl
   File ${SWIPL}\library\rewrite.pl
-  File ${SWIPL}\library\rdf_ntriples.pl
   File ${SWIPL}\library\rdf_write.pl
   File /r ${SWIPL}\library\semweb
 
