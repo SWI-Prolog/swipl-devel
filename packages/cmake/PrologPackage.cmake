@@ -131,7 +131,8 @@ function(swipl_plugin name)
     set_target_properties(${foreign_target} PROPERTIES
 			  OUTPUT_NAME ${v_module} PREFIX "")
     target_compile_options(${foreign_target} PRIVATE -D__SWI_PROLOG__)
-    target_link_libraries(${foreign_target} ${v_c_libs} ${SWIPL_LIBRARIES})
+    target_link_libraries(${foreign_target} PRIVATE
+			  ${v_c_libs} ${SWIPL_LIBRARIES})
     if(v_c_include_dirs)
       target_include_directories(${foreign_target} BEFORE PRIVATE
 				 ${v_c_include_dirs})
