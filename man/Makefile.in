@@ -16,7 +16,10 @@
 #
 ################################################################
 
+prefix=         @prefix@
+exec_prefix=    @exec_prefix@
 PUBLICPL=	@PL@
+PLBASE=		@PLBASE@
 PL=		../@BUILDDIR@/swipl.sh
 VERSION=	$(shell cat ../VERSION)
 
@@ -28,6 +31,9 @@ DOC=		SWI-Prolog-$(VERSION)
 BOOK=		SWI-Prolog-book-$(VERSION)
 PDF=		$(DOC).pdf
 UPLOAD_DEST=	ec:/home/swipl/web/download
+
+LATEX2HTML=	$(PUBLICPL) $(PLBASE)/library/latex2html/latex2html.pl -- \
+		--texinputs=lib::
 
 WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
@@ -81,7 +87,7 @@ all:
 
 html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
 		rm -f Manual/*.html Manual/*.gif
-		env TEXINPUTS=lib:: latex2html $(DOC)
+		$(LATEX2HTML) $(DOC)
 
 pdf:		$(PDF)
 book:		$(BOOK).pdf
@@ -139,74 +145,74 @@ upload::
 # PlDoc generated manual files
 ################################################################
 
-LIBTOTEX=$(PUBLICPL) pldoc2tex.pl -- --outdir=lib
+PLDOC2TEX=$(PUBLICPL) pldoc2tex.pl -- --outdir=lib --summaries
 
 lib/shlib.tex:	../library/shlib.pl
-		$(LIBTOTEX) --subsection 'library(shlib)'
+		$(PLDOC2TEX) --subsection 'library(shlib)'
 lib/apply.tex:	../library/apply.pl
-		$(LIBTOTEX) 'library(apply)'
+		$(PLDOC2TEX) 'library(apply)'
 lib/dicts.tex:	../library/dicts.pl
-		$(LIBTOTEX) 'library(dicts)'
+		$(PLDOC2TEX) 'library(dicts)'
 lib/assoclib.tex: lib/assoclib.md ../library/assoc.pl
-		$(LIBTOTEX) --lib=assoc --module=assoc lib/assoclib.md
+		$(PLDOC2TEX) --lib=assoc --module=assoc lib/assoclib.md
 lib/error.tex:	../library/error.pl
-		$(LIBTOTEX) 'library(error)'
+		$(PLDOC2TEX) 'library(error)'
 lib/help.tex:	../library/help.pl
-		$(LIBTOTEX) --subsection 'library(help)'
+		$(PLDOC2TEX) --subsection 'library(help)'
 lib/explain.tex: ../library/explain.pl
-		$(LIBTOTEX) --subsection 'library(explain)'
+		$(PLDOC2TEX) --subsection 'library(explain)'
 lib/clpblib.tex: lib/clpblib.md ../library/clp/clpb.pl
-		$(LIBTOTEX) --lib=clpb --module=clpb lib/clpblib.md
+		$(PLDOC2TEX) --lib=clpb --module=clpb lib/clpblib.md
 lib/clpfdlib.tex: lib/clpfdlib.md ../library/clp/clpfd.pl
-		$(LIBTOTEX) --lib=clpfd --module=clpfd lib/clpfdlib.md
+		$(PLDOC2TEX) --lib=clpfd --module=clpfd lib/clpfdlib.md
 lib/simplexlib.tex: lib/simplexlib.md ../library/clp/simplex.pl
-		$(LIBTOTEX) --lib=simplex lib/simplexlib.md
+		$(PLDOC2TEX) --lib=simplex lib/simplexlib.md
 lib/url.tex:	../library/url.pl
-		$(LIBTOTEX) 'library(url)'
+		$(PLDOC2TEX) 'library(url)'
 lib/pairs.tex:	../library/pairs.pl
-		$(LIBTOTEX) 'library(pairs)'
+		$(PLDOC2TEX) 'library(pairs)'
 lib/option.tex:	../library/option.pl
-		$(LIBTOTEX) 'library(option)'
+		$(PLDOC2TEX) 'library(option)'
 lib/optparse.tex: ../library/optparse.pl
-		$(LIBTOTEX) 'library(optparse)'
+		$(PLDOC2TEX) 'library(optparse)'
 lib/ordsets.tex: ../library/ordsets.pl
-		$(LIBTOTEX) 'library(ordsets)'
+		$(PLDOC2TEX) 'library(ordsets)'
 lib/aggregate.tex: ../library/aggregate.pl
-		$(LIBTOTEX) 'library(aggregate)'
+		$(PLDOC2TEX) 'library(aggregate)'
 lib/pureinput.tex: ../library/pure_input.pl
-		$(LIBTOTEX) --subsection 'library(pure_input)'
+		$(PLDOC2TEX) --subsection 'library(pure_input)'
 lib/prologpack.tex: ../library/prolog_pack.pl
-		$(LIBTOTEX) --section 'library(prolog_pack)'
+		$(PLDOC2TEX) --section 'library(prolog_pack)'
 lib/threadpool.tex: ../library/thread_pool.pl
-		$(LIBTOTEX) 'library(thread_pool)'
+		$(PLDOC2TEX) 'library(thread_pool)'
 lib/charsio.tex: ../library/charsio.pl
-		$(LIBTOTEX) 'library(charsio)'
+		$(PLDOC2TEX) 'library(charsio)'
 lib/debug.tex: ../library/debug.pl
-		$(LIBTOTEX) 'library(debug)'
+		$(PLDOC2TEX) 'library(debug)'
 lib/csv.tex: ../library/csv.pl
-		$(LIBTOTEX) 'library(csv)'
+		$(PLDOC2TEX) 'library(csv)'
 lib/lists.tex: ../library/lists.pl
-		$(LIBTOTEX) 'library(lists)'
+		$(PLDOC2TEX) 'library(lists)'
 lib/main.tex: ../library/main.pl
-		$(LIBTOTEX) 'library(main)'
+		$(PLDOC2TEX) 'library(main)'
 lib/check.tex: ../library/check.pl
-		$(LIBTOTEX) 'library(check)'
+		$(PLDOC2TEX) 'library(check)'
 lib/random.tex: ../library/random.pl
-		$(LIBTOTEX) 'library(random)'
+		$(PLDOC2TEX) 'library(random)'
 lib/varnumbers.tex: ../library/varnumbers.pl
-		$(LIBTOTEX) 'library(varnumbers)'
+		$(PLDOC2TEX) 'library(varnumbers)'
 lib/predopts.tex: lib/predopts.txt ../library/predicate_options.pl
-		$(LIBTOTEX) --lib=predicate_options lib/predopts.txt
+		$(PLDOC2TEX) --lib=predicate_options lib/predopts.txt
 lib/quasiquotations.tex: ../library/quasi_quotations.pl
-		$(LIBTOTEX) 'library(quasi_quotations)'
+		$(PLDOC2TEX) 'library(quasi_quotations)'
 lib/solutionsequences.tex: ../library/solution_sequences.pl
-		$(LIBTOTEX) 'library(solution_sequences)'
+		$(PLDOC2TEX) 'library(solution_sequences)'
 lib/iostream.tex: ../library/iostream.pl
-		$(LIBTOTEX) 'library(iostream)'
+		$(PLDOC2TEX) 'library(iostream)'
 lib/persistency.tex: ../library/persistency.pl
-		$(LIBTOTEX) 'library(persistency)'
+		$(PLDOC2TEX) 'library(persistency)'
 lib/yall.tex: ../library/yall.pl
-		$(LIBTOTEX) 'library(yall)'
+		$(PLDOC2TEX) 'library(yall)'
 
 
 ################################################################
