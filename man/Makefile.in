@@ -139,7 +139,7 @@ upload::
 # PlDoc generated manual files
 ################################################################
 
-LIBTOTEX=$(PUBLICPL) libtotex.pl --
+LIBTOTEX=$(PUBLICPL) pldoc2tex.pl -- --outdir=lib
 
 lib/shlib.tex:	../library/shlib.pl
 		$(LIBTOTEX) --subsection 'library(shlib)'
