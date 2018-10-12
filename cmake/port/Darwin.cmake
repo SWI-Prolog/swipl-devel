@@ -6,6 +6,8 @@ set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
     /opt/local/include /usr/local/include)
 
+set(CMAKE_MACOSX_RPATH ON)
+
 # Prefer sem_open() over deprecated sem_init()
 set(USE_SEM_OPEN 1)
 set(SO_PATH DYLD_LIBRARY_PATH)
