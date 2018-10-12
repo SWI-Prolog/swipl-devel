@@ -324,19 +324,5 @@ function(test_libs)
   endforeach()
 endfunction(test_libs)
 
-# has_package(name var)
-#
-# Set var to ON if the package  name   is  included in the targets. Note
-# that as of cmake 3.3. we can use if("string" IN_LIST list).
-
-function(has_package name var)
-  list(FIND SWIPL_PACKAGE_LIST ${name} index)
-  if ( index GREATER -1 )
-    set(${var} ON PARENT_SCOPE)
-  else()
-    set(${var} OFF PARENT_SCOPE)
-  endif()
-endfunction()
-
 # Documentation support
 include(PackageDoc)

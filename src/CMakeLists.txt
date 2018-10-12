@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(swipl)
 
-# FIXME: Should become an option, but for now we only support building Prolog
-# as shared object
-set(BUILD_SHARED_LIBS ON)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 
 include(Version)
@@ -274,7 +270,13 @@ target_link_libraries(swipl libswipl)
 target_c_stack(swipl 4000000)
 
 # build the library
-add_library(libswipl ${LIBSWIPL_SRC})
+if(SWIPL_SHARED_LIB)
+  set(LIBSWIPL_TYPE SHARED)
+else()
+  set(LIBSWIPL_TYPE STATIC)
+endif()
+
+add_library(libswipl ${LIBSWIPL_TYPE} ${LIBSWIPL_SRC})
 add_dependencies(libswipl git-version vmi-metadata core-constants)
 set_target_properties(libswipl PROPERTIES
 		      OUTPUT_NAME swipl
@@ -310,10 +312,10 @@ if(MULTI_THREADED)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread)
 endif()
 
-add_test(NAME core:basic
+add_test(NAME swipl:basic
 	 COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
 foreach(test ${SWIPL_TEST_DIRS})
-  add_test(NAME core:${test}
+  add_test(NAME swipl:${test}
 	   COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
@@ -328,6 +330,7 @@ configure_file(parms.h.cmake parms.h)
 install(TARGETS swipl libswipl swipl-ld
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
+        ARCHIVE DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
 )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.prc
 	DESTINATION ${SWIPL_INSTALL_PREFIX}

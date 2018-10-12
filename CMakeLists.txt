@@ -14,7 +14,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 include(BuildType)
-include(PackageSelection)
 
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
@@ -22,12 +21,17 @@ option(MULTI_THREADED
 option(USE_GMP
        "Use GNU MP Bignum library (GPL)"
        ON)
+option(SWIPL_SHARED_LIB
+       "Put kernel in a shared library"
+       ON)
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
        ON)
 option(BUILD_PDF_DOCUMENTATION
        "Build the PDF manuals from source"
        OFF)
+
+include(PackageSelection)
 
 # Verbosity
 set(CMAKE_INSTALL_MESSAGE NEVER)
