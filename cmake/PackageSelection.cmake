@@ -173,13 +173,14 @@ while(new)
   list(APPEND deps ${new})
 endwhile()
 
-list(REMOVE_DUPLICATES deps)
-foreach(pkg ${deps})
-  if(NOT EXISTS ${CMAKE_SOURCE_DIR}/packages/${pkg}/CMakeLists.txt)
-    message(SEND_ERROR
-	    "No source for required package ${pkg}. "
-	    "Please run the command below from the top directory and retry"
-	    "\n   \"git submodule update --init packages/${pkg}\"")
-  endif()
-endforeach()
-
+if(deps)
+  list(REMOVE_DUPLICATES deps)
+  foreach(pkg ${deps})
+    if(NOT EXISTS ${CMAKE_SOURCE_DIR}/packages/${pkg}/CMakeLists.txt)
+      message(SEND_ERROR
+	      "No source for required package ${pkg}. "
+	      "Please run the command below from the top directory and retry"
+	      "\n   \"git submodule update --init packages/${pkg}\"")
+    endif()
+  endforeach()
+endif()
