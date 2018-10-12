@@ -34,9 +34,10 @@
 */
 
 :- module(xref_packages,
-          [
+          [ cmake_package_deps/0,
+            list_deps/1,                        % +Package
+            list_deps/2                         % +Package, ?DepPackage
           ]).
-:- use_module(library(lists)).
 :- use_module(library(prolog_xref)).
 :- use_module(library(filesex)).
 :- use_module(library(solution_sequences)).
@@ -51,55 +52,59 @@ The biggest hurdle is  finding  from  which   package  a  file  that  is
 installed in the library comes.
 */
 
-package(Pkg) :-
-    expand_file_name('packages/*/CMakeFiles', MakeDirs),
-    member(MakeDir, MakeDirs),
-    file_directory_name(MakeDir, PkgBindir),
-    file_base_name(PkgBindir, Pkg),
-    Pkg \== xpce.
+%!  cmake_package_deps
+%
+%   Emit  the  dependencies  between  packages  as  a  number  of  CMAKE
+%   variables.
 
-package_source_dir(Pkg, SourceDir) :-
-    directory_file_path('../packages', Pkg, Dir0),
-    absolute_file_name(Dir0, SourceDir).
+cmake_package_deps :-
+    (   setof(FromPkg,
+              File^PI^cross_package_link(Pkg, File, PI, FromPkg),
+              Deps),
+        atomic_list_concat(Deps, ' ', DepAtom),
+        format('set(SWIPL_PKG_DEPS_~w ~w)~n', [Pkg, DepAtom]),
+        fail
+    ;   true
+    ).
 
-package_file(Pkg, File, Base) :-
-    package(Pkg),
-    package_source_dir(Pkg, Source),
-    directory_member(Source, File,
-                     [ extensions([pl]),
-                       recursive(true),
-                       exclude('test.pl'),
-                       exclude_directory('{examples,.git}')
-                     ]),
-    file_base_name(File, Base).
-package_file(library, File, Base) :-
-    absolute_file_name('../library', Source),
-    directory_member(Source, File,
-                     [ extensions([pl]),
-                       recursive(true),
-                       exclude('test.pl'),
-                       exclude_directory('{examples,.git}')
-                     ]),
-    file_base_name(File, Base).
+%!  list_deps(?Package) is det.
+%!  list_deps(?Package, ?On) is det.
+%
+%   List relations between packages.  Intended   to  debug  and possibly
+%   minimise the dependencies.
 
-duplicate_source_file(Base, Files) :-
-    setof(File, Pkg^package_file(Pkg, File, Base), Files),
-    Files = [_,_|_].
+list_deps(Package) :-
+    list_deps(Package, _).
 
-:- dynamic
-    base_package/2.
+list_deps(Package, FromPkg) :-
+    forall(distinct(File+PI,
+                    package_dependency(Package, File, PI, FromPkg)),
+           (   file_name_on_path(File, Short),
+               format('  ~p used ~p from ~p~n', [Short, PI, FromPkg])
+           )).
 
-fill_base_package :-
-    base_package(_,_),
-    !.
-fill_base_package :-
-    forall(package_file(Pkg, _, Base),
-           assertz(base_package(Base, Pkg))).
+
+:- table
+    file_package/2.
 
 file_package(File, Package) :-
-    fill_base_package,
-    file_base_name(File, Base),
-    base_package(Base, Package).
+    read_link(File, _, Target),
+    file_parent_directory(Target, Dir),
+    file_directory_name(Dir, Parent),
+    file_base_name(Parent, 'packages'),
+    !,
+    file_base_name(Dir, Package).
+
+file_parent_directory(File, Parent) :-
+    file_directory_name(File, Dir0),
+    parent_drectory(Dir0, Parent).
+
+parent_drectory(Dir, Dir).
+parent_drectory(Dir, Parent) :-
+    file_directory_name(Dir, DirectParent),
+    Dir \== DirectParent,
+    parent_drectory(DirectParent, Parent).
+
 
 library_file(File) :-
     absolute_file_name(swi(library), LibDir,
@@ -111,35 +116,32 @@ library_file(File) :-
                        recursive(true)
                      ]).
 
+:- dynamic
+    xref_library_done/0.
+
+xref_library :-
+    xref_library_done,
+    !.
 xref_library :-
     forall(library_file(File),
-           xref_source(File)).
+           xref_source(File)),
+    assertz(xref_library_done).
 
-cross_package_link(FilePkg, File, Name/Arity, FromPkg, From) :-
-    (   ground(Name/Arity)
-    ->  functor(Called, Name, Arity),
-        xref_defined(File, Called, imported(From))
-    ;   distinct(Called, xref_defined(File, Called, imported(From)))
-    ),
+cross_package_link(FilePkg, File, PI, FromPkg) :-
+    distinct([FilePkg, FromPkg],
+             package_dependency(FilePkg, File, PI, FromPkg)).
+
+package_dependency(FilePkg, File, PI, FromPkg) :-
+    xref_library,
+    xref_defined(File, Called, imported(From)),
+    atom(File),
     file_package(File, FilePkg),
     file_package(From, FromPkg),
-    functor(Called, Name, Arity),
-    FilePkg \== FromPkg.
+    FilePkg \== FromPkg,
+    head_pi(Called, PI).
 
-cross_package_link(FilePkg, File, FromPkg, From) :-
-    distinct([FilePkg-File, FromPkg-From],
-             (   distinct(Called, xref_defined(File, Called, imported(From))),
-                 file_package(File, FilePkg),
-                 file_package(From, FromPkg),
-                 FilePkg \== FromPkg
-             )).
-
-cross_package_link(FilePkg, Name/Arity, FromPkg) :-
-    distinct([FilePkg, FromPkg],
-             (   xref_defined(File, Called, imported(From)),
-                 file_package(File, FilePkg),
-                 file_package(From, FromPkg),
-                 FilePkg \== FromPkg,
-                 functor(Called, Name, Arity)
-             )).
-
+head_pi(M:Term, M:Name/Arity) :-
+    !,
+    functor(Term, Name, Arity).
+head_pi(Term, Name/Arity) :-
+    functor(Term, Name, Arity).
