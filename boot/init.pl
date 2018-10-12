@@ -1057,6 +1057,8 @@ user:prolog_file_type(qlf,      prolog).
 user:prolog_file_type(qlf,      qlf).
 user:prolog_file_type(Ext,      executable) :-
     current_prolog_flag(shared_object_extension, Ext).
+user:prolog_file_type(dylib,    executable) :-
+    current_prolog_flag(apple,  true).
 
 %!  '$chk_file'(+Spec, +Extensions, +Cond, +UseCache, -FullName)
 %
