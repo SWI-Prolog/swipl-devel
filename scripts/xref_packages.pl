@@ -80,7 +80,7 @@ list_deps(Package, FromPkg) :-
     forall(distinct(File+PI,
                     package_dependency(Package, File, PI, FromPkg)),
            (   file_name_on_path(File, Short),
-               format('  ~p used ~p from ~p~n', [Short, PI, FromPkg])
+               format('  ~p uses ~p from ~p~n', [Short, PI, FromPkg])
            )).
 
 
@@ -138,6 +138,7 @@ package_dependency(FilePkg, File, PI, FromPkg) :-
     file_package(File, FilePkg),
     file_package(From, FromPkg),
     FilePkg \== FromPkg,
+    \+ optional_install(File),
     head_pi(Called, PI).
 
 head_pi(M:Term, M:Name/Arity) :-
@@ -145,3 +146,11 @@ head_pi(M:Term, M:Name/Arity) :-
     functor(Term, Name, Arity).
 head_pi(Term, Name/Arity) :-
     functor(Term, Name, Arity).
+
+optional_install(File) :-
+    file_name_on_path(File, Short),
+    optional_package_file(_Package, Short).
+
+optional_package_file(plunit, library(test_wizard)).
+optional_package_file(http,   library('http/xpce_httpd')).
+optional_package_file('RDF',  library(rdf_diagram)).
