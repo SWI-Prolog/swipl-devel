@@ -564,6 +564,7 @@ sum(S0, S1, S) :- S is S0+S1.
 prolog:rename_predicate(M:Head0, M:Head) :-
     '$flushed_predicate'(M:'$tabled'(_)),
     call(M:'$tabled'(Head0)),
+    \+ current_prolog_flag(xref, true),
     !,
     rename_term(Head0, Head).
 
@@ -583,4 +584,5 @@ system:term_expansion((:- table(Preds)),
                         (:- multifile('$table_update'/4))
                       | Clauses
                       ]) :-
+    \+ current_prolog_flag(xref, true),
     phrase(wrappers(Preds), Clauses).
