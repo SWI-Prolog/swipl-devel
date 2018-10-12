@@ -923,6 +923,8 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
       { zrelease(z);
 	return FALSE;
       }
+      Sdprintf("zipper_goto/2: rc=%d (%s)\n", rc,
+	       a == ATOM_first ? "first" : "next");
       assert(0);
     } else if ( PL_is_functor(A2, FUNCTOR_file1) )
     { term_t arg = PL_new_term_ref();
