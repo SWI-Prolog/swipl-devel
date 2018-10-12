@@ -91,8 +91,6 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-copyterm.c pl-debug.c pl-cont.c pl-ressymbol.c pl-dict.c
     pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c)
 
-set(HDR_CORE pl-atom.ih pl-funct.ih)
-
 set(LIBSWIPL_SRC
     ${SRC_CORE}
     ${SRC_OS}
@@ -276,11 +274,10 @@ target_link_libraries(swipl libswipl)
 target_c_stack(swipl 4000000)
 
 # build the library
-add_library(libswipl ${LIBSWIPL_SRC} ${HDR_CORE})
+add_library(libswipl ${LIBSWIPL_SRC})
 add_dependencies(libswipl git-version vmi-metadata core-constants)
 set_target_properties(libswipl PROPERTIES
 		      OUTPUT_NAME swipl
-		      MACOSX_RPATH TRUE
 		      VERSION ${SWIPL_VERSION_STRING}
 		      SOVERSION ${SWIPL_VERSION_MAJOR})
 target_include_directories(libswipl BEFORE PRIVATE
