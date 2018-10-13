@@ -96,11 +96,7 @@ endif(INSTALL_DOCUMENTATION)
 
 # Add the packages
 foreach(package ${SWIPL_PACKAGE_LIST})
-  if(EXISTS ${CMAKE_SOURCE_DIR}/packages/${package}/CMakeLists.txt)
-    add_subdirectory(packages/${package})
-  else()
-    message("-- Skipping package ${package}")
-  endif()
+  add_subdirectory(packages/${package})
 endforeach(package)
 
 # Packaging
