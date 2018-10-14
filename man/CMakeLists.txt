@@ -27,7 +27,7 @@ add_custom_command(
     OUTPUT ${PLDOC2TEX_STATE}
     COMMAND swipl -o ${PLDOC2TEX_STATE} --class=development
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
-    DEPENDS pldoc2tex.pl swipl pldoc prolog_products)
+    DEPENDS pldoc2tex.pl swipl pldoc clib sgml prolog_products)
 
 add_custom_target(
     pldoc2tex_state
