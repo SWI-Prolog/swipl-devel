@@ -94,5 +94,8 @@ foreach(package ${SWIPL_PACKAGE_LIST})
   add_subdirectory(packages/${package})
 endforeach(package)
 
+# Check for environment variables that may cause the build to fail
+include(CheckEnv)
+
 # Packaging
 include(Pack)
