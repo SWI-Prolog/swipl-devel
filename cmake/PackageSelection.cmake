@@ -147,10 +147,10 @@ function(remove_packages_without_source)
     endif()
   endforeach()
 
-  list(REMOVE_ITEM SWIPL_PACKAGE_LIST ${not_available})
+  if(not_available)
+    list(REMOVE_ITEM SWIPL_PACKAGE_LIST ${not_available})
 
-  if(NOT PKG_UNAVAILABLE_MESSAGE_DONE)
-    if(not_available)
+    if(NOT PKG_UNAVAILABLE_MESSAGE_DONE)
       join_list(missing " " ${not_available})
       message("-- The following SWI-Prolog packages are disabled because "
 	      "the required sources are not installed:\n"
