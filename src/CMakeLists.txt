@@ -122,7 +122,7 @@ set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     engines.pl iri.pl tabling.pl)
 prepend(SWIPL_BOOT_FILES ${SWIPL_BUILD_HOME}/boot/ ${SWIPL_DATA_boot})
 
-set(SWIPL_DATA_library help.pl explain.pl sort.pl
+set(SWIPL_DATA_library explain.pl sort.pl
     qsave.pl shlib.pl statistics.pl system.pl error.pl
     backcomp.pl gensym.pl listing.pl debug.pl vm.pl
     quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl
@@ -145,6 +145,9 @@ set(SWIPL_DATA_library help.pl explain.pl sort.pl
     sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl)
+if(INSTALL_DOCUMENTATION)
+  set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
+endif()
 if(WIN32)
   set(SWIPL_DATA_library ${SWIPL_DATA_library}
       dde.pl win_menu.pl)
