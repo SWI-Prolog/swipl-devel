@@ -102,18 +102,30 @@ function(swipl_del_package pkg reason)
   endif()
 endfunction()
 
-# add_package(name reason message ..)
+# swipl_add_packages([EXPLICIT]
+#		     [DEPENDENCY]
+#		     PACKAGES ...
+#		     [COMMENT ...])
 
-function(swipl_add_package pkg reason)
-  has_package(${pkg} has_pkg)
-  if(NOT has_pkg)
-    list(APPEND SWIPL_PACKAGE_LIST ${pkg})
-    set(SWIPL_PACKAGE_LIST ${SWIPL_PACKAGE_LIST} PARENT_SCOPE)
-    if(reason STREQUAL EXPLICIT)
-      list(APPEND SWIPL_PKG_EXPLICIT ${pkg})
-      set(SWIPL_PKG_EXPLICIT ${SWIPL_PKG_EXPLICIT} PARENT_SCOPE)
+function(swipl_add_packages)
+  cmake_parse_arguments(my "EXPLICIT;DEPENDENCY" "" "COMMENT;PACKAGES" ${ARGN})
+  set(pkgs)
+
+  foreach(pkg ${my_PACKAGES})
+    has_package(${pkg} has_pkg)
+    if(NOT has_pkg)
+      set(pkgs "${pkgs} ${pkg}")
+      list(APPEND SWIPL_PACKAGE_LIST ${pkg})
+      set(SWIPL_PACKAGE_LIST ${SWIPL_PACKAGE_LIST} PARENT_SCOPE)
+      if(my_EXPLICIT)
+	list(APPEND SWIPL_PKG_EXPLICIT ${pkg})
+	set(SWIPL_PKG_EXPLICIT ${SWIPL_PKG_EXPLICIT} PARENT_SCOPE)
+      endif()
     endif()
-    message("-- Added package ${pkg}: " ${ARGN})
+  endforeach()
+
+  if(pkgs)
+    message("-- Added packages ${pkgs}: " ${my_COMMENT})
   endif()
 endfunction()
 
@@ -127,14 +139,6 @@ function(add_package_sets)
   set(SWIPL_PACKAGE_LIST ${SWIPL_PACKAGE_LIST} PARENT_SCOPE)
 endfunction()
 
-function(join_list out sep)
-  set(str)
-  foreach(s ${ARGN})
-    set(str "${str}${sep}${s}")
-  endforeach()
-  set(${out} ${str} PARENT_SCOPE)
-endfunction()
-
 function(remove_packages_without_source)
   set(not_available)
   foreach(pkg ${SWIPL_PACKAGE_LIST})
@@ -143,17 +147,22 @@ function(remove_packages_without_source)
     endif()
   endforeach()
 
-  if(not_available)
-    join_list(missing " " ${not_available})
-    message("-- The following packages are disabled because the required "
-	    "sources are not installed: "
-            ${missing}
-	    "\nUse one of the commands below to add all packages or specific "
-	    "packages"
-	    "\n\n   git -C .. submodule update --init"
-	    "  \n   git -C .. submodule update --init packages/<pkg>"
-	    "\n")
-    list(REMOVE_ITEM SWIPL_PACKAGE_LIST ${not_available})
+  list(REMOVE_ITEM SWIPL_PACKAGE_LIST ${not_available})
+
+  if(NOT PKG_UNAVAILABLE_MESSAGE_DONE)
+    if(not_available)
+      join_list(missing " " ${not_available})
+      message("-- The following SWI-Prolog packages are disabled because "
+	      "the required sources are not installed:\n"
+	      ${missing}
+	      "\nUse one of the commands below to add all packages or specific "
+	      "packages"
+	      "\n\n   git -C .. submodule update --init"
+	      "  \n   git -C .. submodule update --init packages/<pkg>"
+	      "\n")
+    endif()
+    set(PKG_UNAVAILABLE_MESSAGE_DONE ON CACHE INTERNAL
+	"Message about unavailable packages was printed")
   endif()
 
   set(SWIPL_PACKAGE_LIST ${SWIPL_PACKAGE_LIST} PARENT_SCOPE)
@@ -164,13 +173,18 @@ function(check_package_dependencies newvar)
   set(new)
 
   foreach(pkg ${ARGN})
+    set(deps)
     foreach(dep ${SWIPL_PKG_DEPS_${pkg}})
       has_package(${dep} has_dep)
       if(NOT has_dep)
-        swipl_add_package(${dep} DEPENDENCY "Required by package ${pkg}")
+        set(deps ${deps} ${dep})
 	set(new ${new} ${dep})
       endif()
     endforeach()
+    if(deps)
+      swipl_add_packages(PACKAGES ${deps} DEPENDENCY
+			 COMMENT "Required by package ${pkg}")
+    endif()
   endforeach()
 
   set(${newvar} ${new} PARENT_SCOPE)
@@ -195,9 +209,10 @@ endif()
 
 if(INSTALL_DOCUMENTATION)
   if(SWIPL_PACKAGES)
-    swipl_add_package(ltx2htm EXPLICIT
-		      "required to build documentation.  Use "
-		      "-DINSTALL_DOCUMENTATION=OFF to avoid this dependency")
+    swipl_add_packages(EXPLICIT
+		       PACKAGES ltx2htm pldoc nlp
+		       COMMENT "required for online documentation.  Use "
+		       "-DINSTALL_DOCUMENTATION=OFF to avoid this dependency")
   else()
     message("-- Cannot install documentation without packages")
   endif()

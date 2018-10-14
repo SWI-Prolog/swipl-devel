@@ -10,6 +10,21 @@ FUNCTION(PREPEND var prefix)
   SET(${var} "${listVar}" PARENT_SCOPE)
 ENDFUNCTION(PREPEND)
 
+# join_list(out set element ...)
+#
+# Modern cmake has list(JOIN ...), but older do not.
+function(join_list out sep)
+  set(str)
+  foreach(s ${ARGN})
+    if(NOT str)
+      set(str "${s}")
+    else()
+      set(str "${str}${sep}${s}")
+    endif()
+  endforeach()
+  set(${out} ${str} PARENT_SCOPE)
+endfunction()
+
 # ilink(from to)
 # Install ${from} in ${to} using a relative symbolic link
 
