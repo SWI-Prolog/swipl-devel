@@ -65,6 +65,11 @@ endif()
 
 enable_testing()
 
+# Configuration we need everywhere
+if(MULTI_THREADED)
+  find_package(Threads)
+endif()
+
 # Add the core Prolog system
 add_subdirectory(src)
 
