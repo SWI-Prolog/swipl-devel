@@ -23,11 +23,15 @@ set(DOC_CORE intro.tex overview.tex builtin.tex module.tex
 
 set(STYFILES html.sty txt.sty)
 
+# FIXME: we should reduce dependencies
 add_custom_command(
     OUTPUT ${PLDOC2TEX_STATE}
-    COMMAND swipl -o ${PLDOC2TEX_STATE} --class=development
+    COMMAND swipl -o ${PLDOC2TEX_STATE}
+            --class=development --no-autoload --no-stand_alone
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
-    DEPENDS pldoc2tex.pl swipl pldoc clib sgml prolog_products)
+            -- --nopce
+    DEPENDS pldoc2tex.pl swipl prolog_products
+            pldoc clib sgml http archive)
 
 add_custom_target(
     pldoc2tex_state

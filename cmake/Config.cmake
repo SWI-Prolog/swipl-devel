@@ -309,7 +309,7 @@ endif()
 if(HAVE_READLINK)
   set(HAVE_SYMLINKS 1)
 endif()
-if(BUILD_SHARED_LIBS)
+if(SWIPL_SHARED_LIB)
   set(O_SHARED_KERNEL 1)
 endif()
 

@@ -57,7 +57,8 @@ This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 %   CMAKE_SOURCE_DIRECTORY.
 
 cmake_binary_directory(BinDir) :-
-    current_prolog_flag(executable, Exe),
+    current_prolog_flag(executable, OsExe),
+    prolog_to_os_filename(Exe, OsExe),
     file_directory_name(Exe, CoreDir),
     file_directory_name(CoreDir, RelBinDir),
     working_directory(PWD, PWD),
@@ -80,8 +81,13 @@ swipl_package(Pkg, PkgBinDir) :-
     exists_directory(PkgRoot),
     directory_files(PkgRoot, Candidates),
     member(Pkg, Candidates),
+    \+ special(Pkg),
     atomic_list_concat([PkgRoot, Pkg], /, PkgBinDir),
-    exists_directory(PkgBinDir).
+    atomic_list_concat([PkgBinDir, 'CMakeFiles'], /, CMakeDir),
+    exists_directory(CMakeDir).
+
+special(.).
+special(..).
 
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
@@ -106,7 +112,11 @@ add_package(chr, PkgBinDir) :-
 add_package(jpl, PkgBinDir) :-
     add_package_path(PkgBinDir),
     atomic_list_concat([PkgBinDir, 'src/java'], /, JarDir),
-    assertz(user:file_search_path(jar, JarDir)).
+    assertz(user:file_search_path(jar, JarDir)),
+    (   current_prolog_flag(wine_version, _)
+    ->  unsetenv('JAVA_HOME')           % cross compiling
+    ;   true
+    ).
 add_package(http, PkgBinDir) :-
     add_package_path(PkgBinDir),
     file_directory_name(PkgBinDir, PkgDir),
