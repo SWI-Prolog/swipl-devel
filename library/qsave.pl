@@ -115,7 +115,7 @@ qsave_program(File) :-
 qsave_program(FileBase, Options0) :-
     meta_options(is_meta, Options0, Options),
     check_options(Options),
-    exe_file(FileBase, File),
+    exe_file(FileBase, File, Options),
     option(class(SaveClass),    Options, runtime),
     option(init_file(InitFile), Options, DefInit),
     default_init_file(SaveClass, DefInit),
@@ -151,12 +151,13 @@ cleanup :-
 is_meta(goal).
 is_meta(toplevel).
 
-exe_file(Base, Exe) :-
+exe_file(Base, Exe, Options) :-
     current_prolog_flag(windows, true),
+    option(stand_alone(true), Options, true),
     file_name_extension(_, '', Base),
     !,
     file_name_extension(Base, exe, Exe).
-exe_file(Exe, Exe).
+exe_file(Exe, Exe, _).
 
 default_init_file(runtime, none) :- !.
 default_init_file(_,       InitFile) :-
