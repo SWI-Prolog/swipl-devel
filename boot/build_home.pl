@@ -112,11 +112,7 @@ add_package(chr, PkgBinDir) :-
 add_package(jpl, PkgBinDir) :-
     add_package_path(PkgBinDir),
     atomic_list_concat([PkgBinDir, 'src/java'], /, JarDir),
-    assertz(user:file_search_path(jar, JarDir)),
-    (   current_prolog_flag(wine_version, _)
-    ->  unsetenv('JAVA_HOME')           % cross compiling
-    ;   true
-    ).
+    assertz(user:file_search_path(jar, JarDir)).
 add_package(http, PkgBinDir) :-
     add_package_path(PkgBinDir),
     file_directory_name(PkgBinDir, PkgDir),
@@ -136,6 +132,19 @@ add_package_path(PkgBinDir) :-
 
 :- forall(swipl_package(Pkg, PkgBinDir),
           add_package(Pkg, PkgBinDir)).
+
+% Avoid getting Java from the host when running under Wine.
+
+:- if(current_prolog_flag(wine_version, _)).
+delete_host_java_home :-
+    (   getenv('JAVA_HOME', Dir),
+        sub_atom(Dir, 0, _, _, /)
+    ->  unsetenv('JAVA_HOME')
+    ;   true
+    ).
+
+:- initialization(delete_host_java_home).
+:- endif.
 
 
 		 /*******************************
