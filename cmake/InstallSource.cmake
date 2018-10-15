@@ -24,17 +24,32 @@ function(symlink from to)
 		  WORKING_DIRECTORY ${LNTDIR})
 endfunction()
 
+# create_directory(dir)
+#
+# Creates a custom target to create   a directory. Multiple projects may
+# try to generate the same target. Using make, each such target will end
+# up in its own directory Makefile while using ninja all are in one file
+# and we must avoid duplication of these rules. Note that multiple rules
+# racing to create a directory are fine.
+
 function(create_directory dir)
-  set(done)
-  get_property(done GLOBAL PROPERTY CREATE_DIRECTORY_STATE)
-  list(FIND done ${dir} index)
-  if(index LESS 0)
+  if(CMAKE_GENERATOR MATCHES Ninja)
+    set(done)
+    get_property(done GLOBAL PROPERTY CREATE_DIRECTORY_STATE)
+    list(FIND done ${dir} index)
+    if(index LESS 0)
+      add_custom_command(
+	  OUTPUT ${LNTDIR}/.created
+	  COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
+	  COMMAND ${CMAKE_COMMAND} -E touch ${dir}/.created)
+      list(APPEND done ${dir})
+      set_property(GLOBAL PROPERTY CREATE_DIRECTORY_STATE "${done}")
+    endif()
+  else()
     add_custom_command(
 	OUTPUT ${LNTDIR}/.created
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
 	COMMAND ${CMAKE_COMMAND} -E touch ${dir}/.created)
-    list(APPEND	done ${dir})
-    set_property(GLOBAL PROPERTY CREATE_DIRECTORY_STATE "${done}")
   endif()
 endfunction()
 
