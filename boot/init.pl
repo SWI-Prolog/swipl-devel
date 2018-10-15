@@ -3444,45 +3444,51 @@ saved state.
 '$compile_wic' :-
     use_module(user:library(qsave), [qsave_program/2]),
     current_prolog_flag(os_argv, Argv),
-    '$get_files_argv'(Argv, Files),
-    '$translate_options'(Argv, Options),
+    '$qsave_options'(Argv, Files, Options),
     '$cmd_option_val'(compileout, Out),
-    attach_packs,
     user:consult(Files),
     user:qsave_program(Out, Options).
 
-'$get_files_argv'([], []) :- !.
-'$get_files_argv'(['-c'|Files], Files) :- !.
-'$get_files_argv'([_|Rest], Files) :-
-    '$get_files_argv'(Rest, Files).
-
-'$translate_options'([], []).
-'$translate_options'([O|T0], [Option|T]) :-
+'$qsave_options'([], [], []).
+'$qsave_options'([--|_], [], []) :-
+    !.
+'$qsave_options'(['-c'|T0], Files, Options) :-
+    !,
+    '$argv_files'(T0, T1, Files, FilesT),
+    '$qsave_options'(T1, FilesT, Options).
+'$qsave_options'([O|T0], Files, [Option|T]) :-
     string_concat("--", Opt, O),
     split_string(Opt, "=", "", [NameS|Rest]),
     atom_string(Name, NameS),
-    '$translate_option'(Name, Rest, Value),
+    '$qsave_option'(Name, OptName, Rest, Value),
     !,
-    Option =.. [Name, Value],
-    '$translate_options'(T0, T).
-'$translate_options'([_|T0], T) :-
-    '$translate_options'(T0, T).
+    Option =.. [OptName, Value],
+    '$qsave_options'(T0, Files, T).
+'$qsave_options'([_|T0], Files, T) :-
+    '$qsave_options'(T0, Files, T).
 
-%!  '$translate_option'(+Name, +ValueStrings, -Value) is semidet.
+'$argv_files'([], [], Files, Files).
+'$argv_files'([H|T], [H|T], Files, Files) :-
+    sub_atom(H, 0, _, _, -),
+    !.
+'$argv_files'([H|T0], T, [H|Files0], Files) :-
+    '$argv_files'(T0, T, Files0, Files).
 
-'$translate_option'(Name, [], true) :-
+%!  '$qsave_option'(+Name, +ValueStrings, -Value) is semidet.
+
+'$qsave_option'(Name, Name, [], true) :-
     qsave:save_option(Name, boolean, _),
     !.
-'$translate_option'(NoName, [], false) :-
+'$qsave_option'(NoName, Name, [], false) :-
     atom_concat('no-', Name, NoName),
     qsave:save_option(Name, boolean, _),
     !.
-'$translate_option'(Name, ValueStrings, Value) :-
+'$qsave_option'(Name, Name, ValueStrings, Value) :-
     qsave:save_option(Name, Type, _),
     !,
     atomics_to_string(ValueStrings, "=", ValueString),
     '$convert_option_value'(Type, ValueString, Value).
-'$translate_option'(Name, _Chars, _Value) :-
+'$qsave_option'(Name, Name, _Chars, _Value) :-
     '$existence_error'(save_option, Name).
 
 '$convert_option_value'(integer, String, Value) :-
@@ -3840,6 +3846,11 @@ cancel_halt(Reason) :-
         format('additional boot files loaded~n')
     ;   true
     ).
+
+'$get_files_argv'([], []) :- !.
+'$get_files_argv'(['-c'|Files], Files) :- !.
+'$get_files_argv'([_|Rest], Files) :-
+    '$get_files_argv'(Rest, Files).
 
 '$:-'(('$boot_message'('Loading Prolog startup files~n', []),
        source_location(File, _Line),
