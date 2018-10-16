@@ -32,6 +32,12 @@ endfunction()
 # and we must avoid duplication of these rules. Note that multiple rules
 # racing to create a directory are fine.
 
+if(UNIX)
+  set(TOUCH_EPOCH touch -t 200001010000)
+else()
+  set(TOUCH_EPOCH ${CMAKE_COMMAND} -E touch)
+endif()
+
 function(create_directory dir)
   if(CMAKE_GENERATOR MATCHES Ninja)
     set(done)
@@ -41,7 +47,7 @@ function(create_directory dir)
       add_custom_command(
 	  OUTPUT ${LNTDIR}/.created
 	  COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	  COMMAND ${CMAKE_COMMAND} -E touch ${dir}/.created)
+	  COMMAND ${TOUCH_EPOCH} ${dir}/.created)
       list(APPEND done ${dir})
       set_property(GLOBAL PROPERTY CREATE_DIRECTORY_STATE "${done}")
     endif()
@@ -49,7 +55,7 @@ function(create_directory dir)
     add_custom_command(
 	OUTPUT ${LNTDIR}/.created
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	COMMAND ${CMAKE_COMMAND} -E touch ${dir}/.created)
+	COMMAND ${TOUCH_EPOCH} -E touch ${dir}/.created)
   endif()
 endfunction()
 
@@ -58,11 +64,19 @@ function(add_symlink_command from to)
   get_filename_component(LNTNAME ${to} NAME)
   file(RELATIVE_PATH LNLNK ${LNTDIR} ${from})
   create_directory(${LNTDIR})
-  add_custom_command(
-      OUTPUT ${to}
-      COMMAND ${CMAKE_COMMAND} -E create_symlink ${LNLNK} ./${LNTNAME}
-      WORKING_DIRECTORY ${LNTDIR}
-      DEPENDS ${LNTDIR}/.created)
+  if(UNIX)
+    add_custom_command(
+	OUTPUT ${to}
+	COMMAND ${CMAKE_COMMAND} -E create_symlink ${LNLNK} ./${LNTNAME}
+	WORKING_DIRECTORY ${LNTDIR}
+	DEPENDS ${LNTDIR}/.created)
+  else()
+    add_custom_command(
+	OUTPUT ${to}
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LNLNK} ./${LNTNAME}
+	WORKING_DIRECTORY ${LNTDIR}
+	DEPENDS ${LNTDIR}/.created ${from})
+  endif()
 endfunction()
 
 function(install_in_home name)
