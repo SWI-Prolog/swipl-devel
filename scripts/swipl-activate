@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# Simple script to activate swipl from the current cmake build directory
+# by linking it from $HOME/bin. May  be   called  as below to activate a
+# version that was installed  from  the   current  directory  using  the
+# command below:
+#
+#     swipl-activate --installed
+#
+# This can be combined by setting the following in ~/.bashrc, which will
+# install each configuration into a different directory.
+#
+#     export SWIPL_INSTALL_PREFIX=$HOME/cmake/swipl/@builddir@
+
+if [ "$1" = "--installed" ]; then
+
+  prefix=$(grep CMAKE_INSTALL_PREFIX CMakeCache.txt | sed 's/.*=//')
+  if [ -x $prefix/bin/swipl ]; then
+    swipl=$(pwd)/src/swipl
+  else
+    echo "Cannot find swipl in $prefix/bin"
+    exit 1
+  fi
+
+else
+
+  if [ -x src/swipl ]; then
+    swipl=$(pwd)/src/swipl
+  else
+    echo "Please run from Cmake build directory"
+    exit 1
+  fi
+
+fi
+
+echo "Activating $swipl"
+
+rm $HOME/bin/swipl
+(cd $HOME/bin && ln -s $swipl)
