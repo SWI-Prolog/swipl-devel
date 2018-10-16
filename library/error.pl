@@ -89,7 +89,7 @@ most common ISO error terms.
 %   term, e.g., point(X,Y). One could argue that the basic type is a
 %   compound-term and any other compound  term   is  a domain error.
 %   Most Prolog programmers consider each  compound   as  a type and
-%   would consider a compoint that is not point(_,_) a _type_error_.
+%   would consider a compound that is not point(_,_) a _type_error_.
 
 type_error(Type, Term) :-
     throw(error(type_error(Type, Term), _)).
