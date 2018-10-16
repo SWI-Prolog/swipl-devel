@@ -384,6 +384,6 @@ else(WIN32)
 
 # Create symbolic link from public installation dir to executables
 install(DIRECTORY DESTINATION bin)
-ilink(${SWIPL_INSTALL_ARCH_EXE}/swipl
-      ${CMAKE_INSTALL_PREFIX}/bin/swipl)
+ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl
+      ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_PREFIX}/bin/swipl)
 endif(WIN32)

@@ -83,8 +83,8 @@ function(install_in_home name)
   cmake_parse_arguments(my "" "RENAME;DESTINATION" "FILES" ${ARGN})
   if(my_DESTINATION AND my_FILES)
     string(REPLACE
-	   "${SWIPL_INSTALL_PREFIX}/"
-	   "${SWIPL_BUILD_HOME}/" buildhome ${my_DESTINATION})
+	   "${SWIPL_INSTALL_PREFIX}"
+	   "${SWIPL_BUILD_HOME}" buildhome ${my_DESTINATION})
 
     set(deps)
 
