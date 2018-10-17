@@ -154,9 +154,12 @@ prefix([E|T0], [E|T]) :-
 %
 %   Is true when List1, with Elem removed, results in List2.
 
-select(X, [X|Tail], Tail).
-select(Elem, [Head|Tail], [Head|Rest]) :-
-    select(Elem, Tail, Rest).
+select(X, [Head|Tail], Rest) :-
+    sel_(Tail, Head, X, Rest).
+
+sel_(Tail, Head, Head, Tail).
+sel_([Head2|Tail], Head, X, [Head|Rest]) :-
+    sel_(Tail, Head2, X, Rest).
 
 
 %!  selectchk(+Elem, +List, -Rest) is semidet.
