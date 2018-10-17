@@ -388,8 +388,13 @@ jquery_file :-
 %   Validate that Prolog is installed in $PATH
 
 check_on_path :-
-    current_prolog_flag(executable, EXE),
+    current_prolog_flag(executable, EXEFlag),
+    prolog_to_os_filename(EXE, EXEFlag),
     file_base_name(EXE, Prog),
+    absolute_file_name(EXE, AbsExe,
+                       [ access(execute)
+                       ]),
+    prolog_to_os_filename(AbsExe, OsExe),
     (   absolute_file_name(path(Prog), OnPath,
                            [ access(execute),
                              file_errors(fail)
@@ -402,10 +407,10 @@ check_on_path :-
                                  solutions(all)
                                ]),
             same_file(EXE, OnPathAny)
-        ->  print_message(warning, installation(not_first_on_path(EXE, OnPath)))
-        ;   print_message(warning, installation(not_same_on_path(EXE, OnPath)))
+        ->  print_message(warning, installation(not_first_on_path(OsExe, OnPath)))
+        ;   print_message(warning, installation(not_same_on_path(OsExe, OnPath)))
         )
-    ;   print_message(warning, installation(not_on_path(EXE, Prog)))
+    ;   print_message(warning, installation(not_on_path(OsExe, Prog)))
     ).
 
 
