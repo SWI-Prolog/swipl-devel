@@ -16,9 +16,17 @@ pkg_option(ODBC  "ODBC interface")
 pkg_option(JAVA  "Java interface (JPL)")
 pkg_option(X     "Graphics (xpce)")
 
+set(SWIPL_PACKAGE_SETS BASIC TERM ODBC JAVA X)
+
+# FIXME: Can we get spaces in component names?
+set(SWIPL_PACKAGE_LIST_BASIC_title "Core_system")
+set(SWIPL_PACKAGE_LIST_TERM_title  "Commandline_editors")
+set(SWIPL_PACKAGE_LIST_ODBC_title  "Database_interfaces")
+set(SWIPL_PACKAGE_LIST_JAVA_title  "Java_interface")
+set(SWIPL_PACKAGE_LIST_X_title	   "Graphics_subsystem")
+
 set(SWIPL_PACKAGE_LIST_BASIC
     archive
-    bdb
     chr
     clib
     clpqr
@@ -49,6 +57,7 @@ set(SWIPL_PACKAGE_LIST_TERM
     readline)
 
 set(SWIPL_PACKAGE_LIST_ODBC
+    bdb
     odbc
     cql)
 
@@ -57,6 +66,21 @@ set(SWIPL_PACKAGE_LIST_JAVA
 
 set(SWIPL_PACKAGE_LIST_X
     xpce)
+
+# swipl_package_component(pkg var)
+#
+# Set ${var} to the package group to which ${pkg} belongs
+
+function(swipl_package_component pkg outvar)
+  foreach(s ${SWIPL_PACKAGE_SETS})
+    list(FIND SWIPL_PACKAGE_LIST_${s} ${pkg} index)
+    if(index GREATER -1)
+      set(${outvar} ${SWIPL_PACKAGE_LIST_${s}_title} PARENT_SCOPE)
+      break()
+    endif()
+  endforeach()
+endfunction()
+
 
 # Package dependencies as computed using script/xref_packages.pl
 # FIXME: Some dependencies should be avoided, for example:

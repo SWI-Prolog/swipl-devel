@@ -41,8 +41,8 @@ set(CMAKE_INSTALL_MESSAGE NEVER)
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
        SWIPL_ARCH)
 
-set(SWIPL_INSTALL_DIR swipl)
 if(WIN32)
+set(SWIPL_INSTALL_DIR      ".")
 set(SWIPL_INSTALL_PREFIX   ${SWIPL_INSTALL_DIR})
 set(SWIPL_INSTALL_ARCH_EXE ${SWIPL_INSTALL_PREFIX}/bin)
 set(SWIPL_INSTALL_ARCH_LIB ${SWIPL_INSTALL_PREFIX}/bin)
@@ -50,12 +50,14 @@ set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/bin)
 # Place all .exe and .dll in one directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
-else()
+else(WIN32)
+set(SWIPL_INSTALL_DIR      swipl)
 set(SWIPL_INSTALL_PREFIX   lib/${SWIPL_INSTALL_DIR})
 set(SWIPL_INSTALL_ARCH_EXE ${SWIPL_INSTALL_PREFIX}/bin/${SWIPL_ARCH})
 set(SWIPL_INSTALL_ARCH_LIB ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
 set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
-endif()
+endif(WIN32)
+
 set(SWIPL_INSTALL_LIBRARY  ${SWIPL_INSTALL_PREFIX}/library)
 set(SWIPL_INSTALL_BOOT     ${SWIPL_INSTALL_PREFIX}/boot)
 set(SWIPL_INSTALL_INCLUDE  ${SWIPL_INSTALL_PREFIX}/include)
@@ -73,8 +75,11 @@ if(MULTI_THREADED)
   find_package(Threads)
 endif()
 
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME BASIC)
+
 # Add the core Prolog system
 add_subdirectory(src)
+install(FILES LICENSE README.md DESTINATION ${SWIPL_INSTALL_PREFIX})
 
 if(INSTALL_DOCUMENTATION)
   add_custom_target(
@@ -94,11 +99,14 @@ if(INSTALL_DOCUMENTATION)
     add_dependencies(doc doc.pdf doc.html)
   endif()
 
+  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
   add_subdirectory(man)
 endif(INSTALL_DOCUMENTATION)
 
 # Add the packages
 foreach(package ${SWIPL_PACKAGE_LIST})
+  swipl_package_component(${package}
+			  CMAKE_INSTALL_DEFAULT_COMPONENT_NAME)
   add_subdirectory(packages/${package})
 endforeach(package)
 

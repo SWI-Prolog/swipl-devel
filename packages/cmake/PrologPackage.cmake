@@ -257,11 +257,13 @@ function(swipl_examples)
 
   if(files)
     install_src(plugin_${pkg}_${subdir_}example_files
-		FILES ${files} DESTINATION ${extdest})
+		FILES ${files} DESTINATION ${extdest}
+	        COMPONENT Examples)
   endif()
   if(dirs)
     install_src(plugin_${pkg}_${subdir_}example_dirs
-		DIRECTORY ${dirs} DESTINATION ${extdest})
+		DIRECTORY ${dirs} DESTINATION ${extdest}
+		COMPONENT Examples)
   endif()
 endfunction()
 

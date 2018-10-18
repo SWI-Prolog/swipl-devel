@@ -195,7 +195,7 @@ function(pkg_doc pkg)
 
     install(FILES ${pkg}.html
 	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages
-	    COMPONENT documentation
+	    COMPONENT Documentation
 	    OPTIONAL)
   endif(INSTALL_DOCUMENTATION)
 endfunction()
