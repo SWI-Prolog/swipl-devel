@@ -140,7 +140,6 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(prolog_pack --section)
-libdoc(help --subsection)
 libdoc(explain --subsection)
 pldoc(lib/assoclib.tex lib/assoclib.md
       OPTIONS --lib=assoc --module=assoc
@@ -157,6 +156,9 @@ pldoc(lib/simplexlib.tex lib/simplexlib.md
 pldoc(lib/predopts.tex lib/predopts.txt
       OPTIONS --lib=predicate_options
       DEPENDS lib/predopts.txt ../library/predicate_options.pl)
+pldoc(lib/help.tex "library(help)"
+      OPTIONS --subsection
+      DEPENDS nlp)
 
 # Check that we do not have both a .doc file and extract from the
 # Prolog source
