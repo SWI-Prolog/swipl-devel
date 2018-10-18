@@ -930,16 +930,18 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
     { term_t arg = PL_new_term_ref();
       char *fname;
       int flags = (CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8);
+      int rc;
 
       if ( PL_get_arg(1, A2, arg) &&
 	   PL_get_chars(arg, &fname, flags) )
-      { switch(unzLocateFile(z->reader, fname, TRUE))
+      { switch((rc=unzLocateFile(z->reader, fname, TRUE)))
 	{ case UNZ_OK:
 	    return TRUE;
 	  case UNZ_END_OF_LIST_OF_FILE:
 	    zrelease(z);
 	    return FALSE;
 	}
+	Sdprintf("zipper_goto/2: rc=%d file(%s)\n", rc, fname);
 	assert(0);
       }
     } else if ( PL_is_functor(A2, FUNCTOR_offset1) )
