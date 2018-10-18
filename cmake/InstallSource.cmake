@@ -55,7 +55,7 @@ function(create_directory dir)
     add_custom_command(
 	OUTPUT ${LNTDIR}/.created
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	COMMAND ${TOUCH_EPOCH} -E touch ${dir}/.created)
+	COMMAND ${TOUCH_EPOCH} ${dir}/.created)
   endif()
 endfunction()
 
