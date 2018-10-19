@@ -151,6 +151,11 @@ endif()
 if(WIN32)
   set(SWIPL_DATA_library ${SWIPL_DATA_library}
       dde.pl win_menu.pl)
+else()
+  has_package(swipl-win HAVE_SWIPL_WIN)
+  if(HAVE_SWIPL_WIN)
+    set(SWIPL_DATA_library ${SWIPL_DATA_library} win_menu.pl)
+  endif()
 endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
@@ -385,5 +390,5 @@ else(WIN32)
 # Create symbolic link from public installation dir to executables
 install(DIRECTORY DESTINATION bin)
 ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl
-      ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_PREFIX}/bin/swipl)
+      ${CMAKE_INSTALL_PREFIX}/bin/swipl)
 endif(WIN32)

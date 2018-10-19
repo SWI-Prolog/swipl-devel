@@ -59,13 +59,17 @@ This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 cmake_binary_directory(BinDir) :-
     current_prolog_flag(executable, OsExe),
     prolog_to_os_filename(Exe, OsExe),
-    file_directory_name(Exe, CoreDir),
-    file_directory_name(CoreDir, RelBinDir),
     working_directory(PWD, PWD),
-    absolute_file_name(RelBinDir, BinDir,
-                       [ file_type(directory),
+    absolute_file_name(Exe, AbsExe,
+                       [ access(execute),
                          relative_to(PWD)
-                       ]).
+                       ]),
+    file_directory_name(AbsExe, AbsExeDir),
+    file_directory_name(AbsExeDir, ParentDir),
+    (   file_base_name(ParentDir, packages)
+    ->  file_directory_name(ParentDir, BinDir)
+    ;   BinDir = ParentDir
+    ).
 
 cmake_source_directory(SrcDir) :-
     cmake_binary_directory(BinDir),

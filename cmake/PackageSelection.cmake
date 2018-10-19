@@ -14,6 +14,7 @@ pkg_option(BASIC "Basic packages")
 pkg_option(TERM  "Terminal support (Unix only)")
 pkg_option(ODBC  "ODBC interface")
 pkg_option(JAVA  "Java interface (JPL)")
+pkg_option(QT    "Qt Window console (swipl-win)")
 pkg_option(X     "Graphics (xpce)")
 
 set(SWIPL_PACKAGE_SETS BASIC TERM ODBC JAVA X)
@@ -23,6 +24,7 @@ set(SWIPL_PACKAGE_LIST_BASIC_title "Core_system")
 set(SWIPL_PACKAGE_LIST_TERM_title  "Commandline_editors")
 set(SWIPL_PACKAGE_LIST_ODBC_title  "Database_interfaces")
 set(SWIPL_PACKAGE_LIST_JAVA_title  "Java_interface")
+set(SWIPL_PACKAGE_LIST_QT_title    "Qt_console")
 set(SWIPL_PACKAGE_LIST_X_title	   "Graphics_subsystem")
 
 set(SWIPL_PACKAGE_LIST_BASIC
@@ -63,6 +65,9 @@ set(SWIPL_PACKAGE_LIST_ODBC
 
 set(SWIPL_PACKAGE_LIST_JAVA
     jpl)
+
+set(SWIPL_PACKAGE_LIST_QT
+    swipl-win)
 
 set(SWIPL_PACKAGE_LIST_X
     xpce)
@@ -220,7 +225,7 @@ endfunction()
 
 set(SWIPL_PACKAGE_LIST)
 if(SWIPL_PACKAGES)
-  add_package_sets(BASIC ODBC JAVA X)
+  add_package_sets(BASIC ODBC JAVA QT X)
   if(UNIX)
     add_package_sets(TERM)
   endif()
