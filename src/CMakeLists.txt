@@ -40,9 +40,9 @@ set(SWIPL_LIBRARY_ROOT ${SWIPL_ROOT}/library)
 set(SWIPL_BOOT_ROOT ${SWIPL_ROOT}/boot)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set(SWIPL_BOOT_FILE "boot64.prc")
+  set(SWIPL_BOOT_FILE "${CMAKE_BINARY_DIR}/home/boot64.prc")
 else()
-  set(SWIPL_BOOT_FILE "boot32.prc")
+  set(SWIPL_BOOT_FILE "${CMAKE_BINARY_DIR}/home/boot32.prc")
 endif()
 
 # Tools (swipl-ld)
@@ -216,8 +216,8 @@ add_custom_target(
 )
 
 add_custom_command(
-    OUTPUT  swipl.prc
-    COMMAND swipl -q -O -b ${SWIPL_BUILD_HOME}/boot/init.pl
+    OUTPUT  ${SWIPL_BOOT_FILE}
+    COMMAND swipl -q -O -o ${SWIPL_BOOT_FILE} -b ${SWIPL_BUILD_HOME}/boot/init.pl
     DEPENDS swipl ${SWIPL_BOOT_FILES}
 )
 
@@ -225,17 +225,18 @@ add_custom_command(
     OUTPUT  ${PL_LIB_INDEX}
     COMMAND swipl -f none --nopce -q
             -g "\"make_library_index(swi(library))\"" -t halt
-    DEPENDS swipl.prc prolog_home
+    DEPENDS ${SWIPL_BOOT_FILE} prolog_home
 )
 
 add_custom_target(prolog_products ALL
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/swipl.prc ${PL_LIB_INDEX}
+    DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
 )
 
 configure_file(config.h.cmake config.h)
 
 # Set swipl.home above binaries to a relative path to the root
 file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
+file(WRITE "${CMAKE_BINARY_DIR}/packages/swipl.home" "../home\n")
 symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl.rc)
 symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl-win.rc)
 # Final swipl.home for installed system
@@ -336,9 +337,8 @@ install(TARGETS swipl libswipl swipl-ld
         LIBRARY DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
         ARCHIVE DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
 )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.prc
+install(FILES ${SWIPL_BOOT_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
-	RENAME ${SWIPL_BOOT_FILE}
 )
 foreach(d ${SWIPL_DATA_DIRS})
     string(REGEX REPLACE "/" "_" filevar ${d})
