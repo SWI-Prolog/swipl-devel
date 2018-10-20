@@ -75,7 +75,7 @@ if(MULTI_THREADED)
   find_package(Threads)
 endif()
 
-set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME BASIC)
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Core_system")
 
 # Add the core Prolog system
 add_subdirectory(src)

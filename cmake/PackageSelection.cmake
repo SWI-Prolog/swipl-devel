@@ -10,25 +10,35 @@ macro(pkg_option name comment)
       SWIPL_PACKAGES OFF)
 endmacro()
 
-pkg_option(BASIC "Basic packages")
-pkg_option(TERM  "Terminal support (Unix only)")
-pkg_option(ODBC  "ODBC interface")
-pkg_option(JAVA  "Java interface (JPL)")
-pkg_option(QT    "Qt Window console (swipl-win)")
-pkg_option(X     "Graphics (xpce)")
-
-set(SWIPL_PACKAGE_SETS BASIC TERM ODBC JAVA X)
-
 # FIXME: Can we get spaces in component names?
-set(SWIPL_PACKAGE_LIST_BASIC_title "Core_system")
-set(SWIPL_PACKAGE_LIST_TERM_title  "Commandline_editors")
-set(SWIPL_PACKAGE_LIST_ODBC_title  "Database_interfaces")
-set(SWIPL_PACKAGE_LIST_JAVA_title  "Java_interface")
-set(SWIPL_PACKAGE_LIST_QT_title    "Qt_console")
-set(SWIPL_PACKAGE_LIST_X_title	   "Graphics_subsystem")
+# Do not change the titles as these are the COMPONENT names
+# and used by modular install scripts
+set(SWIPL_PACKAGE_LIST_BASIC_title   "Core_packages")
+set(SWIPL_PACKAGE_LIST_ARCHIVE_title "Archive_interface")
+set(SWIPL_PACKAGE_LIST_TERM_title    "Commandline_editors")
+set(SWIPL_PACKAGE_LIST_ODBC_title    "ODBC_interface")
+set(SWIPL_PACKAGE_LIST_BDB_title     "BerkeleyDB_interface")
+set(SWIPL_PACKAGE_LIST_PCRE_title    "Perl_regex")
+set(SWIPL_PACKAGE_LIST_YAML_title    "YAML_support")
+set(SWIPL_PACKAGE_LIST_JAVA_title    "Java_interface")
+set(SWIPL_PACKAGE_LIST_SSL_title     "OpenSSL_interface")
+set(SWIPL_PACKAGE_LIST_TIPC_title    "TIPC_networking")
+set(SWIPL_PACKAGE_LIST_QT_title	     "Qt_console")
+set(SWIPL_PACKAGE_LIST_X_title	     "Graphics_subsystem")
 
+set(SWIPL_PACKAGE_SETS
+    BASIC ARCHIVE ODBC BDB PCRE YAML JAVA SSL TIPC QT X)
+if(UNIX)
+  list(APPEND SWIPL_PACKAGE_SETS TERM)
+endif()
+
+foreach(pkgset ${SWIPL_PACKAGE_SETS})
+  pkg_option(${pkgset} ${SWIPL_PACKAGE_LIST_${pkgset}_title})
+endforeach()
+
+# The pckages below do not depend on external libraries except for
+# the zlib package, but the core system already depends on zlib.
 set(SWIPL_PACKAGE_LIST_BASIC
-    archive
     chr
     clib
     clpqr
@@ -38,7 +48,6 @@ set(SWIPL_PACKAGE_LIST_BASIC
     ltx2htm
     nlp
     paxos
-    pcre
     PDT
     pengines
     pldoc
@@ -47,24 +56,41 @@ set(SWIPL_PACKAGE_LIST_BASIC
     RDF
     semweb
     sgml
-    ssl
     table
-    tipc
     utf8proc
-    yaml
     zlib)
+
+# Each of the package sets below depend on additional external libraries
+# and are typically distributed in separate .deb or .rpm files.
+
+set(SWIPL_PACKAGE_LIST_ARCHIVE
+    archive)
 
 set(SWIPL_PACKAGE_LIST_TERM
     libedit
     readline)
 
 set(SWIPL_PACKAGE_LIST_ODBC
-    bdb
     odbc
     cql)
 
+set(SWIPL_PACKAGE_LIST_BDB
+    bdb)
+
+set(SWIPL_PACKAGE_LIST_PCRE
+    pcre)
+
+set(SWIPL_PACKAGE_LIST_YAML
+    yaml)
+
+set(SWIPL_PACKAGE_LIST_SSL
+    ssl)
+
 set(SWIPL_PACKAGE_LIST_JAVA
     jpl)
+
+set(SWIPL_PACKAGE_LIST_TIPC
+    tipc)
 
 set(SWIPL_PACKAGE_LIST_QT
     swipl-win)
@@ -225,10 +251,7 @@ endfunction()
 
 set(SWIPL_PACKAGE_LIST)
 if(SWIPL_PACKAGES)
-  add_package_sets(BASIC ODBC JAVA QT X)
-  if(UNIX)
-    add_package_sets(TERM)
-  endif()
+  add_package_sets(${SWIPL_PACKAGE_SETS})
   remove_packages_without_source()
 endif()
 

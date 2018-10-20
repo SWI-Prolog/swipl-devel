@@ -110,16 +110,65 @@ extension).
     % PL-Unit: div ... done
     ...
 
+## Packaging
+
+### Windows
+
+#### After cross compilation on Linux
+
+Ensure `makensis` is installed (`apt-get install nsis`) and run the command
+below to in the build directory create the installer:
+
+    cpack -G NSIS
+
+### Debian based Linux systems (.deb)
+
+The following commands create   swipl-<version>-<nr>.<cpu>.deb file with
+SWI-Prolog to be installed in  /usr.   The  process  creates a monolitic
+installer for a particular configuration of SWI-Prolog
+
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -G Ninja ..
+    ninja
+    cpack -G DEB
+
+#### Mudular packages for Linux
+
+Most Linux distributions  with  to   install  SWI-Prolog  using multiple
+packages, notably to reduce dependencies. For  example, the xpce package
+os normally provided  by  a  package   `swi-prolog-x`  and  the  core of
+SWI-Prolog as `swi-prolog-nox`. This  allows installing `swi-prolog-nox`
+on headless servers without installing X11.
+
+Modular installation can be based on cmake _COMPONENTS_. The files for a
+particular component can be installed using, for  example (not this is a
+one-line command):
+
+    DESTDIR=$(pwd)/<component> \
+        cmake -DCMAKE_INSTALL_COMPONENT=<component> \
+	      -P cmake_install.cmake
+
+The defined components are:
+
+  | Core_system		 | Compiler and core libraries          |
+  | Core_packages	 | Packages with few dependencies       |
+  | Archive_interface	 | Libarchive binding                   |
+  | Commandline_editors	 | Readline and libedit interfaces      |
+  | ODBC_interface	 | ODBC binding                         |
+  | BerkeleyDB_interface | BDB interface                        |
+  | Perl_regex		 | PCRE library binding                 |
+  | YAML_support	 | Libyaml binding                      |
+  | Java_interface	 | Java interface (JPL)                 |
+  | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |
+  | TIPC_networking      | Linux TIPC network support           |
+  | Qt_console		 | Qt windowed interface                |
+  | Graphics_subsystem	 | The xpce graphics system (needs X11) |
+  | Documentation	 | System HTML documentation            |
+  | Examples		 | Example files		        |
+
 ## Issues
 
   - Build documention
     - See whether we can eliminate Perl dependency (doc2tex)
-  - Test handling
-    - Split core tests in many small tests.
   - Create installers
   - Install pkg-config files
   - Provide a FindSWIPL.cmake?
-  - JPL
-    - Test Java part of the tests
-    - Update jpl_config_dylib/0 to deal with modified files
-      and linking strategy used by cmake.
