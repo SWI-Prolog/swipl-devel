@@ -12,11 +12,17 @@
 #
 #     export SWIPL_INSTALL_PREFIX=$HOME/cmake/swipl/@builddir@
 
+swipl=
+swiplwin=
+
 if [ "$1" = "--installed" ]; then
 
   prefix=$(grep CMAKE_INSTALL_PREFIX CMakeCache.txt | sed 's/.*=//')
   if [ -x $prefix/bin/swipl ]; then
-    swipl=$(pwd)/src/swipl
+    swipl=$prefix/bin/swipl
+    if [ -x $prefix/bin/swipl-win ]; then
+      swiplwin=$prefix/bin/swipl-win
+    fi
   else
     echo "Cannot find swipl in $prefix/bin"
     exit 1
@@ -26,6 +32,9 @@ else
 
   if [ -x src/swipl ]; then
     swipl=$(pwd)/src/swipl
+    if [ -x packages/swipl-win/swipl-win ]; then
+      swiplwin=$(pwd)/packages/swipl-win/swipl-win
+    fi
   else
     echo "Please run from Cmake build directory"
     exit 1
@@ -37,3 +46,8 @@ echo "Activating $swipl"
 
 rm $HOME/bin/swipl
 (cd $HOME/bin && ln -s $swipl)
+if [ ! -z "$swiplwin" ]; then
+  echo "       and $swiplwin"
+  rm $HOME/bin/swipl-win
+  (cd $HOME/bin && ln -s $swiplwin)
+fi
