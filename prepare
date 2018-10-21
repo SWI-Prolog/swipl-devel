@@ -61,6 +61,7 @@ coremodules=(
  archive
  bdb bench
  chr clib clpqr cpp cql
+ ltx2htm
  http
  inclpr
  jpl
