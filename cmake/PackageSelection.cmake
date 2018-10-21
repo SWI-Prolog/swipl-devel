@@ -60,6 +60,10 @@ set(SWIPL_PACKAGE_LIST_BASIC
     utf8proc
     zlib)
 
+if(WIN32)
+  list(APPEND SWIPL_PACKAGE_LIST_BASIC windows)
+endif()
+
 # Each of the package sets below depend on additional external libraries
 # and are typically distributed in separate .deb or .rpm files.
 
