@@ -438,7 +438,7 @@ cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
 .PHONY: check
 check:
-		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test -t halt
+		$(DEVPL) -q -F none -f none -O $(srcdir)/test.pl
 
 .PHONY: check-installation
 check-installation:
