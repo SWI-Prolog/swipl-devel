@@ -125,13 +125,17 @@ below to in the build directory create the installer:
 
 The following commands create   swipl-<version>-<nr>.<cpu>.deb file with
 SWI-Prolog to be installed in  /usr.   The  process  creates a monolitic
-installer for a particular configuration of SWI-Prolog
+installer for a particular configuration of   SWI-Prolog.  This is *not*
+what is typically used to  create   packages  for  distributions. Distro
+package maintainers are referred to _Modular  packages for Linux_ below.
+The prodedure here is intended  to   create  custom  Debian packages for
+in-house deployment.
 
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -G Ninja ..
     ninja
     cpack -G DEB
 
-#### Mudular packages for Linux
+#### Modular packages for Linux
 
 Most Linux distributions  with  to   install  SWI-Prolog  using multiple
 packages, notably to reduce dependencies. For  example, the xpce package
@@ -170,5 +174,6 @@ The defined components are:
   - Build documention
     - See whether we can eliminate Perl dependency (doc2tex)
   - Create installers
-  - Install pkg-config files
+    - RPM
+    - MacOS
   - Provide a FindSWIPL.cmake?

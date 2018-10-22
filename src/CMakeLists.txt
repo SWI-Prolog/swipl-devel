@@ -237,11 +237,23 @@ add_custom_target(prolog_products ALL
     DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
 )
 
-# FIXME: @PL@ is used in swipl.1.in.  Should be a fixed name or a more
-# verbose name.
-set(PL swipl)
 configure_file(config.h.cmake config.h)
-configure_file(swipl.1.in swipl.1)
+
+# Configure some data files.  Uses a function because these
+# files use old-style variable names and we want to avoid these
+# leaking into the cmake environment.
+function(config_data_files)
+  set(PL swipl)
+  set(PLBASE ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_DIR})
+  set(PLVERSION ${SWIPL_VERSION_STRING})
+  set(INSTALL_PLARCH ${SWIPL_ARCH})
+  set(prefix ${CMAKE_INSTALL_PREFIX})
+
+  configure_file(swipl.1.in swipl.1 @ONLY)
+  configure_file(swipl.pc.in swipl.pc @ONLY)
+endfunction()
+
+config_data_files()
 
 # Set swipl.home above binaries to a relative path to the root
 file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
@@ -377,10 +389,16 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dot.txt
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
+if(SWIPL_INSTALL_PKGCONFIG)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.pc
+	DESTINATION ${SWIPL_INSTALL_PKGCONFIG})
+endif()
+if(SWIPL_INSTALL_MANPAGES)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.1
 	DESTINATION ${SWIPL_INSTALL_MANPAGES})
 install(FILES swipl-ld.1
 	DESTINATION ${SWIPL_INSTALL_MANPAGES})
+endif()
 
 if(WIN32)
 install(TARGETS swipl-win
