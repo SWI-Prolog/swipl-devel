@@ -115,6 +115,8 @@ if(INSTALL_DOCUMENTATION)
 
   set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
   add_subdirectory(man)
+  install(FILES packages/index.html
+	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages)
 endif(INSTALL_DOCUMENTATION)
 
 # Add the packages
