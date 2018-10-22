@@ -20,7 +20,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEB")
   message("-- Setting up flags for Debian based distro packaging")
 
   function(dpkg_buildflags var flags)
-    execute_process(dpkg-buildflags --get ${flags}
+    execute_process(COMMAND dpkg-buildflags --get ${flags}
 		    OUTPUT_VARIABLE ${var}
 		    OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(var ${var} PARENT_SCOPE)
