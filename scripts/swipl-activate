@@ -14,6 +14,7 @@
 
 swipl=
 swiplwin=
+swiplld=
 
 if [ "$1" = "--installed" ]; then
 
@@ -22,6 +23,9 @@ if [ "$1" = "--installed" ]; then
     swipl=$prefix/bin/swipl
     if [ -x $prefix/bin/swipl-win ]; then
       swiplwin=$prefix/bin/swipl-win
+    fi
+    if [ -x $prefix/bin/swipl-ld ]; then
+      swiplld=$prefix/bin/swipl-ld
     fi
   else
     echo "Cannot find swipl in $prefix/bin"
@@ -32,6 +36,9 @@ else
 
   if [ -x src/swipl ]; then
     swipl=$(pwd)/src/swipl
+    if [ -x src/swipl-ld ]; then
+      swiplld=$(pwd)/src/swipl-ld
+    fi
     if [ -x packages/swipl-win/swipl-win ]; then
       swiplwin=$(pwd)/packages/swipl-win/swipl-win
     fi
@@ -46,6 +53,11 @@ echo "Activating $swipl"
 
 rm $HOME/bin/swipl
 (cd $HOME/bin && ln -s $swipl)
+if [ ! -z "$swiplld" ]; then
+  echo "       and $swiplld"
+  rm $HOME/bin/swipl-ld
+  (cd $HOME/bin && ln -s $swiplld)
+fi
 if [ ! -z "$swiplwin" ]; then
   echo "       and $swiplwin"
   rm $HOME/bin/swipl-win
