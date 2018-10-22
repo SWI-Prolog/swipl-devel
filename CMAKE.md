@@ -176,6 +176,7 @@ The defined components are:
   - Create installers
     - RPM
     - MacOS
+      - https://github.com/ionyshch/cmake-bundle-macos/blob/master/CMakeLists.txt
   - Use PGO (profile guided optimization)
     - See https://gist.github.com/daniel-j-h/c4b109bff0b717fc9b24
   - Provide a FindSWIPL.cmake?
