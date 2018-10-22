@@ -51,15 +51,15 @@ fi
 
 echo "Activating $swipl"
 
-rm $HOME/bin/swipl
+rm -f $HOME/bin/swipl
 (cd $HOME/bin && ln -s $swipl)
 if [ ! -z "$swiplld" ]; then
   echo "       and $swiplld"
-  rm $HOME/bin/swipl-ld
+  rm -f $HOME/bin/swipl-ld
   (cd $HOME/bin && ln -s $swiplld)
 fi
 if [ ! -z "$swiplwin" ]; then
   echo "       and $swiplwin"
-  rm $HOME/bin/swipl-win
+  rm -f $HOME/bin/swipl-win
   (cd $HOME/bin && ln -s $swiplwin)
 fi
