@@ -11,7 +11,7 @@ function(set_install_prefix)
       get_filename_component(bindir ${CMAKE_CURRENT_BINARY_DIR} NAME)
       string(REGEX REPLACE "\@builddir\@" ${bindir} install_prefix ${prefix})
     else()
-      string(REGEX REPLACE "/\@builddir\@" "" install_prefix ${prefix})
+      set(install_prefix ${prefix})
     endif()
     set(CMAKE_INSTALL_PREFIX ${install_prefix}
 	CACHE STRING "Installation prefix" FORCE)

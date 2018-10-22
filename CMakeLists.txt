@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 2.8.12)
 project(SWI-Prolog)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 include(Utils)
+include(BuildType)
 include(Version)
 include(Ports)
 include(Locations)
@@ -13,8 +15,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set_install_prefix()
   message("-- Using install prefix \"${CMAKE_INSTALL_PREFIX}\"")
 endif()
-
-include(BuildType)
 
 option(MULTI_THREADED
        "Enable multiple Prolog threads"

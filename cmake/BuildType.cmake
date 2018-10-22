@@ -12,8 +12,24 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
       STRING "Choose the type of build." FORCE)
   # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
-    "MinSizeRel" "RelWithDebInfo")
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+	       "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "DEB")
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "DEB")
+  message("-- Setting up flags for Debian based distro packaging")
+
+  function(dpkg_buildflags var flags)
+    execute_process(dpkg-buildflags --get ${flags}
+		    OUTPUT_VARIABLE ${var}
+		    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(var ${var} PARENT_SCOPE)
+  endfunction()
+
+  dpkg_buildflags(CMAKE_C_FLAGS_DEB		CFLAGS)
+  dpkg_buildflags(CMAKE_CXX_FLAGS_DEB           CPPFLAGS)
+  dpkg_buildflags(CMAKE_SHARED_LINKER_FLAGS_DEP LDFLAGS)
+  dpkg_buildflags(CMAKE_EXE_LINKER_FLAGS_DEP    LDFLAGS)
 endif()
 
 # Using gdwarf-2 -g3 allows using macros in gdb, which helps a lot
