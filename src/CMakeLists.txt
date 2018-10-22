@@ -237,7 +237,11 @@ add_custom_target(prolog_products ALL
     DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
 )
 
+# FIXME: @PL@ is used in swipl.1.in.  Should be a fixed name or a more
+# verbose name.
+set(PL swipl)
 configure_file(config.h.cmake config.h)
+configure_file(swipl.1.in swipl.1)
 
 # Set swipl.home above binaries to a relative path to the root
 file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
@@ -373,6 +377,10 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dot.txt
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.1
+	DESTINATION ${SWIPL_INSTALL_MANPAGES})
+install(FILES swipl-ld.1
+	DESTINATION ${SWIPL_INSTALL_MANPAGES})
 
 if(WIN32)
 install(TARGETS swipl-win
