@@ -131,14 +131,13 @@ into the core Prolog library to support the Prolog package manager.
 %     Export GIT_ASKPASS=Program
 
 git(Argv, Options) :-
-    option(directory(Dir), Options, .),
+    git_cwd_options(Argv, Argv1, Options),
     env_options(Extra, Options),
     setup_call_cleanup(
-        process_create(path(git), Argv,
+        process_create(path(git), Argv1,
                        [ stdout(pipe(Out)),
                          stderr(pipe(Error)),
-                         process(PID),
-                         cwd(Dir)
+                         process(PID)
                        | Extra
                        ]),
         call_cleanup(
@@ -155,6 +154,12 @@ git(Argv, Options) :-
     ->  true
     ;   throw(error(process_error(git(Argv), Status), _))
     ).
+
+git_cwd_options(Argv0, Argv, Options) :-
+    option(directory(Dir), Options),
+    !,
+    Argv = ['-C', file(Dir) | Argv0 ].
+git_cwd_options(Argv, Argv, _).
 
 env_options([env(['GIT_ASKPASS'=Program])], Options) :-
     option(askpass(Exe), Options),
@@ -227,14 +232,13 @@ close_streams([H|T]) -->
 %   called as call(OnOutput, Stream).
 
 git_process_output(Argv, OnOutput, Options) :-
-    option(directory(Dir), Options, .),
+    git_cwd_options(Argv, Argv1, Options),
     env_options(Extra, Options),
     setup_call_cleanup(
-        process_create(path(git), Argv,
+        process_create(path(git), Argv1,
                        [ stdout(pipe(Out)),
                          stderr(pipe(Error)),
-                         process(PID),
-                         cwd(Dir)
+                         process(PID)
                        | Extra
                        ]),
         call_cleanup(
@@ -248,7 +252,6 @@ git_process_output(Argv, OnOutput, Options) :-
     ->  true
     ;   throw(error(process_error(git, Status)))
     ).
-
 
 git_wait(PID, Out, Status) :-
     at_end_of_stream(Out),
@@ -272,9 +275,8 @@ git_wait(PID, Out, Status) :-
 git_open_file(Dir, File, Branch, In) :-
     atomic_list_concat([Branch, :, File], Ref),
     process_create(path(git),
-                   [ show, Ref ],
-                   [ stdout(pipe(In)),
-                     cwd(Dir)
+                   [ '-C', file(Dir), show, Ref ],
+                   [ stdout(pipe(In))
                    ]),
     set_stream(In, file_name(File)).
 
