@@ -1949,7 +1949,7 @@ flag allows for switching between three alternative approximations.
     \termitem{access}{}
 Use Windows _waccess() function. This ignores ACLs (Access Control
 List) and thus may indicate that access is allowed while it is not.
-    \termitem{filesecurity}{}
+    \termitem{getfilesecurity}{}
 Use the Windows GetFileSecurity() function.  This does not work on
 all file systems, but is probably the best choice on file systems
 that do support it, notably local NTFS volumes.
