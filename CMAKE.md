@@ -169,6 +169,12 @@ The defined components are:
   | Documentation	 | System HTML documentation            |
   | Examples		 | Example files		        |
 
+### Create a MacOSX Bundle
+
+    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_MACOS_BUNDLE=ON -G Ninja ..
+    ninja
+    cpack
+
 ## Issues
 
   - Build documention

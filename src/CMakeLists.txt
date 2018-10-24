@@ -413,8 +413,11 @@ install_src(core_swipl_ico
 
 else(WIN32)
 
+if(NOT BUILD_MACOS_BUNDLE)
 # Create symbolic link from public installation dir to executables
 install(DIRECTORY DESTINATION bin)
 ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl
       ${CMAKE_INSTALL_PREFIX}/bin/swipl)
+endif()
+
 endif(WIN32)
