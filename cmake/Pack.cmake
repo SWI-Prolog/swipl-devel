@@ -1,14 +1,31 @@
 # Setup package generation
 
+if(NOT CPACK_GENERATOR)
+  if(WIN32)
+    set(CPACK_GENERATOR "NSIS")
+  else()
+  find_program(APT apt)
+  if(APT)
+    set(CPACK_GENERATOR "DEB")
+  endif()
+  endif(CPACK_GENERATOR)
+
+  set(CPACK_GENERATOR ${CPACK_GENERATOR} CACHE STRING
+      "Default package generator for platform")
+endif(NOT CPACK_GENERATOR)
+
 set(CPACK_PACKAGE_VERSION ${SWIPL_VERSION_STRING})
-set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_NAME "swipl")
 set(CPACK_PACKAGE_RELEASE 1)
 set(CPACK_PACKAGE_CONTACT "Jan Wielemaker")
 set(CPACK_PACKAGE_VENDOR "SWI-Prolog")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY cmake/pack_summary.txt)
-set(CPACK_STRIP_FILES ON)
+file(READ cmake/pack_summary.txt CPACK_PACKAGE_DESCRIPTION_SUMMARY)
+# Stripping on apple complains about dynamic symbols that cannot be
+# stripped
+if(NOT APPLE)
+  set(CPACK_STRIP_FILES ON)
+endif()
 # set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
 if(NOT CMAKE_SYSTEM_PROCESSOR)
