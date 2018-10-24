@@ -418,6 +418,8 @@ if(NOT BUILD_MACOS_BUNDLE)
 install(DIRECTORY DESTINATION bin)
 ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl
       ${CMAKE_INSTALL_PREFIX}/bin/swipl)
+ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl-ld
+      ${CMAKE_INSTALL_PREFIX}/bin/swipl-ld)
 endif()
 
 endif(WIN32)
