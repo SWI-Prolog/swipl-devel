@@ -7,16 +7,60 @@ MacOSX and cross compilation for Win32 as well as Win64 on Ubuntu 18.04
 It has been tested with  the   "Unix  Makefiles" and "Ninja" generators.
 Ninja performs notably better. It can be  selected using "cmake -G Ninja
 ...", after which the usual `make` _target_   can be replaced by `ninja`
-_target_.
+_target_. As Ninja gives a better   build  experience the examples below
+all use Ninja.
+
+## Getting cmake
+
+Building SWI-Prolog requires cmake version ??.   Many Linux systems ship
+with a cmake package. On  MacOS  we   use  the  Macport  version. If the
+shipped cmake version is too old  you   may  wish to download cmake from
+https://cmake.org/download/
+
 
 ## Native build
 
-```{bash}
-mkdir build
-cd build
-cmake ..
-make -j 8
-```
+### Getting the source
+
+The   source   imay   be    downloaded    as     a    tar    ball   from
+http://www.swi-prolog.org or downloaded using git.  The git sequencen is:
+
+    git clone https://github.com/SWI-Prolog/swipl-devel.git
+    git submodule update --init
+
+
+### Building from source
+
+The typical sequence to build SWI-Prolog  and install in `/usr/local` is
+as follows:
+
+    cd swipl-devel
+    mkdir build
+    cd build
+    cmake -G Ninja ..
+    ninja
+    ctest -j 8
+    ninja install
+
+### Upgrading
+
+In most cases the following should  update   an  installed system to the
+latest version:
+
+    git pull
+    git submodule update --init
+    cd build
+    cmake ..
+    ninja
+    ctest -j 8
+    ninja install
+
+If this fails, one of these measures may be appropriate:
+
+  1. run `ninja clean` before `ninja`
+  2. remove the entire `build` directory and re-create it as above.
+     Note that the build process makes no modifications outside the
+     `build` directory.
 
 ## Build types
 
@@ -48,7 +92,7 @@ installed.
 ## Cross build
 
 Cross building for Windows using (Ubuntu)   linux. Use `README.mingw` to
-download  and  build  the  dependencies.   Nex,  set  these  environment
+download  and  build  the  dependencies.  Next,  set  these  environment
 variables:
 
   - `MINGW64_ROOT` must point at the prefix where the dependencies
@@ -61,19 +105,16 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 
 ### 64 bit Windows from Linux
 
-```{bash}
-mkdir win64
-cd win64
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake ..
-```
+    mkdir win64
+    cd win64
+    cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake -G Ninja ..
+    ninja
 
 ### 32 bit Windows from Linux
 
-```{bash}
-mkdir win32
-cd win32
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake ..
-```
+    mkdir win32
+    cd win32
+    cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake -G Ninja ..
 
 ## Development
 
@@ -84,13 +125,36 @@ the real sources. This  implies  that  `src/swipl`   can  be  used  as a
 complete development environment and library   and system predicates can
 be edited using edit/1 and friends.
 
+The script `scripts/swi-activate` may be used   to  create symlinks from
+$HOME/bin to the version in the  current   working  directory. It may be
+used to activate the system  in  the   build  directory  or  where it is
+installed. It is called from the build directory as one of:
+
+    ../scripts/swipl-activate
+    ../scripts/swipl-activate --intalled
+
+Developers    may    wish    to    set    the    environment    variable
+`SWIPL_INSTALL_PREFIX`,   which   is   used   as     the   default   for
+`CMAKE_INSTALL_PREFIX`. Moreover, if this variable includes `@builddir@`
+this  string  is  replaced  with  the  basename  of  the  current  build
+directory. This aims at the following scenario:
+
+  1. Set e.g. `export SWIPL_INSTALL_PREFIX=$HOME/cmake/@builddir@`
+  2. Use multiple build directories  for   debug,  different  targets or
+     different configurations.  Typically these are called `build.<config>`,
+     for example `build.single-threaded`.
+  3. Configure without specifying a `CMAKE_INSTALL_PREFIX`
+  4. Build, test and install.  Optionally use `swipl-activate` to
+     use this version as default.
+
 
 ### Testing
 
 Tests are registered for use with `ctest`.  To run all tests, simply run
-this in the build directory:
+this in the build directory.  Tests  can   be  run  concurrently (`-j 8`
+below).
 
-    % ctest
+    % ctest -j 8
 
 Note that there seem to be  few   tests.  This is misleading. Each ctest
 test loads a Prolog file that  may  run   hundreds  of  tests. If a test
@@ -114,8 +178,10 @@ extension).
 
 ### Windows
 
-Ensure `makensis` is installed (`apt-get  install   nsis`)  and  run the
-commands below to in the build directory create the installer:
+The windows installer is created from the cross-compiled version using a
+Linux native port of the NSIS  installer generator. Ensure `makensis` is
+installed (`apt-get install nsis`) and run the  commands below to in the
+build directory create the installer:
 
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake -G Ninja ..
     ninja
@@ -180,6 +246,9 @@ The defined components are:
   | Graphics_subsystem	 | The xpce graphics system (needs X11) |
   | Documentation	 | System HTML documentation            |
   | Examples		 | Example files		        |
+
+See the `debian` subdirectory for the complete   set  of rules we use to
+generate the Ubuntu PPA releases.
 
 ### Create a MacOSX Bundle
 
