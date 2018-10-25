@@ -114,12 +114,19 @@ extension).
 
 ### Windows
 
-#### After cross compilation on Linux
+Ensure `makensis` is installed (`apt-get  install   nsis`)  and  run the
+commands below to in the build directory create the installer:
 
-Ensure `makensis` is installed (`apt-get install nsis`) and run the command
-below to in the build directory create the installer:
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake -G Ninja ..
+    ninja
+    cpack
 
-    cpack -G NSIS
+And, for the 32-bit version:
+
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake -G Ninja ..
+    ninja
+    cpack
+
 
 ### Debian based Linux systems (.deb)
 
