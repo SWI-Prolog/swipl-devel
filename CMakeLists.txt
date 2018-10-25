@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.12)
 project(SWI-Prolog)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_POLICY_DEFAULT_CMP0075 NEW)
 
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
