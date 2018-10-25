@@ -1,17 +1,25 @@
 # Setup package generation
 
 if(NOT CPACK_GENERATOR)
+  message("-- Finding default package generator")
   if(WIN32)
     set(CPACK_GENERATOR "NSIS")
   else()
     find_program(APT apt)
-    if(APT)
+    find_program(DNF dnf)
+    if(APT AND NOT DNF)
+      set(CPACK_GENERATOR "DEB")
+    elseif(DNF AND NOT APT)
+      set(CPACK_GENERATOR "RPM")
+    else()
+      message("-- Found both apt and dnf.  Setting DEB generator")
       set(CPACK_GENERATOR "DEB")
     endif()
   endif(WIN32)
 
+  message("-- Setup for packaging with ${CPACK_GENERATOR}")
   set(CPACK_GENERATOR ${CPACK_GENERATOR} CACHE STRING
-      "Default package generator for platform")
+      "Default package generator for platform" FORCE)
 endif(NOT CPACK_GENERATOR)
 
 set(CPACK_PACKAGE_VERSION ${SWIPL_VERSION_STRING})
@@ -20,7 +28,13 @@ set(CPACK_PACKAGE_RELEASE 1)
 set(CPACK_PACKAGE_CONTACT "Jan Wielemaker")
 set(CPACK_PACKAGE_VENDOR "SWI-Prolog")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+
+if(CPACK_GENERATOR STREQUAL RPM)
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A comprehensive Prolog environment")
+else()
 file(READ cmake/pack_summary.txt CPACK_PACKAGE_DESCRIPTION_SUMMARY)
+endif()
+
 # Stripping on apple complains about dynamic symbols that cannot be
 # stripped
 if(NOT APPLE)

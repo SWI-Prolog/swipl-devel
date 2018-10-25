@@ -128,10 +128,10 @@ And, for the 32-bit version:
     cpack
 
 
-### Debian based Linux systems (.deb)
+### Debian based Linux systems (.deb or .rpm)
 
-The following commands create   swipl-<version>-<nr>.<cpu>.deb file with
-SWI-Prolog to be installed in  /usr.   The  process  creates a monolitic
+The following commands create   swipl-<version>-<nr>.<cpu>.deb/rpm  file
+with SWI-Prolog to be installed in /usr. The process creates a monolitic
 installer for a particular configuration of   SWI-Prolog.  This is *not*
 what is typically used to  create   packages  for  distributions. Distro
 package maintainers are referred to _Modular  packages for Linux_ below.
@@ -141,6 +141,11 @@ in-house deployment.
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -G Ninja ..
     ninja
     cpack -G DEB
+
+for generating an RPM, use  `cpack  -G   RPM`.  The  cmake configure run
+selects a default packager depending on  the availability of the package
+installer `apt` (assuming DEB) or `dnf` (assuming RPM).
+
 
 #### Modular packages for Linux
 
@@ -186,10 +191,6 @@ The defined components are:
 
   - Build documention
     - See whether we can eliminate Perl dependency (doc2tex)
-  - Create installers
-    - RPM
-    - MacOS
-      - https://github.com/ionyshch/cmake-bundle-macos/blob/master/CMakeLists.txt
   - Use PGO (profile guided optimization)
     - See https://gist.github.com/daniel-j-h/c4b109bff0b717fc9b24
   - Provide a FindSWIPL.cmake?
