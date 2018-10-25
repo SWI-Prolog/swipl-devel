@@ -32,7 +32,7 @@ endfunction()
 # and we must avoid duplication of these rules. Note that multiple rules
 # racing to create a directory are fine.
 
-if(UNIX)
+if(CMAKE_HOST_UNIX)
   set(TOUCH_EPOCH touch -t 200001010000)
 else()
   set(TOUCH_EPOCH ${CMAKE_COMMAND} -E touch)
@@ -64,7 +64,7 @@ function(add_symlink_command from to)
   get_filename_component(LNTNAME ${to} NAME)
   file(RELATIVE_PATH LNLNK ${LNTDIR} ${from})
   create_directory(${LNTDIR})
-  if(UNIX)
+  if(CMAKE_HOST_UNIX)
     add_custom_command(
 	OUTPUT ${to}
 	COMMAND ${CMAKE_COMMAND} -E create_symlink ${LNLNK} ./${LNTNAME}
@@ -82,8 +82,9 @@ endfunction()
 function(install_in_home name)
   cmake_parse_arguments(my "" "RENAME;DESTINATION" "FILES" ${ARGN})
   if(my_DESTINATION AND my_FILES)
+    string(REPLACE "." "\\." pattern ${SWIPL_INSTALL_PREFIX})
     string(REGEX REPLACE
-	   "^${SWIPL_INSTALL_PREFIX}"
+	   "^${pattern}"
 	   "${SWIPL_BUILD_HOME}" buildhome ${my_DESTINATION})
 
     set(deps)
