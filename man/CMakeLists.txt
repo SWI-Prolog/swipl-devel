@@ -238,7 +238,7 @@ if(WIN32)
   doc2tex(windows.tex)
   add_custom_command(
       OUTPUT windows.html
-      COMMAND ${LATEX2HTML} windows
+      COMMAND swipl ${LATEX2HTML} windows
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex)
 
   add_custom_target(
@@ -256,14 +256,19 @@ if(APPLE)
 
   add_custom_command(
       OUTPUT  macosx/macosx.html
-      COMMAND ${LATEX2HTML} macosx
+      COMMAND swipl ${LATEX2HTML} macosx
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx)
 
   add_custom_target(
       core.doc.macosx.html
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.html)
+
+if(BUILD_MACOS_BUNDLE)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.html
+	  DESTINATION ${SWIPL_INSTALL_RESOURCES})
 endif()
+endif(APPLE)
 
 if(INSTALL_DOCUMENTATION)
   add_custom_target(
