@@ -239,7 +239,8 @@ if(WIN32)
   add_custom_command(
       OUTPUT windows.html
       COMMAND swipl ${LATEX2HTML} windows
-      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex)
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex
+              prolog_products latex2html)
 
   add_custom_target(
       core.doc.windows.html
@@ -258,6 +259,7 @@ if(APPLE)
       OUTPUT  macosx/macosx.html
       COMMAND swipl ${LATEX2HTML} macosx
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
+              prolog_products latex2html
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx)
 
   add_custom_target(
@@ -265,6 +267,7 @@ if(APPLE)
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.html)
 
 if(BUILD_MACOS_BUNDLE)
+  add_dependencies(doc core.doc.macosx.html)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.html
 	  DESTINATION ${SWIPL_INSTALL_RESOURCES})
 endif()
