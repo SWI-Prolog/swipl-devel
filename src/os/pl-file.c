@@ -1229,9 +1229,9 @@ closeStream(IOSTREAM *s)
     releaseStream(s);
   } else
   { if ( !Sferror(s) && Sflush(s) < 0 )
-    { streamStatus(s);
+    { int rc = reportStreamError(s);
       Sclose(s);
-      return FALSE;
+      return rc;
     }
     if ( Sclose(s) < 0 )		/* will unlock as well */
       return FALSE;
