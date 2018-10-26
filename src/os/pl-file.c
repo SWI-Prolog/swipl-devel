@@ -929,7 +929,7 @@ getBinaryOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
 static int
 getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
 { atom_t a;
-  IOSTREAM *s;
+  IOSTREAM *s = NULL;				/* make compiler happy  */
   atom_t tp;
 
   if ( t == 0 )

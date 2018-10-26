@@ -161,7 +161,8 @@ static char *				/* not always around */
 my_strndup(const char *in, size_t len)
 { char *s = malloc(len+1);
 
-  strncpy(s, in, len);
+  if( len )				/* avoid -Wstringop-truncation */
+    strncpy(s, in, len);
   s[len] = '\0';
 
   return s;
