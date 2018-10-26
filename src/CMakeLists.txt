@@ -327,6 +327,72 @@ include(WindowsTargets)
 endif()
 
 ################
+# PGO (profile guided optimization)
+
+set(PGO_PROGRAM ${CMAKE_SOURCE_DIR}/bench/run.pl
+    CACHE STRING
+    "Program to use for Profile Guided Optimization")
+
+set(PROFILE_GUIDED_OPTIMIZATION OFF
+    CACHE STRING
+    "Profile guided optimization mode")
+
+set(PGO_DIR ${CMAKE_BINARY_DIR}/PGO-data)
+set(PGO_GENERATE_FLAGS
+    -fprofile-generate
+    -fprofile-dir=${PGO_DIR})
+set(PGO_USE_FLAGS
+    -fprofile-use
+    -fprofile-dir=${PGO_DIR}
+    -Wno-maybe-uninitialized)
+
+set(PGO_TARGETS swipl libswipl)
+
+if(PROFILE_GUIDED_OPTIMIZATION)
+  if(PROFILE_GUIDED_OPTIMIZATION STREQUAL "GENERATE")
+    message("-- PGO: setup for data collection")
+    foreach(t ${PGO_TARGETS})
+      target_compile_options(${t} PRIVATE ${PGO_GENERATE_FLAGS})
+      string(REPLACE ";" " " gen_flags "${PGO_GENERATE_FLAGS}")
+      set_target_properties(${t} PROPERTIES LINK_FLAGS "${gen_flags}")
+#     requires cmake 3.13
+#     target_link_options(${t} PRIVATE ${PGO_GENERATE_FLAGS})
+    endforeach()
+  elseif(PROFILE_GUIDED_OPTIMIZATION STREQUAL "USE")
+    message("-- PGO: setup for compiling final version")
+    foreach(t ${PGO_TARGETS})
+      target_compile_options(${t} PRIVATE ${PGO_USE_FLAGS})
+      string(REPLACE ";" " " gen_flags "${PGO_USE_FLAGS}")
+      set_target_properties(${t} PROPERTIES LINK_FLAGS "${gen_flags}")
+#     target_link_options(${t} PRIVATE ${PGO_USE_FLAGS})
+    endforeach()
+  endif()
+endif()
+
+if(0)
+# Does not work.  Please use scripts/pgo-compile.sh
+add_custom_target(
+    pgo
+
+    COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=GENERATE -G Ninja ..
+    COMMAND ninja -t clean libswipl
+    COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling instrumented version"
+    COMMAND ninja prolog_products
+    COMMAND ${CMAKE_COMMAND} -E echo "PGO: Running program"
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${PGO_DIR}
+    # cannot use the target `swipl` as that causes a build before we run
+    COMMAND src/swipl ${PGO_PROGRAM}
+    COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=USE -G Ninja ..
+    COMMAND ninja -t clean libswipl
+    COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling optimized version"
+    COMMAND ninja prolog_products
+
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+set_property(TARGET pgo PROPERTY
+	     JOB_POOL_COMPILE console)
+endif(0)
+
+################
 # Testing
 
 add_custom_target(check

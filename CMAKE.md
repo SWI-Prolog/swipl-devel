@@ -89,6 +89,24 @@ Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
 installed.
 
+## Profile Guided Optimization
+
+When using Ninja and GCC, the system  may be build using _Profile Guided
+Optimization_ (PGO). This  first  builds   the  system  instrumented  to
+collect profile information, then runs  a   benchmark  suite and finally
+recompiles it using the benchmark suite  output to help (notably) branch
+prediction.  The  performance  improvement   is    about   10   to  20%.
+Unfortunately the process is a little hard   and the entire system needs
+to be recompiled on any change made to it. To build the PGO version, run
+the commands below. The `../scripts/pgo-compile.sh`   performs the three
+steps above using  the  core  system.   The  final  `ninja`  builds  the
+packages and documentation.
+
+    cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
+    ../scripts/pgo-compile.sh
+    ninja
+
+
 ## Cross build
 
 Cross building for Windows using (Ubuntu)   linux. Use `README.mingw` to
@@ -260,6 +278,4 @@ generate the Ubuntu PPA releases.
 
   - Build documention
     - See whether we can eliminate Perl dependency (doc2tex)
-  - Use PGO (profile guided optimization)
-    - See https://gist.github.com/daniel-j-h/c4b109bff0b717fc9b24
   - Provide a FindSWIPL.cmake?
