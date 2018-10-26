@@ -27,7 +27,11 @@ set(CPACK_PACKAGE_NAME "swipl")
 set(CPACK_PACKAGE_RELEASE 1)
 set(CPACK_PACKAGE_CONTACT "Jan Wielemaker")
 set(CPACK_PACKAGE_VENDOR "SWI-Prolog")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+
+# We don't want an additional page when attacking the dmg
+if(NOT BUILD_MACOS_BUNDLE)
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+endif()
 
 if(CPACK_GENERATOR STREQUAL RPM)
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A comprehensive Prolog environment")

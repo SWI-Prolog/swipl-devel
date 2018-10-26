@@ -32,6 +32,8 @@ if(BUILD_MACOS_BUNDLE)
                   set(fixup_script \"${CMAKE_SOURCE_DIR}/scripts/macosx_bundle_fixup.sh\")
                  ")
     install(CODE [===[
+      execute_process(COMMAND ln -sf SWI-Prolog swipl-win
+		      WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/MacOS)
       message("Deploying Qt to ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app")
       execute_process(COMMAND "${deployqt}"
 		      "${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app")
