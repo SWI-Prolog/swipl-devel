@@ -75,6 +75,8 @@ using e.g.,
 By default the system configures all   features. Several cmake _options_
 allow for restricting the system.
 
+  | Option			  | Description                       |
+  | ----------------------------- | --------------------------------- |
   | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads   |
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers  |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib |
@@ -249,6 +251,8 @@ one-line command):
 
 The defined components are:
 
+  | Component            | Description                          |
+  | -------------------- | ------------------------------------ |
   | Core_system		 | Compiler and core libraries          |
   | Core_packages	 | Packages with few dependencies       |
   | Archive_interface	 | Libarchive binding                   |
