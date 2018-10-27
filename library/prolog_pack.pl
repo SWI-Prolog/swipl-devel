@@ -60,9 +60,6 @@
 :- use_module(library(http/http_open)).
 :- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).   % plugin for POST support
-:- if(exists_source(library(archive))).
-:- use_module(library(archive)).
-:- endif.
 
 
 /** <module> A package manager for Prolog
@@ -747,12 +744,21 @@ pack_unpack(_,_,_,_) :-
 %   from pack.pl in the  pack  and   Strip  is  the strip-option for
 %   archive_extract/3.
 %
+%   Requires library(archive), which is lazily loaded when needed.
+%
 %   @error  existence_error(pack_file, 'pack.pl') if the archive
 %           doesn't contain pack.pl
 %   @error  Syntax errors if pack.pl cannot be parsed.
 
-:- if(current_predicate(archive_open/3)).
+:- if(exists_source(library(archive))).
+ensure_loaded_archive :-
+    current_predicate(archive_open/3),
+    !.
+ensure_loaded_archive :-
+    use_module(library(archive)).
+
 pack_archive_info(Archive, Pack, [archive_size(Bytes)|Info], Strip) :-
+    ensure_loaded_archive,
     size_file(Archive, Bytes),
     setup_call_cleanup(
         archive_open(Archive, Handle, []),
