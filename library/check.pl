@@ -105,7 +105,7 @@ check.
 %!  list_undefined(+Options) is det.
 %
 %   Report undefined predicates.  This   predicate  finds  undefined
-%   predciates by decompiling and analyzing the body of all clauses.
+%   predicates by decompiling and analyzing the body of all clauses.
 %   Options:
 %
 %       * module_class(+Classes)
