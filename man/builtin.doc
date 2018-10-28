@@ -6910,9 +6910,9 @@ devastated if 0.0 did turn up.''}
 Evaluate \arg{Expr} and round the result to the nearest integer.
 According to ISO, \funcref{round}{1} is defined as
 \term{floor}{Expr+1/2}, i.e., rounding \emph{down}.  This is an
-unconventional choice and under which the relation
+unconventional choice under which the relation
 \verb$round(Expr) == -round(-Expr)$ does not hold.  SWI-Prolog
-rounds \emph{outward}, e.g., \exam{round(1.5) =:= 2} and round
+rounds \emph{outward}, e.g., \exam{round(1.5) =:= 2} and
 \exam{round(-1.5) =:= -2}.
 
     \function{integer}{1}{+Expr}
