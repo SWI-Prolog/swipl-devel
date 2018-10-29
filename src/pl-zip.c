@@ -207,15 +207,28 @@ zrelease(zipper *z)
 		 *  ACCESS ARCHIVES AS STREAMS  *
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) As we map the resource file, we should  not write it in place. If we
+do so anyway, a Prolog process running on   this  state will crash if it
+tries to access its resources.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static voidpf
 zopen64_file(voidpf opaque, const void* filename, int mode)
-{ char modes[4];
+{ char modes[8];
   char *m = modes;
 
   if ( (mode&ZLIB_FILEFUNC_MODE_CREATE) )
-    *m++ = 'w';
-  else
-    *m++ = 'r';
+  { *m++ = 'w';
+    strcpy(m, "m444");
+    m += strlen(m);
+    if ( ExistsFile(filename) )
+    { if ( !RemoveFile(filename) )
+	return NULL;			/* see (*) */
+    }
+  } else
+  { *m++ = 'r';
+  }
   *m++ = 'b';
   *m = EOS;
 
