@@ -193,7 +193,7 @@ function(pkg_doc pkg)
 
     add_dependencies(doc.html ${pkg}.doc.html)
 
-    install(FILES ${pkg}.html
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${pkg}.html
 	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages
 	    COMPONENT Documentation
 	    OPTIONAL)
