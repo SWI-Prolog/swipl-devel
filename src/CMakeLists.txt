@@ -340,7 +340,8 @@ set(PROFILE_GUIDED_OPTIMIZATION OFF
 set(PGO_DIR ${CMAKE_BINARY_DIR}/PGO-data)
 set(PGO_GENERATE_FLAGS
     -fprofile-generate
-    -fprofile-dir=${PGO_DIR})
+    -fprofile-dir=${PGO_DIR}
+    -Wno-maybe-uninitialized)
 set(PGO_USE_FLAGS
     -fprofile-use
     -fprofile-dir=${PGO_DIR}
