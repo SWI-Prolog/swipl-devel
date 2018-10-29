@@ -1,14 +1,18 @@
 # Building SWI-Prolog using cmake
 
-Currently SWI-Prolog has cmake CMakeLists.txt   configuration files that
-cover almost the entire project and builds   on Ubuntu 18.04, Fedore 28,
-MacOSX and cross compilation for Win32 as well as Win64 on Ubuntu 18.04
+As of version 7.7.20,  SWI-Prolog   ships  with `cmake` `CMakeLists.txt`
+configuration files that cover the  entire   project.  Builds  have been
+tested on Ubuntu 16.04,  18.04,  18.10,   Fedore  28,  MacOSX  and cross
+compilation for Win32 as well  as  Win64   using  Ubuntu  18.04  as host
+system.
 
-It has been tested with  the   "Unix  Makefiles" and "Ninja" generators.
-Ninja performs notably better. It can be  selected using "cmake -G Ninja
-...", after which the usual `make` _target_   can be replaced by `ninja`
-_target_. As Ninja gives a better   build  experience the examples below
-all use Ninja.
+The build has  been  tested  with   the  "Unix  Makefiles"  and  "Ninja"
+generators.  We  use  [Ninja](https://ninja-build.org/)   as  it  builds
+faster, avoids warning  from  being   cluttered  and  better facilitates
+debugging dependency issues. It can be   selected  using `cmake -G Ninja
+...`, after which the usual `make` _target_   can be replaced by `ninja`
+_target_. The examples below all  use  Ninja.   Drop  `-G  Ninja` to use
+classical Unix make.
 
 ## Getting cmake
 
@@ -116,6 +120,13 @@ packages and documentation.
     ../scripts/pgo-compile.sh
     ninja
 
+To stop using PGO builds in the current build directory run the commands
+below. The `pgo-compile.sh  -off`  restores   the  normal  build  flags,
+deletes the PGO data and cleans the core system files.
+
+    ../scripts/pgo-compile.sh --off
+    ninja
+
 
 ## Cross build
 
@@ -159,7 +170,7 @@ used to activate the system  in  the   build  directory  or  where it is
 installed. It is called from the build directory as one of:
 
     ../scripts/swipl-activate
-    ../scripts/swipl-activate --intalled
+    ../scripts/swipl-activate --installed
 
 Developers    may    wish    to    set    the    environment    variable
 `SWIPL_INSTALL_PREFIX`,   which   is   used   as     the   default   for
