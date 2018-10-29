@@ -8,7 +8,7 @@
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
 TARGET_DISTRO=none
-distros="trusty xenial artful bionic"
+distros="trusty xenial bionic cosmic"
 build=true
 buildbin=false
 push=false
@@ -81,8 +81,6 @@ fi
 
 # Avoid typos ...
 case $TARGET_DISTRO in
-  trusty|xenial|zesty)
-    ;;
   none)
     echo "Known distros: $distros"
     exit 1
