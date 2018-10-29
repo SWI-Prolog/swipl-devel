@@ -59,6 +59,14 @@ test(warn_singletons, Messages =@= [singletons(a(_,_,_,_,_), ['_a','A'])]) :-
 				   [ singletons(warning)
 				   ]),
 		       Messages).
+test(position,
+     [Query,TermPos,Comments] ==
+     [true,7-11,['$stream_position'(0,0,0,0)-"%hello"]]) :-
+	QueryString = "%hello\ntrue",
+	term_string(Query, QueryString,
+                [ subterm_positions(TermPos),
+                  comments(Comments)
+                ]).
 
 :- end_tests(read_term).
 

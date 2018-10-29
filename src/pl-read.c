@@ -4928,6 +4928,8 @@ retry:
     rd.singles = TRUE;
   if ( tcomments )
     rd.comments = PL_copy_term_ref(tcomments);
+  if ( rd.subtpos )
+    s->position = &s->posbuf;
 
   rval = read_term(term, &rd PASS_LD);
   if ( Sferror(s) )
