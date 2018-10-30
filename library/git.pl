@@ -688,7 +688,7 @@ skip_rest(_,_).
             author_date_relative:atom,
             committer_name:atom,
             committer_date_relative:atom,
-            committer_date_unix,
+            committer_date_unix:integer,
             subject:atom,
             ref_names:list).
 
@@ -738,6 +738,9 @@ to_nul_s([H|T]) --> [H], to_nul_s(T).
 field_to_prolog(ref_names, Line, List) :-
     phrase(ref_names(List), Line),
     !.
+field_to_prolog(committer_date_unix, Line, Stamp) :-
+    !,
+    number_codes(Stamp, Line).
 field_to_prolog(_, Line, Atom) :-
     atom_codes(Atom, Line).
 
