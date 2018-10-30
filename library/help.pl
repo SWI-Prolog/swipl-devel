@@ -408,9 +408,6 @@ obj_string(f(Name/_), Name).
 obj_string(c(Name), Name).
 
 amatch(Query, To, Quality) :-
-    sub_atom_icasechk(To, _, Query),
-    isub(Query, To, false, Quality).
-amatch(Query, To, Quality) :-
     related(Query, Related, Distance),
     sub_atom_icasechk(To, _, Related),
     isub(Related, To, false, Quality0),
@@ -471,26 +468,38 @@ object_class(_M:_Name//_Arity, dcg).
 %   Map some commonly known concepts to their Prolog related term. Where
 %   do we find a comprehensive list of these?
 
-related(file,       srcdest,    0.9).
-related(file,       stream,     0.3).
-related(quit,       halt,       0.9).
-related(exit,       halt,       0.9).
-related(error,      exception,  0.8).
-related(error,      throw,      0.5).
-related(error,      catch,      0.5).
-related(exception,  error,      0.8).
-related(exception,  throw,      0.5).
-related(exception,  catch,      0.5).
-related(close,      destroy,    0.3).
-related(destroy,    close,      0.3).
-related(destroy,    delete,     0.3).
-related(destroy,    unregister, 0.3).
-related(delete,     unregister, 0.3).
-related(unregister, delete,     0.3).
-related(remove,     delete,     0.3).
-related(create,     make,       0.3).
-related(create,     new,        0.3).
-related(new,        create,     0.3).
+related(In, Out, Distance) :-
+    related(In, Out, 1, Distance).
+
+related(T, T, D, D).
+related(In, Out, D0, D) :-
+    (   synonym(In, Out0, D1)
+    ;   synonym(Out0, In, D1)
+    ),
+    D2 is D0*D1,
+    D2 > 0.2,
+    related(Out0, Out, D2, D).
+
+
+synonym(file,       srcdest,    0.9).
+synonym(file,       stream,     0.3).
+synonym(quit,       halt,       0.9).
+synonym(exit,       halt,       0.9).
+synonym(error,      exception,  0.8).
+synonym(error,      throw,      0.5).
+synonym(error,      catch,      0.5).
+synonym(close,      destroy,    0.3).
+synonym(destroy,    delete,     0.3).
+synonym(destroy,    unregister, 0.3).
+synonym(delete,     unregister, 0.3).
+synonym(create,     make,       0.3).
+synonym(create,     new,        0.3).
+synonym(create,     fork,       0.3).
+synonym(create,     clone,      0.3).
+synonym(elem,       element,    0.7).
+synonym(element,    member,     0.3).
+synonym(delete,     remove,     0.3).
+synonym(clone,      duplicate,  0.3).
 
 
 		 /*******************************
