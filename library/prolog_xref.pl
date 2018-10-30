@@ -82,6 +82,7 @@
 :- use_module(library(pldoc/doc_process)).
 :- endif.
 :- use_module(library(solution_sequences)).
+:- use_module(library(modules)).
 
 :- predicate_options(xref_source/2, 2,
                      [ silent(boolean),
@@ -1768,6 +1769,10 @@ process_use_module2(File, Import, Src, Reexport) :-
 %     * silent(+Boolean)
 %     Do not print any messages or raise exceptions on errors.
 %
+%   The information collected by this predicate   is  cached. The cached
+%   data is considered valid as long  as   the  modification time of the
+%   file does not change.
+%
 %   @param Source is the file from which Spec is referenced.
 
 xref_public_list(File, Src, Options) :-
@@ -1809,28 +1814,68 @@ xref_public_list(File, Path, Module, Export, Public, Meta, Src) :-
     xref_source_file(File, Path, Src),
     public_list(Path, Module, Meta, Export, Public, []).
 
-public_list(Path, Module, Meta, Export, Public, Options) :-
-    public_list_diff(Path, Module, Meta, [], Export, [], Public, [], Options).
+%!  public_list(+Path, -Module, -Meta, -Export, -Public, +Options)
+%
+%   Read the public information for Path.  Options supported are:
+%
+%     - silent(+Boolean)
+%       If `true`, ignore (syntax) errors.  If not specified the default
+%       is inherited from xref_source/2.
 
-public_list_diff(Path, Module, Meta, MT, Export, Rest, Public, PT, Options) :-
+:- dynamic  public_list_cache/6.
+:- volatile public_list_cache/6.
+
+public_list(Path, Module, Meta, Export, Public, _Options) :-
+    public_list_cache(Path, Modified,
+                      Module0, Meta0, Export0, Public0),
+    time_file(Path, ModifiedNow),
+    (   abs(Modified-ModifiedNow) < 0.0001
+    ->  !,
+        t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0)
+    ;   retractall(public_list_cache(Path, _, _, _, _, _)),
+        fail
+    ).
+public_list(Path, Module, Meta, Export, Public, Options) :-
+    public_list_nc(Path, Module0, Meta0, Export0, Public0, Options),
+    time_file(Path, Modified),
+    asserta(public_list_cache(Path, Modified,
+                              Module0, Meta0, Export0, Public0)),
+    t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
+
+public_list_nc(Path, Module, Meta, Export, Public, Options) :-
+    in_temporary_module(
+        TempModule,
+        true,
+        public_list_diff(TempModule, Path, Module,
+                         Meta, [], Export, [], Public, [], Options)).
+
+
+public_list_diff(TempModule,
+                 Path, Module, Meta, MT, Export, Rest, Public, PT, Options) :-
     setup_call_cleanup(
-        ( prolog_open_source(Path, In),
-          set_xref(Old)
-        ),
+        public_list_setup(TempModule, Path, In, State),
         phrase(read_directives(In, Options, [true]), Directives),
-        ( set_prolog_flag(xref, Old),
-          prolog_close_source(In)
-        )),
+        public_list_cleanup(In, State)),
     public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
+
+public_list_setup(TempModule, Path, In, state(OldM, OldXref)) :-
+    prolog_open_source(Path, In),
+    '$set_source_module'(OldM, TempModule),
+    set_xref(OldXref).
+
+public_list_cleanup(In, state(OldM, OldXref)) :-
+    '$set_source_module'(OldM),
+    set_prolog_flag(xref, OldXref),
+    prolog_close_source(In).
 
 
 read_directives(In, Options, State) -->
     {  repeat,
-         catch(prolog_read_source_term(In, Term, Expanded,
-                                       [ process_comment(true),
-                                         syntax_errors(error)
-                                       ]),
-               E, report_syntax_error(E, -, Options))
+       catch(prolog_read_source_term(In, Term, Expanded,
+                                     [ process_comment(true),
+                                       syntax_errors(error)
+                                     ]),
+             E, report_syntax_error(E, -, Options))
     -> nonvar(Term),
        Term = (:-_)
     },
