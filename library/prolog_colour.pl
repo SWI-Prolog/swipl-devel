@@ -946,7 +946,7 @@ colourise_goal(Goal, Origin, TB, parentheses_term_position(PO,PC,Pos)) :-
     colour_item(parentheses, TB, PO-PC),
     colourise_goal(Goal, Origin, TB, Pos).
 colourise_goal(Goal, _, TB, Pos) :-
-    Pos = list_position(F,T,Elms,_),
+    Pos = list_position(F,T,Elms,TailPos),
     Goal = [_|_],
     !,
     FT is F + 1,
@@ -954,7 +954,7 @@ colourise_goal(Goal, _, TB, Pos) :-
     colour_item(goal_term(built_in, Goal), TB, Pos),
     colour_item(goal(built_in, Goal), TB, F-FT),
     colour_item(goal(built_in, Goal), TB, AT-T),
-    colourise_file_list(Goal, TB, Elms, any).
+    colourise_file_list(Goal, TB, Elms, TailPos, any).
 colourise_goal(Goal, Origin, TB, Pos) :-
     Pos = list_position(F,T,Elms,Tail),
     callable(Goal),
@@ -1281,10 +1281,10 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 %
 %   @param Why is one of =any= or =imported=
 
-colourise_files(List, TB, list_position(F,T,Elms,_), Why) :-
+colourise_files(List, TB, list_position(F,T,Elms,TailPos), Why) :-
     !,
     colour_item(list, TB, F-T),
-    colourise_file_list(List, TB, Elms, Why).
+    colourise_file_list(List, TB, Elms, TailPos, Why).
 colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP]), Why) :-
     !,
     colourise_module(M, TB, MP),
@@ -1308,10 +1308,17 @@ colourise_files(Spec0, TB, Pos, Why) :-
     ;   colour_item(nofile, TB, Pos)
     ).
 
-colourise_file_list([], _, _, _).
-colourise_file_list([H|T], TB, [PH|PT], Why) :-
+%!  colourise_file_list(+Files, +TB, +ElmPos, +TailPos, +Why)
+
+colourise_file_list([], _, [], none, _).
+colourise_file_list(Last, TB, [], TailPos, _Why) :-
+    (   var(Last)
+    ->  colourise_term(Last, TB, TailPos)
+    ;   colour_item(type_error(list), TB, TailPos)
+    ).
+colourise_file_list([H|T], TB, [PH|PT], TailPos, Why) :-
     colourise_files(H, TB, PH, Why),
-    colourise_file_list(T, TB, PT, Why).
+    colourise_file_list(T, TB, PT, TailPos, Why).
 
 resolves_anything(TB, Path) :-
     colour_state_source_id(TB, SourceId),
