@@ -331,6 +331,12 @@ load_quasi_quotation_syntax(SM:Path, Syntax) :-
     !,
     use_module(SM:Path, [Syntax/4]).
 
+%!  module_decl(+FileSpec, -Path, -Decl) is semidet.
+%
+%   If FileSpec refers to a Prolog  module   file,  unify  Path with the
+%   canonical file path to the file and Decl with the second argument of
+%   the module declaration.
+
 module_decl(Spec, Path, Decl) :-
     absolute_file_name(Spec, Path,
                        [ file_type(prolog),
@@ -339,8 +345,24 @@ module_decl(Spec, Path, Decl) :-
                        ]),
     setup_call_cleanup(
         prolog_open_source(Path, In),
-        read(In, (:- module(_, Decl))),
+        read_module_decl(In, Decl),
         prolog_close_source(In)).
+
+read_module_decl(In, Decl) :-
+    read(In, Term0),
+    read_module_decl(Term0, In, Decl).
+
+read_module_decl(Term, _In, Decl) :-
+    subsumes_term((:- module(_, Decl)), Term),
+    !,
+    Term = (:- module(_, Decl)).
+read_module_decl(Term, In, Decl) :-
+    subsumes_term((:- encoding(_)), Term),
+    !,
+    Term = (:- encoding(Enc)),
+    set_stream(In, encoding(Enc)),
+    read(In, Term2),
+    read_module_decl(Term2, In, Decl).
 
 
 %!  read_source_term_at_location(+Stream, -Term, +Options) is semidet.
