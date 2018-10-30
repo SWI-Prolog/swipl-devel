@@ -82,6 +82,9 @@ By default the result of  help/1  is   sent  through  a  _pager_ such as
 :- meta_predicate
     with_pager(0).
 
+:- multifile
+    show_html_hook/1.
+
 % one of `default`, `false`, an executable or executable(options), e.g.
 % less('-r').
 :- create_prolog_flag(help_pager, default,
@@ -137,13 +140,29 @@ help_no_trace(What) :-
     print_message(warning, help(not_found(What))).
 
 show_matches(Matches, HowWhat) :-
-    help_dom(Matches, HowWhat, DOM),
+    help_html(Matches, HowWhat, HTML),
     !,
+    show_html(HTML).
+
+%!  show_html_hook(+HTML:string) is semidet.
+%
+%   Hook called to display the  extracted   HTML  document. If this hook
+%   fails the HTML is rendered  to  the   console  as  plain  text using
+%   html_text/2.
+
+show_html(HTML) :-
+    show_html_hook(HTML),
+    !.
+show_html(HTML) :-
+    setup_call_cleanup(
+        open_string(HTML, In),
+        load_html(stream(In), DOM, []),
+        close(In)),
     page_width(PageWidth),
     LineWidth is PageWidth - 4,
     with_pager(html_text(DOM, [width(LineWidth)])).
 
-help_dom(Matches, How, DOM) :-
+help_html(Matches, How, HTML) :-
     phrase(html(html([ head([]),
                        body([ \match_type(How),
                               \man_pages(Matches,
@@ -157,11 +176,7 @@ help_dom(Matches, How, DOM) :-
            Tokens),
     !,
     with_output_to(string(HTML),
-                   print_html(Tokens)),
-    setup_call_cleanup(
-        open_string(HTML, In),
-        load_html(stream(In), DOM, []),
-        close(In)).
+                   print_html(Tokens)).
 
 match_type(exact-_) -->
     [].
@@ -557,3 +572,10 @@ man_object_summary(Obj, Obj, Tag) :-
     ->  true
     ;   Tag = '  ?'
     ).
+
+		 /*******************************
+		 *            SANDBOX		*
+		 *******************************/
+
+sandbox:safe_primitive(prolog_help:apropos(_)).
+sandbox:safe_primitive(prolog_help:help(_)).
