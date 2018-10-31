@@ -65,13 +65,13 @@ function(doc2tex)
       add_custom_command(
 	  OUTPUT ${f}
 	  COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	  COMMAND ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} > ${f}
-	  DEPENDS ${docin})
+	  COMMAND swipl ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
+	  DEPENDS ${docin} ${DOC2TEX_DEPENDS})
     else()
       add_custom_command(
 	  OUTPUT ${f}
-	  COMMAND ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} > ${f}
-	  DEPENDS ${docin})
+	  COMMAND swipl ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
+	  DEPENDS ${docin} ${DOC2TEX_DEPENDS})
     endif()
   endforeach()
 endfunction()
@@ -180,8 +180,8 @@ add_custom_command(
     DEPENDS main.doc select.pl)
 add_custom_command(
     OUTPUT  ${DOC}.tex
-    COMMAND ${DOC2TEX} ${DOC}.doc > ${DOC}.tex
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.doc)
+    COMMAND swipl ${DOC2TEX} ${DOC}.doc ${DOC}.tex
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.doc ${DOC2TEX_DEPENDS})
 
 set(BIBTEX_DATA ${CMAKE_CURRENT_BINARY_DIR}/pl.bib)
 

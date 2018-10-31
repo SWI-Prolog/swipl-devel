@@ -4,8 +4,8 @@ function(doc2tex file)
   string(REPLACE ".doc" ".tex" tex ${file})
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file} > ${tex}
-      DEPENDS ${file})
+      COMMAND swipl ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${tex}
+      DEPENDS ${file} ${DOC2TEX_DEPENDS})
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
 
