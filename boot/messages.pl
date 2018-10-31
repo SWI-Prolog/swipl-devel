@@ -1041,8 +1041,13 @@ prolog_message(copyright) -->
       'Please run ?- license. for legal details.'
     ].
 prolog_message(user_versions) -->
-    { findall(Msg, prolog:version_msg(Msg), Msgs) },
-    user_version_messages(Msgs).
+    (   { findall(Msg, prolog:version_msg(Msg), Msgs),
+          Msgs \== []
+        }
+    ->  [nl],
+        user_version_messages(Msgs)
+    ;   []
+    ).
 prolog_message(documentaton) -->
     [ 'For online help and background, visit http://www.swi-prolog.org', nl,
       'For built-in help, use ?- help(Topic). or ?- apropos(Word).'

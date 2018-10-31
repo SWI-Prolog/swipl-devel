@@ -137,6 +137,17 @@ add_package_path(PkgBinDir) :-
 :- forall(swipl_package(Pkg, PkgBinDir),
           add_package(Pkg, PkgBinDir)).
 
+%!  set_version_info
+%
+%   Indicate we are running from the   build directory rather than using
+%   an installed version.
+
+set_version_info :-
+    cmake_binary_directory(BinDir),
+    version(format('    CMake built from "~w"', [BinDir])).
+
+:- initialization(set_version_info).
+
 % Avoid getting Java from the host when running under Wine.
 
 :- if(current_prolog_flag(wine_version, _)).
