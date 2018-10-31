@@ -1,10 +1,47 @@
 if(APPLE)
 
-message("-- Using Macports packages from /opt/local and /usr/local")
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
-    /opt/local/lib /usr/local/lib)
-set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
-    /opt/local/include /usr/local/include)
+if(NOT MACOSX_DEPENDENCIES_FROM)
+  if(EXISTS /opt/local/bin/port)
+    set(MACOSX_DEPENDENCIES_FROM Macports)
+  elseif(EXISTS /usr/local/bin/brew)
+    set(MACOSX_DEPENDENCIES_FROM Homebrew)
+  else()
+    set(MACOSX_DEPENDENCIES_FROM None)
+    message(WARNING "Could not find Macport or Homebrew to provide dependencies \
+		     trying to configure with default search paths")
+  endif()
+  set(MACOSX_DEPENDENCIES_FROM ${MACOSX_DEPENDENCIES_FROM}
+      CACHE STRING "Get dependencies from Macports or HomeBrew")
+endif()
+
+if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
+  message("-- Using Macports packages from /opt/local")
+  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
+      /opt/local/lib)
+  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
+      /opt/local/include)
+elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
+  message("-- Using Homebrew packages from /usr/local")
+  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
+      /usr/local/lib)
+  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
+      /usr/local/include)
+
+  if(IS_DIRECTORY /usr/local/opt/openssl)
+    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+  elseif(IS_DIRECTORY /usr/local/opt/openssl@1.1)
+    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl@1.1")
+  else()
+    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+  endif()
+
+  set(LibArchive_ROOT /usr/local/opt/libarchive)
+  set(Readline_ROOT /usr/local/opt/readline)
+elseif(MACOSX_DEPENDENCIES_FROM STREQUAL None)
+  message("-- Trying to build without Macports or Homebrew dependencies")
+else()
+  message(FATAL_ERROR "Invalid MACOSX_DEPENDENCIES_FROM: ${MACOSX_DEPENDENCIES_FROM}")
+endif()
 
 if(BUILD_MACOS_BUNDLE)
   set(MACOS_APP "SWI-Prolog")
