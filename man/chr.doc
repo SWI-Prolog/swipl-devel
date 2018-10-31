@@ -613,7 +613,7 @@ Here are two example constraint solvers written in CHR.
 \begin{itemize}
     \item
 The program below defines a solver with one constraint,
-\nopredref{leq/2}, which is a less-than-or-equal constraint, also known
+\nopredref{leq}{2}, which is a less-than-or-equal constraint, also known
 as a partial order constraint.
 
 \begin{code}

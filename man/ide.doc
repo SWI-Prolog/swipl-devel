@@ -253,7 +253,7 @@ mastered in detail for real productive programming. If you are
 familiar with a specific editor you should not be forced to change. You
 may specify your favourite editor using the Prolog flag \prologflag{editor},
 the environment variable \env{EDITOR} or by defining rules for
-\qpredref{prolog_edit}{edit_source}{1}.
+prolog_edit:edit_source/1.
 
 The use of a built-in editor, which is selected by setting the
 Prolog flag \prologflag{editor} to \const{pce_emacs}, has advantages. The
@@ -729,7 +729,7 @@ editor at the right location.
     \item [Select editor]
 External editors are selected using the \env{EDITOR} environment
 variable, by setting the Prolog flag \prologflag{editor}, or by defining the
-hook qpredref{prolog_edit}{edit_source}{1}.
+hook prolog_edit:edit_source/1.
 
     \item [Update Prolog after editing]
 Using make/0, all files you have edited are re-loaded.

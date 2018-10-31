@@ -1411,7 +1411,7 @@ examples.
 
     \predicate{prolog_edit:edit_command}{2}{+Editor, -Command}
 Determines how \arg{Editor} is to be invoked using shell/1. \arg{Editor}
-is the determined editor (see qpredref{prolog_edit}{edit_source}{1}),
+is the determined editor (see \qpredref{prolog_edit}{edit_source}{1}),
 without the full path specification, and without a possible
 (\fileext{exe}) extension. \arg{Command} is an atom describing the
 command. The following \%-sequences are replaced in \arg{Command} before

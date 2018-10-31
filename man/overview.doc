@@ -523,7 +523,7 @@ welcome message. The welcome message can be suppressed with
 \cmdlineoption{--quiet}, but also with \argoption{-g}{true}. \arg{goal}
 can be a complex term. In this case quotes are normally needed to
 protect it from being expanded by the shell. A safe way to run a goal
-non-interactively is below. If \nopredref{go/0} succeeds
+non-interactively is below. If \nopredref{go}{0} succeeds
 \argoption{-g}{halt} causes the process to stop with exit code 0. If it
 fails, the exit code is 1; and if it raises an exception, the exit code
 is 2.
@@ -2072,9 +2072,9 @@ Same as term_expansion/2 for individual goals (SICStus).
 Hook into load_files/2 to load other data formats for Prolog sources
 from `non-file' resources.  The load_files/2 predicate is the ancestor
 of consult/1, use_module/1, etc.
-    \item [qpredref{prolog_edit}{locate}{3}]
+    \item [prolog_edit:locate/3]
 Hook into edit/1 to locate objects (SWI).
-    \item [qpredref{prolog_edit}{edit_source}{1}]
+    \item [prolog_edit:edit_source/1]
 Hook into edit/1 to call an internal editor (SWI).
     \item [prolog_edit:edit_command/2]
 Hook into edit/1 to define the external editor to use (SWI).
@@ -2083,10 +2083,10 @@ Hook into the tracer to list the code associated to a particular goal
 (SWI).
     \item [prolog_trace_interception/4]
 Hook into the tracer to handle trace events (SWI).
-    \item [qpredref{prolog}{debug_control_hook}{1}]
+    \item [prolog:debug_control_hook/1]
 Hook in spy/1, nospy/1, nospyall/0 and debugging/0 to extend these
 control predicates to higher-level libraries.
-    \item [qpredref{prolog}{help_hook}{1}]
+    \item [prolog:help_hook/1]
 Hook in help/0, help/1 and apropos/1 to extend the help system.
     \item [resource/3]
 Define a new resource (not really a hook, but similar) (SWI).
