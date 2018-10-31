@@ -721,8 +721,9 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
 %
 %   Unpack an archive to the given package dir.
 
-:- if(current_predicate(archive_extract/3)).
+:- if(exists_source(library(archive))).
 pack_unpack(Source, PackDir, Pack, Options) :-
+    ensure_loaded_archive,
     pack_archive_info(Source, Pack, _Info, StripOptions),
     prepare_pack_dir(PackDir, Options),
     archive_extract(Source, PackDir,
