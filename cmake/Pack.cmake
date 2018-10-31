@@ -1,6 +1,6 @@
 # Setup package generation
 
-if(NOT CPACK_GENERATOR)
+if(NOT CPACK_GENERATOR AND NOT APPLE)
   message("-- Finding default package generator")
   if(WIN32)
     set(CPACK_GENERATOR "NSIS")
@@ -20,7 +20,7 @@ if(NOT CPACK_GENERATOR)
   message("-- Setup for packaging with ${CPACK_GENERATOR}")
   set(CPACK_GENERATOR ${CPACK_GENERATOR} CACHE STRING
       "Default package generator for platform" FORCE)
-endif(NOT CPACK_GENERATOR)
+endif(NOT CPACK_GENERATOR AND NOT APPLE)
 
 set(CPACK_PACKAGE_VERSION ${SWIPL_VERSION_STRING})
 set(CPACK_PACKAGE_NAME "swipl")
