@@ -1047,8 +1047,6 @@ prolog_message(documentaton) -->
     [ 'For online help and background, visit http://www.swi-prolog.org', nl,
       'For built-in help, use ?- help(Topic). or ?- apropos(Word).'
     ].
-prolog_message(author) -->
-    [ 'Jan Wielemaker (jan@swi-prolog.org)' ].
 prolog_message(welcome) -->
     [ 'Welcome to SWI-Prolog (' ],
     prolog_message(threads),
@@ -1063,11 +1061,12 @@ prolog_message(welcome) -->
     prolog_message(documentaton),
     [ nl, nl ].
 prolog_message(about) -->
-    [ 'SWI-Prolog version ' ],
+    [ 'SWI-Prolog version (' ],
+    prolog_message(threads),
+    prolog_message(address_bits),
+    ['version ' ],
     prolog_message(version),
-    [ ' by ' ],
-    prolog_message(author),
-    [ nl ],
+    [ ')', nl ],
     prolog_message(copyright).
 prolog_message(halt) -->
     [ 'halt' ].
