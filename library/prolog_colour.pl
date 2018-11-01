@@ -1533,7 +1533,8 @@ colourise_dict_kv(Dict, TB, [key_value_position(_F,_T,SF,ST,K,KP,VP)|KV]) :-
 %   Colourise the module export-list (or any other list holding
 %   terms of the form Name/Arity referring to predicates).
 
-colourise_exports([], _, _) :- !.
+colourise_exports([], TB, Pos) :- !,
+    colourise_term_arg([], TB, Pos).
 colourise_exports(List, TB, list_position(F,T,ElmPos,Tail)) :-
     !,
     colour_item(list, TB, F-T),
