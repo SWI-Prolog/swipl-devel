@@ -287,7 +287,8 @@ DeRefLink1(const char *f, char *lbuf)
     } else
     { char *q;
 
-      strcpy(lbuf, f);
+      if ( f != (const char*)lbuf )
+	strcpy(lbuf, f);
       q = &lbuf[strlen(lbuf)];
       while(q>lbuf && q[-1] != '/')
 	q--;
