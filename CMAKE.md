@@ -299,6 +299,4 @@ generate the Ubuntu PPA releases.
 
 ## Issues
 
-  - Build documention
-    - See whether we can eliminate Perl dependency (doc2tex)
   - Provide a FindSWIPL.cmake?
