@@ -35,6 +35,7 @@
 
 :- module(prolog_build_home, []).
 :- use_module(library(lists)).
+:- use_module(library(pure_input)).
 
 /** <module> Setup SWI-Prolog to run from the build directory
 
@@ -71,9 +72,55 @@ cmake_binary_directory(BinDir) :-
     ;   BinDir = ParentDir
     ).
 
+%!  cmake_source_directory(-SrcDir) is det.
+%
+%   Find the SWI-Prolog source directory. First   try .. from the binary
+%   dir, that try the binary dir   and finally read the =CMakeLists.txt=
+%   file. We take these three steps because   the  first two are quicker
+%   and I'm not sure how much we can rely on the CMakeCache.txt content.
+
 cmake_source_directory(SrcDir) :-
     cmake_binary_directory(BinDir),
-    file_directory_name(BinDir, SrcDir).
+    (   file_directory_name(BinDir, SrcDir)
+    ;   SrcDir = BinDir
+    ),
+    atomic_list_concat([SrcDir, 'CMakeLists.txt'], /, CMakeFile),
+    exists_file(CMakeFile),
+    is_swi_prolog_cmake_file(CMakeFile),
+    !.
+cmake_source_directory(SrcDir) :-
+    cmake_binary_directory(BinDir),
+    atomic_list_concat([BinDir, 'CMakeCache.txt'], /, CacheFile),
+    phrase_from_file(source_dir(SrcDir), CacheFile).
+
+is_swi_prolog_cmake_file(File) :-
+    setup_call_cleanup(
+        open(File, read, In),
+        is_swi_prolog_stream(In),
+        close(In)).
+
+is_swi_prolog_stream(In) :-
+    repeat,
+    read_string(In, "\n", "\t ", Sep, Line),
+    (   Sep == -1
+    ->  !, fail
+    ;   sub_string(Line, _, _, _, "project(SWI-Prolog)")
+    ),
+    !.
+
+source_dir(SrcDir) -->
+    string(_),
+    `SWI-Prolog_SOURCE_DIR:STATIC=`,
+    string(Codes), `\n`,
+    !,
+    skip_remaining,
+    { atom_codes(SrcDir, Codes) }.
+
+string([]) --> [].
+string([H|T]) --> [H], string(T).
+
+skip_remaining(_,_).
+
 
 %!  swipl_package(-Pkg, -PkgBinDir) is nondet.
 %
