@@ -1203,7 +1203,7 @@ static int
 has_pow2_clauses(Definition def)
 { unsigned int nc = def->impl.clauses.number_of_clauses;
 
-  return 1<<MSB(nc) == nc;
+  return nc > 0 && 1<<MSB(nc) == nc;
 }
 
 
