@@ -2720,14 +2720,16 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 
   if ( !(abssavename = getString(fd, NULL)) )
     return qlfError(state, "bad string");
-  if ( strlen(abssavename)+1 > MAXPATHLEN ||
-       strlen(absloadname)+1 > MAXPATHLEN )
-    return PL_representation_error("max_path_length");
 
   if ( absloadname && !streq(absloadname, abssavename) )
   { char load[MAXPATHLEN];
     char save[MAXPATHLEN];
     char *l, *s, *le, *se;
+
+    if ( ( strlen(abssavename)+1 > MAXPATHLEN ||
+	   strlen(absloadname)+1 > MAXPATHLEN
+	 ) )
+      return PL_representation_error("max_path_length");
 
     new->has_moved = TRUE;
 
