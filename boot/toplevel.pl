@@ -37,6 +37,7 @@
           [ '$initialise'/0,            % start Prolog
             '$toplevel'/0,              % Prolog top-level (re-entrant)
             '$compile'/0,               % `-c' toplevel
+            '$config'/0,                % --dump-runtime-variables toplevel
             initialize/0,               % Run program initialization
             version/0,                  % Write initial banner
             version/1,                  % Add message to the banner
@@ -739,6 +740,22 @@ setup_interactive :-
     '$run_initialization',
     attach_packs,
     catch('$compile_wic', E, (print_message(error, E), halt(1))).
+
+%!  '$config'
+%
+%   Toplevel when invoked with --dump-runtime-variables
+
+'$config' :-
+    '$load_system_init_file',
+    '$set_file_search_paths',
+    init_debug_flags,
+    '$run_initialization',
+    load_files(library(prolog_config)),
+    (   catch(prolog_dump_runtime_variables, E,
+              (print_message(error, E), halt(1)))
+    ->  true
+    ;   print_message(error, error(goal_failed(prolog_dump_runtime_variables),_))
+    ).
 
 
                 /********************************

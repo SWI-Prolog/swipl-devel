@@ -1,9 +1,30 @@
 # Populate parms.h
 
 set(C_CC     ${CMAKE_C_COMPILER})
-# Hack.  How to get what is in `flags.make`?
-set(C_CFLAGS ${CMAKE_C_FLAGS_RELWITHDEBINFO})
+set(C_CXX    ${CMAKE_CXX_COMPILER})
 set(PLHOME   ${SWIPL_INSTALL_PREFIX})
 set(PLARCH   ${SWIPL_ARCH})
-set(SO_EXT   ${CMAKE_SHARED_MODULE_SUFFIX})
-string(REGEX REPLACE "\\." "" SO_EXT "${SO_EXT}")
+string(REGEX REPLACE "\\." "" SO_EXT "${CMAKE_SHARED_MODULE_SUFFIX}")
+
+if(SWIPL_SHARED_LIB)
+  set(C_CFLAGS "-fPIC")
+else()
+  set(C_CFLAGS "")
+endif()
+
+if(MULTI_THREADED)
+  set(C_CFLAGS "${C_CFLAGS} -pthread")
+endif()
+
+file(RELATIVE_PATH
+     SWIPL_RELATIVE_LIBDIR
+     ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_PREFIX}
+     ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_LIB})
+
+if(WIN32)
+  set(SO_PATH PATH)
+elseif(APPLE)
+  set(SO_PATH DYLD_LIBRARY_PATH)
+else()
+  set(SO_PATH LD_LIBRARY_PATH)
+endif()

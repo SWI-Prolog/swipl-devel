@@ -218,3 +218,15 @@ user:file_search_path(swi_man_manual, ManDir) :-
     atomic_list_concat([BinDir, 'man/Manual'], /, ManDir).
 user:file_search_path(swi_man_packages, BinDir) :-
     swipl_package(_, BinDir).
+
+
+		 /*******************************
+		 *        CONFIGURATION		*
+		 *******************************/
+
+:- multifile
+    prolog:runtime_config/2.
+
+prolog:runtime_config(c_libdir, LibDir) :-
+    cmake_binary_directory(BinDir),
+    atomic_list_concat([BinDir, src], /, LibDir).

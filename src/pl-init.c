@@ -689,6 +689,8 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  return -1;
 
 	GD->options.tableSpace = size;
+      } else if ( (optval=is_longopt(s, "dump-runtime-variables")) )
+      { GD->options.config = store_string(optval);
       } else if ( !compile )
       { argvleft[argcleft++] = argv[0];
       }
@@ -911,8 +913,7 @@ PL_initialise(int argc, char **argv)
     char **argvleft;
 
     if ( argc == 1 && giveVersionInfo(argv[0]) ) /* -help, -v, etc */
-    { exit(0);
-    }
+      exit(0);
 
     for(n=0; n<argc; n++)		/* need to check this first */
     { if ( streq(argv[n], "--" ) )	/* --: terminates argument list */
@@ -1015,9 +1016,12 @@ PL_initialise(int argc, char **argv)
 
   DEBUG(MSG_INITIALISE, Sdprintf("Starting Prolog Part of initialisation\n"));
 
-  if ( compile )
+  if ( GD->options.config )
+  { int status = prologToplevel(PL_new_atom("$config")) ? 0 : 1;
+    PL_halt(status);
+    fail;				/* make compiler happy */
+  } else if ( compile )
   { int status = prologToplevel(PL_new_atom("$compile")) ? 0 : 1;
-
     PL_halt(status);
     fail;				/* make compiler happy */
   } else
@@ -1123,80 +1127,6 @@ arch(void)
   return TRUE;
 }
 
-#define FMT_SH 1			/* Unix sh: name="value" */
-#define FMT_CMD 2			/* Windows cmd.exe: set name=value */
-
-static void
-printvar(const char *name, const char *value, int format)
-{ switch(format)
-  { case FMT_SH:
-      Sprintf("%s=\"%s\";\n", name, value);
-      break;
-    case FMT_CMD:
-      Sprintf("SET %s=%s\n", name, value);
-      break;
-    default:
-      assert(0);
-  }
-}
-
-
-static int
-runtime_vars(int format)
-{ char *home;
-#ifdef O_XOS
-  char base[MAXPATHLEN];
-#endif
-  char version[20];
-  char *tag = PLVERSION_TAG;
-
-  if ( systemDefaults.home )
-  {
-#ifdef O_XOS
-    if ( format == FMT_CMD )
-    { _xos_os_filename(systemDefaults.home, base, MAXPATHLEN);
-      home = base;
-    } else
-      home = systemDefaults.home;
-#else
-    home = systemDefaults.home;
-#endif
-  } else
-  { home = "<no home>";
-  }
-
-  Ssprintf(version, "%d", PLVERSION);
-
-  printvar("CC",	C_CC, format);
-  printvar("PLBASE",	home, format);
-  printvar("PLARCH",	PLARCH, format);
-  printvar("PLLIBS",	C_LIBS, format);
-  printvar("PLLIB",	C_PLLIB, format);
-  printvar("PLCFLAGS",  C_CFLAGS, format);
-  printvar("PLLDFLAGS", C_LDFLAGS, format);
-#ifdef SO_EXT
-  printvar("PLSOEXT",	SO_EXT, format);
-#endif
-#ifdef SO_PATH
-  printvar("PLSOPATH",	SO_PATH, format);
-#endif
-  printvar("PLVERSION", version, format);
-  if ( tag[0] )
-    printvar("PLVERSIONTAG", tag, format);
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  printvar("PLSHARED",	"yes", format);
-#else
-  printvar("PLSHARED",	"no", format);
-#endif
-#ifdef O_PLMT
-  printvar("PLTHREADS", "yes", format);
-#else
-  printvar("PLTHREADS", "no", format);
-#endif
-
-  return TRUE;
-}
-
 
 static int
 giveVersionInfo(const char *a)
@@ -1209,13 +1139,6 @@ giveVersionInfo(const char *a)
     return arch();
   if ( streq(a, "--version") )
     return version();
-
-  if ( streq(a, "--dump-runtime-variables") )
-    return runtime_vars(FMT_SH);
-  if ( streq(a, "--dump-runtime-variables=sh") )
-    return runtime_vars(FMT_SH);
-  if ( streq(a, "--dump-runtime-variables=cmd") )
-    return runtime_vars(FMT_CMD);
 
   return FALSE;
 }

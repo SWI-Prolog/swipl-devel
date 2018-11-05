@@ -5465,6 +5465,7 @@ static const optdef optdefs[] =
   { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
   { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
   { "script_file",	CMDOPT_LIST,	&GD->options.scriptFiles },
+  { "config",		CMDOPT_STRING,	&GD->options.config },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },

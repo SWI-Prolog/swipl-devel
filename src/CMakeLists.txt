@@ -122,7 +122,7 @@ if(WIN32)
 endif()
 prepend(SWIPL_BOOT_FILES ${SWIPL_BUILD_HOME}/boot/ ${SWIPL_DATA_boot})
 
-set(SWIPL_DATA_library explain.pl sort.pl
+set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     qsave.pl shlib.pl statistics.pl system.pl error.pl
     backcomp.pl gensym.pl listing.pl debug.pl vm.pl
     quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl

@@ -1314,6 +1314,9 @@ initPrologFlags(void)
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
   setPrologFlag("c_cc",	     FT_ATOM, C_CC);
   setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
+#ifdef C_LIBDIR
+  setPrologFlag("c_libdir",  FT_ATOM, C_LIBDIR);
+#endif
   setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
   setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
   setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);

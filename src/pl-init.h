@@ -61,6 +61,7 @@ typedef struct
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
+  char *	config;			/* Show config info */
   opt_list     *scriptFiles;
   opt_list     *search_paths;		/* -p path */
   char *	pldoc_server;		/* --pldoc=Server */

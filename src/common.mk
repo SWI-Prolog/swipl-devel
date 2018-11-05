@@ -34,7 +34,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl \
 	../boot/dicts.pl ../boot/engines.pl ../boot/iri.pl ../boot/tabling.pl
 
-PLLIBS= help.pl explain.pl sort.pl \
+PLLIBS= help.pl explain.pl sort.pl prolog_config.pl \
 	qsave.pl shlib.pl statistics.pl system.pl error.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl vm.pl \
 	quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl \
