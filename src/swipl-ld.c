@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2016, University of Amsterdam
+    Copyright (c)  2010-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -67,7 +67,8 @@
 
 #define UNQUOTED_PREFIX "\1"
 
-#include "pl-incl.h"
+#include "config.h"
+#include "parms.h"
 
 #ifdef __WINDOWS__
 #include <process.h>
@@ -137,7 +138,11 @@
 #else /*Native*/
 
 #define PROG_CC C_CC
+#ifdef C_CXX
+#define PROG_CXX C_CXX
+#else
 #define PROG_CXX C_CC " -x c++"
+#endif
 /* PROG_CPP is defined in config.h */
 
 #define PROG_LD C_CC
@@ -155,6 +160,10 @@
 
 #ifndef SO_LDFLAGS
 #define SO_LDFLAGS "-shared"
+#endif
+
+#ifndef SO_pic
+#define SO_pic "-fPIC"
 #endif
 
 #endif /*Toolchain selection*/
@@ -254,6 +263,7 @@ static arglist includedirs;		/* -I include directories */
 
 static char *pllib;			/* -lswipl, swipl.lib, ... */
 static char *pllibs = "";		/* Requirements to link to pllib */
+static char *pllibdir;
 
 static char *pl;			/* Prolog executable */
 static char *cc;			/* CC executable */
@@ -404,14 +414,16 @@ strndup(const char *in, size_t len)
 
 void
 appendArgList(arglist *list, const char *arg)
-{ if ( list->size == 0 )
-  { list->list = xmalloc(sizeof(char*) * (list->size+2));
-  } else
-  { list->list = xrealloc(list->list, sizeof(char*) * (list->size+2));
-  }
+{ if ( arg[0] )
+  { if ( list->size == 0 )
+    { list->list = xmalloc(sizeof(char*) * (list->size+2));
+    } else
+    { list->list = xrealloc(list->list, sizeof(char*) * (list->size+2));
+    }
 
-  list->list[list->size++] = strdup(arg);
-  list->list[list->size]   = NULL;
+    list->list[list->size++] = strdup(arg);
+    list->list[list->size]   = NULL;
+  }
 }
 
 
@@ -967,6 +979,28 @@ tmpPath(char **store, const char *base)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Setup the -L option as well as the runpath for the target executable.
+FIXME: Can we get how to do this from cmake?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+setLibDir(const char *libdir)
+{ pllibdir = strdup(libdir);
+  appendArgList(&libdirs, libdir);
+
+#ifndef __WINDOWS__
+  char tmp[MAXPATHLEN];
+#ifdef __APPLE__
+  snprintf(tmp, sizeof(tmp), "-Wl,-rpath,%s", libdir);
+#else
+  snprintf(tmp, sizeof(tmp), "-Wl,-rpath=%s", libdir);
+#endif
+  appendArgList(&ldoptions, tmp);
+#endif
+}
+
+
 static void
 fillDefaultOptions()
 { char tmp[1024];
@@ -1024,12 +1058,15 @@ fillDefaultOptions()
   defaultProgram(&plinitfile, "none");
   defaultProgram(&plsysinit,  "none");
 
+  if ( !pllibdir )
+  {
 #ifdef __WINDOWS__
-  sprintf(tmp, "%s/lib", plbase);
+    sprintf(tmp, "%s/lib", plbase);
 #else
-  sprintf(tmp, "%s/lib/%s", plbase, plarch);
+    sprintf(tmp, "%s/lib/%s", plbase, plarch);
 #endif
-  prependArgList(&libdirs, tmp);
+    prependArgList(&libdirs, tmp);
+  }
   sprintf(tmp, "%s/include", plbase);
   prependArgList(&includedirs, tmp);
 }
@@ -1073,6 +1110,8 @@ getPrologOptions()
 	  defaultPath(&plarch, v);
 	else if ( streq(name, "PLLIBS") )	/* Always required. */
 	  pllibs = strdup(v);
+	else if ( streq(name, "PLLIBDIR") )
+	  setLibDir(v);
 	else if ( streq(name, "PLLIB") )
 	  defaultProgram(&pllib, v);
 	else if ( streq(name, "PLLDFLAGS") )
