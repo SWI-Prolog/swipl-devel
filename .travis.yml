@@ -1,0 +1,74 @@
+# Travis-ci  specification  for  SWI-Prolog    contributed  by  Jonathan
+# Goldfarb. Please note that SWI-Prolog  commits   are  frequent and the
+# HEAD of master does not always build.
+
+language: C
+
+dist: trusty
+
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    packages:
+      - build-essential
+      - pkg-config
+      - ncurses-dev
+      - libreadline-dev
+      - libedit-dev
+      - libgmp-dev
+      - libssl-dev
+      - unixodbc-dev
+      - zlib1g-dev
+      - libarchive-dev
+      - libossp-uuid-dev
+      - libxext-dev
+      - libice-dev
+      - libjpeg-dev
+      - libxinerama-dev
+      - libxft-dev
+      - libxpm-dev
+      - libxt-dev
+      - libdb-dev
+      - libpcre3-dev
+      - libyaml-dev
+      - openjdk-8-jdk
+      - junit
+      - ninja-build
+  homebrew:
+    packages:
+      - cmake
+      - ninja
+      - gmp
+      - libarchive
+      - readline
+      - ossp-uuid
+      - openssl
+      - libyaml
+      - unixodbc
+      - berkeley-db
+      - pcre
+      - jpeg
+
+# The  code  below  may  be  used  to   work  from  your  own  clone  of
+# swipl-devel.git while downloading the git submodules from GitHub. Note
+# that you can also simply not  checkout   the  package modules. In this
+# case  you  need  -DINSTALL_DOCUMENTATION=OFF    as  the  documentation
+# requires several packages.
+#
+# git:
+#  submodules: false
+#
+# before_script:
+#  - mkdir build
+#  - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then sed -i 's~url = ..~url = https://github.com/SWI-Prolog~' .gitmodules; fi
+#  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then sed -i '' 's~url = ..~url = https://github.com/SWI-Prolog~' .gitmodules; fi
+#  - git submodule update --init
+
+script:
+  - cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=`pwd`/usr -G Ninja ..
+  - ninja
+  - ctest -j 8
+  - ninja install
