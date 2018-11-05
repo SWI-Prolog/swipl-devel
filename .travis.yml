@@ -1,0 +1,67 @@
+language: cpp
+
+dist: trusty
+
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    packages:
+      - build-essential
+      - autoconf
+      - curl
+      - chrpath
+      - pkg-config
+      - ncurses-dev
+      - libreadline-dev
+      - libedit-dev
+      - libgmp-dev
+      - libssl-dev
+      - unixodbc-dev
+      - zlib1g-dev
+      - libarchive-dev
+      - libossp-uuid-dev
+      - libxext-dev
+      - libice-dev
+      - libjpeg-dev
+      - libxinerama-dev
+      - libxft-dev
+      - libxpm-dev
+      - libxt-dev
+      - libdb-dev
+      - libpcre3-dev
+      - libyaml-dev
+      - openjdk-8-jdk
+      - junit
+      - ninja-build
+  homebrew:
+    packages:
+      - cmake
+      - ninja
+      - gmp
+      - libarchive
+      - readline
+      - ossp-uuid
+      - openssl
+      - libyaml
+      - unixodbc
+      - berkeley-db
+      - pcre
+      - jpeg
+
+git:
+  submodules: false
+
+before_script:
+  - mkdir build
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then sed -i 's~url = ..~url = https://github.com/SWI-Prolog~' .gitmodules; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then sed -i '' 's~url = ..~url = https://github.com/SWI-Prolog~' .gitmodules; fi
+  - git submodule update --init
+
+script:
+  - cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=`pwd`/usr -G Ninja .. 
+  - ninja
+  - ctest -j 8
+  - ninja install
