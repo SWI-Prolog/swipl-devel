@@ -251,9 +251,9 @@ if(APPLE)
   add_custom_command(
       OUTPUT  macosx/macosx.tex
       COMMAND ${CMAKE_COMMAND} -E make_directory macosx
-      COMMAND ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
-			 > macosx/macosx.tex
-      DEPENDS macosx/macosx.doc)
+      COMMAND swipl ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
+	                       macosx/macosx.tex
+      DEPENDS macosx/macosx.doc ${DOC2TEX_DEPENDS})
 
   add_custom_command(
       OUTPUT  macosx/macosx.html
