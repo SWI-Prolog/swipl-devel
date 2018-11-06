@@ -242,13 +242,17 @@ update_state(Raw, _, SM) :-
 update_state(_Raw, Expanded, M) :-
     update_state(Expanded, M).
 
-update_state([], _) :- !.
+update_state(Var, _) :-
+    var(Var),
+    !.
+update_state([], _) :-
+    !.
 update_state([H|T], M) :-
     !,
     update_state(H, M),
     update_state(T, M).
 update_state((:- Directive), M) :-
-    ground(Directive),
+    nonvar(Directive),
     !,
     catch(update_directive(Directive, M), _, true).
 update_state((?- Directive), M) :-
@@ -257,45 +261,58 @@ update_state((?- Directive), M) :-
 update_state(_, _).
 
 update_directive(module(Module, Public), _) :-
+    atom(Module),
     !,
     '$set_source_module'(Module),
-    maplist(import_syntax(_,Module), Public).
+    maplist(import_syntax(_,Module, _), Public).
 update_directive(M:op(P,T,N), SM) :-
     atom(M),
+    ground(op(P,T,N)),
     !,
     update_directive(op(P,T,N), SM).
 update_directive(op(P,T,N), SM) :-
+    ground(op(P,T,N)),
     !,
     strip_module(SM:N, M, PN),
     push_op(P,T,M:PN).
 update_directive(style_check(Style), _) :-
+    ground(Style),
     style_check(Style),
     !.
 update_directive(use_module(Spec), SM) :-
+    ground(Spec),
     catch(module_decl(Spec, Path, Public), _, fail),
     !,
-    maplist(import_syntax(Path, SM), Public).
+    maplist(import_syntax(Path, SM, _), Public).
+update_directive(use_module(Spec, Imports), SM) :-
+    ground(Spec),
+    is_list(Imports),
+    catch(module_decl(Spec, Path, Public), _, fail),
+    !,
+    maplist(import_syntax(Path, SM, Imports), Public).
 update_directive(pce_begin_class_definition(_,_,_,_), SM) :-
     pce_expansion:push_compile_operators(SM),
     !.
 update_directive(_, _).
 
-%!  import_syntax(+Path, +Module, +ExportStatement) is det.
+%!  import_syntax(+Path, +Module, +Imports, +ExportStatement) is det.
 %
 %   Import syntax affecting aspects  of   a  declaration. Deals with
 %   op/3 terms and Syntax/4  quasi   quotation  declarations.
 
-import_syntax(_, _, Var) :-
+import_syntax(_, _, _, Var) :-
     var(Var),
     !.
-import_syntax(_, M, Op) :-
+import_syntax(_, M, Imports, Op) :-
     Op = op(_,_,_),
+    \+ \+ member(Op, Imports),
     !,
     update_directive(Op, M).
-import_syntax(Path, SM, Syntax/4) :-
+import_syntax(Path, SM, Imports, Syntax/4) :-
+    \+ \+ member(Syntax/4, Imports),
     load_quasi_quotation_syntax(SM:Path, Syntax),
     !.
-import_syntax(_,_,_).
+import_syntax(_,_,_, _).
 
 
 %!  load_quasi_quotation_syntax(:Path, +Syntax) is semidet.

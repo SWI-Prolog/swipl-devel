@@ -320,7 +320,10 @@ process_directive(module(_Name, Export), M, Src) :-
            safe_push_op(P,A,M:N, Src)).
 process_directive(use_module(Spec), _, Src) :-
     !,
-    catch(process_use_module(Spec, Src), _, true).
+    catch(process_use_module1(Spec, Src), _, true).
+process_directive(use_module(Spec, Imports), _, Src) :-
+    !,
+    catch(process_use_module2(Spec, Imports, Src), _, true).
 process_directive(Directive, _, Src) :-
     prolog_source:expand((:-Directive), Src, _).
 
@@ -329,16 +332,16 @@ syntax_flag(var_prefix).
 syntax_flag(allow_variable_name_as_functor).
 syntax_flag(allow_dot_in_atom).
 
-%!  process_use_module(+Imports, +Src)
+%!  process_use_module1(+Imports, +Src)
 %
 %   Get the exported operators from the referenced files.
 
-process_use_module([], _) :- !.
-process_use_module([H|T], Src) :-
+process_use_module1([], _) :- !.
+process_use_module1([H|T], Src) :-
     !,
-    process_use_module(H, Src),
-    process_use_module(T, Src).
-process_use_module(File, Src) :-
+    process_use_module1(H, Src),
+    process_use_module1(T, Src).
+process_use_module1(File, Src) :-
     (   xref_public_list(File, Src,
                          [ exports(Exports),
                            silent(true),
@@ -355,6 +358,24 @@ process_use_module(File, Src) :-
     ;   true
     ).
 
+process_use_module2(File, Imports, Src) :-
+    (   xref_public_list(File, Src,
+                         [ exports(Exports),
+                           silent(true),
+                           path(Path)
+                         ])
+    ->  forall(( member(op(P,T,N), Exports),
+                 member(op(P,T,N), Imports)),
+               safe_push_op(P,T,N,Src)),
+        colour_state_module(Src, SM),
+        (   member(Syntax/4, Exports),
+            member(Syntax/4, Imports),
+            load_quasi_quotation_syntax(SM:Path, Syntax),
+            fail
+        ;   true
+        )
+    ;   true
+    ).
 
 %!  prolog_colourise_query(+Query:string, +SourceId, :ColourItem)
 %
