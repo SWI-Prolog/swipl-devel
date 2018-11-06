@@ -1837,9 +1837,12 @@ public_list(Path, Module, Meta, Export, Public, _Options) :-
     ).
 public_list(Path, Module, Meta, Export, Public, Options) :-
     public_list_nc(Path, Module0, Meta0, Export0, Public0, Options),
-    time_file(Path, Modified),
-    asserta(public_list_cache(Path, Modified,
-                              Module0, Meta0, Export0, Public0)),
+    (   Error = error(_,_),
+        catch(time_file(Path, Modified), Error, fail)
+    ->  asserta(public_list_cache(Path, Modified,
+                                  Module0, Meta0, Export0, Public0))
+    ;   true
+    ),
     t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
 
 public_list_nc(Path, Module, Meta, Export, Public, Options) :-
