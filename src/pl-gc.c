@@ -3931,7 +3931,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
 	return rc2;
       rc = FALSE;
     } else
-    { enableSpareStack((Stack)&LD->stacks.local);
+    { enableSpareStack((Stack)&LD->stacks.local, TRUE);
     }
   }
 
@@ -4210,7 +4210,7 @@ makeMoreStackSpace(int overflow, int flags)
     case MEMORY_OVERFLOW: return raiseStackOverflow(overflow);
   }
 
-  if ( LD->exception.processing && s && enableSpareStack(s) )
+  if ( LD->exception.processing && s && enableSpareStack(s, TRUE) )
     return TRUE;
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
@@ -4268,8 +4268,8 @@ ensureGlobalSpace(size_t cells, int flags)
     return TRUE;
 
   if ( LD->gc.active )
-  { enableSpareStack((Stack)&LD->stacks.global);
-    enableSpareStack((Stack)&LD->stacks.trail);
+  { enableSpareStack((Stack)&LD->stacks.global, TRUE);
+    enableSpareStack((Stack)&LD->stacks.trail,  TRUE);
 
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
@@ -4321,7 +4321,7 @@ ensureTrailSpace(size_t cells)
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack((Stack)&LD->stacks.trail);
+  { enableSpareStack((Stack)&LD->stacks.trail, TRUE);
 
     if ( tTop+cells <= tMax )
       return TRUE;
@@ -4361,7 +4361,7 @@ growLocalSpace__LD(size_t bytes, int flags ARG_LD)
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack((Stack)&LD->stacks.local);
+  { enableSpareStack((Stack)&LD->stacks.local, TRUE);
     if ( addPointer(lTop, bytes) <= (void*)lMax )
       return TRUE;
   }

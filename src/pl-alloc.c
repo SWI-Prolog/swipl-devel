@@ -218,8 +218,8 @@ free_lingering(linger_list *list)
 		*********************************/
 
 int
-enableSpareStack(Stack s)
-{ if ( s->spare && roomStackP(s) < s->def_spare )
+enableSpareStack(Stack s, int always)
+{ if ( s->spare && (roomStackP(s) < s->def_spare || always) )
   { DEBUG(MSG_SPARE_STACK,
 	  Sdprintf("Enabling spare on %s: %zd bytes\n", s->name, s->spare));
     s->max = addPointer(s->max, s->spare);
@@ -235,9 +235,9 @@ void
 enableSpareStacks(void)
 { GET_LD
 
-  enableSpareStack((Stack)&LD->stacks.local);
-  enableSpareStack((Stack)&LD->stacks.global);
-  enableSpareStack((Stack)&LD->stacks.trail);
+  enableSpareStack((Stack)&LD->stacks.local,  FALSE);
+  enableSpareStack((Stack)&LD->stacks.global, FALSE);
+  enableSpareStack((Stack)&LD->stacks.trail,  FALSE);
 }
 
 

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2015, University of Amsterdam
+    Copyright (c)  2008-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -62,6 +63,8 @@ test(gc, Vars = [_]) :-
 	call_residue_vars((gc_able, garbage_collect), Vars).
 test(gc2, Vars = [_]) :-
 	call_residue_vars(gc_able2_gc, Vars).
+test(gc3) :-
+	call_residue_vars((length(Zs,1000), big_freeze_test(1,50,Zs)), _Vars).
 test(modify, Vars == [X]) :-
 	put_attr(X, a, 1),
 	call_residue_vars(put_attr(X, a, 2), Vars).
@@ -122,5 +125,22 @@ gc_able2 :-
 gc_able2_gc :-
         freeze(X, writeln(X)),
         garbage_collect.
+
+% from https://stackoverflow.com/questions/31095081/freeze-2-goals-blocking-on-variables-that-have-become-unreachable
+% tests resizing the local stack during GC to make room for the term
+% references to protect attributed variables.
+
+freeze_many([],[]).
+freeze_many([_|Xs],[V|Vs]) :-
+   freeze(V,throw(error(uninstantiation_error(V),big_freeze_test/3))),
+   freeze_many(Xs,Vs).
+
+big_freeze_test(N0,N,Zs0) :-
+   (  N0 > N
+   -> true
+   ;  freeze_many(Zs0,Zs1),
+      N1 is N0+1,
+      big_freeze_test(N1,N,Zs1)
+   ).
 
 :- end_tests(call_residue_vars).
