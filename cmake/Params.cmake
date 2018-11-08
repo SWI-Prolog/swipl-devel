@@ -12,6 +12,12 @@ else()
   set(C_CFLAGS "")
 endif()
 
+if(CMAKE_EXECUTABLE_FORMAT STREQUAL "ELF")
+  set(C_LIBPLSO "")
+else()
+  set(C_LIBPLSO "-lswipl")
+endif()
+
 if(MULTI_THREADED)
   set(C_CFLAGS "${C_CFLAGS} -pthread")
 endif()

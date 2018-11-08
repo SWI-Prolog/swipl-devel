@@ -6,7 +6,7 @@
 #cmakedefine SO_EXT    "@SO_EXT@"
 #cmakedefine SO_PATH   "@SO_PATH@"
 #cmakedefine C_LIBDIR  "@SWIPL_RELATIVE_LIBDIR@"
+#cmakedefine C_LIBPLSO "@C_LIBPLSO@"
 #define C_LIBS         ""
 #define C_PLLIB        "-lswipl"
-#define C_LIBPLSO      ""
 #define C_LDFLAGS      ""
