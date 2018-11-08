@@ -1243,22 +1243,21 @@ def_environment('CFLAGS', Value) :-
     atomic_list_concat([Value0, ' -I"', Home, '/include"' | Extra], Value).
 def_environment('LDSOFLAGS', Value) :-
     (   getenv('LDFLAGS', SystemFlags)
-    ->  Extra = [' ', SystemFlags|System]
+    ->  Extra = [SystemFlags|System]
     ;   Extra = System
     ),
     (   current_prolog_flag(windows, true)
     ->  current_prolog_flag(home, Home),
-        atomic_list_concat([' -L"', Home, '/bin"'], SystemLib),
+        atomic_list_concat(['-L"', Home, '/bin"'], SystemLib),
         System = [SystemLib]
-    ;   current_prolog_flag(shared_object_extension, so)
+    ;   current_prolog_flag(c_libplso, '')
     ->  System = []                 % ELF systems do not need this
-    ;   current_prolog_flag(home, Home),
-        current_prolog_flag(arch, Arch),
-        atomic_list_concat([' -L"', Home, '/lib/', Arch, '"'], SystemLib),
+    ;   prolog_library_dir(SystemLibDir),
+        atomic_list_concat(['-L"',SystemLibDir,'"'], SystemLib),
         System = [SystemLib]
     ),
     current_prolog_flag(c_ldflags, LDFlags),
-    atomic_list_concat([LDFlags, ' -shared' | Extra], Value).
+    atomic_list_concat([LDFlags, '-shared' | Extra], ' ', Value).
 def_environment('SOEXT', Value) :-
     current_prolog_flag(shared_object_extension, Value).
 def_environment(Pass, Value) :-
@@ -1269,6 +1268,21 @@ pass_env('TMP').
 pass_env('TEMP').
 pass_env('USER').
 pass_env('HOME').
+
+:- multifile
+    prolog:runtime_config/2.
+
+prolog_library_dir(Dir) :-
+    prolog:runtime_config(c_libdir, Dir),
+    !.
+prolog_library_dir(Dir) :-
+    current_prolog_flag(home, Home),
+    (   current_prolog_flag(c_libdir, Rel)
+    ->  atomic_list_concat([Home, Rel], /, Dir)
+    ;   current_prolog_flag(arch, Arch)
+    ->  atomic_list_concat([Home, lib, Arch], /, Dir)
+    ).
+
 
                  /*******************************
                  *             PATHS            *
