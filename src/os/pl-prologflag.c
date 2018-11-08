@@ -1266,6 +1266,9 @@ pl_prolog_flag(term_t name, term_t value, control_t h)
 #ifndef SO_PATH
 #define SO_PATH "LD_LIBRARY_PATH"
 #endif
+#ifndef C_LIBPLSO
+#define C_LIBPLSO ""
+#endif
 
 static void
 initPrologFlagTable(void)
