@@ -90,6 +90,7 @@ allow for restricting the system.
   | Option			  | Description                       |
   | ----------------------------- | --------------------------------- |
   | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads   |
+  | `-DUSE_SIGNALS=OFF`           | Drop signal support               |
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers  |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib |
   | `-DSWIPL_PACKAGES=OFF`        | Only build the core system        |
@@ -154,6 +155,23 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
     mkdir win32
     cd win32
     cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake -G Ninja ..
+
+### WASM (Emscripten)
+
+    mkdir build.wasm
+    cd build.wasm
+    source ~/emsdk/emsdk_env.sh
+    cmake -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+	  -DZLIB_LIBRARY=$HOME/zlib-1.2.11/libz.a \
+	  -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.11 \
+	  -DMULTI_THREADED=OFF \
+	  -DUSE_SIGNALS=OFF \
+	  -DUSE_GMP=OFF \
+	  -DBUILD_SWIPL_LD=OFF \
+	  -DSWIPL_PACKAGES=OFF \
+	  -DINSTALL_DOCUMENTATION=OFF \
+	  -G Ninja ..
 
 ## Development
 

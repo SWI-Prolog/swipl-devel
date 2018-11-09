@@ -103,7 +103,9 @@ alignof("void*" c ALIGNOF_VOIDP)
 # Functions
 
 # Misc
-check_function_exists(mmap HAVE_MMAP)
+if(NOT EMSCRIPTEN)
+  check_function_exists(mmap HAVE_MMAP)
+endif()
 check_function_exists(strerror HAVE_STRERROR)
 check_function_exists(poll HAVE_POLL)
 check_function_exists(popen HAVE_POPEN)
@@ -162,7 +164,7 @@ check_function_exists(siggetmask HAVE_SIGGETMASK)
 check_function_exists(sigaction HAVE_SIGACTION)
 check_function_exists(sigset HAVE_SIGSET)
 check_function_exists(sigblock HAVE_SIGBLOCK)
-endif()
+endif(USE_SIGNALS)
 check_function_exists(kill HAVE_KILL)
 check_function_exists(backtrace HAVE_BACKTRACE)
 # Allocation
@@ -279,7 +281,8 @@ if(HAVE_QSORT_R)
   include(TestGNUQsortR)
 endif()
 
-if(HAVE_SIGNAL AND NOT HAVE_SIGACTION)
+# Don't test BSD signals on EMSCRIPTEN - hangs the process.
+if(HAVE_SIGNAL AND NOT HAVE_SIGACTION AND NOT EMSCRIPTEN)
   include(TestBSDSignals)
 endif()
 

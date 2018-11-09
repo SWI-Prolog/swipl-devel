@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+This is the test file for SWI-Prolog WebAssembly build.
+It must be served through a web server. The web server
+must use correct MIME type for wasm files.
+Such simple-to-use web server is http-server:
+<https://www.npmjs.com/package/http-server>
+Install using npm i -g http-server
+Run http-server command in the swipl-devel
+directory and browse to <http://localhost:8080/src/wasm/test.html>
+-->
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>SWI-Prolog WebAssembly build test</title>
+    </head>
+    <body>
+        <script src="/build/src/swipl-web.js"></script>
+        <script>
+            SWIPL({
+                noInitialRun: true,
+                arguments: [
+                    'swipl',
+                    '-x', 'wasm-preload/boot.prc',
+                    '--nosignals'
+                ],
+                locateFile: function(file) {
+                    return '/build/src/' + file;
+                }
+            }).then(async (module) => {
+                //module.prolog.call_string("consult('/app/app.pl').");
+                console.log('SWI-Prolog WebAssembly ready');
+            });
+        </script>
+    </body>
+</html>

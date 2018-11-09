@@ -28,6 +28,9 @@ option(BUILD_PDF_DOCUMENTATION
 option(BUILD_MACOS_BUNDLE
        "Install for a MacOS bundle (SWI-Prolog.app)"
        OFF)
+option(BUILD_SWIPL_LD
+       "Create the swipl-ld utility"
+       ON)
 
 include(Utils)
 include(BuildType)

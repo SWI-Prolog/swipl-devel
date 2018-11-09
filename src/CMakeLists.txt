@@ -19,9 +19,9 @@ find_package(ZLIB REQUIRED)
 if(USE_GMP)
   find_package(GMP)
 endif()
-if(UNIX)
+if(UNIX AND NOT EMSCRIPTEN)
   find_package(Curses)
-endif(UNIX)
+endif()
 
 include(Config)
 include(GCCBuiltins)
@@ -315,15 +315,19 @@ target_include_directories(libswipl BEFORE PRIVATE
 			   ${LIBSWIPL_INCLUDES})
 target_link_libraries(libswipl PRIVATE ${LIBSWIPL_LIBRARIES})
 
-add_executable(swipl-ld ${SRC_SWIPL_LD})
-target_include_directories(swipl-ld BEFORE PRIVATE
-			   ${CMAKE_CURRENT_BINARY_DIR}
-			   ${CMAKE_CURRENT_SOURCE_DIR}
-			   ${LIBSWIPL_INCLUDES})
-add_dependencies(swipl-ld vmi-metadata core-constants)
+if(BUILD_SWIPL_LD)
+  add_executable(swipl-ld ${SRC_SWIPL_LD})
+  target_include_directories(swipl-ld BEFORE PRIVATE
+			     ${CMAKE_CURRENT_BINARY_DIR}
+			     ${CMAKE_CURRENT_SOURCE_DIR}
+			     ${LIBSWIPL_INCLUDES})
+  add_dependencies(swipl-ld vmi-metadata core-constants)
+endif()
 
 if(WIN32)
 include(WindowsTargets)
+elseif(EMSCRIPTEN)
+include(EmscriptenTargets)
 endif()
 
 ################
@@ -420,7 +424,7 @@ configure_file(parms.h.cmake parms.h)
 # Installation
 ################
 
-install(TARGETS swipl libswipl swipl-ld
+install(TARGETS swipl libswipl
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
         ARCHIVE DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
@@ -465,6 +469,12 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.1
 	DESTINATION ${SWIPL_INSTALL_MANPAGES})
 install(FILES swipl-ld.1
 	DESTINATION ${SWIPL_INSTALL_MANPAGES})
+endif()
+
+if(BUILD_SWIPL_LD)
+install(TARGETS swipl-ld
+	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
+)
 endif()
 
 if(WIN32)
