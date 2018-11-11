@@ -1422,11 +1422,15 @@ initPrologFlags(void)
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
   setPrologFlag("file_name_variables", FT_BOOL, FALSE, PLFLAG_FILEVARS);
   setPrologFlag("fileerrors", FT_BOOL, TRUE, PLFLAG_FILEERRORS);
+#ifdef __EMSCRIPTEN__
+  setPrologFlag("emscripten", FT_BOOL|FF_READONLY, TRUE, 0);
+#else
 #ifdef __unix__
   setPrologFlag("unix", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 #ifdef __APPLE__
   setPrologFlag("apple", FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
 #endif
 
   setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
