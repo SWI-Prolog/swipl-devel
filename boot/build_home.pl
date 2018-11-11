@@ -61,8 +61,9 @@ cmake_binary_directory(BinDir) :-
     current_prolog_flag(executable, OsExe),
     prolog_to_os_filename(Exe, OsExe),
     working_directory(PWD, PWD),
+    exe_access(ExeAccess),
     absolute_file_name(Exe, AbsExe,
-                       [ access(execute),
+                       [ access(ExeAccess),
                          relative_to(PWD)
                        ]),
     file_directory_name(AbsExe, AbsExeDir),
@@ -70,6 +71,12 @@ cmake_binary_directory(BinDir) :-
     (   file_base_name(ParentDir, packages)
     ->  file_directory_name(ParentDir, BinDir)
     ;   BinDir = ParentDir
+    ).
+
+exe_access(Access) :-
+    (   current_prolog_flag(unix, true)
+    ->  Access = execute
+    ;   Access = read
     ).
 
 %!  cmake_source_directory(-SrcDir) is det.
