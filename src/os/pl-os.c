@@ -2679,24 +2679,13 @@ findExecutable(const char *av0, char *buffer, size_t buflen)
   return strcpy(buffer, file ? file : buf);
 }
 
-#ifdef __unix__
-static char *
-okToExec(const char *s)
-{ statstruct stbuff;
-
-  if (statfunc(s, &stbuff) == 0 &&	/* stat it */
-     S_ISREG(stbuff.st_mode) &&		/* check for file */
-     access(s, X_OK) == 0)		/* can be executed? */
-    return (char *)s;
-  else
-    return (char *) NULL;
-}
-#define PATHSEP	':'
-#endif /* __unix__ */
 
 #if defined(OS2) || defined(__DOS__) || defined(__WINDOWS__)
 #define EXEC_EXTENSIONS { ".exe", ".com", ".bat", ".cmd", NULL }
 #define PATHSEP ';'
+#elif defined(__EMSCRIPTEN__)
+#define EXEC_EXTENSIONS { ".js", NULL }
+#define PATHSEP ':'
 #endif
 
 #ifdef EXEC_EXTENSIONS
@@ -2722,6 +2711,22 @@ okToExec(const char *s)
 
   return (char *) NULL;
 }
+
+#else /*EXEC_EXTENSIONS*/
+
+static char *
+okToExec(const char *s)
+{ statstruct stbuff;
+
+  if (statfunc(s, &stbuff) == 0 &&	/* stat it */
+     S_ISREG(stbuff.st_mode) &&		/* check for file */
+     access(s, X_OK) == 0)		/* can be executed? */
+    return (char *)s;
+  else
+    return (char *) NULL;
+}
+#define PATHSEP	':'
+
 #endif /*EXEC_EXTENSIONS*/
 
 static char *
