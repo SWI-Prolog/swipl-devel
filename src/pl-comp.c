@@ -3863,14 +3863,16 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
 { PRED_LD
   atom_t filename;
   SourceFile sf;
+  Procedure proc;
+  Definition def;
 
   if ( !PL_get_atom_ex(A1, &filename) )
     return FALSE;
 
   sf = lookupSourceFile(filename, TRUE);
-  if ( sf->current_procedure )
-  { return unify_definition(NULL, A2, sf->current_procedure->definition, 0,
-			    GP_QUALIFY|GP_NAMEARITY);
+  if ( (proc=sf->current_procedure) &&
+       (def=proc->definition) )
+  { return unify_definition(NULL, A2, def, 0, GP_QUALIFY|GP_NAMEARITY);
   }
 
   return PL_unify_nil(A2);
