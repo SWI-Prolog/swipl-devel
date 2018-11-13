@@ -437,7 +437,10 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 
     if ( lookupHTable(m->procedures, (void*)def->functor->functor) ||
 	 PROCEDURE_dinit_goal->definition == def )	/* see (*) */
-    { if ( prev )
+    { if ( sf->current_procedure == proc )
+	sf->current_procedure = NULL;
+
+      if ( prev )
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
