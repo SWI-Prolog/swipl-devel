@@ -53,6 +53,7 @@
 :- use_module(library(debug)).
 :- use_module(library(option)).
 :- use_module(library(apply)).
+:- use_module(library(dcg/basics)).
 
 /** <module> Process CSV (Comma-Separated Values) data
 
@@ -102,7 +103,8 @@ have the same name and arity.
                 case:oneof([down,preserve,up])=preserve,
                 functor:atom=row,
                 arity:integer,
-                match_arity:boolean=true).
+                match_arity:boolean=true,
+                skip_header:atom).
 
 
 %!  csv_read_file(+File, -Rows) is det.
@@ -169,6 +171,14 @@ ext_separator(tsv, 0'\t).
 %       blank space.  RFC4180 says that blank space is part of the
 %       data.
 %
+%       * skip_header(+CommentLead)
+%       Skip leading lines that start with CommentLead.  There is
+%       no standard for comments in CSV files, but some CSV files
+%       have a header where each line starts with `#`.  After
+%       skipping comment lines this option causes csv//2 to skip empty
+%       lines.  Note that an empty line may not contain white space
+%       characters (space or tab) as these may provide valid data.
+%
 %       * convert(+Boolean)
 %       If =true= (default), use name/2 on the field data.  This
 %       translates the field into a number if possible.
@@ -202,10 +212,42 @@ csv_roptions(Rows, Record) -->
     !,
     emit_csv(Rows, Record).
 csv_roptions(Rows, Record) -->
+    skip_header(Record),
     csv_data(Rows, Record).
 
+skip_header(Options) -->
+    { csv_options_skip_header(Options, CommentStart),
+      nonvar(CommentStart),
+      atom_codes(CommentStart, Codes)
+    },
+    !,
+    skip_header_lines(Codes),
+    skip_blank_lines.
+skip_header(_) -->
+    [].
+
+skip_header_lines(CommentStart) -->
+    string(CommentStart),
+    !,
+    (   string(_Comment),
+        end_of_record
+    ->  skip_header_lines(CommentStart)
+    ).
+skip_header_lines(_) -->
+    [].
+
+skip_blank_lines -->
+    eos,
+    !.
+skip_blank_lines -->
+    end_of_record,
+    !,
+    skip_blank_lines.
+skip_blank_lines -->
+    [].
+
 csv_data([], _) -->
-    eof,
+    eos,
     !.
 csv_data([Row|More], Options) -->
     row(Row, Options),
@@ -213,7 +255,6 @@ csv_data([Row|More], Options) -->
     { debug(csv, 'Row: ~p', [Row]) },
     csv_data(More, Options).
 
-eof([], []).
 
 row(Row, Options) -->
     fields(Fields, Options),
@@ -343,7 +384,7 @@ separator(Options) -->
 end_of_record --> "\n".			% Unix files
 end_of_record --> "\r\n".               % DOS files
 end_of_record --> "\r".                 % MacOS files
-end_of_record --> eof.                  % unterminated last record
+end_of_record --> eos.                  % unterminated last record
 
 
 %!  csv_read_file_row(+File, -Row, +Options) is nondet.
