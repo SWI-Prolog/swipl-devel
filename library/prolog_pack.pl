@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2017, VU University Amsterdam
+    Copyright (c)  2012-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1224,7 +1225,9 @@ def_environment('SWISOLIB', Value) :-
     current_prolog_flag(c_libplso, Value).
 def_environment('SWILIB', '-lswipl').
 def_environment('CC', Value) :-
-    (   getenv('CC', value)
+    (   getenv('CC', Value)
+    ->  true
+    ;   default_c_compiler(Value)
     ->  true
     ;   current_prolog_flag(c_cc, Value)
     ).
@@ -1282,6 +1285,22 @@ prolog_library_dir(Dir) :-
     ;   current_prolog_flag(arch, Arch)
     ->  atomic_list_concat([Home, lib, Arch], /, Dir)
     ).
+
+%!  default_c_compiler(-CC) is semidet.
+%
+%   Try to find a  suitable  C   compiler  for  compiling  packages with
+%   foreign code.
+%
+%   @tbd Needs proper defaults for Windows.  Find MinGW?  Find MSVC?
+
+default_c_compiler(CC) :-
+    preferred_c_compiler(CC),
+    has_program(path(CC), _),
+    !.
+
+preferred_c_compiler(gcc).
+preferred_c_compiler(clang).
+preferred_c_compiler(cc).
 
 
                  /*******************************
