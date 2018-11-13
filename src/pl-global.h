@@ -102,12 +102,12 @@ struct PL_global_data
     atom_t	handle;			/* Symbol for DB */
   } resources;
 
-#ifdef HAVE_SIGNAL
   struct
   { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+#ifdef HAVE_SIGNAL
     int		sig_alert;		/* our alert signal */
-  } signals;
 #endif
+  } signals;
 #ifdef O_LOGICAL_UPDATE
   volatile ggen_t _generation;		/* generation of the database */
 #ifdef ATOMIC_GENERATION_HACK

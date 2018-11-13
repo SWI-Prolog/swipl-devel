@@ -1580,7 +1580,7 @@ void
 resetTracer(void)
 { GET_LD
 
-#ifdef O_INTERRUPT
+#if defined(O_INTERRUPT) && defined(SIGINT)
   if ( truePrologFlag(PLFLAG_SIGNALS) )
     PL_signal(SIGINT, interruptHandler);
 #endif

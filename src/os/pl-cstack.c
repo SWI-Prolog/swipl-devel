@@ -1017,6 +1017,7 @@ initBackTrace(void)
 {
 }
 
+#ifdef HAVE_SIGNAL
 void
 sigCrashHandler(int sig)
 { int tid;
@@ -1044,5 +1045,14 @@ sigCrashHandler(int sig)
   abort();
 #endif
 }
+
+#else
+
+void
+sigCrashHandler(int sig)
+{ fatalError("Something went wrong");
+}
+
+#endif /*HAVE_SIGNAL*/
 
 #endif /*BTRACE_DONE*/

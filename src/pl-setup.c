@@ -88,10 +88,8 @@ setupProlog(void)
   initCharTypes();
   DEBUG(1, Sdprintf("foreign predicates ...\n"));
   initForeign();
-#if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
-#endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.stackLimit) )
     outOfCore();
@@ -199,9 +197,6 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if HAVE_SIGNAL
-#define HAVE_SIGNALS 1
-
 #define PLSIG_PREPARED 0x00010000	/* signal is prepared */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -216,6 +211,7 @@ static struct signame
   int	      flags;
 } signames[] =
 {
+#ifdef HAVE_SIGNAL
 #ifdef SIGHUP
   { SIGHUP,	"hup",    0},
 #endif
@@ -294,6 +290,7 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
+#endif /*HAVE_SIGNAL*/
 
 /* The signals below here are recorded as Prolog interrupts, but
    not supported by OS signals.  They start at offset 32.
@@ -600,7 +597,7 @@ set_sighandler(int sig, handler_t func)
     return old.sa_handler;
   else
     return SIG_DFL;
-#else
+#elif defined(HAVE_SIGNAL)
 #ifdef __WINDOWS__
   switch( sig )				/* Current Windows versions crash */
   { case SIGABRT:			/* when given a non-supported value */
@@ -613,8 +610,10 @@ set_sighandler(int sig, handler_t func)
     default:
       return SIG_IGN;
   }
-#endif
+#endif /*__WINDOWS__*/
   return signal(sig, func);
+#else
+  return NULL;
 #endif
 }
 
@@ -657,6 +656,7 @@ hupHandler(int sig)
 #endif
 
 
+#ifdef HAVE_SIGNAL
 /* terminate_handler() is called on termination signals like SIGTERM.
    It runs hooks registered using PL_exit_hook() and then kills itself.
    The hooks are called with the exit status `3`.
@@ -688,6 +688,7 @@ initTerminationSignals(void)
   PL_signal(SIGQUIT, terminate_handler);
 #endif
 }
+#endif /*HAVE_SIGNAL*/
 
 static void
 sig_exception_handler(int sig)
@@ -769,10 +770,12 @@ initSignals(void)
   /* This is general signal handling that is not strictly needed */
   if ( truePrologFlag(PLFLAG_SIGNALS) )
   { struct signame *sn = signames;
+#ifdef HAVE_SIGNAL
 #ifdef SIGPIPE
     set_sighandler(SIGPIPE, SIG_IGN);
 #endif
     initTerminationSignals();
+#endif /*HAVE_SIGNAL*/
     initBackTrace();
     for( ; sn->name; sn++)
     {
@@ -1019,12 +1022,13 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
   return sig;
 }
 
+#ifndef SIG_DFL
+#define SIG_DFL (handler_t)-1
+#endif
 
 handler_t
 PL_signal(int sigandflags, handler_t func)
-{
-#ifdef HAVE_SIGNALS
-  pl_sigaction_t act = {0};
+{ pl_sigaction_t act = {0};
   pl_sigaction_t old;
 
   act.sa_cfunction = func;
@@ -1041,9 +1045,6 @@ PL_signal(int sigandflags, handler_t func)
   }
 
   return NULL;
-#else
-  return SIG_DFL;
-#endif
 }
 
 
@@ -1145,6 +1146,7 @@ endCritical__LD(ARG1_LD)
 }
 
 
+#ifdef HAVE_SIGNAL
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 on_signal(?SigNum, ?SigName, :OldHandler, :NewHandler)
 
@@ -1786,9 +1788,11 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 
 BeginPredDefs(setup)
   PRED_DEF("$set_prolog_stack",	  4, set_prolog_stack,	  0)
-  PRED_DEF("$on_signal",	  4, on_signal,		  0)
   PRED_DEF("trim_stacks",	  0, trim_stacks,	  0)
+#ifdef HAVE_SIGNAL
+  PRED_DEF("$on_signal",	  4, on_signal,		  0)
 #ifdef SIG_ALERT
   PRED_DEF("prolog_alert_signal", 2, prolog_alert_signal, 0)
+#endif
 #endif
 EndPredDefs

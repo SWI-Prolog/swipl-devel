@@ -667,6 +667,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 #endif
       } else if ( (optval=is_longopt(s, "traditional")) )
       { setTraditional();
+#ifdef HAVE_SIGNAL
       } else if ( (optval=is_longopt(s, "sigalert")) )
       { char *e;
 	long sig = strtol(optval, &e, 10);
@@ -675,6 +676,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  GD->signals.sig_alert = sig;
 	else
 	  return -1;
+#endif
       } else if ( (optval=is_longopt(s, "stack_limit")) )
       { size_t size = memarea_limit(optval);
 

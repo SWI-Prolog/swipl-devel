@@ -1880,10 +1880,26 @@ Temporary store/restore pointers to make them safe over GC/shift
 		 *	       SIGNALS		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SWI-Prolog may be compiled without signal handling. Even in that case we
+still have signals that trigger Prolog   housekeeping  events. These are
+not bound to operating system signal handling though.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #if HAVE_SIGNAL
 #define MAXSIGNAL		64	/* highest system signal number */
 #define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals */
 
+#else /* HAVE_SIGNAL */
+
+#define MAXSIGNAL		32	/* highest system signal number */
+#define SIG_PROLOG_OFFSET	1	/* Start of Prolog signals */
+
+#endif /* HAVE_SIGNAL */
+
+#ifndef RETSIGTYPE
+#define RETSIGTYPE void
+#endif
 typedef RETSIGTYPE (*handler_t)(int);
 
 typedef struct
@@ -1892,7 +1908,7 @@ typedef struct
   predicate_t predicate;		/* Prolog handler */
   int	      flags;			/* PLSIG_*, defined in pl-setup.c */
 } sig_handler, *SigHandler;
-#endif /* HAVE_SIGNAL */
+
 
 #define SIG_EXCEPTION	  (SIG_PROLOG_OFFSET+0)
 #ifdef O_ATOMGC

@@ -7,6 +7,9 @@ set(CMAKE_POLICY_DEFAULT_CMP0075 NEW)
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
        ON)
+option(USE_SIGNALS
+       "Enable signal handling"
+       ON)
 option(USE_GMP
        "Use GNU MP Bignum library (GPL)"
        ON)
