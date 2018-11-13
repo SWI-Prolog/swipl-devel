@@ -39,6 +39,8 @@
 
             csv_read_file/2,            % +File, -Data
             csv_read_file/3,            % +File, -Data, +Options
+            csv_read_stream/3,          % +Stream, -Data, +Options
+
             csv_read_file_row/3,        % +File, -Row, +Options
             csv_read_row/3,		% +Stream, -Row, +CompiledOptions
             csv_options/2,		% -Compiled, +Options
@@ -149,6 +151,15 @@ default_separator(File, Options0, Options) :-
 
 ext_separator(csv, 0',).
 ext_separator(tsv, 0'\t).
+
+
+%!  csv_read_stream(+Stream, -Rows, +Options) is det.
+%
+%   Read CSV data from Stream.  See also csv_read_row/3.
+
+csv_read_stream(Stream, Rows, Options) :-
+    make_csv_options(Options, Record, _),
+    phrase_from_stream(csv_roptions(Rows, Record), Stream).
 
 
 %!  csv(?Rows)// is det.
