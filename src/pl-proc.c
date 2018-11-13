@@ -179,7 +179,9 @@ destroyDefinition(Definition def)
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
 				   predicateName(def)));
     if ( true(def, P_DIRTYREG) )
-    { DEBUG(0, Sdprintf("Dirty: %s\n", predicateName(def)));
+    { DEBUG(0, if ( GD->cleaning == CLN_NORMAL )
+	         Sdprintf("Destroying dirty predicate: %s\n",
+			  predicateName(def)));
       unregisterDirtyDefinition(def);
     }
 
