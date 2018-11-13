@@ -1949,15 +1949,25 @@ public_list_1(meta_predicate(Decl), _Path, Meta, MT, Export, Export, Public, Pub
 public_list_1(public(Decl), _Path, Meta, Meta, Export, Export, Public, PT) :-
     phrase(public_decls(Decl), Public, PT).
 
+%!  reexport_files(+Files, +Src,
+%!                 -Meta, ?MetaTail, -Exports, ?ExportsTail,
+%!                 -Public, ?PublicTail)
+
 reexport_files([], _, Meta, Meta, Export, Export, Public, Public) :- !.
-reexport_files([H|T], Src, Meta, MT, Export, Rest, Public, PT) :-
+reexport_files([H|T], Src, Meta, MT, Export, ET, Public, PT) :-
     !,
     xref_source_file(H, Path, Src),
-    public_list_diff(Path, _, Meta, MT0, Export, Rest0, Public, PT0, []),
-    reexport_files(T, Src, MT0, MT, Rest0, Rest, PT0, PT).
-reexport_files(Spec, Src, Meta, MT, Export, Rest, Public, PT) :-
+    public_list(Path, _Module, Meta0, Export0, Public0, []),
+    append(Meta0, MT1, Meta),
+    append(Export0, ET1, Export),
+    append(Public0, PT1, Public),
+    reexport_files(T, Src, MT1, MT, ET1, ET, PT1, PT).
+reexport_files(Spec, Src, Meta, MT, Export, ET, Public, PT) :-
     xref_source_file(Spec, Path, Src),
-    public_list_diff(Path, _, Meta, MT, Export, Rest, Public, PT, []).
+    public_list(Path, _Module, Meta0, Export0, Public0, []),
+    append(Meta0, MT, Meta),
+    append(Export0, ET, Export),
+    append(Public0, PT, Public).
 
 public_from_import(except(Map), Path, Src, Export, Rest) :-
     !,
