@@ -1135,12 +1135,13 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	succeed;
       }
       case 'C':
-      { Code bp, ep;
-	unsigned int ncodes = getUInt(fd);
+      { unsigned int ncodes = getUInt(fd);
 	int has_dicts = 0;
+	tmp_buffer buf;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
-	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
+	initBuffer(&buf);
+	clause = (Clause)allocFromBuffer(&buf, sizeofClause(0));
 	clause->references = 0;
 	clause->code_size  = (code) ncodes;
 	clause->line_no    = getUInt(fd);
@@ -1166,10 +1167,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	clause->predicate = def;
 	GD->statistics.codes += clause->code_size;
 
-	bp = clause->codes;
-	ep = bp + clause->code_size;
+#define addCode(c) addBuffer(&buf, (c), code)
 
-	while( bp < ep )
+	for(;;)
 	{ code op = getUInt(fd);
 	  const char *ats;
 	  int n = 0;
@@ -1181,10 +1181,11 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  DEBUG(MSG_QLF_VMI,
 		Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
 	  if ( op == I_CONTEXT )
-	  { set(clause, CL_BODY_CONTEXT);
+	  { clause = baseBuffer(&buf, struct clause);
+	    set(clause, CL_BODY_CONTEXT);
 	    set(def, P_MFCONTEXT);
 	  }
-	  *bp++ = encode(op);
+	  addCode(encode(op));
 	  DEBUG(0,
 		{ const char ca1_float[2] = {CA1_FLOAT};
 		  const char ca1_int64[2] = {CA1_INT64};
@@ -1199,7 +1200,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  for(n=0; ats[n]; n++)
 	  { switch(ats[n])
 	    { case CA1_PROC:
-	      { *bp++ = loadXR(state);
+	      { addCode(loadXR(state));
 		break;
 	      }
 	      case CA1_FUNC:
@@ -1208,57 +1209,55 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		if ( fd->name == ATOM_dict )
 		  has_dicts++;
 
-		*bp++ = w;
+		addCode(w);
 		break;
 	      }
 	      case CA1_DATA:
 	      { word w = loadXR(state);
 		if ( isAtom(w) )
 		  PL_register_atom(w);
-		*bp++ = w;
+		addCode(w);
 		break;
 	      }
 	      case CA1_AFUNC:
 	      { word f = loadXR(state);
 		int  i = indexArithFunction(f);
 		assert(i>0);
-		*bp++ = i;
+		addCode(i);
 		break;
 	      }
 	      case CA1_MODULE:
-		*bp++ = loadXR(state);
+		addCode(loadXR(state));
 		break;
 	      case CA1_INTEGER:
 	      case CA1_JUMP:
 	      case CA1_VAR:
 	      case CA1_FVAR:
 	      case CA1_CHP:
-		*bp++ = (intptr_t)getInt64(fd);
+		addCode((code)getInt64(fd));
 		break;
 	      case CA1_INT64:
 	      { int64_t val = getInt64(fd);
-		Word p = (Word)&val;
 
-		cpInt64Data(bp, p);
+		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
 		break;
 	      }
 	      case CA1_FLOAT:
-	      { union
-		{ word w[WORDS_PER_DOUBLE];
-		  double f;
-		} v;
-		Word p = v.w;
-		v.f = getFloat(fd);
-		cpDoubleData(bp, p);
+	      { double f = getFloat(fd);
+
+		addMultipleBuffer(&buf, (char*)&f, sizeof(double), char);
 		break;
 	      }
 	      case CA1_STRING:		/* <n> chars */
 	      { int l = getInt(fd);
 		int lw = (l+sizeof(word))/sizeof(word);
 		int pad = (lw*sizeof(word) - l);
-		char *s = (char *)&bp[1];
+		Code bp;
+		char *s;
 
 		DEBUG(MSG_QLF_VMI, Sdprintf("String of %ld bytes\n", l));
+		bp = allocFromBuffer(&buf, sizeof(word)*(lw+1));
+		s = (char *)&bp[1];
 		*bp = mkStrHdr(lw, pad);
 		bp += lw;
 		*bp++ = 0L;
@@ -1273,8 +1272,10 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		int l      = abs(mpsize)*sizeof(mp_limb_t);
 		int wsz	 = (l+sizeof(word)-1)/sizeof(word);
 		word m     = mkIndHdr(wsz+1, TAG_INTEGER);
+		Code bp;
 		char *s;
 
+		bp = allocFromBuffer(&buf, sizeof(word)*(wsz+2));
 		*bp++     = m;
 		*bp++     = mpsize;
 		s         = (char*)bp;
@@ -1294,12 +1295,22 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 			   ats[n], n, codeTable[op].name);
 	    }
 	  }
+	  switch(op)
+	  { case I_EXITFACT:
+	    case I_EXIT:			/* fact */
+	      goto done;
+	  }
 	}
 
-	if ( skip )
-	{ freeClause(clause);
-	} else
-	{ if ( has_dicts )
+      done:
+	if ( !skip )
+	{ size_t csize = sizeOfBuffer(&buf);
+
+	  assert(sizeofClause(ncodes) == csize);
+	  clause = (Clause)PL_malloc_atomic(csize);
+	  memcpy(clause, baseBuffer(&buf, char), csize);
+
+	  if ( has_dicts )
 	  { if ( !resortDictsInClause(clause) )
 	    { outOfCore();
 	      exit(1);
@@ -1309,6 +1320,8 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	    csf->current_procedure = proc;
 	  assertProcedureSource(csf, proc, clause PASS_LD);
 	}
+
+        discardBuffer(&buf);
       }
     }
   }
