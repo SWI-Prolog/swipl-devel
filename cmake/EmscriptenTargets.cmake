@@ -1,7 +1,13 @@
 # Make console binaries runnable through Node.js.
 
+set(WASM_NODE_LINK_FLAGS
+    -s NODERAWFS=1
+    -s EXIT_RUNTIME=1
+    -s BINARYEN_TRAP_MODE=clamp)
+join_list(WASM_NODE_LINK_FLAGS_STRING " " ${WASM_NODE_LINK_FLAGS})
+
 set_target_properties(mkvmi defatom swipl PROPERTIES
-		      LINK_FLAGS "-s NODERAWFS=1 -s EXIT_RUNTIME=1")
+		      LINK_FLAGS "${WASM_NODE_LINK_FLAGS_STRING}")
 
 # Create the preload data containing the libraries. Note that
 # alternatively we can put the library in the resource file and
@@ -26,6 +32,7 @@ set(WASM_WEB_LINK_FLAGS
     -s MODULARIZE=1
     -s EXPORT_NAME=SWIPL
     -s BINARYEN_METHOD='native-wasm'
+    -s BINARYEN_TRAP_MODE=clamp
     -s NO_EXIT_RUNTIME=0
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
