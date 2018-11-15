@@ -573,7 +573,7 @@ run_main_init :-
 run_main_init.
 
 run_init_goal(Goal, Ctx) :-
-    (   catch(user:Goal, E, true)
+    (   catch_with_backtrace(user:Goal, E, true)
     ->  (   var(E)
         ->  true
         ;   print_message(error, init_goal_failed(E, Ctx)),

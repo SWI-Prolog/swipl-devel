@@ -2318,6 +2318,25 @@ try to raise the exception without the \arg{ImplementationDefined} part.
 If an exception is raised in a call-back from C (see \chapref{foreign})
 and not caught in the same call-back, PL_next_solution() fails and
 the exception context can be retrieved using PL_exception().
+
+    \predicate{catch_with_backtrace}{3}{:Goal, +Catcher, :Recover}
+As catch/3, but if library \pllib{prolog_stack} is loaded and an
+exception of the shape \term{error}{Format, Context} is raised
+\arg{Context} is extended with a backtrace.  To catch an error
+and print its message including a backtrace, use the following
+template:
+
+\begin{code}
+:- use_module(library(prolog_stack)).
+
+    ...,
+    catch_with_backtrace(Goal, Error,
+			 print_message(error, Error)),
+    ...,
+\end{code}
+
+This is good practice for a \jargon{catch-all} wrapper around an
+application.  See also main/0 from library \pllib{main}.
 \end{description}
 
 

@@ -600,6 +600,7 @@ join_stacks(_, Stack, Stack).
 %   from C will handle the exception.
 
 stack_guard(none).
+stack_guard(system:catch_with_backtrace/3).
 
 
                  /*******************************

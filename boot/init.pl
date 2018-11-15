@@ -203,6 +203,7 @@ public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
     setup_call_catcher_cleanup(0,0,?,0),
     call_cleanup(0,0),
     call_cleanup(0,?,0),
+    catch_with_backtrace(0,?,0),
     '$meta_call'(0).
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
@@ -421,6 +422,16 @@ call_continuation([TB|Rest]) :-
         call_continuation(Rest)
     ).
 
+%!  catch_with_backtrace(:Goal, ?Ball, :Recover)
+%
+%   As catch/3, but tell library(prolog_stack) to  record a backtrace in
+%   case of an exception.
+
+catch_with_backtrace(Goal, Ball, Recover) :-
+    catch(Goal, Ball, Recover),
+    '$no_lco'.
+
+'$no_lco'.
 
 %!  '$recover_and_rethrow'(:Goal, +Term)
 %
@@ -588,8 +599,8 @@ initialization(Goal, When) :-
     ).
 
 '$run_init_goal'(Goal, Ctx) :-
-    (   catch('$run_init_goal'(Goal), E,
-              '$initialization_error'(E, Goal, Ctx))
+    (   catch_with_backtrace('$run_init_goal'(Goal), E,
+                             '$initialization_error'(E, Goal, Ctx))
     ->  true
     ;   '$initialization_failure'(Goal, Ctx)
     ).
