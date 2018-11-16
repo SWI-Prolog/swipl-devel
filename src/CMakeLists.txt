@@ -325,9 +325,11 @@ if(BUILD_SWIPL_LD)
 endif()
 
 if(WIN32)
-include(WindowsTargets)
+  include(WindowsTargets)
 elseif(EMSCRIPTEN)
-include(EmscriptenTargets)
+  include(EmscriptenTargets)
+elseif(ANDROID)
+  include(AndroidTargets)
 endif()
 
 ################
