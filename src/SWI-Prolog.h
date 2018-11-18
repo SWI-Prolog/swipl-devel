@@ -1110,7 +1110,8 @@ typedef struct
   char *    alias;			/* alias name */
   rc_cancel (*cancel)(int id);		/* cancel function */
   intptr_t  flags;			/* PL_THREAD_* flags */
-  void *    reserved[4];		/* reserved for extensions */
+  size_t    max_queue_size;		/* Max size of associated queue */
+  void *    reserved[3];		/* reserved for extensions */
 } PL_thread_attr_t;
 
 

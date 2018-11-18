@@ -144,6 +144,10 @@ inherited:
 	\item The stack limit (see Prolog flag \prologflag{stack_limit}).
     \end{itemize}
 
+    \termitem{queue_max_size}{Size}
+Enforces a maximum to the number of terms in the input queue.  See
+message_queue_create/2 with the \term{max_size} option for details.
+
     \termitem{stack_limit}{Bytes}
 Set the size limit for the Prolog stacks. See the Prolog flag
 \prologflag{stack_limit}.  The default is inherited from the calling
@@ -979,6 +983,10 @@ used. The \const{flags} field defines the following flags:
     \termitem{PL_THREAD_NO_DEBUG}{}
 If this flag is present, the thread starts in normal no-debug status.
 By default, the debug status is inherited from the main thread.
+    \termitem{PL_THREAD_NOT_DETACHED}{}
+By default the new thread is created in \jargon{detached} mode.  With
+this flag it is created normally, allowing Prolog to \jargon{join} the
+thread.
 \end{description}
 
 \begin{code}
@@ -986,8 +994,9 @@ typedef struct
 { size_t    stack_limit;		/* Total stack limit (bytes) */
   size_t    table_space;		/* Total tabling space limit (bytes) */
   char *    alias;		        /* alias name */
-  int	    (*cancel)(int thread);
-  intptr_t  flags;
+  int	    (*cancel)(int thread);	/* cancel function */
+  intptr_t  flags;			/* PL_THREAD_* flags */
+  size_t    max_queue_size;		/* Max size of associated queue */
 } PL_thread_attr_t;
 \end{code}
 

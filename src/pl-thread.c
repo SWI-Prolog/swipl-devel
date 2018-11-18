@@ -427,7 +427,7 @@ win_thread_initialize(void)
 static PL_thread_info_t *alloc_thread(void);
 static void	destroy_message_queue(message_queue *queue);
 static void	destroy_thread_message_queue(message_queue *queue);
-static void	init_message_queue(message_queue *queue, long max_size);
+static void	init_message_queue(message_queue *queue, size_t max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	run_thread_exit_hooks(PL_local_data_t *ld);
 static thread_handle *create_thread_handle(PL_thread_info_t *info);
@@ -828,7 +828,7 @@ initPrologThreads(void)
     PL_local_data.thread.info = info;
     PL_local_data.thread.magic = PL_THREAD_MAGIC;
     set_system_thread_id(info);
-    init_message_queue(&PL_local_data.thread.messages, -1);
+    init_message_queue(&PL_local_data.thread.messages, 0);
     init_predicate_references(&PL_local_data);
 
     GD->statistics.thread_cputime = 0.0;
@@ -1660,15 +1660,16 @@ set_os_thread_name(atom_t alias)
 
 
 static const opt_spec make_thread_options[] =
-{ { ATOM_alias,		OPT_ATOM },
-  { ATOM_debug,		OPT_BOOL },
-  { ATOM_detached,	OPT_BOOL },
-  { ATOM_stack_limit,	OPT_SIZE },
-  { ATOM_c_stack,	OPT_SIZE },
-  { ATOM_at_exit,	OPT_TERM },
-  { ATOM_inherit_from,	OPT_TERM },
-  { ATOM_affinity,	OPT_TERM },
-  { NULL_ATOM,		0 }
+{ { ATOM_alias,		 OPT_ATOM },
+  { ATOM_debug,		 OPT_BOOL },
+  { ATOM_detached,	 OPT_BOOL },
+  { ATOM_stack_limit,	 OPT_SIZE },
+  { ATOM_c_stack,	 OPT_SIZE },
+  { ATOM_at_exit,	 OPT_TERM },
+  { ATOM_inherit_from,	 OPT_TERM },
+  { ATOM_affinity,	 OPT_TERM },
+  { ATOM_queue_max_size, OPT_SIZE },
+  { NULL_ATOM,		 0 }
 };
 
 
@@ -1771,7 +1772,8 @@ start_thread(void *closure)
 
 
 static void
-copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold)
+copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
+		size_t max_queue_size)
 { GET_LD
 
   if ( !LD )
@@ -1815,7 +1817,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold)
     ldnew->_debugstatus.debugging = DBG_OFF;
     set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
   }
-  init_message_queue(&ldnew->thread.messages, -1);
+  init_message_queue(&ldnew->thread.messages, max_queue_size);
   init_predicate_references(ldnew);
 }
 
@@ -1910,6 +1912,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   term_t inherit_from = 0;
   term_t at_exit = 0;
   term_t affinity = 0;
+  size_t queue_max_size = 0;
   int rc = 0;
   const char *func;
   int debug = -1;
@@ -1937,7 +1940,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &c_stack,		/* c_stack */
 		     &at_exit,
 		     &inherit_from,
-		     &affinity) )
+		     &affinity,
+		     &queue_max_size) )
   { free_thread_info(info);
     fail;
   }
@@ -1992,7 +1996,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   info->goal = PL_record(goal);
   info->module = PL_context();
-  copy_local_data(ldnew, ldold);
+  copy_local_data(ldnew, ldold, queue_max_size);
   if ( at_exit )
     thread_at_exit(at_exit, ldnew);
 
@@ -4238,13 +4242,13 @@ destroy_thread_message_queue(message_queue *q)
 
 
 static void
-init_message_queue(message_queue *queue, long max_size)
+init_message_queue(message_queue *queue, size_t max_size)
 { memset(queue, 0, sizeof(*queue));
   simpleMutexInit(&queue->mutex);
   simpleMutexInit(&queue->gc_mutex);
   cv_init(&queue->cond_var, NULL);
   queue->max_size = max_size;
-  if ( queue->max_size > 0 )
+  if ( queue->max_size != 0 )
     cv_init(&queue->drain_var, NULL);
   queue->initialized = TRUE;
 }
@@ -4733,7 +4737,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 { int rval;
 
   PL_LOCK(L_THREAD);
-  rval = (unlocked_message_queue_create(A1, -1) ? TRUE : FALSE);
+  rval = (unlocked_message_queue_create(A1, 0) ? TRUE : FALSE);
   PL_UNLOCK(L_THREAD);
 
   return rval;
@@ -4742,7 +4746,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 
 static const opt_spec message_queue_options[] =
 { { ATOM_alias,		OPT_ATOM },
-  { ATOM_max_size,	OPT_NATLONG },
+  { ATOM_max_size,	OPT_SIZE },
   { NULL_ATOM,		0 }
 };
 
@@ -4751,7 +4755,7 @@ static
 PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
 { PRED_LD
   atom_t alias = 0;
-  long max_size = -1;			/* to be processed */
+  size_t max_size = 0;			/* to be processed */
   message_queue *q;
 
   if ( !scan_options(A2, 0,
@@ -5311,10 +5315,11 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   info->goal       = NULL;
   info->module     = MODULE_user;
-  info->detached   = attr && (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
+  info->detached   = attr == NULL ||
+                     (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
   info->open_count = 1;
 
-  copy_local_data(ldnew, ldmain);
+  copy_local_data(ldnew, ldmain, attr->max_queue_size);
 
   if ( !initialise_thread(info) )
   { free_thread_info(info);

@@ -163,8 +163,8 @@ typedef struct message_queue
   struct thread_message   *tail;	/* Tail of message queue */
   uint64_t	       sequence_next;	/* next for sequence id */
   word		       id;		/* Id of the queue */
-  long		       size;		/* # terms in queue */
-  long		       max_size;	/* Max # terms in queue */
+  size_t	       size;		/* # terms in queue */
+  size_t	       max_size;	/* Max # terms in queue */
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
   int		       wait_for_drain;	/* # threads waiting for write */

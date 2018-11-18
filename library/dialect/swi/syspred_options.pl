@@ -171,7 +171,8 @@
 		       inherit_from(any),
 		       detached(boolean),
                        stack_limit(nonneg),
-		       c_stack(nonneg)
+		       c_stack(nonneg),
+                       queue_max_size(nonneg)
 		     ]).
 :- predicate_options(system:message_queue_create/2, 2,
 		     [ alias(atom),
