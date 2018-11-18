@@ -199,17 +199,17 @@ set(PL_LIB_INDEX ${SWIPL_BUILD_LIBRARY}/INDEX.pl)
 # FIXME: we should create these in the build directory
 add_custom_target(
     vmi-metadata
-    COMMAND mkvmi ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ./mkvmi ${CMAKE_CURRENT_SOURCE_DIR}
     BYPRODUCTS pl-vmi.h pl-codetable.ic pl-jumptable.ic
-    DEPENDS pl-vmi.c
+    DEPENDS mkvmi pl-vmi.c
     COMMENT "Generating VMI metadata"
 )
 
 add_custom_target(
     core-constants
-    COMMAND defatom ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ./defatom ${CMAKE_CURRENT_SOURCE_DIR}
     BYPRODUCTS pl-atom.ih pl-funct.ih
-    DEPENDS ATOMS
+    DEPENDS defatom ATOMS
     COMMENT "Generating static atoms and functors"
 )
 
@@ -265,8 +265,22 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dot.txt" ".\n")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt" "..\n")
 
 # build helpers
-add_executable(mkvmi mkvmi.c)
-add_executable(defatom defatom.c)
+if(NOT CMAKE_CROSSCOMPILING)
+   add_executable(mkvmi mkvmi.c)
+   add_executable(defatom defatom.c)
+else()
+   add_custom_command(
+       OUTPUT  defatom
+       COMMAND cc -o ${CMAKE_BINARY_DIR}/src/defatom ${CMAKE_SOURCE_DIR}/src/defatom.c
+       DEPENDS defatom.c
+   )
+
+   add_custom_command(
+       OUTPUT  mkvmi
+       COMMAND cc -o ${CMAKE_BINARY_DIR}/src/mkvmi ${CMAKE_SOURCE_DIR}/src/mkvmi.c
+       DEPENDS mkvmi.c
+   )
+endif()
 
 # Establish libraries
 if(CURSES_FOUND)
