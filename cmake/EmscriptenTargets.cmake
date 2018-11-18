@@ -6,7 +6,7 @@ set(WASM_NODE_LINK_FLAGS
     -s BINARYEN_TRAP_MODE=clamp)
 join_list(WASM_NODE_LINK_FLAGS_STRING " " ${WASM_NODE_LINK_FLAGS})
 
-set_target_properties(mkvmi defatom swipl PROPERTIES
+set_target_properties(swipl PROPERTIES
 		      LINK_FLAGS "${WASM_NODE_LINK_FLAGS_STRING}")
 
 # Create the preload data containing the libraries. Note that

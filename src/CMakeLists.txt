@@ -196,20 +196,47 @@ set(PL_LIB_INDEX ${SWIPL_BUILD_LIBRARY}/INDEX.pl)
 # Custom targets and commands
 ################
 
+# build helpers
+if(NOT CMAKE_CROSSCOMPILING)
+  add_executable(mkvmi mkvmi.c)
+  add_executable(defatom defatom.c)
+  set(PROG_MKVMI mkvmi)
+  set(PROG_DEFATOM defatom)
+else()
+  set(PROG_MKVMI
+      ${CMAKE_CURRENT_BINARY_DIR}/mkvmi${CMAKE_HOST_EXECUTABLE_SUFFIX})
+  set(PROG_DEFATOM
+      ${CMAKE_CURRENT_BINARY_DIR}/defatom${CMAKE_HOST_EXECUTABLE_SUFFIX})
+
+  add_custom_command(
+      OUTPUT  ${PROG_DEFATOM}
+      COMMAND ${CMAKE_HOST_CC} -o ${PROG_DEFATOM}
+	      ${CMAKE_CURRENT_SOURCE_DIR}/defatom.c
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/defatom.c
+  )
+
+  add_custom_command(
+      OUTPUT  ${PROG_MKVMI}
+      COMMAND ${CMAKE_HOST_CC} -o ${PROG_MKVMI}
+              ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
+  )
+endif()
+
 # FIXME: we should create these in the build directory
 add_custom_target(
     vmi-metadata
-    COMMAND mkvmi ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${PROG_MKVMI} ${CMAKE_CURRENT_SOURCE_DIR}
     BYPRODUCTS pl-vmi.h pl-codetable.ic pl-jumptable.ic
-    DEPENDS pl-vmi.c
+    DEPENDS ${PROG_MKVMI} pl-vmi.c
     COMMENT "Generating VMI metadata"
 )
 
 add_custom_target(
     core-constants
-    COMMAND defatom ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${PROG_DEFATOM} ${CMAKE_CURRENT_SOURCE_DIR}
     BYPRODUCTS pl-atom.ih pl-funct.ih
-    DEPENDS ATOMS
+    DEPENDS ${PROG_DEFATOM} ATOMS
     COMMENT "Generating static atoms and functors"
 )
 
@@ -263,10 +290,6 @@ symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl-win.rc)
 # Final swipl.home for installed system
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dot.txt" ".\n")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt" "..\n")
-
-# build helpers
-add_executable(mkvmi mkvmi.c)
-add_executable(defatom defatom.c)
 
 # Establish libraries
 if(CURSES_FOUND)
