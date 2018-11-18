@@ -10,9 +10,6 @@
 [submodule "packages/inclpr"]
 	path = packages/inclpr
 	url = ../packages-inclpr.git
-[submodule "packages/space"]
-	path = packages/space
-	url = ../contrib-space.git
 [submodule "bench"]
 	path = bench
 	url = ../bench.git
@@ -67,9 +64,6 @@
 [submodule "packages/bdb"]
 	path = packages/bdb
 	url = ../packages-bdb.git
-[submodule "packages/jasmine"]
-	path = packages/jasmine
-	url = ../packages-jasmine.git
 [submodule "packages/cpp"]
 	path = packages/cpp
 	url = ../packages-cpp.git
