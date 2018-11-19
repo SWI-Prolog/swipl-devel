@@ -28,6 +28,9 @@ option(BUILD_PDF_DOCUMENTATION
 option(BUILD_MACOS_BUNDLE
        "Install for a MacOS bundle (SWI-Prolog.app)"
        OFF)
+option(BUILD_TESTING
+       "Build test files and setup for ctest"
+       ON)
 option(BUILD_SWIPL_LD
        "Create the swipl-ld utility"
        ON)
@@ -109,7 +112,9 @@ else()
   add_compile_options(-Wall)
 endif()
 
-enable_testing()
+if(BUILD_TESTING)
+  enable_testing()
+endif()
 
 # Configuration we need everywhere
 if(MULTI_THREADED)

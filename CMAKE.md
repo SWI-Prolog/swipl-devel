@@ -98,6 +98,7 @@ allow for restricting the system.
   | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages        |
   | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface           |
   | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)              |
+  | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests |
   | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs     |
 
 Note that packages for  which  the   prerequisites  cannot  be found are
