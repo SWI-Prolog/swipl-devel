@@ -62,6 +62,7 @@ prolog_dump_runtime_variables :-
 prolog_dump_runtime_variables(Format) :-
     print_flag(home,                      'PLBASE',    Format),
     print_flag(arch,                      'PLARCH',    Format),
+    print_flag(address_bits,              'PLBITS',    Format),
     print_flag(version,                   'PLVERSION', Format),
     print_flag(shared_object_extension,   'PLSOEXT',   Format),
     print_flag(shared_object_search_path, 'PLSOPATH',  Format),

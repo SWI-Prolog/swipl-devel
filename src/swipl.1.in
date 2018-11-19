@@ -101,6 +101,9 @@ this defines the location of various components.  For example,
 the library for embedding is in
 .B $PLBASE/lib/$PLARCH/libswipl.a
 .TP
+.B PLBITS
+Address bits for VM.  Either 32 or 64.
+.TP
 .B PLLIB
 CC identifier to link to SWI-Prolog.  Typically
 .B -lswipl
