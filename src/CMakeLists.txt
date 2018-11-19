@@ -255,8 +255,8 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT  ${PL_LIB_INDEX}
-    COMMAND swipl -f none --nopce -q
-            -g "\"make_library_index(swi(library))\"" -t halt
+    COMMAND ${PROG_SWIPL} -f none --nopce -q
+            -g "\"make_library_index('${SWIPL_BUILD_HOME}/library')\"" -t halt
     DEPENDS ${SWIPL_BOOT_FILE} prolog_home
 )
 
