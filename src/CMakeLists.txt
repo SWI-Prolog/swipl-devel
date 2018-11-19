@@ -249,7 +249,9 @@ add_custom_target(
 
 add_custom_command(
     OUTPUT  ${SWIPL_BOOT_FILE}
-    COMMAND swipl -q -O -o ${SWIPL_BOOT_FILE} -b ${SWIPL_BUILD_HOME}/boot/init.pl
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${SWIPL_BOOT_FILE}
+    COMMAND ${PROG_SWIPL_FOR_BOOT} -q -O -o ${SWIPL_BOOT_FILE}
+				   -b ${SWIPL_BUILD_HOME}/boot/init.pl
     DEPENDS swipl ${SWIPL_BOOT_FILES}
 )
 
