@@ -79,6 +79,7 @@ if(CMAKE_CROSSCOMPILING)
   else()
     set(PROG_SWIPL swipl
 	CACHE STRING "SWI-Prolog executable to perform build tasks")
+    set(PROG_SWIPL_FOR_BOOT swipl)
   endif()
 else(CMAKE_CROSSCOMPILING)
   set(CMAKE_HOST_EXECUTABLE_SUFFIX ${CMAKE_EXECUTABLE_SUFFIX})
