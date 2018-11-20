@@ -106,8 +106,22 @@ qcompile_libs :-
 %   Reports on inconsistent dependencies
 
 cmake_qcompile :-
-    current_prolog_flag(argv, ['--compile', File, '--qlfdeps' | Deps]),
+    current_prolog_flag(argv, ['--compile', File, '--qlfdeps' | Rest]),
+    (   append(Deps, ['--preload'|Preload], Rest)
+    ->  true
+    ;   Deps = Rest,
+        Preload = []
+    ),
+    forall(member(X, Preload), preload(X)),
     cmake_qcompile(File, Deps).
+
+preload(X) :-
+    atom_concat('lib:', File, X),
+    !,
+    use_module(user:library(File)).
+preload(X) :-
+    use_module(user:X).
+
 
 cmake_qcompile(File, Deps) :-
     qcompile(File),

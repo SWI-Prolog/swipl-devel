@@ -59,17 +59,23 @@ endfunction()
 #     [DEPENDS ...]
 
 function(add_qcompile_target target)
-  cmake_parse_arguments(my "" "" "SOURCES;DEPENDS" ${ARGN})
+  cmake_parse_arguments(my "" "" "SOURCES;DEPENDS;PRELOAD" ${ARGN})
 
   prepend(src ${SWIPL_QLF_BASE}/ ${my_SOURCES})
   set(src ${src} ${SWIPL_QLF_BASE}/${target}.pl)
   string(REPLACE "/" "-" tname "${target}")
 
+  if(my_PRELOAD)
+    set(extra --preload ${my_PRELOAD})
+  else()
+    set(extra)
+  endif()
+
   add_swipl_target(
       qlf-${tname}
       OUTPUT ${SWIPL_QLF_BASE}/${target}.qlf
       COMMAND cmake_qcompile
-      OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --qlfdeps ${src}
+      OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --qlfdeps ${src} ${extra}
       COMMENT "QLF compiling ${target}.qlf"
       DEPENDS ${src} ${my_DEPENDS})
 endfunction()
