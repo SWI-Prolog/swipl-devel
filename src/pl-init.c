@@ -914,7 +914,7 @@ PL_initialise(int argc, char **argv)
     argc--; argv++;
     char **argvleft;
 
-    if ( argc == 1 && giveVersionInfo(argv[0]) ) /* -help, -v, etc */
+    if ( argc == 1 && giveVersionInfo(argv[0]) ) /* --help, --version, etc */
       exit(0);
 
     for(n=0; n<argc; n++)		/* need to check this first */
@@ -1054,7 +1054,7 @@ usage(void)
     "    1) %s [options] prolog-file ... [-- arg ...]\n",
     "    2) %s [options] [-o executable] -c prolog-file ...\n",
     "    3) %s --help     Display this message (also -h)\n",
-    "    4) %s --version  Display version information (also -v)\n",
+    "    4) %s --version  Display version information\n",
     "    4) %s --arch     Display architecture\n",
     "    6) %s --dump-runtime-variables[=format]\n"
     "                        Dump link info in sh(1) format\n",
