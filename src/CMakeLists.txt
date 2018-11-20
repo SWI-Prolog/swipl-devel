@@ -267,6 +267,12 @@ add_custom_target(prolog_products ALL
     DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
 )
 
+# Precompile some popular larger libraries to .QLF
+set(SWIPL_QLF_BASE ${SWIPL_BUILD_HOME}/library)
+add_qcompile_target(prolog_colour)
+add_qcompile_target(prolog_xref)
+
+# The C config file
 configure_file(config.h.cmake config.h)
 
 # Configure some data files.  Uses a function because these
