@@ -103,7 +103,7 @@ qcompile_libs :-
 %
 %   Qcompile on behalf of CMAKE installation.  File   is  the file to be
 %   qcompiled. Deps is the dependencies as   CMAKE  believes to be true.
-%   Reports on inconsistent depedencies
+%   Reports on inconsistent dependencies
 
 cmake_qcompile :-
     current_prolog_flag(argv, ['--compile', File, '--qlfdeps' | Deps]),

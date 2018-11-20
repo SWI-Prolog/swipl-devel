@@ -17,9 +17,9 @@
 #   - ${SWIPL_COMMAND_DEPENDS} is added to the dependencies
 
 function(add_swipl_target name)
-  set(options -f none -t halt)
+  set(options -f none -t halt "--home=${SWIPL_BUILD_HOME}")
   cmake_parse_arguments(
-      my "QUIET" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS" ${ARGN})
+      my "QUIET;QLF" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS" ${ARGN})
 
   if(my_QUIET)
     set(options ${options} -q)
@@ -29,13 +29,17 @@ function(add_swipl_target name)
     set(my_COMMENT "-- swipl -g ${my_COMMAND}")
   endif()
 
+  if(my_QLF)
+    set(PROG_SWIPL ${PROG_SWIPL_FOR_BOOT})
+  endif()
+
   foreach(s ${my_SCRIPT})
     set(options ${options} -s ${s})
   endforeach()
 
   add_custom_command(
       OUTPUT ${my_OUTPUT}
-      COMMAND swipl ${options} -g "\"${my_COMMAND}\"" -- ${my_OPTIONS}
+      COMMAND ${PROG_SWIPL} ${options} -g "\"${my_COMMAND}\"" -- ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       DEPENDS prolog_products prolog_home
               ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}")
@@ -70,7 +74,7 @@ function(add_qcompile_target target)
       DEPENDS ${src} ${my_DEPENDS})
 endfunction()
 
-# run_installeda_swipl(command
+# run_installed_swipl(command
 #		      [QUIET]
 #		      [SCRIPT script ...]
 #		      [PACKAGES pkg ...]

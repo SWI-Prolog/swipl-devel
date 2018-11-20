@@ -116,8 +116,6 @@ is supposed to give the POSIX standard one.
 static double initial_time;
 #endif /* OS2 */
 
-#include "config.h"     /* Generated from config.h.cmake */
-
 static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
