@@ -396,7 +396,7 @@ to use \const{SIGUSR2}.  If \arg{NUM} is 0 (zero), this handler is not
 installed.  See prolog_alert_signal/2 to query or modify this value at
 runtime.
 
-    \cmdlineoptionitem{-tty}{}
+    \cmdlineoptionitem{--no-tty}{}
 Unix only.  Switches controlling the terminal for allowing
 single-character commands to the tracer and get_single_char/1. By
 default, manipulating the terminal is enabled unless the system detects
@@ -752,7 +752,7 @@ On {\em leashed ports} (set with the predicate leash/1, default are
 \const{call}, \const{exit}, \const{redo} and \const{fail}) the user is
 prompted for an action. All actions are single-character commands which
 are executed {\bf without} waiting for a return, unless the command line
-option \cmdlineoption{-tty} is active. Tracer options:
+option \cmdlineoption{--no-tty} is active. Tracer options:
 
 \begin{description}
     \traceoption{+}{Spy}{
@@ -1850,7 +1850,7 @@ work in this mode.  See also \secref{extensions}.
 Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user actions for the trace. May
 be set. If this flag is \const{false} at startup, command line editing
-is disabled. See also the \cmdlineoption{+/-tty} command line option.
+is disabled. See also the \cmdlineoption{--no-tty} command line option.
 
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
