@@ -116,6 +116,8 @@ is supposed to give the POSIX standard one.
 static double initial_time;
 #endif /* OS2 */
 
+#include "config.h"     /* Generated from config.h.cmake */
+
 static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
@@ -2496,7 +2498,7 @@ int
 System(char *cmd)
 { GET_LD
   int pid;
-  char *shell = "/bin/sh";
+  char *shell = UNIX_SHELL;
   int rval;
   void (*old_int)();
   void (*old_stop)();

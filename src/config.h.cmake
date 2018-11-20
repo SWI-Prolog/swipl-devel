@@ -267,3 +267,5 @@
 
 #cmakedefine HAVE_PTHREAD_GETCPUCLOCKID
 #cmakedefine HAVE_F_SETLKW
+
+#cmakedefine UNIX_SHELL "@UNIX_SHELL@"
