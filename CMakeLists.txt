@@ -138,11 +138,23 @@ if(INSTALL_DOCUMENTATION)
 
   add_dependencies(doc doc.html)
 
+  add_custom_command(
+      OUTPUT "${SWIPL_BUILD_HOME}/doc/manindex.db"
+      COMMAND ${PROG_SWIPL} -f none --home=${SWIPL_BUILD_HOME}
+	                    -g cmake_save_man_index -t halt
+      DEPENDS doc.html)
+  add_custom_target(
+      man_index
+      DEPENDS "${SWIPL_BUILD_HOME}/doc/manindex.db")
+  add_dependencies(doc man_index)
+  install(FILES "${SWIPL_BUILD_HOME}/doc/manindex.db"
+	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
+
   if(BUILD_PDF_DOCUMENTATION)
     add_custom_target(
 	doc.pdf
 	COMMENT "Build PDF documentation")
-    add_dependencies(doc doc.pdf doc.html)
+    add_dependencies(doc doc.pdf)
   endif()
 
   set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)

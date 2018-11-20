@@ -36,15 +36,16 @@
 :- module(prolog_install,
           [ qcompile_libraries/0,
             cmake_qcompile/0,
-            cmake_qcompile/2                    % +File, +Deps
+            cmake_qcompile/2,                   % +File, +Deps
+            cmake_save_man_index/0
           ]).
 :- use_module(library(make)).
+:- use_module(library(apply)).
 :- use_module(library(lists)).
 
 /** <module> Installation support predicates
 
-This module provides helper predicates for  the (Windows) installer. The
-entry point is called from src/win32/installer.pl.nsi.
+This module provides helper predicates for build and install steps.
 */
 
 %!  qcompile_libraries
@@ -95,7 +96,7 @@ qcompile_libs :-
            )).
 
 		 /*******************************
-		 *               C		*
+		 *   QLF COMPILATION FOR BUILD	*
 		 *******************************/
 
 %!  cmake_qcompile(+File, +Deps) is det.
@@ -128,7 +129,17 @@ cmake_qcompile(File, Deps) :-
     ;   print_message(warning, qcompile(extra, File, Extra))
     ).
 
+		 /*******************************
+		 *        MANUAL SUPPORT	*
+		 *******************************/
 
+%!  cmake_save_man_index
+%
+%   Create swi('doc/manindex.db') during the build process.
+
+cmake_save_man_index :-
+    use_module(library(pldoc/man_index)),
+    save_man_index.
 
 
                  /*******************************
