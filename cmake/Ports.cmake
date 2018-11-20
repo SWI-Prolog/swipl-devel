@@ -18,22 +18,34 @@ endif()
 #   2. Cross compilation with a good emulator (Wine for Windows, Node.js
 #      for WASM)
 #   3. Cross compilation without a usable emulator.
+# 
+# In case #3 we need to make two builds:
+#   1. Compile SWI-Prolog on the build host with a compatible pointer size
+#   2. Cross-compile to the final target
 #
-# The helper tools mkvmi and  defatoms   (see  src  directory) are build
-# using ${CMAKE_HOST_CC} when cross-compiling.
+# The first step is used to produce build artifacts that are needed
+# by the cross-compilation step. SWIPL_NATIVE_FRIEND points to the directory
+# which contains the build for step #1.
 #
-# Prolog build steps may be executed using ${SWIPL_NATIVE_FRIEND}, which
-# is  either  the  name  of  a  sibling  build  directory  containing  a
-# compatible native SWI-Prolog or an absolute   path  pointing at such a
-# directory.  Variables
+
+# ${SWIPL_NATIVE_FRIEND}, is  either  the  name  of  a  sibling  build
+# directory  containing  a compatible native SWI-Prolog or an absolute   path
+# pointing at such a directory.  By compatible we mean that the pointer size
+# is the same.
+#
+# The following variables are set, and can be used elsewhere:
 #
 #   - ${PROG_SWIPL} is a native or friend Prolog executable that can
 #                   be used for general Prolog tasks such as generating
 #                   the library index or documentation
-#   - ${PROG_SWIPL} is a native or friend Prolog executable that can
-#		    be used for compiling bootNN.prc and .qlf files.
-#		    At the moment it must have the same pointer size
-#		    as the target.
+#
+#   - ${PROG_SWIPL_FOR_BOOT} is a native or friend Prolog executable that can
+#                            be used for compiling bootNN.prc and .qlf files.
+#                            At the moment it must have the same pointer size
+#                            as the target.
+#
+# Note: The helper tools mkvmi and  defatoms   (see  src  directory) are built
+# using ${CMAKE_HOST_CC} when cross-compiling, and do not need SWIPL_NATIVE_FRIEND.
 
 if(CMAKE_CROSSCOMPILING)
   set(CMAKE_HOST_EXECUTABLE_SUFFIX "" CACHE STRING
