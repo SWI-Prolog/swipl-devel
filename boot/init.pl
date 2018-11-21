@@ -3406,6 +3406,48 @@ compile_aux_clauses(Clauses) :-
     '$compile_term'(Clause, _Layout, File).
 
 
+		 /*******************************
+		 *            STAGING		*
+		 *******************************/
+
+%!  '$stage_file'(+Target, -Stage) is det.
+%!  '$install_staged_file'(+Catcher, +Staged, +Target, +OnError).
+%
+%   Create files using _staging_, where we  first write a temporary file
+%   and move it to Target if  the   file  was created successfully. This
+%   provides an atomic transition, preventing  customers from reading an
+%   incomplete file.
+
+'$stage_file'(Target, Stage) :-
+    file_directory_name(Target, Dir),
+    file_base_name(Target, File),
+    current_prolog_flag(pid, Pid),
+    format(atom(Stage), '~w/.~w.~d', [Dir,File,Pid]).
+
+'$install_staged_file'(exit, Staged, Target, error) :-
+    !,
+    rename_file(Staged, Target).
+'$install_staged_file'(exit, Staged, Target, OnError) :-
+    !,
+    InstallError = error(_,_),
+    catch(rename_file(Staged, Target),
+          InstallError,
+          '$install_staged_error'(OnError, InstallError, Staged, Target)).
+'$install_staged_file'(_, Staged, _, _OnError) :-
+    E = error(_,_),
+    catch(delete_file(Staged), E, true).
+
+'$install_staged_error'(OnError, Error, Staged, _Target) :-
+    E = error(_,_),
+    catch(delete_file(Staged), E, true),
+    (   OnError = silent
+    ->  true
+    ;   OnError = fail
+    ->  fail
+    ;   print_message(warning, Error)
+    ).
+
+
                  /*******************************
                  *             READING          *
                  *******************************/
