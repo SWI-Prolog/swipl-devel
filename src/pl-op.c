@@ -132,11 +132,11 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
   int must_reg = FALSE;
 
-  DEBUG(7, Sdprintf(":- op(%d, %s, %s) in module %s\n",
-		    priority,
-		    PL_atom_chars(operatorTypeToAtom(type)),
-		    PL_atom_chars(name),
-		    PL_atom_chars(m->name)));
+  DEBUG(MSG_OPERATOR, Sdprintf(":- op(%d, %s, %s) in module %s\n",
+			       priority,
+			       PL_atom_chars(operatorTypeToAtom(type)),
+			       PL_atom_chars(name),
+			       PL_atom_chars(m->name)));
 
   assert(t>=OP_PREFIX && t<=OP_POSTFIX);
 
@@ -233,10 +233,11 @@ currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
       *priority = op->priority[kind];
 
       DEBUG(MSG_OPERATOR,
-	    Sdprintf("currentOperator(%s) --> %s %d\n",
+	    Sdprintf("current_op(%s) --> %s %d (module %s)\n",
 		     PL_atom_chars(name),
 		     PL_atom_chars(operatorTypeToAtom(*type)),
-		     *priority));
+		     *priority,
+		     PL_atom_chars(m->name)));
 
       succeed;
     }
@@ -523,6 +524,11 @@ current_op(Module m, int inherit,
       e->index = 0;
 
       scanVisibleOperators(m, nm, p, t, b, inherit);
+      DEBUG(MSG_OPERATOR,
+	    if ( nm ) Sdprintf("Scanned for %s in %s: %d hits\n",
+			       PL_atom_chars(nm),
+			       PL_atom_chars(m->name),
+			       (int)entriesBuffer(b, opdef)));
       break;
     }
     case FRG_REDO:
@@ -584,7 +590,10 @@ get_op_module(term_t a3, term_t name, Module *m ARG_LD)
   if ( *m && (*m)->name == mname )
     return TRUE;
   if ( mname && !(*m=acquireModule(mname)) )
+  { DEBUG(MSG_OPERATOR, Sdprintf("Could not acquire module %s\n",
+				 PL_atom_chars(mname)));
     *m = MODULE_user;
+  }
 
   return TRUE;
 }
