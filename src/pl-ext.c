@@ -516,6 +516,8 @@ initBuildIns(void)
 #endif
   PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
   PL_meta_predicate(PL_predicate("compile_predicates", 1, "system"), ":");
+  PL_meta_predicate(PL_predicate("op",		     3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("current_op",	     3, "system"), "++:");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);
