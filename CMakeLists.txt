@@ -34,6 +34,9 @@ option(BUILD_TESTING
 option(BUILD_SWIPL_LD
        "Create the swipl-ld utility"
        ON)
+ option(INSTALL_TESTS
+       "Install script and files needed to run tests of the final installation"
+       OFF)
 
 include(Utils)
 include(BuildType)

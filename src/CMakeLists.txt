@@ -534,3 +534,21 @@ ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl-ld
 endif()
 
 endif(WIN32)
+
+# Install a prolog script to run tests on target device
+# in which ctest is not available
+if(INSTALL_TESTS)
+   #Copy core tests to the installation
+   set(INSTALL_TESTS_DIR ${CMAKE_INSTALL_PREFIX}/test)
+   set(PKGS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../packages)
+   install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/Tests
+           DESTINATION ${INSTALL_TESTS_DIR})
+   install(FILES       ${CMAKE_CURRENT_SOURCE_DIR}/test.pl
+           DESTINATION ${INSTALL_TESTS_DIR}/)
+   #Copy packages to the installation
+   install(DIRECTORY   ${PKGS_SRC_DIR}
+           DESTINATION ${INSTALL_TESTS_DIR})
+   #ssl needs special treatment because the test certificates are in the build dir
+   install(DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/../packages/ssl/tests/test_certs
+           DESTINATION ${INSTALL_TESTS_DIR}/packages/ssl/tests)
+endif(INSTALL_TESTS)

@@ -2641,6 +2641,17 @@ follow_links(File, File).
 
 
 :- set_script_dir.
+%
+% Run test script for the specified package, making
+% sure thw working directory is set to the location of
+% the package.
+run_pkg_script(Pkg, PkgScript, PkgDir) :-
+   format(user_error, '------- Testing package ~w~n',[Pkg]),
+	setup_call_cleanup(  working_directory(OldDir, PkgDir),
+			(  run_scripts([PkgScript]),
+				format(user_error, ' done~n', [])
+			),
+			working_directory(_, OldDir)).
 
 run_test_script(Script) :-
 	file_base_name(Script, Base),
@@ -2821,6 +2832,11 @@ test(Files, Options) :-
 	->  true
 	;   forall(testset(Set), runtest(Set))
 	),
+	(   option(packages(true), Options)
+	->  forall(  find_package_script(Pkg-PkgScript-PkgDir),
+					 run_pkg_script(Pkg,PkgScript,PkgDir))
+	;   true
+	),
 	scripts(Files, Options),
 	garbage_collect,
 	garbage_collect_atoms,
@@ -2831,6 +2847,25 @@ test(Files, Options) :-
 	),
 	report_blocked,
 	report_failed.
+
+find_package_script(Pkg-PkgScript-PkgDir) :-
+	script_dir(ScriptDir),
+	working_directory(_, ScriptDir),
+	atom_concat(ScriptDir,'/packages',PkgDir0),
+	directory_files(PkgDir0, Entries),
+	include(is_pkg, Entries, Pkgs),
+	maplist(pkg_script_dir,Pkgs,PkgScriptsDirs),
+	member(Pkg-PkgScript-PkgDir, PkgScriptsDirs).
+
+is_pkg(Pkg) :-
+	pkg_script_dir(Pkg,_).
+
+pkg_script_dir(Pkg,  Pkg-PkgScript-PkgDir) :-
+	atom_concat('./packages/',Pkg,PkgDir0),
+	absolute_file_name(PkgDir0, PkgDir),
+	atomic_list_concat([PkgDir,'/','test_',Pkg,'.pl'],PkgScript0),
+	absolute_file_name(PkgScript0, PkgScript),
+	exists_file(PkgScript).
 
 scripts(_Files, Options) :-
 	option(subdirs(false), Options),
