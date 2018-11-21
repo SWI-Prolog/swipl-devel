@@ -2213,7 +2213,7 @@ typedef struct
 #define MODULE_user	(GD->modules.user)
 #define MODULE_system	(GD->modules.system)
 #define MODULE_parse	(ReadingSource ? LD->modules.source \
-				       : MODULE_user)
+				       : LD->modules.typein)
 
 
 		/********************************
