@@ -226,6 +226,7 @@ add_custom_command(
     OUTPUT manual.html
     COMMAND rm -f Manual/*.html Manual/*.gif
     COMMAND swipl ${LATEX2HTML} --texinputs=lib:: ${DOC}
+    COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
     COMMAND touch manual.html
     COMMENT "Generating HTML documentation for core system"
     DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles}

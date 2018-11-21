@@ -128,6 +128,7 @@ add_subdirectory(src)
 install(FILES LICENSE README.md DESTINATION ${SWIPL_INSTALL_PREFIX})
 
 if(INSTALL_DOCUMENTATION)
+  include(Documentation)
   add_custom_target(
       doc ALL
       COMMENT "Build the documentation")
@@ -139,16 +140,15 @@ if(INSTALL_DOCUMENTATION)
   add_dependencies(doc doc.html)
 
   add_custom_command(
-      OUTPUT "${SWIPL_BUILD_HOME}/doc/manindex.db"
+      OUTPUT ${MAN_INDEX}
       COMMAND ${PROG_SWIPL} -f none --home=${SWIPL_BUILD_HOME}
 	                    -g cmake_save_man_index -t halt
       DEPENDS doc.html)
   add_custom_target(
       man_index
-      DEPENDS "${SWIPL_BUILD_HOME}/doc/manindex.db")
+      DEPENDS ${MAN_INDEX})
   add_dependencies(doc man_index)
-  install(FILES "${SWIPL_BUILD_HOME}/doc/manindex.db"
-	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
+  install(FILES ${MAN_INDEX} DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
 
   if(BUILD_PDF_DOCUMENTATION)
     add_custom_target(

@@ -9,6 +9,7 @@ set(DOC2TEX         ${SWIPL_ROOT}/man/doc2tex.pl)
 set(DOC2TEX_DEPENDS prolog_products ${SWIPL_ROOT}/man/doc2tex.pl)
 set(PLDOC2TEX       -x ${CMAKE_BINARY_DIR}/man/pldoc2tex --)
 set(PLDOC2TEX_DEPENDS pldoc2tex_state prolog_home prolog_products pldoc)
+set(MAN_INDEX	    "${SWIPL_BUILD_HOME}/doc/manindex.db")
 
 # tex_byproducts(base var)
 # Fill var with a list of all LaTeX byproducts when emitting ${base}
