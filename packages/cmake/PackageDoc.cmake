@@ -185,6 +185,7 @@ function(pkg_doc pkg)
     add_custom_command(
 	OUTPUT ${pkg}.html
 	COMMAND swipl ${LATEX2HTML} ${pkg}
+	COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
 	DEPENDS latex2html prolog_products ${texdeps} ${bbl} ${depends})
 
     add_custom_target(
