@@ -450,6 +450,14 @@ foreach(test ${SWIPL_TEST_DIRS})
 	   COMMAND ${PROG_SWIPL} -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
+if(INSTALL_TESTS)
+   #Copy core tests to the installation
+   install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/Tests
+           DESTINATION ${INSTALL_TESTS_DIR})
+   install(FILES       ${CMAKE_CURRENT_SOURCE_DIR}/test.pl
+           DESTINATION ${INSTALL_TESTS_DIR}/)
+endif()
+
 # Populate parms.h, making the compilation environment known to Prolog
 include(Params)
 configure_file(parms.h.cmake parms.h)
@@ -482,6 +490,7 @@ install(TARGETS swipl libswipl
 install(FILES ${SWIPL_BOOT_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
+
 foreach(d ${SWIPL_DATA_DIRS})
     string(REGEX REPLACE "/" "_" filevar ${d})
     prepend(files ${SWIPL_ROOT}/${d} ${SWIPL_DATA_${filevar}})

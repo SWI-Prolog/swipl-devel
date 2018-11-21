@@ -278,16 +278,22 @@ endfunction()
 
 # test_lib(name
 #	   [PACKAGES ...]
-#	   [PARENT_LIB])
+#	   [PARENT_LIB]
+#	   [TEST_FILES_REGEX <regex>])
 #
 # Run test_${name} in test_${name}.pl
+#
+# TEST_FILES_REGEX is only needed if the test files are *not* under a
+# directory named test[s] or Test[s]. It is one regular expression
+# which will be matched against the full path of the package source
+# and build directories.
 
 if(NOT SWIPL_PATH_SEP)
   set(SWIPL_PATH_SEP ":")
 endif()
 
 function(test_lib name)
-  cmake_parse_arguments(my "PARENT_LIB" "NAME" "PACKAGES" ${ARGN})
+  cmake_parse_arguments(my "PARENT_LIB" "NAME;TEST_FILES_REGEX" "PACKAGES" ${ARGN})
   set(test_goal "test_${name}")
   set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/test_${name}.pl")
 
@@ -310,6 +316,27 @@ function(test_lib name)
 			 -f none -s ${test_source}
 			 -g "${test_goal}"
 			 -t halt)
+  # Write db with lists of tests to be used with -DINSTALL_TESTS
+  if(INSTALL_TESTS)
+  get_filename_component(test_source_dir ${test_source} DIRECTORY)
+  get_filename_component(test_source_basename ${test_source} NAME)
+  get_filename_component(pkg_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+  file(RELATIVE_PATH rel_test_dir ${CMAKE_CURRENT_SOURCE_DIR}/../.. ${test_source_dir})
+  file(APPEND ${INSTALL_TESTS_DB}
+     "cmake_test('${pkg_name}', '${test_name}',
+           test_goal('${rel_test_dir}',
+                     '${test_source_basename}',
+                     '${test_goal}')).\n"
+      )
+
+  # Install files needed for testing at run time
+  if(my_TEST_FILES_REGEX)
+    install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+            DESTINATION ${INSTALL_TESTS_DIR}/packages
+            FILES_MATCHING REGEX ${my_TEST_FILES_REGEX})
+  endif(my_TEST_FILES_REGEX)
+
+  endif(INSTALL_TESTS)
 endfunction(test_lib)
 
 # test_libs(name ...
@@ -327,13 +354,18 @@ function(test_libs)
       set(mode "packages")
     elseif(arg STREQUAL "PARENT_LIB")
       set(extra PARENT_LIB)
+    elseif(arg STREQUAL "TEST_FILES_REGEX")
+      set(mode "test_files_regex")
     else()
       set(${mode} ${${mode}} ${arg})
     endif()
   endforeach()
 
   foreach(test ${tests})
-    test_lib(${test} PACKAGES ${packages} ${extra})
+    test_lib(${test}
+             PACKAGES ${packages}
+             TEST_FILES_REGEX ${test_files_regex}
+             ${extra})
   endforeach()
 endfunction(test_libs)
 

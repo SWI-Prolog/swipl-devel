@@ -40,8 +40,7 @@
 :- prolog_load_context(directory, Dir),
    atom_concat(Dir, '/../packages/plunit', PlUnitDir),
    asserta(user:file_search_path(library, PlUnitDir)).
-:- [library(plunit)].
-:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
+:- use_module(library(plunit)).
 
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -67,6 +66,9 @@ prolog:message(test(main_suite)) -->
 	].
 prolog:message(test(empty_dir(Dir))) -->
 	[ 'No tests in directory ~p'-[Dir] ].
+
+prolog:message(test(no_pkg(Pkg))) -->
+   [ 'Package ~w does not exist!'-[ Pkg ] ].
 
 :- print_message(informational, test(main_suite)).
 
@@ -2642,6 +2644,39 @@ follow_links(File, File).
 
 :- set_script_dir.
 
+set_plunit_options(for_packages) :-
+   set_test_options([load(always), silent(true), sto(false), cleanup(true)]).
+
+set_plunit_options(for_main_tests) :-
+   set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
+%
+% Run test for the specified package, making
+% sure thw working directory is set to the location of
+% the package.
+run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+   format(user_error, '------- Testing  ~w:~w~n',[Pkg,TestName]),
+   set_plunit_options(for_packages),
+   setup_call_cleanup(  working_directory(OldDir, PkgDir),
+	      (  run_pkg_test1(PkgScript, Goal),
+	         format(user_error, ' done~n', [])
+	      ),
+	      working_directory(_, OldDir)).
+
+run_pkg_test1(Script, Goal) :-
+   current_prolog_flag(executable,SWIPL),
+   process_create(SWIPL,
+                  [  '-f', 'none',
+                     '-t', 'halt',
+                     '-g', Goal,
+                     Script
+                  ],
+                  [ process(Pid) ]),
+   process_wait(Pid,Status),
+   (  Status = exit(0)
+   -> put_ok
+   ;  script_failed(Script, Status)
+   ).
+
 run_test_script(Script) :-
 	file_base_name(Script, Base),
 	file_name_extension(Pred, _, Base),
@@ -2817,11 +2852,29 @@ test(_, Options) :-
 test(Files, Options) :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
+   % Run main tests
 	(   option(core(false), Options)
 	->  true
 	;   forall(testset(Set), runtest(Set))
 	),
 	scripts(Files, Options),
+	!,
+	% Run package tests if --package=XXX or --packages was specified
+	(   option(packages(true), Options)
+	->  forall(  find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+					 run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir))
+	;   true
+	),
+	(   option(package(Pkg), Options)
+	->  (   is_pkg(Pkg)
+	    ->  forall(  find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+	                 run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir)
+	              )
+	    ;   print_message(error, test(no_pkg(Pkg))), fail
+	    )
+	;   true
+	),
+   % Cleanup and report
 	garbage_collect,
 	garbage_collect_atoms,
 	trim_stacks,
@@ -2832,12 +2885,31 @@ test(Files, Options) :-
 	report_blocked,
 	report_failed.
 
+load_cmake_test_db :-
+	load_files('cmake_pkg_tests.db',
+              [ silent(true),
+                if(changed)
+              ]
+             ).
+
+find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+	script_dir(ScriptDir),
+	working_directory(_, ScriptDir),
+	load_cmake_test_db,
+	cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)).
+
+is_pkg(Pkg) :-
+	load_cmake_test_db,
+	cmake_test(Pkg, _, test_goal(_, _, _)).
+
 scripts(_Files, Options) :-
 	option(subdirs(false), Options),
 	!.
 scripts([], _Options) :-
+   set_plunit_options(for_main_tests),
 	forall(testdir(Dir), run_test_scripts(Dir)).
 scripts(Dirs, _Options) :-
+   set_plunit_options(for_main_tests),
 	forall(member(Dir, Dirs),
 	       (   atom_concat('Tests/', Dir, TestDir),
 		   run_test_scripts(TestDir)
@@ -2896,6 +2968,7 @@ call_test(Goal, _Line) :-
 :- endif.
 
 runtest(Name) :-
+   set_plunit_options(for_main_tests),
 	format(user_error, '~NRunning test set "~w" ', [Name]),
 	functor(Head, Name, 1),
 	findall(Head-R, nth_clause_head(Head, R), Heads),
