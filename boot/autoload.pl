@@ -353,6 +353,7 @@ ensure_slash(Dir, DirS) :-
 
 source_file_pattern(Pattern) :-
     user:prolog_file_type(PlExt, prolog),
+    PlExt \== qlf,
     atom_concat('*.', PlExt, Pattern).
 
 plfile_in_dir(Dir, Base, PlBase, File) :-
