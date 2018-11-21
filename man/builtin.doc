@@ -6392,13 +6392,15 @@ redefined by the user.
 \index{operator,and modules}%
 Some care has to be taken before defining new operators. Defining too
 many operators might make your source `natural' looking, but at the same
-time make it hard to understand the limits of your syntax. To ease the
-pain, as of SWI-Prolog 3.3.0, operators are local to the module in which
-they are defined. Operators can be exported from modules using a term
+time using many operators can make it hard to understand the limits of
+your syntax.
+
+In SWI-Prolog, operators are local to the module in which they are
+defined. Operators can be exported from modules using a term
 \term{op}{Precedence, Type, Name} in the export list as specified by
-module/2.  Many modern Prolog systems have module specific operators.
+module/2. Many modern Prolog systems have module specific operators.
 Unfortunately, there is no established interface for exporting and
-importing operators.  SWI-Prolog's convention has been addopted by YAP.
+importing operators. SWI-Prolog's convention has been addopted by YAP.
 
 The module table of the module \const{user} acts as default table for
 all modules and can be modified explicitly from inside a module to
@@ -6412,6 +6414,24 @@ operators:
 
 :- op(900, xfx, user:(=>)).
 \end{code}
+
+Although operators are module-specific and the predicates that define
+them (op/3) or rely on them such as current_op/3, read/1 and write/1 are
+module sensitive, they are not proper meta-predicates. If they were
+proper meta predicates read/1 and write/1 would use the module from
+which they are called, breaking compatibility with other Prolog systems.
+The following rules apply:
+
+\begin{enumerate}
+    \item If the module is explicitly specified by qualifying the
+          third argument (op/3, current_op/3) or specifying a
+	  \term{module}{Module} option (read_term/3, write_term/3),
+	  this module is used.
+    \item While compiling, the module into which the compiled code
+          is loaded applies.
+    \item Otherwise, the \jargon{typein module} applies.  This is
+          normally \const{user} and may be changed using module/1.
+\end{enumerate}
 
 In SWI-Prolog, a \emph{quoted atom} never acts as an operator.  Note
 that the portable way to stop an atom acting as an operator is to
@@ -6460,7 +6480,8 @@ that are loaded from the SWI-Prolog directories resolve operators and
 predicates from this \const{system} module rather than \const{user},
 which makes the semantics of the library and development system modules
 independent of operator changes to the \const{user} module.
-
+See \secref{operators} for details about the relation between operators
+and modules.
 
 \begin{table}
 \begin{center}
@@ -6502,8 +6523,13 @@ independent of operator changes to the \const{user} module.
 
     \predicate[ISO]{current_op}{3}{?Precedence, ?Type, ?:Name}
 True if \arg{Name} is currently defined as an operator of type \arg{Type}
-with precedence \arg{Precedence}. See also op/3.
+with precedence \arg{Precedence}. See also op/3.  Note that an
+\jargon{unqualified} \arg{Name} does \textbf{not} resolve to the
+calling context but, when compiling, to the compiler's target
+module and otherwise to the \jargon{typein module}. See
+\secref{operators} for details.
 \end{description}
+
 
 \section{Character Conversion}		\label{sec:charconv}
 
