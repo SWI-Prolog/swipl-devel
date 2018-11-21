@@ -129,6 +129,9 @@ extern "C" {
  #endif
 #endif
 
+#ifndef OF
+#define OF(x) x
+#endif
 
 
 
