@@ -2194,11 +2194,13 @@ load_files(Module:Files, Options) :-
 
 '$qdo_load_file'(File, FullFile, Module, Action, Options) :-
     memberchk('$qlf'(QlfOut), Options),
+    '$stage_file'(QlfOut, StageQlf),
     !,
-    setup_call_cleanup(
-        '$qstart'(QlfOut, Module, State),
+    setup_call_catcher_cleanup(
+        '$qstart'(StageQlf, Module, State),
         '$do_load_file'(File, FullFile, Module, Action, Options),
-        '$qend'(State)).
+        Catcher,
+        '$qend'(State, Catcher, StageQlf, QlfOut)).
 '$qdo_load_file'(File, FullFile, Module, Action, Options) :-
     '$do_load_file'(File, FullFile, Module, Action, Options).
 
@@ -2207,10 +2209,11 @@ load_files(Module:Files, Options) :-
     '$compilation_mode'(OldMode, qlf),
     '$set_source_module'(OldModule, Module).
 
-'$qend'(state(OldMode, OldModule)) :-
+'$qend'(state(OldMode, OldModule), Catcher, StageQlf, QlfOut) :-
     '$set_source_module'(_, OldModule),
     '$set_compilation_mode'(OldMode),
-    '$qlf_close'.
+    '$qlf_close',
+    '$install_staged_file'(Catcher, StageQlf, QlfOut, warn).
 
 '$set_source_module'(OldModule, Module) :-
     '$current_source_module'(OldModule),
