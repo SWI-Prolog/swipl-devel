@@ -2837,6 +2837,12 @@ test(Files, Options) :-
 					 run_pkg_script(Pkg,PkgScript,PkgDir))
 	;   true
 	),
+	(   option(package(Pkg), Options)
+	->  (  find_package_script(Pkg-PkgScript-PkgDir),
+			 run_pkg_script(Pkg,PkgScript,PkgDir)
+	    )
+	;   true
+	),
 	scripts(Files, Options),
 	garbage_collect,
 	garbage_collect_atoms,
