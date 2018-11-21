@@ -143,7 +143,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     random.pl prolog_breakpoints.pl prolog_autoload.pl
     prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl
     prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl
-    sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
+    sandbox.pl prolog_format.pl prolog_install.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl)
 if(INSTALL_DOCUMENTATION)
@@ -260,8 +260,22 @@ add_custom_command(
     OUTPUT  ${PL_LIB_INDEX}
     COMMAND ${PROG_SWIPL} -f none --nopce -q
             -g "\"make_library_index('${SWIPL_BUILD_HOME}/library')\"" -t halt
-    DEPENDS ${SWIPL_BOOT_FILE} prolog_home
+    DEPENDS ${SWIPL_BOOT_FILE} prolog_home check_installation
 )
+
+# This is done so that autoload works by
+# having check_installation.pl ready before
+# updating INDEX.pl
+add_custom_target(
+    check_installation
+    COMMAND ${CMAKE_COMMAND}  -V
+            -DSWIPL_BUILD_LIBRARY=${SWIPL_BUILD_LIBRARY}
+            -DINSTALL_TESTS=${INSTALL_TESTS}
+            -P ${CMAKE_BINARY_DIR}/../cmake/CheckInstallation.cmake
+    DEPENDS ../library/check_installation.pl.in
+    COMMENT "Configuring check_installation"
+)
+
 
 add_custom_target(prolog_products ALL
     DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
@@ -450,6 +464,14 @@ foreach(test ${SWIPL_TEST_DIRS})
 	   COMMAND ${PROG_SWIPL} -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
+if(INSTALL_TESTS)
+   #Copy core tests to the installation
+   install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/Tests
+           DESTINATION ${INSTALL_TESTS_DIR})
+   install(FILES       ${CMAKE_CURRENT_SOURCE_DIR}/test.pl
+           DESTINATION ${INSTALL_TESTS_DIR}/)
+endif()
+
 # Populate parms.h, making the compilation environment known to Prolog
 include(Params)
 configure_file(parms.h.cmake parms.h)
@@ -482,6 +504,10 @@ install(TARGETS swipl libswipl
 install(FILES ${SWIPL_BOOT_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
+
+install(FILES ${SWIPL_BUILD_LIBRARY}/check_installation.pl
+        DESTINATION ${SWIPL_INSTALL_PREFIX}/library)
+
 foreach(d ${SWIPL_DATA_DIRS})
     string(REGEX REPLACE "/" "_" filevar ${d})
     prepend(files ${SWIPL_ROOT}/${d} ${SWIPL_DATA_${filevar}})

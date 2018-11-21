@@ -37,6 +37,9 @@ option(BUILD_TESTING
 option(BUILD_SWIPL_LD
        "Create the swipl-ld utility"
        ON)
+ option(INSTALL_TESTS
+       "Install script and files needed to run tests of the final installation"
+       OFF)
 
 include(Utils)
 include(BuildType)
@@ -109,6 +112,9 @@ endif(WIN32)
 set(SWIPL_INSTALL_LIBRARY  ${SWIPL_INSTALL_PREFIX}/library)
 set(SWIPL_INSTALL_BOOT     ${SWIPL_INSTALL_PREFIX}/boot)
 set(SWIPL_INSTALL_INCLUDE  ${SWIPL_INSTALL_PREFIX}/include)
+if(INSTALL_TESTS)
+   set(INSTALL_TESTS_DIR   ${SWIPL_INSTALL_PREFIX}/test)
+endif()
 
 if(MSVC)
   add_compile_options(/W3)
@@ -166,6 +172,24 @@ if(INSTALL_DOCUMENTATION)
   install(FILES packages/index.html
 	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages)
 endif(INSTALL_DOCUMENTATION)
+
+# Install a prolog script to run tests on target device
+# in which ctest is not available
+if(INSTALL_TESTS)
+   set(INSTALL_TESTS_DIR ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_PREFIX}/test)
+   set(PKGS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/packages)
+   set(INSTALL_TESTS_DB ${CMAKE_BINARY_DIR}/cmake_pkg_tests.db)
+   #Move test db to installation
+   install(FILES       ${INSTALL_TESTS_DB}
+           DESTINATION ${INSTALL_TESTS_DIR}/)
+   file(REMOVE ${INSTALL_TESTS_DB})
+   #Copy generic package test files to the installation
+   install(DIRECTORY   ${PKGS_SRC_DIR}
+           DESTINATION ${INSTALL_TESTS_DIR}
+           FILES_MATCHING REGEX
+             ".*/.*/test_.*$|^.*/Test[s]*/.*$|^.*/test[s]*/.*"
+          )
+endif(INSTALL_TESTS)
 
 # Add the packages
 foreach(package ${SWIPL_PACKAGE_LIST})
