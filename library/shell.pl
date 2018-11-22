@@ -66,19 +66,16 @@ the amount of available memory.
 %!  shell
 %
 %   Execute an interactive shell. The executed   shell is defined by
-%   the environment =SHELL= or =comspec=   (Windows).  If neither is
-%   defined, =|/bin/sh|= is used.
+%   the environment variable =SHELL= or =comspec=  for (Windows).
+%   If neither is defined, the prolog flag =|shell|= is used.
 
-shell :-
-    getenv('SHELL', Shell),        % Unix, also Cygwin
-    !,
-    shell(Shell).
 shell :-
     getenv(comspec, ComSpec),      % Windows
     !,
     shell(ComSpec).
 shell :-
-    shell('/bin/sh').
+    current_prolog_flag(posix_shell,Shell),
+    shell(Shell).
 
 %!  cd.
 %!  cd(Dir).
