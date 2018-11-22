@@ -269,3 +269,4 @@
 #cmakedefine HAVE_F_SETLKW
 
 #cmakedefine UNIX_SHELL "@UNIX_SHELL@"
+#cmakedefine SWIPL_DEFAULT_TMP_DIR "@SWIPL_DEFAULT_TMP_DIR@"

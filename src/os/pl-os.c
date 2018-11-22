@@ -570,14 +570,6 @@ temporaries on /tmp.
     not be created at all, or might already have been deleted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef DEFTMPDIR
-#ifdef __WINDOWS__
-#define DEFTMPDIR "c:/tmp"
-#else
-#define DEFTMPDIR "/tmp"
-#endif
-#endif
-
 static int
 free_tmp_name(atom_t tname)
 { int rc;
@@ -647,7 +639,7 @@ TemporaryFile(const char *id, const char *ext, int *fdp)
       }
 
       if ( !tmpdir )
-	tmpdir = DEFTMPDIR;
+	tmpdir = SWIPL_DEFAULT_TMP_DIR;
     }
     PL_UNLOCK(L_OS);
   }

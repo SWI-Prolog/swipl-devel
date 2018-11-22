@@ -1323,6 +1323,7 @@ initPrologFlags(void)
   setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
   setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
   setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
+  setPrologFlag("default_tmp_dir", FT_ATOM|FF_READONLY, SWIPL_DEFAULT_TMP_DIR);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif

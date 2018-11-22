@@ -57,7 +57,7 @@ string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
        SWIPL_ARCH)
 
 ################
-# Installation directories
+# Installation directories and other settings
 if(WIN32)
 
 set(SWIPL_INSTALL_DIR "."
@@ -69,6 +69,8 @@ set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/bin)
 # Place all .exe and .dll in one directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
+set(SWIPL_DEFAULT_TMP_DIR "C:/tmp"
+    CACHE STRING "Directory to be used if the environment variable TEMP is not set")
 
 else(WIN32)
 
@@ -80,6 +82,8 @@ endif()
 
 set(SWIPL_INSTALL_DIR ${SWIPL_INSTALL_DIR_DEF}
     CACHE STRING "Directory below <prefix> for installation")
+set(SWIPL_DEFAULT_TMP_DIR "/tmp"
+    CACHE STRING "Directory to be used if the environment variable TMP is not set")
 
 if(BUILD_MACOS_BUNDLE)
   set(SWIPL_INSTALL_PREFIX    SWI-Prolog.app/Contents/swipl)
