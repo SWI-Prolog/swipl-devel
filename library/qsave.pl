@@ -194,7 +194,7 @@ make_header(Out, SaveClass, _Options) :-
     current_prolog_flag(unix, true),
     !,
     current_prolog_flag(executable, Executable),
-    current_prolog_flag(shell, Shell),
+    current_prolog_flag(posix_shell, Shell),
     format(Out, '#!~w~n', [Shell]),
     format(Out, '# SWI-Prolog saved state~n', []),
     (   SaveClass == runtime
