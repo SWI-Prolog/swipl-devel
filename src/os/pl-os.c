@@ -2505,10 +2505,17 @@ System(char *cmd)
   { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
   { char tmp[MAXPATHLEN];
+    char *argv[4];
+    extern char **environ;
+
+    argv[0] = BaseName(shell, tmp);
+    argv[1] = "-c";
+    argv[2] = cmd;
+    argv[3] = NULL;
 
     Setenv("PROLOGCHILD", "yes");
     PL_cleanup_fork();
-    execl(shell, BaseName(shell, tmp), "-c", cmd, (char *)0);
+    execve(shell, argv, environ);
     fatalError("Failed to execute %s: %s", shell, OsError());
     fail;
     /*NOTREACHED*/
