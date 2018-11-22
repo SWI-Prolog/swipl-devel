@@ -539,7 +539,7 @@ endif(WIN32)
 # in which ctest is not available
 if(INSTALL_TESTS)
    #Copy core tests to the installation
-   set(INSTALL_TESTS_DIR ${CMAKE_INSTALL_PREFIX}/test)
+   set(INSTALL_TESTS_DIR ${SWIPL_INSTALL_PREFIX}/test)
    set(PKGS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../packages)
    install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/Tests
            DESTINATION ${INSTALL_TESTS_DIR})
