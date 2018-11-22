@@ -57,6 +57,10 @@ endfunction()
 #     target
 #     [SOURCES ...]
 #     [DEPENDS ...]
+#     [PRELOAD ...]
+#
+# Preloading a library is written as e.g. PRELOAD lib:pldoc to load
+# library(pldoc).
 
 function(add_qcompile_target target)
   cmake_parse_arguments(my "" "" "SOURCES;DEPENDS;PRELOAD" ${ARGN})
