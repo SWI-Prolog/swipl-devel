@@ -1624,6 +1624,12 @@ If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
+    \prologflagitem{posix_shell}{atom}{rw}
+Path to a POSIX compatible shell. On POSIX systems this flag is
+initialised from the environment variable \const{SHELL}.  If this
+variable is not defined a default is used. This default is typically
+\file{/bin/sh}.
+
     \prologflagitem{print_write_options}{term}{rw}
 Specifies the options for write_term/2 used by print/1 and print/2.
 

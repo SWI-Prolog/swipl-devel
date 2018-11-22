@@ -2491,12 +2491,33 @@ argument to wait()
 
 #endif /*HAVE_SYS_WAIT_H*/
 
+const char *
+prog_shell(void)
+{ GET_LD
+
+  if ( LD )
+  { atom_t a;
+
+    if ( PL_current_prolog_flag(ATOM_posix_shell, PL_ATOM, &a) )
+    { term_t t;
+      char *s;
+
+      if ( (t=PL_new_term_ref()) &&
+	   PL_put_atom(t, a) &&
+	   PL_get_chars(t, &s, CVT_ATOM|REP_MB) )
+	return s;
+    }
+  }
+
+  return UNIX_SHELL;
+}
+
 
 int
 System(char *cmd)
 { GET_LD
   int pid;
-  char *shell = UNIX_SHELL;
+  const char *shell = prog_shell();
   int rval;
   void (*old_int)();
   void (*old_stop)();
