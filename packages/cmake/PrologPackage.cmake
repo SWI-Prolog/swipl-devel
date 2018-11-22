@@ -34,15 +34,24 @@ if(WIN32)
 endif()
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 
+
 # On ELF systems there is no need for   the  modules to link against the
 # core system. Dropping this has two advantages: the result is easier to
 # relocate and building  the  packages  can   for  a  large  part happen
 # concurrently with the main system.
+#
+# The Android linker does not make  symbols globally visibly (unless the
+# library is loaded using LD_PRELOAD) so   we  are linking the libraries
+# here.
 
-if(CMAKE_EXECUTABLE_FORMAT STREQUAL "ELF")
-  set(SWIPL_LIBRARIES "")
+if(ANDROID)
+  set(SWIPL_LIBRARIES libswipl m)
 else()
-  set(SWIPL_LIBRARIES libswipl)
+  if(CMAKE_EXECUTABLE_FORMAT STREQUAL "ELF")
+    set(SWIPL_LIBRARIES "")
+  else()
+    set(SWIPL_LIBRARIES libswipl)
+  endif()
 endif()
 
 # swipl_plugin(name
