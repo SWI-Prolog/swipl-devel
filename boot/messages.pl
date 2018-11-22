@@ -1470,9 +1470,8 @@ prolog_message(pack(no_arch(Entry, Arch))) -->
 
 prolog_message(null_byte_in_path(Component)) -->
     [ '0-byte in PATH component: ~p (skipped directory)'-[Component] ].
-prolog_message(invalid_tmp_var(Var, Value, Reason)) -->
-    [ 'Cannot use '-[] ], env(Var),
-    [ ' as temporary file directory: ~p: ~w'-[Value, Reason] ].
+prolog_message(invalid_tmp_dir(Dir, Reason)) -->
+    [ 'Cannot use ~p as temporary file directory: ~w'-[Dir, Reason] ].
 prolog_message(ambiguous_stream_pair(Pair)) -->
     [ 'Ambiguous operation on stream pair ~p'-[Pair] ].
 

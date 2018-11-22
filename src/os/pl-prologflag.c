@@ -79,6 +79,7 @@ too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void setArgvPrologFlag(const char *flag, int argc, char **argv);
+static void setTmpDirPrologFlag(void);
 static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static void initPrologFlagTable(void);
@@ -1323,6 +1324,7 @@ initPrologFlags(void)
   setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
   setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
   setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
+  setPrologFlag("tmp_dir", FT_ATOM, SWIPL_TMP_DIR);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
@@ -1464,6 +1466,7 @@ initPrologFlags(void)
 }
 #endif
 
+  setTmpDirPrologFlag();
   setTZPrologFlag();
   setOSPrologFlags();
   setVersionPrologFlag();
@@ -1471,6 +1474,23 @@ initPrologFlags(void)
   setArgvPrologFlag("argv",    GD->cmdline.appl_argc, GD->cmdline.appl_argv);
 }
 
+
+static void
+setTmpDirPrologFlag(void)
+ { char envbuf[MAXPATHLEN];
+   char *td = NULL;
+
+#ifdef __unix__
+   td=Getenv("TMP", envbuf, sizeof(envbuf));
+#elif __WINDOWS__
+   td=Getenv("TEMP", envbuf, sizeof(envbuf));
+#endif
+
+   if (td == (char *) NULL)
+     td = SWIPL_TMP_DIR;
+
+   setPrologFlag("tmp_dir", FT_ATOM, td);
+}
 
 static void
 setArgvPrologFlag(const char *flag, int argc, char **argv)

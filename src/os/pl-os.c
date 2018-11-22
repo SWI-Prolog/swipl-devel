@@ -570,14 +570,6 @@ temporaries on /tmp.
     not be created at all, or might already have been deleted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef DEFTMPDIR
-#ifdef __WINDOWS__
-#define DEFTMPDIR "c:/tmp"
-#else
-#define DEFTMPDIR "/tmp"
-#endif
-#endif
-
 static int
 free_tmp_name(atom_t tname)
 { int rc;
@@ -606,51 +598,82 @@ free_tmp_symbol(void *name, void *value)
 #define O_BINARY 0
 #endif
 
+#ifndef SWIPL_TMP_DIR
+#define SWIPL_TMP_DIR "/tmp"
+#endif
+
+static const char *
+tmp_dir(void)
+{ GET_LD
+
+  if ( LD )
+  { atom_t a;
+    static atom_t      tmp_aname = NULL_ATOM;
+    static const char *tmp_name = NULL;
+
+    if ( PL_current_prolog_flag(ATOM_tmp_dir, PL_ATOM, &a) )
+    { if ( a == tmp_aname )
+      { return tmp_name;
+      } else
+      { term_t t;
+	char *s;
+
+	if ( (t=PL_new_term_ref()) &&
+	     PL_put_atom(t, a) &&
+	     PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_MALLOC) )
+	{ if ( tmp_name ) PL_free((void*)tmp_name);
+	  if ( tmp_aname ) PL_unregister_atom(tmp_aname);
+
+	  tmp_aname = a;
+	  tmp_name = s;
+	  PL_register_atom(tmp_aname);
+
+	  return tmp_name;
+	}
+      }
+    }
+  }
+
+  return SWIPL_TMP_DIR;
+}
+
+
+static int
+verify_tmp_dir(const char* tmpdir)
+{ const char *reason = NULL;
+  statstruct tdStat;
+
+  if ( tmpdir == NULL )
+    return FALSE;
+
+  if ( statfunc(tmpdir, &tdStat) )
+    reason = OsError();
+  else if ( !S_ISDIR(tdStat.st_mode) )
+    reason = "not a directory";
+
+  if ( reason )
+  { if ( printMessage(ATOM_warning,
+                      PL_FUNCTOR_CHARS, "invalid_tmp_dir", 2,
+                      PL_CHARS, tmpdir,
+                      PL_CHARS, reason) )
+    { /* to prevent ignoring return value warning */ }
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 atom_t
 TemporaryFile(const char *id, const char *ext, int *fdp)
 { char temp[MAXPATHLEN];
-  static char *tmpdir = NULL;
+  const char *tmpdir = NULL;
   atom_t tname;
 
-  if ( !tmpdir )
-  { PL_LOCK(L_OS);
-    if ( !tmpdir )
-    { char envbuf[MAXPATHLEN];
-      char *td;
-      char *env_names[2] = {"TEMP", "TMP"};
-      int env_length = 2;
-      int i;
-      statstruct tdStat;
+  tmpdir = tmp_dir();
 
-      for(i = 0; !tmpdir && i < env_length; i++)
-      { if ( (td=Getenv(env_names[i], envbuf, sizeof(envbuf))) )
-	{ const char *reason = NULL;
-
-	  if ( statfunc(td, &tdStat) )
-	    reason = OsError();
-	  else if (!S_ISDIR(tdStat.st_mode))
-	    reason = "not a directory";
-	  else
-	    tmpdir = strdup(td);
-
-	  if ( reason )
-	  { if ( !printMessage(ATOM_warning,
-			       PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
-			         PL_CHARS, env_names[i],
-			         PL_CHARS, td,
-			         PL_CHARS, reason) )
-	    { PL_UNLOCK(L_OS);
-	      return NULL_ATOM;
-	    }
-	  }
-	}
-      }
-
-      if ( !tmpdir )
-	tmpdir = DEFTMPDIR;
-    }
-    PL_UNLOCK(L_OS);
-  }
+  if ( !verify_tmp_dir(tmpdir) )
+    return NULL_ATOM;
 
 retry:
 #ifdef __unix__
@@ -697,7 +720,7 @@ retry:
 
     if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY|O_BINARY, 0600)) < 0 )
     { if ( errno == EEXIST )
-	goto retry;
+        goto retry;
 
       return NULL_ATOM;
     }
