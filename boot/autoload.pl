@@ -384,19 +384,30 @@ library_index_out_of_date(Index, Files) :-
 do_make_library_index(Index, Dir, Files) :-
     ensure_slash(Dir, DirS),
     '$stage_file'(Index, StagedIndex),
+    setup_call_catcher_cleanup(
+        open(StagedIndex, write, Out),
+        ( print_message(informational, make(library_index(Dir))),
+          index_header(Out),
+          index_files(Files, DirS, Out)
+        ),
+        Catcher,
+        install_index(Out, Catcher, StagedIndex, Index)).
+
+install_index(Out, Catcher, StagedIndex, Index) :-
+    catch(close(Out), Error, true),
     (   silent
     ->  OnError = silent
     ;   OnError = error
     ),
-    setup_call_catcher_cleanup(
-        open(StagedIndex, write, Fd),
-        ( print_message(informational, make(library_index(Dir))),
-          index_header(Fd),
-          index_files(Files, DirS, Fd)
-        ),
-        Catcher,
-        '$install_staged_file'(Catcher, StagedIndex, Index, OnError)).
+    (   var(Error)
+    ->  TheCatcher = Catcher
+    ;   TheCatcher = exception(Error)
+    ),
+    '$install_staged_file'(TheCatcher, StagedIndex, Index, OnError).
 
+%!  index_files(+Files, +Directory, +Out:stream) is det.
+%
+%   Write index for Files in Directory to the stream Out.
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-
