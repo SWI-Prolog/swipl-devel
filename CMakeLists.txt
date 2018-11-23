@@ -19,12 +19,12 @@ option(SWIPL_SHARED_LIB
 option(SWIPL_VERSIONED_DIR
        "Install into a versioned directory"
        OFF)
-option(INSTALL_DOCUMENTATION
-       "Install the HTML documentation files"
-       ON)
 option(SWIPL_INSTALL_IN_LIB
        "Install library in ${CMAKE_INSTALL_PREFIX}/lib"
        OFF)
+option(INSTALL_DOCUMENTATION
+       "Install the HTML documentation files"
+       ON)
 option(BUILD_PDF_DOCUMENTATION
        "Build the PDF manuals from source"
        OFF)
