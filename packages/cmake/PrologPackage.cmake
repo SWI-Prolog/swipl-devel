@@ -45,7 +45,7 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 # here.
 
 if(ANDROID)
-  set(SWIPL_LIBRARIES libswipl m)
+  set(SWIPL_LIBRARIES libswipl m log)
 else()
   if(CMAKE_EXECUTABLE_FORMAT STREQUAL "ELF")
     set(SWIPL_LIBRARIES "")
