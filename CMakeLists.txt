@@ -52,12 +52,9 @@ endif()
 # Verbosity
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
-# Installation locations
-string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
-       SWIPL_ARCH)
-
 ################
 # Installation directories
+
 if(WIN32)
 
 set(SWIPL_INSTALL_DIR "."
