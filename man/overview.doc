@@ -1633,6 +1633,12 @@ variable is not defined a default is used. This default is typically
     \prologflagitem{print_write_options}{term}{rw}
 Specifies the options for write_term/2 used by print/1 and print/2.
 
+    \prologflagitem{tmp_dir}{atom}{rw} 
+Path to the temporary directory.  initialised from the environment variable
+\const{TMP} or \const{TEMP} in windows.  If this variable is not defined a
+default is used. This default is typically \file{/tmp} or \file{c:\\temp} in
+windows.
+
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
 \index{prompt, alternatives}%
 Determines prompting for alternatives in the Prolog top level. Default is

@@ -598,51 +598,63 @@ free_tmp_symbol(void *name, void *value)
 #define O_BINARY 0
 #endif
 
+const char *
+tmp_dir(void)
+{ GET_LD
+  if ( LD )
+  { atom_t a;
+    if ( PL_current_prolog_flag(ATOM_tmp_dir, PL_ATOM, &a) )
+    { term_t t;
+      char *s;
+      if ( (t=PL_new_term_ref()) &&
+           PL_put_atom(t, a) &&
+           PL_get_chars(t, &s, CVT_ATOM|REP_MB) )
+        return s;
+    }
+  }
+  return SWIPL_TMP_DIR;
+}
+
+int
+verify_tmp_dir(const char* tmpdir)
+{ const char* reason = NULL;
+  statstruct tdStat;
+
+  if (tmpdir == NULL)
+    return FALSE;
+
+  PL_LOCK(L_OS); //Is this needed?
+
+  if ( statfunc(tmpdir, &tdStat) )
+    reason = OsError();
+  else if (!S_ISDIR(tdStat.st_mode))
+    reason = "not a directory";
+
+  if ( reason )
+  { if ( printMessage(ATOM_warning,
+                      PL_FUNCTOR_CHARS, "invalid_tmp_dir", 2,
+                      PL_CHARS, tmpdir,
+                      PL_CHARS, reason) )
+    { /* to prevent ignoring return value warning */ }
+    PL_UNLOCK(L_OS);
+    return FALSE;
+  }
+
+  PL_UNLOCK(L_OS);
+  return TRUE;
+}
+
+
 atom_t
 TemporaryFile(const char *id, const char *ext, int *fdp)
 { char temp[MAXPATHLEN];
-  static char *tmpdir = NULL;
+  const char *tmpdir = NULL;
   atom_t tname;
 
-  if ( !tmpdir )
-  { PL_LOCK(L_OS);
-    if ( !tmpdir )
-    { char envbuf[MAXPATHLEN];
-      char *td;
-      char *env_names[2] = {"TEMP", "TMP"};
-      int env_length = 2;
-      int i;
-      statstruct tdStat;
+  tmpdir =  tmp_dir();
 
-      for(i = 0; !tmpdir && i < env_length; i++)
-      { if ( (td=Getenv(env_names[i], envbuf, sizeof(envbuf))) )
-	{ const char *reason = NULL;
-
-	  if ( statfunc(td, &tdStat) )
-	    reason = OsError();
-	  else if (!S_ISDIR(tdStat.st_mode))
-	    reason = "not a directory";
-	  else
-	    tmpdir = strdup(td);
-
-	  if ( reason )
-	  { if ( !printMessage(ATOM_warning,
-			       PL_FUNCTOR_CHARS, "invalid_tmp_var", 3,
-			         PL_CHARS, env_names[i],
-			         PL_CHARS, td,
-			         PL_CHARS, reason) )
-	    { PL_UNLOCK(L_OS);
-	      return NULL_ATOM;
-	    }
-	  }
-	}
-      }
-
-      if ( !tmpdir )
-	tmpdir = SWIPL_DEFAULT_TMP_DIR;
-    }
-    PL_UNLOCK(L_OS);
-  }
+  if (verify_tmp_dir(tmpdir) != TRUE)
+    return NULL_ATOM;
 
 retry:
 #ifdef __unix__
@@ -689,7 +701,7 @@ retry:
 
     if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY|O_BINARY, 0600)) < 0 )
     { if ( errno == EEXIST )
-	goto retry;
+        goto retry;
 
       return NULL_ATOM;
     }
