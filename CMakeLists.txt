@@ -19,6 +19,9 @@ option(SWIPL_SHARED_LIB
 option(SWIPL_VERSIONED_DIR
        "Install into a versioned directory"
        OFF)
+option(SWIPL_INSTALL_IN_LIB
+       "Install library in ${CMAKE_INSTALL_PREFIX}/lib"
+       OFF)
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
        ON)
@@ -52,12 +55,9 @@ endif()
 # Verbosity
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
-# Installation locations
-string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
-       SWIPL_ARCH)
-
 ################
-# Installation directories and other settings
+# Installation directories
+
 if(WIN32)
 
 set(SWIPL_INSTALL_DIR "."
@@ -147,7 +147,7 @@ if(INSTALL_DOCUMENTATION)
       OUTPUT ${MAN_INDEX}
       COMMAND ${PROG_SWIPL} -f none --home=${SWIPL_BUILD_HOME}
 	                    -g cmake_save_man_index -t halt
-      DEPENDS doc.html)
+      DEPENDS swipl prolog_products doc.html)
   add_custom_target(
       man_index
       DEPENDS ${MAN_INDEX})

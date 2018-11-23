@@ -45,7 +45,7 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 # here.
 
 if(ANDROID)
-  set(SWIPL_LIBRARIES libswipl m)
+  set(SWIPL_LIBRARIES libswipl m log)
 else()
   if(CMAKE_EXECUTABLE_FORMAT STREQUAL "ELF")
     set(SWIPL_LIBRARIES "")
@@ -305,7 +305,7 @@ function(test_lib name)
   endforeach()
 
   add_test(NAME "${SWIPL_PKG}:${test_name}"
-	   COMMAND swipl -p "foreign=${pforeign}"
+	   COMMAND ${PROG_SWIPL} -p "foreign=${pforeign}"
 			 -p "library=${plibrary}"
 			 -f none -s ${test_source}
 			 -g "${test_goal}"

@@ -8,13 +8,13 @@
 # GMP_LIBRARY_DLL    - library DLL to install. Only available on WIN32.
 # GMP_LIBRARIES_DIR - the directory the library we link with is found in.
 
-if (ANDROID)
+if (ANDROID AND (NOT $ENV{TERMUX_CMAKE_BUILD}))
 set( GMP_ROOT ${CMAKE_SOURCE_DIR}/../gmp/${ANDROID_ABI} )
   set (GMP_FOUND ON)
   set (GMP_INCLUDE_DIRS ${GMP_ROOT})
   set (GMP_LIBRARIES ${GMP_ROOT}/libgmp.so)
   set (GMP_LIBRARIES_DIR ${GMP_ROOT})
-else(ANDROID)
+else(ANDROID AND (NOT $ENV{TERMUX_CMAKE_BUILD}))
 if(MSVC)
    find_library(GMP_LIBRARIES NAMES mpir mpird
                 PATHS
@@ -88,7 +88,7 @@ get_filename_component(GMP_LIBRARIES_DIR "${GMP_LIBRARIES}" PATH CACHE)
 
 
 endif(MSVC)
-endif(ANDROID)
+endif(ANDROID AND (NOT $ENV{TERMUX_CMAKE_BUILD}))
 
 # handle the QUIET and REQUIRED arguments and set GMP_FOUND to TRUE if
 # all listed variables are true

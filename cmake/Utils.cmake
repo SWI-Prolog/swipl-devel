@@ -60,6 +60,6 @@ endfunction()
 function(library_index dir)
   add_custom_command(
       OUTPUT ${dir}/INDEX.pl
-      COMMAND swipl -f none -g "\"make_library_index('${dir}')\"" -t halt
+      COMMAND ${PROG_SWIPL} -f none -g "\"make_library_index('${dir}')\"" -t halt
       DEPENDS ${dir})
 endfunction()

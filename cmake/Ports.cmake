@@ -1,13 +1,17 @@
-# Architecture ID
-string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
-       SWIPL_ARCH)
-
 if(APPLE)
   include(port/Darwin)
 elseif(WIN32)
   include(port/Windows)
 elseif(EMSCRIPTEN)
   include(port/Emscripten)
+elseif(ANDROID)
+  include(port/Android)
+endif()
+
+# Architecture id (Prolog flag `arch`, architecture subdirs)
+if(NOT SWIPL_ARCH)
+  string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
+	 SWIPL_ARCH)
 endif()
 
 # Setup cross compiling.  As discussed with _erlanger_ in
@@ -18,7 +22,7 @@ endif()
 #   2. Cross compilation with a good emulator (Wine for Windows, Node.js
 #      for WASM)
 #   3. Cross compilation without a usable emulator.
-# 
+#
 # In case #3 we need to make two builds:
 #   1. Compile SWI-Prolog on the build host with a compatible pointer size
 #   2. Cross-compile to the final target
@@ -86,16 +90,16 @@ if(CMAKE_CROSSCOMPILING)
       set(PROG_SWIPL_FOR_BOOT ${PROG_SWIPL})
     else()
       message("-- Cannot use ${PROG_SWIPL} for compiling boot state")
-      set(PROG_SWIPL_FOR_BOOT swipl)
+      set(PROG_SWIPL_FOR_BOOT $<TARGET_FILE:swipl>)
     endif()
   else()
-    set(PROG_SWIPL swipl
+    set(PROG_SWIPL $<TARGET_FILE:swipl>
 	CACHE STRING "SWI-Prolog executable to perform build tasks")
-    set(PROG_SWIPL_FOR_BOOT swipl)
+    set(PROG_SWIPL_FOR_BOOT ${PROG_SWIPL})
   endif()
 else(CMAKE_CROSSCOMPILING)
   set(CMAKE_HOST_EXECUTABLE_SUFFIX ${CMAKE_EXECUTABLE_SUFFIX})
-  set(PROG_SWIPL swipl)
-  set(PROG_SWIPL_FOR_BOOT swipl)
+  set(PROG_SWIPL $<TARGET_FILE:swipl>)
+  set(PROG_SWIPL_FOR_BOOT ${PROG_SWIPL})
 endif(CMAKE_CROSSCOMPILING)
 

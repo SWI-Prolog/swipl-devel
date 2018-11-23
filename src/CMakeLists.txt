@@ -435,7 +435,7 @@ endif(0)
 # Testing
 
 add_custom_target(check
-    COMMAND swipl -q -g test -t halt ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
+    COMMAND ${PROG_SWIPL} -q -g test -t halt ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
 set(SWIPL_TEST_DIRS unprotected core attvar library charset eclipse clp
     GC save)
@@ -444,10 +444,10 @@ if(MULTI_THREADED)
 endif()
 
 add_test(NAME swipl:basic
-	 COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
+	 COMMAND ${PROG_SWIPL} -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
 foreach(test ${SWIPL_TEST_DIRS})
   add_test(NAME swipl:${test}
-	   COMMAND swipl -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
+	   COMMAND ${PROG_SWIPL} -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
 # Populate parms.h, making the compilation environment known to Prolog
@@ -458,10 +458,16 @@ configure_file(parms.h.cmake parms.h)
 # Installation
 ################
 
+if(SWIPL_INSTALL_IN_LIB)
+  set(LIBSWIPL_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+else()
+  set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
+endif()
+
 install(TARGETS swipl libswipl
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
-        LIBRARY DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
-        ARCHIVE DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
+        LIBRARY DESTINATION ${LIBSWIPL_DIR}
+        ARCHIVE DESTINATION ${LIBSWIPL_DIR}
 )
 install(FILES ${SWIPL_BOOT_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
@@ -534,3 +540,4 @@ ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl-ld
 endif()
 
 endif(WIN32)
+
