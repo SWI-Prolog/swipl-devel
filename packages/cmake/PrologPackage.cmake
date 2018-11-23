@@ -305,7 +305,7 @@ function(test_lib name)
   endforeach()
 
   add_test(NAME "${SWIPL_PKG}:${test_name}"
-	   COMMAND swipl -p "foreign=${pforeign}"
+	   COMMAND ${PROG_SWIPL} -p "foreign=${pforeign}"
 			 -p "library=${plibrary}"
 			 -f none -s ${test_source}
 			 -g "${test_goal}"
