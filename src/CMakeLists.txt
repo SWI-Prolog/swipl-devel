@@ -458,11 +458,24 @@ configure_file(parms.h.cmake parms.h)
 # Installation
 ################
 
+if(SWIPL_INSTALL_IN_LIB)
+install(DIRECTORY DESTINATION lib)
+install(TARGETS swipl
+	     RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
+)
+install(TARGETS libswipl
+	     RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+)
+else(SWIPL_INSTALL_IN_LIB)
 install(TARGETS swipl libswipl
-	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
+	     RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
         ARCHIVE DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
 )
+endif(SWIPL_INSTALL_IN_LIB)
+
 install(FILES ${SWIPL_BOOT_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
@@ -535,10 +548,3 @@ endif()
 
 endif(WIN32)
 
-# Create symbolic link to lib directory, since rpath is broken
-# in many android versions
-if(ANDROID)
-install(DIRECTORY DESTINATION lib)
-ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_LIB}/libswipl.so
-      ${CMAKE_INSTALL_PREFIX}/lib/libswipl.so)
-endif(ANDROID)
