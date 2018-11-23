@@ -534,3 +534,11 @@ ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl-ld
 endif()
 
 endif(WIN32)
+
+# Create symbolic link to lib directory, since rpath is broken
+# in many android versions
+if(ANDROID)
+install(DIRECTORY DESTINATION lib)
+ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_LIB}/libswipl.so
+      ${CMAKE_INSTALL_PREFIX}/lib/libswipl.so)
+endif(ANDROID)
