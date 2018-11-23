@@ -53,8 +53,7 @@ endif()
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
 # Installation locations
-string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
-       SWIPL_ARCH)
+# SWIPL_ARCH is set in Ports.cmake
 
 ################
 # Installation directories

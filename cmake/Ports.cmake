@@ -1,6 +1,10 @@
 # Architecture ID
-string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
-       SWIPL_ARCH)
+if(ANDROID)
+   set(SWIPL_ARCH ${CMAKE_ANDROID_ARCH}-linux)
+else(ANDROID)
+   string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
+          SWIPL_ARCH)
+endif(ANDROID)
 
 if(APPLE)
   include(port/Darwin)
