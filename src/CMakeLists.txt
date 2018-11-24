@@ -464,6 +464,11 @@ else()
   set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
 endif()
 
+#Make sure tmp directory exists
+if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR})
+install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
+endif()
+
 install(TARGETS swipl libswipl
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
