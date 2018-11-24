@@ -136,8 +136,8 @@ test(nan) :-
 	with_output_to(atom(X), write(A)),
 	atom_concat(F, 'NaN', X),
 	atom_number(F, Float),
-	Float > -2,
-	Float < 2.
+	abs(Float) >= 1,
+	abs(Float) < 2.
 
 :- end_tests(write_float).
 
