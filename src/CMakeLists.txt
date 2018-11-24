@@ -464,6 +464,16 @@ else()
   set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
 endif()
 
+# Make sure tmp directory exists
+#
+# This is used on Android, where there  is normally no TMP directory and
+# the choosen location is not shared  with   any  other  users, since on
+# Android every application is its own user.
+
+if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
+ install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
+endif()
+
 install(TARGETS swipl libswipl
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
