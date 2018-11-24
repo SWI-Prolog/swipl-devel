@@ -126,21 +126,18 @@ test(variable_names, X = 'a(A,B)') :-
 
 :- begin_tests(write_float).
 
-% the normal NaN should be written  as   1.5NaN.  On some systems (mips,
-% hppa), it seems to write 1.49999...NaN. Possibly   due  to an issue in
-% IEEE or os/dtoa.c.  We'll accept this output with a warning.
-
+% The NaN representation can vary even in the same architecture,
+% but the double extracted from it by setting the exponent bits
+% to 0x3ff is always a number in the range (-2,2).
+% See https://github.com/SWI-Prolog/swipl-devel/issues/373
+% for a more detailed explanation.
 test(nan) :-
 	A is nan,
 	with_output_to(atom(X), write(A)),
 	atom_concat(F, 'NaN', X),
 	atom_number(F, Float),
-	(   Float =:= 1.5
-	->  true
-	;   abs(abs(Float)-1.5) < 0.00001
-	->  print_message(warning, write(nan, X))
-	;   fail
-	).
+	Float > -2,
+	Float < 2.
 
 :- end_tests(write_float).
 
