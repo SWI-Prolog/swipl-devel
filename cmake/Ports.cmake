@@ -103,3 +103,11 @@ else(CMAKE_CROSSCOMPILING)
   set(PROG_SWIPL_FOR_BOOT ${PROG_SWIPL})
 endif(CMAKE_CROSSCOMPILING)
 
+################
+# Misc tests
+
+include(CheckFloatingPointFormat)
+include(TestBigEndian)
+
+TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+ub_check_floating_point_format(IEEE754_FLOATS FLOAT_BYTES_BIGENDIAN FLOAT_WORDS_BIGENDIAN)
