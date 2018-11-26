@@ -156,9 +156,23 @@ abs(Number, Absolute) :-
 %!  tan(+Angle, -Tangent) is det.
 %!  log(+X, -NatLog) is det.
 %!  log10(+X, -Log) is det.
+%!  pow(+X, +Y, -Pow) is det.
+%!  ceiling(+X, -Value) is det.
+%!  floor(+X, -Value) is det.
+%!  round(+X, -Value) is det.
+%!  sqrt(+X, -Value) is det.
+%!  acos(+X, -Value) is det.
+%!  asin(+X, -Value) is det.
+%!  atan(+X, -Value) is det.
+%!  atan2(+Y, +X, -Value) is det.
+%!  sign(+X, -Value) is det.
 %
 %   Math library predicates. SWI-Prolog (and   ISO) support these as
 %   functions under is/2, etc.
+%
+%   @compat Quintus Prolog.
+%   @deprecated Do not use these predicates except for compatibility
+%   reasons.
 
 sin(A, V) :-      V is sin(A).
 cos(A, V) :-      V is cos(A).
