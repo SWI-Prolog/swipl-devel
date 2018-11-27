@@ -8831,7 +8831,7 @@ catch/3.
 
     \predicate{exists_file}{1}{+File}
 True if \arg{File} exists and is a \jargon{regular} file. This does not
-imply the user read or write access to the file. See also
+imply the user has read or write access to the file. See also
 exists_directory/1 and access_file/2.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
