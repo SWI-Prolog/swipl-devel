@@ -59,6 +59,7 @@ documented at all.
 \input{readutil}
 \input{record}
 \input{registry}
+\input{settings}
 \input{simplex}
 \input{solutionsequences}
 \input{threadpool}

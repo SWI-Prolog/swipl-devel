@@ -168,6 +168,8 @@ This library is only available on Windows systems.
 \predicatesummary{shell_register_prolog}{1}{Register Prolog}
 \end{summarylist}
 
+\libsummary{settings}
+
 \libsummary{simplex}
 
 \begin{summarylist}{ll}
