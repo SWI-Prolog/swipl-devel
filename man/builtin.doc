@@ -8830,9 +8830,9 @@ to try and open the file and handle possible exceptions. See open/4 and
 catch/3.
 
     \predicate{exists_file}{1}{+File}
-True if \arg{File} exists and is a regular file. This does not
-imply the user has read and/or write permission for the file.  This
-is the same as \term{access_file}{File, exist}.
+True if \arg{File} exists and is a \jargon{regular} file. This does not
+imply the user read or write access to the file. See also
+exists_directory/1 and access_file/2.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
 Extracts the directory part of \arg{File}. This predicate removes the
