@@ -46,6 +46,7 @@
 :- use_module(library(error)).
 
 :- initialization(main, main).
+:- initialization(clean_pldoc, prepare_state).
 
 pltotex(File, Options) :-
     markdown_file(File),
@@ -225,3 +226,12 @@ process_file(Options, File) :-
     ),
     pltotex(File, Options).
 
+%!  clean_pldoc
+%
+%   Remove all embedded PlDoc comments from the state, such that changes
+%   to the source files are immediately   reflected in the documentation
+%   after running `ninja` or `make`.
+
+clean_pldoc :-
+    forall(current_module(M),
+           doc_clean(M)).
