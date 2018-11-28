@@ -378,6 +378,16 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     }
 
     PL_cut_query(qid);
+    if ( rval && exception_term )
+    { if ( ex )
+      { PL_put_term(ex2, exception_term);
+	PL_clear_exception();
+	*ex = ex2;
+	reset = g;
+      }
+      rval = FALSE;
+    }
+
     if ( !reset )
       reset = (ex2 ? ex2 : g);
     PL_reset_term_refs(reset);

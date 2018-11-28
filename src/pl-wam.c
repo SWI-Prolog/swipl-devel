@@ -2538,28 +2538,37 @@ restore_after_query(QueryFrame qf)
 }
 
 
-void
+int
 PL_cut_query(qid_t qid)
 { GET_LD
   QueryFrame qf = QueryFromQid(qid);
+  int rc = TRUE;
 
   DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
   if ( qf->foreign_frame )
     PL_close_foreign_frame(qf->foreign_frame);
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
-  { discard_query(qid PASS_LD);
+  { int exbefore = (exception_term != 0);
+
+    discard_query(qid PASS_LD);
     qf = QueryFromQid(qid);
+    if ( !exbefore && exception_term != 0 )
+      rc = FALSE;
   }
 
   restore_after_query(qf);
   qf->magic = 0;			/* disqualify the frame */
+
+  return rc;
 }
 
 
-void
+int
 PL_close_query(qid_t qid)
-{ if ( qid != 0 )
+{ int rc = TRUE;
+
+  if ( qid != 0 )
   { GET_LD
     QueryFrame qf = QueryFromQid(qid);
 
@@ -2568,8 +2577,12 @@ PL_close_query(qid_t qid)
       PL_close_foreign_frame(qf->foreign_frame);
 
     if ( false(qf, PL_Q_DETERMINISTIC) )
-    { discard_query(qid PASS_LD);
+    { int exbefore = (exception_term != 0);
+
+      discard_query(qid PASS_LD);
       qf = QueryFromQid(qid);
+      if ( !exbefore && exception_term != 0 )
+	rc = FALSE;
     }
 
     if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
@@ -2578,6 +2591,8 @@ PL_close_query(qid_t qid)
     restore_after_query(qf);
     qf->magic = 0;			/* disqualify the frame */
   }
+
+  return rc;
 }
 
 

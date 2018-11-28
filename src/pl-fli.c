@@ -4117,8 +4117,10 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
   qid_t qid;
 
   if ( (qid = PL_open_query(ctx, flags, pred, h0)) )
-  { rval = PL_next_solution(qid);
-    PL_cut_query(qid);
+  { int r1 = PL_next_solution(qid);
+    int r2 = PL_cut_query(qid);
+
+    rval = (r1 && r2);	/* do not inline; we *must* execute PL_cut_query() */
   } else
     rval = FALSE;
 

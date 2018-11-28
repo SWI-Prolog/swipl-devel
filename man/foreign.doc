@@ -2232,17 +2232,21 @@ ancestor(const char *me)
 }
 \end{code}
 
-\cfunction{int}{PL_next_solution}{qid_t qid}
+    \cfunction{int}{PL_next_solution}{qid_t qid}
 Generate the first (next) solution for the given query.  The return
 value is \const{TRUE} if a solution was found, or \const{FALSE} to indicate
 the query could not be proven.  This function may be called repeatedly
 until it fails to generate all solutions to the query.
-\cfunction{void}{PL_cut_query}{qid_t qid}
+
+    \cfunction{int}{PL_cut_query}{qid_t qid}
 Discards the query, but does not delete any of the data created by the
 query.  It just invalidates \arg{qid}, allowing for a new call to
-PL_open_query() in this context.
+PL_open_query() in this context.  PL_cut_query() may invoke cleanup
+handlers (see setup_call_cleanup/3) and therefore may experience
+exceptions.  If an exception occurs the return value is \const{FALSE}
+and the exception is accessible through \exam{PL_exception(0)}.
 
-    \cfunction{void}{PL_close_query}{qid_t qid}
+    \cfunction{int}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
 
