@@ -1745,21 +1745,19 @@ start_thread(void *closure)
 	}
 
 	if ( print )
-	{ int rc;
-
-	  rc = printMessage(ATOM_warning,
-			    PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
-			      PL_TERM, goal,
-			      PL_FUNCTOR, FUNCTOR_exception1,
-			      PL_TERM, ex);
-	  (void)rc;			/* it is dead anyway */
+	{ if ( !printMessage(ATOM_warning,
+			     PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
+			       PL_TERM, goal,
+			       PL_FUNCTOR, FUNCTOR_exception1,
+			       PL_TERM, ex) )
+	    PL_clear_exception();	/* The thread is dead anyway */
 	}
       } else
       { if ( !printMessage(ATOM_warning,
 			   PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
 			     PL_TERM, goal,
 			     PL_ATOM, ATOM_fail) )
-	  PL_clear_exception();		/* it is dead anyway */
+	  PL_clear_exception();		/* The thread is dead anyway */
       }
     }
 
