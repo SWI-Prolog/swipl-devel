@@ -140,8 +140,10 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         settings occurs)
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
-libdoc(prolog_pack --section)
 libdoc(explain --subsection)
+pldoc(lib/prologpack.tex "library(prolog_pack)"
+      OPTIONS --section
+      DEPENDS archive)
 pldoc(lib/assoclib.tex lib/assoclib.md
       OPTIONS --lib=assoc --module=assoc
       DEPENDS lib/assoclib.md ../library/assoc.pl)
