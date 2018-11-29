@@ -225,6 +225,7 @@ add_custom_command(
 endif()
 
 # Create the HTML manual
+prepend(cpfiles ${CMAKE_CURRENT_BINARY_DIR}/ ${cpfiles})
 add_custom_command(
     OUTPUT manual.html
     COMMAND rm -f Manual/*.html Manual/*.gif
