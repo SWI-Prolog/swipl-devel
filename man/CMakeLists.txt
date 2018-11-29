@@ -137,7 +137,7 @@ endfunction()
 libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         thread_pool charsio debug csv lists main check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall
-        settings)
+        settings occurs)
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(prolog_pack --section)

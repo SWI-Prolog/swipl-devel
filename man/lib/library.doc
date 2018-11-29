@@ -45,6 +45,7 @@ documented at all.
 \input{main}
 \input{nbset}
 \input{wwwbrowser}
+\input{occurs}
 \input{option}
 \input{optparse}
 \input{ordsets}

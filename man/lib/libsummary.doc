@@ -93,6 +93,9 @@
 \libsummary{main}
 \input{summaries.d/main.tex}
 
+\libsummary{occurs}
+\input{summaries.d/occurs.tex}
+
 \libsummary{option}
 \input{summaries.d/option.tex}
 
