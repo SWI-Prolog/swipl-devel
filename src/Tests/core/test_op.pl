@@ -48,7 +48,7 @@ test_op :-
 
 :- begin_tests(current_op).
 
-test(plus, all(P-T == [200-fy, 500-yfx])) :-
+test(plus, set(P-T == [200-fy, 500-yfx])) :-
 	current_op(P, T, +).
 test(no_atom, error(type_error(atom, 1))) :-
 	current_op(_, _, 1).

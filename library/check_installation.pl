@@ -39,6 +39,7 @@
             test_installation/0,
             test_installation/1                 % +Options
           ]).
+:- use_module(option).
 
 /** <module> Check installation issues and features
 
@@ -188,6 +189,13 @@ check_installation_(Issues) :-
 %   to be build using
 %
 %	cmake -DINSTALL_TESTS=ON
+%
+%   Options processed:
+%
+%     - packages(+Boolean)
+%       When `false`, do not test the packages
+%     - package(+Package)
+%       Only test package package.
 
 test_installation :-
     test_installation([]).
@@ -205,14 +213,21 @@ test_installation(_Options) :-
     print_message(warning, installation(testing(no_installed_tests))).
 
 test_installation_run(TestFile, Options) :-
+    (   option(package(_), Options)
+    ->  merge_options(Options,
+                      [ core(false),
+                        subdirs(false)
+                      ], TestOptions)
+    ;   merge_options(Options,
+                      [ packages(true)
+                      ], TestOptions)
+    ),
     load_files(user:TestFile),
-    set_test_options([sto(false)]),
-    file_directory_name(TestFile, TstDir),
+    current_prolog_flag(verbose, Old),
     setup_call_cleanup(
-        working_directory(OldDir, TstDir),
-        user:test([], Options),
-        working_directory(_, OldDir)
-    ).
+        set_prolog_flag(verbose, silent),
+        user:test([], TestOptions),
+        set_prolog_flag(verbose, Old)).
 
 check_component(Source) :-
     component(Source, Properties),

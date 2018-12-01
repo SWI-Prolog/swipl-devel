@@ -40,6 +40,7 @@
 :- prolog_load_context(directory, Dir),
    atom_concat(Dir, '/../packages/plunit', PlUnitDir),
    asserta(user:file_search_path(library, PlUnitDir)).
+:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
 :- use_module(library(plunit)).
 
 :- use_module(library(lists)).
@@ -72,17 +73,9 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 :- print_message(informational, test(main_suite)).
 
-% Required to get this always running regardless of user LANG setting.
-% Without this the tests won't run on machines with -for example- LANG=ja
-% according to NIDE Naoyuki, nide@ics.nara-wu.ac.jp.  Thanks!
-%
-% NOTE: In 5.5.x we should not need this any longer
-
-% :- getenv('LANG', _) -> setenv('LANG', 'C'); true.
-
 % The test-suite Tests/library/test_date.pl depends on  the timezone. As
 % correct results are only  provided  for   the  CET  (Central European)
-% timezine we use this. Timezone cannot be  changed at runtime, so we do
+% timezone we use this. Timezone cannot be  changed at runtime, so we do
 % this early.
 
 :- setenv('TZ', 'CET').
@@ -2644,39 +2637,6 @@ follow_links(File, File).
 
 :- set_script_dir.
 
-set_plunit_options(for_packages) :-
-   set_test_options([load(always), silent(true), sto(false), cleanup(true)]).
-
-set_plunit_options(for_main_tests) :-
-   set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
-%
-% Run test for the specified package, making
-% sure thw working directory is set to the location of
-% the package.
-run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
-   format(user_error, '------- Testing  ~w:~w~n',[Pkg,TestName]),
-   set_plunit_options(for_packages),
-   setup_call_cleanup(  working_directory(OldDir, PkgDir),
-	      (  run_pkg_test1(PkgScript, Goal),
-	         format(user_error, ' done~n', [])
-	      ),
-	      working_directory(_, OldDir)).
-
-run_pkg_test1(Script, Goal) :-
-   current_prolog_flag(executable,SWIPL),
-   process_create(SWIPL,
-                  [  '-f', 'none',
-                     '-t', 'halt',
-                     '-g', Goal,
-                     Script
-                  ],
-                  [ process(Pid) ]),
-   process_wait(Pid,Status),
-   (  Status = exit(0)
-   -> put_ok
-   ;  script_failed(Script, Status)
-   ).
-
 run_test_script(Script) :-
 	file_base_name(Script, Base),
 	file_name_extension(Pred, _, Base),
@@ -2843,6 +2803,25 @@ test :-
 	argv_options(Argv, Files, Options),
 	test(Files, Options).
 
+%!	test(+Files, +Options)
+%
+%	Main test driver. If  Files  are   given,  these  test files are
+%	executed.  Otherwise  Options  controls  the    tests  that  are
+%	executed.  Defined options are:
+%
+%	  - list_test_dirs(true)
+%	    Do not test, but list the available test directories
+%	  - core(+Boolean)
+%	    If `false` (default `true`), run the _core_ tests from this
+%	    file.
+%	  - subdirs(+DirsOrFalse)
+%	    Either `false` (do not run tests from =Tests=) or a list
+%	    of directories below =Tests=
+%	  - packages(true)
+%	    Test all packages (from test_installation/1)
+%	  - package(+Package)
+%	    Only test Package (from test_installation/1)
+
 test(_, Options) :-
 	option(list_test_dirs(true), Options),
 	!,
@@ -2852,29 +2831,12 @@ test(_, Options) :-
 test(Files, Options) :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
-   % Run main tests
 	(   option(core(false), Options)
 	->  true
 	;   forall(testset(Set), runtest(Set))
 	),
 	scripts(Files, Options),
-	!,
-	% Run package tests if --package=XXX or --packages was specified
-	(   option(packages(true), Options)
-	->  forall(  find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-					 run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir))
-	;   true
-	),
-	(   option(package(Pkg), Options)
-	->  (   is_pkg(Pkg)
-	    ->  forall(  find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-	                 run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir)
-	              )
-	    ;   print_message(error, test(no_pkg(Pkg))), fail
-	    )
-	;   true
-	),
-   % Cleanup and report
+	test_packages(Options),
 	garbage_collect,
 	garbage_collect_atoms,
 	trim_stacks,
@@ -2885,12 +2847,50 @@ test(Files, Options) :-
 	report_blocked,
 	report_failed.
 
+%!	scripts(+Files, +Options) is det.
+%
+%	Test the core system  using  the   test  scripts  in the =Tests=
+%	directory.
+
+scripts(_Files, Options) :-
+	option(subdirs(false), Options),
+	!.
+scripts([], _Options) :-
+	!,
+	forall(testdir(Dir), run_test_scripts(Dir)).
+scripts(Dirs, _Options) :-
+	forall(member(Dir, Dirs),
+	       (   atom_concat('Tests/', Dir, TestDir),
+		   run_test_scripts(TestDir)
+	       )).
+
+
+		 /*******************************
+		 *	      PACKAGES		*
+		 *******************************/
+
+%!	test_packages(+Options) is det.
+%
+%	Test   the   packages.   This    predicate     is    used   from
+%	test_installation/1 to test from an installed system.
+
+test_packages(Options) :-
+	option(packages(true), Options),
+	!,
+	forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+	       run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir)).
+test_packages(Options) :-
+	option(package(Pkg), Options),
+	!,
+	(   is_pkg(Pkg)
+	->  forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+		   run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir))
+	;   existence_error(package, Pkg)
+	).
+test_packages(_).
+
 load_cmake_test_db :-
-	load_files('cmake_pkg_tests.db',
-              [ silent(true),
-                if(changed)
-              ]
-             ).
+	load_files(swi('test/cmake_pkg_tests.db')).
 
 find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
 	script_dir(ScriptDir),
@@ -2902,19 +2902,52 @@ is_pkg(Pkg) :-
 	load_cmake_test_db,
 	cmake_test(Pkg, _, test_goal(_, _, _)).
 
-scripts(_Files, Options) :-
-	option(subdirs(false), Options),
-	!.
-scripts([], _Options) :-
-   set_plunit_options(for_main_tests),
-	forall(testdir(Dir), run_test_scripts(Dir)).
-scripts(Dirs, _Options) :-
-   set_plunit_options(for_main_tests),
-	forall(member(Dir, Dirs),
-	       (   atom_concat('Tests/', Dir, TestDir),
-		   run_test_scripts(TestDir)
-	       )).
+%!	run_pkg_test(+Package, +TestName, +TestScript, +Goal, +PkgDir)
+%
+%	Run test for the specified  package,   making  sure  the working
+%	directory is set to the location of the package.
 
+run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+	format(user_error, '~NTesting package ~w:~w ~`.t~40|',[Pkg,TestName]),
+	get_time(Start),
+	run_pkg_test1(PkgScript, Goal, PkgDir),
+	get_time(End),
+	Time is End - Start,
+	format(user_error, ' Passed ~2f sec.~n', [Time]).
+
+run_pkg_test1(Script, Goal, PkgDir) :-
+	current_prolog_flag(executable, SWIPL),
+	process_create(SWIPL,
+		       [ '-f', 'none',
+			 '-t', 'halt',
+			 '-g', Goal,
+			 Script
+		       ],
+		       [ stdout(pipe(Out)),
+			 stderr(pipe(Out)),
+			 cwd(PkgDir),
+			 process(Pid)
+		       ]),
+	message_queue_create(Q),
+	thread_create(collect_test_output(Out, Q), Waiter),
+	process_wait(Pid,Status),
+	thread_join(Waiter),
+	close(Out),
+	thread_get_message(Q, Output),
+	(   Status = exit(0)
+	->  true
+	;   script_failed(Script, Status),
+	    write(user_error, Output)
+	).
+
+collect_test_output(Out, Q) :-
+	read_string(Out, _, String),
+	thread_send_message(Q, String).
+
+
+		 /*******************************
+		 *	      REPORT		*
+		 *******************************/
 
 report_blocked :-
 	findall(Head-Reason, blocked(Head, Reason), L),
@@ -2968,7 +3001,6 @@ call_test(Goal, _Line) :-
 :- endif.
 
 runtest(Name) :-
-   set_plunit_options(for_main_tests),
 	format(user_error, '~NRunning test set "~w" ', [Name]),
 	functor(Head, Name, 1),
 	findall(Head-R, nth_clause_head(Head, R), Heads),
@@ -2999,19 +3031,19 @@ nth_clause_head(Head, R) :-
 
 unique_heads(Heads) :-
 	keysort(Heads, Sorted),
-	check_uniqye(Sorted).
+	check_unique(Sorted).
 
-check_uniqye([]).
-check_uniqye([Head-R1,Head-R2|T]) :- !,
+check_unique([]).
+check_unique([Head-R1,Head-R2|T]) :- !,
 	clause_property(R1, line_count(Line1)),
 	clause_property(R1, file(File1)),
 	clause_property(R2, line_count(Line2)),
 	clause_property(R2, file(File2)),
 	format('~N~w:~d: test ~w duplicated at ~w:~d~n',
 	       [File2, Line2, Head, File1, Line1]),
-	check_uniqye([Head-R1|T]).
-check_uniqye([_|T]) :-
-	check_uniqye(T).
+	check_unique([Head-R1|T]).
+check_unique([_|T]) :-
+	check_unique(T).
 
 
 :- if(current_prolog_flag(test_concurrent, true)).
