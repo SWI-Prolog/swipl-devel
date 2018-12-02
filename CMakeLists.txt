@@ -176,19 +176,19 @@ endif(INSTALL_DOCUMENTATION)
 # Install a prolog script to run tests on target device
 # in which ctest is not available
 if(INSTALL_TESTS)
-   set(INSTALL_TESTS_DIR ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_PREFIX}/test)
-   set(PKGS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/packages)
-   set(INSTALL_TESTS_DB ${CMAKE_BINARY_DIR}/cmake_pkg_tests.db)
-   #Move test db to installation
-   install(FILES       ${INSTALL_TESTS_DB}
-           DESTINATION ${INSTALL_TESTS_DIR}/)
-   file(REMOVE ${INSTALL_TESTS_DB})
-   #Copy generic package test files to the installation
-   install(DIRECTORY   ${PKGS_SRC_DIR}
-           DESTINATION ${INSTALL_TESTS_DIR}
-           FILES_MATCHING REGEX
-             ".*/.*/test_.*$|^.*/Test[s]*/.*$|^.*/test[s]*/.*"
-          )
+  set(INSTALL_TESTS_DIR ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_PREFIX}/test)
+  set(PKGS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/packages)
+  set(INSTALL_TESTS_DB ${CMAKE_BINARY_DIR}/cmake_pkg_tests.db)
+  #Move test db to installation
+  install(FILES       ${INSTALL_TESTS_DB}
+	  DESTINATION ${INSTALL_TESTS_DIR}/)
+  file(REMOVE ${INSTALL_TESTS_DB})
+  #Copy generic package test files to the installation
+  install(DIRECTORY   ${PKGS_SRC_DIR}
+	  DESTINATION ${INSTALL_TESTS_DIR}
+	  FILES_MATCHING REGEX
+	  ".*/.*/test_.*$|^.*/Test[s]*/.*$|^.*/test[s]*/.*"
+	 )
 endif(INSTALL_TESTS)
 
 # Add the packages

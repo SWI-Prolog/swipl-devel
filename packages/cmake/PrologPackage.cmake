@@ -318,24 +318,23 @@ function(test_lib name)
 			 -t halt)
   # Write db with lists of tests to be used with -DINSTALL_TESTS
   if(INSTALL_TESTS)
-  get_filename_component(test_source_dir ${test_source} DIRECTORY)
-  get_filename_component(test_source_basename ${test_source} NAME)
-  get_filename_component(pkg_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-  file(RELATIVE_PATH rel_test_dir ${CMAKE_CURRENT_SOURCE_DIR}/../.. ${test_source_dir})
-  file(APPEND ${INSTALL_TESTS_DB}
-     "cmake_test('${pkg_name}', '${test_name}',
-           test_goal('${rel_test_dir}',
-                     '${test_source_basename}',
-                     '${test_goal}')).\n"
-      )
+    get_filename_component(test_source_dir ${test_source} DIRECTORY)
+    get_filename_component(test_source_basename ${test_source} NAME)
+    get_filename_component(pkg_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+    file(RELATIVE_PATH rel_test_dir
+	 ${CMAKE_CURRENT_SOURCE_DIR}/../.. ${test_source_dir})
+    file(APPEND ${INSTALL_TESTS_DB}
+	 "cmake_test('${pkg_name}', '${test_name}',
+              test_goal('${rel_test_dir}',
+			'${test_source_basename}',
+			'${test_goal}')).\n")
 
-  # Install files needed for testing at run time
-  if(my_TEST_FILES_REGEX)
-    install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
-            DESTINATION ${INSTALL_TESTS_DIR}/packages
-            FILES_MATCHING REGEX ${my_TEST_FILES_REGEX})
-  endif(my_TEST_FILES_REGEX)
-
+    # Install files needed for testing at run time
+    if(my_TEST_FILES_REGEX)
+      install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+	      DESTINATION ${INSTALL_TESTS_DIR}/packages
+	      FILES_MATCHING REGEX ${my_TEST_FILES_REGEX})
+    endif(my_TEST_FILES_REGEX)
   endif(INSTALL_TESTS)
 endfunction(test_lib)
 
