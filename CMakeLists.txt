@@ -183,12 +183,6 @@ if(INSTALL_TESTS)
   install(FILES       ${INSTALL_TESTS_DB}
 	  DESTINATION ${INSTALL_TESTS_DIR}/)
   file(REMOVE ${INSTALL_TESTS_DB})
-  #Copy generic package test files to the installation
-  install(DIRECTORY   ${PKGS_SRC_DIR}
-	  DESTINATION ${INSTALL_TESTS_DIR}
-	  FILES_MATCHING REGEX
-	  ".*/.*/test_.*$|^.*/Test[s]*/.*$|^.*/test[s]*/.*"
-	 )
 endif(INSTALL_TESTS)
 
 # Add the packages
