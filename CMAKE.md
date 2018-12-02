@@ -99,6 +99,7 @@ allow for restricting the system.
   | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface           |
   | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)              |
   | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests |
+  | `-DINSTALL_TESTS=ON`          | Add tests to installed system     |
   | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs     |
 
 Note that packages for  which  the   prerequisites  cannot  be found are
@@ -173,6 +174,25 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 	  -DSWIPL_PACKAGES=OFF \
 	  -DINSTALL_DOCUMENTATION=OFF \
 	  -G Ninja ..
+
+### Cross-building for targets without an emulator
+
+In the above scenarios we have an  emulator (Wine, Node.js) that can run
+the compiled Prolog system  so  we  can   do  the  Prolog  steps  of the
+installation such as building  the  boot   file,  building  .qlf  files,
+library indexes and the documentation. On some  systems we do not have a
+suitable emulator. Experimental support is  provided using the following
+steps:
+
+  - Build a native Prolog system in a directory, say `native`.  This
+    version must have the same _word-size_ (32 or 64-bits) as the
+    cross-compiled target.  One the core Prolog system (no packages)
+    is required and the system only needs to be build, i.e., the
+    _install_ step is allowed but not needed.
+
+  - Specify `-DSWIPL_NATIVE_FRIEND=native` for the cross-compilation.
+    This will cause the above system to be used for the cross
+    compilation steps.
 
 ## Development
 
