@@ -1578,6 +1578,7 @@ compiling :-
 
 '$expanded_term'(In, Raw, RawLayout, Read, RLayout, Term, TLayout,
                  Stream, Parents, Options) :-
+    E = error(_,_),
     catch('$expand_term'(Raw, RawLayout, Expanded, ExpandedLayout), E,
           '$print_message_fail'(E)),
     (   Expanded \== []
@@ -1878,6 +1879,7 @@ load_files(Module:Files, Options) :-
 
 '$load_file_list'([], _, _).
 '$load_file_list'([File|Rest], Module, Options) :-
+    E = error(_,_),
     catch('$load_one_file'(File, Module, Options), E,
           '$print_message'(error, E)),
     '$load_file_list'(Rest, Module, Options).
@@ -1983,8 +1985,9 @@ load_files(Module:Files, Options) :-
         time_file(QlfFile, QlfTime),
         (   PlTime > QlfTime
         ->  Why = old                   % PlFile is newer
-        ;   catch('$qlf_sources'(QlfFile, _Files), Error, true),
-            nonvar(Error)               % QlfFile is incompatible
+        ;   Error = error(Formal,_),
+            catch('$qlf_sources'(QlfFile, _Files), Error, true),
+            nonvar(Formal)              % QlfFile is incompatible
         ->  Why = Error
         ;   fail                        % QlfFile is up-to-date and ok
         )
@@ -2169,7 +2172,7 @@ load_files(Module:Files, Options) :-
 
 '$mt_do_load'(queue(Queue), File, FullFile, Module, Options) :-
     !,
-    catch(thread_get_message(Queue, _), _, true),
+    catch(thread_get_message(Queue, _), error(_,_), true),
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(already_loaded, File, FullFile, Module, Options) :-
     !,
@@ -2266,6 +2269,7 @@ load_files(Module:Files, Options) :-
     ;   Input == source,
         file_name_extension(_, Ext, Absolute),
         (   user:prolog_file_type(Ext, qlf),
+            E = error(_,_),
             catch('$qload_file'(Absolute, Module, Action, LM, Options),
                   E,
                   print_message(warning, E))
@@ -2710,6 +2714,7 @@ load_files(Module:Files, Options) :-
     !,
     '$compile_term'(Term, Layout, Id, File:Line).
 '$compile_term'(Clause, Layout, Id, SrcLoc) :-
+    E = error(_,_),
     catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
           '$print_message'(error, E)).
 
@@ -3014,7 +3019,8 @@ load_files(Module:Files, Options) :-
     ;   true
     ),
     (   source_location(File, Line)
-    ->  catch('$store_admin_clause'((NewHead :- Source:Head),
+    ->  E = error(_,_),
+        catch('$store_admin_clause'((NewHead :- Source:Head),
                                     _Layout, File, File:Line),
               E, '$print_message'(error, E))
     ;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
@@ -3026,6 +3032,7 @@ load_files(Module:Files, Options) :-
     '$import_ops'(Context, Source, op(P,A,N)),
     '$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
 '$import_all2'([Pred|Rest], Context, Source, [Pred|Imported], ImpOps, Strength) :-
+    Error = error(_,_),
     catch(Context:'$import'(Source:Pred, Strength), Error,
           print_message(error, Error)),
     '$ifcompiling'('$import_wic'(Source, Pred, Strength)),
@@ -3092,6 +3099,7 @@ load_files(Module:Files, Options) :-
 '$do_export_list'([], _, []) :- !.
 '$do_export_list'([H|T], Module, Ops) :-
     !,
+    E = error(_,_),
     catch('$export1'(H, Module, Ops, Ops1),
           E, ('$print_message'(error, E), Ops = Ops1)),
     '$do_export_list'(T, Module, Ops1).
@@ -3107,6 +3115,7 @@ load_files(Module:Files, Options) :-
     export(Module:PI).
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
+    E = error(_,_),
     catch(( '$execute_directive'(op(Pri, Assoc, Module:Name), File),
             '$export_op'(Pri, Assoc, Name, Module, File)
           ),
@@ -3160,7 +3169,8 @@ load_files(Module:Files, Options) :-
     !,
     (   '$pattr_directive'(Goal, Module)
     ->  true
-    ;   catch(Module:Goal, Term, '$exception_in_directive'(Term))
+    ;   Term = error(_,_),
+        catch(Module:Goal, Term, '$exception_in_directive'(Term))
     ->  true
     ;   '$print_message'(warning, goal_failed(directive, Module:Goal)),
         fail
@@ -3182,9 +3192,10 @@ load_files(Module:Files, Options) :-
     current_prolog_flag(sandboxed_load, false),
     !.
 '$valid_directive'(Goal) :-
+    Error = error(Formal, _),
     catch(prolog:sandbox_allowed_directive(Goal), Error, true),
     !,
-    (   var(Error)
+    (   var(Formal)
     ->  true
     ;   print_message(error, Error),
         fail
@@ -3329,9 +3340,10 @@ load_files(Module:Files, Options) :-
     \+ '$cross_module_clause'(Clause),
     !.
 '$valid_clause'(Clause) :-
+    Error = error(Formal, _),
     catch(prolog:sandbox_allowed_clause(Clause), Error, true),
     !,
-    (   var(Error)
+    (   var(Formal)
     ->  true
     ;   print_message(error, Error),
         fail
