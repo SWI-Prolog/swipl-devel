@@ -441,6 +441,7 @@ _xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
 
 	if ( ok+l >= e )
 	{ errno = ENAMETOOLONG;
+	  FindClose(h);
 	  return NULL;
 	}
 
