@@ -25,6 +25,7 @@ build_win32()
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake \
           -G Ninja ..
+    ../scripts/pgo-compile.sh
     ninja
     cpack
   )
@@ -37,6 +38,7 @@ build_win64()
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
           -G Ninja ..
+    ../scripts/pgo-compile.sh
     ninja
     cpack
   )
