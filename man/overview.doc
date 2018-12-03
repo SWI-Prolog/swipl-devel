@@ -1947,6 +1947,13 @@ platform-specific version information as a list. \arg{Extra} is used for
 Available if created from a git repository.  See \program{git-describe}
 for details.
 
+    \prologflagitem{windows}{bool}{r}
+If present and \const{true}, the operating system is MS-Windows.
+
+    \prologflagitem{wine_version}{atom}{r}
+If present, SWI-Prolog is the MS-Windows version running under
+the \href{https://www.winehq.org/}{Wine} emulator.
+
     \prologflagitem{warn_override_implicit_import}{bool}{rw}
 If \const{true} (default), a warning is printed if an implicitly
 imported predicate is clobbered by a local definition.  See
