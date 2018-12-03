@@ -2240,12 +2240,8 @@ load_files(Module:Files, Options) :-
     '$source_file_property'(Absolute, number_of_clauses, OldClauses),
     statistics(cputime, OldTime),
 
-    '$save_file_scoped_flags'(ScopedFlags),
-    '$set_sandboxed_load'(Options, OldSandBoxed),
-    '$set_verbose_load'(Options, OldVerbose),
-    '$set_optimise_load'(Options),
-    '$update_autoload_level'(Options, OldAutoLevel),
-    set_prolog_flag(xref, false),
+    '$setup_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef,
+                  Options),
 
     '$compilation_level'(Level),
     '$load_msg_level'(load_file, Level, StartMsgLevel, DoneMsgLevel),
@@ -2295,10 +2291,25 @@ load_files(Module:Files, Options) :-
                                     LM,
                                     TimeUsed,
                                     ClausesCreated))),
+
+    '$restore_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef).
+
+'$setup_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef,
+              Options) :-
+    '$save_file_scoped_flags'(ScopedFlags),
+    '$set_sandboxed_load'(Options, OldSandBoxed),
+    '$set_verbose_load'(Options, OldVerbose),
+    '$set_optimise_load'(Options),
+    '$update_autoload_level'(Options, OldAutoLevel),
+    '$set_no_xref'(OldXRef).
+
+'$restore_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef) :-
     '$set_autoload_level'(OldAutoLevel),
+    set_prolog_flag(xref, OldXRef),
     set_prolog_flag(verbose_load, OldVerbose),
     set_prolog_flag(sandboxed_load, OldSandBoxed),
     '$restore_file_scoped_flags'(ScopedFlags).
+
 
 %!  '$save_file_scoped_flags'(-State) is det.
 %!  '$restore_file_scoped_flags'(-State) is det.
@@ -2398,6 +2409,13 @@ load_files(Module:Files, Options) :-
     ->  set_prolog_flag(optimise, Optimise)
     ;   true
     ).
+
+'$set_no_xref'(OldXRef) :-
+    (   current_prolog_flag(xref, OldXRef)
+    ->  true
+    ;   OldXRef = false
+    ),
+    set_prolog_flag(xref, false).
 
 
 %!  '$update_autoload_level'(+Options, -OldLevel)
