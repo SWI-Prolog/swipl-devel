@@ -1105,7 +1105,7 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 }
 
 
-static unsigned char *
+static int
 raw_read2(ReadData _PL_rd ARG_LD)
 { int c;
   bool something_read = FALSE;
@@ -1123,7 +1123,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
     switch(c)
     { case EOF:
 		if ( Sferror(rb.stream) )
-		  return NULL;
+		  return FALSE;
 		if ( Sfpasteof(rb.stream) )
 		{ term_t stream;
 
@@ -1132,7 +1132,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  PL_unify_stream_or_alias(stream, rb.stream);
 		  PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			   ATOM_input, ATOM_past_end_of_stream, stream);
-		  return NULL;
+		  return FALSE;
 		}
 		if ( something_read )
 		{ if ( isStringStream(rb.stream) )
@@ -1140,14 +1140,14 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    addToBuffer('.', _PL_rd);
 		    ensure_space(' ');
 		    addToBuffer(EOS, _PL_rd);
-		    return rb.base;
+		    return TRUE;
 		  }
 		  rawSyntaxError("end_of_file");
 		}
 		set_start_line;
 		strcpy((char *)rb.base, "end_of_file. ");
 		rb.here = rb.base + 14;
-		return rb.base;
+		return TRUE;
       case '/': if ( rb.stream->position )
 		{ pbuf = *rb.stream->position;
 		  pbuf.charno--;
@@ -1177,7 +1177,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      discardBuffer(cbuf);
 		    setErrorLocation(pos, _PL_rd);
 		    if ( Sferror(rb.stream) )
-		      return NULL;
+		      return FALSE;
 		    rawSyntaxError("end_of_file_in_block_comment");
 		  }
 		  if ( cbuf )
@@ -1201,7 +1201,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  discardBuffer(cbuf);
 		        setErrorLocation(pos, _PL_rd);
 			if ( Sferror(rb.stream) )
-			  return NULL;
+			  return FALSE;
 			rawSyntaxError("end_of_file_in_block_comment");
 		      case '*':
 			if ( last == '/' )
@@ -1369,7 +1369,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    rawSyntaxError("end_of_clause");
 		  addToBuffer(' ', _PL_rd);
 		  addToBuffer(EOS, _PL_rd);
-		  return rb.base;
+		  return TRUE;
 		}
 		c = getchr();
 		if ( isSymbolW(c) )
@@ -1452,25 +1452,25 @@ proper reconstruction of source locations. Comment   before  the term is
 skipped.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static unsigned char *
+static int
 raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
-{ unsigned char *s;
+{ int rc;
 
   if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
   { ttybuf tab;
 
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(rb.stream, &ttytab, FALSE);
-    s = raw_read2(_PL_rd PASS_LD);
+    rc = raw_read2(_PL_rd PASS_LD);
     PopTty(rb.stream, &tab, TRUE);
   } else
-  { s = raw_read2(_PL_rd PASS_LD);
+  { rc = raw_read2(_PL_rd PASS_LD);
   }
 
   if ( endp )
     *endp = _PL_rd->_rb.here;
 
-  return s;
+  return rc;
 }
 
 
@@ -4508,7 +4508,7 @@ read_term(term_t term, ReadData rd ARG_LD)
   Word p;
   fid_t fid;
 
-  if ( !(rd->base = raw_read(rd, &rd->end PASS_LD)) )
+  if ( !raw_read(rd, &rd->end PASS_LD) )
     fail;
 
   if ( !(fid=PL_open_foreign_frame()) )
@@ -4605,7 +4605,7 @@ pl_raw_read2(term_t from, term_t term)
     fail;
 
   init_read_data(&rd, in PASS_LD);
-  if ( !(s = raw_read(&rd, &e PASS_LD)) )
+  if ( !raw_read(&rd, &e PASS_LD) )
   { if ( Sferror(in) )
     { rval = streamStatus(in);
     } else
@@ -4621,8 +4621,9 @@ pl_raw_read2(term_t from, term_t term)
   }
 
 					/* strip the input from blanks */
+  s   = rd.base;
   top = backSkipBlanks(s, e-1);
-  t2 = backSkipUTF8(s, top, &chr);
+  t2  = backSkipUTF8(s, top, &chr);
   if ( chr == '.' )
     top = backSkipBlanks(s, t2);
 					/* watch for "0' ." */
