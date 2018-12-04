@@ -2751,10 +2751,8 @@ notation.
 \label{sec:cprologflags}
 
 Foreign code can set or create Prolog flags using PL_set_prolog_flag().
-See set_prolog_flag/2 and create_prolog_flag/3.\footnote{The current C
-API does not provide for a dedicated mechanism for fetching the value of
-Prolog flags. Relatively slow access is provided by calling
-PL_call_predicate() using current_prolog_flag/2.}
+See set_prolog_flag/2 and create_prolog_flag/3. To retrieve the value
+of a flag you can use PL_current_prolog_flag().
 
 \begin{description}
     \cfunction{int}{PL_set_prolog_flag}{const char *name, int type, ...}
@@ -2779,6 +2777,29 @@ Create a flag with an integer as value. The argument must be of type
 \end{description}
 
 
+\begin{description}
+    \cfunction{int}{PL_current_prolog_flag}{atom_t name, int type, void *value}
+Retrieve the value of a Prolog flag from C.  \arg{name} is the name of the
+flag as an \const{atom_t} (see current_prolog_flag/2).
+\arg{type} specifies the kind of value to be retrieved, it is one
+of the values below.  \arg{value} is a pointer to a location where
+to store the value. The user is responsible for making sure this memory
+location is of the appropiate size/type (see the returned types below
+to determine the size/type).
+The function returns \const{TRUE} on success
+and \const{FALSE} on failure.
+
+\begin{description}
+    \definition{\const{PL_ATOM}}
+Retrieve a flag whose value is an \const{atom}. The returned value is an atom handle of type \ctype{atom_t}.
+    \definition{\const{PL_INTEGER}}
+Retrieve a flag whose value is an \const{integer}. The returned value is an  integer of type \ctype{int64_t}.
+    \definition{\const{PL_FLOAT}}
+Retrieve a flag whose value is a \const{float}. The returned value is a floating point number of type \ctype{double}.
+    \definition{\const{PL_TERM}}
+Retrieve a flag whose value is a \const{term}. The returned value is a term handle of type \ctype{term_t}.
+\end{description}
+\end{description}
 
 \subsection{Errors and warnings}
 \label{sec:foreign-print-warning}
