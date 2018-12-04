@@ -59,6 +59,7 @@ This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 
 cmake_binary_directory(BinDir) :-
     current_prolog_flag(executable, OsExe),
+    is_absolute_file_name(OsExe),               % avoid dummy for embedded JPL test
     prolog_to_os_filename(Exe, OsExe),
     working_directory(PWD, PWD),
     exe_access(ExeAccess),
@@ -201,8 +202,11 @@ add_package_path(PkgBinDir) :-
 %   an installed version.
 
 set_version_info :-
-    cmake_binary_directory(BinDir),
-    version(format('    CMake built from "~w"', [BinDir])).
+    (   cmake_binary_directory(BinDir)
+    ->  version(format('    CMake built from "~w"', [BinDir]))
+    ;   current_prolog_flag(home, Home)
+    ->  version(format('    CMake built with home "~w"', [Home]))
+    ).
 
 :- initialization(set_version_info).
 
