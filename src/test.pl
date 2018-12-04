@@ -35,17 +35,15 @@
 */
 
 %:- set_prolog_flag(optimise, true).
+% keep debug/3 goals, even if optimise = true.
 :- set_prolog_flag(optimise_debug, false).
-%:- set_prolog_flag(trace_gc, true).
-:- prolog_load_context(directory, Dir),
-   atom_concat(Dir, '/../packages/plunit', PlUnitDir),
-   asserta(user:file_search_path(library, PlUnitDir)).
-:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
-:- use_module(library(plunit)).
 
+:- use_module(library(plunit)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+
+:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog test file.  A test is a clause of the form:
