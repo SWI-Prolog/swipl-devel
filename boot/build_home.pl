@@ -59,7 +59,7 @@ This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 
 cmake_binary_directory(BinDir) :-
     current_prolog_flag(executable, OsExe),
-    is_absolute_file_name(OsExe),               % avoid dummy for embedded JPL test
+    OsExe \== 'libswipl.dll',           % avoid dummy for embedded JPL test
     prolog_to_os_filename(Exe, OsExe),
     working_directory(PWD, PWD),
     exe_access(ExeAccess),
