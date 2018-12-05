@@ -1708,27 +1708,46 @@ line_element(S, nl) :-
     nl(S).
 line_element(S, prefix(Fmt-Args)) :-
     !,
-    format(S, Fmt, Args).
+    safe_format(S, Fmt, Args).
 line_element(S, prefix(Fmt)) :-
     !,
-    format(S, Fmt, []).
+    safe_format(S, Fmt, []).
 line_element(S, flush) :-
     !,
     flush_output(S).
 line_element(S, Fmt-Args) :-
     !,
-    format(S, Fmt, Args).
+    safe_format(S, Fmt, Args).
 line_element(S, ansi(_, Fmt, Args)) :-
     !,
-    format(S, Fmt, Args).
+    safe_format(S, Fmt, Args).
 line_element(S, ansi(_, Fmt, Args, _Ctx)) :-
     !,
-    format(S, Fmt, Args).
+    safe_format(S, Fmt, Args).
 line_element(_, begin(_Level, _Ctx)) :- !.
 line_element(_, end(_Ctx)) :- !.
 line_element(S, Fmt) :-
-    format(S, Fmt, []).
+    safe_format(S, Fmt, []).
 
+%!  safe_format(+Stream, +Format, +Args) is det.
+
+safe_format(S, Fmt, Args) :-
+    E = error(_,_),
+    catch(format(S,Fmt,Args), E,
+          format_failed(S,Fmt,Args,E)).
+
+format_failed(S, _Fmt, _Args, E) :-
+    E = error(io_error(_,S),_),
+    !,
+    throw(E).
+format_failed(S, Fmt, Args, error(E,_)) :-
+    format(S, '~N    [[ EXCEPTION while printing message ~q~n\c
+                        ~7|with arguments ~W:~n\c
+                        ~7|raised: ~W~n~4|]]~n',
+           [ Fmt,
+             Args, [quoted(true), max_depth(10)],
+             E, [quoted(true), max_depth(10)]
+           ]).
 
 %!  message_to_string(+Term, -String)
 %
