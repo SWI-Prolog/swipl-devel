@@ -27,6 +27,7 @@ documented at all.
 \end{quote}
 
 \input{aggregate}
+\input{ansiterm}
 \input{apply}
 \input{assoc}
 \input{broadcast}

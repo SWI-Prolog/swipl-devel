@@ -4,6 +4,9 @@
 \libsummary{aggregate}
 \input{summaries.d/aggregate.tex}
 
+\libsummary{ansi_term}
+\input{summaries.d/ansiterm.tex}
+
 \libsummary{apply}
 \input{summaries.d/apply.tex}
 
