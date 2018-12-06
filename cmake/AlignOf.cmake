@@ -1,51 +1,42 @@
-MACRO(ALIGNOF TYPE LANG NAME)
+# Define variables for alignment of int64, void*, and double
 
-  IF(NOT ${NAME})
+function(alignof VAR_ALIGNOF_INT64_T VAR_ALIGNOF_VOIDP VAR_ALIGNOF_DOUBLE)
+   # Compile alignment checker source
+   set(alignof_checker_target ${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/CheckAlignOf.bin)
+   set(alignof_checker_source_dir ${CMAKE_CURRENT_LIST_DIR})
+   try_compile(alignof_checker_ok
+               ${CMAKE_BINARY_DIR}
+               ${alignof_checker_source_dir}/CheckAlignment.cpp
+               COPY_FILE ${alignof_checker_target})
 
-    #
-    # Try to compile and run a foo grogram.
-    # The alignment result will be stored in ALIGNOF_${CHECK_TYPE}
-    #
+   if(alignof_checker_ok)
+      # Match 1,4, 8,16,32 or 64 alignments
+      set(alignof_pat_regex "(1|4|8|16|32|64)")
 
-    SET(INCLUDE_HEADERS
-      "#include <stddef.h>
-       #include <stdio.h>
-       #include <stdlib.h>
-       #include <stdint.h>")
+      # Read patterns from compiled executable
+      FILE(STRINGS ${alignof_checker_target} alignof_int64_pat
+           REGEX "^INT64_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
 
-    FOREACH(File ${CMAKE_EXTRA_INCLUDE_FILES})
-        SET(INCLUDE_HEADERS "${INCLUDE_HEADERS}\n#include <${File}>\n")
-    ENDFOREACH()
+      FILE(STRINGS ${alignof_checker_target} alignof_voidp_pat
+           REGEX "^VOIDP_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
 
-    if(CMAKE_REQUIRED_INCLUDES)
-      set(CHECK_C_SOURCE_COMPILES_ADD_INCLUDES
-        "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_REQUIRED_INCLUDES}")
-    else()
-      set(CHECK_C_SOURCE_COMPILES_ADD_INCLUDES)
-    endif()
+      FILE(STRINGS ${alignof_checker_target} alignof_double_pat
+           REGEX "^DOUBLE_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
 
-    FILE (WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/c_get_${NAME}_alignment.${LANG}"
-      "${INCLUDE_HEADERS}
-       int main(){
-           char diff;
-           struct foo {char a; ${TYPE} b;};
-           struct foo *p = (struct foo *) malloc(sizeof(struct foo));
-           diff = ((char *)&p->b) - ((char *)&p->a);
-           return diff;
-       }"
-    )
+      # Extract alignments from patterns and assign them to the variables
+      string(REGEX MATCH "${alignof_pat_regex}$" ${VAR_ALIGNOF_INT64_T} ${alignof_int64_pat})
+      string(REGEX MATCH "${alignof_pat_regex}$" ${VAR_ALIGNOF_DOUBLE} ${alignof_double_pat})
+      string(REGEX MATCH "${alignof_pat_regex}$" ${VAR_ALIGNOF_VOIDP} ${alignof_voidp_pat})
 
-    TRY_RUN(${NAME} COMPILE_RESULT "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/"
-      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/c_get_${NAME}_alignment.${LANG}"
-      CMAKE_FLAGS "${CHECK_C_SOURCE_COMPILES_ADD_INCLUDES}"
-      COMPILE_OUTPUT_VARIABLE "${NAME}_COMPILE_VAR")
+      # Report the results
+      foreach(alignof_type INT64_T DOUBLE VOIDP)
+         MESSAGE(STATUS "Check alignment of ${alignof_type}: ${${VAR_ALIGNOF_${alignof_type}}}")
+      endforeach(alignof_type)
+   else()
+      MESSAGE(FATAL_ERROR "Check alignment: unable to compile test program.")
+   endif(alignof_checker_ok)
 
-    IF (NOT COMPILE_RESULT)
-        MESSAGE(FATAL_ERROR "Check alignment of ${TYPE} in ${LANG}: compilation failed: ${${NAME}_COMPILE_VAR}")
-    ELSE()
-        MESSAGE(STATUS "Check alignment of ${TYPE} in ${LANG}: ${${NAME}}")
-    ENDIF()
-
-  ENDIF()
-
-ENDMACRO()
+   if(NOT DEFINED ${VAR_ALIGNOF_INT64_T})
+         MESSAGE(FATAL_ERROR "Check alignment: unable to determine void*, double and int64_t alignment.")
+   endif()
+endfunction()
