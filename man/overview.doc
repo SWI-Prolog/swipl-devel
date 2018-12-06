@@ -644,7 +644,7 @@ variable with the latest binding. Example:
 
 \begin{figure}
 \begin{code}
-1 ?- maplist(plus(1), "hello", X).
+1 ?- maplist(plus(1), `hello`, X).
 X = [105,102,109,109,112].
 
 2 ?- format('~s~n', [$X]).
