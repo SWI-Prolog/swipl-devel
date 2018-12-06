@@ -129,7 +129,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl
     edit.pl shell.pl check.pl heaps.pl console_input.pl
     tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl
-    oset.pl ordsets.pl occurs.pl lists.pl pprint.pl
+    oset.pl ordsets.pl occurs.pl lists.pl pprint.pl atom.pl
     www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl
     threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl
     checklast.pl checkselect.pl operators.pl date.pl
