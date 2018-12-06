@@ -94,9 +94,8 @@ if(NOT SIZEOF_MP_BITCNT_T STREQUAL "")
   set(HAVE_MP_BITCNT_T 1)
 endif()
 
-alignof(int64_t c ALIGNOF_INT64_T)
-alignof(double c ALIGNOF_DOUBLE)
-alignof("void*" c ALIGNOF_VOIDP)
+include(AlignOf)
+alignof(ALIGNOF_INT64_T ALIGNOF_VOIDP ALIGNOF_DOUBLE)
 
 
 ################
