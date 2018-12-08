@@ -94,6 +94,7 @@ function(pkg_doc pkg)
   set(libsubdir)
   set(bbl)
   set(depends)
+  set(vimages)
 
   foreach(arg ${ARGN})
     if(arg STREQUAL "DEPENDS")
@@ -105,6 +106,9 @@ function(pkg_doc pkg)
       flush_src()
       set(mode source)
       set(src)
+    elseif(arg STREQUAL "IMAGES")
+      flush_src()
+      set(mode images)
     elseif(arg STREQUAL "LIBSUBDIR")
       set(mode lbsubdir)
     elseif(arg STREQUAL "SECTION")
@@ -124,6 +128,8 @@ function(pkg_doc pkg)
     elseif(mode STREQUAL "lbsubdir")
       set(libsubdir ${arg})
       set(mode)
+    elseif(mode STREQUAL "images")
+      set(vimages ${vimages} ${arg})
     elseif(mode STREQUAL "m_depends")
       set(depends ${depends} ${arg})
     else()
@@ -194,7 +200,8 @@ function(pkg_doc pkg)
 
     add_dependencies(doc.html ${pkg}.doc.html)
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${pkg}.html
+    prepend(doc_files ${CMAKE_CURRENT_BINARY_DIR}/ ${pkg}.html ${vimages})
+    install(FILES ${doc_files}
 	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages
 	    COMPONENT Documentation
 	    OPTIONAL)
