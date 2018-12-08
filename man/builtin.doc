@@ -4659,7 +4659,7 @@ resource database, from a web-server, etc.
 
 
 \begin{description}
-    \predicate{register_iri_scheme}{3}{}{+Scheme, :Hook, +Options}
+    \predicate{register_iri_scheme}{3}{+Scheme, :Hook, +Options}
 Register \arg{Hook} to be called by all file handling predicates
 if a name that starts with \arg{Scheme}:// is encountered.  The
 \arg{Hook} is called by call/4 using the \jargon{operation}, the
