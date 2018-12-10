@@ -158,7 +158,7 @@ set_windows_path.
 
 create_state(File, Output, Args) :-
 	me(Me),
-	append(Args, ['-o', Output, '-c', File], AllArgs),
+	append(Args, ['-o', Output, '-c', File, '-f', none], AllArgs),
 	test_dir(TestDir),
 	debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
 	process_create(Me, AllArgs,
