@@ -340,7 +340,7 @@ running_under_emacs :-
 %
 %     - Type:Text
 %       Find objects matching Text and filter the results by Type.
-%       Type matching is a case intensative _prefix_ match.
+%       Type matching is a case intensitive _prefix_ match.
 %       Defined types are `section`, `cfunction`, `function`,
 %       `iso_predicate`, `swi_builtin_predicate`, `library_predicate`,
 %       `dcg` and aliases `chapter`, `arithmetic`, `c_function`,
