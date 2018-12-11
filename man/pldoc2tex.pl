@@ -185,6 +185,7 @@ ensure_dir(Dir) :-
 %   The entry point
 
 main(Argv) :-
+    set_prolog_flag(encoding, utf8),
     partition(is_option, Argv, OptArgs, Files),
     once(maplist(to_option, OptArgs, Options0)),
     flatten(Options0, Options),
