@@ -79,7 +79,14 @@ restyle_identifier(Style, In, Out) :-
 
 identifier_parts(Name, Parts) :-
     atom_codes(Name, Codes),
-    phrase(identifier_parts(Parts), Codes).
+    (   phrase(identifier_parts(Parts), Codes)
+    ->  true
+    ;   maplist(is_symbol_code, Codes)
+    ->  Parts = [Name]
+    ).
+
+is_symbol_code(Code) :-
+    code_type(Code, prolog_symbol).
 
 identifier_parts([H|T]) -->
     identifier_part(H),
