@@ -24,7 +24,7 @@ Execute \arg{Goal} just like once/1, collecting profiling statistics,
 and call \term{show_profile}{[]}.  With XPCE installed this
 opens a graphical interface to examine the collected profiling data.
 
-    \predicate{profile}{3}{:Goal, +Options}
+    \predicate{profile}{2}{:Goal, +Options}
 Execute \arg{Goal} just like once/1. Collect profiling statistics
 according to \arg{Options} and call show_profile/1 with \arg{Options}.
 The default collects CPU profiling and opens a graphical interface when
