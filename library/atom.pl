@@ -77,6 +77,10 @@ restyle_identifier(Style, In, Out) :-
 %       ?- identifier_parts('sourceCodeURI', X).
 %       X = [source, code, 'URI'].
 
+identifier_parts(';', [';']) :- !.
+identifier_parts('|', ['|']) :- !.
+identifier_parts('!', ['!']) :- !.
+identifier_parts(',', [',']) :- !.
 identifier_parts(Name, Parts) :-
     atom_codes(Name, Codes),
     (   phrase(identifier_parts(Parts), Codes)
