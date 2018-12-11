@@ -2532,7 +2532,7 @@ prog_shell(void)
     }
   }
 
-  return UNIX_SHELL;
+  return POSIX_SHELL;
 }
 
 

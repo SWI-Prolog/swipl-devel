@@ -97,7 +97,7 @@ if(WIN32)
   set(SRC_SWIPL_LD ${SRC_SWIPL_LD} os/windows/uxnt.c)
 endif()
 
-set(UNIX_SHELL "/bin/sh" CACHE STRING "Full path to Unix shell")
+set(POSIX_SHELL "/bin/sh" CACHE STRING "Full path to a POSIX compliant shell")
 
 ################
 # Prolog data files

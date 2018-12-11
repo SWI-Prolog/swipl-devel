@@ -1625,10 +1625,8 @@ Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
     \prologflagitem{posix_shell}{atom}{rw}
-Path to a POSIX compatible shell. On POSIX systems this flag is
-initialised from the environment variable \const{SHELL}.  If this
-variable is not defined a default is used. This default is typically
-\file{/bin/sh}.
+Path to a POSIX compatible shell.  This default is typically
+\file{/bin/sh}.  This flag is used by shell/1 and qsave_program/2.
 
     \prologflagitem{print_write_options}{term}{rw}
 Specifies the options for write_term/2 used by print/1 and print/2.

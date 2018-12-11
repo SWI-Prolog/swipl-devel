@@ -269,5 +269,5 @@
 #cmakedefine HAVE_PTHREAD_GETCPUCLOCKID
 #cmakedefine HAVE_F_SETLKW
 
-#cmakedefine UNIX_SHELL "@UNIX_SHELL@"
+#cmakedefine POSIX_SHELL "@POSIX_SHELL@"
 #cmakedefine SWIPL_TMP_DIR "@SWIPL_TMP_DIR@"

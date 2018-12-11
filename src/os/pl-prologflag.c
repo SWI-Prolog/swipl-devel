@@ -1456,15 +1456,7 @@ initPrologFlags(void)
 #ifdef O_MITIGATE_SPECTRE
   setPrologFlag("mitigate_spectre", FT_BOOL, FALSE, PLFLAG_MITIGATE_SPECTRE);
 #endif
-
-#if defined(__unix__)
-{ const char *env_shell = getenv("SHELL");
-
-  if ( !env_shell )
-    env_shell = UNIX_SHELL;
-  setPrologFlag("posix_shell", FT_ATOM, env_shell);
-}
-#endif
+  setPrologFlag("posix_shell", FT_ATOM, POSIX_SHELL);
 
   setTmpDirPrologFlag();
   setTZPrologFlag();
