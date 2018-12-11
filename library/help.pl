@@ -40,6 +40,7 @@
 :- use_module(library(pldoc)).
 :- use_module(library(pldoc/doc_man)).
 :- use_module(library(pldoc/man_index)).
+:- use_module(library(pldoc/doc_words)).
 :- use_module(library(http/html_write)).
 :- use_module(library(sgml)).
 :- use_module(library(isub)).
@@ -393,22 +394,14 @@ apropos_match(Type, Query, Object, Summary, Q) :-
     sum_list(Scores, Q).
 
 amatch(Object, Summary, Query, Score) :-
-    (   obj_string(Object, String)
+    (   doc_object_identifier(Object, String)
     ;   String = Summary
     ),
     amatch(Query, String, Score),
     !.
 
-obj_string(Name/_, Name).
-obj_string(Name//_, Name).
-obj_string(_:Name/_, Name).
-obj_string(_:Name//_, Name).
-obj_string(M:_, M).
-obj_string(f(Name/_), Name).
-obj_string(c(Name), Name).
-
 amatch(Query, To, Quality) :-
-    related(Query, Related, Distance),
+    doc_related_word(Query, Related, Distance),
     sub_atom_icasechk(To, _, Related),
     isub(Related, To, false, Quality0),
     Quality is Quality0*Distance.
@@ -461,45 +454,6 @@ object_class(Name/Arity, Type) :-
 object_class(_M:_Name/_Arity, library_predicate).
 object_class(_Name//_Arity, dcg).
 object_class(_M:_Name//_Arity, dcg).
-
-
-%!  related(+Term, -Related, -Distance)
-%
-%   Map some commonly known concepts to their Prolog related term. Where
-%   do we find a comprehensive list of these?
-
-related(In, Out, Distance) :-
-    related(In, Out, 1, Distance).
-
-related(T, T, D, D).
-related(In, Out, D0, D) :-
-    (   synonym(In, Out0, D1)
-    ;   synonym(Out0, In, D1)
-    ),
-    D2 is D0*D1,
-    D2 > 0.2,
-    related(Out0, Out, D2, D).
-
-
-synonym(file,       srcdest,    0.9).
-synonym(file,       stream,     0.3).
-synonym(quit,       halt,       0.9).
-synonym(exit,       halt,       0.9).
-synonym(error,      exception,  0.8).
-synonym(error,      throw,      0.5).
-synonym(error,      catch,      0.5).
-synonym(close,      destroy,    0.3).
-synonym(destroy,    delete,     0.3).
-synonym(destroy,    unregister, 0.3).
-synonym(delete,     unregister, 0.3).
-synonym(create,     make,       0.3).
-synonym(create,     new,        0.3).
-synonym(create,     fork,       0.3).
-synonym(create,     clone,      0.3).
-synonym(elem,       element,    0.7).
-synonym(element,    member,     0.3).
-synonym(delete,     remove,     0.3).
-synonym(clone,      duplicate,  0.3).
 
 
 		 /*******************************
