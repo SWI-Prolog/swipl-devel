@@ -31,7 +31,7 @@ add_custom_command(
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
             -- --nopce
     DEPENDS pldoc2tex.pl swipl prolog_products
-            pldoc clib sgml http)
+            pldoc clib sgml http nlp)
 
 add_custom_target(
     pldoc2tex_state
