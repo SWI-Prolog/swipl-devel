@@ -112,6 +112,18 @@ b(X)) and the ones using this library side-by-side.
     order_by(+, 0),
     group_by(?, ?, 0, -).
 
+:- noprofile((
+       distinct/1,
+       distinct/2,
+       reduced/1,
+       reduced/2,
+       limit/2,
+       offset/2,
+       call_nth/2,
+       order_by/2,
+       group_by/3)).
+
+
 %!  distinct(:Goal).
 %!  distinct(?Witness, :Goal).
 %
