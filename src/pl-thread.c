@@ -598,8 +598,15 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     PL_UNLOCK(L_THREAD);
 
     info->in_exit_hooks = TRUE;
-    rc = callEventHook(PL_EV_THREADFINISHED, info);
-    (void)rc;
+    if ( !(rc = callEventHook(PL_EV_THREADFINISHED, info)) )
+    { GET_LD
+
+      if ( exception_term )
+      { Sdprintf("Event hook \"thread_finished\" left an exception\n");
+	PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	PL_clear_exception();
+      }
+    }
     run_thread_exit_hooks(ld);
     info->in_exit_hooks = FALSE;
   } else
@@ -2893,13 +2900,11 @@ run_exit_hooks(at_exit_goal *eg, int free)
 	if ( rc )
 	{ DEBUG(MSG_THREAD,
 		{ Sdprintf("Calling exit goal: ");
-		  PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED);
-		  Sdprintf("\n");
+		  PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
 		});
 
 	  callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
 	}
-	PL_rewind_foreign_frame(fid);
 	break;
       }
       case EXIT_C:
@@ -2909,8 +2914,16 @@ run_exit_hooks(at_exit_goal *eg, int free)
 	assert(0);
     }
 
+    if ( exception_term )
+    { Sdprintf("Thread exit hook left an exception:\n");
+      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+      PL_clear_exception();
+    }
+
     if ( free )
       freeHeap(eg, sizeof(*eg));
+
+    PL_rewind_foreign_frame(fid);
   }
 
   PL_discard_foreign_frame(fid);
