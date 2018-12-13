@@ -429,6 +429,9 @@ can_delay(true, BackLog, WP, WPT) :-
 %
 %   @tbd Find a way to discover that we are terminating Prolog.
 
+:- public
+    worker_exitted/3.
+
 worker_exitted(Name, Id, AtExit) :-
     catch(thread_send_message('__thread_pool_manager', exitted(Name, Id)),
           _, true),
