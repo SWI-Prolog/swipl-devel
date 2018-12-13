@@ -1910,16 +1910,15 @@ typedef struct
 } sig_handler, *SigHandler;
 
 
-#define SIG_EXCEPTION	  (SIG_PROLOG_OFFSET+0)
 #ifdef O_ATOMGC
-#define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+1)
+#define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+0)
 #endif
-#define SIG_GC		  (SIG_PROLOG_OFFSET+2)
+#define SIG_GC		  (SIG_PROLOG_OFFSET+1)
 #ifdef O_PLMT
-#define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
+#define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+2)
 #endif
-#define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+4)
-#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+5)
+#define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+3)
+#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+4)
 
 
 		 /*******************************

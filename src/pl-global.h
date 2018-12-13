@@ -412,7 +412,6 @@ struct PL_local_data
   { int		pending[2];		/* PL_raise() pending signals */
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
-    record_t	exception;		/* Pending exception from signal */
   } signal;
 
   struct

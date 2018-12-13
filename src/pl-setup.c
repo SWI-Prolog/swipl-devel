@@ -296,7 +296,6 @@ static struct signame
    not supported by OS signals.  They start at offset 32.
 */
 
-  { SIG_EXCEPTION,     "prolog:exception",     0 },
 #ifdef SIG_ATOM_GC
   { SIG_ATOM_GC,       "prolog:atom_gc",       0 },
 #endif
@@ -544,10 +543,8 @@ dispatch_signal(int sig, int sync)
 		   sh->handler, LD->signal.pending[0], LD->signal.pending[1]));
 
     if ( exception_term && !sync )	/* handler: PL_raise_exception() */
-    { LD->signal.exception = PL_record(exception_term);
-      PL_raise(SIG_EXCEPTION);
-      exception_term = 0;
-    }
+      fatalError("Async exception handler for signal %s (%d) raised "
+		 "an exception", signal_name(sig), sig);
   }
 
   LD->signal.current = saved_current_signal;
@@ -691,26 +688,6 @@ initTerminationSignals(void)
 #endif /*HAVE_SIGNAL*/
 
 static void
-sig_exception_handler(int sig)
-{ GET_LD
-  (void)sig;
-
-  if ( HAS_LD && LD->signal.exception )
-  { record_t ex = LD->signal.exception;
-
-    LD->signal.exception = 0;
-
-    PL_put_variable(exception_bin);
-    PL_recorded(ex, exception_bin);
-    PL_erase(ex);
-    exception_term = exception_bin;
-
-    DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
-  }
-}
-
-
-static void
 agc_handler(int sig)
 { GET_LD
   (void)sig;
@@ -806,7 +783,6 @@ initSignals(void)
   /* these signals are not related to Unix signals and can thus */
   /* be enabled always */
 
-  PL_signal(SIG_EXCEPTION|PL_SIGSYNC,     sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC,	          gc_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
