@@ -4344,7 +4344,6 @@ wait_queue_message(term_t qterm, message_queue *q, thread_message *msg,
 
   for(;;)
   { rc = queue_message(q, msg, deadline PASS_LD);
-    release_message_queue(q);
 
     switch(rc)
     { case MSG_WAIT_INTR:
@@ -4388,7 +4387,10 @@ thread_send_message__LD(term_t queue, term_t msgterm,
     return PL_no_memory();
   }
 
-  if ( (rc=wait_queue_message(queue, q, msg, deadline PASS_LD)) == FALSE )
+  rc = wait_queue_message(queue, q, msg, deadline PASS_LD);
+  release_message_queue(q);
+
+  if ( rc == FALSE )
     free_thread_message(msg);
 
   return rc;
