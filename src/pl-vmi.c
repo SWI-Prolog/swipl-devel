@@ -3705,6 +3705,13 @@ VMI(I_FOPEN, 0, 0, ())
   { ffr = (FliFrame)argFrameP(FR, DEF->functor->arity);
   }
 
+#if O_DEBUG
+  if ( exception_term )
+  { Sdprintf("Exception at entry of %s\n",  predicateName(DEF));
+    PL_write_term(Serror, exception_term, 1200, PL_WRT_NEWLINE);
+  }
+#endif
+
   assert(DEF->functor->arity < 100);
 
   lTop = (LocalFrame)(ffr+1);
