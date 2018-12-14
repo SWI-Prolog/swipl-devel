@@ -165,7 +165,7 @@ set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     simplex.pl clpfd.pl clpb.pl)
 
-set(SWIPL_DATA_library_dcg basics.pl)
+set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 
 set(SWIPL_DATA_library_unicode blocks.pl unicode_data.pl)
 
