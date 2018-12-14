@@ -72,6 +72,12 @@
 \libsummary{csv}
 \input{summaries.d/csv.tex}
 
+\libsummary{dcgbasics}
+\input{summaries.d/dcgbasics.tex}
+
+\libsummary{dcghighorder}
+\input{summaries.d/dcghighorder.tex}
+
 \libsummary{debug}
 \input{summaries.d/debug.tex}
 

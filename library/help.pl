@@ -225,6 +225,9 @@ help_objects(Spec, How, Objects) :-
 help_object(Fuzzy/Arity, How, Name/Arity, ID) :-
     match_name(How, Fuzzy, Name),
     man_object_property(Name/Arity, id(ID)).
+help_object(Fuzzy//Arity, How, Name//Arity, ID) :-
+    match_name(How, Fuzzy, Name),
+    man_object_property(Name//Arity, id(ID)).
 help_object(Fuzzy/Arity, How, f(Name/Arity), ID) :-
     match_name(How, Fuzzy, Name),
     man_object_property(f(Name/Arity), id(ID)).
@@ -232,6 +235,10 @@ help_object(Fuzzy, How, Name/Arity, ID) :-
     atom(Fuzzy),
     match_name(How, Fuzzy, Name),
     man_object_property(Name/Arity, id(ID)).
+help_object(Fuzzy, How, Name//Arity, ID) :-
+    atom(Fuzzy),
+    match_name(How, Fuzzy, Name),
+    man_object_property(Name//Arity, id(ID)).
 help_object(Fuzzy, How, f(Name/Arity), ID) :-
     atom(Fuzzy),
     match_name(How, Fuzzy, Name),

@@ -88,7 +88,7 @@ function(pldoc tex input)
     set(options
 	--source=${CMAKE_CURRENT_SOURCE_DIR}
 	--summaries
-        --outdir=lib)
+        --out=${tex})
     set(depends ${PLDOC2TEX_DEPENDS})
     set(byproducts)
 
@@ -164,6 +164,8 @@ pldoc(lib/predopts.tex lib/predopts.txt
 pldoc(lib/help.tex "library(help)"
       OPTIONS --subsection
       DEPENDS nlp)
+pldoc(lib/dcgbasics.tex "library(dcg/basics)")
+pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
 
 # Check that we do not have both a .doc file and extract from the
 # Prolog source

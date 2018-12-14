@@ -37,6 +37,8 @@ documented at all.
 \input{clpfd}
 \input{clpqr}
 \input{csv}
+\input{dcgbasics}
+\input{dcghighorder}
 \input{debug}
 \input{dicts}
 \input{error}
