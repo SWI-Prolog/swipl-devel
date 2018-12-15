@@ -78,6 +78,7 @@ attempt to call the Prolog defined trace interceptor.
     volatile(:),
     thread_local(:),
     noprofile(:),
+    non_terminal(:),
     '$clausable'(:),
     '$iso'(:),
     '$hide'(:).
@@ -90,6 +91,7 @@ attempt to call the Prolog defined trace interceptor.
 %!  thread_local(+Spec) is det.
 %!  noprofile(+Spec) is det.
 %!  public(+Spec) is det.
+%!  non_terminal(+Spec) is det.
 %
 %   Predicate versions of standard  directives   that  set predicate
 %   attributes. These predicates bail out with an error on the first
@@ -103,6 +105,7 @@ volatile(Spec)           :- '$set_pattr'(Spec, pred, (volatile)).
 thread_local(Spec)       :- '$set_pattr'(Spec, pred, (thread_local)).
 noprofile(Spec)          :- '$set_pattr'(Spec, pred, (noprofile)).
 public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
+non_terminal(Spec)       :- '$set_pattr'(Spec, pred, (non_terminal)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, (iso)).
 '$clausable'(Spec)       :- '$set_pattr'(Spec, pred, (clausable)).
 
@@ -3129,8 +3132,13 @@ load_files(Module:Files, Options) :-
 '$export1'(Op, _, [Op|T], T) :-
     Op = op(_,_,_),
     !.
-'$export1'(PI, Module, Ops, Ops) :-
-    export(Module:PI).
+'$export1'(PI0, Module, Ops, Ops) :-
+    strip_module(Module:PI0, M, PI),
+    (   PI = (_//_)
+    ->  non_terminal(M:PI)
+    ;   true
+    ),
+    export(M:PI).
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
     E = error(_,_),

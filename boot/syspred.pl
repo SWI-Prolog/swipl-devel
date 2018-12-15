@@ -881,6 +881,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, exported, 1).
 '$predicate_property'(public, Pred) :-
     '$get_predicate_attribute'(Pred, public, 1).
+'$predicate_property'(non_terminal, Pred) :-
+    '$get_predicate_attribute'(Pred, non_terminal, 1).
 '$predicate_property'(foreign, Pred) :-
     '$get_predicate_attribute'(Pred, foreign, 1).
 '$predicate_property'((dynamic), Pred) :-
