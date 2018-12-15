@@ -77,7 +77,7 @@ sequence(OnElem, List) -->
     sequence_(List, OnElem).
 
 sequence_([H|T], P) -->
-    call_nt(P, H),
+    call(P, H),
     sequence_(T, P).
 sequence_([], _) -->
     [].
@@ -114,7 +114,7 @@ sequence(Start, OnElem, OnSep, End, List) -->
     End, !.
 
 sequence_([H|T], P, Sep) -->
-    call_nt(P, H),
+    call(P, H),
     (   {T == []}
     ->  []
     ;   Sep
@@ -124,8 +124,6 @@ sequence_([H|T], P, Sep) -->
 sequence_([], _, _) -->
     [].
 
-call_nt(Rule, Arg, List, Tail) :-
-    call(Rule, Arg, List, Tail).
 
 %!  optional(:Match, :Default)// is det.
 %
