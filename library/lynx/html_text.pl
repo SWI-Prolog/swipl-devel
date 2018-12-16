@@ -617,16 +617,18 @@ column_widths(Widths, MaxTableWidth, Widths) :-
     AutoWidth =< MaxTableWidth,
     !.
 column_widths(AutoWidths, MaxTableWidth, Widths) :-
-    length(AutoWidths, NCols),
-    member(Factor, [4,2,1,0.5,0.25]),
-    Keep is round(MaxTableWidth/NCols)*Factor,
-    aggregate_all(sum(W), (member(W,AutoWidths), W=<Keep), Narrow),
-    aggregate_all(count, (member(W,AutoWidths),W>Keep), NWide),
-    NWide > 0,
-    WideWidth is round((MaxTableWidth-Narrow)/NWide),
-    WideWidth >= 2*Keep,
+    sort(0, >=, AutoWidths, Sorted),
+    append(Wrapped, Keep, Sorted),
+    sum_list(Keep, KeepWidth),
+    KeepWidth < MaxTableWidth/2,
+    length(Wrapped, NWrapped),
+    WideWidth is round((MaxTableWidth-KeepWidth)/NWrapped),
+    (   [KeepW|_] = Keep
+    ->  true
+    ;   KeepW = 0
+    ),
     !,
-    maplist(truncate_column(Keep,WideWidth), AutoWidths, Widths).
+    maplist(truncate_column(KeepW,WideWidth), AutoWidths, Widths).
 
 truncate_column(Keep, WideWidth, AutoWidth, Width) :-
     (   AutoWidth =< Keep
