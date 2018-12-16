@@ -623,7 +623,7 @@ column_widths(AutoWidths, MaxTableWidth, Widths) :-
     aggregate_all(sum(W), (member(W,AutoWidths), W=<Keep), Narrow),
     aggregate_all(count, (member(W,AutoWidths),W>Keep), NWide),
     NWide > 0,
-    WideWidth is (MaxTableWidth-Narrow)/NWide,
+    WideWidth is round((MaxTableWidth-Narrow)/NWide),
     WideWidth >= 2*Keep,
     !,
     maplist(truncate_column(Keep,WideWidth), AutoWidths, Widths).
@@ -679,19 +679,22 @@ auto_column_width(State, Col, Width) :-
     max_list(Widths, Width).
 
 auto_cell_width(State, Cell, Width) :-
+    cell_colspan(Cell, 1),
+    !,
     format_cell_to_string(Cell, 1_000, State, String),
     split_string(String, "\n", "", Lines),
     maplist(string_length, Lines, LineW),
     max_list(LineW, Width0),
     Width is Width0 + State.margin_right.
+auto_cell_width(_, _, 0).
 
 %!  format_row(+ColWidths, +State, +MarginLeft, +Row)
 %
 %   Format a single row.
 
 format_row(ColWidths, State, MarginLeft, Row) :-
-    format_cells(ColWidths, 1, Row, State, Cells),
-    format_row_lines(1, ColWidths, Cells, MarginLeft).
+    format_cells(ColWidths, CWSpanned, 1, Row, State, Cells),
+    format_row_lines(1, CWSpanned, Cells, MarginLeft).
 
 format_row_lines(LineNo, Widths, Cells, MarginLeft) :-
     nth_row_line(Widths, 1, LineNo, Cells, CellLines, Found),
@@ -722,20 +725,34 @@ nth_row_line([ColW|CWT], CellNo, LineNo, Cells, [CellLine-Pad|ColLines],
     nth_row_line(CWT, CellNo1, LineNo, Cells, ColLines, Found).
 
 
-%!  format_cells(+ColWidths, +Col0, +Row, +State, -Cells)
+%!  format_cells(+ColWidths, -CWSpanned, +Col0, +Row, +State, -Cells)
 %
 %   Format the cells for Row. The  resulting   Cells  list  is a list of
 %   cells, where each cell is a  list   of  strings, each representing a
 %   line.
 
-format_cells([], _, _, _, []).
-format_cells([HW|TW], Column, Row, State, [HC|TC]) :-
+format_cells([], [], _, _, _, []) :- !.
+format_cells(CWidths, [HW|TW], Column, Row, State, [HC|TC]) :-
     Row = row(Columns, _Attrs),
     nth1(Column, Columns, Cell),
+    cell_colspan(Cell, CWidths, HW, TW0),
     format_cell_to_string(Cell, HW, State.put(pad, ' '), String),
     split_string(String, "\n", "", HC),
     Column1 is Column+1,
-    format_cells(TW, Column1, Row, State, TC).
+    format_cells(TW0, TW, Column1, Row, State, TC).
+
+cell_colspan(Cell, CWidths, HW, TW) :-
+    cell_colspan(Cell, Span),
+    length(SpanW, Span),
+    append(SpanW, TW, CWidths),
+    sum_list(SpanW, HW).
+
+cell_colspan(element(_,Attrs,_), Span) :-
+    (   memberchk(colspan=SpanA, Attrs),
+        atom_number(SpanA, SpanN)
+    ->  Span = SpanN
+    ;   Span = 1
+    ).
 
 
 %!  format_cell_to_string(+Cell, +ColWidth, +State, -String) is det.
