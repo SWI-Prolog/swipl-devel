@@ -761,6 +761,12 @@ cell_colspan(element(_,Attrs,_), Span) :-
 %
 %   Format Cell to a String, given the state and column width.
 
+format_cell_to_string(element(_,_,[]), ColWidth, State, String) :-
+    Pad = State.get(pad),
+    !,
+    length(Chars, ColWidth),
+    maplist(=(Pad), Chars),
+    atomics_to_string(Chars, String).
 format_cell_to_string(Cell, ColWidth, State, String) :-
     setup_call_cleanup(
         init_nl(NlState),
