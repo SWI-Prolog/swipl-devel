@@ -695,8 +695,17 @@ auto_cell_width(_, _, 0).
 %   Format a single row.
 
 format_row(ColWidths, State, MarginLeft, Row) :-
+    hrule(Row, ColWidths, MarginLeft),
     format_cells(ColWidths, CWSpanned, 1, Row, State, Cells),
     format_row_lines(1, CWSpanned, Cells, MarginLeft).
+
+hrule(row(_, Attrs), ColWidths, MarginLeft) :-
+    attrs_classes(Attrs, Classes),
+    memberchk(hline, Classes),
+    !,
+    sum_list(ColWidths, RuleLen),
+    format('~N~t~*|~`-t~*+', [MarginLeft, RuleLen]).
+hrule(_, _, _).
 
 format_row_lines(LineNo, Widths, Cells, MarginLeft) :-
     nth_row_line(Widths, 1, LineNo, Cells, CellLines, Found),
@@ -738,7 +747,8 @@ format_cells(CWidths, [HW|TW], Column, Row, State, [HC|TC]) :-
     Row = row(Columns, _Attrs),
     nth1(Column, Columns, Cell),
     cell_colspan(Cell, CWidths, HW, TW0),
-    format_cell_to_string(Cell, HW, State.put(pad, ' '), String),
+    cell_align(Cell, Align),
+    format_cell_to_string(Cell, HW, State.put(_{pad:' ', text_align:Align}), String),
     split_string(String, "\n", "", HC),
     Column1 is Column+1,
     format_cells(TW0, TW, Column1, Row, State, TC).
@@ -754,6 +764,22 @@ cell_colspan(element(_,Attrs,_), Span) :-
         atom_number(SpanA, SpanN)
     ->  Span = SpanN
     ;   Span = 1
+    ).
+
+%!  cell_align(+Cell, -Align) is det.
+%
+%   Determine the cell alignment. Currently   supports  the (deprecated)
+%   HTML4  `align=Align`  possibility  and  very    naively  parsed  CSS
+%   ``text-align:center``, etc.
+
+cell_align(element(_,Attrs,_), Align) :-
+    (   memberchk(align=AlignA, Attrs)
+    ->  Align = AlignA
+    ;   memberchk(style=Style, Attrs),
+        style_css_attrs(Style, Props),
+        memberchk('text-align'(AlignA), Props)
+    ->  Align = AlignA
+    ;   Align = left
     ).
 
 

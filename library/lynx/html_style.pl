@@ -35,7 +35,9 @@
 :- module(format_style,
           [ element_css/3,             % +El, +Attrs, -CSS
             css_block_options/5,       % +CSS, +M0, -Margins, -ParOptions, -Style
-            css_inline_options/3       % +CSS, -Margins, -Style
+            css_inline_options/3,      % +CSS, -Margins, -Style
+            attrs_classes/2,           % +Attrs, -Classes
+            style_css_attrs/2          % +Style, -Properties
           ]).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
@@ -54,7 +56,8 @@ element_css(El, Attrs, CSS) :-
 
 applicable_style(_, Attrs, CSS) :-
     memberchk(style=Style, Attrs),
-    style_css_attrs(Style, CSS).
+    style_css_attrs(Style, CSS),
+    text_style(CSS).
 applicable_style(El, Attrs, CSS) :-
     html_text:style(El, Cond, CSS),
     (   eval(Cond, Attrs)
@@ -71,6 +74,12 @@ attrs_classes(Attrs, Classes) :-
     split_string(Spec, " \t\r\n", " \t\r\n", ClassStrings),
     maplist(atom_string, Classes, ClassStrings).
 
+%!  style_css_attrs(+Style, -CSS:list) is det.
+%
+%   Convert a style description into a list Property(Value).
+%
+%   @bug: far too simple.
+
 style_css_attrs(Style, CSS) :-
     split_string(Style, ";", " \t\r\n", Parts),
     convlist(style_css_attr, Parts, CSS).
@@ -79,8 +88,7 @@ style_css_attr(Style, CSS) :-
     split_string(Style, ":", " \t\r\n", [NameS,ValueS]),
     atom_string(Name, NameS),
     atom_string(Value, ValueS),
-    CSS =.. [Name,Value],
-    text_style(CSS).
+    CSS =.. [Name,Value].
 
 text_style(float(right)).
 
