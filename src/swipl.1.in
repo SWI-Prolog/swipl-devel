@@ -322,6 +322,11 @@ for unblocking system calls.  Default is
 Using 0 disables installing a signal handler, delaying the delivery
 of thread signals until the blocking system call completes.
 .TP
+.BR \-\-threads [=bool]
+Disable creating threads in the multi-threaded version.  This notably
+prevents running global garbage collection on a separate thread and
+may be used for situations where multiple threads are not desirable.
+.TP
 .B \-\-
 Stops scanning for more arguments.
 .SH ENVIRONMENT VARIABLES

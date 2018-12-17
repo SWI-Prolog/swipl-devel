@@ -649,6 +649,12 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  }
 	} else
 	  return -1;
+      } else if ( (rc=is_bool_opt(s, "threads", &b)) )
+      { if ( rc == TRUE )
+	{ if ( !b )
+	    GD->options.nothreads = TRUE;
+	} else
+	  return -1;
       } else if ( (rc=is_bool_opt(s, "tty", &b)) )
       { if ( rc == TRUE )
 	{ if ( b )
@@ -959,7 +965,7 @@ PL_initialise(int argc, char **argv)
     return FALSE;
 #ifdef O_PLMT
   aliasThread(PL_thread_self(), ATOM_thread, ATOM_main);
-  enableThreads(TRUE);
+  enableThreads(!GD->options.nothreads);
 #endif
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
   initialiseForeign(GD->cmdline.os_argc, /* PL_initialise_hook() functions */
@@ -1071,6 +1077,7 @@ usage(void)
     "    -O                       Optimised compilation\n",
     "    --tty[=bool]             (Dis)allow tty control\n",
     "    --signals[=bool]         Do (not) modify signal handling\n",
+    "    --threads[=bool]         Do (not) allow for threads\n",
     "    --debug[=bool]           Do (not) generate debug info\n",
     "    --quiet[=bool] (-q)      Do (not) suppress informational messages\n",
     "    --traditional            Disable extensions of version 7\n",

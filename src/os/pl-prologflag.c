@@ -733,7 +733,14 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { debugstatus.showContext = val;
 #ifdef O_PLMT
       } else if ( k == ATOM_threads )
-      { if ( !(rval = enableThreads(val)) )
+      { if ( val )
+	{ rval = enableThreads(val);
+	  PL_LOCK(L_PLFLAG);
+	} else
+	{ PL_UNLOCK(L_PLFLAG);
+	  rval = enableThreads(val);
+	}
+	if ( !rval )
 	  break;			/* don't change value */
 #endif
       } else if ( k == ATOM_tty_control )
@@ -1346,9 +1353,10 @@ initPrologFlags(void)
   setPrologFlag("pipe", FT_BOOL, TRUE, 0);
 #endif
 #ifdef O_PLMT
-  setPrologFlag("threads",	FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("threads",	FT_BOOL, !GD->options.nothreads, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
   setPrologFlag("gc_thread",    FT_BOOL,
+		!GD->options.nothreads &&
 		truePrologFlag(PLFLAG_GCTHREAD), PLFLAG_GCTHREAD);
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);

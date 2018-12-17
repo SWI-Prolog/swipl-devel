@@ -381,6 +381,10 @@ details.  Note that the handler to unblock system calls is still
 installed. This can be prevented using \exam{--sigalert=0} additionally.
 See \cmdlineoption{--sigalert}.
 
+    \cmdlineoptionitem{--nothreads}{}
+Disable threading for the multi-threaded version at runtime.  See also
+the flags \prologflagitem{threads} and \prologflagitem{gc_thread}.
+
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
 the user's browser on \verb$http://localhost:$\arg{port}. If
@@ -1747,6 +1751,13 @@ Space reserved for storing answer tables for \jargon{tabled predicates}
 (see table/1).\bug{Currently only counts the space occupied by the
 nodes in the answer tries.} When exceeded a
 \term{resource_error}{table_space} exception is raised.
+
+    \prologflagitem{threads}{bool}{rw}
+True when threads are supported.  If the system is compiled without
+thread support the value is \const{false} and read-only.  Otherwise
+the value is \const{true} unless the system was started with the
+\cmdlineoption{--nothreads}.  Threading may be disabled only if no
+threads are running.  See also the \prologflag{gc_thread} flag.
 
     \prologflagitem{timezone}{integer}{r}
 Offset in seconds west of GMT of the current time zone. Set at

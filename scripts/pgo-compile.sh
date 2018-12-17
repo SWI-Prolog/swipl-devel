@@ -22,7 +22,7 @@ else
     SWIPL=src/swipl
   fi
 
-  ${SWIPL} -f none ${PGO_PROGRAM}
+  ${SWIPL} -f none --no-threads ${PGO_PROGRAM}
 
   ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=USE -G Ninja ..
   ninja -t clean libswipl
