@@ -38,6 +38,7 @@
             sequence//3,                % :Element, :Sep, ?List
             sequence//5,                % :Start, :Element, :Sep, :End, ?List
             optional//2,                % :Match, :Otherwise
+            foreach//2,                 % :Generator, :Element
             foreach//3                  % :Generator, :Element, :Sep
           ]).
 :- use_module(library(ordsets)).
@@ -47,6 +48,7 @@
     sequence(3,//,?,?,?),
     sequence(//,3,//,//,?,?,?),
     optional(//, //, ?, ?),
+    foreach(0,//,?,?),
     foreach(0,//,//,?,?).
 
 /** <module> High order grammar operations
@@ -146,7 +148,8 @@ optional(Match, _Default) -->
 optional(_, Default) -->
     Default, !.
 
-%!  foreach(:Generator, :Element, :Sep)//
+%!  foreach(:Generator, :Element)// is det.
+%!  foreach(:Generator, :Element, :Sep)// is det.
 %
 %   Generate a list from the  solutions   of  Generator.  This predicate
 %   collects all solutions  of  Generator,   applies  Element  for  each
@@ -154,6 +157,9 @@ optional(_, Default) -->
 %
 %       ?- phrase(foreach(between(1,5,X), number(X), ", "), L).
 %       L = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10".
+
+foreach(Generator, Rule) -->
+    foreach(Generator, Rule, []).
 
 foreach(Generator, Rule, Sep) -->
     { term_variables(Generator, GenVars0),   sort(GenVars0, GenVars),
@@ -190,4 +196,5 @@ sandbox:safe_meta_predicate(dcg_high_order:sequence/4).
 sandbox:safe_meta_predicate(dcg_high_order:sequence/5).
 sandbox:safe_meta_predicate(dcg_high_order:sequence/7).
 sandbox:safe_meta_predicate(dcg_high_order:optional/4).
+sandbox:safe_meta_predicate(dcg_high_order:foreach/4).
 sandbox:safe_meta_predicate(dcg_high_order:foreach/5).
