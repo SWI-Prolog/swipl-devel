@@ -178,3 +178,16 @@ emit_list([H|T], Templ, SharedTempl, OnElem, OnSep) -->
     ;   OnSepCopy,
         emit_list(T, Templ, SharedTempl, OnElem, OnSep)
     ).
+
+
+                /*******************************
+                *            SANDBOX           *
+                *******************************/
+
+:- multifile sandbox:safe_meta_predicate/1.
+
+sandbox:safe_meta_predicate(dcg_high_order:sequence/4).
+sandbox:safe_meta_predicate(dcg_high_order:sequence/5).
+sandbox:safe_meta_predicate(dcg_high_order:sequence/7).
+sandbox:safe_meta_predicate(dcg_high_order:optional/4).
+sandbox:safe_meta_predicate(dcg_high_order:foreach/5).
