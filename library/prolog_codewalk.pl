@@ -229,7 +229,7 @@ prolog_walk_code(Iteration, Options) :-
 is_meta(on_trace).
 
 
-%!  walk_clauses(Clauses, +OTerm) is det.
+%!  walk_clauses(+Clauses, +OTerm) is det.
 %
 %   Walk the given clauses.
 
