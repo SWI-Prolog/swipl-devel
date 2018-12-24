@@ -1638,11 +1638,14 @@ set_os_thread_name_from_charp(const char *s)
   } else
   { strcpy(name, s);
   }
-#ifdef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
-  if ( pthread_setname_np(name) == 0 )
+#ifdef HAVE_PTHREAD_SETNAME_NP_WITH_TID
+  if ( pthread_setname_np(pthread_self(), name) == 0 )
+    return TRUE;
+#elif HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG
+  if ( pthread_setname_np(pthread_self(), "%s", (void *)name) == 0 )
     return TRUE;
 #else
-  if ( pthread_setname_np(pthread_self(), name) == 0 )
+  if ( pthread_setname_np(name) == 0 )
     return TRUE;
 #endif
 #endif

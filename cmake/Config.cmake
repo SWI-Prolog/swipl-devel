@@ -232,9 +232,12 @@ check_c_source_compiles(
      { pthread_setname_np(0, \"myname\"); return 0;
      }"
     HAVE_PTHREAD_SETNAME_NP_WITH_TID)
-if(NOT HAVE_PTHREAD_SETNAME_NP_WITH_TID)
-  set(HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1)
-endif()
+
+check_c_source_compiles(
+    "#include <pthread.h>\nint main()
+     { pthread_setname_np(0, \"%s\", (void *)\"myname\"); return 0;
+     }"
+    HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG)
 
 check_c_source_compiles(
     "#include <sys/types.h>
