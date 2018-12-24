@@ -227,14 +227,31 @@ check_function_exists(sem_init HAVE_SEM_INIT)
 include(TestRecursiveMutex)
 
 if(HAVE_PTHREAD_SETNAME_NP)
-check_c_source_compiles(
-    "#include <pthread.h>\nint main()
-     { pthread_setname_np(0, \"myname\"); return 0;
-     }"
-    HAVE_PTHREAD_SETNAME_NP_WITH_TID)
-if(NOT HAVE_PTHREAD_SETNAME_NP_WITH_TID)
-  set(HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1)
-endif()
+function(check_pthread_setname_np)
+  set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -Werror)
+  check_c_source_compiles(
+      "#define _GNU_SOURCE
+       #include <pthread.h>\nint main()
+       { pthread_setname_np(0, \"myname\"); return 0;
+       }"
+      HAVE_PTHREAD_SETNAME_NP_WITH_TID)
+
+  check_c_source_compiles(
+      "#define _GNU_SOURCE
+       #include <pthread.h>
+       int main()
+       { pthread_setname_np(0, \"%s\", (void *)\"myname\"); return 0;
+       }"
+      HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG)
+
+  if(HAVE_PTHREAD_SETNAME_NP_WITH_TID)
+    set(HAVE_PTHREAD_SETNAME_NP_WITH_TID 1 PARENT_SCOPE)
+  elseif(HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG)
+    set(HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG 1 PARENT_SCOPE)
+  endif()
+endfunction()
+check_pthread_setname_np()
+endif(HAVE_PTHREAD_SETNAME_NP)
 
 check_c_source_compiles(
     "#include <sys/types.h>
@@ -255,7 +272,6 @@ if(NOT HAVE_GETTID_MACRO)
       HAVE_GETTID_SYSCALL)
 endif()
 
-endif(HAVE_PTHREAD_SETNAME_NP)
 endif(CMAKE_USE_PTHREADS_INIT)
 # Windows
 check_function_exists(WSAPoll HAVE_WSAPOLL)
