@@ -395,7 +395,6 @@ COMMON(void)		setOSPrologFlags(void);
 COMMON(void)		RemoveTemporaryFiles(void);
 COMMON(bool)		OpenStream(int fd);
 COMMON(char *)		expandVars(const char *pattern, char *expanded, int len);
-COMMON(char *)		getwd(char *buf);
 COMMON(char *)		AbsoluteFile(const char *spec, char *path);
 COMMON(int)		IsAbsolutePath(const char *spec);
 COMMON(char *)		BaseName(const char *f, char *buf);
