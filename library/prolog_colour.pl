@@ -1168,12 +1168,15 @@ expand_meta(MetaSpec, M:Goal, M:Expanded) :-
     expand_meta(MetaSpec, Goal, Expanded).
 expand_meta(MetaSpec, Goal, Expanded) :-
     integer(MetaSpec),
-    callable(Goal),
-    !,
-    length(Extra, MetaSpec),
-    Goal =.. List0,
-    append(List0, Extra, List),
-    Expanded =.. List.
+    MetaSpec > 0,
+    (   atom(Goal)
+    ->  functor(Expanded, Goal, MetaSpec)
+    ;   compound(Goal)
+    ->  compound_name_arguments(Goal, Name, Args0),
+        length(Extra, MetaSpec),
+        append(Args0, Extra, Args),
+        compound_name_arguments(Expanded, Name, Args)
+    ).
 
 %!  colourise_setof(+Term, +TB, +Pos)
 %
