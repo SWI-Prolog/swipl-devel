@@ -214,7 +214,7 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 
     gen:
       if ( tchar == -1 )
-      { if ( PL_unify_integer(A1, idx) &&
+      { if ( PL_unify_integer(A1, idx+1) &&
 	     PL_unify_integer(A3, text_get_char(&t, idx)) )
 	{ if ( idx+1 < t.length )
 	    ForeignRedoInt(idx+1);
