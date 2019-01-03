@@ -304,6 +304,7 @@ string_code(1,"abc",C) should_give C==97.
 string_code(2,"abc",C) should_give C==98.
 string_code(3,"abc",C) should_give C==99.
 string_code(-1, "abc",_) should_raise 6.
+string_code(I, "abc", C) should_give I==1, C==97.
 % possible alternative behaviour:
 %string_code(-1,"abc",C) should_give C==99.
 %string_code(-2,"abc",C) should_give C==98.
