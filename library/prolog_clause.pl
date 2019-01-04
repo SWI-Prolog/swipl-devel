@@ -332,14 +332,14 @@ unify_clause((Head :- Read),
                              ]).
                                         % DCG rules
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
-    Read = (_ --> List, _),
-    is_list(List),
+    Read = (_ --> Terminal, _),
+    is_list(Terminal),
     ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
     Compiled2 = (DH :- _),
     functor(DH, _, Arity),
     DArg is Arity - 1,
+    append(Terminal, _Tail, List),
     arg(DArg, DH, List),
-    nonvar(List),
     TermPos1 = term_position(F,T,FF,FT,[ HP,
                                          term_position(_,_,_,_,[_,BP])
                                        ]),
