@@ -40,6 +40,7 @@ throw(error(<Formal>, <SWI-Prolog>))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 /* BeOS has EACCES defined elsewhere, but errno is here */
 #if !defined(EACCES) || defined(__BEOS__)
 #include <errno.h>
@@ -902,6 +903,7 @@ printMessage(atom_t severity, ...)
 		 PL_atom_chars(source_file_name), (int)source_line_no);
       rc = PL_write_term(Serror, av+1, 1200, 0);
       Sfprintf(Serror, "\n");
+      print_c_backtrace("printMessage()");
     } else				/* in_print_message == 2 */
     { Sfprintf(Serror, "printMessage(): recursive call\n");
     }
