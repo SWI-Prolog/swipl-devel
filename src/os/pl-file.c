@@ -751,8 +751,9 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
 { GET_LD
   int myflags = SH_ERRORS|SH_ALIAS;
 
-  if ( flags&SIO_INPUT  ) myflags |= SH_INPUT;
-  if ( flags&SIO_OUTPUT ) myflags |= SH_OUTPUT;
+  if ( flags&SIO_INPUT   ) myflags |= SH_INPUT;
+  if ( flags&SIO_OUTPUT  ) myflags |= SH_OUTPUT;
+  if ( flags&SIO_NOERROR ) myflags &= ~SH_ERRORS;
   if ( !(flags&(SIO_INPUT|SIO_OUTPUT)) )
     myflags |= SH_NOPAIR;
 
