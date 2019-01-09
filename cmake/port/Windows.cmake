@@ -6,6 +6,8 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(WIN64 1)
 endif()
 
+set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} ws2_32)
+
 if(MINGW_ROOT)
   include(port/MinGW)
 endif()
@@ -15,7 +17,7 @@ set(SWIPL_PATH_SEP "\;")
 set(SO_PATH PATH)
 
 set(SRC_OS_SPECIFIC pl-nt.c pl-ntconsole.c pl-dde.c os/windows/uxnt.c)
-set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} winmm.lib)
+set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} winmm.lib ws2_32.lib)
 
 if(NOT DEFINED WIN32_DLLS)
 
