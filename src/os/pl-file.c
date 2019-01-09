@@ -4210,8 +4210,8 @@ do_close(IOSTREAM *s, int force)
   { if ( !s )
       return TRUE;
     if ( s == Sinput )
-      Sclearerr(s);
-    else if ( s == Soutput || s == Serror )
+    { Sclearerr(s);
+    } else if ( s == Soutput || s == Serror )
     { Sflush(s);
       Sclearerr(s);
     } else
@@ -4246,10 +4246,10 @@ pl_close(term_t stream, int force ARG_LD)
     if ( ref->read && ref->write )
     { assert(ref->read->references);
       assert(ref->write->references);
-      if ( ref->read && !ref->read->erased )
-	rc = do_close(getStream(ref->read), force);
       if ( ref->write && !ref->write->erased )
 	rc = do_close(getStream(ref->write), force) && rc;
+      if ( ref->read && !ref->read->erased )
+	rc = do_close(getStream(ref->read), force);
     } else
     { if ( ref->read )
       { assert(ref->read->references);
