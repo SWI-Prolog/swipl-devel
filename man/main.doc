@@ -57,12 +57,12 @@
 \pagestyle{fancyplain}
 #endif
 
-\newcommand{\vmajor}{7}
-\newcommand{\vminor}{7}
-\newcommand{\vpatch}{25}
+\newcommand{\vmajor}{8}
+\newcommand{\vminor}{0}
+\newcommand{\vpatch}{0}
 \newcommand{\vtag}{}
-\newcommand{\vmonth}{December}
-\newcommand{\vyear}{2018}
+\newcommand{\vmonth}{January}
+\newcommand{\vyear}{2019}
 
 #ifdef BOOK
 \newcommand{\versionshort}{\vmajor}
