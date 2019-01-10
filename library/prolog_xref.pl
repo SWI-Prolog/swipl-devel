@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2017, University of Amsterdam
+    Copyright (c)  2006-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,6 +81,8 @@
 :- use_module(library(pldoc), []).      % Must be loaded before doc_process
 :- use_module(library(pldoc/doc_process)).
 :- endif.
+:- use_module(library(solution_sequences)).
+:- use_module(library(modules)).
 
 :- predicate_options(xref_source/2, 2,
                      [ silent(boolean),
@@ -302,8 +305,17 @@ last_modified(Source, Modified) :-
     !.
 last_modified(Source, Modified) :-
     atom(Source),
+    \+ is_global_url(Source),
     exists_file(Source),
     time_file(Source, Modified).
+
+is_global_url(File) :-
+    sub_atom(File, B, _, _, '://'),
+    !,
+    B > 1,
+    sub_atom(File, 0, B, _, Scheme),
+    atom_codes(Scheme, Codes),
+    maplist(between(0'a, 0'z), Codes).
 
 xref_setup(Src, In, Options, state(In, Dialect, Xref, [SRef|HRefs])) :-
     maplist(assert_option(Src), Options),
@@ -694,17 +706,13 @@ collect(Src, File, In, Options) :-
                   ]),
               E, report_syntax_error(E, Src, [])),
         update_condition(Term),
-        (   is_list(Expanded)
-        ->  member(T, Expanded)
-        ;   T = Expanded
-        ),
         stream_position_data(line_count, TermPos, Line),
         setup_call_cleanup(
             asserta(source_line(SrcSpec), Ref),
-            catch(process(T, Comments, TermPos, Src),
+            catch(process(Expanded, Comments, TermPos, Src, EOF),
                   E, print_message(error, E)),
             erase(Ref)),
-        T == end_of_file,
+        EOF == true,
     !.
 
 report_syntax_error(E, _, _) :-
@@ -772,11 +780,33 @@ list_to_conj([H|T], (H,C)) :-
                  *           PROCESS            *
                  *******************************/
 
-%!  process(+Term, +Comments, +TermPos, +Src) is det.
+%!  process(+Expanded, +Comments, +TermPos, +Src, -EOF) is det.
+%
+%   Process a source term that has  been   subject  to term expansion as
+%   well as its optional leading structured comments.
+%
+%   @arg TermPos is the term position that describes the start of the
+%   term.  We need this to find _leading_ comments.
+%   @arg EOF is unified with a boolean to indicate whether or not
+%   processing was stopped because `end_of_file` was processed.
 
-process(Term, Comments, TermPos, Src) :-
+process(Expanded, Comments, TermPos, Src, EOF) :-
+    is_list(Expanded),                          % term_expansion into list.
+    !,
+    (   member(Term, Expanded),
+        process(Term, Src),
+        Term == end_of_file
+    ->  EOF = true
+    ;   EOF = false
+    ),
+    xref_comments(Comments, TermPos, Src).
+process(end_of_file, _, _, _, true) :-
+    !.
+process(Term, Comments, TermPos, Src, false) :-
     process(Term, Src),
     xref_comments(Comments, TermPos, Src).
+
+%!  process(+Term, +Src) is det.
 
 process(Var, _) :-
     var(Var),
@@ -1156,6 +1186,7 @@ xref_meta(phrase(G, _A, _R),    [//(G)]).
 xref_meta(call_dcg(G, _A, _R),  [//(G)]).
 xref_meta(phrase_from_file(G,_),[//(G)]).
 xref_meta(catch(A, _, B),       [A, B]).
+xref_meta(catch_with_backtrace(A, _, B), [A, B]).
 xref_meta(thread_create(A,_,_), [A]).
 xref_meta(thread_create(A,_),   [A]).
 xref_meta(thread_signal(_,A),   [A]).
@@ -1739,6 +1770,10 @@ process_use_module2(File, Import, Src, Reexport) :-
 %     * silent(+Boolean)
 %     Do not print any messages or raise exceptions on errors.
 %
+%   The information collected by this predicate   is  cached. The cached
+%   data is considered valid as long  as   the  modification time of the
+%   file does not change.
+%
 %   @param Source is the file from which Spec is referenced.
 
 xref_public_list(File, Src, Options) :-
@@ -1780,28 +1815,71 @@ xref_public_list(File, Path, Module, Export, Public, Meta, Src) :-
     xref_source_file(File, Path, Src),
     public_list(Path, Module, Meta, Export, Public, []).
 
-public_list(Path, Module, Meta, Export, Public, Options) :-
-    public_list_diff(Path, Module, Meta, [], Export, [], Public, [], Options).
+%!  public_list(+Path, -Module, -Meta, -Export, -Public, +Options)
+%
+%   Read the public information for Path.  Options supported are:
+%
+%     - silent(+Boolean)
+%       If `true`, ignore (syntax) errors.  If not specified the default
+%       is inherited from xref_source/2.
 
-public_list_diff(Path, Module, Meta, MT, Export, Rest, Public, PT, Options) :-
+:- dynamic  public_list_cache/6.
+:- volatile public_list_cache/6.
+
+public_list(Path, Module, Meta, Export, Public, _Options) :-
+    public_list_cache(Path, Modified,
+                      Module0, Meta0, Export0, Public0),
+    time_file(Path, ModifiedNow),
+    (   abs(Modified-ModifiedNow) < 0.0001
+    ->  !,
+        t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0)
+    ;   retractall(public_list_cache(Path, _, _, _, _, _)),
+        fail
+    ).
+public_list(Path, Module, Meta, Export, Public, Options) :-
+    public_list_nc(Path, Module0, Meta0, Export0, Public0, Options),
+    (   Error = error(_,_),
+        catch(time_file(Path, Modified), Error, fail)
+    ->  asserta(public_list_cache(Path, Modified,
+                                  Module0, Meta0, Export0, Public0))
+    ;   true
+    ),
+    t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
+
+public_list_nc(Path, Module, Meta, Export, Public, Options) :-
+    in_temporary_module(
+        TempModule,
+        true,
+        public_list_diff(TempModule, Path, Module,
+                         Meta, [], Export, [], Public, [], Options)).
+
+
+public_list_diff(TempModule,
+                 Path, Module, Meta, MT, Export, Rest, Public, PT, Options) :-
     setup_call_cleanup(
-        ( prolog_open_source(Path, In),
-          set_xref(Old)
-        ),
+        public_list_setup(TempModule, Path, In, State),
         phrase(read_directives(In, Options, [true]), Directives),
-        ( set_prolog_flag(xref, Old),
-          prolog_close_source(In)
-        )),
+        public_list_cleanup(In, State)),
     public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
+
+public_list_setup(TempModule, Path, In, state(OldM, OldXref)) :-
+    prolog_open_source(Path, In),
+    '$set_source_module'(OldM, TempModule),
+    set_xref(OldXref).
+
+public_list_cleanup(In, state(OldM, OldXref)) :-
+    '$set_source_module'(OldM),
+    set_prolog_flag(xref, OldXref),
+    prolog_close_source(In).
 
 
 read_directives(In, Options, State) -->
     {  repeat,
-         catch(prolog_read_source_term(In, Term, Expanded,
-                                       [ process_comment(true),
-                                         syntax_errors(error)
-                                       ]),
-               E, report_syntax_error(E, -, Options))
+       catch(prolog_read_source_term(In, Term, Expanded,
+                                     [ process_comment(true),
+                                       syntax_errors(error)
+                                     ]),
+             E, report_syntax_error(E, -, Options))
     -> nonvar(Term),
        Term = (:-_)
     },
@@ -1872,15 +1950,25 @@ public_list_1(meta_predicate(Decl), _Path, Meta, MT, Export, Export, Public, Pub
 public_list_1(public(Decl), _Path, Meta, Meta, Export, Export, Public, PT) :-
     phrase(public_decls(Decl), Public, PT).
 
+%!  reexport_files(+Files, +Src,
+%!                 -Meta, ?MetaTail, -Exports, ?ExportsTail,
+%!                 -Public, ?PublicTail)
+
 reexport_files([], _, Meta, Meta, Export, Export, Public, Public) :- !.
-reexport_files([H|T], Src, Meta, MT, Export, Rest, Public, PT) :-
+reexport_files([H|T], Src, Meta, MT, Export, ET, Public, PT) :-
     !,
     xref_source_file(H, Path, Src),
-    public_list_diff(Path, _, Meta, MT0, Export, Rest0, Public, PT0, []),
-    reexport_files(T, Src, MT0, MT, Rest0, Rest, PT0, PT).
-reexport_files(Spec, Src, Meta, MT, Export, Rest, Public, PT) :-
+    public_list(Path, _Module, Meta0, Export0, Public0, []),
+    append(Meta0, MT1, Meta),
+    append(Export0, ET1, Export),
+    append(Public0, PT1, Public),
+    reexport_files(T, Src, MT1, MT, ET1, ET, PT1, PT).
+reexport_files(Spec, Src, Meta, MT, Export, ET, Public, PT) :-
     xref_source_file(Spec, Path, Src),
-    public_list_diff(Path, _, Meta, MT, Export, Rest, Public, PT, []).
+    public_list(Path, _Module, Meta0, Export0, Public0, []),
+    append(Meta0, MT, Meta),
+    append(Export0, ET, Export),
+    append(Public0, PT, Public).
 
 public_from_import(except(Map), Path, Src, Export, Rest) :-
     !,

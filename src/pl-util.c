@@ -59,42 +59,70 @@ procedureName(Procedure proc)
 					  : (s)->text.w[i])
 
 const char *
-atom_summary(atom_t name, unsigned int maxlen)
-{ PL_chars_t txt;
-  Buffer b;
+text_summary(PL_chars_t *txt, char q, unsigned int maxlen)
+{ Buffer b;
   size_t i;
 
-  if ( !get_atom_text(name, &txt) )
-    return NULL;
-
-  if ( txt.encoding == ENC_ISO_LATIN_1 && txt.length < maxlen )
-  { const unsigned char *s = (const unsigned char*) txt.text.t;
-    const unsigned char *e = &s[txt.length];
+  if ( txt->encoding == ENC_ISO_LATIN_1 && txt->length < maxlen && !q )
+  { const unsigned char *s = (const unsigned char*) txt->text.t;
+    const unsigned char *e = &s[txt->length];
 
     for( ; s<e; s++ )
     { if ( *s >= 0x80 )
 	break;
     }
     if ( s == e )
-      return txt.text.t;
+      return txt->text.t;
   }
 
   b = findBuffer(BUF_RING);
-  for(i=0; i<txt.length; i++)
+  if ( q )
+  { maxlen -= 2;
+    addBuffer(b, q, char);
+  }
+  for(i=0; i<txt->length; i++)
   { char buf[6];
     char *e;
 
-    e = utf8_put_char(buf, fetch_text(&txt, i));
+    e = utf8_put_char(buf, fetch_text(txt, i));
     addMultipleBuffer(b, buf, e-buf, char);
     if ( i == maxlen - 6 )
     { addMultipleBuffer(b, "...", 3, char);
-      i = txt.length - 4;
+      i = txt->length - 4;
       maxlen = 0;			/* make sure not to trap again */
     }
   }
+  if ( q )
+    addBuffer(b, q, char);
   addBuffer(b, 0, char);
 
   return baseBuffer(b, char);
+}
+
+
+const char *
+atom_summary(atom_t name, unsigned int maxlen)
+{ PL_chars_t txt;
+
+  if ( !get_atom_text(name, &txt) )
+  { if ( isNil(name) )
+      return "[]";
+    return "<blob>";
+  }
+
+  return text_summary(&txt, 0, maxlen);
+}
+
+
+const char *
+string_summary(word string, unsigned int maxlen)
+{ GET_LD
+  PL_chars_t txt;
+
+  if ( !get_string_text(string, &txt PASS_LD) )
+    return NULL;
+
+  return text_summary(&txt, '"', maxlen);
 }
 
 
@@ -158,8 +186,8 @@ keyName(word key)
     { strcpy(tmp, "<nil>");
     } else
     { switch(tag(key))
-      { case PL_INTEGER:
-	case PL_FLOAT:
+      { case TAG_INTEGER:
+	case TAG_FLOAT:
 	{ GET_LD
 	  number n;
 
@@ -176,9 +204,14 @@ keyName(word key)
 	  }
 	  break;
 	}
-      case PL_ATOM:
-	strcpy(tmp, atom_summary(key, 30));
-	break;
+        case TAG_ATOM:
+	  strcpy(tmp, atom_summary(key, 30));
+	  break;
+	case TAG_STRING:
+	  strcpy(tmp, string_summary(key, 30));
+	  break;
+	default:
+	  assert(0);
       }
     }
 
@@ -213,10 +246,11 @@ generation.  Use the current generation if gen is 0;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-clauseNo(Definition def, Clause cl, gen_t gen)
+clauseNo(Clause cl, gen_t gen)
 { GET_LD
   int i;
   ClauseRef cref;
+  Definition def = cl->predicate;
 
   if ( !gen )
     gen = global_generation();

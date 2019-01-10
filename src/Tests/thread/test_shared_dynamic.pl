@@ -35,33 +35,44 @@
 
 :- module(test_shared_dynamic,
 	  [ test_shared_dynamic/0,
-	    test_shared_dynamic/1
+	    test_shared_dynamic/2
 	  ]).
 
 :- dynamic(foo/1).
 :- dynamic(failed/1).
 
 test_shared_dynamic :-
-	test_shared_dynamic(50000).
+	test_shared_dynamic(4, 50000).
 
-test_shared_dynamic(N) :-
-	message_queue_create(Queue),
-        thread_create(producer(Queue, N), Producer, []),
-        thread_create(consumer(Queue), Consumer, []),
-	thread_join(Producer, PStat),
-	thread_join(Consumer, CStat),
-	message_queue_destroy(Queue),
-	PStat == true,
-	CStat == true,
+test_shared_dynamic(Sessions, N) :-
+	retractall(failed(_)),
+	length(Producers, Sessions),
+	length(Consumers, Sessions),
+	numlist(1, Sessions, Offsets),
+	maplist(create_producer(N, Sessions), Offsets, Producers, Queues),
+	maplist(create_consumer, Queues, Consumers),
+	maplist(thread_join, Producers, PStats),
+	maplist(thread_join, Consumers, CStats),
+	maplist(message_queue_destroy, Queues),
+	maplist(==(true), PStats),
+	maplist(==(true), CStats),
 	\+ failed(_).
 
-producer(Queue, N) :-
-	(   between(1, N, X),
+create_producer(N, Incr, Offset, Id, Queue) :-
+	message_queue_create(Queue),
+	thread_create(producer(Queue, N, Incr, Offset), Id, []).
+
+producer(Queue, N, Incr, Offset) :-
+	(   between(1, N, X0),
+	    X is Offset+X0*Incr,
 	    assert(foo(X)),
 	    thread_send_message(Queue, X),
 	    fail
         ;   thread_send_message(Queue, done)
 	).
+
+create_consumer(Queue, Id) :-
+	thread_create(consumer(Queue), Id, []).
 
 consumer(Queue) :-
         repeat,

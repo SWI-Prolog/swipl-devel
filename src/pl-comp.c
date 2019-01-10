@@ -524,7 +524,10 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
 void
 freeVarDefs(PL_local_data_t *ld)
 { if ( ld->comp.vardefs )
-  { GET_LD
+  {
+#ifndef NDEBUG
+    GET_LD
+#endif
     VarDef *vardefs = ld->comp.vardefs;
     int i, count=ld->comp.nvardefs;
 
@@ -3666,7 +3669,7 @@ takes care of reconsult, redefinition, etc.
     }
 
     if ( proc != of->current_procedure )
-    { if ( def->impl.any )	/* i.e. is (might be) defined */
+    { if ( def->impl.any.defined )
       { if ( !redefineProcedure(proc, of, 0) )
 	{ freeClause(clause);
 	  return NULL;
@@ -3860,14 +3863,16 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
 { PRED_LD
   atom_t filename;
   SourceFile sf;
+  Procedure proc;
+  Definition def;
 
   if ( !PL_get_atom_ex(A1, &filename) )
     return FALSE;
 
   sf = lookupSourceFile(filename, TRUE);
-  if ( sf->current_procedure )
-  { return unify_definition(NULL, A2, sf->current_procedure->definition, 0,
-			    GP_QUALIFY|GP_NAMEARITY);
+  if ( (proc=sf->current_procedure) &&
+       (def=proc->definition) )
+  { return unify_definition(NULL, A2, def, 0, GP_QUALIFY|GP_NAMEARITY);
   }
 
   return PL_unify_nil(A2);
@@ -4086,19 +4091,19 @@ position after skipping skip argument terms   by  inspecting the virtual
 machine code.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
-pl-index.c and arg1Key() below.
+pl-index.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline word
 murmur_key(void *ptr, size_t n)
-{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
-  if ( !k ) k = 1;
-  return k;
+{ return MurmurHashAligned2(ptr, n, MURMUR_SEED);
 }
 
 int
 argKey(Code PC, int skip, word *key)
-{ if ( skip > 0 )
+{ word ikey;
+
+  if ( skip > 0 )
     PC = skipArgs(PC, skip);
 
   for(;;)
@@ -4126,34 +4131,39 @@ argKey(Code PC, int skip, word *key)
         succeed;
 #if SIZEOF_VOIDP == 4
       case H_INT64:			/* only on 32-bit hardware! */
-	*key = murmur_key(PC, 2*sizeof(*PC));
-	succeed;
+	ikey = murmur_key(PC, 2*sizeof(*PC));
+        goto nofunctor;
 #endif
       case H_INTEGER:
 #if SIZEOF_VOIDP == 4
       { int64_t val;
 	val = (int64_t)(intptr_t)*PC;
-	*key = murmur_key(&val, sizeof(val));
+	ikey = murmur_key(&val, sizeof(val));
       }
 #else
-	*key = murmur_key(PC, sizeof(*PC));
+	ikey = murmur_key(PC, sizeof(*PC));
 #endif
-        succeed;
+      nofunctor:
+	ikey &= ~((word)STG_GLOBAL);
+	if ( !ikey ) ikey = 1;
+	*key = ikey;
+	succeed;
       case H_FLOAT:
-	*key = murmur_key(PC, sizeof(double));
-        succeed;
+	ikey = murmur_key(PC, sizeof(double));
+        goto nofunctor;
       case H_STRING:
       case H_MPZ:
       { word m = *PC++;
 	size_t n = wsizeofInd(m);
 
-	*key = murmur_key(PC, n*sizeof(*PC));
-	succeed;
+	ikey = murmur_key(PC, n*sizeof(*PC));
+	goto nofunctor;
       }
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
       case H_VOID_N:
+      case H_POP:
       case I_EXITCATCH:
       case I_EXITRESET:
       case I_EXITFACT:
@@ -4169,6 +4179,8 @@ argKey(Code PC, int skip, word *key)
 	goto again;
 #endif
       default:
+	Sdprintf("Unexpected VM code %d at %p\n", c, PC);
+	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
         fail;
     }
@@ -5818,7 +5830,7 @@ wouldBindToDefinition(Definition from, Definition to)
     { if ( def == to )			/* found it */
 	succeed;
 
-      if ( def->impl.any ||		/* defined and not the same */
+      if ( def->impl.any.defined ||	/* defined and not the same */
 	   true(def, PROC_DEFINED) ||
 	   getUnknownModule(def->module) == UNKNOWN_FAIL )
 	fail;
@@ -5930,7 +5942,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	    case CA1_MODULE:
 	    { Module xr = (Module)PC[an];
 
-	      if ( PL_unify_atom(term, xr->name) )
+	      if ( xr && PL_unify_atom(term, xr->name) )
 		succeed;
 	    }
 	  }
@@ -6938,7 +6950,11 @@ matching_unify_break(Clause clause, int offset, code op)
 }
 
 
-static bool				/* must hold L_BREAK */
+#define BRK_NOTSET 0
+#define BRK_SET    1
+#define BRK_EXISTS 2
+
+static int				/* must hold L_BREAK */
 setBreak(Clause clause, int offset)	/* offset is already verified */
 { int second_bp = FALSE;
   Code PC;
@@ -6951,6 +6967,9 @@ set_second:
 
   if ( !breakTable )
     breakTable = newHTable(16);
+
+  if ( dop == D_BREAK )
+    return BRK_EXISTS;
 
   if ( (codeTable[dop].flags & VIF_BREAK) || second_bp )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
@@ -6968,7 +6987,7 @@ set_second:
       goto set_second;
     }
 
-    return TRUE;
+    return BRK_SET;
   } else
   { return not_breakable(ATOM_set, clause, offset);
   }
@@ -6985,14 +7004,16 @@ clearBreak(Clause clause, int offset)
 clear_second:
   PC = PC0 = clause->codes + offset;
   if ( !breakTable || !(bp = lookupHTable(breakTable, PC)) )
-  { term_t brk;
+  { term_t brk, cl;
 
     if ( second_bp )
       return TRUE;
     if ( (brk=PL_new_term_ref()) &&
+	 (cl=PL_new_term_ref()) &&
+	 PL_unify_clref(cl, clause) &&
 	 PL_unify_term(brk,
 		       PL_FUNCTOR, FUNCTOR_break2,
-		         PL_POINTER, clause,
+		         PL_TERM, cl,
 		         PL_INT, offset) )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_break, brk);
     else
@@ -7026,7 +7047,7 @@ clearBreakPointsClause(Clause clause)
 		if ( bp->clause == clause )
 		{ int offset = bp->offset;
 		  clearBreak(clause, bp->offset);
-		  rc = callEventHook(PLEV_NOBREAK, clause, offset) && rc;
+		  rc = callEventHook(PLEV_GCNOBREAK, clause, offset) && rc;
 		}
 	      })
     PL_UNLOCK(L_BREAK);
@@ -7079,7 +7100,8 @@ instruction with D_BREAK.
 
 static
 PRED_IMPL("$break_at", 3, break_at, 0)
-{ Clause clause = NULL;
+{ PRED_LD
+  Clause clause = NULL;
   int offset, doit, rc;
 
   if ( (PL_get_clref(A1, &clause) != TRUE) ||
@@ -7097,7 +7119,17 @@ PRED_IMPL("$break_at", 3, break_at, 0)
   PL_UNLOCK(L_BREAK);
 
   if ( rc )
-    return callEventHook(doit ? PLEV_BREAK : PLEV_NOBREAK, clause, offset);
+  { pl_event_type et;
+
+    if ( doit )
+      et = (rc == BRK_SET ? PLEV_BREAK : PLEV_BREAK_EXISTS);
+    else
+      et = PLEV_NOBREAK;
+
+    startCritical;			/* Call event handler sig_atomic */
+    rc = callEventHook(et, clause, offset);
+    rc = endCritical && rc;
+  }
 
   return rc;
 }

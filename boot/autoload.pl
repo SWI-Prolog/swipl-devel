@@ -353,6 +353,7 @@ ensure_slash(Dir, DirS) :-
 
 source_file_pattern(Pattern) :-
     user:prolog_file_type(PlExt, prolog),
+    PlExt \== qlf,
     atom_concat('*.', PlExt, Pattern).
 
 plfile_in_dir(Dir, Base, PlBase, File) :-
@@ -382,22 +383,31 @@ library_index_out_of_date(Index, Files) :-
 
 do_make_library_index(Index, Dir, Files) :-
     ensure_slash(Dir, DirS),
-    catch(setup_call_cleanup(
-              open(Index, write, Fd),
-              ( print_message(informational, make(library_index(Dir))),
-                index_header(Fd),
-                index_files(Files, DirS, Fd)
-              ),
-              close(Fd)),
-          E, index_error(E)).
+    '$stage_file'(Index, StagedIndex),
+    setup_call_catcher_cleanup(
+        open(StagedIndex, write, Out),
+        ( print_message(informational, make(library_index(Dir))),
+          index_header(Out),
+          index_files(Files, DirS, Out)
+        ),
+        Catcher,
+        install_index(Out, Catcher, StagedIndex, Index)).
 
-index_error(E) :-
-    silent,
-    E = error(permission_error(open, source_sink, _)),
-    !.
-index_error(E) :-
-    print_message(error, E).
+install_index(Out, Catcher, StagedIndex, Index) :-
+    catch(close(Out), Error, true),
+    (   silent
+    ->  OnError = silent
+    ;   OnError = error
+    ),
+    (   var(Error)
+    ->  TheCatcher = Catcher
+    ;   TheCatcher = exception(Error)
+    ),
+    '$install_staged_file'(TheCatcher, StagedIndex, Index, OnError).
 
+%!  index_files(+Files, +Directory, +Out:stream) is det.
+%
+%   Write index for Files in Directory to the stream Out.
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-

@@ -65,7 +65,7 @@ test_overflow(Goal) :-
 		 test_overflow(overflow(Goal), GSize))).
 
 test_overflow(Goal, Size) :-
-	thread_create(Goal, Id, [global(Size)]),
+	thread_create(Goal, Id, [stack_limit(Size)]),
 	thread_join(Id, Result),
 	assertion(subsumes_term(exception(error(resource_error(_),_)), Result)).
 
@@ -330,7 +330,7 @@ test(no_dict, error(type_error(dict, "hello"))) :-
 :- end_tests(dict_dot3).
 
 
-:- begin_tests(dict_overflow).
+:- begin_tests(dict_overflow, [condition(current_prolog_flag(threads,true))]).
 
 test(put, true) :-
 	test_overflow(put_dict([a(1)], [b(2),c(3),d(4)], _)).

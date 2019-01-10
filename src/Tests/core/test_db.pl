@@ -102,7 +102,8 @@ test(update_view, L == [ant,bee]) :-
 	    fail
 	;   findall(I, retract(icopy(I)), L)
 	).
-test(concurrent, Sum == ConcurrentSum) :-
+test(concurrent, [condition(current_prolog_flag(threads,true)),
+		  Sum == ConcurrentSum]) :-
 	N = 10000,
 	numlist(0, N, List),
 	sum_list(List, Sum),
@@ -169,8 +170,12 @@ test(make_dynamic, [true, cleanup(abolish(Name, 1))]) :-
 
 :- end_tests(dynamic).
 
+test_protected_code :-
+	current_prolog_flag(protect_static_code, false),
+	\+ set_prolog_flag(coverage_analysis, true).
+
 :- begin_tests(protect, [ setup(set_prolog_flag(protect_static_code, true)),
-			  setup(set_prolog_flag(protect_static_code, false))
+			  condition(test_protected_code)
 			]).
 
 p1.

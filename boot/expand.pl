@@ -607,7 +607,7 @@ lhs_pos(P0, term_position(F,T,T,T,[P0,T-T])) :-
     arg(2, P0, T).
 
 
-%!  is_meta_call(+G0, +M, +Head) is semidet.
+%!  is_meta_call(+G0, +M, -Head) is semidet.
 %
 %   True if M:G0 resolves to a real meta-goal as specified by Head.
 

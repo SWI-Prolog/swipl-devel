@@ -3,8 +3,9 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -63,6 +64,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_UNLOAD),
   DEBUG_TOPIC(MSG_INDEX_FIND),
   DEBUG_TOPIC(MSG_INDEX_UPDATE),
+  DEBUG_TOPIC(MSG_INDEX_DEEP),
   DEBUG_TOPIC(MSG_TRACE),
 
   DEBUG_TOPIC(MSG_QLF_INTEGER),
@@ -91,6 +93,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_NSOLS),
   DEBUG_TOPIC(MSG_SRCFILE),
   DEBUG_TOPIC(MSG_DESTROY_MODULE),
+  DEBUG_TOPIC(MSG_CREATE_MODULE),
   DEBUG_TOPIC(MSG_QUEUE_GC),
   DEBUG_TOPIC(MSG_ACYCLIC),
   DEBUG_TOPIC(MSG_OPERATOR),
@@ -131,10 +134,12 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_GC_HOLE),
   DEBUG_TOPIC(MSG_GC_SWEEP),
   DEBUG_TOPIC(MSG_GC_CHECK),
+  DEBUG_TOPIC(MSG_SHIFT),
   DEBUG_TOPIC(MSG_SHIFT_PROGRESS),
   DEBUG_TOPIC(MSG_SHIFT_POINTER),
   DEBUG_TOPIC(MSG_SHIFT_FRAME),
   DEBUG_TOPIC(MSG_STACK_OVERFLOW),
+  DEBUG_TOPIC(MSG_UNWIND_EXCEPTION),
 
   DEBUG_TOPIC(MSG_ATTVAR_LINK),
   DEBUG_TOPIC(MSG_CALL_RESIDUE_VARS),
@@ -156,6 +161,7 @@ const debug_topic debug_topics[] =
 
   DEBUG_TOPIC(MSG_JIT),
   DEBUG_TOPIC(MSG_JIT_DELINDEX),
+  DEBUG_TOPIC(MSG_JIT_POOR),
 
   DEBUG_TOPIC(MSG_RECONSULT),
   DEBUG_TOPIC(MSG_RECONSULT_PRED),
@@ -165,7 +171,13 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_TRIE_PUT_TERM),
   DEBUG_TOPIC(MSG_TRIE_GC),
 
+  DEBUG_TOPIC(MSG_ZIP),
+  DEBUG_TOPIC(MSG_ZIP_STATE),
+
+  DEBUG_TOPIC(MSG_MODULE_REF),
+
   DEBUG_TOPIC(MSG_TABLING_WORK),
+  DEBUG_TOPIC(MSG_TABLING_MODED),
 
   DEBUG_TOPIC(CHK_SECURE),
   DEBUG_TOPIC(CHK_HIGH_ARITY),

@@ -58,7 +58,7 @@ join(Id) :-
 	assertion(Status == true).
 
 count_thread(N, Id) :-
-	thread_create(count(N), Id, [ local(2000) ]).
+	thread_create(count(N), Id, [ stack_limit(2_000_000) ]).
 
 count(N) :-
 	between(1, N, _),
@@ -97,7 +97,9 @@ lshift(S0) :-
 lshift(_).
 
 
-:- begin_tests(cgc, [sto(rational_trees)]).
+:- begin_tests(cgc, [ sto(rational_trees),
+		      condition(current_prolog_flag(threads, true))
+		    ]).
 
 test(shift_cgc) :-
 	shift_cgc(4, 4).

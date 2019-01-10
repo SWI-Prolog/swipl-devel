@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -154,6 +154,19 @@ atom_is_named_var(atom_t name)		/* see warn_singleton() */
 
   return -1;
 }
+
+
+static
+PRED_IMPL("$is_named_var", 1, is_named_var, 0)
+{ PRED_LD
+  atom_t name;
+
+  if ( PL_get_atom_ex(A1, &name) )
+    return atom_is_named_var(name) == 1;
+
+  return FALSE;
+}
+
 
 
 		 /*******************************
@@ -719,7 +732,7 @@ numberError(strnumstat rc, ReadData _PL_rd)
 
 
 static int
-singletonWarning(const char *which, const char **vars, int nvars)
+singletonWarning(term_t term, const char *which, const char **vars, int nvars)
 { GET_LD
   fid_t fid;
 
@@ -737,7 +750,8 @@ singletonWarning(const char *which, const char **vars, int nvars)
     rc = ( rc &&
 	   PL_unify_nil(a) &&
 	   printMessage(ATOM_warning,
-			PL_FUNCTOR_CHARS, which, 1,
+			PL_FUNCTOR_CHARS, which, 2,
+			  PL_TERM, term,
 			  PL_TERM, l) );
 
     PL_discard_foreign_frame(fid);
@@ -1091,7 +1105,7 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 }
 
 
-static unsigned char *
+static int
 raw_read2(ReadData _PL_rd ARG_LD)
 { int c;
   bool something_read = FALSE;
@@ -1109,7 +1123,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
     switch(c)
     { case EOF:
 		if ( Sferror(rb.stream) )
-		  return NULL;
+		  return FALSE;
 		if ( Sfpasteof(rb.stream) )
 		{ term_t stream;
 
@@ -1118,7 +1132,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  PL_unify_stream_or_alias(stream, rb.stream);
 		  PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			   ATOM_input, ATOM_past_end_of_stream, stream);
-		  return NULL;
+		  return FALSE;
 		}
 		if ( something_read )
 		{ if ( isStringStream(rb.stream) )
@@ -1126,14 +1140,14 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    addToBuffer('.', _PL_rd);
 		    ensure_space(' ');
 		    addToBuffer(EOS, _PL_rd);
-		    return rb.base;
+		    return TRUE;
 		  }
 		  rawSyntaxError("end_of_file");
 		}
 		set_start_line;
 		strcpy((char *)rb.base, "end_of_file. ");
 		rb.here = rb.base + 14;
-		return rb.base;
+		return TRUE;
       case '/': if ( rb.stream->position )
 		{ pbuf = *rb.stream->position;
 		  pbuf.charno--;
@@ -1163,7 +1177,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      discardBuffer(cbuf);
 		    setErrorLocation(pos, _PL_rd);
 		    if ( Sferror(rb.stream) )
-		      return NULL;
+		      return FALSE;
 		    rawSyntaxError("end_of_file_in_block_comment");
 		  }
 		  if ( cbuf )
@@ -1187,7 +1201,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  discardBuffer(cbuf);
 		        setErrorLocation(pos, _PL_rd);
 			if ( Sferror(rb.stream) )
-			  return NULL;
+			  return FALSE;
 			rawSyntaxError("end_of_file_in_block_comment");
 		      case '*':
 			if ( last == '/' )
@@ -1355,7 +1369,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    rawSyntaxError("end_of_clause");
 		  addToBuffer(' ', _PL_rd);
 		  addToBuffer(EOS, _PL_rd);
-		  return rb.base;
+		  return TRUE;
 		}
 		c = getchr();
 		if ( isSymbolW(c) )
@@ -1438,25 +1452,25 @@ proper reconstruction of source locations. Comment   before  the term is
 skipped.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static unsigned char *
+static int
 raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
-{ unsigned char *s;
+{ int rc;
 
   if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
   { ttybuf tab;
 
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(rb.stream, &ttytab, FALSE);
-    s = raw_read2(_PL_rd PASS_LD);
+    rc = raw_read2(_PL_rd PASS_LD);
     PopTty(rb.stream, &tab, TRUE);
   } else
-  { s = raw_read2(_PL_rd PASS_LD);
+  { rc = raw_read2(_PL_rd PASS_LD);
   }
 
   if ( endp )
     *endp = _PL_rd->_rb.here;
 
-  return s;
+  return rc;
 }
 
 
@@ -1660,14 +1674,16 @@ warn_multiton(const char *name)
    in any of the terms.
 */
 
-#define IS_SINGLETON 0
-#define IS_MULTITON  1
+#define IS_SINGLETON    0
+#define LIST_SINGLETONS 1
+#define IS_MULTITON     2
 
 static int
 is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 { if ( var->times == 1 )
-  { if ( (type == IS_SINGLETON && warn_singleton(var->name)) ||
-	 (type == IS_MULTITON  && warn_multiton(var->name)) )
+  { if ( (type == IS_SINGLETON    && warn_singleton(var->name)) ||
+	 (type == LIST_SINGLETONS) ||
+	 (type == IS_MULTITON     && warn_multiton(var->name)) )
     {
 #ifdef O_QUASIQUOTATIONS
       if ( _PL_rd->qq )
@@ -1689,19 +1705,21 @@ is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 
   if ( type == IS_SINGLETON )
     return var->times == 1 && warn_singleton(var->name);
+  else if ( type == LIST_SINGLETONS )
+    return var->times == 1;
   else
     return var->times  > 1 && warn_multiton(var->name);
 }
 
 
 static bool				/* TBD: new schema */
-check_singletons(ReadData _PL_rd ARG_LD)
+check_singletons(term_t term, ReadData _PL_rd ARG_LD)
 { if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
   { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
 
     for_vars(var,
-	     if ( is_singleton(var, IS_SINGLETON, _PL_rd PASS_LD) )
+	     if ( is_singleton(var, LIST_SINGLETONS, _PL_rd PASS_LD) )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
 				    PL_FUNCTOR,    FUNCTOR_equals2,
@@ -1723,7 +1741,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	     });
 
     if ( i > 0 )
-    { if ( !singletonWarning("singletons", singletons, i) )
+    { if ( !singletonWarning(term, "singletons", singletons, i) )
 	return FALSE;
     }
 
@@ -1736,7 +1754,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	       });
 
       if ( i > 0 )
-      { if ( !singletonWarning("multitons", singletons, i) )
+      { if ( !singletonWarning(term, "multitons", singletons, i) )
 	  return FALSE;
       }
     }
@@ -3404,7 +3422,8 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
   }
 
   e->pri  = op->op_pri;
-  e->tpos = opPos(op, e PASS_LD);
+  if ( op->tpos && !(e->tpos = opPos(op, e PASS_LD)) )
+    return FALSE;
 
   _PL_rd->op.out_queue.top = (char*)(e+1);
 
@@ -4489,7 +4508,7 @@ read_term(term_t term, ReadData rd ARG_LD)
   Word p;
   fid_t fid;
 
-  if ( !(rd->base = raw_read(rd, &rd->end PASS_LD)) )
+  if ( !raw_read(rd, &rd->end PASS_LD) )
     fail;
 
   if ( !(fid=PL_open_foreign_frame()) )
@@ -4537,7 +4556,7 @@ read_term(term_t term, ReadData rd ARG_LD)
 #endif
   if ( rd->variables && !(rc=bind_variables(rd PASS_LD)) )
     goto out;
-  if ( rd->singles && !(rc=check_singletons(rd PASS_LD)) )
+  if ( rd->singles && !(rc=check_singletons(term, rd PASS_LD)) )
     goto out;
 
   rc = TRUE;
@@ -4586,7 +4605,7 @@ pl_raw_read2(term_t from, term_t term)
     fail;
 
   init_read_data(&rd, in PASS_LD);
-  if ( !(s = raw_read(&rd, &e PASS_LD)) )
+  if ( !raw_read(&rd, &e PASS_LD) )
   { if ( Sferror(in) )
     { rval = streamStatus(in);
     } else
@@ -4602,8 +4621,9 @@ pl_raw_read2(term_t from, term_t term)
   }
 
 					/* strip the input from blanks */
+  s   = rd.base;
   top = backSkipBlanks(s, e-1);
-  t2 = backSkipUTF8(s, top, &chr);
+  t2  = backSkipUTF8(s, top, &chr);
   if ( chr == '.' )
     top = backSkipBlanks(s, t2);
 					/* watch for "0' ." */
@@ -4747,7 +4767,7 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 
   comment_hook = _PL_predicate("comment_hook", 3, "prolog",
 			       &GD->procedures.comment_hook3);
-  process_comment = (comment_hook->definition->impl.any != NULL);
+  process_comment = (comment_hook->definition->impl.any.defined != NULL);
 
   if ( !(fid=PL_open_foreign_frame()) )
     return FALSE;
@@ -4909,6 +4929,8 @@ retry:
     rd.singles = TRUE;
   if ( tcomments )
     rd.comments = PL_copy_term_ref(tcomments);
+  if ( rd.subtpos )
+    s->position = &s->posbuf;
 
   rval = read_term(term, &rd PASS_LD);
   if ( Sferror(s) )
@@ -5268,6 +5290,7 @@ BeginPredDefs(read)
   PRED_DEF("term_to_atom",	  2, term_to_atom,	  0)
   PRED_DEF("term_string",	  2, term_string,	  0)
   PRED_DEF("$code_class",	  2, code_class,	  0)
+  PRED_DEF("$is_named_var",       1, is_named_var,        0)
 #ifdef O_QUASIQUOTATIONS
   PRED_DEF("$qq_open",            2, qq_open,             0)
 #endif

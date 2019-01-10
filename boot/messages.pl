@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2017, University of Amsterdam
+    Copyright (c)  1997-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -51,6 +51,8 @@
 :- public
     translate_message//1.
 
+:- create_prolog_flag(message_context, [thread], []).
+
 %!  translate_message(+Term)// is det.
 %
 %   Translate a message Term into message lines. The produced lines
@@ -85,8 +87,8 @@ translate_message2(Term) -->
     prolog:message(Term).
 translate_message2(Term) -->
     prolog_message(Term).
-translate_message2(error(resource_error(stack), Name)) -->
-    [ 'Out of ~w stack'-[Name] ].
+translate_message2(error(resource_error(stack), Context)) -->
+    out_of_stack(Context).
 translate_message2(error(resource_error(Missing), _)) -->
     [ 'Not enough resources: ~w'-[Missing] ].
 translate_message2(error(ISO, SWI)) -->
@@ -389,6 +391,8 @@ swi_message(initialization_error(failed, Goal, File:Line)) -->
 swi_message(initialization_error(Error, Goal, File:Line)) -->
     [ '~w:~w: ~p '-[File, Line, Goal] ],
     translate_message(Error).
+swi_message(qlf_format_error(File, Message)) -->
+    [ '~w: Invalid QLF file: ~w'-[File, Message] ].
 
 cond_location(File:Line) -->
     { file_base_name(File, Base) },
@@ -534,9 +538,9 @@ prolog_message(commandline_arg_type(Flag, Arg)) -->
     [ 'Bad argument to commandline option -~w: ~w'-[Flag, Arg] ].
 prolog_message(missing_feature(Name)) -->
     [ 'This version of SWI-Prolog does not support ~w'-[Name] ].
-prolog_message(singletons(List)) -->
+prolog_message(singletons(_Term, List)) -->
     [ 'Singleton variables: ~w'-[List] ].
-prolog_message(multitons(List)) -->
+prolog_message(multitons(_Term, List)) -->
     [ 'Singleton-marked variables appearing more than once: ~w'-[List] ].
 prolog_message(profile_no_cpu_time) -->
     [ 'No CPU-time info.  Check the SWI-Prolog manual for details' ].
@@ -569,6 +573,8 @@ prolog_message(unknown_in_module_user) -->
       'Please use :- dynamic or limit usage of unknown to a module.', nl,
       'See http://www.swi-prolog.org/howto/database.html'
     ].
+prolog_message(deprecated(What)) -->
+    deprecated(What).
 
 
                  /*******************************
@@ -653,6 +659,13 @@ prolog_message(minus_in_identifier) -->
     ].
 prolog_message(qlf(removed_after_error(File))) -->
     [ 'Removed incomplete QLF file ~w'-[File] ].
+prolog_message(qlf(recompile(Spec,_Pl,_Qlf,Reason))) -->
+    [ '~p: recompiling QLF file'-[Spec] ],
+    qlf_recompile_reason(Reason).
+prolog_message(qlf(can_not_recompile(Spec,QlfFile,_Reason))) -->
+    [ '~p: can not recompile "~w" (access denied)'-[Spec, QlfFile], nl,
+      '\tLoading from source'-[]
+    ].
 prolog_message(redefine_module(Module, OldFile, File)) -->
     [ 'Module "~q" already loaded from ~w.'-[Module, OldFile], nl,
       'Wipe and reload from ~w? '-[File], flush
@@ -732,6 +745,12 @@ pi_head(Name/Arity, user:Head) :-
     atom(Name), integer(Arity),
     functor(Head, Name, Arity).
 
+qlf_recompile_reason(old) -->
+    !,
+    [ ' (out of date)'-[] ].
+qlf_recompile_reason(_) -->
+    [ ' (incompatible with current Prolog version)'-[] ].
+
 prolog_message(file_search(cache(Spec, _Cond), Path)) -->
     [ 'File search: ~p --> ~p (cache)'-[Spec, Path] ].
 prolog_message(file_search(found(Spec, Cond), Path)) -->
@@ -781,6 +800,118 @@ prolog_message(cgc(done(CollectedClauses, _CollectedBytes,
       [CollectedClauses, Time, RemainingBytes]
     ].
 
+		 /*******************************
+		 *        STACK OVERFLOW	*
+		 *******************************/
+
+out_of_stack(Context) -->
+    { human_stack_size(Context.localused,   Local),
+      human_stack_size(Context.globalused,  Global),
+      human_stack_size(Context.trailused,   Trail),
+      human_stack_size(Context.stack_limit, Limit),
+      LCO is (100*(Context.depth - Context.environments))/Context.depth
+    },
+    [ 'Stack limit (~s) exceeded'-[Limit], nl,
+      '  Stack sizes: local: ~s, global: ~s, trail: ~s'-[Local,Global,Trail], nl,
+      '  Stack depth: ~D, last-call: ~0f%, Choice points: ~D'-
+         [Context.depth, LCO, Context.choicepoints], nl
+    ],
+    overflow_reason(Context, Resolve),
+    resolve_overflow(Resolve).
+
+human_stack_size(Size, String) :-
+    Size < 100,
+    format(string(String), '~dKb', [Size]).
+human_stack_size(Size, String) :-
+    Size < 100 000,
+    Value is Size / 1024,
+    format(string(String), '~1fMb', [Value]).
+human_stack_size(Size, String) :-
+    Value is Size / (1024*1024),
+    format(string(String), '~1fGb', [Value]).
+
+overflow_reason(Context, fix) -->
+    show_non_termination(Context),
+    !.
+overflow_reason(Context, enlarge) -->
+    { Stack = Context.get(stack) },
+    !,
+    [ '  In:'-[], nl ],
+    stack(Stack).
+overflow_reason(_Context, enlarge) -->
+    [ '  Insufficient global stack'-[] ].
+
+show_non_termination(Context) -->
+    (   { Stack = Context.get(cycle) }
+    ->  [ '  Probable infinite recursion (cycle):'-[], nl ]
+    ;   { Stack = Context.get(non_terminating) }
+    ->  [ '  Possible non-terminating recursion:'-[], nl ]
+    ),
+    stack(Stack).
+
+stack([]) --> [].
+stack([frame(Depth, M:Goal, _)|T]) -->
+    [ '    [~D] ~q:'-[Depth, M] ],
+    stack_goal(Goal),
+    [ nl ],
+    stack(T).
+
+stack_goal(Goal) -->
+    { compound(Goal),
+      !,
+      compound_name_arity(Goal, Name, Arity)
+    },
+    [ '~q('-[Name] ],
+    stack_goal_args(1, Arity, Goal),
+    [ ')'-[] ].
+stack_goal(Goal) -->
+    [ '~q'-[Goal] ].
+
+stack_goal_args(I, Arity, Goal) -->
+    { I =< Arity,
+      !,
+      arg(I, Goal, A),
+      I2 is I + 1
+    },
+    stack_goal_arg(A),
+    (   { I2 =< Arity }
+    ->  [ ', '-[] ],
+        stack_goal_args(I2, Arity, Goal)
+    ;   []
+    ).
+stack_goal_args(_, _, _) -->
+    [].
+
+stack_goal_arg(A) -->
+    { nonvar(A),
+      A = [Len|T],
+      !
+    },
+    (   {Len == cyclic_term}
+    ->  [ '[cyclic list]'-[] ]
+    ;   {T == []}
+    ->  [ '[length:~D]'-[Len] ]
+    ;   [ '[length:~D|~p]'-[Len, T] ]
+    ).
+stack_goal_arg(A) -->
+    { nonvar(A),
+      A = _/_,
+      !
+    },
+    [ '<compound ~p>'-[A] ].
+stack_goal_arg(A) -->
+    [ '~p'-[A] ].
+
+resolve_overflow(fix) -->
+    [].
+resolve_overflow(enlarge) -->
+    { current_prolog_flag(stack_limit, LimitBytes),
+      NewLimit is LimitBytes * 2
+    },
+    [ nl,
+      'Use the --stack_limit=size[KMG] command line option or'-[], nl,
+      '?- set_prolog_flag(stack_limit, ~I). to double the limit.'-[NewLimit]
+    ].
 
 
                  /*******************************
@@ -910,14 +1041,17 @@ prolog_message(copyright) -->
       'Please run ?- license. for legal details.'
     ].
 prolog_message(user_versions) -->
-    { findall(Msg, prolog:version_msg(Msg), Msgs) },
-    user_version_messages(Msgs).
+    (   { findall(Msg, prolog:version_msg(Msg), Msgs),
+          Msgs \== []
+        }
+    ->  [nl],
+        user_version_messages(Msgs)
+    ;   []
+    ).
 prolog_message(documentaton) -->
     [ 'For online help and background, visit http://www.swi-prolog.org', nl,
       'For built-in help, use ?- help(Topic). or ?- apropos(Word).'
     ].
-prolog_message(author) -->
-    [ 'Jan Wielemaker (jan@swi-prolog.org)' ].
 prolog_message(welcome) -->
     [ 'Welcome to SWI-Prolog (' ],
     prolog_message(threads),
@@ -932,11 +1066,12 @@ prolog_message(welcome) -->
     prolog_message(documentaton),
     [ nl, nl ].
 prolog_message(about) -->
-    [ 'SWI-Prolog version ' ],
+    [ 'SWI-Prolog version (' ],
+    prolog_message(threads),
+    prolog_message(address_bits),
+    ['version ' ],
     prolog_message(version),
-    [ ' by ' ],
-    prolog_message(author),
-    [ nl ],
+    [ ')', nl ],
     prolog_message(copyright).
 prolog_message(halt) -->
     [ 'halt' ].
@@ -1335,9 +1470,8 @@ prolog_message(pack(no_arch(Entry, Arch))) -->
 
 prolog_message(null_byte_in_path(Component)) -->
     [ '0-byte in PATH component: ~p (skipped directory)'-[Component] ].
-prolog_message(invalid_tmp_var(Var, Value, Reason)) -->
-    [ 'Cannot use '-[] ], env(Var),
-    [ ' as temporary file directory: ~p: ~w'-[Value, Reason] ].
+prolog_message(invalid_tmp_dir(Dir, Reason)) -->
+    [ 'Cannot use ~p as temporary file directory: ~w'-[Dir, Reason] ].
 prolog_message(ambiguous_stream_pair(Pair)) -->
     [ 'Ambiguous operation on stream pair ~p'-[Pair] ].
 
@@ -1347,14 +1481,26 @@ env(Name) -->
 env(Name) -->
     [ '$~w'-[Name] ].
 
+		 /*******************************
+		 *          DEPRECATED		*
+		 *******************************/
+
+deprecated(set_prolog_stack(_Stack,limit)) -->
+    [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
+      'See http://www.swi-prolog.org/changes/stack-limit.html'
+    ].
+
+
                  /*******************************
                  *      PRINTING MESSAGES       *
                  *******************************/
 
 :- multifile
-    user:message_hook/3.
+    user:message_hook/3,
+    prolog:message_prefix_hook/2.
 :- dynamic
-    user:message_hook/3.
+    user:message_hook/3,
+    prolog:message_prefix_hook/2.
 :- thread_local
     user:thread_message_hook/3.
 
@@ -1399,7 +1545,7 @@ print_system_message(Term, Kind, Lines) :-
     Term \= error(syntax_error(_), _),
     msg_property(Kind, location_prefix(File:Line, LocPrefix, LinePrefix)),
     !,
-    insert_prefix(Lines, LinePrefix, PrefixLines),
+    insert_prefix(Lines, LinePrefix, Ctx, PrefixLines),
     '$append'([ begin(Kind, Ctx),
                 LocPrefix,
                 nl
@@ -1441,28 +1587,62 @@ msg_property(warning,
                              '~NWarning: ~w:~d:'-[File,Line], '~N\t')) :- !.
 msg_property(error,   wait(0.1)) :- !.
 
-msg_prefix(debug(_),      '~N% ').
-msg_prefix(warning,           Prefix) :-
-    (   thread_message_id(Id)
-    ->  Prefix = '~NWarning: [Thread ~w] '-Id
-    ;   Prefix = '~NWarning: '
-    ).
-msg_prefix(error,             Prefix) :-
-    (   thread_message_id(Id)
-    ->  Prefix = '~NERROR: [Thread ~w] '-Id
-    ;   Prefix = '~NERROR: '
-    ).
+msg_prefix(debug(_), Prefix) :-
+    msg_context('~N% ', Prefix).
+msg_prefix(warning, Prefix) :-
+    msg_context('~NWarning: ', Prefix).
+msg_prefix(error, Prefix) :-
+    msg_context('~NERROR: ', Prefix).
 msg_prefix(informational, '~N% ').
 msg_prefix(information,   '~N% ').
 
-thread_message_id(Id) :-
+%!  msg_context(+Prefix0, -Prefix) is det.
+%
+%   Add contextual information to a message.   This uses the Prolog flag
+%   `message_context`. Recognised context terms are:
+%
+%     - time
+%     - time(Format)
+%     - thread
+%
+%   In addition, the hook prolog:message_prefix_hook/2   is  called that
+%   allows for additional context information.
+
+msg_context(Prefix0, Prefix) :-
+    current_prolog_flag(message_context, Context),
+    is_list(Context),
+    !,
+    add_message_context(Context, Prefix0, Prefix).
+msg_context(Prefix, Prefix).
+
+add_message_context([], Prefix, Prefix).
+add_message_context([H|T], Prefix0, Prefix) :-
+    (   add_message_context1(H, Prefix0, Prefix1)
+    ->  true
+    ;   Prefix1 = Prefix0
+    ),
+    add_message_context(T, Prefix1, Prefix).
+
+add_message_context1(Context, Prefix0, Prefix) :-
+    prolog:message_prefix_hook(Context, Extra),
+    atomics_to_string([Prefix0, Extra, ' '], Prefix).
+add_message_context1(time, Prefix0, Prefix) :-
+    get_time(Now),
+    format_time(string(S), '%T.%3f ', Now),
+    string_concat(Prefix0, S, Prefix).
+add_message_context1(time(Format), Prefix0, Prefix) :-
+    get_time(Now),
+    format_time(string(S), Format, Now),
+    atomics_to_string([Prefix0, S, ' '], Prefix).
+add_message_context1(thread, Prefix0, Prefix) :-
     thread_self(Id0),
     Id0 \== main,
-    \+ current_prolog_flag(thread_message_prefix, false),
+    !,
     (   atom(Id0)
     ->  Id = Id0
     ;   thread_property(Id0, id(Id))
-    ).
+    ),
+    format(string(Prefix), '~w[Thread ~w] ', [Prefix0, Id]).
 
 %!  print_message_lines(+Stream, +PrefixOrKind, +Lines)
 %
@@ -1472,7 +1652,7 @@ thread_message_id(Id) :-
 print_message_lines(Stream, kind(Kind), Lines) :-
     !,
     msg_property(Kind, prefix(Prefix)),
-    insert_prefix(Lines, Prefix, PrefixLines),
+    insert_prefix(Lines, Prefix, Ctx, PrefixLines),
     '$append'([ begin(Kind, Ctx)
               | PrefixLines
               ],
@@ -1481,25 +1661,29 @@ print_message_lines(Stream, kind(Kind), Lines) :-
               AllLines),
     print_message_lines(Stream, AllLines).
 print_message_lines(Stream, Prefix, Lines) :-
-    insert_prefix(Lines, Prefix, PrefixLines),
+    insert_prefix(Lines, Prefix, _, PrefixLines),
     print_message_lines(Stream, PrefixLines).
 
-%!  insert_prefix(+Lines, +Prefix, -PrefixedLines)
+%!  insert_prefix(+Lines, +Prefix, +Ctx, -PrefixedLines)
 
-insert_prefix([at_same_line|Lines0], Prefix, Lines) :-
+insert_prefix([at_same_line|Lines0], Prefix, Ctx, Lines) :-
     !,
-    prefix_nl(Lines0, Prefix, Lines).
-insert_prefix(Lines0, Prefix, [prefix(Prefix)|Lines]) :-
-    prefix_nl(Lines0, Prefix, Lines).
+    prefix_nl(Lines0, Prefix, Ctx, Lines).
+insert_prefix(Lines0, Prefix, Ctx, [prefix(Prefix)|Lines]) :-
+    prefix_nl(Lines0, Prefix, Ctx, Lines).
 
-prefix_nl([], _, [nl]).
-prefix_nl([nl], _, [nl]) :- !.
-prefix_nl([flush], _, [flush]) :- !.
-prefix_nl([nl|T0], Prefix, [nl, prefix(Prefix)|T]) :-
+prefix_nl([], _, _, [nl]).
+prefix_nl([nl], _, _, [nl]) :- !.
+prefix_nl([flush], _, _, [flush]) :- !.
+prefix_nl([nl|T0], Prefix, Ctx, [nl, prefix(Prefix)|T]) :-
     !,
-    prefix_nl(T0, Prefix, T).
-prefix_nl([H|T0], Prefix, [H|T]) :-
-    prefix_nl(T0, Prefix, T).
+    prefix_nl(T0, Prefix, Ctx, T).
+prefix_nl([ansi(Attrs,Fmt,Args)|T0], Prefix, Ctx,
+          [ansi(Attrs,Fmt,Args,Ctx)|T]) :-
+    !,
+    prefix_nl(T0, Prefix, Ctx, T).
+prefix_nl([H|T0], Prefix, Ctx, [H|T]) :-
+    prefix_nl(T0, Prefix, Ctx, T).
 
 %!  print_message_lines(+Stream, +Lines)
 
@@ -1524,24 +1708,46 @@ line_element(S, nl) :-
     nl(S).
 line_element(S, prefix(Fmt-Args)) :-
     !,
-    format(S, Fmt, Args).
+    safe_format(S, Fmt, Args).
 line_element(S, prefix(Fmt)) :-
     !,
-    format(S, Fmt, []).
+    safe_format(S, Fmt, []).
 line_element(S, flush) :-
     !,
     flush_output(S).
 line_element(S, Fmt-Args) :-
     !,
-    format(S, Fmt, Args).
+    safe_format(S, Fmt, Args).
 line_element(S, ansi(_, Fmt, Args)) :-
     !,
-    format(S, Fmt, Args).
+    safe_format(S, Fmt, Args).
+line_element(S, ansi(_, Fmt, Args, _Ctx)) :-
+    !,
+    safe_format(S, Fmt, Args).
 line_element(_, begin(_Level, _Ctx)) :- !.
 line_element(_, end(_Ctx)) :- !.
 line_element(S, Fmt) :-
-    format(S, Fmt, []).
+    safe_format(S, Fmt, []).
 
+%!  safe_format(+Stream, +Format, +Args) is det.
+
+safe_format(S, Fmt, Args) :-
+    E = error(_,_),
+    catch(format(S,Fmt,Args), E,
+          format_failed(S,Fmt,Args,E)).
+
+format_failed(S, _Fmt, _Args, E) :-
+    E = error(io_error(_,S),_),
+    !,
+    throw(E).
+format_failed(S, Fmt, Args, error(E,_)) :-
+    format(S, '~N    [[ EXCEPTION while printing message ~q~n\c
+                        ~7|with arguments ~W:~n\c
+                        ~7|raised: ~W~n~4|]]~n',
+           [ Fmt,
+             Args, [quoted(true), max_depth(10)],
+             E, [quoted(true), max_depth(10)]
+           ]).
 
 %!  message_to_string(+Term, -String)
 %
@@ -1609,6 +1815,7 @@ append_args(Args0, Args1, Args) :-
 
 print_once(compatibility(_), _).
 print_once(null_byte_in_path(_), _).
+print_once(deprecated(_), _).
 
 %!  must_print(+Level, +Message)
 %

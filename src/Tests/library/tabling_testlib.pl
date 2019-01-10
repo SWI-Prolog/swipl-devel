@@ -39,7 +39,6 @@
 	    compare_real_expected_answers/3,		% :Name, +Arity, :E
 	    tabling_testlib/0
 	  ]).
-:- use_module(library(tabling)).
 :- use_module(library(terms)).
 :- use_module(library(dialect/hprolog)).
 :- use_module(library(lists)).

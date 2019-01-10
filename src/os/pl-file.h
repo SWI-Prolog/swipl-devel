@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2013, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,6 +41,13 @@ typedef enum
   ST_LOOSE = 0,				/* Default: accept latin-1 for binary */
   ST_TRUE  = 1				/* Strict checking */
 } st_check;
+
+typedef enum iri_op
+{ IRI_OPEN,		/* const char *how, term_t options -> IOSTREAM **s */
+  IRI_ACCESS,		/* const char *mode -> bool */
+  IRI_SIZE,		/* -> int64_t *sz */
+  IRI_TIME		/* -> double *time */
+} iri_op;
 
 /* pl-file.c */
 COMMON(void)		initIO(void);
@@ -88,5 +96,9 @@ COMMON(int)		closeOutputRedirect(redir_context *ctx);
 COMMON(void)		discardOutputRedirect(redir_context *ctx);
 COMMON(int)		push_input_context(atom_t type);
 COMMON(int)		pop_input_context(void);
+COMMON(int)		stream_encoding_options(atom_t type, atom_t encoding,
+						int *bom, IOENC *enc);
+COMMON(int)		file_name_is_iri(const char *path);
+COMMON(int)		iri_hook(const char *url, iri_op op, ...);
 
 #endif /*PL_FILE_H_INCLUDED*/

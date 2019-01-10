@@ -346,6 +346,11 @@ cleanupForeign(void)
 
 #else /*HAVE_DLOPEN*/
 
+/* No-op stub for pl-init.c to call. */
+void
+cleanupForeign(void)
+{}
+
 static
 PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
 { return notImplemented("open_shared_object", 3);

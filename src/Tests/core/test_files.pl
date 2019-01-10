@@ -137,10 +137,16 @@ test(directory_files, true) :-
 	directory_files(Dir, Files),
 	memberchk(Plain, Files).
 test(max_path_len, error(representation_error(max_path_length))) :-
-	length(L, 10000),
-	maplist(=('a'), L),
-	atom_chars(F, L),
+	long_segment(10000, F),
 	absolute_file_name(F, _, [access(read)]).
+test(max_path_len, error(representation_error(max_path_length))) :-
+	long_segment(10000, F),
+	file_base_name(F, _).
+test(max_path_len, error(representation_error(max_path_length))) :-
+	long_segment(10000, D),
+	long_segment(2000, F),
+	atomic_list_concat([D,F], /, Path),
+	file_directory_name(Path, _).
 test(at_end_of_stream) :-
 	with_input_stream(
 	    text, '', In,
@@ -155,5 +161,24 @@ test(at_end_of_stream) :-
 	with_input_stream(
 	    text, 'a', In,
 	    \+ at_end_of_stream(In)).
+test(file_directory_name, D == '/a') :-
+	file_directory_name('/a/b/', D).
+test(file_directory_name, D == '.') :-
+	file_directory_name('abc', D).
+test(file_directory_name, D == '.') :-
+	file_directory_name('abc/', D).
+test(file_base_name, D == 'b') :-
+	file_base_name('/a/b/', D).
+test(file_base_name, D == '') :-
+	file_base_name('', D).
+test(file_base_name, D == 'aaa') :-
+	file_base_name('aaa/', D).
+test(file_base_name, D == '/') :-
+	file_base_name('///', D).
+
+long_segment(N, Seg) :-
+	length(L, N),
+	maplist(=('a'), L),
+	atom_chars(Seg, L).
 
 :- end_tests(files).

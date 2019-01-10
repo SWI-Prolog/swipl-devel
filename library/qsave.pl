@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2016, University of Amsterdam
+    Copyright (c)  1995-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -54,26 +54,55 @@ also used by the commandline sequence below.
 :- meta_predicate
     qsave_program(+, :).
 
-:- predicate_options(qsave_program/2, 2,
-                     [ local(integer),
-                       global(integer),
-                       trail(integer),
-                       goal(callable),
-                       toplevel(callable),
-                       init_file(atom),
-                       class(oneof([runtime,kernel,development])),
-                       autoload(boolean),
-                       map(atom),
-                       op(oneof([save,standard])),
-                       stand_alone(boolean),
-                       foreign(oneof([save,no_save])),
-                       emulator(atom)
-                     ]).
+:- public save_option/3.                        % used by '$compile_wic'/0
+
+save_option(stack_limit, integer,
+            "Stack limit (bytes)").
+save_option(goal,        callable,
+            "Main initialization goal").
+save_option(toplevel,    callable,
+            "Toplevel goal").
+save_option(init_file,   atom,
+            "Application init file").
+save_option(class,       oneof([runtime,development]),
+            "Development state").
+save_option(op,          oneof([save,standard]),
+            "Save operators").
+save_option(autoload,    boolean,
+            "Resolve autoloadable predicates").
+save_option(map,         atom,
+            "File to report content of the state").
+save_option(stand_alone, boolean,
+            "Add emulator at start").
+save_option(emulator,    ground,
+            "Emulator to use").
+save_option(foreign,     oneof([save,no_save]),
+            "Include foreign code in state").
+save_option(obfuscate,   boolean,
+            "Obfuscate identifiers").
+save_option(verbose,     boolean,
+            "Be more verbose about the state creation").
+save_option(undefined,   oneof([ignore,error]),
+            "How to handle undefined predicates").
+
+term_expansion(save_pred_options,
+               (:- predicate_options(qsave_program/2, 2, Options))) :-
+    findall(O,
+            ( save_option(Name, Type, _),
+              O =.. [Name,Type]
+            ),
+            Options).
+
+save_pred_options.
 
 :- set_prolog_flag(generate_debug_info, false).
 
-:- dynamic verbose/1.
-:- volatile verbose/1.                  % contains a stream-handle
+:- dynamic
+    verbose/1,
+    saved_resource_file/1.
+:- volatile
+    verbose/1,                  % contains a stream-handle
+    saved_resource_file/1.
 
 %!  qsave_program(+File) is det.
 %!  qsave_program(+File, :Options) is det.
@@ -86,57 +115,49 @@ qsave_program(File) :-
 qsave_program(FileBase, Options0) :-
     meta_options(is_meta, Options0, Options),
     check_options(Options),
-    exe_file(FileBase, File),
+    exe_file(FileBase, File, Options),
     option(class(SaveClass),    Options, runtime),
     option(init_file(InitFile), Options, DefInit),
     default_init_file(SaveClass, DefInit),
+    prepare_entry_points(Options),
     save_autoload(Options),
     open_map(Options),
+    prepare_state(Options),
     create_prolog_flag(saved_program, true, []),
     create_prolog_flag(saved_program_class, SaveClass, []),
     (   exists_file(File)
     ->  delete_file(File)
     ;   true
     ),
-    '$rc_open_archive'(File, RC),
-    make_header(RC, SaveClass, Options),
+    open(File, write, StateOut, [type(binary)]),
+    make_header(StateOut, SaveClass, Options),
+    zip_open_stream(StateOut, RC, []),
     save_options(RC, SaveClass,
                  [ init_file(InitFile)
                  | Options
                  ]),
     save_resources(RC, SaveClass),
-    '$rc_open'(RC, '$state', '$prolog', write, StateFd),
-    '$open_wic'(StateFd),
-    setup_call_cleanup(
-        ( current_prolog_flag(access_level, OldLevel),
-          set_prolog_flag(access_level, system) % generate system modules
-        ),
-        ( save_modules(SaveClass),
-          save_records,
-          save_flags,
-          save_prompt,
-          save_imports,
-          save_prolog_flags,
-          save_operators(Options),
-          save_format_predicates
-        ),
-        set_prolog_flag(access_level, OldLevel)),
-    '$close_wic',
-    close(StateFd),
+    lock_files(SaveClass),
+    save_program(RC, SaveClass, Options),
     save_foreign_libraries(RC, Options),
-    '$rc_close_archive'(RC),
+    zip_close(RC, [comment("SWI-Prolog saved state")]),
     '$mark_executable'(File),
-    close_map.
+    close_map,
+    cleanup.
+
+cleanup :-
+    retractall(saved_resource_file(_)).
 
 is_meta(goal).
 is_meta(toplevel).
 
-exe_file(Base, Exe) :-
+exe_file(Base, Exe, Options) :-
     current_prolog_flag(windows, true),
+    option(stand_alone(true), Options, true),
     file_name_extension(_, '', Base),
     !,
     file_name_extension(Base, exe, Exe).
-exe_file(Exe, Exe).
+exe_file(Exe, Exe, _).
 
 default_init_file(runtime, none) :- !.
 default_init_file(_,       InitFile) :-
@@ -147,12 +168,17 @@ default_init_file(_,       InitFile) :-
                  *           HEADER             *
                  *******************************/
 
-make_header(RC, _, Options) :-
+%!  make_header(+Out:stream, +SaveClass, +Options) is det.
+
+make_header(Out, _, Options) :-
     option(emulator(OptVal), Options),
     !,
     absolute_file_name(OptVal, [access(read)], Emulator),
-    '$rc_append_file'(RC, '$header', '$rc', none, Emulator).
-make_header(RC, _, Options) :-
+    setup_call_cleanup(
+        open(Emulator, read, In, [type(binary)]),
+        copy_stream_data(In, Out),
+        close(In)).
+make_header(Out, _, Options) :-
     (   current_prolog_flag(windows, true)
     ->  DefStandAlone = true
     ;   DefStandAlone = false
@@ -160,20 +186,22 @@ make_header(RC, _, Options) :-
     option(stand_alone(true), Options, DefStandAlone),
     !,
     current_prolog_flag(executable, Executable),
-    '$rc_append_file'(RC, '$header', '$rc', none, Executable).
-make_header(RC, SaveClass, _Options) :-
+    setup_call_cleanup(
+        open(Executable, read, In, [type(binary)]),
+        copy_stream_data(In, Out),
+        close(In)).
+make_header(Out, SaveClass, _Options) :-
     current_prolog_flag(unix, true),
     !,
     current_prolog_flag(executable, Executable),
-    '$rc_open'(RC, '$header', '$rc', write, Fd),
-    format(Fd, '#!/bin/sh~n', []),
-    format(Fd, '# SWI-Prolog saved state~n', []),
+    current_prolog_flag(posix_shell, Shell),
+    format(Out, '#!~w~n', [Shell]),
+    format(Out, '# SWI-Prolog saved state~n', []),
     (   SaveClass == runtime
     ->  ArgSep = ' -- '
     ;   ArgSep = ' '
     ),
-    format(Fd, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Executable, ArgSep]),
-    close(Fd).
+    format(Out, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Executable, ArgSep]).
 make_header(_, _, _).
 
 
@@ -181,22 +209,19 @@ make_header(_, _, _).
                  *           OPTIONS            *
                  *******************************/
 
-min_stack(local,    32).
-min_stack(global,   16).
-min_stack(trail,    16).
+min_stack(stack_limit, 100_000).
 
 convert_option(Stack, Val, NewVal, "~w") :-     % stack-sizes are in K-bytes
     min_stack(Stack, Min),
     !,
     (   Val == 0
     ->  NewVal = Val
-    ;   NewVal is max(Min, Val*1024)
+    ;   NewVal is max(Min, Val)
     ).
 convert_option(toplevel, Callable, Callable, "~q") :- !.
 convert_option(_, Value, Value, "~w").
 
 doption(Name) :- min_stack(Name, _).
-doption(toplevel).
 doption(init_file).
 doption(system_init_file).
 doption(class).
@@ -212,7 +237,7 @@ doption(home).
 %   fine to avoid a save-script loading itself.
 
 save_options(RC, SaveClass, Options) :-
-    '$rc_open'(RC, '$options', '$prolog', write, Fd),
+    zipper_open_new_file_in_zip(RC, '$prolog/options.txt', Fd, []),
     (   doption(OptionName),
             '$cmd_option_val'(OptionName, OptionVal0),
             save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
@@ -244,11 +269,29 @@ save_option_value(_,       _,     Value, Value).
 save_init_goals(Out, Options) :-
     option(goal(Goal), Options),
     !,
-    format(Out, 'goal=~q~n', [Goal]).
-save_init_goals(Out, _) :-
+    format(Out, 'goal=~q~n', [Goal]),
+    save_toplevel_goal(Out, halt, Options).
+save_init_goals(Out, Options) :-
     '$cmd_option_val'(goals, Goals),
     forall(member(Goal, Goals),
-           format(Out, 'goal=~w~n', [Goal])).
+           format(Out, 'goal=~w~n', [Goal])),
+    (   Goals == []
+    ->  DefToplevel = default
+    ;   DefToplevel = halt
+    ),
+    save_toplevel_goal(Out, DefToplevel, Options).
+
+save_toplevel_goal(Out, _Default, Options) :-
+    option(toplevel(Goal), Options),
+    !,
+    format(Out, 'toplevel=~q~n', [Goal]).
+save_toplevel_goal(Out, _Default, _Options) :-
+    '$cmd_option_val'(toplevel, Toplevel),
+    Toplevel \== default,
+    !,
+    format(Out, 'toplevel=~w~n', [Toplevel]).
+save_toplevel_goal(Out, Default, _Options) :-
+    format(Out, 'toplevel=~q~n', [Default]).
 
 
                  /*******************************
@@ -259,64 +302,187 @@ save_resources(_RC, development) :- !.
 save_resources(RC, _SaveClass) :-
     feedback('~nRESOURCES~n~n', []),
     copy_resources(RC),
-    (   current_predicate(_, M:resource(_,_,_)),
-        forall(M:resource(Name, Class, FileSpec),
-               (   mkrcname(M, Name, RcName),
-                   save_resource(RC, RcName, Class, FileSpec)
-               )),
-        fail
-    ;   true
-    ).
+    forall(declared_resource(Name, FileSpec, Options),
+           save_resource(RC, Name, FileSpec, Options)).
 
-mkrcname(user, Name, Name) :- !.
-mkrcname(M, Name, RcName) :-
+declared_resource(RcName, FileSpec, []) :-
+    current_predicate(_, M:resource(_,_)),
+    M:resource(Name, FileSpec),
+    mkrcname(M, Name, RcName).
+declared_resource(RcName, FileSpec, Options) :-
+    current_predicate(_, M:resource(_,_,_)),
+    M:resource(Name, A2, A3),
+    (   is_list(A3)
+    ->  FileSpec = A2,
+        Options = A3
+    ;   FileSpec = A3
+    ),
+    mkrcname(M, Name, RcName).
+
+%!  mkrcname(+Module, +NameSpec, -Name)
+%
+%   Turn a resource name term into a resource name atom.
+
+mkrcname(user, Name0, Name) :-
+    !,
+    path_segments_to_atom(Name0, Name).
+mkrcname(M, Name0, RcName) :-
+    path_segments_to_atom(Name0, Name),
     atomic_list_concat([M, :, Name], RcName).
 
-save_resource(RC, Name, Class, FileSpec) :-
+path_segments_to_atom(Name0, Name) :-
+    phrase(segments_to_atom(Name0), Atoms),
+    atomic_list_concat(Atoms, /, Name).
+
+segments_to_atom(Var) -->
+    { var(Var), !,
+      instantiation_error(Var)
+    }.
+segments_to_atom(A/B) -->
+    !,
+    segments_to_atom(A),
+    segments_to_atom(B).
+segments_to_atom(A) -->
+    [A].
+
+%!  save_resource(+Zipper, +Name, +FileSpec, +Options) is det.
+%
+%   Add the content represented by FileSpec to Zipper under Name.
+
+save_resource(RC, Name, FileSpec, _Options) :-
     absolute_file_name(FileSpec,
                        [ access(read),
                          file_errors(fail)
                        ], File),
     !,
-    feedback('~t~8|~w~t~32|~w~t~48|~w~n',
-             [Name, Class, File]),
-    '$rc_append_file'(RC, Name, Class, none, File).
-save_resource(RC, Name, Class, _) :-
+    feedback('~t~8|~w~t~32|~w~n',
+             [Name, File]),
+    zipper_append_file(RC, Name, File, []).
+save_resource(RC, Name, FileSpec, Options) :-
+    findall(Dir,
+            absolute_file_name(FileSpec, Dir,
+                               [ access(read),
+                                 file_type(directory),
+                                 file_errors(fail),
+                                 solutions(all)
+                               ]),
+            Dirs),
+    Dirs \== [],
+    !,
+    forall(member(Dir, Dirs),
+           ( feedback('~t~8|~w~t~32|~w~n',
+                      [Name, Dir]),
+             zipper_append_directory(RC, Name, Dir, Options))).
+save_resource(RC, Name, _, _Options) :-
     '$rc_handle'(SystemRC),
-    copy_resource(SystemRC, RC, Name, Class),
+    copy_resource(SystemRC, RC, Name),
     !.
-save_resource(_, Name, Class, FileSpec) :-
+save_resource(_, Name, FileSpec, _Options) :-
     print_message(warning,
                   error(existence_error(resource,
-                                        resource(Name, Class, FileSpec)),
+                                        resource(Name, FileSpec)),
                         _)).
 
 copy_resources(ToRC) :-
     '$rc_handle'(FromRC),
-    '$rc_members'(FromRC, List),
-    (   member(rc(Name, Class), List),
-        \+ user:resource(Name, Class, _),
-        \+ reserved_resource(Name, Class),
-        copy_resource(FromRC, ToRC, Name, Class),
+    zipper_members(FromRC, List),
+    (   member(Name, List),
+        \+ declared_resource(Name, _, _),
+        \+ reserved_resource(Name),
+        copy_resource(FromRC, ToRC, Name),
         fail
     ;   true
     ).
 
-reserved_resource('$header',    '$rc').
-reserved_resource('$state',     '$prolog').
-reserved_resource('$options',   '$prolog').
+reserved_resource('$prolog/state.qlf').
+reserved_resource('$prolog/options.txt').
 
-copy_resource(FromRC, ToRC, Name, Class) :-
+copy_resource(FromRC, ToRC, Name) :-
+    (   zipper_goto(FromRC, file(Name))
+    ->  true
+    ;   existence_error(resource, Name)
+    ),
+    zipper_file_info(FromRC, _Name, Attrs),
+    get_dict(time, Attrs, Time),
     setup_call_cleanup(
-        '$rc_open'(FromRC, Name, Class, read,  FdIn),
+        zipper_open_current(FromRC, FdIn,
+                            [ type(binary),
+                              time(Time)
+                            ]),
         setup_call_cleanup(
-            '$rc_open'(ToRC,   Name, Class, write, FdOut),
-            ( feedback('~t~8|~w~t~24|~w~t~40|~w~n',
-                       [Name, Class, '<Copied from running state>']),
+            zipper_open_new_file_in_zip(ToRC, Name, FdOut, []),
+            ( feedback('~t~8|~w~t~24|~w~n',
+                       [Name, '<Copied from running state>']),
               copy_stream_data(FdIn, FdOut)
             ),
             close(FdOut)),
         close(FdIn)).
+
+
+		 /*******************************
+		 *           OBFUSCATE		*
+		 *******************************/
+
+%!  create_mapping(+Options) is det.
+%
+%   Call hook to obfuscate symbols.
+
+:- multifile prolog:obfuscate_identifiers/1.
+
+create_mapping(Options) :-
+    option(obfuscate(true), Options),
+    !,
+    (   predicate_property(prolog:obfuscate_identifiers(_), number_of_clauses(N)),
+        N > 0
+    ->  true
+    ;   use_module(library(obfuscate))
+    ),
+    (   catch(prolog:obfuscate_identifiers(Options), E,
+              print_message(error, E))
+    ->  true
+    ;   print_message(warning, failed(obfuscate_identifiers))
+    ).
+create_mapping(_).
+
+%!  lock_files(+SaveClass) is det.
+%
+%   When saving as `runtime`, lock all files  such that when running the
+%   program the system stops checking existence and modification time on
+%   the filesystem.
+%
+%   @tbd `system` is a poor name.  Maybe use `resource`?
+
+lock_files(runtime) :-
+    !,
+    '$set_source_files'(system).                % implies from_state
+lock_files(_) :-
+    '$set_source_files'(from_state).
+
+%!  save_program(+Zipper, +SaveClass, +Options) is det.
+%
+%   Save the program itself as virtual machine code to Zipper.
+
+save_program(RC, SaveClass, Options) :-
+    zipper_open_new_file_in_zip(RC, '$prolog/state.qlf', StateFd, []),
+    setup_call_cleanup(
+        ( current_prolog_flag(access_level, OldLevel),
+          set_prolog_flag(access_level, system), % generate system modules
+          '$open_wic'(StateFd, Options)
+        ),
+        ( create_mapping(Options),
+          save_modules(SaveClass),
+          save_records,
+          save_flags,
+          save_prompt,
+          save_imports,
+          save_prolog_flags,
+          save_operators(Options),
+          save_format_predicates
+        ),
+        ( '$close_wic',
+          set_prolog_flag(access_level, OldLevel)
+        )),
+    close(StateFd).
 
 
                  /*******************************
@@ -332,6 +498,38 @@ save_modules(SaveClass) :-
 special_module(system).
 special_module(user).
 
+
+%!  prepare_entry_points(+Options)
+%
+%   Prepare  the  --goal=Goal  and  --toplevel=Goal  options.  Preparing
+%   implies autoloading the definition and declaring it _public_ such at
+%   it doesn't get obfuscated.
+
+prepare_entry_points(Options) :-
+    define_init_goal(Options),
+    define_toplevel_goal(Options).
+
+define_init_goal(Options) :-
+    option(goal(Goal), Options),
+    !,
+    entry_point(Goal).
+define_init_goal(_).
+
+define_toplevel_goal(Options) :-
+    option(toplevel(Goal), Options),
+    !,
+    entry_point(Goal).
+define_toplevel_goal(_).
+
+entry_point(Goal) :-
+    define_predicate(Goal),
+    (   \+ predicate_property(Goal, built_in),
+        \+ predicate_property(Goal, imported_from(_))
+    ->  goal_pi(Goal, PI),
+        public(PI)
+    ;   true
+    ).
+
 define_predicate(Head) :-
     '$define_predicate'(Head),
     !.   % autoloader
@@ -340,26 +538,45 @@ define_predicate(Head) :-
     functor(Term, Name, Arity),
     throw(error(existence_error(procedure, Name/Arity), _)).
 
+goal_pi(M:G, QPI) :-
+    !,
+    strip_module(M:G, Module, Goal),
+    functor(Goal, Name, Arity),
+    QPI = Module:Name/Arity.
+goal_pi(Goal, Name/Arity) :-
+    functor(Goal, Name, Arity).
+
+%!  prepare_state(+Options) is det.
+%
+%   Prepare the executable by  running   the  `prepare_state` registered
+%   initialization hooks.
+
+prepare_state(_) :-
+    forall('$init_goal'(when(prepare_state), Goal, Ctx),
+           run_initialize(Goal, Ctx)).
+
+run_initialize(Goal, Ctx) :-
+    (   catch(Goal, E, true),
+        (   var(E)
+        ->  true
+        ;   throw(error(initialization_error(E, Goal, Ctx), _))
+        )
+    ;   throw(error(initialization_error(failed, Goal, Ctx), _))
+    ).
+
 
                  /*******************************
                  *            AUTOLOAD          *
                  *******************************/
 
-define_init_goal(Options) :-
-    option(goal(Goal), Options),
-    !,
-    define_predicate(Goal).
-define_init_goal(_).
-
-define_toplevel_goal(Options) :-
-    option(toplevel(Goal), Options),
-    !,
-    define_predicate(Goal).
-define_toplevel_goal(_).
+%!  save_autoload(+Options) is det.
+%
+%   Resolve all autoload dependencies.
+%
+%   @error existence_error(procedures, List) if undefined(true) is
+%   in Options and there are undefined predicates.
 
 save_autoload(Options) :-
-    define_init_goal(Options),
-    define_toplevel_goal(Options),
     option(autoload(true),  Options, true),
     !,
     autoload(Options).
@@ -657,13 +874,13 @@ save_foreign_libraries(RC, Options) :-
     !,
     feedback('~nFOREIGN LIBRARIES~n', []),
     forall(current_foreign_library(FileSpec, _Predicates),
-           ( find_foreign_library(FileSpec, File),
+           ( find_foreign_library(FileSpec, File, Time),
              term_to_atom(FileSpec, Name),
-             '$rc_append_file'(RC, Name, shared, none, File)
+             zipper_append_file(RC, Name, File, [time(Time)])
            )).
 save_foreign_libraries(_, _).
 
-%!  find_foreign_library(+FileSpec, -File) is det.
+%!  find_foreign_library(+FileSpec, -File, -Time) is det.
 %
 %   Find the shared object specified by   FileSpec.  If posible, the
 %   shared object is stripped to reduce   its size. This is achieved
@@ -672,13 +889,14 @@ save_foreign_libraries(_, _).
 %
 %   @bug    Should perform OS search on failure
 
-find_foreign_library(FileSpec, SharedObject) :-
+find_foreign_library(FileSpec, SharedObject, Time) :-
     absolute_file_name(FileSpec,
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
                        ], File),
     !,
+    time_file(File, Time),
     (   absolute_file_name(path(strip), Strip,
                            [ access(execute),
                              file_errors(fail)
@@ -717,22 +935,6 @@ feedback(Fmt, Args) :-
 feedback(_, _).
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Option checking and exception generation.  This should be in a library!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-option_type(Name,        integer) :- min_stack(Name, _MinValue).
-option_type(class,       oneof([runtime,kernel,development])).
-option_type(autoload,    boolean).
-option_type(map,         atom).
-option_type(op,          oneof([save, standard])).
-option_type(stand_alone, boolean).
-option_type(foreign,     oneof([save, no_save])).
-option_type(goal,        callable).
-option_type(toplevel,    callable).
-option_type(init_file,   atom).
-option_type(emulator,    ground).
-
 check_options([]) :- !.
 check_options([Var|_]) :-
     var(Var),
@@ -740,7 +942,7 @@ check_options([Var|_]) :-
     throw(error(domain_error(save_options, Var), _)).
 check_options([Name=Value|T]) :-
     !,
-    (   option_type(Name, Type)
+    (   save_option(Name, Type, _Comment)
     ->  (   must_be(Type, Value)
         ->  check_options(T)
         ;   throw(error(domain_error(Type, Value), _))
@@ -757,12 +959,145 @@ check_options(Opt) :-
     throw(error(domain_error(list, Opt), _)).
 
 
+%!  zipper_append_file(+Zipper, +Name, +File, +Options) is det.
+%
+%   Append the content of File under Name to the open Zipper.
+
+zipper_append_file(_, Name, _, _) :-
+    saved_resource_file(Name),
+    !.
+zipper_append_file(_, _, File, _) :-
+    source_file(File),
+    !.
+zipper_append_file(Zipper, Name, File, Options) :-
+    (   option(time(_), Options)
+    ->  Options1 = Options
+    ;   time_file(File, Stamp),
+        Options1 = [time(Stamp)|Options]
+    ),
+    setup_call_cleanup(
+        open(File, read, In, [type(binary)]),
+        setup_call_cleanup(
+            zipper_open_new_file_in_zip(Zipper, Name, Out, Options1),
+            copy_stream_data(In, Out),
+            close(Out)),
+        close(In)),
+    assertz(saved_resource_file(Name)).
+
+%!  zipper_add_directory(+Zipper, +Name, +Dir, +Options) is det.
+%
+%   Add a directory entry. Dir  is  only   used  if  there  is no option
+%   time(Stamp).
+
+zipper_add_directory(Zipper, Name, Dir, Options) :-
+    (   option(time(Stamp), Options)
+    ->  true
+    ;   time_file(Dir, Stamp)
+    ),
+    atom_concat(Name, /, DirName),
+    (   saved_resource_file(DirName)
+    ->  true
+    ;   setup_call_cleanup(
+            zipper_open_new_file_in_zip(Zipper, DirName, Out,
+                                        [ method(store),
+                                          time(Stamp)
+                                        | Options
+                                        ]),
+            true,
+            close(Out)),
+        assertz(saved_resource_file(DirName))
+    ).
+
+add_parent_dirs(Zipper, Name, Dir, Options) :-
+    (   option(time(Stamp), Options)
+    ->  true
+    ;   time_file(Dir, Stamp)
+    ),
+    file_directory_name(Name, Parent),
+    (   Parent \== Name
+    ->  add_parent_dirs(Zipper, Parent, [time(Stamp)|Options])
+    ;   true
+    ).
+
+add_parent_dirs(_, '.', _) :-
+    !.
+add_parent_dirs(Zipper, Name, Options) :-
+    zipper_add_directory(Zipper, Name, _, Options),
+    file_directory_name(Name, Parent),
+    (   Parent \== Name
+    ->  add_parent_dirs(Zipper, Parent, Options)
+    ;   true
+    ).
+
+
+%!  zipper_append_directory(+Zipper, +Name, +Dir, +Options) is det.
+%
+%   Append the content of  Dir  below   Name  in  the  resource archive.
+%   Options:
+%
+%     - include(+Patterns)
+%     Only add entries that match an element from Patterns using
+%     wildcard_match/2.
+%     - exclude(+Patterns)
+%     Ignore entries that match an element from Patterns using
+%     wildcard_match/2.
+%
+%   @tbd Process .gitignore.  There also seem to exists other
+%   standards for this.
+
+zipper_append_directory(Zipper, Name, Dir, Options) :-
+    exists_directory(Dir),
+    !,
+    add_parent_dirs(Zipper, Name, Dir, Options),
+    zipper_add_directory(Zipper, Name, Dir, Options),
+    directory_files(Dir, Members),
+    forall(member(M, Members),
+           (   reserved(M)
+           ->  true
+           ;   ignored(M, Options)
+           ->  true
+           ;   atomic_list_concat([Dir,M], /, Entry),
+               atomic_list_concat([Name,M], /, Store),
+               catch(zipper_append_directory(Zipper, Store, Entry, Options),
+                     E,
+                     print_message(warning, E))
+           )).
+zipper_append_directory(Zipper, Name, File, Options) :-
+    zipper_append_file(Zipper, Name, File, Options).
+
+reserved(.).
+reserved(..).
+
+%!  ignored(+File, +Options) is semidet.
+%
+%   Ignore File if there is an  include(Patterns) option that does *not*
+%   match File or an exclude(Patterns) that does match File.
+
+ignored(File, Options) :-
+    option(include(Patterns), Options),
+    \+ ( (   is_list(Patterns)
+         ->  member(Pattern, Patterns)
+         ;   Pattern = Patterns
+         ),
+         wildcard_match(Pattern, File)
+       ),
+    !.
+ignored(File, Options) :-
+    option(exclude(Patterns), Options),
+    (   is_list(Patterns)
+    ->  member(Pattern, Patterns)
+    ;   Pattern = Patterns
+    ),
+    wildcard_match(Pattern, File),
+    !.
+
+
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
 
 :- multifile prolog:message/3.
 
-prolog:message(no_resource(Name, Class, File)) -->
-    [ 'Could not find resource ~w/~w on ~w or system resources'-
-      [Name, Class, File] ].
+prolog:message(no_resource(Name, File)) -->
+    [ 'Could not find resource ~w on ~w or system resources'-
+      [Name, File] ].

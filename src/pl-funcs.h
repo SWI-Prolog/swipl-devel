@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam,
-                              VU University Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam,
+                              VU University Amsterdam,
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -189,12 +190,13 @@ COMMON(ClauseRef)	nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr,
 COMMON(int)		addClauseToIndexes(Definition def, Clause cl,
 					   ClauseRef where);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
-COMMON(void)		cleanClauseIndexes(Definition def, gen_t active);
+COMMON(void)		cleanClauseIndexes(Definition def, ClauseList cl,
+					   gen_t active);
 COMMON(void)		clearTriedIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
-COMMON(void)		deleteIndexes(Definition def, int isnew);
+COMMON(void)		deleteIndexes(ClauseList cl, int isnew);
 COMMON(int)		checkClauseIndexSizes(Definition def, int nindexable);
 COMMON(void)		checkClauseIndexes(Definition def);
 COMMON(void)		listIndexGenerations(Definition def, gen_t gen);
@@ -349,6 +351,8 @@ COMMON(void)		cleanupForeign(void);
 /* pl-modul.c */
 COMMON(Module)		lookupModule__LD(atom_t name ARG_LD);
 COMMON(Module)		isCurrentModule__LD(atom_t name ARG_LD);
+COMMON(Module)		acquireModule__LD(atom_t name ARG_LD);
+COMMON(void)		releaseModule(Module m);
 COMMON(void)		initModules(void);
 COMMON(void)		cleanupModules(void);
 COMMON(int)		addModuleSourceFile(SourceFile sf, Module m);
@@ -391,13 +395,13 @@ COMMON(void)		setOSPrologFlags(void);
 COMMON(void)		RemoveTemporaryFiles(void);
 COMMON(bool)		OpenStream(int fd);
 COMMON(char *)		expandVars(const char *pattern, char *expanded, int len);
-COMMON(char *)		getwd(char *buf);
 COMMON(char *)		AbsoluteFile(const char *spec, char *path);
 COMMON(int)		IsAbsolutePath(const char *spec);
-COMMON(char *)		BaseName(const char *f);
+COMMON(char *)		BaseName(const char *f, char *buf);
 COMMON(char *)		DirName(const char *f, char *buf);
 COMMON(bool)		ChDir(const char *path);
-COMMON(atom_t)		TemporaryFile(const char *id, int *fdp);
+COMMON(atom_t)		TemporaryFile(const char *id,
+				      const char *ext, int *fdp);
 COMMON(int)		DeleteTemporaryFile(atom_t name);
 COMMON(int)		hasConsole(void);
 COMMON(struct tm *)	PL_localtime_r(const time_t *t, struct tm *r);
@@ -611,9 +615,7 @@ COMMON(void)		resetSignals(void);
 COMMON(void)		cleanupSignals(void);
 COMMON(int)		handleSignals(ARG1_LD);
 
-COMMON(int)		initPrologStacks(size_t local,
-					 size_t global,
-					 size_t trail);
+COMMON(int)		initPrologStacks(size_t limit);
 COMMON(void)		initPrologLocalData(ARG1_LD);
 COMMON(void)		deallocateStacks(void);
 COMMON(bool)		restoreStack(Stack s);
@@ -623,6 +625,7 @@ COMMON(void)		freeStacks(ARG1_LD);
 COMMON(void)		freePrologLocalData(PL_local_data_t *ld);
 COMMON(int)		ensure_room_stack(Stack s, size_t n, int ex);
 COMMON(int)		trim_stack(Stack s);
+COMMON(int)		set_stack_limit(size_t limit);
 COMMON(void *)		stack_malloc(size_t size);
 COMMON(void *)		stack_realloc(void *old, size_t size);
 COMMON(void)		stack_free(void *mem);
@@ -669,19 +672,18 @@ COMMON(char *)		functorName(functor_t f);
 COMMON(char *)		keyName(word key);
 COMMON(char *)		sourceFileName(SourceFile sf);
 COMMON(char *)		generationName(gen_t gen);
-COMMON(int)		clauseNo(Definition def, Clause clause, gen_t gen);
+COMMON(int)		clauseNo(Clause clause, gen_t gen);
 COMMON(int)		notImplemented(char *name, int arity);
 COMMON(word)		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word)		setInteger(int *val, term_t old, term_t new);
 COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
+COMMON(const char *)	string_summary(word name, unsigned int maxlen);
 
 /* pl-wic.c */
-COMMON(bool)		loadWicFromStream(IOSTREAM *fd);
+COMMON(bool)		loadWicFromStream(const char *rcpath, IOSTREAM *fd);
 COMMON(bool)		compileFileList(IOSTREAM *out, int argc, char **argv);
 COMMON(void)		qlfCleanup(void);
 
-COMMON(void)		wicPutNum(int64_t n, IOSTREAM *fd);
-COMMON(int64_t)		wicGetNum(IOSTREAM *fd);
 COMMON(void)		wicPutStringW(const pl_wchar_t *w, size_t len,
 				      IOSTREAM *fd);
 COMMON(pl_wchar_t*)	wicGetStringUTF8(IOSTREAM *fd, size_t *length,
@@ -742,21 +744,6 @@ COMMON(int)		ms_snprintf(char *buffer, size_t count,
 COMMON(void)		getDefaultsFromRegistry(void);
 COMMON(const char*)	WinError(void);
 
-/* pl-rc.c */
-COMMON(IOSTREAM *)       SopenRC(void *rca,
-			const char *name, const char *rcclass, int flags);
-COMMON(foreign_t)	pl_rc_handle(term_t h);
-COMMON(foreign_t)        pl_rc_open(term_t rc_h,
-			   term_t name, term_t class,
-			   term_t rw, term_t handle);
-COMMON(foreign_t)        pl_rc_open_archive(term_t file, term_t handle);
-COMMON(foreign_t)        pl_rc_close_archive(term_t rc_h);
-COMMON(foreign_t)        pl_rc_save_archive(term_t rc_h, term_t to);
-COMMON(foreign_t)        pl_rc_append_file(term_t rc_h,
-				  term_t name, term_t class, term_t encoding,
-				  term_t file);
-COMMON(foreign_t)	pl_rc_members(term_t rc_h, term_t members);
-
 /* pl-xterm.c */
 
 COMMON(foreign_t)	pl_open_xterm(term_t title,
@@ -800,6 +787,9 @@ COMMON(void)	cpNumber(Number to, Number from);
 COMMON(Code)	push_continuation(term_t cont, LocalFrame pfr, Code pcret
 				  ARG_LD);
 COMMON(Code)	shift(term_t ball ARG_LD);
+
+/* pl-variant.c */
+COMMON(int)	is_variant_ptr(Word p1, Word p2 ARG_LD);
 
 /* pl-version.h */
 COMMON(void)	setGITVersion(void);

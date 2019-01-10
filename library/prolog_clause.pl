@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2016, University of Amsterdam
+    Copyright (c)  2005-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,8 @@
 
 :- module(prolog_clause,
           [ clause_info/4,              % +ClauseRef, -File, -TermPos, -VarNames
+            clause_info/5,              % +ClauseRef, -File, -TermPos, -VarNames,
+                                        % +Options
             initialization_layout/4,    % +SourceLoc, +Goal, -Term, -TermPos
             predicate_name/2,           % +Head, -Name
             clause_name/2               % +ClauseRef, -Name
@@ -58,7 +61,9 @@
     open_source/2.                  % +Input, -Stream
 
 :- predicate_options(prolog_clause:clause_info/5, 5,
-                     [ variable_names(-list)
+                     [ head(-any),
+                       body(-any),
+                       variable_names(-list)
                      ]).
 
 /** <module> Get detailed source-information about a clause
@@ -107,6 +112,8 @@ clause_info(ClauseRef, File, TermPos, NameOffset, Options) :-
     clause_property(ClauseRef, file(File)),
     File \== user,                  % loaded using ?- [user].
     '$clause'(Head0, Body, ClauseRef, VarOffset),
+    option(head(Head0), Options, _),
+    option(body(Body), Options, _),
     (   module_property(Module, file(File))
     ->  true
     ;   strip_module(user:Head0, Module, _)
@@ -196,7 +203,7 @@ read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
         '$pop_input_context').
 
 read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
-    catch(try_open_source(File, In), _, fail),
+    catch(try_open_source(File, In), error(_,_), fail),
     set_stream(In, newline(detect)),
     call_cleanup(
         read_source_term_at_location(
@@ -218,6 +225,8 @@ read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 %     clause_property(ClauseRef, file(File)),
 %     prolog_clause:open_source(File, Stream)
 %     ==
+
+:- public try_open_source/2.            % used by library(prolog_breakpoints).
 
 try_open_source(File, In) :-
     open_source(File, In),
@@ -323,14 +332,14 @@ unify_clause((Head :- Read),
                              ]).
                                         % DCG rules
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
-    Read = (_ --> List, _),
-    is_list(List),
+    Read = (_ --> Terminal, _),
+    is_list(Terminal),
     ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
     Compiled2 = (DH :- _),
     functor(DH, _, Arity),
     DArg is Arity - 1,
+    append(Terminal, _Tail, List),
     arg(DArg, DH, List),
-    nonvar(List),
     TermPos1 = term_position(F,T,FF,FT,[ HP,
                                          term_position(_,_,_,_,[_,BP])
                                        ]),

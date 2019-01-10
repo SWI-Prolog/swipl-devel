@@ -89,10 +89,9 @@ typedef struct
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  size_t	    local_size;		/* Stack sizes */
-  size_t	    global_size;
-  size_t	    trail_size;
-  size_t	    stack_size;		/* system (C-) stack */
+  size_t	    stack_limit;	/* Stack sizes */
+  size_t	    table_space;	/* Max size for local tables */
+  size_t	    c_stack_size;	/* system (C-) stack */
   rc_cancel	    (*cancel)(int id);	/* cancel function */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
   unsigned	    detached      : 1;	/* detached thread */
@@ -164,8 +163,8 @@ typedef struct message_queue
   struct thread_message   *tail;	/* Tail of message queue */
   uint64_t	       sequence_next;	/* next for sequence id */
   word		       id;		/* Id of the queue */
-  long		       size;		/* # terms in queue */
-  long		       max_size;	/* Max # terms in queue */
+  size_t	       size;		/* # terms in queue */
+  size_t	       max_size;	/* Max # terms in queue */
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
   int		       wait_for_drain;	/* # threads waiting for write */

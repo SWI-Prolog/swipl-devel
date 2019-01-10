@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam,
+                              VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,7 +37,11 @@
           [ explain/1,
             explain/2
           ]).
+:- if(exists_source(library(pldoc/man_index))).
+:- use_module(library(pldoc/man_index)).
+:- elif(exists_source(library(helpidx))).
 :- use_module(library(helpidx)).
+:- endif.
 :- use_module(library(lists)).
 :- use_module(library(apply)).
 
@@ -63,7 +68,10 @@ cross-referencer.
 
 %!  explain(@Term) is det
 %
-%   Write all information known about Term to the current output.
+%   Give an explanation on Term. The  argument   may  be any Prolog data
+%   object. If the argument is an atom,  a term of the form `Name/Arity`
+%   or a term of the form   `Module:Name/Arity`, explain/1 describes the
+%   predicate as well as possible references to it. See also gxref/0.
 
 explain(Item) :-
     explain(Item, Explanation),
@@ -77,7 +85,7 @@ explain(_).
 
 %!  explain(@Term, -Explanation) is nondet.
 %
-%   Explanation describes information about Term.
+%   True when Explanation is an explanation of Term.
 
 explain(Var, Explanation) :-
     var(Var),
@@ -160,8 +168,13 @@ explain(Term, Explanation) :-
 %   predicates are considered `known' for this purpose, so we can
 %   provide referenced messages on them.
 
-known_predicate(Pred) :-
-    current_predicate(_, Pred),
+known_predicate(M:Head) :-
+    var(M),
+    current_predicate(_, M2:Head),
+    (   predicate_property(M2:Head, imported_from(M))
+    ->  true
+    ;   M = M2
+    ),
     !.
 known_predicate(Pred) :-
     predicate_property(Pred, undefined).
@@ -265,12 +278,23 @@ explain_predicate(Pred, Explanation) :-
         flatten([U0, U1, U2, U3], Utters),
         combine_utterances(Utters, Explanation)
     ).
+:- if(current_predicate(man_object_property/2)).
+explain_predicate(Pred, Explanation) :-
+    Pred = _Module:Head,
+    functor(Head, Name, Arity),
+    man_object_property(Name/Arity, summary(Summary)),
+    source_file(Pred, File),
+    current_prolog_flag(home, Home),
+    sub_atom(File, 0, _, _, Home),
+    utter(Explanation, '~t~8|Summary: ``~w''''', [Summary]).
+:- elif(current_predicate(predicate/5)).
 explain_predicate(Pred, Explanation) :-
     predicate_property(Pred, built_in),
     Pred = _Module:Head,
     functor(Head, Name, Arity),
     predicate(Name, Arity, Summary, _, _),
     utter(Explanation, '~t~8|Summary: ``~w''''', [Summary]).
+:- endif.
 explain_predicate(Pred, Explanation) :-
     referenced(Pred, Explanation).
 

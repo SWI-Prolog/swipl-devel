@@ -50,9 +50,12 @@ format from the WWW home page at
 .B http://www.swi-prolog.org
 
 .SH LICENSE INFORMATION
-SWI-Prolog is distributed under the LGPL (GNU Lesser General Public License) for
-maximal compatibility with the Free Software movement, while allowing for
-use with proprietary software components.
+SWI-Prolog is distributed under the
+.IR "Simplified BSD" " or " "BSD-2"
+License.  A particular configuration may contain components that are
+subject to other license conditions.  Use
+.B license/0
+to find components with less permissive license conditions.
 See the SWI-Prolog home page at
 .B http://www.swi-prolog.org
 for details.
@@ -97,6 +100,9 @@ The architecture identifier used.  Together with
 this defines the location of various components.  For example,
 the library for embedding is in
 .B $PLBASE/lib/$PLARCH/libswipl.a
+.TP
+.B PLBITS
+Address bits for VM.  Either 32 or 64.
 .TP
 .B PLLIB
 CC identifier to link to SWI-Prolog.  Typically
@@ -145,44 +151,27 @@ if Prolog was compiled for multi-threading and
 otherwise.
 .RE
 .TP
-.BI \-G size [kmg]
-Sets the global stack size to
-.I size.
-The default is 128 Mbytes (64-bit machines: 256 Mbytes). The global
-stack is used to store compound terms, floating point numbers, big
-integers and strings. See also the
-.B \-L
-option.
+.BI \-\-stack_limit= size [bkmg]
+Sets the combined stack limit to
+.IR size " bytes."
+The suffix is case insensitive and defines the unit as
+.IR b " (bytes),"
+.IR k " (Kbytes),"
+.IR m " (Mbytes) or "
+.IR g " (Gbytes)."
 .TP
-.BI \-L size [kmg]
-Sets the local stack size to
-.I size.
-The default unit is Kbytes. The local stack is used to store environment
-frames, choicepoints and foreign-language term-references. SWI-Prolog
-performs last-call optimisation to minimize the local stack
-requirements. If the argument ends in
-.B m ,
-the argument is interpreted in Mbytes. A
-.B g
-suffix is interpreted in Gbytes (64-bit machines only). This flag sets
-the maximum value to which the stack is allowed to grow (default 128
-Mbytes for the 32-bit version and 256 Mbytes for the 64-bit version). A
-maximum is useful to prevent buggy programs from claiming all the memory
-resources.
-.B \-L0
-sets the limit to the highest possible value.
+.BI \-\-table_space= size [bkmg]
+Sets the space limit for tables use for SLG resolution
+(tabling) to
+.IR size " bytes."
+The suffixes are the same as for the
+.B --stack_limit
+option.
 .TP
 .BI \-O
 Optimised compilation. See
-.B set_prolog_flag/3
+.B set_prolog_flag/2
 in the SWI-Prolog Reference Manual.
-.TP
-.BI \-T size [kmg]
-Sets the trail stack size to
-.I size
-K bytes. The default is 128 Mbytes (64-bit machines: 256 Mbytes). See
-.B \-L
-for more details.
 .TP
 .BI \-b " initfile ... " -c " file ..."
 Boot compilation.
@@ -227,13 +216,10 @@ the user has no read-access to it, the script is silently not loaded.
 Load
 .I file
 as a script.  This option may be used from the shell to make
-Prolog load a file before entering the toplevel.  It is also
-used to turn a file into an executable Prolog script on Unix
-systems using the following first line
-.RS
-.TP
-.BR #!@prefix@/bin/@PL@ " option ... " \-s
-.RE
+Prolog load a file before entering the toplevel.  Deprecated
+as file names with a Prolog extension
+.RB "(" .pl " or " .qlf ")"
+are used to load the program.
 .TP
 .BI \-l " file"
 Load
@@ -246,7 +232,7 @@ multiple
 arguments are provided, all specified files are loaded in the order
 in which they appear on the argument list.
 .TP
-.B \-\-quiet \-q
+.BR \-\-quiet "[=bool] " \-q
 Operate silently.  This option suppresses all
 .I informational
 messages.
@@ -315,28 +301,31 @@ or
 option, or created using
 .B qsave_program/[1,2].
 .TP
-.RB [ \+ | \- ] tty
+.BR \-\-tty [=bool]
 Switches tty control (using
-.BR ioctl (2))
-on
-.RB ( \+tty ") or off ("  \-tty ")."
+.BR ioctl (2)).
 Normally tty control is switched on. This default depends on the
 installation. You may wish to switch tty control off if SWI-Prolog is
 used from an editor such as GNU Emacs. If switched off,
 .B get_single_char/1
 and the tracer will wait for a carriage return.
 .TP
-.B \-\-nosignals
+.BR \-\-signals [=bool]
 Disable handling of signals.  Often used if SWI-Prolog is embedded in
 another application on Unix systems.
 .TP
-.B \-\-sigalert= "NUM"
+.BR \-\-sigalert= "NUM"
 Use
 .I NUM
 for unblocking system calls.  Default is
 .BR SIGUSR2 "."
 Using 0 disables installing a signal handler, delaying the delivery
 of thread signals until the blocking system call completes.
+.TP
+.BR \-\-threads [=bool]
+Disable creating threads in the multi-threaded version.  This notably
+prevents running global garbage collection on a separate thread and
+may be used for situations where multiple threads are not desirable.
 .TP
 .B \-\-
 Stops scanning for more arguments.
@@ -450,7 +439,7 @@ William\ F.\ Clocksin & Christopher\ S.\ Mellish,
 .IR "Programming in Prolog" ,
 fourth edition, Springer Verlag, Berlin 1994.
 .PP
-.BR swipl-rc "(1) and " swipl-ld "(1)"
+.BR swipl-ld "(1)"
 .SH WARRANTY
 The software is provided
 .B as is,

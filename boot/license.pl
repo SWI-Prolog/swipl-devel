@@ -187,9 +187,12 @@ license :-
     (setof(Module, gpled(Module), GPL)   -> true ; GPL  = []),
     (setof(Module, lgpled(Module), LGPL) -> true ; LGPL = []),
     findall(L-Modules,
+            setof(Module, permissive(Module, L), Modules),
+            Permissive),
+    findall(L-Modules,
             setof(Module, proprietary(Module, L), Modules),
             Proprietary),
-    print_message(informational, license(GPL,LGPL,Proprietary)).
+    print_message(informational, license(GPL,LGPL,Permissive,Proprietary)).
 
 gpled(Module) :-
     licensed(X, Module),
@@ -198,6 +201,10 @@ gpled(Module) :-
 lgpled(Module) :-
     licensed(X, Module),
     license(X, lgpl, _).
+
+permissive(Module, L) :-
+    licensed(L, Module),
+    license(L, permissive, _).
 
 proprietary(Module, L) :-
     licensed(L, Module),
@@ -226,8 +233,8 @@ known_licenses :-
 :- multifile
     prolog:message/3.
 
-prolog:message(license(GPL,LGPL,Proprietary)) -->
-    license_message(GPL,LGPL,Proprietary).
+prolog:message(license(GPL,LGPL,Permissive,Proprietary)) -->
+    license_message(GPL,LGPL,Permissive,Proprietary).
 prolog:message(unknown_license(License)) -->
     [ 'The license "~w" is not known.  You can list the known '-[License], nl,
       'licenses using ?- known_licenses. or add information about this ',
@@ -241,19 +248,19 @@ prolog:message(known_licenses(Licenses)) -->
 
 %!  license_message(+GPL, +LGPL, +Proprietary)//
 
-license_message(GPL, LGPL, Proprietary) -->
-    license_message(GPL, LGPL),
+license_message(GPL, LGPL, Permissive, Proprietary) -->
+    license_message(GPL, LGPL, Permissive),
     proprietary_licenses(Proprietary).
 
-license_message([],[]) -->
+license_message([], [], Permissive) -->
     !,
-    [ 'This program contains no modules registered with non-permissive', nl,
-      'license conditions and is therefore covered by the Simplified BSD', nl,
-      'license:',
+    [ 'This program contains only components covered by permissive license', nl,
+      'conditions. SWI-Prolog is covered by the Simplified BSD license:',
       nl, nl
     ],
-    bsd2_license.
-license_message(GPL,_) -->
+    bsd2_license,
+	permissive_licenses(Permissive).
+license_message(GPL, _, _) -->
     { GPL \== [] },
     !,
     [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
@@ -263,7 +270,7 @@ license_message(GPL,_) -->
            'These components are:', nl, nl
          ]),
     file_list(GPL).
-license_message([],LGPL) -->
+license_message([], LGPL, _) -->
     !,
     [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
     bsd2_license, [nl, nl],
@@ -301,6 +308,26 @@ bsd2_license -->
       'POSSIBILITY OF SUCH DAMAGE.'
     ].
 
+permissive_licenses([]) --> !.
+permissive_licenses([LM| LMs]) -->
+    [ nl, nl,
+      'This program contains other components with permissive licenses:',
+      nl, nl
+    ],
+    permissive([LM| LMs]).
+
+permissive([]) --> [].
+permissive([License-Modules|T]) -->
+    license_title(License),
+    license_url(License),
+    [nl],
+    file_list(Modules),
+    (   {T==[]}
+    ->  []
+    ;   [nl],
+        permissive(T)
+    ).
+
 proprietary_licenses([]) --> !.
 proprietary_licenses(List) -->
     warn([ nl,
@@ -327,7 +354,7 @@ license_title(License) -->
     ->  true
     ;   C = License
     },
-    [ '  The following modules are covered by the "~w" license'-[C] ].
+    [ '  The following components are covered by the "~w" license'-[C] ].
 
 license_url(License) -->
     { license(License, _, Att),

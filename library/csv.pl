@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2017, VU University Amsterdam
+    Copyright (c)  2009-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,8 @@
 
             csv_read_file/2,            % +File, -Data
             csv_read_file/3,            % +File, -Data, +Options
+            csv_read_stream/3,          % +Stream, -Data, +Options
+
             csv_read_file_row/3,        % +File, -Row, +Options
             csv_read_row/3,		% +Stream, -Row, +CompiledOptions
             csv_options/2,		% -Compiled, +Options
@@ -51,6 +54,8 @@
 :- use_module(library(pure_input)).
 :- use_module(library(debug)).
 :- use_module(library(option)).
+:- use_module(library(apply)).
+:- use_module(library(dcg/basics)).
 
 /** <module> Process CSV (Comma-Separated Values) data
 
@@ -100,7 +105,8 @@ have the same name and arity.
                 case:oneof([down,preserve,up])=preserve,
                 functor:atom=row,
                 arity:integer,
-                match_arity:boolean=true).
+                match_arity:boolean=true,
+                skip_header:atom).
 
 
 %!  csv_read_file(+File, -Rows) is det.
@@ -147,6 +153,15 @@ ext_separator(csv, 0',).
 ext_separator(tsv, 0'\t).
 
 
+%!  csv_read_stream(+Stream, -Rows, +Options) is det.
+%
+%   Read CSV data from Stream.  See also csv_read_row/3.
+
+csv_read_stream(Stream, Rows, Options) :-
+    make_csv_options(Options, Record, _),
+    phrase_from_stream(csv_roptions(Rows, Record), Stream).
+
+
 %!  csv(?Rows)// is det.
 %!  csv(?Rows, +Options)// is det.
 %
@@ -166,6 +181,14 @@ ext_separator(tsv, 0'\t).
 %       If =true= (default =false=), strip leading and trailing
 %       blank space.  RFC4180 says that blank space is part of the
 %       data.
+%
+%       * skip_header(+CommentLead)
+%       Skip leading lines that start with CommentLead.  There is
+%       no standard for comments in CSV files, but some CSV files
+%       have a header where each line starts with `#`.  After
+%       skipping comment lines this option causes csv//2 to skip empty
+%       lines.  Note that an empty line may not contain white space
+%       characters (space or tab) as these may provide valid data.
 %
 %       * convert(+Boolean)
 %       If =true= (default), use name/2 on the field data.  This
@@ -200,10 +223,42 @@ csv_roptions(Rows, Record) -->
     !,
     emit_csv(Rows, Record).
 csv_roptions(Rows, Record) -->
+    skip_header(Record),
     csv_data(Rows, Record).
 
+skip_header(Options) -->
+    { csv_options_skip_header(Options, CommentStart),
+      nonvar(CommentStart),
+      atom_codes(CommentStart, Codes)
+    },
+    !,
+    skip_header_lines(Codes),
+    skip_blank_lines.
+skip_header(_) -->
+    [].
+
+skip_header_lines(CommentStart) -->
+    string(CommentStart),
+    !,
+    (   string(_Comment),
+        end_of_record
+    ->  skip_header_lines(CommentStart)
+    ).
+skip_header_lines(_) -->
+    [].
+
+skip_blank_lines -->
+    eos,
+    !.
+skip_blank_lines -->
+    end_of_record,
+    !,
+    skip_blank_lines.
+skip_blank_lines -->
+    [].
+
 csv_data([], _) -->
-    eof,
+    eos,
     !.
 csv_data([Row|More], Options) -->
     row(Row, Options),
@@ -211,7 +266,6 @@ csv_data([Row|More], Options) -->
     { debug(csv, 'Row: ~p', [Row]) },
     csv_data(More, Options).
 
-eof([], []).
 
 row(Row, Options) -->
     fields(Fields, Options),
@@ -341,7 +395,7 @@ separator(Options) -->
 end_of_record --> "\n".			% Unix files
 end_of_record --> "\r\n".               % DOS files
 end_of_record --> "\r".                 % MacOS files
-end_of_record --> eof.                  % unterminated last record
+end_of_record --> eos.                  % unterminated last record
 
 
 %!  csv_read_file_row(+File, -Row, +Options) is nondet.
@@ -453,23 +507,28 @@ csv_write_file(File, Data) :-
 csv_write_file(File, Data, Options) :-
     must_be(list, Data),
     default_separator(File, Options, Options1),
-    make_csv_options(Options1, Record, RestOptions),
-    phrase(emit_csv(Data, Record), String),
+    make_csv_options(Options1, OptionsRecord, RestOptions),
     setup_call_cleanup(
         open(File, write, Out, RestOptions),
-        format(Out, '~s', [String]),
+        maplist(csv_write_row(Out, OptionsRecord), Data),
         close(Out)).
 
+csv_write_row(Out, OptionsRecord, Row) :-
+    phrase(emit_row(Row, OptionsRecord), String),
+    format(Out, '~s', [String]).
 
 emit_csv([], _) --> [].
 emit_csv([H|T], Options) -->
-    emit_row(H, Options), "\r\n",   % RFC 4180 demands \r\n
+    emit_row(H, Options),
     emit_csv(T, Options).
 
 emit_row(Row, Options) -->
     { Row =.. [_|Fields] },
-    emit_fields(Fields, Options).
+    emit_fields(Fields, Options),
+    "\r\n".                                     % RFC 4180 demands \r\n
 
+emit_fields([], _) -->
+    "".
 emit_fields([H|T], Options) -->
     emit_field(H, Options),
     (   { T == [] }
@@ -541,6 +600,5 @@ emit_codes([H|T]) --> [H], emit_codes(T).
 
 csv_write_stream(Stream, Data, Options) :-
     must_be(list, Data),
-    make_csv_options(Options, Record, _),
-    phrase(emit_csv(Data, Record), String),
-    format(Stream, '~s', [String]).
+    make_csv_options(Options, OptionsRecord, _),
+    maplist(csv_write_row(Stream, OptionsRecord), Data).

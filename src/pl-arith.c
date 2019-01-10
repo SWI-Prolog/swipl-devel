@@ -668,8 +668,8 @@ This new implementation avoids using the C-stack   to be able to process
 more deeply nested terms and to be able  to recover in the unlikely case
 that terms are still too deeply nested.
 
-If finds a term, it starts processing at the last argument, working back
-to the start. It it finds  the   functor  itself it evaluates the pushed
+If it finds a term, it starts processing at the last argument, working back
+to the start. If it finds  the   functor  itself, it evaluates the pushed
 arguments. Using this technique we push as  few as possible arguments on
 terms that are nested on the left (as   in (1+2)+3, while we only push a
 single pointer for each recursion level in the evaluable term.
@@ -1439,7 +1439,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	GET_LD
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
-	if ( (msb/sizeof(char)) > (uint64_t)limitStack(global) )
+	if ( (msb/sizeof(char)) > (uint64_t)globalStackLimit() )
 	{ mpz_clear(r->value.mpz);
 	  return int_too_big();
 	}
@@ -1746,23 +1746,23 @@ ar_pow(Number n1, Number n2, Number r)
     }
 
   { GET_LD				/* estimate the size, see above */
-    size_t  op1_bytes;
-    int64_t r_bytes;
+    size_t  op1_bits;
+    int64_t r_bits;
 
     switch(n1->type)
     { case V_INTEGER:
-	op1_bytes = MSB64(n1->value.i)+7/8;
+	op1_bits = MSB64(n1->value.i);
         break;
       case V_MPZ:
-	op1_bytes = mpz_sizeinbase(n1->value.mpz, 256);
+	op1_bits = mpz_sizeinbase(n1->value.mpz, 2);
         break;
       default:
 	assert(0);
         fail;
     }
 
-    if ( !( mul64(op1_bytes, exp, &r_bytes) &&
-	    r_bytes < (int64_t)limitStack(global)
+    if ( !( mul64(op1_bits, exp, &r_bits) &&
+	    r_bits/8 < (int64_t)globalStackLimit()
 	  ) )
       return int_too_big();
   }
@@ -3249,13 +3249,17 @@ seed_random(ARG1_LD)
 { if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
        !seed_from_dev("/dev/random" PASS_LD) &&
        !seed_from_crypt_context(PASS_LD1) )
-  { double t[1] = { WallTime() };
+  { union
+    { double t;
+      unsigned long l[sizeof(double)/sizeof(long)];
+    } u;
     unsigned long key = 0;
-    unsigned long *p = (unsigned long*)t;
-    unsigned long *e = (unsigned long*)&t[1];
+    int i;
 
-    for(; p<e; p++)
-      key ^= *p;
+    u.t = WallTime();
+
+    for(i=0; i<sizeof(double)/sizeof(long); i++)
+      key ^= u.l[i];
 
     LD->gmp.persistent++;
     gmp_randseed_ui(LD->arith.random.state, key);

@@ -5109,8 +5109,8 @@ CStackSize(PL_local_data_t *ld)
 {
 #ifdef O_PLMT
   if ( ld->thread.info->pl_tid != 1 )
-  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->stack_size));
-    return ld->thread.info->stack_size;
+  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->c_stack_size));
+    return ld->thread.info->c_stack_size;
   }
 #endif
 #ifdef HAVE_GETRLIMIT
@@ -5173,15 +5173,15 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     vn = 2;
   } else if ( key == ATOM_global_stack )
   { v[0] = usedStack(global);
-    v[1] = limitStack(global) - v[0];
+    v[1] = roomStack(global);
     vn = 2;
   } else if ( key == ATOM_local_stack )
   { v[0] = usedStack(local);
-    v[1] = limitStack(local) - v[0];
+    v[1] = roomStack(local);
     vn = 2;
   } else if ( key == ATOM_trail )
   { v[0] = usedStack(trail);
-    v[1] = limitStack(trail) - v[0];
+    v[1] = roomStack(trail);
     vn = 2;
   } else if ( key == ATOM_program )
   { v[0] = heapUsed();
@@ -5252,26 +5252,20 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = LD->statistics.inferences;
   else if (key == ATOM_stack)
     v->value.i = GD->statistics.stack_space;
+  else if (key == ATOM_stack_limit)
+    v->value.i = LD->stacks.limit;
   else if (key == ATOM_local)				/* local stack */
     v->value.i = sizeStack(local);
   else if (key == ATOM_localused)
     v->value.i = usedStack(local);
-  else if (key == ATOM_locallimit)
-    v->value.i = limitStack(local);
   else if (key == ATOM_trail)				/* trail */
     v->value.i = sizeStack(trail);
   else if (key == ATOM_trailused)
     v->value.i = usedStack(trail);
-  else if (key == ATOM_traillimit)
-    v->value.i = limitStack(trail);
   else if (key == ATOM_global)				/* global */
     v->value.i = sizeStack(global);
   else if (key == ATOM_globalused )
     v->value.i = usedStack(global);
-  else if (key == ATOM_globallimit)
-    v->value.i = limitStack(global);
-  else if (key == ATOM_argumentlimit)
-    v->value.i = limitStack(argument);
   else if (key == ATOM_c_stack)
     v->value.i = CStackSize(LD);
   else if (key == ATOM_atoms)				/* atoms */
@@ -5356,6 +5350,11 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 #endif
   else if (key == ATOM_table_space_used)
     v->value.i = LD->tabling.node_pool.size*sizeof(trie_node);
+  else if (key == ATOM_indexes_created)
+    v->value.i = GD->statistics.indexes.created;
+  else if (key == ATOM_indexes_destroyed)
+    v->value.i = GD->statistics.indexes.destroyed;
+
   else
     return -1;				/* unknown key */
 
@@ -5459,15 +5458,14 @@ typedef struct
 #define CMDOPT_LIST   3
 
 static const optdef optdefs[] =
-{ { "local",		CMDOPT_SIZE_T,	&GD->options.localSize },
-  { "global",		CMDOPT_SIZE_T,	&GD->options.globalSize },
-  { "trail",		CMDOPT_SIZE_T,	&GD->options.trailSize },
+{ { "stack_limit",	CMDOPT_SIZE_T,	&GD->options.stackLimit },
 
   { "goals",		CMDOPT_LIST,	&GD->options.goals },
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
   { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
   { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
   { "script_file",	CMDOPT_LIST,	&GD->options.scriptFiles },
+  { "config",		CMDOPT_STRING,	&GD->options.config },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },

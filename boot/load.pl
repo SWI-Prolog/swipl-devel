@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2013, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -64,11 +64,13 @@
              dwim,
              parms,
              autoload,
+             iri,
              qlf,
              rc,
              predopts,
              packs,
              dicts,
              engines,
+             tabling,
              user:topvars
            ]).

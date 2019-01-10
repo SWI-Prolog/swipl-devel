@@ -37,6 +37,7 @@
           [ '$initialise'/0,            % start Prolog
             '$toplevel'/0,              % Prolog top-level (re-entrant)
             '$compile'/0,               % `-c' toplevel
+            '$config'/0,                % --dump-runtime-variables toplevel
             initialize/0,               % Run program initialization
             version/0,                  % Write initial banner
             version/1,                  % Add message to the banner
@@ -496,17 +497,18 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
+    '$run_initialization',
+    '$load_system_init_file',
     set_toplevel,
     associated_files(Files),
     '$set_file_search_paths',
     init_debug_flags,
-    '$run_initialization',
-    '$load_system_init_file',
     start_pldoc,
     attach_packs,
     '$cmd_option_val'(init_file, OsFile),
     prolog_to_os_filename(File, OsFile),
     '$load_init_file'(File),
+    catch(setup_colors, E, print_message(warning, E)),
     '$load_script_file',
     load_associated_files(Files),
     '$cmd_option_val'(goals, Goals),
@@ -571,7 +573,7 @@ run_main_init :-
 run_main_init.
 
 run_init_goal(Goal, Ctx) :-
-    (   catch(user:Goal, E, true)
+    (   catch_with_backtrace(user:Goal, E, true)
     ->  (   var(E)
         ->  true
         ;   print_message(error, init_goal_failed(E, Ctx)),
@@ -618,10 +620,10 @@ setup_backtrace :-
 %   Setup  interactive  usage  by  enabling    colored   output.
 
 setup_colors :-
-    (   stream_property(user_input, tty(true)),
+    (   \+ current_prolog_flag(color_term, false),
+        stream_property(user_input, tty(true)),
         stream_property(user_error, tty(true)),
         stream_property(user_output, tty(true)),
-        \+ current_prolog_flag(color_term, false),
         load_setup_file(user:library(ansi_term))
     ->  true
     ;   true
@@ -724,7 +726,6 @@ setup_interactive :-
 setup_interactive :-
     asserta(setup_done),
     catch(setup_backtrace, E, print_message(warning, E)),
-    catch(setup_colors,    E, print_message(warning, E)),
     catch(setup_readline,  E, print_message(warning, E)),
     catch(setup_history,   E, print_message(warning, E)).
 
@@ -733,10 +734,28 @@ setup_interactive :-
 %   Toplevel called when invoked with -c option.
 
 '$compile' :-
+    '$load_system_init_file',
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
+    attach_packs,
     catch('$compile_wic', E, (print_message(error, E), halt(1))).
+
+%!  '$config'
+%
+%   Toplevel when invoked with --dump-runtime-variables
+
+'$config' :-
+    '$load_system_init_file',
+    '$set_file_search_paths',
+    init_debug_flags,
+    '$run_initialization',
+    load_files(library(prolog_config)),
+    (   catch(prolog_dump_runtime_variables, E,
+              (print_message(error, E), halt(1)))
+    ->  true
+    ;   print_message(error, error(goal_failed(prolog_dump_runtime_variables),_))
+    ).
 
 
                 /********************************

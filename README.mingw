@@ -77,14 +77,15 @@ export BUILDARCH=$TARGETHOST
 GMP_VERSION=6.1.1
 PTHREADS_VERSION=2-9-1-release
 LIBDWARF_VERSION=20120410
-SSL_VERSION=1.1.0f
+SSL_VERSION=1.1.0h
 JPEG_VERSION=9b
-ZLIB_VERSION=1.2.8
+ZLIB_VERSION=1.2.11
 ARCHIVE_VERSION=3.2.1
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
 PCRE_VERSION=8.40
 FFI_VERSION=3.2.1
+YAML_VERSION=0.1.7
 PLDIR=pl-devel
 
 # installation prefix.  This path should not have spaces in one of the
@@ -473,6 +474,24 @@ build_libffi()
 }
 
 
+################################
+# Download and install libyaml
+
+download_libyaml()
+{ #tested 01f3a8786127748b5bbd4614880c4484570bbd44
+  git clone https://github.com/yaml/libyaml
+}
+
+build_libyaml()
+{ ( cd libyaml
+    ./bootstrap
+    ./configure --host=$CROSS --prefix=$install
+    make
+    make install
+  )
+}
+
+
 ###########################
 # Do the whole lot for all prerequisites
 
@@ -504,6 +523,7 @@ download_prerequisites()
   download_libdb
   download_libpcre
   download_libffi
+  download_libyaml
 }
 
 build_prerequisites()
@@ -519,6 +539,7 @@ build_prerequisites()
   build_libdb
   build_libpcre
   build_libffi
+  build_libyaml
 }
 
 ###########################
@@ -570,6 +591,7 @@ else
   dist_dlls+="libcrypto-1_1.dll libssl-1_1.dll "
 fi
 dist_dlls+="libpcre-*.dll "
+dist_dlls+="libyaml-*.dll "
 dist_dlls+="`(cd $install/bin && find . -name 'libgcc*.dll')` "
 if [ -r "$install/bin/libdwarf.dll" ]; then
   dist_dlls+=" libdwarf.dll"

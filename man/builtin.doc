@@ -364,6 +364,10 @@ directive.
 If this option is not present, it uses the value of the Prolog
 flag \prologflag{qcompile} as default.
 
+    \termitem{optimise}{+Boolean}
+Explicitly set the optimization for compiling this module.  See
+\prologflag{optimise}.
+
     \termitem{redefine_module}{+Action}
 Defines what to do if a file is loaded that provides a module that is
 already loaded from another file. \arg{Action} is one of \const{false}
@@ -673,6 +677,11 @@ File modification time when \arg{File} was loaded.  This is used by
 make/0 to find files whose modification time is different from when
 it was loaded.
 
+	\termitem{source}{Source}
+One of \const{file} if the source was loaded from a file,
+\const{resource} if the source was loaded from a resource or
+\const{state} if the file was included in the saved state.
+
 	\termitem{module}{Module}
 \arg{File} is a module file that declares the module \arg{Module}.
 
@@ -820,9 +829,16 @@ is executed while loading the program text:
 program text in which the directive appears. This is the same as
 initialization/1.
 
-    \termitem{restore}{}
+    \termitem{prepare_state}{}
+Execute \arg{Goal} as part of qsave_program/2.  This hook can be
+used for example to eagerly execute initialization that is normally
+done lazily on first usage.
+
+    \termitem{restore_state}{}
 Do not execute \arg{Goal} while loading the program, but \emph{only}
-when restoring a saved state.
+when restoring a saved state.\footnote{Used to be called
+\const{restore}. \const{restore} is still accepted for backward
+compatibility.}
 
     \termitem{program}{}
 Execute \arg{Goal} once after executing the \cmdlineoption{-g} goals
@@ -846,7 +862,7 @@ application to start the normal interactive toplevel after completing
 \secref{plscript}.
 \end{description}
 
-    \predicate[det]{initialization}{0}{}
+    \predicate[det]{initialize}{0}{}
 Run all initialization goals registered using
 \term{initialization}{Goal, program}. Raises an error
 \term{initialization_error}{Reason, Goal, File:Line} if \arg{Goal}
@@ -1395,7 +1411,7 @@ examples.
 
     \predicate{prolog_edit:edit_command}{2}{+Editor, -Command}
 Determines how \arg{Editor} is to be invoked using shell/1. \arg{Editor}
-is the determined editor (see qpredref{prolog_edit}{edit_source}{1}),
+is the determined editor (see \qpredref{prolog_edit}{edit_source}{1}),
 without the full path specification, and without a possible
 (\fileext{exe}) extension. \arg{Command} is an atom describing the
 command. The following \%-sequences are replaced in \arg{Command} before
@@ -2302,6 +2318,25 @@ try to raise the exception without the \arg{ImplementationDefined} part.
 If an exception is raised in a call-back from C (see \chapref{foreign})
 and not caught in the same call-back, PL_next_solution() fails and
 the exception context can be retrieved using PL_exception().
+
+    \predicate{catch_with_backtrace}{3}{:Goal, +Catcher, :Recover}
+As catch/3, but if library \pllib{prolog_stack} is loaded and an
+exception of the shape \term{error}{Format, Context} is raised
+\arg{Context} is extended with a backtrace.  To catch an error
+and print its message including a backtrace, use the following
+template:
+
+\begin{code}
+:- use_module(library(prolog_stack)).
+
+    ...,
+    catch_with_backtrace(Goal, Error,
+			 print_message(error, Error)),
+    ...,
+\end{code}
+
+This is good practice for a \jargon{catch-all} wrapper around an
+application.  See also main/0 from library \pllib{main}.
 \end{description}
 
 
@@ -2609,6 +2644,12 @@ wait.
 This hook is called to print the individual elements of a message from
 print_message_lines/3. This hook is used by e.g., library
 \pllib{ansi_term} to colour messages on ANSI-capable terminals.
+
+    \predicate{prolog:message_prefix_hook}{2}{+ContextTerm, -Prefix}
+This hook is called to add context to the message prefix.
+\arg{ContextTerm} is a member of the list provided by the
+\prologflag{message_context}. \arg{Prefix} must be unified with an
+atomic value that is added to the message prefix.
 
     \predicate{message_to_string}{2}{+Term, -String}
 Translates a message term into a string object (see \secref{strings}).
@@ -3346,15 +3387,34 @@ that encloses the generation of the current goal are considered visible.
 \subsection{Indexing databases}			\label{sec:hashterm}
 
 \index{indexing,term-hashes}%
+
 The indexing capabilities of SWI-Prolog are described in
 \secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
-applicable argument, but only on one argument, and does not index
-on arguments of compound terms. The predicates below provide building
-blocks to circumvent the limitations of the current indexing system.
+applicable argument, pairs of arguments and indexes on the arguments of
+compound terms when applicable. Extended JIT indexing is not widely
+supported amoung Prolog implementations. Programs that aim at
+portability should consider using term_hash/2 and term_hash/4 to design
+their database such that indexing on constant or functor (name/arity
+reference) on the first argument is sufficient. In some cases, using the
+predicates below to add one or more additional columns (arguments) to a
+database predicate may improve performance. The overall design of code
+using these predicates is given below. Note that as term_hash/2 leaves
+the hash unbound if \arg{Term} is not ground. This causes the lookup to
+be fast if \arg{Term} is ground and correct (but slow) otherwise.
 
-Programs that aim at portability should consider using term_hash/2 and
-term_hash/4 to design their database such that indexing on constant or
-functor (name/arity reference) on the first argument is sufficient.
+\begin{code}
+:- dynamic
+    x/2.
+
+assert_x(Term) :-
+    term_hash(Term, Hash),
+    assertz(x(Hash, Term)).
+
+x(Term) :-
+    term_hash(Term, Hash),
+    x(Hash, Term).
+\end{code}
+
 
 \begin{description}
     \predicate[det]{term_hash}{2}{+Term, -HashKey}
@@ -3480,6 +3540,15 @@ queried using predicate_property/2. The public/1 directive does
 directive is used for (1) direct calls into the module from, e.g.,
 foreign code, (2) direct calls into the module from other modules, or (3)
 flag a predicate as being called if the call is generated by meta-calling constructs that are not analysed by the cross-referencer.
+
+    \prefixop{non_terminal}{:PredicateIndicator, \ldots}
+Sets the \const{non_terminal} attribute on the predicate. This indicates
+that the predicate implements a \jargon{grammar rule}. Currently,
+predicates that are exported using \arg{Name//Arity} syntax are flagged
+as non-terminals. Ideally we should add this flag to any predicate
+created from the expansion of a \const{-->} rule, but that is difficult
+without breaking compatibility for programs that reason about
+expand_term/2,4.
 \end{description}
 
 \section{Examining the program}		\label{sec:examineprog}
@@ -3630,13 +3699,28 @@ flag is not set to \const{fail} in the target module.
 analysis and statistics only. The exact representation of \arg{Indexes}
 may change between versions.} is a list of additional (hash) indexes on
 the predicate. Each element of the list is a term
-\arg{ArgSpec}-\arg{Index}. Currently \arg{ArgSpec} is an integer
-denoting the argument position and \arg{Index} is a term
-\term{hash}{Buckets, Speedup, IsList}. Here \arg{Buckets} is the number
-of buckets in the hash and \arg{Speedup} is the expected speedup
-relative to trying all clauses linearly.  \arg{IsList} indicates that
-a list is created for all clauses with the same key.  This is currently
-not used.
+\arg{ArgSpec}-\arg{Index}. \arg{ArgSpec} denotes the indexed argument(s)
+and is one of
+
+\begin{description}
+    \termitem{single}{Argument}
+Hash on a single argument.  \arg{Argument} is the 1-based argument
+number.
+    \termitem{multi}{ArgumentList}
+Hash on a combination of arguments.
+    \termitem{deep}{Position}
+Index on a sub-argument.  Position is a list holding first the
+argument of the predicate then the argument into the compound
+and recursively into deeper compound terms.
+\end{description}
+
+\arg{Index} is a term \term{hash}{Buckets, Speedup, Size, IsList}. Here
+\arg{Buckets} is the number of buckets in the hash and \arg{Speedup} is
+the expected speedup relative to trying all clauses linearly, \arg{Size}
+is the size of the index in memory in bytes and finally, \arg{IsList}
+indicates that a list is created for all clauses with the same key. This
+is used to create \jargon{deep indexes} for the arguments of compound
+terms.
 
     \termitem{interpreted}{}
 True if the predicate is defined in Prolog. We return true on this
@@ -3668,6 +3752,10 @@ for details.
 Details of the predicate are not shown by the debugger. This is the
 default for built-in predicates.  User predicates can be compiled this
 way using the Prolog flag \prologflag{generate_debug_info}.
+
+    \termitem{non_terminal}
+True if the predicate implements a \jargon{grammar rule}.  See
+non_terminal/1.
 
     \termitem{notrace}{}
 Do not show ports of this predicate in the debugger.
@@ -3931,6 +4019,13 @@ the standard input of \arg{Command}. Viso versa, if \arg{Mode} is
 be read from \arg{Stream}. On Unix systems, \arg{Command} is handed to
 popen() which hands it to the Unix shell. On Windows, \arg{Command} is
 executed directly. See also process_create/3 from \pllib{process}.
+
+If \arg{SrcDest} is an \jargon{IRI}, i.e., starts with
+<scheme>\verb$://$, where <scheme> is a non-empty sequence of lowercase
+ASCII letters open/3,4 calls hooks registered by register_iri_scheme/3.
+Currently the only predefined IRI scheme is \const{res}, providing
+access to the \jargon{resource database}. See
+\secref{program-resources}.
 
 The following \arg{Options} are recognised by open/4:
 
@@ -4558,6 +4653,51 @@ predicates associated with streams.
 Get the current output stream.
 \end{description}
 
+\subsection{Adding IRI schemas}
+\label{sec:iri-schema}
+
+The file handling predicates may be \jargon{hooked} to deal with
+\jargon{IRIs}. An IRI starts with <scheme>\verb$://$, where <scheme> is
+a non-empty sequence of lowercase ASCII letters. After detecting the
+scheme the file manipulation predicates call a hook that is registered
+using register_iri_scheme/3.
+
+Hooking the file operations using extensible IRI schemas allows us to
+place any resource that is accessed through Prolog I/O predicates on
+arbitrary devices such as web servers or the ZIP archive used to store
+program resources (see \secref{saved-states}). This is typically
+combined with file_search_path/2 declarations to switch between
+accessing a set of resources from local files, from the program
+resource database, from a web-server, etc.
+
+
+\begin{description}
+    \predicate{register_iri_scheme}{3}{+Scheme, :Hook, +Options}
+Register \arg{Hook} to be called by all file handling predicates
+if a name that starts with \arg{Scheme}:// is encountered.  The
+\arg{Hook} is called by call/4 using the \jargon{operation}, the
+\arg{IRI} and a term that receives the \textit{result} of the
+operation.  The following operations are defined:
+
+\begin{description}
+    \termitem{open}{Mode,Options}
+Called by open/3,4.  The result argument must be unified with
+a stream.
+
+    \termitem{access}{Mode}
+Called by access_file/2, exists_file/1 (\arg{Mode} is \const{file}) and
+exists_directory/1 (\arg{Mode} is \const{directory}). The result
+argument must be unified with a boolean.
+
+    \termitem{time}{}
+Called by time_file/2.  The result must be unified with a time stamp.
+
+    \termitem{size}{}
+Called by size_file/2.  The result must be unified with an integer
+representing the size in bytes.
+\end{description}
+\end{description}
+
 
 \subsection{Write onto atoms, code-lists, etc.}
 \label{sec:write-on-atom}
@@ -4669,13 +4809,18 @@ input.}
 \begin{description}
     \predicate[det]{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
 Wait for input on one of the streams in \arg{ListOfStreams} and return a
-list of streams on which input is available in \arg{ReadyList}.
-wait_for_input/3 waits for at most \arg{TimeOut} seconds. \arg{TimeOut}
+list of streams on which input is available in \arg{ReadyList}. Each
+element of \arg{ListOfStreams} is either a stream or an integer.
+Integers are consider waitable OS handles. This can be used to wait
+(also) wait for handles that are not associated with Prolog streams such
+as UDP sockets. See tcp_sockopt/2.
+
+This predicate waits for at most \arg{TimeOut} seconds. \arg{TimeOut}
 may be specified as a floating point number to specify fractions of a
-second. If \arg{TimeOut} equals \const{infinite}, wait_for_input/3
-waits indefinitely.  If \arg{Timeout} is 0 or 0.0 this predicate returns
-without waiting.\footnote{Prior to 7.3.23, the integer value `0' was
-the same as \const{infinite}.}
+second. If \arg{TimeOut} equals \const{infinite}, wait_for_input/3 waits
+indefinitely. If \arg{Timeout} is 0 or 0.0 this predicate returns
+without waiting.\footnote{Prior to 7.3.23, the integer value `0' was the
+same as \const{infinite}.}
 
 This predicate can be used to implement timeout while reading and to
 handle input from multiple sources and is typically used to wait for
@@ -4895,10 +5040,10 @@ Get a single character from input stream `user' (regardless of the
 current input stream). Unlike get_code/1, this predicate does not
 wait for a return. The character is not echoed to the user's terminal.
 This predicate is meant for keyboard menu selection, etc. If SWI-Prolog
-was started with the \cmdlineoption{-tty} option this predicate reads an
-entire line of input and returns the first non-blank character on this
-line, or the character code of the newline (10) if the entire line
-consisted of blank characters.
+was started with the \cmdlineoption{--no-tty} option this predicate
+reads an entire line of input and returns the first non-blank character
+on this line, or the character code of the newline (10) if the entire
+line consisted of blank characters.
 
     \predicate[ISO]{at_end_of_stream}{0}{}
 Succeeds after the last character of the current input stream has
@@ -5368,10 +5513,16 @@ intended to support tools that manipulate Prolog source text.
 
     \termitem{singletons}{Vars}
 As \const{variable_names}, but only reports the variables occurring only
-once in the \arg{Term} read. Variables starting with an underscore
-(`\chr{_}') are not included in this list. (ISO).  If \arg{Vars} is the
-constant \const{warning}, singleton variables are reported using
-print_message/2. The variables appear in the order they have been read.
+once in the \arg{Term} read (ISO). If \arg{Vars} is the constant
+\const{warning}, singleton variables are reported using print_message/2.
+The variables appear in the order they have been read. The latter option
+provides backward compatibility and is used to read terms from source
+files. Not all singleton variables are reported as a warning.  See
+\secref{singleton} for the rules that apply for warning about a
+singleton variable.\footnote{As of version 7.7.17, \emph{all} variables
+starting with an underscore except for the the truely anonymous variable
+are returned in \arg{Vars}. Older versions only reported those that
+would have been reported if \const{warning} is used.}
 
     \termitem{syntax_errors}{Atom}
 If \const{error} (default), throw an exception on a syntax error. Other
@@ -5416,21 +5567,22 @@ with the term position of the tail, otherwise with the atom \const{none}.
 	\termitem{dict_position}{\arg{From}, \arg{To},
 				 \arg{TagFrom}, \arg{TagTo},
 				 \arg{KeyValuePosList}}
-    Used for a dict (see \secref{dicts}).  The position of the key-value
-    pairs is described by \arg{KeyValuePosList}, which is a list of
-    \functor{key_value_position}{7} terms.  The \functor{key_value_position}{7}
-    terms appear in the order of the input. Because maps to not preserve
-    ordering, the key is provided in the position description.
+    Used for a dict (see \secref{bidicts}). The position of the
+    key-value pairs is described by \arg{KeyValuePosList}, which is a
+    list of \functor{key_value_position}{7} terms. The
+    \functor{key_value_position}{7} terms appear in the order of the
+    input. Because maps to not preserve ordering, the key is provided in
+    the position description.
 
 	\termitem{key_value_position}{\arg{From}, \arg{To},
 				      \arg{SepFrom}, \arg{SepTo},
 				      \arg{Key},
 				      \arg{KeyPos}, \arg{ValuePos}}
-    Used for key-value pairs in a map (see \secref{dicts}). It is similar
-    to the \functor{term_position}{5} that would be created, except
-    that the key and value positions do not need an intermediate list
-    and the key is provided in \arg{Key} to enable synchronisation of
-    the file position data with the data structure.
+    Used for key-value pairs in a map (see \secref{bidicts}). It is
+    similar to the \functor{term_position}{5} that would be created,
+    except that the key and value positions do not need an intermediate
+    list and the key is provided in \arg{Key} to enable synchronisation
+    of the file position data with the data structure.
 
 	\termitem{parentheses_term_position}{\arg{From}, \arg{To},
 					     \arg{ContentPos}}
@@ -6253,13 +6405,15 @@ redefined by the user.
 \index{operator,and modules}%
 Some care has to be taken before defining new operators. Defining too
 many operators might make your source `natural' looking, but at the same
-time make it hard to understand the limits of your syntax. To ease the
-pain, as of SWI-Prolog 3.3.0, operators are local to the module in which
-they are defined. Operators can be exported from modules using a term
+time using many operators can make it hard to understand the limits of
+your syntax.
+
+In SWI-Prolog, operators are local to the module in which they are
+defined. Operators can be exported from modules using a term
 \term{op}{Precedence, Type, Name} in the export list as specified by
-module/2.  Many modern Prolog systems have module specific operators.
+module/2. Many modern Prolog systems have module specific operators.
 Unfortunately, there is no established interface for exporting and
-importing operators.  SWI-Prolog's convention has been addopted by YAP.
+importing operators. SWI-Prolog's convention has been addopted by YAP.
 
 The module table of the module \const{user} acts as default table for
 all modules and can be modified explicitly from inside a module to
@@ -6273,6 +6427,24 @@ operators:
 
 :- op(900, xfx, user:(=>)).
 \end{code}
+
+Although operators are module-specific and the predicates that define
+them (op/3) or rely on them such as current_op/3, read/1 and write/1 are
+module sensitive, they are not proper meta-predicates. If they were
+proper meta predicates read/1 and write/1 would use the module from
+which they are called, breaking compatibility with other Prolog systems.
+The following rules apply:
+
+\begin{enumerate}
+    \item If the module is explicitly specified by qualifying the
+          third argument (op/3, current_op/3) or specifying a
+	  \term{module}{Module} option (read_term/3, write_term/3),
+	  this module is used.
+    \item While compiling, the module into which the compiled code
+          is loaded applies.
+    \item Otherwise, the \jargon{typein module} applies.  This is
+          normally \const{user} and may be changed using module/1.
+\end{enumerate}
 
 In SWI-Prolog, a \emph{quoted atom} never acts as an operator.  Note
 that the portable way to stop an atom acting as an operator is to
@@ -6321,7 +6493,8 @@ that are loaded from the SWI-Prolog directories resolve operators and
 predicates from this \const{system} module rather than \const{user},
 which makes the semantics of the library and development system modules
 independent of operator changes to the \const{user} module.
-
+See \secref{operators} for details about the relation between operators
+and modules.
 
 \begin{table}
 \begin{center}
@@ -6363,8 +6536,13 @@ independent of operator changes to the \const{user} module.
 
     \predicate[ISO]{current_op}{3}{?Precedence, ?Type, ?:Name}
 True if \arg{Name} is currently defined as an operator of type \arg{Type}
-with precedence \arg{Precedence}. See also op/3.
+with precedence \arg{Precedence}. See also op/3.  Note that an
+\jargon{unqualified} \arg{Name} does \textbf{not} resolve to the
+calling context but, when compiling, to the compiler's target
+module and otherwise to the \jargon{typein module}. See
+\secref{operators} for details.
 \end{description}
+
 
 \section{Character Conversion}		\label{sec:charconv}
 
@@ -6790,9 +6968,9 @@ devastated if 0.0 did turn up.''}
 Evaluate \arg{Expr} and round the result to the nearest integer.
 According to ISO, \funcref{round}{1} is defined as
 \term{floor}{Expr+1/2}, i.e., rounding \emph{down}.  This is an
-unconventional choice and under which the relation
+unconventional choice under which the relation
 \verb$round(Expr) == -round(-Expr)$ does not hold.  SWI-Prolog
-rounds \emph{outward}, e.g., \exam{round(1.5) =:= 2} and round
+rounds \emph{outward}, e.g., \exam{round(1.5) =:= 2} and
 \exam{round(-1.5) =:= -2}.
 
     \function{integer}{1}{+Expr}
@@ -7233,12 +7411,12 @@ extends this predicate to deal with dicts.}
 If \arg{Key} is the integer zero (0), the entire term is used to compare
 two elements. Using \arg{Key}=0 can be used to sort arbitrary Prolog
 terms. Other values for \arg{Key} can only be used with compound terms
-or dicts (see \secref{dicts}). An integer key extracts the \arg{Key}-th
-argument from a compound term. An integer or atom key extracts the value
-from a dict that is associated with the given key.  A type_error is
-raised if the list element is of the wrong type and an existence_error
-is raised if the compound has not enough argument or the dict does not
-contain the requested key.
+or dicts (see \secref{bidicts}). An integer key extracts the
+\arg{Key}-th argument from a compound term. An integer or atom key
+extracts the value from a dict that is associated with the given key. A
+type_error is raised if the list element is of the wrong type and an
+existence_error is raised if the compound has not enough argument or the
+dict does not contain the requested key.
 
 Deeper nested elements of structures can be selected by using a list
 of keys for the \arg{Key} argument.
@@ -8665,18 +8843,19 @@ to try and open the file and handle possible exceptions. See open/4 and
 catch/3.
 
     \predicate{exists_file}{1}{+File}
-True if \arg{File} exists and is a regular file. This does not
-imply the user has read and/or write permission for the file.  This
-is the same as \term{access_file}{File, exist}.
+True if \arg{File} exists and is a \jargon{regular} file. This does not
+imply the user has read or write access to the file. See also
+exists_directory/1 and access_file/2.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
-Extracts the directory part of \arg{File}. The returned \arg{Directory}
-name does not end in \const{/}. There are two special cases. The
-directory name of \const{/} is \const{/} itself, and the directory name
-is \const{.} if \arg{File} does not contain any \const{/} characters. If
-the \arg{File} argument ends with a \const{/}, e.g., \exam{'/hello/'},
-it is not a valid file name. In this case the final \const{/} is removed
-from \arg{File}, e.g., \exam{'/hello'}.
+Extracts the directory part of \arg{File}. This predicate removes the
+longest match for the regular expression \verb|/*[^/]*/*$|. If the
+result is empty it binds \arg{Directory} to \const{/} if the first
+character of \arg{File} is \const{/} and \const{.} otherwise. The
+behaviour is consistent with the POSIX \program{dirname}
+program.\footnote{Before SWI-Prolog 7.7.13 trailing \const{/} where
+\emph{not} removed, translation \exam{/a/b/} into \exam{/a/b}. Volker
+Wysk pointed at this incorrect behaviour.}
 
 See also directory_file_path/3 from \pllib{filesex}. The system ensures
 that for every valid \arg{Path} using the Prolog (POSIX) directory
@@ -8693,12 +8872,15 @@ also prolog_to_os_filename/2.
 	same_file(Path, Path2).
 \end{code}
 
-    \predicate{file_base_name}{2}{+File, -BaseName}
-Extracts the filename part from a path specification. If \arg{File} does
-not contain any directory separators, \arg{File} is returned in
-\arg{BaseName}. See also file_directory_name/2. If the \arg{File}
-arguments ends with a \const{/}, e.g., \exam{'/hello/'}, \arg{BaseName}
-is unified with the empty atom (\const{''}).
+    \predicate{file_base_name}{2}{+Path, -File}
+Extracts the file name part from a path. Similar to
+file_directory_name/2 the extraction is based on the regex
+\verb|/*([^/]*)/*$|, now capturing the non-\const{/} segment. If the
+segment is empty it unifies \arg{File} with \const{/} if \arg{Path}
+starts with \const{/} and the empty atom (\verb$''$) otherwise. The
+behaviour is consistent with the POSIX \program{basename}
+program.\footnote{Before SWI-Prolog 7.7.13, if arg{Path} ended with
+a \const{/} \arg{File} was unified with the empty atom.}
 
     \predicate{same_file}{2}{+File1, +File2}
 True if both filenames refer to the same physical file. That is, if
@@ -8881,17 +9063,32 @@ create the filesystem entry as a link and possibly create a security
 issue.  New code should use tmp_file_stream/3.
 
     \predicate{tmp_file_stream}{3}{+Encoding, -FileName, -Stream}
-Create a temporary filename \arg{FileName} and open it for writing in
-the given \arg{Encoding}. \arg{Encoding} is a text-encoding name or
-\const{binary}. \arg{Stream} is the output stream. If the OS supports
-it, the created file is only accessible to the current user. If the OS
-supports it, the file is created using the open()-flag \const{O_EXCL},
-which guarantees that the file did not exist before this call. This
-predicate is a safe replacement of tmp_file/2. Note that in those cases
-where the temporary file is needed to store output from an external
-command, the file must be closed first. E.g., the following downloads a
-file from a URL to a temporary file and opens the file for reading (on
-Unix systems you can delete the file for cleanup after opening it for reading):
+\nodescription
+    \predicate{tmp_file_stream}{3}{-FileName, -Stream, +Options}
+Create a temporary filename \arg{FileName}, open it for writing and
+unify \arg{Stream} with the output stream. If the OS supports it, the
+created file is only accessible to the current user and the file is
+created using the open()-flag \const{O_EXCL}, which guarantees that the
+file did not exist before this call. The following options are
+processed:
+
+\begin{description}
+    \termitem{encoding}{+Encoding}
+Encoding of \arg{Stream}.  Default is the value of the Prolog flag
+\prologflag{encoding}.  The value \const{binary} opens the file in
+binary mode.
+    \termitem{extension}{+Ext}
+Ensure the created file has the given extension.  Default is no
+extension.  Using an extension may be necessary to run external
+programs on the file.
+\end{description}
+
+This predicate is a safe replacement of tmp_file/2. Note that in those
+cases where the temporary file is needed to store output from an
+external command, the file must be closed first. E.g., the following
+downloads a file from a URL to a temporary file and opens the file for
+reading (on Unix systems you can delete the file for cleanup after
+opening it for reading):
 
 \begin{code}
 open_url(URL, In) :-
@@ -9289,6 +9486,8 @@ shift_time	& Time spent in stack-shifts \\
 stack		& Total memory in use for stacks in all threads \\
 predicates	& Total number of predicates.  This includes predicates
 		  that are undefined or not yet resolved. \\
+indexes_created & Number of clause index tables creates. \\
+indexes_destroyed & Number of clause index tables destroyed. \\
 process_epoch	& Time stamp when Prolog was started \\
 process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
 thread_cputime  & MT-version: Seconds CPU time used by finished threads.
@@ -9324,8 +9523,10 @@ real_time	& [ Wall time, Wall time since last ]
 walltime	& [ Wall time since start, Wall time since last]
 		  (milliseconds, SICStus compatibility) \\
 memory		& [ Total unshared data, free memory ]
-		  (Uses getrusage() if available, otherwise incomplete own
-		  statistics.) \\
+		  (Used is based on \const{ru_idrss} from getrusage().
+		   Free is based on \const{RLIMIT_DATA} from
+		   getrlimit(). Both are reported as zero if the OS
+		   lacks support.) \\
 stacks		& [ global use, local use ] \\
 program		& [ heap, 0 ] \\
 global_stack	& [ global use, global free ] \\
@@ -9447,30 +9648,18 @@ resources after every user query.
 
     \predicate{set_prolog_stack}{2}{+Stack, +KeyValue}
 Set a parameter for one of the Prolog runtime stacks. \arg{Stack} is one
-of \const{local}, \const{global}, \const{trail} or \const{argument}. The
-table below describes the \arg{Key}(\arg{Value}) pairs.  \arg{Value} can
-be an arithmetic integer expression.  For example, to specify a 2~GB limit for
-the global stack, one can use:
-
-\begin{code}
-?- set_prolog_stack(global, limit(2*10**9)).
-\end{code}
+of \const{local}, \const{global} or \const{trail}. The table below
+describes the \arg{Key}(\arg{Value}) pairs.
 
 Current settings can be retrieved with prolog_stack_property/2.
 
 \begin{description}
-    \termitem{limit}{+Bytes}
-Set the limit to which the stack is allowed to grow.  If the specified
-value is lower than the current usage a \const{permission_error} is raised.  If
-the limit is larger than supported, the system silently reduces the
-requested limit to the system limit.
-
     \termitem{min_free}{+Cells}
 Minimum amount of free space after trimming or shifting the stack.
 Setting this value higher can reduce the number of garbage collections
-and stack-shifts at the cost of higher memory usage. The spare stack
-amount is reported and specified in `cells'. A cell is 4 bytes in the
-32-bit version and 8 bytes on the 64-bit version. See
+and stack-shifts at the cost of higher memory usage. The
+amount is reported and specified in \jargon{cells}. A cell is 4 bytes
+in the 32-bit version and 8 bytes on the 64-bit version. See
 \prologflag{address_bits}. See also trim_stacks/0 and debug/0.
 
     \termitem{low}{+Cells}
@@ -9498,6 +9687,9 @@ prolog_trace_interception/4 and prolog_exception_hook/4.
 True if \arg{KeyValue} is a current property of \arg{Stack}.  See
 set_prolog_stack/2 for defined properties.
 \end{description}
+
+The total space limit for all stacks is controlled using the prolog
+flag \prologflag{stack_limit}.
 
 
 \section{Windows DDE interface}          \label{sec:DDE}

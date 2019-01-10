@@ -13,11 +13,11 @@ COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
 COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
-COREMODULES+=" packages/zlib packages/tipc packages/table"
+COREMODULES+=" packages/zlib packages/tipc packages/table packages/ltx2htm"
 COREMODULES+=" packages/nlp packages/cpp packages/PDT packages/utf8proc"
 COREMODULES+=" packages/archive packages/swipl-win packages/pengines"
 COREMODULES+=" packages/cql packages/bdb packages/readline packages/libedit"
-COREMODULES+=" packages/pcre"
+COREMODULES+=" packages/pcre packages/yaml packages/paxos"
 
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"
@@ -31,7 +31,6 @@ version=`cat VERSION`
 compress=gzip
 me=`basename $PWD`
 quiet=false
-gendoc=true
 
 TAG="V$version"
 
@@ -49,8 +48,6 @@ Options:
     Separator between name and version
   --submodule=Module
     Add an additional module (can be repeated)
-  --no-doc
-    Do not generate documentation archive
   --quiet
     Work silently
   --help
@@ -80,10 +77,6 @@ while [ x"$1" != x"" ]; do
 	  version=`echo $1 | sed 's/--[^=]*=//'`
 	  shift
 	  ;;
-      --no-doc)
-	  gendoc=false
-	  shift
-	  ;;
       --quiet)
 	  quiet=true
 	  shift
@@ -107,8 +100,6 @@ fi
 
 prefix=$name$namesep$version
 out=$prefix.tar
-extra=$name-extra-$version.tar
-doc=$name-doc-$version.tar
 
 # core SWI-Prolog snapshot from GIT
 git archive --format=tar --prefix=$prefix/ "$TAG" > ../$out
@@ -124,26 +115,10 @@ for sm in `git submodule status $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`;
     [ $quiet = true ] || echo ok
 done
 
-# generated documentation files
-if [ $gendoc = true ]; then
-  echo $version > doc-version
-  tar zcf ../$doc.gz ./doc-version `cat gen-files/doc`
-fi
-
 cd ..
 ln -s $me $prefix
 
-# Extras, also starting with $name-<version>
-tar cfh $extra `sed "s@^@$prefix/@" $me/gen-files/config`
-tar cfh $doc `sed "s@^@$prefix/@" $me/gen-files/doc`
-
-# Append them (needs GNU-tar)
-tar -Af $out $extra
-tar -Af $out $doc
-
 # cleanup
-rm $extra
-rm $doc
 rm $prefix
 
 # compress the result

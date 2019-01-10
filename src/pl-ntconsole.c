@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2017, University of Amsterdam
+    Copyright (c)  1995-2018, University of Amsterdam
+			      CWI, Amsterdam
     Copyright (C): 2009-2017, SCIENTIFIC SOFTWARE AND SYSTEMS LIMITED
     All rights reserved.
 
@@ -42,6 +43,8 @@
 #include <winsock2.h>
 #endif
 #include "pl-incl.h"
+
+static int running_under_wine = FALSE;
 
 #define ANSI_MAGIC		(0x734ab9de)
 #define ANSI_BUFFER_SIZE	(256)
@@ -416,8 +419,10 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
       isRaw = TRUE;
   }
 
-  if ( !PL_wait_for_console_input(as->hConsole) )
-    goto error;
+  if ( !running_under_wine )
+  { if ( !PL_wait_for_console_input(as->hConsole) )
+      goto error;
+  }
 
   if ( isRaw )
     memset(buffer, 0, size);		/* see (*) */
@@ -489,6 +494,8 @@ PL_w32_wrap_ansi_console(void)
   HANDLE hOut   = GetStdHandle(STD_OUTPUT_HANDLE);
   HANDLE hError = GetStdHandle(STD_ERROR_HANDLE);
   CONSOLE_SCREEN_BUFFER_INFO info;
+
+  running_under_wine = (PL_w32_running_under_wine() != NULL);
 
   if ( hIn    == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR ||
        hOut   == INVALID_HANDLE_VALUE || !GetConsoleScreenBufferInfo(hOut,&info)||

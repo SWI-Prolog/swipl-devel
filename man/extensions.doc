@@ -627,10 +627,10 @@ Y = 1790400.0'J'.
 
 As of SWI-Prolog version~7, the system supports compound terms that have
 no arguments. This implies that e.g., \exam{name()} is valid syntax.
-This extension aims at functions on dicts (see \secref{dicts}) as well as
-the implementation of domain specific languages (DSLs). To minimise the
-consequences, the classic predicates functor/3 and \predref{=..}{2} have
-not been modified. The predicates compound_name_arity/3 and
+This extension aims at functions on dicts (see \secref{bidicts}) as well
+as the implementation of domain specific languages (DSLs). To minimise
+the consequences, the classic predicates functor/3 and \predref{=..}{2}
+have not been modified. The predicates compound_name_arity/3 and
 compound_name_arguments/3 have been added. These predicates operate only
 on compound terms and behave consistently for compounds with zero
 arguments. Code that \jargon{generalises} a term using the sequence
@@ -676,9 +676,9 @@ Pi = 3.141592653589793.
 
 Note that the \emph{cannonical} representation of predicate heads and
 functions without arguments is an atom. Thus, \term{clause}{go(), Body}
-returns the clauses for go/0, but \term{clause}{-Head, -Body, +Ref}
-unifies \arg{Head} with an atom if the clause specified by \arg{Ref} is
-part of a predicate with zero arguments.
+returns the clauses for \nopredref{go}{0}, but \term{clause}{-Head,
+-Body, +Ref} unifies \arg{Head} with an atom if the clause specified by
+\arg{Ref} is part of a predicate with zero arguments.
 
 
 \subsection{Block operators}
@@ -724,7 +724,7 @@ Below is an example that illustrates the representation of a typical
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Dicts: structures with named arguments}
-\label{sec:dicts}
+\label{sec:bidicts}
 
 SWI-Prolog version~7 introduces dicts as an abstract object with a
 concrete modern syntax and functional notation for accessing members and
@@ -959,6 +959,11 @@ notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
 Fails silently if Key does not appear in Dict.  This is different from
 the behavior of the functional `.`-notation, which throws an existence
 error in that case.
+
+    \predicate{get_dict_ex}{3}{?Key, +Dict, -Value}
+As get_dict/3, but throws an existence exception if \arg{Key} cannot be
+found in dict.  This is used when evaluating \arg{Dict}.\arg{Key} as a
+function.
 
     \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, +NewValue}
 Create a new dict after updating the value for \arg{Key}.  Fails if

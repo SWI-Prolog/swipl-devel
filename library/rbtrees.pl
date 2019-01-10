@@ -82,9 +82,10 @@ form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
 */
 
 :- meta_predicate
-    rb_map(+,:,-),
-    rb_partial_map(+,+,:,-),
-    rb_apply(+,+,:,-),
+    rb_map(+,2,-),
+    rb_map(?,1),
+    rb_partial_map(+,+,2,-),
+    rb_apply(+,+,2,-),
     rb_fold(3,+,+,-).
 
 /*
@@ -765,8 +766,7 @@ visit(black(L,K,V,R),L0,Lf) :-
     visit(L,[K-V|L1],Lf),
     visit(R,L0,L1).
 
-:- meta_predicate rb_map(?,:,?). % this is not strictly required
-:- meta_predicate map(?,:,?,?).  % this is required.
+:- meta_predicate map(?,2,?,?).  % this is required.
 
 %!  rb_map(+T, :Goal) is semidet.
 %
@@ -788,8 +788,7 @@ map(black(L,K,V,R),Goal,black(NL,K,NV,NR),Nil) :-
     map(L,Goal,NL,Nil),
     map(R,Goal,NR,Nil).
 
-:- meta_predicate rb_map(?,:). % this is not strictly required
-:- meta_predicate map(?,:).  % this is required.
+:- meta_predicate map(?,1).  % this is required.
 
 %!  rb_map(+Tree, :G, -NewTree) is semidet.
 %

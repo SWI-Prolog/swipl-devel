@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, University of Amsterdam
+    Copyright (c)  2012-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,17 +38,15 @@
 		********************************/
 
 typedef struct
-{ char *state;				/* system's boot file */
-  char *startup;			/* default user startup file */
-  int  local;				/* default local stack size (K) */
-  int  global;				/* default global stack size (K) */
-  int  trail;				/* default trail stack size (K) */
-  int  table;				/* default table space (K) */
-  char *goal;				/* default initialisation goal */
-  char *toplevel;			/* default top level goal */
-  bool notty;				/* use tty? */
-  char *arch;				/* machine/OS we are using */
-  char *home;				/* systems home directory */
+{ char	 *state;			/* system's boot file */
+  char   *startup;			/* default user startup file */
+  size_t  stack_limit;			/* default stack limit (bytes) */
+  size_t  table_space;			/* default table space (bytes) */
+  char   *goal;				/* default initialisation goal */
+  char   *toplevel;			/* default top level goal */
+  bool    notty;			/* use tty? */
+  char	 *arch;				/* machine/OS we are using */
+  char   *home;				/* systems home directory */
 } pl_defaults_t;
 
 typedef struct opt_list
@@ -56,14 +55,13 @@ typedef struct opt_list
 } opt_list;
 
 typedef struct
-{ size_t	localSize;		/* size of local stack */
-  size_t	globalSize;		/* size of global stack */
-  size_t	trailSize;		/* size of trail stack */
+{ size_t	stackLimit;		/* Total stack limit */
   size_t	tableSpace;		/* table space */
   opt_list     *goals;			/* initialization goals */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
+  char *	config;			/* Show config info */
   opt_list     *scriptFiles;
   opt_list     *search_paths;		/* -p path */
   char *	pldoc_server;		/* --pldoc=Server */
@@ -71,6 +69,7 @@ typedef struct
   char *	saveclass;		/* Type of saved state */
   bool		silent;			/* -q: quiet operation */
   bool		traditional;		/* --traditional: no version 7 exts */
+  bool		nothreads;		/* --no-threads */
 #ifdef __WINDOWS__
   bool		win_app;		/* --win_app: be Windows application */
 #endif
@@ -101,32 +100,14 @@ COMMON(int)	opt_append(opt_list **l, const char *s);
 #endif
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Default stack-limits. On 32-bit systems, SWI-Prolog  is limited to 128Mb
-per stack due to the tagging   and  data-representation choices. 3*128Mb
-can be handled with ease by almost any  PC still in use and therefore we
-use the maximum as the limit.  64-bit   systems  can  handle limits that
-typically exceed the capabilities of the   hardware (i.e., the amount of
-physical memory). We use the same limit   counted in `cells' for maximal
-portability.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#define DEF_DEFDEFSTACKLIMIT	(((size_t)1024/8)*1024*1024*SIZEOF_VOIDP)
+#define DEF_DEFTABLE		(((size_t)1024/8)*1024*1024*SIZEOF_VOIDP)
 
-#define DEF_DEFLOCAL	(32*1024*SIZEOF_VOIDP)
-#define DEF_DEFGLOBAL	(32*1024*SIZEOF_VOIDP)
-#define DEF_DEFTRAIL	(32*1024*SIZEOF_VOIDP)
-#define DEF_DEFTABLE	((1024/8)*1024*SIZEOF_VOIDP)
-
-#ifndef DEFLOCAL
-#define DEFLOCAL    DEF_DEFLOCAL
-#endif
-#ifndef DEFGLOBAL
-#define DEFGLOBAL   DEF_DEFGLOBAL
-#endif
-#ifndef DEFTRAIL
-#define DEFTRAIL    DEF_DEFTRAIL
+#ifndef DEFSTACKLIMIT
+#define DEFSTACKLIMIT   DEF_DEFDEFSTACKLIMIT
 #endif
 #ifndef DEFTABLE
-#define DEFTABLE    DEF_DEFTABLE
+#define DEFTABLE	DEF_DEFTABLE
 #endif
 
 /* Parameters that control findHome() */

@@ -40,6 +40,7 @@ throw(error(<Formal>, <SWI-Prolog>))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 /* BeOS has EACCES defined elsewhere, but errno is here */
 #if !defined(EACCES) || defined(__BEOS__)
 #include <errno.h>
@@ -470,12 +471,18 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     { atom_t action = va_arg(args, atom_t);
       atom_t type   = va_arg(args, atom_t);
       term_t file   = va_arg(args, term_t);
+      atom_t repr   = ATOM_max_path_length;
 
       switch(errno)
       { case EAGAIN:
 	  action = ATOM_lock;		/* Hack for file-locking*/
 	  /*FALLTHROUGH*/
 	case EACCES:
+	case EPERM:
+#ifdef EROFS
+	case EROFS:
+#endif
+	case ENOTEMPTY:
 	  rc = PL_unify_term(formal,
 			     PL_FUNCTOR, FUNCTOR_permission_error3,
 			       PL_ATOM, action,
@@ -488,10 +495,15 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_FUNCTOR, FUNCTOR_resource_error1,
 			       PL_ATOM, ATOM_max_files);
 	  break;
+#ifdef ELOOP
+	case ELOOP:
+	  repr = ATOM_max_symbolic_links;
+	  /*FALLTHROUGH*/
+#endif
 	case ENAMETOOLONG:
 	  rc = PL_unify_term(formal,
 			     PL_FUNCTOR, FUNCTOR_representation_error1,
-			       PL_ATOM, ATOM_max_path_length);
+			       PL_ATOM, repr);
 	  break;
 #ifdef EPIPE
 	case EPIPE:
@@ -664,6 +676,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
       break;
     }
     default:
+      rc = FALSE;
       assert(0);
   }
   va_end(args);
@@ -890,6 +903,7 @@ printMessage(atom_t severity, ...)
 		 PL_atom_chars(source_file_name), (int)source_line_no);
       rc = PL_write_term(Serror, av+1, 1200, 0);
       Sfprintf(Serror, "\n");
+      print_c_backtrace("printMessage()");
     } else				/* in_print_message == 2 */
     { Sfprintf(Serror, "printMessage(): recursive call\n");
     }

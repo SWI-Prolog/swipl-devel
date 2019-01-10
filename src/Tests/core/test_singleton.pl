@@ -44,7 +44,8 @@
 :- if((exists_source(library(memfile)),
        absolute_file_name(foreign(memfile), _,
 			  [ file_type(executable),
-			    access(read)
+			    access(read),
+			    file_errors(fail)
 			  ]))).
 :- use_module(library(memfile)).
 ok(true).
@@ -117,7 +118,7 @@ message_singletons(compiler_warnings(_Clause, Messages)) --> !,
 	message_singletons(Messages).
 message_singletons(branch_singleton(V)) --> !,
 	[V].
-message_singletons(singletons(Vars)) --> vars(Vars).
+message_singletons(singletons(_Term,Vars)) --> vars(Vars).
 
 vars([]) --> [].
 vars([H|T]) --> ['$VAR'(I)], {var_name(I,H)},vars(T).

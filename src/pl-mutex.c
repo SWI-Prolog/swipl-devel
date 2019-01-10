@@ -732,8 +732,7 @@ initMutexes(void)
 
 foreign_t
 pl_with_mutex(term_t mutex, term_t goal)
-{ term_t ex = 0;
-  int rval;
+{ int rval;
 
 #ifdef O_PLMT
   pl_mutex *m;
@@ -741,19 +740,11 @@ pl_with_mutex(term_t mutex, term_t goal)
   if ( !get_mutex(mutex, &m, TRUE) )
     return FALSE;
   PL_mutex_lock(m);
-  rval = callProlog(NULL, goal, PL_Q_CATCH_EXCEPTION, &ex);
+  rval = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
   PL_mutex_unlock(m);
 #else
-  rval = callProlog(NULL, goal, PL_Q_CATCH_EXCEPTION, &ex);
+  rval = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
 #endif
-
-  if ( !rval && ex )
-  { DEBUG(CHK_SECURE,
-	  { GET_LD
-	    checkData(valTermRef(ex));
-	  });
-    PL_raise_exception(ex);
-  }
 
   return rval;
 }

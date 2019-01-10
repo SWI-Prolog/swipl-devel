@@ -68,7 +68,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 70604
+#define PLVERSION 70725
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -394,8 +394,8 @@ PL_EXPORT(int)		PL_predicate_info(predicate_t pred,
 PL_EXPORT(qid_t)	PL_open_query(module_t m, int flags,
 				      predicate_t pred, term_t t0);
 PL_EXPORT(int)		PL_next_solution(qid_t qid) WUNUSED;
-PL_EXPORT(void)		PL_close_query(qid_t qid);
-PL_EXPORT(void)		PL_cut_query(qid_t qid);
+PL_EXPORT(int)		PL_close_query(qid_t qid);
+PL_EXPORT(int)		PL_cut_query(qid_t qid);
 PL_EXPORT(qid_t)	PL_current_query(void);
 
 			/* Simplified (but less flexible) call-back */
@@ -1105,14 +1105,13 @@ typedef enum
 } rc_cancel;
 
 typedef struct
-{ long	    local_size;			/* Stack sizes (Kbytes) */
-  long	    global_size;
-  long	    trail_size;
-  long	    argument_size;
+{ size_t    stack_limit;		/* Total stack limit (bytes) */
+  size_t    table_space;		/* Total tabling space limit (bytes) */
   char *    alias;			/* alias name */
   rc_cancel (*cancel)(int id);		/* cancel function */
   intptr_t  flags;			/* PL_THREAD_* flags */
-  void *    reserved[4];		/* reserved for extensions */
+  size_t    max_queue_size;		/* Max size of associated queue */
+  void *    reserved[3];		/* reserved for extensions */
 } PL_thread_attr_t;
 
 
@@ -1130,6 +1129,7 @@ PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
 PL_EXPORT(int)	PL_w32thread_raise(DWORD dwTid, int sig);
 PL_EXPORT(int)	PL_wait_for_console_input(void *handle);
 PL_EXPORT(int)	PL_w32_wrap_ansi_console(void);
+PL_EXPORT(const char*) PL_w32_running_under_wine(void);
 #endif
 
 		 /*******************************

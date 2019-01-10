@@ -872,8 +872,8 @@ could enhance on this by introducing  a   `melt-bar'  set  to the lowest
 location which we assigned using nb_setarg/3.   If backtracking takes us
 before  that  point  we  safely  know  there  are  no  terms  left  with
 nb_setarg/3  assignments.  As  the  merged   backtrackable  global  vars
-implementation also causes freezing of the  stacks it it uncertain there
-is much to gain with this approach.
+implementation also causes freezing of the stacks, it is uncertain
+whether there is much to gain with this approach.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static fid_t
@@ -3242,7 +3242,7 @@ setStartOfVMI(vm_state *state)
 	  { Sdprintf("At PC=%ld(%ld) of "
 		     "%d-th clause of %s (ARGP=%d; adepth=%d)\n",
 		     where, where0,
-		     clauseNo(fr->predicate, clause, 0),
+		     clauseNo(clause, 0),
 		     predicateName(fr->predicate),
 		     (state->argp - argFrameP(fr, 0)),
 		     state->adepth);
@@ -3444,7 +3444,7 @@ considerGarbageCollect(Stack s)
   { if ( PL_pending(SIG_GC) )
       return TRUE;
 
-    if ( s == NULL )
+    if ( s == NULL || s == &GD->combined_stack )
     { return (considerGarbageCollect((Stack)&LD->stacks.global) ||
 	      considerGarbageCollect((Stack)&LD->stacks.trail));
     } else
@@ -3931,7 +3931,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
 	return rc2;
       rc = FALSE;
     } else
-    { enableSpareStack((Stack)&LD->stacks.local);
+    { enableSpareStack((Stack)&LD->stacks.local, TRUE);
     }
   }
 
@@ -3940,9 +3940,11 @@ gcEnsureSpace(vm_state *state ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-garbageCollect()  returns  one  of  TRUE    (ok),   FALSE  (blocked)  or
-LOCAL_OVERFLOW if the local stack  cannot accomodate the term-references
-for saving ARGP and global variables.
+garbageCollect() returns one of TRUE (ok),   FALSE (blocked or exception
+in printMessage()) or *_OVERFLOW if the   local  stack cannot accomodate
+the term-references for saving ARGP and   global variables or the stacks
+remain too tight after running GC and  the stacks cannot be extended due
+to the stack_limit.
 
 (*) We call trimStacks()  to  reactivate   the  `spare  stacks'  and, if
 LD->trim_stack_requested is TRUE, to shrink the  stacks (this happens at
@@ -4128,21 +4130,20 @@ garbageCollect(void)
 #endif
   leaveGC(PASS_LD1);
 
-  if ( verbose )
-    rc = printMessage(ATOM_informational,
-		      PL_FUNCTOR_CHARS, "gc", 1,
-		        PL_FUNCTOR_CHARS, "done", 7,
-		          PL_INTPTR, ggar,
-		          PL_INTPTR, tgar,
-		          PL_DOUBLE, (double)t,
-		          PL_INTPTR, usedStack(global),
-		          PL_INTPTR, usedStack(trail),
-		          PL_INTPTR, roomStack(global),
-		          PL_INTPTR, roomStack(trail));
+  if ( verbose &&
+       !printMessage(ATOM_informational,
+		     PL_FUNCTOR_CHARS, "gc", 1,
+		       PL_FUNCTOR_CHARS, "done", 7,
+		         PL_INTPTR, ggar,
+		         PL_INTPTR, tgar,
+		         PL_DOUBLE, (double)t,
+		         PL_INTPTR, usedStack(global),
+		         PL_INTPTR, usedStack(trail),
+		         PL_INTPTR, roomStack(global),
+		         PL_INTPTR, roomStack(trail)) )
+    return FALSE;
 
-  rc = shiftTightStacks() && rc;
-
-  return rc;
+  return shiftTightStacks();
 }
 
 word
@@ -4209,7 +4210,7 @@ makeMoreStackSpace(int overflow, int flags)
     case MEMORY_OVERFLOW: return raiseStackOverflow(overflow);
   }
 
-  if ( LD->exception.processing && s && enableSpareStack(s) )
+  if ( LD->exception.processing && s && enableSpareStack(s, TRUE) )
     return TRUE;
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
@@ -4267,8 +4268,8 @@ ensureGlobalSpace(size_t cells, int flags)
     return TRUE;
 
   if ( LD->gc.active )
-  { enableSpareStack((Stack)&LD->stacks.global);
-    enableSpareStack((Stack)&LD->stacks.trail);
+  { enableSpareStack((Stack)&LD->stacks.global, TRUE);
+    enableSpareStack((Stack)&LD->stacks.trail,  TRUE);
 
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
@@ -4277,10 +4278,11 @@ ensureGlobalSpace(size_t cells, int flags)
   if ( flags )
   { size_t gmin;
     size_t tmin;
+    int rc;
 
     if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
-    { if ( garbageCollect() == FALSE )
-	return FALSE;
+    { if ( (rc=garbageCollect()) != TRUE )
+	return rc;
 
       if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
 	return TRUE;
@@ -4298,19 +4300,11 @@ ensureGlobalSpace(size_t cells, int flags)
     else
       tmin = 0;
 
-    if ( growStacks(0, gmin, tmin) == FALSE )
-      return FALSE;
+    if ( (rc=growStacks(0, gmin, tmin)) != TRUE )
+      return rc;
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
   }
-
-/*
-  enableSpareStack((Stack)&LD->stacks.global);
-  enableSpareStack((Stack)&LD->stacks.trail);
-
-  if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
-    return TRUE; //PL_raise(SIG_GC);
-*/
 
   if ( gTop+cells > gMax )
     return GLOBAL_OVERFLOW;
@@ -4327,7 +4321,7 @@ ensureTrailSpace(size_t cells)
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack((Stack)&LD->stacks.trail);
+  { enableSpareStack((Stack)&LD->stacks.trail, TRUE);
 
     if ( tTop+cells <= tMax )
       return TRUE;
@@ -4367,7 +4361,7 @@ growLocalSpace__LD(size_t bytes, int flags ARG_LD)
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack((Stack)&LD->stacks.local);
+  { enableSpareStack((Stack)&LD->stacks.local, TRUE);
     if ( addPointer(lTop, bytes) <= (void*)lMax )
       return TRUE;
   }
@@ -4725,8 +4719,10 @@ combined size should come from a fixed maximum.
 
 #undef K
 #undef MB
-#define K * 1024
+#undef GB
+#define  K * 1024
 #define MB * (1024L * 1024L)
+#define GB * (1024L * 1024L * 1024L)
 
 size_t
 nextStackSizeAbove(size_t n)
@@ -4765,20 +4761,9 @@ nextStackSizeAbove(size_t n)
   }
 #endif
 
-  if ( n < 4 MB )
-  { size = 8192;
-    while ( size <= n )
-      size *= 2;
-  } else
-  { size = 4 MB;
-
-    while ( size <= n )
-    { if ( (size + size/2) > n )
-	return size + size/2;
-
-      size *= 2;
-    }
-  }
+  size = (size_t)2 << MSB(n);
+  if ( size < SMALLSTACK )
+    size = SMALLSTACK;
 					/* enforce real limit */
   if ( size > (size_t)(MAXTAGGEDPTR+1) )
     size = (size_t)(MAXTAGGEDPTR+1);
@@ -4803,18 +4788,12 @@ nextStackSize(Stack s, size_t minfree)
     if ( size > (size_t)sizeStackP(s) )
       size = sizeStackP(s);
   } else
-  { if ( s->top > s->max )
-      minfree += (char*)s->top - (char*)s->max;
+  { size_t needed = sizeStackP(s) + minfree + s->min_free + s->def_spare;
 
-    size = nextStackSizeAbove(sizeStackP(s) +
-			      minfree + s->min_free + s->def_spare);
+    if ( s->top > s->max )
+      needed += (char*)s->top - (char*)s->max;
 
-    if ( size >= s->size_limit + s->size_limit/2 )
-    { if ( minfree == 1 && roomStackP(s) > (ssize_t)minfree )
-	size = sizeStackP(s);		/* tight-stack request */
-      else
-	size = 0;			/* passed limit */
-    }
+    size = nextStackSizeAbove(needed);
   }
 
   return size;
@@ -4832,17 +4811,13 @@ current usage and the minimum free stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-new_stack_size(Stack s, size_t *request, size_t *newsize)
-{ if ( *request )
+new_stack_size(Stack s, size_t request, size_t *newsize)
+{ if ( request )
   { size_t new;
 
-    if ( !(new = nextStackSize(s, *request)) )
+    if ( !(new = nextStackSize(s, request)) )
       return s->overflow_id;
     *newsize = new;
-    if ( new == sizeStackP(s) )
-    { *request = 0;
-      return FALSE;			/* no change */
-    }
 
     return TRUE;
   } else
@@ -4850,6 +4825,12 @@ new_stack_size(Stack s, size_t *request, size_t *newsize)
 
     return FALSE;
   }
+}
+
+
+static size_t
+needStack(Stack s ARG_LD)
+{ return usedStackP(s) + s->min_free + s->def_spare;
 }
 
 
@@ -4864,18 +4845,54 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   word key=0;
 #endif
 
-  if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize))<0 ||
-       (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize))<0 ||
-       (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize))<0 )
-  { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Reached stack-limit\n"));
-    return rc;
-  }
-
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
 
   if ( LD->shift_status.blocked )
     return FALSE;
+
+  if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  t, &tsize))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.global, g, &gsize))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.local,  l, &lsize))<0 )
+  { return rc;
+  } else
+  { if ( tsize + gsize + lsize > LD->stacks.limit )
+    { size_t ulocal  = needStack((Stack)&LD->stacks.local PASS_LD)  + l;
+      size_t uglobal = needStack((Stack)&LD->stacks.global PASS_LD) + g;
+      size_t utrail  = needStack((Stack)&LD->stacks.trail PASS_LD)  + t +
+		       uglobal/GLOBAL_TRAIL_RATIO;
+      size_t need    = ulocal + utrail + uglobal;
+      size_t space;
+
+      DEBUG(MSG_STACK_OVERFLOW,
+	    Sdprintf("Reached stack-limit; need (l+g+t) %zd+%zd+%zd=%zd; limit = %zd\n",
+		     ulocal, uglobal, utrail, need, LD->stacks.limit));
+
+      if ( LD->stacks.limit > need &&
+	   (space=LD->stacks.limit - need) > LD->stacks.limit/4	)
+      { gsize = uglobal + uglobal * space/need;
+	tsize = utrail  + utrail  * space/need;
+	lsize = ulocal  + ulocal  * space/need;
+
+	gsize = ROUND(gsize, 4096);
+	tsize = ROUND(tsize, 4096);
+	lsize = ROUND(lsize, 4096);
+
+	DEBUG(MSG_STACK_OVERFLOW, Sdprintf(" --> l:g:t = %zd:%zd:%zd\n",
+					   lsize, gsize, tsize));
+      } else
+      { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Got stack overflow;\n"));
+	return STACK_OVERFLOW;
+      }
+    }
+  }
+
+  l = (sizeStack(local)  != lsize);
+  g = (sizeStack(global) != gsize);
+  t = (sizeStack(trail)  != tsize);
+
+  if ( !(l || g || t) )
+    return TRUE;
 
   enterGC(PASS_LD1);			/* atom-gc synchronisation */
   blockSignals(&mask);
@@ -4894,6 +4911,8 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LocalFrame lb = lBase;
     double time, time0 = ThreadCPUTime(LD, CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+
+    DEBUG(MSG_SHIFT, verbose = TRUE);
 
     if ( verbose )
     { const char *prefix;
@@ -4932,10 +4951,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       }
     }
 
-#ifdef O_PLMT
-    simpleMutexLock(&LD->clauses.local_shift_mutex);
-#endif
-
     if ( g || l )
     { size_t ogsize, olsize;
       void *nw;
@@ -4956,13 +4971,20 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 	gb = nw;
 	lb = addPointer(gb, gsize);
-	if ( gsize > ogsize )
-	  memmove(lb, addPointer(gb, ogsize), olsize);
-      } else
+	if ( gsize > ogsize ) {
+	  size_t copy = olsize;
+
+	  if ( lsize < olsize ) copy = lsize;
+	  memmove(lb, addPointer(gb, ogsize), copy);
+	}
+      } else				/* realloc failed; restore */
       { if ( g )
 	  fatal = (Stack)&LD->stacks.global;
 	else
 	  fatal = (Stack)&LD->stacks.local;
+
+	if ( gsize < ogsize )
+	  memmove(lb, addPointer(gb, gsize), olsize);
 
 	gsize = sizeStack(global);
 	lsize = sizeStack(local);
@@ -5000,10 +5022,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-#ifdef O_PLMT
-    simpleMutexUnlock(&LD->clauses.local_shift_mutex);
-#endif
-
     time = ThreadCPUTime(LD, CPU_USER) - time0;
     LD->shift_status.time += time;
     DEBUG(CHK_SECURE,
@@ -5037,7 +5055,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 }
 
 
-static int
+static void
 include_spare_stack(void *ptr, size_t *request)
 { Stack s = ptr;
 
@@ -5047,49 +5065,66 @@ include_spare_stack(void *ptr, size_t *request)
   if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
-
-    return TRUE;
-  } else
-  { return FALSE;
   }
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Returns one of TRUE:  Stacks  are   resized;  FALSE:  stack-shifting  is
-blocked or *_OVERFLOW
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static void
-reenable_spare_stack(void *ptr, int prev)
+reenable_spare_stack(void *ptr)
 { Stack s = ptr;
 
-  if ( prev || roomStackP(s) >= s->min_free + s->def_spare )
+  if ( roomStackP(s) >=	s->def_spare )
     trim_stack(s);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that the trail can have  references   to  unused  stack. We set the
+references to point to a  dummy  variable,   so  no  harm  will be done.
+Setting  it  to  NULL  would  require  a    test  in  Undo(),  which  is
+time-critical. trim_stacks normally isn't. This precaution is explicitly
+required for the trimStacks() that result from a stack-overflow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
-  int sl, sg, st;
+  LocalFrame olb = lBase;
+  LocalFrame olm = lMax;
+  Word ogb = gBase;
+  Word ogm = gMax;
 
 #ifdef O_MAINTENANCE
   save_backtrace("SHIFT");
 #endif
 
-  sl = include_spare_stack(&LD->stacks.local,  &l);
-  sg = include_spare_stack(&LD->stacks.global, &g);
-  st = include_spare_stack(&LD->stacks.trail,  &t);
+  include_spare_stack(&LD->stacks.local,  &l);
+  include_spare_stack(&LD->stacks.global, &g);
+  include_spare_stack(&LD->stacks.trail,  &t);
 
   gBase--; gMax++; tMax++;
   rc = grow_stacks(l, g, t PASS_LD);
   gBase++; gMax--; tMax--;
 
-  reenable_spare_stack(&LD->stacks.trail,  st);
-  reenable_spare_stack(&LD->stacks.global, sg);
-  reenable_spare_stack(&LD->stacks.local,  sl);
+  reenable_spare_stack(&LD->stacks.trail);
+  reenable_spare_stack(&LD->stacks.global);
+  reenable_spare_stack(&LD->stacks.local);
+
+  if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
+  { TrailEntry te;
+
+    for(te = tTop; --te >= tBase; )
+    { Word p = te->address;
+
+      if ( isTrailVal(p) )
+	continue;
+
+      if ( !onStack(local, p) && !onStack(global, p) )
+      { te->address = valTermRef(LD->trim.dummy);
+      }
+    }
+  }
 
   return rc;
 }
@@ -5113,7 +5148,7 @@ tight(Stack s ARG_LD)
   size_t spare_gap = s->def_spare - s->spare;
 
   if ( s == (Stack)&LD->stacks.trail )	/* See (*) */
-  { min_room += sizeStack(global)/6;
+  { min_room += sizeStack(global)/GLOBAL_TRAIL_RATIO;
     DEBUG(MSG_GC_SCHEDULE, Sdprintf("Trail min_room = %ld\n", min_room));
   }
 
@@ -5121,11 +5156,15 @@ tight(Stack s ARG_LD)
     min_room = s->min_free;
 
   if ( (size_t)roomStackP(s) < min_room + spare_gap )
-    return 1;
+    return GROW_TIGHT;
 
   return 0;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return TRUE on success or *_OVERFLOW when out of space.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 shiftTightStacks(void)
@@ -5289,9 +5328,6 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 { GET_LD
   Word lbase, lend, current;
 
-#ifdef O_PLMT
-  simpleMutexLock(&ld->clauses.local_shift_mutex);
-#endif
   lbase = (Word)ld->stacks.local.base;
   lend  = (Word)ld->stacks.local.top;		/* see (*) */
   for(current = lbase; current < lend; current++ )
@@ -5310,9 +5346,6 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
       }
     }
   }
-#ifdef O_PLMT
-  simpleMutexUnlock(&ld->clauses.local_shift_mutex);
-#endif
 
   ld->clauses.erased_skipped = 0;
   markAccessedPredicates(ld);

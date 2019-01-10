@@ -248,4 +248,4 @@ typedef int mode_t;
 /* Define to 1 if you have the 'wcsxfrm' function. */
 #define HAVE_WCSXFRM 1
 
-#endif
+#endif /*__MINGW32__*/

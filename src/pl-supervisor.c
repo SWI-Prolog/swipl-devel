@@ -319,7 +319,7 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 
     initBuffer(&buf);
     for(i=0; i < def->functor->arity; i++)
-    { int ma = def->args[i].meta;
+    { int ma = def->impl.any.args[i].meta;
 
       if ( MA_NEEDS_TRANSPARENT(ma) )
       { addBuffer(&buf, encode(S_MQUAL), code);

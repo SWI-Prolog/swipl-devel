@@ -43,25 +43,27 @@
 This library is intended for supporting   PrologScript on Unix using the
 =|#!|= magic sequence for scripts using   commandline options. The entry
 point main/0 calls the user-supplied predicate  main/1 passing a list of
-commandline options. Below is `echo' in Prolog (adjust /usr/bin/swipl to
-where SWI-Prolog is installed)
+commandline options. Below is a simle `echo` implementation in Prolog.
 
-==
+```
 #!/usr/bin/env swipl
 
 :- initialization(main, main).
 
 main(Argv) :-
-        echo(Argv).
+    echo(Argv).
 
 echo([]) :- nl.
 echo([Last]) :- !,
-        write(Last), nl.
+    write(Last), nl.
 echo([H|T]) :-
-        write(H), write(' '),
-        echo(T).
-==
+    write(H), write(' '),
+    echo(T).
+```
 
+@see	library(optparse) for comprehensive option parsing.
+@see	library(prolog_stack) to force backtraces in case of an
+	uncaught exception.
 @see    XPCE users should have a look at library(pce_main), which
         starts the GUI and processes events until all windows have gone.
 */
@@ -79,7 +81,7 @@ main :-
     context_module(M),
     set_signals,
     current_prolog_flag(argv, Av),
-    call(M:main, Av).
+    catch_with_backtrace(M:main(Av), Error, throw(Error)).
 
 set_signals :-
     on_signal(int, _, interrupt).

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2017, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -141,7 +141,12 @@ LastModifiedFile(const char *name, double *tp)
   if ( statfunc(OsPath(name, tmp), &buf) < 0 )
     return FALSE;
 
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  *tp = (double)buf.st_mtim.tv_sec + (double)buf.st_mtim.tv_nsec/1.0e9;
+#else
   *tp = (double)buf.st_mtime;
+#endif
+
   return TRUE;
 #endif
 }
@@ -282,7 +287,8 @@ DeRefLink1(const char *f, char *lbuf)
     } else
     { char *q;
 
-      strcpy(lbuf, f);
+      if ( f != (const char*)lbuf )
+	strcpy(lbuf, f);
       q = &lbuf[strlen(lbuf)];
       while(q>lbuf && q[-1] != '/')
 	q--;
@@ -638,6 +644,12 @@ PRED_IMPL("time_file", 2, time_file, 0)
 
   if ( PL_get_file_name(A1, &fn, 0) )
   { double time;
+    int sl;
+
+    if ( (sl=file_name_is_iri(fn)) )
+    { return ( iri_hook(fn, IRI_TIME, &time) &&
+	       PL_unify_float(A2, time) );
+    }
 
     if ( LastModifiedFile(fn, &time) )
       return PL_unify_float(A2, time);
@@ -657,6 +669,12 @@ PRED_IMPL("size_file", 2, size_file, 0)
 
   if ( PL_get_file_name(A1, &n, 0) )
   { int64_t size;
+    int sl;
+
+    if ( (sl=file_name_is_iri(n)) )
+    { return ( iri_hook(n, IRI_SIZE, &size) &&
+	       PL_unify_int64(A2, size) );
+    }
 
     if ( (size = SizeFile(n)) < 0 )
       return PL_error("size_file", 2, OsError(), ERR_FILE_OPERATION,
@@ -675,6 +693,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
   char *n;
   int md;
   atom_t m;
+  int sl;
 
   term_t name = A1;
   term_t mode = A2;
@@ -698,13 +717,24 @@ PRED_IMPL("access_file", 2, access_file, 0)
   else
     return PL_error("access_file", 2, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
 
+  if ( (sl=file_name_is_iri(n)) )
+  { int rc;
+
+    if ( !iri_hook(n, IRI_ACCESS, md, &rc) )
+      return FALSE;
+
+    return rc;
+  }
+
   if ( AccessFile(n, md) )
     return TRUE;
 
   if ( md == ACCESS_WRITE && !AccessFile(n, ACCESS_EXIST) )
   { char tmp[MAXPATHLEN];
-    char *dir = DirName(n, tmp);
+    char *dir;
 
+    if ( !(dir = DirName(n, tmp)) )
+      return PL_representation_error("max_path_length");
     if ( dir[0] )
     { if ( !ExistsDirectory(dir) )
 	return FALSE;
@@ -730,9 +760,9 @@ PRED_IMPL("read_link", 3, read_link, 0)
     return FALSE;
 
   if ( (l = ReadLink(n, buf)) &&
-       PL_unify_atom_chars(link, l) &&
+       PL_unify_chars(link, PL_ATOM|REP_FN, (size_t)-1, l) &&
        (t = DeRefLink(n, buf)) &&
-       PL_unify_atom_chars(to, t) )
+       PL_unify_chars(to, PL_ATOM|REP_FN, (size_t)-1, t) )
     return TRUE;
 
   return FALSE;
@@ -742,9 +772,19 @@ PRED_IMPL("read_link", 3, read_link, 0)
 static
 PRED_IMPL("exists_file", 1, exists_file, 0)
 { char *n;
+  int sl;
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
+
+  if ( (sl=file_name_is_iri(n)) )
+  { int rc;
+
+    if ( !iri_hook(n, IRI_ACCESS, ACCESS_FILE, &rc) )
+      return FALSE;
+
+    return rc;
+  }
 
   return ExistsFile(n);
 }
@@ -753,9 +793,19 @@ PRED_IMPL("exists_file", 1, exists_file, 0)
 static
 PRED_IMPL("exists_directory", 1, exists_directory, 0)
 { char *n;
+  int sl;
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
+
+  if ( (sl=file_name_is_iri(n)) )
+  { int rc;
+
+    if ( !iri_hook(n, IRI_ACCESS, ACCESS_DIRECTORY, &rc) )
+      return FALSE;
+
+    return rc;
+  }
 
   return ExistsDirectory(n);
 }
@@ -766,7 +816,7 @@ PRED_IMPL("is_absolute_file_name", 1, is_absolute_file_name, 0)
 { char *n;
 
   if ( PL_get_file_name(A1, &n, 0) &&
-       IsAbsolutePath(n) )
+       (IsAbsolutePath(n) || file_name_is_iri(n)) )
     return TRUE;
 
   return FALSE;
@@ -787,24 +837,31 @@ PRED_IMPL("same_file", 2, same_file, 0)
 
 static
 PRED_IMPL("file_base_name", 2, file_base_name, 0)
-{ char *n;
-
-  if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
-    return FALSE;
-
-  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n));
-}
-
-
-static
-PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
-{ char *n;
+{ char *n, *b;
   char tmp[MAXPATHLEN];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
 
-  return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, DirName(n, tmp));
+  if ( (b=BaseName(n, tmp)) )
+    return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, b);
+  else
+    return PL_representation_error("max_path_length");
+}
+
+
+static
+PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
+{ char *n, *d;
+  char tmp[MAXPATHLEN];
+
+  if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
+    return FALSE;
+
+  if ( (d=DirName(n, tmp)) )
+    return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, d);
+  else
+    return PL_representation_error("max_path_length");
 }
 
 
@@ -824,26 +881,28 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
   if ( !PL_get_chars(base, &n, CVT_ALL|CVT_EXCEPTION) )
     return FALSE;
 
-  if ( (fn=TemporaryFile(n, NULL)) )
+  if ( (fn=TemporaryFile(n, "", NULL)) )
     return PL_unify_atom(name, fn);
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_create, ATOM_temporary_file, A1);
 }
 
-/** tmp_file_stream(+Mode, -File, -Stream)
+/** tmp_file_stream(+Ext, +Encoding, -File, -Stream)
 */
 
 static
-PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
+PRED_IMPL("$tmp_file_stream", 4, tmp_file_stream, 0)
 { PRED_LD
   atom_t fn;
   int fd;
   IOENC enc;
   atom_t encoding;
   const char *mode;
+  char *ext;
 
-  if ( !PL_get_atom_ex(A1, &encoding) )
+  if ( !PL_get_chars(A1, &ext, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) ||
+       !PL_get_atom_ex(A2, &encoding) )
     return FALSE;
   if ( (enc = atom_to_encoding(encoding)) == ENC_UNKNOWN )
   { if ( encoding == ATOM_binary )
@@ -856,17 +915,17 @@ PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
   { mode = "w";
   }
 
-  if ( (fn=TemporaryFile("", &fd)) )
+  if ( (fn=TemporaryFile("", ext, &fd)) )
   { IOSTREAM *s;
 
-    if ( !PL_unify_atom(A2, fn) )
+    if ( !PL_unify_atom(A3, fn) )
     { close(fd);
       return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 2, A2);
     }
 
     s = Sfdopen(fd, mode);
     Ssetenc(s, enc, NULL);
-    return PL_unify_stream(A3, s);
+    return PL_unify_stream(A4, s);
   } else
   { return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_create, ATOM_temporary_file, A2);
@@ -969,9 +1028,10 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
   term_t name = A1;
   term_t expanded = A2;
 
-  if ( PL_get_file_name(name, &n, 0) &&
-       (n = AbsoluteFile(n, tmp)) )
-    return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
+  if ( PL_get_file_name(name, &n, 0) )
+  { if ( (n = AbsoluteFile(n, tmp)) )
+      return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
+  }
 
   return FALSE;
 }
@@ -1160,7 +1220,7 @@ BeginPredDefs(files)
   PRED_DEF("exists_file", 1, exists_file, 0)
   PRED_DEF("exists_directory", 1, exists_directory, 0)
   PRED_DEF("tmp_file", 2, tmp_file, 0)
-  PRED_DEF("tmp_file_stream", 3, tmp_file_stream, 0)
+  PRED_DEF("$tmp_file_stream", 4, tmp_file_stream, 0)
   PRED_DEF("delete_file", 1, delete_file, 0)
   PRED_DEF("delete_directory", 1, delete_directory, 0)
   PRED_DEF("make_directory", 1, make_directory, 0)

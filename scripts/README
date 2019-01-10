@@ -4,7 +4,7 @@ SWI-Prolog maintenance scripts
   * make-export
   Used to copy system shared objects to the installation directory
 
-  * swipl.sh swipl-ld.sh swipl-rc.sh
+  * swipl.sh swipl-ld.sh
   Startup scripts for Linux binary distribution
 
   * make-src-tape

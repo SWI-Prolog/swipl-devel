@@ -530,7 +530,7 @@ static void
 discardForeignFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
   int argc       = (int)def->functor->arity;
-  Func function  = def->impl.function;
+  Func function  = def->impl.foreign.function;
   struct foreign_context context;
   fid_t fid;
 
@@ -1083,7 +1083,7 @@ callBreakHook(LocalFrame frame, Choice bfr,
   }
   proc = _PL_predicate("break_hook", 6, "prolog",
 		       &GD->procedures.prolog_break_hook6);
-  if ( !getProcDefinition(proc)->impl.any )
+  if ( !getProcDefinition(proc)->impl.any.defined )
     goto default_action;
 
   if ( strchr(codeTable[op].argtype, CA1_FVAR) )
@@ -1364,7 +1364,7 @@ getProcDefinitionForThread(Definition def, unsigned int tid)
 
 static inline Definition
 getProcDefinedDefinition(Definition def ARG_LD)
-{ if ( !def->impl.any && false(def, PROC_DEFINED) )
+{ if ( !def->impl.any.defined && false(def, PROC_DEFINED) )
     def = trapUndefined(def PASS_LD);
 
 #ifdef O_PLMT
@@ -1481,6 +1481,42 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Verify that p is  of  the   shape  @(Goal,Module)  that  is sufficiently
+instantiated to avoid teh compiler to generate a meta-call for it. Other
+errors will find their way to the user in other ways.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+checkCallAtContextInstantiation(Word p ARG_LD)
+{ Word g, m;
+  atom_t pm;
+
+  deRef(p);
+
+  m = argTermP(*p, 1);
+  deRef(m);
+  if ( canBind(*m) )
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  g = argTermP(*p, 0);
+  deRef(g);
+  if ( !(g=stripModuleName(g, &pm PASS_LD)) )
+    return FALSE;
+  if ( hasFunctor(*g, FUNCTOR_colon2) )
+  { m = argTermP(*g, 0);
+    deRef(m);
+    if ( canBind(*m) )
+      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    g = argTermP(*g, 1);
+    deRef(g);
+  }
+  if ( canBind(*g) )
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 foreignWakeup() calls delayed goals while executing a foreign procedure.
 Note that the  choicepoints  of  the   awoken  code  are  destroyed  and
 therefore this code can only be used in places introducing an (implicit)
@@ -1537,8 +1573,11 @@ foreignWakeup(term_t ex ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Called at the end of handling an exception. We cannot do GC, however, we
 can request it, after it will be executed   at the start of the recovery
-handler. If no GC is needed, we call trimStacks() to re-enable the spare
-stack-space if applicable.
+handler. If no GC is needed the is enoush space so, we call trimStacks()
+to re-enable the spare stack-space if applicable.
+
+TBD: In these modern days we can  probably   do  GC. Still, if it is not
+needed why would we?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -1553,8 +1592,8 @@ resumeAfterException(int clear, Stack outofstack)
     setVar(*valTermRef(LD->exception.pending));
   }
 
-  if ( outofstack && outofstack->gc )
-    outofstack->gced_size = 0;
+  LD->stacks.global.gced_size = 0;
+  LD->stacks.trail.gced_size  = 0;
 
   if ( !considerGarbageCollect((Stack)NULL) )
   { trimStacks((outofstack != NULL) PASS_LD);
@@ -1569,17 +1608,15 @@ resumeAfterException(int clear, Stack outofstack)
 
 
 static void
-exceptionUnwindGC(Stack outofstack)
-{ if ( outofstack && outofstack->gc )
-  { GET_LD
+exceptionUnwindGC(void)
+{ GET_LD
 
-    outofstack->gced_size = 0;
-    LD->trim_stack_requested = TRUE;
-    if ( considerGarbageCollect(outofstack) )
-    { garbageCollect();
-      if ( roomStackP(outofstack) < outofstack->def_spare )
-	enableSpareStack(outofstack);
-    }
+  LD->stacks.global.gced_size = 0;
+  LD->stacks.trail.gced_size = 0;
+  LD->trim_stack_requested = TRUE;
+  if ( considerGarbageCollect(NULL) )
+  { garbageCollect();
+    enableSpareStacks();
   }
 }
 
@@ -2501,28 +2538,37 @@ restore_after_query(QueryFrame qf)
 }
 
 
-void
+int
 PL_cut_query(qid_t qid)
 { GET_LD
   QueryFrame qf = QueryFromQid(qid);
+  int rc = TRUE;
 
   DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
   if ( qf->foreign_frame )
     PL_close_foreign_frame(qf->foreign_frame);
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
-  { discard_query(qid PASS_LD);
+  { int exbefore = (exception_term != 0);
+
+    discard_query(qid PASS_LD);
     qf = QueryFromQid(qid);
+    if ( !exbefore && exception_term != 0 )
+      rc = FALSE;
   }
 
   restore_after_query(qf);
   qf->magic = 0;			/* disqualify the frame */
+
+  return rc;
 }
 
 
-void
+int
 PL_close_query(qid_t qid)
-{ if ( qid != 0 )
+{ int rc = TRUE;
+
+  if ( qid != 0 )
   { GET_LD
     QueryFrame qf = QueryFromQid(qid);
 
@@ -2531,8 +2577,12 @@ PL_close_query(qid_t qid)
       PL_close_foreign_frame(qf->foreign_frame);
 
     if ( false(qf, PL_Q_DETERMINISTIC) )
-    { discard_query(qid PASS_LD);
+    { int exbefore = (exception_term != 0);
+
+      discard_query(qid PASS_LD);
       qf = QueryFromQid(qid);
+      if ( !exbefore && exception_term != 0 )
+	rc = FALSE;
     }
 
     if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
@@ -2541,6 +2591,8 @@ PL_close_query(qid_t qid)
     restore_after_query(qf);
     qf->magic = 0;			/* disqualify the frame */
   }
+
+  return rc;
 }
 
 
@@ -2897,11 +2949,14 @@ retry:					MARK(RETRY);
 
 do_retry:
   if ( rframe0 != rframe )
-    Sdprintf("[No retry-information for requested frame]\n");
+  { DEBUG(MSG_TRACE,
+	  Sdprintf("[No retry-information for requested frame]\n"));
+  }
 
-  Sdprintf("[Retrying frame %d running %s]\n",
-	   (Word)rframe - (Word)lBase,
-	   predicateName(rframe->predicate));
+  DEBUG(MSG_TRACE,
+	Sdprintf("[Retrying frame %d running %s]\n",
+		 (Word)rframe - (Word)lBase,
+		 predicateName(rframe->predicate)));
 
   discardChoicesAfter(rframe, FINISH_CUT PASS_LD);
   rframe->clause = NULL;

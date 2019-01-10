@@ -8,6 +8,8 @@ format=dvi
 rerun='Rerun to get cross-references right'
 maxruns=4
 quiet=false
+mkindexopts=
+bibtexopts=
 
 function texclean
 { rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc *.blg
@@ -43,8 +45,6 @@ case "$appbase" in
         exit 1
 	;;
 esac
-
-echo "runtex application base = $appbase"
 
 function addinput
 { if [ -z "$TEXINPUTS" ]; then
@@ -104,7 +104,9 @@ while [ $argp = true ] ; do
 	    format=dvi
 	    shift ;;
 	--quiet)
-	    quiet=true;
+	    quiet=true
+	    mkindexopts=-q
+	    bibtexopts=-terse
 	    shift ;;
 	--maxruns=*)
 	    maxruns="`echo $1 | sed 's/--maxruns=//'`"
@@ -133,6 +135,10 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+if [ $quiet = false ]; then
+  echo "runtex application base = $appbase"
+fi
+
 file="$1"
 
 # ensure .tex suffix
@@ -151,35 +157,38 @@ cont=yes
 done=0
 while [ $cont != "no" ]; do
     cont=maybe
-
 					# fix index problems
     if [ -r $doc.idx ]; then
 	cp $doc.idx $doc.idx.$$
-        if [ -x $appbase/correctindex ]; then
-	    $appbase/correctindex $doc.idx
+        if [ -r $appbase/correctindex ]; then
+	    perl -pi $appbase/correctindex $doc.idx
 	fi
 	if [ -r $appbase/makeindex.ist ]; then
-	    makeindex -s $appbase/makeindex.ist $doc.idx
+	    makeindex $mkindexopts -s $appbase/makeindex.ist $doc.idx
 	else
-	    makeindex $doc.idx
+	    makeindex $mkindexopts $doc.idx
 	fi
     fi
     if test -r $doc.aux && grep -qw bibdata $doc.aux; then
 	if [ -f $doc.bbl ]; then cp $doc.bbl $doc.bbl$$; fi
-	echo "%%% Running Bibtex"
-        bibtex $doc
+	if [ $quiet == false ]; then
+	    echo "%%% Running Bibtex"
+	fi
+        bibtex $bibtexopts $doc
 	if [ -r $doc.bbl -a -r $doc.bbl.$$ ]; then
 	   if cmp -s $doc.bbl $doc.bbl.$$; then
 	      true
 	   else
 	      cont=yes
-	      echo "*** Bibtex output changed.  Rerunning $tex ***"
+	      if [ $quiet == false ]; then
+	          echo "*** Bibtex output changed.  Rerunning $tex ***"
+	      fi
 	   fi
 	fi
 	rm -f $doc.bbl$$
     fi
     if [ `basename $tex` = pdflatex -a -r $appbase/Makefile.pdf ]; then
-        make -f $appbase/Makefile.pdf
+        make --quiet -f $appbase/Makefile.pdf
     fi
     rm -f $doc.log
     if [ $quiet == true ]; then
@@ -192,7 +201,9 @@ while [ $cont != "no" ]; do
         exit $?;
     fi
     if grep -q "$rerun" $doc.log; then
-        echo "*** Cross-references changed.  Rerunning $tex ***"
+        if [ $quiet == false ]; then
+            echo "*** Cross-references changed.  Rerunning $tex ***"
+	fi
 	cont=yes
     else
         if [ -r $doc.idx -a -r $doc.idx.$$ ]; then
@@ -201,7 +212,9 @@ while [ $cont != "no" ]; do
 	   else
 	      ls -l $doc.idx $doc.idx.$$
 	      cont=yes
-	      echo "*** Index changed.  Rerunning $tex ***"
+	      if [ $quiet == false ]; then
+	          echo "*** Index changed.  Rerunning $tex ***"
+	      fi
 	   fi
         fi
     fi

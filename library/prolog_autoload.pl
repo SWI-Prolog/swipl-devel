@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2012, VU University Amsterdam
+    Copyright (c)  2011-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,6 +41,7 @@
 :- use_module(library(error)).
 :- use_module(library(aggregate)).
 :- use_module(library(prolog_codewalk)).
+:- use_module(library(check), [ list_undefined/0 ]).
 
 :- predicate_options(autoload/1, 1,
                      [ verbose(boolean),
@@ -66,11 +68,10 @@ analysis becomes harder because the program may be incomplete.
 This  library  provides  autoload/0  and   autoload/1  to  autoload  all
 predicates that are referenced by the program. Now, this is not possible
 in Prolog because the language allows   for constructing arbitrary goals
-and runtime and calling them (e.g.,  read(X),   call(X)).
+and runtime and calling them (e.g., read(X), call(X)).
 
-The classical version relied on  the predicate_property =undefined=. The
-current version relies on code analysis of the bodies of all clauses and
-all initialization goals.
+The implementation relies on code analysis of  the bodies of all clauses
+and all initialization goals.
 */
 
 :- thread_local
@@ -82,11 +83,11 @@ all initialization goals.
 %   Force all necessary autoloading to be done _now_.  Options:
 %
 %       * verbose(+Boolean)
-%       If =true=, report on the files loaded.
+%       If `true` (default `false`), report on the files loaded.
 %       * undefined(+Action)
 %       Action defines what happens if the analysis finds a
-%       definitely undefined predicate.  One of =ignore= or
-%       =error=.
+%       definitely undefined predicate.  One of `ignore` or
+%       `error`.  Default is `ignore`.
 
 autoload :-
     autoload([]).
@@ -95,14 +96,16 @@ autoload(Options) :-
     must_be(list, Options),
     statistics(cputime, T0),
     aggregate_all(count, source_file(_), OldFileCount),
-    autoload(0, Iterations, Options),
+    call_cleanup(
+        autoload(0, Iterations, Options),
+        check:collect_undef(Undef)),
     aggregate_all(count, source_file(_), NewFileCount),
     statistics(cputime, T1),
     Time is T1-T0,
     information_level(Level, Options),
     NewFiles is NewFileCount - OldFileCount,
-    print_message(Level, autoload(completed(Iterations, Time, NewFiles))).
-
+    print_message(Level, autoload(completed(Iterations, Time, NewFiles))),
+    report_undefined(Undef).
 
 autoload(Iteration0, Iterations, Options) :-
     statistics(cputime, T0),
@@ -119,7 +122,7 @@ autoload(Iteration0, Iterations, Options) :-
     ).
 
 information_level(Level, Options) :-
-    (   option(verbose(true), Options, true)
+    (   option(verbose(true), Options)
     ->  Level = informational
     ;   Level = silent
     ).
@@ -134,7 +137,8 @@ information_level(Level, Options) :-
 %          using the autoloader.
 
 autoload_step(NewFiles, NewPreds, Options) :-
-    option(verbose(Verbose), Options, true),
+    option(verbose(Verbose), Options, false),
+    walk_options(Options, WalkOptions),
     aggregate_all(count, source_file(_), OldFileCount),
     setup_call_cleanup(
         ( current_prolog_flag(autoload, OldAutoLoad),
@@ -144,7 +148,7 @@ autoload_step(NewFiles, NewPreds, Options) :-
           assert_autoload_hook(Ref),
           asserta(autoloaded_count(0))
         ),
-        prolog_walk_code(Options),
+        prolog_walk_code(WalkOptions),
         ( retract(autoloaded_count(Count)),
           erase(Ref),
           set_prolog_flag(autoload, OldAutoLoad),
@@ -167,19 +171,54 @@ autoloaded(_, _) :-
     asserta(autoloaded_count(N2)),
     fail.                                   % proceed with other hooks
 
+%!  walk_options(+AutoloadOptions, -WalkOptions) is det.
+%
+%   Construct the option list  for  the  code   walker.  If  we  see  an
+%   undefined predicate, we must collect these rather than printing them
+%   or immediately terminating with an exception.  This reuses code from
+%   library(check).
+
+walk_options([], []).
+walk_options([verbose(V)|T0], [verbose(V)|T]) :-
+    !,
+    walk_options(T0, T).
+walk_options([undefined(error)|T0],
+             [ undefined(trace),
+               on_trace(check:found_undef)
+             | T
+             ]) :-
+    !,
+    walk_options(T0, T).
+walk_options([_|T0], T) :-
+    walk_options(T0, T).
+
+
+%!  report_undefined(+Undefined) is det.
+%
+%
+
+report_undefined([]) :-
+    !.
+report_undefined(Grouped) :-
+    existence_error(procedures, Grouped).
+
 
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
 
 :- multifile
-    prolog:message//1.
+    prolog:message//1,
+    prolog:error_message//1.
 
 prolog:message(autoload(reiterate(Iteration, NewFiles, NewPreds, Time))) -->
     [ 'Autoloader: iteration ~D resolved ~D predicates \c
           and loaded ~D files in ~3f seconds.  Restarting ...'-
-      [Iteration, NewFiles, NewPreds, Time]
+      [Iteration, NewPreds, NewFiles, Time]
     ].
 prolog:message(autoload(completed(Iterations, Time, NewFiles))) -->
     [ 'Autoloader: loaded ~D files in ~D iterations in ~3f seconds'-
       [NewFiles, Iterations, Time] ].
+
+prolog:error_message(existence_error(procedures, Grouped)) -->
+    prolog:message(check(undefined_procedures, Grouped)).

@@ -312,7 +312,7 @@ CpuTime(cputime_kind which)
 }
 
 
-static int
+int
 CpuCount(void)
 { SYSTEM_INFO si;
 
@@ -1042,7 +1042,7 @@ PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0)
        !PL_get_wchars(Name, &namlen, &name, CVT_ATOM|CVT_ATOM) )
     return FALSE;
   if ( !(key=reg_open_key(k, FALSE)) )
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, PL_new_atom("key"), Key);
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_key, Key);
 
   DEBUG(9, Sdprintf("key = %p, name = %s\n", key, name));
   if ( RegQueryValueExW(key, name, NULL, &type, data.bytes, &len)
@@ -1074,11 +1074,10 @@ system-wide settings.
 
 static struct regdef
 { const char *name;
-  int        *address;
+  size_t     *address;
 } const regdefs[] =
-{ { "localSize",    &GD->defaults.local },
-  { "globalSize",   &GD->defaults.global },
-  { "trailSize",    &GD->defaults.trail },
+{ { "stackLimit",   &GD->defaults.stack_limit },
+  { "tableSpace",   &GD->defaults.table_space },
   { NULL,           NULL }
 };
 
@@ -1099,7 +1098,7 @@ setStacksFromKey(HKEY key)
 	 type == REG_DWORD )
     { DWORD v = data.dword;
 
-      *rd->address = (int)v;
+      *rd->address = (size_t)v;
     }
   }
 }
@@ -1118,6 +1117,23 @@ getDefaultsFromRegistry(void)
     RegCloseKey(key);
   }
 }
+
+
+const char *
+PL_w32_running_under_wine(void)
+{ static const char * (CDECL *pwine_get_version)(void);
+  HMODULE hntdll = GetModuleHandle("ntdll.dll");
+
+  if ( !hntdll )
+  { return NULL;
+  }
+
+  if ( (pwine_get_version = (void *)GetProcAddress(hntdll, "wine_get_version")) )
+    return pwine_get_version();
+
+  return NULL;
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

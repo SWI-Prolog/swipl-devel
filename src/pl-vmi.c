@@ -1800,7 +1800,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
   { Procedure proc = (Procedure) *PC++;
 
-    if ( !proc->definition->impl.any &&	/* see (*) */
+    if ( !proc->definition->impl.any.defined &&	/* see (*) */
 	 false(proc->definition, PROC_DEFINED) )
     { PC--;
       VMI_GOTO(I_CALL);
@@ -2729,7 +2729,7 @@ this supervisor (see resetProcedure()). The task of this is to
 VMI(S_VIRGIN, 0, 0, ())
 { lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
-  if ( !DEF->impl.any && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
   { SAVE_REGISTERS(qid);
     DEF = getProcDefinedDefinition(DEF PASS_LD);
     LOAD_REGISTERS(qid);
@@ -2740,7 +2740,8 @@ VMI(S_VIRGIN, 0, 0, ())
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
 #endif
-    goto retry_continue;
+    if ( DEF->impl.any.defined )
+      goto retry_continue;
 #ifdef O_PLMT
   } else if ( true(DEF, P_THREAD_LOCAL) )
   { DEF = getProcDefinition__LD(DEF PASS_LD);
@@ -2816,6 +2817,8 @@ VMI(S_UNDEF, 0, 0, ())
     }
     case UNKNOWN_FAIL:
     default:
+      if ( debugstatus.debugging )
+	newChoice(CHP_DEBUG, FR PASS_LD);
       FRAME_FAILED;
   }
 }
@@ -3702,6 +3705,13 @@ VMI(I_FOPEN, 0, 0, ())
   { ffr = (FliFrame)argFrameP(FR, DEF->functor->arity);
   }
 
+#if O_DEBUG
+  if ( exception_term )
+  { Sdprintf("Exception at entry of %s\n",  predicateName(DEF));
+    PL_write_term(Serror, exception_term, 1200, PL_WRT_NEWLINE);
+  }
+#endif
+
   assert(DEF->functor->arity < 100);
 
   lTop = (LocalFrame)(ffr+1);
@@ -4161,6 +4171,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 VMI(I_EXITCLEANUP, 0, 0, ())
 {
 #if defined(__llvm__) && defined(VMCODE_IS_ADDRESS) /* (*) */
+  extern int llvm_dummy(void);
   llvm_dummy();
 #endif
 
@@ -4327,7 +4338,7 @@ again:
   { int rc;
 
     SAVE_REGISTERS(qid);
-    exceptionUnwindGC(outofstack);
+    exceptionUnwindGC();
     LOAD_REGISTERS(qid);
     SAVE_REGISTERS(qid);
     rc = exception_hook(qid, consTermRef(FR), catchfr_ref PASS_LD);
@@ -4356,6 +4367,7 @@ again:
 
     SAVE_REGISTERS(qid);
     rc = isCaughtInOuterQuery(qid, exception_term PASS_LD);
+    DEBUG(MSG_THROW, Sdprintf("Caught in outer: %s\n", rc ? "YES" : "NO"));
     LOAD_REGISTERS(qid);
 
     if ( !rc )					/* uncaught exception */
@@ -4444,15 +4456,32 @@ again:
 	setVar(*valTermRef(LD->exception.pending));
       }
 
+					/* discard as much as we can from the local stack */
       l_top = argFrameP(FR, FR->predicate->functor->arity);
+      FR->clause = NULL;		/* We do not care about the arguments */
+      DEBUG(MSG_UNWIND_EXCEPTION,
+	    Sdprintf("l_top above [%d] %s: %p\n",
+		     (int)FR->level, predicateName(FR->predicate), l_top));
       if ( l_top < (void*)(BFR+1) )
+      { DEBUG(MSG_UNWIND_EXCEPTION,
+	      Sdprintf("Include choice points: %p -> %p\n", l_top, (void*)(BFR+1)));
         l_top = (void*)(BFR+1);
+      }
       lTop = l_top;
+
+      while(fli_context > (FliFrame)lTop)
+        fli_context = fli_context->parent;
+
+      DEBUG(CHK_SECURE,
+	    { SAVE_REGISTERS(qid);
+	      memset(lTop, 0xfb, lMax-lTop);
+	      checkStacks(NULL);
+	      LOAD_REGISTERS(qid)
+	    });
 
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
-	exceptionUnwindGC(outofstack);
 	LOAD_REGISTERS(qid);
 	discardFrame(FR PASS_LD);
 	SAVE_REGISTERS(qid);
@@ -4467,13 +4496,14 @@ again:
 
       if ( start_tracer )		/* See (*) */
       {	SAVE_REGISTERS(qid);
-	exceptionUnwindGC(outofstack);
+	exceptionUnwindGC();
 	LOAD_REGISTERS(qid);
 
-	DEBUG(1, Sdprintf("g+l+t free = %ld+%ld+%ld\n",
-			  spaceStack(global),
-			  spaceStack(local),
-			  spaceStack(trail)));
+	DEBUG(MSG_STACK_OVERFLOW,
+	      Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
+		       usedStack(global),
+		       usedStack(local),
+		       usedStack(trail)));
 
 	if ( trace_if_space() )
 	{ int rc;
@@ -4487,6 +4517,13 @@ again:
 	  LOAD_REGISTERS(qid);
 	}
       }
+    }
+
+    if ( start_tracer )
+    { Sdprintf("Failed to print resource exception due to lack of space\n");
+      SAVE_REGISTERS(qid);
+      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+      LOAD_REGISTERS(qid);
     }
   } else
 #endif /*O_DEBUGGER*/
@@ -4508,9 +4545,6 @@ again:
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
-	exceptionUnwindGC(outofstack);
-	LOAD_REGISTERS(qid);
-	SAVE_REGISTERS(qid);
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
       }
@@ -4572,9 +4606,14 @@ again:
     QF->foreign_frame = PL_open_foreign_frame();
     QF->exception = PL_copy_term_ref(exception_term);
 
+    SAVE_REGISTERS(qid);
     resumeAfterException(false(QF, PL_Q_PASS_EXCEPTION), outofstack);
+    LOAD_REGISTERS(qid);
     if ( PL_pending(SIG_GC) )
+    { SAVE_REGISTERS(qid);
       garbageCollect();
+      LOAD_REGISTERS(qid);
+    }
     QF = QueryFromQid(qid);		/* may be shifted: recompute */
 
     assert(LD->exception.throw_environment == &throw_env);
@@ -4756,7 +4795,8 @@ undefined predicate for call/N.
     fd = valueFunctor(functor);
     if ( !isCallableAtom(fd->name) )
       goto call_type_error;
-    if ( false(fd, CONTROL_F) && !(fd->name == ATOM_call && fd->arity > 8) )
+    if ( false(fd, CONTROL_F) &&
+	 !(fd->name == ATOM_call && fd->arity > 8) )
     { args    = argTermP(goal, 0);
       arity   = (int)fd->arity;
     } else if ( true(FR, FR_INRESET) )
@@ -4771,6 +4811,10 @@ undefined predicate for call/N.
     } else
     { Clause cl;
       int rc;
+
+      if ( fd->functor == FUNCTOR_xpceref2 &&
+	   !checkCallAtContextInstantiation(a PASS_LD) )
+	THROW_EXCEPTION;
 
       lTop = NFR;
       setNextFrameFlags(NFR, FR);
@@ -4924,7 +4968,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
 
 mcall_cont:
   setNextFrameFlags(NFR, FR);
-  if ( !DEF->impl.any && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     setFramePredicate(NFR, DEF);	/* TBD */

@@ -179,6 +179,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
+\predicatesummary{current_table}{2}{Find answer table for a variant}
 \predicatesummary{current_trie}{1}{Enumerate known tries}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{day_of_the_week}{2}{Determine ordinal-day from date}
@@ -306,6 +307,7 @@ suggest predicates from a keyword.
 \predicatesummary{get_code}{1}{Read next character (ISO)}
 \predicatesummary{get_code}{2}{Read next character from a stream (ISO)}
 \predicatesummary{get_dict}{3}{Get the value associated to a key from a dict}
+\predicatesummary{get_dict_ex}{3}{Get the value associated to a key from a dict}
 \predicatesummary{get_dict}{5}{Replace existing value in a dict}
 \predicatesummary{get_flag}{2}{Get value of a flag}
 \predicatesummary{get_single_char}{1}{Read next character from the terminal}
@@ -432,6 +434,7 @@ suggest predicates from a keyword.
 \predicatesummary{noguitracer}{0}{Disable the graphical debugger}
 \predicatesummary{nonground}{2}{Term is not ground due to witness}
 \predicatesummary{nonvar}{1}{Type check for bound term}
+\predicatesummary{nonterminal}{1}{Set predicate property}
 \predicatesummary{noprofile}{1}{Hide (meta-) predicate for the profiler}
 \predicatesummary{noprotocol}{0}{Disable logging of user interaction}
 \predicatesummary{normalize_space}{2}{Normalize white space}
@@ -571,6 +574,7 @@ suggest predicates from a keyword.
 \predicatesummary{reset_gensym}{1}{Reset a gensym key}
 \predicatesummary{reset_gensym}{0}{Reset all gensym keys}
 \predicatesummary{reset_profiler}{0}{Clear statistics obtained by the profiler}
+\predicatesummary{resource}{2}{Declare a program resource}
 \predicatesummary{resource}{3}{Declare a program resource}
 \predicatesummary{retract}{1}{Remove clause from the database}
 \predicatesummary{retractall}{1}{Remove unifying clauses from the database}
@@ -657,6 +661,7 @@ suggest predicates from a keyword.
 \predicatesummary{term_string}{3}{Read/write a term from/to a string}
 \predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
+\predicatesummary{thread_affinity}{3}{Query and control the \jargon{affinity} mask}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
 \predicatesummary{thread_create}{2}{Create a new Prolog task}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}

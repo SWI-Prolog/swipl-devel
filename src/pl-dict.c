@@ -201,23 +201,23 @@ dict_ordered(Word data, int count, int ex ARG_LD)
     deRef2(data, n1);
     if ( !is_key(*n1) )
       return -1;
-  }
 
-  for(; count > 1; count--, data += 2, n1=n2)
-  { deRef2(data+2, n2);
-    if ( !is_key(*n2) )
-      return -1;
-    if ( *n1 < *n2 )
-      continue;
-    if ( *n1 > *n2 )
-      ordered = FALSE;
-    if ( *n1 == *n2 )
-    { if ( ex )
-      { term_t t = PL_new_term_ref();
-	*valTermRef(t) = linkVal(n1);
-	PL_error(NULL, 0, NULL, ERR_DUPLICATE_KEY, t);
+    for(; count > 1; count--, data += 2, n1=n2)
+    { deRef2(data+2, n2);
+      if ( !is_key(*n2) )
+	return -1;
+      if ( *n1 < *n2 )
+	continue;
+      if ( *n1 > *n2 )
+	ordered = FALSE;
+      if ( *n1 == *n2 )
+      { if ( ex )
+	{ term_t t = PL_new_term_ref();
+	  *valTermRef(t) = linkVal(n1);
+	  PL_error(NULL, 0, NULL, ERR_DUPLICATE_KEY, t);
+	}
+	return -2;
       }
-      return -2;
     }
   }
 
@@ -243,7 +243,7 @@ compare_dict_entry(const void *a, const void *b, void *arg)
 }
 
 
-static int
+int
 dict_order(Word dict, int ex ARG_LD)
 { Functor data = (Functor)dict;
   int arity = arityFunctor(data->definition);

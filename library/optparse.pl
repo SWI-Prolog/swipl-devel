@@ -439,8 +439,7 @@ opt_help(OptsSpec, Help, HelpOptions0) :-
 %{{{ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPT_PARSE
 
 opt_parse_(OptsSpec0, Args0, Opts, PositionalArgs, ParseOptions) :-
-    assertion(ground(Args0)),
-    assertion(is_list_of_atoms(Args0)),
+    must_be(list(atom), Args0),
 
     check_opts_spec(OptsSpec0, ParseOptions, OptsSpec),
 
@@ -845,6 +844,7 @@ name_rest([]) --> [].
 name_rest([C|Cs]) --> [C], {name_char(C)}, name_rest(Cs).
 name_1st(C) :- char_type(C, alpha).
 name_char(C) :- char_type(C, alpha).
+name_char( 0'_ ).
 name_char( 0'- ). %}}}
 
 

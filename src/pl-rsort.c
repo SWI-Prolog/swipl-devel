@@ -51,34 +51,18 @@ This library provides sort_r(), which is   compatible  to qsort_r() from
 glibc.       The       implementation       is         inspired       by
 https://github.com/noporpoise/sort_r, but has been extended since to use
 autoconf rather than hard-wired #ifdef and  fallback to a locked version
-if all fails.  The four versions tried are:
+if all fails.  The three versions tried are:
 
   - GNU qsort_r (direct mapping)
   - BSD qsort_r (different argument order)
   - MS  qsort_s (yet another different argument order)
-  - GCC nested functions (does not work if stack is execute-protected)
-  - A locket version.
+  - A locked version.
 
 Eventually it might be better to roll our own or use the sorting routine
 from pl-list.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if !defined(HAVE_QSORT_R) && !defined(HAVE_QSORT_S)
-
-#ifdef QSORT_R_WITH_NESTED_FUNCTIONS
-
-void
-sort_r(void *base, size_t nel, size_t width,
-       int (*compar)(const void *a1, const void *a2, void *aarg), void *arg)
-{ int nested_cmp(const void *a, const void *b)
-  {
-    return compar(a, b, arg);
-  }
-
-  qsort(base, nel, width, nested_cmp);
-}
-
-#else
 
 static void *sort_r_ctx;
 static int (*sort_r_compar)(const void *a1, const void *a2, void *aarg);
@@ -98,8 +82,6 @@ sort_r(void *base, size_t nel, size_t width,
   qsort(base, nel, width, nested_cmp);
   PL_UNLOCK(L_SORTR);
 }
-
-#endif
 
 #else /*HAVE_QSORT_R|HAVE_QSORT_S*/
 

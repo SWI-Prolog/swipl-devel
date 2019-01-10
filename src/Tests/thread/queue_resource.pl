@@ -49,13 +49,13 @@
 
 queue_resource :-
 	thread_self(Me),
-	thread_create(client(Me), Id, [ global(100) ]),
+	thread_create(client(Me), Id, [ stack_limit(100_000) ]),
 	thread_get_message(ready(Limit)),
 	Length is (Limit+10000)//12,
 	numlist(1, Length, L),
 	thread_send_message(Id, L),
 	thread_join(Id, Status),
-	(   Status == exception(error(resource_error(stack), global))
+	(   subsumes_term(exception(error(resource_error(stack), _)), Status)
 	->  true
 	;   format(user_error,
 		   'ERROR: queue_resource/0: wrong status: ~p~n', [Status]),
@@ -63,6 +63,6 @@ queue_resource :-
 	).
 
 client(Main) :-
-	statistics(globallimit, Limit),
+	current_prolog_flag(stack_limit, Limit),
 	thread_send_message(Main, ready(Limit)),
 	thread_get_message(_Msg).

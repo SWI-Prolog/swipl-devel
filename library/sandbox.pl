@@ -188,7 +188,8 @@ safe(G, M, Parents, Safe0, Safe) :-
     predicate_property(G, iso),
     safe_meta_call(G, M, Called),
     !,
-    safe_list(Called, M, Parents, Safe0, Safe).
+    add_iso_parent(G, Parents, Parents1),
+    safe_list(Called, M, Parents1, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
     (   predicate_property(M:G, imported_from(M2))
     ->  true
@@ -254,6 +255,17 @@ known_module(M:_, _) :-
 known_module(M:G, Parents) :-
     throw(error(permission_error(call, sandboxed, M:G),
                 sandbox(M:G, Parents))).
+
+add_iso_parent(G, Parents, Parents) :-
+    is_control(G),
+    !.
+add_iso_parent(G, Parents, [G|Parents]).
+
+is_control((_,_)).
+is_control((_;_)).
+is_control((_->_)).
+is_control((_*->_)).
+is_control(\+(_)).
 
 
 %!  safe_bodies(+Bodies, +Module, +Parents, +Safe0, -Safe)
@@ -710,6 +722,8 @@ stack_name(global).
 stack_name(local).
 stack_name(trail).
 
+safe_primitive('$tabling':abolish_all_tables).
+
 
 % use_module/1.  We only allow for .pl files that are loaded from
 % relative paths that do not contain /../
@@ -821,6 +835,14 @@ safe_meta('$dcg':call_dcg(NT,Xs0,Xs), [Goal]) :-
     expand_nt(NT,Xs0,Xs,Goal).
 safe_meta('$dcg':call_dcg(NT,Xs0), [Goal]) :-
     expand_nt(NT,Xs0,[],Goal).
+safe_meta('$tabling':abolish_table_subgoals(V), []) :-
+    \+ qualified(V).
+safe_meta('$tabling':current_table(V, _), []) :-
+    \+ qualified(V).
+
+qualified(V) :-
+    nonvar(V),
+    V = _:_.
 
 %!  attr_hook_predicates(+Hooks0, +Module, -Hooks) is det.
 %
@@ -883,22 +905,34 @@ safe_meta_call(Goal, _, Called) :-
     safe_meta_predicate(M:Name/Arity),
     predicate_property(Goal, meta_predicate(Spec)),
     !,
-    findall(C, called(Spec, Plain, C), Called).
+    called(Spec, Plain, Called).
 safe_meta_call(M:Goal, _, Called) :-
     !,
     generic_goal(Goal, Gen),
     safe_meta(M:Gen),
-    findall(C, called(Gen, Goal, C), Called).
+    called(Gen, Goal, Called).
 safe_meta_call(Goal, _, Called) :-
     generic_goal(Goal, Gen),
     safe_meta(Gen),
-    findall(C, called(Gen, Goal, C), Called).
+    called(Gen, Goal, Called).
 
 called(Gen, Goal, Called) :-
+    compound_name_arity(Goal, _, Arity),
+    called(1, Arity, Gen, Goal, Called).
+
+called(I, Arity, Gen, Goal, Called) :-
+    I =< Arity,
+    !,
     arg(I, Gen, Spec),
-    calling_meta_spec(Spec),
-    arg(I, Goal, Called0),
-    extend(Spec, Called0, Called).
+    (   calling_meta_spec(Spec)
+    ->  arg(I, Goal, Called0),
+        extend(Spec, Called0, G),
+        Called = [G|Rest]
+    ;   Called = Rest
+    ),
+    I2 is I+1,
+    called(I2, Arity, Gen, Goal, Rest).
+called(_, _, _, _, []).
 
 generic_goal(G, Gen) :-
     functor(G, Name, Arity),
@@ -971,7 +1005,8 @@ safe_meta(call(3,*,*,*)).
 safe_meta(call(4,*,*,*,*)).
 safe_meta(call(5,*,*,*,*,*)).
 safe_meta(call(6,*,*,*,*,*,*)).
-
+safe_meta('$tabling':start_tabling(*,0)).
+safe_meta('$tabling':start_tabling(*,0,*,*)).
 
 %!  safe_output(+Output)
 %
@@ -1082,6 +1117,7 @@ safe_pattr(discontiguous(_)).
 safe_pattr(multifile(_)).
 safe_pattr(public(_)).
 safe_pattr(meta_predicate(_)).
+safe_pattr(table(_)).
 
 safe_pattr(Var, _) :-
     var(Var),
@@ -1194,6 +1230,19 @@ prolog:sandbox_allowed_goal(G) :-
     prolog:message//1,
     prolog:message_context//1,
     prolog:error_message//1.
+
+prolog:message(error(instantiation_error, Context)) -->
+    { nonvar(Context),
+      Context = sandbox(_Goal,Parents),
+      numbervars(Context, 1, _)
+    },
+    [ 'Sandbox restriction!'-[], nl,
+      'Could not derive which predicate may be called from'-[]
+    ],
+    (   { Parents == [] }
+    ->  [ 'Search space too large'-[] ]
+    ;   callers(Parents, 10)
+    ).
 
 prolog:message_context(sandbox(_G, [])) --> !.
 prolog:message_context(sandbox(_G, Parents)) -->

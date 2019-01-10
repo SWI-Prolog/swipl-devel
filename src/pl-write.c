@@ -1265,7 +1265,7 @@ callPortray(term_t arg, int prec, write_options *options)
   { pred = _PL_predicate("call", 3, "user", &GD->procedures.call3);
   } else
   { pred = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
-    if ( !pred->definition->impl.any )
+    if ( !pred->definition->impl.any.defined )
       return FALSE;
   }
 

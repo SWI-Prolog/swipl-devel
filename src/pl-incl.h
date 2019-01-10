@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam,
+    Copyright (c)  1985-2018, University of Amsterdam,
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,7 +48,7 @@
 #define PLHOME       "c:/Program Files (x86)/swipl"
 #endif
 #define DEFSTARTUP   "swipl.ini"
-#else
+#else /*__WINDOWS__*/
 #include <config.h>
 #endif
 
@@ -72,10 +73,12 @@
 #define C_STATICLIBS ""
 #define C_CC	     "gcc"
 #define C_CFLAGS     ""
-#define C_PLLIB	     "-lswipl"
+#define C_PLLIB	     "-lswipl"		/* Or "libswipl.lib"? */
+#define C_LIBPLSO    "-lswipl"
 #define C_LDFLAGS    ""
-#endif
+#else
 #include <parms.h>			/* pick from the working dir */
+#endif
 #endif
 
 #define PL_KERNEL		1
@@ -901,6 +904,7 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_ERROR		(0x0400) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 #define M_VARPREFIX		(0x0800)
+#define M_DESTROYED		(0x1000)
 
 /* Flags on functors */
 
@@ -1249,8 +1253,27 @@ struct clause
   code			codes[1];	/* VM codes of clause */
 };
 
+typedef struct arg_info
+{ float		speedup;		/* Computed speedup */
+  unsigned	list	   : 1;		/* Index using lists */
+  unsigned	ln_buckets : 5;		/* lg2(bucket count) */
+  unsigned	assessed   : 1;		/* Value was assessed */
+  unsigned	meta	   : 4;		/* Meta-argument info */
+} arg_info;
+
+typedef struct impl_any
+{ arg_info     *args;			/* Meta and indexing info */
+  void         *defined;		/* One of function or first_clause */
+} impl_any, *ImplAny;
+
+typedef struct impl_foreign
+{ arg_info     *args;			/* Meta and indexing info */
+  Func		function;		/* Function pointer */
+} impl_foreign, *ImplForeign;
+
 typedef struct clause_list
-{ ClauseRef	first_clause;		/* clause list of procedure */
+{ arg_info     *args;			/* Meta and indexing info */
+  ClauseRef	first_clause;		/* clause list of procedure */
   ClauseRef	last_clause;		/* last clause of list */
   ClauseIndex  *clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
@@ -1342,7 +1365,12 @@ struct clause_bucket
   unsigned int	dirty;			/* # of garbage clauses */
 };
 
-#define MAX_MULTI_INDEX 4
+#define MAX_MULTI_INDEX  4
+#define MAXINDEXARG    254
+#define MAXINDEXDEPTH    7
+#define END_INDEX_POS  255
+
+typedef unsigned char iarg_t;		/* index argument */
 
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
@@ -1350,18 +1378,13 @@ struct clause_index
   unsigned int	 resize_above;		/* consider resize > #clauses */
   unsigned int	 resize_below;		/* consider resize < #clauses */
   unsigned int	 dirty;			/* # chains that are dirty */
-  unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
   unsigned	 is_list : 1;		/* Index with lists */
+  unsigned	 incomplete : 1;	/* Index is incomplete */
+  iarg_t	 args[MAX_MULTI_INDEX];	/* Indexed arguments */
+  iarg_t	 position[MAXINDEXDEPTH+1]; /* Deep index position */
   float		 speedup;		/* Estimated speedup */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
-
-typedef struct arg_info
-{ float		speedup;		/* Computed speedup */
-  unsigned	ln_buckets : 5;		/* lg2(bucket count) */
-  unsigned	assessed   : 1;		/* Value was assessed */
-  unsigned	meta	   : 4;		/* Meta-argument info */
-} arg_info;
 
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
@@ -1375,12 +1398,11 @@ struct definition
   Module	module;			/* module of the predicate */
   Code		codes;			/* Executable code */
   union
-  { void *	any;			/* has some value */
+  { impl_any	any;			/* has some value */
     clause_list	clauses;		/* (Indexed) list of clauses */
-    Func	function;		/* function pointer of procedure */
+    impl_foreign foreign;		/* Foreign implementation */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-  arg_info     *args;			/* Meta and indexing info */
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
@@ -1475,6 +1497,8 @@ struct clause_choice
 #else
 #define acquire_def(def) (void)0
 #define release_def(def) (void)0
+#define acquire_def2(def,store) (void)store
+#define release_def2(def,store) (void)store
 #endif
 
 struct choice
@@ -1670,8 +1694,10 @@ struct sourceFile
   int		magic;			/* Magic number */
   int		count;			/* number of times loaded */
   unsigned	number_of_clauses;	/* number of clauses */
-  unsigned	index : 24;		/* index number (1,2,...) */
-  unsigned	system : 1;		/* system sourcefile: do not reload */
+  unsigned	index     : 24;		/* index number (1,2,...) */
+  unsigned	system     : 1;		/* system sourcefile: do not reload */
+  unsigned	from_state : 1;		/* Loaded from resource DB state */
+  unsigned	resource   : 1;		/* Loaded from resource DB file */
 };
 
 typedef struct srcfile_array
@@ -1700,7 +1726,7 @@ struct module
   size_t	code_size;	/* #Bytes used for its procedures */
   size_t	code_limit;	/* Limit for code_size */
 #ifdef O_PLMT
-  counting_mutex *mutex;	/* Mutex to guard procedures */
+  counting_mutex *mutex;	/* Mutex to guard module modifications */
 #endif
 #ifdef O_PROLOG_HOOK
   Procedure	hook;		/* Hooked module */
@@ -1708,6 +1734,7 @@ struct module
   int		level;		/* Distance to root (root=0) */
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
+  int		references;	/* see acquireModule() */
   gen_t		last_modified;	/* Generation I was last modified */
 };
 
@@ -1853,10 +1880,26 @@ Temporary store/restore pointers to make them safe over GC/shift
 		 *	       SIGNALS		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SWI-Prolog may be compiled without signal handling. Even in that case we
+still have signals that trigger Prolog   housekeeping  events. These are
+not bound to operating system signal handling though.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #if HAVE_SIGNAL
 #define MAXSIGNAL		64	/* highest system signal number */
 #define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals */
 
+#else /* HAVE_SIGNAL */
+
+#define MAXSIGNAL		32	/* highest system signal number */
+#define SIG_PROLOG_OFFSET	1	/* Start of Prolog signals */
+
+#endif /* HAVE_SIGNAL */
+
+#ifndef RETSIGTYPE
+#define RETSIGTYPE void
+#endif
 typedef RETSIGTYPE (*handler_t)(int);
 
 typedef struct
@@ -1865,18 +1908,17 @@ typedef struct
   predicate_t predicate;		/* Prolog handler */
   int	      flags;			/* PLSIG_*, defined in pl-setup.c */
 } sig_handler, *SigHandler;
-#endif /* HAVE_SIGNAL */
 
-#define SIG_EXCEPTION	  (SIG_PROLOG_OFFSET+0)
+
 #ifdef O_ATOMGC
-#define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+1)
+#define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+0)
 #endif
-#define SIG_GC		  (SIG_PROLOG_OFFSET+2)
+#define SIG_GC		  (SIG_PROLOG_OFFSET+1)
 #ifdef O_PLMT
-#define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
+#define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+2)
 #endif
-#define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+4)
-#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+5)
+#define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+3)
+#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+4)
 
 
 		 /*******************************
@@ -1891,7 +1933,9 @@ typedef enum pl_event_type
   PLEV_TRACING,				/* changed tracing mode */
   PLEV_SPY,				/* changed spypoint */
   PLEV_BREAK,				/* a break-point was set */
+  PLEV_BREAK_EXISTS,			/* existing breakpoint */
   PLEV_NOBREAK,				/* a break-point was cleared */
+  PLEV_GCNOBREAK,			/* cleared due to clause GC */
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
   PL_EV_THREADFINISHED			/* A thread has finished */
 } pl_event_type;
@@ -1929,7 +1973,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
 	  type		max;		/* allocated maximum */		    \
-	  size_t	size_limit;	/* Max size the stack can grow to */\
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
 	  size_t	spare;		/* Current reserved area */	    \
@@ -1944,10 +1987,9 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 struct stack STACK(caddress);		/* Anonymous stack */
 
-#define N_STACKS (4)
-
 typedef struct
-{ struct STACK(LocalFrame) local;	/* local (environment) stack */
+{ size_t limit;				/* Total stack limit */
+  struct STACK(LocalFrame) local;	/* local (environment) stack */
   struct STACK(Word)	   global;	/* local (environment) stack */
   struct STACK(TrailEntry) trail;	/* trail stack */
   struct STACK(Word *)	   argument;	/* argument stack */
@@ -1987,23 +2029,27 @@ typedef struct
 #define sizeStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->base))
 #define roomStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->top))
 #define spaceStackP(s) (limitStackP(s)-usedStackP(s))
-#define limitStackP(s) ((intptr_t)((s)->size_limit))
 #define narrowStackP(s) (roomStackP(s) < (intptr_t)(s)->minfree)
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
 #define roomStack(name) roomStackP(&LD->stacks.name)
 #define spaceStack(name) spaceStackP(&LD->stacks.name)
-#define limitStack(name) limitStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
 
-#define GROW_TRIM ((size_t)-1)
+#define globalStackLimit() (LD->stacks.limit > (MAXTAGGEDPTR+1) ? \
+					       (MAXTAGGEDPTR+1) : \
+					       LD->stacks.limit)
+
+#define GROW_TRIM  ((size_t)-1)
+#define GROW_TIGHT ((size_t)1)
 
 #define	LOCAL_OVERFLOW	  (-1)
 #define	GLOBAL_OVERFLOW	  (-2)
 #define	TRAIL_OVERFLOW	  (-3)
 #define	ARGUMENT_OVERFLOW (-4)
-#define	MEMORY_OVERFLOW   (-5)		/* out of malloc()-heap */
+#define STACK_OVERFLOW    (-5)		/* total stack limit overflow */
+#define	MEMORY_OVERFLOW   (-6)		/* out of malloc()-heap */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */
@@ -2037,6 +2083,7 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define overflowCode(n) \
 	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
 					      : TRAIL_OVERFLOW )
+#define GLOBAL_TRAIL_RATIO (6)
 
 
 		 /*******************************
@@ -2165,7 +2212,7 @@ typedef struct
 #define MODULE_user	(GD->modules.user)
 #define MODULE_system	(GD->modules.system)
 #define MODULE_parse	(ReadingSource ? LD->modules.source \
-				       : MODULE_user)
+				       : LD->modules.typein)
 
 
 		/********************************
@@ -2327,7 +2374,7 @@ typedef enum
 #endif
 
 #ifdef O_INFERENCE_LIMIT
-#define INFERENCE_NO_LIMIT (~((int64_t)1<<63)) /* Highest value */
+#define INFERENCE_NO_LIMIT 0x7fffffffffffffffLL /* Highest value */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

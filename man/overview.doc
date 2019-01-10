@@ -381,6 +381,10 @@ details.  Note that the handler to unblock system calls is still
 installed. This can be prevented using \exam{--sigalert=0} additionally.
 See \cmdlineoption{--sigalert}.
 
+    \cmdlineoptionitem{--nothreads}{}
+Disable threading for the multi-threaded version at runtime.  See also
+the flags \prologflagitem{threads} and \prologflagitem{gc_thread}.
+
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
 the user's browser on \verb$http://localhost:$\arg{port}. If
@@ -396,7 +400,7 @@ to use \const{SIGUSR2}.  If \arg{NUM} is 0 (zero), this handler is not
 installed.  See prolog_alert_signal/2 to query or modify this value at
 runtime.
 
-    \cmdlineoptionitem{-tty}{}
+    \cmdlineoptionitem{--no-tty}{}
 Unix only.  Switches controlling the terminal for allowing
 single-character commands to the tracer and get_single_char/1. By
 default, manipulating the terminal is enabled unless the system detects
@@ -479,42 +483,34 @@ flag \prologflag{argv} for obtaining the command line arguments.
 \subsection{Controlling the stack sizes}
 \label{sec:stacksizes}
 
-The default limit for the Prolog stacks is 128~MB on 32-bit and 256~MB on
-64-bit hardware. The 128~MB limit on 32-bit systems is the highest
-possible value and the command line options can thus only be used to
-lower the limit. On 64-bit systems, the limit can both be reduced and
-enlarged. See \secref{limits}. Below are two examples, the first
-reducing the local stack limit to catch unbounded recursion quickly and
-the second using a big (32~GB) global limit, which is only possible on
-64-bit hardware. Note that setting the limit using the command line only
-sets a \emph{soft} limit. Stack parameters can be changed (both reduced
-and enlarged) at any time using the predicate set_prolog_stack/2.
+As of version 7.7.14 the stacks are no longer limited individually.
+Instead, only the combined size is limited. Note that 32~bit systems
+still pose a 128Mb limit. See \secref{memlimit}. The combined limit is
+by deault 1Gb on 64~bit machines and 512Mb on 32~bit machines.
+
+For example, to limit the stacks to 32Gb use the command below. Note
+that the stack limits apply \emph{per thread}. Individual threads may be
+controlled using the \term{stack_limit}{+Bytes} option of thread_create.
+Any thread can call \term{set_prolog_flag}{stack_limit, Limit} (see
+\prologflag{stack_limit}) to adjust the stack limit. This limit is
+inherited by threads created from this thread.
 
 \begin{code}
-$ swipl -L8m
-$ swipl -G32g
+$ swipl --stack_limit=32g
 \end{code}
 
 \begin{description}
-    \cmdlineoptionitem*{-G}{size[kmg]}
-Limit for the global stack (sometimes also called \jargon{term stack} or
-\jargon{heap}).  This is where compound terms and large numbers live.
+    \cmdlineoptionitem*{--stack_limit}{size[bkmg]}
+Limit the combined size of the Prolog stacks to the indicated size.
+The suffix specifies the value as \textit{bytes}, \textit{Kbytes},
+\textit{Mbytes} or \textit{Gbytes}.
 
-    \cmdlineoptionitem*{-L}{size[kmg]}
-Limit for the local stack (sometimes also called
-\jargon{environment stack}). This is where environments and
-choice points live.
-
-    \cmdlineoptionitem*{-T}{size[kmg]}
-Limit for the trail stack.  This is where we keep track of assignments,
-so we can rollback on backtracking or exceptions.
-
-    \cmdlineoptionitem*{-M}{size[kmg]}
+    \cmdlineoptionitem*{-table_space}{size[bkmg]}
 Limit for the \arg{table space}. This is where tries holding
 memoized\footnote{The letter M is used because the T was already in
 use. It is a memnonic for \textbf{M}emoizing.} answers for
-\jargon{tabling} are stored. The default is 1Gb on 64-bit machines and
-512Mb on 32-bit machines. See the Prolog flag
+\jargon{tabling} are stored. The default is 1Gb on 64~bit machines and
+512Mb on 32~bit machines. See the Prolog flag
 \prologflag{table_space}
 \end{description}
 
@@ -531,10 +527,10 @@ welcome message. The welcome message can be suppressed with
 \cmdlineoption{--quiet}, but also with \argoption{-g}{true}. \arg{goal}
 can be a complex term. In this case quotes are normally needed to
 protect it from being expanded by the shell. A safe way to run a goal
-non-interactively is below. If \nopredref{go/0} succeeds
+non-interactively is below. If \nopredref{go}{0} succeeds
 \argoption{-g}{halt} causes the process to stop with exit code 0. If it
-fails, the exit code is 1 and it it raises an exception the exit code is
-2.
+fails, the exit code is 1; and if it raises an exception, the exit code
+is 2.
 
 \begin{code}
 % swipl <options> -g go -g halt
@@ -602,69 +598,10 @@ There are several alternatives though:
 \end{shortlist}
 
 
-\section{Online Help}				\label{sec:help}
+\section{Online Help}				\label{sec:online-help}
 
-SWI-Prolog provides an online help system that covers this manual. If
-the XPCE graphics system is available, online help opens a graphical
-window. Otherwise the documentation is shown in the Prolog console. The
-help system is controlled by the predicates below. Note that this
-help system only covers the core SWI-Prolog manual. The
-website\footnote{\url{http://www.swi-prolog.org}} provides an integrated
-manual that covers the core system as well as all standard extension
-packages. It is possible to install the SWI-Prolog website locally by
-cloning the website repository
-\url{git://www.swi-prolog.org/home/pl/git/plweb.git} and following the
-instructions in the \file{README} file.
-
-\begin{description}
-    \predicate{help}{0}{}
-Equivalent to \exam{help(help/1)}.
-
-    \predicate{help}{1}{+What}
-Show specified part of the manual.  \arg{What} is one of:
-\begin{center}\begin{tabular}{lp{3.5in}}
-<Name>/<Arity>  & Give help on specified predicate \\
-<Name>          & Give help on named predicate with any arity
-                  or C interface function with that name \\
-<Section>       & Display specified section. Section numbers are
-                  dash-separated numbers: \exam{2-3} refers to
-                  section 2.3 of the manual.  Section numbers are
-                  obtained using apropos/1.
-\end{tabular}\end{center}
-
-Examples:
-\begin{center}\begin{tabular}{lp{3.5in}}
-\exam{?- help(assert).}    & Give help on predicate assert \\
-\exam{?- help(3-4).}       & Display section 3.4 of the manual \\
-\exam{?- help('PL_retry').}& Give help on interface function PL_retry() \\
-\end{tabular}\end{center}
-
-See also apropos/1 and the SWI-Prolog home page at
-\url{http://www.swi-prolog.org}, which provides a FAQ, an HTML version
-of the manual for online browsing, and HTML and PDF versions for downloading.
-
-    \predicate{apropos}{1}{+Pattern}
-Display all predicates, functions and sections that have {\em
-Pattern} in their name or summary description.  Lowercase letters in
-\arg{Pattern} also match a corresponding uppercase letter. Example:
-\begin{center}\begin{tabular}{lp{\linewidth-3in}}
-\exam{?- apropos(file).}   & Display predicates, functions and sections
-                            that have `file' (or `File', etc.) in their
-                            summary description. \\
-\end{tabular}\end{center}
-
-    \predicate{explain}{1}{+ToExplain}
-Give an explanation on the given `object'. The argument may be any
-Prolog data object. If the argument is an atom, a term of the form
-\arg{Name/Arity} or a term of the form {\em Module:Name/Arity},
-explain/1 describes the predicate as well as possible references to it.
-See also gxref/0.
-
-    \predicate{explain}{2}{+ToExplain, -Explanation}
-Unify \arg{Explanation} with an explanation for \arg{ToExplain}.
-Backtracking yields further explanations.
-\end{description}
-
+\input{lib/help.tex}
+\input{lib/explain.tex}
 
 \section{Command line history}			\label{sec:history}
 
@@ -711,7 +648,7 @@ variable with the latest binding. Example:
 
 \begin{figure}
 \begin{code}
-1 ?- maplist(plus(1), "hello", X).
+1 ?- maplist(plus(1), `hello`, X).
 X = [105,102,109,109,112].
 
 2 ?- format('~s~n', [$X]).
@@ -731,31 +668,47 @@ Note that variables may be set by executing \predref{=}{2}:
 X = statistics.
 
 7 ?- $X.
-28.00 seconds cpu time for 183,128 inferences
-4,016 atoms, 1,904 functors, 2,042 predicates, 52 modules
-55,915 byte codes; 11,239 external references
-
-                      Limit    Allocated       In use
-Heap         :                                624,820 Bytes
-Local  stack :    2,048,000        8,192          404 Bytes
-Global stack :    4,096,000       16,384          968 Bytes
-Trail  stack :    4,096,000        8,192          432 Bytes
+% Started at Fri Aug 24 16:42:53 2018
+% 0.118 seconds cpu time for 456,902 inferences
+% 7,574 atoms, 4,058 functors, 2,912 predicates, 56 modules, 109,791 VM-codes
+%
+%                     Limit   Allocated      In use
+% Local  stack:           -       20 Kb    1,888  b
+% Global stack:           -       60 Kb       36 Kb
+% Trail  stack:           -       30 Kb    4,112  b
+%        Total:    1,024 Mb      110 Kb       42 Kb
+%
+% 3 garbage collections gained 178,400 bytes in 0.000 seconds.
+% 2 clause garbage collections gained 134 clauses in 0.000 seconds.
+% Stack shifts: 2 local, 2 global, 2 trail in 0.000 seconds
+% 2 threads, 0 finished threads used 0.000 seconds
 true.
 \end{code}
 
 \section{Overview of the Debugger}		\label{sec:debugoverview}
 
-SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
-\cite{Byrd:80,Clocksin:87} with two additional ports. The optional
-\arg{unify} port allows the user to inspect the result after unification
-of the head. The \arg{exception} port shows exceptions raised by throw/1
-or one of the built-in predicates. See \secref{exception}.
+SWI-Prolog has a traditional commandline debugger.  It also provides
+programmatic access to the debugger.  This facility is used to provide
+a graphical debugger as well as remote debugging in the web interface
+provided by \href{https://swish.swi-prolog.org}{SWISH}.
 
-The standard ports are called \const{call}, \const{exit}, \const{redo},
-\const{fail} and \const{unify}. The tracer is started by the trace/0
-command, when a spy point is reached and the system is in debugging mode
-(see spy/1 and debug/0), or when an exception is raised that is not
-caught.
+SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
+\cite{Byrd:80,Clocksin:87} with two additional ports. The standard ports
+are called \const{call}, \const{exit}, \const{redo}, and \const{fail}.
+The additional \arg{unify} port allows the user to inspect the result
+after unification of the head. The additional \arg{exception} port shows
+exceptions raised by throw/1 or one of the built-in predicates. See
+\secref{exception}.
+
+The tracer is started by the trace/0 command. If the system is in debug
+mode (see debug/0) the trace is started, after reaching a \jargon{spy
+point} set using spy/1 or \jargon{break point} set using
+set_breakpoint/4. The debugger is also started if an
+\term{error}{Formal, Extended} exception is raised that is not caught.
+
+If the native graphics plugin (XPCE) is available, the commands gtrace/0
+and gspy/1 activate the graphical debugger while tdebug/0 and tspy/1
+allow debugging of arbitrary threads.
 
 The interactive top-level goal trace/0 means ``trace the next query''.
 The tracer shows the port, displaying the port name, the current depth
@@ -803,7 +756,7 @@ On {\em leashed ports} (set with the predicate leash/1, default are
 \const{call}, \const{exit}, \const{redo} and \const{fail}) the user is
 prompted for an action. All actions are single-character commands which
 are executed {\bf without} waiting for a return, unless the command line
-option \cmdlineoption{-tty} is active. Tracer options:
+option \cmdlineoption{--no-tty} is active. Tracer options:
 
 \begin{description}
     \traceoption{+}{Spy}{
@@ -1451,7 +1404,7 @@ any case modification or case insensitive matching.  This is the
 default on Unix systems.
     \termitem{case_preserving}{}
 The filesystem is case insensitive, but it preserves the case with
-which the user jas created a file.  This is the default on Windows
+which the user has created a file.  This is the default on Windows
 systems.
     \termitem{case_insensitive}{}
 The filesystem doesn't store or match case.  In this scenario Prolog
@@ -1481,10 +1434,10 @@ explicit request.  May be changed.
     \prologflagitem{gc_thread}{bool}{r}
 If \const{true} (default if threading is enabled), atom and
 clause garbage collection are executed in a seperate thread with the
-\jargon{alias} \const{gc}.  Otherwise the thread the detect sufficient
+\jargon{alias} \const{gc}. Otherwise the thread that detected sufficient
 garbage executes the garbage collector. As running these global
-collectors may take relatively using a seperate thread improves
-real time behaviour.  The \const{gc} thread can be controlled using
+collectors may take relatively long, using a seperate thread improves
+real time behaviour. The \const{gc} thread can be controlled using
 set_prolog_gc_thread/1.
 
     \prologflagitem{generate_debug_info}{bool}{rw}
@@ -1590,6 +1543,14 @@ Maximum integer value represented as a `tagged' value.  Tagged integers
 require one word storage.  Larger integers are represented as `indirect data'
 and require significantly more space.
 
+    \prologflagitem{message_context}{list(atom)}{rw}
+Context information to add to messages of the levels \const{error} and
+\const{warning}.  The list may contain the elements \const{thread} to
+add the thread that generates the message to the message, \const{time}
+or \term{time}{Format} to add a time stamp.  The default time format
+is \verb$%T.%3f$. The default is \exam{[thread]}. See also format_time/3
+and print_message/2.
+
     \prologflagitem{min_integer}{integer}{r}
 Minimum integer value if integers are \emph{bounded}.  See also
 the flag \prologflag{bounded} and \secref{artypes}.
@@ -1667,8 +1628,18 @@ If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
+    \prologflagitem{posix_shell}{atom}{rw}
+Path to a POSIX compatible shell.  This default is typically
+\file{/bin/sh}.  This flag is used by shell/1 and qsave_program/2.
+
     \prologflagitem{print_write_options}{term}{rw}
 Specifies the options for write_term/2 used by print/1 and print/2.
+
+    \prologflagitem{tmp_dir}{atom}{rw}
+Path to the temporary directory. initialised from the environment
+variable \const{TMP} or \const{TEMP} in windows. If this variable is not
+defined a default is used. This default is typically \file{/tmp} or
+\file{c:/temp} in windows.
 
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
 \index{prompt, alternatives}%
@@ -1757,6 +1728,10 @@ flag is \const{false} if the hosting OS does not support signal handling
 or the command line option \cmdlineoption{-nosignals} is active.  See
 \secref{sigembedded} for details.
 
+    \prologflagitem{stack_limit}{int}{rw}
+Limits the combined sizes of the Prolog stacks for the current thread.
+See alse \cmdlineoption{--stack} and \secref{memlimit}.
+
     \prologflagitem{stream_type_check}{atom}{rw}
 Defines whether and how strictly the system validates that byte I/O
 should not be applied to text streams and text I/O should not be applied
@@ -1776,6 +1751,13 @@ Space reserved for storing answer tables for \jargon{tabled predicates}
 (see table/1).\bug{Currently only counts the space occupied by the
 nodes in the answer tries.} When exceeded a
 \term{resource_error}{table_space} exception is raised.
+
+    \prologflagitem{threads}{bool}{rw}
+True when threads are supported.  If the system is compiled without
+thread support the value is \const{false} and read-only.  Otherwise
+the value is \const{true} unless the system was started with the
+\cmdlineoption{--nothreads}.  Threading may be disabled only if no
+threads are running.  See also the \prologflag{gc_thread} flag.
 
     \prologflagitem{timezone}{integer}{r}
 Offset in seconds west of GMT of the current time zone. Set at
@@ -1889,7 +1871,7 @@ work in this mode.  See also \secref{extensions}.
 Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user actions for the trace. May
 be set. If this flag is \const{false} at startup, command line editing
-is disabled. See also the \cmdlineoption{+/-tty} command line option.
+is disabled. See also the \cmdlineoption{--no-tty} command line option.
 
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
@@ -1974,6 +1956,13 @@ platform-specific version information as a list. \arg{Extra} is used for
 Available if created from a git repository.  See \program{git-describe}
 for details.
 
+    \prologflagitem{windows}{bool}{r}
+If present and \const{true}, the operating system is MS-Windows.
+
+    \prologflagitem{wine_version}{atom}{r}
+If present, SWI-Prolog is the MS-Windows version running under
+the \href{https://www.winehq.org/}{Wine} emulator.
+
     \prologflagitem{warn_override_implicit_import}{bool}{rw}
 If \const{true} (default), a warning is printed if an implicitly
 imported predicate is clobbered by a local definition.  See
@@ -1988,7 +1977,7 @@ flag allows for switching between three alternative approximations.
     \termitem{access}{}
 Use Windows _waccess() function. This ignores ACLs (Access Control
 List) and thus may indicate that access is allowed while it is not.
-    \termitem{filesecurity}{}
+    \termitem{getfilesecurity}{}
 Use the Windows GetFileSecurity() function.  This does not work on
 all file systems, but is probably the best choice on file systems
 that do support it, notably local NTFS volumes.
@@ -2093,6 +2082,9 @@ Hook into print_message/2 to alter the way system messages are printed
     \item [message_property/2]
 Hook into print_message/2 that defines prefix, output stream, color,
 etc.
+    \item [message_prefix_hook/2]
+Hook into print_message/2 to add additional prefixes to the message such
+as the time and thread.
     \item [library_directory/1]
 Hook into absolute_file_name/3 to define new library directories
 (most Prolog systems).
@@ -2108,9 +2100,9 @@ Same as term_expansion/2 for individual goals (SICStus).
 Hook into load_files/2 to load other data formats for Prolog sources
 from `non-file' resources.  The load_files/2 predicate is the ancestor
 of consult/1, use_module/1, etc.
-    \item [qpredref{prolog_edit}{locate}{3}]
+    \item [prolog_edit:locate/3]
 Hook into edit/1 to locate objects (SWI).
-    \item [qpredref{prolog_edit}{edit_source}{1}]
+    \item [prolog_edit:edit_source/1]
 Hook into edit/1 to call an internal editor (SWI).
     \item [prolog_edit:edit_command/2]
 Hook into edit/1 to define the external editor to use (SWI).
@@ -2119,10 +2111,10 @@ Hook into the tracer to list the code associated to a particular goal
 (SWI).
     \item [prolog_trace_interception/4]
 Hook into the tracer to handle trace events (SWI).
-    \item [qpredref{prolog}{debug_control_hook}{1}]
+    \item [prolog:debug_control_hook/1]
 Hook in spy/1, nospy/1, nospyall/0 and debugging/0 to extend these
 control predicates to higher-level libraries.
-    \item [qpredref{prolog}{help_hook}{1}]
+    \item [prolog:help_hook/1]
 Hook in help/0, help/1 and apropos/1 to extend the help system.
     \item [resource/3]
 Define a new resource (not really a hook, but similar) (SWI).
@@ -2501,7 +2493,7 @@ SWI-Prolog mailinglist.
 \subsubsection{NaN and Infinity floats and their syntax}
 \label{sec:floatsyntax}
 
-SWI-Prolog supports reading an printing `special' floating point values
+SWI-Prolog supports reading and printing `special' floating point values
 according to
 \href{http://eclipseclp.org/Specs/core_update_float.html}{Proposal for
 Prolog Standard core update wrt floating point arithmetic} by Joachim
@@ -2753,7 +2745,7 @@ ERROR: is/2: Type error: `expression' expected, found
 
 \section{Just-in-time clause indexing}		\label{sec:jitindex}
 
-\index{jitindex}%
+\index{jitindex}\index{indexing,jiti}%
 SWI-Prolog provides `just-in-time' indexing over multiple
 arguments.\footnote{JIT indexing was added in version 5.11.29 (Oct.
 2011).} `Just-in-time' means that clause indexes are not built by the
@@ -2781,7 +2773,9 @@ The principal clause list maintains a \jargon{key} for the first
 argument. An indexing key is either a constant or a functor (name/arity
 reference). Calls with an instantiated first argument and less than
 10 clauses perform a linear scan for a possible matching clause using
-this index key.
+this index key.  If the result is deterministic it is used.  Otherwise
+the system looks for better indexes.\footnote{Up to 7.7.2 this result
+was used also when non-deterministic.}.
 
     \item [Hash lookup]
 If none of the above applies, the system considers the available hash
@@ -2791,7 +2785,16 @@ assesses the clauses for all instantiated arguments and selects the best
 candidate for creating a new hash table. If there is no single argument
 that provides an acceptable hash quality it will search for a
 combination of arguments.\footnote{The last step was added in SWI-Prolog
-7.5.8.}
+7.5.8.}  Searching for index candidates is only performed on the first
+254 arguments.
+
+If a single-argument index contains multiple compound terms with the
+same name and arity and at least one non-variable argument, a
+\jargon{list index} is created. A subsequent query where this argument
+is bound to a compound causes jiti indexing to be applied
+\jargon{recursively} on the arguments of the term.  This is called
+\jargon{deep indexing}.\footnote{Deep indexing was added in version
+7.7.4.}  See also \secref{deep-indexing}
 
 Clauses that have a variable at an otherwise indexable argument must be
 linked into all hash buckets. Currently, predicates that have more than
@@ -2818,22 +2821,83 @@ See garbage_collect_clauses/0 for details.
 The library \pllib{prolog_jiti} provides jiti_list/0,1 to list the
 characteristics of all or some of the created hash tables.
 
+\paragraph{Dynamic predicates} are indexed using the same rules as
+static predicates, except that the \jargon{special purpose} schemes are
+never applied. In addition, the JITI index is discarded if the number of
+clauses has doubled since the predicate was last assessed or shrinks
+below one fourth. A subsequent call reassesses the statistics of the
+dynamic predicate and, when applicable, creates a new index.
+
+
+\subsection{Deep indexing}
+\label{sec:deep-indexing}
+
+\index{indexing,deep}%
+As introduced in \secref{jitindex}, \jargon{deep indexing} creates hash
+tables distinguish clauses that share a compound with the same name and
+arity. Deep indexes allow for efficient lookup of arbitrary terms.
+Without it is advised to \jargon{flatten} the term, i.e., turn
+\term{F}{X} into two arguments for the fact, one argument denoting the
+functor \arg{F} and the second the argument {X}. This works fine as long
+as the arity of the each of the terms is the same. Alternatively we can
+use term_hash/2 or term_hash/4 to add a column holding the hash of the
+term. That approach can deal with arbitrary arities, but requires us to
+know that the term is ground (term_hash/2) or up to which depth we get
+sufficient selectivity (term_hash/4).
+
+Deep indexing does not require this knowledge and leads to efficient
+lookup regardless of the instantiation of the query and term.  The
+current version does come with some limitations:
+
+\begin{itemize}
+    \item The decision which index to use is taken independently
+    at each level.  Future versions may be smarter on this.
+    \item Deep indexing only applies to a \emph{single argument}
+    indexes (on any argument).
+    \item Currently, the depth of indexing is limited to 7 levels.
+\end{itemize}
+
+\index{indexing,DCG}\index{DCG,indexing}%
+Note that, when compiling DCGs (see \secref{DCG}) and the first body
+term is a \jargon{literal}, it is included into the clause head. See
+for example the grammar and its plain Prolog representation below.
+
+\begin{code}
+det(det(a), sg)  --> "a".
+det(det(an), pl) --> "an".
+det(det(the), _) --> "the".
+\end{code}
+
+\begin{code}
+?- listing(det).
+det(det(a), sg, [97|A], A).
+det(det(an), pl, [97, 110|A], A).
+det(det(the), _, [116, 104, 101|A], A).
+\end{code}
+
+Deep argument indexing will create indexes for the 3rd list argument,
+providing speedup and making clause selection deterministic if all rules
+start with a literal and all literals are unique in the first 6
+elements. Note that deep index creation stops as soon as a determistic
+choice can be made or there are no two clauses that have the same
+name/arity combination.
 
 \subsection{Future directions}
 \label{sec:indexfut}
 
 \begin{itemize}
     \item
-The current indexing system is largely prepared for secondary indexes.
-This implies that if there are many clauses that match a given key, the
-system could (JIT) create a secondary index. This secondary index could
-exploit another argument or, if the key denotes a functor, an argument
-inside the compound term.
-
-    \item
 The `special cases' can be extended.  This is notably attractive for
 static predicates with a relatively small number of clauses where a
 hash lookup is too costly.
+
+    \item
+Create an efficient decision diagram for selecting between low numbers
+of static clauses.
+
+    \item
+Implement a better judgements for selecting between deep and plain
+indexes.
 \end{itemize}
 
 \subsection{Indexing and portability}
@@ -2989,44 +3053,35 @@ open/4.
 
 \subsection{Limits on memory areas}		\label{sec:memlimit}
 
-SWI-Prolog has a number of memory areas which are only enlarged to a
-certain limit. The internal data representation limits the local,
-global and trail stack to 128~MB on 32-bit processors, or more
-generally to $\pow{2}{\mbox{bits-per-pointer} - 5}$ bytes. Considering
-that almost all modern hardware can deal with this amount of memory with
-ease, the default limits are set to their maximum on 32-bit hardware.
-The representation limits can easily exceed physical memory on 64-bit
-hardware. The default limits on 64-bit hardware are double that of 32-bit
-hardware, which allows for storing the same amount of (Prolog) data.
+The SWI-Prolog engine uses three \jargon{stacks} the \jargon{local
+stack} (also called \jargon{environment stack}) stores the environment
+frames used to call predicates as well as choice points. The
+\jargon{global stack} (also called \jargon{heap}) contains terms,
+floats, strings and large integers. Finally, the \jargon{trail stack}
+records variable bindings and assignments to support
+\jargon{backtracking}. The internal data representation limits these
+stacks to 128~MB (each) on 32-bit processors. More generally to
+$\pow{2}{\mbox{bits-per-pointer} - 5}$ bytes, which implies they are
+virtually unlimited on 64-bit machines.
 
-The limits can be changed from the command line as well as at runtime
-using set_prolog_stack/2. The table below shows these areas. The first
-column gives the option name to modify the size of the area. The option
-character is immediately followed by a number and optionally by a
-\const{k} or \const{m}. With \const{k} or no unit indicator, the value
-is interpreted in Kbytes (1024~bytes); with \const{m}, the value is
-interpreted in Mbytes ($1024 \times 1024$ bytes).
-
-The PrologScript facility described in \secref{plscript} provides a
-mechanism for specifying options with the load file.  On Windows the
-default stack sizes are controlled using the Windows \idx{registry}
-on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
-names \const{localSize}, \const{globalSize} and \const{trailSize}.  The
-value is a \const{DWORD} expressing the default stack size in Kbytes.
-A GUI for modifying these values is provided using the XPCE package.
-To use this, start the XPCE manual tools using \libpredref{manpce}{0},
-after which you find \textit{Preferences} in the \textit{File} menu.
+As of version 7.7.14, the stacks are restricted by the writeable flag
+\prologflag{stack_limit} or the command line option
+\cmdlineoption{--stack_limit}. This flag limits the combined size of the
+three stacks per thread. The default limit is currently 512~Mbytes on
+32-bit machines, which imposes no additional limit considering the
+128~Mbytes hard limit on 32-bit and 1~Gbytes on 64-bit machines.
 
 Considering portability, applications that need to modify the default
-limits are advised to do so using set_prolog_stack/2.
+limits are advised to do so using the Prolog flag
+\prologflag{stack_limit}.
 
 \begin{table}
 \begin{center}
-\begin{tabular}{|c|c|l|p{5cm}|}
+\begin{tabular}{|c|l|p{5cm}|}
 \hline
-Option & Default & Area name & Description \\
+Option & Area name & Description \\
 \hline
-\cmdlineoption{-L} & 128M & \bf local stack & The local stack is used to store
+\cmdlineoption{-L} & \bf local stack & The local stack is used to store
                        the execution environments of procedure
                        invocations. The space for an environment is
                        reclaimed when it fails, exits without leaving
@@ -3034,17 +3089,24 @@ Option & Default & Area name & Description \\
                        the !/0 predicate or no choice points have
                        been created since the invocation and the last
                        subclause is started (last call optimisation). \\
-\cmdlineoption{-G} & 128M & \bf global stack & The global stack is used
+\cmdlineoption{-G} & \bf global stack & The global stack is used
                        to store terms created during Prolog's
                        execution. Terms on this stack will be reclaimed
                        by backtracking to a point before the term
                        was created or by garbage collection (provided the
                        term is no longer referenced). \\
-\cmdlineoption{-T} & 128M & \bf trail stack & The trail stack is used to store
+\cmdlineoption{-T} & \bf trail stack & The trail stack is used to store
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
-                       determines they are no longer needed. \\
+                       determines they are no longer needed.
+
+		       As the trail and global stacks are garbage
+		       collected together, a small trail can cause
+		       an excessive amount of garbage collections.
+		       To avoid this, the trail is automatically
+		       resized to be at least 1/6th of the size of
+		       the global stack.  \\
 \hline
 \end{tabular}
 \end{center}

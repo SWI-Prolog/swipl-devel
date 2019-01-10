@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,13 +49,21 @@ will use the C defined write predicate  to  print  goals  and  does  not
 attempt to call the Prolog defined trace interceptor.
 */
 
-'$:-'(format('Loading boot file ...~n', [])).
-
                 /********************************
                 *    LOAD INTO MODULE SYSTEM    *
                 ********************************/
 
 :- '$set_source_module'(system).
+
+'$boot_message'(_Format, _Args) :-
+    current_prolog_flag(verbose, silent),
+    !.
+'$boot_message'(Format, Args) :-
+    format(Format, Args),
+    !.
+
+'$:-'('$boot_message'('Loading boot file ...~n', [])).
+
 
                 /********************************
                 *          DIRECTIVES           *
@@ -69,6 +78,7 @@ attempt to call the Prolog defined trace interceptor.
     volatile(:),
     thread_local(:),
     noprofile(:),
+    non_terminal(:),
     '$clausable'(:),
     '$iso'(:),
     '$hide'(:).
@@ -81,6 +91,7 @@ attempt to call the Prolog defined trace interceptor.
 %!  thread_local(+Spec) is det.
 %!  noprofile(+Spec) is det.
 %!  public(+Spec) is det.
+%!  non_terminal(+Spec) is det.
 %
 %   Predicate versions of standard  directives   that  set predicate
 %   attributes. These predicates bail out with an error on the first
@@ -94,6 +105,7 @@ volatile(Spec)           :- '$set_pattr'(Spec, pred, (volatile)).
 thread_local(Spec)       :- '$set_pattr'(Spec, pred, (thread_local)).
 noprofile(Spec)          :- '$set_pattr'(Spec, pred, (noprofile)).
 public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
+non_terminal(Spec)       :- '$set_pattr'(Spec, pred, (non_terminal)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, (iso)).
 '$clausable'(Spec)       :- '$set_pattr'(Spec, pred, (clausable)).
 
@@ -189,11 +201,12 @@ public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
     once(0),
     ignore(0),
     catch(0,?,0),
-    reset(0,-,?),
+    reset(0,?,-),
     setup_call_cleanup(0,0,0),
     setup_call_catcher_cleanup(0,0,?,0),
     call_cleanup(0,0),
     call_cleanup(0,?,0),
+    catch_with_backtrace(0,?,0),
     '$meta_call'(0).
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
@@ -412,6 +425,16 @@ call_continuation([TB|Rest]) :-
         call_continuation(Rest)
     ).
 
+%!  catch_with_backtrace(:Goal, ?Ball, :Recover)
+%
+%   As catch/3, but tell library(prolog_stack) to  record a backtrace in
+%   case of an exception.
+
+catch_with_backtrace(Goal, Ball, Recover) :-
+    catch(Goal, Ball, Recover),
+    '$no_lco'.
+
+'$no_lco'.
 
 %!  '$recover_and_rethrow'(:Goal, +Term)
 %
@@ -471,10 +494,19 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 %       * now
 %       Execute immediately
 %       * after_load
-%       Execute after loading the file in which it appears
-%       * restore
+%       Execute after loading the file in which it appears.  This
+%       is initialization/1.
+%       * restore_state
 %       Do not execute immediately, but only when restoring the
 %       state.  Not allowed in a sandboxed environment.
+%       * prepare_state
+%       Called before saving a state.  Can be used to clean the
+%       environment (see also volatile/1) or eagerly execute
+%       goals that are normally executed lazily.
+%       * program
+%       Works as =|-g goal|= goals.
+%       * main
+%       Starts the application.  Only last declaration is used.
 %
 %   Note that all goals are executed when a program is restored.
 
@@ -483,6 +515,8 @@ initialization(Goal, When) :-
                      [ now,
                        after_load,
                        restore,
+                       restore_state,
+                       prepare_state,
                        program,
                        main
                      ]), When),
@@ -499,9 +533,16 @@ initialization(Goal, When) :-
                                   initialization(Goal, after_load)),
                     _))
     ).
-'$initialization'(restore, Goal, _Source, Ctx) :-
+'$initialization'(restore, Goal, Source, Ctx) :- % deprecated
+    '$initialization'(restore_state, Goal, Source, Ctx).
+'$initialization'(restore_state, Goal, _Source, Ctx) :-
     (   \+ current_prolog_flag(sandboxed_load, true)
     ->  '$compile_init_goal'(-, Goal, Ctx)
+    ;   '$permission_error'(register, initialization(restore), Goal)
+    ).
+'$initialization'(prepare_state, Goal, _Source, Ctx) :-
+    (   \+ current_prolog_flag(sandboxed_load, true)
+    ->  '$compile_init_goal'(when(prepare_state), Goal, Ctx)
     ;   '$permission_error'(register, initialization(restore), Goal)
     ).
 '$initialization'(program, Goal, _Source, Ctx) :-
@@ -561,8 +602,8 @@ initialization(Goal, When) :-
     ).
 
 '$run_init_goal'(Goal, Ctx) :-
-    (   catch('$run_init_goal'(Goal), E,
-              '$initialization_error'(E, Goal, Ctx))
+    (   catch_with_backtrace('$run_init_goal'(Goal), E,
+                             '$initialization_error'(E, Goal, Ctx))
     ->  true
     ;   '$initialization_failure'(Goal, Ctx)
     ).
@@ -608,7 +649,8 @@ initialization(Goal, When) :-
 
 '$clear_source_admin'(File) :-
     retractall('$init_goal'(_, _, File:_)),
-    retractall('$load_context_module'(File, _, _)).
+    retractall('$load_context_module'(File, _, _)),
+    retractall('$resolved_source_path'(_, File)).
 
 
                  /*******************************
@@ -873,8 +915,11 @@ expand_file_search_path(Spec, Expanded) :-
 '$expand_file_search_path'(Spec, Path, _, _) :-
     '$segments_to_atom'(Spec, Path).
 
+'$make_path'(Dir, '.', Path) :-
+    !,
+    Path = Dir.
 '$make_path'(Dir, File, Path) :-
-    atom_concat(_, /, Dir),
+    sub_atom(Dir, _, _, 0, /),
     !,
     atom_concat(Dir, File, Path).
 '$make_path'(Dir, File, Path) :-
@@ -944,7 +989,8 @@ absolute_file_name(Spec, Path, Options) :-
         ->  !       % also kill choice point of expand_file_name/2
         ;   (   FileErrors == fail
             ->  fail
-            ;   findall(P,
+            ;   '$current_module'('$bags', _File),
+                findall(P,
                         '$chk_file'(Spec1, Extensions, [access(exist)],
                                     false, P),
                         Candidates),
@@ -1025,6 +1071,8 @@ user:prolog_file_type(qlf,      prolog).
 user:prolog_file_type(qlf,      qlf).
 user:prolog_file_type(Ext,      executable) :-
     current_prolog_flag(shared_object_extension, Ext).
+user:prolog_file_type(dylib,    executable) :-
+    current_prolog_flag(apple,  true).
 
 %!  '$chk_file'(+Spec, +Extensions, +Cond, +UseCache, -FullName)
 %
@@ -1533,6 +1581,7 @@ compiling :-
 
 '$expanded_term'(In, Raw, RawLayout, Read, RLayout, Term, TLayout,
                  Stream, Parents, Options) :-
+    E = error(_,_),
     catch('$expand_term'(Raw, RawLayout, Expanded, ExpandedLayout), E,
           '$print_message_fail'(E)),
     (   Expanded \== []
@@ -1833,8 +1882,9 @@ load_files(Module:Files, Options) :-
 
 '$load_file_list'([], _, _).
 '$load_file_list'([File|Rest], Module, Options) :-
+    E = error(_,_),
     catch('$load_one_file'(File, Module, Options), E,
-          print_message(error, E)),
+          '$print_message'(error, E)),
     '$load_file_list'(Rest, Module, Options).
 
 
@@ -1877,50 +1927,74 @@ load_files(Module:Files, Options) :-
 
 %!  '$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
 %
-%   Return the QLF file if it exists.  Might check for modification
-%   time, version, etc.
+%   Determine how to load the source. LoadFile is the file to be loaded,
+%   Mode is how to load it. Mode is one of
 %
-%   If the user-specification specified a prolog file, do not
-%   replace this with a .qlf file.
+%     - compile
+%     Normal source compilation
+%     - qcompile
+%     Compile from source, creating a QLF file in the process
+%     - qload
+%     Load from QLF file.
+%     - stream
+%     Load from a stream.  Content can be a source or QLF file.
+%
+%   @arg Spec is the original search specification
+%   @arg PlFile is the resolved absolute path to the Prolog file.
 
 '$qlf_file'(Spec, _, Spec, stream, Options) :-
-    '$option'(stream(_), Options),
+    '$option'(stream(_), Options),      % stream: no choice
     !.
 '$qlf_file'(Spec, FullFile, FullFile, compile, _) :-
-    '$spec_extension'(Spec, Ext),
+    '$spec_extension'(Spec, Ext),       % user explicitly specified
     user:prolog_file_type(Ext, prolog),
     !.
-'$qlf_file'(_, FullFile, QlfFile, Mode, Options) :-
+'$qlf_file'(Spec, FullFile, LoadFile, Mode, Options) :-
     '$compilation_mode'(database),
     file_name_extension(Base, PlExt, FullFile),
     user:prolog_file_type(PlExt, prolog),
     user:prolog_file_type(QlfExt, qlf),
     file_name_extension(Base, QlfExt, QlfFile),
     (   access_file(QlfFile, read),
-        (   '$qlf_up_to_date'(FullFile, QlfFile)
-        ->  Mode = qload
-        ;   access_file(QlfFile, write)
-        ->  Mode = qcompile
+        (   '$qlf_out_of_date'(FullFile, QlfFile, Why)
+        ->  (   access_file(QlfFile, write)
+            ->  print_message(informational,
+                              qlf(recompile(Spec, FullFile, QlfFile, Why))),
+                Mode = qcompile
+            ;   print_message(warning,
+                              qlf(can_not_recompile(Spec, QlfFile, Why))),
+                Mode = compile
+            ),
+            LoadFile = FullFile
+        ;   Mode = qload,
+            LoadFile = QlfFile
         )
     ->  !
     ;   '$qlf_auto'(FullFile, QlfFile, Options)
-    ->  !, Mode = qcompile
+    ->  !, Mode = qcompile,
+        LoadFile = FullFile
     ).
 '$qlf_file'(_, FullFile, FullFile, compile, _).
 
 
-%!  '$qlf_up_to_date'(+PlFile, +QlfFile) is semidet.
+%!  '$qlf_out_of_date'(+PlFile, +QlfFile, -Why) is semidet.
 %
-%   True if the QlfFile file is  considered up-to-date. This implies
-%   that either the PlFile does not exist or that the QlfFile is not
-%   older than the PlFile.
+%   True if the  QlfFile  file  is   out-of-date  because  of  Why. This
+%   predicate is the negation such that we can return the reason.
 
-'$qlf_up_to_date'(PlFile, QlfFile) :-
-    (   exists_file(PlFile)
+'$qlf_out_of_date'(PlFile, QlfFile, Why) :-
+    (   access_file(PlFile, read)
     ->  time_file(PlFile, PlTime),
         time_file(QlfFile, QlfTime),
-        QlfTime >= PlTime
-    ;   true
+        (   PlTime > QlfTime
+        ->  Why = old                   % PlFile is newer
+        ;   Error = error(Formal,_),
+            catch('$qlf_sources'(QlfFile, _Files), Error, true),
+            nonvar(Formal)              % QlfFile is incompatible
+        ->  Why = Error
+        ;   fail                        % QlfFile is up-to-date and ok
+        )
+    ;   fail                            % can not read .pl; try .qlf
     ).
 
 %!  '$qlf_auto'(+PlFile, +QlfFile, +Options) is semidet.
@@ -1967,6 +2041,9 @@ load_files(Module:Files, Options) :-
 %       * User hooks based on prolog_load_file/2
 %       * The file is already loaded.
 
+:- dynamic
+    '$resolved_source_path'/2.                  % ?Spec, ?Path
+
 '$load_file'(File, Module, Options) :-
     \+ memberchk(stream(_), Options),
     user:prolog_load_file(Module:File, Options),
@@ -1978,15 +2055,53 @@ load_files(Module:Files, Options) :-
     '$qdo_load_file'(File, File, Module, Action, Options),
     '$run_initialization'(File, Action, Options).
 '$load_file'(File, Module, Options) :-
-    absolute_file_name(File,
+    '$resolved_source_path'(File, FullFile),
+    (   '$source_file_property'(FullFile, from_state, true)
+    ;   '$source_file_property'(FullFile, resource, true)
+    ;   '$option'(if(If), Options, true),
+        '$noload'(If, FullFile, Options)
+    ),
+    !,
+    '$already_loaded'(File, FullFile, Module, Options).
+'$load_file'(File, Module, Options) :-
+    absolute_file_name(File, FullFile,
                        [ file_type(prolog),
                          access(read)
-                       ],
-                       FullFile),
-    '$mt_load_file'(File, FullFile, Module, Options).
+                       ]),
+    '$register_resolved_source_path'(File, FullFile),
+    '$mt_load_file'(File, FullFile, Module, Options),
+    '$register_resource_file'(FullFile).
 
+'$register_resolved_source_path'(File, FullFile) :-
+    '$resolved_source_path'(File, FullFile),
+    !.
+'$register_resolved_source_path'(File, FullFile) :-
+    compound(File),
+    !,
+    asserta('$resolved_source_path'(File, FullFile)).
+'$register_resolved_source_path'(_, _).
 
-%!  '$already_loaded'(+File, +FulleFile, +Module, +Options) is det.
+%!  '$translated_source'(+Old, +New) is det.
+%
+%   Called from loading a QLF state when source files are being renamed.
+
+:- public '$translated_source'/2.
+'$translated_source'(Old, New) :-
+    forall(retract('$resolved_source_path'(File, Old)),
+           assertz('$resolved_source_path'(File, New))).
+
+%!  '$register_resource_file'(+FullFile) is det.
+%
+%   If we load a file from a resource we   lock  it, so we never have to
+%   check the modification again.
+
+'$register_resource_file'(FullFile) :-
+    (   sub_atom(FullFile, 0, _, _, 'res://')
+    ->  '$set_source_file'(FullFile, resource, true)
+    ;   true
+    ).
+
+%!  '$already_loaded'(+File, +FullFile, +Module, +Options) is det.
 %
 %   Called if File is already loaded. If  this is a module-file, the
 %   module must be imported into the context  Module. If it is not a
@@ -2060,7 +2175,7 @@ load_files(Module:Files, Options) :-
 
 '$mt_do_load'(queue(Queue), File, FullFile, Module, Options) :-
     !,
-    catch(thread_get_message(Queue, _), _, true),
+    catch(thread_get_message(Queue, _), error(_,_), true),
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(already_loaded, File, FullFile, Module, Options) :-
     !,
@@ -2085,11 +2200,13 @@ load_files(Module:Files, Options) :-
 
 '$qdo_load_file'(File, FullFile, Module, Action, Options) :-
     memberchk('$qlf'(QlfOut), Options),
+    '$stage_file'(QlfOut, StageQlf),
     !,
-    setup_call_cleanup(
-        '$qstart'(QlfOut, Module, State),
+    setup_call_catcher_cleanup(
+        '$qstart'(StageQlf, Module, State),
         '$do_load_file'(File, FullFile, Module, Action, Options),
-        '$qend'(State)).
+        Catcher,
+        '$qend'(State, Catcher, StageQlf, QlfOut)).
 '$qdo_load_file'(File, FullFile, Module, Action, Options) :-
     '$do_load_file'(File, FullFile, Module, Action, Options).
 
@@ -2098,10 +2215,11 @@ load_files(Module:Files, Options) :-
     '$compilation_mode'(OldMode, qlf),
     '$set_source_module'(OldModule, Module).
 
-'$qend'(state(OldMode, OldModule)) :-
+'$qend'(state(OldMode, OldModule), Catcher, StageQlf, QlfOut) :-
     '$set_source_module'(_, OldModule),
     '$set_compilation_mode'(OldMode),
-    '$qlf_close'.
+    '$qlf_close',
+    '$install_staged_file'(Catcher, StageQlf, QlfOut, warn).
 
 '$set_source_module'(OldModule, Module) :-
     '$current_source_module'(OldModule),
@@ -2125,11 +2243,8 @@ load_files(Module:Files, Options) :-
     '$source_file_property'(Absolute, number_of_clauses, OldClauses),
     statistics(cputime, OldTime),
 
-    '$set_sandboxed_load'(Options, OldSandBoxed),
-    '$set_verbose_load'(Options, OldVerbose),
-    '$update_autoload_level'(Options, OldAutoLevel),
-    '$save_file_scoped_flags'(ScopedFlags),
-    set_prolog_flag(xref, false),
+    '$setup_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef,
+                  Options),
 
     '$compilation_level'(Level),
     '$load_msg_level'(load_file, Level, StartMsgLevel, DoneMsgLevel),
@@ -2152,12 +2267,16 @@ load_files(Module:Files, Options) :-
     ->  true
     ;   Input == source,
         file_name_extension(_, Ext, Absolute),
-        (   user:prolog_file_type(Ext, qlf)
-        ->  '$qload_file'(Absolute, Module, Action, LM, Options)
+        (   user:prolog_file_type(Ext, qlf),
+            E = error(_,_),
+            catch('$qload_file'(Absolute, Module, Action, LM, Options),
+                  E,
+                  print_message(warning, E))
+        ->  true
         ;   '$consult_file'(Absolute, Module, Action, LM, Options)
         )
     ->  true
-    ;   print_message(error, load_file(failed(File))),
+    ;   '$print_message'(error, load_file(failed(File))),
         fail
     ),
 
@@ -2175,10 +2294,25 @@ load_files(Module:Files, Options) :-
                                     LM,
                                     TimeUsed,
                                     ClausesCreated))),
+
+    '$restore_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef).
+
+'$setup_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef,
+              Options) :-
+    '$save_file_scoped_flags'(ScopedFlags),
+    '$set_sandboxed_load'(Options, OldSandBoxed),
+    '$set_verbose_load'(Options, OldVerbose),
+    '$set_optimise_load'(Options),
+    '$update_autoload_level'(Options, OldAutoLevel),
+    '$set_no_xref'(OldXRef).
+
+'$restore_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef) :-
     '$set_autoload_level'(OldAutoLevel),
+    set_prolog_flag(xref, OldXRef),
     set_prolog_flag(verbose_load, OldVerbose),
     set_prolog_flag(sandboxed_load, OldSandBoxed),
     '$restore_file_scoped_flags'(ScopedFlags).
+
 
 %!  '$save_file_scoped_flags'(-State) is det.
 %!  '$restore_file_scoped_flags'(-State) is det.
@@ -2272,6 +2406,19 @@ load_files(Module:Files, Options) :-
     !.
 '$ensure_loaded_library_sandbox' :-
     load_files(library(sandbox), [if(not_loaded), silent(true)]).
+
+'$set_optimise_load'(Options) :-
+    (   '$option'(optimise(Optimise), Options)
+    ->  set_prolog_flag(optimise, Optimise)
+    ;   true
+    ).
+
+'$set_no_xref'(OldXRef) :-
+    (   current_prolog_flag(xref, OldXRef)
+    ->  true
+    ;   OldXRef = false
+    ),
+    set_prolog_flag(xref, false).
 
 
 %!  '$update_autoload_level'(+Options, -OldLevel)
@@ -2394,9 +2541,10 @@ load_files(Module:Files, Options) :-
     !,
     Modified = Stamp.
 '$modified_id'(Id, Modified, _) :-
-    exists_file(Id),
-    !,
-    time_file(Id, Modified).
+    catch(time_file(Id, Modified),
+          error(_, _),
+          fail),
+    !.
 '$modified_id'(_, 0.0, _).
 
 
@@ -2587,6 +2735,7 @@ load_files(Module:Files, Options) :-
     !,
     '$compile_term'(Term, Layout, Id, File:Line).
 '$compile_term'(Clause, Layout, Id, SrcLoc) :-
+    E = error(_,_),
     catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
           '$print_message'(error, E)).
 
@@ -2734,13 +2883,13 @@ load_files(Module:Files, Options) :-
     Ok = Ok0.
 
 '$rdef_response'(Char, true) :-
-    memberchk(Char, "yY"),
+    memberchk(Char, `yY`),
     format(user_error, 'yes~n', []).
 '$rdef_response'(Char, false) :-
-    memberchk(Char, "nN"),
+    memberchk(Char, `nN`),
     format(user_error, 'no~n', []).
 '$rdef_response'(Char, _) :-
-    memberchk(Char, "a"),
+    memberchk(Char, `a`),
     format(user_error, 'abort~n', []),
     abort.
 '$rdef_response'(_, _) :-
@@ -2891,7 +3040,8 @@ load_files(Module:Files, Options) :-
     ;   true
     ),
     (   source_location(File, Line)
-    ->  catch('$store_admin_clause'((NewHead :- Source:Head),
+    ->  E = error(_,_),
+        catch('$store_admin_clause'((NewHead :- Source:Head),
                                     _Layout, File, File:Line),
               E, '$print_message'(error, E))
     ;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
@@ -2903,6 +3053,7 @@ load_files(Module:Files, Options) :-
     '$import_ops'(Context, Source, op(P,A,N)),
     '$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
 '$import_all2'([Pred|Rest], Context, Source, [Pred|Imported], ImpOps, Strength) :-
+    Error = error(_,_),
     catch(Context:'$import'(Source:Pred, Strength), Error,
           print_message(error, Error)),
     '$ifcompiling'('$import_wic'(Source, Pred, Strength)),
@@ -2969,6 +3120,7 @@ load_files(Module:Files, Options) :-
 '$do_export_list'([], _, []) :- !.
 '$do_export_list'([H|T], Module, Ops) :-
     !,
+    E = error(_,_),
     catch('$export1'(H, Module, Ops, Ops1),
           E, ('$print_message'(error, E), Ops = Ops1)),
     '$do_export_list'(T, Module, Ops1).
@@ -2980,11 +3132,17 @@ load_files(Module:Files, Options) :-
 '$export1'(Op, _, [Op|T], T) :-
     Op = op(_,_,_),
     !.
-'$export1'(PI, Module, Ops, Ops) :-
-    export(Module:PI).
+'$export1'(PI0, Module, Ops, Ops) :-
+    strip_module(Module:PI0, M, PI),
+    (   PI = (_//_)
+    ->  non_terminal(M:PI)
+    ;   true
+    ),
+    export(M:PI).
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
-    catch(( op(Pri, Assoc, Module:Name),
+    E = error(_,_),
+    catch(( '$execute_directive'(op(Pri, Assoc, Module:Name), File),
             '$export_op'(Pri, Assoc, Name, Module, File)
           ),
           E, '$print_message'(error, E)),
@@ -3037,9 +3195,10 @@ load_files(Module:Files, Options) :-
     !,
     (   '$pattr_directive'(Goal, Module)
     ->  true
-    ;   catch(Module:Goal, Term, '$exception_in_directive'(Term))
+    ;   Term = error(_,_),
+        catch(Module:Goal, Term, '$exception_in_directive'(Term))
     ->  true
-    ;   print_message(warning, goal_failed(directive, Module:Goal)),
+    ;   '$print_message'(warning, goal_failed(directive, Module:Goal)),
         fail
     ).
 '$execute_directive_3'(_).
@@ -3059,9 +3218,10 @@ load_files(Module:Files, Options) :-
     current_prolog_flag(sandboxed_load, false),
     !.
 '$valid_directive'(Goal) :-
+    Error = error(Formal, _),
     catch(prolog:sandbox_allowed_directive(Goal), Error, true),
     !,
-    (   var(Error)
+    (   var(Formal)
     ->  true
     ;   print_message(error, Error),
         fail
@@ -3074,7 +3234,7 @@ load_files(Module:Files, Options) :-
     fail.
 
 '$exception_in_directive'(Term) :-
-    print_message(error, Term),
+    '$print_message'(error, Term),
     fail.
 
 %       This predicate deals with the very odd ISO requirement to allow
@@ -3206,9 +3366,10 @@ load_files(Module:Files, Options) :-
     \+ '$cross_module_clause'(Clause),
     !.
 '$valid_clause'(Clause) :-
+    Error = error(Formal, _),
     catch(prolog:sandbox_allowed_clause(Clause), Error, true),
     !,
-    (   var(Error)
+    (   var(Formal)
     ->  true
     ;   print_message(error, Error),
         fail
@@ -3286,6 +3447,48 @@ compile_aux_clauses(Clauses) :-
     '$compile_term'(Clause, _Layout, File).
 
 
+		 /*******************************
+		 *            STAGING		*
+		 *******************************/
+
+%!  '$stage_file'(+Target, -Stage) is det.
+%!  '$install_staged_file'(+Catcher, +Staged, +Target, +OnError).
+%
+%   Create files using _staging_, where we  first write a temporary file
+%   and move it to Target if  the   file  was created successfully. This
+%   provides an atomic transition, preventing  customers from reading an
+%   incomplete file.
+
+'$stage_file'(Target, Stage) :-
+    file_directory_name(Target, Dir),
+    file_base_name(Target, File),
+    current_prolog_flag(pid, Pid),
+    format(atom(Stage), '~w/.~w.~d', [Dir,File,Pid]).
+
+'$install_staged_file'(exit, Staged, Target, error) :-
+    !,
+    rename_file(Staged, Target).
+'$install_staged_file'(exit, Staged, Target, OnError) :-
+    !,
+    InstallError = error(_,_),
+    catch(rename_file(Staged, Target),
+          InstallError,
+          '$install_staged_error'(OnError, InstallError, Staged, Target)).
+'$install_staged_file'(_, Staged, _, _OnError) :-
+    E = error(_,_),
+    catch(delete_file(Staged), E, true).
+
+'$install_staged_error'(OnError, Error, Staged, _Target) :-
+    E = error(_,_),
+    catch(delete_file(Staged), E, true),
+    (   OnError = silent
+    ->  true
+    ;   OnError = fail
+    ->  fail
+    ;   print_message(warning, Error)
+    ).
+
+
                  /*******************************
                  *             READING          *
                  *******************************/
@@ -3321,7 +3524,7 @@ compile_aux_clauses(Clauses) :-
 
 
                 /********************************
-                *     WIC CODE COMPILER         *
+                *     SAVED STATE GENERATION    *
                 *********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3333,60 +3536,70 @@ saved state.
 :- public '$compile_wic'/0.
 
 '$compile_wic' :-
+    use_module(user:library(qsave), [qsave_program/2]),
     current_prolog_flag(os_argv, Argv),
-    '$get_files_argv'(Argv, Files),
-    '$translate_options'(Argv, Options),
+    '$qsave_options'(Argv, Files, Options),
     '$cmd_option_val'(compileout, Out),
-    attach_packs,
     user:consult(Files),
     user:qsave_program(Out, Options).
 
-'$get_files_argv'([], []) :- !.
-'$get_files_argv'(['-c'|Files], Files) :- !.
-'$get_files_argv'([_|Rest], Files) :-
-    '$get_files_argv'(Rest, Files).
-
-'$translate_options'([], []).
-'$translate_options'([O|T0], [Opt|T]) :-
-    atom_chars(O, [-,-|Rest]),
-    '$split'(Rest, [=], Head, Tail),
-    !,
-    atom_chars(Name, Head),
-    '$compile_option_type'(Name, Type),
-    '$convert_option_value'(Type, Tail, Value),
-    Opt =.. [Name, Value],
-    '$translate_options'(T0, T).
-'$translate_options'([_|T0], T) :-
-    '$translate_options'(T0, T).
-
-'$split'(List, Split, [], Tail) :-
-    '$append'(Split, Tail, List),
+'$qsave_options'([], [], []).
+'$qsave_options'([--|_], [], []) :-
     !.
-'$split'([H|T0], Split, [H|T], Tail) :-
-    '$split'(T0, Split, T, Tail).
+'$qsave_options'(['-c'|T0], Files, Options) :-
+    !,
+    '$argv_files'(T0, T1, Files, FilesT),
+    '$qsave_options'(T1, FilesT, Options).
+'$qsave_options'([O|T0], Files, [Option|T]) :-
+    string_concat("--", Opt, O),
+    split_string(Opt, "=", "", [NameS|Rest]),
+    atom_string(Name, NameS),
+    '$qsave_option'(Name, OptName, Rest, Value),
+    !,
+    Option =.. [OptName, Value],
+    '$qsave_options'(T0, Files, T).
+'$qsave_options'([_|T0], Files, T) :-
+    '$qsave_options'(T0, Files, T).
 
-'$compile_option_type'(argument,    integer).
-'$compile_option_type'(autoload,    atom).
-'$compile_option_type'(class,       atom).
-'$compile_option_type'(emulator,    atom).
-'$compile_option_type'(global,      integer).
-'$compile_option_type'(goal,        callable).
-'$compile_option_type'(init_file,   atom).
-'$compile_option_type'(local,       integer).
-'$compile_option_type'(map,         atom).
-'$compile_option_type'(op,          atom).
-'$compile_option_type'(stand_alone, atom).
-'$compile_option_type'(toplevel,    callable).
-'$compile_option_type'(foreign,     atom).
-'$compile_option_type'(trail,       integer).
+'$argv_files'([], [], Files, Files).
+'$argv_files'([H|T], [H|T], Files, Files) :-
+    sub_atom(H, 0, _, _, -),
+    !.
+'$argv_files'([H|T0], T, [H|Files0], Files) :-
+    '$argv_files'(T0, T, Files0, Files).
 
-'$convert_option_value'(integer, Chars, Value) :-
-    number_chars(Value, Chars).
-'$convert_option_value'(atom, Chars, Value) :-
-    atom_chars(Value, Chars).
-'$convert_option_value'(callable, Chars, Value) :-
-    atom_chars(Atom, Chars),
-    term_to_atom(Value, Atom).
+%!  '$qsave_option'(+Name, +ValueStrings, -Value) is semidet.
+
+'$qsave_option'(Name, Name, [], true) :-
+    qsave:save_option(Name, boolean, _),
+    !.
+'$qsave_option'(NoName, Name, [], false) :-
+    atom_concat('no-', Name, NoName),
+    qsave:save_option(Name, boolean, _),
+    !.
+'$qsave_option'(Name, Name, ValueStrings, Value) :-
+    qsave:save_option(Name, Type, _),
+    !,
+    atomics_to_string(ValueStrings, "=", ValueString),
+    '$convert_option_value'(Type, ValueString, Value).
+'$qsave_option'(Name, Name, _Chars, _Value) :-
+    '$existence_error'(save_option, Name).
+
+'$convert_option_value'(integer, String, Value) :-
+    (   number_string(Value, String)
+    ->  true
+    ;   '$domain_error'(integer, String)
+    ).
+'$convert_option_value'(callable, String, Value) :-
+    term_string(Value, String).
+'$convert_option_value'(atom, String, Value) :-
+    atom_string(Value, String).
+'$convert_option_value'(boolean, String, Value) :-
+    atom_string(Value, String).
+'$convert_option_value'(oneof(_), String, Value) :-
+    atom_string(Value, String).
+'$convert_option_value'(ground, String, Value) :-
+    atom_string(Value, String).
 
 
                  /*******************************
@@ -3411,38 +3624,48 @@ saved state.
 '$instantiation_error'(_Var) :-
     throw(error(instantiation_error, _)).
 
-'$must_be'(list, X) :-
+'$uninstantiation_error'(NonVar) :-
+    throw(error(uninstantiation_error(NonVar), _)).
+
+'$must_be'(list, X) :- !,
     '$skip_list'(_, X, Tail),
     (   Tail == []
     ->  true
     ;   '$type_error'(list, Tail)
     ).
-'$must_be'(options, X) :-
+'$must_be'(options, X) :- !,
     (   '$is_options'(X)
     ->  true
     ;   '$type_error'(options, X)
     ).
-'$must_be'(atom, X) :-
+'$must_be'(atom, X) :- !,
     (   atom(X)
     ->  true
     ;   '$type_error'(atom, X)
     ).
-'$must_be'(callable, X) :-
+'$must_be'(integer, X) :- !,
+    (   integer(X)
+    ->  true
+    ;   '$type_error'(integer, X)
+    ).
+'$must_be'(callable, X) :- !,
     (   callable(X)
     ->  true
     ;   '$type_error'(callable, X)
     ).
-'$must_be'(oneof(Type, Domain, List), X) :-
+'$must_be'(oneof(Type, Domain, List), X) :- !,
     '$must_be'(Type, X),
     (   memberchk(X, List)
     ->  true
     ;   '$domain_error'(Domain, X)
     ).
-'$must_be'(boolean, X) :-
+'$must_be'(boolean, X) :- !,
     (   (X == true ; X == false)
     ->  true
     ;   '$type_error'(boolean, X)
     ).
+% Use for debugging
+%'$must_be'(Type, _X) :- format('Unknown $must_be type: ~q~n', [Type]).
 
 
                 /********************************
@@ -3718,7 +3941,12 @@ cancel_halt(Reason) :-
     ;   true
     ).
 
-'$:-'((format('Loading Prolog startup files~n', []),
+'$get_files_argv'([], []) :- !.
+'$get_files_argv'(['-c'|Files], Files) :- !.
+'$get_files_argv'([_|Rest], Files) :-
+    '$get_files_argv'(Rest, Files).
+
+'$:-'(('$boot_message'('Loading Prolog startup files~n', []),
        source_location(File, _Line),
        file_directory_name(File, Dir),
        atom_concat(Dir, '/load.pl', LoadFile),
@@ -3728,7 +3956,7 @@ cancel_halt(Reason) :-
            '$load_wic_files'(system:[MenuFile])
        ;   true
        ),
-       format('SWI-Prolog boot files loaded~n', []),
+       '$boot_message'('SWI-Prolog boot files loaded~n', []),
        '$compilation_mode'(OldC, wic),
        '$execute_directive'('$set_source_module'(user), []),
        '$set_compilation_mode'(OldC)

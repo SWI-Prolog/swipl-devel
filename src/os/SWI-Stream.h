@@ -258,7 +258,7 @@ typedef struct io_stream
 #define SIO_NOMUTEX	SmakeFlag(25)	/* Do not allow multi-thread access */
 #define SIO_ADVLOCK	SmakeFlag(26)	/* File locked with advisory lock */
 #define SIO_WARN	SmakeFlag(27)	/* Pending warning */
-#define SIO_CLEARERR	SmakeFlag(28)	/* Clear error after reporting */
+#define SIO_CLEARERR	0	        /* Obsolete */
 #define SIO_REPXML	SmakeFlag(29)	/* Bad char --> XML entity */
 #define SIO_REPPL	SmakeFlag(30)	/* Bad char --> Prolog \hex\ */
 #define SIO_BOM		SmakeFlag(31)	/* BOM was detected/written */
@@ -284,12 +284,9 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #define Sgetchar()	Sgetc(Sinput)
 #define Sputchar(c)	Sputc((c), Soutput)
 
-#define S__checkpasteeof(s,c) \
-	if ( (c)==-1 && (s)->flags & (SIO_FEOF|SIO_FERR) ) \
-	  ((s)->flags |= SIO_FEOF2)
 #define S__updatefilepos_getc(s, c) \
 	((s)->position ? S__fupdatefilepos_getc((s), (c)) \
-		       : S__fcheckpasteeof((s), (c)))
+		       : (c))
 
 #define Snpgetc(s) ((s)->bufp < (s)->limitp ? (int)(*(s)->bufp++)&0xff \
 					    : S__fillbuf(s))
@@ -373,7 +370,6 @@ PL_EXPORT(void)		SinitStreams();
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
-PL_EXPORT(int)		S__fcheckpasteeof(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
 PL_EXPORT(int)		Sset_timeout(IOSTREAM *s, int tmo);
 PL_EXPORT(int)		Sunit_size(IOSTREAM *s);

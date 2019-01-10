@@ -48,9 +48,9 @@ test_code_type :-
 	run_tests([ code_type
 		  ]).
 
-:- begin_tests(code_type).
+:- begin_tests(code_type, [sto(rational_trees)]).
 
-test(code_type, true) :-
+test(code_type) :-
 	assert_ct,
 	gen,
 	retractall(ct(_,_)).
@@ -59,12 +59,14 @@ test(code_type, true) :-
 
 :- thread_local ct/2.
 
-test_range(0, 0x1000).
+test_range(0x0000, 0x0100).
+test_range(0x0400, 0x0500).
+%test_range(0, 0x1000).
 
 assert_ct :-
 	retractall(ct(_,_)),
-	test_range(Low, High),
-	forall(( between(Low, High, C),
+	forall(( test_range(Low, High),
+		 between(Low, High, C),
 		 code_type(C, T)
 	       ),
 	       assertz(ct(C,T))).
@@ -80,16 +82,22 @@ gen_t(T) :-
 
 gen :-
 	setof(T, gen_t(T), TL0),
-	maplist(gen, TL0).
+	aggregate_all(max(U), test_range(_, U), Max),
+	maplist(gen(Max), TL0).
 
-t_code_type(C, T) :-
-	test_range(Low, High),
+t_code_type(Max,C, T) :-
 	code_type(C, T),
-	between(Low, High, C).
+	(   C > Max
+	->  !,
+	    fail
+	;   test_range(Low, High),
+	    between(Low, High, C)
+	->  true
+	).
 
-gen(T0) :-
+gen(Max, T0) :-
 	varnumbers(T0, T),
-	(setof(C, t_code_type(C,T), CL) -> true ; CL = []),
+	(setof(C, t_code_type(Max,C,T), CL) -> true ; CL = []),
 	(setof(C, ct(C,T), CL2) -> true ; CL2 = []),
 	(   CL == CL2
 	->  true

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2017, University of Amsterdam
+    Copyright (c)  1996-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -111,15 +112,15 @@ word
 linkVal__LD(Word p ARG_LD)
 { word w = *p;
 
-  if ( needsRef(w) )
-    return makeRef(p);
-
   while( isRef(w) )
   { p = unRef(w);
     if ( needsRef(*p) )
       return w;
     w = *p;
   }
+
+  if ( unlikely(needsRef(w)) )
+    return makeRef(p);
 
   DEBUG(CHK_SECURE, assert(w != ATOM_garbage_collected));
 
@@ -922,7 +923,7 @@ bool
 PL_cvt_i_ulong(term_t p, unsigned long *c)
 {
 #if SIZEOF_LONG == 8
-  return PL_cvt_i_uint64(p, c);
+  return PL_cvt_i_uint64(p, (uint64_t *)c);
 #else
   return PL_cvt_i_uint(p, (unsigned int*)c);
 #endif
@@ -1563,6 +1564,7 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
     succeed;
   }
 #endif
+#ifndef O_GMP
   if ( isFloat(w) )
   { double f = valFloat(w);
     int l;
@@ -1578,6 +1580,7 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
       succeed;
     }
   }
+#endif
   fail;
 }
 
@@ -4115,8 +4118,10 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
   qid_t qid;
 
   if ( (qid = PL_open_query(ctx, flags, pred, h0)) )
-  { rval = PL_next_solution(qid);
-    PL_cut_query(qid);
+  { int r1 = PL_next_solution(qid);
+    int r2 = PL_cut_query(qid);
+
+    rval = (r1 && r2);	/* do not inline; we *must* execute PL_cut_query() */
   } else
     rval = FALSE;
 
@@ -4286,13 +4291,19 @@ PL_raise_exception(term_t exception)
   if ( PL_is_variable(exception) )	/* internal error */
     fatalError("Cannot throw variable exception");
 
+#if O_DEBUG
+  save_backtrace("exception");
+#endif
+
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { except_class co = classify_exception(exception_bin);
     except_class cn = classify_exception(exception);
 
     if ( cn >= co )
-    { setVar(*valTermRef(exception_bin));
+    { if ( cn == EXCEPT_RESOURCE )
+	enableSpareStacks();
+      setVar(*valTermRef(exception_bin));
       copy_exception(exception, exception_bin PASS_LD);
       if ( !PL_is_atom(exception_bin) )
 	freezeGlobal(PASS_LD1);
@@ -4352,13 +4363,15 @@ PL_clear_foreign_exception(LocalFrame fr)
 
   Sdprintf("Thread %d (%Ws): foreign predicate %s did not clear exception: \n\t",
 	   tid, name, predicateName(fr->predicate));
+#if O_DEBUG
+  print_backtrace_named("exception");
+#endif
 }
 #else
   Sdprintf("Foreign predicate %s did not clear exception: ",
 	   predicateName(fr->predicate));
 #endif
-  PL_write_term(Serror, ex, 1200, 0);
-  Sdprintf("\n");
+  PL_write_term(Serror, ex, 1200, PL_WRT_NEWLINE);
 
   PL_clear_exception();
 }
@@ -4411,16 +4424,16 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
     return NULL;
   }
   def = proc->definition;
-  if ( def->module != m || def->impl.any )
+  if ( def->module != m || def->impl.any.defined )
   { DEBUG(MSG_PROC, Sdprintf("Abolish %s from %s\n",
 			     procedureName(proc), PL_atom_chars(m->name)));
     abolishProcedure(proc, m);
     def = proc->definition;
   }
 
-  if ( def->impl.any )
-    PL_linger(def->impl.any);
-  def->impl.function = f;
+  if ( def->impl.any.defined )
+    PL_linger(def->impl.any.defined);	/* Dubious: what if a clause list? */
+  def->impl.foreign.function = f;
   def->flags &= ~(P_DYNAMIC|P_THREAD_LOCAL|P_TRANSPARENT|P_NONDET|P_VARARG);
   def->flags |= (P_FOREIGN|TRACE_ME);
 
@@ -4584,25 +4597,23 @@ PL_open_resource(Module m,
   static predicate_t MTOK_pred;
   term_t t0;
 
+  (void)rc_class;
+
   if ( !m )
     m = MODULE_user;
-
   if ( !MTOK_pred )
-    MTOK_pred = PL_predicate("open_resource", 4, "system");
+    MTOK_pred = PL_predicate("c_open_resource", 3, "$rc");
 
   if ( !(fid = PL_open_foreign_frame()) )
   { errno = ENOENT;
     return s;
   }
-  t0 = PL_new_term_refs(4);
+  t0 = PL_new_term_refs(3);
   PL_put_atom_chars(t0+0, name);
-
-  if ( rc_class )
-    PL_put_atom_chars(t0+1, rc_class);
-  PL_put_atom_chars(t0+2, mode[0] == 'r' ? "read" : "write");
+  PL_put_atom_chars(t0+1, mode);
 
   if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) ||
-       !PL_get_stream_handle(t0+3, &s) )
+       !PL_get_stream_handle(t0+2, &s) )
     errno = ENOENT;
 
   PL_discard_foreign_frame(fid);

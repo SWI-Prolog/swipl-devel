@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2016, University of Amsterdam
+    Copyright (c)  2004-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -99,13 +99,15 @@ Windows) to decorate uncaught exceptions:
 %   scenarios will pass the stack   to print_prolog_backtrace/2. The
 %   following options are provided:
 %
-%     * frame(Frame)
+%     * frame(+Frame)
 %     Start at Frame instead of the current frame.
 %     * goal_depth(+Depth)
 %     If Depth > 0, include a shallow copy of the goal arguments
 %     into the stack.  Default is set by the Prolog flag
 %     =backtrace_goal_depth=, set to =2= initially, showing the
 %     goal and toplevel of any argument.
+%     * guard(+Guard)
+%     Do not show stack frames above Guard.  See stack_guard/1.
 %
 %   @param Frame is the frame to start from. See prolog_current_frame/1.
 %   @param MaxDepth defines the maximum number of frames returned.
@@ -141,11 +143,12 @@ get_prolog_backtrace_lc(MaxDepth, Stack, Options) :-
     ->  true
     ;   current_prolog_flag(backtrace_goal_depth, GoalDepth)
     ),
+    option(guard(Guard), Options, none),
     must_be(nonneg, GoalDepth),
-    backtrace(MaxDepth, Fr, PC, GoalDepth, Stack).
+    backtrace(MaxDepth, Fr, PC, GoalDepth, Guard, Stack).
 
-backtrace(0, _, _, _, []) :- !.
-backtrace(MaxDepth, Fr, PC, GoalDepth,
+backtrace(0, _, _, _, _, []) :- !.
+backtrace(MaxDepth, Fr, PC, GoalDepth, Guard,
           [frame(Level, Where, Goal)|Stack]) :-
     prolog_frame_attribute(Fr, level, Level),
     (   PC == foreign
@@ -167,16 +170,20 @@ backtrace(MaxDepth, Fr, PC, GoalDepth,
     ;   PC2 = foreign
     ),
     (   prolog_frame_attribute(Fr, parent, Parent),
+        prolog_frame_attribute(Parent, predicate_indicator, PI),
+        PI == Guard                             % last frame
+    ->  backtrace(1, Parent, PC2, GoalDepth, Guard, Stack)
+    ;   prolog_frame_attribute(Fr, parent, Parent),
         more_stack(Parent)
     ->  D2 is MaxDepth - 1,
-        backtrace(D2, Parent, PC2, GoalDepth, Stack)
+        backtrace(D2, Parent, PC2, GoalDepth, Guard, Stack)
     ;   Stack = []
     ).
 
 more_stack(Parent) :-
     prolog_frame_attribute(Parent, predicate_indicator, PI),
-    \+ ( PI = '$toplevel':G,
-         G \== (toplevel_call/1)
+    \+ (   PI = '$toplevel':G,
+           G \== (toplevel_call/1)
        ),
     !.
 more_stack(_) :-
@@ -346,7 +353,7 @@ message_frames(frame(Level, _Where, '$toplevel':toplevel_call(_)), _) -->
     [ '<user>'-[] ].
 message_frames(frame(Level, Where, Goal), Options) -->
     level(Level),
-    [ '~q'-[Goal] ],
+    [ '~p'-[Goal] ],
     where_goal(Where, Options).
 
 where_no_goal(foreign(PI), _) -->
@@ -532,22 +539,27 @@ lineno_(Fd, Char, L) :-
 
 user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
                            error(E, context(prolog_stack(Stack),Msg)),
-                           Fr, Guard) :-
+                           Fr, GuardSpec) :-
     current_prolog_flag(backtrace, true),
-    (   atom(Guard)
+    \+ is_stack(Ctx0, _Frames),
+    (   atom(GuardSpec)
     ->  debug(backtrace, 'Got uncaught (guard = ~q) exception ~p (Ctx0=~p)',
-              [Guard, E, Ctx0]),
-        stack_guard(Guard)
-    ;   prolog_frame_attribute(Guard, predicate_indicator, PI),
+              [GuardSpec, E, Ctx0]),
+        stack_guard(GuardSpec),
+        Guard = GuardSpec
+    ;   prolog_frame_attribute(GuardSpec, predicate_indicator, Guard),
         debug(backtrace, 'Got exception ~p (Ctx0=~p, Catcher=~p)',
-              [E, Ctx0, PI]),
-        stack_guard(PI)
+              [E, Ctx0, Guard]),
+        stack_guard(Guard)
     ),
     (   current_prolog_flag(backtrace_depth, Depth)
     ->  Depth > 0
     ;   Depth = 20                  % Thread created before lib was loaded
     ),
-    get_prolog_backtrace(Fr, Depth, Stack0),
+    get_prolog_backtrace(Depth, Stack0,
+                         [ frame(Fr),
+                           guard(Guard)
+                         ]),
     debug(backtrace, 'Stack = ~p', [Stack0]),
     clean_stack(Stack0, Stack1),
     join_stacks(Ctx0, Stack1, Stack).
@@ -588,6 +600,7 @@ join_stacks(_, Stack, Stack).
 %   from C will handle the exception.
 
 stack_guard(none).
+stack_guard(system:catch_with_backtrace/3).
 
 
                  /*******************************

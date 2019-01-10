@@ -4,6 +4,9 @@
 \libsummary{aggregate}
 \input{summaries.d/aggregate.tex}
 
+\libsummary{ansi_term}
+\input{summaries.d/ansiterm.tex}
+
 \libsummary{apply}
 \input{summaries.d/apply.tex}
 
@@ -50,7 +53,7 @@
 \input{summaries.d/clpblib.tex}
 
 \libsummary{clpfd}
-\input{summaries.d/clpfd.tex}
+\input{summaries.d/clpfdlib.tex}
 
 \libsummary{clpqr}
 
@@ -69,11 +72,26 @@
 \libsummary{csv}
 \input{summaries.d/csv.tex}
 
+\libsummary{dcgbasics}
+\input{summaries.d/dcgbasics.tex}
+
+\libsummary{dcghighorder}
+\input{summaries.d/dcghighorder.tex}
+
 \libsummary{debug}
 \input{summaries.d/debug.tex}
 
+\libsummary{dicts}
+\input{summaries.d/dicts.tex}
+
 \libsummary{error}
 \input{summaries.d/error.tex}
+
+\libsummary{explain}
+\input{summaries.d/explain.tex}
+
+\libsummary{help}
+\input{summaries.d/help.tex}
 
 \libsummary{iostream}
 \libsummary{summaries.d/iostream/tex}
@@ -83,6 +101,9 @@
 
 \libsummary{main}
 \input{summaries.d/main.tex}
+
+\libsummary{occurs}
+\input{summaries.d/occurs.tex}
 
 \libsummary{option}
 \input{summaries.d/option.tex}
@@ -158,6 +179,8 @@ This library is only available on Windows systems.
 \predicatesummary{shell_register_dde}{6}{Register DDE action}
 \predicatesummary{shell_register_prolog}{1}{Register Prolog}
 \end{summarylist}
+
+\libsummary{settings}
 
 \libsummary{simplex}
 

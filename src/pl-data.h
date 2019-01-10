@@ -203,6 +203,7 @@ and while loading .wic files.  It comes at no price.
 /*#define isVar(w)	(tag(w)   == TAG_VAR)*/
 #define isVar(w)	((w)      == (word)0)
 #define isAtom(w)	(tagex(w) == (TAG_ATOM|STG_STATIC))
+#define isFunctor(w)	(tagex(w) == (TAG_ATOM|STG_GLOBAL))
 #define isTextAtom(w)	(isAtom(w) && true(atomValue(w)->type, PL_BLOB_TEXT))
 #define isCallableAtom(w) (isTextAtom(w) || (w == ATOM_nil))
 #define isInteger(w)	(tag(w)   == TAG_INTEGER)

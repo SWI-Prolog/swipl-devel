@@ -8,7 +8,7 @@
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
 TARGET_DISTRO=none
-distros="trusty xenial zesty artful"
+distros="trusty xenial bionic cosmic"
 build=true
 buildbin=false
 push=false
@@ -81,8 +81,6 @@ fi
 
 # Avoid typos ...
 case $TARGET_DISTRO in
-  trusty|xenial|zesty)
-    ;;
   none)
     echo "Known distros: $distros"
     exit 1
@@ -167,6 +165,6 @@ if [ $push = true ]; then
   echo " - Pushing source package to PPA"
 
   ( cd build-ppa-tmp &&
-    dput ppa:swi-prolog/stable swi-prolog_${VERSION}_source.changes
+    dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
   )
 fi

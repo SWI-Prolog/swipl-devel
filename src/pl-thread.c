@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2017, University of Amsterdam,
+    Copyright (c)  1999-2018, University of Amsterdam,
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -104,7 +105,7 @@ APPROACH
 
 #include <errno.h>
 #if defined(__linux__)
-#include <linux/unistd.h>
+#include <syscall.h>
 #ifdef HAVE_GETTID_MACRO
 _syscall0(pid_t,gettid)
 #endif
@@ -426,7 +427,7 @@ win_thread_initialize(void)
 static PL_thread_info_t *alloc_thread(void);
 static void	destroy_message_queue(message_queue *queue);
 static void	destroy_thread_message_queue(message_queue *queue);
-static void	init_message_queue(message_queue *queue, long max_size);
+static void	init_message_queue(message_queue *queue, size_t max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	run_thread_exit_hooks(PL_local_data_t *ld);
 static thread_handle *create_thread_handle(PL_thread_info_t *info);
@@ -517,13 +518,10 @@ initialise_thread(PL_thread_info_t *info)
 
   TLD_set_LD(info->thread_data);
 
-  if ( !info->local_size    ) info->local_size    = GD->options.localSize;
-  if ( !info->global_size   ) info->global_size   = GD->options.globalSize;
-  if ( !info->trail_size    ) info->trail_size    = GD->options.trailSize;
+  if ( !info->stack_limit ) info->stack_limit = GD->options.stackLimit;
+  if ( !info->table_space ) info->table_space = GD->options.tableSpace;
 
-  if ( !initPrologStacks(info->local_size,
-			 info->global_size,
-			 info->trail_size) )
+  if ( !initPrologStacks(info->stack_limit) )
   { info->status = PL_THREAD_NOMEM;
     return FALSE;
   }
@@ -600,8 +598,15 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     PL_UNLOCK(L_THREAD);
 
     info->in_exit_hooks = TRUE;
-    rc = callEventHook(PL_EV_THREADFINISHED, info);
-    (void)rc;
+    if ( !(rc = callEventHook(PL_EV_THREADFINISHED, info)) )
+    { GET_LD
+
+      if ( exception_term )
+      { Sdprintf("Event hook \"thread_finished\" left an exception\n");
+	PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	PL_clear_exception();
+      }
+    }
     run_thread_exit_hooks(ld);
     info->in_exit_hooks = FALSE;
   } else
@@ -830,11 +835,13 @@ initPrologThreads(void)
     PL_local_data.thread.info = info;
     PL_local_data.thread.magic = PL_THREAD_MAGIC;
     set_system_thread_id(info);
-    init_message_queue(&PL_local_data.thread.messages, -1);
+    init_message_queue(&PL_local_data.thread.messages, 0);
     init_predicate_references(&PL_local_data);
 
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
+    pthread_mutex_init(&GD->thread.index.mutex, NULL);
+    pthread_cond_init(&GD->thread.index.cond, NULL);
     initMutexes();
     link_mutexes();
     threads_ready = TRUE;
@@ -1625,17 +1632,17 @@ set_os_thread_name_from_charp(const char *s)
 #ifdef HAVE_PTHREAD_SETNAME_NP
   char name[16];
 
-  if ( strlen(s) > 15 )
-  { strncpy(name, s, 15);
-    name[15] = EOS;
-  } else
-  { strcpy(name, s);
-  }
-#ifdef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
-  if ( pthread_setname_np(name) == 0 )
+  strncpy(name, s, 15);
+  name[15] = EOS;
+
+#ifdef HAVE_PTHREAD_SETNAME_NP_WITH_TID
+  if ( pthread_setname_np(pthread_self(), name) == 0 )
+    return TRUE;
+#elif HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG
+  if ( pthread_setname_np(pthread_self(), "%s", (void *)name) == 0 )
     return TRUE;
 #else
-  if ( pthread_setname_np(pthread_self(), name) == 0 )
+  if ( pthread_setname_np(name) == 0 )
     return TRUE;
 #endif
 #endif
@@ -1660,37 +1667,17 @@ set_os_thread_name(atom_t alias)
 
 
 static const opt_spec make_thread_options[] =
-{ { ATOM_local,		OPT_SIZE|OPT_INF },
-  { ATOM_global,	OPT_SIZE|OPT_INF },
-  { ATOM_trail,	        OPT_SIZE|OPT_INF },
-  { ATOM_alias,		OPT_ATOM },
-  { ATOM_debug,		OPT_BOOL },
-  { ATOM_detached,	OPT_BOOL },
-  { ATOM_stack,		OPT_SIZE },
-  { ATOM_c_stack,	OPT_SIZE },
-  { ATOM_at_exit,	OPT_TERM },
-  { ATOM_inherit_from,	OPT_TERM },
-  { NULL_ATOM,		0 }
+{ { ATOM_alias,		 OPT_ATOM },
+  { ATOM_debug,		 OPT_BOOL },
+  { ATOM_detached,	 OPT_BOOL },
+  { ATOM_stack_limit,	 OPT_SIZE },
+  { ATOM_c_stack,	 OPT_SIZE },
+  { ATOM_at_exit,	 OPT_TERM },
+  { ATOM_inherit_from,	 OPT_TERM },
+  { ATOM_affinity,	 OPT_TERM },
+  { ATOM_queue_max_size, OPT_SIZE },
+  { NULL_ATOM,		 0 }
 };
-
-
-static int
-mk_kbytes(size_t *sz, atom_t name ARG_LD)
-{ if ( *sz != (size_t)-1 )
-  { size_t s = *sz * 1024;
-
-    if ( s/1024 != *sz )
-    { term_t t = PL_new_term_ref();
-
-      return ( PL_put_int64(t, *sz) &&	/* TBD: size_t is unsigned! */
-	       PL_error(NULL, 0, NULL, ERR_DOMAIN, name, t) );
-    }
-
-    *sz = s;
-  }
-
-  return TRUE;
-}
 
 
 static void
@@ -1765,21 +1752,19 @@ start_thread(void *closure)
 	}
 
 	if ( print )
-	{ int rc;
-
-	  rc = printMessage(ATOM_warning,
-			    PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
-			      PL_TERM, goal,
-			      PL_FUNCTOR, FUNCTOR_exception1,
-			      PL_TERM, ex);
-	  (void)rc;			/* it is dead anyway */
+	{ if ( !printMessage(ATOM_warning,
+			     PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
+			       PL_TERM, goal,
+			       PL_FUNCTOR, FUNCTOR_exception1,
+			       PL_TERM, ex) )
+	    PL_clear_exception();	/* The thread is dead anyway */
 	}
       } else
       { if ( !printMessage(ATOM_warning,
 			   PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
 			     PL_TERM, goal,
 			     PL_ATOM, ATOM_fail) )
-	  PL_clear_exception();		/* it is dead anyway */
+	  PL_clear_exception();		/* The thread is dead anyway */
       }
     }
 
@@ -1792,7 +1777,8 @@ start_thread(void *closure)
 
 
 static void
-copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold)
+copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
+		size_t max_queue_size)
 { GET_LD
 
   if ( !LD )
@@ -1836,7 +1822,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold)
     ldnew->_debugstatus.debugging = DBG_OFF;
     set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
   }
-  init_message_queue(&ldnew->thread.messages, -1);
+  init_message_queue(&ldnew->thread.messages, max_queue_size);
   init_predicate_references(ldnew);
 }
 
@@ -1862,6 +1848,62 @@ round_pages(size_t n)
 }
 
 
+#if defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP) || defined(HAVE_SCHED_SETAFFINITY)
+
+static int
+get_cpuset(term_t affinity, cpu_set_t *set)
+{ GET_LD
+  term_t head, tail;
+  int n=0;
+  int cpu_count = CpuCount();
+
+  if ( !(tail = PL_copy_term_ref(affinity)) ||
+       !(head = PL_new_term_ref()) )
+    return FALSE;
+
+  CPU_ZERO(set);
+  while(PL_get_list_ex(tail, head, tail))
+  { int i;
+
+    if ( !PL_get_integer_ex(head, &i) )
+      return FALSE;
+    if ( i < 0 )
+      return PL_domain_error("not_less_than_zero", head);
+    if ( i >= cpu_count )
+      return PL_existence_error("cpu", head);
+
+    CPU_SET(i, set);
+
+    if ( n++ == 100 && !PL_is_acyclic(tail) )
+      return PL_type_error("list", tail);
+  }
+  if ( !PL_get_nil_ex(tail) )
+    return FALSE;
+
+  if ( n == 0 )
+    return PL_domain_error("cpu_affinity", affinity);
+
+  return TRUE;
+}
+
+#endif /*defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP) || defined(HAVE_SCHED_SETAFFINITY)*/
+
+static int
+set_affinity(term_t affinity, pthread_attr_t *attr)
+{
+#ifdef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
+  cpu_set_t cpuset;
+
+  if ( !get_cpuset(affinity, &cpuset) )
+    return EINVAL;
+
+  return pthread_attr_setaffinity_np(attr, sizeof(cpuset), &cpuset);
+#endif
+
+  return 0;
+}
+
+
 word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { GET_LD
@@ -1871,8 +1913,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
   size_t stack = 0;
+  size_t c_stack = 0;
   term_t inherit_from = 0;
   term_t at_exit = 0;
+  term_t affinity = 0;
+  size_t queue_max_size = 0;
   int rc = 0;
   const char *func;
   int debug = -1;
@@ -1893,16 +1938,15 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   if ( !scan_options(options, 0, /*OPT_ALL,*/
 		     ATOM_thread_option, make_thread_options,
-		     &info->local_size,
-		     &info->global_size,
-		     &info->trail_size,
 		     &alias,
 		     &debug,
 		     &detached,
 		     &stack,		/* stack */
-		     &stack,		/* c_stack */
+		     &c_stack,		/* c_stack */
 		     &at_exit,
-		     &inherit_from) )
+		     &inherit_from,
+		     &affinity,
+		     &queue_max_size) )
   { free_thread_info(info);
     fail;
   }
@@ -1932,13 +1976,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
-  if ( !mk_kbytes(&info->local_size,  ATOM_local   PASS_LD) ||
-       !mk_kbytes(&info->global_size, ATOM_global  PASS_LD) ||
-       !mk_kbytes(&info->trail_size,  ATOM_trail   PASS_LD) ||
-       !mk_kbytes(&stack,             ATOM_c_stack PASS_LD) )
-  { free_thread_info(info);
-    return FALSE;
-  }
+  if ( stack )
+    info->stack_limit = stack;
+  else
+    info->stack_limit = ldold->stacks.limit;
 
   th = create_thread_handle(info);
   if ( alias )
@@ -1960,7 +2001,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   info->goal = PL_record(goal);
   info->module = PL_context();
-  copy_local_data(ldnew, ldold);
+  copy_local_data(ldnew, ldold, queue_max_size);
   if ( at_exit )
     thread_at_exit(at_exit, ldnew);
 
@@ -1969,6 +2010,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { func = "pthread_attr_setdetachstate";
     rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   }
+  if ( rc == 0 && affinity )
+    rc = set_affinity(affinity, &attr);
   if ( rc == 0 )
   {
 #ifdef USE_COPY_STACK_SIZE
@@ -1979,13 +2022,13 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 					/* What is an infinite stack!? */
     }
 #endif
-    if ( stack )
-    { stack = round_pages(stack);
+    if ( c_stack )
+    { stack = round_pages(c_stack);
       func = "pthread_attr_setstacksize";
-      rc = pthread_attr_setstacksize(&attr, stack);
-      info->stack_size = stack;
+      rc = pthread_attr_setstacksize(&attr, c_stack);
+      info->c_stack_size = c_stack;
     } else
-    { pthread_attr_getstacksize(&attr, &info->stack_size);
+    { pthread_attr_getstacksize(&attr, &info->c_stack_size);
     }
   }
   if ( rc == 0 )
@@ -2000,11 +2043,13 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   if ( rc != 0 )
   { free_thread_info(info);
-    return PL_error(NULL, 0, ThError(rc),
-		    ERR_SYSCALL, func);
+    if ( !PL_exception(0) )
+      PL_error(NULL, 0, ThError(rc),
+	       ERR_SYSCALL, func);
+    return FALSE;
   }
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -2688,6 +2733,60 @@ PRED_IMPL("thread_setconcurrency", 2, thread_setconcurrency, 0)
 #endif
 }
 
+#ifdef HAVE_SCHED_SETAFFINITY
+#define HAVE_PRED_THREAD_AFFINITY 1
+static
+PRED_IMPL("thread_affinity", 3, thread_affinity, 0)
+{ PRED_LD
+  PL_thread_info_t *info;
+  int rc;
+
+  PL_LOCK(L_THREAD);
+  if ( (rc=get_thread(A1, &info, TRUE)) )
+  { cpu_set_t cpuset;
+
+    if ( (rc=sched_getaffinity(info->pid, sizeof(cpuset), &cpuset)) == 0 )
+    { int count = CPU_COUNT(&cpuset);
+      int i, n;
+      term_t tail = PL_copy_term_ref(A2);
+      term_t head = PL_new_term_ref();
+
+      for(i=0, n=0; n<count; i++)
+      { if ( CPU_ISSET(i, &cpuset) )
+	{ n++;
+	  if ( !PL_unify_list_ex(tail, head, tail) ||
+	       !PL_unify_integer(head, i) )
+	    goto error;			/* rc == 0 (FALSE) */
+	}
+      }
+      if ( !PL_unify_nil_ex(tail) )
+	goto error;			/* rc == 0 (FALSE) */
+    } else
+    { rc = PL_error(NULL, 0, ThError(rc),
+		    ERR_SYSCALL, "sched_getaffinity");
+      goto error;
+    }
+
+    if ( PL_compare(A2, A3) != 0 )
+    { if ( (rc=get_cpuset(A3, &cpuset)) )
+      { if ( (rc=sched_setaffinity(info->pid, sizeof(cpuset), &cpuset)) == 0 )
+	{ rc = TRUE;
+	} else
+	{ rc = PL_error(NULL, 0, ThError(rc),
+			ERR_SYSCALL, "sched_setaffinity");
+	}
+      }
+    } else
+    { rc = TRUE;
+    }
+  }
+error:
+  PL_UNLOCK(L_THREAD);
+
+  return rc;
+}
+#endif /*HAVE_SCHED_SETAFFINITY*/
+
 
 		 /*******************************
 		 *	     CLEANUP		*
@@ -2801,13 +2900,11 @@ run_exit_hooks(at_exit_goal *eg, int free)
 	if ( rc )
 	{ DEBUG(MSG_THREAD,
 		{ Sdprintf("Calling exit goal: ");
-		  PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED);
-		  Sdprintf("\n");
+		  PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
 		});
 
 	  callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
 	}
-	PL_rewind_foreign_frame(fid);
 	break;
       }
       case EXIT_C:
@@ -2817,8 +2914,16 @@ run_exit_hooks(at_exit_goal *eg, int free)
 	assert(0);
     }
 
+    if ( exception_term )
+    { Sdprintf("Thread exit hook left an exception:\n");
+      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+      PL_clear_exception();
+    }
+
     if ( free )
       freeHeap(eg, sizeof(*eg));
+
+    PL_rewind_foreign_frame(fid);
   }
 
   PL_discard_foreign_frame(fid);
@@ -3051,9 +3156,7 @@ get_interactor(term_t t, thread_handle **thp, int warn ARG_LD)
 */
 
 static const opt_spec make_engine_options[] =
-{ { ATOM_local,		OPT_SIZE|OPT_INF },
-  { ATOM_global,	OPT_SIZE|OPT_INF },
-  { ATOM_trail,	        OPT_SIZE|OPT_INF },
+{ { ATOM_stack_limit,	OPT_SIZE|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_inherit_from,	OPT_TERM },
   { NULL_ATOM,		0 }
@@ -3065,28 +3168,22 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 { PRED_LD
   PL_engine_t new;
   PL_thread_attr_t attrs;
-  size_t lsize	      =	0;
-  size_t gsize	      =	0;
-  size_t tsize	      =	0;
+  size_t stack	      =	0;
   atom_t alias	      =	NULL_ATOM;
   term_t inherit_from =	0;
 
   memset(&attrs, 0, sizeof(attrs));
   if ( !scan_options(A3, 0,
 		     ATOM_engine_option, make_engine_options,
-		     &lsize,
-		     &gsize,
-		     &tsize,
+		     &stack,
 		     &alias,
-		     &inherit_from) ||
-       !mk_kbytes(&lsize, ATOM_local  PASS_LD) ||
-       !mk_kbytes(&gsize, ATOM_global PASS_LD) ||
-       !mk_kbytes(&tsize, ATOM_trail  PASS_LD) )
+		     &inherit_from) )
     return FALSE;
 
-  if ( lsize ) attrs.local_size  = lsize/1024;
-  if ( gsize ) attrs.global_size = gsize/1024;
-  if ( tsize ) attrs.trail_size  = tsize/1024;
+  if ( stack )
+    attrs.stack_limit = stack;
+  else
+    attrs.stack_limit = LD->stacks.limit;
 
   if ( (new = PL_create_engine(&attrs)) )
   { PL_engine_t me;
@@ -3185,11 +3282,14 @@ answer was deterministic.
 
 static void
 done_interactor(thread_handle *th)
-{ GET_LD
+{
+#ifndef NDEBUG
+  GET_LD
   PL_engine_t e = th->info->thread_data;
-
   assert(e->thread.info->open_count == 1);
   assert(e == LD);
+#endif
+
   set(th, TH_INTERACTOR_DONE);
   PL_thread_destroy_engine();
   ATOMIC_INC(&GD->statistics.engines_finished);
@@ -4153,13 +4253,13 @@ destroy_thread_message_queue(message_queue *q)
 
 
 static void
-init_message_queue(message_queue *queue, long max_size)
+init_message_queue(message_queue *queue, size_t max_size)
 { memset(queue, 0, sizeof(*queue));
   simpleMutexInit(&queue->mutex);
   simpleMutexInit(&queue->gc_mutex);
   cv_init(&queue->cond_var, NULL);
   queue->max_size = max_size;
-  if ( queue->max_size > 0 )
+  if ( queue->max_size != 0 )
     cv_init(&queue->drain_var, NULL);
   queue->initialized = TRUE;
 }
@@ -4257,7 +4357,6 @@ wait_queue_message(term_t qterm, message_queue *q, thread_message *msg,
 
   for(;;)
   { rc = queue_message(q, msg, deadline PASS_LD);
-    release_message_queue(q);
 
     switch(rc)
     { case MSG_WAIT_INTR:
@@ -4301,7 +4400,10 @@ thread_send_message__LD(term_t queue, term_t msgterm,
     return PL_no_memory();
   }
 
-  if ( (rc=wait_queue_message(queue, q, msg, deadline PASS_LD)) == FALSE )
+  rc = wait_queue_message(queue, q, msg, deadline PASS_LD);
+  release_message_queue(q);
+
+  if ( rc == FALSE )
     free_thread_message(msg);
 
   return rc;
@@ -4648,7 +4750,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 { int rval;
 
   PL_LOCK(L_THREAD);
-  rval = (unlocked_message_queue_create(A1, -1) ? TRUE : FALSE);
+  rval = (unlocked_message_queue_create(A1, 0) ? TRUE : FALSE);
   PL_UNLOCK(L_THREAD);
 
   return rval;
@@ -4657,7 +4759,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 
 static const opt_spec message_queue_options[] =
 { { ATOM_alias,		OPT_ATOM },
-  { ATOM_max_size,	OPT_NATLONG },
+  { ATOM_max_size,	OPT_SIZE },
   { NULL_ATOM,		0 }
 };
 
@@ -4666,7 +4768,7 @@ static
 PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
 { PRED_LD
   atom_t alias = 0;
-  long max_size = -1;			/* to be processed */
+  size_t max_size = 0;			/* to be processed */
   message_queue *q;
 
   if ( !scan_options(A2, 0,
@@ -5218,22 +5320,19 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew = info->thread_data;
 
   if ( attr )
-  { if ( attr->local_size )
-      info->local_size = attr->local_size * 1024;
-    if ( attr->global_size )
-      info->global_size = attr->global_size * 1024;
-    if ( attr->trail_size )
-      info->trail_size = attr->trail_size * 1024;
+  { if ( attr->stack_limit )
+      info->stack_limit = attr->stack_limit;
 
     info->cancel = attr->cancel;
   }
 
   info->goal       = NULL;
   info->module     = MODULE_user;
-  info->detached   = attr && (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
+  info->detached   = attr == NULL ||
+                     (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
   info->open_count = 1;
 
-  copy_local_data(ldnew, ldmain);
+  copy_local_data(ldnew, ldmain, attr->max_queue_size);
 
   if ( !initialise_thread(info) )
   { free_thread_info(info);
@@ -6208,10 +6307,11 @@ free_ldef_vector(LocalDefinitions ldefs)
 Definition
 localiseDefinition(Definition def)
 { Definition local = allocHeapOrHalt(sizeof(*local));
+  size_t bytes = sizeof(arg_info)*def->functor->arity;
 
   *local = *def;
-  local->args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
-  memcpy(local->args, def->args, sizeof(arg_info)*def->functor->arity);
+  local->impl.any.args = allocHeapOrHalt(bytes);
+  memcpy(local->impl.any.args, def->impl.any.args, bytes);
   clear(local, P_THREAD_LOCAL|P_DIRTYREG);	/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
@@ -6664,8 +6764,6 @@ init_predicate_references(PL_local_data_t *ld)
   refs->blocks[0] = refs->preallocated - 1;
   refs->blocks[1] = refs->preallocated - 1;
   refs->blocks[2] = refs->preallocated - 1;
-
-  simpleMutexInit(&ld->clauses.local_shift_mutex);
 }
 
 static void
@@ -6680,8 +6778,6 @@ free_predicate_references(PL_local_data_t *ld)
     if ( d0 )
       freeHeap(d0+bs, bs*sizeof(definition_ref));
   }
-
-  simpleMutexDelete(&ld->clauses.local_shift_mutex);
 }
 #endif /*O_PLMT*/
 
@@ -6855,6 +6951,9 @@ BeginPredDefs(thread)
   PRED_DEF("thread_property",	     2,	thread_property,       NDET|PL_FA_ISO)
   PRED_DEF("is_thread",		     1,	is_thread,	       0)
   PRED_DEF("$thread_sigwait",	     1, thread_sigwait,	       0)
+#ifdef HAVE_PRED_THREAD_AFFINITY
+  PRED_DEF("thread_affinity",        3, thread_affinity,       0)
+#endif
 
   PRED_DEF("message_queue_create",   1,	message_queue_create,  0)
   PRED_DEF("message_queue_create",   2,	message_queue_create2, PL_FA_ISO)

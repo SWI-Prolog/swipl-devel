@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -131,11 +132,11 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
   int must_reg = FALSE;
 
-  DEBUG(7, Sdprintf(":- op(%d, %s, %s) in module %s\n",
-		    priority,
-		    PL_atom_chars(operatorTypeToAtom(type)),
-		    PL_atom_chars(name),
-		    PL_atom_chars(m->name)));
+  DEBUG(MSG_OPERATOR, Sdprintf(":- op(%d, %s, %s) in module %s\n",
+			       priority,
+			       PL_atom_chars(operatorTypeToAtom(type)),
+			       PL_atom_chars(name),
+			       PL_atom_chars(m->name)));
 
   assert(t>=OP_PREFIX && t<=OP_POSTFIX);
 
@@ -232,10 +233,11 @@ currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
       *priority = op->priority[kind];
 
       DEBUG(MSG_OPERATOR,
-	    Sdprintf("currentOperator(%s) --> %s %d\n",
+	    Sdprintf("current_op(%s) --> %s %d (module %s)\n",
 		     PL_atom_chars(name),
 		     PL_atom_chars(operatorTypeToAtom(*type)),
-		     *priority));
+		     *priority,
+		     PL_atom_chars(m->name)));
 
       succeed;
     }
@@ -522,6 +524,11 @@ current_op(Module m, int inherit,
       e->index = 0;
 
       scanVisibleOperators(m, nm, p, t, b, inherit);
+      DEBUG(MSG_OPERATOR,
+	    if ( nm ) Sdprintf("Scanned for %s in %s: %d hits\n",
+			       PL_atom_chars(nm),
+			       PL_atom_chars(m->name),
+			       (int)entriesBuffer(b, opdef)));
       break;
     }
     case FRG_REDO:
@@ -580,8 +587,13 @@ get_op_module(term_t a3, term_t name, Module *m ARG_LD)
     return FALSE;
   *valTermRef(name) = linkVal(p);
 
-  if ( mname && !(*m=isCurrentModule(mname)) )
+  if ( *m && (*m)->name == mname )
+    return TRUE;
+  if ( mname && !(*m=acquireModule(mname)) )
+  { DEBUG(MSG_OPERATOR, Sdprintf("Could not acquire module %s\n",
+				 PL_atom_chars(mname)));
     *m = MODULE_user;
+  }
 
   return TRUE;
 }
@@ -591,8 +603,10 @@ static
 PRED_IMPL("current_op", 3, current_op,
 	  PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
 { PRED_LD
-  Module m = MODULE_parse;
+  Module mp = MODULE_parse;
+  Module m  = mp;
   term_t name = A3;
+  word rc;
 
   if ( CTX_CNTRL != FRG_CUTTED )
   { if ( !(name = PL_new_term_ref()) ||
@@ -600,7 +614,11 @@ PRED_IMPL("current_op", 3, current_op,
       return FALSE;
   }
 
-  return current_op(m, TRUE, A1, A2, name, PL__ctx PASS_LD);
+  rc = current_op(m, TRUE, A1, A2, name, PL__ctx PASS_LD);
+  if ( m != mp )
+    releaseModule(m);
+
+  return rc;
 }
 
 /** '$local_op'(?Precedence, ?Type, ?Name) is nondet.
@@ -694,6 +712,7 @@ static const opdef operators[] = {
   OP(ATOM_multifile,		 OP_FX,	 1150),	/* multifile */
   OP(ATOM_meta_predicate,	 OP_FX,	 1150),	/* meta_predicate */
   OP(ATOM_public,		 OP_FX,	 1150),	/* public */
+  OP(ATOM_table,		 OP_FX,	 1150),	/* table */
   OP(ATOM_xor,			 OP_YFX, 400),	/* xor */
 
   OP(NULL_ATOM,			 0,	 0)

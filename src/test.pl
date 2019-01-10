@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2017, University of Amsterdam
+    Copyright (c)  1996-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,13 +35,15 @@
 */
 
 %:- set_prolog_flag(optimise, true).
+% keep debug/3 goals, even if optimise = true.
 :- set_prolog_flag(optimise_debug, false).
-%:- set_prolog_flag(trace_gc, true).
-:- asserta(user:file_search_path(library, '../packages/plunit')).
-:- [library(plunit)].
-:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
 
+:- use_module(library(plunit)).
 :- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(error)).
+
+:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog test file.  A test is a clause of the form:
@@ -55,20 +58,22 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- format(user_error,
-	  'SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
+:- multifile prolog:message//1.
+prolog:message(test(main_suite)) -->
+	[ 'SWI-Prolog test suite.'-[], nl,
+	  'To run all tests run ?- test.'-[], nl, nl
+	].
+prolog:message(test(empty_dir(Dir))) -->
+	[ 'No tests in directory ~p'-[Dir] ].
 
-% Required to get this always running regardless of user LANG setting.
-% Without this the tests won't run on machines with -for example- LANG=ja
-% according to NIDE Naoyuki, nide@ics.nara-wu.ac.jp.  Thanks!
-%
-% NOTE: In 5.5.x we should not need this any longer
+prolog:message(test(no_pkg(Pkg))) -->
+   [ 'Package ~w does not exist!'-[ Pkg ] ].
 
-% :- getenv('LANG', _) -> setenv('LANG', 'C'); true.
+:- print_message(informational, test(main_suite)).
 
 % The test-suite Tests/library/test_date.pl depends on  the timezone. As
 % correct results are only  provided  for   the  CET  (Central European)
-% timezine we use this. Timezone cannot be  changed at runtime, so we do
+% timezone we use this. Timezone cannot be  changed at runtime, so we do
 % this early.
 
 :- setenv('TZ', 'CET').
@@ -233,6 +238,10 @@ format_test(intr-1) :-
 format_test(intR-1) :-
 	format(atom(X), '~16R', [1000]),
 	X == '3E8'.
+format_test(large_float-1) :-
+	format(atom(X), '~6f', [1e100]),
+	atom_length(X, Len),
+	Len == 108.			% 1 with 100 0s + ".000000" = 108.
 format_test(oncodes-1) :-
 	format(codes(C), 'hello ~w', [world]),
 	atom_codes('hello world', C).
@@ -759,7 +768,7 @@ gmp(random) :-
 gmp(length) :-
 	N is 1<<66,
 	catch(length(_L, N), Error, true),
-	Error = error(resource_error(stack), global).
+	Error = error(resource_error(stack), _).
 gmp(ar_add_ui) :-			% check realloc of gmp number
 	A = 1000000000000000000000,
 	X is A+1,
@@ -2641,14 +2650,19 @@ run_test_scripts(Directory) :-
 	    atomic_list_concat([ScriptDir, /, Directory], Dir),
 	    exists_directory(Dir)
 	->  true
-	;   Dir = Directory
+	;   exists_directory(Directory)
+	->  Dir = Directory
+	;   existence_error(directory, Directory)
 	),
 	atom_concat(Dir, '/*.pl', Pattern),
 	expand_file_name(Pattern, Files),
 	file_base_name(Dir, BaseDir),
-	format(user_error, '~NRunning scripts from ~w ', [BaseDir]),
-	run_scripts(Files),
-	format(user_error, ' done~n', []).
+	(   Files == []
+	->  print_message(warning, test(empty_dir(Dir)))
+	;   format(user_error, '~NRunning scripts from ~w ', [BaseDir]),
+	    run_scripts(Files),
+	    format(user_error, ' done~n', [])
+	).
 
 run_scripts([]).
 run_scripts([H|T]) :-
@@ -2780,21 +2794,158 @@ testdir('Tests/save').
 	failed/1,
 	blocked/2.
 
+:- initialization(test, main).
+
 test :-
+	current_prolog_flag(argv, Argv),
+	argv_options(Argv, Files, Options),
+	test(Files, Options).
+
+%!	test(+Files, +Options)
+%
+%	Main test driver. If  Files  are   given,  these  test files are
+%	executed.  Otherwise  Options  controls  the    tests  that  are
+%	executed.  Defined options are:
+%
+%	  - list_test_dirs(true)
+%	    Do not test, but list the available test directories
+%	  - core(+Boolean)
+%	    If `false` (default `true`), run the _core_ tests from this
+%	    file.
+%	  - subdirs(+DirsOrFalse)
+%	    Either `false` (do not run tests from =Tests=) or a list
+%	    of directories below =Tests=
+%	  - packages(true)
+%	    Test all packages (from test_installation/1)
+%	  - package(+Package)
+%	    Only test Package (from test_installation/1)
+
+test(_, Options) :-
+	option(list_test_dirs(true), Options),
+	!,
+	forall(testdir(Dir),
+	       ( atom_concat('Tests/', Id, Dir),
+		 writeln(Id))).
+test(Files, Options) :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
-	forall(testset(Set), runtest(Set)),
-	scripts,
+	(   option(core(false), Options)
+	->  true
+	;   forall(testset(Set), runtest(Set))
+	),
+	scripts(Files, Options),
+	test_packages(Options),
 	garbage_collect,
 	garbage_collect_atoms,
 	trim_stacks,
-	statistics,
+	(   current_prolog_flag(verbose, silent)
+	->  true
+	;   statistics
+	),
 	report_blocked,
 	report_failed.
 
-scripts :-
-	forall(testdir(Dir), run_test_scripts(Dir)).
+%!	scripts(+Files, +Options) is det.
+%
+%	Test the core system  using  the   test  scripts  in the =Tests=
+%	directory.
 
+scripts(_Files, Options) :-
+	option(subdirs(false), Options),
+	!.
+scripts([], _Options) :-
+	!,
+	forall(testdir(Dir), run_test_scripts(Dir)).
+scripts(Dirs, _Options) :-
+	forall(member(Dir, Dirs),
+	       (   atom_concat('Tests/', Dir, TestDir),
+		   run_test_scripts(TestDir)
+	       )).
+
+
+		 /*******************************
+		 *	      PACKAGES		*
+		 *******************************/
+
+%!	test_packages(+Options) is det.
+%
+%	Test   the   packages.   This    predicate     is    used   from
+%	test_installation/1 to test from an installed system.
+
+test_packages(Options) :-
+	option(packages(true), Options),
+	!,
+	forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+	       run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir)).
+test_packages(Options) :-
+	option(package(Pkg), Options),
+	!,
+	(   is_pkg(Pkg)
+	->  forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+		   run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir))
+	;   existence_error(package, Pkg)
+	).
+test_packages(_).
+
+load_cmake_test_db :-
+	load_files(swi('test/cmake_pkg_tests.db')).
+
+find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+	script_dir(ScriptDir),
+	working_directory(_, ScriptDir),
+	load_cmake_test_db,
+	cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)).
+
+is_pkg(Pkg) :-
+	load_cmake_test_db,
+	cmake_test(Pkg, _, test_goal(_, _, _)).
+
+%!	run_pkg_test(+Package, +TestName, +TestScript, +Goal, +PkgDir)
+%
+%	Run test for the specified  package,   making  sure  the working
+%	directory is set to the location of the package.
+
+run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+	format(user_error, '~NTesting package ~w:~w ~`.t~40|',[Pkg,TestName]),
+	get_time(Start),
+	run_pkg_test1(PkgScript, Goal, PkgDir),
+	get_time(End),
+	Time is End - Start,
+	format(user_error, ' Passed ~2f sec.~n', [Time]).
+
+run_pkg_test1(Script, Goal, PkgDir) :-
+	current_prolog_flag(executable, SWIPL),
+	process_create(SWIPL,
+		       [ '-f', 'none',
+			 '-t', 'halt',
+			 '-g', Goal,
+			 Script
+		       ],
+		       [ stdout(pipe(Out)),
+			 stderr(pipe(Out)),
+			 cwd(PkgDir),
+			 process(Pid)
+		       ]),
+	message_queue_create(Q),
+	thread_create(collect_test_output(Out, Q), Waiter),
+	process_wait(Pid,Status),
+	thread_join(Waiter),
+	close(Out),
+	thread_get_message(Q, Output),
+	(   Status = exit(0)
+	->  true
+	;   script_failed(Script, Status),
+	    write(user_error, Output)
+	).
+
+collect_test_output(Out, Q) :-
+	read_string(Out, _, String),
+	thread_send_message(Q, String).
+
+
+		 /*******************************
+		 *	      REPORT		*
+		 *******************************/
 
 report_blocked :-
 	findall(Head-Reason, blocked(Head, Reason), L),
@@ -2878,19 +3029,19 @@ nth_clause_head(Head, R) :-
 
 unique_heads(Heads) :-
 	keysort(Heads, Sorted),
-	check_uniqye(Sorted).
+	check_unique(Sorted).
 
-check_uniqye([]).
-check_uniqye([Head-R1,Head-R2|T]) :- !,
+check_unique([]).
+check_unique([Head-R1,Head-R2|T]) :- !,
 	clause_property(R1, line_count(Line1)),
 	clause_property(R1, file(File1)),
 	clause_property(R2, line_count(Line2)),
 	clause_property(R2, file(File2)),
 	format('~N~w:~d: test ~w duplicated at ~w:~d~n',
 	       [File2, Line2, Head, File1, Line1]),
-	check_uniqye([Head-R1|T]).
-check_uniqye([_|T]) :-
-	check_uniqye(T).
+	check_unique([Head-R1|T]).
+check_unique([_|T]) :-
+	check_unique(T).
 
 
 :- if(current_prolog_flag(test_concurrent, true)).
@@ -2947,3 +3098,4 @@ hidden_module(user) :- !.
 hidden_module(system) :- !.
 hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
+

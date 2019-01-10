@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2015, University of Amsterdam
+    Copyright (c)  1996-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,7 +62,7 @@
 #include <pthread.h>
 #endif
 
-#include "os/pl-utf8.c"			/* we're not in the libpl.dll module */
+#include "os/pl-utf8.c"			/* we're not in the libswipl.dll module */
 
 #ifndef streq
 #define streq(s,q) (strcmp((s), (q)) == 0)

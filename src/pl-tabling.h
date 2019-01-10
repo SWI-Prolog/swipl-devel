@@ -52,6 +52,12 @@ typedef struct worklist_set
 { buffer members;
 } worklist_set;
 
+typedef struct tbl_component
+{ struct tbl_component *parent;
+  struct worklist_set *worklist;		/* Worklist of current query */
+  struct worklist_set *created_worklists;	/* Worklists created */
+} tbl_component;
+
 
 		 /*******************************
 		 *	   TABLE WORKLIST	*
@@ -72,6 +78,7 @@ typedef struct worklist
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
 
+  tbl_component*component;		/* component I belong to */
   trie	       *table;			/* table I belong to */
 } worklist;
 

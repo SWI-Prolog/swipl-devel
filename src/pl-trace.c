@@ -492,15 +492,15 @@ again:
     if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
-      { Sfprintf(Sdout, "EOF: exit\n");
-	exitFromDebugger(0);
+      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
+	exitFromDebugger(4);
       }
     } else
     { int c = getSingleChar(Sdin, FALSE);
 
       if ( c == EOF )
-      { Sfprintf(Sdout, "EOF: exit\n");
-	exitFromDebugger(0);
+      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
+	exitFromDebugger(4);
       }
       buf[0] = c;
       buf[1] = EOS;
@@ -689,8 +689,8 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
     case '\04': FeedBack("EOF: ");
-    case 'e':	FeedBack("exit\n");
-		exitFromDebugger(0);
+    case 'e':	FeedBack("exit (status 4)\n");
+		exitFromDebugger(4);
     case 'f':	FeedBack("fail\n");
 		return ACTION_FAIL;
     case 'i':	if (port & (CALL_PORT|REDO_PORT|FAIL_PORT))
@@ -1190,7 +1190,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
 		       &GD->procedures.prolog_trace_interception4);
-  if ( !getProcDefinition(proc)->impl.any )
+  if ( !getProcDefinition(proc)->impl.any.defined )
     return rval;
 
   if ( !GD->bootsession && GD->debug_level == 0 )
@@ -1451,7 +1451,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
 	  return printed+snprintf(buf, len, "[PC=%ld in top query clause]",
 				  (long)pc);
 
-	clause_no = clauseNo(fr->predicate, cl, 0);
+	clause_no = clauseNo(cl, 0);
 	return printed+snprintf(buf, len, "[PC=%ld in clause %d]",
 				(long)pc,
 				clause_no);
@@ -1580,7 +1580,7 @@ void
 resetTracer(void)
 { GET_LD
 
-#ifdef O_INTERRUPT
+#if defined(O_INTERRUPT) && defined(SIGINT)
   if ( truePrologFlag(PLFLAG_SIGNALS) )
     PL_signal(SIGINT, interruptHandler);
 #endif
@@ -1706,8 +1706,8 @@ again:
 		break;
     case 04:
     case EOF:	Sfprintf(Sdout, "EOF: ");
-    case 'e':	Sfprintf(Sdout, "exit\n");
-		exitFromDebugger(0);
+    case 'e':	Sfprintf(Sdout, "exit (status 4)\n");
+		exitFromDebugger(4);
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfprintf(Sdout, "goals\n");
@@ -1820,14 +1820,13 @@ trace_if_space(void)
 { GET_LD
   int trace;
 
-#define minFreeStack(name, size) \
-	(spaceStack(name) > size*(int)sizeof(void*))
-
-  if ( minFreeStack(local,  50000) &&
-       minFreeStack(global, 50000) &&
-       minFreeStack(trail,  20000) )
+  if ( usedStack(local) +
+       usedStack(global) +
+       usedStack(trail) +
+       100000*sizeof(void*) < LD->stacks.limit )
   { trace = TRUE;
     tracemode(trace, NULL);
+
   } else
     trace = FALSE;
 
@@ -2054,7 +2053,7 @@ pl_prolog_current_frame(term_t frame)
 { GET_LD
   LocalFrame fr = environment_frame;
 
-  if ( fr->predicate->impl.function == pl_prolog_current_frame )
+  if ( fr->predicate->impl.foreign.function == pl_prolog_current_frame )
     fr = parentFrame(fr);		/* thats me! */
 
   return PL_unify_frame(frame, fr);
@@ -2431,8 +2430,10 @@ delayEvent(pl_event_type ev, va_list args)
     dev.type = ev;
 
     switch(ev)
-    { case PLEV_BREAK:
+    { case PLEV_BREAK_EXISTS:
+      case PLEV_BREAK:
       case PLEV_NOBREAK:
+      case PLEV_GCNOBREAK:
 	dev.value.pc.clause = va_arg(args, Clause);
 	dev.value.pc.offset = va_arg(args, int);
 	break;
@@ -2487,8 +2488,10 @@ sendDelayedEvents(int noerror)
     for(; count-- > 0; dev++)
     { if ( noerror )
       { switch(dev->type)
-	{ case PLEV_BREAK:
+	{ case PLEV_BREAK_EXISTS:
+	  case PLEV_BREAK:
 	  case PLEV_NOBREAK:
+	  case PLEV_GCNOBREAK:
 	    noerror = callEventHook(dev->type,
 				    dev->value.pc.clause, dev->value.pc.offset);
 	    sent++;
@@ -2513,7 +2516,7 @@ sendDelayedEvents(int noerror)
 
 int
 PL_call_event_hook(pl_event_type ev, ...)
-{ if ( PROCEDURE_event_hook1->definition->impl.any &&
+{ if ( PROCEDURE_event_hook1->definition->impl.any.defined &&
        GD->cleaning != CLN_DATA )
   { va_list args;
     int rc;
@@ -2556,9 +2559,10 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     }
     case PLEV_ERASED_CLAUSE:
     { Clause cl = va_arg(args, Clause);		/* object erased */
-      term_t dbref = PL_new_term_ref();
+      term_t dbref;
 
-      rc = (  PL_unify_clref(dbref, cl) &&
+      rc = (  (dbref = PL_new_term_ref()) &&
+	      PL_unify_clref(dbref, cl) &&
 	      PL_unify_term(arg,
 			    PL_FUNCTOR, FUNCTOR_erased1,
 			      PL_TERM, dbref)
@@ -2567,9 +2571,10 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     }
     case PLEV_ERASED_RECORD:
     { RecordRef r = va_arg(args, RecordRef);	/* object erased */
-      term_t dbref = PL_new_term_ref();
+      term_t dbref;
 
-      rc = (  PL_unify_recref(dbref, r) &&
+      rc = (  (dbref = PL_new_term_ref()) &&
+	      PL_unify_recref(dbref, r) &&
 	      PL_unify_term(arg,
 			    PL_FUNCTOR, FUNCTOR_erased1,
 			      PL_TERM, dbref)
@@ -2593,19 +2598,23 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
       break;
     }
     case PLEV_BREAK:
+    case PLEV_BREAK_EXISTS:
     case PLEV_NOBREAK:
+    case PLEV_GCNOBREAK:
     { Clause clause = va_arg(args, Clause);
       int offset = va_arg(args, int);
-      term_t cref = PL_new_term_ref();
+      term_t cref;
 
-
-      rc = ( PL_unify_clref(cref, clause) &&
+      rc = ( (cref = PL_new_term_ref()) &&
+	     PL_unify_clref(cref, clause) &&
 	     PL_unify_term(arg,
 			   PL_FUNCTOR, FUNCTOR_break3,
 			     PL_TERM, cref,
 			     PL_INT, offset,
-			     PL_ATOM, ev == PLEV_BREAK ? ATOM_true
-						       : ATOM_false)
+			     PL_ATOM, ev == PLEV_BREAK     ? ATOM_true :
+				      ev == PLEV_NOBREAK   ? ATOM_false :
+				      ev == PLEV_GCNOBREAK ? ATOM_gc :
+							     ATOM_exist)
 	   );
       break;
     }
@@ -2613,10 +2622,12 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     { LocalFrame fr = va_arg(args, LocalFrame);
       term_t ref = PL_new_term_ref();
 
-      PL_put_frame(ref, fr);
-      rc = PL_unify_term(arg,
-			 PL_FUNCTOR, FUNCTOR_frame_finished1,
-			   PL_TERM, ref);
+      rc = ( (ref = PL_new_term_ref()) &&
+	     (PL_put_frame(ref, fr),TRUE) &&
+	     PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_frame_finished1,
+			     PL_TERM, ref)
+	   );
       break;
     }
 #ifdef O_PLMT

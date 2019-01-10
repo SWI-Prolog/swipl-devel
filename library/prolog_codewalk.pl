@@ -93,7 +93,8 @@ source file is passed into _Where.
                        trace_reference(any),
                        on_trace(callable),
                        infer_meta_predicates(oneof([false,true,all])),
-                       evaluate(boolean)
+                       evaluate(boolean),
+                       verbose(boolean)
                      ]).
 
 :- record
@@ -112,7 +113,8 @@ source file is passed into _Where.
                 caller,                     % Head of the caller
                 initialization,             % Initialization source
                 undecided,                  % Error to throw error
-                evaluate:boolean).          % Do partial evaluation
+                evaluate:boolean,           % Do partial evaluation
+                verbose:boolean=false).     % Report progress
 
 :- thread_local
     multifile_predicate/3.          % Name, Arity, Module
@@ -132,8 +134,8 @@ source file is passed into _Where.
 %
 %     * undefined(+Action)
 %     Action defines what happens if the analysis finds a
-%     definitely undefined predicate.  One of =ignore= or
-%     =error=.
+%     definitely undefined predicate.  One of `ignore` or
+%     `error` (default is `ignore`).
 %
 %     * autoload(+Boolean)
 %     Try to autoload code while walking. This is enabled by default
@@ -184,6 +186,10 @@ source file is passed into _Where.
 %     If =false= (default =true=), to not try to obtain detailed
 %     source information for printed messages.
 %
+%     * verbose(+Boolean)
+%     If `true` (default `false`), report derived meta-predicates
+%     and iterations.
+%
 %     @compat OnTrace was called using Caller-Location in older
 %             versions.
 
@@ -209,7 +215,11 @@ prolog_walk_code(Iteration, Options) :-
     statistics(cputime, CPU1),
     (   New \== []
     ->  CPU is CPU1-CPU0,
-        print_message(informational,
+        (   walk_option_verbose(OTerm, true)
+        ->  Level = informational
+        ;   Level = silent
+        ),
+        print_message(Level,
                       codewalk(reiterate(New, Iteration, CPU))),
         succ(Iteration, Iteration2),
         prolog_walk_code(Iteration2, Options)
@@ -219,7 +229,7 @@ prolog_walk_code(Iteration, Options) :-
 is_meta(on_trace).
 
 
-%!  walk_clauses(Clauses, +OTerm) is det.
+%!  walk_clauses(+Clauses, +OTerm) is det.
 %
 %   Walk the given clauses.
 

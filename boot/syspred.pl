@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -74,6 +74,7 @@
             set_prolog_stack/2,
             prolog_stack_property/2,
             absolute_file_name/2,
+            tmp_file_stream/3,                  % +Enc, -File, -Stream
             require/1,
             call_with_depth_limit/3,            % :Goal, +Limit, -Result
             call_with_inference_limit/3,        % :Goal, +Limit, -Result
@@ -518,6 +519,13 @@ source_file_property(File, P) :-
 
 property_source_file(modified(Time), File) :-
     '$time_source_file'(File, Time, user).
+property_source_file(source(Source), File) :-
+    (   '$source_file_property'(File, from_state, true)
+    ->  Source = state
+    ;   '$source_file_property'(File, resource, true)
+    ->  Source = resource
+    ;   Source = file
+    ).
 property_source_file(module(M), File) :-
     (   nonvar(M)
     ->  '$current_module'(M, File)
@@ -626,9 +634,12 @@ prolog_load_context(reloading, true) :-
 %
 %   Remove all traces of loading file.
 
+:- dynamic system:'$resolved_source_path'/2.
+
 unload_file(File) :-
     (   canonical_source_file(File, Path)
-    ->  '$unload_file'(Path)
+    ->  '$unload_file'(Path),
+        retractall(system:'$resolved_source_path'(_, Path))
     ;   true
     ).
 
@@ -822,6 +833,12 @@ property_predicate(implementation_module(IM), M:Head) :-
     ->  IM = LoadModule
     ;   M = IM
     ).
+property_predicate(iso, _:Head) :-
+    callable(Head),
+    !,
+    goal_name_arity(Head, Name, Arity),
+    current_predicate(system:Name/Arity),
+    '$predicate_property'(iso, system:Head).
 property_predicate(Property, Pred) :-
     define_or_generate(Pred),
     '$predicate_property'(Property, Pred).
@@ -864,6 +881,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, exported, 1).
 '$predicate_property'(public, Pred) :-
     '$get_predicate_attribute'(Pred, public, 1).
+'$predicate_property'(non_terminal, Pred) :-
+    '$get_predicate_attribute'(Pred, non_terminal, 1).
 '$predicate_property'(foreign, Pred) :-
     '$get_predicate_attribute'(Pred, foreign, 1).
 '$predicate_property'((dynamic), Pred) :-
@@ -1262,7 +1281,7 @@ format(Fmt) :-
                  *            FILES             *
                  *******************************/
 
-%       absolute_file_name(+Term, -AbsoluteFile)
+%!  absolute_file_name(+Term, -AbsoluteFile)
 
 absolute_file_name(Name, Abs) :-
     atomic(Name),
@@ -1276,6 +1295,19 @@ absolute_file_name(Term, Abs) :-
     '$chk_file'(Term, [''], [], true, File),
     !,
     '$absolute_file_name'(File, Abs).
+
+%!  tmp_file_stream(-File, -Stream, +Encoding) is det.
+%!  tmp_file_stream(+Encoding, -File, -Stream) is det.
+
+tmp_file_stream(Enc, File, Stream) :-
+    atom(Enc), var(File), var(Stream),
+    !,
+    '$tmp_file_stream'('', Enc, File, Stream).
+tmp_file_stream(File, Stream, Options) :-
+    current_prolog_flag(encoding, DefEnc),
+    '$option'(encoding(Enc), Options, DefEnc),
+    '$option'(extension(Ext), Options, ''),
+    '$tmp_file_stream'(Ext, Enc, File, Stream).
 
 
                 /********************************
@@ -1410,7 +1442,7 @@ thread_join(Id) :-
 %     Enable the separate GC thread.  All implicit atom and clause
 %     garbage collection is executed by the thread `gc`.
 %     - stop
-%     Stop the `gc` thread it it is running.  The thread is recreated
+%     Stop the `gc` thread if it is running.  The thread is recreated
 %     on the next implicit atom or clause garbage collection.  Used
 %     by fork/1 to avoid forking a multi-threaded application.
 

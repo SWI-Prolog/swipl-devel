@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2011, University of Amsterdam
+    Copyright (c)  2008-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,11 +35,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #ifdef __WINDOWS__
 #include <direct.h>
 #else
 #include <unistd.h>
 #endif
+
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+
+int verbose = 0;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file generates pl-atom.i[ch] and   pl-funct.i[ch] from ATOMS. Older
@@ -49,6 +57,49 @@ The program must be called in  the   source  directory  or with a single
 argument that specifies the source directory.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+cmp_file(const char *from, const char *to)
+{ FILE *f1 = fopen(from, "r");
+  FILE *f2 = fopen(to, "r");
+  int rc = -1;
+
+  if ( f1 && f2 )
+  { char l1[1024];
+    char l2[1024];
+
+    while ( fgets(l1, sizeof(l1), f1) )
+    { if ( fgets(l2, sizeof(l2), f2) )
+      { if ( strcmp(l1, l2) == 0 )
+	  continue;
+      }
+      goto out;
+    }
+    if ( !fgets(l2, sizeof(l2), f2) )
+      rc = 0;
+  }
+
+out:
+  if ( f1 ) fclose(f1);
+  if ( f2 ) fclose(f2);
+  return rc;
+}
+
+
+static int
+update_file(const char *from, const char *to)
+{ if ( cmp_file(from, to) == 0 )
+  { if ( verbose )
+      fprintf(stderr, "\t%s: no change\n", to);
+    return remove(from);
+  } else
+  { remove(to);
+    if ( verbose )
+      fprintf(stderr, "\t%s: updated\n", to);
+    return rename(from, to);
+  }
+}
+
+
 int
 main(int argc, char **argv)
 { FILE *aic, *aih, *fic, *fih;
@@ -58,23 +109,31 @@ main(int argc, char **argv)
   int line=0;
   char buf[256];
   int errors=0;
+  char atom_defs[MAXPATHLEN];
 
-  if ( argc == 2 )
-  { if ( chdir(argv[1]) )
-    { fprintf(stderr, "%s: Could not chdir to %s\n", argv[0], argv[1]);
-      exit(1);
-    }
+  argc--;
+  argv++;
+
+  if ( argc >= 1 && strcmp(argv[0], "-v") == 0 )
+  { argc--;
+    argv++;
+    verbose = 1;
   }
 
-  aic = fopen("pl-atom.ic", "w");
-  aih = fopen("pl-atom.ih", "w");
-  fic = fopen("pl-funct.ic", "w");
-  fih = fopen("pl-funct.ih", "w");
+  if ( argc == 1 )
+    snprintf(atom_defs, sizeof(atom_defs), "%s/%s", argv[0], "ATOMS");
+  else
+    snprintf(atom_defs, sizeof(atom_defs), "%s", "ATOMS");
+
+  aic = fopen("pl-atom.ic.tmp", "w");
+  aih = fopen("pl-atom.ih.tmp", "w");
+  fic = fopen("pl-funct.ic.tmp", "w");
+  fih = fopen("pl-funct.ih.tmp", "w");
 
   fprintf(aih, "#define ATOM_ MK_ATOM(%d)\n", atom++);
   fprintf(aic, "ATOM(\"\"),\n");
 
-  in = fopen("ATOMS", "r");
+  in = fopen(atom_defs, "r");
   while(fgets(buf, sizeof(buf), in))
   { line++;
 
@@ -99,9 +158,9 @@ main(int argc, char **argv)
 	int arity;
 
 	if ( sscanf(buf, "F%s%d", id, &arity) == 2 )
-	{ char name[256];
+	{ char name[300];
 
-	  sprintf(name, "%s%d", id, arity);
+	  snprintf(name, sizeof(name)-1, "%s%d", id, arity);
 	  fprintf(fih, "#define FUNCTOR_%-12s MK_FUNCTOR(%d, %d)\n", name, functor++, arity);
 	  fprintf(fic, "FUNCTOR(ATOM_%s, %d),\n", id, arity);
 	} else
@@ -123,6 +182,13 @@ main(int argc, char **argv)
   fclose(aih);
   fclose(fic);
   fclose(fih);
+
+  if ( !errors )
+  { errors += update_file("pl-atom.ic.tmp",  "pl-atom.ic");
+    errors += update_file("pl-atom.ih.tmp",  "pl-atom.ih");
+    errors += update_file("pl-funct.ic.tmp", "pl-funct.ic");
+    errors += update_file("pl-funct.ih.tmp", "pl-funct.ih");
+  }
 
   return errors ? 1 : 0;
 }

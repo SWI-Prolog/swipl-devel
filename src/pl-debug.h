@@ -3,7 +3,8 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -63,6 +64,7 @@
 #define MSG_UNLOAD		 21
 #define MSG_INDEX_FIND		 22
 #define MSG_INDEX_UPDATE	 23
+#define MSG_INDEX_DEEP		 24
 #define MSG_TRACE		 25
 
 #define MSG_QLF_INTEGER		 26
@@ -91,12 +93,13 @@
 #define MSG_NSOLS		 48
 #define MSG_SRCFILE		 49
 #define MSG_DESTROY_MODULE	 50
-#define MSG_QUEUE_GC		 51
-#define MSG_ACYCLIC		 52
-#define MSG_OPERATOR		 53
-#define MSG_MUTEX_GC		 54
-#define MSG_REC_ATTVAR		 55
-#define MSG_TTY			 56
+#define MSG_CREATE_MODULE	 51
+#define MSG_QUEUE_GC		 52
+#define MSG_ACYCLIC		 53
+#define MSG_OPERATOR		 54
+#define MSG_MUTEX_GC		 55
+#define MSG_REC_ATTVAR		 56
+#define MSG_TTY			 57
 
 #define MSG_READ_TOKEN		 60
 
@@ -131,10 +134,12 @@
 #define	MSG_GC_HOLE		 120
 #define	MSG_GC_SWEEP		 121
 #define	MSG_GC_CHECK		 122
-#define	MSG_SHIFT_PROGRESS	 123
-#define	MSG_SHIFT_POINTER	 124
-#define	MSG_SHIFT_FRAME		 125
-#define	MSG_STACK_OVERFLOW	 126
+#define	MSG_SHIFT		 123
+#define	MSG_SHIFT_PROGRESS	 124
+#define	MSG_SHIFT_POINTER	 125
+#define	MSG_SHIFT_FRAME		 126
+#define	MSG_STACK_OVERFLOW	 127
+#define MSG_UNWIND_EXCEPTION	 128
 
 #define MSG_ATTVAR_LINK		 150
 #define MSG_CALL_RESIDUE_VARS	 151
@@ -156,6 +161,7 @@
 
 #define MSG_JIT			 180
 #define MSG_JIT_DELINDEX	 181
+#define MSG_JIT_POOR		 182
 
 #define MSG_RECONSULT		 190
 #define MSG_RECONSULT_PRED	 191
@@ -165,7 +171,13 @@
 #define MSG_TRIE_PUT_TERM	 200
 #define MSG_TRIE_GC		 201
 
+#define MSG_ZIP			 250
+#define MSG_ZIP_STATE		 251
+
+#define MSG_MODULE_REF		 260
+
 #define MSG_TABLING_WORK	 300
+#define MSG_TABLING_MODED	 301
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001

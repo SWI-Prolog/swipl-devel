@@ -62,7 +62,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int allocStacks(size_t local, size_t global, size_t trail);
+static int allocStacks(void);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
@@ -88,15 +88,15 @@ setupProlog(void)
   initCharTypes();
   DEBUG(1, Sdprintf("foreign predicates ...\n"));
   initForeign();
-#if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
-#endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
-  if ( !initPrologStacks(GD->options.localSize,
-			 GD->options.globalSize,
-			 GD->options.trailSize) )
-    fatalError("Not enough address space to allocate Prolog stacks");
+  if ( !initPrologStacks(GD->options.stackLimit) )
+    outOfCore();
+  GD->combined_stack.name	 = "stack";
+  GD->combined_stack.gc		 = TRUE;
+  GD->combined_stack.overflow_id = STACK_OVERFLOW;
+
   initPrologLocalData(PASS_LD1);
   LD->tabling.node_pool.limit = GD->options.tableSpace;
 
@@ -197,9 +197,6 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if HAVE_SIGNAL
-#define HAVE_SIGNALS 1
-
 #define PLSIG_PREPARED 0x00010000	/* signal is prepared */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -214,6 +211,7 @@ static struct signame
   int	      flags;
 } signames[] =
 {
+#ifdef HAVE_SIGNAL
 #ifdef SIGHUP
   { SIGHUP,	"hup",    0},
 #endif
@@ -292,12 +290,12 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
+#endif /*HAVE_SIGNAL*/
 
 /* The signals below here are recorded as Prolog interrupts, but
    not supported by OS signals.  They start at offset 32.
 */
 
-  { SIG_EXCEPTION,     "prolog:exception",     0 },
 #ifdef SIG_ATOM_GC
   { SIG_ATOM_GC,       "prolog:atom_gc",       0 },
 #endif
@@ -545,10 +543,8 @@ dispatch_signal(int sig, int sync)
 		   sh->handler, LD->signal.pending[0], LD->signal.pending[1]));
 
     if ( exception_term && !sync )	/* handler: PL_raise_exception() */
-    { LD->signal.exception = PL_record(exception_term);
-      PL_raise(SIG_EXCEPTION);
-      exception_term = 0;
-    }
+      fatalError("Async exception handler for signal %s (%d) raised "
+		 "an exception", signal_name(sig), sig);
   }
 
   LD->signal.current = saved_current_signal;
@@ -598,7 +594,7 @@ set_sighandler(int sig, handler_t func)
     return old.sa_handler;
   else
     return SIG_DFL;
-#else
+#elif defined(HAVE_SIGNAL)
 #ifdef __WINDOWS__
   switch( sig )				/* Current Windows versions crash */
   { case SIGABRT:			/* when given a non-supported value */
@@ -611,15 +607,12 @@ set_sighandler(int sig, handler_t func)
     default:
       return SIG_IGN;
   }
-#endif
+#endif /*__WINDOWS__*/
   return signal(sig, func);
+#else
+  return NULL;
 #endif
 }
-
-#ifdef HAVE_SIGINFO_H
-#include <siginfo.h>
-#endif
-
 
 static SigHandler
 prepareSignal(int sig)
@@ -660,6 +653,7 @@ hupHandler(int sig)
 #endif
 
 
+#ifdef HAVE_SIGNAL
 /* terminate_handler() is called on termination signals like SIGTERM.
    It runs hooks registered using PL_exit_hook() and then kills itself.
    The hooks are called with the exit status `3`.
@@ -691,26 +685,7 @@ initTerminationSignals(void)
   PL_signal(SIGQUIT, terminate_handler);
 #endif
 }
-
-static void
-sig_exception_handler(int sig)
-{ GET_LD
-  (void)sig;
-
-  if ( HAS_LD && LD->signal.exception )
-  { record_t ex = LD->signal.exception;
-
-    LD->signal.exception = 0;
-
-    PL_put_variable(exception_bin);
-    PL_recorded(ex, exception_bin);
-    PL_erase(ex);
-    exception_term = exception_bin;
-
-    DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
-  }
-}
-
+#endif /*HAVE_SIGNAL*/
 
 static void
 agc_handler(int sig)
@@ -772,10 +747,12 @@ initSignals(void)
   /* This is general signal handling that is not strictly needed */
   if ( truePrologFlag(PLFLAG_SIGNALS) )
   { struct signame *sn = signames;
+#ifdef HAVE_SIGNAL
 #ifdef SIGPIPE
     set_sighandler(SIGPIPE, SIG_IGN);
 #endif
     initTerminationSignals();
+#endif /*HAVE_SIGNAL*/
     initBackTrace();
     for( ; sn->name; sn++)
     {
@@ -806,7 +783,6 @@ initSignals(void)
   /* these signals are not related to Unix signals and can thus */
   /* be enabled always */
 
-  PL_signal(SIG_EXCEPTION|PL_SIGSYNC,     sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC,	          gc_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
@@ -1022,12 +998,13 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
   return sig;
 }
 
+#ifndef SIG_DFL
+#define SIG_DFL (handler_t)-1
+#endif
 
 handler_t
 PL_signal(int sigandflags, handler_t func)
-{
-#ifdef HAVE_SIGNALS
-  pl_sigaction_t act = {0};
+{ pl_sigaction_t act = {0};
   pl_sigaction_t old;
 
   act.sa_cfunction = func;
@@ -1044,9 +1021,6 @@ PL_signal(int sigandflags, handler_t func)
   }
 
   return NULL;
-#else
-  return SIG_DFL;
-#endif
 }
 
 
@@ -1077,7 +1051,7 @@ handleSignals(ARG1_LD)
   for(i=0; i<2; i++)
   { while( LD->signal.pending[i] )
     { int sig = 1+32*i;
-      int mask = 1;
+      unsigned mask = 1;
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
@@ -1148,6 +1122,7 @@ endCritical__LD(ARG1_LD)
 }
 
 
+#ifdef HAVE_SIGNAL
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 on_signal(?SigNum, ?SigName, :OldHandler, :NewHandler)
 
@@ -1285,45 +1260,19 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 		 *	       STACKS		*
 		 *******************************/
 
-static void
-enforce_limit(size_t *size, size_t maxarea, const char *name)
-{ if ( *size == 0 )
-  { *size = maxarea;
-  } else if ( *size > (size_t)(MAXTAGGEDPTR+1) )
-  { if ( *size != (size_t)-1 )		/* user demanded maximum */
-      Sdprintf("WARNING: Maximum stack size for %s stack is %lld MB\n",
-	       name, (int64_t)((MAXTAGGEDPTR+1) / (1 MB)));
-    *size = MAXTAGGEDPTR+1;
-  }
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 initPrologStacks() creates the stacks for the calling thread. It is used
 both at system startup to create the stack   for the main thread as from
 pl-thread.c to create stacks for Prolog threads.
-
-allocStacks() does the  real  work   and  has  several  implementations,
-depending on the OS features.
-
-Requested stack sizes are in bytes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-initPrologStacks(size_t local, size_t global, size_t trail)
+initPrologStacks(size_t limit)
 { GET_LD
-  size_t maxarea;
 
-  maxarea = MAXTAGGEDPTR+1;		/* MAXTAGGEDPTR = 0x..fff.. */
-  if ( maxarea > 1024 MB )		/* 64-bit machines */
-    maxarea = 1024 MB;
-
-  enforce_limit(&local,	   maxarea,  "local");
-  enforce_limit(&global,   maxarea,  "global");
-  enforce_limit(&trail,	   maxarea,  "trail");
-
-  if ( !allocStacks(local, global, trail) )
-    fail;
+  LD->stacks.limit = limit;
+  if ( !allocStacks() )
+    return FALSE;
 
   LD->stacks.local.overflow_id    = LOCAL_OVERFLOW;
   LD->stacks.global.overflow_id   = GLOBAL_OVERFLOW;
@@ -1345,7 +1294,7 @@ initPrologStacks(size_t local, size_t global, size_t trail)
   DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
 		    base_addresses[STG_TRAIL]));
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1411,16 +1360,14 @@ init_stack() initializes the stack straucture. Params:
 
   - name is the name of the stack (for diagnostic purposes)
   - size is the allocated size
-  - limit is the maximum to which the stack is allowed to grow
   - spare is the amount of spare stack we reserve
   - gc indicates whether gc can collect data on the stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare, int gc)
+init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
 { s->name	= name;
   s->top	= s->base;
-  s->size_limit	= limit;
   s->spare      = spare;
   s->def_spare  = spare;
   s->min_free   = 256*sizeof(word);
@@ -1432,21 +1379,16 @@ init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare, int gc)
 
 
 static int
-allocStacks(size_t local, size_t global, size_t trail)
+allocStacks(void)
 { GET_LD
-  size_t minglobal   = 8*SIZEOF_VOIDP K;
-  size_t minlocal    = 4*SIZEOF_VOIDP K;
-  size_t mintrail    = 4*SIZEOF_VOIDP K;
-  size_t minargument = 1*SIZEOF_VOIDP K;
-  size_t argument    = 1 K K;		/* not really used */
+  size_t minglobal = 8*SIZEOF_VOIDP K;
+  size_t minlocal  = 4*SIZEOF_VOIDP K;
+  size_t mintrail  = 4*SIZEOF_VOIDP K;
+  size_t minarg    = 1*SIZEOF_VOIDP K;
 
   size_t itrail  = nextStackSizeAbove(mintrail-1);
   size_t iglobal = nextStackSizeAbove(minglobal-1);
   size_t ilocal  = nextStackSizeAbove(minlocal-1);
-
-  local    = max(local,    minlocal);
-  global   = max(global,   minglobal);
-  trail    = max(trail,    mintrail);
 
   gBase = NULL;
   tBase = NULL;
@@ -1454,29 +1396,29 @@ allocStacks(size_t local, size_t global, size_t trail)
 
   gBase = (Word)       stack_malloc(iglobal + ilocal);
   tBase = (TrailEntry) stack_malloc(itrail);
-  aBase = (Word *)     stack_malloc(minargument);
+  aBase = (Word *)     stack_malloc(minarg);
 
   if ( !gBase || !tBase || !aBase )
   { if ( gBase )
       *gBase++ = MARK_MASK;		/* compensate for freeStacks */
     freeStacks(PASS_LD1);
-    fail;
+    return FALSE;
   }
 
   lBase = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global, 512*SIZEOF_VOIDP, TRUE);
+	     "global",   iglobal, 512*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,  512*SIZEOF_VOIDP, FALSE);
+	     "local",    ilocal,  512*SIZEOF_VOIDP + LOCAL_MARGIN, FALSE);
   init_stack((Stack)&LD->stacks.trail,
-	     "trail",    itrail,  trail,  256*SIZEOF_VOIDP, TRUE);
+	     "trail",    itrail,  256*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.argument,
-	     "argument", minargument, argument, 0, FALSE);
+	     "argument", minarg,  0,                FALSE);
 
   LD->stacks.local.min_free = LOCAL_MARGIN;
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1566,6 +1508,8 @@ trim_stack(Stack s)
   { ssize_t reduce = s->def_spare - s->spare;
     ssize_t room = roomStackP(s);
 
+    DEBUG(MSG_SPARE_STACK, Sdprintf("Reset spare for %s (%zd->%zd)\n",
+				    s->name, s->spare, s->def_spare));
     if ( room > 0 && room < reduce )
     { DEBUG(MSG_SPARE_STACK,
 	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
@@ -1603,39 +1547,19 @@ gcPolicy(Stack s, int policy)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-trimStacks() reclaims all unused space on the stack. Note that the trail
-can have references to unused stack. We set the references to point to a
-dummy variable, so no harm  will  be   done.  Setting  it  to NULL would
-require a test in Undo(), which   is time-critical. trim_stacks normally
-isn't. This precaution is explicitly required  for the trimStacks() that
-result from a stack-overflow.
+trimStacks() reclaims all unused space on the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 trimStacks(int resize ARG_LD)
-{ int scantrail;
-
-  LD->trim_stack_requested = FALSE;
+{ LD->trim_stack_requested = FALSE;
 
   if ( resize )
-  { LocalFrame olb = lBase;
-    LocalFrame olm = lMax;
-    Word ogb = gBase;
-    Word ogm = gMax;
-
-    growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
-
-    if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
-      scantrail = TRUE;
-    else
-      scantrail = FALSE;
+  { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
   } else
   { trim_stack((Stack) &LD->stacks.local);
     trim_stack((Stack) &LD->stacks.global);
     trim_stack((Stack) &LD->stacks.trail);
-    trim_stack((Stack) &LD->stacks.argument);
-
-    scantrail = FALSE;
   }
 
 #ifdef SECURE_GC
@@ -1647,21 +1571,6 @@ trimStacks(int resize ARG_LD)
       *p = 0xbfbfbfbf;
   }
 #endif
-
-  if ( scantrail )
-  { TrailEntry te;
-
-    for(te = tTop; --te >= tBase; )
-    { Word p = te->address;
-
-      if ( isTrailVal(p) )
-	continue;
-
-      if ( !onStack(local, p) && !onStack(global, p) )
-      { te->address = valTermRef(LD->trim.dummy);
-      }
-    }
-  }
 
   DEBUG(CHK_SECURE,
 	{ scan_global(FALSE);
@@ -1742,6 +1651,37 @@ freePrologLocalData(PL_local_data_t *ld)
 		 *	     PREDICATES		*
 		 *******************************/
 
+int
+set_stack_limit(size_t limit)
+{ GET_LD
+
+  if ( limit < LD->stacks.limit &&
+       limit < sizeStack(local) +
+               sizeStack(global) +
+               sizeStack(trail) )
+  { garbageCollect();
+    trimStacks(TRUE PASS_LD);
+
+    if ( limit < sizeStack(local) +
+	         sizeStack(global) +
+	         sizeStack(trail) )
+    { term_t ex;
+
+
+      return ( (ex=PL_new_term_ref()) &&
+	       PL_put_int64(ex, limit) &&
+	       PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			ATOM_limit, ATOM_stacks, ex)
+	     );
+    }
+  }
+
+  LD->stacks.limit = limit;
+
+  return TRUE;
+}
+
+
 static
 PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 { PRED_LD
@@ -1776,28 +1716,17 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
     if ( k == ATOM_limit )
     { size_t newlimit;
 
-      if ( PL_unify_int64(old, stack->size_limit) &&
-	   PL_get_size_ex(value, &newlimit) )
-      { if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
-	{ if ( stack->gc )
-	  { garbageCollect();
-	    trimStacks(TRUE PASS_LD);
-	  }
+      if ( !printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "deprecated", 1,
+			   PL_FUNCTOR_CHARS, "set_prolog_stack", 2,
+			     PL_TERM, A1,
+			     PL_ATOM, ATOM_limit) )
+	return FALSE;
 
-	  if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
-	    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-			    ATOM_limit, ATOM_stack, name);
-	}
-
-	newlimit += stack->spare;
-	if ( newlimit > MAXTAGGEDPTR+1 )
-	  newlimit = MAXTAGGEDPTR+1;
-
-	stack->size_limit = newlimit;
-	return TRUE;
-      }
-
-      return FALSE;
+      return ( PL_unify_int64(old, LD->stacks.limit) &&
+	       PL_get_size_ex(value, &newlimit) &&
+	       set_stack_limit(newlimit)
+	     );
     }
     if ( k == ATOM_spare )
     { size_t spare = stack->def_spare/sizeof(word);
@@ -1835,9 +1764,11 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 
 BeginPredDefs(setup)
   PRED_DEF("$set_prolog_stack",	  4, set_prolog_stack,	  0)
-  PRED_DEF("$on_signal",	  4, on_signal,		  0)
   PRED_DEF("trim_stacks",	  0, trim_stacks,	  0)
+#ifdef HAVE_SIGNAL
+  PRED_DEF("$on_signal",	  4, on_signal,		  0)
 #ifdef SIG_ALERT
   PRED_DEF("prolog_alert_signal", 2, prolog_alert_signal, 0)
+#endif
 #endif
 EndPredDefs

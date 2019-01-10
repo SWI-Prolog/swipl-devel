@@ -78,6 +78,18 @@ below. Stack size options can also take the value \const{inf} or
 the platform.
 
 \begin{description}
+    \termitem{affinity}{+CpuSet}
+Specify that the thread should only run on the specified CPUs (cores).
+\arg{CpuSet} is a list of integers between 0 (zero) and the known number
+of CPUs (see \prologflag{cpu_count}). If \arg{CpuSet} is empty a
+\const{domain_error} is raised. Referring to CPUs equal to or higher
+than the known number of CPUs returns an \const{existence_error}.
+
+This option is currently implemented for systems that provide
+pthread_attr_setaffinity_np(). The option is silently ignored on other
+systems.\bug{There is currently no way to discover whether this option
+is supported.}
+
     \termitem{alias}{AliasName}
 Associate an `alias name' with the thread. This name may be used to
 refer to the thread and remains valid until the thread is joined (see
@@ -129,28 +141,21 @@ inherited:
         \item The default encoding (see \prologflag{encoding})
         \item The default locale (see setlocale/1)
         \item All prolog flags
-	\item The limits of Prolog stacks (see set_prolog_stack/2)
+	\item The stack limit (see Prolog flag \prologflag{stack_limit}).
     \end{itemize}
 
-    \termitem{global}{K-Bytes}
-Set the limit to which the global stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-G} command line option.
+    \termitem{queue_max_size}{Size}
+Enforces a maximum to the number of terms in the input queue.  See
+message_queue_create/2 with the \term{max_size} option for details.
 
-    \termitem{local}{K-Bytes}
-Set the limit to which the local stack of this thread may grow.  If
-omitted, the limit of the calling thread is used.  See also the
-\cmdlineoption{-L} command line option.
+    \termitem{stack_limit}{Bytes}
+Set the size limit for the Prolog stacks. See the Prolog flag
+\prologflag{stack_limit}.  The default is inherited from the calling
+thread or the thread specified using \term{inherit_from}{ThreadId}.
 
     \termitem{c_stack}{K-Bytes}
-Set the limit to which the system stack of this thread may grow.  The
-default, minimum and maximum values are system-dependent.\footnote{Older
-versions used \const{stack}.  This is still accepted as a synonym.}
-
-    \termitem{trail}{K-Bytes}
-Set the limit to which the trail stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-T} command line option.
+Set the limit to which the C~stack of this thread may grow.  The
+default, minimum and maximum values are system-dependent.
 \end{description}
 
 The \arg{Goal} argument is \emph{copied} to the new Prolog engine.
@@ -253,6 +258,17 @@ are using CPU time. This option is provided if the thread implementation
 provides pthread_setconcurrency(). Solaris is a typical example of this
 family. On other systems this predicate unifies \arg{Old} to 0 (zero)
 and succeeds silently.
+
+    \predicate{thread_affinity}{3}{+ThreadID, -Current, +New}
+True when \arg{Current} is unified with the current thread affinity and
+the thread affinity is successfully set to \arg{New}. The \jargon{thread
+affinity} specifies the set of CPUs on which this thread is allowed to
+run.  The affinity is represented as a list of non-negative integers.
+See also the option \term{affinity}{+Affinity} of thread_create/3.
+
+This predicate is only present if this functionality can be supported
+and has been ported to the target operating system.   Currently, only
+Linux support is provided.
 \end{description}
 
 
@@ -956,28 +972,31 @@ Creates a new Prolog engine in the calling thread. If the calling thread
 already has an engine the reference count of the engine is incremented.
 The \arg{attr} argument can be \const{NULL} to create a thread with
 default attributes.  Otherwise it is a pointer to a structure with
-the definition below.  For any field with value `0', the default is
-used.  The \const{cancel} field may be filled with a pointer to a
-function that is called when PL_cleanup() terminates the running
-Prolog engines. If this function is not present or returns \const{FALSE}
-pthread_cancel() is used.  The \const{flags} field defines the following
-flags:
+the definition below.\footnote{The structure layout changed in version
+7.7.14.} For any field with value `0', the default is used. The
+\const{cancel} field may be filled with a pointer to a function that is
+called when PL_cleanup() terminates the running Prolog engines. If this
+function is not present or returns \const{FALSE} pthread_cancel() is
+used. The \const{flags} field defines the following flags:
 
 \begin{description}
     \termitem{PL_THREAD_NO_DEBUG}{}
 If this flag is present, the thread starts in normal no-debug status.
 By default, the debug status is inherited from the main thread.
+    \termitem{PL_THREAD_NOT_DETACHED}{}
+By default the new thread is created in \jargon{detached} mode.  With
+this flag it is created normally, allowing Prolog to \jargon{join} the
+thread.
 \end{description}
 
 \begin{code}
 typedef struct
-{ unsigned long	    local_size;	   /* Stack sizes (Kbytes) */
-  unsigned long	    global_size;
-  unsigned long	    trail_size;
-  unsigned long	    argument_size;
-  char *	    alias;	   /* alias name */
-  int		   (*cancel)(int thread);
-  intptr_t	    flags;
+{ size_t    stack_limit;		/* Total stack limit (bytes) */
+  size_t    table_space;		/* Total tabling space limit (bytes) */
+  char *    alias;		        /* alias name */
+  int	    (*cancel)(int thread);	/* cancel function */
+  intptr_t  flags;			/* PL_THREAD_* flags */
+  size_t    max_queue_size;		/* Max size of associated queue */
 } PL_thread_attr_t;
 \end{code}
 

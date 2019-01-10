@@ -152,11 +152,16 @@ prefix([E|T0], [E|T]) :-
 
 %!  select(?Elem, ?List1, ?List2)
 %
-%   Is true when List1, with Elem removed, results in List2.
+%   Is true when List1,  with  Elem   removed,  results  in  List2. This
+%   implementation is determinsitic if the  last   element  of List1 has
+%   been selected.
 
-select(X, [X|Tail], Tail).
-select(Elem, [Head|Tail], [Head|Rest]) :-
-    select(Elem, Tail, Rest).
+select(X, [Head|Tail], Rest) :-
+    select3_(Tail, Head, X, Rest).
+
+select3_(Tail, Head, Head, Tail).
+select3_([Head2|Tail], Head, X, [Head|Rest]) :-
+    select3_(Tail, Head2, X, Rest).
 
 
 %!  selectchk(+Elem, +List, -Rest) is semidet.
@@ -189,11 +194,11 @@ selectchk(Elem, List, Rest) :-
 %   @see selectchk/4 provides a semidet version.
 
 select(X, XList, Y, YList) :-
-    select_(XList, X, Y, YList).
+    select4_(XList, X, Y, YList).
 
-select_([X|List], X, Y, [Y|List]).
-select_([X0|XList], X, Y, [X0|YList]) :-
-    select_(XList, X, Y, YList).
+select4_([X|List], X, Y, [Y|List]).
+select4_([X0|XList], X, Y, [X0|YList]) :-
+    select4_(XList, X, Y, YList).
 
 %!  selectchk(?X, ?XList, ?Y, ?YList) is semidet.
 %

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -42,15 +42,21 @@
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  - MAXSEARCH
-  Maximum number of clauses we look ahead on indexed clauses for an
-  alternative clause. If the choice is committed this is lost effort, if
-  it reaches the end of the clause list without finding one the call is
-  deterministic.
+  - MAX_LOOKAHEAD
+    Maximum number of clauses we look ahead on indexed clauses for an
+    alternative clause. If the choice is committed this is lost effort,
+    if it reaches the end of the clause list without finding one the
+    call is deterministic.
+  - MIN_SPEEDUP
+    Do not create an index if the speedup is less
+  - MAX_VAR_FRAC
+    Do not create an index if the fraction of clauses with a variable
+    in the target position exceeds this threshold.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAXSEARCH      100
+#define MAX_LOOKAHEAD  100
 #define MIN_SPEEDUP    1.5
+#define MAX_VAR_FRAC   0.1
 
 
 		 /*******************************
@@ -61,23 +67,43 @@
 #define ISDEADCI(ci) ((ci) == DEAD_INDEX)
 
 typedef struct hash_hints
-{ unsigned short args[MAX_MULTI_INDEX];	/* Hash these arguments */
+{ iarg_t	args[MAX_MULTI_INDEX];	/* Hash these arguments */
   float		speedup;		/* Expected speedup */
   unsigned int	ln_buckets;		/* Lg2 of #buckets to use */
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int		bestHash(Word av, Definition def, ClauseIndex ci,
-				 hash_hints *hints ARG_LD);
-static ClauseIndex	hashDefinition(Definition def, hash_hints *h);
-static void		replaceIndex(Definition def,
-				     ClauseIndex *cip, ClauseIndex ci);
-static void		deleteIndexP(Definition def, ClauseIndex *cip);
-static void		deleteIndex(Definition def, ClauseIndex ci);
-static void		insertIndex(Definition def, ClauseIndex ci);
-static void		setClauseChoice(ClauseChoice chp, ClauseRef cref,
-					gen_t generation ARG_LD);
+typedef struct index_context
+{ gen_t		generation;		/* Current generation */
+  Definition	predicate;		/* Current predicate */
+  ClauseChoice	chp;			/* Clause choice point */
+  int		depth;			/* current depth (0..) */
+  iarg_t	position[MAXINDEXDEPTH+1]; /* Keep track of argument position */
+} index_context, *IndexContext;
 
+static int	bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
+			 hash_hints *hints, IndexContext ctx ARG_LD);
+static ClauseIndex hashDefinition(ClauseList clist, hash_hints *h,
+				  IndexContext ctx);
+static void	replaceIndex(Definition def, ClauseList cl,
+			     ClauseIndex *cip, ClauseIndex ci);
+static void	deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip);
+static void	deleteIndex(Definition def, ClauseList cl, ClauseIndex ci);
+static void	insertIndex(Definition def, ClauseList clist, ClauseIndex ci);
+static void	setClauseChoice(ClauseChoice chp, ClauseRef cref,
+				gen_t generation ARG_LD);
+static void	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
+static void	addClauseToListIndexes(Definition def, ClauseList cl,
+				       Clause clause, ClauseRef where);
+static void	insertIntoSparseList(ClauseRef cref,
+				     ClauseRef *headp, ClauseRef *tailp,
+				     ClauseRef where);
+static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
+				      IndexContext ctx ARG_LD);
+static Code	skipToTerm(Clause clause, const iarg_t *position);
+static void	unalloc_index_array(void *p);
+static void	wait_for_index(const ClauseIndex ci);
+static void	completed_index(ClauseIndex ci);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -90,13 +116,32 @@ tag-bits.
 NOTE: this function must be kept  consistent with argKey() in pl-comp.c!
 NOTE: This function returns 0 on non-indexable   fields, which is why we
 guarantee that the value is non-0 for indexable values.
+NOTE: Indirects should not collide  with   functor_t  to  allow for deep
+indexing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline int
 hashIndex(word key, int buckets)
-{ word k = key >> LMASK_BITS;
+{ unsigned int k = MurmurHashIntptr(key, MURMUR_SEED);
 
-  return (int)((key^k) & (buckets-1));
+  return k & (buckets-1);
+}
+
+
+static inline int
+canIndex(word w ARG_LD)
+{ for(;;)
+  { switch(tag(w))
+    { case TAG_VAR:
+      case TAG_ATTVAR:
+	return FALSE;
+      case TAG_REFERENCE:
+	w = *unRef(w);
+	continue;
+      default:
+	return TRUE;
+    }
+  }
 }
 
 
@@ -120,7 +165,8 @@ indexOfWord(word w ARG_LD)
 	word k;
 
 	k = MurmurHashAligned2(p+1, n*sizeof(*p), MURMUR_SEED);
-	if ( !k ) k = 1;
+	k &= ~((word)STG_GLOBAL);	/* avoid confusion with functor_t */
+	if ( !k ) k = 1;		/* avoid no-key */
 	return k;
       }
       case TAG_COMPOUND:
@@ -154,14 +200,17 @@ nextClauseArg1(ClauseChoice chp, gen_t generation ARG_LD)
   { if ( (!cref->d.key || key == cref->d.key) &&
 	 visibleClauseCNT(cref->value.clause, generation))
     { ClauseRef result = cref;
-      int maxsearch = MAXSEARCH;
+      int maxsearch = MAX_LOOKAHEAD;
 
       for( cref = cref->next; cref; cref = cref->next )
-      { if ( ((!cref->d.key || key == cref->d.key) &&
-	      visibleClauseCNT(cref->value.clause, generation)) ||
-	     --maxsearch == 0 )
+      { if ( (!cref->d.key || key == cref->d.key) )
+	{ if ( visibleClauseCNT(cref->value.clause, generation) )
+	  { chp->cref = cref;
+	    return result;
+	  }
+	}
+	if ( --maxsearch == 0 )
 	{ setClauseChoice(chp, cref, generation PASS_LD);
-
 	  return result;
 	}
       }
@@ -183,26 +232,58 @@ this functor, in which case we can use   this or we don't. In the latter
 case we must still perform the traditional   search as clauses without a
 key may match.
 
+(*) We gave up indexed search due to  exceeding depth. We should set key
+to  0  to  avoid  using  the    first   argument  key  in  nextClause().
+Alternatively we'd have to  reset  the   argv  to  the  appropriate deep
+argument inside nextClause, but  unfortunately  we   do  not  know which
+argument we are processing.
+
 TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-nextClauseFromBucket(ClauseChoice chp, gen_t generation, int is_list ARG_LD)
+nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 { ClauseRef cref;
-  word key = chp->key;
+  word key = ctx->chp->key;
 
-  if ( is_list )
+  if ( ci->is_list )
   { DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
 
+    assert(ci->args[1] == 0);
+
   non_indexed:
-    for(cref = chp->cref; cref; cref = cref->next)
+    for(cref = ctx->chp->cref; cref; cref = cref->next)
     { if ( cref->d.key == key )
       { ClauseList cl = &cref->value.clauses;
 	ClauseRef cr;
 
+	DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
+
+	if ( isFunctor(cref->d.key) && ctx->depth < MAXINDEXDEPTH )
+	{ int an = ci->args[0]-1;
+	  Word a = argv+an;
+	  Functor at;
+	  size_t argc;
+
+	  deRef(a);
+	  assert(isTerm(*a));
+	  at = valueTerm(*a);
+	  argv = at->arguments;
+	  argc = arityFunctor(at->definition);
+
+	  ctx->position[ctx->depth++] = an;
+	  ctx->position[ctx->depth]   = END_INDEX_POS;
+
+	  DEBUG(MSG_INDEX_DEEP,
+		Sdprintf("Recursive index for %s at level %d\n",
+			 keyName(cref->d.key), ctx->depth));
+	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
+	}
+
+	ctx->chp->key = 0;		/* See (*) */
 	for(cr=cl->first_clause; cr; cr=cr->next)
-	{ if ( visibleClauseCNT(cr->value.clause, generation) )
-	  { setClauseChoice(chp, cr->next, generation PASS_LD);
+	{ if ( visibleClauseCNT(cr->value.clause, ctx->generation) )
+	  { setClauseChoice(ctx->chp, cr->next, ctx->generation PASS_LD);
 	    return cr;
 	  }
 	}
@@ -222,22 +303,22 @@ nextClauseFromBucket(ClauseChoice chp, gen_t generation, int is_list ARG_LD)
     return NULL;
   }
 
-  for(cref = chp->cref; cref; cref = cref->next)
+  for(cref = ctx->chp->cref; cref; cref = cref->next)
   { if ( (!cref->d.key || key == cref->d.key) &&
-	 visibleClauseCNT(cref->value.clause, generation))
+	 visibleClauseCNT(cref->value.clause, ctx->generation))
     { ClauseRef result = cref;
-      int maxsearch = MAXSEARCH;
+      int maxsearch = MAX_LOOKAHEAD;
 
       for( cref = cref->next; cref; cref = cref->next )
       { if ( ((!cref->d.key || key == cref->d.key) &&
-	      visibleClauseCNT(cref->value.clause, generation)) ||
+	      visibleClauseCNT(cref->value.clause, ctx->generation)) ||
 	     --maxsearch == 0 )
-	{ setClauseChoice(chp, cref, generation PASS_LD);
+	{ setClauseChoice(ctx->chp, cref, ctx->generation PASS_LD);
 
 	  return result;
 	}
       }
-      chp->cref = NULL;
+      ctx->chp->cref = NULL;
 
       return result;
     }
@@ -247,14 +328,18 @@ nextClauseFromBucket(ClauseChoice chp, gen_t generation, int is_list ARG_LD)
 }
 
 /* Make sure the ClauseChoice contains a pointer to a clause that
-   is visible in generation.  This garantees that the clause will
-   not be destroyed.
+   is still visible in generation.  This garantees that the clause will
+   not be destroyed. Note that we do not have to perform the full
+   visibility test, just avoid we end up at a clause reference that
+   is free for CGC.
 */
 
 static void
 setClauseChoice(ClauseChoice chp, ClauseRef cref, gen_t generation ARG_LD)
-{ while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
+{ while ( cref &&
+	  cref->value.clause->generation.erased <= generation )
     cref = cref->next;
+
   chp->cref = cref;
 }
 
@@ -287,7 +372,7 @@ indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
 
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
 static char *
-iargsName(const unsigned short args[MAX_MULTI_INDEX], char *buf)
+iargsName(const iarg_t args[MAX_MULTI_INDEX], char *buf)
 { static char sbuf[64];
   char *s;
   int i;
@@ -321,20 +406,23 @@ TBD:
   - When to ignore the best and try again?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-ClauseRef
-first_clause_guarded(Word argv, LocalFrame fr,
-		     Definition def, ClauseChoice chp ARG_LD)
+static ClauseRef
+first_clause_guarded(Word argv, size_t argc, ClauseList clist,
+		     IndexContext ctx ARG_LD)
 { ClauseRef cref;
   ClauseIndex *cip;
   hash_hints hints;
-  gen_t generation = generationFrame(fr);
+  ClauseChoice chp = ctx->chp;
 
-#define STATIC_RELOADING() (LD->gen_reload && false(def, P_DYNAMIC))
+#define STATIC_RELOADING() (LD->gen_reload && false(ctx->predicate, P_DYNAMIC))
 
-  if ( def->functor->arity == 0 )
+  if ( unlikely(argc == 0) )
     goto simple;			/* TBD: alt supervisor */
+  if ( unlikely(argc > MAXINDEXARG) )
+    argc = MAXINDEXARG;
 
-  if ( (cip=def->impl.clauses.clause_indexes) )
+retry:
+  if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index = NULL;
 
     for(; *cip; cip++)
@@ -354,20 +442,23 @@ first_clause_guarded(Word argv, LocalFrame fr,
     if ( best_index )
     { int hi;
 
-      if ( def->impl.clauses.number_of_clauses > 10 &&
-	   (float)def->impl.clauses.number_of_clauses/best_index->speedup > 10 &&
+      if ( clist->number_of_clauses > 10 &&
+	   (float)clist->number_of_clauses/best_index->speedup > 10 &&
 	   !STATIC_RELOADING() )
-      { DEBUG(MSG_JIT,
+      { DEBUG(MSG_JIT_POOR,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
-		       iargsName(best_index->args, NULL), predicateName(def)));
+		       iargsName(best_index->args, NULL),
+		       predicateName(ctx->predicate)));
 
-	if ( bestHash(argv, def, best_index, &hints PASS_LD) )
+	if ( bestHash(argv, argc, clist, best_index->speedup,
+		      &hints, ctx PASS_LD) )
 	{ ClauseIndex ci;
 
-	  DEBUG(MSG_JIT, Sdprintf("Found better at args %s\n",
+	  DEBUG(MSG_JIT, Sdprintf("[%d] Found better at args %s\n",
+				  PL_thread_self(),
 				  iargsName(hints.args, NULL)));
 
-	  if ( (ci=hashDefinition(def, &hints)) )
+	  if ( (ci=hashDefinition(clist, &hints, ctx)) )
 	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
 	    assert(chp->key);
 	    best_index = ci;
@@ -375,46 +466,61 @@ first_clause_guarded(Word argv, LocalFrame fr,
 	}
       }
 
+      if ( best_index->incomplete )
+      { wait_for_index(best_index);
+	goto retry;
+      }
+
       hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
-      return nextClauseFromBucket(chp, generation,
-				  best_index->is_list PASS_LD);
+      return nextClauseFromBucket(best_index, argv, ctx PASS_LD);
     }
   }
 
-  if ( def->impl.clauses.number_of_clauses == 0 )
+  if ( unlikely(clist->number_of_clauses == 0) )
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
-       (def->impl.clauses.number_of_clauses <= 10 || LD->gen_reload) )
-  { chp->cref = def->impl.clauses.first_clause;
-    return nextClauseArg1(chp, generation PASS_LD);
+       (clist->number_of_clauses <= 10 || STATIC_RELOADING()) )
+  { chp->cref = clist->first_clause;
+
+    cref = nextClauseArg1(chp, ctx->generation PASS_LD);
+    if ( !cref ||
+	 !(chp->cref && chp->cref->d.key == chp->key &&
+	   cref->d.key == chp->key) )
+      return cref;
+    /* else duplicate; see whether we can create a deep index */
+    /* TBD: Avoid trying this every goal */
   }
 
-  if ( !STATIC_RELOADING() && bestHash(argv, def, NULL, &hints PASS_LD) )
+  if ( !STATIC_RELOADING() &&
+       bestHash(argv, argc, clist, 0.0, &hints, ctx PASS_LD) )
   { ClauseIndex ci;
 
-    if ( (ci=hashDefinition(def, &hints)) )
+    if ( (ci=hashDefinition(clist, &hints, ctx)) )
     { int hi;
+
+      while ( ci->incomplete )
+	wait_for_index(ci);
 
       chp->key = indexKeyFromArgv(ci, argv PASS_LD);
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
-      return nextClauseFromBucket(chp, generation, ci->is_list PASS_LD);
+      return nextClauseFromBucket(ci, argv, ctx PASS_LD);
     }
   }
 
   if ( chp->key )
-  { chp->cref = def->impl.clauses.first_clause;
-    return nextClauseArg1(chp, generation PASS_LD);
+  { chp->cref = clist->first_clause;
+    return nextClauseArg1(chp, ctx->generation PASS_LD);
   }
 
 simple:
-  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-  { if ( visibleClauseCNT(cref->value.clause, generation) )
+  for(cref = clist->first_clause; cref; cref = cref->next)
+  { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
     { chp->key = 0;
-      setClauseChoice(chp, cref->next, generation PASS_LD);
+      setClauseChoice(chp, cref->next, ctx->generation PASS_LD);
       break;
     }
   }
@@ -426,9 +532,20 @@ simple:
 ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
+  index_context ctx;
+
+  ctx.generation  = generationFrame(fr);
+  ctx.predicate   = def;
+  ctx.chp         = chp;
+  ctx.depth       = 0;
+  ctx.position[0] = END_INDEX_POS;
 
   acquire_def(def);
-  cref = first_clause_guarded(argv, fr, def, chp PASS_LD);
+  cref = first_clause_guarded(argv,
+			      def->functor->arity,
+			      &def->impl.clauses,
+			      &ctx
+			      PASS_LD);
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
 					 generationFrame(fr))));
@@ -472,15 +589,15 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
 		 *******************************/
 
 static int
-cmp_ushort(const void *p1, const void *p2)
-{ const unsigned short *u1 = p1;
-  const unsigned short *u2 = p2;
+cmp_iarg(const void *p1, const void *p2)
+{ const iarg_t *u1 = p1;
+  const iarg_t *u2 = p2;
 
   return *u1 < *u2 ? -1 : *u1 > *u2 ? 1 : 0;
 }
 
 static void
-canonicalHap(unsigned short *hap)
+canonicalHap(iarg_t *hap)
 { int i;
 
   for(i=0; i<MAX_MULTI_INDEX; i++)
@@ -493,12 +610,22 @@ canonicalHap(unsigned short *hap)
     }
   }
 
-  qsort(hap, i, sizeof(*hap), cmp_ushort);
+  qsort(hap, i, sizeof(*hap), cmp_iarg);
+}
+
+
+static void
+copytpos(iarg_t *to, const iarg_t *from)
+{ iarg_t p;
+
+  do
+  { *to++ = p = *from++;
+  } while ( p != END_INDEX_POS );
 }
 
 
 static ClauseIndex
-newClauseIndexTable(unsigned short *hap, hash_hints *hints)
+newClauseIndexTable(iarg_t *hap, hash_hints *hints, IndexContext ctx)
 { ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   unsigned int buckets;
   size_t bytes;
@@ -506,16 +633,17 @@ newClauseIndexTable(unsigned short *hap, hash_hints *hints)
   buckets = 2<<hints->ln_buckets;
   bytes = sizeof(struct clause_bucket) * buckets;
 
-  canonicalHap(hap);
-
   memset(ci, 0, sizeof(*ci));
   memcpy(ci->args, hap, sizeof(ci->args));
-  ci->buckets = buckets;
-  ci->is_list = hints->list;
-  ci->speedup = hints->speedup;
-  ci->entries = allocHeapOrHalt(bytes);
+  ci->buckets	 = buckets;
+  ci->is_list	 = hints->list;
+  ci->incomplete = TRUE;
+  ci->speedup	 = hints->speedup;
+  ci->entries	 = allocHeapOrHalt(bytes);
+  copytpos(ci->position, ctx->position);
 
   memset(ci->entries, 0, bytes);
+  ATOMIC_INC(&GD->statistics.indexes.created);
 
   return ci;
 }
@@ -526,12 +654,31 @@ freeClauseListRef(ClauseRef cref)
 { ClauseList cl = &cref->value.clauses;
   ClauseRef cr, next;
 
+  deleteIndexes(cl, TRUE);
+
   for(cr=cl->first_clause; cr; cr=next)
   { next = cr->next;
     lingerClauseRef(cr);
   }
 
+  if ( cl->args )
+  { assert(isFunctor(cref->d.key));
+
+    freeHeap(cl->args, arityFunctor(cref->d.key)*sizeof(*cl->args));
+  }
   freeHeap(cref, SIZEOF_CREF_LIST);
+}
+
+
+static void
+vfree_clause_list_ref(void *cref)
+{ freeClauseListRef(cref);
+}
+
+
+static void
+lingerClauseListRef(Definition def, ClauseRef cref)
+{ linger(&def->lingering, vfree_clause_list_ref, cref);
 }
 
 
@@ -552,6 +699,7 @@ unallocClauseIndexTableEntries(ClauseIndex ci)
     }
   }
 
+  ATOMIC_INC(&GD->statistics.indexes.destroyed);
   freeHeap(ci->entries, ci->buckets * sizeof(struct clause_bucket));
 }
 
@@ -575,17 +723,20 @@ newClauseListRef(word key)
 
 
 static void
-addClauseList(ClauseRef cref, Clause clause, ClauseRef where)
-{ ClauseList cl = &cref->value.clauses;
-  ClauseRef cr = newClauseRef(clause, 0); /* TBD: key? */
+addToClauseList(ClauseRef cref, Clause clause, word key, ClauseRef where)
+{ Definition def = clause->predicate;
+  ClauseList cl = &cref->value.clauses;
+  ClauseRef cr = newClauseRef(clause, key);
 
   if ( cl->first_clause )
-  { if ( where != CL_START )
+  { if ( where == CL_END )
     { cl->last_clause->next = cr;
       cl->last_clause = cr;
-    } else
+    } else if ( where == CL_START )
     { cr->next = cl->first_clause;
       cl->first_clause = cr;
+    } else
+    { insertIntoSparseList(cr, &cl->first_clause, &cl->last_clause, where);
     }
     cl->number_of_clauses++;
   } else
@@ -593,8 +744,80 @@ addClauseList(ClauseRef cref, Clause clause, ClauseRef where)
     cl->number_of_clauses = 1;
   }
 
-  /* TBD: Add to sub-indexes */
+  addClauseToListIndexes(def, cl, clause, where);
 }
+
+
+static void
+addClauseToListIndexes(Definition def, ClauseList cl, Clause clause,
+		       ClauseRef where)
+{ ClauseIndex *cip;
+
+  if ( (cip=cl->clause_indexes) )
+  { for(; *cip; cip++)
+    { ClauseIndex ci = *cip;
+
+      if ( ISDEADCI(ci) )
+	continue;
+
+      while ( ci->incomplete )
+	wait_for_index(ci);
+
+      if ( ci->size >= ci->resize_above )
+	deleteIndexP(def, cl, cip);
+      else
+	addClauseToIndex(ci, clause, where);
+    }
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This linked list *headp *tailp is a sparse (filtered) list of the
+clauses.  Insert cref into this list.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+insertIntoSparseList(ClauseRef cref,
+		     ClauseRef *headp, ClauseRef *tailp,
+		     ClauseRef where)
+{ if ( !(*headp) )
+  { *headp = *tailp = cref;
+  } else if ( where == CL_END )
+  { (*tailp)->next = cref;
+    *tailp = cref;
+  } else if ( where == CL_START )
+  { cref->next = *headp;
+    *headp = cref;
+  } else
+  { Clause clause = cref->value.clause;
+    ClauseRef pred_cref = clause->predicate->impl.clauses.first_clause;
+    ClauseRef ci_cref = *headp;
+    ClauseRef ci_prev = NULL;
+
+    for(; pred_cref; pred_cref=pred_cref->next)
+    { if ( pred_cref == where || ci_prev == *tailp )
+      { if ( ci_cref == *headp )
+	{ cref->next = *headp;
+	  *headp = cref;
+	} else if ( ci_prev == *tailp )
+	{ (*tailp)->next = cref;
+	  *tailp = cref;
+	} else
+	{ cref->next = ci_cref;
+	  ci_prev->next = cref;
+	}
+
+	return;
+      }
+
+      if ( pred_cref->value.clause == ci_cref->value.clause )
+      { ci_prev = ci_cref;
+	ci_cref = ci_cref->next;
+      }
+    }
+  }
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -611,11 +834,17 @@ Return how many indexable entries have been added to the bucket.
 
 The non-indexable clauses are added to an   entry with key=0. This entry
 must be used if none of the indexes matches.
+
+Where is one of
+  - CL_START (asserta)
+  - CL_END   (assertz)
+  - The clause reference before which the clause must be inserted.
+    This is used by reconsult.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 addClauseBucket(ClauseBucket ch, Clause cl,
-		word key, ClauseRef where, int is_list)
+		word key, word arg1key, ClauseRef where, int is_list)
 { ClauseRef cr;
 
   if ( is_list )
@@ -625,7 +854,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     if ( key )
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( cref->d.key == key )
-	{ addClauseList(cref, cl, where);
+	{ addToClauseList(cref, cl, arg1key, where);
 	  DEBUG(MSG_INDEX_UPDATE,
 		Sdprintf("Adding to existing %s\n", keyName(key)));
 	  return 0;
@@ -637,7 +866,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( !cref->d.key )
 	  vars = &cref->value.clauses;
-	addClauseList(cref, cl, where);
+	addToClauseList(cref, cl, arg1key, where);
       }
       if ( vars )
 	return 0;
@@ -647,7 +876,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
-      { addClauseList(cr, cref->value.clause, CL_END);
+      { addToClauseList(cr, cref->value.clause, arg1key, CL_END);
 	if ( true(cref->value.clause, CL_ERASED) )	/* or do not add? */
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
@@ -658,47 +887,14 @@ addClauseBucket(ClauseBucket ch, Clause cl,
       if ( cr->value.clauses.erased_clauses )
 	ch->dirty++;
     }
-    addClauseList(cr, cl, where);
+    addToClauseList(cr, cl, arg1key, where);
   } else
   { cr = newClauseRef(cl, key);
   }
 
-  if ( !ch->tail )
-  { ch->head = ch->tail = cr;
-  } else
-  { if ( where == CL_END )
-    { ch->tail->next = cr;
-      ch->tail = cr;
-    } else if ( where == CL_START )
-    { cr->next = ch->head;
-      ch->head = cr;
-    } else
-    { ClauseRef pred_cref = cl->predicate->impl.clauses.first_clause;
-      ClauseRef ci_cref = ch->head;
-      ClauseRef ci_prev = NULL;
-      for(; pred_cref; pred_cref=pred_cref->next)
-      { if ( pred_cref == where || ci_prev == ch->tail )
-        { if ( ci_cref == ch->head )
-          { cr->next = ch->head;
-            ch->head = cr;
-          } else if ( ci_prev == ch->tail )
-          { ch->tail->next = cr;
-            ch->tail = cr;
-          } else
-          { cr->next = ci_cref;
-            ci_prev->next = cr;
-          }
-          break;
-        }
-        if ( is_list )
-	  assert(0); /* TODO: get working with deep-indexing */
-        if ( pred_cref->value.clause == ci_cref->value.clause )
-        { ci_prev = ci_cref;
-          ci_cref = ci_cref->next;
-        }
-      }
-    }
-  }
+  if ( is_list )
+    where = CL_START;		/* doesn't matter where we insert */
+  insertIntoSparseList(cr, &ch->head, &ch->tail, where);
 
   return key ? 1 : 0;
 }
@@ -902,7 +1098,7 @@ gcClauseBucket(Definition def, ClauseBucket ch,
 	}
 
 	if ( is_list )
-	  freeClauseListRef(c);
+	  lingerClauseListRef(def, c);
 	else
 	  lingerClauseRef(c);
 
@@ -936,9 +1132,9 @@ See also deleteActiveClauseFromIndexes() comment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-cleanClauseIndex(Definition def, ClauseIndex ci, gen_t active)
-{ if ( def->impl.clauses.number_of_clauses < ci->resize_below )
-  { deleteIndex(def, ci);
+cleanClauseIndex(Definition def, ClauseList cl, ClauseIndex ci, gen_t active)
+{ if ( cl->number_of_clauses < ci->resize_below )
+  { deleteIndex(def, cl, ci);
   } else
   { if ( ci->dirty )
     { ClauseBucket ch = ci->entries;
@@ -964,16 +1160,16 @@ references erased before generation `active` from the indexes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-cleanClauseIndexes(Definition def, gen_t active)
+cleanClauseIndexes(Definition def, ClauseList cl, gen_t active)
 { ClauseIndex *cip;
 
-  if ( (cip=def->impl.clauses.clause_indexes) )
+  if ( (cip=cl->clause_indexes) )
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
       if ( ISDEADCI(ci) )
 	continue;
-      cleanClauseIndex(def, ci, active);
+      cleanClauseIndex(def, cl, ci, active);
     }
   }
 }
@@ -985,7 +1181,7 @@ clearTriedIndexes(Definition def)
   int i;
 
   for(i=0; i<arity; i++)
-  { arg_info *ainfo = &def->args[i];
+  { arg_info *ainfo = &def->impl.clauses.args[i];
 
     ainfo->assessed = FALSE;
   }
@@ -1007,7 +1203,7 @@ static int
 has_pow2_clauses(Definition def)
 { unsigned int nc = def->impl.clauses.number_of_clauses;
 
-  return 1<<MSB(nc) == nc;
+  return nc > 0 && 1<<MSB(nc) == nc;
 }
 
 
@@ -1090,8 +1286,8 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 
 static inline word
-indexKeyFromClause(ClauseIndex ci, Clause cl)
-{ Code PC = cl->codes;
+indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
+{ Code PC = skipToTerm(cl, ci->position);
 
   if ( likely(ci->args[1] == 0) )
   { int arg = ci->args[0] - 1;
@@ -1099,6 +1295,8 @@ indexKeyFromClause(ClauseIndex ci, Clause cl)
 
     if ( arg > 0 )
       PC = skipArgs(PC, arg);
+    if ( end )
+      *end = PC;
     if ( argKey(PC, 0, &key) )
       return key;
     return 0;
@@ -1106,6 +1304,8 @@ indexKeyFromClause(ClauseIndex ci, Clause cl)
   { word key[MAX_MULTI_INDEX];			/* TBD: special case for 1 arg */
     int  pcarg = 1;
     int  harg;
+
+    DEBUG(CHK_SECURE, if ( end ) *end = NULL);
 
     for(harg=0; ci->args[harg]; harg++)
     { if ( ci->args[harg] > pcarg )
@@ -1135,7 +1335,7 @@ bucket.
 
 static void
 deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
-{ word key = indexKeyFromClause(ci, cl);
+{ word key = indexKeyFromClause(ci, cl, NULL);
 
   if ( key == 0 )			/* not indexed */
   { int i;
@@ -1188,17 +1388,20 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
       if ( ISDEADCI(ci) )
 	continue;
 
+      while( ci->incomplete )
+	wait_for_index(ci);
+
       if ( true(def, P_DYNAMIC) )
       { if ( def->impl.clauses.number_of_clauses < ci->resize_below )
 	{ DEBUG(MSG_JIT_DELINDEX,
 		Sdprintf("Deleted index %d from %s (shrunk too much)\n",
 			 (int)ci->args[0], predicateName(def)));
-	  deleteIndexP(def, cip);
+	  deleteIndexP(def, &def->impl.clauses, cip);
 	} else
 	{ deleteActiveClauseFromIndex(ci, cl);
 	}
       } else
-      { deleteIndexP(def, cip);
+      { deleteIndexP(def, &def->impl.clauses, cip);
       }
     }
   }
@@ -1207,13 +1410,15 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 
 
 void
-deleteIndexes(Definition def, int isnew)
-{ ClauseIndex *cip;
+deleteIndexes(ClauseList clist, int isnew)
+{ ClauseIndex *cip0;
 
   assert(isnew);			/* TBD for non-new */
 
-  if ( (cip=def->impl.clauses.clause_indexes) )
-  { for(; *cip; cip++)
+  if ( (cip0=clist->clause_indexes) )
+  { ClauseIndex *cip;
+
+    for(cip = cip0; *cip; cip++)
     { ClauseIndex ci = *cip;
 
       if ( ISDEADCI(ci) )
@@ -1222,7 +1427,8 @@ deleteIndexes(Definition def, int isnew)
       unallocClauseIndexTable(ci);
     }
 
-    def->impl.clauses.clause_indexes = NULL;
+    unalloc_index_array(cip0);
+    clist->clause_indexes = NULL;
   }
 }
 
@@ -1235,23 +1441,38 @@ added to all indexes.
 
 ClauseIndex->size maintains the number of elements  in the list that are
 indexed. This is needed for resizing the index.
+
+TBD: Merge compound detection with skipToTerm()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 { ClauseBucket ch = ci->entries;
-  word key = indexKeyFromClause(ci, cl);
+  Code pc = NULL;
+  word key = indexKeyFromClause(ci, cl, &pc);
+  word arg1key = 0;
+
+  if ( ci->is_list )			/* find first argument key for term */
+  { switch(decode(*pc))
+    { case H_FUNCTOR:
+      case H_LIST:
+      case H_RFUNCTOR:
+      case H_RLIST:
+	pc = stepPC(pc);
+        argKey(pc, 0, &arg1key);
+    }
+  }
 
   if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
 
     for(; n; n--, ch++)
-      addClauseBucket(ch, cl, key, where, ci->is_list);
+      addClauseBucket(ch, cl, key, arg1key, where, ci->is_list);
   } else
   { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(MSG_INDEX_UPDATE, Sdprintf("Storing in bucket %d\n", hi));
-    ci->size += addClauseBucket(&ch[hi], cl, key, where, ci->is_list);
+    ci->size += addClauseBucket(&ch[hi], cl, key, arg1key, where, ci->is_list);
   }
 }
 
@@ -1259,35 +1480,15 @@ addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 addClauseToIndexes() is called (only) by   assertProcedure(),  which has
 the definition locked.
-
-We currently fail if the clause was not   added at the end or the start.
-This may be the case while  reconsulting.   In  this  case we delete the
-index after completion of the reconsult.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-addClauseToIndexes(Definition def, Clause cl, ClauseRef where)
-{ ClauseIndex *cip;
-  int rc = TRUE;
-
-  if ( (cip=def->impl.clauses.clause_indexes) )
-  { for(; *cip; cip++)
-    { ClauseIndex ci = *cip;
-
-      if ( ISDEADCI(ci) )
-	continue;
-
-      if ( ci->size >= ci->resize_above )
-	deleteIndexP(def, cip);
-      else
-	addClauseToIndex(ci, cl, where);
-    }
-  }
-
+addClauseToIndexes(Definition def, Clause clause, ClauseRef where)
+{ addClauseToListIndexes(def, &def->impl.clauses, clause, where);
   reconsider_index(def);
 
   DEBUG(CHK_SECURE, checkDefinition(def));
-  return rc;
+  return TRUE;
 }
 
 
@@ -1312,7 +1513,7 @@ delClauseFromIndex(Definition def, Clause cl)
       continue;
 
     ch  = ci->entries;
-    key = indexKeyFromClause(ci, cl);
+    key = indexKeyFromClause(ci, cl, NULL);
 
     if ( key == 0 )			/* a non-indexable field */
     { int n = ci->buckets;
@@ -1328,6 +1529,37 @@ delClauseFromIndex(Definition def, Clause cl)
 }
 
 
+static void
+wait_for_index(const ClauseIndex ci)
+{ DEBUG(MSG_JIT, Sdprintf("[%d] waiting for index %p ...\n",
+			  PL_thread_self(), ci));
+#ifdef O_PLMT
+  pthread_mutex_lock(&GD->thread.index.mutex);
+  if ( ci->incomplete )
+    pthread_cond_wait(&GD->thread.index.cond, &GD->thread.index.mutex);
+  pthread_mutex_unlock(&GD->thread.index.mutex);
+  DEBUG(MSG_JIT, Sdprintf("[%d] index %p %sready\n",
+			  PL_thread_self(), ci, ci->incomplete ? "not " : ""));
+#endif
+}
+
+
+static void
+completed_index(ClauseIndex ci)
+{
+#ifdef O_PLMT
+  pthread_mutex_lock(&GD->thread.index.mutex);
+  ci->incomplete = FALSE;
+  pthread_cond_broadcast(&GD->thread.index.cond);
+  pthread_mutex_unlock(&GD->thread.index.mutex);
+  DEBUG(MSG_JIT, Sdprintf("[%d] index %p completed\n",
+			  PL_thread_self(), ci));
+#else
+  ci->incomplete = FALSE;
+#endif
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a hash-index on def  for  arg.   We  compute  the  hash unlocked,
 checking at the end that nobody  messed   with  the clause list. If that
@@ -1336,62 +1568,52 @@ the new index to the indexes of the predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseIndex
-hashDefinition(Definition def, hash_hints *hints)
-{ GET_LD
-  ClauseRef cref;
+hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
+{ ClauseRef cref;
   ClauseIndex ci;
   ClauseIndex *cip;
 
-  DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %s, %d) (%s)\n",
-			  predicateName(def),
+  DEBUG(MSG_JIT, Sdprintf("[%d] hashDefinition(%s, %s, %d) (%s)\n",
+			  PL_thread_self(),
+			  predicateName(ctx->predicate),
 			  iargsName(hints->args, NULL), 2<<hints->ln_buckets,
 			  hints->list ? "lists" : "clauses"));
 
-  for(;;)
-  { ClauseRef first, last;
-
-    ci = newClauseIndexTable(hints->args, hints);
-
-#ifdef O_PLMT
-    assert(LD->thread.info->access.predicate == def);
+#if defined(O_PLMT) && !defined(NDEBUG)
+{ GET_LD
+  assert(LD->thread.info->access.predicate == ctx->predicate);
+}
 #endif
-    first = def->impl.clauses.first_clause;
-    last  = def->impl.clauses.last_clause;
 
-    for(cref = first; cref; cref = cref->next)
-    { if ( false(cref->value.clause, CL_ERASED) )
-	addClauseToIndex(ci, cref->value.clause, CL_END);
-    }
-
-    LOCKDEF(def);
-    if ( first == def->impl.clauses.first_clause &&
-	 last  == def->impl.clauses.last_clause )
-      break;
-    UNLOCKDEF(def);
-    unallocClauseIndexTable(ci);
-  }
-
-  ci->resize_above = ci->size*2;
-  ci->resize_below = ci->size/4;
-
-  if ( (cip=def->impl.clauses.clause_indexes) )
+  canonicalHap(hints->args);
+  LOCKDEF(ctx->predicate);
+  if ( (cip=clist->clause_indexes) )
   { for(; *cip; cip++)
     { ClauseIndex cio = *cip;
 
       if ( ISDEADCI(cio) )
 	continue;
 
-      if ( memcmp(cio->args, hints->args, sizeof(ci->args)) == 0 )
-      { replaceIndex(def, cip, ci);
-	goto out;
+      if ( memcmp(cio->args, hints->args, sizeof(cio->args)) == 0 )
+      { UNLOCKDEF(ctx->predicate);
+	DEBUG(MSG_JIT, Sdprintf("[%d] already created\n", PL_thread_self()));
+	return cio;
       }
     }
   }
+  ci = newClauseIndexTable(hints->args, hints, ctx);
+  insertIndex(ctx->predicate, clist, ci);
+  UNLOCKDEF(ctx->predicate);
 
-  insertIndex(def, ci);
+  for(cref = clist->first_clause; cref; cref = cref->next)
+  { if ( false(cref->value.clause, CL_ERASED) )
+      addClauseToIndex(ci, cref->value.clause, CL_END);
+  }
 
-out:
-  UNLOCKDEF(def);
+  ci->resize_above = ci->size*2;
+  ci->resize_below = ci->size/4;
+
+  completed_index(ci);
 
   return ci;
 }
@@ -1494,10 +1716,11 @@ unalloc_index_array(void *p)
 }
 
 static void
-setIndexes(Definition def, ClauseIndex *cip)
-{ ClauseIndex *cipo = def->impl.clauses.clause_indexes;
+setIndexes(Definition def, ClauseList cl, ClauseIndex *cip)
+{ ClauseIndex *cipo = cl->clause_indexes;
 
-  def->impl.clauses.clause_indexes = cip;
+  MemoryBarrier();
+  cl->clause_indexes = cip;
   if ( cipo )
     linger(&def->lingering, unalloc_index_array, cipo);
 }
@@ -1511,11 +1734,11 @@ unalloc_ci(void *p)
 }
 
 static void				/* definition must be locked */
-replaceIndex(Definition def, ClauseIndex *cip, ClauseIndex ci)
+replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
 { ClauseIndex old = *cip;
 
   *cip = ci;
-  DEBUG(MSG_JIT, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
+  DEBUG(MSG_JIT, Sdprintf("[%d] replaceIndex(%s) %p-->%p\n",
 			  PL_thread_self(),
 			  predicateName(def),
 			  old, ci));
@@ -1523,28 +1746,28 @@ replaceIndex(Definition def, ClauseIndex *cip, ClauseIndex ci)
   if ( !ISDEADCI(old) )
     linger(&def->lingering, unalloc_ci, old);
 
-  if ( !isSortedIndexes(def->impl.clauses.clause_indexes) )
-  { cip = copyIndex(def->impl.clauses.clause_indexes, 0);
+  if ( !isSortedIndexes(cl->clause_indexes) )
+  { cip = copyIndex(cl->clause_indexes, 0);
     sortIndexes(cip);
-    setIndexes(def, cip);
+    setIndexes(def, cl, cip);
   }
 }
 
 
 static void
-deleteIndexP(Definition def, ClauseIndex *cip)
-{ replaceIndex(def, cip, DEAD_INDEX);
+deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip)
+{ replaceIndex(def, cl, cip, DEAD_INDEX);
 }
 
 
 static void
-deleteIndex(Definition def, ClauseIndex ci)
+deleteIndex(Definition def, ClauseList cl, ClauseIndex ci)
 { ClauseIndex *cip;
 
   if ( (cip=def->impl.clauses.clause_indexes) )
   { for(; *cip; cip++)
     { if ( *cip == ci )
-      { deleteIndexP(def, cip);
+      { deleteIndexP(def, &def->impl.clauses, cip);
 	return;
       }
     }
@@ -1555,10 +1778,10 @@ deleteIndex(Definition def, ClauseIndex ci)
 
 
 static void
-insertIndex(Definition def, ClauseIndex ci)
+insertIndex(Definition def, ClauseList clist, ClauseIndex ci)
 { ClauseIndex *ocip;
 
-  if ( (ocip=def->impl.clauses.clause_indexes) )
+  if ( (ocip=clist->clause_indexes) )
   { ClauseIndex *cip = ocip;
     ClauseIndex *ncip;
     int dead = 0;
@@ -1579,13 +1802,13 @@ insertIndex(Definition def, ClauseIndex ci)
 	*cip = ci;
     }
     sortIndexes(ncip);
-    setIndexes(def, ncip);
+    setIndexes(def, clist, ncip);
   } else
   { ClauseIndex *cip = allocHeapOrHalt(2*sizeof(*cip));
 
     cip[0] = ci;
     cip[1] = NULL;
-    def->impl.clauses.clause_indexes = cip;
+    clist->clause_indexes = cip;
   }
 }
 
@@ -1635,6 +1858,8 @@ checkClauseIndexes(Definition def)
       unsigned int ci_size = 0;		/* # indexable values in table */
 
       if ( ISDEADCI(ci) )
+	continue;
+      if ( ci->incomplete )		/* building async; stats may be wrong */
 	continue;
 
       for(i=0,cb=ci->entries; i<ci->buckets; i++,cb++)
@@ -1727,7 +1952,7 @@ listIndexGenerations(Definition def, gen_t gen)
 
 	      Sdprintf("  %p: [%2d] %8u-%10u%s%s\n",
 		       clause,
-		       clauseNo(def, clause, 0),
+		       clauseNo(clause, 0),
 		       clause->generation.created,
 		       clause->generation.erased,
 		       true(clause, CL_ERASED) ? " erased" : "",
@@ -1738,7 +1963,7 @@ listIndexGenerations(Definition def, gen_t gen)
 
 	    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
 		     clause,
-		     clauseNo(def, clause, 0),
+		     clauseNo(clause, 0),
 		     clause->generation.created,
 		     clause->generation.erased,
 		     true(clause, CL_ERASED) ? " erased" : "",
@@ -1784,11 +2009,12 @@ and a popular key collide on the same hash-bucket.
 
 typedef struct key_asm
 { word		key;
-  size_t	count;
+  unsigned int	count;
+  unsigned int	nvcomp;		/* compound with arguments */
 } key_asm;
 
 typedef struct hash_assessment
-{ unsigned short args[MAX_MULTI_INDEX]; /* arg for which to assess */
+{ iarg_t	args[MAX_MULTI_INDEX]; /* arg for which to assess */
   size_t	allocated;		/* allocated size of array */
   size_t	size;			/* keys in array */
   size_t	var_count;		/* # non-indexable cases */
@@ -1823,7 +2049,7 @@ free_assessment_set(assessment_set *as)
 }
 
 static hash_assessment *			/* TBD: resource error */
-alloc_assessment(assessment_set *as, unsigned short *ia)
+alloc_assessment(assessment_set *as, iarg_t *ia)
 { hash_assessment *a;
 
   if ( as->count >= as->allocated )
@@ -1849,12 +2075,11 @@ alloc_assessment(assessment_set *as, unsigned short *ia)
 
 static int
 best_hash_assessment(const void *p1, const void *p2, void *ctx)
-{ Definition def = ctx;
-  const unsigned short *a1 = p1;
-  const unsigned short *a2 = p2;
-  const arg_info *i1 = &def->args[*a1];
-  const arg_info *i2 = &def->args[*a2];
-
+{ ClauseList clist = ctx;
+  const iarg_t *a1 = p1;
+  const iarg_t *a2 = p2;
+  const arg_info *i1 = &clist->args[*a1];
+  const arg_info *i2 = &clist->args[*a2];
 
   return i1->speedup - i2->speedup > 0 ? -1 :
 	 i1->speedup - i2->speedup < 0 ?  1 : 0;
@@ -1862,10 +2087,10 @@ best_hash_assessment(const void *p1, const void *p2, void *ctx)
 
 
 static void
-sort_assessments(Definition def,
-		 unsigned short *instantiated, int ninstantiated)
+sort_assessments(ClauseList clist,
+		 iarg_t *instantiated, int ninstantiated)
 { sort_r(instantiated, ninstantiated, sizeof(*instantiated),
-	 best_hash_assessment, def);
+	 best_hash_assessment, clist);
 }
 
 
@@ -1906,34 +2131,33 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       { float A0 = A;
 	A = A+((float)o->count-A)/(float)(i-1);
 	Q = Q+((float)o->count-A0)*((float)o->count-A);
+	if ( o->nvcomp )
+	  fc += o->nvcomp - 1;		/* no point if there is just one */
       }
       c = s->key;
-      if ( tagex(s->key) == (TAG_ATOM|STG_GLOBAL) )
-	fc++;
       *++o = *s;
     } else
-    { o->count += s->count;
+    { o->count  += s->count;
+      s->nvcomp += s->nvcomp;
     }
   }
   if ( i > 0 && clause_count )
   { float A0 = A;
     A = A+((float)o->count-A)/(float)i;
     Q = Q+((float)o->count-A0)*((float)o->count-A);
+    if ( o->nvcomp )
+      fc += o->nvcomp - 1;
+    a->funct_count = fc;
   }
 
   a->size        = i;
-  a->funct_count = fc;
-
 					/* assess quality */
   if ( clause_count )
   { a->stdev   = (float)sqrt(Q/(float)i);
     a->list    = FALSE;
 
     if ( a->size == 1 )			/* Single value that is not compound */
-    {
-#ifdef O_DEEP_INDEX
-      if ( tagex(a->keys[0].key) != (TAG_ATOM|STG_GLOBAL) )
-#endif
+    { if ( !isFunctor(a->keys[0].key) )
 	return FALSE;
     }
 
@@ -1946,15 +2170,13 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 		 clause_count * SIZEOF_CREF_CLAUSE +
 		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
 
-#ifdef O_DEEP_INDEX
-    if ( clause_count/a->size > 10 ||
-	 a->stdev > 3 )
+    if ( a->speedup < 0.8*(float)clause_count &&
+	 a->funct_count > 0 )
     { a->list = TRUE;
       a->space += a->size * SIZEOF_CREF_LIST;
     }
-#endif
 
-    if ( (float)a->var_count/(float)a->size > 0.1 )
+    if ( (float)a->var_count/(float)a->size > MAX_VAR_FRAC )
     { a->speedup = 0.0;
       return FALSE;			/* not indexable */
     }
@@ -1965,12 +2187,17 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
 
 static int
-assessAddKey(hash_assessment *a, word key)
-{ if ( a->size < a->allocated )
+assessAddKey(hash_assessment *a, word key, int nvcomp)
+{ if ( a->size > 0 && a->keys[a->size-1].key == key )
+  { a->keys[a->size-1].count++;		/* TBD: Keep last-key? */
+    if ( nvcomp )
+      a->keys[a->size-1].nvcomp++;
+  } else if ( a->size < a->allocated )
   {
   put_key:
-    a->keys[a->size].key   = key;
-    a->keys[a->size].count = 1;
+    a->keys[a->size].key    = key;
+    a->keys[a->size].count  = 1;
+    a->keys[a->size].nvcomp = nvcomp;
     a->size++;
   } else
   { if ( a->allocated == 0 )
@@ -2008,20 +2235,95 @@ TBD: if some argument has too many   non-indexable  values we could stop
 trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static Code
+skipToTerm(Clause clause, const iarg_t *position)
+{ int an;
+  Code pc = clause->codes;
+
+  for(; (an = *position) != END_INDEX_POS; position++)
+  { code c;
+
+    DEBUG(MSG_INDEX_DEEP,
+	  Sdprintf("Skipping to arg %d for clause %d of %s\n",
+		   an, clauseNo(clause, 0), predicateName(clause->predicate)));
+
+    if ( an > 0 )
+      pc = skipArgs(pc, an);
+    c = decode(*pc);
+    switch(c)
+    { case H_FUNCTOR:
+      case H_LIST:
+      case H_RFUNCTOR:
+      case H_RLIST:
+	break;
+      case H_LIST_FF:			/* FF1, FF2 */
+      { static code var[2];		/* Create dummy code */
+	var[0] = encode(H_VOID);
+	var[1] = encode(H_VOID);
+	return var;
+      }
+#if defined(O_DEBUG) || defined(O_MAINTENANCE)
+      case H_FIRSTVAR:
+      case H_VAR:
+      case H_VOID:
+      case H_VOID_N:
+      case H_POP:
+      case I_EXITCATCH:
+      case I_EXITRESET:
+      case I_EXITFACT:
+      case I_EXIT:			/* fact */
+      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	return pc;
+      default:
+	Sdprintf("Unexpected VM code %d at %p\n", c, pc);
+	Sdprintf("\topcode=%s\n", codeTable[c].name);
+	assert(0);
+#else
+      default:
+	return pc;
+#endif
+    }
+    pc = stepPC(pc);
+  }
+
+  return pc;
+}
+
+
+static int
+indexableCompound(Code pc)
+{ pc = stepPC(pc);				/* skip functor */
+
+  for(;; pc = stepPC(pc))
+  { switch(decode(*pc))
+    { case H_FIRSTVAR:
+      case H_VAR:
+	continue;
+      case H_POP:
+	return FALSE;
+      default:
+	return TRUE;
+    }
+  }
+}
+
+
 static void
-assess_scan_clauses(Definition def,
-		    hash_assessment *assessments, int assess_count)
+assess_scan_clauses(ClauseList clist, size_t arity,
+		    hash_assessment *assessments, int assess_count,
+		    IndexContext ctx)
 { hash_assessment *a;
   ClauseRef cref;
   int i;
-  bit_vector *ai = alloca(sizeof_bitvector(def->functor->arity));
+  bit_vector *ai = alloca(sizeof_bitvector(arity));
   int ac = 0;
-  int kp[MAXARITY+1];				/* key-arg positions */
+  int kp[MAXINDEXARG+1];			/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
-  word keys[MAXARITY];
+  word keys[MAXINDEXARG];
+  char nvcomp[MAXINDEXARG];
 
-  init_bitvector(ai, def->functor->arity);
+  init_bitvector(ai, arity);
   for(i=0, a=assessments; i<assess_count; i++, a++)
   { int j;
 
@@ -2033,39 +2335,59 @@ assess_scan_clauses(Definition def,
     }
   }
 
-  for(i=0; i<def->functor->arity; i++)
+  for(i=0; i<arity; i++)
   { if ( true_bit(ai, i) )
       kp[nk++] = i;
   }
   kp[nk] = -1;
 
-  for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
+  for(cref=clist->first_clause; cref; cref=cref->next)
   { Clause cl = cref->value.clause;
-    Code pc = cref->value.clause->codes;
+    Code pc;
     int carg = 0;
 
     if ( true(cl, CL_ERASED) )
       continue;
+
+    pc = skipToTerm(cref->value.clause, ctx->position);
 
     for(kpp=kp; kpp[0] >= 0; kpp++)
     { if ( kpp[0] > carg )
 	pc = skipArgs(pc, kpp[0]-carg);
       carg = kpp[0];
       argKey(pc, 0, &keys[kpp[0]]);
+      nvcomp[kpp[0]] = FALSE;
+						/* see whether this a compound */
+      if ( isFunctor(keys[kpp[0]]) )		/* with nonvar args */
+      { if ( indexableCompound(pc) )
+	  nvcomp[kpp[0]] = TRUE;
+      }
     }
 
     for(i=0, a=assessments; i<assess_count; i++, a++)
-    { word key[MAX_MULTI_INDEX];
-      int  harg;
+    { if ( !a->args[1] )			/* single argument index */
+      { word key;
+	int an = a->args[0]-1;
 
-      for(harg=0; a->args[harg]; harg++)
-      { if ( !(key[harg] = keys[a->args[harg]-1]) )
+	if ( (key=keys[an]) )
+	{ assessAddKey(a, key, nvcomp[an]);
+	} else
 	{ a->var_count++;
 	  goto next_assessment;
 	}
-      }
+      } else					/* multi-argument index */
+      { word key[MAX_MULTI_INDEX];
+	int  harg;
 
-      assessAddKey(a, murmur_key(key, sizeof(word)*harg));
+	for(harg=0; a->args[harg]; harg++)
+	{ if ( !(key[harg] = keys[a->args[harg]-1]) )
+	  { a->var_count++;
+	    goto next_assessment;
+	  }
+	}
+
+	assessAddKey(a, murmur_key(key, sizeof(word)*harg), FALSE);
+      }
     next_assessment:
       ;
     }
@@ -2114,54 +2436,66 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
+bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
+	 hash_hints *hints, IndexContext ctx ARG_LD)
 { int i;
-  int arity = (int)def->functor->arity;
   assessment_set aset;
   hash_assessment *a;
   int best = -1;
   float best_speedup = 0.0;
-  unsigned short ia[MAX_MULTI_INDEX] = {0};
-  unsigned short instantiated[arity];	/* GCC dynamic array */
+  iarg_t ia[MAX_MULTI_INDEX] = {0};
+  iarg_t *instantiated;
   int ninstantiated = 0;
 
+  instantiated = alloca(ac*sizeof(*instantiated));
   init_assessment_set(&aset);
+  if ( !clist->args )
+  { arg_info *ai = allocHeapOrHalt(ac*sizeof(*ai));
+    memset(ai, 0, ac*sizeof(*ai));
+    if ( !COMPARE_AND_SWAP(&clist->args, NULL, ai) )
+      freeHeap(ai, ac*sizeof(*ai));
+  }
 
 					/* Step 1: find instantiated args */
-  for(i=0; i<arity; i++)
-  { if ( indexOfWord(av[i] PASS_LD) )
+  for(i=0; i<ac; i++)
+  { if ( canIndex(av[i] PASS_LD) )
       instantiated[ninstantiated++] = i;
   }
+
 					/* Step 2: find non-yet assessed args */
   for(i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
 
-    if ( !def->args[arg].assessed )
+    if ( !clist->args[arg].assessed )
     { ia[0] = arg+1;
-      a = alloc_assessment(&aset, ia);
+      alloc_assessment(&aset, ia);
     }
   }
 
   if ( aset.count )			/* Step 3: assess them */
-  { assess_scan_clauses(def, aset.assessments, aset.count);
+  { assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
 
     for(i=0, a=aset.assessments; i<aset.count; i++, a++)
-    { arg_info *ainfo = &def->args[a->args[0]-1];
+    { arg_info *ainfo = &clist->args[a->args[0]-1];
 
-      if ( assess_remove_duplicates(a, def->impl.clauses.number_of_clauses) )
+      if ( assess_remove_duplicates(a, clist->number_of_clauses) )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
-		       iargsName(a->args, NULL), predicateName(def),
+		       iargsName(a->args, NULL),
+		       predicateName(ctx->predicate),
 		       a->speedup, a->stdev));
 
 	ainfo->speedup    = a->speedup;
+	ainfo->list       = a->list;
 	ainfo->ln_buckets = MSB(a->size);
       } else
       { ainfo->speedup    = 0.0;
+	ainfo->list       = FALSE;
 	ainfo->ln_buckets = 0;
 
 	DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
-				iargsName(a->args, NULL), predicateName(def)));
+				iargsName(a->args, NULL),
+				predicateName(ctx->predicate)));
       }
 
       ainfo->assessed = TRUE;
@@ -2176,7 +2510,7 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 					/* Step 4: find the best (single) arg */
   for(i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
-    arg_info *ainfo = &def->args[arg];
+    arg_info *ainfo = &clist->args[arg];
 
     if ( ainfo->speedup > best_speedup )
     { best = arg;
@@ -2185,22 +2519,23 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
   }
 
   if ( best >= 0 &&
-       (float)def->impl.clauses.number_of_clauses/best_speedup > 3 )
+       (float)clist->number_of_clauses/best_speedup > 3 )
   { int ok, m, n;
 
-    sort_assessments(def, instantiated, ninstantiated);
+    sort_assessments(clist, instantiated, ninstantiated);
     for( ok=0;
-	 ok<ninstantiated && def->args[instantiated[ok]].speedup > MIN_SPEEDUP;
+	 ok<ninstantiated &&
+	 clist->args[instantiated[ok]].speedup > MIN_SPEEDUP;
 	 ok++ )
       ;
 
-    if ( ok >= 2 && ++def->impl.clauses.jiti_tried <= arity )
+    if ( ok >= 2 && ++clist->jiti_tried <= ac )
     { hash_assessment *nbest;
 
       DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
 			      "; %d promising arguments\n",
-			      predicateName(def),
-			      def->impl.clauses.number_of_clauses,
+			      predicateName(ctx->predicate),
+			      clist->number_of_clauses,
 			      best+1, best_speedup, ok));
 
       init_assessment_set(&aset);
@@ -2212,12 +2547,13 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 	}
       }
 
-      assess_scan_clauses(def, aset.assessments, aset.count);
+      assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
       nbest = best_assessment(aset.assessments, aset.count,
-			      def->impl.clauses.number_of_clauses);
+			      clist->number_of_clauses);
       if ( nbest && nbest->speedup > best_speedup*MIN_SPEEDUP )
       { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
-				predicateName(def), iargsName(nbest->args, NULL),
+				predicateName(ctx->predicate),
+				iargsName(nbest->args, NULL),
 				nbest->speedup));
 	memset(hints, 0, sizeof(*hints));
 	memcpy(hints->args, nbest->args, sizeof(nbest->args));
@@ -2231,13 +2567,14 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
     }
   }
 
-  if ( best >= 0 && (!ci || best_speedup > ci->speedup) )
-  { arg_info *ainfo = &def->args[best];
+  if ( best >= 0 && best_speedup > min_speedup )
+  { arg_info *ainfo = &clist->args[best];
 
     memset(hints, 0, sizeof(*hints));
     hints->args[0]    = best+1;
     hints->ln_buckets = ainfo->ln_buckets;
     hints->speedup    = ainfo->speedup;
+    hints->list       = ainfo->list;
 
     return TRUE;
   }
@@ -2251,41 +2588,133 @@ bestHash(Word av, Definition def, ClauseIndex ci, hash_hints *hints ARG_LD)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Index info is
+Index info is of the form
 
-	[Arg1, Arg2, ...] - hash(Buckets, Speedup, IsList)
+    Where - hash(Buckets, Speedup, SizeInBytes, IsList)
+
+Where is one of
+
+  - Simple index		single(ArgN)
+  - Multi-argument index	multi([Arg1,Arg2,...])
+  - Deep index		        deep([Arg1,Arg2,...])
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static size_t
+sizeofClauseIndex(ClauseIndex ci)
+{ size_t size = sizeof(*ci);
+  size_t vars = 0;
+  ClauseRef cref;
+  size_t usize = ci->is_list ? SIZEOF_CREF_LIST : SIZEOF_CREF_CLAUSE;
+
+  size += ci->buckets * sizeof(*ci->entries);
+  size += ci->size * usize;
+
+  for(cref=ci->entries[0].head; cref; cref=cref->next)
+  { if ( cref->d.key == 0 )
+      vars++;
+  }
+  size += vars * ci->buckets * usize;
+
+  return size;
+}
+
 
 static int
 unify_clause_index(term_t t, ClauseIndex ci)
 { GET_LD
-  term_t args = PL_new_term_ref();
+  term_t where = PL_new_term_ref();
   term_t tmp  = PL_new_term_ref();
 
-  if ( (args=PL_new_term_ref()) &&
-       (tmp =PL_new_term_ref()) )
+  if ( !(where=PL_new_term_ref()) ||
+       !(tmp =PL_new_term_ref()) )
+    return FALSE;
+
+  if ( ci->args[1] )
   { int i;
 
-    PL_put_nil(args);
+    PL_put_nil(where);
     for(i=MAX_MULTI_INDEX-1; i>= 0; i--)
     { if ( ci->args[i] )
       { if ( !PL_put_integer(tmp, ci->args[i]) ||
-	     !PL_cons_list(args, tmp, args) )
+	     !PL_cons_list(where, tmp, where) )
 	  return FALSE;
       }
     }
 
-    return PL_unify_term(t,
-			 PL_FUNCTOR, FUNCTOR_minus2,
-			   PL_TERM, args,
-			   PL_FUNCTOR_CHARS, "hash", 3,
-			     PL_INT, (int)ci->buckets,
-			     PL_DOUBLE, (double)ci->speedup,
-			     PL_BOOL, ci->is_list);
+    if ( !PL_cons_functor(where, FUNCTOR_multi1, where) )
+      return FALSE;
+  } else
+  { if ( !PL_put_integer(where, ci->args[0]) ||
+	 !PL_cons_functor(where, FUNCTOR_single1, where) )
+      return FALSE;
   }
 
-  return FALSE;
+  if ( ci->position[0] != END_INDEX_POS )
+  { iarg_t *ap = ci->position;
+    term_t nil;
+
+    if ( !(nil=PL_new_term_ref()) ||
+	 !PL_put_nil(nil) ||
+	 !PL_cons_functor(where, FUNCTOR_dot2, where, nil) )
+      return FALSE;
+
+    while(*ap != END_INDEX_POS)
+      ap++;
+    for(--ap; ap >= ci->position; ap--)
+    { if ( !PL_put_integer(tmp, (*ap)+1) ||
+	   !PL_cons_list(where, tmp, where) )
+	return FALSE;
+    }
+    if ( !PL_cons_functor(where, FUNCTOR_deep1, where) )
+      return FALSE;
+  }
+
+  return PL_unify_term(t,
+		       PL_FUNCTOR, FUNCTOR_minus2,
+			 PL_TERM, where,
+			 PL_FUNCTOR, FUNCTOR_hash4,
+			   PL_INT, (int)ci->buckets,
+			   PL_DOUBLE, (double)ci->speedup,
+		           PL_INT64, (int64_t)sizeofClauseIndex(ci),
+			   PL_BOOL, ci->is_list);
 }
+
+
+static int
+add_deep_indexes(ClauseIndex ci, term_t head, term_t tail ARG_LD)
+{ size_t i;
+
+  for(i=0; i<ci->buckets; i++)
+  { ClauseRef cref = ci->entries[i].head;
+
+    for(; cref; cref = cref->next)
+    { if ( isFunctor(cref->d.key) )
+      { ClauseList cl = &cref->value.clauses;
+	ClauseIndex *cip;
+
+	if ( (cip = cl->clause_indexes) )
+	{ for(; *cip; cip++)
+	  { ClauseIndex ci = *cip;
+
+	    if ( ISDEADCI(ci) )
+	      continue;
+
+	    if ( !PL_unify_list(tail, head, tail) ||
+		 !unify_clause_index(head, ci) )
+	      return FALSE;
+	    if ( ci->is_list &&
+		 !add_deep_indexes(ci, head, tail PASS_LD) )
+	      return FALSE;
+	  }
+	}
+      }
+    }
+  }
+
+  return TRUE;
+}
+
 
 bool
 unify_index_pattern(Procedure proc, term_t value)
@@ -2310,6 +2739,10 @@ unify_index_pattern(Procedure proc, term_t value)
       if ( !PL_unify_list(tail, head, tail) ||
 	   !unify_clause_index(head, ci) )
 	goto out;
+      if ( ci->is_list )
+      { if ( !add_deep_indexes(ci, head, tail PASS_LD) )
+	  goto out;
+      }
     }
 
     rc = found && PL_unify_nil(tail);

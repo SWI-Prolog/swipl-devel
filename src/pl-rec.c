@@ -1246,17 +1246,14 @@ fetchSizeInt(CopyInfo b)
 
 static int64_t
 fetchInt64(CopyInfo b)
-{ int64_t val = 0;
+{ uint64_t val = 0;
   uint bytes = *b->data++;
-  uint shift = (sizeof(int64_t)-bytes)*8;
+  uint64_t sign = 1ULL << (bytes * 8 - 1);
 
   while(bytes-- > 0)
     val = (val << 8) | (*b->data++ & 0xff);
 
-  val <<= shift;
-  val >>= shift;
-
-  return val;
+  return (int64_t)((val ^ sign) - sign);
 }
 
 
@@ -1491,6 +1488,7 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	    name = ATOM_dict;
 	    break;
 	  default:
+	    name = 0;
 	    assert(0);
 	}
 
@@ -1860,6 +1858,7 @@ PL_recorded_external(const char *rec, term_t t)
 	  fetchAtomW(&b, &a);
 	  break;
 	default:
+	  a = 0;
 	  assert(0);
       }
       rc = PL_put_atom(t, a);
@@ -1979,8 +1978,13 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
 
     while(advanceTableEnum(e, &sk, &sv))
     { RecordList rl = sv;
+      RecordRef record;
 
-      if ( rl->firstRecord && unifyKey(A1, rl->key) )
+      PL_LOCK(L_RECORD);
+      record = firstRecordRecordList(rl);
+      PL_UNLOCK(L_RECORD);
+
+      if ( record && unifyKey(A1, rl->key) )
       { PL_close_foreign_frame(fid);
 
 	ForeignRedoPtr(e);

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -230,7 +231,8 @@ S__setbuf(IOSTREAM *s, char *buffer, size_t size)
       }
     }
 
-    memcpy(newbuf, s->bufp, copy);
+    if ( copy > 0 )
+      memcpy(newbuf, s->bufp, copy);
     S__removebuf(s);
     s->unbuffer = newunbuf;
     s->bufp = s->buffer = newbuf;
@@ -439,7 +441,6 @@ S__wait(IOSTREAM *s)
     if ( rc < 0 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
       { Sset_exception(s, PL_exception(0));
-	s->flags |= SIO_CLEARERR;
 	errno = EPLEXCEPTION;
 	return -1;
       }
@@ -524,7 +525,6 @@ S__flushbuf(IOSTREAM *s)
     { if ( errno == EINTR )
       { if ( PL_handle_signals() < 0 )
 	{ Sset_exception(s, PL_exception(0));
-	  s->flags |= SIO_CLEARERR;
 	  errno = EPLEXCEPTION;
 	} else
 	  goto retry;
@@ -721,14 +721,6 @@ update_linepos(IOSTREAM *s, int c)
 
 
 int
-S__fcheckpasteeof(IOSTREAM *s, int c)
-{ S__checkpasteeof(s, c);
-
-  return c;
-}
-
-
-int
 S__fupdatefilepos_getc(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
@@ -750,7 +742,6 @@ S__updatefilepos(IOSTREAM *s, int c)
   { update_linepos(s, c);
     p->charno++;
   }
-  S__checkpasteeof(s,c);
 
   return c;
 }
@@ -860,7 +851,7 @@ reperror(int c, IOSTREAM *s)
     return c;
   }
 
-  Sseterr(s, SIO_FERR|SIO_CLEARERR, "Encoding cannot represent character");
+  Sseterr(s, SIO_FERR, "Encoding cannot represent character");
   return -1;
 }
 
@@ -1350,7 +1341,7 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
   { int c = S__fillbuf(s);
 
     if ( c < 0 )
-    { if ( (s->flags & SIO_FEOF) )
+    { if ( (s->flags & SIO_FEOF) && Sfpasteof(s) != TRUE )
 	return 0;
       return c;
     }
@@ -1453,8 +1444,7 @@ ScheckBOM(IOSTREAM *s)
       return 0;
 
     if ( S__fillbuf(s) == -1 )
-    { if ( s->limitp - s->bufp > 0 )
-	s->flags &= ~SIO_FEOF;
+    { s->flags &= ~SIO_FEOF;
       return 0;				/* empty stream */
     }
     s->bufp--;
@@ -1548,7 +1538,7 @@ Sfpasteof(IOSTREAM *s)
 
 
 #define SIO_ERROR_FLAGS (SIO_FEOF|SIO_WARN|SIO_FERR| \
-			 SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR)
+			 SIO_FEOF2|SIO_TIMEOUT)
 
 void
 Sclearerr(IOSTREAM *s)
@@ -1568,7 +1558,7 @@ Sclearerr(IOSTREAM *s)
 int
 Sseterr(IOSTREAM *s, int flags, const char *message)
 { for(; s && s->magic == SIO_MAGIC; s = s->upstream )
-  { s->flags = (s->flags & ~(SIO_WARN|SIO_FERR|SIO_CLEARERR)) | flags;
+  { s->flags = (s->flags & ~(SIO_WARN|SIO_FERR)) | flags;
 
     if ( s->message )
     { free(s->message);
@@ -3634,7 +3624,7 @@ Sopenmem(char **buffer, size_t *sizep, const char* mode)
     Mode is "r" or "w".  The mode "rF" calls PL_free(*buffer) at when
     closed.
 
-Note: Its is NOT allows to access   streams  created with this call from
+Note: Its is NOT allowed to access   streams created with this call from
 multiple threads. This is ok for all   usage inside Prolog itself (often
 through tellString()/toldString(). This call is   intented  to use write
 and other output predicates to create strings.

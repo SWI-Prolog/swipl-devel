@@ -533,7 +533,7 @@ static inline int WUNUSED
 callEventHook(pl_event_type ev, ...)
 {
 #ifdef O_DEBUGGER
-  if ( PROCEDURE_event_hook1->definition->impl.any )
+  if ( PROCEDURE_event_hook1->definition->impl.any.defined )
   { va_list args;
     int rc;
 

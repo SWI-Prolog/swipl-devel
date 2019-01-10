@@ -721,7 +721,7 @@ dicts.
 \const{PL_FLOAT}     & A floating point number \\
 \const{PL_TERM}      & A compound term \\
 \const{PL_LIST_PAIR} & A list cell (\verb$[H|T]$) \\
-\const{PL_DICT}	     & A dict (see \secref{dicts})) \\
+\const{PL_DICT}	     & A dict (see \secref{bidicts})) \\
 \hline
 \end{tabular}
 \end{description}
@@ -1828,6 +1828,22 @@ add information about the current position of the input stream.
 \end{description}
 
 
+\subsection{Serializing and deserializing Prolog terms}
+\label{sec:foreign-serialize}
+
+\begin{description}
+    \cfunction{int}{PL_put_term_from_chars}{term_t t, int flags,
+					    size_t len, const char *s}
+Parse the text from the C-string \arg{s} holding \arg{len} bytes and
+put the resulting term in \arg{t}.  \arg{len} can be \exam{(size_t)-1},
+assuming a 0-terminated string.  The \arg{flags} argument controls the
+encoding and is currently one of \const{REP_UTF8} (string is UTF8
+encoded), \const{REP_MB} (string is encoded in the current locale)
+or 0 (string is encoded in ISO latin 1).  The string may, but is
+not required, to be closed by a full stop (.).
+\end{description}
+
+
 \subsection{BLOBS: Using atoms to store arbitrary binary data}
 \label{sec:blob}
 
@@ -1920,7 +1936,7 @@ $> 0$ otherwise.
     \cfunction{int}{write}{IOSTREAM *s, atom_t a, int flags}
 Write the content of the blob \arg{a} to the stream \arg{s}
 respecting the \arg{flags}.  The \arg{flags} are a bitwise
-\em{or} of zero or more of the \const{PL_WRT_*} flags defined in
+\emph{or} of zero or more of the \const{PL_WRT_*} flags defined in
 \file{SWI-Prolog.h}. This prototype is available if the
 undocumented \file{SWI-Stream.h} is included \emph{before}
 \file{SWI-Prolog.h}.
@@ -2216,17 +2232,21 @@ ancestor(const char *me)
 }
 \end{code}
 
-\cfunction{int}{PL_next_solution}{qid_t qid}
+    \cfunction{int}{PL_next_solution}{qid_t qid}
 Generate the first (next) solution for the given query.  The return
 value is \const{TRUE} if a solution was found, or \const{FALSE} to indicate
 the query could not be proven.  This function may be called repeatedly
 until it fails to generate all solutions to the query.
-\cfunction{void}{PL_cut_query}{qid_t qid}
+
+    \cfunction{int}{PL_cut_query}{qid_t qid}
 Discards the query, but does not delete any of the data created by the
 query.  It just invalidates \arg{qid}, allowing for a new call to
-PL_open_query() in this context.
+PL_open_query() in this context.  PL_cut_query() may invoke cleanup
+handlers (see setup_call_cleanup/3) and therefore may experience
+exceptions.  If an exception occurs the return value is \const{FALSE}
+and the exception is accessible through \exam{PL_exception(0)}.
 
-    \cfunction{void}{PL_close_query}{qid_t qid}
+    \cfunction{int}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
 
@@ -2731,10 +2751,8 @@ notation.
 \label{sec:cprologflags}
 
 Foreign code can set or create Prolog flags using PL_set_prolog_flag().
-See set_prolog_flag/2 and create_prolog_flag/3.\footnote{The current C
-API does not provide for a dedicated mechanism for fetching the value of
-Prolog flags. Relatively slow access is provided by calling
-PL_call_predicate() using current_prolog_flag/2.}
+See set_prolog_flag/2 and create_prolog_flag/3. To retrieve the value
+of a flag you can use PL_current_prolog_flag().
 
 \begin{description}
     \cfunction{int}{PL_set_prolog_flag}{const char *name, int type, ...}
@@ -2759,6 +2777,29 @@ Create a flag with an integer as value. The argument must be of type
 \end{description}
 
 
+\begin{description}
+    \cfunction{int}{PL_current_prolog_flag}{atom_t name, int type, void *value}
+Retrieve the value of a Prolog flag from C.  \arg{name} is the name of the
+flag as an \const{atom_t} (see current_prolog_flag/2).
+\arg{type} specifies the kind of value to be retrieved, it is one
+of the values below.  \arg{value} is a pointer to a location where
+to store the value. The user is responsible for making sure this memory
+location is of the appropiate size/type (see the returned types below
+to determine the size/type).
+The function returns \const{TRUE} on success
+and \const{FALSE} on failure.
+
+\begin{description}
+    \definition{\const{PL_ATOM}}
+Retrieve a flag whose value is an \const{atom}. The returned value is an atom handle of type \ctype{atom_t}.
+    \definition{\const{PL_INTEGER}}
+Retrieve a flag whose value is an \const{integer}. The returned value is an  integer of type \ctype{int64_t}.
+    \definition{\const{PL_FLOAT}}
+Retrieve a flag whose value is a \const{float}. The returned value is a floating point number of type \ctype{double}.
+    \definition{\const{PL_TERM}}
+Retrieve a flag whose value is a \const{term}. The returned value is a term handle of type \ctype{term_t}.
+\end{description}
+\end{description}
 
 \subsection{Errors and warnings}
 \label{sec:foreign-print-warning}

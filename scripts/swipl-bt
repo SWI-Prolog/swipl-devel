@@ -95,6 +95,7 @@ esac
 gdb </dev/null --nx --batch \
     -ex "set pagination off" -ex "set height 0" -ex "set width 0" \
     -ex "set print thread-events off" \
+    -ex "handle SIGUSR2 nostop noprint pass" \
     -ex "attach $pid" \
     -ex "$cmd" \
     -ex detach -ex quit | tee $out

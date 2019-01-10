@@ -34,7 +34,6 @@
 :- module(test_tabling,
 	  [ test_tabling/0
 	  ]).
-:- use_module(library(tabling)).
 :- use_module(tabling_testlib).
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
@@ -61,13 +60,20 @@ test_tabling :-
 		    tabling_ex15,
 		    tabling_ex16,
 		    tabling_ex17,
-		    tabling_clpdf,
+						% Contraints and tabling
+		    tabling_clpfd,
+						% mode-directed tabling
 		    tabling_eruption,
+		    tabling_eruption2,
 		    tabling_sneezing,
 		    tabling_yappath,
 		    tabling_minpath,
+		    tabling_maxpath,
 		    tabling_train,
-		    moded_tabling_path
+		    moded_tabling_path,
+						% tests requiring sub components
+		    mode_components1,
+		    mode_components2
 		  ]).
 
 		 /*******************************
@@ -940,9 +946,8 @@ test(ex17) :-
 :- end_tests(tabling_ex17).
 
 
-:- begin_tests(tabling_clpdf, [cleanup(abolish_all_tables)]).
+:- begin_tests(tabling_clpfd, [cleanup(abolish_all_tables)]).
 
-:- use_module(library(tabling)).
 :- table fib/2.
 :- use_module(library(clpfd)).
 
@@ -957,7 +962,7 @@ fib(N, X) :-
 test(fib_error, error(type_error(free_of_attvar, _))) :-
 	fib(_N, 13).
 
-:- end_tests(tabling_clpdf).
+:- end_tests(tabling_clpfd).
 
 
 		 /*******************************
@@ -989,14 +994,42 @@ fault_rupture(east_west,0.6).
 prob_sum_e(A,B,C):-
   C is 1-(1-A)*(1-B).
 
-test(tabling_eruption, P =:= 0.6288) :-
+test(tabling_eruption, [P =:= 0.6288, nondet]) :-
 	eruption(P).
 
 :- end_tests(tabling_eruption).
 
+:- begin_tests(tabling_eruption2, [cleanup(abolish_all_tables)]).
+
+:- table
+  sudden_energy_release/0,
+  eruption(lattice(prob_sum_e/3)).
+
+eruption(P)  :-
+  sudden_energy_release,
+  fault_rupture(_,P0),
+  P is P0*0.6.
+% If there is a sudden energy release under the island and there is a fault
+% rupture, then there can be an eruption of the volcano on the island with
+% probability 0.6
+
+sudden_energy_release.
+% The energy release occurs with certainty
+
+fault_rupture(southwest_northeast,0.7).
+fault_rupture(east_west,0.6).
+% we are sure that ruptures occur
+
+prob_sum_e(A,B,C):-
+  C is 1-(1-A)*(1-B).
+
+test(tabling_eruption, [P =:= 0.6288, nondet]) :-
+	eruption(P).
+
+:- end_tests(tabling_eruption2).
+
 :- begin_tests(tabling_sneezing, [cleanup(abolish_all_tables)]).
 
-:- use_module(library(tabling)).
 :- table
     sneezing(_,lattice(prob_sum)),
     flu(_,lattice(prob_sum)),
@@ -1023,7 +1056,6 @@ test(tabling_sneezing, P =:= 0.1352000000000001) :-
 :- end_tests(tabling_sneezing).
 
 :- begin_tests(tabling_yappath, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 
 :- table
     path(index, index, first).
@@ -1044,7 +1076,6 @@ test(yappath, set(t(X,Y,L) == [t(a,a,2),t(a,b,1),t(b,a,1),t(b,b,2)])) :-
 :- end_tests(tabling_yappath).
 
 :- begin_tests(tabling_minpath, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 :- table connection(_,_,min).
 
 connection(X, Y,1) :-
@@ -1065,8 +1096,28 @@ test(tabling_minpath, N =:= 1) :-
 
 :- end_tests(tabling_minpath).
 
+:- begin_tests(tabling_maxpath, [cleanup(abolish_all_tables)]).
+:- table connection(_,_,max).
+
+connection(X, Y, 1) :-
+        connection(X, Y).
+connection(X, Y, N) :-
+        connection(X, Z,N1),
+        connection(Z, Y),
+        N is N1+1.
+
+connection('Amsterdam', 'Schiphol').
+connection('Amsterdam', 'Haarlem').
+connection('Schiphol', 'Leiden').
+connection('Haarlem', 'Leiden').
+connection('Amsterdam', 'Leiden').
+
+test(tabling_maxpath, N =:= 2) :-
+	connection('Amsterdam','Leiden',N).
+
+:- end_tests(tabling_maxpath).
+
 :- begin_tests(tabling_train, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 :- table train(_,_,lattice(shortest/3)).
 
 train(X, Y, [X,Y]) :-
@@ -1096,7 +1147,6 @@ test(tabling_train, P == ['Amsterdam','Leiden']) :-
 :- end_tests(tabling_train).
 
 :- begin_tests(moded_tabling_path, [cleanup(abolish_all_tables)]).
-:- use_module(library(tabling)).
 :- table
     path(_,_,lattice(or/3)),
     edge(_,_,lattice(or/3)).
@@ -1132,7 +1182,7 @@ and(B, one, B) :- !.
 and(A,A,A):-!.
 and(A, B, and(A,B)).
 
-test(path, T == or(e(a, e), and(e(a, b), e(b, e)))) :-
+test(path, nondet) :-
 	path(a, e, T),
 	assertion(ground(T)),
 	assertion(ok_path(T)).
@@ -1142,6 +1192,69 @@ ok_path(or(and(e(a, b), e(b, e)), e(a, e))).
 
 :- end_tests(moded_tabling_path).
 
+% Tests that require subcomponents to be finished first as otherwise the
+% mode-directed  tabled  subgoals  succeed  multiple  times  while  such
+% predicates by definition succeed only once for each variant of the not
+% moded arguments, which are 0 below.
+
+:- begin_tests(mode_components1, [cleanup(abolish_all_tables)]).
+
+:- table
+    p(lattice(orp/3)),
+    s(lattice(ors/3)).
+
+orp(A,B,A+B).
+ors(A,B,A-B).
+
+p(A) :-
+    s(A).
+
+s(1).
+s(2).
+
+test(component, [A == (1-2), nondet]) :-
+	p(A).
+
+:- end_tests(mode_components1).
+
+:- begin_tests(mode_components2, [cleanup(abolish_all_tables)]).
+
+:- table
+    advisedby(_,_,lattice(or/3)),
+    r11(_,_,_,lattice(or/3)).
+
+or(A,B,C):-C is A+B.
+
+advisedby(A,B,1)  :-
+    student(A), professor(B), project(C, A), project(C, B),
+    r11(A, B, C,_).
+
+r11(A, B, C,1) :-
+    publication(D, A, C), publication(D, B, C).
+
+student(harry).
+
+professor(ben).
+
+project(pr1, harry).
+project(pr1, ben).
+project(pr2, harry ).
+project(pr2, ben).
+
+publication(p1, harry, pr1).
+publication(p1, ben, pr1).
+publication(p2, harry, pr1).
+publication(p2, ben, pr1).
+publication(p3, harry, pr2).
+publication(p3, ben, pr2).
+publication(p4, harry, pr2).
+publication(p4, ben, pr2).
+
+test(component, [X == 2, nondet]) :-
+    abolish_all_tables,
+    advisedby(harry,ben,X).
+
+:- end_tests(mode_components2).
 
 
 		 /*******************************

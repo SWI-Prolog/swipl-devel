@@ -38,6 +38,7 @@
             jiti_list/1                         % +Spec
           ]).
 :- use_module(library(apply)).
+:- use_module(library(dcg/basics)).
 
 :- meta_predicate
     jiti_list(:).
@@ -63,6 +64,20 @@ by the system and can help diagnosing space and performance issues.
 %     - Module:Head
 %     - Module:Name/Arity
 %     - Module:Name
+%
+%   The columns use the following notation:
+%
+%     - The _Indexed_ column describes the argument(s) indexed:
+%       - A plain integer refers to a 1-based argument number
+%       - _|A+B|_ is a multi-argument index on the arguments _A_ and _B_.
+%       - _|A/B|_ is a deep-index on sub-argument _B_ of argument _A_.
+%     - The _Buckets_ specifies the number of buckets of the hash table
+%     - The _Speedup_ specifies the selectivity of the index
+%     - The _Flags_ describes additional properties, currently:
+%       - =L= denotes that the index contains multiple compound
+%         terms with the same name/arity that may be used to create
+%         deep indexes.  The deep indexes themselves are created
+%         as just-in-time indexes.
 
 jiti_list :-
     jiti_list(_:_).
@@ -89,17 +104,54 @@ jiti_list(Head) :-
             (   predicate_property(Head, indexed(Indexed)),
                 \+ predicate_property(Head, imported_from(_))
             ), Pairs),
-    format('Predicate~46|~w ~t~8+ ~t~w~6+ ~t~w~6+~n',
-           ['Indexed','Buckets','Speedup']),
-    format('~`=t~68|~n'),
+    format('Predicate~46|~w ~t~8+ ~t~w~6+ ~t~w~6+ ~t~w~5+~n',
+           ['Indexed','Buckets','Speedup','Flags']),
+    format('~`=t~76|~n'),
     maplist(print_indexed, Pairs).
 
-print_indexed((M:Head)-[Args-hash(Buckets,Speedup,_List)|More]) :-
+print_indexed((M:Head)-[Args-hash(Buckets,Speedup,_Size,List)|More]) :-
     functor(Head, Name, Arity),
-    format('~q ~t~48|~p ~t~8+ ~t~D~6+ ~t~1f~6+~n',
-           [M:Name/Arity, Args,Buckets,Speedup]),
-    maplist(print_secondary_index, More).
+    phrase(iarg_spec(Args), ArgsS),
+    phrase(iflags(List), Flags),
+    format('~q ~t~48|~s ~t~8+ ~t~D~6+ ~t~1f~8+ ~t~s~3+~n',
+           [M:Name/Arity, ArgsS,Buckets,Speedup,Flags]),
+    maplist(print_secondary_index, More),
+    !.
+print_indexed(Pair) :-
+    format('Failed: ~p~n', [Pair]).
 
-print_secondary_index(Args-hash(Buckets,Speedup,_List)) :-
-    format('~t~48|~p ~t~8+ ~t~D~6+ ~t~1f~6+~n',
-           [Args,Buckets,Speedup]).
+print_secondary_index(Args-hash(Buckets,Speedup,_Size,List)) :-
+    phrase(iarg_spec(Args), ArgsS),
+    phrase(iflags(List), Flags),
+    format('~t~48|~s ~t~8+ ~t~D~6+ ~t~1f~8+ ~t~s~3+~n',
+           [ArgsS,Buckets,Speedup,Flags]),
+    !.
+print_secondary_index(Pair) :-
+    format('Secondary failed: ~p~n', [Pair]).
+
+iarg_spec(single(N)) -->
+    number(N).
+iarg_spec(multi(L)) -->
+    plus_list(L).
+iarg_spec(deep(List)) -->
+    deep_list(List).
+
+plus_list([H|T]) -->
+    number(H),
+    (   {T==[]}
+    ->  []
+    ;   "+",
+        plus_list(T)
+    ).
+
+deep_list([Last]) -->
+    !,
+    iarg_spec(Last).
+deep_list([H|T]) -->
+    number(H),
+    "/",
+    deep_list(T).
+
+
+iflags(true)  --> "L".
+iflags(false) --> "".

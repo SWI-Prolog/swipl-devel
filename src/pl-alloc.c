@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#include "pl-dict.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -216,14 +218,366 @@ free_lingering(linger_list *list)
 		*********************************/
 
 int
-enableSpareStack(Stack s)
-{ if ( s->spare )
-  { s->max = addPointer(s->max, s->spare);
+enableSpareStack(Stack s, int always)
+{ if ( s->spare && (roomStackP(s) < s->def_spare || always) )
+  { DEBUG(MSG_SPARE_STACK,
+	  Sdprintf("Enabling spare on %s: %zd bytes\n", s->name, s->spare));
+    s->max = addPointer(s->max, s->spare);
     s->spare = 0;
     return TRUE;
   }
 
   return FALSE;
+}
+
+
+void
+enableSpareStacks(void)
+{ GET_LD
+
+  enableSpareStack((Stack)&LD->stacks.local,  FALSE);
+  enableSpareStack((Stack)&LD->stacks.global, FALSE);
+  enableSpareStack((Stack)&LD->stacks.trail,  FALSE);
+}
+
+
+static intptr_t
+env_frames(LocalFrame fr)
+{ intptr_t count = 0;
+
+  while(fr)
+  { count++;
+    fr = parentFrame(fr);
+  }
+
+  return count;
+}
+
+
+static intptr_t
+choice_points(Choice chp)
+{ GET_LD
+
+  intptr_t count = 0;
+  QueryFrame qfr = LD->query;
+
+  while( chp )
+  { count++;
+
+    if ( chp->parent )
+    { chp = chp->parent;
+    } else if ( qfr )
+    { assert(qfr->magic == QID_MAGIC);
+      chp = qfr->saved_bfr;
+      qfr = qfr->parent;
+    }
+  }
+
+  return count;
+}
+
+
+#define MAX_CYCLE     20
+#define CYCLE_CTX      1
+#define MAX_PRE_LOOP  20
+#define MIN_REPEAT   100
+
+typedef struct cycle_entry
+{ LocalFrame frame;
+} cycle_entry;
+
+static int
+is_variant_frame(LocalFrame fr1, LocalFrame fr2 ARG_LD)
+{ if ( fr1->predicate == fr2->predicate )
+  { size_t arity = fr1->predicate->functor->arity;
+    size_t i;
+
+    for(i=0; i<arity; i++)
+    { if ( !is_variant_ptr(argFrameP(fr1, i), argFrameP(fr2, i) PASS_LD) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
+non_terminating_recursion(LocalFrame fr0,
+			  cycle_entry ce[MAX_CYCLE],
+			  int *is_cycle
+			  ARG_LD)
+{ int depth, mindepth = 1, repeat;
+  LocalFrame fr, ctx;
+
+  ce[0].frame = fr0;
+
+again:
+  for( fr=parentFrame(fr0), depth=1;
+       fr && depth<MAX_CYCLE;
+       depth++, fr = parentFrame(fr) )
+  { if ( fr->predicate == fr0->predicate && depth >= mindepth )
+      break;
+    ce[depth].frame = fr;
+  }
+
+  if ( !fr || depth >= MAX_CYCLE )
+    return 0;
+
+  *is_cycle = is_variant_frame(fr0, fr PASS_LD);
+  ctx = fr;
+
+  for(repeat=MIN_REPEAT; fr && --repeat > 0; )
+  { int i;
+
+    for(i=0; fr && i<depth; i++, fr = parentFrame(fr))
+    { if ( fr->predicate != ce[i].frame->predicate )
+      { mindepth = depth+1;
+	if ( mindepth > MAX_CYCLE )
+	  return 0;
+	// Sdprintf("Cycle not repeated at %d\n", i);
+	goto again;
+      }
+    }
+  }
+
+  if ( repeat == 0 )
+  { int nctx = CYCLE_CTX;
+
+    for(fr=ctx; fr && nctx-- > 0; fr = parentFrame(fr))
+      ce[depth++].frame = fr;
+
+    return depth;
+  }
+
+  return 0;
+}
+
+static int
+find_non_terminating_recursion(LocalFrame fr, cycle_entry ce[MAX_CYCLE],
+			       int *is_cycle ARG_LD)
+{ int max_pre_loop = MAX_PRE_LOOP;
+
+  for(; fr && max_pre_loop; fr = parentFrame(fr), max_pre_loop--)
+  { int len;
+
+    if ( (len=non_terminating_recursion(fr, ce, is_cycle PASS_LD)) )
+      return len;
+  }
+
+  return 0;
+}
+
+
+static int
+top_of_stack(LocalFrame fr, cycle_entry ce[MAX_CYCLE], int maxdepth ARG_LD)
+{ int depth;
+
+  for(depth = 0; fr && depth < maxdepth; fr = parentFrame(fr), depth++)
+  { ce[depth].frame = fr;
+  }
+
+  return depth;
+}
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Push a goal to the stack. This   code uses low-level primitives to avoid
+stack shifts. The goal is a term `Module:Head`, where each Head argument
+is a primitive (var, atom, number, string), a term `[Length]` for a list
+of length Length, a term `[cyclic_term]` if the list is cyclic otherwise
+a term `Name/Arity` to indicate the principal functor.
+
+Returns `0` if there is no enough space to store this term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static size_t
+size_frame_term(LocalFrame fr)
+{ GET_LD
+  size_t arity = fr->predicate->functor->arity;
+  size_t size = 4 + 3 + arity+1;
+  size_t i;
+
+  for(i=0; i<arity; i++)
+  { Word p = argFrameP(fr, i);
+    deRef(p);
+
+    if ( isTerm(*p) )
+      size += 3;				/* one of f/n, [Len] or [c] */
+  }
+
+  return size;
+}
+
+
+static word
+push_goal(LocalFrame fr)
+{ GET_LD
+  size_t arity = fr->predicate->functor->arity;
+  size_t i;
+  Word p = gTop;
+  word r = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+
+  p[0] = FUNCTOR_frame3;
+  p[1] = consInt(fr->level);
+  p[2] = consPtr(&p[4], STG_GLOBAL|TAG_COMPOUND);
+  p[3] = ATOM_nil;				/* reserved */
+  p += 4;
+
+  p[0] = FUNCTOR_colon2;
+  p[1] = fr->predicate->module->name;
+  if ( arity > 0 )
+  { Word ad;					/* argument descriptions */
+
+    p[2] = consPtr(&p[3], STG_GLOBAL|TAG_COMPOUND);
+    p += 3;
+    p[0] = fr->predicate->functor->functor;
+    p++;
+    ad = p+arity;
+    for(i=0; i<arity; i++)
+    { Word a = argFrameP(fr, i);
+
+      deRef(a);
+      if ( isTerm(*a) )
+      { *p++ = consPtr(ad, STG_GLOBAL|TAG_COMPOUND);
+
+	if ( isList(*a) )
+	{ Word tail;
+	  intptr_t len = skip_list(a, &tail PASS_LD);
+
+	  *ad++ = FUNCTOR_dot2;
+	  deRef(tail);
+	  if ( isList(*tail) )
+	  { *ad++ = ATOM_cyclic_term;
+	    *ad++ = ATOM_nil;
+	  } else
+	  { *ad++ = consInt(len);
+	    *ad++ = *tail;
+	  }
+	} else
+	{ FunctorDef f = valueFunctor(functorTerm(*a));
+
+	  *ad++ = FUNCTOR_divide2;
+	  *ad++ = f->name;
+	  *ad++ = consInt(f->arity);
+	}
+      } else
+      { *p++ = *a;
+      }
+    }
+    gTop = ad;
+  } else
+  { p[2] = fr->predicate->functor->name;
+    gTop = &p[3];
+  }
+
+  return r;
+}
+
+
+static word
+push_cycle(cycle_entry ce[MAX_CYCLE], int depth)
+{ GET_LD
+  size_t size = depth*3;
+  int i;
+
+  for(i=0; i<depth; i++)
+  { size += size_frame_term(ce[i].frame);
+  }
+
+  if ( gTop+size < gMax )
+  { Word p  = gTop;
+    word r  = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+
+    gTop = p+depth*3;
+    for(i=0; i<depth; i++, p+=3)
+    { p[0] = FUNCTOR_dot2;
+      p[1] = push_goal(ce[i].frame);
+      if ( i+1 < depth )
+	p[2] = consPtr(&p[3], STG_GLOBAL|TAG_COMPOUND);
+      else
+	p[2] = ATOM_nil;
+    }
+
+    return r;
+  } else
+    return 0;
+}
+
+
+static void
+push_stack(cycle_entry ce[MAX_CYCLE], int depth, atom_t name, Word *pp ARG_LD)
+{ word w;
+  Word p = *pp;
+
+  gTop = p+2;
+  if ( (w=push_cycle(ce, depth)) )
+  { *p++ = w;
+    *p++ = name;
+  } else
+  { gTop = p;
+  }
+
+  *pp = p;
+}
+
+
+
+static word
+push_overflow_context(Stack stack, int extra)
+{ GET_LD
+  int keys = 7;
+
+  if ( gTop+2*keys+extra < gMax )
+  { Word p = gTop;
+    Word dict = p;
+    cycle_entry ce[MAX_CYCLE+CYCLE_CTX];
+    int depth;
+
+    *p++ = dict_functor(1);
+    *p++ = ATOM_stack_overflow;			/* dict tag */
+    *p++ = consInt(LD->stacks.limit/1024);
+    *p++ = ATOM_stack_limit;			/* overflow */
+    *p++ = consInt(usedStack(local)/1024);	/* K-bytes to avoid small int */
+    *p++ = ATOM_localused;
+    *p++ = consInt(usedStack(global)/1024);
+    *p++ = ATOM_globalused;
+    *p++ = consInt(usedStack(trail)/1024);
+    *p++ = ATOM_trailused;
+    if ( environment_frame )
+    { *p++ = consUInt(environment_frame->level);
+      *p++ = ATOM_depth;
+    }
+    *p++ = consInt(env_frames(environment_frame));
+    *p++ = ATOM_environments;
+    *p++ = consInt(choice_points(BFR));
+    *p++ = ATOM_choicepoints;
+    gTop = p;
+
+    if ( roomStack(local) < LD->stacks.local.def_spare + LOCAL_MARGIN )
+    { int is_cycle;
+
+      if ( (depth=find_non_terminating_recursion(environment_frame, ce,
+						 &is_cycle PASS_LD)) )
+      { push_stack(ce, depth, is_cycle ? ATOM_cycle : ATOM_non_terminating,
+		   &p PASS_LD);
+      } else if ( (depth=top_of_stack(environment_frame, ce, 5 PASS_LD)) )
+      { push_stack(ce, depth, ATOM_stack, &p PASS_LD);
+      }
+    } else if ( (depth=top_of_stack(environment_frame, ce, 5 PASS_LD)) )
+    { push_stack(ce, depth, ATOM_stack, &p PASS_LD);
+    }
+
+    *dict = dict_functor((p-dict-2)/2);		/* final functor */
+
+    dict_order(dict, FALSE PASS_LD);
+
+    return consPtr(dict, STG_GLOBAL|TAG_COMPOUND);
+  } else
+    return PL_new_atom(stack->name); /* The stack names are built-in atoms */
 }
 
 
@@ -243,6 +597,15 @@ resource exceptions near the bottom. That would   also avoid the need to
 freeze the global stack. One  problem  is   that  the  user  migh keep a
 reference to this reserved exception term,  which makes it impossible to
 reuse.
+
+Out of stack exception context:
+  - Stack sizes (Local, Global, Trail)
+  - Goal stack depth
+  - Ratio choice points/stack frames?
+  - Is there unbound recursion?
+  - Ratio global data reachable through environments and
+    choice points (requires running GC)
+  - Global storage only reachable through choice points
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -271,7 +634,7 @@ outOfStack(void *stack, stack_overflow_action how)
     print_backtrace_named("exception");
   }
 
-  enableSpareStack(s);
+  enableSpareStacks();
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
   LD->outofstack = stack;
@@ -279,21 +642,23 @@ outOfStack(void *stack, stack_overflow_action how)
   switch(how)
   { case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { if ( gTop+5 < gMax )
+    { word ctx = push_overflow_context(s, 5);
+
+      if ( gTop+5 < gMax )
       { Word p = gTop;
 
 	p[0] = FUNCTOR_error2;			/* see (*) above */
 	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
-	p[2] = PL_new_atom(s->name);
+	p[2] = ctx;
 	p[3] = FUNCTOR_resource_error1;
 	p[4] = ATOM_stack;
 	gTop += 5;
-	PL_unregister_atom(p[2]);
 
 	*valTermRef(LD->exception.bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	freezeGlobal(PASS_LD1);
       } else
-      { Sdprintf("Out of %s-stack.  No room for exception term.  Aborting.\n", s->name);
+      { Sdprintf("ERROR: Out of global-stack.\n"
+		 "ERROR: No room for exception term.  Aborting.\n");
 	*valTermRef(LD->exception.bin) = ATOM_aborted;
       }
       exception_term = exception_bin;
@@ -322,6 +687,7 @@ raiseStackOverflow(int overflow)
   { case LOCAL_OVERFLOW:    s = (Stack)&LD->stacks.local;    break;
     case GLOBAL_OVERFLOW:   s = (Stack)&LD->stacks.global;   break;
     case TRAIL_OVERFLOW:    s = (Stack)&LD->stacks.trail;    break;
+    case STACK_OVERFLOW:    s = &GD->combined_stack;         break;
     case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
     case MEMORY_OVERFLOW:
       return PL_error(NULL, 0, NULL, ERR_NOMEM);

@@ -7,12 +7,11 @@ swipl.home
 swipl-ld
 swipl-ld-build
 swipl.sh
-rc/swipl-rc
 pl-atom.ic
 pl-atom.ih
 pl-funct.ic
 pl-funct.ih
-pl-codetable.c
+pl-codetable.ic
 pl-jumptable.ic
 pl-vmi.h
 defatom

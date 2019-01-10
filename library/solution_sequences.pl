@@ -39,6 +39,7 @@
             reduced/3,                  % ?Witness, :Goal, +Options
             limit/2,                    % +Limit, :Goal
             offset/2,                   % +Offset, :Goal
+            call_nth/2,                 % :Goal, ?Nth
             order_by/2,                 % +Spec, :Goal
             group_by/4                  % +By, +Template, :Goal, -Bag
           ]).
@@ -107,8 +108,21 @@ b(X)) and the ones using this library side-by-side.
     reduced(?, 0, +),
     limit(+, 0),
     offset(+, 0),
+    call_nth(0, ?),
     order_by(+, 0),
     group_by(?, ?, 0, -).
+
+:- noprofile((
+       distinct/1,
+       distinct/2,
+       reduced/1,
+       reduced/2,
+       limit/2,
+       offset/2,
+       call_nth/2,
+       order_by/2,
+       group_by/3)).
+
 
 %!  distinct(:Goal).
 %!  distinct(?Witness, :Goal).
@@ -217,7 +231,34 @@ offset(Count, Goal) :-
 offset(Count, _) :-
     domain_error(not_less_than_zero, Count).
 
-%!  order_by(Spec, Goal)
+%!  call_nth(:Goal, ?Nth)
+%
+%   True when Goal succeeded for the Nth time. If Nth is bound on entry,
+%   the predicate succeeds deterministically if there   are at least Nth
+%   solutions for Goal.
+
+call_nth(Goal, Nth) :-
+    integer(Nth),
+    !,
+    (   Nth > 0
+    ->  (   call_nth(Goal, Sofar),
+            Sofar =:= Nth
+        ->  true
+        )
+    ;   domain_error(not_less_than_one, Nth)
+    ).
+call_nth(Goal, Nth) :-
+    var(Nth),
+    !,
+    State = count(0),
+    call(Goal),
+    arg(1, State, N0),
+    Nth is N0+1,
+    nb_setarg(1, State, Nth).
+call_nth(_Goal, Bad) :-
+    must_be(integer, Bad).
+
+%!  order_by(+Spec, :Goal)
 %
 %   Order solutions according to Spec.  Spec   is  a  list of terms,
 %   where each element is one of. The  ordering of solutions of Goal

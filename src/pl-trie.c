@@ -963,13 +963,6 @@ intern_value(term_t value ARG_LD)
 
 
 static inline void
-acquire_value(word value)
-{ if ( isAtom(value) )
-    PL_register_atom(value);
-}
-
-
-static inline void
 release_value(word value)
 { if ( isAtom(value) )
     PL_unregister_atom(value);
@@ -1401,7 +1394,10 @@ put_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
 			gstate->trie,
 			gstate->tail->gsize,
 			gstate->tail->nvars+1 PASS_LD) )
-  { Word gok = gTop + gstate->tail->gsize;
+  {
+#ifndef NDEBUG
+    Word gok = gTop + gstate->tail->gsize;
+#endif
 
     for( ch = gstate->head; ch; ch = ch->next )
     { if ( !eval_key(&bstate, ch->key PASS_LD) )

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2016, University of Amsterdam
+    Copyright (c)  1995-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -125,6 +126,13 @@ predicate defined in C.
    ;   print_message(warning, shlib(not_supported)) % error?
    ).
 
+% The flag `res_keep_foreign` prevents deleting  temporary files created
+% to load shared objects when set  to   `true`.  This  may be needed for
+% debugging purposes.
+
+:- create_prolog_flag(res_keep_foreign, false,
+                      [ keep(true) ]).
+
 
                  /*******************************
                  *           DISPATCHING        *
@@ -137,23 +145,27 @@ predicate defined in C.
 %   file and Delete is unified with =true=.
 
 find_library(Spec, TmpFile, true) :-
-    '$rc_handle'(RC),
+    '$rc_handle'(Zipper),
     term_to_atom(Spec, Name),
     setup_call_cleanup(
-        '$rc_open'(RC, Name, shared, read, In),
+        zip_lock(Zipper),
         setup_call_cleanup(
-            tmp_file_stream(binary, TmpFile, Out),
-            copy_stream_data(In, Out),
-            close(Out)),
-        close(In)),
+            open_foreign_in_resources(Zipper, Name, In),
+            setup_call_cleanup(
+                tmp_file_stream(binary, TmpFile, Out),
+                copy_stream_data(In, Out),
+                close(Out)),
+            close(In)),
+        zip_unlock(Zipper)),
     !.
-find_library(Spec, Lib, false) :-
-    absolute_file_name(Spec, Lib,
+find_library(Spec, Lib, Copy) :-
+    absolute_file_name(Spec, Lib0,
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
                        ]),
-    !.
+    !,
+    lib_to_file(Lib0, Lib, Copy).
 find_library(Spec, Spec, false) :-
     atom(Spec),
     !.                  % use machines finding schema
@@ -162,6 +174,43 @@ find_library(foreign(Spec), Spec, false) :-
     !.                  % use machines finding schema
 find_library(Spec, _, _) :-
     throw(error(existence_error(source_sink, Spec), _)).
+
+%!  lib_to_file(+Lib0, -Lib, -Copy) is det.
+%
+%   If Lib0 is not a regular file  we   need  to  copy it to a temporary
+%   regular file because dlopen()  and   Windows  LoadLibrary() expect a
+%   file name. On some systems this can   be  avoided. Roughly using two
+%   approaches (after discussion with Peter Ludemann):
+%
+%     - On FreeBSD there is shm_open() to create an anonymous file in
+%       memory and than fdlopen() to link this.
+%     - In general, we could redefine the system calls open(), etc. to
+%       make dlopen() work on non-files.  This is highly non-portably
+%       though.
+%     - We can mount the resource zip using e.g., `fuse-zip` on Linux.
+%       This however fails if we include the resources as a string in
+%       the executable.
+%
+%   @see https://github.com/fancycode/MemoryModule for Windows
+
+lib_to_file(Res, TmpFile, true) :-
+    sub_atom(Res, 0, _, _, 'res://'),
+    !,
+    setup_call_cleanup(
+        open(Res, read, In, [type(binary)]),
+        setup_call_cleanup(
+            tmp_file_stream(binary, TmpFile, Out),
+            copy_stream_data(In, Out),
+            close(Out)),
+        close(In)).
+lib_to_file(Lib, Lib, false).
+
+open_foreign_in_resources(Zipper, Name, Stream) :-
+    zipper_goto(Zipper, file(Name)),
+    zipper_open_current(Zipper, Stream,
+                        [ type(binary),
+                          release(true)
+                        ]).
 
 base(Path, Base) :-
     atomic(Path),
@@ -257,6 +306,8 @@ load_foreign_library(LibFile, _, _) :-
     ).
 
 delete_foreign_lib(true, Path) :-
+    \+ current_prolog_flag(res_keep_foreign, true),
+    !,
     catch(delete_file(Path), _, true).
 delete_foreign_lib(_, _).
 

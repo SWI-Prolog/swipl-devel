@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -129,21 +130,18 @@ core_statistics -->
     ].
 
 :- if(\+current_predicate(thread_statistics/3)).
-thread_statistics(_Thread, Key, Value) :-
+thread_statistics(_Thread, Key, Value) :-       % single threaded version
     statistics(Key, Value).
 :- endif.
 
 thread_stack_statistics(Thread,
                   stacks{local:stack{name:local,
-                                    limit:LocalLimit,
                                      allocated:Local,
                                      usage:LocalUsed},
                          global:stack{name:global,
-                                      limit:GlobalLimit,
                                       allocated:Global,
                                       usage:GlobalUsed},
                          trail:stack{name:trail,
-                                     limit:TrailLimit,
                                      allocated:Trail,
                                      usage:TrailUsed},
                          total:stack{name:stacks,
@@ -157,12 +155,9 @@ thread_stack_statistics(Thread,
     thread_statistics(Thread, localused,   LocalUsed),
     thread_statistics(Thread, global,      Global),
     thread_statistics(Thread, globalused,  GlobalUsed),
-    thread_statistics(Thread, locallimit,  LocalLimit),
-    thread_statistics(Thread, globallimit, GlobalLimit),
-    thread_statistics(Thread, traillimit,  TrailLimit),
+    thread_statistics(Thread, stack_limit, StackLimit), %
     StackUsed is LocalUsed+GlobalUsed+TrailUsed,
-    StackAllocated is Local+Global+Trail,
-    StackLimit is LocalLimit+GlobalLimit+TrailLimit.
+    StackAllocated is Local+Global+Trail.
 
 gc_statistics -->
     { statistics(collections, Collections),
@@ -662,21 +657,54 @@ data_stats(C) -->
 stacks_stats(S) -->
     { get_dict(local, S, Local),
       get_dict(global, S, Global),
-      get_dict(trail, S, Trail)
+      get_dict(trail, S, Trail),
+      get_dict(total, S, Total)
     },
-    [ '~|~tLimit~28+~tAllocated~13+~tIn use~13+'-[], nl ],
-    stack_stats('Local ', Local),  [nl],
+    [ '~|~tLimit~25+~tAllocated~12+~tIn use~12+'-[], nl ],
+    stack_stats('Local',  Local),  [nl],
     stack_stats('Global', Global), [nl],
-    stack_stats('Trail ', Trail),  [nl].
+    stack_stats('Trail',  Trail),  [nl],
+    stack_stats('Total',  Total),  [nl].
 
-stack_stats(Stack, S) -->
-    { get_dict(limit, S, Limit),
-      get_dict(allocated, S, Allocated),
-      get_dict(usage, S, Usage)
+stack_stats('Total', S) -->
+    { dict_human_bytes(limit,     S, Limit),
+      dict_human_bytes(allocated, S, Allocated),
+      dict_human_bytes(usage,     S, Usage)
     },
-    [ '~|~w stack:~t~D~28+ ~t~D~13+ ~t~D~13+ Bytes'-
-      [Stack, Limit, Allocated, Usage]
+    !,
+    [ '~|~tTotal:~13+~t~s~12+ ~t~s~12+ ~t~s~12+'-
+      [Limit, Allocated, Usage]
     ].
+stack_stats(Stack, S) -->
+    { dict_human_bytes(allocated, S, Allocated),
+      dict_human_bytes(usage,     S, Usage)
+    },
+    [ '~|~w ~tstack:~13+~t~w~12+ ~t~s~12+ ~t~s~12+'-
+      [Stack, -, Allocated, Usage]
+    ].
+
+dict_human_bytes(Key, Dict, String) :-
+    get_dict(Key, Dict, Bytes),
+    human_bytes(Bytes, String).
+
+human_bytes(Bytes, String) :-
+    Bytes < 20_000,
+    !,
+    format(string(String), '~D  b', [Bytes]).
+human_bytes(Bytes, String) :-
+    Bytes < 20_000_000,
+    !,
+    Kb is (Bytes+512) // 1024,
+    format(string(String), '~D Kb', [Kb]).
+human_bytes(Bytes, String) :-
+    Bytes < 20_000_000_000,
+    !,
+    Mb is (Bytes+512*1024) // (1024*1024),
+    format(string(String), '~D Mb', [Mb]).
+human_bytes(Bytes, String) :-
+    Gb is (Bytes+512*1024*1024) // (1024*1024*1024),
+    format(string(String), '~D Gb', [Gb]).
+
 
 :- multifile sandbox:safe_primitive/1.
 

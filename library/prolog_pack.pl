@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2017, VU University Amsterdam
+    Copyright (c)  2012-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -60,9 +61,6 @@
 :- use_module(library(http/http_open)).
 :- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).   % plugin for POST support
-:- if(exists_source(library(archive))).
-:- use_module(library(archive)).
-:- endif.
 
 
 /** <module> A package manager for Prolog
@@ -446,7 +444,7 @@ search_info(download(_)).
 %     * Archive file name
 %     * HTTP URL of an archive file name.  This URL may contain a
 %       star (*) for the version.  In this case pack_install asks
-%       for the deirectory content and selects the latest version.
+%       for the directory content and selects the latest version.
 %     * GIT URL (not well supported yet)
 %     * A local directory name given as =|file://|= URL.
 %     * A package name.  This queries the package repository
@@ -485,6 +483,7 @@ pack_default_options(_Spec, Pack, OptsIn, Options) :-
     ).
 pack_default_options(Archive, Pack, _, Options) :-      % Install from archive
     must_be(atom, Archive),
+    \+ uri_is_global(Archive),
     expand_file_name(Archive, [File]),
     exists_file(File),
     !,
@@ -723,8 +722,9 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
 %
 %   Unpack an archive to the given package dir.
 
-:- if(current_predicate(archive_extract/3)).
+:- if(exists_source(library(archive))).
 pack_unpack(Source, PackDir, Pack, Options) :-
+    ensure_loaded_archive,
     pack_archive_info(Source, Pack, _Info, StripOptions),
     prepare_pack_dir(PackDir, Options),
     archive_extract(Source, PackDir,
@@ -746,12 +746,21 @@ pack_unpack(_,_,_,_) :-
 %   from pack.pl in the  pack  and   Strip  is  the strip-option for
 %   archive_extract/3.
 %
+%   Requires library(archive), which is lazily loaded when needed.
+%
 %   @error  existence_error(pack_file, 'pack.pl') if the archive
 %           doesn't contain pack.pl
 %   @error  Syntax errors if pack.pl cannot be parsed.
 
-:- if(current_predicate(archive_open/3)).
+:- if(exists_source(library(archive))).
+ensure_loaded_archive :-
+    current_predicate(archive_open/3),
+    !.
+ensure_loaded_archive :-
+    use_module(library(archive)).
+
 pack_archive_info(Archive, Pack, [archive_size(Bytes)|Info], Strip) :-
+    ensure_loaded_archive,
     size_file(Archive, Bytes),
     setup_call_cleanup(
         archive_open(Archive, Handle, []),
@@ -1216,7 +1225,9 @@ def_environment('SWISOLIB', Value) :-
     current_prolog_flag(c_libplso, Value).
 def_environment('SWILIB', '-lswipl').
 def_environment('CC', Value) :-
-    (   getenv('CC', value)
+    (   getenv('CC', Value)
+    ->  true
+    ;   default_c_compiler(Value)
     ->  true
     ;   current_prolog_flag(c_cc, Value)
     ).
@@ -1235,22 +1246,21 @@ def_environment('CFLAGS', Value) :-
     atomic_list_concat([Value0, ' -I"', Home, '/include"' | Extra], Value).
 def_environment('LDSOFLAGS', Value) :-
     (   getenv('LDFLAGS', SystemFlags)
-    ->  Extra = [' ', SystemFlags|System]
+    ->  Extra = [SystemFlags|System]
     ;   Extra = System
     ),
     (   current_prolog_flag(windows, true)
     ->  current_prolog_flag(home, Home),
-        atomic_list_concat([' -L"', Home, '/bin"'], SystemLib),
+        atomic_list_concat(['-L"', Home, '/bin"'], SystemLib),
         System = [SystemLib]
-    ;   current_prolog_flag(shared_object_extension, so)
+    ;   current_prolog_flag(c_libplso, '')
     ->  System = []                 % ELF systems do not need this
-    ;   current_prolog_flag(home, Home),
-        current_prolog_flag(arch, Arch),
-        atomic_list_concat([' -L"', Home, '/lib/', Arch, '"'], SystemLib),
+    ;   prolog_library_dir(SystemLibDir),
+        atomic_list_concat(['-L"',SystemLibDir,'"'], SystemLib),
         System = [SystemLib]
     ),
     current_prolog_flag(c_ldflags, LDFlags),
-    atomic_list_concat([LDFlags, ' -shared' | Extra], Value).
+    atomic_list_concat([LDFlags, '-shared' | Extra], ' ', Value).
 def_environment('SOEXT', Value) :-
     current_prolog_flag(shared_object_extension, Value).
 def_environment(Pass, Value) :-
@@ -1261,6 +1271,37 @@ pass_env('TMP').
 pass_env('TEMP').
 pass_env('USER').
 pass_env('HOME').
+
+:- multifile
+    prolog:runtime_config/2.
+
+prolog_library_dir(Dir) :-
+    prolog:runtime_config(c_libdir, Dir),
+    !.
+prolog_library_dir(Dir) :-
+    current_prolog_flag(home, Home),
+    (   current_prolog_flag(c_libdir, Rel)
+    ->  atomic_list_concat([Home, Rel], /, Dir)
+    ;   current_prolog_flag(arch, Arch)
+    ->  atomic_list_concat([Home, lib, Arch], /, Dir)
+    ).
+
+%!  default_c_compiler(-CC) is semidet.
+%
+%   Try to find a  suitable  C   compiler  for  compiling  packages with
+%   foreign code.
+%
+%   @tbd Needs proper defaults for Windows.  Find MinGW?  Find MSVC?
+
+default_c_compiler(CC) :-
+    preferred_c_compiler(CC),
+    has_program(path(CC), _),
+    !.
+
+preferred_c_compiler(gcc).
+preferred_c_compiler(clang).
+preferred_c_compiler(cc).
+
 
                  /*******************************
                  *             PATHS            *
@@ -1626,11 +1667,11 @@ digits([])    --> [].
 
 %!  pack_inquiry(+URL, +DownloadFile, +Info, +Options) is semidet.
 %
-%   Query the status of a package with the central repository. To do
-%   this, we POST a Prolog document containing the URL, info and the
-%   SHA1 hash to  http://www.swi-prolog.org/pack/eval.   The  server
-%   replies using a list of Prolog terms, described below.  The only
-%   member that is always is downloads (which may be 0).
+%   Query the status of a package  with   the  central repository. To do
+%   this, we POST a Prolog document  containing   the  URL, info and the
+%   SHA1 hash to http://www.swi-prolog.org/pack/eval. The server replies
+%   using a list of Prolog terms, described  below. The only member that
+%   is always included is downloads (with default value 0).
 %
 %     - alt_hash(Count, URLs, Hash)
 %       A file with the same base-name, but a different hash was
@@ -2163,7 +2204,7 @@ relay([H|T], Outputs0, Outputs) :-
     ).
 
 relay(error,  Codes) :-
-    set_prolog_flag(thread_message_prefix, false),
+    set_prolog_flag(message_context, []),
     print_error(Codes, []).
 relay(output, Codes) :-
     print_output(Codes, []).
@@ -2539,16 +2580,16 @@ message(inquiry_ok(Reply, File)) -->
                                                 % support predicates
 unsatisfied([]) --> [].
 unsatisfied([Needed-[By]|T]) -->
-    [ '\t`~q\', needed by package `~w\''-[Needed, By] ],
+    [ '  - "~w" is needed by package "~w"'-[Needed, By], nl ],
     unsatisfied(T).
 unsatisfied([Needed-By|T]) -->
-    [ '\t`~q\', needed by packages'-[Needed], nl ],
+    [ '  - "~w" is needed by the following packages:'-[Needed], nl ],
     pack_list(By),
     unsatisfied(T).
 
 pack_list([]) --> [].
 pack_list([H|T]) -->
-    [ '\t\tPackage `~w\''-[H], nl ],
+    [ '    - Package "~w"'-[H], nl ],
     pack_list(T).
 
 process_lines([]) --> [].

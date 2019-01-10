@@ -6,10 +6,10 @@
 */
 
 #ifdef NO_SWIPL
-#define uintptr_t long
+#include <stdint.h>
 #define DEBUG(l,g) (void)0
 #else
-#include <pl-incl.h>
+#include "pl-incl.h"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -167,3 +167,38 @@ MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
 }
 
 #endif /*WORDS_BIGENDIAN*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Optimized version for our Prolog word type
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+unsigned int
+MurmurHashIntptr(intptr_t v, unsigned int seed)
+{ const unsigned int m = 0x5bd1e995;
+  const int r = 24;
+  unsigned int h = seed ^ sizeof(v);
+  unsigned int k;
+
+#if SIZEOF_VOIDP == 8
+#if WORDS_BIGENDIAN
+  k = (v>>32) & 0xffffffff;
+  MIX(h,k,m);
+  k = v & 0xffffffff;
+#else
+  k = v & 0xffffffff;
+  MIX(h,k,m);
+  k = (v>>32) & 0xffffffff;
+#endif
+#else
+  k = v;
+#endif
+  MIX(h,k,m);
+
+  h ^= h >> 13;
+  h *= m;
+  h ^= h >> 15;
+
+  DEBUG(CHK_SECURE, assert(MurmurHashAligned2(&v, sizeof(v), seed) == h));
+
+  return h;
+}

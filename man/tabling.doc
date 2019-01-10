@@ -1,0 +1,382 @@
+\chapter{Tabled execution (SLG resolution)}
+\label{sec:tabling}
+
+\index{SLG,resolution}%
+This chapter describes SWI-Prolog's support for \jargon{Tabled
+execution} for one or more Prolog predicates, also called \jargon{SLG
+resolution}. Tabling a predicate provides two properties:
+
+\begin{enumerate}
+    \item
+	Re-evaluation of a tabled predicate is avoided by
+	\jargon{memoizing} the answers. This can realise huge
+	performance enhancements as illustrated in
+	\secref{tabling-memoize}. It also comes with two downsides: the
+	memoized answers are not automatically updated or invalidated if
+	the world (set of predicates on which the answers depend)
+	changes and the answer tables must be stored (in memory).
+
+  \item
+	\jargon{Left recursion}, a goal calling a \jargon{variant} of
+	itself recursively and thus \textit{looping} under the normal
+	Prolog SLD resolution is avoided by suspending the variant call
+	and resuming it with answers from the table.  This is illustrated
+	in \secref{tabling-non-termination}.
+\end{enumerate}
+
+Tabling is particularly suited to simplify inference over a highly
+entangled set of predicates that express axioms and rules in a static
+(not changing) world. When using SLD resolution for such problems, it is
+hard to ensure termination and avoid frequent recomputation of
+intermediate results. A solution is to use Datalog style bottom-up
+evaluation, i.e., applying rules on the axioms and derived facts until a
+fixed point is reached. However, bottom-up evaluation typically derives
+many facts that are never used. Tabling provides a \jargon{goal
+oriented} resolution strategy for such problems and is enabled simply by
+adding a table/1 directive to the program.
+
+
+\section{Example 1: using tabling for memoizing}
+\label{sec:tabling-memoize}
+
+As a first classical example we use tabling for \emph{memoizing}
+intermediate results. We use Fibonacci numbers to illustrate the
+approach.  The Fibonacci number $I$ is defined as the sum of the
+Fibonacci numbers for $I-1$ and $I-2$, while the Fibonacci number
+of 0 and 1 are both defined to be 1.  This can be translated naturally
+into Prolog:
+
+\begin{code}
+fib(0, 1) :- !.
+fib(1, 1) :- !.
+fib(N, F) :-
+        N > 1,
+	N1 is N-1,
+	N2 is N-2,
+	fib(N1, F1),
+	fib(N2, F2),
+	F is F1+F2.
+\end{code}
+
+The complexity of executing this using SLD resolution however is $2^N$
+and thus becomes prohibitively slow rather quickly, e.g., the execution
+time for $N=30$ is already 0.4 seconds. Using tabling, \term{fib}{N,F}
+for each value of $N$ is computed only once and the algorithm becomes
+linear. Tabling effectively inverts the execution order for this case:
+it suspends the final addition (F is F1+F2) until the two preceeding
+Fibonacci numbers have been added to the answer tables. Thus, we can
+reduce the complexity from the show-stopping $2^N$ to linear by adding a
+tabling directive and otherwise not changing the algorithm. The code
+becomes:
+
+\begin{code}
+:- use_module(library(tabling)).
+:- table fib/2.
+
+fib(0, 1) :- !.
+fib(1, 1) :- !.
+fib(N, F) :-
+        N > 1,
+	N1 is N-1,
+	N2 is N-2,
+	fib(N1, F1),
+	fib(N2, F2),
+	F is F1+F2.
+\end{code}
+
+The price that we pay is that a table \term{fib}{I,F} is created for
+each $I$ in $0..N$. The execution time for $N=30$ is now 1 millisecond
+and computing the Fibonacci number for $N=1000$ is doable (output edited
+for readability).
+
+\begin{code}
+1 ?- time(fib(1000, X)).
+% 52,991 inferences, 0.013 CPU in 0.013 seconds
+X = 70330367711422815821835254877183549770181269836358
+    73274260490508715453711819693357974224949456261173
+    34877504492417659910881863632654502236471060120533
+    74121273867339111198139373125598767690091902245245
+    323403501.
+\end{code}
+
+In the case of Fibonacci numbers we can still rather easily achieve
+linear complexity using program transformation, where we use bottom-up
+instead of top-down evaluation, i.e., we compute \term{fib}{N,F} for
+growing $N$, where we pass the last two Fibonacci numbers to the next
+iteration. Not having to create the tables and not having to suspend and
+resume goals makes this implementation about 25 times faster than the
+tabled one. However, even in this simple case the transformation is not
+obvious and it is far more difficult to recognise the algorithm as an
+implementation of Fibonacci numbers.
+
+\begin{code}
+fib(0, 1) :- !.
+fib(1, 1) :- !.
+fib(N, F) :-
+	fib(1,1,1,N,F).
+
+fib(_F, F1, N, N, F1) :- !.
+fib(F0, F1, I, N, F) :-
+	F2 is F0+F1,
+	I2 is I + 1,
+	fib(F1, F2, I2, N, F).
+\end{code}
+
+
+\section{Example 2: avoiding non-termination}
+\label{sec:tabling-non-termination}
+
+SLD resolution easily results in an infinite loop due to \jargon{left
+recursion}, a goal that (indirectly) calls a variant of itself or cycles
+in the input data. Thus, if we have a series of
+\nopredref{connection}{2} statements that define railway connections
+between two cities, we cannot use the most natural logical definition to
+express that we can travel between two cities:
+
+\begin{code}
+% :- use_module(library(tabling)).
+% :- table connection/2.
+
+connection(X, Y) :-
+	connection(X, Z),
+	connection(Z, Y).
+connection(X, Y) :-
+	connection(Y, X).
+
+connection('Amsterdam', 'Schiphol').
+connection('Amsterdam', 'Haarlem').
+connection('Schiphol', 'Leiden').
+connection('Haarlem', 'Leiden').
+\end{code}
+
+After enabling tabling however, the above works just fine as illustrated
+in the session below.  Where is the magic and what is the price we
+paid? The magic is, again, the fact that new goals to the tabled
+predicate suspend. So, all recursive goals are suspended. Eventually, a
+table for \term{connection}{'Amsterdam', X} is created with the two
+direct connections from Amsterdam. Now, it resumes the first clause
+using the tabled solutions, continuing the last
+\nopredref{connection}{2} subgoal with \term{connection}{'Schiphol', X}
+and \term{connection}{'Haarlem', X}. These two go through the same
+process, creating new suspended recursive calls and creating tables for
+the connections from Schiphol and Haarlem. Eventually, we end up with a
+set of tables for each call variant that is involved in computing the
+transitive closure of the network starting in Amsterdam. However, if the
+Japanese rail network would have been in our data as well, we would not
+have produced tables for that.
+
+\begin{code}
+1 ?- connection('Amsterdam', X).
+X = 'Haarlem' ;
+X = 'Schiphol' ;
+X = 'Amsterdam' ;
+X = 'Leiden'.
+\end{code}
+
+Again, the fact that a simple table/1 directive turns the pure logical
+specification into a fairly efficient algorithm is a clear advantage.
+Without tabling the program needs to be \jargon{stratified}, introducing
+a base layer with the raw connections, a second layer that introduces
+the \jargon{commutative} property of a railway (if you can travel from
+$A$ to $B$ you can also travel from $B$ to $A$ and a final layer that
+realises \jargon{transitivity} (if you can travel from $A$ to $B$ and
+from $B$ to $C$ you can also travel from $A$ to $C$). The third and
+final layer must keep track which cities you have already visited to
+avoid traveling in circles. The transformed program however uses little
+memory (the list of already visited cities and the still open choices)
+and does not need to deal with maintaining consistency between the
+tables and ground facts.
+
+\section{Mode directed tabling}
+\label{sec:tabling-mode-directed}
+
+\index{answer subsumption,tabling}%
+Tabling as defined above has a serious limitation. Although the
+definition of \nopredref{connection}{2} from section
+\secref{tabling-non-termination} can compute the transitive closure of
+connected cities, it cannot provide you with a route to travel. The
+reason is that there are infinitely many routes if there are cycles in
+the network and each new route found will be added to the answer table
+and cause the tabled execution's completion algorithm to search for more
+routes, eventually running out of memory.
+
+The solution to this problem is called \jargon{mode directed tabling} or
+\jargon{answer subsumption}.\footnote{The term \jargon{answer
+subsumption} is used by XSB and \jargon{mode directed tabling} by YAP
+and B-Prolog. The idea is that some arguments are considered `outputs',
+where multiple values for the same `input' are combined. Possibly
+\jargon{answer aggregation} would have been a better name.} In this
+execution model one or more arguments are \emph{not} added to the table.
+Instead, we remember a single \jargon{aggregated} value for these
+arguments. The example below is derived from
+\secref{tabling-non-termination} and returns the connection as a list of
+cities. This argument is defined as a \jargon{moded} argument using the
+\term{lattice}{PI} mode.\footnote{This mode is compatible to XSB
+Prolog.} This causes the tabling engine each time that it finds an new
+path to call \nopredref{shortest}{3} and keep the shortest route.
+
+\begin{code}
+:- use_module(library(tabling)).
+:- table
+    connection(_,_,lattice(shortest/3)).
+
+shortest(P1, P2, P):-
+    length(P1, L1),
+    length(P2, L2),
+    (   L1 < L2
+    ->  P = P1
+    ;   P = P2
+    ).
+
+connection(X, Y, [X,Y]) :-
+    connection(X, Y).
+connection(X, Y, P) :-
+    connection(X, Z, P0),
+    connection(Z, Y),
+    append(P0, [Y], P).
+\end{code}
+
+The mode declation scheme is equivalent to XSB with partial
+compatibility support for YAP and B-Prolog. The \term{lattice}{PI} mode
+is the most general mode.  The YAP \const{all} (B-Prolog \const{@}) mode
+is not yet supported. The list below describes the supported modes and
+indicates the portability.
+
+\begin{description}
+    \termitem{Var}{}
+\nodescription
+    \termitem{+}{}
+    \termitem{index}{}
+A variable (XSB), the atom \const{index} (YAP) or a \const{+}
+(B-Prolog, YAP) declare that the argument is tabled normally.
+
+    \termitem{lattice}{PI}
+\arg{PI} must be the predicate indicator of a predicate with arity~3.
+On each answer, \arg{PI} is called with three arguments: the current
+aggregated answer and the new answer are inputs.  The last argument
+must be unified with a term that represents the new aggregated answer.
+In SWI-Prolog the arity (3) may be omitted. See the example above.
+
+    \termitem{po}{PI}
+\jargon{Partial Ordening}. The new answer is added iff
+\term{call}{PI, +Old, +Answer} succeeds. For example, \verb$po('<'/2)$
+accumulates the largest result. In SWI-Prolog the arity (2) may be
+omitted, resulting in \verb$po(<)$.
+
+    \termitem{-}{}
+\nodescription
+    \termitem{first}{}
+The atom \const{-} (B-Prolog, YAP) and \const{first} (YAP) declare to
+keep the first answer for this argument.
+
+    \termitem{last}{}
+The atom \const{last} (YAP) declares to keep the last answer.
+
+    \termitem{min}{}
+The atom \const{min} (YAP) declares to keep the smallest answer
+according to the standard order of terms (see \predref{@<}{2}). Note
+that in SWI-Prolog the standard order of terms orders numbers by value.
+
+    \termitem{max}{}
+The atom \const{max} (YAP) declares to keep the largest answer
+according to the standard order of terms (see \predref{@>}{2}). Note
+that in SWI-Prolog the standard order of terms orders numbers by value.
+
+    \termitem{sum}{}
+The atom \const{sum} (YAP) declares to sum numeric answers.
+\end{description}
+
+\section{Tabling predicate reference}
+\label{sec:tabling-preds}
+
+\begin{description}
+    \directive{table}{1}{+PredicateIndicators}
+Prepare the given \arg{PredicateIndicators} for tabling. The example
+below prepares the predicate edge/2 and the non-terminal statement//1
+for tabled execution.
+
+\begin{code}
+:- table edge/2, statement//1.
+\end{code}
+
+In addition to using \jargon{predicate indicators}, a predicate can be
+declared for \jargon{mode directed tabling} using a term where each
+argument declares the intended mode. For example:
+
+\begin{code}
+:- table connection(_,_,min).
+\end{code}
+
+\jargon{Mode directed tabling} is discussed in the general introduction
+section of \chapref{tabling}.
+
+    \predicate{current_table}{2}{:Variant, -Trie}
+True when \arg{Trie} is the answer table for \arg{Variant}.
+
+    \predicate{abolish_all_tables}{0}{}
+Remove all tables. This is normally used to free up the space or
+recompute the result after predicates on which the result for some
+tabled predicates depend. Raises a permission_error when tabling is in
+progress.
+
+    \predicate{abolish_table_subgoals}{1}{:Subgoal}
+Abolish all tables that unify with \arg{SubGoal}.
+\end{description}
+
+
+\section{About the tabling implementation}
+\label{sec:tabling-about}
+
+The SWI-Prolog implementation uses \jargon{Delimited continuations} (see
+\secref{delcont} to realise suspension of variant calls. The initial
+version was written by Benoit Desouter and described in
+\cite{DBLP:journals/tplp/DesouterDS15}. We moved the main data
+structures required for tabling, the \jargon{answer tables} (see
+\secref{trie}) and the \jargon{worklist} to SWI-Prolog's C~core.
+\jargon{Mode directed tabling} (\secref{tabling-mode-directed}) is based
+on a prototype implementation by Fabrizio Riguzzi.
+
+The table/1 directive causes the creation of a wrapper calling the
+renamed original predicate. For example, the program in
+\secref{tabling-non-termination} is translated into the following
+program. We give this information to improve your understanding of the
+current tabling implementation. Future versions are likely to use a more
+low-level translation that is not based on wrappers.
+
+
+\begin{code}
+connection(A, B) :-
+	start_tabling(user:connection(A, B),
+		      'connection tabled'(A, B)).
+
+'connection tabled'(X, Y) :-
+	connection(X, Z),
+	connection(Z, Y).
+'connection tabled'(X, Y) :-
+	connection(Y, X).
+
+'connection tabled'('Amsterdam', 'Schiphol').
+'connection tabled'('Amsterdam', 'Haarlem').
+'connection tabled'('Schiphol', 'Leiden').
+'connection tabled'('Haarlem', 'Leiden').
+\end{code}
+
+
+\subsubsection{Status of tabling}
+\label{sec:tabling-status}
+
+The current implementation is merely a first prototype. It needs several
+enhancements before we can consider it a serious competitor to Prolog
+systems with mature tabling such as XSB, YAP and B-Prolog. In
+particular,
+
+\begin{shortlist}
+    \item The performance needs to be improved.
+    \item Memory usage needs to be reduced.
+    \item Tables must be shared between threads, both to
+          reduce space and avoid recomputation.
+    \item Tables must be invalidated and reclaimed automatically.
+    \item Notably XSB supports incremental tabeling and well-founded
+          semantics under negation.
+\end{shortlist}
+

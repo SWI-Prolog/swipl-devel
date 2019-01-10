@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, VU University Amsterdam
+    Copyright (c)  2011-2018, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -129,6 +130,7 @@
                        check_script(boolean),
 		       must_be_module(boolean),
 		       qcompile(oneof([never,auto,large,part])),
+                       optimise(boolean),
 		       redefine_module(oneof([false,true,ask])),
 		       reexport(boolean),
 		       sandboxed(boolean),
@@ -168,10 +170,9 @@
 		       debug(boolean),
 		       inherit_from(any),
 		       detached(boolean),
-		       global(nonneg),
-		       local(nonneg),
+                       stack_limit(nonneg),
 		       c_stack(nonneg),
-		       trail(nonneg)
+                       queue_max_size(nonneg)
 		     ]).
 :- predicate_options(system:message_queue_create/2, 2,
 		     [ alias(atom),

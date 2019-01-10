@@ -3158,7 +3158,7 @@ X #> Y  :- X #>= Y + 1.
 
 X #< Y  :- Y #> X.
 
-%% #\ +Q
+%% #\ (+Q)
 %
 % Q does _not_ hold. See [reification](<#clpfd-reification>).
 %

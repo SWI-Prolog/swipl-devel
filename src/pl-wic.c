@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -162,20 +163,16 @@ Below is an informal description of the format of a `.qlf' file:
 <word>		::=	<4 byte entity>
 <include>	::=	<owner> <parent> <line> <file> <time>
 
-Numbers are stored in  a  packed  format  to  reduce  the  size  of  the
-intermediate  code  file  as  99%  of  them  is  normally  small, but in
-principle not limited (virtual  machine  codes,  arities,  table  sizes,
-etc).   The  upper  two  bits  of  the  first byte contain the number of
-additional bytes.  the bytes represent the number `most-significant part
-first'.  See the functions putNum() and getNum()  for  details.   Before
-you  don't  agree  to  this  schema,  you  should  remember it makes the
-intermediate code files about 30% smaller  and  avoids  the  differences
-between  16  and  32  bits  machines (arities on 16 bits machines are 16
-bits) as well as machines with different byte order.
+Integers are stored in  a  packed  format   to  reduce  the  size of the
+intermediate code file as  99%  of  them   is  normally  small,  but  in
+principle not limited (virtual  machine   codes,  arities,  table sizes,
+etc). We use the "zigzag" encoding to   deal  with negative integers and
+write the positive value in chunks  of   7  bits, least significant bits
+first. The last byte has its 0x80 mask set.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 65			/* load all versions later >= X */
-#define VERSION     65			/* save version number */
+#define LOADVERSION 66			/* load all versions later >= X */
+#define VERSION     66			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF		0		/* reference to previous */
@@ -206,20 +203,26 @@ typedef struct source_mark
 } source_mark, *SourceMark;
 
 
-#define XR_ARRAYS 16000
+#define XR_BLOCKS 32
 typedef struct xr_table
-{ int		id;			/* next id to give out */
-  int		tablesize;		/* # sub-arrays */
+{ unsigned int	id;			/* next id to give out */
   struct xr_table* previous;		/* stack */
-  Word	        table[XR_ARRAYS];	/* main table */
+  Word	        blocks[XR_BLOCKS];	/* main table */
+  word		preallocated[7];
 } xr_table, *XrTable;
 
+
+typedef struct path_translated
+{ struct path_translated *next;
+  atom_t from;
+  atom_t to;
+} path_translated;
 
 typedef struct qlf_state
 { char *save_dir;			/* Directory saved */
   char *load_dir;			/* Directory loading */
-  int   saved_version;			/* Version saved */
   int	has_moved;			/* Paths must be translated */
+  path_translated *translated;		/* Translated paths */
   struct qlf_state *previous;		/* previous saved state (reentrance) */
 } qlf_state;
 
@@ -232,6 +235,7 @@ typedef struct wic_state
   Definition currentPred;		/* current procedure */
   SourceFile currentSource;		/* current source file */
 
+  Table idMap;				/* mapped identifiers */
   Table	savedXRTable;			/* saved XR entries */
   intptr_t savedXRTableId;		/* next id to hand out */
 
@@ -239,6 +243,8 @@ typedef struct wic_state
   SourceMark source_mark_tail;
   int	     has_source_marks;
 
+  int        saved_version;		/* Version saved */
+  int	     obfuscate;			/* Obfuscate source */
   int	     load_nesting;		/* Nesting level of loadPart() */
   qlf_state *load_state;		/* current load-state */
 
@@ -250,7 +256,6 @@ typedef struct wic_state
 static char *	getString(IOSTREAM *, size_t *len);
 static int64_t	getInt64(IOSTREAM *);
 static int	getInt32(IOSTREAM *s);
-static long	getLong(IOSTREAM *);
 static int	getInt(IOSTREAM *);
 static double	getFloat(IOSTREAM *);
 static bool	loadWicFd(wic_state *state);
@@ -258,7 +263,7 @@ static bool	loadPredicate(wic_state *state, int skip ARG_LD);
 static bool	loadImport(wic_state *state, int skip ARG_LD);
 static void	saveXRBlobType(wic_state *state, PL_blob_t *type);
 static void	putString(const char *, size_t len, IOSTREAM *);
-static void	putNum(int64_t, IOSTREAM *);
+static void	putInt64(int64_t, IOSTREAM *);
 static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(wic_state *state, Clause cl);
 static void	closePredicateWic(wic_state *state);
@@ -267,10 +272,11 @@ static atom_t   getBlob(wic_state *state ARG_LD);
 static bool	loadStatement(wic_state *state, int c, int skip ARG_LD);
 static bool	loadPart(wic_state *state, Module *module, int skip ARG_LD);
 static bool	loadInModule(wic_state *state, int skip ARG_LD);
-static int	qlfVersion(wic_state *state);
+static int	qlfVersion(wic_state *state, const char *magic, int *vp);
 static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
 static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
 static void	popPathTranslation(wic_state *state);
+static int	qlfIsCompatible(wic_state *state, const char *magic);
 
 #undef LD
 #define LD LOCAL_LD
@@ -280,24 +286,20 @@ static void	popPathTranslation(wic_state *state);
 		 *     LOADED XR ID HANDLING	*
 		 *******************************/
 
-#define loadedXRTableId		(loadedXrs->id)
-
-#define SUBENTRIES (8000)
-#define ALLOCSIZE  (SUBENTRIES*sizeof(word))
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-XR reference handling during loading. This   is  arranged as an array-of
-arrays. The main array has size  XR_ARRAYS. Each subarray has SUBENTRIES
-constants, allowing for a total of 96M constants per QLF file or state.
+XR reference handling during loading. This   uses  a dynamic array using
+doubling sub arrays as also used for atoms, functors, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 pushXrIdTable(wic_state *state)
-{ XrTable t = allocHeapOrHalt(sizeof(struct xr_table));
+{ XrTable t = allocHeapOrHalt(sizeof(*t));
 
-  DEBUG(CHK_SECURE, memset(t->table, 0xbf, XR_ARRAYS*sizeof(Word)));
-  t->tablesize = 0;
+  memset(t, 0, sizeof(*t));
   t->id = 0;
+  t->blocks[0] = t->preallocated - 1;
+  t->blocks[1] = t->preallocated - 1;
+  t->blocks[2] = t->preallocated - 1;
 
   t->previous = state->XR;
   state->XR = t;
@@ -306,48 +308,60 @@ pushXrIdTable(wic_state *state)
 
 static void
 popXrIdTable(wic_state *state)
-{ int i;
-  XrTable t = state->XR;
+{ XrTable t = state->XR;
+  unsigned int id, idx;
 
   state->XR = t->previous;		/* pop the stack */
 
-  for(i=0; i<t->tablesize; i++)		/* destroy obsolete table */
-    freeHeap(t->table[i], ALLOCSIZE);
+  for(id=0; id < 7; id++)
+  { word w = t->preallocated[id];
+
+    if ( isAtom(w) )
+      PL_unregister_atom(w);
+  }
+  for(idx = 3; idx < XR_BLOCKS && t->blocks[idx]; idx++)
+  { size_t bs = (size_t)1<<idx;
+    Word p = t->blocks[idx]+bs;
+    size_t i;
+
+    for(i=0; i<bs && id < t->id; i++, id++)
+    { word w = p[i];
+
+      if ( isAtom(w) )
+	PL_unregister_atom(w);
+    }
+
+    freeHeap(p, bs*sizeof(word));
+  }
 
   freeHeap(t, sizeof(*t));
 }
 
 
 static word
-lookupXrId(wic_state *state, intptr_t id)
+lookupXrId(wic_state *state, unsigned int id)
 { XrTable t = state->XR;
-  Word array = t->table[id/SUBENTRIES];
-  word value;
+  unsigned int idx = MSB(id);
 
-  DEBUG(CHK_SECURE, assert(array));
-  value = array[id%SUBENTRIES];
-
-  return value;
+  DEBUG(CHK_SECURE, assert(t->blocks[idx]));
+  return t->blocks[idx][id];
 }
 
 
 static void
-storeXrId(wic_state *state, long id, word value)
+storeXrId(wic_state *state, unsigned int id, word value)
 { XrTable t = state->XR;
-  long i = id/SUBENTRIES;
+  unsigned int idx = MSB(id);
 
-  while ( i >= t->tablesize )
-  { if ( t->tablesize < XR_ARRAYS-1 )
-    { Word a = allocHeapOrHalt(ALLOCSIZE);
+  if ( !t->blocks[idx] )
+  { size_t bs = (size_t)1<<idx;
+    Word newblock;
 
-      DEBUG(CHK_SECURE, memset(a, 0xbf, ALLOCSIZE));
-      t->table[t->tablesize++] = a;
-    } else
-    { fatalError("Too many constants in QLF file");
-    }
+    newblock = allocHeapOrHalt(bs*sizeof(word));
+    t->blocks[idx] = newblock-bs;
   }
 
-  t->table[i][id%SUBENTRIES] = value;
+  t->blocks[idx][id] = value;
 }
 
 
@@ -367,12 +381,27 @@ qlfLoadError_ctx(wic_state *state, char *file, int line)
 
 #define qlfLoadError(state) qlfLoadError_ctx(state, __FILE__, __LINE__)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Load a string from the input stream.   There are two cases: 0-terminated
+short strings (files, etc) have  length  set   to  NULL  and the general
+Prolog string case has length pointing to  a pointer. The latter is used
+only for saved (directive) terms and the   result  is thus pushed to the
+global stack.
+
+Returns NULL if the string is too large.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
 getString(IOSTREAM *fd, size_t *length)
 { GET_LD
   char *s;
   size_t len = (size_t)getInt64(fd);
   size_t i;
+
+  if ( !length && len > MAXPATHLEN )
+    return NULL;
+  if ( length && len > globalStackLimit() )
+    return NULL;
 
   if ( LD->qlf.getstr_buffer_size < len+1 )
   { size_t size = ((len+1+1023)/1024)*1024;
@@ -389,10 +418,10 @@ getString(IOSTREAM *fd, size_t *length)
   }
 
   for( i=0, s = LD->qlf.getstr_buffer; i<len; i++ )
-  { int c = Sgetc(fd);
+  { int c = Qgetc(fd);
 
     if ( c == EOF )
-      fatalError("Unexpected EOF on intermediate code file at offset %d",
+      fatalError("Unexpected EOF on QLF file at offset %d",
 		 Stell(fd));
 
     *s++ = c;
@@ -409,7 +438,7 @@ getString(IOSTREAM *fd, size_t *length)
 pl_wchar_t *
 wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 		 pl_wchar_t *buf, size_t bufsize)
-{ size_t i, len = (size_t)wicGetNum(fd);
+{ size_t i, len = (size_t)getInt64(fd);
   IOENC oenc = fd->encoding;
   pl_wchar_t *tmp, *o;
 
@@ -450,7 +479,7 @@ getAtom(IOSTREAM *fd, PL_blob_t *type)
     tmp = allocHeapOrHalt(len);
 
   for(s=tmp, i=0; i<len; i++)
-  { int c = Sgetc(fd);
+  { int c = Qgetc(fd);
 
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
@@ -474,7 +503,10 @@ getAtom(IOSTREAM *fd, PL_blob_t *type)
 
 static PL_blob_t *
 getBlobType(IOSTREAM *fd)
-{ const char *name = getString(fd, NULL);
+{ const char *name;
+
+  if ( !(name = getString(fd, NULL)) )
+    fatalError("Invalid blob type in QLF");
 
   return PL_find_blob_type(name);
 }
@@ -486,8 +518,9 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
   int c;
 
   for( s = buf; --maxlen >= 0 && (*s = (c = Sgetc(fd))); s++ )
-    if ( c == EOF )
+  { if ( c == EOF )
       return NULL;
+  }
 
   if ( maxlen > 0 )
     return buf;
@@ -496,58 +529,44 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 }
 
 
-static int64_t
-getInt64(IOSTREAM *fd)
-{ int64_t first;
-  int bytes, shift, b;
-
-  DEBUG(MSG_QLF_INTEGER, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
-
-  first = Qgetc(fd);
-  if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
-  { first <<= (INT64BITSIZE-6);
-    first >>= (INT64BITSIZE-6);
-
-    DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
-    return first;
-  }
-
-  bytes = (int) ((first >> 6) & 0x3);
-  first &= 0x3f;
-
-  if ( bytes <= 2 )
-  { for( b = 0; b < bytes; b++ )
-    { first <<= 8;
-      first |= Qgetc(fd) & 0xff;
-    }
-
-    shift = (sizeof(first)-1-bytes)*8 + 2;
-  } else
-  { int m;
-
-    bytes = (int)first;
-    first = (int64_t)0;
-
-    for(m=0; m<bytes; m++)
-    { first <<= 8;
-      first |= Qgetc(fd) & 0xff;
-    }
-    shift = (sizeof(first)-bytes)*8;
-  }
-
-  first <<= shift;
-  first >>= shift;
-
-  DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", first));
-  return first;
+static inline uint64_t
+zigzag_encode(int64_t n)
+{ return (n << 1) ^ (n >> 63);
 }
 
 
-static long
-getLong(IOSTREAM *fd)
-{ int64_t val = getInt64(fd);
+static inline int64_t
+zigzag_decode(uint64_t n)
+{ return (n >> 1) ^ -(n&1);
+}
 
-  return (long)val;
+
+static int64_t
+getInt64(IOSTREAM *fd)
+{ int c = Qgetc(fd);
+
+  if ( c&0x80 )
+  { DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(c&0x7f)));
+    return zigzag_decode(c&0x7f);
+  } else
+  { uint64_t v = c&0x7f;
+    int shift = 7;
+
+    for(;;)
+    { c = Qgetc(fd);
+
+      if ( c&0x80 )
+      { uint64_t l = (c&0x7f);
+	v |= l<<shift;
+	DEBUG(MSG_QLF_INTEGER, Sdprintf("%" PRId64 "\n", zigzag_decode(v)));
+	return zigzag_decode(v);
+      } else
+      { uint64_t b = c;
+	v |= b<<shift;
+	shift += 7;
+      }
+    }
+  }
 }
 
 
@@ -556,6 +575,35 @@ getInt(IOSTREAM *fd)
 { int64_t val = getInt64(fd);
 
   return (int)val;
+}
+
+
+static unsigned int
+getUInt(IOSTREAM *fd)
+{ unsigned int c = Qgetc(fd);
+
+  if ( c&0x80 )
+  { DEBUG(MSG_QLF_INTEGER, Sdprintf("%d\n", c&0x7f));
+    return c&0x7f;
+  } else
+  { unsigned int v = c&0x7f;
+    int shift = 7;
+
+    for(;;)
+    { c = Qgetc(fd);
+
+      if ( c&0x80 )
+      { unsigned int l = (c&0x7f);
+	v |= l<<shift;
+	DEBUG(MSG_QLF_INTEGER, Sdprintf("%d\n", v));
+	return v;
+      } else
+      { unsigned int b = c;
+	v |= b<<shift;
+	shift += 7;
+      }
+    }
+  }
 }
 
 
@@ -621,7 +669,7 @@ loadXRc(wic_state *state, int c ARG_LD)
 
   switch( c )
   { case XR_REF:
-    { intptr_t xr  = getLong(fd);
+    { unsigned int xr = getUInt(fd);
       DEBUG(MSG_QLF_XR, Sdprintf("Reuse XR(%d)\n", (long)xr));
       word val = lookupXrId(state, xr);
 
@@ -712,9 +760,12 @@ loadXRc(wic_state *state, int c ARG_LD)
     { char *s;
       size_t len;
 
-      s = getString(fd, &len);
-
-      return globalString(len, s);
+      if ( (s = getString(fd, &len)) )
+      { return globalString(len, s);
+      } else
+      { raiseStackOverflow(GLOBAL_OVERFLOW);
+	return 0;
+      }
     }
     case XR_STRING_UTF8:
     { pl_wchar_t *w;
@@ -872,18 +923,18 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Load intermediate code state from the   specified  stream. This function
-loads the initial saved state, either  boot32.prc, the state attached to
-the executable or the argument of pl -x <state>.
+Load intermediate code state from the  specified stream. rcpath contains
+the ZIP file name.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-loadWicFromStream(IOSTREAM *fd)
+loadWicFromStream(const char *rcpath, IOSTREAM *fd)
 { wic_state state;
   int rval;
 
   memset(&state, 0, sizeof(state));
   state.wicFd = fd;
+  state.wicFile = (char*)rcpath;
 
   pushXrIdTable(&state);
   rval = loadWicFd(&state);
@@ -903,52 +954,24 @@ loadWicFile(const char *file)
     return FALSE;
   }
 
-  rval = loadWicFromStream(fd);
+  rval = loadWicFromStream(file, fd);
   Sclose(fd);
 
   return rval;
 }
 
 
-#define QLF_MAX_HEADER_LINES 100
-
 static bool
 loadWicFd(wic_state *state)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
-  char *s;
-  Char c;
-  char mbuf[100];
-  int saved_wsize;
-  int saved_version;
-  int vm_signature;
 
-  s = getMagicString(fd, mbuf, sizeof(mbuf));
-  if ( !s || !streq(s, saveMagic) )
-  { fatalError("Not a SWI-Prolog saved state");
-    fail;				/* NOTREACHED */
-  }
-
-  if ( (saved_version=getInt(fd)) < LOADVERSION )
-  { fatalError("Saved state has incompatible save version");
-    fail;
-  }
-  if ( (vm_signature=getInt(fd)) != (int)VM_SIGNATURE )
-  { fatalError("Saved state has incompatible VM signature");
-    fail;
-  }
-
-  saved_wsize = getInt(fd);
-  if ( saved_wsize != sizeof(word)*8 )
-  { fatalError("Saved state has incompatible (%d) word-length", saved_wsize);
-    fail;
-  }
-					/* fix paths for changed home */
-  pushPathTranslation(state, systemDefaults.home, PATH_ISDIR);
-  state->load_state->saved_version = saved_version;
+  if ( !qlfIsCompatible(state, saveMagic) ||
+       !pushPathTranslation(state, systemDefaults.home, PATH_ISDIR) )
+    return FALSE;
 
   for(;;)
-  { c = Sgetc(fd);
+  { int c = Qgetc(fd);
 
     switch( c )
     { case EOF:
@@ -958,8 +981,14 @@ loadWicFd(wic_state *state)
       case 'W':
 	{ char *name = store_string(getString(fd, NULL) );
 
-	  loadWicFile(name);
-	  continue;
+	  if ( (name=getString(fd, NULL)) )
+	  { name = store_string(name);
+	    loadWicFile(name);
+	    continue;
+	  } else
+	  { fatalError("Invalid QLF: bad string");
+	    return FALSE;
+	  }
 	}
       case 'X':
         break;
@@ -1056,7 +1085,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 
 static void
 loadPredicateFlags(wic_state *state, Definition def, int skip)
-{ int flags = getInt(state->wicFd);
+{ unsigned int flags = getUInt(state->wicFd);
 
   if ( !skip )
   { unsigned long lflags = 0L;
@@ -1087,7 +1116,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
   def = proc->definition;
   if ( !skip && state->currentSource )
-  { if ( def->impl.any )
+  { if ( def->impl.any.defined )
     { if ( !redefineProcedure(proc, state->currentSource, DISCONTIGUOUS_STYLE) )
       { int rc = printMessage(ATOM_error, exception_term);
 	(void)rc;
@@ -1100,21 +1129,21 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   loadPredicateFlags(state, def, skip);
 
   for(;;)
-  { switch(Sgetc(fd) )
+  { switch(Qgetc(fd) )
     { case 'X':
       { DEBUG(MSG_QLF_PREDICATE, Sdprintf("ok\n"));
 	succeed;
       }
       case 'C':
       { Code bp, ep;
-	int ncodes = getInt(fd);
+	unsigned int ncodes = getUInt(fd);
 	int has_dicts = 0;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
 	clause->references = 0;
-	clause->code_size = (unsigned int) ncodes;
-	clause->line_no = (unsigned short) getInt(fd);
+	clause->code_size  = (code) ncodes;
+	clause->line_no    = getUInt(fd);
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
@@ -1130,9 +1159,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	clearFlags(clause);
-	clause->prolog_vars = (unsigned short) getInt(fd);
-	clause->variables   = (unsigned short) getInt(fd);
-	if ( getLong(fd) == 0 )		/* 0: fact */
+	clause->prolog_vars = (unsigned short) getUInt(fd);
+	clause->variables   = (unsigned short) getUInt(fd);
+	if ( getUInt(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->predicate = def;
 	GD->statistics.codes += clause->code_size;
@@ -1141,7 +1170,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	ep = bp + clause->code_size;
 
 	while( bp < ep )
-	{ code op = getInt(fd);
+	{ code op = getUInt(fd);
 	  const char *ats;
 	  int n = 0;
 
@@ -1151,6 +1180,10 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  ats = codeTable[op].argtype;
 	  DEBUG(MSG_QLF_VMI,
 		Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
+	  if ( op == I_CONTEXT )
+	  { set(clause, CL_BODY_CONTEXT);
+	    set(def, P_MFCONTEXT);
+	  }
 	  *bp++ = encode(op);
 	  DEBUG(0,
 		{ const char ca1_float[2] = {CA1_FLOAT};
@@ -1230,7 +1263,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		bp += lw;
 		*bp++ = 0L;
 		while(--l >= 0)
-		  *s++ = Sgetc(fd);
+		  *s++ = Qgetc(fd);
 		break;
 	      }
 	      case CA1_MPZ:
@@ -1249,7 +1282,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		bp       += wsz;
 
 		while(--l >= 0)
-		  *s++ = Sgetc(fd);
+		  *s++ = Qgetc(fd);
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
 	      }
@@ -1344,7 +1377,18 @@ qlfFixSourcePath(wic_state *state, const char *raw)
   }
 
   if ( (canonical=canonicalisePath(buf)) )
-  { return PL_new_atom(canonical);
+  { atom_t translated = PL_new_atom(canonical);
+
+    if ( strcmp(raw, canonical) )
+    { path_translated *tr = PL_malloc(sizeof(*tr));
+
+      tr->from = PL_new_atom(raw);
+      tr->to   = translated;
+      tr->next = state->load_state->translated;
+      state->load_state->translated = tr;
+    }
+
+    return translated;
   } else
   { fatalError("Path name too long: %s", buf);
     return NULL_ATOM;
@@ -1370,6 +1414,10 @@ qlfLoadSource(wic_state *state)
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
+  if ( !str )
+  { fatalError("Invalid QLF: illegal string");
+    return FALSE;
+  }
   fname = qlfFixSourcePath(state, str);
 
   DEBUG(MSG_QLF_PATH,
@@ -1377,13 +1425,13 @@ qlfLoadSource(wic_state *state)
 	  Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
 
   state->currentSource = lookupSourceFile(fname, TRUE);
+  PL_unregister_atom(fname);		/* locked with sourceFile */
   state->currentSource->mtime = time;
   state->currentSource->system = issys;
   if ( GD->bootsession )		/* (**) */
     state->currentSource->count++;
   else
     startConsult(state->currentSource);
-  PL_unregister_atom(fname);		/* locked with sourceFile */
 
   succeed;
 }
@@ -1628,7 +1676,7 @@ putString(const char *s, size_t len, IOSTREAM *fd)
     len = strlen(s);
   e = &s[len];
 
-  putNum(len, fd);
+  putInt64(len, fd);
   while(s<e)
   { Sputc(*s, fd);
     s++;
@@ -1645,7 +1693,7 @@ putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
     len = wcslen(s);
   e = &s[len];
 
-  putNum(len, fd);
+  putInt64(len, fd);
   fd->encoding = ENC_UTF8;
   while(s<e)
   { Sputcode(*s, fd);
@@ -1657,13 +1705,22 @@ putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 
 static void
 putAtom(wic_state *state, atom_t w)
-{ IOSTREAM *fd = state->wicFd;
-  Atom a = atomValue(w);
+{ GET_LD
+  IOSTREAM *fd = state->wicFd;
+  atom_t mapped;
+  Atom a;
   static PL_blob_t *text_blob;
+
+  if ( state->idMap &&
+       (mapped = (atom_t)lookupHTable(state->idMap, (void*)w)) )
+  { assert(isAtom(mapped));
+    w = mapped;
+  }
 
   if ( !text_blob )
     text_blob = PL_find_blob_type("text");
 
+  a = atomValue(w);
   if ( a->type != text_blob )
   { Sputc(XR_BLOB, fd);
     saveXRBlobType(state, a->type);
@@ -1679,57 +1736,32 @@ putAtom(wic_state *state, atom_t w)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Number encoding:
-
-First byte:  bits 8&7  bits 1-6 (low order)
-
-		0	6-bits signed value
-		1      14-bits signed value
-		2      22-bits signed value
-		3      number of bytes following
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static void
-putNum(int64_t n, IOSTREAM *fd)
-{ int m;
-  int64_t absn = (n >= 0 ? n : -n);
+putInt64(int64_t n, IOSTREAM *fd)
+{ uint64_t i = zigzag_encode(n);
 
-  DEBUG(MSG_QLF_INTEGER, Sdprintf("0x%x at %ld\n", (uintptr_t)n, Stell(fd)));
+  do
+  { int b = i&0x7f;
 
-  if ( n != PLMININT )
-  { if ( absn < (1L << 5) )
-    { Sputc((int)(n & 0x3f), fd);
-      return;
-    } else if ( absn < (1L << 13) )
-    { Sputc((int)(((n >> 8) & 0x3f) | (1 << 6)), fd);
-      Sputc((int)(n & 0xff), fd);
-      return;
-    } else if ( absn < (1L << 21) )
-    { Sputc((int)(((n >> 16) & 0x3f) | (2 << 6)), fd);
-      Sputc((int)((n >> 8) & 0xff), fd);
-      Sputc((int)(n & 0xff), fd);
-      return;
-    }
-  }
-
-  for(m = sizeof(n); ; m--)
-  { int b = (int)(absn >> (((m-1)*8)-1)) & 0x1ff;
-
-    if ( b == 0 )
-      continue;
-    break;
-  }
-
-  Sputc(m | (3 << 6), fd);
-
-  for( ; m > 0; m--)
-  { int b = (int)(n >> ((m-1)*8)) & 0xff;
-
+    i >>= 7;
+    if ( !i )
+      b |= 0x80;
     Sputc(b, fd);
-  }
+  } while ( i );
 }
 
+
+static void
+putUInt(unsigned int i, IOSTREAM *fd)
+{ do
+  { int b = i&0x7f;
+
+    i >>= 7;
+    if ( !i )
+      b |= 0x80;
+    Sputc(b, fd);
+  } while ( i );
+}
 
 static void
 putFloat(double f, IOSTREAM *fd)
@@ -1780,6 +1812,10 @@ void
 destroyXR(wic_state *state)
 { destroyHTable(state->savedXRTable);
   state->savedXRTable = NULL;
+  if ( state->idMap )
+  { destroyHTable(state->idMap);
+    state->idMap = NULL;
+  }
 }
 
 
@@ -1799,16 +1835,16 @@ static int
 savedXR(wic_state *state, void *xr)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
-  intptr_t id;
+  unsigned int id;
 
   if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )
   { Sputc(XR_REF, fd);
-    putNum(id, fd);
+    putUInt(id, fd);
 
     succeed;
   } else
   { id = ++state->savedXRTableId;
-    addNewHTable(state->savedXRTable, xr, (void *)id);
+    addNewHTable(state->savedXRTable, xr, (void *)(intptr_t)id);
   }
 
   fail;
@@ -1850,11 +1886,11 @@ saveXR__LD(wic_state *state, word xr ARG_LD)
 
   if ( isTaggedInt(xr) )		/* TBD: switch */
   { Sputc(XR_INT, fd);
-    putNum(valInt(xr), fd);
+    putInt64(valInt(xr), fd);
     return;
   } else if ( isBignum(xr) )
   { Sputc(XR_INT, fd);
-    putNum(valBignum(xr), fd);
+    putInt64(valBignum(xr), fd);
     return;
   } else if ( isFloat(xr) )
   { Sputc(XR_FLOAT, fd);
@@ -1937,9 +1973,14 @@ static void
 saveXRFunctor(wic_state *state, functor_t f ARG_LD)
 { IOSTREAM *fd = state->wicFd;
   FunctorDef fdef;
+  functor_t mapped;
 
   if ( savedXRConstant(state, f) )
     return;
+
+  if ( state->idMap &&
+       (mapped = (functor_t)lookupHTable(state->idMap, (void*)f)) )
+    f = mapped;
 
   fdef = valueFunctor(f);
 
@@ -1948,7 +1989,7 @@ saveXRFunctor(wic_state *state, functor_t f ARG_LD)
 		 state->savedXRTableId, stringAtom(fdef->name), fdef->arity));
   Sputc(XR_FUNCTOR, fd);
   saveXR(state, fdef->name);
-  putNum(fdef->arity, fd);
+  putInt64(fdef->arity, fd);
 }
 
 
@@ -2002,7 +2043,7 @@ do_save_qlf_term(wic_state *state, Word t ARG_LD)
     { int id = (int)valInt(argTerm(*t, 0));
 
       Sputc('v', fd);
-      putNum(id, fd);
+      putInt64(id, fd);
     } else
     { Word q = argTermP(*t, 0);
       int n, arity = arityFunctor(f);
@@ -2039,7 +2080,7 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
   options.numbered_check = TRUE;	/* otherwise may be wrong */
 
   if ( (nvars = numberVars(t, &options, 0 PASS_LD)) != NV_ERROR )
-  { putNum(nvars, fd);
+  { putInt64(nvars, fd);
     do_save_qlf_term(state, valTermRef(t) PASS_LD);	/* TBD */
     DEBUG(MSG_QLF_TERM, Sdprintf("to %d\n", Stell(fd)));
   } else
@@ -2071,23 +2112,29 @@ saveWicClause(wic_state *state, Clause clause)
   Code bp, ep;
 
   Sputc('C', fd);
-  putNum(clause->code_size, fd);
-  putNum(clause->line_no, fd);
-  saveXRSourceFile(state, indexToSourceFile(clause->owner_no) PASS_LD);
-  saveXRSourceFile(state, indexToSourceFile(clause->source_no) PASS_LD);
-  putNum(clause->prolog_vars, fd);
-  putNum(clause->variables, fd);
-  putNum(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
+  putUInt(clause->code_size, fd);
+  putUInt(state->obfuscate ? 0 : clause->line_no, fd);
+  saveXRSourceFile(state,
+		   state->obfuscate ? NULL
+				    : indexToSourceFile(clause->owner_no)
+		   PASS_LD);
+  saveXRSourceFile(state,
+		   state->obfuscate ? NULL
+				    : indexToSourceFile(clause->source_no)
+		   PASS_LD);
+  putUInt(clause->prolog_vars, fd);
+  putUInt(clause->variables, fd);
+  putUInt(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;
 
   while( bp < ep )
-  { code op = decode(*bp++);
+  { unsigned int op = decode(*bp++);
     const char *ats = codeTable[op].argtype;
     int n;
 
-    putNum(op, fd);
+    putUInt(op, fd);
     DEBUG(MSG_QLF_VMI, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
     for(n=0; ats[n]; n++)
     { switch(ats[n])
@@ -2121,7 +2168,7 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_VAR:
 	case CA1_FVAR:
 	case CA1_CHP:
-	{ putNum(*bp++, fd);
+	{ putInt64(*bp++, fd);
 	  break;
 	}
 	case CA1_INT64:
@@ -2129,7 +2176,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  Word p = (Word)&val;
 
 	  cpInt64Data(p, bp);
-	  putNum(val, fd);
+	  putInt64(val, fd);
 	  break;
 	}
 	case CA1_FLOAT:
@@ -2149,7 +2196,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  size_t l = wn*sizeof(word) - padHdr(m);
 	  bp += wn;
 
-	  putNum(l, fd);
+	  putInt64(l, fd);
 	  while(l-- > 0)
 	    Sputc(*s++&0xff, fd);
 	  break;
@@ -2164,7 +2211,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  bp += wn;
 
 	  DEBUG(MSG_QLF_VMI, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
-	  putNum(mpsize, fd);
+	  putInt64(mpsize, fd);
 	  while(--l >= 0)
 	    Sputc(*s++&0xff, fd);
 	  DEBUG(MSG_QLF_VMI, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
@@ -2193,9 +2240,9 @@ closePredicateWic(wic_state *state)
 }
 
 
-static int
+static unsigned int
 predicateFlags(Definition def, atom_t sclass)
-{ int flags = 0;
+{ unsigned int flags = 0;
 
   if ( sclass == ATOM_kernel )
   { if ( true(def, P_LOCKED) && false(def, HIDE_CHILDS) )
@@ -2216,7 +2263,7 @@ static void
 openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
 { if ( def != state->currentPred)
   { IOSTREAM *fd = state->wicFd;
-    int mode = predicateFlags(def, sclass);
+    unsigned int mode = predicateFlags(def, sclass);
 
     closePredicateWic(state);
     state->currentPred = def;
@@ -2229,7 +2276,7 @@ openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
     }
 
     saveXRFunctor(state, def->functor->functor PASS_LD);
-    putNum(mode, fd);
+    putUInt(mode, fd);
   }
 }
 
@@ -2249,9 +2296,9 @@ writeWicHeader(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
   putMagic(saveMagic, fd);
-  putNum(VERSION, fd);
-  putNum(VM_SIGNATURE, fd);
-  putNum(sizeof(word)*8, fd);	/* bits-per-word */
+  putInt64(VERSION, fd);
+  putInt64(VM_SIGNATURE, fd);
+  putInt64(sizeof(word)*8, fd);	/* bits-per-word */
   if ( systemDefaults.home )
     putString(systemDefaults.home, STR_NOLEN, fd);
   else
@@ -2310,7 +2357,7 @@ addDirectiveWic(wic_state *state, term_t term ARG_LD)
 
   closePredicateWic(state);
   Sputc('D', fd);
-  putNum(source_line_no, fd);
+  putInt64(source_line_no, fd);
 
   return saveQlfTerm(state, term PASS_LD);
 }
@@ -2325,7 +2372,7 @@ importWic(wic_state *state, Procedure proc, atom_t strength ARG_LD)
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc PASS_LD);
-  putNum(flags, state->wicFd);
+  putInt64(flags, state->wicFd);
 
   succeed;
 }
@@ -2383,6 +2430,48 @@ writeSourceMarks(wic_state *state)
   return 0;
 }
 
+/* Raise an error of the format
+
+	error(qlf_format_error(File, Message), _)
+*/
+
+static int
+qlfError(wic_state *state, const char *error, ...)
+{ va_list args;
+  char message[LINESIZ];
+  int rc;
+  const char *file = state->wicFile;
+
+  if ( !file )
+    file = "<unknown>";
+
+  va_start(args, error);
+  Svsnprintf(message, sizeof(message), error, args);
+  va_end(args);
+
+  if ( GD->bootsession )
+  { fatalError("%s: %s", file, message);
+    rc = FALSE;				/* keep compiler happy */
+    exit(1);
+  } else
+  { GET_LD
+    term_t ex, fn;
+
+    rc = ( (ex=PL_new_term_ref()) &&
+	   (fn=PL_new_term_ref()) &&
+	   PL_unify_chars(fn, PL_ATOM|REP_FN, (size_t)-1, file) &&
+	   PL_unify_term(ex,
+			 PL_FUNCTOR, FUNCTOR_error2,
+			   PL_FUNCTOR_CHARS, "qlf_format_error", 2,
+			     PL_TERM, fn,
+			     PL_CHARS, message,
+			   PL_VARIABLE) &&
+	   PL_raise_exception(ex) );
+  }
+
+  return rc;
+}
+
 
 static int
 qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
@@ -2391,11 +2480,10 @@ qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
   term_t head = PL_new_term_ref();
   atom_t fname;
 
-  assert((long)offset >= 0);
   if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
-    return warning("%s: seek failed: %s", state->wicFile, OsError());
+    return qlfError(state, "seek to %zd failed: %s", offset, OsError());
   if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
-    return warning("QLF format error");
+    return qlfError(state, "invalid string (offset %zd)", offset);
   fname = qlfFixSourcePath(state, str);
 
   return PL_unify_list(list, head, list) &&
@@ -2405,19 +2493,17 @@ qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
 
 static word
 qlfInfo(const char *file,
-	term_t cversion, term_t version, term_t wsize,
+	term_t cversion, term_t minload, term_t fversion,
+	term_t csig, term_t fsig,
+	term_t wsize,
 	term_t files0 ARG_LD)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
   size_t *qlfstart = NULL;
-  word rval = TRUE;
+  word rval = FALSE;
   term_t files = PL_copy_term_ref(files0);
-  int saved_wsize;
-  int vm_signature;
   wic_state state;
-
-  TRY(PL_unify_integer(cversion, VERSION));
 
   memset(&state, 0, sizeof(state));
   state.wicFile = (char*)file;
@@ -2431,25 +2517,56 @@ qlfInfo(const char *file,
   }
   state.wicFd = s;
 
-  if ( !(lversion = qlfVersion(&state)) )
-  { Sclose(s);
-    fail;
+  if ( cversion )
+  { int vm_signature;
+    int saved_wsize;
+
+    if ( !PL_unify_integer(cversion, VERSION) ||
+	 !PL_unify_integer(minload, LOADVERSION) ||
+	 !PL_unify_integer(csig, (int)VM_SIGNATURE) )
+      goto out;
+
+    if ( !qlfVersion(&state, qlfMagic, &lversion) ||
+	 !PL_unify_integer(fversion, lversion) )
+      goto out;
+
+    vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
+    saved_wsize = getInt(s);		/* word-size of file */
+
+    if ( !(saved_wsize == 32 || saved_wsize == 64) )
+    { qlfError(&state, "invalid word size (%d)", saved_wsize);
+      goto out;
+    }
+
+    if ( !PL_unify_integer(wsize, saved_wsize) ||
+	 !PL_unify_integer(fsig, vm_signature) )
+      goto out;
+  } else
+  { if ( !qlfIsCompatible(&state, qlfMagic) )
+      goto out;
   }
-  TRY(PL_unify_integer(version, lversion));
 
-  vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
-  (void)vm_signature;
-  saved_wsize = getInt(s);		/* word-size of file */
-  TRY(PL_unify_integer(wsize, saved_wsize));
-
-  pushPathTranslation(&state, file, 0);
+  if ( !pushPathTranslation(&state, file, 0) )
+    goto out;
 
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
-    return warning("qlf_info/4: seek failed: %s", OsError());
-  nqlf = (int)getInt32(s);
+  { qlfError(&state, "seek to index failed: %s", OsError());
+    goto out;
+  }
+  if ( (nqlf = getInt32(s)) < 0 )
+  { qlfError(&state, "invalid number of files (%d)", nqlf);
+    goto out;
+  }
+  if ( Sseek(s, -4 * (nqlf+1), SIO_SEEK_END) < 0 )
+  { qlfError(&state, "seek to files failed: %s", OsError());
+    goto out;
+  }
+
   DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (size_t*)allocHeapOrHalt(sizeof(size_t) * nqlf);
-  Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
+  if ( !(qlfstart = malloc(sizeof(size_t)*nqlf)) )
+  { PL_no_memory();
+    goto out;
+  }
   for(i=0; i<nqlf; i++)
   { qlfstart[i] = (size_t)getInt32(s);
     DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
@@ -2458,17 +2575,15 @@ qlfInfo(const char *file,
 
   for(i=0; i<nqlf; i++)
   { if ( !qlfSourceInfo(&state, qlfstart[i], files PASS_LD) )
-    { rval = FALSE;
       goto out;
-    }
   }
 
   rval = PL_unify_nil(files);
-  popPathTranslation(&state);
 
 out:
+  popPathTranslation(&state);
   if ( qlfstart )
-    freeHeap(qlfstart, sizeof(*qlfstart) * nqlf);
+    free(qlfstart);
   if ( s )
     Sclose(s);
 
@@ -2476,17 +2591,44 @@ out:
 }
 
 
+/** '$qlf_info'(+File,
+		-CurrentVersion, -MinLOadVersion, -FileVersion,
+		-CurrentSignature, -FileSignature,
+		-WordSize,
+		-Files)
+
+Provide information about a QLF file.
+
+@arg CurrentVersion is the current save version
+@arg FileVersion is the version of the file
+@arg CurrentSignature is the current VM signature
+@arg FileSignature is the signature of the file
+@arg WordSize is the word size used to create the file (32 or 64)
+@arg Files is a list of atoms representing the files used to create the QLF
+*/
+
 static
-PRED_IMPL("$qlf_info", 5, qlf_info, 0)
+PRED_IMPL("$qlf_info", 8, qlf_info, 0)
 { PRED_LD
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5 PASS_LD);
+  return qlfInfo(name, A2, A3, A4, A5, A6, A7, A8 PASS_LD);
 }
 
+
+static
+PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
+{ PRED_LD
+  char *name;
+
+  if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
+    fail;
+
+  return qlfInfo(name, 0, 0, 0, 0, 0, 0, A2 PASS_LD);
+}
 
 
 		 /*******************************
@@ -2519,9 +2661,9 @@ qlfOpen(term_t file)
   initSourceMarks(state);
 
   putMagic(qlfMagic, state->wicFd);
-  putNum(VERSION, state->wicFd);
-  putNum(VM_SIGNATURE, state->wicFd);
-  putNum(sizeof(word)*8, state->wicFd);
+  putInt64(VERSION, state->wicFd);
+  putInt64(VM_SIGNATURE, state->wicFd);
+  putInt64(sizeof(word)*8, state->wicFd);
 
   putString(absname, STR_NOLEN, state->wicFd);
 
@@ -2551,18 +2693,18 @@ qlfClose(wic_state *state ARG_LD)
 
 
 static int
-qlfVersion(wic_state *state)
+qlfVersion(wic_state *state, const char *exp_magic, int *vp)
 { IOSTREAM *s = state->wicFd;
   char mbuf[100];
   char *magic;
 
   if ( !(magic = getMagicString(s, mbuf, sizeof(mbuf))) ||
-       !streq(magic, qlfMagic) )
-  { Sclose(s);
-    return warning("%s: not a SWI-Prolog .qlf file", state->wicFile);
-  }
+       !streq(magic, exp_magic) )
+    return qlfError(state, "Not a %s", exp_magic);
 
-  return getInt(s);
+  *vp = getInt(s);
+
+  return TRUE;
 }
 
 
@@ -2576,11 +2718,18 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
   new->previous = state->load_state;
   state->load_state = new;
 
-  abssavename = getString(fd, NULL);
+  if ( !(abssavename = getString(fd, NULL)) )
+    return qlfError(state, "bad string");
+
   if ( absloadname && !streq(absloadname, abssavename) )
   { char load[MAXPATHLEN];
     char save[MAXPATHLEN];
     char *l, *s, *le, *se;
+
+    if ( ( strlen(abssavename)+1 > MAXPATHLEN ||
+	   strlen(absloadname)+1 > MAXPATHLEN
+	 ) )
+      return PL_representation_error("max_path_length");
 
     new->has_moved = TRUE;
 
@@ -2608,7 +2757,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 		   state->load_state->load_dir));
   }
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -2620,22 +2769,74 @@ popPathTranslation(wic_state *state)
     state->load_state = old->previous;
 
     if ( old->has_moved )
-    { remove_string(old->load_dir);
+    { path_translated *tr;
+
+      remove_string(old->load_dir);
       remove_string(old->save_dir);
+
+      if ( (tr=old->translated) )
+      { GET_LD
+        path_translated *n;
+	static predicate_t pred = NULL;
+	fid_t fid = PL_open_foreign_frame();
+	term_t av = PL_new_term_refs(2);
+
+	if ( !pred )
+	  pred = PL_predicate("$translated_source", 2, "system");
+
+	for(; tr; tr=n)
+	{ n = tr->next;
+
+	  PL_put_atom(av+0, tr->from);
+	  PL_put_atom(av+1, tr->to);
+	  PL_unregister_atom(tr->from);
+
+	  if ( !PL_call_predicate(NULL, PL_Q_NORMAL, pred, av) )
+	    Sdprintf("$translated_source/2 failed~n");
+
+	  PL_free(tr);
+	}
+
+	PL_discard_foreign_frame(fid);
+      }
     }
     freeHeap(old, sizeof(*old));
   }
 }
 
+static int
+qlfIsCompatible(wic_state *state, const char *magic)
+{ int lversion;
+  int vm_signature;
+  int saved_wsize;
+
+  if ( !qlfVersion(state, magic, &lversion) )
+    return FALSE;
+  if ( lversion < LOADVERSION )
+    return qlfError(state, "incompatible version (file: %d, Prolog: %d)",
+		    lversion, VERSION);
+  state->saved_version = lversion;
+
+  vm_signature = getInt(state->wicFd);
+  if ( vm_signature != (int)VM_SIGNATURE )
+    return qlfError(state, "incompatible VM-signature (file: 0x%x; Prolog: 0x%x)",
+		    (unsigned int)vm_signature, (unsigned int)VM_SIGNATURE);
+
+  saved_wsize = getInt(state->wicFd);
+  if ( saved_wsize != sizeof(word)*8 )
+    return qlfError(state, "incompatible word size (file: %d, Prolog: %d)",
+		    saved_wsize, (int)sizeof(word)*8);
+
+  return TRUE;
+}
+
+
 static bool
 qlfLoad(wic_state *state, Module *module ARG_LD)
 { IOSTREAM *fd = state->wicFd;
   bool rval;
-  int lversion;
   const char *absloadname;
   char tmp[MAXPATHLEN];
-  int saved_wsize;
-  int vm_signature;
   atom_t file;
 
   if ( (file = fileNameStream(fd)) )
@@ -2655,29 +2856,11 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
   { absloadname = NULL;
   }
 
-  if ( !(lversion = qlfVersion(state)) || lversion < LOADVERSION )
-  { if ( lversion )
-      warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
-	      state->wicFile, lversion, VERSION);
-    fail;
-  }
-  vm_signature = getInt(fd);
-  if ( vm_signature != (int)VM_SIGNATURE )
-  { warning("QLF file %s has incompatible VM-signature (0x%x; expected 0x%x)",
-	    stringAtom(file),
-	    (unsigned int)vm_signature,
-	    (unsigned int)VM_SIGNATURE);
-    fail;
-  }
-  saved_wsize = getInt(fd);
-  if ( saved_wsize != sizeof(word)*8 )
-  { warning("QLF file %s has incompatible (%d) word-length",
-	    stringAtom(file), (int)saved_wsize);
-    fail;
-  }
+  if ( !qlfIsCompatible(state, qlfMagic) )
+    return FALSE;
 
-  pushPathTranslation(state, absloadname, 0);
-  state->load_state->saved_version = lversion;
+  if ( !pushPathTranslation(state, absloadname, 0) )
+    return FALSE;
 
   pushXrIdTable(state);
   for(;;)
@@ -2732,7 +2915,7 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
 
   if ( m->file )
   { qlfSaveSource(state, m->file);
-    putNum(m->line_no, fd);
+    putInt64(m->line_no, fd);
   } else
   { Sputc('-', fd);
   }
@@ -2892,7 +3075,7 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
     Sputc('I', fd);
     saveXR(state, owner);
     saveXR(state, pn);
-    putNum(line, fd);
+    putInt64(line, fd);
     saveXR(state, fn);
     putFloat(time, fd);
 
@@ -2984,6 +3167,7 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 
   if ( state.wicFile )
     remove_string(state.wicFile);
+  PL_release_stream(fd);
 
   if ( rval )
   { if ( m )
@@ -3005,15 +3189,27 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 Write a header for a QLF-stream
 */
 
+static const opt_spec open_wic_options[] =
+{ { ATOM_obfuscate,	    OPT_BOOL },
+  { NULL_ATOM,		    0 }
+};
+
+
 static
-PRED_IMPL("$open_wic", 1, open_wic, 0)
+PRED_IMPL("$open_wic", 2, open_wic, 0)
 { GET_LD
   IOSTREAM *fd;
+  int obfuscate = FALSE;
+
+  if ( !scan_options(A2, 0, ATOM_state_option, open_wic_options,
+		     &obfuscate) )
+    fail;
 
   if ( PL_get_stream_handle(A1, &fd) )
   { wic_state *state = allocHeapOrHalt(sizeof(*state));
 
     memset(state, 0, sizeof(*state));
+    state->obfuscate = obfuscate;
     state->wicFd = fd;
     writeWicHeader(state);
     state->parent = LD->qlf.current_state;
@@ -3042,6 +3238,105 @@ PRED_IMPL("$close_wic", 0, close_wic, 0)
   }
 
   fail;
+}
+
+static void
+freeMapping(void *name, void *value)
+{ word id_from = (word)name;
+  word id_to   = (word)value;
+
+  if ( isAtom(id_from) ) PL_unregister_atom(id_from);
+  if ( isAtom(id_to) )   PL_unregister_atom(id_to);
+}
+
+static int
+get_id(term_t t, void **id)
+{ GET_LD
+  atom_t a;
+  functor_t f;
+
+  if ( PL_get_atom(t, &a) )
+  { *id = (void *)a;
+  } else if ( PL_get_functor(t, &f) )
+  { if ( f == FUNCTOR_colon2 )
+    { Procedure proc;
+
+      if ( get_procedure(t, &proc, 0, GP_FINDHERE|GP_EXISTENCE_ERROR) )
+      { *id = (void *)proc->definition;
+      } else
+      { return FALSE;
+      }
+    }
+    *id = (void *)f;
+  } else
+  { return PL_type_error("identifier", t);
+  }
+
+  return TRUE;
+}
+
+/** '$map_id'(+IdFrom, +IdTo) is det.
+
+Add a mapping between an identifier when saving a state.
+@arg IdFrom, IdTo are either atoms or compound terms.  In the
+latter case the functor is mapped.
+*/
+
+static
+PRED_IMPL("$map_id", 2, map_id, 0)
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { void *id_from, *id_to, *old;
+
+    if ( !get_id(A1, &id_from) ||
+	 !get_id(A2, &id_to) )
+      return FALSE;
+
+    if ( (isAtom((word)id_from)    && !isAtom((word)id_to)) ||
+	 (isFunctor((word)id_from) && !isFunctor((word)id_to)) )
+      return PL_permission_error("map", "identifier", A1);
+
+    if ( !state->idMap )
+    { state->idMap = newHTable(256);
+      state->idMap->free_symbol = freeMapping;
+    }
+
+    if ( (old=lookupHTable(state->idMap, id_from)) )
+    { if ( old == id_to )
+	return TRUE;
+      else
+	return PL_permission_error("map", "identifier", A1);
+    } else
+    { addNewHTable(state->idMap, id_from, id_to);
+      if ( isAtom((word)id_from) )
+      { PL_register_atom((atom_t)id_from);
+	PL_register_atom((atom_t)id_to);
+      }
+      return TRUE;
+    }
+  } else {
+    return PL_permission_error("map", "identifier", A1);
+  }
+}
+
+static
+PRED_IMPL("$unmap_id", 1, unmap_id, 0)
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { void *id_from;
+
+    if ( !get_id(A1, &id_from) )
+      return FALSE;
+
+    if ( state->idMap )
+      deleteHTable(state->idMap, id_from);
+  }
+
+  return TRUE;
 }
 
 
@@ -3333,18 +3628,6 @@ qlfCleanup(void)
 		 *******************************/
 
 void
-wicPutNum(int64_t n, IOSTREAM *fd)
-{ putNum(n, fd);
-}
-
-
-int64_t
-wicGetNum(IOSTREAM *fd)
-{ return getInt64(fd);
-}
-
-
-void
 wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 { putStringW(w, len, fd);
 }
@@ -3355,7 +3638,8 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info",		    5, qlf_info,	     0)
+  PRED_DEF("$qlf_info",		    8, qlf_info,	     0)
+  PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
   PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)
@@ -3367,7 +3651,9 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_open",		    1, qlf_open,	     0)
   PRED_DEF("$qlf_close",	    0, qlf_close,	     0)
   PRED_DEF("$qlf_assert_clause",    2, qlf_assert_clause,    0)
-  PRED_DEF("$open_wic",		    1, open_wic,	     0)
+  PRED_DEF("$open_wic",		    2, open_wic,	     0)
   PRED_DEF("$close_wic",	    0, close_wic,	     0)
+  PRED_DEF("$map_id",               2, map_id,		     0)
+  PRED_DEF("$unmap_id",             1, unmap_id,             0)
   PRED_DEF("$import_wic",	    3, import_wic,	     0)
 EndPredDefs

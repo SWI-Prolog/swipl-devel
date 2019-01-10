@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2012, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -104,7 +105,7 @@ check.
 %!  list_undefined(+Options) is det.
 %
 %   Report undefined predicates.  This   predicate  finds  undefined
-%   predciates by decompiling and analyzing the body of all clauses.
+%   predicates by decompiling and analyzing the body of all clauses.
 %   Options:
 %
 %       * module_class(+Classes)
@@ -126,20 +127,27 @@ list_undefined(Options) :-
                   [ module_class([user])
                   ],
                   WalkOptions),
-    prolog_walk_code([ undefined(trace),
-                       on_trace(found_undef)
-                     | WalkOptions
-                     ]),
-    findall(PI-From, retract(undef(PI, From)), Pairs),
-    (   Pairs == []
+    call_cleanup(
+        prolog_walk_code([ undefined(trace),
+                           on_trace(found_undef)
+                         | WalkOptions
+                         ]),
+        collect_undef(Grouped)),
+    (   Grouped == []
     ->  true
-    ;   print_message(warning, check(undefined_predicates)),
-        keysort(Pairs, Sorted),
-        group_pairs_by_key(Sorted, Grouped),
-        maplist(report_undefined, Grouped)
+    ;   print_message(warning, check(undefined_procedures, Grouped))
     ).
 
-:- public found_undef/3.
+% The following predicates are used from library(prolog_autoload).
+
+:- public
+    found_undef/3,
+    collect_undef/1.
+
+collect_undef(Grouped) :-
+    findall(PI-From, retract(undef(PI, From)), Pairs),
+    keysort(Pairs, Sorted),
+    group_pairs_by_key(Sorted, Grouped).
 
 found_undef(To, _Caller, From) :-
     goal_pi(To, PI),
@@ -156,13 +164,10 @@ compiled(system:'$cut'/0).
 compiled(system:'$reset'/0).
 compiled(system:'$call_continuation'/1).
 compiled(system:'$shift'/1).
+compiled('$engines':'$yield'/0).
 
 goal_pi(M:Head, M:Name/Arity) :-
     functor(Head, Name, Arity).
-
-report_undefined(PI-FromList) :-
-    print_message(warning, check(undefined(PI, FromList))).
-
 
 %!  list_autoload is det.
 %
@@ -643,18 +648,11 @@ prolog:message(check(find_references(Preds))) -->
     { length(Preds, N)
     },
     [ 'Scanning for references to ~D possibly undefined predicates'-[N] ].
-prolog:message(check(undefined_predicates)) -->
+prolog:message(check(undefined_procedures, Grouped)) -->
     [ 'The predicates below are not defined. If these are defined', nl,
       'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
-    ].
-prolog:message(check(undefined(Pred, Refs))) -->
-    { map_list_to_pairs(sort_reference_key, Refs, Keyed),
-      keysort(Keyed, KeySorted),
-      pairs_values(KeySorted, SortedRefs)
-    },
-    predicate(Pred),
-    [ ', which is referenced by', nl ],
-    referenced_by(SortedRefs).
+    ],
+    undefined_procedures(Grouped).
 prolog:message(check(undefined_unreferenced_predicates)) -->
     [ 'The predicates below are not defined, and are not', nl,
       'referenced.', nl, nl
@@ -692,6 +690,20 @@ prolog:message(check(void_declaration(P, Decl))) -->
     predicate(P),
     [ ' is declared as ~p, but has no clauses'-[Decl] ].
 
+undefined_procedures([]) -->
+    [].
+undefined_procedures([H|T]) -->
+    undefined_procedure(H),
+    undefined_procedures(T).
+
+undefined_procedure(Pred-Refs) -->
+    { map_list_to_pairs(sort_reference_key, Refs, Keyed),
+      keysort(Keyed, KeySorted),
+      pairs_values(KeySorted, SortedRefs)
+    },
+    predicate(Pred),
+    [ ', which is referenced by', nl ],
+    referenced_by(SortedRefs).
 
 redefined(user, system) -->
     [ '~t~30| System predicate redefined globally' ].

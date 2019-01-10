@@ -96,14 +96,18 @@ struct PL_global_data
   int		bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
   struct bit_vector *debug_topics;	/* debug topics enabled */
-  void *	resourceDB;		/* program resource database */
 
-#ifdef HAVE_SIGNAL
+  struct
+  { void *	DB;			/* program resource database */
+    atom_t	handle;			/* Symbol for DB */
+  } resources;
+
   struct
   { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+#ifdef HAVE_SIGNAL
     int		sig_alert;		/* our alert signal */
-  } signals;
 #endif
+  } signals;
 #ifdef O_LOGICAL_UPDATE
   volatile ggen_t _generation;		/* generation of the database */
 #ifdef ATOMIC_GENERATION_HACK
@@ -141,6 +145,10 @@ struct PL_global_data
     size_t	codes;			/* No. of VM codes generated */
     double	user_cputime;		/* User CPU time (whole process) */
     double	system_cputime;		/* Kernel CPU time (whole process) */
+    struct
+    { int	created;		/* # created hash tables */
+      int	destroyed;		/* # destroyed hash tables */
+    } indexes;
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
@@ -346,6 +354,10 @@ struct PL_global_data
       unsigned int	requests;
       unsigned int	initialized;	/* mutex and condvar are initialized */
     } gc;
+    struct
+    { pthread_mutex_t	mutex;
+      pthread_cond_t	cond;
+    } index;
   } thread;
 #endif /*O_PLMT*/
 
@@ -355,6 +367,8 @@ struct PL_global_data
     PL_locale	       *default_locale;	/* System wide default */
   } locale;
 #endif
+
+  struct stack		combined_stack; /* ID for combined stack */
 };
 
 
@@ -398,7 +412,6 @@ struct PL_local_data
   { int		pending[2];		/* PL_raise() pending signals */
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
-    record_t	exception;		/* Pending exception from signal */
   } signal;
 
   struct
@@ -540,9 +553,8 @@ struct PL_local_data
 #endif
 
   struct
-  { struct worklist_set *worklist;		/* Worklist of current query */
-    struct worklist_set *created_worklists;	/* Worklists created */
-    struct trie      *variant_table;	/* Variant --> table */
+  { struct tbl_component *component;    /* active component */
+    struct trie *variant_table;		/* Variant --> table */
     trie_allocation_pool node_pool;	/* Node allocation pool for tries */
     int	has_scheduling_component;	/* A leader was created */
   } tabling;
@@ -644,9 +656,6 @@ struct PL_local_data
   struct
   { size_t	erased_skipped;		/* # erased clauses skipped */
     int64_t	cgc_inferences;		/* Inferences at last cgc consider */
-#ifdef O_PLMT
-    simpleMutex local_shift_mutex;	/* protect local shifts */
-#endif
   } clauses;
 
   struct

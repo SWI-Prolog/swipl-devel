@@ -1,0 +1,114 @@
+#!/bin/bash
+
+if [ ! -f VERSION ]; then
+  echo "ERROR: must be executed from top directory"
+  exit 1
+fi
+
+version=`cat VERSION`
+pdf_build_dir=build.pdf
+PUBLIC="ec:/home/swipl/web/download/devel"
+
+build_pdf()
+{ rm -rf build.pdf
+  mkdir build.pdf
+  ( cd build.pdf
+    cmake -DBUILD_PDF_DOCUMENTATION=ON -G Ninja ..
+    ninja
+  )
+}
+
+build_win32()
+{ rm -rf build.win32
+  mkdir build.win32
+  ( cd build.win32
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake \
+          -G Ninja ..
+    ../scripts/pgo-compile.sh
+    ninja
+    cpack
+  )
+}
+
+build_win64()
+{ rm -rf build.win64
+  mkdir build.win64
+  ( cd build.win64
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
+          -G Ninja ..
+    ../scripts/pgo-compile.sh
+    ninja
+    cpack
+  )
+}
+
+build_macosx()
+{ rm -rf build.macosx
+  mkdir build.macosx
+  ( cd build.macosx
+    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_MACOS_BUNDLE=ON -G Ninja ..
+    ninja
+    cpack
+  )
+}
+
+build_source()
+{ ./scripts/make-src-tape
+}
+
+build_PPAs()
+{ git branch -D ppa || true
+  git checkout -b ppa
+  for distro in xenial bionic cosmic; do
+    ./scripts/make-ppa --distro=$distro --push
+  done
+  git checkout master
+  git submodule update debian
+}
+
+build()
+{ build_pdf
+  build_win32
+  build_win64
+  build_source
+  build_PPAs
+}
+
+################
+# Uploading
+
+upload_file()
+{ if [ -f "$2" ]; then
+    rsync -Pvu "$2" ${PUBLIC}/$1
+  fi
+}
+
+upload_win32()
+{ upload_file bin build.win32/swipl-${version}-1.x86.exe
+}
+
+upload_win64()
+{ upload_file bin build.win64/swipl-${version}-1.x64.exe
+}
+
+upload_macosx()
+{ upload_file bin build.macosx/swipl-${version}-1.x86_64.dmg
+}
+
+upload_pdf()
+{ upload_file doc build.pdf/man/SWI-Prolog-$version.pdf
+}
+
+upload_src()
+{ upload_file src ../swipl-$version.tar.gz
+}
+
+upload()
+{ upload_win32
+  upload_win64
+  upload_macosx
+  upload_pdf
+  upload_src
+}

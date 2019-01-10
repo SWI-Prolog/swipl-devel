@@ -44,6 +44,7 @@
 
 extern char *OsError(void);
 extern bool initOs(void);
+COMMON(int) CpuCount(void);
 
 
 		/********************************

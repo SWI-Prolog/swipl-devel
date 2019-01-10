@@ -22,19 +22,9 @@ test(rdef_alias, error(permission_error(create,engine,ename))) :-
 	engine_create(X, engine_self(X), E, [alias(ename)]),
 	call_cleanup(engine_create(x, true, _, [alias(ename)]),
 		     engine_destroy(E)).
-test(gsize, TheLimit =:= 1000*1024) :-
-	engine_create(Limit, statistics(globallimit, Limit), E,
-		      [ global(1000) ]),
-	engine_next(E, TheLimit),
-	engine_destroy(E).
-test(lsize, TheLimit =:= 1000*1024) :-
-	engine_create(Limit, statistics(locallimit, Limit), E,
-		      [ local(1000) ]),
-	engine_next(E, TheLimit),
-	engine_destroy(E).
-test(tsize, TheLimit =:= 1000*1024) :-
-	engine_create(Limit, statistics(traillimit, Limit), E,
-		      [ trail(1000) ]),
+test(stack_limit, TheLimit =:= 1_000_000) :-
+	engine_create(Limit, current_prolog_flag(stack_limit, Limit), E,
+		      [ stack_limit(1_000_000) ]),
 	engine_next(E, TheLimit),
 	engine_destroy(E).
 test(findall, L == [1,2,3,4,5]) :-

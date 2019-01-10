@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2002, University of Amsterdam
+    Copyright (c)  2018, CWI Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,323 +32,520 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(online_help,
-          [ help/1,
-            help/0,
-            apropos/1
+:- module(prolog_help,
+          [ help/0,
+            help/1,                     % +Object
+            apropos/1                   % +Search
           ]).
-:- use_module(lists, [append/3, member/2]).
+:- use_module(library(pldoc)).
+:- use_module(library(pldoc/doc_man)).
+:- use_module(library(pldoc/man_index)).
+:- use_module(library(pldoc/doc_words)).
+:- use_module(library(http/html_write)).
+:- use_module(library(sgml)).
+:- use_module(library(isub)).
+:- use_module(library(pairs)).
+:- use_module(library(solution_sequences)).
+:- use_module(library(error)).
+:- use_module(library(porter_stem)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+:- use_module(library(process)).
 
-:- if(exists_source(library(helpidx))).
-:- use_module(library(helpidx)).
-no_help :-
-    fail.
-:- else.
-no_help :-
-    print_message(warning, no_help_files).
-function(_,_,_).                        % make check silent
-predicate(_,_,_,_,_).
-section(_,_,_,_).
-:- endif.
+:- use_module(library(lynx/html_text)).
+:- use_module(library(lynx/pldoc_style)).
+
+/** <module> Text based manual
+
+This module provides help/1 and apropos/1 that   give help on a topic or
+searches the manual for relevant topics.
+
+By default the result of  help/1  is   sent  through  a  _pager_ such as
+`less`. This behaviour is controlled by the following:
+
+  - The Prolog flag `help_pager`, which can be set to one of the
+    following values:
+
+    - false
+    Never use a pager.
+    - default
+    Use default behaviour.  This tries to determine whether Prolog
+    is running interactively in an environment that allows for
+    a pager.  If so it examines the environment variable =PAGER=
+    or otherwise tries to find the `less` program.
+    - Callable
+    A Callable term is interpreted as program_name(Arg, ...).  For
+    example, `less('-r')` would be the default.  Note that the
+    program name can be an absolute path if single quotes are
+    used.
+*/
+
+:- meta_predicate
+    with_pager(0).
 
 :- multifile
-    prolog:help_hook/1,             % Generic help hook.
-    prolog:show_help_hook/2.        % +Title, +TmpFile
+    show_html_hook/1.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module  defines the  online  help  facility of   SWI-Prolog.   It
-assumes  (Prolog) index file  at library(help_index)   and  the actual
-manual  at library(online_manual).   Output  is piped through  a  user
-defined pager, which defaults to `more'.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+% one of `default`, `false`, an executable or executable(options), e.g.
+% less('-r').
+:- create_prolog_flag(help_pager, default,
+                      [ type(term),
+                        keep(true)
+                      ]).
 
-%       help/0
-
-help :-
-    no_help,
-    !.
-help :-
-    prolog:help_hook(help),
-    !.
-help :-
-    help(help/1).
-
-%!  help(+Subject)
+%!  help is det.
+%!  help(+What) is det.
 %
-%   Display online help on specified subject.
-
-help(_) :-
-    no_help,
-    !.
-help(What) :-
-    prolog:help_hook(help(What)),
-    !.
-help(What) :-
-    give_help(What).
-
-%!  apropos(Pattern)
-%   Give a list of subjects that might be appropriate.
-
-apropos(_) :-
-    no_help,
-    !.
-apropos(What) :-
-    prolog:help_hook(apropos(What)),
-    !.
-apropos(What) :-
-    give_apropos(What).
-
-give_help(Name/Arity) :-
-    !,
-    predicate(Name, Arity, _, From, To),
-    !,
-    show_help(Name/Arity, [From-To]).
-give_help(Section) :-
-    user_index(Index, Section),
-    !,
-    section(Index, _, From, To),
-    show_help(Section, [From-To]).
-give_help(Function) :-
-    atom(Function),
-    atom_concat('PL_', _, Function),
-    function(Function, From, To),
-    !,
-    show_help(Function, [From-To]).
-give_help(Name) :-
-    findall(From-To, predicate(Name, _, _, From, To), Ranges),
-    Ranges \== [],
-    !,
-    show_help(Name, Ranges).
-give_help(What) :-
-    format('No help available for ~w~n', [What]).
-
-%!  show_help(+ListOfRanges)
-%   Pipe specified ranges of the manual through the user defined pager
-
-:- dynamic asserted_help_tmp_file/1.
-
-help_tmp_file(X) :-
-    asserted_help_tmp_file(X),
-    !.
-help_tmp_file(X) :-
-    tmp_file(manual, X),
-    asserta(asserted_help_tmp_file(X)).
-
-write_ranges_to_file(Ranges, Outfile) :-
-    online_manual_stream(Manual),
-    help_tmp_file(Outfile),
-    open(Outfile, write, Output),
-    show_ranges(Ranges, Manual, Output),
-    close(Manual),
-    close(Output).
-
-show_help(Title, Ranges) :-
-    predicate_property(prolog:show_help_hook(_,_), number_of_clauses(N)),
-    N > 0,
-    write_ranges_to_file(Ranges, TmpFile),
-    prolog:show_help_hook(Title, TmpFile).
-show_help(_, Ranges) :-
-    current_prolog_flag(pipe, true),
-    !,
-    online_manual_stream(Manual),
-    pager_stream(Pager),
-    catch(show_ranges(Ranges, Manual, Pager), _, true),
-    close(Manual),
-    catch(close(Pager), _, true).
-show_help(_, Ranges) :-
-    online_manual_stream(Manual),
-    show_ranges(Ranges, Manual, user_output).
-
-show_ranges([], _, _) :- !.
-show_ranges([FromLine-ToLine|Rest], Manual, Pager) :-
-    line_start(FromLine, From),
-    line_start(ToLine, To),
-    seek(Manual, From, bof, _),
-    Range is To - From,
-    copy_chars(Range, Manual, Pager),
-    nl(Pager),
-    show_ranges(Rest, Manual, Pager).
-
-%!  copy_chars(+Count, +FromStream, +ToStream)
+%   Show help for What. What is a   term that describes the topics(s) to
+%   give help for.  Notations for What are:
 %
-%   Note: stream is binary to deal with byte offsets. As the data is
-%   ISO Latin-1 anyway, this is fine.
+%     - Atom
+%       This ambiguous form is most commonly used and shows all
+%       matching documents.  For example:
+%
+%           ?- help(append).
+%
+%     - Name/Arity
+%       Give help on predicates with matching Name/Arity.  Arity may
+%       be unbound.
+%     - Name//Arity
+%       Give help on the matching DCG rule (non-terminal)
+%     - f(Name/Arity)
+%       Give help on the matching Prolog arithmetic functions.
+%     - c(Name)
+%       Give help on the matching C interface function
+%     - section(Label)
+%       Show the section from the manual with matching Label.
+%
+%   If an exact match fails this predicates attempts fuzzy matching and,
+%   when successful, display the results headed   by  a warning that the
+%   matches are based on fuzzy matching.
+%
+%   If possible, the results are sent  through   a  _pager_  such as the
+%   `less` program. This behaviour is  controlled   by  the  Prolog flag
+%   `help_pager`. See section level documentation.
+%
+%   @see apropos/1 for searching the manual names and summaries.
 
-copy_chars(N, From, To) :-
-    get0(From, C0),
-    copy_chars(N, From, To, C0).
+help :-
+    notrace(show_matches([help/1, apropos/1], exact-help)).
 
-copy_chars(N, _, _, _) :-
-    N =< 0,
+help(What) :-
+    notrace(help_no_trace(What)).
+
+help_no_trace(What) :-
+    help_objects_how(What, Matches, How),
+    !,
+    show_matches(Matches, How-What).
+help_no_trace(What) :-
+    print_message(warning, help(not_found(What))).
+
+show_matches(Matches, HowWhat) :-
+    help_html(Matches, HowWhat, HTML),
+    !,
+    show_html(HTML).
+
+%!  show_html_hook(+HTML:string) is semidet.
+%
+%   Hook called to display the  extracted   HTML  document. If this hook
+%   fails the HTML is rendered  to  the   console  as  plain  text using
+%   html_text/2.
+
+show_html(HTML) :-
+    show_html_hook(HTML),
     !.
-copy_chars(N, _, To, _) :-
-    0 =:= N mod 4096,
-    flush_output(To),
-    fail.
-copy_chars(N, From, To, C) :-
-    get_byte(From, C1),
-    (   C1 == 8,                    % backspace
-        \+ current_prolog_flag(write_help_with_overstrike, true)
-    ->  get_byte(From, C2),
-        NN is N - 2,
-        copy_chars(NN, From, To, C2)
-    ;   put_printable(To, C),
-        NN is N - 1,
-        copy_chars(NN, From, To, C1)
-    ).
+show_html(HTML) :-
+    setup_call_cleanup(
+        open_string(HTML, In),
+        load_html(stream(In), DOM, []),
+        close(In)),
+    page_width(PageWidth),
+    LineWidth is PageWidth - 4,
+    with_pager(html_text(DOM, [width(LineWidth)])).
 
-put_printable(_, 12) :- !.
-put_printable(_, 13) :- !.
-put_printable(_, -1) :- !.
-put_printable(To, C) :-
-    put_code(To, C).
+help_html(Matches, How, HTML) :-
+    phrase(html(html([ head([]),
+                       body([ \match_type(How),
+                              \man_pages(Matches,
+                                         [ no_manual(fail),
+                                           links(false),
+                                           link_source(false),
+                                           navtree(false)
+                                         ])
+                            ])
+                     ])),
+           Tokens),
+    !,
+    with_output_to(string(HTML),
+                   print_html(Tokens)).
 
-online_manual_stream(Stream) :-
-    find_manual(Manual),
-    open(Manual, read, Stream, [type(binary)]).
+match_type(exact-_) -->
+    [].
+match_type(dwim-For) -->
+    html(p(class(warning),
+           [ 'WARNING: No matches for "', span(class('help-query'), For),
+             '" Showing closely related results'
+           ])).
 
-pager_stream(Stream) :-
-    find_pager(Pager),
-    open(pipe(Pager), write, Stream).
+man_pages([], _) -->
+    [].
+man_pages([H|T], Options) -->
+    man_page(H, Options),
+    man_pages(T, Options).
 
-find_manual(Path) :-
-    absolute_file_name(library('MANUAL'), Path, [access(read)]).
+page_width(Width) :-
+    tty_width(W),
+    Width is min(100,max(50,W)).
 
-find_pager(Pager) :-
-    getenv('PAGER', Pager),
+%!  tty_width(-Width) is det.
+%
+%   Return the believed width of the terminal.   If we do not know Width
+%   is bound to 80.
+
+tty_width(W) :-
+    \+ running_under_emacs,
+    catch(tty_size(_, W), _, fail),
     !.
-find_pager(more).
+tty_width(80).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Set the write_help_with_overstrike feature.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-set_overstrike_feature :-
-    current_prolog_flag(write_help_with_overstrike, _),
+help_objects_how(Spec, Objects, exact) :-
+    help_objects(Spec, exact, Objects),
     !.
-set_overstrike_feature :-
-    (   getenv('TERM', xterm)
-    ->  Flag = true
-    ;   Flag = false
+help_objects_how(Spec, Objects, dwim) :-
+    help_objects(Spec, dwim, Objects),
+    !.
+
+help_objects(Spec, How, Objects) :-
+    findall(ID-Obj, help_object(Spec, How, Obj, ID), Objects0),
+    Objects0 \== [],
+    sort(1, @>, Objects0, Objects1),
+    pairs_values(Objects1, Objects2),
+    sort(Objects2, Objects).
+
+help_object(Fuzzy/Arity, How, Name/Arity, ID) :-
+    match_name(How, Fuzzy, Name),
+    man_object_property(Name/Arity, id(ID)).
+help_object(Fuzzy//Arity, How, Name//Arity, ID) :-
+    match_name(How, Fuzzy, Name),
+    man_object_property(Name//Arity, id(ID)).
+help_object(Fuzzy/Arity, How, f(Name/Arity), ID) :-
+    match_name(How, Fuzzy, Name),
+    man_object_property(f(Name/Arity), id(ID)).
+help_object(Fuzzy, How, Name/Arity, ID) :-
+    atom(Fuzzy),
+    match_name(How, Fuzzy, Name),
+    man_object_property(Name/Arity, id(ID)).
+help_object(Fuzzy, How, Name//Arity, ID) :-
+    atom(Fuzzy),
+    match_name(How, Fuzzy, Name),
+    man_object_property(Name//Arity, id(ID)).
+help_object(Fuzzy, How, f(Name/Arity), ID) :-
+    atom(Fuzzy),
+    match_name(How, Fuzzy, Name),
+    man_object_property(f(Name/Arity), id(ID)).
+help_object(Fuzzy, How, c(Name), ID) :-
+    atom(Fuzzy),
+    match_name(How, Fuzzy, Name),
+    man_object_property(c(Name), id(ID)).
+help_object(SecID, _How, section(Label), ID) :-
+    atom(SecID),
+    (   atom_concat('sec:', SecID, Label)
+    ;   sub_atom(SecID, _, _, 0, '.html'),
+        Label = SecID
     ),
-    create_prolog_flag(write_help_with_overstrike, Flag, []).
+    man_object_property(section(_Level,_Num,Label,_File), id(ID)).
+help_object(Func, How, c(Name), ID) :-
+    compound(Func),
+    compound_name_arity(Func, Fuzzy, 0),
+    match_name(How, Fuzzy, Name),
+    man_object_property(c(Name), id(ID)).
 
-:- initialization set_overstrike_feature.
+match_name(exact, Name, Name).
+match_name(dwim,  Name, Fuzzy) :-
+    freeze(Fuzzy, dwim_match(Fuzzy, Name)).
 
-%!  line_start(Line, Start) is det.
+
+%!  with_pager(+Goal)
 %
-%   True if Start is the byte position at which Line starts.
+%   Send the current output of Goal through a  pager. If no pager can be
+%   found we simply dump the output to the current output.
 
-:- dynamic
-    start_of_line/2.
+with_pager(Goal) :-
+    pager_ok(Pager, Options),
+    !,
+    Catch = error(io_error(_,_), _),
+    current_output(OldIn),
+    setup_call_cleanup(
+        process_create(Pager, Options,
+                       [stdin(pipe(In))]),
+        ( set_stream(In, tty(true)),
+          set_output(In),
+          catch(Goal, Catch, true)
+        ),
+        ( set_output(OldIn),
+          close(In, [force(true)])
+        )).
+with_pager(Goal) :-
+    call(Goal).
 
-line_start(Line, Start) :-
-    start_of_line(Line, Start),
-    !.
-line_start(Line, Start) :-
-    line_index,
-    start_of_line(Line, Start).
+pager_ok(_Path, _Options) :-
+    current_prolog_flag(help_pager, false),
+    !,
+    fail.
+pager_ok(Path, Options) :-
+    current_prolog_flag(help_pager, default),
+    !,
+    stream_property(current_output, tty(true)),
+    \+ running_under_emacs,
+    (   distinct((   getenv('PAGER', Pager)
+                 ;   Pager = less
+                 )),
+        absolute_file_name(path(Pager), Path,
+                           [ access(execute),
+                             file_errors(fail)
+                           ])
+    ->  pager_options(Path, Options)
+    ).
+pager_ok(Path, Options) :-
+    current_prolog_flag(help_pager, Term),
+    callable(Term),
+    compound_name_arguments(Term, Pager, Options),
+    absolute_file_name(path(Pager), Path,
+                           [ access(execute),
+                             file_errors(fail)
+                           ]).
+
+pager_options(Path, Options) :-
+    file_base_name(Path, File),
+    file_name_extension(Base, _, File),
+    downcase_atom(Base, Id),
+    pager_default_options(Id, Options).
+
+pager_default_options(less, ['-r']).
 
 
-%!  line_index
+%!  running_under_emacs
 %
-%   Create index holding the byte positions for the line starts
+%   True when we believe to be running  in Emacs. Unfortunately there is
+%   no easy unambiguous way to tell.
 
-line_index :-
-    start_of_line(_,_),
+running_under_emacs :-
+    current_prolog_flag(emacs_inferior_process, true),
     !.
-line_index :-
-    online_manual_stream(Stream),
-    set_stream(Stream, encoding(octet)),
-    call_cleanup(line_index(Stream, 1), close(Stream)).
+running_under_emacs :-
+    getenv('TERM', dumb),
+    !.
+running_under_emacs :-
+    current_prolog_flag(toplevel_prompt, P),
+    sub_atom(P, _, _, _, 'ediprolog'),
+    !.
 
-line_index(Stream, LineNo) :-
-    byte_count(Stream, ByteNo),
-    assert(start_of_line(LineNo, ByteNo)),
-    (   at_end_of_stream(Stream)
-    ->  true
-    ;   LineNo2 is LineNo+1,
-        skip(Stream, 10),
-        line_index(Stream, LineNo2)
+
+%!  apropos(+Query) is det.
+%
+%   Print objects from the  manual  whose   name  or  summary match with
+%   Query. Query takes one of the following forms:
+%
+%     - Type:Text
+%       Find objects matching Text and filter the results by Type.
+%       Type matching is a case intensitive _prefix_ match.
+%       Defined types are `section`, `cfunction`, `function`,
+%       `iso_predicate`, `swi_builtin_predicate`, `library_predicate`,
+%       `dcg` and aliases `chapter`, `arithmetic`, `c_function`,
+%       `predicate`, `nonterminal` and `non_terminal`.  For example:
+%
+%           ?- apropos(c:close).
+%           ?- apropos(f:min).
+%
+%     - Text
+%       Text is broken into tokens.  A topic matches if all tokens
+%       appear in the name or summary of the topic. Matching is
+%	case insensitive.  Results are ordered depending on the
+%	quality of the match.
+
+apropos(Query) :-
+    notrace(apropos_no_trace(Query)).
+
+apropos_no_trace(Query) :-
+    findall(Q-(Obj-Summary), apropos(Query, Obj, Summary, Q), Pairs),
+    (   Pairs == []
+    ->  print_message(warning, help(no_apropos_match(Query)))
+    ;   sort(1, >=, Pairs, Sorted),
+        length(Sorted, Len),
+        (   Len > 20
+        ->  length(Truncated, 20),
+            append(Truncated, _, Sorted)
+        ;   Truncated = Sorted
+        ),
+        pairs_values(Truncated, Matches),
+        print_message(information, help(apropos_matches(Matches, Len)))
     ).
 
+apropos(Query, Obj, Summary, Q) :-
+    parse_query(Query, Type, Words),
+    man_object_property(Obj, summary(Summary)),
+    apropos_match(Type, Words, Obj, Summary, Q).
 
-                 /*******************************
-                 *             APROPOS          *
-                 *******************************/
+parse_query(Type:String, Type, Words) :-
+    !,
+    must_be(atom, Type),
+    must_be(text, String),
+    tokenize_atom(String, Words).
+parse_query(String, _Type, Words) :-
+    must_be(text, String),
+    tokenize_atom(String, Words).
 
-give_apropos(Atom) :-
-    ignore(predicate_apropos(Atom)),
-    ignore(function_apropos(Atom)),
-    ignore(section_apropos(Atom)).
+apropos_match(Type, Query, Object, Summary, Q) :-
+    maplist(amatch(Object, Summary), Query, Scores),
+    match_object_type(Type, Object),
+    sum_list(Scores, Q).
 
-apropos_predicate(Pattern, Name, Arity, Summary) :-
-    predicate(Name, Arity, Summary, _, _),
-    (   apropos_match(Pattern, Name)
-    ->  true
-    ;   apropos_match(Pattern, Summary)
+amatch(Object, Summary, Query, Score) :-
+    (   doc_object_identifier(Object, String)
+    ;   String = Summary
+    ),
+    amatch(Query, String, Score),
+    !.
+
+amatch(Query, To, Quality) :-
+    doc_related_word(Query, Related, Distance),
+    sub_atom_icasechk(To, _, Related),
+    isub(Related, To, false, Quality0),
+    Quality is Quality0*Distance.
+
+match_object_type(Type, _Object) :-
+    var(Type),
+    !.
+match_object_type(Type, Object) :-
+    downcase_atom(Type, LType),
+    object_class(Object, Class),
+    match_object_class(LType, Class).
+
+match_object_class(Type, Class) :-
+    (   TheClass = Class
+    ;   class_alias(Class, TheClass)
+    ),
+    sub_atom(TheClass, 0, _, _, Type),
+    !.
+
+class_alias(section,               chapter).
+class_alias(function,              arithmetic).
+class_alias(cfunction,             c_function).
+class_alias(iso_predicate,         predicate).
+class_alias(swi_builtin_predicate, predicate).
+class_alias(library_predicate,     predicate).
+class_alias(dcg,                   predicate).
+class_alias(dcg,                   nonterminal).
+class_alias(dcg,                   non_terminal).
+
+class_tag(section,               'SEC').
+class_tag(function,              '  F').
+class_tag(iso_predicate,         'ISO').
+class_tag(swi_builtin_predicate, 'SWI').
+class_tag(library_predicate,     'LIB').
+class_tag(dcg,                   'DCG').
+
+object_class(section(_Level, _Num, _Label, _File), section).
+object_class(c(_Name), cfunction).
+object_class(f(_Name/_Arity), function).
+object_class(Name/Arity, Type) :-
+    functor(Term, Name, Arity),
+    (   current_predicate(system:Name/Arity),
+        predicate_property(system:Term, built_in)
+    ->  (   predicate_property(system:Term, iso)
+        ->  Type = iso_predicate
+        ;   Type = swi_builtin_predicate
+        )
+    ;   Type = library_predicate
+    ).
+object_class(_M:_Name/_Arity, library_predicate).
+object_class(_Name//_Arity, dcg).
+object_class(_M:_Name//_Arity, dcg).
+
+
+		 /*******************************
+		 *            MESSAGES		*
+		 *******************************/
+
+:- multifile prolog:message//1.
+
+prolog:message(help(not_found(What))) -->
+    [ 'No help for ~p.'-[What], nl,
+      'Use ?- apropos(query). to search for candidates.'-[]
+    ].
+prolog:message(help(no_apropos_match(Query))) -->
+    [ 'No matches for ~p'-[Query] ].
+prolog:message(help(apropos_matches(Pairs, Total))) -->
+    { tty_width(W),
+      Width is max(30,W),
+      length(Pairs, Count)
+    },
+    matches(Pairs, Width),
+    (   {Count =:= Total}
+    ->  []
+    ;   [ nl,
+          ansi(fg(red), 'Showing ~D of ~D matches', [Count,Total]), nl, nl,
+          'Use ?- apropos(Type:Query) or multiple words in Query '-[], nl,
+          'to restrict your search.  For example:'-[], nl, nl,
+          '  ?- apropos(iso:open).'-[], nl,
+          '  ?- apropos(\'open file\').'-[]
+        ]
     ).
 
-predicate_apropos(Pattern) :-
-    findall(Name-Arity-Summary,
-            apropos_predicate(Pattern, Name, Arity, Summary),
-            Names),
-    forall(member(Name-Arity-Summary, Names),
-           format('~w/~w~t~30|~w~n', [Name, Arity, Summary])).
+matches([], _) --> [].
+matches([H|T], Width) -->
+    match(H, Width),
+    (   {T == []}
+    ->  []
+    ;   [nl],
+        matches(T, Width)
+    ).
 
-function_apropos(Pattern) :-
-    findall(Name, (function(Name, _, _),
-                   apropos_match(Pattern, Name)), Names),
-    forall(member(Name, Names),
-           format('Interface Function~t~30|~w()~n', Name)).
-
-section_apropos(Pattern) :-
-    findall(Index-Name, (section(Index, Name, _, _),
-                   apropos_match(Pattern, Name)), Names),
-    forall(member(Index-Name, Names),
-           (user_index(Index, UserIndex),
-            format('Section ~w~t~30|"~w"~n', [UserIndex, Name]))).
-
-apropos_match(Needle, Haystack) :-
-    sub_atom_icasechk(Haystack, _, Needle).
-
-user_index(List, Index) :-
-    is_list(List),
-    !,
-    to_user_index(List, S),
-    name(Index, S).
-user_index(List, Index) :-
-    to_system_index(Index, List).
-
-to_user_index([], []).
-to_user_index([A], S) :-
-    !,
-    name(A, S).
-to_user_index([A|B], S) :-
-    name(A, S0),
-    append(S0, [0'-], S1),
-    append(S1, Rest, S),
-    to_user_index(B, Rest).
-
-to_system_index(A-B, I) :-
-    !,
-    to_system_index(A, C),
-    integer(B),
-    append(C, [B], I).
-to_system_index(A, [A]) :-
-    integer(A).
-
-                 /*******************************
-                 *            MESSAGES          *
-                 *******************************/
-
-:- multifile
-    prolog:message/3.
-
-prolog:message(no_help_files) -->
-    [ 'The online help files (helpidx.pl, MANUAL) are not installed.', nl,
-      'If you installed SWI-Prolog from GIT/CVS, please consult', nl,
-      'README.doc and README.git in the toplevel of the sources.'
+match(Obj-Summary, Width) -->
+    { Left is min(40, max(20, round(Width/3))),
+      Right is Width-Left-2,
+      man_object_summary(Obj, ObjS, Tag),
+      write_length(ObjS, LenObj, [portray(true), quoted(true)]),
+      Spaces0 is Left - LenObj - 4,
+      (   Spaces0 > 0
+      ->  Spaces = Spaces0,
+          SummaryLen = Right
+      ;   Spaces = 1,
+          SummaryLen is Right + Spaces0 - 1
+      ),
+      truncate(Summary, SummaryLen, SummaryE)
+    },
+    [ ansi([fg(default)], '~w ~p', [Tag, ObjS]),
+      '~|~*+~w'-[Spaces, SummaryE]
+%     '~*|~w'-[Spaces, SummaryE]		% Should eventually work
     ].
 
+truncate(Summary, Width, SummaryE) :-
+    string_length(Summary, SL),
+    SL > Width,
+    !,
+    Pre is Width-4,
+    sub_string(Summary, 0, Pre, _, S1),
+    string_concat(S1, " ...", SummaryE).
+truncate(Summary, _, Summary).
 
+man_object_summary(section(_Level, _Num, Label, _File), Obj, 'SEC') :-
+    atom_concat('sec:', Obj, Label),
+    !.
+man_object_summary(section(0, _Num, File, _Path), File, 'SEC') :- !.
+man_object_summary(c(Name), Obj, '  C') :- !,
+    compound_name_arguments(Obj, Name, []).
+man_object_summary(f(Name/Arity), Name/Arity, '  F') :- !.
+man_object_summary(Obj, Obj, Tag) :-
+    (   object_class(Obj, Class),
+        class_tag(Class, Tag)
+    ->  true
+    ;   Tag = '  ?'
+    ).
+
+		 /*******************************
+		 *            SANDBOX		*
+		 *******************************/
+
+sandbox:safe_primitive(prolog_help:apropos(_)).
+sandbox:safe_primitive(prolog_help:help(_)).

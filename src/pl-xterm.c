@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2018, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -270,13 +271,14 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
   if ( (pid = fork()) == 0 )
   { char arg[64];
     char *cc;
+    char tmp[MAXPATHLEN];
 
 
     signal(SIGINT, SIG_IGN);		/* Don't stop on user interaction */
 					/* from toplevel */
     cc = slavename+strlen(slavename)-2;
     if ( strchr(cc, '/' ) )
-      sprintf(arg, "-S%s/%d", BaseName(slavename), master);
+      sprintf(arg, "-S%s/%d", BaseName(slavename, tmp), master);
     else
       sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
 

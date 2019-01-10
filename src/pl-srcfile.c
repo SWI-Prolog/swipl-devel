@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2017, VU University Amsterdam
+    Copyright (c)  2014-2018, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -257,23 +258,23 @@ lookupSourceFile_unlocked(atom_t name, int create)
     GD->files.no_hole_before = 1;
   }
 
-  if ( (file=lookupHTable(GD->files.table, (void*)name)) )
-  { ;
-  } else if ( create )
+  if ( !(file=lookupHTable(GD->files.table, (void*)name)) &&
+       create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
-    file->name = name;
-    file->system = GD->bootsession;
+
+    file->name       = name;
+    file->system     = GD->bootsession;
+    file->from_state = GD->bootsession;
+    file->resource   = GD->bootsession;
 #ifdef O_PLMT
-    file->mutex = allocSimpleMutex(PL_atom_chars(name));
+    file->mutex    = allocSimpleMutex(PL_atom_chars(name));
 #endif
+    file->magic    = SF_MAGIC;
     PL_register_atom(file->name);
-    file->magic = SF_MAGIC;
     registerSourceFile(file);
 
     addNewHTable(GD->files.table, (void*)name, file);
-  } else
-  { file = NULL;
   }
 
   return file;
@@ -436,7 +437,10 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 
     if ( lookupHTable(m->procedures, (void*)def->functor->functor) ||
 	 PROCEDURE_dinit_goal->definition == def )	/* see (*) */
-    { if ( prev )
+    { if ( sf->current_procedure == proc )
+	sf->current_procedure = NULL;
+
+      if ( prev )
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
@@ -456,24 +460,6 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 		   PL_atom_chars(sf->name)));
     destroySourceFile(sf);
   }
-}
-
-
-static
-PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
-{ int i, n;
-
-  PL_LOCK(L_SRCFILE);
-  n = highSourceFileIndex();
-  for(i=1; i<n; i++)
-  { SourceFile f = indexToSourceFile(i);
-
-    if ( f )
-      f->system = TRUE;
-  }
-  PL_UNLOCK(L_SRCFILE);
-
-  return TRUE;
 }
 
 
@@ -603,8 +589,66 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
     return PL_unify_bool(A3, sf ? sf->reload != NULL : 0);
   if ( property == ATOM_number_of_clauses )
     return PL_unify_integer(A3, sf ? sf->number_of_clauses : 0);
+  if ( property == ATOM_resource )
+    return PL_unify_bool(A3, sf ? sf->resource : FALSE);
+  if ( property == ATOM_from_state )
+    return PL_unify_bool(A3, sf ? sf->from_state : FALSE);
 
   return PL_domain_error("source_file_property", A2);
+}
+
+static
+PRED_IMPL("$set_source_file", 3, set_source_file, 0)
+{ PRED_LD
+  atom_t filename, property;
+  SourceFile sf;
+
+  if ( !PL_get_atom_ex(A1, &filename) ||
+       !PL_get_atom_ex(A2, &property) )
+    return FALSE;
+
+  if ( (sf = lookupSourceFile(filename, FALSE)) )
+  { if ( property == ATOM_resource )
+    { int v;
+
+      if ( PL_get_bool_ex(A3, &v) )
+      { sf->resource = v;
+	return TRUE;
+      }
+      return FALSE;
+    } else
+      return PL_domain_error("source_file_property", A2);
+  } else
+    return PL_existence_error("source_file", A1);
+
+}
+
+static
+PRED_IMPL("$set_source_files", 1, set_source_files, 0)
+{ PRED_LD
+  atom_t prop;
+
+  if ( !PL_get_atom_ex(A1, &prop) )
+    return FALSE;
+  if ( prop == ATOM_system || prop == ATOM_from_state )
+  { int i, n;
+
+    PL_LOCK(L_SRCFILE);
+    n = highSourceFileIndex();
+    for(i=1; i<n; i++)
+    { SourceFile f = indexToSourceFile(i);
+
+      if ( f )
+      { if ( prop == ATOM_system )
+	  f->system = TRUE;
+	f->from_state = TRUE;
+      }
+    }
+    PL_UNLOCK(L_SRCFILE);
+
+    return TRUE;
+  } else
+    return PL_domain_error("source_property", A1);
 }
 
 
@@ -710,6 +754,12 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 static void	fix_discontiguous(p_reload *r);
 static void	fix_metapredicate(p_reload *r);
 
+#ifdef O_PLMT
+#define GEN_RELOAD (GEN_MAX-PL_thread_self())
+#else
+#define GEN_RELOAD (GEN_MAX-1)
+#endif
+
 static int
 startReconsultFile(SourceFile sf)
 { GET_LD
@@ -722,7 +772,7 @@ startReconsultFile(SourceFile sf)
 
     memset(r, 0, sizeof(*r));
     r->procedures        = newHTable(16);
-    r->reload_gen        = GEN_MAX-PL_thread_self();
+    r->reload_gen        = GEN_RELOAD;
     r->pred_access_count = popNPredicateAccess(0);
     sf->reload = r;
 
@@ -743,6 +793,8 @@ startReconsultFile(SourceFile sf)
 	       true(cl, CL_ERASED) )
 	    continue;
 	  if ( true(def, P_MULTIFILE) && cl->owner_no != sf->index )
+	    continue;
+	  if ( true(def, P_DYNAMIC) && cl->owner_no == 0 )
 	    continue;
 
 	  cl->generation.erased = r->reload_gen;
@@ -945,7 +997,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       if ( equal_clause(cref->value.clause, clause) )
       { DEBUG(MSG_RECONSULT_CLAUSE,
 	      Sdprintf("  Keeping clause %d\n",
-		       clauseNo(def, cref->value.clause, reload->generation)));
+		       clauseNo(cref->value.clause, reload->generation)));
 	return keep_clause(reload, clause PASS_LD);
       }
 
@@ -974,14 +1026,14 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
 	    DEBUG(MSG_RECONSULT_CLAUSE,
 		  Sdprintf("  Deleted clause %d\n",
-			   clauseNo(def, c, reload->generation)));
+			   clauseNo(c, reload->generation)));
 	  }
 	  release_def(def);
 
 	  reload->current_clause = cref2;
 	  DEBUG(MSG_RECONSULT_CLAUSE,
 		Sdprintf("  Keeping clause %d\n",
-			 clauseNo(def, cref2->value.clause, reload->generation)));
+			 clauseNo(cref2->value.clause, reload->generation)));
 	  return keep_clause(reload, clause PASS_LD);
 	}
       }
@@ -989,7 +1041,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
       DEBUG(MSG_RECONSULT_CLAUSE,
 	    Sdprintf("  Inserted before clause %d\n",
-		     clauseNo(def, cref->value.clause, reload->generation)));
+		     clauseNo(cref->value.clause, reload->generation)));
       if ( (cref2 = assertProcedure(proc, clause, cref PASS_LD)) )
 	cref2->value.clause->generation.created = sf->reload->reload_gen;
 
@@ -1114,11 +1166,11 @@ setMetapredicateSource(SourceFile sf, Procedure proc,
 
 static int
 equal_meta(Definition def, const arg_info *args)
-{ if ( def->args && args )
+{ if ( def->impl.any.args && args )
   { size_t i, arity = def->functor->arity;
 
     for(i=0; i<arity; i++)
-    { if ( def->args[i].meta != args[i].meta )
+    { if ( def->impl.any.args[i].meta != args[i].meta )
 	return FALSE;
     }
 
@@ -1280,7 +1332,7 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("  %s: deleted clause %d\n",
 		   predicateName(def),
-		   clauseNo(def, c, r->generation)));
+		   clauseNo(c, r->generation)));
   }
   release_def(def);
 }
@@ -1617,11 +1669,12 @@ BeginPredDefs(srcfile)
   PRED_DEF("$source_file_predicates",	2, source_file_predicates,   0)
   PRED_DEF("$time_source_file",		3, time_source_file,    PL_FA_NONDET)
   PRED_DEF("$source_file_property",	3, source_file_property,     0)
+  PRED_DEF("$set_source_file",          3, set_source_file,          0)
   PRED_DEF("$clause_from_source",	4, clause_from_source,	     0)
   PRED_DEF("$unload_file",		1, unload_file,		     0)
   PRED_DEF("$start_consult",		2, start_consult,	     0)
   PRED_DEF("$end_consult",		1, end_consult,		     0)
-  PRED_DEF("$make_system_source_files",	0, make_system_source_files, 0)
+  PRED_DEF("$set_source_files",	        1, set_source_files,	     0)
   PRED_DEF("$flush_predicate",		1, flush_predicate,          0)
   PRED_DEF("$flushed_predicate",	1, flushed_predicate,	     0)
 EndPredDefs

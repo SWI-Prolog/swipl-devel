@@ -106,7 +106,8 @@ into the core Prolog library to support the Prolog package manager.
                      [ pass_to(git_process_output/3, 3)
                      ]).
 :- predicate_options(git_shortlog/3, 3,
-                     [ limit(nonneg),
+                     [ revisions(atom),
+                       limit(nonneg),
                        path(atom)
                      ]).
 :- predicate_options(git_show/4, 4,
@@ -130,14 +131,13 @@ into the core Prolog library to support the Prolog package manager.
 %     Export GIT_ASKPASS=Program
 
 git(Argv, Options) :-
-    option(directory(Dir), Options, .),
+    git_cwd_options(Argv, Argv1, Options),
     env_options(Extra, Options),
     setup_call_cleanup(
-        process_create(path(git), Argv,
+        process_create(path(git), Argv1,
                        [ stdout(pipe(Out)),
                          stderr(pipe(Error)),
-                         process(PID),
-                         cwd(Dir)
+                         process(PID)
                        | Extra
                        ]),
         call_cleanup(
@@ -154,6 +154,12 @@ git(Argv, Options) :-
     ->  true
     ;   throw(error(process_error(git(Argv), Status), _))
     ).
+
+git_cwd_options(Argv0, Argv, Options) :-
+    option(directory(Dir), Options),
+    !,
+    Argv = ['-C', file(Dir) | Argv0 ].
+git_cwd_options(Argv, Argv, _).
 
 env_options([env(['GIT_ASKPASS'=Program])], Options) :-
     option(askpass(Exe), Options),
@@ -226,14 +232,13 @@ close_streams([H|T]) -->
 %   called as call(OnOutput, Stream).
 
 git_process_output(Argv, OnOutput, Options) :-
-    option(directory(Dir), Options, .),
+    git_cwd_options(Argv, Argv1, Options),
     env_options(Extra, Options),
     setup_call_cleanup(
-        process_create(path(git), Argv,
+        process_create(path(git), Argv1,
                        [ stdout(pipe(Out)),
                          stderr(pipe(Error)),
-                         process(PID),
-                         cwd(Dir)
+                         process(PID)
                        | Extra
                        ]),
         call_cleanup(
@@ -247,7 +252,6 @@ git_process_output(Argv, OnOutput, Options) :-
     ->  true
     ;   throw(error(process_error(git, Status)))
     ).
-
 
 git_wait(PID, Out, Status) :-
     at_end_of_stream(Out),
@@ -271,9 +275,8 @@ git_wait(PID, Out, Status) :-
 git_open_file(Dir, File, Branch, In) :-
     atomic_list_concat([Branch, :, File], Ref),
     process_create(path(git),
-                   [ show, Ref ],
-                   [ stdout(pipe(In)),
-                     cwd(Dir)
+                   [ '-C', file(Dir), show, Ref ],
+                   [ stdout(pipe(In))
                    ]),
     set_stream(In, file_name(File)).
 
@@ -669,6 +672,8 @@ skip_rest(_,_).
 %
 %       * limit(+Count)
 %       Maximum number of commits to show (default is 10)
+%       * revisions(+Revisions)
+%       Git revision specification
 %       * path(+Path)
 %       Only show commits that affect Path.  Path is the path of
 %       a checked out file.
@@ -683,12 +688,16 @@ skip_rest(_,_).
             author_date_relative:atom,
             committer_name:atom,
             committer_date_relative:atom,
-            committer_date_unix,
+            committer_date_unix:integer,
             subject:atom,
             ref_names:list).
 
 git_shortlog(Dir, ShortLog, Options) :-
-    option(limit(Limit), Options, 10),
+    (   option(revisions(Range), Options)
+    ->  RangeSpec = [Range]
+    ;   option(limit(Limit), Options, 10),
+        RangeSpec = ['-n', Limit]
+    ),
     (   option(git_path(Path), Options)
     ->  Extra = ['--', Path]
     ;   option(path(Path), Options)
@@ -697,9 +706,8 @@ git_shortlog(Dir, ShortLog, Options) :-
     ;   Extra = []
     ),
     git_format_string(git_log, Fields, Format),
-    git_process_output([ log, '-n', Limit, Format
-                       | Extra
-                       ],
+    append([[log, Format], RangeSpec, Extra], GitArgv),
+    git_process_output(GitArgv,
                        read_git_formatted(git_log, Fields, ShortLog),
                        [directory(Dir)]).
 
@@ -730,6 +738,9 @@ to_nul_s([H|T]) --> [H], to_nul_s(T).
 field_to_prolog(ref_names, Line, List) :-
     phrase(ref_names(List), Line),
     !.
+field_to_prolog(committer_date_unix, Line, Stamp) :-
+    !,
+    number_codes(Stamp, Line).
 field_to_prolog(_, Line, Atom) :-
     atom_codes(Atom, Line).
 

@@ -79,6 +79,7 @@ too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void setArgvPrologFlag(const char *flag, int argc, char **argv);
+static void setTmpDirPrologFlag(void);
 static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static void initPrologFlagTable(void);
@@ -732,7 +733,14 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { debugstatus.showContext = val;
 #ifdef O_PLMT
       } else if ( k == ATOM_threads )
-      { if ( !(rval = enableThreads(val)) )
+      { if ( val )
+	{ rval = enableThreads(val);
+	  PL_LOCK(L_PLFLAG);
+	} else
+	{ PL_UNLOCK(L_PLFLAG);
+	  rval = enableThreads(val);
+	}
+	if ( !rval )
 	  break;			/* don't change value */
 #endif
       } else if ( k == ATOM_tty_control )
@@ -810,6 +818,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       if ( !PL_get_int64_ex(value, &i) )
 	return FALSE;
       f->value.i = i;
+
 #ifdef O_ATOMGC
       if ( k == ATOM_agc_margin )
 	GD->atoms.margin = (size_t)i;
@@ -817,6 +826,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 #endif
       if ( k == ATOM_table_space )
 	LD->tabling.node_pool.limit = (size_t)i;
+      else if ( k == ATOM_stack_limit )
+      { if ( !set_stack_limit((size_t)i) )
+	  return FALSE;
+      }
       break;
     }
     case FT_FLOAT:
@@ -1045,6 +1058,8 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
     return FALSE;
   } else if ( key == ATOM_access_level )
   { return PL_unify_atom(val, accessLevel());
+  } else if ( key == ATOM_stack_limit )
+  { return PL_unify_int64(val, LD->stacks.limit);
   }
 
   switch(f->flags & FT_MASK)
@@ -1259,6 +1274,9 @@ pl_prolog_flag(term_t name, term_t value, control_t h)
 #ifndef SO_PATH
 #define SO_PATH "LD_LIBRARY_PATH"
 #endif
+#ifndef C_LIBPLSO
+#define C_LIBPLSO ""
+#endif
 
 static void
 initPrologFlagTable(void)
@@ -1277,6 +1295,9 @@ initPrologFlags(void)
   setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
 #if __WINDOWS__
   setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
+  const char *wine_version;
+  if ( (wine_version=PL_w32_running_under_wine()) )
+    setPrologFlag("wine_version", FT_ATOM|FF_READONLY, wine_version, 0);
 #endif
 #if O_XOS
   setPrologFlag("win_file_access_check", FT_ATOM,
@@ -1304,9 +1325,13 @@ initPrologFlags(void)
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
   setPrologFlag("c_cc",	     FT_ATOM, C_CC);
   setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
+#ifdef C_LIBDIR
+  setPrologFlag("c_libdir",  FT_ATOM, C_LIBDIR);
+#endif
   setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
   setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
   setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
+  setPrologFlag("tmp_dir", FT_ATOM, SWIPL_TMP_DIR);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
@@ -1317,6 +1342,7 @@ initPrologFlags(void)
   setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
 #endif
   setPrologFlag("table_space", FT_INTEGER, LD->tabling.node_pool.limit);
+  setPrologFlag("stack_limit", FT_INTEGER, LD->stacks.limit);
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   setPrologFlag("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
@@ -1327,9 +1353,10 @@ initPrologFlags(void)
   setPrologFlag("pipe", FT_BOOL, TRUE, 0);
 #endif
 #ifdef O_PLMT
-  setPrologFlag("threads",	FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("threads",	FT_BOOL, !GD->options.nothreads, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
   setPrologFlag("gc_thread",    FT_BOOL,
+		!GD->options.nothreads &&
 		truePrologFlag(PLFLAG_GCTHREAD), PLFLAG_GCTHREAD);
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
@@ -1405,11 +1432,15 @@ initPrologFlags(void)
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
   setPrologFlag("file_name_variables", FT_BOOL, FALSE, PLFLAG_FILEVARS);
   setPrologFlag("fileerrors", FT_BOOL, TRUE, PLFLAG_FILEERRORS);
+#ifdef __EMSCRIPTEN__
+  setPrologFlag("emscripten", FT_BOOL|FF_READONLY, TRUE, 0);
+#else
 #ifdef __unix__
   setPrologFlag("unix", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 #ifdef __APPLE__
   setPrologFlag("apple", FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
 #endif
 
   setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
@@ -1433,7 +1464,9 @@ initPrologFlags(void)
 #ifdef O_MITIGATE_SPECTRE
   setPrologFlag("mitigate_spectre", FT_BOOL, FALSE, PLFLAG_MITIGATE_SPECTRE);
 #endif
+  setPrologFlag("posix_shell", FT_ATOM, POSIX_SHELL);
 
+  setTmpDirPrologFlag();
   setTZPrologFlag();
   setOSPrologFlags();
   setVersionPrologFlag();
@@ -1441,6 +1474,23 @@ initPrologFlags(void)
   setArgvPrologFlag("argv",    GD->cmdline.appl_argc, GD->cmdline.appl_argv);
 }
 
+
+static void
+setTmpDirPrologFlag(void)
+ { char envbuf[MAXPATHLEN];
+   char *td = NULL;
+
+#ifdef __unix__
+   td=Getenv("TMP", envbuf, sizeof(envbuf));
+#elif __WINDOWS__
+   td=Getenv("TEMP", envbuf, sizeof(envbuf));
+#endif
+
+   if (td == (char *) NULL)
+     td = SWIPL_TMP_DIR;
+
+   setPrologFlag("tmp_dir", FT_ATOM, td);
+}
 
 static void
 setArgvPrologFlag(const char *flag, int argc, char **argv)

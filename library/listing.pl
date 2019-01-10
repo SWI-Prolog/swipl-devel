@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2016, University of Amsterdam
+    Copyright (c)  2001-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,8 @@
 
 :- module(prolog_listing,
         [ listing/0,
-          listing/1,
+          listing/1,			% :Spec
+          listing/2,                    % :Spec, +Options
           portray_clause/1,             % +Clause
           portray_clause/2,             % +Stream, +Clause
           portray_clause/3              % +Stream, +Clause, +Options
@@ -44,12 +46,16 @@
 :- use_module(library(settings)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- use_module(library(debug)).
+:- use_module(library(ansi_term)).
+:- use_module(library(prolog_clause)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
     listing/0.
 :- meta_predicate
     listing(:),
+    listing(:, +),
     portray_clause(+,+,:).
 
 :- predicate_options(portray_clause/3, 3, [pass_to(system:write_term/3, 3)]).
@@ -64,6 +70,7 @@ a human readable format.
 
     * listing/0 lists a module.
     * listing/1 lists a predicate or matching clause
+    * listing/2 lists a predicate or matching clause with options
     * portray_clause/2 pretty-prints a clause-term
 
 Layout can be customized using library(settings). The effective settings
@@ -75,8 +82,8 @@ be changed using set_setting/2.
     ========================================================================
     Name                      Value (*=modified) Comment
     ========================================================================
-    listing:body_indentation  8              Indentation used goals in the body
-    listing:tab_distance      8              Distance between tab-stops.
+    listing:body_indentation  4              Indentation used goals in the body
+    listing:tab_distance      0              Distance between tab-stops.
     ...
     ==
 
@@ -85,49 +92,53 @@ be changed using set_setting/2.
 @tbd    Provide persistent user customization
 */
 
-:- setting(listing:body_indentation, nonneg, 8,
+:- setting(listing:body_indentation, nonneg, 4,
            'Indentation used goals in the body').
-:- setting(listing:tab_distance, nonneg, 8,
+:- setting(listing:tab_distance, nonneg, 0,
            'Distance between tab-stops.  0 uses only spaces').
-:- setting(listing:cut_on_same_line, boolean, true,
+:- setting(listing:cut_on_same_line, boolean, false,
            'Place cuts (!) on the same line').
 :- setting(listing:line_width, nonneg, 78,
            'Width of a line.  0 is infinite').
+:- setting(listing:comment_ansi_attributes, list, [fg(green)],
+           'ansi_format/3 attributes to print comments').
 
 
 %!  listing
 %
 %   Lists all predicates defined  in   the  calling module. Imported
 %   predicates are not listed. To  list   the  content of the module
-%   =mymodule=, use:
+%   `mymodule`, use one of the calls below.
 %
-%     ==
+%     ```
 %     ?- mymodule:listing.
-%     ==
+%     ?- listing(mymodule:_).
+%     ```
 
 listing :-
     context_module(Context),
-    list_module(Context).
+    list_module(Context, []).
 
-list_module(Module) :-
+list_module(Module, Options) :-
     (   current_predicate(_, Module:Pred),
         \+ predicate_property(Module:Pred, imported_from(_)),
         strip_module(Pred, _Module, Head),
         functor(Head, Name, _Arity),
-        (   (   predicate_property(Pred, built_in)
+        (   (   predicate_property(Module:Pred, built_in)
             ;   sub_atom(Name, 0, _, _, $)
             )
         ->  current_prolog_flag(access_level, system)
         ;   true
         ),
         nl,
-        list_predicate(Module:Head, Module),
+        list_predicate(Module:Head, Module, Options),
         fail
     ;   true
     ).
 
 
-%!  listing(:What)
+%!  listing(:What) is det.
+%!  listing(:What, +Options) is det.
 %
 %   List matching clauses. What is either a plain specification or a
 %   list of specifications. Plain specifications are:
@@ -142,45 +153,78 @@ list_module(Module) :-
 %
 %       ==
 %       ?- listing(append([], _, _)).
-%       lists:append([], A, A).
+%       lists:append([], L, L).
 %       ==
+%
+%    The following options are defined:
+%
+%      - variable_names(+How)
+%      One of `source` (default) or `generated`.  If `source`, for each
+%      clause that is associated to a source location the system tries
+%      to restore the original variable names.  This may fail if macro
+%      expansion is not reversible or the term cannot be read due to
+%      different operator declarations.  In that case variable names
+%      are generated.
+%
+%      - source(+Bool)
+%      If `true` (default `false`), extract the lines from the source
+%      files that produced the clauses, i.e., list the original source
+%      text rather than the _decompiled_ clauses. Each set of contiguous
+%      clauses is preceded by a comment that indicates the file and
+%      line of origin.  Clauses that cannot be related to source code
+%      are decompiled where the comment indicates the decompiled state.
+%      This is notably practical for collecting the state of _multifile_
+%      predicates.  For example:
+%
+%         ```
+%         ?- listing(file_search_path, [source(true)]).
+%         ```
 
-listing(M:Spec) :-
+listing(Spec) :-
+    listing(Spec, []).
+
+listing(Spec, Options) :-
+    call_cleanup(
+        listing_(Spec, Options),
+        close_sources).
+
+listing_(M:Spec, Options) :-
     var(Spec),
     !,
-    list_module(M).
-listing(M:List) :-
+    list_module(M, Options).
+listing_(M:List, Options) :-
     is_list(List),
     !,
     forall(member(Spec, List),
-           listing(M:Spec)).
-listing(X) :-
+           listing_(M:Spec, Options)).
+listing_(X, Options) :-
     (   prolog:locate_clauses(X, ClauseRefs)
-    ->  list_clauserefs(ClauseRefs)
+    ->  strip_module(X, Context, _),
+        list_clauserefs(ClauseRefs, Context, Options)
     ;   '$find_predicate'(X, Preds),
-        list_predicates(Preds, X)
+        list_predicates(Preds, X, Options)
     ).
 
-list_clauserefs([]) :- !.
-list_clauserefs([H|T]) :-
+list_clauserefs([], _, _) :- !.
+list_clauserefs([H|T], Context, Options) :-
     !,
-    list_clauserefs(H),
-    list_clauserefs(T).
-list_clauserefs(Ref) :-
-    clause(Head, Body, Ref),
-    portray_clause((Head :- Body)).
+    list_clauserefs(H, Context, Options),
+    list_clauserefs(T, Context, Options).
+list_clauserefs(Ref, Context, Options) :-
+    @(clause(Head, Body, Ref), Context),
+    list_clause(Head, Body, Ref, Context, Options).
 
-%!  list_predicates(:Preds:list(pi), :Spec) is det.
+%!  list_predicates(:Preds:list(pi), :Spec, +Options) is det.
 
-list_predicates(PIs, Context:X) :-
+list_predicates(PIs, Context:X, Options) :-
     member(PI, PIs),
     pi_to_head(PI, Pred),
     unify_args(Pred, X),
     list_define(Pred, DefPred),
-    list_predicate(DefPred, Context),
+    list_predicate(DefPred, Context, Options),
     nl,
     fail.
-list_predicates(_, _).
+list_predicates(_, _, _).
 
 list_define(Head, LoadModule:Head) :-
     compound(Head),
@@ -215,20 +259,20 @@ unify_args(X, X) :- !.
 unify_args(_:X, X) :- !.
 unify_args(_, _).
 
-list_predicate(Pred, Context) :-
+list_predicate(Pred, Context, _) :-
     predicate_property(Pred, undefined),
     !,
     decl_term(Pred, Context, Decl),
-    format('%   Undefined: ~q~n', [Decl]).
-list_predicate(Pred, Context) :-
+    comment('%   Undefined: ~q~n', [Decl]).
+list_predicate(Pred, Context, _) :-
     predicate_property(Pred, foreign),
     !,
     decl_term(Pred, Context, Decl),
-    format('%   Foreign: ~q~n', [Decl]).
-list_predicate(Pred, Context) :-
+    comment('%   Foreign: ~q~n', [Decl]).
+list_predicate(Pred, Context, Options) :-
     notify_changed(Pred, Context),
     list_declarations(Pred, Context),
-    list_clauses(Pred, Context).
+    list_clauses(Pred, Context, Options).
 
 decl_term(Pred, Context, Decl) :-
     strip_module(Pred, Module, Head),
@@ -299,13 +343,97 @@ write_declarations([H|T], Module) :-
     format(':- ~q.~n', [H]),
     write_declarations(T, Module).
 
-list_clauses(Pred, Source) :-
+list_clauses(Pred, Source, Options) :-
     strip_module(Pred, Module, Head),
-    (   clause(Pred, Body),
-        write_module(Module, Source, Head),
-        portray_clause((Head:-Body)),
-        fail
-    ;   true
+    forall(clause(Pred, Body, Ref),
+           list_clause(Module:Head, Body, Ref, Source, Options)).
+
+list_clause(_Head, _Body, Ref, _Source, Options) :-
+    option(source(true), Options),
+    (   clause_property(Ref, file(File)),
+        clause_property(Ref, line_count(Line)),
+        catch(source_clause_string(File, Line, String, Repositioned),
+              _, fail),
+        debug(listing(source), 'Read ~w:~d: "~s"~n', [File, Line, String])
+    ->  !,
+        (   Repositioned == true
+        ->  comment('% From ~w:~d~n', [ File, Line ])
+        ;   true
+        ),
+        writeln(String)
+    ;   decompiled
+    ->  fail
+    ;   asserta(decompiled),
+        comment('% From database (decompiled)~n', []),
+        fail                                    % try next clause
+    ).
+list_clause(Module:Head, Body, Ref, Source, Options) :-
+    restore_variable_names(Module, Head, Body, Ref, Options),
+    write_module(Module, Source, Head),
+    portray_clause((Head:-Body)).
+
+%!  restore_variable_names(+Module, +Head, +Body, +Ref, +Options) is det.
+%
+%   Try to restore the variable names  from   the  source  if the option
+%   variable_names(source) is true.
+
+restore_variable_names(Module, Head, Body, Ref, Options) :-
+    option(variable_names(source), Options, source),
+    catch(clause_info(Ref, _, _, _,
+                      [ head(QHead),
+                        body(Body),
+                        variable_names(Bindings)
+                      ]),
+          _, true),
+    unify_head(Module, Head, QHead),
+    !,
+    bind_vars(Bindings),
+    name_other_vars((Head:-Body), Bindings).
+restore_variable_names(_,_,_,_,_).
+
+unify_head(Module, Head, Module:Head) :-
+    !.
+unify_head(_, Head, Head) :-
+    !.
+unify_head(_, _, _).
+
+bind_vars([]) :-
+    !.
+bind_vars([Name = Var|T]) :-
+    Var = '$VAR'(Name),
+    bind_vars(T).
+
+%!  name_other_vars(+Term, +Bindings) is det.
+%
+%   Give a '$VAR'(N) name to all   remaining variables in Term, avoiding
+%   clashes with the given variable names.
+
+name_other_vars(Term, Bindings) :-
+    term_singletons(Term, Singletons),
+    bind_singletons(Singletons),
+    term_variables(Term, Vars),
+    name_vars(Vars, 0, Bindings).
+
+bind_singletons([]).
+bind_singletons(['$VAR'('_')|T]) :-
+    bind_singletons(T).
+
+name_vars([], _, _).
+name_vars([H|T], N, Bindings) :-
+    between(N, infinite, N2),
+    var_name(N2, Name),
+    \+ memberchk(Name=_, Bindings),
+    !,
+    H = '$VAR'(N2),
+    N3 is N2 + 1,
+    name_vars(T, N3, Bindings).
+
+var_name(I, Name) :-               % must be kept in sync with writeNumberVar()
+    L is (I mod 26)+0'A,
+    N is I // 26,
+    (   N == 0
+    ->  char_code(Name, L)
+    ;   format(atom(Name), '~c~d', [L, N])
     ).
 
 write_module(Module, Context, Head) :-
@@ -326,9 +454,103 @@ notify_changed(Pred, Context) :-
     \+ predicate_property(Head, (dynamic)),
     !,
     decl_term(Pred, Context, Decl),
-    format('%   NOTE: system definition has been overruled for ~q~n',
-           [Decl]).
+    comment('%   NOTE: system definition has been overruled for ~q~n',
+            [Decl]).
 notify_changed(_, _).
+
+%!  source_clause_string(+File, +Line, -String, -Repositioned)
+%
+%   True when String is the source text for a clause starting at Line in
+%   File.
+
+source_clause_string(File, Line, String, Repositioned) :-
+    open_source(File, Line, Stream, Repositioned),
+    stream_property(Stream, position(Start)),
+    '$raw_read'(Stream, _TextWithoutComments),
+    stream_property(Stream, position(End)),
+    stream_position_data(char_count, Start, StartChar),
+    stream_position_data(char_count, End, EndChar),
+    Length is EndChar - StartChar,
+    set_stream_position(Stream, Start),
+    read_string(Stream, Length, String),
+    skip_blanks_and_comments(Stream, blank).
+
+skip_blanks_and_comments(Stream, _) :-
+    at_end_of_stream(Stream),
+    !.
+skip_blanks_and_comments(Stream, State0) :-
+    peek_string(Stream, 80, String),
+    string_chars(String, Chars),
+    phrase(blanks_and_comments(State0, State), Chars, Rest),
+    (   Rest == []
+    ->  read_string(Stream, 80, _),
+        skip_blanks_and_comments(Stream, State)
+    ;   length(Chars, All),
+        length(Rest, RLen),
+        Skip is All-RLen,
+        read_string(Stream, Skip, _)
+    ).
+
+blanks_and_comments(State0, State) -->
+    [C],
+    { transition(C, State0, State1) },
+    !,
+    blanks_and_comments(State1, State).
+blanks_and_comments(State, State) -->
+    [].
+
+transition(C, blank, blank) :-
+    char_type(C, space).
+transition('%', blank, line_comment).
+transition('\n', line_comment, blank).
+transition(_, line_comment, line_comment).
+transition('/', blank, comment_0).
+transition('/', comment(N), comment(N,/)).
+transition('*', comment(N,/), comment(N1)) :-
+    N1 is N + 1.
+transition('*', comment_0, comment(1)).
+transition('*', comment(N), comment(N,*)).
+transition('/', comment(N,*), State) :-
+    (   N == 1
+    ->  State = blank
+    ;   N2 is N - 1,
+        State = comment(N2)
+    ).
+
+
+open_source(File, Line, Stream, Repositioned) :-
+    source_stream(File, Stream, Pos0, Repositioned),
+    line_count(Stream, Line0),
+    (   Line >= Line0
+    ->  Skip is Line - Line0
+    ;   set_stream_position(Stream, Pos0),
+        Skip is Line - 1
+    ),
+    debug(listing(source), '~w: skip ~d to ~d', [File, Line0, Line]),
+    (   Skip =\= 0
+    ->  Repositioned = true
+    ;   true
+    ),
+    forall(between(1, Skip, _),
+           skip(Stream, 0'\n)).
+
+:- thread_local
+    opened_source/3,
+    decompiled/0.
+
+source_stream(File, Stream, Pos0, _) :-
+    opened_source(File, Stream, Pos0),
+    !.
+source_stream(File, Stream, Pos0, true) :-
+    open(File, read, Stream),
+    stream_property(Stream, position(Pos0)),
+    asserta(opened_source(File, Stream, Pos0)).
+
+close_sources :-
+    retractall(decompiled),
+    forall(retract(opened_source(_,Stream,_)),
+           close(Stream)).
+
 
 %!  portray_clause(+Clause) is det.
 %!  portray_clause(+Out:stream, +Clause) is det.
@@ -871,3 +1093,17 @@ not_qualified(Var) :-
     !.
 not_qualified(_:_) :- !, fail.
 not_qualified(_).
+
+
+%!  comment(+Format, +Args)
+%
+%   Emit a comment.
+
+comment(Format, Args) :-
+    stream_property(current_output, tty(true)),
+    setting(listing:comment_ansi_attributes, Attributes),
+    Attributes \== [],
+    !,
+    ansi_format(Attributes, Format, Args).
+comment(Format, Args) :-
+    format(Format, Args).

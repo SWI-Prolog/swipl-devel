@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -54,31 +55,42 @@
 
 /** <module>  Elementary shell commands
 
-This library provides some basic  shell   commands  from Prolog, such as
-=pwd=, =ls= for situations where there  is   no  shell  available or the
-shell output cannot be captured.
-
-It is developed on the ST-MINIX version.   MINIX  did not have a vfork()
-call, and thus only allows shell/[0,1,2] if   Prolog uses less than half
-the amount of available memory.
+This library provides some  basic  (POSIX)   shell  commands  defined in
+Prolog, such as `pwd` and `ls` for   situations  where there is no shell
+available or the shell output cannot be captured.
 */
 
 %!  shell
 %
-%   Execute an interactive shell. The executed   shell is defined by
-%   the environment =SHELL= or =comspec=   (Windows).  If neither is
-%   defined, =|/bin/sh|= is used.
+%   Execute an interactive shell. The  following   options  are tried to
+%   find a suitable shell command:
+%
+%     1. The Prolog flag `shell`
+%     2. The environment variable ``$SHELL``
+%     3. The Prolog flag `posix_shell`
+%     4. The environment variable ``%comspec%`` (Windows only)
+%
+%   @error existence_error(config, shell) if no suitable shell can be
+%   found.
 
 shell :-
-    getenv('SHELL', Shell),        % Unix, also Cygwin
+    interective_shell(Shell),
+    access_file(Shell, execute),
     !,
     shell(Shell).
 shell :-
-    getenv(comspec, ComSpec),      % Windows
-    !,
-    shell(ComSpec).
-shell :-
-    shell('/bin/sh').
+    existence_error(config, shell).
+
+interective_shell(Shell) :-
+    current_prolog_flag(shell, Shell).
+interective_shell(Shell) :-
+    getenv('SHELL', Shell).
+interective_shell(Shell) :-
+    current_prolog_flag(posix_shell, Shell).
+interective_shell(Shell) :-
+    current_prolog_flag(windows, true),
+    getenv(comspec, Shell).             % Windows
+
 
 %!  cd.
 %!  cd(Dir).

@@ -76,7 +76,7 @@ gmp_too_big()
   return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
 }
 
-#define TOO_BIG_GMP(n) ((n) > 1000 && (n) > (size_t)limitStack(global))
+#define TOO_BIG_GMP(n) ((n) > 1000 && (n) > (size_t)globalStackLimit())
 
 static void *
 mp_alloc(size_t bytes)
@@ -264,10 +264,11 @@ globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
     memcpy(p, mpz->_mp_d, size);
   } else				/* already on the stack */
   { Word p = (Word)mpz->_mp_d - 2;
+#ifndef NDEBUG
     size_t size;
     size_t wsz = mpz_wsize(mpz, &size);
-
     assert(p[0] == mkIndHdr(wsz+1, TAG_INTEGER));
+#endif
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
 

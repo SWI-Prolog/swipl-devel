@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# Simple script to activate swipl from the current cmake build directory
+# by linking it from $HOME/bin. May  be   called  as below to activate a
+# version that was installed  from  the   current  directory  using  the
+# command below:
+#
+#     swipl-activate --installed
+#
+# This can be combined by setting the following in ~/.bashrc, which will
+# install each configuration into a different directory.
+#
+#     export SWIPL_INSTALL_PREFIX=$HOME/cmake/swipl/@builddir@
+
+swipl=
+swiplwin=
+swiplld=
+
+if [ "$1" = "--installed" ]; then
+
+  prefix=$(grep CMAKE_INSTALL_PREFIX CMakeCache.txt | sed 's/.*=//')
+  if [ -x $prefix/bin/swipl ]; then
+    swipl=$prefix/bin/swipl
+    if [ -x $prefix/bin/swipl-win ]; then
+      swiplwin=$prefix/bin/swipl-win
+    fi
+    if [ -x $prefix/bin/swipl-ld ]; then
+      swiplld=$prefix/bin/swipl-ld
+    fi
+  else
+    echo "Cannot find swipl in $prefix/bin"
+    exit 1
+  fi
+
+else
+
+  if [ -x src/swipl ]; then
+    swipl=$(pwd)/src/swipl
+    if [ -x src/swipl-ld ]; then
+      swiplld=$(pwd)/src/swipl-ld
+    fi
+    if [ -x packages/swipl-win/swipl-win ]; then
+      swiplwin=$(pwd)/packages/swipl-win/swipl-win
+    fi
+  else
+    echo "Please run from Cmake build directory"
+    exit 1
+  fi
+
+fi
+
+echo "Activating $swipl"
+
+rm -f $HOME/bin/swipl
+(cd $HOME/bin && ln -s $swipl)
+if [ ! -z "$swiplld" ]; then
+  echo "       and $swiplld"
+  rm -f $HOME/bin/swipl-ld
+  (cd $HOME/bin && ln -s $swiplld)
+fi
+if [ ! -z "$swiplwin" ]; then
+  echo "       and $swiplwin"
+  rm -f $HOME/bin/swipl-win
+  (cd $HOME/bin && ln -s $swiplwin)
+fi

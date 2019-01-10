@@ -220,7 +220,7 @@ add_findall_bag(term_t term, term_t count ARG_LD)
   bag->gsize += r->gsize;
   bag->solutions++;
 
-  if ( bag->gsize + bag->solutions*3 > limitStack(global)/sizeof(word) )
+  if ( bag->gsize + bag->solutions*3 > globalStackLimit()/sizeof(word) )
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
 
   if ( count )

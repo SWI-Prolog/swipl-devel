@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2003-2016, University of Amsterdam
+    Copyright (c)  2003-2018, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -192,12 +193,12 @@ select_option(Option, Options, RestOptions, Default) :-
     is_dict(Options),
     !,
     functor(Option, Name, 1),
-    (   get_dict(Name, Options, Val)
+    (   del_dict(Name, Options, Val, RestOptions)
     ->  true
-    ;   Val = Default
+    ;   Val = Default,
+        RestOptions = Options
     ),
-    arg(1, Option, Val),
-    del_dict(Name, Options, _, RestOptions).
+    arg(1, Option, Val).
 select_option(Option, Options, RestOptions, Default) :-
     functor(Option, Name, Arity),
     functor(GenOpt, Name, Arity),

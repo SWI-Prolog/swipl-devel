@@ -112,14 +112,6 @@ static const PL_extension foreigns[] = {
 
   FRG("!",			0, pl_metacut,		      ISO),
 
-  FRG("$rc_handle",		1, pl_rc_handle,		0),
-  FRG("$rc_members",		2, pl_rc_members,		0),
-  FRG("$rc_open",		5, pl_rc_open,			0),
-  FRG("$rc_open_archive",	2, pl_rc_open_archive,		0),
-  FRG("$rc_close_archive",	1, pl_rc_close_archive,		0),
-  FRG("$rc_save_archive",	2, pl_rc_save_archive,		0),
-  FRG("$rc_append_file",	5, pl_rc_append_file,		0),
-
   FRG("abolish",		1, pl_abolish1,		     META|ISO),
   FRG("abolish",		2, pl_abolish,		     META),
   FRG("nth_clause",		3, pl_nth_clause,       NDET|META|CREF),
@@ -334,7 +326,7 @@ registerBuiltins(const PL_extension *f)
       if ( f->flags & PL_FA_CREF )	       set(def, P_FOREIGN_CREF);
       if ( f->flags & PL_FA_ISO )	       set(def, P_ISO);
 
-      def->impl.function = f->function;
+      def->impl.foreign.function = f->function;
       createForeignSupervisor(def, f->function);
     } else
     { assert(0);
@@ -396,6 +388,8 @@ DECL_PLIST(cont);
 DECL_PLIST(trie);
 DECL_PLIST(tabling);
 DECL_PLIST(mutex);
+DECL_PLIST(zip);
+DECL_PLIST(cbtrace);
 
 void
 initBuildIns(void)
@@ -461,6 +455,8 @@ initBuildIns(void)
   REG_PLIST(trie);
   REG_PLIST(tabling);
   REG_PLIST(mutex);
+  REG_PLIST(zip);
+  REG_PLIST(cbtrace);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
@@ -520,6 +516,8 @@ initBuildIns(void)
 #endif
   PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
   PL_meta_predicate(PL_predicate("compile_predicates", 1, "system"), ":");
+  PL_meta_predicate(PL_predicate("op",		     3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("current_op",	     3, "system"), "++:");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);
