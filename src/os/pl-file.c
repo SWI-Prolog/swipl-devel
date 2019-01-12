@@ -4247,9 +4247,9 @@ pl_close(term_t stream, int force ARG_LD)
     { assert(ref->read->references);
       assert(ref->write->references);
       if ( ref->write && !ref->write->erased )
-	rc = do_close(getStream(ref->write), force) && rc;
+	rc = do_close(getStream(ref->write), force);
       if ( ref->read && !ref->read->erased )
-	rc = do_close(getStream(ref->read), force);
+	rc = do_close(getStream(ref->read), force) && rc;
     } else
     { if ( ref->read )
       { assert(ref->read->references);
