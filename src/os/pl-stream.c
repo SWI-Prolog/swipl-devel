@@ -196,6 +196,7 @@ S__setbuf(IOSTREAM *s, char *buffer, size_t size)
   } else
   { if ( !(newunbuf = malloc(size+UNDO_SIZE)) )
     { errno = ENOMEM;
+      S__seterror(s);
       return -1;
     }
     newflags &= ~SIO_USERBUF;
@@ -528,7 +529,7 @@ S__flushbuf(IOSTREAM *s)
 	  errno = EPLEXCEPTION;
 	} else
 	  goto retry;
-      } else if ( errno != EPLEXCEPTION && !(s->flags&SIO_NOERROR) )
+      } else
 	S__seterror(s);
       rc = -1;
       goto out;
@@ -675,8 +676,7 @@ S__fillbuf(IOSTREAM *s)
 	return -1;
 #endif
       } else
-      { if ( !(s->flags & SIO_FERR) )	/* error already set */
-	  S__seterror(s);
+      {	S__seterror(s);
 	return -1;
       }
     }
@@ -1498,7 +1498,10 @@ Sfeof(IOSTREAM *s)
 
 static int
 S__seterror(IOSTREAM *s)
-{ s->io_errno = errno;
+{ if ( (s->flags & SIO_FERR) )
+    return 0;				/* error already set */
+
+  s->io_errno = errno;
 
   if ( !(s->flags&SIO_CLOSING) &&	/* s->handle is already invalid */
        s->functions->control )
