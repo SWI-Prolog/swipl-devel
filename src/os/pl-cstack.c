@@ -209,9 +209,7 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 void
 bstore_print_backtrace_named(btrace *bt, const char *why)
-{ int done = 0;
-
-  if ( bt )
+{ if ( bt )
   { int me = bt->current-1;
 
     for(;;)
@@ -219,15 +217,12 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 	me += SAVE_TRACES;
       if ( bt->dumps[me].name && strcmp(bt->dumps[me].name, why) == 0 )
       { print_trace(bt, me);
-	done++;
+	return;
       }
       if ( --me == bt->current-1 )
 	break;
     }
   }
-
-  if ( !done )
-    Sdprintf("No backtrace named %s\n", why);
 }
 
 #endif /*HAVE_LIBUNWIND*/
@@ -443,9 +438,7 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 void
 bstore_print_backtrace_named(btrace *bt, const char *why)
-{ int done = 0;
-
-  if ( bt )
+{ if ( bt )
   { int me = bt->current-1;
 
     for(;;)
@@ -453,15 +446,12 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 	me += SAVE_TRACES;
       if ( bt->why[me] && strcmp(bt->why[me], why) == 0 )
       { print_trace(bt, me);
-	done++;
+	return;
       }
       if ( --me == bt->current-1 )
 	break;
     }
   }
-
-  if ( !done )
-    Sdprintf("No backtrace named %s\n", why);
 }
 
 
@@ -826,9 +816,7 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 void
 bstore_print_backtrace_named(btrace *bt, const char *why)
-{ int done = 0;
-
-  if ( bt )
+{ if ( bt )
   { int me = bt->current-1;
 
     for(;;)
@@ -836,15 +824,12 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 	me += SAVE_TRACES;
       if ( bt->dumps[me].name && strcmp(bt->dumps[me].name, why) == 0 )
       { print_trace(bt, me);
-	done++;
+	return;
       }
       if ( --me == bt->current-1 )
 	break;
     }
   }
-
-  if ( !done )
-    Sdprintf("No backtrace named %s\n", why);
 }
 
 static LONG WINAPI crashHandler(PEXCEPTION_POINTERS pExceptionInfo)
