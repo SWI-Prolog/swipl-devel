@@ -597,6 +597,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     acknowledge = ld->exit_requested;
     PL_UNLOCK(L_THREAD);
 
+    ld->critical++;   /* startCritical  */
     info->in_exit_hooks = TRUE;
     if ( !(rc = callEventHook(PL_EV_THREADFINISHED, info)) )
     { GET_LD
@@ -609,6 +610,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     }
     run_thread_exit_hooks(ld);
     info->in_exit_hooks = FALSE;
+    ld->critical--;   /* endCritical */
   } else
   { acknowledge = FALSE;
     info->detached = TRUE;		/* cleanup */
