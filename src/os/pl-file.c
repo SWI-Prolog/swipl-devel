@@ -1088,7 +1088,10 @@ reportStreamError(IOSTREAM *s)
       return FALSE;
 
     if ( (s->flags & SIO_FERR) )
-    { if ( s->exception )
+    { if ( exception_term )
+	return FALSE;
+
+      if ( s->exception )
       { fid_t fid;
 	term_t ex;
 	int rc;
