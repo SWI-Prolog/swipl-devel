@@ -383,7 +383,7 @@ See \cmdlineoption{--sigalert}.
 
     \cmdlineoptionitem{--nothreads}{}
 Disable threading for the multi-threaded version at runtime.  See also
-the flags \prologflagitem{threads} and \prologflagitem{gc_thread}.
+the flags \prologflag{threads} and \prologflag{gc_thread}.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
