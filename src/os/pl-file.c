@@ -47,7 +47,8 @@ handling times must be cleaned, but that not only holds for this module.
 /*#define O_DEBUG 1*/
 /*#define O_DEBUG_MT 1*/
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
+#define _WIN32_WINNT 0x0600		/* Vista */
 #include <winsock2.h>
 #include <windows.h>
 #endif
