@@ -101,7 +101,7 @@ Register \arg{AtExit} as using thread_at_exit/1 before entering the
 thread goal. Unlike calling thread_at_exit/1 as part of the normal
 \arg{Goal}, this \emph{ensures} the \arg{AtExit} is called. Using
 thread_at_exit/1, the thread may be signalled or run out of resources
-before thread_at_exit/1 is reached.
+before thread_at_exit/1 is reached.  See thread_at_exit/1 for details.
 
     \termitem{debug}{+Bool}
 Enable/disable debugging the new thread. If \const{false} (default
@@ -249,6 +249,11 @@ ends. That cannot be guaranteed by means of thread_at_exit/1 because it
 is possible that the thread cannot be created or dies almost instantly
 due to a signal or resource error.  The \term{at_exit}{Goal} option of
 thread_create/3 is designed to deal with this scenario.
+
+The \arg{Goal} is executed with signal processing disabled.  This avoids
+that e.g., \exam{thread_signal(Thread, abort)} kills the exit handler
+rather than the thread in the case the body of \arg{Thread} has just
+finished when the signal arrives.
 
     \predicate{thread_setconcurrency}{2}{-Old, +New}
 \index{Solaris}%
