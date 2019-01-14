@@ -10,7 +10,7 @@
 # This script requires GNU-tar!
 
 COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
-COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
+COREMODULES+=" packages/xpce packages/odbc packages/protobufs packages/windows"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
 COREMODULES+=" packages/zlib packages/tipc packages/table packages/ltx2htm"
