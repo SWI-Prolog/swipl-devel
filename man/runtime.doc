@@ -107,12 +107,10 @@ Unix shell script or nothing. \arg{Options} is a list of additional
 options:
 
     \begin{description}
-	\termitem{local}{+KBytes}
-Limit for the local stack.  See \secref{stacksizes}.
-	\termitem{global}{+KBytes}
-Limit for the global stack.  See \secref{stacksizes}.
-	\termitem{trail}{+KBytes}
-Limit for the trail stack.  See \secref{stacksizes}.
+	\termitem{stack_limit}{+Bytes}
+Sets default stack limit for the new process. See the command line
+option \cmdlineoption{--stack-limit} and the Prolog flag
+\prologflag{stack_limit}.
 	\termitem{goal}{:Callable}
 Initialization goal for the new executable (see \cmdlineoption{-g}).
 	\termitem{toplevel}{:Callable}
