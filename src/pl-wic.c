@@ -171,8 +171,8 @@ write the positive value in chunks  of   7  bits, least significant bits
 first. The last byte has its 0x80 mask set.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 66			/* load all versions later >= X */
-#define VERSION     66			/* save version number */
+#define LOADVERSION 67			/* load all versions later >= X */
+#define VERSION     67			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF		0		/* reference to previous */
@@ -190,6 +190,8 @@ first. The last byte has its 0x80 mask set.
 #define XR_BLOB_TYPE   12		/* name of atom-type declaration */
 #define XR_STRING_UTF8 13		/* Wide character string */
 #define XR_NULL	       14		/* NULL pointer */
+
+#define V_LABEL	      256		/* Label pseudo opcode */
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
@@ -1100,6 +1102,92 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Label handling
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct vm_rlabel
+{ size_t        offset;			/* location of jump */
+  size_t	soi;			/* start of instruction */
+  unsigned int	id;			/* label id */
+} vm_rlabel;
+
+typedef struct vm_rlabel_state
+{ size_t	soi;			/* offset for start of instruction */
+  tmp_buffer	buf;			/* buffer labels */
+} vm_rlabel_state;
+
+static void
+init_rlabels(vm_rlabel_state *state)
+{ initBuffer(&state->buf);
+}
+
+static void
+exit_rlabels(vm_rlabel_state *state)
+{ discardBuffer(&state->buf);
+}
+
+static void
+push_rlabel(vm_rlabel_state *state, unsigned int id, size_t offset)
+{ vm_rlabel *top    = allocFromBuffer(&state->buf, sizeof(*top));
+  vm_rlabel *bottom = baseBuffer(&state->buf, vm_rlabel);
+  vm_rlabel *prev   = top;
+
+  while(prev > bottom && id > prev[-1].id)
+    prev--;
+  memmove(prev+1, prev, (char*)top - (char*)prev);
+  prev->id     = id;
+  prev->soi    = state->soi;
+  prev->offset = offset;
+}
+
+static void
+resolve_rlabel(vm_rlabel_state *state, unsigned int id, Code base, Clause clause)
+{ vm_rlabel *top    = topBuffer(&state->buf, vm_rlabel);
+  vm_rlabel *bottom = baseBuffer(&state->buf, vm_rlabel);
+  size_t copy = 0;
+
+  DEBUG(MSG_QLF_LABEL,
+	Sdprintf("%s: V_LABEL %d\n", predicateName(clause->predicate), id));
+
+  for(--top; top >= bottom; top--)
+  { if ( top->id < id )
+    { copy++;
+      continue;
+    }
+
+    if ( top->id == id )
+    { Code pc = &base[top->soi];
+      size_t jmp;
+
+      pc = stepPC(pc);				/* end of instruction */
+      assert(base[top->offset] == (code)id);
+      jmp = &base[state->soi] - pc;
+      base[top->offset] = jmp;
+      DEBUG(MSG_QLF_LABEL,
+	    Sdprintf("  Put %d at %zd\n", (int)jmp, top->offset));
+      continue;
+    }
+
+    if ( top->id > id )
+    { top++;
+
+      if ( copy	)
+      { vm_rlabel *cptop  = topBuffer(&state->buf, vm_rlabel);
+	size_t     cpsize = copy*sizeof(*cptop);
+
+	memmove(top, cptop - copy, cpsize);
+	state->buf.top = (char*)(top+copy);
+      } else
+      { state->buf.top = (char*)top;
+      }
+
+      break;
+    }
+  }
+}
+
+
 static bool
 loadPredicate(wic_state *state, int skip ARG_LD)
 { IOSTREAM *fd = state->wicFd;
@@ -1135,15 +1223,15 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	succeed;
       }
       case 'C':
-      { unsigned int ncodes = getUInt(fd);
-	int has_dicts = 0;
+      { int has_dicts = 0;
 	tmp_buffer buf;
+	vm_rlabel_state lstate;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	initBuffer(&buf);
+	init_rlabels(&lstate);
 	clause = (Clause)allocFromBuffer(&buf, sizeofClause(0));
 	clause->references = 0;
-	clause->code_size  = (code) ncodes;
 	clause->line_no    = getUInt(fd);
 
 	{ SourceFile of = (void *) loadXR(state);
@@ -1165,7 +1253,6 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	if ( getUInt(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->predicate = def;
-	GD->statistics.codes += clause->code_size;
 
 #define addCode(c) addBuffer(&buf, (c), code)
 
@@ -1173,6 +1260,14 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	{ code op = getUInt(fd);
 	  const char *ats;
 	  int n = 0;
+
+	  lstate.soi = entriesBuffer(&buf, code);
+	  if ( op == V_LABEL )
+	  { unsigned lbl = getUInt(fd);
+	    resolve_rlabel(&lstate, lbl, baseBuffer(&buf, code),
+			   baseBuffer(&buf, struct clause));
+	    continue;
+	  }
 
 	  if ( op >= I_HIGHEST )
 	    fatalError("Illegal op-code (%d) at %ld", op, Stell(fd));
@@ -1229,8 +1324,14 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      case CA1_MODULE:
 		addCode(loadXR(state));
 		break;
-	      case CA1_INTEGER:
 	      case CA1_JUMP:
+	      { unsigned lbl = getUInt(fd);
+		size_t off = entriesBuffer(&buf, code);
+		addCode(lbl);
+		push_rlabel(&lstate, lbl, off);
+		break;
+	      }
+	      case CA1_INTEGER:
 	      case CA1_VAR:
 	      case CA1_FVAR:
 	      case CA1_CHP:
@@ -1303,12 +1404,16 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
       done:
-	if ( !skip )
-	{ size_t csize = sizeOfBuffer(&buf);
+	exit_rlabels(&lstate);
 
-	  assert(sizeofClause(ncodes) == csize);
+	if ( !skip )
+	{ size_t csize  = sizeOfBuffer(&buf);
+	  size_t ncodes = (csize-sizeofClause(0))/sizeof(code);
+	  Clause bcl    = baseBuffer(&buf, struct clause);
+
+	  bcl->code_size = ncodes;
 	  clause = (Clause)PL_malloc_atomic(csize);
-	  memcpy(clause, baseBuffer(&buf, char), csize);
+	  memcpy(clause, bcl, csize);
 
 	  if ( has_dicts )
 	  { if ( !resortDictsInClause(clause) )
@@ -1318,7 +1423,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  }
 	  if ( csf )
 	    csf->current_procedure = proc;
+
 	  assertProcedureSource(csf, proc, clause PASS_LD);
+	  GD->statistics.codes += clause->code_size;
 	}
 
         discardBuffer(&buf);
@@ -2108,6 +2215,97 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Label handling
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct vm_wlabel
+{ Code		address;
+  unsigned int	id;
+} vm_wlabel;
+
+typedef struct vm_wlabel_state
+{ tmp_buffer	buf;
+  vm_wlabel	current;
+  unsigned int  next_id;
+} vm_wlabel_state;
+
+static void
+init_wlabels(vm_wlabel_state *state)
+{ initBuffer(&state->buf);
+  state->current.address = NULL;
+  state->next_id = 0;
+}
+
+static void
+exit_wlabels(vm_wlabel_state *state)
+{ assert(entriesBuffer(&state->buf, vm_wlabel) == 0);
+  discardBuffer(&state->buf);
+}
+
+static vm_wlabel *
+push_wlabel(vm_wlabel_state *state, Code to, Clause clause)
+{ vm_wlabel *lbl;
+
+  if ( state->current.address )
+  { if ( to == state->current.address )
+    { lbl = &state->current;
+    } else if ( to < state->current.address )
+    { addBuffer(&state->buf, state->current, vm_wlabel);
+      state->current.address = to;
+      state->current.id = ++state->next_id;
+      lbl = &state->current;
+    } else
+    { vm_wlabel *top    = allocFromBuffer(&state->buf, sizeof(*top));
+      vm_wlabel *bottom = baseBuffer(&state->buf, vm_wlabel);
+      vm_wlabel *prev   = top;
+
+      while(prev > bottom && to > prev[-1].address)
+	prev--;
+      if ( prev > bottom && prev[-1].address == to )
+      { (void)popBuffer(&state->buf, vm_wlabel);
+	lbl = &prev[-1];
+      } else
+      { memmove(prev+1, prev, (char*)top - (char*)prev);
+	prev->address = to;
+	prev->id = ++state->next_id;
+	lbl = prev;
+      }
+    }
+  } else
+  { state->current.address = to;
+    state->current.id = ++state->next_id;
+    lbl = &state->current;
+  }
+
+  DEBUG(MSG_QLF_LABEL,
+	{ Sdprintf("%s, clause %d: current: %d at %p\n",
+		   predicateName(clause->predicate),
+		   clauseNo(clause, 0),
+		   state->current.id, state->current.address);
+	  vm_wlabel *top    = topBuffer(&state->buf, vm_wlabel);
+	  vm_wlabel *bottom = baseBuffer(&state->buf, vm_wlabel);
+	  for(--top; top >= bottom; top--)
+	    Sdprintf("    %d at %p\n", top->id, top->address);
+	});
+
+  return lbl;
+}
+
+static void
+emit_wlabels(vm_wlabel_state *state, Code here, IOSTREAM *fd)
+{ while(state->current.address == here)
+  { putUInt(V_LABEL, fd);
+    putUInt(state->current.id, fd);
+
+    if ( entriesBuffer(&state->buf, vm_wlabel) != 0 )
+      state->current = popBuffer(&state->buf, vm_wlabel);
+    else
+      state->current.address = NULL;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 saveWicClause()  saves  a  clause  to  the  .qlf  file.   For  predicate
 references of I_CALL and I_DEPART, we  cannot store the predicate itself
 as this would lead to an inconsistency if   the .qlf file is loaded into
@@ -2124,9 +2322,9 @@ saveWicClause(wic_state *state, Clause clause)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
   Code bp, ep;
+  vm_wlabel_state lstate;
 
   Sputc('C', fd);
-  putUInt(clause->code_size, fd);
   putUInt(state->obfuscate ? 0 : clause->line_no, fd);
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
@@ -2142,13 +2340,17 @@ saveWicClause(wic_state *state, Clause clause)
 
   bp = clause->codes;
   ep = bp + clause->code_size;
+  init_wlabels(&lstate);
 
   while( bp < ep )
-  { unsigned int op = decode(*bp++);
+  { Code si = bp;				/* start instruction */
+    unsigned int op = decode(*bp++);
     const char *ats = codeTable[op].argtype;
     int n;
 
+    emit_wlabels(&lstate, si, fd);
     putUInt(op, fd);
+
     DEBUG(MSG_QLF_VMI, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
     for(n=0; ats[n]; n++)
     { switch(ats[n])
@@ -2177,8 +2379,13 @@ saveWicClause(wic_state *state, Clause clause)
 	  saveXR(state, xr);
 	  break;
 	}
-	case CA1_INTEGER:
 	case CA1_JUMP:
+	{ Code to = stepPC(si) + *bp++;
+	  vm_wlabel *lbl = push_wlabel(&lstate, to, clause);
+	  putUInt(lbl->id, fd);
+	  break;
+	}
+	case CA1_INTEGER:
 	case CA1_VAR:
 	case CA1_FVAR:
 	case CA1_CHP:
@@ -2238,6 +2445,8 @@ saveWicClause(wic_state *state, Clause clause)
       }
     }
   }
+
+  exit_wlabels(&lstate);
 }
 
 
@@ -3214,6 +3423,8 @@ PRED_IMPL("$open_wic", 2, open_wic, 0)
 { GET_LD
   IOSTREAM *fd;
   int obfuscate = FALSE;
+
+  assert(V_LABEL > I_HIGHEST);
 
   if ( !scan_options(A2, 0, ATOM_state_option, open_wic_options,
 		     &obfuscate) )
