@@ -94,6 +94,7 @@ allow for restricting the system.
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers    |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib   |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in <prefix>/lib |
+  | `-DSWIPL_M32=ON`		  | Make 32-bit version on 64-bit Linux |
   | `-DSWIPL_PACKAGES=OFF`        | Only build the core system          |
   | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages             |
   | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages          |
@@ -176,6 +177,16 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 	  -DINSTALL_DOCUMENTATION=OFF \
 	  -G Ninja ..
 
+### Building a 32-bit version on 64-bit Debian based Linux
+
+Building the 32-bit version on  a  64   bit  platform  can be useful for
+testing and creating  32-bit  .qlf  files   or  saved  states.  A fairly
+complete system is created using the configuration command below.
+
+    cmake -DSWIPL_M32=ON \
+	  -DSWIPL_PACKAGES_JAVA=OFF -DSWIPL_PACKAGES_QT=OFF \
+          -G Ninja ..
+
 ### Cross-building for targets without an emulator
 
 In the above scenarios we have an  emulator (Wine, Node.js) that can run
@@ -189,7 +200,7 @@ steps:
     version must have the same _word-size_ (32 or 64-bits) as the
     cross-compiled target.  One the core Prolog system (no packages)
     is required and the system only needs to be build, i.e., the
-    _install_ step is allowed but not needed.
+    _install_ step is allowed but not needed.  See above.
 
   - Specify `-DSWIPL_NATIVE_FRIEND=native` for the cross-compilation.
     This will cause the above system to be used for the cross

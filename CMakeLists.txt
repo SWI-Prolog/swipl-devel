@@ -22,6 +22,9 @@ option(SWIPL_VERSIONED_DIR
 option(SWIPL_INSTALL_IN_LIB
        "Install library in ${CMAKE_INSTALL_PREFIX}/lib"
        OFF)
+option(SWIPL_M32
+       "Build 32-bit version on 64-bit Linux using multilib and gcc -m32"
+       OFF)
 option(INSTALL_DOCUMENTATION
        "Install the HTML documentation files"
        ON)
@@ -37,7 +40,7 @@ option(BUILD_TESTING
 option(BUILD_SWIPL_LD
        "Create the swipl-ld utility"
        ON)
- option(INSTALL_TESTS
+option(INSTALL_TESTS
        "Install script and files needed to run tests of the final installation"
        OFF)
 
@@ -120,6 +123,10 @@ if(MSVC)
   add_compile_options(/W3)
 else()
   add_compile_options(-Wall)
+endif()
+
+if(SWIPL_M32)
+  include(cross/linux_i386)
 endif()
 
 if(BUILD_TESTING)
