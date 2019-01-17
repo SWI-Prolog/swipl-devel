@@ -126,11 +126,7 @@ preload(X) :-
 cmake_qcompile(File, Deps) :-
     qcompile(File),
     file_name_extension(File, qlf, QlfFile),
-    '$qlf_info'(QlfFile,
-                _CurrentVersion, _MinLOadVersion, _FileVersion,
-                _CurrentSignature, _FileSignature,
-                _WordSize,
-                Files),
+    '$qlf_sources'(QlfFile, Files),
     maplist(absolute_file_name, Deps, Canonical),
     subtract(Files, Canonical, Missing),
     subtract(Canonical, Files, Extra),

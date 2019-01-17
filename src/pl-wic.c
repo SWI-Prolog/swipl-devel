@@ -2521,7 +2521,6 @@ writeWicHeader(wic_state *state)
   putMagic(saveMagic, fd);
   putInt64(VERSION, fd);
   putInt64(VM_SIGNATURE, fd);
-  putInt64(sizeof(word)*8, fd);	/* bits-per-word */
   if ( systemDefaults.home )
     putString(systemDefaults.home, STR_NOLEN, fd);
   else
@@ -2718,7 +2717,6 @@ static word
 qlfInfo(const char *file,
 	term_t cversion, term_t minload, term_t fversion,
 	term_t csig, term_t fsig,
-	term_t wsize,
 	term_t files0 ARG_LD)
 { IOSTREAM *s = NULL;
   int lversion;
@@ -2742,7 +2740,6 @@ qlfInfo(const char *file,
 
   if ( cversion )
   { int vm_signature;
-    int saved_wsize;
 
     if ( !PL_unify_integer(cversion, VERSION) ||
 	 !PL_unify_integer(minload, LOADVERSION) ||
@@ -2754,15 +2751,8 @@ qlfInfo(const char *file,
       goto out;
 
     vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
-    saved_wsize = getInt(s);		/* word-size of file */
 
-    if ( !(saved_wsize == 32 || saved_wsize == 64) )
-    { qlfError(&state, "invalid word size (%d)", saved_wsize);
-      goto out;
-    }
-
-    if ( !PL_unify_integer(wsize, saved_wsize) ||
-	 !PL_unify_integer(fsig, vm_signature) )
+    if ( !PL_unify_integer(fsig, vm_signature) )
       goto out;
   } else
   { if ( !qlfIsCompatible(&state, qlfMagic) )
@@ -2817,7 +2807,6 @@ out:
 /** '$qlf_info'(+File,
 		-CurrentVersion, -MinLOadVersion, -FileVersion,
 		-CurrentSignature, -FileSignature,
-		-WordSize,
 		-Files)
 
 Provide information about a QLF file.
@@ -2826,19 +2815,18 @@ Provide information about a QLF file.
 @arg FileVersion is the version of the file
 @arg CurrentSignature is the current VM signature
 @arg FileSignature is the signature of the file
-@arg WordSize is the word size used to create the file (32 or 64)
 @arg Files is a list of atoms representing the files used to create the QLF
 */
 
 static
-PRED_IMPL("$qlf_info", 8, qlf_info, 0)
+PRED_IMPL("$qlf_info", 7, qlf_info, 0)
 { PRED_LD
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, A7, A8 PASS_LD);
+  return qlfInfo(name, A2, A3, A4, A5, A6, A8 PASS_LD);
 }
 
 
@@ -2850,7 +2838,7 @@ PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, 0, 0, 0, 0, 0, 0, A2 PASS_LD);
+  return qlfInfo(name, 0, 0, 0, 0, 0, A2 PASS_LD);
 }
 
 
@@ -2886,7 +2874,6 @@ qlfOpen(term_t file)
   putMagic(qlfMagic, state->wicFd);
   putInt64(VERSION, state->wicFd);
   putInt64(VM_SIGNATURE, state->wicFd);
-  putInt64(sizeof(word)*8, state->wicFd);
 
   putString(absname, STR_NOLEN, state->wicFd);
 
@@ -3031,7 +3018,6 @@ static int
 qlfIsCompatible(wic_state *state, const char *magic)
 { int lversion;
   int vm_signature;
-  int saved_wsize;
 
   if ( !qlfVersion(state, magic, &lversion) )
     return FALSE;
@@ -3044,11 +3030,6 @@ qlfIsCompatible(wic_state *state, const char *magic)
   if ( vm_signature != (int)VM_SIGNATURE )
     return qlfError(state, "incompatible VM-signature (file: 0x%x; Prolog: 0x%x)",
 		    (unsigned int)vm_signature, (unsigned int)VM_SIGNATURE);
-
-  saved_wsize = getInt(state->wicFd);
-  if ( saved_wsize != sizeof(word)*8 )
-    return qlfError(state, "incompatible word size (file: %d, Prolog: %d)",
-		    saved_wsize, (int)sizeof(word)*8);
 
   return TRUE;
 }
@@ -3863,7 +3844,7 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info",		    8, qlf_info,	     0)
+  PRED_DEF("$qlf_info",		    7, qlf_info,	     0)
   PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
