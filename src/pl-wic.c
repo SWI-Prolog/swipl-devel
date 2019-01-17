@@ -1954,18 +1954,19 @@ static void
 saveXRModule(wic_state *state, Module m ARG_LD)
 { IOSTREAM *fd = state->wicFd;
 
+  if ( !m )
+  { Sputc(XR_NULL, fd);
+    return;
+  }
+
   if ( savedXRPointer(state, m) )
     return;
 
-  if ( m )
-  { Sputc(XR_MODULE, fd);
-    DEBUG(MSG_QLF_XR,
-	  Sdprintf("XR(%d) = module %s\n",
-		   state->savedXRTableId, stringAtom(m->name)));
-    saveXR(state, m->name);
-  } else
-  { Sputc(XR_NULL, fd);
-  }
+  Sputc(XR_MODULE, fd);
+  DEBUG(MSG_QLF_XR,
+	Sdprintf("XR(%d) = module %s\n",
+		 state->savedXRTableId, stringAtom(m->name)));
+  saveXR(state, m->name);
 }
 
 
