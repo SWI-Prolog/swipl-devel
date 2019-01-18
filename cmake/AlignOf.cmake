@@ -7,7 +7,7 @@ function(alignof VAR_ALIGNOF_INT64_T VAR_ALIGNOF_VOIDP VAR_ALIGNOF_DOUBLE)
       set(alignof_checker_source_dir ${CMAKE_CURRENT_LIST_DIR})
       try_compile(alignof_checker_ok
          ${CMAKE_BINARY_DIR}
-         ${alignof_checker_source_dir}/CheckAlignment.cpp
+         ${alignof_checker_source_dir}/CheckAlignment.c
          COPY_FILE ${alignof_checker_target})
 
       if(alignof_checker_ok)
