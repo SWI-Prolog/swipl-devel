@@ -15,8 +15,8 @@
 
 #include <stdint.h>
 
-#if __cplusplus >= 201103L
-#define ALIGNOF(type) (alignof(type) + 48) // Ascii '1' for 1, '4' for 4, '8' for 8
+#if  defined(__GNUC__) || defined(__clang__)
+#define ALIGNOF(type) (__alignof(type) + 48) // Ascii '1' for 1, '4' for 4, '8' for 8
 #else
 #define ALIGNOF(type) (sizeof(type) + 48) // Safe fallback
 #endif
@@ -34,10 +34,10 @@ int prevent_optimization(unsigned char*p, int size) {
 }
 
 
+#define int64_pat_sz  18
+#define voidp_pat_sz  18
+#define double_pat_sz  19
 int main() {
-   const int int64_pat_sz = 18;
-   const int voidp_pat_sz = 18;
-   const int double_pat_sz = 19;
 
    static const unsigned char int64_alignment[int64_pat_sz] = {
          'I', 'N','T','6','4','_','A','L','I','G','N','M','E','N','T','=',
