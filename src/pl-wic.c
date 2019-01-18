@@ -2145,7 +2145,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  break;
 	}
 	case CA1_MODULE:
-	{ Module m = (Module) *bp++;
+	{ Module m = (Module) *bp++;	/* can be NULL, see I_CALLATMV */
 	  saveXRModule(state, m PASS_LD);
 	  break;
 	}
