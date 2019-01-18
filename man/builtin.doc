@@ -930,8 +930,14 @@ step processes the output of the previous step.
 	conditional compilation.  See \secref{conditionalcompilation}.
 
 	\item Call term_expansion/2.  This predicate is first tried in
-	the module that is being compiled and then in the module
-	\const{user}.
+	the module that is being compiled and then in modules from which
+	this module inherits according to default_module/2.  The output
+	of the expansion in a module is used as input for the next
+	module.  Using the default setup and when compiling a normal
+	application module \arg{M}, this implies expansion is executed
+	in \arg{M}, \const{user} and finally in \const{system}.  Library
+	modules inherit directly from \const{system} and can thus not be
+	re-interpreted by term expansion rules in \const{user}.
 
 	\item Call DCG expansion (dcg_translate_rule/2).
 
