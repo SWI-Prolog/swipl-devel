@@ -4679,6 +4679,11 @@ VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This instruction deals with  @(Callable,  Module),   where  Module  is a
+variable. The module argument can be NULL.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
 { Word ap;
   int iv;
@@ -4702,8 +4707,6 @@ VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
     popTermRef();
     THROW_EXCEPTION;
   }
-
-  VMI_GOTO(I_CALLM);
 }
 
 #endif
