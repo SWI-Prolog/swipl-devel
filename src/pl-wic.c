@@ -280,6 +280,11 @@ static int	pushPathTranslation(wic_state *state, const char *loadname, int flags
 static void	popPathTranslation(wic_state *state);
 static int	qlfIsCompatible(wic_state *state, const char *magic);
 
+/* Convert CA1_VAR arguments to VM independent and back
+*/
+#define VAR_OFFSET(i) ((intptr_t)((i) - (ARGOFFSET / (intptr_t) sizeof(word))))
+#define OFFSET_VAR(i) ((intptr_t)((i) + (ARGOFFSET / (intptr_t) sizeof(word))))
+
 #undef LD
 #define LD LOCAL_LD
 
@@ -1332,10 +1337,12 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		break;
 	      }
 	      case CA1_INTEGER:
+		addCode((code)getInt64(fd));
+		break;
 	      case CA1_VAR:
 	      case CA1_FVAR:
 	      case CA1_CHP:
-		addCode((code)getInt64(fd));
+		addCode((code)OFFSET_VAR(getInt64(fd)));
 		break;
 	      case CA1_INT64:
 	      { int64_t val = getInt64(fd);
@@ -2386,10 +2393,14 @@ saveWicClause(wic_state *state, Clause clause)
 	  break;
 	}
 	case CA1_INTEGER:
+	{ putInt64(*bp++, fd);
+	  break;
+	}
 	case CA1_VAR:
 	case CA1_FVAR:
 	case CA1_CHP:
-	{ putInt64(*bp++, fd);
+	{ intptr_t var = *bp++;
+	  putInt64(VAR_OFFSET(var), fd);
 	  break;
 	}
 	case CA1_INT64:
