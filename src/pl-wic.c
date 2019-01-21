@@ -1469,22 +1469,40 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      case CA1_MPZ:
 #ifdef O_GMP
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
-	      { int mpsize = getInt(fd);
-		int l      = abs(mpsize)*sizeof(mp_limb_t);
-		int wsz	 = (l+sizeof(word)-1)/sizeof(word);
-		word m     = mkIndHdr(wsz+1, TAG_INTEGER);
-		Code bp;
-		char *s;
+	      { ssize_t hdrsize = getInt64(fd);
+		size_t  size    = abs(hdrsize);
+		size_t wsize, i, limpsize;
+		mpz_t mpz;
+		char fast[1024];
+		char *cbuf;
+		word m;
+		Word p;
 
-		bp = allocFromBuffer(&buf, sizeof(word)*(wsz+2));
-		*bp++     = m;
-		*bp++     = mpsize;
-		s         = (char*)bp;
-		bp[wsz-1] = 0L;
-		bp       += wsz;
+		if ( size < sizeof(fast) )
+		  cbuf = fast;
+		else
+		  cbuf = PL_malloc(size);
 
-		while(--l >= 0)
-		  *s++ = Qgetc(fd);
+		for(i=0; i<size; i++)
+		  cbuf[i] = Qgetc(fd);
+
+		limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+		wsize    = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+		m	 = mkIndHdr(wsize+1, TAG_INTEGER);
+		p	 = allocFromBuffer(&buf, sizeof(word)*(wsize+2));
+
+		*p++ = m;
+		p[wsize] = 0;
+		*p++ = hdrsize >= 0 ? limpsize : -limpsize;
+		mpz->_mp_size  = limpsize;
+		mpz->_mp_alloc = limpsize;
+		mpz->_mp_d     = (mp_limb_t*)p;
+
+		mpz_import(mpz, size, 1, 1, 1, 0, cbuf);
+		assert((Word)mpz->_mp_d == p);	/* check no (re-)allocation is done */
+		if ( cbuf != fast )
+		  PL_free(cbuf);
+
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
 	      }
@@ -2606,17 +2624,33 @@ saveWicClause(wic_state *state, Clause clause)
 	}
 #ifdef O_GMP
 	case CA1_MPZ:
-	{ word m = *bp++;
-	  size_t wn = wsizeofInd(m);
-	  int mpsize = (int)*bp;
-	  int l = abs(mpsize)*sizeof(mp_limb_t);
-	  char *s = (char*)&bp[1];
-	  bp += wn;
+	{ mpz_t mpz;
+	  size_t size;
+	  ssize_t hdrsize;
+	  size_t i, count;
+	  char fast[1024];
+	  char *buf;
 
-	  DEBUG(MSG_QLF_VMI, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
-	  putInt64(mpsize, fd);
-	  while(--l >= 0)
-	    Sputc(*s++&0xff, fd);
+	  bp = get_mpz_from_code(bp, mpz);
+	  size = (mpz_sizeinbase(mpz, 2)+7)/8;
+	  if ( size < sizeof(fast) )
+	    buf = fast;
+	  else
+	    buf = PL_malloc(size);
+
+	  if ( mpz_sgn(mpz) < 0 )
+	    hdrsize = -(ssize_t)size;
+	  else
+	    hdrsize = (ssize_t)size;
+
+	  mpz_export(buf, &count, 1, 1, 1, 0, mpz);
+	  assert(count == size);
+	  putInt64(hdrsize, fd);
+	  for(i=0; i<count; i++)
+	    Sputc(buf[i]&0xff, fd);
+	  if ( buf != fast )
+	    PL_free(buf);
+
 	  DEBUG(MSG_QLF_VMI, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
 	  break;
 	}

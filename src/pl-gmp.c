@@ -53,7 +53,7 @@ static mpz_t MPZ_MAX_LONG;
 
 
 		 /*******************************
-		 *	MEMMORY MANAGEMENT	*
+		 *	 MEMORY MANAGEMENT	*
 		 *******************************/
 
 #if O_MY_GMP_ALLOC
@@ -307,6 +307,19 @@ get_integer(word w, Number n)
       n->value.mpz->_mp_d     = (mp_limb_t*) p;
     }
   }
+}
+
+
+Code
+get_mpz_from_code(Code pc, mpz_t mpz)
+{ size_t wsize = wsizeofInd(*pc);
+
+  pc++;
+  mpz->_mp_size  = (int)*pc;
+  mpz->_mp_alloc = 0;
+  mpz->_mp_d     = (mp_limb_t*)(pc+1);
+
+  return pc+wsize;
 }
 
 

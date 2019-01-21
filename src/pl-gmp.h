@@ -47,6 +47,7 @@
 COMMON(void)	initGMP(void);
 COMMON(void)	cleanupGMP(void);
 COMMON(void)	get_integer(word w, number *n);
+COMMON(Code)	get_mpz_from_code(Code pc, mpz_t mpz);
 COMMON(int)	promoteToMPZNumber(number *n);
 COMMON(int)	promoteToMPQNumber(number *n);
 COMMON(void)	ensureWritableNumber(Number n);
