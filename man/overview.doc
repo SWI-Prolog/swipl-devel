@@ -1628,6 +1628,12 @@ If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
+    \prologflagitem{portable_vmi}{bool}{rw}
+If \const{true} (default), generate \fileext{qlf} files and saved states
+that run both on 32 bit and 64-bit hardware.  If \const{false}, some
+optimized virtual machine instructions are only used if the integer
+argument is within the range of a tagged integer for 32-bit machines.
+
     \prologflagitem{posix_shell}{atom}{rw}
 Path to a POSIX compatible shell.  This default is typically
 \file{/bin/sh}.  This flag is used by shell/1 and qsave_program/2.
