@@ -36,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "os/pl-utf8.h"
 #include "pl-dbref.h"
 #include "pl-dict.h"
 #ifdef HAVE_SYS_PARAM_H
@@ -254,6 +255,10 @@ typedef struct wic_state
   qlf_state *load_state;		/* current load-state */
 
   xr_table *XR;				/* external references */
+
+  struct
+  { int		invalid_wide_chars;	/* Cannot represent due to UCS-2 */
+  } errors;
 
   struct wic_state *parent;		/* parent state */
 } wic_state;
@@ -826,7 +831,7 @@ loadXRc(wic_state *state, int c ARG_LD)
       return 0;
     default:
     { xr = 0;				/* make gcc happy */
-      fatalError("Illegal XR entry at index %d: %c", Stell(fd)-1, c);
+      fatalError("Illegal XR entry at index %ld: %d", Stell(fd)-1, c);
     }
   }
 
@@ -1404,20 +1409,61 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		break;
 	      }
 	      case CA1_STRING:		/* <n> chars */
-	      { int l = getInt(fd);
-		int lw = (l+sizeof(word))/sizeof(word);
-		int pad = (lw*sizeof(word) - l);
-		Code bp;
-		char *s;
+	      { size_t l = getInt(fd);
+		int   c0 = Qgetc(fd);
 
-		DEBUG(MSG_QLF_VMI, Sdprintf("String of %ld bytes\n", l));
-		bp = allocFromBuffer(&buf, sizeof(word)*(lw+1));
-		s = (char *)&bp[1];
-		*bp = mkStrHdr(lw, pad);
-		bp += lw;
-		*bp++ = 0L;
-		while(--l >= 0)
-		  *s++ = Qgetc(fd);
+		if ( c0 == 'B' )
+		{ int lw = (l+sizeof(word))/sizeof(word);
+		  int pad = (lw*sizeof(word) - l);
+		  Code bp;
+		  char *s;
+
+		  DEBUG(MSG_QLF_VMI, Sdprintf("String of %ld bytes\n", l));
+		  bp = allocFromBuffer(&buf, sizeof(word)*(lw+1));
+		  s = (char *)&bp[1];
+		  *bp = mkStrHdr(lw, pad);
+		  bp += lw;
+		  *bp++ = 0L;
+		  *s++ = 'B';
+		  l--;
+		  while(l-- > 0)
+		    *s++ = Qgetc(fd);
+		} else
+		{ size_t i;
+		  size_t  bs = (l+1)*sizeof(pl_wchar_t);
+		  size_t  lw = (bs+sizeof(word))/sizeof(word);
+		  int    pad = (lw*sizeof(word) - bs);
+		  word	   m = mkStrHdr(lw, pad);
+		  IOENC oenc = fd->encoding;
+
+		  DEBUG(MSG_QLF_VMI,
+			Sdprintf("Wide string of %zd chars; lw=%zd; pad=%d\n",
+				 l, lw, pad));
+
+		  assert(c0 == 'W');
+
+		  addCode(m);		/* The header */
+		  addBuffer(&buf, 'W', char);
+		  for(i=1; i<sizeof(pl_wchar_t); i++)
+		    addBuffer(&buf, 0, char);
+
+		  fd->encoding = ENC_UTF8;
+		  for(i=0; i<l; i++)
+		  { int code = Sgetcode(fd);
+		    pl_wchar_t c = code;
+
+		    if ( (int)c != code )
+		    { state->errors.invalid_wide_chars++;
+		      c = UTF8_MALFORMED_REPLACEMENT;
+		    }
+
+		    addBuffer(&buf, c, pl_wchar_t);
+		  }
+		  fd->encoding = oenc;
+
+		  for(i=0; i<pad; i++)
+		    addBuffer(&buf, 0, char);
+		}
 		break;
 	      }
 	      case CA1_MPZ:
@@ -2535,9 +2581,27 @@ saveWicClause(wic_state *state, Clause clause)
 	  size_t l = wn*sizeof(word) - padHdr(m);
 	  bp += wn;
 
-	  putInt64(l, fd);
-	  while(l-- > 0)
-	    Sputc(*s++&0xff, fd);
+	  if ( *s == 'B' )
+	  { putInt64(l, fd);
+	    while( l-- > 0 )
+	      Sputc(*s++&0xff, fd);
+	  } else
+	  { pl_wchar_t *w = (pl_wchar_t*)s + 1;
+	    IOENC oenc = fd->encoding;
+
+	    assert(*s == 'W');
+	    l /= sizeof(pl_wchar_t);
+	    l--;
+
+	    putInt64(l, fd);
+	    Sputc('W', fd);
+	    fd->encoding = ENC_UTF8;
+	    for( ; l-- > 0; w++)
+	    { Sputcode(*w, fd);
+	    }
+	    fd->encoding = oenc;
+	  }
+
 	  break;
 	}
 #ifdef O_GMP
@@ -3204,6 +3268,10 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
   rval = loadPart(state, module, FALSE PASS_LD);
   popXrIdTable(state);
   popPathTranslation(state);
+
+  if ( state->errors.invalid_wide_chars )
+    Sdprintf("WARNING: %d wide characters could not be represented as UCS-2\n",
+	     state->errors.invalid_wide_chars);
 
   return rval;
 }
