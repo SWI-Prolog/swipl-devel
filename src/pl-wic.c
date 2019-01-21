@@ -192,6 +192,9 @@ first. The last byte has its 0x80 mask set.
 #define XR_NULL	       14		/* NULL pointer */
 
 #define V_LABEL	      256		/* Label pseudo opcode */
+#define V_H_INTEGER   257		/* Abstract various H_INT variations */
+#define V_B_INTEGER   258		/* Abstract various B_INT variations */
+#define V_A_INTEGER   259		/* Abstract various A_INT variations */
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
@@ -1267,11 +1270,55 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  int n = 0;
 
 	  lstate.soi = entriesBuffer(&buf, code);
-	  if ( op == V_LABEL )
-	  { unsigned lbl = getUInt(fd);
-	    resolve_rlabel(&lstate, lbl, baseBuffer(&buf, code),
-			   baseBuffer(&buf, struct clause));
-	    continue;
+	  switch(op)
+	  { case V_LABEL:
+	    { unsigned lbl = getUInt(fd);
+	      resolve_rlabel(&lstate, lbl, baseBuffer(&buf, code),
+			     baseBuffer(&buf, struct clause));
+	      continue;
+	    }
+	    case V_H_INTEGER:
+	    case V_B_INTEGER:
+	    { int64_t val = getInt64(fd);
+	      word w = consInt(val);
+
+	      if ( valInt(w) == val )
+	      { addCode(encode(op==V_H_INTEGER ? H_SMALLINT : B_SMALLINT));
+		addCode(w);
+#if SIZEOF_VOIDP == 8
+	      } else
+	      { addCode(encode(op==V_H_INTEGER ? H_INTEGER : B_INTEGER));
+		addCode((intptr_t)val);
+	      }
+#else
+	      } else if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
+	      { addCode(encode(op==V_H_INTEGER ? H_INTEGER : B_INTEGER));
+		addCode((intptr_t)val);
+	      } else
+	      { addCode(encode(op==V_H_INTEGER ? H_INT64 : B_INT64));
+		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
+	      }
+#endif
+
+	      continue;
+	    }
+	    case V_A_INTEGER:
+	    { int64_t val = getInt64(fd);
+
+#if SIZEOF_VOIDP == 8
+	      addCode(encode(A_INTEGER));
+	      addCode((intptr_t)val);
+#else
+	      if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
+	      { addCode(encode(A_INTEGER));
+		addCode((intptr_t)val);
+	      } else
+	      { addCode(encode(A_INT64));
+		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
+	      }
+#endif
+	      continue;
+	    }
 	  }
 
 	  if ( op >= I_HIGHEST )
@@ -2356,6 +2403,66 @@ saveWicClause(wic_state *state, Clause clause)
     int n;
 
     emit_wlabels(&lstate, si, fd);
+
+    switch(op)
+    { { int64_t v;
+
+        case H_SMALLINT:
+	  v = valInt(*bp++);
+	  goto vh_int;
+#if SIZEOF_VOIDP == 4
+	case H_INT64:
+	{ Word p = (Word)&v;
+	  cpInt64Data(p, bp);
+	  goto vh_int;
+	}
+#endif
+	case H_INTEGER:
+	  v = (intptr_t)*bp++;
+	vh_int:
+	  putUInt(V_H_INTEGER, fd);
+	  putInt64(v, fd);
+	  continue;
+      }
+      { int64_t v;
+
+        case B_SMALLINT:
+	  v = valInt(*bp++);
+	  goto vb_int;
+#if SIZEOF_VOIDP == 4
+	case B_INT64:
+	{ Word p = (Word)&v;
+	  cpInt64Data(p, bp);
+	  goto vb_int;
+	}
+#endif
+	case B_INTEGER:
+	  v = (intptr_t)*bp++;
+	vb_int:
+	  putUInt(V_B_INTEGER, fd);
+	  putInt64(v, fd);
+	  continue;
+      }
+      { int64_t v;
+
+#if SIZEOF_VOIDP == 4
+	case A_INT64:
+	{ Word p = (Word)&v;
+	  cpInt64Data(p, bp);
+	  goto va_int;
+	}
+#endif
+	case A_INTEGER:
+	  v = (intptr_t)*bp++;
+#if SIZEOF_VOIDP == 4
+	va_int:
+#endif
+	  putUInt(V_A_INTEGER, fd);
+	  putInt64(v, fd);
+	  continue;
+      }
+    }
+
     putUInt(op, fd);
 
     DEBUG(MSG_QLF_VMI, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));

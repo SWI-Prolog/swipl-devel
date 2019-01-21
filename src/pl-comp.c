@@ -206,6 +206,34 @@ typedef struct c_warning
 } c_warning;
 
 
+		 /*******************************
+		 *	  PORTABLE CHECK	*
+		 *******************************/
+
+#if SIZEOF_VOIDP == 4
+#define is_portable_smallint(w) (tagex(w) == (TAG_INTEGER|STG_INLINE))
+#define is_portable_constant(w) isConst(w)
+#else
+#define is_portable_smallint(w) is_portable_smallint__LD(w PASS_LD)
+#define is_portable_constant(w) (isAtom(w) || is_portable_smallint(w))
+
+#define PORTABLE_INT_MASK 0xffffffff80000000
+
+static inline int
+is_portable_smallint__LD(word w ARG_LD)
+{ if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
+  { if ( truePrologFlag(PLFLAG_PORTABLE_VMI) )
+    { word masked = w&PORTABLE_INT_MASK;
+
+      return !masked || masked == PORTABLE_INT_MASK;
+    } else
+    { return TRUE;
+    }
+  } else
+    return FALSE;
+}
+
+#endif
 
 		 /*******************************
 		 *	     COMPILER		*
@@ -2749,7 +2777,7 @@ compileSimpleAddition(Word sc, compileInfo *ci ARG_LD)
 
 	if ( (vi=isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
 	     !isFirstVar(ci->used_var, vi) &&
-	     tagex(*a2) == (TAG_INTEGER|STG_INLINE) )
+	     is_portable_smallint(*a2) )
 	{ intptr_t i = valInt(*a2);
 
 	  if ( neg )
@@ -3111,7 +3139,7 @@ compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
 
   unify_term:
     first = isFirstVarSet(ci->used_var, i1);
-    if ( isConst(*a2) )
+    if ( is_portable_constant(*a2) )
     { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), *a2);
       if ( isAtom(*a2) )
 	PL_register_atom(*a2);
@@ -3195,7 +3223,7 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
     return TRUE;
   }
 
-  if ( i1 >= 0 && isConst(*a2) )	/* Var == const */
+  if ( i1 >= 0 && is_portable_constant(*a2) )	/* Var == const */
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
@@ -3204,7 +3232,7 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
       PL_register_atom(*a2);
     return TRUE;
   }
-  if ( i2 >= 0 && isConst(*a1) )	/* const == Var */
+  if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
   { int f2 = isFirstVar(ci->used_var, i2);
 
     if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
@@ -3274,7 +3302,7 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
     return TRUE;
   }
 
-  if ( i1 >= 0 && isConst(*a2) )	/* Var == const */
+  if ( i1 >= 0 && is_portable_constant(*a2) )	/* Var == const */
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
@@ -3283,7 +3311,7 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
       PL_register_atom(*a2);
     return TRUE;
   }
-  if ( i2 >= 0 && isConst(*a1) )	/* const == Var */
+  if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
   { int f2 = isFirstVar(ci->used_var, i2);
 
     if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
