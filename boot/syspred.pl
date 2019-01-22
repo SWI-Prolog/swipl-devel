@@ -1177,22 +1177,6 @@ trie_property(hashed(_)).
 shell(Command) :-
     shell(Command, 0).
 
-%!  win_add_dll_directory(+AbsDir) is det.
-%
-%   Add AbsDir to the directories where  dependent DLLs are searched
-%   on Windows systems.
-
-:- if(current_prolog_flag(windows, true)).
-:- export(win_add_dll_directory/1).
-win_add_dll_directory(Dir) :-
-    win_add_dll_directory(Dir, _),
-    !.
-win_add_dll_directory(Dir) :-
-    prolog_to_os_filename(Dir, OSDir),
-    getenv('PATH', Path0),
-    atomic_list_concat([Path0, OSDir], ';', Path),
-    setenv('PATH', Path).
-:- endif.
 
                  /*******************************
                  *            SIGNALS           *
@@ -1450,12 +1434,14 @@ set_prolog_gc_thread(Status) :-
     var(Status),
     !,
     '$instantiation_error'(Status).
-:- if(current_prolog_flag(threads,true)).
 set_prolog_gc_thread(false) :-
     !,
     set_prolog_flag(gc_thread, false),
-    (   '$gc_stop'
-    ->  thread_join(gc)
+    (   current_prolog_flag(threads, true)
+    ->  (   '$gc_stop'
+        ->  thread_join(gc)
+        ;   true
+        )
     ;   true
     ).
 set_prolog_gc_thread(true) :-
@@ -1463,14 +1449,12 @@ set_prolog_gc_thread(true) :-
     set_prolog_flag(gc_thread, true).
 set_prolog_gc_thread(stop) :-
     !,
-    (   '$gc_stop'
-    ->  thread_join(gc)
+    (   current_prolog_flag(threads, true)
+    ->  (   '$gc_stop'
+        ->  thread_join(gc)
+        ;   true
+        )
     ;   true
     ).
-:- else.
-set_prolog_gc_thread(false) :- !.
-set_prolog_gc_thread(true) :- !.
-set_prolog_gc_thread(stop) :- !.
-:- endif.
 set_prolog_gc_thread(Status) :-
     '$domain_error'(gc_thread, Status).

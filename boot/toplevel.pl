@@ -56,23 +56,23 @@
 
 :- multifile user:file_search_path/2.
 
-user:file_search_path(user_profile, app_preferences('.')).
-:- if(current_prolog_flag(windows, true)).
-user:file_search_path(app_preferences, app_data('.')).
 user:file_search_path(app_data, PrologAppData) :-
-    current_prolog_flag(windows, true),
-    catch(win_folder(appdata, AppData), _, fail),
-    atom_concat(AppData, '/SWI-Prolog', PrologAppData),
-    (   exists_directory(PrologAppData)
-    ->  true
-    ;   catch(make_directory(PrologAppData), _, fail)
+    (   current_prolog_flag(windows, true)
+    ->  catch(win_folder(appdata, AppData), _, fail),
+        atom_concat(AppData, '/SWI-Prolog', PrologAppData),
+        (   exists_directory(PrologAppData)
+        ->  true
+        ;   catch(make_directory(PrologAppData), _, fail)
+        )
+    ;   catch(expand_file_name('~/lib/swipl', [PrologAppData]), _, fail)
     ).
-:- else.
-user:file_search_path(app_data, UserLibDir) :-
-    catch(expand_file_name('~/lib/swipl', [UserLibDir]), _, fail).
-:- endif.
-user:file_search_path(app_preferences, UserHome) :-
-    catch(expand_file_name(~, [UserHome]), _, fail).
+user:file_search_path(app_preferences, Preferences) :-
+    (   current_prolog_flag(windows, true)
+    ->  Preferences = app_data('.')
+    ;   catch(expand_file_name(~, [UserHome]), _, fail)
+    ->  Preferences = UserHome
+    ).
+user:file_search_path(user_profile, app_preferences('.')).
 
 
                  /*******************************
@@ -456,11 +456,11 @@ load_associated_files(Files) :-
     ;   true
     ).
 
-:- if(current_predicate(system:win_registry_get_value/3)).
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
 hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 
 '$set_prolog_file_extension' :-
+    current_prolog_flag(windows, true),
     hkey(Key),
     catch(win_registry_get_value(Key, fileExtension, Ext0),
           _, fail),
@@ -473,7 +473,6 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
     ->  true
     ;   asserta(user:prolog_file_type(Ext, prolog))
     ).
-:- endif.
 '$set_prolog_file_extension'.
 
 

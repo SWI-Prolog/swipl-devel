@@ -43,7 +43,9 @@
             reload_foreign_libraries/0,
                                         % Directives
             use_foreign_library/1,      % :LibFile
-            use_foreign_library/2       % :LibFile, +InstallFunc
+            use_foreign_library/2,      % :LibFile, +InstallFunc
+
+            win_add_dll_directory/1     % +Dir
           ]).
 :- use_module(library(lists), [reverse/2]).
 :- set_prolog_flag(generate_debug_info, false).
@@ -458,6 +460,27 @@ unload_foreign(File) :-
         )
     ->  true
     ;   true
+    ).
+
+
+%!  win_add_dll_directory(+AbsDir) is det.
+%
+%   Add AbsDir to the directories where  dependent DLLs are searched
+%   on Windows systems.
+%
+%   @error domain_error(operating_system, windows) if the current OS
+%   is not Windows.
+
+win_add_dll_directory(Dir) :-
+    (   current_prolog_flag(windows, true)
+    ->  (   catch(win_add_dll_directory(Dir, _), _, fail)
+        ->  true
+        ;   prolog_to_os_filename(Dir, OSDir),
+            getenv('PATH', Path0),
+            atomic_list_concat([Path0, OSDir], ';', Path),
+            setenv('PATH', Path)
+        )
+    ;   domain_error(operating_system, windows)
     ).
 
                  /*******************************
