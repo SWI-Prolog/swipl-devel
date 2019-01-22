@@ -107,7 +107,7 @@ set(SWIPL_DATA_DIRS
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/iso
-    library/dialect/yap
+    library/dialect/yap library/dialect/xsb
     library/unicode library/lynx
     demo)
 
@@ -167,7 +167,7 @@ set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 set(SWIPL_DATA_library_unicode blocks.pl unicode_data.pl)
 
 set(SWIPL_DATA_library_dialect bim.pl commons.pl hprolog.pl ifprolog.pl
-    sicstus.pl yap.pl)
+    sicstus.pl yap.pl xsb.pl)
 
 set(SWIPL_DATA_library_dialect_swi syspred_options.pl)
 set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
@@ -176,6 +176,7 @@ set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl
     README.TXT sockets.pl swipl-lfr.pl system.pl terms.pl timeout.pl)
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
+set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl storage.pl)
 
 set(SWIPL_DATA_demo likes.pl README)
 
