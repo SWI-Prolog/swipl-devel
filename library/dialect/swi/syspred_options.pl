@@ -120,6 +120,7 @@
 :- predicate_options(system:load_files/2, 2,
 		     [ autoload(boolean),
 		       derived_from(atom),
+                       dialect(atom),
 		       encoding(encoding),
 		       expand(boolean),
 		       format(oneof([source,qlf])),
