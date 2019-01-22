@@ -187,7 +187,7 @@ memory (the list of already visited cities and the still open choices)
 and does not need to deal with maintaining consistency between the
 tables and ground facts.
 
-\section{Mode directed tabling}
+\section{Answer subsumption or mode directed tabling}
 \label{sec:tabling-mode-directed}
 
 \index{answer subsumption,tabling}%
