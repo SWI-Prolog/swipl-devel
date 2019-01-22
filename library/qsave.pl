@@ -54,8 +54,6 @@ also used by the commandline sequence below.
 :- meta_predicate
     qsave_program(+, :).
 
-:- public save_option/3.                        % used by '$compile_wic'/0
-
 save_option(stack_limit, integer,
             "Stack limit (bytes)").
 save_option(goal,        callable,
@@ -1090,6 +1088,83 @@ ignored(File, Options) :-
     ),
     wildcard_match(Pattern, File),
     !.
+
+
+                /********************************
+                *     SAVED STATE GENERATION    *
+                *********************************/
+
+%!  qsave_toplevel
+%
+%   Called to handle `-c file` compilaton.
+
+:- public
+    qsave_toplevel/0.
+
+qsave_toplevel :-
+    current_prolog_flag(os_argv, Argv),
+    qsave_options(Argv, Files, Options),
+    '$cmd_option_val'(compileout, Out),
+    user:consult(Files),
+    user:qsave_program(Out, Options).
+
+qsave_options([], [], []).
+qsave_options([--|_], [], []) :-
+    !.
+qsave_options(['-c'|T0], Files, Options) :-
+    !,
+    argv_files(T0, T1, Files, FilesT),
+    qsave_options(T1, FilesT, Options).
+qsave_options([O|T0], Files, [Option|T]) :-
+    string_concat("--", Opt, O),
+    split_string(Opt, "=", "", [NameS|Rest]),
+    atom_string(Name, NameS),
+    qsave_option(Name, OptName, Rest, Value),
+    !,
+    Option =.. [OptName, Value],
+    qsave_options(T0, Files, T).
+qsave_options([_|T0], Files, T) :-
+    qsave_options(T0, Files, T).
+
+argv_files([], [], Files, Files).
+argv_files([H|T], [H|T], Files, Files) :-
+    sub_atom(H, 0, _, _, -),
+    !.
+argv_files([H|T0], T, [H|Files0], Files) :-
+    argv_files(T0, T, Files0, Files).
+
+%!  qsave_option(+Name, +ValueStrings, -Value) is semidet.
+
+qsave_option(Name, Name, [], true) :-
+    qsave:save_option(Name, boolean, _),
+    !.
+qsave_option(NoName, Name, [], false) :-
+    atom_concat('no-', Name, NoName),
+    qsave:save_option(Name, boolean, _),
+    !.
+qsave_option(Name, Name, ValueStrings, Value) :-
+    qsave:save_option(Name, Type, _),
+    !,
+    atomics_to_string(ValueStrings, "=", ValueString),
+    convert_option_value(Type, ValueString, Value).
+qsave_option(Name, Name, _Chars, _Value) :-
+    existence_error(save_option, Name).
+
+convert_option_value(integer, String, Value) :-
+    (   number_string(Value, String)
+    ->  true
+    ;   domain_error(integer, String)
+    ).
+convert_option_value(callable, String, Value) :-
+    term_string(Value, String).
+convert_option_value(atom, String, Value) :-
+    atom_string(Value, String).
+convert_option_value(boolean, String, Value) :-
+    atom_string(Value, String).
+convert_option_value(oneof(_), String, Value) :-
+    atom_string(Value, String).
+convert_option_value(ground, String, Value) :-
+    atom_string(Value, String).
 
 
                  /*******************************

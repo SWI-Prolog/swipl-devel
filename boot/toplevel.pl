@@ -738,7 +738,8 @@ setup_interactive :-
     init_debug_flags,
     '$run_initialization',
     attach_packs,
-    catch('$compile_wic', E, (print_message(error, E), halt(1))).
+    use_module(library(qsave)),
+    catch(qsave:qsave_toplevel, E, (print_message(error, E), halt(1))).
 
 %!  '$config'
 %
