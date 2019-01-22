@@ -39,11 +39,8 @@ get_filename_component(SWIPL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 set(SWIPL_LIBRARY_ROOT ${SWIPL_ROOT}/library)
 set(SWIPL_BOOT_ROOT ${SWIPL_ROOT}/boot)
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set(SWIPL_BOOT_FILE "${CMAKE_BINARY_DIR}/home/boot64.prc")
-else()
-  set(SWIPL_BOOT_FILE "${CMAKE_BINARY_DIR}/home/boot32.prc")
-endif()
+set(SWIPL_BOOT_BASE "boot.prc")
+set(SWIPL_BOOT_FILE "${CMAKE_BINARY_DIR}/home/${SWIPL_BOOT_BASE}")
 
 # Tools (swipl-ld)
 string(REPLACE "." "" SO_EXT ${CMAKE_SHARED_MODULE_SUFFIX})

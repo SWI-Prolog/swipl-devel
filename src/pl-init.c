@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2017, University of Amsterdam
+    Copyright (c)  2012-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -785,16 +786,8 @@ replace_extension(char *path, const char *ext)
 Find the resource database.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef BOOTFILE		/* normally delivered through config.h */
-#if SIZEOF_VOIDP == 4
-#define BOOTFILE "boot32.prc"
-#else
-#if SIZEOF_VOIDP == 8
-#define BOOTFILE "boot64.prc"
-#else
-#define BOOTFILE "boot.prc"
-#endif
-#endif
+#ifndef SWIPL_BOOT_BASE		/* normally delivered through config.h */
+#define SWIPL_BOOT_BASE "boot.prc"
 #endif
 
 static zipper *
@@ -848,10 +841,10 @@ openResourceDB(int argc, char **argv)
   }
 
   if ( systemDefaults.home )
-  { if ( strlen(systemDefaults.home)+1+strlen(BOOTFILE) < MAXPATHLEN )
+  { if ( strlen(systemDefaults.home)+1+strlen(SWIPL_BOOT_BASE) < MAXPATHLEN )
     { strcpy(tmp, systemDefaults.home);
       strcat(tmp, "/");
-      strcat(tmp, BOOTFILE);
+      strcat(tmp, SWIPL_BOOT_BASE);
 
       return zip_open_archive(tmp, flags);
     } else
