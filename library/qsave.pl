@@ -54,6 +54,14 @@ also used by the commandline sequence below.
 :- meta_predicate
     qsave_program(+, :).
 
+:- multifile error:has_type/2.
+error:has_type(qsave_foreign_option, Term) :-
+    is_of_type(oneof([save, no_save]), Term),
+    !.
+error:has_type(qsave_foreign_option, arch(Archs)) :-
+    is_list(Archs),
+    !.
+
 save_option(stack_limit, integer,
             "Stack limit (bytes)").
 save_option(goal,        callable,
@@ -74,7 +82,7 @@ save_option(stand_alone, boolean,
             "Add emulator at start").
 save_option(emulator,    ground,
             "Emulator to use").
-save_option(foreign,     oneof([save,no_save]),
+save_option(foreign,     qsave_foreign_option,
             "Include foreign code in state").
 save_option(obfuscate,   boolean,
             "Obfuscate identifiers").
@@ -137,11 +145,15 @@ qsave_program(FileBase, Options0) :-
     save_resources(RC, SaveClass),
     lock_files(SaveClass),
     save_program(RC, SaveClass, Options),
-    save_foreign_libraries(RC, Options),
-    zip_close(RC, [comment("SWI-Prolog saved state")]),
-    '$mark_executable'(File),
-    close_map,
-    cleanup.
+    setup_call_cleanup(
+        true,
+        save_foreign_libraries(RC, Options),
+        ( zip_close(RC, [comment("SWI-Prolog saved state")]),
+          '$mark_executable'(File),
+          close_map,
+          cleanup
+        )
+    ).
 
 cleanup :-
     retractall(saved_resource_file(_)).
@@ -870,30 +882,50 @@ qualify_head(T, user:T).
 save_foreign_libraries(RC, Options) :-
     option(foreign(save), Options),
     !,
-    feedback('~nFOREIGN LIBRARIES~n', []),
-    forall(current_foreign_library(FileSpec, _Predicates),
-           ( find_foreign_library(FileSpec, File, Time),
-             term_to_atom(FileSpec, Name),
-             zipper_append_file(RC, Name, File, [time(Time)])
-           )).
+    current_prolog_flag(arch, HostArch),
+    feedback('~nHOST(~w) FOREIGN LIBRARIES~n', [HostArch]),
+    save_foreign_libraries1(HostArch, RC, Options).
+
+save_foreign_libraries(RC, Options) :-
+    option(foreign(arch(Archs)), Options),
+    !,
+    forall( member(Arch, Archs),
+            ( feedback('~n~w FOREIGN LIBRARIES~n', [Arch]),
+              save_foreign_libraries1(Arch, RC, Options)
+            )).
+
 save_foreign_libraries(_, _).
 
-%!  find_foreign_library(+FileSpec, -File, -Time) is det.
+save_foreign_libraries1(Arch, RC, _Options) :-
+    forall(current_foreign_library(FileSpec, _Predicates),
+           ( find_foreign_library(Arch, FileSpec, EntryName, File, Time),
+             term_to_atom(EntryName, Name),
+             zipper_append_file(RC, Name, File, [time(Time)])
+           )).
+
+%!  find_foreign_library(+Architecture, +FileSpec, -EntryName, -File, -Time) is det.
 %
-%   Find the shared object specified by   FileSpec.  If posible, the
-%   shared object is stripped to reduce   its size. This is achieved
-%   by calling strip -o <tmp> <shared-object>. Note that the file is
-%   a Prolog tmp file and will be deleted on halt.
+%   Find the shared object specified by   FileSpec for the named
+%   `Architecture`.  `EntryName` will be the name of the file within
+%   the saved state archive. If posible, the shared object is stripped
+%   to reduce   its size. This is achieved by calling
+%   strip -o <tmp> <shared-object>.
+%   Note that (if stripped) the file is a Prolog tmp file and
+%   will be deleted on halt.
 %
 %   @bug    Should perform OS search on failure
 
-find_foreign_library(FileSpec, SharedObject, Time) :-
-    absolute_file_name(FileSpec,
-                       [ file_type(executable),
-                         access(read),
-                         file_errors(fail)
-                       ], File),
-    !,
+find_foreign_library(Arch, FileSpec, shlib(Arch,Name), SharedObject, Time) :-
+    FileSpec = foreign(Name),
+    % Call user hook to obtain shared library for architecture
+    (   ( catch( arch_find_shlib(Arch, FileSpec, File),
+                 E,
+                 print_message(error, E)),
+          exists_file(File) )
+    ->  true
+    ;   throw(error(existence_error(architecture_shlib(Arch), FileSpec),_))
+    ),
+    % Now strip it (if possible) and get file modification time
     time_file(File, Time),
     (   absolute_file_name(path(strip), Strip,
                            [ access(execute),
@@ -907,6 +939,30 @@ find_foreign_library(FileSpec, SharedObject, Time) :-
     ;   SharedObject = File
     ).
 
+
+%!  qsave:arch_find_shlib(+Architecture, +FileSpec, -File) is det.
+%
+%   This is a user defined hook called by qsave_program/2.
+%   It is used to find a shared library for the specified
+%   `Architecture`, named  by `FileSpec`.
+%   `FileSpec` is of the form `foreign(Name)`, a specification
+%   usable by absolute_file_name/2.
+%   The predicate should unify `File` with the absolute path
+%   for the shared library that corresponds to the specified
+%   `Architecture`.
+%
+%   If this predicate fails to find a file for the specified
+%   architecture an `existence_error` is thrown.
+%
+ :- multifile qsave:arch_find_shlib/3.
+ % Find shared libraries for the current host architecture
+ arch_find_shlib(Arch, FileSpec, File) :-
+     current_prolog_flag(arch, Arch),
+     absolute_file_name(FileSpec,
+                        [ file_type(executable),
+                          access(read),
+                          file_errors(fail)
+                        ], File).
 
                  /*******************************
                  *             UTIL             *
@@ -1165,6 +1221,10 @@ convert_option_value(oneof(_), String, Value) :-
     atom_string(Value, String).
 convert_option_value(ground, String, Value) :-
     atom_string(Value, String).
+convert_option_value(qsave_foreign_option, "save", save).
+convert_option_value(qsave_foreign_option, StrArchList, arch(ArchList)) :-
+    split_string(StrArchList, ",", "", StrArchList1),
+    maplist([String, Atom]>>atom_string(Atom,String), StrArchList1, ArchList).
 
 
                  /*******************************

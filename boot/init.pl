@@ -3522,7 +3522,6 @@ compile_aux_clauses(Clauses) :-
 '$expand_goal'(In, In).
 '$expand_term'(In, Layout, In, Layout).
 
-
                  /*******************************
                  *         TYPE SUPPORT         *
                  *******************************/

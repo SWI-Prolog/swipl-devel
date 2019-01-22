@@ -207,12 +207,71 @@ lib_to_file(Res, TmpFile, true) :-
         close(In)).
 lib_to_file(Lib, Lib, false).
 
-open_foreign_in_resources(Zipper, Name, Stream) :-
-    zipper_goto(Zipper, file(Name)),
+
+open_foreign_in_resources(Zipper, ForeignSpecAtom, Stream) :-
+    term_to_atom(foreign(Name), ForeignSpecAtom),
+    zipper_members(Zipper, Entries),
+    entries_for_name(Name, Entries, Entries1),
+    compatible_architecture_lib(Entries1, Name, CompatibleLib),
+    zipper_goto(Zipper, file(CompatibleLib)),
     zipper_open_current(Zipper, Stream,
                         [ type(binary),
                           release(true)
                         ]).
+
+%!  compatible_architecture_lib(+Entries, +Name, -CompatibleLib) is det.
+%
+%   Entries is a list of entries in the zip file, which are already
+%   filtered to match the shared library identified by `Name`. The
+%   filtering is done by entries_for_name/3.
+%
+%   `CompatibleLib` is the name of the entry in the zip file which
+%   is compatible with the current architecture. The compatibility
+%   is determined according to the description in qsave_program/2
+%   using the qsave:compat_arch/2 hook.
+%
+%   The entries are of the form 'shlib(Arch, Name)'
+compatible_architecture_lib([], _, _) :- !, fail.
+compatible_architecture_lib(Entries, Name, CompatibleLib) :-
+    current_prolog_flag(arch, HostArch),
+    (   member(shlib(EntryArch, Name), Entries),
+        qsave_compat_arch1(HostArch, EntryArch)
+    ->  term_to_atom(shlib(EntryArch, Name), CompatibleLib)
+    ;   existence_error(arch_compatible_with(Name), HostArch)
+    ).
+
+qsave_compat_arch1(Arch1, Arch2) :-
+    qsave:compat_arch(Arch1, Arch2), !.
+qsave_compat_arch1(Arch1, Arch2) :-
+    qsave:compat_arch(Arch2, Arch1), !.
+
+%!  qsave:compat_arch(Arch1, Arch2) is semidet.
+%
+%   User definable hook to establish if `Arch1` is
+%   compatible with `Arch2` when running a shared
+%   object. It is used in saved states produced by
+%   qsave_program/2 to determine which shared object
+%   to load at runtime. See the documentation for the
+%   `foreign` option in qsave_program/2 for more
+%   information.
+%
+%   @see qsave_program/2.
+:- multifile qsave:compat_arch/2.
+qsave:compat_arch(A,A) :-
+    current_prolog_flag(arch, A).
+
+shlib_atom_to_term(Atom, shlib(Arch, Name)) :-
+    atom_concat('shlib(', _, Atom),
+    !,
+    term_to_atom(shlib(Arch,Name), Atom).
+
+shlib_atom_to_term(Atom, Atom).
+
+match_filespec(Name, shlib(_,Name)).
+
+entries_for_name(Name, Entries, Filtered) :-
+    maplist(shlib_atom_to_term, Entries, Entries1),
+    include(match_filespec(Name), Entries1, Filtered).
 
 base(Path, Base) :-
     atomic(Path),
