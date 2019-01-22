@@ -155,6 +155,8 @@ found_undef(To, _Caller, From) :-
     ->  true
     ;   compiled(PI)
     ->  true
+    ;   not_always_present(PI)
+    ->  true
     ;   assertz(undef(PI,From))
     ).
 
@@ -165,6 +167,17 @@ compiled(system:'$reset'/0).
 compiled(system:'$call_continuation'/1).
 compiled(system:'$shift'/1).
 compiled('$engines':'$yield'/0).
+
+%!  not_always_present(+PI) is semidet.
+%
+%   True when some predicate is known to be part of the state but is not
+%   available in this version.
+
+not_always_present(_:win_folder/2) :-
+    \+ current_prolog_flag(windows, true).
+not_always_present(_:win_add_dll_directory/2) :-
+    \+ current_prolog_flag(windows, true).
+
 
 goal_pi(M:Head, M:Name/Arity) :-
     functor(Head, Name, Arity).
