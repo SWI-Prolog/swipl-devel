@@ -1301,8 +1301,8 @@ proc(retract-1) :-
 	forall(retract(myfoo(_,_)), true),
 	\+ clause(myfoo(_,_), _).
 proc(retract-2) :-
-	assert((test(X, Y) :- X is Y + 3)),
-	retract((test(A, B) :- Body)),
+	assert((test_retract_2(X, Y) :- X is Y + 3)),
+	retract((test_retract_2(A, B) :- Body)),
 	Body == (A is B + 3).
 proc(retract-3) :-
 	assert(myunit(1)),
