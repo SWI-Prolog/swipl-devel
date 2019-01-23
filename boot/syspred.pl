@@ -593,10 +593,10 @@ canonical_source_file(Spec, File) :-
 
 prolog_load_context(module, Module) :-
     '$current_source_module'(Module).
-prolog_load_context(file, F) :-
-    source_location(F, _).
+prolog_load_context(file, File) :-
+    input_file(File).
 prolog_load_context(source, F) :-       % SICStus compatibility
-    source_location(F0, _),
+    input_file(F0),
     '$input_context'(Context),
     '$top_file'(Context, F0, F).
 prolog_load_context(stream, S) :-
@@ -604,7 +604,7 @@ prolog_load_context(stream, S) :-
     ->  S = S0
     ).
 prolog_load_context(directory, D) :-
-    source_location(F, _),
+    input_file(F),
     file_directory_name(F, D).
 prolog_load_context(dialect, D) :-
     current_prolog_flag(emulated_dialect, D).
@@ -618,7 +618,8 @@ prolog_load_context(term_position, TermPos) :-
     ).
 prolog_load_context(script, Bool) :-
     (   '$toplevel':loaded_init_file(script, Path),
-        source_location(Path, _)
+        input_file(File),
+        same_file(File, Path)
     ->  Bool = true
     ;   Bool = false
     ).
@@ -629,6 +630,15 @@ prolog_load_context(term, Term) :-
 prolog_load_context(reloading, true) :-
     prolog_load_context(source, F),
     '$source_file_property'(F, reloading, true).
+
+input_file(File) :-
+    (   system:'$load_input'(_, Stream)
+    ->  stream_property(Stream, file_name(File))
+    ),
+    !.
+input_file(File) :-
+    source_location(File, _).
+
 
 %!  unload_file(+File) is det.
 %
