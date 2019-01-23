@@ -3,6 +3,7 @@ project(SWI-Prolog)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_POLICY_DEFAULT_CMP0075 NEW)
+set(CMAKE_ENABLE_EXPORTS ON)
 
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
