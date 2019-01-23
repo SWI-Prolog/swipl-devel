@@ -38,6 +38,10 @@
 	    add_lib_dir/2,			% +Root, +Directories
 
             compile/2,                          % +File, +Options
+            load_dyn/1,                         % +File
+            load_dyn/2,                         % +File, +Direction
+            load_dync/1,                        % +File
+            load_dync/2,                        % +File, +Direction
 
             xsb_import/2,                       % +Preds, From
 
@@ -56,7 +60,11 @@ system](http://xsb.sourceforge.net/)
 
 :- meta_predicate
     xsb_import(:, +),
-    compile(:).
+    compile(:, +),
+    load_dyn(:),
+    load_dyn(:, +),
+    load_dync(:),
+    load_dync(:, +).
 
 		 /*******************************
 		 *	    LIBRARY SETUP	*
@@ -174,3 +182,20 @@ add_to_library_directory(_, _, _).
 
 compile(File, _Options) :-
     qcompile(File).
+
+%!  load_dyn(+FileName) is det.
+%!  load_dyn(+FileName, +Direction) is det.
+%!  load_dync(+FileName) is det.
+%!  load_dync(+FileName, +Direction) is det.
+%
+%   Proper implementation requires  the   Quintus  `all_dynamic` option.
+%   SWI-Prolog never had that as  clause/2   is  allowed on static code,
+%   which is the main reason to want this.
+%
+%   The _dync_ versions demand source in canonical format. In SWI-Prolog
+%   there is little reason to demand this.
+
+load_dyn(File)       :- load_files(File).
+load_dyn(File, Dir)  :- must_be(oneof([z]), Dir), load_files(File).
+load_dync(File)      :- load_files(File).
+load_dync(File, Dir) :- must_be(oneof([z]), Dir), load_files(File).
