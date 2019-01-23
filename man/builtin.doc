@@ -919,6 +919,14 @@ translate the term, expand_term/2 will try term_expansion/2 in module
 feature should not be used. See also expand_term/2, goal_expansion/2 and
 expand_goal/2.
 
+It is possible to act on the beginning and end of a file by expanding
+the terms \const{begin_of_file} and \const{end_of_file}. The latter is
+supported by most Prolog systems that support term expansion as
+read_term/3 returns \const{end_of_file} on reaching the end of the
+input. Expanding \const{begin_of_file} may be used to initialise the
+compilation, for example base on the file name extension. It was added
+in SWI-Prolog 8.1.1.
+
     \predicate{expand_term}{2}{+Term1, -Term2}
 This predicate is normally called by the compiler on terms read from the
 input to perform preprocessing.  It consists of four steps, where each

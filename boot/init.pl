@@ -1460,7 +1460,7 @@ compiling :-
     '$source_term'(From, Read, RLayout, Term, TLayout, Stream, [], Options),
     (   Term == end_of_file
     ->  !, fail
-    ;   true
+    ;   Term \== begin_of_file
     ).
 
 '$source_term'(Input, _,_,_,_,_,_,_) :-
@@ -1543,6 +1543,11 @@ compiling :-
 %
 %   @see '$source_term'/8 for details.
 
+'$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
+    Parents \= [_,_|_],
+    '$expanded_term'(In,
+                     begin_of_file, 0-0, Read, RLayout, Term, TLayout,
+                     Stream, Parents, Options).
 '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
     '$skip_script_line'(In, Options),
     '$read_clause_options'(Options, ReadOptions),
