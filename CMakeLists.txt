@@ -44,6 +44,10 @@ option(INSTALL_TESTS
        "Install script and files needed to run tests of the final installation"
        OFF)
 
+if(NOT SWIPL_SHARED_LIB)
+  set(CMAKE_ENABLE_EXPORTS ON)
+endif()
+
 include(Utils)
 include(BuildType)
 include(Version)
