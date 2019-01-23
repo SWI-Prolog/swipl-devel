@@ -85,7 +85,7 @@
             setup_and_call_cleanup/4,   % :Setup, :Goal, ?Catcher, :Cleanup
             merge/3,                    % +List1, +List2, -Union
             merge_set/3,                % +Set1, +Set2, -Union
-            index/1,                    % :Head
+            (index)/1,                  % :Head
             hash/1,                     % :PI
             set_base_module/1,          % :Base
             eval_license/0,
