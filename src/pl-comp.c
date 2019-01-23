@@ -3725,15 +3725,18 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   /* assert[az]/1 */
 
   if ( false(def, P_DYNAMIC) )
-  { if ( !setDynamicDefinition(def, TRUE) )
-    { freeClause(clause);
-      return NULL;
+  { if ( isDefinedProcedure(proc) )
+    { PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
+      goto error;
     }
+    if ( !setDynamicDefinition(def, TRUE) )
+      goto error;
   }
 
   if ( (cref=assertProcedure(proc, clause, where PASS_LD)) )
     return cref->value.clause;
 
+error:
   freeClause(clause);
   return NULL;
 }
