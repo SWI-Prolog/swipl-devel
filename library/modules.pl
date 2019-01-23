@@ -89,7 +89,7 @@ in_temporary_module(Module, Setup, Goal) :-
         (   @(Setup, Module)
         ->  @(Goal,  Module)
         ),
-        '$destroy_module'(Module)).
+        destroy_module(Module)).
 
 prepare_temporary_module(Module) :-
     var(Module),
@@ -103,3 +103,8 @@ prepare_temporary_module(Module) :-
     ).
 prepare_temporary_module(Module) :-
     set_module(Module:class(temporary)).
+
+destroy_module(Module) :-
+    retractall(system:'$load_context_module'(_File, Module, _Options)),
+    '$destroy_module'(Module).
+
