@@ -37,6 +37,8 @@
           [ add_lib_dir/1,			% +Directories
 	    add_lib_dir/2,			% +Root, +Directories
 
+            compile/2,                          % +File, +Options
+
             xsb_import/2,                       % +Preds, From
 
             op(1050,  fy, import),
@@ -53,7 +55,8 @@ system](http://xsb.sourceforge.net/)
 */
 
 :- meta_predicate
-    xsb_import(:, +).
+    xsb_import(:, +),
+    compile(:).
 
 		 /*******************************
 		 *	    LIBRARY SETUP	*
@@ -163,3 +166,11 @@ add_to_library_directory(Root, Dir, How) :-
     ;   call(How, user:library_directory(TheDir))
     ).
 add_to_library_directory(_, _, _).
+
+%!  compile(File, Options)
+%
+%   The XSB version compiles a file into .xwam without loading it. We do
+%   not have that. Calling qcompile/1 seems the best start.
+
+compile(File, _Options) :-
+    qcompile(File).
