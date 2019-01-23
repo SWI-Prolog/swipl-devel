@@ -39,8 +39,9 @@
 
             xsb_import/2,                       % +Preds, From
 
-            op(1050, fy, import),
-            op(1040, xfx, from)
+            op(1050,  fy, import),
+            op(1040, xfx, from),
+            op(1100,  fy, index)
           ]).
 :- use_module(library(error)).
 :- use_module(library(dialect/xsb/source)).
@@ -88,6 +89,7 @@ user:term_expansion(In, Out) :-
 xsb_term_expansion((:- import Preds from From),
                    (:- xsb_import(Preds, From))).
 xsb_term_expansion((:- index(_PI, _How)), []).
+xsb_term_expansion((:- index(_PI)), []).
 
 %!  xsb_import(:Predicates, +From)
 %
