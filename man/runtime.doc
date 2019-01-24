@@ -147,8 +147,7 @@ from the runtime environment or location where it was built. See also
 	\termitem{emulator}{+File}
 File to use for the emulator.  Default is the running Prolog image.
 
-\termitem{foreign}{+Action}
-
+	\termitem{foreign}{+Action}
 If \const{save}, include shared objects (DLLs) for the current
 architecture into the saved state. See current_foreign_library/2,
 and current_prolog_flag(arch, Arch). If the program \program{strip}
@@ -164,20 +163,20 @@ to load a shared object from a zip file but requires write access to
 the file system. Future versions may provide shortcuts for specific
 platforms that bypass the file system.}
 
-If Action is of the form \const{arch(ListOfArches)} then the
+If \arg{Action} is of the form \term{arch}{ListOfArches} then the
 shared objects for the specified architectures are stored in
 the saved state. On the command line, the list of architectures
 can be passed as \const{--foreign=<CommaSepArchesList>}. In
 order to obtain the shared object file for the specified
 architectures, qsave_program/2 calls a user defined hook:
-\const{qsave:arch_find_shlib(+Arch, +FileSpec, -SoPath)}. This hook
+\term{qsave:arch_shlib}{+Arch, +FileSpec, -SoPath}. This hook
 needs to unify \const{SoPath} with the absolute path to the
 shared object for the specified architecture. \const{FileSpec} is
 of the form \const{foreign(Name)}.
 
 At runtime, SWI-Prolog will try to load the shared library which
 is compatible with the current architecture, obtained by calling
-\const{current_prolog_flag(arch, Arch)}. An architecture is
+\term{current_prolog_flag}{arch, Arch}. An architecture is
 compatible if one of the two following conditions is true (tried
 in order):
 
@@ -185,7 +184,7 @@ in order):
     \item{There is a shared object in the saved state file which
           matches the current architecture name (from
           current_prolog_flag/2) exactly.}
-    \item{The user definable \const{qsave:compat_arch(Arch1, Arch2)}
+    \item{The user definable \term{qsave:compat_arch}{Arch1, Arch2}
           hook succeeds.}
 \end{enumerate}
 
