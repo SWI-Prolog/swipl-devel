@@ -113,6 +113,9 @@ option \cmdlineoption{--stack-limit} and the Prolog flag
 \prologflag{stack_limit}.
 	\termitem{goal}{:Callable}
 Initialization goal for the new executable (see \cmdlineoption{-g}).
+Two values have special meaning: \const{prolog} starts the Prolog
+toplevel and \const{default} runs halt/0 if there are initialization
+goals and the prolog/0 toplevel otherwise.
 	\termitem{toplevel}{:Callable}
 Top-level goal for the new executable (see \cmdlineoption{-t}).  Similar
 to initialization/2 using \const{main}, the default toplevel is to enter

@@ -282,7 +282,8 @@ save_init_goals(Out, Options) :-
 save_toplevel_goal(Out, _Default, Options) :-
     option(toplevel(Goal), Options),
     !,
-    format(Out, 'toplevel=~q~n', [Goal]).
+    unqualify_reserved_goal(Goal, Goal1),
+    format(Out, 'toplevel=~q~n', [Goal1]).
 save_toplevel_goal(Out, _Default, _Options) :-
     '$cmd_option_val'(toplevel, Toplevel),
     Toplevel \== default,
@@ -290,6 +291,10 @@ save_toplevel_goal(Out, _Default, _Options) :-
     format(Out, 'toplevel=~w~n', [Toplevel]).
 save_toplevel_goal(Out, Default, _Options) :-
     format(Out, 'toplevel=~q~n', [Default]).
+
+unqualify_reserved_goal(_:prolog, prolog) :- !.
+unqualify_reserved_goal(_:default, default) :- !.
+unqualify_reserved_goal(Goal, Goal).
 
 
                  /*******************************
