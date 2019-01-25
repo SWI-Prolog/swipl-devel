@@ -1442,6 +1442,12 @@ initPrologFlags(void)
 #ifdef __APPLE__
   setPrologFlag("apple", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+#ifdef __ANDROID__
+  setPrologFlag("android", FT_BOOL|FF_READONLY, TRUE, 0);
+# ifdef __ANDROID_API__
+  setPrologFlag("android_api",FT_INTEGER|FF_READONLY, __ANDROID_API__);
+# endif
+#endif
 #endif
 
   setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));

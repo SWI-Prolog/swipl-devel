@@ -1170,6 +1170,17 @@ binding the variables to their name. Using this feature, F(x) can be
 turned into valid syntax for such script languages. Suggested by Robert
 van Engelen.  SWI-Prolog specific.
 
+    \prologflagitem{android}{bool}{r}
+If present and true, it indicates we are running on the
+Android OS. The flag is not present in other operating systems.
+
+    \prologflagitem{android_api}{integer}{r}
+If running on Android, it indicates the compile-time API
+Level defined by the C macro \verb$__ANDROID_API__$. It is not
+defined if running on other operating systems. The API level may
+or may not match the API level of the running device, since it is
+the API level at compile time.
+
     \prologflagitem{argv}{list}{rw}
 List is a list of atoms representing the application command line
 arguments. Application command line arguments are those that have
