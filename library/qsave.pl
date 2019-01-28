@@ -969,7 +969,8 @@ strip_file(File, Stripped) :-
     tmp_file(shared, Stripped),
     (   catch(do_strip_file(Strip, File, Stripped), E,
               (print_message(warning, E), fail))
-    ->  print_message(warning, qsave(strip_failed(File))),
+    ->  true
+    ;   print_message(warning, qsave(strip_failed(File))),
         fail
     ),
     !.
