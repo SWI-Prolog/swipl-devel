@@ -94,5 +94,7 @@ find_export(In) :-
 
 % define the typical XSB operators to limit syntax errors while
 % scanning for :- export(_).
-:- op(1050, fy, import).
+:- op(1050,  fy, import).
+:- op(1100,  fx, export).
+:- op(1100,  fx, mode).
 :- op(1040, xfx, from).

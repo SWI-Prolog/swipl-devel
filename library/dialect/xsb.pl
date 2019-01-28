@@ -46,8 +46,10 @@
             xsb_import/2,                       % +Preds, From
 
             op(1050,  fy, import),
+            op(1050,  fx, export),
             op(1040, xfx, from),
-            op(1100,  fy, index)
+            op(1100,  fy, index),               % ignored
+            op(1100,  fx, mode)                 % ignored
           ]).
 :- use_module(library(error)).
 :- use_module(library(dialect/xsb/source)).
@@ -101,6 +103,7 @@ xsb_term_expansion((:- import Preds from From),
                    (:- xsb_import(Preds, From))).
 xsb_term_expansion((:- index(_PI, _How)), []).
 xsb_term_expansion((:- index(_PI)), []).
+xsb_term_expansion((:- mode(_Modes)), []).
 
 %!  xsb_import(:Predicates, +From)
 %
@@ -125,6 +128,16 @@ xsb_import(Name/Arity, Into, From) :-
     current_predicate(From:Name/Arity),
     !,
     @(import(From:Name/Arity), Into).
+xsb_import(Name/Arity, Into, From) :-
+    prolog_load_context(file, Here),
+    absolute_file_name(From, Path,
+                       [ extensions(['P', pl, prolog]),
+                         access(read),
+                         relative_to(Here),
+                         file_errors(fail)
+                       ]),
+    !,
+    use_module(Into:Path, [Name/Arity]).
 xsb_import(Name/Arity, Into, From) :-
     absolute_file_name(library(From), Path,
                        [ extensions(['P', pl, prolog]),
