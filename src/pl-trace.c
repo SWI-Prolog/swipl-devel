@@ -1580,11 +1580,6 @@ void
 resetTracer(void)
 { GET_LD
 
-#if defined(O_INTERRUPT) && defined(SIGINT)
-  if ( truePrologFlag(PLFLAG_SIGNALS) )
-    PL_signal(SIGINT, interruptHandler);
-#endif
-
   debugstatus.tracing      = FALSE;
   debugstatus.debugging    = DBG_OFF;
   debugstatus.suspendTrace = 0;
@@ -1761,6 +1756,11 @@ initTracer(void)
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     EXCEPTION_PORT;
   debugstatus.showContext  = FALSE;
+
+#if defined(O_INTERRUPT) && defined(SIGINT)
+  if ( truePrologFlag(PLFLAG_SIGNALS) )
+    PL_signal(SIGINT, interruptHandler);
+#endif
 
   resetTracer();
 }
