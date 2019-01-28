@@ -1213,8 +1213,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     { unprepareSignal(sign);
     } else if ( a == ATOM_throw )
     { sh = prepareSignal(sign);
-      set(sh, PLSIG_THROW);
-      clear(sh, PLSIG_SYNC);
+      set(sh, PLSIG_THROW|PLSIG_SYNC);
       sh->handler   = NULL;
       sh->predicate = NULL;
     } else
