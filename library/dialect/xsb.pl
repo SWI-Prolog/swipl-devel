@@ -52,6 +52,7 @@
             op(1100,  fx, mode)                 % ignored
           ]).
 :- use_module(library(error)).
+:- use_module(library(debug)).
 :- use_module(library(dialect/xsb/source)).
 
 /** <module> XSB Prolog compatibility layer
@@ -121,14 +122,10 @@ xsb_import((A,B), Into, From) :-
     !,
     xsb_import(A, Into, From),
     xsb_import(B, Into, From).
-xsb_import(Name/Arity, Into, _From) :-
-    functor(Head, Name, Arity),
-    predicate_property(Into:Head, visible).
-xsb_import(Name/Arity, Into, From) :-
-    current_predicate(From:Name/Arity),
-    !,
-    @(import(From:Name/Arity), Into).
-xsb_import(Name/Arity, Into, From) :-
+xsb_import(PI, Into, From) :-
+    import_from_module(PI, Into, From),
+    !.
+xsb_import(PI, Into, From) :-
     prolog_load_context(file, Here),
     absolute_file_name(From, Path,
                        [ extensions(['P', pl, prolog]),
@@ -137,13 +134,61 @@ xsb_import(Name/Arity, Into, From) :-
                          file_errors(fail)
                        ]),
     !,
-    use_module(Into:Path, [Name/Arity]).
-xsb_import(Name/Arity, Into, From) :-
+    debug(xsb(import), '~p: importing from ~p', [Into:PI, Path]),
+    load_module(Into:Path, PI).
+xsb_import(PI, Into, From) :-
     absolute_file_name(library(From), Path,
                        [ extensions(['P', pl, prolog]),
-                         access(read)
+                         access(read),
+                         file_errors(fail)
                        ]),
-    use_module(Into:Path, [Name/Arity]).
+    !,
+    debug(xsb(import), '~p: importing from ~p', [Into:PI, Path]),
+    load_module(Into:Path, PI).
+xsb_import(Name/Arity, Into, _From) :-
+    functor(Head, Name, Arity),
+    predicate_property(Into:Head, visible),
+    !,
+    debug(xsb(import), '~p: already visible', [Into:Name/Arity]).
+xsb_import(_Name/_Arity, _Into, From) :-
+    existence_error(xsb_module, From).
+
+import_from_module(PI, Into, From) :-
+    current_predicate(From:PI),
+    !,
+    debug(xsb(import), '~p: importing from module ~p', [Into:PI, From]),
+    (   check_exported(From, PI)
+    ->  @(import(From:PI), Into)
+    ;   true
+    ).
+import_from_module(PI, _Into, From) :-
+    module_property(From, file(File)),
+    !,
+    print_message(error, xsb(not_in_module(File, From, PI))).
+
+check_exported(Module, PI) :-
+    module_property(Module, exports(List)),
+    memberchk(PI, List),
+    !.
+check_exported(Module, PI) :-
+    module_property(Module, file(File)),
+    print_message(error, xsb(not_in_module(File, Module, PI))).
+
+load_module(Into:Path, PI) :-
+    use_module(Into:Path, []),
+    (   module_property(Module, file(Path))
+    ->  file_base_name(Path, File),
+        file_name_extension(Base, _, File),
+        (   Base == Module
+        ->  true
+        ;   print_message(warning,
+                          xsb(file_loaded_into_mismatched_module(Path, Module)))
+        )
+    ;   print_message(warning, xsb(loaded_unknown_module(Path)))
+    ),
+    import_from_module(PI, Into, Module).
+
+
 
 
 		 /*******************************
@@ -212,3 +257,17 @@ load_dyn(File)       :- load_files(File).
 load_dyn(File, Dir)  :- must_be(oneof([z]), Dir), load_files(File).
 load_dync(File)      :- load_files(File).
 load_dync(File, Dir) :- must_be(oneof([z]), Dir), load_files(File).
+
+
+
+		 /*******************************
+		 *           MESSAGES		*
+		 *******************************/
+
+:- multifile
+    prolog:message//1.
+
+prolog:message(xsb(not_in_module(File, Module, PI))) -->
+    [ '~p, implementing ~p does not export ~p'-[File, Module, PI] ].
+prolog:message(xsb(file_loaded_into_mismatched_module(File, Module))) -->
+    [ 'File ~p defines module ~p'-[File, Module] ].
