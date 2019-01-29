@@ -111,6 +111,13 @@ xsb_term_expansion((:- mode(_Modes)), []).
 %   Make Predicates visible in From. As the XSB library structructure is
 %   rather different from SWI-Prolog's, this is a heuristic process.
 
+:- dynamic
+    mapped__module/2.                           % XSB name -> Our name
+
+xsb_import(Into:Preds, From) :-
+    mapped__module(From, Mapped),
+    !,
+    xsb_import(Preds, Into, Mapped).
 xsb_import(Into:Preds, From) :-
     xsb_import(Preds, Into, From).
 
@@ -181,14 +188,21 @@ load_module(Into:Path, PI) :-
         file_name_extension(Base, _, File),
         (   Base == Module
         ->  true
+        ;   atom_concat(xsb_, Base, Module)
+        ->  map_module(Base, Module)
         ;   print_message(warning,
-                          xsb(file_loaded_into_mismatched_module(Path, Module)))
+                          xsb(file_loaded_into_mismatched_module(Path, Module))),
+            map_module(Base, Module)
         )
     ;   print_message(warning, xsb(loaded_unknown_module(Path)))
     ),
     import_from_module(PI, Into, Module).
 
-
+map_module(XSB, Module) :-
+    mapped__module(XSB, Module),
+    !.
+map_module(XSB, Module) :-
+    assertz(mapped__module(XSB, Module)).
 
 
 		 /*******************************
