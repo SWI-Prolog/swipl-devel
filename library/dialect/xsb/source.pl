@@ -90,13 +90,19 @@ xsb_header_file(File, FileH) :-
 %   syntax errors.
 
 is_xsb_module(File) :-
+    setup_call_cleanup(
+        '$push_input_context'(xsb_find_export),
+        is_xsb_module_aux(File),
+        '$pop_input_context').
+
+is_xsb_module_aux(File) :-
     xsb_header_file(File, FileH),
     setup_call_cleanup(
         open(FileH, read, In),
         find_export(In),
         close(In)),
     !.
-is_xsb_module(_File) :-
+is_xsb_module_aux(_File) :-
     prolog_load_context(stream, In),
     setup_call_cleanup(
         stream_property(In, position(Pos)),
