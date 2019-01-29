@@ -1545,6 +1545,10 @@ compiling :-
 
 '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
     Parents \= [_,_|_],
+    (   '$load_input'(_, Stream)
+    ->  stream_property(Stream, file_name(File))
+    ),
+    '$set_source_location'(File, 0),
     '$expanded_term'(In,
                      begin_of_file, 0-0, Read, RLayout, Term, TLayout,
                      Stream, Parents, Options).

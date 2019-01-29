@@ -5261,6 +5261,14 @@ PRED_IMPL("source_location", 2, source_location, 0)
 }
 
 
+static
+PRED_IMPL("$set_source_location", 2, set_source_location, 0)
+{ PRED_LD
+  return ( PL_get_atom_ex(A1, &source_file_name) &&
+	   PL_get_integer_ex(A2, &source_line_no) );
+}
+
+
 static int
 at_end_of_stream(term_t stream ARG_LD)
 { IOSTREAM *s;
@@ -5742,6 +5750,7 @@ BeginPredDefs(file)
   PRED_DEF("read_pending_codes", 3, read_pending_codes, 0)
   PRED_DEF("read_pending_chars", 3, read_pending_chars, 0)
   PRED_DEF("source_location", 2, source_location, 0)
+  PRED_DEF("$set_source_location", 2, set_source_location, 0)
   PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
   PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)
   PRED_DEF("stream_pair", 3, stream_pair, 0)

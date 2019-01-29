@@ -2162,7 +2162,7 @@ typedef struct redir_context
 		*       READ WARNINGS           *
 		*********************************/
 
-#define ReadingSource (source_line_no > 0 && \
+#define ReadingSource (source_line_no >= 0 && \
 		       source_file_name != NULL_ATOM)
 
 
