@@ -1059,6 +1059,8 @@ toIntegerNumber(Number n, int flags)
       fail;
 #endif
     case V_FLOAT:
+      if ( !check_float(n1->value.f) )
+	return FALSE;
       if ( (flags & TOINT_CONVERT_FLOAT) )
       { if ( double_in_int64_range(n->value.f) )
 	{ int64_t l = (int64_t)n->value.f;
@@ -2261,7 +2263,10 @@ ar_rationalize(Number n1, Number r)
       promoteToMPQNumber(r);
       succeed;
     case V_FLOAT:
-    { double e0 = n1->value.f, p0 = 0.0, q0 = 1.0;
+    { if ( !check_float(n1->value.f) )
+	return FALSE;
+
+      double e0 = n1->value.f, p0 = 0.0, q0 = 1.0;
       double e1 =	 -1.0, p1 = 1.0, q1 = 0.0;
       double d;
 
@@ -2906,7 +2911,9 @@ ar_integer(Number n1, Number r)
     }
 #endif
     case V_FLOAT:
-    { if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
+    { if ( !check_float(n1->value.f) )
+	return FALSE;
+      if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
       { if ( n1->value.f > 0 )
 	{ r->value.i = (int64_t)(n1->value.f + 0.5);
 	  if ( r->value.i < 0 )		/* Why can this happen? */
@@ -2969,7 +2976,8 @@ ar_floor(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    {
+    { if ( !check_float(n1->value.f) )
+	return FALSE;
 #ifdef HAVE_FLOOR
       r->type = V_FLOAT;
       r->value.f = floor(n1->value.f);
@@ -3022,30 +3030,31 @@ ar_ceil(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    {
+    { if ( !check_float(n1->value.f) )
+	return FALSE;
 #ifdef HAVE_CEIL
-       r->type = V_FLOAT;
-       r->value.f = ceil(n1->value.f);
-       if ( !toIntegerNumber(r, TOINT_CONVERT_FLOAT|TOINT_TRUNCATE) )
-       { return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
-       }
+      r->type = V_FLOAT;
+      r->value.f = ceil(n1->value.f);
+      if ( !toIntegerNumber(r, TOINT_CONVERT_FLOAT|TOINT_TRUNCATE) )
+      { return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+      }
 #else /*HAVE_CEIL*/
-       if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
-       { r->value.i = (int64_t)n1->value.f;
-	 if ( (double)r->value.i < n1->value.f )
-	   r->value.i++;
-	 r->type = V_INTEGER;
-       } else
-       {
+      if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
+      { r->value.i = (int64_t)n1->value.f;
+	if ( (double)r->value.i < n1->value.f )
+	  r->value.i++;
+	r->type = V_INTEGER;
+      } else
+      {
 #ifdef O_GMP
-         r->type = V_MPZ;
-	 mpz_init_set_d(r->value.mpz, n1->value.f);
-	 if ( mpz_get_d(r->value.mpz) < n1->value.f )
-	   mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
+	r->type = V_MPZ;
+	mpz_init_set_d(r->value.mpz, n1->value.f);
+	if ( mpz_get_d(r->value.mpz) < n1->value.f )
+	  mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
 #else
-         return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+        return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
-       }
+      }
 #endif /*HAVE_CEIL*/
     }
   }
