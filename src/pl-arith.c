@@ -1059,7 +1059,7 @@ toIntegerNumber(Number n, int flags)
       fail;
 #endif
     case V_FLOAT:
-      if ( !check_float(n1->value.f) )
+      if ( !check_float(n->value.f) )
 	return FALSE;
       if ( (flags & TOINT_CONVERT_FLOAT) )
       { if ( double_in_int64_range(n->value.f) )
