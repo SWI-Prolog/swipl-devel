@@ -333,6 +333,7 @@ wrappers(Name/Arity) -->
     { atom(Name), integer(Arity), Arity >= 0,
       !,
       functor(Head, Name, Arity),
+      check_undefined(Name/Arity),
       atom_concat(Name, ' tabled', WrapName),
       Head =.. [Name|Args],
       WrappedHead =.. [WrapName|Args],
@@ -350,6 +351,7 @@ wrappers(ModeDirectedSpec) -->
       !,
       functor(ModeDirectedSpec, Name, Arity),
       functor(Head, Name, Arity),
+      check_undefined(Name/Arity),
       atom_concat(Name, ' tabled', WrapName),
       Head =.. [Name|Args],
       WrappedHead =.. [WrapName|Args],
@@ -372,6 +374,20 @@ wrappers(ModeDirectedSpec) -->
 wrappers(TableSpec) -->
     { '$type_error'(table_desclaration, TableSpec)
     }.
+
+%!  check_undefined(+PI)
+%
+%   Verify the predicate has no clauses when the :- table is declared.
+%
+%   @tbd: future versions may rename the existing predicate.
+
+check_undefined(Name/Arity) :-
+    functor(Head, Name, Arity),
+    prolog_load_context(module, Module),
+    clause(Module:Head, _),
+    !,
+    '$permission_error'(table, procedure, Name/Arity).
+check_undefined(_).
 
 %!  mode_check(+Moded, -TestCode)
 %
