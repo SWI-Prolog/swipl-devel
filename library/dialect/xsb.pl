@@ -43,6 +43,9 @@
             load_dync/1,                        % +File
             load_dync/2,                        % +File, +Direction
 
+            set_global_compiler_options/1,	% +Options
+            compiler_options/1,			% +Options
+
             xsb_import/2,                       % +Preds, From
 
             op(1050,  fy, import),
@@ -92,6 +95,15 @@ push_xsb_library :-
     ).
 
 :- push_xsb_library.
+
+%!  setup_dialect
+%
+%   Further dialect initialization.  Called from expects_dialect/1.
+
+:- public setup_dialect/0.
+
+setup_dialect :-
+    style_check(-discontiguous).
 
 
 % Register XSB specific term-expansion to rename conflicting directives.
@@ -272,6 +284,75 @@ load_dyn(File, Dir)  :- must_be(oneof([z]), Dir), load_files(File).
 load_dync(File)      :- load_files(File).
 load_dync(File, Dir) :- must_be(oneof([z]), Dir), load_files(File).
 
+%!  set_global_compiler_options(+List) is det.
+%
+%   Set the XSB global compiler options.
+
+:- multifile xsb_compiler_option/1.
+:- dynamic   xsb_compiler_option/1.
+
+set_global_compiler_options(List) :-
+    must_be(list, List),
+    maplist(set_global_compiler_option, List).
+
+set_global_compiler_option(+Option) :-
+    !,
+    valid_compiler_option(Option),
+    (   xsb_compiler_option(Option)
+    ->  true
+    ;   assertz(xsb_compiler_option(Option))
+    ).
+set_global_compiler_option(-Option) :-
+    !,
+    valid_compiler_option(Option),
+    retractall(xsb_compiler_option(Option)).
+set_global_compiler_option(-Option) :-
+    valid_compiler_option(Option),
+    (   xsb_compiler_option(Option)
+    ->  true
+    ;   assertz(xsb_compiler_option(Option))
+    ).
+
+valid_compiler_option(Option) :-
+    must_be(oneof([ singleton_warnings_off,
+                    optimize,
+                    allow_redefinition,
+                    xpp_on
+                  ]), Option).
+
+%!  compiler_options(+Options) is det.
+%
+%   Locally switch the compiler options
+
+compiler_options(Options) :-
+    must_be(list, Options),
+    maplist(compiler_option, Options).
+
+compiler_option(+Option) :-
+    !,
+    valid_compiler_option(Option),
+    set_compiler_option(Option).
+compiler_option(-Option) :-
+    !,
+    valid_compiler_option(Option),
+    clear_compiler_option(Option).
+compiler_option(Option) :-
+    valid_compiler_option(Option),
+    set_compiler_option(Option).
+
+set_compiler_option(singleton_warnings_off) :-
+    style_check(-singleton).
+set_compiler_option(optimize) :-
+    set_prolog_flag(optimise, true).
+set_compiler_option(allow_redefinition).
+set_compiler_option(xpp_on).
+
+clear_compiler_option(singleton_warnings_off) :-
+    style_check(+singleton).
+clear_compiler_option(optimize) :-
+    set_prolog_flag(optimise, false).
+clear_compiler_option(allow_redefinition).
+clear_compiler_option(xpp_on).
 
 
 		 /*******************************

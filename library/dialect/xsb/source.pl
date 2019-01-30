@@ -33,6 +33,8 @@
 */
 
 :- module(xsb_source, []).
+:- use_module(library(debug)).
+:- use_module(library(lists)).
 
 /** <module> Support XSB source .P files
 
@@ -51,25 +53,40 @@ user:prolog_file_type('P', prolog).
 user:term_expansion(begin_of_file, Out) :-
     prolog_load_context(file, File),
     file_name_extension(Path, 'P', File),
-    include_option(File, Include),
+    include_options(File, Include),
+    compiler_options(COptions),
+    append(Include, COptions, Extra),
     (   is_xsb_module(File)
     ->  file_base_name(Path, Module),
         debug(xsb, 'Loading ~p into XSB module ~p~n', [File, Module]),
         Out = [ (:- module(Module, [])),
                 (:- expects_dialect(xsb))
-              | Include
+              | Extra
               ]
     ;   debug(xsb, 'Loading ~p in XSB mode', [File]),
         Out = [ (:- expects_dialect(xsb))
-              | Include
+              | Extra
               ]
     ).
 
-include_option(File, Option) :-
+include_options(File, Option) :-
     (   xsb_header_file(File, FileH)
     ->  Option = [(:- include(FileH))]
     ;   Option = []
     ).
+
+:- multifile xsb:xsb_compiler_option/1.
+:- dynamic   xsb:xsb_compiler_option/1.
+
+compiler_options(Directives) :-
+    findall(D, mapped_xsb_option(D), Directives).
+
+mapped_xsb_option((:- D)) :-
+    xsb:xsb_compiler_option(O),
+    map_compiler_option(O, D).
+
+map_compiler_option(singleton_warnings_off, style_check(-singleton)).
+map_compiler_option(optimize,               set_prolog_flag(optimise, true)).
 
 xsb_header_file(File, FileH) :-
     file_name_extension(Base, _, File),
