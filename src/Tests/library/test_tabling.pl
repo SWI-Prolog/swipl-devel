@@ -1200,20 +1200,20 @@ ok_path(or(and(e(a, b), e(b, e)), e(a, e))).
 :- begin_tests(mode_components1, [cleanup(abolish_all_tables)]).
 
 :- table
-    p(lattice(orp/3)),
-    s(lattice(ors/3)).
+    p2(lattice(orp/3)),
+    s2(lattice(ors/3)).
 
 orp(A,B,A+B).
 ors(A,B,A-B).
 
-p(A) :-
-    s(A).
+p2(A) :-
+    s2(A).
 
-s(1).
-s(2).
+s2(1).
+s2(2).
 
 test(component, [A == (1-2), nondet]) :-
-	p(A).
+	p2(A).
 
 :- end_tests(mode_components1).
 
