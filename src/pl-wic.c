@@ -1470,7 +1470,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 #ifdef O_GMP
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
 	      { ssize_t hdrsize = getInt64(fd);
-		size_t  size    = abs(hdrsize);
+		size_t  size    = hdrsize >= 0 ? hdrsize : -hdrsize;
 		size_t wsize, i, limpsize;
 		mpz_t mpz;
 		char fast[1024];
