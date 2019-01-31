@@ -447,6 +447,7 @@ static int
 close_zipper(zipper *z)
 { zipFile zf;
   unzFile uzf;
+  char *path;
   int rc = 0;
 
   if ( (zf=z->writer) )
@@ -456,15 +457,19 @@ close_zipper(zipper *z)
   { z->reader = NULL;
     rc = unzClose(uzf);
   }
-  if ( z->path )
-  { free((char*)z->path);
-    z->path = NULL;
+  if ( (path=(char*)z->path) )
+  { z->path = NULL;
+    free(path);
   }
   if ( z->input.any )
   { switch(z->input_type)
     { case ZIP_STREAM:
 	if ( true(z, ZIP_CLOSE_STREAM_ON_CLOSE) )
-	  Sclose(z->input.stream);
+	{ IOSTREAM *in = z->input.stream;
+
+	  z->input.stream = NULL;
+	  Sclose(in);
+	}
         break;
       default:
 	break;
