@@ -528,7 +528,7 @@ dispatch_signal(int sig, int sync)
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
   } else if ( sh->handler )
-  {
+  { int ex_pending = (exception_term && !sync);
 #ifdef O_LIMIT_DEPTH
     uintptr_t olimit = depth_limit;
     depth_limit = DEPTH_NO_LIMIT;
@@ -542,7 +542,7 @@ dispatch_signal(int sig, int sync)
 	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
 		   sh->handler, LD->signal.pending[0], LD->signal.pending[1]));
 
-    if ( exception_term && !sync )	/* handler: PL_raise_exception() */
+    if ( !ex_pending && exception_term && !sync )	/* handler: PL_raise_exception() */
       fatalError("Async exception handler for signal %s (%d) raised "
 		 "an exception", signal_name(sig), sig);
   }
