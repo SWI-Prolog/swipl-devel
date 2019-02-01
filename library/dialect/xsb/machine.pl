@@ -34,7 +34,8 @@
 
 :- module(machine,
           [ gc_heap/0,
-            trimcore/0
+            trimcore/0,
+            abolish_table_info/0
           ]).
 
 %!  gc_heap
@@ -51,3 +52,8 @@ gc_heap :-
 trimcore :-
     trim_stacks.
 
+%!  abolish_table_info
+%
+%   Undocumented in the XSB manual.
+
+abolish_table_info.
