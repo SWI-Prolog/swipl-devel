@@ -141,6 +141,11 @@ xsb_import((A,B), Into, From) :-
     !,
     xsb_import(A, Into, From),
     xsb_import(B, Into, From).
+xsb_import(Name/Arity, Into, _From) :-
+    functor(Head, Name, Arity),
+    predicate_property(Into:Head, iso),
+    !,
+    debug(xsb(import), '~p: already visible (ISO)', [Into:Name/Arity]).
 xsb_import(PI, Into, From) :-
     import_from_module(PI, Into, From),
     !.
