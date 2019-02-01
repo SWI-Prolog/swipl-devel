@@ -33,7 +33,7 @@
 */
 
 :- module(basics,
-	  [ append/3, copy_term/2, flatten/2, ith/3,
+	  [ append/3, flatten/2, ith/3,
             length/2, member/2, memberchk/2, subset/2, subseq/3,
             reverse/2, select/3,
 
