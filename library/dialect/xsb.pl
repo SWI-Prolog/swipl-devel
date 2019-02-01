@@ -141,6 +141,10 @@ xsb_import((A,B), Into, From) :-
     !,
     xsb_import(A, Into, From),
     xsb_import(B, Into, From).
+xsb_import(PI, Into, usermod) :-
+    !,
+    export(user:PI),
+    @(import(user:PI), Into).
 xsb_import(Name/Arity, Into, _From) :-
     functor(Head, Name, Arity),
     predicate_property(Into:Head, iso),
