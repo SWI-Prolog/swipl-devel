@@ -1592,14 +1592,17 @@ resumeAfterException(int clear, Stack outofstack)
     setVar(*valTermRef(LD->exception.pending));
   }
 
-  LD->stacks.global.gced_size = 0;
-  LD->stacks.trail.gced_size  = 0;
+  if ( outofstack && outofstack->gc )
+  { LD->stacks.global.gced_size = 0;
+    LD->stacks.trail.gced_size  = 0;
+  }
 
   if ( !considerGarbageCollect((Stack)NULL) )
   { trimStacks((outofstack != NULL) PASS_LD);
-  } else if ( outofstack != NULL )
+  } else
   { trimStacks(FALSE PASS_LD);		/* just re-enable the spare stacks */
-    LD->trim_stack_requested = TRUE;	/* next time with resize */
+    if ( outofstack != NULL )
+      LD->trim_stack_requested = TRUE;	/* next time with resize */
   }
 
   LD->exception.processing = FALSE;
