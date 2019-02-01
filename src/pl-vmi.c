@@ -4338,9 +4338,6 @@ again:
   { int rc;
 
     SAVE_REGISTERS(qid);
-    exceptionUnwindGC();
-    LOAD_REGISTERS(qid);
-    SAVE_REGISTERS(qid);
     rc = exception_hook(qid, consTermRef(FR), catchfr_ref PASS_LD);
     LOAD_REGISTERS(qid);
 
