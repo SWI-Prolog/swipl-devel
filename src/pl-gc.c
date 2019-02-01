@@ -3994,11 +3994,7 @@ garbageCollect(void)
 #endif
 
   if ( verbose )
-  { if ( !printMessage(ATOM_informational,
-		       PL_FUNCTOR_CHARS, "gc", 1,
-		         PL_CHARS, "start") )
-      return FALSE;
-  }
+    Sdprintf("%% GC: ");
 
   get_vmi_state(LD->query, &state);
   safeLTop = lTop;
@@ -4130,18 +4126,11 @@ garbageCollect(void)
 #endif
   leaveGC(PASS_LD1);
 
-  if ( verbose &&
-       !printMessage(ATOM_informational,
-		     PL_FUNCTOR_CHARS, "gc", 1,
-		       PL_FUNCTOR_CHARS, "done", 7,
-		         PL_INTPTR, ggar,
-		         PL_INTPTR, tgar,
-		         PL_DOUBLE, (double)t,
-		         PL_INTPTR, usedStack(global),
-		         PL_INTPTR, usedStack(trail),
-		         PL_INTPTR, roomStack(global),
-		         PL_INTPTR, roomStack(trail)) )
-    return FALSE;
+  if ( verbose )
+    Sdprintf("gained (g+t) %zd+%zd in %.3f sec; used %zd+%zd; free %zd+%zd\n",
+	     ggar, tgar, (double)t,
+	     usedStack(global), usedStack(trail),
+	     roomStack(global), roomStack(trail));
 
   return shiftTightStacks();
 }
