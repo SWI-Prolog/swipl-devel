@@ -77,12 +77,13 @@ COMMON(void) GC_linger(void *ptr);
 
 typedef struct linger_list
 { struct linger_list *next;		/* Next lingering object */
+  gen_t		generation;		/* Linger generation */
   void		*object;		/* The lingering data */
   void	       (*unalloc)(void* obj);   /* actually free the object */
 } linger_list;
 
 COMMON(void)	linger(linger_list** list, void (*unalloc)(void *), void *object);
-COMMON(void)	free_lingering(linger_list *list);
+COMMON(void)	free_lingering(linger_list **list, gen_t generation);
 
 
 		 /*******************************

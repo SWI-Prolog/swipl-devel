@@ -1467,16 +1467,9 @@ announceErasedClause(Clause clause)
 
 static void
 freeLingeringDefinition(Definition def, DirtyDefInfo ddi)
-{ linger_list *c;
-
-  do
-  { if ( !(c=def->lingering) )
-      return;
-    if ( ddi->oldest_generation != GEN_MAX )
-      return;
-  } while( !COMPARE_AND_SWAP(&def->lingering, c, NULL) );
-
-  free_lingering(c);
+{ gen_t gen = ddi->oldest_generation == GEN_MAX ? global_generation()
+						: ddi->oldest_generation;
+  free_lingering(&def->lingering, gen);
 }
 
 
