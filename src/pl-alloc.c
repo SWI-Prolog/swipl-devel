@@ -193,8 +193,9 @@ linger(linger_list** list, void (*unalloc)(void *), void *object)
 { linger_list *c = allocHeapOrHalt(sizeof(*c));
   linger_list *o;
 
-  c->object  = object;
-  c->unalloc = unalloc;
+  c->generation	= global_generation();
+  c->object	= object;
+  c->unalloc	= unalloc;
 
   do
   { o = *list;
@@ -203,13 +204,21 @@ linger(linger_list** list, void (*unalloc)(void *), void *object)
 }
 
 void
-free_lingering(linger_list *list)
-{ linger_list *n;
+free_lingering(linger_list **list, gen_t generation)
+{ linger_list **p = list;
+  linger_list *c = *list;
 
-  for(; list; list=n)
-  { n = list->next;
-    (*list->unalloc)(list->object);
-    freeHeap(list, sizeof(*list));
+  while ( c )
+  { if ( c->generation < generation )
+    { while ( !COMPARE_AND_SWAP(p, c, c->next) )
+      { p = &(*p)->next;
+      }
+      (*c->unalloc)(c->object);
+      freeHeap(c, sizeof(*c));
+    } else
+    { p = &(*p)->next;
+    }
+    c = *p;
   }
 }
 
