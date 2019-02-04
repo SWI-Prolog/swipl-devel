@@ -177,7 +177,7 @@ set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
-    storage.pl ordsets.pl)
+    storage.pl ordsets.pl intern.pl)
 
 set(SWIPL_DATA_demo likes.pl README)
 
