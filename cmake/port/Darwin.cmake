@@ -46,6 +46,10 @@ endif()
 if(BUILD_MACOS_BUNDLE)
   set(MACOS_APP "SWI-Prolog")
 
+  set(X11_ROOT /opt/X11)
+  set(Freetype_ROOT /opt/X11)
+  set(FontConfig_ROOT /opt/X11)
+
   find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
   get_target_property(uic_location Qt5::uic IMPORTED_LOCATION)
