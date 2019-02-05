@@ -246,26 +246,32 @@ open_foreign_in_resources(Zipper, Spec, Stream) :-
                           release(true)
                         ]).
 
-%!  qsave_foreign_libraries(+Arch, +FileSpec, -Resources, +Options).
+%!  qsave_foreign_libraries(+Arch, +FileSpec, -Entries, +Options).
 %
-%   Get list of foreign libraries compatible with Arch in the
-%   current saved state.
+%   Get list of foreign libraries  compatible with Arch in the current
+%   saved state.
 %
 %   Multi-architecture foreign  libraries can  be stored in  the saved
-%   state by  qsave_program/2. See the `foreign`  option. Resources is
-%   unified with  a list of  file paths (in  the saved state)  for the
-%   foreign  library  named  by  FileSpec. FileSpec  is  of  the  form
-%   `foreign(Name)`.  Each resource  starts  with `res://`  so it  can
-%   be  used with  most  file predicates,  including copy_file/2.  The
-%   predicate  can  return the  main  foreign  library (which  defines
-%   prolog  predicates  in  a   foreign  language)  and  possibly  its
+%   state  by qsave_program/2.  See the  `foreign` option.  Entries is
+%   unified with  a list of  dicts of  the form: `_{  entry: Resource,
+%   basename: Base, type: Type }`. Each dict contains a description of
+%   the entries  in the saved  state for FileSpec and  compatible with
+%   Arch.  Resource starts  with  `res://`  so  it can  be  used
+%   with most  file predicates,  including copy_file/2. `Base`  is the
+%   original  base name  of the  file, this  is especially  useful for
+%   dependencies which need  to have the same name so  that the linker
+%   finds them.  Type is  either `main` or  `dep` indicating  the main
+%   library or a dependency.
+%
+%   The  predicate can  return only  the main  foreign library  (which
+%   defines prolog predicates in a  foreign language) and possibly its
 %   dependencies according to the options.
 %
 %   See  qsave_program/2   to  find  out   about  how  to   store  the
 %   dependencies of  a shared  object.
 %
-%   This predicate  also calls the qsave:compat_arch/2  hook to obtain
-%   files compatible with Arch, see qsave_program/2.
+%   This  predicate   also  calls  the  qsave:compat_arch/2   hook  to
+%   determine architecture compatibility, see qsave_program/2.
 %
 %   The possible options are:
 %   * main
@@ -275,6 +281,8 @@ open_foreign_in_resources(Zipper, Spec, Stream) :-
 %   Return the main foreign lirary and any dependencies that
 %   were stored in the saved state. Resources is a list in this
 %   case. This is the default option.
+%   * deps
+%   Return only the dependencies.
 %   * plain
 %   Do not return entries with the `res://` prefix, but
 %   just the plain entry name in the saved state. This can
