@@ -163,16 +163,23 @@ to load a shared object from a zip file but requires write access to
 the file system. Future versions may provide shortcuts for specific
 platforms that bypass the file system.}
 
-If \arg{Action} is of the form \term{arch}{ListOfArches} then the
-shared objects for the specified architectures are stored in
-the saved state. On the command line, the list of architectures
-can be passed as \const{--foreign=<CommaSepArchesList>}. In
-order to obtain the shared object file for the specified
-architectures, qsave_program/2 calls a user defined hook:
-\term{qsave:arch_shlib}{+Arch, +FileSpec, -SoPath}. This hook
-needs to unify \const{SoPath} with the absolute path to the
-shared object for the specified architecture. \const{FileSpec} is
-of the form \const{foreign(Name)}.
+If  \arg{Action} is  of  the form  \term{arch}{ListOfArches} then  the
+shared objects for the specified architectures are stored in the saved
+state. On the command line, the list of architectures can be passed as
+\const{--foreign=<CommaSepArchesList>}. In order  to obtain the shared
+object file  for the specified architectures,  qsave_program/2 calls a
+user defined hook:  \term{qsave:arch_shlib}{+Arch, +FileSpec, -SoPath,
+-DepsPaths}.
+
+This hook needs to unify \const{SoPath}  with the absolute path to the
+main shared  object for the specified  architecture. Additional shared
+libraries on which the main shared library depends may be specified as
+a list of paths in \const{DepsPaths},  otherwise it should be bound to
+[]. These  dependencies are then  stored in the resulting  archive. In
+order to make the dependencies accessible to `open_shared_object` they
+need to  be copied  to an appropiate  directory manually.  Please note
+that the  dependencies are *not*  loaded automatically from  the saved
+state, see user:exception/3 for a way to do this.
 
 At runtime, SWI-Prolog will try to load the shared library which
 is compatible with the current architecture, obtained by calling
