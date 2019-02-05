@@ -1871,6 +1871,7 @@ load_files(Module:Files, Options) :-
     '$must_be'(list, Options),
     '$load_files'(Files, Module, Options).
 
+:- dynamic '$load_file_exception'/1.
 '$load_files'(X, _, _) :-
     var(X),
     !,
@@ -1887,7 +1888,11 @@ load_files(Module:Files, Options) :-
     List = [_|_],
     !,
     '$must_be'(list, List),
-    '$load_file_list'(List, Module, Options).
+    '$load_file_list'(List, Module, Options),
+    (   '$load_file_exception'(E)
+    ->  throw(E)
+    ;   true
+    ).
 '$load_files'(File, Module, Options) :-
     '$load_one_file'(File, Module, Options).
 
@@ -1895,7 +1900,7 @@ load_files(Module:Files, Options) :-
 '$load_file_list'([File|Rest], Module, Options) :-
     E = error(_,_),
     catch('$load_one_file'(File, Module, Options), E,
-          '$print_message'(error, E)),
+          assertz('$load_file_exception'(E)) ),
     '$load_file_list'(Rest, Module, Options).
 
 
