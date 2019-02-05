@@ -9,10 +9,9 @@ directory=.
 modules=true
 quiet=false
 moduleoptions=
-[ -z "$wiki"  ] && wiki=false
-[ -z "$level" ] && level=+
+[ -z "$level" ] && level="="
 
-export wiki level
+export level
 
 help()
 {  echo "Usage: `basename $0` option ... [version][..version] [path ...]"
@@ -45,7 +44,6 @@ while [ $done = false ]; do
 		shift
 		;;
 	--wiki)
-		wiki=true
 		shift
 		;;
 	--nomodules)
@@ -123,15 +121,10 @@ fi
 header ()
 { hdr="$*"
 
-  if [ "$wiki" = true ]; then
-    echo ---$level $hdr
-  else
-    hdr="$*"
-    eq=`echo $hdr | sed 's/./=/g'`
-    echo $eq
-    echo $hdr
-    echo $eq
-  fi
+  hdr="$*"
+  eq=`echo $hdr | sed "s/./$level/g"`
+  echo $hdr
+  echo $eq
 
   echo
 }
@@ -183,7 +176,7 @@ mtag()
 }
 
 if [ "$modules" = true ]; then
-  level="$level+"
+  level="-"
 
   echo
 
