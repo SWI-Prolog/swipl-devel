@@ -733,13 +733,20 @@ setup_interactive :-
 %   Toplevel called when invoked with -c option.
 
 '$compile' :-
+    (   catch('$compile_', E, (print_message(error, E), halt(1)))
+    ->  true
+    ;   print_message(error, error(goal_failed('$compile'), _)),
+        halt(1)
+    ).
+
+'$compile_' :-
     '$load_system_init_file',
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
     attach_packs,
     use_module(library(qsave)),
-    catch(qsave:qsave_toplevel, E, (print_message(error, E), halt(1))).
+    qsave:qsave_toplevel.
 
 %!  '$config'
 %
