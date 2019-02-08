@@ -52,6 +52,7 @@
             op(1050,  fx, export),
             op(1040, xfx, from),
             op(1100,  fy, index),               % ignored
+            op(1100,  fy, ti),                  % transformational indexing?
             op(1100,  fx, mode)                 % ignored
           ]).
 :- use_module(library(error)).
@@ -116,6 +117,7 @@ xsb_term_expansion((:- import Preds from From),
                    (:- xsb_import(Preds, From))).
 xsb_term_expansion((:- index(_PI, _How)), []).
 xsb_term_expansion((:- index(_PI)), []).
+xsb_term_expansion((:- ti(_PI)), []).
 xsb_term_expansion((:- mode(_Modes)), []).
 
 %!  xsb_import(:Predicates, +From)
@@ -181,6 +183,12 @@ xsb_import(Name/Arity, Into, _From) :-
 xsb_import(_Name/_Arity, _Into, From) :-
     existence_error(xsb_module, From).
 
+import_from_module(PI, Into, From) :-
+    module_property(From, exports(List)),
+    memberchk(PI, List),
+    !,
+    debug(xsb(import), '~p: importing from module ~p', [Into:PI, From]),
+    @(import(From:PI), Into).
 import_from_module(PI, Into, From) :-
     current_predicate(From:PI),
     !,

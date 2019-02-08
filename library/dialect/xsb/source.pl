@@ -56,10 +56,10 @@ user:term_expansion(begin_of_file, Out) :-
     include_options(File, Include),
     compiler_options(COptions),
     append(Include, COptions, Extra),
-    (   is_xsb_module(File)
+    (   is_xsb_module(File, Public)
     ->  file_base_name(Path, Module),
-        debug(xsb, 'Loading ~p into XSB module ~p~n', [File, Module]),
-        Out = [ (:- module(Module, [])),
+        debug(xsb, 'Loading ~p into XSB module ~p, exports ~p~n', [File, Module, Public]),
+        Out = [ (:- module(Module, Public)),
                 (:- expects_dialect(xsb))
               | Extra
               ]
@@ -94,7 +94,7 @@ xsb_header_file(File, FileH) :-
     exists_file(FileH).
 
 
-%!  is_xsb_module(+File) is semidet.
+%!  is_xsb_module(+File, -Public) is semidet.
 %
 %   True if the file being  loaded  is   an  XSB  module  file, which is
 %   claimed to be the case  if  it   contains  at  least one `:- export`
@@ -106,27 +106,32 @@ xsb_header_file(File, FileH) :-
 %   other files or export declarations that fail to process due to
 %   syntax errors.
 
-is_xsb_module(File) :-
+is_xsb_module(File, Public) :-
     setup_call_cleanup(
         '$push_input_context'(xsb_find_export),
-        is_xsb_module_aux(File),
+        is_xsb_module_aux(File, Public),
         '$pop_input_context').
 
-is_xsb_module_aux(File) :-
+is_xsb_module_aux(File, Public) :-
     xsb_header_file(File, FileH),
     setup_call_cleanup(
         open(FileH, read, In),
-        find_export(In),
+        find_export(In, PublicH),
         close(In)),
-    !.
-is_xsb_module_aux(_File) :-
+    PublicH \== [],
+    !,
+    is_xsb_module_P(Public).
+is_xsb_module_aux(_File, Public) :-
+    is_xsb_module_P(Public).
+
+is_xsb_module_P(Public) :-
     prolog_load_context(stream, In),
     setup_call_cleanup(
         stream_property(In, position(Pos)),
-        find_export(In),
+        findall(PI, find_export(In, PI), Public),
         set_stream_position(In, Pos)).
 
-find_export(In) :-
+find_export(In, PI) :-
     repeat,
         read_term(In, Term,
                   [ syntax_errors(quiet),
@@ -135,9 +140,22 @@ find_export(In) :-
         (   Term == end_of_file
         ->  !, fail
         ;   subsumes_term((:- export(_)), Term)
-        ->  !
+        ->  Term = (:- export(Exports)),
+            exports_pi(Exports, PI)
         ;   fail
         ).
+
+exports_pi(Var, _) :-
+    var(Var),
+    !,
+    instantiation_error(Var).
+exports_pi((A,B), PI) :-
+    !,
+    (   exports_pi(A, PI)
+    ;   exports_pi(B, PI)
+    ).
+exports_pi(PI, PI).
+
 
 % define the typical XSB operators to limit syntax errors while
 % scanning for :- export(_).
@@ -145,3 +163,5 @@ find_export(In) :-
 :- op(1100,  fx, export).
 :- op(1100,  fx, mode).
 :- op(1040, xfx, from).
+:- op(1100,  fy, index).
+:- op(1100,  fy, ti).
