@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2015, University of Amsterdam
+    Copyright (c)  1999-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -62,15 +63,24 @@ Standard Prolog.
 %!  display(+Term) is det.
 %!  display(+Stream, +Term) is det.
 %
-%   Write a term, ignoring operators.
+%   Write a term, ignoring operators and  special syntax constructs such
+%   as _brace terms_ (`{a}`) and lists (`[a,b,c]`). Currently does print
+%   dicts using the dict notation.
 %
-%   @deprecated     New code must use write_term/3 using the option
-%                   ignore_ops(true).
+%   @see  write_canonical/2.  SWI-Prolog's  write_canonical/2,  however,
+%   prints lists using lst notation to reduce incompatibility due to the
+%   modified list functor (`'[|]'` rather than   `.`)  and reduce memory
+%   usage while parsing lists.
 
 display(Term) :-
-    write_term(Term, [quoted(true), ignore_ops(true)]).
+    display(current_output, Term).
 display(Stream, Term) :-
-    write_term(Stream, Term, [quoted(true), ignore_ops(true)]).
+    write_term(Stream, Term,
+               [ quoted(true),
+                 ignore_ops(true),
+                 no_lists(true),
+                 brace_terms(true)
+               ]).
 
 %!  unknown(-Old, +New) is det.
 %

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, VU University Amsterdam
+    Copyright (c)  2011-2019, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -55,10 +55,12 @@
 		     [ attributes(oneof([ignore,dots,write,portray])),
 		       backquoted_string(boolean),
 		       blobs(oneof([portray])),
+                       brace_terms(boolean),
 		       character_escapes(boolean),
 		       cycles(boolean),
 		       fullstop(boolean),
 		       nl(boolean),
+                       no_lists(boolean),
 		       ignore_ops(boolean),
 		       max_depth(nonneg),
 		       module(atom),

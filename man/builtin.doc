@@ -5195,6 +5195,8 @@ ECLiPSe.} Note that as of version~7, the list constructor is
 \verb$'[|]'$. Using \term{dotlists}{true}, write_term/2 writes a list
 using `.' as constructor. This is intended for communication with
 programs such as other Prolog systems, that rely on this notation.
+See also the option \term{no_lists}{true} to use the actual SWI-Prolog
+list functor.
 
     \termitem{fullstop}{Bool}
 If \const{true} (default \const{false}), add a fullstop token to the
@@ -5234,6 +5236,11 @@ as the operator definitions to use.  See also op/3.
 
     \termitem{nl}{Bool}
 Add a newline to the output.  See also the \const{fullstop} option.
+
+    \termitem{no_lists}{Bool}
+Do not use list notation.  This is similar to \term{dotlists}{true},
+but uses the SWI-Prolog list functor, which is by default \verb$'[|]'$
+instead of the ISO Prolog \verb$'.'$.  Used by display/1.
 
     \termitem{numbervars}{Bool}
 If \const{true}, terms of the format \verb|$VAR(N)|, where \arg{N} is a

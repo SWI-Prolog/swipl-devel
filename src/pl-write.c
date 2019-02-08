@@ -1346,7 +1346,7 @@ writeList(term_t list, write_options *options)
   term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
 
-  if ( false(options, PL_WRT_DOTLISTS) )
+  if ( false(options, PL_WRT_DOTLISTS|PL_WRT_NO_LISTS) )
   { TRY(Putc('[', options->out));
     for(;;)
     { PL_get_list(l, head, l);
@@ -1371,8 +1371,15 @@ writeList(term_t list, write_options *options)
 
     for(;;)
     { PL_get_list(l, head, l);
-      if ( !PutToken(".", options->out) ||
-	   !Putc('(', options->out) ||
+      if ( true(options, PL_WRT_DOTLISTS) )
+      { if ( !PutToken(".", options->out) )
+	  return FALSE;
+      } else
+      { if ( !writeAtom(ATOM_dot, options) )
+	  return FALSE;
+      }
+
+      if ( !Putc('(', options->out) ||
 	   !writeArgTerm(head, 999, options, TRUE) ||
 	   !PutComma(options) )
 	return FALSE;
@@ -1819,6 +1826,7 @@ static const opt_spec write_term_options[] =
   { ATOM_variable_names,    OPT_TERM },
   { ATOM_nl,		    OPT_BOOL },
   { ATOM_fullstop,	    OPT_BOOL },
+  { ATOM_no_lists,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -1842,6 +1850,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool cycles     = TRUE;
   bool nl         = FALSE;
   bool fullstop   = FALSE;
+  bool no_lists   = FALSE;
   term_t varnames = 0;
   int local_varnames;
   IOSTREAM *s = NULL;
@@ -1856,7 +1865,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 		     &numbervars, &portray, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bq, &attr, &priority, &partial, &options.spacing,
-		     &blobs, &cycles, &varnames, &nl, &fullstop) )
+		     &blobs, &cycles, &varnames, &nl, &fullstop,
+		     &no_lists) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1919,6 +1929,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
   if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
+  if ( no_lists )   options.flags |= PL_WRT_NO_LISTS;
   if ( bq )
   { unsigned int flags = 0;
 
