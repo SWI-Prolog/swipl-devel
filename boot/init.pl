@@ -168,6 +168,8 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, (non_terminal)).
 '$hide'(Pred) :-
     '$set_predicate_attribute'(Pred, trace, false).
 
+:- '$iso'(((dynamic)/1, (multifile)/1, (discontiguous)/1)).
+
 
                 /********************************
                 *       CALLING, CONTROL        *
