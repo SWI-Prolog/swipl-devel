@@ -35,8 +35,19 @@
 :- module(machine,
           [ gc_heap/0,
             trimcore/0,
-            abolish_table_info/0
+
+            abolish_table_info/0,
+
+            str_cat/3,
+
+            term_type/2,
+
+            xsb_expand_file_name/2,       % +File, -Expanded
+            expand_filename_no_prepend/2, % FileName, -ExpandedName
+            parse_filename/4              % +FileName, -Dir, -Base, -Extension
           ]).
+:- use_module(library(debug)).
+:- use_module(library(error)).
 
 %!  gc_heap
 %
@@ -57,3 +68,83 @@ trimcore :-
 %   Undocumented in the XSB manual.
 
 abolish_table_info.
+
+%!  str_cat(+Atom1, +Atom2, -Atom3)
+
+str_cat(A, B, AB) :-
+    must_be(atom, A),
+    must_be(atom, B),
+    atom_concat(A, B, AB).
+
+%!  term_type(+Term, -Type:integer)
+%
+%   Emulation of internal XSB predicate
+
+term_type(Term, Type) :-
+    (   atom(Term)
+    ->  Type = 5
+    ;   compound(Term)
+    ->  (   Term = [_|_]
+        ->  Type = 3
+        ;   Type = 1
+        )
+    ;   integer(Term)
+    ->  Type = 2
+    ;   float(Term)
+    ->  Type = 6
+    ;   var(Term)
+    ->  Type = 0
+    ;   assertion(fail)
+    ).
+
+		 /*******************************
+		 *              FILES		*
+		 *******************************/
+
+%!  xsb_expand_file_name(+File, -Expanded)
+%
+%
+
+xsb_expand_file_name(File, Expanded) :-
+    absolute_file_name(File, Expanded, [expand(true)]).
+
+%!  expand_filename_no_prepend(+FileName, -ExpandedName)
+%
+%
+
+expand_filename_no_prepend(File, Expanded) :-
+    expand_file_name(File, Absolute),
+    working_directory(Dir0, Dir0),
+    ensure_slash(Dir0, Dir),
+    (   atom_concat(Dir, Ex0, Absolute)
+    ->  Expanded = Ex0
+    ;   Expanded = Absolute
+    ).
+
+%!  parse_filename(+FileName, -Dir, -Base, -Extension)
+%
+%
+
+parse_filename(FileName, Dir, Base, Extension) :-
+    sub_atom(FileName, 0, _, _, '~'),
+    !,
+    expand_file_name(FileName, Absolute),
+    parse_filename_2(Absolute, Dir, Base, Extension).
+parse_filename(FileName, Dir, Base, Extension) :-
+    parse_filename_2(FileName, Dir, Base, Extension).
+
+parse_filename_2(FileName, Dir, Base, Extension) :-
+    file_directory_name(FileName, Dir0),
+    (   Dir0 == '.'
+    ->  Dir = ''
+    ;   ensure_slash(Dir0, Dir)
+    ),
+    file_base_name(FileName, File),
+    file_name_extension(Base, Extension, File).
+
+ensure_slash(Dir, DirS) :-
+    sub_atom(Dir, _, _, 0, '/'),
+    !,
+    DirS = Dir.
+ensure_slash(Dir, DirS) :-
+    atom_concat(Dir, '/', DirS).

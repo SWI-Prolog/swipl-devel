@@ -48,12 +48,19 @@
 
             xsb_import/2,                       % +Preds, From
 
+            fail_if/1,				% :Goal
+
+            tnot/1,				% :Goal
+            not_exists/1,			% :Goal
+            sk_not/1,				% :Goal
+
             op(1050,  fy, import),
             op(1050,  fx, export),
             op(1040, xfx, from),
             op(1100,  fy, index),               % ignored
             op(1100,  fy, ti),                  % transformational indexing?
-            op(1100,  fx, mode)                 % ignored
+            op(1100,  fx, mode),                % ignored
+            op(900,   fy, not)                  % defined as op in XSB
           ]).
 :- use_module(library(error)).
 :- use_module(library(debug)).
@@ -66,12 +73,19 @@ system](http://xsb.sourceforge.net/)
 */
 
 :- meta_predicate
-    xsb_import(:, +),
-    compile(:, +),
+    xsb_import(:, +),                   % Module interaction
+
+    compile(:, +),                      % Loading files
     load_dyn(:),
     load_dyn(:, +),
     load_dync(:),
-    load_dync(:, +).
+    load_dync(:, +),
+
+    fail_if(0),                         % Meta predicates
+    tnot(0),
+    not_exists(0),
+    sk_not(0).
+
 
 		 /*******************************
 		 *	    LIBRARY SETUP	*
@@ -106,6 +120,9 @@ push_xsb_library :-
 setup_dialect :-
     style_check(-discontiguous).
 
+:- multifile
+    user:term_expansion/2,
+    user:goal_expansion/2.
 
 % Register XSB specific term-expansion to rename conflicting directives.
 
@@ -119,6 +136,18 @@ xsb_term_expansion((:- index(_PI, _How)), []).
 xsb_term_expansion((:- index(_PI)), []).
 xsb_term_expansion((:- ti(_PI)), []).
 xsb_term_expansion((:- mode(_Modes)), []).
+
+user:goal_expansion(In, Out) :-
+    prolog_load_context(dialect, xsb),
+    (   xsb_mapped_predicate(In, Out)
+    ->  true
+    ;   xsb_inlined_goal(In, Out)
+    ).
+
+xsb_mapped_predicate(expand_file_name(File, Expanded),
+                     xsb_expand_file_name(File, Expanded)).
+
+xsb_inlined_goal(fail_if(P), \+(P)).
 
 %!  xsb_import(:Predicates, +From)
 %
@@ -143,6 +172,12 @@ xsb_import((A,B), Into, From) :-
     !,
     xsb_import(A, Into, From),
     xsb_import(B, Into, From).
+xsb_import(Name/Arity, Into, From) :-
+    functor(Head, Name, Arity),
+    xsb_mapped_predicate(Head, NewHead),
+    functor(NewHead, NewName, Arity),
+    !,
+    xsb_import(NewName/Arity, Into, From).
 xsb_import(PI, Into, usermod) :-
     !,
     export(user:PI),
@@ -296,10 +331,15 @@ compile(File, _Options) :-
 %   The _dync_ versions demand source in canonical format. In SWI-Prolog
 %   there is little reason to demand this.
 
-load_dyn(File)       :- load_files(File).
-load_dyn(File, Dir)  :- must_be(oneof([z]), Dir), load_files(File).
-load_dync(File)      :- load_files(File).
-load_dync(File, Dir) :- must_be(oneof([z]), Dir), load_files(File).
+load_dyn(File)       :-
+    '$style_check'(Style, Style),
+    setup_call_cleanup(
+        style_check(-singleton),
+        load_files(File),
+        '$style_check'(_, Style)).
+        load_dyn(File, Dir)  :- must_be(oneof([z]), Dir), load_dyn(File).
+load_dync(File)      :- load_dyn(File).
+load_dync(File, Dir) :- load_dyn(File, Dir).
 
 %!  set_global_compiler_options(+List) is det.
 %
@@ -370,6 +410,42 @@ clear_compiler_option(optimize) :-
     set_prolog_flag(optimise, false).
 clear_compiler_option(allow_redefinition).
 clear_compiler_option(xpp_on).
+
+		 /*******************************
+		 *            BUILT-INS		*
+		 *******************************/
+
+%!  fail_if(:P)
+%
+%   Same as \+ (support XSB legacy code).  As the XSB manual claims this
+%   is optimized we normally do goal expansion to \+/1.
+
+fail_if(P) :-
+    \+ P.
+
+		 /*******************************
+		 *      TABLING BUILT-INS	*
+		 *******************************/
+
+%!  tnot(:P).
+%!  not_exists(:P).
+%!  sk_not(:P).
+%
+%   XSB tabled negation. Currently finds all  solutions to avoid loosing
+%   tabled solution due to the early commit  implied by \+. According to
+%   the XSB manual, sk_not/1  is  an   old  name  for  not_exists/1. The
+%   predicates tnot/1 and not_exists/1 are not   precisely  the same. We
+%   ignore that for now.
+
+tnot(P) :-
+    findall(x, P, List),
+    List == [].
+
+not_exists(P) :-
+    tnot(P).
+
+sk_not(P) :-
+    not_exists(P).
 
 
 		 /*******************************

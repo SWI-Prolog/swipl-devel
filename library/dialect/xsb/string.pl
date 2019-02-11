@@ -35,11 +35,4 @@
 :- module(string,
           [ str_cat/3
           ]).
-:- use_module(library(error)).
-
-%!  str_cat(+Atom1, +Atom2, -Atom3)
-
-str_cat(A, B, AB) :-
-    must_be(atom, A),
-    must_be(atom, B),
-    atom_concat(A, B, AB).
+:- use_module(machine).
