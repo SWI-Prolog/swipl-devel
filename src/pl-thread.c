@@ -5334,7 +5334,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
                      (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
   info->open_count = 1;
 
-  copy_local_data(ldnew, ldmain, attr->max_queue_size);
+  copy_local_data(ldnew, ldmain, attr ? attr->max_queue_size : 0);
 
   if ( !initialise_thread(info) )
   { free_thread_info(info);
