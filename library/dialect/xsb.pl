@@ -47,6 +47,7 @@
             compiler_options/1,			% +Options
 
             xsb_import/2,                       % +Preds, From
+            xsb_dynamic/1,                      % +Preds
 
             fail_if/1,				% :Goal
 
@@ -77,6 +78,7 @@ system](http://xsb.sourceforge.net/)
 
 :- meta_predicate
     xsb_import(:, +),                   % Module interaction
+    xsb_dynamic(:),
 
     compile(:, +),                      % Loading files
     load_dyn(:),
@@ -129,20 +131,26 @@ setup_dialect :-
     user:term_expansion/2,
     user:goal_expansion/2.
 
+:- dynamic
+    moved_directive/2.
+
 % Register XSB specific term-expansion to rename conflicting directives.
 
 user:term_expansion(In, Out) :-
     prolog_load_context(dialect, xsb),
     xsb_term_expansion(In, Out).
 
+xsb_term_expansion((:- Directive), []) :-
+    prolog_load_context(file, File),
+    retract(moved_directive(File, Directive)),
+    !.
 xsb_term_expansion((:- import Preds from From),
                    (:- xsb_import(Preds, From))).
 xsb_term_expansion((:- index(_PI, _How)), []).
 xsb_term_expansion((:- index(_PI)), []).
 xsb_term_expansion((:- ti(_PI)), []).
 xsb_term_expansion((:- mode(_Modes)), []).
-% Dubious.  Must check wiht Terri.
-xsb_term_expansion((:- dynamic(PIs)), (:- dynamic(user:PIs))).
+xsb_term_expansion((:- dynamic(Preds)), (:- xsb_dynamic(Preds))).
 
 user:goal_expansion(In, Out) :-
     prolog_load_context(dialect, xsb),
@@ -419,6 +427,34 @@ clear_compiler_option(optimize) :-
     set_prolog_flag(optimise, false).
 clear_compiler_option(allow_redefinition).
 clear_compiler_option(xpp_on).
+
+%!  xsb_dynamic(Preds)
+%
+%   Apply dynamic to the original predicate.  This deals with a sequence
+%   that seems common in XSB:
+%
+%       :- import p/1 from x.
+%       :- dynamic p/1.
+
+xsb_dynamic(M:Preds) :-
+    xsb_dynamic_(Preds, M).
+
+xsb_dynamic_(Preds, _M) :-
+    var(Preds),
+    !,
+    instantiation_error(Preds).
+xsb_dynamic_((A,B), M) :-
+    !,
+    xsb_dynamic_(A, M),
+    xsb_dynamic_(B, M).
+xsb_dynamic_(Name/Arity, M) :-
+    functor(Head, Name, Arity),
+    '$get_predicate_attribute'(M:Head, imported, M2), % predicate_property/2 requires
+    !,                                                % P to be defined.
+    dynamic(M2:Name/Arity).
+xsb_dynamic_(PI, M) :-
+    dynamic(M:PI).
+
 
 		 /*******************************
 		 *            BUILT-INS		*
