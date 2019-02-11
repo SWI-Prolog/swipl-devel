@@ -54,6 +54,8 @@
             not_exists/1,			% :Goal
             sk_not/1,				% :Goal
 
+            xsb_findall/3,			% +Template, :Goal, -Answers
+
             op(1050,  fy, import),
             op(1050,  fx, export),
             op(1040, xfx, from),
@@ -65,6 +67,7 @@
 :- use_module(library(error)).
 :- use_module(library(debug)).
 :- use_module(library(dialect/xsb/source)).
+:- use_module(library(dialect/xsb/tables)).
 
 /** <module> XSB Prolog compatibility layer
 
@@ -84,7 +87,9 @@ system](http://xsb.sourceforge.net/)
     fail_if(0),                         % Meta predicates
     tnot(0),
     not_exists(0),
-    sk_not(0).
+    sk_not(0),
+
+    xsb_findall(+,0,-).
 
 
 		 /*******************************
@@ -136,6 +141,8 @@ xsb_term_expansion((:- index(_PI, _How)), []).
 xsb_term_expansion((:- index(_PI)), []).
 xsb_term_expansion((:- ti(_PI)), []).
 xsb_term_expansion((:- mode(_Modes)), []).
+% Dubious.  Must check wiht Terri.
+xsb_term_expansion((:- dynamic(PIs)), (:- dynamic(user:PIs))).
 
 user:goal_expansion(In, Out) :-
     prolog_load_context(dialect, xsb),
@@ -146,6 +153,8 @@ user:goal_expansion(In, Out) :-
 
 xsb_mapped_predicate(expand_file_name(File, Expanded),
                      xsb_expand_file_name(File, Expanded)).
+xsb_mapped_predicate(findall(Template, Goal, List),
+                     xsb_findall(Template, Goal, List)).
 
 xsb_inlined_goal(fail_if(P), \+(P)).
 
@@ -431,21 +440,42 @@ fail_if(P) :-
 %!  not_exists(:P).
 %!  sk_not(:P).
 %
-%   XSB tabled negation. Currently finds all  solutions to avoid loosing
-%   tabled solution due to the early commit  implied by \+. According to
-%   the XSB manual, sk_not/1  is  an   old  name  for  not_exists/1. The
-%   predicates tnot/1 and not_exists/1 are not   precisely  the same. We
-%   ignore that for now.
+%   XSB tabled negation. According to the XSB manual, sk_not/1 is an old
+%   name for not_exists/1. The predicates   tnot/1  and not_exists/1 are
+%   not precisely the same. We ignore that for now.
+%
+%   The actual implementation is in xsb/tables.pl, 't not'/1.
 
 tnot(P) :-
-    findall(x, P, List),
-    List == [].
+    't not'(P).
 
 not_exists(P) :-
     tnot(P).
 
 sk_not(P) :-
     not_exists(P).
+
+
+%!  xsb_findall(+Template, :Goal, -List) is det.
+%
+%   Alternative to findall/3 that is safe to   be used for tabling. This
+%   is a temporary hack  as  the   findall/3  support  predicates cannot
+%   handle suspension from inside the findall   goal  because it assumes
+%   perfect nesting of findall.
+
+xsb_findall(T, G, L) :-
+    L0 = [dummy|_],
+    Result = list(L0),
+    (   call(G),
+        duplicate_term(T, T2),
+        NewLastCell = [T2|_],
+        arg(1, Result, LastCell),
+        nb_linkarg(2, LastCell, NewLastCell),
+        nb_linkarg(1, Result, NewLastCell),
+        fail
+    ;   arg(1, Result, [_]),
+        L0 = [_|L]
+    ).
 
 
 		 /*******************************

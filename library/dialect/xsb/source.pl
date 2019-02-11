@@ -58,7 +58,8 @@ user:term_expansion(begin_of_file, Out) :-
     append(Include, COptions, Extra),
     (   is_xsb_module(File, Public)
     ->  file_base_name(Path, Module),
-        debug(xsb, 'Loading ~p into XSB module ~p, exports ~p~n', [File, Module, Public]),
+        debug(xsb, 'Loading ~p into XSB module ~p, exports ~p~n',
+              [File, Module, Public]),
         Out = [ (:- module(Module, Public)),
                 (:- expects_dialect(xsb))
               | Extra
