@@ -23,11 +23,12 @@
 
 int prevent_optimization(unsigned char*p, int size) {
    unsigned char *d;
+   int i;
 
    //Prevent optimizer from eliminating the constants in main()
    unsigned char dummy[size];
    d = dummy;
-   for (int i = 0; i < size; ++i) {
+   for (i = 0; i < size; ++i) {
      *d++ = *p++;
    }
    return dummy[size-1];
