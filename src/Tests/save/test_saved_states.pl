@@ -33,7 +33,8 @@
 */
 
 :- module(test_saved_states,
-	  [ test_saved_states/0
+	  [ test_saved_states/0,
+	    build_test_shlibs/0
 	  ]).
 
 :- prolog_load_context(directory, Here),
@@ -197,19 +198,30 @@ remove_state(_State) :-
 remove_state(State) :-
 	catch(delete_file(State), _, true).
 
+swipl_ld(SwiplLd) :-
+	current_prolog_flag(executable,SwiplExe),
+	file_directory_name(SwiplExe, Dir),
+	format(atom(SwiplLd0), "~w/swipl-ld",[Dir]),
+	prolog_to_os_filename(SwiplLd0,SwiplLd).
+
 build_shlib(Name) :-
-	 format(atom(Cmd), "swipl-ld -shared -fPIC -o input/~w.so input/~w.c",[Name, Name]),
-	 shell(Cmd).
+	swipl_ld(SwiplLd),
+	format(atom(Cmd),
+	       "~w -shared -fPIC -o input/~w.so input/~w.c",
+	       [SwiplLd,Name, Name]),
+	shell(Cmd).
 
 build_shlib(Name, Dep, DepDir) :-
-	 format(atom(Cmd), "swipl-ld -shared -fPIC -L~w -l~w -o input/~w.so input/~w.c ",[DepDir, Dep, Name, Name]),
-	 format(user_error, '~w~n', Cmd),
-	 shell(Cmd).
+	swipl_ld(SwiplLd),
+	format(atom(Cmd),
+	       "~w -shared -fPIC -L~w -l~w -o input/~w.so input/~w.c ",
+	       [SwiplLd, DepDir, Dep, Name, Name]),
+	shell(Cmd).
 
 build_test_shlibs :-
-	 build_shlib("shlib_no_deps"),
-	 build_shlib("libdep"),
-	 build_shlib("shlib_with_dep", "dep", "input").
+	build_shlib("shlib_no_deps"),
+	build_shlib("libdep"),
+	build_shlib("shlib_with_dep", "dep", "input").
 
 %%	read_terms(+In:stream, -Data:list)
 %
