@@ -45,6 +45,9 @@
 :- use_module(library(apply)).
 :- use_module(library(zip)).
 :- use_module(library(prolog_autoload)).
+:- use_module(library(dcg/high_order)).
+:- use_module(library(dcg/basics)).
+
 
 /** <module> Save current program as a state or executable
 
@@ -935,8 +938,7 @@ save_foreign_libraries1(Arch, RC, _Options) :-
            )).
 
 add_shlibs_to_zip(RC, [_{entry: Entry, sofile: File, time: Time}|Entries]) :-
-    term_to_atom(Entry, Name),
-    zipper_append_file(RC, Name, File, [time(Time)]),
+    zipper_append_file(RC, Entry, File, [time(Time)]),
     add_shlibs_to_zip(RC, Entries).
 add_shlibs_to_zip(_, []).
 
@@ -965,11 +967,17 @@ find_foreign_library(Arch, FileSpec, [MainEntry|Entries]) :-
     time_and_strip_entries(Arch, FileSpec, dep, DepFiles, Entries).
 
 time_and_strip_entries(Arch, FileSpec, Type, [File|Files],
-                       [ _{ entry:  '$shlib'(Arch, FileSpec, BaseName, Type),
+                       [ _{ entry:  Entry,
                             sofile: SharedObject,
                             time:   Time}
                        |Entries]) :-
     file_base_name(File, BaseName),
+    shlib_entry_info(Entry,
+                     _{ arch: Arch,
+                        spec: FileSpec,
+                        basename: BaseName,
+                        type: Type
+                     }),
     time_file(File, Time),
     strip_file(File, SharedObject),
     time_and_strip_entries(Arch, FileSpec, Type, Files, Entries).
@@ -1039,6 +1047,71 @@ arch_find_shlib(Arch, FileSpec, File, []) :-
                          access(read),
                          file_errors(fail)
                        ], File).
+
+%!  shlib_entry_info(?Entry, ?Info).
+%   Two-way conversion between zip file $shlib entry name
+%   (an atom), and a  dict with its information:
+%
+%    Info = { arch: Arch,
+%             spec: Spec,
+%             basename: BaseName,
+%             type: Type
+%           }
+shlib_entry_info(Entry, Info) :-
+    nonvar(Entry),
+    !,
+    Info  = _{arch: Arch, spec: Spec, basename: BaseName, type: Type},
+    atomic_list_concat(Entry0, '/', Entry),
+    phrase(shlib_entry_info(Arch,Spec,BaseName,Type),Entry0).
+shlib_entry_info(Entry, Info) :-
+    var(Entry),
+    !,
+    Info  = _{arch: Arch, spec: Spec, basename: BaseName, type: Type},
+    phrase(shlib_entry_info(Arch,Spec,BaseName,Type),Entry0),
+    atomic_list_concat(Entry0, '/', Entry).
+
+shlib_entry_info(Arch, Spec, BaseName, Type) -->
+    { nonvar(Spec),
+      Spec =.. [Alias|[AliasArg]]
+    },
+    ['$shlib'], [Arch],
+    ['alias'], [Alias],
+    path(AliasArg),
+    main_or_dep(BaseName,Type),
+    !.
+shlib_entry_info(Arch, Spec, BaseName, Type) -->
+    { var(Spec) },
+    ['$shlib'], [Arch],
+    ['alias'], [Alias],
+    path(AliasArg),
+    { Spec =.. [Alias|[AliasArg]] },
+    main_or_dep(BaseName,Type),
+    !.
+shlib_entry_info(Arch, Path, BaseName, Type) -->
+    ['$shlib'], [Arch],
+    path(Path),
+    main_or_dep(BaseName,Type),
+    !.
+
+main_or_dep(BaseName, Type) -->
+    [Type],
+    [BaseName].
+
+segment(S) -->
+     [S].
+
+path(P) -->
+    { nonvar(P),
+      atomic_list_concat(P0, '/', P)
+    },
+    !,
+    sequence(segment, P0).
+
+path(P) -->
+    { var(P) },
+    !,
+    sequence(segment, P0),
+    { atomic_list_concat(P0, '/', P) }.
 
 
                  /*******************************
@@ -1315,3 +1388,5 @@ prolog:message(no_resource(Name, File)) -->
       [Name, File] ].
 prolog:message(qsave(nondet)) -->
     [ 'qsave_program/2 succeeded with a choice point'-[] ].
+
+% vim: ft=prolog sw=4 :

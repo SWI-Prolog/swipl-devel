@@ -54,6 +54,7 @@
 :- use_module(library(zip)).
 :- use_module(library(apply)).
 :- use_module(library(option)).
+:- use_module(library(qsave)).
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Utility library for loading foreign objects (DLLs, shared objects)
@@ -294,7 +295,7 @@ qsave_foreign_libraries(Arch, FileSpec, Resources, Options) :-
     must_be(list(oneof([main,main_and_deps,deps,plain])), Options),
     '$rc_handle'(Zipper),
     zipper_members(Zipper, Entries),
-    entries_for_name(FileSpec, Entries, Entries1),
+    entinfos_for_spec(FileSpec, Entries, EntInfos),
     (   option(main, Options)
     ->  Type = main
     ;   option(main_and_deps, Options)
@@ -303,7 +304,7 @@ qsave_foreign_libraries(Arch, FileSpec, Resources, Options) :-
     ->  Type = dep
     ;   Type = _
     ),
-    libs_for_compat_arch(FileSpec, Entries1, Type, Arch,  Es),
+    libs_for_compat_arch(FileSpec, EntInfos, Type, Arch,  Es),
     (   option(plain, Options)
     ->  Resources = Es
     ;   maplist(entry_resource, Es, Resources)
@@ -316,28 +317,30 @@ entry_resource(EntryDict, ResDict) :-
 
 %!  lib_for_compat_arch(+Entries, +FileSpec, -CompatibleLib) is det.
 %
-%   Entries is a list of entries  in   the  zip  file, which are already
-%   filtered to match the  shared  library   identified  by  `Name`. The
-%   filtering is done by entries_for_name/3.
+%   Entries is  a list of entries  in the zip file,  which are already
+%   filtered to match the shared library identified by `FileSpec`. The
+%   filtering is done by entinfos_for_spec/3.
 %
-%   CompatibleLib is the name of the  entry   in  the  zip file which is
-%   compatible with the  current  architecture.   The  compatibility  is
-%   determined according to the description in qsave_program/2 using the
-%   qsave:compat_arch/2 hook.
-%
-%   The entries are of the form ''$shlib'(Arch, Name, BaseSoName)'
+%   CompatibleLib is  the name of the  entry in the zip  file which is
+%   compatible  with the  current architecture.  The compatibility  is
+%   determined according  to the description in  qsave_program/2 using
+%   the qsave:compat_arch/2 hook.
 
 libs_for_compat_arch(FileSpec, Entries, Type, Arch, Libs) :-
     findall(Lib,
             lib_for_compat_arch(Arch, Type, Entries, FileSpec, Lib),
             Libs).
 
-lib_for_compat_arch(Arch, Type, Entries, FileSpec,
+lib_for_compat_arch(Arch, Type, EntInfos, FileSpec,
                     _{entry: Entry, basename: BaseName, type: Type}) :-
-    LibTerm = '$shlib'(EntryArch, FileSpec, BaseName, Type),
-    member(LibTerm, Entries),
+    EntInfo = _{ arch: EntryArch,
+                 spec: FileSpec,
+                 basename: BaseName,
+                 type: Type
+              },
+    member(EntInfo, EntInfos),
     qsave_compat_arch1(Arch, EntryArch),
-    term_to_atom(LibTerm, Entry).
+    qsave:shlib_entry_info(Entry, EntInfo).
 
 :- multifile qsave:compat_arch/2.
 qsave_compat_arch1(Arch1, Arch2) :-
@@ -357,18 +360,12 @@ qsave_compat_arch1(Arch1, Arch2) :-
 
 qsave:compat_arch(A,A).
 
-shlib_atom_to_term(Atom, Term) :-
-    Term = '$shlib'(_Arch, _FileSpec, _BaseSoName, _Type),
-    sub_atom(Atom, 0, _, _, '''$shlib''('),
-    !,
-    term_to_atom(Term, Atom).
-shlib_atom_to_term(Atom, Atom).
+match_filespec(FileSpec, EntInfo) :-
+    FileSpec = EntInfo.spec.
 
-match_filespec(FileSpec, '$shlib'(_, FileSpec, _, _)).
-
-entries_for_name(FileSpec, Entries, Filtered) :-
-    maplist(shlib_atom_to_term, Entries, Entries1),
-    include(match_filespec(FileSpec), Entries1, Filtered).
+entinfos_for_spec(FileSpec, Entries, Filtered) :-
+    convlist(qsave:shlib_entry_info, Entries, EntInfos),
+    include(match_filespec(FileSpec), EntInfos, Filtered).
 
 base(Path, Base) :-
     atomic(Path),
