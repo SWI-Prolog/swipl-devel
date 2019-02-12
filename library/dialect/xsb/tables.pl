@@ -34,13 +34,29 @@
 
 :- module(tables,
           [ abolish_all_tables/0,
+            abolish_table_pred/1,               % +PI
+            tfindall/3,                         % +Template, :Goal, -Answers
             't not'/1                           % :Goal
           ]).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 :- use_module(library(dialect/xsb)).
 
 :- meta_predicate
+    abolish_table_pred(:),
+    tfindall(+, 0, -),
     't not'(0).
+
+%!  abolish_table_pred(:PI)
+%
+%
+
+abolish_table_pred(M:Name/Arity) :-
+    !,
+    functor(Head, Name, Arity),
+    abolish_table_subgoals(M:Head).
+abolish_table_pred(PI) :-
+    type_error(predicate_indicator, PI).
 
 %!  't not'(:Goal)
 %
@@ -63,3 +79,10 @@
     ;   xsb_findall(x, Goal, List),
         List == []
     ).
+
+%!  tfindall(+Template, :Goal, -Answers)
+%
+%   More safe findall wrt. tabling.  For now just findall/3.
+
+tfindall(Template, Goal, Answers) :-
+    xsb_findall(Template, Goal, Answers).
