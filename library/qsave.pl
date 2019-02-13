@@ -38,10 +38,16 @@
           [ qsave_program/1,                    % +File
             qsave_program/2                     % +File, +Options
           ]).
+:- use_module(library(shlib)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
 :- use_module(library(apply)).
+:- use_module(library(zip)).
+:- use_module(library(prolog_autoload)).
+:- use_module(library(dcg/high_order)).
+:- use_module(library(dcg/basics)).
+
 
 /** <module> Save current program as a state or executable
 
@@ -927,10 +933,15 @@ save_foreign_libraries(_, _).
 
 save_foreign_libraries1(Arch, RC, _Options) :-
     forall(current_foreign_library(FileSpec, _Predicates),
-           ( find_foreign_library(Arch, FileSpec, EntryName, File, Time),
-             term_to_atom(EntryName, Name),
-             zipper_append_file(RC, Name, File, [time(Time)])
+           ( find_foreign_library(Arch, FileSpec, Entries),
+             add_shlibs_to_zip(RC, Entries)
            )).
+
+add_shlibs_to_zip(RC, [_{entry: Entry, sofile: File, time: Time}|Entries]) :-
+    zipper_append_file(RC, Entry, File, [time(Time)]),
+    add_shlibs_to_zip(RC, Entries).
+add_shlibs_to_zip(_, []).
+
 
 %!  find_foreign_library(+Architecture, +FileSpec, -EntryName, -File, -Time)
 %!								is det.
@@ -944,17 +955,42 @@ save_foreign_libraries1(Arch, RC, _Options) :-
 %
 %   @bug    Should perform OS search on failure
 
-find_foreign_library(Arch, FileSpec, shlib(Arch,Name), SharedObject, Time) :-
-    FileSpec = foreign(Name),
-    (   catch(arch_find_shlib(Arch, FileSpec, File),
+find_foreign_library(Arch, FileSpec, [MainEntry|Entries]) :-
+    (   catch(arch_find_shlib(Arch, FileSpec, File, DepFiles),
               E,
               print_message(error, E)),
-        exists_file(File)
+        exists_files([File|DepFiles])
     ->  true
     ;   throw(error(existence_error(architecture_shlib(Arch), FileSpec),_))
     ),
+    time_and_strip_entries(Arch, FileSpec, main, [File], [MainEntry]),
+    time_and_strip_entries(Arch, FileSpec, dep, DepFiles, Entries).
+
+time_and_strip_entries(Arch, FileSpec, Type, [File|Files],
+                       [ _{ entry:  Entry,
+                            sofile: SharedObject,
+                            time:   Time}
+                       |Entries]) :-
+    file_base_name(File, BaseName),
+    shlib_entry_info(Entry,
+                     _{ arch: Arch,
+                        spec: FileSpec,
+                        basename: BaseName,
+                        type: Type
+                     }),
     time_file(File, Time),
-    strip_file(File, SharedObject).
+    strip_file(File, SharedObject),
+    time_and_strip_entries(Arch, FileSpec, Type, Files, Entries).
+time_and_strip_entries(_, _, _, [], []).
+
+exists_files([File|Files]) :-
+    (   exists_file(File)
+    ->  true
+    ;   print_message(error, existence_error(file, File)),
+        fail
+    ),
+    exists_files(Files).
+exists_files([]).
 
 %!  strip_file(+File, -Stripped) is det.
 %
@@ -982,30 +1018,100 @@ do_strip_file(Strip, File, Stripped) :-
     shell(Cmd),
     exists_file(Stripped).
 
-%!  qsave:arch_shlib(+Architecture, +FileSpec, -File) is det.
+%!  qsave:arch_shlib(+Architecture, +FileSpec, -File, -DepFiles) is det.
 %
-%   This is a user defined hook called by qsave_program/2. It is used to
-%   find a shared library  for  the   specified  Architecture,  named by
-%   FileSpec. FileSpec is of  the   form  foreign(Name), a specification
-%   usable by absolute_file_name/2. The predicate should unify File with
-%   the absolute path for the  shared   library  that corresponds to the
-%   specified Architecture.
+%   This  is  a  user  defined  hook called  by  qsave_program/2.  It  is
+%   used  to  find  a  shared   library  and  its  dependencies  for  the
+%   specified  Architecture,  named  by  FileSpec.  FileSpec  is  of  the
+%   form foreign(Name),  a specification usable  by absolute_file_name/2.
+%   The  predicate should  unify  File  with the  absolute  path for  the
+%   shared library  that corresponds  to the specified  Architecture, and
+%   DepFiles with  a list of shared  libraries that need to  be loaded as
+%   dependencies. If there are no dependencies the DepFiles should be
+%   bound to [].
 %
 %   If  this  predicate  fails  to  find    a  file  for  the  specified
 %   architecture an `existence_error` is thrown.
 
-:- multifile arch_shlib/3.
+:- multifile arch_shlib/4.
 
-arch_find_shlib(Arch, FileSpec, File) :-
-    arch_shlib(Arch, FileSpec, File),
+arch_find_shlib(Arch, FileSpec, File, DepFiles) :-
+    arch_shlib(Arch, FileSpec, File, DepFiles),
+    must_be(list, DepFiles),
+    must_be(atom, File),
     !.
-arch_find_shlib(Arch, FileSpec, File) :-
+arch_find_shlib(Arch, FileSpec, File, []) :-
     current_prolog_flag(arch, Arch),
     absolute_file_name(FileSpec,
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
                        ], File).
+
+%!  shlib_entry_info(?Entry, ?Info).
+%   Two-way conversion between zip file $shlib entry name
+%   (an atom), and a  dict with its information:
+%
+%    Info = { arch: Arch,
+%             spec: Spec,
+%             basename: BaseName,
+%             type: Type
+%           }
+shlib_entry_info(Entry, Info) :-
+    nonvar(Entry),
+    !,
+    Info  = _{arch: Arch, spec: Spec, basename: BaseName, type: Type},
+    atomic_list_concat(Entry0, '/', Entry),
+    phrase(shlib_entry_info(Arch,Spec,BaseName,Type),Entry0).
+shlib_entry_info(Entry, Info) :-
+    var(Entry),
+    !,
+    Info  = _{arch: Arch, spec: Spec, basename: BaseName, type: Type},
+    phrase(shlib_entry_info(Arch,Spec,BaseName,Type),Entry0),
+    atomic_list_concat(Entry0, '/', Entry).
+
+shlib_entry_info(Arch, Spec, BaseName, Type) -->
+    { nonvar(Spec),
+      Spec =.. [Alias|[AliasArg]]
+    },
+    ['$shlib'], [Arch],
+    ['alias'], [Alias],
+    path(AliasArg),
+    main_or_dep(BaseName,Type),
+    !.
+shlib_entry_info(Arch, Spec, BaseName, Type) -->
+    { var(Spec) },
+    ['$shlib'], [Arch],
+    ['alias'], [Alias],
+    path(AliasArg),
+    { Spec =.. [Alias|[AliasArg]] },
+    main_or_dep(BaseName,Type),
+    !.
+shlib_entry_info(Arch, Path, BaseName, Type) -->
+    ['$shlib'], [Arch],
+    path(Path),
+    main_or_dep(BaseName,Type),
+    !.
+
+main_or_dep(BaseName, Type) -->
+    [Type],
+    [BaseName].
+
+segment(S) -->
+     [S].
+
+path(P) -->
+    { nonvar(P),
+      atomic_list_concat(P0, '/', P)
+    },
+    !,
+    sequence(segment, P0).
+
+path(P) -->
+    { var(P) },
+    !,
+    sequence(segment, P0),
+    { atomic_list_concat(P0, '/', P) }.
 
 
                  /*******************************
@@ -1282,3 +1388,5 @@ prolog:message(no_resource(Name, File)) -->
       [Name, File] ].
 prolog:message(qsave(nondet)) -->
     [ 'qsave_program/2 succeeded with a choice point'-[] ].
+
+% vim: ft=prolog sw=4 :

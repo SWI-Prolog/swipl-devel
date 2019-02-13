@@ -33,7 +33,8 @@
 */
 
 :- module(test_saved_states,
-	  [ test_saved_states/0
+	  [ test_saved_states/0,
+	    build_test_shlibs/0
 	  ]).
 
 :- prolog_load_context(directory, Here),
@@ -77,7 +78,8 @@ test_saved_states :-
 	       'Skipped saved state files because the system does\n\c
 	        not offer us enough open files~n', []).
 test_saved_states :-
-	run_tests([ saved_state
+	run_tests([ saved_state,
+	            multi_arch
 		  ]).
 
 :- dynamic
@@ -157,18 +159,23 @@ set_windows_path :-
 set_windows_path.
 
 create_state(File, Output, Args) :-
+	create_state(File, Output, Args, ErrOutput),
+	assertion(no_error(ErrOutput)).
+
+create_state(File, Output, Args, ErrOutput) :-
 	me(Me),
 	append(Args, ['-o', Output, '-c', File, '-f', none], AllArgs),
 	test_dir(TestDir),
 	debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
 	process_create(Me, AllArgs,
 		       [ cwd(TestDir),
-			 stderr(pipe(Err))
+			 stderr(pipe(Err)),
+			 process(Pid)
 		       ]),
 	read_stream_to_codes(Err, ErrOutput),
 	close(Err),
-	debug(save, 'Saved state', []),
-	assertion(no_error(ErrOutput)).
+	process_wait(Pid,_Status), % to allow error status
+	debug(save, 'Saved state', []).
 
 run_state(Exe, Args, Result) :-
 	debug(save, 'Running state ~q ~q', [Exe, Args]),
@@ -190,6 +197,31 @@ remove_state(_State) :-
 	debugging(save(keep)), !.
 remove_state(State) :-
 	catch(delete_file(State), _, true).
+
+swipl_ld(SwiplLd) :-
+	current_prolog_flag(executable,SwiplExe),
+	file_directory_name(SwiplExe, Dir),
+	format(atom(SwiplLd0), "~w/swipl-ld",[Dir]),
+	prolog_to_os_filename(SwiplLd0,SwiplLd).
+
+build_shlib(Name) :-
+	swipl_ld(SwiplLd),
+	format(atom(Cmd),
+	       "~w -shared -fPIC -o input/~w.so input/~w.c",
+	       [SwiplLd,Name, Name]),
+	shell(Cmd).
+
+build_shlib(Name, Dep, DepDir) :-
+	swipl_ld(SwiplLd),
+	format(atom(Cmd),
+	       "~w -shared -fPIC -L~w -l~w -o input/~w.so input/~w.c ",
+	       [SwiplLd, DepDir, Dep, Name, Name]),
+	shell(Cmd).
+
+build_test_shlibs :-
+	build_shlib("shlib_no_deps"),
+	build_shlib("libdep"),
+	build_shlib("shlib_with_dep", "dep", "input").
 
 %%	read_terms(+In:stream, -Data:list)
 %
@@ -240,8 +272,69 @@ test(true, Result == [true]) :-
 	      run_state(Exe, [], Result)
 	    ),
 	    remove_state(Exe)).
-
 :- end_tests(saved_state).
+
+
+:- begin_tests(multi_arch).
+test(load_shlib_no_deps, Result == [three_three_three]) :-
+	state_output(4, Exe),
+	call_cleanup(
+	    ( create_state('input/multi_arch_simple.pl', Exe, ['-g', shlib_test]),
+	      run_state(Exe, [], Result)
+	    ),
+	    remove_state(Exe)).
+test(load_wrong_arch, ErrOut == "ERROR: architecture_shlib(x86_64-strange1) `'./input/shlib_no_deps'' does not exist\n") :-
+	state_output(5, Exe),
+	call_cleanup(
+	    ( create_state('input/multi_arch_simple.pl', Exe,
+	                 ['--foreign=x86_64-strange1', '-g', shlib_test],
+	                 ErrOut0),
+	      string_codes(ErrOut, ErrOut0)
+	    ),
+	    remove_state(Exe)).
+test(compatible_arch, Result == [three_three_three]) :-
+	state_output(6, Exe),
+	call_cleanup(
+	    ( create_state('input/multi_arch_compat.pl', Exe,
+	                   [ '--foreign=x86_64-myarch',
+	                     '--no-autoload',
+	                     '-g', shlib_test
+	                   ]),
+	      run_state(Exe, [], Result)
+	    ),
+	    remove_state(Exe)).
+test(retry_missing_shlib, Result == [three_three_three]) :-
+	state_output(7, Exe),
+	setup_call_cleanup(
+	    rename_file('input/shlib_no_deps.so',
+	                'input/shlib_no_deps.so.bak'),
+	    ( create_state('input/missing_shlib.pl', Exe,
+	                   [ '--no-autoload',
+	                     '-g', shlib_test
+	                   ]),
+	      run_state(Exe, [], Result)
+	    ),
+	    ( catch(rename_file('input/shlib_no_deps.so.bak',
+	                        'input/shlib_no_deps.so'),
+	                   _,true),
+	      remove_state(Exe)
+	    )).
+test(shlib_with_dep, Result == [three_three_three]) :-
+	state_output(8, Exe),
+	setup_call_cleanup(
+	    copy_file('input/libdep.so','libdep.so'), % for linker to find it
+	    ( create_state('input/shlib_with_dep.pl', Exe,
+	                   [ '--no-autoload',
+	                     '--foreign=save',
+	                     '-g', shlib_test
+	                   ]),
+	      delete_file('libdep.so'), % to load it from state
+	      run_state(Exe, [], Result)
+	    ),
+	    ( catch(delete_file('libdep.so'), _, true),
+	      remove_state(Exe)
+	    )).
+:- end_tests(multi_arch).
 
 :- else.				% No library(process) found
 

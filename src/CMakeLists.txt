@@ -436,6 +436,11 @@ endif(0)
 add_custom_target(check
     COMMAND ${PROG_SWIPL} -q -g test -t halt ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
+add_custom_target(test_save_shlibs
+    ALL
+    COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/Tests/save && 
+            ${PROG_SWIPL} -q -g build_test_shlibs -t halt ${CMAKE_CURRENT_SOURCE_DIR}/Tests/save/test_saved_states.pl)
+
 set(SWIPL_TEST_DIRS unprotected core attvar library charset eclipse clp
     GC save)
 if(MULTI_THREADED)

@@ -45,9 +45,16 @@
             use_foreign_library/1,      % :LibFile
             use_foreign_library/2,      % :LibFile, +InstallFunc
 
+            qsave_foreign_libraries/4,  % ?Arch, +Spec, -Resources, +Options
+
             win_add_dll_directory/1     % +Dir
           ]).
-:- use_module(library(lists), [reverse/2]).
+:- use_module(library(lists), [member/2, reverse/2]).
+:- use_module(library(error), [must_be/2]).
+:- use_module(library(zip)).
+:- use_module(library(apply)).
+:- use_module(library(option)).
+:- use_module(library(qsave)).
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Utility library for loading foreign objects (DLLs, shared objects)
@@ -148,11 +155,10 @@ predicate defined in C.
 
 find_library(Spec, TmpFile, true) :-
     '$rc_handle'(Zipper),
-    term_to_atom(Spec, Name),
     setup_call_cleanup(
         zip_lock(Zipper),
         setup_call_cleanup(
-            open_foreign_in_resources(Zipper, Name, In),
+            open_foreign_in_resources(Zipper, Spec, In),
             setup_call_cleanup(
                 tmp_file_stream(binary, TmpFile, Out),
                 copy_stream_data(In, Out),
@@ -174,8 +180,31 @@ find_library(Spec, Spec, false) :-
 find_library(foreign(Spec), Spec, false) :-
     atom(Spec),
     !.                  % use machines finding schema
-find_library(Spec, _, _) :-
-    throw(error(existence_error(source_sink, Spec), _)).
+find_library(Spec, Path, Delete) :-
+    current_prolog_flag(arch, Arch),
+    try_user_exception(error(existence_error(source_sink, Spec), _),
+                       find_library(Spec, Path, Delete),
+                       _{arch: Arch, file: Spec}).
+
+:- dynamic '$user_exception_called'/2.
+try_user_exception(Throw, _RetryGoal, Context) :-
+    '$user_exception_called'(missing_shared_object, Context),
+    retractall('$user_exception_called'(missing_shared_object, Context)),
+    throw(Throw),
+    !.  % Allow only one retry
+
+try_user_exception(Throw, RetryGoal, _{arch: Arch, file: Spec}) :-
+    (   user:exception(missing_shared_object,
+                       _{arch: Arch, file: Spec},
+                       Action)
+    ->  (   Action == retry
+        ->  asserta('$user_exception_called'(missing_shared_object,
+                                             _{arch: Arch, file: Spec})),
+            call(RetryGoal)
+        ;   throw(Throw)
+        )
+    ;   throw(Throw)
+    ).
 
 %!  lib_to_file(+Lib0, -Lib, -Copy) is det.
 %
@@ -208,39 +237,112 @@ lib_to_file(Res, TmpFile, true) :-
 lib_to_file(Lib, Lib, false).
 
 
-open_foreign_in_resources(Zipper, ForeignSpecAtom, Stream) :-
-    term_to_atom(foreign(Name), ForeignSpecAtom),
-    zipper_members(Zipper, Entries),
-    entries_for_name(Name, Entries, Entries1),
-    compatible_architecture_lib(Entries1, Name, CompatibleLib),
-    zipper_goto(Zipper, file(CompatibleLib)),
+open_foreign_in_resources(Zipper, Spec, Stream) :-
+    current_prolog_flag(arch, Arch),
+    qsave_foreign_libraries(Arch, Spec, [CompatLib],
+                                 [main, plain]),
+    zipper_goto(Zipper, file(CompatLib.entry)),
     zipper_open_current(Zipper, Stream,
                         [ type(binary),
                           release(true)
                         ]).
 
-%!  compatible_architecture_lib(+Entries, +Name, -CompatibleLib) is det.
+%!  qsave_foreign_libraries(+Arch, +FileSpec, -Entries, +Options).
 %
-%   Entries is a list of entries  in   the  zip  file, which are already
-%   filtered to match the  shared  library   identified  by  `Name`. The
-%   filtering is done by entries_for_name/3.
+%   Get list of foreign libraries  compatible with Arch in the current
+%   saved state.
 %
-%   CompatibleLib is the name of the  entry   in  the  zip file which is
-%   compatible with the  current  architecture.   The  compatibility  is
-%   determined according to the description in qsave_program/2 using the
-%   qsave:compat_arch/2 hook.
+%   Multi-architecture foreign  libraries can  be stored in  the saved
+%   state  by qsave_program/2.  See the  `foreign` option.  Entries is
+%   unified with  a list of  dicts of  the form: `_{  entry: Resource,
+%   basename: Base, type: Type }`. Each dict contains a description of
+%   the entries  in the saved  state for FileSpec and  compatible with
+%   Arch.  Resource starts  with  `res://`  so  it can  be  used
+%   with most  file predicates,  including copy_file/2. `Base`  is the
+%   original  base name  of the  file, this  is especially  useful for
+%   dependencies which need  to have the same name so  that the linker
+%   finds them.  Type is  either `main` or  `dep` indicating  the main
+%   library or a dependency.
 %
-%   The entries are of the form 'shlib(Arch, Name)'
-
-compatible_architecture_lib([], _, _) :- !, fail.
-compatible_architecture_lib(Entries, Name, CompatibleLib) :-
-    current_prolog_flag(arch, HostArch),
-    (   member(shlib(EntryArch, Name), Entries),
-        qsave_compat_arch1(HostArch, EntryArch)
-    ->  term_to_atom(shlib(EntryArch, Name), CompatibleLib)
-    ;   existence_error(arch_compatible_with(Name), HostArch)
+%   The  predicate can  return only  the main  foreign library  (which
+%   defines prolog predicates in a  foreign language) and possibly its
+%   dependencies according to the options.
+%
+%   See  qsave_program/2   to  find  out   about  how  to   store  the
+%   dependencies of  a shared  object.
+%
+%   This  predicate   also  calls  the  qsave:compat_arch/2   hook  to
+%   determine architecture compatibility, see qsave_program/2.
+%
+%   The possible options are:
+%   * main
+%   Return only the main foreign library compatible with Arch.
+%   Resources is a list with one element.
+%   * main_and_deps
+%   Return the main foreign lirary and any dependencies that
+%   were stored in the saved state. Resources is a list in this
+%   case. This is the default option.
+%   * deps
+%   Return only the dependencies.
+%   * plain
+%   Do not return entries with the `res://` prefix, but
+%   just the plain entry name in the saved state. This can
+%   be used if you want to access the object directly using
+%   `library(zip)`, but this should be rare.
+%
+%   @see qsave_program/2.
+qsave_foreign_libraries(Arch, FileSpec, Resources, Options) :-
+    must_be(list(oneof([main,main_and_deps,deps,plain])), Options),
+    '$rc_handle'(Zipper),
+    zipper_members(Zipper, Entries),
+    entinfos_for_spec(FileSpec, Entries, EntInfos),
+    (   option(main, Options)
+    ->  Type = main
+    ;   option(main_and_deps, Options)
+    ->  Type = _
+    ;   option(deps, Options)
+    ->  Type = dep
+    ;   Type = _
+    ),
+    libs_for_compat_arch(FileSpec, EntInfos, Type, Arch,  Es),
+    (   option(plain, Options)
+    ->  Resources = Es
+    ;   maplist(entry_resource, Es, Resources)
     ).
 
+entry_resource(EntryDict, ResDict) :-
+    format(atom(Res), 'res://~w', [EntryDict.entry]),
+    ResDict = EntryDict.put(entry, Res).
+
+
+%!  lib_for_compat_arch(+Entries, +FileSpec, -CompatibleLib) is det.
+%
+%   Entries is  a list of entries  in the zip file,  which are already
+%   filtered to match the shared library identified by `FileSpec`. The
+%   filtering is done by entinfos_for_spec/3.
+%
+%   CompatibleLib is  the name of the  entry in the zip  file which is
+%   compatible  with the  current architecture.  The compatibility  is
+%   determined according  to the description in  qsave_program/2 using
+%   the qsave:compat_arch/2 hook.
+
+libs_for_compat_arch(FileSpec, Entries, Type, Arch, Libs) :-
+    findall(Lib,
+            lib_for_compat_arch(Arch, Type, Entries, FileSpec, Lib),
+            Libs).
+
+lib_for_compat_arch(Arch, Type, EntInfos, FileSpec,
+                    _{entry: Entry, basename: BaseName, type: Type}) :-
+    EntInfo = _{ arch: EntryArch,
+                 spec: FileSpec,
+                 basename: BaseName,
+                 type: Type
+              },
+    member(EntInfo, EntInfos),
+    qsave_compat_arch1(Arch, EntryArch),
+    qsave:shlib_entry_info(Entry, EntInfo).
+
+:- multifile qsave:compat_arch/2.
 qsave_compat_arch1(Arch1, Arch2) :-
     qsave:compat_arch(Arch1, Arch2), !.
 qsave_compat_arch1(Arch1, Arch2) :-
@@ -258,17 +360,12 @@ qsave_compat_arch1(Arch1, Arch2) :-
 
 qsave:compat_arch(A,A).
 
-shlib_atom_to_term(Atom, shlib(Arch, Name)) :-
-    sub_atom(Atom, 0, _, _, 'shlib('),
-    !,
-    term_to_atom(shlib(Arch,Name), Atom).
-shlib_atom_to_term(Atom, Atom).
+match_filespec(FileSpec, EntInfo) :-
+    FileSpec = EntInfo.spec.
 
-match_filespec(Name, shlib(_,Name)).
-
-entries_for_name(Name, Entries, Filtered) :-
-    maplist(shlib_atom_to_term, Entries, Entries1),
-    include(match_filespec(Name), Entries1, Filtered).
+entinfos_for_spec(FileSpec, Entries, Filtered) :-
+    convlist(qsave:shlib_entry_info, Entries, EntInfos),
+    include(match_filespec(FileSpec), EntInfos, Filtered).
 
 base(Path, Base) :-
     atomic(Path),
@@ -355,12 +452,17 @@ load_foreign_library(LibFile, Module, DefEntry) :-
                                     install(Path, Entries)),
                     _))
     ).
-load_foreign_library(LibFile, _, _) :-
+load_foreign_library(LibFile, Module, Entry) :-
+    current_prolog_flag(arch, Arch),
     retractall(loading(LibFile)),
     (   error(_Path, E)
     ->  retractall(error(_, _)),
-        throw(E)
-    ;   throw(error(existence_error(foreign_library, LibFile), _))
+        try_user_exception(E,
+                           load_foreign_library(LibFile, Module, Entry),
+                           _{arch: Arch, file: LibFile})
+    ;   try_user_exception(error(existence_error(foreign_library, LibFile), _),
+                           load_foreign_library(LibFile, Module, Entry),
+                           _{arch: Arch, file: LibFile})
     ).
 
 delete_foreign_lib(true, Path) :-
@@ -557,3 +659,5 @@ prolog:error_message(existence_error(foreign_install_function,
     [ 'No install function in ~q'-[Lib], nl,
       '\tTried: ~q'-[List]
     ].
+
+% vim: set sw=4 ft=prolog :

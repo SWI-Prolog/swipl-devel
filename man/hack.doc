@@ -471,6 +471,38 @@ predicates.  See also \prologflag{unknown} and \secref{autoload}.
 \arg{Context} is instantiated to the name of the missing global
 variable. The hook must call nb_setval/2 or b_setval/2 before returning
 with the action \const{retry}.
+
+    \termitem{missing_shared_object}{}
+\arg{Context} is instantiated to _{ arch: Arch, file: FileSpec },
+which points to the required architecture and `FileSpec` for the
+missing shared library. \arg{Action} can be unified with error, to
+throw an exception or with retry, in order to try to reload the
+missing library Normally the hook will obtain the missing library
+from the network, or a required dependency from the saved state (see
+qsave_foreign_libraries/4), and put them in a directory where the
+system dynamic linker can find it. The following example loads a
+required depdency from the saved state:
+
+\begin{code}
+:- use_foreign_library('input/shlib_with_dep.so').
+
+:- assertz((
+    user:exception(missing_shared_object,
+                   _{ arch: _, file: Spec },
+                   retry) :-
+        handle_missing_shlib(Spec)
+
+   )).
+
+handle_missing_shlib(Spec) :-
+        Spec = 'input/shlib_with_dep.so',
+        qsave_foreign_libraries(Arch, 'input/shlib_with_dep.so', [Dep], [deps]),
+        copy_file(Dep.entry,'libdep.so'). % linker finds it in current dir
+
+% here put some code that calls predicates in shlib_with_dep.so
+
+\end{code}
+
 \end{description}
 \end{description}
 
