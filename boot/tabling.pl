@@ -61,6 +61,14 @@ table space and work lists are part of the SWI-Prolog core.
 @author Benoit Desouter, Jan Wielemaker and Fabrizio Riguzzi
 */
 
+% Enable debugging using debug(tabling(Topic)) when compiled with
+% -DO_DEBUG
+goal_expansion(tdebug(Topic, Fmt, Args), Expansion) :-
+    (   current_prolog_flag(prolog_debug, true)
+    ->  Expansion = debug(tabling(Topic), Fmt, Args)
+    ;   Expansion = true
+    ).
+
 %!  table(+PredicateIndicators)
 %
 %   Prepare the given PredicateIndicators for   tabling. Can only be
@@ -112,15 +120,19 @@ start_tabling(Wrapper, Worker) :-
     ).
 
 run_leader(Wrapper, Worker, Trie) :-
+    tdebug(schedule, 'Created component leader for ~p', [Wrapper]),
     activate(Wrapper, Worker, Trie, _Worklist),
     completion,
     '$tbl_completed_component'.
 
 run_follower(fresh, Wrapper, Worker, Trie) :-
     !,
+    tdebug(schedule, 'Created producer for ~p', [Wrapper]),
     activate(Wrapper, Worker, Trie, Worklist),
+    tdebug(schedule, 'Producer ~p activated', [Wrapper]),
     shift(call_info(Wrapper, Worklist)).
 run_follower(Worklist, Wrapper, _Worker, _Trie) :-
+    tdebug(schedule, 'Created consumer for ~p', [Wrapper]),
     shift(call_info(Wrapper, Worklist)).
 
 activate(Wrapper, Worker, Trie, WorkList) :-
@@ -129,6 +141,30 @@ activate(Wrapper, Worker, Trie, WorkList) :-
         fail
     ;   true
     ).
+
+%!  delim(+Wrapper, +Worker, +WorkList)
+%
+%   Call/resume Worker for non-mode directed tabled predicates.
+
+delim(Wrapper, Worker, WorkList) :-
+    reset(work_and_add_answer(Worker, Wrapper, WorkList),
+          SourceCall, Continuation),
+    add_answer_or_suspend(Continuation, Wrapper,
+                          WorkList, SourceCall).
+
+work_and_add_answer(Worker, Wrapper, WorkList) :-
+    call(Worker),
+    '$tbl_wkl_add_answer'(WorkList, Wrapper).
+
+
+add_answer_or_suspend(0, _Wrapper, _WorkList, _) :-
+    !.
+add_answer_or_suspend(Continuation, Wrapper, WorkList,
+                      call_info(SrcWrapper, SourceWL)) :-
+    tdebug(schedule, 'Suspended ~p, depending on ~p', [SrcWrapper, Wrapper]),
+    '$tbl_wkl_add_suspension'(
+        SourceWL,
+        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
 
 
 %!  start_tabling(:Wrapper, :Implementation, +Variant, +ModeArgs)
@@ -168,29 +204,6 @@ activate(Wrapper, WrapperNoModes, _ModeArgs, Worker, Trie, WorkList) :-
         fail
     ;   true
     ).
-
-%!  delim(+Wrapper, +Worker, +WorkList)
-%
-%   Call/resume Worker for non-mode directed tabled predicates.
-
-delim(Wrapper, Worker, WorkList) :-
-    reset(work_and_add_answer(Worker, Wrapper, WorkList),
-          SourceCall, Continuation),
-    add_answer_or_suspend(Continuation, Wrapper,
-                          WorkList, SourceCall).
-
-work_and_add_answer(Worker, Wrapper, WorkList) :-
-    call(Worker),
-    '$tbl_wkl_add_answer'(WorkList, Wrapper).
-
-
-add_answer_or_suspend(0, _Wrapper, _WorkList, _) :-
-    !.
-add_answer_or_suspend(Continuation, Wrapper, WorkList,
-                      call_info(SrcWrapper, SourceWL)) :-
-    '$tbl_wkl_add_suspension'(
-        SourceWL,
-        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
 
 %!  delim(+Wrapper, +WrapperNoModes, +Worker, +WorkList).
 %
@@ -251,6 +264,7 @@ completion_step(SourceTable) :-
                         Goal, Continuation, Wrapper, TargetTable),
         (   ModeArgs == Reserved
         ->  Goal = Answer,
+            tdebug(schedule, 'Resuming ~p', [Wrapper]),
             delim(Wrapper, Continuation, TargetTable)
         ;   get_wrapper_no_mode_args(Goal, Answer, ModeArgs),
             get_wrapper_no_mode_args(Wrapper, WrapperNoModes, _),
