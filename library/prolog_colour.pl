@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1717,17 +1718,19 @@ colourise_meta_declaration(M:Head, Extra, TB,
                                          [ MP,
                                            term_position(_,_,FF,FT,ArgPos)
                                          ])) :-
+    compound(Head),
     !,
     colourise_module(M, TB, MP),
     colour_item(functor, TB, QF-QT),
     colour_item(goal(extern(M),Head), TB, FF-FT),
-    Head =.. [_|Args],
+    compound_name_arguments(Head, _, Args),
     colourise_meta_decls(Args, Extra, TB, ArgPos).
 colourise_meta_declaration(Head, Extra, TB, term_position(_,_,FF,FT,ArgPos)) :-
+    compound(Head),
     !,
     goal_classification(TB, Head, [], Class),
     colour_item(goal(Class, Head), TB, FF-FT),
-    Head =.. [_|Args],
+    compound_name_arguments(Head, _, Args),
     colourise_meta_decls(Args, Extra, TB, ArgPos).
 colourise_meta_declaration([H|T], Extra, TB, list_position(LF,LT,[HP],TP)) :-
     !,
