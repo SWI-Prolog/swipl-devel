@@ -1439,9 +1439,23 @@ pack_remove(Pack) :-
     ).
 
 pack_remove_forced(Pack) :-
-    '$pack_detach'(Pack, BaseDir),
+    catch('$pack_detach'(Pack, BaseDir),
+          error(existence_error(pack, Pack), _),
+          fail),
+    !,
     print_message(informational, pack(remove(BaseDir))),
     delete_directory_and_contents(BaseDir).
+pack_remove_forced(Pack) :-
+    directory_file_path(Pack, 'pack.pl', PackFile),
+    absolute_file_name(pack(PackFile), PackPath,
+                       [ access(read),
+                         file_errors(fail)
+                       ]),
+    !,
+    file_directory_name(PackPath, BaseDir),
+    delete_directory_and_contents(BaseDir).
+pack_remove_forced(Pack) :-
+    print_message(informational, error(existence_error(pack, Pack),_)).
 
 confirm_remove(Pack, Deps, Delete) :-
     print_message(warning, pack(depends(Pack, Deps))),
