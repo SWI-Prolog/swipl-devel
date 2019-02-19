@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017, VU University Amsterdam
+    Copyright (c)  2017-2019, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,52 +43,208 @@
 #define PL_erase(r)	  free_fastheap(r)
 
 static void	free_worklist(worklist *wl);
+static void	free_worklist_set(worklist_set *wls);
+static void	add_global_worklist(worklist *wl);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
 #endif
+static void	del_child_component(tbl_component *parent, tbl_component *child);
+static void	free_components_set(component_set *cs, int destroy);
 
 
+		 /*******************************
+		 *	     COMPONENTS		*
+		 *******************************/
 
-static worklist_set *
-thread_worklist(PL_local_data_t *ld, int global)
-{ worklist_set **wlp;
+static tbl_component *
+new_component(void)
+{ tbl_component *c = PL_malloc(sizeof(*c));
 
-  if ( !ld->tabling.component )
-  { ld->tabling.component = PL_malloc(sizeof(*ld->tabling.component));
-    memset(ld->tabling.component, 0, sizeof(*ld->tabling.component));
-  }
+  memset(c, 0, sizeof(*c));
+  c->magic = COMPONENT_MAGIC;
 
-  if ( global )
-    wlp = &ld->tabling.component->worklist;
-  else
-    wlp = &ld->tabling.component->created_worklists;
-
-  if ( *wlp == NULL )
-  { worklist_set *wl = PL_malloc(sizeof(*wl));
-    initBuffer(&wl->members);
-    *wlp = wl;
-  }
-
-  return *wlp;
+  return c;
 }
 
-static worklist_set *
-global_worklist(PL_local_data_t *ld)
-{ return thread_worklist(ld, TRUE);
+#define FC_DESTROY	0x0001
+#define FC_CHILD	0x0002
+
+static void
+free_component(tbl_component *c, int flags)
+{ GET_LD
+  assert(c->magic == COMPONENT_MAGIC);
+  c->magic = 0;
+
+  if ( c == LD->tabling.component )
+  { LD->tabling.component = c->parent;
+    if ( !c->parent && LD->tabling.has_scheduling_component )
+      LD->tabling.has_scheduling_component = FALSE;
+  }
+
+  if ( !(flags&FC_CHILD) && c->parent )
+    del_child_component(c->parent, c);
+  if ( c->worklist )
+    free_worklist_set(c->worklist);
+  if ( c->created_worklists )
+    free_worklist_set(c->created_worklists);
+  if ( c->children )
+    free_components_set(c->children, flags|FC_CHILD);
+
+  PL_free(c);
 }
 
-static worklist_set *
-newly_created_worklist(PL_local_data_t *ld)
-{ return thread_worklist(ld, FALSE);
+
+static void
+add_child_component(tbl_component *parent, tbl_component *child)
+{ component_set *cs;
+
+  if ( !(cs=parent->children) )
+  { cs = PL_malloc(sizeof(*cs));
+    initBuffer(&cs->members);
+    parent->children = cs;
+  }
+
+  addBuffer(&cs->members, child, tbl_component*);
+}
+
+/*
+static void
+print_component_set(char *why, component_set *cs)
+{ tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
+  tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+
+  Sdprintf("%s:", why);
+  for(;	bp < tp; bp++)
+  { tbl_component *c = *bp;
+    Sdprintf(" %p", c);
+  }
+  Sdprintf("\n");
+}
+*/
+
+static void
+del_child_component(tbl_component *parent, tbl_component *child)
+{ component_set *cs = parent->children;
+  tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
+  tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+
+  for(; *bp != child && bp < tp; bp++)
+    ;
+  assert(bp < tp);
+  memmove(bp, bp+1, (tp-bp-1)*sizeof(*bp));
+  (void)popBuffer(&cs->members, tbl_component*);
+}
+
+static void
+free_components_set(component_set *cs, int flags)
+{ if ( (flags & FC_DESTROY) )
+  { tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
+    tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+
+    for(; bp < tp; bp++)
+      free_component(*bp, flags);
+  }
+
+  discardBuffer(&cs->members);
+  PL_free(cs);
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Merge all subcomponets of c into c.   The properties of the subcomponets
+are destroyed and .status is set to SCC_MERGED.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void merge_children(tbl_component *c, component_set *cs);
+static void merge_one_component(tbl_component *c, tbl_component *m);
+static void wls_set_component(worklist_set *wls, tbl_component *c);
+
+static void
+merge_component(tbl_component *c)
+{ if ( c->children )
+    merge_children(c, c->children);
+
+  wls_set_component(c->worklist, c);
+  wls_set_component(c->created_worklists, c);
+}
+
+static void
+wls_set_component(worklist_set *wls, tbl_component *c)
+{ worklist **base = baseBuffer(&wls->members, worklist*);
+  worklist **top  = topBuffer(&wls->members, worklist*);
+
+  for(; base < top; base++)
+  { worklist *wl = *base;
+
+    wl->component = c;
+    wl->executing = FALSE;
+    if ( !wl->in_global_wl )
+      add_global_worklist(wl);
+  }
+}
+
+static void
+merge_children(tbl_component *c, component_set *cs)
+{ tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
+  tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+
+  for(;	bp < tp; bp++)
+    merge_one_component(c, *bp);
+}
+
+
+static void
+merge_worklists(worklist_set **into, worklist_set **from)
+{ typedef worklist* Worklist;
+
+  if ( *into && *from )
+  { worklist **s = baseBuffer(&(*from)->members, worklist*);
+    size_t   cnt = entriesBuffer(&(*from)->members, worklist*);
+    Buffer     b = &(*into)->members;
+
+    addMultipleBuffer(b, s, cnt, Worklist);
+    free_worklist_set(*from);
+    *from = NULL;
+  } else if ( *from )
+  { *into = *from;
+    *from = NULL;
+  }
+}
+
+
+static void
+merge_one_component(tbl_component *c, tbl_component *m)
+{ assert(m->magic == COMPONENT_MAGIC);
+
+  if ( m->status != SCC_ACTIVE )
+    return;
+
+  if ( m->children )
+    merge_children(c, m->children);
+
+  DEBUG(MSG_TABLING_WORK,
+	Sdprintf("Merged %p into %p, %zd worklists, %zd created\n",
+		 m, c,
+		 entriesBuffer(&m->worklist->members, worklist*),
+		 entriesBuffer(&m->created_worklists->members, worklist*)));
+
+  merge_worklists(&c->worklist, &m->worklist);
+  merge_worklists(&c->created_worklists, &m->created_worklists);
+  m->status = SCC_MERGED;
 }
 
 		 /*******************************
-		 *     THE GLOBAL WORKLIST	*
+		 *           WORKLISTS		*
 		 *******************************/
 
 static void
-add_global_worklist(worklist *wl ARG_LD)
-{ worklist_set *wls = global_worklist(LD);
+add_global_worklist(worklist *wl)
+{ tbl_component *c = wl->component;
+  worklist_set *wls;
+
+  if ( !(wls=c->worklist) )
+  { wls	= c->worklist = PL_malloc(sizeof(*c->worklist));
+    initBuffer(&wls->members);
+  }
 
   addBuffer(&wls->members, wl, worklist*);
   wl->in_global_wl = TRUE;
@@ -95,10 +252,10 @@ add_global_worklist(worklist *wl ARG_LD)
 
 
 static worklist *
-pop_worklist(PL_local_data_t *ld)
-{ worklist_set *wls = global_worklist(ld);
+pop_worklist(tbl_component *c)
+{ worklist_set *wls;
 
-  if ( !isEmptyBuffer(&wls->members) )
+  if ( (wls=c->worklist) && !isEmptyBuffer(&wls->members) )
   { worklist *wl = popBuffer(&wls->members, worklist*);
     wl->in_global_wl = FALSE;
 
@@ -110,63 +267,65 @@ pop_worklist(PL_local_data_t *ld)
 
 
 static void
-reset_global_worklist(PL_local_data_t *ld)
-{ tbl_component *c;
+reset_global_worklist(tbl_component *c)
+{ worklist_set *wls;
 
-  if ( (c=ld->tabling.component) )
-  { worklist_set *wls;
+  if ( c && (wls = c->worklist) )
+  { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
+    size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
 
-    if ( (wls = c->worklist) )
-    { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
-      size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
+    c->worklist = NULL;
 
-      c->worklist = NULL;
+    for(i=0; i<nwpl; i++)
+    { worklist *wl = wlp[i];
 
-      for(i=0; i<nwpl; i++)
-      { worklist *wl = wlp[i];
-
-	free_worklist(wl);
-      }
-
-      discardBuffer(&wls->members);
-      initBuffer(&wls->members);
-      PL_free(wls);
+      free_worklist(wl);
     }
+
+    free_worklist_set(wls);
   }
 }
 
 
 static void
-add_newly_created_worklist(worklist *wl ARG_LD)
-{ worklist_set *wls = newly_created_worklist(LD);
+add_newly_created_worklist(worklist *wl)
+{ tbl_component *c = wl->component;
+  worklist_set *wls;
+
+  if ( !(wls=c->created_worklists) )
+  { wls	= c->created_worklists = PL_malloc(sizeof(*c->created_worklists));
+    initBuffer(&wls->members);
+  }
 
   addBuffer(&wls->members, wl, worklist*);
 }
 
 static void
-reset_newly_created_worklists(PL_local_data_t *ld)
-{ tbl_component *c;
+reset_newly_created_worklists(tbl_component *c)
+{ worklist_set *wls;
 
-  if ( (c=ld->tabling.component) )
-  { worklist_set *wls;
-
-    if ( (wls = c->created_worklists) )
-    { c->created_worklists = NULL;
-      discardBuffer(&wls->members);
-      initBuffer(&wls->members);	/* TBD: Why!? */
-      PL_free(wls);
-    }
+  if ( c && (wls = c->created_worklists) )
+  { c->created_worklists = NULL;
+    free_worklist_set(wls);
   }
 }
 
 static size_t
-newly_created_worklists(worklist ***wlp ARG_LD)
-{ worklist_set *wls = newly_created_worklist(LD);
-
-  *wlp = (worklist**)baseBuffer(&wls->members, worklist*);
-  return entriesBuffer(&wls->members, worklist*);
+worklist_set_to_array(worklist_set *wls, worklist ***wlp)
+{ if ( wls )
+  { *wlp = (worklist**)baseBuffer(&wls->members, worklist*);
+    return entriesBuffer(&wls->members, worklist*);
+  } else
+  { *wlp = NULL;
+    return 0;
+  }
 }
 
+static void
+free_worklist_set(worklist_set *wls)
+{ discardBuffer(&wls->members);
+  PL_free(wls);
+}
 
 
 		 /*******************************
@@ -239,8 +398,8 @@ get_variant_table(term_t t, int create ARG_LD)
 
 void
 clearThreadTablingData(PL_local_data_t *ld)
-{ reset_global_worklist(ld);
-  reset_newly_created_worklists(ld);
+{ reset_global_worklist(ld->tabling.component);
+  reset_newly_created_worklists(ld->tabling.component);
   clear_variant_table(ld);
 }
 
@@ -368,6 +527,9 @@ static void
 free_worklist(worklist *wl)
 { cluster *c, *next;
 
+  return;
+
+  wl->magic = 0;
   for(c=wl->head; c; c = next)
   { next = c->next;
 
@@ -458,7 +620,7 @@ wkl_swap_clusters(worklist *wl, cluster *acp, cluster *scp)
 static void
 potentially_add_to_global_worklist(worklist *wl ARG_LD)
 { if ( !wl->in_global_wl && !wl->executing )
-    add_global_worklist(wl PASS_LD);
+    add_global_worklist(wl);
 }
 
 
@@ -533,8 +695,12 @@ unify_table_status(term_t t, trie *trie ARG_LD)
 
   if ( WL_IS_WORKLIST(wl) )
   { if ( wl->component != LD->tabling.component )
-      return FALSE;			/* parent component is running */
-					/* a variant of me */
+    { DEBUG(MSG_TABLING_WORK,
+	    Sdprintf("Merging into %p (current = %p)\n",
+		     wl->component, LD->tabling.component));
+      merge_component(wl->component);
+      LD->tabling.component = wl->component;
+    }
     return PL_unify_pointer(t, wl);
   }
   if ( !wl )
@@ -546,6 +712,23 @@ unify_table_status(term_t t, trie *trie ARG_LD)
   return FALSE;
 }
 
+static int
+get_scc(term_t t, tbl_component **cp)
+{ void *ptr;
+
+  if ( PL_get_pointer_ex(t, &ptr) )
+  { tbl_component *c = ptr;
+
+    if ( c->magic != COMPONENT_MAGIC )
+      return PL_existence_error("table component", t);
+
+    *cp = c;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 static int
 get_worklist(term_t t, worklist **wlp)
@@ -593,9 +776,9 @@ PRED_IMPL("$tbl_new_worklist", 2, tbl_new_worklist, 0)
   if ( get_trie(A2, &trie) )
   { worklist *wl = new_worklist(trie);
 
-    add_global_worklist(wl PASS_LD);
-    add_newly_created_worklist(wl PASS_LD);
     wl->component = LD->tabling.component;
+    add_global_worklist(wl);
+    add_newly_created_worklist(wl);
     return PL_unify_pointer(A1, wl);
   }
 
@@ -636,12 +819,16 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
  */
 
 static
-PRED_IMPL("$tbl_pop_worklist", 1, tbl_pop_worklist, 0)
+PRED_IMPL("$tbl_pop_worklist", 2, tbl_pop_worklist, 0)
 { PRED_LD
-  worklist *wl;
+  tbl_component *scc;
 
-  if ( (wl=pop_worklist(LD)) )
-    return PL_unify_pointer(A1, wl);
+  if ( get_scc(A1, &scc) )
+  { worklist *wl;
+
+    if ( (wl=pop_worklist(scc)) )
+      return PL_unify_pointer(A2, wl);
+  }
 
   return FALSE;
 }
@@ -751,7 +938,6 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
     return trie_error(rc, A2);
   }
 
-  Sdprintf("Could not get worklist\n");
   return FALSE;
 }
 
@@ -1016,67 +1202,60 @@ PRED_IMPL("$tbl_table_status", 2, tbl_table_status, 0)
 	   unify_table_status(A2, trie PASS_LD) );
 }
 
-/** '$tbl_table_complete_all'
+/** '$tbl_table_complete_all'(+SCC)
  *
  * Complete and reset all newly created tables.
  */
 
 static
-PRED_IMPL("$tbl_table_complete_all", 0, tbl_table_complete_all, 0)
+PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
 { PRED_LD
-  size_t i, ntables;
-  worklist **wls;
+  tbl_component *c;
 
-  ntables = newly_created_worklists(&wls PASS_LD);
-  for(i=0; i<ntables; i++)
-  { worklist *wl = wls[i];
-    trie *trie = wl->table;
+  if ( !get_scc(A1, &c) )
+    return FALSE;
 
-    trie->data.worklist = WL_COMPLETE;
-    free_worklist(wl);
+  if ( c->status == SCC_ACTIVE )
+  { worklist **wls;
+    size_t ntables = worklist_set_to_array(c->created_worklists, &wls);
+    size_t i;
+
+    for(i=0; i<ntables; i++)
+    { worklist *wl = wls[i];
+      trie *trie = wl->table;
+
+      trie->data.worklist = WL_COMPLETE;
+      free_worklist(wl);
+    }
+    reset_newly_created_worklists(c);
+    c->status = SCC_COMPLETED;
+
+    if ( c->parent && LD->tabling.component == c )
+      LD->tabling.component = c->parent;
+    if ( !c->parent )
+      LD->tabling.has_scheduling_component = FALSE;
+// FIXME: Leave destruction to GC
   }
-  reset_newly_created_worklists(LD);
 
   return TRUE;
 }
 
 
-/** '$tbl_table_discard_all'
+/** '$tbl_free_component'(+SCC)
  *
- * Discard all newly created tables and the worklists. This is used if
- * an exception happens during tabling.
+ * Destroy a component and all subcomponents
  */
 
 static
-PRED_IMPL("$tbl_table_discard_all", 0, tbl_table_discard_all, 0)
+PRED_IMPL("$tbl_free_component", 1, tbl_free_component, 0)
 { PRED_LD
-  size_t i, ntables;
-  worklist **wls;
+  tbl_component *c;
 
-  ntables = newly_created_worklists(&wls PASS_LD);
-  for(i=0; i<ntables; i++)
-  { worklist *wl = wls[i];
-    trie *trie = wl->table;
-
-    prune_node(LD->tabling.variant_table, trie->data.variant);
-    if ( !wl->in_global_wl )
-      free_worklist(wl);
-  }
-  reset_newly_created_worklists(LD);
-  reset_global_worklist(LD);
-  LD->tabling.has_scheduling_component = FALSE;
-
-  return TRUE;
-}
-
-
-
-static
-PRED_IMPL("$tbl_create_component", 0, tbl_create_component, 0)
-{ PRED_LD
-
-  if ( !LD->tabling.has_scheduling_component )
-  { LD->tabling.has_scheduling_component = TRUE;
+  if ( get_scc(A1, &c) )
+  { assert(!c->parent);
+    if ( LD->tabling.component == c )
+      free_component(c, FC_DESTROY);
+    assert(LD->tabling.component == NULL);
     return TRUE;
   }
 
@@ -1084,41 +1263,115 @@ PRED_IMPL("$tbl_create_component", 0, tbl_create_component, 0)
 }
 
 
+/** '$tbl_table_discard_all'(+SCC)
+ *
+ * Discard all newly created tables and the worklists. This is used if
+ * an exception happens during tabling.
+ */
+
 static
-PRED_IMPL("$tbl_create_subcomponent", 0, tbl_create_subcomponent, 0)
+PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
 { PRED_LD
   tbl_component *c;
 
-						/* no component; create main */
+  if ( get_scc(A1, &c) )
+  { if ( c->created_worklists )
+    { size_t i, ntables;
+      worklist **wls;
+
+      ntables = worklist_set_to_array(c->created_worklists, &wls);
+      for(i=0; i<ntables; i++)
+      { worklist *wl = wls[i];
+	trie *trie = wl->table;
+
+	prune_node(LD->tabling.variant_table, trie->data.variant);
+	if ( !wl->in_global_wl )
+	  free_worklist(wl);
+      }
+      reset_newly_created_worklists(c);
+    }
+    reset_global_worklist(c);
+    // FIXME: just pop?
+    LD->tabling.has_scheduling_component = FALSE;
+  }
+
+  return TRUE;
+}
+
+
+
+static
+PRED_IMPL("$tbl_create_component", 1, tbl_create_component, 0)
+{ PRED_LD
+
   if ( !LD->tabling.has_scheduling_component )
   { LD->tabling.has_scheduling_component = TRUE;
-    return TRUE;
+    if ( !LD->tabling.component )
+      LD->tabling.component = new_component();
+    else
+      LD->tabling.component->status = SCC_ACTIVE;
+    return PL_unify_pointer(A1, LD->tabling.component);
   }
-						/* existing: create sub */
-  c = PL_malloc(sizeof(*c));
-  memset(c, 0, sizeof(*c));
-  c->parent = LD->tabling.component;
-  LD->tabling.component = c;
 
-  return TRUE;
+  return FALSE;
 }
 
 
 static
-PRED_IMPL("$tbl_completed_component", 0, tbl_completed_component, 0)
+PRED_IMPL("$tbl_create_subcomponent", 1, tbl_create_subcomponent, 0)
+{ PRED_LD
+  tbl_component *c, *p;
+
+					/* no component; create main */
+  if ( !LD->tabling.has_scheduling_component )
+  { LD->tabling.has_scheduling_component = TRUE;
+    if ( !LD->tabling.component )
+      LD->tabling.component = new_component();
+    else
+      LD->tabling.component->status = SCC_ACTIVE;
+    return PL_unify_pointer(A1, LD->tabling.component);
+  }
+
+  c = new_component();
+  c->parent = (p=LD->tabling.component);
+  LD->tabling.component = c;
+  add_child_component(p, c);
+
+  return PL_unify_pointer(A1, c);
+}
+
+static int
+unify_component_status(term_t t, tbl_component *scc ARG_LD)
+{ atom_t status;
+
+  switch(scc->status)
+  { case SCC_ACTIVE:	status = ATOM_active; break;
+    case SCC_MERGED:	status = ATOM_merged; break;
+    case SCC_COMPLETED:
+    { if ( scc->parent )
+	status = ATOM_complete;
+      else
+	status = ATOM_final;
+      break;
+    }
+    default:
+      assert(0);
+      return FALSE;
+  }
+
+  return PL_unify_atom(t, status);
+}
+
+static
+PRED_IMPL("$tbl_component_status", 2, tbl_component_status, 0)
 { PRED_LD
   tbl_component *c;
 
-  if ( (c=LD->tabling.component) && c->parent )
-  { LD->tabling.component = c->parent;
-    PL_free(c);
-  } else
-  { LD->tabling.has_scheduling_component = FALSE;
-  }
+  if ( get_scc(A1, &c) )
+    return unify_component_status(A2, c PASS_LD);
 
-  return TRUE;
+  return FALSE;
 }
-
 
 
 /** '$tbl_abolish_all_tables' is det.
@@ -1153,6 +1406,185 @@ PRED_IMPL("$tbl_trienode", 1, tbl_trienode, 0)
   return PL_unify_atom(A1, ATOM_trienode);
 }
 
+		 /*******************************
+		 *     INSPECT TABLING DATA	*
+		 *******************************/
+
+static
+PRED_IMPL("$tbl_scc", 1, tbl_scc, 0)
+{ PRED_LD
+
+  if ( LD->tabling.component )
+    return PL_unify_pointer(A1, LD->tabling.component);
+
+  return FALSE;
+}
+
+
+
+static int
+unify_wl_set(term_t l, worklist_set *wls)
+{ GET_LD
+  worklist **p;
+  size_t i, n = worklist_set_to_array(wls, &p);
+
+  term_t tail = PL_copy_term_ref(l);
+  term_t head = PL_new_term_ref();
+  for(i=0; i<n; i++)
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_pointer(head, p[i]) )
+      return FALSE;
+  }
+
+  return PL_unify_nil(tail);
+}
+
+static int
+unify_scc_set(term_t l, component_set *cs)
+{ GET_LD
+  term_t tail = PL_copy_term_ref(l);
+
+  if ( cs )
+  { tbl_component **c = baseBuffer(&cs->members, tbl_component*);
+    tbl_component **top = topBuffer(&cs->members, tbl_component*);
+    term_t head = PL_new_term_ref();
+
+    for(; c < top; c++)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_pointer(head, *c) )
+	return FALSE;
+    }
+  }
+
+  return PL_unify_nil(tail);
+}
+
+static int
+unify_pointer_or_nil(term_t t, void *ptr)
+{ GET_LD
+
+  if ( ptr )
+    return PL_unify_pointer(t, ptr);
+  else
+    return PL_unify_atom_chars(t, "null");
+}
+
+static
+PRED_IMPL("$tbl_scc_data", 2, tbl_scc_data, 0)
+{ PRED_LD
+  tbl_component *scc;
+
+  if ( get_scc(A1, &scc) )
+  { term_t av = PL_new_term_refs(5);
+    term_t t = PL_new_term_ref();
+    static functor_t f = 0;
+
+    if ( !f ) f = PL_new_functor(PL_new_atom("scc"),5);
+
+    return ( unify_pointer_or_nil(av+0, scc->parent) &&
+	     unify_scc_set(av+1, scc->children) &&
+	     unify_component_status(av+2, scc PASS_LD) &&
+	     unify_wl_set(av+3, scc->worklist) &&
+	     unify_wl_set(av+4, scc->created_worklists) &&
+	     PL_cons_functor_v(t, f, av) &&
+	     PL_unify(t, A2) );
+  }
+
+  return FALSE;
+}
+
+
+static int
+unify_cluster(term_t t, cluster *c, int is_riac)
+{ GET_LD
+
+  if ( is_riac )
+  { term_t a = PL_new_term_ref();
+    if ( !PL_unify_term(t, PL_FUNCTOR_CHARS, "riac", 1,
+			     PL_TERM, a) )
+      return FALSE;
+    t = a;
+  }
+
+  term_t tail = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
+
+  if ( c->type == CLUSTER_ANSWERS )
+  { trie_node **ap  = baseBuffer(&c->members, trie_node*);
+    trie_node **top = topBuffer(&c->members, trie_node*);
+    term_t answer = PL_new_term_ref();
+    term_t modeav = PL_new_term_ref();
+
+    for(; ap < top; ap++)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !put_trie_term(*ap, answer PASS_LD) ||
+	   !put_trie_value(modeav, *ap PASS_LD) ||
+	   !PL_unify_term(head, PL_FUNCTOR_CHARS, "-", 2,
+			          PL_TERM, answer, PL_TERM, modeav) )
+	return FALSE;
+    }
+    return PL_unify_nil(tail);
+  } else
+  { record_t *sp  = baseBuffer(&c->members, record_t);
+    record_t *top = topBuffer(&c->members, record_t);
+    term_t tmp = PL_new_term_ref();
+
+    assert(c->type == CLUSTER_SUSPENSIONS);
+
+    for(; sp < top; sp++)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_recorded(*sp, tmp) ||
+	   !PL_unify(tmp, head) )
+	return FALSE;
+    }
+    return PL_unify_nil(tail);
+  }
+}
+
+
+static int
+unify_clusters(term_t t, worklist *wl)
+{ GET_LD
+  cluster *c;
+  term_t tail = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
+
+  for(c=wl->head; c; c=c->next)
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !unify_cluster(head, c, c==wl->riac) )
+      return FALSE;
+  }
+
+  return PL_unify_nil(tail);
+}
+
+
+static
+PRED_IMPL("$tbl_worklist_data", 2, tbl_wprklist_data, 0)
+{ PRED_LD
+  worklist *wl;
+
+  if ( get_worklist(A1, &wl) )
+  { term_t av = PL_new_term_refs(5);
+    term_t t = PL_new_term_ref();
+    static functor_t f = 0;
+
+    if ( !f ) f = PL_new_functor(PL_new_atom("worklist"),5);
+
+    return ( PL_unify_pointer(av+0, wl->component) &&
+	     _PL_unify_atomic(av+1, wl->table->symbol) &&
+	     PL_unify_bool(av+2, wl->in_global_wl) &&
+	     PL_unify_bool(av+3, wl->executing) &&
+	     unify_clusters(av+4, wl) &&
+	     PL_cons_functor_v(t, f, av) &&
+	     PL_unify(t, A2)
+	   );
+  }
+
+  return FALSE;
+}
+
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -1160,7 +1592,7 @@ PRED_IMPL("$tbl_trienode", 1, tbl_trienode, 0)
 
 BeginPredDefs(tabling)
   PRED_DEF("$tbl_new_worklist",		2, tbl_new_worklist,	     0)
-  PRED_DEF("$tbl_pop_worklist",		1, tbl_pop_worklist,	     0)
+  PRED_DEF("$tbl_pop_worklist",		2, tbl_pop_worklist,	     0)
   PRED_DEF("$tbl_wkl_add_answer",	2, tbl_wkl_add_answer,	     0)
   PRED_DEF("$tbl_wkl_mode_add_answer",	4, tbl_wkl_mode_add_answer,  0)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
@@ -1169,12 +1601,17 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_variant_table",	3, tbl_variant_table,	     0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		2, tbl_table_status,	     0)
-  PRED_DEF("$tbl_table_complete_all",	0, tbl_table_complete_all,   0)
-  PRED_DEF("$tbl_table_discard_all",    0, tbl_table_discard_all,    0)
-  PRED_DEF("$tbl_create_component",	0, tbl_create_component,     0)
-  PRED_DEF("$tbl_create_subcomponent",  0, tbl_create_subcomponent,  0)
-  PRED_DEF("$tbl_completed_component",  0, tbl_completed_component,  0)
+  PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)
+  PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
+  PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
+  PRED_DEF("$tbl_create_component",	1, tbl_create_component,     0)
+  PRED_DEF("$tbl_create_subcomponent",  1, tbl_create_subcomponent,  0)
+  PRED_DEF("$tbl_component_status",     2, tbl_component_status,     0)
   PRED_DEF("$tbl_abolish_all_tables",   0, tbl_abolish_all_tables,   0)
   PRED_DEF("$tbl_destroy_table",        1, tbl_destroy_table,        0)
   PRED_DEF("$tbl_trienode",             1, tbl_trienode,             0)
+
+  PRED_DEF("$tbl_scc",                  1, tbl_scc,                  0)
+  PRED_DEF("$tbl_scc_data",             2, tbl_scc_data,             0)
+  PRED_DEF("$tbl_worklist_data",        2, tbl_wprklist_data,        0)
 EndPredDefs

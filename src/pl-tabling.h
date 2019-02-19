@@ -42,6 +42,7 @@ typedef enum
 } cluster_type;
 
 #define WORKLIST_MAGIC	0x67e9124e
+#define COMPONENT_MAGIC	0x67e9124f
 
 
 		 /*******************************
@@ -52,10 +53,23 @@ typedef struct worklist_set
 { buffer members;
 } worklist_set;
 
+typedef struct component_set
+{ buffer members;
+} component_set;
+
+typedef enum
+{ SCC_ACTIVE=0,
+  SCC_MERGED,
+  SCC_COMPLETED
+} scc_status;
+
 typedef struct tbl_component
-{ struct tbl_component *parent;
-  struct worklist_set *worklist;		/* Worklist of current query */
-  struct worklist_set *created_worklists;	/* Worklists created */
+{ int			magic;			/* COMPONENT_MAGIC */
+  scc_status	        status;			/* SCC_* */
+  struct tbl_component *parent;
+  component_set        *children;		/* Child components */
+  worklist_set         *worklist;		/* Worklist of current query */
+  worklist_set         *created_worklists;	/* Worklists created */
 } tbl_component;
 
 
