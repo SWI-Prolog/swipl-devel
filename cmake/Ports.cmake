@@ -93,8 +93,9 @@ if(CMAKE_CROSSCOMPILING)
       set(PROG_SWIPL_FOR_BOOT $<TARGET_FILE:swipl>)
     endif()
   else()
-    set(PROG_SWIPL $<TARGET_FILE:swipl>
+    set(PROG_SWIPL_TARGET_FILE $<TARGET_FILE:swipl>
 	CACHE STRING "SWI-Prolog executable to perform build tasks")
+    set(PROG_SWIPL ${CMAKE_CROSSCOMPILING_EMULATOR} ${PROG_SWIPL_TARGET_FILE})
     set(PROG_SWIPL_FOR_BOOT ${PROG_SWIPL})
   endif()
 else(CMAKE_CROSSCOMPILING)
