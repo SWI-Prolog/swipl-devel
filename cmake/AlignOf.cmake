@@ -25,9 +25,9 @@ function(alignof VAR_ALIGNOF_INT64_T VAR_ALIGNOF_VOIDP VAR_ALIGNOF_DOUBLE)
             REGEX "^DOUBLE_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
 
          # Extract alignments from patterns and assign them to the variables
-         string(REGEX MATCH "${alignof_pat_regex}$" int64_alignment ${alignof_int64_pat})
-         string(REGEX MATCH "${alignof_pat_regex}$" double_alignment ${alignof_double_pat})
-         string(REGEX MATCH "${alignof_pat_regex}$" voidp_alignment ${alignof_voidp_pat})
+         string(REGEX MATCH "${alignof_pat_regex}$" int64_alignment "${alignof_int64_pat}")
+         string(REGEX MATCH "${alignof_pat_regex}$" double_alignment "${alignof_double_pat}")
+         string(REGEX MATCH "${alignof_pat_regex}$" voidp_alignment "${alignof_voidp_pat}")
 
          # Cache the results
          set(${VAR_ALIGNOF_INT64_T} ${int64_alignment} CACHE STRING "Alignment of int64_t")
