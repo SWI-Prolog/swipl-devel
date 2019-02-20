@@ -162,6 +162,14 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 
 ### WASM (Emscripten)
 
+__Note__: due to a  bug  in   the  current  Emscripten  directory access
+functions we need the _native friend_   mechanism  to create the library
+index. The flags below  include   `-DNATIVE_FRIEND=build`,  assuming you
+built a native executable in the   directory  `build` below the sources.
+Adjust as necessary.
+
+    [Assumes native Prolog in `build`.  See note above]
+
     mkdir build.wasm
     cd build.wasm
     source ~/emsdk/emsdk_env.sh
@@ -175,6 +183,7 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 	  -DBUILD_SWIPL_LD=OFF \
 	  -DSWIPL_PACKAGES=OFF \
 	  -DINSTALL_DOCUMENTATION=OFF \
+	  -DNATIVE_FRIEND=build \
 	  -G Ninja ..
 
 ### Building a 32-bit version on 64-bit Debian based Linux
