@@ -31,7 +31,6 @@ set(WASM_WEB_LINK_FLAGS
     -s WASM=1
     -s MODULARIZE=1
     -s EXPORT_NAME=SWIPL
-    -s BINARYEN_METHOD='native-wasm'
     -s BINARYEN_TRAP_MODE=clamp
     -s NO_EXIT_RUNTIME=0
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
