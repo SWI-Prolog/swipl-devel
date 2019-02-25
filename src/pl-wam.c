@@ -671,7 +671,10 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
     fr = (LocalFrame)valTermRef(fref);
   }
 
-  return callEventHook(PLEV_FRAMEFINISHED, fr);
+  if ( true(fr, FR_DEBUG) )
+    return callEventHook(PLEV_FRAMEFINISHED, fr);
+
+  return TRUE;
 }
 
 
