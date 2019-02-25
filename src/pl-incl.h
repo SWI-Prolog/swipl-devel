@@ -932,12 +932,14 @@ Macros for environment frames (local stack frames)
 #define FR_SKIPPED		(0x0002) /* We have skipped on this frame */
 #define FR_MARKED		(0x0004) /* GC */
 #define FR_MARKED_PRED		(0x0008) /* GC predicates/clauses */
-#define FR_WATCHED		(0x0010) /* GUI debugger */
+#define FR_DEBUG		(0x0010) /* GUI debugger */
 #define FR_CATCHED		(0x0020) /* Frame caught an exception */
 #define FR_INBOX		(0x0040) /* Inside box (for REDO in built-in) */
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
-#define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4: marked for cleanup */
+#define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4 */
 #define FR_INRESET		(0x0200) /* Continuations: inside reset/3 */
+#define FR_WATCHED (FR_CLEANUP|FR_DEBUG)
+
 #define FR_MAGIC_MASK		(0xfffff000)
 #define FR_MAGIC_MASK2		(0xffff0000)
 #define FR_MAGIC		(0x549d5000)

@@ -4154,7 +4154,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
     THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR PASS_LD);
-  set(FR, FR_WATCHED|FR_CLEANUP);
+  set(FR, FR_CLEANUP);
 				/* = B_VAR1 */
   *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
 
