@@ -347,6 +347,12 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     fail;
   }
 
+  /* Quick check for '$sig_atomic'(true) resulting from the call_cleanup
+   * series
+   */
+  if ( fd == FUNCTOR_true0 )
+    return TRUE;
+
   proc = resolveProcedure(fd, module);
 
   { int arity = arityFunctor(fd);
