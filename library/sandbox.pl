@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2016, VU University Amsterdam
+    Copyright (c)  2013-2019, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -538,6 +539,8 @@ safe_primitive(=:=(_,_)).
 safe_primitive(=\=(_,_)).
 safe_primitive(=<(_,_)).
 safe_primitive(<(_,_)).
+safe_primitive(system:nth_integer_root_and_remainder(_,_,_,_)).
+
                                         % term-handling
 safe_primitive(arg(_,_,_)).
 safe_primitive(system:setarg(_,_,_)).
@@ -701,6 +704,8 @@ safe_primitive(system:b_setval(Var,_)) :-
     safe_global_var(Var).
 safe_primitive(system:nb_getval(_,_)).
 safe_primitive('$syspreds':nb_setval(Var,_)) :-
+    safe_global_var(Var).
+safe_primitive(system:nb_linkval(Var,_)) :-
     safe_global_var(Var).
 safe_primitive(system:nb_current(_,_)).
                                         % database
