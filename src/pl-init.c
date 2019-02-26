@@ -341,7 +341,9 @@ memarea_limit(const char *s)
   if ( str_number((unsigned char *)s, &q, &n, FALSE) == NUM_OK &&
        intNumber(&n) )
   { switch((int)*q)
-    { case 'k':
+    { case 0:
+	return (size_t)n.value.i;
+      case 'k':
       case 'K':
 	return (size_t)n.value.i K;
       case 'm':
