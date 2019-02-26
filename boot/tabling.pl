@@ -244,7 +244,7 @@ run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, SCC) :-
     '$tbl_component_status'(SCC, Status),
     (   Status == final
     ->  '$tbl_free_component'(SCC)
-    ;   true
+    ;   true                                    % What if merged?
     ).
 
 
