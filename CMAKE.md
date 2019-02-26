@@ -87,6 +87,20 @@ using e.g.,
     cmake -DCMAKE_BUILD_TYPE=Debug
     cmake -DCMAKE_BUILD_TYPE=Release
 
+## Install location
+
+To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/install`. For example:
+
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git
+    
+After `sudo make install`, SWI will be located in `/usr/local/swipl-git` and can be run via `/usr/local/swipl-git/bin/swipl`.
+
+You may then want to set env variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` accordingly:
+
+    export SWI_HOME_DIR=/usr/local/swipl-git/lib/swipl/
+    export LD_LIBRARY_PATH=/usr/local/swipl-git/lib/swipl/lib/x86_64-linux/:$LD_LIBRARY_PATH
+
+
 ## Customizing SWI-Prolog
 
 By default the system configures all   features. Several cmake _options_
