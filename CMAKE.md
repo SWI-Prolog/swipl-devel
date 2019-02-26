@@ -34,11 +34,15 @@ the current git version.
 
 ### Getting the source
 
-The   source   imay   be    downloaded    as     a    tar    ball   from
-http://www.swi-prolog.org or downloaded using git.  The git sequencen is:
+The   source   may   be    downloaded    as     a    tar    ball   from
+http://www.swi-prolog.org or downloaded using git.  The git sequence is:
 
     git clone https://github.com/SWI-Prolog/swipl-devel.git
     git submodule update --init
+
+If not all modules are needed, one can clone/update a particular one as follows:
+
+    git submodule update --init packages/jpl
 
 
 ### Building from source
