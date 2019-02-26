@@ -111,27 +111,50 @@ start_tabling(Wrapper, Worker) :-
     (   Status == complete
     ->  trie_gen(Trie, Wrapper, _)
     ;   Status == fresh
-    ->  '$tbl_create_subcomponent'(SubComponent),
-        catch(run_leader(Wrapper, Worker, Trie, SubComponent, LStatus),
-              E, true),
-        (   var(E)
-        ->  tdebug(schedule, 'Leader ~p done, status = ~p', [Wrapper, LStatus]),
-            done_leader(LStatus, SubComponent, Wrapper, Trie)
-        ;   '$tbl_table_discard_all'(SubComponent),
-            throw(E)
-        )
+    ->  '$tbl_create_subcomponent'(SCC),
+        setup_call_catcher_cleanup(
+            true,
+            run_leader(Wrapper, Worker, Trie, SCC, LStatus),
+            Catcher,
+            finished_leader(Catcher, SCC, Wrapper)),
+        tdebug(schedule, 'Leader ~p done, status = ~p', [Wrapper, Status]),
+        done_leader(LStatus, SCC, Wrapper, Trie)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Wrapper, Status))
     ).
 
+done_leader(complete, _SCC, Wrapper, Trie) :-
+    !,
+    trie_gen(Trie, Wrapper, _).
 done_leader(final, SCC, Wrapper, Trie) :-
     !,
     '$tbl_free_component'(SCC),
     trie_gen(Trie, Wrapper, _).
-done_leader(complete, _SCC, Wrapper, Trie) :-
-    !,
-    trie_gen(Trie, Wrapper, _).
-done_leader(_, _SCC, _Wrapper, _Trie).
+done_leader(_,_,_,_).
+
+finished_leader(exit, _, _) :-
+    !.
+finished_leader(fail, _, _) :-
+    !.
+finished_leader(Catcher, SCC, Wrapper) :-
+    '$tbl_table_discard_all'(SCC),
+    (   Catcher = exception(_)
+    ->  true
+    ;   print_message(error, tabling(unexpected_result(Wrapper, Catcher)))
+    ).
+
+%!  run_leader(+Wrapper, +Worker, +Trie, +SCC, -Status) is det.
+%
+%   Run the leader of  a  (new)   SCC,  storing  instantiated  copies of
+%   Wrapper into Trie. Status  is  the  status   of  the  SCC  when this
+%   predicate terminates. It is one of   `complete`, in which case local
+%   completion finished or `merged` if running   the completion finds an
+%   open (not completed) active goal that resides in a parent component.
+%   In this case, this SCC has been merged with this parent.
+%
+%   If the SCC is merged, the answers   it already gathered are added to
+%   the worklist and we shift  (suspend),   turning  our  leader into an
+%   internal node for the upper SCC.
 
 run_leader(Wrapper, Worker, Trie, SCC, Status) :-
     tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Wrapper]),
@@ -200,14 +223,14 @@ start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SubComponent),
-        catch(run_leader(Wrapper, WrapperNoModes, ModeArgs,
-                         Worker, Trie, SubComponent),
-              E, true),
-        (   var(E)
-        ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
-        ;   '$tbl_table_discard_all'(SubComponent),
-            throw(E)
-        )
+        setup_call_catcher_cleanup(
+            true,
+            run_leader(Wrapper, WrapperNoModes, ModeArgs,
+                       Worker, Trie, SubComponent),
+            Catcher,
+            finished_leader(Catcher, SubComponent, Wrapper)),
+        tdebug(schedule, 'Leader ~p done, modeargs = ~p', [Wrapper, ModeArgs]),
+        trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Wrapper, Status))
     ).
