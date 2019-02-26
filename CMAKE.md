@@ -93,7 +93,9 @@ To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/i
 
     cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git
     
-After `sudo make install`, SWI will be located in `/usr/local/swipl-git` and can be run via `/usr/local/swipl-git/bin/swipl`.
+After `sudo make install`, SWI will be located in `/usr/local/swipl-git` and can be run as follows:
+
+    /usr/local/swipl-git/bin/swipl
 
 You may then want to set env variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` accordingly:
 
