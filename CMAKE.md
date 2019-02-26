@@ -40,9 +40,9 @@ http://www.swi-prolog.org or downloaded using git.  The git sequence is:
     git clone https://github.com/SWI-Prolog/swipl-devel.git
     git submodule update --init
 
-If not all modules are needed, one can clone/update a particular one as follows:
+If not all modules are needed, one can clone/update particular ones as follows:
 
-    git submodule update --init packages/jpl
+    git submodule update --init packages/jpl packages/clib
 
 
 ### Building from source
