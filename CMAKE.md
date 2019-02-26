@@ -38,6 +38,7 @@ The   source   may   be    downloaded    as     a    tar    ball   from
 http://www.swi-prolog.org or downloaded using git.  The git sequence is:
 
     git clone https://github.com/SWI-Prolog/swipl-devel.git
+    cd swipl-devel
     git submodule update --init
 
 If not all modules are needed, one can clone/update particular ones as follows:
