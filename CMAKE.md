@@ -43,7 +43,7 @@ http://www.swi-prolog.org or downloaded using git.  The git sequence is:
 
 If not all modules are needed, one can clone/update particular ones as follows:
 
-    git submodule update --init packages/jpl packages/clib
+    git submodule update --init packages/jpl packages/clib packages/sgml
 
 
 ### Building from source
