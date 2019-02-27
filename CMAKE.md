@@ -93,14 +93,16 @@ To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/i
 
     cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git
     
-After `sudo make install`, SWI will be located in `/usr/local/swipl-git` and can be run as follows:
-
-    /usr/local/swipl-git/bin/swipl
-
-You may then want to set env variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` accordingly:
+After `sudo make install`, SWI will be located in `/usr/local/swipl-git`. Next adapt environment variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` to point to the new compiled and installed SWI system:
 
     export SWI_HOME_DIR=/usr/local/swipl-git/lib/swipl/
     export LD_LIBRARY_PATH=/usr/local/swipl-git/lib/swipl/lib/x86_64-linux/:$LD_LIBRARY_PATH
+
+Finally, you can run it:
+
+    /usr/local/swipl-git/bin/swipl
+
+_NOTE:_ if there is already an installed SWI (e.g., the one coming with a Linux distribution), running `swipl` will run the new installed system pointed by `SWI_HOME_DIR`.
 
 
 ## Customizing SWI-Prolog
@@ -380,4 +382,10 @@ generate the Ubuntu PPA releases.
 
 ## Issues
 
-  - Provide a FindSWIPL.cmake?
+- Provide a FindSWIPL.cmake?
+- Problem compiling SWI when another SWI is installed already; see [issue](https://github.com/SWI-Prolog/swipl-devel/issues/435)
+
+
+
+
+
