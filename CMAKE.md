@@ -84,14 +84,14 @@ If this fails, one of these measures may be appropriate:
 The default build type is `RelWithDebInfo`.  Alternatives may be selected
 using e.g.,
 
-    cmake -DCMAKE_BUILD_TYPE=Debug
-    cmake -DCMAKE_BUILD_TYPE=Release
+    cmake -DCMAKE_BUILD_TYPE=Debug ..
+    cmake -DCMAKE_BUILD_TYPE=Release ..
 
 ## Install location
 
 To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/install`. For example:
 
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git ..
     
 After `sudo make install`, SWI will be located in `/usr/local/swipl-git`. Next adapt environment variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` to point to the new compiled and installed SWI system:
 
