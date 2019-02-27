@@ -89,9 +89,9 @@ using e.g.,
 
 ## Install location
 
-To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/install`. For example:
+To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/install`. For example, this will build SWI to be installed in `/usr/local/swipl-git` and will not include the documentation (see below for other customization options):
 
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git ..
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git -DINSTALL_DOCUMENTATION=OFF ..
     
 After `sudo make install`, SWI will be located in `/usr/local/swipl-git`. Next adapt environment variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` to point to the new compiled and installed SWI system:
 
