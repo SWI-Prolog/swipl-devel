@@ -2549,7 +2549,7 @@ Examples are the RDF library where code frequently specifies property
 and class names\footnote{Samer Abdallah suggested this feature based on
 experience with non-Prolog users using the RDF library.} and the R
 interface for specifying functions or variables that start with an
-uppercase character. Lexical databases were part of the terms start with
+uppercase character. Lexical databases where part of the terms start with
 an uppercase letter is another category were the readability of the code
 improves using this option.
 
