@@ -107,20 +107,20 @@ table(PIList) :-
 %           from future versions.
 
 start_tabling(Wrapper, Worker) :-
-    '$tbl_variant_table'(Wrapper, Trie, Status),
+    '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
     (   Status == complete
-    ->  trie_gen(Trie, Wrapper, _)
+    ->  trie_gen(Trie, Skeleton, _)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SCC),
         setup_call_catcher_cleanup(
             true,
-            run_leader(Wrapper, Worker, Trie, SCC, LStatus),
+            run_leader(Skeleton, Worker, Trie, SCC, LStatus),
             Catcher,
             finished_leader(Catcher, SCC, Wrapper)),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Wrapper, Status]),
-        done_leader(LStatus, SCC, Wrapper, Trie)
+        done_leader(LStatus, SCC, Skeleton, Trie)
     ;   % = run_follower, but never fresh and Status is a worklist
-        shift(call_info(Wrapper, Status))
+        shift(call_info(Skeleton, Status))
     ).
 
 done_leader(complete, _SCC, Wrapper, Trie) :-
@@ -160,7 +160,7 @@ run_leader(Wrapper, Worker, Trie, SCC, Status) :-
     tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Wrapper]),
     activate(Wrapper, Worker, Trie, Worklist),
     tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Wrapper]),
-    completion(SCC, Wrapper, Worklist),
+    completion(SCC),
     tdebug(schedule, '-> Completed component ~p for ~p', [SCC, Wrapper]),
     '$tbl_component_status'(SCC, Status),
     (   Status == merged
@@ -218,7 +218,7 @@ add_answer_or_suspend(Continuation, Wrapper, WorkList,
 %   answer trie in the Variant and ModeArgs.
 
 start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
-    '$tbl_variant_table'(WrapperNoModes, Trie, Status),
+    '$tbl_variant_table'(WrapperNoModes, Trie, Status, _Skeleton),
     (   Status == complete
     ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   Status == fresh
@@ -239,8 +239,8 @@ get_wrapper_no_mode_args(M:Wrapper, M:WrapperNoModes, ModeArgs) :-
     M:'$table_mode'(Wrapper, WrapperNoModes, ModeArgs).
 
 run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, SCC) :-
-    activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, Worklist),
-    completion(SCC, Wrapper, Worklist),
+    activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, _Worklist),
+    completion(SCC),
     '$tbl_component_status'(SCC, Status),
     (   Status == final
     ->  '$tbl_free_component'(SCC)
@@ -299,22 +299,22 @@ update(M:Wrapper, A1, A2, A3) :-
 %
 %   Wakeup suspended goals until no new answers are generated.
 
-completion(SCC, Wrapper, Worklist) :-
+completion(SCC) :-
     % show_scc('Complete'),
     '$tbl_component_status'(SCC, Status),
     (   Status == active
     ->  (   '$tbl_pop_worklist'(SCC, WorkList)
-        ->  tdebug(schedule, 'Complete WL ~p in ~p for ~p',
-                   [WorkList, SCC, Wrapper]),
+        ->  tdebug(schedule, 'Complete WL ~p in ~p',
+                   [WorkList, SCC]),
             completion_step(WorkList),
-            completion(SCC, Wrapper, Worklist)
-        ;   tdebug(schedule, 'Completed ~p for ~p',
-                   [SCC, Wrapper]),
+            completion(SCC)
+        ;   tdebug(schedule, 'Completed ~p',
+                   [SCC]),
             '$tbl_table_complete_all'(SCC)
         )
     ;   Status == merged
-    ->  tdebug(schedule, 'Aborted completion for ~p (SCC=~p)',
-               [Wrapper, scc(SCC)])
+    ->  tdebug(schedule, 'Aborted completion (SCC=~p)',
+               [scc(SCC)])
     ;   true
     ).
 

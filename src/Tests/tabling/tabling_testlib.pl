@@ -157,7 +157,10 @@ test_answers_for_variant_([ExpectedAnswer|Rest], Trie, True) :-
 	),
 	% get_answer => uses unification, so this won't work properly
 	% for nonground answers.
-	(   trie_lookup(Trie,ExpectedAnswer,_)
+	'$tbl_table_status'(Trie, Status, Wrapper, Skeleton),
+	assertion(Status == complete),
+	ExpectedAnswer = Wrapper,
+	(   trie_lookup(Trie,Skeleton,_)
 	->  true
 	;   print_message(error, format('Missing expected answer ~p',
 					[ExpectedAnswer])),

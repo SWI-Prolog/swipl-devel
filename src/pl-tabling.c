@@ -713,6 +713,33 @@ unify_table_status(term_t t, trie *trie ARG_LD)
 }
 
 static int
+unify_skeleton(trie *trie, term_t wrapper, term_t skeleton ARG_LD)
+{ if ( trie->data.skeleton )
+  { term_t av;
+
+    return ( (av=PL_new_term_refs(2)) &&
+	     PL_recorded(trie->data.skeleton, av+0) &&
+	     (_PL_get_arg(1, av+0, av+1),TRUE) &&
+	     PL_unify(wrapper, av+1) &&
+	     (_PL_get_arg(2, av+0, av+1),TRUE) &&
+	     PL_unify(skeleton, av+1) );
+  } else
+  { term_t av;
+
+    if ( (av = PL_new_term_ref()) &&
+	 term_var_skeleton(wrapper, av PASS_LD) &&
+	 PL_unify(av, skeleton) &&
+	 PL_cons_functor(av, FUNCTOR_minus2, wrapper, av) )
+    { trie->data.skeleton = PL_record(av);
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+}
+
+
+static int
 get_scc(term_t t, tbl_component **cp)
 { void *ptr;
 
@@ -1151,7 +1178,7 @@ PRED_IMPL("$tbl_wkl_work", 7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 }
 
 
-/** '$tbl_variant_table'(+Variant, -Trie, -Status) is det.
+/** '$tbl_variant_table'(+Variant, -Trie, -Status, -Skeleton) is det.
  *
  * Retrieve the table for Variant. Status is one of
  *
@@ -1161,13 +1188,14 @@ PRED_IMPL("$tbl_wkl_work", 7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
  */
 
 static
-PRED_IMPL("$tbl_variant_table", 3, tbl_variant_table, 0)
+PRED_IMPL("$tbl_variant_table", 4, tbl_variant_table, 0)
 { PRED_LD
   trie *trie;
 
   if ( (trie=get_variant_table(A1, TRUE PASS_LD)) )
   { return ( _PL_unify_atomic(A2, trie->symbol) &&
-	     unify_table_status(A3, trie PASS_LD) );
+	     unify_table_status(A3, trie PASS_LD)  &&
+	     unify_skeleton(trie, A1, A4 PASS_LD) );
   }
 
   return FALSE;
@@ -1186,20 +1214,19 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, 0)
 }
 
 
-/** '$tbl_table_status'(+Trie, -Status)
+/** '$tbl_table_status'(+Trie, -Status, -Wrapper, -Skeleton)
  *
- * Set the status of Trie. Old is unified to one of `fresh`, `active`, a
- * worklist  or  `complete`.  New  is  one    of  `fresh`,  `active`  or
- * `complete`. In all cases the worklist is removed.
- */
+ * Get the status of Trie as well as its wrapper and Skeleton */
 
 static
-PRED_IMPL("$tbl_table_status", 2, tbl_table_status, 0)
+PRED_IMPL("$tbl_table_status", 4, tbl_table_status, 0)
 { PRED_LD
   trie *trie;
 
   return ( get_trie(A1, &trie) &&
-	   unify_table_status(A2, trie PASS_LD) );
+	   unify_table_status(A2, trie PASS_LD) &&
+	   (!trie->data.skeleton ||
+	    unify_skeleton(trie, A3, A4 PASS_LD)) );
 }
 
 /** '$tbl_table_complete_all'(+SCC)
@@ -1598,9 +1625,9 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
   PRED_DEF("$tbl_wkl_done",		1, tbl_wkl_done,	     0)
   PRED_DEF("$tbl_wkl_work",		7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$tbl_variant_table",	3, tbl_variant_table,	     0)
+  PRED_DEF("$tbl_variant_table",	4, tbl_variant_table,	     0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
-  PRED_DEF("$tbl_table_status",		2, tbl_table_status,	     0)
+  PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)

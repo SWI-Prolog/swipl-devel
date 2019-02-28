@@ -35,6 +35,7 @@
 #ifndef _PL_TRIE_H
 #define _PL_TRIE_H
 #include "pl-indirect.h"
+#include "pl-copyterm.h"
 
 #define TRIE_MAGIC  0x4bcbcf87
 #define TRIE_CMAGIC 0x4bcbcf88
@@ -93,6 +94,7 @@ typedef struct trie
   struct
   { struct worklist *worklist;		/* tabling worklist */
     trie_node	    *variant;		/* node in variant trie */
+    fastheap_term   *skeleton;		/* Wrapper-Vars */
   } data;
 } trie;
 
