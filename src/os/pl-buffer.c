@@ -40,7 +40,7 @@ growBuffer(Buffer b, size_t minfree)
   size_t top = b->top - b->base;
   char *new;
 
-  if ( b->max - b->top >= (int)minfree )
+  if ( b->max - b->top >= minfree )
     return TRUE;
 
   if ( sz < 512 )
