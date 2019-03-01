@@ -111,10 +111,11 @@ start_tabling(Wrapper, Worker) :-
     (   Status == complete
     ->  trie_gen(Trie, Skeleton, _)
     ;   Status == fresh
-    ->  '$tbl_create_subcomponent'(SCC),
+    ->  early_completion(Skeleton, Worker, Worker1),
+        '$tbl_create_subcomponent'(SCC),
         setup_call_catcher_cleanup(
             true,
-            run_leader(Skeleton, Worker, Trie, SCC, LStatus),
+            run_leader(Skeleton, Worker1, Trie, SCC, LStatus),
             Catcher,
             finished_leader(Catcher, SCC, Wrapper)),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Wrapper, Status]),
@@ -122,6 +123,9 @@ start_tabling(Wrapper, Worker) :-
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
+
+early_completion(v, Worker, once(Worker)) :- !.
+early_completion(_, Worker, Worker).
 
 done_leader(complete, _SCC, Wrapper, Trie) :-
     !,
