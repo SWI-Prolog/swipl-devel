@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2016, University of Amsterdam
+    Copyright (c)  2010-2019, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -101,6 +102,7 @@
 #define PL_put_term(t1, t2)	PL_put_term__LD(t1, t2 PASS_LD)
 #define PL_get_functor(t, f)	PL_get_functor__LD(t, f PASS_LD)
 #define PL_unify_atom(t, a)	PL_unify_atom__LD(t, a PASS_LD)
+#define _PL_unify_atomic(t, a)	PL_unify_atom__LD(t, a PASS_LD)
 #define PL_unify_pointer(t, p)	PL_unify_pointer__LD(t, p PASS_LD)
 #define PL_is_variable(t)	PL_is_variable__LD(t PASS_LD)
 #define PL_is_atomic(t)		PL_is_atomic__LD(t PASS_LD)

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2010, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -1917,12 +1917,12 @@ real atom.
 
 bool
 unifyKey(term_t key, word val)
-{ if ( isAtom(val) || isTaggedInt(val) )
+{ GET_LD
+
+  if ( isAtom(val) || isTaggedInt(val) )
   { return _PL_unify_atomic(key, val);
   } else
-  { GET_LD
-
-    return PL_unify_functor(key, (functor_t) val);
+  { return PL_unify_functor(key, (functor_t) val);
   }
 }
 

@@ -397,7 +397,9 @@ textToString(PL_chars_t *text)
 
 int
 PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
-{ switch(type)
+{ GET_LD
+
+  switch(type)
   { case PL_ATOM:
     { atom_t a = textToAtom(text);
 
@@ -426,15 +428,13 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 
       if ( text->length == 0 )
       { if ( tail )
-	{ GET_LD
-	  PL_put_term(tail, term);
+	{ PL_put_term(tail, term);
 	  return TRUE;
 	} else
 	{ return PL_unify_nil(term);
 	}
       } else
-      { GET_LD
-	term_t l = PL_new_term_ref();
+      { term_t l = PL_new_term_ref();
 	Word p0, p;
 
 	switch(text->encoding)
