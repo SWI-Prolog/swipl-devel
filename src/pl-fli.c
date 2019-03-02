@@ -3785,6 +3785,8 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 		 *       ATOMIC (INTERNAL)	*
 		 *******************************/
 
+#undef _PL_unify_atomic
+
 PL_atomic_t
 _PL_get_atomic(term_t t)
 { GET_LD
@@ -3804,6 +3806,8 @@ _PL_put_atomic(term_t t, PL_atomic_t a)
 { GET_LD
   setHandle(t, a);
 }
+
+#define _PL_unify_atomic(t, a)	PL_unify_atom__LD(t, a PASS_LD)
 
 
 		 /*******************************
