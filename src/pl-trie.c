@@ -1242,28 +1242,36 @@ typedef struct trie_choice
   trie_node *child;
   size_t gsize;
   unsigned int nvars;
-  struct trie_choice *next;
-  struct trie_choice *prev;
 } trie_choice;
 
 typedef struct
-{ trie_choice *head;		/* head of trie nodes */
-  trie_choice *tail;		/* tail of trie nodes */
-  trie        *trie;		/* trie we operate on */
+{ trie        *trie;		/* trie we operate on */
+  tmp_buffer   choicepoints;	/* Stack of trie state choicepoints */
 } trie_gen_state;
 
 
 static void
+init_trie_state(trie_gen_state *state, trie *trie)
+{ state->trie = trie;
+  initBuffer(&state->choicepoints);
+}
+
+
+#define base_choice(state) baseBuffer(&state->choicepoints, trie_choice)
+#define top_choice(state) topBuffer(&state->choicepoints, trie_choice)
+
+
+static void
 clear_trie_state(trie_gen_state *state)
-{ trie_choice *ch, *next;
+{ trie_choice *chp = base_choice(state);
+  trie_choice *top = top_choice(state);
 
-  for(ch=state->head; ch; ch=next)
-  { next = ch->next;
-
-    if ( ch->choice.table )
-      freeTableEnum(ch->choice.table);
-    PL_free(ch);
+  for(; chp < top; chp++)
+  { if ( chp->choice.table )
+      freeTableEnum(chp->choice.table);
   }
+
+  discardBuffer(&state->choicepoints);
 
   release_trie(state->trie);
 }
@@ -1271,10 +1279,19 @@ clear_trie_state(trie_gen_state *state)
 
 trie_choice *
 add_choice(trie_gen_state *state, trie_node *node)
-{ trie_choice *ch = PL_malloc(sizeof(*ch));
-  trie_children children = node->children;
-  size_t gsize = state->tail ? state->tail->gsize : 0;
-  unsigned int nvars = state->tail ? state->tail->nvars : 0;
+{ trie_children children = node->children;
+  trie_choice *ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+  size_t gsize;
+  unsigned int nvars;
+
+  if ( ch > base_choice(state) )
+  { trie_choice *prev = ch-1;
+    gsize = prev->gsize;
+    nvars = prev->nvars;
+  } else
+  { gsize = 0;
+    nvars = 0;
+  }
 
   if ( children.any )
   { switch( children.any->type )
@@ -1314,14 +1331,6 @@ add_choice(trie_gen_state *state, trie_node *node)
   ch->gsize = gsize;
   ch->nvars = nvars;
 
-  ch->next = NULL;
-  ch->prev = state->tail;
-  if ( state->tail )
-    state->tail->next = ch;
-  else
-    state->head = ch;
-  state->tail = ch;
-
   return ch;
 }
 
@@ -1333,23 +1342,6 @@ descent_node(trie_gen_state *state, trie_choice *ch)
   }
 
   return ch->child->value != 0;
-}
-
-
-static trie_choice *
-previous_choice(trie_gen_state *state)
-{ trie_choice *ch = state->tail;
-
-  if ( ch->choice.table )
-    freeTableEnum(ch->choice.table);
-  state->tail = ch->prev;
-  if ( state->tail )
-    state->tail->next = NULL;
-  else
-    state->head = NULL;
-  PL_free(ch);
-
-  return state->tail;
 }
 
 
@@ -1372,12 +1364,16 @@ advance_node(trie_choice *ch)
 
 static int
 next_choice(trie_gen_state *state)
-{ trie_choice *ch;
+{ trie_choice *btm = base_choice(state);
+  trie_choice  *ch = top_choice(state)-1;
 
-  for( ch = state->tail; ch; ch = previous_choice(state) )
+  while(ch >= btm)
   { if ( advance_node(ch) &&
 	 descent_node(state, ch) )
       return TRUE;
+
+    state->choicepoints.top = (char*)ch;
+    ch--;
   }
 
   return FALSE;
@@ -1387,25 +1383,23 @@ next_choice(trie_gen_state *state)
 static int
 put_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
 { int rc = TRUE;
-  trie_choice *ch;
   build_state bstate;
+  trie_choice *lch = top_choice(gstate)-1;
 
   if ( init_build_state(&bstate,
 			gstate->trie,
-			gstate->tail->gsize,
-			gstate->tail->nvars+1 PASS_LD) )
-  {
+			lch->gsize,
+			lch->nvars+1 PASS_LD) )
+  { trie_choice *ch = base_choice(gstate);
+    trie_choice *top = top_choice(gstate);
 #ifndef NDEBUG
-    Word gok = gTop + gstate->tail->gsize;
+    Word gok = gTop + lch->gsize;
 #endif
 
-    for( ch = gstate->head; ch; ch = ch->next )
+    for( ; ch < top; ch++ )
     { if ( !eval_key(&bstate, ch->key PASS_LD) )
       { rc = FALSE;
 	break;
-      }
-      if ( !ch->next )
-      { *value = ch->child->value;
       }
     }
 
@@ -1415,6 +1409,7 @@ put_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
       gTop = bstate.gp;
       *valTermRef(term) = bstate.result;
       DEBUG(CHK_SECURE, PL_check_data(term));
+      *value = ch[-1].child->value;
     }
   } else
     rc = FALSE;
@@ -1437,12 +1432,10 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
     { trie *trie;
 
       if ( get_trie(A1, &trie) )
-      { state = &state_buf;
-	memset(state, 0, sizeof(*state));
-
-	if ( trie->root.children.any )
+      { if ( trie->root.children.any )
 	{ acquire_trie(trie);
-	  state->trie = trie;
+	  state = &state_buf;
+	  init_trie_state(state, trie);
 	  if ( !descent_node(state, add_choice(state, &trie->root)) &&
 	       !next_choice(state) )
 	  { clear_trie_state(state);
@@ -1469,7 +1462,7 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
   key = PL_new_term_ref();
   fid = PL_open_foreign_frame();
 
-  for( ; state->head; next_choice(state) )
+  for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state) )
   { if ( !put_trie_path(key, &value, state PASS_LD) )
     { PL_close_foreign_frame(fid);
       return FALSE;				/* resource error */
@@ -1477,8 +1470,23 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
     if ( PL_unify(A2, key) && unify_value(A3, value PASS_LD) )
     { if ( next_choice(state) )
       { if ( state == &state_buf )
-	{ state = allocForeignState(sizeof(*state));
-	  memcpy(state, &state_buf, sizeof(*state));
+	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
+	  TmpBuffer nchp = &nstate->choicepoints;
+	  TmpBuffer ochp =  &state->choicepoints;
+
+	  nstate->trie = state->trie;
+	  if ( ochp->base == ochp->static_buffer )
+	  { size_t bytes = ochp->top - ochp->base;
+	    initBuffer(nchp);
+	    nchp->top  = nchp->base + bytes;
+	    memcpy(nchp->base, ochp->base, bytes);
+	  } else
+	  { nchp->base = ochp->base;
+	    nchp->top  = ochp->top;
+	    nchp->max  = ochp->max;
+	  }
+
+	  state = nstate;
 	}
 	PL_close_foreign_frame(fid);
 	ForeignRedoPtr(state);
