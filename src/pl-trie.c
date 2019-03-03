@@ -1246,6 +1246,7 @@ typedef struct trie_choice
 
 typedef struct
 { trie        *trie;		/* trie we operate on */
+  int	       allocated;
   tmp_buffer   choicepoints;	/* Stack of trie state choicepoints */
 } trie_gen_state;
 
@@ -1253,6 +1254,7 @@ typedef struct
 static void
 init_trie_state(trie_gen_state *state, trie *trie)
 { state->trie = trie;
+  state->allocated = FALSE;
   initBuffer(&state->choicepoints);
 }
 
@@ -1274,6 +1276,9 @@ clear_trie_state(trie_gen_state *state)
   discardBuffer(&state->choicepoints);
 
   release_trie(state->trie);
+
+  if ( state->allocated )
+    freeForeignState(state, sizeof(*state));
 }
 
 
@@ -1452,7 +1457,6 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
     case FRG_CUTTED:
       state = CTX_PTR;
       clear_trie_state(state);
-      freeForeignState(state, sizeof(*state));
       return TRUE;
     default:
       assert(0);
@@ -1469,12 +1473,13 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
     }
     if ( PL_unify(A2, key) && unify_value(A3, value PASS_LD) )
     { if ( next_choice(state) )
-      { if ( state == &state_buf )
+      { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
 	  TmpBuffer nchp = &nstate->choicepoints;
 	  TmpBuffer ochp =  &state->choicepoints;
 
 	  nstate->trie = state->trie;
+	  nstate->allocated = TRUE;
 	  if ( ochp->base == ochp->static_buffer )
 	  { size_t bytes = ochp->top - ochp->base;
 	    initBuffer(nchp);
