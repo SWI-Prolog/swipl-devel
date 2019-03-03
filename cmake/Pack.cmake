@@ -56,7 +56,27 @@ if(NOT CMAKE_SYSTEM_PROCESSOR)
   endif()
 endif()
 
+# see https://crascit.com/2015/08/07/cmake_cpack_nsis_shortcuts_with_parameters/
+
 if(WIN32)
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "")
+
+  function(createShortCut name exe options desktop)
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA
+	"${CPACK_NSIS_CREATE_ICONS_EXTRA}\n  CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${name}.lnk' '$INSTDIR\\\\bin\\\\${exe}.exe' '${options}'")
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA
+	"${CPACK_NSIS_DELETE_ICONS_EXTRA}\n  Delete '$SMPROGRAMS\\\\$START_MENU\\\\${name}.lnk'")
+    if(desktop)
+      set(CPACK_NSIS_CREATE_ICONS_EXTRA
+	  "${CPACK_NSIS_CREATE_ICONS_EXTRA}\n  StrCmp '$INSTALL_DESKTOP' '1' 0 +2\n  CreateShortCut '$DESKTOP\\\\${name}.lnk' '$INSTDIR\\\\bin\\\\${exe}.exe' '${options}'")
+      set(CPACK_NSIS_DELETE_ICONS_EXTRA
+	  "${CPACK_NSIS_DELETE_ICONS_EXTRA}\n  Delete '$DESKTOP\\\\${name}.lnk'")
+    endif()
+
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA "${CPACK_NSIS_CREATE_ICONS_EXTRA}" PARENT_SCOPE)
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA "${CPACK_NSIS_DELETE_ICONS_EXTRA}" PARENT_SCOPE)
+  endfunction()
+
   set(CPACK_PACKAGE_INSTALL_DIRECTORY swipl)
 
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
@@ -64,8 +84,9 @@ if(WIN32)
   set(CPACK_NSIS_DISPLAY_NAME "SWI-Prolog ${CPACK_PACKAGE_VERSION}")
   set(CPACK_NSIS_URL_INFO_ABOUT "http://swi-prolog.org")
   set(CPACK_NSIS_INSTALLED_ICON_NAME bin\\\\swipl-win.exe)
-# does not work
-# set(CPACK_NSIS_DEFINES "  !define MUI_STARTMENUPAGE_DEFAULTFOLDER \\\"SWI-Prolog\\\"")
+
+  createShortCut("SWI-Prolog" "swipl-win" "--win_app" ON)
+  createShortCut("SWI-Prolog (console)" "swipl" "" OFF)
 endif()
 
 set(CPACK_PACKAGE_FILE_NAME
