@@ -112,14 +112,14 @@ is_swi_prolog_stream(In) :-
     read_string(In, "\n", "\t ", Sep, Line),
     (   Sep == -1
     ->  !, fail
-    ;   sub_string(Line, _, _, _, "project(SWI-Prolog)")
+    ;   sub_string(Line, _, _, _, 'project(SWI-Prolog)')
     ),
     !.
 
 source_dir(SrcDir) -->
     string(_),
-    `SWI-Prolog_SOURCE_DIR:STATIC=`,
-    string(Codes), `\n`,
+    "SWI-Prolog_SOURCE_DIR:STATIC=",
+    string(Codes), "\n",
     !,
     skip_remaining,
     { atom_codes(SrcDir, Codes) }.

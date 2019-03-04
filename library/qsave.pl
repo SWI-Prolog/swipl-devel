@@ -82,6 +82,8 @@ save_option(map,         atom,
             "File to report content of the state").
 save_option(stand_alone, boolean,
             "Add emulator at start").
+save_option(traditional, boolean,
+            "Use traditional mode").
 save_option(emulator,    ground,
             "Emulator to use").
 save_option(foreign,     qsave_foreign_option,
@@ -151,7 +153,7 @@ write_state(StateOut, SaveClass, InitFile, Options) :-
     setup_call_cleanup(
         zip_open_stream(StateOut, RC, []),
         write_zip_state(RC, SaveClass, InitFile, Options),
-        zip_close(RC, [comment("SWI-Prolog saved state")])),
+        zip_close(RC, [comment('SWI-Prolog saved state')])),
     flush_output(StateOut).
 
 write_zip_state(RC, SaveClass, InitFile, Options) :-
@@ -247,15 +249,15 @@ make_header(_, _, _).
 
 min_stack(stack_limit, 100_000).
 
-convert_option(Stack, Val, NewVal, "~w") :-     % stack-sizes are in K-bytes
+convert_option(Stack, Val, NewVal, '~w') :-     % stack-sizes are in K-bytes
     min_stack(Stack, Min),
     !,
     (   Val == 0
     ->  NewVal = Val
     ;   NewVal is max(Min, Val)
     ).
-convert_option(toplevel, Callable, Callable, "~q") :- !.
-convert_option(_, Value, Value, "~w").
+convert_option(toplevel, Callable, Callable, '~q') :- !.
+convert_option(_, Value, Value, '~w').
 
 doption(Name) :- min_stack(Name, _).
 doption(init_file).
@@ -281,9 +283,9 @@ save_options(RC, SaveClass, Options) :-
             (   option(OptTerm, Options)
             ->  convert_option(OptionName, OptionVal2, OptionVal, FmtVal)
             ;   OptionVal = OptionVal1,
-                FmtVal = "~w"
+                FmtVal = '~w'
             ),
-            atomics_to_string(["~w=", FmtVal, "~n"], Fmt),
+            atomics_to_string(['~w=', FmtVal, '~n'], Fmt),
             format(Fd, Fmt, [OptionName, OptionVal]),
         fail
     ;   true
@@ -714,7 +716,7 @@ save_attribute(P, Attribute) :-
         ->  true
         ;   predicate_property(P, volatile)
         )
-    ;   Attribute == 'dynamic'      % no need if predicate is thread_local
+    ;   Attribute == (dynamic)      % no need if predicate is thread_local
     ->  \+ predicate_property(P, thread_local)
     ;   true
     ),
@@ -1216,8 +1218,8 @@ qsave_options(['-c'|T0], Files, Options) :-
     argv_files(T0, T1, Files, FilesT),
     qsave_options(T1, FilesT, Options).
 qsave_options([O|T0], Files, [Option|T]) :-
-    string_concat("--", Opt, O),
-    split_string(Opt, "=", "", [NameS|Rest]),
+    string_concat(--, Opt, O),
+    split_string(Opt, =, '', [NameS|Rest]),
     atom_string(Name, NameS),
     qsave_option(Name, OptName, Rest, Value),
     !,
