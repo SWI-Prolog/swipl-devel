@@ -3590,6 +3590,12 @@ saved state.
 '$convert_option_value'(integer, String, Value) :-
     (   number_string(Value, String)
     ->  true
+    ;   sub_string(String, 0, _, 1, SubString),
+        sub_string(String, _, 1, 0, Suffix0),
+        downcase_atom(Suffix0, Suffix),
+        number_string(Number, SubString),
+        '$suffix_multiplier'(Suffix, Multiplier)
+    ->  Value is Number * Multiplier
     ;   '$domain_error'(integer, String)
     ).
 '$convert_option_value'(callable, String, Value) :-
@@ -3602,6 +3608,11 @@ saved state.
     atom_string(Value, String).
 '$convert_option_value'(ground, String, Value) :-
     atom_string(Value, String).
+
+'$suffix_multiplier'(b, 1).
+'$suffix_multiplier'(k, 1024).
+'$suffix_multiplier'(m, 1024 * 1024).
+'$suffix_multiplier'(g, 1024 * 1024 * 1024).
 
 
                  /*******************************
