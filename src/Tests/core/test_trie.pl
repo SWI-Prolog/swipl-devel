@@ -73,7 +73,7 @@ test(insert_variant, N == noot) :-
 	trie_lookup(T, aap(_,_), N),
 	assertion(\+ trie_lookup(T, aap(A,A), N)).
 test(insert_vars, STKeys =@= Keys) :-
-	Keys = [a(1,a,x), a(_,b,y), a(_,_,z)],
+	Keys = [a(1,a,1), a(_,b,2), a(_,_,3), a(A,A,4)],
 	trie_new(T),
 	forall(member(K, Keys), trie_insert(T, K, true)),
 	findall(K, trie_gen(T, K, _), TKeys),
