@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2017, VU University Amsterdam
+    Copyright (c)  2016-2019, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -58,7 +59,9 @@ TODO
   - Make trie_gen/3 take the known prefix into account
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define TRIE_ERROR_VAL (((~(word)0)<<LMASK_BITS)|TAG_VAR)
+#define RESERVED_TRIE_VAL(n) (((word)(-(intptr_t)n)<<LMASK_BITS) | TAG_VAR)
+#define TRIE_ERROR_VAL       RESERVED_TRIE_VAL(1)
+#define TRIE_KEY_POP         RESERVED_TRIE_VAL(2)
 
 static void	trie_destroy(trie *trie);
 
@@ -449,15 +452,25 @@ prune_error(trie *trie, trie_node *node ARG_LD)
 int
 trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
 { term_agenda agenda;
-  Word p;
   trie_node *node = &trie->root;
   size_t var_number = 0;
   int rc = TRUE;
   int compounds = 0;
 
   initTermAgenda(&agenda, 1, k);
-  while( node && (p=nextTermAgenda(&agenda)) )
-  { word w = *p;
+  while( node )
+  { Word p;
+    word w;
+
+    if ( agenda.work.size == 0 &&
+	 !emptySegStack(&agenda.stack) )
+    { if ( !(node = follow_node(trie, node, TRIE_KEY_POP, add PASS_LD)) )
+	break;
+    }
+
+    if ( !(p=nextTermAgenda(&agenda)) )
+      break;
+    w = *p;
 
     switch( tag(w) )
     { case TAG_VAR:
@@ -639,7 +652,9 @@ max_nvar(unsigned int *nvars, word key)
 
 static int
 eval_key(build_state *state, word key ARG_LD)
-{ if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+{ if ( key == TRIE_KEY_POP )
+  { /* For now, ignoring */
+  } else if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
   { size_t arity = arityFunctor(key);
 
     *state->vp = consPtr(state->gp, TAG_COMPOUND|STG_GLOBAL);
@@ -1232,6 +1247,130 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
  * multiple children. Eventually, this is probably going to be a virtual
  * machine extension, using real choice points.
  */
+
+#if 0
+typedef struct ukey_state
+{ Word ptr;					/* current location */
+  Word eargs;					/* end of argument list */
+  unify_mode umode;				/* unification mode */
+} ukey_state;
+
+
+static int
+unify_key(ukey_state *state, word key ARG_LD)
+{ Word p = state->ptr;
+
+  if ( state->umode == uread )
+    deRef(p);
+
+  if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  { size_t arity = arityFunctor(key);
+
+    pushArgumentStack((Word)((intptr_t)(state->ptr + 1)|umode));
+
+    if ( state->umode == uwrite )
+    { Word t;
+
+      if ( (t=allocGlobalNoShift(arity+1)) )
+      { t[0] = key;
+	*p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	state->ptr = &t[1];
+	state->
+	return TRUE;
+      } else
+	return GLOBAL_OVERFLOW;
+    } else
+    { if ( canBind(*p) )
+      { state->wmode = TRUE;
+
+	if ( isAttVar(*p) )
+	{ Word t;
+	  size_t i;
+
+	  if ( (t=allocGlobalNoShift(arity+2)) )
+	  { if ( !hasGlobalSpace(0) )
+	      return overflowCode(0);
+	    t[0] = consPtr(&t[1], TAG_COMPOUND|STG_GLOBAL);
+	    t[1] = key;
+	    for(i=0; i<arity; i++)
+	      setVar(t[i+2]);
+	    assignAttVar(p, t PASS_LD);
+	    state->ptr = &t[2];
+	    return TRUE;
+	  } else
+	    return GLOBAL_OVERFLOW;
+	} else
+	{ Word t;
+
+	  if ( (t=allocGlobalNoShift(arity+1)) )
+	  { if ( unlikely(tTop+1 >= tMax) )
+	      return  TRAIL_OVERFLOW;
+	    t[0] = key;
+	    Trail(p, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
+	    state->ptr = &t[1];
+	    return TRUE;
+	  } else
+	    return GLOBAL_OVERFLOW;
+	}
+      } else if ( isTerm(*p) )
+      { Functor f = valueTerm(*p);
+
+	if ( f->definition == key )
+	{ *pp = &f->arguments[0];
+	  return TRUE;
+	} else
+	  return FALSE;
+      } else
+      { return FALSE;
+      }
+    }
+  } else if ( tag(key) == TAG_VAR )
+  { unsigned int index = (unsigned int)(key>>LMASK_BITS) - 1;
+
+    DEBUG(MSG_TRIE_PUT_TERM,
+	  Sdprintf("var %d at %s\n", (int)index,
+		   print_addr(state->vp,NULL)));
+
+    if ( !state->varp[index] )
+    { setVar(*state->vp);
+      state->varp[index] = state->vp;
+    } else
+    { *state->vp = makeRefG(state->varp[index]);
+    }
+  } else
+  { DEBUG(MSG_TRIE_PUT_TERM,
+	  Sdprintf("%s at %s\n",
+		   print_val(key, NULL), print_addr(state->vp,NULL)));
+    if ( isAtom(key) )
+      pushVolatileAtom(key);
+    if ( !isIndirect(key) )
+    { if ( state->wmode )
+      { if ( isAtom(key) )
+	  pushVolatileAtom(key);
+	*p = key;
+	state->ptr++;
+	return TRUE;
+      } else if ( *p == key )
+      { state->ptr++;
+	return TRUE;
+      } else if ( canBind(*p) )
+	if ( isAtom(key) )
+	  pushVolatileAtom(key);
+
+        if ( hasGlobalSpace(0) )
+	{ bindConst(p, key);
+	  state->ptr++;
+	} else
+	  return overflowCode(0);
+      } else
+	return FALSE;
+    } else
+    { *state->vp = extern_indirect(state->trie->indirects,
+				   key, &state->gp PASS_LD);
+    }
+  }
+}
+#endif
 
 typedef struct trie_choice
 { union
