@@ -523,17 +523,20 @@ expand_goal(M:G, P0, M:EG, P, _M, _MList, Term, Done) :-
         '$expand':expand_goal(G, PB0, EG, PB, M, MList, Term, Done),
         '$set_source_module'(Old)).
 expand_goal(G0, P0, G, P, M, MList, Term, Done) :-
-    \+ already_expanded(G0, Done),
-    call_goal_expansion(MList, G0, P0, G1, P1),
-    !,
-    expand_goal(G1, P1, G, P, M, MList, Term/G1, [G0|Done]).           % (*)
-expand_goal((A,B), P0, Conj, P, M, MList, Term, Done) :-
+    (   already_expanded(G0, Done, Done1)
+    ->  expand_control(G0, P0, G, P, M, MList, Term, Done1)
+    ;   call_goal_expansion(MList, G0, P0, G1, P1)
+    ->  expand_goal(G1, P1, G, P, M, MList, Term/G1, [G0|Done])      % (*)
+    ;   expand_control(G0, P0, G, P, M, MList, Term, Done)
+    ).
+
+expand_control((A,B), P0, Conj, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA, PB),
     expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
     expand_goal(B, PB0, EB, PB, M, MList, Term, Done),
     simplify((EA,EB), P1, Conj, P).
-expand_goal((A;B), P0, Or, P, M, MList, Term, Done) :-
+expand_control((A;B), P0, Or, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA1, PB),
     term_variables(A, AVars),
@@ -547,19 +550,19 @@ expand_goal((A;B), P0, Or, P, M, MList, Term, Done) :-
     merge_variable_info(SavedState2),
     fixup_or_lhs(A, EA, PA, EA1, PA1),
     simplify((EA1;EB), P1, Or, P).
-expand_goal((A->B), P0, Goal, P, M, MList, Term, Done) :-
+expand_control((A->B), P0, Goal, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA, PB),
     expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
     expand_goal(B, PB0, EB, PB, M, MList, Term, Done),
     simplify((EA->EB), P1, Goal, P).
-expand_goal((A*->B), P0, Goal, P, M, MList, Term, Done) :-
+expand_control((A*->B), P0, Goal, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA, PB),
     expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
     expand_goal(B, PB0, EB, PB, M, MList, Term, Done),
     simplify((EA*->EB), P1, Goal, P).
-expand_goal((\+A), P0, Goal, P, M, MList, Term, Done) :-
+expand_control((\+A), P0, Goal, P, M, MList, Term, Done) :-
     !,
     f1_pos(P0, PA0, P1, PA),
     term_variables(A, AVars),
@@ -567,25 +570,25 @@ expand_goal((\+A), P0, Goal, P, M, MList, Term, Done) :-
     expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
     restore_variable_info(SavedState),
     simplify(\+(EA), P1, Goal, P).
-expand_goal(call(A), P0, call(EA), P, M, MList, Term, Done) :-
+expand_control(call(A), P0, call(EA), P, M, MList, Term, Done) :-
     !,
     f1_pos(P0, PA0, P, PA),
     expand_goal(A, PA0, EA, PA, M, MList, Term, Done).
-expand_goal(G0, P0, G, P, M, MList, Term, Done) :-
+expand_control(G0, P0, G, P, M, MList, Term, Done) :-
     is_meta_call(G0, M, Head),
     !,
     term_variables(G0, Vars),
     mark_vars_non_fresh(Vars),
     expand_meta(Head, G0, P0, G, P, M, MList, Term, Done).
-expand_goal(G0, P0, G, P, M, MList, Term, _Done) :-
+expand_control(G0, P0, G, P, M, MList, Term, _Done) :-
     term_variables(G0, Vars),
     mark_vars_non_fresh(Vars),
     expand_functions(G0, P0, G, P, M, MList, Term).
 
-%!  already_expanded(+Goal, +Done) is semidet.
+%!  already_expanded(+Goal, +Done, -RestDone) is semidet.
 
-already_expanded(Goal, Done) :-
-    '$member'(G, Done),
+already_expanded(Goal, Done, Done1) :-
+    '$select'(G, Done, Done1),
     G == Goal,
     !.
 
