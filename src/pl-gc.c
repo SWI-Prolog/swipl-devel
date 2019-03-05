@@ -3450,7 +3450,7 @@ considerGarbageCollect(Stack s)
     } else
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
-	size_t limit = sizeStackP(s);	/* amount we want to grow to */
+	size_t limit = sizeStackP(&GD->combined_stack) - usedStack(local);
 	size_t space = limit > used ? limit - used : 0;
 
 	if ( LD->gc.inferences == LD->statistics.inferences &&
@@ -3461,12 +3461,15 @@ considerGarbageCollect(Stack s)
 
 	if ( used > s->factor*s->gced_size + s->small )
 	{ DEBUG(MSG_GC_SCHEDULE,
-		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
-			 s->name, s->factor, s->gced_size, s->small));
+		Sdprintf("GC: request on %s, "
+			 "used=%zd, factor=%d, gced_size=%zd, low=%zd\n",
+			 s->name, used, s->factor, s->gced_size, s->small));
 	  return PL_raise(SIG_GC);
 	} else if ( space < limit/8 &&
 		    used > s->gced_size + limit/32 )
-	{ DEBUG(MSG_GC_SCHEDULE, Sdprintf("GC: request on low space\n"));
+	{ DEBUG(MSG_GC_SCHEDULE,
+		Sdprintf("GC: request for %s on low space (used=%zd, limit=%zd, gced_size=%zd)\n",
+			 s->name, used, limit, s->gced_size));
 	  return PL_raise(SIG_GC);
 	}
 
