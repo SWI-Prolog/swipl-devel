@@ -394,6 +394,28 @@ extern_indirect(indirect_table *tab, word val, Word *gp ARG_LD)
 }
 
 
+word
+extern_indirect_no_shift(indirect_table *tab, word val ARG_LD)
+{ size_t index = val>>LMASK_BITS;
+  int idx = MSB(index);
+  indirect *h = &tab->array.blocks[idx][index];
+  size_t wsize = wsizeofInd(h->header);
+  Word p, r;
+
+  if ( (p=allocGlobalNoShift(wsize+2)) )
+  { Word r = p;
+
+    *p++ = h->header;
+    memcpy(p, h->data, wsize*sizeof(word));
+    p += wsize;
+    *p++ = h->header;
+
+    return consPtr(r, tag(val)|STG_GLOBAL);
+  } else
+    return 0;
+}
+
+
 size_t
 gsize_indirect(indirect_table *tab, word val)
 { size_t index = val>>LMASK_BITS;

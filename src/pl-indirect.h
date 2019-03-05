@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2016-2019, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -83,6 +84,8 @@ COMMON(word)		intern_indirect(indirect_table *tab, word val,
 					int create ARG_LD);
 COMMON(word)		extern_indirect(indirect_table *tab,
 					word val, Word *gp ARG_LD);
+COMMON(word)		extern_indirect_no_shift(indirect_table *tab,
+						 word val ARG_LD);
 COMMON(size_t)		gsize_indirect(indirect_table *tab, word val);
 
 #endif /*_PL_INDIRECT_H*/
