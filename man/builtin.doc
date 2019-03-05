@@ -982,8 +982,44 @@ preprocessing using goal_expansion/2.  The predicate computes a
 fixed-point by applying transformations until there are no more
 changes.  If optimisation is enabled (see \cmdlineoption{-O} and
 \prologflag{optimise}), expand_goal/2 simplifies the result by
-removing unneeded calls to true/0 and fail/0 as well as unreachable
-branches.
+removing unneeded calls to true/0 and fail/0 as well as
+trivially unreachable branches.
+
+If goal_expansion/2 \jargon{wraps} a goal as in the example below the
+system still reaches fixed-point as it prevents re-expanding the
+expanded term while recursing. It does re-enable expansion on the
+\emph{arguments} of the expanded goal as illustrated in
+\nopredref{t2}{1} in the example.\footnote{After discussion with
+Peter Ludemann and Paulo Moura on the forum.}
+
+\begin{code}
+:- meta_predicate run(0).
+
+may_not_fail(test(_)).
+may_not_fail(run(_)).
+
+goal_expansion(G, (G *-> true ; error(goal_failed(G),_))) :-
+    may_not_fail(G).
+
+t1(X) :- test(X).
+t2(X) :- run(run(X)).
+\end{code}
+
+Is expanded into
+
+\begin{code}
+t1(X) :-
+    (   test(X)
+    *-> true
+    ;   error(goal_failed(test(X)), _)
+    ).
+
+t2(X) :-
+    (   run((run(X)*->true;error(goal_failed(run(X)), _)))
+    *-> true
+    ;   error(goal_failed(run(run(X))), _)
+    ).
+\end{code}
 
     \predicate{compile_aux_clauses}{1}{+Clauses}
 Compile clauses on behalf of goal_expansion/2.  This predicate compiles
