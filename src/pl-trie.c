@@ -1255,10 +1255,50 @@ typedef enum
 } unify_mode;
 
 typedef struct ukey_state
-{ trie *trie;					/* Trie for indirects */
-  Word ptr;					/* current location */
-  unify_mode umode;				/* unification mode */
+{ trie	       *trie;			/* Trie for indirects */
+  Word		ptr;			/* current location */
+  unify_mode	umode;			/* unification mode */
+  size_t	max_var_seen;
+  size_t	vars_allocated;		/* # variables allocated */
+  Word*		vars;
+  Word		var_buf[NVARS_FAST];	/* quick var buffer */
 } ukey_state;
+
+static void
+init_ukey_state(ukey_state *state, trie *trie, Word p)
+{ state->trie = trie;
+  state->ptr  = p;
+  state->umode = uread;
+  state->max_var_seen = 0;
+}
+
+static void
+destroy_ukey_state(ukey_state *state)
+{ if ( state->max_var_seen && state->vars != state->var_buf )
+    PL_free(state->vars);
+}
+
+static Word*
+find_var(ukey_state *state, size_t index)
+{ if ( index > state->max_var_seen )
+  { assert(index == state->max_var_seen+1);
+
+    if ( !state->max_var_seen )
+    { state->vars_allocated = NVARS_FAST;
+      state->vars = state->var_buf;
+    } else if ( state->vars == state->var_buf )
+    { state->vars = PL_malloc(sizeof(*state->vars)*NVARS_FAST*2);
+      memcpy(state->vars, state->var_buf, sizeof(*state->vars)*NVARS_FAST);
+    } else
+    { state->vars = PL_malloc(sizeof(*state->vars)*state->vars_allocated*2);
+      memcpy(state->vars, state->var_buf, sizeof(*state->vars)*state->vars_allocated);
+    }
+    state->vars[index] = NULL;
+    state->max_var_seen = index;
+  }
+
+  return &state->vars[index];
+}
 
 
 static int
@@ -1330,17 +1370,29 @@ unify_key(ukey_state *state, word key ARG_LD)
       }
     }
   } else if ( tag(key) == TAG_VAR )
-  { unsigned int index = (unsigned int)(key>>LMASK_BITS) - 1;
+  { size_t index = (size_t)(key>>LMASK_BITS) - 1;
+    Word *v = find_var(state, index);
 
     DEBUG(MSG_TRIE_PUT_TERM,
 	  Sdprintf("var %d at %s\n", (int)index,
 		   print_addr(state->vp,NULL)));
 
-    if ( !state->varp[index] )
-    { setVar(*state->vp);
-      state->varp[index] = state->vp;
+    if ( state->umode == uwrite )
+    { if ( !*v )
+      { setVar(*state->ptr);
+	*v = state->ptr;
+      } else
+      { *state->ptr = makeRefG(*v);
+      }
     } else
-    { *state->vp = makeRefG(state->varp[index]);
+    { if ( !*v )
+      { *v = state->ptr;
+      } else
+      { int rc;
+
+	if ( (rc=unify_ptrs(state->ptr, *v, ALLOW_RETCODE PASS_LD)) != TRUE )
+	  return rc;
+      }
     }
   } else
   { word w;
@@ -1375,7 +1427,7 @@ unify_key(ukey_state *state, word key ARG_LD)
     return TRUE;
   }
 }
-#endif
+
 
 typedef struct trie_choice
 { union
