@@ -1248,10 +1248,15 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
  * machine extension, using real choice points.
  */
 
-#if 0
+/* Will eventually be shared in pl-wam.c */
+typedef enum
+{ uread = 0,				/* Unification in read-mode */
+  uwrite				/* Unification in write mode */
+} unify_mode;
+
 typedef struct ukey_state
-{ Word ptr;					/* current location */
-  Word eargs;					/* end of argument list */
+{ trie *trie;					/* Trie for indirects */
+  Word ptr;					/* current location */
   unify_mode umode;				/* unification mode */
 } ukey_state;
 
@@ -1266,7 +1271,7 @@ unify_key(ukey_state *state, word key ARG_LD)
   if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
   { size_t arity = arityFunctor(key);
 
-    pushArgumentStack((Word)((intptr_t)(state->ptr + 1)|umode));
+    pushArgumentStack((Word)((intptr_t)(state->ptr + 1)|state->umode));
 
     if ( state->umode == uwrite )
     { Word t;
@@ -1275,27 +1280,27 @@ unify_key(ukey_state *state, word key ARG_LD)
       { t[0] = key;
 	*p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
 	state->ptr = &t[1];
-	state->
 	return TRUE;
       } else
 	return GLOBAL_OVERFLOW;
     } else
     { if ( canBind(*p) )
-      { state->wmode = TRUE;
+      { state->umode = uwrite;
 
 	if ( isAttVar(*p) )
 	{ Word t;
+	  word w;
 	  size_t i;
 
-	  if ( (t=allocGlobalNoShift(arity+2)) )
+	  if ( (t=allocGlobalNoShift(arity+1)) )
 	  { if ( !hasGlobalSpace(0) )
 	      return overflowCode(0);
-	    t[0] = consPtr(&t[1], TAG_COMPOUND|STG_GLOBAL);
-	    t[1] = key;
+	    w = consPtr(&t[0], TAG_COMPOUND|STG_GLOBAL);
+	    t[0] = key;
 	    for(i=0; i<arity; i++)
-	      setVar(t[i+2]);
-	    assignAttVar(p, t PASS_LD);
-	    state->ptr = &t[2];
+	      setVar(t[i+1]);
+	    assignAttVar(p, &w PASS_LD);
+	    state->ptr = &t[1];
 	    return TRUE;
 	  } else
 	    return GLOBAL_OVERFLOW;
@@ -1316,7 +1321,7 @@ unify_key(ukey_state *state, word key ARG_LD)
       { Functor f = valueTerm(*p);
 
 	if ( f->definition == key )
-	{ *pp = &f->arguments[0];
+	{ state->ptr = &f->arguments[0];
 	  return TRUE;
 	} else
 	  return FALSE;
@@ -1338,36 +1343,36 @@ unify_key(ukey_state *state, word key ARG_LD)
     { *state->vp = makeRefG(state->varp[index]);
     }
   } else
-  { DEBUG(MSG_TRIE_PUT_TERM,
+  { word w;
+
+    DEBUG(MSG_TRIE_PUT_TERM,
 	  Sdprintf("%s at %s\n",
 		   print_val(key, NULL), print_addr(state->vp,NULL)));
-    if ( isAtom(key) )
-      pushVolatileAtom(key);
-    if ( !isIndirect(key) )
-    { if ( state->wmode )
-      { if ( isAtom(key) )
-	  pushVolatileAtom(key);
-	*p = key;
-	state->ptr++;
-	return TRUE;
-      } else if ( *p == key )
-      { state->ptr++;
-	return TRUE;
-      } else if ( canBind(*p) )
-	if ( isAtom(key) )
-	  pushVolatileAtom(key);
 
-        if ( hasGlobalSpace(0) )
-	{ bindConst(p, key);
-	  state->ptr++;
-	} else
-	  return overflowCode(0);
-      } else
-	return FALSE;
+    if ( isIndirect(key) )
+    { w = extern_indirect_no_shift(state->trie->indirects, key PASS_LD);
+      if ( !w )
+	return GLOBAL_OVERFLOW;
     } else
-    { *state->vp = extern_indirect(state->trie->indirects,
-				   key, &state->gp PASS_LD);
-    }
+      w = key;
+
+    if ( state->umode == uwrite )
+    { if ( isAtom(key) )
+	pushVolatileAtom(key);
+      *p = key;
+    } else if ( canBind(*p) )
+    { if ( isAtom(key) )
+	pushVolatileAtom(key);
+
+      if ( hasGlobalSpace(0) )
+	bindConst(p, key);
+      else
+	return overflowCode(0);
+    } else if ( *p != key )
+      return FALSE;
+
+    state->ptr++;
+    return TRUE;
   }
 }
 #endif
