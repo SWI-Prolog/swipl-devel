@@ -1376,12 +1376,12 @@ unify_key(ukey_state *state, word key ARG_LD)
       }
     }
   } else if ( tag(key) == TAG_VAR )
-  { size_t index = (size_t)(key>>LMASK_BITS) - 1;
+  { size_t index = (size_t)(key>>LMASK_BITS);
     Word *v = find_var(state, index);
 
     DEBUG(MSG_TRIE_PUT_TERM,
 	  Sdprintf("var %d at %s\n", (int)index,
-		   print_addr(state->vp,NULL)));
+		   print_addr(state->ptr,NULL)));
 
     if ( state->umode == uwrite )
     { if ( !*v )
@@ -1408,7 +1408,7 @@ unify_key(ukey_state *state, word key ARG_LD)
 
     DEBUG(MSG_TRIE_PUT_TERM,
 	  Sdprintf("%s at %s\n",
-		   print_val(key, NULL), print_addr(state->vp,NULL)));
+		   print_val(key, NULL), print_addr(state->ptr,NULL)));
 
     if ( isIndirect(key) )
     { w = extern_indirect_no_shift(state->trie->indirects, key PASS_LD);
@@ -1418,18 +1418,18 @@ unify_key(ukey_state *state, word key ARG_LD)
       w = key;
 
     if ( state->umode == uwrite )
-    { if ( isAtom(key) )
-	pushVolatileAtom(key);
-      *p = key;
+    { if ( isAtom(w) )
+	pushVolatileAtom(w);
+      *p = w;
     } else if ( canBind(*p) )
-    { if ( isAtom(key) )
-	pushVolatileAtom(key);
+    { if ( isAtom(w) )
+	pushVolatileAtom(w);
 
       if ( hasGlobalSpace(0) )
-	bindConst(p, key);
+	bindConst(p, w);
       else
 	return overflowCode(0);
-    } else if ( *p != key )
+    } else if ( *p != w )
       return FALSE;
 
     state->ptr++;

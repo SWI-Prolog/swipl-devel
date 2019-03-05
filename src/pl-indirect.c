@@ -400,7 +400,7 @@ extern_indirect_no_shift(indirect_table *tab, word val ARG_LD)
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
   size_t wsize = wsizeofInd(h->header);
-  Word p, r;
+  Word p;
 
   if ( (p=allocGlobalNoShift(wsize+2)) )
   { Word r = p;
