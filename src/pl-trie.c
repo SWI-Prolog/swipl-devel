@@ -1308,7 +1308,13 @@ unify_key(ukey_state *state, word key ARG_LD)
   if ( state->umode == uread )
     deRef(p);
 
-  if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  if ( key == TRIE_KEY_POP )
+  { Word wp = *--aTop;
+    state->umode = ((int)(uintptr_t)wp & uwrite);
+    state->ptr   = (Word)((intptr_t)wp&~uwrite);
+
+    return TRUE;
+  } else if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
   { size_t arity = arityFunctor(key);
 
     pushArgumentStack((Word)((intptr_t)(state->ptr + 1)|state->umode));
@@ -1394,6 +1400,9 @@ unify_key(ukey_state *state, word key ARG_LD)
 	  return rc;
       }
     }
+
+    state->ptr++;
+    return TRUE;
   } else
   { word w;
 
@@ -1581,41 +1590,31 @@ next_choice(trie_gen_state *state)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unify term with the term represented a trie path (list of trie_choice).
+Returns one of TRUE, FALSE or *_OVERFLOW.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-put_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
-{ int rc = TRUE;
-  build_state bstate;
-  trie_choice *lch = top_choice(gstate)-1;
+unify_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
+{ ukey_state ustate;
+  trie_choice *ch = base_choice(gstate);
+  trie_choice *top = top_choice(gstate);
 
-  if ( init_build_state(&bstate,
-			gstate->trie,
-			lch->gsize,
-			lch->nvars+1 PASS_LD) )
-  { trie_choice *ch = base_choice(gstate);
-    trie_choice *top = top_choice(gstate);
-#ifndef NDEBUG
-    Word gok = gTop + lch->gsize;
-#endif
+  init_ukey_state(&ustate, gstate->trie, valTermRef(term));
+  for( ; ch < top; ch++ )
+  { int rc;
 
-    for( ; ch < top; ch++ )
-    { if ( !eval_key(&bstate, ch->key PASS_LD) )
-      { rc = FALSE;
-	break;
-      }
+    if ( (rc=unify_key(&ustate, ch->key PASS_LD)) != TRUE )
+    { destroy_ukey_state(&ustate);
+      return rc;
     }
+  }
 
-    clear_build_state(&bstate);
-    if ( rc )
-    { assert(bstate.gp <= gok);
-      gTop = bstate.gp;
-      *valTermRef(term) = bstate.result;
-      DEBUG(CHK_SECURE, PL_check_data(term));
-      *value = ch[-1].child->value;
-    }
-  } else
-    rc = FALSE;
+  destroy_ukey_state(&ustate);
+  *value = ch[-1].child->value;
 
-  return rc;
+  return TRUE;
 }
 
 
@@ -1624,7 +1623,6 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   trie_gen_state state_buf;
   trie_gen_state *state;
-  term_t key;
   word value;
   fid_t fid;
 
@@ -1659,15 +1657,25 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
       return FALSE;
   }
 
-  key = PL_new_term_ref();
   fid = PL_open_foreign_frame();
-
   for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state) )
-  { if ( !put_trie_path(key, &value, state PASS_LD) )
-    { PL_close_foreign_frame(fid);
+  { int rc;
+
+    for(;;)
+    { if ( (rc=unify_trie_path(A2, &value, state PASS_LD)) == TRUE )
+	break;
+
+      PL_rewind_foreign_frame(fid);
+      if ( rc == FALSE )
+	goto next;
+
+      if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	continue;
+
       return FALSE;				/* resource error */
     }
-    if ( PL_unify(A2, key) && unify_value(A3, value PASS_LD) )
+
+    if ( unify_value(A3, value PASS_LD) )
     { if ( next_choice(state) )
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
@@ -1696,11 +1704,10 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
 	PL_close_foreign_frame(fid);
 	return TRUE;
       }
-    } else if ( PL_exception(0) )
-    { return FALSE;				/* error */
     } else
-    { PL_rewind_foreign_frame(fid);
-    }
+      PL_rewind_foreign_frame(fid);
+
+next:;
   }
 
   clear_trie_state(state);
