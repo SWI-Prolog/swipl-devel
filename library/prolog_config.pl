@@ -89,6 +89,8 @@ flag_value(c_libdir, Value) :-
     current_prolog_flag(home, Home),
     (   current_prolog_flag(c_libdir, Rel)
     ->  atomic_list_concat([Home, Rel], /, Value)
+    ;   current_prolog_flag(windows, true)
+    ->  atomic_list_concat([Home, bin], /, Value)
     ;   current_prolog_flag(arch, Arch)
     ->  atomic_list_concat([Home, lib, Arch], /, Value)
     ).
