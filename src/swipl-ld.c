@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2018, University of Amsterdam
+    Copyright (c)  2010-2019, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -89,11 +89,10 @@
 #define O_CREAT _O_CREAT
 #define O_TRUNC _O_TRUNC
 #define O_BINARY _O_BINARY
-#endif
+#else  /*_MSC_VER*/
+#define HOST_TOOLCHAIN_MINGW
+#endif /*_MSC_VER*/
 
-#endif /*__WINDOWS__*/
-
-#if defined(__WINDOWS__)
 #define HOST_OS_WINDOWS 1
 #define DEF_PROG_PL "swipl.exe"
 #define PROG_OUT "a.exe"
@@ -126,8 +125,8 @@
 
 #elif defined(HOST_TOOLCHAIN_MINGW)
 
-#define PROG_CC    "gcc"
-#define PROG_CXX   "g++"
+#define PROG_CC    "gcc.exe"
+#define PROG_CXX   "g++.exe"
 #define PROG_LD    PROG_CC
 #define EXT_OBJ    "obj"
 #define OPT_DEBUG  "-g"
