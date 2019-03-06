@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam,
+    Copyright (c)  1985-2019, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -1307,6 +1307,42 @@ typedef struct cgc_stats
   int64_t	erased_skipped;		/* # skipped clauses that are erased  */
 } cgc_stats;
 
+#define GC_STAT_WINDOW_SIZE 3
+#define GC_GLOBAL_OVERFLOW	0x000000000001
+#define GC_GLOBAL_REQUEST	0x000000000100
+#define GC_TRAIL_OVERFLOW	0x000000010000
+#define GC_TRAIL_REQUEST	0x000001000000
+#define GC_EXCEPTION		0x000100000000
+#define GC_USER			0x010000000000
+
+typedef uint64_t gc_reason_t;
+
+typedef struct gc_stat
+{ size_t	global_before;
+  size_t	global_after;
+  size_t	trail_before;
+  size_t	trail_after;
+  size_t	local;
+  double	gc_time;		/* time spent on last GC */
+  double	prolog_time;		/* Real work CPU before this GC */
+  gc_reason_t	reason;			/* why GC was run */
+} gc_stat;
+
+typedef struct gc_stats
+{ gc_stat	last[GC_STAT_WINDOW_SIZE];
+  gc_stat	aggr[GC_STAT_WINDOW_SIZE];
+  int		last_index;
+  int		aggr_index;
+  double	thread_cpu;		/* Last thread CPU time */
+  gc_reason_t	request;		/* Requesting stack */
+  struct
+  { int64_t	collections;
+    int64_t	global_gained;		/* global stack bytes collected */
+    int64_t	trail_gained;		/* trail stack bytes collected */
+    double	time;			/* time spent in collections */
+  } totals;
+} gc_stats;
+
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
@@ -1921,6 +1957,7 @@ typedef struct
 #endif
 #define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+3)
 #define SIG_PLABORT	  (SIG_PROLOG_OFFSET+4)
+#define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+5)
 
 
 		 /*******************************
@@ -2189,12 +2226,6 @@ typedef struct redir_context
 typedef struct
 { int		blocked;		/* GC is blocked now */
   bool		active;			/* Currently running? */
-  long		collections;		/* # garbage collections */
-  int64_t	global_gained;		/* global stack bytes collected */
-  int64_t	trail_gained;		/* trail stack bytes collected */
-  int64_t	global_left;		/* global stack bytes left after GC */
-  int64_t	trail_left;		/* trail stack bytes left after GC */
-  double	time;			/* time spent in collections */
 } pl_gc_status_t;
 
 
@@ -2235,6 +2266,7 @@ typedef struct
 #define PROCEDURE_exception_hook4	(GD->procedures.exception_hook4)
 #define PROCEDURE_dc_call_prolog	(GD->procedures.dc_call_prolog0)
 #define PROCEDURE_dinit_goal		(GD->procedures.dinit_goal3)
+#define PROCEDURE_tune_gc3		(GD->procedures.tune_gc3)
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
 

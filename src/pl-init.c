@@ -1444,7 +1444,7 @@ vsysError(const char *fm, va_list args)
   if ( gc_status.active )
   { Sfprintf(Serror,
 	    "\n[While in %ld-th garbage collection]\n",
-	    gc_status.collections);
+	    LD->gc.stats.totals.collections);
     unblockSignals(&LD->gc.saved_sigmask);
   }
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam,
+    Copyright (c)  1985-2019, University of Amsterdam,
                               VU University Amsterdam,
 			      CWI, Amsterdam
     All rights reserved.
@@ -313,8 +313,10 @@ COMMON(word)		pl_current_functor(term_t name, term_t arity,
 
 /* pl-gc.c */
 COMMON(int)		considerGarbageCollect(Stack s);
-COMMON(int)		garbageCollect(void);
+COMMON(void)		call_tune_gc_hook(void);
+COMMON(int)		garbageCollect(gc_reason_t reason);
 COMMON(word)		pl_garbage_collect(term_t d);
+COMMON(gc_stat *)	last_gc_stats(gc_stats *stats);
 COMMON(Word)		findGRef(int n);
 COMMON(size_t)		nextStackSizeAbove(size_t n);
 COMMON(int)		shiftTightStacks(void);

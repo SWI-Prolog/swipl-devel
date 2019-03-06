@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2017, University of Amsterdam
+    Copyright (c)  1997-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -296,6 +297,7 @@ struct PL_global_data
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
 #endif
     Procedure   comment_hook3;		/* prolog:comment_hook/3 */
+    Procedure	tune_gc3;		/* prolog:tune_gc */
 
     int		static_dirty;		/* #static dirty procedures */
 #ifdef O_CLAUSEGC
@@ -679,6 +681,8 @@ struct PL_local_data
     int			marked_attvars;	/* do not GC attvars */
 #endif
     int active;				/* GC is running in this thread */
+    gc_stats stats;			/* GC performance history */
+
 					/* These must be at the end to be */
 					/* able to define O_DEBUG in only */
 					/* some modules */

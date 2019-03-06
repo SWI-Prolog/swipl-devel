@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -488,6 +489,8 @@ initBuildIns(void)
 #endif
   PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
+  PROCEDURE_tune_gc3 =
+	PL_predicate("tune_gc", 3, "prolog");
 					/* allow debugging in call/1 */
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
   set(PROCEDURE_dcall1->definition, P_DYNAMIC|P_LOCKED);

@@ -1621,7 +1621,7 @@ exceptionUnwindGC(void)
   LD->stacks.trail.gced_size = 0;
   LD->trim_stack_requested = TRUE;
   if ( considerGarbageCollect(NULL) )
-  { garbageCollect();
+  { garbageCollect(GC_EXCEPTION);
     enableSpareStacks();
   }
 }

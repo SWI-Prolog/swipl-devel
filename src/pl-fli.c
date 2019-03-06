@@ -5090,7 +5090,7 @@ PL_action(int action, ...)
       if ( gc_status.active )
       { Sfprintf(Serror,
 		 "\n[Cannot print stack while in %ld-th garbage collection]\n",
-		 gc_status.collections);
+		 LD->gc.stats.totals.collections);
 	rval = FALSE;
 	break;
       }

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -492,6 +493,186 @@ processLocal(Word addr)
 }
 
 #endif /* O_DEBUG */
+
+		 /*******************************
+		 *	      STATS		*
+		 *******************************/
+
+#define STAT_NEXT_INDEX(i) ((i)+1 == GC_STAT_WINDOW_SIZE ? 0 : (i)+1)
+#define STAT_PREV_INDEX(i) ((i) > 0 ? (i)-1 : (GC_STAT_WINDOW_SIZE-1))
+
+static double
+gc_percentage(gc_stat *stat)
+{ return stat->gc_time == 0.0 ?
+		0.0 :
+		stat->gc_time/(stat->gc_time+stat->prolog_time);
+}
+
+static void
+gc_stat_aggregate(gc_stats *stats)
+{ gc_stat *this = &stats->aggr[stats->aggr_index];
+  int i;
+
+  memset(this, 0, sizeof(*this));
+  for(i=0; i<GC_STAT_WINDOW_SIZE; i++)
+  { this->global_before += stats->last[i].global_before;
+    this->global_after  += stats->last[i].global_after;
+    this->trail_before  += stats->last[i].trail_before;
+    this->trail_after   += stats->last[i].trail_after;
+    this->local         += stats->last[i].local;
+    this->gc_time       += stats->last[i].gc_time;
+    this->prolog_time   += stats->last[i].prolog_time;
+    this->reason	+= stats->last[i].reason;
+  }
+
+  this->global_before /= GC_STAT_WINDOW_SIZE;
+  this->global_after  /= GC_STAT_WINDOW_SIZE;
+  this->trail_before  /= GC_STAT_WINDOW_SIZE;
+  this->trail_after   /= GC_STAT_WINDOW_SIZE;
+  this->local         /= GC_STAT_WINDOW_SIZE;
+  this->gc_time       /= GC_STAT_WINDOW_SIZE;
+  this->prolog_time   /= GC_STAT_WINDOW_SIZE;
+
+  stats->aggr_index = STAT_NEXT_INDEX(stats->aggr_index);
+}
+
+static void
+gc_stat_start(gc_stats *stats, unsigned int reason ARG_LD)
+{ gc_stat *this = &stats->last[stats->last_index];
+  double cpu = ThreadCPUTime(LD, CPU_USER);
+
+  if ( stats->last_index == 0 && this->global_before )
+    gc_stat_aggregate(stats);
+
+  if ( !reason )
+    reason = stats->request;
+  stats->request = 0;
+
+  this->reason        = reason;
+  this->global_before = usedStack(global);
+  this->trail_before  = usedStack(trail);
+  this->local	      = usedStack(local);
+  this->prolog_time   = cpu - stats->thread_cpu;
+  stats->thread_cpu   = cpu;
+}
+
+static gc_stat *
+gc_stat_end(gc_stats *stats ARG_LD)
+{ gc_stat *this = &stats->last[stats->last_index];
+  double cpu = ThreadCPUTime(LD, CPU_USER);
+
+  this->global_after  = usedStack(global);
+  this->trail_after   = usedStack(trail);
+  this->gc_time       = cpu - stats->thread_cpu;
+  stats->thread_cpu   = cpu;
+  stats->last_index   = STAT_NEXT_INDEX(stats->last_index);
+
+  LD->stacks.global.gced_size = this->global_after;
+  LD->stacks.trail.gced_size  = this->trail_after;
+
+  stats->totals.global_gained += this->global_before - this->global_after;
+  stats->totals.trail_gained  += this->trail_before  - this->trail_after;
+  stats->totals.time	      += this->gc_time;
+  stats->totals.collections++;
+
+  if ( gc_percentage(this) > 0.2 )
+    PL_raise(SIG_TUNE_GC);
+
+  return this;
+}
+
+gc_stat *
+last_gc_stats(gc_stats *stats)
+{ return &stats->last[STAT_PREV_INDEX(stats->last_index)];
+}
+
+/** '$gc_statistics'(-Stats)
+ *
+ * Stats = gc_stats(Recent, Aggregated, LastPrec, Last3, Last9)
+ */
+
+static double
+gc_avg(gc_stats *stats)
+{ int i;
+  double d = 0.0;
+
+  for(i=0; i<GC_STAT_WINDOW_SIZE; i++)
+  { d += gc_percentage(&stats->aggr[i]);
+  }
+
+  d /= (double)GC_STAT_WINDOW_SIZE;
+  return d;
+}
+
+static int
+unify_gc_reason(term_t t, gc_stat *stat ARG_LD)
+{ int go = (stat->reason>> 0)&0xff;
+  int gr = (stat->reason>> 8)&0xff;
+  int to = (stat->reason>>16)&0xff;
+  int tr = (stat->reason>>24)&0xff;
+  int ex = (stat->reason>>32)&0xff;
+  int ur = (stat->reason>>36)&0xff;
+
+  return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_gc6,
+		            PL_INT, go,
+		            PL_INT, gr,
+		            PL_INT, to,
+		            PL_INT, tr,
+		            PL_INT, ex,
+		            PL_INT, ur);
+}
+
+
+static int
+unify_gc_stats(term_t t, gc_stat *stats, int index ARG_LD)
+{ term_t tail = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
+  term_t rt   = PL_new_term_ref();
+  int i;
+
+  for(i=0; i<GC_STAT_WINDOW_SIZE; i++)
+  { gc_stat *this;
+
+    index = STAT_PREV_INDEX(index);
+    this = &stats[index];
+
+    if ( this->global_before )
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_put_variable(rt) ||
+	   !unify_gc_reason(rt, this PASS_LD) ||
+	   !PL_unify_term(head,
+			  PL_FUNCTOR, FUNCTOR_gc_stats8,
+			    PL_TERM,   rt,
+			    PL_INTPTR, this->global_before,
+			    PL_INTPTR, this->global_after,
+			    PL_INTPTR, this->trail_before,
+			    PL_INTPTR, this->trail_after,
+			    PL_INTPTR, this->local,
+			    PL_FLOAT,  this->gc_time,
+			    PL_FLOAT,  gc_percentage(this)) )
+	return FALSE;
+    }
+  }
+
+  return PL_unify_nil(tail);
+}
+
+
+static
+PRED_IMPL("$gc_statistics", 5, gc_statistics, 0)
+{ PRED_LD
+  gc_stats *stats = &LD->gc.stats;
+  gc_stat  *last  = last_gc_stats(stats);
+  gc_stat  *aggr  = &stats->aggr[STAT_PREV_INDEX(stats->aggr_index)];
+
+  return ( unify_gc_stats(A1, stats->last, stats->last_index PASS_LD) &&
+	   unify_gc_stats(A2, stats->aggr, stats->aggr_index PASS_LD) &&
+	   PL_unify_float(A3, gc_percentage(last)) &&
+	   PL_unify_float(A4, gc_percentage(aggr)) &&
+	   PL_unify_float(A5, gc_avg(stats))
+	 );
+}
+
 
 		/********************************
 		*          UTILITIES            *
@@ -1464,7 +1645,7 @@ static life_count counts;
 #define COUNT(f) counts.f++
 
 static
-PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
+PRED_IMPL("gc_counts", 1, gc_counts, 0)
 { int rc = PL_unify_term(A1,
 			 PL_FUNCTOR_CHARS, "gc", 4,
 			   PL_INT64, counts.marked_envs,
@@ -3450,8 +3631,6 @@ considerGarbageCollect(Stack s)
     } else
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
-	size_t limit = sizeStackP(&GD->combined_stack) - usedStack(local);
-	size_t space = limit > used ? limit - used : 0;
 
 	if ( LD->gc.inferences == LD->statistics.inferences &&
 	     !LD->exception.processing )
@@ -3461,28 +3640,42 @@ considerGarbageCollect(Stack s)
 
 	if ( used > s->factor*s->gced_size + s->small )
 	{ DEBUG(MSG_GC_SCHEDULE,
-		Sdprintf("GC: request on %s, "
-			 "used=%zd, factor=%d, gced_size=%zd, low=%zd\n",
+		Sdprintf("GC: request on %s "
+			 "(used=%zd, factor=%d, gced_size=%zd, low=%zd)\n",
 			 s->name, used, s->factor, s->gced_size, s->small));
-	  return PL_raise(SIG_GC);
-	} else if ( space < limit/8 &&
-		    used > s->gced_size + limit/32 )
-	{ DEBUG(MSG_GC_SCHEDULE,
-		Sdprintf("GC: request for %s on low space (used=%zd, limit=%zd, gced_size=%zd)\n",
-			 s->name, used, limit, s->gced_size));
+	  LD->gc.stats.request = (s == (Stack)&LD->stacks.global ?
+				  GC_GLOBAL_REQUEST : GC_TRAIL_REQUEST);
 	  return PL_raise(SIG_GC);
 	}
-
-	DEBUG(MSG_GC_SCHEDULE,
-	      if ( PL_pending(SIG_GC) )
-	      { Sdprintf("%s overflow: Posted garbage collect request\n",
-			 s->name);
-	      });
       }
     }
   }
 
   return FALSE;
+}
+
+void
+call_tune_gc_hook(void)
+{ Procedure proc = PROCEDURE_tune_gc3;
+
+  if ( isDefinedProcedure(proc) )
+  { GET_LD
+    fid_t fid;
+
+    if ( (fid = PL_open_foreign_frame()) )
+    { term_t av = PL_new_term_refs(3);
+      gc_stats *stats = &LD->gc.stats;
+      gc_stat *last   = last_gc_stats(stats);
+      gc_stat *aggr   = &stats->aggr[STAT_PREV_INDEX(stats->aggr_index)];
+
+      if ( PL_unify_float(av+0, last->gc_time) &&
+	   PL_unify_float(av+1, gc_percentage(last)) &&
+	   PL_unify_float(av+2, gc_percentage(aggr)) )
+	PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, av);
+
+      PL_close_foreign_frame(fid);
+    }
+  }
 }
 
 
@@ -3968,13 +4161,11 @@ lTop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-garbageCollect(void)
+garbageCollect(gc_reason_t reason)
 { GET_LD
   vm_state state;
   LocalFrame safeLTop;			/* include ARGP in body mode */
   term_t preShiftLTop;			/* safe over trimStacks() (shift) */
-  intptr_t tgar, ggar;
-  double t = ThreadCPUTime(LD, CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
   int no_mark_bar;
   int rc;
@@ -3983,12 +4174,15 @@ garbageCollect(void)
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
 #endif
+  gc_stat *stats;
 
   END_PROF();
   START_PROF(P_GC, "P_GC");
 
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
+
+  gc_stat_start(&LD->gc.stats, reason PASS_LD);
 
   assert(LD->fast_condition == NULL);
 
@@ -4065,11 +4259,6 @@ garbageCollect(void)
   DEBUG(CHK_SECURE, check_foreign());
   tag_trail(PASS_LD1);
   mark_phase(&state);
-  tgar = trailcells_deleted * sizeof(struct trail_entry);
-  ggar = (gTop - gBase - total_marked) * sizeof(word);
-  gc_status.global_gained += ggar;
-  gc_status.trail_gained  += tgar;
-  gc_status.collections++;
 
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting trail\n"));
   compact_trail();
@@ -4090,13 +4279,6 @@ garbageCollect(void)
 	    sysError("Stack not ok after gc; gTop = %p", gTop);
 	  free(mark_base);
 	});
-
-  t = ThreadCPUTime(LD, CPU_USER) - t;
-  gc_status.time += t;
-  LD->stacks.global.gced_size = usedStack(global);
-  LD->stacks.trail.gced_size  = usedStack(trail);
-  gc_status.global_left      += usedStack(global);
-  gc_status.trail_left       += usedStack(trail);
 
   DEBUG(CHK_SECURE,
 	{ memset(gTop, 0xFB, (char*)gMax-(char*)gTop);
@@ -4129,10 +4311,14 @@ garbageCollect(void)
 #endif
   leaveGC(PASS_LD1);
 
+  stats = gc_stat_end(&LD->gc.stats PASS_LD);
+
   if ( verbose )
     Sdprintf("gained (g+t) %zd+%zd in %.3f sec; used %zd+%zd; free %zd+%zd\n",
-	     ggar, tgar, (double)t,
-	     usedStack(global), usedStack(trail),
+	     stats->global_before - stats->global_after,
+	     stats->trail_before  - stats->trail_after,
+	     stats->gc_time,
+	     stats->global_after, stats->trail_after,
 	     roomStack(global), roomStack(trail));
 
   return shiftTightStacks();
@@ -4151,7 +4337,7 @@ pl_garbage_collect(term_t d)
     GD->debug_level = nl;
   }
 #endif
-  garbageCollect();
+  garbageCollect(GC_USER);
 #if O_DEBUG
   GD->debug_level = ol;
 #endif
@@ -4194,11 +4380,16 @@ int
 makeMoreStackSpace(int overflow, int flags)
 { GET_LD
   Stack s = NULL;
+  unsigned int gc_reason = 0;
 
   switch(overflow)
   { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;  break;
-    case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global; break;
-    case TRAIL_OVERFLOW:  s = (Stack)&LD->stacks.trail;  break;
+    case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global;
+			  gc_reason = GC_GLOBAL_OVERFLOW;
+			  break;
+    case TRAIL_OVERFLOW:  s = (Stack)&LD->stacks.trail;
+			  gc_reason = GC_TRAIL_OVERFLOW;
+			  break;
     case MEMORY_OVERFLOW: return raiseStackOverflow(overflow);
   }
 
@@ -4207,7 +4398,8 @@ makeMoreStackSpace(int overflow, int flags)
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
        (flags & ALLOW_GC) &&
-       garbageCollect() )
+       gc_reason &&
+       garbageCollect(gc_reason) )
     return TRUE;
 
   if ( (flags & ALLOW_SHIFT) )
@@ -4273,7 +4465,7 @@ ensureGlobalSpace(size_t cells, int flags)
     int rc;
 
     if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
-    { if ( (rc=garbageCollect()) != TRUE )
+    { if ( (rc=garbageCollect(GC_GLOBAL_OVERFLOW)) != TRUE )
 	return rc;
 
       if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
@@ -4320,7 +4512,7 @@ ensureTrailSpace(size_t cells)
   }
 
   if ( considerGarbageCollect(NULL) )
-  { if ( !garbageCollect() )
+  { if ( !garbageCollect(GC_TRAIL_OVERFLOW) )
       return FALSE;
 
     if ( tTop+cells <= tMax )
@@ -5351,10 +5543,11 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 		 *******************************/
 
 BeginPredDefs(gc)
+  PRED_DEF("$gc_statistics", 5, gc_statistics, 0)
 #if O_DEBUG || defined(O_MAINTENANCE)
   PRED_DEF("$check_stacks", 1, check_stacks, 0)
 #endif
 #ifdef GC_COUNTING
-  PRED_DEF("gc_statistics", 1, gc_statistics, 0)
+  PRED_DEF("gc_counts", 1, gc_counts, 0)
 #endif
 EndPredDefs

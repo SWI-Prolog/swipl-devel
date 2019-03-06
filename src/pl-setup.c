@@ -471,7 +471,7 @@ dispatch_signal(int sig, int sync)
 
   if ( gc_status.active && sig < SIG_PROLOG_OFFSET )
   { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
-	       sig, signal_name(sig), gc_status.collections);
+	       sig, signal_name(sig), LD->gc.stats.totals.collections);
   }
 
   if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync)) &&
@@ -702,9 +702,15 @@ static void
 gc_handler(int sig)
 { (void)sig;
 
-  garbageCollect();
+  garbageCollect(0);
 }
 
+static void
+gc_tune_handler(int sig)
+{ (void)sig;
+
+  call_tune_gc_hook();
+}
 
 static void
 cgc_handler(int sig)
@@ -784,6 +790,7 @@ initSignals(void)
   /* be enabled always */
 
   PL_signal(SIG_GC|PL_SIGSYNC,	          gc_handler);
+  PL_signal(SIG_TUNE_GC|PL_SIGSYNC,	  gc_tune_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
 #ifdef SIG_THREAD_SIGNAL
@@ -1658,7 +1665,7 @@ set_stack_limit(size_t limit)
        limit < sizeStack(local) +
                sizeStack(global) +
                sizeStack(trail) )
-  { garbageCollect();
+  { garbageCollect(GC_USER);
     trimStacks(TRUE PASS_LD);
 
     if ( limit < sizeStack(local) +

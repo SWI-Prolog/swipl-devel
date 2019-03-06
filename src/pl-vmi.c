@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2017, University of Amsterdam
+    Copyright (c)  2008-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -4608,7 +4609,7 @@ again:
     LOAD_REGISTERS(qid);
     if ( PL_pending(SIG_GC) )
     { SAVE_REGISTERS(qid);
-      garbageCollect();
+      garbageCollect(LD->gc.stats.request);
       LOAD_REGISTERS(qid);
     }
     QF = QueryFromQid(qid);		/* may be shifted: recompute */
