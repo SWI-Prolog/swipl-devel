@@ -37,6 +37,8 @@
 	  [ test_trie/0
 	  ]).
 :- use_module(library(plunit)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 :- use_module(library(debug)).
 
 test_trie :-
@@ -86,6 +88,12 @@ test(insert_vars, STKeys =@= Keys) :-
 	forall(member(K, Keys), trie_insert(T, K, true)),
 	findall(K, trie_gen(T, K, _), TKeys),
 	sort(3, @<, TKeys, STKeys).
+test(rescale_cars, STKeys =@= Keys) :-
+	maplist(shared_list, [1,10,100,1000,10000], Keys),
+	trie_new(T),
+	forall(member(K, Keys), trie_insert(T, K, true)),
+	findall(K, trie_gen(T, K, _), TKeys),
+	sort(2, @<, TKeys, STKeys).
 test(insert_gsize, STKeys =@= KPairs) :-
 	Keys = [a(1,a), a(1.0,b), a("hello world",c)],
 	sort(Keys, KPairs),
@@ -112,5 +120,10 @@ test(delete, Keys == [aap,mies]) :-
 	assertion(N==n),
 	findall(K, trie_gen(T, K, _), Keys0),
 	sort(Keys0, Keys).
+
+shared_list(N, t(List,N)) :-
+	length(List, N),
+	reverse(List, R),
+	R = List.
 
 :- end_tests(trie).

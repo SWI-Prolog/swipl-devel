@@ -1286,12 +1286,15 @@ find_var(ukey_state *state, size_t index)
     if ( !state->max_var_seen )
     { state->vars_allocated = NVARS_FAST;
       state->vars = state->var_buf;
-    } else if ( state->vars == state->var_buf )
-    { state->vars = PL_malloc(sizeof(*state->vars)*NVARS_FAST*2);
-      memcpy(state->vars, state->var_buf, sizeof(*state->vars)*NVARS_FAST);
-    } else
-    { state->vars = PL_malloc(sizeof(*state->vars)*state->vars_allocated*2);
-      memcpy(state->vars, state->var_buf, sizeof(*state->vars)*state->vars_allocated);
+    } else if ( index >= state->vars_allocated )
+    { if ( state->vars == state->var_buf )
+      { state->vars = PL_malloc(sizeof(*state->vars)*NVARS_FAST*2);
+	memcpy(state->vars, state->var_buf, sizeof(*state->vars)*NVARS_FAST);
+      } else
+      { state->vars = PL_realloc(state->vars,
+				 sizeof(*state->vars)*state->vars_allocated*2);
+      }
+      state->vars_allocated *= 2;
     }
     state->vars[index] = NULL;
     state->max_var_seen = index;
@@ -1313,10 +1316,14 @@ unify_key(ukey_state *state, word key ARG_LD)
     state->umode = ((int)(uintptr_t)wp & uwrite);
     state->ptr   = (Word)((intptr_t)wp&~uwrite);
 
+    DEBUG(MSG_TRIE_PUT_TERM,
+	  Sdprintf("U Popped %zd, mode=%d\n", state->ptr-gBase, state->umode));
     return TRUE;
   } else if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
   { size_t arity = arityFunctor(key);
 
+    DEBUG(MSG_TRIE_PUT_TERM,
+	  Sdprintf("U Pushed %zd, mode=%d\n", state->ptr+1-gBase, state->umode));
     pushArgumentStack((Word)((intptr_t)(state->ptr + 1)|state->umode));
 
     if ( state->umode == uwrite )
@@ -1380,8 +1387,12 @@ unify_key(ukey_state *state, word key ARG_LD)
     Word *v = find_var(state, index);
 
     DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("var %d at %s\n", (int)index,
-		   print_addr(state->ptr,NULL)));
+	  { char b1[64]; char b2[64];
+	    Sdprintf("var %zd at %s (v=%p, *v=%s)\n",
+		     index,
+		     print_addr(state->ptr,b1),
+		     v, print_addr(*v,b2));
+	  });
 
     if ( state->umode == uwrite )
     { if ( !*v )
@@ -1674,6 +1685,8 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
 
       return FALSE;				/* resource error */
     }
+
+    DEBUG(CHK_SECURE, PL_check_data(A2));
 
     if ( unify_value(A3, value PASS_LD) )
     { if ( next_choice(state) )
