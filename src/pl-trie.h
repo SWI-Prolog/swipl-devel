@@ -52,8 +52,6 @@ typedef struct try_children_any
 typedef struct trie_children_hashed
 { tn_node_type type;
   Table table;
-  unsigned int nvars;
-  size_t gsize;
 } trie_children_hashed;
 
 typedef struct trie_children_key
@@ -110,7 +108,7 @@ COMMON(void)	trie_clean(trie *trie);
 COMMON(void)	prune_node(trie *trie, trie_node *n);
 COMMON(trie *)	get_trie_form_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
-COMMON(int)	put_trie_term(trie_node *node, term_t term ARG_LD);
+COMMON(int)	unify_trie_term(trie_node *node, term_t term ARG_LD);
 COMMON(int)	trie_lookup(trie *trie, trie_node **nodep, Word k,
 			    int add ARG_LD);
 COMMON(int)	trie_error(int rc, term_t culprit);

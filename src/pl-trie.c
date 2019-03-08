@@ -64,7 +64,28 @@ TODO
 #define TRIE_ERROR_VAL       RESERVED_TRIE_VAL(1)
 #define TRIE_KEY_POP         RESERVED_TRIE_VAL(2)
 
+#define NVARS_FAST 100
+
+/* Will eventually be shared in pl-wam.c */
+typedef enum
+{ uread = 0,				/* Unification in read-mode */
+  uwrite				/* Unification in write mode */
+} unify_mode;
+
+typedef struct ukey_state
+{ trie	       *trie;			/* Trie for indirects */
+  Word		ptr;			/* current location */
+  unify_mode	umode;			/* unification mode */
+  size_t	max_var_seen;
+  size_t	vars_allocated;		/* # variables allocated */
+  Word*		vars;
+  Word		var_buf[NVARS_FAST];	/* quick var buffer */
+} ukey_state;
+
 static void	trie_destroy(trie *trie);
+static int	unify_key(ukey_state *state, word key ARG_LD);
+static void	init_ukey_state(ukey_state *state, trie *trie, Word p);
+static void	destroy_ukey_state(ukey_state *state);
 
 
 		 /*******************************
@@ -139,10 +160,6 @@ static trie_node       *new_trie_node(trie *trie, word key);
 static void		clear_vars(Word k, size_t var_number ARG_LD);
 static void		destroy_node(trie *trie, trie_node *n);
 static void		clear_node(trie *trie, trie_node *n);
-static unsigned int	key_nvar(word key);
-static void		max_nvar(unsigned int *nvars, word key);
-static size_t		key_gsize(trie *trie, word key);
-static void		max_gsize(size_t *gsize, trie *trie, word key);
 static inline void	release_value(word value);
 
 
@@ -356,11 +373,6 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 				    children.key->child);
 	    addHTable(hnode->table, (void*)key, (void*)new);
 
-	    hnode->nvars = key_nvar(children.key->key);
-	    max_nvar(&hnode->nvars, key);
-	    hnode->gsize = key_gsize(trie, children.key->key);
-	    max_gsize(&hnode->gsize, trie, key);
-
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
 	    { PL_free(children.any);		/* TBD: Safely free */
 	      new->parent = n;
@@ -378,8 +390,6 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 
 	  if ( new == old )
 	  { new->parent = n;
-	    max_nvar(&children.hash->nvars, key);
-	    max_gsize(&children.hash->gsize, trie, key);
 	  } else
 	  { destroy_node(trie, new);
 	  }
@@ -577,151 +587,17 @@ get_trie_form_node(trie_node *node)
 		 *    BUILD TERM FROM PATH	*
 		 *******************************/
 
-#define NVARS_FAST 100
-
-typedef struct
-{ term_agenda agenda;
-  int is_compound;
-  Word gp;					/* global pointer */
-  Word vp;					/* result location */
-  Word *varp;					/* variable pointers */
-  word result;					/* final term */
-  trie *trie;					/* trie we work on */
-  Word varp_buf[NVARS_FAST];			/* variable pointer buffer */
-} build_state;
-
-static int
-init_build_state(build_state *state, trie *trie,
-		 size_t gsize, unsigned int nvars ARG_LD)
-{ int rc;
-
-  if ( (rc=ensureGlobalSpace(gsize, ALLOW_GC)) != TRUE )
-    return raiseStackOverflow(rc);
-
-  DEBUG(MSG_TRIE_PUT_TERM,
-	Sdprintf("Creating build-state for %d vars\n", (int)nvars));
-
-  state->is_compound = FALSE;
-  state->vp   = &state->result;
-  state->gp   = gTop;
-  state->trie = trie;
-  state->varp = nvars <= NVARS_FAST
-		       ? state->varp_buf
-		       : PL_malloc(nvars*sizeof(*state->varp));
-  memset(state->varp, 0, nvars*sizeof(*state->varp));
-
-  return TRUE;
-}
-
-static void
-clear_build_state(build_state *state)
-{ if ( state->varp != state->varp_buf )
-    PL_free(state->varp);
-}
-
-static size_t
-key_gsize(trie *trie, word key)
-{ if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
-    return arityFunctor(key)+1;
-  if ( isIndirect(key) )
-    return gsize_indirect(trie->indirects, key);
-
-  return 0;
-}
-
-static void
-max_gsize(size_t *gsize, trie *trie, word key)
-{ size_t gs = key_gsize(trie, key);
-  if ( gs > *gsize )
-    *gsize = gs;
-}
-
-static unsigned int
-key_nvar(word key)
-{ if ( tag(key) == TAG_VAR && key != TRIE_KEY_POP )
-    return (unsigned int)(key>>LMASK_BITS);
-  return 0;
-}
-
-static void
-max_nvar(unsigned int *nvars, word key)
-{ unsigned int nv = key_nvar(key);
-  if ( nv > *nvars )
-    *nvars = nv;
-}
-
-static int
-eval_key(build_state *state, word key ARG_LD)
-{ if ( key == TRIE_KEY_POP )
-  { return TRUE;			/* For now, ignoring */
-  } else if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
-  { size_t arity = arityFunctor(key);
-
-    *state->vp = consPtr(state->gp, TAG_COMPOUND|STG_GLOBAL);
-    DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("Term %s at %s\n",
-		   functorName(key), print_addr(state->gp,NULL)));
-
-    *state->gp++ = key;
-    if ( !state->is_compound )
-    { initTermAgenda(&state->agenda, arity, state->gp);
-      state->is_compound = TRUE;
-    } else
-    { if ( !pushWorkAgenda(&state->agenda, arity, state->gp) )
-      { clearTermAgenda(&state->agenda);
-	return raiseStackOverflow(MEMORY_OVERFLOW);
-      }
-    }
-    state->gp += arity;
-  } else if ( tag(key) == TAG_VAR )
-  { unsigned int index = (unsigned int)(key>>LMASK_BITS) - 1;
-
-    DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("var %d at %s\n", (int)index,
-		   print_addr(state->vp,NULL)));
-
-    if ( !state->varp[index] )
-    { setVar(*state->vp);
-      state->varp[index] = state->vp;
-    } else
-    { *state->vp = makeRefG(state->varp[index]);
-    }
-  } else
-  { DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("%s at %s\n",
-		   print_val(key, NULL), print_addr(state->vp,NULL)));
-    if ( isAtom(key) )
-      pushVolatileAtom(key);
-    if ( !isIndirect(key) )
-    { *state->vp = key;
-    } else
-    { *state->vp = extern_indirect(state->trie->indirects,
-				   key, &state->gp PASS_LD);
-    }
-  }
-
-  if ( state->is_compound )
-    state->vp = nextTermAgendaNoDeRef(&state->agenda);
-
-  return TRUE;
-}
-
-
 #define MAX_FAST 256
 
 int
-put_trie_term(trie_node *node, term_t term ARG_LD)
+unify_trie_term(trie_node *node, term_t term ARG_LD)
 { word fast[MAX_FAST];
   Word keys = fast;
   size_t keys_allocated = MAX_FAST;
   size_t kc = 0;
   int rc = TRUE;
   trie *trie_ptr;
-  size_t gsize = 0;
-  unsigned int nvars = 0;
-  build_state state;
-  ssize_t i;
-
+  fid_t fid;
 						/* get the keys */
   for( ; node->parent; node = node->parent )
   { if ( kc == keys_allocated )
@@ -746,30 +622,29 @@ put_trie_term(trie_node *node, term_t term ARG_LD)
   trie_ptr = (trie *)((char*)node - offsetof(trie, root));
   assert(trie_ptr->magic == TRIE_MAGIC);
 
-  for(i=0; i<kc; i++)				/* compute sizes */
-  { unsigned nv;
+  fid = PL_open_foreign_frame();
+  for(;;)
+  { ukey_state ustate;
+    size_t i;
 
-    gsize += key_gsize(trie_ptr, keys[i]);
-    if ( (nv=key_nvar(keys[i])) > nvars )
-      nvars = nv;
-  }
-
-  if ( init_build_state(&state, trie_ptr, gsize, nvars PASS_LD) )
-  { for(i=kc-1; i>=0; i--)
-    { if ( !eval_key(&state, keys[i] PASS_LD) )
-      { rc = FALSE;
-	break;
+  retry:
+    init_ukey_state(&ustate, trie_ptr, valTermRef(term));
+    for(i=kc; i-- > 0; )
+    { if ( (rc=unify_key(&ustate, keys[i] PASS_LD)) != TRUE )
+      { destroy_ukey_state(&ustate);
+	if ( rc == FALSE )
+	  goto out;
+	PL_rewind_foreign_frame(fid);
+	if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	  goto retry;
       }
     }
-
-    clear_build_state(&state);
-    if ( rc )
-    { gTop = state.gp;
-      *valTermRef(term) = state.result;
-      DEBUG(CHK_SECURE, PL_check_data(term));
-    }
+    destroy_ukey_state(&ustate);
+    break;
   }
 
+out:
+  PL_close_foreign_frame(fid);
   if ( keys != fast )
     free(keys);
 
@@ -1227,14 +1102,9 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
 { PRED_LD
   void *ptr;
 
-  if ( PL_get_pointer_ex(A1, &ptr) )
-  { term_t v = PL_new_term_ref();
-
-    return ( put_trie_term(ptr, v PASS_LD) &&
-	     PL_unify(A2, v) );
-  }
-
-  return FALSE;
+  return ( PL_get_pointer_ex(A1, &ptr) &&
+	   unify_trie_term(ptr, A2 PASS_LD)
+	 );
 }
 
 
@@ -1247,22 +1117,6 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
  * multiple children. Eventually, this is probably going to be a virtual
  * machine extension, using real choice points.
  */
-
-/* Will eventually be shared in pl-wam.c */
-typedef enum
-{ uread = 0,				/* Unification in read-mode */
-  uwrite				/* Unification in write mode */
-} unify_mode;
-
-typedef struct ukey_state
-{ trie	       *trie;			/* Trie for indirects */
-  Word		ptr;			/* current location */
-  unify_mode	umode;			/* unification mode */
-  size_t	max_var_seen;
-  size_t	vars_allocated;		/* # variables allocated */
-  Word*		vars;
-  Word		var_buf[NVARS_FAST];	/* quick var buffer */
-} ukey_state;
 
 static void
 init_ukey_state(ukey_state *state, trie *trie, Word p)
@@ -1323,7 +1177,8 @@ unify_key(ukey_state *state, word key ARG_LD)
   { size_t arity = arityFunctor(key);
 
     DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("U Pushed %zd, mode=%d\n", state->ptr+1-gBase, state->umode));
+	  Sdprintf("U Pushed %s %zd, mode=%d\n",
+		   functorName(key), state->ptr+1-gBase, state->umode));
     pushArgumentStack((Word)((intptr_t)(state->ptr + 1)|state->umode));
 
     if ( state->umode == uwrite )
@@ -1456,8 +1311,6 @@ typedef struct trie_choice
   } choice;
   word key;
   trie_node *child;
-  size_t gsize;
-  unsigned int nvars;
 } trie_choice;
 
 typedef struct
@@ -1502,25 +1355,11 @@ trie_choice *
 add_choice(trie_gen_state *state, trie_node *node)
 { trie_children children = node->children;
   trie_choice *ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-  size_t gsize;
-  unsigned int nvars;
-
-  if ( ch > base_choice(state) )
-  { trie_choice *prev = ch-1;
-    gsize = prev->gsize;
-    nvars = prev->nvars;
-  } else
-  { gsize = 0;
-    nvars = 0;
-  }
 
   if ( children.any )
   { switch( children.any->type )
     { case TN_KEY:
       {	word key   = children.key->key;
-
-	max_nvar(&nvars, key);
-	gsize += key_gsize(state->trie, key);
 
 	ch->key    = key;
 	ch->child  = children.key->child;
@@ -1529,11 +1368,6 @@ add_choice(trie_gen_state *state, trie_node *node)
       }
       case TN_HASHED:
       { void *k, *v;
-	unsigned int maxchildvar;
-
-	if ( (maxchildvar=children.hash->nvars) > nvars )
-	  nvars = maxchildvar;
-	gsize += children.hash->gsize;
 
 	ch->choice.table = newTableEnum(children.hash->table);
         advanceTableEnum(ch->choice.table, &k, &v);
@@ -1548,9 +1382,6 @@ add_choice(trie_gen_state *state, trie_node *node)
   { memset(ch, 0, sizeof(*ch));
     ch->child = node;
   }
-
-  ch->gsize = gsize;
-  ch->nvars = nvars;
 
   return ch;
 }

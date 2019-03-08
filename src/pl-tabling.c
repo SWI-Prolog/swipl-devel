@@ -1138,15 +1138,13 @@ PRED_IMPL("$tbl_wkl_work", 7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
     if ( state->scp_index > 0 )
     { record_t sr       = get_suspension_from_cluster(state->scp,
 						      state->scp_index-1);
-      term_t av         = PL_new_term_refs(3);
-      term_t answer     = av+0;
-      term_t suspension = av+1;
-      term_t modeargs   = av+2;
+      term_t av         = PL_new_term_refs(2);
+      term_t suspension = av+0;
+      term_t modeargs   = av+1;
 
-      if ( !( put_trie_term(an, answer PASS_LD) &&
+      if ( !( unify_trie_term(an, A2 PASS_LD) &&
 	      put_trie_value(modeargs, an PASS_LD) &&
 	      PL_recorded(sr, suspension) &&
-	      PL_unify_output(A2, answer) &&
 	      PL_unify_output(A3, modeargs) &&
 	      unify_dependency(A4, suspension PASS_LD)
          ) )
@@ -1157,7 +1155,7 @@ PRED_IMPL("$tbl_wkl_work", 7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
       DEBUG(MSG_TABLING_WORK,
 	    { Sdprintf("Work: %d %d\n\t",
 		       (int)state->acp_index, (int)state->scp_index);
-	      PL_write_term(Serror, answer, 1200, PL_WRT_NEWLINE);
+	      PL_write_term(Serror, A2, 1200, PL_WRT_NEWLINE);
 	      Sdprintf("\t");
 	      PL_write_term(Serror, suspension, 1200, PL_WRT_NEWLINE);
 	    });
@@ -1544,7 +1542,7 @@ unify_cluster(term_t t, cluster *c, int is_riac)
 
     for(; ap < top; ap++)
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !put_trie_term(*ap, answer PASS_LD) ||
+	   !unify_trie_term(*ap, answer PASS_LD) ||
 	   !put_trie_value(modeav, *ap PASS_LD) ||
 	   !PL_unify_term(head, PL_FUNCTOR_CHARS, "-", 2,
 			          PL_TERM, answer, PL_TERM, modeav) )
