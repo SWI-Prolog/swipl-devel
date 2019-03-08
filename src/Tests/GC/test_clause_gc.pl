@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2010, University of Amsterdam
+    Copyright (c)  2009-2019, University of Amsterdam
 			      VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -49,7 +50,7 @@ test_clause_gc :-
 	setup_call_cleanup(( current_prolog_flag(stack_limit, SavedLimit),
 			     set_prolog_flag(stack_limit, 2_000_000),
 			     gspace(Cells),
-			     MaxLen is max(20000, (Cells//2)//3)),
+			     MaxLen is max(10000, (Cells//4)//3)),
 			   test_clause_gc(MaxLen),
 			   set_prolog_flag(stack_limit, SavedLimit)).
 
@@ -71,7 +72,7 @@ run(N, H, B, [x|L]) :-
 	run(N2, H, B, L).
 run(_, _, _, []).
 
-:- '$clausable'(cl/8).
+:- dynamic cl/8.			% make sure we can use clause/2
 
 cl(a,
    A, A,
