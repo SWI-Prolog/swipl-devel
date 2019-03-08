@@ -3631,6 +3631,14 @@ considerGarbageCollect(Stack s)
     } else
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
+	size_t limit = sizeStackP(&GD->combined_stack) - usedStack(local);
+	size_t space = limit > used ? limit - used : 0;
+	size_t low   = usedStack(local) + s->small;
+
+	if ( s == (Stack)&LD->stacks.global )
+	  low += usedStack(trail);
+	else
+	  low += usedStack(global)/8;
 
 	if ( LD->gc.inferences == LD->statistics.inferences &&
 	     !LD->exception.processing )
@@ -3638,15 +3646,24 @@ considerGarbageCollect(Stack s)
 	  return FALSE;
 	}
 
-	if ( used > s->factor*s->gced_size + s->small )
+	if ( used > s->factor*s->gced_size + low )
 	{ DEBUG(MSG_GC_SCHEDULE,
 		Sdprintf("GC: request on %s "
 			 "(used=%zd, factor=%d, gced_size=%zd, low=%zd)\n",
 			 s->name, used, s->factor, s->gced_size, s->small));
-	  LD->gc.stats.request = (s == (Stack)&LD->stacks.global ?
-				  GC_GLOBAL_REQUEST : GC_TRAIL_REQUEST);
-	  return PL_raise(SIG_GC);
-	}
+	} else if ( space < limit/8 &&
+		    used > s->gced_size + limit/32 )
+	{ DEBUG(MSG_GC_SCHEDULE,
+		Sdprintf("GC: request for %s on low space "
+			 "(used=%zd, limit=%zd, gced_size=%zd)\n",
+			 s->name, used, limit, s->gced_size));
+	} else
+	  return FALSE;
+
+	LD->gc.stats.request = (s == (Stack)&LD->stacks.global ?
+				GC_GLOBAL_REQUEST : GC_TRAIL_REQUEST);
+
+	return PL_raise(SIG_GC);
       }
     }
   }
