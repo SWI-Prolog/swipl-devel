@@ -36,6 +36,7 @@
 #include "pl-incl.h"
 #include "pl-trie.h"
 #include "pl-indirect.h"
+#define AC_TERM_WALK_POP 1
 #include "pl-termwalk.c"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -451,27 +452,26 @@ prune_error(trie *trie, trie_node *node ARG_LD)
 
 int
 trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
-{ term_agenda agenda;
+{ term_agenda_P agenda;
   trie_node *node = &trie->root;
   size_t var_number = 0;
   int rc = TRUE;
   int compounds = 0;
 
-  initTermAgenda(&agenda, 1, k);
+  initTermAgenda_P(&agenda, 1, k);
   while( node )
   { Word p;
     word w;
 
-    if ( agenda.work.size == 0 &&
-	 !emptySegStack(&agenda.stack) )
+    if ( !(p=nextTermAgenda_P(&agenda)) )
+      break;
+    if ( p == AC_TERM_POP )
     { if ( !(node = follow_node(trie, node, TRIE_KEY_POP, add PASS_LD)) )
 	break;
+      continue;
     }
 
-    if ( !(p=nextTermAgenda(&agenda)) )
-      break;
     w = *p;
-
     switch( tag(w) )
     { case TAG_VAR:
 	if ( isVar(w) )
@@ -486,7 +486,7 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
         break;
       case TAG_COMPOUND:
       { Functor f = valueTerm(w);
-        int arity = arityFunctor(f->definition);
+        size_t arity = arityFunctor(f->definition);
 
 	if ( add && ++compounds == 1000 && !is_acyclic(p PASS_LD) )
 	{ rc = TRIE_LOOKUP_CYCLIC;
@@ -494,7 +494,7 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
 	  node = NULL;
 	} else
 	{ node = follow_node(trie, node, f->definition, add PASS_LD);
-	  pushWorkAgenda(&agenda, arity, f->arguments);
+	  pushWorkAgenda_P(&agenda, arity, f->arguments);
 	}
 	break;
       }
@@ -512,7 +512,7 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
       }
     }
   }
-  clearTermAgenda(&agenda);
+  clearTermAgenda_P(&agenda);
   clear_vars(k, var_number PASS_LD);
 
   if ( rc == TRUE )
@@ -638,7 +638,7 @@ max_gsize(size_t *gsize, trie *trie, word key)
 
 static unsigned int
 key_nvar(word key)
-{ if ( tag(key) == TAG_VAR )
+{ if ( tag(key) == TAG_VAR && key != TRIE_KEY_POP )
     return (unsigned int)(key>>LMASK_BITS);
   return 0;
 }
@@ -653,7 +653,7 @@ max_nvar(unsigned int *nvars, word key)
 static int
 eval_key(build_state *state, word key ARG_LD)
 { if ( key == TRIE_KEY_POP )
-  { /* For now, ignoring */
+  { return TRUE;			/* For now, ignoring */
   } else if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
   { size_t arity = arityFunctor(key);
 

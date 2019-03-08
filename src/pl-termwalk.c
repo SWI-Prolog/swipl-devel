@@ -219,6 +219,85 @@ ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
 #endif /*AC_TERM_WALK*/
 
 
+		 /*******************************
+		 *	 POP ON ONE TERM	*
+		 *******************************/
+
+#if AC_TERM_WALK_POP
+
+#define AC_TERM_POP ((Word)~(uintptr_t)0)
+
+typedef struct aNode_P
+{ Word		location;
+  size_t	size;
+  size_t	depth;
+} aNode_P;
+
+typedef struct term_agenda_P
+{ aNode_P	work;			/* current work */
+  segstack	stack;
+  char		first_chunk[sizeof(aNode_P)*64];
+} term_agenda_P;
+
+
+static void
+initTermAgenda_P(term_agenda_P *a, size_t size, Word p)
+{ initSegStack(&a->stack, sizeof(aNode),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.location = p;
+  a->work.size     = size;
+  a->work.depth    = 0;
+}
+
+
+static void
+clearTermAgenda_P(term_agenda_P *a)
+{ clearSegStack(&a->stack);
+}
+
+#define nextTermAgenda_P(a) \
+	nextTermAgenda_P__LD(a PASS_LD)
+
+static inline Word
+nextTermAgenda_P__LD(term_agenda_P *a ARG_LD)
+{ Word p;
+
+  while ( a->work.size == 0 )
+  { if ( a->work.depth-- > 0 )
+      return AC_TERM_POP;
+    if ( !popSegStack(&a->stack, &a->work, aNode_P) )
+      return NULL;
+  }
+
+  a->work.size--;
+  p = a->work.location++;
+  deRef(p);
+
+  return p;
+}
+
+
+		 /*******************************
+		 *	  PUSH VARIATIONS	*
+		 *******************************/
+
+static inline int
+pushWorkAgenda_P(term_agenda_P *a, size_t amount, Word start)
+{ if ( a->work.size > 0 )
+  { if ( !pushSegStack(&a->stack, a->work, aNode_P) )
+      return FALSE;
+    a->work.depth    = 1;
+  } else
+    a->work.depth++;
+
+  a->work.location = start;
+  a->work.size     = amount;
+
+  return TRUE;
+}
+
+#endif /*!AC_TERM_WALK_POP*/
+
 #if AC_TERM_WALK_LR
 
 		 /*******************************

@@ -63,6 +63,14 @@ test(insert_compound, N == noot) :-
 	trie_new(T),
 	trie_insert(T, aap(1), noot),
 	trie_lookup(T, aap(1), N).
+test(insert_nested, set(Copy == [v(a(x(a)),b(y),c(z))])) :-
+	trie_new(T),
+	trie_insert(T, v(a(x(a)),b(y),c(z)), true),
+	trie_gen(T, Copy, _).
+test(insert_nested_get, Copy == v(a(x(a)),b(y),c(z))) :-
+	trie_new(T),
+	trie_insert(T, v(a(x(a)),b(y),c(z)), true, Node),
+	trie_term(Node, Copy).
 test(insert_vars, N == noot) :-
 	trie_new(T),
 	trie_insert(T, aap(_), noot),
