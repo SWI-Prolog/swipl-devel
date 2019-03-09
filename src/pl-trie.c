@@ -1424,6 +1424,9 @@ next_choice(trie_gen_state *state)
 	 descent_node(state, ch) )
       return TRUE;
 
+    if ( ch->choice.table )
+      freeTableEnum(ch->choice.table);
+
     state->choicepoints.top = (char*)ch;
     ch--;
   }
@@ -1514,6 +1517,7 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
       if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	continue;
 
+      clear_trie_state(state);
       return FALSE;				/* resource error */
     }
 
