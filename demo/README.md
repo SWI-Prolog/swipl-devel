@@ -15,19 +15,19 @@ PLWIN.EXE on your desktop).
 Unix
 ----
 
-Normally you create your Prolog source   files  using the extension .PL.
+Normally you create your Prolog source  files using the extension `.pl`.
 You start a program using
 
-	% pl -s file.pl
+    % swipl -s file.pl
 
 or ensuring the first line reads as   below  and make file.pl executable
-using chmod +x file.pl.  Adjust  /path/to/pl   and  option  ...  to your
+using chmod +x file.pl. Adjust  /path/to/swipl   and  option ... to your
 preferences and installation.
 
-	#!/path/to/pl option ... -s
+    #!/path/to/swipl
 
 Further information (manual, mailing list, user web)
 ----------------------------------------------------
 
-	http://www.swi-prolog.org
-	
+  - http://www.swi-prolog.org
+

@@ -179,7 +179,7 @@ set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl tables.pl)
 
-set(SWIPL_DATA_demo likes.pl README)
+set(SWIPL_DATA_demo likes.pl README.md)
 
 # ${PL_LIB_FILES_ALL} holds all files from the library that are indexed
 # ${PL_LIB_INDEX} holds the index file
