@@ -180,7 +180,7 @@ set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 
-set(SWIPL_DATA_demo likes.pl README)
+set(SWIPL_DATA_demo likes.pl README.md)
 
 # ${PL_LIB_FILES_ALL} holds all files from the library that are indexed
 # ${PL_LIB_INDEX} holds the index file
