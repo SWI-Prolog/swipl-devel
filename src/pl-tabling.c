@@ -43,7 +43,7 @@
 #define PL_erase(r)	  free_fastheap(r)
 
 static void	free_worklist(worklist *wl);
-static void	free_worklist_set(worklist_set *wls);
+static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
@@ -84,9 +84,9 @@ free_component(tbl_component *c, int flags)
   if ( !(flags&FC_CHILD) && c->parent )
     del_child_component(c->parent, c);
   if ( c->worklist )
-    free_worklist_set(c->worklist);
+    free_worklist_set(c->worklist, FALSE);
   if ( c->created_worklists )
-    free_worklist_set(c->created_worklists);
+    free_worklist_set(c->created_worklists, TRUE);
   if ( c->children )
     free_components_set(c->children, flags|FC_CHILD);
 
@@ -202,7 +202,7 @@ merge_worklists(worklist_set **into, worklist_set **from)
     Buffer     b = &(*into)->members;
 
     addMultipleBuffer(b, s, cnt, Worklist);
-    free_worklist_set(*from);
+    free_worklist_set(*from, FALSE);
     *from = NULL;
   } else if ( *from )
   { *into = *from;
@@ -271,18 +271,8 @@ reset_global_worklist(tbl_component *c)
 { worklist_set *wls;
 
   if ( c && (wls = c->worklist) )
-  { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
-    size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
-
-    c->worklist = NULL;
-
-    for(i=0; i<nwpl; i++)
-    { worklist *wl = wlp[i];
-
-      free_worklist(wl);
-    }
-
-    free_worklist_set(wls);
+  { c->worklist = NULL;
+    free_worklist_set(wls, FALSE);
   }
 }
 
@@ -306,7 +296,7 @@ reset_newly_created_worklists(tbl_component *c)
 
   if ( c && (wls = c->created_worklists) )
   { c->created_worklists = NULL;
-    free_worklist_set(wls);
+    free_worklist_set(wls, TRUE);
   }
 }
 
@@ -322,8 +312,19 @@ worklist_set_to_array(worklist_set *wls, worklist ***wlp)
 }
 
 static void
-free_worklist_set(worklist_set *wls)
-{ discardBuffer(&wls->members);
+free_worklist_set(worklist_set *wls, int freewl)
+{ if ( freewl )
+  { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
+    size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
+
+    for(i=0; i<nwpl; i++)
+    { worklist *wl = wlp[i];
+
+      free_worklist(wl);
+    }
+  }
+
+  discardBuffer(&wls->members);
   PL_free(wls);
 }
 
@@ -528,7 +529,6 @@ free_worklist(worklist *wl)
 { cluster *c, *next;
 
   return;
-
   wl->magic = 0;
   for(c=wl->head; c; c = next)
   { next = c->next;
