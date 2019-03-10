@@ -1160,10 +1160,7 @@ find_var(ukey_state *state, size_t index)
 
 static int
 unify_key(ukey_state *state, word key ARG_LD)
-{ Word p = state->ptr;
-
-  if ( state->umode == uread )
-    deRef(p);
+{ Word p;
 
   if ( key == TRIE_KEY_POP )
   { Word wp = *--aTop;
@@ -1173,7 +1170,13 @@ unify_key(ukey_state *state, word key ARG_LD)
     DEBUG(MSG_TRIE_PUT_TERM,
 	  Sdprintf("U Popped %zd, mode=%d\n", state->ptr-gBase, state->umode));
     return TRUE;
-  } else if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  }
+
+  p = state->ptr;
+  if ( state->umode == uread )
+    deRef(p);
+
+  if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
   { size_t arity = arityFunctor(key);
 
     DEBUG(MSG_TRIE_PUT_TERM,
