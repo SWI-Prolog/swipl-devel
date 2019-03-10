@@ -528,8 +528,9 @@ static void
 free_worklist(worklist *wl)
 { cluster *c, *next;
 
-  return;
+  assert(wl->magic == WORKLIST_MAGIC);
   wl->magic = 0;
+
   for(c=wl->head; c; c = next)
   { next = c->next;
 
@@ -1250,7 +1251,6 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
       trie *trie = wl->table;
 
       trie->data.worklist = WL_COMPLETE;
-      free_worklist(wl);
     }
     reset_newly_created_worklists(c);
     c->status = SCC_COMPLETED;
