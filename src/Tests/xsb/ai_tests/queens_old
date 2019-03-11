@@ -1,0 +1,9 @@
+
+=========== Result is ================
+delete([A],[B,list],[B,list])
+delete([A],[B,list],[B])
+noattack([A],[list],[B])
+noattack([num],[list],[num])
+perm([list],[list])
+queens([list],[list])
+safe([list])

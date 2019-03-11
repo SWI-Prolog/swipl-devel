@@ -1,0 +1,7 @@
+
+=========== Result is ================
+append([list],[A],[A,list])
+append([list],[A],[A])
+partition([list],[A],[list],[list])
+partition([list],[num],[list],[list])
+qsort([list],[list])
