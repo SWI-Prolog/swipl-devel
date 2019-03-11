@@ -578,8 +578,9 @@ sum(S0, S1, S) :- S is S0+S1.
 %   generated predicate.
 
 prolog:rename_predicate(M:Head0, M:Head) :-
-    '$flushed_predicate'(M:'$tabled'(_)),
+    current_predicate(M:'$tabled'/1),
     call(M:'$tabled'(Head0)),
+    \+ '$get_predicate_attribute'(M:'$tabled'(_), imported, _),
     \+ current_prolog_flag(xref, true),
     !,
     rename_term(Head0, Head).
