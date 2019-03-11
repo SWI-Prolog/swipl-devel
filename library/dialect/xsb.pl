@@ -206,7 +206,7 @@ xsb_import(Name/Arity, Into, _From) :-
     !,
     debug(xsb(import), '~p: already visible (ISO)', [Into:Name/Arity]).
 xsb_import(PI, Into, From) :-
-    import_from_module(PI, Into, From),
+    import_from_module(clean, PI, Into, From),
     !.
 xsb_import(PI, Into, From) :-
     prolog_load_context(file, Here),
@@ -233,16 +233,25 @@ xsb_import(Name/Arity, Into, _From) :-
     predicate_property(Into:Head, visible),
     !,
     debug(xsb(import), '~p: already visible', [Into:Name/Arity]).
+xsb_import(PI, Into, From) :-
+    import_from_module(dirty, PI, Into, From),
+    !.
 xsb_import(_Name/_Arity, _Into, From) :-
     existence_error(xsb_module, From).
 
-import_from_module(PI, Into, From) :-
+%!  import_from_module(?Clean, +PI, +Into, +From) is semidet.
+%
+%   Try to import PI into  module  Into   from  Module  From.  The clean
+%   version only deals  with  cleanly   exported  predicates.  The dirty
+%   version is more aggressive.
+
+import_from_module(clean, PI, Into, From) :-
     module_property(From, exports(List)),
     memberchk(PI, List),
     !,
     debug(xsb(import), '~p: importing from module ~p', [Into:PI, From]),
     @(import(From:PI), Into).
-import_from_module(PI, Into, From) :-
+import_from_module(dirty, PI, Into, From) :-
     current_predicate(From:PI),
     !,
     debug(xsb(import), '~p: importing from module ~p', [Into:PI, From]),
@@ -250,7 +259,7 @@ import_from_module(PI, Into, From) :-
     ->  @(import(From:PI), Into)
     ;   true
     ).
-import_from_module(PI, _Into, From) :-
+import_from_module(dirty, PI, _Into, From) :-
     module_property(From, file(File)),
     !,
     print_message(error, xsb(not_in_module(File, From, PI))).
@@ -278,7 +287,7 @@ load_module(Into:Path, PI) :-
         )
     ;   print_message(warning, xsb(loaded_unknown_module(Path)))
     ),
-    import_from_module(PI, Into, Module).
+    import_from_module(_, PI, Into, Module).
 
 map_module(XSB, Module) :-
     mapped__module(XSB, Module),
