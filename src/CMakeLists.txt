@@ -388,8 +388,6 @@ if(HAVE_WNO_MAYBE_UNINITIALIZED)
   list(APPEND PGO_CFLAGS_EXTRA -Wno-maybe-uninitialized)
 endif()
 
-message("Extra flags: ${PGO_CFLAGS_EXTRA}")
-
 set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
 set(PGO_USE_FLAGS      -fprofile-use      ${PGO_CFLAGS_EXTRA})
 
