@@ -1304,14 +1304,13 @@ PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
     { size_t i, ntables;
       worklist **wls;
 
+      /* Remove the associated variant tables */
       ntables = worklist_set_to_array(c->created_worklists, &wls);
       for(i=0; i<ntables; i++)
       { worklist *wl = wls[i];
 	trie *trie = wl->table;
 
 	prune_node(LD->tabling.variant_table, trie->data.variant);
-	if ( !wl->in_global_wl )
-	  free_worklist(wl);
       }
       reset_newly_created_worklists(c);
     }
