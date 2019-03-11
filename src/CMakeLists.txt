@@ -14,6 +14,7 @@ include(CheckSymbolExists)
 include(CheckTypeSize)
 include(AlignOf)
 include(CheckStructHasMember)
+include(CheckCCompilerFlag)
 
 find_package(ZLIB REQUIRED)
 if(USE_GMP)
@@ -376,14 +377,22 @@ set(PROFILE_GUIDED_OPTIMIZATION OFF
     "Profile guided optimization mode")
 
 set(PGO_DIR ${CMAKE_BINARY_DIR}/PGO-data)
-set(PGO_GENERATE_FLAGS
-    -fprofile-generate
-    -fprofile-dir=${PGO_DIR}
-    -Wno-maybe-uninitialized)
-set(PGO_USE_FLAGS
-    -fprofile-use
-    -fprofile-dir=${PGO_DIR}
-    -Wno-maybe-uninitialized)
+
+check_c_compiler_flag(-fprofile-dir=${PGO_DIR} HAVE_FPROFILE_DIR)
+check_c_compiler_flag(-Wno-maybe-uninitialized HAVE_WNO_MAYBE_UNINITIALIZED)
+
+set(PGO_CFLAGS_EXTRA)
+if(HAVE_FPROFILE_DIR)
+  list(APPEND PGO_CFLAGS_EXTRA "-fprofile-dir=${PGO_DIR}")
+endif()
+if(HAVE_WNO_MAYBE_UNINITIALIZED)
+  list(APPEND PGO_CFLAGS_EXTRA -Wno-maybe-uninitialized)
+endif()
+
+message("Extra flags: ${PGO_CFLAGS_EXTRA}")
+
+set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
+set(PGO_USE_FLAGS      -fprofile-use      ${PGO_CFLAGS_EXTRA})
 
 set(PGO_TARGETS swipl libswipl)
 
