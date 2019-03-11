@@ -36,7 +36,10 @@
           [ abolish_all_tables/0,
             abolish_table_pred/1,               % +PI
             tfindall/3,                         % +Template, :Goal, -Answers
-            't not'/1                           % :Goal
+            't not'/1,                          % :Goal
+
+            set_pil_on/0,
+            set_pil_off/0
           ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
@@ -86,3 +89,11 @@ abolish_table_pred(PI) :-
 
 tfindall(Template, Goal, Answers) :-
     xsb_findall(Template, Goal, Answers).
+
+%!  set_pil_on.
+%!  set_pil_off.
+%
+%   Dummy predicates
+
+set_pil_on.
+set_pil_off.
