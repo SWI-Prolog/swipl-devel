@@ -1,0 +1,14 @@
+
+
+[3,2,1]
+[6,7,9]
+p(A,B,B)
+p(A,B,B)
+p(A,f(B,A),[f(B,[1,A])])
+p(A,f(B,A),[f(B,[1,A])])
+p(A,f(B,[g(1),A]),[f(B,[1,A,g(1)])])
+p(A,f(B,[g(1),A]),[f(B,[1,A,g(1)])])
+p(f(g(f(A,B))),f(g(h(A,B))),f(g(h(A,B))))
+p(f(g(f(A,B))),f(g(h(A,B))),f(g(h(A,B))))
+p(f(g(h(A,B))),g(f(h(B,C))),h(f(g(C,A))))
+p(f(g(h(A,B))),g(f(h(B,C))),h(f(g(C,A))))

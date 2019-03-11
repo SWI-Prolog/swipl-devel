@@ -1,0 +1,14 @@
+:- [acyl].
+:- include('tcyl-24-24-2').
+
+:- table sg/2.
+
+test :- statistics, sg(1,_F), fail.
+test :- statistics.
+
+tw :- sg(1,F), write(sg(1,F)), nl, fail.
+tw.
+
+sg(X,Y) :- cyl(X,X1), sg(X1,Y1), acyl(Y1,Y).
+sg(X,X).
+

@@ -1,0 +1,12 @@
+:- table a/2.
+
+tw :- a(X,Y),write(X),write(' '),write(Y),write('   '),fail.
+tw.	
+
+a(X,Y) :- p(X,Y) ; a(X,Z),p(Z,Y).
+
+p(1,2).
+p(2,3).
+p(3,4).
+p(4,5).
+p(5,1).

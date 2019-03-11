@@ -1,0 +1,42 @@
+:- import numbervars/3 from num_vars.
+
+:- table a/2.
+
+/* ?- a(Q,W). */
+
+tw :- a(Q,W),T = a(Q,W),numbervars(T,0,_T1),writeq(T),nl.
+
+a(X,Y) :- a(X,Z), p(Z,Y).
+a(X,Y) :- p(X,Y).
+
+%:-a(Q,W),fail.
+
+p(f(a,b),f(c,d)).
+p(f(c,d),f(e,f)).
+
+p(f(1,2),f(3,4)).
+p(f(3,D),f(5,D)).
+
+p(f(10,20),f(30,40)).
+p(f(30,D),f(E,D,E)).
+
+p([a,b],[c,d]).
+p([c,d],[e,f]).
+p([c,d],[g,g]).
+
+p([X],[X]).
+p([1,2],[3,4]).
+p([3,X],[5,X]).
+
+p(3,1).
+p(3,4).
+
+p(10,20).
+p(10,25).
+p(20,30).
+p(25,40).
+p(25,40).
+p(40,20).
+p(40,50).
+p(50,50).
+p(50,60).

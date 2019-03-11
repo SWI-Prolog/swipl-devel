@@ -1,0 +1,47 @@
+
+%:- export interp/1.
+
+%:- import call_c/1 from standard.
+%:- import clause0/2 from assert.
+%:- import abolish_table_info/0 from machine.
+:- import numbervars/3 from num_vars.
+
+%interp(G) :- abolish_table_info,interp1(G).
+
+/* trying to abstract too much can abstract out the input numbers */
+%:- set_prolog_flag(max_table_subgoal_depth,20).
+:- set_prolog_flag(max_table_subgoal_size,20).
+
+:- table(interp1/1).
+%:- table(ssh/2).
+
+%:- (interp1(p(A,S,D)),fail ; interp1(p(Q,W,E)),p,fail).
+
+test:-
+	interp1(p(A,S,D)),T=p(A,S,D),numbervars(T,0,_),writeq(T),nl,fail 
+	; nl,interp1(p(Q,W,E)),T=p(Q,W,E),numbervars(T,0,_),writeq(T),nl,fail.
+test:- 
+	nl,interp1(split(4,[6,3,7,2,1,9],L1,L2)),
+	write(L1),nl,write(L2),nl,fail.
+test.
+
+interp1(G) :- interp0(G).
+
+interp0(true) :- !.
+interp0((A,B)) :- !, interp1(A), interp1(B).
+interp0(ge(A,B)) :- A >= B.
+interp0(lt(A,B)) :- A < B.
+interp0(G) :- myclause(G,B), interp1(B).
+
+%:- interp1(split(4,[6,3,7,2,1,9],L1,L2)).
+%:- interp1(split(4,[6,3],L1,L2)).
+
+myclause(split(_,[],[],[]),true).
+myclause(split(X,[Y|R],[Y|L1],L2),(ge(X,Y), split(X,R,L1,L2))).
+myclause(split(X,[Y|R],L1,[Y|L2]),(lt(X,Y), split(X,R,L1,L2))).
+
+myclause(p(_A,B,B),true).
+myclause(p(f(g(h(A,B))),g(f(h(B,C))),h(f(g(C,A)))),true).
+myclause(p(f(g(f(A,B))),f(g(h(A,B))),f(g(h(A,B)))),true).
+myclause(p(A,f(B,[g(1),A]),[f(B,[1,A,g(1)])]),true).
+myclause(p(A,f(B,A),[f(B,[1,A])]),true).
