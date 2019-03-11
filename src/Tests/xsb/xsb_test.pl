@@ -37,6 +37,7 @@
 :- module(xsb_tests,
           [ xsb_test/3                  % +SubDir, +File, :Goal
           ]).
+:- use_module(library(debug)).
 :- use_module(library(ordsets)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
@@ -52,7 +53,8 @@ xsb_test(SubDir,Base,Goal) :-
 
 xsb_test_id(Base, TestFile, Goal) :-
     atom_concat('xsb_', Base, Module),
-    load_files(Module:TestFile, [if(not_loaded)]),
+    debug(xsb(test), 'Loading ~p into ~p', [TestFile, Module]),
+    load_files(Module:TestFile, [if(changed), dialect(xsb)]),
     abolish_all_tables,
     with_output_to(string(New),
                    ignore(Module:Goal)),
@@ -87,9 +89,16 @@ read_test_output(File, Terms) :-
 
 string_terms(String, Terms) :-
     split_string(String, "\n", "", Lines),
-    maplist(test_term, Lines, Terms0),
+    convlist(test_term, Lines, Terms0),
     sort(Terms0, Terms).
 
+test_term("", _) :-
+    !,
+    fail.
+test_term(Line, _) :-
+    sub_string(Line, 0, _, _, "====="),
+    !,
+    fail.
 test_term(Line, Term) :-
     term_string(Term, Line),
     numbervars(Term).
