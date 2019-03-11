@@ -143,6 +143,7 @@ user:term_expansion(In, Out) :-
 xsb_term_expansion((:- Directive), []) :-
     prolog_load_context(file, File),
     retract(moved_directive(File, Directive)),
+    debug(xsb(header), 'Moved to head: ~p', [Directive]),
     !.
 xsb_term_expansion((:- import Preds from From),
                    (:- xsb_import(Preds, From))).
