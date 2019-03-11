@@ -384,6 +384,8 @@ wrappers(TableSpec) -->
 check_undefined(Name/Arity) :-
     functor(Head, Name, Arity),
     prolog_load_context(module, Module),
+    current_predicate(Module:Name/Arity),
+    \+ '$get_predicate_attribute'(Module:Head, imported, _),
     clause(Module:Head, _),
     !,
     '$permission_error'(table, procedure, Name/Arity).
