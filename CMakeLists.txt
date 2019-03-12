@@ -45,6 +45,9 @@ option(INSTALL_TESTS
        "Install script and files needed to run tests of the final installation"
        OFF)
 
+set(JNIDIR ""
+    CACHE STRING "Directory for linking Java JNI components")
+
 if(NOT SWIPL_SHARED_LIB)
   set(CMAKE_ENABLE_EXPORTS ON)
 endif()
