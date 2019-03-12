@@ -616,8 +616,9 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
   int argcleft = 0;
 
   DEBUG(MSG_INITIALISE,
-	{ Sdprintf("parseCommandLineOptions");
-	  for(int i=0; i<argc0; i++)
+	{ int i;
+	  Sdprintf("parseCommandLineOptions");
+	  for(i=0; i<argc0; i++)
 	    Sdprintf("%s ", argv0[i]);
 	});
 
