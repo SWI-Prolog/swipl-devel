@@ -296,6 +296,26 @@ extension).
     % PL-Unit: div ... done
     ...
 
+### Trapping memory issues using AddressSanitizer
+
+[AddressSanitizer](https://en.wikipedia.org/wiki/AddressSanitizer) is an
+extension to Clang and GCC to  instrument executables for finding common
+memory    management    issues.    It    traps     similar    bugs    as
+[Valgrind](http://valgrind.org/), but if a suspected   bug does not show
+up using one tool it might  be  worthwhile   to  try  the  other. A nice
+property of Valgrind is that it can   be used directly on the executable
+without recompilation. The downside is that   Valgrind makes the program
+run about 20 times slower. The slowdown   by AddressSanitizer is about a
+factor two. To compile for using with AddressSanitizer, do e.g.,
+
+    % mkdir build.sanitizer
+    % cd build.sanitizer
+    % cmake -DCMAKE_BUILD_TYPE=Sanitizer -G Ninja ..
+    % ninja
+
+See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
+
+
 ## Packaging
 
 ### Windows

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2018, University of Amsterdam
+    Copyright (c)  1996-2019, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -41,6 +41,10 @@
 #include "os/pl-text.h"
 #include "pl-codelist.h"
 #include <errno.h>
+
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/lsan_interface.h>
+#endif
 
 #include <limits.h>
 #if !defined(LLONG_MAX)
@@ -4569,22 +4573,54 @@ PL_toplevel(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The    system    may     be      compiled     using     AddressSanitizer
+(https://github.com/google/sanitizers/wiki/AddressSanitizer)  which   is
+supported by GCC and Clang. Do do so, use
+
+    cmake -DCMAKE_BUILD_TYPE=Sanitize
+
+See cmake/BuildType.cmake for details.
+
+Currently SWI-Prolog does not reclaim all memory   on  edit, even not if
+cleanupProlog() is called with reclaim_memory set to TRUE. The docs says
+we can use __lsan_disable() just before exit   to  avoid the leak check,
+but this doesn't seem to work (Ubuntu 18.04). What does work is defining
+__asan_default_options(), providing an alternative   to  the environment
+variable LSAN_OPTIONS=.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 PL_halt(int status)
 { int reclaim_memory = FALSE;
 
-#if defined(GC_DEBUG) || defined(O_DEBUG)
+#if defined(GC_DEBUG) || defined(O_DEBUG) || defined(__SANITIZE_ADDRESS__)
   reclaim_memory = TRUE;
 #endif
 
   if ( cleanupProlog(status, reclaim_memory) )
   { run_on_halt(&GD->os.exit_hooks, status);
+
+#if 0 && defined(__SANITIZE_ADDRESS__)
+// Disabled as this doesn't work
+    Sdprintf("About to exit\n");
+    __lsan_do_leak_check();
+    Sdprintf("Done checking\n");
+    __lsan_disable();
+#endif
+
     exit(status);
   }
 
   return FALSE;
 }
 
+#ifdef __SANITIZE_ADDRESS__
+const char*
+__asan_default_options()
+{ return "detect_leaks=0";
+}
+#endif
 
 		 /*******************************
 		 *	    RESOURCES		*
