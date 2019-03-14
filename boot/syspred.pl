@@ -1290,8 +1290,11 @@ absolute_file_name(Term, Abs) :-
     !,
     '$absolute_file_name'(File, Abs).
 
-%!  tmp_file_stream(-File, -Stream, +Encoding) is det.
+%!  tmp_file_stream(-File, -Stream, +Options) is det.
 %!  tmp_file_stream(+Encoding, -File, -Stream) is det.
+%
+%   Create a temporary file and open it   atomically. The second mode is
+%   for compatibility reasons.
 
 tmp_file_stream(Enc, File, Stream) :-
     atom(Enc), var(File), var(Stream),
@@ -1301,7 +1304,8 @@ tmp_file_stream(File, Stream, Options) :-
     current_prolog_flag(encoding, DefEnc),
     '$option'(encoding(Enc), Options, DefEnc),
     '$option'(extension(Ext), Options, ''),
-    '$tmp_file_stream'(Ext, Enc, File, Stream).
+    '$tmp_file_stream'(Ext, Enc, File, Stream),
+    set_stream(Stream, file_name(File)).
 
 
                 /********************************
