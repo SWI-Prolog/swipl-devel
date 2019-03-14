@@ -26,6 +26,8 @@ else
   ${SWIPL} -f none --no-threads ${PGO_PROGRAM}
 
   ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=USE -G Ninja ${SRC_DIR}
+  ${CMAKE_COMMAND} -E echo "PGO: Assembling profile data (for Clang)"
+  ninja pgo_data
   ninja -t clean libswipl
   ${CMAKE_COMMAND} -E echo "PGO: Compiling optimized core"
   ninja prolog_products

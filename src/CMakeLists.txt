@@ -377,19 +377,20 @@ set(PROFILE_GUIDED_OPTIMIZATION OFF
 
 set(PGO_DIR ${CMAKE_BINARY_DIR}/PGO-data)
 
-check_c_compiler_flag(-fprofile-dir=${PGO_DIR} HAVE_FPROFILE_DIR)
-check_c_compiler_flag(-Wno-maybe-uninitialized HAVE_WNO_MAYBE_UNINITIALIZED)
-
-set(PGO_CFLAGS_EXTRA)
-if(HAVE_FPROFILE_DIR)
-  list(APPEND PGO_CFLAGS_EXTRA "-fprofile-dir=${PGO_DIR}")
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  set(PGO_GENERATE_FLAGS -fprofile-generate=${PGO_DIR})
+  set(PGO_USE_FLAGS      -fprofile-use=${PGO_DIR}/swipl.profdata)
+  get_filename_component(CMAKE_C_COMPILER_DIR ${CMAKE_C_COMPILER} DIRECTORY)
+  find_program(LLVM_PROFDATA llvm-profdata
+  	       HINTS ${CMAKE_C_COMPILER_DIR})
+  add_custom_target(pgo_data
+  		    ${LLVM_PROFDATA} merge -output=${PGO_DIR}/swipl.profdata ${PGO_DIR}/default.profraw)
+else()
+  set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized "-fprofile-dir=${PGO_DIR}")
+  set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
+  set(PGO_USE_FLAGS      -fprofile-use ${PGO_CFLAGS_EXTRA})
+  add_custom_target(pgo_data)
 endif()
-if(HAVE_WNO_MAYBE_UNINITIALIZED)
-  list(APPEND PGO_CFLAGS_EXTRA -Wno-maybe-uninitialized)
-endif()
-
-set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
-set(PGO_USE_FLAGS      -fprofile-use      ${PGO_CFLAGS_EXTRA})
 
 set(PGO_TARGETS swipl libswipl)
 
