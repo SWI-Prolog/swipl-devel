@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2015, University of Amsterdam
+    Copyright (c)  2002-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -97,8 +98,9 @@ menu(File,
 :- else.
 
 menu('&File',
-     [ '&Consult ...' = action(user:consult(+file(open,
-                                                  'Load file into Prolog'))),
+     [ '&Consult ...' = action(user:load_files(+file(open,
+                                                     'Load file into Prolog'),
+                                               [silent(false)])),
        '&Edit ...'    = action(user:edit(+file(open,
                                                'Edit existing file'))),
        '&New ...'     = action(edit_new(+file(save,
