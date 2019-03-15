@@ -2061,6 +2061,7 @@ goal_colours(discontiguous(_),       built_in-[predicates]).
 goal_colours(multifile(_),           built_in-[predicates]).
 goal_colours(volatile(_),            built_in-[predicates]).
 goal_colours(public(_),              built_in-[predicates]).
+goal_colours(table(_),               built_in-[predicates]).
 goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
 goal_colours(consult(_),             built_in-[file]).
 goal_colours(include(_),             built_in-[file]).
