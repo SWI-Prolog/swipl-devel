@@ -68,9 +68,17 @@ goal_expansion(tdebug(Topic, Fmt, Args), Expansion) :-
     ->  Expansion = debug(tabling(Topic), Fmt, Args)
     ;   Expansion = true
     ).
-% Simplify debugging of unexpected exceptions.  Assumes the code
-% should not raise exceptions.
-% goal_expansion(catch(Goal,_,_), Goal).
+goal_expansion(tdebug(Goal), Expansion) :-
+    (   current_prolog_flag(prolog_debug, true)
+    ->  Expansion = Goal
+    ;   Expansion = true
+    ).
+
+:- if(current_prolog_flag(prolog_debug, true)).
+wl_goal(WorkList, Wrapper, Skeleton) :-
+    '$tbl_worklist_data'(WorkList, worklist(_SCC,Trie,_,_,_)),
+    '$tbl_table_status'(Trie, _Status, Wrapper, Skeleton).
+:- endif.
 
 %!  table(+PredicateIndicators)
 %
@@ -160,23 +168,25 @@ finished_leader(Catcher, SCC, Wrapper) :-
 %   the worklist and we shift  (suspend),   turning  our  leader into an
 %   internal node for the upper SCC.
 
-run_leader(Wrapper, Worker, Trie, SCC, Status) :-
+run_leader(Skeleton, Worker, Trie, SCC, Status) :-
+    tdebug('$tbl_table_status'(Trie, _Status, Wrapper, Skeleton)),
     tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Wrapper]),
-    activate(Wrapper, Worker, Trie, Worklist),
+    activate(Skeleton, Worker, Trie, Worklist),
     tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Wrapper]),
     completion(SCC),
     tdebug(schedule, '-> Completed component ~p for ~p', [SCC, Wrapper]),
     '$tbl_component_status'(SCC, Status),
     (   Status == merged
     ->  tdebug(schedule, 'Turning leader ~p into follower', [Wrapper]),
-        (   trie_gen(Trie, Wrapper1, _),
+        (   tdebug(copy_term(Wrapper+Skeleton, Wrapper1+Skeleton1)),
+            trie_gen(Trie, Skeleton1, _),
             tdebug(answer, 'Adding old answer ~p to worklist ~p',
                    [ Wrapper1, Worklist]),
-            '$tbl_wkl_add_answer'(Worklist, Wrapper1),
+            '$tbl_wkl_add_answer'(Worklist, Skeleton1),
             fail
         ;   true
         ),
-        shift(call_info(Wrapper, Worklist))
+        shift(call_info(Skeleton, Worklist))
     ;   true                                    % completed
     ).
 
@@ -208,13 +218,14 @@ work_and_add_answer(Worker, Wrapper, WorkList) :-
 
 add_answer_or_suspend(0, _Wrapper, _WorkList, _) :-
     !.
-add_answer_or_suspend(Continuation, Wrapper, WorkList,
-                      call_info(SrcWrapper, SourceWL)) :-
+add_answer_or_suspend(Continuation, Skeleton, WorkList,
+                      call_info(SrcSkeleton, SourceWL)) :-
+    tdebug(wl_goal(WorkList, Wrapper, _)),
+    tdebug(wl_goal(SourceWL, SrcWrapper, _)),
     tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcWrapper, Wrapper]),
     '$tbl_wkl_add_suspension'(
         SourceWL,
-        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
-
+        dependency(SrcSkeleton, Continuation, Skeleton, WorkList)).
 
 %!  start_tabling(:Wrapper, :Implementation, +Variant, +ModeArgs)
 %
@@ -326,15 +337,17 @@ completion_step(SourceTable) :-
     (   '$tbl_trienode'(Reserved),
         '$tbl_wkl_work'(SourceTable,
                         Answer, ModeArgs,
-                        Goal, Continuation, Wrapper, TargetTable),
+                        Goal, Continuation, Wrapper, TargetWorklist),
+        tdebug(wl_goal(SourceTable, SourceGoal, _)),
+        tdebug(wl_goal(TargetWorklist, TargetGoal, _Skeleton)),
         (   ModeArgs == Reserved
         ->  tdebug(schedule, 'Resuming ~p, calling ~p with ~p',
-                   [Wrapper, Goal, Answer]),
+                   [TargetGoal, SourceGoal, Answer]),
             Goal = Answer,
-            delim(Wrapper, Continuation, TargetTable)
+            delim(Wrapper, Continuation, TargetWorklist)
         ;   get_wrapper_no_mode_args(Goal, Answer, ModeArgs),
             get_wrapper_no_mode_args(Wrapper, WrapperNoModes, _),
-            delim(Wrapper, WrapperNoModes, Continuation, TargetTable)
+            delim(Wrapper, WrapperNoModes, Continuation, TargetWorklist)
         ),
         fail
     ;   true

@@ -1584,7 +1584,7 @@ unify_clusters(term_t t, worklist *wl)
 
 
 static
-PRED_IMPL("$tbl_worklist_data", 2, tbl_wprklist_data, 0)
+PRED_IMPL("$tbl_worklist_data", 2, tbl_worklist_data, 0)
 { PRED_LD
   worklist *wl;
 
@@ -1637,5 +1637,5 @@ BeginPredDefs(tabling)
 
   PRED_DEF("$tbl_scc",                  1, tbl_scc,                  0)
   PRED_DEF("$tbl_scc_data",             2, tbl_scc_data,             0)
-  PRED_DEF("$tbl_worklist_data",        2, tbl_wprklist_data,        0)
+  PRED_DEF("$tbl_worklist_data",        2, tbl_worklist_data,        0)
 EndPredDefs
