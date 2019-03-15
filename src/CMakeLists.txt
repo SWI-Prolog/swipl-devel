@@ -382,9 +382,9 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   set(PGO_USE_FLAGS      -fprofile-use=${PGO_DIR}/swipl.profdata)
   get_filename_component(CMAKE_C_COMPILER_DIR ${CMAKE_C_COMPILER} DIRECTORY)
   find_program(LLVM_PROFDATA llvm-profdata
-  	       HINTS ${CMAKE_C_COMPILER_DIR})
+	       HINTS ${CMAKE_C_COMPILER_DIR})
   add_custom_target(pgo_data
-  		    ${LLVM_PROFDATA} merge -output=${PGO_DIR}/swipl.profdata ${PGO_DIR}/default.profraw)
+		    ${LLVM_PROFDATA} merge -output=${PGO_DIR}/swipl.profdata ${PGO_DIR}/*.profraw)
 else()
   set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized "-fprofile-dir=${PGO_DIR}")
   set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
