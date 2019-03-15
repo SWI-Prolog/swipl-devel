@@ -45,12 +45,14 @@
 static void	free_worklist(worklist *wl);
 static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
+static cluster *new_answer_cluster(trie_node *first);
+static void	wkl_append_left(worklist *wl, cluster *c);
+static int	tbl_put_trie_value(term_t t, trie_node *node ARG_LD);
+static void	del_child_component(tbl_component *parent, tbl_component *child);
+static void	free_components_set(component_set *cs, int destroy);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
 #endif
-static void	del_child_component(tbl_component *parent, tbl_component *child);
-static void	free_components_set(component_set *cs, int destroy);
-
 
 		 /*******************************
 		 *	     COMPONENTS		*
@@ -252,6 +254,36 @@ add_global_worklist(worklist *wl)
 
 
 static worklist *
+negative_worklist(tbl_component *c)
+{ worklist **wlp = baseBuffer(&c->created_worklists->members, worklist*);
+  worklist **top = topBuffer(&c->created_worklists->members, worklist*);
+
+  for(; wlp < top; wlp++)
+  { worklist *wl = *wlp;
+
+    if ( wl->negative &&
+	 !wl->neg_complete &&
+	 !wl->has_answers )		/* FIXME: could also use neg_complete? */
+    { cluster *c;
+
+      wl->neg_complete = TRUE;
+      DEBUG(MSG_TABLING_NEG,
+	    Sdprintf("Resume negative node %p\n", wl));
+
+      c = new_answer_cluster(NULL);
+      wkl_append_left(wl, c);
+      if ( !wl->riac )
+	wl->riac = c;
+
+      return wl;
+    }
+  }
+
+  return NULL;
+}
+
+
+static worklist *
 pop_worklist(tbl_component *c)
 { worklist_set *wls;
 
@@ -262,7 +294,7 @@ pop_worklist(tbl_component *c)
     return wl;
   }
 
-  return NULL;
+  return negative_worklist(c);
 }
 
 
@@ -541,6 +573,19 @@ free_worklist(worklist *wl)
 }
 
 
+static int
+worklist_negative(worklist *wl)
+{ wl->negative = TRUE;
+
+  return TRUE;
+}
+
+static int
+worklist_is_false(worklist *wl)
+{ assert(wl->negative);
+  return wl->neg_complete && !wl->has_answers;
+}
+
 
 /* The work is done if there is no answer cluster or there is
    no suspension right of the answer cluster
@@ -628,6 +673,7 @@ potentially_add_to_global_worklist(worklist *wl ARG_LD)
 static int
 wkl_add_answer(worklist *wl, trie_node *node ARG_LD)
 { potentially_add_to_global_worklist(wl PASS_LD);
+  wl->has_answers = TRUE;
   if ( wl->head && wl->head->type == CLUSTER_ANSWERS )
   { add_to_answer_cluster(wl->head, node);
   } else
@@ -841,9 +887,9 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 }
 
 
-/** '$tbl_pop_worklist'(-Worklist) is semidet.
+/** '$tbl_pop_worklist'(+SCC, -Worklist) is semidet.
  *
- * Pop next worklist from the global worklist.
+ * Pop next worklist from the component.
  */
 
 static
@@ -938,7 +984,7 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
 
 	if ( !((av=PL_new_term_refs(4)) &&
 	       PL_put_term(av+0, A4) &&
-	       put_trie_value(av+1, node PASS_LD) &&
+	       tbl_put_trie_value(av+1, node PASS_LD) &&
 	       PL_put_term(av+2, A3) &&
 	       PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_update4, av) &&
 	       set_trie_value(node, av+3 PASS_LD)) )
@@ -996,6 +1042,32 @@ PRED_IMPL("$tbl_wkl_done", 1, tbl_wkl_done, 0)
 { worklist *wl;
 
   return get_worklist(A1, &wl) && worklist_work_done(wl);
+}
+
+/** '$tbl_wkl_negative'(+Worklist) is semidet.
+ *
+ * True if the worklist is complete
+ */
+
+static
+PRED_IMPL("$tbl_wkl_negative", 1, tbl_wkl_negative, 0)
+{ worklist *wl;
+
+  return get_worklist(A1, &wl) && worklist_negative(wl);
+}
+
+
+/** '$tbl_tbl_wkl_is_false'(+Worklist) is semidet.
+ *
+ * True if the worklist is is a negative node that is true (has no
+ * solutions)
+ */
+
+static
+PRED_IMPL("$tbl_wkl_is_false", 1, tbl_wkl_is_false, 0)
+{ worklist *wl;
+
+  return get_worklist(A1, &wl) && worklist_is_false(wl);
 }
 
 
@@ -1066,6 +1138,25 @@ unify_dependency(term_t a0, term_t dependency ARG_LD)
   }
 
   return FALSE;
+}
+
+
+static int
+tbl_unify_trie_term(trie_node *node, term_t term ARG_LD)
+{ if ( node )
+    return unify_trie_term(node, term PASS_LD);
+
+  return TRUE;				/* for negative dummy solutions */
+}
+
+static int
+tbl_put_trie_value(term_t t, trie_node *node ARG_LD)
+{ if ( node )
+  { return put_trie_value(t, node PASS_LD);
+  } else
+  { *valTermRef(t) = ATOM_trienode;
+    return TRUE;
+  }
 }
 
 
@@ -1143,8 +1234,8 @@ PRED_IMPL("$tbl_wkl_work", 7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
       term_t suspension = av+0;
       term_t modeargs   = av+1;
 
-      if ( !( unify_trie_term(an, A2 PASS_LD) &&
-	      put_trie_value(modeargs, an PASS_LD) &&
+      if ( !( tbl_unify_trie_term(an, A2 PASS_LD) &&
+	      tbl_put_trie_value(modeargs, an PASS_LD) &&
 	      PL_recorded(sr, suspension) &&
 	      PL_unify_output(A3, modeargs) &&
 	      unify_dependency(A4, suspension PASS_LD)
@@ -1541,8 +1632,8 @@ unify_cluster(term_t t, cluster *c, int is_riac)
 
     for(; ap < top; ap++)
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !unify_trie_term(*ap, answer PASS_LD) ||
-	   !put_trie_value(modeav, *ap PASS_LD) ||
+	   !tbl_unify_trie_term(*ap, answer PASS_LD) ||
+	   !tbl_put_trie_value(modeav, *ap PASS_LD) ||
 	   !PL_unify_term(head, PL_FUNCTOR_CHARS, "-", 2,
 			          PL_TERM, answer, PL_TERM, modeav) )
 	return FALSE;
@@ -1621,6 +1712,8 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_mode_add_answer",	4, tbl_wkl_mode_add_answer,  0)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
   PRED_DEF("$tbl_wkl_done",		1, tbl_wkl_done,	     0)
+  PRED_DEF("$tbl_wkl_negative",		1, tbl_wkl_negative,	     0)
+  PRED_DEF("$tbl_wkl_is_false",		1, tbl_wkl_is_false,	     0)
   PRED_DEF("$tbl_wkl_work",		7, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$tbl_variant_table",	4, tbl_variant_table,	     0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)

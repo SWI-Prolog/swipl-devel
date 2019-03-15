@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2016-2019, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -91,6 +92,9 @@ typedef struct worklist
   int		magic;			/* WORKLIST_MAGIC */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
+  unsigned	negative : 1;		/* this is a suspended negation */
+  unsigned	neg_complete : 1;	/* Negative node is completed */
+  unsigned	has_answers : 1;	/* Negative node has >= one answer */
 
   tbl_component*component;		/* component I belong to */
   trie	       *table;			/* table I belong to */
