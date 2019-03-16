@@ -37,6 +37,8 @@
 :- module('$tabling',
           [ (table)/1,                  % +PI ...
 
+            tnot/1,                     % :Goal
+
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
             abolish_table_subgoals/1,   % :Subgoal
@@ -46,6 +48,7 @@
           ]).
 
 :- meta_predicate
+    tnot(0),
     start_tabling(+, 0),
     start_tabling(+, 0, +, ?),
     current_table(:, -),
@@ -352,6 +355,54 @@ completion_step(SourceTable) :-
         fail
     ;   true
     ).
+
+		 /*******************************
+		 *     STRATIFIED NEGATION	*
+		 *******************************/
+
+%!  tnot(:Goal)
+%
+%   Tabled negation.
+%
+%   @tbd: verify Goal is actually tabled.
+
+tnot(Goal) :-
+    '$tbl_variant_table'(Goal, Trie, Status, Skeleton),
+    (   Status == complete
+    ->  tdebug(tnot, 'tnot: ~p: complete', [Goal]),
+        \+ trie_gen(Trie, Skeleton, _)
+    ;   Status == fresh
+    ->  tdebug(tnot, 'tnot: ~p: fresh', [Goal]),
+        (   call(Goal),
+            fail
+        ;   '$tbl_variant_table'(Goal, Trie, NewStatus, NewSkeleton),
+            tdebug(tnot, 'tnot: fresh ~p now ~p', [Goal, NewStatus]),
+            (   NewStatus == complete
+            ->  \+ trie_gen(Trie, NewSkeleton, _)
+            ;   negation_suspend(Goal, NewSkeleton, NewStatus)
+            )
+        )
+    ;   negation_suspend(Goal, Skeleton, Status)
+    ).
+
+%!  negation_suspend(+Goal, +Skeleton, +Worklist)
+%
+%   Suspend Worklist due to negation. This marks the worklist as dealing
+%   with a negative literal and suspend.
+%
+%   The completion step will resume  negative   worklists  that  have no
+%   solutions, causing this to succeed.
+
+negation_suspend(Wrapper, Skeleton, Worklist) :-
+    tdebug(tnot, 'negation_suspend ~p', [Wrapper]),
+    '$tbl_wkl_negative'(Worklist),
+    shift(call_info(Skeleton, Worklist)),
+    (   '$tbl_wkl_is_false'(Worklist)
+    ->  tdebug(tnot, 'negation_suspend: resume ~p is true', [Wrapper])
+    ;   tdebug(tnot, 'negation_suspend: resume ~p incomplete', [Wrapper]),
+        fail
+    ).
+
 
                  /*******************************
                  *            CLEANUP           *
