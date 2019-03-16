@@ -51,7 +51,6 @@
 
             fail_if/1,				% :Goal
 
-            tnot/1,				% :Goal
             not_exists/1,			% :Goal
             sk_not/1,				% :Goal
 
@@ -87,7 +86,6 @@ system](http://xsb.sourceforge.net/)
     load_dync(:, +),
 
     fail_if(0),                         % Meta predicates
-    tnot(0),
     not_exists(0),
     sk_not(0),
 
@@ -482,7 +480,6 @@ fail_if(P) :-
 		 *      TABLING BUILT-INS	*
 		 *******************************/
 
-%!  tnot(:P).
 %!  not_exists(:P).
 %!  sk_not(:P).
 %
