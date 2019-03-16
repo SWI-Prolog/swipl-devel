@@ -38,6 +38,8 @@
             tfindall/3,                         % +Template, :Goal, -Answers
             't not'/1,                          % :Goal
 
+            get_returns_for_call/2,             % :CallTerm, ?AnswerTerm
+
             set_pil_on/0,
             set_pil_off/0
           ]).
@@ -48,7 +50,8 @@
 :- meta_predicate
     abolish_table_pred(:),
     tfindall(+, 0, -),
-    't not'(0).
+    't not'(0),
+    get_returns_for_call(:, :).
 
 %!  abolish_table_pred(:PI)
 %
@@ -97,3 +100,13 @@ tfindall(Template, Goal, Answers) :-
 
 set_pil_on.
 set_pil_off.
+
+%!  get_returns_for_call(:CallTerm, -AnswerTerm) is nondet.
+%
+%   True if AnswerTerm appears in the tables for the _variant_ CallTerm.
+
+get_returns_for_call(M:CallTerm, AnswerTerm) :-
+    current_table(M:CallTerm, Trie),
+    '$tbl_table_status'(Trie, _Status, AnswerTerm, Skeleton),
+    trie_gen(Trie, Skeleton, _).
+
