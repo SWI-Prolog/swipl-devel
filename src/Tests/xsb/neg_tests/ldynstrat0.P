@@ -1,0 +1,15 @@
+test :- a, fail.
+test :- b, fail.
+test :-
+	( a -> writeln('a is true') ; writeln('a is false') ),
+	( b -> writeln('b is true') ; writeln('b is false') ).
+
+%--------------------------------------------------------------
+
+:- table a/0, b/0.
+
+a :- tnot(b).
+a.
+
+b :- tnot(a).
+

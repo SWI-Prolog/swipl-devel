@@ -1,0 +1,35 @@
+:- ensure_loaded('genome.P').
+:- table
+	a/2,
+	different/2.
+
+%-----------------------------------------------------------------------
+
+test :- completeBody(X,Y), writeln(completeBody(X,Y)), fail ; true.
+
+%-----------------------------------------------------------------------
+
+completeBody(P,Q) :-
+	b(P, Q).
+
+b(A, B) :-
+	a(A, B),
+	tnot(different(A, B)),
+	A @> B.
+
+a(P, Q) :-
+	hit(P, F),
+	hit(Q, F),
+	\+ P = Q.
+
+different(A, B) :- different(B, A).
+
+different(A, B) :-
+	a(A, B),
+	hit(A, Y),
+	\+ hit(B, Y),
+	hit(C, Y),
+	\+ A = C.
+
+hit(sts(X),Y) :- hitb(X,Y).
+
