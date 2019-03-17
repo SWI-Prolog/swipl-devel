@@ -94,6 +94,12 @@ F.~Pereira.
 AI International ltd., Berkhamsted, UK.
 \newblock {\em {Quintus} {Prolog}, User Guide and Reference Manual}, 1997.
 
+\bibitem[Sagonas \& Swift, 1998]{DBLP:journals/toplas/SagonasS98}
+Konstantinos Sagonas and Terrance Swift.
+\newblock An abstract machine for tabled execution of fixed-order stratified
+  logic programs.
+\newblock {\em {ACM} Trans. Program. Lang. Syst.}, 20(3):586--634, 1998.
+
 \bibitem[Schimpf, 2002]{logicalloops:2002}
 Joachim Schimpf.
 \newblock Logical loops.

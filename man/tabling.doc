@@ -286,6 +286,91 @@ that in SWI-Prolog the standard order of terms orders numbers by value.
 The atom \const{sum} (YAP) declares to sum numeric answers.
 \end{description}
 
+
+\section{Tabling for impure programs}
+\label{sec:tnotpure}
+
+Tabling guarantees logically correct results and termination provided
+the computation only involves terms of bounded size on \emph{pure}
+Prolog programs, i.e., Prolog programs without side effects or pruning
+of choice points (cut, \predref{->}{2}, etc.). Notably pruning choice
+points of an incomplete tabled goal may cause an incomplete table and
+thus cause subsequent queries for the same goal to return an incomplete
+set of answers. The current SWI-Prolog implementation provides several
+mechanisms to improve on this situation.
+
+\begin{itemlist}
+    \item [Dynamic Strongly Connected Components (SCC)]
+Tabled goals are \jargon{completed} as soon as possible. Each fresh
+tabled goal creates a scheduling component which the system attempts to
+solve immediately. If a subgoal of the fresh goal refers to an
+incomplete tabled goal the scheduling components for both goals are
+merged such that the related goals are completed together. Dynamic
+rather than static determination of strongly connected components
+guarantees that the components are minimal because only actually reached
+code needs to be considered rather than maximally reachable code.
+
+Minimal SCCs imply that goals are completed as early as possible. This
+implies that tabled goals may be embedded in e.g., findall/3 or be used
+as a condition as long as there is no dependency (\jargon{loop}) with
+goals outside the findall/3 or condition. For example, the code below
+misbehaves when called as \term{p}{X} because the argument of findall/3
+calls a \jargon{variant} of the goal that initiated the findall goal. A
+call \term{p}{1} however is ok as \term{p}{1} is not a variant of
+\term{p}{X}.
+
+\begin{code}
+p(X) :-
+    findall(Y, p(Y), Ys),
+    ...
+\end{code}
+
+    \item [Early completion]
+Ground goals, i.e., goals without variables, are subject to early
+completion. This implies they are considered completed after the first
+solution.
+
+    \item [Tabled negation]
+The predicate tnot/1 implements better negation semantics. This is
+achieved by delaying the completion of negative goals, deciding on their
+truth after receiving a solution (false) or after the completion of the
+argument goal without answers (true).  This achieves correct results on
+the following example from the XSB test suite:
+
+\begin{code}
+:- table a/0, b/0, c/0.
+
+a :- b, tnot(c).
+
+b :- a.
+b.
+
+c :- tnot(b).
+\end{code}
+
+Here, the following steps are executed:
+
+\begin{enumerate}
+    \item $a$ calls $b$.  $b$ starts $a$, creating an SCC with $a$ and $b$.
+    \item $c$ is negated but fresh.  It is started.
+    \item $c$ calls \term{tnot}{b}.  $b$ is not completed, and this creates
+          a suspended negation node. Now everything is suspended and in
+	  a single SCC.
+    \item $b$ is resumed, generating an answer from the 2nd clause.  This
+          completes $b$ as it is ground.
+    \item The $b$ resumes the tnot in $c$, which completes $c$ as false.
+    \item This resumes \term{tnot}{c} as true because ($c$) is complete
+          and false)
+    \item Finally $a$ completes as true.
+\end{enumerate}
+
+In other words, tnot/1 delays the negative node until there is an answer
+or the SCC in which it appears is (ignoring the delayed negative nodes)
+completed. In the latter case the negative node is considered to be true
+and completion of the SCC is resumed.
+\end{itemlist}
+
+
 \section{Tabling predicate reference}
 \label{sec:tabling-preds}
 
@@ -309,6 +394,12 @@ argument declares the intended mode. For example:
 
 \jargon{Mode directed tabling} is discussed in the general introduction
 section of \chapref{tabling}.
+
+    \predicate{tnot}{1}{:Goal}
+The tnot/1 predicate implements \jargon{tabled negation}. This predicate
+currently realised \jargon{dynamically stratified negation}
+\cite{DBLP:journals/toplas/SagonasS98}. See \secref{tnotpure} for
+details.
 
     \predicate{current_table}{2}{:Variant, -Trie}
 True when \arg{Trie} is the answer table for \arg{Variant}.
@@ -335,6 +426,10 @@ structures required for tabling, the \jargon{answer tables} (see
 \secref{trie}) and the \jargon{worklist} to SWI-Prolog's C~core.
 \jargon{Mode directed tabling} (\secref{tabling-mode-directed}) is based
 on a prototype implementation by Fabrizio Riguzzi.
+
+The implementation of dynamic SCCs and dynamically stratified negation
+was initiated by Benjamin Grosof from Kyndi and was realised with a lot
+of help by Theresa Swift, David Warren and Fabrizio Riguzzi.
 
 The table/1 directive causes the creation of a wrapper calling the
 renamed original predicate. For example, the program in
