@@ -486,11 +486,6 @@ fail_if(P) :-
 %   XSB tabled negation. According to the XSB manual, sk_not/1 is an old
 %   name for not_exists/1. The predicates   tnot/1  and not_exists/1 are
 %   not precisely the same. We ignore that for now.
-%
-%   The actual implementation is in xsb/tables.pl, 't not'/1.
-
-tnot(P) :-
-    't not'(P).
 
 not_exists(P) :-
     tnot(P).

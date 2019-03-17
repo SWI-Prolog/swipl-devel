@@ -69,22 +69,7 @@ abolish_table_pred(PI) :-
 %   Tabled negation.
 
 't not'(Goal) :-
-    !,                                  % for now
-    debug(xsb(tnot), 'Enter tabled negation for ~p', [Goal]),
-    xsb_findall(x, Goal, List),
-    (   List == []
-    ->  debug(xsb(tnot), 'Tabled negation for ~p --> TRUE', [Goal])
-    ;   debug(xsb(tnot), 'Tabled negation for ~p --> FALSE', [Goal]),
-        fail
-    ).
-'t not'(Goal) :-
-    debug(xsb(tnot), 'Tabled negation for ~p~n', [Goal]),
-    '$tbl_variant_table'(Goal, Trie, Status),
-    (   Status == complete
-    ->  \+ trie_gen(Trie, Goal, _)
-    ;   xsb_findall(x, Goal, List),
-        List == []
-    ).
+    tnot(Goal).
 
 %!  tfindall(+Template, :Goal, -Answers)
 %
