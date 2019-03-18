@@ -68,7 +68,13 @@ user:term_expansion(begin_of_file, Out) :-
     ),
     Out1 = [ (:- expects_dialect(xsb)) | Out2 ],
     append(Extra, More, Out2),
-    convlist(head_directive(File), Directives1, More0),
+    (   nonvar(Module)
+    ->  setup_call_cleanup(
+            '$set_source_module'(OldM, Module),
+            convlist(head_directive(File), Directives1, More0),
+            '$set_source_module'(OldM))
+    ;   convlist(head_directive(File), Directives1, More0)
+    ),
     flatten(More0, More),
     debug(xsb(header), '~p: directives: ~p', [File, More]).
 
