@@ -129,7 +129,7 @@ start_tabling(Wrapper, Worker) :-
             run_leader(Skeleton, Worker1, Trie, SCC, LStatus),
             Catcher,
             finished_leader(Catcher, SCC, Wrapper)),
-        tdebug(schedule, 'Leader ~p done, status = ~p', [Wrapper, Status]),
+        tdebug(schedule, 'Leader ~p done, status = ~p', [Wrapper, LStatus]),
         done_leader(LStatus, SCC, Skeleton, Trie)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
