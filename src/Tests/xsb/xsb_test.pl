@@ -77,7 +77,8 @@ compare_terms(Sorted1, Sorted2) :-
     format(user_output, 'EXTRA:~n', []),
     forall(member(T, Extra), format(user_output, '   < ~q~n', [T])),
     format(user_output, 'MISSING:~n', []),
-    forall(member(T, Missing), format(user_output, '   > ~q~n', [T])).
+    forall(member(T, Missing), format(user_output, '   > ~q~n', [T])),
+    fail.
 
 golden_result(Base, Terms) :-
     atom_concat(Base, '_old', File),

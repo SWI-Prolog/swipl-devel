@@ -75,7 +75,6 @@ xsb_test(lmod8).
 xsb_test(lmod9).
 xsb_test(lmod10).
 xsb_test(lmod11).
-xsb_test(lmod5).
 xsb_test(ullman1).
 
 :- end_tests(tabled_lr_stratified_negation).
