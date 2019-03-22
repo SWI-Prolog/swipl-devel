@@ -950,6 +950,9 @@ PL_initialise(int argc, char **argv)
     }
     argc = done;
     argv = argvleft;
+  } else
+  { argc--;				/* saved state: only drop program */
+    argv++;
   }
 
   GD->cmdline.appl_argc = argc;
