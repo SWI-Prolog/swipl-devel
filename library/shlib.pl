@@ -288,7 +288,8 @@ load_foreign_library(LibFile, Module, DefEntry) :-
     ->  retractall(loading(LibFile)),
         assert_shlib(LibFile, Entry, Path, Module, Handle)
     ;   foreign_predicate(LibFile, _)
-    ->  retractall(loading(LibFile))     % C++ object installed predicates
+    ->  retractall(loading(LibFile)),    % C++ object installed predicates
+        assert_shlib(LibFile, 'C++', Path, Module, Handle)
     ;   retractall(loading(LibFile)),
         retractall(foreign_predicate(LibFile, _)),
         close_shared_object(Handle),
