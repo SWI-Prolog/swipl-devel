@@ -297,7 +297,8 @@ pp(Dict, Ctx, Options) :-
     ).
 :- endif.
 pp(Term, Ctx, Options) :-               % handle operators
-    functor(Term, Name, Arity),
+    compound(Term),
+    compound_name_arity(Term, Name, Arity),
     current_op(Prec, Type, Name),
     match_op(Type, Arity, Kind, Prec, Left, Right),
     option(operators(true), Options),
