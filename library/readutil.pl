@@ -260,7 +260,7 @@ read_file_to_string(Spec, Codes, Options) :-
 %     * tail(?Tail)
 %     If present, Terms\Tail forms a _difference list_.
 %
-%   Note  that  the  `output'  options    of  read_term/3,  such  as
+%   Note  that  the  _output_  options    of  read_term/3,  such  as
 %   =variable_names=    or    =subterm_positions=      will    cause
 %   read_file_to_terms/3 to fail if  Spec   contains  multiple terms
 %   because the values for the different terms will not unify.
