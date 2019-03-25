@@ -53,7 +53,10 @@ the following:
 @see    http://en.wikipedia.org/wiki/ANSI_escape_code
 */
 
-:- create_prolog_flag(color_term, true, [type(boolean)]).
+:- create_prolog_flag(color_term, true,
+                      [ type(boolean),
+                        keep(true)
+                      ]).
 
 :- meta_predicate
     keep_line_pos(+, 0).
