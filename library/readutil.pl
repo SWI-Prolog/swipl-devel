@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2013, University of Amsterdam
+    Copyright (c)  2001-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -58,6 +59,7 @@ link  the  foreign  code  at  runtime    and   fallback  to  the  Prolog
 implementation if the shared object cannot be found.
 
 @see library(pure_input) allows for processing files with DCGs.
+@see library(lazy_lists) for creating lazy lists from input.
 */
 
 :- predicate_options(read_file_to_codes/3, 3,
@@ -105,11 +107,13 @@ link_foreign :-
                  *             LINES            *
                  *******************************/
 
-%!  read_line_to_codes(+In:stream, -Line:codes) is det.
+%!  read_line_to_codes(+Stream, -Line:codes) is det.
 %
-%   Read a line of input from  In   into  a list of character codes.
-%   Trailing newline and  or  return   are  deleted.  Upon  reaching
-%   end-of-file Line is unified to the atom =end_of_file=.
+%   Read the next line of input from  Stream. Unify content of the lines
+%   as a list of character codes  with   Line  _after_ the line has been
+%   read. A line is ended by a  newline character or end-of-file. Unlike
+%   read_line_to_codes/3, this predicate  removes   a  trailing  newline
+%   character.
 
 pl_read_line_to_codes(Stream, Codes) :-
     get_code(Stream, C0),
@@ -131,9 +135,25 @@ read_1line_to_codes(C, Stream, [C|T]) :-
 
 %!  read_line_to_codes(+Stream, -Line, ?Tail) is det.
 %
-%   Read a line of input as a   difference list. This should be used
-%   to read multiple lines  efficiently.   On  reaching end-of-file,
-%   Tail is bound to the empty list.
+%   Difference-list version to read an input line to a list of character
+%   codes. Reading stops at the newline   or  end-of-file character, but
+%   unlike read_line_to_codes/2, the newline is  retained in the output.
+%   This predicate is especially useful for reading  a block of lines up
+%   to some delimiter. The following example  reads an HTTP header ended
+%   by a blank line:
+%
+%   ```
+%   read_header_data(Stream, Header) :-
+%       read_line_to_codes(Stream, Header, Tail),
+%       read_header_data(Header, Stream, Tail).
+%
+%   read_header_data("\r\n", _, _) :- !.
+%   read_header_data("\n", _, _) :- !.
+%   read_header_data("", _, _) :- !.
+%   read_header_data(_, Stream, Tail) :-
+%       read_line_to_codes(Stream, Tail, NewTail),
+%       read_header_data(Tail, Stream, NewTail).
+%   ```
 
 pl_read_line_to_codes(Stream, Codes, Tail) :-
     get_code(Stream, C0),
@@ -151,9 +171,9 @@ read_line_to_codes(C, Stream, [C|T], Tail) :-
 
 %!  read_line_to_string(+Stream, -String) is det.
 %
-%   Read the next line from  Stream   into  String.  String does not
-%   contain the line terminator. String is   unified with the _atom_
-%   end_of_file if the end of the file is reached.
+%   Read the next line from Stream into  String. String does not contain
+%   the line terminator. String is unified with the _atom_ `end_of_file`
+%   if the end of the file is reached.
 %
 %   @see    read_string/5 can be used to read lines with separated
 %           records without creating intermediate strings.
