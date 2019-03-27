@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2018, University of Amsterdam
+    Copyright (c)  2006-2019, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -39,6 +39,7 @@
             xref_source/2,              % +Source, +Options
             xref_called/3,              % ?Source, ?Callable, ?By
             xref_called/4,              % ?Source, ?Callable, ?By, ?Cond
+            xref_called/5,              % ?Source, ?Callable, ?By, ?Cond, ?Line
             xref_defined/3,             % ?Source. ?Callable, -How
             xref_definition_line/2,     % +How, -Line
             xref_exported/2,            % ?Source, ?Callable
@@ -94,7 +95,7 @@
 
 
 :- dynamic
-    called/4,                       % Head, Src, From, Cond
+    called/5,                       % Head, Src, From, Cond, Line
     (dynamic)/3,                    % Head, Src, Line
     (thread_local)/3,               % Head, Src, Line
     (multifile)/3,                  % Head, Src, Line
@@ -478,7 +479,7 @@ xref_set_prolog_flag(_, _, _, _).
 
 xref_clean(Source) :-
     prolog_canonical_source(Source, Src),
-    retractall(called(_, Src, _Origin, _Cond)),
+    retractall(called(_, Src, _Origin, _Cond, _Line)),
     retractall(dynamic(_, Src, Line)),
     retractall(multifile(_, Src, Line)),
     retractall(public(_, Src, Line)),
@@ -526,17 +527,33 @@ xref_done(Source, Time) :-
 
 %!  xref_called(?Source, ?Called, ?By) is nondet.
 %!  xref_called(?Source, ?Called, ?By, ?Cond) is nondet.
+%!  xref_called(?Source, ?Called, ?By, ?Cond, ?Line) is nondet.
 %
-%   Enumerate the predicate-call relations. Predicate called by
-%   directives have a By '<directive>'.
+%   True  when  By  is  called  from    Called   in  Source.  Note  that
+%   xref_called/3  and  xref_called/4  use  distinct/2  to  return  only
+%   distinct `Called-By` pairs. The  xref_called/5   version  may return
+%   duplicate `Called-By` if Called is called   from multiple clauses in
+%   By, but at most one call per clause.
+%
+%   @arg By is a head term or one of the reserved terms
+%   `'<directive>'(Line)` or `'<public>'(Line)`, indicating the call
+%   is from an (often initialization/1) directive or there is a public/1
+%   directive that claims the predicate is called from in some
+%   untractable way.
+%   @arg Cond is the (accumulated) condition as defined by
+%   ``:- if(Cond)`` under which the calling code is compiled.
+%   @arg Line is the _start line_ of the calling clause.
 
 xref_called(Source, Called, By) :-
     xref_called(Source, Called, By, _).
 
 xref_called(Source, Called, By, Cond) :-
     canonical_source(Source, Src),
-    called(Called, Src, By, Cond).
+    distinct(Called-By, called(Called, Src, By, Cond, _)).
 
+xref_called(Source, Called, By, Cond, Line) :-
+    canonical_source(Source, Src),
+    called(Called, Src, By, Cond, Line).
 
 %!  xref_defined(?Source, +Goal, ?How) is nondet.
 %
@@ -1014,19 +1031,19 @@ process_directive(arithmetic_function(FSpec), Src) :-
     arith_callable(FSpec, Goal),
     !,
     current_source_line(Line),
-    assert_called(Src, '<directive>'(Line), Goal).
+    assert_called(Src, '<directive>'(Line), Goal, Line).
 process_directive(format_predicate(_, Goal), Src) :-
     !,
     current_source_line(Line),
-    assert_called(Src, '<directive>'(Line), Goal).
+    assert_called(Src, '<directive>'(Line), Goal, Line).
 process_directive(if(Cond), Src) :-
     !,
     current_source_line(Line),
-    assert_called(Src, '<directive>'(Line), Cond).
+    assert_called(Src, '<directive>'(Line), Cond, Line).
 process_directive(elif(Cond), Src) :-
     !,
     current_source_line(Line),
-    assert_called(Src, '<directive>'(Line), Cond).
+    assert_called(Src, '<directive>'(Line), Cond, Line).
 process_directive(else, _) :- !.
 process_directive(endif, _) :- !.
 process_directive(Goal, Src) :-
@@ -1381,7 +1398,8 @@ process_goal(Goal, Origin, Src, P) :-
     ),
     !,
     must_be(list, Called),
-    assert_called(Src, Origin, Goal),
+    current_source_line(Here),
+    assert_called(Src, Origin, Goal, Here),
     process_called_list(Called, Origin, Src, P).
 process_goal(Goal, Origin, Src, _) :-
     process_xpce_goal(Goal, Origin, Src),
@@ -1397,16 +1415,19 @@ process_goal(use_foreign_library(File, _Init), _Origin, Src, _) :-
 process_goal(Goal, Origin, Src, P) :-
     xref_meta_src(Goal, Metas, Src),
     !,
-    assert_called(Src, Origin, Goal),
+    current_source_line(Here),
+    assert_called(Src, Origin, Goal, Here),
     process_called_list(Metas, Origin, Src, P).
 process_goal(Goal, Origin, Src, _) :-
     asserting_goal(Goal, Rule),
     !,
-    assert_called(Src, Origin, Goal),
+    current_source_line(Here),
+    assert_called(Src, Origin, Goal, Here),
     process_assert(Rule, Origin, Src).
 process_goal(Goal, Origin, Src, P) :-
     partial_evaluate(Goal, P),
-    assert_called(Src, Origin, Goal).
+    current_source_line(Here),
+    assert_called(Src, Origin, Goal, Here).
 
 disjunction(Var)   --> {var(Var), !}, [Var].
 disjunction((A;B)) --> !, disjunction(A), disjunction(B).
@@ -1606,7 +1627,8 @@ pce_goal(get_object(_,_,_), get_object(arg, msg, -)).
 process_xpce_goal(G, Origin, Src) :-
     pce_goal(G, Process),
     !,
-    assert_called(Src, Origin, G),
+    current_source_line(Here),
+    assert_called(Src, Origin, G, Here),
     (   arg(I, Process, How),
         arg(I, G, Term),
         process_xpce_arg(How, Term, Origin, Src),
@@ -2215,53 +2237,53 @@ assert_constraint(Src, Head) :-
                 *       PHASE 1 ASSERTIONS      *
                 ********************************/
 
-%!  assert_called(+Src, +From, +Head) is det.
+%!  assert_called(+Src, +From, +Head, +Line) is det.
 %
 %   Assert the fact that Head is called by From in Src. We do not
 %   assert called system predicates.
 
-assert_called(_, _, Var) :-
+assert_called(_, _, Var, _) :-
     var(Var),
     !.
-assert_called(Src, From, Goal) :-
+assert_called(Src, From, Goal, Line) :-
     var(From),
     !,
-    assert_called(Src, '<unknown>', Goal).
-assert_called(_, _, Goal) :-
+    assert_called(Src, '<unknown>', Goal, Line).
+assert_called(_, _, Goal, _) :-
     expand_hide_called(Goal),
     !.
-assert_called(Src, Origin, M:G) :-
+assert_called(Src, Origin, M:G, Line) :-
     !,
     (   atom(M),
         callable(G)
     ->  current_condition(Cond),
         (   xmodule(M, Src)         % explicit call to own module
-        ->  assert_called(Src, Origin, G)
-        ;   called(M:G, Src, Origin, Cond) % already registered
+        ->  assert_called(Src, Origin, G, Line)
+        ;   called(M:G, Src, Origin, Cond, Line) % already registered
         ->  true
         ;   hide_called(M:G, Src)           % not interesting (now)
         ->  true
         ;   generalise(Origin, OTerm),
             generalise(G, GTerm)
-        ->  assert(called(M:GTerm, Src, OTerm, Cond))
+        ->  assert(called(M:GTerm, Src, OTerm, Cond, Line))
         ;   true
         )
     ;   true                        % call to variable module
     ).
-assert_called(Src, _, Goal) :-
+assert_called(Src, _, Goal, _) :-
     (   xmodule(M, Src)
     ->  M \== system
     ;   M = user
     ),
     hide_called(M:Goal, Src),
     !.
-assert_called(Src, Origin, Goal) :-
+assert_called(Src, Origin, Goal, Line) :-
     current_condition(Cond),
-    (   called(Goal, Src, Origin, Cond)
+    (   called(Goal, Src, Origin, Cond, Line)
     ->  true
     ;   generalise(Origin, OTerm),
         generalise(Goal, Term)
-    ->  assert(called(Term, Src, OTerm, Cond))
+    ->  assert(called(Term, Src, OTerm, Cond, Line))
     ;   true
     ).
 
@@ -2321,7 +2343,7 @@ assert_import(Src, Import as Name, Export, From, Reexport) :-
     ->  assert(imported(Term, Src, From)),
         assert_reexport(Reexport, Src, Term)
     ;   current_source_line(Line),
-        assert_called(Src, '<directive>'(Line), Term0)
+        assert_called(Src, '<directive>'(Line), Term0, Line)
     ).
 assert_import(Src, Import, Export, From, Reexport) :-
     pi_to_head(Import, Term),
@@ -2330,7 +2352,7 @@ assert_import(Src, Import, Export, From, Reexport) :-
     ->  assert(imported(Term, Src, From)),
         assert_reexport(Reexport, Src, Term)
     ;   current_source_line(Line),
-        assert_called(Src, '<directive>'(Line), Term)
+        assert_called(Src, '<directive>'(Line), Term, Line)
     ).
 assert_import(Src, op(P,T,N), _, _, _) :-
     xref_push_op(Src, P,T,N).
@@ -2491,7 +2513,7 @@ assert_multifile(PI, Src) :-                    % :- multifile(Spec)
 assert_public(PI, Src) :-                       % :- public(Spec)
     pi_to_head(PI, Term),
     current_source_line(Line),
-    assert_called(Src, '<public>'(Line), Term),
+    assert_called(Src, '<public>'(Line), Term, Line),
     assert(public(Term, Src, Line)).
 
 assert_export(PI, Src) :-                       % :- export(Spec)
