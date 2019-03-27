@@ -187,7 +187,7 @@ destroyDefinition(Definition def)
 
 #ifdef O_PLMT
     if ( true(def, P_THREAD_LOCAL) )
-      free_ldef_vector(def->impl.local);
+      destroyLocalDefinitions(def);
 #endif
 
     freeHeap(def, sizeof(*def));

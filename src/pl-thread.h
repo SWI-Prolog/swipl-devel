@@ -372,6 +372,7 @@ COMMON(Definition)	localiseDefinition(Definition def);
 COMMON(LocalDefinitions) new_ldef_vector(void);
 COMMON(void)		free_ldef_vector(LocalDefinitions ldefs);
 COMMON(void)		cleanupLocalDefinitions(PL_local_data_t *ld);
+COMMON(void)		destroyLocalDefinitions(Definition def);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
