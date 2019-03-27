@@ -159,7 +159,7 @@ static PL_blob_t trie_blob =
 static trie_node       *new_trie_node(trie *trie, word key);
 static void		clear_vars(Word k, size_t var_number ARG_LD);
 static void		destroy_node(trie *trie, trie_node *n);
-static void		clear_node(trie *trie, trie_node *n);
+static void		clear_node(trie *trie, trie_node *n, int dealloc);
 static inline void	release_value(word value);
 
 
@@ -207,7 +207,7 @@ trie_empty(trie *trie)
   if ( !trie->references )
   { indirect_table *it = trie->indirects;
 
-    clear_node(trie, &trie->root);	/* TBD: verify not accessed */
+    clear_node(trie, &trie->root, FALSE);	/* TBD: verify not accessed */
     if ( it && COMPARE_AND_SWAP(&trie->indirects, it, NULL) )
       destroy_indirect_table(it);
   }
@@ -269,8 +269,11 @@ new_trie_node(trie *trie, word key)
 
 
 static void
-clear_node(trie *trie, trie_node *n)
-{ trie_children children = n->children;
+clear_node(trie *trie, trie_node *n, int dealloc)
+{ trie_children children;
+
+next:
+  children = n->children;
 
   if ( trie->release_node )
     (*trie->release_node)(trie, n);
@@ -281,20 +284,33 @@ clear_node(trie *trie, trie_node *n)
 
   if ( children.any &&
        COMPARE_AND_SWAP(&n->children.any, children.any, NULL) )
-  { switch( children.any->type )
+  { if ( dealloc )
+    { ATOMIC_DEC(&trie->node_count);
+      if ( trie->alloc_pool )
+	ATOMIC_SUB(&trie->alloc_pool->size, sizeof(trie_node));
+      PL_free(n);
+    }
+
+    switch( children.any->type )
     { case TN_KEY:
-	destroy_node(trie, children.key->child);
+      { n = children.key->child;
         PL_free(children.key);
-	break;
+	dealloc = TRUE;
+	goto next;
+      }
       case TN_HASHED:
-      { TableEnum e = newTableEnum(children.hash->table);
+      { Table table = children.hash->table;
+	TableEnum e = newTableEnum(table);
 	void *k, *v;
 
+	PL_free(children.hash);
+
 	while(advanceTableEnum(e, &k, &v))
-	  destroy_node(trie, v);
+	{ clear_node(trie, v, TRUE);
+	}
 
 	freeTableEnum(e);
-	destroyHTable(children.hash->table);
+	destroyHTable(table);
 	break;
       }
     }
@@ -303,13 +319,7 @@ clear_node(trie *trie, trie_node *n)
 
 static void
 destroy_node(trie *trie, trie_node *n)
-{ clear_node(trie, n);
-
-  ATOMIC_DEC(&trie->node_count);
-  if ( trie->alloc_pool )
-    ATOMIC_SUB(&trie->alloc_pool->size, sizeof(trie_node));
-
-  PL_free(n);
+{ clear_node(trie, n, TRUE);
 }
 
 
