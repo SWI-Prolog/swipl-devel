@@ -98,6 +98,17 @@ utf8_skip_char(const char *in)
   }
 }
 
+static inline char *
+utf8_skip_char_e(const char *in, const char *end)
+{ if ( !(in[0]&0x80) )
+  { return (char*)in+1;
+  } else
+  { in++;
+    while ( in < end && ISUTF8_CB(in[0]) )
+      in++;
+    return (char*)in;
+  }
+}
 
 static inline char *
 utf8_backskip_char(const char *start, const char *s)

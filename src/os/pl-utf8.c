@@ -151,7 +151,7 @@ utf8_strlen(const char *s, size_t len)
   unsigned int l = 0;
 
   while(s<e)
-  { s = utf8_skip_char(s);
+  { s = utf8_skip_char_e(s, e);
     l++;
   }
 
