@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2018, University of Amsterdam,
+    Copyright (c)  1999-2019, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -6277,6 +6277,17 @@ registerLocalDefinition(Definition def)
 }
 
 
+static void
+unregisterLocalDefinition(Definition def, PL_local_data_t *ld)
+{ DefinitionChain cell;
+
+  for(cell = ld->thread.local_definitions; cell; cell = cell->next)
+  { if ( cell->definition == def )
+      cell->definition = NULL;
+  }
+}
+
+
 LocalDefinitions
 new_ldef_vector(void)
 { LocalDefinitions f = allocHeapOrHalt(sizeof(*f));
@@ -6287,6 +6298,42 @@ new_ldef_vector(void)
   f->blocks[2] = f->preallocated - 1;
 
   return f;
+}
+
+
+void
+destroyLocalDefinitions(Definition def)
+{ GET_LD
+  size_t tid;
+  LocalDefinitions ldefs = def->impl.local;
+
+  for(tid=1; ; tid++)
+  { size_t idx = MSB(tid);
+
+    if ( !ldefs->blocks[idx] )
+      break;
+
+    if ( ldefs->blocks[idx][tid] )
+    { PL_thread_info_t *info = GD->thread.threads[tid];
+      PL_local_data_t *ld;
+
+      if ( LD )					/* See (*) */
+	ld = acquire_ldata(info);
+      else
+	ld = info->thread_data;
+
+      if ( ld != LD )
+	Sdprintf("Destroying thread local predicate %s "
+		 "with active local definitions\n",
+		 predicateName(def));
+
+      unregisterLocalDefinition(def, ld);
+      destroyLocalDefinition(def, tid);
+
+      if ( LD )
+	release_ldata(ld);
+    }
+  }
 }
 
 
@@ -6338,13 +6385,15 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
   { Definition def = ch->definition;
     next = ch->next;
 
-    DEBUG(MSG_CLEANUP,
-	  Sdprintf("Clean local def in thread %d for %s\n",
-		   id,
-		   predicateName(def)));
+    if ( def )
+    { DEBUG(MSG_CLEANUP,
+	    Sdprintf("Clean local def in thread %d for %s\n",
+		     id,
+		     predicateName(def)));
 
-    assert(true(def, P_THREAD_LOCAL));
-    destroyLocalDefinition(def, id);
+      assert(true(def, P_THREAD_LOCAL));
+      destroyLocalDefinition(def, id);
+    }
     freeHeap(ch, sizeof(*ch));
   }
 }
