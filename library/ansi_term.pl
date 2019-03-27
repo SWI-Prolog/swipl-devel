@@ -53,10 +53,23 @@ the following:
 @see    http://en.wikipedia.org/wiki/ANSI_escape_code
 */
 
-:- create_prolog_flag(color_term, true,
-                      [ type(boolean),
-                        keep(true)
-                      ]).
+color_term_flag_default(true) :-
+    stream_property(user_input, tty(true)),
+    stream_property(user_error, tty(true)),
+    stream_property(user_output, tty(true)),
+    \+ getenv('TERM', dumb),
+    !.
+color_term_flag_default(false).
+
+init_color_term_flag :-
+    color_term_flag_default(Default),
+    create_prolog_flag(color_term, Default,
+                       [ type(boolean),
+                         keep(true)
+                       ]).
+
+:- init_color_term_flag.
+
 
 :- meta_predicate
     keep_line_pos(+, 0).

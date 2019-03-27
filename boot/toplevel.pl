@@ -623,6 +623,7 @@ setup_colors :-
         stream_property(user_input, tty(true)),
         stream_property(user_error, tty(true)),
         stream_property(user_output, tty(true)),
+        \+ getenv('TERM', dumb),
         load_setup_file(user:library(ansi_term))
     ->  true
     ;   true
