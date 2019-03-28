@@ -6283,7 +6283,9 @@ unregisterLocalDefinition(Definition def, PL_local_data_t *ld)
 
   for(cell = ld->thread.local_definitions; cell; cell = cell->next)
   { if ( cell->definition == def )
-      cell->definition = NULL;
+    { cell->definition = NULL;
+      return;
+    }
   }
 }
 
@@ -6301,37 +6303,55 @@ new_ldef_vector(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called  from  destroyDefinition()   for    a   thread-local   predicate.
+destroyDefinition() is called  for  destroying   temporary  modules.  If
+thread-local predicates are defined in the   temporary module these must
+be destroyed and the registration with  module   must  be removed or the
+thread cleanup will access the destroyed predicate.
+
+Now, the thread having a localization for  this predicate is most likely
+the calling thread, but in theory other threads can be involved and thus
+we need to scan the entire localization array.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 destroyLocalDefinitions(Definition def)
 { GET_LD
-  size_t tid;
   LocalDefinitions ldefs = def->impl.local;
+  int b;
 
-  for(tid=1; ; tid++)
-  { size_t idx = MSB(tid);
+  for(b=0; b<MAX_BLOCKS; b++)
+  { Definition *d0 = ldefs->blocks[b];
 
-    if ( !ldefs->blocks[idx] )
-      break;
+    if ( d0 )
+    { size_t bs = (size_t)1<<b;
+      size_t tid = bs;
+      size_t end = tid+bs;
 
-    if ( ldefs->blocks[idx][tid] )
-    { PL_thread_info_t *info = GD->thread.threads[tid];
-      PL_local_data_t *ld;
+      for(tid=bs; tid<end; tid++)
+      { if ( d0[tid] )
+	{ PL_thread_info_t *info = GD->thread.threads[tid];
+	  PL_local_data_t *ld;
 
-      if ( LD )					/* See (*) */
-	ld = acquire_ldata(info);
-      else
-	ld = info->thread_data;
+	  if ( LD )					/* See (*) */
+	    ld = acquire_ldata(info);
+	  else
+	    ld = info->thread_data;
 
-      if ( ld != LD )
-	Sdprintf("Destroying thread local predicate %s "
-		 "with active local definitions\n",
-		 predicateName(def));
+	  DEBUG(MSG_THREAD_LOCAL,
+		if ( ld != LD )
+		  Sdprintf("Destroying thread local predicate %s "
+			   "with active local definitions\n",
+			   predicateName(def)));
 
-      unregisterLocalDefinition(def, ld);
-      destroyLocalDefinition(def, tid);
+	  unregisterLocalDefinition(def, ld);
+	  destroyLocalDefinition(def, tid);
 
-      if ( LD )
-	release_ldata(ld);
+	  if ( LD )
+	    release_ldata(ld);
+	}
+      }
     }
   }
 }
