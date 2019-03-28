@@ -308,9 +308,9 @@ without recompilation. The downside is that   Valgrind makes the program
 run about 20 times slower. The slowdown   by AddressSanitizer is about a
 factor two. To compile for using with AddressSanitizer, do e.g.,
 
-    % mkdir build.sanitizer
-    % cd build.sanitizer
-    % cmake -DCMAKE_BUILD_TYPE=Sanitizer -G Ninja ..
+    % mkdir build.sanitize
+    % cd build.sanitize
+    % cmake -DCMAKE_BUILD_TYPE=Sanitize -G Ninja ..
     % ninja
 
 See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.

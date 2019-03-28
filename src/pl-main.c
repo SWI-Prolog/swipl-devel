@@ -123,3 +123,13 @@ main(int argc, char **argv)
 }
 
 
+		 /*******************************
+		 *   AddressSanitizer support   *
+		 *******************************/
+
+#ifdef __SANITIZE_ADDRESS__
+const char*
+__asan_default_options()
+{ return "detect_leaks=0";
+}
+#endif
