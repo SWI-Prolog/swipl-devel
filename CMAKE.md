@@ -89,20 +89,13 @@ using e.g.,
 
 ## Install location
 
-To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/install`. For example, this will build SWI to be installed in `/usr/local/swipl-git` and will not include the documentation (see below for other customization options):
+To install in a particular   location, use `-DCMAKE_INSTALL_PREFIX`. For
+example, this will build SWI to be installed in `/usr/local/swipl-git`:
 
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git -DINSTALL_DOCUMENTATION=OFF ..
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/swipl-git -G Ninja ..
 
-After `sudo make install`, SWI will be located in `/usr/local/swipl-git`. Next adapt environment variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` to point to the new compiled and installed SWI system:
-
-    export SWI_HOME_DIR=/usr/local/swipl-git/lib/swipl/
-    export LD_LIBRARY_PATH=/usr/local/swipl-git/lib/swipl/lib/x86_64-linux/:$LD_LIBRARY_PATH
-
-Finally, you can run it:
-
-    /usr/local/swipl-git/bin/swipl
-
-_NOTE:_ if there is already an installed SWI (e.g., the one coming with a Linux distribution), running `swipl` will run the new installed system pointed by `SWI_HOME_DIR`.
+After    `sudo    ninja    install`,     `swipl`      will     be     in
+`/usr/local/swipl-git/bin/swipl`.
 
 
 ## Customizing SWI-Prolog
@@ -130,6 +123,29 @@ allow for restricting the system.
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
 installed.
+
+## Embedding SWI-Prolog in Java, C, C++, etc.
+
+If SWI-Prolog is to be embedded in another executable it must be able to
+find its home directory and the main   application  must be able to find
+the SWI-Prolog shared library `libswipl.so`   (extension  depends on the
+platform).  The following environment variables are commonly used:
+
+    - `SWI_HOME_DIR` should point at SWI-Prolog's main directory, e.g.
+      ``${CMAKE_INSTALL_PREFIX}/lib/swipl``
+    - The shared object search path should include the directory where
+      `libswipl.{so,dll,...}` resides.  The variable depends on the
+      platform.  Some popular names:
+
+      - `LD_LIBRARY_PATH` (ELF based systems such as Linux)
+      - `DYLD_LIBRARY_PATH` (MacOS)
+      - `PATH` (Windows)
+
+If you build SWI-Prolog  you  must   __remove  these  variables from the
+environment when building__. Failure  to  do   so  may  cause  the build
+process to use parts  of  an   incompatible  installed  system.  Running
+`cmake` warns if  such  an  environment   variable  is  found,  but  the
+environment must be cleaned when running `ninja` or `make`.
 
 ## Profile Guided Optimization
 
