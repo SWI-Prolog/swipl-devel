@@ -299,7 +299,9 @@ find_varname(Var, [_|T], Name) :-
 %           more complex source-translations,  falling   back  to  a
 %           heuristic method locating as much as possible.
 
-unify_clause(Read, Read, _, TermPos, TermPos) :- !.
+unify_clause(Read, Read, _, TermPos, TermPos) :-
+    acyclic_term(Read),
+    !.
                                         % XPCE send-methods
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
     unify_clause_hook(Read, Decompiled, Module, TermPos0, TermPos),
