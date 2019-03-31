@@ -433,6 +433,7 @@ verify_safe_declaration(Var) :-
     !,
     instantiation_error(Var).
 verify_safe_declaration(Module:Goal) :-
+    !,
     must_be(atom, Module),
     must_be(callable, Goal),
     (   ok_meta(Module:Goal)
