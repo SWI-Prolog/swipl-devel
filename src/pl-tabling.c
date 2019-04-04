@@ -253,6 +253,12 @@ add_global_worklist(worklist *wl)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Normal completion is done. There  may   be  worklists that are suspended
+using negation_suspend/3. We wake  these  up   by  adding  a  new answer
+cluster with a NULL node.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static worklist *
 negative_worklist(tbl_component *c)
 { worklist **wlp = baseBuffer(&c->created_worklists->members, worklist*);
