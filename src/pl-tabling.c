@@ -268,7 +268,7 @@ negative_worklist(tbl_component *c)
 
       wl->neg_complete = TRUE;
       DEBUG(MSG_TABLING_NEG,
-	    Sdprintf("Resume negative node %p\n", wl));
+	    Sdprintf("Resume negative node %zd\n", pointerToInt(wl)));
 
       c = new_answer_cluster(NULL);
       wkl_append_left(wl, c);
