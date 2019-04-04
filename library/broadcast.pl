@@ -65,8 +65,8 @@ broadcasts changes to settings, allowing dependent   modules to react on
 changes:
 
 ==
-:- listing(setting(changed(http:workers, New)),
-           change_workers(New)).
+:- listen(setting(changed(http:workers, New)),
+          change_workers(New)).
 
 change_workers(New) :-
         setting(http:port, Port),
