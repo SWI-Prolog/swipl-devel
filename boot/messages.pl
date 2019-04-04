@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2018, University of Amsterdam
+    Copyright (c)  1997-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -615,10 +616,12 @@ prolog_message(no_exported_op(Module, Op)) -->
 prolog_message(discontiguous((-)/2,_)) -->
     prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc,Current)) -->
-    [ 'Clauses of ~p are not together in the source-file'-[Proc], nl ],
-    current_definition(Proc, '  Earlier definition at '),
-    [ '  Current predicate: ~p'-[Current], nl,
-      '  Use :- discontiguous ~p. to suppress this message'-[Proc]
+    [ 'Clauses of ', ansi(code, '~p', [Proc]),
+      ' are not together in the source-file', nl ],
+    current_definition(Proc, 'Earlier definition at '),
+    [ 'Current predicate: ', ansi(code, '~p', [Current]), nl,
+      'Use ', ansi(code, ':- discontiguous ~p.', [Proc]),
+      ' to suppress this message'
     ].
 prolog_message(decl_no_effect(Goal)) -->
     [ 'Deprecated declaration has no effect: ~p'-[Goal] ].
@@ -1561,10 +1564,12 @@ msg_property(query, stream(user_output)) :- !.
 msg_property(_, stream(user_error)) :- !.
 msg_property(error,
              location_prefix(File:Line,
-                             '~NERROR: ~w:~d:'-[File,Line], '~N\t')) :- !.
+                             '~NERROR: ~w:~d:'-[File,Line],
+                             '~NERROR:    ')) :- !.
 msg_property(warning,
              location_prefix(File:Line,
-                             '~NWarning: ~w:~d:'-[File,Line], '~N\t')) :- !.
+                             '~NWarning: ~w:~d:'-[File,Line],
+                             '~NWarning:    ')) :- !.
 msg_property(error,   wait(0.1)) :- !.
 
 msg_prefix(debug(_), Prefix) :-
