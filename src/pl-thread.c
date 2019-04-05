@@ -119,6 +119,12 @@ _syscall0(pid_t,gettid)
 #include <sys/syscall.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/cpuset.h>        /* CPU_ZERO(), CPU_SET, cpuset_t */
+#include <pthread_np.h>        /* pthread_*_np */
+typedef cpuset_t cpu_set_t;
+#endif
+
 #ifdef HAVE_SEMA_INIT			/* Solaris */
 #include <synch.h>
 
