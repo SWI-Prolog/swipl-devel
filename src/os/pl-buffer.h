@@ -113,6 +113,8 @@ f__allocFromBuffer(Buffer b, size_t bytes)
 #define isEmptyBuffer(b)         ((b)->top == (b)->base)
 #define popBuffer(b,type) \
 	((b)->top -= sizeof(type), *(type*)(b)->top)
+#define popBufferP(b,type) \
+	((b)->top -= sizeof(type), (type*)(b)->top)
 
 #define discardBuffer(b) \
 	do \

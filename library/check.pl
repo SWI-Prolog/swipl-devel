@@ -77,7 +77,7 @@ predicates in `user' modules.
 */
 
 :- predicate_options(list_undefined/1, 1,
-                     [ module_class(list(oneof([user,library])))
+                     [ module_class(list(oneof([user,library,system])))
                      ]).
 
 %!  check is det.

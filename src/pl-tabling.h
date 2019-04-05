@@ -42,6 +42,7 @@ typedef enum
   CLUSTER_SUSPENSIONS
 } cluster_type;
 
+#define DELAY_MAGIC	0x67e9124d
 #define WORKLIST_MAGIC	0x67e9124e
 #define COMPONENT_MAGIC	0x67e9124f
 
@@ -64,9 +65,16 @@ typedef enum
   SCC_COMPLETED
 } scc_status;
 
+typedef enum
+{ SCC_NEG_NONE=0,				/* no negative nodes */
+  SCC_NEG_DELAY,
+  SCC_NEG_SIMPLIFY
+} scc_neg_status;
+
 typedef struct tbl_component
 { int			magic;			/* COMPONENT_MAGIC */
   scc_status	        status;			/* SCC_* */
+  scc_neg_status	neg_status;		/* SCC_NEG_* */
   struct tbl_component *parent;
   component_set        *children;		/* Child components */
   worklist_set         *worklist;		/* Worklist of current query */
@@ -90,17 +98,73 @@ typedef struct worklist
   cluster      *tail;
   cluster      *riac;			/* rightmost inner answer cluster */
   int		magic;			/* WORKLIST_MAGIC */
+  unsigned	ground : 1;		/* Ground call (early completion) */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
   unsigned	negative : 1;		/* this is a suspended negation */
-  unsigned	neg_complete : 1;	/* Negative node is completed */
+  unsigned	neg_delayed : 1;	/* Negative node was delayed */
+  unsigned	neg_completed : 1;	/* Negative node is complete (false) */
   unsigned	has_answers : 1;	/* Negative node has >= one answer */
+  size_t	undefined;		/* #undefined answers */
 
   tbl_component*component;		/* component I belong to */
-  trie	       *table;			/* table I belong to */
+  trie	       *table;			/* My answer table */
+
+  buffer	delays;			/* Delayed answers */
 } worklist;
 
 
-COMMON(void) clearThreadTablingData(PL_local_data_t *ld);
+		 /*******************************
+		 *	    DELAY LISTS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A `delay_list` represents a conjunction of conditions. Each condition is
+either a negative literal <~L> or  a   positive  literal  with an answer
+<L,A>.
+
+Delay lists are associated with an answer. An   answer can have a set of
+delay lists (`delay_list_set`) and are combined in a `delay_info` struct
+that provides information  about  the  variant   for  which  this  is  a
+condition.
+
+A `worklist` points at  the  delay  list   elements  for  which  it is a
+condition. After resolving a worklist (answer  for positive literals) we
+should go over the places where  its   associated  variant  is used as a
+condition and
+
+  - Delete the condition from the delay list if the condition is
+    satified. If all conditions are satified propagate using the
+    resolved answer.
+  - Delete the answer from the answer trie and propage that.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct delay_usage
+{ buffer	     answers;		/* trie_node * to conditional answers */
+} delay_usage;
+
+typedef struct delay
+{ trie	            *variant;		/* Answer trie */
+  trie_node         *answer;		/* Answer in there (NULL for negative) */
+} delay;
+
+typedef struct delay_set
+{ unsigned	     offset;		/* offset in delays */
+  unsigned	     size;		/* size of the conjunction */
+} delay_set;
+
+typedef struct delay_info
+{ trie_node      *variant;		/* Variant trie node */
+  buffer          delay_sets;		/* The disjunctive conditions */
+  buffer	  delays;		/* Store for the delays */
+} delay_info;
+
+
+		 /*******************************
+		 *	     PROTOTYPES		*
+		 *******************************/
+
+COMMON(void)	clearThreadTablingData(PL_local_data_t *ld);
+COMMON(term_t)	init_delay_list(void);
 
 #endif /*_PL_TABLING_H*/

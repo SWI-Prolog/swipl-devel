@@ -487,6 +487,7 @@ A non_empty_list	"non_empty_list"
 A non_terminal		"non_terminal"
 A non_terminating	"non_terminating"
 A none			"none"
+A nonground		"nonground"
 A nonvar		"nonvar"
 A noprofile		"noprofile"
 A normal		"normal"
@@ -627,6 +628,7 @@ A reset			"reset"
 A resource		"resource"
 A resource_error	"resource_error"
 A resource_handle	"resource_handle"
+A ret			"ret"
 A retry			"retry"
 A round			"round"
 A rshift		">>"
@@ -747,6 +749,7 @@ A timeout		"timeout"
 A timeout_error		"timeout_error"
 A timezone		"timezone"
 A tmp_dir		"tmp_dir"
+A tnot			"tnot"
 A to_lower		"to_lower"
 A to_upper		"to_upper"
 A top			"top"
@@ -1095,6 +1098,7 @@ F term_position		5
 F thousands_sep		1
 F timeout		1
 F timeout_error		2
+F tnot			1
 F trace			1
 F traceinterc		3
 F tracing		1

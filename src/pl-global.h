@@ -559,6 +559,8 @@ struct PL_local_data
     struct trie *variant_table;		/* Variant --> table */
     trie_allocation_pool node_pool;	/* Node allocation pool for tries */
     int	has_scheduling_component;	/* A leader was created */
+    int in_answer_completion;		/* Running answer completion */
+    term_t delay_list;			/* Global delay list */
   } tabling;
 
   struct

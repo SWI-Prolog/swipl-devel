@@ -54,7 +54,11 @@
             not_exists/1,			% :Goal
             sk_not/1,				% :Goal
 
-            xsb_findall/3,			% +Template, :Goal, -Answers
+            undefined/0,
+
+            is_most_general_term/1,		% @Term
+
+            cputime/1,				% -Seconds
 
             op(1050,  fy, import),
             op(1050,  fx, export),
@@ -62,6 +66,8 @@
             op(1100,  fy, index),               % ignored
             op(1100,  fy, ti),                  % transformational indexing?
             op(1100,  fx, mode),                % ignored
+            op(1045, xfx, as),
+            op(900,   fy, tnot),
             op(900,   fy, not)                  % defined as op in XSB
           ]).
 :- use_module(library(error)).
@@ -87,9 +93,8 @@ system](http://xsb.sourceforge.net/)
 
     fail_if(0),                         % Meta predicates
     not_exists(0),
-    sk_not(0),
+    sk_not(0).
 
-    xsb_findall(+,0,-).
 
 
 		 /*******************************
@@ -160,8 +165,6 @@ user:goal_expansion(In, Out) :-
 
 xsb_mapped_predicate(expand_file_name(File, Expanded),
                      xsb_expand_file_name(File, Expanded)).
-xsb_mapped_predicate(findall(Template, Goal, List),
-                     xsb_findall(Template, Goal, List)).
 
 xsb_inlined_goal(fail_if(P), \+(P)).
 
@@ -399,7 +402,8 @@ valid_compiler_option(Option) :-
     must_be(oneof([ singleton_warnings_off,
                     optimize,
                     allow_redefinition,
-                    xpp_on
+                    xpp_on,
+                    spec_off
                   ]), Option).
 
 %!  compiler_options(+Options) is det.
@@ -428,6 +432,7 @@ set_compiler_option(optimize) :-
     set_prolog_flag(optimise, true).
 set_compiler_option(allow_redefinition).
 set_compiler_option(xpp_on).
+set_compiler_option(spec_off).
 
 clear_compiler_option(singleton_warnings_off) :-
     style_check(+singleton).
@@ -494,26 +499,63 @@ sk_not(P) :-
     not_exists(P).
 
 
-%!  xsb_findall(+Template, :Goal, -List) is det.
+%!  undefined
 %
-%   Alternative to findall/3 that is safe to   be used for tabling. This
-%   is a temporary hack  as  the   findall/3  support  predicates cannot
-%   handle suspension from inside the findall   goal  because it assumes
-%   perfect nesting of findall.
+%   Explicit undefined evaluation.
+%
+%   @tbd Move to dedicated library?
 
-xsb_findall(T, G, L) :-
-    L0 = [dummy|_],
-    Result = list(L0),
-    (   call(G),
-        duplicate_term(T, T2),
-        NewLastCell = [T2|_],
-        arg(1, Result, LastCell),
-        nb_linkarg(2, LastCell, NewLastCell),
-        nb_linkarg(1, Result, NewLastCell),
-        fail
-    ;   arg(1, Result, [_]),
-        L0 = [_|L]
+:- table undefined/0.
+
+undefined :-
+    tnot(undefined).
+
+
+%!  is_most_general_term(@X) is semidet.
+%
+%   Succeeds if X is  compound  term   with  all  distinct  variables as
+%   arguments, or if X is an atom. (It fails if X is a cons node.)
+%
+%      ```
+%      ?- is_most_general_term(f(_,_,_,_)).
+%      true.
+%      ?- is_most_general_term(abc).
+%      true.
+%      ?- is_most_general_term(f(X,Y,Z,X)).
+%      false.
+%      ?- is_most_general_term(f(X,Y,Z,a)).
+%      false.
+%      ?- is_most_general_term([_|_]).
+%      false.
+%      ```
+
+is_most_general_term(List) :-
+    is_list(List),
+    !,
+    length(List, Len),
+    sort(List, L2),
+    length(L2, Len).
+is_most_general_term(Term) :-
+    compound(Term),
+    !,
+    compound_name_arity(Term, _, Arity),
+    (   Arity == 0
+    ->  true
+    ;   Term \= [_|_],
+        term_variables(Term, Vars),
+        sort(Vars, Sorted),
+        length(Sorted, Arity)
     ).
+is_most_general_term(Term) :-
+    atom(Term).
+
+
+%!  cputime(-Seconds) is det.
+%
+%   True when Seconds is the used CPU time.
+
+cputime(Seconds) :-
+    statistics(cputime, Seconds).
 
 
 		 /*******************************

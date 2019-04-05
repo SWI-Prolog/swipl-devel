@@ -133,9 +133,24 @@ export_decl(PI) -->
 head_directive(File, import(from(Preds, From)),
                (:- xsb_import(Preds, From))) :-
     assertz(xsb:moved_directive(File, import(from(Preds, From)))).
+head_directive(File, table(Preds as Options), Clauses) :-
+    ignored_table_options(Options),
+    expand_term((:- table(Preds)), Clauses),
+    assertz(xsb:moved_directive(File, table(Preds as Options))).
 head_directive(File, table(Preds), Clauses) :-
     expand_term((:- table(Preds)), Clauses),
     assertz(xsb:moved_directive(File, table(Preds))).
+
+ignored_table_options((A,B)) :-
+    !,
+    ignored_table_options(A),
+    ignored_table_options(B).
+ignored_table_options(variant) :-
+    !.
+ignored_table_options(opaque) :-
+    !.
+ignored_table_options(Option) :-
+    print_message(warning, xsb(table_option_ignored(Option))).
 
 %!  xsb_directives(+File, -Directives) is semidet.
 %
@@ -188,3 +203,5 @@ stream_directive(In, Directive) :-
 :- op(1040, xfx, from).
 :- op(1100,  fy, index).
 :- op(1100,  fy, ti).
+:- op(1045, xfx, as).
+:- op(900,   fy, tnot).

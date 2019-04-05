@@ -593,6 +593,17 @@ get_trie_form_node(trie_node *node)
 }
 
 
+int
+is_ground_trie_node(trie_node *node)
+{ for( ; node->parent; node = node->parent )
+  { if ( tag(node->key) == TAG_VAR )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *    BUILD TERM FROM PATH	*
 		 *******************************/
@@ -662,6 +673,46 @@ out:
 }
 
 
+void *
+map_trie_node(trie_node *n,
+	      void* (*map)(trie_node *n, void *ctx), void *ctx)
+{ trie_children children;
+  void *rc;
+
+next:
+  children = n->children;
+
+  if ( (rc=(*map)(n, ctx)) != NULL )
+    return rc;
+
+  if ( children.any  )
+  { switch( children.any->type )
+    { case TN_KEY:
+      { n = children.key->child;
+	goto next;
+      }
+      case TN_HASHED:
+      { Table table = children.hash->table;
+	TableEnum e = newTableEnum(table);
+	void *k, *v;
+
+	while(advanceTableEnum(e, &k, &v))
+	{ if ( (rc=map_trie_node(v, map, ctx)) != NULL )
+	  { freeTableEnum(e);
+	    return rc;
+	  }
+	}
+
+	freeTableEnum(e);
+	break;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
 typedef struct trie_stats
 { size_t bytes;
   size_t nodes;
@@ -670,9 +721,10 @@ typedef struct trie_stats
 } trie_stats;
 
 
-static void
-stat_node(trie_node *n, trie_stats *stats)
-{ trie_children children = n->children;
+static void *
+stat_node(trie_node *n, void *ctx)
+{ trie_stats *stats = ctx;
+  trie_children children = n->children;
 
   stats->nodes++;
   stats->bytes += sizeof(*n);
@@ -683,25 +735,17 @@ stat_node(trie_node *n, trie_stats *stats)
   { switch( children.any->type )
     { case TN_KEY:
 	stats->bytes += sizeof(*children.key);
-        stat_node(children.key->child, stats);
         break;
       case TN_HASHED:
-      { TableEnum e = newTableEnum(children.hash->table);
-	void *k, *v;
-
 	stats->bytes += sizeofTable(children.hash->table);
 	stats->hashes++;
-
-	while( advanceTableEnum(e, &k, &v) )
-	  stat_node(v, stats);
-
-	freeTableEnum(e);
 	break;
-      }
       default:
 	assert(0);
     }
   }
+
+  return NULL;
 }
 
 
@@ -713,7 +757,7 @@ stat_trie(trie *t, trie_stats *stats)
   stats->values = 0;
 
   acquire_trie(t);
-  stat_node(&t->root, stats);
+  map_trie_node(&t->root, stat_node, stats);
   release_trie(t);
 }
 
@@ -908,26 +952,53 @@ put_trie_value(term_t t, trie_node *node ARG_LD)
   }
 }
 
-int
-set_trie_value(trie_node *node, term_t value ARG_LD)
-{ word val = intern_value(value PASS_LD);
 
-  if ( node->value )
+int
+set_trie_value_word(trie *trie, trie_node *node, word val)
+{ if ( node->value )
   { if ( !equal_value(node->value, val) )
     { word old = node->value;
 
       acquire_key(val);
       node->value = val;
       release_value(old);
-    } else if ( isRecord(val) )
-    { PL_erase((record_t)val);
+
+      return TRUE;
+    } else
+    { return FALSE;
     }
   } else
   { acquire_key(val);
     node->value = val;
+    ATOMIC_INC(&trie->value_count);
+
+    return TRUE;
   }
+}
+
+int
+set_trie_value(trie *trie, trie_node *node, term_t value ARG_LD)
+{ word val = intern_value(value PASS_LD);
+
+  if ( !set_trie_value_word(trie, node, val) &&
+       isRecord(val) )
+    PL_erase((record_t)val);
 
   return TRUE;
+}
+
+void
+trie_delete(trie *trie, trie_node *node, int prune)
+{ if ( node->value )
+  { if ( prune )
+    { prune_node(trie, node);
+    } else
+    { word v = node->value;
+      node->value = 0;
+      release_value(v);
+    }
+    ATOMIC_DEC(&trie->value_count);
+  }
 }
 
 
@@ -947,15 +1018,15 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 
   if ( get_trie(Trie, &trie) )
   { Word kp;
-    word val;
     trie_node *node;
     int rc;
 
     kp	= valTermRef(Key);
-    val = intern_value(Value PASS_LD);
 
     if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
-    { if ( nodep )
+    { word val = intern_value(Value PASS_LD);
+
+      if ( nodep )
 	*nodep = node;
 
       if ( node->value )
@@ -982,6 +1053,7 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
       }
       acquire_key(val);
       node->value = val;
+      ATOMIC_INC(&trie->value_count);
 
       return TRUE;
     }
@@ -1063,6 +1135,7 @@ PRED_IMPL("trie_delete", 3, trie_delete, 0)
     { if ( node->value )
       { if ( unify_value(A3, node->value PASS_LD) )
 	{ prune_node(trie, node);
+	  ATOMIC_DEC(&trie->value_count);
 	  return TRUE;
 	}
       }
@@ -1454,7 +1527,7 @@ Returns one of TRUE, FALSE or *_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-unify_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
+unify_trie_path(term_t term, trie_node **tn, trie_gen_state *gstate ARG_LD)
 { ukey_state ustate;
   trie_choice *ch = base_choice(gstate);
   trie_choice *top = top_choice(gstate);
@@ -1470,25 +1543,27 @@ unify_trie_path(term_t term, Word value, trie_gen_state *gstate ARG_LD)
   }
 
   destroy_ukey_state(&ustate);
-  *value = ch[-1].child->value;
+  *tn = ch[-1].child;
 
   return TRUE;
 }
 
 
-static
-PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
+foreign_t
+trie_gen(term_t Trie, term_t Key, term_t Value,
+	 term_t Data, int (*unify_data)(term_t, trie_node*, void *ctx ARG_LD),
+	 void *ctx, control_t PL__ctx)
 { PRED_LD
   trie_gen_state state_buf;
   trie_gen_state *state;
-  word value;
+  trie_node *n;
   fid_t fid;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { trie *trie;
 
-      if ( get_trie(A1, &trie) )
+      if ( get_trie(Trie, &trie) )
       { if ( trie->root.children.any )
 	{ acquire_trie(trie);
 	  state = &state_buf;
@@ -1520,7 +1595,7 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
   { int rc;
 
     for(;;)
-    { if ( (rc=unify_trie_path(A2, &value, state PASS_LD)) == TRUE )
+    { if ( (rc=unify_trie_path(Key, &n, state PASS_LD)) == TRUE )
 	break;
 
       PL_rewind_foreign_frame(fid);
@@ -1534,9 +1609,10 @@ PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
       return FALSE;				/* resource error */
     }
 
-    DEBUG(CHK_SECURE, PL_check_data(A2));
+    DEBUG(CHK_SECURE, PL_check_data(Key));
 
-    if ( unify_value(A3, value PASS_LD) )
+    if ( (!Value || unify_value(Value, n->value PASS_LD)) &&
+	 (!Data  || unify_data(Data, n, ctx PASS_LD)) )
     { if ( next_choice(state) )
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
@@ -1578,6 +1654,30 @@ next:;
 
 
 static
+PRED_IMPL("trie_gen", 3, trie_gen, PL_FA_NONDETERMINISTIC)
+{ return trie_gen(A1, A2, A3, 0, NULL, NULL, PL__ctx);
+}
+
+static
+PRED_IMPL("trie_gen", 2, trie_gen, PL_FA_NONDETERMINISTIC)
+{ return trie_gen(A1, A2, 0, 0, NULL, NULL, PL__ctx);
+}
+
+static int
+unify_node_id(term_t t, trie_node *answer, void *ctx ARG_LD)
+{ (void) ctx;
+
+  return PL_unify_pointer(t, answer);
+}
+
+static
+PRED_IMPL("$trie_gen_node", 3, trie_gen_node, PL_FA_NONDETERMINISTIC)
+{ return trie_gen(A1, A2, 0, A3, unify_node_id, NULL, PL__ctx);
+}
+
+
+
+static
 PRED_IMPL("$trie_property", 2, trie_property, 0)
 { PRED_LD
   trie *trie;
@@ -1592,6 +1692,8 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 
       if ( name == ATOM_node_count )
       { return PL_unify_integer(arg, trie->node_count);
+      } else if ( name == ATOM_value_count )
+      { return PL_unify_integer(arg, trie->value_count);
       } else if ( name == ATOM_size )
       { trie_stats stats;
 	stat_trie(trie, &stats);
@@ -1600,10 +1702,6 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       { trie_stats stats;
 	stat_trie(trie, &stats);
 	return PL_unify_int64(arg, stats.hashes);
-      } else if ( name == ATOM_value_count )
-      { trie_stats stats;
-	stat_trie(trie, &stats);
-	return PL_unify_int64(arg, stats.values);
       }
     }
   }
@@ -1626,7 +1724,9 @@ BeginPredDefs(trie)
   PRED_DEF("trie_lookup",         3, trie_lookup,        0)
   PRED_DEF("trie_delete",         3, trie_delete,        0)
   PRED_DEF("trie_term",		  2, trie_term,		 0)
-  PRED_DEF("trie_gen",            3, trie_gen, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("trie_gen",            3, trie_gen,	    PL_FA_NONDETERMINISTIC)
+  PRED_DEF("trie_gen",            2, trie_gen,      PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$trie_gen_node",      3, trie_gen_node, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$trie_property",      2, trie_property,      0)
 EndPredDefs
 

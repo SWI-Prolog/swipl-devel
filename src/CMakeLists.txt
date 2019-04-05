@@ -143,7 +143,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl
     sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
-    lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl)
+    lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()
@@ -178,7 +178,7 @@ set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
-    storage.pl ordsets.pl intern.pl string.pl tables.pl)
+    storage.pl ordsets.pl intern.pl string.pl tables.pl setof.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)
 

@@ -427,7 +427,7 @@ COMMON(intptr_t)	skip_list(Word l, Word *tailp ARG_LD);
 COMMON(intptr_t)	lengthList(term_t list, int errors);
 COMMON(int)		is_acyclic(Word p ARG_LD);
 COMMON(intptr_t)	numberVars(term_t t, nv_options *opts, intptr_t n ARG_LD);
-COMMON(int)		term_var_skeleton(term_t t, term_t vs ARG_LD);
+COMMON(ssize_t)		term_var_skeleton(term_t t, term_t vs ARG_LD);
 COMMON(int)		duplicate_term(term_t in, term_t copy ARG_LD);
 COMMON(word)		stringToList(char *s);
 COMMON(foreign_t)	pl_sub_atom(term_t atom,

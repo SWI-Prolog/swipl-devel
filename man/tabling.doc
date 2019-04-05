@@ -370,6 +370,18 @@ completed. In the latter case the negative node is considered to be true
 and completion of the SCC is resumed.
 \end{itemlist}
 
+\section{Well Founded Semantics}
+\label{sec:WFS}
+
+According to
+\href{https://en.wikipedia.org/wiki/Well-founded_semantics}{Wikipedia},
+"\jargon{Well Founded Semantics} is one definition of how we can make
+conclusions from a set of logical rules". Well Founded Semantics (WFS)
+defines a \jargon{three valued logic} representing \jargon{true},
+\jargon{false} and something that is neither true or false. This latter
+value is often referred to as \jargon{bottom}, \jargon{undefined} or
+\jargon{unknown}.
+
 
 \section{Tabling predicate reference}
 \label{sec:tabling-preds}

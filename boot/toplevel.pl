@@ -1073,34 +1073,36 @@ subst_chars([H|T]) -->
 
 '$execute_goal2'(Goal, Bindings) :-
     restore_debug,
-    residue_vars(Goal, Vars),
+     '$current_typein_module'(TypeIn),
+    residue_vars(Goal, Vars, TypeIn:Delays),
     deterministic(Det),
     (   save_debug
     ;   restore_debug, fail
     ),
     flush_output(user_output),
     call_expand_answer(Bindings, NewBindings),
-    (    \+ \+ write_bindings(NewBindings, Vars, Det)
+    (    \+ \+ write_bindings(NewBindings, Vars, Delays, Det)
     ->   !
     ).
 '$execute_goal2'(_, _) :-
     save_debug,
     print_message(query, query(no)).
 
-residue_vars(Goal, Vars) :-
+residue_vars(Goal, Vars, Delays) :-
     current_prolog_flag(toplevel_residue_vars, true),
     !,
-    call_residue_vars(Goal, Vars).
-residue_vars(Goal, []) :-
-    toplevel_call(Goal).
+    '$wfs_call'(call_residue_vars(Goal, Vars), Delays).
+residue_vars(Goal, [], Delays) :-
+    toplevel_call(Goal, Delays).
 
-toplevel_call(Goal) :-
-    call(Goal),
+toplevel_call(Goal, Delays) :-
+    '$wfs_call'(Goal, Delays),
     no_lco.
 
 no_lco.
 
-%!  write_bindings(+Bindings, +ResidueVars, +Deterministic) is semidet.
+%!  write_bindings(+Bindings, +ResidueVars, +Delays +Deterministic)
+%!	is semidet.
 %
 %   Write   bindings   resulting   from   a     query.    The   flag
 %   prompt_alternatives_on determines whether the   user is prompted
@@ -1113,22 +1115,23 @@ no_lco.
 %        the prolog flag `toplevel_residue_vars` is set to
 %        `project`.
 
-write_bindings(Bindings, ResidueVars, Det) :-
+write_bindings(Bindings, ResidueVars, Delays, Det) :-
     '$current_typein_module'(TypeIn),
     translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
-    write_bindings2(Bindings1, Residuals, Det).
+    omit_qualifier(Delays, TypeIn, Delays1),
+    write_bindings2(Bindings1, Residuals, Delays1, Det).
 
-write_bindings2([], Residuals, _) :-
+write_bindings2([], Residuals, Delays, _) :-
     current_prolog_flag(prompt_alternatives_on, groundness),
     !,
-    print_message(query, query(yes(Residuals))).
-write_bindings2(Bindings, Residuals, true) :-
+    print_message(query, query(yes(Delays, Residuals))).
+write_bindings2(Bindings, Residuals, Delays, true) :-
     current_prolog_flag(prompt_alternatives_on, determinism),
     !,
-    print_message(query, query(yes(Bindings, Residuals))).
-write_bindings2(Bindings, Residuals, _Det) :-
+    print_message(query, query(yes(Bindings, Delays, Residuals))).
+write_bindings2(Bindings, Residuals, Delays, _Det) :-
     repeat,
-        print_message(query, query(more(Bindings, Residuals))),
+        print_message(query, query(more(Bindings, Delays, Residuals))),
         get_respons(Action),
     (   Action == redo
     ->  !, fail
@@ -1360,6 +1363,9 @@ omit_meta_qualifiers((QA,QB), TypeIn, (A,B)) :-
     !,
     omit_qualifier(QA, TypeIn, A),
     omit_qualifier(QB, TypeIn, B).
+omit_meta_qualifiers(tnot(QA), TypeIn, tnot(A)) :-
+    !,
+    omit_qualifier(QA, TypeIn, A).
 omit_meta_qualifiers(freeze(V, QGoal), TypeIn, freeze(V, Goal)) :-
     callable(QGoal),
     !,

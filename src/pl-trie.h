@@ -72,6 +72,9 @@ typedef struct trie_node
   word key;
   struct trie_node *parent;
   trie_children children;
+  struct
+  { struct delay_info *delayinfo;
+  } data;
 } trie_node;
 
 
@@ -80,11 +83,14 @@ typedef struct trie_allocation_pool
   size_t	limit;			/* Limit of the pool */
 } trie_allocation_pool;
 
+#define AT_ANSWER_COMPLETED	0x0001
+
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
   int			magic;		/* TRIE_MAGIC */
   int			references;	/* access count */
   unsigned int		node_count;	/* # nodes */
+  unsigned int		value_count;	/* # nodes with a value */
   trie_node	        root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
@@ -93,6 +99,7 @@ typedef struct trie
   { struct worklist *worklist;		/* tabling worklist */
     trie_node	    *variant;		/* node in variant trie */
     fastheap_term   *skeleton;		/* Wrapper-Vars */
+    unsigned int     flags;
   } data;
 } trie;
 
@@ -105,8 +112,10 @@ COMMON(void)	initTries(void);
 COMMON(trie *)	trie_create(void);
 COMMON(void)	trie_empty(trie *trie);
 COMMON(void)	trie_clean(trie *trie);
+COMMON(void)	trie_delete(trie *trie, trie_node *node, int prune);
 COMMON(void)	prune_node(trie *trie, trie_node *n);
 COMMON(trie *)	get_trie_form_node(trie_node *node);
+COMMON(int)	is_ground_trie_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	unify_trie_term(trie_node *node, term_t term ARG_LD);
 COMMON(int)	trie_lookup(trie *trie, trie_node **nodep, Word k,
@@ -115,6 +124,13 @@ COMMON(int)	trie_error(int rc, term_t culprit);
 COMMON(atom_t)	trie_symbol(trie *trie);
 COMMON(trie *)	symbol_trie(atom_t symbol);
 COMMON(int)	put_trie_value(term_t t, trie_node *node ARG_LD);
-COMMON(int)	set_trie_value(trie_node *node, term_t value ARG_LD);
+COMMON(int)	set_trie_value(trie *trie, trie_node *node, term_t value ARG_LD);
+COMMON(int)	set_trie_value_word(trie *trie, trie_node *node, word val);
+COMMON(foreign_t) trie_gen(term_t Trie, term_t Key, term_t Value,
+			   term_t Data,
+			   int (*unify_data)(term_t, trie_node*, void* ARG_LD),
+			   void *ctx, control_t PL__ctx);
+COMMON(void *)	map_trie_node(trie_node *n,
+			      void* (*map)(trie_node *n, void *ctx), void *ctx);
 
 #endif /*_PL_TRIE_H*/

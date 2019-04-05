@@ -44,7 +44,9 @@
 
             xsb_expand_file_name/2,       % +File, -Expanded
             expand_filename_no_prepend/2, % FileName, -ExpandedName
-            parse_filename/4              % +FileName, -Dir, -Base, -Extension
+            parse_filename/4,             % +FileName, -Dir, -Base, -Extension
+
+            xwam_state/2                  % +Id, -Value
           ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
@@ -148,3 +150,17 @@ ensure_slash(Dir, DirS) :-
     DirS = Dir.
 ensure_slash(Dir, DirS) :-
     atom_concat(Dir, '/', DirS).
+
+
+%!  xwam_state(+Id, -Value)
+%
+%   Low-level query.  Used by the XSB test suite.
+
+xwam_state(2, DelayReg) :-
+    !,
+    (   nb_current('$delay_list', [_|_])
+    ->  DelayReg = 1
+    ;   DelayReg = 0
+    ).
+xwam_state(Id, _Value) :-
+    domain_error(xwam_state, Id).

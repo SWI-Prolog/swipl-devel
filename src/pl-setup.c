@@ -1347,6 +1347,7 @@ emptyStacks(void)
     LD->attvar.gc_attvars   = PL_new_term_ref();
     DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
 #endif
+    LD->tabling.delay_list  = init_delay_list();
 #ifdef O_GVAR
     destroyGlobalVars();
 #endif
