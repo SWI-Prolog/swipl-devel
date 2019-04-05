@@ -278,7 +278,13 @@ check_function_exists(WSAPoll HAVE_WSAPOLL)
 check_function_exists(WinExec HAVE_WINEXEC)
 
 check_symbol_exists(F_SETLKW fcntl.h HAVE_F_SETLKW)
-check_symbol_exists(timezone time.h HAVE_VAR_TIMEZONE)
+
+check_c_source_compiles(
+    "#include <time.h>
+     extern long timezone;
+     int main() { return 0;}"
+     HAVE_VAR_TIMEZONE)
+
 check_symbol_exists(SIGPROF signal.h HAVE_SIGPROF)
 
 check_struct_has_member("struct tm" tm_gmtoff time.h HAVE_STRUCT_TIME_TM_GMTOFF)
