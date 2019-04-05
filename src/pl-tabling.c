@@ -253,6 +253,12 @@ add_global_worklist(worklist *wl)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Normal completion is done. There  may   be  worklists that are suspended
+using negation_suspend/3. We wake  these  up   by  adding  a  new answer
+cluster with a NULL node.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static worklist *
 negative_worklist(tbl_component *c)
 { worklist **wlp = baseBuffer(&c->created_worklists->members, worklist*);
@@ -268,7 +274,7 @@ negative_worklist(tbl_component *c)
 
       wl->neg_complete = TRUE;
       DEBUG(MSG_TABLING_NEG,
-	    Sdprintf("Resume negative node %p\n", wl));
+	    Sdprintf("Resume negative node %zd\n", pointerToInt(wl)));
 
       c = new_answer_cluster(NULL);
       wkl_append_left(wl, c);

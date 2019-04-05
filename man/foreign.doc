@@ -1670,6 +1670,18 @@ call_chars(const char *goal)
   ...
 \end{code}
 
+PL_chars_to_term() is defined using PL_put_term_from_chars() which can
+deal with not nul-terminated strings as well as strings using different
+encodings:
+
+\begin{code}
+int
+PL_chars_to_term(const char *s, term_t t)
+{ return PL_put_term_from_chars(t, REP_ISO_LATIN_1, (size_t)-1, s);
+}
+\end{code}
+
+
 \cfunction{int}{PL_wchars_to_term}{const pl_wchar_t *chars, term_t -t}
 Wide character version of PL_chars_to_term().
 

@@ -1225,44 +1225,6 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
   return TRUE;
 }
 
-
-		 /*******************************
-		 *     POINTER <-> PROLOG INT	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Pointers are not a special type in Prolog. Instead, they are represented
-by an integer. The funtions below convert   integers  such that they can
-normally be expressed as a tagged  integer: the heap_base is subtracted,
-it is divided by 4 and the low 2   bits  are placed at the top (they are
-normally 0). longToPointer() does the inverse operation.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static inline uintptr_t
-pointerToInt(void *ptr)
-{ uintptr_t p   = (uintptr_t) ptr;
-  uintptr_t low = p & 0x3L;
-
-  p -= GD->heap_base;
-  p >>= 2;
-  p |= low<<(sizeof(uintptr_t)*8-2);
-
-  return p;
-}
-
-
-static inline void *
-intToPointer(uintptr_t p)
-{ uintptr_t low = p >> (sizeof(uintptr_t)*8-2);
-
-  p <<= 2;
-  p |= low;
-  p += GD->heap_base;
-
-  return (void *) p;
-}
-
-
 		 /*******************************
 		 *	      GET-*		*
 		 *******************************/

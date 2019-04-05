@@ -394,7 +394,7 @@ tnot(Goal) :-
 %   solutions, causing this to succeed.
 
 negation_suspend(Wrapper, Skeleton, Worklist) :-
-    tdebug(tnot, 'negation_suspend ~p', [Wrapper]),
+    tdebug(tnot, 'negation_suspend ~p (wl=~p)', [Wrapper, Worklist]),
     '$tbl_wkl_negative'(Worklist),
     shift(call_info(Skeleton, Worklist)),
     (   '$tbl_wkl_is_false'(Worklist)
