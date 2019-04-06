@@ -209,6 +209,34 @@ check_function_exists(dossleep HAVE_DOSSLEEP)
 check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
 # threads and scheduling
 if(CMAKE_USE_PTHREADS_INIT)
+check_c_source_compiles(
+    "#include <pthread.h>
+     #include <sys/cpuset.h>
+     int main() {}"
+    SYS_CPUSET_H_FOUND)
+if(SYS_CPUSET_H_FOUND)
+  check_c_source_compiles(
+      "#include <pthread.h>
+       #include <sys/cpuset.h>
+       int main(int argc, char** argv)
+       {
+        (void)argv;
+       #ifndef CPU_ZERO
+        return ((int*)(&CPU_ZERO))[argc];
+       #else
+        (void)argc;
+        return 0;
+       #endif
+       }"
+      HAVE_SYS_CPUSET_H)
+  check_c_source_compiles(
+      "#include <pthread.h>
+       #include <sys/cpuset.h>
+       typedef cpuset_t cpu_set_t;
+       int main() { cpu_set_t *set; CPU_ZERO(set);}"
+      HAVE_CPUSET_T)
+endif(SYS_CPUSET_H_FOUND)
+check_include_file(pthread_np.h HAVE_PTHREAD_NP_H)
 check_function_exists(pthread_attr_setaffinity_np HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
 check_function_exists(pthread_getname_np HAVE_PTHREAD_GETNAME_NP)
 check_function_exists(pthread_getw32threadhandle_np HAVE_PTHREAD_GETW32THREADHANDLE_NP)

@@ -119,9 +119,13 @@ _syscall0(pid_t,gettid)
 #include <sys/syscall.h>
 #endif
 
-#ifdef __FreeBSD__
+#ifdef HAVE_SYS_CPUSET_H
 #include <sys/cpuset.h>        /* CPU_ZERO(), CPU_SET, cpuset_t */
+#endif
+#ifdef HAVE_PTHREAD_NP_H
 #include <pthread_np.h>        /* pthread_*_np */
+#endif
+#ifdef HAVE_CPUSET_T
 typedef cpuset_t cpu_set_t;
 #endif
 
