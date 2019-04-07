@@ -2978,20 +2978,21 @@ specifies the used encoding that influences get_code/2 and put_code/2 as
 well as all the other text I/O predicates.
 
 The default encoding for files is derived from the Prolog flag
-\prologflag{encoding}, which is initialised from the environment. If the
-environment variable \const{LANG} ends in "UTF-8", this encoding is
-assumed. Otherwise the default is \const{text} and the translation is
-left to the wide-character functions of the C library.\footnote{The
-Prolog native UTF-8 mode is considerably faster than the generic
-mbrtowc() one.} The encoding can be specified explicitly in load_files/2
-for loading Prolog source with an alternative encoding, open/4 when
-opening files or using set_stream/2 on any open stream. For Prolog
-source files we also provide the encoding/1 directive that can be used
-to switch between encodings that are compatible with US-ASCII
-(\const{ascii}, \const{iso_latin_1}, \const{utf8} and many locales). See
-also \secref{intsrcfile} for writing Prolog files with non-US-ASCII
-characters and \secref{unicodesyntax} for syntax issues. For additional
-information and Unicode resources, please visit
+\prologflag{encoding}, which is initialised from
+\exam{setlocale(LC_CTYPE, NULL)} to one of \const{text}, \const{utf8} or
+\const{iso_latin_1}. One of the latter two is used if the encoding name
+is recognized, while \const{text} is used as default. Using
+\const{text}, the translation is left to the wide-character functions of
+the C library.\footnote{The Prolog native UTF-8 mode is considerably
+faster than the generic mbrtowc() one.} The encoding can be specified
+explicitly in load_files/2 for loading Prolog source with an alternative
+encoding, open/4 when opening files or using set_stream/2 on any open
+stream. For Prolog source files we also provide the encoding/1 directive
+that can be used to switch between encodings that are compatible with
+US-ASCII (\const{ascii}, \const{iso_latin_1}, \const{utf8} and many
+locales). See also \secref{intsrcfile} for writing Prolog files with
+non-US-ASCII characters and \secref{unicodesyntax} for syntax issues.
+For additional information and Unicode resources, please visit
 \url{http://www.unicode.org/}.
 
 SWI-Prolog currently defines and supports the following encodings:
