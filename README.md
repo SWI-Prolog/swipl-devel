@@ -6,9 +6,12 @@ This repositories uses many [GIT
 submodules](https://git-scm.com/book/en/v1/Git-Tools-Submodules). This
 cause the common __fork and clone not to work__. Instead, _clone_ from
 https://github.com/SWI-Prolog/swipl-devel.git and next associate your
-clone with your _fork_ using
+clone with your _fork_ (replace `me` with your github user name).
 
-    git remote add myfork git@github.com:me/clonedrepo.git
+    git clone https://github.com/SWI-Prolog/swipl-devel.git
+    cd swipl-devel
+    git submodule update --init
+    git remote add myfork git@github.com:me/swipl-devel.git
 
 See [How to submit a patch](http://www.swi-prolog.org/howto/SubmitPatch.html)
 for details.
