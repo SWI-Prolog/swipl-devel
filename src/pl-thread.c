@@ -120,6 +120,7 @@ _syscall0(pid_t,gettid)
 #endif
 
 #ifdef HAVE_SYS_CPUSET_H
+#include <sys/param.h>         /* pulls sys/cdefs.h and sys/types.h for sys/cpuset.h */
 #include <sys/cpuset.h>        /* CPU_ZERO(), CPU_SET, cpuset_t */
 #endif
 #ifdef HAVE_PTHREAD_NP_H
