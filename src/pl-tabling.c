@@ -1637,7 +1637,8 @@ unify_cluster(term_t t, cluster *c, int is_riac)
     term_t modeav = PL_new_term_ref();
 
     for(; ap < top; ap++)
-    { if ( !PL_unify_list(tail, head, tail) ||
+    { if ( !PL_put_variable(answer) ||
+	   !PL_unify_list(tail, head, tail) ||
 	   !tbl_unify_trie_term(*ap, answer PASS_LD) ||
 	   !tbl_put_trie_value(modeav, *ap PASS_LD) ||
 	   !PL_unify_term(head, PL_FUNCTOR_CHARS, "-", 2,

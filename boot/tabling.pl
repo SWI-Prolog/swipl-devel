@@ -73,7 +73,7 @@ goal_expansion(tdebug(Topic, Fmt, Args), Expansion) :-
     ).
 goal_expansion(tdebug(Goal), Expansion) :-
     (   current_prolog_flag(prolog_debug, true)
-    ->  Expansion = Goal
+    ->  Expansion = (Goal->true;print_message(error, goal_failed(Goal)))
     ;   Expansion = true
     ).
 
