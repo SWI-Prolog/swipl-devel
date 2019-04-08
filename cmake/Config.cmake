@@ -210,13 +210,13 @@ check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
 # threads and scheduling
 if(CMAKE_USE_PTHREADS_INIT)
 check_c_source_compiles(
-    "#include <pthread.h>
+    "#include <sys/param..h>
      #include <sys/cpuset.h>
      int main() {}"
     SYS_CPUSET_H_FOUND)
 if(SYS_CPUSET_H_FOUND)
   check_c_source_compiles(
-      "#include <pthread.h>
+      "#include <sys/param.h>
        #include <sys/cpuset.h>
        int main(int argc, char** argv)
        {
@@ -230,7 +230,7 @@ if(SYS_CPUSET_H_FOUND)
        }"
       HAVE_SYS_CPUSET_H)
   check_c_source_compiles(
-      "#include <pthread.h>
+      "#include <sys/param.h>
        #include <sys/cpuset.h>
        typedef cpuset_t cpu_set_t;
        int main() { cpu_set_t *set; CPU_ZERO(set);}"
