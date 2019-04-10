@@ -1787,7 +1787,7 @@ and entry point (see \cmdlineoption{-g}, initialization/2 and
 \secref{plscript}. The initial value is \const{default}, starting a
 normal interactive session. This value may be changed using the command
 line option \cmdlineoption{-t}. The explicit value \const{prolog} is
-equavalent to \const{default}. If \term{initialization}{Goal,main} is
+equivalent to \const{default}. If \term{initialization}{Goal,main} is
 used and the toplevel is \const{default}, the toplevel is set to
 \const{halt} (see halt/0).
 
