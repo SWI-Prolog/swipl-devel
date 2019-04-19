@@ -46,6 +46,14 @@ endif()
 if(BUILD_MACOS_BUNDLE)
   set(MACOS_APP "SWI-Prolog")
 
+# These definitions must be here rather than in CPack.cmake as that
+# file is loaded after attaching packages/swipl-win and thus isn't picked
+# up.  See URL below for the defined variables.
+# https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html
+
+  set(MACOSX_BUNDLE_BUNDLE_NAME "SWI-Prolog")
+  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${SWIPL_VERSION_STRING}")
+
   set(X11_ROOT /opt/X11)
   set(Freetype_ROOT /opt/X11)
   set(FontConfig_ROOT /opt/X11)

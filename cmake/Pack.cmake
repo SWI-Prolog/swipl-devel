@@ -28,7 +28,7 @@ set(CPACK_PACKAGE_RELEASE 1)
 set(CPACK_PACKAGE_CONTACT "Jan Wielemaker")
 set(CPACK_PACKAGE_VENDOR "SWI-Prolog")
 
-# We don't want an additional page when attacking the dmg
+# We don't want an additional page when attaching the dmg
 if(NOT BUILD_MACOS_BUNDLE)
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 endif()
