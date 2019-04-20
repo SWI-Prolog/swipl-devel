@@ -39,42 +39,43 @@
 :- use_module(library(debug)).
 
 test_tabling :-
-	run_tests([ tabling_ex1,
-		    tabling_ex2,
-		    tabling_ex3,
-		    tabling_ex4,
-		    tabling_ex5,
-		    tabling_ex6,
-		    tabling_ex7,
-		    tabling_ex8,
-		    tabling_ex9a,
-		    tabling_ex9b,
-		    tabling_ex9c,
-		    tabling_ex9d,
-		    tabling_ex9e,
-		    tabling_ex10,
-		    tabling_ex11,
-		    tabling_ex12,
-		    tabling_ex13,
-		    tabling_ex14,
-		    tabling_ex15,
-		    tabling_ex16,
-		    tabling_ex17,
+    run_tests([ tabling_ex1,
+		tabling_ex2,
+		tabling_ex3,
+		tabling_ex4,
+		tabling_ex5,
+		tabling_ex6,
+		tabling_ex7,
+		tabling_ex8,
+		tabling_ex9a,
+		tabling_ex9b,
+		tabling_ex9c,
+		tabling_ex9d,
+		tabling_ex9e,
+		tabling_ex10,
+		tabling_ex11,
+		tabling_ex12,
+		tabling_ex13,
+		tabling_ex14,
+		tabling_ex15,
+		tabling_ex16,
+		tabling_ex17,
 						% Contraints and tabling
-		    tabling_clpfd,
+		tabling_clpfd,
 						% mode-directed tabling
-		    tabling_eruption,
-		    tabling_eruption2,
-		    tabling_sneezing,
-		    tabling_yappath,
-		    tabling_minpath,
-		    tabling_maxpath,
-		    tabling_train,
-		    moded_tabling_path,
+		tabling_eruption,
+		tabling_eruption2,
+		tabling_sneezing,
+		tabling_yappath,
+		tabling_minpath,
+		tabling_maxpath,
+		tabling_train,
+		moded_tabling_path,
 						% tests requiring sub components
-		    mode_components1,
-		    mode_components2
-		  ]).
+		mode_components1,
+		mode_components2,
+                pathss
+	      ]).
 
 		 /*******************************
 		 *	    EXAMPLE 1		*
@@ -1255,6 +1256,53 @@ test(component, [X == 2, nondet]) :-
     advisedby(harry,ben,X).
 
 :- end_tests(mode_components2).
+
+:- begin_tests(pathss, [cleanup(abolish_all_tables)]).
+:- use_module(library(lists)).
+:- use_module(library(apply)).
+
+% Part of a bug report by Fabrizio Riguzzi.
+
+:- table buys(_,lattice(merge/3)).
+
+trusts(X,Y) :- trusts_directed(X,Y).
+trusts(X,Y) :- trusts_directed(Y,X).
+
+trusts_directed(bernd,ingo).
+trusts_directed(bernd,martijn).
+trusts_directed(ingo,martijn).
+trusts_directed(kurt,bernd).
+
+buys(X,[[X]]).
+buys(X,Paths):-
+    trusts(X,Y),
+    buys(Y,Paths0),
+    maplist(add_node(X),Paths0,Paths).
+
+add_node(X,Path,[X|Path]):-
+    \+ member(X,Path),!.
+add_node(_,Path,Path).
+
+merge(Paths0,Paths1,Paths):-
+  foldl(add,Paths1,Paths0,Paths).
+
+add(Path,Paths0,Paths):-
+  (   member(Path0,Paths0),
+      permutation(Path0,Path)
+  ->  Paths = Paths0
+  ;   Paths = [Path|Paths0]
+  ).
+
+test(kurt, P3 = [ [bernd, ingo, kurt],
+                  [bernd, ingo, kurt, martijn],
+                  [bernd, kurt], [bernd, kurt, martijn],
+                  [kurt]
+                ]) :-
+    buys(kurt, P),
+    maplist(msort, P, P2),
+    sort(P2, P3).
+
+:- end_tests(pathss).
 
 
 		 /*******************************
