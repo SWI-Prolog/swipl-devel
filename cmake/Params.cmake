@@ -1,7 +1,12 @@
 # Populate parms.h
 
-set(C_CC     ${CMAKE_C_COMPILER})
-set(C_CXX    ${CMAKE_CXX_COMPILER})
+if(APPLE)
+  set(C_CC "cc")
+  set(C_CXX "c++")
+else()
+  set(C_CC     ${CMAKE_C_COMPILER})
+  set(C_CXX    ${CMAKE_CXX_COMPILER})
+endif()
 set(PLHOME   ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_PREFIX})
 set(PLARCH   ${SWIPL_ARCH})
 string(REGEX REPLACE "\\." "" SO_EXT "${CMAKE_SHARED_MODULE_SUFFIX}")
