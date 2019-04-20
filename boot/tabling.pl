@@ -244,25 +244,45 @@ start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
         setup_call_catcher_cleanup(
             true,
             run_leader(Wrapper, WrapperNoModes, ModeArgs,
-                       Worker, Trie, SubComponent),
+                       Worker, Trie, SubComponent, LStatus),
             Catcher,
             finished_leader(Catcher, SubComponent, Wrapper)),
-        tdebug(schedule, 'Leader ~p done, modeargs = ~p', [Wrapper, ModeArgs]),
-        trie_gen(Trie, WrapperNoModes, ModeArgs)
+        tdebug(schedule, 'Leader ~p done, modeargs = ~p, status = ~p',
+               [Wrapper, ModeArgs, LStatus]),
+        done_leader(LStatus, SubComponent, WrapperNoModes, ModeArgs, Trie)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Wrapper, Status))
     ).
 
+done_leader(complete, _SCC, WrapperNoModes, ModeArgs, Trie) :-
+    !,
+    trie_gen(Trie, WrapperNoModes, ModeArgs).
+done_leader(final, SCC, WrapperNoModes, ModeArgs, Trie) :-
+    !,
+    '$tbl_free_component'(SCC),
+    trie_gen(Trie, WrapperNoModes, ModeArgs).
+done_leader(_, _, _, _, _).
+
+
 get_wrapper_no_mode_args(M:Wrapper, M:WrapperNoModes, ModeArgs) :-
     M:'$table_mode'(Wrapper, WrapperNoModes, ModeArgs).
 
-run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, SCC) :-
-    activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, _Worklist),
+run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, SCC, Status) :-
+    activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, Worklist),
     completion(SCC),
     '$tbl_component_status'(SCC, Status),
-    (   Status == final
-    ->  '$tbl_free_component'(SCC)
-    ;   true                                    % What if merged?
+    (   Status == merged
+    ->  tdebug(scc, 'Turning leader ~p into follower', [Wrapper]),
+        (   trie_gen(Trie, WrapperNoModes1, ModeArgs1),
+            tdebug(scc, 'Adding old answer ~p+~p to worklist ~p',
+                   [ WrapperNoModes1, ModeArgs1, Worklist]),
+            '$tbl_wkl_mode_add_answer'(Worklist, WrapperNoModes1,
+                                       ModeArgs1, Wrapper),
+            fail
+        ;   true
+        ),
+        shift(call_info(Wrapper, Worklist))
+    ;   true                                    % completed
     ).
 
 
