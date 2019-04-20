@@ -96,8 +96,8 @@ test_tables_cleaned :-
 
 test_tables_cleaned_([]).
 test_tables_cleaned_([X|Xs]) :-
-	(   current_table(X,Trie),
-	    '$tbl_table_status'(Trie, complete)
+	(   current_table(X, Trie),
+	    '$tbl_table_status'(Trie, complete, _Wrapper, _Skeleton)
 	->  true
 	;   format('test_tables_cleaned: table for variant ~p did not \c
 	            receive proper cleanup~n',[X]),
