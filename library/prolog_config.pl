@@ -91,12 +91,30 @@ flag_value(c_libdir, Value) :-
     ->  atomic_list_concat([Home, Rel], /, Value)
     ;   current_prolog_flag(windows, true)
     ->  atomic_list_concat([Home, bin], /, Value)
+    ;   current_prolog_flag(apple, true),
+        apple_bundle_libdir(LibDir)
+    ->  Value = LibDir
     ;   current_prolog_flag(arch, Arch)
     ->  atomic_list_concat([Home, lib, Arch], /, Value)
     ).
 flag_value(c_lib, '-lswipl').
 flag_value(Flag, Value) :-
     current_prolog_flag(Flag, Value).
+
+%!  apple_bundle_libdir(-LibDir)
+%
+%   If we are part of a MacOS bundle   the C libraries are in the bundle
+%   ``Frameworks``  directory  and  the  executable  is  in  the  bundle
+%   ``MacOS`` directory.
+
+apple_bundle_libdir(LibDir) :-
+    current_prolog_flag(executable, Exe),
+    file_directory_name(Exe, ExeDir),
+    file_base_name(ExeDir, 'MacOS'),
+    file_directory_name(ExeDir, ContentsDir),
+    file_base_name(ContentsDir, 'Contents'),
+    atomic_list_concat([ContentsDir, 'Frameworks'], /, LibDir),
+    exists_directory(LibDir).
 
 boolean_flag(threads).
 boolean_flag(open_shared_object).
