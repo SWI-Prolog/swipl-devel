@@ -3793,6 +3793,7 @@ it.  The coder is in \figref{calc}.
 \begin{figure}
 \begin{code}
 #include <stdio.h>
+#include <string.h>
 #include <SWI-Prolog.h>
 
 #define MAXLINE 1024
@@ -3844,17 +3845,24 @@ main(int argc, char **argv)
 \end{figure}
 
 \noindent
-The application is now created using the following command line:
+The application is now created using the command line below.  The option
+\exam{-goal true} sets the Prolog initialization goal to suppress the
+banner. Note that the \exam{-o calc} does not specify an extension. If
+the platform uses a file extension for executables, \program{swipl-ld}
+will add this (e.g., \fileext{exe} on Windows).
 
 \begin{code}
-% swipl-ld -o calc calc.c calc.pl
+% swipl-ld -goal true -o calc calc.c calc.pl
 \end{code}
 
 \noindent
-The following indicates the usage of the application:
+The created program \program{calc} is a native executable with the
+Prolog code attached to it.  Note that the program typically depends
+on the shared object \file{libswipl} and, depending on the platform
+and configuration, on several external shared objects.
 
 \begin{code}
-% calc pi/2
+% ./calc pi/2
 1.5708
 \end{code}
 
