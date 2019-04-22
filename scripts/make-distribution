@@ -48,7 +48,7 @@ build_macosx()
 { rm -rf build.macosx
   mkdir build.macosx
   ( cd build.macosx
-    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_MACOS_BUNDLE=ON -G Ninja ..
+    MACOSX_DEPLOYMENT_TARGET=10.12 cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_MACOS_BUNDLE=ON -G Ninja ..
     ninja
     cpack
   )
