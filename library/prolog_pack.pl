@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2018, VU University Amsterdam
+    Copyright (c)  2012-2019, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -61,7 +61,7 @@
 :- use_module(library(http/http_open)).
 :- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).   % plugin for POST support
-
+:- use_module(library(prolog_config)).
 
 /** <module> A package manager for Prolog
 
@@ -1252,6 +1252,9 @@ def_environment('LDSOFLAGS', Value) :-
     (   current_prolog_flag(windows, true)
     ->  current_prolog_flag(home, Home),
         atomic_list_concat(['-L"', Home, '/bin"'], SystemLib),
+        System = [SystemLib]
+    ;   apple_bundle_libdir(LibDir)
+    ->  atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
         System = [SystemLib]
     ;   current_prolog_flag(c_libplso, '')
     ->  System = []                 % ELF systems do not need this

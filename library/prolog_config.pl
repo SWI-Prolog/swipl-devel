@@ -3,8 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, VU University Amsterdam
-			 CWI, Amsterdam
+    Copyright (c)  2018-2019, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,8 @@
 */
 
 :- module(prolog_config,
-          [ prolog_dump_runtime_variables/0
+          [ prolog_dump_runtime_variables/0,
+            apple_bundle_libdir/1
           ]).
 
 /** <module> Provide configuration information
@@ -91,8 +92,7 @@ flag_value(c_libdir, Value) :-
     ->  atomic_list_concat([Home, Rel], /, Value)
     ;   current_prolog_flag(windows, true)
     ->  atomic_list_concat([Home, bin], /, Value)
-    ;   current_prolog_flag(apple, true),
-        apple_bundle_libdir(LibDir)
+    ;   apple_bundle_libdir(LibDir)
     ->  Value = LibDir
     ;   current_prolog_flag(arch, Arch)
     ->  atomic_list_concat([Home, lib, Arch], /, Value)
@@ -108,6 +108,7 @@ flag_value(Flag, Value) :-
 %   ``MacOS`` directory.
 
 apple_bundle_libdir(LibDir) :-
+    current_prolog_flag(apple, true),
     current_prolog_flag(executable, Exe),
     file_directory_name(Exe, ExeDir),
     file_base_name(ExeDir, 'MacOS'),
