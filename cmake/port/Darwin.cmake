@@ -39,6 +39,12 @@ elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
   set(Readline_ROOT /usr/local/opt/readline)
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL None)
   message("-- Trying to build without Macports or Homebrew dependencies")
+elseif(MACOSX_DEPENDENCIES_FROM MATCHES "/.*")
+  message("-- Trying to build with dependencies from ${MACOSX_DEPENDENCIES_FROM}")
+  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
+      "${MACOSX_DEPENDENCIES_FROM}/lib")
+  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
+      "${MACOSX_DEPENDENCIES_FROM}/include")
 else()
   message(FATAL_ERROR "Invalid MACOSX_DEPENDENCIES_FROM: ${MACOSX_DEPENDENCIES_FROM}")
 endif()
