@@ -25,7 +25,7 @@ while [ ! -z "$changeset" ]; do
     case "$(file $f)" in
       *Mach-O*)
         opt_dep=$(otool -L $f |
-		  grep /opt/local |
+		  grep '\(/opt/local\|/deps/\)' |
 		  grep -v libjvm |
 		  awk '{print $1}')
         if [ ! -z "$opt_dep" ]; then
