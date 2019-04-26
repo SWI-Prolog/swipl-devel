@@ -60,7 +60,7 @@ download_gmp()
 build_gmp()
 { ( cd gmp-$GMP_VERSION
     ./configure --prefix=$PREFIX \
-       --enable-shared --disable-static
+       --enable-shared --disable-static --enable-fat
     make
     make install
   )
