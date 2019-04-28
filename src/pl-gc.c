@@ -5260,8 +5260,12 @@ static void
 include_spare_stack(void *ptr, size_t *request)
 { Stack s = ptr;
 
-  if ( *request && *request != GROW_TRIM )
-    *request += s->def_spare - s->spare;
+  if ( *request )
+  { if ( *request != GROW_TRIM )
+      *request += s->def_spare - s->spare;
+    else if ( roomStackP(s) < s->def_spare )
+      *request = s->def_spare;
+  }
 
   if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
@@ -5276,6 +5280,8 @@ reenable_spare_stack(void *ptr)
 
   if ( roomStackP(s) >=	s->def_spare )
     trim_stack(s);
+  else
+    Sdprintf("Could not reenable %s-stack\n", s->name);
 }
 
 
