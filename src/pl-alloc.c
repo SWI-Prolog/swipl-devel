@@ -640,7 +640,7 @@ outOfStack(void *stack, stack_overflow_action how)
   { Sdprintf("[Thread %d]: %s-overflow: spare=%ld (def=%ld)\n"
 	     "Last resource exception:\n",
 	     PL_thread_self(), s->name, (long)s->spare, (long)s->def_spare);
-    print_backtrace_named("exception");
+    print_backtrace_named(msg);
   }
 
   enableSpareStacks();
@@ -651,7 +651,7 @@ outOfStack(void *stack, stack_overflow_action how)
   switch(how)
   { case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { word ctx = push_overflow_context(s, 5);
+    { word ctx = push_overflow_context(s, 6);
 
       if ( gTop+5 < gMax )
       { Word p = gTop;
