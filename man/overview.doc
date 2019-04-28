@@ -2413,7 +2413,7 @@ format('This is a long line that looks better if it was\
 \end{code}
 
 Note that SWI-Prolog also allows unescaped newlines to appear in quoted
-material.  This is not allowed be the ISO standard, but used to be
+material.  This is not allowed by the ISO standard, but used to be
 common practice before.
     \escapeitem{e}
 Escape character (\textsc{ASCII} 27). Not ISO, but widely supported.
