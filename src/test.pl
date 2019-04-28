@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2018, University of Amsterdam
+    Copyright (c)  1996-2019, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -2891,8 +2891,6 @@ load_cmake_test_db :-
 	load_files(swi('test/cmake_pkg_tests.db')).
 
 find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
-	script_dir(ScriptDir),
-	working_directory(_, ScriptDir),
 	load_cmake_test_db,
 	cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)).
 
@@ -2906,9 +2904,11 @@ is_pkg(Pkg) :-
 %	directory is set to the location of the package.
 
 run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+	script_dir(ScriptDir),
+	atomic_list_concat([ScriptDir, PkgDir], /, TestDir),
 	format(user_error, '~NTesting package ~w:~w ~`.t~40|',[Pkg,TestName]),
 	get_time(Start),
-	run_pkg_test1(PkgScript, Goal, PkgDir),
+	run_pkg_test1(PkgScript, Goal, TestDir),
 	get_time(End),
 	Time is End - Start,
 	format(user_error, ' Passed ~2f sec.~n', [Time]).
