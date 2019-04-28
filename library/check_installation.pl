@@ -177,58 +177,6 @@ check_installation_(Issues) :-
            check_component(Source)),
     findall(I, retract(issue(I)), Issues).
 
-
-		 /*******************************
-		 *           RUN TESTS		*
-		 *******************************/
-
-%!  test_installation is semidet.
-%!  test_installation(+Options) is semidet.
-%
-%   Run regression tests in the installed system.  Requires the system
-%   to be build using
-%
-%	cmake -DINSTALL_TESTS=ON
-%
-%   Options processed:
-%
-%     - packages(+Boolean)
-%       When `false`, do not test the packages
-%     - package(+Package)
-%       Only test package package.
-
-test_installation :-
-    test_installation([]).
-
-test_installation(Options) :-
-    absolute_file_name(swi(test/test),
-                       TestFile,
-                       [ access(read),
-                         file_errors(fail),
-                         file_type(prolog)
-                       ]),
-    !,
-    test_installation_run(TestFile, Options).
-test_installation(_Options) :-
-    print_message(warning, installation(testing(no_installed_tests))).
-
-test_installation_run(TestFile, Options) :-
-    (   option(package(_), Options)
-    ->  merge_options(Options,
-                      [ core(false),
-                        subdirs(false)
-                      ], TestOptions)
-    ;   merge_options(Options,
-                      [ packages(true)
-                      ], TestOptions)
-    ),
-    load_files(user:TestFile),
-    current_prolog_flag(verbose, Old),
-    setup_call_cleanup(
-        set_prolog_flag(verbose, silent),
-        user:test([], TestOptions),
-        set_prolog_flag(verbose, Old)).
-
 check_component(Source) :-
     component(Source, Properties),
     !,
@@ -469,6 +417,58 @@ check_on_path :-
         )
     ;   print_message(warning, installation(not_on_path(OsExe, Prog)))
     ).
+
+
+		 /*******************************
+		 *           RUN TESTS		*
+		 *******************************/
+
+%!  test_installation is semidet.
+%!  test_installation(+Options) is semidet.
+%
+%   Run regression tests in the installed system. Requires the system to
+%   be built using
+%
+%	cmake -DINSTALL_TESTS=ON
+%
+%   Options processed:
+%
+%     - packages(+Boolean)
+%       When `false`, do not test the packages
+%     - package(+Package)
+%       Only test package package.
+
+test_installation :-
+    test_installation([]).
+
+test_installation(Options) :-
+    absolute_file_name(swi(test/test),
+                       TestFile,
+                       [ access(read),
+                         file_errors(fail),
+                         file_type(prolog)
+                       ]),
+    !,
+    test_installation_run(TestFile, Options).
+test_installation(_Options) :-
+    print_message(warning, installation(testing(no_installed_tests))).
+
+test_installation_run(TestFile, Options) :-
+    (   option(package(_), Options)
+    ->  merge_options(Options,
+                      [ core(false),
+                        subdirs(false)
+                      ], TestOptions)
+    ;   merge_options(Options,
+                      [ packages(true)
+                      ], TestOptions)
+    ),
+    load_files(user:TestFile),
+    current_prolog_flag(verbose, Old),
+    setup_call_cleanup(
+        set_prolog_flag(verbose, silent),
+        user:test([], TestOptions),
+        set_prolog_flag(verbose, Old)).
 
 
                  /*******************************
