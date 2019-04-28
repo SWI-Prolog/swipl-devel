@@ -50,10 +50,10 @@ test_module :-
 % I_CONTEXT
 
 :- multifile
-        test_module:cross/1.
+        cross/1.
 
-:- test_module_2:assert((test_module:cross(_) :- nono)).
-:- test_module_2:assert((nono :- fail)).
+test_module_2:(test_module:cross(_) :- nono).
+test_module_2:(nono :- fail).
 
 cross(M) :-
         context_module(M).
@@ -66,19 +66,19 @@ t(X) :-
 test(cross, X == test_module) :-
 	cross(X).
 
-test(clause, H == test_moduld_2:term) :-
-	assert(test_moduld_2:term, Ref),
+test(clause, H == test_module_2:term) :-
+	assert(test_module_2:term, Ref),
 	clause(H,_,Ref),
 	erase(Ref).
 
 test(clause, H == term) :-
-	assert(test_moduld_2:term, Ref),
-	test_moduld_2:clause(H,_,Ref),
+	assert(test_module_2:term, Ref),
+	test_module_2:clause(H,_,Ref),
 	erase(Ref).
 
 test(clause, H == term) :-
-	assert(test_moduld_2:term, Ref),
-	clause(test_moduld_2:H,_,Ref),
+	assert(test_module_2:term, Ref),
+	clause(test_module_2:H,_,Ref),
 	erase(Ref).
 
 test(qcontrol, all(X==[1])) :-
