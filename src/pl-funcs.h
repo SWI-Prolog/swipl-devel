@@ -231,7 +231,7 @@ COMMON(int)		PL_unify_termv(term_t t, va_list args);
 COMMON(int)		PL_unify_termv__LD(term_t t ARG_LD, va_list args);
 COMMON(term_t)		pushWordAsTermRef__LD(Word p ARG_LD);
 COMMON(void)		popTermRef__LD(ARG1_LD);
-COMMON(void)		_PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD);
+COMMON(int)		_PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD);
 COMMON(term_t)		PL_new_term_ref__LD(ARG1_LD);
 COMMON(term_t)		PL_new_term_ref_noshift__LD(ARG1_LD);
 COMMON(term_t)		PL_new_term_refs__LD(int n ARG_LD);

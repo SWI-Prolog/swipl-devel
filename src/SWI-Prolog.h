@@ -799,8 +799,8 @@ PL_EXPORT(int)		PL_set_prolog_flag(const char *name, int type, ...);
 PL_EXPORT(PL_atomic_t)	_PL_get_atomic(term_t t);
 PL_EXPORT(void)		_PL_put_atomic(term_t t, PL_atomic_t a);
 PL_EXPORT(int)		_PL_unify_atomic(term_t t, PL_atomic_t a);
-PL_EXPORT(void)		_PL_get_arg_sz(size_t index, term_t t, term_t a);
-PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
+PL_EXPORT(int)		_PL_get_arg_sz(size_t index, term_t t, term_t a);
+PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 
 
 		 /*******************************
