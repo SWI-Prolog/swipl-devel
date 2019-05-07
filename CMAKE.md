@@ -222,7 +222,7 @@ Adjust as necessary.
 	  -DBUILD_SWIPL_LD=OFF \
 	  -DSWIPL_PACKAGES=OFF \
 	  -DINSTALL_DOCUMENTATION=OFF \
-	  -DNATIVE_FRIEND=build \
+	  -DSWIPL_NATIVE_FRIEND=build \
 	  -G Ninja ..
 
 ### Building a 32-bit version on 64-bit Debian based Linux
