@@ -203,9 +203,9 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 
 __Note__: due to a  bug  in   the  current  Emscripten  directory access
 functions we need the _native friend_   mechanism  to create the library
-index. The flags below  include   `-DNATIVE_FRIEND=build`,  assuming you
-built a native executable in the   directory  `build` below the sources.
-Adjust as necessary.
+index. The flags below   include `-DSWIPL_NATIVE_FRIEND=build`, assuming
+you built a  native  executable  in   the  directory  `build`  below the
+sources. Adjust as necessary.
 
     [Assumes native Prolog in `build`.  See note above]
 
@@ -222,7 +222,7 @@ Adjust as necessary.
 	  -DBUILD_SWIPL_LD=OFF \
 	  -DSWIPL_PACKAGES=OFF \
 	  -DINSTALL_DOCUMENTATION=OFF \
-	  -DNATIVE_FRIEND=build \
+	  -DSWIPL_NATIVE_FRIEND=build \
 	  -G Ninja ..
 
 ### Building a 32-bit version on 64-bit Debian based Linux
