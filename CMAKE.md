@@ -19,15 +19,13 @@ classical Unix make.
 Building SWI-Prolog requires cmake version 3.5  or later (*). Many Linux
 systems ship with a cmake package. On  MacOS we use the Macport version.
 If the shipped cmake version is too old   you may wish to download cmake
-from https://cmake.org/download/ On Linux systems, installing cmake 3.12
-is as simple as:
+from https://cmake.org/download/ On  Linux   systems,  installing  e.g.,
+cmake 3.12 (please pick the latest stable version) is as simple as:
 
     wget https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh
     sudo sh cmake-3.12.0-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
 
-(*) Tested with 3.5 (Ubuntu Xenial), 3.10 (Ubuntu Bionic), 3.12 (MacOS).
-Version 3.5 does not work with the 7.7.20   tar file, but does work with
-the current git version.
+(*) Tested with 3.5 (Ubuntu Xenial), 3.10 (Ubuntu Bionic), 3.14 (MacOS).
 
 
 ## Native build
