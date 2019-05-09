@@ -3840,6 +3840,11 @@ This property is the opposite from \const{dynamic}, i.e., for each
 defined predicate, either \const{static} or \const{dynamic} is true but
 never both.
 
+    \termitem{tabled}{How}
+True of the predicate is \jargon{tabled}.  Currently, \arg{How} is
+always \const{default}, which is the same as \const{variant}. Future
+versions may provide \const{subsumptive}.  See table/1 for details.
+
     \termitem{thread_local}{}
 If true (only possible on the multithreaded version) each thread has
 its own clauses for the predicate. This property is set using
