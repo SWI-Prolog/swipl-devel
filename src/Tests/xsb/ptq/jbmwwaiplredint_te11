@@ -1,0 +1,7 @@
+te1(\(A,@(*(A),^(j))),sub,m,[],[],0,1)
+te1(\(A,@(*(A),^(m))),sub,f,[],[],2,3)
+te1(\(A,@(*(A),^(m))),sub,f,[sub(\(B,@(*(B),^(j))),C,m)],[],2,3)
+te1(\(A,exists(B,/\(@(park,B),@(*(A),B)))),obj,n,[],[],6,8)
+te1(\(A,exists(B,/\(@(park,B),@(*(A),B)))),obj,n,[sub(\(C,@(*(C),^(j))),D,m),sub(\(E,@(*(E),^(m))),F,f)],[],6,8)
+te1(\(A,exists(B,/\(@(park,B),@(*(A),B)))),obj,n,[sub(\(C,@(*(C),^(j))),D,m)],[],6,8)
+te1(\(A,exists(B,/\(@(park,B),@(*(A),B)))),obj,n,[sub(\(C,@(*(C),^(m))),D,f)],[],6,8)

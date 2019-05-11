@@ -1,0 +1,2 @@
+cn(unicorn,n,[],[],4,5)
+cn(unicorn,n,[sub(\(A,@(*(A),^(j))),B,m)],[],4,5)

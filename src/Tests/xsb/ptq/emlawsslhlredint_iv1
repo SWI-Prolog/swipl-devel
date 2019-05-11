@@ -1,0 +1,7 @@
+iv(\(A,@(@('love*',*(B)),*(A))),s,[],[sub(\(C,exists(D,/\(@(woman,D),@(*(C),D)))),B,f)],2,5)
+iv(\(A,@(@('love*',*(B)),*(A))),s,[sub(\(C,all(D,->(@(man,D),@(*(C),D)))),E,m)],[sub(\(F,exists(G,/\(/\(@(woman,G),@(@('love*',*(E)),*(G))),@(*(F),G)))),B,f)],2,9)
+iv(\(A,@(@('love*',*(B)),*(A))),s,[sub(\(C,all(D,->(@(man,D),@(*(C),D)))),E,m)],[sub(\(F,exists(G,/\(@(woman,G),@(*(F),G)))),B,f)],2,5)
+iv(\(A,@(@('love*',*(B)),*(A))),s,[sub(woman,C,f),sub(\(D,all(E,->(@(man,E),@(*(D),E)))),B,m)],[],7,9)
+iv(\(A,exists(B,/\(/\(@(woman,B),@(@('love*',*(C)),*(B))),@(@('love*',*(B)),*(A))))),s,[sub(\(D,all(E,->(@(man,E),@(*(D),E)))),C,m)],[],2,9)
+iv(\(A,exists(B,/\(@(woman,B),@(@('love*',*(B)),*(A))))),s,[],[],2,5)
+iv(\(A,exists(B,/\(@(woman,B),@(@('love*',*(B)),*(A))))),s,[sub(\(C,all(D,->(@(man,D),@(*(C),D)))),E,m)],[],2,5)

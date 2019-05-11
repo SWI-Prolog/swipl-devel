@@ -1,0 +1,4 @@
+s(@(@('find*',*(A)),*(B)),[],[sub(\(C,@(*(C),^(j))),B,m),sub(\(D,exists(E,/\(@(unicorn,E),@(*(D),E)))),A,n)],0,4)
+s(@(@('find*',*(A)),j),[],[sub(\(B,exists(C,/\(@(unicorn,C),@(*(B),C)))),A,n)],0,4)
+s(exists(A,/\(@(unicorn,A),@(@('find*',*(A)),*(B)))),[],[sub(\(C,@(*(C),^(j))),B,m)],0,4)
+s(exists(A,/\(@(unicorn,A),@(@('find*',*(A)),j))),[],[],0,4)

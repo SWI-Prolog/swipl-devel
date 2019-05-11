@@ -329,46 +329,8 @@ p(X) :-
 Ground goals, i.e., goals without variables, are subject to early
 completion. This implies they are considered completed after the first
 solution.
-
-    \item [Tabled negation]
-The predicate tnot/1 implements better negation semantics. This is
-achieved by delaying the completion of negative goals, deciding on their
-truth after receiving a solution (false) or after the completion of the
-argument goal without answers (true).  This achieves correct results on
-the following example from the XSB test suite:
-
-\begin{code}
-:- table a/0, b/0, c/0.
-
-a :- b, tnot(c).
-
-b :- a.
-b.
-
-c :- tnot(b).
-\end{code}
-
-Here, the following steps are executed:
-
-\begin{enumerate}
-    \item $a$ calls $b$.  $b$ starts $a$, creating an SCC with $a$ and $b$.
-    \item $c$ is negated but fresh.  It is started.
-    \item $c$ calls \term{tnot}{b}.  $b$ is not completed, and this creates
-          a suspended negation node. Now everything is suspended and in
-	  a single SCC.
-    \item $b$ is resumed, generating an answer from the 2nd clause.  This
-          completes $b$ as it is ground.
-    \item The $b$ resumes the tnot in $c$, which completes $c$ as false.
-    \item This resumes \term{tnot}{c} as true because ($c$) is complete
-          and false)
-    \item Finally $a$ completes as true.
-\end{enumerate}
-
-In other words, tnot/1 delays the negative node until there is an answer
-or the SCC in which it appears is (ignoring the delayed negative nodes)
-completed. In the latter case the negative node is considered to be true
-and completion of the SCC is resumed.
 \end{itemlist}
+
 
 \section{Well Founded Semantics}
 \label{sec:WFS}
@@ -380,7 +342,105 @@ conclusions from a set of logical rules". Well Founded Semantics (WFS)
 defines a \jargon{three valued logic} representing \jargon{true},
 \jargon{false} and something that is neither true or false. This latter
 value is often referred to as \jargon{bottom}, \jargon{undefined} or
-\jargon{unknown}.
+\jargon{unknown}.  SWI-Prolog uses unknown/0.
+
+Well Founded Semantics allows for reasoning about programs with
+contraditions or multiple answer sets. It allows for obtaining
+true/false results for literals that do not depend on the sub program
+that has no unambiguous solution, propagating the notion of
+\jargon{unknown} to literals that cannot be resolved otherwise and
+obtaining the \jargon{residual} program that expresses why an answer is
+not unambiguous.
+
+The notion of \jargon{Well Founded Semantics} is only relevant if the
+program uses \jargon{negation} as implemented by tnot/1. The argument of
+tnot/1, as the name implies, must be a goal associated with a tabled
+predicate (see table/1).  In a nutshell, resolving a goal that implies
+tnot/1 is implemented as follows:
+
+Consider a \jargon{body term} \exam{..., tnot(p), q)}.
+
+\begin{enumerate}
+    \item
+If $p$ has an unconditional answer in its table, fail.
+    \item
+Else, \jargon{delay} the negation.  If an unconditional
+answer arrives at some time, resume with failure.
+    \item
+If at the end of the traditional tabled evaluation we
+can still not decide on $p$, execute the \jargon{continuation}
+($q$ above) while maintaining the \jargon{delay list} set to
+\term{tnot}{p}.  If executing the continuation results in an
+answer for some tabled predicate, record this answer as a
+\jargon{conditional} answer, in this case with the condition
+\term{tnot}{p}.
+    \item
+If a conditonal answer is added to a table, it is propagated to its
+\jargon{followers}, say $f$, adding the pair \{$f$,answer\} to the
+delay list. If this leads to an answer, the answer is conditonal
+on this pair.
+    \item
+After the continuations of all unresolved tnot/1 calls have
+been executed the various tables may have conditional answers
+in addition to normal answers.
+    \item
+If there is a negative literals that has neither conditional answers
+nor unconditional answers, the condition \term{tnot}{g} is true.
+This conclusion is propagated by simplifying the conditions for
+all answers that depend on \term{tnot}{g}.  This may result in
+a definite \jargon{false} condition, in which case the answer
+is removed or a definite \jargon{true} condition in which case
+the answer is made unconditional.  Both events can make another
+tnot/1 node definitely true or false, etc.
+    \item
+At the end of the simplifying process some answers may still be
+conditional.  A final \jargon{answer completion} step analyses
+the graph of depending nodes, eliminating \jargon{positive loops},
+e.g., ``$p$ :- $q$.  $q$ :- $p$''.  The answers in such a loop are
+removed, possibly leading to more simplification.  This process is
+executed until \jargon{fixed point} is reached, i.e., no further
+positive loops exist and no further simplification is possible.
+\end{enumerate}
+
+The above process may complete without any remaining conditional
+answers, in which case we are back in the normal Prolog world. It is
+also possible that some answers remain conditional. The most obvious
+case is represented by unknown/0. The toplevel responds with
+\textbf{unknown} instead of \textbf{true} if an answer is conditional.
+
+\begin{description}
+    \predicate{unknown}{0}{}
+Unknown represents neither \const{true} nor \const{false} in the
+well formed model.  It is implemented as
+
+\begin{code}
+:- table unknown/0.
+
+unknown :- tnot(unknown).
+\end{code}
+\end{description}
+
+\index{residual,WFS}%
+Solving a set of predicates under well formed semantics results in a
+\jargon{residual program}. This program contains clauses for all tabled
+predicates with condition answers where each clause head represents and
+answer and each clause body its condition. The condition is a
+disjunction of conjunctions where each literal is either a tabled
+goal or tnot/1 of a tabled goal.   The remaining model has at least a
+cycle through a negative literal (tnot/1) and has no single
+solution in the \jargon{stable model semantics}, i.e., it either
+expresses a contradition (as unknown/0, i.e., there is no stable model)
+or a multiple stable models as in the program below, where both \{p\}
+and \{q\} are stable models.
+
+\begin{code}
+p :- tnot(q).
+q :- tnot(p).
+\end{code}
+
+Note that it is possible that some literals have the same truth value in
+all stable models but are still \jargon{unknown} under the stable model
+semantics.
 
 
 \section{Tabling predicate reference}
@@ -409,9 +469,7 @@ section of \chapref{tabling}.
 
     \predicate{tnot}{1}{:Goal}
 The tnot/1 predicate implements \jargon{tabled negation}. This predicate
-currently realised \jargon{dynamically stratified negation}
-\cite{DBLP:journals/toplas/SagonasS98}. See \secref{tnotpure} for
-details.
+realises \jargon{Well Founded Semantics}. See \secref{WFS} for details.
 
     \predicate{current_table}{2}{:Variant, -Trie}
 True when \arg{Trie} is the answer table for \arg{Variant}.
@@ -439,9 +497,11 @@ structures required for tabling, the \jargon{answer tables} (see
 \jargon{Mode directed tabling} (\secref{tabling-mode-directed}) is based
 on a prototype implementation by Fabrizio Riguzzi.
 
-The implementation of dynamic SCCs and dynamically stratified negation
-was initiated by Benjamin Grosof from Kyndi and was realised with a lot
-of help by Theresa Swift, David Warren and Fabrizio Riguzzi.
+The implementation of dynamic SCCs, dynamically stratified negation and
+Well Founded Semantics was initiated by Benjamin Grosof from Kyndi and
+was realised with a lot of help by Theresa Swift, David Warren and
+Fabrizio Riguzzi, as well as publications about XSB
+\cite{DBLP:journals/toplas/SagonasS98,SAGONAS20001}.
 
 The table/1 directive causes the creation of a wrapper calling the
 renamed original predicate. For example, the program in

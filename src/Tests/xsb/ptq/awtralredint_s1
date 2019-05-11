@@ -1,0 +1,6 @@
+s(@(@('try_to*',^(@(allegedly,^(\(A,@('run*',*(A))))))),B),[],[sub(\(C,exists(D,/\(@(woman,D),@(*(C),D)))),B,f)],0,5)
+s(@(@('try_to*',^(\(A,@('run*',*(A))))),B),[],[sub(\(C,exists(D,/\(@(woman,D),@(*(C),D)))),B,f)],0,4)
+s(@(@(allegedly,^(\(A,@(@('try_to*',^(\(B,@('run*',*(B))))),A)))),C),[],[sub(\(D,exists(E,/\(@(woman,E),@(*(D),E)))),C,f)],0,5)
+s(exists(A,/\(@(woman,A),@(@('try_to*',^(@(allegedly,^(\(B,@('run*',*(B))))))),A))),[],[],0,5)
+s(exists(A,/\(@(woman,A),@(@('try_to*',^(\(B,@('run*',*(B))))),A))),[],[],0,4)
+s(exists(A,/\(@(woman,A),@(@(allegedly,^(\(B,@(@('try_to*',^(\(C,@('run*',*(C))))),B)))),A))),[],[],0,5)

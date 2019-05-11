@@ -1,0 +1,5 @@
+s(@(@('love*',*(A)),*(B)),[],[sub(\(C,all(D,->(@(man,D),@(*(C),D)))),B,m),sub(\(E,exists(F,/\(@(woman,F),@(*(E),F)))),A,f)],0,5)
+s(all(A,->(@(man,A),@(@('love*',*(B)),*(A)))),[],[sub(\(C,exists(D,/\(@(woman,D),@(*(C),D)))),B,f)],0,5)
+s(all(A,->(@(man,A),exists(B,/\(@(woman,B),@(@('love*',*(B)),*(A)))))),[],[],0,5)
+s(exists(A,/\(@(woman,A),@(@('love*',*(A)),*(B)))),[],[sub(\(C,all(D,->(@(man,D),@(*(C),D)))),B,m)],0,5)
+s(exists(A,/\(@(woman,A),all(B,->(@(man,B),@(@('love*',*(A)),*(B)))))),[],[],0,5)

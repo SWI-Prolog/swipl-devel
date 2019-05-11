@@ -1,0 +1,342 @@
+/* A `Prolog' implementation of the Xwam (actually et-interp).
+It uses a Prolog representation of clauses. It requires the use of
+consult_et to read in clauses.
+*/
+% to use: :- use_module('/u6/sr/warren/prologlib/nlsys/parser').
+
+% then et
+
+:- export
+        parse/2,        %   Parse a string
+        lred/2,         %   lambda reduce IL
+        lwrite/1,       %   write IL in slightly more presentable form
+        get_types/2     %   Type checker/inferer
+   .
+%%:- consult('/u6/sr/warren/xoldt/xoldt.pl').
+
+:- import append/3, copy_term/2 from basics.
+:- import word/3 from usermod.
+
+:- meta_predicate
+        parse(2, +).
+
+/* parse a string */
+parse(M:Nonterm,String) :-
+        retractall(word(_,_,_)),
+        assert_words(String,0,N),
+        Nonterm =.. Tl,
+        append(Tl,[0,N],Ntl),
+        Cterm =.. Ntl,
+        call(M:Cterm).
+
+assert_words([],N,N).
+assert_words([Word|String],N,M) :-
+        N1 is N+1,
+        assert(word(Word,N,N1)),
+        assert_words(String,N1,M).
+
+
+:- op(200, xfy,[\]).    % lambda when bound var occurs only once
+:- op(200, xfy,[\\]).   % lambda when bound var may occur multiple times
+:- op(190, yfx,[@]).
+:- op(150, fx,[^,*]).
+
+/* lwrite is a pretty-printer of Prolog IL formulas (It could
+certainly use some improvement, but it helps some. Its main
+contribution is to eliminate @, and so write walk@j as walk(^j).
+It doesn't really write enough parens to disambiguate.
+*/
+
+lwrite(T) :- T='$VAR'(_),!,write(T).
+lwrite(T) :- atomic(T),!,write(T).
+lwrite(T) :- T=he(_),!,write(T).
+lwrite(X\T) :- !,write(\),write(X),write(.),lwrite(T).
+lwrite(X\\T) :- !,write(\),write(X),write(.),lwrite(T).
+lwrite(T@A) :- !, lwrite(T),write('('),lwrite(A),write(')').
+lwrite(exists(X,T)) :- !,write('Ex '),write(X),write('('),lwrite(T),write(')').
+lwrite(exists1(X,T)) :- !,write('Ex1 '),write(X),write('('),lwrite(T),write(')').
+lwrite(all(X,T)) :- !,write('Al '),write(X),write('('),lwrite(T),write(')').
+lwrite((A/\B)) :- lwrite(A),write(' /\\ '),lwrite(B).
+lwrite((A\/B)) :- lwrite(A),write(' \\/ '),lwrite(B).
+lwrite((A->B)) :- lwrite(A),write(' -> '),lwrite(B).
+lwrite(*A) :- write(*),lwrite(A).
+lwrite(^A) :- write(^),lwrite(A).
+
+
+
+/****************************************/
+
+/* The following predicates implement beta-reduction for
+lambda-expressions represented in our Prolog notation. It tries to
+be somewhat efficient. 1) In a lambda terms, we require all bound
+variables to be distinct. 2) We require that the lambda term
+indicate which lambda abstractions may have multiple occurrences of
+the bound variable within their scope. Such a lambda is indicated by
+the \\ operator. The \ operator is a lambda for which there is at
+most one occurrence of the bound variable in its scope. The reason
+for this distinction is that for the \ operator, we can use Prolog's
+unification to to perform the beta-reduction efficiently. 3) When we
+do the more general beta-reduction indicated by \\, we find the free
+and bound variables of the term being substituted. If there are no
+lambda-bound variables, we can still use Prolog's unification to
+perform the reduction. Only if there are lambda-bound variables in
+the argument and multiple occurrences in the body do we perform a
+general substitution, substituting for each occurrence a term
+obtained by changing the bound variables of the argument term being
+substituted. */
+
+
+% lred continues to do beta-reduction as long as the term is reducible.
+lred(T,S) :-
+	non_red(T)
+	 ->	S = T
+	 ;	cred(T,S1),
+		lred(S1,S).
+
+% check for non-reducibility
+non_red(T) :-
+    (compound(T)
+     ->	(T = F@A
+	 -> (compound(F)
+	     ->	(F = _\_
+		 -> fail
+		 ;  non_red(F),
+		    non_red(A)
+		)
+	     ;	non_red(A)
+	    )
+	 ; T = *Int
+	 -> (compound(Int)
+	     ->	(Int = ^_
+		 -> fail
+		 ;  non_red(Int)
+		)
+	     ;	true
+	    )
+	 ;  functor(T,_,N),
+	    non_red(T,N)
+	)
+     ;	true
+    ).
+
+
+non_red(T,N) :-
+	N =:= 0
+	 ->	true
+	 ;	arg(N,T,A),
+		non_red(A),
+		N1 is N-1,
+		non_red(T,N1).
+
+% find and reduce
+cred(T,S) :-
+    (compound(T)
+     ->	(T = F@A
+	 -> (F = _\_
+	     ->	lapply(F,A,S)
+	     ;	S = F1@A1,
+		cred(F,F1),
+		cred(A,A1)
+	    )
+	 ; T = *Int
+	 -> (compound(Int)
+	     ->	(Int = ^S1
+		 -> cred(S1,S)
+		 ;  S = *Int1,
+		    cred(Int,Int1)
+		)
+	     ;	S = T
+	    )
+	 ;  functor(T,F,N),
+	    functor(S,F,N),
+	    cred(T,S,N)
+	)
+     ;	S = T
+    ).
+
+
+cred(T,S,N) :-
+	N =:= 0
+	 ->	true
+	 ;	arg(N,T,A),
+		cred(A,A1),
+		arg(N,S,A0),
+		A0=A1,
+		N1 is N-1,
+		cred(T,S,N1).
+
+lapply(X\T,A,S) :-
+	num_occs(T,X,0,N),
+	(N =< 1
+	 ->	X = A,
+		S = T
+	 ;	findvars(A,[],B,[],V),
+	        (B == []
+	         ->     X=A, S=T        % can use unification if no bound vars
+	         ;      subst(T,fv(A,V),X,S)
+	        )
+	).
+
+% num_occs finds number of occurrences of a variable in a term.
+num_occs(T,X,N0,N) :-
+    (var(T)
+     ->	(T == X
+	 -> N is N0 + 1
+	 ;  N = N0
+	)
+     ; atomic(T)
+     ->	N = N0
+     ;	functor(T,_,A),
+	num_occs(T,X,N0,N,A)
+    ).
+
+num_occs(T,X,N0,N,A) :-
+    (A =:= 0
+     ->	N = N0
+     ;	arg(A,T,Ar),
+	num_occs(Ar,X,N0,N1),
+	A1 is A-1,
+	num_occs(T,X,N1,N,A1)
+    ).
+
+/* findvars(Term,[],Bound,[],Free) finds the bound and free variables
+of a term. */
+findvars(T,B0,B,V0,V) :-
+    (var(T)
+     ->	(memberee(T,B0)
+	 -> V=V0, B=B0
+	 ; memberee(T,V0)
+	 -> V=V0, B=B0
+	 ;  V=[T|V0], B=B0
+	)
+     ; compound(T)
+     ->	(T = X\S
+	 -> findvars(S,[X|B0],B,V0,V)
+	 ; T = all(X,S)
+	 -> findvars(S,[X|B0],B,V0,V)
+	 ; T = exists(X,S)
+	 -> findvars(S,[X|B0],B,V0,V)
+	 ;  functor(T,_,N),
+	    findvars(N,T,B0,B,V0,V)
+	)
+     ;	B=B0, V=V0
+    ).
+
+findvars(N,T,B0,B,V0,V) :-
+    (N =:= 0
+     ->	B=B0, V=V0
+     ;	arg(N,T,A),
+	findvars(A,B0,B1,V0,V1),
+	N1 is N-1,
+	findvars(N1,T,B1,B,V1,V)
+    ).
+
+memberee(X,[Y|_L]) :- X==Y,!.
+memberee(X,[_|L]) :- memberee(X,L).
+
+/* cbv changes the bound variables of a term `annotated' with its
+        free variables */
+cbv(At,S) :- At=fv(_,V),copy_term(At,fv(S,V)).
+
+
+/* subst(T,fv(A,V),X,S) returns S as the result of substituting the
+term A (with free variables V) for occurrences of X in T */
+
+subst(T,At,X,S) :-
+    (var(T)
+     ->	(T == X
+	 -> cbv(At,S)
+	 ;  S = T
+	)
+     ; compound(T)
+     ->	functor(T,F,N),
+	functor(S,F,N),
+	subst(N,T,At,X,S)
+     ;	S = T
+    ).
+
+/*subst(T,At,X,S) :- term_type(T,Ty),
+	(Ty =:= 0
+	 ->	(T==X -> cbv(At,S) ; S=T)
+	 ; Ty =:= 1
+	 ->	functor(T,F,N),
+		functor(S,F,N),
+		subst(N,T,At,X,S)
+	 ;	S = T
+	).*/
+
+subst(N,T,At,X,S) :-
+        N =:= 0
+         ->     true
+         ;      arg(N,T,Ta),
+                subst(Ta,At,X,Sa),
+                arg(N,S,Sa),
+                N1 is N-1,
+                subst(N1,T,At,X,S).
+
+
+
+%Type Checking
+%(Inference)
+
+get_types(T,Tt) :- copy_term(T,T1),type(T1,Tt).
+
+type(X,X) :- var(X),!,X = (_:_).
+type(X,X:T) :- atomic(X),!,cat(X,C),type(C:T).	% type/1 must be defined
+type(X,Xt) :- typeb(X,Xt).
+
+typeb(F:T,Ft:T) :- !,
+        (var(F) -> F=Ft ; type(F,Ft:T)).
+
+typeb(^X,^Xt:[s,T]) :- typeb(X:T,Xt).
+typeb(*X,*X1:T) :- typeb(X:[s,T],X1).
+typeb(X\Y,(X1\Y1):[A,B]) :- typeb(X:A,X1), typeb(Y:B,Y1).
+typeb(X\\Y,(X1\\Y1):[A,B]) :- typeb(X:A,X1), typeb(Y:B,Y1).
+typeb(X@Y,(X1@Y1):A) :- typeb(X:[B,A],X1),typeb(Y:B,Y1).
+typeb(exists(X,P),exists(Xt,P1):t) :- type(X,Xt),typeb(P:t,P1).
+typeb(exists1(X,P),exists1(Xt,P1):t) :- type(X,Xt),typeb(P:t,P1).
+typeb(all(X,P),all(Xt,P1):t) :- typeb(X,Xt),typeb(P:t,P1).
+typeb(A /\ B, (A1 /\ B1):t) :- typeb(A:t,A1),typeb(B:t,B1).
+typeb(A \/ B, (A1 \/ B1):t) :- typeb(A:t,A1),typeb(B:t,B1).
+typeb((A -> B), (A1->B1):t) :- typeb(A:t,A1),typeb(B:t,B1).
+typeb(A=B,(A1=B1):t) :- typeb(A:T,A1), typeb(B:T,B1).
+
+
+cat(j,bnp).
+cat(j,bnp).
+cat(b,bnp).
+cat(m,bnp).
+cat('walk*',eiv).
+cat('run*',eiv).
+cat(walk,iiv).
+cat(run,iiv).
+cat(rise,iiv).
+cat(man,cn).
+cat(woman,cn).
+cat(unicorn,cn).
+cat('love*',etv).
+cat(seek,itv).
+
+
+type(bnp:e).
+type(eiv:[e,t]).
+type(iiv:[[s,e],t]).
+type(cn:[[s,e],t]).
+type(etv:[e,[e,t]]).
+type(itv:[[s,e],[[s,[[s,[[s,e],t]],t]],t]]).
+
+/************* new \-term representation
+Examples:
+	X \ f(X)	=> self
+	X.Y \ f(X,Y)	=> X \ f(X,X)
+
+Idea is that in the body of a lambda abstraction, every variable is single
+occurrence. An abstraction may name several variables, in which case they
+are then considered the same.
+
+Then lambda reduction can easily be done with unification and copy_term:
+	(X.Y \ f(X,Y)) @ T
+can be reduced by X=T, copy_term(T,Y), but only if T is closed. (yuch!)
+Doesn't work!
+***************************************/
+

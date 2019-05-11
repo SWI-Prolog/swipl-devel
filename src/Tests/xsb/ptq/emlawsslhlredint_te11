@@ -1,0 +1,4 @@
+te1(\(A,all(B,->(@(man,B),@(*(A),B)))),sub,m,[],[],0,2)
+te1(\(A,exists(B,/\(/\(@(woman,B),@(@('love*',*(C)),*(B))),@(*(A),B)))),obj,f,[sub(\(D,all(E,->(@(man,E),@(*(D),E)))),C,m)],[],3,9)
+te1(\(A,exists(B,/\(@(woman,B),@(*(A),B)))),obj,f,[],[],3,5)
+te1(\(A,exists(B,/\(@(woman,B),@(*(A),B)))),obj,f,[sub(\(C,all(D,->(@(man,D),@(*(C),D)))),E,m)],[],3,5)
