@@ -57,7 +57,7 @@ xsb_test_id(Base, TestFile, Goal) :-
     load_files(Module:TestFile, [if(changed), dialect(xsb)]),
     abolish_all_tables,
     with_output_to(string(New),
-                   ignore(Module:Goal)),
+                   ignore(@(Module:Goal, Module))),
     string_terms(New, Me),
     golden_result(TestFile, Gold),
     compare_terms(Me, Gold).
@@ -101,6 +101,8 @@ test_term(Line, _) :-
     !,
     fail.
 test_term(Line, Term) :-
-    term_string(Term, Line),
+    catch(term_string(Term, Line), error(syntax_error(_),_), fail),
+    !,
     numbervars(Term).
+test_term(Line, line(Line)).
 
